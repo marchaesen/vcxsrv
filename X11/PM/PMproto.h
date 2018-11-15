@@ -34,8 +34,8 @@ from The Open Group.
 typedef struct {
     CARD8	majorOpcode;
     CARD8	minorOpcode;	/* == 1 */
-    CARD16	authLen B16;
-    CARD32	length B32;
+    CARD16	authLen;
+    CARD32	length;
     /* STRING	   proxy-service */
     /* STRING	   server-address */
     /* STRING	   host-address */
@@ -52,7 +52,7 @@ typedef struct {
     CARD8	minorOpcode;	/* == 2 */
     CARD8	status;
     CARD8	unused;
-    CARD32	length B32;
+    CARD32	length;
     /* STRING	proxy-address */
     /* STRING	failure-reason */
 } pmGetProxyAddrReplyMsg;
@@ -63,8 +63,8 @@ typedef struct {
 typedef struct {
     CARD8	majorOpcode;
     CARD8	minorOpcode;	/* == 3 */
-    CARD16	unused B16;
-    CARD32	length B32;
+    CARD16	unused;
+    CARD32	length;
     /* STRING	  proxy-service */
 } pmStartProxyMsg;
 

@@ -17,125 +17,125 @@
 
 
 typedef struct {
-  CARD32 surface_type_id B32;
-  CARD16 chroma_format B16;
-  CARD16 pad0 B16;
-  CARD16 max_width B16;
-  CARD16 max_height B16;
-  CARD16 subpicture_max_width B16;
-  CARD16 subpicture_max_height B16;
-  CARD32 mc_type B32;
-  CARD32 flags B32;
+  CARD32 surface_type_id;
+  CARD16 chroma_format;
+  CARD16 pad0;
+  CARD16 max_width;
+  CARD16 max_height;
+  CARD16 subpicture_max_width;
+  CARD16 subpicture_max_height;
+  CARD32 mc_type;
+  CARD32 flags;
 } xvmcSurfaceInfo;
 #define sz_xvmcSurfaceInfo 24;
 
 typedef struct {
   CARD8 reqType;
   CARD8 xvmcReqType;
-  CARD16 length B16;
+  CARD16 length;
 } xvmcQueryVersionReq;
 #define sz_xvmcQueryVersionReq 4;
 
 typedef struct {
   BYTE type;  /* X_Reply */
   BYTE padb1;
-  CARD16 sequenceNumber B16;
-  CARD32 length B32;
-  CARD32 major B32;
-  CARD32 minor B32;
-  CARD32 padl4 B32;
-  CARD32 padl5 B32;
-  CARD32 padl6 B32;
-  CARD32 padl7 B32;
+  CARD16 sequenceNumber;
+  CARD32 length;
+  CARD32 major;
+  CARD32 minor;
+  CARD32 padl4;
+  CARD32 padl5;
+  CARD32 padl6;
+  CARD32 padl7;
 } xvmcQueryVersionReply;
 #define sz_xvmcQueryVersionReply 32
 
 typedef struct {
   CARD8 reqType;
   CARD8 xvmcReqType;
-  CARD16 length B16;
-  CARD32 port B32;
+  CARD16 length;
+  CARD32 port;
 } xvmcListSurfaceTypesReq;
 #define sz_xvmcListSurfaceTypesReq 8;
 
 typedef struct {
   BYTE type;  /* X_Reply */
   BYTE padb1;
-  CARD16 sequenceNumber B16;
-  CARD32 length B32;
-  CARD32 num   B32;
-  CARD32 padl3 B32;
-  CARD32 padl4 B32;
-  CARD32 padl5 B32;
-  CARD32 padl6 B32;
-  CARD32 padl7 B32;
+  CARD16 sequenceNumber;
+  CARD32 length;
+  CARD32 num;
+  CARD32 padl3;
+  CARD32 padl4;
+  CARD32 padl5;
+  CARD32 padl6;
+  CARD32 padl7;
 } xvmcListSurfaceTypesReply;
 #define sz_xvmcListSurfaceTypesReply 32
 
 typedef struct {
   CARD8 reqType;
   CARD8 xvmcReqType;
-  CARD16 length B16;
-  CARD32 context_id B32;
-  CARD32 port B32;
-  CARD32 surface_type_id B32;
-  CARD16 width B16;
-  CARD16 height B16;
-  CARD32 flags B32;
+  CARD16 length;
+  CARD32 context_id;
+  CARD32 port;
+  CARD32 surface_type_id;
+  CARD16 width;
+  CARD16 height;
+  CARD32 flags;
 } xvmcCreateContextReq;
 #define sz_xvmcCreateContextReq 24;
 
 typedef struct {
   BYTE type;  /* X_Reply */
   BYTE padb1;
-  CARD16 sequenceNumber B16;
-  CARD32 length B32;
-  CARD16 width_actual B16;
-  CARD16 height_actual B16;
-  CARD32 flags_return B32;
-  CARD32 padl4 B32;
-  CARD32 padl5 B32;
-  CARD32 padl6 B32;
-  CARD32 padl7 B32;
+  CARD16 sequenceNumber;
+  CARD32 length;
+  CARD16 width_actual;
+  CARD16 height_actual;
+  CARD32 flags_return;
+  CARD32 padl4;
+  CARD32 padl5;
+  CARD32 padl6;
+  CARD32 padl7;
 } xvmcCreateContextReply;
 #define sz_xvmcCreateContextReply 32
 
 typedef struct {
   CARD8 reqType;
   CARD8 xvmcReqType;
-  CARD16 length B16;
-  CARD32 context_id B32;
+  CARD16 length;
+  CARD32 context_id;
 } xvmcDestroyContextReq;
 #define sz_xvmcDestroyContextReq 8;
 
 typedef struct {
   CARD8 reqType;
   CARD8 xvmcReqType;
-  CARD16 length B16;
-  CARD32 surface_id B32;
-  CARD32 context_id B32;
+  CARD16 length;
+  CARD32 surface_id;
+  CARD32 context_id;
 } xvmcCreateSurfaceReq;
 #define sz_xvmcCreateSurfaceReq 12;
 
 typedef struct {
   BYTE type;  /* X_Reply */
   BYTE padb1;
-  CARD16 sequenceNumber B16;
-  CARD32 length B32;
-  CARD32 padl2 B32;
-  CARD32 padl3 B32;
-  CARD32 padl4 B32;
-  CARD32 padl5 B32;
-  CARD32 padl6 B32;
-  CARD32 padl7 B32;
+  CARD16 sequenceNumber;
+  CARD32 length;
+  CARD32 padl2;
+  CARD32 padl3;
+  CARD32 padl4;
+  CARD32 padl5;
+  CARD32 padl6;
+  CARD32 padl7;
 } xvmcCreateSurfaceReply;
 #define sz_xvmcCreateSurfaceReply 32
 
 typedef struct {
   CARD8 reqType;
   CARD8 xvmcReqType;
-  CARD16 length B16;
-  CARD32 surface_id B32;
+  CARD16 length;
+  CARD32 surface_id;
 } xvmcDestroySurfaceReq;
 #define sz_xvmcDestroySurfaceReq 8;
 
@@ -143,83 +143,83 @@ typedef struct {
 typedef struct {
   CARD8 reqType;
   CARD8 xvmcReqType;
-  CARD16 length B16;
-  CARD32 subpicture_id B32;
-  CARD32 context_id B32;
-  CARD32 xvimage_id B32;
-  CARD16 width B16;
-  CARD16 height B16;
+  CARD16 length;
+  CARD32 subpicture_id;
+  CARD32 context_id;
+  CARD32 xvimage_id;
+  CARD16 width;
+  CARD16 height;
 } xvmcCreateSubpictureReq;
 #define sz_xvmcCreateSubpictureReq 20;
 
 typedef struct {
   BYTE type;  /* X_Reply */
   BYTE padb1;
-  CARD16 sequenceNumber B16;
-  CARD32 length B32;
-  CARD16 width_actual B16;
-  CARD16 height_actual B16;
-  CARD16 num_palette_entries B16;
-  CARD16 entry_bytes B16;
+  CARD16 sequenceNumber;
+  CARD32 length;
+  CARD16 width_actual;
+  CARD16 height_actual;
+  CARD16 num_palette_entries;
+  CARD16 entry_bytes;
   CARD8  component_order[4];
-  CARD32 padl5 B32;
-  CARD32 padl6 B32;
-  CARD32 padl7 B32;
+  CARD32 padl5;
+  CARD32 padl6;
+  CARD32 padl7;
 } xvmcCreateSubpictureReply;
 #define sz_xvmcCreateSubpictureReply 32
 
 typedef struct {
   CARD8 reqType;
   CARD8 xvmcReqType;
-  CARD16 length B16;
-  CARD32 subpicture_id B32;
+  CARD16 length;
+  CARD32 subpicture_id;
 } xvmcDestroySubpictureReq;
 #define sz_xvmcDestroySubpictureReq 8;
 
 typedef struct {
   CARD8 reqType;
   CARD8 xvmcReqType;
-  CARD16 length B16;
-  CARD32 port B32;
-  CARD32 surface_type_id B32;
+  CARD16 length;
+  CARD32 port;
+  CARD32 surface_type_id;
 } xvmcListSubpictureTypesReq;
 #define sz_xvmcListSubpictureTypesReq 12;
 
 typedef struct {
   BYTE type;  /* X_Reply */
   BYTE padb1;
-  CARD16 sequenceNumber B16;
-  CARD32 length B32;
-  CARD32 num B32;
-  CARD32 padl2 B32;
-  CARD32 padl3 B32;
-  CARD32 padl4 B32;
-  CARD32 padl5 B32;
-  CARD32 padl6 B32;
+  CARD16 sequenceNumber;
+  CARD32 length;
+  CARD32 num;
+  CARD32 padl2;
+  CARD32 padl3;
+  CARD32 padl4;
+  CARD32 padl5;
+  CARD32 padl6;
 } xvmcListSubpictureTypesReply;
 #define sz_xvmcListSubpictureTypesReply 32
 
 typedef struct {
   CARD8 reqType;
   CARD8 xvmcReqType;
-  CARD16 length B16;
-  CARD32 port B32;
-  CARD32 shmKey B32;
-  CARD32 magic B32;
+  CARD16 length;
+  CARD32 port;
+  CARD32 shmKey;
+  CARD32 magic;
 } xvmcGetDRInfoReq;
 #define sz_xvmcGetDRInfoReq 16;
 
 typedef struct {
   BYTE type;  /* X_Reply */
   BYTE padb1;
-  CARD16 sequenceNumber B16;
-  CARD32 length B32;
-  CARD32 major B32;
-  CARD32 minor B32;
-  CARD32 patchLevel B32;
-  CARD32 nameLen B32;
-  CARD32 busIDLen B32;
-  CARD32 isLocal B32;
+  CARD16 sequenceNumber;
+  CARD32 length;
+  CARD32 major;
+  CARD32 minor;
+  CARD32 patchLevel;
+  CARD32 nameLen;
+  CARD32 busIDLen;
+  CARD32 isLocal;
 } xvmcGetDRInfoReply;
 #define sz_xvmcGetDRInfoReply 32
 

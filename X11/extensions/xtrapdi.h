@@ -112,7 +112,7 @@ typedef struct
 {
     CARD8      valid[4L];  /* Bits TRUE indicates data field is used */
     CARD8      data[4L];   /* Bits looked at if corresponding valid bit set */
-    ReqFlags   req;        /* Bits coorespond to core requests */
+    ReqFlags   req;        /* Bits correspond to core requests */
     EventFlags event;      /* Bits correspond to core events */
 } XETrapFlags;
 
@@ -136,7 +136,7 @@ typedef struct
 typedef struct /* used by XEConfigRequest */
 {
     XETrapFlags flags;            /* Flags to specify what should be chg'd */
-    CARD16      max_pkt_size B16; /* Maximum number of bytes in a packet */
+    CARD16      max_pkt_size;     /* Maximum number of bytes in a packet */
     CARD8       cmd_key;       /* Keyboard command_key (KeyCode) */
 /*
  * cmd_key is intentionally *not* defined KeyCode since it's definition is
@@ -156,8 +156,8 @@ typedef struct /* used by XESimulateXEventRequest for synthesizing core evts */
     CARD8    detail;               /* Detail keycode/button as in XEvent */
     CARD8    screen;               /* screen number (0 to n) */
     CARD8    pad;                  /* pad to longword */
-    INT16    x B16;                   /* X & Y coord as in XEvent */
-    INT16    y B16;
+    INT16    x;                    /* X & Y coord as in XEvent */
+    INT16    y;
 } XETrapInputReq;
 #endif
 
@@ -184,8 +184,8 @@ typedef struct
 {
     CARD8  reqType;
     CARD8  minor_opcode;
-    CARD16 length B16;
-    CARD32 pad B32;         /* Maintain quadword alignment */
+    CARD16 length;
+    CARD32 pad;             /* Maintain quadword alignment */
 } xXTrapReq;
 /* the following works because all fields are defined as bit (Bnn) fields */
 #define sz_xXTrapReq (sizeof(xXTrapReq))
@@ -194,9 +194,9 @@ typedef struct
 {
     CARD8  reqType;
     CARD8  minor_opcode;
-    CARD16 length B16;
-    CARD16 protocol B16;    /* The xtrap extension protocol number */
-    CARD16 pad B16;         /* Maintain quadword alignment */
+    CARD16 length;
+    CARD16 protocol;        /* The xtrap extension protocol number */
+    CARD16 pad;             /* Maintain quadword alignment */
 } xXTrapGetReq;
 /* the following works because all fields are defined as bit (Bnn) fields */
 #define sz_xXTrapGetReq (sizeof(xXTrapGetReq))
@@ -205,9 +205,9 @@ typedef struct
 {
     CARD8     reqType;
     CARD8     minor_opcode;
-    CARD16    length B16;
+    CARD16    length;
     /*
-     * The follwing is done so that structure padding wont be
+     * The following is done so that structure padding wont be
      * a problem.  The request structure contains a shadow for
      * the XETrapCfg structure. Since the XETrapCfg also has a
      * substructure (XETrapFlags) this structure is also shadowed.
@@ -220,7 +220,7 @@ typedef struct
     ReqFlags    config_flags_req;
     EventFlags  config_flags_event;
     /* End Shadow (XETrapFlags)*/
-    CARD16      config_max_pkt_size B16; /* Max number of bytes in a packet */
+    CARD16      config_max_pkt_size;  /* Max number of bytes in a packet */
     CARD8       config_cmd_key;       /* Keyboard command_key (KeyCode) */
 /*
  * cmd_key is intentionally *not* defined KeyCode since it's definition is
@@ -228,7 +228,7 @@ typedef struct
  */
     CARD8      config_pad[1L];           /* pad out to a quadword */
     /* End Shadow (XETrapCfg) */
-    CARD32    pad B32;  /* Maintain quadword alignment */
+    CARD32    pad;      /* Maintain quadword alignment */
 } xXTrapConfigReq;
 /* the following works because all fields are defined as bit (Bnn) fields */
 #define sz_xXTrapConfigReq (sizeof(xXTrapConfigReq))
@@ -238,8 +238,8 @@ typedef struct
 {
     CARD8            reqType;
     CARD8            minor_opcode;
-    CARD16           length B16;
-    CARD32           pad B32;   /* Maintain quadword alignment */
+    CARD16           length;
+    CARD32           pad;       /* Maintain quadword alignment */
     XETrapInputReq   input;
 } xXTrapInputReq;
 /* the following works because all fields are defined as bit (Bnn) fields */
@@ -256,48 +256,48 @@ typedef struct
 {
     CARD8  type;
     CARD8  detail;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;
+    CARD16 sequenceNumber;
+    CARD32 length;
 } XETrapRepHdr;
 
 /* Structure of Get Available Functionality reply */
 typedef struct
 {
-    CARD32  pf_ident B32;    /* Contains constant identifying the platform */
-    CARD16  xtrap_release B16; /* The xtrap extension release number */
-    CARD16  xtrap_version B16; /* The xtrap extension version number */
-    CARD16  xtrap_revision B16; /* The xtrap extension revision number */
-    CARD16  max_pkt_size B16;   /* Maximum number of bytes in a packet */
+    CARD32  pf_ident;         /* Contains constant identifying the platform */
+    CARD16  xtrap_release;    /* The xtrap extension release number */
+    CARD16  xtrap_version;    /* The xtrap extension version number */
+    CARD16  xtrap_revision;   /* The xtrap extension revision number */
+    CARD16  max_pkt_size;     /* Maximum number of bytes in a packet */
     CARD8   valid[4];         /* What specific configuration flags are valid */
-    CARD32  major_opcode B32;   /* The major opcode identifying xtrap */
-    CARD32  event_base B32;     /* The event value we start at */
-    CARD32  pad0 B32;           /* obsolete field */
-    CARD16  pad1 B16, pad2 B16, pad3 B16;         /* obsolete field */
-    CARD16  xtrap_protocol B16; /* The xtrap extension protocol number */
-    INT16   cur_x B16;       /* Current X & Y coord for relative motion */
-    INT16   cur_y B16;
+    CARD32  major_opcode;     /* The major opcode identifying xtrap */
+    CARD32  event_base;       /* The event value we start at */
+    CARD32  pad0;             /* obsolete field */
+    CARD16  pad1, pad2, pad3; /* obsolete field */
+    CARD16  xtrap_protocol;   /* The xtrap extension protocol number */
+    INT16   cur_x;            /* Current X & Y coord for relative motion */
+    INT16   cur_y;
 } XETrapGetAvailRep;
 
 typedef struct
 {
-    CARD16  xtrap_release B16;   /* The xtrap extension release number */
-    CARD16  xtrap_version B16;   /* The xtrap extension version number */
-    CARD16  xtrap_revision B16;  /* The xtrap extension revision number */
-    CARD16  xtrap_protocol B16;  /* The xtrap extension protocol number */
+    CARD16  xtrap_release;    /* The xtrap extension release number */
+    CARD16  xtrap_version;    /* The xtrap extension version number */
+    CARD16  xtrap_revision;   /* The xtrap extension revision number */
+    CARD16  xtrap_protocol;   /* The xtrap extension protocol number */
 } XETrapGetVersRep;
 
 typedef struct
 {
-    CARD32 last_time B32;    /* Timestamp of last input time */
+    CARD32 last_time;         /* Timestamp of last input time */
 } XETrapGetLastInpTimeRep;
 
 /* Structure of Get Current Configuration Information reply */
 typedef struct
 {
-    CARD8       state_flags[2]; /* Miscelaneous flags, see below #define's */
-    CARD16      pad0 B16;       /* Assure quadword alignment */
+    CARD8       state_flags[2]; /* Miscellaneous flags, see below #define's */
+    CARD16      pad0;           /* Assure quadword alignment */
     XETrapCfg   config;         /* Current Config information */
-    CARD32      pad1 B32;
+    CARD32      pad1;
 } XETrapGetCurRep;
 
 /* Mask definitions for the above flags. */
@@ -309,7 +309,7 @@ typedef struct
     CARD32   requests[256L]; /* Array containing request counts if trapped */
     CARD32   events[XETrapCoreEvents];  /* Array containing event stats */
 #ifndef VECTORED_EVENTS
-    CARD32   pad B32;       /* Pad out to a quadword */
+    CARD32   pad;            /* Pad out to a quadword */
 #endif
 } XETrapGetStatsRep;
 
@@ -352,10 +352,10 @@ typedef struct
 {
     XETrapRepHdr       hdr;
     XETrapGetVersRep  data;
-    CARD32 pad0 B32;    /* pad out to 32 bytes */
-    CARD32 pad1 B32;
-    CARD32 pad2 B32;
-    CARD32 pad3 B32;
+    CARD32 pad0;        /* pad out to 32 bytes */
+    CARD32 pad1;
+    CARD32 pad2;
+    CARD32 pad3;
 } xXTrapGetVersReply;
 /* the following works because all fields are defined as bit (Bnn) fields */
 #define sz_xXTrapGetVersReply  sizeof(xXTrapGetVersReply)
@@ -368,12 +368,12 @@ typedef struct
      * The following is a shadow of the XETrapGetLastInpTimeRep
      * structure.  This is done to avoid structure padding.
      */
-    CARD32 data_last_time B32;    /* Timestamp of last input time */
-    CARD32 pad0 B32;    /* pad out to 32 bytes */
-    CARD32 pad1 B32;
-    CARD32 pad2 B32;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
+    CARD32 data_last_time;    /* Timestamp of last input time */
+    CARD32 pad0;              /* pad out to 32 bytes */
+    CARD32 pad1;
+    CARD32 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
 } xXTrapGetLITimReply;
 /* the following works because all fields are defined as bit (Bnn) fields */
 #define sz_xXTrapGetLITimReply  sizeof(xXTrapGetLITimReply)
@@ -388,13 +388,13 @@ typedef struct
      * Since the XETrapGetCurRep structure contains a sub-structure
      * (XETrapCfg) there is a shadow for that as well.*/
     CARD8       data_state_flags[2]; /* Misc flags, see below #define's */
-    CARD16      data_pad0 B16;       /* Assure quadword alignment */
+    CARD16      data_pad0;           /* Assure quadword alignment */
     /* XETrapCfg Shadow Starts */
     CARD8       data_config_flags_valid[4L];
     CARD8       data_config_flags_data[4L];
     ReqFlags    data_config_flags_req;
     EventFlags  data_config_flags_event;
-    CARD16      data_config_max_pkt_size B16; /* Max num of bytes in a pkt */
+    CARD16      data_config_max_pkt_size;  /* Max num of bytes in a pkt */
     CARD8       data_config_cmd_key;       /* Keyboard cmd_key (KeyCode) */
 /*
  * cmd_key is intentionally *not* defined KeyCode since it's definition is
@@ -402,7 +402,7 @@ typedef struct
  */
     CARD8      data_config_pad[1L];           /* pad out to a quadword */
     /* End Shadow (XETrapCfg) */
-    CARD32      pad1 B32;
+    CARD32      pad1;
 } xXTrapGetCurReply;
 /* the following works because all fields are defined as bit (Bnn) fields */
 #define sz_xXTrapGetCurReply  sizeof(xXTrapGetCurReply)
@@ -418,27 +418,27 @@ typedef struct
 {
     CARD8  type;
     CARD8  detail;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;
-    CARD32 pad0 B32;
-    CARD32 pad1 B32;
-    CARD32 pad2 B32;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
+    CARD16 sequenceNumber;
+    CARD32 length;
+    CARD32 pad0;
+    CARD32 pad1;
+    CARD32 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
     XETrapGetStatsRep  data;
 } xXTrapGetStatsReply;
 #define sz_xXTrapGetStatsReply  1088
 
 typedef struct /* the XTrap Output header (for output from ext to client) */
 {   /* this must be quadword aligned for portability */
-    CARD32   count B32;              /* Length including this header */
-    CARD32   timestamp B32;          /* timestamp if desired */
+    CARD32   count;               /* Length including this header */
+    CARD32   timestamp;           /* timestamp if desired */
     CARD8    type;                /* event id, request id, special id */
     CARD8    screen;              /* screen number (0 to n) */
-    INT16    win_x B16;              /* X coord of drawable, if any */
-    INT16    win_y B16;              /* X coord of drawable, if any */
-    CARD16   client B16;             /* to distinguish requests */
+    INT16    win_x;               /* X coord of drawable, if any */
+    INT16    win_y;               /* X coord of drawable, if any */
+    CARD16   client;              /* to distinguish requests */
 } XETrapHeader;
 /* the following works because all fields are defined as bit (Bnn) fields */
 #define sz_XETrapHeader   sizeof(XETrapHeader)
@@ -480,8 +480,8 @@ typedef struct
 typedef struct {
     CARD8  type;
     CARD8  detail;
-    CARD16 sequenceNumber B16;
-    CARD32 idx B32;
+    CARD16 sequenceNumber;
+    CARD32 idx;
     CARD8  data[sz_EventData];
 } xETrapDataEvent;
 

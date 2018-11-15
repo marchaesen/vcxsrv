@@ -81,8 +81,8 @@ build_color_shaders(struct nir_shader **out_vs,
 				    "v_layer");
 	vs_out_layer->data.location = VARYING_SLOT_LAYER;
 	vs_out_layer->data.interpolation = INTERP_MODE_FLAT;
-	nir_ssa_def *inst_id = nir_load_system_value(&vs_b, nir_intrinsic_load_instance_id, 0);
-	nir_ssa_def *base_instance = nir_load_system_value(&vs_b, nir_intrinsic_load_base_instance, 0);
+	nir_ssa_def *inst_id = nir_load_instance_id(&vs_b);
+	nir_ssa_def *base_instance = nir_load_base_instance(&vs_b);
 
 	nir_ssa_def *layer_id = nir_iadd(&vs_b, inst_id, base_instance);
 	nir_store_var(&vs_b, vs_out_layer, layer_id, 0x1);
@@ -470,8 +470,8 @@ build_depthstencil_shader(struct nir_shader **out_vs, struct nir_shader **out_fs
 				    "v_layer");
 	vs_out_layer->data.location = VARYING_SLOT_LAYER;
 	vs_out_layer->data.interpolation = INTERP_MODE_FLAT;
-	nir_ssa_def *inst_id = nir_load_system_value(&vs_b, nir_intrinsic_load_instance_id, 0);
-	nir_ssa_def *base_instance = nir_load_system_value(&vs_b, nir_intrinsic_load_base_instance, 0);
+	nir_ssa_def *inst_id = nir_load_instance_id(&vs_b);
+	nir_ssa_def *base_instance = nir_load_base_instance(&vs_b);
 
 	nir_ssa_def *layer_id = nir_iadd(&vs_b, inst_id, base_instance);
 	nir_store_var(&vs_b, vs_out_layer, layer_id, 0x1);

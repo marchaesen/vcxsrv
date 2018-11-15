@@ -34,7 +34,8 @@
  */
 
 static bool
-nir_lower_to_source_mods_block(nir_block *block)
+nir_lower_to_source_mods_block(nir_block *block,
+                               nir_lower_to_source_mods_flags options)
 {
    bool progress = false;
 
@@ -58,10 +59,14 @@ nir_lower_to_source_mods_block(nir_block *block)
 
          switch (nir_alu_type_get_base_type(nir_op_infos[alu->op].input_types[i])) {
          case nir_type_float:
+            if (!(options & nir_lower_float_source_mods))
+               continue;
             if (parent->op != nir_op_fmov)
                continue;
             break;
          case nir_type_int:
+            if (!(options & nir_lower_int_source_mods))
+               continue;
             if (parent->op != nir_op_imov)
                continue;
             break;
@@ -97,33 +102,41 @@ nir_lower_to_source_mods_block(nir_block *block)
          progress = true;
       }
 
-      switch (alu->op) {
-      case nir_op_fsat:
-         alu->op = nir_op_fmov;
-         alu->dest.saturate = true;
-         break;
-      case nir_op_ineg:
-         alu->op = nir_op_imov;
-         alu->src[0].negate = !alu->src[0].negate;
-         break;
-      case nir_op_fneg:
-         alu->op = nir_op_fmov;
-         alu->src[0].negate = !alu->src[0].negate;
-         break;
-      case nir_op_iabs:
-         alu->op = nir_op_imov;
-         alu->src[0].abs = true;
-         alu->src[0].negate = false;
-         break;
-      case nir_op_fabs:
-         alu->op = nir_op_fmov;
-         alu->src[0].abs = true;
-         alu->src[0].negate = false;
-         break;
-      default:
-         break;
+      if (options & nir_lower_float_source_mods) {
+         switch (alu->op) {
+         case nir_op_fsat:
+            alu->op = nir_op_fmov;
+            alu->dest.saturate = true;
+            break;
+         case nir_op_fneg:
+            alu->op = nir_op_fmov;
+            alu->src[0].negate = !alu->src[0].negate;
+            break;
+         case nir_op_fabs:
+            alu->op = nir_op_fmov;
+            alu->src[0].abs = true;
+            alu->src[0].negate = false;
+            break;
+         default:
+            break;
+         }
       }
 
+      if (options & nir_lower_int_source_mods) {
+         switch (alu->op) {
+         case nir_op_ineg:
+            alu->op = nir_op_imov;
+            alu->src[0].negate = !alu->src[0].negate;
+            break;
+         case nir_op_iabs:
+            alu->op = nir_op_imov;
+            alu->src[0].abs = true;
+            alu->src[0].negate = false;
+            break;
+         default:
+            break;
+         }
+      }
       /* We've covered sources.  Now we're going to try and saturate the
        * destination if we can.
        */
@@ -134,6 +147,9 @@ nir_lower_to_source_mods_block(nir_block *block)
       /* We can only saturate float destinations */
       if (nir_alu_type_get_base_type(nir_op_infos[alu->op].output_type) !=
           nir_type_float)
+         continue;
+
+      if (!(options & nir_lower_float_source_mods))
          continue;
 
       if (!list_empty(&alu->dest.dest.ssa.if_uses))
@@ -185,12 +201,13 @@ nir_lower_to_source_mods_block(nir_block *block)
 }
 
 static bool
-nir_lower_to_source_mods_impl(nir_function_impl *impl)
+nir_lower_to_source_mods_impl(nir_function_impl *impl,
+                              nir_lower_to_source_mods_flags options)
 {
    bool progress = false;
 
    nir_foreach_block(block, impl) {
-      progress |= nir_lower_to_source_mods_block(block);
+      progress |= nir_lower_to_source_mods_block(block, options);
    }
 
    if (progress)
@@ -201,13 +218,14 @@ nir_lower_to_source_mods_impl(nir_function_impl *impl)
 }
 
 bool
-nir_lower_to_source_mods(nir_shader *shader)
+nir_lower_to_source_mods(nir_shader *shader,
+                         nir_lower_to_source_mods_flags options)
 {
    bool progress = false;
 
    nir_foreach_function(function, shader) {
       if (function->impl) {
-         progress |= nir_lower_to_source_mods_impl(function->impl);
+         progress |= nir_lower_to_source_mods_impl(function->impl, options);
       }
    }
 

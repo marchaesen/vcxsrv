@@ -952,6 +952,19 @@ nir_alu_instr_channel_used(const nir_alu_instr *instr, unsigned src,
    return (instr->dest.write_mask >> channel) & 1;
 }
 
+static inline nir_component_mask_t
+nir_alu_instr_src_read_mask(const nir_alu_instr *instr, unsigned src)
+{
+   nir_component_mask_t read_mask = 0;
+   for (unsigned c = 0; c < NIR_MAX_VEC_COMPONENTS; c++) {
+      if (!nir_alu_instr_channel_used(instr, src, c))
+         continue;
+
+      read_mask |= (1 << instr->src[src].swizzle[c]);
+   }
+   return read_mask;
+}
+
 /*
  * For instructions whose destinations are SSA, get the number of channels
  * used for a source
@@ -2070,6 +2083,9 @@ typedef struct nir_shader_compiler_options {
     */
    bool fdot_replicates;
 
+   /** lowers ffloor to fsub+ffract: */
+   bool lower_ffloor;
+
    /** lowers ffract to fsub+ffloor: */
    bool lower_ffract;
 
@@ -2800,6 +2816,7 @@ bool nir_remove_unused_io_vars(nir_shader *shader, struct exec_list *var_list,
 void nir_compact_varyings(nir_shader *producer, nir_shader *consumer,
                           bool default_to_smooth_interp);
 void nir_link_xfb_varyings(nir_shader *producer, nir_shader *consumer);
+bool nir_link_constant_varyings(nir_shader *producer, nir_shader *consumer);
 
 typedef enum {
    /* If set, this forces all non-flat fragment shader inputs to be
@@ -2891,6 +2908,7 @@ typedef struct nir_lower_tex_options {
    unsigned lower_y_u_v_external;
    unsigned lower_yx_xuxv_external;
    unsigned lower_xy_uxvx_external;
+   unsigned lower_ayuv_external;
 
    /**
     * To emulate certain texture wrap modes, this can be used
@@ -2999,7 +3017,15 @@ typedef struct nir_lower_bitmap_options {
 void nir_lower_bitmap(nir_shader *shader, const nir_lower_bitmap_options *options);
 
 bool nir_lower_atomics_to_ssbo(nir_shader *shader, unsigned ssbo_offset);
-bool nir_lower_to_source_mods(nir_shader *shader);
+
+typedef enum  {
+   nir_lower_int_source_mods = 1 << 0,
+   nir_lower_float_source_mods = 1 << 1,
+   nir_lower_all_source_mods = (1 << 2) - 1
+} nir_lower_to_source_mods_flags;
+
+
+bool nir_lower_to_source_mods(nir_shader *shader, nir_lower_to_source_mods_flags options);
 
 bool nir_lower_gs_intrinsics(nir_shader *shader);
 

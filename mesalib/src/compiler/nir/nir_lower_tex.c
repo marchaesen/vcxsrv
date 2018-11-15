@@ -261,7 +261,8 @@ sample_plane(nir_builder *b, nir_tex_instr *tex, int plane)
 
 static void
 convert_yuv_to_rgb(nir_builder *b, nir_tex_instr *tex,
-                   nir_ssa_def *y, nir_ssa_def *u, nir_ssa_def *v)
+                   nir_ssa_def *y, nir_ssa_def *u, nir_ssa_def *v,
+                   nir_ssa_def *a)
 {
    nir_const_value m[3] = {
       { .f32 = { 1.0f,  0.0f,         1.59602678f, 0.0f } },
@@ -281,7 +282,7 @@ convert_yuv_to_rgb(nir_builder *b, nir_tex_instr *tex,
    nir_ssa_def *green = nir_fdot4(b, yuv, nir_build_imm(b, 4, 32, m[1]));
    nir_ssa_def *blue = nir_fdot4(b, yuv, nir_build_imm(b, 4, 32, m[2]));
 
-   nir_ssa_def *result = nir_vec4(b, red, green, blue, nir_imm_float(b, 1.0f));
+   nir_ssa_def *result = nir_vec4(b, red, green, blue, a);
 
    nir_ssa_def_rewrite_uses(&tex->dest.ssa, nir_src_for_ssa(result));
 }
@@ -297,7 +298,8 @@ lower_y_uv_external(nir_builder *b, nir_tex_instr *tex)
    convert_yuv_to_rgb(b, tex,
                       nir_channel(b, y, 0),
                       nir_channel(b, uv, 0),
-                      nir_channel(b, uv, 1));
+                      nir_channel(b, uv, 1),
+                      nir_imm_float(b, 1.0f));
 }
 
 static void
@@ -312,7 +314,8 @@ lower_y_u_v_external(nir_builder *b, nir_tex_instr *tex)
    convert_yuv_to_rgb(b, tex,
                       nir_channel(b, y, 0),
                       nir_channel(b, u, 0),
-                      nir_channel(b, v, 0));
+                      nir_channel(b, v, 0),
+                      nir_imm_float(b, 1.0f));
 }
 
 static void
@@ -326,7 +329,8 @@ lower_yx_xuxv_external(nir_builder *b, nir_tex_instr *tex)
    convert_yuv_to_rgb(b, tex,
                       nir_channel(b, y, 0),
                       nir_channel(b, xuxv, 1),
-                      nir_channel(b, xuxv, 3));
+                      nir_channel(b, xuxv, 3),
+                      nir_imm_float(b, 1.0f));
 }
 
 static void
@@ -340,7 +344,22 @@ lower_xy_uxvx_external(nir_builder *b, nir_tex_instr *tex)
   convert_yuv_to_rgb(b, tex,
                      nir_channel(b, y, 1),
                      nir_channel(b, uxvx, 0),
-                     nir_channel(b, uxvx, 2));
+                     nir_channel(b, uxvx, 2),
+                     nir_imm_float(b, 1.0f));
+}
+
+static void
+lower_ayuv_external(nir_builder *b, nir_tex_instr *tex)
+{
+  b->cursor = nir_after_instr(&tex->instr);
+
+  nir_ssa_def *ayuv = sample_plane(b, tex, 0);
+
+  convert_yuv_to_rgb(b, tex,
+                     nir_channel(b, ayuv, 2),
+                     nir_channel(b, ayuv, 1),
+                     nir_channel(b, ayuv, 0),
+                     nir_channel(b, ayuv, 3));
 }
 
 /*
@@ -785,6 +804,11 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
 
       if ((1 << tex->texture_index) & options->lower_xy_uxvx_external) {
          lower_xy_uxvx_external(b, tex);
+         progress = true;
+      }
+
+      if ((1 << tex->texture_index) & options->lower_ayuv_external) {
+         lower_ayuv_external(b, tex);
          progress = true;
       }
 

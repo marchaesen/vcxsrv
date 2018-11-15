@@ -777,6 +777,11 @@ color_to_pixel (const pixman_color_t *color,
 {
     uint32_t c = color_to_uint32 (color);
 
+    if (PIXMAN_FORMAT_TYPE (format) == PIXMAN_TYPE_RGBA_FLOAT)
+    {
+	return FALSE;
+    }
+
     if (!(format == PIXMAN_a8r8g8b8     ||
           format == PIXMAN_x8r8g8b8     ||
           format == PIXMAN_a8b8g8r8     ||

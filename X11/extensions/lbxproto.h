@@ -95,93 +95,93 @@
 typedef struct {
     BOOL	success;		/* TRUE */
     BOOL	changeType;
-    CARD16	majorVersion B16,
-		minorVersion B16;
-    CARD16	length B16;		/* 1/4 additional bytes in setup info */
-    CARD32	tag B32;
+    CARD16	majorVersion,
+		minorVersion;
+    CARD16	length;			/* 1/4 additional bytes in setup info */
+    CARD32	tag;
 } xLbxConnSetupPrefix;
 
 typedef struct _LbxQueryVersion {
     CARD8	reqType;		/* always LbxReqCode */
     CARD8	lbxReqType;		/* always X_LbxQueryVersion */
-    CARD16	length B16;
+    CARD16	length;
 } xLbxQueryVersionReq;
 #define sz_xLbxQueryVersionReq	4
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD16	majorVersion B16;	/* major version of LBX protocol */
-    CARD16	minorVersion B16;	/* minor version of LBX protocol */
-    CARD32	pad0 B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD16	majorVersion;		/* major version of LBX protocol */
+    CARD16	minorVersion;		/* minor version of LBX protocol */
+    CARD32	pad0;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
 } xLbxQueryVersionReply;
 #define sz_xLbxQueryVersionReply	32
 
 typedef struct _LbxStartProxy {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxStartProxy */
-    CARD16	length B16;
+    CARD16	length;
 } xLbxStartProxyReq;
 #define sz_xLbxStartProxyReq	    4
 
 typedef struct _LbxStopProxy {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxStopProxy */
-    CARD16	length B16;
+    CARD16	length;
 } xLbxStopProxyReq;
 #define sz_xLbxStopProxyReq	    4
 
 typedef struct _LbxSwitch {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxSwitch */
-    CARD16	length B16;
-    CARD32	client B32;	/* new client */
+    CARD16	length;
+    CARD32	client;		/* new client */
 } xLbxSwitchReq;
 #define sz_xLbxSwitchReq	8
 
 typedef struct _LbxNewClient {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxNewClient */
-    CARD16	length B16;
-    CARD32	client B32;	/* new client */
+    CARD16	length;
+    CARD32	client;		/* new client */
 } xLbxNewClientReq;
 #define sz_xLbxNewClientReq	8
 
 typedef struct _LbxCloseClient {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxCloseClient */
-    CARD16	length B16;
-    CARD32	client B32;	/* new client */
+    CARD16	length;
+    CARD32	client;		/* new client */
 } xLbxCloseClientReq;
 #define sz_xLbxCloseClientReq	8
 
 typedef struct _LbxModifySequence {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxModifySequence */
-    CARD16	length B16;
-    CARD32	adjust B32;
+    CARD16	length;
+    CARD32	adjust;
 } xLbxModifySequenceReq;
 #define sz_xLbxModifySequenceReq    8
 
 typedef struct _LbxAllowMotion {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxAllowMotion */
-    CARD16	length B16;
-    CARD32	num B32;
+    CARD16	length;
+    CARD32	num;
 } xLbxAllowMotionReq;
 #define sz_xLbxAllowMotionReq    8
 
 typedef struct {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxGrabCmap */
-    CARD16	length B16;
-    Colormap	cmap B32;
+    CARD16	length;
+    Colormap	cmap;
 } xLbxGrabCmapReq;
 #define sz_xLbxGrabCmapReq	8
 
@@ -201,14 +201,14 @@ typedef struct {
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	flags;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	pad0 B16;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B16;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	pad0;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
 } xLbxGrabCmapReply;
 #define sz_xLbxGrabCmapReply	32
 #define sz_xLbxGrabCmapReplyHdr	8
@@ -217,35 +217,35 @@ typedef struct {
 typedef struct {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxReleaseCmap */
-    CARD16	length B16;
-    Colormap	cmap B32;
+    CARD16	length;
+    Colormap	cmap;
 } xLbxReleaseCmapReq;
 #define sz_xLbxReleaseCmapReq	8
 
 typedef struct {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxAllocColor */
-    CARD16	length B16;
-    Colormap	cmap B32;
-    CARD32	pixel B32;
-    CARD16	red B16, green B16, blue B16;
-    CARD16	pad B16;
+    CARD16	length;
+    Colormap	cmap;
+    CARD32	pixel;
+    CARD16	red, green, blue;
+    CARD16	pad;
 } xLbxAllocColorReq;
 #define sz_xLbxAllocColorReq	20
 
 typedef struct _LbxIncrementPixel {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxIncrementPixel */
-    CARD16	length B16;
-    CARD32	cmap B32;
-    CARD32	pixel B32;
+    CARD16	length;
+    CARD32	cmap;
+    CARD32	pixel;
 } xLbxIncrementPixelReq;
 #define sz_xLbxIncrementPixelReq    12
 
 typedef struct _LbxDelta {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxDelta */
-    CARD16	length B16;
+    CARD16	length;
     CARD8	diffs;		/* number of diffs */
     CARD8	cindex;		/* cache index */
 				/* list of diffs follows */
@@ -255,75 +255,75 @@ typedef struct _LbxDelta {
 typedef struct _LbxGetModifierMapping {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxGetModifierMapping */
-    CARD16	length B16;
+    CARD16	length;
 } xLbxGetModifierMappingReq;
 #define	sz_xLbxGetModifierMappingReq	4
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	keyspermod;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	tag B32;
-    CARD32	pad0 B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	tag;
+    CARD32	pad0;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
 } xLbxGetModifierMappingReply;
 #define sz_xLbxGetModifierMappingReply	32
 
 typedef struct _LbxGetKeyboardMapping {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxGetKeyboardMapping */
-    CARD16	length B16;
+    CARD16	length;
     KeyCode	firstKeyCode;
     CARD8	count;
-    CARD16	pad1 B16;
+    CARD16	pad1;
 } xLbxGetKeyboardMappingReq;
 #define	sz_xLbxGetKeyboardMappingReq	8
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	keysperkeycode;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	tag B32;
-    CARD32	pad0 B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	tag;
+    CARD32	pad0;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
 } xLbxGetKeyboardMappingReply;
 #define sz_xLbxGetKeyboardMappingReply	32
 
 typedef struct _LbxQueryFont {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxQueryFont */
-    CARD16	length B16;
-    CARD32	fid B32;
+    CARD16	length;
+    CARD32	fid;
 } xLbxQueryFontReq;
 #define	sz_xLbxQueryFontReq	8
 
 typedef struct _LbxInternAtoms {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxInternAtoms */
-    CARD16	length B16;
-    CARD16	num B16;
+    CARD16	length;
+    CARD16	num;
 } xLbxInternAtomsReq;
 #define sz_xLbxInternAtomsReq	6
 
 typedef struct {
     BYTE	type;		/* X_Reply */
     CARD8	unused;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	atomsStart B32;
-    CARD32	pad0 B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	atomsStart;
+    CARD32	pad0;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
 } xLbxInternAtomsReply;
 #define sz_xLbxInternAtomsReply		32
 #define sz_xLbxInternAtomsReplyHdr	8
@@ -332,39 +332,39 @@ typedef struct {
 typedef struct _LbxGetWinAttrAndGeom {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxGetWinAttrAndGeom */
-    CARD16	length B16;
-    CARD32	id B32;		/* window id */
+    CARD16	length;
+    CARD32	id;		/* window id */
 } xLbxGetWinAttrAndGeomReq;
 #define sz_xLbxGetWinAttrAndGeomReq 8
 
 typedef struct {
     BYTE type;  /* X_Reply */
     CARD8 backingStore;
-    CARD16 sequenceNumber B16;
-    CARD32 length B32;	/* NOT 0; this is an extra-large reply */
-    VisualID visualID B32;
+    CARD16 sequenceNumber;
+    CARD32 length;		/* NOT 0; this is an extra-large reply */
+    VisualID visualID;
 #if defined(__cplusplus) || defined(c_plusplus)
-    CARD16 c_class B16;
+    CARD16 c_class;
 #else
-    CARD16 class B16;
+    CARD16 class;
 #endif
     CARD8 bitGravity;
     CARD8 winGravity;
-    CARD32 backingBitPlanes B32;
-    CARD32 backingPixel B32;
+    CARD32 backingBitPlanes;
+    CARD32 backingPixel;
     BOOL saveUnder;
     BOOL mapInstalled;
     CARD8 mapState;
     BOOL override;
-    Colormap colormap B32;
-    CARD32 allEventMasks B32;
-    CARD32 yourEventMask B32;
-    CARD16 doNotPropagateMask B16;
-    CARD16 pad1 B16;
-    Window root B32;
-    INT16 x B16, y B16;
-    CARD16 width B16, height B16;
-    CARD16 borderWidth B16;
+    Colormap colormap;
+    CARD32 allEventMasks;
+    CARD32 yourEventMask;
+    CARD16 doNotPropagateMask;
+    CARD16 pad1;
+    Window root;
+    INT16 x, y;
+    CARD16 width, height;
+    CARD16 borderWidth;
     CARD8 depth;
     CARD8 pad2;
 } xLbxGetWinAttrAndGeomReply;
@@ -374,21 +374,21 @@ typedef struct {
 typedef struct {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxSync */
-    CARD16	length B16;
+    CARD16	length;
 } xLbxSyncReq;
 #define sz_xLbxSyncReq	4
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	pad0;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xLbxSyncReply;
 #define sz_xLbxSyncReply 32
 
@@ -415,7 +415,7 @@ typedef struct {
 #define	LBX_MASK_BITS(val, n)	((unsigned int) ((val) & ((1 << (n)) - 1)))
 
 typedef struct {
-    CARD32	metrics B32;
+    CARD32	metrics;
 } xLbxCharInfo;
 
 /* note that this is identical to xQueryFontReply except for missing
@@ -425,33 +425,33 @@ typedef struct {
     xCharInfo minBounds;
 /* XXX do we need to leave this gunk? */
 #ifndef WORD64
-    CARD32 walign1 B32;
+    CARD32 walign1;
 #endif
     xCharInfo maxBounds;
 #ifndef WORD64
-    CARD32 walign2 B32;
+    CARD32 walign2;
 #endif
-    CARD16 minCharOrByte2 B16, maxCharOrByte2 B16;
-    CARD16 defaultChar B16;
-    CARD16 nFontProps B16;  /* followed by this many xFontProp structures */
+    CARD16 minCharOrByte2, maxCharOrByte2;
+    CARD16 defaultChar;
+    CARD16 nFontProps;	/* followed by this many xFontProp structures */
     CARD8 drawDirection;
     CARD8 minByte1, maxByte1;
     BOOL allCharsExist;
-    INT16 fontAscent B16, fontDescent B16;
-    CARD32 nCharInfos B32; /* followed by this many xLbxCharInfo structures */
+    INT16 fontAscent, fontDescent;
+    CARD32 nCharInfos;	/* followed by this many xLbxCharInfo structures */
 } xLbxFontInfo;
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	compression;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	tag B32;
-    CARD32	pad0 B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	tag;
+    CARD32	pad0;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
     /* X_QueryFont sticks much of the data in the base reply packet,
      * but we hope that it won't be needed, (and it won't fit in 32 bytes
      * with the tag anyways)
@@ -464,65 +464,65 @@ typedef struct {
 typedef struct _LbxChangeProperty {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxChangeProperty */
-    CARD16	length B16;
-    Window	window B32;
-    Atom	property B32;
-    Atom	type B32;
+    CARD16	length;
+    Window	window;
+    Atom	property;
+    Atom	type;
     CARD8	format;
     CARD8	mode;
     BYTE	pad[2];
-    CARD32	nUnits B32;
+    CARD32	nUnits;
 } xLbxChangePropertyReq;
 #define	sz_xLbxChangePropertyReq	24
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	pad;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	tag B32;
-    CARD32	pad0 B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	tag;
+    CARD32	pad0;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
 } xLbxChangePropertyReply;
 #define sz_xLbxChangePropertyReply	32
 
 typedef struct _LbxGetProperty {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxGetProperty */
-    CARD16	length B16;
-    Window	window B32;
-    Atom	property B32;
-    Atom	type B32;
+    CARD16	length;
+    Window	window;
+    Atom	property;
+    Atom	type;
     CARD8	delete;
     BYTE	pad[3];
-    CARD32	longOffset B32;
-    CARD32	longLength B32;
+    CARD32	longOffset;
+    CARD32	longLength;
 } xLbxGetPropertyReq;
 #define	sz_xLbxGetPropertyReq	28
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	format;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    Atom	propertyType B32;
-    CARD32	bytesAfter B32;
-    CARD32	nItems B32;
-    CARD32	tag B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    Atom	propertyType;
+    CARD32	bytesAfter;
+    CARD32	nItems;
+    CARD32	tag;
+    CARD32	pad1;
+    CARD32	pad2;
 } xLbxGetPropertyReply;
 #define sz_xLbxGetPropertyReply	32
 
 typedef struct _LbxTagData {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxTagData */
-    CARD16	length B16;
-    XID		tag B32;
-    CARD32	real_length B32;
+    CARD16	length;
+    XID 	tag;
+    CARD32	real_length;
     /* data */
 } xLbxTagDataReq;
 #define	sz_xLbxTagDataReq	12
@@ -530,15 +530,15 @@ typedef struct _LbxTagData {
 typedef struct _LbxInvalidateTag {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxInvalidateTag */
-    CARD16	length B16;
-    CARD32	tag B32;
+    CARD16	length;
+    CARD32	tag;
 } xLbxInvalidateTagReq;
 #define	sz_xLbxInvalidateTagReq	8
 
 typedef struct _LbxPutImage {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxPutImage */
-    CARD16	length B16;
+    CARD16	length;
     CARD8	compressionMethod;
     CARD8	cacheEnts;
     CARD8	bitPacked;
@@ -549,14 +549,14 @@ typedef struct _LbxPutImage {
 typedef struct {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxGetImage */
-    CARD16	length B16;
-    Drawable	drawable B32;
-    INT16	x B16, y B16;
-    CARD16	width B16, height B16;
-    CARD32	planeMask B32;
+    CARD16	length;
+    Drawable	drawable;
+    INT16	x, y;
+    CARD16	width, height;
+    CARD32	planeMask;
     CARD8	format;
     CARD8	pad1;
-    CARD16	pad2 B16;
+    CARD16	pad2;
 } xLbxGetImageReq;
 
 #define sz_xLbxGetImageReq 24
@@ -564,16 +564,16 @@ typedef struct {
 typedef struct {
     BYTE type;			/* X_Reply */
     CARD8 depth;
-    CARD16 sequenceNumber B16;
-    CARD32 lbxLength B32;
-    CARD32 xLength B32;
-    VisualID visual B32;
+    CARD16 sequenceNumber;
+    CARD32 lbxLength;
+    CARD32 xLength;
+    VisualID visual;
     CARD8 compressionMethod;
     CARD8 pad1;
-    CARD16 pad2 B16;
-    CARD32 pad3 B32;
-    CARD32 pad4 B32;
-    CARD32 pad5 B32;
+    CARD16 pad2;
+    CARD32 pad3;
+    CARD32 pad4;
+    CARD32 pad5;
 } xLbxGetImageReply;
 
 #define sz_xLbxGetImageReply 32
@@ -592,7 +592,7 @@ typedef struct {
 typedef struct _LbxPolyPoint {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;
-    CARD16	length B16;
+    CARD16	length;
     CARD8	cacheEnts;
     CARD8	padBytes;
 } xLbxPolyPointReq;
@@ -616,7 +616,7 @@ typedef xLbxPolyPointReq xLbxPolyFillArcReq;
 typedef struct _LbxFillPoly {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;
-    CARD16	length B16;
+    CARD16	length;
     CARD8	cacheEnts;
     BYTE	shape;
     CARD8	padBytes;
@@ -626,7 +626,7 @@ typedef struct _LbxFillPoly {
 typedef struct _LbxCopyArea {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;
-    CARD16	length B16;
+    CARD16	length;
     CARD8	srcCache;	/* source drawable */
     CARD8	cacheEnts;	/* dest drawable and gc */
     /* followed by encoded src x, src y, dst x, dst y, width, height */
@@ -637,8 +637,8 @@ typedef struct _LbxCopyArea {
 typedef struct _LbxCopyPlane {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;
-    CARD16	length B16;
-    CARD32	bitPlane B32;
+    CARD16	length;
+    CARD32	bitPlane;
     CARD8	srcCache;	/* source drawable */
     CARD8	cacheEnts;	/* dest drawable and gc */
     /* followed by encoded src x, src y, dst x, dst y, width, height */
@@ -649,7 +649,7 @@ typedef struct _LbxCopyPlane {
 typedef struct _LbxPolyText {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;
-    CARD16	length B16;
+    CARD16	length;
     CARD8	cacheEnts;
     /* followed by encoded src x, src y coordinates and text elts */
 } xLbxPolyTextReq;
@@ -666,7 +666,7 @@ typedef xLbxPolyTextReq xLbxPolyText16Req;
 typedef struct _LbxImageText {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;
-    CARD16	length B16;
+    CARD16	length;
     CARD8	cacheEnts;
     CARD8	nChars;
     /* followed by encoded src x, src y coordinates and string */
@@ -688,14 +688,14 @@ typedef struct {
 typedef struct {
     BYTE	type;		/* X_Reply */
     CARD8	nOpts;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	optDataStart B32;
-    CARD32	pad0 B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	optDataStart;
+    CARD32	pad0;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
 } xLbxStartReply;
 #define sz_xLbxStartReply	32
 #define sz_xLbxStartReplyHdr	8
@@ -703,25 +703,25 @@ typedef struct {
 typedef struct _LbxQueryExtension {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxQueryExtension */
-    CARD16	length B16;
-    CARD32	nbytes B32;
+    CARD16	length;
+    CARD32	nbytes;
 } xLbxQueryExtensionReq;
 #define	sz_xLbxQueryExtensionReq	8
 
 typedef struct _LbxQueryExtensionReply {
     BYTE	type;			/* X_Reply */
     CARD8	numReqs;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
     BOOL	present;
     CARD8	major_opcode;
     CARD8	first_event;
     CARD8	first_error;
-    CARD32	pad0 B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
+    CARD32	pad0;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
 
     /* reply & event generating requests */
 } xLbxQueryExtensionReply;
@@ -731,15 +731,15 @@ typedef struct _LbxQueryExtensionReply {
 typedef struct _LbxBeginLargeRequest {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxBeginLargeRequest */
-    CARD16	length B16;
-    CARD32	largeReqLength B32;
+    CARD16	length;
+    CARD32	largeReqLength;
 } xLbxBeginLargeRequestReq;
 #define	sz_BeginLargeRequestReq 8
 
 typedef struct _LbxLargeRequestData {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxLargeRequestData */
-    CARD16	length B16;
+    CARD16	length;
     /* followed by LISTofCARD8 data */
 } xLbxLargeRequestDataReq;
 #define	sz_LargeRequestDataReq 4
@@ -747,7 +747,7 @@ typedef struct _LbxLargeRequestData {
 typedef struct _LbxEndLargeRequest {
     CARD8	reqType;	/* always LbxReqCode */
     CARD8	lbxReqType;	/* always X_LbxEndLargeRequest */
-    CARD16	length B16;
+    CARD16	length;
 } xLbxEndLargeRequestReq;
 #define	sz_EndLargeRequestReq 4
 
@@ -756,92 +756,92 @@ typedef struct _LbxEndLargeRequest {
 typedef struct _LbxSwitchEvent {
     BYTE	type;		/* always eventBase + LbxEvent */
     BYTE	lbxType;	/* LbxSwitchEvent */
-    CARD16	pad B16;
-    CARD32	client B32;
+    CARD16	pad;
+    CARD32	client;
 } xLbxSwitchEvent;
 #define sz_xLbxSwitchEvent	8
 
 typedef struct _LbxCloseEvent {
     BYTE	type;		/* always eventBase + LbxEvent */
     BYTE	lbxType;	/* LbxCloseEvent */
-    CARD16	sequenceNumber B16;
-    CARD32	client B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	client;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xLbxCloseEvent;
 #define sz_xLbxCloseEvent	32
 
 typedef struct _LbxInvalidateTagEvent {
     BYTE	type;		/* always eventBase + LbxEvent */
     BYTE	lbxType;	/* LbxInvalidateTagEvent */
-    CARD16	sequenceNumber B16;
-    CARD32	tag B32;
-    CARD32	tagType B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
+    CARD16	sequenceNumber;
+    CARD32	tag;
+    CARD32	tagType;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
 } xLbxInvalidateTagEvent;
 #define sz_xLbxInvalidateTagEvent 32
 
 typedef struct _LbxSendTagDataEvent {
     BYTE	type;		/* always eventBase + LbxEvent */
     BYTE	lbxType;	/* LbxSendTagDataEvent */
-    CARD16	sequenceNumber B16;
-    CARD32	tag B32;
-    CARD32	tagType B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
+    CARD16	sequenceNumber;
+    CARD32	tag;
+    CARD32	tagType;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
 } xLbxSendTagDataEvent;
 #define sz_xLbxSendTagDataEvent 32
 
 typedef struct _LbxListenToOneEvent {
     BYTE	type;		/* always eventBase + LbxEvent */
     BYTE	lbxType;	/* LbxListenToOneEvent */
-    CARD16	sequenceNumber B16;
-    CARD32	client B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	client;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xLbxListenToOneEvent;
 #define sz_xLbxListenToOneEvent 32
 
 typedef struct _LbxListenToAllEvent {
     BYTE	type;		/* always eventBase + LbxEvent */
     BYTE	lbxType;	/* LbxListenToAllEvent */
-    CARD16	sequenceNumber B16;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
-    CARD32	pad7 B32;
+    CARD16	sequenceNumber;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
+    CARD32	pad7;
 } xLbxListenToAllEvent;
 #define sz_xLbxListenToOneEvent 32
 
 typedef struct _LbxReleaseCmapEvent {
     BYTE	type;		/* always eventBase + LbxEvent */
     BYTE	lbxType;	/* LbxReleaseCmapEvent */
-    CARD16	sequenceNumber B16;
-    Colormap	colormap B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    Colormap	colormap;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xLbxReleaseCmapEvent;
 #define sz_xLbxReleaseCmapEvent	32
 
@@ -849,14 +849,14 @@ typedef struct _LbxReleaseCmapEvent {
 typedef struct _LbxFreeCellsEvent {
     BYTE	type;		/* always eventBase + LbxEvent */
     BYTE	lbxType;	/* LbxFreeCellsEvent */
-    CARD16	sequenceNumber B16;
-    Colormap	colormap B32;
-    CARD32	pixelStart B32;
-    CARD32	pixelEnd B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
+    CARD16	sequenceNumber;
+    Colormap	colormap;
+    CARD32	pixelStart;
+    CARD32	pixelEnd;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
 } xLbxFreeCellsEvent;
 #define sz_xLbxFreeCellsEvent	32
 

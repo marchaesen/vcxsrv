@@ -53,24 +53,24 @@ from The Open Group.
 typedef struct _XagQueryVersion {
     CARD8	reqType;	/* always XagReqCode */
     CARD8	xagReqType;	/* always X_XagQueryVersion */
-    CARD16	length B16;
-    CARD16	client_major_version B16;
-    CARD16	client_minor_version B16;
+    CARD16	length;
+    CARD16	client_major_version;
+    CARD16	client_minor_version;
 } xXagQueryVersionReq;
 #define sz_xXagQueryVersionReq		8
 
 typedef struct {
     BYTE	type;		/* X_Reply */
     BOOL	pad1;
-    CARD16	sequence_number B16;
-    CARD32	length B32;
-    CARD16	server_major_version B16;
-    CARD16	server_minor_version B16;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequence_number;
+    CARD32	length;
+    CARD16	server_major_version;
+    CARD16	server_minor_version;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xXagQueryVersionReply;
 #define sz_xXagQueryVersionReply	32
 
@@ -86,81 +86,81 @@ typedef struct {
 typedef struct _XagCreate {
     CARD8	reqType;	/* always XagReqCode */
     CARD8	xagReqType;	/* always X_XagCreate */
-    CARD16	length B16;
-    XAppGroup	app_group B32;
-    CARD32	attrib_mask B32; /* LISTofVALUE follows */
+    CARD16	length;
+    XAppGroup	app_group;
+    CARD32	attrib_mask;	/* LISTofVALUE follows */
 } xXagCreateReq;
 #define sz_xXagCreateReq		12
 
 typedef struct _XagDestroy {
     CARD8	reqType;	/* always XagReqCode */
     CARD8	xagReqType;	/* always X_XagDestroy */
-    CARD16	length B16;
-    XAppGroup	app_group  B32;
+    CARD16	length;
+    XAppGroup	app_group;
 } xXagDestroyReq;
 #define sz_xXagDestroyReq		8
 
 typedef struct _XagGetAttr {
     CARD8	reqType;	/* always XagReqCode */
     CARD8	xagReqType;	/* always X_XagGetAttr */
-    CARD16	length B16;
-    XAppGroup	app_group B32;
+    CARD16	length;
+    XAppGroup	app_group;
 } xXagGetAttrReq;
 #define sz_xXagGetAttrReq		8
 
 typedef struct {
     BYTE	type;		/* X_Reply */
     BOOL	pad1;
-    CARD16	sequence_number B16;
-    CARD32	length B32;
-    Window	default_root B32;
-    VisualID	root_visual B32;
-    Colormap	default_colormap B32;
-    CARD32	black_pixel B32;
-    CARD32	white_pixel B32;
+    CARD16	sequence_number;
+    CARD32	length;
+    Window	default_root;
+    VisualID	root_visual;
+    Colormap	default_colormap;
+    CARD32	black_pixel;
+    CARD32	white_pixel;
     BOOL	single_screen;
     BOOL	app_group_leader;
-    CARD16	pad2 B16;
+    CARD16	pad2;
 } xXagGetAttrReply;
 #define sz_xXagGetAttrReply		32
 
 typedef struct _XagQuery {
     CARD8	reqType;	/* always XagReqCode */
     CARD8	xagReqType;	/* always X_XagQuery */
-    CARD16	length B16;
-    CARD32	resource B32;
+    CARD16	length;
+    CARD32	resource;
 } xXagQueryReq;
 #define sz_xXagQueryReq			8
 
 typedef struct {
     BYTE	type;		/* X_Reply */
     BOOL	pad1;
-    CARD16	sequence_number B16;
-    CARD32	length B32;
-    XAppGroup	app_group B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequence_number;
+    CARD32	length;
+    XAppGroup	app_group;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xXagQueryReply;
 #define sz_xXagQueryReply		32
 
 typedef struct _XagCreateAssoc {
     CARD8	reqType;	/* always XagReqCode */
     CARD8	xagReqType;	/* always X_XagCreateAssoc */
-    CARD16	length B16;
-    Window	window B32;
-    CARD16	window_type B16;
-    CARD16	system_window_len B16; /* LISTofCARD8 follows */
+    CARD16	length;
+    Window	window;
+    CARD16	window_type;
+    CARD16	system_window_len; /* LISTofCARD8 follows */
 } xXagCreateAssocReq;
 #define sz_xXagCreateAssocReq		12
 
 typedef struct _XagDestroyAssoc {
     CARD8	reqType;	/* always XagReqCode */
     CARD8	xagReqType;	/* always X_XagDestroyAssoc */
-    CARD16	length B16;
-    Window	window B32;
+    CARD16	length;
+    Window	window;
 } xXagDestroyAssocReq;
 #define sz_xXagDestroyAssocReq		8
 

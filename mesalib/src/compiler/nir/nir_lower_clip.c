@@ -173,8 +173,7 @@ lower_clip_vs(nir_function_impl *impl, unsigned ucp_enables,
 
    for (int plane = 0; plane < MAX_CLIP_PLANES; plane++) {
       if (ucp_enables & (1 << plane)) {
-         nir_ssa_def *ucp =
-            nir_load_system_value(&b, nir_intrinsic_load_user_clip_plane, plane);
+         nir_ssa_def *ucp = nir_load_user_clip_plane(&b, plane);
 
          /* calculate clipdist[plane] - dot(ucp, cv): */
          clipdist[plane] = nir_fdot4(&b, ucp, cv);

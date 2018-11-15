@@ -2020,7 +2020,7 @@ because it may modify this field.
 <para>
 <!-- .LP -->
 All X requests always contain the length of the request,
-expressed as a 16-bit quantity of 32 bits.
+expressed as a 16-bit quantity of 32 bit words.
 This means that a single request can be no more than 256K bytes in
 length.
 Some servers may not support single requests of such a length.
@@ -2111,17 +2111,6 @@ used in replies, errors, and events.
 </para>
 <para>
 <!-- .LP -->
-To help but not cure portability problems to certain machines, the
-<symbol>B16</symbol>
-and
-<symbol>B32</symbol>
-macros have been defined so that they can become bitfield specifications 
-on some machines.
-For example, on a Cray,
-these should be used for all 16-bit and 32-bit quantities, as discussed below.
-</para>
-<para>
-<!-- .LP -->
 Most protocol requests have a corresponding structure typedef in
 <filename class="headerfile">&lt;X11/Xproto.h&gt;</filename>,
 which looks like:
@@ -2136,7 +2125,7 @@ which looks like:
 typedef struct _DoSomethingReq {
 	CARD8 reqType;		/* X_DoSomething */
 	CARD8 someDatum;	/* used differently in different requests */
-	CARD16 length B16;	/* total # of bytes in request, divided by 4 */
+	CARD16 length;		/* total # of bytes in request, divided by 4 */
 	...
 	/* request-specific data */
 	...
@@ -2174,8 +2163,8 @@ or
 typedef struct _ResourceReq {
 	CARD8 reqType;	/* the request type, e.g. X_DoSomething */
 	BYTE pad;	/* not used */
-	CARD16 length B16;	/* 2 (= total # of bytes in request, divided by 4) */
-	CARD32 id B32;	/* the Window, Drawable, Font, GContext, etc. */
+	CARD16 length;	/* 2 (= total # of bytes in request, divided by 4) */
+	CARD32 id;	/* the Window, Drawable, Font, GContext, etc. */
 } xResourceReq;
 </synopsis>
 </para>
@@ -2224,8 +2213,8 @@ also contains a reply structure typedef:
 typedef struct _DoSomethingReply {
 	BYTE type;	/* always X_Reply */
 	BYTE someDatum;	/* used differently in different requests */
-	CARD16 sequenceNumber B16;	/* # of requests sent so far */
-	CARD32 length B32;	/* # of additional bytes, divided by 4 */
+	CARD16 sequenceNumber;	/* # of requests sent so far */
+	CARD32 length;	/* # of additional bytes, divided by 4 */
 	...
 	/* request-specific data */
 	...

@@ -654,12 +654,24 @@ struct pixman_indexed
 					 ((g) << 4) |	  \
 					 ((b)))
 
-#define PIXMAN_FORMAT_BPP(f)	(((f) >> 24)       )
-#define PIXMAN_FORMAT_TYPE(f)	(((f) >> 16) & 0xff)
-#define PIXMAN_FORMAT_A(f)	(((f) >> 12) & 0x0f)
-#define PIXMAN_FORMAT_R(f)	(((f) >>  8) & 0x0f)
-#define PIXMAN_FORMAT_G(f)	(((f) >>  4) & 0x0f)
-#define PIXMAN_FORMAT_B(f)	(((f)      ) & 0x0f)
+#define PIXMAN_FORMAT_BYTE(bpp,type,a,r,g,b) \
+	(((bpp >> 3) << 24) | \
+	(3 << 22) | ((type) << 16) | \
+	((a >> 3) << 12) | \
+	((r >> 3) << 8) | \
+	((g >> 3) << 4) | \
+	((b >> 3)))
+
+#define PIXMAN_FORMAT_RESHIFT(val, ofs, num) \
+	(((val >> (ofs)) & ((1 << (num)) - 1)) << ((val >> 22) & 3))
+
+#define PIXMAN_FORMAT_BPP(f)	PIXMAN_FORMAT_RESHIFT(f, 24, 8)
+#define PIXMAN_FORMAT_SHIFT(f)	((uint32_t)((f >> 22) & 3))
+#define PIXMAN_FORMAT_TYPE(f)	(((f) >> 16) & 0x3f)
+#define PIXMAN_FORMAT_A(f)	PIXMAN_FORMAT_RESHIFT(f, 12, 4)
+#define PIXMAN_FORMAT_R(f)	PIXMAN_FORMAT_RESHIFT(f, 8, 4)
+#define PIXMAN_FORMAT_G(f)	PIXMAN_FORMAT_RESHIFT(f, 4, 4)
+#define PIXMAN_FORMAT_B(f)	PIXMAN_FORMAT_RESHIFT(f, 0, 4)
 #define PIXMAN_FORMAT_RGB(f)	(((f)      ) & 0xfff)
 #define PIXMAN_FORMAT_VIS(f)	(((f)      ) & 0xffff)
 #define PIXMAN_FORMAT_DEPTH(f)	(PIXMAN_FORMAT_A(f) +	\
@@ -678,15 +690,22 @@ struct pixman_indexed
 #define PIXMAN_TYPE_BGRA	8
 #define PIXMAN_TYPE_RGBA	9
 #define PIXMAN_TYPE_ARGB_SRGB	10
+#define PIXMAN_TYPE_RGBA_FLOAT	11
 
 #define PIXMAN_FORMAT_COLOR(f)				\
 	(PIXMAN_FORMAT_TYPE(f) == PIXMAN_TYPE_ARGB ||	\
 	 PIXMAN_FORMAT_TYPE(f) == PIXMAN_TYPE_ABGR ||	\
 	 PIXMAN_FORMAT_TYPE(f) == PIXMAN_TYPE_BGRA ||	\
-	 PIXMAN_FORMAT_TYPE(f) == PIXMAN_TYPE_RGBA)
+	 PIXMAN_FORMAT_TYPE(f) == PIXMAN_TYPE_RGBA ||	\
+	 PIXMAN_FORMAT_TYPE(f) == PIXMAN_TYPE_RGBA_FLOAT)
+
+typedef enum {
+/* 128bpp formats */
+    PIXMAN_rgba_float =	PIXMAN_FORMAT_BYTE(128,PIXMAN_TYPE_RGBA_FLOAT,32,32,32,32),
+/* 96bpp formats */
+    PIXMAN_rgb_float =	PIXMAN_FORMAT_BYTE(96,PIXMAN_TYPE_RGBA_FLOAT,0,32,32,32),
 
 /* 32bpp formats */
-typedef enum {
     PIXMAN_a8r8g8b8 =	 PIXMAN_FORMAT(32,PIXMAN_TYPE_ARGB,8,8,8,8),
     PIXMAN_x8r8g8b8 =	 PIXMAN_FORMAT(32,PIXMAN_TYPE_ARGB,0,8,8,8),
     PIXMAN_a8b8g8r8 =	 PIXMAN_FORMAT(32,PIXMAN_TYPE_ABGR,8,8,8,8),

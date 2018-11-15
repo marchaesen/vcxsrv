@@ -142,7 +142,7 @@ XkbFreeRMLVOSet(XkbRMLVOSet * rmlvo, Bool freeRMLVO)
 }
 
 static Bool
-XkbWriteRulesProp(ClientPtr client, void *closure)
+XkbWriteRulesProp(void)
 {
     int len, out;
     Atom name;
@@ -235,7 +235,7 @@ XkbSetRulesUsed(XkbRMLVOSet * rmlvo)
     free(XkbOptionsUsed);
     XkbOptionsUsed = (rmlvo->options ? Xstrdup(rmlvo->options) : NULL);
     if (XkbWantRulesProp)
-        QueueWorkProc(XkbWriteRulesProp, NULL, NULL);
+        XkbWriteRulesProp();
     return;
 }
 

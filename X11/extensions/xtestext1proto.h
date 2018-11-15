@@ -79,8 +79,8 @@ University of California.
 typedef struct {
         CARD8   reqType;        /* always XTestReqCode             */
         CARD8   XTestReqType;   /* always X_TestFakeInput           */
-        CARD16  length B16;     /* 2 + XTestMAX_ACTION_LIST_SIZE/4 */
-        CARD32  ack B32;
+        CARD16  length;         /* 2 + XTestMAX_ACTION_LIST_SIZE/4 */
+        CARD32  ack;
         CARD8   action_list[XTestMAX_ACTION_LIST_SIZE];
 } xTestFakeInputReq;
 #define sz_xTestFakeInputReq (XTestMAX_ACTION_LIST_SIZE + 8)
@@ -88,29 +88,29 @@ typedef struct {
 typedef struct {
         CARD8   reqType;        /* always XTestReqCode  */
         CARD8   XTestReqType;   /* always X_TestGetInput */
-        CARD16  length B16;     /* 2                    */
-        CARD32  mode B32;
+        CARD16  length;         /* 2                    */
+        CARD32  mode;
 } xTestGetInputReq;
 #define sz_xTestGetInputReq 8
 
 typedef struct {
         CARD8   reqType;        /* always XTestReqCode   */
         CARD8   XTestReqType;   /* always X_TestStopInput */
-        CARD16  length B32;     /* 1                     */
+        CARD16  length;         /* 1                     */
 } xTestStopInputReq;
 #define sz_xTestStopInputReq 4
 
 typedef struct {
         CARD8   reqType;        /* always XTestReqCode */
         CARD8   XTestReqType;   /* always X_TestReset   */
-        CARD16  length B16;     /* 1                   */
+        CARD16  length;         /* 1                   */
 } xTestResetReq;
 #define sz_xTestResetReq 4
 
 typedef struct {
         CARD8   reqType;        /* always XTestReqCode        */
         CARD8   XTestReqType;   /* always X_TestQueryInputSize */
-        CARD16  length B16;     /* 1                          */
+        CARD16  length;         /* 1                          */
 } xTestQueryInputSizeReq;
 #define sz_xTestQueryInputSizeReq 4
 
@@ -122,14 +122,14 @@ typedef struct {
 typedef struct {
         CARD8   type;           /* always X_Reply  */
         CARD8   pad1;
-        CARD16  sequenceNumber B16;
-        CARD32  length B32;     /* always 0 */
-        CARD32  size_return B32;
-        CARD32  pad2 B32;
-        CARD32  pad3 B32;
-        CARD32  pad4 B32;
-        CARD32  pad5 B32;
-        CARD32  pad6 B32;
+        CARD16  sequenceNumber;
+        CARD32  length;         /* always 0 */
+        CARD32  size_return;
+        CARD32  pad2;
+        CARD32  pad3;
+        CARD32  pad4;
+        CARD32  pad5;
+        CARD32  pad6;
 } xTestQueryInputSizeReply;
 
 /*
@@ -141,7 +141,7 @@ typedef struct {
 typedef struct {
         CARD8   type;           /* always XTestInputActionType */
         CARD8   pad00;
-        CARD16  sequenceNumber B16;
+        CARD16  sequenceNumber;
         CARD8   actions[XTestACTIONS_SIZE];
 } xTestInputActionEvent;
 
@@ -154,14 +154,14 @@ typedef struct {
 typedef struct {
         CARD8   type;           /* always XTestFakeAckType */
         CARD8   pad00;
-        CARD16  sequenceNumber B16;
-        CARD32  pad02 B32;
-        CARD32  pad03 B32;
-        CARD32  pad04 B32;
-        CARD32  pad05 B32;
-        CARD32  pad06 B32;
-        CARD32  pad07 B32;
-        CARD32  pad08 B32;
+        CARD16  sequenceNumber;
+        CARD32  pad02;
+        CARD32  pad03;
+        CARD32  pad04;
+        CARD32  pad05;
+        CARD32  pad06;
+        CARD32  pad07;
+        CARD32  pad08;
 } xTestFakeAckEvent;
 
 /*
@@ -170,7 +170,7 @@ typedef struct {
 typedef struct {
         CARD8   header;         /* which device, key up/down */
         CARD8   keycode;        /* which key/button to move  */
-        CARD16  delay_time B16; /* how long to delay (in ms) */
+        CARD16  delay_time;     /* how long to delay (in ms) */
 } XTestKeyInfo;
 
 /*
@@ -179,9 +179,9 @@ typedef struct {
 typedef struct {
         CARD8   header;         /* which pointer             */
         CARD8   pad1;           /* unused padding byte       */
-        CARD16  jumpx B16;      /* x coord to jump to        */
-        CARD16  jumpy B16;      /* y coord to jump to        */
-        CARD16  delay_time B16; /* how long to delay (in ms) */
+        CARD16  jumpx;          /* x coord to jump to        */
+        CARD16  jumpy;          /* y coord to jump to        */
+        CARD16  delay_time;     /* how long to delay (in ms) */
 } XTestJumpInfo;
 
 /*
@@ -197,7 +197,7 @@ typedef struct {
 typedef struct {
         CARD8   header;         /* which pointer             */
         CARD8   motion_data;    /* x,y relative motion       */
-        CARD16  delay_time B16; /* how long to delay (in ms) */
+        CARD16  delay_time;     /* how long to delay (in ms) */
 } XTestMotionInfo;
 
 /*
@@ -214,8 +214,8 @@ typedef struct {
 typedef struct {
         CARD8   header;         /* always XTestDELAY_DEVICE_ID */
         CARD8   pad1;           /* unused padding byte         */
-        CARD16  pad2 B16;       /* unused padding word         */
-        CARD32  delay_time B32; /* how long to delay (in ms)   */
+        CARD16  pad2;           /* unused padding word         */
+        CARD32  delay_time;     /* how long to delay (in ms)   */
 } XTestDelayInfo;
 
 #endif /* _XTESTEXT1PROTO_H */

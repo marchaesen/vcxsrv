@@ -1058,12 +1058,12 @@ void radv_GetPhysicalDeviceProperties2(
 			 * is fixed in LLVM.
 			 */
 			properties->supportedOperations =
-							VK_SUBGROUP_FEATURE_ARITHMETIC_BIT |
 							VK_SUBGROUP_FEATURE_BASIC_BIT |
 							VK_SUBGROUP_FEATURE_BALLOT_BIT |
 							VK_SUBGROUP_FEATURE_QUAD_BIT;
 			if (pdevice->rad_info.chip_class >= VI) {
 				properties->supportedOperations |=
+							VK_SUBGROUP_FEATURE_ARITHMETIC_BIT |
 							VK_SUBGROUP_FEATURE_SHUFFLE_BIT |
 							VK_SUBGROUP_FEATURE_SHUFFLE_RELATIVE_BIT;
 			}
@@ -2046,16 +2046,15 @@ radv_get_hs_offchip_param(struct radv_device *device, uint32_t *max_offchip_buff
 	max_offchip_buffers = max_offchip_buffers_per_se *
 		device->physical_device->rad_info.max_se;
 
-	switch (device->tess_offchip_block_dw_size) {
-	default:
-		assert(0);
-		/* fall through */
-	case 8192:
-		offchip_granularity = V_03093C_X_8K_DWORDS;
-		break;
-	case 4096:
+	/* Hawaii has a bug with offchip buffers > 256 that can be worked
+	 * around by setting 4K granularity.
+	 */
+	if (device->tess_offchip_block_dw_size == 4096) {
+		assert(device->physical_device->rad_info.family == CHIP_HAWAII);
 		offchip_granularity = V_03093C_X_4K_DWORDS;
-		break;
+	} else {
+		assert(device->tess_offchip_block_dw_size == 8192);
+		offchip_granularity = V_03093C_X_8K_DWORDS;
 	}
 
 	switch (device->physical_device->rad_info.chip_class) {

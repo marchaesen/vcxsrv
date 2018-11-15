@@ -1315,6 +1315,20 @@ private:
    ast_layout_expression *local_size[3];
 };
 
+class ast_warnings_toggle : public ast_node {
+public:
+   ast_warnings_toggle(bool _enable)
+      : enable(_enable)
+   {
+      /* empty */
+   }
+
+   virtual ir_rvalue *hir(exec_list *instructions,
+                          struct _mesa_glsl_parse_state *state);
+
+private:
+   bool enable;
+};
 /*@}*/
 
 extern void

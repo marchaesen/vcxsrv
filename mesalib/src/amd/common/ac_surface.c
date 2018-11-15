@@ -1594,10 +1594,6 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 			assert(0);
 	}
 
-	/* Temporary workaround to prevent VM faults and hangs. */
-	if (info->family == CHIP_VEGA12)
-		surf->fmask_size *= 8;
-
 	return 0;
 }
 

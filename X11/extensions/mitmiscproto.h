@@ -37,7 +37,7 @@ in this Software without prior written authorization from The Open Group.
 typedef struct _SetBugMode {
     CARD8	reqType;	/* always MITReqCode */
     CARD8	mitReqType;	/* always X_MITSetBugMode */
-    CARD16	length B16;
+    CARD16	length;
     BOOL	onOff;
     BYTE	pad0;
     CARD16	pad1;
@@ -47,21 +47,21 @@ typedef struct _SetBugMode {
 typedef struct _GetBugMode {
     CARD8	reqType;	/* always MITReqCode */
     CARD8	mitReqType;	/* always X_MITGetBugMode */
-    CARD16	length B16;
+    CARD16	length;
 } xMITGetBugModeReq;
 #define sz_xMITGetBugModeReq	4
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     BOOL	onOff;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	pad0 B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	pad0;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
 } xMITGetBugModeReply;
 #define sz_xMITGetBugModeReply	32
 

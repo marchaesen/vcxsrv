@@ -311,9 +311,18 @@ static LLVMValueRef emit_uint_carry(struct ac_llvm_context *ctx,
 }
 
 static LLVMValueRef emit_b2f(struct ac_llvm_context *ctx,
-			     LLVMValueRef src0)
+			     LLVMValueRef src0,
+			     unsigned bitsize)
 {
-	return LLVMBuildAnd(ctx->builder, src0, LLVMBuildBitCast(ctx->builder, LLVMConstReal(ctx->f32, 1.0), ctx->i32, ""), "");
+	LLVMValueRef result = LLVMBuildAnd(ctx->builder, src0,
+					   LLVMBuildBitCast(ctx->builder, LLVMConstReal(ctx->f32, 1.0), ctx->i32, ""),
+					   "");
+	result = LLVMBuildBitCast(ctx->builder, result, ctx->f32, "");
+
+	if (bitsize == 32)
+		return result;
+
+	return LLVMBuildFPExt(ctx->builder, result, ctx->f64, "");
 }
 
 static LLVMValueRef emit_f2b(struct ac_llvm_context *ctx,
@@ -932,7 +941,7 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		result = emit_uint_carry(&ctx->ac, "llvm.usub.with.overflow.i32", src[0], src[1]);
 		break;
 	case nir_op_b2f:
-		result = emit_b2f(&ctx->ac, src[0]);
+		result = emit_b2f(&ctx->ac, src[0], instr->dest.dest.ssa.bit_size);
 		break;
 	case nir_op_f2b:
 		result = emit_f2b(&ctx->ac, src[0]);

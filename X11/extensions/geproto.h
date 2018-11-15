@@ -50,7 +50,7 @@
 typedef struct {
     CARD8   reqType;
     CARD8   ReqType;
-    CARD16  length B16;
+    CARD16  length;
 } xGEReq;
 
 
@@ -58,9 +58,9 @@ typedef struct {
 typedef struct {
     CARD8	reqType;       /* input extension major code   */
     CARD8	ReqType;       /* always X_GEQueryVersion */
-    CARD16	length B16;
-    CARD16      majorVersion B16;
-    CARD16      minorVersion B16;
+    CARD16	length;
+    CARD16	majorVersion;
+    CARD16	minorVersion;
 } xGEQueryVersionReq;
 
 #define sz_xGEQueryVersionReq    8
@@ -68,15 +68,15 @@ typedef struct {
 typedef struct {
     CARD8	repType;	/* X_Reply			*/
     CARD8	RepType;	/* always X_GEQueryVersion */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD16	majorVersion B16;
-    CARD16	minorVersion B16;
-    CARD32	pad00 B32;
-    CARD32	pad01 B32;
-    CARD32	pad02 B32;
-    CARD32	pad03 B32;
-    CARD32	pad04 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD16	majorVersion;
+    CARD16	minorVersion;
+    CARD32	pad00;
+    CARD32	pad01;
+    CARD32	pad02;
+    CARD32	pad03;
+    CARD32	pad04;
 } xGEQueryVersionReply;
 
 #define sz_xGEQueryVersionReply    32

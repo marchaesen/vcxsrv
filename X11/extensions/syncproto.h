@@ -89,26 +89,26 @@ PERFORMANCE OF THIS SOFTWARE.
 typedef struct _xSyncInitialize {
     CARD8	reqType;
     CARD8	syncReqType;
-    CARD16	length B16;
+    CARD16	length;
     CARD8	majorVersion;
     CARD8	minorVersion;
-    CARD16	pad B16;
+    CARD16	pad;
 } xSyncInitializeReq;
 #define sz_xSyncInitializeReq		8
 
 typedef struct {
     BYTE	type;
     CARD8	unused;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
     CARD8	majorVersion;
     CARD8	minorVersion;
-    CARD16	pad B16;
-    CARD32	pad0 B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
+    CARD16	pad;
+    CARD32	pad0;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
 } xSyncInitializeReply;
 #define sz_xSyncInitializeReply	32
 
@@ -119,29 +119,29 @@ typedef struct _xSyncListSystemCounters
 {
     CARD8	reqType;
     CARD8	syncReqType;
-    CARD16	length B16;
+    CARD16	length;
 } xSyncListSystemCountersReq;
 #define sz_xSyncListSystemCountersReq	4
 
 typedef struct {
     BYTE	type;
     CARD8	unused;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    INT32	nCounters B32;
-    CARD32	pad0 B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    INT32	nCounters;
+    CARD32	pad0;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
 } xSyncListSystemCountersReply;
 #define sz_xSyncListSystemCountersReply	32
 
 typedef struct {
-    XSyncCounter counter B32;
-    INT32	resolution_hi B32;
-    CARD32	resolution_lo B32;
-    CARD16	name_length B16;
+    XSyncCounter counter;
+    INT32	resolution_hi;
+    CARD32	resolution_lo;
+    CARD16	name_length;
 } xSyncSystemCounter;
 #define sz_xSyncSystemCounter 14
 
@@ -151,10 +151,10 @@ typedef struct {
 typedef struct _xSyncCreateCounterReq {
     CARD8	reqType;
     CARD8	syncReqType;
-    CARD16	length B16;
-    XSyncCounter cid B32;
-    INT32       initial_value_hi B32;
-    CARD32	initial_value_lo B32;
+    CARD16	length;
+    XSyncCounter cid;
+    INT32	initial_value_hi;
+    CARD32	initial_value_lo;
 } xSyncCreateCounterReq;
 #define sz_xSyncCreateCounterReq	16
 
@@ -164,10 +164,10 @@ typedef struct _xSyncCreateCounterReq {
 typedef struct _xSyncChangeCounterReq {
     CARD8	reqType;
     CARD8	syncReqType;
-    CARD16	length B16;
-    XSyncCounter cid B32;
-    INT32       value_hi B32;
-    CARD32	value_lo B32;
+    CARD16	length;
+    XSyncCounter cid;
+    INT32	value_hi;
+    CARD32	value_lo;
 } xSyncChangeCounterReq;
 #define sz_xSyncChangeCounterReq	16
 
@@ -177,10 +177,10 @@ typedef struct _xSyncChangeCounterReq {
 typedef struct _xSyncSetCounterReq {
     CARD8	reqType;
     CARD8	syncReqType;
-    CARD16	length B16;
-    XSyncCounter cid B32;
-    INT32       value_hi B32;
-    CARD32	value_lo B32;
+    CARD16	length;
+    XSyncCounter cid;
+    INT32	value_hi;
+    CARD32	value_lo;
 } xSyncSetCounterReq;
 #define sz_xSyncSetCounterReq	16
 
@@ -190,8 +190,8 @@ typedef struct _xSyncSetCounterReq {
 typedef struct _xSyncDestroyCounterReq {
     CARD8	reqType;
     CARD8	syncReqType;
-    CARD16	length B16;
-    XSyncCounter counter B32;
+    CARD16	length;
+    XSyncCounter counter;
 } xSyncDestroyCounterReq;
 #define sz_xSyncDestroyCounterReq	8
 
@@ -201,8 +201,8 @@ typedef struct _xSyncDestroyCounterReq {
 typedef struct _xSyncQueryCounterReq {
     CARD8	reqType;
     CARD8	syncReqType;
-    CARD16	length B16;
-    XSyncCounter counter B32;
+    CARD16	length;
+    XSyncCounter counter;
 } xSyncQueryCounterReq;
 #define sz_xSyncQueryCounterReq		8
 
@@ -210,14 +210,14 @@ typedef struct _xSyncQueryCounterReq {
 typedef struct {
     BYTE	type;
     CARD8	unused;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    INT32	value_hi B32;
-    CARD32	value_lo B32;
-    CARD32	pad0 B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    INT32	value_hi;
+    CARD32	value_lo;
+    CARD32	pad0;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
 } xSyncQueryCounterReply;
 #define sz_xSyncQueryCounterReply	32
 
@@ -227,18 +227,18 @@ typedef struct {
 typedef struct _xSyncAwaitReq {
     CARD8	reqType;
     CARD8	syncReqType;
-    CARD16	length B16;
+    CARD16	length;
 } xSyncAwaitReq;
 #define sz_xSyncAwaitReq		4
 
 typedef struct _xSyncWaitCondition {
-    XSyncCounter counter B32;
-    CARD32	value_type B32;
-    INT32       wait_value_hi B32;
-    CARD32      wait_value_lo B32;
-    CARD32	test_type B32;
-    INT32	event_threshold_hi B32;
-    CARD32	event_threshold_lo B32;
+    XSyncCounter counter;
+    CARD32	value_type;
+    INT32	wait_value_hi;
+    CARD32	wait_value_lo;
+    CARD32	test_type;
+    INT32	event_threshold_hi;
+    CARD32	event_threshold_lo;
 } xSyncWaitCondition;
 #define sz_xSyncWaitCondition		28
 
@@ -248,9 +248,9 @@ typedef struct _xSyncWaitCondition {
 typedef struct _xSyncCreateAlarmReq {
     CARD8	reqType;
     CARD8	syncReqType;
-    CARD16	length B16;
-    XSyncAlarm	id B32;
-    CARD32      valueMask B32;
+    CARD16	length;
+    XSyncAlarm	id;
+    CARD32	valueMask;
 } xSyncCreateAlarmReq;
 #define sz_xSyncCreateAlarmReq		12
 
@@ -260,8 +260,8 @@ typedef struct _xSyncCreateAlarmReq {
 typedef struct _xSyncDestroyAlarmReq {
     CARD8	reqType;
     CARD8	syncReqType;
-    CARD16	length B16;
-    XSyncAlarm	alarm B32;
+    CARD16	length;
+    XSyncAlarm	alarm;
 } xSyncDestroyAlarmReq;
 #define sz_xSyncDestroyAlarmReq		8
 
@@ -271,23 +271,23 @@ typedef struct _xSyncDestroyAlarmReq {
 typedef struct _xSyncQueryAlarmReq {
     CARD8	reqType;
     CARD8	syncReqType;
-    CARD16	length B16;
-    XSyncAlarm	alarm B32;
+    CARD16	length;
+    XSyncAlarm	alarm;
 } xSyncQueryAlarmReq;
 #define sz_xSyncQueryAlarmReq		8
 
 typedef struct {
     BYTE	type;
     CARD8	unused;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    XSyncCounter counter B32;
-    CARD32	value_type B32;
-    INT32	wait_value_hi B32;
-    CARD32	wait_value_lo B32;
-    CARD32	test_type      B32;
-    INT32	delta_hi B32;
-    CARD32	delta_lo B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    XSyncCounter counter;
+    CARD32	value_type;
+    INT32	wait_value_hi;
+    CARD32	wait_value_lo;
+    CARD32	test_type;
+    INT32	delta_hi;
+    CARD32	delta_lo;
     BOOL        events;
     BYTE        state;
     BYTE	pad0;
@@ -301,9 +301,9 @@ typedef struct {
 typedef struct _xSyncChangeAlarmReq {
     CARD8	reqType;
     CARD8	syncReqType;
-    CARD16	length B16;
-    XSyncAlarm	alarm B32;
-    CARD32	valueMask B32;
+    CARD16	length;
+    XSyncAlarm	alarm;
+    CARD32	valueMask;
 } xSyncChangeAlarmReq;
 #define sz_xSyncChangeAlarmReq		12
 
@@ -313,9 +313,9 @@ typedef struct _xSyncChangeAlarmReq {
 typedef struct _xSyncSetPriority{
     CARD8   	reqType;
     CARD8   	syncReqType;
-    CARD16  	length B16;
-    CARD32  	id B32;
-    INT32  	priority B32;
+    CARD16  	length;
+    CARD32  	id;
+    INT32  	priority;
 } xSyncSetPriorityReq;
 #define sz_xSyncSetPriorityReq	    	12
 
@@ -325,22 +325,22 @@ typedef struct _xSyncSetPriority{
 typedef struct _xSyncGetPriority{
     CARD8   	reqType;
     CARD8   	syncReqType;
-    CARD16  	length B16;
-    CARD32  	id B32; /*XXX XID? */
+    CARD16  	length;
+    CARD32  	id; /*XXX XID? */
 } xSyncGetPriorityReq;
 #define sz_xSyncGetPriorityReq	    	 8
 
 typedef struct {
     BYTE	type;
     CARD8	unused;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    INT32  	priority B32;
-    CARD32  	pad0 B32;
-    CARD32  	pad1 B32;
-    CARD32  	pad2 B32;
-    CARD32  	pad3 B32;
-    CARD32  	pad4 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    INT32  	priority;
+    CARD32  	pad0;
+    CARD32  	pad1;
+    CARD32  	pad2;
+    CARD32  	pad3;
+    CARD32  	pad4;
 } xSyncGetPriorityReply;
 #define sz_xSyncGetPriorityReply	32
 
@@ -350,9 +350,9 @@ typedef struct {
 typedef struct _xSyncCreateFenceReq {
     CARD8	reqType;
     CARD8	syncReqType;
-    CARD16	length B16;
-    Drawable	d B32;
-    XSyncFence	fid B32;
+    CARD16	length;
+    Drawable	d;
+    XSyncFence	fid;
     BOOL	initially_triggered;
     CARD8	pad0;
     CARD16	pad1;
@@ -365,8 +365,8 @@ typedef struct _xSyncCreateFenceReq {
 typedef struct _xSyncTriggerFenceReq {
     CARD8	reqType;
     CARD8	syncReqType;
-    CARD16	length B16;
-    XSyncFence	fid B32;
+    CARD16	length;
+    XSyncFence	fid;
 } xSyncTriggerFenceReq;
 #define sz_xSyncTriggerFenceReq		8
 
@@ -376,8 +376,8 @@ typedef struct _xSyncTriggerFenceReq {
 typedef struct _xSyncResetFenceReq {
     CARD8	reqType;
     CARD8	syncReqType;
-    CARD16	length B16;
-    XSyncFence	fid B32;
+    CARD16	length;
+    XSyncFence	fid;
 } xSyncResetFenceReq;
 #define sz_xSyncResetFenceReq		8
 
@@ -387,8 +387,8 @@ typedef struct _xSyncResetFenceReq {
 typedef struct _xSyncDestroyFenceReq {
     CARD8	reqType;
     CARD8	syncReqType;
-    CARD16	length B16;
-    XSyncFence	fid B32;
+    CARD16	length;
+    XSyncFence	fid;
 } xSyncDestroyFenceReq;
 #define sz_xSyncDestroyFenceReq		8
 
@@ -398,8 +398,8 @@ typedef struct _xSyncDestroyFenceReq {
 typedef struct _xSyncQueryFenceReq {
     CARD8	reqType;
     CARD8	syncReqType;
-    CARD16	length B16;
-    XSyncFence	fid B32;
+    CARD16	length;
+    XSyncFence	fid;
 } xSyncQueryFenceReq;
 #define sz_xSyncQueryFenceReq		8
 
@@ -410,23 +410,23 @@ typedef struct _xSyncQueryFenceReq {
 typedef struct _xSyncAwaitFenceReq {
     CARD8	reqType;
     CARD8	syncReqType;
-    CARD16	length B16;
+    CARD16	length;
 } xSyncAwaitFenceReq;
 #define sz_xSyncAwaitFenceReq		4
 
 typedef struct {
     BYTE	type;
     CARD8	unused;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
     BOOL	triggered;
     BYTE	pad0;
-    CARD16	pad1 B16;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xSyncQueryFenceReply;
 #define sz_xSyncQueryFenceReply		32
 
@@ -437,14 +437,14 @@ typedef struct {
 typedef struct _xSyncCounterNotifyEvent {
     BYTE	type;
     BYTE	kind;
-    CARD16	sequenceNumber B16;
-    XSyncCounter counter B32;
-    INT32	wait_value_hi B32;
-    CARD32	wait_value_lo B32;
-    INT32	counter_value_hi B32;
-    CARD32	counter_value_lo B32;
-    CARD32	time B32;
-    CARD16	count B16;
+    CARD16	sequenceNumber;
+    XSyncCounter counter;
+    INT32	wait_value_hi;
+    CARD32	wait_value_lo;
+    INT32	counter_value_hi;
+    CARD32	counter_value_lo;
+    CARD32	time;
+    CARD16	count;
     BOOL	destroyed;
     BYTE        pad0;
 } xSyncCounterNotifyEvent;
@@ -452,13 +452,13 @@ typedef struct _xSyncCounterNotifyEvent {
 typedef struct _xSyncAlarmNotifyEvent {
     BYTE	type;
     BYTE	kind;
-    CARD16	sequenceNumber B16;
-    XSyncAlarm	alarm B32;
-    INT32	counter_value_hi B32;
-    CARD32	counter_value_lo B32;
-    INT32	alarm_value_hi B32;
-    CARD32	alarm_value_lo B32;
-    CARD32	time B32;
+    CARD16	sequenceNumber;
+    XSyncAlarm	alarm;
+    INT32	counter_value_hi;
+    CARD32	counter_value_lo;
+    INT32	alarm_value_hi;
+    CARD32	alarm_value_lo;
+    CARD32	time;
     CARD8       state;
     BYTE        pad0;
     BYTE        pad1;

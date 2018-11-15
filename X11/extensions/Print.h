@@ -15,7 +15,7 @@
  **                  o Extension version structure
  **
  **               Library and client subportion has:
- **                  o Convience Marcos
+ **                  o Convenience Macros
  **                  o Client side data structures
  **                  o Client side event structures (non wire)
  **                  o Library function prototypes
@@ -269,7 +269,7 @@ typedef char * (*XPHinterProc)(void);
  *
  * Extension version structures.
  *
- **** this structure is now defined localy in the one file that uses it
+ **** this structure is now defined locally in the one file that uses it
  **** in order to avoid clashes with its definition in XI.h
  */
 typedef struct {

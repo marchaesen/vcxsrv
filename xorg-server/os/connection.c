@@ -144,7 +144,7 @@ Bool PartialNetwork;            /* continue even if unable to bind all addrs */
 int GrabInProgress = 0;
 
 static void
-QueueNewConnections(int curconn, int ready, void *data);
+EstablishNewConnections(int curconn, int ready, void *data);
 
 static void
 set_poll_client(ClientPtr client);
@@ -304,7 +304,7 @@ CreateWellKnownSockets(void)
         int fd = _XSERVTransGetConnectionNumber (ListenTransConns[i-1]);
 
         ListenTransFds[i-1] = fd;
-        SetNotifyFd(fd, QueueNewConnections, X_NOTIFY_READ, NULL);
+        SetNotifyFd(fd, EstablishNewConnections, X_NOTIFY_READ, NULL);
 
         if (!_XSERVTransIsLocal (ListenTransConns[i-1]))
             DefineSelf (fd);
@@ -364,7 +364,8 @@ ResetWellKnownSockets(void)
         }
     }
     for (i = 0; i < ListenTransCount; i++)
-        SetNotifyFd(ListenTransFds[i], QueueNewConnections, X_NOTIFY_READ, NULL);
+        SetNotifyFd(ListenTransFds[i], EstablishNewConnections, X_NOTIFY_READ,
+                    NULL);
 
     ResetAuthorization();
     ResetHosts(display);
@@ -672,14 +673,12 @@ AllocNewConnection(XtransConnInfo trans_conn, int fd, CARD32 conn_time)
 /*****************
  * EstablishNewConnections
  *    If anyone is waiting on listened sockets, accept them.
- *    Returns a mask with indices of new clients.  Updates AllClients
- *    and AllSockets.
+ *    Updates AllClients and AllSockets.
  *****************/
 
- /*ARGSUSED*/ Bool
-EstablishNewConnections(ClientPtr clientUnused, void *closure)
+void
+EstablishNewConnections(int curconn, int ready, void *data)
 {
-    int curconn = (int) (intptr_t) closure;
     int newconn;       /* fd of new client */
     CARD32 connect_time;
     int i;
@@ -701,10 +700,10 @@ EstablishNewConnections(ClientPtr clientUnused, void *closure)
     }
 
     if ((trans_conn = lookup_trans_conn(curconn)) == NULL)
-        return TRUE;
+        return;
 
     if ((new_trans_conn = _XSERVTransAccept(trans_conn, &status)) == NULL)
-        return TRUE;
+        return;
 
     newconn = _XSERVTransGetConnectionNumber(new_trans_conn);
 
@@ -716,13 +715,7 @@ EstablishNewConnections(ClientPtr clientUnused, void *closure)
     if (!AllocNewConnection(new_trans_conn, newconn, connect_time)) {
         ErrorConnMax(new_trans_conn);
     }
-    return TRUE;
-}
-
-static void
-QueueNewConnections(int fd, int ready, void *data)
-{
-    QueueWorkProc(EstablishNewConnections, NULL, (void *) (intptr_t) fd);
+    return;
 }
 
 #define NOROOM "Maximum number of clients reached"
@@ -1103,7 +1096,7 @@ ListenOnOpenFD(int fd, int noxauth)
     ListenTransConns[ListenTransCount] = ciptr;
     ListenTransFds[ListenTransCount] = fd;
 
-    SetNotifyFd(fd, QueueNewConnections, X_NOTIFY_READ, NULL);
+    SetNotifyFd(fd, EstablishNewConnections, X_NOTIFY_READ, NULL);
 
     /* Increment the count */
     ListenTransCount++;

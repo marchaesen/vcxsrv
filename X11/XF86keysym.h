@@ -117,12 +117,12 @@
 #define XF86XK_Explorer		0x1008FF5D   /* Launch file explorer        */
 #define XF86XK_Game		0x1008FF5E   /* Launch game                 */
 #define XF86XK_Go		0x1008FF5F   /* Go to URL                   */
-#define XF86XK_iTouch		0x1008FF60   /* Logitch iTouch- don't use   */
+#define XF86XK_iTouch		0x1008FF60   /* Logitech iTouch- don't use  */
 #define XF86XK_LogOff		0x1008FF61   /* Log off system              */
 #define XF86XK_Market		0x1008FF62   /* ??                          */
 #define XF86XK_Meeting		0x1008FF63   /* enter meeting in calendar   */
-#define XF86XK_MenuKB		0x1008FF65   /* distingush keyboard from PB */
-#define XF86XK_MenuPB		0x1008FF66   /* distinuish PB from keyboard */
+#define XF86XK_MenuKB		0x1008FF65   /* distinguish keyboard from PB */
+#define XF86XK_MenuPB		0x1008FF66   /* distinguish PB from keyboard */
 #define XF86XK_MySites		0x1008FF67   /* Favourites                  */
 #define XF86XK_New		0x1008FF68   /* New (folder, document...    */
 #define XF86XK_News		0x1008FF69   /* News                        */

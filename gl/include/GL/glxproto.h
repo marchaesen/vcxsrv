@@ -36,7 +36,7 @@
 /*****************************************************************************/
 
 /*
-** Errrors.
+** Errors.
 */
 #define GLXBadContext		0
 #define GLXBadContextState	1
@@ -127,8 +127,8 @@ typedef CARD32 GLXContextTag;
 typedef struct GLXRender {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXContextTag contextTag B32;
+    CARD16	length;
+    GLXContextTag contextTag;
 } xGLXRenderReq;
 #define sz_xGLXRenderReq 8
 
@@ -147,11 +147,11 @@ typedef struct GLXRender {
 typedef struct GLXRenderLarge {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXContextTag contextTag B32;
-    CARD16	requestNumber B16;
-    CARD16	requestTotal B16;
-    CARD32	dataBytes B32;
+    CARD16	length;
+    GLXContextTag contextTag;
+    CARD16	requestNumber;
+    CARD16	requestTotal;
+    CARD32	dataBytes;
 } xGLXRenderLargeReq;
 #define sz_xGLXRenderLargeReq 16
 
@@ -163,8 +163,8 @@ typedef struct GLXRenderLarge {
 typedef struct GLXSingle {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXContextTag contextTag B32;
+    CARD16	length;
+    GLXContextTag contextTag;
 } xGLXSingleReq;
 #define sz_xGLXSingleReq 8
 
@@ -174,9 +174,9 @@ typedef struct GLXSingle {
 typedef struct GLXQueryVersion {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	majorVersion B32;
-    CARD32	minorVersion B32;
+    CARD16	length;
+    CARD32	majorVersion;
+    CARD32	minorVersion;
 } xGLXQueryVersionReq;
 #define sz_xGLXQueryVersionReq 12
 
@@ -186,8 +186,8 @@ typedef struct GLXQueryVersion {
 typedef struct GLXIsDirect {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXContextID context B32;
+    CARD16	length;
+    GLXContextID context;
 } xGLXIsDirectReq;
 #define sz_xGLXIsDirectReq 8
 
@@ -197,14 +197,14 @@ typedef struct GLXIsDirect {
 typedef struct GLXCreateContext {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXContextID context B32;
-    CARD32	visual B32;
-    CARD32	screen B32;
-    GLXContextID shareList B32;
+    CARD16	length;
+    GLXContextID context;
+    CARD32	visual;
+    CARD32	screen;
+    GLXContextID shareList;
     BOOL	isDirect;
     CARD8	reserved1;
-    CARD16	reserved2 B16;
+    CARD16	reserved2;
 } xGLXCreateContextReq;
 #define sz_xGLXCreateContextReq 24
 
@@ -214,8 +214,8 @@ typedef struct GLXCreateContext {
 typedef struct GLXDestroyContext {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXContextID context B32;
+    CARD16	length;
+    GLXContextID context;
 } xGLXDestroyContextReq;
 #define sz_xGLXDestroyContextReq 8
 
@@ -225,10 +225,10 @@ typedef struct GLXDestroyContext {
 typedef struct GLXMakeCurrent {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXDrawable drawable B32;
-    GLXContextID context B32;
-    GLXContextTag oldContextTag B32;
+    CARD16	length;
+    GLXDrawable drawable;
+    GLXContextID context;
+    GLXContextTag oldContextTag;
 } xGLXMakeCurrentReq;
 #define sz_xGLXMakeCurrentReq 16
 
@@ -238,8 +238,8 @@ typedef struct GLXMakeCurrent {
 typedef struct GLXWaitGL {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXContextTag contextTag B32;
+    CARD16	length;
+    GLXContextTag contextTag;
 } xGLXWaitGLReq;
 #define sz_xGLXWaitGLReq 8
 
@@ -249,8 +249,8 @@ typedef struct GLXWaitGL {
 typedef struct GLXWaitX {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXContextTag contextTag B32;
+    CARD16	length;
+    GLXContextTag contextTag;
 } xGLXWaitXReq;
 #define sz_xGLXWaitXReq 8
 
@@ -260,11 +260,11 @@ typedef struct GLXWaitX {
 typedef struct GLXCopyContext {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXContextID source B32;
-    GLXContextID dest B32;
-    CARD32	mask B32;
-    GLXContextTag contextTag B32;
+    CARD16	length;
+    GLXContextID source;
+    GLXContextID dest;
+    CARD32	mask;
+    GLXContextTag contextTag;
 } xGLXCopyContextReq;
 #define sz_xGLXCopyContextReq 20
 
@@ -274,9 +274,9 @@ typedef struct GLXCopyContext {
 typedef struct GLXSwapBuffers {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXContextTag contextTag B32;
-    GLXDrawable drawable B32;
+    CARD16	length;
+    GLXContextTag contextTag;
+    GLXDrawable drawable;
 } xGLXSwapBuffersReq;
 #define sz_xGLXSwapBuffersReq 12
 
@@ -286,12 +286,12 @@ typedef struct GLXSwapBuffers {
 typedef struct GLXUseXFont {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXContextTag contextTag B32;
-    CARD32	font B32;
-    CARD32	first B32;
-    CARD32	count B32;
-    CARD32	listBase B32;
+    CARD16	length;
+    GLXContextTag contextTag;
+    CARD32	font;
+    CARD32	first;
+    CARD32	count;
+    CARD32	listBase;
 } xGLXUseXFontReq;
 #define sz_xGLXUseXFontReq 24
 
@@ -301,11 +301,11 @@ typedef struct GLXUseXFont {
 typedef struct GLXCreateGLXPixmap {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	screen B32;
-    CARD32	visual B32;
-    CARD32	pixmap B32;
-    GLXPixmap	glxpixmap B32;
+    CARD16	length;
+    CARD32	screen;
+    CARD32	visual;
+    CARD32	pixmap;
+    GLXPixmap	glxpixmap;
 } xGLXCreateGLXPixmapReq;
 #define sz_xGLXCreateGLXPixmapReq 20
 
@@ -315,8 +315,8 @@ typedef struct GLXCreateGLXPixmap {
 typedef struct GLXDestroyGLXPixmap {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXPixmap	glxpixmap B32;
+    CARD16	length;
+    GLXPixmap	glxpixmap;
 } xGLXDestroyGLXPixmapReq;
 #define sz_xGLXDestroyGLXPixmapReq 8
 
@@ -326,8 +326,8 @@ typedef struct GLXDestroyGLXPixmap {
 typedef struct GLXGetVisualConfigs {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	screen B32;
+    CARD16	length;
+    CARD32	screen;
 } xGLXGetVisualConfigsReq;
 #define sz_xGLXGetVisualConfigsReq 8
 
@@ -337,9 +337,9 @@ typedef struct GLXGetVisualConfigs {
 typedef struct GLXVendorPrivate {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	vendorCode B32;		/* vendor-specific opcode */
-    GLXContextTag contextTag B32;
+    CARD16	length;
+    CARD32	vendorCode;		/* vendor-specific opcode */
+    GLXContextTag contextTag;
     /*
     ** More data may follow; this is just the header.
     */
@@ -352,9 +352,9 @@ typedef struct GLXVendorPrivate {
 typedef struct GLXVendorPrivateWithReply {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	vendorCode B32;		/* vendor-specific opcode */
-    GLXContextTag contextTag B32;
+    CARD16	length;
+    CARD32	vendorCode;		/* vendor-specific opcode */
+    GLXContextTag contextTag;
     /*
     ** More data may follow; this is just the header.
     */
@@ -367,8 +367,8 @@ typedef struct GLXVendorPrivateWithReply {
 typedef struct GLXQueryExtensionsString {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	screen B32;
+    CARD16	length;
+    CARD32	screen;
 } xGLXQueryExtensionsStringReq;
 #define sz_xGLXQueryExtensionsStringReq 8
 
@@ -378,9 +378,9 @@ typedef struct GLXQueryExtensionsString {
 typedef struct GLXQueryServerString {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	screen	B32;
-    CARD32	name B32;
+    CARD16	length;
+    CARD32	screen;
+    CARD32	name;
 } xGLXQueryServerStringReq;
 #define sz_xGLXQueryServerStringReq 12
 
@@ -390,10 +390,10 @@ typedef struct GLXQueryServerString {
 typedef struct GLXClientInfo {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	major B32;
-    CARD32	minor B32;
-    CARD32	numbytes B32;
+    CARD16	length;
+    CARD32	major;
+    CARD32	minor;
+    CARD32	numbytes;
 } xGLXClientInfoReq;
 #define sz_xGLXClientInfoReq 16
 
@@ -405,8 +405,8 @@ typedef struct GLXClientInfo {
 typedef struct GLXGetFBConfigs {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	screen B32;
+    CARD16	length;
+    CARD32	screen;
 } xGLXGetFBConfigsReq;
 #define sz_xGLXGetFBConfigsReq 8
 
@@ -416,12 +416,12 @@ typedef struct GLXGetFBConfigs {
 typedef struct GLXCreatePixmap {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	screen B32;
-    GLXFBConfigID fbconfig B32;
-    CARD32	pixmap B32;
-    GLXPixmap	glxpixmap B32;
-    CARD32	numAttribs B32;
+    CARD16	length;
+    CARD32	screen;
+    GLXFBConfigID fbconfig;
+    CARD32	pixmap;
+    GLXPixmap	glxpixmap;
+    CARD32	numAttribs;
     /* followed by attribute list */
 } xGLXCreatePixmapReq;
 #define sz_xGLXCreatePixmapReq 24
@@ -432,8 +432,8 @@ typedef struct GLXCreatePixmap {
 typedef struct GLXDestroyPixmap {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXPixmap	glxpixmap B32;
+    CARD16	length;
+    GLXPixmap	glxpixmap;
 } xGLXDestroyPixmapReq;
 #define sz_xGLXDestroyPixmapReq 8
 
@@ -443,15 +443,15 @@ typedef struct GLXDestroyPixmap {
 typedef struct GLXCreateNewContext {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXContextID context B32;
-    GLXFBConfigID fbconfig B32;
-    CARD32	screen B32;
+    CARD16	length;
+    GLXContextID context;
+    GLXFBConfigID fbconfig;
+    CARD32	screen;
     CARD32	renderType;
-    GLXContextID shareList B32;
+    GLXContextID shareList;
     BOOL	isDirect;
     CARD8	reserved1;
-    CARD16	reserved2 B16;
+    CARD16	reserved2;
 } xGLXCreateNewContextReq;
 #define sz_xGLXCreateNewContextReq 28
 
@@ -461,8 +461,8 @@ typedef struct GLXCreateNewContext {
 typedef struct GLXQueryContext {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXContextID context B32;
+    CARD16	length;
+    GLXContextID context;
 } xGLXQueryContextReq;
 #define sz_xGLXQueryContextReq 8
 
@@ -472,11 +472,11 @@ typedef struct GLXQueryContext {
 typedef struct GLXMakeContextCurrent {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXContextTag oldContextTag B32;
-    GLXDrawable drawable B32;
-    GLXDrawable readdrawable B32;
-    GLXContextID context B32;
+    CARD16	length;
+    GLXContextTag oldContextTag;
+    GLXDrawable drawable;
+    GLXDrawable readdrawable;
+    GLXContextID context;
 } xGLXMakeContextCurrentReq;
 #define sz_xGLXMakeContextCurrentReq 20
 
@@ -486,11 +486,11 @@ typedef struct GLXMakeContextCurrent {
 typedef struct GLXCreatePbuffer {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	screen B32;
-    GLXFBConfigID fbconfig B32;
-    GLXPbuffer	pbuffer B32;
-    CARD32	numAttribs B32;
+    CARD16	length;
+    CARD32	screen;
+    GLXFBConfigID fbconfig;
+    GLXPbuffer	pbuffer;
+    CARD32	numAttribs;
     /* followed by attribute list */
 } xGLXCreatePbufferReq;
 #define sz_xGLXCreatePbufferReq 20
@@ -501,8 +501,8 @@ typedef struct GLXCreatePbuffer {
 typedef struct GLXDestroyPbuffer {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXPbuffer	pbuffer B32;
+    CARD16	length;
+    GLXPbuffer	pbuffer;
 } xGLXDestroyPbufferReq;
 #define sz_xGLXDestroyPbufferReq 8
 
@@ -512,8 +512,8 @@ typedef struct GLXDestroyPbuffer {
 typedef struct GLXGetDrawableAttributes {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXDrawable drawable B32;
+    CARD16	length;
+    GLXDrawable drawable;
 } xGLXGetDrawableAttributesReq;
 #define sz_xGLXGetDrawableAttributesReq 8
 
@@ -523,9 +523,9 @@ typedef struct GLXGetDrawableAttributes {
 typedef struct GLXChangeDrawableAttributes {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXDrawable drawable B32;
-    CARD32	numAttribs B32;
+    CARD16	length;
+    GLXDrawable drawable;
+    CARD32	numAttribs;
     /* followed by attribute list */
 } xGLXChangeDrawableAttributesReq;
 #define sz_xGLXChangeDrawableAttributesReq 12
@@ -536,12 +536,12 @@ typedef struct GLXChangeDrawableAttributes {
 typedef struct GLXCreateWindow {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	screen B32;
-    GLXFBConfigID fbconfig B32;
-    CARD32	window B32;
-    GLXWindow	glxwindow B32;
-    CARD32	numAttribs B32;
+    CARD16	length;
+    CARD32	screen;
+    GLXFBConfigID fbconfig;
+    CARD32	window;
+    GLXWindow	glxwindow;
+    CARD32	numAttribs;
     /* followed by attribute list */
 } xGLXCreateWindowReq;
 #define sz_xGLXCreateWindowReq 24
@@ -552,8 +552,8 @@ typedef struct GLXCreateWindow {
 typedef struct GLXDestroyWindow {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXWindow	glxwindow B32;
+    CARD16	length;
+    GLXWindow	glxwindow;
 } xGLXDestroyWindowReq;
 #define sz_xGLXDestroyWindowReq 8
 
@@ -562,170 +562,170 @@ typedef struct GLXDestroyWindow {
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	error B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	error;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXGetErrorReply;
 #define sz_xGLXGetErrorReply 32
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    GLXContextTag contextTag B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    GLXContextTag contextTag;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXMakeCurrentReply;
 #define sz_xGLXMakeCurrentReply 32
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXReadPixelsReply;
 #define sz_xGLXReadPixelsReply 32
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	width B32;
-    CARD32	height B32;
-    CARD32	depth B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	width;
+    CARD32	height;
+    CARD32	depth;
+    CARD32	pad6;
 } xGLXGetTexImageReply;
 #define sz_xGLXGetTexImageReply 32
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	width B32;
-    CARD32	height B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	width;
+    CARD32	height;
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXGetSeparableFilterReply;
 #define sz_xGLXGetSeparableFilterReply 32
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	width B32;
-    CARD32	height B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	width;
+    CARD32	height;
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXGetConvolutionFilterReply;
 #define sz_xGLXGetConvolutionFilterReply 32
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	width B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	width;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXGetHistogramReply;
 #define sz_xGLXGetHistogramReply 32
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXGetMinmaxReply;
 #define sz_xGLXGetMinmaxReply 32
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	retval B32;
-    CARD32	size B32;
-    CARD32	newMode B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	retval;
+    CARD32	size;
+    CARD32	newMode;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXRenderModeReply;
 #define sz_xGLXRenderModeReply 32
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	majorVersion B32;
-    CARD32	minorVersion B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	majorVersion;
+    CARD32	minorVersion;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXQueryVersionReply;
 #define sz_xGLXQueryVersionReply 32
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	numVisuals B32;
-    CARD32	numProps B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	numVisuals;
+    CARD32	numProps;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXGetVisualConfigsReply;
 #define sz_xGLXGetVisualConfigsReply 32
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
     BOOL	isDirect;
     CARD8	pad1;
-    CARD16	pad2 B16;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
-    CARD32	pad7 B32;
+    CARD16	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
+    CARD32	pad7;
 } xGLXIsDirectReply;
 #define sz_xGLXIsDirectReply	32
 
@@ -737,14 +737,14 @@ typedef struct {
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	retval B32;
-    CARD32	size B32;
-    CARD32	pad3 B32;		/* NOTE: may hold a single value */
-    CARD32	pad4 B32;		/* NOTE: may hold half a double */
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	retval;
+    CARD32	size;
+    CARD32	pad3;			/* NOTE: may hold a single value */
+    CARD32	pad4;			/* NOTE: may hold half a double */
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXSingleReply;
 #define sz_xGLXSingleReply 32
 
@@ -757,14 +757,14 @@ typedef struct {
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	retval B32;
-    CARD32	size B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	retval;
+    CARD32	size;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXVendorPrivReply;
 #define sz_xGLXVendorPrivReply 32
 
@@ -775,14 +775,14 @@ typedef struct {
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	pad1 B32;
-    CARD32	n B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	pad1;
+    CARD32	n;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXQueryExtensionsStringReply;
 #define sz_xGLXQueryExtensionsStringReply 32
 
@@ -793,14 +793,14 @@ typedef struct {
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	pad1 B32;
-    CARD32	n B32;
-    CARD32	pad3 B32;		/* NOTE: may hold a single value */
-    CARD32	pad4 B32;		/* NOTE: may hold half a double */
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	pad1;
+    CARD32	n;
+    CARD32	pad3;			/* NOTE: may hold a single value */
+    CARD32	pad4;			/* NOTE: may hold half a double */
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXQueryServerStringReply;
 #define sz_xGLXQueryServerStringReply 32
 
@@ -812,14 +812,14 @@ typedef struct {
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	numFBConfigs B32;
-    CARD32	numAttribs B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	numFBConfigs;
+    CARD32	numAttribs;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXGetFBConfigsReply;
 #define sz_xGLXGetFBConfigsReply 32
 
@@ -829,14 +829,14 @@ typedef struct {
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	n B32;			/* number of attribute/value pairs */
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	n;			/* number of attribute/value pairs */
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXQueryContextReply;
 #define sz_xGLXQueryContextReply 32
 
@@ -846,14 +846,14 @@ typedef struct {
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    GLXContextTag contextTag B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    GLXContextTag contextTag;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXMakeContextCurrentReply;
 #define sz_xGLXMakeContextCurrentReply 32
 
@@ -865,14 +865,14 @@ typedef struct {
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	success;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXCreateGLXPbufferReply;
 #define sz_xGLXCreateGLXPbufferReply 32
 
@@ -882,14 +882,14 @@ typedef struct {
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	numAttribs B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	numAttribs;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXGetDrawableAttributesReply;
 #define sz_xGLXGetDrawableAttributesReply 32
 
@@ -899,14 +899,14 @@ typedef struct {
 typedef struct {
     BYTE	type;		       /* X_Reply */
     CARD8	unused;		       /* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
-    CARD32	width B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	pad1;
+    CARD32	pad2;
+    CARD32	width;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXGetColorTableReply;
 #define sz_xGLXGetColorTableReply 32
 
@@ -920,10 +920,10 @@ typedef struct {
 typedef struct GLXQueryContextInfoEXT {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	vendorCode B32;		/* vendor-specific opcode */
-    CARD32	pad1 B32;   /* unused; corresponds to contextTag in header */
-    GLXContextID context B32;
+    CARD16	length;
+    CARD32	vendorCode;		/* vendor-specific opcode */
+    CARD32	pad1;	/* unused; corresponds to contextTag in header */
+    GLXContextID context;
 } xGLXQueryContextInfoEXTReq;
 #define sz_xGLXQueryContextInfoEXTReq 16
 
@@ -933,14 +933,14 @@ typedef struct GLXQueryContextInfoEXT {
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	n B32;			/* number of attribute/value pairs */
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	n;			/* number of attribute/value pairs */
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXQueryContextInfoEXTReply;
 #define sz_xGLXQueryContextInfoEXTReply 32
 
@@ -950,26 +950,26 @@ typedef struct {
 typedef struct GLXMakeCurrentReadSGI {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	vendorCode B32;		/* vendor-specific opcode */
-    GLXContextTag oldContextTag B32;
-    GLXDrawable drawable B32;
-    GLXDrawable readable B32;
-    GLXContextID context B32;
+    CARD16	length;
+    CARD32	vendorCode;		/* vendor-specific opcode */
+    GLXContextTag oldContextTag;
+    GLXDrawable drawable;
+    GLXDrawable readable;
+    GLXContextID context;
 } xGLXMakeCurrentReadSGIReq;
 #define sz_xGLXMakeCurrentReadSGIReq 24
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    GLXContextTag contextTag B32;
-    CARD32	writeVid B32;
-    CARD32	writeType B32;
-    CARD32	readVid B32;
-    CARD32	readType B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    GLXContextTag contextTag;
+    CARD32	writeVid;
+    CARD32	writeType;
+    CARD32	readVid;
+    CARD32	readType;
+    CARD32	pad6;
 } xGLXMakeCurrentReadSGIReply;
 #define sz_xGLXMakeCurrentReadSGIReply 32
 
@@ -979,10 +979,10 @@ typedef struct {
 typedef struct GLXGetFBConfigsSGIX {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	vendorCode B32;		/* vendor-specific opcode */
-    CARD32	pad1 B32;   /* unused; corresponds to contextTag in header */
-    CARD32	screen B32;
+    CARD16	length;
+    CARD32	vendorCode;		/* vendor-specific opcode */
+    CARD32	pad1;   /* unused; corresponds to contextTag in header */
+    CARD32	screen;
 } xGLXGetFBConfigsSGIXReq;
 #define sz_xGLXGetFBConfigsSGIXReq 16
 
@@ -993,17 +993,17 @@ typedef struct GLXGetFBConfigsSGIX {
 typedef struct GLXCreateContextWithConfigSGIX {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	vendorCode B32;		/* vendor-specific opcode */
-    CARD32	pad1 B32;   /* unused; corresponds to contextTag in header */
-    GLXContextID context B32;
-    GLXFBConfigID fbconfig B32;
-    CARD32	screen B32;
+    CARD16	length;
+    CARD32	vendorCode;		/* vendor-specific opcode */
+    CARD32	pad1;   /* unused; corresponds to contextTag in header */
+    GLXContextID context;
+    GLXFBConfigID fbconfig;
+    CARD32	screen;
     CARD32	renderType;
-    GLXContextID shareList B32;
+    GLXContextID shareList;
     BOOL	isDirect;
     CARD8	reserved1;
-    CARD16	reserved2 B16;
+    CARD16	reserved2;
 } xGLXCreateContextWithConfigSGIXReq;
 #define sz_xGLXCreateContextWithConfigSGIXReq 36
 
@@ -1014,13 +1014,13 @@ typedef struct GLXCreateContextWithConfigSGIX {
 typedef struct GLXCreateGLXPixmapWithConfigSGIX {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	vendorCode B32;		/* vendor-specific opcode */
-    CARD32	pad1 B32;   /* unused; corresponds to contextTag in header */
-    CARD32	screen B32;
-    GLXFBConfigID fbconfig B32;
-    CARD32	pixmap B32;
-    GLXPixmap	glxpixmap B32;
+    CARD16	length;
+    CARD32	vendorCode;		/* vendor-specific opcode */
+    CARD32	pad1;   /* unused; corresponds to contextTag in header */
+    CARD32	screen;
+    GLXFBConfigID fbconfig;
+    CARD32	pixmap;
+    GLXPixmap	glxpixmap;
 } xGLXCreateGLXPixmapWithConfigSGIXReq;
 #define sz_xGLXCreateGLXPixmapWithConfigSGIXReq 28
 
@@ -1030,14 +1030,14 @@ typedef struct GLXCreateGLXPixmapWithConfigSGIX {
 typedef struct GLXCreateGLXPbufferSGIX {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	vendorCode B32;		/* vendor-specific opcode */
-    CARD32	pad1 B32;   /* unused; corresponds to contextTag in header */
-    CARD32	screen B32;
-    GLXFBConfigID fbconfig B32;
-    GLXPbuffer	pbuffer B32;
-    CARD32	width B32;
-    CARD32	height B32;
+    CARD16	length;
+    CARD32	vendorCode;		/* vendor-specific opcode */
+    CARD32	pad1;   /* unused; corresponds to contextTag in header */
+    CARD32	screen;
+    GLXFBConfigID fbconfig;
+    GLXPbuffer	pbuffer;
+    CARD32	width;
+    CARD32	height;
     /* followed by attribute list */
 } xGLXCreateGLXPbufferSGIXReq;
 #define sz_xGLXCreateGLXPbufferSGIXReq 32
@@ -1048,10 +1048,10 @@ typedef struct GLXCreateGLXPbufferSGIX {
 typedef struct GLXDestroyGLXPbuffer {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	vendorCode B32;		/* vendor-specific opcode */
-    CARD32	pad1 B32;   /* unused; corresponds to contextTag in header */
-    GLXPbuffer	pbuffer B32;
+    CARD16	length;
+    CARD32	vendorCode;		/* vendor-specific opcode */
+    CARD32	pad1;   /* unused; corresponds to contextTag in header */
+    GLXPbuffer	pbuffer;
 } xGLXDestroyGLXPbufferSGIXReq;
 #define sz_xGLXDestroyGLXPbufferSGIXReq 16
 
@@ -1061,11 +1061,11 @@ typedef struct GLXDestroyGLXPbuffer {
 typedef struct GLXChangeDrawableAttributesSGIX {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	vendorCode B32;		/* vendor-specific opcode */
-    CARD32	pad1 B32;   /* unused; corresponds to contextTag in header */
-    GLXDrawable drawable B32;
-    CARD32	numAttribs B32;
+    CARD16	length;
+    CARD32	vendorCode;		/* vendor-specific opcode */
+    CARD32	pad1;   /* unused; corresponds to contextTag in header */
+    GLXDrawable drawable;
+    CARD32	numAttribs;
     /* followed by attribute list */
 } xGLXChangeDrawableAttributesSGIXReq;
 #define sz_xGLXChangeDrawableAttributesSGIXReq 20
@@ -1076,10 +1076,10 @@ typedef struct GLXChangeDrawableAttributesSGIX {
 typedef struct GLXGetDrawableAttributesSGIX {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	vendorCode B32;		/* vendor-specific opcode */
-    CARD32	pad1 B32;   /* unused; corresponds to contextTag in header */
-    GLXDrawable drawable B32;
+    CARD16	length;
+    CARD32	vendorCode;		/* vendor-specific opcode */
+    CARD32	pad1;   /* unused; corresponds to contextTag in header */
+    GLXDrawable drawable;
 } xGLXGetDrawableAttributesSGIXReq;
 #define sz_xGLXGetDrawableAttributesSGIXReq 16
 
@@ -1089,14 +1089,14 @@ typedef struct GLXGetDrawableAttributesSGIX {
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	numAttribs B32;
-    CARD32	pad2 B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	numAttribs;
+    CARD32	pad2;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXGetDrawableAttributesSGIXReply;
 #define sz_xGLXGetDrawableAttributesSGIXReply 32
 
@@ -1106,11 +1106,11 @@ typedef struct {
 typedef struct GLXJoinSwapGroupSGIX {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	vendorCode B32;		/* vendor-specific opcode */
-    CARD32 	unused B32;		/* corresponds to contextTag in hdr */
-    GLXDrawable	drawable B32;
-    GLXDrawable	member B32;
+    CARD16	length;
+    CARD32	vendorCode;		/* vendor-specific opcode */
+    CARD32 	unused;		/* corresponds to contextTag in hdr */
+    GLXDrawable	drawable;
+    GLXDrawable	member;
 } xGLXJoinSwapGroupSGIXReq;
 #define sz_xGLXJoinSwapGroupSGIXReq 20
 
@@ -1120,11 +1120,11 @@ typedef struct GLXJoinSwapGroupSGIX {
 typedef struct GLXBindSwapBarrierSGIX {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	vendorCode B32;		/* vendor-specific opcode */
-    CARD32 	unused B32;		/* corresponds to contextTag in hdr */
-    GLXDrawable	drawable B32;
-    CARD32	barrier B32;
+    CARD16	length;
+    CARD32	vendorCode;		/* vendor-specific opcode */
+    CARD32 	unused;		/* corresponds to contextTag in hdr */
+    GLXDrawable	drawable;
+    CARD32	barrier;
 } xGLXBindSwapBarrierSGIXReq;
 #define sz_xGLXBindSwapBarrierSGIXReq 20
 
@@ -1134,24 +1134,24 @@ typedef struct GLXBindSwapBarrierSGIX {
 typedef struct GLXQueryMaxSwapBarriersSGIX {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	vendorCode B32;		/* vendor-specific opcode */
-    CARD32 	unused B32;		/* corresponds to contextTag in hdr */
-    CARD32	screen B32;
+    CARD16	length;
+    CARD32	vendorCode;		/* vendor-specific opcode */
+    CARD32 	unused;		/* corresponds to contextTag in hdr */
+    CARD32	screen;
 } xGLXQueryMaxSwapBarriersSGIXReq;
 #define sz_xGLXQueryMaxSwapBarriersSGIXReq 16
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	unused;			/* not used */
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD32	max B32;
-    CARD32	size B32;
-    CARD32	pad3 B32;
-    CARD32	pad4 B32;
-    CARD32	pad5 B32;
-    CARD32	pad6 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD32	max;
+    CARD32	size;
+    CARD32	pad3;
+    CARD32	pad4;
+    CARD32	pad5;
+    CARD32	pad6;
 } xGLXQueryMaxSwapBarriersSGIXReply;
 #define sz_xGLXQueryMaxSwapBarriersSGIXReply 32
 
@@ -1161,10 +1161,10 @@ typedef struct {
 typedef struct GLXQueryHyperpipeNetworkSGIX {
     CARD8       reqType;
     CARD8       glxCode;
-    CARD16      length B16;
-    CARD32      vendorCode B32;         /* vendor-specific opcode */
-    CARD32      pad1 B32;   /* unused; corresponds to contextTag in header */
-    CARD32      screen B32;
+    CARD16      length;
+    CARD32      vendorCode;		/* vendor-specific opcode */
+    CARD32      pad1;   /* unused; corresponds to contextTag in header */
+    CARD32      screen;
 } xGLXQueryHyperpipeNetworkSGIXReq;
 #define sz_xGLXQueryHyperpipeNetworkSGIXReq 16
 
@@ -1174,14 +1174,14 @@ typedef struct GLXQueryHyperpipeNetworkSGIX {
 typedef struct {
     BYTE        type;                   /* X_Reply */
     CARD8       unused;                 /* not used */
-    CARD16      sequenceNumber B16;
-    CARD32      length B32;
-    CARD32      pad1 B32;
-    CARD32      n B32;
-    CARD32      npipes B32;             /* NOTE: may hold a single value */
-    CARD32      pad4 B32;               /* NOTE: may hold half a double */
-    CARD32      pad5 B32;
-    CARD32      pad6 B32;
+    CARD16      sequenceNumber;
+    CARD32      length;
+    CARD32      pad1;
+    CARD32      n;
+    CARD32	npipes;			/* NOTE: may hold a single value */
+    CARD32	pad4;			/* NOTE: may hold half a double */
+    CARD32      pad5;
+    CARD32      pad6;
 } xGLXQueryHyperpipeNetworkSGIXReply;
 #define sz_xGLXQueryHyperpipeNetworkSGIXReply 32
 
@@ -1191,14 +1191,14 @@ typedef struct {
 typedef struct GLXDestroyHyperpipeConfigSGIX {
     CARD8       reqType;
     CARD8       glxCode;
-    CARD16      length B16;
-    CARD32      vendorCode B32;         /* vendor-specific opcode */
-    CARD32      pad1 B32;   /* unused; corresponds to contextTag in header */
-    CARD32      screen B32;
-    CARD32      hpId B32;
-    CARD32      pad2 B32;
-    CARD32      pad3 B32;
-    CARD32      pad4 B32;
+    CARD16      length;
+    CARD32      vendorCode;		/* vendor-specific opcode */
+    CARD32      pad1;   /* unused; corresponds to contextTag in header */
+    CARD32      screen;
+    CARD32      hpId;
+    CARD32      pad2;
+    CARD32      pad3;
+    CARD32      pad4;
 } xGLXDestroyHyperpipeConfigSGIXReq;
 #define sz_xGLXDestroyHyperpipeConfigSGIXReq 32
 
@@ -1208,14 +1208,14 @@ typedef struct GLXDestroyHyperpipeConfigSGIX {
 typedef struct {
     BYTE        type;                   /* X_Reply */
     CARD8       unused;                 /* not used */
-    CARD16      sequenceNumber B16;
-    CARD32      length B32;
-    CARD32      pad1 B32;
-    CARD32      n B32;
-    CARD32      success B32;            /* NOTE: may hold a single value */
-    CARD32      pad4 B32;               /* NOTE: may hold half a double */
-    CARD32      pad5 B32;
-    CARD32      pad6 B32;
+    CARD16      sequenceNumber;
+    CARD32      length;
+    CARD32      pad1;
+    CARD32      n;
+    CARD32      success;		/* NOTE: may hold a single value */
+    CARD32      pad4;			/* NOTE: may hold half a double */
+    CARD32      pad5;
+    CARD32      pad6;
 } xGLXDestroyHyperpipeConfigSGIXReply;
 #define sz_xGLXDestroyHyperpipeConfigSGIXReply 32
 
@@ -1225,14 +1225,14 @@ typedef struct {
 typedef struct GLXQueryHyperpipeConfigSGIX {
     CARD8       reqType;
     CARD8       glxCode;
-    CARD16      length B16;
-    CARD32      vendorCode B32;         /* vendor-specific opcode */
-    CARD32      pad1 B32;   /* unused; corresponds to contextTag in header */
-    CARD32      screen B32;
-    CARD32      hpId B32;
-    CARD32      pad2 B32;
-    CARD32      pad3 B32;
-    CARD32      pad4 B32;
+    CARD16      length;
+    CARD32      vendorCode;		/* vendor-specific opcode */
+    CARD32      pad1;   /* unused; corresponds to contextTag in header */
+    CARD32      screen;
+    CARD32      hpId;
+    CARD32      pad2;
+    CARD32      pad3;
+    CARD32      pad4;
 } xGLXQueryHyperpipeConfigSGIXReq;
 #define sz_xGLXQueryHyperpipeConfigSGIXReq 32
 
@@ -1242,14 +1242,14 @@ typedef struct GLXQueryHyperpipeConfigSGIX {
 typedef struct {
     BYTE        type;                   /* X_Reply */
     CARD8       unused;                 /* not used */
-    CARD16      sequenceNumber B16;
-    CARD32      length B32;
-    CARD32      pad1 B32;
-    CARD32      n B32;
-    CARD32      npipes B32;
-    CARD32      pad4 B32;
-    CARD32      pad5 B32;
-    CARD32      pad6 B32;
+    CARD16      sequenceNumber;
+    CARD32      length;
+    CARD32      pad1;
+    CARD32      n;
+    CARD32      npipes;
+    CARD32      pad4;
+    CARD32      pad5;
+    CARD32      pad6;
 } xGLXQueryHyperpipeConfigSGIXReply;
 #define sz_xGLXQueryHyperpipeConfigSGIXReply 32
 
@@ -1259,14 +1259,14 @@ typedef struct {
 typedef struct {
     CARD8       reqType;
     CARD8       glxCode;
-    CARD16      length B16;
-    CARD32      vendorCode B32;         /* vendor-specific opcode */
-    CARD32      pad1 B32;   /* unused; corresponds to contextTag in header */
-    CARD32      screen B32;
-    CARD32      npipes B32;
-    CARD32      networkId B32;
-    CARD32      pad2 B32;
-    CARD32      pad3 B32;
+    CARD16      length;
+    CARD32      vendorCode;		/* vendor-specific opcode */
+    CARD32      pad1;   /* unused; corresponds to contextTag in header */
+    CARD32      screen;
+    CARD32      npipes;
+    CARD32      networkId;
+    CARD32      pad2;
+    CARD32      pad3;
     /* followed by attribute list */
 } xGLXHyperpipeConfigSGIXReq;
 #define sz_xGLXHyperpipeConfigSGIXReq 32
@@ -1277,14 +1277,14 @@ typedef struct {
 typedef struct {
     BYTE        type;                   /* X_Reply */
     CARD8       unused;                 /* not used */
-    CARD16      sequenceNumber B16;
-    CARD32      length B32;
-    CARD32      pad1 B32;
-    CARD32      n B32;
-    CARD32      npipes B32;
-    CARD32      hpId B32;
-    CARD32      pad5 B32;
-    CARD32      pad6 B32;
+    CARD16      sequenceNumber;
+    CARD32      length;
+    CARD32      pad1;
+    CARD32      n;
+    CARD32      npipes;
+    CARD32      hpId;
+    CARD32      pad5;
+    CARD32      pad6;
 } xGLXHyperpipeConfigSGIXReply;
 #define sz_xGLXHyperpipeConfigSGIXReply 32
 
@@ -1296,7 +1296,7 @@ typedef struct {
 /**
  * Protocol header for glXSetClientInfoARB
  *
- * This structure is follwed by \c numVersions * 2 \c CARD32 values listing
+ * This structure is followed by \c numVersions * 2 \c CARD32 values listing
  * the OpenGL versions supported by the client.  The pairs of values are an
  * OpenGL major version followed by a minor version.  For example,
  *
@@ -1319,12 +1319,12 @@ typedef struct {
 typedef struct GLXSetClientInfoARB {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	major B32;
-    CARD32	minor B32;
-    CARD32	numVersions B32;
-    CARD32	numGLExtensionBytes B32;
-    CARD32	numGLXExtensionBytes B32;
+    CARD16	length;
+    CARD32	major;
+    CARD32	minor;
+    CARD32	numVersions;
+    CARD32	numGLExtensionBytes;
+    CARD32	numGLXExtensionBytes;
     /*
     ** More data may follow; this is just the header.
     */
@@ -1340,15 +1340,15 @@ typedef struct GLXSetClientInfoARB {
 typedef struct GLXCreateContextAttribsARB {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    GLXContextID	context B32;
-    GLXFBConfigID	fbconfig B32;
+    CARD16	length;
+    GLXContextID	context;
+    GLXFBConfigID	fbconfig;
     CARD32	screen;
-    GLXContextID	shareList B32;
+    GLXContextID	shareList;
     BOOL	isDirect;
     CARD8	reserved1;
-    CARD16	reserved2 B16;
-    CARD32	numAttribs B32;
+    CARD16	reserved2;
+    CARD32	numAttribs;
     /* followed by attribute list */
 } xGLXCreateContextAttribsARBReq;
 #define sz_xGLXCreateContextAttribsARBReq 28
@@ -1367,12 +1367,12 @@ typedef struct GLXCreateContextAttribsARB {
 typedef struct GLXSetClientInfo2ARB {
     CARD8	reqType;
     CARD8	glxCode;
-    CARD16	length B16;
-    CARD32	major B32;
-    CARD32	minor B32;
-    CARD32	numVersions B32;
-    CARD32	numGLExtensionBytes B32;
-    CARD32	numGLXExtensionBytes B32;
+    CARD16	length;
+    CARD32	major;
+    CARD32	minor;
+    CARD32	numVersions;
+    CARD32	numGLExtensionBytes;
+    CARD32	numGLXExtensionBytes;
     /*
     ** More data may follow; this is just the header.
     */
@@ -1389,46 +1389,46 @@ typedef struct GLXSetClientInfo2ARB {
 typedef struct {
     BYTE type;
     BYTE pad;
-    CARD16 sequenceNumber B16;
-    CARD16 event_type B16;  /*** was clobber_class */
-    CARD16 draw_type B16;
-    CARD32 drawable B32;
-    CARD32 buffer_mask B32; /*** was mask */
-    CARD16 aux_buffer B16;
-    CARD16 x B16;
-    CARD16 y B16;
-    CARD16 width B16;
-    CARD16 height B16;
-    CARD16 count B16;
-    CARD32 unused2 B32;
+    CARD16 sequenceNumber;
+    CARD16 event_type;  /*** was clobber_class */
+    CARD16 draw_type;
+    CARD32 drawable;
+    CARD32 buffer_mask; /*** was mask */
+    CARD16 aux_buffer;
+    CARD16 x;
+    CARD16 y;
+    CARD16 width;
+    CARD16 height;
+    CARD16 count;
+    CARD32 unused2;
 } xGLXPbufferClobberEvent;
 
 typedef struct {
     BYTE type;
     BYTE pad;
-    CARD16 sequenceNumber B16;
-    CARD16 event_type B16;
+    CARD16 sequenceNumber;
+    CARD16 event_type;
     CARD32 drawable;
-    CARD32 ust_hi B32;
-    CARD32 ust_lo B32;
-    CARD32 msc_hi B32;
-    CARD32 msc_lo B32;
-    CARD32 sbc_hi B32;
-    CARD32 sbc_lo B32;
+    CARD32 ust_hi;
+    CARD32 ust_lo;
+    CARD32 msc_hi;
+    CARD32 msc_lo;
+    CARD32 sbc_hi;
+    CARD32 sbc_lo;
 } xGLXBufferSwapComplete;
 
 typedef struct {
     BYTE type;
     BYTE pad;
-    CARD16 sequenceNumber B16;
-    CARD16 event_type B16;
+    CARD16 sequenceNumber;
+    CARD16 event_type;
     CARD16 pad2;
     CARD32 drawable;
-    CARD32 ust_hi B32;
-    CARD32 ust_lo B32;
-    CARD32 msc_hi B32;
-    CARD32 msc_lo B32;
-    CARD32 sbc B32;
+    CARD32 ust_hi;
+    CARD32 ust_lo;
+    CARD32 msc_hi;
+    CARD32 msc_lo;
+    CARD32 sbc;
 } xGLXBufferSwapComplete2;
 
 /************************************************************************/
@@ -1440,8 +1440,8 @@ typedef struct {
 #define __GLX_VENDPRIV_HDR_SIZE sz_xGLXVendorPrivateReq
 
 #define __GLX_RENDER_HDR    \
-    CARD16	length B16; \
-    CARD16	opcode B16
+    CARD16	length;	    \
+    CARD16	opcode
 
 #define __GLX_RENDER_HDR_SIZE 4
 
@@ -1450,8 +1450,8 @@ typedef struct {
 } __GLXrenderHeader;
 
 #define __GLX_RENDER_LARGE_HDR \
-    CARD32	length B32;    \
-    CARD32	opcode B32
+    CARD32	length;	       \
+    CARD32	opcode
 
 #define __GLX_RENDER_LARGE_HDR_SIZE 8
 
@@ -1470,10 +1470,10 @@ typedef struct {
     BOOL	lsbFirst;	\
     CARD8	reserved0;	\
     CARD8	reserved1;	\
-    CARD32	rowLength B32;	\
-    CARD32	skipRows B32;	\
-    CARD32	skipPixels B32; \
-    CARD32	alignment B32
+    CARD32	rowLength;	\
+    CARD32	skipRows;	\
+    CARD32	skipPixels;	\
+    CARD32	alignment
 
 #define __GLX_PIXEL_HDR_SIZE 20
 
@@ -1491,14 +1491,14 @@ typedef struct {
     BOOL	lsbFirst;		\
     CARD8	reserved0;		\
     CARD8	reserved1;		\
-    CARD32	rowLength B32;		\
-    CARD32	imageHeight B32;	\
-    CARD32	imageDepth B32;		\
-    CARD32	skipRows B32;		\
-    CARD32	skipImages B32;		\
-    CARD32	skipVolumes B32;	\
-    CARD32	skipPixels B32;		\
-    CARD32	alignment B32
+    CARD32	rowLength;		\
+    CARD32	imageHeight;		\
+    CARD32	imageDepth;		\
+    CARD32	skipRows;		\
+    CARD32	skipImages;		\
+    CARD32	skipVolumes;		\
+    CARD32	skipPixels;		\
+    CARD32	alignment
 
 #define __GLX_PIXEL_3D_HDR_SIZE 36
 
@@ -1510,8 +1510,8 @@ typedef struct {
 **	Bitmap header
 */
 #define __GLX_BITMAP_HDR    \
-    CARD32	width B32;  \
-    CARD32	height B32; \
+    CARD32	width;	    \
+    CARD32	height;	    \
     FLOAT32	xorig F32;  \
     FLOAT32	yorig F32;  \
     FLOAT32	xmove F32;  \
@@ -1559,14 +1559,14 @@ typedef struct {
 ** When a glTexImage1D call the height field is unexamined by the server.
 */
 #define __GLX_TEXIMAGE_HDR	\
-    CARD32	target B32;	\
-    CARD32	level B32;	\
-    CARD32	components B32; \
-    CARD32	width B32;	\
-    CARD32	height B32;	\
-    CARD32	border B32;	\
-    CARD32	format B32;	\
-    CARD32	type B32
+    CARD32	target;		\
+    CARD32	level;		\
+    CARD32	components;	\
+    CARD32	width;		\
+    CARD32	height;		\
+    CARD32	border;		\
+    CARD32	format;		\
+    CARD32	type
 
 #define __GLX_TEXIMAGE_HDR_SIZE 32
 
@@ -1605,17 +1605,17 @@ typedef struct {
 ** future.
 */
 #define __GLX_TEXIMAGE_3D_HDR \
-    CARD32	target B32;	\
-    CARD32	level B32;	\
-    CARD32	internalformat B32;	\
-    CARD32	width B32;	\
-    CARD32	height B32;	\
-    CARD32	depth B32;	\
-    CARD32	size4d B32;	\
-    CARD32	border B32;	\
-    CARD32	format B32;	\
-    CARD32	type B32;	\
-    CARD32	nullimage B32
+    CARD32	target;		\
+    CARD32	level;		\
+    CARD32	internalformat;	\
+    CARD32	width;		\
+    CARD32	height;		\
+    CARD32	depth;		\
+    CARD32	size4d;		\
+    CARD32	border;		\
+    CARD32	format;		\
+    CARD32	type;		\
+    CARD32	nullimage
 
 #define __GLX_TEXIMAGE_3D_HDR_SIZE 44
 
@@ -1653,14 +1653,14 @@ typedef struct {
 ** are unexamined by the server and are  considered to be padding.
 */
 #define __GLX_TEXSUBIMAGE_HDR	\
-    CARD32	target B32;	\
-    CARD32	level B32;	\
-    CARD32	xoffset B32;	\
-    CARD32	yoffset B32;	\
-    CARD32	width B32;	\
-    CARD32	height B32;	\
-    CARD32	format B32;	\
-    CARD32	type B32;	\
+    CARD32	target;		\
+    CARD32	level;		\
+    CARD32	xoffset;	\
+    CARD32	yoffset;	\
+    CARD32	width;		\
+    CARD32	height;		\
+    CARD32	format;		\
+    CARD32	type;		\
     CARD32	nullImage	\
 
 #define __GLX_TEXSUBIMAGE_HDR_SIZE 36
@@ -1698,19 +1698,19 @@ typedef struct {
 ** are unexamined by the server and are considered to be padding.
 */
 #define __GLX_TEXSUBIMAGE_3D_HDR	\
-    CARD32	target B32;	\
-    CARD32	level B32;	\
-    CARD32	xoffset B32;	\
-    CARD32	yoffset B32;	\
-    CARD32	zoffset B32;	\
-    CARD32	woffset B32;	\
-    CARD32	width B32;	\
-    CARD32	height B32;	\
-    CARD32	depth B32;	\
-    CARD32	size4d B32;	\
-    CARD32	format B32;	\
-    CARD32	type B32;	\
-    CARD32	nullImage	\
+    CARD32	target;			\
+    CARD32	level;			\
+    CARD32	xoffset;		\
+    CARD32	yoffset;		\
+    CARD32	zoffset;		\
+    CARD32	woffset;		\
+    CARD32	width;			\
+    CARD32	height;			\
+    CARD32	depth;			\
+    CARD32	size4d;			\
+    CARD32	format;			\
+    CARD32	type;			\
+    CARD32	nullImage		\
 
 #define __GLX_TEXSUBIMAGE_3D_HDR_SIZE 52
 
@@ -1750,13 +1750,13 @@ typedef struct {
  */
 
 #define __GLX_COMPRESSED_TEXIMAGE_HDR \
-    CARD32     target B32;            \
-    CARD32     level B32;             \
-    CARD32     internalFormat B32;    \
-    CARD32     width B32;             \
-    CARD32     height B32;            \
-    CARD32     border B32;            \
-    CARD32     imageSize B32
+    CARD32     target;		      \
+    CARD32     level;		      \
+    CARD32     internalFormat;	      \
+    CARD32     width;		      \
+    CARD32     height;		      \
+    CARD32     border;		      \
+    CARD32     imageSize
 
 #define __GLX_COMPRESSED_TEXIMAGE_HDR_SIZE 28
 
@@ -1792,14 +1792,14 @@ typedef struct {
  */
 
 #define __GLX_COMPRESSED_TEXSUBIMAGE_HDR \
-    CARD32     target B32;            \
-    CARD32     level B32;             \
-    CARD32     xoffset B32;           \
-    CARD32     yoffset B32;           \
-    CARD32     width B32;             \
-    CARD32     height B32;            \
-    CARD32     format B32;            \
-    CARD32     imageSize B32
+    CARD32     target;			 \
+    CARD32     level;			 \
+    CARD32     xoffset;			 \
+    CARD32     yoffset;			 \
+    CARD32     width;			 \
+    CARD32     height;			 \
+    CARD32     format;			 \
+    CARD32     imageSize
 
 #define __GLX_COMPRESSED_TEXSUBIMAGE_HDR_SIZE 32
 
@@ -1831,14 +1831,14 @@ typedef struct {
  */
 
 #define __GLX_COMPRESSED_TEXIMAGE_3D_HDR \
-    CARD32     target B32;            \
-    CARD32     level B32;             \
-    CARD32     internalFormat B32;    \
-    CARD32     width B32;             \
-    CARD32     height B32;            \
-    CARD32     depth B32;             \
-    CARD32     border B32;            \
-    CARD32     imageSize B32
+    CARD32     target;			 \
+    CARD32     level;			 \
+    CARD32     internalFormat;		 \
+    CARD32     width;			 \
+    CARD32     height;			 \
+    CARD32     depth;			 \
+    CARD32     border;			 \
+    CARD32     imageSize
 
 #define __GLX_COMPRESSED_TEXIMAGE_3D_HDR_SIZE 32
 
@@ -1870,16 +1870,16 @@ typedef struct {
  */
 
 #define __GLX_COMPRESSED_TEXSUBIMAGE_3D_HDR \
-    CARD32     target B32;            \
-    CARD32     level B32;             \
-    CARD32     xoffset B32;           \
-    CARD32     yoffset B32;           \
-    CARD32     zoffset B32;           \
-    CARD32     width B32;             \
-    CARD32     height B32;            \
-    CARD32     depth B32;             \
-    CARD32     format B32;            \
-    CARD32     imageSize B32
+    CARD32     target;			    \
+    CARD32     level;			    \
+    CARD32     xoffset;			    \
+    CARD32     yoffset;			    \
+    CARD32     zoffset;			    \
+    CARD32     width;			    \
+    CARD32     height;			    \
+    CARD32     depth;			    \
+    CARD32     format;			    \
+    CARD32     imageSize
 
 #define __GLX_COMPRESSED_TEXSUBIMAGE_3D_HDR_SIZE 32
 
@@ -1911,10 +1911,10 @@ typedef struct {
 **	DrawPixels header
 */
 #define __GLX_DRAWPIXELS_HDR \
-    CARD32	width B32;   \
-    CARD32	height B32;  \
-    CARD32	format B32;  \
-    CARD32	type B32
+    CARD32	width;	     \
+    CARD32	height;	     \
+    CARD32	format;	     \
+    CARD32	type
 
 #define __GLX_DRAWPIXELS_HDR_SIZE 16
 
@@ -1950,12 +1950,12 @@ typedef struct {
 ** When a glConvolutionFilter1D call the height field is unexamined by the server.
 */
 #define __GLX_CONV_FILT_HDR	\
-    CARD32	target B32;	\
-    CARD32	internalformat B32;	\
-    CARD32	width B32;	\
-    CARD32	height B32;	\
-    CARD32	format B32;	\
-    CARD32	type B32
+    CARD32	target;		\
+    CARD32	internalformat;	\
+    CARD32	width;		\
+    CARD32	height;		\
+    CARD32	format;		\
+    CARD32	type
 
 #define __GLX_CONV_FILT_HDR_SIZE 24
 
@@ -1991,9 +1991,9 @@ typedef struct {
 */
 
 #define __GLX_DRAWARRAYS_HDR \
-    CARD32	numVertexes B32; \
-    CARD32	numComponents B32; \
-    CARD32	primType B32
+    CARD32	numVertexes;   \
+    CARD32	numComponents; \
+    CARD32	primType
 
 #define __GLX_DRAWARRAYS_HDR_SIZE 12
 
@@ -2015,9 +2015,9 @@ typedef struct {
 } __GLXdispatchDrawArraysHeader;
 
 #define __GLX_COMPONENT_HDR \
-    CARD32	datatype B32; \
-    INT32	numVals B32; \
-    CARD32	component B32
+    CARD32	datatype;   \
+    INT32	numVals;    \
+    CARD32	component
 
 typedef struct {
     __GLX_COMPONENT_HDR;
@@ -2034,11 +2034,11 @@ typedef struct {
 */
 
 #define __GLX_COLOR_TABLE_HDR	     \
-    CARD32	target B32;	    \
-    CARD32	internalformat B32; \
-    CARD32	width B32;	    \
-    CARD32	format B32;	    \
-    CARD32	type   B32
+    CARD32	target;		     \
+    CARD32	internalformat;	     \
+    CARD32	width;		     \
+    CARD32	format;		     \
+    CARD32	type
 
 #define __GLX_COLOR_TABLE_HDR_SIZE 20
 
@@ -2071,11 +2071,11 @@ typedef struct {
 */
 
 #define __GLX_COLOR_SUBTABLE_HDR    \
-    CARD32	target B32;	    \
-    CARD32	start B32; 	    \
-    CARD32	count B32;	    \
-    CARD32	format B32;	    \
-    CARD32	type   B32
+    CARD32	target;		    \
+    CARD32	start;		    \
+    CARD32	count;		    \
+    CARD32	format;		    \
+    CARD32	type
 
 #define __GLX_COLOR_SUBTABLE_HDR_SIZE 20
 

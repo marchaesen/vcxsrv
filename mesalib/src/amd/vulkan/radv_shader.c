@@ -860,6 +860,7 @@ radv_GetShaderInfoAMD(VkDevice _device,
 		buf = _mesa_string_buffer_create(NULL, 1024);
 
 		_mesa_string_buffer_printf(buf, "%s:\n", radv_get_shader_name(variant, stage));
+		_mesa_string_buffer_printf(buf, "%s\n\n", variant->llvm_ir_string);
 		_mesa_string_buffer_printf(buf, "%s\n\n", variant->disasm_string);
 		generate_shader_stats(device, variant, stage, buf);
 

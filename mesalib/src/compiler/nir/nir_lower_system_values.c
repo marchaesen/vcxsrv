@@ -31,12 +31,24 @@
 static nir_ssa_def*
 build_local_group_size(nir_builder *b)
 {
-   nir_const_value local_size;
-   memset(&local_size, 0, sizeof(local_size));
-   local_size.u32[0] = b->shader->info.cs.local_size[0];
-   local_size.u32[1] = b->shader->info.cs.local_size[1];
-   local_size.u32[2] = b->shader->info.cs.local_size[2];
-   return nir_build_imm(b, 3, 32, local_size);
+   nir_ssa_def *local_size;
+
+   /*
+    * If the local work group size is variable it can't be lowered at this
+    * point, but its intrinsic can still be used.
+    */
+   if (b->shader->info.cs.local_size_variable) {
+      local_size = nir_load_local_group_size(b);
+   } else {
+      nir_const_value local_size_const;
+      memset(&local_size_const, 0, sizeof(local_size_const));
+      local_size_const.u32[0] = b->shader->info.cs.local_size[0];
+      local_size_const.u32[1] = b->shader->info.cs.local_size[1];
+      local_size_const.u32[2] = b->shader->info.cs.local_size[2];
+      local_size = nir_build_imm(b, 3, 32, local_size_const);
+   }
+
+   return local_size;
 }
 
 static bool

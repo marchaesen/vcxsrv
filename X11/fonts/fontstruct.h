@@ -30,7 +30,7 @@ SOFTWARE.
 #include <X11/Xdefs.h>
 
 /*
- * This version of the server font data strucutre is only for describing
+ * This version of the server font data structure is only for describing
  * the in memory data structure. The file structure is not necessarily a
  * copy of this. That is up to the compiler and the OS layer font loading
  * machinery.

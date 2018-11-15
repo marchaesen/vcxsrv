@@ -683,10 +683,9 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
       nir_deref_path *path = &node->path;
 
       assert(path->path[0]->deref_type == nir_deref_type_var);
-      nir_variable *var = path->path[0]->var;
 
       /* We don't build deref nodes for non-local variables */
-      assert(var->data.mode == nir_var_local);
+      assert(path->path[0]->var->data.mode == nir_var_local);
 
       if (path_may_be_aliased(path, &state)) {
          exec_node_remove(&node->direct_derefs_link);

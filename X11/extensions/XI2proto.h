@@ -44,7 +44,7 @@
  *      appended to the common structs section before the definition of the
  *      first request.
  * members of structs vertically aligned on column 16 if datatypes permit.
- *      otherwise alingned on next available 8n column.
+ *      otherwise aligned on next available 8n column.
  */
 
 /**

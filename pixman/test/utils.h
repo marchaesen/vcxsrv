@@ -119,6 +119,8 @@ fence_get_page_size ();
 /* Generate n_bytes random bytes in fence_malloced memory */
 uint8_t *
 make_random_bytes (int n_bytes);
+float *
+make_random_floats (int n_bytes);
 
 /* Return current time in seconds */
 double

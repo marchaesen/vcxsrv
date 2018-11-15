@@ -86,6 +86,21 @@ struct copy_prop_var_state {
    bool progress;
 };
 
+static bool
+value_equals_store_src(struct value *value, nir_intrinsic_instr *intrin)
+{
+   assert(intrin->intrinsic == nir_intrinsic_store_deref);
+   uintptr_t write_mask = nir_intrinsic_write_mask(intrin);
+
+   for (unsigned i = 0; i < intrin->num_components; i++) {
+      if ((write_mask & (1 << i)) &&
+          value->ssa[i] != intrin->src[1].ssa)
+         return false;
+   }
+
+   return true;
+}
+
 static struct vars_written *
 create_vars_written(struct copy_prop_var_state *state)
 {
@@ -676,18 +691,28 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
       }
 
       case nir_intrinsic_store_deref: {
-         struct value value = {
-            .is_ssa = true
-         };
-
-         for (unsigned i = 0; i < intrin->num_components; i++)
-            value.ssa[i] = intrin->src[1].ssa;
-
          nir_deref_instr *dst = nir_src_as_deref(intrin->src[0]);
-         unsigned wrmask = nir_intrinsic_write_mask(intrin);
          struct copy_entry *entry =
-            get_entry_and_kill_aliases(copies, dst, wrmask);
-         store_to_entry(state, entry, &value, wrmask);
+            lookup_entry_for_deref(copies, dst, nir_derefs_equal_bit);
+         if (entry && value_equals_store_src(&entry->src, intrin)) {
+            /* If we are storing the value from a load of the same var the
+             * store is redundant so remove it.
+             */
+            nir_instr_remove(instr);
+         } else {
+            struct value value = {
+               .is_ssa = true
+            };
+
+            for (unsigned i = 0; i < intrin->num_components; i++)
+               value.ssa[i] = intrin->src[1].ssa;
+
+            unsigned wrmask = nir_intrinsic_write_mask(intrin);
+            struct copy_entry *entry =
+               get_entry_and_kill_aliases(copies, dst, wrmask);
+            store_to_entry(state, entry, &value, wrmask);
+         }
+
          break;
       }
 

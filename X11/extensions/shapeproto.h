@@ -50,184 +50,184 @@ in this Software without prior written authorization from The Open Group.
 typedef struct _ShapeQueryVersion {
 	CARD8	reqType;		/* always ShapeReqCode */
 	CARD8	shapeReqType;		/* always X_ShapeQueryVersion */
-	CARD16	length B16;
+	CARD16	length;
 } xShapeQueryVersionReq;
 #define sz_xShapeQueryVersionReq	4
 
 typedef struct {
 	BYTE	type;			/* X_Reply */
 	CARD8	unused;			/* not used */
-	CARD16	sequenceNumber B16;
-	CARD32	length B32;
-	CARD16	majorVersion B16;	/* major version of SHAPE protocol */
-	CARD16	minorVersion B16;	/* minor version of SHAPE protocol */
-	CARD32	pad0 B32;
-	CARD32	pad1 B32;
-	CARD32	pad2 B32;
-	CARD32	pad3 B32;
-	CARD32	pad4 B32;
+	CARD16	sequenceNumber;
+	CARD32	length;
+	CARD16	majorVersion;		/* major version of SHAPE protocol */
+	CARD16	minorVersion;		/* minor version of SHAPE protocol */
+	CARD32	pad0;
+	CARD32	pad1;
+	CARD32	pad2;
+	CARD32	pad3;
+	CARD32	pad4;
 } xShapeQueryVersionReply;
 #define sz_xShapeQueryVersionReply	32
 
 typedef struct _ShapeRectangles {
 	CARD8	reqType;	/* always ShapeReqCode */
 	CARD8	shapeReqType;	/* always X_ShapeRectangles */
-	CARD16	length B16;
+	CARD16	length;
 	CARD8	op;		/* Set, ... */
 	CARD8	destKind;	/* ShapeBounding or ShapeClip */
 	CARD8	ordering;	/* UnSorted, YSorted, YXSorted, YXBanded */
 	CARD8	pad0;		/* not used */
-	Window	dest B32;
-	INT16	xOff B16;
-	INT16	yOff B16;
+	Window	dest;
+	INT16	xOff;
+	INT16	yOff;
 } xShapeRectanglesReq;		/* followed by xRects */
 #define sz_xShapeRectanglesReq	16
 
 typedef struct _ShapeMask {
 	CARD8	reqType;	/* always ShapeReqCode */
 	CARD8	shapeReqType;	/* always X_ShapeMask */
-	CARD16	length B16;
+	CARD16	length;
 
 	CARD8	op;		/* Set, ... */
 	CARD8	destKind;	/* ShapeBounding or ShapeClip */
-	CARD16	junk B16;	/* not used */
+	CARD16	junk;		/* not used */
 
-	Window	dest B32;
-	INT16	xOff B16;
-	INT16	yOff B16;
-	CARD32	src B32;	/* 1 bit pixmap */
+	Window	dest;
+	INT16	xOff;
+	INT16	yOff;
+	CARD32	src;		/* 1 bit pixmap */
 } xShapeMaskReq;
 #define sz_xShapeMaskReq	20
 
 typedef struct _ShapeCombine {
 	CARD8	reqType;	/* always ShapeReqCode */
 	CARD8	shapeReqType;	/* always X_ShapeCombine */
-	CARD16	length B16;
+	CARD16	length;
 	CARD8	op;		/* Set, ... */
 	CARD8	destKind;	/* ShapeBounding or ShapeClip */
 	CARD8	srcKind;	/* ShapeBounding or ShapeClip */
 	CARD8	junk;		/* not used */
-	Window	dest B32;
-	INT16	xOff B16;
-	INT16	yOff B16;
-	Window	src B32;
+	Window	dest;
+	INT16	xOff;
+	INT16	yOff;
+	Window	src;
 } xShapeCombineReq;
 #define sz_xShapeCombineReq	20
 
 typedef struct _ShapeOffset {
 	CARD8	reqType;	/* always ShapeReqCode */
 	CARD8	shapeReqType;	/* always X_ShapeOffset */
-	CARD16	length B16;
+	CARD16	length;
 	CARD8	destKind;	/* ShapeBounding or ShapeClip */
 	CARD8	junk1;		/* not used */
-	CARD16	junk2 B16;	/* not used */
-	Window	dest B32;
-	INT16	xOff B16;
-	INT16	yOff B16;
+	CARD16	junk2;		/* not used */
+	Window	dest;
+	INT16	xOff;
+	INT16	yOff;
 } xShapeOffsetReq;
 #define sz_xShapeOffsetReq	16
 
 typedef struct _ShapeQueryExtents {
 	CARD8	reqType;	/* always ShapeReqCode */
 	CARD8	shapeReqType;	/* always X_ShapeQueryExtents */
-	CARD16	length B16;
-	Window	window B32;
+	CARD16	length;
+	Window	window;
 } xShapeQueryExtentsReq;
 #define sz_xShapeQueryExtentsReq	8
 
 typedef struct {
 	BYTE	type;			/* X_Reply */
 	CARD8	unused;			/* not used */
-	CARD16	sequenceNumber B16;
-	CARD32	length B32;		/* 0 */
+	CARD16	sequenceNumber;
+	CARD32	length;			/* 0 */
 	CARD8	boundingShaped;		/* window has bounding shape */
 	CARD8	clipShaped;		/* window has clip shape */
-	CARD16	unused1 B16;
-	INT16	xBoundingShape B16;	/* extents of bounding shape */
-	INT16	yBoundingShape B16;
-	CARD16	widthBoundingShape B16;
-	CARD16	heightBoundingShape B16;
-	INT16	xClipShape B16;		/* extents of clip shape */
-	INT16	yClipShape B16;
-	CARD16	widthClipShape B16;
-	CARD16	heightClipShape B16;
-	CARD32	pad1 B32;
+	CARD16	unused1;
+	INT16	xBoundingShape;		/* extents of bounding shape */
+	INT16	yBoundingShape;
+	CARD16	widthBoundingShape;
+	CARD16	heightBoundingShape;
+	INT16	xClipShape;		/* extents of clip shape */
+	INT16	yClipShape;
+	CARD16	widthClipShape;
+	CARD16	heightClipShape;
+	CARD32	pad1;
 } xShapeQueryExtentsReply;
 #define sz_xShapeQueryExtentsReply	32
 
 typedef struct _ShapeSelectInput {
 	CARD8	reqType;	/* always ShapeReqCode */
 	CARD8	shapeReqType;	/* always X_ShapeSelectInput */
-	CARD16	length B16;
-	Window	window B32;
+	CARD16	length;
+	Window	window;
 	BYTE	enable;		/* xTrue -> send events */
 	BYTE	pad1;
-	CARD16	pad2 B16;
+	CARD16	pad2;
 } xShapeSelectInputReq;
 #define sz_xShapeSelectInputReq	12
 
 typedef struct _ShapeNotify {
 	BYTE	type;		/* always eventBase + ShapeNotify */
 	BYTE	kind;		/* either ShapeBounding or ShapeClip */
-	CARD16	sequenceNumber B16;
-	Window	window B32;
-	INT16	x B16;
-	INT16	y B16;		/* extents of new shape */
-	CARD16	width B16;
-	CARD16	height B16;
-	Time	time B32;	/* time of change */
+	CARD16	sequenceNumber;
+	Window	window;
+	INT16	x;
+	INT16	y;		/* extents of new shape */
+	CARD16	width;
+	CARD16	height;
+	Time	time;		/* time of change */
 	BYTE	shaped;		/* set when a shape actual exists */
 	BYTE	pad0;
-	CARD16	pad1 B16;
-	CARD32	pad2 B32;
-	CARD32	pad3 B32;
+	CARD16	pad1;
+	CARD32	pad2;
+	CARD32	pad3;
 } xShapeNotifyEvent;
 #define sz_xShapeNotifyEvent	32
 
 typedef struct _ShapeInputSelected {
 	CARD8	reqType;	/* always ShapeReqCode */
 	CARD8	shapeReqType;	/* always X_ShapeInputSelected */
-	CARD16	length B16;
-	Window	window B32;
+	CARD16	length;
+	Window	window;
 } xShapeInputSelectedReq;
 #define sz_xShapeInputSelectedReq 8
 
 typedef struct {
 	BYTE	type;			/* X_Reply */
 	CARD8	enabled;		/* current status */
-	CARD16	sequenceNumber B16;
-	CARD32	length B32;		/* 0 */
-	CARD32	pad1 B32;		/* unused */
-	CARD32	pad2 B32;
-	CARD32	pad3 B32;
-	CARD32	pad4 B32;
-	CARD32	pad5 B32;
-	CARD32	pad6 B32;
+	CARD16	sequenceNumber;
+	CARD32	length;		/* 0 */
+	CARD32	pad1;		/* unused */
+	CARD32	pad2;
+	CARD32	pad3;
+	CARD32	pad4;
+	CARD32	pad5;
+	CARD32	pad6;
 } xShapeInputSelectedReply;
 #define sz_xShapeInputSelectedReply	32
 
 typedef struct _ShapeGetRectangles {
     CARD8   reqType;		/* always ShapeReqCode */
     CARD8   shapeReqType;	/* always X_ShapeGetRectangles */
-    CARD16  length B16;
-    Window  window B32;
+    CARD16  length;
+    Window  window;
     CARD8   kind;		/* ShapeBounding or ShapeClip */
     CARD8   junk1;
-    CARD16  junk2 B16;
+    CARD16  junk2;
 } xShapeGetRectanglesReq;
 #define sz_xShapeGetRectanglesReq	12
 
 typedef struct {
 	BYTE	type;			/* X_Reply */
 	CARD8	ordering;	/* UnSorted, YSorted, YXSorted, YXBanded */
-	CARD16	sequenceNumber B16;
-	CARD32	length B32;		/* not zero */
-	CARD32	nrects B32;		/* number of rectangles */
-	CARD32 pad1 B32;
-	CARD32 pad2 B32;
-	CARD32 pad3 B32;
-	CARD32 pad4 B32;
-	CARD32 pad5 B32;
+	CARD16	sequenceNumber;
+	CARD32	length;		/* not zero */
+	CARD32	nrects;		/* number of rectangles */
+	CARD32	pad1;
+	CARD32	pad2;
+	CARD32	pad3;
+	CARD32	pad4;
+	CARD32	pad5;
 } xShapeGetRectanglesReply;		/* followed by xRectangles */
 #define sz_xShapeGetRectanglesReply 32
 

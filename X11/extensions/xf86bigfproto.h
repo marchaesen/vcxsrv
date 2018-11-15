@@ -20,22 +20,22 @@
 typedef struct _XF86BigfontQueryVersion {
     CARD8	reqType;		/* always XF86BigfontReqCode */
     CARD8	xf86bigfontReqType;	/* always X_XF86BigfontQueryVersion */
-    CARD16	length B16;
+    CARD16	length;
 } xXF86BigfontQueryVersionReq;
 #define sz_xXF86BigfontQueryVersionReq	4
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	capabilities;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
-    CARD16	majorVersion B16;	/* major version of XFree86-Bigfont */
-    CARD16	minorVersion B16;	/* minor version of XFree86-Bigfont */
-    CARD32	uid B32;
-    CARD32	gid B32;
-    CARD32	signature B32;
-    CARD32	pad1 B32;
-    CARD32	pad2 B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
+    CARD16	majorVersion;		/* major version of XFree86-Bigfont */
+    CARD16	minorVersion;		/* minor version of XFree86-Bigfont */
+    CARD32	uid;
+    CARD32	gid;
+    CARD32	signature;
+    CARD32	pad1;
+    CARD32	pad2;
 } xXF86BigfontQueryVersionReply;
 #define sz_xXF86BigfontQueryVersionReply 32
 
@@ -45,39 +45,39 @@ typedef struct {
 typedef struct _XF86BigfontQueryFont {
     CARD8	reqType;		/* always XF86BigfontReqCode */
     CARD8	xf86bigfontReqType;	/* always X_XF86BigfontQueryFont */
-    CARD16	length B16;
-    CARD32	id B32;
-    CARD32	flags B32;
+    CARD16	length;
+    CARD32	id;
+    CARD32	flags;
 } xXF86BigfontQueryFontReq;
 #define sz_xXF86BigfontQueryFontReq	12
 
 typedef struct {
     BYTE	type;			/* X_Reply */
     CARD8	pad1;
-    CARD16	sequenceNumber B16;
-    CARD32	length B32;
+    CARD16	sequenceNumber;
+    CARD32	length;
     xCharInfo	minBounds;
 #ifndef WORD64
-    CARD32	walign1 B32;
+    CARD32	walign1;
 #endif
     xCharInfo	maxBounds;
 #ifndef WORD64
-    CARD32	walign2 B32;
+    CARD32	walign2;
 #endif
-    CARD16	minCharOrByte2 B16;
-    CARD16	maxCharOrByte2 B16;
-    CARD16	defaultChar B16;
-    CARD16	nFontProps B16;
+    CARD16	minCharOrByte2;
+    CARD16	maxCharOrByte2;
+    CARD16	defaultChar;
+    CARD16	nFontProps;
     CARD8	drawDirection;
     CARD8	minByte1;
     CARD8	maxByte1;
     BOOL	allCharsExist;
-    INT16	fontAscent B16;
-    INT16	fontDescent B16;
-    CARD32	nCharInfos B32;
-    CARD32	nUniqCharInfos B32;
-    CARD32	shmid B32;
-    CARD32	shmsegoffset B32;
+    INT16	fontAscent;
+    INT16	fontDescent;
+    CARD32	nCharInfos;
+    CARD32	nUniqCharInfos;
+    CARD32	shmid;
+    CARD32	shmsegoffset;
     /* followed by nFontProps xFontProp structures */
     /* and if nCharInfos > 0 && shmid == -1,
        followed by nUniqCharInfos xCharInfo structures

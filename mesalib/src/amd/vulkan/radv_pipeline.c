@@ -1814,6 +1814,10 @@ radv_link_shaders(struct radv_pipeline *pipeline, nir_shader **shaders)
 		nir_lower_io_arrays_to_elements(ordered_shaders[i],
 						ordered_shaders[i - 1]);
 
+		if (nir_link_constant_varyings(ordered_shaders[i],
+					       ordered_shaders[i - 1]))
+			radv_optimize_nir(ordered_shaders[i - 1], false, false);
+
 		nir_remove_dead_variables(ordered_shaders[i],
 					  nir_var_shader_out);
 		nir_remove_dead_variables(ordered_shaders[i - 1],
@@ -2701,7 +2705,7 @@ radv_pipeline_generate_raster_state(struct radeon_cmdbuf *cs,
 	const VkPipelineRasterizationStateCreateInfo *vkraster = pCreateInfo->pRasterizationState;
 	const VkConservativeRasterizationModeEXT mode =
 		radv_get_conservative_raster_mode(vkraster);
-	uint32_t pa_sc_conservative_rast = 0;
+	uint32_t pa_sc_conservative_rast = S_028C4C_NULL_SQUAD_AA_MASK_ENABLE(1);
 
 	radeon_set_context_reg(cs, R_028810_PA_CL_CLIP_CNTL,
 	                       S_028810_DX_CLIP_SPACE_DEF(1) | // vulkan uses DX conventions.
@@ -3371,14 +3375,8 @@ radv_compute_ia_multi_vgt_param_helpers(struct radv_pipeline *pipeline,
 	else
 		ia_multi_vgt_param.primgroup_size = 128; /* recommended without a GS */
 
-	ia_multi_vgt_param.partial_es_wave = false;
-	if (pipeline->device->has_distributed_tess) {
-		if (radv_pipeline_has_gs(pipeline)) {
-			if (device->physical_device->rad_info.chip_class <= VI)
-				ia_multi_vgt_param.partial_es_wave = true;
-		}
-	}
 	/* GS requirement. */
+	ia_multi_vgt_param.partial_es_wave = false;
 	if (radv_pipeline_has_gs(pipeline) && device->physical_device->rad_info.chip_class <= VI)
 		if (SI_GS_PER_ES / ia_multi_vgt_param.primgroup_size >= pipeline->device->gs_table_depth - 3)
 			ia_multi_vgt_param.partial_es_wave = true;
@@ -3425,6 +3423,9 @@ radv_compute_ia_multi_vgt_param_helpers(struct radv_pipeline *pipeline,
 		/* Needed for 028B6C_DISTRIBUTION_MODE != 0 */
 		if (device->has_distributed_tess) {
 			if (radv_pipeline_has_gs(pipeline)) {
+				if (device->physical_device->rad_info.chip_class <= VI)
+					ia_multi_vgt_param.partial_es_wave = true;
+
 				if (device->physical_device->rad_info.family == CHIP_TONGA ||
 				    device->physical_device->rad_info.family == CHIP_FIJI ||
 				    device->physical_device->rad_info.family == CHIP_POLARIS10 ||
