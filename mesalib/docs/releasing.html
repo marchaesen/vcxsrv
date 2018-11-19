@@ -21,6 +21,7 @@
 <li><a href="#overview">Overview</a>
 <li><a href="#schedule">Release schedule</a>
 <li><a href="#pickntest">Cherry-pick and test</a>
+<li><a href="#stagingbranch">Staging branch</a>
 <li><a href="#branch">Making a branchpoint</a>
 <li><a href="#prerelease">Pre-release announcement</a>
 <li><a href="#release">Making a new release</a>
@@ -111,18 +112,21 @@ the autoconf and scons build.
 <p>Done continuously up-to the <a href="#prerelease">pre-release</a> announcement.</p>
 
 <p>
-As an exception, patches can be applied up-to the last ~1h before the actual
-release. This is made <strong>only</strong> with explicit permission/request,
-and the patch <strong>must</strong> be very well contained. Thus it cannot
-affect more than one driver/subsystem.
+Developers can request, <em>as an exception</em>, patches to be applied up-to
+the last one hour before the actual release. This is made <strong>only</strong>
+with explicit permission/request, and the patch <strong>must</strong> be very
+well contained. Thus it cannot affect more than one driver/subsystem.
 </p>
 
-<p>
-Currently Ilia Mirkin and AMD devs have requested "permanent" exception.
-</p>
-
+<p>Following developers have requested permanent exception</p>
 <ul>
-<li>make distcheck, scons and scons check must pass
+<li><em>Ilia Mirkin</em>
+<li><em>AMD team</em>
+</ul>
+
+<p>The following must pass:</p>
+<ul>
+<li>make distcheck, scons and scons check
 <li>Testing with different version of system components - LLVM and others is also
 performed where possible.
 <li>As a general rule, testing with various combinations of configure
@@ -130,9 +134,9 @@ switches, depending on the specific patchset.
 </ul>
 
 <p>
-Achieved by combination of local ad-hoc scripts, mingw-w64 cross
-compilation and AppVeyor plus Travis-CI, the latter as part of their
-Github integration.
+These are achieved by combination of <a href="basictesting">local testing</a>,
+which includes mingw-w64 cross compilation and AppVeyor plus Travis-CI, the
+latter two as part of their Github integration.
 </p>
 
 <p>
@@ -208,6 +212,25 @@ Installing the built driver from the pre-announced RC branch in the
 system and making some every day's use until the release may be a good
 idea too.
 </p>
+
+<h1 id="stagingbranch">Staging branch</h1>
+
+<p>
+A live branch, which contains the currently merge/rejected patches is available
+in the main repository under <code>staging/X.Y</code>. For example:
+</p>
+<pre>
+	staging/18.1 - WIP branch for the 18.1 series
+	staging/18.2 - WIP branch for the 18.2 series
+</pre>
+
+<p>
+Notes:
+</p>
+<ul>
+<li>People are encouraged to test the staging branch and report regressions.</li>
+<li>The branch history is not stable and it <strong>will</strong> be rebased,</li>
+</ul>
 
 
 <h1 id="branch">Making a branchpoint</h1>
@@ -425,7 +448,7 @@ Ensure the latest code is available - both in your local master and the
 relevant branch.
 </p>
 
-<h3>Perform basic testing</h3>
+<h3 id="basictesting">Perform basic testing</h3>
 
 <p>
 Most of the testing should already be done during the

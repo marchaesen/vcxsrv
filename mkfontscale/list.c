@@ -20,6 +20,8 @@
   THE SOFTWARE.
 */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
@@ -63,6 +65,13 @@ dsprintf(const char *f, ...)
 {
     va_list args;
     char *string;
+#ifdef HAVE_VASPRINTF
+    va_start(args, f);
+    if (vasprintf(&string, f, args) == -1)
+        string = NULL;
+    va_end(args);
+    return string;
+#else
     {
 	int n, size = 20;
 	while(1) {
@@ -83,6 +92,7 @@ dsprintf(const char *f, ...)
 	    free(string);
 	}
     }
+#endif
 }
 
 

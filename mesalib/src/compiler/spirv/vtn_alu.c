@@ -211,81 +211,6 @@ vtn_handle_matrix_alu(struct vtn_builder *b, SpvOp opcode,
    }
 }
 
-static void
-vtn_handle_bitcast(struct vtn_builder *b, struct vtn_ssa_value *dest,
-                   struct nir_ssa_def *src)
-{
-   if (glsl_get_vector_elements(dest->type) == src->num_components) {
-      /* From the definition of OpBitcast in the SPIR-V 1.2 spec:
-       *
-       * "If Result Type has the same number of components as Operand, they
-       * must also have the same component width, and results are computed per
-       * component."
-       */
-      dest->def = nir_imov(&b->nb, src);
-      return;
-   }
-
-   /* From the definition of OpBitcast in the SPIR-V 1.2 spec:
-    *
-    * "If Result Type has a different number of components than Operand, the
-    * total number of bits in Result Type must equal the total number of bits
-    * in Operand. Let L be the type, either Result Type or Operand’s type, that
-    * has the larger number of components. Let S be the other type, with the
-    * smaller number of components. The number of components in L must be an
-    * integer multiple of the number of components in S. The first component
-    * (that is, the only or lowest-numbered component) of S maps to the first
-    * components of L, and so on, up to the last component of S mapping to the
-    * last components of L. Within this mapping, any single component of S
-    * (mapping to multiple components of L) maps its lower-ordered bits to the
-    * lower-numbered components of L."
-    */
-   unsigned src_bit_size = src->bit_size;
-   unsigned dest_bit_size = glsl_get_bit_size(dest->type);
-   unsigned src_components = src->num_components;
-   unsigned dest_components = glsl_get_vector_elements(dest->type);
-   vtn_assert(src_bit_size * src_components == dest_bit_size * dest_components);
-
-   nir_ssa_def *dest_chan[NIR_MAX_VEC_COMPONENTS];
-   if (src_bit_size > dest_bit_size) {
-      vtn_assert(src_bit_size % dest_bit_size == 0);
-      unsigned divisor = src_bit_size / dest_bit_size;
-      for (unsigned comp = 0; comp < src_components; comp++) {
-         nir_ssa_def *split;
-         if (src_bit_size == 64) {
-            assert(dest_bit_size == 32 || dest_bit_size == 16);
-            split = dest_bit_size == 32 ?
-               nir_unpack_64_2x32(&b->nb, nir_channel(&b->nb, src, comp)) :
-               nir_unpack_64_4x16(&b->nb, nir_channel(&b->nb, src, comp));
-         } else {
-            vtn_assert(src_bit_size == 32);
-            vtn_assert(dest_bit_size == 16);
-            split = nir_unpack_32_2x16(&b->nb, nir_channel(&b->nb, src, comp));
-         }
-         for (unsigned i = 0; i < divisor; i++)
-            dest_chan[divisor * comp + i] = nir_channel(&b->nb, split, i);
-      }
-   } else {
-      vtn_assert(dest_bit_size % src_bit_size == 0);
-      unsigned divisor = dest_bit_size / src_bit_size;
-      for (unsigned comp = 0; comp < dest_components; comp++) {
-         unsigned channels = ((1 << divisor) - 1) << (comp * divisor);
-         nir_ssa_def *src_chan = nir_channels(&b->nb, src, channels);
-         if (dest_bit_size == 64) {
-            assert(src_bit_size == 32 || src_bit_size == 16);
-            dest_chan[comp] = src_bit_size == 32 ?
-               nir_pack_64_2x32(&b->nb, src_chan) :
-               nir_pack_64_4x16(&b->nb, src_chan);
-         } else {
-            vtn_assert(dest_bit_size == 32);
-            vtn_assert(src_bit_size == 16);
-            dest_chan[comp] = nir_pack_32_2x16(&b->nb, src_chan);
-         }
-      }
-   }
-   dest->def = nir_vec(&b->nb, dest_chan, dest_components);
-}
-
 nir_op
 vtn_nir_alu_op_for_spirv_opcode(struct vtn_builder *b,
                                 SpvOp opcode, bool *swap,
@@ -633,7 +558,31 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
    }
 
    case SpvOpBitcast:
-      vtn_handle_bitcast(b, val->ssa, src[0]);
+      /* From the definition of OpBitcast in the SPIR-V 1.2 spec:
+       *
+       *    "If Result Type has the same number of components as Operand, they
+       *    must also have the same component width, and results are computed
+       *    per component.
+       *
+       *    If Result Type has a different number of components than Operand,
+       *    the total number of bits in Result Type must equal the total
+       *    number of bits in Operand. Let L be the type, either Result Type
+       *    or Operand’s type, that has the larger number of components. Let S
+       *    be the other type, with the smaller number of components. The
+       *    number of components in L must be an integer multiple of the
+       *    number of components in S.  The first component (that is, the only
+       *    or lowest-numbered component) of S maps to the first components of
+       *    L, and so on, up to the last component of S mapping to the last
+       *    components of L. Within this mapping, any single component of S
+       *    (mapping to multiple components of L) maps its lower-ordered bits
+       *    to the lower-numbered components of L."
+       */
+      vtn_fail_if(src[0]->num_components * src[0]->bit_size !=
+                  glsl_get_vector_elements(type) * glsl_get_bit_size(type),
+                  "Source and destination of OpBitcast must have the same "
+                  "total number of bits");
+      val->ssa->def = nir_bitcast_vector(&b->nb, src[0],
+                                         glsl_get_bit_size(type));
       break;
 
    case SpvOpFConvert: {

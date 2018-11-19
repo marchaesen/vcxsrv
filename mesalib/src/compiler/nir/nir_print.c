@@ -691,6 +691,8 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
       [NIR_INTRINSIC_IMAGE_ARRAY] = "image_array",
       [NIR_INTRINSIC_ACCESS] = "access",
       [NIR_INTRINSIC_FORMAT] = "format",
+      [NIR_INTRINSIC_ALIGN_MUL] = "align_mul",
+      [NIR_INTRINSIC_ALIGN_OFFSET] = "align_offset",
    };
    for (unsigned idx = 1; idx < NIR_INTRINSIC_NUM_INDEX_FLAGS; idx++) {
       if (!info->index_map[idx])

@@ -156,8 +156,9 @@ main(int argc, char **argv)
         exit(1);
     }
     if(prefix[strlen(prefix) - 1] != '/')
-        strcat(prefix, "/");
-    encodingPrefix = dsprintf("%s", prefix);
+        encodingPrefix = dsprintf("%s/", prefix);
+    else
+        encodingPrefix = strdup(prefix);
 
     outfilename = NULL;
 
@@ -203,7 +204,7 @@ main(int argc, char **argv)
                 usage();
             }
             free(encodingPrefix);
-            encodingPrefix = dsprintf("%s", argv[argn + 1]);
+            encodingPrefix = strdup(argv[argn + 1]);
             argn += 2;
         } else if(strcmp(argv[argn], "-e") == 0) {
             if(argn >= argc - 1) {
@@ -800,7 +801,7 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
     else if(dirname_given[i - 1] != '/')
         dirname = dsprintf("%s/", dirname_given);
     else
-        dirname = dsprintf("%s", dirname_given);
+        dirname = strdup(dirname_given);
 
     if(dirname == NULL) {
         perror("dirname");
@@ -819,7 +820,7 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
         fontscale_name = NULL;
     else {
         if(outfilename[0] == '/')
-            fontscale_name = dsprintf("%s", outfilename);
+            fontscale_name = strdup(outfilename);
         else
             fontscale_name = dsprintf("%s%s", dirname, outfilename);
         if(fontscale_name == NULL) {
@@ -930,14 +931,14 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
 
         if(xlfd_name) {
             /* We know it's a bitmap font, and we know its XLFD */
-            int n = strlen(xlfd_name);
+            int l = strlen(xlfd_name);
             if(reencodeLegacy &&
-               n >= 12 && strcasecmp(xlfd_name + n - 11, "-iso10646-1") == 0) {
+               l >= 12 && strcasecmp(xlfd_name + l - 11, "-iso10646-1") == 0) {
                 char *s;
 
-                s = malloc(n - 10);
-                memcpy(s, xlfd_name, n - 11);
-                s[n - 11] = '\0';
+                s = malloc(l - 10);
+                memcpy(s, xlfd_name, l - 11);
+                s[l - 11] = '\0';
                 xlfd = listCons(s, xlfd);
             } else {
                 /* Not a reencodable font -- skip all the rest of the loop body */
@@ -1222,15 +1223,15 @@ checkExtraEncoding(FT_Face face, char *encoding_name, int found)
 
     if(strcasecmp(encoding_name, "iso10646-1") == 0) {
         if(doISO10646_1_encoding && find_cmap(FONT_ENCODING_UNICODE, -1, -1, face)) {
-            int found = 0;
+            int cfound = 0;
              /* Export as Unicode if there are at least 15 BMP
                characters that are not a space or ignored. */
             for(c = 0x21; c < 0x10000; c++) {
                 if(CODE_IGNORED(c))
                     continue;
                 if(FT_Get_Char_Index(face, c) > 0)
-                    found++;
-                if(found >= 15)
+                    cfound++;
+                if(cfound >= 15)
                     return 1;
             }
             return 0;

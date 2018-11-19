@@ -33,6 +33,8 @@
 extern "C" {
 #endif
 
+struct __DRIextensionRec;
+
 /* Helpers to figure out driver and device name, eg. from pci-id, etc. */
 
 int
@@ -46,6 +48,11 @@ loader_get_pci_id_for_fd(int fd, int *vendor_id, int *chip_id);
 
 char *
 loader_get_driver_for_fd(int fd);
+
+const struct __DRIextensionRec **
+loader_open_driver(const char *driver_name,
+                   void **out_driver_handle,
+                   const char **search_path_vars);
 
 char *
 loader_get_device_name_for_fd(int fd);

@@ -32,7 +32,7 @@ xwininfo_SOURCES =	\
         dsimple.h \
         xwininfo.c
 
-EXTRA_DIST = strnlen.h
+EXTRA_DIST = strnlen.h README.md
 MAINTAINERCLEANFILES = ChangeLog INSTALL
 
 .PHONY: ChangeLog INSTALL

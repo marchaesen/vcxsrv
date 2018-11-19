@@ -12,6 +12,8 @@ if env['drm']:
     env.PkgUseModules('DRM')
     env.Append(CPPDEFINES = ['HAVE_LIBDRM'])
 
+env.Append(CPPDEFINES = ['DEFAULT_DRIVER_DIR=\\"/usr/local/lib/dri\\"'])
+
 # parse Makefile.sources
 sources = env.ParseSourceList('Makefile.sources', 'LOADER_C_FILES')
 
