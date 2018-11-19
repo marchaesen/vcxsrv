@@ -16,6 +16,16 @@
  */
 int BN_sqr(BIGNUM *r, const BIGNUM *a, BN_CTX *ctx)
 {
+    int ret = bn_sqr_fixed_top(r, a, ctx);
+
+    bn_correct_top(r);
+    bn_check_top(r);
+
+    return ret;
+}
+
+int bn_sqr_fixed_top(BIGNUM *r, const BIGNUM *a, BN_CTX *ctx)
+{
     int max, al;
     int ret = 0;
     BIGNUM *tmp, *rr;
@@ -32,7 +42,7 @@ int BN_sqr(BIGNUM *r, const BIGNUM *a, BN_CTX *ctx)
     BN_CTX_start(ctx);
     rr = (a != r) ? r : BN_CTX_get(ctx);
     tmp = BN_CTX_get(ctx);
-    if (!rr || !tmp)
+    if (rr == NULL || tmp == NULL)
         goto err;
 
     max = 2 * al;               /* Non-zero (from above) */
@@ -83,7 +93,7 @@ int BN_sqr(BIGNUM *r, const BIGNUM *a, BN_CTX *ctx)
 
     rr->neg = 0;
     rr->top = max;
-    bn_correct_top(rr);
+    rr->flags |= BN_FLG_FIXED_TOP;
     if (r != rr && BN_copy(r, rr) == NULL)
         goto err;
 
@@ -92,7 +102,7 @@ int BN_sqr(BIGNUM *r, const BIGNUM *a, BN_CTX *ctx)
     bn_check_top(rr);
     bn_check_top(tmp);
     BN_CTX_end(ctx);
-    return (ret);
+    return ret;
 }
 
 /* tmp must have 2*n words */
