@@ -5,7 +5,6 @@
 /Makefile.orig
 /MINFO
 /TABLE
-/*.a
 /*.pc
 /rehash.time
 /inc.*
@@ -32,6 +31,13 @@ Makefile
 /openssl/include/opensslconf.h
 /util/domd
 
+# error code files
+/crypto/err/openssl.txt.old
+/engines/e_afalg.txt.old
+/engines/e_capi.txt.old
+/engines/e_dasync.txt.old
+/engines/e_ossltest.txt.old
+
 # Executables
 /apps/openssl
 /test/sha256t
@@ -52,6 +58,7 @@ Makefile
 /test/x509aux
 /test/v3ext
 /test/versions
+/test/ossl_shim/ossl_shim
 
 # Certain files that get created by tests on the fly
 /test/test-runs
@@ -74,8 +81,8 @@ Makefile
 /util/shlib_wrap.sh
 /tags
 /TAGS
-/crypto.map
-/ssl.map
+/libcrypto.map
+/libssl.map
 
 # Windows (legacy)
 /tmp32
@@ -144,7 +151,8 @@ Makefile
 # Certificate symbolic links
 *.0
 
-# All kinds of executables
+# All kinds of libraries and executables
+*.a
 *.so
 *.so.*
 *.dylib
@@ -173,3 +181,4 @@ pod2htmd.tmp
 
 # Windows manifest files
 *.manifest
+doc-nits
