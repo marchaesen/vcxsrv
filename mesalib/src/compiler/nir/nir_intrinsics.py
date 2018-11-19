@@ -109,6 +109,9 @@ IMAGE_ARRAY = "NIR_INTRINSIC_IMAGE_ARRAY"
 ACCESS = "NIR_INTRINSIC_ACCESS"
 # Image format for image intrinsics
 FORMAT = "NIR_INTRINSIC_FORMAT"
+# Offset or address alignment
+ALIGN_MUL = "NIR_INTRINSIC_ALIGN_MUL"
+ALIGN_OFFSET = "NIR_INTRINSIC_ALIGN_OFFSET"
 
 #
 # Possible flags:
@@ -554,8 +557,8 @@ def load(name, num_srcs, indices=[], flags=[]):
 
 # src[] = { offset }. const_index[] = { base, range }
 load("uniform", 1, [BASE, RANGE], [CAN_ELIMINATE, CAN_REORDER])
-# src[] = { buffer_index, offset }. No const_index
-load("ubo", 2, flags=[CAN_ELIMINATE, CAN_REORDER])
+# src[] = { buffer_index, offset }. const_index[] = { align_mul, align_offset }
+load("ubo", 2, [ALIGN_MUL, ALIGN_OFFSET], flags=[CAN_ELIMINATE, CAN_REORDER])
 # src[] = { offset }. const_index[] = { base, component }
 load("input", 1, [BASE, COMPONENT], [CAN_ELIMINATE, CAN_REORDER])
 # src[] = { vertex, offset }. const_index[] = { base, component }
@@ -564,14 +567,15 @@ load("per_vertex_input", 2, [BASE, COMPONENT], [CAN_ELIMINATE, CAN_REORDER])
 intrinsic("load_interpolated_input", src_comp=[2, 1], dest_comp=0,
           indices=[BASE, COMPONENT], flags=[CAN_ELIMINATE, CAN_REORDER])
 
-# src[] = { buffer_index, offset }. No const_index
-load("ssbo", 2, flags=[CAN_ELIMINATE], indices=[ACCESS])
+# src[] = { buffer_index, offset }.
+# const_index[] = { access, align_mul, align_offset }
+load("ssbo", 2, [ACCESS, ALIGN_MUL, ALIGN_OFFSET], [CAN_ELIMINATE])
 # src[] = { offset }. const_index[] = { base, component }
 load("output", 1, [BASE, COMPONENT], flags=[CAN_ELIMINATE])
 # src[] = { vertex, offset }. const_index[] = { base }
 load("per_vertex_output", 2, [BASE, COMPONENT], [CAN_ELIMINATE])
-# src[] = { offset }. const_index[] = { base }
-load("shared", 1, [BASE], [CAN_ELIMINATE])
+# src[] = { offset }. const_index[] = { base, align_mul, align_offset }
+load("shared", 1, [BASE, ALIGN_MUL, ALIGN_OFFSET], [CAN_ELIMINATE])
 # src[] = { offset }. const_index[] = { base, range }
 load("push_constant", 1, [BASE, RANGE], [CAN_ELIMINATE, CAN_REORDER])
 # src[] = { offset }. const_index[] = { base, range }
@@ -590,7 +594,9 @@ store("output", 2, [BASE, WRMASK, COMPONENT])
 # src[] = { value, vertex, offset }.
 # const_index[] = { base, write_mask, component }
 store("per_vertex_output", 3, [BASE, WRMASK, COMPONENT])
-# src[] = { value, block_index, offset }. const_index[] = { write_mask }
-store("ssbo", 3, [WRMASK, ACCESS])
-# src[] = { value, offset }. const_index[] = { base, write_mask }
-store("shared", 2, [BASE, WRMASK])
+# src[] = { value, block_index, offset }
+# const_index[] = { write_mask, access, align_mul, align_offset }
+store("ssbo", 3, [WRMASK, ACCESS, ALIGN_MUL, ALIGN_OFFSET])
+# src[] = { value, offset }.
+# const_index[] = { base, write_mask, align_mul, align_offset }
+store("shared", 2, [BASE, WRMASK, ALIGN_MUL, ALIGN_OFFSET])

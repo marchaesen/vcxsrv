@@ -1,12 +1,13 @@
 <!-- This is the Document Type Definition for font configuration files -->
-<!ELEMENT fontconfig (dir | 
+<!ELEMENT fontconfig (alias |
 		      cache | 
 		      cachedir |
-		      include | 
 		      config |
-		      selectfont |
-		      match | 
-		      alias)* >
+		      description |
+		      dir |
+		      include |
+		      match |
+		      selectfont)* >
 
 <!-- 
     Add a directory that provides fonts
@@ -42,6 +43,16 @@
 <!ATTLIST cachedir
 	  prefix    CDATA      "default"
 	  xml:space (default|preserve) 'preserve'>
+
+<!--
+    Set a string as a description for the targeted config file
+
+    Set 'domain' to change where to pull translations from.
+    This will be done through gettext.
+-->
+<!ELEMENT description (#PCDATA)>
+<!ATTLIST description
+	  domain	CDATA	"fontconfig-conf">
 
 <!--
     Reference another configuration file; note that this

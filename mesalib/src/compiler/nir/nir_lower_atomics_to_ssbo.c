@@ -149,6 +149,10 @@ lower_instr(nir_intrinsic_instr *instr, unsigned ssbo_offset, nir_builder *b)
       break;
    }
 
+   if (new_instr->intrinsic == nir_intrinsic_load_ssbo ||
+       new_instr->intrinsic == nir_intrinsic_store_ssbo)
+      nir_intrinsic_set_align(new_instr, 4, 0);
+
    nir_ssa_dest_init(&new_instr->instr, &new_instr->dest,
                      instr->dest.ssa.num_components,
                      instr->dest.ssa.bit_size, NULL);

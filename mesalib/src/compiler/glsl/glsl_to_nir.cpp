@@ -33,6 +33,7 @@
 #include "compiler/nir/nir_builder.h"
 #include "main/imports.h"
 #include "main/mtypes.h"
+#include "util/u_math.h"
 
 /*
  * pass to lower GLSL IR to NIR
@@ -603,6 +604,14 @@ nir_visitor::visit(ir_return *ir)
    nir_builder_instr_insert(&b, &instr->instr);
 }
 
+static void
+intrinsic_set_std430_align(nir_intrinsic_instr *intrin, const glsl_type *type)
+{
+   unsigned bit_size = type->is_boolean() ? 32 : glsl_get_bit_size(type);
+   unsigned pow2_components = util_next_power_of_two(type->vector_elements);
+   nir_intrinsic_set_align(intrin, (bit_size / 8) * pow2_components, 0);
+}
+
 void
 nir_visitor::visit(ir_call *ir)
 {
@@ -1000,9 +1009,13 @@ nir_visitor::visit(ir_call *ir)
          ir_constant *write_mask = ((ir_instruction *)param)->as_constant();
          assert(write_mask);
 
-         instr->src[0] = nir_src_for_ssa(evaluate_rvalue(val));
+         nir_ssa_def *nir_val = evaluate_rvalue(val);
+         assert(!val->type->is_boolean() || nir_val->bit_size == 32);
+
+         instr->src[0] = nir_src_for_ssa(nir_val);
          instr->src[1] = nir_src_for_ssa(evaluate_rvalue(block));
          instr->src[2] = nir_src_for_ssa(evaluate_rvalue(offset));
+         intrinsic_set_std430_align(instr, val->type);
          nir_intrinsic_set_write_mask(instr, write_mask->value.u[0]);
          instr->num_components = val->type->vector_elements;
 
@@ -1021,9 +1034,10 @@ nir_visitor::visit(ir_call *ir)
 
          const glsl_type *type = ir->return_deref->var->type;
          instr->num_components = type->vector_elements;
+         intrinsic_set_std430_align(instr, type);
 
          /* Setup destination register */
-         unsigned bit_size = glsl_get_bit_size(type);
+         unsigned bit_size = type->is_boolean() ? 32 : glsl_get_bit_size(type);
          nir_ssa_dest_init(&instr->instr, &instr->dest,
                            type->vector_elements, bit_size, NULL);
 
@@ -1098,9 +1112,10 @@ nir_visitor::visit(ir_call *ir)
 
          const glsl_type *type = ir->return_deref->var->type;
          instr->num_components = type->vector_elements;
+         intrinsic_set_std430_align(instr, type);
 
          /* Setup destination register */
-         unsigned bit_size = glsl_get_bit_size(type);
+         unsigned bit_size = type->is_boolean() ? 32 : glsl_get_bit_size(type);
          nir_ssa_dest_init(&instr->instr, &instr->dest,
                            type->vector_elements, bit_size, NULL);
 
@@ -1123,8 +1138,12 @@ nir_visitor::visit(ir_call *ir)
 
          nir_intrinsic_set_write_mask(instr, write_mask->value.u[0]);
 
-         instr->src[0] = nir_src_for_ssa(evaluate_rvalue(val));
+         nir_ssa_def *nir_val = evaluate_rvalue(val);
+         assert(!val->type->is_boolean() || nir_val->bit_size == 32);
+
+         instr->src[0] = nir_src_for_ssa(nir_val);
          instr->num_components = val->type->vector_elements;
+         intrinsic_set_std430_align(instr, val->type);
 
          nir_builder_instr_insert(&b, &instr->instr);
          break;
@@ -1377,10 +1396,12 @@ nir_visitor::visit(ir_expression *ir)
    case ir_binop_ubo_load: {
       nir_intrinsic_instr *load =
          nir_intrinsic_instr_create(this->shader, nir_intrinsic_load_ubo);
-      unsigned bit_size = glsl_get_bit_size(ir->type);
+      unsigned bit_size = ir->type->is_boolean() ? 32 :
+                          glsl_get_bit_size(ir->type);
       load->num_components = ir->type->vector_elements;
       load->src[0] = nir_src_for_ssa(evaluate_rvalue(ir->operands[0]));
       load->src[1] = nir_src_for_ssa(evaluate_rvalue(ir->operands[1]));
+      intrinsic_set_std430_align(load, ir->type);
       add_instr(&load->instr, ir->type->vector_elements, bit_size);
 
       /*

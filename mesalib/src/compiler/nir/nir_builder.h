@@ -330,6 +330,10 @@ nir_imm_intN_t(nir_builder *build, uint64_t x, unsigned bit_size)
 {
    nir_const_value v;
 
+   assert(bit_size == 64 ||
+          (int64_t)x >> bit_size == 0 ||
+          (int64_t)x >> bit_size == -1);
+
    memset(&v, 0, sizeof(v));
    assert(bit_size <= 64);
    v.i64[0] = x & (~0ull >> (64 - bit_size));
@@ -547,6 +551,144 @@ nir_channels(nir_builder *b, nir_ssa_def *def, nir_component_mask_t mask)
    }
 
    return nir_swizzle(b, def, swizzle, num_channels, false);
+}
+
+static inline nir_ssa_def *
+nir_iadd_imm(nir_builder *build, nir_ssa_def *x, uint64_t y)
+{
+   return nir_iadd(build, x, nir_imm_intN_t(build, y, x->bit_size));
+}
+
+static inline nir_ssa_def *
+nir_imul_imm(nir_builder *build, nir_ssa_def *x, uint64_t y)
+{
+   return nir_imul(build, x, nir_imm_intN_t(build, y, x->bit_size));
+}
+
+static inline nir_ssa_def *
+nir_pack_bits(nir_builder *b, nir_ssa_def *src, unsigned dest_bit_size)
+{
+   assert(src->num_components * src->bit_size == dest_bit_size);
+
+   switch (dest_bit_size) {
+   case 64:
+      switch (src->bit_size) {
+      case 32: return nir_pack_64_2x32(b, src);
+      case 16: return nir_pack_64_4x16(b, src);
+      default: break;
+      }
+      break;
+
+   case 32:
+      if (src->bit_size == 16)
+         return nir_pack_32_2x16(b, src);
+      break;
+
+   default:
+      break;
+   }
+
+   /* If we got here, we have no dedicated unpack opcode. */
+   nir_ssa_def *dest = nir_imm_intN_t(b, 0, dest_bit_size);
+   for (unsigned i = 0; i < src->num_components; i++) {
+      nir_ssa_def *val;
+      switch (dest_bit_size) {
+      case 64: val = nir_u2u64(b, nir_channel(b, src, i));  break;
+      case 32: val = nir_u2u32(b, nir_channel(b, src, i));  break;
+      case 16: val = nir_u2u16(b, nir_channel(b, src, i));  break;
+      default: unreachable("Invalid bit size");
+      }
+      val = nir_ishl(b, val, nir_imm_int(b, i * src->bit_size));
+      dest = nir_ior(b, dest, val);
+   }
+   return dest;
+}
+
+static inline nir_ssa_def *
+nir_unpack_bits(nir_builder *b, nir_ssa_def *src, unsigned dest_bit_size)
+{
+   assert(src->num_components == 1);
+   assert(src->bit_size > dest_bit_size);
+   const unsigned dest_num_components = src->bit_size / dest_bit_size;
+   assert(dest_num_components <= NIR_MAX_VEC_COMPONENTS);
+
+   switch (src->bit_size) {
+   case 64:
+      switch (dest_bit_size) {
+      case 32: return nir_unpack_64_2x32(b, src);
+      case 16: return nir_unpack_64_4x16(b, src);
+      default: break;
+      }
+      break;
+
+   case 32:
+      if (dest_bit_size == 16)
+         return nir_unpack_32_2x16(b, src);
+      break;
+
+   default:
+      break;
+   }
+
+   /* If we got here, we have no dedicated unpack opcode. */
+   nir_ssa_def *dest_comps[NIR_MAX_VEC_COMPONENTS];
+   for (unsigned i = 0; i < dest_num_components; i++) {
+      nir_ssa_def *val = nir_ushr(b, src, nir_imm_int(b, i * dest_bit_size));
+      switch (dest_bit_size) {
+      case 32: dest_comps[i] = nir_u2u32(b, val);  break;
+      case 16: dest_comps[i] = nir_u2u16(b, val);  break;
+      case 8:  dest_comps[i] = nir_u2u8(b, val);   break;
+      default: unreachable("Invalid bit size");
+      }
+   }
+   return nir_vec(b, dest_comps, dest_num_components);
+}
+
+static inline nir_ssa_def *
+nir_bitcast_vector(nir_builder *b, nir_ssa_def *src, unsigned dest_bit_size)
+{
+   assert((src->bit_size * src->num_components) % dest_bit_size == 0);
+   const unsigned dest_num_components =
+      (src->bit_size * src->num_components) / dest_bit_size;
+   assert(dest_num_components <= NIR_MAX_VEC_COMPONENTS);
+
+   if (src->bit_size > dest_bit_size) {
+      assert(src->bit_size % dest_bit_size == 0);
+      if (src->num_components == 1) {
+         return nir_unpack_bits(b, src, dest_bit_size);
+      } else {
+         const unsigned divisor = src->bit_size / dest_bit_size;
+         assert(src->num_components * divisor == dest_num_components);
+         nir_ssa_def *dest[NIR_MAX_VEC_COMPONENTS];
+         for (unsigned i = 0; i < src->num_components; i++) {
+            nir_ssa_def *unpacked =
+               nir_unpack_bits(b, nir_channel(b, src, i), dest_bit_size);
+            assert(unpacked->num_components == divisor);
+            for (unsigned j = 0; j < divisor; j++)
+               dest[i * divisor + j] = nir_channel(b, unpacked, j);
+         }
+         return nir_vec(b, dest, dest_num_components);
+      }
+   } else if (src->bit_size < dest_bit_size) {
+      assert(dest_bit_size % src->bit_size == 0);
+      if (dest_num_components == 1) {
+         return nir_pack_bits(b, src, dest_bit_size);
+      } else {
+         const unsigned divisor = dest_bit_size / src->bit_size;
+         assert(src->num_components == dest_num_components * divisor);
+         nir_ssa_def *dest[NIR_MAX_VEC_COMPONENTS];
+         for (unsigned i = 0; i < dest_num_components; i++) {
+            nir_component_mask_t src_mask =
+               ((1 << divisor) - 1) << (i * divisor);
+            dest[i] = nir_pack_bits(b, nir_channels(b, src, src_mask),
+                                       dest_bit_size);
+         }
+         return nir_vec(b, dest, dest_num_components);
+      }
+   } else {
+      assert(src->bit_size == dest_bit_size);
+      return src;
+   }
 }
 
 /**

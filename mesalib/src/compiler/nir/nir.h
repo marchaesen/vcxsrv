@@ -34,6 +34,7 @@
 #include "util/list.h"
 #include "util/ralloc.h"
 #include "util/set.h"
+#include "util/bitscan.h"
 #include "util/bitset.h"
 #include "util/macros.h"
 #include "compiler/nir_types.h"
@@ -1248,6 +1249,18 @@ typedef enum {
     */
    NIR_INTRINSIC_ACCESS = 16,
 
+   /**
+    * Alignment for offsets and addresses
+    *
+    * These two parameters, specify an alignment in terms of a multiplier and
+    * an offset.  The offset or address parameter X of the intrinsic is
+    * guaranteed to satisfy the following:
+    *
+    *                (X - align_offset) % align_mul == 0
+    */
+   NIR_INTRINSIC_ALIGN_MUL = 17,
+   NIR_INTRINSIC_ALIGN_OFFSET = 18,
+
    NIR_INTRINSIC_NUM_INDEX_FLAGS,
 
 } nir_intrinsic_index_flag;
@@ -1342,6 +1355,34 @@ INTRINSIC_IDX_ACCESSORS(image_dim, IMAGE_DIM, enum glsl_sampler_dim)
 INTRINSIC_IDX_ACCESSORS(image_array, IMAGE_ARRAY, bool)
 INTRINSIC_IDX_ACCESSORS(access, ACCESS, enum gl_access_qualifier)
 INTRINSIC_IDX_ACCESSORS(format, FORMAT, unsigned)
+INTRINSIC_IDX_ACCESSORS(align_mul, ALIGN_MUL, unsigned)
+INTRINSIC_IDX_ACCESSORS(align_offset, ALIGN_OFFSET, unsigned)
+
+static inline void
+nir_intrinsic_set_align(nir_intrinsic_instr *intrin,
+                        unsigned align_mul, unsigned align_offset)
+{
+   assert(util_is_power_of_two_nonzero(align_mul));
+   assert(align_offset < align_mul);
+   nir_intrinsic_set_align_mul(intrin, align_mul);
+   nir_intrinsic_set_align_offset(intrin, align_offset);
+}
+
+/** Returns a simple alignment for a load/store intrinsic offset
+ *
+ * Instead of the full mul+offset alignment scheme provided by the ALIGN_MUL
+ * and ALIGN_OFFSET parameters, this helper takes both into account and
+ * provides a single simple alignment parameter.  The offset X is guaranteed
+ * to satisfy X % align == 0.
+ */
+static inline unsigned
+nir_intrinsic_align(nir_intrinsic_instr *intrin)
+{
+   const unsigned align_mul = nir_intrinsic_align_mul(intrin);
+   const unsigned align_offset = nir_intrinsic_align_offset(intrin);
+   assert(align_offset < align_mul);
+   return align_offset ? 1 << (ffs(align_offset) - 1) : align_mul;
+}
 
 /**
  * \group texture information

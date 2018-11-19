@@ -1006,6 +1006,12 @@ vir_can_set_flags(struct v3d_compile *c, struct qinst *inst)
                 return false;
         }
 
+        if (inst->qpu.type != V3D_QPU_INSTR_TYPE_ALU ||
+            (inst->qpu.alu.add.op == V3D_QPU_A_NOP &&
+             inst->qpu.alu.mul.op == V3D_QPU_M_NOP)) {
+               return false;
+        }
+
         return true;
 }
 
