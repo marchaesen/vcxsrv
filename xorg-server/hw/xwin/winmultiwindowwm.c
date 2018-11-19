@@ -94,14 +94,14 @@ extern void winSetAuthorization(void);
  * Constant defines
  */
 
-#define WIN_CONNECT_RETRIES 5
-#define WIN_CONNECT_DELAY   5
+#define WIN_CONNECT_RETRIES	5
+#define WIN_CONNECT_DELAY	5
 #ifdef HAS_DEVWINDOWS
-#define WIN_MSG_QUEUE_FNAME "/dev/windows"
+#define WIN_MSG_QUEUE_FNAME	"/dev/windows"
 #endif
 
-#define HINT_MAX (1L<<0)
-#define HINT_MIN (1L<<1)
+#define HINT_MAX	(1L<<0)
+#define HINT_MIN	(1L<<1)
 
 /*
  * Local structures
@@ -639,16 +639,13 @@ UpdateName(WMInfoPtr pWMInfo, xcb_window_t iWindow)
         /* Get the X windows window name */
         GetWindowName(pWMInfo, iWindow, &pszWindowName);
 
-        // Use Active-Code-Page for Window-Title
-        if (pszWindowName && pszWindowName[0])
-        {
+        if (pszWindowName) {
             /* Convert from UTF-8 to wide char */
-            int charset= _getmbcp()?CP_UTF8:CP_ACP;
             int iLen =
-                MultiByteToWideChar(charset, 0, pszWindowName, -1, NULL, 0);
+                MultiByteToWideChar(CP_UTF8, 0, pszWindowName, -1, NULL, 0);
             wchar_t *pwszWideWindowName =
                 malloc(sizeof(wchar_t)*(iLen + 1));
-            MultiByteToWideChar(charset, 0, pszWindowName, -1,
+            MultiByteToWideChar(CP_UTF8, 0, pszWindowName, -1,
                                 pwszWideWindowName, iLen);
 
             /* Set the Windows window name */
@@ -656,10 +653,6 @@ UpdateName(WMInfoPtr pWMInfo, xcb_window_t iWindow)
 
             free(pwszWideWindowName);
             free(pszWindowName);
-        }
-        else
-        {
-            SetWindowTextA(hWnd, "");
         }
     }
 }
@@ -1948,13 +1941,13 @@ winDeinitMultiWindowWM(void)
 }
 
 /* Windows window styles */
-#define HINT_NOFRAME     (1L<<0)
-#define HINT_BORDER      (1L<<1)
-#define HINT_SIZEBOX     (1L<<2)
-#define HINT_CAPTION     (1L<<3)
-#define HINT_NOMAXIMIZE  (1L<<4)
-#define HINT_NOMINIMIZE  (1L<<5)
-#define HINT_NOSYSMENU   (1L<<6)
+#define HINT_NOFRAME	(1L<<0)
+#define HINT_BORDER	(1L<<1)
+#define HINT_SIZEBOX	(1L<<2)
+#define HINT_CAPTION	(1L<<3)
+#define HINT_NOMAXIMIZE (1L<<4)
+#define HINT_NOMINIMIZE (1L<<5)
+#define HINT_NOSYSMENU  (1L<<6)
 #define HINT_SKIPTASKBAR (1L<<7)
 
 static void
@@ -2067,8 +2060,7 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
             nodecoration = TRUE;
             winDebug("nodecoration %x = TRUE\n",hWnd);
           }
-          else
-            if (!(mwm_hint->decorations & MwmDecorAll))
+          else if (!(mwm_hint->decorations & MwmDecorAll))
             {
                 if (!(mwm_hint->decorations & MwmDecorBorder))
                     hint &= ~HINT_BORDER;
@@ -2080,8 +2072,7 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
                     hint |= HINT_NOSYSMENU;
                 if (!(mwm_hint->decorations & MwmDecorMinimize))
                     hint |= HINT_NOMINIMIZE;
-                if (!(mwm_hint->decorations & MwmDecorMaximize) &&
-                    !(mwm_hint->decorations & MwmDecorMinimize))
+                if (!(mwm_hint->decorations & MwmDecorMaximize))
                     hint |= HINT_NOMAXIMIZE;
             }
             else
@@ -2127,9 +2118,27 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
                WM_NORMAL_HINTS indicates the window should be resizeable, let
                the window have a resizing border.  This is necessary for windows
                with gtk3+ 3.14 csd. */
+            if (hint & HINT_BORDER)
+                hint |= HINT_SIZEBOX;
+
             if (size_hints.flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE) {
                 /* Not maximizable if a maximum size is specified, and that size
                    is smaller (in either dimension) than the screen size */
+                if ((size_hints.max_width < GetSystemMetrics(SM_CXVIRTUALSCREEN))
+                    || (size_hints.max_height < GetSystemMetrics(SM_CYVIRTUALSCREEN)))
+                    hint |= HINT_NOMAXIMIZE;
+
+                if (size_hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE) {
+                    /*
+                       If both minimum size and maximum size are specified and are the same,
+                       don't bother with a resizing frame
+                     */
+                    if ((size_hints.min_width == size_hints.max_width)
+                        && (size_hints.min_height == size_hints.max_height)) {
+                        hint |= HINT_NOMAXIMIZE;
+                        hint = (hint & ~HINT_SIZEBOX);
+                    }
+                }
             }
         }
     }
@@ -2229,7 +2238,7 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
         style = style & ~WS_SYSMENU;
 
     if (hint & HINT_SKIPTASKBAR) {
-      style = style & ~WS_MINIMIZEBOX;        /* window will become lost if minimized */
+        style = style & ~WS_MINIMIZEBOX;        /* window will become lost if minimized */
     }
 
     if (nodecoration)
@@ -2251,7 +2260,6 @@ winApplyHints(WMInfoPtr pWMInfo, xcb_window_t iWindow, HWND hWnd, HWND * zstyle,
             winShowWindowOnTaskbar(hWnd, FALSE);
         }
         SetWindowLongPtr(hWnd, GWL_STYLE, style);
-        oristyle= style;
     }
 
     exStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE);
