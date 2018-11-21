@@ -1,3 +1,6 @@
+xtrans - X Network Transport layer shared code
+----------------------------------------------
+
 xtrans is a library of code that is shared among various X packages to
 handle network protocol transport in a modular fashion, allowing a
 single place to add new transport types.  It is used by the X server,
@@ -15,23 +18,19 @@ file in DocBook XML format. If 'xmlto' is installed, you can generate text,
 html, postscript or pdf versions of the documentation by configuring
 the build with --enable-docs, which is the default.
 
-Please submit bugs & patches to the Xorg bugzilla:
-
-	https://bugs.freedesktop.org/enter_bug.cgi?product=xorg
-
-under the component "Lib/xtrans".
+ --------------------------------------------------------------------------
 
 All questions regarding this software should be directed at the
 Xorg mailing list:
 
-	http://lists.freedesktop.org/mailman/listinfo/xorg
+  https://lists.x.org/mailman/listinfo/xorg
 
 The master development code repository can be found at:
 
-	git://anongit.freedesktop.org/git/xorg/lib/libxtrans
+  https://gitlab.freedesktop.org/xorg/lib/libxtrans
 
-	http://cgit.freedesktop.org/xorg/lib/libxtrans
+Please submit bug reports and requests to merge patches there.
 
-For more information on the git code manager, see:
+For patch submission instructions, see:
 
-	http://wiki.x.org/wiki/GitPage
+  https://www.x.org/wiki/Development/Documentation/SubmittingPatches

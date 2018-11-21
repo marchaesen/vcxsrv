@@ -745,7 +745,8 @@ uint64_t *v3d_compile_vs(const struct v3d_compiler *compiler,
                 NIR_PASS_V(c->s, nir_lower_clamp_color_outputs);
 
         if (key->base.ucp_enables) {
-                NIR_PASS_V(c->s, nir_lower_clip_vs, key->base.ucp_enables);
+                NIR_PASS_V(c->s, nir_lower_clip_vs, key->base.ucp_enables,
+                           false);
                 NIR_PASS_V(c->s, nir_lower_io_to_scalar,
                            nir_var_shader_out);
         }

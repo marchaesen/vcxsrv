@@ -52,7 +52,8 @@ bool util_upload_index_buffer(struct pipe_context *pipe,
                               unsigned *out_offset);
 
 void
-util_context_thread_changed(struct pipe_context *ctx, thrd_t *upper_thread);
+util_pin_driver_threads_to_random_L3(struct pipe_context *ctx,
+                                     thrd_t *upper_thread);
 
 struct pipe_query *
 util_begin_pipestat_query(struct pipe_context *ctx);

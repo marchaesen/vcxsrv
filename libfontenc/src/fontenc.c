@@ -274,14 +274,14 @@ iso8859_7_to_unicode(unsigned isocode, void *client_data)
         isocode == 0xB7 || isocode == 0xBB || isocode == 0xBD)
         return isocode;
     else if (isocode == 0xA1)
-        return 0x02BD;
+        return 0x2018;
     else if (isocode == 0xA2)
-        return 0x02BC;
+        return 0x2019;
     else if (isocode == 0xAF)
         return 0x2015;
     else if (isocode == 0xD2)   /* unassigned */
         return 0;
-    else if (isocode >= 0xB4)
+    else if (isocode >= 0xB4 && isocode <= 0xFE)
         return isocode - 0xA0 + 0x0370;
     else
         return 0;

@@ -800,6 +800,17 @@ st_start_thread(struct st_context_iface *stctxi)
    struct st_context *st = (struct st_context *) stctxi;
 
    _mesa_glthread_init(st->ctx);
+
+   /* Pin all driver threads to one L3 cache for optimal performance
+    * on AMD Zen. This is only done if glthread is enabled.
+    *
+    * If glthread is disabled, st_draw.c re-pins driver threads regularly
+    * based on the location of the app thread.
+    */
+   struct glthread_state *glthread = st->ctx->GLThread;
+   if (glthread && st->pipe->set_context_param) {
+      util_pin_driver_threads_to_random_L3(st->pipe, &glthread->queue.threads[0]);
+   }
 }
 
 

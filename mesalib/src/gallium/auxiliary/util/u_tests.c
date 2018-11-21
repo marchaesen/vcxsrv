@@ -787,6 +787,81 @@ test_texture_barrier(struct pipe_context *ctx, bool use_fbfetch,
    util_report_result_helper(pass, name);
 }
 
+static void
+test_compute_clear_image(struct pipe_context *ctx)
+{
+   struct cso_context *cso;
+   struct pipe_resource *cb;
+   struct pipe_sampler_view *view = NULL;
+   const char *text;
+
+   cso = cso_create_context(ctx, 0);
+   cb = util_create_texture2d(ctx->screen, 256, 256,
+                              PIPE_FORMAT_R8G8B8A8_UNORM, 1);
+
+   /* Compute shader. */
+   text = "COMP\n"
+          "PROPERTY CS_FIXED_BLOCK_WIDTH 8\n"
+          "PROPERTY CS_FIXED_BLOCK_HEIGHT 8\n"
+          "PROPERTY CS_FIXED_BLOCK_DEPTH 1\n"
+          "DCL SV[0], THREAD_ID\n"
+          "DCL SV[1], BLOCK_ID\n"
+          "DCL IMAGE[0], 2D, PIPE_FORMAT_R8G8B8A8_UNORM, WR\n"
+          "DCL TEMP[0]\n"
+          "IMM[0] UINT32 { 8, 8, 0, 0}\n"
+          "IMM[1] FLT32 { 1, 0, 0, 0}\n"
+
+          /* TEMP[0].xy = SV[1] * IMM[0] + SV[0]; */
+          "UMAD TEMP[0].xy, SV[1], IMM[0], SV[0]\n"
+          "STORE IMAGE[0], TEMP[0], IMM[1], 2D, PIPE_FORMAT_R8G8B8A8_UNORM\n"
+          "END\n";
+
+   struct tgsi_token tokens[1000];
+   if (!tgsi_text_translate(text, tokens, ARRAY_SIZE(tokens))) {
+      assert(0);
+      util_report_result(FAIL);
+      return;
+   }
+
+   struct pipe_compute_state state = {0};
+   state.ir_type = PIPE_SHADER_IR_TGSI;
+   state.prog = tokens;
+
+   void *compute_shader = ctx->create_compute_state(ctx, &state);
+   cso_set_compute_shader_handle(cso, compute_shader);
+
+   /* Bind the image. */
+   struct pipe_image_view image = {0};
+   image.resource = cb;
+   image.shader_access = image.access = PIPE_IMAGE_ACCESS_READ_WRITE;
+   image.format = cb->format;
+
+   ctx->set_shader_images(ctx, PIPE_SHADER_COMPUTE, 0, 1, &image);
+
+   /* Dispatch compute. */
+   struct pipe_grid_info info = {0};
+   info.block[0] = 8;
+   info.block[1] = 8;
+   info.block[2] = 1;
+   info.grid[0] = cb->width0 / 8;
+   info.grid[1] = cb->height0 / 8;
+   info.grid[2] = 1;
+
+   ctx->launch_grid(ctx, &info);
+
+   /* Check pixels. */
+   static const float expected[] = {1.0, 0.0, 0.0, 0.0};
+   bool pass = util_probe_rect_rgba(ctx, cb, 0, 0,
+                                    cb->width0, cb->height0, expected);
+
+   /* Cleanup. */
+   cso_destroy_context(cso);
+   ctx->delete_compute_state(ctx, compute_shader);
+   pipe_resource_reference(&cb, NULL);
+
+   util_report_result(pass);
+}
+
 /**
  * Run all tests. This should be run with a clean context after
  * context_create.
@@ -807,6 +882,8 @@ util_run_tests(struct pipe_screen *screen)
       test_texture_barrier(ctx, false, i);
    for (int i = 1; i <= 8; i = i * 2)
       test_texture_barrier(ctx, true, i);
+
+   test_compute_clear_image(ctx);
 
    ctx->destroy(ctx);
 

@@ -121,11 +121,11 @@ _mesa_glthread_destroy(struct gl_context *ctx)
    free(glthread);
    ctx->GLThread = NULL;
 
-   _mesa_glthread_restore_dispatch(ctx);
+   _mesa_glthread_restore_dispatch(ctx, "destroy");
 }
 
 void
-_mesa_glthread_restore_dispatch(struct gl_context *ctx)
+_mesa_glthread_restore_dispatch(struct gl_context *ctx, const char *func)
 {
    /* Remove ourselves from the dispatch table except if another ctx/thread
     * already installed a new dispatch table.
@@ -136,6 +136,9 @@ _mesa_glthread_restore_dispatch(struct gl_context *ctx)
    if (_glapi_get_dispatch() == ctx->MarshalExec) {
        ctx->CurrentClientDispatch = ctx->CurrentServerDispatch;
        _glapi_set_dispatch(ctx->CurrentClientDispatch);
+#if 0
+       printf("glthread disabled: %s\n", func);
+#endif
    }
 }
 

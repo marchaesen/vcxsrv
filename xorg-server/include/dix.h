@@ -240,6 +240,8 @@ extern _X_EXPORT void RemoveBlockAndWakeupHandlers(ServerBlockHandlerProcPtr blo
 
 extern _X_EXPORT void InitBlockAndWakeupHandlers(void);
 
+extern _X_EXPORT void ClearWorkQueue(void);
+
 extern _X_EXPORT void ProcessWorkQueue(void);
 
 extern _X_EXPORT void ProcessWorkQueueZombies(void);

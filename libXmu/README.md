@@ -1,3 +1,6 @@
+libXmu - X miscellaneous utility routines library
+-------------------------------------------------
+
 This library contains miscellaneous utilities and is not part of the Xlib
 standard.  It contains routines which only use public interfaces so that it
 may be layered on top of any proprietary implementation of Xlib or Xt.
@@ -15,23 +18,15 @@ configure.
 All questions regarding this software should be directed at the
 Xorg mailing list:
 
-        http://lists.freedesktop.org/mailman/listinfo/xorg
-
-Please submit bug reports to the Xorg bugzilla:
-
-        https://bugs.freedesktop.org/enter_bug.cgi?product=xorg
+  https://lists.x.org/mailman/listinfo/xorg
 
 The master development code repository can be found at:
 
-        git://anongit.freedesktop.org/git/xorg/lib/libXmu
+  https://gitlab.freedesktop.org/xorg/lib/libXmu
 
-        http://cgit.freedesktop.org/xorg/lib/libXmu
+Please submit bug reports and requests to merge patches there.
 
 For patch submission instructions, see:
 
-	http://www.x.org/wiki/Development/Documentation/SubmittingPatches
-
-For more information on the git code manager, see:
-
-        http://wiki.x.org/wiki/GitPage
+  https://www.x.org/wiki/Development/Documentation/SubmittingPatches
 

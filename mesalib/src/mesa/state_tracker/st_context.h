@@ -193,6 +193,8 @@ struct st_context
    /** This masks out unused shader resources. Only valid in draw calls. */
    uint64_t active_states;
 
+   unsigned pin_thread_counter; /* for L3 thread pinning on AMD Zen */
+
    /* If true, further analysis of states is required to know if something
     * has changed. Used mainly for shaders.
     */

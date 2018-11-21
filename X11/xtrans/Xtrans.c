@@ -153,11 +153,14 @@ static Xtransport *
 TRANS(SelectTransport) (const char *protocol)
 
 {
+#ifndef HAVE_STRCASECMP
     char 	protobuf[PROTOBUFSIZE];
+#endif
     int		i;
 
     prmsg (3,"SelectTransport(%s)\n", protocol);
 
+#ifndef HAVE_STRCASECMP
     /*
      * Force Protocol to be lowercase as a way of doing
      * a case insensitive match.
@@ -169,12 +172,17 @@ TRANS(SelectTransport) (const char *protocol)
     for (i = 0; i < PROTOBUFSIZE && protobuf[i] != '\0'; i++)
 	if (isupper ((unsigned char)protobuf[i]))
 	    protobuf[i] = tolower ((unsigned char)protobuf[i]);
+#endif
 
     /* Look at all of the configured protocols */
 
     for (i = 0; i < NUMTRANS; i++)
     {
+#ifndef HAVE_STRCASECMP
 	if (!strcmp (protobuf, Xtransports[i].transport->TransName))
+#else
+	if (!strcasecmp (protocol, Xtransports[i].transport->TransName))
+#endif
 	    return Xtransports[i].transport;
     }
 

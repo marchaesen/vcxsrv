@@ -1650,7 +1650,8 @@ vtn_pointer_from_ssa(struct vtn_builder *b, nir_ssa_def *ssa,
       vtn_assert(ssa->num_components == 2);
       ptr->block_index = nir_channel(&b->nb, ssa, 0);
       ptr->offset = nir_channel(&b->nb, ssa, 1);
-   } else if (ptr->mode == vtn_variable_mode_workgroup ||
+   } else if ((ptr->mode == vtn_variable_mode_workgroup &&
+               b->options->lower_workgroup_access_to_offsets) ||
               ptr->mode == vtn_variable_mode_push_constant) {
       /* This pointer type needs to have actual storage */
       vtn_assert(ptr_type->type);

@@ -55,7 +55,7 @@ void st_validate_state( struct st_context *st, enum st_pipeline pipeline );
 GLuint st_compare_func_to_pipe(GLenum func);
 
 enum pipe_format
-st_pipe_vertex_format(const struct gl_array_attributes *attrib);
+st_pipe_vertex_format(const struct gl_vertex_format *glformat);
 
 
 /* Define ST_NEW_xxx_INDEX */

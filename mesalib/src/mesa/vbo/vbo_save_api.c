@@ -426,7 +426,7 @@ compare_vao(gl_vertex_processing_mode mode,
       return false;
 
    /* If the enabled arrays are not the same we are not equal. */
-   if (vao_enabled != vao->_Enabled)
+   if (vao_enabled != vao->Enabled)
       return false;
 
    /* Check the buffer binding at 0 */
@@ -450,15 +450,14 @@ compare_vao(gl_vertex_processing_mode mode,
       const struct gl_array_attributes *attrib = &vao->VertexAttrib[attr];
       if (attrib->RelativeOffset + vao->BufferBinding[0].Offset != off)
          return false;
-      if (attrib->Type != tp)
+      if (attrib->Format.Type != tp)
          return false;
-      if (attrib->Size != size[vbo_attr])
+      if (attrib->Format.Size != size[vbo_attr])
          return false;
-      assert(attrib->Format == GL_RGBA);
-      assert(attrib->Enabled == GL_TRUE);
-      assert(attrib->Normalized == GL_FALSE);
-      assert(attrib->Integer == vbo_attrtype_to_integer_flag(tp));
-      assert(attrib->Doubles == vbo_attrtype_to_double_flag(tp));
+      assert(attrib->Format.Format == GL_RGBA);
+      assert(attrib->Format.Normalized == GL_FALSE);
+      assert(attrib->Format.Integer == vbo_attrtype_to_integer_flag(tp));
+      assert(attrib->Format.Doubles == vbo_attrtype_to_double_flag(tp));
       assert(attrib->BufferBindingIndex == 0);
    }
 
@@ -515,9 +514,9 @@ update_vao(struct gl_context *ctx,
       _vbo_set_attrib_format(ctx, *vao, vao_attr, buffer_offset,
                              size[vbo_attr], type[vbo_attr], offset[vbo_attr]);
       _mesa_vertex_attrib_binding(ctx, *vao, vao_attr, 0);
-      _mesa_enable_vertex_array_attrib(ctx, *vao, vao_attr);
    }
-   assert(vao_enabled == (*vao)->_Enabled);
+   _mesa_enable_vertex_array_attribs(ctx, *vao, vao_enabled);
+   assert(vao_enabled == (*vao)->Enabled);
    assert((vao_enabled & ~(*vao)->VertexAttribBufferMask) == 0);
 
    /* Finalize and freeze the VAO */

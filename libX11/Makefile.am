@@ -33,3 +33,5 @@ lint:
 		(cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) lint) ; \
 	done
 endif LINT
+
+EXTRA_DIST = README.md

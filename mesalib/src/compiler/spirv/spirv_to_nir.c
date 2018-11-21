@@ -1224,17 +1224,18 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
          val->type->type = glsl_uint_type();
       }
 
-      if (storage_class == SpvStorageClassWorkgroup &&
-          b->options->lower_workgroup_access_to_offsets) {
-         uint32_t size, align;
-         val->type->deref = vtn_type_layout_std430(b, val->type->deref,
-                                                   &size, &align);
-         val->type->length = size;
-         val->type->align = align;
+      if (storage_class == SpvStorageClassWorkgroup) {
          /* These can actually be stored to nir_variables and used as SSA
           * values so they need a real glsl_type.
           */
          val->type->type = glsl_uint_type();
+         if (b->options->lower_workgroup_access_to_offsets) {
+            uint32_t size, align;
+            val->type->deref = vtn_type_layout_std430(b, val->type->deref,
+                                                      &size, &align);
+            val->type->length = size;
+            val->type->align = align;
+         }
       }
       break;
    }

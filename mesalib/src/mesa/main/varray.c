@@ -33,6 +33,7 @@
 #include "context.h"
 #include "enable.h"
 #include "enums.h"
+#include "glformats.h"
 #include "hash.h"
 #include "image.h"
 #include "macros.h"
@@ -141,7 +142,7 @@ update_attribute_map_mode(const struct gl_context *ctx,
    if (ctx->API != API_OPENGL_COMPAT)
       return;
    /* The generic0 attribute superseeds the position attribute */
-   const GLbitfield enabled = vao->_Enabled;
+   const GLbitfield enabled = vao->Enabled;
    if (enabled & VERT_BIT_GENERIC0)
       vao->_AttributeMapMode = ATTRIBUTE_MAP_MODE_GENERIC0;
    else if (enabled & VERT_BIT_POS)
@@ -177,7 +178,7 @@ _mesa_vertex_attrib_binding(struct gl_context *ctx,
 
       array->BufferBindingIndex = bindingIndex;
 
-      vao->NewArrays |= vao->_Enabled & array_bit;
+      vao->NewArrays |= vao->Enabled & array_bit;
       if (vao == ctx->Array.VAO)
          ctx->NewState |= _NEW_ARRAY;
    }
@@ -213,7 +214,7 @@ _mesa_bind_vertex_buffer(struct gl_context *ctx,
       else
          vao->VertexAttribBufferMask |= binding->_BoundArrays;
 
-      vao->NewArrays |= vao->_Enabled & binding->_BoundArrays;
+      vao->NewArrays |= vao->Enabled & binding->_BoundArrays;
       if (vao == ctx->Array.VAO)
          ctx->NewState |= _NEW_ARRAY;
    }
@@ -236,10 +237,28 @@ vertex_binding_divisor(struct gl_context *ctx,
 
    if (binding->InstanceDivisor != divisor) {
       binding->InstanceDivisor = divisor;
-      vao->NewArrays |= vao->_Enabled & binding->_BoundArrays;
+      vao->NewArrays |= vao->Enabled & binding->_BoundArrays;
       if (vao == ctx->Array.VAO)
          ctx->NewState |= _NEW_ARRAY;
    }
+}
+
+
+void
+_mesa_set_vertex_format(struct gl_vertex_format *vertex_format,
+                        GLubyte size, GLenum16 type, GLenum16 format,
+                        GLboolean normalized, GLboolean integer,
+                        GLboolean doubles)
+{
+   assert(size <= 4);
+   vertex_format->Type = type;
+   vertex_format->Format = format;
+   vertex_format->Size = size;
+   vertex_format->Normalized = normalized;
+   vertex_format->Integer = integer;
+   vertex_format->Doubles = doubles;
+   vertex_format->_ElementSize = _mesa_bytes_per_vertex_attrib(size, type);
+   assert(vertex_format->_ElementSize <= 4*sizeof(double));
 }
 
 
@@ -330,24 +349,15 @@ _mesa_update_array_format(struct gl_context *ctx,
                           GLuint relativeOffset)
 {
    struct gl_array_attributes *const array = &vao->VertexAttrib[attrib];
-   GLint elementSize;
 
    assert(!vao->SharedAndImmutable);
    assert(size <= 4);
 
-   elementSize = _mesa_bytes_per_vertex_attrib(size, type);
-   assert(elementSize != -1);
-
-   array->Size = size;
-   array->Type = type;
-   array->Format = format;
-   array->Normalized = normalized;
-   array->Integer = integer;
-   array->Doubles = doubles;
    array->RelativeOffset = relativeOffset;
-   array->_ElementSize = elementSize;
+   _mesa_set_vertex_format(&array->Format, size, type, format,
+                           normalized, integer, doubles);
 
-   vao->NewArrays |= vao->_Enabled & VERT_BIT(attrib);
+   vao->NewArrays |= vao->Enabled & VERT_BIT(attrib);
    if (vao == ctx->Array.VAO)
       ctx->NewState |= _NEW_ARRAY;
 }
@@ -605,11 +615,12 @@ update_array(struct gl_context *ctx,
     * to the VAO. But but that is done already unconditionally in
     * _mesa_update_array_format called above.
     */
-   assert((vao->NewArrays | ~vao->_Enabled) & VERT_BIT(attrib));
+   assert((vao->NewArrays | ~vao->Enabled) & VERT_BIT(attrib));
    array->Ptr = ptr;
 
    /* Update the vertex buffer binding */
-   GLsizei effectiveStride = stride != 0 ? stride : array->_ElementSize;
+   GLsizei effectiveStride = stride != 0 ?
+      stride : array->Format._ElementSize;
    _mesa_bind_vertex_buffer(ctx, vao, attrib,
                             ctx->Array.ArrayBufferObj, (GLintptr) ptr,
                             effectiveStride);
@@ -1071,25 +1082,25 @@ _mesa_VertexAttribLPointer(GLuint index, GLint size, GLenum type,
 
 
 void
-_mesa_enable_vertex_array_attrib(struct gl_context *ctx,
-                                 struct gl_vertex_array_object *vao,
-                                 gl_vert_attrib attrib)
+_mesa_enable_vertex_array_attribs(struct gl_context *ctx,
+                                  struct gl_vertex_array_object *vao,
+                                  GLbitfield attrib_bits)
 {
-   assert(attrib < ARRAY_SIZE(vao->VertexAttrib));
+   assert((attrib_bits & ~VERT_BIT_ALL) == 0);
    assert(!vao->SharedAndImmutable);
 
-   if (!vao->VertexAttrib[attrib].Enabled) {
+   /* Only work on bits that are disabled */
+   attrib_bits &= ~vao->Enabled;
+   if (attrib_bits) {
       /* was disabled, now being enabled */
-      vao->VertexAttrib[attrib].Enabled = GL_TRUE;
-      const GLbitfield array_bit = VERT_BIT(attrib);
-      vao->_Enabled |= array_bit;
-      vao->NewArrays |= array_bit;
+      vao->Enabled |= attrib_bits;
+      vao->NewArrays |= attrib_bits;
 
       if (vao == ctx->Array.VAO)
          ctx->NewState |= _NEW_ARRAY;
 
       /* Update the map mode if needed */
-      if (array_bit & (VERT_BIT_POS|VERT_BIT_GENERIC0))
+      if (attrib_bits & (VERT_BIT_POS|VERT_BIT_GENERIC0))
          update_attribute_map_mode(ctx, vao);
    }
 }
@@ -1158,25 +1169,25 @@ _mesa_EnableVertexArrayAttrib_no_error(GLuint vaobj, GLuint index)
 
 
 void
-_mesa_disable_vertex_array_attrib(struct gl_context *ctx,
-                                  struct gl_vertex_array_object *vao,
-                                  gl_vert_attrib attrib)
+_mesa_disable_vertex_array_attribs(struct gl_context *ctx,
+                                   struct gl_vertex_array_object *vao,
+                                   GLbitfield attrib_bits)
 {
-   assert(attrib < ARRAY_SIZE(vao->VertexAttrib));
+   assert((attrib_bits & ~VERT_BIT_ALL) == 0);
    assert(!vao->SharedAndImmutable);
 
-   if (vao->VertexAttrib[attrib].Enabled) {
+   /* Only work on bits that are enabled */
+   attrib_bits &= vao->Enabled;
+   if (attrib_bits) {
       /* was enabled, now being disabled */
-      vao->VertexAttrib[attrib].Enabled = GL_FALSE;
-      const GLbitfield array_bit = VERT_BIT(attrib);
-      vao->_Enabled &= ~array_bit;
-      vao->NewArrays |= array_bit;
+      vao->Enabled &= ~attrib_bits;
+      vao->NewArrays |= attrib_bits;
 
       if (vao == ctx->Array.VAO)
          ctx->NewState |= _NEW_ARRAY;
 
       /* Update the map mode if needed */
-      if (array_bit & (VERT_BIT_POS|VERT_BIT_GENERIC0))
+      if (attrib_bits & (VERT_BIT_POS|VERT_BIT_GENERIC0))
          update_attribute_map_mode(ctx, vao);
    }
 }
@@ -1267,27 +1278,27 @@ get_vertex_array_attrib(struct gl_context *ctx,
 
    switch (pname) {
    case GL_VERTEX_ATTRIB_ARRAY_ENABLED_ARB:
-      return array->Enabled;
+      return !!(vao->Enabled & VERT_BIT_GENERIC(index));
    case GL_VERTEX_ATTRIB_ARRAY_SIZE_ARB:
-      return (array->Format == GL_BGRA) ? GL_BGRA : array->Size;
+      return (array->Format.Format == GL_BGRA) ? GL_BGRA : array->Format.Size;
    case GL_VERTEX_ATTRIB_ARRAY_STRIDE_ARB:
       return array->Stride;
    case GL_VERTEX_ATTRIB_ARRAY_TYPE_ARB:
-      return array->Type;
+      return array->Format.Type;
    case GL_VERTEX_ATTRIB_ARRAY_NORMALIZED_ARB:
-      return array->Normalized;
+      return array->Format.Normalized;
    case GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING_ARB:
       return vao->BufferBinding[array->BufferBindingIndex].BufferObj->Name;
    case GL_VERTEX_ATTRIB_ARRAY_INTEGER:
       if ((_mesa_is_desktop_gl(ctx)
            && (ctx->Version >= 30 || ctx->Extensions.EXT_gpu_shader4))
           || _mesa_is_gles3(ctx)) {
-         return array->Integer;
+         return array->Format.Integer;
       }
       goto error;
    case GL_VERTEX_ATTRIB_ARRAY_LONG:
       if (_mesa_is_desktop_gl(ctx)) {
-         return array->Doubles;
+         return array->Format.Doubles;
       }
       goto error;
    case GL_VERTEX_ATTRIB_ARRAY_DIVISOR_ARB:
@@ -2771,18 +2782,11 @@ _mesa_copy_vertex_attrib_array(struct gl_context *ctx,
                                struct gl_array_attributes *dst,
                                const struct gl_array_attributes *src)
 {
-   dst->Size           = src->Size;
-   dst->Type           = src->Type;
-   dst->Format         = src->Format;
-   dst->BufferBindingIndex = src->BufferBindingIndex;
+   dst->Ptr            = src->Ptr;
    dst->RelativeOffset = src->RelativeOffset;
    dst->Format         = src->Format;
-   dst->Integer        = src->Integer;
-   dst->Doubles        = src->Doubles;
-   dst->Normalized     = src->Normalized;
-   dst->Ptr            = src->Ptr;
-   dst->Enabled        = src->Enabled;
-   dst->_ElementSize   = src->_ElementSize;
+   dst->Stride         = src->Stride;
+   dst->BufferBindingIndex = src->BufferBindingIndex;
    dst->_EffBufferBindingIndex = src->_EffBufferBindingIndex;
    dst->_EffRelativeOffset = src->_EffRelativeOffset;
 }
@@ -2812,11 +2816,10 @@ _mesa_print_arrays(struct gl_context *ctx)
 
    fprintf(stderr, "Array Object %u\n", vao->Name);
 
-   gl_vert_attrib i;
-   for (i = 0; i < VERT_ATTRIB_MAX; ++i) {
+   GLbitfield mask = vao->Enabled;
+   while (mask) {
+      const gl_vert_attrib i = u_bit_scan(&mask);
       const struct gl_array_attributes *array = &vao->VertexAttrib[i];
-      if (!array->Enabled)
-         continue;
 
       const struct gl_vertex_buffer_binding *binding =
          &vao->BufferBinding[array->BufferBindingIndex];
@@ -2825,8 +2828,9 @@ _mesa_print_arrays(struct gl_context *ctx)
       fprintf(stderr, "  %s: Ptr=%p, Type=%s, Size=%d, ElemSize=%u, "
               "Stride=%d, Buffer=%u(Size %lu)\n",
               gl_vert_attrib_name((gl_vert_attrib)i),
-              array->Ptr, _mesa_enum_to_string(array->Type), array->Size,
-              array->_ElementSize, binding->Stride, bo->Name,
+              array->Ptr, _mesa_enum_to_string(array->Format.Type),
+              array->Format.Size,
+              array->Format._ElementSize, binding->Stride, bo->Name,
               (unsigned long) bo->Size);
    }
 }

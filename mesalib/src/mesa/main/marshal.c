@@ -89,7 +89,7 @@ _mesa_marshal_Enable(GLenum cap)
 
    if (cap == GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB) {
       _mesa_glthread_finish(ctx);
-      _mesa_glthread_restore_dispatch(ctx);
+      _mesa_glthread_restore_dispatch(ctx, "Enable(DEBUG_OUTPUT_SYNCHRONOUS)");
    } else {
       cmd = _mesa_glthread_allocate_command(ctx, DISPATCH_CMD_Enable,
                                             sizeof(*cmd));

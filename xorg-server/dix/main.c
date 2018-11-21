@@ -340,6 +340,8 @@ dix_main(int argc, char *argv[], char *envp[])
 
         DeleteCallbackManager();
 
+        ClearWorkQueue();
+
         if (dispatchException & DE_TERMINATE) {
             CloseWellKnownConnections();
         }

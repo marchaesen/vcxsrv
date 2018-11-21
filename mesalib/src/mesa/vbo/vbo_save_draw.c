@@ -47,13 +47,13 @@ copy_vao(struct gl_context *ctx, const struct gl_vertex_array_object *vao,
 {
    struct vbo_context *vbo = vbo_context(ctx);
 
-   mask &= vao->_Enabled;
+   mask &= vao->Enabled;
    while (mask) {
       const int i = u_bit_scan(&mask);
       const struct gl_array_attributes *attrib = &vao->VertexAttrib[i];
       struct gl_array_attributes *currval = &vbo->current[shift + i];
-      const GLubyte size = attrib->Size;
-      const GLenum16 type = attrib->Type;
+      const GLubyte size = attrib->Format.Size;
+      const GLenum16 type = attrib->Format.Type;
       fi_type tmp[8];
       int dmul = 1;
 
@@ -66,17 +66,11 @@ copy_vao(struct gl_context *ctx, const struct gl_vertex_array_object *vao,
       else
          COPY_CLEAN_4V_TYPE_AS_UNION(tmp, size, *data, type);
 
-      if (type != currval->Type ||
+      if (type != currval->Format.Type ||
           memcmp(currval->Ptr, tmp, 4 * sizeof(GLfloat) * dmul) != 0) {
          memcpy((fi_type*)currval->Ptr, tmp, 4 * sizeof(GLfloat) * dmul);
 
-         currval->Size = size;
-         currval->_ElementSize = size * sizeof(GLfloat) * dmul;
-         currval->Type = type;
-         currval->Integer = vbo_attrtype_to_integer_flag(type);
-         currval->Doubles = vbo_attrtype_to_double_flag(type);
-         currval->Normalized = GL_FALSE;
-         currval->Format = GL_RGBA;
+         vbo_set_vertex_format(&currval->Format, size, type);
 
          ctx->NewState |= state;
       }

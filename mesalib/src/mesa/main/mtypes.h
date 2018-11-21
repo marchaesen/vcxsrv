@@ -457,6 +457,21 @@ struct gl_colorbuffer_attrib
 
 
 /**
+ * Vertex format to describe a vertex element.
+ */
+struct gl_vertex_format
+{
+   GLenum16 Type;        /**< datatype: GL_FLOAT, GL_INT, etc */
+   GLenum16 Format;      /**< default: GL_RGBA, but may be GL_BGRA */
+   GLubyte Size:5;       /**< components per element (1,2,3,4) */
+   GLubyte Normalized:1; /**< GL_ARB_vertex_program */
+   GLubyte Integer:1;    /**< Integer-valued? */
+   GLubyte Doubles:1;    /**< double values are not converted to floats */
+   GLubyte _ElementSize; /**< Size of each element in bytes */
+};
+
+
+/**
  * Current attribute group (GL_CURRENT_BIT).
  */
 struct gl_current_attrib
@@ -1419,17 +1434,12 @@ struct gl_array_attributes
    const GLubyte *Ptr;
    /** Offset of the first element relative to the binding offset */
    GLuint RelativeOffset;
-   GLshort Stride;          /**< Stride as specified with gl*Pointer() */
-   GLenum16 Type;           /**< Datatype: GL_FLOAT, GL_INT, etc */
-   GLenum16 Format;         /**< Default: GL_RGBA, but may be GL_BGRA */
-   GLboolean Enabled;       /**< Whether the array is enabled */
-   GLubyte Size;            /**< Components per element (1,2,3,4) */
-   unsigned Normalized:1;   /**< Fixed-point values are normalized when converted to floats */
-   unsigned Integer:1;      /**< Fixed-point values are not converted to floats */
-   unsigned Doubles:1;      /**< double precision values are not converted to floats */
-   unsigned _ElementSize:8; /**< Size of each element in bytes */
+   /** Vertex format */
+   struct gl_vertex_format Format;
+   /** Stride as specified with gl*Pointer() */
+   GLshort Stride;
    /** Index into gl_vertex_array_object::BufferBinding[] array */
-   unsigned BufferBindingIndex:6;
+   GLubyte BufferBindingIndex;
 
    /**
     * Derived effective buffer binding index
@@ -1444,7 +1454,7 @@ struct gl_array_attributes
     * Note that _mesa_update_vao_derived_arrays is called when binding
     * the VAO to Array._DrawVAO.
     */
-   unsigned _EffBufferBindingIndex:6;
+   GLubyte _EffBufferBindingIndex;
    /**
     * Derived effective relative offset.
     *
@@ -1538,7 +1548,7 @@ struct gl_vertex_array_object
    GLbitfield VertexAttribBufferMask;
 
    /** Mask of VERT_BIT_* values indicating which arrays are enabled */
-   GLbitfield _Enabled;
+   GLbitfield Enabled;
 
    /**
     * Mask of VERT_BIT_* enabled arrays past position/generic0 mapping

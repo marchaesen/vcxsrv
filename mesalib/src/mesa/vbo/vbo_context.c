@@ -58,11 +58,8 @@ init_array(struct gl_context *ctx, struct gl_array_attributes *attrib,
 {
    memset(attrib, 0, sizeof(*attrib));
 
-   attrib->Size = size;
-   attrib->Type = GL_FLOAT;
-   attrib->Format = GL_RGBA;
+   vbo_set_vertex_format(&attrib->Format, size, GL_FLOAT);
    attrib->Stride = 0;
-   attrib->_ElementSize = size * sizeof(GLfloat);
    attrib->Ptr = pointer;
 }
 
