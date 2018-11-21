@@ -238,18 +238,18 @@ static const uint16_t vertex_formats[][4][4] = {
  * Return a PIPE_FORMAT_x for the given GL datatype and size.
  */
 enum pipe_format
-st_pipe_vertex_format(const struct gl_array_attributes *attrib)
+st_pipe_vertex_format(const struct gl_vertex_format *vformat)
 {
-   const GLubyte size = attrib->Size;
-   const GLenum16 format = attrib->Format;
-   const bool normalized = attrib->Normalized;
-   const bool integer = attrib->Integer;
-   GLenum16 type = attrib->Type;
+   const GLubyte size = vformat->Size;
+   const GLenum16 format = vformat->Format;
+   const bool normalized = vformat->Normalized;
+   const bool integer = vformat->Integer;
+   GLenum16 type = vformat->Type;
    unsigned index;
 
    assert(size >= 1 && size <= 4);
    assert(format == GL_RGBA || format == GL_BGRA);
-   assert(attrib->_ElementSize == _mesa_bytes_per_vertex_attrib(size, type));
+   assert(vformat->_ElementSize == _mesa_bytes_per_vertex_attrib(size, type));
 
    switch (type) {
    case GL_HALF_FLOAT_OES:
@@ -320,13 +320,13 @@ static void init_velement(struct pipe_vertex_element *velement,
 
 static void init_velement_lowered(const struct st_vertex_program *vp,
                                   struct pipe_vertex_element *velements,
-                                  const struct gl_array_attributes *attrib,
+                                  const struct gl_vertex_format *vformat,
                                   int src_offset, int instance_divisor,
                                   int vbo_index, int idx)
 {
-   const GLubyte nr_components = attrib->Size;
+   const GLubyte nr_components = vformat->Size;
 
-   if (attrib->Doubles) {
+   if (vformat->Doubles) {
       int lower_format;
 
       if (nr_components < 2)
@@ -357,7 +357,7 @@ static void init_velement_lowered(const struct st_vertex_program *vp,
          }
       }
    } else {
-      const unsigned format = st_pipe_vertex_format(attrib);
+      const unsigned format = st_pipe_vertex_format(vformat);
 
       init_velement(&velements[idx], src_offset,
                     format, instance_divisor, vbo_index);
@@ -447,7 +447,7 @@ st_update_array(struct st_context *st)
          const struct gl_array_attributes *const attrib
             = _mesa_draw_array_attrib(vao, attr);
          const GLuint off = _mesa_draw_attributes_relative_offset(attrib);
-         init_velement_lowered(vp, velements, attrib, off,
+         init_velement_lowered(vp, velements, &attrib->Format, off,
                                binding->InstanceDivisor, bufidx,
                                input_to_index[attr]);
       }
@@ -468,14 +468,14 @@ st_update_array(struct st_context *st)
          const gl_vert_attrib attr = u_bit_scan(&curmask);
          const struct gl_array_attributes *const attrib
             = _mesa_draw_current_attrib(ctx, attr);
-         const unsigned size = attrib->_ElementSize;
+         const unsigned size = attrib->Format._ElementSize;
          const unsigned alignment = util_next_power_of_two(size);
          max_alignment = MAX2(max_alignment, alignment);
          memcpy(cursor, attrib->Ptr, size);
          if (alignment != size)
             memset(cursor + size, 0, alignment - size);
 
-         init_velement_lowered(vp, velements, attrib, cursor - data, 0,
+         init_velement_lowered(vp, velements, &attrib->Format, cursor - data, 0,
                                bufidx, input_to_index[attr]);
 
          cursor += alignment;

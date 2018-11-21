@@ -111,7 +111,7 @@ _mesa_vao_attribute_map[ATTRIBUTE_MAP_MODE_MAX][VERT_ATTRIB_MAX];
 
 /**
  * Apply the position/generic0 aliasing map to a bitfield from the vao.
- * Use for example to convert gl_vertex_array_object::_Enabled
+ * Use for example to convert gl_vertex_array_object::Enabled
  * or gl_vertex_buffer_binding::_VertexBinding from the vao numbering to
  * the numbering used with vertex processing inputs.
  */
@@ -143,7 +143,7 @@ static inline GLbitfield
 _mesa_get_vao_vp_inputs(const struct gl_vertex_array_object *vao)
 {
    const gl_attribute_map_mode mode = vao->_AttributeMapMode;
-   return _mesa_vao_enable_to_vp_inputs(mode, vao->_Enabled);
+   return _mesa_vao_enable_to_vp_inputs(mode, vao->Enabled);
 }
 
 

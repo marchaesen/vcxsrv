@@ -128,6 +128,7 @@ unsigned ac_get_type_size(LLVMTypeRef type);
 
 LLVMTypeRef ac_to_integer_type(struct ac_llvm_context *ctx, LLVMTypeRef t);
 LLVMValueRef ac_to_integer(struct ac_llvm_context *ctx, LLVMValueRef v);
+LLVMValueRef ac_to_integer_or_pointer(struct ac_llvm_context *ctx, LLVMValueRef v);
 LLVMTypeRef ac_to_float_type(struct ac_llvm_context *ctx, LLVMTypeRef t);
 LLVMValueRef ac_to_float(struct ac_llvm_context *ctx, LLVMValueRef v);
 

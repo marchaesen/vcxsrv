@@ -70,7 +70,7 @@ static void free_space(struct gl_context *ctx)
  */
 #define CONVERT( TYPE, MACRO ) do {		\
    GLuint i, j;					\
-   if (attrib->Normalized) {			\
+   if (attrib->Format.Normalized) {		\
       for (i = 0; i < count; i++) {		\
 	 const TYPE *in = (TYPE *)ptr;		\
 	 for (j = 0; j < sz; j++) {		\
@@ -104,8 +104,8 @@ convert_bgra_to_float(const struct gl_vertex_buffer_binding *binding,
                       GLuint count )
 {
    GLuint i;
-   assert(attrib->Normalized);
-   assert(attrib->Size == 4);
+   assert(attrib->Format.Normalized);
+   assert(attrib->Format.Size == 4);
    for (i = 0; i < count; i++) {
       const GLubyte *in = (GLubyte *) ptr;  /* in is in BGRA order */
       *fptr++ = UBYTE_TO_FLOAT(in[2]);  /* red */
@@ -152,9 +152,9 @@ convert_fixed_to_float(const struct gl_vertex_buffer_binding *binding,
 {
    GLuint i;
    GLint j;
-   const GLint size = attrib->Size;
+   const GLint size = attrib->Format.Size;
 
-   if (attrib->Normalized) {
+   if (attrib->Format.Normalized) {
       for (i = 0; i < count; ++i) {
          const GLfixed *in = (GLfixed *) ptr;
          for (j = 0; j < size; ++j) {
@@ -187,17 +187,17 @@ static void _tnl_import_array( struct gl_context *ctx,
    struct vertex_buffer *VB = &tnl->vb;
    GLuint stride = binding->Stride;
 
-   if (attrib->Type != GL_FLOAT) {
-      const GLuint sz = attrib->Size;
+   if (attrib->Format.Type != GL_FLOAT) {
+      const GLuint sz = attrib->Format.Size;
       GLubyte *buf = get_space(ctx, count * sz * sizeof(GLfloat));
       GLfloat *fptr = (GLfloat *)buf;
 
-      switch (attrib->Type) {
+      switch (attrib->Format.Type) {
       case GL_BYTE: 
 	 CONVERT(GLbyte, BYTE_TO_FLOAT); 
 	 break;
       case GL_UNSIGNED_BYTE: 
-         if (attrib->Format == GL_BGRA) {
+         if (attrib->Format.Format == GL_BGRA) {
             /* See GL_EXT_vertex_array_bgra */
             convert_bgra_to_float(binding, attrib, ptr, fptr, count);
          }
@@ -240,11 +240,11 @@ static void _tnl_import_array( struct gl_context *ctx,
    VB->AttribPtr[attr]->start = (GLfloat *)ptr;
    VB->AttribPtr[attr]->count = count;
    VB->AttribPtr[attr]->stride = stride;
-   VB->AttribPtr[attr]->size = attrib->Size;
+   VB->AttribPtr[attr]->size = attrib->Format.Size;
 
    /* This should die, but so should the whole GLvector4f concept: 
     */
-   VB->AttribPtr[attr]->flags = (((1<<attrib->Size)-1) |
+   VB->AttribPtr[attr]->flags = (((1<<attrib->Format.Size)-1) |
 				   VEC_NOT_WRITEABLE |
 				   (stride == 4*sizeof(GLfloat) ? 0 : VEC_BAD_STRIDE));
    

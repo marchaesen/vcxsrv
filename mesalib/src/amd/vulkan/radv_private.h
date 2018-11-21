@@ -457,6 +457,12 @@ struct radv_meta_state {
 
 	VkPipelineLayout                          clear_color_p_layout;
 	VkPipelineLayout                          clear_depth_p_layout;
+
+	/* Optimized compute fast HTILE clear for stencil or depth only. */
+	VkPipeline clear_htile_mask_pipeline;
+	VkPipelineLayout clear_htile_mask_p_layout;
+	VkDescriptorSetLayout clear_htile_mask_ds_layout;
+
 	struct {
 		VkRenderPass render_pass[NUM_META_FS_KEYS][RADV_META_DST_LAYOUT_COUNT];
 
@@ -1197,9 +1203,9 @@ void radv_update_color_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
 				      int cb_idx,
 				      uint32_t color_values[2]);
 
-void radv_set_dcc_need_cmask_elim_pred(struct radv_cmd_buffer *cmd_buffer,
-				       struct radv_image *image,
-				       bool value);
+void radv_update_fce_metadata(struct radv_cmd_buffer *cmd_buffer,
+			      struct radv_image *image, bool value);
+
 uint32_t radv_fill_buffer(struct radv_cmd_buffer *cmd_buffer,
 			  struct radeon_winsys_bo *bo,
 			  uint64_t offset, uint64_t size, uint32_t value);
@@ -1495,7 +1501,7 @@ struct radv_image {
 	struct radv_fmask_info fmask;
 	struct radv_cmask_info cmask;
 	uint64_t clear_value_offset;
-	uint64_t dcc_pred_offset;
+	uint64_t fce_pred_offset;
 
 	/* For VK_ANDROID_native_buffer, the WSI image owns the memory, */
 	VkDeviceMemory owned_memory;

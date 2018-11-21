@@ -150,12 +150,26 @@ find_output(nir_shader *shader, unsigned drvloc)
  * VS lowering
  */
 
-static void
-lower_clip_vs(nir_function_impl *impl, unsigned ucp_enables,
-              nir_ssa_def *cv, nir_variable **out)
+/* ucp_enables is bitmask of enabled ucps.  Actual ucp values are
+ * passed in to shader via user_clip_plane system-values
+ *
+ * If use_vars is true, the pass will use variable loads and stores instead
+ * of working with store_output intrinsics.
+ */
+bool
+nir_lower_clip_vs(nir_shader *shader, unsigned ucp_enables, bool use_vars)
 {
+   nir_function_impl *impl = nir_shader_get_entrypoint(shader);
    nir_ssa_def *clipdist[MAX_CLIP_PLANES];
    nir_builder b;
+   int maxloc = -1;
+   nir_variable *position = NULL;
+   nir_variable *clipvertex = NULL;
+   nir_ssa_def *cv;
+   nir_variable *out[2] = { NULL };
+
+   if (!ucp_enables)
+      return false;
 
    nir_builder_init(&b, impl);
 
@@ -171,75 +185,44 @@ lower_clip_vs(nir_function_impl *impl, unsigned ucp_enables,
    assert(impl->end_block->predecessors->entries == 1);
    b.cursor = nir_after_cf_list(&impl->body);
 
-   for (int plane = 0; plane < MAX_CLIP_PLANES; plane++) {
-      if (ucp_enables & (1 << plane)) {
-         nir_ssa_def *ucp = nir_load_user_clip_plane(&b, plane);
-
-         /* calculate clipdist[plane] - dot(ucp, cv): */
-         clipdist[plane] = nir_fdot4(&b, ucp, cv);
-      }
-      else {
-         /* 0.0 == don't-clip == disabled: */
-         clipdist[plane] = nir_imm_float(&b, 0.0);
-      }
-   }
-
-   if (ucp_enables & 0x0f)
-      store_clipdist_output(&b, out[0], &clipdist[0]);
-   if (ucp_enables & 0xf0)
-      store_clipdist_output(&b, out[1], &clipdist[4]);
-
-   nir_metadata_preserve(impl, nir_metadata_dominance);
-}
-
-/* ucp_enables is bitmask of enabled ucps.  Actual ucp values are
- * passed in to shader via user_clip_plane system-values
- */
-bool
-nir_lower_clip_vs(nir_shader *shader, unsigned ucp_enables)
-{
-   int clipvertex = -1;
-   int position = -1;
-   int maxloc = -1;
-   nir_ssa_def *cv;
-   nir_variable *out[2] = { NULL };
-
-   if (!ucp_enables)
-      return false;
-
    /* find clipvertex/position outputs: */
    nir_foreach_variable(var, &shader->outputs) {
-      int loc = var->data.driver_location;
-
-      /* keep track of last used driver-location.. we'll be
-       * appending CLIP_DIST0/CLIP_DIST1 after last existing
-       * output:
-       */
-      maxloc = MAX2(maxloc, loc);
-
       switch (var->data.location) {
       case VARYING_SLOT_POS:
-         position = loc;
+         position = var;
          break;
       case VARYING_SLOT_CLIP_VERTEX:
-         clipvertex = loc;
+         clipvertex = var;
          break;
       case VARYING_SLOT_CLIP_DIST0:
       case VARYING_SLOT_CLIP_DIST1:
          /* if shader is already writing CLIPDIST, then
           * there should be no user-clip-planes to deal
           * with.
+          *
+          * We assume nir_remove_dead_variables has removed the clipdist
+          * variables if they're not written.
           */
          return false;
       }
    }
 
-   if (clipvertex != -1)
-      cv = find_output(shader, clipvertex);
-   else if (position != -1)
-      cv = find_output(shader, position);
-   else
-      return false;
+   if (use_vars) {
+      cv = nir_load_var(&b, clipvertex ? clipvertex : position);
+
+      if (clipvertex) {
+         exec_node_remove(&clipvertex->node);
+         clipvertex->data.mode = nir_var_global;
+         exec_list_push_tail(&shader->globals, &clipvertex->node);
+      }
+   } else {
+      if (clipvertex)
+         cv = find_output(shader, clipvertex->data.driver_location);
+      else if (position)
+         cv = find_output(shader, position->data.driver_location);
+      else
+         return false;
+   }
 
    /* insert CLIPDIST outputs: */
    if (ucp_enables & 0x0f)
@@ -249,10 +232,31 @@ nir_lower_clip_vs(nir_shader *shader, unsigned ucp_enables)
       out[1] =
          create_clipdist_var(shader, ++maxloc, true, VARYING_SLOT_CLIP_DIST1);
 
-   nir_foreach_function(function, shader) {
-      if (!strcmp(function->name, "main"))
-         lower_clip_vs(function->impl, ucp_enables, cv, out);
+   for (int plane = 0; plane < MAX_CLIP_PLANES; plane++) {
+      if (ucp_enables & (1 << plane)) {
+         nir_ssa_def *ucp = nir_load_user_clip_plane(&b, plane);
+
+         /* calculate clipdist[plane] - dot(ucp, cv): */
+         clipdist[plane] = nir_fdot4(&b, ucp, cv);
+      } else {
+         /* 0.0 == don't-clip == disabled: */
+         clipdist[plane] = nir_imm_float(&b, 0.0);
+      }
    }
+
+   if (use_vars) {
+      if (ucp_enables & 0x0f)
+         nir_store_var(&b, out[0], nir_vec(&b, clipdist, 4), 0xf);
+      if (ucp_enables & 0xf0)
+         nir_store_var(&b, out[1], nir_vec(&b, &clipdist[4], 4), 0xf);
+   } else {
+      if (ucp_enables & 0x0f)
+         store_clipdist_output(&b, out[0], &clipdist[0]);
+      if (ucp_enables & 0xf0)
+         store_clipdist_output(&b, out[1], &clipdist[4]);
+   }
+
+   nir_metadata_preserve(impl, nir_metadata_dominance);
 
    return true;
 }

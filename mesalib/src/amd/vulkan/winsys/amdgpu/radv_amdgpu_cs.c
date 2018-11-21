@@ -295,15 +295,6 @@ static void radv_amdgpu_cs_grow(struct radeon_cmdbuf *_cs, size_t min_size)
 			/* The maximum size in dwords has been reached,
 			 * try to allocate a new one.
 			 */
-			if (cs->num_old_cs_buffers + 1 >= AMDGPU_CS_MAX_IBS_PER_SUBMIT) {
-				/* TODO: Allow to submit more than 4 IBs. */
-				fprintf(stderr, "amdgpu: Maximum number of IBs "
-						"per submit reached.\n");
-				cs->failed = true;
-				cs->base.cdw = 0;
-				return;
-			}
-
 			cs->old_cs_buffers =
 				realloc(cs->old_cs_buffers,
 				        (cs->num_old_cs_buffers + 1) * sizeof(*cs->old_cs_buffers));
@@ -865,66 +856,73 @@ static int radv_amdgpu_winsys_cs_submit_fallback(struct radeon_winsys_ctx *_ctx,
 	struct radv_amdgpu_ctx *ctx = radv_amdgpu_ctx(_ctx);
 	struct radv_amdgpu_fence *fence = (struct radv_amdgpu_fence *)_fence;
 	amdgpu_bo_list_handle bo_list;
-	struct amdgpu_cs_request request;
-	bool emit_signal_sem = sem_info->cs_emit_signal;
+	struct amdgpu_cs_request request = {};
+	struct amdgpu_cs_ib_info *ibs;
+	struct radv_amdgpu_cs *cs0;
+	unsigned number_of_ibs;
+
 	assert(cs_count);
+	cs0 = radv_amdgpu_cs(cs_array[0]);
 
-	for (unsigned i = 0; i < cs_count;) {
-		struct radv_amdgpu_cs *cs0 = radv_amdgpu_cs(cs_array[i]);
-		struct amdgpu_cs_ib_info ibs[AMDGPU_CS_MAX_IBS_PER_SUBMIT];
-		struct radeon_cmdbuf *preamble_cs = i ? continue_preamble_cs : initial_preamble_cs;
-		unsigned cnt = MIN2(AMDGPU_CS_MAX_IBS_PER_SUBMIT - !!preamble_cs,
-		                    cs_count - i);
+	/* Compute the number of IBs for this submit. */
+	number_of_ibs = cs_count + !!initial_preamble_cs;
 
-		memset(&request, 0, sizeof(request));
+	/* Create a buffer object list. */
+	r = radv_amdgpu_create_bo_list(cs0->ws, &cs_array[0], cs_count, NULL, 0,
+				       initial_preamble_cs, radv_bo_list,
+				       &bo_list);
+	if (r) {
+		fprintf(stderr, "amdgpu: buffer list creation failed "
+				"for the fallback submission (%d)\n", r);
+		return r;
+	}
 
-		r = radv_amdgpu_create_bo_list(cs0->ws, &cs_array[i], cnt, NULL, 0,
-		                               preamble_cs, radv_bo_list, &bo_list);
-		if (r) {
-			fprintf(stderr, "amdgpu: buffer list creation failed "
-					"for the fallback submission (%d)\n", r);
-			return r;
-		}
-
-		request.ip_type = cs0->hw_ip;
-		request.ring = queue_idx;
-		request.resources = bo_list;
-		request.number_of_ibs = cnt + !!preamble_cs;
-		request.ibs = ibs;
-		request.fence_info = radv_set_cs_fence(ctx, cs0->hw_ip, queue_idx);
-
-		if (preamble_cs) {
-			ibs[0] = radv_amdgpu_cs(preamble_cs)->ib;
-		}
-
-		for (unsigned j = 0; j < cnt; ++j) {
-			struct radv_amdgpu_cs *cs = radv_amdgpu_cs(cs_array[i + j]);
-			ibs[j + !!preamble_cs] = cs->ib;
-
-			if (cs->is_chained) {
-				*cs->ib_size_ptr -= 4;
-				cs->is_chained = false;
-			}
-		}
-
-		sem_info->cs_emit_signal = (i == cs_count - cnt) ? emit_signal_sem : false;
-		r = radv_amdgpu_cs_submit(ctx, &request, sem_info);
-		if (r) {
-			if (r == -ENOMEM)
-				fprintf(stderr, "amdgpu: Not enough memory for command submission.\n");
-			else
-				fprintf(stderr, "amdgpu: The CS has been rejected, "
-						"see dmesg for more information.\n");
-		}
-
+	ibs = malloc(number_of_ibs * sizeof(*ibs));
+	if (!ibs) {
 		if (bo_list)
 			amdgpu_bo_list_destroy(bo_list);
-
-		if (r)
-			return r;
-
-		i += cnt;
+		return -ENOMEM;
 	}
+
+	/* Configure the CS request. */
+	if (initial_preamble_cs)
+		ibs[0] = radv_amdgpu_cs(initial_preamble_cs)->ib;
+
+	for (unsigned i = 0; i < cs_count; i++) {
+		struct radv_amdgpu_cs *cs = radv_amdgpu_cs(cs_array[i]);
+
+		ibs[i + !!initial_preamble_cs] = cs->ib;
+
+		if (cs->is_chained) {
+			*cs->ib_size_ptr -= 4;
+			cs->is_chained = false;
+		}
+	}
+
+	request.ip_type = cs0->hw_ip;
+	request.ring = queue_idx;
+	request.resources = bo_list;
+	request.number_of_ibs = number_of_ibs;
+	request.ibs = ibs;
+	request.fence_info = radv_set_cs_fence(ctx, cs0->hw_ip, queue_idx);
+
+	/* Submit the CS. */
+	r = radv_amdgpu_cs_submit(ctx, &request, sem_info);
+	if (r) {
+		if (r == -ENOMEM)
+			fprintf(stderr, "amdgpu: Not enough memory for command submission.\n");
+		else
+			fprintf(stderr, "amdgpu: The CS has been rejected, "
+					"see dmesg for more information.\n");
+	}
+
+	if (bo_list)
+		amdgpu_bo_list_destroy(bo_list);
+	free(ibs);
+
+	if (r)
+		return r;
+
 	if (fence)
 		radv_amdgpu_request_to_fence(ctx, fence, &request);
 
@@ -959,30 +957,46 @@ static int radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx,
 	assert(cs_count);
 
 	for (unsigned i = 0; i < cs_count;) {
-		struct amdgpu_cs_ib_info ibs[AMDGPU_CS_MAX_IBS_PER_SUBMIT] = {0};
-		unsigned number_of_ibs = 1;
-		struct radeon_winsys_bo *bos[AMDGPU_CS_MAX_IBS_PER_SUBMIT] = {0};
+		struct amdgpu_cs_ib_info *ibs;
+		struct radeon_winsys_bo **bos;
 		struct radeon_cmdbuf *preamble_cs = i ? continue_preamble_cs : initial_preamble_cs;
 		struct radv_amdgpu_cs *cs = radv_amdgpu_cs(cs_array[i]);
+		unsigned number_of_ibs;
 		uint32_t *ptr;
 		unsigned cnt = 0;
 		unsigned size = 0;
 		unsigned pad_words = 0;
 
-		if (cs->num_old_cs_buffers > 0) {
+		/* Compute the number of IBs for this submit. */
+		number_of_ibs = cs->num_old_cs_buffers + 1;
+
+		ibs = malloc(number_of_ibs * sizeof(*ibs));
+		if (!ibs)
+			return -ENOMEM;
+
+		bos = malloc(number_of_ibs * sizeof(*bos));
+		if (!bos) {
+			free(ibs);
+			return -ENOMEM;
+		}
+
+		if (number_of_ibs > 1) {
 			/* Special path when the maximum size in dwords has
 			 * been reached because we need to handle more than one
 			 * IB per submit.
 			 */
-			unsigned new_cs_count = cs->num_old_cs_buffers + 1;
-			struct radeon_cmdbuf *new_cs_array[AMDGPU_CS_MAX_IBS_PER_SUBMIT];
+			struct radeon_cmdbuf **new_cs_array;
 			unsigned idx = 0;
+
+			new_cs_array = malloc(cs->num_old_cs_buffers *
+					      sizeof(*new_cs_array));
+			assert(new_cs_array);
 
 			for (unsigned j = 0; j < cs->num_old_cs_buffers; j++)
 				new_cs_array[idx++] = &cs->old_cs_buffers[j];
 			new_cs_array[idx++] = cs_array[i];
 
-			for (unsigned j = 0; j < new_cs_count; j++) {
+			for (unsigned j = 0; j < number_of_ibs; j++) {
 				struct radeon_cmdbuf *rcs = new_cs_array[j];
 				bool needs_preamble = preamble_cs && j == 0;
 				unsigned size = 0;
@@ -1020,8 +1034,8 @@ static int radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx,
 				ibs[j].ib_mc_address = radv_buffer_get_va(bos[j]);
 			}
 
-			number_of_ibs = new_cs_count;
 			cnt++;
+			free(new_cs_array);
 		} else {
 			if (preamble_cs)
 				size += preamble_cs->cdw;
@@ -1070,6 +1084,8 @@ static int radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx,
 		if (r) {
 			fprintf(stderr, "amdgpu: buffer list creation failed "
 					"for the sysmem submission (%d)\n", r);
+			free(ibs);
+			free(bos);
 			return r;
 		}
 
@@ -1098,6 +1114,9 @@ static int radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx,
 		for (unsigned j = 0; j < number_of_ibs; j++) {
 			ws->buffer_destroy(bos[j]);
 		}
+
+		free(ibs);
+		free(bos);
 
 		if (r)
 			return r;
@@ -1131,7 +1150,7 @@ static int radv_amdgpu_winsys_cs_submit(struct radeon_winsys_ctx *_ctx,
 	if (!cs->ws->use_ib_bos) {
 		ret = radv_amdgpu_winsys_cs_submit_sysmem(_ctx, queue_idx, sem_info, bo_list, cs_array,
 							   cs_count, initial_preamble_cs, continue_preamble_cs, _fence);
-	} else if (can_patch && cs_count > AMDGPU_CS_MAX_IBS_PER_SUBMIT && cs->ws->batchchain) {
+	} else if (can_patch && cs->ws->batchchain) {
 		ret = radv_amdgpu_winsys_cs_submit_chained(_ctx, queue_idx, sem_info, bo_list, cs_array,
 							    cs_count, initial_preamble_cs, continue_preamble_cs, _fence);
 	} else {

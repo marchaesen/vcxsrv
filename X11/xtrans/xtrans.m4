@@ -134,6 +134,9 @@ AC_DEFUN([XTRANS_CONNECTION_FLAGS],[
 	AC_DEFINE(LOCALCONN,1,[Support os-specific local connections])
  fi
 
+ # Other functions Xtrans may need
+ AC_CHECK_FUNCS([strcasecmp strlcpy])
+
 ]) # XTRANS_CONNECTION_FLAGS
 
 

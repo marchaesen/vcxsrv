@@ -1725,11 +1725,7 @@ xdri)
         fi
     fi
 
-    # add xf86vidmode if available
-    PKG_CHECK_MODULES([XF86VIDMODE], [xxf86vm], HAVE_XF86VIDMODE=yes, HAVE_XF86VIDMODE=no)
-    if test "$HAVE_XF86VIDMODE" = yes ; then
-        dri_modules="$dri_modules xxf86vm"
-    fi
+    dri_modules="$dri_modules xxf86vm"
 
     PKG_CHECK_MODULES([DRIGL], [$dri_modules])
     GL_PC_REQ_PRIV="$GL_PC_REQ_PRIV $dri_modules"
@@ -1741,10 +1737,6 @@ xdri)
     GL_PC_LIB_PRIV="-lm $PTHREAD_LIBS $DLOPEN_LIBS"
     ;;
 esac
-
-# This is outside the case (above) so that it is invoked even for non-GLX
-# builds.
-AM_CONDITIONAL(HAVE_XF86VIDMODE, test "x$HAVE_XF86VIDMODE" = xyes)
 
 GLESv1_CM_LIB_DEPS="$LIBDRM_LIBS -lm $PTHREAD_LIBS $DLOPEN_LIBS"
 GLESv1_CM_PC_LIB_PRIV="-lm $PTHREAD_LIBS $DLOPEN_LIBS"
@@ -1761,8 +1753,6 @@ AC_SUBST([GLESv1_CM_LIB_DEPS])
 AC_SUBST([GLESv1_CM_PC_LIB_PRIV])
 AC_SUBST([GLESv2_LIB_DEPS])
 AC_SUBST([GLESv2_PC_LIB_PRIV])
-
-AC_SUBST([HAVE_XF86VIDMODE])
 
 dnl
 dnl More GLX setup

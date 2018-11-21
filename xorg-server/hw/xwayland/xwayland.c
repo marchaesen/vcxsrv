@@ -377,6 +377,18 @@ damage_report(DamagePtr pDamage, RegionPtr pRegion, void *data)
     struct xwl_window *xwl_window = data;
     struct xwl_screen *xwl_screen = xwl_window->xwl_screen;
 
+#ifdef GLAMOR_HAS_GBM
+    if (xwl_window->present_flipped) {
+        /* This damage is from a Present flip, which already committed a new
+         * buffer for the surface, so we don't need to do anything in response
+         */
+        RegionEmpty(DamageRegion(pDamage));
+        xorg_list_del(&xwl_window->link_damage);
+        xwl_window->present_flipped = FALSE;
+        return;
+    }
+#endif
+
     xorg_list_add(&xwl_window->link_damage, &xwl_screen->damage_window_list);
 }
 
@@ -604,6 +616,11 @@ xwl_unrealize_window(WindowPtr window)
     xwl_screen->UnrealizeWindow = screen->UnrealizeWindow;
     screen->UnrealizeWindow = xwl_unrealize_window;
 
+#ifdef GLAMOR_HAS_GBM
+    if (xwl_screen->present)
+        xwl_present_unrealize_window(window);
+#endif
+
     xwl_window = xwl_window_get(window);
     if (!xwl_window)
         return ret;
@@ -722,11 +739,6 @@ xwl_screen_post_damage(struct xwl_screen *xwl_screen)
 
     xorg_list_for_each_entry_safe(xwl_window, next_xwl_window,
                                   &xwl_screen->damage_window_list, link_damage) {
-#ifdef GLAMOR_HAS_GBM
-        /* Present on the main surface. So don't commit here as well. */
-        if (xwl_window->present_window)
-            continue;
-#endif
         /* If we're waiting on a frame callback from the server,
          * don't attach a new buffer. */
         if (xwl_window->frame_callback)

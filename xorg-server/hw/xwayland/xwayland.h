@@ -179,7 +179,9 @@ struct xwl_window {
     struct xorg_list link_damage;
     struct wl_callback *frame_callback;
     Bool allow_commits;
-    WindowPtr present_window;
+#ifdef GLAMOR_HAS_GBM
+    Bool present_flipped;
+#endif
 };
 
 #ifdef GLAMOR_HAS_GBM
@@ -449,6 +451,7 @@ void xwl_glamor_egl_make_current(struct xwl_screen *xwl_screen);
 #ifdef GLAMOR_HAS_GBM
 Bool xwl_present_init(ScreenPtr screen);
 void xwl_present_cleanup(WindowPtr window);
+void xwl_present_unrealize_window(WindowPtr window);
 #endif /* GLAMOR_HAS_GBM */
 
 #ifdef XV

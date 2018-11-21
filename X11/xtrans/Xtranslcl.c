@@ -779,11 +779,12 @@ TRANS(NAMEDOpenPipe)(const char *server_path)
 		prmsg(1, "NAMEDOpenPipe: Can't open %s\n", server_path);
 		return(-1);
 	    }
-	    close(fd);
-	    if (chmod(server_path, (mode_t)0666) < 0) {
-		prmsg(1, "NAMEDOpenPipe: Can't open %s\n", server_path);
+	    if (fchmod(fd, (mode_t)0666) < 0) {
+		prmsg(1, "NAMEDOpenPipe: Can't chmod %s\n", server_path);
+		close(fd);
 		return(-1);
 	    }
+	    close(fd);
 	} else {
 	    prmsg(1, "NAMEDOpenPipe: stat on %s failed\n", server_path);
 	    return(-1);
@@ -1709,6 +1710,7 @@ TRANS(LocalEndTransports)(void)
 {
     prmsg(3,"LocalEndTransports()\n");
     free(freeXLOCAL);
+    freeXLOCAL = NULL;
 }
 
 #define TYPEBUFSIZE	32
@@ -1719,9 +1721,8 @@ static LOCALtrans2dev *
 TRANS(LocalGetNextTransport)(void)
 
 {
-    int	i,j;
+    int		i;
     char	*typetocheck;
-    char	typebuf[TYPEBUFSIZE];
     prmsg(3,"LocalGetNextTransport()\n");
 
     while(1)
@@ -1736,6 +1737,9 @@ TRANS(LocalGetNextTransport)(void)
 
 	for(i=0;i<NUMTRANSPORTS;i++)
 	{
+#ifndef HAVE_STRCASECMP
+	    int		j;
+	    char	typebuf[TYPEBUFSIZE];
 	    /*
 	     * This is equivalent to a case insensitive strcmp(),
 	     * but should be more portable.
@@ -1747,6 +1751,9 @@ TRANS(LocalGetNextTransport)(void)
 
 	    /* Now, see if they match */
 	    if(!strcmp(LOCALtrans2devtab[i].transname,typebuf))
+#else
+	    if(!strcasecmp(LOCALtrans2devtab[i].transname,typetocheck))
+#endif
 		return &LOCALtrans2devtab[i];
 	}
     }
@@ -2017,7 +2024,6 @@ TRANS(LocalOpenCOTSServer)(Xtransport *thistrans, const char *protocol,
 {
     char *typetocheck = NULL;
     int found = 0;
-    char typebuf[TYPEBUFSIZE];
 
     prmsg(2,"LocalOpenCOTSServer(%s,%s,%s)\n",protocol,host,port);
 
@@ -2025,16 +2031,23 @@ TRANS(LocalOpenCOTSServer)(Xtransport *thistrans, const char *protocol,
     TRANS(LocalInitTransports)("local");
     typetocheck = workingXLOCAL;
     while (typetocheck && !found) {
+#ifndef HAVE_STRCASECMP
 	int j;
+	char typebuf[TYPEBUFSIZE];
+#endif
 
 	workingXLOCAL = strchr(workingXLOCAL, ':');
 	if (workingXLOCAL && *workingXLOCAL)
 	    *workingXLOCAL++ = '\0';
+#ifndef HAVE_STRCASECMP
 	strncpy(typebuf, typetocheck, TYPEBUFSIZE);
 	for (j = 0; j < TYPEBUFSIZE; j++)
 	    if (isupper(typebuf[j]))
 		typebuf[j] = tolower(typebuf[j]);
 	if (!strcmp(thistrans->TransName, typebuf))
+#else
+	if (!strcasecmp(thistrans->TransName, typetocheck))
+#endif
 	    found = 1;
 	typetocheck = workingXLOCAL;
     }

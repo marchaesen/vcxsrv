@@ -1100,7 +1100,7 @@ valid_draw_indirect(struct gl_context *ctx,
     * buffer bound.
     */
    if (_mesa_is_gles31(ctx) &&
-       ctx->Array.VAO->_Enabled & ~ctx->Array.VAO->VertexAttribBufferMask) {
+       ctx->Array.VAO->Enabled & ~ctx->Array.VAO->VertexAttribBufferMask) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(No VBO bound)", name);
       return GL_FALSE;
    }

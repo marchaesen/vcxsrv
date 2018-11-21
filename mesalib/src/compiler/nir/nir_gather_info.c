@@ -210,10 +210,9 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_load_deref:
    case nir_intrinsic_store_deref:{
       nir_deref_instr *deref = nir_src_as_deref(instr->src[0]);
-      nir_variable *var = nir_deref_instr_get_variable(deref);
-
-      if (var->data.mode == nir_var_shader_in ||
-          var->data.mode == nir_var_shader_out) {
+      if (deref->mode == nir_var_shader_in ||
+          deref->mode == nir_var_shader_out) {
+         nir_variable *var = nir_deref_instr_get_variable(deref);
          bool is_output_read = false;
          if (var->data.mode == nir_var_shader_out &&
              instr->intrinsic == nir_intrinsic_load_deref)

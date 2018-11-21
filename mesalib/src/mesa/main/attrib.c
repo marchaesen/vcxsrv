@@ -1576,8 +1576,8 @@ copy_array_object(struct gl_context *ctx,
       _mesa_copy_vertex_buffer_binding(ctx, &dest->BufferBinding[i], &src->BufferBinding[i]);
    }
 
-   /* _Enabled must be the same than on push */
-   dest->_Enabled = src->_Enabled;
+   /* Enabled must be the same than on push */
+   dest->Enabled = src->Enabled;
    dest->_EffEnabledVBO = src->_EffEnabledVBO;
    /* The bitmask of bound VBOs needs to match the VertexBinding array */
    dest->VertexAttribBufferMask = src->VertexAttribBufferMask;

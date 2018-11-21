@@ -1533,7 +1533,9 @@ ActivatePointerGrab(DeviceIntPtr mouse, GrabPtr grab,
                 mouse->spriteInfo->sprite->hotPhys.y = 0;
         ConfineCursorToWindow(mouse, grab->confineTo, FALSE, TRUE);
     }
-    DoEnterLeaveEvents(mouse, mouse->id, oldWin, grab->window, NotifyGrab);
+    if (! (grabinfo->grab && oldWin == grabinfo->grab->window
+			  && oldWin == grab->window))
+        DoEnterLeaveEvents(mouse, mouse->id, oldWin, grab->window, NotifyGrab);
     mouse->valuator->motionHintWindow = NullWindow;
     if (syncEvents.playingEvents)
         grabinfo->grabTime = syncEvents.time;
@@ -1643,7 +1645,9 @@ ActivateKeyboardGrab(DeviceIntPtr keybd, GrabPtr grab, TimeStamp time,
         oldWin = keybd->focus->win;
     if (keybd->valuator)
         keybd->valuator->motionHintWindow = NullWindow;
-    if (oldWin)
+    if (oldWin &&
+	! (grabinfo->grab && oldWin == grabinfo->grab->window
+			  && oldWin == grab->window))
         DoFocusEvents(keybd, oldWin, grab->window, NotifyGrab);
     if (syncEvents.playingEvents)
         grabinfo->grabTime = syncEvents.time;

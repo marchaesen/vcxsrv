@@ -508,6 +508,19 @@ WorkQueuePtr workQueue;
 static WorkQueuePtr *workQueueLast = &workQueue;
 
 void
+ClearWorkQueue(void)
+{
+    WorkQueuePtr q, *p;
+
+    p = &workQueue;
+    while ((q = *p)) {
+        *p = q->next;
+        free(q);
+    }
+    workQueueLast = p;
+}
+
+void
 ProcessWorkQueue(void)
 {
     WorkQueuePtr q, *p;

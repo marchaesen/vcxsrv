@@ -99,7 +99,7 @@ struct glthread_state
 void _mesa_glthread_init(struct gl_context *ctx);
 void _mesa_glthread_destroy(struct gl_context *ctx);
 
-void _mesa_glthread_restore_dispatch(struct gl_context *ctx);
+void _mesa_glthread_restore_dispatch(struct gl_context *ctx, const char *func);
 void _mesa_glthread_flush_batch(struct gl_context *ctx);
 void _mesa_glthread_finish(struct gl_context *ctx);
 

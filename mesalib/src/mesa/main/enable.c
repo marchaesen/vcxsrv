@@ -1582,41 +1582,40 @@ _mesa_IsEnabled( GLenum cap )
       case GL_VERTEX_ARRAY:
          if (ctx->API != API_OPENGL_COMPAT && ctx->API != API_OPENGLES)
             goto invalid_enum_error;
-         return ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_POS].Enabled;
+         return !!(ctx->Array.VAO->Enabled & VERT_BIT_POS);
       case GL_NORMAL_ARRAY:
          if (ctx->API != API_OPENGL_COMPAT && ctx->API != API_OPENGLES)
             goto invalid_enum_error;
-         return ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_NORMAL].Enabled;
+         return !!(ctx->Array.VAO->Enabled & VERT_BIT_NORMAL);
       case GL_COLOR_ARRAY:
          if (ctx->API != API_OPENGL_COMPAT && ctx->API != API_OPENGLES)
             goto invalid_enum_error;
-         return ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_COLOR0].Enabled;
+         return !!(ctx->Array.VAO->Enabled & VERT_BIT_COLOR0);
       case GL_INDEX_ARRAY:
          if (ctx->API != API_OPENGL_COMPAT)
             goto invalid_enum_error;
-         return ctx->Array.VAO->
-            VertexAttrib[VERT_ATTRIB_COLOR_INDEX].Enabled;
+         return !!(ctx->Array.VAO->Enabled & VERT_BIT_COLOR_INDEX);
       case GL_TEXTURE_COORD_ARRAY:
          if (ctx->API != API_OPENGL_COMPAT && ctx->API != API_OPENGLES)
             goto invalid_enum_error;
-         return ctx->Array.VAO->
-            VertexAttrib[VERT_ATTRIB_TEX(ctx->Array.ActiveTexture)].Enabled;
+         return !!(ctx->Array.VAO->Enabled &
+                   VERT_BIT_TEX(ctx->Array.ActiveTexture));
       case GL_EDGE_FLAG_ARRAY:
          if (ctx->API != API_OPENGL_COMPAT)
             goto invalid_enum_error;
-         return ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_EDGEFLAG].Enabled;
+         return !!(ctx->Array.VAO->Enabled & VERT_BIT_EDGEFLAG);
       case GL_FOG_COORDINATE_ARRAY_EXT:
          if (ctx->API != API_OPENGL_COMPAT)
             goto invalid_enum_error;
-         return ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_FOG].Enabled;
+         return !!(ctx->Array.VAO->Enabled & VERT_BIT_FOG);
       case GL_SECONDARY_COLOR_ARRAY_EXT:
          if (ctx->API != API_OPENGL_COMPAT)
             goto invalid_enum_error;
-         return ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_COLOR1].Enabled;
+         return !!(ctx->Array.VAO->Enabled & VERT_BIT_COLOR1);
       case GL_POINT_SIZE_ARRAY_OES:
          if (ctx->API != API_OPENGLES)
             goto invalid_enum_error;
-         return ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_POINT_SIZE].Enabled;
+         return !!(ctx->Array.VAO->Enabled & VERT_BIT_POINT_SIZE);
 
       /* GL_ARB_texture_cube_map */
       case GL_TEXTURE_CUBE_MAP:

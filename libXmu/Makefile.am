@@ -20,3 +20,5 @@ if LINT
 lint:
 	(cd src && $(MAKE) $(MFLAGS) lint)
 endif LINT
+
+EXTRA_DIST = README.md

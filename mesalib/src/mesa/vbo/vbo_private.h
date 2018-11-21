@@ -115,6 +115,16 @@ vbo_attrtype_to_double_flag(GLenum format)
 }
 
 
+static inline void
+vbo_set_vertex_format(struct gl_vertex_format* vertex_format,
+                      GLubyte size, GLenum16 type)
+{
+   _mesa_set_vertex_format(vertex_format, size, type, GL_RGBA, GL_FALSE,
+                           vbo_attrtype_to_integer_flag(type),
+                           vbo_attrtype_to_double_flag(type));
+}
+
+
 /**
  * Return default component values for the given format.
  * The return type is an array of fi_types, because that's how we declare
@@ -224,7 +234,7 @@ _vbo_set_attrib_format(struct gl_context *ctx,
     * to the VAO. But but that is done already unconditionally in
     * _mesa_update_array_format called above.
     */
-   assert((vao->NewArrays | ~vao->_Enabled) & VERT_BIT(attr));
+   assert((vao->NewArrays | ~vao->Enabled) & VERT_BIT(attr));
    vao->VertexAttrib[attr].Ptr = ADD_POINTERS(buffer_offset, offset);
 }
 

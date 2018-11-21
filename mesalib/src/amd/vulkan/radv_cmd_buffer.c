@@ -1344,13 +1344,12 @@ radv_load_ds_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
  * cmask eliminate is required.
  */
 void
-radv_set_dcc_need_cmask_elim_pred(struct radv_cmd_buffer *cmd_buffer,
-				  struct radv_image *image,
-				  bool value)
+radv_update_fce_metadata(struct radv_cmd_buffer *cmd_buffer,
+			 struct radv_image *image, bool value)
 {
 	uint64_t pred_val = value;
 	uint64_t va = radv_buffer_get_va(image->bo);
-	va += image->offset + image->dcc_pred_offset;
+	va += image->offset + image->fce_pred_offset;
 
 	assert(radv_image_has_dcc(image));
 
@@ -4333,8 +4332,8 @@ static void radv_init_color_image_metadata(struct radv_cmd_buffer *cmd_buffer,
 
 		radv_initialize_dcc(cmd_buffer, image, value);
 
-		radv_set_dcc_need_cmask_elim_pred(cmd_buffer, image,
-						  need_decompress_pass);
+		radv_update_fce_metadata(cmd_buffer, image,
+					 need_decompress_pass);
 	}
 
 	if (radv_image_has_cmask(image) || radv_image_has_dcc(image)) {
