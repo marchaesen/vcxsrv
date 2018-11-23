@@ -337,7 +337,17 @@ VkResult radv_CreateRenderPass2KHR(
 	}
 
 	for (unsigned i = 0; i < pCreateInfo->dependencyCount; ++i) {
+		uint32_t src = pCreateInfo->pDependencies[i].srcSubpass;
 		uint32_t dst = pCreateInfo->pDependencies[i].dstSubpass;
+
+		/* Ignore subpass self-dependencies as they allow the app to
+		 * call vkCmdPipelineBarrier() inside the render pass and the
+		 * driver should only do the barrier when called, not when
+		 * starting the render pass.
+		 */
+		if (src == dst)
+			continue;
+
 		if (dst == VK_SUBPASS_EXTERNAL) {
 			pass->end_barrier.src_stage_mask = pCreateInfo->pDependencies[i].srcStageMask;
 			pass->end_barrier.src_access_mask = pCreateInfo->pDependencies[i].srcAccessMask;

@@ -707,10 +707,13 @@ resolve_parallel_copy(nir_parallel_copy_instr *pcopy,
       nir_register *reg = nir_local_reg_create(state->builder.impl);
       reg->name = "copy_temp";
       reg->num_array_elems = 0;
-      if (values[b].is_ssa)
+      if (values[b].is_ssa) {
          reg->num_components = values[b].ssa->num_components;
-      else
+         reg->bit_size = values[b].ssa->bit_size;
+      } else {
          reg->num_components = values[b].reg.reg->num_components;
+         reg->bit_size = values[b].reg.reg->bit_size;
+      }
       values[num_vals].is_ssa = false;
       values[num_vals].reg.reg = reg;
 

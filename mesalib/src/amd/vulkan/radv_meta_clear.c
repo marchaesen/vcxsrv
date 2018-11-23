@@ -969,8 +969,6 @@ emit_fast_htile_clear(struct radv_cmd_buffer *cmd_buffer,
 	radv_update_ds_clear_metadata(cmd_buffer, iview->image, clear_value, aspects);
 	if (post_flush) {
 		*post_flush |= flush_bits;
-	} else {
-		cmd_buffer->state.flush_bits |= flush_bits;
 	}
 
 	return true;
@@ -1453,8 +1451,6 @@ emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 
 	if (post_flush) {
 		*post_flush |= flush_bits;
-	} else {
-		cmd_buffer->state.flush_bits |= flush_bits;
 	}
 
 	radv_update_color_clear_metadata(cmd_buffer, iview->image, subpass_att,
