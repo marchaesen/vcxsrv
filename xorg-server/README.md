@@ -1,4 +1,5 @@
-					X Server
+X Server
+--------
 
 The X server accepts requests from client applications to create windows,
 which are (normally rectangular) "virtual screens" that the client program
@@ -16,29 +17,19 @@ https://en.wikipedia.org/wiki/X_server
 All questions regarding this software should be directed at the
 Xorg mailing list:
 
-        https://lists.freedesktop.org/mailman/listinfo/xorg
-
-Please submit bug reports to the Xorg bugzilla:
-
-        https://bugs.freedesktop.org/enter_bug.cgi?product=xorg
+  https://lists.freedesktop.org/mailman/listinfo/xorg
 
 The master development code repository can be found at:
 
-        git://anongit.freedesktop.org/git/xorg/xserver
-
-        https://cgit.freedesktop.org/xorg/xserver
+  https://gitlab.freedesktop.org/xorg/xserver
 
 For patch submission instructions, see:
 
-	https://www.x.org/wiki/Development/Documentation/SubmittingPatches
-
-For more information on the git code manager, see:
-
-        https://wiki.x.org/wiki/GitPage
+  https://www.x.org/wiki/Development/Documentation/SubmittingPatches
 
 As with other projects hosted on freedesktop.org, X.Org follows its
 Code of Conduct, based on the Contributor Covenant. Please conduct
 yourself in a respectful and civilized manner when using the above
 mailing lists, bug trackers, etc:
 
-	https://www.freedesktop.org/wiki/CodeOfConduct
+  https://www.freedesktop.org/wiki/CodeOfConduct

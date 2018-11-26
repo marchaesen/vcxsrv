@@ -37,6 +37,10 @@
 #include "main/glheader.h"
 
 struct st_context;
+struct st_vertex_program;
+struct st_vp_variant;
+struct pipe_vertex_buffer;
+struct pipe_vertex_element;
 
 /**
  * Enumeration of state tracker pipelines.
@@ -54,9 +58,26 @@ void st_destroy_atoms( struct st_context *st );
 void st_validate_state( struct st_context *st, enum st_pipeline pipeline );
 GLuint st_compare_func_to_pipe(GLenum func);
 
-enum pipe_format
-st_pipe_vertex_format(const struct gl_vertex_format *glformat);
+void
+st_setup_arrays(struct st_context *st,
+                const struct st_vertex_program *vp,
+                const struct st_vp_variant *vp_variant,
+                struct pipe_vertex_element *velements,
+                struct pipe_vertex_buffer *vbuffer, unsigned *num_vbuffers);
 
+void
+st_setup_current(struct st_context *st,
+                 const struct st_vertex_program *vp,
+                 const struct st_vp_variant *vp_variant,
+                 struct pipe_vertex_element *velements,
+                 struct pipe_vertex_buffer *vbuffer, unsigned *num_vbuffers);
+
+void
+st_setup_current_user(struct st_context *st,
+                      const struct st_vertex_program *vp,
+                      const struct st_vp_variant *vp_variant,
+                      struct pipe_vertex_element *velements,
+                      struct pipe_vertex_buffer *vbuffer, unsigned *num_vbuffers);
 
 /* Define ST_NEW_xxx_INDEX */
 enum {
