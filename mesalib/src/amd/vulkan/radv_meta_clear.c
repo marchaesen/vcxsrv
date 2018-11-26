@@ -948,9 +948,7 @@ emit_fast_htile_clear(struct radv_cmd_buffer *cmd_buffer,
 		cmd_buffer->state.flush_bits |= (RADV_CMD_FLAG_FLUSH_AND_INV_DB |
 						 RADV_CMD_FLAG_FLUSH_AND_INV_DB_META) & ~ *pre_flush;
 		*pre_flush |= cmd_buffer->state.flush_bits;
-	} else
-		cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_DB |
-		                                RADV_CMD_FLAG_FLUSH_AND_INV_DB_META;
+	}
 
 	if (htile_mask == UINT_MAX) {
 		/* Clear the whole HTILE buffer. */
@@ -1402,9 +1400,7 @@ emit_fast_color_clear(struct radv_cmd_buffer *cmd_buffer,
 		cmd_buffer->state.flush_bits |= (RADV_CMD_FLAG_FLUSH_AND_INV_CB |
 						 RADV_CMD_FLAG_FLUSH_AND_INV_CB_META) & ~ *pre_flush;
 		*pre_flush |= cmd_buffer->state.flush_bits;
-	} else
-		cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
-		                                RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
+	}
 
 	cmask_clear_value = radv_get_cmask_fast_clear_value(iview->image);
 
