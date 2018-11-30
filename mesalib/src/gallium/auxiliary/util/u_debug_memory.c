@@ -36,14 +36,14 @@
 
 #define DEBUG_MEMORY_IMPLEMENTATION
 
-#include "os/os_memory.h"
-#include "os/os_memory_debug.h"
 #include "os/os_thread.h"
 
 #include "util/u_debug.h"
 #include "util/u_debug_gallium.h"
 #include "util/u_debug_stack.h"
 #include "util/list.h"
+#include "util/os_memory.h"
+#include "util/os_memory_debug.h"
 
 
 #define DEBUG_MEMORY_MAGIC 0x6e34090aU

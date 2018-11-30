@@ -277,7 +277,7 @@ nir_compare_deref_paths(nir_deref_path *a_path,
                         nir_deref_path *b_path)
 {
    if (a_path->path[0]->var != b_path->path[0]->var)
-      return 0;
+      return nir_derefs_do_not_alias;
 
    /* Start off assuming they fully compare.  We ignore equality for now.  In
     * the end, we'll determine that by containment.
@@ -319,7 +319,7 @@ nir_compare_deref_paths(nir_deref_path *a_path,
                 */
                if (nir_src_as_uint(a_tail->arr.index) !=
                    nir_src_as_uint(b_tail->arr.index))
-                  return 0;
+                  return nir_derefs_do_not_alias;
             } else if (a_tail->arr.index.ssa == b_tail->arr.index.ssa) {
                /* They're the same indirect, continue on */
             } else {
@@ -335,7 +335,7 @@ nir_compare_deref_paths(nir_deref_path *a_path,
       case nir_deref_type_struct: {
          /* If they're different struct members, they don't even alias */
          if (a_tail->strct.index != b_tail->strct.index)
-            return 0;
+            return nir_derefs_do_not_alias;
          break;
       }
 

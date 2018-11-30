@@ -45,7 +45,6 @@
 #include "sid.h"
 #include "git_sha1.h"
 #include "gfx9d.h"
-#include "addrlib/gfx9/chip/gfx9_enum.h"
 #include "util/build_id.h"
 #include "util/debug.h"
 #include "util/mesa-sha1.h"
@@ -4526,11 +4525,11 @@ radv_tex_filter_mode(VkSamplerReductionModeEXT mode)
 {
 	switch (mode) {
 	case VK_SAMPLER_REDUCTION_MODE_WEIGHTED_AVERAGE_EXT:
-		return SQ_IMG_FILTER_MODE_BLEND;
+		return V_008F30_SQ_IMG_FILTER_MODE_BLEND;
 	case VK_SAMPLER_REDUCTION_MODE_MIN_EXT:
-		return SQ_IMG_FILTER_MODE_MIN;
+		return V_008F30_SQ_IMG_FILTER_MODE_MIN;
 	case VK_SAMPLER_REDUCTION_MODE_MAX_EXT:
-		return SQ_IMG_FILTER_MODE_MAX;
+		return V_008F30_SQ_IMG_FILTER_MODE_MAX;
 	default:
 		break;
 	}
@@ -4559,7 +4558,7 @@ radv_init_sampler(struct radv_device *device,
 	uint32_t max_aniso = radv_get_max_anisotropy(device, pCreateInfo);
 	uint32_t max_aniso_ratio = radv_tex_aniso_filter(max_aniso);
 	bool is_vi = (device->physical_device->rad_info.chip_class >= VI);
-	unsigned filter_mode = SQ_IMG_FILTER_MODE_BLEND;
+	unsigned filter_mode = V_008F30_SQ_IMG_FILTER_MODE_BLEND;
 
 	const struct VkSamplerReductionModeCreateInfoEXT *sampler_reduction =
 		vk_find_struct_const(pCreateInfo->pNext,

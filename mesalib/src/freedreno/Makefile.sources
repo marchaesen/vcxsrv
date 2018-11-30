@@ -1,0 +1,41 @@
+drm_SOURCES := \
+	drm/freedreno_bo.c \
+	drm/freedreno_drmif.h \
+	drm/freedreno_ringbuffer.c \
+	drm/msm_bo.c \
+	drm/msm_pipe.c \
+	drm/msm_ringbuffer_sp.c \
+	drm/freedreno_bo_cache.c \
+	drm/freedreno_pipe.c \
+	drm/freedreno_ringbuffer.h \
+	drm/msm_device.c \
+	drm/msm_priv.h \
+	drm/freedreno_device.c \
+	drm/freedreno_priv.h \
+	drm/msm_drm.h \
+	drm/msm_ringbuffer.c
+
+ir3_SOURCES := \
+	ir3/disasm-a3xx.c \
+	ir3/instr-a3xx.h \
+	ir3/ir3.c \
+	ir3/ir3_compiler.c \
+	ir3/ir3_compiler.h \
+	ir3/ir3_compiler_nir.c \
+	ir3/ir3_cp.c \
+	ir3/ir3_depth.c \
+	ir3/ir3_group.c \
+	ir3/ir3.h \
+	ir3/ir3_legalize.c \
+	ir3/ir3_nir.c \
+	ir3/ir3_nir.h \
+	ir3/ir3_nir_lower_tg4_to_tex.c \
+	ir3/ir3_print.c \
+	ir3/ir3_ra.c \
+	ir3/ir3_sched.c \
+	ir3/ir3_shader.c \
+	ir3/ir3_shader.h
+
+ir3_GENERATED_FILES := \
+	ir3/ir3_nir_trig.c
+

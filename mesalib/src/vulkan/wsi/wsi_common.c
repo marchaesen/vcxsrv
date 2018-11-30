@@ -954,8 +954,8 @@ wsi_common_queue_present(const struct wsi_device *wsi,
          /* We only need/want to wait on semaphores once.  After that, we're
           * guaranteed ordering since it all happens on the same queue.
           */
-         submit_info.waitSemaphoreCount = pPresentInfo->waitSemaphoreCount,
-         submit_info.pWaitSemaphores = pPresentInfo->pWaitSemaphores,
+         submit_info.waitSemaphoreCount = pPresentInfo->waitSemaphoreCount;
+         submit_info.pWaitSemaphores = pPresentInfo->pWaitSemaphores;
 
          /* Set up the pWaitDstStageMasks */
          stage_flags = vk_alloc(&swapchain->alloc,

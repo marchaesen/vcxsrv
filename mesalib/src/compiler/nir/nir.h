@@ -2130,6 +2130,9 @@ typedef struct nir_shader_compiler_options {
    /** lowers ffract to fsub+ffloor: */
    bool lower_ffract;
 
+   /** lowers fceil to fneg+ffloor+fneg: */
+   bool lower_fceil;
+
    bool lower_ldexp;
 
    bool lower_pack_half_2x16;

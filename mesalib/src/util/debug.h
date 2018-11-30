@@ -41,6 +41,8 @@ parse_debug_string(const char *debug,
                    const struct debug_control *control);
 bool
 env_var_as_boolean(const char *var_name, bool default_value);
+unsigned
+env_var_as_unsigned(const char *var_name, unsigned default_value);
 
 #ifdef __cplusplus
 } /* extern C */

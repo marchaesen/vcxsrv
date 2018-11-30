@@ -26,12 +26,11 @@ addrlib_libamdgpu_addrlib_la_CPPFLAGS = \
 	-I$(top_srcdir)/src/ \
 	-I$(top_srcdir)/include \
 	-I$(srcdir)/common \
-	-I$(srcdir)/addrlib \
-	-I$(srcdir)/addrlib/core \
-	-I$(srcdir)/addrlib/inc/chip/gfx9 \
-	-I$(srcdir)/addrlib/inc/chip/r800 \
-	-I$(srcdir)/addrlib/gfx9/chip \
-	-I$(srcdir)/addrlib/r800/chip
+	-I$(srcdir)/addrlib/inc \
+	-I$(srcdir)/addrlib/src \
+	-I$(srcdir)/addrlib/src/core \
+	-I$(srcdir)/addrlib/src/chip/gfx9 \
+	-I$(srcdir)/addrlib/src/chip/r800
 
 addrlib_libamdgpu_addrlib_la_CXXFLAGS = \
 	$(VISIBILITY_CXXFLAGS) $(CXX11_CXXFLAGS)

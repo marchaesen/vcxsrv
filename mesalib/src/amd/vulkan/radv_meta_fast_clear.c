@@ -550,35 +550,6 @@ radv_device_init_meta_fast_clear_flush_state(struct radv_device *device, bool on
 }
 
 static void
-emit_fast_clear_flush(struct radv_cmd_buffer *cmd_buffer,
-		      const VkExtent2D *resolve_extent,
-		      VkPipeline pipeline)
-{
-	VkCommandBuffer cmd_buffer_h = radv_cmd_buffer_to_handle(cmd_buffer);
-
-	radv_CmdBindPipeline(cmd_buffer_h, VK_PIPELINE_BIND_POINT_GRAPHICS,
-			     pipeline);
-
-	radv_CmdSetViewport(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &(VkViewport) {
-			.x = 0,
-			.y = 0,
-			.width = resolve_extent->width,
-			.height = resolve_extent->height,
-			.minDepth = 0.0f,
-			.maxDepth = 1.0f
-		});
-
-		radv_CmdSetScissor(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &(VkRect2D) {
-			.offset = (VkOffset2D) { 0, 0 },
-			.extent = (VkExtent2D) { resolve_extent->width, resolve_extent->height },
-		});
-
-	radv_CmdDraw(cmd_buffer_h, 3, 1, 0, 0);
-	cmd_buffer->state.flush_bits |= (RADV_CMD_FLAG_FLUSH_AND_INV_CB |
-					 RADV_CMD_FLAG_FLUSH_AND_INV_CB_META);
-}
-
-static void
 radv_emit_set_predication_state_from_image(struct radv_cmd_buffer *cmd_buffer,
 				      struct radv_image *image, bool value)
 {
@@ -635,6 +606,24 @@ radv_emit_color_decompress(struct radv_cmd_buffer *cmd_buffer,
 		radv_emit_set_predication_state_from_image(cmd_buffer, image, true);
 		cmd_buffer->state.predicating = true;
 	}
+
+	radv_CmdBindPipeline(cmd_buffer_h, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			     pipeline);
+
+	radv_CmdSetViewport(cmd_buffer_h, 0, 1, &(VkViewport) {
+		.x = 0,
+		.y = 0,
+		.width = image->info.width,
+		.height = image->info.height,
+		.minDepth = 0.0f,
+		.maxDepth = 1.0f
+	});
+
+	radv_CmdSetScissor(cmd_buffer_h, 0, 1, &(VkRect2D) {
+		.offset = (VkOffset2D) { 0, 0 },
+		.extent = (VkExtent2D) { image->info.width, image->info.height },
+	});
+
 	for (uint32_t layer = 0; layer < layer_count; ++layer) {
 		struct radv_image_view iview;
 
@@ -688,9 +677,11 @@ radv_emit_color_decompress(struct radv_cmd_buffer *cmd_buffer,
 				     },
 				     VK_SUBPASS_CONTENTS_INLINE);
 
-		emit_fast_clear_flush(cmd_buffer,
-				      &(VkExtent2D) { image->info.width, image->info.height },
-				      pipeline);
+		radv_CmdDraw(cmd_buffer_h, 3, 1, 0, 0);
+
+		cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
+						RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
+
 		radv_CmdEndRenderPass(cmd_buffer_h);
 
 		radv_DestroyFramebuffer(device_h, fb_h,

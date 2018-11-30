@@ -1354,13 +1354,19 @@ drmmode_crtc_dpms(xf86CrtcPtr crtc, int mode)
 {
     modesettingPtr ms = modesettingPTR(crtc->scrn);
     drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
+    drmmode_ptr drmmode = drmmode_crtc->drmmode;
 
     /* XXX Check if DPMS mode is already the right one */
 
     drmmode_crtc->dpms_mode = mode;
 
-    if (ms->atomic_modeset && mode != DPMSModeOn && !ms->pending_modeset)
-        drmmode_crtc_disable(crtc);
+    if (ms->atomic_modeset) {
+        if (mode != DPMSModeOn && !ms->pending_modeset)
+            drmmode_crtc_disable(crtc);
+    } else if (crtc->enabled == FALSE) {
+        drmModeSetCrtc(drmmode->fd, drmmode_crtc->mode_crtc->crtc_id,
+                       0, 0, 0, NULL, 0, NULL);
+    }
 }
 
 #ifdef GLAMOR_HAS_GBM

@@ -792,7 +792,6 @@ test_compute_clear_image(struct pipe_context *ctx)
 {
    struct cso_context *cso;
    struct pipe_resource *cb;
-   struct pipe_sampler_view *view = NULL;
    const char *text;
 
    cso = cso_create_context(ctx, 0);

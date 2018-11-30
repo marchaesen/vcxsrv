@@ -1063,6 +1063,8 @@ wsi_display_swapchain_destroy(struct wsi_swapchain *drv_chain,
 
    for (uint32_t i = 0; i < chain->base.image_count; i++)
       wsi_display_image_finish(drv_chain, allocator, &chain->images[i]);
+
+   wsi_swapchain_finish(&chain->base);
    vk_free(allocator, chain);
    return VK_SUCCESS;
 }

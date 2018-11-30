@@ -81,6 +81,10 @@ if HAVE_BROADCOM_DRIVERS
 SUBDIRS += broadcom
 endif
 
+if HAVE_FREEDRENO_DRIVERS
+SUBDIRS += freedreno
+endif
+
 if NEED_OPENGL_COMMON
 SUBDIRS += mesa
 endif

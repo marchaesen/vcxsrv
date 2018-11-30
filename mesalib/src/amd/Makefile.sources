@@ -5,35 +5,34 @@ COMMON_HEADER_FILES = \
 	common/amd_kernel_code_t.h
 
 ADDRLIB_FILES = \
-	addrlib/addrinterface.cpp \
-	addrlib/addrinterface.h \
-	addrlib/addrtypes.h \
-	addrlib/amdgpu_asic_addr.h \
-	addrlib/core/addrcommon.h \
-	addrlib/core/addrelemlib.cpp \
-	addrlib/core/addrelemlib.h \
-	addrlib/core/addrlib.cpp \
-	addrlib/core/addrlib.h \
-	addrlib/core/addrlib1.cpp \
-	addrlib/core/addrlib1.h \
-	addrlib/core/addrlib2.cpp \
-	addrlib/core/addrlib2.h \
-	addrlib/core/addrobject.cpp \
-	addrlib/core/addrobject.h \
-	addrlib/gfx9/chip/gfx9_enum.h \
-	addrlib/gfx9/coord.cpp \
-	addrlib/gfx9/coord.h \
-	addrlib/gfx9/gfx9addrlib.cpp \
-	addrlib/gfx9/gfx9addrlib.h \
-	addrlib/inc/chip/gfx9/gfx9_gb_reg.h \
-	addrlib/inc/chip/r800/si_gb_reg.h \
-	addrlib/r800/chip/si_ci_vi_merged_enum.h \
-	addrlib/r800/ciaddrlib.cpp \
-	addrlib/r800/ciaddrlib.h \
-	addrlib/r800/egbaddrlib.cpp \
-	addrlib/r800/egbaddrlib.h \
-	addrlib/r800/siaddrlib.cpp \
-	addrlib/r800/siaddrlib.h
+	addrlib/inc/addrinterface.h \
+	addrlib/inc/addrtypes.h \
+	addrlib/src/addrinterface.cpp \
+	addrlib/src/amdgpu_asic_addr.h \
+	addrlib/src/core/addrcommon.h \
+	addrlib/src/core/addrelemlib.cpp \
+	addrlib/src/core/addrelemlib.h \
+	addrlib/src/core/addrlib.cpp \
+	addrlib/src/core/addrlib.h \
+	addrlib/src/core/addrlib1.cpp \
+	addrlib/src/core/addrlib1.h \
+	addrlib/src/core/addrlib2.cpp \
+	addrlib/src/core/addrlib2.h \
+	addrlib/src/core/addrobject.cpp \
+	addrlib/src/core/addrobject.h \
+	addrlib/src/core/coord.cpp \
+	addrlib/src/core/coord.h \
+	addrlib/src/gfx9/gfx9addrlib.cpp \
+	addrlib/src/gfx9/gfx9addrlib.h \
+	addrlib/src/chip/gfx9/gfx9_gb_reg.h \
+	addrlib/src/chip/r800/si_gb_reg.h \
+	addrlib/src/r800/chip/si_ci_vi_merged_enum.h \
+	addrlib/src/r800/ciaddrlib.cpp \
+	addrlib/src/r800/ciaddrlib.h \
+	addrlib/src/r800/egbaddrlib.cpp \
+	addrlib/src/r800/egbaddrlib.h \
+	addrlib/src/r800/siaddrlib.cpp \
+	addrlib/src/r800/siaddrlib.h
 
 AMD_COMPILER_FILES = \
 	common/ac_binary.c \

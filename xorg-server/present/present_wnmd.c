@@ -168,7 +168,7 @@ present_wnmd_flip_notify(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_
     WindowPtr                   window = vblank->window;
     present_window_priv_ptr     window_priv = present_window_priv(window);
 
-    DebugPresent(("\tn %lld %p %8lld: %08lx -> %08lx\n",
+    DebugPresent(("\tn %" PRIu64 " %p %" PRIu64 ": %08" PRIx32 " -> %08" PRIx32 "\n",
                   vblank->event_id, vblank, vblank->target_msc,
                   vblank->pixmap ? vblank->pixmap->drawable.id : 0,
                   vblank->window ? vblank->window->drawable.id : 0));
@@ -213,7 +213,7 @@ present_wnmd_event_notify(WindowPtr window, uint64_t event_id, uint64_t ust, uin
         return;
     }
 
-    DebugPresent(("\te %lld ust %lld msc %lld\n", event_id, ust, msc));
+    DebugPresent(("\te %" PRIu64 " ust %" PRIu64 " msc %" PRIu64 "\n", event_id, ust, msc));
     xorg_list_for_each_entry(vblank, &window_priv->exec_queue, event_queue) {
         if (event_id == vblank->event_id) {
             present_wnmd_execute(vblank, ust, msc);
@@ -292,7 +292,8 @@ present_wnmd_check_flip(RRCrtcPtr           crtc,
     /* Ask the driver for permission */
     if (screen_priv->wnmd_info->check_flip2) {
         if (!(*screen_priv->wnmd_info->check_flip2) (crtc, window, pixmap, sync_flip, reason)) {
-            DebugPresent(("\td %08lx -> %08lx\n", window->drawable.id, pixmap ? pixmap->drawable.id : 0));
+            DebugPresent(("\td %08" PRIx32 " -> %08" PRIx32 "\n",
+                          window->drawable.id, pixmap ? pixmap->drawable.id : 0));
             return FALSE;
         }
     }
@@ -425,7 +426,7 @@ present_wnmd_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
 
     if (vblank->flip && vblank->pixmap && vblank->window) {
         if (window_priv->flip_pending) {
-            DebugPresent(("\tr %lld %p (pending %p)\n",
+            DebugPresent(("\tr %" PRIu64 " %p (pending %p)\n",
                           vblank->event_id, vblank,
                           window_priv->flip_pending));
             xorg_list_del(&vblank->event_queue);
@@ -444,7 +445,7 @@ present_wnmd_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
         if (vblank->flip) {
             RegionPtr damage;
 
-            DebugPresent(("\tf %lld %p %8lld: %08lx -> %08lx\n",
+            DebugPresent(("\tf %" PRIu64 " %p %" PRIu64 ": %08" PRIx32 " -> %08" PRIx32 "\n",
                           vblank->event_id, vblank, crtc_msc,
                           vblank->pixmap->drawable.id, vblank->window->drawable.id));
 
@@ -489,7 +490,8 @@ present_wnmd_execute(present_vblank_ptr vblank, uint64_t ust, uint64_t crtc_msc)
             window_priv->flip_pending = NULL;
             vblank->flip = FALSE;
         }
-        DebugPresent(("\tc %p %8lld: %08lx -> %08lx\n", vblank, crtc_msc, vblank->pixmap->drawable.id, vblank->window->drawable.id));
+        DebugPresent(("\tc %p %" PRIu64 ": %08" PRIx32 " -> %08" PRIx32 "\n",
+                      vblank, crtc_msc, vblank->pixmap->drawable.id, vblank->window->drawable.id));
 
         present_wnmd_cancel_flip(window);
 

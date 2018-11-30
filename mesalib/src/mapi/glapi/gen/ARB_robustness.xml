@@ -73,7 +73,7 @@
         <param name="pattern" type="GLubyte *" output="true"/>
     </function>
 
-    <function name="GetnTexImageARB">
+    <function name="GetnTexImageARB" alias="GetnTexImage">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="format" type="GLenum"/>

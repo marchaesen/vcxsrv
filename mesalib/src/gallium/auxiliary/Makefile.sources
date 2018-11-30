@@ -102,10 +102,6 @@ C_SOURCES := \
 	indices/u_indices_priv.h \
 	indices/u_primconvert.c \
 	indices/u_primconvert.h \
-	os/os_memory_aligned.h \
-	os/os_memory_debug.h \
-	os/os_memory_stdc.h \
-	os/os_memory.h \
 	os/os_mman.h \
 	os/os_process.c \
 	os/os_process.h \
@@ -290,7 +286,6 @@ C_SOURCES := \
 	util/u_linear.h \
 	util/u_log.c \
 	util/u_log.h \
-	util/u_memory.h \
 	util/u_mm.c \
 	util/u_mm.h \
 	util/u_network.c \

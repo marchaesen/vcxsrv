@@ -308,34 +308,6 @@ cleanup:
 	return res;
 }
 
-static void
-emit_depth_decomp(struct radv_cmd_buffer *cmd_buffer,
-		  const VkExtent2D *depth_decomp_extent,
-		  VkPipeline pipeline_h)
-{
-	VkCommandBuffer cmd_buffer_h = radv_cmd_buffer_to_handle(cmd_buffer);
-
-	radv_CmdBindPipeline(cmd_buffer_h, VK_PIPELINE_BIND_POINT_GRAPHICS,
-			     pipeline_h);
-
-	radv_CmdSetViewport(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &(VkViewport) {
-		.x = 0,
-		.y = 0,
-		.width = depth_decomp_extent->width,
-		.height = depth_decomp_extent->height,
-		.minDepth = 0.0f,
-		.maxDepth = 1.0f
-	});
-
-	radv_CmdSetScissor(radv_cmd_buffer_to_handle(cmd_buffer), 0, 1, &(VkRect2D) {
-		.offset = { 0, 0 },
-		.extent = *depth_decomp_extent,
-	});
-
-	radv_CmdDraw(cmd_buffer_h, 3, 1, 0, 0);
-}
-
-
 enum radv_depth_op {
 	DEPTH_DECOMPRESS,
 	DEPTH_RESUMMARIZE,
@@ -387,6 +359,23 @@ static void radv_process_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 	default:
 		unreachable("unknown operation");
 	}
+
+	radv_CmdBindPipeline(cmd_buffer_h, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			     pipeline_h);
+
+	radv_CmdSetViewport(cmd_buffer_h, 0, 1, &(VkViewport) {
+		.x = 0,
+		.y = 0,
+		.width = width,
+		.height = height,
+		.minDepth = 0.0f,
+		.maxDepth = 1.0f
+	});
+
+	radv_CmdSetScissor(cmd_buffer_h, 0, 1, &(VkRect2D) {
+		.offset = { 0, 0 },
+		.extent = { width, height },
+	});
 
 	for (uint32_t layer = 0; layer < radv_get_layerCount(image, subresourceRange); layer++) {
 		struct radv_image_view iview;
@@ -442,7 +431,7 @@ static void radv_process_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 					   },
 					   VK_SUBPASS_CONTENTS_INLINE);
 
-		emit_depth_decomp(cmd_buffer, &(VkExtent2D){width, height}, pipeline_h);
+		radv_CmdDraw(cmd_buffer_h, 3, 1, 0, 0);
 		radv_CmdEndRenderPass(cmd_buffer_h);
 
 		radv_DestroyFramebuffer(device_h, fb_h,

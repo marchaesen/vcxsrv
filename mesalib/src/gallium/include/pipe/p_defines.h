@@ -341,7 +341,13 @@ enum pipe_transfer_usage
     * PIPE_RESOURCE_FLAG_MAP_COHERENT must be set when creating
     * the resource.
     */
-   PIPE_TRANSFER_COHERENT = (1 << 14)
+   PIPE_TRANSFER_COHERENT = (1 << 14),
+
+   /**
+    * This and higher bits are reserved for private use by drivers. Drivers
+    * should use this as (PIPE_TRANSFER_DRV_PRV << i).
+    */
+   PIPE_TRANSFER_DRV_PRV = (1 << 24)
 };
 
 /**
