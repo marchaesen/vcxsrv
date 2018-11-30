@@ -2436,6 +2436,9 @@
 #define   S_008F30_FILTER_MODE(x)                                     (((unsigned)(x) & 0x03) << 29)
 #define   G_008F30_FILTER_MODE(x)                                     (((x) >> 29) & 0x03)
 #define   C_008F30_FILTER_MODE                                        0x9FFFFFFF
+#define     V_008F30_SQ_IMG_FILTER_MODE_BLEND                       0x00
+#define     V_008F30_SQ_IMG_FILTER_MODE_MIN                         0x01
+#define     V_008F30_SQ_IMG_FILTER_MODE_MAX                         0x02
 /* VI */
 #define   S_008F30_COMPAT_MODE(x)                                     (((unsigned)(x) & 0x1) << 31)
 #define   G_008F30_COMPAT_MODE(x)                                     (((x) >> 31) & 0x1)

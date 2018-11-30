@@ -29,12 +29,12 @@
 
 uint32_t vk_get_driver_version(void)
 {
-   const char *minor_string = strchr(VERSION, '.');
+   const char *minor_string = strchr(PACKAGE_VERSION, '.');
    const char *patch_string = minor_string ? strchr(minor_string + 1, '.') : NULL;
-   int major = atoi(VERSION);
+   int major = atoi(PACKAGE_VERSION);
    int minor = minor_string ? atoi(minor_string + 1) : 0;
    int patch = patch_string ? atoi(patch_string + 1) : 0;
-   if (strstr(VERSION, "devel")) {
+   if (strstr(PACKAGE_VERSION, "devel")) {
       if (patch == 0) {
          patch = 99;
          if (minor == 0) {

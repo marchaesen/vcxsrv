@@ -108,7 +108,7 @@ present_pixmap_idle(PixmapPtr pixmap, WindowPtr window, CARD32 serial, struct pr
     if (present_fence)
         present_fence_set_triggered(present_fence);
     if (window) {
-        DebugPresent(("\ti %08lx\n", pixmap ? pixmap->drawable.id : 0));
+        DebugPresent(("\ti %08" PRIx32 "\n", pixmap ? pixmap->drawable.id : 0));
         present_send_idle_notify(window, serial, pixmap, present_fence);
     }
 }

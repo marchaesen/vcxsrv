@@ -97,8 +97,6 @@ private:
    /* most recent deref instruction created */
    nir_deref_instr *deref;
 
-   nir_variable *var; /* variable created by ir_variable visitor */
-
    /* whether the IR we're operating on is per-function or global */
    bool is_global;
 
@@ -180,7 +178,6 @@ nir_visitor::nir_visitor(nir_shader *shader)
                                                   _mesa_key_pointer_equal);
    this->result = NULL;
    this->impl = NULL;
-   this->var = NULL;
    memset(&this->b, 0, sizeof(this->b));
 }
 
@@ -454,7 +451,6 @@ nir_visitor::visit(ir_variable *ir)
       nir_shader_add_variable(shader, var);
 
    _mesa_hash_table_insert(var_table, ir, var);
-   this->var = var;
 }
 
 ir_visitor_status

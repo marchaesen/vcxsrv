@@ -190,6 +190,7 @@ get_query_binding_point(struct gl_context *ctx, GLenum target, GLuint index)
          return NULL;
    case GL_PRIMITIVES_GENERATED:
       if (_mesa_has_EXT_transform_feedback(ctx) ||
+          _mesa_has_EXT_tessellation_shader(ctx) ||
           _mesa_has_OES_geometry_shader(ctx))
          return &ctx->Query.PrimitivesGenerated[index];
       else

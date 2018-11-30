@@ -23,7 +23,7 @@
 
 #include "u_log.h"
 
-#include "u_memory.h"
+#include "util/u_memory.h"
 #include "util/u_string.h"
 
 struct page_entry {

@@ -37,7 +37,6 @@ LOCAL_CFLAGS += \
 	-Wno-missing-field-initializers \
 	-Wno-initializer-overrides \
 	-Wno-mismatched-tags \
-	-DVERSION=\"$(MESA_VERSION)\" \
 	-DPACKAGE_VERSION=\"$(MESA_VERSION)\" \
 	-DPACKAGE_BUGREPORT=\"https://bugs.freedesktop.org/enter_bug.cgi?product=Mesa\"
 

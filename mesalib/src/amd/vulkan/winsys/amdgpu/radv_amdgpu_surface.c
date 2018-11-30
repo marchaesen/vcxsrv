@@ -29,7 +29,6 @@
 #include <errno.h>
 
 #include "radv_private.h"
-#include "addrlib/addrinterface.h"
 #include "util/bitset.h"
 #include "radv_amdgpu_winsys.h"
 #include "radv_amdgpu_surface.h"

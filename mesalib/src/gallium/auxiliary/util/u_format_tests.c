@@ -30,7 +30,7 @@
 #include <float.h>
 
 #include "pipe/p_config.h"
-#include "u_memory.h"
+#include "util/u_memory.h"
 #include "u_format_tests.h"
 
 

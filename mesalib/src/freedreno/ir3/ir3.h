@@ -1,0 +1,1394 @@
+/*
+ * Copyright (c) 2013 Rob Clark <robdclark@gmail.com>
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
+#ifndef IR3_H_
+#define IR3_H_
+
+#include <stdint.h>
+#include <stdbool.h>
+
+#include "compiler/shader_enums.h"
+
+#include "util/u_debug.h"
+#include "util/list.h"
+
+#include "instr-a3xx.h"
+
+/* low level intermediate representation of an adreno shader program */
+
+struct ir3_compiler;
+struct ir3;
+struct ir3_instruction;
+struct ir3_block;
+
+struct ir3_info {
+	uint32_t gpu_id;
+	uint16_t sizedwords;
+	uint16_t instrs_count;   /* expanded to account for rpt's */
+	/* NOTE: max_reg, etc, does not include registers not touched
+	 * by the shader (ie. vertex fetched via VFD_DECODE but not
+	 * touched by shader)
+	 */
+	int8_t   max_reg;   /* highest GPR # used by shader */
+	int8_t   max_half_reg;
+	int16_t  max_const;
+
+	/* number of sync bits: */
+	uint16_t ss, sy;
+};
+
+struct ir3_register {
+	enum {
+		IR3_REG_CONST  = 0x001,
+		IR3_REG_IMMED  = 0x002,
+		IR3_REG_HALF   = 0x004,
+		/* high registers are used for some things in compute shaders,
+		 * for example.  Seems to be for things that are global to all
+		 * threads in a wave, so possibly these are global/shared by
+		 * all the threads in the wave?
+		 */
+		IR3_REG_HIGH   = 0x008,
+		IR3_REG_RELATIV= 0x010,
+		IR3_REG_R      = 0x020,
+		/* Most instructions, it seems, can do float abs/neg but not
+		 * integer.  The CP pass needs to know what is intended (int or
+		 * float) in order to do the right thing.  For this reason the
+		 * abs/neg flags are split out into float and int variants.  In
+		 * addition, .b (bitwise) operations, the negate is actually a
+		 * bitwise not, so split that out into a new flag to make it
+		 * more clear.
+		 */
+		IR3_REG_FNEG   = 0x040,
+		IR3_REG_FABS   = 0x080,
+		IR3_REG_SNEG   = 0x100,
+		IR3_REG_SABS   = 0x200,
+		IR3_REG_BNOT   = 0x400,
+		IR3_REG_EVEN   = 0x800,
+		IR3_REG_POS_INF= 0x1000,
+		/* (ei) flag, end-input?  Set on last bary, presumably to signal
+		 * that the shader needs no more input:
+		 */
+		IR3_REG_EI     = 0x2000,
+		/* meta-flags, for intermediate stages of IR, ie.
+		 * before register assignment is done:
+		 */
+		IR3_REG_SSA    = 0x4000,   /* 'instr' is ptr to assigning instr */
+		IR3_REG_ARRAY  = 0x8000,
+
+	} flags;
+
+	/* normal registers:
+	 * the component is in the low two bits of the reg #, so
+	 * rN.x becomes: (N << 2) | x
+	 */
+	int   num;
+	union {
+		/* immediate: */
+		int32_t  iim_val;
+		uint32_t uim_val;
+		float    fim_val;
+		/* relative: */
+		struct {
+			uint16_t id;
+			int16_t offset;
+		} array;
+	};
+
+	/* For IR3_REG_SSA, src registers contain ptr back to assigning
+	 * instruction.
+	 *
+	 * For IR3_REG_ARRAY, the pointer is back to the last dependent
+	 * array access (although the net effect is the same, it points
+	 * back to a previous instruction that we depend on).
+	 */
+	struct ir3_instruction *instr;
+
+	union {
+		/* used for cat5 instructions, but also for internal/IR level
+		 * tracking of what registers are read/written by an instruction.
+		 * wrmask may be a bad name since it is used to represent both
+		 * src and dst that touch multiple adjacent registers.
+		 */
+		unsigned wrmask;
+		/* for relative addressing, 32bits for array size is too small,
+		 * but otoh we don't need to deal with disjoint sets, so instead
+		 * use a simple size field (number of scalar components).
+		 */
+		unsigned size;
+	};
+};
+
+/*
+ * Stupid/simple growable array implementation:
+ */
+#define DECLARE_ARRAY(type, name) \
+	unsigned name ## _count, name ## _sz; \
+	type * name;
+
+#define array_insert(ctx, arr, val) do { \
+		if (arr ## _count == arr ## _sz) { \
+			arr ## _sz = MAX2(2 * arr ## _sz, 16); \
+			arr = reralloc_size(ctx, arr, arr ## _sz * sizeof(arr[0])); \
+		} \
+		arr[arr ##_count++] = val; \
+	} while (0)
+
+struct ir3_instruction {
+	struct ir3_block *block;
+	opc_t opc;
+	enum {
+		/* (sy) flag is set on first instruction, and after sample
+		 * instructions (probably just on RAW hazard).
+		 */
+		IR3_INSTR_SY    = 0x001,
+		/* (ss) flag is set on first instruction, and first instruction
+		 * to depend on the result of "long" instructions (RAW hazard):
+		 *
+		 *   rcp, rsq, log2, exp2, sin, cos, sqrt
+		 *
+		 * It seems to synchronize until all in-flight instructions are
+		 * completed, for example:
+		 *
+		 *   rsq hr1.w, hr1.w
+		 *   add.f hr2.z, (neg)hr2.z, hc0.y
+		 *   mul.f hr2.w, (neg)hr2.y, (neg)hr2.y
+		 *   rsq hr2.x, hr2.x
+		 *   (rpt1)nop
+		 *   mad.f16 hr2.w, hr2.z, hr2.z, hr2.w
+		 *   nop
+		 *   mad.f16 hr2.w, (neg)hr0.w, (neg)hr0.w, hr2.w
+		 *   (ss)(rpt2)mul.f hr1.x, (r)hr1.x, hr1.w
+		 *   (rpt2)mul.f hr0.x, (neg)(r)hr0.x, hr2.x
+		 *
+		 * The last mul.f does not have (ss) set, presumably because the
+		 * (ss) on the previous instruction does the job.
+		 *
+		 * The blob driver also seems to set it on WAR hazards, although
+		 * not really clear if this is needed or just blob compiler being
+		 * sloppy.  So far I haven't found a case where removing the (ss)
+		 * causes problems for WAR hazard, but I could just be getting
+		 * lucky:
+		 *
+		 *   rcp r1.y, r3.y
+		 *   (ss)(rpt2)mad.f32 r3.y, (r)c9.x, r1.x, (r)r3.z
+		 *
+		 */
+		IR3_INSTR_SS    = 0x002,
+		/* (jp) flag is set on jump targets:
+		 */
+		IR3_INSTR_JP    = 0x004,
+		IR3_INSTR_UL    = 0x008,
+		IR3_INSTR_3D    = 0x010,
+		IR3_INSTR_A     = 0x020,
+		IR3_INSTR_O     = 0x040,
+		IR3_INSTR_P     = 0x080,
+		IR3_INSTR_S     = 0x100,
+		IR3_INSTR_S2EN  = 0x200,
+		IR3_INSTR_G     = 0x400,
+		IR3_INSTR_SAT   = 0x800,
+		/* meta-flags, for intermediate stages of IR, ie.
+		 * before register assignment is done:
+		 */
+		IR3_INSTR_MARK  = 0x1000,
+		IR3_INSTR_UNUSED= 0x2000,
+	} flags;
+	int repeat;
+#ifdef DEBUG
+	unsigned regs_max;
+#endif
+	unsigned regs_count;
+	struct ir3_register **regs;
+	union {
+		struct {
+			char inv;
+			char comp;
+			int  immed;
+			struct ir3_block *target;
+		} cat0;
+		struct {
+			type_t src_type, dst_type;
+		} cat1;
+		struct {
+			enum {
+				IR3_COND_LT = 0,
+				IR3_COND_LE = 1,
+				IR3_COND_GT = 2,
+				IR3_COND_GE = 3,
+				IR3_COND_EQ = 4,
+				IR3_COND_NE = 5,
+			} condition;
+		} cat2;
+		struct {
+			unsigned samp, tex;
+			type_t type;
+		} cat5;
+		struct {
+			type_t type;
+			int src_offset;
+			int dst_offset;
+			int iim_val : 3;      /* for ldgb/stgb, # of components */
+			int d : 3;
+			bool typed : 1;
+		} cat6;
+		struct {
+			unsigned w : 1;       /* write */
+			unsigned r : 1;       /* read */
+			unsigned l : 1;       /* local */
+			unsigned g : 1;       /* global */
+		} cat7;
+		/* for meta-instructions, just used to hold extra data
+		 * before instruction scheduling, etc
+		 */
+		struct {
+			int off;              /* component/offset */
+		} fo;
+		struct {
+			struct ir3_block *block;
+		} inout;
+	};
+
+	/* transient values used during various algorithms: */
+	union {
+		/* The instruction depth is the max dependency distance to output.
+		 *
+		 * You can also think of it as the "cost", if we did any sort of
+		 * optimization for register footprint.  Ie. a value that is  just
+		 * result of moving a const to a reg would have a low cost,  so to
+		 * it could make sense to duplicate the instruction at various
+		 * points where the result is needed to reduce register footprint.
+		 */
+		unsigned depth;
+		/* When we get to the RA stage, we no longer need depth, but
+		 * we do need instruction's position/name:
+		 */
+		struct {
+			uint16_t ip;
+			uint16_t name;
+		};
+	};
+
+	/* used for per-pass extra instruction data.
+	 */
+	void *data;
+
+	/* Used during CP and RA stages.  For fanin and shader inputs/
+	 * outputs where we need a sequence of consecutive registers,
+	 * keep track of each src instructions left (ie 'n-1') and right
+	 * (ie 'n+1') neighbor.  The front-end must insert enough mov's
+	 * to ensure that each instruction has at most one left and at
+	 * most one right neighbor.  During the copy-propagation pass,
+	 * we only remove mov's when we can preserve this constraint.
+	 * And during the RA stage, we use the neighbor information to
+	 * allocate a block of registers in one shot.
+	 *
+	 * TODO: maybe just add something like:
+	 *   struct ir3_instruction_ref {
+	 *       struct ir3_instruction *instr;
+	 *       unsigned cnt;
+	 *   }
+	 *
+	 * Or can we get away without the refcnt stuff?  It seems like
+	 * it should be overkill..  the problem is if, potentially after
+	 * already eliminating some mov's, if you have a single mov that
+	 * needs to be grouped with it's neighbors in two different
+	 * places (ex. shader output and a fanin).
+	 */
+	struct {
+		struct ir3_instruction *left, *right;
+		uint16_t left_cnt, right_cnt;
+	} cp;
+
+	/* an instruction can reference at most one address register amongst
+	 * it's src/dst registers.  Beyond that, you need to insert mov's.
+	 *
+	 * NOTE: do not write this directly, use ir3_instr_set_address()
+	 */
+	struct ir3_instruction *address;
+
+	/* Tracking for additional dependent instructions.  Used to handle
+	 * barriers, WAR hazards for arrays/SSBOs/etc.
+	 */
+	DECLARE_ARRAY(struct ir3_instruction *, deps);
+
+	/*
+	 * From PoV of instruction scheduling, not execution (ie. ignores global/
+	 * local distinction):
+	 *                            shared  image  atomic  SSBO  everything
+	 *   barrier()/            -   R/W     R/W    R/W     R/W       X
+	 *     groupMemoryBarrier()
+	 *   memoryBarrier()       -           R/W    R/W
+	 *     (but only images declared coherent?)
+	 *   memoryBarrierAtomic() -                  R/W
+	 *   memoryBarrierBuffer() -                          R/W
+	 *   memoryBarrierImage()  -           R/W
+	 *   memoryBarrierShared() -   R/W
+	 *
+	 * TODO I think for SSBO/image/shared, in cases where we can determine
+	 * which variable is accessed, we don't need to care about accesses to
+	 * different variables (unless declared coherent??)
+	 */
+	enum {
+		IR3_BARRIER_EVERYTHING = 1 << 0,
+		IR3_BARRIER_SHARED_R   = 1 << 1,
+		IR3_BARRIER_SHARED_W   = 1 << 2,
+		IR3_BARRIER_IMAGE_R    = 1 << 3,
+		IR3_BARRIER_IMAGE_W    = 1 << 4,
+		IR3_BARRIER_BUFFER_R   = 1 << 5,
+		IR3_BARRIER_BUFFER_W   = 1 << 6,
+		IR3_BARRIER_ARRAY_R    = 1 << 7,
+		IR3_BARRIER_ARRAY_W    = 1 << 8,
+	} barrier_class, barrier_conflict;
+
+	/* Entry in ir3_block's instruction list: */
+	struct list_head node;
+
+	int use_count;      /* currently just updated/used by cp */
+
+#ifdef DEBUG
+	uint32_t serialno;
+#endif
+};
+
+static inline struct ir3_instruction *
+ir3_neighbor_first(struct ir3_instruction *instr)
+{
+	int cnt = 0;
+	while (instr->cp.left) {
+		instr = instr->cp.left;
+		if (++cnt > 0xffff) {
+			debug_assert(0);
+			break;
+		}
+	}
+	return instr;
+}
+
+static inline int ir3_neighbor_count(struct ir3_instruction *instr)
+{
+	int num = 1;
+
+	debug_assert(!instr->cp.left);
+
+	while (instr->cp.right) {
+		num++;
+		instr = instr->cp.right;
+		if (num > 0xffff) {
+			debug_assert(0);
+			break;
+		}
+	}
+
+	return num;
+}
+
+struct ir3 {
+	struct ir3_compiler *compiler;
+
+	unsigned ninputs, noutputs;
+	struct ir3_instruction **inputs;
+	struct ir3_instruction **outputs;
+
+	/* Track bary.f (and ldlv) instructions.. this is needed in
+	 * scheduling to ensure that all varying fetches happen before
+	 * any potential kill instructions.  The hw gets grumpy if all
+	 * threads in a group are killed before the last bary.f gets
+	 * a chance to signal end of input (ei).
+	 */
+	DECLARE_ARRAY(struct ir3_instruction *, baryfs);
+
+	/* Track all indirect instructions (read and write).  To avoid
+	 * deadlock scenario where an address register gets scheduled,
+	 * but other dependent src instructions cannot be scheduled due
+	 * to dependency on a *different* address register value, the
+	 * scheduler needs to ensure that all dependencies other than
+	 * the instruction other than the address register are scheduled
+	 * before the one that writes the address register.  Having a
+	 * convenient list of instructions that reference some address
+	 * register simplifies this.
+	 */
+	DECLARE_ARRAY(struct ir3_instruction *, indirects);
+
+	/* and same for instructions that consume predicate register: */
+	DECLARE_ARRAY(struct ir3_instruction *, predicates);
+
+	/* Track texture sample instructions which need texture state
+	 * patched in (for astc-srgb workaround):
+	 */
+	DECLARE_ARRAY(struct ir3_instruction *, astc_srgb);
+
+	/* List of blocks: */
+	struct list_head block_list;
+
+	/* List of ir3_array's: */
+	struct list_head array_list;
+
+#ifdef DEBUG
+	unsigned block_count, instr_count;
+#endif
+};
+
+struct ir3_array {
+	struct list_head node;
+	unsigned length;
+	unsigned id;
+
+	struct nir_register *r;
+
+	/* To avoid array write's from getting DCE'd, keep track of the
+	 * most recent write.  Any array access depends on the most
+	 * recent write.  This way, nothing depends on writes after the
+	 * last read.  But all the writes that happen before that have
+	 * something depending on them
+	 */
+	struct ir3_instruction *last_write;
+
+	/* extra stuff used in RA pass: */
+	unsigned base;      /* base vreg name */
+	unsigned reg;       /* base physical reg */
+	uint16_t start_ip, end_ip;
+};
+
+struct ir3_array * ir3_lookup_array(struct ir3 *ir, unsigned id);
+
+struct ir3_block {
+	struct list_head node;
+	struct ir3 *shader;
+
+	const struct nir_block *nblock;
+
+	struct list_head instr_list;  /* list of ir3_instruction */
+
+	/* each block has either one or two successors.. in case of
+	 * two successors, 'condition' decides which one to follow.
+	 * A block preceding an if/else has two successors.
+	 */
+	struct ir3_instruction *condition;
+	struct ir3_block *successors[2];
+
+	unsigned predecessors_count;
+	struct ir3_block **predecessors;
+
+	uint16_t start_ip, end_ip;
+
+	/* Track instructions which do not write a register but other-
+	 * wise must not be discarded (such as kill, stg, etc)
+	 */
+	DECLARE_ARRAY(struct ir3_instruction *, keeps);
+
+	/* used for per-pass extra block data.  Mainly used right
+	 * now in RA step to track livein/liveout.
+	 */
+	void *data;
+
+#ifdef DEBUG
+	uint32_t serialno;
+#endif
+};
+
+static inline uint32_t
+block_id(struct ir3_block *block)
+{
+#ifdef DEBUG
+	return block->serialno;
+#else
+	return (uint32_t)(unsigned long)block;
+#endif
+}
+
+struct ir3 * ir3_create(struct ir3_compiler *compiler,
+		unsigned nin, unsigned nout);
+void ir3_destroy(struct ir3 *shader);
+void * ir3_assemble(struct ir3 *shader,
+		struct ir3_info *info, uint32_t gpu_id);
+void * ir3_alloc(struct ir3 *shader, int sz);
+
+struct ir3_block * ir3_block_create(struct ir3 *shader);
+
+struct ir3_instruction * ir3_instr_create(struct ir3_block *block, opc_t opc);
+struct ir3_instruction * ir3_instr_create2(struct ir3_block *block,
+		opc_t opc, int nreg);
+struct ir3_instruction * ir3_instr_clone(struct ir3_instruction *instr);
+void ir3_instr_add_dep(struct ir3_instruction *instr, struct ir3_instruction *dep);
+const char *ir3_instr_name(struct ir3_instruction *instr);
+
+struct ir3_register * ir3_reg_create(struct ir3_instruction *instr,
+		int num, int flags);
+struct ir3_register * ir3_reg_clone(struct ir3 *shader,
+		struct ir3_register *reg);
+
+void ir3_instr_set_address(struct ir3_instruction *instr,
+		struct ir3_instruction *addr);
+
+static inline bool ir3_instr_check_mark(struct ir3_instruction *instr)
+{
+	if (instr->flags & IR3_INSTR_MARK)
+		return true;  /* already visited */
+	instr->flags |= IR3_INSTR_MARK;
+	return false;
+}
+
+void ir3_block_clear_mark(struct ir3_block *block);
+void ir3_clear_mark(struct ir3 *shader);
+
+unsigned ir3_count_instructions(struct ir3 *ir);
+
+static inline int ir3_instr_regno(struct ir3_instruction *instr,
+		struct ir3_register *reg)
+{
+	unsigned i;
+	for (i = 0; i < instr->regs_count; i++)
+		if (reg == instr->regs[i])
+			return i;
+	return -1;
+}
+
+
+#define MAX_ARRAYS 16
+
+/* comp:
+ *   0 - x
+ *   1 - y
+ *   2 - z
+ *   3 - w
+ */
+static inline uint32_t regid(int num, int comp)
+{
+	return (num << 2) | (comp & 0x3);
+}
+
+static inline uint32_t reg_num(struct ir3_register *reg)
+{
+	return reg->num >> 2;
+}
+
+static inline uint32_t reg_comp(struct ir3_register *reg)
+{
+	return reg->num & 0x3;
+}
+
+static inline bool is_flow(struct ir3_instruction *instr)
+{
+	return (opc_cat(instr->opc) == 0);
+}
+
+static inline bool is_kill(struct ir3_instruction *instr)
+{
+	return instr->opc == OPC_KILL;
+}
+
+static inline bool is_nop(struct ir3_instruction *instr)
+{
+	return instr->opc == OPC_NOP;
+}
+
+/* Is it a non-transformative (ie. not type changing) mov?  This can
+ * also include absneg.s/absneg.f, which for the most part can be
+ * treated as a mov (single src argument).
+ */
+static inline bool is_same_type_mov(struct ir3_instruction *instr)
+{
+	struct ir3_register *dst;
+
+	switch (instr->opc) {
+	case OPC_MOV:
+		if (instr->cat1.src_type != instr->cat1.dst_type)
+			return false;
+		break;
+	case OPC_ABSNEG_F:
+	case OPC_ABSNEG_S:
+		if (instr->flags & IR3_INSTR_SAT)
+			return false;
+		break;
+	default:
+		return false;
+	}
+
+	dst = instr->regs[0];
+
+	/* mov's that write to a0.x or p0.x are special: */
+	if (dst->num == regid(REG_P0, 0))
+		return false;
+	if (dst->num == regid(REG_A0, 0))
+		return false;
+
+	if (dst->flags & (IR3_REG_RELATIV | IR3_REG_ARRAY))
+		return false;
+
+	return true;
+}
+
+static inline bool is_alu(struct ir3_instruction *instr)
+{
+	return (1 <= opc_cat(instr->opc)) && (opc_cat(instr->opc) <= 3);
+}
+
+static inline bool is_sfu(struct ir3_instruction *instr)
+{
+	return (opc_cat(instr->opc) == 4);
+}
+
+static inline bool is_tex(struct ir3_instruction *instr)
+{
+	return (opc_cat(instr->opc) == 5);
+}
+
+static inline bool is_mem(struct ir3_instruction *instr)
+{
+	return (opc_cat(instr->opc) == 6);
+}
+
+static inline bool is_barrier(struct ir3_instruction *instr)
+{
+	return (opc_cat(instr->opc) == 7);
+}
+
+static inline bool
+is_store(struct ir3_instruction *instr)
+{
+	/* these instructions, the "destination" register is
+	 * actually a source, the address to store to.
+	 */
+	switch (instr->opc) {
+	case OPC_STG:
+	case OPC_STGB:
+	case OPC_STIB:
+	case OPC_STP:
+	case OPC_STL:
+	case OPC_STLW:
+	case OPC_L2G:
+	case OPC_G2L:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static inline bool is_load(struct ir3_instruction *instr)
+{
+	switch (instr->opc) {
+	case OPC_LDG:
+	case OPC_LDGB:
+	case OPC_LDL:
+	case OPC_LDP:
+	case OPC_L2G:
+	case OPC_LDLW:
+	case OPC_LDC:
+	case OPC_LDLV:
+		/* probably some others too.. */
+		return true;
+	default:
+		return false;
+	}
+}
+
+static inline bool is_input(struct ir3_instruction *instr)
+{
+	/* in some cases, ldlv is used to fetch varying without
+	 * interpolation.. fortunately inloc is the first src
+	 * register in either case
+	 */
+	switch (instr->opc) {
+	case OPC_LDLV:
+	case OPC_BARY_F:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static inline bool is_bool(struct ir3_instruction *instr)
+{
+	switch (instr->opc) {
+	case OPC_CMPS_F:
+	case OPC_CMPS_S:
+	case OPC_CMPS_U:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static inline bool is_meta(struct ir3_instruction *instr)
+{
+	/* TODO how should we count PHI (and maybe fan-in/out) which
+	 * might actually contribute some instructions to the final
+	 * result?
+	 */
+	return (opc_cat(instr->opc) == -1);
+}
+
+static inline bool writes_addr(struct ir3_instruction *instr)
+{
+	if (instr->regs_count > 0) {
+		struct ir3_register *dst = instr->regs[0];
+		return reg_num(dst) == REG_A0;
+	}
+	return false;
+}
+
+static inline bool writes_pred(struct ir3_instruction *instr)
+{
+	if (instr->regs_count > 0) {
+		struct ir3_register *dst = instr->regs[0];
+		return reg_num(dst) == REG_P0;
+	}
+	return false;
+}
+
+/* returns defining instruction for reg */
+/* TODO better name */
+static inline struct ir3_instruction *ssa(struct ir3_register *reg)
+{
+	if (reg->flags & (IR3_REG_SSA | IR3_REG_ARRAY)) {
+		return reg->instr;
+	}
+	return NULL;
+}
+
+static inline bool conflicts(struct ir3_instruction *a,
+		struct ir3_instruction *b)
+{
+	return (a && b) && (a != b);
+}
+
+static inline bool reg_gpr(struct ir3_register *r)
+{
+	if (r->flags & (IR3_REG_CONST | IR3_REG_IMMED))
+		return false;
+	if ((reg_num(r) == REG_A0) || (reg_num(r) == REG_P0))
+		return false;
+	return true;
+}
+
+static inline type_t half_type(type_t type)
+{
+	switch (type) {
+	case TYPE_F32: return TYPE_F16;
+	case TYPE_U32: return TYPE_U16;
+	case TYPE_S32: return TYPE_S16;
+	case TYPE_F16:
+	case TYPE_U16:
+	case TYPE_S16:
+		return type;
+	default:
+		assert(0);
+		return ~0;
+	}
+}
+
+/* some cat2 instructions (ie. those which are not float) can embed an
+ * immediate:
+ */
+static inline bool ir3_cat2_int(opc_t opc)
+{
+	switch (opc) {
+	case OPC_ADD_U:
+	case OPC_ADD_S:
+	case OPC_SUB_U:
+	case OPC_SUB_S:
+	case OPC_CMPS_U:
+	case OPC_CMPS_S:
+	case OPC_MIN_U:
+	case OPC_MIN_S:
+	case OPC_MAX_U:
+	case OPC_MAX_S:
+	case OPC_CMPV_U:
+	case OPC_CMPV_S:
+	case OPC_MUL_U:
+	case OPC_MUL_S:
+	case OPC_MULL_U:
+	case OPC_CLZ_S:
+	case OPC_ABSNEG_S:
+	case OPC_AND_B:
+	case OPC_OR_B:
+	case OPC_NOT_B:
+	case OPC_XOR_B:
+	case OPC_BFREV_B:
+	case OPC_CLZ_B:
+	case OPC_SHL_B:
+	case OPC_SHR_B:
+	case OPC_ASHR_B:
+	case OPC_MGEN_B:
+	case OPC_GETBIT_B:
+	case OPC_CBITS_B:
+	case OPC_BARY_F:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+
+/* map cat2 instruction to valid abs/neg flags: */
+static inline unsigned ir3_cat2_absneg(opc_t opc)
+{
+	switch (opc) {
+	case OPC_ADD_F:
+	case OPC_MIN_F:
+	case OPC_MAX_F:
+	case OPC_MUL_F:
+	case OPC_SIGN_F:
+	case OPC_CMPS_F:
+	case OPC_ABSNEG_F:
+	case OPC_CMPV_F:
+	case OPC_FLOOR_F:
+	case OPC_CEIL_F:
+	case OPC_RNDNE_F:
+	case OPC_RNDAZ_F:
+	case OPC_TRUNC_F:
+	case OPC_BARY_F:
+		return IR3_REG_FABS | IR3_REG_FNEG;
+
+	case OPC_ADD_U:
+	case OPC_ADD_S:
+	case OPC_SUB_U:
+	case OPC_SUB_S:
+	case OPC_CMPS_U:
+	case OPC_CMPS_S:
+	case OPC_MIN_U:
+	case OPC_MIN_S:
+	case OPC_MAX_U:
+	case OPC_MAX_S:
+	case OPC_CMPV_U:
+	case OPC_CMPV_S:
+	case OPC_MUL_U:
+	case OPC_MUL_S:
+	case OPC_MULL_U:
+	case OPC_CLZ_S:
+		return 0;
+
+	case OPC_ABSNEG_S:
+		return IR3_REG_SABS | IR3_REG_SNEG;
+
+	case OPC_AND_B:
+	case OPC_OR_B:
+	case OPC_NOT_B:
+	case OPC_XOR_B:
+	case OPC_BFREV_B:
+	case OPC_CLZ_B:
+	case OPC_SHL_B:
+	case OPC_SHR_B:
+	case OPC_ASHR_B:
+	case OPC_MGEN_B:
+	case OPC_GETBIT_B:
+	case OPC_CBITS_B:
+		return IR3_REG_BNOT;
+
+	default:
+		return 0;
+	}
+}
+
+/* map cat3 instructions to valid abs/neg flags: */
+static inline unsigned ir3_cat3_absneg(opc_t opc)
+{
+	switch (opc) {
+	case OPC_MAD_F16:
+	case OPC_MAD_F32:
+	case OPC_SEL_F16:
+	case OPC_SEL_F32:
+		return IR3_REG_FNEG;
+
+	case OPC_MAD_U16:
+	case OPC_MADSH_U16:
+	case OPC_MAD_S16:
+	case OPC_MADSH_M16:
+	case OPC_MAD_U24:
+	case OPC_MAD_S24:
+	case OPC_SEL_S16:
+	case OPC_SEL_S32:
+	case OPC_SAD_S16:
+	case OPC_SAD_S32:
+		/* neg *may* work on 3rd src.. */
+
+	case OPC_SEL_B16:
+	case OPC_SEL_B32:
+
+	default:
+		return 0;
+	}
+}
+
+#define MASK(n) ((1 << (n)) - 1)
+
+/* iterator for an instructions's sources (reg), also returns src #: */
+#define foreach_src_n(__srcreg, __n, __instr) \
+	if ((__instr)->regs_count) \
+		for (unsigned __cnt = (__instr)->regs_count - 1, __n = 0; __n < __cnt; __n++) \
+			if ((__srcreg = (__instr)->regs[__n + 1]))
+
+/* iterator for an instructions's sources (reg): */
+#define foreach_src(__srcreg, __instr) \
+	foreach_src_n(__srcreg, __i, __instr)
+
+static inline unsigned __ssa_src_cnt(struct ir3_instruction *instr)
+{
+	unsigned cnt = instr->regs_count + instr->deps_count;
+	if (instr->address)
+		cnt++;
+	return cnt;
+}
+
+static inline struct ir3_instruction * __ssa_src_n(struct ir3_instruction *instr, unsigned n)
+{
+	if (n == (instr->regs_count + instr->deps_count))
+		return instr->address;
+	if (n >= instr->regs_count)
+		return instr->deps[n - instr->regs_count];
+	return ssa(instr->regs[n]);
+}
+
+static inline bool __is_false_dep(struct ir3_instruction *instr, unsigned n)
+{
+	if (n == (instr->regs_count + instr->deps_count))
+		return false;
+	if (n >= instr->regs_count)
+		return true;
+	return false;
+}
+
+#define __src_cnt(__instr) ((__instr)->address ? (__instr)->regs_count : (__instr)->regs_count - 1)
+
+/* iterator for an instruction's SSA sources (instr), also returns src #: */
+#define foreach_ssa_src_n(__srcinst, __n, __instr) \
+	for (unsigned __cnt = __ssa_src_cnt(__instr), __n = 0; __n < __cnt; __n++) \
+		if ((__srcinst = __ssa_src_n(__instr, __n)))
+
+/* iterator for an instruction's SSA sources (instr): */
+#define foreach_ssa_src(__srcinst, __instr) \
+	foreach_ssa_src_n(__srcinst, __i, __instr)
+
+
+/* dump: */
+void ir3_print(struct ir3 *ir);
+void ir3_print_instr(struct ir3_instruction *instr);
+
+/* depth calculation: */
+int ir3_delayslots(struct ir3_instruction *assigner,
+		struct ir3_instruction *consumer, unsigned n);
+void ir3_insert_by_depth(struct ir3_instruction *instr, struct list_head *list);
+void ir3_depth(struct ir3 *ir);
+
+/* copy-propagate: */
+struct ir3_shader_variant;
+void ir3_cp(struct ir3 *ir, struct ir3_shader_variant *so);
+
+/* group neighbors and insert mov's to resolve conflicts: */
+void ir3_group(struct ir3 *ir);
+
+/* scheduling: */
+void ir3_sched_add_deps(struct ir3 *ir);
+int ir3_sched(struct ir3 *ir);
+
+/* register assignment: */
+struct ir3_ra_reg_set * ir3_ra_alloc_reg_set(struct ir3_compiler *compiler);
+int ir3_ra(struct ir3 *ir3, gl_shader_stage type,
+		bool frag_coord, bool frag_face);
+
+/* legalize: */
+void ir3_legalize(struct ir3 *ir, int *num_samp, bool *has_ssbo, int *max_bary);
+
+/* ************************************************************************* */
+/* instruction helpers */
+
+/* creates SSA src of correct type (ie. half vs full precision) */
+static inline struct ir3_register * __ssa_src(struct ir3_instruction *instr,
+		struct ir3_instruction *src, unsigned flags)
+{
+	struct ir3_register *reg;
+	if (src->regs[0]->flags & IR3_REG_HALF)
+		flags |= IR3_REG_HALF;
+	reg = ir3_reg_create(instr, 0, IR3_REG_SSA | flags);
+	reg->instr = src;
+	return reg;
+}
+
+static inline struct ir3_instruction *
+ir3_MOV(struct ir3_block *block, struct ir3_instruction *src, type_t type)
+{
+	struct ir3_instruction *instr = ir3_instr_create(block, OPC_MOV);
+	ir3_reg_create(instr, 0, 0);   /* dst */
+	if (src->regs[0]->flags & IR3_REG_ARRAY) {
+		struct ir3_register *src_reg = __ssa_src(instr, src, IR3_REG_ARRAY);
+		src_reg->array = src->regs[0]->array;
+	} else {
+		__ssa_src(instr, src, 0);
+	}
+	debug_assert(!(src->regs[0]->flags & IR3_REG_RELATIV));
+	instr->cat1.src_type = type;
+	instr->cat1.dst_type = type;
+	return instr;
+}
+
+static inline struct ir3_instruction *
+ir3_COV(struct ir3_block *block, struct ir3_instruction *src,
+		type_t src_type, type_t dst_type)
+{
+	struct ir3_instruction *instr = ir3_instr_create(block, OPC_MOV);
+	unsigned dst_flags = (type_size(dst_type) < 32) ? IR3_REG_HALF : 0;
+	unsigned src_flags = (type_size(src_type) < 32) ? IR3_REG_HALF : 0;
+
+	debug_assert((src->regs[0]->flags & IR3_REG_HALF) == src_flags);
+
+	ir3_reg_create(instr, 0, dst_flags);   /* dst */
+	__ssa_src(instr, src, 0);
+	instr->cat1.src_type = src_type;
+	instr->cat1.dst_type = dst_type;
+	debug_assert(!(src->regs[0]->flags & IR3_REG_ARRAY));
+	return instr;
+}
+
+static inline struct ir3_instruction *
+ir3_NOP(struct ir3_block *block)
+{
+	return ir3_instr_create(block, OPC_NOP);
+}
+
+#define INSTR0(name)                                                     \
+static inline struct ir3_instruction *                                   \
+ir3_##name(struct ir3_block *block)                                      \
+{                                                                        \
+	struct ir3_instruction *instr =                                      \
+		ir3_instr_create(block, OPC_##name);                             \
+	return instr;                                                        \
+}
+
+#define INSTR1(name)                                                     \
+static inline struct ir3_instruction *                                   \
+ir3_##name(struct ir3_block *block,                                      \
+		struct ir3_instruction *a, unsigned aflags)                      \
+{                                                                        \
+	struct ir3_instruction *instr =                                      \
+		ir3_instr_create(block, OPC_##name);                             \
+	ir3_reg_create(instr, 0, 0);   /* dst */                             \
+	__ssa_src(instr, a, aflags);                                         \
+	return instr;                                                        \
+}
+
+#define INSTR2(name)                                                     \
+static inline struct ir3_instruction *                                   \
+ir3_##name(struct ir3_block *block,                                      \
+		struct ir3_instruction *a, unsigned aflags,                      \
+		struct ir3_instruction *b, unsigned bflags)                      \
+{                                                                        \
+	struct ir3_instruction *instr =                                      \
+		ir3_instr_create(block, OPC_##name);                             \
+	ir3_reg_create(instr, 0, 0);   /* dst */                             \
+	__ssa_src(instr, a, aflags);                                         \
+	__ssa_src(instr, b, bflags);                                         \
+	return instr;                                                        \
+}
+
+#define INSTR3(name)                                                     \
+static inline struct ir3_instruction *                                   \
+ir3_##name(struct ir3_block *block,                                      \
+		struct ir3_instruction *a, unsigned aflags,                      \
+		struct ir3_instruction *b, unsigned bflags,                      \
+		struct ir3_instruction *c, unsigned cflags)                      \
+{                                                                        \
+	struct ir3_instruction *instr =                                      \
+		ir3_instr_create(block, OPC_##name);                             \
+	ir3_reg_create(instr, 0, 0);   /* dst */                             \
+	__ssa_src(instr, a, aflags);                                         \
+	__ssa_src(instr, b, bflags);                                         \
+	__ssa_src(instr, c, cflags);                                         \
+	return instr;                                                        \
+}
+
+#define INSTR4(name)                                                     \
+static inline struct ir3_instruction *                                   \
+ir3_##name(struct ir3_block *block,                                      \
+		struct ir3_instruction *a, unsigned aflags,                      \
+		struct ir3_instruction *b, unsigned bflags,                      \
+		struct ir3_instruction *c, unsigned cflags,                      \
+		struct ir3_instruction *d, unsigned dflags)                      \
+{                                                                        \
+	struct ir3_instruction *instr =                                      \
+		ir3_instr_create2(block, OPC_##name, 5);                         \
+	ir3_reg_create(instr, 0, 0);   /* dst */                             \
+	__ssa_src(instr, a, aflags);                                         \
+	__ssa_src(instr, b, bflags);                                         \
+	__ssa_src(instr, c, cflags);                                         \
+	__ssa_src(instr, d, dflags);                                         \
+	return instr;                                                        \
+}
+
+#define INSTR4F(f, name)                                                 \
+static inline struct ir3_instruction *                                   \
+ir3_##name##_##f(struct ir3_block *block,                                \
+		struct ir3_instruction *a, unsigned aflags,                      \
+		struct ir3_instruction *b, unsigned bflags,                      \
+		struct ir3_instruction *c, unsigned cflags,                      \
+		struct ir3_instruction *d, unsigned dflags)                      \
+{                                                                        \
+	struct ir3_instruction *instr =                                      \
+		ir3_instr_create2(block, OPC_##name, 5);                         \
+	ir3_reg_create(instr, 0, 0);   /* dst */                             \
+	__ssa_src(instr, a, aflags);                                         \
+	__ssa_src(instr, b, bflags);                                         \
+	__ssa_src(instr, c, cflags);                                         \
+	__ssa_src(instr, d, dflags);                                         \
+	instr->flags |= IR3_INSTR_##f;                                       \
+	return instr;                                                        \
+}
+
+/* cat0 instructions: */
+INSTR0(BR)
+INSTR0(JUMP)
+INSTR1(KILL)
+INSTR0(END)
+
+/* cat2 instructions, most 2 src but some 1 src: */
+INSTR2(ADD_F)
+INSTR2(MIN_F)
+INSTR2(MAX_F)
+INSTR2(MUL_F)
+INSTR1(SIGN_F)
+INSTR2(CMPS_F)
+INSTR1(ABSNEG_F)
+INSTR2(CMPV_F)
+INSTR1(FLOOR_F)
+INSTR1(CEIL_F)
+INSTR1(RNDNE_F)
+INSTR1(RNDAZ_F)
+INSTR1(TRUNC_F)
+INSTR2(ADD_U)
+INSTR2(ADD_S)
+INSTR2(SUB_U)
+INSTR2(SUB_S)
+INSTR2(CMPS_U)
+INSTR2(CMPS_S)
+INSTR2(MIN_U)
+INSTR2(MIN_S)
+INSTR2(MAX_U)
+INSTR2(MAX_S)
+INSTR1(ABSNEG_S)
+INSTR2(AND_B)
+INSTR2(OR_B)
+INSTR1(NOT_B)
+INSTR2(XOR_B)
+INSTR2(CMPV_U)
+INSTR2(CMPV_S)
+INSTR2(MUL_U)
+INSTR2(MUL_S)
+INSTR2(MULL_U)
+INSTR1(BFREV_B)
+INSTR1(CLZ_S)
+INSTR1(CLZ_B)
+INSTR2(SHL_B)
+INSTR2(SHR_B)
+INSTR2(ASHR_B)
+INSTR2(BARY_F)
+INSTR2(MGEN_B)
+INSTR2(GETBIT_B)
+INSTR1(SETRM)
+INSTR1(CBITS_B)
+INSTR2(SHB)
+INSTR2(MSAD)
+
+/* cat3 instructions: */
+INSTR3(MAD_U16)
+INSTR3(MADSH_U16)
+INSTR3(MAD_S16)
+INSTR3(MADSH_M16)
+INSTR3(MAD_U24)
+INSTR3(MAD_S24)
+INSTR3(MAD_F16)
+INSTR3(MAD_F32)
+INSTR3(SEL_B16)
+INSTR3(SEL_B32)
+INSTR3(SEL_S16)
+INSTR3(SEL_S32)
+INSTR3(SEL_F16)
+INSTR3(SEL_F32)
+INSTR3(SAD_S16)
+INSTR3(SAD_S32)
+
+/* cat4 instructions: */
+INSTR1(RCP)
+INSTR1(RSQ)
+INSTR1(LOG2)
+INSTR1(EXP2)
+INSTR1(SIN)
+INSTR1(COS)
+INSTR1(SQRT)
+
+/* cat5 instructions: */
+INSTR1(DSX)
+INSTR1(DSY)
+
+static inline struct ir3_instruction *
+ir3_SAM(struct ir3_block *block, opc_t opc, type_t type,
+		unsigned wrmask, unsigned flags, unsigned samp, unsigned tex,
+		struct ir3_instruction *src0, struct ir3_instruction *src1)
+{
+	struct ir3_instruction *sam;
+	struct ir3_register *reg;
+
+	sam = ir3_instr_create(block, opc);
+	sam->flags |= flags;
+	ir3_reg_create(sam, 0, 0)->wrmask = wrmask;
+	if (src0) {
+		reg = ir3_reg_create(sam, 0, IR3_REG_SSA);
+		reg->wrmask = (1 << (src0->regs_count - 1)) - 1;
+		reg->instr = src0;
+	}
+	if (src1) {
+		reg = ir3_reg_create(sam, 0, IR3_REG_SSA);
+		reg->instr = src1;
+		reg->wrmask = (1 << (src1->regs_count - 1)) - 1;
+	}
+	sam->cat5.samp = samp;
+	sam->cat5.tex  = tex;
+	sam->cat5.type  = type;
+
+	return sam;
+}
+
+/* cat6 instructions: */
+INSTR2(LDLV)
+INSTR2(LDG)
+INSTR2(LDL)
+INSTR3(STG)
+INSTR3(STL)
+INSTR3(LDGB)
+INSTR4(STGB)
+INSTR4(STIB)
+INSTR1(RESINFO)
+INSTR1(RESFMT)
+INSTR2(ATOMIC_ADD)
+INSTR2(ATOMIC_SUB)
+INSTR2(ATOMIC_XCHG)
+INSTR2(ATOMIC_INC)
+INSTR2(ATOMIC_DEC)
+INSTR2(ATOMIC_CMPXCHG)
+INSTR2(ATOMIC_MIN)
+INSTR2(ATOMIC_MAX)
+INSTR2(ATOMIC_AND)
+INSTR2(ATOMIC_OR)
+INSTR2(ATOMIC_XOR)
+INSTR4F(G, ATOMIC_ADD)
+INSTR4F(G, ATOMIC_SUB)
+INSTR4F(G, ATOMIC_XCHG)
+INSTR4F(G, ATOMIC_INC)
+INSTR4F(G, ATOMIC_DEC)
+INSTR4F(G, ATOMIC_CMPXCHG)
+INSTR4F(G, ATOMIC_MIN)
+INSTR4F(G, ATOMIC_MAX)
+INSTR4F(G, ATOMIC_AND)
+INSTR4F(G, ATOMIC_OR)
+INSTR4F(G, ATOMIC_XOR)
+
+/* cat7 instructions: */
+INSTR0(BAR)
+INSTR0(FENCE)
+
+/* ************************************************************************* */
+/* split this out or find some helper to use.. like main/bitset.h.. */
+
+#include <string.h>
+
+#define MAX_REG 256
+
+typedef uint8_t regmask_t[2 * MAX_REG / 8];
+
+static inline unsigned regmask_idx(struct ir3_register *reg)
+{
+	unsigned num = (reg->flags & IR3_REG_RELATIV) ? reg->array.offset : reg->num;
+	debug_assert(num < MAX_REG);
+	if (reg->flags & IR3_REG_HALF)
+		num += MAX_REG;
+	return num;
+}
+
+static inline void regmask_init(regmask_t *regmask)
+{
+	memset(regmask, 0, sizeof(*regmask));
+}
+
+static inline void regmask_set(regmask_t *regmask, struct ir3_register *reg)
+{
+	unsigned idx = regmask_idx(reg);
+	if (reg->flags & IR3_REG_RELATIV) {
+		unsigned i;
+		for (i = 0; i < reg->size; i++, idx++)
+			(*regmask)[idx / 8] |= 1 << (idx % 8);
+	} else {
+		unsigned mask;
+		for (mask = reg->wrmask; mask; mask >>= 1, idx++)
+			if (mask & 1)
+				(*regmask)[idx / 8] |= 1 << (idx % 8);
+	}
+}
+
+static inline void regmask_or(regmask_t *dst, regmask_t *a, regmask_t *b)
+{
+	unsigned i;
+	for (i = 0; i < ARRAY_SIZE(*dst); i++)
+		(*dst)[i] = (*a)[i] | (*b)[i];
+}
+
+/* set bits in a if not set in b, conceptually:
+ *   a |= (reg & ~b)
+ */
+static inline void regmask_set_if_not(regmask_t *a,
+		struct ir3_register *reg, regmask_t *b)
+{
+	unsigned idx = regmask_idx(reg);
+	if (reg->flags & IR3_REG_RELATIV) {
+		unsigned i;
+		for (i = 0; i < reg->size; i++, idx++)
+			if (!((*b)[idx / 8] & (1 << (idx % 8))))
+				(*a)[idx / 8] |= 1 << (idx % 8);
+	} else {
+		unsigned mask;
+		for (mask = reg->wrmask; mask; mask >>= 1, idx++)
+			if (mask & 1)
+				if (!((*b)[idx / 8] & (1 << (idx % 8))))
+					(*a)[idx / 8] |= 1 << (idx % 8);
+	}
+}
+
+static inline bool regmask_get(regmask_t *regmask,
+		struct ir3_register *reg)
+{
+	unsigned idx = regmask_idx(reg);
+	if (reg->flags & IR3_REG_RELATIV) {
+		unsigned i;
+		for (i = 0; i < reg->size; i++, idx++)
+			if ((*regmask)[idx / 8] & (1 << (idx % 8)))
+				return true;
+	} else {
+		unsigned mask;
+		for (mask = reg->wrmask; mask; mask >>= 1, idx++)
+			if (mask & 1)
+				if ((*regmask)[idx / 8] & (1 << (idx % 8)))
+					return true;
+	}
+	return false;
+}
+
+/* ************************************************************************* */
+
+#endif /* IR3_H_ */

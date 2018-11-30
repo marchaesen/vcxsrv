@@ -360,13 +360,20 @@ read_xfb(struct blob_reader *metadata, struct gl_shader_program *shProg)
    if (xfb_stage == ~0u)
       return;
 
+   if (shProg->TransformFeedback.VaryingNames)  {
+      for (unsigned i = 0; i < shProg->TransformFeedback.NumVarying; ++i)
+         free(shProg->TransformFeedback.VaryingNames[i]);
+   }
+
    /* Data set by glTransformFeedbackVaryings. */
    shProg->TransformFeedback.BufferMode = blob_read_uint32(metadata);
    blob_copy_bytes(metadata, &shProg->TransformFeedback.BufferStride,
                    sizeof(shProg->TransformFeedback.BufferStride));
    shProg->TransformFeedback.NumVarying = blob_read_uint32(metadata);
+
    shProg->TransformFeedback.VaryingNames = (char **)
-      malloc(shProg->TransformFeedback.NumVarying * sizeof(GLchar *));
+      realloc(shProg->TransformFeedback.VaryingNames,
+             shProg->TransformFeedback.NumVarying * sizeof(GLchar *));
    /* Note, malloc used with VaryingNames. */
    for (unsigned i = 0; i < shProg->TransformFeedback.NumVarying; i++)
       shProg->TransformFeedback.VaryingNames[i] =

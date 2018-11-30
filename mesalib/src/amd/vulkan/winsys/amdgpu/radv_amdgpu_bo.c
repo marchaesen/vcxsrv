@@ -304,8 +304,12 @@ radv_amdgpu_winsys_bo_create(struct radeon_winsys *_ws,
 		return NULL;
 	}
 
+	unsigned virt_alignment = alignment;
+	if (size >= ws->info.pte_fragment_size)
+		virt_alignment = MAX2(virt_alignment, ws->info.pte_fragment_size);
+
 	r = amdgpu_va_range_alloc(ws->dev, amdgpu_gpu_va_range_general,
-				  size, alignment, 0, &va, &va_handle,
+				  size, virt_alignment, 0, &va, &va_handle,
 				  (flags & RADEON_FLAG_32BIT ? AMDGPU_VA_RANGE_32_BIT : 0) |
 				   AMDGPU_VA_RANGE_HIGH);
 	if (r)

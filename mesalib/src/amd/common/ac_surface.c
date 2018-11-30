@@ -27,7 +27,7 @@
 
 #include "ac_surface.h"
 #include "amd_family.h"
-#include "addrlib/amdgpu_asic_addr.h"
+#include "addrlib/src/amdgpu_asic_addr.h"
 #include "ac_gpu_info.h"
 #include "util/macros.h"
 #include "util/u_atomic.h"
@@ -39,7 +39,7 @@
 #include <amdgpu.h>
 #include <amdgpu_drm.h>
 
-#include "addrlib/addrinterface.h"
+#include "addrlib/inc/addrinterface.h"
 
 #ifndef CIASICIDGFXENGINE_SOUTHERNISLAND
 #define CIASICIDGFXENGINE_SOUTHERNISLAND 0x0000000A
@@ -1038,8 +1038,7 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 static int
 gfx9_get_preferred_swizzle_mode(ADDR_HANDLE addrlib,
 				ADDR2_COMPUTE_SURFACE_INFO_INPUT *in,
-				bool is_fmask, unsigned flags,
-				AddrSwizzleMode *swizzle_mode)
+				bool is_fmask, AddrSwizzleMode *swizzle_mode)
 {
 	ADDR_E_RETURNCODE ret;
 	ADDR2_GET_PREFERRED_SURF_SETTING_INPUT sin = {0};
@@ -1063,16 +1062,6 @@ gfx9_get_preferred_swizzle_mode(ADDR_HANDLE addrlib,
 	sin.numMipLevels = in->numMipLevels;
 	sin.numSamples = in->numSamples;
 	sin.numFrags = in->numFrags;
-
-	if (flags & RADEON_SURF_SCANOUT) {
-		sin.preferredSwSet.sw_D = 1;
-		/* Raven only allows S for displayable surfaces with < 64 bpp, so
-		 * allow it as fallback */
-		sin.preferredSwSet.sw_S = 1;
-	} else if (in->flags.depth || in->flags.stencil || is_fmask)
-		sin.preferredSwSet.sw_Z = 1;
-	else
-		sin.preferredSwSet.sw_S = 1;
 
 	if (is_fmask) {
 		sin.flags.display = 0;
@@ -1273,8 +1262,7 @@ static int gfx9_compute_miptree(ADDR_HANDLE addrlib,
 			fout.size = sizeof(ADDR2_COMPUTE_FMASK_INFO_OUTPUT);
 
 			ret = gfx9_get_preferred_swizzle_mode(addrlib, in,
-							      true, surf->flags,
-							      &fin.swizzleMode);
+							      true, &fin.swizzleMode);
 			if (ret != ADDR_OK)
 				return ret;
 
@@ -1476,8 +1464,7 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 		}
 
 		r = gfx9_get_preferred_swizzle_mode(addrlib, &AddrSurfInfoIn,
-						    false, surf->flags,
-						    &AddrSurfInfoIn.swizzleMode);
+						    false, &AddrSurfInfoIn.swizzleMode);
 		if (r)
 			return r;
 		break;
@@ -1513,8 +1500,7 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 
 		if (!AddrSurfInfoIn.flags.depth) {
 			r = gfx9_get_preferred_swizzle_mode(addrlib, &AddrSurfInfoIn,
-							    false, surf->flags,
-							    &AddrSurfInfoIn.swizzleMode);
+							    false, &AddrSurfInfoIn.swizzleMode);
 			if (r)
 				return r;
 		} else

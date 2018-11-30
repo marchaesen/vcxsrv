@@ -2997,6 +2997,7 @@ AM_CONDITIONAL(HAVE_AMD_DRIVERS, test "x$HAVE_GALLIUM_RADEONSI" = xyes -o \
 AM_CONDITIONAL(HAVE_BROADCOM_DRIVERS, test "x$HAVE_GALLIUM_VC4" = xyes -o \
                                       "x$HAVE_GALLIUM_V3D" = xyes)
 
+AM_CONDITIONAL(HAVE_FREEDRENO_DRIVERS, test "x$HAVE_GALLIUM_FREEDRENO" = xyes)
 AM_CONDITIONAL(HAVE_INTEL_DRIVERS, test "x$HAVE_INTEL_VULKAN" = xyes -o \
                                         "x$HAVE_I965_DRI" = xyes)
 
@@ -3089,6 +3090,7 @@ AC_CONFIG_FILES([Makefile
                  src/amd/vulkan/Makefile
                  src/broadcom/Makefile
                  src/compiler/Makefile
+                 src/freedreno/Makefile
                  src/egl/Makefile
                  src/egl/main/egl.pc
                  src/egl/wayland/wayland-drm/Makefile

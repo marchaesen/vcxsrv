@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include <errno.h>
 #include <string.h>
 #include "main/macros.h"
 #include "debug.h"
@@ -75,4 +76,23 @@ env_var_as_boolean(const char *var_name, bool default_value)
    } else {
       return default_value;
    }
+}
+
+/**
+ * Reads an environment variable and interprets its value as a unsigned.
+ */
+unsigned
+env_var_as_unsigned(const char *var_name, unsigned default_value)
+{
+   char *str = getenv(var_name);
+   if (str) {
+      char *end;
+      unsigned long result;
+
+      errno = 0;
+      result = strtoul(str, &end, 0);
+      if (errno == 0 && end != str && *end == '\0')
+        return result;
+   }
+   return default_value;
 }

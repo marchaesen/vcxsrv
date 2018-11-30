@@ -691,7 +691,7 @@ radv_query_opaque_metadata(struct radv_device *device,
 	si_make_texture_descriptor(device, image, false,
 				   (VkImageViewType)image->type, image->vk_format,
 				   &fixedmapping, 0, image->info.levels - 1, 0,
-				   image->info.array_size,
+				   image->info.array_size - 1,
 				   image->info.width, image->info.height,
 				   image->info.depth,
 				   desc, NULL);
@@ -1175,8 +1175,6 @@ radv_image_view_init(struct radv_image_view *iview,
 		 if (device->physical_device->rad_info.chip_class >= GFX9 &&
 		     vk_format_is_compressed(image->vk_format) &&
 		     !vk_format_is_compressed(iview->vk_format)) {
-			 unsigned rounded_img_w = util_next_power_of_two(iview->extent.width);
-			 unsigned rounded_img_h = util_next_power_of_two(iview->extent.height);
 			 unsigned lvl_width  = radv_minify(image->info.width , range->baseMipLevel);
 			 unsigned lvl_height = radv_minify(image->info.height, range->baseMipLevel);
 
@@ -1186,8 +1184,8 @@ radv_image_view_init(struct radv_image_view *iview,
 			 lvl_width <<= range->baseMipLevel;
 			 lvl_height <<= range->baseMipLevel;
 
-			 iview->extent.width = CLAMP(lvl_width, iview->extent.width, rounded_img_w);
-			 iview->extent.height = CLAMP(lvl_height, iview->extent.height, rounded_img_h);
+			 iview->extent.width = CLAMP(lvl_width, iview->extent.width, iview->image->surface.u.gfx9.surf_pitch);
+			 iview->extent.height = CLAMP(lvl_height, iview->extent.height, iview->image->surface.u.gfx9.surf_height);
 		 }
 	}
 

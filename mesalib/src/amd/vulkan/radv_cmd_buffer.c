@@ -37,8 +37,6 @@
 
 #include "ac_debug.h"
 
-#include "addrlib/gfx9/chip/gfx9_enum.h"
-
 enum {
 	RADV_PREFETCH_VBO_DESCRIPTORS	= (1 << 0),
 	RADV_PREFETCH_VS		= (1 << 1),
@@ -59,8 +57,7 @@ static void radv_handle_image_transition(struct radv_cmd_buffer *cmd_buffer,
 					 VkImageLayout dst_layout,
 					 uint32_t src_family,
 					 uint32_t dst_family,
-					 const VkImageSubresourceRange *range,
-					 VkImageAspectFlags pending_clears);
+					 const VkImageSubresourceRange *range);
 
 const struct radv_dynamic_state default_dynamic_state = {
 	.viewport = {
@@ -1321,7 +1318,7 @@ radv_load_ds_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
 		radeon_emit(cs, PKT3(PKT3_LOAD_CONTEXT_REG, 3, 0));
 		radeon_emit(cs, va);
 		radeon_emit(cs, va >> 32);
-		radeon_emit(cs, (reg >> 2) - CONTEXT_SPACE_START);
+		radeon_emit(cs, (reg - SI_CONTEXT_REG_OFFSET) >> 2);
 		radeon_emit(cs, reg_count);
 	} else {
 		radeon_emit(cs, PKT3(PKT3_COPY_DATA, 4, 0));
@@ -1458,7 +1455,7 @@ radv_load_color_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
 		radeon_emit(cs, PKT3(PKT3_LOAD_CONTEXT_REG, 3, cmd_buffer->state.predicating));
 		radeon_emit(cs, va);
 		radeon_emit(cs, va >> 32);
-		radeon_emit(cs, (reg >> 2) - CONTEXT_SPACE_START);
+		radeon_emit(cs, (reg - SI_CONTEXT_REG_OFFSET) >> 2);
 		radeon_emit(cs, 2);
 	} else {
 		/* TODO: Figure out how to use LOAD_CONTEXT_REG on SI/CIK. */
@@ -2270,8 +2267,7 @@ static void radv_handle_subpass_image_transition(struct radv_cmd_buffer *cmd_buf
 	radv_handle_image_transition(cmd_buffer,
 				     view->image,
 				     cmd_buffer->state.attachments[idx].current_layout,
-				     att.layout, 0, 0, &range,
-				     cmd_buffer->state.attachments[idx].pending_clear_aspects);
+				     att.layout, 0, 0, &range);
 
 	cmd_buffer->state.attachments[idx].current_layout = att.layout;
 
@@ -4241,8 +4237,7 @@ static void radv_handle_depth_image_transition(struct radv_cmd_buffer *cmd_buffe
 					       VkImageLayout dst_layout,
 					       unsigned src_queue_mask,
 					       unsigned dst_queue_mask,
-					       const VkImageSubresourceRange *range,
-					       VkImageAspectFlags pending_clears)
+					       const VkImageSubresourceRange *range)
 {
 	if (!radv_image_has_htile(image))
 		return;
@@ -4384,8 +4379,7 @@ static void radv_handle_image_transition(struct radv_cmd_buffer *cmd_buffer,
 					 VkImageLayout dst_layout,
 					 uint32_t src_family,
 					 uint32_t dst_family,
-					 const VkImageSubresourceRange *range,
-					 VkImageAspectFlags pending_clears)
+					 const VkImageSubresourceRange *range)
 {
 	if (image->exclusive && src_family != dst_family) {
 		/* This is an acquire or a release operation and there will be
@@ -4415,7 +4409,7 @@ static void radv_handle_image_transition(struct radv_cmd_buffer *cmd_buffer,
 		radv_handle_depth_image_transition(cmd_buffer, image,
 						   src_layout, dst_layout,
 						   src_queue_mask, dst_queue_mask,
-						   range, pending_clears);
+						   range);
 	} else {
 		radv_handle_color_image_transition(cmd_buffer, image,
 						   src_layout, dst_layout,
@@ -4489,8 +4483,7 @@ radv_barrier(struct radv_cmd_buffer *cmd_buffer,
 					     pImageMemoryBarriers[i].newLayout,
 					     pImageMemoryBarriers[i].srcQueueFamilyIndex,
 					     pImageMemoryBarriers[i].dstQueueFamilyIndex,
-					     &pImageMemoryBarriers[i].subresourceRange,
-					     0);
+					     &pImageMemoryBarriers[i].subresourceRange);
 	}
 
 	/* Make sure CP DMA is idle because the driver might have performed a

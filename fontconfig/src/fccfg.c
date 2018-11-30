@@ -821,25 +821,25 @@ FcConfigCompareValue (const FcValue	*left_o,
 		break;
 	    case FcOpContains:
 	    case FcOpListing:
-		ret = left.u.b == right.u.b || left.u.b == FcDontCare;
+		ret = left.u.b == right.u.b || left.u.b >= FcDontCare;
 		break;
 	    case FcOpNotEqual:
 		ret = left.u.b != right.u.b;
 		break;
 	    case FcOpNotContains:
-		ret = !(left.u.b == right.u.b || left.u.b == FcDontCare);
+		ret = !(left.u.b == right.u.b || left.u.b >= FcDontCare);
 		break;
 	    case FcOpLess:
-		ret = left.u.b != right.u.b && right.u.b == FcDontCare;
+		ret = left.u.b != right.u.b && right.u.b >= FcDontCare;
 		break;
 	    case FcOpLessEqual:
-		ret = left.u.b == right.u.b || right.u.b == FcDontCare;
+		ret = left.u.b == right.u.b || right.u.b >= FcDontCare;
 		break;
 	    case FcOpMore:
-		ret = left.u.b != right.u.b && left.u.b == FcDontCare;
+		ret = left.u.b != right.u.b && left.u.b >= FcDontCare;
 		break;
 	    case FcOpMoreEqual:
-		ret = left.u.b == right.u.b || left.u.b == FcDontCare;
+		ret = left.u.b == right.u.b || left.u.b >= FcDontCare;
 		break;
 	    default:
 		break;

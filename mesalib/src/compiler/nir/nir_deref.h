@@ -55,6 +55,7 @@ nir_ssa_def *nir_build_deref_offset(nir_builder *b, nir_deref_instr *deref,
                                     glsl_type_size_align_func size_align);
 
 typedef enum {
+   nir_derefs_do_not_alias     = 0,
    nir_derefs_equal_bit        = (1 << 0),
    nir_derefs_may_alias_bit    = (1 << 1),
    nir_derefs_a_contains_b_bit = (1 << 2),

@@ -72,6 +72,11 @@ MESA_UTIL_FILES := \
 	u_debug.h \
 	u_cpu_detect.c \
 	u_cpu_detect.h \
+	os_memory_aligned.h \
+	os_memory_debug.h \
+	os_memory_stdc.h \
+	os_memory.h \
+	u_memory.h \
 	vma.c \
 	vma.h
 

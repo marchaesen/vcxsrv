@@ -34,6 +34,7 @@
 #include <syncsrv.h>
 #include <xfixes.h>
 #include <randrstr.h>
+#include <inttypes.h>
 
 #if 0
 #define DebugPresent(x) ErrorF x

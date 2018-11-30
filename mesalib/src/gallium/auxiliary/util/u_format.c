@@ -32,7 +32,7 @@
  * @author Jose Fonseca <jfonseca@vmware.com>
  */
 
-#include "u_memory.h"
+#include "util/u_memory.h"
 #include "u_format.h"
 #include "u_format_s3tc.h"
 #include "u_surface.h"

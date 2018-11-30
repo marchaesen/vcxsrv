@@ -26,7 +26,7 @@
 
 
 #include "u_inlines.h"
-#include "u_memory.h"
+#include "util/u_memory.h"
 #include "u_prim_restart.h"
 
 
