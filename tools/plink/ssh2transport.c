@@ -1803,7 +1803,7 @@ static bool ssh2_transport_get_specials(
     struct ssh2_transport_state *s =
         container_of(ppl, struct ssh2_transport_state, ppl);
     bool need_separator = false;
-    bool toret;
+    bool toret = false;
 
     if (ssh_ppl_get_specials(s->higher_layer, add_special, ctx)) {
         need_separator = true;
@@ -1856,8 +1856,7 @@ static void ssh2_transport_special_cmd(PacketProtocolLayer *ppl,
 	}
     } else if (code == SS_XCERT) {
 	if (!s->kex_in_progress) {
-            s->hostkey_alg = ssh2_hostkey_algs[arg].alg;
-            s->cross_certifying = true;
+            s->cross_certifying = s->hostkey_alg = ssh2_hostkey_algs[arg].alg;
             s->rekey_reason = "cross-certifying new host key";
             s->rekey_class = RK_NORMAL;
             queue_idempotent_callback(&s->ppl.ic_process_queue);
