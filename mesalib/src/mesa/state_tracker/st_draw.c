@@ -67,7 +67,7 @@
 #include "draw/draw_context.h"
 #include "cso_cache/cso_context.h"
 
-#ifdef PIPE_OS_LINUX
+#if defined(PIPE_OS_LINUX) && !defined(ANDROID)
 #include <sched.h>
 #define HAVE_SCHED_GETCPU 1
 #else

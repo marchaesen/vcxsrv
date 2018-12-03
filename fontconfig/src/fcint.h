@@ -1022,6 +1022,9 @@ enum {
 };
 
 FcPrivate FcBool
+FcNameConstantWithObjectCheck (const FcChar8 *string, const char *object, int *result);
+
+FcPrivate FcBool
 FcNameBool (const FcChar8 *v, FcBool *result);
 
 FcPrivate FcBool
