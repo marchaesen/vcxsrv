@@ -747,9 +747,6 @@ nir_visitor::visit(ir_call *ir)
       case ir_intrinsic_end_invocation_interlock:
          op = nir_intrinsic_end_invocation_interlock;
          break;
-      case ir_intrinsic_begin_fragment_shader_ordering:
-         op = nir_intrinsic_begin_fragment_shader_ordering;
-         break;
       case ir_intrinsic_group_memory_barrier:
          op = nir_intrinsic_group_memory_barrier;
          break;
@@ -986,9 +983,6 @@ nir_visitor::visit(ir_call *ir)
          nir_builder_instr_insert(&b, &instr->instr);
          break;
       case nir_intrinsic_end_invocation_interlock:
-         nir_builder_instr_insert(&b, &instr->instr);
-         break;
-      case nir_intrinsic_begin_fragment_shader_ordering:
          nir_builder_instr_insert(&b, &instr->instr);
          break;
       case nir_intrinsic_store_ssbo: {

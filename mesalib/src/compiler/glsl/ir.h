@@ -1122,7 +1122,6 @@ enum ir_intrinsic_id {
    ir_intrinsic_memory_barrier_shared,
    ir_intrinsic_begin_invocation_interlock,
    ir_intrinsic_end_invocation_interlock,
-   ir_intrinsic_begin_fragment_shader_ordering,
 
    ir_intrinsic_vote_all,
    ir_intrinsic_vote_any,

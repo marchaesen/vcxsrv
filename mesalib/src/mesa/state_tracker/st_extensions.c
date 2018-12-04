@@ -771,10 +771,6 @@ void st_init_extensions(struct pipe_screen *screen,
 
    /* Required: render target and sampler support */
    static const struct st_extension_format_mapping rendertarget_mapping[] = {
-      { { o(ARB_texture_float) },
-        { PIPE_FORMAT_R32G32B32A32_FLOAT,
-          PIPE_FORMAT_R16G16B16A16_FLOAT } },
-
       { { o(OES_texture_float) },
         { PIPE_FORMAT_R32G32B32A32_FLOAT } },
 
@@ -1460,6 +1456,10 @@ void st_init_extensions(struct pipe_screen *screen,
          }
       }
    }
+
+   extensions->ARB_texture_float =
+      extensions->OES_texture_half_float &&
+      extensions->OES_texture_float;
 
    if (extensions->EXT_texture_filter_anisotropic &&
        screen->get_paramf(screen, PIPE_CAPF_MAX_TEXTURE_ANISOTROPY) >= 16.0)

@@ -2061,7 +2061,7 @@ radv_meta_image_to_image_cs(struct radv_cmd_buffer *cmd_buffer,
 	itoi_bind_descriptors(cmd_buffer, &src_view, &dst_view);
 
 	if (device->physical_device->rad_info.chip_class >= GFX9 &&
-	    src->image->type == VK_IMAGE_TYPE_3D)
+	    (src->image->type == VK_IMAGE_TYPE_3D || dst->image->type == VK_IMAGE_TYPE_3D))
 		pipeline = cmd_buffer->device->meta_state.itoi.pipeline_3d;
 	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
 			     VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);

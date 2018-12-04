@@ -834,8 +834,6 @@ struct _mesa_glsl_parse_state {
    bool EXT_texture_cube_map_array_warn;
    bool INTEL_conservative_rasterization_enable;
    bool INTEL_conservative_rasterization_warn;
-   bool INTEL_fragment_shader_ordering_enable;
-   bool INTEL_fragment_shader_ordering_warn;
    bool INTEL_shader_atomic_float_minmax_enable;
    bool INTEL_shader_atomic_float_minmax_warn;
    bool MESA_shader_integer_functions_enable;

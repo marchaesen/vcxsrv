@@ -526,12 +526,6 @@ supports_nv_fragment_shader_interlock(const _mesa_glsl_parse_state *state)
 }
 
 static bool
-supports_intel_fragment_shader_ordering(const _mesa_glsl_parse_state *state)
-{
-   return state->INTEL_fragment_shader_ordering_enable;
-}
-
-static bool
 shader_clock(const _mesa_glsl_parse_state *state)
 {
    return state->ARB_shader_clock_enable;
@@ -1310,11 +1304,6 @@ builtin_builder::create_intrinsics()
                 _invocation_interlock_intrinsic(
                    supports_arb_fragment_shader_interlock,
                    ir_intrinsic_end_invocation_interlock), NULL);
-
-   add_function("__intrinsic_begin_fragment_shader_ordering",
-                _invocation_interlock_intrinsic(
-                   supports_intel_fragment_shader_ordering,
-                   ir_intrinsic_begin_fragment_shader_ordering), NULL);
 
    add_function("__intrinsic_shader_clock",
                 _shader_clock_intrinsic(shader_clock,
@@ -3428,12 +3417,6 @@ builtin_builder::create_builtins()
                 _invocation_interlock(
                    "__intrinsic_end_invocation_interlock",
                    supports_nv_fragment_shader_interlock),
-                NULL);
-
-   add_function("beginFragmentShaderOrderingINTEL",
-                _invocation_interlock(
-                   "__intrinsic_begin_fragment_shader_ordering",
-                   supports_intel_fragment_shader_ordering),
                 NULL);
 
    add_function("anyInvocationARB",

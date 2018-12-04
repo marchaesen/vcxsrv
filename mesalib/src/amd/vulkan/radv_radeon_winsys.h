@@ -223,6 +223,8 @@ struct radeon_winsys {
 
 	void (*buffer_set_metadata)(struct radeon_winsys_bo *bo,
 				    struct radeon_bo_metadata *md);
+	void (*buffer_get_metadata)(struct radeon_winsys_bo *bo,
+				    struct radeon_bo_metadata *md);
 
 	void (*buffer_virtual_bind)(struct radeon_winsys_bo *parent,
 	                            uint64_t offset, uint64_t size,
