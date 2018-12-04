@@ -1798,8 +1798,8 @@ static bool
 texture_format_error_check_gles(struct gl_context *ctx, GLenum format,
                                 GLenum type, GLenum internalFormat, const char *callerName)
 {
-   GLenum err = _mesa_es3_error_check_format_and_type(ctx, format, type,
-                                                      internalFormat);
+   GLenum err = _mesa_gles_error_check_format_and_type(ctx, format, type,
+                                                       internalFormat);
    if (err != GL_NO_ERROR) {
       _mesa_error(ctx, err,
                   "%s(format = %s, type = %s, internalformat = %s)",

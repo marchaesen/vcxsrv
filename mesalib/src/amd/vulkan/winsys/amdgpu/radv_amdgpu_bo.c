@@ -540,6 +540,21 @@ radv_amdgpu_winsys_get_fd(struct radeon_winsys *_ws,
 	return true;
 }
 
+static unsigned eg_tile_split(unsigned tile_split)
+{
+	switch (tile_split) {
+	case 0:     tile_split = 64;    break;
+	case 1:     tile_split = 128;   break;
+	case 2:     tile_split = 256;   break;
+	case 3:     tile_split = 512;   break;
+	default:
+	case 4:     tile_split = 1024;  break;
+	case 5:     tile_split = 2048;  break;
+	case 6:     tile_split = 4096;  break;
+	}
+	return tile_split;
+}
+
 static unsigned radv_eg_tile_split_rev(unsigned eg_tile_split)
 {
 	switch (eg_tile_split) {
@@ -593,6 +608,43 @@ radv_amdgpu_winsys_bo_set_metadata(struct radeon_winsys_bo *_bo,
 	amdgpu_bo_set_metadata(bo->bo, &metadata);
 }
 
+static void
+radv_amdgpu_winsys_bo_get_metadata(struct radeon_winsys_bo *_bo,
+                                   struct radeon_bo_metadata *md)
+{
+	struct radv_amdgpu_winsys_bo *bo = radv_amdgpu_winsys_bo(_bo);
+	struct amdgpu_bo_info info = {0};
+
+	int r = amdgpu_bo_query_info(bo->bo, &info);
+	if (r)
+		return;
+
+	uint64_t tiling_flags = info.metadata.tiling_info;
+
+	if (bo->ws->info.chip_class >= GFX9) {
+		md->u.gfx9.swizzle_mode = AMDGPU_TILING_GET(tiling_flags, SWIZZLE_MODE);
+	} else {
+		md->u.legacy.microtile = RADEON_LAYOUT_LINEAR;
+		md->u.legacy.macrotile = RADEON_LAYOUT_LINEAR;
+
+		if (AMDGPU_TILING_GET(tiling_flags, ARRAY_MODE) == 4)  /* 2D_TILED_THIN1 */
+			md->u.legacy.macrotile = RADEON_LAYOUT_TILED;
+		else if (AMDGPU_TILING_GET(tiling_flags, ARRAY_MODE) == 2) /* 1D_TILED_THIN1 */
+			md->u.legacy.microtile = RADEON_LAYOUT_TILED;
+
+		md->u.legacy.pipe_config = AMDGPU_TILING_GET(tiling_flags, PIPE_CONFIG);
+		md->u.legacy.bankw = 1 << AMDGPU_TILING_GET(tiling_flags, BANK_WIDTH);
+		md->u.legacy.bankh = 1 << AMDGPU_TILING_GET(tiling_flags, BANK_HEIGHT);
+		md->u.legacy.tile_split = eg_tile_split(AMDGPU_TILING_GET(tiling_flags, TILE_SPLIT));
+		md->u.legacy.mtilea = 1 << AMDGPU_TILING_GET(tiling_flags, MACRO_TILE_ASPECT);
+		md->u.legacy.num_banks = 2 << AMDGPU_TILING_GET(tiling_flags, NUM_BANKS);
+		md->u.legacy.scanout = AMDGPU_TILING_GET(tiling_flags, MICRO_TILE_MODE) == 0; /* DISPLAY */
+	}
+
+	md->size_metadata = info.metadata.size_metadata;
+	memcpy(md->metadata, info.metadata.umd_metadata, sizeof(md->metadata));
+}
+
 void radv_amdgpu_bo_init_functions(struct radv_amdgpu_winsys *ws)
 {
 	ws->base.buffer_create = radv_amdgpu_winsys_bo_create;
@@ -603,5 +655,6 @@ void radv_amdgpu_bo_init_functions(struct radv_amdgpu_winsys *ws)
 	ws->base.buffer_from_fd = radv_amdgpu_winsys_bo_from_fd;
 	ws->base.buffer_get_fd = radv_amdgpu_winsys_get_fd;
 	ws->base.buffer_set_metadata = radv_amdgpu_winsys_bo_set_metadata;
+	ws->base.buffer_get_metadata = radv_amdgpu_winsys_bo_get_metadata;
 	ws->base.buffer_virtual_bind = radv_amdgpu_winsys_bo_virtual_bind;
 }

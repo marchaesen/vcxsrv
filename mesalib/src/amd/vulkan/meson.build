@@ -140,7 +140,7 @@ libvulkan_radeon = shared_library(
   ],
   dependencies : [
     dep_llvm, dep_libdrm_amdgpu, dep_thread, dep_elf, dep_dl, dep_m,
-    dep_valgrind,
+    dep_valgrind, radv_deps,
     idep_nir,
   ],
   c_args : [c_vis_args, no_override_init_args, radv_flags],

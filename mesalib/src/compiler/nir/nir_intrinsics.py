@@ -202,7 +202,6 @@ barrier("memory_barrier_image")
 barrier("memory_barrier_shared")
 barrier("begin_invocation_interlock")
 barrier("end_invocation_interlock")
-barrier("begin_fragment_shader_ordering")
 
 # A conditional discard, with a single boolean source.
 intrinsic("discard_if", src_comp=[1])

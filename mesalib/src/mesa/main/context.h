@@ -337,6 +337,63 @@ _mesa_is_no_error_enabled(const struct gl_context *ctx)
 }
 
 
+static inline bool
+_mesa_has_integer_textures(const struct gl_context *ctx)
+{
+   return _mesa_has_EXT_texture_integer(ctx) || _mesa_is_gles3(ctx);
+}
+
+static inline bool
+_mesa_has_half_float_textures(const struct gl_context *ctx)
+{
+   return _mesa_has_ARB_texture_float(ctx) ||
+          _mesa_has_OES_texture_half_float(ctx) || _mesa_is_gles3(ctx);
+}
+
+static inline bool
+_mesa_has_float_textures(const struct gl_context *ctx)
+{
+   return _mesa_has_ARB_texture_float(ctx) ||
+          _mesa_has_OES_texture_float(ctx) || _mesa_is_gles3(ctx);
+ }
+
+static inline bool
+_mesa_has_texture_rgb10_a2ui(const struct gl_context *ctx)
+{
+   return _mesa_has_ARB_texture_rgb10_a2ui(ctx) || _mesa_is_gles3(ctx);
+}
+
+static inline bool
+_mesa_has_float_depth_buffer(const struct gl_context *ctx)
+{
+   return _mesa_has_ARB_depth_buffer_float(ctx) || _mesa_is_gles3(ctx);
+}
+
+static inline bool
+_mesa_has_packed_float(const struct gl_context *ctx)
+{
+   return _mesa_has_EXT_packed_float(ctx) || _mesa_is_gles3(ctx);
+}
+
+static inline bool
+_mesa_has_rg_textures(const struct gl_context *ctx)
+{
+   return _mesa_has_ARB_texture_rg(ctx) || _mesa_is_gles3(ctx);
+}
+
+static inline bool
+_mesa_has_texture_shared_exponent(const struct gl_context *ctx)
+{
+   return _mesa_has_EXT_texture_shared_exponent(ctx) || _mesa_is_gles3(ctx);
+}
+
+static inline bool
+_mesa_has_texture_type_2_10_10_10_REV(const struct gl_context *ctx)
+{
+   return _mesa_is_desktop_gl(ctx) ||
+          _mesa_has_EXT_texture_type_2_10_10_10_REV(ctx);
+}
+
 /**
  * Checks if the context supports geometry shaders.
  */
@@ -361,7 +418,7 @@ _mesa_has_compute_shaders(const struct gl_context *ctx)
 /**
  * Checks if the context supports tessellation.
  */
-static inline GLboolean
+static inline bool
 _mesa_has_tessellation(const struct gl_context *ctx)
 {
    /* _mesa_has_EXT_tessellation_shader(ctx) is redundant with the OES

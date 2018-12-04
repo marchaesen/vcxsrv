@@ -122,13 +122,12 @@ radv_use_tc_compat_htile_for_image(struct radv_device *device,
 
 static bool
 radv_use_dcc_for_image(struct radv_device *device,
+		       const struct radv_image *image,
 		       const struct radv_image_create_info *create_info,
 		       const VkImageCreateInfo *pCreateInfo)
 {
 	bool dcc_compatible_formats;
 	bool blendable;
-	bool shareable = vk_find_struct_const(pCreateInfo->pNext,
-	                                      EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR) != NULL;
 
 	/* DCC (Delta Color Compression) is only available for GFX8+. */
 	if (device->physical_device->rad_info.chip_class < VI)
@@ -139,7 +138,7 @@ radv_use_dcc_for_image(struct radv_device *device,
 
 	/* FIXME: DCC is broken for shareable images starting with GFX9 */
 	if (device->physical_device->rad_info.chip_class >= GFX9 &&
-	    shareable)
+	    image->shareable)
 		return false;
 
 	/* TODO: Enable DCC for storage images. */
@@ -198,6 +197,7 @@ radv_use_dcc_for_image(struct radv_device *device,
 
 static int
 radv_init_surface(struct radv_device *device,
+		  const struct radv_image *image,
 		  struct radeon_surf *surface,
 		  const struct radv_image_create_info *create_info)
 {
@@ -251,7 +251,7 @@ radv_init_surface(struct radv_device *device,
 
 	surface->flags |= RADEON_SURF_OPTIMIZE_FOR_SPACE;
 
-	if (!radv_use_dcc_for_image(device, create_info, pCreateInfo))
+	if (!radv_use_dcc_for_image(device, image, create_info, pCreateInfo))
 		surface->flags |= RADEON_SURF_DISABLE_DCC;
 
 	if (create_info->scanout)
@@ -981,7 +981,7 @@ radv_image_create(VkDevice _device,
 		image->info.surf_index = &device->image_mrt_offset_counter;
 	}
 
-	radv_init_surface(device, &image->surface, create_info);
+	radv_init_surface(device, image, &image->surface, create_info);
 
 	device->ws->surface_init(device->ws, &image->info, &image->surface);
 
