@@ -295,6 +295,10 @@ struct ir3_shader_variant {
 	struct ir3_info info;
 	struct ir3 *ir;
 
+	/* Levels of nesting of flow control:
+	 */
+	unsigned branchstack;
+
 	/* the instructions length is in units of instruction groups
 	 * (4 instructions for a3xx, 16 instructions for a4xx.. each
 	 * instruction is 2 dwords):

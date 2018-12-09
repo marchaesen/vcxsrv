@@ -706,6 +706,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(AMD_gpu_shader_int64),
    EXT(AMD_shader_stencil_export),
    EXT(AMD_shader_trinary_minmax),
+   EXT(AMD_texture_texture4),
    EXT(AMD_vertex_shader_layer),
    EXT(AMD_vertex_shader_viewport_index),
    EXT(ANDROID_extension_pack_es31a),

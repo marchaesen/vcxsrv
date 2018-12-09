@@ -97,6 +97,7 @@ static void
 cmd_free(struct msm_cmd *cmd)
 {
 	fd_bo_del(cmd->ring_bo);
+	free(cmd->relocs);
 	free(cmd);
 }
 
@@ -653,6 +654,7 @@ msm_ringbuffer_destroy(struct fd_ringbuffer *ring)
 
 		_mesa_set_destroy(msm_ring->u.ring_set, unref_rings);
 
+		free(msm_ring->u.reloc_bos);
 		free(msm_ring);
 	} else {
 		struct fd_submit *submit = msm_ring->u.submit;
@@ -661,6 +663,7 @@ msm_ringbuffer_destroy(struct fd_ringbuffer *ring)
 			cmd_free(msm_ring->u.cmds[i]);
 		}
 
+		free(msm_ring->u.cmds);
 		slab_free_st(&to_msm_submit(submit)->ring_pool, msm_ring);
 	}
 }

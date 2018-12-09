@@ -86,50 +86,53 @@ vir_print_reg(struct v3d_compile *c, const struct qinst *inst,
 
         case QFILE_UNIF: {
                 enum quniform_contents contents = c->uniform_contents[reg.index];
+                uint32_t data = c->uniform_data[reg.index];
 
                 fprintf(stderr, "%s%d", files[reg.file], reg.index);
 
                 switch (contents) {
                 case QUNIFORM_CONSTANT:
-                        fprintf(stderr, " (0x%08x / %f)",
-                                c->uniform_data[reg.index],
-                                uif(c->uniform_data[reg.index]));
+                        fprintf(stderr, " (0x%08x / %f)", data, uif(data));
                         break;
 
                 case QUNIFORM_UNIFORM:
-                        fprintf(stderr, " (push[%d])",
-                                c->uniform_data[reg.index]);
+                        fprintf(stderr, " (push[%d])", data);
                         break;
 
                 case QUNIFORM_TEXTURE_CONFIG_P1:
-                        fprintf(stderr, " (tex[%d].p1)",
-                                c->uniform_data[reg.index]);
+                        fprintf(stderr, " (tex[%d].p1)", data);
+                        break;
+
+                case QUNIFORM_TMU_CONFIG_P0:
+                        fprintf(stderr, " (tex[%d].p0 | 0x%x)",
+                                v3d_tmu_config_data_get_unit(data),
+                                v3d_tmu_config_data_get_value(data));
+                        break;
+
+                case QUNIFORM_TMU_CONFIG_P1:
+                        fprintf(stderr, " (tex[%d].p1 | 0x%x)",
+                                v3d_tmu_config_data_get_unit(data),
+                                v3d_tmu_config_data_get_value(data));
                         break;
 
                 case QUNIFORM_TEXTURE_WIDTH:
-                        fprintf(stderr, " (tex[%d].width)",
-                                c->uniform_data[reg.index]);
+                        fprintf(stderr, " (tex[%d].width)", data);
                         break;
                 case QUNIFORM_TEXTURE_HEIGHT:
-                        fprintf(stderr, " (tex[%d].height)",
-                                c->uniform_data[reg.index]);
+                        fprintf(stderr, " (tex[%d].height)", data);
                         break;
                 case QUNIFORM_TEXTURE_DEPTH:
-                        fprintf(stderr, " (tex[%d].depth)",
-                                c->uniform_data[reg.index]);
+                        fprintf(stderr, " (tex[%d].depth)", data);
                         break;
                 case QUNIFORM_TEXTURE_ARRAY_SIZE:
-                        fprintf(stderr, " (tex[%d].array_size)",
-                                c->uniform_data[reg.index]);
+                        fprintf(stderr, " (tex[%d].array_size)", data);
                         break;
                 case QUNIFORM_TEXTURE_LEVELS:
-                        fprintf(stderr, " (tex[%d].levels)",
-                                c->uniform_data[reg.index]);
+                        fprintf(stderr, " (tex[%d].levels)", data);
                         break;
 
                 case QUNIFORM_UBO_ADDR:
-                        fprintf(stderr, " (ubo[%d])",
-                                c->uniform_data[reg.index]);
+                        fprintf(stderr, " (ubo[%d])", data);
                         break;
 
                 default:

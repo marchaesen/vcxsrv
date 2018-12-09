@@ -509,7 +509,7 @@ can_propagate_through_alu(nir_src *src)
       case nir_op_ior:
       case nir_op_iand:
       case nir_op_inot:
-      case nir_op_b2i:
+      case nir_op_b2i32:
          return true;
       case nir_op_bcsel:
          return src == &alu->src[0].src;

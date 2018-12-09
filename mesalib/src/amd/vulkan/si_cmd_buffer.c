@@ -992,6 +992,11 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 		radv_cmd_buffer_trace_emit(cmd_buffer);
 
 	cmd_buffer->state.flush_bits = 0;
+
+	/* If the driver used a compute shader for resetting a query pool, it
+	 * should be finished at this point.
+	 */
+	cmd_buffer->pending_reset_query = false;
 }
 
 /* sets the CP predication state using a boolean stored at va */

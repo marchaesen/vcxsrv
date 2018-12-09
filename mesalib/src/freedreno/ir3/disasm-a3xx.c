@@ -77,6 +77,7 @@ static const char *type[] = {
 struct disasm_ctx {
 	FILE *out;
 	int level;
+	unsigned gpu_id;
 
 	/* current instruction repeat flag: */
 	unsigned repeat;
@@ -117,7 +118,7 @@ static void print_reg(struct disasm_ctx *ctx, reg_t reg, bool full, bool r,
 	} else if ((reg.num == REG_P0) && !c) {
 		fprintf(ctx->out, "p0.%c", component[reg.comp]);
 	} else {
-		fprintf(ctx->out, "%s%c%d.%c", full ? "" : "h", type, reg.num & 0x3f, component[reg.comp]);
+		fprintf(ctx->out, "%s%c%d.%c", full ? "" : "h", type, reg.num, component[reg.comp]);
 	}
 }
 
@@ -271,20 +272,22 @@ static void print_instr_cat2(struct disasm_ctx *ctx, instr_t *instr)
 	print_reg_dst(ctx, (reg_t)(cat2->dst), cat2->full ^ cat2->dst_half, false);
 	fprintf(ctx->out, ", ");
 
+	unsigned src1_r = cat2->repeat ? cat2->src1_r : 0;
 	if (cat2->c1.src1_c) {
-		print_reg_src(ctx, (reg_t)(cat2->c1.src1), cat2->full, cat2->src1_r,
+		print_reg_src(ctx, (reg_t)(cat2->c1.src1), cat2->full, src1_r,
 				cat2->c1.src1_c, cat2->src1_im, cat2->src1_neg,
 				cat2->src1_abs, false);
 	} else if (cat2->rel1.src1_rel) {
-		print_reg_src(ctx, (reg_t)(cat2->rel1.src1), cat2->full, cat2->src1_r,
+		print_reg_src(ctx, (reg_t)(cat2->rel1.src1), cat2->full, src1_r,
 				cat2->rel1.src1_c, cat2->src1_im, cat2->src1_neg,
 				cat2->src1_abs, cat2->rel1.src1_rel);
 	} else {
-		print_reg_src(ctx, (reg_t)(cat2->src1), cat2->full, cat2->src1_r,
+		print_reg_src(ctx, (reg_t)(cat2->src1), cat2->full, src1_r,
 				false, cat2->src1_im, cat2->src1_neg,
 				cat2->src1_abs, false);
 	}
 
+	unsigned src2_r = cat2->repeat ? cat2->src2_r : 0;
 	switch (_OPC(2, cat2->opc)) {
 	case OPC_ABSNEG_F:
 	case OPC_ABSNEG_S:
@@ -305,15 +308,15 @@ static void print_instr_cat2(struct disasm_ctx *ctx, instr_t *instr)
 	default:
 		fprintf(ctx->out, ", ");
 		if (cat2->c2.src2_c) {
-			print_reg_src(ctx, (reg_t)(cat2->c2.src2), cat2->full, cat2->src2_r,
+			print_reg_src(ctx, (reg_t)(cat2->c2.src2), cat2->full, src2_r,
 					cat2->c2.src2_c, cat2->src2_im, cat2->src2_neg,
 					cat2->src2_abs, false);
 		} else if (cat2->rel2.src2_rel) {
-			print_reg_src(ctx, (reg_t)(cat2->rel2.src2), cat2->full, cat2->src2_r,
+			print_reg_src(ctx, (reg_t)(cat2->rel2.src2), cat2->full, src2_r,
 					cat2->rel2.src2_c, cat2->src2_im, cat2->src2_neg,
 					cat2->src2_abs, cat2->rel2.src2_rel);
 		} else {
-			print_reg_src(ctx, (reg_t)(cat2->src2), cat2->full, cat2->src2_r,
+			print_reg_src(ctx, (reg_t)(cat2->src2), cat2->full, src2_r,
 					false, cat2->src2_im, cat2->src2_neg,
 					cat2->src2_abs, false);
 		}
@@ -329,22 +332,24 @@ static void print_instr_cat3(struct disasm_ctx *ctx, instr_t *instr)
 	fprintf(ctx->out, " ");
 	print_reg_dst(ctx, (reg_t)(cat3->dst), full ^ cat3->dst_half, false);
 	fprintf(ctx->out, ", ");
+	unsigned src1_r = cat3->repeat ? cat3->src1_r : 0;
 	if (cat3->c1.src1_c) {
 		print_reg_src(ctx, (reg_t)(cat3->c1.src1), full,
-				cat3->src1_r, cat3->c1.src1_c, false, cat3->src1_neg,
+				src1_r, cat3->c1.src1_c, false, cat3->src1_neg,
 				false, false);
 	} else if (cat3->rel1.src1_rel) {
 		print_reg_src(ctx, (reg_t)(cat3->rel1.src1), full,
-				cat3->src1_r, cat3->rel1.src1_c, false, cat3->src1_neg,
+				src1_r, cat3->rel1.src1_c, false, cat3->src1_neg,
 				false, cat3->rel1.src1_rel);
 	} else {
 		print_reg_src(ctx, (reg_t)(cat3->src1), full,
-				cat3->src1_r, false, false, cat3->src1_neg,
+				src1_r, false, false, cat3->src1_neg,
 				false, false);
 	}
 	fprintf(ctx->out, ", ");
+	unsigned src2_r = cat3->repeat ? cat3->src2_r : 0;
 	print_reg_src(ctx, (reg_t)cat3->src2, full,
-			cat3->src2_r, cat3->src2_c, false, cat3->src2_neg,
+			src2_r, cat3->src2_c, false, cat3->src2_neg,
 			false, false);
 	fprintf(ctx->out, ", ");
 	if (cat3->c2.src3_c) {
@@ -487,7 +492,7 @@ static void print_instr_cat5(struct disasm_ctx *ctx, instr_t *instr)
 	}
 }
 
-static void print_instr_cat6(struct disasm_ctx *ctx, instr_t *instr)
+static void print_instr_cat6_a3xx(struct disasm_ctx *ctx, instr_t *instr)
 {
 	instr_cat6_t *cat6 = &instr->cat6;
 	char sd = 0, ss = 0;  /* dst/src address space */
@@ -779,6 +784,55 @@ static void print_instr_cat6(struct disasm_ctx *ctx, instr_t *instr)
 	}
 }
 
+static void print_instr_cat6_a6xx(struct disasm_ctx *ctx, instr_t *instr)
+{
+	instr_cat6_a6xx_t *cat6 = &instr->cat6_a6xx;
+	struct reginfo src1, src2;
+	char ss = 0;
+
+	memset(&src1, 0, sizeof(src1));
+	memset(&src2, 0, sizeof(src2));
+
+	fprintf(ctx->out, ".%s", cat6->typed ? "typed" : "untyped");
+	fprintf(ctx->out, ".%dd", cat6->d + 1);
+	fprintf(ctx->out, ".%s", type[cat6->type]);
+	fprintf(ctx->out, ".%u ", cat6->type_size + 1);
+
+	/* NOTE: blob seems to use old encoding for ldl/stl (local memory) */
+	ss = 'g';
+
+	fprintf(ctx->out, "%c[%u", ss, cat6->ssbo);
+	fprintf(ctx->out, "] + ");
+	src1.reg = (reg_t)(cat6->src1);
+	src1.full = true; // XXX
+	print_src(ctx, &src1);
+	fprintf(ctx->out, ", ");
+
+	src2.reg = (reg_t)(cat6->src2);
+	src2.full = true; // XXX
+	print_src(ctx, &src2);
+
+	if (debug & PRINT_VERBOSE) {
+		fprintf(ctx->out, " (pad1=%x, pad2=%x, pad3=%x, pad4=%x)", cat6->pad1,
+				cat6->pad2, cat6->pad3, cat6->pad4);
+	}
+}
+
+static void print_instr_cat6(struct disasm_ctx *ctx, instr_t *instr)
+{
+	// TODO not sure if this is the best way to figure
+	// out if new vs old encoding, but it kinda seems
+	// to work:
+	if ((ctx->gpu_id >= 600) && (instr->cat6.opc == 0)) {
+		print_instr_cat6_a6xx(ctx, instr);
+		if (debug & PRINT_VERBOSE)
+			fprintf(ctx->out, " NEW");
+	} else {
+		print_instr_cat6_a3xx(ctx, instr);
+		if (debug & PRINT_VERBOSE)
+			fprintf(ctx->out, " LEGACY");
+	}
+}
 static void print_instr_cat7(struct disasm_ctx *ctx, instr_t *instr)
 {
 	instr_cat7_t *cat7 = &instr->cat7;
@@ -967,7 +1021,7 @@ static const struct opc_info {
 #undef OPC
 };
 
-#define GETINFO(instr) (&(opcs[((instr)->opc_cat << NOPC_BITS) | instr_opc(instr)]))
+#define GETINFO(instr) (&(opcs[((instr)->opc_cat << NOPC_BITS) | instr_opc(instr, ctx->gpu_id)]))
 
 // XXX hack.. probably should move this table somewhere common:
 #include "ir3.h"
@@ -980,7 +1034,7 @@ const char *ir3_instr_name(struct ir3_instruction *instr)
 static bool print_instr(struct disasm_ctx *ctx, uint32_t *dwords, int n)
 {
 	instr_t *instr = (instr_t *)dwords;
-	uint32_t opc = instr_opc(instr);
+	uint32_t opc = instr_opc(instr, ctx->gpu_id);
 	const char *name;
 
 	if (debug & PRINT_VERBOSE)
@@ -1001,8 +1055,15 @@ static bool print_instr(struct disasm_ctx *ctx, uint32_t *dwords, int n)
 		fprintf(ctx->out, "(jp)");
 	if (instr_sat(instr))
 		fprintf(ctx->out, "(sat)");
-	if (ctx->repeat)
+	if (ctx->repeat) {
 		fprintf(ctx->out, "(rpt%d)", ctx->repeat);
+	} else if ((instr->opc_cat == 2) && (instr->cat2.src1_r || instr->cat2.src2_r)) {
+		unsigned nop = (instr->cat2.src2_r * 2) + instr->cat2.src1_r;
+		fprintf(ctx->out, "(nop%d)", nop);
+	} else if ((instr->opc_cat == 3) && (instr->cat3.src1_r || instr->cat3.src2_r)) {
+		unsigned nop = (instr->cat3.src2_r * 2) + instr->cat3.src1_r;
+		fprintf(ctx->out, "(nop%d)", nop);
+	}
 	if (instr->ul && ((2 <= instr->opc_cat) && (instr->opc_cat <= 4)))
 		fprintf(ctx->out, "(ul)");
 
@@ -1020,7 +1081,7 @@ static bool print_instr(struct disasm_ctx *ctx, uint32_t *dwords, int n)
 	return (instr->opc_cat == 0) && (opc == OPC_END);
 }
 
-int disasm_a3xx(uint32_t *dwords, int sizedwords, int level, FILE *out)
+int disasm_a3xx(uint32_t *dwords, int sizedwords, int level, FILE *out, unsigned gpu_id)
 {
 	struct disasm_ctx ctx;
 	int i;
@@ -1030,6 +1091,7 @@ int disasm_a3xx(uint32_t *dwords, int sizedwords, int level, FILE *out)
 	memset(&ctx, 0, sizeof(ctx));
 	ctx.out = out;
 	ctx.level = level;
+	ctx.gpu_id = gpu_id;
 
 	for (i = 0; i < sizedwords; i += 2)
 		print_instr(&ctx, &dwords[i], i/2);

@@ -99,7 +99,7 @@
     <value name="Follows" value="7"/>
   </enum>
 
-  <enum name="Wrap Mode" prefix="V3D_WRAP_MODE" min_ver="41">
+  <enum name="Wrap Mode" prefix="V3D_WRAP_MODE">
       <value name="Wrap mode REPEAT" value="0"/>
       <value name="Wrap mode CLAMP" value="1"/>
       <value name="Wrap mode MIRROR" value="2"/>
@@ -1230,29 +1230,9 @@
     <field name="Texel offset for t coordinate" size="4" start="23" type="int"/>
     <field name="Texel offset for s coordinate" size="4" start="19" type="int"/>
 
-    <field name="R Wrap Mode" size="3" start="16" type="uint">
-      <value name="Wrap mode REPEAT" value="0"/>
-      <value name="Wrap mode CLAMP" value="1"/>
-      <value name="Wrap mode MIRROR" value="2"/>
-      <value name="Wrap mode BORDER" value="3"/>
-      <value name="Wrap mode MIRROR_ONCE" value="4"/>
-    </field>
-
-    <field name="T Wrap Mode" size="3" start="13" type="uint">
-      <value name="Wrap mode REPEAT" value="0"/>
-      <value name="Wrap mode CLAMP" value="1"/>
-      <value name="Wrap mode MIRROR" value="2"/>
-      <value name="Wrap mode BORDER" value="3"/>
-      <value name="Wrap mode MIRROR_ONCE" value="4"/>
-    </field>
-
-    <field name="S Wrap Mode" size="3" start="10" type="uint">
-      <value name="Wrap mode REPEAT" value="0"/>
-      <value name="Wrap mode CLAMP" value="1"/>
-      <value name="Wrap mode MIRROR" value="2"/>
-      <value name="Wrap mode BORDER" value="3"/>
-      <value name="Wrap mode MIRROR_ONCE" value="4"/>
-    </field>
+    <field name="R Wrap Mode" size="3" start="16" type="Wrap Mode"/>
+    <field name="T Wrap Mode" size="3" start="13" type="Wrap Mode"/>
+    <field name="S Wrap Mode" size="3" start="10" type="Wrap Mode"/>
 
     <field name="New configuration mode" size="1" start="9" type="bool" default="1"/>
 

@@ -1243,7 +1243,7 @@ radv_emit_shader_pointer(struct radv_device *device,
 			 struct radeon_cmdbuf *cs,
 			 uint32_t sh_offset, uint64_t va, bool global)
 {
-	bool use_32bit_pointers = HAVE_32BIT_POINTERS && !global;
+	bool use_32bit_pointers = !global;
 
 	radv_emit_shader_pointer_head(cs, sh_offset, 1, use_32bit_pointers);
 	radv_emit_shader_pointer_body(device, cs, va, use_32bit_pointers);
@@ -1502,6 +1502,14 @@ struct radv_image {
 	struct radv_cmask_info cmask;
 	uint64_t clear_value_offset;
 	uint64_t fce_pred_offset;
+
+	/*
+	 * Metadata for the TC-compat zrange workaround. If the 32-bit value
+	 * stored at this offset is UINT_MAX, the driver will emit
+	 * DB_Z_INFO.ZRANGE_PRECISION=0, otherwise it will skip the
+	 * SET_CONTEXT_REG packet.
+	 */
+	uint64_t tc_compat_zrange_offset;
 
 	/* For VK_ANDROID_native_buffer, the WSI image owns the memory, */
 	VkDeviceMemory owned_memory;

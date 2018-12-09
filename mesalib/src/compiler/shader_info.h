@@ -62,6 +62,7 @@ struct spirv_supported_capabilities {
    bool post_depth_coverage;
    bool transform_feedback;
    bool geometry_streams;
+   bool int64_atomics;
 };
 
 typedef struct shader_info {

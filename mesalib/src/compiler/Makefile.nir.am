@@ -87,10 +87,12 @@ nir_tests_vars_tests_SOURCES = nir/tests/vars_tests.cpp
 nir_tests_vars_tests_CFLAGS = $(NIR_TESTS_CFLAGS)
 nir_tests_vars_tests_LDADD = $(NIR_TESTS_LDADD)
 
+check_SCRIPTS = nir/tests/algebraic_parser_test.sh
 
 TESTS += \
         nir/tests/control_flow_tests \
-        nir/tests/vars_tests
+        nir/tests/vars_tests \
+	nir/tests/algebraic_parser_test.sh
 
 
 BUILT_SOURCES += \

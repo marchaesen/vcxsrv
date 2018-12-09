@@ -3416,7 +3416,6 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       case SpvCapabilityVector16:
       case SpvCapabilityFloat16Buffer:
       case SpvCapabilityFloat16:
-      case SpvCapabilityInt64Atomics:
       case SpvCapabilityStorageImageMultisample:
       case SpvCapabilityInt8:
       case SpvCapabilitySparseResidency:
@@ -3445,6 +3444,10 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
 
       case SpvCapabilityGeometryStreams:
          spv_check_supported(geometry_streams, cap);
+         break;
+
+      case SpvCapabilityInt64Atomics:
+         spv_check_supported(int64_atomics, cap);
          break;
 
       case SpvCapabilityAddresses:

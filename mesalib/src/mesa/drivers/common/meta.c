@@ -127,7 +127,7 @@ _mesa_meta_framebuffer_texture_image(struct gl_context *ctx,
    assert(att);
 
    _mesa_framebuffer_texture(ctx, fb, attachment, att, texObj, texTarget,
-                             level, layer, false);
+                             level, att->NumSamples, layer, false);
 }
 
 static struct gl_shader *

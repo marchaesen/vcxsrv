@@ -30,7 +30,7 @@
 
 from __future__ import print_function
 
-import os, sys, imp, getopt
+import os, sys, getopt
 from collections import defaultdict
 import get_hash_params
 

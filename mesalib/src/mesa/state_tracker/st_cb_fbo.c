@@ -516,6 +516,7 @@ st_update_renderbuffer_surface(struct st_context *st,
        surf->texture != resource ||
        surf->width != rtt_width ||
        surf->height != rtt_height ||
+       surf->nr_samples != strb->rtt_nr_samples ||
        surf->u.tex.level != level ||
        surf->u.tex.first_layer != first_layer ||
        surf->u.tex.last_layer != last_layer) {
@@ -523,6 +524,7 @@ st_update_renderbuffer_surface(struct st_context *st,
       struct pipe_surface surf_tmpl;
       memset(&surf_tmpl, 0, sizeof(surf_tmpl));
       surf_tmpl.format = format;
+      surf_tmpl.nr_samples = strb->rtt_nr_samples;
       surf_tmpl.u.tex.level = level;
       surf_tmpl.u.tex.first_layer = first_layer;
       surf_tmpl.u.tex.last_layer = last_layer;
@@ -572,6 +574,7 @@ st_render_texture(struct gl_context *ctx,
    strb->rtt_face = att->CubeMapFace;
    strb->rtt_slice = att->Zoffset;
    strb->rtt_layered = att->Layered;
+   strb->rtt_nr_samples = att->NumSamples;
    pipe_resource_reference(&strb->texture, pt);
 
    st_update_renderbuffer_surface(st, strb);

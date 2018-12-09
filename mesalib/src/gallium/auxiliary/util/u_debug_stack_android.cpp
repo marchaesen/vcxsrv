@@ -23,7 +23,7 @@
 
 #include <backtrace/Backtrace.h>
 
-#include "u_debug.h"
+#include "util/u_debug.h"
 #include "u_debug_stack.h"
 #include "util/hash_table.h"
 #include "os/os_thread.h"

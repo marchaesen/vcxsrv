@@ -594,7 +594,7 @@ radv_emit_userdata_address(struct radv_cmd_buffer *cmd_buffer,
 	if (loc->sgpr_idx == -1)
 		return;
 
-	assert(loc->num_sgprs == (HAVE_32BIT_POINTERS ? 1 : 2));
+	assert(loc->num_sgprs == 1);
 	assert(!loc->indirect);
 
 	radv_emit_shader_pointer(cmd_buffer->device, cmd_buffer->cs,
@@ -624,14 +624,12 @@ radv_emit_descriptor_pointers(struct radv_cmd_buffer *cmd_buffer,
 		struct radv_userdata_info *loc = &locs->descriptor_sets[start];
 		unsigned sh_offset = sh_base + loc->sgpr_idx * 4;
 
-		radv_emit_shader_pointer_head(cs, sh_offset, count,
-					      HAVE_32BIT_POINTERS);
+		radv_emit_shader_pointer_head(cs, sh_offset, count, true);
 		for (int i = 0; i < count; i++) {
 			struct radv_descriptor_set *set =
 				descriptors_state->sets[start + i];
 
-			radv_emit_shader_pointer_body(device, cs, set->va,
-						      HAVE_32BIT_POINTERS);
+			radv_emit_shader_pointer_body(device, cs, set->va, true);
 		}
 	}
 }
@@ -1067,7 +1065,7 @@ static void
 radv_update_zrange_precision(struct radv_cmd_buffer *cmd_buffer,
 			     struct radv_ds_buffer_info *ds,
 			     struct radv_image *image, VkImageLayout layout,
-			     bool requires_cond_write)
+			     bool requires_cond_exec)
 {
 	uint32_t db_z_info = ds->db_z_info;
 	uint32_t db_z_info_reg;
@@ -1091,38 +1089,21 @@ radv_update_zrange_precision(struct radv_cmd_buffer *cmd_buffer,
 	}
 
 	/* When we don't know the last fast clear value we need to emit a
-	 * conditional packet, otherwise we can update DB_Z_INFO directly.
+	 * conditional packet that will eventually skip the following
+	 * SET_CONTEXT_REG packet.
 	 */
-	if (requires_cond_write) {
-		radeon_emit(cmd_buffer->cs, PKT3(PKT3_COND_WRITE, 7, 0));
-
-		const uint32_t write_space = 0 << 8;	/* register */
-		const uint32_t poll_space = 1 << 4;	/* memory */
-		const uint32_t function = 3 << 0;	/* equal to the reference */
-		const uint32_t options = write_space | poll_space | function;
-		radeon_emit(cmd_buffer->cs, options);
-
-		/* poll address - location of the depth clear value */
+	if (requires_cond_exec) {
 		uint64_t va = radv_buffer_get_va(image->bo);
-		va += image->offset + image->clear_value_offset;
+		va += image->offset + image->tc_compat_zrange_offset;
 
-		/* In presence of stencil format, we have to adjust the base
-		 * address because the first value is the stencil clear value.
-		 */
-		if (vk_format_is_stencil(image->vk_format))
-			va += 4;
-
+		radeon_emit(cmd_buffer->cs, PKT3(PKT3_COND_EXEC, 3, 0));
 		radeon_emit(cmd_buffer->cs, va);
 		radeon_emit(cmd_buffer->cs, va >> 32);
-
-		radeon_emit(cmd_buffer->cs, fui(0.0f));		 /* reference value */
-		radeon_emit(cmd_buffer->cs, (uint32_t)-1);	 /* comparison mask */
-		radeon_emit(cmd_buffer->cs, db_z_info_reg >> 2); /* write address low */
-		radeon_emit(cmd_buffer->cs, 0u);		 /* write address high */
-		radeon_emit(cmd_buffer->cs, db_z_info);
-	} else {
-		radeon_set_context_reg(cmd_buffer->cs, db_z_info_reg, db_z_info);
+		radeon_emit(cmd_buffer->cs, 0);
+		radeon_emit(cmd_buffer->cs, 3); /* SET_CONTEXT_REG size */
 	}
+
+	radeon_set_context_reg(cmd_buffer->cs, db_z_info_reg, db_z_info);
 }
 
 static void
@@ -1270,6 +1251,45 @@ radv_set_ds_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
 }
 
 /**
+ * Update the TC-compat metadata value for this image.
+ */
+static void
+radv_set_tc_compat_zrange_metadata(struct radv_cmd_buffer *cmd_buffer,
+				   struct radv_image *image,
+				   uint32_t value)
+{
+	struct radeon_cmdbuf *cs = cmd_buffer->cs;
+	uint64_t va = radv_buffer_get_va(image->bo);
+	va += image->offset + image->tc_compat_zrange_offset;
+
+	radeon_emit(cs, PKT3(PKT3_WRITE_DATA, 3, 0));
+	radeon_emit(cs, S_370_DST_SEL(V_370_MEM_ASYNC) |
+			S_370_WR_CONFIRM(1) |
+			S_370_ENGINE_SEL(V_370_PFP));
+	radeon_emit(cs, va);
+	radeon_emit(cs, va >> 32);
+	radeon_emit(cs, value);
+}
+
+static void
+radv_update_tc_compat_zrange_metadata(struct radv_cmd_buffer *cmd_buffer,
+				      struct radv_image *image,
+				      VkClearDepthStencilValue ds_clear_value)
+{
+	struct radeon_cmdbuf *cs = cmd_buffer->cs;
+	uint64_t va = radv_buffer_get_va(image->bo);
+	va += image->offset + image->tc_compat_zrange_offset;
+	uint32_t cond_val;
+
+	/* Conditionally set DB_Z_INFO.ZRANGE_PRECISION to 0 when the last
+	 * depth clear value is 0.0f.
+	 */
+	cond_val = ds_clear_value.depth == 0.0f ? UINT_MAX : 0;
+
+	radv_set_tc_compat_zrange_metadata(cmd_buffer, image, cond_val);
+}
+
+/**
  * Update the clear depth/stencil values for this image.
  */
 void
@@ -1281,6 +1301,12 @@ radv_update_ds_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
 	assert(radv_image_has_htile(image));
 
 	radv_set_ds_clear_metadata(cmd_buffer, image, ds_clear_value, aspects);
+
+	if (radv_image_is_tc_compat_htile(image) &&
+	    (aspects & VK_IMAGE_ASPECT_DEPTH_BIT)) {
+		radv_update_tc_compat_zrange_metadata(cmd_buffer, image,
+						      ds_clear_value);
+	}
 
 	radv_update_bound_fast_clear_ds(cmd_buffer, image, ds_clear_value,
 				        aspects);
@@ -1712,8 +1738,7 @@ radv_flush_indirect_descriptor_sets(struct radv_cmd_buffer *cmd_buffer,
 {
 	struct radv_descriptor_state *descriptors_state =
 		radv_get_descriptors_state(cmd_buffer, bind_point);
-	uint8_t ptr_size = HAVE_32BIT_POINTERS ? 1 : 2;
-	uint32_t size = MAX_SETS * 4 * ptr_size;
+	uint32_t size = MAX_SETS * 4;
 	uint32_t offset;
 	void *ptr;
 	
@@ -1722,14 +1747,12 @@ radv_flush_indirect_descriptor_sets(struct radv_cmd_buffer *cmd_buffer,
 		return;
 
 	for (unsigned i = 0; i < MAX_SETS; i++) {
-		uint32_t *uptr = ((uint32_t *)ptr) + i * ptr_size;
+		uint32_t *uptr = ((uint32_t *)ptr) + i;
 		uint64_t set_va = 0;
 		struct radv_descriptor_set *set = descriptors_state->sets[i];
 		if (descriptors_state->valid & (1u << i))
 			set_va = set->va;
 		uptr[0] = set_va & 0xffffffff;
-		if (ptr_size == 2)
-			uptr[1] = set_va >> 32;
 	}
 
 	uint64_t va = radv_buffer_get_va(cmd_buffer->upload.upload_bo);
@@ -4229,6 +4252,15 @@ static void radv_initialize_htile(struct radv_cmd_buffer *cmd_buffer,
 		aspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
 
 	radv_set_ds_clear_metadata(cmd_buffer, image, value, aspects);
+
+	if (radv_image_is_tc_compat_htile(image)) {
+		/* Initialize the TC-compat metada value to 0 because by
+		 * default DB_Z_INFO.RANGE_PRECISION is set to 1, and we only
+		 * need have to conditionally update its value when performing
+		 * a fast depth clear.
+		 */
+		radv_set_tc_compat_zrange_metadata(cmd_buffer, image, 0);
+	}
 }
 
 static void radv_handle_depth_image_transition(struct radv_cmd_buffer *cmd_buffer,

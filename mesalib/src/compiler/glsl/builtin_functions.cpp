@@ -419,6 +419,12 @@ texture_gather_cube_map_array(const _mesa_glsl_parse_state *state)
 }
 
 static bool
+texture_texture4(const _mesa_glsl_parse_state *state)
+{
+   return state->AMD_texture_texture4_enable;
+}
+
+static bool
 texture_gather_or_es31(const _mesa_glsl_parse_state *state)
 {
    return state->is_version(400, 310) ||
@@ -2889,6 +2895,10 @@ builtin_builder::create_builtins()
 
    add_function("shadow2DRectProjGradARB",
                 _texture(ir_txd, shader_texture_lod_and_rect, glsl_type::vec4_type,  glsl_type::sampler2DRectShadow_type, glsl_type::vec4_type, TEX_PROJECT),
+                NULL);
+
+   add_function("texture4",
+                _texture(ir_tg4, texture_texture4, glsl_type::vec4_type, glsl_type::sampler2D_type, glsl_type::vec2_type),
                 NULL);
 
    add_function("textureGather",

@@ -1527,7 +1527,7 @@ nir_visitor::visit(ir_expression *ir)
       result = supports_ints ? nir_u2f32(&b, srcs[0]) : nir_fmov(&b, srcs[0]);
       break;
    case ir_unop_b2f:
-      result = supports_ints ? nir_b2f(&b, srcs[0]) : nir_fmov(&b, srcs[0]);
+      result = supports_ints ? nir_b2f32(&b, srcs[0]) : nir_fmov(&b, srcs[0]);
       break;
    case ir_unop_f2i:
    case ir_unop_f2u:

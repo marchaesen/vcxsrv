@@ -48,7 +48,7 @@ lower_isign64(nir_builder *b, nir_ssa_def *x)
 
    nir_ssa_def *is_non_zero = nir_i2b(b, nir_ior(b, x_lo, x_hi));
    nir_ssa_def *res_hi = nir_ishr(b, x_hi, nir_imm_int(b, 31));
-   nir_ssa_def *res_lo = nir_ior(b, res_hi, nir_b2i(b, is_non_zero));
+   nir_ssa_def *res_lo = nir_ior(b, res_hi, nir_b2i32(b, is_non_zero));
 
    return nir_pack_64_2x32_split(b, res_lo, res_hi);
 }

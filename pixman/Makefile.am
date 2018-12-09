@@ -124,7 +124,7 @@ release-publish-message: $(HASHFILES) ensure-prev
 	@echo "	(signed by`gpg --list-keys $(GPGKEY) | grep uid | cut -b4- | tr -s " "`)"
 	@echo ""
 	@echo "Git:"
-	@echo "	git://git.freedesktop.org/git/pixman"
+	@echo "	https://gitlab.freedesktop.org/pixman/pixman.git"
 	@echo "	tag: $(PACKAGE)-$(VERSION)"
 	@echo ""
 	@echo "Log:"

@@ -22,6 +22,8 @@ ir3_SOURCES := \
 	ir3/ir3_compiler.c \
 	ir3/ir3_compiler.h \
 	ir3/ir3_compiler_nir.c \
+	ir3/ir3_context.c \
+	ir3/ir3_context.h \
 	ir3/ir3_cp.c \
 	ir3/ir3_depth.c \
 	ir3/ir3_group.c \

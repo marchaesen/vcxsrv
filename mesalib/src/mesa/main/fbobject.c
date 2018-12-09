@@ -497,8 +497,8 @@ set_texture_attachment(struct gl_context *ctx,
                        struct gl_framebuffer *fb,
                        struct gl_renderbuffer_attachment *att,
                        struct gl_texture_object *texObj,
-                       GLenum texTarget, GLuint level, GLuint layer,
-                       GLboolean layered)
+                       GLenum texTarget, GLuint level, GLsizei samples,
+                       GLuint layer, GLboolean layered)
 {
    struct gl_renderbuffer *rb = att->Renderbuffer;
 
@@ -520,6 +520,7 @@ set_texture_attachment(struct gl_context *ctx,
 
    /* always update these fields */
    att->TextureLevel = level;
+   att->NumSamples = samples;
    att->CubeMapFace = _mesa_tex_target_to_face(texTarget);
    att->Zoffset = layer;
    att->Layered = layered;
@@ -1085,8 +1086,11 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
             return;
          }
 
-         attNumSamples = texImg->NumSamples;
-         attNumStorageSamples = texImg->NumSamples;
+         if (att->NumSamples > 0)
+            attNumSamples = att->NumSamples;
+         else
+            attNumSamples = texImg->NumSamples;
+         attNumStorageSamples = attNumSamples;
       }
       else if (att->Type == GL_RENDERBUFFER_EXT) {
          minWidth = MIN2(minWidth, att->Renderbuffer->Width);
@@ -3498,7 +3502,8 @@ _mesa_framebuffer_texture(struct gl_context *ctx, struct gl_framebuffer *fb,
                           GLenum attachment,
                           struct gl_renderbuffer_attachment *att,
                           struct gl_texture_object *texObj, GLenum textarget,
-                          GLint level, GLuint layer, GLboolean layered)
+                          GLint level, GLsizei samples,
+                          GLuint layer, GLboolean layered)
 {
    FLUSH_VERTICES(ctx, _NEW_BUFFERS);
 
@@ -3509,6 +3514,7 @@ _mesa_framebuffer_texture(struct gl_context *ctx, struct gl_framebuffer *fb,
           level == fb->Attachment[BUFFER_STENCIL].TextureLevel &&
           _mesa_tex_target_to_face(textarget) ==
           fb->Attachment[BUFFER_STENCIL].CubeMapFace &&
+          samples == fb->Attachment[BUFFER_STENCIL].NumSamples &&
           layer == fb->Attachment[BUFFER_STENCIL].Zoffset) {
          /* The texture object is already attached to the stencil attachment
           * point. Don't create a new renderbuffer; just reuse the stencil
@@ -3522,13 +3528,14 @@ _mesa_framebuffer_texture(struct gl_context *ctx, struct gl_framebuffer *fb,
                  level == fb->Attachment[BUFFER_DEPTH].TextureLevel &&
                  _mesa_tex_target_to_face(textarget) ==
                  fb->Attachment[BUFFER_DEPTH].CubeMapFace &&
+                 samples == fb->Attachment[BUFFER_DEPTH].NumSamples &&
                  layer == fb->Attachment[BUFFER_DEPTH].Zoffset) {
          /* As above, but with depth and stencil transposed. */
          reuse_framebuffer_texture_attachment(fb, BUFFER_STENCIL,
                                               BUFFER_DEPTH);
       } else {
          set_texture_attachment(ctx, fb, att, texObj, textarget,
-                                level, layer, layered);
+                                level, samples, layer, layered);
 
          if (attachment == GL_DEPTH_STENCIL_ATTACHMENT) {
             /* Above we created a new renderbuffer and attached it to the
@@ -3583,15 +3590,15 @@ framebuffer_texture_with_dims_no_error(GLenum target, GLenum attachment,
       get_attachment(ctx, fb, attachment, NULL);
 
    _mesa_framebuffer_texture(ctx, fb, attachment, att, texObj, textarget,
-                             level, layer, GL_FALSE);
+                             level, 0, layer, GL_FALSE);
 }
 
 
 static void
 framebuffer_texture_with_dims(int dims, GLenum target,
                               GLenum attachment, GLenum textarget,
-                              GLuint texture, GLint level, GLint layer,
-                              const char *caller)
+                              GLuint texture, GLint level, GLsizei samples,
+                              GLint layer, const char *caller)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_framebuffer *fb;
@@ -3626,7 +3633,7 @@ framebuffer_texture_with_dims(int dims, GLenum target,
       return;
 
    _mesa_framebuffer_texture(ctx, fb, attachment, att, texObj, textarget,
-                             level, layer, GL_FALSE);
+                             level, samples, layer, GL_FALSE);
 }
 
 
@@ -3645,7 +3652,7 @@ _mesa_FramebufferTexture1D(GLenum target, GLenum attachment,
                            GLenum textarget, GLuint texture, GLint level)
 {
    framebuffer_texture_with_dims(1, target, attachment, textarget, texture,
-                                 level, 0, "glFramebufferTexture1D");
+                                 level, 0, 0, "glFramebufferTexture1D");
 }
 
 
@@ -3664,7 +3671,17 @@ _mesa_FramebufferTexture2D(GLenum target, GLenum attachment,
                            GLenum textarget, GLuint texture, GLint level)
 {
    framebuffer_texture_with_dims(2, target, attachment, textarget, texture,
-                                 level, 0, "glFramebufferTexture2D");
+                                 level, 0, 0, "glFramebufferTexture2D");
+}
+
+
+void GLAPIENTRY
+_mesa_FramebufferTexture2DMultisampleEXT(GLenum target, GLenum attachment,
+                                         GLenum textarget, GLuint texture,
+                                         GLint level, GLsizei samples)
+{
+   framebuffer_texture_with_dims(2, target, attachment, textarget, texture,
+                                 level, samples, 0, "glFramebufferTexture2DMultisampleEXT");
 }
 
 
@@ -3684,7 +3701,7 @@ _mesa_FramebufferTexture3D(GLenum target, GLenum attachment,
                            GLint level, GLint layer)
 {
    framebuffer_texture_with_dims(3, target, attachment, textarget, texture,
-                                 level, layer, "glFramebufferTexture3D");
+                                 level, 0, layer, "glFramebufferTexture3D");
 }
 
 
@@ -3774,7 +3791,7 @@ frame_buffer_texture(GLuint framebuffer, GLenum target,
    }
 
    _mesa_framebuffer_texture(ctx, fb, attachment, att, texObj, textarget,
-                             level, layer, layered);
+                             level, 0, layer, layered);
 }
 
 void GLAPIENTRY
@@ -4350,6 +4367,18 @@ get_framebuffer_attachment_parameter(struct gl_context *ctx,
          goto invalid_pname_enum;
       } else if (att->Type == GL_TEXTURE) {
          *params = att->Layered;
+      } else if (att->Type == GL_NONE) {
+         _mesa_error(ctx, err, "%s(invalid pname %s)", caller,
+                     _mesa_enum_to_string(pname));
+      } else {
+         goto invalid_pname_enum;
+      }
+      return;
+   case GL_FRAMEBUFFER_ATTACHMENT_TEXTURE_SAMPLES_EXT:
+      if (!ctx->Extensions.EXT_multisampled_render_to_texture) {
+         goto invalid_pname_enum;
+      } else if (att->Type == GL_TEXTURE) {
+         *params = att->NumSamples;
       } else if (att->Type == GL_NONE) {
          _mesa_error(ctx, err, "%s(invalid pname %s)", caller,
                      _mesa_enum_to_string(pname));

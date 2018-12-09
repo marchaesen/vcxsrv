@@ -329,7 +329,7 @@ ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
 				so->immediates[i].val[3]);
 	}
 
-	disasm_a3xx(bin, so->info.sizedwords, 0, out);
+	disasm_a3xx(bin, so->info.sizedwords, 0, out, ir->compiler->gpu_id);
 
 	switch (so->type) {
 	case MESA_SHADER_VERTEX:

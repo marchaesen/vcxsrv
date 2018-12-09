@@ -600,7 +600,7 @@ shader_variant_create(struct radv_device *device,
 
 	thread_compiler = !(device->instance->debug_flags & RADV_DEBUG_NOTHREADLLVM);
 	radv_init_llvm_once();
-	radv_init_llvm_compiler(&ac_llvm, false,
+	radv_init_llvm_compiler(&ac_llvm,
 				thread_compiler,
 				chip_family, tm_options);
 	if (gs_copy_shader) {

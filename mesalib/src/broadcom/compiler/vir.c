@@ -789,6 +789,14 @@ uint64_t *v3d_compile_vs(const struct v3d_compiler *compiler,
         prog_data->vpm_input_size = align(prog_data->vpm_input_size, 8) / 8;
         prog_data->vpm_output_size = align(c->num_vpm_writes, 8) / 8;
 
+        /* Set us up for shared input/output segments.  This is apparently
+         * necessary for our VCM setup to avoid varying corruption.
+         */
+        prog_data->separate_segments = false;
+        prog_data->vpm_output_size = MAX2(prog_data->vpm_output_size,
+                                          prog_data->vpm_input_size);
+        prog_data->vpm_input_size = 0;
+
         /* Compute VCM cache size.  We set up our program to take up less than
          * half of the VPM, so that any set of bin and render programs won't
          * run out of space.  We need space for at least one input segment,

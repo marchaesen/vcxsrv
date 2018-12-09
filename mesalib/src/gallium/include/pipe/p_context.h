@@ -793,7 +793,7 @@ struct pipe_context {
     * Invalidate the contents of the resource. This is used to
     *
     * (1) implement EGL's semantic of undefined depth/stencil
-    * contenst after a swapbuffers.  This allows a tiled renderer (for
+    * contents after a swapbuffers.  This allows a tiled renderer (for
     * example) to not store the depth buffer.
     *
     * (2) implement GL's InvalidateBufferData. For backwards compatibility,
