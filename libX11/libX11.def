@@ -218,6 +218,7 @@ EXPORTS
   XKillClient
   XListDepths
   XListExtensions
+  XListFonts
   XListHosts
   XListPixmapFormats
   XLoadFont
@@ -237,6 +238,7 @@ EXPORTS
   XmbTextEscapement
   XmbTextListToTextProperty
   XmbTextPropertyToTextList
+  XMoveWindow
   XMoveResizeWindow
   XNextEvent
   XNextRequest
@@ -263,6 +265,7 @@ EXPORTS
   XRemoveHost
   XReparentWindow
   XResourceManagerString
+  XResizeWindow
   XRootWindow
   XrmCombineDatabase
   XrmCombineFileDatabase
@@ -314,11 +317,13 @@ EXPORTS
   XSetICValues
   XSetInputFocus
   XSetIOErrorHandler
+  XSetLineAttributes
   XSetLocaleModifiers
   XSetPlaneMask
   XSetRegion
   XSetRGBColormaps
   XSetSelectionOwner
+  XSetStandardProperties
   XSetStipple
   XSetSubwindowMode
   XSetTile
@@ -356,6 +361,7 @@ EXPORTS
   XUnionRegion
   XUnloadFont
   XUnmapWindow
+  XUnmapSubwindows
   XUnsetICFocus
   Xutf8TextListToTextProperty
   Xutf8TextPropertyToTextList
