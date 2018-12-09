@@ -1194,6 +1194,7 @@
 #define glUnlockArraysEXT() CALL_UnlockArraysEXT(GET_DISPATCH(), ())
 #define glUseProgramStages(a1, a2, a3) CALL_UseProgramStages(GET_DISPATCH(), (a1, a2, a3))
 #define glValidateProgramPipeline(a1) CALL_ValidateProgramPipeline(GET_DISPATCH(), (a1))
+#define glFramebufferTexture2DMultisampleEXT(a1, a2, a3, a4, a5, a6) CALL_FramebufferTexture2DMultisampleEXT(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6))
 #define glDebugMessageCallback(a1, a2) CALL_DebugMessageCallback(GET_DISPATCH(), (a1, a2))
 #define glDebugMessageControl(a1, a2, a3, a4, a5, a6) CALL_DebugMessageControl(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6))
 #define glDebugMessageInsert(a1, a2, a3, a4, a5, a6) CALL_DebugMessageInsert(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6))
