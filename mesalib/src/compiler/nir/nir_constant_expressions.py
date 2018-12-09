@@ -1,23 +1,8 @@
 from __future__ import print_function
 
 import re
-
-type_split_re = re.compile(r'(?P<type>[a-z]+)(?P<bits>\d+)')
-
-def type_has_size(type_):
-    return type_[-1:].isdigit()
-
-def type_size(type_):
-    assert type_has_size(type_)
-    return int(type_split_re.match(type_).group('bits'))
-
-def type_sizes(type_):
-    if type_has_size(type_):
-        return [type_size(type_)]
-    elif type_ == 'float':
-        return [16, 32, 64]
-    else:
-        return [8, 16, 32, 64]
+from nir_opcodes import opcodes
+from nir_opcodes import type_has_size, type_size, type_sizes, type_base_type
 
 def type_add_size(type_, size):
     if type_has_size(type_):
@@ -44,10 +29,7 @@ def get_const_field(type_):
     elif type_ == "float16":
         return "u16"
     else:
-        m = type_split_re.match(type_)
-        if not m:
-            raise Exception(str(type_))
-        return m.group('type')[0] + m.group('bits')
+        return type_base_type(type_)[0] + str(type_size(type_))
 
 template = """\
 /*
@@ -429,7 +411,6 @@ nir_eval_const_opcode(nir_op op, unsigned num_components,
    }
 }"""
 
-from nir_opcodes import opcodes
 from mako.template import Template
 
 print(Template(template).render(opcodes=opcodes, type_sizes=type_sizes,

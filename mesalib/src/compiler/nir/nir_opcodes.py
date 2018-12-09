@@ -23,6 +23,7 @@
 # Authors:
 #    Connor Abbott (cwabbott0@gmail.com)
 
+import re
 
 # Class that represents all the information we have about the opcode
 # NOTE: this must be kept in sync with nir_op_info
@@ -89,7 +90,8 @@ class Opcode(object):
 # helper variables for strings
 tfloat = "float"
 tint = "int"
-tbool = "bool32"
+tbool = "bool"
+tbool32 = "bool32"
 tuint = "uint"
 tuint16 = "uint16"
 tfloat32 = "float32"
@@ -98,6 +100,35 @@ tuint32 = "uint32"
 tint64 = "int64"
 tuint64 = "uint64"
 tfloat64 = "float64"
+
+_TYPE_SPLIT_RE = re.compile(r'(?P<type>int|uint|float|bool)(?P<bits>\d+)?')
+
+def type_has_size(type_):
+    m = _TYPE_SPLIT_RE.match(type_)
+    assert m is not None, 'Invalid NIR type string: "{}"'.format(type_)
+    return m.group('bits') is not None
+
+def type_size(type_):
+    m = _TYPE_SPLIT_RE.match(type_)
+    assert m is not None, 'Invalid NIR type string: "{}"'.format(type_)
+    assert m.group('bits') is not None, \
+           'NIR type string has no bit size: "{}"'.format(type_)
+    return int(m.group('bits'))
+
+def type_sizes(type_):
+    if type_has_size(type_):
+        return [type_size(type_)]
+    elif type_ == 'bool':
+        return [32]
+    elif type_ == 'float':
+        return [16, 32, 64]
+    else:
+        return [8, 16, 32, 64]
+
+def type_base_type(type_):
+    m = _TYPE_SPLIT_RE.match(type_)
+    assert m is not None, 'Invalid NIR type string: "{}"'.format(type_)
+    return m.group('type')
 
 commutative = "commutative "
 associative = "associative "
@@ -168,18 +199,18 @@ unop("fexp2", tfloat, "exp2f(src0)")
 unop("flog2", tfloat, "log2f(src0)")
 
 # Generate all of the numeric conversion opcodes
-for src_t in [tint, tuint, tfloat]:
-   if src_t in (tint, tuint):
-      dst_types = [tfloat, src_t]
+for src_t in [tint, tuint, tfloat, tbool]:
+   if src_t == tbool:
+      dst_types = [tfloat, tint]
+   elif src_t == tint:
+      dst_types = [tfloat, tint, tbool]
+   elif src_t == tuint:
+      dst_types = [tfloat, tuint]
    elif src_t == tfloat:
-      dst_types = [tint, tuint, tfloat]
+      dst_types = [tint, tuint, tfloat, tbool]
 
    for dst_t in dst_types:
-      if dst_t == tfloat:
-         bit_sizes = [16, 32, 64]
-      else:
-         bit_sizes = [8, 16, 32, 64]
-      for bit_size in bit_sizes:
+      for bit_size in type_sizes(dst_t):
           if bit_size == 16 and dst_t == tfloat and src_t == tfloat:
               rnd_modes = ['_rtne', '_rtz', '']
               for rnd_mode in rnd_modes:
@@ -187,15 +218,9 @@ for src_t in [tint, tuint, tfloat]:
                                                        bit_size, rnd_mode),
                                dst_t + str(bit_size), src_t, "src0")
           else:
+              conv_expr = "src0 != 0" if dst_t == tbool else "src0"
               unop_convert("{0}2{1}{2}".format(src_t[0], dst_t[0], bit_size),
-                           dst_t + str(bit_size), src_t, "src0")
-
-# We'll hand-code the to/from bool conversion opcodes.  Because bool doesn't
-# have multiple bit-sizes, we can always infer the size from the other type.
-unop_convert("f2b", tbool, tfloat, "src0 != 0.0")
-unop_convert("i2b", tbool, tint, "src0 != 0")
-unop_convert("b2f", tfloat, tbool, "src0 ? 1.0 : 0.0")
-unop_convert("b2i", tint, tbool, "src0 ? 1 : 0")
+                           dst_t + str(bit_size), src_t, conv_expr)
 
 
 # Unary floating-point rounding operations.
@@ -406,7 +431,7 @@ def binop(name, ty, alg_props, const_expr):
    binop_convert(name, ty, ty, alg_props, const_expr)
 
 def binop_compare(name, ty, alg_props, const_expr):
-   binop_convert(name, tbool, ty, alg_props, const_expr)
+   binop_convert(name, tbool32, ty, alg_props, const_expr)
 
 def binop_horiz(name, out_size, out_type, src1_size, src1_type, src2_size,
                 src2_type, const_expr):
@@ -501,13 +526,13 @@ binop_compare("uge", tuint, "", "src0 >= src1")
 
 # integer-aware GLSL-style comparisons that compare floats and ints
 
-binop_reduce("ball_fequal",  1, tbool, tfloat, "{src0} == {src1}",
+binop_reduce("ball_fequal",  1, tbool32, tfloat, "{src0} == {src1}",
              "{src0} && {src1}", "{src}")
-binop_reduce("bany_fnequal", 1, tbool, tfloat, "{src0} != {src1}",
+binop_reduce("bany_fnequal", 1, tbool32, tfloat, "{src0} != {src1}",
              "{src0} || {src1}", "{src}")
-binop_reduce("ball_iequal",  1, tbool, tint, "{src0} == {src1}",
+binop_reduce("ball_iequal",  1, tbool32, tint, "{src0} == {src1}",
              "{src0} && {src1}", "{src}")
-binop_reduce("bany_inequal", 1, tbool, tint, "{src0} != {src1}",
+binop_reduce("bany_inequal", 1, tbool32, tint, "{src0} != {src1}",
              "{src0} || {src1}", "{src}")
 
 # non-integer-aware GLSL-style comparisons that return 0.0 or 1.0
@@ -695,7 +720,7 @@ triop("imed3", tint, "MAX2(MIN2(MAX2(src0, src1), src2), MIN2(src0, src1))")
 triop("umed3", tuint, "MAX2(MIN2(MAX2(src0, src1), src2), MIN2(src0, src1))")
 
 opcode("bcsel", 0, tuint, [0, 0, 0],
-      [tbool, tuint, tuint], "", "src0 ? src1 : src2")
+      [tbool32, tuint, tuint], "", "src0 ? src1 : src2")
 
 # SM5 bfi assembly
 triop("bfi", tuint32, """

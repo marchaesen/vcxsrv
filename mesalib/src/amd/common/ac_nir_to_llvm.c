@@ -429,22 +429,16 @@ static LLVMValueRef emit_bitfield_extract(struct ac_llvm_context *ctx,
 {
 	LLVMValueRef result;
 
-	if (HAVE_LLVM < 0x0700) {
-		LLVMValueRef icond = LLVMBuildICmp(ctx->builder, LLVMIntEQ, srcs[2], LLVMConstInt(ctx->i32, 32, false), "");
-		result = ac_build_bfe(ctx, srcs[0], srcs[1], srcs[2], is_signed);
-		result = LLVMBuildSelect(ctx->builder, icond, srcs[0], result, "");
-	} else {
-		/* FIXME: LLVM 7 returns incorrect result when count is 0.
-		 * https://bugs.freedesktop.org/show_bug.cgi?id=107276
-		 */
-		LLVMValueRef zero = ctx->i32_0;
-		LLVMValueRef icond1 = LLVMBuildICmp(ctx->builder, LLVMIntEQ, srcs[2], LLVMConstInt(ctx->i32, 32, false), "");
-		LLVMValueRef icond2 = LLVMBuildICmp(ctx->builder, LLVMIntEQ, srcs[2], zero, "");
+	/* FIXME: LLVM 7+ returns incorrect result when count is 0.
+	 * https://bugs.freedesktop.org/show_bug.cgi?id=107276
+	 */
+	LLVMValueRef zero = ctx->i32_0;
+	LLVMValueRef icond1 = LLVMBuildICmp(ctx->builder, LLVMIntEQ, srcs[2], LLVMConstInt(ctx->i32, 32, false), "");
+	LLVMValueRef icond2 = LLVMBuildICmp(ctx->builder, LLVMIntEQ, srcs[2], zero, "");
 
-		result = ac_build_bfe(ctx, srcs[0], srcs[1], srcs[2], is_signed);
-		result = LLVMBuildSelect(ctx->builder, icond1, srcs[0], result, "");
-		result = LLVMBuildSelect(ctx->builder, icond2, zero, result, "");
-	}
+	result = ac_build_bfe(ctx, srcs[0], srcs[1], srcs[2], is_signed);
+	result = LLVMBuildSelect(ctx->builder, icond1, srcs[0], result, "");
+	result = LLVMBuildSelect(ctx->builder, icond2, zero, result, "");
 
 	return result;
 }
@@ -941,16 +935,20 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		src[1] = ac_to_integer(&ctx->ac, src[1]);
 		result = emit_uint_carry(&ctx->ac, "llvm.usub.with.overflow.i32", src[0], src[1]);
 		break;
-	case nir_op_b2f:
+	case nir_op_b2f16:
+	case nir_op_b2f32:
+	case nir_op_b2f64:
 		result = emit_b2f(&ctx->ac, src[0], instr->dest.dest.ssa.bit_size);
 		break;
-	case nir_op_f2b:
+	case nir_op_f2b32:
 		result = emit_f2b(&ctx->ac, src[0]);
 		break;
-	case nir_op_b2i:
+	case nir_op_b2i16:
+	case nir_op_b2i32:
+	case nir_op_b2i64:
 		result = emit_b2i(&ctx->ac, src[0], instr->dest.dest.ssa.bit_size);
 		break;
-	case nir_op_i2b:
+	case nir_op_i2b32:
 		src[0] = ac_to_integer(&ctx->ac, src[0]);
 		result = emit_i2b(&ctx->ac, src[0]);
 		break;

@@ -74,8 +74,9 @@ loader_get_user_preferred_fd(int default_fd, bool *different_device);
 #define _LOADER_INFO    2   /* just useful info */
 #define _LOADER_DEBUG   3   /* useful info for debugging */
 
+typedef void loader_logger(int level, const char *fmt, ...);
 void
-loader_set_logger(void (*logger)(int level, const char *fmt, ...));
+loader_set_logger(loader_logger *logger);
 
 char *
 loader_get_extensions_name(const char *driver_name);

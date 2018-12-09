@@ -51,7 +51,7 @@ class Extension:
 # and dEQP-VK.api.info.device fail due to the duplicated strings.
 EXTENSIONS = [
     Extension('VK_ANDROID_native_buffer',                 5, 'ANDROID && device->rad_info.has_syncobj_wait_for_submit'),
-    Extension('VK_KHR_16bit_storage',                     1, 'HAVE_LLVM >= 0x0700'),
+    Extension('VK_KHR_16bit_storage',                     1, True),
     Extension('VK_KHR_bind_memory2',                      1, True),
     Extension('VK_KHR_create_renderpass2',                1, True),
     Extension('VK_KHR_dedicated_allocation',              1, True),
@@ -107,6 +107,7 @@ EXTENSIONS = [
     Extension('VK_EXT_global_priority',                   1, 'device->rad_info.has_ctx_priority'),
     Extension('VK_EXT_pci_bus_info',                      1, True),
     Extension('VK_EXT_sampler_filter_minmax',             1, 'device->rad_info.chip_class >= CIK'),
+    Extension('VK_EXT_scalar_block_layout',               1, 'device->rad_info.chip_class >= CIK'),
     Extension('VK_EXT_shader_viewport_index_layer',       1, True),
     Extension('VK_EXT_shader_stencil_export',             1, True),
     Extension('VK_EXT_transform_feedback',                1, True),

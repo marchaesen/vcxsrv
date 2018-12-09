@@ -451,12 +451,24 @@ msm_ringbuffer_sp_emit_reloc_ring(struct fd_ringbuffer *ring,
 		.offset = msm_target->offset,
 	});
 
-	if ((target->flags & _FD_RINGBUFFER_OBJECT) &&
-			!(ring->flags & _FD_RINGBUFFER_OBJECT)) {
+	if (!(target->flags & _FD_RINGBUFFER_OBJECT))
+		return size;
+
+	struct msm_ringbuffer_sp *msm_ring = to_msm_ringbuffer_sp(ring);
+
+	if (ring->flags & _FD_RINGBUFFER_OBJECT) {
+		for (unsigned i = 0; i < msm_target->u.nr_reloc_bos; i++) {
+			unsigned idx = APPEND(&msm_ring->u, reloc_bos);
+
+			msm_ring->u.reloc_bos[idx].bo =
+				fd_bo_ref(msm_target->u.reloc_bos[i].bo);
+			msm_ring->u.reloc_bos[idx].flags =
+				msm_target->u.reloc_bos[i].flags;
+		}
+	} else {
 		// TODO it would be nice to know whether we have already
 		// seen this target before.  But hopefully we hit the
 		// append_bo() fast path enough for this to not matter:
-		struct msm_ringbuffer_sp *msm_ring = to_msm_ringbuffer_sp(ring);
 		struct msm_submit_sp *msm_submit = to_msm_submit_sp(msm_ring->u.submit);
 
 		for (unsigned i = 0; i < msm_target->u.nr_reloc_bos; i++) {

@@ -43,7 +43,22 @@ typedef enum {
 typedef struct {
    nir_search_value_type type;
 
-   unsigned bit_size;
+   /**
+    * Bit size of the value. It is interpreted as follows:
+    *
+    * For a search expression:
+    * - If bit_size > 0, then the value only matches an SSA value with the
+    *   given bit size.
+    * - If bit_size <= 0, then the value matches any size SSA value.
+    *
+    * For a replace expression:
+    * - If bit_size > 0, then the value is constructed with the given bit size.
+    * - If bit_size == 0, then the value is constructed with the same bit size
+    *   as the search value.
+    * - If bit_size < 0, then the value is constructed with the same bit size
+    *   as variable (-bit_size - 1).
+    */
+   int bit_size;
 } nir_search_value;
 
 typedef struct {
@@ -94,6 +109,20 @@ typedef struct {
    } data;
 } nir_search_constant;
 
+enum nir_search_op {
+   nir_search_op_i2f = nir_last_opcode + 1,
+   nir_search_op_u2f,
+   nir_search_op_f2f,
+   nir_search_op_f2u,
+   nir_search_op_f2i,
+   nir_search_op_u2u,
+   nir_search_op_i2i,
+   nir_search_op_b2f,
+   nir_search_op_b2i,
+   nir_search_op_i2b,
+   nir_search_op_f2b,
+};
+
 typedef struct {
    nir_search_value value;
 
@@ -103,7 +132,8 @@ typedef struct {
     */
    bool inexact;
 
-   nir_op opcode;
+   /* One of nir_op or nir_search_op */
+   uint16_t opcode;
    const nir_search_value *srcs[4];
 
    /** Optional condition fxn ptr

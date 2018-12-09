@@ -107,6 +107,7 @@ api_xml_files = files(
   'EXT_external_objects_fd.xml',
   'EXT_framebuffer_object.xml',
   'EXT_gpu_shader4.xml',
+  'EXT_multisampled_render_to_texture.xml',
   'EXT_packed_depth_stencil.xml',
   'EXT_provoking_vertex.xml',
   'EXT_separate_shader_objects.xml',

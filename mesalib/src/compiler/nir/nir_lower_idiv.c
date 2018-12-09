@@ -95,7 +95,7 @@ convert_instr(nir_builder *bld, nir_alu_instr *alu)
    r = nir_isub(bld, a, r);
 
    r = nir_uge(bld, r, b);
-   r = nir_b2i(bld, r);
+   r = nir_b2i32(bld, r);
 
    q = nir_iadd(bld, q, r);
    if (is_signed)  {

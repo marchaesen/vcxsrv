@@ -33,9 +33,7 @@
 #include <llvm-c/Core.h>
 #include <llvm-c/TargetMachine.h>
 #include <llvm-c/Transforms/Scalar.h>
-#if HAVE_LLVM >= 0x0700
 #include <llvm-c/Transforms/Utils.h>
-#endif
 
 #include "sid.h"
 #include "gfx9d.h"
@@ -568,8 +566,7 @@ set_loc_shader(struct radv_shader_context *ctx, int idx, uint8_t *sgpr_idx,
 static void
 set_loc_shader_ptr(struct radv_shader_context *ctx, int idx, uint8_t *sgpr_idx)
 {
-	bool use_32bit_pointers = HAVE_32BIT_POINTERS &&
-				  idx != AC_UD_SCRATCH_RING_OFFSETS;
+	bool use_32bit_pointers = idx != AC_UD_SCRATCH_RING_OFFSETS;
 
 	set_loc_shader(ctx, idx, sgpr_idx, use_32bit_pointers ? 1 : 2);
 }
@@ -583,7 +580,7 @@ set_loc_desc(struct radv_shader_context *ctx, int idx,  uint8_t *sgpr_idx,
 	struct radv_userdata_info *ud_info = &locs->descriptor_sets[idx];
 	assert(ud_info);
 
-	set_loc(ud_info, sgpr_idx, HAVE_32BIT_POINTERS ? 1 : 2, indirect);
+	set_loc(ud_info, sgpr_idx, 1, indirect);
 
 	if (!indirect)
 		locs->descriptor_sets_enabled |= 1 << idx;
@@ -624,7 +621,7 @@ count_vs_user_sgprs(struct radv_shader_context *ctx)
 	uint8_t count = 0;
 
 	if (ctx->shader_info->info.vs.has_vertex_buffers)
-		count += HAVE_32BIT_POINTERS ? 1 : 2;
+		count++;
 	count += ctx->shader_info->info.vs.needs_draw_id ? 3 : 2;
 
 	return count;
@@ -693,14 +690,14 @@ static void allocate_user_sgprs(struct radv_shader_context *ctx,
 		user_sgpr_count++;
 
 	if (ctx->shader_info->info.loads_push_constants)
-		user_sgpr_count += HAVE_32BIT_POINTERS ? 1 : 2;
+		user_sgpr_count++;
 
 	uint32_t available_sgprs = ctx->options->chip_class >= GFX9 && stage != MESA_SHADER_COMPUTE ? 32 : 16;
 	uint32_t remaining_sgprs = available_sgprs - user_sgpr_count;
 	uint32_t num_desc_set =
 		util_bitcount(ctx->shader_info->info.desc_set_used_mask);
 
-	if (remaining_sgprs / (HAVE_32BIT_POINTERS ? 1 : 2) < num_desc_set) {
+	if (remaining_sgprs < num_desc_set) {
 		user_sgpr_info->indirect_all_descriptor_sets = true;
 	}
 }

@@ -134,7 +134,6 @@ void ac_init_llvm_once(void);
 
 
 bool ac_init_llvm_compiler(struct ac_llvm_compiler *compiler,
-			   bool okay_to_leak_target_library_info,
 			   enum radeon_family family,
 			   enum ac_target_machine_options tm_options);
 void ac_destroy_llvm_compiler(struct ac_llvm_compiler *compiler);

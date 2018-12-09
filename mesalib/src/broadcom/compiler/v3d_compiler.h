@@ -223,7 +223,7 @@ enum quniform_contents {
          */
         QUNIFORM_TEXTURE_CONFIG_P1,
 
-        /* A a V3D 4.x texture config parameter.  The high 8 bits will be
+        /* A V3D 4.x texture config parameter.  The high 8 bits will be
          * which texture or sampler is being sampled, and the driver must
          * replace the address field with the appropriate address.
          */
@@ -243,10 +243,7 @@ enum quniform_contents {
         QUNIFORM_TEXRECT_SCALE_X,
         QUNIFORM_TEXRECT_SCALE_Y,
 
-        QUNIFORM_TEXTURE_BORDER_COLOR,
-
         QUNIFORM_ALPHA_REF,
-        QUNIFORM_SAMPLE_MASK,
 
         /**
          * Returns the the offset of the scratch buffer for register spilling.
@@ -254,6 +251,21 @@ enum quniform_contents {
         QUNIFORM_SPILL_OFFSET,
         QUNIFORM_SPILL_SIZE_PER_THREAD,
 };
+
+static inline uint32_t v3d_tmu_config_data_create(uint32_t unit, uint32_t value)
+{
+        return unit << 24 | value;
+}
+
+static inline uint32_t v3d_tmu_config_data_get_unit(uint32_t data)
+{
+        return data >> 24;
+}
+
+static inline uint32_t v3d_tmu_config_data_get_value(uint32_t data)
+{
+        return data & 0xffffff;
+}
 
 struct v3d_varying_slot {
         uint8_t slot_and_component;
@@ -648,6 +660,11 @@ struct v3d_vs_prog_data {
 
         /* Total number of components written, for the shader state record. */
         uint32_t vpm_output_size;
+
+        /* Set if there should be separate VPM segments for input and output.
+         * If unset, vpm_input_size will be 0.
+         */
+        bool separate_segments;
 
         /* Value to be programmed in VCM_CACHE_SIZE. */
         uint8_t vcm_cache_size;

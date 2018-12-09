@@ -34,14 +34,12 @@
 extern "C" {
 #endif
 
-#define HAVE_32BIT_POINTERS (HAVE_LLVM >= 0x0700)
-
 enum {
-	AC_ADDR_SPACE_FLAT = HAVE_LLVM >= 0x0700 ? 0 : 4, /* Slower than global. */
+	AC_ADDR_SPACE_FLAT = 0, /* Slower than global. */
 	AC_ADDR_SPACE_GLOBAL = 1,
-	AC_ADDR_SPACE_GDS = HAVE_LLVM >= 0x0700 ? 2 : 5,
+	AC_ADDR_SPACE_GDS = 2,
 	AC_ADDR_SPACE_LDS = 3,
-	AC_ADDR_SPACE_CONST = HAVE_LLVM >= 0x0700 ? 4 : 2, /* Global allowing SMEM. */
+	AC_ADDR_SPACE_CONST = 4, /* Global allowing SMEM. */
 	AC_ADDR_SPACE_CONST_32BIT = 6, /* same as CONST, but the pointer type has 32 bits */
 };
 

@@ -22,7 +22,7 @@
 # Initialize Autoconf
 AC_PREREQ([2.60])
 AC_INIT([xtrans], [1.3.5],
-        [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [xtrans])
+        [https://gitlab.freedesktop.org/xorg/lib/libxtrans/issues], [xtrans])
 AC_CONFIG_SRCDIR([Makefile.am])
 
 # Initialize Automake

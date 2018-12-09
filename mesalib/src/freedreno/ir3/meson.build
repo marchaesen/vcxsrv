@@ -37,6 +37,8 @@ libfreedreno_ir3_files = files(
   'ir3_compiler_nir.c',
   'ir3_compiler.c',
   'ir3_compiler.h',
+  'ir3_context.c',
+  'ir3_context.h',
   'ir3_cp.c',
   'ir3_depth.c',
   'ir3_group.c',

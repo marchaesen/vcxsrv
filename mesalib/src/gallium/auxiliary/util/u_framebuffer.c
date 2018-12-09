@@ -229,13 +229,19 @@ util_framebuffer_get_num_samples(const struct pipe_framebuffer_state *fb)
    if (!(fb->nr_cbufs || fb->zsbuf))
       return MAX2(fb->samples, 1);
 
+   /**
+    * If a driver doesn't advertise PIPE_CAP_SURFACE_SAMPLE_COUNT,
+    * pipe_surface::nr_samples will always be 0.
+    */
    for (i = 0; i < fb->nr_cbufs; i++) {
       if (fb->cbufs[i]) {
-         return MAX2(1, fb->cbufs[i]->texture->nr_samples);
+         return MAX3(1, fb->cbufs[i]->texture->nr_samples,
+                     fb->cbufs[i]->nr_samples);
       }
    }
    if (fb->zsbuf) {
-      return MAX2(1, fb->zsbuf->texture->nr_samples);
+      return MAX3(1, fb->zsbuf->texture->nr_samples,
+                  fb->zsbuf->nr_samples);
    }
 
    return 1;

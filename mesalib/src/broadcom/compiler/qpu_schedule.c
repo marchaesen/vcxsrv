@@ -280,6 +280,11 @@ calculate_deps(struct schedule_state *state, struct schedule_node *n)
         const struct v3d_device_info *devinfo = state->devinfo;
         struct qinst *qinst = n->inst;
         struct v3d_qpu_instr *inst = &qinst->qpu;
+        /* If the input and output segments are shared, then all VPM reads to
+         * a location need to happen before all writes.  We handle this by
+         * serializing all VPM operations for now.
+         */
+        bool separate_vpm_segment = false;
 
         if (inst->type == V3D_QPU_INSTR_TYPE_BRANCH) {
                 if (inst->branch.cond != V3D_QPU_BRANCH_COND_ALWAYS)
@@ -319,6 +324,14 @@ calculate_deps(struct schedule_state *state, struct schedule_node *n)
         case V3D_QPU_A_STVPMD:
         case V3D_QPU_A_STVPMP:
                 add_write_dep(state, &state->last_vpm, n);
+                break;
+
+        case V3D_QPU_A_LDVPMV_IN:
+        case V3D_QPU_A_LDVPMD_IN:
+        case V3D_QPU_A_LDVPMG_IN:
+        case V3D_QPU_A_LDVPMP:
+                if (!separate_vpm_segment)
+                        add_write_dep(state, &state->last_vpm, n);
                 break;
 
         case V3D_QPU_A_VPMWT:
@@ -414,8 +427,15 @@ calculate_deps(struct schedule_state *state, struct schedule_node *n)
         if (inst->sig.ldtlb | inst->sig.ldtlbu)
                 add_read_dep(state, state->last_tlb, n);
 
-        if (inst->sig.ldvpm)
+        if (inst->sig.ldvpm) {
                 add_write_dep(state, &state->last_vpm_read, n);
+
+                /* At least for now, we're doing shared I/O segments, so queue
+                 * all writes after all reads.
+                 */
+                if (!separate_vpm_segment)
+                        add_write_dep(state, &state->last_vpm, n);
+        }
 
         /* inst->sig.ldunif or sideband uniform read */
         if (qinst->uniform != ~0)

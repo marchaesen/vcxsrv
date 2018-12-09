@@ -1568,8 +1568,8 @@ nir_alu_instr_is_comparison(const nir_alu_instr *instr)
    case nir_op_uge:
    case nir_op_ieq:
    case nir_op_ine:
-   case nir_op_i2b:
-   case nir_op_f2b:
+   case nir_op_i2b32:
+   case nir_op_f2b32:
    case nir_op_inot:
    case nir_op_fnot:
       return true;

@@ -40,7 +40,6 @@ public:
 	bool init(void)
 	{
 		if (!ac_init_llvm_compiler(&llvm_info,
-					  true,
 					  family,
 					  tm_options))
 			return false;
@@ -99,7 +98,6 @@ bool radv_compile_to_binary(struct ac_llvm_compiler *info,
 }
 
 bool radv_init_llvm_compiler(struct ac_llvm_compiler *info,
-			     bool okay_to_leak_target_library_info,
 			     bool thread_compiler,
 			     enum radeon_family family,
 			     enum ac_target_machine_options tm_options)
@@ -125,7 +123,6 @@ bool radv_init_llvm_compiler(struct ac_llvm_compiler *info,
 	}
 
 	if (!ac_init_llvm_compiler(info,
-				   okay_to_leak_target_library_info,
 				   family,
 				   tm_options))
 		return false;

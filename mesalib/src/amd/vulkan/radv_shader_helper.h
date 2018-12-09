@@ -27,7 +27,6 @@ extern "C" {
 #endif
 
 bool radv_init_llvm_compiler(struct ac_llvm_compiler *info,
-			     bool okay_to_leak_target_library_info,
 			     bool thread_compiler,
 			     enum radeon_family family,
 			     enum ac_target_machine_options tm_options);

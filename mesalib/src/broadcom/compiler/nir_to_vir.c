@@ -682,14 +682,14 @@ ntq_emit_alu(struct v3d_compile *c, nir_alu_instr *instr)
         case nir_op_u2f32:
                 result = vir_UTOF(c, src[0]);
                 break;
-        case nir_op_b2f:
+        case nir_op_b2f32:
                 result = vir_AND(c, src[0], vir_uniform_f(c, 1.0));
                 break;
-        case nir_op_b2i:
+        case nir_op_b2i32:
                 result = vir_AND(c, src[0], vir_uniform_ui(c, 1));
                 break;
-        case nir_op_i2b:
-        case nir_op_f2b:
+        case nir_op_i2b32:
+        case nir_op_f2b32:
                 vir_PF(c, src[0], V3D_QPU_PF_PUSHZ);
                 result = vir_MOV(c, vir_SEL(c, V3D_QPU_COND_IFNA,
                                             vir_uniform_ui(c, ~0),
@@ -1511,15 +1511,14 @@ ntq_emit_ssa_undef(struct v3d_compile *c, nir_ssa_undef_instr *instr)
 static void
 ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
 {
-        nir_const_value *const_offset;
         unsigned offset;
 
         switch (instr->intrinsic) {
         case nir_intrinsic_load_uniform:
                 assert(instr->num_components == 1);
-                const_offset = nir_src_as_const_value(instr->src[0]);
-                if (const_offset) {
-                        offset = nir_intrinsic_base(instr) + const_offset->u32[0];
+                if (nir_src_is_const(instr->src[0])) {
+                        offset = (nir_intrinsic_base(instr) +
+                                  nir_src_as_uint(instr->src[0]));
                         assert(offset % 4 == 0);
                         /* We need dwords */
                         offset = offset / 4;
@@ -1534,7 +1533,7 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
 
         case nir_intrinsic_load_ubo:
                 for (int i = 0; i < instr->num_components; i++) {
-                        int ubo = nir_src_as_const_value(instr->src[0])->u32[0];
+                        int ubo = nir_src_as_uint(instr->src[0]);
 
                         /* Adjust for where we stored the TGSI register base. */
                         vir_ADD_dest(c,
@@ -1550,9 +1549,9 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
                 }
                 break;
 
-                const_offset = nir_src_as_const_value(instr->src[0]);
-                if (const_offset) {
-                        offset = nir_intrinsic_base(instr) + const_offset->u32[0];
+                if (nir_src_is_const(instr->src[0])) {
+                        offset = (nir_intrinsic_base(instr) +
+                                  nir_src_as_uint(instr->src[0]));
                         assert(offset % 4 == 0);
                         /* We need dwords */
                         offset = offset / 4;
@@ -1580,8 +1579,7 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
                 break;
 
         case nir_intrinsic_load_sample_mask_in:
-                ntq_store_dest(c, &instr->dest, 0,
-                               vir_uniform(c, QUNIFORM_SAMPLE_MASK, 0));
+                ntq_store_dest(c, &instr->dest, 0, vir_MSF(c));
                 break;
 
         case nir_intrinsic_load_front_face:
@@ -1603,10 +1601,9 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
                 break;
 
         case nir_intrinsic_load_input:
-                const_offset = nir_src_as_const_value(instr->src[0]);
-                assert(const_offset && "v3d doesn't support indirect inputs");
                 for (int i = 0; i < instr->num_components; i++) {
-                        offset = nir_intrinsic_base(instr) + const_offset->u32[0];
+                        offset = (nir_intrinsic_base(instr) +
+                                  nir_src_as_uint(instr->src[0]));
                         int comp = nir_intrinsic_component(instr) + i;
                         ntq_store_dest(c, &instr->dest, i,
                                        vir_MOV(c, c->inputs[offset * 4 + comp]));
@@ -1614,10 +1611,8 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
                 break;
 
         case nir_intrinsic_store_output:
-                const_offset = nir_src_as_const_value(instr->src[1]);
-                assert(const_offset && "v3d doesn't support indirect outputs");
                 offset = ((nir_intrinsic_base(instr) +
-                           const_offset->u32[0]) * 4 +
+                           nir_src_as_uint(instr->src[1])) * 4 +
                           nir_intrinsic_component(instr));
 
                 for (int i = 0; i < instr->num_components; i++) {

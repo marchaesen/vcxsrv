@@ -274,7 +274,7 @@ build_atan(nir_builder *b, nir_ssa_def *y_over_x)
    /* range-reduction fixup */
    tmp = nir_fadd(b, tmp,
                   nir_fmul(b,
-                           nir_b2f(b, nir_flt(b, one, abs_y_over_x)),
+                           nir_b2f32(b, nir_flt(b, one, abs_y_over_x)),
                            nir_fadd(b, nir_fmul(b, tmp,
                                                 nir_imm_float(b, -2.0f)),
                                        nir_imm_float(b, M_PI_2f))));
@@ -346,7 +346,7 @@ build_atan2(nir_builder *b, nir_ssa_def *y, nir_ssa_def *x)
    /* Calculate the arctangent and fix up the result if we had flipped the
     * coordinate system.
     */
-   nir_ssa_def *arc = nir_fadd(b, nir_fmul(b, nir_b2f(b, flip),
+   nir_ssa_def *arc = nir_fadd(b, nir_fmul(b, nir_b2f32(b, flip),
                                            nir_imm_float(b, M_PI_2f)),
                                build_atan(b, tan));
 

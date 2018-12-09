@@ -509,6 +509,8 @@ get_definer(struct ir3_ra_ctx *ctx, struct ir3_instruction *instr,
 		d = dd;
 	}
 
+	debug_assert(d->opc != OPC_META_FO);
+
 	id->defn = d;
 	id->sz = *sz;
 	id->off = *off;

@@ -319,7 +319,7 @@ Khronos, ARB, and OES extensions that are not part of any OpenGL or OpenGL ES ve
   GL_EXT_memory_object                                  DONE (radeonsi)
   GL_EXT_memory_object_fd                               DONE (radeonsi)
   GL_EXT_memory_object_win32                            not started
-  GL_EXT_render_snorm                                   DONE (i965)
+  GL_EXT_render_snorm                                   DONE (i965, radeonsi)
   GL_EXT_semaphore                                      DONE (radeonsi)
   GL_EXT_semaphore_fd                                   DONE (radeonsi)
   GL_EXT_semaphore_win32                                not started
@@ -338,7 +338,7 @@ Khronos, ARB, and OES extensions that are not part of any OpenGL or OpenGL ES ve
   GL_OES_texture_float_linear                           DONE (freedreno, i965, r300, r600, radeonsi, nv30, nv50, nvc0, softpipe, llvmpipe)
   GL_OES_texture_half_float                             DONE (freedreno, i965, r300, r600, radeonsi, nv30, nv50, nvc0, softpipe, llvmpipe)
   GL_OES_texture_half_float_linear                      DONE (freedreno, i965, r300, r600, radeonsi, nv30, nv50, nvc0, softpipe, llvmpipe)
-  GL_OES_texture_view                                   DONE (i965/gen8+)
+  GL_OES_texture_view                                   DONE (freedreno, i965/gen8+, r600, radeonsi, nv50, nvc0, softpipe, llvmpipe, swr)
   GL_OES_viewport_array                                 DONE (i965, nvc0, radeonsi)
   GLX_ARB_context_flush_control                         not started
   GLX_ARB_robustness_application_isolation              not started

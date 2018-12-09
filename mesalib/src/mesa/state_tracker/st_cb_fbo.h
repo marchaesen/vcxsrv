@@ -69,6 +69,7 @@ struct st_renderbuffer
    boolean is_rtt; /**< whether Driver.RenderTexture was called */
    unsigned rtt_face, rtt_slice;
    boolean rtt_layered; /**< whether glFramebufferTexture was called */
+   unsigned rtt_nr_samples; /**< from FramebufferTexture2DMultisampleEXT */
 };
 
 

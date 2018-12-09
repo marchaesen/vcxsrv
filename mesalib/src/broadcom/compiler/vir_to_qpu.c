@@ -364,6 +364,7 @@ v3d_dump_qpu(struct v3d_compile *c)
         for (int i = 0; i < c->qpu_inst_count; i++) {
                 const char *str = v3d_qpu_disasm(c->devinfo, c->qpu_insts[i]);
                 fprintf(stderr, "0x%016"PRIx64" %s\n", c->qpu_insts[i], str);
+                ralloc_free((void *)str);
         }
         fprintf(stderr, "\n");
 }
