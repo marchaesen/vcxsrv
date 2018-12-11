@@ -20,7 +20,7 @@
     </function>
 -->
 
-    <function name="FramebufferTexture2DMultisampleEXT" es2="2.0">
+    <function name="FramebufferTexture2DMultisampleEXT" es2="2.0" desktop="false">
         <param name="target" type="GLenum"/>
         <param name="attachment" type="GLenum"/>
         <param name="textarget" type="GLenum"/>

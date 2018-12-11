@@ -810,6 +810,8 @@
     <enum name="RG8_EXT"                                  value="0x822B"/>
 </category>
 
+<xi:include href="EXT_multisampled_render_to_texture.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
 <!-- 111. GL_ANGLE_texture_compression_dxt -->
 <category name="GL_ANGLE_texture_compression_dxt" number="111">
     <enum name="COMPRESSED_RGBA_S3TC_DXT3_ANGLE"        value="0x83F2"/>

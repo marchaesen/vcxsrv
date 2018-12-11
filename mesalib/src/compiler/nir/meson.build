@@ -268,5 +268,6 @@ if with_tests
     args : [
       join_paths(meson.current_source_dir(), 'tests/algebraic_parser_test.py')
     ],
+    suite : ['compiler', 'nir'],
   )
 endif

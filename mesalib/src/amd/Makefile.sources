@@ -26,7 +26,6 @@ ADDRLIB_FILES = \
 	addrlib/src/gfx9/gfx9addrlib.h \
 	addrlib/src/chip/gfx9/gfx9_gb_reg.h \
 	addrlib/src/chip/r800/si_gb_reg.h \
-	addrlib/src/r800/chip/si_ci_vi_merged_enum.h \
 	addrlib/src/r800/ciaddrlib.cpp \
 	addrlib/src/r800/ciaddrlib.h \
 	addrlib/src/r800/egbaddrlib.cpp \
