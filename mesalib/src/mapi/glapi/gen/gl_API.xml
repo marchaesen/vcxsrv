@@ -8175,8 +8175,6 @@
 
 <xi:include href="ARB_robustness.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
-<xi:include href="EXT_multisampled_render_to_texture.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
-
 <xi:include href="ARB_base_instance.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <category name="GL_ARB_transform_feedback_instanced" number="109">

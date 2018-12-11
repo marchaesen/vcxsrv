@@ -38,17 +38,18 @@ matrix:
         - DRI_DRIVERS=""
         - GALLIUM_DRIVERS=""
         - VULKAN_DRIVERS="intel,amd"
-        - LLVM_VERSION=6.0
+        - LLVM_VERSION=7
         - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
       addons:
         apt:
           sources:
-            - llvm-toolchain-trusty-6.0
-            # llvm-6 requires libstdc++4.9 which is not in main repo
+            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-7 main'
+              key_url: https://apt.llvm.org/llvm-snapshot.gpg.key
+            # llvm-7 requires libstdc++4.9 which is not in main repo
             - ubuntu-toolchain-r-test
           packages:
             # From sources above
-            - llvm-6.0-dev
+            - llvm-7-dev
             # Common
             - xz-utils
             - libexpat1-dev
@@ -131,7 +132,7 @@ matrix:
         - BUILD=make
         - MAKEFLAGS="-j4"
         - MAKE_CHECK_COMMAND="true"
-        - LLVM_VERSION=6.0
+        - LLVM_VERSION=7
         - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
         - DRI_LOADERS="--disable-glx --disable-gbm --disable-egl"
         - DRI_DRIVERS=""
@@ -142,12 +143,13 @@ matrix:
       addons:
         apt:
           sources:
-            - llvm-toolchain-trusty-6.0
-            # llvm-6 requires libstdc++4.9 which is not in main repo
+            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-7 main'
+              key_url: https://apt.llvm.org/llvm-snapshot.gpg.key
+            # llvm-7 requires libstdc++4.9 which is not in main repo
             - ubuntu-toolchain-r-test
           packages:
             # From sources above
-            - llvm-6.0-dev
+            - llvm-7-dev
             # Common
             - xz-utils
             - libexpat1-dev
@@ -305,7 +307,7 @@ matrix:
         - DRI_LOADERS="--disable-glx --disable-gbm --disable-egl"
         - DRI_DRIVERS=""
         - GALLIUM_ST="--disable-dri --enable-opencl --enable-opencl-icd --enable-llvm --disable-xa --disable-nine --disable-xvmc --disable-vdpau --disable-va --disable-omx-bellagio --disable-gallium-osmesa"
-        - GALLIUM_DRIVERS="r600,radeonsi"
+        - GALLIUM_DRIVERS="r600"
         - VULKAN_DRIVERS=""
         - LIBUNWIND_FLAGS="--enable-libunwind"
       addons:
@@ -400,7 +402,7 @@ matrix:
         - BUILD=make
         - MAKEFLAGS="-j4"
         - MAKE_CHECK_COMMAND="make -C src/gtest check && make -C src/intel check"
-        - LLVM_VERSION=6.0
+        - LLVM_VERSION=7
         - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
         - DRI_LOADERS="--disable-glx --disable-gbm --disable-egl --with-platforms=x11,wayland"
         - DRI_DRIVERS=""
@@ -411,12 +413,13 @@ matrix:
       addons:
         apt:
           sources:
-            - llvm-toolchain-trusty-6.0
-            # llvm-6 requires libstdc++4.9 which is not in main repo
+            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-7 main'
+              key_url: https://apt.llvm.org/llvm-snapshot.gpg.key
+            # llvm-7 requires libstdc++4.9 which is not in main repo
             - ubuntu-toolchain-r-test
           packages:
             # From sources above
-            - llvm-6.0-dev
+            - llvm-7-dev
             # Common
             - xz-utils
             - libexpat1-dev

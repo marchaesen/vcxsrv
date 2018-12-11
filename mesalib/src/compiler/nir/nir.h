@@ -1886,9 +1886,11 @@ typedef struct {
    /* Number of instructions in the loop */
    unsigned num_instructions;
 
-   /* How many times the loop is run (if known) */
-   unsigned trip_count;
-   bool is_trip_count_known;
+   /* Maximum number of times the loop is run (if known) */
+   unsigned max_trip_count;
+
+   /* Do we know the exact number of times the loop will be run */
+   bool exact_trip_count_known;
 
    /* Unroll the loop regardless of its size */
    bool force_unroll;

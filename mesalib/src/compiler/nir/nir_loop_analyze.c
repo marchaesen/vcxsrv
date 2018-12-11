@@ -527,7 +527,7 @@ find_trip_count(loop_info_state *state)
 {
    bool trip_count_known = true;
    nir_loop_terminator *limiting_terminator = NULL;
-   int min_trip_count = -1;
+   int max_trip_count = -1;
 
    list_for_each_entry(nir_loop_terminator, terminator,
                        &state->loop->info->loop_terminator_list,
@@ -606,8 +606,8 @@ find_trip_count(loop_info_state *state)
           * iterations than previously (we have identified a more limiting
           * terminator) set the trip count and limiting terminator.
           */
-         if (min_trip_count == -1 || iterations < min_trip_count) {
-            min_trip_count = iterations;
+         if (max_trip_count == -1 || iterations < max_trip_count) {
+            max_trip_count = iterations;
             limiting_terminator = terminator;
          }
          break;
@@ -617,15 +617,14 @@ find_trip_count(loop_info_state *state)
       }
    }
 
-   state->loop->info->is_trip_count_known = trip_count_known;
-   if (min_trip_count > -1)
-      state->loop->info->trip_count = min_trip_count;
+   state->loop->info->exact_trip_count_known = trip_count_known;
+   if (max_trip_count > -1)
+      state->loop->info->max_trip_count = max_trip_count;
    state->loop->info->limiting_terminator = limiting_terminator;
 }
 
 static bool
-force_unroll_array_access(loop_info_state *state, nir_shader *ns,
-                          nir_deref_instr *deref)
+force_unroll_array_access(loop_info_state *state, nir_deref_instr *deref)
 {
    for (nir_deref_instr *d = deref; d; d = nir_deref_instr_parent(d)) {
       if (d->deref_type != nir_deref_type_array)
@@ -640,23 +639,18 @@ force_unroll_array_access(loop_info_state *state, nir_shader *ns,
       nir_deref_instr *parent = nir_deref_instr_parent(d);
       assert(glsl_type_is_array(parent->type) ||
              glsl_type_is_matrix(parent->type));
-      if (glsl_get_length(parent->type) == state->loop->info->trip_count) {
-         state->loop->info->force_unroll = true;
+      if (glsl_get_length(parent->type) == state->loop->info->max_trip_count)
          return true;
-      }
 
-      if (deref->mode & state->indirect_mask) {
-         state->loop->info->force_unroll = true;
+      if (deref->mode & state->indirect_mask)
          return true;
-      }
    }
 
    return false;
 }
 
 static bool
-force_unroll_heuristics(loop_info_state *state, nir_shader *ns,
-                        nir_block *block)
+force_unroll_heuristics(loop_info_state *state, nir_block *block)
 {
    nir_foreach_instr(instr, block) {
       if (instr->type != nir_instr_type_intrinsic)
@@ -670,12 +664,12 @@ force_unroll_heuristics(loop_info_state *state, nir_shader *ns,
       if (intrin->intrinsic == nir_intrinsic_load_deref ||
           intrin->intrinsic == nir_intrinsic_store_deref ||
           intrin->intrinsic == nir_intrinsic_copy_deref) {
-         if (force_unroll_array_access(state, ns,
+         if (force_unroll_array_access(state,
                                        nir_src_as_deref(intrin->src[0])))
             return true;
 
          if (intrin->intrinsic == nir_intrinsic_copy_deref &&
-             force_unroll_array_access(state, ns,
+             force_unroll_array_access(state,
                                        nir_src_as_deref(intrin->src[1])))
             return true;
       }
@@ -745,15 +739,10 @@ get_loop_info(loop_info_state *state, nir_function_impl *impl)
    find_trip_count(state);
 
    nir_shader *ns = impl->function->shader;
-   foreach_list_typed_safe(nir_cf_node, node, node, &state->loop->body) {
-      if (node->type == nir_cf_node_block) {
-         if (force_unroll_heuristics(state, ns, nir_cf_node_as_block(node)))
-            break;
-      } else {
-         nir_foreach_block_in_cf_node(block, node) {
-            if (force_unroll_heuristics(state, ns, block))
-               break;
-         }
+   nir_foreach_block_in_cf_node(block, &state->loop->cf_node) {
+      if (force_unroll_heuristics(state, block)) {
+         state->loop->info->force_unroll = true;
+         break;
       }
    }
 }

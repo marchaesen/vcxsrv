@@ -172,7 +172,15 @@
 	<glx rop="4318"/>
     </function>
 
-    <function name="RenderbufferStorageMultisample" es2="3.0">
+<!--
+    The EXT aliasee, as part of EXT_multisampled_render_to_texture can
+    work on GLES 2.0. While the entry point below is only set when
+    gl || (gles && version > 3.0)
+
+    As such, the entrypoint will be noop, and calling it will do nothing.
+    Workaround that by loosening the version to 2.0.
+ -->
+    <function name="RenderbufferStorageMultisample" es2="2.0">
         <param name="target" type="GLenum"/>
         <param name="samples" type="GLsizei"/>
         <param name="internalformat" type="GLenum"/>
