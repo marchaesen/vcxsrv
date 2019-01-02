@@ -41,8 +41,29 @@ static const char *
 __getProgramName()
 {
    char * arg = strrchr(program_invocation_name, '/');
-   if (arg)
+   if (arg) {
+      /* If the / character was found this is likely a linux path or
+       * an invocation path for a 64-bit wine program.
+       *
+       * However, some programs pass command line arguments into argv[0].
+       * Strip these arguments out by using the realpath only if it was
+       * a prefix of the invocation name.
+       */
+      static char *path;
+
+      if (!path)
+         path = realpath("/proc/self/exe", NULL);
+
+      if (path && strncmp(path, program_invocation_name, strlen(path)) == 0) {
+         /* This shouldn't be null because path is a a prefix,
+          * but check it anyway since path is static. */
+         char * name = strrchr(path, '/');
+         if (name)
+            return name + 1;
+      }
+
       return arg+1;
+   }
 
    /* If there was no '/' at all we likely have a windows like path from
     * a wine application.

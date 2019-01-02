@@ -629,12 +629,6 @@ gl_iformat_for_pixmap(PixmapPtr pixmap)
     }
 }
 
-static inline CARD32
-format_for_pixmap(PixmapPtr pixmap)
-{
-    return format_for_depth((pixmap)->drawable.depth);
-}
-
 #define REVERT_NONE       		0
 #define REVERT_NORMAL     		1
 #define REVERT_UPLOADING_A1		3

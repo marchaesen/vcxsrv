@@ -63,7 +63,8 @@ v3d_nir_lower_uniform(struct v3d_compile *c, nir_builder *b,
                 nir_intrinsic_instr *intr_comp =
                         nir_intrinsic_instr_create(c->s, intr->intrinsic);
                 intr_comp->num_components = 1;
-                nir_ssa_dest_init(&intr_comp->instr, &intr_comp->dest, 1, 32, NULL);
+                nir_ssa_dest_init(&intr_comp->instr, &intr_comp->dest, 1,
+                                  intr->dest.ssa.bit_size, NULL);
 
                 /* Convert the uniform offset to bytes.  If it happens
                  * to be a constant, constant-folding will clean up

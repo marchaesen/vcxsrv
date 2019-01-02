@@ -169,6 +169,27 @@ util_format_is_snorm(enum pipe_format format)
           desc->channel[i].normalized;
 }
 
+/**
+ * Returns true if all non-void channels are normalized unsigned.
+ */
+boolean
+util_format_is_unorm(enum pipe_format format)
+{
+   const struct util_format_description *desc = util_format_description(format);
+   int i;
+
+   if (desc->is_mixed)
+      return FALSE;
+
+   i = util_format_get_first_non_void_channel(format);
+   if (i == -1)
+      return FALSE;
+
+   return desc->channel[i].type == UTIL_FORMAT_TYPE_UNSIGNED &&
+          !desc->channel[i].pure_integer &&
+          desc->channel[i].normalized;
+}
+
 boolean
 util_format_is_snorm8(enum pipe_format format)
 {

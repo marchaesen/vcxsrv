@@ -63,7 +63,8 @@ constant_fold_alu_instr(nir_alu_instr *instr, void *mem_ctx)
       if (!instr->src[i].src.is_ssa)
          return false;
 
-      if (bit_size == 0 && nir_op_infos[instr->op].input_sizes[i] == 0)
+      if (bit_size == 0 &&
+          !nir_alu_type_get_type_size(nir_op_infos[instr->op].input_types[i]))
          bit_size = instr->src[i].src.ssa->bit_size;
 
       nir_instr *src_instr = instr->src[i].src.ssa->parent_instr;
@@ -86,6 +87,9 @@ constant_fold_alu_instr(nir_alu_instr *instr, void *mem_ctx)
             break;
          case 8:
             src[i].u8[j] = load_const->value.u8[instr->src[i].swizzle[j]];
+            break;
+         case 1:
+            src[i].b[j] = load_const->value.b[instr->src[i].swizzle[j]];
             break;
          default:
             unreachable("Invalid bit size");

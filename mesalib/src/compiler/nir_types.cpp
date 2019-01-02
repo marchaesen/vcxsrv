@@ -528,6 +528,14 @@ glsl_get_natural_size_align_bytes(const struct glsl_type *type,
                                   unsigned *size, unsigned *align)
 {
    switch (type->base_type) {
+   case GLSL_TYPE_BOOL:
+      /* We special-case Booleans to 32 bits to not cause heartburn for
+       * drivers that suddenly get an 8-bit load.
+       */
+      *size = 4 * type->components();
+      *align = 4;
+      break;
+
    case GLSL_TYPE_UINT8:
    case GLSL_TYPE_INT8:
    case GLSL_TYPE_UINT16:
@@ -536,7 +544,6 @@ glsl_get_natural_size_align_bytes(const struct glsl_type *type,
    case GLSL_TYPE_UINT:
    case GLSL_TYPE_INT:
    case GLSL_TYPE_FLOAT:
-   case GLSL_TYPE_BOOL:
    case GLSL_TYPE_DOUBLE:
    case GLSL_TYPE_UINT64:
    case GLSL_TYPE_INT64: {

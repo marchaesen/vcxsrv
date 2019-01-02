@@ -28,6 +28,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "Xlibint.h"
+#include "reallocarray.h"
 #include <limits.h>
 
 #if defined(XF86BIGFONT)
@@ -91,22 +92,22 @@ XFontStruct **info)	/* RETURN */
 		XFontStruct * tmp_finfo;
 		char ** tmp_flist;
 
-		tmp_finfo = Xrealloc (finfo, sizeof(XFontStruct) * size);
+		tmp_finfo = Xreallocarray (finfo, size, sizeof(XFontStruct));
 		if (tmp_finfo)
 		    finfo = tmp_finfo;
 		else
 		    goto badmem;
 
-		tmp_flist = Xrealloc (flist, sizeof(char *) * (size+1));
+		tmp_flist = Xreallocarray (flist, size + 1, sizeof(char *));
 		if (tmp_flist)
 		    flist = tmp_flist;
 		else
 		    goto badmem;
 	    }
 	    else {
-		if (! (finfo = Xmalloc(sizeof(XFontStruct) * size)))
+		if (! (finfo = Xmallocarray(size, sizeof(XFontStruct))))
 		    goto clearwire;
-		if (! (flist = Xmalloc(sizeof(char *) * (size+1)))) {
+		if (! (flist = Xmallocarray(size + 1, sizeof(char *)))) {
 		    Xfree(finfo);
 		    goto clearwire;
 		}
@@ -137,8 +138,8 @@ XFontStruct **info)	/* RETURN */
 	    /* nFontProps is a CARD16 */
 	    nbytes = reply.nFontProps * SIZEOF(xFontProp);
 	    if ((nbytes >> 2) <= reply_left) {
-		size_t pbytes = reply.nFontProps * sizeof(XFontProp);
-		fs->properties = Xmalloc (pbytes);
+		fs->properties = Xmallocarray (reply.nFontProps,
+                                               sizeof(XFontProp));
 	    }
 	    if (! fs->properties)
 		goto badmem;

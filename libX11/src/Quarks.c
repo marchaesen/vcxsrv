@@ -55,6 +55,7 @@ from The Open Group.
 #include "Xlibint.h"
 #include <X11/Xresource.h>
 #include "Xresinternal.h"
+#include "reallocarray.h"
 
 /* Not cost effective, at least for vanilla MIT clients */
 /* #define PERMQ */
@@ -288,15 +289,15 @@ nomatch:    if (!rehash)
     q = nextQuark;
     if (!(q & QUANTUMMASK)) {
 	if (!(q & CHUNKMASK)) {
-	    if (!(new = Xrealloc(stringTable,
-				 sizeof(XrmString *) *
-				 ((q >> QUANTUMSHIFT) + CHUNKPER))))
+	    if (!(new = Xreallocarray(stringTable,
+                                      (q >> QUANTUMSHIFT) + CHUNKPER,
+                                      sizeof(XrmString *))))
 		goto fail;
 	    stringTable = (XrmString **)new;
 #ifdef PERMQ
-	    if (!(new = Xrealloc(permTable,
-				 sizeof(Bits *) *
-				 ((q >> QUANTUMSHIFT) + CHUNKPER))))
+	    if (!(new = Xreallocarray(permTable,
+                                      (q >> QUANTUMSHIFT) + CHUNKPER,
+                                      sizeof(Bits *))))
 		goto fail;
 	    permTable = (Bits **)new;
 #endif

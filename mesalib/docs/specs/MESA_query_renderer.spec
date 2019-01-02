@@ -20,20 +20,17 @@ Status
 
 Version
 
-    Version 8, 14-February-2014
+    Version 9, 09 November 2018
 
 Number
 
-    TBD.
+    OpenGL Extension #446
 
 Dependencies
 
     GLX 1.4 is required.
 
     GLX_ARB_create_context and GLX_ARB_create_context_profile are required.
-
-    This extension interacts with GLX_EXT_create_context_es2_profile and
-    GLX_EXT_create_context_es_profile.
 
 Overview
 
@@ -95,18 +92,13 @@ New Tokens
         GLX_RENDERER_VENDOR_ID_MESA
         GLX_RENDERER_DEVICE_ID_MESA
 
-    Accepted as an attribute name in <*attrib_list> in
-    glXCreateContextAttribsARB:
-
-        GLX_RENDERER_ID_MESA                             0x818E
-
 Additions to the OpenGL / WGL Specifications
 
     None. This specification is written for GLX.
 
 Additions to the GLX 1.4 Specification
 
-    [Add the following to Section X.Y.Z of the GLX Specification]
+    [Add to Section 3.3.2 "GLX Versioning" of the GLX Specification]
 
     To obtain information about the available renderers for a particular
     display and screen,
@@ -205,29 +197,6 @@ Additions to the GLX 1.4 Specification
     The string returned for GLX_RENDERER_DEVICE_ID_MESA will have the same
     format as the string that would be returned by glGetString of GL_RENDERER.
     It may, however, have a different value.
-
-
-    [Add to section section 3.3.7 "Rendering Contexts"]
-
-    The attribute name GLX_RENDERER_ID_MESA specified the index of the render
-    against which the context should be created.  The default value of
-    GLX_RENDERER_ID_MESA is 0.
-
-
-    [Add to list of errors for glXCreateContextAttribsARB in section section
-    3.3.7 "Rendering Contexts"]
-
-      * If the value of GLX_RENDERER_ID_MESA specifies a non-existent
-        renderer, BadMatch is generated.
-
-Dependencies on GLX_EXT_create_context_es_profile and
-GLX_EXT_create_context_es2_profile
-
-    If neither extension is supported, remove all mention of
-    GLX_RENDERER_OPENGL_ES2_PROFILE_VERSION_MESA from the spec.
-
-    If GLX_EXT_create_context_es_profile is not supported, remove all mention of
-    GLX_RENDERER_OPENGL_ES_PROFILE_VERSION_MESA from the spec.
 
 Issues
 
@@ -408,3 +377,9 @@ Revision History
                             read GLX_RENDERER_ID_MESA. The VENDOR/DEVICE_ID
                             example given in issue #17 should be 0x5143 and
                             0xFFFFFFFF respectively.
+
+    Version 9, 2018/11/09 - Remove GLX_RENDERER_ID_MESA, which has never been
+                            implemented. Remove the unnecessary interactions
+                            with the GLX GLES profile extensions. Note the
+                            official GL extension number. Specify the section
+                            of the GLX spec to modify.

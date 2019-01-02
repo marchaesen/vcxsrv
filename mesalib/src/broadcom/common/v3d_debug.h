@@ -55,6 +55,7 @@ extern uint32_t V3D_DEBUG;
 #define V3D_DEBUG_NORAST		(1 << 11)
 #define V3D_DEBUG_ALWAYS_FLUSH		(1 << 12)
 #define V3D_DEBUG_CLIF			(1 << 13)
+#define V3D_DEBUG_PRECOMPILE		(1 << 14)
 
 #ifdef HAVE_ANDROID_PLATFORM
 #define LOG_TAG "BROADCOM-MESA"

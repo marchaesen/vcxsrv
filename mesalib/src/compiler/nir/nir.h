@@ -118,6 +118,7 @@ typedef enum {
 } nir_rounding_mode;
 
 typedef union {
+   bool b[NIR_MAX_VEC_COMPONENTS];
    float f32[NIR_MAX_VEC_COMPONENTS];
    double f64[NIR_MAX_VEC_COMPONENTS];
    int8_t i8[NIR_MAX_VEC_COMPONENTS];
@@ -486,7 +487,7 @@ typedef struct nir_register {
 #define nir_foreach_register_safe(reg, reg_list) \
    foreach_list_typed_safe(nir_register, reg, node, reg_list)
 
-typedef enum {
+typedef enum PACKED {
    nir_instr_type_alu,
    nir_instr_type_deref,
    nir_instr_type_call,
@@ -501,16 +502,16 @@ typedef enum {
 
 typedef struct nir_instr {
    struct exec_node node;
-   nir_instr_type type;
    struct nir_block *block;
-
-   /** generic instruction index. */
-   unsigned index;
+   nir_instr_type type;
 
    /* A temporary for optimization and analysis passes to use for storing
     * flags.  For instance, DCE uses this to store the "dead/live" info.
     */
    uint8_t pass_flags;
+
+   /** generic instruction index. */
+   unsigned index;
 } nir_instr;
 
 static inline nir_instr *
@@ -779,17 +780,25 @@ typedef struct {
    unsigned write_mask : NIR_MAX_VEC_COMPONENTS; /* ignored if dest.is_ssa is true */
 } nir_alu_dest;
 
+/** NIR sized and unsized types
+ *
+ * The values in this enum are carefully chosen so that the sized type is
+ * just the unsized type OR the number of bits.
+ */
 typedef enum {
    nir_type_invalid = 0, /* Not a valid type */
-   nir_type_float,
-   nir_type_int,
-   nir_type_uint,
-   nir_type_bool,
+   nir_type_int =       2,
+   nir_type_uint =      4,
+   nir_type_bool =      6,
+   nir_type_float =     128,
+   nir_type_bool1 =     1  | nir_type_bool,
    nir_type_bool32 =    32 | nir_type_bool,
+   nir_type_int1 =      1  | nir_type_int,
    nir_type_int8 =      8  | nir_type_int,
    nir_type_int16 =     16 | nir_type_int,
    nir_type_int32 =     32 | nir_type_int,
    nir_type_int64 =     64 | nir_type_int,
+   nir_type_uint1 =     1  | nir_type_uint,
    nir_type_uint8 =     8  | nir_type_uint,
    nir_type_uint16 =    16 | nir_type_uint,
    nir_type_uint32 =    32 | nir_type_uint,
@@ -799,8 +808,8 @@ typedef enum {
    nir_type_float64 =   64 | nir_type_float,
 } nir_alu_type;
 
-#define NIR_ALU_TYPE_SIZE_MASK 0xfffffff8
-#define NIR_ALU_TYPE_BASE_TYPE_MASK 0x00000007
+#define NIR_ALU_TYPE_SIZE_MASK 0x79
+#define NIR_ALU_TYPE_BASE_TYPE_MASK 0x86
 
 static inline unsigned
 nir_alu_type_get_type_size(nir_alu_type type)
@@ -819,7 +828,7 @@ nir_get_nir_type_for_glsl_base_type(enum glsl_base_type base_type)
 {
    switch (base_type) {
    case GLSL_TYPE_BOOL:
-      return nir_type_bool32;
+      return nir_type_bool1;
       break;
    case GLSL_TYPE_UINT:
       return nir_type_uint32;
@@ -1376,7 +1385,7 @@ nir_intrinsic_set_align(nir_intrinsic_instr *intrin,
  * to satisfy X % align == 0.
  */
 static inline unsigned
-nir_intrinsic_align(nir_intrinsic_instr *intrin)
+nir_intrinsic_align(const nir_intrinsic_instr *intrin)
 {
    const unsigned align_mul = nir_intrinsic_align_mul(intrin);
    const unsigned align_offset = nir_intrinsic_align_offset(intrin);
@@ -1398,6 +1407,7 @@ typedef enum {
    nir_tex_src_offset,
    nir_tex_src_bias,
    nir_tex_src_lod,
+   nir_tex_src_min_lod,
    nir_tex_src_ms_index, /* MSAA sample index */
    nir_tex_src_ms_mcs, /* MSAA compression value */
    nir_tex_src_ddx,
@@ -1568,8 +1578,8 @@ nir_alu_instr_is_comparison(const nir_alu_instr *instr)
    case nir_op_uge:
    case nir_op_ieq:
    case nir_op_ine:
-   case nir_op_i2b32:
-   case nir_op_f2b32:
+   case nir_op_i2b1:
+   case nir_op_f2b1:
    case nir_op_inot:
    case nir_op_fnot:
       return true;
@@ -2116,9 +2126,6 @@ typedef struct nir_shader_compiler_options {
 
    /** enables rules to lower idiv by power-of-two: */
    bool lower_idiv;
-
-   /* lower b2f to iand */
-   bool lower_b2f;
 
    /* Does the native fdot instruction replicate its result for four
     * components?  If so, then opt_algebraic_late will turn all fdotN
@@ -2863,7 +2870,7 @@ bool nir_remove_unused_io_vars(nir_shader *shader, struct exec_list *var_list,
 void nir_compact_varyings(nir_shader *producer, nir_shader *consumer,
                           bool default_to_smooth_interp);
 void nir_link_xfb_varyings(nir_shader *producer, nir_shader *consumer);
-bool nir_link_constant_varyings(nir_shader *producer, nir_shader *consumer);
+bool nir_link_opt_varyings(nir_shader *producer, nir_shader *consumer);
 
 typedef enum {
    /* If set, this forces all non-flat fragment shader inputs to be
@@ -2898,6 +2905,7 @@ void nir_lower_alpha_test(nir_shader *shader, enum compare_func func,
                           bool alpha_to_one);
 bool nir_lower_alu(nir_shader *shader);
 bool nir_lower_alu_to_scalar(nir_shader *shader);
+bool nir_lower_bool_to_int32(nir_shader *shader);
 bool nir_lower_load_const_to_scalar(nir_shader *shader);
 bool nir_lower_read_invocation_to_scalar(nir_shader *shader);
 bool nir_lower_phis_to_scalar(nir_shader *shader);
@@ -3001,6 +3009,11 @@ typedef struct nir_lower_tex_options {
    bool lower_txd_cube_map;
 
    /**
+    * If true, lower nir_texop_txd on 3D surfaces with nir_texop_txl.
+    */
+   bool lower_txd_3d;
+
+   /**
     * If true, lower nir_texop_txd on shadow samplers (except cube maps)
     * with nir_texop_txl. Notice that cube map shadow samplers are lowered
     * with lower_txd_cube_map.
@@ -3012,6 +3025,24 @@ typedef struct nir_lower_tex_options {
     * Implies lower_txd_cube_map and lower_txd_shadow.
     */
    bool lower_txd;
+
+   /**
+    * If true, lower nir_texop_txb that try to use shadow compare and min_lod
+    * at the same time to a nir_texop_lod, some math, and nir_texop_tex.
+    */
+   bool lower_txb_shadow_clamp;
+
+   /**
+    * If true, lower nir_texop_txd on shadow samplers when it uses min_lod
+    * with nir_texop_txl.  This includes cube maps.
+    */
+   bool lower_txd_shadow_clamp;
+
+   /**
+    * If true, lower nir_texop_txd on when it uses both offset and min_lod
+    * with nir_texop_txl.  This includes cube maps.
+    */
+   bool lower_txd_offset_clamp;
 } nir_lower_tex_options;
 
 bool nir_lower_tex(nir_shader *shader,
@@ -3087,6 +3118,8 @@ typedef enum {
    nir_lower_isign64 = (1 << 1),
    /** Lower all int64 modulus and division opcodes */
    nir_lower_divmod64 = (1 << 2),
+   /** Lower all 64-bit umul_high and imul_high opcodes */
+   nir_lower_imul_high64 = (1 << 3),
 } nir_lower_int64_options;
 
 bool nir_lower_int64(nir_shader *shader, nir_lower_int64_options options);
@@ -3153,6 +3186,8 @@ bool nir_opt_find_array_copies(nir_shader *shader);
 
 bool nir_opt_gcm(nir_shader *shader, bool value_number);
 
+bool nir_opt_idiv_const(nir_shader *shader, unsigned min_bit_size);
+
 bool nir_opt_if(nir_shader *shader);
 
 bool nir_opt_intrinsics(nir_shader *shader);
@@ -3167,7 +3202,8 @@ bool nir_opt_move_comparisons(nir_shader *shader);
 
 bool nir_opt_move_load_ubo(nir_shader *shader);
 
-bool nir_opt_peephole_select(nir_shader *shader, unsigned limit);
+bool nir_opt_peephole_select(nir_shader *shader, unsigned limit,
+                             bool indirect_load_ok, bool expensive_alu_ok);
 
 bool nir_opt_remove_phis_impl(nir_function_impl *impl);
 bool nir_opt_remove_phis(nir_shader *shader);

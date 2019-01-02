@@ -210,8 +210,8 @@ class Constant(Value):
          self._bit_size = None
 
       if isinstance(self.value, bool):
-         assert self._bit_size is None or self._bit_size == 32
-         self._bit_size = 32
+         assert self._bit_size is None or self._bit_size == 1
+         self._bit_size = 1
 
    def hex(self):
       if isinstance(self.value, (bool)):
@@ -252,14 +252,24 @@ class Variable(Value):
       assert m and m.group('name') is not None
 
       self.var_name = m.group('name')
+
+      # Prevent common cases where someone puts quotes around a literal
+      # constant.  If we want to support names that have numeric or
+      # punctuation characters, we can me the first assertion more flexible.
+      assert self.var_name.isalpha()
+      assert self.var_name is not 'True'
+      assert self.var_name is not 'False'
+
       self.is_constant = m.group('const') is not None
       self.cond = m.group('cond')
       self.required_type = m.group('type')
       self._bit_size = int(m.group('bits')) if m.group('bits') else None
 
       if self.required_type == 'bool':
-         assert self._bit_size is None or self._bit_size == 32
-         self._bit_size = 32
+         if self._bit_size is not None:
+            assert self._bit_size in type_sizes(self.required_type)
+         else:
+            self._bit_size = 1
 
       if self.required_type is not None:
          assert self.required_type in ('float', 'bool', 'int', 'uint')

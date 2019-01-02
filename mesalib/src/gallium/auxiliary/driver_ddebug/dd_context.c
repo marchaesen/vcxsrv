@@ -596,7 +596,6 @@ dd_context_destroy(struct pipe_context *_pipe)
    cnd_destroy(&dctx->cond);
 
    assert(list_empty(&dctx->records));
-   assert(!dctx->record_pending);
 
    if (pipe->set_log_context) {
       pipe->set_log_context(pipe, NULL);

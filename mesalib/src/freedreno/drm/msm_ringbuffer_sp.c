@@ -156,6 +156,8 @@ append_bo(struct msm_submit_sp *submit, struct fd_bo *bo, uint32_t flags)
 		submit->submit_bos[idx].flags |= MSM_SUBMIT_BO_READ;
 	if (flags & FD_RELOC_WRITE)
 		submit->submit_bos[idx].flags |= MSM_SUBMIT_BO_WRITE;
+	if (flags & FD_RELOC_DUMP)
+		submit->submit_bos[idx].flags |= MSM_SUBMIT_BO_DUMP;
 	return idx;
 }
 
@@ -257,8 +259,8 @@ msm_submit_sp_flush(struct fd_submit *submit, int in_fence_fd,
 
 	for (unsigned i = 0; i < primary->u.nr_cmds; i++) {
 		cmds[i].type = MSM_SUBMIT_CMD_BUF;
-		cmds[i].submit_idx =
-			append_bo(msm_submit, primary->u.cmds[i].ring_bo, FD_RELOC_READ);
+		cmds[i].submit_idx = append_bo(msm_submit,
+				primary->u.cmds[i].ring_bo, FD_RELOC_READ | FD_RELOC_DUMP);
 		cmds[i].submit_offset = primary->offset;
 		cmds[i].size = primary->u.cmds[i].size;
 		cmds[i].pad = 0;
@@ -447,7 +449,7 @@ msm_ringbuffer_sp_emit_reloc_ring(struct fd_ringbuffer *ring,
 
 	msm_ringbuffer_sp_emit_reloc(ring, &(struct fd_reloc){
 		.bo     = bo,
-		.flags  = FD_RELOC_READ,
+		.flags  = FD_RELOC_READ | FD_RELOC_DUMP,
 		.offset = msm_target->offset,
 	});
 

@@ -1,0 +1,183 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 18.2.8 Release Notes / December 27, 2018</h1>
+
+<p>
+Mesa 18.2.8 is a bug fix release which fixes bugs found since the 18.2.7 release.
+</p>
+<p>
+Mesa 18.2.8 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+77512edc0a84e19c7131a0e2e5ebf1beaf1494dc4b71508fcc92d06d65f9f4f5  mesa-18.2.8.tar.gz
+1d2ed9fd435d86d95b7215b287258d3e6b1180293a36f688e5a2efc18298d863  mesa-18.2.8.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=108114">Bug 108114</a> - [vulkancts] new VK_KHR_16bit_storage tests fail.</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=108116">Bug 108116</a> - [vulkancts] stencil partial clear tests fail.</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=108910">Bug 108910</a> - Vkd3d test failure test_multisample_array_texture()</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=108911">Bug 108911</a> - Vkd3d test failure test_clear_render_target_view()</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=109081">Bug 109081</a> - [bisected] [HSW] Regression in clipping.user_defined.clip_* vulkancts tests</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Alex Deucher (3):</p>
+<ul>
+  <li>pci_ids: add new vega10 pci ids</li>
+  <li>pci_ids: add new vega20 pci id</li>
+  <li>pci_ids: add new VegaM pci id</li>
+</ul>
+
+<p>Axel Davy (3):</p>
+<ul>
+  <li>st/nine: Fix volumetexture dtor on ctor failure</li>
+  <li>st/nine: Bind src not dst in nine_context_box_upload</li>
+  <li>st/nine: Add src reference to nine_context_range_upload</li>
+</ul>
+
+<p>Caio Marcelo de Oliveira Filho (1):</p>
+<ul>
+  <li>nir: properly clear the entry sources in copy_prop_vars</li>
+</ul>
+
+<p>Dylan Baker (1):</p>
+<ul>
+  <li>meson: Fix ppc64 little endian detection</li>
+</ul>
+
+<p>Emil Velikov (9):</p>
+<ul>
+  <li>glx: mandate xf86vidmode only for "drm" dri platforms</li>
+  <li>bin/get-pick-list.sh: rework handing of sha nominations</li>
+  <li>bin/get-pick-list.sh: warn when commit lists invalid sha</li>
+  <li>meson: don't require glx/egl/gbm with gallium drivers</li>
+  <li>pipe-loader: meson: reference correct library</li>
+  <li>TODO: glx: meson: build dri based glx tests, only with -Dglx=dri</li>
+  <li>glx: meson: drop includes from a link-only library</li>
+  <li>glx: meson: wire up the dispatch-index-check test</li>
+  <li>glx/test: meson: assorted include fixes</li>
+</ul>
+
+<p>Eric Anholt (2):</p>
+<ul>
+  <li>v3d: Make sure that a thrsw doesn't split a multop from its umul24.</li>
+  <li>v3d: Add missing flagging of SYNCB as a TSY op.</li>
+</ul>
+
+<p>Erik Faye-Lund (2):</p>
+<ul>
+  <li>virgl: wrap vertex element state in a struct</li>
+  <li>virgl: work around bad assumptions in virglrenderer</li>
+</ul>
+
+<p>Iago Toral Quiroga (1):</p>
+<ul>
+  <li>intel/compiler: do not copy-propagate strided regions to ddx/ddy arguments</li>
+</ul>
+
+<p>Ian Romanick (2):</p>
+<ul>
+  <li>i965/vec4/dce: Don't narrow the write mask if the flags are used</li>
+  <li>Revert "nir/lower_indirect: Bail early if modes == 0"</li>
+</ul>
+
+<p>Jan Vesely (1):</p>
+<ul>
+  <li>clover: Fix build after clang r348827</li>
+</ul>
+
+<p>Jason Ekstrand (1):</p>
+<ul>
+  <li>nir/constant_folding: Fix source bit size logic</li>
+</ul>
+
+<p>Jon Turney (1):</p>
+<ul>
+  <li>glx: Fix compilation with GLX_USE_WINDOWSGL</li>
+</ul>
+
+<p>Juan A. Suarez Romero (7):</p>
+<ul>
+  <li>docs: add sha256 checksums for 18.2.7</li>
+  <li>cherry-ignore: add explicit 18.3 only nominations</li>
+  <li>cherry-ignore: meson: libfreedreno depends upon libdrm (for fence support)</li>
+  <li>cherry-ignore: radv: Fix multiview depth clears</li>
+  <li>cherry-ignore: nir: properly find the entry to keep in copy_prop_vars</li>
+  <li>cherry-ignore: intel/compiler: move nir_lower_bool_to_int32 before nir_lower_locals_to_regs</li>
+  <li>Update version to 18.2.8</li>
+</ul>
+
+<p>Kirill Burtsev (1):</p>
+<ul>
+  <li>loader: free error state, when checking the drawable type</li>
+</ul>
+
+<p>Lionel Landwerlin (1):</p>
+<ul>
+  <li>anv: don't do partial resolve on layer &gt; 0</li>
+</ul>
+
+<p>Rhys Perry (2):</p>
+<ul>
+  <li>radv: don't set surf_index for stencil-only images</li>
+  <li>ac: split 16-bit ssbo loads that may not be dword aligned</li>
+</ul>
+
+<p>Rob Clark (1):</p>
+<ul>
+  <li>mesa/st/nir: fix missing nir_compact_varyings</li>
+</ul>
+
+<p>Samuel Pitoiset (1):</p>
+<ul>
+  <li>radv: switch on EOP when primitive restart is enabled with triangle strips</li>
+</ul>
+
+<p>Vinson Lee (2):</p>
+<ul>
+  <li>meson: Fix typo.</li>
+  <li>meson: Fix libsensors detection.</li>
+</ul>
+
+
+</div>
+</body>
+</html>

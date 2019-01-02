@@ -117,8 +117,15 @@ hash_load_const(uint32_t hash, const nir_load_const_instr *instr)
 {
    hash = HASH(hash, instr->def.num_components);
 
-   unsigned size = instr->def.num_components * (instr->def.bit_size / 8);
-   hash = _mesa_fnv32_1a_accumulate_block(hash, instr->value.f32, size);
+   if (instr->def.bit_size == 1) {
+      for (unsigned i = 0; i < instr->def.num_components; i++) {
+         uint8_t b = instr->value.b[i];
+         hash = HASH(hash, b);
+      }
+   } else {
+      unsigned size = instr->def.num_components * (instr->def.bit_size / 8);
+      hash = _mesa_fnv32_1a_accumulate_block(hash, instr->value.f32, size);
+   }
 
    return hash;
 }
@@ -399,8 +406,13 @@ nir_instrs_equal(const nir_instr *instr1, const nir_instr *instr2)
       if (load1->def.bit_size != load2->def.bit_size)
          return false;
 
-      return memcmp(load1->value.f32, load2->value.f32,
-                    load1->def.num_components * (load1->def.bit_size / 8u)) == 0;
+      if (load1->def.bit_size == 1) {
+         unsigned size = load1->def.num_components * sizeof(bool);
+         return memcmp(load1->value.b, load2->value.b, size) == 0;
+      } else {
+         unsigned size = load1->def.num_components * (load1->def.bit_size / 8);
+         return memcmp(load1->value.f32, load2->value.f32, size) == 0;
+      }
    }
    case nir_instr_type_phi: {
       nir_phi_instr *phi1 = nir_instr_as_phi(instr1);

@@ -28,6 +28,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "Xlibint.h"
+#include "reallocarray.h"
 #include <limits.h>
 
 char **XGetFontPath(
@@ -49,7 +50,7 @@ char **XGetFontPath(
 	(void) _XReply (dpy, (xReply *) &rep, 0, xFalse);
 
 	if (rep.nPaths) {
-	    flist = Xmalloc(rep.nPaths * sizeof (char *));
+	    flist = Xmallocarray(rep.nPaths, sizeof (char *));
 	    if (rep.length < (INT_MAX >> 2)) {
 		nbytes = (unsigned long) rep.length << 2;
 		ch = Xmalloc (nbytes + 1);

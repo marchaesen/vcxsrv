@@ -30,6 +30,8 @@ in this Software without prior written authorization from The Open Group.
 #include "Xlibint.h"
 #include "Xutil.h"
 #include <stdio.h>
+#include "reallocarray.h"
+
 /*
  *	This procedure returns a list of visual information structures
  *	that match the specified attributes given in the visual information
@@ -75,7 +77,7 @@ XVisualInfo *XGetVisualInfo(
 
   count = 0;
   total = 10;
-  if (! (vip_base = vip = Xmalloc(sizeof(XVisualInfo) * total))) {
+  if (! (vip_base = vip = Xmallocarray(total, sizeof(XVisualInfo)))) {
       UnlockDisplay(dpy);
       return (XVisualInfo *) NULL;
   }
@@ -131,8 +133,8 @@ XVisualInfo *XGetVisualInfo(
                 {
 		  XVisualInfo *old_vip_base = vip_base;
                   total += 10;
-                  if (! (vip_base = Xrealloc(vip_base,
-					     sizeof(XVisualInfo) * total))) {
+                  if (! (vip_base = Xreallocarray(vip_base, total,
+                                                  sizeof(XVisualInfo)))) {
 		      Xfree(old_vip_base);
 		      UnlockDisplay(dpy);
 		      return (XVisualInfo *) NULL;

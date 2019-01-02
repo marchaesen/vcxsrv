@@ -7,6 +7,7 @@
 
 #include "putty.h"
 #include "ssh.h"
+#include "mpint.h"
 #include "sshbpp.h"
 #include "sshppl.h"
 #include "sshcr.h"
@@ -49,7 +50,7 @@ struct ssh1_login_state {
     int keyi, nkeys;
     bool authed;
     struct RSAKey key;
-    Bignum challenge;
+    mp_int *challenge;
     ptrlen comment;
     int dlgret;
     Filename *keyfile;
@@ -222,16 +223,14 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
         /*
          * First format the key into a string.
          */
-        int len = rsastr_len(&s->hostkey);
         char *fingerprint;
-        char *keystr = snewn(len, char);
-        rsastr_fmt(keystr, &s->hostkey);
+        char *keystr = rsastr_fmt(&s->hostkey);
         fingerprint = rsa_ssh1_fingerprint(&s->hostkey);
 
         /* First check against manually configured host keys. */
         s->dlgret = verify_ssh_manual_host_key(s->conf, fingerprint, NULL);
-        sfree(fingerprint);
         if (s->dlgret == 0) {          /* did not match */
+            sfree(fingerprint);
             sfree(keystr);
             ssh_proto_error(s->ppl.ssh, "Host key did not appear in manually "
                             "configured list");
@@ -240,6 +239,7 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
             s->dlgret = seat_verify_ssh_host_key(
                 s->ppl.seat, s->savedhost, s->savedport,
                 "rsa", keystr, fingerprint, ssh1_login_dialog_callback, s);
+            sfree(fingerprint);
             sfree(keystr);
 #ifdef FUZZING
             s->dlgret = 1;
@@ -252,6 +252,7 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
                 return;
             }
         } else {
+            sfree(fingerprint);
             sfree(keystr);
         }
     }
@@ -367,22 +368,8 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
         ssh1_bpp_new_cipher(s->ppl.bpp, cipher, s->session_key);
     }
 
-    if (s->servkey.modulus) {
-        sfree(s->servkey.modulus);
-        s->servkey.modulus = NULL;
-    }
-    if (s->servkey.exponent) {
-        sfree(s->servkey.exponent);
-        s->servkey.exponent = NULL;
-    }
-    if (s->hostkey.modulus) {
-        sfree(s->hostkey.modulus);
-        s->hostkey.modulus = NULL;
-    }
-    if (s->hostkey.exponent) {
-        sfree(s->hostkey.exponent);
-        s->hostkey.exponent = NULL;
-    }
+    freersakey(&s->servkey);
+    freersakey(&s->hostkey);
     crMaybeWaitUntilV((pktin = ssh1_login_pop(s)) != NULL);
 
     if (pktin->type != SSH1_SMSG_SUCCESS) {
@@ -552,7 +539,7 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
                     ppl_logevent("Received RSA challenge");
                     s->challenge = get_mp_ssh1(pktin);
                     if (get_err(pktin)) {
-                        freebn(s->challenge);
+                        mp_free(s->challenge);
                         ssh_proto_error(s->ppl.ssh, "Server's RSA challenge "
                                         "was badly formatted");
                         return;
@@ -564,7 +551,7 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
 
                         agentreq = strbuf_new_for_agent_query();
                         put_byte(agentreq, SSH1_AGENTC_RSA_CHALLENGE);
-                        put_uint32(agentreq, bignum_bitcount(s->key.modulus));
+                        put_uint32(agentreq, mp_get_nbits(s->key.modulus));
                         put_mp_ssh1(agentreq, s->key.exponent);
                         put_mp_ssh1(agentreq, s->key.modulus);
                         put_mp_ssh1(agentreq, s->challenge);
@@ -609,9 +596,9 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
                             ppl_logevent("No reply received from Pageant");
                         }
                     }
-                    freebn(s->key.exponent);
-                    freebn(s->key.modulus);
-                    freebn(s->challenge);
+                    mp_free(s->key.exponent);
+                    mp_free(s->key.modulus);
+                    mp_free(s->challenge);
                     if (s->authed)
                         break;
                 }
@@ -734,20 +721,20 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
                 {
                     int i;
                     unsigned char buffer[32];
-                    Bignum challenge, response;
+                    mp_int *challenge, *response;
 
                     challenge = get_mp_ssh1(pktin);
                     if (get_err(pktin)) {
-                        freebn(challenge);
+                        mp_free(challenge);
                         ssh_proto_error(s->ppl.ssh, "Server's RSA challenge "
                                         "was badly formatted");
                         return;
                     }
                     response = rsa_ssh1_decrypt(challenge, &s->key);
-                    freebn(s->key.private_exponent);/* burn the evidence */
+                    freersapriv(&s->key);   /* burn the evidence */
 
                     for (i = 0; i < 32; i++) {
-                        buffer[i] = bignum_byte(response, 31 - i);
+                        buffer[i] = mp_get_byte(response, 31 - i);
                     }
 
                     {
@@ -763,8 +750,8 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
                     put_data(pkt, buffer, 16);
                     pq_push(s->ppl.out_pq, pkt);
 
-                    freebn(challenge);
-                    freebn(response);
+                    mp_free(challenge);
+                    mp_free(response);
                 }
 
                 crMaybeWaitUntilV((pktin = ssh1_login_pop(s))

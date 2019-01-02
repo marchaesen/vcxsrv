@@ -156,6 +156,8 @@ struct loader_dri3_drawable {
    xcb_special_event_t *special_event;
 
    bool first_init;
+   bool adaptive_sync;
+   bool adaptive_sync_active;
    int swap_interval;
 
    struct loader_dri3_extensions *ext;

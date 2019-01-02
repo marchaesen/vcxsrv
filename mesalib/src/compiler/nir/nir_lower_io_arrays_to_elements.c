@@ -229,10 +229,10 @@ create_indirects_mask(nir_shader *shader, uint64_t *indirects,
                   continue;
 
                nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
-               nir_variable *var = nir_deref_instr_get_variable(deref);
-
-               if (var->data.mode != mode)
+               if (deref->mode != mode)
                   continue;
+
+               nir_variable *var = nir_deref_instr_get_variable(deref);
 
                nir_deref_path path;
                nir_deref_path_init(&path, deref, NULL);
@@ -278,8 +278,11 @@ lower_io_arrays_to_elements(nir_shader *shader, nir_variable_mode mask,
                    intr->intrinsic != nir_intrinsic_interp_deref_at_offset)
                   continue;
 
-               nir_variable *var =
-                  nir_deref_instr_get_variable(nir_src_as_deref(intr->src[0]));
+               nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
+               if (!(deref->mode & mask))
+                  continue;
+
+               nir_variable *var = nir_deref_instr_get_variable(deref);
 
                /* Skip indirects */
                uint64_t loc_mask = ((uint64_t)1) << var->data.location;

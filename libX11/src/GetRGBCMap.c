@@ -33,6 +33,7 @@ from The Open Group.
 #include <X11/Xlibint.h>
 #include <X11/Xutil.h>
 #include "Xatomtype.h"
+#include "reallocarray.h"
 #include <X11/Xatom.h>
 
 Status XGetRGBColormaps (
@@ -99,7 +100,7 @@ Status XGetRGBColormaps (
     /*
      * allocate array
      */
-    cmaps = Xmalloc (ncmaps * sizeof (XStandardColormap));
+    cmaps = Xmallocarray (ncmaps, sizeof (XStandardColormap));
     if (!cmaps) {
 	Xfree (data);
 	return False;

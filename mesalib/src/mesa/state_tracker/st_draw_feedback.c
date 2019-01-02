@@ -85,30 +85,9 @@ set_feedback_vertex_format(struct gl_context *ctx)
 
 
 /**
- * Helper for drawing current vertex arrays.
- */
-static void
-draw_arrays(struct draw_context *draw, unsigned mode,
-            unsigned start, unsigned count)
-{
-   struct pipe_draw_info info;
-
-   util_draw_init_info(&info);
-
-   info.mode = mode;
-   info.start = start;
-   info.count = count;
-   info.min_index = start;
-   info.max_index = start + count - 1;
-
-   draw_vbo(draw, &info);
-}
-
-
-/**
  * Called by VBO to draw arrays when in selection or feedback mode and
  * to implement glRasterPos.
- * This is very much like the normal draw_vbo() function above.
+ * This function mirrors the normal st_draw_vbo().
  * Look at code refactoring some day.
  */
 void
@@ -136,9 +115,17 @@ st_feedback_draw_vbo(struct gl_context *ctx,
    struct pipe_transfer *ib_transfer = NULL;
    GLuint i;
    const void *mapped_indices = NULL;
+   struct pipe_draw_info info;
 
    if (!draw)
       return;
+
+   /* Initialize pipe_draw_info. */
+   info.primitive_restart = false;
+   info.vertices_per_patch = ctx->TessCtrlProgram.patch_vertices;
+   info.indirect = NULL;
+   info.count_from_stream_output = NULL;
+   info.restart_index = 0;
 
    st_flush_bitmap_cache(st);
    st_invalidate_readpix_cache(st);
@@ -213,9 +200,23 @@ st_feedback_draw_vbo(struct gl_context *ctx,
          mapped_indices = ib->ptr;
       }
 
+      info.index_size = ib->index_size;
+      info.min_index = min_index;
+      info.max_index = max_index;
+      info.has_user_indices = true;
+      info.index.user = mapped_indices;
+
       draw_set_indexes(draw,
                        (ubyte *) mapped_indices,
                        index_size, ~0);
+
+      if (ctx->Array._PrimitiveRestart) {
+         info.primitive_restart = true;
+         info.restart_index = _mesa_primitive_restart_index(ctx, info.index_size);
+      }
+   } else {
+      info.index_size = 0;
+      info.has_user_indices = false;
    }
 
    /* set the constant buffer */
@@ -226,7 +227,23 @@ st_feedback_draw_vbo(struct gl_context *ctx,
 
    /* draw here */
    for (i = 0; i < nr_prims; i++) {
-      draw_arrays(draw, prims[i].mode, start + prims[i].start, prims[i].count);
+      info.count = prims[i].count;
+
+      if (!info.count)
+         continue;
+
+      info.mode = prims[i].mode;
+      info.start = start + prims[i].start;
+      info.start_instance = prims[i].base_instance;
+      info.instance_count = prims[i].num_instances;
+      info.index_bias = prims[i].basevertex;
+      info.drawid = prims[i].draw_id;
+      if (!ib) {
+         info.min_index = info.start;
+         info.max_index = info.start + info.count - 1;
+      }
+
+      draw_vbo(draw, &info);
    }
 
 

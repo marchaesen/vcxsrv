@@ -77,6 +77,7 @@ SOFTWARE.
 #include "Xutil.h"
 #include <X11/Xregion.h>
 #include "poly.h"
+#include "reallocarray.h"
 
 #ifdef DEBUG
 #include <stdio.h>
@@ -521,8 +522,8 @@ miRegionCopy(
             {
 		BOX *prevRects = dstrgn->rects;
 
-		dstrgn->rects = Xrealloc(dstrgn->rects,
-					 rgn->numRects * (sizeof(BOX)));
+		dstrgn->rects = Xreallocarray(dstrgn->rects,
+                                              rgn->numRects, sizeof(BOX));
 		if (! dstrgn->rects) {
 		    Xfree(prevRects);
 		    dstrgn->size = 0;
@@ -790,7 +791,7 @@ miRegionOp(
      */
     newReg->size = max(reg1->numRects,reg2->numRects) * 2;
 
-    if (! (newReg->rects = Xmalloc (sizeof(BoxRec) * newReg->size))) {
+    if (! (newReg->rects = Xmallocarray (newReg->size, sizeof(BoxRec)))) {
 	newReg->size = 0;
 	return;
     }
@@ -980,8 +981,8 @@ miRegionOp(
 	if (REGION_NOT_EMPTY(newReg))
 	{
 	    BoxPtr prev_rects = newReg->rects;
-	    newReg->rects = Xrealloc (newReg->rects,
-				      sizeof(BoxRec) * newReg->numRects);
+	    newReg->rects = Xreallocarray (newReg->rects,
+                                           newReg->numRects, sizeof(BoxRec));
 	    if (! newReg->rects)
 		newReg->rects = prev_rects;
 	    else

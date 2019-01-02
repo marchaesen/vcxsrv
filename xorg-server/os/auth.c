@@ -42,6 +42,7 @@ from The Open Group.
 #include   "dixstruct.h"
 #include   <sys/types.h>
 #include   <sys/stat.h>
+#include   <errno.h>
 #ifdef WIN32
 #include    <X11/Xw32defs.h>
 #endif
@@ -119,9 +120,15 @@ LoadAuthorization(void)
     if (!authorization_file)
         return 0;
 
+    errno = 0;
     f = Fopen(authorization_file, "r");
-    if (!f)
+    if (!f) {
+        LogMessageVerb(X_ERROR, 0,
+                       "Failed to open authorization file \"%s\": %s\n",
+                       authorization_file,
+                       errno != 0 ? strerror(errno) : "Unknown error");
         return -1;
+    }
 
     while ((auth = XauReadAuth(f)) != 0) {
         for (i = 0; i < NUM_AUTHORIZATION; i++) {

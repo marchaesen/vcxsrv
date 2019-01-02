@@ -429,16 +429,22 @@ static LLVMValueRef emit_bitfield_extract(struct ac_llvm_context *ctx,
 {
 	LLVMValueRef result;
 
-	/* FIXME: LLVM 7+ returns incorrect result when count is 0.
-	 * https://bugs.freedesktop.org/show_bug.cgi?id=107276
-	 */
-	LLVMValueRef zero = ctx->i32_0;
-	LLVMValueRef icond1 = LLVMBuildICmp(ctx->builder, LLVMIntEQ, srcs[2], LLVMConstInt(ctx->i32, 32, false), "");
-	LLVMValueRef icond2 = LLVMBuildICmp(ctx->builder, LLVMIntEQ, srcs[2], zero, "");
+	if (HAVE_LLVM >= 0x0800) {
+		LLVMValueRef icond = LLVMBuildICmp(ctx->builder, LLVMIntEQ, srcs[2], LLVMConstInt(ctx->i32, 32, false), "");
+		result = ac_build_bfe(ctx, srcs[0], srcs[1], srcs[2], is_signed);
+		result = LLVMBuildSelect(ctx->builder, icond, srcs[0], result, "");
+	} else {
+		/* FIXME: LLVM 7+ returns incorrect result when count is 0.
+		 * https://bugs.freedesktop.org/show_bug.cgi?id=107276
+		 */
+		LLVMValueRef zero = ctx->i32_0;
+		LLVMValueRef icond1 = LLVMBuildICmp(ctx->builder, LLVMIntEQ, srcs[2], LLVMConstInt(ctx->i32, 32, false), "");
+		LLVMValueRef icond2 = LLVMBuildICmp(ctx->builder, LLVMIntEQ, srcs[2], zero, "");
 
-	result = ac_build_bfe(ctx, srcs[0], srcs[1], srcs[2], is_signed);
-	result = LLVMBuildSelect(ctx->builder, icond1, srcs[0], result, "");
-	result = LLVMBuildSelect(ctx->builder, icond2, zero, result, "");
+		result = ac_build_bfe(ctx, srcs[0], srcs[1], srcs[2], is_signed);
+		result = LLVMBuildSelect(ctx->builder, icond1, srcs[0], result, "");
+		result = LLVMBuildSelect(ctx->builder, icond2, zero, result, "");
+	}
 
 	return result;
 }
@@ -681,34 +687,34 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 						     LLVMTypeOf(src[0]), ""),
 				       "");
 		break;
-	case nir_op_ilt:
+	case nir_op_ilt32:
 		result = emit_int_cmp(&ctx->ac, LLVMIntSLT, src[0], src[1]);
 		break;
-	case nir_op_ine:
+	case nir_op_ine32:
 		result = emit_int_cmp(&ctx->ac, LLVMIntNE, src[0], src[1]);
 		break;
-	case nir_op_ieq:
+	case nir_op_ieq32:
 		result = emit_int_cmp(&ctx->ac, LLVMIntEQ, src[0], src[1]);
 		break;
-	case nir_op_ige:
+	case nir_op_ige32:
 		result = emit_int_cmp(&ctx->ac, LLVMIntSGE, src[0], src[1]);
 		break;
-	case nir_op_ult:
+	case nir_op_ult32:
 		result = emit_int_cmp(&ctx->ac, LLVMIntULT, src[0], src[1]);
 		break;
-	case nir_op_uge:
+	case nir_op_uge32:
 		result = emit_int_cmp(&ctx->ac, LLVMIntUGE, src[0], src[1]);
 		break;
-	case nir_op_feq:
+	case nir_op_feq32:
 		result = emit_float_cmp(&ctx->ac, LLVMRealOEQ, src[0], src[1]);
 		break;
-	case nir_op_fne:
+	case nir_op_fne32:
 		result = emit_float_cmp(&ctx->ac, LLVMRealUNE, src[0], src[1]);
 		break;
-	case nir_op_flt:
+	case nir_op_flt32:
 		result = emit_float_cmp(&ctx->ac, LLVMRealOLT, src[0], src[1]);
 		break;
-	case nir_op_fge:
+	case nir_op_fge32:
 		result = emit_float_cmp(&ctx->ac, LLVMRealOGE, src[0], src[1]);
 		break;
 	case nir_op_fabs:
@@ -910,7 +916,7 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		else
 			result = LLVMBuildTrunc(ctx->ac.builder, src[0], def_type, "");
 		break;
-	case nir_op_bcsel:
+	case nir_op_b32csel:
 		result = emit_bcsel(&ctx->ac, src[0], src[1], src[2]);
 		break;
 	case nir_op_find_lsb:
@@ -1621,37 +1627,45 @@ static LLVMValueRef visit_atomic_ssbo(struct ac_nir_context *ctx,
 static LLVMValueRef visit_load_buffer(struct ac_nir_context *ctx,
                                       const nir_intrinsic_instr *instr)
 {
-	LLVMValueRef results[2];
-	int load_bytes;
 	int elem_size_bytes = instr->dest.ssa.bit_size / 8;
 	int num_components = instr->num_components;
-	int num_bytes = num_components * elem_size_bytes;
 	enum gl_access_qualifier access = nir_intrinsic_access(instr);
 	LLVMValueRef glc = ctx->ac.i1false;
 
 	if (access & (ACCESS_VOLATILE | ACCESS_COHERENT))
 		glc = ctx->ac.i1true;
 
-	for (int i = 0; i < num_bytes; i += load_bytes) {
-		load_bytes = MIN2(num_bytes - i, 16);
-		const char *load_name;
-		LLVMTypeRef data_type;
-		LLVMValueRef offset = get_src(ctx, instr->src[1]);
-		LLVMValueRef immoffset = LLVMConstInt(ctx->ac.i32, i, false);
-		LLVMValueRef rsrc = ctx->abi->load_ssbo(ctx->abi,
-							get_src(ctx, instr->src[0]), false);
-		LLVMValueRef vindex = ctx->ac.i32_0;
+	LLVMValueRef offset = get_src(ctx, instr->src[1]);
+	LLVMValueRef rsrc = ctx->abi->load_ssbo(ctx->abi,
+						get_src(ctx, instr->src[0]), false);
+	LLVMValueRef vindex = ctx->ac.i32_0;
 
-		int idx = i ? 1 : 0;
+	LLVMTypeRef def_type = get_def_type(ctx, &instr->dest.ssa);
+	LLVMTypeRef def_elem_type = num_components > 1 ? LLVMGetElementType(def_type) : def_type;
+
+	LLVMValueRef results[4];
+	for (int i = 0; i < num_components;) {
+		int num_elems = num_components - i;
+		if (elem_size_bytes < 4 && nir_intrinsic_align(instr) % 4 != 0)
+			num_elems = 1;
+		if (num_elems * elem_size_bytes > 16)
+			num_elems = 16 / elem_size_bytes;
+		int load_bytes = num_elems * elem_size_bytes;
+
+		LLVMValueRef immoffset = LLVMConstInt(ctx->ac.i32, i * elem_size_bytes, false);
+
+		LLVMValueRef ret;
 		if (load_bytes == 2) {
-			results[idx] = ac_build_tbuffer_load_short(&ctx->ac,
-								   rsrc,
-								   vindex,
-								   offset,
-								   ctx->ac.i32_0,
-								   immoffset,
-								   glc);
+			ret = ac_build_tbuffer_load_short(&ctx->ac,
+							  rsrc,
+							  vindex,
+							  offset,
+							  ctx->ac.i32_0,
+							  immoffset,
+							  glc);
 		} else {
+			const char *load_name;
+			LLVMTypeRef data_type;
 			switch (load_bytes) {
 			case 16:
 			case 12:
@@ -1677,33 +1691,23 @@ static LLVMValueRef visit_load_buffer(struct ac_nir_context *ctx,
 				glc,
 				ctx->ac.i1false,
 			};
-			results[idx] = ac_build_intrinsic(&ctx->ac, load_name, data_type, params, 5, 0);
-			unsigned num_elems = ac_get_type_size(data_type) / elem_size_bytes;
-			LLVMTypeRef resTy = LLVMVectorType(LLVMIntTypeInContext(ctx->ac.context, instr->dest.ssa.bit_size), num_elems);
-			results[idx] = LLVMBuildBitCast(ctx->ac.builder, results[idx], resTy, "");
-		}
-	}
-
-	assume(results[0]);
-	LLVMValueRef ret = results[0];
-	if (num_bytes > 16 || num_components == 3) {
-		LLVMValueRef masks[] = {
-		        LLVMConstInt(ctx->ac.i32, 0, false), LLVMConstInt(ctx->ac.i32, 1, false),
-		        LLVMConstInt(ctx->ac.i32, 2, false), LLVMConstInt(ctx->ac.i32, 3, false),
-		};
-
-		if (num_bytes > 16 && num_components == 3) {
-			/* we end up with a v2i64 and i64 but shuffle fails on that */
-			results[1] = ac_build_expand(&ctx->ac, results[1], 1, 2);
+			ret = ac_build_intrinsic(&ctx->ac, load_name, data_type, params, 5, 0);
 		}
 
-		LLVMValueRef swizzle = LLVMConstVector(masks, num_components);
-		ret = LLVMBuildShuffleVector(ctx->ac.builder, results[0],
-					     results[num_bytes > 16 ? 1 : 0], swizzle, "");
+		LLVMTypeRef byte_vec = LLVMVectorType(ctx->ac.i8, ac_get_type_size(LLVMTypeOf(ret)));
+		ret = LLVMBuildBitCast(ctx->ac.builder, ret, byte_vec, "");
+		ret = ac_trim_vector(&ctx->ac, ret, load_bytes);
+
+		LLVMTypeRef ret_type = LLVMVectorType(def_elem_type, num_elems);
+		ret = LLVMBuildBitCast(ctx->ac.builder, ret, ret_type, "");
+
+		for (unsigned j = 0; j < num_elems; j++) {
+			results[i + j] = LLVMBuildExtractElement(ctx->ac.builder, ret, LLVMConstInt(ctx->ac.i32, j, false), "");
+		}
+		i += num_elems;
 	}
 
-	return LLVMBuildBitCast(ctx->ac.builder, ret,
-	                        get_def_type(ctx, &instr->dest.ssa), "");
+	return ac_build_gather_values(&ctx->ac, results, num_components);
 }
 
 static LLVMValueRef visit_load_ubo_buffer(struct ac_nir_context *ctx,
@@ -2245,7 +2249,7 @@ static void get_image_coords(struct ac_nir_context *ctx,
 	bool gfx9_1d = ctx->ac.chip_class >= GFX9 && dim == GLSL_SAMPLER_DIM_1D;
 	count = image_type_to_components_count(dim, is_array);
 
-	if (is_ms) {
+	if (is_ms && instr->intrinsic == nir_intrinsic_image_deref_load) {
 		LLVMValueRef fmask_load_address[3];
 		int chan;
 
@@ -4062,4 +4066,165 @@ ac_lower_indirect_derefs(struct nir_shader *nir, enum chip_class chip_class)
 	indirect_mask |= nir_var_local;
 
 	nir_lower_indirect_derefs(nir, indirect_mask);
+}
+
+static unsigned
+get_inst_tessfactor_writemask(nir_intrinsic_instr *intrin)
+{
+	if (intrin->intrinsic != nir_intrinsic_store_deref)
+		return 0;
+
+	nir_variable *var =
+		nir_deref_instr_get_variable(nir_src_as_deref(intrin->src[0]));
+
+	if (var->data.mode != nir_var_shader_out)
+		return 0;
+
+	unsigned writemask = 0;
+	const int location = var->data.location;
+	unsigned first_component = var->data.location_frac;
+	unsigned num_comps = intrin->dest.ssa.num_components;
+
+	if (location == VARYING_SLOT_TESS_LEVEL_INNER)
+		writemask = ((1 << num_comps + 1) - 1) << first_component;
+	else if (location == VARYING_SLOT_TESS_LEVEL_OUTER)
+		writemask = (((1 << num_comps + 1) - 1) << first_component) << 4;
+
+	return writemask;
+}
+
+static void
+scan_tess_ctrl(nir_cf_node *cf_node, unsigned *upper_block_tf_writemask,
+	       unsigned *cond_block_tf_writemask,
+	       bool *tessfactors_are_def_in_all_invocs, bool is_nested_cf)
+{
+	switch (cf_node->type) {
+	case nir_cf_node_block: {
+		nir_block *block = nir_cf_node_as_block(cf_node);
+		nir_foreach_instr(instr, block) {
+			if (instr->type != nir_instr_type_intrinsic)
+				continue;
+
+			nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+			if (intrin->intrinsic == nir_intrinsic_barrier) {
+
+				/* If we find a barrier in nested control flow put this in the
+				 * too hard basket. In GLSL this is not possible but it is in
+				 * SPIR-V.
+				 */
+				if (is_nested_cf) {
+					*tessfactors_are_def_in_all_invocs = false;
+					return;
+				}
+
+				/* The following case must be prevented:
+				 *    gl_TessLevelInner = ...;
+				 *    barrier();
+				 *    if (gl_InvocationID == 1)
+				 *       gl_TessLevelInner = ...;
+				 *
+				 * If you consider disjoint code segments separated by barriers, each
+				 * such segment that writes tess factor channels should write the same
+				 * channels in all codepaths within that segment.
+				 */
+				if (upper_block_tf_writemask || cond_block_tf_writemask) {
+					/* Accumulate the result: */
+					*tessfactors_are_def_in_all_invocs &=
+						!(*cond_block_tf_writemask & ~(*upper_block_tf_writemask));
+
+					/* Analyze the next code segment from scratch. */
+					*upper_block_tf_writemask = 0;
+					*cond_block_tf_writemask = 0;
+				}
+			} else
+				*upper_block_tf_writemask |= get_inst_tessfactor_writemask(intrin);
+		}
+
+		break;
+	}
+	case nir_cf_node_if: {
+		unsigned then_tessfactor_writemask = 0;
+		unsigned else_tessfactor_writemask = 0;
+
+		nir_if *if_stmt = nir_cf_node_as_if(cf_node);
+		foreach_list_typed(nir_cf_node, nested_node, node, &if_stmt->then_list) {
+			scan_tess_ctrl(nested_node, &then_tessfactor_writemask,
+				       cond_block_tf_writemask,
+				       tessfactors_are_def_in_all_invocs, true);
+		}
+
+		foreach_list_typed(nir_cf_node, nested_node, node, &if_stmt->else_list) {
+			scan_tess_ctrl(nested_node, &else_tessfactor_writemask,
+				       cond_block_tf_writemask,
+				       tessfactors_are_def_in_all_invocs, true);
+		}
+
+		if (then_tessfactor_writemask || else_tessfactor_writemask) {
+			/* If both statements write the same tess factor channels,
+			 * we can say that the upper block writes them too.
+			 */
+			*upper_block_tf_writemask |= then_tessfactor_writemask &
+				else_tessfactor_writemask;
+			*cond_block_tf_writemask |= then_tessfactor_writemask |
+				else_tessfactor_writemask;
+		}
+
+		break;
+	}
+	case nir_cf_node_loop: {
+		nir_loop *loop = nir_cf_node_as_loop(cf_node);
+		foreach_list_typed(nir_cf_node, nested_node, node, &loop->body) {
+			scan_tess_ctrl(nested_node, cond_block_tf_writemask,
+				       cond_block_tf_writemask,
+				       tessfactors_are_def_in_all_invocs, true);
+		}
+
+		break;
+	}
+	default:
+		unreachable("unknown cf node type");
+	}
+}
+
+bool
+ac_are_tessfactors_def_in_all_invocs(const struct nir_shader *nir)
+{
+	assert(nir->info.stage == MESA_SHADER_TESS_CTRL);
+
+	/* The pass works as follows:
+	 * If all codepaths write tess factors, we can say that all
+	 * invocations define tess factors.
+	 *
+	 * Each tess factor channel is tracked separately.
+	 */
+	unsigned main_block_tf_writemask = 0; /* if main block writes tess factors */
+	unsigned cond_block_tf_writemask = 0; /* if cond block writes tess factors */
+
+	/* Initial value = true. Here the pass will accumulate results from
+	 * multiple segments surrounded by barriers. If tess factors aren't
+	 * written at all, it's a shader bug and we don't care if this will be
+	 * true.
+	 */
+	bool tessfactors_are_def_in_all_invocs = true;
+
+	nir_foreach_function(function, nir) {
+		if (function->impl) {
+			foreach_list_typed(nir_cf_node, node, node, &function->impl->body) {
+				scan_tess_ctrl(node, &main_block_tf_writemask,
+					       &cond_block_tf_writemask,
+					       &tessfactors_are_def_in_all_invocs,
+					       false);
+			}
+		}
+	}
+
+	/* Accumulate the result for the last code segment separated by a
+	 * barrier.
+	 */
+	if (main_block_tf_writemask || cond_block_tf_writemask) {
+		tessfactors_are_def_in_all_invocs &=
+			!(cond_block_tf_writemask & ~main_block_tf_writemask);
+	}
+
+	return tessfactors_are_def_in_all_invocs;
 }

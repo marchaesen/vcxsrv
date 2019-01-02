@@ -107,10 +107,6 @@ get_variable(lower_builtin_state *state, nir_deref_path *path,
    memcpy(tokens, element->tokens, sizeof(tokens));
 
    if (path->path[idx]->deref_type == nir_deref_type_array) {
-      nir_const_value *c = nir_src_as_const_value(path->path[idx]->arr.index);
-
-      assert(c);
-
       /* we need to fixup the array index slot: */
       switch (tokens[0]) {
       case STATE_MODELVIEW_MATRIX:
@@ -123,7 +119,7 @@ get_variable(lower_builtin_state *state, nir_deref_path *path,
       case STATE_TEXGEN:
       case STATE_TEXENV_COLOR:
       case STATE_CLIPPLANE:
-         tokens[1] = c->u32[0];
+         tokens[1] = nir_src_as_uint(path->path[idx]->arr.index);
          break;
       }
    }

@@ -236,6 +236,65 @@ get_complex_unroll_insert_location(nir_cf_node *node, bool continue_from_then)
    }
 }
 
+static nir_cf_node *
+complex_unroll_loop_body(nir_loop *loop, nir_loop_terminator *unlimit_term,
+                         nir_cf_list *lp_header, nir_cf_list *lp_body,
+                         struct hash_table *remap_table,
+                         unsigned num_times_to_clone)
+{
+   /* In the terminator that we have no trip count for move everything after
+    * the terminator into the continue from branch.
+    */
+   nir_cf_list loop_end;
+   nir_cf_extract(&loop_end, nir_after_cf_node(&unlimit_term->nif->cf_node),
+                  nir_after_block(nir_loop_last_block(loop)));
+   move_cf_list_into_loop_term(&loop_end, unlimit_term);
+
+   /* Pluck out the loop body. */
+   nir_cf_extract(lp_body, nir_before_block(nir_loop_first_block(loop)),
+                  nir_after_block(nir_loop_last_block(loop)));
+
+   /* Set unroll_loc to the loop as we will insert the unrolled loop before it
+    */
+   nir_cf_node *unroll_loc = &loop->cf_node;
+
+   /* Temp list to store the cloned loop as we unroll */
+   nir_cf_list unrolled_lp_body;
+
+   for (unsigned i = 0; i < num_times_to_clone; i++) {
+
+      nir_cursor cursor =
+         get_complex_unroll_insert_location(unroll_loc,
+                                            unlimit_term->continue_from_then);
+
+      /* Clone loop header and insert in if branch */
+      nir_cf_list_clone_and_reinsert(lp_header, loop->cf_node.parent,
+                                     cursor, remap_table);
+
+      cursor =
+         get_complex_unroll_insert_location(unroll_loc,
+                                            unlimit_term->continue_from_then);
+
+      /* Clone loop body */
+      nir_cf_list_clone(&unrolled_lp_body, lp_body, loop->cf_node.parent,
+                        remap_table);
+
+      unroll_loc = exec_node_data(nir_cf_node,
+                                  exec_list_get_tail(&unrolled_lp_body.list),
+                                  node);
+      assert(unroll_loc->type == nir_cf_node_block &&
+             exec_list_is_empty(&nir_cf_node_as_block(unroll_loc)->instr_list));
+
+      /* Get the unrolled if node */
+      unroll_loc = nir_cf_node_prev(unroll_loc);
+
+      /* Insert unrolled loop body */
+      nir_cf_reinsert(&unrolled_lp_body, cursor);
+   }
+
+   return unroll_loc;
+}
+
 /**
  * Unroll a loop with two exists when the trip count of one of the exits is
  * unknown.  If continue_from_then is true, the loop is repeated only when the
@@ -358,60 +417,14 @@ complex_unroll(nir_loop *loop, nir_loop_terminator *unlimit_term,
       num_times_to_clone = loop->info->max_trip_count;
    }
 
-   /* In the terminator that we have no trip count for move everything after
-    * the terminator into the continue from branch.
-    */
-   nir_cf_list loop_end;
-   nir_cf_extract(&loop_end, nir_after_cf_node(&unlimit_term->nif->cf_node),
-                  nir_after_block(nir_loop_last_block(loop)));
-   move_cf_list_into_loop_term(&loop_end, unlimit_term);
-
-   /* Pluck out the loop body. */
-   nir_cf_list loop_body;
-   nir_cf_extract(&loop_body, nir_before_block(nir_loop_first_block(loop)),
-                  nir_after_block(nir_loop_last_block(loop)));
-
    struct hash_table *remap_table =
       _mesa_hash_table_create(NULL, _mesa_hash_pointer,
                               _mesa_key_pointer_equal);
 
-   /* Set unroll_loc to the loop as we will insert the unrolled loop before it
-    */
-   nir_cf_node *unroll_loc = &loop->cf_node;
-
-   /* Temp lists to store the cloned loop as we unroll */
-   nir_cf_list unrolled_lp_body;
-
-   for (unsigned i = 0; i < num_times_to_clone; i++) {
-
-      nir_cursor cursor =
-         get_complex_unroll_insert_location(unroll_loc,
-                                            unlimit_term->continue_from_then);
-
-      /* Clone loop header and insert in if branch */
-      nir_cf_list_clone_and_reinsert(&lp_header, loop->cf_node.parent,
-                                     cursor, remap_table);
-
-      cursor =
-         get_complex_unroll_insert_location(unroll_loc,
-                                            unlimit_term->continue_from_then);
-
-      /* Clone loop body */
-      nir_cf_list_clone(&unrolled_lp_body, &loop_body, loop->cf_node.parent,
-                        remap_table);
-
-      unroll_loc = exec_node_data(nir_cf_node,
-                                  exec_list_get_tail(&unrolled_lp_body.list),
-                                  node);
-      assert(unroll_loc->type == nir_cf_node_block &&
-             exec_list_is_empty(&nir_cf_node_as_block(unroll_loc)->instr_list));
-
-      /* Get the unrolled if node */
-      unroll_loc = nir_cf_node_prev(unroll_loc);
-
-      /* Insert unrolled loop body */
-      nir_cf_reinsert(&unrolled_lp_body, cursor);
-   }
+   nir_cf_list lp_body;
+   nir_cf_node *unroll_loc =
+      complex_unroll_loop_body(loop, unlimit_term, &lp_header, &lp_body,
+                               remap_table, num_times_to_clone);
 
    if (!limiting_term_second) {
       assert(unroll_loc->type == nir_cf_node_if);
@@ -442,7 +455,7 @@ complex_unroll(nir_loop *loop, nir_loop_terminator *unlimit_term,
 
    /* Delete the original loop header and body */
    nir_cf_delete(&lp_header);
-   nir_cf_delete(&loop_body);
+   nir_cf_delete(&lp_body);
 
    _mesa_hash_table_destroy(remap_table, NULL);
 }

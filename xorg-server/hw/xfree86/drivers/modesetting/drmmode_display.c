@@ -2840,7 +2840,7 @@ static int parse_path_blob(drmModePropertyBlobPtr path_blob, int *conn_base_id, 
     if (len + 1> 5)
         return -1;
     memcpy(conn_id, blob_data + 4, len);
-    conn_id[len + 1] = '\0';
+    conn_id[len] = '\0';
     id = strtoul(conn_id, NULL, 10);
 
     *conn_base_id = id;

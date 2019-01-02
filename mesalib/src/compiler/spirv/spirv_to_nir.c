@@ -1468,7 +1468,7 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
           opcode == SpvOpSpecConstantFalse)
          int_val = get_specialization(b, val, int_val);
 
-      val->constant->values[0].u32[0] = int_val ? NIR_TRUE : NIR_FALSE;
+      val->constant->values[0].b[0] = int_val != 0;
       break;
    }
 
@@ -1560,6 +1560,9 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
                break;
             case 8:
                val->constant->values[0].u8[i] = elems[i]->values[0].u8[0];
+               break;
+            case 1:
+               val->constant->values[0].b[i] = elems[i]->values[0].b[0];
                break;
             default:
                vtn_fail("Invalid SpvOpConstantComposite bit size");
@@ -1734,6 +1737,9 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
                   case 8:
                      val->constant->values[0].u8[i] = (*c)->values[col].u8[elem + i];
                      break;
+                  case 1:
+                     val->constant->values[0].b[i] = (*c)->values[col].b[elem + i];
+                     break;
                   default:
                      vtn_fail("Invalid SpvOpCompositeExtract bit size");
                   }
@@ -1760,6 +1766,9 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
                      break;
                   case 8:
                      (*c)->values[col].u8[elem + i] = insert->constant->values[0].u8[i];
+                     break;
+                  case 1:
+                     (*c)->values[col].b[elem + i] = insert->constant->values[0].b[i];
                      break;
                   default:
                      vtn_fail("Invalid SpvOpCompositeInsert bit size");
@@ -2173,6 +2182,13 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
          vtn_assert(texop == nir_texop_txf_ms);
          texop = nir_texop_txf_ms;
          (*p++) = vtn_tex_src(b, w[idx++], nir_tex_src_ms_index);
+      }
+
+      if (operands & SpvImageOperandsMinLodMask) {
+         vtn_assert(texop == nir_texop_tex ||
+                    texop == nir_texop_txb ||
+                    texop == nir_texop_txd);
+         (*p++) = vtn_tex_src(b, w[idx++], nir_tex_src_min_lod);
       }
    }
    /* We should have now consumed exactly all of the arguments */
@@ -3416,12 +3432,14 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       case SpvCapabilityVector16:
       case SpvCapabilityFloat16Buffer:
       case SpvCapabilityFloat16:
-      case SpvCapabilityStorageImageMultisample:
       case SpvCapabilityInt8:
       case SpvCapabilitySparseResidency:
-      case SpvCapabilityMinLod:
          vtn_warn("Unsupported SPIR-V capability: %s",
                   spirv_capability_to_string(cap));
+         break;
+
+      case SpvCapabilityMinLod:
+         spv_check_supported(min_lod, cap);
          break;
 
       case SpvCapabilityAtomicStorage:
@@ -3448,6 +3466,10 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
 
       case SpvCapabilityInt64Atomics:
          spv_check_supported(int64_atomics, cap);
+         break;
+
+      case SpvCapabilityStorageImageMultisample:
+         spv_check_supported(storage_image_ms, cap);
          break;
 
       case SpvCapabilityAddresses:

@@ -28,6 +28,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "Xlibint.h"
+#include "reallocarray.h"
 #include <stdio.h>
 
 /*
@@ -49,7 +50,7 @@ int *XListDepths (
 	register Depth *dp;
 	register int i;
 
-	depths = Xmalloc (count * sizeof(int));
+	depths = Xmallocarray (count, sizeof(int));
 	if (!depths) return NULL;
 	for (i = 0, dp = scr->depths; i < count; i++, dp++)
 	  depths[i] = dp->depth;

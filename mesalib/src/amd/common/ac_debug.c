@@ -233,6 +233,7 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
 		if (op == PKT3_SET_CONTEXT_REG ||
 		    op == PKT3_SET_CONFIG_REG ||
 		    op == PKT3_SET_UCONFIG_REG ||
+		    op == PKT3_SET_UCONFIG_REG_INDEX ||
 		    op == PKT3_SET_SH_REG)
 			fprintf(f, COLOR_CYAN "%s%s" COLOR_CYAN ":\n",
 				name, predicate);
@@ -252,6 +253,7 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
 		ac_parse_set_reg_packet(f, count, SI_CONFIG_REG_OFFSET, ib);
 		break;
 	case PKT3_SET_UCONFIG_REG:
+	case PKT3_SET_UCONFIG_REG_INDEX:
 		ac_parse_set_reg_packet(f, count, CIK_UCONFIG_REG_OFFSET, ib);
 		break;
 	case PKT3_SET_SH_REG:

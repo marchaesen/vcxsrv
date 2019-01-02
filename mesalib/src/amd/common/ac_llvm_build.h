@@ -480,6 +480,7 @@ void ac_build_continue(struct ac_llvm_context *ctx);
 void ac_build_else(struct ac_llvm_context *ctx, int lable_id);
 void ac_build_endif(struct ac_llvm_context *ctx, int lable_id);
 void ac_build_endloop(struct ac_llvm_context *ctx, int lable_id);
+void ac_build_ifcc(struct ac_llvm_context *ctx, LLVMValueRef cond, int label_id);
 void ac_build_if(struct ac_llvm_context *ctx, LLVMValueRef value,
 		 int lable_id);
 void ac_build_uif(struct ac_llvm_context *ctx, LLVMValueRef value,
@@ -522,6 +523,42 @@ ac_build_exclusive_scan(struct ac_llvm_context *ctx, LLVMValueRef src, nir_op op
 
 LLVMValueRef
 ac_build_reduce(struct ac_llvm_context *ctx, LLVMValueRef src, nir_op op, unsigned cluster_size);
+
+/**
+ * Common arguments for a scan/reduce operation that accumulates per-wave
+ * values across an entire workgroup, while respecting the order of waves.
+ */
+struct ac_wg_scan {
+	bool enable_reduce;
+	bool enable_exclusive;
+	bool enable_inclusive;
+	nir_op op;
+	LLVMValueRef src; /* clobbered! */
+	LLVMValueRef result_reduce;
+	LLVMValueRef result_exclusive;
+	LLVMValueRef result_inclusive;
+	LLVMValueRef extra;
+	LLVMValueRef waveidx;
+	LLVMValueRef numwaves; /* only needed for "reduce" operations */
+
+	/* T addrspace(LDS) pointer to the same type as value, at least maxwaves entries */
+	LLVMValueRef scratch;
+	unsigned maxwaves;
+};
+
+void
+ac_build_wg_wavescan_top(struct ac_llvm_context *ctx, struct ac_wg_scan *ws);
+void
+ac_build_wg_wavescan_bottom(struct ac_llvm_context *ctx, struct ac_wg_scan *ws);
+void
+ac_build_wg_wavescan(struct ac_llvm_context *ctx, struct ac_wg_scan *ws);
+
+void
+ac_build_wg_scan_top(struct ac_llvm_context *ctx, struct ac_wg_scan *ws);
+void
+ac_build_wg_scan_bottom(struct ac_llvm_context *ctx, struct ac_wg_scan *ws);
+void
+ac_build_wg_scan(struct ac_llvm_context *ctx, struct ac_wg_scan *ws);
 
 LLVMValueRef
 ac_build_quad_swizzle(struct ac_llvm_context *ctx, LLVMValueRef src,

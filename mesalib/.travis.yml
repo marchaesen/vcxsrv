@@ -1,7 +1,6 @@
 language: c
 
-sudo: false
-dist: trusty
+dist: xenial
 
 cache:
   apt: true
@@ -16,7 +15,7 @@ env:
     - GLPROTO_VERSION=glproto-1.4.17
     - DRI2PROTO_VERSION=dri2proto-2.8
     - LIBPCIACCESS_VERSION=libpciaccess-0.13.4
-    - LIBDRM_VERSION=libdrm-2.4.74
+    - LIBDRM_VERSION=libdrm-2.4.95
     - XCBPROTO_VERSION=xcb-proto-1.13
     - RANDRPROTO_VERSION=randrproto-1.3.0
     - LIBXRANDR_VERSION=libXrandr-1.3.0
@@ -35,20 +34,18 @@ matrix:
     - env:
         - LABEL="meson Vulkan"
         - BUILD=meson
-        - DRI_DRIVERS=""
-        - GALLIUM_DRIVERS=""
+        - UNWIND="false"
+        - DRI_LOADERS="-Dglx=disabled -Dgbm=false -Degl=false -Dplatforms=x11,wayland,drm -Dosmesa=none"
+        - GALLIUM_ST="-Ddri3=true -Dgallium-vdpau=false -Dgallium-xvmc=false -Dgallium-omx=disabled -Dgallium-va=false -Dgallium-xa=false -Dgallium-nine=false -Dgallium-opencl=disabled"
         - VULKAN_DRIVERS="intel,amd"
         - LLVM_VERSION=7
         - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
       addons:
         apt:
           sources:
-            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-7 main'
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main'
               key_url: https://apt.llvm.org/llvm-snapshot.gpg.key
-            # llvm-7 requires libstdc++4.9 which is not in main repo
-            - ubuntu-toolchain-r-test
           packages:
-            # From sources above
             - llvm-7-dev
             # Common
             - xz-utils
@@ -57,23 +54,27 @@ matrix:
             - libelf-dev
             - python3.5
             - python3-pip
+            - python3-setuptools
     - env:
         - LABEL="meson loaders/classic DRI"
         - BUILD=meson
+        - UNWIND="false"
+        - DRI_LOADERS="-Dglx=dri -Dgbm=true -Degl=true -Dplatforms=x11,wayland,drm,surfaceless -Dosmesa=classic"
         - DRI_DRIVERS="i915,i965,r100,r200,swrast,nouveau"
-        - GALLIUM_DRIVERS=""
-        - VULKAN_DRIVERS=""
+        - GALLIUM_ST="-Ddri3=true -Dgallium-vdpau=false -Dgallium-xvmc=false -Dgallium-omx=disabled -Dgallium-va=false -Dgallium-xa=false -Dgallium-nine=false -Dgallium-opencl=disabled"
       addons:
         apt:
           packages:
             - xz-utils
             - x11proto-xf86vidmode-dev
+            - libxxf86vm-dev
             - libexpat1-dev
             - libx11-xcb-dev
             - libxdamage-dev
             - libxfixes-dev
             - python3.5
             - python3-pip
+            - python3-setuptools
     - env:
         - LABEL="make loaders/classic DRI"
         - BUILD=make
@@ -90,11 +91,200 @@ matrix:
           packages:
             - xz-utils
             - x11proto-xf86vidmode-dev
+            - libxxf86vm-dev
             - libexpat1-dev
             - libx11-xcb-dev
             - libxdamage-dev
             - libxfixes-dev
             - python3-pip
+            - python3-setuptools
+    - env:
+        # NOTE: Building SWR is 2x (yes two) times slower than all the other
+        # gallium drivers combined.
+        # Start this early so that it doesn't hunder the run time.
+        - LABEL="meson Gallium Drivers SWR"
+        - BUILD=meson
+        - UNWIND="true"
+        - DRI_LOADERS="-Dglx=disabled -Degl=false -Dgbm=false"
+        - GALLIUM_ST="-Ddri3=false -Dgallium-vdpau=false -Dgallium-xvmc=false -Dgallium-omx=disabled -Dgallium-va=false -Dgallium-xa=false -Dgallium-nine=false -Dgallium-opencl=disabled"
+        - GALLIUM_DRIVERS="swr"
+        - LLVM_VERSION=6.0
+        - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
+      addons:
+        apt:
+          packages:
+            - llvm-6.0-dev
+            # Common
+            - xz-utils
+            - libexpat1-dev
+            - libx11-xcb-dev
+            - libelf-dev
+            - libunwind8-dev
+            - python3.5
+            - python3-pip
+            - python3-setuptools
+    - env:
+        - LABEL="meson Gallium Drivers RadeonSI"
+        - BUILD=meson
+        - UNWIND="true"
+        - DRI_LOADERS="-Dglx=disabled -Degl=false -Dgbm=false"
+        - GALLIUM_ST="-Ddri3=false -Dgallium-vdpau=false -Dgallium-xvmc=false -Dgallium-omx=disabled -Dgallium-va=false -Dgallium-xa=false -Dgallium-nine=false -Dgallium-opencl=disabled"
+        - GALLIUM_DRIVERS="radeonsi"
+        - LLVM_VERSION=7
+        - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main'
+              key_url: https://apt.llvm.org/llvm-snapshot.gpg.key
+          packages:
+            # From sources above
+            - llvm-7-dev
+            # Common
+            - xz-utils
+            - libexpat1-dev
+            - libx11-xcb-dev
+            - libelf-dev
+            - libunwind8-dev
+            - python3.5
+            - python3-pip
+            - python3-setuptools
+    - env:
+        - LABEL="meson Gallium Drivers Other"
+        - BUILD=meson
+        - UNWIND="true"
+        - DRI_LOADERS="-Dglx=disabled -Degl=false -Dgbm=false"
+        - GALLIUM_ST="-Ddri3=false -Dgallium-vdpau=false -Dgallium-xvmc=false -Dgallium-omx=disabled -Dgallium-va=false -Dgallium-xa=false -Dgallium-nine=false -Dgallium-opencl=disabled"
+        - GALLIUM_DRIVERS="i915,nouveau,pl111,r300,r600,freedreno,svga,swrast,v3d,vc4,virgl,etnaviv,imx"
+        - LLVM_VERSION=5.0
+        - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
+      addons:
+        apt:
+          packages:
+            # LLVM packaging is broken and misses these dependencies
+            - libedit-dev
+            - llvm-5.0-dev
+            # Common
+            - xz-utils
+            - libexpat1-dev
+            - libx11-xcb-dev
+            - libelf-dev
+            - libunwind8-dev
+            - python3.5
+            - python3-pip
+            - python3-setuptools
+    - env:
+        - LABEL="meson Gallium ST Clover LLVM-5.0"
+        - BUILD=meson
+        - UNWIND="true"
+        - DRI_LOADERS="-Dglx=disabled -Degl=false -Dgbm=false"
+        - GALLIUM_ST="-Ddri3=false -Dgallium-vdpau=false -Dgallium-xvmc=false -Dgallium-omx=disabled -Dgallium-va=false -Dgallium-xa=false -Dgallium-nine=false -Dgallium-opencl=icd"
+        - GALLIUM_DRIVERS="r600"
+        - LLVM_VERSION=5.0
+        - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
+      addons:
+        apt:
+          packages:
+            - libclc-dev
+            # LLVM packaging is broken and misses these dependencies
+            - libedit-dev
+            - llvm-5.0-dev
+            - clang-5.0
+            - libclang-5.0-dev
+            # Common
+            - xz-utils
+            - libexpat1-dev
+            - libx11-xcb-dev
+            - libelf-dev
+            - libunwind8-dev
+            - python3-pip
+            - python3-setuptools
+    - env:
+        - LABEL="meson Gallium ST Clover LLVM-6.0"
+        - BUILD=meson
+        - UNWIND="true"
+        - DRI_LOADERS="-Dglx=disabled -Degl=false -Dgbm=false"
+        - GALLIUM_ST="-Ddri3=false -Dgallium-vdpau=false -Dgallium-xvmc=false -Dgallium-omx=disabled -Dgallium-va=false -Dgallium-xa=false -Dgallium-nine=false -Dgallium-opencl=icd"
+        - GALLIUM_DRIVERS="r600"
+        - LLVM_VERSION=6.0
+        - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
+      addons:
+        apt:
+          packages:
+            - libclc-dev
+            - llvm-6.0-dev
+            - clang-6.0
+            - libclang-6.0-dev
+            # Common
+            - xz-utils
+            - libexpat1-dev
+            - libx11-xcb-dev
+            - libelf-dev
+            - libunwind8-dev
+            - python3.5
+            - python3-pip
+            - python3-setuptools
+    - env:
+        - LABEL="meson Gallium ST Clover LLVM-7"
+        - BUILD=meson
+        - UNWIND="true"
+        - DRI_LOADERS="-Dglx=disabled -Degl=false -Dgbm=false"
+        - GALLIUM_ST="-Ddri3=false -Dgallium-vdpau=false -Dgallium-xvmc=false -Dgallium-omx=disabled -Dgallium-va=false -Dgallium-xa=false -Dgallium-nine=false -Dgallium-opencl=icd"
+        - GALLIUM_DRIVERS="r600,radeonsi"
+        - LLVM_VERSION=7
+        - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
+      addons:
+        apt:
+          sources:
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main'
+              key_url: https://apt.llvm.org/llvm-snapshot.gpg.key
+          packages:
+            - libclc-dev
+            # From sources above
+            - llvm-7-dev
+            - clang-7
+            - libclang-7-dev
+            # Common
+            - xz-utils
+            - libexpat1-dev
+            - libx11-xcb-dev
+            - libelf-dev
+            - libunwind8-dev
+            - python3.5
+            - python3-pip
+            - python3-setuptools
+    - env:
+        - LABEL="meson Gallium ST Other"
+        - BUILD=meson
+        - UNWIND="true"
+        - DRI_LOADERS="-Dglx=disabled -Degl=false -Dgbm=false"
+        - GALLIUM_ST="-Ddri3=true -Dgallium-vdpau=true -Dgallium-xvmc=true -Dgallium-omx=bellagio -Dgallium-va=true -Dgallium-xa=true -Dgallium-nine=true -Dgallium-opencl=disabled -Dosmesa=gallium"
+        # We need swrast for osmesa and nine.
+        # Nouveau supports, or builds at least against all ST.
+        - GALLIUM_DRIVERS="nouveau,swrast"
+        - LLVM_VERSION=5.0
+        - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
+      addons:
+        apt:
+          packages:
+            - llvm-5.0-dev
+            # LLVM packaging is broken and misses these dependencies
+            - libedit-dev
+            # Nine requires gcc 4.6... which is the one we have right ?
+            - libxvmc-dev
+            # Build locally, for now.
+            #- libvdpau-dev
+            #- libva-dev
+            - libomxil-bellagio-dev
+            # Common
+            - xz-utils
+            - libexpat1-dev
+            - libx11-xcb-dev
+            - libelf-dev
+            - libunwind8-dev
+            - python3.5
+            - python3-pip
+            - python3-setuptools
     - env:
         # NOTE: Building SWR is 2x (yes two) times slower than all the other
         # gallium drivers combined.
@@ -113,12 +303,7 @@ matrix:
         - LIBUNWIND_FLAGS="--enable-libunwind"
       addons:
         apt:
-          sources:
-            - llvm-toolchain-trusty-6.0
-            # llvm-6 requires libstdc++4.9 which is not in main repo
-            - ubuntu-toolchain-r-test
           packages:
-            # From sources above
             - llvm-6.0-dev
             # Common
             - xz-utils
@@ -127,6 +312,7 @@ matrix:
             - libelf-dev
             - libunwind8-dev
             - python3-pip
+            - python3-setuptools
     - env:
         - LABEL="make Gallium Drivers RadeonSI"
         - BUILD=make
@@ -143,10 +329,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-7 main'
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main'
               key_url: https://apt.llvm.org/llvm-snapshot.gpg.key
-            # llvm-7 requires libstdc++4.9 which is not in main repo
-            - ubuntu-toolchain-r-test
           packages:
             # From sources above
             - llvm-7-dev
@@ -157,6 +341,7 @@ matrix:
             - libelf-dev
             - libunwind8-dev
             - python3-pip
+            - python3-setuptools
     - env:
         - LABEL="make Gallium Drivers Other"
         - BUILD=make
@@ -164,8 +349,6 @@ matrix:
         - MAKE_CHECK_COMMAND="true"
         - LLVM_VERSION=3.9
         - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
-        # New binutils linker is required for llvm-3.9
-        - OVERRIDE_PATH=/usr/lib/binutils-2.26/bin
         - DRI_LOADERS="--disable-glx --disable-gbm --disable-egl"
         - DRI_DRIVERS=""
         - GALLIUM_ST="--enable-dri --disable-opencl --disable-xa --disable-nine --disable-xvmc --disable-vdpau --disable-va --disable-omx-bellagio --disable-gallium-osmesa"
@@ -174,13 +357,9 @@ matrix:
         - LIBUNWIND_FLAGS="--enable-libunwind"
       addons:
         apt:
-          sources:
-            - llvm-toolchain-trusty-3.9
           packages:
-            - binutils-2.26
             # LLVM packaging is broken and misses these dependencies
             - libedit-dev
-            # From sources above
             - llvm-3.9-dev
             # Common
             - xz-utils
@@ -189,6 +368,7 @@ matrix:
             - libelf-dev
             - libunwind8-dev
             - python3-pip
+            - python3-setuptools
     - env:
         - LABEL="make Gallium ST Clover LLVM-3.9"
         - BUILD=make
@@ -196,10 +376,6 @@ matrix:
         - MAKE_CHECK_COMMAND="true"
         - LLVM_VERSION=3.9
         - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
-        - OVERRIDE_CC=gcc-4.7
-        - OVERRIDE_CXX=g++-4.7
-        # New binutils linker is required for llvm-3.9
-        - OVERRIDE_PATH=/usr/lib/binutils-2.26/bin
         - DRI_LOADERS="--disable-glx --disable-gbm --disable-egl"
         - DRI_DRIVERS=""
         - GALLIUM_ST="--disable-dri --enable-opencl --enable-opencl-icd --enable-llvm --disable-xa --disable-nine --disable-xvmc --disable-vdpau --disable-va --disable-omx-bellagio --disable-gallium-osmesa"
@@ -208,15 +384,10 @@ matrix:
         - LIBUNWIND_FLAGS="--enable-libunwind"
       addons:
         apt:
-          sources:
-            - llvm-toolchain-trusty-3.9
           packages:
-            - binutils-2.26
             - libclc-dev
             # LLVM packaging is broken and misses these dependencies
             - libedit-dev
-            - g++-4.7
-            # From sources above
             - llvm-3.9-dev
             - clang-3.9
             - libclang-3.9-dev
@@ -227,6 +398,7 @@ matrix:
             - libelf-dev
             - libunwind8-dev
             - python3-pip
+            - python3-setuptools
     - env:
         - LABEL="make Gallium ST Clover LLVM-4.0"
         - BUILD=make
@@ -234,8 +406,6 @@ matrix:
         - MAKE_CHECK_COMMAND="true"
         - LLVM_VERSION=4.0
         - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
-        - OVERRIDE_CC=gcc-4.8
-        - OVERRIDE_CXX=g++-4.8
         - DRI_LOADERS="--disable-glx --disable-gbm --disable-egl"
         - DRI_DRIVERS=""
         - GALLIUM_ST="--disable-dri --enable-opencl --enable-opencl-icd --enable-llvm --disable-xa --disable-nine --disable-xvmc --disable-vdpau --disable-va --disable-omx-bellagio --disable-gallium-osmesa"
@@ -244,14 +414,10 @@ matrix:
         - LIBUNWIND_FLAGS="--enable-libunwind"
       addons:
         apt:
-          sources:
-            - llvm-toolchain-trusty-4.0
           packages:
             - libclc-dev
             # LLVM packaging is broken and misses these dependencies
             - libedit-dev
-            - g++-4.8
-            # From sources above
             - llvm-4.0-dev
             - clang-4.0
             - libclang-4.0-dev
@@ -262,6 +428,7 @@ matrix:
             - libelf-dev
             - libunwind8-dev
             - python3-pip
+            - python3-setuptools
     - env:
         - LABEL="make Gallium ST Clover LLVM-5.0"
         - BUILD=make
@@ -269,8 +436,6 @@ matrix:
         - MAKE_CHECK_COMMAND="true"
         - LLVM_VERSION=5.0
         - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
-        - OVERRIDE_CC=gcc-4.8
-        - OVERRIDE_CXX=g++-4.8
         - DRI_LOADERS="--disable-glx --disable-gbm --disable-egl"
         - DRI_DRIVERS=""
         - GALLIUM_ST="--disable-dri --enable-opencl --enable-opencl-icd --enable-llvm --disable-xa --disable-nine --disable-xvmc --disable-vdpau --disable-va --disable-omx-bellagio --disable-gallium-osmesa"
@@ -279,14 +444,10 @@ matrix:
         - LIBUNWIND_FLAGS="--enable-libunwind"
       addons:
         apt:
-          sources:
-            - llvm-toolchain-trusty-5.0
           packages:
             - libclc-dev
             # LLVM packaging is broken and misses these dependencies
             - libedit-dev
-            - g++-4.8
-            # From sources above
             - llvm-5.0-dev
             - clang-5.0
             - libclang-5.0-dev
@@ -297,6 +458,7 @@ matrix:
             - libelf-dev
             - libunwind8-dev
             - python3-pip
+            - python3-setuptools
     - env:
         - LABEL="make Gallium ST Clover LLVM-6.0"
         - BUILD=make
@@ -312,13 +474,8 @@ matrix:
         - LIBUNWIND_FLAGS="--enable-libunwind"
       addons:
         apt:
-          sources:
-            - llvm-toolchain-trusty-6.0
-            # llvm-6 requires libstdc++4.9 which is not in main repo
-            - ubuntu-toolchain-r-test
           packages:
             - libclc-dev
-            # From sources above
             - llvm-6.0-dev
             - clang-6.0
             - libclang-6.0-dev
@@ -329,6 +486,7 @@ matrix:
             - libelf-dev
             - libunwind8-dev
             - python3-pip
+            - python3-setuptools
     - env:
         - LABEL="make Gallium ST Clover LLVM-7"
         - BUILD=make
@@ -345,10 +503,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-7 main'
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main'
               key_url: https://apt.llvm.org/llvm-snapshot.gpg.key
-            # llvm-7 requires libstdc++4.9 which is not in main repo
-            - ubuntu-toolchain-r-test
           packages:
             - libclc-dev
             # From sources above
@@ -366,7 +522,7 @@ matrix:
         - BUILD=make
         - MAKEFLAGS="-j4"
         - MAKE_CHECK_COMMAND="true"
-        - LLVM_VERSION=3.3
+        - LLVM_VERSION=3.5
         - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
         - DRI_LOADERS="--disable-glx --disable-gbm --disable-egl"
         - DRI_DRIVERS=""
@@ -380,8 +536,8 @@ matrix:
       addons:
         apt:
           packages:
-            # We actually want to test against llvm-3.3
-            - llvm-3.3-dev
+            # We actually want to test against llvm-3.3, yet 3.5 is available
+            - llvm-3.5-dev
             # Nine requires gcc 4.6... which is the one we have right ?
             - libxvmc-dev
             # Build locally, for now.
@@ -397,6 +553,7 @@ matrix:
             - libelf-dev
             - libunwind8-dev
             - python3-pip
+            - python3-setuptools
     - env:
         - LABEL="make Vulkan"
         - BUILD=make
@@ -413,10 +570,8 @@ matrix:
       addons:
         apt:
           sources:
-            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-7 main'
+            - sourceline: 'deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main'
               key_url: https://apt.llvm.org/llvm-snapshot.gpg.key
-            # llvm-7 requires libstdc++4.9 which is not in main repo
-            - ubuntu-toolchain-r-test
           packages:
             # From sources above
             - llvm-7-dev
@@ -426,6 +581,7 @@ matrix:
             - libx11-xcb-dev
             - libelf-dev
             - python3-pip
+            - python3-setuptools
     - env:
         - LABEL="scons"
         - BUILD=scons
@@ -450,14 +606,15 @@ matrix:
         - SCONS_TARGET="llvm=1"
         # Keep it symmetrical to the make build.
         - SCONS_CHECK_COMMAND="scons llvm=1 check"
-        - LLVM_VERSION=3.3
+        - LLVM_VERSION=3.5
         - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
       addons:
         apt:
           packages:
             # LLVM packaging is broken and misses these dependencies
             - libedit-dev
-            - llvm-3.3-dev
+            # We actually want to test against llvm-3.3, yet 3.5 is available
+            - llvm-3.5-dev
             # Common
             - xz-utils
             - x11proto-xf86vidmode-dev
@@ -475,12 +632,7 @@ matrix:
         - SCONS_CHECK_COMMAND="true"
       addons:
         apt:
-          sources:
-            - llvm-toolchain-trusty-6.0
-            # llvm-6 requires libstdc++4.9 which is not in main repo
-            - ubuntu-toolchain-r-test
           packages:
-            # From sources above
             - llvm-6.0-dev
             # Common
             - xz-utils
@@ -498,6 +650,9 @@ matrix:
     - env:
         - LABEL="macOS meson"
         - BUILD=meson
+        - UNWIND="false"
+        - DRI_LOADERS="-Dglx=dri -Dgbm=false -Degl=false -Dplatforms=x11 -Dosmesa=none"
+        - GALLIUM_ST="-Ddri3=true -Dgallium-vdpau=false -Dgallium-xvmc=false -Dgallium-omx=disabled -Dgallium-va=false -Dgallium-xa=false -Dgallium-nine=false -Dgallium-opencl=disabled"
       os: osx
 
 before_install:
@@ -525,10 +680,8 @@ before_install:
 
 install:
   # Install a more modern meson from pip, since the version in the
-  # ubuntu repos is often quite old. This requires python>=3.5, so
-  # let's make it default
+  # ubuntu repos is often quite old.
   - if test "x$BUILD" = xmeson; then
-      sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.5 10;
       pip3 install --user meson;
       pip3 install --user mako;
     fi
@@ -543,16 +696,6 @@ install:
       pip2 install --user "scons>=2.4";
       pip2 install --user mako;
     fi
-
-  # Since libdrm gets updated in configure.ac regularly, try to pick up the
-  # latest version from there.
-  - for line in `grep "^LIBDRM.*_REQUIRED=" configure.ac`; do
-      old_ver=`echo $LIBDRM_VERSION | sed 's/libdrm-//'`;
-      new_ver=`echo $line | sed 's/.*REQUIRED=//'`;
-      if `echo "$old_ver,$new_ver" | tr ',' '\n' | sort -Vc 2> /dev/null`; then
-        export LIBDRM_VERSION="libdrm-$new_ver";
-      fi;
-    done
 
   # Install dependencies where we require specific versions (or where
   # disallowed by Travis CI's package whitelisting).
@@ -615,7 +758,7 @@ install:
       tar -axvf $WAYLAND_PROTOCOLS_VERSION.tar.xz
       (cd $WAYLAND_PROTOCOLS_VERSION && ./configure --prefix=$HOME/prefix && make install)
 
-      # Meson requires ninja >= 1.6, but trusty has 1.3.x
+      # Meson requires ninja >= 1.6, but xenial has 1.3.x
       wget https://github.com/ninja-build/ninja/releases/download/v1.6.0/ninja-linux.zip
       unzip ninja-linux.zip
       mv ninja $HOME/prefix/bin/
@@ -658,10 +801,6 @@ install:
 
 script:
   - if test "x$BUILD" = xmake; then
-      test -n "$OVERRIDE_CC" && export CC="$OVERRIDE_CC";
-      test -n "$OVERRIDE_CXX" && export CXX="$OVERRIDE_CXX";
-      test -n "$OVERRIDE_PATH" && export PATH="$OVERRIDE_PATH:$PATH";
-
       export CFLAGS="$CFLAGS -isystem`pwd`";
 
       mkdir build &&
@@ -679,41 +818,29 @@ script:
     fi
 
   - if test "x$BUILD" = xscons; then
-      test -n "$OVERRIDE_CC" && export CC="$OVERRIDE_CC";
-      test -n "$OVERRIDE_CXX" && export CXX="$OVERRIDE_CXX";
       scons $SCONS_TARGET && eval $SCONS_CHECK_COMMAND;
     fi
 
   - |
     if test "x$BUILD" = xmeson; then
-
-      if test "x$TRAVIS_OS_NAME" == xosx; then
-        MESON_OPTIONS="-Degl=false"
-      fi
-
-      if test "x$TRAVIS_OS_NAME" == xlinux; then
-        MESON_OPTIONS="-Ddri-drivers=${DRI_DRIVERS:-[]} -Dgallium-drivers=${GALLIUM_DRIVERS:-[]} -Dvulkan-drivers=${VULKAN_DRIVERS:-[]}"
-      fi
-
-      # Travis CI has moved to LLVM 5.0, and meson is detecting
-      # automatically the available version in /usr/local/bin based on
-      # the PATH env variable order preference.
+      # We need to control the version of llvm-config we're using, so we'll
+      # generate a native file to do so. This requires meson >=0.49
       #
-      # As for 0.44.x, Meson cannot receive the path to the
-      # llvm-config binary as a configuration parameter. See
-      # https://github.com/mesonbuild/meson/issues/2887 and
-      # https://github.com/dcbaker/meson/commit/7c8b6ee3fa42f43c9ac7dcacc61a77eca3f1bcef
-      #
-      # We want to use the custom (APT) installed version. Therefore,
-      # let's make Meson find our wanted version sooner than the one
-      # at /usr/local/bin
-      #
-      # Once this is corrected, we would still need a patch similar
-      # to:
-      # https://lists.freedesktop.org/archives/mesa-dev/2017-December/180217.html
-      test -f /usr/bin/$LLVM_CONFIG && ln -s /usr/bin/$LLVM_CONFIG $HOME/prefix/bin/llvm-config
+      echo -e "[binaries]\nllvm-config = '`which $LLVM_CONFIG`'" > native.file
+
+      $LLVM_CONFIG --version
 
       export CFLAGS="$CFLAGS -isystem`pwd`"
-      meson _build $MESON_OPTIONS
+      meson _build \
+                   --native-file=native.file \
+                   -Dbuild-tests=true \
+                   -Dlibunwind=${UNWIND} \
+                   ${DRI_LOADERS} \
+                   -Ddri-drivers=${DRI_DRIVERS:-[]} \
+                   ${GALLIUM_ST} \
+                   -Dgallium-drivers=${GALLIUM_DRIVERS:-[]} \
+                   -Dvulkan-drivers=${VULKAN_DRIVERS:-[]}
+      meson configure _build
       ninja -C _build
+      ninja -C _build test
     fi

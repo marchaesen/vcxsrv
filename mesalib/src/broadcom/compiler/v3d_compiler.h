@@ -313,8 +313,6 @@ struct v3d_key {
                 uint8_t swizzle[4];
                 uint8_t return_size;
                 uint8_t return_channels;
-                unsigned compare_mode:1;
-                unsigned compare_func:3;
                 bool clamp_s:1;
                 bool clamp_t:1;
                 bool clamp_r:1;
@@ -459,6 +457,10 @@ struct v3d_compile {
         struct exec_list *cf_node_list;
         const struct v3d_compiler *compiler;
 
+        void (*debug_output)(const char *msg,
+                             void *debug_output_data);
+        void *debug_output_data;
+
         /**
          * Mapping from nir_register * or nir_ssa_def * to array of struct
          * qreg for the values.
@@ -531,8 +533,8 @@ struct v3d_compile {
          * space needs to be available in the spill BO per thread per QPU.
          */
         uint32_t spill_size;
-        /* Shader-db stats for register spilling. */
-        uint32_t spills, fills;
+        /* Shader-db stats */
+        uint32_t spills, fills, loops;
         /**
          * Register spilling's per-thread base address, shared between each
          * spill/fill's addressing calculations.
@@ -708,6 +710,9 @@ uint64_t *v3d_compile_vs(const struct v3d_compiler *compiler,
                          struct v3d_vs_key *key,
                          struct v3d_vs_prog_data *prog_data,
                          nir_shader *s,
+                         void (*debug_output)(const char *msg,
+                                              void *debug_output_data),
+                         void *debug_output_data,
                          int program_id, int variant_id,
                          uint32_t *final_assembly_size);
 
@@ -715,6 +720,9 @@ uint64_t *v3d_compile_fs(const struct v3d_compiler *compiler,
                          struct v3d_fs_key *key,
                          struct v3d_fs_prog_data *prog_data,
                          nir_shader *s,
+                         void (*debug_output)(const char *msg,
+                                              void *debug_output_data),
+                         void *debug_output_data,
                          int program_id, int variant_id,
                          uint32_t *final_assembly_size);
 
@@ -761,7 +769,6 @@ bool vir_is_tex(struct qinst *inst);
 bool vir_is_add(struct qinst *inst);
 bool vir_is_mul(struct qinst *inst);
 bool vir_is_float_input(struct qinst *inst);
-bool vir_depends_on_flags(struct qinst *inst);
 bool vir_writes_r3(const struct v3d_device_info *devinfo, struct qinst *inst);
 bool vir_writes_r4(const struct v3d_device_info *devinfo, struct qinst *inst);
 struct qreg vir_follow_movs(struct v3d_compile *c, struct qreg reg);
@@ -773,6 +780,7 @@ void vir_emit_thrsw(struct v3d_compile *c);
 
 void vir_dump(struct v3d_compile *c);
 void vir_dump_inst(struct v3d_compile *c, struct qinst *inst);
+void vir_dump_uniform(enum quniform_contents contents, uint32_t data);
 
 void vir_validate(struct v3d_compile *c);
 
@@ -1077,7 +1085,7 @@ vir_LOAD_IMM_I2(struct v3d_compile *c, uint32_t val)
 */
 
 static inline struct qinst *
-vir_BRANCH(struct v3d_compile *c, enum v3d_qpu_cond cond)
+vir_BRANCH(struct v3d_compile *c, enum v3d_qpu_branch_cond cond)
 {
         /* The actual uniform_data value will be set at scheduling time */
         return vir_emit_nondef(c, vir_branch_inst(cond, vir_uniform_ui(c, 0)));

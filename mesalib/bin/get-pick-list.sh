@@ -21,31 +21,46 @@ is_typod_nomination()
 	git show --summary "$1" | grep -q -i -o "CC:.*mesa-dev"
 }
 
+fixes=
+
 # Helper to handle various mistypos of the fixes tag.
 # The tag string itself is passed as argument and normalised within.
+#
+# Resulting string in the global variable "fixes" and contains entries
+# in the form "fixes:$sha"
 is_sha_nomination()
 {
 	fixes=`git show --pretty=medium -s $1 | tr -d "\n" | \
 		sed -e 's/'"$2"'/\nfixes:/Ig' | \
 		grep -Eo 'fixes:[a-f0-9]{8,40}'`
 
-	fixes_count=`echo "$fixes" | wc -l`
+	fixes_count=`echo "$fixes" | grep "fixes:" | wc -l`
 	if test $fixes_count -eq 0; then
-		return 0
+		return 1
 	fi
+
+	# Throw a warning for each invalid sha
 	while test $fixes_count -gt 0; do
 		# Treat only the current line
 		id=`echo "$fixes" | tail -n $fixes_count | head -n 1 | cut -d : -f 2`
 		fixes_count=$(($fixes_count-1))
-
-		# Bail out if we cannot find suitable id.
-		# Any specific validation the $id is valid and not some junk, is
-		# implied with the follow up code
-		if test "x$id" = x; then
-			continue
+		if ! git show $id &>/dev/null; then
+			echo WARNING: Commit $1 lists invalid sha $id
 		fi
+	done
 
-		#Check if the offending commit is in branch.
+	return 0
+}
+
+# Checks if at least one of offending commits, listed in the global
+# "fixes", is in branch.
+sha_in_range()
+{
+	fixes_count=`echo "$fixes" | grep "fixes:" | wc -l`
+	while test $fixes_count -gt 0; do
+		# Treat only the current line
+		id=`echo "$fixes" | tail -n $fixes_count | head -n 1 | cut -d : -f 2`
+		fixes_count=$(($fixes_count-1))
 
 		# Be that cherry-picked ...
 		# ... or landed before the branchpoint.
@@ -103,19 +118,29 @@ do
 		continue
 	fi
 
-	if is_stable_nomination "$sha"; then
-		tag=stable
-	elif is_typod_nomination "$sha"; then
-		tag=typod
-	elif is_fixes_nomination "$sha"; then
+	if is_fixes_nomination "$sha"; then
 		tag=fixes
 	elif is_brokenby_nomination "$sha"; then
 		tag=brokenby
 	elif is_revert_nomination "$sha"; then
 		tag=revert
+	elif is_stable_nomination "$sha"; then
+		tag=stable
+	elif is_typod_nomination "$sha"; then
+		tag=typod
 	else
 		continue
 	fi
+
+	case "$tag" in
+	fixes | brokenby | revert )
+		if ! sha_in_range; then
+			continue
+		fi
+		;;
+	* )
+		;;
+	esac
 
 	printf "[ %8s ] " "$tag"
 	git --no-pager show --summary --oneline $sha

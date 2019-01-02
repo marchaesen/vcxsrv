@@ -66,6 +66,7 @@ from The Open Group.
 #endif
 #include "Xlibint.h"
 #include "Xlcint.h"
+#include "reallocarray.h"
 
 static int
 _XIMNestedListToNestedList(
@@ -128,7 +129,7 @@ _XIMVaToNestedList(va_list var, int max_count, XIMArg **args_return)
 	return;
     }
 
-    args = Xmalloc(((unsigned)max_count + 1) * sizeof(XIMArg));
+    args = Xmallocarray((unsigned)max_count + 1, sizeof(XIMArg));
     *args_return = args;
     if (!args) return;
 

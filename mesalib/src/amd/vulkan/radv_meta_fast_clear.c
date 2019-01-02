@@ -551,13 +551,14 @@ radv_device_init_meta_fast_clear_flush_state(struct radv_device *device, bool on
 
 static void
 radv_emit_set_predication_state_from_image(struct radv_cmd_buffer *cmd_buffer,
-				      struct radv_image *image, bool value)
+				      struct radv_image *image, 
+				      uint64_t pred_offset, bool value)
 {
 	uint64_t va = 0;
 
 	if (value) {
 		va = radv_buffer_get_va(image->bo) + image->offset;
-		va += image->fce_pred_offset;
+		va += pred_offset;
 	}
 
 	si_emit_set_predication_state(cmd_buffer, true, va);
@@ -600,10 +601,13 @@ radv_emit_color_decompress(struct radv_cmd_buffer *cmd_buffer,
                pipeline = cmd_buffer->device->meta_state.fast_clear_flush.cmask_eliminate_pipeline;
 	}
 
-	if (!decompress_dcc && radv_image_has_dcc(image)) {
+	if (radv_image_has_dcc(image)) {
+		uint64_t pred_offset = decompress_dcc ? image->dcc_pred_offset :
+							image->fce_pred_offset;
+
 		old_predicating = cmd_buffer->state.predicating;
 
-		radv_emit_set_predication_state_from_image(cmd_buffer, image, true);
+		radv_emit_set_predication_state_from_image(cmd_buffer, image, pred_offset, true);
 		cmd_buffer->state.predicating = true;
 	}
 
@@ -688,10 +692,13 @@ radv_emit_color_decompress(struct radv_cmd_buffer *cmd_buffer,
 					&cmd_buffer->pool->alloc);
 
 	}
-	if (!decompress_dcc && radv_image_has_dcc(image)) {
+	if (radv_image_has_dcc(image)) {
+		uint64_t pred_offset = decompress_dcc ? image->dcc_pred_offset :
+							image->fce_pred_offset;
+
 		cmd_buffer->state.predicating = old_predicating;
 
-		radv_emit_set_predication_state_from_image(cmd_buffer, image, false);
+		radv_emit_set_predication_state_from_image(cmd_buffer, image, pred_offset, false);
 
 		if (cmd_buffer->state.predication_type != -1) {
 			/* Restore previous conditional rendering user state. */
@@ -706,6 +713,10 @@ radv_emit_color_decompress(struct radv_cmd_buffer *cmd_buffer,
 		 * FMASK and DCC also imply a fast-clear eliminate.
 		 */
 		radv_update_fce_metadata(cmd_buffer, image, false);
+
+		/* Mark the image as being decompressed. */
+		if (decompress_dcc)
+			radv_update_dcc_metadata(cmd_buffer, image, false);
 	}
 
 	radv_meta_restore(&saved_state, cmd_buffer);
@@ -801,6 +812,9 @@ radv_decompress_dcc_compute(struct radv_cmd_buffer *cmd_buffer,
 				      });
 
 	radv_unaligned_dispatch(cmd_buffer, image->info.width, image->info.height, 1);
+
+	/* Mark this image as actually being decompressed. */
+	radv_update_dcc_metadata(cmd_buffer, image, false);
 
 	/* The fill buffer below does its own saving */
 	radv_meta_restore(&saved_state, cmd_buffer);

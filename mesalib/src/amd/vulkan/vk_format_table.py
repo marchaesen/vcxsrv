@@ -146,10 +146,6 @@ def write_format_table(formats):
     print("const struct vk_format_description *")
     print("vk_format_description(VkFormat format)")
     print("{")
-    print("   if (format > VK_FORMAT_END_RANGE) {")
-    print("      return NULL;")
-    print("   }")
-    print()
     print("   switch (format) {")
     for format in formats:
         print("   case %s:" % format.name)

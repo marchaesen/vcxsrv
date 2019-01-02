@@ -32,6 +32,7 @@ static int bo_allocate(struct msm_bo *msm_bo)
 	if (!msm_bo->offset) {
 		struct drm_msm_gem_info req = {
 				.handle = bo->handle,
+				.info = MSM_INFO_GET_OFFSET,
 		};
 		int ret;
 
@@ -46,7 +47,7 @@ static int bo_allocate(struct msm_bo *msm_bo)
 			return ret;
 		}
 
-		msm_bo->offset = req.offset;
+		msm_bo->offset = req.value;
 	}
 
 	return 0;
@@ -106,21 +107,40 @@ static uint64_t msm_bo_iova(struct fd_bo *bo)
 {
 	struct drm_msm_gem_info req = {
 			.handle = bo->handle,
-			.flags = MSM_INFO_IOVA,
+			.info = MSM_INFO_GET_IOVA,
 	};
 	int ret;
 
 	ret = drmCommandWriteRead(bo->dev->fd, DRM_MSM_GEM_INFO, &req, sizeof(req));
 	debug_assert(ret == 0);
 
-	return req.offset;
+	return req.value;
+}
+
+static void msm_bo_set_name(struct fd_bo *bo, const char *fmt, va_list ap)
+{
+	struct drm_msm_gem_info req = {
+			.handle = bo->handle,
+			.info = MSM_INFO_SET_NAME,
+	};
+	char buf[32];
+	int sz;
+
+	if (bo->dev->version < FD_VERSION_SOFTPIN)
+		return;
+
+	sz = vsnprintf(buf, sizeof(buf), fmt, ap);
+
+	req.value = VOID2U64(buf);
+	req.len = MIN2(sz, sizeof(buf));
+
+	drmCommandWrite(bo->dev->fd, DRM_MSM_GEM_INFO, &req, sizeof(req));
 }
 
 static void msm_bo_destroy(struct fd_bo *bo)
 {
 	struct msm_bo *msm_bo = to_msm_bo(bo);
 	free(msm_bo);
-
 }
 
 static const struct fd_bo_funcs funcs = {
@@ -129,6 +149,7 @@ static const struct fd_bo_funcs funcs = {
 		.cpu_fini = msm_bo_cpu_fini,
 		.madvise = msm_bo_madvise,
 		.iova = msm_bo_iova,
+		.set_name = msm_bo_set_name,
 		.destroy = msm_bo_destroy,
 };
 

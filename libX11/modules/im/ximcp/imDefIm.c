@@ -330,9 +330,7 @@ _XimPreConnectionIM(
 	else
 	    goto Error;
     }
-    if( (locale_name[3] = Xmalloc(llen+1)) != NULL )
-	strcpy( locale_name[3], language );
-    else
+    if( (locale_name[3] = strdup(language)) == NULL )
 	goto Error;
     if((locales = XInternAtom(display, XIM_LOCALES, True)) == (Atom)None)
 	goto Error;
@@ -1299,8 +1297,6 @@ _XimProtoSetIMValues(
 	if ((name = _XimEncodeIMATTRIBUTE(im, im->core.im_resources,
 		im->core.im_num_resources, arg, &arg_ret, data, data_len,
 		&ret_len, (XPointer)&im_values, XIM_SETIMVALUES))) {
-	    if (buf != tmp_buf)
-		Xfree(buf);
 	    break;
 	}
 

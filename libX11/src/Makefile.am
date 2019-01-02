@@ -366,6 +366,7 @@ endif
 libX11_la_LDFLAGS = -version-number 6:3:0 -no-undefined
 
 libX11_la_LIBADD = \
+	$(LTLIBOBJS) \
 	$(USE_I18N_LIBS) \
 	$(USE_XCMS_LIBS) \
 	$(USE_XKB_LIBS) \

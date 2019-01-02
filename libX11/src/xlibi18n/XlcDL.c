@@ -85,6 +85,7 @@ Sun Microsystems, Inc. or its licensors is granted.
 #include "Xlibint.h"
 #include "XlcPublic.h"
 #include "XlcPubI.h"
+#include "reallocarray.h"
 
 #define XI18N_DLREL		2
 
@@ -185,7 +186,7 @@ resolve_object(char *path, const char *lc_name)
 
     if (lc_len == 0) { /* True only for the 1st time */
       lc_len = OBJECT_INIT_LEN;
-      xi18n_objects_list = Xmalloc(sizeof(XI18NObjectsListRec) * lc_len);
+      xi18n_objects_list = Xmallocarray(lc_len, sizeof(XI18NObjectsListRec));
       if (!xi18n_objects_list) return;
     }
     snprintf(filename, sizeof(filename), "%s/%s", path, "XI18N_OBJS");
@@ -207,8 +208,9 @@ resolve_object(char *path, const char *lc_name)
 
 	if (lc_count == lc_len) {
 	  int new_len = lc_len + OBJECT_INC_LEN;
-	  XI18NObjectsListRec *tmp = Xrealloc(xi18n_objects_list,
-	      sizeof(XI18NObjectsListRec) * new_len);
+	  XI18NObjectsListRec *tmp =
+              Xreallocarray(xi18n_objects_list, new_len,
+                            sizeof(XI18NObjectsListRec));
 	  if (tmp == NULL)
 	      goto done;
 	  xi18n_objects_list = tmp;

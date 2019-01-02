@@ -63,6 +63,9 @@ lower_load_const_instr_scalar(nir_load_const_instr *lower)
       case 8:
          load_comp->value.u8[0] = lower->value.u8[i];
          break;
+      case 1:
+         load_comp->value.b[0] = lower->value.b[i];
+         break;
       default:
          assert(!"invalid bit size");
       }

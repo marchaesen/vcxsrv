@@ -237,6 +237,104 @@ is_block_empty(nir_block *block)
           exec_list_is_empty(&block->instr_list);
 }
 
+static bool
+nir_block_ends_in_continue(nir_block *block)
+{
+   if (exec_list_is_empty(&block->instr_list))
+      return false;
+
+   nir_instr *instr = nir_block_last_instr(block);
+   return instr->type == nir_instr_type_jump &&
+      nir_instr_as_jump(instr)->type == nir_jump_continue;
+}
+
+/**
+ * This optimization turns:
+ *
+ *     loop {
+ *        ...
+ *        if (cond) {
+ *           do_work_1();
+ *           continue;
+ *        } else {
+ *        }
+ *        do_work_2();
+ *     }
+ *
+ * into:
+ *
+ *     loop {
+ *        ...
+ *        if (cond) {
+ *           do_work_1();
+ *           continue;
+ *        } else {
+ *           do_work_2();
+ *        }
+ *     }
+ *
+ * The continue should then be removed by nir_opt_trivial_continues() and the
+ * loop can potentially be unrolled.
+ *
+ * Note: do_work_2() is only ever blocks and nested loops. We could also nest
+ * other if-statments in the branch which would allow further continues to
+ * be removed. However in practice this can result in increased register
+ * pressure.
+ */
+static bool
+opt_if_loop_last_continue(nir_loop *loop)
+{
+   /* Get the last if-stament in the loop */
+   nir_block *last_block = nir_loop_last_block(loop);
+   nir_cf_node *if_node = nir_cf_node_prev(&last_block->cf_node);
+   while (if_node) {
+      if (if_node->type == nir_cf_node_if)
+         break;
+
+      if_node = nir_cf_node_prev(if_node);
+   }
+
+   if (!if_node || if_node->type != nir_cf_node_if)
+      return false;
+
+   nir_if *nif = nir_cf_node_as_if(if_node);
+   nir_block *then_block = nir_if_last_then_block(nif);
+   nir_block *else_block = nir_if_last_else_block(nif);
+
+   bool then_ends_in_continue = nir_block_ends_in_continue(then_block);
+   bool else_ends_in_continue = nir_block_ends_in_continue(else_block);
+
+   /* If both branches end in a continue do nothing, this should be handled
+    * by nir_opt_dead_cf().
+    */
+   if (then_ends_in_continue && else_ends_in_continue)
+      return false;
+
+   if (!then_ends_in_continue && !else_ends_in_continue)
+      return false;
+
+   /* Move the last block of the loop inside the last if-statement */
+   nir_cf_list tmp;
+   nir_cf_extract(&tmp, nir_after_cf_node(if_node),
+                        nir_after_block(last_block));
+   if (then_ends_in_continue) {
+      nir_cursor last_blk_cursor = nir_after_cf_list(&nif->else_list);
+      nir_cf_reinsert(&tmp,
+                      nir_after_block_before_jump(last_blk_cursor.block));
+   } else {
+      nir_cursor last_blk_cursor = nir_after_cf_list(&nif->then_list);
+      nir_cf_reinsert(&tmp,
+                      nir_after_block_before_jump(last_blk_cursor.block));
+   }
+
+   /* In order to avoid running nir_lower_regs_to_ssa_impl() every time an if
+    * opt makes progress we leave nir_opt_trivial_continues() to remove the
+    * continue now that the end of the loop has been simplified.
+    */
+
+   return true;
+}
+
 /**
  * This optimization turns:
  *
@@ -596,6 +694,7 @@ opt_if_cf_list(nir_builder *b, struct exec_list *cf_list)
          nir_loop *loop = nir_cf_node_as_loop(cf_node);
          progress |= opt_if_cf_list(b, &loop->body);
          progress |= opt_peel_loop_initial_if(loop);
+         progress |= opt_if_loop_last_continue(loop);
          break;
       }
 

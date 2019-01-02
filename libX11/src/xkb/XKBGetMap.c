@@ -63,12 +63,9 @@ _XkbReadKeyTypes(XkbReadBufferPtr buf, XkbDescPtr xkb, xkbGetMapReply *rep)
             if (desc->nMapEntries > 0) {
                 if ((type->map == NULL) ||
                     (desc->nMapEntries > type->map_count)) {
-                    XkbKTMapEntryRec *prev_map = type->map;
-
-                    type->map = _XkbTypedRealloc(type->map, desc->nMapEntries,
-                                                 XkbKTMapEntryRec);
+                    _XkbResizeArray(type->map, type->map_count,
+                                  desc->nMapEntries, XkbKTMapEntryRec);
                     if (type->map == NULL) {
-                        _XkbFree(prev_map);
                         return BadAlloc;
                     }
                 }
@@ -81,13 +78,9 @@ _XkbReadKeyTypes(XkbReadBufferPtr buf, XkbDescPtr xkb, xkbGetMapReply *rep)
 
             if (desc->preserve && (desc->nMapEntries > 0)) {
                 if ((!type->preserve) || (desc->nMapEntries > lastMapCount)) {
-                    XkbModsRec *prev_preserve = type->preserve;
-
-                    type->preserve = _XkbTypedRealloc(type->preserve,
-                                                      desc->nMapEntries,
-                                                      XkbModsRec);
+                    _XkbResizeArray(type->preserve, lastMapCount,
+                                    desc->nMapEntries, XkbModsRec);
                     if (type->preserve == NULL) {
-                        _XkbFree(prev_preserve);
                         return BadAlloc;
                     }
                 }
@@ -188,12 +181,10 @@ _XkbReadKeySyms(XkbReadBufferPtr buf, XkbDescPtr xkb, xkbGetMapReply *rep)
             oldMap->offset = offset;
             if (offset + newMap->nSyms >= map->size_syms) {
                 register int sz;
-                KeySym *prev_syms = map->syms;
 
                 sz = map->size_syms + 128;
-                map->syms = _XkbTypedRealloc(map->syms, sz, KeySym);
+                _XkbResizeArray(map->syms, map->size_syms, sz, KeySym);
                 if (map->syms == NULL) {
-                    _XkbFree(prev_syms);
                     map->size_syms = 0;
                     return BadAlloc;
                 }
@@ -261,7 +252,7 @@ _XkbReadKeyActions(XkbReadBufferPtr buf, XkbDescPtr info, xkbGetMapReply *rep)
         if (nKeyActs < sizeof numDescBuf)
             numDesc = numDescBuf;
         else
-            numDesc = Xmalloc(nKeyActs * sizeof(CARD8));
+            numDesc = Xmallocarray(nKeyActs, sizeof(CARD8));
 
         if (!_XkbCopyFromReadBuffer(buf, (char *) numDesc, nKeyActs)) {
             ret = BadLength;

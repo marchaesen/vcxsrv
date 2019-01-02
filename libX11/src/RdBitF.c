@@ -49,7 +49,7 @@ from The Open Group.
 #include "Xutil.h"
 #include <stdio.h>
 #include <ctype.h>
-
+#include "reallocarray.h"
 
 #define MAX_SIZE 255
 
@@ -190,10 +190,10 @@ XReadBitmapFileData (
 
 	bytes_per_line = (ww+7)/8 + padding;
 
-	size = bytes_per_line * hh;
-	bits = Xmalloc (size);
+	bits = Xmallocarray (hh, bytes_per_line);
 	if (!bits)
 	  RETURN (BitmapNoMemory);
+	size = bytes_per_line * hh;
 
 	if (version10p) {
 	    unsigned char *ptr;

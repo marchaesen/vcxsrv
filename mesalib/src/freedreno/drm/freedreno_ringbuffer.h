@@ -124,6 +124,7 @@ struct fd_reloc {
 	struct fd_bo *bo;
 #define FD_RELOC_READ             0x0001
 #define FD_RELOC_WRITE            0x0002
+#define FD_RELOC_DUMP             0x0004
 	uint32_t flags;
 	uint32_t offset;
 	uint32_t or;

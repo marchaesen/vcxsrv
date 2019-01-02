@@ -39,6 +39,7 @@
 #include <X11/Xresource.h>
 #include "Xlibint.h"
 #include "XlcPubI.h"
+#include "reallocarray.h"
 
 #else	/* NOT_X_ENV */
 
@@ -492,7 +493,7 @@ append_value_list (void)
 	char **prev_list = value_list;
 
 	value_list = (char **)
-	    Xrealloc(value_list, sizeof(char *) * (value_num + 2));
+	    Xreallocarray(value_list, value_num + 2, sizeof(char *));
 	if (value_list == NULL) {
 	    Xfree(prev_list);
 	}

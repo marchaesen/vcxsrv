@@ -60,7 +60,7 @@ nir_uclamp(nir_builder *b,
 static inline nir_ssa_def *
 nir_degrees(nir_builder *b, nir_ssa_def *val)
 {
-   return nir_fmul(b, val, nir_imm_float(b, 57.2957795131));
+   return nir_fmul_imm(b, val, 57.2957795131);
 }
 
 static inline nir_ssa_def *
@@ -78,7 +78,7 @@ nir_fast_normalize(nir_builder *b, nir_ssa_def *vec)
 static inline nir_ssa_def *
 nir_radians(nir_builder *b, nir_ssa_def *val)
 {
-   return nir_fmul(b, val, nir_imm_float(b, 0.01745329251));
+   return nir_fmul_imm(b, val, 0.01745329251);
 }
 
 #endif /* NIR_BUILTIN_BUILDER_H */

@@ -97,7 +97,7 @@ ir3_optimize_loop(nir_shader *s)
 			progress |= OPT(s, nir_opt_gcm, true);
 		else if (gcm == 2)
 			progress |= OPT(s, nir_opt_gcm, false);
-		progress |= OPT(s, nir_opt_peephole_select, 16);
+		progress |= OPT(s, nir_opt_peephole_select, 16, true, true);
 		progress |= OPT(s, nir_opt_intrinsics);
 		progress |= OPT(s, nir_opt_algebraic);
 		progress |= OPT(s, nir_opt_constant_folding);

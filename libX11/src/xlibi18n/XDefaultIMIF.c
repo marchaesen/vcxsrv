@@ -67,6 +67,7 @@ Sun Microsystems, Inc. or its licensors is granted.
 #include "Xlibint.h"
 #include "Xlcint.h"
 #include "XlcGeneric.h"
+#include "reallocarray.h"
 
 #ifndef MAXINT
 #define MAXINT          (~((unsigned int)1 << (8 * sizeof(int)) - 1))
@@ -266,7 +267,7 @@ _GetIMValues(
 	    *(XIMStyles **)p->value = styles;
 	    styles->count_styles = 1;
 	    styles->supported_styles =
-		Xmalloc(styles->count_styles * sizeof(XIMStyle));
+		Xmallocarray(styles->count_styles, sizeof(XIMStyle));
 	    styles->supported_styles[0] = (XIMPreeditNone | XIMStatusNone);
 	} else {
 	    break;

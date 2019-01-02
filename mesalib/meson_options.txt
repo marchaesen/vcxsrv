@@ -301,7 +301,7 @@ option(
   'tools',
   type : 'array',
   value : [],
-  choices : ['freedreno', 'glsl', 'intel', 'intel-ui', 'nir', 'nouveau', 'xvmc', 'all'],
+  choices : ['etnaviv', 'freedreno', 'glsl', 'intel', 'intel-ui', 'nir', 'nouveau', 'xvmc', 'all'],
   description : 'List of tools to build. (Note: `intel-ui` selects `intel`)',
 )
 option(
@@ -317,4 +317,10 @@ option(
   value : 'auto',
   choices : ['auto', 'true', 'false'],
   description : 'Enable VK_EXT_acquire_xlib_display.'
+)
+option(
+  'glx-direct',
+  type : 'boolean',
+  value : true,
+  description : 'Enable direct rendering in GLX and EGL for DRI',
 )

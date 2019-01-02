@@ -66,6 +66,7 @@ from The Open Group.
 #endif
 #include <X11/Xutil.h>
 #include "XlcPubI.h"
+#include "reallocarray.h"
 
 #ifdef XTHREADS
 LockInfoPtr _Xi18n_lock;
@@ -564,7 +565,7 @@ _XlcVaToArgList(
 {
     XlcArgList args;
 
-    *args_ret = args = Xmalloc(sizeof(XlcArg) * count);
+    *args_ret = args = Xmallocarray(count, sizeof(XlcArg));
     if (args == (XlcArgList) NULL)
 	return;
 

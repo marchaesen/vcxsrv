@@ -410,6 +410,28 @@ radv_amdgpu_winsys_bo_unmap(struct radeon_winsys_bo *_bo)
 	amdgpu_bo_cpu_unmap(bo->bo);
 }
 
+static uint64_t
+radv_amdgpu_get_optimal_vm_alignment(struct radv_amdgpu_winsys *ws,
+				     uint64_t size, unsigned alignment)
+{
+	uint64_t vm_alignment = alignment;
+
+	/* Increase the VM alignment for faster address translation. */
+	if (size >= ws->info.pte_fragment_size)
+		vm_alignment = MAX2(vm_alignment, ws->info.pte_fragment_size);
+
+	/* Gfx9: Increase the VM alignment to the most significant bit set
+	 * in the size for faster address translation.
+	 */
+	if (ws->info.chip_class >= GFX9) {
+		unsigned msb = util_last_bit64(size); /* 0 = no bit is set */
+		uint64_t msb_alignment = msb ? 1ull << (msb - 1) : 0;
+
+		vm_alignment = MAX2(vm_alignment, msb_alignment);
+	}
+	return vm_alignment;
+}
+
 static struct radeon_winsys_bo *
 radv_amdgpu_winsys_bo_from_ptr(struct radeon_winsys *_ws,
                                void *pointer,
@@ -420,6 +442,7 @@ radv_amdgpu_winsys_bo_from_ptr(struct radeon_winsys *_ws,
 	struct radv_amdgpu_winsys_bo *bo;
 	uint64_t va;
 	amdgpu_va_handle va_handle;
+	uint64_t vm_alignment;
 
 	bo = CALLOC_STRUCT(radv_amdgpu_winsys_bo);
 	if (!bo)
@@ -428,8 +451,14 @@ radv_amdgpu_winsys_bo_from_ptr(struct radeon_winsys *_ws,
 	if (amdgpu_create_bo_from_user_mem(ws->dev, pointer, size, &buf_handle))
 		goto error;
 
+	/* Using the optimal VM alignment also fixes GPU hangs for buffers that
+	 * are imported.
+	 */
+	vm_alignment = radv_amdgpu_get_optimal_vm_alignment(ws, size,
+							    ws->info.gart_page_size);
+
 	if (amdgpu_va_range_alloc(ws->dev, amdgpu_gpu_va_range_general,
-	                          size, 1 << 12, 0, &va, &va_handle,
+	                          size, vm_alignment, 0, &va, &va_handle,
 				  AMDGPU_VA_RANGE_HIGH))
 		goto error_va_alloc;
 

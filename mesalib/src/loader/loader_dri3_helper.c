@@ -101,6 +101,32 @@ get_xcb_visualtype_for_depth(struct loader_dri3_drawable *draw, int depth)
    return NULL;
 }
 
+/* Sets the adaptive sync window property state. */
+static void
+set_adaptive_sync_property(xcb_connection_t *conn, xcb_drawable_t drawable,
+                           uint32_t state)
+{
+   static char const name[] = "_VARIABLE_REFRESH";
+   xcb_intern_atom_cookie_t cookie;
+   xcb_intern_atom_reply_t* reply;
+   xcb_void_cookie_t check;
+
+   cookie = xcb_intern_atom(conn, 0, sizeof(name), name);
+   reply = xcb_intern_atom_reply(conn, cookie, NULL);
+   if (reply == NULL)
+      return;
+
+   if (state)
+      check = xcb_change_property_checked(conn, XCB_PROP_MODE_REPLACE,
+                                          drawable, reply->atom,
+                                          XCB_ATOM_CARDINAL, 32, 1, &state);
+   else
+      check = xcb_delete_property_checked(conn, drawable, reply->atom);
+
+   xcb_discard_reply(conn, check.sequence);
+   free(reply);
+}
+
 /* Get red channel mask for given drawable at given depth. */
 static unsigned int
 dri3_get_red_mask_for_depth(struct loader_dri3_drawable *draw, int depth)
@@ -331,15 +357,29 @@ loader_dri3_drawable_init(xcb_connection_t *conn,
    draw->have_back = 0;
    draw->have_fake_front = 0;
    draw->first_init = true;
+   draw->adaptive_sync = false;
+   draw->adaptive_sync_active = false;
 
    draw->cur_blit_source = -1;
    draw->back_format = __DRI_IMAGE_FORMAT_NONE;
    mtx_init(&draw->mtx, mtx_plain);
    cnd_init(&draw->event_cnd);
 
-   if (draw->ext->config)
+   if (draw->ext->config) {
+      unsigned char adaptive_sync;
+
       draw->ext->config->configQueryi(draw->dri_screen,
                                       "vblank_mode", &vblank_mode);
+
+      draw->ext->config->configQueryb(draw->dri_screen,
+                                      "adaptive_sync",
+                                      &adaptive_sync);
+
+      draw->adaptive_sync = adaptive_sync;
+   }
+
+   if (!draw->adaptive_sync)
+      set_adaptive_sync_property(conn, draw->drawable, false);
 
    switch (vblank_mode) {
    case DRI_CONF_VBLANK_NEVER:
@@ -879,6 +919,12 @@ loader_dri3_swap_buffers_msc(struct loader_dri3_drawable *draw,
    back = dri3_find_back_alloc(draw);
 
    mtx_lock(&draw->mtx);
+
+   if (draw->adaptive_sync && !draw->adaptive_sync_active) {
+      set_adaptive_sync_property(draw->conn, draw->drawable, true);
+      draw->adaptive_sync_active = true;
+   }
+
    if (draw->is_different_gpu && back) {
       /* Update the linear buffer before presenting the pixmap */
       (void) loader_dri3_blit_image(draw,

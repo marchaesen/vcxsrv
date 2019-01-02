@@ -166,7 +166,7 @@ struct ssh2_transport_state {
 
     int nbits, pbits;
     bool warn_kex, warn_hk, warn_cscipher, warn_sccipher;
-    Bignum p, g, e, f, K;
+    mp_int *p, *g, *e, *f, *K;
     strbuf *outgoing_kexinit, *incoming_kexinit;
     strbuf *client_kexinit, *server_kexinit; /* aliases to the above */
     int kex_init_value, kex_reply_value;
@@ -176,7 +176,7 @@ struct ssh2_transport_state {
     char *keystr, *fingerprint;
     ssh_key *hkey;                     /* actual host key */
     struct RSAKey *rsa_kex_key;             /* for RSA kex */
-    struct ec_key *ecdh_key;              /* for ECDH kex */
+    ecdh_key *ecdh_key;                     /* for ECDH kex */
     unsigned char exchange_hash[SSH2_KEX_MAX_HASH_LEN];
     bool can_gssapi_keyex;
     bool need_gss_transient_hostkey;
@@ -224,7 +224,10 @@ void ssh2_transport_dialog_callback(void *, int);
 /* Provided by transport for use in kex */
 void ssh2transport_finalise_exhash(struct ssh2_transport_state *s);
 
-/* Provided by kex for use in transport */
-void ssh2kex_coroutine(struct ssh2_transport_state *s);
+/* Provided by kex for use in transport. Must set the 'aborted' flag
+ * if it throws a connection-terminating error, so that the caller
+ * won't have to check that by looking inside its state parameter
+ * which might already have been freed. */
+void ssh2kex_coroutine(struct ssh2_transport_state *s, bool *aborted);
 
 #endif /* PUTTY_SSH2TRANSPORT_H */

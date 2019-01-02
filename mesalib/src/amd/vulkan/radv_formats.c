@@ -1093,8 +1093,7 @@ static VkResult radv_get_image_format_properties(struct radv_physical_device *ph
 	    info->type == VK_IMAGE_TYPE_2D &&
 	    (format_feature_flags & (VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT |
 				     VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)) &&
-	    !(info->flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) &&
-	    !(info->usage & VK_IMAGE_USAGE_STORAGE_BIT)) {
+	    !(info->flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT)) {
 		sampleCounts |= VK_SAMPLE_COUNT_2_BIT | VK_SAMPLE_COUNT_4_BIT | VK_SAMPLE_COUNT_8_BIT;
 	}
 
@@ -1110,6 +1109,18 @@ static VkResult radv_get_image_format_properties(struct radv_physical_device *ph
 			goto unsupported;
 		maxArraySize = 1;
 		maxMipLevels = 1;
+	}
+
+
+	/* We can't create 3d compressed 128bpp images that can be rendered to on GFX9 */
+	if (physical_device->rad_info.chip_class >= GFX9 &&
+	    info->type == VK_IMAGE_TYPE_3D &&
+	    vk_format_get_blocksizebits(info->format) == 128 &&
+	    vk_format_is_compressed(info->format) &&
+	    (info->flags & VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT) &&
+	    ((info->flags & VK_IMAGE_CREATE_EXTENDED_USAGE_BIT) ||
+	     (info->usage & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT))) {
+		goto unsupported;
 	}
 
 	if (info->usage & VK_IMAGE_USAGE_SAMPLED_BIT) {

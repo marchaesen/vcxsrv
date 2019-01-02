@@ -28,6 +28,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "Xlibint.h"
+#include "reallocarray.h"
 
 static void
 _XQueryColors(
@@ -50,9 +51,9 @@ _XQueryColors(
        /* XXX this isn't very efficient */
 
     if (_XReply(dpy, (xReply *) &rep, 0, xFalse) != 0) {
-	unsigned long nbytes = (long) ncolors * SIZEOF(xrgb);
-	xrgb *color = Xmalloc(nbytes);
+	xrgb *color = Xmallocarray(ncolors, sizeof(xrgb));
 	if (color != NULL) {
+            unsigned long nbytes = (long) ncolors * SIZEOF(xrgb);
 
 	    _XRead(dpy, (char *) color, nbytes);
 

@@ -132,6 +132,74 @@ inline_function_impl(nir_function_impl *impl, struct set *inlined)
    return progress;
 }
 
+/** A pass to inline all functions in a shader into their callers
+ *
+ * For most use-cases, function inlining is a multi-step process.  The general
+ * pattern employed by SPIR-V consumers and others is as follows:
+ *
+ *  1. nir_lower_constant_initializers(shader, nir_var_local)
+ *
+ *     This is needed because local variables from the callee are simply added
+ *     to the locals list for the caller and the information about where the
+ *     constant initializer logically happens is lost.  If the callee is
+ *     called in a loop, this can cause the variable to go from being
+ *     initialized once per loop iteration to being initialized once at the
+ *     top of the caller and values to persist from one invocation of the
+ *     callee to the next.  The simple solution to this problem is to get rid
+ *     of constant initializers before function inlining.
+ *
+ *  2. nir_lower_returns(shader)
+ *
+ *     nir_inline_functions assumes that all functions end "naturally" by
+ *     execution reaching the end of the function without any return
+ *     instructions causing instant jumps to the end.  Thanks to NIR being
+ *     structured, we can't represent arbitrary jumps to various points in the
+ *     program which is what an early return in the callee would have to turn
+ *     into when we inline it into the caller.  Instead, we require returns to
+ *     be lowered which lets us just copy+paste the callee directly into the
+ *     caller.
+ *
+ *  3. nir_inline_functions(shader)
+ *
+ *     This does the actual function inlining and the resulting shader will
+ *     contain no call instructions.
+ *
+ *  4. nir_copy_prop(shader)
+ *
+ *     Most functions contain pointer parameters where the result of a deref
+ *     instruction is passed in as a parameter, loaded via a load_param
+ *     intrinsic, and then turned back into a deref via a cast.  Running copy
+ *     propagation gets rid of the intermediate steps and results in a whole
+ *     deref chain again.  This is currently required by a number of
+ *     optimizations and lowering passes at least for certain variable modes.
+ *
+ *  5. Loop over the functions and delete all but the main entrypoint.
+ *
+ *     In the Intel Vulkan driver this looks like this:
+ *
+ *        foreach_list_typed_safe(nir_function, func, node, &nir->functions) {
+ *           if (func != entry_point)
+ *              exec_node_remove(&func->node);
+ *        }
+ *        assert(exec_list_length(&nir->functions) == 1);
+ *
+ *    While nir_inline_functions does get rid of all call instructions, it
+ *    doesn't get rid of any functions because it doesn't know what the "root
+ *    function" is.  Instead, it's up to the individual driver to know how to
+ *    decide on a root function and delete the rest.  With SPIR-V,
+ *    spirv_to_nir returns the root function and so we can just use == whereas
+ *    with GL, you may have to look for a function named "main".
+ *
+ *  6. nir_lower_constant_initializers(shader, ~nir_var_local)
+ *
+ *     Lowering constant initializers on inputs, outputs, global variables,
+ *     etc. requires that we know the main entrypoint so that we know where to
+ *     initialize them.  Otherwise, we would have to assume that anything
+ *     could be a main entrypoint and initialize them at the start of every
+ *     function but that would clearly be wrong if any of those functions were
+ *     ever called within another function.  Simply requiring a single-
+ *     entrypoint function shader is the best way to make it well-defined.
+ */
 bool
 nir_inline_functions(nir_shader *shader)
 {

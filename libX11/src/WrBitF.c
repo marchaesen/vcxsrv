@@ -33,6 +33,7 @@ from The Open Group.
 #include <X11/Xos.h>
 #include "Xutil.h"
 #include <stdio.h>
+#include "reallocarray.h"
 
 #define ERR_RETURN NULL
 
@@ -53,7 +54,7 @@ static char *Format_Image(
   bytes_per_line = (width+7)/8;
   *resultsize = bytes_per_line * height;           /* Calculate size of data */
 
-  data = Xmalloc( *resultsize );                   /* Get space for data */
+  data = Xmallocarray(bytes_per_line, height);     /* Get space for data */
   if (!data)
     return(ERR_RETURN);
 

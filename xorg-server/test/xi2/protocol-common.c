@@ -259,6 +259,7 @@ init_simple(void)
     screen.DeviceCursorInitialize = device_cursor_init;
     screen.DeviceCursorCleanup = device_cursor_cleanup;
     screen.SetCursorPosition = set_cursor_pos;
+    screen.root = &root;
 
     dixResetPrivates();
     InitAtoms();

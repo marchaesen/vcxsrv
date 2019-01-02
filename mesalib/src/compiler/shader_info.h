@@ -41,6 +41,7 @@ struct spirv_supported_capabilities {
    bool image_read_without_format;
    bool image_write_without_format;
    bool int64;
+   bool min_lod;
    bool multiview;
    bool variable_pointers;
    bool storage_16bit;
@@ -63,6 +64,7 @@ struct spirv_supported_capabilities {
    bool transform_feedback;
    bool geometry_streams;
    bool int64_atomics;
+   bool storage_image_ms;
 };
 
 typedef struct shader_info {

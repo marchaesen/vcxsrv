@@ -168,16 +168,6 @@ static uint64_t get_param(struct fd_pipe *pipe, uint32_t param)
 	return value;
 }
 
-static bool use_softpin(void)
-{
-	static int sp = -1;
-	if (sp < 0) {
-		const char *str = getenv("FD_MESA_DEBUG");
-		sp = str && strstr(str, "softpin");
-	}
-	return sp;
-}
-
 struct fd_pipe * msm_pipe_new(struct fd_device *dev,
 		enum fd_pipe_id id, uint32_t prio)
 {
@@ -196,9 +186,7 @@ struct fd_pipe * msm_pipe_new(struct fd_device *dev,
 
 	pipe = &msm_pipe->base;
 
-	// TODO once kernel changes are in place, this switch will be
-	// based on kernel version:
-	if (use_softpin()) {
+	if (fd_device_version(dev) >= FD_VERSION_SOFTPIN) {
 		pipe->funcs = &sp_funcs;
 	} else {
 		pipe->funcs = &legacy_funcs;

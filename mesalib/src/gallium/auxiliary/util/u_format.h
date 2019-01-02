@@ -727,6 +727,9 @@ boolean
 util_format_is_snorm(enum pipe_format format);
 
 boolean
+util_format_is_unorm(enum pipe_format format);
+
+boolean
 util_format_is_snorm8(enum pipe_format format);
 
 /**

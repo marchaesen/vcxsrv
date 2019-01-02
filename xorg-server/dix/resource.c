@@ -620,7 +620,12 @@ ilog2(int val)
 unsigned int
 ResourceClientBits(void)
 {
-    return (ilog2(LimitClients));
+    static unsigned int cached = 0;
+
+    if (cached == 0)
+      cached = ilog2(LimitClients);
+
+    return cached;
 }
 
 /*****************

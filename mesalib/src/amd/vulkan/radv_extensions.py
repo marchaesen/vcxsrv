@@ -31,7 +31,7 @@ import xml.etree.cElementTree as et
 
 from mako.template import Template
 
-MAX_API_VERSION = '1.1.70'
+MAX_API_VERSION = '1.1.90'
 
 class Extension:
     def __init__(self, name, ext_version, enable):
@@ -105,7 +105,7 @@ EXTENSIONS = [
     Extension('VK_EXT_external_memory_dma_buf',           1, True),
     Extension('VK_EXT_external_memory_host',              1, 'device->rad_info.has_userptr'),
     Extension('VK_EXT_global_priority',                   1, 'device->rad_info.has_ctx_priority'),
-    Extension('VK_EXT_pci_bus_info',                      1, True),
+    Extension('VK_EXT_pci_bus_info',                      2, True),
     Extension('VK_EXT_sampler_filter_minmax',             1, 'device->rad_info.chip_class >= CIK'),
     Extension('VK_EXT_scalar_block_layout',               1, 'device->rad_info.chip_class >= CIK'),
     Extension('VK_EXT_shader_viewport_index_layer',       1, True),
@@ -293,7 +293,7 @@ uint32_t
 radv_physical_device_api_version(struct radv_physical_device *dev)
 {
     if (!ANDROID && dev->rad_info.has_syncobj_wait_for_submit)
-        return VK_MAKE_VERSION(1, 1, 70);
+        return ${MAX_API_VERSION.c_vk_version()};
     return VK_MAKE_VERSION(1, 0, 68);
 }
 """)

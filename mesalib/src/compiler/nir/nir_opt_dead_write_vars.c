@@ -56,8 +56,7 @@ static void
 clear_unused_for_modes(struct util_dynarray *unused_writes, nir_variable_mode modes)
 {
    util_dynarray_foreach_reverse(unused_writes, struct write_entry, entry) {
-      nir_variable *var = nir_deref_instr_get_variable(entry->dst);
-      if (var->data.mode & modes)
+      if (entry->dst->mode & modes)
          *entry = util_dynarray_pop(unused_writes, struct write_entry);
    }
 }

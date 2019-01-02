@@ -55,6 +55,7 @@ SOFTWARE.
 #include "Xutil.h"
 #include <X11/Xregion.h>
 #include "poly.h"
+#include "reallocarray.h"
 
 /*
  *     InsertEdgeInET
@@ -409,7 +410,7 @@ static int PtsToRegion(
 
     numRects = ((numFullPtBlocks * NUMPTSTOBUFFER) + iCurPtBlock) >> 1;
 
-    if (!(reg->rects = Xrealloc(reg->rects, sizeof(BOX) * numRects))) {
+    if (!(reg->rects = Xreallocarray(reg->rects, numRects, sizeof(BOX)))) {
 	Xfree(prevRects);
 	return(0);
     }
@@ -519,7 +520,7 @@ XPolygonRegion(
 
     if (Count < 2) return region;
 
-    if (! (pETEs = Xmalloc(sizeof(EdgeTableEntry) * Count))) {
+    if (! (pETEs = Xmallocarray(Count, sizeof(EdgeTableEntry)))) {
 	XDestroyRegion(region);
 	return (Region) NULL;
     }

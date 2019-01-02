@@ -332,7 +332,7 @@ AddKeyName(KeyNamesInfo * info,
 
     if ((kc < info->effectiveMin) || (kc > info->effectiveMax))
     {
-        if (!high_keycode_warned)
+        if (!high_keycode_warned && warningLevel > 1)
         {
             WARN2("Unsupported high keycode %d for name <%s> ignored\n",
                   kc, name);
@@ -596,7 +596,7 @@ HandleKeycodeDef(KeycodeDef * stmt, unsigned merge, KeyNamesInfo * info)
     code = result.ival;
     if ((code < info->effectiveMin) || (code > info->effectiveMax))
     {
-        if (!high_keycode_warned)
+        if (!high_keycode_warned && warningLevel > 1)
         {
             WARN2("Unsupported high keycode %d for name <%s> ignored\n",
                   code, stmt->name);

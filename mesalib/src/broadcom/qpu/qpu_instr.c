@@ -551,7 +551,22 @@ bool
 v3d_qpu_magic_waddr_is_tsy(enum v3d_qpu_waddr waddr)
 {
         return (waddr == V3D_QPU_WADDR_SYNC ||
+                waddr == V3D_QPU_WADDR_SYNCB ||
                 waddr == V3D_QPU_WADDR_SYNCU);
+}
+
+bool
+v3d_qpu_magic_waddr_loads_unif(enum v3d_qpu_waddr waddr)
+{
+        switch (waddr) {
+        case V3D_QPU_WADDR_VPMU:
+        case V3D_QPU_WADDR_TLBU:
+        case V3D_QPU_WADDR_TMUAU:
+        case V3D_QPU_WADDR_SYNCU:
+                return true;
+        default:
+                return false;
+        }
 }
 
 static bool
@@ -793,4 +808,45 @@ v3d_qpu_sig_writes_address(const struct v3d_device_info *devinfo,
                 sig->ldtmu ||
                 sig->ldtlb ||
                 sig->ldtlbu);
+}
+
+bool
+v3d_qpu_reads_flags(const struct v3d_qpu_instr *inst)
+{
+        if (inst->type == V3D_QPU_INSTR_TYPE_BRANCH) {
+                return inst->branch.cond != V3D_QPU_BRANCH_COND_ALWAYS;
+        } else if (inst->type == V3D_QPU_INSTR_TYPE_ALU) {
+                if (inst->flags.ac != V3D_QPU_COND_NONE ||
+                    inst->flags.mc != V3D_QPU_COND_NONE ||
+                    inst->flags.auf != V3D_QPU_UF_NONE ||
+                    inst->flags.muf != V3D_QPU_UF_NONE)
+                        return true;
+
+                switch (inst->alu.add.op) {
+                case V3D_QPU_A_VFLA:
+                case V3D_QPU_A_VFLNA:
+                case V3D_QPU_A_VFLB:
+                case V3D_QPU_A_VFLNB:
+                case V3D_QPU_A_FLAPUSH:
+                case V3D_QPU_A_FLBPUSH:
+                        return true;
+                default:
+                        break;
+                }
+        }
+
+        return false;
+}
+
+bool
+v3d_qpu_writes_flags(const struct v3d_qpu_instr *inst)
+{
+        if (inst->flags.apf != V3D_QPU_PF_NONE ||
+            inst->flags.mpf != V3D_QPU_PF_NONE ||
+            inst->flags.auf != V3D_QPU_UF_NONE ||
+            inst->flags.muf != V3D_QPU_UF_NONE) {
+                return true;
+        }
+
+        return false;
 }

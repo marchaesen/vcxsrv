@@ -24,6 +24,77 @@
 #include "broadcom/common/v3d_device_info.h"
 #include "v3d_compiler.h"
 
+/* Prints a human-readable description of the uniform reference. */
+void
+vir_dump_uniform(enum quniform_contents contents,
+                 uint32_t data)
+{
+        static const char *quniform_names[] = {
+                [QUNIFORM_VIEWPORT_X_SCALE] = "vp_x_scale",
+                [QUNIFORM_VIEWPORT_Y_SCALE] = "vp_y_scale",
+                [QUNIFORM_VIEWPORT_Z_OFFSET] = "vp_z_offset",
+                [QUNIFORM_VIEWPORT_Z_SCALE] = "vp_z_scale",
+        };
+
+        switch (contents) {
+        case QUNIFORM_CONSTANT:
+                fprintf(stderr, "0x%08x / %f", data, uif(data));
+                break;
+
+        case QUNIFORM_UNIFORM:
+                fprintf(stderr, "push[%d]", data);
+                break;
+
+        case QUNIFORM_TEXTURE_CONFIG_P1:
+                fprintf(stderr, "tex[%d].p1", data);
+                break;
+
+        case QUNIFORM_TMU_CONFIG_P0:
+                fprintf(stderr, "tex[%d].p0 | 0x%x",
+                        v3d_tmu_config_data_get_unit(data),
+                        v3d_tmu_config_data_get_value(data));
+                break;
+
+        case QUNIFORM_TMU_CONFIG_P1:
+                fprintf(stderr, "tex[%d].p1 | 0x%x",
+                        v3d_tmu_config_data_get_unit(data),
+                        v3d_tmu_config_data_get_value(data));
+                break;
+
+        case QUNIFORM_TEXTURE_WIDTH:
+                fprintf(stderr, "tex[%d].width", data);
+                break;
+        case QUNIFORM_TEXTURE_HEIGHT:
+                fprintf(stderr, "tex[%d].height", data);
+                break;
+        case QUNIFORM_TEXTURE_DEPTH:
+                fprintf(stderr, "tex[%d].depth", data);
+                break;
+        case QUNIFORM_TEXTURE_ARRAY_SIZE:
+                fprintf(stderr, "tex[%d].array_size", data);
+                break;
+        case QUNIFORM_TEXTURE_LEVELS:
+                fprintf(stderr, "tex[%d].levels", data);
+                break;
+
+        case QUNIFORM_UBO_ADDR:
+                fprintf(stderr, "ubo[%d]", data);
+                break;
+
+        default:
+                if (quniform_contents_is_texture_p0(contents)) {
+                        fprintf(stderr, "tex[%d].p0: 0x%08x",
+                                contents - QUNIFORM_TEXTURE_CONFIG_P0_0,
+                                data);
+                } else if (contents < ARRAY_SIZE(quniform_names)) {
+                        fprintf(stderr, "%s",
+                                quniform_names[contents]);
+                } else {
+                        fprintf(stderr, "%d / 0x%08x", contents, data);
+                }
+        }
+}
+
 static void
 vir_print_reg(struct v3d_compile *c, const struct qinst *inst,
               struct qreg reg)
@@ -33,12 +104,6 @@ vir_print_reg(struct v3d_compile *c, const struct qinst *inst,
                 [QFILE_UNIF] = "u",
                 [QFILE_TLB] = "tlb",
                 [QFILE_TLBU] = "tlbu",
-        };
-        static const char *quniform_names[] = {
-                [QUNIFORM_VIEWPORT_X_SCALE] = "vp_x_scale",
-                [QUNIFORM_VIEWPORT_Y_SCALE] = "vp_y_scale",
-                [QUNIFORM_VIEWPORT_Z_OFFSET] = "vp_z_offset",
-                [QUNIFORM_VIEWPORT_Z_SCALE] = "vp_z_scale",
         };
 
         switch (reg.file) {
@@ -84,73 +149,13 @@ vir_print_reg(struct v3d_compile *c, const struct qinst *inst,
                 fprintf(stderr, "%s", files[reg.file]);
                 break;
 
-        case QFILE_UNIF: {
-                enum quniform_contents contents = c->uniform_contents[reg.index];
-                uint32_t data = c->uniform_data[reg.index];
-
+        case QFILE_UNIF:
                 fprintf(stderr, "%s%d", files[reg.file], reg.index);
-
-                switch (contents) {
-                case QUNIFORM_CONSTANT:
-                        fprintf(stderr, " (0x%08x / %f)", data, uif(data));
-                        break;
-
-                case QUNIFORM_UNIFORM:
-                        fprintf(stderr, " (push[%d])", data);
-                        break;
-
-                case QUNIFORM_TEXTURE_CONFIG_P1:
-                        fprintf(stderr, " (tex[%d].p1)", data);
-                        break;
-
-                case QUNIFORM_TMU_CONFIG_P0:
-                        fprintf(stderr, " (tex[%d].p0 | 0x%x)",
-                                v3d_tmu_config_data_get_unit(data),
-                                v3d_tmu_config_data_get_value(data));
-                        break;
-
-                case QUNIFORM_TMU_CONFIG_P1:
-                        fprintf(stderr, " (tex[%d].p1 | 0x%x)",
-                                v3d_tmu_config_data_get_unit(data),
-                                v3d_tmu_config_data_get_value(data));
-                        break;
-
-                case QUNIFORM_TEXTURE_WIDTH:
-                        fprintf(stderr, " (tex[%d].width)", data);
-                        break;
-                case QUNIFORM_TEXTURE_HEIGHT:
-                        fprintf(stderr, " (tex[%d].height)", data);
-                        break;
-                case QUNIFORM_TEXTURE_DEPTH:
-                        fprintf(stderr, " (tex[%d].depth)", data);
-                        break;
-                case QUNIFORM_TEXTURE_ARRAY_SIZE:
-                        fprintf(stderr, " (tex[%d].array_size)", data);
-                        break;
-                case QUNIFORM_TEXTURE_LEVELS:
-                        fprintf(stderr, " (tex[%d].levels)", data);
-                        break;
-
-                case QUNIFORM_UBO_ADDR:
-                        fprintf(stderr, " (ubo[%d])", data);
-                        break;
-
-                default:
-                        if (quniform_contents_is_texture_p0(contents)) {
-                                fprintf(stderr, " (tex[%d].p0: 0x%08x)",
-                                        contents - QUNIFORM_TEXTURE_CONFIG_P0_0,
-                                        c->uniform_data[reg.index]);
-                        } else if (contents < ARRAY_SIZE(quniform_names)) {
-                                fprintf(stderr, " (%s)",
-                                        quniform_names[contents]);
-                        } else {
-                                fprintf(stderr, " (%d / 0x%08x)", contents,
-                                        c->uniform_data[reg.index]);
-                        }
-                }
-
+                fprintf(stderr, " (");
+                vir_dump_uniform(c->uniform_contents[reg.index],
+                                 c->uniform_data[reg.index]);
+                fprintf(stderr, ")");
                 break;
-        }
 
         default:
                 fprintf(stderr, "%s%d", files[reg.file], reg.index);

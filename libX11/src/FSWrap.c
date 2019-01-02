@@ -63,6 +63,7 @@ from The Open Group.
 #include "Xlcint.h"
 #include <ctype.h>
 #include <X11/Xos.h>
+#include "reallocarray.h"
 
 
 #define	XMAXLIST	256
@@ -112,7 +113,7 @@ _XParseBaseFontNameList(
 	if (!*ptr)
 	    break;
     }
-    if (!(list = Xmalloc(sizeof(char *) * (*num + 1)))) {
+    if (!(list = Xmallocarray((*num + 1), sizeof(char *)))) {
 	Xfree(psave);
 	return (char **)NULL;
     }
@@ -133,7 +134,7 @@ copy_string_list(
     if (string_list == NULL || list_count <= 0)
 	return (char **) NULL;
 
-    string_list_ret = Xmalloc(sizeof(char *) * list_count);
+    string_list_ret = Xmallocarray(list_count, sizeof(char *));
     if (string_list_ret == NULL)
 	return (char **) NULL;
 

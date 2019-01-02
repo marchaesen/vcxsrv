@@ -298,6 +298,16 @@ print_constant(nir_constant *c, const struct glsl_type *type, print_state *state
    unsigned i, j;
 
    switch (glsl_get_base_type(type)) {
+   case GLSL_TYPE_BOOL:
+      /* Only float base types can be matrices. */
+      assert(cols == 1);
+
+      for (i = 0; i < rows; i++) {
+         if (i > 0) fprintf(fp, ", ");
+         fprintf(fp, "%s", c->values[0].b[i] ? "true" : "false");
+      }
+      break;
+
    case GLSL_TYPE_UINT8:
    case GLSL_TYPE_INT8:
       /* Only float base types can be matrices. */
@@ -322,7 +332,6 @@ print_constant(nir_constant *c, const struct glsl_type *type, print_state *state
 
    case GLSL_TYPE_UINT:
    case GLSL_TYPE_INT:
-   case GLSL_TYPE_BOOL:
       /* Only float base types can be matrices. */
       assert(cols == 1);
 
@@ -440,6 +449,53 @@ print_var_decl(nir_variable *var, print_state *state)
    const char *const ronly = (access & ACCESS_NON_WRITEABLE) ? "readonly " : "";
    const char *const wonly = (access & ACCESS_NON_READABLE) ? "writeonly " : "";
    fprintf(fp, "%s%s%s%s%s", coher, volat, restr, ronly, wonly);
+
+#define FORMAT_CASE(x) case x: fprintf(stderr, #x " "); break
+   switch (var->data.image.format) {
+   FORMAT_CASE(GL_RGBA32F);
+   FORMAT_CASE(GL_RGBA32UI);
+   FORMAT_CASE(GL_RGBA32I);
+   FORMAT_CASE(GL_R32F);
+   FORMAT_CASE(GL_R32UI);
+   FORMAT_CASE(GL_R32I);
+   FORMAT_CASE(GL_RG32F);
+   FORMAT_CASE(GL_RG32UI);
+   FORMAT_CASE(GL_RG32I);
+   FORMAT_CASE(GL_R8);
+   FORMAT_CASE(GL_RG8);
+   FORMAT_CASE(GL_RGBA8);
+   FORMAT_CASE(GL_R8_SNORM);
+   FORMAT_CASE(GL_RG8_SNORM);
+   FORMAT_CASE(GL_RGBA8_SNORM);
+   FORMAT_CASE(GL_R16);
+   FORMAT_CASE(GL_RG16);
+   FORMAT_CASE(GL_RGBA16);
+   FORMAT_CASE(GL_R16_SNORM);
+   FORMAT_CASE(GL_RG16_SNORM);
+   FORMAT_CASE(GL_RGBA16_SNORM);
+   FORMAT_CASE(GL_R16F);
+   FORMAT_CASE(GL_RG16F);
+   FORMAT_CASE(GL_RGBA16F);
+   FORMAT_CASE(GL_R8UI);
+   FORMAT_CASE(GL_R8I);
+   FORMAT_CASE(GL_RG8UI);
+   FORMAT_CASE(GL_RG8I);
+   FORMAT_CASE(GL_RGBA8UI);
+   FORMAT_CASE(GL_RGBA8I);
+   FORMAT_CASE(GL_R16UI);
+   FORMAT_CASE(GL_R16I);
+   FORMAT_CASE(GL_RG16UI);
+   FORMAT_CASE(GL_RG16I);
+   FORMAT_CASE(GL_RGBA16UI);
+   FORMAT_CASE(GL_RGBA16I);
+   FORMAT_CASE(GL_R11F_G11F_B10F);
+   FORMAT_CASE(GL_RGB9_E5);
+   FORMAT_CASE(GL_RGB10_A2);
+   FORMAT_CASE(GL_RGB10_A2UI);
+   default: /* Including the normal GL_NONE */
+      break;
+   }
+#undef FORMAT_CASE
 
    fprintf(fp, "%s %s", glsl_get_type_name(var->type),
            get_var_name(var, state));
@@ -846,6 +902,9 @@ print_tex_instr(nir_tex_instr *instr, print_state *state)
       case nir_tex_src_lod:
          fprintf(fp, "(lod)");
          break;
+      case nir_tex_src_min_lod:
+         fprintf(fp, "(min_lod)");
+         break;
       case nir_tex_src_ms_index:
          fprintf(fp, "(ms_index)");
          break;
@@ -945,6 +1004,9 @@ print_load_const_instr(nir_load_const_instr *instr, print_state *state)
          break;
       case 8:
          fprintf(fp, "0x%02x", instr->value.u8[i]);
+         break;
+      case 1:
+         fprintf(fp, "%s", instr->value.b[i] ? "true" : "false");
          break;
       }
    }

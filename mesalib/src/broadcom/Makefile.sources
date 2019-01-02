@@ -17,6 +17,7 @@ BROADCOM_FILES = \
 	clif/clif_dump.c \
 	clif/clif_dump.h \
 	clif/clif_private.h \
+	common/v3d_cpu_tiling.h \
 	common/v3d_debug.c \
 	common/v3d_debug.h \
 	common/v3d_device_info.h \

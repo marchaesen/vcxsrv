@@ -72,6 +72,7 @@
 #include "util/u_format.h"
 #include "util/u_inlines.h"
 #include "util/u_math.h"
+#include "util/u_simple_shaders.h"
 #include "util/u_tile.h"
 #include "cso_cache/cso_context.h"
 
@@ -191,45 +192,23 @@ get_drawpix_z_stencil_program(struct st_context *st,
 
 /**
  * Create a simple vertex shader that just passes through the
- * vertex position and texcoord (and optionally, color).
+ * vertex position, texcoord, and color.
  */
-static void *
-make_passthrough_vertex_shader(struct st_context *st, 
-                               GLboolean passColor)
+void
+st_make_passthrough_vertex_shader(struct st_context *st)
 {
-   const enum tgsi_semantic texcoord_semantic = st->needs_texcoord_semantic ?
-      TGSI_SEMANTIC_TEXCOORD : TGSI_SEMANTIC_GENERIC;
+   if (st->passthrough_vs)
+      return;
 
-   if (!st->drawpix.vert_shaders[passColor]) {
-      struct ureg_program *ureg = ureg_create( PIPE_SHADER_VERTEX );
+   const uint semantic_names[] = { TGSI_SEMANTIC_POSITION,
+                                   TGSI_SEMANTIC_COLOR,
+     st->needs_texcoord_semantic ? TGSI_SEMANTIC_TEXCOORD :
+                                   TGSI_SEMANTIC_GENERIC };
+   const uint semantic_indexes[] = { 0, 0, 0 };
 
-      if (ureg == NULL)
-         return NULL;
-
-      /* MOV result.pos, vertex.pos; */
-      ureg_MOV(ureg,
-               ureg_DECL_output( ureg, TGSI_SEMANTIC_POSITION, 0 ),
-               ureg_DECL_vs_input( ureg, 0 ));
-
-      if (passColor) {
-         /* MOV result.color0, vertex.attr[1]; */
-         ureg_MOV(ureg,
-                  ureg_DECL_output( ureg, TGSI_SEMANTIC_COLOR, 0 ),
-                  ureg_DECL_vs_input( ureg, 1 ));
-      }
-
-      /* MOV result.texcoord0, vertex.attr[2]; */
-      ureg_MOV(ureg,
-               ureg_DECL_output( ureg, texcoord_semantic, 0 ),
-               ureg_DECL_vs_input( ureg, 2 ));
-
-      ureg_END( ureg );
-      
-      st->drawpix.vert_shaders[passColor] = 
-         ureg_create_shader_and_destroy( ureg, st->pipe );
-   }
-
-   return st->drawpix.vert_shaders[passColor];
+   st->passthrough_vs =
+      util_make_vertex_passthrough_shader(st->pipe, 3, semantic_names,
+                                          semantic_indexes, false);
 }
 
 
@@ -1135,7 +1114,7 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
               GLenum format, GLenum type,
               const struct gl_pixelstore_attrib *unpack, const void *pixels)
 {
-   void *driver_vp, *driver_fp;
+   void *driver_fp;
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
    GLboolean write_stencil = GL_FALSE, write_depth = GL_FALSE;
@@ -1185,19 +1164,19 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
       return;
    }
 
+   st_make_passthrough_vertex_shader(st);
+
    /*
     * Get vertex/fragment shaders
     */
    if (write_depth || write_stencil) {
       driver_fp = get_drawpix_z_stencil_program(st, write_depth,
                                                 write_stencil);
-      driver_vp = make_passthrough_vertex_shader(st, GL_TRUE);
    }
    else {
       fpv = get_color_fp_variant(st);
 
       driver_fp = fpv->driver_shader;
-      driver_vp = make_passthrough_vertex_shader(st, GL_FALSE);
 
       if (ctx->Pixel.MapColorFlag) {
          pipe_sampler_view_reference(&sv[1],
@@ -1246,7 +1225,7 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
                       ctx->Pixel.ZoomX, ctx->Pixel.ZoomY,
                       sv,
                       num_sampler_view,
-                      driver_vp,
+                      st->passthrough_vs,
                       driver_fp, fpv,
                       ctx->Current.RasterColor,
                       GL_FALSE, write_depth, write_stencil);
@@ -1506,7 +1485,7 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
    struct pipe_context *pipe = st->pipe;
    struct pipe_screen *screen = pipe->screen;
    struct st_renderbuffer *rbRead;
-   void *driver_vp, *driver_fp;
+   void *driver_fp;
    struct pipe_resource *pt;
    struct pipe_sampler_view *sv[2] = { NULL };
    struct st_fp_variant *fpv = NULL;
@@ -1547,6 +1526,7 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
     * are handled.
     */
 
+   st_make_passthrough_vertex_shader(st);
 
    /*
     * Get vertex/fragment shaders
@@ -1557,7 +1537,6 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
       rbRead = st_get_color_read_renderbuffer(ctx);
 
       driver_fp = fpv->driver_shader;
-      driver_vp = make_passthrough_vertex_shader(st, GL_FALSE);
 
       if (ctx->Pixel.MapColorFlag) {
          pipe_sampler_view_reference(&sv[1],
@@ -1576,7 +1555,6 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
                                Attachment[BUFFER_DEPTH].Renderbuffer);
 
       driver_fp = get_drawpix_z_stencil_program(st, GL_TRUE, GL_FALSE);
-      driver_vp = make_passthrough_vertex_shader(st, GL_TRUE);
    }
 
    /* Choose the format for the temporary texture. */
@@ -1703,7 +1681,7 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
                       width, height, ctx->Pixel.ZoomX, ctx->Pixel.ZoomY,
                       sv,
                       num_sampler_view,
-                      driver_vp, 
+                      st->passthrough_vs,
                       driver_fp, fpv,
                       ctx->Current.Attrib[VERT_ATTRIB_COLOR0],
                       invertTex, GL_FALSE, GL_FALSE);
@@ -1732,10 +1710,8 @@ st_destroy_drawpix(struct st_context *st)
                                     st->drawpix.zs_shaders[i]);
    }
 
-   if (st->drawpix.vert_shaders[0])
-      cso_delete_vertex_shader(st->cso_context, st->drawpix.vert_shaders[0]);
-   if (st->drawpix.vert_shaders[1])
-      cso_delete_vertex_shader(st->cso_context, st->drawpix.vert_shaders[1]);
+   if (st->passthrough_vs)
+      cso_delete_vertex_shader(st->cso_context, st->passthrough_vs);
 
    /* Free cache data */
    for (i = 0; i < ARRAY_SIZE(st->drawpix_cache.entries); i++) {

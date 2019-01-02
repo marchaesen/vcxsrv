@@ -84,11 +84,11 @@ struct slab_mempool {
    struct slab_child_pool child;
 };
 
-void slab_create(struct slab_mempool *pool,
+void slab_create(struct slab_mempool *mempool,
                  unsigned item_size,
                  unsigned num_items);
-void slab_destroy(struct slab_mempool *pool);
-void *slab_alloc_st(struct slab_mempool *pool);
-void slab_free_st(struct slab_mempool *pool, void *ptr);
+void slab_destroy(struct slab_mempool *mempool);
+void *slab_alloc_st(struct slab_mempool *mempool);
+void slab_free_st(struct slab_mempool *mempool, void *ptr);
 
 #endif

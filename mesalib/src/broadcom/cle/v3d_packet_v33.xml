@@ -457,6 +457,37 @@
     <field name="mode" size="6" start="0" type="Primitive"/>
   </packet>
 
+  <packet code="33" name="Indirect Indexed Instanced Prim List" cl="B" max_ver="33">
+    <field name="Stride in Multiples of 4 Bytes" size="8" start="104" type="uint"/>
+    <field name="Address of Indices List" size="32" start="72" type="address"/>
+    <field name="Address" size="32" start="40" type="address"/>
+    <field name="Enable Primitive Restarts" size="1" start="39" type="bool"/>
+    <field name="Number of Draw Indirect Indexed Records" size="31" start="8" type="uint"/>
+
+    <field name="Index type" size="2" start="6" type="uint">
+      <value name="Index type 8-bit" value="0"/>
+      <value name="Index type 16-bit" value="1"/>
+      <value name="Index type 32-bit" value="2"/>
+    </field>
+
+    <field name="mode" size="6" start="0" type="Primitive"/>
+  </packet>
+
+  <packet code="33" name="Indirect Indexed Instanced Prim List" cl="B" min_ver="41">
+    <field name="Stride in Multiples of 4 Bytes" size="8" start="72" type="uint"/>
+    <field name="Address" size="32" start="40" type="address"/>
+    <field name="Enable Primitive Restarts" size="1" start="39" type="bool"/>
+    <field name="Number of Draw Indirect Indexed Records" size="31" start="8" type="uint"/>
+
+    <field name="Index type" size="2" start="6" type="uint">
+      <value name="Index type 8-bit" value="0"/>
+      <value name="Index type 16-bit" value="1"/>
+      <value name="Index type 32-bit" value="2"/>
+    </field>
+
+    <field name="mode" size="6" start="0" type="Primitive"/>
+  </packet>
+
   <packet code="34" name="Indexed Instanced Prim List" cl="B" max_ver="33">
     <field name="Enable Primitive Restarts" size="1" start="135" type="bool"/>
     <field name="Maximum index" size="31" start="104" type="uint"/>
@@ -491,6 +522,14 @@
   <packet code="36" name="Vertex Array Prims" cl="B">
     <field name="Index of First Vertex" size="32" start="40" type="uint"/>
     <field name="Length" size="32" start="8" type="uint"/>
+
+    <field name="mode" size="8" start="0" type="Primitive"/>
+  </packet>
+
+  <packet code="37" name="Indirect Vertex Array Instanced Prims" cl="B">
+    <field name="Stride in Multiples of 4 Bytes" size="8" start="72" type="uint"/>
+    <field name="Address" size="32" start="40" type="address"/>
+    <field name="Number of Draw Indirect Array Records" size="32" start="8" type="uint"/>
 
     <field name="mode" size="8" start="0" type="Primitive"/>
   </packet>

@@ -1412,11 +1412,13 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 		AddrSurfInfoIn.bpp = surf->bpe * 8;
 	}
 
-	AddrSurfInfoIn.flags.color = !(surf->flags & RADEON_SURF_Z_OR_SBUFFER);
+	bool is_color_surface = !(surf->flags & RADEON_SURF_Z_OR_SBUFFER);
+	AddrSurfInfoIn.flags.color = is_color_surface &&
+	                             !(surf->flags & RADEON_SURF_NO_RENDER_TARGET);
 	AddrSurfInfoIn.flags.depth = (surf->flags & RADEON_SURF_ZBUFFER) != 0;
 	AddrSurfInfoIn.flags.display = get_display_flag(config, surf);
 	/* flags.texture currently refers to TC-compatible HTILE */
-	AddrSurfInfoIn.flags.texture = AddrSurfInfoIn.flags.color ||
+	AddrSurfInfoIn.flags.texture = is_color_surface ||
 				       surf->flags & RADEON_SURF_TC_COMPATIBLE_HTILE;
 	AddrSurfInfoIn.flags.opt4space = 1;
 
@@ -1516,10 +1518,12 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 
 	/* Query whether the surface is displayable. */
 	bool displayable = false;
-	r = Addr2IsValidDisplaySwizzleMode(addrlib, surf->u.gfx9.surf.swizzle_mode,
+	if (!config->is_3d && !config->is_cube) {
+		r = Addr2IsValidDisplaySwizzleMode(addrlib, surf->u.gfx9.surf.swizzle_mode,
 					   surf->bpe * 8, &displayable);
-	if (r)
-		return r;
+		if (r)
+			return r;
+	}
 	surf->is_displayable = displayable;
 
 	switch (surf->u.gfx9.surf.swizzle_mode) {

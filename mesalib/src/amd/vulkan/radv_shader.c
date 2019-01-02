@@ -159,7 +159,7 @@ radv_optimize_nir(struct nir_shader *shader, bool optimize_conservatively,
                 NIR_PASS(progress, shader, nir_opt_if);
                 NIR_PASS(progress, shader, nir_opt_dead_cf);
                 NIR_PASS(progress, shader, nir_opt_cse);
-                NIR_PASS(progress, shader, nir_opt_peephole_select, 8);
+                NIR_PASS(progress, shader, nir_opt_peephole_select, 8, true, true);
                 NIR_PASS(progress, shader, nir_opt_algebraic);
                 NIR_PASS(progress, shader, nir_opt_constant_folding);
                 NIR_PASS(progress, shader, nir_opt_undef);
@@ -245,6 +245,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 				.storage_16bit = true,
 				.geometry_streams = true,
 				.transform_feedback = true,
+				.storage_image_ms = true,
 			},
 		};
 		entry_point = spirv_to_nir(spirv, module->size / 4,
@@ -548,9 +549,15 @@ static void radv_init_llvm_target()
 	 *
 	 * "mesa" is the prefix for error messages.
 	 */
-	const char *argv[3] = { "mesa", "-simplifycfg-sink-common=false",
-				"-amdgpu-skip-threshold=1" };
-	LLVMParseCommandLineOptions(3, argv, NULL);
+	if (HAVE_LLVM >= 0x0800) {
+		const char *argv[2] = { "mesa", "-simplifycfg-sink-common=false" };
+		LLVMParseCommandLineOptions(2, argv, NULL);
+
+	} else {
+		const char *argv[3] = { "mesa", "-simplifycfg-sink-common=false",
+					"-amdgpu-skip-threshold=1" };
+		LLVMParseCommandLineOptions(3, argv, NULL);
+	}
 }
 
 static once_flag radv_init_llvm_target_once_flag = ONCE_FLAG_INIT;

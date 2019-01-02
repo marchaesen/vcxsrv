@@ -75,8 +75,17 @@ struct nir_phi_builder_value {
     *  - A regular SSA def.  This will be either the result of a phi node or
     *    one of the defs provided by nir_phi_builder_value_set_blocK_def().
     */
-   nir_ssa_def *defs[0];
+   struct hash_table ht;
 };
+
+/**
+ * Convert a block index into a value that can be used as a key for a hash table
+ *
+ * The hash table functions want a pointer that is not \c NULL.
+ * _mesa_hash_pointer drops the two least significant bits, but that's where
+ * most of our data likely is.  Shift by 2 and add 1 to make everything happy.
+ */
+#define INDEX_TO_KEY(x) ((void *)(uintptr_t) ((x << 2) + 1))
 
 struct nir_phi_builder *
 nir_phi_builder_create(nir_function_impl *impl)
@@ -111,12 +120,15 @@ nir_phi_builder_add_value(struct nir_phi_builder *pb, unsigned num_components,
    struct nir_phi_builder_value *val;
    unsigned i, w_start = 0, w_end = 0;
 
-   val = rzalloc_size(pb, sizeof(*val) + sizeof(val->defs[0]) * pb->num_blocks);
+   val = rzalloc_size(pb, sizeof(*val));
    val->builder = pb;
    val->num_components = num_components;
    val->bit_size = bit_size;
    exec_list_make_empty(&val->phis);
    exec_list_push_tail(&pb->values, &val->node);
+
+   _mesa_hash_table_init(&val->ht, pb, _mesa_hash_pointer,
+                         _mesa_key_pointer_equal);
 
    pb->iter_count++;
 
@@ -142,12 +154,12 @@ nir_phi_builder_add_value(struct nir_phi_builder *pb, unsigned num_components,
          if (next == pb->impl->end_block)
             continue;
 
-         if (val->defs[next->index] == NULL) {
+         if (_mesa_hash_table_search(&val->ht, INDEX_TO_KEY(next->index)) == NULL) {
             /* Instead of creating a phi node immediately, we simply set the
              * value to the magic value NEEDS_PHI.  Later, we create phi nodes
              * on demand in nir_phi_builder_value_get_block_def().
              */
-            val->defs[next->index] = NEEDS_PHI;
+            nir_phi_builder_value_set_block_def(val, next, NEEDS_PHI);
 
             if (pb->work[next->index] < pb->iter_count) {
                pb->work[next->index] = pb->iter_count;
@@ -164,7 +176,7 @@ void
 nir_phi_builder_value_set_block_def(struct nir_phi_builder_value *val,
                                     nir_block *block, nir_ssa_def *def)
 {
-   val->defs[block->index] = def;
+   _mesa_hash_table_insert(&val->ht, INDEX_TO_KEY(block->index), def);
 }
 
 nir_ssa_def *
@@ -175,8 +187,18 @@ nir_phi_builder_value_get_block_def(struct nir_phi_builder_value *val,
     * have a valid ssa_def, if any.
     */
    nir_block *dom = block;
-   while (dom && val->defs[dom->index] == NULL)
+   struct hash_entry *he = NULL;
+
+   while (dom != NULL) {
+      he = _mesa_hash_table_search(&val->ht, INDEX_TO_KEY(dom->index));
+      if (he != NULL)
+         break;
+
       dom = dom->imm_dom;
+   }
+
+   /* Exactly one of (he != NULL) and (dom == NULL) must be true. */
+   assert((he != NULL) != (dom == NULL));
 
    nir_ssa_def *def;
    if (dom == NULL) {
@@ -191,7 +213,7 @@ nir_phi_builder_value_get_block_def(struct nir_phi_builder_value *val,
       nir_instr_insert(nir_before_cf_list(&val->builder->impl->body),
                        &undef->instr);
       def = &undef->def;
-   } else if (val->defs[dom->index] == NEEDS_PHI) {
+   } else if (he->data == NEEDS_PHI) {
       /* The magic value NEEDS_PHI indicates that the block needs a phi node
        * but none has been created.  We need to create one now so we can
        * return it to the caller.
@@ -215,13 +237,14 @@ nir_phi_builder_value_get_block_def(struct nir_phi_builder_value *val,
                         val->bit_size, NULL);
       phi->instr.block = dom;
       exec_list_push_tail(&val->phis, &phi->instr.node);
-      def = val->defs[dom->index] = &phi->dest.ssa;
+      def = &phi->dest.ssa;
+      he->data = def;
    } else {
       /* In this case, we have an actual SSA def.  It's either the result of a
        * phi node created by the case above or one passed to us through
        * nir_phi_builder_value_set_block_def().
        */
-      def = val->defs[dom->index];
+      def = (struct nir_ssa_def *) he->data;
    }
 
    /* Walk the chain and stash the def in all of the applicable blocks.  We do
@@ -231,8 +254,12 @@ nir_phi_builder_value_get_block_def(struct nir_phi_builder_value *val,
     *     block that is not dominated by this one.
     *  2) To avoid unneeded recreation of phi nodes and undefs.
     */
-   for (dom = block; dom && val->defs[dom->index] == NULL; dom = dom->imm_dom)
-      val->defs[dom->index] = def;
+   for (dom = block; dom != NULL; dom = dom->imm_dom) {
+      if (_mesa_hash_table_search(&val->ht, INDEX_TO_KEY(dom->index)) != NULL)
+         break;
+
+      nir_phi_builder_value_set_block_def(val, dom, def);
+   }
 
    return def;
 }

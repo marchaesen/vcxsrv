@@ -145,6 +145,7 @@ AC_CHECK_HEADERS([sys/select.h])
 
 # Checks for library functions.
 AC_CHECK_FUNCS([strtol seteuid])
+AC_REPLACE_FUNCS([reallocarray])
 # Used in lcFile.c (see also --enable-xlocaledir settings below)
 XLOCALEDIR_IS_SAFE="no"
 AC_CHECK_DECL([issetugid])
