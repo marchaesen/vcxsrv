@@ -499,6 +499,23 @@ v3d_qpu_mul_op_num_src(enum v3d_qpu_mul_op op)
                 return 0;
 }
 
+enum v3d_qpu_cond
+v3d_qpu_cond_invert(enum v3d_qpu_cond cond)
+{
+        switch (cond) {
+        case V3D_QPU_COND_IFA:
+                return V3D_QPU_COND_IFNA;
+        case V3D_QPU_COND_IFNA:
+                return V3D_QPU_COND_IFA;
+        case V3D_QPU_COND_IFB:
+                return V3D_QPU_COND_IFNB;
+        case V3D_QPU_COND_IFNB:
+                return V3D_QPU_COND_IFB;
+        default:
+                unreachable("Non-invertible cond");
+        }
+}
+
 bool
 v3d_qpu_magic_waddr_is_sfu(enum v3d_qpu_waddr waddr)
 {

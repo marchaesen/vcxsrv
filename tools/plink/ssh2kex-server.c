@@ -28,8 +28,9 @@ static strbuf *finalise_and_sign_exhash(struct ssh2_transport_state *s)
     strbuf *sb;
     ssh2transport_finalise_exhash(s);
     sb = strbuf_new();
-    ssh_key_sign(s->hkey, s->exchange_hash, s->kex_alg->hash->hlen, 0,
-                 BinarySink_UPCAST(sb));
+    ssh_key_sign(
+        s->hkey, make_ptrlen(s->exchange_hash, s->kex_alg->hash->hlen),
+        0, BinarySink_UPCAST(sb));
     return sb;
 }
 
@@ -278,7 +279,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s, bool *aborted)
             ptrlen encrypted_secret = get_string(pktin);
             put_stringpl(s->exhash, encrypted_secret);
             s->K = ssh_rsakex_decrypt(
-                s->kex_alg->hash, encrypted_secret, s->rsa_kex_key);
+                s->rsa_kex_key, s->kex_alg->hash, encrypted_secret);
         }
 
         if (!s->K) {

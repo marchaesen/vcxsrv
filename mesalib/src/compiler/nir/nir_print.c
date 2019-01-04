@@ -123,10 +123,10 @@ print_ssa_use(nir_ssa_def *def, print_state *state)
    fprintf(fp, "ssa_%u", def->index);
 }
 
-static void print_src(nir_src *src, print_state *state);
+static void print_src(const nir_src *src, print_state *state);
 
 static void
-print_reg_src(nir_reg_src *src, print_state *state)
+print_reg_src(const nir_reg_src *src, print_state *state)
 {
    FILE *fp = state->fp;
    print_register(src->reg, state);
@@ -156,7 +156,7 @@ print_reg_dest(nir_reg_dest *dest, print_state *state)
 }
 
 static void
-print_src(nir_src *src, print_state *state)
+print_src(const nir_src *src, print_state *state)
 {
    if (src->is_ssa)
       print_ssa_use(src->ssa, state);
@@ -577,7 +577,7 @@ print_var_decl(nir_variable *var, print_state *state)
 }
 
 static void
-print_deref_link(nir_deref_instr *instr, bool whole_chain, print_state *state)
+print_deref_link(const nir_deref_instr *instr, bool whole_chain, print_state *state)
 {
    FILE *fp = state->fp;
 
@@ -1385,4 +1385,13 @@ nir_print_instr(const nir_instr *instr, FILE *fp)
    };
    print_instr(instr, &state, 0);
 
+}
+
+void
+nir_print_deref(const nir_deref_instr *deref, FILE *fp)
+{
+   print_state state = {
+      .fp = fp,
+   };
+   print_deref_link(deref, true, &state);
 }

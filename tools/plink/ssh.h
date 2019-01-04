@@ -395,7 +395,7 @@ typedef struct ssh_key {
     const struct ssh_keyalg *vt;
 } ssh_key;
 
-struct RSAKey {
+typedef struct RSAKey {
     int bits;
     int bytes;
     mp_int *modulus;
@@ -406,7 +406,7 @@ struct RSAKey {
     mp_int *iqmp;
     char *comment;
     ssh_key sshk;
-};
+} RSAKey;
 
 struct dss_key {
     mp_int *p, *q, *g, *y, *x;
@@ -511,7 +511,7 @@ char *rsa_ssh1_fingerprint(struct RSAKey *key);
 bool rsa_verify(struct RSAKey *key);
 void rsa_ssh1_public_blob(BinarySink *bs, struct RSAKey *key,
                           RsaSsh1Order order);
-int rsa_ssh1_public_blob_len(void *data, int maxlen);
+int rsa_ssh1_public_blob_len(ptrlen data);
 void freersapriv(struct RSAKey *key);
 void freersakey(struct RSAKey *key);
 
@@ -532,14 +532,13 @@ struct ssh_hashalg;
 struct ssh_rsa_kex_extra {
     int minklen;
 };
-struct RSAKey *ssh_rsakex_newkey(const void *data, int len);
+struct RSAKey *ssh_rsakex_newkey(ptrlen data);
 void ssh_rsakex_freekey(struct RSAKey *key);
 int ssh_rsakex_klen(struct RSAKey *key);
-void ssh_rsakex_encrypt(const struct ssh_hashalg *h,
-                        unsigned char *in, int inlen,
-                        unsigned char *out, int outlen, struct RSAKey *key);
-mp_int *ssh_rsakex_decrypt(const struct ssh_hashalg *h, ptrlen ciphertext,
-                              struct RSAKey *rsa);
+strbuf *ssh_rsakex_encrypt(
+    struct RSAKey *key, const struct ssh_hashalg *h, ptrlen plaintext);
+mp_int *ssh_rsakex_decrypt(
+    struct RSAKey *key, const struct ssh_hashalg *h, ptrlen ciphertext);
 
 /*
  * SSH2 ECDH key exchange functions
@@ -631,9 +630,9 @@ void SHA384_Init(SHA384_State * s);
 void SHA384_Final(SHA384_State * s, unsigned char *output);
 void SHA384_Simple(const void *p, int len, unsigned char *output);
 
-struct ssh2_macalg;
+typedef struct ssh2_macalg ssh2_macalg;
 
-struct ssh1_cipheralg;
+typedef struct ssh1_cipheralg ssh1_cipheralg;
 typedef struct ssh1_cipher {
     const struct ssh1_cipheralg *vt;
 } ssh1_cipher;
@@ -654,6 +653,7 @@ struct ssh1_cipheralg {
 #define ssh1_cipher_encrypt(ctx, blk, len) ((ctx)->vt->encrypt(ctx, blk, len))
 #define ssh1_cipher_decrypt(ctx, blk, len) ((ctx)->vt->decrypt(ctx, blk, len))
 
+typedef struct ssh2_cipheralg ssh2_cipheralg;
 struct ssh2_cipheralg {
     ssh2_cipher *(*new)(const struct ssh2_cipheralg *alg);
     void (*free)(ssh2_cipher *);
@@ -716,7 +716,7 @@ struct ssh2_macalg {
     /* Passes in the cipher context */
     ssh2_mac *(*new)(const struct ssh2_macalg *alg, ssh2_cipher *cipher);
     void (*free)(ssh2_mac *);
-    void (*setkey)(ssh2_mac *, const void *key);
+    void (*setkey)(ssh2_mac *, ptrlen key);
     void (*start)(ssh2_mac *);
     void (*genresult)(ssh2_mac *, unsigned char *);
     const char *name, *etm_name;
@@ -776,8 +776,7 @@ struct ssh_keyalg {
 
     /* Methods that operate on an existing ssh_key */
     void (*freekey) (ssh_key *key);
-    void (*sign) (ssh_key *key, const void *data, int datalen,
-                  unsigned flags, BinarySink *);
+    void (*sign) (ssh_key *key, ptrlen data, unsigned flags, BinarySink *);
     bool (*verify) (ssh_key *key, ptrlen sig, ptrlen data);
     void (*public_blob)(ssh_key *key, BinarySink *);
     void (*private_blob)(ssh_key *key, BinarySink *);
@@ -799,8 +798,8 @@ struct ssh_keyalg {
 #define ssh_key_new_priv_openssh(alg, bs) ((alg)->new_priv_openssh(alg, bs))
 
 #define ssh_key_free(key) ((key)->vt->freekey(key))
-#define ssh_key_sign(key, data, len, flags, bs) \
-    ((key)->vt->sign(key, data, len, flags, bs))
+#define ssh_key_sign(key, data, flags, bs) \
+    ((key)->vt->sign(key, data, flags, bs))
 #define ssh_key_verify(key, sig, data) ((key)->vt->verify(key, sig, data))
 #define ssh_key_public_blob(key, bs) ((key)->vt->public_blob(key, bs))
 #define ssh_key_private_blob(key, bs) ((key)->vt->private_blob(key, bs))
@@ -859,18 +858,34 @@ struct ssh2_userkey {
     char *comment;		       /* the key comment */
 };
 
-/* The maximum length of any hash algorithm used in kex. (bytes) */
-#define SSH2_KEX_MAX_HASH_LEN (64) /* SHA-512 */
+/* The maximum length of any hash algorithm. (bytes) */
+#define MAX_HASH_LEN (64)              /* longest is SHA-512 */
 
 extern const struct ssh1_cipheralg ssh1_3des;
 extern const struct ssh1_cipheralg ssh1_des;
 extern const struct ssh1_cipheralg ssh1_blowfish;
+extern const struct ssh2_cipheralg ssh_3des_ssh2_ctr;
+extern const struct ssh2_cipheralg ssh_3des_ssh2;
+extern const struct ssh2_cipheralg ssh_des_ssh2;
+extern const struct ssh2_cipheralg ssh_des_sshcom_ssh2;
+extern const struct ssh2_cipheralg ssh_aes256_ctr;
+extern const struct ssh2_cipheralg ssh_aes256;
+extern const struct ssh2_cipheralg ssh_aes192_ctr;
+extern const struct ssh2_cipheralg ssh_aes192;
+extern const struct ssh2_cipheralg ssh_aes128_ctr;
+extern const struct ssh2_cipheralg ssh_aes128;
+extern const struct ssh2_cipheralg ssh_blowfish_ssh2_ctr;
+extern const struct ssh2_cipheralg ssh_blowfish_ssh2;
+extern const struct ssh2_cipheralg ssh_arcfour256_ssh2;
+extern const struct ssh2_cipheralg ssh_arcfour128_ssh2;
+extern const struct ssh2_cipheralg ssh2_chacha20_poly1305;
 extern const struct ssh2_ciphers ssh2_3des;
 extern const struct ssh2_ciphers ssh2_des;
 extern const struct ssh2_ciphers ssh2_aes;
 extern const struct ssh2_ciphers ssh2_blowfish;
 extern const struct ssh2_ciphers ssh2_arcfour;
 extern const struct ssh2_ciphers ssh2_ccp;
+extern const struct ssh_hashalg ssh_md5;
 extern const struct ssh_hashalg ssh_sha1;
 extern const struct ssh_hashalg ssh_sha256;
 extern const struct ssh_hashalg ssh_sha384;
@@ -880,6 +895,10 @@ extern const struct ssh_kexes ssh_diffiehellman_group14;
 extern const struct ssh_kexes ssh_diffiehellman_gex;
 extern const struct ssh_kexes ssh_gssk5_sha1_kex;
 extern const struct ssh_kexes ssh_rsa_kex;
+extern const struct ssh_kex ssh_ec_kex_curve25519;
+extern const struct ssh_kex ssh_ec_kex_nistp256;
+extern const struct ssh_kex ssh_ec_kex_nistp384;
+extern const struct ssh_kex ssh_ec_kex_nistp521;
 extern const struct ssh_kexes ssh_ecdh_kex;
 extern const ssh_keyalg ssh_dss;
 extern const ssh_keyalg ssh_rsa;
@@ -893,6 +912,7 @@ extern const struct ssh2_macalg ssh_hmac_sha1_buggy;
 extern const struct ssh2_macalg ssh_hmac_sha1_96;
 extern const struct ssh2_macalg ssh_hmac_sha1_96_buggy;
 extern const struct ssh2_macalg ssh_hmac_sha256;
+extern const struct ssh2_macalg ssh2_poly1305;
 extern const struct ssh_compression_alg ssh_zlib;
 
 typedef struct AESContext AESContext;
@@ -1055,7 +1075,7 @@ void *x11_dehexify(ptrlen hex, int *outlen);
 Channel *agentf_new(SshChannel *c);
 
 bool dh_is_gex(const struct ssh_kex *kex);
-struct dh_ctx;
+typedef struct dh_ctx dh_ctx;
 struct dh_ctx *dh_setup_group(const struct ssh_kex *kex);
 struct dh_ctx *dh_setup_gex(mp_int *pval, mp_int *gval);
 int dh_modulus_bit_size(const struct dh_ctx *ctx);

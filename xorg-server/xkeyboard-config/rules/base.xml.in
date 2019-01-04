@@ -1316,6 +1316,13 @@
        <vendor>SteelSeries</vendor>
      </configItem>
     </model>
+    <model>
+      <configItem>
+       <name>chromebook</name>
+       <_description>Chromebook</_description>
+       <vendor>Google</vendor>
+     </configItem>
+    </model>
   </modelList>
   <layoutList>
     <layout>
@@ -3230,7 +3237,7 @@
         <variant>
           <configItem>
             <name>us</name>
-            <_description>French (US keyboard with French letters)</_description>
+            <_description>French (US, with French letters)</_description>
           </configItem>
         </variant>
       </variantList>
@@ -5765,8 +5772,20 @@
         </variant>
         <variant>
           <configItem>
+            <name>left_hand_invert</name>
+            <_description>Braille (left-handed inverted thumb)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>right_hand</name>
             <_description>Braille (right-handed)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>right_hand_invert</name>
+            <_description>Braille (right-handed inverted thumb)</_description>
           </configItem>
         </variant>
       </variantList>

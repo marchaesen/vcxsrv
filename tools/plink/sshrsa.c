@@ -315,11 +315,11 @@ void rsa_ssh1_public_blob(BinarySink *bs, struct RSAKey *key,
 }
 
 /* Given an SSH-1 public key blob, determine its length. */
-int rsa_ssh1_public_blob_len(void *data, int maxlen)
+int rsa_ssh1_public_blob_len(ptrlen data)
 {
     BinarySource src[1];
 
-    BinarySource_BARE_INIT(src, data, maxlen);
+    BinarySource_BARE_INIT(src, data.ptr, data.len);
 
     /* Expect a length word, then exponent and modulus. (It doesn't
      * even matter which order.) */
@@ -592,7 +592,7 @@ static unsigned char *rsa_pkcs1_signature_string(
     memcpy(bytes + 2 + padding, asn1_prefix, asn1_prefix_size);
 
     ssh_hash *h = ssh_hash_new(halg);
-    put_data(h, data.ptr, data.len);
+    put_datapl(h, data);
     ssh_hash_final(h, bytes + 2 + padding + asn1_prefix_size);
 
     return bytes;
@@ -638,7 +638,7 @@ static bool rsa2_verify(ssh_key *key, ptrlen sig, ptrlen data)
     return diff == 0;
 }
 
-static void rsa2_sign(ssh_key *key, const void *data, int datalen,
+static void rsa2_sign(ssh_key *key, ptrlen data,
                       unsigned flags, BinarySink *bs)
 {
     struct RSAKey *rsa = container_of(key, struct RSAKey, sshk);
@@ -661,8 +661,7 @@ static void rsa2_sign(ssh_key *key, const void *data, int datalen,
 
     nbytes = (mp_get_nbits(rsa->modulus) + 7) / 8;
 
-    bytes = rsa_pkcs1_signature_string(
-        nbytes, halg, make_ptrlen(data, datalen));
+    bytes = rsa_pkcs1_signature_string(nbytes, halg, data);
     in = mp_from_bytes_be(make_ptrlen(bytes, nbytes));
     smemclr(bytes, nbytes);
     sfree(bytes);
@@ -700,9 +699,9 @@ const ssh_keyalg ssh_rsa = {
     SSH_AGENT_RSA_SHA2_256 | SSH_AGENT_RSA_SHA2_512,
 };
 
-struct RSAKey *ssh_rsakex_newkey(const void *data, int len)
+struct RSAKey *ssh_rsakex_newkey(ptrlen data)
 {
-    ssh_key *sshk = rsa2_new_pub(&ssh_rsa, make_ptrlen(data, len));
+    ssh_key *sshk = rsa2_new_pub(&ssh_rsa, data);
     if (!sshk)
         return NULL;
     return container_of(sshk, struct RSAKey, sshk);
@@ -727,9 +726,9 @@ static void oaep_mask(const struct ssh_hashalg *h, void *seed, int seedlen,
     while (datalen > 0) {
         int i, max = (datalen > h->hlen ? h->hlen : datalen);
         ssh_hash *s;
-        unsigned char hash[SSH2_KEX_MAX_HASH_LEN];
+        unsigned char hash[MAX_HASH_LEN];
 
-	assert(h->hlen <= SSH2_KEX_MAX_HASH_LEN);
+	assert(h->hlen <= MAX_HASH_LEN);
         s = ssh_hash_new(h);
         put_data(s, seed, seedlen);
         put_uint32(s, count);
@@ -744,9 +743,8 @@ static void oaep_mask(const struct ssh_hashalg *h, void *seed, int seedlen,
     }
 }
 
-void ssh_rsakex_encrypt(const struct ssh_hashalg *h,
-                        unsigned char *in, int inlen,
-                        unsigned char *out, int outlen, struct RSAKey *rsa)
+strbuf *ssh_rsakex_encrypt(
+    struct RSAKey *rsa, const struct ssh_hashalg *h, ptrlen in)
 {
     mp_int *b1, *b2;
     int k, i;
@@ -784,10 +782,12 @@ void ssh_rsakex_encrypt(const struct ssh_hashalg *h,
     k = (7 + mp_get_nbits(rsa->modulus)) / 8;
 
     /* The length of the input data must be at most k - 2hLen - 2. */
-    assert(inlen > 0 && inlen <= k - 2*HLEN - 2);
+    assert(in.len > 0 && in.len <= k - 2*HLEN - 2);
 
     /* The length of the output data wants to be precisely k. */
-    assert(outlen == k);
+    strbuf *toret = strbuf_new();
+    int outlen = k;
+    unsigned char *out = strbuf_append(toret, outlen);
 
     /*
      * Now perform EME-OAEP encoding. First set up all the unmasked
@@ -807,8 +807,8 @@ void ssh_rsakex_encrypt(const struct ssh_hashalg *h,
     /* A bunch of zero octets */
     memset(out + 2*HLEN + 1, 0, outlen - (2*HLEN + 1));
     /* A single 1 octet, followed by the input message data. */
-    out[outlen - inlen - 1] = 1;
-    memcpy(out + outlen - inlen, in, inlen);
+    out[outlen - in.len - 1] = 1;
+    memcpy(out + outlen - in.len, in.ptr, in.len);
 
     /*
      * Now use the seed data to mask the block DB.
@@ -836,10 +836,11 @@ void ssh_rsakex_encrypt(const struct ssh_hashalg *h,
     /*
      * And we're done.
      */
+    return toret;
 }
 
-mp_int *ssh_rsakex_decrypt(const struct ssh_hashalg *h, ptrlen ciphertext,
-                              struct RSAKey *rsa)
+mp_int *ssh_rsakex_decrypt(
+    struct RSAKey *rsa, const struct ssh_hashalg *h, ptrlen ciphertext)
 {
     mp_int *b1, *b2;
     int outlen, i;

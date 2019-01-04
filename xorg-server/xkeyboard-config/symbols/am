@@ -80,8 +80,8 @@ xkb_symbols "phonetic" {
     key <AE06> {	[ Armenian_vyun,  	Armenian_VYUN 	]	};
     key <AE07> {	[ Armenian_ligature_ew,	0x100058f 	]	};
     key <AE08> {	[ Armenian_ra,    	Armenian_RA   	]	};
-    key <AE09> {	[ Armenian_cha,   	rmenian_CHA  	]	};
-    key <AE10> {	[ Armenian_tche,  	rmenian_TCHE 	]	};
+    key <AE09> {	[ Armenian_cha,   	Armenian_CHA  	]	};
+    key <AE10> {	[ Armenian_tche,  	Armenian_TCHE 	]	};
     key <AE11> {	[ Armenian_hyphen,  	0x1002015 	]       };
     key <AE12> {	[ Armenian_zhe,   	Armenian_ZHE  	]	};
 

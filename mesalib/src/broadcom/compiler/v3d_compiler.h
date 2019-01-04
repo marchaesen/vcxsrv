@@ -706,25 +706,15 @@ const struct v3d_compiler *v3d_compiler_init(const struct v3d_device_info *devin
 void v3d_compiler_free(const struct v3d_compiler *compiler);
 void v3d_optimize_nir(struct nir_shader *s);
 
-uint64_t *v3d_compile_vs(const struct v3d_compiler *compiler,
-                         struct v3d_vs_key *key,
-                         struct v3d_vs_prog_data *prog_data,
-                         nir_shader *s,
-                         void (*debug_output)(const char *msg,
-                                              void *debug_output_data),
-                         void *debug_output_data,
-                         int program_id, int variant_id,
-                         uint32_t *final_assembly_size);
-
-uint64_t *v3d_compile_fs(const struct v3d_compiler *compiler,
-                         struct v3d_fs_key *key,
-                         struct v3d_fs_prog_data *prog_data,
-                         nir_shader *s,
-                         void (*debug_output)(const char *msg,
-                                              void *debug_output_data),
-                         void *debug_output_data,
-                         int program_id, int variant_id,
-                         uint32_t *final_assembly_size);
+uint64_t *v3d_compile(const struct v3d_compiler *compiler,
+                      struct v3d_key *key,
+                      struct v3d_prog_data **prog_data,
+                      nir_shader *s,
+                      void (*debug_output)(const char *msg,
+                                           void *debug_output_data),
+                      void *debug_output_data,
+                      int program_id, int variant_id,
+                      uint32_t *final_assembly_size);
 
 void v3d_nir_to_vir(struct v3d_compile *c);
 
@@ -751,6 +741,7 @@ struct qreg vir_emit_def(struct v3d_compile *c, struct qinst *inst);
 struct qinst *vir_emit_nondef(struct v3d_compile *c, struct qinst *inst);
 void vir_set_cond(struct qinst *inst, enum v3d_qpu_cond cond);
 void vir_set_pf(struct qinst *inst, enum v3d_qpu_pf pf);
+void vir_set_uf(struct qinst *inst, enum v3d_qpu_uf uf);
 void vir_set_unpack(struct qinst *inst, int src,
                     enum v3d_qpu_input_unpack unpack);
 

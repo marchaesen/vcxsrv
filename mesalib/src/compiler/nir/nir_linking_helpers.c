@@ -563,11 +563,8 @@ nir_link_xfb_varyings(nir_shader *producer, nir_shader *consumer)
 static bool
 does_varying_match(nir_variable *out_var, nir_variable *in_var)
 {
-   if (in_var->data.location == out_var->data.location &&
-       in_var->data.location_frac == out_var->data.location_frac)
-      return true;
-
-   return false;
+   return in_var->data.location == out_var->data.location &&
+          in_var->data.location_frac == out_var->data.location_frac;
 }
 
 static nir_variable *
@@ -633,8 +630,7 @@ replace_constant_input(nir_shader *shader, nir_intrinsic_instr *store_intr)
 
          nir_variable *in_var = nir_deref_instr_get_variable(in_deref);
 
-         if (in_var->data.location != out_var->data.location ||
-             in_var->data.location_frac != out_var->data.location_frac)
+         if (!does_varying_match(out_var, in_var))
             continue;
 
          b.cursor = nir_before_instr(instr);

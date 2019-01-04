@@ -2,7 +2,8 @@
 #include <stdio.h>
 
 #include "defs.h"
-#include "putty.h"
+#include "misc.h"
+#include "puttymem.h"
 
 #include "mpint.h"
 #include "mpint_i.h"
@@ -870,7 +871,7 @@ static void mp_mul_add_simple(mp_int *r, mp_int *a, mp_int *b)
 }
 
 #ifndef KARATSUBA_THRESHOLD      /* allow redefinition via -D for testing */
-#define KARATSUBA_THRESHOLD 50
+#define KARATSUBA_THRESHOLD 24
 #endif
 
 static inline size_t mp_mul_scratchspace_unary(size_t n)
@@ -1032,7 +1033,7 @@ void mp_lshift_fixed_into(mp_int *r, mp_int *a, size_t bits)
     size_t words = bits / BIGNUM_INT_BITS;
     size_t bitoff = bits % BIGNUM_INT_BITS;
 
-    for (size_t i = 0; i < r->nw; i++) {
+    for (size_t i = r->nw; i-- > 0 ;) {
         if (i < words) {
             r->w[i] = 0;
         } else {
@@ -1123,7 +1124,7 @@ void mp_reduce_mod_2to(mp_int *x, size_t p)
     size_t mask = ((size_t)1 << (p % BIGNUM_INT_BITS)) - 1;
     for (; word < x->nw; word++) {
         x->w[word] &= mask;
-        mask = -(size_t)1;
+        mask = 0;
     }
 }
 
@@ -1253,21 +1254,6 @@ MontyContext *monty_new(mp_int *modulus)
 
     mc->scratch = mp_make_sized(monty_scratch_size(mc));
 
-    return mc;
-}
-
-MontyContext *monty_copy(MontyContext *orig)
-{
-    MontyContext *mc = snew(MontyContext);
-
-    mc->rw = orig->rw;
-    mc->pw = orig->pw;
-    mc->rbits = orig->rbits;
-    mc->m = mp_copy(orig->m);
-    mc->minus_minv_mod_r = mp_copy(orig->minus_minv_mod_r);
-    for (size_t j = 0; j < 3; j++)
-        mc->powers_of_r_mod_m[j] = mp_copy(orig->powers_of_r_mod_m[j]);
-    mc->scratch = mp_make_sized(monty_scratch_size(mc));
     return mc;
 }
 
@@ -2075,11 +2061,15 @@ mp_int *mp_modsub(mp_int *x, mp_int *y, mp_int *modulus)
     mp_sub_into(diff, x, y);
     unsigned negate = mp_cmp_hs(y, x);
     mp_cond_negate(diff, diff, negate);
-    mp_int *reduced = mp_mod(diff, modulus);
-    mp_cond_negate(reduced, reduced, negate);
-    mp_cond_add_into(reduced, reduced, modulus, negate);
+    mp_int *residue = mp_mod(diff, modulus);
+    mp_cond_negate(residue, residue, negate);
+    /* If we've just negated the residue, then it will be < 0 and need
+     * the modulus adding to it to make it positive - *except* if the
+     * residue was zero when we negated it. */
+    unsigned make_positive = negate & ~mp_eq_integer(residue, 0);
+    mp_cond_add_into(residue, residue, modulus, make_positive);
     mp_free(diff);
-    return reduced;
+    return residue;
 }
 
 static mp_int *mp_modadd_in_range(mp_int *x, mp_int *y, mp_int *modulus)
@@ -2285,7 +2275,10 @@ mp_int *monty_modsqrt(ModsqrtContext *sc, mp_int *x, unsigned *success)
         unsigned eq1 = mp_cmp_eq(&tmp, monty_identity(sc->mc));
 
         if (i == 0) {
-            *success = eq1;
+            /* One special case: if x=0, then no power of x will ever
+             * equal 1, but we should still report success on the
+             * grounds that 0 does have a square root mod p. */
+            *success = eq1 | mp_eq_integer(x, 0);
         } else {
             monty_mul_into(sc->mc, &tmp, toret, &power_of_zk);
             mp_select_into(toret, &tmp, toret, eq1);

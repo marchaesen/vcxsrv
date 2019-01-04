@@ -212,7 +212,7 @@ xkb_symbols "evdev" {
     key <I246>   {      [ XF86WLAN              ]       };
 //  key <I249>   {      [ ]       }; // KEY_VIDEO_NEXT  --  drive next video source
 //  key <I250>   {      [ ]       }; // KEY_VIDEO_PREV  --  drive previous video source
-//  key <I251>   {      [ ]       }; // KEY_BRIGHTNESS_CYCLE  --  bright up, max++ == min
+    key <I251>   {      [ XF86MonBrightnessCycle ]      }; // KEY_BRIGHTNESS_CYCLE  --  bright up, max++ == min
 //  key <I252>   {      [ ]       }; // KEY_BRIGHTNESS_ZERO  --  brightness off
 //  key <I253>   {      [ ]       }; // KEY_DISPLAY_OFF  --  turn off display
     key <I254>   {      [ XF86WWAN              ]       }; // KEY_WWAN

@@ -398,6 +398,8 @@ const char *v3d_qpu_unpack_name(enum v3d_qpu_input_unpack unpack);
 const char *v3d_qpu_branch_cond_name(enum v3d_qpu_branch_cond cond);
 const char *v3d_qpu_msfign_name(enum v3d_qpu_msfign msfign);
 
+enum v3d_qpu_cond v3d_qpu_cond_invert(enum v3d_qpu_cond cond) ATTRIBUTE_CONST;
+
 bool v3d_qpu_add_op_has_dst(enum v3d_qpu_add_op op);
 bool v3d_qpu_mul_op_has_dst(enum v3d_qpu_mul_op op);
 int v3d_qpu_add_op_num_src(enum v3d_qpu_add_op op);

@@ -311,7 +311,7 @@ EdwardsPoint *eddsa_public(mp_int *private_key, const ssh_keyalg *alg)
     for (size_t i = 0; i < curve->fieldBytes; ++i)
         put_byte(h, mp_get_byte(private_key, i));
 
-    unsigned char hash[extra->hash->hlen];
+    unsigned char hash[MAX_HASH_LEN];
     ssh_hash_final(h, hash);
 
     mp_int *exponent = eddsa_exponent_from_hash(
@@ -773,8 +773,8 @@ static void eddsa_openssh_blob(ssh_key *key, BinarySink *bs)
     /* Encode the private key as the concatenation of the
      * little-endian key integer and the public key again */
     put_uint32(bs, priv.len + pub.len);
-    put_data(bs, priv.ptr, priv.len);
-    put_data(bs, pub.ptr, pub.len);
+    put_datapl(bs, priv);
+    put_datapl(bs, pub);
 
     strbuf_free(pub_sb);
     strbuf_free(priv_sb);
@@ -826,9 +826,9 @@ static mp_int *ecdsa_signing_exponent_from_data(
     ptrlen data)
 {
     /* Hash the data being signed. */
-    unsigned char hash[extra->hash->hlen];
+    unsigned char hash[MAX_HASH_LEN];
     ssh_hash *h = ssh_hash_new(extra->hash);
-    put_data(h, data.ptr, data.len);
+    put_datapl(h, data);
     ssh_hash_final(h, hash);
 
     /*
@@ -919,11 +919,11 @@ static mp_int *eddsa_signing_exponent_from_data(
     ptrlen r_encoded, ptrlen data)
 {
     /* Hash (r || public key || message) */
-    unsigned char hash[extra->hash->hlen];
+    unsigned char hash[MAX_HASH_LEN];
     ssh_hash *h = ssh_hash_new(extra->hash);
-    put_data(h, r_encoded.ptr, r_encoded.len);
+    put_datapl(h, r_encoded);
     put_epoint(h, ek->publicKey, ek->curve, true); /* omit string header */
-    put_data(h, data.ptr, data.len);
+    put_datapl(h, data);
     ssh_hash_final(h, hash);
 
     /* Convert to an integer */
@@ -979,7 +979,7 @@ static bool eddsa_verify(ssh_key *key, ptrlen sig, ptrlen data)
     return valid;
 }
 
-static void ecdsa_sign(ssh_key *key, const void *data, int datalen,
+static void ecdsa_sign(ssh_key *key, ptrlen data,
                        unsigned flags, BinarySink *bs)
 {
     struct ecdsa_key *ek = container_of(key, struct ecdsa_key, sshk);
@@ -987,15 +987,14 @@ static void ecdsa_sign(ssh_key *key, const void *data, int datalen,
         (const struct ecsign_extra *)ek->sshk.vt->extra;
     assert(ek->privateKey);
 
-    mp_int *z = ecdsa_signing_exponent_from_data(
-        ek->curve, extra, make_ptrlen(data, datalen));
+    mp_int *z = ecdsa_signing_exponent_from_data(ek->curve, extra, data);
 
     /* Generate k between 1 and curve->n, using the same deterministic
      * k generation system we use for conventional DSA. */
     mp_int *k;
     {
         unsigned char digest[20];
-        SHA_Simple(data, datalen, digest);
+        SHA_Simple(data.ptr, data.len, digest);
         k = dss_gen_k(
             "ECDSA deterministic k generator", ek->curve->w.G_order,
             ek->privateKey, digest, sizeof(digest));
@@ -1033,7 +1032,7 @@ static void ecdsa_sign(ssh_key *key, const void *data, int datalen,
     mp_free(s);
 }
 
-static void eddsa_sign(ssh_key *key, const void *data, int datalen,
+static void eddsa_sign(ssh_key *key, ptrlen data,
                        unsigned flags, BinarySink *bs)
 {
     struct eddsa_key *ek = container_of(key, struct eddsa_key, sshk);
@@ -1055,7 +1054,7 @@ static void eddsa_sign(ssh_key *key, const void *data, int datalen,
      * First, we hash the private key integer (bare, little-endian)
      * into a hash generating 2*fieldBytes of output.
      */
-    unsigned char hash[extra->hash->hlen];
+    unsigned char hash[MAX_HASH_LEN];
     ssh_hash *h = ssh_hash_new(extra->hash);
     for (size_t i = 0; i < ek->curve->fieldBytes; ++i)
         put_byte(h, mp_get_byte(ek->privateKey, i));
@@ -1076,7 +1075,7 @@ static void eddsa_sign(ssh_key *key, const void *data, int datalen,
     h = ssh_hash_new(extra->hash);
     put_data(h, hash + ek->curve->fieldBytes,
              extra->hash->hlen - ek->curve->fieldBytes);
-    put_data(h, data, datalen);
+    put_datapl(h, data);
     ssh_hash_final(h, hash);
     mp_int *log_r_unreduced = mp_from_bytes_le(
         make_ptrlen(hash, extra->hash->hlen));
@@ -1097,7 +1096,7 @@ static void eddsa_sign(ssh_key *key, const void *data, int datalen,
      * eddsa_verify does.
      */
     mp_int *H = eddsa_signing_exponent_from_data(
-        ek, extra, ptrlen_from_strbuf(r_enc), make_ptrlen(data, datalen));
+        ek, extra, ptrlen_from_strbuf(r_enc), data);
 
     /* And then s = (log(r) + H*a) mod order(G). */
     mp_int *Ha = mp_modmul(H, a, ek->curve->e.G_order);
@@ -1269,15 +1268,15 @@ static void ssh_ecdhkex_w_setup(ecdh_key *dh)
 
 static void ssh_ecdhkex_m_setup(ecdh_key *dh)
 {
-    unsigned char bytes[dh->curve->fieldBytes];
-    for (size_t i = 0; i < sizeof(bytes); ++i)
-        bytes[i] = random_byte();
+    strbuf *bytes = strbuf_new();
+    for (size_t i = 0; i < dh->curve->fieldBytes; ++i)
+        put_byte(bytes, random_byte());
 
-    bytes[0] &= 0xF8;
-    bytes[dh->curve->fieldBytes-1] &= 0x7F;
-    bytes[dh->curve->fieldBytes-1] |= 0x40;
-    dh->private = mp_from_bytes_le(make_ptrlen(bytes, dh->curve->fieldBytes));
-    smemclr(bytes, sizeof(bytes));
+    bytes->u[0] &= 0xF8;
+    bytes->u[bytes->len-1] &= 0x7F;
+    bytes->u[bytes->len-1] |= 0x40;
+    dh->private = mp_from_bytes_le(ptrlen_from_strbuf(bytes));
+    strbuf_free(bytes);
 
     dh->m_public = ecc_montgomery_multiply(dh->curve->m.G, dh->private);
 }
@@ -1397,7 +1396,7 @@ static const struct eckex_extra kex_extra_curve25519 = {
     ssh_ecdhkex_m_getpublic,
     ssh_ecdhkex_m_getkey,
 };
-static const struct ssh_kex ssh_ec_kex_curve25519 = {
+const struct ssh_kex ssh_ec_kex_curve25519 = {
     "curve25519-sha256@libssh.org", NULL, KEXTYPE_ECDH,
     &ssh_sha256, &kex_extra_curve25519,
 };
@@ -1409,7 +1408,7 @@ const struct eckex_extra kex_extra_nistp256 = {
     ssh_ecdhkex_w_getpublic,
     ssh_ecdhkex_w_getkey,
 };
-static const struct ssh_kex ssh_ec_kex_nistp256 = {
+const struct ssh_kex ssh_ec_kex_nistp256 = {
     "ecdh-sha2-nistp256", NULL, KEXTYPE_ECDH,
     &ssh_sha256, &kex_extra_nistp256,
 };
@@ -1421,7 +1420,7 @@ const struct eckex_extra kex_extra_nistp384 = {
     ssh_ecdhkex_w_getpublic,
     ssh_ecdhkex_w_getkey,
 };
-static const struct ssh_kex ssh_ec_kex_nistp384 = {
+const struct ssh_kex ssh_ec_kex_nistp384 = {
     "ecdh-sha2-nistp384", NULL, KEXTYPE_ECDH,
     &ssh_sha384, &kex_extra_nistp384,
 };
@@ -1433,7 +1432,7 @@ const struct eckex_extra kex_extra_nistp521 = {
     ssh_ecdhkex_w_getpublic,
     ssh_ecdhkex_w_getkey,
 };
-static const struct ssh_kex ssh_ec_kex_nistp521 = {
+const struct ssh_kex ssh_ec_kex_nistp521 = {
     "ecdh-sha2-nistp521", NULL, KEXTYPE_ECDH,
     &ssh_sha512, &kex_extra_nistp521,
 };

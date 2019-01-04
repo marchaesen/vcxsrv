@@ -256,6 +256,15 @@ parameter.</p>
 will likely have to alter them for your system.</p>
 
 <p>
+Those running on ArchLinux can use the AUR-maintained packages for some
+of those, as they'll have the right values for your system:
+<ul>
+  <li><a href="https://aur.archlinux.org/packages/meson-cross-x86-linux-gnu">meson-cross-x86-linux-gnu</a></li>
+  <li><a href="https://aur.archlinux.org/packages/meson-cross-aarch64-linux-gnu">meson-cross-aarch64-linux-gnu</a></li>
+</ul>
+</p>
+
+<p>
 32-bit build on x86 linux:
 <pre>
 [binaries]
@@ -286,14 +295,14 @@ endian = 'little'
 [binaries]
 c = '/usr/bin/aarch64-linux-gnu-gcc'
 cpp = '/usr/bin/aarch64-linux-gnu-g++'
-ar = '/usr/bin/aarch64-linux-gnu-ar'
+ar = '/usr/bin/aarch64-linux-gnu-gcc-ar'
 strip = '/usr/bin/aarch64-linux-gnu-strip'
 pkgconfig = '/usr/bin/aarch64-linux-gnu-pkg-config'
 exe_wrapper = '/usr/bin/qemu-aarch64-static'
 
 [host_machine]
 system = 'linux'
-cpu_family = 'arm'
+cpu_family = 'aarch64'
 cpu = 'aarch64'
 endian = 'little'
 </pre>

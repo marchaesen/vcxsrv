@@ -11,8 +11,10 @@
 
 #include <stdio.h>		       /* for FILE * */
 #include <stdarg.h>		       /* for va_list */
+#include <stdlib.h>                    /* for abort */
 #include <time.h>                      /* for struct tm */
 #include <limits.h>                    /* for INT_MAX/MIN */
+#include <assert.h>                    /* for assert (obviously) */
 
 unsigned long parse_blocksize(const char *bs);
 char ctrlparse(char *s, char **next);
@@ -94,6 +96,8 @@ struct bufchain_granule;
 struct bufchain_tag {
     struct bufchain_granule *head, *tail;
     int buffersize;		       /* current amount of buffered data */
+
+    void (*queue_idempotent_callback)(IdempotentCallback *ic);
     IdempotentCallback *ic;
 };
 
@@ -107,6 +111,19 @@ void bufchain_fetch(bufchain *ch, void *data, int len);
 void bufchain_fetch_consume(bufchain *ch, void *data, int len);
 bool bufchain_try_fetch_consume(bufchain *ch, void *data, int len);
 int bufchain_fetch_consume_up_to(bufchain *ch, void *data, int len);
+void bufchain_set_callback_inner(
+    bufchain *ch, IdempotentCallback *ic,
+    void (*queue_idempotent_callback)(IdempotentCallback *ic));
+static inline void bufchain_set_callback(bufchain *ch, IdempotentCallback *ic)
+{
+    extern void queue_idempotent_callback(struct IdempotentCallback *ic);
+    /* Wrapper that puts in the standard queue_idempotent_callback
+     * function. Lives here rather than in utils.c so that standalone
+     * programs can use the bufchain facility without this optional
+     * callback feature and not need to provide a stub of
+     * queue_idempotent_callback. */
+    bufchain_set_callback_inner(ch, ic, queue_idempotent_callback);
+}
 
 void sanitise_term_data(bufchain *out, const void *vdata, int len);
 
@@ -140,6 +157,7 @@ static inline ptrlen ptrlen_from_strbuf(strbuf *sb)
 
 bool ptrlen_eq_string(ptrlen pl, const char *str);
 bool ptrlen_eq_ptrlen(ptrlen pl1, ptrlen pl2);
+int ptrlen_strcmp(ptrlen pl1, ptrlen pl2);
 bool ptrlen_startswith(ptrlen whole, ptrlen prefix, ptrlen *tail);
 char *mkstr(ptrlen pl);
 int string_length_for_printf(size_t);
@@ -168,6 +186,22 @@ void smemclr(void *b, size_t len);
 bool smemeq(const void *av, const void *bv, size_t len);
 
 char *buildinfo(const char *newline);
+
+/*
+ * A function you can put at points in the code where execution should
+ * never reach in the first place. Better than assert(false), or even
+ * assert(false && "some explanatory message"), because some compilers
+ * don't interpret assert(false) as a declaration of unreachability,
+ * so they may still warn about pointless things like some variable
+ * not being initialised on the unreachable code path.
+ *
+ * I follow the assertion with a call to abort() just in case someone
+ * compiles with -DNDEBUG, and I wrap that abort inside my own
+ * function labelled NORETURN just in case some unusual kind of system
+ * header wasn't foresighted enough to label abort() itself that way.
+ */
+static inline NORETURN void unreachable_internal(void) { abort(); }
+#define unreachable(msg) (assert(false && msg), unreachable_internal())
 
 /*
  * Debugging functions.

@@ -2693,18 +2693,22 @@ find_available_slots(unsigned used_mask, unsigned needed_count)
 #define SAFE_MASK_FROM_INDEX(i) (((i) >= 32) ? ~0 : ((1 << (i)) - 1))
 
 /**
- * Assign locations for either VS inputs or FS outputs
+ * Assign locations for either VS inputs or FS outputs.
  *
- * \param mem_ctx       Temporary ralloc context used for linking
- * \param prog          Shader program whose variables need locations assigned
- * \param constants     Driver specific constant values for the program.
- * \param target_index  Selector for the program target to receive location
- *                      assignmnets.  Must be either \c MESA_SHADER_VERTEX or
- *                      \c MESA_SHADER_FRAGMENT.
+ * \param mem_ctx        Temporary ralloc context used for linking.
+ * \param prog           Shader program whose variables need locations
+ *                       assigned.
+ * \param constants      Driver specific constant values for the program.
+ * \param target_index   Selector for the program target to receive location
+ *                       assignmnets.  Must be either \c MESA_SHADER_VERTEX or
+ *                       \c MESA_SHADER_FRAGMENT.
+ * \param do_assignment  Whether we are actually marking the assignment or we
+ *                       are just doing a dry-run checking.
  *
  * \return
- * If locations are successfully assigned, true is returned.  Otherwise an
- * error is emitted to the shader link log and false is returned.
+ * If locations are (or can be, in case of dry-running) successfully assigned,
+ * true is returned.  Otherwise an error is emitted to the shader link log and
+ * false is returned.
  */
 static bool
 assign_attribute_or_color_locations(void *mem_ctx,

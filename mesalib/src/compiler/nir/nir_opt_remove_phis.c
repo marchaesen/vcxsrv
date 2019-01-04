@@ -139,7 +139,7 @@ remove_phis_block(nir_block *block, nir_builder *b)
    return progress;
 }
 
-bool
+static bool
 nir_opt_remove_phis_impl(nir_function_impl *impl)
 {
    bool progress = false;

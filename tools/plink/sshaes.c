@@ -860,7 +860,7 @@ static void aes_encrypt_cbc_sw(unsigned char *blk, int len, AESContext * ctx)
             ENCLASTROUND;
             break;
           default:
-            assert(0);
+            unreachable("bad AES round count");
         }
 	for (i = 0; i < 4; i++)
             PUT_32BIT_MSB_FIRST(blk + 4 * i, block[i]);
@@ -905,7 +905,7 @@ static void aes_sdctr_sw(unsigned char *blk, int len, AESContext *ctx)
             ENCLASTROUND;
             break;
           default:
-            assert(0);
+            unreachable("bad AES round count");
         }
 	for (i = 0; i < 4; i++) {
             tmp = GET_32BIT_MSB_FIRST(blk + 4 * i);
@@ -956,7 +956,7 @@ static void aes_decrypt_cbc_sw(unsigned char *blk, int len, AESContext * ctx)
             DECLASTROUND;
             break;
           default:
-            assert(0);
+            unreachable("bad AES round count");
         }
 	for (i = 0; i < 4; i++) {
             PUT_32BIT_MSB_FIRST(blk + 4 * i, iv[i] ^ block[i]);
@@ -1089,7 +1089,7 @@ static void aes_ssh2_sdctr_method(ssh2_cipher *cipher, void *blk, int len)
     aes_sdctr(blk, len, &ctx->context);
 }
 
-static const struct ssh2_cipheralg ssh_aes128_ctr = {
+const struct ssh2_cipheralg ssh_aes128_ctr = {
     aes_ssh2_new, aes_ssh2_free, aes_ssh2_setiv, aes_ssh2_setkey,
     aes_ssh2_sdctr_method, aes_ssh2_sdctr_method, NULL, NULL,
     "aes128-ctr",
@@ -1097,7 +1097,7 @@ static const struct ssh2_cipheralg ssh_aes128_ctr = {
     NULL
 };
 
-static const struct ssh2_cipheralg ssh_aes192_ctr = {
+const struct ssh2_cipheralg ssh_aes192_ctr = {
     aes_ssh2_new, aes_ssh2_free, aes_ssh2_setiv, aes_ssh2_setkey,
     aes_ssh2_sdctr_method, aes_ssh2_sdctr_method, NULL, NULL,
     "aes192-ctr",
@@ -1105,7 +1105,7 @@ static const struct ssh2_cipheralg ssh_aes192_ctr = {
     NULL
 };
 
-static const struct ssh2_cipheralg ssh_aes256_ctr = {
+const struct ssh2_cipheralg ssh_aes256_ctr = {
     aes_ssh2_new, aes_ssh2_free, aes_ssh2_setiv, aes_ssh2_setkey,
     aes_ssh2_sdctr_method, aes_ssh2_sdctr_method, NULL, NULL,
     "aes256-ctr",
@@ -1113,7 +1113,7 @@ static const struct ssh2_cipheralg ssh_aes256_ctr = {
     NULL
 };
 
-static const struct ssh2_cipheralg ssh_aes128 = {
+const struct ssh2_cipheralg ssh_aes128 = {
     aes_ssh2_new, aes_ssh2_free, aes_ssh2_setiv, aes_ssh2_setkey,
     aes_ssh2_encrypt, aes_ssh2_decrypt, NULL, NULL,
     "aes128-cbc",
@@ -1121,7 +1121,7 @@ static const struct ssh2_cipheralg ssh_aes128 = {
     NULL
 };
 
-static const struct ssh2_cipheralg ssh_aes192 = {
+const struct ssh2_cipheralg ssh_aes192 = {
     aes_ssh2_new, aes_ssh2_free, aes_ssh2_setiv, aes_ssh2_setkey,
     aes_ssh2_encrypt, aes_ssh2_decrypt, NULL, NULL,
     "aes192-cbc",
@@ -1129,7 +1129,7 @@ static const struct ssh2_cipheralg ssh_aes192 = {
     NULL
 };
 
-static const struct ssh2_cipheralg ssh_aes256 = {
+const struct ssh2_cipheralg ssh_aes256 = {
     aes_ssh2_new, aes_ssh2_free, aes_ssh2_setiv, aes_ssh2_setkey,
     aes_ssh2_encrypt, aes_ssh2_decrypt, NULL, NULL,
     "aes256-cbc",
@@ -1137,6 +1137,8 @@ static const struct ssh2_cipheralg ssh_aes256 = {
     NULL
 };
 
+/* This cipher is just ssh_aes256 under a different protocol
+ * identifier; we leave it 'static' because testcrypt won't need it */
 static const struct ssh2_cipheralg ssh_rijndael_lysator = {
     aes_ssh2_new, aes_ssh2_free, aes_ssh2_setiv, aes_ssh2_setkey,
     aes_ssh2_encrypt, aes_ssh2_decrypt, NULL, NULL,
@@ -1505,7 +1507,7 @@ static void aes_encrypt_cbc_ni(unsigned char *blk, int len, AESContext * ctx)
             enc = _mm_aesenclast_si128(enc, *(++keysched));
             break;
           default:
-            assert(0);
+            unreachable("bad AES round count");
         }
 
         /* Store and go to next block */
@@ -1552,7 +1554,7 @@ static void aes_decrypt_cbc_ni(unsigned char *blk, int len, AESContext * ctx)
             dec = _mm_aesdeclast_si128(dec, *(++keysched));
             break;
           default:
-            assert(0);
+            unreachable("bad AES round count");
         }
 
         /* Xor data with IV */
@@ -1610,7 +1612,7 @@ static void aes_sdctr_ni(unsigned char *blk, int len, AESContext *ctx)
             enc = _mm_aesenclast_si128(enc, *(++keysched));
             break;
           default:
-            assert(0);
+            unreachable("bad AES round count");
         }
 
         /* Xor with block and store result */
@@ -1725,7 +1727,7 @@ static void aes_setup_ni(AESContext * ctx,
         AES_256_Key_Expansion (key, keysched);
         break;
       default:
-        assert(0);
+        unreachable("bad AES key length");
     }
 
     /*
@@ -1742,7 +1744,7 @@ static void aes_setup_ni(AESContext * ctx,
         aes_inv_key_14(ctx);
         break;
       default:
-        assert(0);
+        unreachable("bad AES key length");
     }
 }
 
@@ -1750,7 +1752,7 @@ static void aes_setup_ni(AESContext * ctx,
 
 static void aes_setup_ni(AESContext * ctx, const unsigned char *key, int keylen)
 {
-    assert(0);
+    unreachable("aes_setup_ni called when not compiled in");
 }
 
 INLINE static bool supports_aes_ni()
