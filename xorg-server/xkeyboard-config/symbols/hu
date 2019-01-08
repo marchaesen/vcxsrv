@@ -415,7 +415,7 @@ xkb_symbols "def_common" {
     key <AC08>  { [            k,            K,           lstroke                  ] };
     key <AC09>  { [            l,            L,           Lstroke                  ] };
     key <AC10>  { [       eacute,       Eacute,            dollar,            cent ] };
-    key <AC11>  { [       aacute,       Aacute,            ssharp                  ] };
+    key <AC11>  { [       aacute,       Aacute,            ssharp,           U1E9E ] };
 
     key <BKSL>  { [ udoubleacute, Udoubleacute,          currency                  ] };
 

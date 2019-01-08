@@ -378,6 +378,8 @@ struct vtn_type {
    };
 };
 
+bool vtn_type_contains_block(struct vtn_builder *b, struct vtn_type *type);
+
 bool vtn_types_compatible(struct vtn_builder *b,
                           struct vtn_type *t1, struct vtn_type *t2);
 
@@ -390,7 +392,7 @@ enum vtn_access_mode {
 
 struct vtn_access_link {
    enum vtn_access_mode mode;
-   uint32_t id;
+   int64_t id;
 };
 
 struct vtn_access_chain {
@@ -443,19 +445,8 @@ struct vtn_pointer {
     */
    struct vtn_variable *var;
 
-   /** The deref at the base of the chain
-    *
-    * This field may be NULL if the pointer uses a (block_index, offset) pair
-    * instead of an access chain or if the access chain starts at a variable.
-    */
+   /** The NIR deref corresponding to this pointer */
    nir_deref_instr *deref;
-
-   /** An access chain describing how to get from var to the referenced data
-    *
-    * This field may be NULL if the pointer references the entire variable or
-    * if a (block_index, offset) pair is used instead of an access chain.
-    */
-   struct vtn_access_chain *chain;
 
    /** A (block_index, offset) pair representing a UBO or SSBO position. */
    struct nir_ssa_def *block_index;
@@ -464,6 +455,9 @@ struct vtn_pointer {
    /* Access qualifiers */
    enum gl_access_qualifier access;
 };
+
+bool vtn_pointer_uses_ssa_offset(struct vtn_builder *b,
+                                 struct vtn_pointer *ptr);
 
 struct vtn_variable {
    enum vtn_variable_mode mode;
@@ -597,6 +591,7 @@ struct vtn_builder {
    struct vtn_value *entry_point;
    bool origin_upper_left;
    bool pixel_center_integer;
+   bool variable_pointers;
 
    struct vtn_function *func;
    struct exec_list functions;

@@ -165,7 +165,7 @@ xkb_symbols "de" {
     key <AB07>	{	[	m,		M,		greater,	greater		]	};
     key <AC10>  {	[       odiaeresis,     Odiaeresis,     equal,		equal		]       };
     key <AE11>  {	[       adiaeresis,     Adiaeresis,     apostrophe,	apostrophe	]       };
-    key <AE12>  {	[       minus,          underscore,     ssharp,		ssharp		]       };
+    key <AE12>  {	[       minus,          underscore,     ssharp,		U1E9E		]       };
 
     key <AB08>  {       [       comma,          semicolon,      comma,		semicolon	]	};
     key <AB09>  {       [       period,         colon,          period,		colon		]	};

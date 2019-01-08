@@ -192,7 +192,7 @@ xkb_symbols "de" {
 
     // 1. row
     key <AD06>	{ [	z,		Z,		6,		6		] };
-    key <AB08>	{ [	udiaeresis,	Udiaeresis,	ssharp,		ssharp		] };
+    key <AB08>	{ [	udiaeresis,	Udiaeresis,	ssharp,		U1E9E		] };
 
     // 2. row
     key <AC08>	{ [	k,		K,		semicolon,	semicolon	] };

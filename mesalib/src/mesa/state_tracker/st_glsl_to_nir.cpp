@@ -253,8 +253,7 @@ st_nir_assign_uniform_locations(struct gl_context *ctx,
        * UBO's have their own address spaces, so don't count them towards the
        * number of global uniforms
        */
-      if ((uniform->data.mode == nir_var_uniform || uniform->data.mode == nir_var_shader_storage) &&
-          uniform->interface_type != NULL)
+      if (uniform->data.mode == nir_var_ubo || uniform->data.mode == nir_var_ssbo)
          continue;
 
       const struct glsl_type *type = glsl_without_array(uniform->type);
@@ -586,7 +585,15 @@ st_nir_get_mesa_program(struct gl_context *ctx,
 static void
 st_nir_link_shaders(nir_shader **producer, nir_shader **consumer, bool scalar)
 {
+   if (scalar) {
+      NIR_PASS_V(*producer, nir_lower_io_to_scalar_early, nir_var_shader_out);
+      NIR_PASS_V(*consumer, nir_lower_io_to_scalar_early, nir_var_shader_in);
+   }
+
    nir_lower_io_arrays_to_elements(*producer, *consumer);
+
+   st_nir_opts(*producer, scalar);
+   st_nir_opts(*consumer, scalar);
 
    if (nir_link_opt_varyings(*producer, *consumer))
       st_nir_opts(*consumer, scalar);
@@ -663,51 +670,23 @@ st_link_nir(struct gl_context *ctx,
    struct pipe_screen *screen = st->pipe->screen;
    bool is_scalar[MESA_SHADER_STAGES];
 
-   /* Determine scalar property of each shader stage */
-   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
-      struct gl_linked_shader *shader = shader_program->_LinkedShaders[i];
-      enum pipe_shader_type type;
-
-      if (shader == NULL)
-         continue;
-
-      type = pipe_shader_type_from_mesa(shader->Stage);
-      is_scalar[i] = screen->get_shader_param(screen, type, PIPE_SHADER_CAP_SCALAR_ISA);
-   }
-
-   /* Determine first and last stage. */
-   unsigned first = MESA_SHADER_STAGES;
-   unsigned last = 0;
-   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
-      if (!shader_program->_LinkedShaders[i])
-         continue;
-      if (first == MESA_SHADER_STAGES)
-         first = i;
-      last = i;
-   }
-
+   unsigned last_stage = 0;
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_linked_shader *shader = shader_program->_LinkedShaders[i];
       if (shader == NULL)
          continue;
+
+      /* Determine scalar property of each shader stage */
+      enum pipe_shader_type type = pipe_shader_type_from_mesa(shader->Stage);
+      is_scalar[i] = screen->get_shader_param(screen, type,
+                                              PIPE_SHADER_CAP_SCALAR_ISA);
 
       st_nir_get_mesa_program(ctx, shader_program, shader);
-
-      nir_variable_mode mask = (nir_variable_mode) 0;
-      if (i != first)
-         mask = (nir_variable_mode)(mask | nir_var_shader_in);
-
-      if (i != last)
-         mask = (nir_variable_mode)(mask | nir_var_shader_out);
-
-      nir_shader *nir = shader->Program->nir;
+      last_stage = i;
 
       if (is_scalar[i]) {
-         NIR_PASS_V(nir, nir_lower_io_to_scalar_early, mask);
-         NIR_PASS_V(nir, nir_lower_load_const_to_scalar);
+         NIR_PASS_V(shader->Program->nir, nir_lower_load_const_to_scalar);
       }
-
-      st_nir_opts(nir, is_scalar[i]);
    }
 
    /* Linking the stages in the opposite order (from fragment to vertex)
@@ -715,7 +694,7 @@ st_link_nir(struct gl_context *ctx,
     * are eliminated if they are (transitively) not used in a later
     * stage.
     */
-   int next = last;
+   int next = last_stage;
    for (int i = next - 1; i >= 0; i--) {
       struct gl_linked_shader *shader = shader_program->_LinkedShaders[i];
       if (shader == NULL)

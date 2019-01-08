@@ -100,8 +100,9 @@ typedef enum {
    nir_var_global          = (1 << 2),
    nir_var_local           = (1 << 3),
    nir_var_uniform         = (1 << 4),
-   nir_var_shader_storage  = (1 << 5),
+   nir_var_ubo             = (1 << 5),
    nir_var_system_value    = (1 << 6),
+   nir_var_ssbo            = (1 << 7),
    nir_var_shared          = (1 << 8),
    nir_var_all             = ~0,
 } nir_variable_mode;
@@ -997,6 +998,7 @@ typedef enum {
    nir_deref_type_var,
    nir_deref_type_array,
    nir_deref_type_array_wildcard,
+   nir_deref_type_ptr_as_array,
    nir_deref_type_struct,
    nir_deref_type_cast,
 } nir_deref_type;
@@ -1030,6 +1032,10 @@ typedef struct {
       struct {
          unsigned index;
       } strct;
+
+      struct {
+         unsigned ptr_stride;
+      } cast;
    };
 
    /** Destination to store the resulting "pointer" */
@@ -1076,6 +1082,8 @@ nir_deref_instr_get_variable(const nir_deref_instr *instr)
 bool nir_deref_instr_has_indirect(nir_deref_instr *instr);
 
 bool nir_deref_instr_remove_if_unused(nir_deref_instr *instr);
+
+unsigned nir_deref_instr_ptr_as_array_stride(nir_deref_instr *instr);
 
 typedef struct {
    nir_instr instr;
@@ -1254,7 +1262,7 @@ typedef enum {
    NIR_INTRINSIC_FORMAT = 15,
 
    /**
-    * Access qualifiers for image intrinsics
+    * Access qualifiers for image and memory access intrinsics
     */
    NIR_INTRINSIC_ACCESS = 16,
 
@@ -1270,6 +1278,11 @@ typedef enum {
    NIR_INTRINSIC_ALIGN_MUL = 17,
    NIR_INTRINSIC_ALIGN_OFFSET = 18,
 
+   /**
+    * The Vulkan descriptor type for a vulkan_resource_[re]index intrinsic.
+    */
+   NIR_INTRINSIC_DESC_TYPE = 19,
+
    NIR_INTRINSIC_NUM_INDEX_FLAGS,
 
 } nir_intrinsic_index_flag;
@@ -1284,9 +1297,11 @@ typedef struct {
    /** number of components of each input register
     *
     * If this value is 0, the number of components is given by the
-    * num_components field of nir_intrinsic_instr.
+    * num_components field of nir_intrinsic_instr.  If this value is -1, the
+    * intrinsic consumes however many components are provided and it is not
+    * validated at all.
     */
-   unsigned src_components[NIR_INTRINSIC_MAX_INPUTS];
+   int src_components[NIR_INTRINSIC_MAX_INPUTS];
 
    bool has_dest;
 
@@ -1314,10 +1329,12 @@ nir_intrinsic_src_components(nir_intrinsic_instr *intr, unsigned srcn)
 {
    const nir_intrinsic_info *info = &nir_intrinsic_infos[intr->intrinsic];
    assert(srcn < info->num_srcs);
-   if (info->src_components[srcn])
+   if (info->src_components[srcn] > 0)
       return info->src_components[srcn];
-   else
+   else if (info->src_components[srcn] == 0)
       return intr->num_components;
+   else
+      return nir_src_num_components(intr->src[srcn]);
 }
 
 static inline unsigned
@@ -1366,6 +1383,7 @@ INTRINSIC_IDX_ACCESSORS(access, ACCESS, enum gl_access_qualifier)
 INTRINSIC_IDX_ACCESSORS(format, FORMAT, unsigned)
 INTRINSIC_IDX_ACCESSORS(align_mul, ALIGN_MUL, unsigned)
 INTRINSIC_IDX_ACCESSORS(align_offset, ALIGN_OFFSET, unsigned)
+INTRINSIC_IDX_ACCESSORS(desc_type, DESC_TYPE, unsigned)
 
 static inline void
 nir_intrinsic_set_align(nir_intrinsic_instr *intrin,
@@ -2884,6 +2902,18 @@ bool nir_lower_io(nir_shader *shader,
                   nir_variable_mode modes,
                   int (*type_size)(const struct glsl_type *),
                   nir_lower_io_options);
+
+typedef enum {
+   /**
+    * An address format which is comprised of a vec2 where the first
+    * component is a vulkan descriptor index and the second is an offset.
+    */
+   nir_address_format_vk_index_offset,
+} nir_address_format;
+bool nir_lower_explicit_io(nir_shader *shader,
+                           nir_variable_mode modes,
+                           nir_address_format);
+
 nir_src *nir_get_io_offset_src(nir_intrinsic_instr *instr);
 nir_src *nir_get_io_vertex_index_src(nir_intrinsic_instr *instr);
 
@@ -2932,6 +2962,16 @@ bool nir_lower_subgroups(nir_shader *shader,
                          const nir_lower_subgroups_options *options);
 
 bool nir_lower_system_values(nir_shader *shader);
+
+enum PACKED nir_lower_tex_packing {
+   nir_lower_tex_packing_none = 0,
+   /* The sampler returns up to 2 32-bit words of half floats or 16-bit signed
+    * or unsigned ints based on the sampler type
+    */
+   nir_lower_tex_packing_16,
+   /* The sampler returns 1 32-bit word of 4x8 unorm */
+   nir_lower_tex_packing_8,
+};
 
 typedef struct nir_lower_tex_options {
    /**
@@ -3044,6 +3084,8 @@ typedef struct nir_lower_tex_options {
     * with nir_texop_txl.  This includes cube maps.
     */
    bool lower_txd_offset_clamp;
+
+   enum nir_lower_tex_packing lower_tex_packing[32];
 } nir_lower_tex_options;
 
 bool nir_lower_tex(nir_shader *shader,
@@ -3182,6 +3224,8 @@ bool nir_opt_dce(nir_shader *shader);
 bool nir_opt_dead_cf(nir_shader *shader);
 
 bool nir_opt_dead_write_vars(nir_shader *shader);
+
+bool nir_opt_deref(nir_shader *shader);
 
 bool nir_opt_find_array_copies(nir_shader *shader);
 

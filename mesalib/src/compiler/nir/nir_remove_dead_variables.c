@@ -103,6 +103,9 @@ remove_dead_var_writes(nir_shader *shader, struct set *live)
             switch (instr->type) {
             case nir_instr_type_deref: {
                nir_deref_instr *deref = nir_instr_as_deref(instr);
+               if (deref->deref_type == nir_deref_type_cast &&
+                   !nir_deref_instr_parent(deref))
+                  continue;
 
                nir_variable_mode parent_mode;
                if (deref->deref_type == nir_deref_type_var)

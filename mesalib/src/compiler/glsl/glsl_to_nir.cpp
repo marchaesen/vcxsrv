@@ -354,11 +354,14 @@ nir_visitor::visit(ir_variable *ir)
       break;
 
    case ir_var_uniform:
-      var->data.mode = nir_var_uniform;
+      if (ir->get_interface_type())
+         var->data.mode = nir_var_ubo;
+      else
+         var->data.mode = nir_var_uniform;
       break;
 
    case ir_var_shader_storage:
-      var->data.mode = nir_var_shader_storage;
+      var->data.mode = nir_var_ssbo;
       break;
 
    case ir_var_system_value:

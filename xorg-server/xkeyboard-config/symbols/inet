@@ -1910,3 +1910,14 @@ partial alphanumeric_keys
 xkb_symbols "teck229" {
     include "inet(teck227)"
 };
+
+partial alphanumeric_keys
+xkb_symbols "teck227" {
+    include "inet(media_nav_common)"
+    key <HIRA> { [ Hiragana ] };
+}
+
+partial alphanumeric_keys
+xkb_symbols "teck229" {
+    include "inet(teck227)"
+}

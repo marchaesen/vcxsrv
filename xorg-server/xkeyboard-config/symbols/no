@@ -96,7 +96,7 @@ xkb_symbols "dvorak" {
     key <AC03> { [	    e,	E,      EuroSign,	cent	 ] };
     key <AC05> { [	    i,	I,      idotless,       Iabovedot] };
     key <AC06> { [	    d,	D,      eth,		ETH	 ] };
-    key <AC10> { [	    s,	S,      ssharp			 ] };
+    key <AC10> { [	    s,	S,      ssharp,		U1E9E	 ] };
     key <AC11> { [	minus,	underscore, hyphen,	diaeresis] };
 
     key <AB01> { [	   ae,	AE,     braceleft,	bracketleft] };

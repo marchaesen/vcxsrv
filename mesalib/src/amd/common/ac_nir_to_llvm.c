@@ -2392,24 +2392,33 @@ static void visit_image_store(struct ac_nir_context *ctx,
 		glc = ctx->ac.i1true;
 
 	if (dim == GLSL_SAMPLER_DIM_BUF) {
+		char name[48];
+		const char *types[] = { "f32", "v2f32", "v4f32" };
 		LLVMValueRef rsrc = get_image_buffer_descriptor(ctx, instr, true);
+		LLVMValueRef src = ac_to_float(&ctx->ac, get_src(ctx, instr->src[3]));
+		unsigned src_channels = ac_get_llvm_num_components(src);
 
-		params[0] = ac_to_float(&ctx->ac, get_src(ctx, instr->src[3])); /* data */
+		if (src_channels == 3)
+			src = ac_build_expand(&ctx->ac, src, 3, 4);
+
+		params[0] = src; /* data */
 		params[1] = rsrc;
 		params[2] = LLVMBuildExtractElement(ctx->ac.builder, get_src(ctx, instr->src[1]),
 						    ctx->ac.i32_0, ""); /* vindex */
 		params[3] = ctx->ac.i32_0; /* voffset */
+		snprintf(name, sizeof(name), "%s.%s",
+		         HAVE_LLVM >= 0x800 ? "llvm.amdgcn.struct.buffer.store.format"
+		                            : "llvm.amdgcn.buffer.store.format",
+		         types[CLAMP(src_channels, 1, 3) - 1]);
+
 		if (HAVE_LLVM >= 0x800) {
 			params[4] = ctx->ac.i32_0; /* soffset */
 			params[5] = glc ? ctx->ac.i32_1 : ctx->ac.i32_0;
-			ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.struct.buffer.store.format.v4f32", ctx->ac.voidt,
-			                   params, 6, 0);
 		} else {
 			params[4] = glc;  /* glc */
 			params[5] = ctx->ac.i1false;  /* slc */
-			ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.buffer.store.format.v4f32", ctx->ac.voidt,
-			                   params, 6, 0);
 		}
+		ac_build_intrinsic(&ctx->ac, name, ctx->ac.voidt, params, 6, 0);
 	} else {
 		struct ac_image_args args = {};
 		args.opcode = ac_image_store;
@@ -4086,9 +4095,9 @@ get_inst_tessfactor_writemask(nir_intrinsic_instr *intrin)
 	unsigned num_comps = intrin->dest.ssa.num_components;
 
 	if (location == VARYING_SLOT_TESS_LEVEL_INNER)
-		writemask = ((1 << num_comps + 1) - 1) << first_component;
+		writemask = ((1 << (num_comps + 1)) - 1) << first_component;
 	else if (location == VARYING_SLOT_TESS_LEVEL_OUTER)
-		writemask = (((1 << num_comps + 1) - 1) << first_component) << 4;
+		writemask = (((1 << (num_comps + 1)) - 1) << first_component) << 4;
 
 	return writemask;
 }

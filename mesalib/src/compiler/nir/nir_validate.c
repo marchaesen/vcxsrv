@@ -448,10 +448,12 @@ validate_deref_instr(nir_deref_instr *instr, validate_state *state)
 
       case nir_deref_type_array:
       case nir_deref_type_array_wildcard:
-         if (instr->mode == nir_var_shared) {
-            /* Shared variables have a bit more relaxed rules because we need
-             * to be able to handle array derefs on vectors.  Fortunately,
-             * nir_lower_io handles these just fine.
+         if (instr->mode == nir_var_ubo ||
+             instr->mode == nir_var_ssbo ||
+             instr->mode == nir_var_shared) {
+            /* Shared variables and UBO/SSBOs have a bit more relaxed rules
+             * because we need to be able to handle array derefs on vectors.
+             * Fortunately, nir_lower_io handles these just fine.
              */
             validate_assert(state, glsl_type_is_array(parent->type) ||
                                    glsl_type_is_matrix(parent->type) ||
@@ -464,8 +466,23 @@ validate_deref_instr(nir_deref_instr *instr, validate_state *state)
          validate_assert(state,
             instr->type == glsl_get_array_element(parent->type));
 
-         if (instr->deref_type == nir_deref_type_array)
-            validate_src(&instr->arr.index, state, 32, 1);
+         if (instr->deref_type == nir_deref_type_array) {
+            validate_src(&instr->arr.index, state,
+                         nir_dest_bit_size(instr->dest), 1);
+         }
+         break;
+
+      case nir_deref_type_ptr_as_array:
+         /* ptr_as_array derefs must have a parent that is either an array,
+          * ptr_as_array, or cast.  If the parent is a cast, we get the stride
+          * information (if any) from the cast deref.
+          */
+         validate_assert(state,
+                         parent->deref_type == nir_deref_type_array ||
+                         parent->deref_type == nir_deref_type_ptr_as_array ||
+                         parent->deref_type == nir_deref_type_cast);
+         validate_src(&instr->arr.index, state,
+                      nir_dest_bit_size(instr->dest), 1);
          break;
 
       default:
@@ -478,6 +495,12 @@ validate_deref_instr(nir_deref_instr *instr, validate_state *state)
     * pointers should be.
     */
    validate_dest(&instr->dest, state, 0, 0);
+
+   /* Deref instructions as if conditions don't make sense because if
+    * conditions expect well-formed Booleans.  If you want to compare with
+    * NULL, an explicit comparison operation should be used.
+    */
+   validate_assert(state, list_empty(&instr->dest.ssa.if_uses));
 }
 
 static void
@@ -513,8 +536,7 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
                              glsl_get_vector_elements(dst->type));
       src_bit_sizes[1] = glsl_get_bit_size(dst->type);
       validate_assert(state, (dst->mode & (nir_var_shader_in |
-                                           nir_var_uniform |
-                                           nir_var_shader_storage)) == 0);
+                                           nir_var_uniform)) == 0);
       validate_assert(state, (nir_intrinsic_write_mask(instr) & ~((1 << instr->num_components) - 1)) == 0);
       break;
    }
@@ -524,8 +546,7 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
       nir_deref_instr *src = nir_src_as_deref(instr->src[1]);
       validate_assert(state, dst->type == src->type);
       validate_assert(state, (dst->mode & (nir_var_shader_in |
-                                           nir_var_uniform |
-                                           nir_var_shader_storage)) == 0);
+                                           nir_var_uniform)) == 0);
       break;
    }
 
@@ -669,7 +690,6 @@ validate_phi_src(nir_phi_instr *instr, nir_block *pred, validate_state *state)
    nir_foreach_phi_src(src, instr) {
       if (src->pred == pred) {
          validate_assert(state, src->src.is_ssa);
-         validate_assert(state, src->src.ssa->parent_instr->type != nir_instr_type_deref);
          validate_src(&src->src, state, instr->dest.ssa.bit_size,
                       instr->dest.ssa.num_components);
          state->instr = NULL;

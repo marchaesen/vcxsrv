@@ -27,6 +27,8 @@ AM_CFLAGS = $(CWARNFLAGS)
 mkfontscale_LDADD  = @MKFONTSCALE_LIBS@
 
 mkfontscale_SOURCES = \
+	constlist.c \
+	constlist.h \
 	data.h \
 	hash.c \
 	hash.h \

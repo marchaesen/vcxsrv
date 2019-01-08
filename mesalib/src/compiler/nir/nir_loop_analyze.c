@@ -252,7 +252,7 @@ compute_induction_information(loop_info_state *state)
             nir_phi_instr *src_phi =
                nir_instr_as_phi(src_var->def->parent_instr);
 
-            nir_op alu_op;
+            nir_op alu_op = nir_num_opcodes; /* avoid uninitialized warning */
             nir_ssa_def *alu_srcs[2] = {0};
             nir_foreach_phi_src(src2, src_phi) {
                nir_loop_variable *src_var2 =

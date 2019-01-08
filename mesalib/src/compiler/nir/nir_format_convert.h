@@ -90,19 +90,24 @@ nir_format_unpack_int(nir_builder *b, nir_ssa_def *packed,
       return packed;
    }
 
+   unsigned next_chan = 0;
    unsigned offset = 0;
    for (unsigned i = 0; i < num_components; i++) {
       assert(bits[i] < bit_size);
       assert(offset + bits[i] <= bit_size);
+      nir_ssa_def *chan = nir_channel(b, packed, next_chan);
       nir_ssa_def *lshift = nir_imm_int(b, bit_size - (offset + bits[i]));
       nir_ssa_def *rshift = nir_imm_int(b, bit_size - bits[i]);
       if (sign_extend)
-         comps[i] = nir_ishr(b, nir_ishl(b, packed, lshift), rshift);
+         comps[i] = nir_ishr(b, nir_ishl(b, chan, lshift), rshift);
       else
-         comps[i] = nir_ushr(b, nir_ishl(b, packed, lshift), rshift);
+         comps[i] = nir_ushr(b, nir_ishl(b, chan, lshift), rshift);
       offset += bits[i];
+      if (offset >= bit_size) {
+         next_chan++;
+         offset -= bit_size;
+      }
    }
-   assert(offset <= bit_size);
 
    return nir_vec(b, comps, num_components);
 }

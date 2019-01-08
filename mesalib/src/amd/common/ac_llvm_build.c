@@ -1404,7 +1404,7 @@ ac_build_ddxy(struct ac_llvm_context *ctx,
 	      LLVMValueRef val)
 {
 	unsigned tl_lanes[4], trbl_lanes[4];
-	LLVMValueRef tl, trbl, args[2];
+	LLVMValueRef tl, trbl;
 	LLVMValueRef result;
 
 	for (unsigned i = 0; i < 4; ++i) {

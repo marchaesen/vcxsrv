@@ -142,7 +142,8 @@ nir_shader_add_variable(nir_shader *shader, nir_variable *var)
       break;
 
    case nir_var_uniform:
-   case nir_var_shader_storage:
+   case nir_var_ubo:
+   case nir_var_ssbo:
       exec_list_push_tail(&shader->uniforms, &var->node);
       break;
 
@@ -459,7 +460,8 @@ nir_deref_instr_create(nir_shader *shader, nir_deref_type deref_type)
    if (deref_type != nir_deref_type_var)
       src_init(&instr->parent);
 
-   if (deref_type == nir_deref_type_array)
+   if (deref_type == nir_deref_type_array ||
+       deref_type == nir_deref_type_ptr_as_array)
       src_init(&instr->arr.index);
 
    dest_init(&instr->dest);
@@ -1066,7 +1068,8 @@ visit_deref_instr_src(nir_deref_instr *instr,
          return false;
    }
 
-   if (instr->deref_type == nir_deref_type_array) {
+   if (instr->deref_type == nir_deref_type_array ||
+       instr->deref_type == nir_deref_type_ptr_as_array) {
       if (!visit_src(&instr->arr.index, cb, state))
          return false;
    }

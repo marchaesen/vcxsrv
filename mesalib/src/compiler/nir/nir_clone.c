@@ -311,13 +311,17 @@ clone_deref_instr(clone_state *state, const nir_deref_instr *deref)
       break;
 
    case nir_deref_type_array:
+   case nir_deref_type_ptr_as_array:
       __clone_src(state, &nderef->instr,
                   &nderef->arr.index, &deref->arr.index);
       break;
 
    case nir_deref_type_array_wildcard:
-   case nir_deref_type_cast:
       /* Nothing to do */
+      break;
+
+   case nir_deref_type_cast:
+      nderef->cast.ptr_stride = deref->cast.ptr_stride;
       break;
 
    default:

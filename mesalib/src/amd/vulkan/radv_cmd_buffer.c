@@ -1281,7 +1281,6 @@ radv_update_tc_compat_zrange_metadata(struct radv_cmd_buffer *cmd_buffer,
 				      struct radv_image *image,
 				      VkClearDepthStencilValue ds_clear_value)
 {
-	struct radeon_cmdbuf *cs = cmd_buffer->cs;
 	uint64_t va = radv_buffer_get_va(image->bo);
 	va += image->offset + image->tc_compat_zrange_offset;
 	uint32_t cond_val;

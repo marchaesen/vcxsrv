@@ -166,18 +166,10 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
 
         /* Limit the number of channels returned to both how many the NIR
          * instruction writes and how many the instruction could produce.
-         *
-         * XXX perf: Can we also limit to the number of channels that are
-         * actually read by the users of this NIR dest, so that we don't need
-         * to emit unused LDTMUs?
          */
-        uint32_t instr_return_channels = nir_tex_instr_dest_size(instr);
-        if (!p1_unpacked.output_type_32_bit)
-                instr_return_channels = (instr_return_channels + 1) / 2;
-
+        assert(instr->dest.is_ssa);
         p0_unpacked.return_words_of_texture_data =
-                (1 << MIN2(instr_return_channels,
-                           c->key->tex[unit].return_channels)) - 1;
+                nir_ssa_def_components_read(&instr->dest.ssa);
 
         /* Word enables can't ask for more channels than the output type could
          * provide (2 for f16, 4 for 32-bit).
@@ -232,62 +224,8 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
         while (tmu_writes > 16 / c->threads)
                 c->threads /= 2;
 
-        struct qreg return_values[4];
         for (int i = 0; i < 4; i++) {
-                /* Swizzling .zw of an RG texture should give undefined
-                 * results, not crash the compiler.
-                 */
                 if (p0_unpacked.return_words_of_texture_data & (1 << i))
-                        return_values[i] = vir_LDTMU(c);
-                else
-                        return_values[i] = c->undef;
-        }
-
-        for (int i = 0; i < nir_tex_instr_dest_size(instr); i++) {
-                struct qreg chan;
-
-                if (!p1_unpacked.output_type_32_bit) {
-                        STATIC_ASSERT(PIPE_SWIZZLE_X == 0);
-                        chan = return_values[i / 2];
-
-                        /* XXX perf: We should move this unpacking into NIR.
-                         * That would give us exposure of these types to NIR
-                         * optimization, so that (for example) a repacking of
-                         * half-float samples to the half-float render target
-                         * could be eliminated.
-                         */
-                        if (nir_alu_type_get_base_type(instr->dest_type) ==
-                            nir_type_float) {
-                                enum v3d_qpu_input_unpack unpack;
-                                if (i & 1)
-                                        unpack = V3D_QPU_UNPACK_H;
-                                else
-                                        unpack = V3D_QPU_UNPACK_L;
-
-                                chan = vir_FMOV(c, chan);
-                                vir_set_unpack(c->defs[chan.index], 0, unpack);
-                        } else {
-                                /* If we're unpacking the low field, shift it
-                                 * up to the top first.
-                                 */
-                                if ((i & 1) == 0) {
-                                        chan = vir_SHL(c, chan,
-                                                       vir_uniform_ui(c, 16));
-                                }
-
-                                /* Do proper sign extension to a 32-bit int. */
-                                if (nir_alu_type_get_base_type(instr->dest_type) ==
-                                    nir_type_int) {
-                                        chan = vir_ASR(c, chan,
-                                                       vir_uniform_ui(c, 16));
-                                } else {
-                                        chan = vir_SHR(c, chan,
-                                                       vir_uniform_ui(c, 16));
-                                }
-                        }
-                } else {
-                        chan = vir_MOV(c, return_values[i]);
-                }
-                ntq_store_dest(c, &instr->dest, i, chan);
+                        ntq_store_dest(c, &instr->dest, i, vir_LDTMU(c));
         }
 }

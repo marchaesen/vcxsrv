@@ -58,7 +58,8 @@ wrap_type_in_array(const struct glsl_type *type,
 
    const struct glsl_type *elem_type =
       wrap_type_in_array(type, glsl_get_array_element(array_type));
-   return glsl_array_type(elem_type, glsl_get_length(array_type));
+   assert(glsl_get_explicit_stride(array_type) == 0);
+   return glsl_array_type(elem_type, glsl_get_length(array_type), 0);
 }
 
 static int
@@ -341,6 +342,7 @@ init_var_list_array_infos(struct exec_list *vars,
 
       const struct glsl_type *type = var->type;
       for (int i = 0; i < num_levels; i++) {
+         assert(glsl_get_explicit_stride(type) == 0);
          info->levels[i].array_len = glsl_get_length(type);
          type = glsl_get_array_element(type);
 
@@ -506,7 +508,7 @@ split_var_list_arrays(nir_shader *shader,
                                           glsl_get_components(split_type),
                                           info->levels[i].array_len);
          } else {
-            split_type = glsl_array_type(split_type, info->levels[i].array_len);
+            split_type = glsl_array_type(split_type, info->levels[i].array_len, 0);
          }
       }
 
@@ -918,6 +920,7 @@ get_vec_var_usage(nir_variable *var,
    const struct glsl_type *type = var->type;
    for (unsigned i = 0; i < num_levels; i++) {
       usage->levels[i].array_len = glsl_get_length(type);
+      assert(glsl_get_explicit_stride(type) == 0);
       type = glsl_get_array_element(type);
    }
    assert(glsl_type_is_vector_or_scalar(type));
@@ -1290,7 +1293,7 @@ shrink_vec_var_list(struct exec_list *vars,
                                         new_num_comps,
                                         usage->levels[i].array_len);
          } else {
-            new_type = glsl_array_type(new_type, usage->levels[i].array_len);
+            new_type = glsl_array_type(new_type, usage->levels[i].array_len, 0);
          }
       }
       var->type = new_type;

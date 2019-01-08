@@ -136,7 +136,7 @@ gather_vars_written(struct copy_prop_var_state *state,
             written->modes |= nir_var_shader_out |
                               nir_var_global |
                               nir_var_local |
-                              nir_var_shader_storage |
+                              nir_var_ssbo |
                               nir_var_shared;
             continue;
          }
@@ -149,7 +149,7 @@ gather_vars_written(struct copy_prop_var_state *state,
          case nir_intrinsic_barrier:
          case nir_intrinsic_memory_barrier:
             written->modes |= nir_var_shader_out |
-                              nir_var_shader_storage |
+                              nir_var_ssbo |
                               nir_var_shared;
             break;
 
@@ -617,7 +617,7 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
          apply_barrier_for_modes(copies, nir_var_shader_out |
                                          nir_var_global |
                                          nir_var_local |
-                                         nir_var_shader_storage |
+                                         nir_var_ssbo |
                                          nir_var_shared);
          continue;
       }
@@ -630,7 +630,7 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
       case nir_intrinsic_barrier:
       case nir_intrinsic_memory_barrier:
          apply_barrier_for_modes(copies, nir_var_shader_out |
-                                         nir_var_shader_storage |
+                                         nir_var_ssbo |
                                          nir_var_shared);
          break;
 
@@ -742,9 +742,9 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
             lookup_entry_for_deref(copies, src, nir_derefs_a_contains_b_bit);
          struct value value;
          if (try_load_from_entry(state, src_entry, b, intrin, src, &value)) {
+            /* If load works, intrin (the copy_deref) is removed. */
             if (value.is_ssa) {
                nir_store_deref(b, dst, value.ssa[0], 0xf);
-               intrin = nir_instr_as_intrinsic(nir_builder_last_instr(b));
             } else {
                /* If this would be a no-op self-copy, don't bother. */
                if (nir_compare_derefs(value.deref, dst) & nir_derefs_equal_bit)

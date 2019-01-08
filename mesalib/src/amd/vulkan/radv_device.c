@@ -270,8 +270,6 @@ radv_physical_device_init(struct radv_physical_device *device,
 
 	device->_loader_data.loaderMagic = ICD_LOADER_MAGIC;
 	device->instance = instance;
-	assert(strlen(path) < ARRAY_SIZE(device->path));
-	strncpy(device->path, path, ARRAY_SIZE(device->path));
 
 	device->ws = radv_amdgpu_winsys_create(fd, instance->debug_flags,
 					       instance->perftest_flags);
@@ -941,9 +939,9 @@ void radv_GetPhysicalDeviceProperties(
 			2048,
 			2048
 		},
-		.subPixelPrecisionBits                    = 4 /* FIXME */,
-		.subTexelPrecisionBits                    = 4 /* FIXME */,
-		.mipmapPrecisionBits                      = 4 /* FIXME */,
+		.subPixelPrecisionBits                    = 8,
+		.subTexelPrecisionBits                    = 8,
+		.mipmapPrecisionBits                      = 8,
 		.maxDrawIndexedIndexValue                 = UINT32_MAX,
 		.maxDrawIndirectCount                     = UINT32_MAX,
 		.maxSamplerLodBias                        = 16,

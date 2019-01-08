@@ -33,38 +33,38 @@ extern "C" {
 #endif
 
 struct spirv_supported_capabilities {
-   bool float64;
-   bool image_ms_array;
-   bool tessellation;
+   bool atomic_storage;
+   bool descriptor_array_dynamic_indexing;
    bool device_group;
    bool draw_parameters;
+   bool float64;
+   bool geometry_streams;
+   bool gcn_shader;
+   bool image_ms_array;
    bool image_read_without_format;
    bool image_write_without_format;
+   bool int16;
    bool int64;
+   bool int64_atomics;
    bool min_lod;
    bool multiview;
-   bool variable_pointers;
-   bool storage_16bit;
-   bool int16;
+   bool post_depth_coverage;
+   bool runtime_descriptor_array;
    bool shader_viewport_index_layer;
+   bool stencil_export;
+   bool storage_8bit;
+   bool storage_16bit;
+   bool storage_image_ms;
    bool subgroup_arithmetic;
    bool subgroup_ballot;
    bool subgroup_basic;
    bool subgroup_quad;
    bool subgroup_shuffle;
    bool subgroup_vote;
-   bool gcn_shader;
-   bool trinary_minmax;
-   bool descriptor_array_dynamic_indexing;
-   bool runtime_descriptor_array;
-   bool stencil_export;
-   bool atomic_storage;
-   bool storage_8bit;
-   bool post_depth_coverage;
+   bool tessellation;
    bool transform_feedback;
-   bool geometry_streams;
-   bool int64_atomics;
-   bool storage_image_ms;
+   bool trinary_minmax;
+   bool variable_pointers;
 };
 
 typedef struct shader_info {

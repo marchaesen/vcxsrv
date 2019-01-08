@@ -801,6 +801,69 @@ linearize_srgb_result(nir_builder *b, nir_tex_instr *tex)
                                   result->parent_instr);
 }
 
+/**
+ * Lowers texture instructions from giving a vec4 result to a vec2 of f16,
+ * i16, or u16, or a single unorm4x8 value.
+ *
+ * Note that we don't change the destination num_components, because
+ * nir_tex_instr_dest_size() will still return 4.  The driver is just expected
+ * to not store the other channels, given that nothing at the NIR level will
+ * read them.
+ */
+static void
+lower_tex_packing(nir_builder *b, nir_tex_instr *tex,
+                  const nir_lower_tex_options *options)
+{
+   nir_ssa_def *color = &tex->dest.ssa;
+
+   b->cursor = nir_after_instr(&tex->instr);
+
+   switch (options->lower_tex_packing[tex->sampler_index]) {
+   case nir_lower_tex_packing_none:
+      return;
+
+   case nir_lower_tex_packing_16: {
+      static const unsigned bits[4] = {16, 16, 16, 16};
+
+      switch (nir_alu_type_get_base_type(tex->dest_type)) {
+      case nir_type_float:
+         if (tex->is_shadow && tex->is_new_style_shadow) {
+            color = nir_unpack_half_2x16_split_x(b, nir_channel(b, color, 0));
+         } else {
+            nir_ssa_def *rg = nir_channel(b, color, 0);
+            nir_ssa_def *ba = nir_channel(b, color, 1);
+            color = nir_vec4(b,
+                             nir_unpack_half_2x16_split_x(b, rg),
+                             nir_unpack_half_2x16_split_y(b, rg),
+                             nir_unpack_half_2x16_split_x(b, ba),
+                             nir_unpack_half_2x16_split_y(b, ba));
+         }
+         break;
+
+      case nir_type_int:
+         color = nir_format_unpack_sint(b, color, bits, 4);
+         break;
+
+      case nir_type_uint:
+         color = nir_format_unpack_uint(b, color, bits, 4);
+         break;
+
+      default:
+         unreachable("unknown base type");
+      }
+      break;
+   }
+
+   case nir_lower_tex_packing_8:
+      assert(nir_alu_type_get_base_type(tex->dest_type) == nir_type_float);
+      color = nir_unpack_unorm_4x8(b, nir_channel(b, color, 0));
+      break;
+   }
+
+   nir_ssa_def_rewrite_uses_after(&tex->dest.ssa, nir_src_for_ssa(color),
+                                  color->parent_instr);
+}
+
 static bool
 nir_lower_tex_block(nir_block *block, nir_builder *b,
                     const nir_lower_tex_options *options)
@@ -896,6 +959,14 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
       if (tex->op == nir_texop_txb && tex->is_shadow && has_min_lod &&
           options->lower_txb_shadow_clamp) {
          lower_implicit_lod(b, tex);
+         progress = true;
+      }
+
+      if (options->lower_tex_packing[tex->sampler_index] !=
+          nir_lower_tex_packing_none &&
+          tex->op != nir_texop_txs &&
+          tex->op != nir_texop_query_levels) {
+         lower_tex_packing(b, tex, options);
          progress = true;
       }
 

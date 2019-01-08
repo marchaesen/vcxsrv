@@ -48,6 +48,7 @@
 #include FT_XFREE86_H
 
 #include "list.h"
+#include "constlist.h"
 #include "hash.h"
 #include "data.h"
 #include "ident.h"
@@ -88,14 +89,14 @@ static const char *encodings_array[] =
 static const char *extra_encodings_array[] =
     { "iso10646-1", "adobe-fontspecific", "microsoft-symbol" };
 
-static ListPtr encodings, extra_encodings;
+static ConstListPtr encodings, extra_encodings;
 static const char *outfilename;
 
 #define countof(_a) (sizeof(_a)/sizeof((_a)[0]))
 
 static int doDirectory(const char*, int, ListPtr);
-static int checkEncoding(FT_Face face, char *encoding_name);
-static int checkExtraEncoding(FT_Face face, char *encoding_name, int found);
+static int checkEncoding(FT_Face face, const char *encoding_name);
+static int checkExtraEncoding(FT_Face face, const char *encoding_name, int found);
 static int find_cmap(int type, int pid, int eid, FT_Face face);
 static const char* notice_foundry(const char *notice);
 static const char* vendor_foundry(const signed char *vendor);
@@ -158,11 +159,11 @@ main(int argc, char **argv)
 
     outfilename = NULL;
 
-    encodings = makeList(encodings_array, countof(encodings_array), NULL, 0);
+    encodings = makeConstList(encodings_array, countof(encodings_array), NULL, 0);
 
-    extra_encodings = makeList(extra_encodings_array,
-                               countof(extra_encodings_array),
-                               NULL, 0);
+    extra_encodings = makeConstList(extra_encodings_array,
+				    countof(extra_encodings_array),
+				    NULL, 0);
     doBitmaps = 0;
     doISO10646_1_encoding = 1;
     doScalable = 1;
@@ -188,7 +189,7 @@ main(int argc, char **argv)
             if(argn >= argc - 1) {
                 missing_arg("-a");
             }
-            makeList(&argv[argn + 1], 1, encodings, 0);
+            makeConstList((const char **)&argv[argn + 1], 1, encodings, 0);
             argn += 2;
         } else if(strcmp(argv[argn], "-p") == 0) {
             if(argn >= argc - 1) {
@@ -321,7 +322,7 @@ getName(FT_Face face, int nid)
 {
     FT_SfntName name;
     char *string;
-    int i;
+    unsigned int i;
 
     if(getNameHelper(face, nid,
                      TT_PLATFORM_MICROSOFT, TT_MS_ID_UNICODE_CS, &name) ||
@@ -415,8 +416,8 @@ static const char*
 nameWidth(const char *name)
 {
     char buf[500];
-    int i;
-    int n = strlen(name);
+    unsigned int i;
+    size_t n = strlen(name);
 
     if(n >= 499) return NULL;
     for(i = 0; i < n; i++)
@@ -700,7 +701,7 @@ makeXLFD(char *filename, FT_Face face, int isBitmap)
 static int
 readFontScale(HashTablePtr entries, char *dirname)
 {
-    int n = strlen(dirname);
+    size_t n = strlen(dirname);
     char *filename;
     FILE *in;
     int rc, count, i;
@@ -744,7 +745,7 @@ readFontScale(HashTablePtr entries, char *dirname)
 static int
 filePrio(char *filename)
 {
-    int n = strlen(filename);
+    size_t n = strlen(filename);
     if(n < 4)
         return 0;
     if(strcmp(filename + n - 4, ".otf") == 0)
@@ -782,19 +783,21 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
     struct dirent** namelist;
     FT_Error ftrc;
     FT_Face face;
-    ListPtr encoding, xlfd, lp;
+    ConstListPtr encoding;
+    ListPtr xlfd, lp;
     HashTablePtr entries;
     HashBucketPtr *array;
     int i, n, dirn, diri, found, rc;
-    int isBitmap=0,xl=0;
+    int isBitmap=0;
+    size_t d, xl=0;
 
     if (exclusionSuffix)
         xl = strlen (exclusionSuffix);
 
-    i = strlen(dirname_given);
-    if(i == 0)
+    d = strlen(dirname_given);
+    if(d == 0)
         dirname = dsprintf("./");
-    else if(dirname_given[i - 1] != '/')
+    else if(dirname_given[d - 1] != '/')
         dirname = dsprintf("%s/", dirname_given);
     else
         dirname = strdup(dirname_given);
@@ -853,7 +856,7 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
         xlfd = NULL;
 
 	if (xl) {
-	    int dl = strlen (entry->d_name);
+	    size_t dl = strlen (entry->d_name);
 	    if (strcmp (entry->d_name + dl - xl, exclusionSuffix) == 0)
 		continue;
 	}
@@ -925,7 +928,7 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
 
         if(xlfd_name) {
             /* We know it's a bitmap font, and we know its XLFD */
-            int l = strlen(xlfd_name);
+            size_t l = strlen(xlfd_name);
             if(reencodeLegacy &&
                l >= 12 && strcasecmp(xlfd_name + l - 11, "-iso10646-1") == 0) {
                 char *s;
@@ -1039,7 +1042,7 @@ doDirectory(const char *dirname_given, int numEncodings, ListPtr encodingsToDo)
                          (c) == 0xAD || (c) == 0xF71B)
 
 static int
-checkEncoding(FT_Face face, char *encoding_name)
+checkEncoding(FT_Face face, const char *encoding_name)
 {
     FontEncPtr encoding;
     FontMapPtr mapping;
@@ -1211,7 +1214,7 @@ find_cmap(int type, int pid, int eid, FT_Face face)
 }
 
 static int
-checkExtraEncoding(FT_Face face, char *encoding_name, int found)
+checkExtraEncoding(FT_Face face, const char *encoding_name, int found)
 {
     int c;
 
@@ -1255,7 +1258,7 @@ checkExtraEncoding(FT_Face face, char *encoding_name, int found)
 static const char*
 notice_foundry(const char *notice)
 {
-    int i;
+    unsigned int i;
     for(i = 0; i < countof(notice_foundries); i++)
         if(notice && strstr(notice, notice_foundries[i][0]))
             return notice_foundries[i][1];
@@ -1266,7 +1269,7 @@ static int
 vendor_match(const signed char *vendor, const char *vendor_string)
 {
     /* vendor is not necessarily NUL-terminated. */
-    int i, len;
+    size_t i, len;
     len = strlen(vendor_string);
     if(memcmp(vendor, vendor_string, len) != 0)
         return 0;
@@ -1279,7 +1282,7 @@ vendor_match(const signed char *vendor, const char *vendor_string)
 static const char*
 vendor_foundry(const signed char *vendor)
 {
-    int i;
+    unsigned int i;
     for(i = 0; i < countof(vendor_foundries); i++)
         if(vendor_match(vendor, vendor_foundries[i][0]))
             return vendor_foundries[i][1];

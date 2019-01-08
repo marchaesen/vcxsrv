@@ -366,7 +366,7 @@ loader_dri3_drawable_init(xcb_connection_t *conn,
    cnd_init(&draw->event_cnd);
 
    if (draw->ext->config) {
-      unsigned char adaptive_sync;
+      unsigned char adaptive_sync = 0;
 
       draw->ext->config->configQueryi(draw->dri_screen,
                                       "vblank_mode", &vblank_mode);

@@ -59,7 +59,7 @@ xkb_symbols "sun_type6" {
     key <AD12>  { [  asterisk,        bar,  asciitilde ] };
 
     key <AC01>  { [         a,          A ] };
-    key <AC02>  { [         s,    S, ssharp ] };
+    key <AC02>  { [         s,    S, ssharp, U1E9E ] };
     key <AC04>  { [         f,          F ] };
     key <AC10>  { [      plus,  plusminus ] };
     key <AC11>  { [dead_acute, dead_grave ] };

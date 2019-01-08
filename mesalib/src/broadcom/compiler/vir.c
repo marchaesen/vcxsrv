@@ -61,6 +61,16 @@ vir_has_implicit_uniform(struct qinst *inst)
                 switch (inst->dst.file) {
                 case QFILE_TLBU:
                         return true;
+                case QFILE_MAGIC:
+                        switch (inst->dst.index) {
+                        case V3D_QPU_WADDR_TLBU:
+                        case V3D_QPU_WADDR_TMUAU:
+                        case V3D_QPU_WADDR_SYNCU:
+                                return true;
+                        default:
+                                break;
+                        }
+                        break;
                 default:
                         return inst->has_implicit_uniform;
                 }
@@ -620,6 +630,10 @@ v3d_lower_nir(struct v3d_compile *c)
                         tex_options.saturate_t |= 1 << i;
                 if (c->key->tex[i].clamp_r)
                         tex_options.saturate_r |= 1 << i;
+                if (c->key->tex[i].return_size == 16) {
+                        tex_options.lower_tex_packing[i] =
+                                nir_lower_tex_packing_16;
+                }
         }
 
         NIR_PASS_V(c->s, nir_lower_tex, &tex_options);
@@ -961,7 +975,24 @@ uint64_t *v3d_compile(const struct v3d_compiler *compiler,
         v3d_set_prog_data(c, prog_data);
 
         *out_prog_data = prog_data;
-        return v3d_return_qpu_insts(c, final_assembly_size);
+
+        char *shaderdb;
+        int ret = asprintf(&shaderdb,
+                           "%s shader: %d inst, %d threads, %d loops, "
+                           "%d uniforms, %d:%d spills:fills",
+                           vir_get_stage_name(c),
+                           c->qpu_inst_count,
+                           c->threads,
+                           c->loops,
+                           c->num_uniforms,
+                           c->spills,
+                           c->fills);
+        if (ret >= 0) {
+                c->debug_output(shaderdb, c->debug_output_data);
+                free(shaderdb);
+        }
+
+       return v3d_return_qpu_insts(c, final_assembly_size);
 }
 
 void

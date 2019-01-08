@@ -181,7 +181,7 @@ ttn_emit_declaration(struct ttn_compile *c)
          /* for arrays, we create variables instead of registers: */
          nir_variable *var = rzalloc(b->shader, nir_variable);
 
-         var->type = glsl_array_type(glsl_vec4_type(), array_size);
+         var->type = glsl_array_type(glsl_vec4_type(), array_size, 0);
          var->data.mode = nir_var_global;
          var->name = ralloc_asprintf(var, "arr_%d", decl->Array.ArrayID);
 
@@ -265,7 +265,7 @@ ttn_emit_declaration(struct ttn_compile *c)
 
          var->type = glsl_vec4_type();
          if (is_array)
-            var->type = glsl_array_type(var->type, array_size);
+            var->type = glsl_array_type(var->type, array_size, 0);
 
          switch (file) {
          case TGSI_FILE_INPUT:

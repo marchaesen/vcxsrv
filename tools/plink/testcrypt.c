@@ -289,11 +289,11 @@ static const ssh2_cipheralg *get_ssh2_cipheralg(BinarySource *in)
     fatal_error("ssh2_cipheralg '%.*s': not found", PTRLEN_PRINTF(name));
 }
 
-static const struct ssh_kex *get_dh_group(BinarySource *in)
+static const ssh_kex *get_dh_group(BinarySource *in)
 {
     static const struct {
         const char *key;
-        const struct ssh_kexes *value;
+        const ssh_kexes *value;
     } algs[] = {
         {"group1", &ssh_diffiehellman_group1},
         {"group14", &ssh_diffiehellman_group14},
@@ -307,11 +307,11 @@ static const struct ssh_kex *get_dh_group(BinarySource *in)
     fatal_error("dh_group '%.*s': not found", PTRLEN_PRINTF(name));
 }
 
-static const struct ssh_kex *get_ecdh_alg(BinarySource *in)
+static const ssh_kex *get_ecdh_alg(BinarySource *in)
 {
     static const struct {
         const char *key;
-        const struct ssh_kex *value;
+        const ssh_kex *value;
     } algs[] = {
         {"curve25519", &ssh_ec_kex_curve25519},
         {"nistp256", &ssh_ec_kex_nistp256},
@@ -770,6 +770,32 @@ strbuf *rsa_ssh1_decrypt_pkcs1_wrapper(mp_int *input, RSAKey *key)
     return sb;
 }
 
+#define WRAP_des_encrypt_xdmauth ,
+strbuf *des_encrypt_xdmauth_wrapper(ptrlen key, ptrlen data)
+{
+    if (key.len != 7)
+        fatal_error("des_encrypt_xdmauth: key must be 7 bytes long");
+    if (data.len % 8 != 0)
+        fatal_error("des_encrypt_xdmauth: data must be a multiple of 8 bytes");
+    strbuf *sb = strbuf_new();
+    put_datapl(sb, data);
+    des_encrypt_xdmauth(key.ptr, sb->u, sb->len);
+    return sb;
+}
+
+#define WRAP_des_decrypt_xdmauth ,
+strbuf *des_decrypt_xdmauth_wrapper(ptrlen key, ptrlen data)
+{
+    if (key.len != 7)
+        fatal_error("des_decrypt_xdmauth: key must be 7 bytes long");
+    if (data.len % 8 != 0)
+        fatal_error("des_decrypt_xdmauth: data must be a multiple of 8 bytes");
+    strbuf *sb = strbuf_new();
+    put_datapl(sb, data);
+    des_decrypt_xdmauth(key.ptr, sb->u, sb->len);
+    return sb;
+}
+
 #define return_void(out, expression) (expression)
 
 #define VALTYPE_TYPEDEF(n,t,f)                  \
@@ -801,8 +827,8 @@ typedef const ssh2_macalg *TD_macalg;
 typedef const ssh_keyalg *TD_keyalg;
 typedef const ssh1_cipheralg *TD_ssh1_cipheralg;
 typedef const ssh2_cipheralg *TD_ssh2_cipheralg;
-typedef const struct ssh_kex *TD_dh_group;
-typedef const struct ssh_kex *TD_ecdh_alg;
+typedef const ssh_kex *TD_dh_group;
+typedef const ssh_kex *TD_ecdh_alg;
 typedef RsaSsh1Order TD_rsaorder;
 
 #define WRAPPED_NAME_INNER(a, b, ...) b
@@ -884,12 +910,51 @@ static void free_all_values(void)
 
 int main(int argc, char **argv)
 {
-    FILE *fp = stdin;
+    const char *infile = NULL, *outfile = NULL;
+    bool doing_opts = true;
 
-    if (argc > 1) {
-        fp = fopen(argv[1], "r");
-        if (!fp) {
-            fprintf(stderr, "%s: open: %s\n", argv[1], strerror(errno));
+    while (--argc > 0) {
+        char *p = *++argv;
+
+        if (p[0] == '-' && doing_opts) {
+            if (!strcmp(p, "-o")) {
+                if (--argc <= 0) {
+                    fprintf(stderr, "'-o' expects a filename\n");
+                    return 1;
+                }
+                outfile = *++argv;
+            } else if (!strcmp(p, "--")) {
+                doing_opts = false;
+            } else if (!strcmp(p, "--help")) {
+                printf("usage: testcrypt [INFILE] [-o OUTFILE]\n");
+                printf(" also: testcrypt --help       display this text\n");
+                return 0;
+            } else {
+                fprintf(stderr, "unknown command line option '%s'\n", p);
+                return 1;
+            }
+        } else if (!infile) {
+            infile = p;
+        } else {
+            fprintf(stderr, "can only handle one input file name\n");
+            return 1;
+        }
+    }
+
+    FILE *infp = stdin;
+    if (infile) {
+        infp = fopen(infile, "r");
+        if (!infp) {
+            fprintf(stderr, "%s: open: %s\n", infile, strerror(errno));
+            return 1;
+        }
+    }
+
+    FILE *outfp = stdout;
+    if (outfile) {
+        outfp = fopen(outfile, "w");
+        if (!outfp) {
+            fprintf(stderr, "%s: open: %s\n", outfile, strerror(errno));
             return 1;
         }
     }
@@ -898,7 +963,7 @@ int main(int argc, char **argv)
 
     atexit(free_all_values);
 
-    for (char *line; (line = chomp(fgetline(fp))) != NULL ;) {
+    for (char *line; (line = chomp(fgetline(infp))) != NULL ;) {
         BinarySource src[1];
         BinarySource_BARE_INIT(src, line, strlen(line));
         strbuf *sb = strbuf_new();
@@ -908,14 +973,16 @@ int main(int argc, char **argv)
         for (size_t i = 0; i < sb->len; i++)
             if (sb->s[i] == '\n')
                 lines++;
-        printf("%zu\n%s", lines, sb->s);
-        fflush(stdout);
+        fprintf(outfp, "%zu\n%s", lines, sb->s);
+        fflush(outfp);
         strbuf_free(sb);
         sfree(line);
     }
 
-    if (fp != stdin)
-        fclose(fp);
+    if (infp != stdin)
+        fclose(infp);
+    if (outfp != stdin)
+        fclose(outfp);
 
     return 0;
 }

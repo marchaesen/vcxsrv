@@ -55,7 +55,7 @@ xkb_symbols "olpc" {
     // the unmodified one). Make such keys shift-invariant so that the printed
     // value is achieved by pressing AltGr or Shift+AltGr.
     key <AB02>	{ [ x,  X,  guillemotright, guillemotright ]	};
-    key <AC02>	{ [ s,  S,  ssharp, ssharp ]	};
+    key <AC02>	{ [ s,  S,  ssharp, U1E9E ]	};
     key <AD02>	{ [ z,  Z,  guillemotleft, guillemotleft ]	};
 };
 
@@ -388,7 +388,7 @@ xkb_symbols "latin9" {
     key <AB02>	{ [               x,               X,      guillemotright                       ] };
     key <AB03>	{ [               c,               C,           copyright                       ] };
     key <AB04>	{ [               v,               V,          registered		        ] };
-    key <AB05>	{ [               b,               B,              ssharp                       ] };
+    key <AB05>	{ [               b,               B,              ssharp,                U1E9E ] };
     key <AB06>	{ [               n,               N,             notsign                       ] };
     key <AB07>	{ [           comma,        question,        questiondown                       ] };
     key <AB08>	{ [       semicolon,          period,            multiply		        ] };
@@ -562,7 +562,7 @@ xkb_symbols "bepo_latin9" {
     key <AC03> { [               i,            I, dead_diaeresis                 ] }; // i I ̈
     key <AC05> { [           comma,    semicolon,          comma,      dead_horn ] }; // , ; , ̛
     key <AC06> { [               c,            C,      copyright                 ] }; // c C ©
-    key <AC08> { [               s,            S,         ssharp                 ] }; // s S ß
+    key <AC08> { [               s,            S,         ssharp,          U1E9E ] }; // s S ß ẞ
     key <AC09> { [               r,            R,     registered                 ] }; // r R ®
     key <AC11> { [               m,            M,         macron,      masculine ] }; // m M ̄ º
 
@@ -905,7 +905,7 @@ xkb_symbols "mac" {
     key <AB02> {	[         x, X, VoidSymbol,   VoidSymbol	]	}; // CHECK similarequal; MISSING: extra-slanted slash
     key <AB03> {	[         c, C,  copyright,         cent	]	};
     key <AB04> {	[         v, V,    diamond,  leftradical	]	}; // CHECK diamond, leftradical
-    key <AB05> {	[         b, B,     ssharp,   VoidSymbol	]	}; // CHECK: Greek_beta or ssharp?; MISSING: oblong script s
+    key <AB05> {	[         b, B,     ssharp,        U1E9E	]	}; // CHECK: Greek_beta or ssharp?; MISSING: oblong script s
     key <AB06> {	[         n, N,  dead_tilde,  asciitilde	]	};
     key <AB07> {	[     comma,  question, VoidSymbol,  questiondown	]	};
     key <AB08> {	[ semicolon,  period, VoidSymbol,  periodcentered	]	};

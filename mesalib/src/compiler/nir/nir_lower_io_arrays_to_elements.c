@@ -127,14 +127,12 @@ lower_array(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *var,
          const struct glsl_type *type = glsl_without_array(element->type);
 
          /* This pass also splits matrices so we need give them a new type. */
-         if (glsl_type_is_matrix(type)) {
-            type = glsl_vector_type(glsl_get_base_type(type),
-                                    glsl_get_vector_elements(type));
-         }
+         if (glsl_type_is_matrix(type))
+            type = glsl_get_column_type(type);
 
          if (nir_is_per_vertex_io(var, b->shader->info.stage)) {
-            type = glsl_get_array_instance(type,
-                                           glsl_get_length(element->type));
+            type = glsl_array_type(type, glsl_get_length(element->type),
+                                   glsl_get_explicit_stride(element->type));
          }
 
          element->type = type;

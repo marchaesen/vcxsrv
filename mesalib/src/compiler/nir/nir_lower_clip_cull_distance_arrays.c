@@ -62,10 +62,10 @@ get_unwrapped_array_length(nir_shader *nir, nir_variable *var)
 static void
 update_type(nir_variable *var, gl_shader_stage stage, unsigned length)
 {
-   const struct glsl_type *type = glsl_array_type(glsl_float_type(), length);
+   const struct glsl_type *type = glsl_array_type(glsl_float_type(), length, 0);
 
    if (nir_is_per_vertex_io(var, stage))
-      type = glsl_array_type(type, glsl_get_length(var->type));
+      type = glsl_array_type(type, glsl_get_length(var->type), 0);
 
    var->type = type;
 }

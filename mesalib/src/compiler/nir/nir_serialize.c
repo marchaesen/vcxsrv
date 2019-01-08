@@ -438,11 +438,15 @@ write_deref(write_ctx *ctx, const nir_deref_instr *deref)
       break;
 
    case nir_deref_type_array:
+   case nir_deref_type_ptr_as_array:
       write_src(ctx, &deref->arr.index);
       break;
 
-   case nir_deref_type_array_wildcard:
    case nir_deref_type_cast:
+      blob_write_uint32(ctx->blob, deref->cast.ptr_stride);
+      break;
+
+   case nir_deref_type_array_wildcard:
       /* Nothing to do */
       break;
 
@@ -475,11 +479,15 @@ read_deref(read_ctx *ctx)
       break;
 
    case nir_deref_type_array:
+   case nir_deref_type_ptr_as_array:
       read_src(ctx, &deref->arr.index, &deref->instr);
       break;
 
-   case nir_deref_type_array_wildcard:
    case nir_deref_type_cast:
+      deref->cast.ptr_stride = blob_read_uint32(ctx->blob);
+      break;
+
+   case nir_deref_type_array_wildcard:
       /* Nothing to do */
       break;
 

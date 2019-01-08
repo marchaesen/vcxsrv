@@ -1323,6 +1323,20 @@
        <vendor>Google</vendor>
      </configItem>
     </model>
+    <model>
+      <configItem>
+       <name>teck227</name>
+       <_description>Truly Ergonomic Computer Keyboard Model 227 (Wide Alt keys)</_description>
+       <vendor>Megawin Technology</vendor>
+     </configItem>
+    </model>
+    <model>
+      <configItem>
+       <name>teck229</name>
+       <_description>Truly Ergonomic Computer Keyboard Model 229 (Standard sized Alt keys, additional Super and Menu key)</_description>
+       <vendor>Megawin Technology</vendor>
+     </configItem>
+    </model>
   </modelList>
   <layoutList>
     <layout>
@@ -4048,6 +4062,18 @@
             <_description>Spanish (Latin American, Dvorak)</_description>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>colemak</name>
+            <_description>Spanish (Latin American, Colemak)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>colemak-gaming</name>
+            <_description>Spanish (Latin American, Colemak for gaming)</_description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
@@ -5170,6 +5196,7 @@
         <variant>
           <configItem>
             <name>us</name>
+            <!-- Keyboard indicator for US layouts -->
             <_shortDescription>us</_shortDescription>
             <_description>Sinhala (US, with Sinhala letters)</_description>
           </configItem>

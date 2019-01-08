@@ -96,12 +96,16 @@ hash_deref(uint32_t hash, const nir_deref_instr *instr)
       break;
 
    case nir_deref_type_array:
+   case nir_deref_type_ptr_as_array:
       hash = hash_src(hash, &instr->arr.index);
+      break;
+
+   case nir_deref_type_cast:
+      hash = HASH(hash, instr->cast.ptr_stride);
       break;
 
    case nir_deref_type_var:
    case nir_deref_type_array_wildcard:
-   case nir_deref_type_cast:
       /* Nothing to do */
       break;
 
@@ -351,13 +355,18 @@ nir_instrs_equal(const nir_instr *instr1, const nir_instr *instr2)
          break;
 
       case nir_deref_type_array:
+      case nir_deref_type_ptr_as_array:
          if (!nir_srcs_equal(deref1->arr.index, deref2->arr.index))
+            return false;
+         break;
+
+      case nir_deref_type_cast:
+         if (deref1->cast.ptr_stride != deref2->cast.ptr_stride)
             return false;
          break;
 
       case nir_deref_type_var:
       case nir_deref_type_array_wildcard:
-      case nir_deref_type_cast:
          /* Nothing to do */
          break;
 

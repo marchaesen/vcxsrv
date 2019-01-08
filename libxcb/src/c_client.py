@@ -1933,7 +1933,7 @@ def _c_accessors_list(self, field):
                 else:
                     # use the accessor to get the start of the list, then
                     # compute the length of it by subtracting it from
-                    # the adress of the first byte after the end of the
+                    # the address of the first byte after the end of the
                     # request
                     after_end_of_request = '(((char*)R) + R->length * 4)'
                     start_of_list = '%s(R)' % (field.c_accessor_name)

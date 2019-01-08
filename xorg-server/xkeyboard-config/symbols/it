@@ -109,7 +109,7 @@ xkb_symbols "mac" {
     key <BKSL> {	[     section,  degree,           at,  numbersign      ]	};
 
     key <AC01> {	[	  a,	A,      aring,   Aring		] 	};
-    key <AC02> {	[	  s,	S,     ssharp			]	};
+    key <AC02> {	[	  s,	S,     ssharp,	 U1E9E		]	};
     key <AC03> {	[	  d,	D		]	};
     key <AC04> {	[	  f,	F		]	};
     key <AC05> {	[	  g,	G		]	};

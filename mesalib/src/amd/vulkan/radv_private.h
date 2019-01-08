@@ -285,7 +285,6 @@ struct radv_physical_device {
 
 	struct radeon_winsys *ws;
 	struct radeon_info rad_info;
-	char                                        path[20];
 	char                                        name[VK_MAX_PHYSICAL_DEVICE_NAME_SIZE];
 	uint8_t                                     driver_uuid[VK_UUID_SIZE];
 	uint8_t                                     device_uuid[VK_UUID_SIZE];

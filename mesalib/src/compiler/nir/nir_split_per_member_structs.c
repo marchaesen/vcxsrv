@@ -50,7 +50,8 @@ member_type(const struct glsl_type *type, unsigned index)
    if (glsl_type_is_array(type)) {
       const struct glsl_type *elem =
          member_type(glsl_get_array_element(type), index);
-      return glsl_get_array_instance(elem, glsl_get_length(type));
+      assert(glsl_get_explicit_stride(type) == 0);
+      return glsl_array_type(elem, glsl_get_length(type), 0);
    } else {
       assert(glsl_type_is_struct(type));
       assert(index < glsl_get_length(type));

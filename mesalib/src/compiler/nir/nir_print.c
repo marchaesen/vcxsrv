@@ -28,6 +28,7 @@
 #include "nir.h"
 #include "compiler/shader_enums.h"
 #include "util/half_float.h"
+#include "vulkan/vulkan_core.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h> /* for PRIx64 macro */
@@ -412,10 +413,12 @@ get_variable_mode_str(nir_variable_mode mode, bool want_local_global_mode)
       return "shader_out";
    case nir_var_uniform:
       return "uniform";
-   case nir_var_shader_storage:
-      return "shader_storage";
+   case nir_var_ubo:
+      return "ubo";
    case nir_var_system_value:
       return "system";
+   case nir_var_ssbo:
+      return "ssbo";
    case nir_var_shared:
       return "shared";
    case nir_var_global:
@@ -503,7 +506,8 @@ print_var_decl(nir_variable *var, print_state *state)
    if (var->data.mode == nir_var_shader_in ||
        var->data.mode == nir_var_shader_out ||
        var->data.mode == nir_var_uniform ||
-       var->data.mode == nir_var_shader_storage) {
+       var->data.mode == nir_var_ubo ||
+       var->data.mode == nir_var_ssbo) {
       const char *loc = NULL;
       char buf[4];
 
@@ -633,7 +637,8 @@ print_deref_link(const nir_deref_instr *instr, bool whole_chain, print_state *st
               glsl_get_struct_elem_name(parent->type, instr->strct.index));
       break;
 
-   case nir_deref_type_array: {
+   case nir_deref_type_array:
+   case nir_deref_type_ptr_as_array: {
       nir_const_value *const_index = nir_src_as_const_value(instr->arr.index);
       if (const_index) {
          fprintf(fp, "[%u]", const_index->u32[0]);
@@ -675,6 +680,9 @@ print_deref_instr(nir_deref_instr *instr, print_state *state)
    case nir_deref_type_cast:
       fprintf(fp, " = deref_cast ");
       break;
+   case nir_deref_type_ptr_as_array:
+      fprintf(fp, " = deref_ptr_as_array ");
+      break;
    default:
       unreachable("Invalid deref instruction type");
    }
@@ -695,6 +703,26 @@ print_deref_instr(nir_deref_instr *instr, print_state *state)
       fprintf(fp, "/* &");
       print_deref_link(instr, true, state);
       fprintf(fp, " */");
+   }
+}
+
+static const char *
+vulkan_descriptor_type_name(VkDescriptorType type)
+{
+   switch (type) {
+   case VK_DESCRIPTOR_TYPE_SAMPLER: return "sampler";
+   case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: return "texture+sampler";
+   case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE: return "texture";
+   case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE: return "image";
+   case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER: return "texture-buffer";
+   case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER: return "image-buffer";
+   case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER: return "UBO";
+   case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER: return "SSBO";
+   case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC: return "UBO";
+   case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: return "SSBO";
+   case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT: return "input-att";
+   case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT: return "inline-UBO";
+   default: return "unknown";
    }
 }
 
@@ -749,6 +777,7 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
       [NIR_INTRINSIC_FORMAT] = "format",
       [NIR_INTRINSIC_ALIGN_MUL] = "align_mul",
       [NIR_INTRINSIC_ALIGN_OFFSET] = "align_offset",
+      [NIR_INTRINSIC_DESC_TYPE] = "desc_type",
    };
    for (unsigned idx = 1; idx < NIR_INTRINSIC_NUM_INDEX_FLAGS; idx++) {
       if (!info->index_map[idx])
@@ -782,6 +811,9 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
       } else if (idx == NIR_INTRINSIC_IMAGE_ARRAY) {
          bool array = nir_intrinsic_image_dim(instr);
          fprintf(fp, " image_dim=%s", array ? "true" : "false");
+      } else if (idx == NIR_INTRINSIC_DESC_TYPE) {
+         VkDescriptorType desc_type = nir_intrinsic_desc_type(instr);
+         fprintf(fp, " desc_type=%s", vulkan_descriptor_type_name(desc_type));
       } else {
          unsigned off = info->index_map[idx] - 1;
          assert(index_name[idx]);  /* forgot to update index_name table? */

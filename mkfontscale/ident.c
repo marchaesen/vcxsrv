@@ -76,12 +76,12 @@ typedef struct {
 	gzFile gz;
 	BZFILE *bz2;
     } f;
-    unsigned pos;
+    unsigned long pos;
 } fontFile;
 
 static inline void *
 fontFileOpen(fontFile *ff, const char *filename) {
-    int n = strlen(filename);
+    size_t n = strlen(filename);
 
     if (n > 4 && strcmp(filename + n - 4, ".bz2") == 0) {
 	ff->type = bz2FontFile;
@@ -123,7 +123,7 @@ fontFileGetc(fontFile *ff)
     }
 }
 
-static int
+static long
 fontFileSeek(fontFile *ff, z_off_t offset, int whence)
 {
     if (ff->type == gzFontFile) {
@@ -132,7 +132,7 @@ fontFileSeek(fontFile *ff, z_off_t offset, int whence)
 	/* bzlib has no easy equivalent so we have to fake it,
 	 * fortunately, we only have to handle a couple of cases
 	 */
-	int n;
+	z_off_t n;
 	char buf[BUFSIZ];
 
 	switch (whence) {
@@ -151,7 +151,7 @@ fontFileSeek(fontFile *ff, z_off_t offset, int whence)
 		return -1;
 	    n -= BUFSIZ;
 	}
-	if (BZ2_bzread(ff->f.bz2, buf, n) != n)
+	if (BZ2_bzread(ff->f.bz2, buf, (int) n) != n)
 	    return -1;
 	ff->pos = offset;
 	return offset;
@@ -247,7 +247,8 @@ pcfIdentify(fontFile *f, char **name)
 {
     int prop_position;
     PropPtr props = NULL;
-    int format, count, nprops, i, string_size, rc;
+    int format, count, nprops, i, string_size;
+    long rc;
     char *strings = NULL, *s;
 
     count = getLSB32(f);

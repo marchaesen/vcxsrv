@@ -118,7 +118,7 @@ xkb_symbols "ucw" {
     name[Group1]= "Czech (UCW, only accented letters)";
 
     key <AB01> { [zcaron,      Zcaron      ] };
-    key <AB02> { [ssharp                   ] };
+    key <AB02> { [ssharp,      U1E9E       ] };
     key <AB03> { [ccaron,      Ccaron      ] };
     key <AB04> { [ccedilla,    Ccedilla    ] };
     key <AB05> { [ntilde,      Ntilde      ] };
