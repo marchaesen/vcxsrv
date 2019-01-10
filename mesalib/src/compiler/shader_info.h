@@ -121,6 +121,11 @@ typedef struct shader_info {
     */
    bool uses_fddx_fddy;
 
+   /**
+    * True if this shader uses 64-bit ALU operations
+    */
+   bool uses_64bit;
+
    /* The size of the gl_ClipDistance[] array, if declared. */
    unsigned clip_distance_array_size;
 

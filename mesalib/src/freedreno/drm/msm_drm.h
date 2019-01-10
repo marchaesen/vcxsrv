@@ -122,6 +122,7 @@ struct drm_msm_gem_info {
 	__u32 info;           /* in - one of MSM_INFO_* */
 	__u64 value;          /* in or out */
 	__u32 len;            /* in or out */
+	__u32 pad;
 };
 
 #define MSM_PREP_READ        0x01

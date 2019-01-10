@@ -732,7 +732,7 @@ lower_explicit_io_deref(nir_builder *b, nir_deref_instr *deref,
    assert(deref->parent.is_ssa);
    nir_ssa_def *parent_addr = deref->parent.ssa;
 
-   nir_ssa_def *addr;
+   nir_ssa_def *addr = NULL;
    assert(deref->dest.is_ssa);
    switch (deref->deref_type) {
    case nir_deref_type_var:

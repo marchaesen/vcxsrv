@@ -2239,6 +2239,8 @@ handle_fs_inputs(struct radv_shader_context *ctx,
 
 			if (LLVMIsUndef(interp_param))
 				ctx->shader_info->fs.flat_shaded_mask |= 1u << index;
+			if (i >= VARYING_SLOT_VAR0)
+				ctx->abi.fs_input_attr_indices[i - VARYING_SLOT_VAR0] = index;
 			++index;
 		} else if (i == VARYING_SLOT_CLIP_DIST0) {
 			int length = ctx->shader_info->info.ps.num_input_clips_culls;

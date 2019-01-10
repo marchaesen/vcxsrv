@@ -307,6 +307,11 @@ gather_alu_info(nir_alu_instr *instr, nir_shader *shader)
       shader->info.uses_fddx_fddy = true;
       break;
    default:
+      shader->info.uses_64bit |= instr->dest.dest.ssa.bit_size == 64;
+      unsigned num_srcs = nir_op_infos[instr->op].num_inputs;
+      for (unsigned i = 0; i < num_srcs; i++) {
+         shader->info.uses_64bit |= nir_src_bit_size(instr->src[i].src) == 64;
+      }
       break;
    }
 }

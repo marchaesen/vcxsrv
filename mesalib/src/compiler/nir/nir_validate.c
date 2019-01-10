@@ -397,7 +397,7 @@ validate_var_use(nir_variable *var, validate_state *state)
 {
    struct hash_entry *entry = _mesa_hash_table_search(state->var_defs, var);
    validate_assert(state, entry);
-   if (var->data.mode == nir_var_local)
+   if (var->data.mode == nir_var_function)
       validate_assert(state, (nir_function_impl *) entry->data == state->impl);
 }
 

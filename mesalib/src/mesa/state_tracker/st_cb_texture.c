@@ -1243,11 +1243,9 @@ try_pbo_upload_common(struct gl_context *ctx,
       fb.width = surface->width;
       fb.height = surface->height;
       fb.nr_cbufs = 1;
-      pipe_surface_reference(&fb.cbufs[0], surface);
+      fb.cbufs[0] = surface;
 
       cso_set_framebuffer(cso, &fb);
-
-      pipe_surface_reference(&fb.cbufs[0], NULL);
    }
 
    cso_set_viewport_dims(cso, surface->width, surface->height, FALSE);

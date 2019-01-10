@@ -754,19 +754,19 @@ void radv_GetPhysicalDeviceFeatures(
 
 void radv_GetPhysicalDeviceFeatures2(
 	VkPhysicalDevice                            physicalDevice,
-	VkPhysicalDeviceFeatures2KHR               *pFeatures)
+	VkPhysicalDeviceFeatures2                  *pFeatures)
 {
 	RADV_FROM_HANDLE(radv_physical_device, pdevice, physicalDevice);
 	vk_foreach_struct(ext, pFeatures->pNext) {
 		switch (ext->sType) {
-		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTER_FEATURES_KHR: {
-			VkPhysicalDeviceVariablePointerFeaturesKHR *features = (void *)ext;
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTER_FEATURES: {
+			VkPhysicalDeviceVariablePointerFeatures *features = (void *)ext;
 			features->variablePointersStorageBuffer = true;
-			features->variablePointers = false;
+			features->variablePointers = true;
 			break;
 		}
-		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES_KHR: {
-			VkPhysicalDeviceMultiviewFeaturesKHR *features = (VkPhysicalDeviceMultiviewFeaturesKHR*)ext;
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES: {
+			VkPhysicalDeviceMultiviewFeatures *features = (VkPhysicalDeviceMultiviewFeatures*)ext;
 			features->multiview = true;
 			features->multiviewGeometryShader = true;
 			features->multiviewTessellationShader = true;
@@ -1008,7 +1008,7 @@ void radv_GetPhysicalDeviceProperties(
 
 void radv_GetPhysicalDeviceProperties2(
 	VkPhysicalDevice                            physicalDevice,
-	VkPhysicalDeviceProperties2KHR             *pProperties)
+	VkPhysicalDeviceProperties2                *pProperties)
 {
 	RADV_FROM_HANDLE(radv_physical_device, pdevice, physicalDevice);
 	radv_GetPhysicalDeviceProperties(physicalDevice, &pProperties->properties);
@@ -1021,23 +1021,23 @@ void radv_GetPhysicalDeviceProperties2(
 			properties->maxPushDescriptors = MAX_PUSH_DESCRIPTORS;
 			break;
 		}
-		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES_KHR: {
-			VkPhysicalDeviceIDPropertiesKHR *properties = (VkPhysicalDeviceIDPropertiesKHR*)ext;
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES: {
+			VkPhysicalDeviceIDProperties *properties = (VkPhysicalDeviceIDProperties*)ext;
 			memcpy(properties->driverUUID, pdevice->driver_uuid, VK_UUID_SIZE);
 			memcpy(properties->deviceUUID, pdevice->device_uuid, VK_UUID_SIZE);
 			properties->deviceLUIDValid = false;
 			break;
 		}
-		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PROPERTIES_KHR: {
-			VkPhysicalDeviceMultiviewPropertiesKHR *properties = (VkPhysicalDeviceMultiviewPropertiesKHR*)ext;
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_PROPERTIES: {
+			VkPhysicalDeviceMultiviewProperties *properties = (VkPhysicalDeviceMultiviewProperties*)ext;
 			properties->maxMultiviewViewCount = MAX_VIEWS;
 			properties->maxMultiviewInstanceIndex = INT_MAX;
 			break;
 		}
-		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_POINT_CLIPPING_PROPERTIES_KHR: {
-			VkPhysicalDevicePointClippingPropertiesKHR *properties =
-			    (VkPhysicalDevicePointClippingPropertiesKHR*)ext;
-			properties->pointClippingBehavior = VK_POINT_CLIPPING_BEHAVIOR_ALL_CLIP_PLANES_KHR;
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_POINT_CLIPPING_PROPERTIES: {
+			VkPhysicalDevicePointClippingProperties *properties =
+			    (VkPhysicalDevicePointClippingProperties*)ext;
+			properties->pointClippingBehavior = VK_POINT_CLIPPING_BEHAVIOR_ALL_CLIP_PLANES;
 			break;
 		}
 		case  VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DISCARD_RECTANGLE_PROPERTIES_EXT: {
@@ -1314,7 +1314,7 @@ void radv_GetPhysicalDeviceQueueFamilyProperties(
 void radv_GetPhysicalDeviceQueueFamilyProperties2(
 	VkPhysicalDevice                            physicalDevice,
 	uint32_t*                                   pCount,
-	VkQueueFamilyProperties2KHR                *pQueueFamilyProperties)
+	VkQueueFamilyProperties2                   *pQueueFamilyProperties)
 {
 	RADV_FROM_HANDLE(radv_physical_device, pdevice, physicalDevice);
 	if (!pQueueFamilyProperties) {
@@ -1341,7 +1341,7 @@ void radv_GetPhysicalDeviceMemoryProperties(
 
 void radv_GetPhysicalDeviceMemoryProperties2(
 	VkPhysicalDevice                            physicalDevice,
-	VkPhysicalDeviceMemoryProperties2KHR       *pMemoryProperties)
+	VkPhysicalDeviceMemoryProperties2          *pMemoryProperties)
 {
 	return radv_GetPhysicalDeviceMemoryProperties(physicalDevice,
 						      &pMemoryProperties->memoryProperties);
@@ -1349,7 +1349,7 @@ void radv_GetPhysicalDeviceMemoryProperties2(
 
 VkResult radv_GetMemoryHostPointerPropertiesEXT(
 	VkDevice                                    _device,
-	VkExternalMemoryHandleTypeFlagBitsKHR       handleType,
+	VkExternalMemoryHandleTypeFlagBits          handleType,
 	const void                                 *pHostPointer,
 	VkMemoryHostPointerPropertiesEXT           *pMemoryHostPointerProperties)
 {
@@ -1370,7 +1370,7 @@ VkResult radv_GetMemoryHostPointerPropertiesEXT(
 		return VK_SUCCESS;
 	}
 	default:
-		return VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR;
+		return VK_ERROR_INVALID_EXTERNAL_HANDLE;
 	}
 }
 
@@ -2970,10 +2970,10 @@ static VkResult radv_alloc_memory(struct radv_device *device,
 
 	const VkImportMemoryFdInfoKHR *import_info =
 		vk_find_struct_const(pAllocateInfo->pNext, IMPORT_MEMORY_FD_INFO_KHR);
-	const VkMemoryDedicatedAllocateInfoKHR *dedicate_info =
-		vk_find_struct_const(pAllocateInfo->pNext, MEMORY_DEDICATED_ALLOCATE_INFO_KHR);
-	const VkExportMemoryAllocateInfoKHR *export_info =
-		vk_find_struct_const(pAllocateInfo->pNext, EXPORT_MEMORY_ALLOCATE_INFO_KHR);
+	const VkMemoryDedicatedAllocateInfo *dedicate_info =
+		vk_find_struct_const(pAllocateInfo->pNext, MEMORY_DEDICATED_ALLOCATE_INFO);
+	const VkExportMemoryAllocateInfo *export_info =
+		vk_find_struct_const(pAllocateInfo->pNext, EXPORT_MEMORY_ALLOCATE_INFO);
 	const VkImportMemoryHostPointerInfoEXT *host_ptr_info =
 		vk_find_struct_const(pAllocateInfo->pNext, IMPORT_MEMORY_HOST_POINTER_INFO_EXT);
 
@@ -3000,13 +3000,13 @@ static VkResult radv_alloc_memory(struct radv_device *device,
 
 	if (import_info) {
 		assert(import_info->handleType ==
-		       VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR ||
+		       VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT ||
 		       import_info->handleType ==
 		       VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT);
 		mem->bo = device->ws->buffer_from_fd(device->ws, import_info->fd,
 						     NULL, NULL);
 		if (!mem->bo) {
-			result = VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR;
+			result = VK_ERROR_INVALID_EXTERNAL_HANDLE;
 			goto fail;
 		} else {
 			close(import_info->fd);
@@ -3017,7 +3017,7 @@ static VkResult radv_alloc_memory(struct radv_device *device,
 		mem->bo = device->ws->buffer_from_ptr(device->ws, host_ptr_info->pHostPointer,
 		                                      pAllocateInfo->allocationSize);
 		if (!mem->bo) {
-			result = VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR;
+			result = VK_ERROR_INVALID_EXTERNAL_HANDLE;
 			goto fail;
 		} else {
 			mem->user_ptr = host_ptr_info->pHostPointer;
@@ -3174,17 +3174,17 @@ void radv_GetBufferMemoryRequirements(
 
 void radv_GetBufferMemoryRequirements2(
 	VkDevice                                     device,
-	const VkBufferMemoryRequirementsInfo2KHR*    pInfo,
-	VkMemoryRequirements2KHR*                    pMemoryRequirements)
+	const VkBufferMemoryRequirementsInfo2       *pInfo,
+	VkMemoryRequirements2                       *pMemoryRequirements)
 {
 	radv_GetBufferMemoryRequirements(device, pInfo->buffer,
                                         &pMemoryRequirements->memoryRequirements);
 	RADV_FROM_HANDLE(radv_buffer, buffer, pInfo->buffer);
 	vk_foreach_struct(ext, pMemoryRequirements->pNext) {
 		switch (ext->sType) {
-		case VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS_KHR: {
-			VkMemoryDedicatedRequirementsKHR *req =
-			               (VkMemoryDedicatedRequirementsKHR *) ext;
+		case VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS: {
+			VkMemoryDedicatedRequirements *req =
+			               (VkMemoryDedicatedRequirements *) ext;
 			req->requiresDedicatedAllocation = buffer->shareable;
 			req->prefersDedicatedAllocation = req->requiresDedicatedAllocation;
 			break;
@@ -3211,8 +3211,8 @@ void radv_GetImageMemoryRequirements(
 
 void radv_GetImageMemoryRequirements2(
 	VkDevice                                    device,
-	const VkImageMemoryRequirementsInfo2KHR*    pInfo,
-	VkMemoryRequirements2KHR*                   pMemoryRequirements)
+	const VkImageMemoryRequirementsInfo2       *pInfo,
+	VkMemoryRequirements2                      *pMemoryRequirements)
 {
 	radv_GetImageMemoryRequirements(device, pInfo->image,
                                         &pMemoryRequirements->memoryRequirements);
@@ -3221,9 +3221,9 @@ void radv_GetImageMemoryRequirements2(
 
 	vk_foreach_struct(ext, pMemoryRequirements->pNext) {
 		switch (ext->sType) {
-		case VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS_KHR: {
-			VkMemoryDedicatedRequirementsKHR *req =
-			               (VkMemoryDedicatedRequirementsKHR *) ext;
+		case VK_STRUCTURE_TYPE_MEMORY_DEDICATED_REQUIREMENTS: {
+			VkMemoryDedicatedRequirements *req =
+			               (VkMemoryDedicatedRequirements *) ext;
 			req->requiresDedicatedAllocation = image->shareable;
 			req->prefersDedicatedAllocation = req->requiresDedicatedAllocation;
 			break;
@@ -3245,9 +3245,9 @@ void radv_GetImageSparseMemoryRequirements(
 
 void radv_GetImageSparseMemoryRequirements2(
 	VkDevice                                    device,
-	const VkImageSparseMemoryRequirementsInfo2KHR* pInfo,
+	const VkImageSparseMemoryRequirementsInfo2 *pInfo,
 	uint32_t*                                   pSparseMemoryRequirementCount,
-	VkSparseImageMemoryRequirements2KHR*            pSparseMemoryRequirements)
+	VkSparseImageMemoryRequirements2           *pSparseMemoryRequirements)
 {
 	stub();
 }
@@ -3262,7 +3262,7 @@ void radv_GetDeviceMemoryCommitment(
 
 VkResult radv_BindBufferMemory2(VkDevice device,
                                 uint32_t bindInfoCount,
-                                const VkBindBufferMemoryInfoKHR *pBindInfos)
+                                const VkBindBufferMemoryInfo *pBindInfos)
 {
 	for (uint32_t i = 0; i < bindInfoCount; ++i) {
 		RADV_FROM_HANDLE(radv_device_memory, mem, pBindInfos[i].memory);
@@ -3284,8 +3284,8 @@ VkResult radv_BindBufferMemory(
 	VkDeviceMemory                              memory,
 	VkDeviceSize                                memoryOffset)
 {
-	const VkBindBufferMemoryInfoKHR info = {
-		.sType = VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO_KHR,
+	const VkBindBufferMemoryInfo info = {
+		.sType = VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO,
 		.buffer = buffer,
 		.memory = memory,
 		.memoryOffset = memoryOffset
@@ -3296,7 +3296,7 @@ VkResult radv_BindBufferMemory(
 
 VkResult radv_BindImageMemory2(VkDevice device,
                                uint32_t bindInfoCount,
-                               const VkBindImageMemoryInfoKHR *pBindInfos)
+                               const VkBindImageMemoryInfo *pBindInfos)
 {
 	for (uint32_t i = 0; i < bindInfoCount; ++i) {
 		RADV_FROM_HANDLE(radv_device_memory, mem, pBindInfos[i].memory);
@@ -3320,8 +3320,8 @@ VkResult radv_BindImageMemory(
 	VkDeviceMemory                              memory,
 	VkDeviceSize                                memoryOffset)
 {
-	const VkBindImageMemoryInfoKHR info = {
-		.sType = VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO_KHR,
+	const VkBindImageMemoryInfo info = {
+		.sType = VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO,
 		.image = image,
 		.memory = memory,
 		.memoryOffset = memoryOffset
@@ -3446,9 +3446,9 @@ VkResult radv_CreateFence(
 	VkFence*                                    pFence)
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
-	const VkExportFenceCreateInfoKHR *export =
-		vk_find_struct_const(pCreateInfo->pNext, EXPORT_FENCE_CREATE_INFO_KHR);
-	VkExternalFenceHandleTypeFlagsKHR handleTypes =
+	const VkExportFenceCreateInfo *export =
+		vk_find_struct_const(pCreateInfo->pNext, EXPORT_FENCE_CREATE_INFO);
+	VkExternalFenceHandleTypeFlags handleTypes =
 		export ? export->handleTypes : 0;
 
 	struct radv_fence *fence = vk_alloc2(&device->alloc, pAllocator,
@@ -3735,9 +3735,9 @@ VkResult radv_CreateSemaphore(
 	VkSemaphore*                                pSemaphore)
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
-	const VkExportSemaphoreCreateInfoKHR *export =
-		vk_find_struct_const(pCreateInfo->pNext, EXPORT_SEMAPHORE_CREATE_INFO_KHR);
-	VkExternalSemaphoreHandleTypeFlagsKHR handleTypes =
+	const VkExportSemaphoreCreateInfo *export =
+		vk_find_struct_const(pCreateInfo->pNext, EXPORT_SEMAPHORE_CREATE_INFO);
+	VkExternalSemaphoreHandleTypeFlags handleTypes =
 		export ? export->handleTypes : 0;
 
 	struct radv_semaphore *sem = vk_alloc2(&device->alloc, pAllocator,
@@ -4686,7 +4686,7 @@ VkResult radv_GetMemoryFdKHR(VkDevice _device,
 
 	/* At the moment, we support only the below handle types. */
 	assert(pGetFdInfo->handleType ==
-	       VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR ||
+	       VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT ||
 	       pGetFdInfo->handleType ==
 	       VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT);
 
@@ -4697,7 +4697,7 @@ VkResult radv_GetMemoryFdKHR(VkDevice _device,
 }
 
 VkResult radv_GetMemoryFdPropertiesKHR(VkDevice _device,
-				       VkExternalMemoryHandleTypeFlagBitsKHR handleType,
+				       VkExternalMemoryHandleTypeFlagBits handleType,
 				       int fd,
 				       VkMemoryFdPropertiesKHR *pMemoryFdProperties)
 {
@@ -4716,7 +4716,7 @@ VkResult radv_GetMemoryFdPropertiesKHR(VkDevice _device,
        *
        * So opaque handle types fall into the default "unsupported" case.
        */
-      return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR);
+      return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE);
    }
 }
 
@@ -4727,7 +4727,7 @@ static VkResult radv_import_opaque_fd(struct radv_device *device,
 	uint32_t syncobj_handle = 0;
 	int ret = device->ws->import_syncobj(device->ws, fd, &syncobj_handle);
 	if (ret != 0)
-		return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR);
+		return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE);
 
 	if (*syncobj)
 		device->ws->destroy_syncobj(device->ws, *syncobj);
@@ -4748,7 +4748,7 @@ static VkResult radv_import_sync_fd(struct radv_device *device,
 	if (!syncobj_handle) {
 		int ret = device->ws->create_syncobj(device->ws, &syncobj_handle);
 		if (ret) {
-			return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR);
+			return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE);
 		}
 	}
 
@@ -4757,7 +4757,7 @@ static VkResult radv_import_sync_fd(struct radv_device *device,
 	} else {
 		int ret = device->ws->import_syncobj_from_sync_file(device->ws, syncobj_handle, fd);
 	if (ret != 0)
-		return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR);
+		return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE);
 	}
 
 	*syncobj = syncobj_handle;
@@ -4774,16 +4774,16 @@ VkResult radv_ImportSemaphoreFdKHR(VkDevice _device,
 	RADV_FROM_HANDLE(radv_semaphore, sem, pImportSemaphoreFdInfo->semaphore);
 	uint32_t *syncobj_dst = NULL;
 
-	if (pImportSemaphoreFdInfo->flags & VK_SEMAPHORE_IMPORT_TEMPORARY_BIT_KHR) {
+	if (pImportSemaphoreFdInfo->flags & VK_SEMAPHORE_IMPORT_TEMPORARY_BIT) {
 		syncobj_dst = &sem->temp_syncobj;
 	} else {
 		syncobj_dst = &sem->syncobj;
 	}
 
 	switch(pImportSemaphoreFdInfo->handleType) {
-		case VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT_KHR:
+		case VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT:
 			return radv_import_opaque_fd(device, pImportSemaphoreFdInfo->fd, syncobj_dst);
-		case VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT_KHR:
+		case VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT:
 			return radv_import_sync_fd(device, pImportSemaphoreFdInfo->fd, syncobj_dst);
 		default:
 			unreachable("Unhandled semaphore handle type");
@@ -4805,10 +4805,10 @@ VkResult radv_GetSemaphoreFdKHR(VkDevice _device,
 		syncobj_handle = sem->syncobj;
 
 	switch(pGetFdInfo->handleType) {
-	case VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT_KHR:
+	case VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT:
 		ret = device->ws->export_syncobj(device->ws, syncobj_handle, pFd);
 		break;
-	case VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT_KHR:
+	case VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT:
 		ret = device->ws->export_syncobj_to_sync_file(device->ws, syncobj_handle, pFd);
 		if (!ret) {
 			if (sem->temp_syncobj) {
@@ -4824,30 +4824,30 @@ VkResult radv_GetSemaphoreFdKHR(VkDevice _device,
 	}
 
 	if (ret)
-		return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR);
+		return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE);
 	return VK_SUCCESS;
 }
 
 void radv_GetPhysicalDeviceExternalSemaphoreProperties(
 	VkPhysicalDevice                            physicalDevice,
-	const VkPhysicalDeviceExternalSemaphoreInfoKHR* pExternalSemaphoreInfo,
-	VkExternalSemaphorePropertiesKHR*           pExternalSemaphoreProperties)
+	const VkPhysicalDeviceExternalSemaphoreInfo *pExternalSemaphoreInfo,
+	VkExternalSemaphoreProperties               *pExternalSemaphoreProperties)
 {
 	RADV_FROM_HANDLE(radv_physical_device, pdevice, physicalDevice);
 
 	/* Require has_syncobj_wait_for_submit for the syncobj signal ioctl introduced at virtually the same time */
 	if (pdevice->rad_info.has_syncobj_wait_for_submit &&
-	    (pExternalSemaphoreInfo->handleType == VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT_KHR || 
-	     pExternalSemaphoreInfo->handleType == VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT_KHR)) {
-		pExternalSemaphoreProperties->exportFromImportedHandleTypes = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT_KHR | VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT_KHR;
-		pExternalSemaphoreProperties->compatibleHandleTypes = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT_KHR | VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT_KHR;
-		pExternalSemaphoreProperties->externalSemaphoreFeatures = VK_EXTERNAL_SEMAPHORE_FEATURE_EXPORTABLE_BIT_KHR |
-			VK_EXTERNAL_SEMAPHORE_FEATURE_IMPORTABLE_BIT_KHR;
-	} else if (pExternalSemaphoreInfo->handleType == VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT_KHR) {
-		pExternalSemaphoreProperties->exportFromImportedHandleTypes = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
-		pExternalSemaphoreProperties->compatibleHandleTypes = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
-		pExternalSemaphoreProperties->externalSemaphoreFeatures = VK_EXTERNAL_SEMAPHORE_FEATURE_EXPORTABLE_BIT_KHR |
-			VK_EXTERNAL_SEMAPHORE_FEATURE_IMPORTABLE_BIT_KHR;
+	    (pExternalSemaphoreInfo->handleType == VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT || 
+	     pExternalSemaphoreInfo->handleType == VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT)) {
+		pExternalSemaphoreProperties->exportFromImportedHandleTypes = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT | VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT;
+		pExternalSemaphoreProperties->compatibleHandleTypes = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT | VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT;
+		pExternalSemaphoreProperties->externalSemaphoreFeatures = VK_EXTERNAL_SEMAPHORE_FEATURE_EXPORTABLE_BIT |
+			VK_EXTERNAL_SEMAPHORE_FEATURE_IMPORTABLE_BIT;
+	} else if (pExternalSemaphoreInfo->handleType == VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT) {
+		pExternalSemaphoreProperties->exportFromImportedHandleTypes = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT;
+		pExternalSemaphoreProperties->compatibleHandleTypes = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT;
+		pExternalSemaphoreProperties->externalSemaphoreFeatures = VK_EXTERNAL_SEMAPHORE_FEATURE_EXPORTABLE_BIT |
+			VK_EXTERNAL_SEMAPHORE_FEATURE_IMPORTABLE_BIT;
 	} else {
 		pExternalSemaphoreProperties->exportFromImportedHandleTypes = 0;
 		pExternalSemaphoreProperties->compatibleHandleTypes = 0;
@@ -4863,16 +4863,16 @@ VkResult radv_ImportFenceFdKHR(VkDevice _device,
 	uint32_t *syncobj_dst = NULL;
 
 
-	if (pImportFenceFdInfo->flags & VK_FENCE_IMPORT_TEMPORARY_BIT_KHR) {
+	if (pImportFenceFdInfo->flags & VK_FENCE_IMPORT_TEMPORARY_BIT) {
 		syncobj_dst = &fence->temp_syncobj;
 	} else {
 		syncobj_dst = &fence->syncobj;
 	}
 
 	switch(pImportFenceFdInfo->handleType) {
-		case VK_EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_FD_BIT_KHR:
+		case VK_EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_FD_BIT:
 			return radv_import_opaque_fd(device, pImportFenceFdInfo->fd, syncobj_dst);
-		case VK_EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD_BIT_KHR:
+		case VK_EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD_BIT:
 			return radv_import_sync_fd(device, pImportFenceFdInfo->fd, syncobj_dst);
 		default:
 			unreachable("Unhandled fence handle type");
@@ -4894,10 +4894,10 @@ VkResult radv_GetFenceFdKHR(VkDevice _device,
 		syncobj_handle = fence->syncobj;
 
 	switch(pGetFdInfo->handleType) {
-	case VK_EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_FD_BIT_KHR:
+	case VK_EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_FD_BIT:
 		ret = device->ws->export_syncobj(device->ws, syncobj_handle, pFd);
 		break;
-	case VK_EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD_BIT_KHR:
+	case VK_EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD_BIT:
 		ret = device->ws->export_syncobj_to_sync_file(device->ws, syncobj_handle, pFd);
 		if (!ret) {
 			if (fence->temp_syncobj) {
@@ -4913,24 +4913,24 @@ VkResult radv_GetFenceFdKHR(VkDevice _device,
 	}
 
 	if (ret)
-		return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR);
+		return vk_error(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE);
 	return VK_SUCCESS;
 }
 
 void radv_GetPhysicalDeviceExternalFenceProperties(
 	VkPhysicalDevice                            physicalDevice,
-	const VkPhysicalDeviceExternalFenceInfoKHR* pExternalFenceInfo,
-	VkExternalFencePropertiesKHR*           pExternalFenceProperties)
+	const VkPhysicalDeviceExternalFenceInfo *pExternalFenceInfo,
+	VkExternalFenceProperties               *pExternalFenceProperties)
 {
 	RADV_FROM_HANDLE(radv_physical_device, pdevice, physicalDevice);
 
 	if (pdevice->rad_info.has_syncobj_wait_for_submit &&
-	    (pExternalFenceInfo->handleType == VK_EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_FD_BIT_KHR || 
-	     pExternalFenceInfo->handleType == VK_EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD_BIT_KHR)) {
-		pExternalFenceProperties->exportFromImportedHandleTypes = VK_EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_FD_BIT_KHR | VK_EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD_BIT_KHR;
-		pExternalFenceProperties->compatibleHandleTypes = VK_EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_FD_BIT_KHR | VK_EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD_BIT_KHR;
-		pExternalFenceProperties->externalFenceFeatures = VK_EXTERNAL_FENCE_FEATURE_EXPORTABLE_BIT_KHR |
-			VK_EXTERNAL_SEMAPHORE_FEATURE_IMPORTABLE_BIT_KHR;
+	    (pExternalFenceInfo->handleType == VK_EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_FD_BIT || 
+	     pExternalFenceInfo->handleType == VK_EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD_BIT)) {
+		pExternalFenceProperties->exportFromImportedHandleTypes = VK_EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_FD_BIT | VK_EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD_BIT;
+		pExternalFenceProperties->compatibleHandleTypes = VK_EXTERNAL_FENCE_HANDLE_TYPE_OPAQUE_FD_BIT | VK_EXTERNAL_FENCE_HANDLE_TYPE_SYNC_FD_BIT;
+		pExternalFenceProperties->externalFenceFeatures = VK_EXTERNAL_FENCE_FEATURE_EXPORTABLE_BIT |
+			VK_EXTERNAL_SEMAPHORE_FEATURE_IMPORTABLE_BIT;
 	} else {
 		pExternalFenceProperties->exportFromImportedHandleTypes = 0;
 		pExternalFenceProperties->compatibleHandleTypes = 0;

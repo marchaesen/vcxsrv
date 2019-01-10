@@ -412,8 +412,8 @@ struct vtn_access_chain {
 };
 
 enum vtn_variable_mode {
-   vtn_variable_mode_local,
-   vtn_variable_mode_global,
+   vtn_variable_mode_function,
+   vtn_variable_mode_private,
    vtn_variable_mode_uniform,
    vtn_variable_mode_ubo,
    vtn_variable_mode_ssbo,

@@ -739,6 +739,21 @@ get_zero_or_one(nir_builder *b, nir_alu_type type, uint8_t swizzle_val)
 }
 
 static void
+swizzle_tg4_broadcom(nir_builder *b, nir_tex_instr *tex)
+{
+   assert(tex->dest.is_ssa);
+
+   b->cursor = nir_after_instr(&tex->instr);
+
+   assert(nir_tex_instr_dest_size(tex) == 4);
+   unsigned swiz[4] = { 2, 3, 1, 0 };
+   nir_ssa_def *swizzled = nir_swizzle(b, &tex->dest.ssa, swiz, 4, false);
+
+   nir_ssa_def_rewrite_uses_after(&tex->dest.ssa, nir_src_for_ssa(swizzled),
+                                  swizzled->parent_instr);
+}
+
+static void
 swizzle_result(nir_builder *b, nir_tex_instr *tex, const uint8_t swizzle[4])
 {
    assert(tex->dest.is_ssa);
@@ -934,6 +949,11 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
 
       if (sat_mask) {
          saturate_src(b, tex, sat_mask);
+         progress = true;
+      }
+
+      if (tex->op == nir_texop_tg4 && options->lower_tg4_broadcom_swizzle) {
+         swizzle_tg4_broadcom(b, tex);
          progress = true;
       }
 

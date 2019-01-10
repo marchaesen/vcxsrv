@@ -100,6 +100,8 @@ private:
    /* whether the IR we're operating on is per-function or global */
    bool is_global;
 
+   ir_function_signature *sig;
+
    /* map of ir_variable -> nir_variable */
    struct hash_table *var_table;
 
@@ -292,6 +294,12 @@ nir_visitor::visit(ir_variable *ir)
    if (ir->data.mode == ir_var_shader_shared)
       return;
 
+   /* FINISHME: inout parameters */
+   assert(ir->data.mode != ir_var_function_inout);
+
+   if (ir->data.mode == ir_var_function_out)
+      return;
+
    nir_variable *var = rzalloc(shader, nir_variable);
    var->type = ir->type;
    var->name = ralloc_strdup(var, ir->name);
@@ -310,16 +318,14 @@ nir_visitor::visit(ir_variable *ir)
    case ir_var_auto:
    case ir_var_temporary:
       if (is_global)
-         var->data.mode = nir_var_global;
+         var->data.mode = nir_var_private;
       else
-         var->data.mode = nir_var_local;
+         var->data.mode = nir_var_function;
       break;
 
    case ir_var_function_in:
-   case ir_var_function_out:
-   case ir_var_function_inout:
    case ir_var_const_in:
-      var->data.mode = nir_var_local;
+      var->data.mode = nir_var_function;
       break;
 
    case ir_var_shader_in:
@@ -448,7 +454,7 @@ nir_visitor::visit(ir_variable *ir)
 
    var->interface_type = ir->get_interface_type();
 
-   if (var->data.mode == nir_var_local)
+   if (var->data.mode == nir_var_function)
       nir_function_impl_add_variable(impl, var);
    else
       nir_shader_add_variable(shader, var);
@@ -472,9 +478,36 @@ nir_visitor::create_function(ir_function_signature *ir)
       return;
 
    nir_function *func = nir_function_create(shader, ir->function_name());
+   if (strcmp(ir->function_name(), "main") == 0)
+      func->is_entrypoint = true;
 
-   assert(ir->parameters.is_empty());
-   assert(ir->return_type == glsl_type::void_type);
+   func->num_params = ir->parameters.length() +
+                      (ir->return_type != glsl_type::void_type);
+   func->params = ralloc_array(shader, nir_parameter, func->num_params);
+
+   unsigned np = 0;
+
+   if (ir->return_type != glsl_type::void_type) {
+      /* The return value is a variable deref (basically an out parameter) */
+      func->params[np].num_components = 1;
+      func->params[np].bit_size = 32;
+      np++;
+   }
+
+   foreach_in_list(ir_variable, param, &ir->parameters) {
+      /* FINISHME: pass arrays, structs, etc by reference? */
+      assert(param->type->is_vector() || param->type->is_scalar());
+
+      if (param->data.mode == ir_var_function_in) {
+         func->params[np].num_components = param->type->vector_elements;
+         func->params[np].bit_size = glsl_get_bit_size(param->type);
+      } else {
+         func->params[np].num_components = 1;
+         func->params[np].bit_size = 32;
+      }
+      np++;
+   }
+   assert(np == func->num_params);
 
    _mesa_hash_table_insert(this->overload_table, ir, func);
 }
@@ -492,6 +525,8 @@ nir_visitor::visit(ir_function_signature *ir)
    if (ir->is_intrinsic())
       return;
 
+   this->sig = ir;
+
    struct hash_entry *entry =
       _mesa_hash_table_search(this->overload_table, ir);
 
@@ -502,13 +537,25 @@ nir_visitor::visit(ir_function_signature *ir)
       nir_function_impl *impl = nir_function_impl_create(func);
       this->impl = impl;
 
-      assert(strcmp(func->name, "main") == 0);
-      assert(ir->parameters.is_empty());
-
       this->is_global = false;
 
       nir_builder_init(&b, impl);
       b.cursor = nir_after_cf_list(&impl->body);
+
+      unsigned i = (ir->return_type != glsl_type::void_type) ? 1 : 0;
+
+      foreach_in_list(ir_variable, param, &ir->parameters) {
+         nir_variable *var =
+            nir_local_variable_create(impl, param->type, param->name);
+
+         if (param->data.mode == ir_var_function_in) {
+            nir_store_var(&b, var, nir_load_param(&b, i), ~0);
+         }
+
+         _mesa_hash_table_insert(var_table, param, var);
+         i++;
+      }
+
       visit_exec_list(&ir->body, this);
 
       this->is_global = true;
@@ -598,7 +645,15 @@ nir_visitor::visit(ir_loop_jump *ir)
 void
 nir_visitor::visit(ir_return *ir)
 {
-   assert(ir->value == NULL);
+   if (ir->value != NULL) {
+      nir_deref_instr *ret_deref =
+         nir_build_deref_cast(&b, nir_load_param(&b, 0),
+                              nir_var_function, ir->value->type, 0);
+
+      nir_ssa_def *val = evaluate_rvalue(ir->value);
+      nir_store_deref(&b, ret_deref, val, ~0);
+   }
+
    nir_jump_instr *instr = nir_jump_instr_create(this->shader, nir_jump_return);
    nir_builder_instr_insert(&b, &instr->instr);
 }
@@ -1253,7 +1308,47 @@ nir_visitor::visit(ir_call *ir)
       return;
    }
 
-   unreachable("glsl_to_nir only handles function calls to intrinsics");
+   struct hash_entry *entry =
+      _mesa_hash_table_search(this->overload_table, ir->callee);
+   assert(entry);
+   nir_function *callee = (nir_function *) entry->data;
+
+   nir_call_instr *call = nir_call_instr_create(this->shader, callee);
+
+   unsigned i = 0;
+   nir_deref_instr *ret_deref = NULL;
+   if (ir->return_deref) {
+      nir_variable *ret_tmp =
+         nir_local_variable_create(this->impl, ir->return_deref->type,
+                                   "return_tmp");
+      ret_deref = nir_build_deref_var(&b, ret_tmp);
+      call->params[i++] = nir_src_for_ssa(&ret_deref->dest.ssa);
+   }
+
+   foreach_two_lists(formal_node, &ir->callee->parameters,
+                     actual_node, &ir->actual_parameters) {
+      ir_rvalue *param_rvalue = (ir_rvalue *) actual_node;
+      ir_variable *sig_param = (ir_variable *) formal_node;
+
+      if (sig_param->data.mode == ir_var_function_out) {
+         nir_deref_instr *out_deref = evaluate_deref(param_rvalue);
+         call->params[i] = nir_src_for_ssa(&out_deref->dest.ssa);
+      } else if (sig_param->data.mode == ir_var_function_in) {
+         nir_ssa_def *val = evaluate_rvalue(param_rvalue);
+         nir_src src = nir_src_for_ssa(val);
+
+         nir_src_copy(&call->params[i], &src, call);
+      } else if (sig_param->data.mode == ir_var_function_inout) {
+         unreachable("unimplemented: inout parameters");
+      }
+
+      i++;
+   }
+
+   nir_builder_instr_insert(&b, &call->instr);
+
+   if (ir->return_deref)
+      nir_store_deref(&b, evaluate_deref(ir->return_deref), nir_load_deref(&b, ret_deref), ~0);
 }
 
 void
@@ -1454,7 +1549,7 @@ nir_visitor::visit(ir_expression *ir)
           * sense, we'll just turn it into a load which will probably
           * eventually end up as an SSA definition.
           */
-         assert(this->deref->mode == nir_var_global);
+         assert(this->deref->mode == nir_var_private);
          op = nir_intrinsic_load_deref;
       }
 
@@ -2180,6 +2275,23 @@ nir_visitor::visit(ir_constant *ir)
 void
 nir_visitor::visit(ir_dereference_variable *ir)
 {
+   if (ir->variable_referenced()->data.mode == ir_var_function_out) {
+      unsigned i = (sig->return_type != glsl_type::void_type) ? 1 : 0;
+
+      foreach_in_list(ir_variable, param, &sig->parameters) {
+         if (param == ir->variable_referenced()) {
+            break;
+         }
+         i++;
+      }
+
+      this->deref = nir_build_deref_cast(&b, nir_load_param(&b, i),
+                                         nir_var_function, ir->type, 0);
+      return;
+   }
+
+   assert(ir->variable_referenced()->data.mode != ir_var_function_inout);
+
    struct hash_entry *entry =
       _mesa_hash_table_search(this->var_table, ir->var);
    assert(entry);

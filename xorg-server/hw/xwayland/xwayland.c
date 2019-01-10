@@ -95,7 +95,7 @@ ddxUseMsg(void)
 
 static int wm_fd = -1;
 static int listen_fds[5] = { -1, -1, -1, -1, -1 };
-static int listen_fd_count;
+static int listen_fd_count = 0;
 
 int
 ddxProcessArgument(int argc, char *argv[], int i)
@@ -1165,12 +1165,10 @@ InitOutput(ScreenInfo * screen_info, int argc, char **argv)
 
     LocalAccessScopeUser();
 
-    if (listen_fd_count > 0) {
-        if (wm_fd >= 0) {
-            TimerSet(NULL, 0, 1, add_client_fd, NULL);
-            AddCallback(&SelectionCallback, wm_selection_callback, NULL);
-        } else {
-            listen_on_fds();
-        }
+    if (wm_fd >= 0) {
+        TimerSet(NULL, 0, 1, add_client_fd, NULL);
+        AddCallback(&SelectionCallback, wm_selection_callback, NULL);
+    } else if (listen_fd_count > 0) {
+        listen_on_fds();
     }
 }

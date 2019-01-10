@@ -1705,11 +1705,11 @@ calculate_tess_state(struct radv_pipeline *pipeline,
 	}
 
 	bool ccw = tes->info.tes.ccw;
-	const VkPipelineTessellationDomainOriginStateCreateInfoKHR *domain_origin_state =
+	const VkPipelineTessellationDomainOriginStateCreateInfo *domain_origin_state =
 	              vk_find_struct_const(pCreateInfo->pTessellationState,
-	                                   PIPELINE_TESSELLATION_DOMAIN_ORIGIN_STATE_CREATE_INFO_KHR);
+	                                   PIPELINE_TESSELLATION_DOMAIN_ORIGIN_STATE_CREATE_INFO);
 
-	if (domain_origin_state && domain_origin_state->domainOrigin != VK_TESSELLATION_DOMAIN_ORIGIN_UPPER_LEFT_KHR)
+	if (domain_origin_state && domain_origin_state->domainOrigin != VK_TESSELLATION_DOMAIN_ORIGIN_UPPER_LEFT)
 		ccw = !ccw;
 
 	if (tes->info.tes.point_mode)

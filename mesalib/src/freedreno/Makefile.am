@@ -37,7 +37,7 @@ include Makefile.sources
 lib_LTLIBRARIES =
 check_LTLIBRARIES =
 noinst_DATA =
-noinst_HEADERS =
+noinst_HEADERS = $(registers_FILES)
 noinst_LTLIBRARIES =
 noinst_PROGRAMS =
 check_PROGRAMS =

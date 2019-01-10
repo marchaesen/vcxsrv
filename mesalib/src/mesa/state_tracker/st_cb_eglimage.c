@@ -159,20 +159,11 @@ st_egl_image_target_renderbuffer_storage(struct gl_context *ctx,
       if (!ps)
          return;
 
-      strb->Base.Width = ps->width;
-      strb->Base.Height = ps->height;
       strb->Base.Format = st_pipe_format_to_mesa_format(ps->format);
       strb->Base._BaseFormat = st_pipe_format_to_base_format(ps->format);
       strb->Base.InternalFormat = strb->Base._BaseFormat;
 
-      struct pipe_surface **psurf =
-         util_format_is_srgb(ps->format) ? &strb->surface_srgb :
-                                           &strb->surface_linear;
-
-      pipe_surface_reference(psurf, ps);
-      strb->surface = *psurf;
-      pipe_resource_reference(&strb->texture, ps->texture);
-
+      st_set_ws_renderbuffer_surface(strb, ps);
       pipe_surface_reference(&ps, NULL);
    }
 }

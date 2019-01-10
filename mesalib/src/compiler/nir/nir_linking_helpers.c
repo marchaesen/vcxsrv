@@ -133,7 +133,7 @@ nir_remove_unused_io_vars(nir_shader *shader, struct exec_list *var_list,
       if (!(other_stage & get_variable_io_mask(var, shader->info.stage))) {
          /* This one is invalid, make it a global variable instead */
          var->data.location = 0;
-         var->data.mode = nir_var_global;
+         var->data.mode = nir_var_private;
 
          exec_node_remove(&var->node);
          exec_list_push_tail(&shader->globals, &var->node);

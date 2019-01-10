@@ -125,11 +125,11 @@ nir_shader_add_variable(nir_shader *shader, nir_variable *var)
       assert(!"invalid mode");
       break;
 
-   case nir_var_local:
+   case nir_var_function:
       assert(!"nir_shader_add_variable cannot be used for local variables");
       break;
 
-   case nir_var_global:
+   case nir_var_private:
       exec_list_push_tail(&shader->globals, &var->node);
       break;
 
@@ -189,7 +189,7 @@ nir_local_variable_create(nir_function_impl *impl,
    nir_variable *var = rzalloc(impl->function->shader, nir_variable);
    var->name = ralloc_strdup(var, name);
    var->type = type;
-   var->data.mode = nir_var_local;
+   var->data.mode = nir_var_function;
 
    nir_function_impl_add_variable(impl, var);
 
@@ -208,6 +208,7 @@ nir_function_create(nir_shader *shader, const char *name)
    func->num_params = 0;
    func->params = NULL;
    func->impl = NULL;
+   func->is_entrypoint = false;
 
    return func;
 }

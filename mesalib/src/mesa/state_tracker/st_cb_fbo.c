@@ -285,8 +285,11 @@ st_renderbuffer_delete(struct gl_context *ctx, struct gl_renderbuffer *rb)
       struct st_context *st = st_context(ctx);
       pipe_surface_release(st->pipe, &strb->surface_srgb);
       pipe_surface_release(st->pipe, &strb->surface_linear);
-      strb->surface = NULL;
+   } else {
+      pipe_surface_release_no_context(&strb->surface_srgb);
+      pipe_surface_release_no_context(&strb->surface_linear);
    }
+   strb->surface = NULL;
    pipe_resource_reference(&strb->texture, NULL);
    free(strb->data);
    _mesa_delete_renderbuffer(ctx, rb);

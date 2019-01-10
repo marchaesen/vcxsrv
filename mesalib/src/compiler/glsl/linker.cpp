@@ -3185,6 +3185,12 @@ match_explicit_outputs_to_inputs(gl_linked_shader *producer,
          const unsigned idx = var->data.location - VARYING_SLOT_VAR0;
          if (explicit_locations[idx][var->data.location_frac] == NULL)
             explicit_locations[idx][var->data.location_frac] = var;
+
+         /* Always match TCS outputs. They are shared by all invocations
+          * within a patch and can be used as shared memory.
+          */
+         if (producer->Stage == MESA_SHADER_TESS_CTRL)
+            var->data.is_unmatched_generic_inout = 0;
       }
    }
 

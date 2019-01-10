@@ -402,7 +402,8 @@ fix_parameter(void *mem_ctx, ir_rvalue *actual, const glsl_type *formal_type,
     * nothing needs to be done to fix the parameter.
     */
    if (formal_type == actual->type
-       && (expr == NULL || expr->operation != ir_binop_vector_extract))
+       && (expr == NULL || expr->operation != ir_binop_vector_extract)
+       && actual->as_dereference_variable())
       return;
 
    /* An array index could also be an out variable so we need to make a copy
@@ -456,7 +457,7 @@ fix_parameter(void *mem_ctx, ir_rvalue *actual, const glsl_type *formal_type,
       ir_dereference_variable *const deref_tmp_1 =
          new(mem_ctx) ir_dereference_variable(tmp);
       ir_assignment *const assignment =
-         new(mem_ctx) ir_assignment(deref_tmp_1, actual);
+         new(mem_ctx) ir_assignment(deref_tmp_1, actual->clone(mem_ctx, NULL));
       before_instructions->push_tail(assignment);
    }
 

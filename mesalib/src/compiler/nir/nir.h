@@ -97,8 +97,8 @@ typedef struct {
 typedef enum {
    nir_var_shader_in       = (1 << 0),
    nir_var_shader_out      = (1 << 1),
-   nir_var_global          = (1 << 2),
-   nir_var_local           = (1 << 3),
+   nir_var_private         = (1 << 2),
+   nir_var_function        = (1 << 3),
    nir_var_uniform         = (1 << 4),
    nir_var_ubo             = (1 << 5),
    nir_var_system_value    = (1 << 6),
@@ -441,7 +441,7 @@ typedef struct nir_variable {
 static inline bool
 nir_variable_is_global(const nir_variable *var)
 {
-   return var->data.mode != nir_var_local;
+   return var->data.mode != nir_var_function;
 }
 
 typedef struct nir_register {
@@ -2098,6 +2098,8 @@ typedef struct nir_function {
     * If the function is only declared and not implemented, this is NULL.
     */
    nir_function_impl *impl;
+
+   bool is_entrypoint;
 } nir_function;
 
 typedef struct nir_shader_compiler_options {
@@ -2278,19 +2280,31 @@ typedef struct nir_shader {
    unsigned constant_data_size;
 } nir_shader;
 
+#define nir_foreach_function(func, shader) \
+   foreach_list_typed(nir_function, func, node, &(shader)->functions)
+
 static inline nir_function_impl *
 nir_shader_get_entrypoint(nir_shader *shader)
 {
-   assert(exec_list_length(&shader->functions) == 1);
-   struct exec_node *func_node = exec_list_get_head(&shader->functions);
-   nir_function *func = exec_node_data(nir_function, func_node, node);
+   nir_function *func = NULL;
+
+   nir_foreach_function(function, shader) {
+      assert(func == NULL);
+      if (function->is_entrypoint) {
+         func = function;
+#ifndef NDEBUG
+         break;
+#endif
+      }
+   }
+
+   if (!func)
+      return NULL;
+
    assert(func->num_params == 0);
    assert(func->impl);
    return func->impl;
 }
-
-#define nir_foreach_function(func, shader) \
-   foreach_list_typed(nir_function, func, node, &(shader)->functions)
 
 nir_shader *nir_shader_create(void *mem_ctx,
                               gl_shader_stage stage,
@@ -2310,7 +2324,7 @@ void nir_shader_add_variable(nir_shader *shader, nir_variable *var);
 static inline void
 nir_function_impl_add_variable(nir_function_impl *impl, nir_variable *var)
 {
-   assert(var->data.mode == nir_var_local);
+   assert(var->data.mode == nir_var_function);
    exec_list_push_tail(&impl->locals, &var->node);
 }
 
@@ -3085,6 +3099,12 @@ typedef struct nir_lower_tex_options {
     */
    bool lower_txd_offset_clamp;
 
+   /**
+    * If true, apply a .bagr swizzle on tg4 results to handle Broadcom's
+    * mixed-up tg4 locations.
+    */
+   bool lower_tg4_broadcom_swizzle;
+
    enum nir_lower_tex_packing lower_tex_packing[32];
 } nir_lower_tex_options;
 
@@ -3163,6 +3183,14 @@ typedef enum {
    nir_lower_divmod64 = (1 << 2),
    /** Lower all 64-bit umul_high and imul_high opcodes */
    nir_lower_imul_high64 = (1 << 3),
+   nir_lower_mov64 = (1 << 4),
+   nir_lower_icmp64 = (1 << 5),
+   nir_lower_iadd64 = (1 << 6),
+   nir_lower_iabs64 = (1 << 7),
+   nir_lower_ineg64 = (1 << 8),
+   nir_lower_logic64 = (1 << 9),
+   nir_lower_minmax64 = (1 << 10),
+   nir_lower_shift64 = (1 << 11),
 } nir_lower_int64_options;
 
 bool nir_lower_int64(nir_shader *shader, nir_lower_int64_options options);
@@ -3176,7 +3204,8 @@ typedef enum {
    nir_lower_dceil = (1 << 5),
    nir_lower_dfract = (1 << 6),
    nir_lower_dround_even = (1 << 7),
-   nir_lower_dmod = (1 << 8)
+   nir_lower_dmod = (1 << 8),
+   nir_lower_fp64_full_software = (1 << 9),
 } nir_lower_doubles_options;
 
 bool nir_lower_doubles(nir_shader *shader, nir_lower_doubles_options options);

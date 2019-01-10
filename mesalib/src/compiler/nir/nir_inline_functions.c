@@ -125,6 +125,10 @@ inline_function_impl(nir_function_impl *impl, struct set *inlined)
       nir_index_local_regs(impl);
 
       nir_metadata_preserve(impl, nir_metadata_none);
+   } else {
+#ifndef NDEBUG
+      impl->valid_metadata &= ~nir_metadata_not_properly_reset;
+#endif
    }
 
    _mesa_set_add(inlined, impl);
@@ -137,7 +141,7 @@ inline_function_impl(nir_function_impl *impl, struct set *inlined)
  * For most use-cases, function inlining is a multi-step process.  The general
  * pattern employed by SPIR-V consumers and others is as follows:
  *
- *  1. nir_lower_constant_initializers(shader, nir_var_local)
+ *  1. nir_lower_constant_initializers(shader, nir_var_function)
  *
  *     This is needed because local variables from the callee are simply added
  *     to the locals list for the caller and the information about where the
@@ -192,7 +196,7 @@ inline_function_impl(nir_function_impl *impl, struct set *inlined)
  *    spirv_to_nir returns the root function and so we can just use == whereas
  *    with GL, you may have to look for a function named "main".
  *
- *  6. nir_lower_constant_initializers(shader, ~nir_var_local)
+ *  6. nir_lower_constant_initializers(shader, ~nir_var_function)
  *
  *     Lowering constant initializers on inputs, outputs, global variables,
  *     etc. requires that we know the main entrypoint so that we know where to

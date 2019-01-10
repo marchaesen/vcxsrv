@@ -28,6 +28,7 @@ EXTRA_DIST += glsl/tests glsl/glcpp/tests glsl/README	\
 	glsl/ir_expression_operation.py			\
 	glsl/glcpp/glcpp-lex.l				\
 	glsl/glcpp/glcpp-parse.y			\
+	glsl/xxd.py					\
 	SConscript.glsl
 
 TESTS += glsl/glcpp/tests/glcpp-test.sh			\
@@ -225,6 +226,10 @@ glsl/ir_expression_operation_strings.h: glsl/ir_expression_operation.py
 	$(MKDIR_GEN)
 	$(PYTHON_GEN) $(srcdir)/glsl/ir_expression_operation.py strings > $@ || ($(RM) $@; false)
 
+glsl/float64_glsl.h: glsl/xxd.py glsl/float64.glsl
+	$(MKDIR_GEN)
+	$(PYTHON_GEN) $(srcdir)/glsl/xxd.py $(srcdir)/glsl/float64.glsl $@ -n float64_source || ($(RM) $@; false)
+
 # Only the parsers (specifically the header files generated at the same time)
 # need to be in BUILT_SOURCES. Though if we list the parser headers YACC is
 # called for the .c/.cpp file and the .h files. By listing the .c/.cpp files
@@ -232,6 +237,7 @@ glsl/ir_expression_operation_strings.h: glsl/ir_expression_operation.py
 # will be created at the appropriate times according to standard automake
 # dependency rules.
 BUILT_SOURCES +=					\
+	glsl/float64_glsl.h				\
 	glsl/glsl_parser.cpp				\
 	glsl/glsl_lexer.cpp				\
 	glsl/ir_expression_operation.h			\
@@ -240,6 +246,7 @@ BUILT_SOURCES +=					\
 	glsl/glcpp/glcpp-parse.c			\
 	glsl/glcpp/glcpp-lex.c
 CLEANFILES +=						\
+	glsl/float64_glsl.h				\
 	glsl/glcpp/glcpp-parse.h			\
 	glsl/glsl_parser.h				\
 	glsl/glsl_parser.cpp				\

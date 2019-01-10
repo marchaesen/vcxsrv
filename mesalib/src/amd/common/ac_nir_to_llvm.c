@@ -1925,7 +1925,7 @@ static LLVMValueRef visit_load_var(struct ac_nir_context *ctx,
 				values[chan] = ctx->abi->inputs[idx + chan + const_index * stride];
 		}
 		break;
-	case nir_var_local:
+	case nir_var_function:
 		for (unsigned chan = 0; chan < ve; chan++) {
 			if (indir_index) {
 				unsigned count = glsl_count_attribute_slots(
@@ -2057,7 +2057,7 @@ visit_store_var(struct ac_nir_context *ctx,
 			}
 		}
 		break;
-	case nir_var_local:
+	case nir_var_function:
 		for (unsigned chan = 0; chan < 8; chan++) {
 			if (!(writemask & (1 << chan)))
 				continue;
@@ -2838,7 +2838,7 @@ static LLVMValueRef visit_interp(struct ac_nir_context *ctx,
 	LLVMValueRef src0 = NULL;
 
 	nir_variable *var = nir_deref_instr_get_variable(nir_instr_as_deref(instr->src[0].ssa->parent_instr));
-	int input_index = var->data.location - VARYING_SLOT_VAR0;
+	int input_index = ctx->abi->fs_input_attr_indices[var->data.location - VARYING_SLOT_VAR0];
 	switch (instr->intrinsic) {
 	case nir_intrinsic_interp_deref_at_centroid:
 		location = INTERP_CENTROID;
@@ -4072,7 +4072,7 @@ ac_lower_indirect_derefs(struct nir_shader *nir, enum chip_class chip_class)
 	 * See the following thread for more details of the problem:
 	 * https://lists.freedesktop.org/archives/mesa-dev/2017-July/162106.html
 	 */
-	indirect_mask |= nir_var_local;
+	indirect_mask |= nir_var_function;
 
 	nir_lower_indirect_derefs(nir, indirect_mask);
 }

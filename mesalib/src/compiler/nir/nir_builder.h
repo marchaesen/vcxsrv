@@ -55,6 +55,7 @@ nir_builder_init_simple_shader(nir_builder *build, void *mem_ctx,
 {
    build->shader = nir_shader_create(mem_ctx, stage, options, NULL);
    nir_function *func = nir_function_create(build->shader, "main");
+   func->is_entrypoint = true;
    build->exact = false;
    build->impl = nir_function_impl_create(func);
    build->cursor = nir_after_cf_list(&build->impl->body);

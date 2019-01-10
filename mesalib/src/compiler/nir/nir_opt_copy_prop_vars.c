@@ -134,8 +134,8 @@ gather_vars_written(struct copy_prop_var_state *state,
       nir_foreach_instr(instr, block) {
          if (instr->type == nir_instr_type_call) {
             written->modes |= nir_var_shader_out |
-                              nir_var_global |
-                              nir_var_local |
+                              nir_var_private |
+                              nir_var_function |
                               nir_var_ssbo |
                               nir_var_shared;
             continue;
@@ -615,8 +615,8 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
    nir_foreach_instr_safe(instr, block) {
       if (instr->type == nir_instr_type_call) {
          apply_barrier_for_modes(copies, nir_var_shader_out |
-                                         nir_var_global |
-                                         nir_var_local |
+                                         nir_var_private |
+                                         nir_var_function |
                                          nir_var_ssbo |
                                          nir_var_shared);
          continue;
@@ -876,6 +876,10 @@ nir_copy_prop_vars_impl(nir_function_impl *impl)
    if (state.progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |
                                   nir_metadata_dominance);
+   } else {
+#ifndef NDEBUG
+      impl->valid_metadata &= ~nir_metadata_not_properly_reset;
+#endif
    }
 
    ralloc_free(mem_ctx);

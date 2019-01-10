@@ -323,6 +323,10 @@ xwl_present_get_crtc(WindowPtr present_window)
         return NULL;
 
     rr_private = rrGetScrPriv(present_window->drawable.pScreen);
+
+    if (rr_private->numCrtcs == 0)
+        return NULL;
+
     return rr_private->crtcs[0];
 }
 

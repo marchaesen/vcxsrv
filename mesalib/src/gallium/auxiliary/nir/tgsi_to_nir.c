@@ -182,7 +182,7 @@ ttn_emit_declaration(struct ttn_compile *c)
          nir_variable *var = rzalloc(b->shader, nir_variable);
 
          var->type = glsl_array_type(glsl_vec4_type(), array_size, 0);
-         var->data.mode = nir_var_global;
+         var->data.mode = nir_var_private;
          var->name = ralloc_asprintf(var, "arr_%d", decl->Array.ArrayID);
 
          exec_list_push_tail(&b->shader->globals, &var->node);

@@ -194,7 +194,7 @@ ir3_optimize_nir(struct ir3_shader *shader, nir_shader *s,
 	if (OPT(s, nir_lower_idiv))
 		ir3_optimize_loop(s);
 
-	OPT_V(s, nir_remove_dead_variables, nir_var_local);
+	OPT_V(s, nir_remove_dead_variables, nir_var_function);
 
 	OPT_V(s, nir_move_load_const);
 

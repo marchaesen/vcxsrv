@@ -873,6 +873,10 @@ nir_opt_if(nir_shader *shader)
          nir_lower_regs_to_ssa_impl(function->impl);
 
          progress = true;
+      } else {
+   #ifndef NDEBUG
+         function->impl->valid_metadata &= ~nir_metadata_not_properly_reset;
+   #endif
       }
    }
 

@@ -4420,5 +4420,6 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
 
    ralloc_free(b);
 
+   entry_point->is_entrypoint = true;
    return entry_point;
 }

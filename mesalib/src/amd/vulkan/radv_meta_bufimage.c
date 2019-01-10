@@ -1593,7 +1593,7 @@ create_buffer_from_image(struct radv_cmd_buffer *cmd_buffer,
 			  }, NULL, buffer);
 
 	radv_BindBufferMemory2(radv_device_to_handle(device), 1,
-			       (VkBindBufferMemoryInfoKHR[]) {
+			       (VkBindBufferMemoryInfo[]) {
 				    {
 					.sType = VK_STRUCTURE_TYPE_BIND_BUFFER_MEMORY_INFO,
 					.buffer = *buffer,

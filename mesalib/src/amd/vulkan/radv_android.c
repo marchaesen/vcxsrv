@@ -111,7 +111,7 @@ radv_image_from_gralloc(VkDevice device_h,
 	VkResult result;
 
 	if (gralloc_info->handle->numFds != 1) {
-		return vk_errorf(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE_KHR,
+		return vk_errorf(device->instance, VK_ERROR_INVALID_EXTERNAL_HANDLE,
 		                 "VkNativeBufferANDROID::handle::numFds is %d, "
 		                 "expected 1", gralloc_info->handle->numFds);
 	}
@@ -126,7 +126,7 @@ radv_image_from_gralloc(VkDevice device_h,
 
 	const VkImportMemoryFdInfoKHR import_info = {
 		.sType = VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR,
-		.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR,
+		.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT,
 		.fd = dup(dma_buf),
 	};
 
@@ -230,16 +230,16 @@ VkResult radv_GetSwapchainGrallocUsageANDROID(
 	 * dEQP-VK.wsi.android.swapchain.*.image_usage to fail.
 	 */
 
-	const VkPhysicalDeviceImageFormatInfo2KHR image_format_info = {
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2_KHR,
+	const VkPhysicalDeviceImageFormatInfo2 image_format_info = {
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2,
 		.format = format,
 		.type = VK_IMAGE_TYPE_2D,
 		.tiling = VK_IMAGE_TILING_OPTIMAL,
 		.usage = imageUsage,
 	};
 
-	VkImageFormatProperties2KHR image_format_props = {
-		.sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2_KHR,
+	VkImageFormatProperties2 image_format_props = {
+		.sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2,
 	};
 
 	/* Check that requested format and usage are supported. */
@@ -303,7 +303,7 @@ radv_AcquireImageANDROID(
 		semaphore_result = radv_ImportSemaphoreFdKHR(device,
 		                                             &(VkImportSemaphoreFdInfoKHR) {
 		                                                 .sType = VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_FD_INFO_KHR,
-		                                                 .flags = VK_SEMAPHORE_IMPORT_TEMPORARY_BIT_KHR,
+		                                                 .flags = VK_SEMAPHORE_IMPORT_TEMPORARY_BIT,
 		                                                 .fd = semaphore_fd,
 		                                                 .semaphore = semaphore,
 		                                            });
@@ -314,7 +314,7 @@ radv_AcquireImageANDROID(
 		fence_result = radv_ImportFenceFdKHR(device,
 		                                     &(VkImportFenceFdInfoKHR) {
 		                                         .sType = VK_STRUCTURE_TYPE_IMPORT_FENCE_FD_INFO_KHR,
-		                                         .flags = VK_FENCE_IMPORT_TEMPORARY_BIT_KHR,
+		                                         .flags = VK_FENCE_IMPORT_TEMPORARY_BIT,
 		                                         .fd = fence_fd,
 		                                         .fence = fence,
 		                                     });
@@ -351,7 +351,7 @@ radv_QueueSignalReleaseImageANDROID(
 		result = radv_GetSemaphoreFdKHR(radv_device_to_handle(queue->device),
 		                                &(VkSemaphoreGetFdInfoKHR) {
 		                                    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_FD_INFO_KHR,
-		                                    .handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT_KHR,
+		                                    .handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_SYNC_FD_BIT,
 		                                    .semaphore = pWaitSemaphores[i],
 		                            }, &tmp_fd);
 		if (result != VK_SUCCESS) {

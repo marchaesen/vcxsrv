@@ -36,7 +36,7 @@ static void
 register_var_use(nir_variable *var, nir_function_impl *impl,
                  struct hash_table *var_func_table)
 {
-   if (var->data.mode != nir_var_global)
+   if (var->data.mode != nir_var_private)
       return;
 
    struct hash_entry *entry =
@@ -89,11 +89,11 @@ nir_lower_global_vars_to_local(nir_shader *shader)
       nir_variable *var = (void *)entry->key;
       nir_function_impl *impl = entry->data;
 
-      assert(var->data.mode == nir_var_global);
+      assert(var->data.mode == nir_var_private);
 
       if (impl != NULL) {
          exec_node_remove(&var->node);
-         var->data.mode = nir_var_local;
+         var->data.mode = nir_var_function;
          exec_list_push_tail(&impl->locals, &var->node);
          nir_metadata_preserve(impl, nir_metadata_block_index |
                                      nir_metadata_dominance |
@@ -106,6 +106,14 @@ nir_lower_global_vars_to_local(nir_shader *shader)
 
    if (progress)
       nir_fixup_deref_modes(shader);
+
+#ifndef NDEBUG
+   nir_foreach_function(function, shader) {
+      if (function->impl) {
+         function->impl->valid_metadata &= ~nir_metadata_not_properly_reset;
+      }
+   }
+#endif
 
    return progress;
 }

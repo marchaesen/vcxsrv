@@ -103,7 +103,7 @@ st_nir_assign_vs_in_locations(nir_shader *nir)
           * set.
           */
          exec_node_remove(&var->node);
-         var->data.mode = nir_var_global;
+         var->data.mode = nir_var_private;
          exec_list_push_tail(&nir->globals, &var->node);
       }
    }
@@ -616,7 +616,7 @@ st_nir_link_shaders(nir_shader **producer, nir_shader **consumer, bool scalar)
        * See the following thread for more details of the problem:
        * https://lists.freedesktop.org/archives/mesa-dev/2017-July/162106.html
        */
-      nir_variable_mode indirect_mask = nir_var_local;
+      nir_variable_mode indirect_mask = nir_var_function;
 
       NIR_PASS_V(*producer, nir_lower_indirect_derefs, indirect_mask);
       NIR_PASS_V(*consumer, nir_lower_indirect_derefs, indirect_mask);

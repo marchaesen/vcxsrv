@@ -178,7 +178,8 @@ LIBGLSL_GENERATED_FILES = \
 	glsl/ir_expression_operation_strings.h \
 	glsl/glsl_lexer.cpp \
 	glsl/glsl_parser.cpp \
-	glsl/glsl_parser.h
+	glsl/glsl_parser.h \
+	compiler/glsl/float64_glsl.h
 
 # libglcpp
 

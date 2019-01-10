@@ -884,7 +884,7 @@ vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
                glsl_get_bare_type(b->func->type->return_type->type);
             nir_deref_instr *ret_deref =
                nir_build_deref_cast(&b->nb, nir_load_param(&b->nb, 0),
-                                    nir_var_local, ret_type, 0);
+                                    nir_var_function, ret_type, 0);
             vtn_local_store(b, src, ret_deref);
          }
 
