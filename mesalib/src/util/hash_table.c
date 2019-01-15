@@ -548,6 +548,16 @@ _mesa_key_pointer_equal(const void *a, const void *b)
 }
 
 /**
+ * Helper to create a hash table with pointer keys.
+ */
+struct hash_table *
+_mesa_pointer_hash_table_create(void *mem_ctx)
+{
+   return _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
+                                  _mesa_key_pointer_equal);
+}
+
+/**
  * Hash table wrapper which supports 64-bit keys.
  *
  * TODO: unify all hash table implementations.

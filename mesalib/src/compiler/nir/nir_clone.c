@@ -62,8 +62,7 @@ init_clone_state(clone_state *state, struct hash_table *remap_table,
    if (remap_table) {
       state->remap_table = remap_table;
    } else {
-      state->remap_table = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                                                   _mesa_key_pointer_equal);
+      state->remap_table = _mesa_pointer_hash_table_create(NULL);
    }
 
    list_inithead(&state->phi_srcs);

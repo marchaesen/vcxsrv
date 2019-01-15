@@ -203,8 +203,7 @@ private:
       /* Use 'this' as context for the table, no explicit destruction
        * needed later.
        */
-      acp = _mesa_hash_table_create(this, _mesa_hash_pointer,
-                                    _mesa_key_pointer_equal);
+      acp = _mesa_pointer_hash_table_create(this);
       lin_ctx = linear_alloc_parent(this, 0);
    }
 
@@ -231,8 +230,7 @@ private:
       }
 
       if (!found) {
-         entry->dsts = _mesa_set_create(this, _mesa_hash_pointer,
-                                        _mesa_key_pointer_equal);
+         entry->dsts = _mesa_pointer_set_create(this);
       }
 
       return entry;

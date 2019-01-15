@@ -2311,14 +2311,14 @@ decode_type_from_blob(struct blob_reader *blob)
                                      explicit_stride, (u >> 10) & 0x1);
    }
    case GLSL_TYPE_SAMPLER:
-      return glsl_type::get_sampler_instance((enum glsl_sampler_dim) ((u >> 4) & 0x07),
+      return glsl_type::get_sampler_instance((enum glsl_sampler_dim) ((u >> 4) & 0x0f),
                                              (u >> 3) & 0x01,
                                              (u >> 2) & 0x01,
                                              (glsl_base_type) ((u >> 0) & 0x03));
    case GLSL_TYPE_SUBROUTINE:
       return glsl_type::get_subroutine_instance(blob_read_string(blob));
    case GLSL_TYPE_IMAGE:
-      return glsl_type::get_image_instance((enum glsl_sampler_dim) ((u >> 3) & 0x07),
+      return glsl_type::get_image_instance((enum glsl_sampler_dim) ((u >> 3) & 0x0f),
                                              (u >> 2) & 0x01,
                                              (glsl_base_type) ((u >> 0) & 0x03));
    case GLSL_TYPE_ATOMIC_UINT:

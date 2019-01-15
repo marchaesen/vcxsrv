@@ -1230,8 +1230,8 @@ ac_build_buffer_load(struct ac_llvm_context *ctx,
 	if (soffset)
 		offset = LLVMBuildAdd(ctx->builder, offset, soffset, "");
 
-	/* TODO: VI and later generations can use SMEM with GLC=1.*/
-	if (allow_smem && !glc && !slc) {
+	if (allow_smem && !slc &&
+	    (!glc || (HAVE_LLVM >= 0x0800 && ctx->chip_class >= VI))) {
 		assert(vindex == NULL);
 
 		LLVMValueRef result[8];
@@ -1241,11 +1241,19 @@ ac_build_buffer_load(struct ac_llvm_context *ctx,
 				offset = LLVMBuildAdd(ctx->builder, offset,
 						      LLVMConstInt(ctx->i32, 4, 0), "");
 			}
-			LLVMValueRef args[2] = {rsrc, offset};
-			result[i] = ac_build_intrinsic(ctx, "llvm.SI.load.const.v4i32",
-						       ctx->f32, args, 2,
+			const char *intrname =
+				HAVE_LLVM >= 0x0800 ? "llvm.amdgcn.s.buffer.load.f32"
+						    : "llvm.SI.load.const.v4i32";
+			unsigned num_args = HAVE_LLVM >= 0x0800 ? 3 : 2;
+			LLVMValueRef args[3] = {
+				rsrc,
+				offset,
+				glc ? ctx->i32_1 : ctx->i32_0,
+			};
+			result[i] = ac_build_intrinsic(ctx, intrname,
+						       ctx->f32, args, num_args,
 						       AC_FUNC_ATTR_READNONE |
-						       AC_FUNC_ATTR_LEGACY);
+						       (HAVE_LLVM < 0x0800 ? AC_FUNC_ATTR_LEGACY : 0));
 		}
 		if (num_channels == 1)
 			return result[0];

@@ -626,6 +626,27 @@ st_nir_link_shaders(nir_shader **producer, nir_shader **consumer, bool scalar)
    }
 }
 
+static void
+st_lower_patch_vertices_in(struct gl_shader_program *shader_prog)
+{
+   struct gl_linked_shader *linked_tcs =
+      shader_prog->_LinkedShaders[MESA_SHADER_TESS_CTRL];
+   struct gl_linked_shader *linked_tes =
+      shader_prog->_LinkedShaders[MESA_SHADER_TESS_EVAL];
+
+   /* If we have a TCS and TES linked together, lower TES patch vertices. */
+   if (linked_tcs && linked_tes) {
+      nir_shader *tcs_nir = linked_tcs->Program->nir;
+      nir_shader *tes_nir = linked_tes->Program->nir;
+
+      /* The TES input vertex count is the TCS output vertex count,
+       * lower TES gl_PatchVerticesIn to a constant.
+       */
+      uint32_t tes_patch_verts = tcs_nir->info.tess.tcs_vertices_out;
+      NIR_PASS_V(tes_nir, nir_lower_patch_vertices, tes_patch_verts, NULL);
+   }
+}
+
 extern "C" {
 
 void
@@ -746,6 +767,8 @@ st_link_nir(struct gl_context *ctx,
       }
       prev = i;
    }
+
+   st_lower_patch_vertices_in(shader_program);
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_linked_shader *shader = shader_program->_LinkedShaders[i];

@@ -1463,6 +1463,24 @@ static LLVMValueRef extract_vector_range(struct ac_llvm_context *ctx, LLVMValueR
 	}
 }
 
+static unsigned get_cache_policy(struct ac_nir_context *ctx,
+				 enum gl_access_qualifier access,
+				 bool may_store_unaligned)
+{
+	unsigned cache_policy = 0;
+
+	/* SI has a TC L1 bug causing corruption of 8bit/16bit stores.  All
+	 * store opcodes not aligned to a dword are affected. The only way to
+	 * get unaligned stores is through shader images.
+	 */
+	if (((may_store_unaligned && ctx->ac.chip_class == SI) ||
+	     access & (ACCESS_COHERENT | ACCESS_VOLATILE))) {
+		cache_policy |= ac_glc;
+	}
+
+	return cache_policy;
+}
+
 static void visit_store_ssbo(struct ac_nir_context *ctx,
                              nir_intrinsic_instr *instr)
 {
@@ -1471,10 +1489,8 @@ static void visit_store_ssbo(struct ac_nir_context *ctx,
 	int elem_size_bytes = ac_get_elem_bits(&ctx->ac, LLVMTypeOf(src_data)) / 8;
 	unsigned writemask = nir_intrinsic_write_mask(instr);
 	enum gl_access_qualifier access = nir_intrinsic_access(instr);
-	LLVMValueRef glc = ctx->ac.i1false;
-
-	if (access & (ACCESS_VOLATILE | ACCESS_COHERENT))
-		glc = ctx->ac.i1true;
+	unsigned cache_policy = get_cache_policy(ctx, access, false);
+	LLVMValueRef glc = (cache_policy & ac_glc) ? ctx->ac.i1true : ctx->ac.i1false;
 
 	LLVMValueRef rsrc = ctx->abi->load_ssbo(ctx->abi,
 				        get_src(ctx, instr->src[1]), true);
@@ -1630,10 +1646,8 @@ static LLVMValueRef visit_load_buffer(struct ac_nir_context *ctx,
 	int elem_size_bytes = instr->dest.ssa.bit_size / 8;
 	int num_components = instr->num_components;
 	enum gl_access_qualifier access = nir_intrinsic_access(instr);
-	LLVMValueRef glc = ctx->ac.i1false;
-
-	if (access & (ACCESS_VOLATILE | ACCESS_COHERENT))
-		glc = ctx->ac.i1true;
+	unsigned cache_policy = get_cache_policy(ctx, access, false);
+	LLVMValueRef glc = (cache_policy & ac_glc) ? ctx->ac.i1true : ctx->ac.i1false;
 
 	LLVMValueRef offset = get_src(ctx, instr->src[1]);
 	LLVMValueRef rsrc = ctx->abi->load_ssbo(ctx->abi,
@@ -2341,8 +2355,11 @@ static LLVMValueRef visit_image_load(struct ac_nir_context *ctx,
 	LLVMValueRef res;
 	const nir_variable *var = get_image_variable(instr);
 	const struct glsl_type *type = var->type;
+	struct ac_image_args args = {};
 
 	type = glsl_without_array(type);
+
+	args.cache_policy = get_cache_policy(ctx, var->data.image.access, false);
 
 	const enum glsl_sampler_dim dim = glsl_get_sampler_dim(type);
 	if (dim == GLSL_SAMPLER_DIM_BUF) {
@@ -2354,16 +2371,16 @@ static LLVMValueRef visit_image_load(struct ac_nir_context *ctx,
 		vindex = LLVMBuildExtractElement(ctx->ac.builder, get_src(ctx, instr->src[1]),
 						 ctx->ac.i32_0, "");
 
-		/* TODO: set "glc" and "can_speculate" when OpenGL needs it. */
+		/* TODO: set "can_speculate" when OpenGL needs it. */
 		res = ac_build_buffer_load_format(&ctx->ac, rsrc, vindex,
 						  ctx->ac.i32_0, num_channels,
-						  false, false);
+						  !!(args.cache_policy & ac_glc),
+						  false);
 		res = ac_build_expand_to_vec4(&ctx->ac, res, num_channels);
 
 		res = ac_trim_vector(&ctx->ac, res, instr->dest.ssa.num_components);
 		res = ac_to_integer(&ctx->ac, res);
 	} else {
-		struct ac_image_args args = {};
 		args.opcode = ac_image_load;
 		get_image_coords(ctx, instr, &args);
 		args.resource = get_image_descriptor(ctx, instr, AC_DESC_IMAGE, false);
@@ -2371,8 +2388,6 @@ static LLVMValueRef visit_image_load(struct ac_nir_context *ctx,
 					    glsl_sampler_type_is_array(type));
 		args.dmask = 15;
 		args.attributes = AC_FUNC_ATTR_READONLY;
-		if (var->data.image.access & (ACCESS_VOLATILE | ACCESS_COHERENT))
-			args.cache_policy |= ac_glc;
 
 		res = ac_build_image_opcode(&ctx->ac, &args);
 	}
@@ -2386,10 +2401,9 @@ static void visit_image_store(struct ac_nir_context *ctx,
 	const nir_variable *var = get_image_variable(instr);
 	const struct glsl_type *type = glsl_without_array(var->type);
 	const enum glsl_sampler_dim dim = glsl_get_sampler_dim(type);
-	LLVMValueRef glc = ctx->ac.i1false;
-	bool force_glc = ctx->ac.chip_class == SI;
-	if (force_glc)
-		glc = ctx->ac.i1true;
+	struct ac_image_args args = {};
+
+	args.cache_policy = get_cache_policy(ctx, var->data.image.access, true);
 
 	if (dim == GLSL_SAMPLER_DIM_BUF) {
 		char name[48];
@@ -2413,14 +2427,13 @@ static void visit_image_store(struct ac_nir_context *ctx,
 
 		if (HAVE_LLVM >= 0x800) {
 			params[4] = ctx->ac.i32_0; /* soffset */
-			params[5] = glc ? ctx->ac.i32_1 : ctx->ac.i32_0;
+			params[5] = (args.cache_policy & ac_glc) ? ctx->ac.i32_1 : ctx->ac.i32_0;
 		} else {
-			params[4] = glc;  /* glc */
+			params[4] = LLVMConstInt(ctx->ac.i1, !!(args.cache_policy & ac_glc), 0);
 			params[5] = ctx->ac.i1false;  /* slc */
 		}
 		ac_build_intrinsic(&ctx->ac, name, ctx->ac.voidt, params, 6, 0);
 	} else {
-		struct ac_image_args args = {};
 		args.opcode = ac_image_store;
 		args.data[0] = ac_to_float(&ctx->ac, get_src(ctx, instr->src[3]));
 		get_image_coords(ctx, instr, &args);
@@ -2428,8 +2441,6 @@ static void visit_image_store(struct ac_nir_context *ctx,
 		args.dim = get_ac_image_dim(&ctx->ac, glsl_get_sampler_dim(type),
 					    glsl_sampler_type_is_array(type));
 		args.dmask = 15;
-		if (force_glc || (var->data.image.access & (ACCESS_VOLATILE | ACCESS_COHERENT)))
-			args.cache_policy |= ac_glc;
 
 		ac_build_image_opcode(&ctx->ac, &args);
 	}
@@ -3902,8 +3913,13 @@ glsl_base_to_llvm_type(struct ac_llvm_context *ac,
 	case GLSL_TYPE_BOOL:
 	case GLSL_TYPE_SUBROUTINE:
 		return ac->i32;
-	case GLSL_TYPE_FLOAT: /* TODO handle mediump */
+	case GLSL_TYPE_INT16:
+	case GLSL_TYPE_UINT16:
+		return ac->i16;
+	case GLSL_TYPE_FLOAT:
 		return ac->f32;
+	case GLSL_TYPE_FLOAT16:
+		return ac->f16;
 	case GLSL_TYPE_INT64:
 	case GLSL_TYPE_UINT64:
 		return ac->i64;

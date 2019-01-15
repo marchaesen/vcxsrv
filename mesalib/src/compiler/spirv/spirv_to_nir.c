@@ -4316,6 +4316,15 @@ vtn_create_builder(const uint32_t *words, size_t word_count,
       goto fail;
    }
 
+   uint16_t generator_id = words[2] >> 16;
+   uint16_t generator_version = words[2];
+
+   /* The first GLSLang version bump actually 1.5 years after #179 was fixed
+    * but this should at least let us shut the workaround off for modern
+    * versions of GLSLang.
+    */
+   b->wa_glslang_179 = (generator_id == 8 && generator_version == 1);
+
    /* words[2] == generator magic */
    unsigned value_id_bound = words[3];
    if (words[4] != 0) {
@@ -4397,8 +4406,7 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
       progress = false;
       foreach_list_typed(struct vtn_function, func, node, &b->functions) {
          if (func->referenced && !func->emitted) {
-            b->const_table = _mesa_hash_table_create(b, _mesa_hash_pointer,
-                                                     _mesa_key_pointer_equal);
+            b->const_table = _mesa_pointer_hash_table_create(b);
 
             vtn_function_emit(b, func, vtn_handle_body_instruction);
             progress = true;

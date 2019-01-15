@@ -49,9 +49,7 @@ class dead_variable_visitor : public ir_hierarchical_visitor {
 public:
    dead_variable_visitor()
    {
-      variables = _mesa_set_create(NULL,
-                                   _mesa_hash_pointer,
-                                   _mesa_key_pointer_equal);
+      variables = _mesa_pointer_set_create(NULL);
    }
 
    virtual ~dead_variable_visitor()

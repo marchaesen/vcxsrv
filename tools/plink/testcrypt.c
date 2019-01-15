@@ -71,8 +71,8 @@ int random_byte(void)
     X(epoint, EdwardsPoint *, ecc_edwards_point_free(v))                \
     X(hash, ssh_hash *, ssh_hash_free(v))                               \
     X(key, ssh_key *, ssh_key_free(v))                                  \
-    X(ssh1_cipher, ssh1_cipher *, ssh1_cipher_free(v))                  \
-    X(ssh2_cipher, ssh2_cipher *, ssh2_cipher_free(v))                  \
+    X(ssh1cipher, ssh1_cipher *, ssh1_cipher_free(v))                   \
+    X(ssh2cipher, ssh2_cipher *, ssh2_cipher_free(v))                   \
     X(mac, ssh2_mac *, ssh2_mac_free(v))                                \
     X(dh, dh_ctx *, dh_cleanup(v))                                      \
     X(ecdh, ecdh_key *, ssh_ecdhkex_freekey(v))                         \
@@ -81,13 +81,14 @@ int random_byte(void)
     /* end of list */
 
 typedef struct Value Value;
-typedef enum ValueType ValueType;
 
 enum ValueType {
 #define VALTYPE_ENUM(n,t,f) VT_##n,
     VALUE_TYPES(VALTYPE_ENUM)
 #undef VALTYPE_ENUM
 }; 
+
+typedef enum ValueType ValueType;
 
 const char *const type_names[] = {
 #define VALTYPE_NAME(n,t,f) #n,
@@ -268,12 +269,24 @@ static const ssh2_cipheralg *get_ssh2_cipheralg(BinarySource *in)
         {"3des", &ssh_3des_ssh2},
         {"des", &ssh_des_ssh2},
         {"des_sshcom", &ssh_des_sshcom_ssh2},
-        {"aes256_ctr", &ssh_aes256_ctr},
-        {"aes256", &ssh_aes256},
-        {"aes192_ctr", &ssh_aes192_ctr},
-        {"aes192", &ssh_aes192},
-        {"aes128_ctr", &ssh_aes128_ctr},
-        {"aes128", &ssh_aes128},
+        {"aes256_ctr", &ssh_aes256_sdctr},
+        {"aes256_ctr_hw", &ssh_aes256_sdctr_hw},
+        {"aes256_ctr_sw", &ssh_aes256_sdctr_sw},
+        {"aes256", &ssh_aes256_cbc},
+        {"aes256_hw", &ssh_aes256_cbc_hw},
+        {"aes256_sw", &ssh_aes256_cbc_sw},
+        {"aes192_ctr", &ssh_aes192_sdctr},
+        {"aes192_ctr_hw", &ssh_aes192_sdctr_hw},
+        {"aes192_ctr_sw", &ssh_aes192_sdctr_sw},
+        {"aes192", &ssh_aes192_cbc},
+        {"aes192_hw", &ssh_aes192_cbc_hw},
+        {"aes192_sw", &ssh_aes192_cbc_sw},
+        {"aes128_ctr", &ssh_aes128_sdctr},
+        {"aes128_ctr_hw", &ssh_aes128_sdctr_hw},
+        {"aes128_ctr_sw", &ssh_aes128_sdctr_sw},
+        {"aes128", &ssh_aes128_cbc},
+        {"aes128_hw", &ssh_aes128_cbc_hw},
+        {"aes128_sw", &ssh_aes128_cbc_sw},
         {"blowfish", &ssh_blowfish_ssh2_ctr},
         {"blowfish", &ssh_blowfish_ssh2},
         {"arcfour256", &ssh_arcfour256_ssh2},
@@ -504,6 +517,14 @@ static void return_val_string_asciz(strbuf *out, char *s)
     return_val_string(out, sb);
 }
 
+static void return_opt_val_ssh2cipher(strbuf *out, ssh2_cipher *c)
+{
+    if (!c)
+        strbuf_catf(out, "NULL\n");
+    else
+        return_val_ssh2cipher(out, c);
+}
+
 static void handle_hello(BinarySource *in, strbuf *out)
 {
     strbuf_catf(out, "hello, world");
@@ -597,19 +618,18 @@ static void random_clear(void)
     bufchain_clear(&random_data_queue);
 }
 
-#define WRAP_monty_identity ,
 mp_int *monty_identity_wrapper(MontyContext *mc)
 {
     return mp_copy(monty_identity(mc));
 }
+#define monty_identity monty_identity_wrapper
 
-#define WRAP_monty_modulus ,
 mp_int *monty_modulus_wrapper(MontyContext *mc)
 {
     return mp_copy(monty_modulus(mc));
 }
+#define monty_modulus monty_modulus_wrapper
 
-#define WRAP_ssh_hash_final ,
 strbuf *ssh_hash_final_wrapper(ssh_hash *h)
 {
     strbuf *sb = strbuf_new();
@@ -617,16 +637,18 @@ strbuf *ssh_hash_final_wrapper(ssh_hash *h)
     ssh_hash_final(h, p);
     return sb;
 }
+#undef ssh_hash_final
+#define ssh_hash_final ssh_hash_final_wrapper
 
-#define WRAP_ssh1_cipher_sesskey ,
 void ssh1_cipher_sesskey_wrapper(ssh1_cipher *c, ptrlen key)
 {
     if (key.len != 32)
         fatal_error("ssh1_cipher_sesskey: needs exactly 32 bytes");
     ssh1_cipher_sesskey(c, key.ptr);
 }
+#undef ssh1_cipher_sesskey
+#define ssh1_cipher_sesskey ssh1_cipher_sesskey_wrapper
 
-#define WRAP_ssh1_cipher_encrypt ,
 strbuf *ssh1_cipher_encrypt_wrapper(ssh1_cipher *c, ptrlen input)
 {
     if (input.len % c->vt->blksize)
@@ -637,8 +659,9 @@ strbuf *ssh1_cipher_encrypt_wrapper(ssh1_cipher *c, ptrlen input)
     ssh1_cipher_encrypt(c, sb->u, sb->len);
     return sb;
 }
+#undef ssh1_cipher_encrypt
+#define ssh1_cipher_encrypt ssh1_cipher_encrypt_wrapper
 
-#define WRAP_ssh1_cipher_decrypt ,
 strbuf *ssh1_cipher_decrypt_wrapper(ssh1_cipher *c, ptrlen input)
 {
     if (input.len % c->vt->blksize)
@@ -649,8 +672,9 @@ strbuf *ssh1_cipher_decrypt_wrapper(ssh1_cipher *c, ptrlen input)
     ssh1_cipher_decrypt(c, sb->u, sb->len);
     return sb;
 }
+#undef ssh1_cipher_decrypt
+#define ssh1_cipher_decrypt ssh1_cipher_decrypt_wrapper
 
-#define WRAP_ssh2_cipher_setiv ,
 void ssh2_cipher_setiv_wrapper(ssh2_cipher *c, ptrlen key)
 {
     if (key.len != ssh2_cipher_alg(c)->blksize)
@@ -658,8 +682,9 @@ void ssh2_cipher_setiv_wrapper(ssh2_cipher *c, ptrlen key)
                       ssh2_cipher_alg(c)->blksize);
     ssh2_cipher_setiv(c, key.ptr);
 }
+#undef ssh2_cipher_setiv
+#define ssh2_cipher_setiv ssh2_cipher_setiv_wrapper
 
-#define WRAP_ssh2_cipher_setkey ,
 void ssh2_cipher_setkey_wrapper(ssh2_cipher *c, ptrlen key)
 {
     if (key.len != ssh2_cipher_alg(c)->padded_keybytes)
@@ -667,8 +692,9 @@ void ssh2_cipher_setkey_wrapper(ssh2_cipher *c, ptrlen key)
                       ssh2_cipher_alg(c)->padded_keybytes);
     ssh2_cipher_setkey(c, key.ptr);
 }
+#undef ssh2_cipher_setkey
+#define ssh2_cipher_setkey ssh2_cipher_setkey_wrapper
 
-#define WRAP_ssh2_cipher_encrypt ,
 strbuf *ssh2_cipher_encrypt_wrapper(ssh2_cipher *c, ptrlen input)
 {
     if (input.len % ssh2_cipher_alg(c)->blksize)
@@ -679,8 +705,9 @@ strbuf *ssh2_cipher_encrypt_wrapper(ssh2_cipher *c, ptrlen input)
     ssh2_cipher_encrypt(c, sb->u, sb->len);
     return sb;
 }
+#undef ssh2_cipher_encrypt
+#define ssh2_cipher_encrypt ssh2_cipher_encrypt_wrapper
 
-#define WRAP_ssh2_cipher_decrypt ,
 strbuf *ssh2_cipher_decrypt_wrapper(ssh2_cipher *c, ptrlen input)
 {
     if (input.len % ssh2_cipher_alg(c)->blksize)
@@ -691,8 +718,9 @@ strbuf *ssh2_cipher_decrypt_wrapper(ssh2_cipher *c, ptrlen input)
     ssh2_cipher_decrypt(c, sb->u, sb->len);
     return sb;
 }
+#undef ssh2_cipher_decrypt
+#define ssh2_cipher_decrypt ssh2_cipher_decrypt_wrapper
 
-#define WRAP_ssh2_cipher_encrypt_length ,
 strbuf *ssh2_cipher_encrypt_length_wrapper(ssh2_cipher *c, ptrlen input,
                                            unsigned long seq)
 {
@@ -703,8 +731,9 @@ strbuf *ssh2_cipher_encrypt_length_wrapper(ssh2_cipher *c, ptrlen input,
     ssh2_cipher_encrypt_length(c, sb->u, sb->len, seq);
     return sb;
 }
+#undef ssh2_cipher_encrypt_length
+#define ssh2_cipher_encrypt_length ssh2_cipher_encrypt_length_wrapper
 
-#define WRAP_ssh2_cipher_decrypt_length ,
 strbuf *ssh2_cipher_decrypt_length_wrapper(ssh2_cipher *c, ptrlen input,
                                            unsigned long seq)
 {
@@ -715,8 +744,9 @@ strbuf *ssh2_cipher_decrypt_length_wrapper(ssh2_cipher *c, ptrlen input,
     ssh2_cipher_decrypt_length(c, sb->u, sb->len, seq);
     return sb;
 }
+#undef ssh2_cipher_decrypt_length
+#define ssh2_cipher_decrypt_length ssh2_cipher_decrypt_length_wrapper
 
-#define WRAP_ssh2_mac_genresult ,
 strbuf *ssh2_mac_genresult_wrapper(ssh2_mac *m)
 {
     strbuf *sb = strbuf_new();
@@ -724,12 +754,14 @@ strbuf *ssh2_mac_genresult_wrapper(ssh2_mac *m)
     ssh2_mac_genresult(m, u);
     return sb;
 }
+#undef ssh2_mac_genresult
+#define ssh2_mac_genresult ssh2_mac_genresult_wrapper
 
-#define WRAP_dh_validate_f ,
 bool dh_validate_f_wrapper(dh_ctx *dh, mp_int *f)
 {
     return dh_validate_f(dh, f) == NULL;
 }
+#define dh_validate_f dh_validate_f_wrapper
 
 void ssh_hash_update(ssh_hash *h, ptrlen pl)
 {
@@ -748,7 +780,6 @@ static RSAKey *rsa_new(void)
     return rsa;
 }
 
-#define WRAP_rsa_ssh1_encrypt ,
 strbuf *rsa_ssh1_encrypt_wrapper(ptrlen input, RSAKey *key)
 {
     /* Fold the boolean return value in C into the string return value
@@ -759,8 +790,8 @@ strbuf *rsa_ssh1_encrypt_wrapper(ptrlen input, RSAKey *key)
         sb->len = 0;
     return sb;
 }
+#define rsa_ssh1_encrypt rsa_ssh1_encrypt_wrapper
 
-#define WRAP_rsa_ssh1_decrypt_pkcs1 ,
 strbuf *rsa_ssh1_decrypt_pkcs1_wrapper(mp_int *input, RSAKey *key)
 {
     /* Again, return "" on failure */
@@ -769,8 +800,8 @@ strbuf *rsa_ssh1_decrypt_pkcs1_wrapper(mp_int *input, RSAKey *key)
         sb->len = 0;
     return sb;
 }
+#define rsa_ssh1_decrypt_pkcs1 rsa_ssh1_decrypt_pkcs1_wrapper
 
-#define WRAP_des_encrypt_xdmauth ,
 strbuf *des_encrypt_xdmauth_wrapper(ptrlen key, ptrlen data)
 {
     if (key.len != 7)
@@ -782,8 +813,8 @@ strbuf *des_encrypt_xdmauth_wrapper(ptrlen key, ptrlen data)
     des_encrypt_xdmauth(key.ptr, sb->u, sb->len);
     return sb;
 }
+#define des_encrypt_xdmauth des_encrypt_xdmauth_wrapper
 
-#define WRAP_des_decrypt_xdmauth ,
 strbuf *des_decrypt_xdmauth_wrapper(ptrlen key, ptrlen data)
 {
     if (key.len != 7)
@@ -795,6 +826,7 @@ strbuf *des_decrypt_xdmauth_wrapper(ptrlen key, ptrlen data)
     des_decrypt_xdmauth(key.ptr, sb->u, sb->len);
     return sb;
 }
+#define des_decrypt_xdmauth des_decrypt_xdmauth_wrapper
 
 #define return_void(out, expression) (expression)
 
@@ -812,7 +844,7 @@ VALUE_TYPES(VALTYPE_TYPEDEF)
             return NULL;                                                \
         return unwrap_value_##type(lookup_value(word))->vu_##type;      \
     }
-OPTIONAL_PTR_FUNC(ssh2_cipher)
+OPTIONAL_PTR_FUNC(ssh2cipher)
 OPTIONAL_PTR_FUNC(mpint)
 
 typedef uintmax_t TD_uint;
@@ -831,26 +863,22 @@ typedef const ssh_kex *TD_dh_group;
 typedef const ssh_kex *TD_ecdh_alg;
 typedef RsaSsh1Order TD_rsaorder;
 
-#define WRAPPED_NAME_INNER(a, b, ...) b
-#define WRAPPED_NAME_OUTER(...) WRAPPED_NAME_INNER(__VA_ARGS__)
-#define WRAPPED_NAME(func) WRAPPED_NAME_OUTER(WRAP_##func func##_wrapper, func)
-
 #define FUNC0(rettype, function)                                        \
     static void handle_##function(BinarySource *in, strbuf *out) {      \
-        return_##rettype(out, WRAPPED_NAME(function)());                \
+        return_##rettype(out, function());                              \
     }
 
 #define FUNC1(rettype, function, type1)                                 \
     static void handle_##function(BinarySource *in, strbuf *out) {      \
         TD_##type1 arg1 = get_##type1(in);                              \
-        return_##rettype(out, WRAPPED_NAME(function)(arg1));            \
+        return_##rettype(out, function(arg1));                          \
     }
 
 #define FUNC2(rettype, function, type1, type2)                          \
     static void handle_##function(BinarySource *in, strbuf *out) {      \
         TD_##type1 arg1 = get_##type1(in);                              \
         TD_##type2 arg2 = get_##type2(in);                              \
-        return_##rettype(out, WRAPPED_NAME(function)(arg1, arg2));      \
+        return_##rettype(out, function(arg1, arg2));                    \
     }
 
 #define FUNC3(rettype, function, type1, type2, type3)                   \
@@ -858,7 +886,7 @@ typedef RsaSsh1Order TD_rsaorder;
         TD_##type1 arg1 = get_##type1(in);                              \
         TD_##type2 arg2 = get_##type2(in);                              \
         TD_##type3 arg3 = get_##type3(in);                              \
-        return_##rettype(out, WRAPPED_NAME(function)(arg1, arg2, arg3)); \
+        return_##rettype(out, function(arg1, arg2, arg3));              \
     }
 
 #define FUNC4(rettype, function, type1, type2, type3, type4)            \
@@ -867,16 +895,16 @@ typedef RsaSsh1Order TD_rsaorder;
         TD_##type2 arg2 = get_##type2(in);                              \
         TD_##type3 arg3 = get_##type3(in);                              \
         TD_##type4 arg4 = get_##type4(in);                              \
-        return_##rettype(out, WRAPPED_NAME(function)(arg1, arg2, arg3, arg4)); \
+        return_##rettype(out, function(arg1, arg2, arg3, arg4));        \
     }
 
-#define FUNC_SELECT_OUTER(...) \
-    FUNC_SELECT_INNER(__VA_ARGS__,FUNC4,FUNC3,FUNC2,FUNC1,FUNC0)(__VA_ARGS__)
-#define FUNC_SELECT_INNER(r,f,a1,a2,a3,a4,m,...) m
-
-#define FUNC FUNC_SELECT_OUTER
 #include "testcrypt.h"
-#undef FUNC
+
+#undef FUNC4
+#undef FUNC3
+#undef FUNC2
+#undef FUNC1
+#undef FUNC0
 
 static void process_line(BinarySource *in, strbuf *out)
 {
@@ -894,9 +922,25 @@ static void process_line(BinarySource *in, strbuf *out)
     DISPATCH_COMMAND(mp_literal);
     DISPATCH_COMMAND(mp_dump);
 
-#define FUNC(rettype, function, ...) DISPATCH_COMMAND(function);
+#define FUNC(rettype, function, ...)            \
+    if (ptrlen_eq_string(id, #function)) {      \
+        handle_##function(in, out);             \
+        return;                                 \
+    }
+
+#define FUNC0 FUNC
+#define FUNC1 FUNC
+#define FUNC2 FUNC
+#define FUNC3 FUNC
+#define FUNC4 FUNC
+
 #include "testcrypt.h"
-#undef FUNC
+
+#undef FUNC4
+#undef FUNC3
+#undef FUNC2
+#undef FUNC1
+#undef FUNC0
 
     fatal_error("command '%.*s': unrecognised", PTRLEN_PRINTF(id));
 }

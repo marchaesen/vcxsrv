@@ -300,10 +300,8 @@ validate_ssa_def(nir_ssa_def *def, validate_state *state)
    ssa_def_validate_state *def_state = ralloc(state->ssa_defs,
                                               ssa_def_validate_state);
    def_state->where_defined = state->impl;
-   def_state->uses = _mesa_set_create(def_state, _mesa_hash_pointer,
-                                      _mesa_key_pointer_equal);
-   def_state->if_uses = _mesa_set_create(def_state, _mesa_hash_pointer,
-                                         _mesa_key_pointer_equal);
+   def_state->uses = _mesa_pointer_set_create(def_state);
+   def_state->if_uses = _mesa_pointer_set_create(def_state);
    _mesa_hash_table_insert(state->ssa_defs, def, def_state);
 }
 
@@ -927,12 +925,9 @@ prevalidate_reg_decl(nir_register *reg, bool is_global, validate_state *state)
    list_validate(&reg->if_uses);
 
    reg_validate_state *reg_state = ralloc(state->regs, reg_validate_state);
-   reg_state->uses = _mesa_set_create(reg_state, _mesa_hash_pointer,
-                                      _mesa_key_pointer_equal);
-   reg_state->if_uses = _mesa_set_create(reg_state, _mesa_hash_pointer,
-                                         _mesa_key_pointer_equal);
-   reg_state->defs = _mesa_set_create(reg_state, _mesa_hash_pointer,
-                                      _mesa_key_pointer_equal);
+   reg_state->uses = _mesa_pointer_set_create(reg_state);
+   reg_state->if_uses = _mesa_pointer_set_create(reg_state);
+   reg_state->defs = _mesa_pointer_set_create(reg_state);
 
    reg_state->where_defined = is_global ? NULL : state->impl;
 
@@ -1132,16 +1127,12 @@ validate_function(nir_function *func, validate_state *state)
 static void
 init_validate_state(validate_state *state)
 {
-   state->regs = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                                         _mesa_key_pointer_equal);
-   state->ssa_defs = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                                             _mesa_key_pointer_equal);
+   state->regs = _mesa_pointer_hash_table_create(NULL);
+   state->ssa_defs = _mesa_pointer_hash_table_create(NULL);
    state->ssa_defs_found = NULL;
    state->regs_found = NULL;
-   state->var_defs = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                                             _mesa_key_pointer_equal);
-   state->errors = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                                           _mesa_key_pointer_equal);
+   state->var_defs = _mesa_pointer_hash_table_create(NULL);
+   state->errors = _mesa_pointer_hash_table_create(NULL);
 
    state->loop = NULL;
    state->instr = NULL;

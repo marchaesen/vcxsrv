@@ -852,6 +852,30 @@ vtn_emit_branch(struct vtn_builder *b, enum vtn_branch_type branch_type,
    }
 }
 
+static nir_ssa_def *
+vtn_switch_case_condition(struct vtn_builder *b, struct vtn_switch *swtch,
+                          nir_ssa_def *sel, struct vtn_case *cse)
+{
+   if (cse->is_default) {
+      nir_ssa_def *any = nir_imm_false(&b->nb);
+      list_for_each_entry(struct vtn_case, other, &swtch->cases, link) {
+         if (other->is_default)
+            continue;
+
+         any = nir_ior(&b->nb, any,
+                       vtn_switch_case_condition(b, swtch, sel, other));
+      }
+      return nir_inot(&b->nb, any);
+   } else {
+      nir_ssa_def *cond = nir_imm_false(&b->nb);
+      util_dynarray_foreach(&cse->values, uint64_t, val) {
+         nir_ssa_def *imm = nir_imm_intN_t(&b->nb, *val, sel->bit_size);
+         cond = nir_ior(&b->nb, cond, nir_ieq(&b->nb, sel, imm));
+      }
+      return cond;
+   }
+}
+
 static void
 vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
                  nir_variable *switch_fall_var, bool *has_switch_break,
@@ -978,46 +1002,13 @@ vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
             nir_local_variable_create(b->nb.impl, glsl_bool_type(), "fall");
          nir_store_var(&b->nb, fall_var, nir_imm_false(&b->nb), 1);
 
-         /* Next, we gather up all of the conditions.  We have to do this
-          * up-front because we also need to build an "any" condition so
-          * that we can use !any for default.
-          */
-         const int num_cases = list_length(&vtn_switch->cases);
-         NIR_VLA(nir_ssa_def *, conditions, num_cases);
-
          nir_ssa_def *sel = vtn_ssa_value(b, vtn_switch->selector)->def;
-         /* An accumulation of all conditions.  Used for the default */
-         nir_ssa_def *any = NULL;
-
-         int i = 0;
-         list_for_each_entry(struct vtn_case, cse, &vtn_switch->cases, link) {
-            if (cse->is_default) {
-               conditions[i++] = NULL;
-               continue;
-            }
-
-            nir_ssa_def *cond = NULL;
-            util_dynarray_foreach(&cse->values, uint64_t, val) {
-               nir_ssa_def *imm = nir_imm_intN_t(&b->nb, *val, sel->bit_size);
-               nir_ssa_def *is_val = nir_ieq(&b->nb, sel, imm);
-
-               cond = cond ? nir_ior(&b->nb, cond, is_val) : is_val;
-            }
-
-            any = any ? nir_ior(&b->nb, any, cond) : cond;
-            conditions[i++] = cond;
-         }
-         vtn_assert(i == num_cases);
 
          /* Now we can walk the list of cases and actually emit code */
-         i = 0;
          list_for_each_entry(struct vtn_case, cse, &vtn_switch->cases, link) {
             /* Figure out the condition */
-            nir_ssa_def *cond = conditions[i++];
-            if (cse->is_default) {
-               vtn_assert(cond == NULL);
-               cond = nir_inot(&b->nb, any);
-            }
+            nir_ssa_def *cond =
+               vtn_switch_case_condition(b, vtn_switch, sel, cse);
             /* Take fallthrough into account */
             cond = nir_ior(&b->nb, cond, nir_load_var(&b->nb, fall_var));
 
@@ -1030,7 +1021,6 @@ vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
 
             nir_pop_if(&b->nb, case_if);
          }
-         vtn_assert(i == num_cases);
 
          break;
       }
@@ -1049,8 +1039,7 @@ vtn_function_emit(struct vtn_builder *b, struct vtn_function *func,
    b->func = func;
    b->nb.cursor = nir_after_cf_list(&func->impl->body);
    b->has_loop_continue = false;
-   b->phi_table = _mesa_hash_table_create(b, _mesa_hash_pointer,
-                                          _mesa_key_pointer_equal);
+   b->phi_table = _mesa_pointer_hash_table_create(b);
 
    vtn_emit_cf_list(b, &func->body, NULL, NULL, instruction_handler);
 

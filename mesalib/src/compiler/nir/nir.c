@@ -330,8 +330,7 @@ nir_block_create(nir_shader *shader)
    cf_init(&block->cf_node, nir_cf_node_block);
 
    block->successors[0] = block->successors[1] = NULL;
-   block->predecessors = _mesa_set_create(block, _mesa_hash_pointer,
-                                          _mesa_key_pointer_equal);
+   block->predecessors = _mesa_pointer_set_create(block);
    block->imm_dom = NULL;
    /* XXX maybe it would be worth it to defer allocation?  This
     * way it doesn't get allocated for shader refs that never run
@@ -341,8 +340,7 @@ nir_block_create(nir_shader *shader)
     * which is later used to do state specific lowering and futher
     * opt.  Do any of the references not need dominance metadata?
     */
-   block->dom_frontier = _mesa_set_create(block, _mesa_hash_pointer,
-                                          _mesa_key_pointer_equal);
+   block->dom_frontier = _mesa_pointer_set_create(block);
 
    exec_list_make_empty(&block->instr_list);
 

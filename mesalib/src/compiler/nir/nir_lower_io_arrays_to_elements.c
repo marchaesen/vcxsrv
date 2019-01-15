@@ -343,12 +343,8 @@ void
 nir_lower_io_arrays_to_elements_no_indirects(nir_shader *shader,
                                              bool outputs_only)
 {
-   struct hash_table *split_inputs =
-      _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                              _mesa_key_pointer_equal);
-   struct hash_table *split_outputs =
-      _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                              _mesa_key_pointer_equal);
+   struct hash_table *split_inputs = _mesa_pointer_hash_table_create(NULL);
+   struct hash_table *split_outputs = _mesa_pointer_hash_table_create(NULL);
 
    uint64_t indirects[4] = {0}, patch_indirects[4] = {0};
 
@@ -385,12 +381,8 @@ nir_lower_io_arrays_to_elements_no_indirects(nir_shader *shader,
 void
 nir_lower_io_arrays_to_elements(nir_shader *producer, nir_shader *consumer)
 {
-   struct hash_table *split_inputs =
-      _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                              _mesa_key_pointer_equal);
-   struct hash_table *split_outputs =
-      _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                              _mesa_key_pointer_equal);
+   struct hash_table *split_inputs = _mesa_pointer_hash_table_create(NULL);
+   struct hash_table *split_outputs = _mesa_pointer_hash_table_create(NULL);
 
    uint64_t indirects[4] = {0}, patch_indirects[4] = {0};
    create_indirects_mask(producer, indirects, patch_indirects,

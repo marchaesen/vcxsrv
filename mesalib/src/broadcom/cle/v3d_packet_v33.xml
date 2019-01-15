@@ -174,6 +174,16 @@
     <value name="int" value="3" min_ver="42"/> <!-- clamp to integer RT's range -->
   </enum>
 
+  <enum name="L2T Flush Mode" prefix="L2T_FLUSH_MODE">
+    <!-- invalidates all cache lines -->
+    <value name="flush" value="0"/>
+    <!-- Invalidates dirty cachelines without writeback -->
+    <value name="clear" value="1"/>
+    <!-- Writes back dirty cachelines and marks them clean, without
+         invalidating -->
+    <value name="clean" value="2"/>
+  </enum>
+
   <enum name="Output Image Format" prefix="V3D_OUTPUT_IMAGE_FORMAT">
     <!--
 	Formats appear with their channels named from the low bits to
@@ -594,6 +604,19 @@
   </packet>
 
   <packet code="75" name="Flush Transform Feedback Data"/>
+
+  <packet code="76" name="L1 Cache Flush Control">
+    <field name="TMU Config Cache Clear" size="4" start="12" type="uint"/>
+    <field name="TMU Data Cache Clear" size="4" start="8" type="uint"/>
+    <field name="Uniforms Cache Clear" size="4" start="4" type="uint"/>
+    <field name="Instruction Cache Clear" size="4" start="0" type="uint"/>
+  </packet>
+
+  <packet code="77" name="L2T Cache Flush Control">
+    <field name="L2T Flush Mode" size="4" start="64" type="L2T Flush Mode"/>
+    <field name="L2T Flush End" size="32" start="32" type="address"/>
+    <field name="L2T Flush Start" size="32" start="0" type="address"/>
+  </packet>
 
   <struct name="Transform Feedback Output Data Spec" max_ver="33">
     <field name="First Shaded Vertex Value to output" size="8" start="0" type="uint"/>

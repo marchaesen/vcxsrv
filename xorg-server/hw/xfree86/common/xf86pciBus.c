@@ -1190,7 +1190,7 @@ xf86VideoPtrToDriverList(struct pci_device *dev, XF86MatchedDrivers *md)
     {
         int idx = 0;
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__NetBSD__)
         driverList[idx++] = "nouveau";
 #endif
         driverList[idx++] = "nv";

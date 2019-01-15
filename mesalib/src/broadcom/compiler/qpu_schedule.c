@@ -236,6 +236,16 @@ process_waddr_deps(struct schedule_state *state, struct schedule_node *n,
                         add_write_dep(state, &state->last_tlb, n);
                         break;
 
+                case V3D_QPU_WADDR_SYNC:
+                case V3D_QPU_WADDR_SYNCB:
+                case V3D_QPU_WADDR_SYNCU:
+                        /* For CS barrier(): Sync against any other memory
+                         * accesses.  There doesn't appear to be any need for
+                         * barriers to affect ALU operations.
+                         */
+                        add_write_dep(state, &state->last_tmu_write, n);
+                        break;
+
                 case V3D_QPU_WADDR_NOP:
                         break;
 

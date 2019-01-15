@@ -2721,7 +2721,7 @@ is_allowed_invariant(ir_variable *var, struct _mesa_glsl_parse_state *state)
     * "Only variables output from a vertex shader can be candidates
     * for invariance".
     */
-   if (!state->is_version(130, 0))
+   if (!state->is_version(130, 100))
       return false;
 
    /*

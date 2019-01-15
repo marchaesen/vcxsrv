@@ -186,8 +186,8 @@ msm_submit_suballoc_ring_bo(struct fd_submit *submit,
 
 	if (!suballoc_bo) {
 		// TODO possibly larger size for streaming bo?
-		msm_ring->ring_bo = fd_bo_new_ring(
-				submit->pipe->dev, 0x8000, 0);
+		msm_ring->ring_bo = fd_bo_new_ring(submit->pipe->dev,
+				0x8000, DRM_FREEDRENO_GEM_GPUREADONLY);
 		msm_ring->offset = 0;
 	} else {
 		msm_ring->ring_bo = fd_bo_ref(suballoc_bo);
@@ -225,7 +225,8 @@ msm_submit_sp_new_ringbuffer(struct fd_submit *submit, uint32_t size,
 			size = INIT_SIZE;
 
 		msm_ring->offset = 0;
-		msm_ring->ring_bo = fd_bo_new_ring(submit->pipe->dev, size, 0);
+		msm_ring->ring_bo = fd_bo_new_ring(submit->pipe->dev, size,
+				DRM_FREEDRENO_GEM_GPUREADONLY);
 	}
 
 	if (!msm_ringbuffer_sp_init(msm_ring, size, flags))
@@ -375,7 +376,8 @@ msm_ringbuffer_sp_grow(struct fd_ringbuffer *ring, uint32_t size)
 	finalize_current_cmd(ring);
 
 	fd_bo_del(msm_ring->ring_bo);
-	msm_ring->ring_bo = fd_bo_new_ring(pipe->dev, size, 0);
+	msm_ring->ring_bo = fd_bo_new_ring(pipe->dev, size,
+			DRM_FREEDRENO_GEM_GPUREADONLY);
 
 	ring->start = fd_bo_map(msm_ring->ring_bo);
 	ring->end = &(ring->start[size/4]);
@@ -558,7 +560,8 @@ msm_ringbuffer_sp_new_object(struct fd_pipe *pipe, uint32_t size)
 
 	msm_ring->u.pipe = pipe;
 	msm_ring->offset = 0;
-	msm_ring->ring_bo = fd_bo_new_ring(pipe->dev, size, 0);
+	msm_ring->ring_bo = fd_bo_new_ring(pipe->dev, size,
+			DRM_FREEDRENO_GEM_GPUREADONLY);
 	msm_ring->base.refcnt = 1;
 
 	return msm_ringbuffer_sp_init(msm_ring, size, _FD_RINGBUFFER_OBJECT);

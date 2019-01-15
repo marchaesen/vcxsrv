@@ -141,8 +141,7 @@ _mesa_print_builder_for_ir(FILE *f, exec_list *instructions)
 ir_builder_print_visitor::ir_builder_print_visitor(FILE *f)
    : next_ir_index(1), f(f), indentation(0)
 {
-   index_map =
-      _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
+   index_map = _mesa_pointer_hash_table_create(NULL);
 }
 
 ir_builder_print_visitor::~ir_builder_print_visitor()

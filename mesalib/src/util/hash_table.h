@@ -121,6 +121,9 @@ static inline uint32_t _mesa_hash_pointer(const void *pointer)
    return (uint32_t) ((num >> 2) ^ (num >> 6) ^ (num >> 10) ^ (num >> 14));
 }
 
+struct hash_table *
+_mesa_pointer_hash_table_create(void *mem_ctx);
+
 enum {
    _mesa_fnv32_1a_offset_bias = 2166136261u,
 };

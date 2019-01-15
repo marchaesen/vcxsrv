@@ -275,8 +275,7 @@ lower_phis_to_scalar_impl(nir_function_impl *impl)
 
    state.mem_ctx = ralloc_parent(impl);
    state.dead_ctx = ralloc_context(NULL);
-   state.phi_table = _mesa_hash_table_create(state.dead_ctx, _mesa_hash_pointer,
-                                             _mesa_key_pointer_equal);
+   state.phi_table = _mesa_pointer_hash_table_create(state.dead_ctx);
 
    nir_foreach_block(block, impl) {
       progress = lower_phis_to_scalar_block(block, &state) || progress;

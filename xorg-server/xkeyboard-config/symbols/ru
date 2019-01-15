@@ -224,6 +224,15 @@ xkb_symbols "phonetic_winkeys" {
 };
 
 partial alphanumeric_keys
+xkb_symbols "phonetic_yazherty" {
+    include "ru(phonetic_winkeys)"
+    name[Group1]= "Russian (phonetic yazherty)";
+    key	<LatW> {	[     Cyrillic_zhe,     Cyrillic_ZHE	]	};
+    key	<LatV> {	[    Cyrillic_ve,    Cyrillic_VE	]	}; 
+};
+
+
+partial alphanumeric_keys
 xkb_symbols "tt" {
 
     include "ru(winkeys)"

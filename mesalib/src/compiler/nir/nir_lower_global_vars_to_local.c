@@ -74,9 +74,7 @@ nir_lower_global_vars_to_local(nir_shader *shader)
     * nir_function_impl that uses the given variable.  If a variable is
     * used in multiple functions, the data for the given key will be NULL.
     */
-   struct hash_table *var_func_table =
-      _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                              _mesa_key_pointer_equal);
+   struct hash_table *var_func_table = _mesa_pointer_hash_table_create(NULL);
 
    nir_foreach_function(function, shader) {
       if (function->impl) {

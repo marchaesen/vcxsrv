@@ -165,9 +165,7 @@ simple_unroll(nir_loop *loop)
    nir_cf_extract(&loop_body, nir_after_cf_node(&limiting_term->nif->cf_node),
                   nir_after_block(nir_loop_last_block(loop)));
 
-   struct hash_table *remap_table =
-      _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                              _mesa_key_pointer_equal);
+   struct hash_table *remap_table = _mesa_pointer_hash_table_create(NULL);
 
    /* Clone the loop header and insert before the loop */
    nir_cf_list_clone_and_reinsert(&lp_header, loop->cf_node.parent,
@@ -417,9 +415,7 @@ complex_unroll(nir_loop *loop, nir_loop_terminator *unlimit_term,
       num_times_to_clone = loop->info->max_trip_count;
    }
 
-   struct hash_table *remap_table =
-      _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                              _mesa_key_pointer_equal);
+   struct hash_table *remap_table = _mesa_pointer_hash_table_create(NULL);
 
    nir_cf_list lp_body;
    nir_cf_node *unroll_loc =

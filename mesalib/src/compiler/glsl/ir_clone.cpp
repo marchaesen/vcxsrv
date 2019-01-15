@@ -419,8 +419,7 @@ fixup_function_calls(struct hash_table *ht, exec_list *instructions)
 void
 clone_ir_list(void *mem_ctx, exec_list *out, const exec_list *in)
 {
-   struct hash_table *ht =
-         _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
+   struct hash_table *ht = _mesa_pointer_hash_table_create(NULL);
 
    foreach_in_list(const ir_instruction, original, in) {
       ir_instruction *copy = original->clone(mem_ctx, ht);

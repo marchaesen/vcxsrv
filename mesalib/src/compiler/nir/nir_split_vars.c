@@ -257,8 +257,7 @@ nir_split_struct_vars(nir_shader *shader, nir_variable_mode modes)
 {
    void *mem_ctx = ralloc_context(NULL);
    struct hash_table *var_field_map =
-      _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
-                              _mesa_key_pointer_equal);
+      _mesa_pointer_hash_table_create(mem_ctx);
 
    assert((modes & (nir_var_private | nir_var_function)) == modes);
 
@@ -793,9 +792,7 @@ bool
 nir_split_array_vars(nir_shader *shader, nir_variable_mode modes)
 {
    void *mem_ctx = ralloc_context(NULL);
-   struct hash_table *var_info_map =
-      _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
-                              _mesa_key_pointer_equal);
+   struct hash_table *var_info_map = _mesa_pointer_hash_table_create(mem_ctx);
 
    assert((modes & (nir_var_private | nir_var_function)) == modes);
 
@@ -973,8 +970,7 @@ mark_deref_used(nir_deref_instr *deref,
                                        true, mem_ctx);
       if (copy_usage) {
          if (usage->vars_copied == NULL) {
-            usage->vars_copied = _mesa_set_create(mem_ctx, _mesa_hash_pointer,
-                                                  _mesa_key_pointer_equal);
+            usage->vars_copied = _mesa_pointer_set_create(mem_ctx);
          }
          _mesa_set_add(usage->vars_copied, copy_usage);
       } else {
@@ -1016,9 +1012,7 @@ mark_deref_used(nir_deref_instr *deref,
                &copy_usage->levels[copy_i++];
 
             if (level->levels_copied == NULL) {
-               level->levels_copied =
-                  _mesa_set_create(mem_ctx, _mesa_hash_pointer,
-                                   _mesa_key_pointer_equal);
+               level->levels_copied = _mesa_pointer_set_create(mem_ctx);
             }
             _mesa_set_add(level->levels_copied, copy_level);
          } else {
@@ -1523,8 +1517,7 @@ nir_shrink_vec_array_vars(nir_shader *shader, nir_variable_mode modes)
    void *mem_ctx = ralloc_context(NULL);
 
    struct hash_table *var_usage_map =
-      _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
-                              _mesa_key_pointer_equal);
+      _mesa_pointer_hash_table_create(mem_ctx);
 
    bool has_vars_to_shrink = false;
    nir_foreach_function(function, shader) {

@@ -1082,8 +1082,7 @@ void
 nir_serialize(struct blob *blob, const nir_shader *nir)
 {
    write_ctx ctx;
-   ctx.remap_table = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                                             _mesa_key_pointer_equal);
+   ctx.remap_table = _mesa_pointer_hash_table_create(NULL);
    ctx.next_idx = 0;
    ctx.blob = blob;
    ctx.nir = nir;

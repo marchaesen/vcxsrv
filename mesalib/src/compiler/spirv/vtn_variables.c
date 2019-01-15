@@ -544,9 +544,11 @@ repair_atomic_type(const struct glsl_type *type)
 nir_deref_instr *
 vtn_pointer_to_deref(struct vtn_builder *b, struct vtn_pointer *ptr)
 {
-   /* Do on-the-fly copy propagation for samplers. */
-   if (ptr->var && ptr->var->copy_prop_sampler)
-      return vtn_pointer_to_deref(b, ptr->var->copy_prop_sampler);
+   if (b->wa_glslang_179) {
+      /* Do on-the-fly copy propagation for samplers. */
+      if (ptr->var && ptr->var->copy_prop_sampler)
+         return vtn_pointer_to_deref(b, ptr->var->copy_prop_sampler);
+   }
 
    vtn_assert(!vtn_pointer_uses_ssa_offset(b, ptr));
    if (!ptr->deref) {
@@ -1800,6 +1802,20 @@ vtn_pointer_from_ssa(struct vtn_builder *b, nir_ssa_def *ssa,
    ptr->type = ptr_type->deref;
    ptr->ptr_type = ptr_type;
 
+   if (b->wa_glslang_179) {
+      /* To work around https://github.com/KhronosGroup/glslang/issues/179 we
+       * need to whack the mode because it creates a function parameter with
+       * the Function storage class even though it's a pointer to a sampler.
+       * If we don't do this, then NIR won't get rid of the deref_cast for us.
+       */
+      if (ptr->mode == vtn_variable_mode_function &&
+          (ptr->type->base_type == vtn_base_type_sampler ||
+           ptr->type->base_type == vtn_base_type_sampled_image)) {
+         ptr->mode = vtn_variable_mode_uniform;
+         nir_mode = nir_var_uniform;
+      }
+   }
+
    if (vtn_pointer_uses_ssa_offset(b, ptr)) {
       /* This pointer type needs to have actual storage */
       vtn_assert(ptr_type->type);
@@ -2254,11 +2270,15 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
       vtn_assert_types_equal(b, opcode, dest_val->type->deref, src_val->type);
 
       if (glsl_type_is_sampler(dest->type->type)) {
-         vtn_warn("OpStore of a sampler detected.  Doing on-the-fly copy "
-                  "propagation to workaround the problem.");
-         vtn_assert(dest->var->copy_prop_sampler == NULL);
-         dest->var->copy_prop_sampler =
-            vtn_value(b, w[2], vtn_value_type_pointer)->pointer;
+         if (b->wa_glslang_179) {
+            vtn_warn("OpStore of a sampler detected.  Doing on-the-fly copy "
+                     "propagation to workaround the problem.");
+            vtn_assert(dest->var->copy_prop_sampler == NULL);
+            dest->var->copy_prop_sampler =
+               vtn_value(b, w[2], vtn_value_type_pointer)->pointer;
+         } else {
+            vtn_fail("Vulkan does not allow OpStore of a sampler or image.");
+         }
          break;
       }
 

@@ -186,8 +186,7 @@ do_constant_variable(exec_list *instructions)
    bool progress = false;
    ir_constant_variable_visitor v;
 
-   v.ht = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                                  _mesa_key_pointer_equal);
+   v.ht = _mesa_pointer_hash_table_create(NULL);
    v.run(instructions);
 
    hash_table_foreach(v.ht, hte) {

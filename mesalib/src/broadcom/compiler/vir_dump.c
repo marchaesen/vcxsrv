@@ -34,6 +34,7 @@ vir_dump_uniform(enum quniform_contents contents,
                 [QUNIFORM_VIEWPORT_Y_SCALE] = "vp_y_scale",
                 [QUNIFORM_VIEWPORT_Z_OFFSET] = "vp_z_offset",
                 [QUNIFORM_VIEWPORT_Z_SCALE] = "vp_z_scale",
+                [QUNIFORM_SHARED_OFFSET] = "shared_offset",
         };
 
         switch (contents) {
@@ -61,6 +62,12 @@ vir_dump_uniform(enum quniform_contents contents,
                         v3d_tmu_config_data_get_value(data));
                 break;
 
+        case QUNIFORM_IMAGE_TMU_CONFIG_P0:
+                fprintf(stderr, "img[%d].p0 | 0x%x",
+                        v3d_tmu_config_data_get_unit(data),
+                        v3d_tmu_config_data_get_value(data));
+                break;
+
         case QUNIFORM_TEXTURE_WIDTH:
                 fprintf(stderr, "tex[%d].width", data);
                 break;
@@ -77,8 +84,33 @@ vir_dump_uniform(enum quniform_contents contents,
                 fprintf(stderr, "tex[%d].levels", data);
                 break;
 
+        case QUNIFORM_IMAGE_WIDTH:
+                fprintf(stderr, "img[%d].width", data);
+                break;
+        case QUNIFORM_IMAGE_HEIGHT:
+                fprintf(stderr, "img[%d].height", data);
+                break;
+        case QUNIFORM_IMAGE_DEPTH:
+                fprintf(stderr, "img[%d].depth", data);
+                break;
+        case QUNIFORM_IMAGE_ARRAY_SIZE:
+                fprintf(stderr, "img[%d].array_size", data);
+                break;
+
         case QUNIFORM_UBO_ADDR:
                 fprintf(stderr, "ubo[%d]", data);
+                break;
+
+        case QUNIFORM_SSBO_OFFSET:
+                fprintf(stderr, "ssbo[%d]", data);
+                break;
+
+        case QUNIFORM_GET_BUFFER_SIZE:
+                fprintf(stderr, "ssbo_size[%d]", data);
+                break;
+
+        case QUNIFORM_NUM_WORK_GROUPS:
+                fprintf(stderr, "num_wg.%c", data < 3 ? "xyz"[data] : '?');
                 break;
 
         default:

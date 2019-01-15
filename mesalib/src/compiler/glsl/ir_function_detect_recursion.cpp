@@ -158,8 +158,7 @@ public:
    {
       progress = false;
       this->mem_ctx = ralloc_context(NULL);
-      this->function_hash = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                                                    _mesa_key_pointer_equal);
+      this->function_hash = _mesa_pointer_hash_table_create(NULL);
    }
 
    ~has_recursion_visitor()

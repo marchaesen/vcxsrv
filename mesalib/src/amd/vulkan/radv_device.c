@@ -3883,7 +3883,7 @@ VkResult radv_CreateBuffer(
 	buffer->flags = pCreateInfo->flags;
 
 	buffer->shareable = vk_find_struct_const(pCreateInfo->pNext,
-						 EXTERNAL_MEMORY_BUFFER_CREATE_INFO_KHR) != NULL;
+						 EXTERNAL_MEMORY_BUFFER_CREATE_INFO) != NULL;
 
 	if (pCreateInfo->flags & VK_BUFFER_CREATE_SPARSE_BINDING_BIT) {
 		buffer->bo = device->ws->buffer_create(device->ws,

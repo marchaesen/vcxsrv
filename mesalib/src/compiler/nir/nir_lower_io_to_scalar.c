@@ -279,12 +279,8 @@ lower_store_output_to_scalar_early(nir_builder *b, nir_intrinsic_instr *intr,
 void
 nir_lower_io_to_scalar_early(nir_shader *shader, nir_variable_mode mask)
 {
-   struct hash_table *split_inputs =
-      _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                              _mesa_key_pointer_equal);
-   struct hash_table *split_outputs =
-      _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                              _mesa_key_pointer_equal);
+   struct hash_table *split_inputs = _mesa_pointer_hash_table_create(NULL);
+   struct hash_table *split_outputs = _mesa_pointer_hash_table_create(NULL);
 
    nir_foreach_function(function, shader) {
       if (function->impl) {

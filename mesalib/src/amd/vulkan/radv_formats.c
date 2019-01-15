@@ -1289,11 +1289,11 @@ VkResult radv_GetPhysicalDeviceImageFormatProperties2(
 		}
 	}
 
-	/* From the Vulkan 1.0.42 spec:
+	/* From the Vulkan 1.0.97 spec:
 	 *
-	 *    If handleType is 0, vkGetPhysicalDeviceImageFormatProperties2KHR will
-	 *    behave as if VkPhysicalDeviceExternalImageFormatInfoKHR was not
-	 *    present and VkExternalImageFormatPropertiesKHR will be ignored.
+	 *    If handleType is 0, vkGetPhysicalDeviceImageFormatProperties2 will
+	 *    behave as if VkPhysicalDeviceExternalImageFormatInfo was not
+	 *    present and VkExternalImageFormatProperties will be ignored.
 	 */
 	if (external_info && external_info->handleType != 0) {
 		switch (external_info->handleType) {
@@ -1304,11 +1304,11 @@ VkResult radv_GetPhysicalDeviceImageFormatProperties2(
 			                                     &external_props->externalMemoryProperties);
 			break;
 		default:
-			/* From the Vulkan 1.0.42 spec:
+			/* From the Vulkan 1.0.97 spec:
 			 *
 			 *    If handleType is not compatible with the [parameters] specified
-			 *    in VkPhysicalDeviceImageFormatInfo2KHR, then
-			 *    vkGetPhysicalDeviceImageFormatProperties2KHR returns
+			 *    in VkPhysicalDeviceImageFormatInfo2, then
+			 *    vkGetPhysicalDeviceImageFormatProperties2 returns
 			 *    VK_ERROR_FORMAT_NOT_SUPPORTED.
 			 */
 			result = vk_errorf(physical_device->instance, VK_ERROR_FORMAT_NOT_SUPPORTED,
@@ -1322,10 +1322,10 @@ VkResult radv_GetPhysicalDeviceImageFormatProperties2(
 
 fail:
 	if (result == VK_ERROR_FORMAT_NOT_SUPPORTED) {
-		/* From the Vulkan 1.0.42 spec:
+		/* From the Vulkan 1.0.97 spec:
 		 *
 		 *    If the combination of parameters to
-		 *    vkGetPhysicalDeviceImageFormatProperties2KHR is not supported by
+		 *    vkGetPhysicalDeviceImageFormatProperties2 is not supported by
 		 *    the implementation for use in vkCreateImage, then all members of
 		 *    imageFormatProperties will be filled with zero.
 		 */

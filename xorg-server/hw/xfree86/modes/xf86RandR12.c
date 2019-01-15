@@ -78,10 +78,9 @@ static Bool xf86RandR12CreateScreenResources12(ScreenPtr pScreen);
 static int xf86RandR12Generation;
 
 static DevPrivateKeyRec xf86RandR12KeyRec;
-static DevPrivateKey xf86RandR12Key;
 
 #define XF86RANDRINFO(p) ((XF86RandRInfoPtr) \
-    dixLookupPrivate(&(p)->devPrivates, xf86RandR12Key))
+    dixLookupPrivate(&(p)->devPrivates, &xf86RandR12KeyRec))
 
 static int
 xf86RandR12ModeRefresh(DisplayModePtr mode)
@@ -859,7 +858,6 @@ xf86RandR12Init(ScreenPtr pScreen)
     if (xf86RandR12Generation != serverGeneration)
         xf86RandR12Generation = serverGeneration;
 
-    xf86RandR12Key = &xf86RandR12KeyRec;
     if (!dixRegisterPrivateKey(&xf86RandR12KeyRec, PRIVATE_SCREEN, 0))
         return FALSE;
 
@@ -889,7 +887,7 @@ xf86RandR12Init(ScreenPtr pScreen)
     randrp->palette_size = 0;
     randrp->palette = NULL;
 
-    dixSetPrivate(&pScreen->devPrivates, xf86RandR12Key, randrp);
+    dixSetPrivate(&pScreen->devPrivates, &xf86RandR12KeyRec, randrp);
 
 #if RANDR_12_INTERFACE
     if (!xf86RandR12Init12(pScreen))
@@ -902,9 +900,6 @@ void
 xf86RandR12CloseScreen(ScreenPtr pScreen)
 {
     XF86RandRInfoPtr randrp;
-
-    if (xf86RandR12Key == NULL)
-        return;
 
     randrp = XF86RANDRINFO(pScreen);
 #if RANDR_12_INTERFACE
@@ -927,9 +922,6 @@ xf86RandR12SetRotations(ScreenPtr pScreen, Rotation rotations)
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(pScrn);
 #endif
 
-    if (xf86RandR12Key == NULL)
-        return;
-
     randrp = XF86RANDRINFO(pScreen);
 #if RANDR_12_INTERFACE
     for (c = 0; c < config->num_crtc; c++) {
@@ -948,12 +940,7 @@ xf86RandR12SetTransformSupport(ScreenPtr pScreen, Bool transforms)
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     int c;
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(pScrn);
-#endif
 
-    if (xf86RandR12Key == NULL)
-        return;
-
-#if RANDR_13_INTERFACE
     for (c = 0; c < config->num_crtc; c++) {
         xf86CrtcPtr crtc = config->crtc[c];
 
@@ -1821,9 +1808,6 @@ xf86RandR12CreateScreenResources12(ScreenPtr pScreen)
     rrScrPrivPtr rp = rrGetScrPriv(pScreen);
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(pScrn);
 
-    if (xf86RandR12Key == NULL)
-        return TRUE;
-
     for (c = 0; c < config->num_crtc; c++)
         xf86RandR12CrtcNotify(config->crtc[c]->randr_crtc);
 
@@ -1852,9 +1836,6 @@ xf86RandR12TellChanged(ScreenPtr pScreen)
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
     xf86CrtcConfigPtr config = XF86_CRTC_CONFIG_PTR(pScrn);
     int c;
-
-    if (xf86RandR12Key == NULL)
-        return;
 
     xf86RandR12SetInfo12(pScreen);
     for (c = 0; c < config->num_crtc; c++)
@@ -2019,7 +2000,7 @@ xf86RandR12ChangeGamma(ScrnInfoPtr pScrn, Gamma gamma)
     RRCrtcPtr randr_crtc = xf86CompatRRCrtc(pScrn);
     int size;
 
-    if (!randr_crtc)
+    if (!randr_crtc || pScrn->LoadPalette == xf86RandR12LoadPalette)
         return Success;
 
     size = max(0, randr_crtc->gammaSize);

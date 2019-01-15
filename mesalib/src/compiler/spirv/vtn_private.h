@@ -586,6 +586,9 @@ struct vtn_builder {
    unsigned value_id_bound;
    struct vtn_value *values;
 
+   /* True if we should watch out for GLSLang issue #179 */
+   bool wa_glslang_179;
+
    gl_shader_stage entry_point_stage;
    const char *entry_point_name;
    struct vtn_value *entry_point;

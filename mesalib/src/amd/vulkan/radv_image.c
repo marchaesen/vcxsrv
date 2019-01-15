@@ -991,7 +991,7 @@ radv_image_create(VkDevice _device,
 	}
 
 	image->shareable = vk_find_struct_const(pCreateInfo->pNext,
-	                                        EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR) != NULL;
+	                                        EXTERNAL_MEMORY_IMAGE_CREATE_INFO) != NULL;
 	if (!vk_format_is_depth_or_stencil(pCreateInfo->format) && !create_info->scanout && !image->shareable) {
 		image->info.surf_index = &device->image_mrt_offset_counter;
 	}

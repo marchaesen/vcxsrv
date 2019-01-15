@@ -2002,6 +2002,17 @@
         </variant>
         <variant>
           <configItem>
+            <name>kan-kagapa</name>
+            <!-- Keyboard indicator for Kannada layouts -->
+            <_shortDescription>kn</_shortDescription>
+            <_description>Kannada (KaGaPa phonetic)</_description>
+            <languageList>
+              <iso639Id>kan</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>mal</name>
             <!-- Keyboard indicator for Malayalam layouts -->
             <_shortDescription>ml</_shortDescription>
@@ -2141,6 +2152,17 @@
             <!-- Keyboard indicator for Telugu layouts -->
             <_shortDescription>te</_shortDescription>
             <_description>Telugu (Sarala)</_description>
+            <languageList>
+              <iso639Id>tel</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>tel-kagapa</name>
+            <!-- Keyboard indicator for Telugu layouts -->
+            <_shortDescription>te</_shortDescription>
+            <_description>Telugu (KaGaPa phonetic)</_description>
             <languageList>
               <iso639Id>tel</iso639Id>
             </languageList>
@@ -4554,6 +4576,12 @@
           <configItem>
             <name>phonetic_winkeys</name>
             <_description>Russian (phonetic, with Win keys)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>phonetic_yazherty</name>
+            <_description>Russian (phonetic yazherty)</_description>
           </configItem>
         </variant>
         <variant>

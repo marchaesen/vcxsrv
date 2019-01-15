@@ -823,12 +823,16 @@ script:
 
   - |
     if test "x$BUILD" = xmeson; then
-      # We need to control the version of llvm-config we're using, so we'll
-      # generate a native file to do so. This requires meson >=0.49
-      #
-      echo -e "[binaries]\nllvm-config = '`which $LLVM_CONFIG`'" > native.file
+      if test -n "$LLVM_CONFIG"; then
+        # We need to control the version of llvm-config we're using, so we'll
+        # generate a native file to do so. This requires meson >=0.49
+        #
+        echo -e "[binaries]\nllvm-config = '`which $LLVM_CONFIG`'" > native.file
 
-      $LLVM_CONFIG --version
+        $LLVM_CONFIG --version
+      else
+        : > native.file
+      fi
 
       export CFLAGS="$CFLAGS -isystem`pwd`"
       meson _build \

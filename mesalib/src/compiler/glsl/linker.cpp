@@ -1460,8 +1460,7 @@ move_non_declarations(exec_list *instructions, exec_node *last,
    hash_table *temps = NULL;
 
    if (make_copies)
-      temps = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                                      _mesa_key_pointer_equal);
+      temps = _mesa_pointer_hash_table_create(NULL);
 
    foreach_in_list_safe(ir_instruction, inst, instructions) {
       if (inst->as_function())
@@ -1507,8 +1506,7 @@ class array_sizing_visitor : public deref_type_updater {
 public:
    array_sizing_visitor()
       : mem_ctx(ralloc_context(NULL)),
-        unnamed_interfaces(_mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                                                   _mesa_key_pointer_equal))
+        unnamed_interfaces(_mesa_pointer_hash_table_create(NULL))
    {
    }
 
@@ -4412,9 +4410,7 @@ build_program_resource_list(struct gl_context *ctx,
    if (input_stage == MESA_SHADER_STAGES && output_stage == 0)
       return;
 
-   struct set *resource_set = _mesa_set_create(NULL,
-                                               _mesa_hash_pointer,
-                                               _mesa_key_pointer_equal);
+   struct set *resource_set = _mesa_pointer_set_create(NULL);
 
    /* Program interface needs to expose varyings in case of SSO. */
    if (shProg->SeparateShader) {

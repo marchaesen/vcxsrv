@@ -209,8 +209,7 @@ inline_function_impl(nir_function_impl *impl, struct set *inlined)
 bool
 nir_inline_functions(nir_shader *shader)
 {
-   struct set *inlined = _mesa_set_create(NULL, _mesa_hash_pointer,
-                                          _mesa_key_pointer_equal);
+   struct set *inlined = _mesa_pointer_set_create(NULL);
    bool progress = false;
 
    nir_foreach_function(function, shader) {

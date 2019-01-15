@@ -128,6 +128,10 @@ gcm_pin_instructions_block(nir_block *block, struct gcm_state *state)
          }
          break;
 
+      case nir_instr_type_deref:
+         instr->pass_flags = 0;
+         break;
+
       case nir_instr_type_tex:
          switch (nir_instr_as_tex(instr)->op) {
          case nir_texop_tex:

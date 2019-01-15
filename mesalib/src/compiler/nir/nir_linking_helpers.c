@@ -712,9 +712,7 @@ nir_link_opt_varyings(nir_shader *producer, nir_shader *consumer)
 
    nir_function_impl *impl = nir_shader_get_entrypoint(producer);
 
-   struct hash_table *varying_values =
-      _mesa_hash_table_create(NULL,  _mesa_hash_pointer,
-                              _mesa_key_pointer_equal);
+   struct hash_table *varying_values = _mesa_pointer_hash_table_create(NULL);
 
    /* If we find a store in the last block of the producer we can be sure this
     * is the only possible value for this output.

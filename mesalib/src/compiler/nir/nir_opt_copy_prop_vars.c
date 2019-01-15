@@ -106,8 +106,7 @@ create_vars_written(struct copy_prop_var_state *state)
 {
    struct vars_written *written =
       linear_zalloc_child(state->lin_ctx, sizeof(struct vars_written));
-   written->derefs = _mesa_hash_table_create(state->mem_ctx, _mesa_hash_pointer,
-                                             _mesa_key_pointer_equal);
+   written->derefs = _mesa_pointer_hash_table_create(state->mem_ctx);
    return written;
 }
 
@@ -865,8 +864,7 @@ nir_copy_prop_vars_impl(nir_function_impl *impl)
       .mem_ctx = mem_ctx,
       .lin_ctx = linear_zalloc_parent(mem_ctx, 0),
 
-      .vars_written_map = _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
-                                                  _mesa_key_pointer_equal),
+      .vars_written_map = _mesa_pointer_hash_table_create(mem_ctx),
    };
 
    gather_vars_written(&state, NULL, &impl->cf_node);
