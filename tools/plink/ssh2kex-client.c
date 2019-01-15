@@ -11,8 +11,9 @@
 #include "sshcr.h"
 #include "storage.h"
 #include "ssh2transport.h"
+#include "mpint.h"
 
-void ssh2kex_coroutine(struct ssh2_transport_state *s)
+void ssh2kex_coroutine(struct ssh2_transport_state *s, bool *aborted)
 {
     PacketProtocolLayer *ppl = &s->ppl; /* for ppl_logevent */
     PktIn *pktin;
@@ -75,6 +76,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
                                 ssh2_pkt_type(s->ppl.bpp->pls->kctx,
                                               s->ppl.bpp->pls->actx,
                                               pktin->type));
+                *aborted = true;
                 return;
             }
             s->p = get_mp_ssh2(pktin);
@@ -82,6 +84,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
             if (get_err(pktin)) {
                 ssh_proto_error(s->ppl.ssh,
                                 "Unable to parse Diffie-Hellman group packet");
+                *aborted = true;
                 return;
             }
             s->dh_ctx = dh_setup_gex(s->p, s->g);
@@ -123,6 +126,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
                             ssh2_pkt_type(s->ppl.bpp->pls->kctx,
                                           s->ppl.bpp->pls->actx,
                                           pktin->type));
+            *aborted = true;
             return;
         }
         seat_set_busy_status(s->ppl.seat, BUSY_CPU);
@@ -133,6 +137,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
         if (get_err(pktin)) {
             ssh_proto_error(s->ppl.ssh,
                             "Unable to parse Diffie-Hellman reply packet");
+            *aborted = true;
             return;
         }
 
@@ -141,6 +146,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
             if (err) {
                 ssh_proto_error(s->ppl.ssh, "Diffie-Hellman reply failed "
                                 "validation: %s", err);
+                *aborted = true;
                 return;
             }
         }
@@ -165,10 +171,10 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
 
         dh_cleanup(s->dh_ctx);
         s->dh_ctx = NULL;
-        freebn(s->f); s->f = NULL;
+        mp_free(s->f); s->f = NULL;
         if (dh_is_gex(s->kex_alg)) {
-            freebn(s->g); s->g = NULL;
-            freebn(s->p); s->p = NULL;
+            mp_free(s->g); s->g = NULL;
+            mp_free(s->p); s->p = NULL;
         }
     } else if (s->kex_alg->main_type == KEXTYPE_ECDH) {
 
@@ -180,6 +186,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
         s->ecdh_key = ssh_ecdhkex_newkey(s->kex_alg);
         if (!s->ecdh_key) {
             ssh_sw_abort(s->ppl.ssh, "Unable to generate key for ECDH");
+            *aborted = true;
             return;
         }
 
@@ -199,6 +206,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
                             ssh2_pkt_type(s->ppl.bpp->pls->kctx,
                                           s->ppl.bpp->pls->actx,
                                           pktin->type));
+            *aborted = true;
             return;
         }
 
@@ -216,10 +224,11 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
         {
             ptrlen keydata = get_string(pktin);
             put_stringpl(s->exhash, keydata);
-            s->K = ssh_ecdhkex_getkey(s->ecdh_key, keydata.ptr, keydata.len);
+            s->K = ssh_ecdhkex_getkey(s->ecdh_key, keydata);
             if (!get_err(pktin) && !s->K) {
                 ssh_proto_error(s->ppl.ssh, "Received invalid elliptic curve "
                                 "point in ECDH reply");
+                *aborted = true;
                 return;
             }
         }
@@ -227,6 +236,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
         s->sigdata = get_string(pktin);
         if (get_err(pktin)) {
             ssh_proto_error(s->ppl.ssh, "Unable to parse ECDH reply packet");
+            *aborted = true;
             return;
         }
 
@@ -285,6 +295,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
                                 ssh2_pkt_type(s->ppl.bpp->pls->kctx,
                                               s->ppl.bpp->pls->actx,
                                               pktin->type));
+                *aborted = true;
                 return;
             }
             s->p = get_mp_ssh2(pktin);
@@ -292,6 +303,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
             if (get_err(pktin)) {
                 ssh_proto_error(s->ppl.ssh,
                                 "Unable to parse Diffie-Hellman group packet");
+                *aborted = true;
                 return;
             }
             s->dh_ctx = dh_setup_gex(s->p, s->g);
@@ -319,6 +331,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
         if (s->gss_stat != SSH_GSS_OK) {
             ssh_sw_abort(s->ppl.ssh,
                          "GSSAPI key exchange failed to initialise");
+            *aborted = true;
             return;
         }
 
@@ -349,6 +362,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
                                  "GSSAPI key exchange failed to initialise "
                                  "context: %s", err);
                     sfree(err);
+                    *aborted = true;
                     return;
                 }
             }
@@ -362,6 +376,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
                 if (s->gss_sndtok.length == 0) {
                     ssh_sw_abort(s->ppl.ssh, "GSSAPI key exchange failed: "
                                  "no initial context token");
+                    *aborted = true;
                     return;
                 }
                 put_string(pktout,
@@ -453,6 +468,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
                                 ssh2_pkt_type(s->ppl.bpp->pls->kctx,
                                               s->ppl.bpp->pls->actx,
                                               pktin->type));
+                *aborted = true;
                 return;
             }
         } while (s->gss_rcvtok.length ||
@@ -486,10 +502,10 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
 
         dh_cleanup(s->dh_ctx);
         s->dh_ctx = NULL;
-        freebn(s->f); s->f = NULL;
+        mp_free(s->f); s->f = NULL;
         if (dh_is_gex(s->kex_alg)) {
-            freebn(s->g); s->g = NULL;
-            freebn(s->p); s->p = NULL;
+            mp_free(s->g); s->g = NULL;
+            mp_free(s->p); s->p = NULL;
         }
 #endif
     } else {
@@ -511,6 +527,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
                             ssh2_pkt_type(s->ppl.bpp->pls->kctx,
                                           s->ppl.bpp->pls->actx,
                                           pktin->type));
+            *aborted = true;
             return;
         }
 
@@ -520,10 +537,11 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
 
         rsakeydata = get_string(pktin);
 
-        s->rsa_kex_key = ssh_rsakex_newkey(rsakeydata.ptr, rsakeydata.len);
+        s->rsa_kex_key = ssh_rsakex_newkey(rsakeydata);
         if (!s->rsa_kex_key) {
             ssh_proto_error(s->ppl.ssh,
                             "Unable to parse RSA public key packet");
+            *aborted = true;
             return;
         }
 
@@ -539,17 +557,15 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
             int klen = ssh_rsakex_klen(s->rsa_kex_key);
             int nbits = klen - (2*s->kex_alg->hash->hlen*8 + 49);
             int i, byte = 0;
-            strbuf *buf;
-            unsigned char *outstr;
-            int outstrlen;
+            strbuf *buf, *outstr;
 
-            s->K = bn_power_2(nbits - 1);
+            s->K = mp_power_2(nbits - 1);
 
             for (i = 0; i < nbits; i++) {
                 if ((i & 7) == 0) {
                     byte = random_byte();
                 }
-                bignum_set_bit(s->K, i, (byte >> (i & 7)) & 1);
+                mp_set_bit(s->K, i, (byte >> (i & 7)) & 1);
             }
 
             /*
@@ -561,22 +577,19 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
             /*
              * Encrypt it with the given RSA key.
              */
-            outstrlen = (klen + 7) / 8;
-            outstr = snewn(outstrlen, unsigned char);
-            ssh_rsakex_encrypt(s->kex_alg->hash, buf->u, buf->len,
-                               outstr, outstrlen, s->rsa_kex_key);
+            outstr = ssh_rsakex_encrypt(s->rsa_kex_key, s->kex_alg->hash,
+                                        ptrlen_from_strbuf(buf));
 
             /*
              * And send it off in a return packet.
              */
             pktout = ssh_bpp_new_pktout(s->ppl.bpp, SSH2_MSG_KEXRSA_SECRET);
-            put_string(pktout, outstr, outstrlen);
+            put_stringpl(pktout, ptrlen_from_strbuf(outstr));
             pq_push(s->ppl.out_pq, pktout);
 
-            put_string(s->exhash, outstr, outstrlen);
+            put_stringsb(s->exhash, outstr); /* frees outstr */
 
             strbuf_free(buf);
-            sfree(outstr);
         }
 
         ssh_rsakex_freekey(s->rsa_kex_key);
@@ -590,12 +603,14 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
                             ssh2_pkt_type(s->ppl.bpp->pls->kctx,
                                           s->ppl.bpp->pls->actx,
                                           pktin->type));
+            *aborted = true;
             return;
         }
 
         s->sigdata = get_string(pktin);
         if (get_err(pktin)) {
             ssh_proto_error(s->ppl.ssh, "Unable to parse RSA kex signature");
+            *aborted = true;
             return;
         }
     }
@@ -622,6 +637,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
                 ssh_sw_abort(s->ppl.ssh, "GSSAPI key exchange MIC was "
                              "not valid");
             }
+            *aborted = true;
             return;
         }
 
@@ -653,6 +669,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
     if (s->kex_alg->main_type != KEXTYPE_GSS) {
         if (!s->hkey) {
             ssh_proto_error(s->ppl.ssh, "Server's host key is invalid");
+            *aborted = true;
             return;
         }
 
@@ -662,6 +679,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
 #ifndef FUZZING
             ssh_proto_error(s->ppl.ssh, "Signature from server's host key "
                             "is invalid");
+            *aborted = true;
             return;
 #endif
         }
@@ -752,6 +770,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
                 ppl_logevent("%s", s->fingerprint);
                 ssh_sw_abort(s->ppl.ssh, "Server's host key did not match any "
                              "used in previous GSS kex");
+                *aborted = true;
                 return;
             }
 
@@ -811,6 +830,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
             if (s->dlgret == 0) {          /* did not match */
                 ssh_sw_abort(s->ppl.ssh, "Host key did not appear in manually "
                              "configured list");
+                *aborted = true;
                 return;
             } else if (s->dlgret < 0) { /* none configured; use standard handling */
                 s->dlgret = seat_verify_ssh_host_key(
@@ -824,6 +844,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
                 if (s->dlgret == 0) {
                     ssh_user_close(s->ppl.ssh,
                                    "User aborted at host key verification");
+                    *aborted = true;
                     return;
                 }
             }
@@ -864,6 +885,7 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s)
 #ifndef FUZZING
                 ssh_sw_abort(s->ppl.ssh,
                              "Host key was different in repeat key exchange");
+                *aborted = true;
                 return;
 #endif
             }

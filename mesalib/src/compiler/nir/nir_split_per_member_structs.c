@@ -50,7 +50,8 @@ member_type(const struct glsl_type *type, unsigned index)
    if (glsl_type_is_array(type)) {
       const struct glsl_type *elem =
          member_type(glsl_get_array_element(type), index);
-      return glsl_get_array_instance(elem, glsl_get_length(type));
+      assert(glsl_get_explicit_stride(type) == 0);
+      return glsl_array_type(elem, glsl_get_length(type), 0);
    } else {
       assert(glsl_type_is_struct(type));
       assert(index < glsl_get_length(type));
@@ -174,8 +175,7 @@ nir_split_per_member_structs(nir_shader *shader)
    bool progress = false;
    void *dead_ctx = ralloc_context(NULL);
    struct hash_table *var_to_member_map =
-      _mesa_hash_table_create(dead_ctx, _mesa_hash_pointer,
-                              _mesa_key_pointer_equal);
+      _mesa_pointer_hash_table_create(dead_ctx);
 
    progress |= split_variables_in_list(&shader->inputs, shader,
                                        var_to_member_map, dead_ctx);

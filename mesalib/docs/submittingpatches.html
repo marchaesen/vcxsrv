@@ -21,7 +21,7 @@
 <li><a href="#guidelines">Basic guidelines</a>
 <li><a href="#formatting">Patch formatting</a>
 <li><a href="#testing">Testing Patches</a>
-<li><a href="#mailing">Mailing Patches</a>
+<li><a href="#submit">Submitting Patches</a>
 <li><a href="#reviewing">Reviewing Patches</a>
 <li><a href="#nominations">Nominating a commit for a stable branch</a>
 <li><a href="#criteria">Criteria for accepting patches to the stable branch</a>
@@ -42,8 +42,10 @@ components.
 <code>git bisect</code>.)
 <li>Patches should be properly <a href="#formatting">formatted</a>.
 <li>Patches should be sufficiently <a href="#testing">tested</a> before submitting.
-<li>Patches should be submitted to <a href="#mailing">mesa-dev</a>
-for <a href="#reviewing">review</a> using <code>git send-email</code>.
+<li>Patches should be <a href="#submit">submitted</a>
+to <a href="#mailing">mesa-dev</a> or with
+a <a href="#merge-request">merge request</a>
+for <a href="#reviewing">review</a>.
 
 </ul>
 
@@ -166,10 +168,19 @@ run.
 </p>
 
 
-<h2 id="mailing">Mailing Patches</h2>
+<h2 id="submit">Submitting Patches</h2>
 
 <p>
-Patches should be sent to the mesa-dev mailing list for review:
+Patches may be submitted to the Mesa project by
+<a href="#mailing">email</a> or with a
+GitLab <a href="#merge-request">merge request</a>. To prevent
+duplicate code review, only use one method to submit your changes.
+</p>
+
+<h3 id="mailing">Mailing Patches</h3>
+
+<p>
+Patches may be sent to the mesa-dev mailing list for review:
 <a href="https://lists.freedesktop.org/mailman/listinfo/mesa-dev">
 mesa-dev@lists.freedesktop.org</a>.
 When submitting a patch make sure to use
@@ -203,7 +214,62 @@ disabled before sending your patches. (Note that you may need to contact
 your email administrator for this.)
 </p>
 
+<h3 id="merge-request">GitLab Merge Requests</h3>
+
+<p>
+  <a href="https://gitlab.freedesktop.org/mesa/mesa">GitLab</a> Merge
+  Requests (MR) can also be used to submit patches for Mesa.
+</p>
+
+<p>
+  If the MR may have interest for most of the Mesa community, you can
+  send an email to the mesa-dev email list including a link to the MR.
+  Don't send the patch to mesa-dev, just the MR link.
+</p>
+<p>
+  Add labels to your MR to help reviewers find it. For example:
+  <ul>
+    <li>Mesa changes affecting all drivers: mesa
+    <li>Hardware vendor specific code: amd, intel, nvidia, ...
+    <li>Driver specific code: anvil, freedreno, i965, iris, radeonsi,
+      radv, vc4, ...
+    <li>Other tag examples: gallium, util
+  </ul>
+</p>
+<p>
+  If you revise your patches based on code review and push an update
+  to your branch, you should maintain a <strong>clean</strong> history
+  in your patches. There should not be "fixup" patches in the history.
+  The series should be buildable and functional after every commit
+  whenever you push the branch.
+</p>
+<p>
+  It is your responsibility to keep the MR alive and making progress,
+  as there are no guarantees that a Mesa dev will independently take
+  interest in it.
+</p>
+<p>
+  Some other notes:
+  <ul>
+    <li>Make changes and update your branch based on feedback
+    <li>Old, stale MR may be closed, but you can reopen it if you
+      still want to pursue the changes
+    <li>You should periodically check to see if your MR needs to be
+      rebased
+    <li>Make sure your MR is closed if your patches get pushed outside
+      of GitLab
+  </ul>
+</p>
+
 <h2 id="reviewing">Reviewing Patches</h2>
+
+<p>
+  To participate in code review, you should monitor the
+  <a href="https://lists.freedesktop.org/mailman/listinfo/mesa-dev">
+  mesa-dev</a> email list and the GitLab
+  Mesa <a href="https://gitlab.freedesktop.org/mesa/mesa/merge_requests">Merge
+  Requests</a> page.
+</p>
 
 <p>
 When you've reviewed a patch on the mailing list, please be unambiguous
@@ -231,6 +297,29 @@ which tells the patch author that the patch can be committed, as long
 as the issues are resolved first.
 </p>
 
+<p>
+These Reviewed-by, Acked-by, and Tested-by tags should also be amended
+into commits in a MR before it is merged.
+</p>
+
+<p>
+When providing a Reviewed-by, Acked-by, or Tested-by tag in a gitlab MR,
+enclose the tag in backticks:
+</p>
+<pre>
+  `Reviewed-by: Joe Hacker &lt;jhacker@example.com&gt;`</pre>
+<p>
+This is the markdown format for literal, and will prevent gitlab from hiding
+the &lt; and &gt; symbols.
+</p>
+
+<p>
+Review by non-experts is encouraged.  Understanding how someone else
+goes about solving a problem is a great way to learn your way around
+the project.  The submitter is expected to evaluate whether they have
+an appropriate amount of review feedback from people who also
+understand the code before merging their patches.
+</p>
 
 <h2 id="nominations">Nominating a commit for a stable branch</h2>
 

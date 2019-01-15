@@ -212,6 +212,7 @@ _mesa_spirv_to_nir(struct gl_context *ctx,
 
    const struct spirv_to_nir_options spirv_options = {
       .lower_workgroup_access_to_offsets = true,
+      .lower_ubo_ssbo_access_to_offsets = true,
       .caps = ctx->Const.SpirVCapabilities
    };
 
@@ -242,10 +243,10 @@ _mesa_spirv_to_nir(struct gl_context *ctx,
     * inline functions.  That way they get properly initialized at the top
     * of the function and not at the top of its caller.
     */
-   NIR_PASS_V(nir, nir_lower_constant_initializers, nir_var_local);
+   NIR_PASS_V(nir, nir_lower_constant_initializers, nir_var_function);
    NIR_PASS_V(nir, nir_lower_returns);
    NIR_PASS_V(nir, nir_inline_functions);
-   NIR_PASS_V(nir, nir_copy_prop);
+   NIR_PASS_V(nir, nir_opt_deref);
 
    /* Pick off the single entrypoint that we want */
    foreach_list_typed_safe(nir_function, func, node, &nir->functions) {

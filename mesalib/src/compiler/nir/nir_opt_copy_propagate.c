@@ -99,22 +99,6 @@ is_swizzleless_move(nir_alu_instr *instr)
 }
 
 static bool
-is_trivial_deref_cast(nir_deref_instr *cast)
-{
-   if (cast->deref_type != nir_deref_type_cast)
-      return false;
-
-   nir_deref_instr *parent = nir_src_as_deref(cast->parent);
-   if (!parent)
-      return false;
-
-   return cast->mode == parent->mode &&
-          cast->type == parent->type &&
-          cast->dest.ssa.num_components == parent->dest.ssa.num_components &&
-          cast->dest.ssa.bit_size == parent->dest.ssa.bit_size;
-}
-
-static bool
 copy_prop_src(nir_src *src, nir_instr *parent_instr, nir_if *parent_if,
               unsigned num_components)
 {
@@ -135,12 +119,6 @@ copy_prop_src(nir_src *src, nir_instr *parent_instr, nir_if *parent_if,
          return false;
 
       copy_def= alu_instr->src[0].src.ssa;
-   } else if (src_instr->type == nir_instr_type_deref) {
-      nir_deref_instr *deref_instr = nir_instr_as_deref(src_instr);
-      if (!is_trivial_deref_cast(deref_instr))
-         return false;
-
-      copy_def = deref_instr->parent.ssa;
    } else {
       return false;
    }
@@ -246,7 +224,8 @@ copy_prop_instr(nir_instr *instr)
             progress = true;
       }
 
-      if (deref->deref_type == nir_deref_type_array) {
+      if (deref->deref_type == nir_deref_type_array ||
+          deref->deref_type == nir_deref_type_ptr_as_array) {
          while (copy_prop_src(&deref->arr.index, instr, NULL, 1))
             progress = true;
       }
@@ -328,6 +307,10 @@ nir_copy_prop_impl(nir_function_impl *impl)
    if (progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |
                                   nir_metadata_dominance);
+   } else {
+#ifndef NDEBUG
+      impl->valid_metadata &= ~nir_metadata_not_properly_reset;
+#endif
    }
 
    return progress;

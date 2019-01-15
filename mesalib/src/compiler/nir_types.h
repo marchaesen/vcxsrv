@@ -46,11 +46,14 @@ const char *glsl_get_type_name(const struct glsl_type *type);
 const struct glsl_type *glsl_get_struct_field(const struct glsl_type *type,
                                               unsigned index);
 
+const int glsl_get_struct_field_offset(const struct glsl_type *type,
+                                       unsigned index);
+
+const unsigned glsl_get_explicit_stride(const struct glsl_type *type);
 const struct glsl_type *glsl_get_array_element(const struct glsl_type *type);
 const struct glsl_type *glsl_without_array(const struct glsl_type *type);
 const struct glsl_type *glsl_without_array_or_matrix(const struct glsl_type *type);
-const struct glsl_type *glsl_get_array_instance(const struct glsl_type *type,
-                                                unsigned array_size);
+const struct glsl_type *glsl_get_bare_type(const struct glsl_type *type);
 
 const struct glsl_type *glsl_get_column_type(const struct glsl_type *type);
 
@@ -95,9 +98,11 @@ static inline unsigned
 glsl_get_bit_size(const struct glsl_type *type)
 {
    switch (glsl_get_base_type(type)) {
+   case GLSL_TYPE_BOOL:
+      return 1;
+
    case GLSL_TYPE_INT:
    case GLSL_TYPE_UINT:
-   case GLSL_TYPE_BOOL:
    case GLSL_TYPE_FLOAT: /* TODO handle mediump */
    case GLSL_TYPE_SUBROUTINE:
       return 32;
@@ -133,6 +138,7 @@ bool glsl_type_is_vector(const struct glsl_type *type);
 bool glsl_type_is_scalar(const struct glsl_type *type);
 bool glsl_type_is_vector_or_scalar(const struct glsl_type *type);
 bool glsl_type_is_matrix(const struct glsl_type *type);
+bool glsl_matrix_type_is_row_major(const struct glsl_type *type);
 bool glsl_type_is_array(const struct glsl_type *type);
 bool glsl_type_is_array_of_arrays(const struct glsl_type *type);
 bool glsl_type_is_array_or_matrix(const struct glsl_type *type);
@@ -170,8 +176,14 @@ const struct glsl_type *glsl_vector_type(enum glsl_base_type base_type,
                                          unsigned components);
 const struct glsl_type *glsl_matrix_type(enum glsl_base_type base_type,
                                          unsigned rows, unsigned columns);
+const struct glsl_type *glsl_explicit_matrix_type(const struct glsl_type *mat,
+                                                  unsigned stride,
+                                                  bool row_major);
+
 const struct glsl_type *glsl_array_type(const struct glsl_type *base,
-                                        unsigned elements);
+                                        unsigned elements,
+                                        unsigned explicit_stride);
+
 const struct glsl_type *glsl_struct_type(const struct glsl_struct_field *fields,
                                          unsigned num_fields, const char *name);
 const struct glsl_type *glsl_interface_type(const struct glsl_struct_field *fields,

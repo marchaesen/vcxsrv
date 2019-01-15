@@ -311,6 +311,7 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_MAX_COMBINED_SHADER_BUFFERS:
    case PIPE_CAP_MAX_COMBINED_HW_ATOMIC_COUNTERS:
    case PIPE_CAP_MAX_COMBINED_HW_ATOMIC_COUNTER_BUFFERS:
+   case PIPE_CAP_TGSI_ATOMFADD:
       return 0;
 
    case PIPE_CAP_MAX_GS_INVOCATIONS:

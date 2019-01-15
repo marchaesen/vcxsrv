@@ -389,8 +389,15 @@ radv_device_init_meta(struct radv_device *device)
 	result = radv_device_init_meta_resolve_fragment_state(device, on_demand);
 	if (result != VK_SUCCESS)
 		goto fail_resolve_fragment;
+
+	result = radv_device_init_meta_fmask_expand_state(device);
+	if (result != VK_SUCCESS)
+		goto fail_fmask_expand;
+
 	return VK_SUCCESS;
 
+fail_fmask_expand:
+	radv_device_finish_meta_resolve_fragment_state(device);
 fail_resolve_fragment:
 	radv_device_finish_meta_resolve_compute_state(device);
 fail_resolve_compute:
@@ -431,6 +438,7 @@ radv_device_finish_meta(struct radv_device *device)
 	radv_device_finish_meta_fast_clear_flush_state(device);
 	radv_device_finish_meta_resolve_compute_state(device);
 	radv_device_finish_meta_resolve_fragment_state(device);
+	radv_device_finish_meta_fmask_expand_state(device);
 
 	radv_store_meta_pipeline(device);
 	radv_pipeline_cache_finish(&device->meta_state.cache);

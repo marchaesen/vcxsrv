@@ -35,6 +35,8 @@
 struct st_context;
 struct st_framebuffer;
 struct st_framebuffer_interface;
+struct st_renderbuffer;
+struct pipe_surface;
 
 void
 st_manager_flush_frontbuffer(struct st_context *st);
@@ -55,5 +57,9 @@ st_framebuffer_interface_destroy(struct st_framebuffer_interface *stfbi);
 
 void
 st_manager_flush_swapbuffers(void);
+
+void
+st_set_ws_renderbuffer_surface(struct st_renderbuffer *strb,
+                               struct pipe_surface *surf);
 
 #endif /* ST_MANAGER_H */

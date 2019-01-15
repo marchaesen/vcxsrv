@@ -1316,6 +1316,27 @@
        <vendor>SteelSeries</vendor>
      </configItem>
     </model>
+    <model>
+      <configItem>
+       <name>chromebook</name>
+       <_description>Chromebook</_description>
+       <vendor>Google</vendor>
+     </configItem>
+    </model>
+    <model>
+      <configItem>
+       <name>teck227</name>
+       <_description>Truly Ergonomic Computer Keyboard Model 227 (Wide Alt keys)</_description>
+       <vendor>Megawin Technology</vendor>
+     </configItem>
+    </model>
+    <model>
+      <configItem>
+       <name>teck229</name>
+       <_description>Truly Ergonomic Computer Keyboard Model 229 (Standard sized Alt keys, additional Super and Menu key)</_description>
+       <vendor>Megawin Technology</vendor>
+     </configItem>
+    </model>
   </modelList>
   <layoutList>
     <layout>
@@ -1981,6 +2002,17 @@
         </variant>
         <variant>
           <configItem>
+            <name>kan-kagapa</name>
+            <!-- Keyboard indicator for Kannada layouts -->
+            <_shortDescription>kn</_shortDescription>
+            <_description>Kannada (KaGaPa phonetic)</_description>
+            <languageList>
+              <iso639Id>kan</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>mal</name>
             <!-- Keyboard indicator for Malayalam layouts -->
             <_shortDescription>ml</_shortDescription>
@@ -2120,6 +2152,17 @@
             <!-- Keyboard indicator for Telugu layouts -->
             <_shortDescription>te</_shortDescription>
             <_description>Telugu (Sarala)</_description>
+            <languageList>
+              <iso639Id>tel</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>tel-kagapa</name>
+            <!-- Keyboard indicator for Telugu layouts -->
+            <_shortDescription>te</_shortDescription>
+            <_description>Telugu (KaGaPa phonetic)</_description>
             <languageList>
               <iso639Id>tel</iso639Id>
             </languageList>
@@ -3230,7 +3273,7 @@
         <variant>
           <configItem>
             <name>us</name>
-            <_description>French (US keyboard with French letters)</_description>
+            <_description>French (US, with French letters)</_description>
           </configItem>
         </variant>
       </variantList>
@@ -4041,6 +4084,18 @@
             <_description>Spanish (Latin American, Dvorak)</_description>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>colemak</name>
+            <_description>Spanish (Latin American, Colemak)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>colemak-gaming</name>
+            <_description>Spanish (Latin American, Colemak for gaming)</_description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
@@ -4521,6 +4576,12 @@
           <configItem>
             <name>phonetic_winkeys</name>
             <_description>Russian (phonetic, with Win keys)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>phonetic_yazherty</name>
+            <_description>Russian (phonetic yazherty)</_description>
           </configItem>
         </variant>
         <variant>
@@ -5163,6 +5224,7 @@
         <variant>
           <configItem>
             <name>us</name>
+            <!-- Keyboard indicator for US layouts -->
             <_shortDescription>us</_shortDescription>
             <_description>Sinhala (US, with Sinhala letters)</_description>
           </configItem>
@@ -5765,8 +5827,20 @@
         </variant>
         <variant>
           <configItem>
+            <name>left_hand_invert</name>
+            <_description>Braille (left-handed inverted thumb)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
             <name>right_hand</name>
             <_description>Braille (right-handed)</_description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>right_hand_invert</name>
+            <_description>Braille (right-handed inverted thumb)</_description>
           </configItem>
         </variant>
       </variantList>

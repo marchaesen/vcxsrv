@@ -73,7 +73,7 @@ radv_use_tc_compat_htile_for_image(struct radv_device *device,
 		return false;
 
 	if ((pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT) ||
-	    (pCreateInfo->flags & VK_IMAGE_CREATE_EXTENDED_USAGE_BIT_KHR))
+	    (pCreateInfo->flags & VK_IMAGE_CREATE_EXTENDED_USAGE_BIT))
 		return false;
 
 	if (pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR)
@@ -143,7 +143,7 @@ radv_use_dcc_for_image(struct radv_device *device,
 
 	/* TODO: Enable DCC for storage images. */
 	if ((pCreateInfo->usage & VK_IMAGE_USAGE_STORAGE_BIT) ||
-	    (pCreateInfo->flags & VK_IMAGE_CREATE_EXTENDED_USAGE_BIT_KHR))
+	    (pCreateInfo->flags & VK_IMAGE_CREATE_EXTENDED_USAGE_BIT))
 		return false;
 
 	if (pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR)
@@ -248,6 +248,12 @@ radv_init_surface(struct radv_device *device,
 
 	if (is_stencil)
 		surface->flags |= RADEON_SURF_SBUFFER;
+
+	if (device->physical_device->rad_info.chip_class >= GFX9 &&
+	    pCreateInfo->imageType == VK_IMAGE_TYPE_3D &&
+	    vk_format_get_blocksizebits(pCreateInfo->format) == 128 &&
+	    vk_format_is_compressed(pCreateInfo->format))
+		surface->flags |= RADEON_SURF_NO_RENDER_TARGET;
 
 	surface->flags |= RADEON_SURF_OPTIMIZE_FOR_SPACE;
 
@@ -858,7 +864,8 @@ radv_image_alloc_dcc(struct radv_image *image)
 	/* + 16 for storing the clear values + dcc pred */
 	image->clear_value_offset = image->dcc_offset + image->surface.dcc_size;
 	image->fce_pred_offset = image->clear_value_offset + 8;
-	image->size = image->dcc_offset + image->surface.dcc_size + 16;
+	image->dcc_pred_offset = image->clear_value_offset + 16;
+	image->size = image->dcc_offset + image->surface.dcc_size + 24;
 	image->alignment = MAX2(image->alignment, image->surface.dcc_alignment);
 }
 
@@ -931,8 +938,8 @@ radv_image_can_enable_fmask(struct radv_image *image)
 static inline bool
 radv_image_can_enable_htile(struct radv_image *image)
 {
-	return image->info.levels == 1 &&
-	       vk_format_is_depth(image->vk_format) &&
+	return radv_image_has_htile(image) &&
+	       image->info.levels == 1 &&
 	       image->info.width * image->info.height >= 8 * 8;
 }
 
@@ -977,15 +984,15 @@ radv_image_create(VkDevice _device,
 	image->exclusive = pCreateInfo->sharingMode == VK_SHARING_MODE_EXCLUSIVE;
 	if (pCreateInfo->sharingMode == VK_SHARING_MODE_CONCURRENT) {
 		for (uint32_t i = 0; i < pCreateInfo->queueFamilyIndexCount; ++i)
-			if (pCreateInfo->pQueueFamilyIndices[i] == VK_QUEUE_FAMILY_EXTERNAL_KHR)
+			if (pCreateInfo->pQueueFamilyIndices[i] == VK_QUEUE_FAMILY_EXTERNAL)
 				image->queue_family_mask |= (1u << RADV_MAX_QUEUE_FAMILIES) - 1u;
 			else
 				image->queue_family_mask |= 1u << pCreateInfo->pQueueFamilyIndices[i];
 	}
 
 	image->shareable = vk_find_struct_const(pCreateInfo->pNext,
-	                                        EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHR) != NULL;
-	if (!vk_format_is_depth(pCreateInfo->format) && !create_info->scanout && !image->shareable) {
+	                                        EXTERNAL_MEMORY_IMAGE_CREATE_INFO) != NULL;
+	if (!vk_format_is_depth_or_stencil(pCreateInfo->format) && !create_info->scanout && !image->shareable) {
 		image->info.surf_index = &device->image_mrt_offset_counter;
 	}
 
@@ -1257,7 +1264,7 @@ unsigned radv_image_queue_family_mask(const struct radv_image *image, uint32_t f
 {
 	if (!image->exclusive)
 		return image->queue_family_mask;
-	if (family == VK_QUEUE_FAMILY_EXTERNAL_KHR)
+	if (family == VK_QUEUE_FAMILY_EXTERNAL)
 		return (1u << RADV_MAX_QUEUE_FAMILIES) - 1u;
 	if (family == VK_QUEUE_FAMILY_IGNORED)
 		return 1u << queue_family;

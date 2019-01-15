@@ -1192,7 +1192,6 @@ try_pbo_upload_common(struct gl_context *ctx,
       return false;
 
    cso_save_state(cso, (CSO_BIT_FRAGMENT_SAMPLER_VIEWS |
-                        CSO_BIT_FRAGMENT_SAMPLERS |
                         CSO_BIT_VERTEX_ELEMENTS |
                         CSO_BIT_AUX_VERTEX_BUFFER_SLOT |
                         CSO_BIT_FRAMEBUFFER |
@@ -1216,8 +1215,6 @@ try_pbo_upload_common(struct gl_context *ctx,
    {
       struct pipe_sampler_view templ;
       struct pipe_sampler_view *sampler_view;
-      struct pipe_sampler_state sampler = {0};
-      const struct pipe_sampler_state *samplers[1] = {&sampler};
 
       memset(&templ, 0, sizeof(templ));
       templ.target = PIPE_BUFFER;
@@ -1237,8 +1234,6 @@ try_pbo_upload_common(struct gl_context *ctx,
       cso_set_sampler_views(cso, PIPE_SHADER_FRAGMENT, 1, &sampler_view);
 
       pipe_sampler_view_reference(&sampler_view, NULL);
-
-      cso_set_samplers(cso, PIPE_SHADER_FRAGMENT, 1, samplers);
    }
 
    /* Framebuffer_state */
@@ -1248,11 +1243,9 @@ try_pbo_upload_common(struct gl_context *ctx,
       fb.width = surface->width;
       fb.height = surface->height;
       fb.nr_cbufs = 1;
-      pipe_surface_reference(&fb.cbufs[0], surface);
+      fb.cbufs[0] = surface;
 
       cso_set_framebuffer(cso, &fb);
-
-      pipe_surface_reference(&fb.cbufs[0], NULL);
    }
 
    cso_set_viewport_dims(cso, surface->width, surface->height, FALSE);

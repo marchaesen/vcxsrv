@@ -458,22 +458,22 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
 		dst[0]->cat5.type = TYPE_F32;
 		break;
 		break;
-	case nir_op_flt:
+	case nir_op_flt32:
 		dst[0] = ir3_CMPS_F(b, src[0], 0, src[1], 0);
 		dst[0]->cat2.condition = IR3_COND_LT;
 		dst[0] = ir3_n2b(b, dst[0]);
 		break;
-	case nir_op_fge:
+	case nir_op_fge32:
 		dst[0] = ir3_CMPS_F(b, src[0], 0, src[1], 0);
 		dst[0]->cat2.condition = IR3_COND_GE;
 		dst[0] = ir3_n2b(b, dst[0]);
 		break;
-	case nir_op_feq:
+	case nir_op_feq32:
 		dst[0] = ir3_CMPS_F(b, src[0], 0, src[1], 0);
 		dst[0]->cat2.condition = IR3_COND_EQ;
 		dst[0] = ir3_n2b(b, dst[0]);
 		break;
-	case nir_op_fne:
+	case nir_op_fne32:
 		dst[0] = ir3_CMPS_F(b, src[0], 0, src[1], 0);
 		dst[0]->cat2.condition = IR3_COND_NE;
 		dst[0] = ir3_n2b(b, dst[0]);
@@ -586,38 +586,38 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
 	case nir_op_ushr:
 		dst[0] = ir3_SHR_B(b, src[0], 0, src[1], 0);
 		break;
-	case nir_op_ilt:
+	case nir_op_ilt32:
 		dst[0] = ir3_CMPS_S(b, src[0], 0, src[1], 0);
 		dst[0]->cat2.condition = IR3_COND_LT;
 		dst[0] = ir3_n2b(b, dst[0]);
 		break;
-	case nir_op_ige:
+	case nir_op_ige32:
 		dst[0] = ir3_CMPS_S(b, src[0], 0, src[1], 0);
 		dst[0]->cat2.condition = IR3_COND_GE;
 		dst[0] = ir3_n2b(b, dst[0]);
 		break;
-	case nir_op_ieq:
+	case nir_op_ieq32:
 		dst[0] = ir3_CMPS_S(b, src[0], 0, src[1], 0);
 		dst[0]->cat2.condition = IR3_COND_EQ;
 		dst[0] = ir3_n2b(b, dst[0]);
 		break;
-	case nir_op_ine:
+	case nir_op_ine32:
 		dst[0] = ir3_CMPS_S(b, src[0], 0, src[1], 0);
 		dst[0]->cat2.condition = IR3_COND_NE;
 		dst[0] = ir3_n2b(b, dst[0]);
 		break;
-	case nir_op_ult:
+	case nir_op_ult32:
 		dst[0] = ir3_CMPS_U(b, src[0], 0, src[1], 0);
 		dst[0]->cat2.condition = IR3_COND_LT;
 		dst[0] = ir3_n2b(b, dst[0]);
 		break;
-	case nir_op_uge:
+	case nir_op_uge32:
 		dst[0] = ir3_CMPS_U(b, src[0], 0, src[1], 0);
 		dst[0]->cat2.condition = IR3_COND_GE;
 		dst[0] = ir3_n2b(b, dst[0]);
 		break;
 
-	case nir_op_bcsel: {
+	case nir_op_b32csel: {
 		struct ir3_instruction *cond = ir3_b2n(b, src[0]);
 		compile_assert(ctx, bs[1] == bs[2]);
 		/* the boolean condition is 32b even if src[1] and src[2] are
@@ -1251,6 +1251,78 @@ emit_intrinsic_load_image(struct ir3_context *ctx, nir_intrinsic_instr *intr,
 	ir3_split_dest(b, dst, sam, 0, 4);
 }
 
+/* Returns the number of components for the different image formats
+ * supported by the GLES 3.1 spec, plus those added by the
+ * GL_NV_image_formats extension.
+ */
+static unsigned
+get_num_components_for_glformat(GLuint format)
+{
+	switch (format) {
+	case GL_R32F:
+	case GL_R32I:
+	case GL_R32UI:
+	case GL_R16F:
+	case GL_R16I:
+	case GL_R16UI:
+	case GL_R16:
+	case GL_R16_SNORM:
+	case GL_R8I:
+	case GL_R8UI:
+	case GL_R8:
+	case GL_R8_SNORM:
+		return 1;
+
+	case GL_RG32F:
+	case GL_RG32I:
+	case GL_RG32UI:
+	case GL_RG16F:
+	case GL_RG16I:
+	case GL_RG16UI:
+	case GL_RG16:
+	case GL_RG16_SNORM:
+	case GL_RG8I:
+	case GL_RG8UI:
+	case GL_RG8:
+	case GL_RG8_SNORM:
+		return 2;
+
+	case GL_R11F_G11F_B10F:
+		return 3;
+
+	case GL_RGBA32F:
+	case GL_RGBA32I:
+	case GL_RGBA32UI:
+	case GL_RGBA16F:
+	case GL_RGBA16I:
+	case GL_RGBA16UI:
+	case GL_RGBA16:
+	case GL_RGBA16_SNORM:
+	case GL_RGBA8I:
+	case GL_RGBA8UI:
+	case GL_RGBA8:
+	case GL_RGBA8_SNORM:
+	case GL_RGB10_A2UI:
+	case GL_RGB10_A2:
+		return 4;
+
+	case GL_NONE:
+		/* Omitting the image format qualifier is allowed on desktop GL
+		 * profiles. Assuming 4 components is always safe.
+		 */
+		return 4;
+
+	default:
+		/* Return 4 components also for all other formats we don't know
+		 * about. The format should have been validated already by
+		 * the higher level API, but drop a debug message just in case.
+		 */
+		debug_printf("Unhandled GL format %u while emitting imageStore()\n",
+					 format);
+		return 4;
+	}
+}
+
 /* src[] = { deref, coord, sample_index, value }. const_index[] = {} */
 static void
 emit_intrinsic_store_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
@@ -1262,6 +1334,7 @@ emit_intrinsic_store_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	struct ir3_instruction * const *coords = ir3_get_src(ctx, &intr->src[1]);
 	unsigned ncoords = get_image_coords(var, NULL);
 	unsigned tex_idx = get_image_slot(ctx, nir_src_as_deref(intr->src[0]));
+	unsigned ncomp = get_num_components_for_glformat(var->data.image.format);
 
 	/* src0 is value
 	 * src1 is coords
@@ -1276,10 +1349,10 @@ emit_intrinsic_store_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	 */
 
 	stib = ir3_STIB(b, create_immed(b, tex_idx), 0,
-			ir3_create_collect(ctx, value, 4), 0,
+			ir3_create_collect(ctx, value, ncomp), 0,
 			ir3_create_collect(ctx, coords, ncoords), 0,
 			offset, 0);
-	stib->cat6.iim_val = 4;
+	stib->cat6.iim_val = ncomp;
 	stib->cat6.d = ncoords;
 	stib->cat6.type = get_image_type(var);
 	stib->cat6.typed = true;
@@ -2576,10 +2649,8 @@ setup_input(struct ir3_context *ctx, nir_variable *in)
 	struct ir3_shader_variant *so = ctx->so;
 	unsigned ncomp = glsl_get_components(in->type);
 	unsigned n = in->data.driver_location;
+	unsigned frac = in->data.location_frac;
 	unsigned slot = in->data.location;
-
-	/* let's pretend things other than vec4 don't exist: */
-	ncomp = MAX2(ncomp, 4);
 
 	/* skip unread inputs, we could end up with (for example), unsplit
 	 * matrix/etc inputs in the case they are not read, so just silently
@@ -2588,17 +2659,15 @@ setup_input(struct ir3_context *ctx, nir_variable *in)
 	if (ncomp > 4)
 		return;
 
-	compile_assert(ctx, ncomp == 4);
-
 	so->inputs[n].slot = slot;
-	so->inputs[n].compmask = (1 << ncomp) - 1;
+	so->inputs[n].compmask = (1 << (ncomp + frac)) - 1;
 	so->inputs_count = MAX2(so->inputs_count, n + 1);
 	so->inputs[n].interpolate = in->data.interpolation;
 
 	if (ctx->so->type == MESA_SHADER_FRAGMENT) {
 		for (int i = 0; i < ncomp; i++) {
 			struct ir3_instruction *instr = NULL;
-			unsigned idx = (n * 4) + i;
+			unsigned idx = (n * 4) + i + frac;
 
 			if (slot == VARYING_SLOT_POS) {
 				so->inputs[n].bary = false;
@@ -2653,7 +2722,7 @@ setup_input(struct ir3_context *ctx, nir_variable *in)
 		}
 	} else if (ctx->so->type == MESA_SHADER_VERTEX) {
 		for (int i = 0; i < ncomp; i++) {
-			unsigned idx = (n * 4) + i;
+			unsigned idx = (n * 4) + i + frac;
 			compile_assert(ctx, idx < ctx->ir->ninputs);
 			ctx->ir->inputs[idx] = create_input(ctx, idx);
 		}
@@ -2672,12 +2741,9 @@ setup_output(struct ir3_context *ctx, nir_variable *out)
 	struct ir3_shader_variant *so = ctx->so;
 	unsigned ncomp = glsl_get_components(out->type);
 	unsigned n = out->data.driver_location;
+	unsigned frac = out->data.location_frac;
 	unsigned slot = out->data.location;
 	unsigned comp = 0;
-
-	/* let's pretend things other than vec4 don't exist: */
-	ncomp = MAX2(ncomp, 4);
-	compile_assert(ctx, ncomp == 4);
 
 	if (ctx->so->type == MESA_SHADER_FRAGMENT) {
 		switch (slot) {
@@ -2730,9 +2796,24 @@ setup_output(struct ir3_context *ctx, nir_variable *out)
 	so->outputs_count = MAX2(so->outputs_count, n + 1);
 
 	for (int i = 0; i < ncomp; i++) {
-		unsigned idx = (n * 4) + i;
+		unsigned idx = (n * 4) + i + frac;
 		compile_assert(ctx, idx < ctx->ir->noutputs);
 		ctx->ir->outputs[idx] = create_immed(ctx->block, fui(0.0));
+	}
+
+	/* if varying packing doesn't happen, we could end up in a situation
+	 * with "holes" in the output, and since the per-generation code that
+	 * sets up varying linkage registers doesn't expect to have more than
+	 * one varying per vec4 slot, pad the holes.
+	 *
+	 * Note that this should probably generate a performance warning of
+	 * some sort.
+	 */
+	for (int i = 0; i < frac; i++) {
+		unsigned idx = (n * 4) + i;
+		if (!ctx->ir->outputs[idx]) {
+			ctx->ir->outputs[idx] = create_immed(ctx->block, fui(0.0));
+		}
 	}
 }
 
@@ -3053,7 +3134,21 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
 
 	/* fixup input/outputs: */
 	for (i = 0; i < so->outputs_count; i++) {
-		so->outputs[i].regid = ir->outputs[i*4]->regs[0]->num;
+		/* sometimes we get outputs that don't write the .x coord, like:
+		 *
+		 *   decl_var shader_out INTERP_MODE_NONE float Color (VARYING_SLOT_VAR9.z, 1, 0)
+		 *
+		 * Presumably the result of varying packing and then eliminating
+		 * some unneeded varyings?  Just skip head to the first valid
+		 * component of the output.
+		 */
+		for (unsigned j = 0; j < 4; j++) {
+			struct ir3_instruction *instr = ir->outputs[(i*4) + j];
+			if (instr) {
+				so->outputs[i].regid = instr->regs[0]->num;
+				break;
+			}
+		}
 	}
 
 	/* Note that some or all channels of an input may be unused: */

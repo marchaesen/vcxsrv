@@ -160,6 +160,8 @@ prepare_draw(struct st_context *st, struct gl_context *ctx)
  * This function gets plugged into the VBO module and is called when
  * we have something to render.
  * Basically, translate the information into the format expected by gallium.
+ *
+ * Try to keep this logic in sync with st_feedback_draw_vbo.
  */
 static void
 st_draw_vbo(struct gl_context *ctx,

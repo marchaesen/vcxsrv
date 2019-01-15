@@ -28,6 +28,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "Xlibint.h"
+#include "reallocarray.h"
 
 Status XQueryTree (
     register Display *dpy,
@@ -51,8 +52,7 @@ Status XQueryTree (
 
     *children = (Window *) NULL;
     if (rep.nChildren != 0) {
-	nbytes = rep.nChildren * sizeof(Window);
-	*children = Xmalloc(nbytes);
+	*children = Xmallocarray(rep.nChildren, sizeof(Window));
 	if (! *children) {
 	    _XEatDataWords(dpy, rep.length);
 	    UnlockDisplay(dpy);

@@ -29,6 +29,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include <X11/Xutil.h>
 #include <X11/XKBlib.h>
+#include "reallocarray.h"
 
 #define XkbMapPending           (1<<0)
 #define XkbXlibNewKeyboard      (1<<1)
@@ -119,10 +120,25 @@ typedef struct _XkbReadBuffer {
 #define _XkbRealloc(o,s)        Xrealloc((o),(s))
 #define _XkbTypedAlloc(t)       ((t *)Xmalloc(sizeof(t)))
 #define _XkbTypedCalloc(n,t)    ((t *)Xcalloc((n),sizeof(t)))
-#define _XkbTypedRealloc(o,n,t) \
-        ((o) ? (t *)Xrealloc((o), (n)*sizeof(t)) : _XkbTypedCalloc(n,t))
-#define _XkbClearElems(a,f,l,t) bzero(&(a)[f], ((l)-(f)+1) * sizeof(t))
 #define _XkbFree(p)             Xfree(p)
+
+/* Resizes array to hold new_num elements, zeroing newly added entries.
+   Destroys old array on failure. */
+#define _XkbResizeArray(array, old_num, new_num, type)                       \
+    do {                                                                     \
+        if (array == NULL) {                                                 \
+            array = _XkbTypedCalloc(new_num, type);                          \
+        } else {                                                             \
+            type *prev_array = array;                                        \
+            array = Xreallocarray(array, new_num, sizeof(type));             \
+            if (_X_UNLIKELY((array) == NULL)) {                              \
+                _XkbFree(prev_array);                                        \
+            } else if ((new_num) > (old_num)) {                              \
+                bzero(&array[old_num],                                       \
+                      ((new_num) - (old_num)) * sizeof(type));               \
+            }                                                                \
+        }                                                                    \
+    } while(0)
 
 _XFUNCPROTOBEGIN
 

@@ -766,20 +766,29 @@ glamor_set_normalize_tcoords_generic(PixmapPtr pixmap,
  *
  * We could support many more formats by using GL_ARB_texture_view to
  * parse the same bits as different formats.  For now, we only support
- * tweaking whether we sample the alpha bits of an a8r8g8b8, or just
- * force them to 1.
+ * tweaking whether we sample the alpha bits, or just force them to 1.
  */
 static Bool
-glamor_render_format_is_supported(PictFormatShort format)
+glamor_render_format_is_supported(PicturePtr picture)
 {
-    switch (format) {
-    case PICT_x2r10g10b10:
+    PictFormatShort storage_format;
+
+    /* Source-only pictures should always work */
+    if (!picture->pDrawable)
+        return TRUE;
+
+    storage_format = format_for_depth(picture->pDrawable->depth);
+
+    switch (picture->format) {
+    case PICT_a2r10g10b10:
+        return storage_format == PICT_x2r10g10b10;
     case PICT_a8r8g8b8:
     case PICT_x8r8g8b8:
-    case PICT_a8:
-        return TRUE;
+        return storage_format == PICT_a8r8g8b8 || storage_format == PICT_x8r8g8b8;
+    case PICT_a1r5g5b5:
+        return storage_format == PICT_x1r5g5b5;
     default:
-        return FALSE;
+        return picture->format == storage_format;
     }
 }
 
@@ -815,7 +824,7 @@ glamor_composite_choose_shader(CARD8 op,
         goto fail;
     }
 
-    if (!glamor_render_format_is_supported(dest->format)) {
+    if (!glamor_render_format_is_supported(dest)) {
         glamor_fallback("Unsupported dest picture format.\n");
         goto fail;
     }
@@ -978,7 +987,7 @@ glamor_composite_choose_shader(CARD8 op,
                 goto fail;
             }
         } else {
-            if (source && !glamor_render_format_is_supported(source->format)) {
+            if (source && !glamor_render_format_is_supported(source)) {
                 glamor_fallback("Unsupported source picture format.\n");
                 goto fail;
             }
@@ -990,7 +999,7 @@ glamor_composite_choose_shader(CARD8 op,
                 goto fail;
             }
         } else if (mask) {
-            if (!glamor_render_format_is_supported(mask->format)) {
+            if (!glamor_render_format_is_supported(mask)) {
                 glamor_fallback("Unsupported mask picture format.\n");
                 goto fail;
             }

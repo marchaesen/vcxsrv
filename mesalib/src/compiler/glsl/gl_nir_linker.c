@@ -44,9 +44,7 @@ nir_build_program_resource_list(struct gl_context *ctx,
       prog->data->NumProgramResourceList = 0;
    }
 
-   struct set *resource_set = _mesa_set_create(NULL,
-                                               _mesa_hash_pointer,
-                                               _mesa_key_pointer_equal);
+   struct set *resource_set = _mesa_pointer_set_create(NULL);
 
    /* Add uniforms
     *

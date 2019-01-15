@@ -211,6 +211,7 @@
 #define PKT3_SET_SH_REG                        0x76
 #define PKT3_SET_SH_REG_OFFSET                 0x77
 #define PKT3_SET_UCONFIG_REG                   0x79 /* new for CIK */
+#define PKT3_SET_UCONFIG_REG_INDEX             0x7A /* new for GFX9, CP ucode version >= 26 */
 #define PKT3_LOAD_CONST_RAM                    0x80
 #define PKT3_WRITE_CONST_RAM                   0x81
 #define PKT3_DUMP_CONST_RAM                    0x83

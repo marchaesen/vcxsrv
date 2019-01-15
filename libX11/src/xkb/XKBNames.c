@@ -205,14 +205,14 @@ _XkbReadGetNamesReply(Display *dpy,
         if (rep->nRadioGroups > 0) {
             Atom *rgNames;
 
-            if (names->radio_groups == NULL)
-                names->radio_groups = _XkbTypedCalloc(rep->nRadioGroups, Atom);
-            else if (names->num_rg < rep->nRadioGroups) {
-                names->radio_groups = _XkbTypedRealloc(names->radio_groups,
-                                                       rep->nRadioGroups, Atom);
+            if ((names->radio_groups == NULL) ||
+                (names->num_rg < rep->nRadioGroups)) {
+                _XkbResizeArray(names->radio_groups, names->num_rg,
+                                rep->nRadioGroups, Atom);
             }
             rgNames = names->radio_groups;
             if (!rgNames) {
+                names->num_rg = 0;
                 goto BAILOUT;
             }
             if (!_XkbReadBufferCopy32

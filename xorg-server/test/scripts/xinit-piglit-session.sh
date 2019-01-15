@@ -24,15 +24,6 @@ fi
 
 cd $PIGLIT_DIR
 
-# Write the piglit.conf we'll use for our testing.  Don't use the
-# default piglit.conf name because that may overwrite a local
-# piglit.conf.
-PIGLITCONF=piglit-xserver-test.conf
-cat <<EOF > $PIGLITCONF
-[xts]
-path=$XTEST_DIR
-EOF
-
 # Skip some tests that are failing at the time of importing the script.
 #    "REPORT: min_bounds, rbearing was 0, expecting 2"
 PIGLIT_ARGS="$PIGLIT_ARGS -x xlistfontswithinfo@3"
@@ -41,4 +32,4 @@ PIGLIT_ARGS="$PIGLIT_ARGS -x xloadqueryfont@1"
 PIGLIT_ARGS="$PIGLIT_ARGS -x xqueryfont@1"
 PIGLIT_ARGS="$PIGLIT_ARGS -x xqueryfont@2"
 
-exec ./piglit-run.py xts-render -f $PIGLITCONF $PIGLIT_ARGS $PIGLIT_RESULTS_DIR
+exec ./piglit run xts-render $PIGLIT_ARGS $PIGLIT_RESULTS_DIR

@@ -90,8 +90,7 @@ ir_print_visitor::ir_print_visitor(FILE *f)
    : f(f)
 {
    indentation = 0;
-   printable_names =
-      _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
+   printable_names = _mesa_pointer_hash_table_create(NULL);
    symbols = _mesa_symbol_table_ctor();
    mem_ctx = ralloc_context(NULL);
 }

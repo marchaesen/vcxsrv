@@ -339,8 +339,13 @@ opt_dead_cf_impl(nir_function_impl *impl)
    bool dummy;
    bool progress = dead_cf_list(&impl->body, &dummy);
 
-   if (progress)
+   if (progress) {
       nir_metadata_preserve(impl, nir_metadata_none);
+    } else {
+#ifndef NDEBUG
+      impl->valid_metadata &= ~nir_metadata_not_properly_reset;
+#endif
+    }
 
    return progress;
 }

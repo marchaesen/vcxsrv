@@ -781,6 +781,7 @@ glsl_to_tgsi_visitor::get_opcode(enum tgsi_opcode op,
       case7(ISHR,    LAST, ISHR,    USHR,    LAST,    I64SHR,  U64SHR);
       case7(ATOMIMAX,LAST, ATOMIMAX,ATOMUMAX,LAST,    LAST,    LAST);
       case7(ATOMIMIN,LAST, ATOMIMIN,ATOMUMIN,LAST,    LAST,    LAST);
+      case7(ATOMUADD,ATOMFADD,ATOMUADD,ATOMUADD,LAST, LAST,    LAST);
 
       casecomp(SEQ, FSEQ, USEQ, USEQ, DSEQ, U64SEQ, U64SEQ);
       casecomp(SNE, FSNE, USNE, USNE, DSNE, U64SNE, U64SNE);
@@ -6204,6 +6205,7 @@ compile_tgsi_instruction(struct st_translate *t,
    case TGSI_OPCODE_ATOMUMAX:
    case TGSI_OPCODE_ATOMIMIN:
    case TGSI_OPCODE_ATOMIMAX:
+   case TGSI_OPCODE_ATOMFADD:
    case TGSI_OPCODE_IMG2HND:
       for (i = num_src - 1; i >= 0; i--)
          src[i + 1] = src[i];

@@ -1024,8 +1024,7 @@ ir_function_signature::constant_expression_value(void *mem_ctx,
     * We expect the correctness of the number of parameters to have
     * been checked earlier.
     */
-   hash_table *deref_hash = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                                                    _mesa_key_pointer_equal);
+   hash_table *deref_hash = _mesa_pointer_hash_table_create(NULL);
 
    /* If "origin" is non-NULL, then the function body is there.  So we
     * have to use the variable objects from the object with the body,

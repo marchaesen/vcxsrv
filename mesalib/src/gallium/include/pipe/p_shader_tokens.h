@@ -442,7 +442,7 @@ enum tgsi_opcode {
    TGSI_OPCODE_BGNSUB             = 100,
    TGSI_OPCODE_ENDLOOP            = 101,
    TGSI_OPCODE_ENDSUB             = 102,
-   /* gap */
+   TGSI_OPCODE_ATOMFADD           = 103,
    TGSI_OPCODE_TXQS               = 104,
    TGSI_OPCODE_RESQ               = 105,
    TGSI_OPCODE_READ_FIRST         = 106,

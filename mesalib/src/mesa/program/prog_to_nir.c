@@ -983,7 +983,7 @@ prog_to_nir(const struct gl_program *prog,
    if (prog->Parameters->NumParameters > 0) {
       c->parameters = rzalloc(s, nir_variable);
       c->parameters->type =
-         glsl_array_type(glsl_vec4_type(), prog->Parameters->NumParameters);
+         glsl_array_type(glsl_vec4_type(), prog->Parameters->NumParameters, 0);
       c->parameters->name = "parameters";
       c->parameters->data.read_only = true;
       c->parameters->data.mode = nir_var_uniform;

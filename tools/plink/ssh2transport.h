@@ -28,7 +28,7 @@ struct kexinit_algorithm {
     const char *name;
     union {
         struct {
-            const struct ssh_kex *kex;
+            const ssh_kex *kex;
             bool warn;
         } kex;
         struct {
@@ -36,15 +36,15 @@ struct kexinit_algorithm {
             bool warn;
         } hk;
         struct {
-            const struct ssh2_cipheralg *cipher;
+            const ssh2_cipheralg *cipher;
             bool warn;
         } cipher;
         struct {
-            const struct ssh2_macalg *mac;
+            const ssh2_macalg *mac;
             bool etm;
         } mac;
         struct {
-            const struct ssh_compression_alg *comp;
+            const ssh_compression_alg *comp;
             bool delayed;
         } comp;
     } u;
@@ -103,10 +103,10 @@ typedef enum RekeyClass {
 } RekeyClass;
 
 typedef struct transport_direction {
-    const struct ssh2_cipheralg *cipher;
-    const struct ssh2_macalg *mac;
+    const ssh2_cipheralg *cipher;
+    const ssh2_macalg *mac;
     bool etm_mode;
-    const struct ssh_compression_alg *comp;
+    const ssh_compression_alg *comp;
     bool comp_delayed;
     int mkkey_adjust;
 } transport_direction;
@@ -127,14 +127,14 @@ struct ssh2_transport_state {
 
     unsigned long max_data_size;
 
-    const struct ssh_kex *kex_alg;
+    const ssh_kex *kex_alg;
     const ssh_keyalg *hostkey_alg;
     char *hostkey_str; /* string representation, for easy checking in rekeys */
-    unsigned char session_id[SSH2_KEX_MAX_HASH_LEN];
+    unsigned char session_id[MAX_HASH_LEN];
     int session_id_len;
     int dh_min_size, dh_max_size;
     bool dh_got_size_bounds;
-    struct dh_ctx *dh_ctx;
+    dh_ctx *dh_ctx;
     ssh_hash *exhash;
 
     struct DataTransferStats *stats;
@@ -166,7 +166,7 @@ struct ssh2_transport_state {
 
     int nbits, pbits;
     bool warn_kex, warn_hk, warn_cscipher, warn_sccipher;
-    Bignum p, g, e, f, K;
+    mp_int *p, *g, *e, *f, *K;
     strbuf *outgoing_kexinit, *incoming_kexinit;
     strbuf *client_kexinit, *server_kexinit; /* aliases to the above */
     int kex_init_value, kex_reply_value;
@@ -175,9 +175,9 @@ struct ssh2_transport_state {
     strbuf *hostkeyblob;
     char *keystr, *fingerprint;
     ssh_key *hkey;                     /* actual host key */
-    struct RSAKey *rsa_kex_key;             /* for RSA kex */
-    struct ec_key *ecdh_key;              /* for ECDH kex */
-    unsigned char exchange_hash[SSH2_KEX_MAX_HASH_LEN];
+    RSAKey *rsa_kex_key;             /* for RSA kex */
+    ecdh_key *ecdh_key;                     /* for ECDH kex */
+    unsigned char exchange_hash[MAX_HASH_LEN];
     bool can_gssapi_keyex;
     bool need_gss_transient_hostkey;
     bool warned_about_no_gss_transient_hostkey;
@@ -224,7 +224,10 @@ void ssh2_transport_dialog_callback(void *, int);
 /* Provided by transport for use in kex */
 void ssh2transport_finalise_exhash(struct ssh2_transport_state *s);
 
-/* Provided by kex for use in transport */
-void ssh2kex_coroutine(struct ssh2_transport_state *s);
+/* Provided by kex for use in transport. Must set the 'aborted' flag
+ * if it throws a connection-terminating error, so that the caller
+ * won't have to check that by looking inside its state parameter
+ * which might already have been freed. */
+void ssh2kex_coroutine(struct ssh2_transport_state *s, bool *aborted);
 
 #endif /* PUTTY_SSH2TRANSPORT_H */

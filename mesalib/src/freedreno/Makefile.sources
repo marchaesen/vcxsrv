@@ -41,3 +41,11 @@ ir3_SOURCES := \
 ir3_GENERATED_FILES := \
 	ir3/ir3_nir_trig.c
 
+registers_FILES := \
+	registers/a2xx.xml.h \
+	registers/a3xx.xml.h \
+	registers/a4xx.xml.h \
+	registers/a5xx.xml.h \
+	registers/a6xx.xml.h \
+	registers/adreno_common.xml.h \
+	registers/adreno_pm4.xml.h

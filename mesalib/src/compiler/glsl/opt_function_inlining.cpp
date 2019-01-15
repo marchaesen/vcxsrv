@@ -152,7 +152,7 @@ ir_call::generate_inline(ir_instruction *next_ir)
    int i;
    struct hash_table *ht;
 
-   ht = _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
+   ht = _mesa_pointer_hash_table_create(NULL);
 
    num_parameters = this->callee->parameters.length();
    parameters = new ir_variable *[num_parameters];

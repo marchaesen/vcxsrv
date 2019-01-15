@@ -1705,11 +1705,11 @@ calculate_tess_state(struct radv_pipeline *pipeline,
 	}
 
 	bool ccw = tes->info.tes.ccw;
-	const VkPipelineTessellationDomainOriginStateCreateInfoKHR *domain_origin_state =
+	const VkPipelineTessellationDomainOriginStateCreateInfo *domain_origin_state =
 	              vk_find_struct_const(pCreateInfo->pTessellationState,
-	                                   PIPELINE_TESSELLATION_DOMAIN_ORIGIN_STATE_CREATE_INFO_KHR);
+	                                   PIPELINE_TESSELLATION_DOMAIN_ORIGIN_STATE_CREATE_INFO);
 
-	if (domain_origin_state && domain_origin_state->domainOrigin != VK_TESSELLATION_DOMAIN_ORIGIN_UPPER_LEFT_KHR)
+	if (domain_origin_state && domain_origin_state->domainOrigin != VK_TESSELLATION_DOMAIN_ORIGIN_UPPER_LEFT)
 		ccw = !ccw;
 
 	if (tes->info.tes.point_mode)
@@ -1814,8 +1814,8 @@ radv_link_shaders(struct radv_pipeline *pipeline, nir_shader **shaders)
 		nir_lower_io_arrays_to_elements(ordered_shaders[i],
 						ordered_shaders[i - 1]);
 
-		if (nir_link_constant_varyings(ordered_shaders[i],
-					       ordered_shaders[i - 1]))
+		if (nir_link_opt_varyings(ordered_shaders[i],
+					  ordered_shaders[i - 1]))
 			radv_optimize_nir(ordered_shaders[i - 1], false, false);
 
 		nir_remove_dead_variables(ordered_shaders[i],
@@ -2087,6 +2087,10 @@ void radv_create_shaders(struct radv_pipeline *pipeline,
 		radv_link_shaders(pipeline, nir);
 
 	for (int i = 0; i < MESA_SHADER_STAGES; ++i) {
+		if (nir[i]) {
+			NIR_PASS_V(nir[i], nir_lower_bool_to_int32);
+		}
+
 		if (radv_can_dump_shader(device, modules[i], false))
 			nir_print_shader(nir[i], stderr);
 	}
@@ -3394,8 +3398,7 @@ radv_compute_ia_multi_vgt_param_helpers(struct radv_pipeline *pipeline,
 		    (pipeline->graphics.prim_restart_enable &&
 		     (device->physical_device->rad_info.family < CHIP_POLARIS10 ||
 		      (prim != V_008958_DI_PT_POINTLIST &&
-		       prim != V_008958_DI_PT_LINESTRIP &&
-		       prim != V_008958_DI_PT_TRISTRIP))))
+		       prim != V_008958_DI_PT_LINESTRIP))))
 			ia_multi_vgt_param.wd_switch_on_eop = true;
 	}
 

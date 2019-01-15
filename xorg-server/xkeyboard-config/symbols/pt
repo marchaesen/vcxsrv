@@ -141,7 +141,7 @@ xkb_symbols "nativo" {
     key <AC05> { [            u,               U,               oslash,         Ooblique ] };
     key <AC06> { [            m,               M,                   mu,               mu ] };
     key <AC07> { [            d,               D,                  eth,              ETH ] };
-    key <AC08> { [            s,               S,               ssharp,           ssharp ] };
+    key <AC08> { [            s,               S,               ssharp,       0x01001E9E ] };
     key <AC09> { [            r,               R,           registered,       registered ] };
     key <AC10> { [            n,               N,                  eng,              ENG ] };
     key <AC11> { [   dead_acute,      dead_grave,          dead_macron,       dead_breve ] };

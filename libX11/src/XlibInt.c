@@ -40,6 +40,7 @@ from The Open Group.
 #endif
 #include "Xlibint.h"
 #include "Xprivate.h"
+#include "reallocarray.h"
 #include <X11/Xpoll.h>
 #include <assert.h>
 #include <stdio.h>
@@ -369,7 +370,7 @@ _XRegisterInternalConnection(
     new_conni = Xmalloc(sizeof(struct _XConnectionInfo));
     if (!new_conni)
 	return 0;
-    new_conni->watch_data = Xmalloc(dpy->watcher_count * sizeof(XPointer));
+    new_conni->watch_data = Xmallocarray(dpy->watcher_count, sizeof(XPointer));
     if (!new_conni->watch_data) {
 	Xfree(new_conni);
 	return 0;
@@ -455,7 +456,7 @@ XInternalConnectionNumbers(
     count = 0;
     for (info_list=dpy->im_fd_info; info_list; info_list=info_list->next)
 	count++;
-    fd_list = Xmalloc (count * sizeof(int));
+    fd_list = Xmallocarray (count, sizeof(int));
     if (!fd_list) {
 	UnlockDisplay(dpy);
 	return 0;
@@ -528,8 +529,8 @@ XAddConnectionWatch(
 
     /* allocate new watch data */
     for (info_list=dpy->im_fd_info; info_list; info_list=info_list->next) {
-	wd_array = Xrealloc(info_list->watch_data,
-			    (dpy->watcher_count + 1) * sizeof(XPointer));
+	wd_array = Xreallocarray(info_list->watch_data,
+                                 dpy->watcher_count + 1, sizeof(XPointer));
 	if (!wd_array) {
 	    UnlockDisplay(dpy);
 	    return 0;

@@ -155,6 +155,25 @@ pipe_resource_reference(struct pipe_resource **dst, struct pipe_resource *src)
 }
 
 /**
+ * Same as pipe_surface_release, but used when pipe_context doesn't exist
+ * anymore.
+ */
+static inline void
+pipe_surface_release_no_context(struct pipe_surface **ptr)
+{
+   struct pipe_surface *surf = *ptr;
+
+   if (pipe_reference_described(&surf->reference, NULL,
+                                (debug_reference_descriptor)
+                                debug_describe_surface)) {
+      /* trivially destroy pipe_surface */
+      pipe_resource_reference(&surf->texture, NULL);
+      free(surf);
+   }
+   *ptr = NULL;
+}
+
+/**
  * Set *dst to \p src with proper reference counting.
  *
  * The caller must guarantee that \p src and *dst were created in

@@ -867,6 +867,12 @@
             <_description>French (US, with French letters, with dead keys, alternative)</_description>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>us-azerty</name>
+            <_description>French (US, AZERTY)</_description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
@@ -1153,7 +1159,7 @@
         <name>eu</name>
         <!-- Keyboard indicator for European layouts -->
         <_shortDescription>eu</_shortDescription>
-        <_description>EurKEY (US based layout with european letters)</_description>
+        <_description>EurKEY (US based layout with European letters)</_description>
           <languageList>
             <iso639Id>cat</iso639Id>
             <iso639Id>dan</iso639Id>

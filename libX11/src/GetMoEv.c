@@ -28,6 +28,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "Xlibint.h"
+#include "reallocarray.h"
 #include <limits.h>
 
 XTimeCoord *XGetMotionEvents(
@@ -53,7 +54,7 @@ XTimeCoord *XGetMotionEvents(
 	}
 
     if (rep.nEvents && (rep.nEvents < (INT_MAX / sizeof(XTimeCoord))))
-	tc = Xmalloc(rep.nEvents * sizeof(XTimeCoord));
+	tc = Xmallocarray(rep.nEvents, sizeof(XTimeCoord));
     if (tc == NULL) {
 	/* server returned either no events or a bad event count */
 	*nEvents = 0;

@@ -58,7 +58,8 @@ wrap_type_in_array(const struct glsl_type *type,
 
    const struct glsl_type *elem_type =
       wrap_type_in_array(type, glsl_get_array_element(array_type));
-   return glsl_array_type(elem_type, glsl_get_length(array_type));
+   assert(glsl_get_explicit_stride(array_type) == 0);
+   return glsl_array_type(elem_type, glsl_get_length(array_type), 0);
 }
 
 static int
@@ -114,7 +115,7 @@ init_field_for_type(struct field *field, struct field *parent,
          var_type = wrap_type_in_array(var_type, f->type);
 
       nir_variable_mode mode = state->base_var->data.mode;
-      if (mode == nir_var_local) {
+      if (mode == nir_var_function) {
          field->var = nir_local_variable_create(state->impl, var_type, name);
       } else {
          field->var = nir_variable_create(state->shader, mode, var_type, name);
@@ -256,13 +257,12 @@ nir_split_struct_vars(nir_shader *shader, nir_variable_mode modes)
 {
    void *mem_ctx = ralloc_context(NULL);
    struct hash_table *var_field_map =
-      _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
-                              _mesa_key_pointer_equal);
+      _mesa_pointer_hash_table_create(mem_ctx);
 
-   assert((modes & (nir_var_global | nir_var_local)) == modes);
+   assert((modes & (nir_var_private | nir_var_function)) == modes);
 
    bool has_global_splits = false;
-   if (modes & nir_var_global) {
+   if (modes & nir_var_private) {
       has_global_splits = split_var_list_structs(shader, NULL,
                                                  &shader->globals,
                                                  var_field_map, mem_ctx);
@@ -274,7 +274,7 @@ nir_split_struct_vars(nir_shader *shader, nir_variable_mode modes)
          continue;
 
       bool has_local_splits = false;
-      if (modes & nir_var_local) {
+      if (modes & nir_var_function) {
          has_local_splits = split_var_list_structs(shader, function->impl,
                                                    &function->impl->locals,
                                                    var_field_map, mem_ctx);
@@ -341,6 +341,7 @@ init_var_list_array_infos(struct exec_list *vars,
 
       const struct glsl_type *type = var->type;
       for (int i = 0; i < num_levels; i++) {
+         assert(glsl_get_explicit_stride(type) == 0);
          info->levels[i].array_len = glsl_get_length(type);
          type = glsl_get_array_element(type);
 
@@ -453,7 +454,7 @@ create_split_array_vars(struct array_var_info *var_info,
       name = ralloc_asprintf(mem_ctx, "(%s)", name);
 
       nir_variable_mode mode = var_info->base_var->data.mode;
-      if (mode == nir_var_local) {
+      if (mode == nir_var_function) {
          split->var = nir_local_variable_create(impl,
                                                 var_info->split_var_type, name);
       } else {
@@ -506,7 +507,7 @@ split_var_list_arrays(nir_shader *shader,
                                           glsl_get_components(split_type),
                                           info->levels[i].array_len);
          } else {
-            split_type = glsl_array_type(split_type, info->levels[i].array_len);
+            split_type = glsl_array_type(split_type, info->levels[i].array_len, 0);
          }
       }
 
@@ -791,14 +792,12 @@ bool
 nir_split_array_vars(nir_shader *shader, nir_variable_mode modes)
 {
    void *mem_ctx = ralloc_context(NULL);
-   struct hash_table *var_info_map =
-      _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
-                              _mesa_key_pointer_equal);
+   struct hash_table *var_info_map = _mesa_pointer_hash_table_create(mem_ctx);
 
-   assert((modes & (nir_var_global | nir_var_local)) == modes);
+   assert((modes & (nir_var_private | nir_var_function)) == modes);
 
    bool has_global_array = false;
-   if (modes & nir_var_global) {
+   if (modes & nir_var_private) {
       has_global_array = init_var_list_array_infos(&shader->globals,
                                                    var_info_map, mem_ctx);
    }
@@ -809,7 +808,7 @@ nir_split_array_vars(nir_shader *shader, nir_variable_mode modes)
          continue;
 
       bool has_local_array = false;
-      if (modes & nir_var_local) {
+      if (modes & nir_var_function) {
          has_local_array = init_var_list_array_infos(&function->impl->locals,
                                                      var_info_map, mem_ctx);
       }
@@ -827,7 +826,7 @@ nir_split_array_vars(nir_shader *shader, nir_variable_mode modes)
    }
 
    bool has_global_splits = false;
-   if (modes & nir_var_global) {
+   if (modes & nir_var_private) {
       has_global_splits = split_var_list_arrays(shader, NULL,
                                                 &shader->globals,
                                                 var_info_map, mem_ctx);
@@ -839,7 +838,7 @@ nir_split_array_vars(nir_shader *shader, nir_variable_mode modes)
          continue;
 
       bool has_local_splits = false;
-      if (modes & nir_var_local) {
+      if (modes & nir_var_function) {
          has_local_splits = split_var_list_arrays(shader, function->impl,
                                                   &function->impl->locals,
                                                   var_info_map, mem_ctx);
@@ -918,6 +917,7 @@ get_vec_var_usage(nir_variable *var,
    const struct glsl_type *type = var->type;
    for (unsigned i = 0; i < num_levels; i++) {
       usage->levels[i].array_len = glsl_get_length(type);
+      assert(glsl_get_explicit_stride(type) == 0);
       type = glsl_get_array_element(type);
    }
    assert(glsl_type_is_vector_or_scalar(type));
@@ -970,8 +970,7 @@ mark_deref_used(nir_deref_instr *deref,
                                        true, mem_ctx);
       if (copy_usage) {
          if (usage->vars_copied == NULL) {
-            usage->vars_copied = _mesa_set_create(mem_ctx, _mesa_hash_pointer,
-                                                  _mesa_key_pointer_equal);
+            usage->vars_copied = _mesa_pointer_set_create(mem_ctx);
          }
          _mesa_set_add(usage->vars_copied, copy_usage);
       } else {
@@ -1013,9 +1012,7 @@ mark_deref_used(nir_deref_instr *deref,
                &copy_usage->levels[copy_i++];
 
             if (level->levels_copied == NULL) {
-               level->levels_copied =
-                  _mesa_set_create(mem_ctx, _mesa_hash_pointer,
-                                   _mesa_key_pointer_equal);
+               level->levels_copied = _mesa_pointer_set_create(mem_ctx);
             }
             _mesa_set_add(level->levels_copied, copy_level);
          } else {
@@ -1290,7 +1287,7 @@ shrink_vec_var_list(struct exec_list *vars,
                                         new_num_comps,
                                         usage->levels[i].array_len);
          } else {
-            new_type = glsl_array_type(new_type, usage->levels[i].array_len);
+            new_type = glsl_array_type(new_type, usage->levels[i].array_len, 0);
          }
       }
       var->type = new_type;
@@ -1494,10 +1491,10 @@ function_impl_has_vars_with_modes(nir_function_impl *impl,
 {
    nir_shader *shader = impl->function->shader;
 
-   if ((modes & nir_var_global) && !exec_list_is_empty(&shader->globals))
+   if ((modes & nir_var_private) && !exec_list_is_empty(&shader->globals))
       return true;
 
-   if ((modes & nir_var_local) && !exec_list_is_empty(&impl->locals))
+   if ((modes & nir_var_function) && !exec_list_is_empty(&impl->locals))
       return true;
 
    return false;
@@ -1515,13 +1512,12 @@ function_impl_has_vars_with_modes(nir_function_impl *impl,
 bool
 nir_shrink_vec_array_vars(nir_shader *shader, nir_variable_mode modes)
 {
-   assert((modes & (nir_var_global | nir_var_local)) == modes);
+   assert((modes & (nir_var_private | nir_var_function)) == modes);
 
    void *mem_ctx = ralloc_context(NULL);
 
    struct hash_table *var_usage_map =
-      _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
-                              _mesa_key_pointer_equal);
+      _mesa_pointer_hash_table_create(mem_ctx);
 
    bool has_vars_to_shrink = false;
    nir_foreach_function(function, shader) {
@@ -1544,7 +1540,7 @@ nir_shrink_vec_array_vars(nir_shader *shader, nir_variable_mode modes)
    }
 
    bool globals_shrunk = false;
-   if (modes & nir_var_global)
+   if (modes & nir_var_private)
       globals_shrunk = shrink_vec_var_list(&shader->globals, var_usage_map);
 
    bool progress = false;
@@ -1553,7 +1549,7 @@ nir_shrink_vec_array_vars(nir_shader *shader, nir_variable_mode modes)
          continue;
 
       bool locals_shrunk = false;
-      if (modes & nir_var_local) {
+      if (modes & nir_var_function) {
          locals_shrunk = shrink_vec_var_list(&function->impl->locals,
                                              var_usage_map);
       }

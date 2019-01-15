@@ -39,6 +39,7 @@
 #include "Xlibint.h"
 #include "Xcmsint.h"
 #include "Cv.h"
+#include "reallocarray.h"
 
 /*
  *      LOCAL DEFINES
@@ -796,7 +797,9 @@ XcmsConvertColors(
      * Make copy of array of color specifications
      */
     if (nColors > 1) {
-	pColors_tmp = Xmalloc(nColors * sizeof(XcmsColor));
+	pColors_tmp = Xmallocarray(nColors, sizeof(XcmsColor));
+	if (pColors_tmp == NULL)
+	    return(XcmsFailure);
     } else {
 	pColors_tmp = &Color1;
     }

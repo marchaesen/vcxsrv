@@ -49,14 +49,16 @@ vc4_nir_lower_txf_ms_instr(struct v3d_compile *c, nir_builder *b,
         nir_ssa_def *sample = instr->src[sample_index].src.ssa;
 
         nir_ssa_def *one = nir_imm_int(b, 1);
-        coord = nir_ishl(b, coord, nir_imm_int(b, 1));
-        coord = nir_vec2(b,
-                         nir_iadd(b,
-                                  nir_channel(b, coord, 0),
-                                  nir_iand(b, sample, one)),
-                         nir_iadd(b,
-                                  nir_channel(b, coord, 1),
-                                  nir_iand(b, nir_ushr(b, sample, one), one)));
+        nir_ssa_def *x = nir_iadd(b,
+                                  nir_ishl(b, nir_channel(b, coord, 0), one),
+                                  nir_iand(b, sample, one));
+        nir_ssa_def *y = nir_iadd(b,
+                                  nir_ishl(b, nir_channel(b, coord, 1), one),
+                                  nir_iand(b, nir_ushr(b, sample, one), one));
+        if (instr->is_array)
+                coord = nir_vec3(b, x, y, nir_channel(b, coord, 2));
+        else
+                coord = nir_vec2(b, x, y);
 
         nir_instr_rewrite_src(&instr->instr,
                               &instr->src[nir_tex_src_coord].src,

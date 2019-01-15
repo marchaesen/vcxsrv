@@ -28,6 +28,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "Xlibint.h"
+#include "reallocarray.h"
 
 Atom *XListProperties(
     register Display *dpy,
@@ -49,8 +50,7 @@ Atom *XListProperties(
     }
 
     if (rep.nProperties) {
-	nbytes = rep.nProperties * sizeof(Atom);
-	properties = Xmalloc (nbytes);
+	properties = Xmallocarray (rep.nProperties, sizeof(Atom));
 	if (! properties) {
 	    _XEatDataWords(dpy, rep.length);
 	    UnlockDisplay(dpy);

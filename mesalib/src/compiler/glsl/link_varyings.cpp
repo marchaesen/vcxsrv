@@ -481,9 +481,10 @@ check_location_aliasing(struct explicit_location_info explicit_locations[][4],
             /* Component aliasing is not alloed */
             if (comp >= component && comp < last_comp) {
                linker_error(prog,
-                            "%s shader has multiple outputs explicitly "
+                            "%s shader has multiple %sputs explicitly "
                             "assigned to location %d and component %d\n",
                             _mesa_shader_stage_to_string(stage),
+                            var->data.mode == ir_var_shader_in ? "in" : "out",
                             location, comp);
                return false;
             } else {
@@ -502,10 +503,12 @@ check_location_aliasing(struct explicit_location_info explicit_locations[][4],
 
                if (info->interpolation != interpolation) {
                   linker_error(prog,
-                               "%s shader has multiple outputs at explicit "
+                               "%s shader has multiple %sputs at explicit "
                                "location %u with different interpolation "
                                "settings\n",
-                               _mesa_shader_stage_to_string(stage), location);
+                               _mesa_shader_stage_to_string(stage),
+                               var->data.mode == ir_var_shader_in ?
+                               "in" : "out", location);
                   return false;
                }
 
@@ -513,9 +516,11 @@ check_location_aliasing(struct explicit_location_info explicit_locations[][4],
                    info->sample != sample ||
                    info->patch != patch) {
                   linker_error(prog,
-                               "%s shader has multiple outputs at explicit "
+                               "%s shader has multiple %sputs at explicit "
                                "location %u with different aux storage\n",
-                               _mesa_shader_stage_to_string(stage), location);
+                               _mesa_shader_stage_to_string(stage),
+                               var->data.mode == ir_var_shader_in ?
+                               "in" : "out", location);
                   return false;
                }
             }

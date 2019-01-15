@@ -24,7 +24,7 @@
 #define _XSERVER_POLL_H_
 
 #ifndef _DIX_CONFIG_H_
-#error must inclue dix-config.h to use xserver_poll.h
+#error must include dix-config.h to use xserver_poll.h
 #endif
 
 #ifdef HAVE_POLL

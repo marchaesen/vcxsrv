@@ -210,6 +210,13 @@ public:
    const char *name;
 
    /**
+    * Explicit array, matrix, or vector stride.  This is used to communicate
+    * explicit array layouts from SPIR-V.  Should be 0 if the type has no
+    * explicit stride.
+    */
+   unsigned explicit_stride;
+
+   /**
     * Subtype of composite data types.
     */
    union {
@@ -272,10 +279,17 @@ public:
    const glsl_type *get_scalar_type() const;
 
    /**
+    * Gets the "bare" type without any decorations or layout information.
+    */
+   const glsl_type *get_bare_type() const;
+
+   /**
     * Get the instance of a built-in scalar, vector, or matrix type
     */
    static const glsl_type *get_instance(unsigned base_type, unsigned rows,
-					unsigned columns);
+                                        unsigned columns,
+                                        unsigned explicit_stride = 0,
+                                        bool row_major = false);
 
    /**
     * Get the instance of a sampler type
@@ -292,7 +306,8 @@ public:
     * Get the instance of an array type
     */
    static const glsl_type *get_array_instance(const glsl_type *base,
-					      unsigned elements);
+                                              unsigned elements,
+                                              unsigned explicit_stride = 0);
 
    /**
     * Get the instance of a record type
@@ -752,9 +767,13 @@ public:
     */
    const glsl_type *row_type() const
    {
-      return is_matrix()
-	 ? get_instance(base_type, matrix_columns, 1)
-	 : error_type;
+      if (!is_matrix())
+         return error_type;
+
+      if (explicit_stride && !interface_row_major)
+         return get_instance(base_type, matrix_columns, 1, explicit_stride);
+      else
+         return get_instance(base_type, matrix_columns, 1);
    }
 
    /**
@@ -766,9 +785,13 @@ public:
     */
    const glsl_type *column_type() const
    {
-      return is_matrix()
-	 ? get_instance(base_type, vector_elements, 1)
-	 : error_type;
+      if (!is_matrix())
+         return error_type;
+
+      if (explicit_stride && interface_row_major)
+         return get_instance(base_type, vector_elements, 1, explicit_stride);
+      else
+         return get_instance(base_type, vector_elements, 1);
    }
 
    /**
@@ -878,8 +901,9 @@ private:
 
    /** Constructor for vector and matrix types */
    glsl_type(GLenum gl_type,
-	     glsl_base_type base_type, unsigned vector_elements,
-	     unsigned matrix_columns, const char *name);
+             glsl_base_type base_type, unsigned vector_elements,
+             unsigned matrix_columns, const char *name,
+             unsigned explicit_stride = 0, bool row_major = false);
 
    /** Constructor for sampler or image types */
    glsl_type(GLenum gl_type, glsl_base_type base_type,
@@ -899,11 +923,14 @@ private:
    glsl_type(const glsl_type *return_type,
              const glsl_function_param *params, unsigned num_params);
 
-   /** Constructor for array types */
-   glsl_type(const glsl_type *array, unsigned length);
+   /** Constructors for array types */
+   glsl_type(const glsl_type *array, unsigned length, unsigned explicit_stride);
 
    /** Constructor for subroutine types */
    glsl_type(const char *name);
+
+   /** Hash table containing the known explicit matrix and vector types. */
+   static struct hash_table *explicit_matrix_types;
 
    /** Hash table containing the known array types. */
    static struct hash_table *array_types;

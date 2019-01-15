@@ -988,10 +988,8 @@ dd_report_hang(struct dd_context *dctx)
       encountered_hang = true;
    }
 
-   if (num_later || dctx->record_pending) {
-      fprintf(stderr, "... and %u%s additional draws.\n", num_later,
-              dctx->record_pending ? "+1 (pending)" : "");
-   }
+   if (num_later)
+      fprintf(stderr, "... and %u additional draws.\n", num_later);
 
    fprintf(stderr, "\nDone.\n");
    dd_kill_process();
@@ -1008,9 +1006,6 @@ dd_thread_main(void *input)
 
    for (;;) {
       struct list_head records;
-      struct pipe_fence_handle *fence;
-      struct pipe_fence_handle *fence2 = NULL;
-
       list_replace(&dctx->records, &records);
       list_inithead(&dctx->records);
       dctx->num_records = 0;
@@ -1018,36 +1013,36 @@ dd_thread_main(void *input)
       if (dctx->api_stalled)
          cnd_signal(&dctx->cond);
 
-      if (!list_empty(&records)) {
-         /* Wait for the youngest draw. This means hangs can take a bit longer
-          * to detect, but it's more efficient this way. */
-         struct dd_draw_record *youngest =
-            LIST_ENTRY(struct dd_draw_record, records.prev, list);
-         fence = youngest->bottom_of_pipe;
-      } else if (dctx->record_pending) {
-         /* Wait for pending fences, in case the driver ends up hanging internally. */
-         fence = dctx->record_pending->prev_bottom_of_pipe;
-         fence2 = dctx->record_pending->top_of_pipe;
-      } else if (dctx->kill_thread) {
-         break;
-      } else {
+      if (list_empty(&records)) {
+         if (dctx->kill_thread)
+            break;
+
          cnd_wait(&dctx->cond, &dctx->mutex);
          continue;
       }
+
       mtx_unlock(&dctx->mutex);
 
-      /* Fences can be NULL legitimately when timeout detection is disabled. */
-      if ((fence &&
-           !screen->fence_finish(screen, NULL, fence,
-                                 (uint64_t)dscreen->timeout_ms * 1000*1000)) ||
-          (fence2 &&
-           !screen->fence_finish(screen, NULL, fence2,
-                                 (uint64_t)dscreen->timeout_ms * 1000*1000))) {
-         mtx_lock(&dctx->mutex);
-         list_splice(&records, &dctx->records);
-         dd_report_hang(dctx);
-         /* we won't actually get here */
-         mtx_unlock(&dctx->mutex);
+      /* Wait for the youngest draw. This means hangs can take a bit longer
+       * to detect, but it's more efficient this way.  */
+      struct dd_draw_record *youngest =
+         list_last_entry(&records, struct dd_draw_record, list);
+
+      if (dscreen->timeout_ms > 0) {
+         uint64_t abs_timeout = os_time_get_absolute_timeout(
+                                 (uint64_t)dscreen->timeout_ms * 1000*1000);
+
+         if (!util_queue_fence_wait_timeout(&youngest->driver_finished, abs_timeout) ||
+             !screen->fence_finish(screen, NULL, youngest->bottom_of_pipe,
+                                   (uint64_t)dscreen->timeout_ms * 1000*1000)) {
+            mtx_lock(&dctx->mutex);
+            list_splice(&records, &dctx->records);
+            dd_report_hang(dctx);
+            /* we won't actually get here */
+            mtx_unlock(&dctx->mutex);
+         }
+      } else {
+         util_queue_fence_wait(&youngest->driver_finished);
       }
 
       list_for_each_entry_safe(struct dd_draw_record, record, &records, list) {
@@ -1079,6 +1074,7 @@ dd_create_record(struct dd_context *dctx)
    record->bottom_of_pipe = NULL;
    record->log_page = NULL;
    util_queue_fence_init(&record->driver_finished);
+   util_queue_fence_reset(&record->driver_finished);
 
    dd_init_copy_of_draw_state(&record->draw_state);
    dd_copy_draw_state(&record->draw_state.base, &dctx->draw_state);
@@ -1115,13 +1111,25 @@ dd_before_draw(struct dd_context *dctx, struct dd_draw_record *record)
          pipe->flush(pipe, &record->top_of_pipe,
                      PIPE_FLUSH_DEFERRED | PIPE_FLUSH_TOP_OF_PIPE);
       }
-
-      mtx_lock(&dctx->mutex);
-      dctx->record_pending = record;
-      if (list_empty(&dctx->records))
-         cnd_signal(&dctx->cond);
-      mtx_unlock(&dctx->mutex);
+   } else if (dscreen->flush_always && dctx->num_draw_calls >= dscreen->skip_count) {
+      pipe->flush(pipe, NULL, 0);
    }
+
+   mtx_lock(&dctx->mutex);
+   if (unlikely(dctx->num_records > 10000)) {
+      dctx->api_stalled = true;
+      /* Since this is only a heuristic to prevent the API thread from getting
+       * too far ahead, we don't need a loop here. */
+      cnd_wait(&dctx->cond, &dctx->mutex);
+      dctx->api_stalled = false;
+   }
+
+   if (list_empty(&dctx->records))
+      cnd_signal(&dctx->cond);
+
+   list_addtail(&record->list, &dctx->records);
+   dctx->num_records++;
+   mtx_unlock(&dctx->mutex);
 }
 
 static void
@@ -1134,8 +1142,7 @@ dd_after_draw_async(void *data)
    record->log_page = u_log_new_page(&dctx->log);
    record->time_after = os_time_get_nano();
 
-   if (!util_queue_fence_is_signalled(&record->driver_finished))
-      util_queue_fence_signal(&record->driver_finished);
+   util_queue_fence_signal(&record->driver_finished);
 
    if (dscreen->dump_mode == DD_DUMP_APITRACE_CALL &&
        dscreen->apitrace_dump_call > dctx->draw_state.apitrace_call_number) {
@@ -1158,33 +1165,13 @@ dd_after_draw(struct dd_context *dctx, struct dd_draw_record *record)
       else
          flush_flags = PIPE_FLUSH_DEFERRED | PIPE_FLUSH_BOTTOM_OF_PIPE;
       pipe->flush(pipe, &record->bottom_of_pipe, flush_flags);
-
-      assert(record == dctx->record_pending);
    }
 
    if (pipe->callback) {
-      util_queue_fence_reset(&record->driver_finished);
       pipe->callback(pipe, dd_after_draw_async, record, true);
    } else {
       dd_after_draw_async(record);
    }
-
-   mtx_lock(&dctx->mutex);
-   if (unlikely(dctx->num_records > 10000)) {
-      dctx->api_stalled = true;
-      /* Since this is only a heuristic to prevent the API thread from getting
-       * too far ahead, we don't need a loop here. */
-      cnd_wait(&dctx->cond, &dctx->mutex);
-      dctx->api_stalled = false;
-   }
-
-   if (list_empty(&dctx->records))
-      cnd_signal(&dctx->cond);
-
-   list_addtail(&record->list, &dctx->records);
-   dctx->record_pending = NULL;
-   dctx->num_records++;
-   mtx_unlock(&dctx->mutex);
 
    ++dctx->num_draw_calls;
    if (dscreen->skip_count && dctx->num_draw_calls % 10000 == 0)

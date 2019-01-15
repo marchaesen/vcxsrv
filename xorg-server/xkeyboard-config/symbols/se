@@ -227,7 +227,7 @@ xkb_symbols "svdvorak" {
    key <AC07> { [ h, H ] };
    key <AC08> { [ t, T ] };
    key <AC09> { [ n, N ] };
-   key <AC10> { [ s, S, ssharp ] };
+   key <AC10> { [ s, S, ssharp, U1E9E ] };
    key <AC11> { [ minus, underscore ] };
    key <BKSL> { [ less, greater, bar ] };
 

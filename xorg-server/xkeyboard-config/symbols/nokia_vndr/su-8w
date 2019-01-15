@@ -28,7 +28,7 @@ xkb_symbols "no" {
     key <AD09> { [ o,            O,              bracketright                          ] };
     key <AD10> { [ p,            P,              braceright                            ] };
     key <AD11> { [ aring,        Aring                                                 ] };
-    key <AD12> { [ ssharp,       ssharp,         backslash                             ] };
+    key <AD12> { [ ssharp,       U1E9E,          backslash                             ] };
 
     key <AC01> { [ a,            A                                                     ] };
     key <AC02> { [ s,            S                                                     ] };
@@ -108,7 +108,7 @@ xkb_symbols "de" {
     key <AD09> { [ o,            O,              bracketright                          ] };
     key <AD10> { [ p,            P,              braceright                            ] };
     key <AD11> { [ udiaeresis,   Udiaeresis                                            ] };
-    key <AD12> { [ ssharp,       ssharp,         backslash                             ] };
+    key <AD12> { [ ssharp,       U1E9E,          backslash                             ] };
 
     key <AC01> { [ a,            A                                                     ] };
     key <AC02> { [ s,            S                                                     ] };
@@ -181,7 +181,7 @@ xkb_symbols "se" {
     key <AD09> { [ o,            O,              bracketright                          ] };
     key <AD10> { [ p,            P,              braceright                            ] };
     key <AD11> { [ aring,        Aring                                                 ] };
-    key <AD12> { [ ssharp,       ssharp,         backslash                             ] };
+    key <AD12> { [ ssharp,       U1E9E,          backslash                             ] };
 
     key <AC01> { [ a,            A                                                     ] };
     key <AC02> { [ s,            S                                                     ] };

@@ -173,6 +173,26 @@ st_context_validate(struct st_context *st,
 }
 
 
+void
+st_set_ws_renderbuffer_surface(struct st_renderbuffer *strb,
+                               struct pipe_surface *surf)
+{
+   pipe_surface_reference(&strb->surface_srgb, NULL);
+   pipe_surface_reference(&strb->surface_linear, NULL);
+
+   if (util_format_is_srgb(surf->format))
+      pipe_surface_reference(&strb->surface_srgb, surf);
+   else
+      pipe_surface_reference(&strb->surface_linear, surf);
+
+   strb->surface = surf; /* just assign, don't ref */
+   pipe_resource_reference(&strb->texture, surf->texture);
+
+   strb->Base.Width = surf->width;
+   strb->Base.Height = surf->height;
+}
+
+
 /**
  * Validate a framebuffer to make sure up-to-date pipe_textures are used.
  * The context is only used for creating pipe surfaces and for calling
@@ -234,20 +254,10 @@ st_framebuffer_validate(struct st_framebuffer *stfb,
       u_surface_default_template(&surf_tmpl, textures[i]);
       ps = st->pipe->create_surface(st->pipe, textures[i], &surf_tmpl);
       if (ps) {
-         struct pipe_surface **psurf =
-            util_format_is_srgb(ps->format) ? &strb->surface_srgb :
-                                              &strb->surface_linear;
-
-         pipe_surface_reference(psurf, ps);
-         strb->surface = *psurf;
-         pipe_resource_reference(&strb->texture, ps->texture);
-         /* ownership transfered */
+         st_set_ws_renderbuffer_surface(strb, ps);
          pipe_surface_reference(&ps, NULL);
 
          changed = TRUE;
-
-         strb->Base.Width = strb->surface->width;
-         strb->Base.Height = strb->surface->height;
 
          width = strb->Base.Width;
          height = strb->Base.Height;

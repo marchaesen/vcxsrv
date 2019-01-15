@@ -28,6 +28,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "Xlibint.h"
+#include "reallocarray.h"
 #include <stdio.h>
 
 /*
@@ -39,7 +40,7 @@ XPixmapFormatValues *XListPixmapFormats (
     int *count)	/* RETURN */
 {
     XPixmapFormatValues *formats =
-	Xmalloc(dpy->nformats * sizeof (XPixmapFormatValues));
+	Xmallocarray(dpy->nformats, sizeof (XPixmapFormatValues));
 
     if (formats) {
 	register int i;

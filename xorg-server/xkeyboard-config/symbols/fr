@@ -55,7 +55,7 @@ xkb_symbols "olpc" {
     // the unmodified one). Make such keys shift-invariant so that the printed
     // value is achieved by pressing AltGr or Shift+AltGr.
     key <AB02>	{ [ x,  X,  guillemotright, guillemotright ]	};
-    key <AC02>	{ [ s,  S,  ssharp, ssharp ]	};
+    key <AC02>	{ [ s,  S,  ssharp, U1E9E ]	};
     key <AD02>	{ [ z,  Z,  guillemotleft, guillemotleft ]	};
 };
 
@@ -388,7 +388,7 @@ xkb_symbols "latin9" {
     key <AB02>	{ [               x,               X,      guillemotright                       ] };
     key <AB03>	{ [               c,               C,           copyright                       ] };
     key <AB04>	{ [               v,               V,          registered		        ] };
-    key <AB05>	{ [               b,               B,              ssharp                       ] };
+    key <AB05>	{ [               b,               B,              ssharp,                U1E9E ] };
     key <AB06>	{ [               n,               N,             notsign                       ] };
     key <AB07>	{ [           comma,        question,        questiondown                       ] };
     key <AB08>	{ [       semicolon,          period,            multiply		        ] };
@@ -562,7 +562,7 @@ xkb_symbols "bepo_latin9" {
     key <AC03> { [               i,            I, dead_diaeresis                 ] }; // i I ̈
     key <AC05> { [           comma,    semicolon,          comma,      dead_horn ] }; // , ; , ̛
     key <AC06> { [               c,            C,      copyright                 ] }; // c C ©
-    key <AC08> { [               s,            S,         ssharp                 ] }; // s S ß
+    key <AC08> { [               s,            S,         ssharp,          U1E9E ] }; // s S ß ẞ
     key <AC09> { [               r,            R,     registered                 ] }; // r R ®
     key <AC11> { [               m,            M,         macron,      masculine ] }; // m M ̄ º
 
@@ -905,7 +905,7 @@ xkb_symbols "mac" {
     key <AB02> {	[         x, X, VoidSymbol,   VoidSymbol	]	}; // CHECK similarequal; MISSING: extra-slanted slash
     key <AB03> {	[         c, C,  copyright,         cent	]	};
     key <AB04> {	[         v, V,    diamond,  leftradical	]	}; // CHECK diamond, leftradical
-    key <AB05> {	[         b, B,     ssharp,   VoidSymbol	]	}; // CHECK: Greek_beta or ssharp?; MISSING: oblong script s
+    key <AB05> {	[         b, B,     ssharp,        U1E9E	]	}; // CHECK: Greek_beta or ssharp?; MISSING: oblong script s
     key <AB06> {	[         n, N,  dead_tilde,  asciitilde	]	};
     key <AB07> {	[     comma,  question, VoidSymbol,  questiondown	]	};
     key <AB08> {	[ semicolon,  period, VoidSymbol,  periodcentered	]	};
@@ -986,7 +986,11 @@ partial alphanumeric_keys
 xkb_symbols "us" {
 
     include "us(euro)"
-    name[Group1]= "French (US keyboard with French letters)";
+    name[Group1]= "French (US, with French letters)";
+
+
+    key <TLDE> { [     grave, asciitilde,    dead_grave                   ] };
+    key <AE06> { [         6,asciicircum,dead_circumflex                  ] };
 
     key <AB01> { [	   z,          Z,   acircumflex,      Acircumflex ] }; // â Â
     key <AB03> { [	   c,          C,      ccedilla,         Ccedilla ] }; // ç Ç
@@ -998,6 +1002,7 @@ xkb_symbols "us" {
     key <AC06> { [	   h,          H,    udiaeresis,       Udiaeresis ] }; // ü Ü
     key <AC07> { [	   j,          J,   ucircumflex,      Ucircumflex ] }; // û Û
     key <AC08> { [	   k,          K,   icircumflex,      Icircumflex ] }; // î Î
+    key <AC11> { [apostrophe,   quotedbl,dead_diaeresis                   ] };
 
     key <AD03> { [	   e,          E,        eacute,           Eacute ] }; // é É
     key <AD04> { [	   r,          R,        egrave,           Egrave ] }; // è È
@@ -1131,3 +1136,37 @@ xkb_symbols "us-alt" {
 
 };
 
+// For physically modified US keyboard (Q <-> A, W <-> Z and ; <-> M)
+//
+// Copyright (C) 2018, Florent Gallaire <f@gallai.re>
+
+partial alphanumeric_keys
+xkb_symbols "us-azerty" {
+
+    include "us"
+    name[Group1]= "French (US, AZERTY)";
+
+    key <AB01> { [         w,          W, guillemotleft, leftdoublequotemark ] }; // « “
+    key <AB02> { [         x,          X,guillemotright,rightdoublequotemark ] }; // » ”
+    key <AB07> { [ semicolon,      colon                                  ] };
+
+    key <AC01> { [         q,          Q                                  ] };
+    key <AC10> { [         m,          M                                  ] };
+    key <AC11> { [apostrophe,   quotedbl,        ugrave,           Ugrave ] }; // ù Ù
+
+    key <AD01> { [         a,          A,            ae,               AE ] }; // æ Æ
+    key <AD02> { [         z,          Z                                  ] };
+    key <AD09> { [         o,          O,            oe,               OE ] }; // œ Œ
+    key <AD11> { [bracketleft, braceleft,dead_circumflex,  dead_diaeresis ] };
+
+    key <TLDE> { [     grave, asciitilde,    dead_grave                   ] };
+    key <AE02> { [         2,         at,        eacute,           Eacute ] }; // é É
+    key <AE04> { [         4,     dollar,      currency                   ] }; // ¤
+    key <AE06> { [         6,asciicircum,dead_circumflex                  ] };
+    key <AE07> { [         7,  ampersand,        egrave,           Egrave ] }; // è È
+    key <AE09> { [         9,  parenleft,      ccedilla,         Ccedilla ] }; // ç Ç
+    key <AE10> { [         0, parenright,        agrave,           Agrave ] }; // à À
+
+    include "eurosign(e)"
+    include "level3(ralt_switch)"
+};

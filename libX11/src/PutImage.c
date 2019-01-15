@@ -32,6 +32,7 @@ in this Software without prior written authorization from The Open Group.
 #include <stdio.h>
 #include "Cr.h"
 #include "ImUtil.h"
+#include "reallocarray.h"
 
 #if defined(__STDC__) && ((defined(sun) && defined(SVR4)) || defined(WIN32))
 #define RConst /**/
@@ -771,7 +772,7 @@ SendZImage(
 	  (req_yoffset * image->bytes_per_line) +
 	  ((req_xoffset * image->bits_per_pixel) >> 3);
     if ((image->bits_per_pixel == 4) && ((unsigned int) req_xoffset & 0x01)) {
-	if (! (shifted_src = Xmalloc(req->height * image->bytes_per_line))) {
+	if (! (shifted_src = Xmallocarray(req->height, image->bytes_per_line))) {
 	    UnGetReq(PutImage);
 	    return;
 	}
@@ -991,7 +992,7 @@ XPutImage (
 	    img.bits_per_pixel = dest_bits_per_pixel;
 	    img.bytes_per_line = ROUNDUP((dest_bits_per_pixel * width),
 					 dest_scanline_pad) >> 3;
-	    img.data = Xmalloc(img.bytes_per_line * height);
+	    img.data = Xmallocarray(height, img.bytes_per_line);
 	    if (img.data == NULL)
 		return 0;
 	    _XInitImageFuncPtrs(&img);

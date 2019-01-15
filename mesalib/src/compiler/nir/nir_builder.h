@@ -55,6 +55,7 @@ nir_builder_init_simple_shader(nir_builder *build, void *mem_ctx,
 {
    build->shader = nir_shader_create(mem_ctx, stage, options, NULL);
    nir_function *func = nir_function_create(build->shader, "main");
+   func->is_entrypoint = true;
    build->exact = false;
    build->impl = nir_function_impl_create(func);
    build->cursor = nir_after_cf_list(&build->impl->body);
@@ -212,9 +213,9 @@ nir_imm_bool(nir_builder *build, bool x)
    nir_const_value v;
 
    memset(&v, 0, sizeof(v));
-   v.u32[0] = x ? NIR_TRUE : NIR_FALSE;
+   v.b[0] = x;
 
-   return nir_build_imm(build, 1, 32, v);
+   return nir_build_imm(build, 1, 1, v);
 }
 
 static inline nir_ssa_def *
@@ -332,7 +333,10 @@ nir_imm_intN_t(nir_builder *build, uint64_t x, unsigned bit_size)
 
    memset(&v, 0, sizeof(v));
    assert(bit_size <= 64);
-   v.i64[0] = x & (~0ull >> (64 - bit_size));
+   if (bit_size == 1)
+      v.b[0] = x & 1;
+   else
+      v.i64[0] = x & (~0ull >> (64 - bit_size));
 
    return nir_build_imm(build, 1, bit_size, v);
 }
@@ -349,6 +353,13 @@ nir_imm_ivec4(nir_builder *build, int x, int y, int z, int w)
    v.i32[3] = w;
 
    return nir_build_imm(build, 4, 32, v);
+}
+
+static inline nir_ssa_def *
+nir_imm_boolN_t(nir_builder *build, bool x, unsigned bit_size)
+{
+   /* We use a 0/-1 convention for all booleans regardless of size */
+   return nir_imm_intN_t(build, -(int)x, bit_size);
 }
 
 static inline nir_ssa_def *
@@ -550,6 +561,36 @@ nir_channels(nir_builder *b, nir_ssa_def *def, nir_component_mask_t mask)
 }
 
 static inline nir_ssa_def *
+nir_i2i(nir_builder *build, nir_ssa_def *x, unsigned dest_bit_size)
+{
+   if (x->bit_size == dest_bit_size)
+      return x;
+
+   switch (dest_bit_size) {
+   case 64: return nir_i2i64(build, x);
+   case 32: return nir_i2i32(build, x);
+   case 16: return nir_i2i16(build, x);
+   case 8:  return nir_i2i8(build, x);
+   default: unreachable("Invalid bit size");
+   }
+}
+
+static inline nir_ssa_def *
+nir_u2u(nir_builder *build, nir_ssa_def *x, unsigned dest_bit_size)
+{
+   if (x->bit_size == dest_bit_size)
+      return x;
+
+   switch (dest_bit_size) {
+   case 64: return nir_u2u64(build, x);
+   case 32: return nir_u2u32(build, x);
+   case 16: return nir_u2u16(build, x);
+   case 8:  return nir_u2u8(build, x);
+   default: unreachable("Invalid bit size");
+   }
+}
+
+static inline nir_ssa_def *
 nir_iadd_imm(nir_builder *build, nir_ssa_def *x, uint64_t y)
 {
    return nir_iadd(build, x, nir_imm_intN_t(build, y, x->bit_size));
@@ -559,6 +600,18 @@ static inline nir_ssa_def *
 nir_imul_imm(nir_builder *build, nir_ssa_def *x, uint64_t y)
 {
    return nir_imul(build, x, nir_imm_intN_t(build, y, x->bit_size));
+}
+
+static inline nir_ssa_def *
+nir_fadd_imm(nir_builder *build, nir_ssa_def *x, double y)
+{
+   return nir_fadd(build, x, nir_imm_floatN_t(build, y, x->bit_size));
+}
+
+static inline nir_ssa_def *
+nir_fmul_imm(nir_builder *build, nir_ssa_def *x, double y)
+{
+   return nir_fmul(build, x, nir_imm_floatN_t(build, y, x->bit_size));
 }
 
 static inline nir_ssa_def *
@@ -587,13 +640,7 @@ nir_pack_bits(nir_builder *b, nir_ssa_def *src, unsigned dest_bit_size)
    /* If we got here, we have no dedicated unpack opcode. */
    nir_ssa_def *dest = nir_imm_intN_t(b, 0, dest_bit_size);
    for (unsigned i = 0; i < src->num_components; i++) {
-      nir_ssa_def *val;
-      switch (dest_bit_size) {
-      case 64: val = nir_u2u64(b, nir_channel(b, src, i));  break;
-      case 32: val = nir_u2u32(b, nir_channel(b, src, i));  break;
-      case 16: val = nir_u2u16(b, nir_channel(b, src, i));  break;
-      default: unreachable("Invalid bit size");
-      }
+      nir_ssa_def *val = nir_u2u(b, nir_channel(b, src, i), dest_bit_size);
       val = nir_ishl(b, val, nir_imm_int(b, i * src->bit_size));
       dest = nir_ior(b, dest, val);
    }
@@ -630,12 +677,7 @@ nir_unpack_bits(nir_builder *b, nir_ssa_def *src, unsigned dest_bit_size)
    nir_ssa_def *dest_comps[NIR_MAX_VEC_COMPONENTS];
    for (unsigned i = 0; i < dest_num_components; i++) {
       nir_ssa_def *val = nir_ushr(b, src, nir_imm_int(b, i * dest_bit_size));
-      switch (dest_bit_size) {
-      case 32: dest_comps[i] = nir_u2u32(b, val);  break;
-      case 16: dest_comps[i] = nir_u2u16(b, val);  break;
-      case 8:  dest_comps[i] = nir_u2u8(b, val);   break;
-      default: unreachable("Invalid bit size");
-      }
+      dest_comps[i] = nir_u2u(b, val, dest_bit_size);
    }
    return nir_vec(b, dest_comps, dest_num_components);
 }
@@ -771,6 +813,31 @@ nir_build_deref_array(nir_builder *build, nir_deref_instr *parent,
 }
 
 static inline nir_deref_instr *
+nir_build_deref_ptr_as_array(nir_builder *build, nir_deref_instr *parent,
+                             nir_ssa_def *index)
+{
+   assert(parent->deref_type == nir_deref_type_array ||
+          parent->deref_type == nir_deref_type_ptr_as_array ||
+          parent->deref_type == nir_deref_type_cast);
+
+   nir_deref_instr *deref =
+      nir_deref_instr_create(build->shader, nir_deref_type_ptr_as_array);
+
+   deref->mode = parent->mode;
+   deref->type = parent->type;
+   deref->parent = nir_src_for_ssa(&parent->dest.ssa);
+   deref->arr.index = nir_src_for_ssa(index);
+
+   nir_ssa_dest_init(&deref->instr, &deref->dest,
+                     parent->dest.ssa.num_components,
+                     parent->dest.ssa.bit_size, NULL);
+
+   nir_builder_instr_insert(build, &deref->instr);
+
+   return deref;
+}
+
+static inline nir_deref_instr *
 nir_build_deref_array_wildcard(nir_builder *build, nir_deref_instr *parent)
 {
    assert(glsl_type_is_array(parent->type) ||
@@ -817,7 +884,8 @@ nir_build_deref_struct(nir_builder *build, nir_deref_instr *parent,
 
 static inline nir_deref_instr *
 nir_build_deref_cast(nir_builder *build, nir_ssa_def *parent,
-                     nir_variable_mode mode, const struct glsl_type *type)
+                     nir_variable_mode mode, const struct glsl_type *type,
+                     unsigned ptr_stride)
 {
    nir_deref_instr *deref =
       nir_deref_instr_create(build->shader, nir_deref_type_cast);
@@ -825,6 +893,7 @@ nir_build_deref_cast(nir_builder *build, nir_ssa_def *parent,
    deref->mode = mode;
    deref->type = type;
    deref->parent = nir_src_for_ssa(parent);
+   deref->cast.ptr_stride = ptr_stride;
 
    nir_ssa_dest_init(&deref->instr, &deref->dest,
                      parent->num_components, parent->bit_size, NULL);
@@ -966,13 +1035,25 @@ nir_load_param(nir_builder *build, uint32_t param_idx)
 static inline nir_ssa_def *
 nir_f2b(nir_builder *build, nir_ssa_def *f)
 {
-   return nir_f2b32(build, f);
+   return nir_f2b1(build, f);
 }
 
 static inline nir_ssa_def *
 nir_i2b(nir_builder *build, nir_ssa_def *i)
 {
-   return nir_i2b32(build, i);
+   return nir_i2b1(build, i);
+}
+
+static inline nir_ssa_def *
+nir_b2f(nir_builder *build, nir_ssa_def *b, uint32_t bit_size)
+{
+   switch (bit_size) {
+   case 64: return nir_b2f64(build, b);
+   case 32: return nir_b2f32(build, b);
+   case 16: return nir_b2f16(build, b);
+   default:
+      unreachable("Invalid bit-size");
+   };
 }
 
 static inline nir_ssa_def *

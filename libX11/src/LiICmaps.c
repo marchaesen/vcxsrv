@@ -28,6 +28,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "Xlibint.h"
+#include "reallocarray.h"
 
 Colormap *XListInstalledColormaps(
     register Display *dpy,
@@ -50,8 +51,7 @@ Colormap *XListInstalledColormaps(
 	}
 
     if (rep.nColormaps) {
-	nbytes = rep.nColormaps * sizeof(Colormap);
-	cmaps = Xmalloc(nbytes);
+	cmaps = Xmallocarray(rep.nColormaps, sizeof(Colormap));
 	if (! cmaps) {
 	    _XEatDataWords(dpy, rep.length);
 	    UnlockDisplay(dpy);

@@ -210,6 +210,11 @@ DRI_CONF_OPT_BEGIN_V(vblank_mode,enum,def,"0:3") \
         DRI_CONF_DESC_END \
 DRI_CONF_OPT_END
 
+#define DRI_CONF_ADAPTIVE_SYNC(def) \
+DRI_CONF_OPT_BEGIN_B(adaptive_sync,def) \
+        DRI_CONF_DESC(en,gettext("Adapt the monitor sync to the application performance (when possible)")) \
+DRI_CONF_OPT_END
+
 #define DRI_CONF_MESA_GLTHREAD(def) \
 DRI_CONF_OPT_BEGIN_B(mesa_glthread, def) \
         DRI_CONF_DESC(en,gettext("Enable offloading GL driver work to a separate thread")) \

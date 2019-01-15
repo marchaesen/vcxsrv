@@ -31,6 +31,7 @@ authorization from the X Consortium and the XFree86 Project.
 #include <config.h>
 #endif
 #include "Xlibint.h"
+#include "reallocarray.h"
 #include <limits.h>
 
 #if defined(XF86BIGFONT)
@@ -245,8 +246,8 @@ _XQueryFont (
 	    /* nFontProps is a CARD16 */
 	    nbytes = reply.nFontProps * SIZEOF(xFontProp);
 	    if ((nbytes >> 2) <= reply_left) {
-		size_t pbytes = reply.nFontProps * sizeof(XFontProp);
-		fs->properties = Xmalloc (pbytes);
+		fs->properties = Xmallocarray (reply.nFontProps,
+                                               sizeof(XFontProp));
 	    }
 	    if (! fs->properties) {
 		Xfree(fs);
@@ -266,8 +267,8 @@ _XQueryFont (
 	if (reply.nCharInfos < (INT_MAX / sizeof(XCharStruct))) {
 	    nbytes = reply.nCharInfos * SIZEOF(xCharInfo);
 	    if ((nbytes >> 2) <= reply_left) {
-		size_t cibytes = reply.nCharInfos * sizeof(XCharStruct);
-		fs->per_char = Xmalloc (cibytes);
+		fs->per_char = Xmallocarray (reply.nCharInfos,
+                                             sizeof(XCharStruct));
 	    }
 	}
 	if (! fs->per_char) {
@@ -489,8 +490,8 @@ _XF86BigfontQueryFont (
 	/* nFontProps is a CARD16 */
 	nbytes = reply.nFontProps * SIZEOF(xFontProp);
 	if ((nbytes >> 2) <= reply_left) {
-	    size_t pbytes = reply.nFontProps * sizeof(XFontProp);
-	    fs->properties = Xmalloc (pbytes);
+	    fs->properties = Xmallocarray (reply.nFontProps,
+                                           sizeof(XFontProp));
 	}
 	if (! fs->properties) {
 	    Xfree(fs);
@@ -529,7 +530,8 @@ _XF86BigfontQueryFont (
 		_XEatDataWords(dpy, reply_left);
 		return (XFontStruct *)NULL;
 	    }
-	    if (! (fs->per_char = Xmalloc (reply.nCharInfos * sizeof(XCharStruct)))) {
+	    if (! (fs->per_char = Xmallocarray (reply.nCharInfos,
+                                                sizeof(XCharStruct)))) {
 		Xfree(pUniqCI);
 		Xfree(fs->properties);
 		Xfree(fs);

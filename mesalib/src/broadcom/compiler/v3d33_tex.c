@@ -126,19 +126,12 @@ v3d33_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
                 }
         }
 
-        bool return_16 = (c->key->tex[unit].return_size == 16 ||
-                          p0_unpacked.shadow);
-
         /* Limit the number of channels returned to both how many the NIR
          * instruction writes and how many the instruction could produce.
          */
-        uint32_t instr_return_channels = nir_tex_instr_dest_size(instr);
-        if (return_16)
-                instr_return_channels = (instr_return_channels + 1) / 2;
-
+        assert(instr->dest.is_ssa);
         p1_unpacked.return_words_of_texture_data =
-                (1 << MIN2(instr_return_channels,
-                           c->key->tex[unit].return_channels)) - 1;
+                nir_ssa_def_components_read(&instr->dest.ssa);
 
         uint32_t p0_packed;
         V3D33_TEXTURE_UNIFORM_PARAMETER_0_CFG_MODE1_pack(NULL,
@@ -193,56 +186,8 @@ v3d33_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
 
         vir_emit_thrsw(c);
 
-        struct qreg return_values[4];
         for (int i = 0; i < 4; i++) {
-                /* Swizzling .zw of an RG texture should give undefined
-                 * results, not crash the compiler.
-                 */
                 if (p1_unpacked.return_words_of_texture_data & (1 << i))
-                        return_values[i] = vir_LDTMU(c);
-                else
-                        return_values[i] = c->undef;
-        }
-
-        for (int i = 0; i < nir_tex_instr_dest_size(instr); i++) {
-                struct qreg chan;
-
-                if (return_16) {
-                        STATIC_ASSERT(PIPE_SWIZZLE_X == 0);
-                        chan = return_values[i / 2];
-
-                        if (nir_alu_type_get_base_type(instr->dest_type) ==
-                            nir_type_float) {
-                                enum v3d_qpu_input_unpack unpack;
-                                if (i & 1)
-                                        unpack = V3D_QPU_UNPACK_H;
-                                else
-                                        unpack = V3D_QPU_UNPACK_L;
-
-                                chan = vir_FMOV(c, chan);
-                                vir_set_unpack(c->defs[chan.index], 0, unpack);
-                        } else {
-                                /* If we're unpacking the low field, shift it
-                                 * up to the top first.
-                                 */
-                                if ((i & 1) == 0) {
-                                        chan = vir_SHL(c, chan,
-                                                       vir_uniform_ui(c, 16));
-                                }
-
-                                /* Do proper sign extension to a 32-bit int. */
-                                if (nir_alu_type_get_base_type(instr->dest_type) ==
-                                    nir_type_int) {
-                                        chan = vir_ASR(c, chan,
-                                                       vir_uniform_ui(c, 16));
-                                } else {
-                                        chan = vir_SHR(c, chan,
-                                                       vir_uniform_ui(c, 16));
-                                }
-                        }
-                } else {
-                        chan = vir_MOV(c, return_values[i]);
-                }
-                ntq_store_dest(c, &instr->dest, i, chan);
+                        ntq_store_dest(c, &instr->dest, i, vir_LDTMU(c));
         }
 }

@@ -41,6 +41,7 @@
 #include "Xlibint.h"
 #include "Xcmsint.h"
 #include "Cv.h"
+#include "reallocarray.h"
 
 #ifndef XCMSCOMPPROC
 #  define XCMSCOMPPROC	XcmsTekHVCClipC
@@ -82,7 +83,7 @@ _XcmsCopyPointerArray(
     for (tmp = pap, n = 0; *tmp != NULL; tmp++, n++);
     n++; /* add 1 to include the NULL pointer */
 
-    if ((newArray = Xmalloc(n * sizeof(XPointer)))) {
+    if ((newArray = Xmallocarray(n, sizeof(XPointer)))) {
 	memcpy((char *)newArray, (char *)pap,
 	       (unsigned)(n * sizeof(XPointer)));
     }
@@ -141,7 +142,7 @@ _XcmsPushPointerArray(
     /* add 2: 1 for the new pointer and another for the NULL pointer */
     n += 2;
 
-    if ((newArray = Xmalloc(n * sizeof(XPointer)))) {
+    if ((newArray = Xmallocarray(n, sizeof(XPointer)))) {
 	memcpy((char *)(newArray+1),(char *)pap,
 	       (unsigned)((n-1) * sizeof(XPointer)));
 	*newArray = p;

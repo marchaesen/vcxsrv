@@ -38,7 +38,7 @@ struct server {
     Conf *conf;
     ssh_key *const *hostkeys;
     int nhostkeys;
-    struct RSAKey *hostkey1;
+    RSAKey *hostkey1;
     AuthPolicy *authpolicy;
     const SftpServerVtable *sftpserver_vt;
 
@@ -211,7 +211,7 @@ static const PlugVtable ssh_server_plugvt = {
 
 Plug *ssh_server_plug(
     Conf *conf, ssh_key *const *hostkeys, int nhostkeys,
-    struct RSAKey *hostkey1, AuthPolicy *authpolicy, LogPolicy *logpolicy,
+    RSAKey *hostkey1, AuthPolicy *authpolicy, LogPolicy *logpolicy,
     const SftpServerVtable *sftpserver_vt)
 {
     server *srv = snew(server);
@@ -298,7 +298,7 @@ static void server_connect_bpp(server *srv)
     srv->bpp->ssh = &srv->ssh;
     srv->bpp->in_raw = &srv->in_raw;
     srv->bpp->out_raw = &srv->out_raw;
-    srv->bpp->out_raw->ic = &srv->ic_out_raw;
+    bufchain_set_callback(srv->bpp->out_raw, &srv->ic_out_raw);
     srv->bpp->pls = &srv->pls;
     srv->bpp->logctx = srv->logctx;
     srv->bpp->remote_bugs = srv->remote_bugs;

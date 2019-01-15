@@ -482,6 +482,7 @@ v3d_register_allocate(struct v3d_compile *c, bool *spilled)
                         case 0:
                         case 1:
                         case 2:
+                        case 3:
                                 /* Payload setup instructions: Force allocate
                                  * the dst to the given register (so the MOV
                                  * will disappear).

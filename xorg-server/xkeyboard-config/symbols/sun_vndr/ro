@@ -49,7 +49,7 @@ xkb_symbols "sun_type6" {
    key <AE12> { [          equal,          plus,	dead_cedilla,     plusminus ] };
 
    key <AD01> { [              q,             Q,	acircumflex,   Acircumflex ] };
-   key <AD02> { [              w,             W,	ssharp                ] };
+   key <AD02> { [              w,             W,	ssharp,        0x1001e9e   ] };
    key <AD03> { [              e,             E,	EuroSign                ] };
    key <AD04> { [              r,             R,	r,             R ] };
    key <AD05> { [              t,             T,	0x100021b,     0x100021a ] };

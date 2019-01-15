@@ -46,8 +46,7 @@ class ir_validate : public ir_hierarchical_visitor {
 public:
    ir_validate()
    {
-      this->ir_set = _mesa_set_create(NULL, _mesa_hash_pointer,
-                                      _mesa_key_pointer_equal);
+      this->ir_set = _mesa_pointer_set_create(NULL);
 
       this->current_function = NULL;
 

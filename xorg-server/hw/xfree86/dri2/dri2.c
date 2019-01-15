@@ -38,7 +38,6 @@
 #ifdef WITH_LIBDRM
 #include <xf86drm.h>
 #endif
-#include "xf86Module.h"
 #include "list.h"
 #include "scrnintstr.h"
 #include "windowstr.h"

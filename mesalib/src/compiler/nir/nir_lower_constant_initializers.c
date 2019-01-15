@@ -91,41 +91,36 @@ nir_lower_constant_initializers(nir_shader *shader, nir_variable_mode modes)
 {
    bool progress = false;
 
-   nir_builder builder;
-   if (modes & ~nir_var_local)
-      nir_builder_init(&builder, nir_shader_get_entrypoint(shader));
+   nir_foreach_function(function, shader) {
+      if (!function->impl)
+	 continue;
 
-   if (modes & nir_var_shader_out)
-      progress |= lower_const_initializer(&builder, &shader->outputs);
+      bool impl_progress = false;
 
-   if (modes & nir_var_global)
-      progress |= lower_const_initializer(&builder, &shader->globals);
+      nir_builder builder;
+      nir_builder_init(&builder, function->impl);
 
-   if (modes & nir_var_system_value)
-      progress |= lower_const_initializer(&builder, &shader->system_values);
+      if ((modes & nir_var_shader_out) && function->is_entrypoint)
+         impl_progress |= lower_const_initializer(&builder, &shader->outputs);
 
-   if (progress) {
-      nir_foreach_function(function, shader) {
-         if (function->impl) {
-            nir_metadata_preserve(function->impl, nir_metadata_block_index |
-                                                  nir_metadata_dominance |
-                                                  nir_metadata_live_ssa_defs);
-         }
-      }
-   }
+      if ((modes & nir_var_private) && function->is_entrypoint)
+         impl_progress |= lower_const_initializer(&builder, &shader->globals);
 
-   if (modes & nir_var_local) {
-      nir_foreach_function(function, shader) {
-         if (!function->impl)
-            continue;
+      if ((modes & nir_var_system_value) && function->is_entrypoint)
+         impl_progress |= lower_const_initializer(&builder, &shader->system_values);
 
-         nir_builder_init(&builder, function->impl);
-         if (lower_const_initializer(&builder, &function->impl->locals)) {
-            nir_metadata_preserve(function->impl, nir_metadata_block_index |
-                                                  nir_metadata_dominance |
-                                                  nir_metadata_live_ssa_defs);
-            progress = true;
-         }
+      if (modes & nir_var_function)
+         impl_progress |= lower_const_initializer(&builder, &function->impl->locals);
+
+      if (impl_progress) {
+         progress = true;
+         nir_metadata_preserve(function->impl, nir_metadata_block_index |
+                                               nir_metadata_dominance |
+                                               nir_metadata_live_ssa_defs);
+      } else {
+#ifndef NDEBUG
+         function->impl->valid_metadata &= ~nir_metadata_not_properly_reset;
+#endif
       }
    }
 

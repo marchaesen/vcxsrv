@@ -6,24 +6,13 @@ branches:
 
 matrix:
   include:
-    - os: linux
-      dist: trusty
-      services: docker
-      env: DISTRO=rawhide:v5
     - os: osx
       osx_image: xcode9.2
       env: DISTRO=xcode9.2
 
 install:
-    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then HOMEBREW_NO_AUTO_UPDATE=1 brew install ccache ; fi
-
-before_script:
-    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker pull nwnk/xserver-travis-$DISTRO ; fi
-    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo FROM nwnk/xserver-travis-$DISTRO > Dockerfile ; fi
-    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then echo ADD . /root >> Dockerfile ; fi
-    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker build -t withgit . ; fi
+    - HOMEBREW_NO_AUTO_UPDATE=1 brew install ccache
 
 script:
-    - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then docker run --volume $HOME/.ccache:/root/.ccache withgit /bin/sh -c "cd /root && ./test/scripts/build-travis-deps.sh" ; fi
-    - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ./test/scripts/build-travis-osx.sh ; fi
+    - ./test/scripts/build-travis-osx.sh
     - ccache -s

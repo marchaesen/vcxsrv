@@ -6,6 +6,7 @@ AM_CPPFLAGS= \
 	-I$(top_srcdir)/src/xcms \
 	-I$(top_srcdir)/src/xkb \
 	-I$(top_srcdir)/src/xlibi18n \
+	-I$(top_srcdir)/src \
 	-D_BSD_SOURCE
 
 AM_CFLAGS= \

@@ -30,6 +30,7 @@
 #include "XlcPubI.h"
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
+#include "reallocarray.h"
 
 static XPointer *
 alloc_list(
@@ -40,11 +41,11 @@ alloc_list(
     if (is_wide_char) {
 	wchar_t **wstr_list;
 
-	wstr_list = Xmalloc(count * sizeof(wchar_t *));
+	wstr_list = Xmallocarray(count, sizeof(wchar_t *));
 	if (wstr_list == NULL)
 	    return (XPointer *) NULL;
 
-	*wstr_list = Xmalloc(nitems * sizeof(wchar_t));
+	*wstr_list = Xmallocarray(nitems, sizeof(wchar_t));
 	if (*wstr_list == NULL) {
 	    Xfree(wstr_list);
 	    return (XPointer *) NULL;
@@ -54,7 +55,7 @@ alloc_list(
     } else {
 	char **str_list;
 
-	str_list = Xmalloc(count * sizeof(char *));
+	str_list = Xmallocarray(count, sizeof(char *));
 	if (str_list == NULL)
 	    return (XPointer *) NULL;
 

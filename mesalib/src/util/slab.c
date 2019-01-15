@@ -280,25 +280,25 @@ void slab_free(struct slab_child_pool *pool, void *ptr)
  * Allocate an object from the slab. Single-threaded (no mutex).
  */
 void *
-slab_alloc_st(struct slab_mempool *pool)
+slab_alloc_st(struct slab_mempool *mempool)
 {
-   return slab_alloc(&pool->child);
+   return slab_alloc(&mempool->child);
 }
 
 /**
  * Free an object allocated from the slab. Single-threaded (no mutex).
  */
 void
-slab_free_st(struct slab_mempool *pool, void *ptr)
+slab_free_st(struct slab_mempool *mempool, void *ptr)
 {
-   slab_free(&pool->child, ptr);
+   slab_free(&mempool->child, ptr);
 }
 
 void
-slab_destroy(struct slab_mempool *pool)
+slab_destroy(struct slab_mempool *mempool)
 {
-   slab_destroy_child(&pool->child);
-   slab_destroy_parent(&pool->parent);
+   slab_destroy_child(&mempool->child);
+   slab_destroy_parent(&mempool->parent);
 }
 
 /**
@@ -308,10 +308,10 @@ slab_destroy(struct slab_mempool *pool)
  * \param num_items     Number of objects to allocate at once.
  */
 void
-slab_create(struct slab_mempool *pool,
+slab_create(struct slab_mempool *mempool,
             unsigned item_size,
             unsigned num_items)
 {
-   slab_create_parent(&pool->parent, item_size, num_items);
-   slab_create_child(&pool->child, &pool->parent);
+   slab_create_parent(&mempool->parent, item_size, num_items);
+   slab_create_child(&mempool->child, &mempool->parent);
 }

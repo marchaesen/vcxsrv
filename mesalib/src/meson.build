@@ -74,7 +74,7 @@ subdir('loader')
 if with_platform_haiku
   subdir('hgl')
 endif
-if with_glx != 'disabled'
+if with_glx == 'dri'
   subdir('glx')
 endif
 if with_gbm

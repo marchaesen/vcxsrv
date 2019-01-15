@@ -10,6 +10,7 @@
 #include <assert.h>
 
 #include "putty.h"
+#include "mpint.h"
 #include "ssh.h"
 #include "misc.h"
 
@@ -23,7 +24,7 @@
 
 static int key_type_fp(FILE *fp);
 
-static int rsa_ssh1_load_main(FILE * fp, struct RSAKey *key, bool pub_only,
+static int rsa_ssh1_load_main(FILE * fp, RSAKey *key, bool pub_only,
                               char **commentptr, const char *passphrase,
                               const char **error)
 {
@@ -140,7 +141,7 @@ static int rsa_ssh1_load_main(FILE * fp, struct RSAKey *key, bool pub_only,
     return ret;
 }
 
-int rsa_ssh1_loadkey(const Filename *filename, struct RSAKey *key,
+int rsa_ssh1_loadkey(const Filename *filename, RSAKey *key,
                      const char *passphrase, const char **errorstr)
 {
     FILE *fp;
@@ -217,7 +218,7 @@ int rsa_ssh1_loadpub(const Filename *filename, BinarySink *bs,
 {
     FILE *fp;
     char buf[64];
-    struct RSAKey key;
+    RSAKey key;
     int ret;
     const char *error = NULL;
 
@@ -276,11 +277,11 @@ int rsa_ssh1_loadpub(const Filename *filename, BinarySink *bs,
         }
 
 	memset(&key, 0, sizeof(key));
-        key.exponent = bignum_from_decimal(expp);
-        key.modulus = bignum_from_decimal(modp);
-        if (atoi(bitsp) != bignum_bitcount(key.modulus)) {
-            freebn(key.exponent);
-            freebn(key.modulus);
+        key.exponent = mp_from_decimal(expp);
+        key.modulus = mp_from_decimal(modp);
+        if (atoi(bitsp) != mp_get_nbits(key.modulus)) {
+            mp_free(key.exponent);
+            mp_free(key.modulus);
             sfree(line);
             error = "key bit count does not match in SSH-1 public key file";
             goto end;
@@ -309,7 +310,7 @@ int rsa_ssh1_loadpub(const Filename *filename, BinarySink *bs,
 /*
  * Save an RSA key file. Return true on success.
  */
-bool rsa_ssh1_savekey(const Filename *filename, struct RSAKey *key,
+bool rsa_ssh1_savekey(const Filename *filename, RSAKey *key,
                       char *passphrase)
 {
     strbuf *buf = strbuf_new();
@@ -562,7 +563,7 @@ static bool read_blob(FILE *fp, int nlines, BinarySink *bs)
 /*
  * Magic error return value for when the passphrase is wrong.
  */
-struct ssh2_userkey ssh2_wrong_passphrase = { NULL, NULL };
+ssh2_userkey ssh2_wrong_passphrase = { NULL, NULL };
 
 const ssh_keyalg *find_pubkey_alg_len(ptrlen name)
 {
@@ -587,14 +588,13 @@ const ssh_keyalg *find_pubkey_alg(const char *name)
     return find_pubkey_alg_len(ptrlen_from_asciz(name));
 }
 
-struct ssh2_userkey *ssh2_load_userkey(const Filename *filename,
-				       const char *passphrase,
-                                       const char **errorstr)
+ssh2_userkey *ssh2_load_userkey(
+    const Filename *filename, const char *passphrase, const char **errorstr)
 {
     FILE *fp;
     char header[40], *b, *encryption, *comment, *mac;
     const ssh_keyalg *alg;
-    struct ssh2_userkey *ret;
+    ssh2_userkey *ret;
     int cipher, cipherblk;
     strbuf *public_blob, *private_blob;
     int i;
@@ -796,7 +796,7 @@ struct ssh2_userkey *ssh2_load_userkey(const Filename *filename,
     /*
      * Create and return the key.
      */
-    ret = snew(struct ssh2_userkey);
+    ret = snew(ssh2_userkey);
     ret->comment = comment;
     ret->key = ssh_key_new_priv(
         alg, ptrlen_from_strbuf(public_blob),
@@ -1234,8 +1234,8 @@ void base64_encode(FILE *fp, const unsigned char *data, int datalen, int cpl)
     fputc('\n', fp);
 }
 
-bool ssh2_save_userkey(const Filename *filename, struct ssh2_userkey *key,
-                       char *passphrase)
+bool ssh2_save_userkey(
+    const Filename *filename, ssh2_userkey *key, char *passphrase)
 {
     FILE *fp;
     strbuf *pub_blob, *priv_blob;
@@ -1355,15 +1355,14 @@ bool ssh2_save_userkey(const Filename *filename, struct ssh2_userkey *key,
 /* ----------------------------------------------------------------------
  * Output public keys.
  */
-char *ssh1_pubkey_str(struct RSAKey *key)
+char *ssh1_pubkey_str(RSAKey *key)
 {
     char *buffer;
     char *dec1, *dec2;
 
-    dec1 = bignum_decimal(key->exponent);
-    dec2 = bignum_decimal(key->modulus);
-    buffer = dupprintf("%d %s %s%s%s", bignum_bitcount(key->modulus),
-		       dec1, dec2,
+    dec1 = mp_get_decimal(key->exponent);
+    dec2 = mp_get_decimal(key->modulus);
+    buffer = dupprintf("%zd %s %s%s%s", mp_get_nbits(key->modulus), dec1, dec2,
                        key->comment ? " " : "",
                        key->comment ? key->comment : "");
     sfree(dec1);
@@ -1371,7 +1370,7 @@ char *ssh1_pubkey_str(struct RSAKey *key)
     return buffer;
 }
 
-void ssh1_write_pubkey(FILE *fp, struct RSAKey *key)
+void ssh1_write_pubkey(FILE *fp, RSAKey *key)
 {
     char *buffer = ssh1_pubkey_str(key);
     fprintf(fp, "%s\n", buffer);
@@ -1418,7 +1417,7 @@ static char *ssh2_pubkey_openssh_str_internal(const char *comment,
     return buffer;
 }
 
-char *ssh2_pubkey_openssh_str(struct ssh2_userkey *key)
+char *ssh2_pubkey_openssh_str(ssh2_userkey *key)
 {
     strbuf *blob;
     char *ret;
@@ -1478,7 +1477,7 @@ void ssh2_write_pubkey(FILE *fp, const char *comment,
         fprintf(fp, "%s\n", buffer);
         sfree(buffer);
     } else {
-        assert(0 && "Bad key type in ssh2_write_pubkey");
+        unreachable("Bad key type in ssh2_write_pubkey");
     }
 }
 

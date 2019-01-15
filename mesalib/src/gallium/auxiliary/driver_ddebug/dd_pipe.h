@@ -274,6 +274,7 @@ struct dd_draw_record {
    int64_t time_after;
    unsigned draw_call;
 
+   /* The fence pointers are guaranteed to be valid once driver_finished is signalled */
    struct pipe_fence_handle *prev_bottom_of_pipe;
    struct pipe_fence_handle *top_of_pipe;
    struct pipe_fence_handle *bottom_of_pipe;
@@ -297,24 +298,18 @@ struct dd_context
 
    /* Pipelined hang detection.
     *
-    * This is without unnecessary flushes and waits. There is a memory-based
-    * fence that is incremented by clear_buffer every draw call. Driver fences
-    * are not used.
+    * Before each draw call, a new dd_draw_record is created that contains
+    * a copy of all states. After each draw call, the driver's log is added
+    * to this record. Additionally, deferred fences are associated to each
+    * record both before and after the draw.
     *
-    * After each draw call, a new dd_draw_record is created that contains
-    * a copy of all states, the output of pipe_context::dump_debug_state,
-    * and it has a fence number assigned. That's done without knowing whether
-    * that draw call is problematic or not. The record is added into the list
-    * of all records.
-    *
-    * An independent, separate thread loops over the list of records and checks
-    * their fences. Records with signalled fences are freed. On fence timeout,
-    * the thread dumps the records of in-flight draws.
+    * The records are handed off to a separate thread which waits on the
+    * records' fences. Records with signalled fences are freed. When a timeout
+    * is detected, the thread dumps the records of in-flight draws.
     */
    thrd_t thread;
    mtx_t mutex;
    cnd_t cond;
-   struct dd_draw_record *record_pending; /* currently inside the driver */
    struct list_head records; /* oldest record first */
    unsigned num_records;
    bool kill_thread;

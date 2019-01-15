@@ -418,11 +418,11 @@ GALLIVM_SOURCES := \
 	gallivm/lp_bld_flow.h \
 	gallivm/lp_bld_format_aos_array.c \
 	gallivm/lp_bld_format_aos.c \
-	gallivm/lp_bld_format_cached.c \
 	gallivm/lp_bld_format_float.c \
 	gallivm/lp_bld_format.c \
 	gallivm/lp_bld_format.h \
 	gallivm/lp_bld_format_soa.c \
+	gallivm/lp_bld_format_s3tc.c \
 	gallivm/lp_bld_format_srgb.c \
 	gallivm/lp_bld_format_yuv.c \
 	gallivm/lp_bld_gather.c \

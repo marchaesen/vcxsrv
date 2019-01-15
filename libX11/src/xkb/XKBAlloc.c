@@ -44,7 +44,6 @@ Status
 XkbAllocCompatMap(XkbDescPtr xkb, unsigned which, unsigned nSI)
 {
     XkbCompatMapPtr compat;
-    XkbSymInterpretRec *prev_interpret;
 
     if (!xkb)
         return BadMatch;
@@ -55,17 +54,11 @@ XkbAllocCompatMap(XkbDescPtr xkb, unsigned which, unsigned nSI)
         compat->size_si = nSI;
         if (compat->sym_interpret == NULL)
             compat->num_si = 0;
-        prev_interpret = compat->sym_interpret;
-        compat->sym_interpret = _XkbTypedRealloc(compat->sym_interpret,
-                                                 nSI, XkbSymInterpretRec);
+        _XkbResizeArray(compat->sym_interpret, compat->num_si,
+                        nSI, XkbSymInterpretRec);
         if (compat->sym_interpret == NULL) {
-            _XkbFree(prev_interpret);
             compat->size_si = compat->num_si = 0;
             return BadAlloc;
-        }
-        if (compat->num_si != 0) {
-            _XkbClearElems(compat->sym_interpret, compat->num_si,
-                           compat->size_si - 1, XkbSymInterpretRec);
         }
         return Success;
     }
@@ -150,22 +143,10 @@ XkbAllocNames(XkbDescPtr xkb, unsigned which, int nTotalRG, int nTotalAliases)
             return BadAlloc;
     }
     if ((which & XkbKeyAliasesMask) && (nTotalAliases > 0)) {
-        if (names->key_aliases == NULL) {
-            names->key_aliases = _XkbTypedCalloc(nTotalAliases, XkbKeyAliasRec);
-        }
-        else if (nTotalAliases > names->num_key_aliases) {
-            XkbKeyAliasRec *prev_aliases = names->key_aliases;
-
-            names->key_aliases = _XkbTypedRealloc(names->key_aliases,
-                                                  nTotalAliases,
-                                                  XkbKeyAliasRec);
-            if (names->key_aliases != NULL) {
-                _XkbClearElems(names->key_aliases, names->num_key_aliases,
-                               nTotalAliases - 1, XkbKeyAliasRec);
-            }
-            else {
-                _XkbFree(prev_aliases);
-            }
+        if ((names->key_aliases == NULL) ||
+            (nTotalAliases > names->num_key_aliases)) {
+            _XkbResizeArray(names->key_aliases, names->num_key_aliases,
+                            nTotalAliases, XkbKeyAliasRec);
         }
         if (names->key_aliases == NULL) {
             names->num_key_aliases = 0;
@@ -174,24 +155,13 @@ XkbAllocNames(XkbDescPtr xkb, unsigned which, int nTotalRG, int nTotalAliases)
         names->num_key_aliases = nTotalAliases;
     }
     if ((which & XkbRGNamesMask) && (nTotalRG > 0)) {
+        if ((names->radio_groups == NULL) || (nTotalRG > names->num_rg)) {
+            _XkbResizeArray(names->radio_groups, names->num_rg, nTotalRG, Atom);
+        }
         if (names->radio_groups == NULL) {
-            names->radio_groups = _XkbTypedCalloc(nTotalRG, Atom);
-        }
-        else if (nTotalRG > names->num_rg) {
-            Atom *prev_radio_groups = names->radio_groups;
-
-            names->radio_groups =
-                _XkbTypedRealloc(names->radio_groups, nTotalRG, Atom);
-            if (names->radio_groups != NULL) {
-                _XkbClearElems(names->radio_groups, names->num_rg, nTotalRG - 1,
-                               Atom);
-            }
-            else {
-                _XkbFree(prev_radio_groups);
-            }
-        }
-        if (names->radio_groups == NULL)
+            names->num_rg = 0;
             return BadAlloc;
+        }
         names->num_rg = nTotalRG;
     }
     return Success;
@@ -350,16 +320,13 @@ XkbAddDeviceLedInfo(XkbDeviceInfoPtr devi, unsigned ledClass, unsigned ledId)
             return devli;
     }
     if (devi->num_leds >= devi->sz_leds) {
-        XkbDeviceLedInfoRec *prev_leds = devi->leds;
-
         if (devi->sz_leds > 0)
             devi->sz_leds *= 2;
         else
             devi->sz_leds = 1;
-        devi->leds = _XkbTypedRealloc(devi->leds, devi->sz_leds,
-                                      XkbDeviceLedInfoRec);
+        _XkbResizeArray(devi->leds, devi->num_leds, devi->sz_leds,
+                        XkbDeviceLedInfoRec);
         if (!devi->leds) {
-            _XkbFree(prev_leds);
             devi->sz_leds = devi->num_leds = 0;
             return NULL;
         }
@@ -380,8 +347,6 @@ XkbAddDeviceLedInfo(XkbDeviceInfoPtr devi, unsigned ledClass, unsigned ledId)
 Status
 XkbResizeDeviceButtonActions(XkbDeviceInfoPtr devi, unsigned newTotal)
 {
-    XkbAction *prev_btn_acts;
-
     if ((!devi) || (newTotal > 255))
         return BadValue;
     if ((devi->btn_acts != NULL) && (newTotal == devi->num_btns))
@@ -394,10 +359,8 @@ XkbResizeDeviceButtonActions(XkbDeviceInfoPtr devi, unsigned newTotal)
         devi->num_btns = 0;
         return Success;
     }
-    prev_btn_acts = devi->btn_acts;
-    devi->btn_acts = _XkbTypedRealloc(devi->btn_acts, newTotal, XkbAction);
+    _XkbResizeArray(devi->btn_acts, devi->num_btns, newTotal, XkbAction);
     if (devi->btn_acts == NULL) {
-        _XkbFree(prev_btn_acts);
         devi->num_btns = 0;
         return BadAlloc;
     }

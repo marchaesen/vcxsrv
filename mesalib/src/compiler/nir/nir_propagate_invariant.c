@@ -71,7 +71,7 @@ add_var(nir_variable *var, struct set *invariants)
 static bool
 var_is_invariant(nir_variable *var, struct set * invariants)
 {
-   return var->data.invariant || _mesa_set_search(invariants, var);
+   return var && (var->data.invariant || _mesa_set_search(invariants, var));
 }
 
 static void
@@ -182,8 +182,7 @@ bool
 nir_propagate_invariant(nir_shader *shader)
 {
    /* Hash set of invariant things */
-   struct set *invariants = _mesa_set_create(NULL, _mesa_hash_pointer,
-                                             _mesa_key_pointer_equal);
+   struct set *invariants = _mesa_pointer_set_create(NULL);
 
    bool progress = false;
    nir_foreach_function(function, shader) {

@@ -34,6 +34,7 @@ from The Open Group.
 #include <X11/Xutil.h>
 #include "Xatomtype.h"
 #include <X11/Xatom.h>
+#include "reallocarray.h"
 
 void XSetRGBColormaps (
     Display *dpy,
@@ -55,9 +56,9 @@ void XSetRGBColormaps (
     /*
      * if doing more than one, allocate scratch space for it
      */
-    if ((count > 1) && ((data = ((xPropStandardColormap *)
-				 Xmalloc(count*sizeof(xPropStandardColormap))))
-			 != NULL)) {
+    if ((count > 1) &&
+        ((data = (Xmallocarray(count,
+                               sizeof(xPropStandardColormap)))) != NULL)) {
 	alloced_scratch_space = True;
     } else {
 	data = &tmpdata;

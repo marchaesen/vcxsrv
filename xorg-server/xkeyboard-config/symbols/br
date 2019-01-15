@@ -158,7 +158,7 @@ xkb_symbols "dvorak" {
     key <AC07> { [            h,               H,            leftarrow,        paragraph ] };
     key <AC08> { [            t,               T,           rightarrow,        trademark ] };
     key <AC09> { [            n,               N,                  eng,              ENG ] };
-    key <AC10> { [            s,               S,               ssharp,           ssharp ] };
+    key <AC10> { [            s,               S,               ssharp,            U1E9E ] };
     key <AC11> { [   dead_tilde, dead_circumflex,           asciitilde,      asciicircum ] };
     key <BKSL> { [        minus,      underscore,           0x01002015,       0x01000336 ] };
 
@@ -234,7 +234,7 @@ xkb_symbols "nativo" {
     key <AC05> { [            u,               U,               oslash,         Ooblique ] };
     key <AC06> { [            m,               M,                   mu,               mu ] };
     key <AC07> { [            d,               D,                  eth,              ETH ] };
-    key <AC08> { [            s,               S,               ssharp,           ssharp ] };
+    key <AC08> { [            s,               S,               ssharp,            U1E9E ] };
     key <AC09> { [            r,               R,           registered,       registered ] };
     key <AC10> { [            n,               N,                  eng,              ENG ] };
     key <AC11> { [   dead_acute,      dead_grave,                acute,            grave ] };

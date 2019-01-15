@@ -46,8 +46,8 @@ $XSERVER_BUILDDIR/test/simple-xinit \
 # Write out piglit-summaries.
 SHORT_SUMMARY=$PIGLIT_RESULTS_DIR/summary
 LONG_SUMMARY=$PIGLIT_RESULTS_DIR/long-summary
-$PIGLIT_DIR/piglit-summary.py -s $PIGLIT_RESULTS_DIR > $SHORT_SUMMARY
-$PIGLIT_DIR/piglit-summary.py $PIGLIT_RESULTS_DIR > $LONG_SUMMARY
+$PIGLIT_DIR/piglit summary console -s $PIGLIT_RESULTS_DIR > $SHORT_SUMMARY
+$PIGLIT_DIR/piglit summary console $PIGLIT_RESULTS_DIR > $LONG_SUMMARY
 
 # Write the short summary to make check's log file.
 cat $SHORT_SUMMARY
@@ -66,7 +66,7 @@ if ! grep "^ *crash: *0$" $SHORT_SUMMARY > /dev/null; then
     status=1
 fi
 
-$PIGLIT_DIR/piglit-summary-html.py \
+$PIGLIT_DIR/piglit summary html \
 	--overwrite \
 	$PIGLIT_RESULTS_DIR/html \
 	$PIGLIT_RESULTS_DIR

@@ -71,7 +71,7 @@ add_var_use_deref(nir_deref_instr *deref, struct set *live)
     * all means we need to keep it alive.
     */
    assert(deref->mode == deref->var->data.mode);
-   if (!(deref->mode & (nir_var_local | nir_var_global | nir_var_shared)) ||
+   if (!(deref->mode & (nir_var_function | nir_var_private | nir_var_shared)) ||
        deref_used_for_not_store(deref))
       _mesa_set_add(live, deref->var);
 }
@@ -103,6 +103,9 @@ remove_dead_var_writes(nir_shader *shader, struct set *live)
             switch (instr->type) {
             case nir_instr_type_deref: {
                nir_deref_instr *deref = nir_instr_as_deref(instr);
+               if (deref->deref_type == nir_deref_type_cast &&
+                   !nir_deref_instr_parent(deref))
+                  continue;
 
                nir_variable_mode parent_mode;
                if (deref->deref_type == nir_deref_type_var)
@@ -161,8 +164,7 @@ bool
 nir_remove_dead_variables(nir_shader *shader, nir_variable_mode modes)
 {
    bool progress = false;
-   struct set *live =
-      _mesa_set_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
+   struct set *live = _mesa_pointer_set_create(NULL);
 
    add_var_use_shader(shader, live, modes);
 
@@ -175,7 +177,7 @@ nir_remove_dead_variables(nir_shader *shader, nir_variable_mode modes)
    if (modes & nir_var_shader_out)
       progress = remove_dead_vars(&shader->outputs, live) || progress;
 
-   if (modes & nir_var_global)
+   if (modes & nir_var_private)
       progress = remove_dead_vars(&shader->globals, live) || progress;
 
    if (modes & nir_var_system_value)
@@ -184,7 +186,7 @@ nir_remove_dead_variables(nir_shader *shader, nir_variable_mode modes)
    if (modes & nir_var_shared)
       progress = remove_dead_vars(&shader->shared, live) || progress;
 
-   if (modes & nir_var_local) {
+   if (modes & nir_var_function) {
       nir_foreach_function(function, shader) {
          if (function->impl) {
             if (remove_dead_vars(&function->impl->locals, live))

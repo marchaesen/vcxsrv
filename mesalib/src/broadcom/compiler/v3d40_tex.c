@@ -22,6 +22,7 @@
  */
 
 #include "v3d_compiler.h"
+#include "nir_deref.h"
 
 /* We don't do any address packing. */
 #define __gen_user_data void
@@ -34,6 +35,9 @@ static void
 vir_TMU_WRITE(struct v3d_compile *c, enum v3d_qpu_waddr waddr, struct qreg val,
               int *tmu_writes)
 {
+        /* XXX perf: We should figure out how to merge ALU operations
+         * producing the val with this MOV, when possible.
+         */
         vir_MOV_dest(c, vir_reg(QFILE_MAGIC, waddr), val);
 
         (*tmu_writes)++;
@@ -48,14 +52,19 @@ vir_WRTMUC(struct v3d_compile *c, enum quniform_contents contents, uint32_t data
         inst->src[0] = vir_uniform(c, contents, data);
 }
 
+static const struct V3D41_TMU_CONFIG_PARAMETER_1 p1_unpacked_default = {
+        .per_pixel_mask_enable = true,
+};
+
+static const struct V3D41_TMU_CONFIG_PARAMETER_2 p2_unpacked_default = {
+        .op = V3D_TMU_OP_REGULAR,
+};
+
 void
 v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
 {
         unsigned unit = instr->texture_index;
         int tmu_writes = 0;
-        static const struct V3D41_TMU_CONFIG_PARAMETER_2 p2_unpacked_default = {
-                .op = V3D_TMU_OP_REGULAR,
-        };
 
         struct V3D41_TMU_CONFIG_PARAMETER_0 p0_unpacked = {
         };
@@ -75,6 +84,8 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
                 .gather_component = instr->component,
 
                 .coefficient_mode = instr->op == nir_texop_txd,
+
+                .disable_autolod = instr->op == nir_texop_tg4
         };
 
         int non_array_components = instr->coord_components - instr->is_array;
@@ -116,10 +127,8 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
                                       ntq_get_src(c, instr->src[i].src, 0),
                                       &tmu_writes);
 
-                        if (instr->op != nir_texop_txf &&
-                            instr->op != nir_texop_tg4) {
+                        if (instr->op != nir_texop_txf)
                                 p2_unpacked.disable_autolod = true;
-                        }
                         break;
 
                 case nir_tex_src_comparator:
@@ -129,14 +138,30 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
                         break;
 
                 case nir_tex_src_offset: {
-                        nir_const_value *offset =
-                                nir_src_as_const_value(instr->src[i].src);
+                        if (nir_src_is_const(instr->src[i].src)) {
+                                nir_const_value *offset =
+                                        nir_src_as_const_value(instr->src[i].src);
 
-                        p2_unpacked.offset_s = offset->i32[0];
-                        if (instr->coord_components >= 2)
-                                p2_unpacked.offset_t = offset->i32[1];
-                        if (instr->coord_components >= 3)
-                                p2_unpacked.offset_r = offset->i32[2];
+                                p2_unpacked.offset_s = offset->i32[0];
+                                if (instr->coord_components >= 2)
+                                        p2_unpacked.offset_t = offset->i32[1];
+                                if (instr->coord_components >= 3)
+                                        p2_unpacked.offset_r = offset->i32[2];
+                        } else {
+                                struct qreg mask = vir_uniform_ui(c, 0xf);
+                                struct qreg x, y, offset;
+
+                                x = vir_AND(c, ntq_get_src(c, instr->src[i].src,
+                                                           0), mask);
+                                y = vir_AND(c, ntq_get_src(c, instr->src[i].src,
+                                                           1), mask);
+                                offset = vir_OR(c, x,
+                                                vir_SHL(c, y,
+                                                        vir_uniform_ui(c, 4)));
+
+                                vir_TMU_WRITE(c, V3D_QPU_WADDR_TMUOFF,
+                                              offset, &tmu_writes);
+                        }
                         break;
                 }
 
@@ -148,13 +173,9 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
         /* Limit the number of channels returned to both how many the NIR
          * instruction writes and how many the instruction could produce.
          */
-        uint32_t instr_return_channels = nir_tex_instr_dest_size(instr);
-        if (!p1_unpacked.output_type_32_bit)
-                instr_return_channels = (instr_return_channels + 1) / 2;
-
+        assert(instr->dest.is_ssa);
         p0_unpacked.return_words_of_texture_data =
-                (1 << MIN2(instr_return_channels,
-                           c->key->tex[unit].return_channels)) - 1;
+                nir_ssa_def_components_read(&instr->dest.ssa);
 
         /* Word enables can't ask for more channels than the output type could
          * provide (2 for f16, 4 for 32-bit).
@@ -187,6 +208,7 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
         p1_packed |= unit << 24;
 
         vir_WRTMUC(c, QUNIFORM_TMU_CONFIG_P0, p0_packed);
+        /* XXX perf: Can we skip p1 setup for txf ops? */
         vir_WRTMUC(c, QUNIFORM_TMU_CONFIG_P1, p1_packed);
         if (memcmp(&p2_unpacked, &p2_unpacked_default, sizeof(p2_unpacked)) != 0)
                 vir_WRTMUC(c, QUNIFORM_CONSTANT, p2_packed);
@@ -208,56 +230,178 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
         while (tmu_writes > 16 / c->threads)
                 c->threads /= 2;
 
-        struct qreg return_values[4];
         for (int i = 0; i < 4; i++) {
-                /* Swizzling .zw of an RG texture should give undefined
-                 * results, not crash the compiler.
-                 */
                 if (p0_unpacked.return_words_of_texture_data & (1 << i))
-                        return_values[i] = vir_LDTMU(c);
-                else
-                        return_values[i] = c->undef;
+                        ntq_store_dest(c, &instr->dest, i, vir_LDTMU(c));
+        }
+}
+
+static void
+type_size_align_1(const struct glsl_type *type, unsigned *size, unsigned *align)
+{
+        *size = 1;
+        *align = 1;
+}
+
+void
+v3d40_vir_emit_image_load_store(struct v3d_compile *c,
+                                nir_intrinsic_instr *instr)
+{
+        nir_variable *var = nir_intrinsic_get_var(instr, 0);
+        const struct glsl_type *sampler_type = glsl_without_array(var->type);
+        unsigned unit = (var->data.driver_location +
+                         nir_deref_instr_get_const_offset(nir_src_as_deref(instr->src[0]),
+                                                          type_size_align_1));
+        int tmu_writes = 0;
+
+        struct V3D41_TMU_CONFIG_PARAMETER_0 p0_unpacked = {
+        };
+
+        struct V3D41_TMU_CONFIG_PARAMETER_1 p1_unpacked = {
+                .per_pixel_mask_enable = true,
+                .output_type_32_bit = v3d_gl_format_is_return_32(var->data.image.format),
+        };
+
+        struct V3D41_TMU_CONFIG_PARAMETER_2 p2_unpacked = { 0 };
+
+        /* XXX perf: We should turn add/sub of 1 to inc/dec.  Perhaps NIR
+         * wants to have support for inc/dec?
+         */
+        switch (instr->intrinsic) {
+        case nir_intrinsic_image_deref_load:
+        case nir_intrinsic_image_deref_store:
+                p2_unpacked.op = V3D_TMU_OP_REGULAR;
+                break;
+        case nir_intrinsic_image_deref_atomic_add:
+                p2_unpacked.op = V3D_TMU_OP_WRITE_ADD_READ_PREFETCH;
+                break;
+        case nir_intrinsic_image_deref_atomic_min:
+                p2_unpacked.op = V3D_TMU_OP_WRITE_UMIN_FULL_L1_CLEAR;
+                break;
+
+        case nir_intrinsic_image_deref_atomic_max:
+                p2_unpacked.op = V3D_TMU_OP_WRITE_UMAX;
+                break;
+        case nir_intrinsic_image_deref_atomic_and:
+                p2_unpacked.op = V3D_TMU_OP_WRITE_AND_READ_INC;
+                break;
+        case nir_intrinsic_image_deref_atomic_or:
+                p2_unpacked.op = V3D_TMU_OP_WRITE_OR_READ_DEC;
+                break;
+        case nir_intrinsic_image_deref_atomic_xor:
+                p2_unpacked.op = V3D_TMU_OP_WRITE_XOR_READ_NOT;
+                break;
+        case nir_intrinsic_image_deref_atomic_exchange:
+                p2_unpacked.op = V3D_TMU_OP_WRITE_XCHG_READ_FLUSH;
+                break;
+        case nir_intrinsic_image_deref_atomic_comp_swap:
+                p2_unpacked.op = V3D_TMU_OP_WRITE_CMPXCHG_READ_FLUSH;
+                break;
+        default:
+                unreachable("unknown image intrinsic");
+        };
+
+        bool is_1d = false;
+        switch (glsl_get_sampler_dim(sampler_type)) {
+        case GLSL_SAMPLER_DIM_1D:
+                is_1d = true;
+                break;
+        case GLSL_SAMPLER_DIM_BUF:
+                break;
+        case GLSL_SAMPLER_DIM_2D:
+        case GLSL_SAMPLER_DIM_RECT:
+                vir_TMU_WRITE(c, V3D_QPU_WADDR_TMUT,
+                              ntq_get_src(c, instr->src[1], 1), &tmu_writes);
+                break;
+        case GLSL_SAMPLER_DIM_3D:
+        case GLSL_SAMPLER_DIM_CUBE:
+                vir_TMU_WRITE(c, V3D_QPU_WADDR_TMUT,
+                              ntq_get_src(c, instr->src[1], 1), &tmu_writes);
+                vir_TMU_WRITE(c, V3D_QPU_WADDR_TMUR,
+                              ntq_get_src(c, instr->src[1], 2), &tmu_writes);
+                break;
+        default:
+                unreachable("bad image sampler dim");
         }
 
-        for (int i = 0; i < nir_tex_instr_dest_size(instr); i++) {
-                struct qreg chan;
+        if (glsl_sampler_type_is_array(sampler_type)) {
+                vir_TMU_WRITE(c, V3D_QPU_WADDR_TMUI,
+                              ntq_get_src(c, instr->src[1],
+                                          is_1d ? 1 : 2), &tmu_writes);
+        }
 
-                if (!p1_unpacked.output_type_32_bit) {
-                        STATIC_ASSERT(PIPE_SWIZZLE_X == 0);
-                        chan = return_values[i / 2];
+        /* Limit the number of channels returned to both how many the NIR
+         * instruction writes and how many the instruction could produce.
+         */
+        uint32_t instr_return_channels = nir_intrinsic_dest_components(instr);
+        if (!p1_unpacked.output_type_32_bit)
+                instr_return_channels = (instr_return_channels + 1) / 2;
 
-                        if (nir_alu_type_get_base_type(instr->dest_type) ==
-                            nir_type_float) {
-                                enum v3d_qpu_input_unpack unpack;
-                                if (i & 1)
-                                        unpack = V3D_QPU_UNPACK_H;
-                                else
-                                        unpack = V3D_QPU_UNPACK_L;
+        p0_unpacked.return_words_of_texture_data =
+                (1 << instr_return_channels) - 1;
 
-                                chan = vir_FMOV(c, chan);
-                                vir_set_unpack(c->defs[chan.index], 0, unpack);
-                        } else {
-                                /* If we're unpacking the low field, shift it
-                                 * up to the top first.
-                                 */
-                                if ((i & 1) == 0) {
-                                        chan = vir_SHL(c, chan,
-                                                       vir_uniform_ui(c, 16));
-                                }
+        uint32_t p0_packed;
+        V3D41_TMU_CONFIG_PARAMETER_0_pack(NULL,
+                                          (uint8_t *)&p0_packed,
+                                          &p0_unpacked);
 
-                                /* Do proper sign extension to a 32-bit int. */
-                                if (nir_alu_type_get_base_type(instr->dest_type) ==
-                                    nir_type_int) {
-                                        chan = vir_ASR(c, chan,
-                                                       vir_uniform_ui(c, 16));
-                                } else {
-                                        chan = vir_SHR(c, chan,
-                                                       vir_uniform_ui(c, 16));
-                                }
-                        }
-                } else {
-                        chan = vir_MOV(c, return_values[i]);
+        uint32_t p1_packed;
+        V3D41_TMU_CONFIG_PARAMETER_1_pack(NULL,
+                                          (uint8_t *)&p1_packed,
+                                          &p1_unpacked);
+
+        uint32_t p2_packed;
+        V3D41_TMU_CONFIG_PARAMETER_2_pack(NULL,
+                                          (uint8_t *)&p2_packed,
+                                          &p2_unpacked);
+
+        /* Load unit number into the high bits of the texture or sampler
+         * address field, which will be be used by the driver to decide which
+         * texture to put in the actual address field.
+         */
+        p0_packed |= unit << 24;
+
+        vir_WRTMUC(c, QUNIFORM_IMAGE_TMU_CONFIG_P0, p0_packed);
+        if (memcmp(&p1_unpacked, &p1_unpacked_default, sizeof(p1_unpacked)) != 0)
+                vir_WRTMUC(c, QUNIFORM_CONSTANT, p1_packed);
+        if (memcmp(&p2_unpacked, &p2_unpacked_default, sizeof(p2_unpacked)) != 0)
+                vir_WRTMUC(c, QUNIFORM_CONSTANT, p2_packed);
+
+        /* Emit the data writes for atomics or image store. */
+        if (instr->intrinsic != nir_intrinsic_image_deref_load) {
+                /* Vector for stores, or first atomic argument */
+                struct qreg src[4];
+                for (int i = 0; i < nir_intrinsic_src_components(instr, 3); i++) {
+                        src[i] = ntq_get_src(c, instr->src[3], i);
+                        vir_TMU_WRITE(c, V3D_QPU_WADDR_TMUD, src[i],
+                                      &tmu_writes);
                 }
-                ntq_store_dest(c, &instr->dest, i, chan);
+
+                /* Second atomic argument */
+                if (instr->intrinsic ==
+                    nir_intrinsic_image_deref_atomic_comp_swap) {
+                        vir_TMU_WRITE(c, V3D_QPU_WADDR_TMUD,
+                                      ntq_get_src(c, instr->src[4], 0),
+                                      &tmu_writes);
+                }
         }
+
+        vir_TMU_WRITE(c, V3D_QPU_WADDR_TMUSF, ntq_get_src(c, instr->src[1], 0),
+                      &tmu_writes);
+
+        vir_emit_thrsw(c);
+
+        /* The input FIFO has 16 slots across all threads, so make sure we
+         * don't overfill our allocation.
+         */
+        while (tmu_writes > 16 / c->threads)
+                c->threads /= 2;
+
+        for (int i = 0; i < 4; i++) {
+                if (p0_unpacked.return_words_of_texture_data & (1 << i))
+                        ntq_store_dest(c, &instr->dest, i, vir_LDTMU(c));
+        }
+
+        if (nir_intrinsic_dest_components(instr) == 0)
+                vir_TMUWT(c);
 }

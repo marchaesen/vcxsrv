@@ -31,7 +31,7 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/Xlibint.h>
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
-
+#include "reallocarray.h"
 
 /*
  * XTextPropertyToStringList - set list and count to contain data stored in
@@ -72,7 +72,7 @@ Status XTextPropertyToStringList (
     /*
      * allocate list and duplicate
      */
-    list = Xmalloc (nelements * sizeof (char *));
+    list = Xmallocarray (nelements, sizeof (char *));
     if (!list) return False;
 
     start = Xmalloc ((datalen + 1) * sizeof (char));	/* for <NUL> */

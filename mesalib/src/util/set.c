@@ -36,6 +36,7 @@
 #include <assert.h>
 #include <string.h>
 
+#include "hash_table.h"
 #include "macros.h"
 #include "ralloc.h"
 #include "set.h"
@@ -436,4 +437,14 @@ _mesa_set_random_entry(struct set *ht,
    }
 
    return NULL;
+}
+
+/**
+ * Helper to create a set with pointer keys.
+ */
+struct set *
+_mesa_pointer_set_create(void *mem_ctx)
+{
+   return _mesa_set_create(mem_ctx, _mesa_hash_pointer,
+                           _mesa_key_pointer_equal);
 }

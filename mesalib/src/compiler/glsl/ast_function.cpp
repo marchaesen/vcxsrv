@@ -363,31 +363,29 @@ copy_index_derefs_to_temps(ir_instruction *ir, void *data)
       ir = a->array->as_dereference();
 
       ir_rvalue *idx = a->array_index;
-      if (idx->as_dereference_variable()) {
-         ir_variable *var = idx->variable_referenced();
+      ir_variable *var = idx->variable_referenced();
 
-         /* If the index is read only it cannot change so there is no need
-          * to copy it.
-          */
-         if (var->data.read_only || var->data.memory_read_only)
-            return;
+      /* If the index is read only it cannot change so there is no need
+       * to copy it.
+       */
+      if (!var || var->data.read_only || var->data.memory_read_only)
+         return;
 
-         ir_variable *tmp = new(d->mem_ctx) ir_variable(idx->type, "idx_tmp",
-                                                        ir_var_temporary);
-         d->before_instructions->push_tail(tmp);
+      ir_variable *tmp = new(d->mem_ctx) ir_variable(idx->type, "idx_tmp",
+                                                      ir_var_temporary);
+      d->before_instructions->push_tail(tmp);
 
-         ir_dereference_variable *const deref_tmp_1 =
-            new(d->mem_ctx) ir_dereference_variable(tmp);
-         ir_assignment *const assignment =
-            new(d->mem_ctx) ir_assignment(deref_tmp_1,
-                                          idx->clone(d->mem_ctx, NULL));
-         d->before_instructions->push_tail(assignment);
+      ir_dereference_variable *const deref_tmp_1 =
+         new(d->mem_ctx) ir_dereference_variable(tmp);
+      ir_assignment *const assignment =
+         new(d->mem_ctx) ir_assignment(deref_tmp_1,
+                                       idx->clone(d->mem_ctx, NULL));
+      d->before_instructions->push_tail(assignment);
 
-         /* Replace the array index with a dereference of the new temporary */
-         ir_dereference_variable *const deref_tmp_2 =
-            new(d->mem_ctx) ir_dereference_variable(tmp);
-         a->array_index = deref_tmp_2;
-      }
+      /* Replace the array index with a dereference of the new temporary */
+      ir_dereference_variable *const deref_tmp_2 =
+         new(d->mem_ctx) ir_dereference_variable(tmp);
+      a->array_index = deref_tmp_2;
    }
 }
 
@@ -402,7 +400,8 @@ fix_parameter(void *mem_ctx, ir_rvalue *actual, const glsl_type *formal_type,
     * nothing needs to be done to fix the parameter.
     */
    if (formal_type == actual->type
-       && (expr == NULL || expr->operation != ir_binop_vector_extract))
+       && (expr == NULL || expr->operation != ir_binop_vector_extract)
+       && actual->as_dereference_variable())
       return;
 
    /* An array index could also be an out variable so we need to make a copy
@@ -456,7 +455,7 @@ fix_parameter(void *mem_ctx, ir_rvalue *actual, const glsl_type *formal_type,
       ir_dereference_variable *const deref_tmp_1 =
          new(mem_ctx) ir_dereference_variable(tmp);
       ir_assignment *const assignment =
-         new(mem_ctx) ir_assignment(deref_tmp_1, actual);
+         new(mem_ctx) ir_assignment(deref_tmp_1, actual->clone(mem_ctx, NULL));
       before_instructions->push_tail(assignment);
    }
 

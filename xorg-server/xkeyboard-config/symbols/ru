@@ -224,6 +224,15 @@ xkb_symbols "phonetic_winkeys" {
 };
 
 partial alphanumeric_keys
+xkb_symbols "phonetic_yazherty" {
+    include "ru(phonetic_winkeys)"
+    name[Group1]= "Russian (phonetic yazherty)";
+    key	<LatW> {	[     Cyrillic_zhe,     Cyrillic_ZHE	]	};
+    key	<LatV> {	[    Cyrillic_ve,    Cyrillic_VE	]	}; 
+};
+
+
+partial alphanumeric_keys
 xkb_symbols "tt" {
 
     include "ru(winkeys)"
@@ -640,14 +649,14 @@ xkb_symbols "phonetic_fr" {
 // │ Ё ``│ ! ˝ │ @   │ №   │ $   │ %   │ ^ ¯ │ &   │ * ₴ │ (   │ )   │ _ — │ Ъ + ┃ ⌫       ┃
 // │ ё ` │ 1 ´ │ 2 ¨ │ 3 # │ 4 ¢ │ 5 € │ 6 ˘ │ 7   │ 8 ₽ │ 9 [ │ 0 ] │ - – │ ъ = ┃Backspace┃
 // ┢━━━━━┷━┱───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┺━┳━━━━━━━┫
-// ┃       ┃ Я   │ Ж   │ Ф   │ П   │ Г Ґ │ й Ј │ Л Љ │ У Ў │ Ы Ї │ Ю : │ Ш { │ Щ } ┃ Enter ┃
-// ┃ Tab ↹ ┃ я   │ ж   │ ф   │ п   │ г ґ │ й ј │ л љ │ у ў │ ы ї │ ю ; │ ш « │ щ » ┃   ⏎   ┃
+// ┃       ┃ Я Ѣ │ Ж Ѵ │ Ф Ѳ │ П   │ Г Ґ │ й Ј │ Л Љ │ У Ў │ Ы Ї │ Ю : │ Ш { │ Щ } ┃ Enter ┃
+// ┃ Tab ↹ ┃ я ѣ │ ж ѵ │ ф ѳ │ п   │ г ґ │ й ј │ л љ │ у ў │ ы ї │ ю ; │ ш « │ щ » ┃   ⏎   ┃
 // ┣━━━━━━━┻┱────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┺┓      ┃
 // ┃ ⌫ Back ┃ А   │ Р   │ С   │ Т Ћ │ Д Ђ │ Ч Џ │ Н Њ │ Е Є │ И І │ О   │ Ь " │ Э | ┃      ┃
 // ┃  space ┃ а   │ р   │ с   │ т ћ │ д ђ │ ч џ │ н њ │ е є │ и і │ о   │ ь ' │ э \ ┃      ┃
 // ┣━━━━━━━━┻━┱───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┲━━━┷━━━━━┻━━━━━━┫
-// ┃          ┃ З Ѕ │ Х   │ Ц   │ В Ќ │ Б Ѓ │ К   │ М   │ ;   │ :   │ ? Ӏ ┃                ┃
-// ┃  Shift ⇧ ┃ з ѕ │ х   │ ц   │ в ќ │ б ѓ │ к   │ м   │ , < │ . > │ / ӏ ┃     Shift ⇧    ┃
+// ┃          ┃ З Ѕ │ Х   │ Ц   │ В   │ Б Ѓ │ К Ќ │ М   │ ;   │ :   │ ? Ӏ ┃                ┃
+// ┃  Shift ⇧ ┃ з ѕ │ х   │ ц   │ в   │ б ѓ │ к ќ │ м   │ , < │ . > │ / ӏ ┃     Shift ⇧    ┃
 // ┣━━━━━━━┳━━┻━━━━┳┷━━━━━┷┱────┴─────┴─────┴─────┴─────┴─────┴┲━━━━┷━━┳━━┻━━━━┳━━━━━━━┳━━━┛
 // ┃       ┃       ┃       ┃                                   ┃       ┃       ┃       ┃
 // ┃ Ctrl  ┃ Meta  ┃  Alt  ┃                Space              ┃AltGr ⇮┃ Menu  ┃ Ctrl  ┃
@@ -658,13 +667,13 @@ xkb_symbols "rulemak" {
 
     name[Group1]= "Russian (Rulemak, phonetic Colemak)";
 
-    key <TLDE> { [     Cyrillic_io,     Cyrillic_IO,      dead_grave,dead_doublegrave ] };
-    key <AE01> { [               1,          exclam,      dead_acute,dead_doubleacute ] };
-    key <AE02> { [               2,              at,  dead_diaeresis                  ] };
+    key <TLDE> { [     Cyrillic_io,     Cyrillic_IO,           U0300,           U030F ] }; // Combining grave, double grave
+    key <AE01> { [               1,          exclam,           U0301,           U030B ] }; // Combining acute, double acute
+    key <AE02> { [               2,              at,           U0308                  ] }; // Combining diaeresis
     key <AE03> { [               3,      numerosign,      numbersign                  ] };
     key <AE04> { [               4,          dollar,            cent                  ] };
     key <AE05> { [               5,         percent,        EuroSign                  ] };
-    key <AE06> { [               6,     asciicircum,      dead_breve,     dead_macron ] };
+    key <AE06> { [               6,     asciicircum,           U0306,           U0304 ] }; // Combining breve, macron
     key <AE07> { [               7,       ampersand                                   ] };
     key <AE08> { [               8,        asterisk,           U20BD,           U20B4 ] }; // ruble, hryvnia
     key <AE09> { [               9,       parenleft,     bracketleft                  ] };
@@ -672,9 +681,9 @@ xkb_symbols "rulemak" {
     key <AE11> { [           minus,      underscore,          endash,          emdash ] };
     key <AE12> { [ Cyrillic_hardsign, Cyrillic_HARDSIGN,       equal,            plus ] };
 
-    key <AD01> { [     Cyrillic_ya,     Cyrillic_YA                                   ] };
-    key <AD02> { [    Cyrillic_zhe,    Cyrillic_ZHE                                   ] };
-    key <AD03> { [     Cyrillic_ef,     Cyrillic_EF                                   ] };
+    key <AD01> { [     Cyrillic_ya,     Cyrillic_YA,           U0463,           U0462 ] }; // yat
+    key <AD02> { [    Cyrillic_zhe,    Cyrillic_ZHE,           U0475,           U0474 ] }; // izhitsa
+    key <AD03> { [     Cyrillic_ef,     Cyrillic_EF,           U0473,           U0472 ] }; // fita
     key <AD04> { [     Cyrillic_pe,     Cyrillic_PE                                   ] };
     key <AD05> { [    Cyrillic_ghe,    Cyrillic_GHE, Ukrainian_ghe_with_upturn, Ukrainian_GHE_WITH_UPTURN ] };
     key <AD06> { [ Cyrillic_shorti, Cyrillic_SHORTI,     Cyrillic_je,     Cyrillic_JE ] };
@@ -701,9 +710,9 @@ xkb_symbols "rulemak" {
     key <AB01> { [     Cyrillic_ze,     Cyrillic_ZE,   Macedonia_dse,   Macedonia_DSE ] };
     key <AB02> { [     Cyrillic_ha,     Cyrillic_HA                                   ] };
     key <AB03> { [    Cyrillic_tse,    Cyrillic_TSE                                   ] };
-    key <AB04> { [     Cyrillic_ve,     Cyrillic_VE,   Macedonia_kje,   Macedonia_KJE ] };
+    key <AB04> { [     Cyrillic_ve,     Cyrillic_VE                                   ] };
     key <AB05> { [     Cyrillic_be,     Cyrillic_BE,   Macedonia_gje,   Macedonia_GJE ] };
-    key <AB06> { [     Cyrillic_ka,     Cyrillic_KA                                   ] };
+    key <AB06> { [     Cyrillic_ka,     Cyrillic_KA,   Macedonia_kje,   Macedonia_KJE ] };
     key <AB07> { [     Cyrillic_em,     Cyrillic_EM                                   ] };
     key <AB08> { [           comma,       semicolon,            less                  ] };
     key <AB09> { [          period,           colon,         greater                  ] };

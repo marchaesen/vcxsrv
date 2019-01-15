@@ -37,8 +37,7 @@ ir_array_refcount_visitor::ir_array_refcount_visitor()
    : last_array_deref(0), derefs(0), num_derefs(0), derefs_size(0)
 {
    this->mem_ctx = ralloc_context(NULL);
-   this->ht = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                                      _mesa_key_pointer_equal);
+   this->ht = _mesa_pointer_hash_table_create(NULL);
 }
 
 static void

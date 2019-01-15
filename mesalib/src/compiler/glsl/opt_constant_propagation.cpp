@@ -86,8 +86,7 @@ public:
       mem_ctx = ralloc_context(0);
       this->lin_ctx = linear_alloc_parent(this->mem_ctx, 0);
       this->acp = new(mem_ctx) exec_list;
-      this->kills = _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
-                                            _mesa_key_pointer_equal);
+      this->kills = _mesa_pointer_hash_table_create(mem_ctx);
    }
    ~ir_constant_propagation_visitor()
    {
@@ -256,8 +255,7 @@ ir_constant_propagation_visitor::visit_enter(ir_function_signature *ir)
    bool orig_killed_all = this->killed_all;
 
    this->acp = new(mem_ctx) exec_list;
-   this->kills = _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
-                                         _mesa_key_pointer_equal);
+   this->kills = _mesa_pointer_hash_table_create(mem_ctx);
    this->killed_all = false;
 
    visit_list_elements(this, &ir->body);
@@ -368,8 +366,7 @@ ir_constant_propagation_visitor::visit_enter(ir_if *ir)
    ir->condition->accept(this);
    handle_rvalue(&ir->condition);
 
-   hash_table *new_kills = _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
-                                                   _mesa_key_pointer_equal);
+   hash_table *new_kills = _mesa_pointer_hash_table_create(mem_ctx);
    bool then_killed_all = false;
    bool else_killed_all = false;
 
@@ -398,8 +395,7 @@ ir_constant_propagation_visitor::handle_loop(ir_loop *ir, bool keep_acp)
    bool orig_killed_all = this->killed_all;
 
    this->acp = new(mem_ctx) exec_list;
-   this->kills = _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
-                                         _mesa_key_pointer_equal);
+   this->kills = _mesa_pointer_hash_table_create(mem_ctx);
    this->killed_all = false;
 
    if (keep_acp) {

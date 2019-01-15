@@ -224,14 +224,12 @@ struct st_context
       struct pipe_sampler_state sampler;
       struct pipe_sampler_state atlas_sampler;
       enum pipe_format tex_format;
-      void *vs;
       struct st_bitmap_cache cache;
    } bitmap;
 
    /** for glDraw/CopyPixels */
    struct {
       void *zs_shaders[4];
-      void *vert_shaders[2];   /**< ureg shaders */
    } drawpix;
 
    /** Cache of glDrawPixels images */
@@ -278,7 +276,8 @@ struct st_context
    /** for drawing with st_util_vertex */
    struct pipe_vertex_element util_velems[3];
 
-   void *passthrough_fs;  /**< simple pass-through frag shader */
+   /** passthrough vertex shader matching the util_velem attributes */
+   void *passthrough_vs;
 
    enum pipe_texture_target internal_target;
 

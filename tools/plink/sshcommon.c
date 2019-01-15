@@ -7,6 +7,7 @@
 #include <stdlib.h>
 
 #include "putty.h"
+#include "mpint.h"
 #include "ssh.h"
 #include "sshbpp.h"
 #include "sshppl.h"
@@ -341,12 +342,12 @@ static bool zombiechan_want_close(Channel *chan, bool sent_eof, bool rcvd_eof)
 
 void chan_remotely_opened_confirmation(Channel *chan)
 {
-    assert(0 && "this channel type should never receive OPEN_CONFIRMATION");
+    unreachable("this channel type should never receive OPEN_CONFIRMATION");
 }
 
 void chan_remotely_opened_failure(Channel *chan, const char *errtext)
 {
-    assert(0 && "this channel type should never receive OPEN_FAILURE");
+    unreachable("this channel type should never receive OPEN_FAILURE");
 }
 
 bool chan_default_want_close(
@@ -434,7 +435,7 @@ bool chan_no_change_window_size(
 
 void chan_no_request_response(Channel *chan, bool success)
 {
-    assert(0 && "this channel type should never send a want-reply request");
+    unreachable("this channel type should never send a want-reply request");
 }
 
 /* ----------------------------------------------------------------------
@@ -555,7 +556,7 @@ struct ssh_ttymodes get_ttymodes_from_conf(Seat *seat, Conf *conf)
                     ival = (atoi(sval) != 0);
                 break;
               default:
-                assert(0 && "Bad mode->type");
+                unreachable("Bad mode->type");
             }
 
             modes.have_mode[mode->opcode] = true;
@@ -1005,16 +1006,15 @@ bool ssh1_common_filter_queue(PacketProtocolLayer *ppl)
 
 void ssh1_compute_session_id(
     unsigned char *session_id, const unsigned char *cookie,
-    struct RSAKey *hostkey, struct RSAKey *servkey)
+    RSAKey *hostkey, RSAKey *servkey)
 {
     struct MD5Context md5c;
-    int i;
 
     MD5Init(&md5c);
-    for (i = (bignum_bitcount(hostkey->modulus) + 7) / 8; i-- ;)
-        put_byte(&md5c, bignum_byte(hostkey->modulus, i));
-    for (i = (bignum_bitcount(servkey->modulus) + 7) / 8; i-- ;)
-        put_byte(&md5c, bignum_byte(servkey->modulus, i));
+    for (size_t i = (mp_get_nbits(hostkey->modulus) + 7) / 8; i-- ;)
+        put_byte(&md5c, mp_get_byte(hostkey->modulus, i));
+    for (size_t i = (mp_get_nbits(servkey->modulus) + 7) / 8; i-- ;)
+        put_byte(&md5c, mp_get_byte(servkey->modulus, i));
     put_data(&md5c, cookie, 8);
     MD5Final(session_id, &md5c);
 }

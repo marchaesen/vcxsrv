@@ -29,6 +29,9 @@ pre {
 	/*font-family: monospace;*/
 	font-size: 10pt;
 	/*color: black;*/
+	background-color: #eee;
+	margin-left: 2em;
+	padding: .5em;
 }
 
 iframe {

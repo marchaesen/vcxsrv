@@ -62,8 +62,7 @@ init_clone_state(clone_state *state, struct hash_table *remap_table,
    if (remap_table) {
       state->remap_table = remap_table;
    } else {
-      state->remap_table = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                                                   _mesa_key_pointer_equal);
+      state->remap_table = _mesa_pointer_hash_table_create(NULL);
    }
 
    list_inithead(&state->phi_srcs);
@@ -311,13 +310,17 @@ clone_deref_instr(clone_state *state, const nir_deref_instr *deref)
       break;
 
    case nir_deref_type_array:
+   case nir_deref_type_ptr_as_array:
       __clone_src(state, &nderef->instr,
                   &nderef->arr.index, &deref->arr.index);
       break;
 
    case nir_deref_type_array_wildcard:
-   case nir_deref_type_cast:
       /* Nothing to do */
+      break;
+
+   case nir_deref_type_cast:
+      nderef->cast.ptr_stride = deref->cast.ptr_stride;
       break;
 
    default:
@@ -680,6 +683,7 @@ clone_function(clone_state *state, const nir_function *fxn, nir_shader *ns)
    nfxn->num_params = fxn->num_params;
    nfxn->params = ralloc_array(state->ns, nir_parameter, fxn->num_params);
    memcpy(nfxn->params, fxn->params, sizeof(nir_parameter) * fxn->num_params);
+   nfxn->is_entrypoint = fxn->is_entrypoint;
 
    /* At first glance, it looks like we should clone the function_impl here.
     * However, call instructions need to be able to reference at least the

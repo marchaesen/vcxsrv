@@ -1460,8 +1460,7 @@ move_non_declarations(exec_list *instructions, exec_node *last,
    hash_table *temps = NULL;
 
    if (make_copies)
-      temps = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                                      _mesa_key_pointer_equal);
+      temps = _mesa_pointer_hash_table_create(NULL);
 
    foreach_in_list_safe(ir_instruction, inst, instructions) {
       if (inst->as_function())
@@ -1507,8 +1506,7 @@ class array_sizing_visitor : public deref_type_updater {
 public:
    array_sizing_visitor()
       : mem_ctx(ralloc_context(NULL)),
-        unnamed_interfaces(_mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                                                   _mesa_key_pointer_equal))
+        unnamed_interfaces(_mesa_pointer_hash_table_create(NULL))
    {
    }
 
@@ -2693,18 +2691,22 @@ find_available_slots(unsigned used_mask, unsigned needed_count)
 #define SAFE_MASK_FROM_INDEX(i) (((i) >= 32) ? ~0 : ((1 << (i)) - 1))
 
 /**
- * Assign locations for either VS inputs or FS outputs
+ * Assign locations for either VS inputs or FS outputs.
  *
- * \param mem_ctx       Temporary ralloc context used for linking
- * \param prog          Shader program whose variables need locations assigned
- * \param constants     Driver specific constant values for the program.
- * \param target_index  Selector for the program target to receive location
- *                      assignmnets.  Must be either \c MESA_SHADER_VERTEX or
- *                      \c MESA_SHADER_FRAGMENT.
+ * \param mem_ctx        Temporary ralloc context used for linking.
+ * \param prog           Shader program whose variables need locations
+ *                       assigned.
+ * \param constants      Driver specific constant values for the program.
+ * \param target_index   Selector for the program target to receive location
+ *                       assignmnets.  Must be either \c MESA_SHADER_VERTEX or
+ *                       \c MESA_SHADER_FRAGMENT.
+ * \param do_assignment  Whether we are actually marking the assignment or we
+ *                       are just doing a dry-run checking.
  *
  * \return
- * If locations are successfully assigned, true is returned.  Otherwise an
- * error is emitted to the shader link log and false is returned.
+ * If locations are (or can be, in case of dry-running) successfully assigned,
+ * true is returned.  Otherwise an error is emitted to the shader link log and
+ * false is returned.
  */
 static bool
 assign_attribute_or_color_locations(void *mem_ctx,
@@ -3181,6 +3183,12 @@ match_explicit_outputs_to_inputs(gl_linked_shader *producer,
          const unsigned idx = var->data.location - VARYING_SLOT_VAR0;
          if (explicit_locations[idx][var->data.location_frac] == NULL)
             explicit_locations[idx][var->data.location_frac] = var;
+
+         /* Always match TCS outputs. They are shared by all invocations
+          * within a patch and can be used as shared memory.
+          */
+         if (producer->Stage == MESA_SHADER_TESS_CTRL)
+            var->data.is_unmatched_generic_inout = 0;
       }
    }
 
@@ -4402,9 +4410,7 @@ build_program_resource_list(struct gl_context *ctx,
    if (input_stage == MESA_SHADER_STAGES && output_stage == 0)
       return;
 
-   struct set *resource_set = _mesa_set_create(NULL,
-                                               _mesa_hash_pointer,
-                                               _mesa_key_pointer_equal);
+   struct set *resource_set = _mesa_pointer_set_create(NULL);
 
    /* Program interface needs to expose varyings in case of SSO. */
    if (shProg->SeparateShader) {

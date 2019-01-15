@@ -77,6 +77,9 @@ struct ac_shader_abi {
 	 */
 	LLVMValueRef *inputs;
 
+	/* Varying -> attribute number mapping. Also NIR-only */
+	unsigned fs_input_attr_indices[MAX_VARYING];
+
 	void (*emit_outputs)(struct ac_shader_abi *abi,
 			     unsigned max_outputs,
 			     LLVMValueRef *addrs);

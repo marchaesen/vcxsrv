@@ -241,6 +241,10 @@ v3d_generate_code_block(struct v3d_compile *c,
                                 src[i] = temp_registers[index];
                                 break;
                         case QFILE_UNIF:
+                                /* XXX perf: If the last ldunif we emitted was
+                                 * the same uniform value, skip it.  Common
+                                 * for multop/umul24 sequences.
+                                 */
                                 if (!emitted_ldunif) {
                                         new_ldunif_instr(qinst, i);
                                         c->num_uniforms++;
@@ -353,6 +357,36 @@ v3d_generate_code_block(struct v3d_compile *c,
         }
 }
 
+static bool
+reads_uniform(const struct v3d_device_info *devinfo, uint64_t instruction)
+{
+        struct v3d_qpu_instr qpu;
+        MAYBE_UNUSED bool ok = v3d_qpu_instr_unpack(devinfo, instruction, &qpu);
+        assert(ok);
+
+        if (qpu.sig.ldunif ||
+            qpu.sig.ldunifarf ||
+            qpu.sig.wrtmuc) {
+                return true;
+        }
+
+        if (qpu.type == V3D_QPU_INSTR_TYPE_BRANCH)
+                return true;
+
+        if (qpu.type == V3D_QPU_INSTR_TYPE_ALU) {
+                if (qpu.alu.add.magic_write &&
+                    v3d_qpu_magic_waddr_loads_unif(qpu.alu.add.waddr)) {
+                        return true;
+                }
+
+                if (qpu.alu.mul.magic_write &&
+                    v3d_qpu_magic_waddr_loads_unif(qpu.alu.mul.waddr)) {
+                        return true;
+                }
+        }
+
+        return false;
+}
 
 static void
 v3d_dump_qpu(struct v3d_compile *c)
@@ -361,11 +395,30 @@ v3d_dump_qpu(struct v3d_compile *c)
                 vir_get_stage_name(c),
                 c->program_id, c->variant_id);
 
+        int next_uniform = 0;
         for (int i = 0; i < c->qpu_inst_count; i++) {
                 const char *str = v3d_qpu_disasm(c->devinfo, c->qpu_insts[i]);
-                fprintf(stderr, "0x%016"PRIx64" %s\n", c->qpu_insts[i], str);
+                fprintf(stderr, "0x%016"PRIx64" %s", c->qpu_insts[i], str);
+
+                /* We can only do this on 4.x, because we're not tracking TMU
+                 * implicit uniforms here on 3.x.
+                 */
+                if (c->devinfo->ver >= 40 &&
+                    reads_uniform(c->devinfo, c->qpu_insts[i])) {
+                        fprintf(stderr, " (");
+                        vir_dump_uniform(c->uniform_contents[next_uniform],
+                                         c->uniform_data[next_uniform]);
+                        fprintf(stderr, ")");
+                        next_uniform++;
+                }
+                fprintf(stderr, "\n");
                 ralloc_free((void *)str);
         }
+
+        /* Make sure our dumping lined up. */
+        if (c->devinfo->ver >= 40)
+                assert(next_uniform == c->num_uniforms);
+
         fprintf(stderr, "\n");
 }
 

@@ -47,8 +47,7 @@ public:
       this->success = true;
       this->linked = linked;
 
-      this->locals = _mesa_set_create(NULL, _mesa_hash_pointer,
-                                      _mesa_key_pointer_equal);
+      this->locals = _mesa_pointer_set_create(NULL);
    }
 
    ~call_link_visitor()
@@ -148,8 +147,7 @@ public:
        * replace signature stored in a function.  One could easily be added,
        * but this avoids the need.
        */
-      struct hash_table *ht = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                                                      _mesa_key_pointer_equal);
+      struct hash_table *ht = _mesa_pointer_hash_table_create(NULL);
 
       exec_list formal_parameters;
       foreach_in_list(const ir_instruction, original, &sig->parameters) {

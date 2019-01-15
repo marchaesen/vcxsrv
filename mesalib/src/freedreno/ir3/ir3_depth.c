@@ -176,28 +176,28 @@ remove_unused_by_block(struct ir3_block *block)
 		if (instr->flags & IR3_INSTR_UNUSED) {
 			if (instr->opc == OPC_META_FO) {
 				struct ir3_instruction *src = ssa(instr->regs[1]);
-				if (src->regs[0]->wrmask > 1) {
-					unsigned newn, lastn;
-
-					lastn = util_last_bit(src->regs[0]->wrmask);
+				/* leave inputs alone.. we can't optimize out components of
+				 * an input, since the hw is still going to be writing all
+				 * of the components, and we could end up in a situation
+				 * where multiple inputs overlap.
+				 */
+				if ((src->opc != OPC_META_INPUT) &&
+						(src->regs[0]->wrmask > 1)) {
 					src->regs[0]->wrmask &= ~(1 << instr->fo.off);
-					newn = util_last_bit(src->regs[0]->wrmask);
 
 					/* prune no-longer needed right-neighbors.  We could
 					 * probably do the same for left-neighbors (ie. tex
 					 * fetch that only need .yw components), but that
 					 * makes RA a bit more confusing than it already is
 					 */
-					if (newn < lastn) {
-						struct ir3_instruction *n = ir3_neighbor_first(instr);
-						for (unsigned i = 1; i < newn; i++) {
-							n = n->cp.right;
-						}
-						// XXX I don't think n should be null here!
-						if (n) {
-							debug_assert(n->cp.right->flags & IR3_INSTR_UNUSED);
-							n->cp.right = NULL;
-						}
+					struct ir3_instruction *n = instr;
+					while (n && n->cp.right)
+						n = n->cp.right;
+					while (n->flags & IR3_INSTR_UNUSED) {
+						n = n->cp.left;
+						if (!n)
+							break;
+						n->cp.right = NULL;
 					}
 				}
 			}

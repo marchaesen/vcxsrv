@@ -208,7 +208,7 @@ get_deref_node(nir_deref_instr *deref, struct lower_variables_state *state)
    /* This pass only works on local variables.  Just ignore any derefs with
     * a non-local mode.
     */
-   if (deref->mode != nir_var_local)
+   if (deref->mode != nir_var_function)
       return NULL;
 
    struct deref_node *node = get_deref_node_recur(deref, state);
@@ -376,8 +376,7 @@ register_load_instr(nir_intrinsic_instr *load_instr,
       return;
 
    if (node->loads == NULL)
-      node->loads = _mesa_set_create(state->dead_ctx, _mesa_hash_pointer,
-                                     _mesa_key_pointer_equal);
+      node->loads = _mesa_pointer_set_create(state->dead_ctx);
 
    _mesa_set_add(node->loads, load_instr);
 }
@@ -392,8 +391,7 @@ register_store_instr(nir_intrinsic_instr *store_instr,
       return;
 
    if (node->stores == NULL)
-      node->stores = _mesa_set_create(state->dead_ctx, _mesa_hash_pointer,
-                                     _mesa_key_pointer_equal);
+      node->stores = _mesa_pointer_set_create(state->dead_ctx);
 
    _mesa_set_add(node->stores, store_instr);
 }
@@ -409,8 +407,7 @@ register_copy_instr(nir_intrinsic_instr *copy_instr,
          continue;
 
       if (node->copies == NULL)
-         node->copies = _mesa_set_create(state->dead_ctx, _mesa_hash_pointer,
-                                         _mesa_key_pointer_equal);
+         node->copies = _mesa_pointer_set_create(state->dead_ctx);
 
       _mesa_set_add(node->copies, copy_instr);
    }
@@ -507,7 +504,7 @@ rename_variables(struct lower_variables_state *state)
          switch (intrin->intrinsic) {
          case nir_intrinsic_load_deref: {
             nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
-            if (deref->mode != nir_var_local)
+            if (deref->mode != nir_var_function)
                continue;
 
             struct deref_node *node = get_deref_node(deref, state);
@@ -557,7 +554,7 @@ rename_variables(struct lower_variables_state *state)
 
          case nir_intrinsic_store_deref: {
             nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
-            if (deref->mode != nir_var_local)
+            if (deref->mode != nir_var_function)
                continue;
 
             struct deref_node *node = get_deref_node(deref, state);
@@ -661,9 +658,7 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
    state.dead_ctx = ralloc_context(state.shader);
    state.impl = impl;
 
-   state.deref_var_nodes = _mesa_hash_table_create(state.dead_ctx,
-                                                   _mesa_hash_pointer,
-                                                   _mesa_key_pointer_equal);
+   state.deref_var_nodes = _mesa_pointer_hash_table_create(state.dead_ctx);
    exec_list_make_empty(&state.direct_deref_nodes);
 
    /* Build the initial deref structures and direct_deref_nodes table */
@@ -685,7 +680,7 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
       assert(path->path[0]->deref_type == nir_deref_type_var);
 
       /* We don't build deref nodes for non-local variables */
-      assert(path->path[0]->var->data.mode == nir_var_local);
+      assert(path->path[0]->var->data.mode == nir_var_function);
 
       if (path_may_be_aliased(path, &state)) {
          exec_node_remove(&node->direct_derefs_link);
@@ -698,8 +693,12 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
       foreach_deref_node_match(path, lower_copies_to_load_store, &state);
    }
 
-   if (!progress)
+   if (!progress) {
+#ifndef NDEBUG
+      impl->valid_metadata &= ~nir_metadata_not_properly_reset;
+#endif
       return false;
+   }
 
    nir_metadata_require(impl, nir_metadata_dominance);
 

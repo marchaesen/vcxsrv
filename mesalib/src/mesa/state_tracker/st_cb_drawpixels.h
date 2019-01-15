@@ -47,4 +47,7 @@ st_get_drawpix_shader(const struct tgsi_token *tokens, bool use_texcoord,
                       unsigned drawpix_sampler, unsigned pixelmap_sampler,
                       unsigned texcoord_const, unsigned tex_target);
 
+extern void
+st_make_passthrough_vertex_shader(struct st_context *st);
+
 #endif /* ST_CB_DRAWPIXELS_H */

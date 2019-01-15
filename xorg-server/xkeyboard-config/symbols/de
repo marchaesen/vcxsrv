@@ -783,7 +783,7 @@ xkb_symbols "htcdream" {
 
         //third row
         key <AC01> { [ a, A, adiaeresis, adiaeresis ] };
-        key <AC02> { [ s, S, ssharp, ssharp] };
+        key <AC02> { [ s, S, ssharp, U1E9E ] };
         key <AC03> { [ d ,D, backslash, backslash ] };
         key <AC04> { [ f, F, braceleft, braceleft ] };
         key <AC05> { [ g, G, braceright, braceright ] };
@@ -835,7 +835,7 @@ xkb_symbols "us" {
     name[Group1]="German (US, with German letters)";
 
     key <AC01> { [           a,          A, adiaeresis, Adiaeresis ] };
-    key <AC02> { [           s,          S,     ssharp,     ssharp ] };
+    key <AC02> { [           s,          S,     ssharp,      U1E9E ] };
     key <AC10> { [   semicolon,      colon, odiaeresis, Odiaeresis ] };
     key <AC11> { [  apostrophe,   quotedbl, adiaeresis, Adiaeresis ] };
     key <AD03> { [           e,          E,   EuroSign,   EuroSign ] };

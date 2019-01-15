@@ -219,12 +219,11 @@ nir_lower_atomics_to_ssbo(nir_shader *shader, unsigned ssbo_offset)
             char name[16];
 
             /* A length of 0 is used to denote unsized arrays */
-            const struct glsl_type *type = glsl_array_type(glsl_uint_type(), 0);
+            const struct glsl_type *type = glsl_array_type(glsl_uint_type(), 0, 0);
 
             snprintf(name, sizeof(name), "counter%d", var->data.binding);
 
-            ssbo = nir_variable_create(shader, nir_var_shader_storage,
-                                       type, name);
+            ssbo = nir_variable_create(shader, nir_var_ssbo, type, name);
             ssbo->data.binding = var->data.binding;
 
             struct glsl_struct_field field = {

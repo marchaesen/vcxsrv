@@ -454,7 +454,7 @@ void BinarySink_put_stringpl_xauth(BinarySink *bs, ptrlen pl)
 {
     assert((pl.len >> 16) == 0);
     put_uint16(bs, pl.len);
-    put_data(bs, pl.ptr, pl.len);
+    put_datapl(bs, pl);
 }
 #define put_stringpl_xauth(bs, ptrlen) \
     BinarySink_put_stringpl_xauth(BinarySink_UPCAST(bs),ptrlen)
@@ -663,7 +663,7 @@ void x11_format_auth_for_authfile(
         put_uint16(bs, 6); /* indicates IPv6 */
         put_stringpl_xauth(bs, make_ptrlen(ipv6buf, 16));
     } else {
-        assert(false && "Bad address type in x11_format_auth_for_authfile");
+        unreachable("Bad address type in x11_format_auth_for_authfile");
     }
 
     {

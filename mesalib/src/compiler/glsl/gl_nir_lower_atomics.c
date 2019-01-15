@@ -101,7 +101,7 @@ lower_deref_instr(nir_builder *b, nir_intrinsic_instr *instr,
    nir_variable *var = nir_deref_instr_get_variable(deref);
 
    if (var->data.mode != nir_var_uniform &&
-       var->data.mode != nir_var_shader_storage &&
+       var->data.mode != nir_var_ssbo &&
        var->data.mode != nir_var_shared)
       return false; /* atomics passed as function arguments can't be lowered */
 

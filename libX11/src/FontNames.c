@@ -29,6 +29,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "Xlibint.h"
+#include "reallocarray.h"
 #include <limits.h>
 
 char **
@@ -66,7 +67,7 @@ int *actualCount)	/* RETURN */
     }
 
     if (rep.nFonts) {
-	flist = Xmalloc (rep.nFonts * sizeof(char *));
+	flist = Xmallocarray (rep.nFonts, sizeof(char *));
 	if (rep.length > 0 && rep.length < (INT_MAX >> 2)) {
 	    rlen = rep.length << 2;
 	    ch = Xmalloc(rlen + 1);

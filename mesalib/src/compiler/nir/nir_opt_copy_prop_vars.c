@@ -106,8 +106,7 @@ create_vars_written(struct copy_prop_var_state *state)
 {
    struct vars_written *written =
       linear_zalloc_child(state->lin_ctx, sizeof(struct vars_written));
-   written->derefs = _mesa_hash_table_create(state->mem_ctx, _mesa_hash_pointer,
-                                             _mesa_key_pointer_equal);
+   written->derefs = _mesa_pointer_hash_table_create(state->mem_ctx);
    return written;
 }
 
@@ -134,9 +133,9 @@ gather_vars_written(struct copy_prop_var_state *state,
       nir_foreach_instr(instr, block) {
          if (instr->type == nir_instr_type_call) {
             written->modes |= nir_var_shader_out |
-                              nir_var_global |
-                              nir_var_local |
-                              nir_var_shader_storage |
+                              nir_var_private |
+                              nir_var_function |
+                              nir_var_ssbo |
                               nir_var_shared;
             continue;
          }
@@ -149,7 +148,7 @@ gather_vars_written(struct copy_prop_var_state *state,
          case nir_intrinsic_barrier:
          case nir_intrinsic_memory_barrier:
             written->modes |= nir_var_shader_out |
-                              nir_var_shader_storage |
+                              nir_var_ssbo |
                               nir_var_shared;
             break;
 
@@ -280,7 +279,7 @@ lookup_entry_and_kill_aliases(struct util_dynarray *copies,
 {
    /* TODO: Take into account the write_mask. */
 
-   struct copy_entry *entry = NULL;
+   nir_deref_instr *dst_match = NULL;
    util_dynarray_foreach_reverse(copies, struct copy_entry, iter) {
       if (!iter->src.is_ssa) {
          /* If this write aliases the source of some entry, get rid of it */
@@ -293,13 +292,26 @@ lookup_entry_and_kill_aliases(struct util_dynarray *copies,
       nir_deref_compare_result comp = nir_compare_derefs(iter->dst, deref);
 
       if (comp & nir_derefs_equal_bit) {
-         assert(entry == NULL);
-         entry = iter;
+         /* Removing entries invalidate previous iter pointers, so we'll
+          * collect the matching entry later.  Just make sure it is unique.
+          */
+         assert(!dst_match);
+         dst_match = iter->dst;
       } else if (comp & nir_derefs_may_alias_bit) {
          copy_entry_remove(copies, iter);
       }
    }
 
+   struct copy_entry *entry = NULL;
+   if (dst_match) {
+      util_dynarray_foreach(copies, struct copy_entry, iter) {
+         if (iter->dst == dst_match) {
+            entry = iter;
+            break;
+         }
+      }
+      assert(entry);
+   }
    return entry;
 }
 
@@ -337,12 +349,8 @@ apply_barrier_for_modes(struct util_dynarray *copies,
                         nir_variable_mode modes)
 {
    util_dynarray_foreach_reverse(copies, struct copy_entry, iter) {
-      nir_variable *dst_var = nir_deref_instr_get_variable(iter->dst);
-      nir_variable *src_var = iter->src.is_ssa ? NULL :
-         nir_deref_instr_get_variable(iter->src.deref);
-
-      if ((dst_var->data.mode & modes) ||
-          (src_var && (src_var->data.mode & modes)))
+      if ((iter->dst->mode & modes) ||
+          (!iter->src.is_ssa && (iter->src.deref->mode & modes)))
          copy_entry_remove(copies, iter);
    }
 }
@@ -352,6 +360,9 @@ store_to_entry(struct copy_prop_var_state *state, struct copy_entry *entry,
                const struct value *value, unsigned write_mask)
 {
    if (value->is_ssa) {
+      /* Clear src if it was being used as non-SSA. */
+      if (!entry->src.is_ssa)
+         memset(entry->src.ssa, 0, sizeof(entry->src.ssa));
       entry->src.is_ssa = true;
       /* Only overwrite the written components */
       for (unsigned i = 0; i < 4; i++) {
@@ -603,9 +614,9 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
    nir_foreach_instr_safe(instr, block) {
       if (instr->type == nir_instr_type_call) {
          apply_barrier_for_modes(copies, nir_var_shader_out |
-                                         nir_var_global |
-                                         nir_var_local |
-                                         nir_var_shader_storage |
+                                         nir_var_private |
+                                         nir_var_function |
+                                         nir_var_ssbo |
                                          nir_var_shared);
          continue;
       }
@@ -618,7 +629,7 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
       case nir_intrinsic_barrier:
       case nir_intrinsic_memory_barrier:
          apply_barrier_for_modes(copies, nir_var_shader_out |
-                                         nir_var_shader_storage |
+                                         nir_var_ssbo |
                                          nir_var_shared);
          break;
 
@@ -730,9 +741,9 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
             lookup_entry_for_deref(copies, src, nir_derefs_a_contains_b_bit);
          struct value value;
          if (try_load_from_entry(state, src_entry, b, intrin, src, &value)) {
+            /* If load works, intrin (the copy_deref) is removed. */
             if (value.is_ssa) {
                nir_store_deref(b, dst, value.ssa[0], 0xf);
-               intrin = nir_instr_as_intrinsic(nir_builder_last_instr(b));
             } else {
                /* If this would be a no-op self-copy, don't bother. */
                if (nir_compare_derefs(value.deref, dst) & nir_derefs_equal_bit)
@@ -853,8 +864,7 @@ nir_copy_prop_vars_impl(nir_function_impl *impl)
       .mem_ctx = mem_ctx,
       .lin_ctx = linear_zalloc_parent(mem_ctx, 0),
 
-      .vars_written_map = _mesa_hash_table_create(mem_ctx, _mesa_hash_pointer,
-                                                  _mesa_key_pointer_equal),
+      .vars_written_map = _mesa_pointer_hash_table_create(mem_ctx),
    };
 
    gather_vars_written(&state, NULL, &impl->cf_node);
@@ -864,6 +874,10 @@ nir_copy_prop_vars_impl(nir_function_impl *impl)
    if (state.progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |
                                   nir_metadata_dominance);
+   } else {
+#ifndef NDEBUG
+      impl->valid_metadata &= ~nir_metadata_not_properly_reset;
+#endif
    }
 
    ralloc_free(mem_ctx);

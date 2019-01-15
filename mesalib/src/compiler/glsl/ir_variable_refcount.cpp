@@ -38,8 +38,7 @@
 ir_variable_refcount_visitor::ir_variable_refcount_visitor()
 {
    this->mem_ctx = ralloc_context(NULL);
-   this->ht = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
-                                      _mesa_key_pointer_equal);
+   this->ht = _mesa_pointer_hash_table_create(NULL);
 }
 
 static void

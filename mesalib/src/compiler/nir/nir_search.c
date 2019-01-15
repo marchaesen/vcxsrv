@@ -110,7 +110,8 @@ nir_op_matches_search_op(nir_op nop, uint16_t sop)
 
 #define MATCH_BCONV_CASE(op) \
    case nir_search_op_##op: \
-      return nop == nir_op_##op##32;
+      return nop == nir_op_##op##1 || \
+             nop == nir_op_##op##32;
 
    switch (sop) {
    MATCH_FCONV_CASE(i2f)
@@ -160,6 +161,7 @@ nir_op_for_search_op(uint16_t sop, unsigned bit_size)
 #define RET_BCONV_CASE(op) \
    case nir_search_op_##op: \
       switch (bit_size) { \
+      case 1: return nir_op_##op##1; \
       case 32: return nir_op_##op##32; \
       default: unreachable("Invalid bit size"); \
       }
@@ -476,8 +478,9 @@ construct_value(nir_builder *build,
          break;
 
       case nir_type_bool:
-         cval = nir_imm_bool(build, c->data.u);
+         cval = nir_imm_boolN_t(build, c->data.u, bit_size);
          break;
+
       default:
          unreachable("Invalid alu source type");
       }

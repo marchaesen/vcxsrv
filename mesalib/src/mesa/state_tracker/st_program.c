@@ -1103,6 +1103,10 @@ st_create_fp_variant(struct st_context *st,
                     key->external.lower_iyuv);
       }
 
+      /* Some of the lowering above may have introduced new varyings */
+      nir_shader_gather_info(tgsi.ir.nir,
+                             nir_shader_get_entrypoint(tgsi.ir.nir));
+
       variant->driver_shader = pipe->create_fs_state(pipe, &tgsi);
       variant->key = *key;
 

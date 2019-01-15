@@ -1,0 +1,63 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 18.3.1 Release Notes / December 11, 2018</h1>
+
+<p>
+Mesa 18.3.1 is a bug fix release which fixes bugs found since the 18.3.0 release.
+</p>
+<p>
+Mesa 18.3.0 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+256d0c3d88e380c1b8e3fc5c6ac34001e3b7c30458b8b852407ec68b8ccd9fda  mesa-18.3.1.tar.gz
+5b1f827d28684a25f6657289f8b7d47ac56395988c7ac23e0ec9a62b644bdc63  mesa-18.3.1.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+<p>None</p>
+
+
+<h2>Changes</h2>
+
+<p>Emil Velikov (2):</p>
+<ul>
+  <li>docs: add sha256 checksums for 18.3.0</li>
+  <li>Update version to 18.3.1</li>
+</ul>
+
+<p>Jason Ekstrand (1):</p>
+<ul>
+  <li>anv,radv: Disable VK_EXT_pci_bus_info</li>
+</ul>
+
+
+</div>
+</body>
+</html>

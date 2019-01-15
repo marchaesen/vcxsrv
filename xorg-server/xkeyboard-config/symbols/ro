@@ -40,7 +40,7 @@ xkb_symbols "basic" {
     key <AE11> { [ minus,         underscore,  dead_diaeresis,     endash ] };
     key <AE12> { [ equal,               plus,  dead_cedilla,    plusminus ] };
     key <AD01> { [ q,                      Q,  acircumflex,   Acircumflex ] };
-    key <AD02> { [ w,                      W,  ssharp	 	          ] };
+    key <AD02> { [ w,                      W,  ssharp, 	        0x1001e9e ] };
     key <AD03> { [ e,                      E,  EuroSign  	          ] };
     key <AD05> { [ t,                      T,  0x100021b,       0x100021a ] };
     key <AD08> { [ i,                      I,  icircumflex,   Icircumflex ] };
@@ -102,7 +102,7 @@ xkb_symbols "std" {
     key <AD11> { [ abreve, 	      Abreve,  bracketleft,     braceleft ] };
     key <AD12> { [ icircumflex,  Icircumflex,  bracketright,   braceright ] };
     key <BKSL> { [ acircumflex,  Acircumflex,  backslash,             bar ] };
-    key <AC02> { [ s, 			   S,  ssharp			  ] };
+    key <AC02> { [ s, 			   S,  ssharp,		0x1001e9e ] };
     key <AC03> { [ d,                      D,  dstroke,  	  Dstroke ] };
     key <AC09> { [ l,                      L,  lstroke,  	  Lstroke ] };
     key <AC10> { [ 0x1000219,	   0x1000218,  semicolon, 	    colon ] };
@@ -171,7 +171,7 @@ xkb_symbols "winkeys" {
     key <AC04> { [           f,           F             ]       };
     key <AC05> { [           g,           G             ]       };
     key <AC10> { [    scedilla,    Scedilla,       dollar,     dollar   ] };
-    key <AC11> { [    tcedilla,    Tcedilla,       ssharp,     ssharp   ] };
+    key <AC11> { [    tcedilla,    Tcedilla,       ssharp,      U1E9E   ] };
 
     key <AB01> { [           y,           Y             ]       };
     key <AB05> { [           b,           B,    braceleft,  braceleft   ] };

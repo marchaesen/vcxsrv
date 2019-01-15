@@ -71,9 +71,7 @@ public:
       this->min_branch_cost = min_branch_cost;
       this->depth = 0;
 
-      this->condition_variables =
-            _mesa_set_create(NULL, _mesa_hash_pointer,
-                                    _mesa_key_pointer_equal);
+      this->condition_variables = _mesa_pointer_set_create(NULL);
    }
 
    ~ir_if_to_cond_assign_visitor()

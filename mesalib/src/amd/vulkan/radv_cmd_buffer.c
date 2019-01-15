@@ -1059,6 +1059,11 @@ radv_emit_fb_color_state(struct radv_cmd_buffer *cmd_buffer,
 			radeon_set_context_reg(cmd_buffer->cs, R_028C94_CB_COLOR0_DCC_BASE + index * 0x3c, cb->cb_dcc_base);
 		}
 	}
+
+	if (radv_image_has_dcc(image)) {
+		/* Drawing with DCC enabled also compresses colorbuffers. */
+		radv_update_dcc_metadata(cmd_buffer, image, true);
+	}
 }
 
 static void
@@ -1276,7 +1281,6 @@ radv_update_tc_compat_zrange_metadata(struct radv_cmd_buffer *cmd_buffer,
 				      struct radv_image *image,
 				      VkClearDepthStencilValue ds_clear_value)
 {
-	struct radeon_cmdbuf *cs = cmd_buffer->cs;
 	uint64_t va = radv_buffer_get_va(image->bo);
 	va += image->offset + image->tc_compat_zrange_offset;
 	uint32_t cond_val;
@@ -1373,6 +1377,29 @@ radv_update_fce_metadata(struct radv_cmd_buffer *cmd_buffer,
 	uint64_t pred_val = value;
 	uint64_t va = radv_buffer_get_va(image->bo);
 	va += image->offset + image->fce_pred_offset;
+
+	assert(radv_image_has_dcc(image));
+
+	radeon_emit(cmd_buffer->cs, PKT3(PKT3_WRITE_DATA, 4, 0));
+	radeon_emit(cmd_buffer->cs, S_370_DST_SEL(V_370_MEM_ASYNC) |
+				    S_370_WR_CONFIRM(1) |
+				    S_370_ENGINE_SEL(V_370_PFP));
+	radeon_emit(cmd_buffer->cs, va);
+	radeon_emit(cmd_buffer->cs, va >> 32);
+	radeon_emit(cmd_buffer->cs, pred_val);
+	radeon_emit(cmd_buffer->cs, pred_val >> 32);
+}
+
+/**
+ * Update the DCC predicate to reflect the compression state.
+ */
+void
+radv_update_dcc_metadata(struct radv_cmd_buffer *cmd_buffer,
+			 struct radv_image *image, bool value)
+{
+	uint64_t pred_val = value;
+	uint64_t va = radv_buffer_get_va(image->bo);
+	va += image->offset + image->dcc_pred_offset;
 
 	assert(radv_image_has_dcc(image));
 
@@ -2287,6 +2314,17 @@ static void radv_handle_subpass_image_transition(struct radv_cmd_buffer *cmd_buf
 	range.baseArrayLayer = view->base_layer;
 	range.layerCount = cmd_buffer->state.framebuffer->layers;
 
+	if (cmd_buffer->state.subpass && cmd_buffer->state.subpass->view_mask) {
+		/* If the current subpass uses multiview, the driver might have
+		 * performed a fast color/depth clear to the whole image
+		 * (including all layers). To make sure the driver will
+		 * decompress the image correctly (if needed), we have to
+		 * account for the "real" number of layers. If the view mask is
+		 * sparse, this will decompress more layers than needed.
+		 */
+		range.layerCount = util_last_bit(cmd_buffer->state.subpass->view_mask);
+	}
+
 	radv_handle_image_transition(cmd_buffer,
 				     view->image,
 				     cmd_buffer->state.attachments[idx].current_layout,
@@ -2749,7 +2787,7 @@ void radv_CmdPushDescriptorSetKHR(
 
 void radv_CmdPushDescriptorSetWithTemplateKHR(
 	VkCommandBuffer                             commandBuffer,
-	VkDescriptorUpdateTemplateKHR               descriptorUpdateTemplate,
+	VkDescriptorUpdateTemplate                  descriptorUpdateTemplate,
 	VkPipelineLayout                            _layout,
 	uint32_t                                    set,
 	const void*                                 pData)
@@ -3209,7 +3247,7 @@ VkResult radv_ResetCommandPool(
 void radv_TrimCommandPool(
     VkDevice                                    device,
     VkCommandPool                               commandPool,
-    VkCommandPoolTrimFlagsKHR                   flags)
+    VkCommandPoolTrimFlags                      flags)
 {
 	RADV_FROM_HANDLE(radv_cmd_pool, pool, commandPool);
 
@@ -3657,6 +3695,19 @@ radv_draw(struct radv_cmd_buffer *cmd_buffer,
 	MAYBE_UNUSED unsigned cdw_max =
 		radeon_check_space(cmd_buffer->device->ws,
 				   cmd_buffer->cs, 4096);
+
+	if (likely(!info->indirect)) {
+		/* SI-CI treat instance_count==0 as instance_count==1. There is
+		 * no workaround for indirect draws, but we can at least skip
+		 * direct draws.
+		 */
+		if (unlikely(!info->instance_count))
+			return;
+
+		/* Handle count == 0. */
+		if (unlikely(!info->count && !info->strmout_buffer))
+			return;
+	}
 
 	/* Use optimal packet order based on whether we need to sync the
 	 * pipeline.
@@ -4312,6 +4363,27 @@ static void radv_initialise_cmask(struct radv_cmd_buffer *cmd_buffer,
 	state->flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
 }
 
+void radv_initialize_fmask(struct radv_cmd_buffer *cmd_buffer,
+			   struct radv_image *image)
+{
+	struct radv_cmd_state *state = &cmd_buffer->state;
+	static const uint32_t fmask_clear_values[4] = {
+		0x00000000,
+		0x02020202,
+		0xE4E4E4E4,
+		0x76543210
+	};
+	uint32_t log2_samples = util_logbase2(image->info.samples);
+	uint32_t value = fmask_clear_values[log2_samples];
+
+	state->flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
+			     RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
+
+	state->flush_bits |= radv_clear_fmask(cmd_buffer, image, value);
+
+	state->flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
+}
+
 void radv_initialize_dcc(struct radv_cmd_buffer *cmd_buffer,
 			 struct radv_image *image, uint32_t value)
 {
@@ -4345,6 +4417,10 @@ static void radv_init_color_image_metadata(struct radv_cmd_buffer *cmd_buffer,
 		}
 
 		radv_initialise_cmask(cmd_buffer, image, value);
+	}
+
+	if (radv_image_has_fmask(image)) {
+		radv_initialize_fmask(cmd_buffer, image);
 	}
 
 	if (radv_image_has_dcc(image)) {
@@ -4401,6 +4477,13 @@ static void radv_handle_color_image_transition(struct radv_cmd_buffer *cmd_buffe
 		if (radv_layout_can_fast_clear(image, src_layout, src_queue_mask) &&
 		    !radv_layout_can_fast_clear(image, dst_layout, dst_queue_mask)) {
 			radv_fast_clear_flush_image_inplace(cmd_buffer, image, range);
+		}
+
+		if (radv_image_has_fmask(image)) {
+			if (src_layout != VK_IMAGE_LAYOUT_GENERAL &&
+			    dst_layout == VK_IMAGE_LAYOUT_GENERAL) {
+				radv_expand_fmask_image_inplace(cmd_buffer, image, range);
+			}
 		}
 	}
 }
@@ -4690,6 +4773,8 @@ void radv_CmdBeginConditionalRenderingEXT(
 		draw_visible = false;
 	}
 
+	si_emit_cache_flush(cmd_buffer);
+
 	/* Enable predication for this command buffer. */
 	si_emit_set_predication_state(cmd_buffer, draw_visible, va);
 	cmd_buffer->state.predicating = true;
@@ -4825,7 +4910,7 @@ void radv_CmdBeginTransformFeedbackEXT(
 	assert(firstCounterBuffer + counterBufferCount <= MAX_SO_BUFFERS);
 	for_each_bit(i, so->enabled_mask) {
 		int32_t counter_buffer_idx = i - firstCounterBuffer;
-		if (counter_buffer_idx >= 0 && counter_buffer_idx > counterBufferCount)
+		if (counter_buffer_idx >= 0 && counter_buffer_idx >= counterBufferCount)
 			counter_buffer_idx = -1;
 
 		/* SI binds streamout buffers as shader resources.
@@ -4887,7 +4972,7 @@ void radv_CmdEndTransformFeedbackEXT(
 	assert(firstCounterBuffer + counterBufferCount <= MAX_SO_BUFFERS);
 	for_each_bit(i, so->enabled_mask) {
 		int32_t counter_buffer_idx = i - firstCounterBuffer;
-		if (counter_buffer_idx >= 0 && counter_buffer_idx > counterBufferCount)
+		if (counter_buffer_idx >= 0 && counter_buffer_idx >= counterBufferCount)
 			counter_buffer_idx = -1;
 
 		if (counter_buffer_idx >= 0 && pCounterBuffers && pCounterBuffers[counter_buffer_idx]) {
