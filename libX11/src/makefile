@@ -263,6 +263,7 @@ CSRCS = \
                   XlibAsync.c \
                   XlibInt.c \
                   Xrm.c \
+									reallocarray.c
 
 
 INCLUDES := . xcms xlibi18n xkb $(MHMAKECONF)\X11 $(OBJDIR) $(INCLUDES)

@@ -25,5 +25,5 @@ CSRCS = \
 	XKBGAlloc.c \
 	XKBAlloc.c
 
-INCLUDES += ..\..\include\X11 ..\..\src\xlibi18n
+INCLUDES += ..\..\include\X11 ..\..\src\xlibi18n ..\..\src
 
