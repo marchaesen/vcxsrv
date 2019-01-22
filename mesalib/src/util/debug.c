@@ -53,6 +53,20 @@ parse_debug_string(const char *debug,
    return flag;
 }
 
+bool
+comma_separated_list_contains(const char *list, const char *s)
+{
+   assert(list);
+   const size_t len = strlen(s);
+
+   for (unsigned n; n = strcspn(list, ","), *list; list += MAX2(1, n)) {
+      if (n == len && !strncmp(list, s, n))
+         return true;
+   }
+
+   return false;
+}
+
 /**
  * Reads an environment variable and interprets its value as a boolean.
  *

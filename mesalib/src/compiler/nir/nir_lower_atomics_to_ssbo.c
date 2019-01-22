@@ -223,7 +223,7 @@ nir_lower_atomics_to_ssbo(nir_shader *shader, unsigned ssbo_offset)
 
             snprintf(name, sizeof(name), "counter%d", var->data.binding);
 
-            ssbo = nir_variable_create(shader, nir_var_ssbo, type, name);
+            ssbo = nir_variable_create(shader, nir_var_mem_ssbo, type, name);
             ssbo->data.binding = var->data.binding;
 
             struct glsl_struct_field field = {

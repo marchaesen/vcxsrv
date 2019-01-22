@@ -455,7 +455,7 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	ib_align = MAX2(ib_align, vcn_dec.ib_start_alignment);
 	ib_align = MAX2(ib_align, vcn_enc.ib_start_alignment);
 	ib_align = MAX2(ib_align, vcn_jpeg.ib_start_alignment);
-       assert(ib_align);
+	assert(ib_align);
 	info->ib_start_alignment = ib_align;
 
 	return true;

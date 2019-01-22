@@ -1690,9 +1690,6 @@ radv_get_sample_pos_offset(uint32_t num_samples)
 	case 8:
 		sample_pos_offset = 7;
 		break;
-	case 16:
-		sample_pos_offset = 15;
-		break;
 	default:
 		break;
 	}

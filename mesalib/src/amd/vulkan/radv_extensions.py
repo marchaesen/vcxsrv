@@ -105,6 +105,7 @@ EXTENSIONS = [
     Extension('VK_EXT_external_memory_dma_buf',           1, True),
     Extension('VK_EXT_external_memory_host',              1, 'device->rad_info.has_userptr'),
     Extension('VK_EXT_global_priority',                   1, 'device->rad_info.has_ctx_priority'),
+    Extension('VK_EXT_memory_budget',                     1, True),
     Extension('VK_EXT_pci_bus_info',                      2, True),
     Extension('VK_EXT_sampler_filter_minmax',             1, 'device->rad_info.chip_class >= CIK'),
     Extension('VK_EXT_scalar_block_layout',               1, 'device->rad_info.chip_class >= CIK'),

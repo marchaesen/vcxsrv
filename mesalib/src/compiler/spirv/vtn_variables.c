@@ -259,7 +259,7 @@ vtn_nir_deref_pointer_dereference(struct vtn_builder *b,
       assert(base->mode == vtn_variable_mode_ssbo ||
              base->mode == vtn_variable_mode_ubo);
       nir_variable_mode nir_mode =
-         base->mode == vtn_variable_mode_ssbo ? nir_var_ssbo : nir_var_ubo;
+         base->mode == vtn_variable_mode_ssbo ? nir_var_mem_ssbo : nir_var_mem_ubo;
 
       tail = nir_build_deref_cast(&b->nb, desc, nir_mode, type->type,
                                   base->ptr_type->stride);
@@ -1511,8 +1511,10 @@ apply_var_decoration(struct vtn_builder *b,
    case SpvDecorationFPRoundingMode:
    case SpvDecorationFPFastMathMode:
    case SpvDecorationAlignment:
-      vtn_warn("Decoration only allowed for CL-style kernels: %s",
-               spirv_decoration_to_string(dec->decoration));
+      if (b->shader->info.stage != MESA_SHADER_KERNEL) {
+         vtn_warn("Decoration only allowed for CL-style kernels: %s",
+                  spirv_decoration_to_string(dec->decoration));
+      }
       break;
 
    case SpvDecorationHlslSemanticGOOGLE:
@@ -1662,10 +1664,10 @@ vtn_storage_class_to_mode(struct vtn_builder *b,
    case SpvStorageClassUniform:
       if (interface_type->block) {
          mode = vtn_variable_mode_ubo;
-         nir_mode = nir_var_ubo;
+         nir_mode = nir_var_mem_ubo;
       } else if (interface_type->buffer_block) {
          mode = vtn_variable_mode_ssbo;
-         nir_mode = nir_var_ssbo;
+         nir_mode = nir_var_mem_ssbo;
       } else {
          /* Default-block uniforms, coming from gl_spirv */
          mode = vtn_variable_mode_uniform;
@@ -1674,7 +1676,7 @@ vtn_storage_class_to_mode(struct vtn_builder *b,
       break;
    case SpvStorageClassStorageBuffer:
       mode = vtn_variable_mode_ssbo;
-      nir_mode = nir_var_ssbo;
+      nir_mode = nir_var_mem_ssbo;
       break;
    case SpvStorageClassUniformConstant:
       mode = vtn_variable_mode_uniform;
@@ -1694,21 +1696,24 @@ vtn_storage_class_to_mode(struct vtn_builder *b,
       break;
    case SpvStorageClassPrivate:
       mode = vtn_variable_mode_private;
-      nir_mode = nir_var_private;
+      nir_mode = nir_var_shader_temp;
       break;
    case SpvStorageClassFunction:
       mode = vtn_variable_mode_function;
-      nir_mode = nir_var_function;
+      nir_mode = nir_var_function_temp;
       break;
    case SpvStorageClassWorkgroup:
       mode = vtn_variable_mode_workgroup;
-      nir_mode = nir_var_shared;
+      nir_mode = nir_var_mem_shared;
       break;
    case SpvStorageClassAtomicCounter:
       mode = vtn_variable_mode_uniform;
       nir_mode = nir_var_uniform;
       break;
    case SpvStorageClassCrossWorkgroup:
+      mode = vtn_variable_mode_cross_workgroup;
+      nir_mode = nir_var_mem_global;
+      break;
    case SpvStorageClassGeneric:
    default:
       vtn_fail("Unhandled variable storage class");
@@ -1974,7 +1979,7 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
           * SPIR-V.
           */
          var->var->type = glsl_get_bare_type(var->type->type);
-         var->var->data.mode = nir_var_shared;
+         var->var->data.mode = nir_var_mem_shared;
       }
       break;
 
@@ -2059,6 +2064,7 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
    case vtn_variable_mode_ubo:
    case vtn_variable_mode_ssbo:
    case vtn_variable_mode_push_constant:
+   case vtn_variable_mode_cross_workgroup:
       /* These don't need actual variables. */
       break;
    }

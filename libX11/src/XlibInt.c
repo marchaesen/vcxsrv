@@ -50,6 +50,8 @@ from The Open Group.
 #ifdef XTHREADS
 #include "locking.h"
 
+#include <sys/ioctl.h>
+
 /* these pointers get initialized by XInitThreads */
 LockInfoPtr _Xglobal_lock = NULL;
 void (*_XCreateMutex_fn)(LockInfoPtr) = NULL;
@@ -1234,6 +1236,21 @@ _XWireToEvent(
 	return(True);
 }
 
+static int
+SocketBytesReadable(Display *dpy)
+{
+    int bytes = 0, last_error;
+#ifdef WIN32
+    last_error = WSAGetLastError();
+    ioctlsocket(ConnectionNumber(dpy), FIONREAD, &bytes);
+    WSASetLastError(last_error);
+#else
+    last_error = errno;
+    ioctl(ConnectionNumber(dpy), FIONREAD, &bytes);
+    errno = last_error;
+#endif
+    return bytes;
+}
 
 /*
  * _XDefaultIOError - Default fatal system error reporting routine.  Called
@@ -1242,25 +1259,35 @@ _XWireToEvent(
 _X_NORETURN int _XDefaultIOError(
 	Display *dpy)
 {
-	if (ECHECK(EPIPE)) {
-	    (void) fprintf (stderr,
-	"X connection to %s broken (explicit kill or server shutdown).\r\n",
-			    DisplayString (dpy));
-	} else {
-	    (void) fprintf (stderr,
-			"XIO:  fatal IO error %d (%s) on X server \"%s\"\r\n",
-#ifdef WIN32
-			WSAGetLastError(), strerror(WSAGetLastError()),
-#else
-			errno, strerror (errno),
-#endif
-			DisplayString (dpy));
-	    (void) fprintf (stderr,
-	 "      after %lu requests (%lu known processed) with %d events remaining.\r\n",
-			NextRequest(dpy) - 1, LastKnownRequestProcessed(dpy),
-			QLength(dpy));
+	int killed = ECHECK(EPIPE);
 
-	}
+	/*
+	 * If the socket was closed on the far end, the final recvmsg in
+	 * xcb will have thrown EAGAIN because we're non-blocking. Detect
+	 * this to get the more informative error message.
+	 */
+	if (ECHECK(EAGAIN) && SocketBytesReadable(dpy) <= 0)
+	    killed = True;
+
+	if (killed) {
+	    fprintf (stderr,
+                     "X connection to %s broken (explicit kill or server shutdown).\r\n",
+                     DisplayString (dpy));
+	} else {
+            fprintf (stderr,
+                     "XIO:  fatal IO error %d (%s) on X server \"%s\"\r\n",
+#ifdef WIN32
+                      WSAGetLastError(), strerror(WSAGetLastError()),
+#else
+                      errno, strerror (errno),
+#endif
+                      DisplayString (dpy));
+	    fprintf (stderr,
+		     "      after %lu requests (%lu known processed) with %d events remaining.\r\n",
+		     NextRequest(dpy) - 1, LastKnownRequestProcessed(dpy),
+		     QLength(dpy));
+        }
+
 	exit(1);
 	/*NOTREACHED*/
 }

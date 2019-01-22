@@ -324,14 +324,14 @@ nir_visitor::visit(ir_variable *ir)
    case ir_var_auto:
    case ir_var_temporary:
       if (is_global)
-         var->data.mode = nir_var_private;
+         var->data.mode = nir_var_shader_temp;
       else
-         var->data.mode = nir_var_function;
+         var->data.mode = nir_var_function_temp;
       break;
 
    case ir_var_function_in:
    case ir_var_const_in:
-      var->data.mode = nir_var_function;
+      var->data.mode = nir_var_function_temp;
       break;
 
    case ir_var_shader_in:
@@ -367,13 +367,13 @@ nir_visitor::visit(ir_variable *ir)
 
    case ir_var_uniform:
       if (ir->get_interface_type())
-         var->data.mode = nir_var_ubo;
+         var->data.mode = nir_var_mem_ubo;
       else
          var->data.mode = nir_var_uniform;
       break;
 
    case ir_var_shader_storage:
-      var->data.mode = nir_var_ssbo;
+      var->data.mode = nir_var_mem_ssbo;
       break;
 
    case ir_var_system_value:
@@ -460,7 +460,7 @@ nir_visitor::visit(ir_variable *ir)
 
    var->interface_type = ir->get_interface_type();
 
-   if (var->data.mode == nir_var_function)
+   if (var->data.mode == nir_var_function_temp)
       nir_function_impl_add_variable(impl, var);
    else
       nir_shader_add_variable(shader, var);
@@ -654,7 +654,7 @@ nir_visitor::visit(ir_return *ir)
    if (ir->value != NULL) {
       nir_deref_instr *ret_deref =
          nir_build_deref_cast(&b, nir_load_param(&b, 0),
-                              nir_var_function, ir->value->type, 0);
+                              nir_var_function_temp, ir->value->type, 0);
 
       nir_ssa_def *val = evaluate_rvalue(ir->value);
       nir_store_deref(&b, ret_deref, val, ~0);
@@ -1564,7 +1564,7 @@ nir_visitor::visit(ir_expression *ir)
           * sense, we'll just turn it into a load which will probably
           * eventually end up as an SSA definition.
           */
-         assert(this->deref->mode == nir_var_private);
+         assert(this->deref->mode == nir_var_shader_temp);
          op = nir_intrinsic_load_deref;
       }
 
@@ -2261,7 +2261,7 @@ nir_visitor::visit(ir_dereference_variable *ir)
       }
 
       this->deref = nir_build_deref_cast(&b, nir_load_param(&b, i),
-                                         nir_var_function, ir->type, 0);
+                                         nir_var_function_temp, ir->type, 0);
       return;
    }
 

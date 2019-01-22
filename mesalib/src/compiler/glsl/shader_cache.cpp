@@ -121,20 +121,15 @@ shader_cache_write_program_metadata(struct gl_context *ctx,
    if (!cache_item_metadata.keys)
       goto fail;
 
-   char sha1_buf[41];
    for (unsigned i = 0; i < prog->NumShaders; i++) {
-      disk_cache_put_key(cache, prog->Shaders[i]->sha1);
       memcpy(cache_item_metadata.keys[i], prog->Shaders[i]->sha1,
              sizeof(cache_key));
-      if (ctx->_Shader->Flags & GLSL_CACHE_INFO) {
-         _mesa_sha1_format(sha1_buf, prog->Shaders[i]->sha1);
-         fprintf(stderr, "marking shader: %s\n", sha1_buf);
-      }
    }
 
    disk_cache_put(cache, prog->data->sha1, metadata.data, metadata.size,
                   &cache_item_metadata);
 
+   char sha1_buf[41];
    if (ctx->_Shader->Flags & GLSL_CACHE_INFO) {
       _mesa_sha1_format(sha1_buf, prog->data->sha1);
       fprintf(stderr, "putting program metadata in cache: %s\n", sha1_buf);
@@ -263,23 +258,6 @@ shader_cache_read_program_metadata(struct gl_context *ctx,
 
    /* This is used to flag a shader retrieved from cache */
    prog->data->LinkStatus = LINKING_SKIPPED;
-
-   /* Since the program load was successful, CompileStatus of all shaders at
-    * this point should normally be compile_skipped. However because of how
-    * the eviction works, it may happen that some of the individual shader keys
-    * have been evicted, resulting in unnecessary recompiles on this load, so
-    * mark them again to skip such recompiles next time.
-    */
-   char sha1_buf[41];
-   for (unsigned i = 0; i < prog->NumShaders; i++) {
-      if (prog->Shaders[i]->CompileStatus == COMPILED_NO_OPTS) {
-         disk_cache_put_key(cache, prog->Shaders[i]->sha1);
-         if (ctx->_Shader->Flags & GLSL_CACHE_INFO) {
-            _mesa_sha1_format(sha1_buf, prog->Shaders[i]->sha1);
-            fprintf(stderr, "re-marking shader: %s\n", sha1_buf);
-         }
-      }
-   }
 
    free (buffer);
 

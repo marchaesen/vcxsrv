@@ -23,7 +23,10 @@ RELEASE_ANNOUNCE_LIST = cairo-announce@cairographics.org, xorg-announce@lists.fr
 
 EXTRA_DIST =				\
 	Makefile.win32			\
-	Makefile.win32.common
+	Makefile.win32.common		\
+	meson.build			\
+	meson_options.txt		\
+	$(NULL)
 
 tar_gz = $(PACKAGE)-$(VERSION).tar.gz
 tar_bz2 = $(PACKAGE)-$(VERSION).tar.bz2

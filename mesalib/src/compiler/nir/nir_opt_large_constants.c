@@ -196,9 +196,9 @@ nir_opt_large_constants(nir_shader *shader,
             continue;
          }
 
-         if (dst_deref && dst_deref->mode == nir_var_function) {
+         if (dst_deref && dst_deref->mode == nir_var_function_temp) {
             nir_variable *var = nir_deref_instr_get_variable(dst_deref);
-            assert(var->data.mode == nir_var_function);
+            assert(var->data.mode == nir_var_function_temp);
 
             /* We only consider variables constant if they only have constant
              * stores, all the stores come before any reads, and all stores
@@ -210,9 +210,9 @@ nir_opt_large_constants(nir_shader *shader,
                info->is_constant = false;
          }
 
-         if (src_deref && src_deref->mode == nir_var_function) {
+         if (src_deref && src_deref->mode == nir_var_function_temp) {
             nir_variable *var = nir_deref_instr_get_variable(src_deref);
-            assert(var->data.mode == nir_var_function);
+            assert(var->data.mode == nir_var_function_temp);
 
             var_infos[var->data.index].found_read = true;
          }
@@ -258,7 +258,7 @@ nir_opt_large_constants(nir_shader *shader,
          switch (intrin->intrinsic) {
          case nir_intrinsic_load_deref: {
             nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
-            if (deref->mode != nir_var_function)
+            if (deref->mode != nir_var_function_temp)
                continue;
 
             nir_variable *var = nir_deref_instr_get_variable(deref);
@@ -276,7 +276,7 @@ nir_opt_large_constants(nir_shader *shader,
 
          case nir_intrinsic_store_deref: {
             nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
-            if (deref->mode != nir_var_function)
+            if (deref->mode != nir_var_function_temp)
                continue;
 
             nir_variable *var = nir_deref_instr_get_variable(deref);
@@ -292,7 +292,7 @@ nir_opt_large_constants(nir_shader *shader,
 
          case nir_intrinsic_copy_deref: {
             nir_deref_instr *deref = nir_src_as_deref(intrin->src[1]);
-            if (deref->mode != nir_var_function)
+            if (deref->mode != nir_var_function_temp)
                continue;
 
             nir_variable *var = nir_deref_instr_get_variable(deref);

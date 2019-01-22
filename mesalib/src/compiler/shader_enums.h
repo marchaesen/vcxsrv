@@ -26,6 +26,8 @@
 #ifndef SHADER_ENUMS_H
 #define SHADER_ENUMS_H
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -46,7 +48,15 @@ typedef enum
    MESA_SHADER_GEOMETRY = 3,
    MESA_SHADER_FRAGMENT = 4,
    MESA_SHADER_COMPUTE = 5,
+   /* must be last so it doesn't affect the GL pipeline */
+   MESA_SHADER_KERNEL = 6,
 } gl_shader_stage;
+
+static inline bool
+gl_shader_stage_is_compute(gl_shader_stage stage)
+{
+   return stage == MESA_SHADER_COMPUTE || stage == MESA_SHADER_KERNEL;
+}
 
 /**
  * Number of STATE_* values we need to address any GL state.
@@ -70,7 +80,15 @@ const char *_mesa_shader_stage_to_string(unsigned stage);
  */
 const char *_mesa_shader_stage_to_abbrev(unsigned stage);
 
+/**
+ * GL related stages (not including CL)
+ */
 #define MESA_SHADER_STAGES (MESA_SHADER_COMPUTE + 1)
+
+/**
+ * All stages
+ */
+#define MESA_ALL_SHADER_STAGES (MESA_SHADER_KERNEL + 1)
 
 
 /**

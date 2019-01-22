@@ -382,8 +382,8 @@ if with_any_vk and (with_platform_x11 and not with_dri3)
   error('Vulkan drivers require dri3 for X11 support')
 endif
 if with_dri
-  if with_glx == 'disabled' and not with_egl and not with_gbm
-    error('building dri drivers require at least one windowing system')
+  if with_glx == 'disabled' and not with_egl and not with_gbm and with_osmesa != 'classic'
+    error('building dri drivers require at least one windowing system or classic osmesa')
   endif
 endif
 
@@ -668,7 +668,7 @@ if _opencl != 'disabled'
 else
   dep_clc = null_dep
   with_gallium_opencl = false
-  with_gallium_icd = false
+  with_opencl_icd = false
 endif
 
 gl_pkgconfig_c_flags = []

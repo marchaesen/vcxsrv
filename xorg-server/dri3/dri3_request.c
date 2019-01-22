@@ -135,7 +135,7 @@ proc_dri3_open(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xDRI3OpenReq);
 
-    status = dixLookupDrawable(&drawable, stuff->drawable, client, 0, DixReadAccess);
+    status = dixLookupDrawable(&drawable, stuff->drawable, client, 0, DixGetAttrAccess);
     if (status != Success)
         return status;
 
@@ -365,7 +365,7 @@ proc_dri3_get_supported_modifiers(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xDRI3GetSupportedModifiersReq);
 
-    status = dixLookupWindow(&window, stuff->window, client, DixReadAccess);
+    status = dixLookupWindow(&window, stuff->window, client, DixGetAttrAccess);
     if (status != Success)
         return status;
     pScreen = window->drawable.pScreen;

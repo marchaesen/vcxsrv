@@ -72,6 +72,12 @@ static uint64_t radv_amdgpu_winsys_query_value(struct radeon_winsys *rws,
 	uint64_t retval = 0;
 
 	switch (value) {
+	case RADEON_ALLOCATED_VRAM:
+		return ws->allocated_vram;
+	case RADEON_ALLOCATED_VRAM_VIS:
+		return ws->allocated_vram_vis;
+	case RADEON_ALLOCATED_GTT:
+		return ws->allocated_gtt;
 	case RADEON_TIMESTAMP:
 		amdgpu_query_info(ws->dev, AMDGPU_INFO_TIMESTAMP, 8, &retval);
 		return retval;

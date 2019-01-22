@@ -41,6 +41,7 @@
 
 #include "framebuffer.h"
 #include "main/blend.h"
+#include "main/glformats.h"
 #include "main/macros.h"
 
 /**
@@ -126,8 +127,9 @@ colormask_per_rt(const struct gl_context *ctx, unsigned num_cb)
  * Figure out if blend enables/state are different per rt.
  */
 static GLboolean
-blend_per_rt(const struct gl_context *ctx, unsigned num_cb)
+blend_per_rt(const struct st_context *st, unsigned num_cb)
 {
+   const struct gl_context *ctx = st->ctx;
    GLbitfield cb_mask = u_bit_consecutive(0, num_cb);
    GLbitfield blend_enabled = ctx->Color.BlendEnabled & cb_mask;
 
@@ -145,7 +147,47 @@ blend_per_rt(const struct gl_context *ctx, unsigned num_cb)
        * must be handled on a per buffer basis. */
       return GL_TRUE;
    }
+
+   if (st->needs_rgb_dst_alpha_override && ctx->DrawBuffer->_RGBBuffers) {
+      /* Overriding requires independent blend functions (not just enables),
+       * require drivers exposing PIPE_CAP_RGB_OVERRIDE_DST_ALPHA_BLEND to
+       * also expose PIPE_CAP_INDEP_BLEND_FUNC.
+       */
+      assert(st->has_indep_blend_func);
+
+      /* If some of the buffers are RGB, we may need to override blend
+       * factors that reference destination-alpha to constants.  We may
+       * need different blend factor overrides per buffer (say one uses
+       * a DST_ALPHA factor and another uses INV_DST_ALPHA), so we flip
+       * on independent blending.  This may not be required in all cases,
+       * but burning the CPU to figure it out is probably not worthwhile.
+       */
+      return GL_TRUE;
+   }
+
    return GL_FALSE;
+}
+
+/**
+ * Modify blend function to force destination alpha to 1.0
+ *
+ * If \c function specifies a blend function that uses destination alpha,
+ * replace it with a function that hard-wires destination alpha to 1.0.
+ * This is useful when emulating a GL RGB format with an RGBA pipe_format.
+ */
+static enum pipe_blendfactor
+fix_xrgb_alpha(enum pipe_blendfactor factor)
+{
+   switch (factor) {
+   case PIPE_BLENDFACTOR_DST_ALPHA:
+      return PIPE_BLENDFACTOR_ONE;
+
+   case PIPE_BLENDFACTOR_INV_DST_ALPHA:
+   case PIPE_BLENDFACTOR_SRC_ALPHA_SATURATE:
+      return PIPE_BLENDFACTOR_ZERO;
+   default:
+      return factor;
+   }
 }
 
 void
@@ -160,7 +202,7 @@ st_update_blend( struct st_context *st )
    memset(blend, 0, sizeof(*blend));
 
    if (num_cb > 1 &&
-       (blend_per_rt(ctx, num_cb) || colormask_per_rt(ctx, num_cb))) {
+       (blend_per_rt(st, num_cb) || colormask_per_rt(ctx, num_cb))) {
       num_state = num_cb;
       blend->independent_blend_enable = 1;
    }
@@ -215,6 +257,18 @@ st_update_blend( struct st_context *st )
                translate_blend(ctx->Color.Blend[j].SrcA);
             blend->rt[i].alpha_dst_factor =
                translate_blend(ctx->Color.Blend[j].DstA);
+         }
+
+         const struct gl_renderbuffer *rb =
+            ctx->DrawBuffer->_ColorDrawBuffers[i];
+
+         if (st->needs_rgb_dst_alpha_override && rb &&
+             (ctx->DrawBuffer->_RGBBuffers & (1 << i))) {
+            struct pipe_rt_blend_state *rt = &blend->rt[i];
+            rt->rgb_src_factor = fix_xrgb_alpha(rt->rgb_src_factor);
+            rt->rgb_dst_factor = fix_xrgb_alpha(rt->rgb_dst_factor);
+            rt->alpha_src_factor = fix_xrgb_alpha(rt->alpha_src_factor);
+            rt->alpha_dst_factor = fix_xrgb_alpha(rt->alpha_dst_factor);
          }
       }
    }

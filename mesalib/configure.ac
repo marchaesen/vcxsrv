@@ -52,6 +52,19 @@ mingw*)
     ;;
 esac
 
+AC_ARG_ENABLE(autotools,
+   [AS_HELP_STRING([--enable-autotools],
+                   [Enable the use of this autotools based build configuration])],
+   [enable_autotools=$enableval], [enable_autotools=no])
+
+if test "x$enable_autotools" != "xyes" ; then
+    AC_MSG_ERROR([the autotools build system has been deprecated in favour of
+    meson and will be removed eventually. For instructions on how to use meson
+    see https://www.mesa3d.org/meson.html.
+    If you still want to use the autotools build, then add --enable-autotools
+    to the configure command line.])
+fi
+
 # Support silent build rules, requires at least automake-1.11. Disable
 # by either passing --disable-silent-rules to configure or passing V=1
 # to make

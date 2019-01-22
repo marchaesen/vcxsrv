@@ -23,11 +23,12 @@
 #define XF86XK_ModeLock		0x1008FF01	/* Mode Switch Lock */
 
 /* Backlight controls. */
-#define XF86XK_MonBrightnessUp   0x1008FF02  /* Monitor/panel brightness */
-#define XF86XK_MonBrightnessDown 0x1008FF03  /* Monitor/panel brightness */
-#define XF86XK_KbdLightOnOff     0x1008FF04  /* Keyboards may be lit     */
-#define XF86XK_KbdBrightnessUp   0x1008FF05  /* Keyboards may be lit     */
-#define XF86XK_KbdBrightnessDown 0x1008FF06  /* Keyboards may be lit     */
+#define XF86XK_MonBrightnessUp    0x1008FF02  /* Monitor/panel brightness */
+#define XF86XK_MonBrightnessDown  0x1008FF03  /* Monitor/panel brightness */
+#define XF86XK_KbdLightOnOff      0x1008FF04  /* Keyboards may be lit     */
+#define XF86XK_KbdBrightnessUp    0x1008FF05  /* Keyboards may be lit     */
+#define XF86XK_KbdBrightnessDown  0x1008FF06  /* Keyboards may be lit     */
+#define XF86XK_MonBrightnessCycle 0x1008FF07  /* Monitor/panel brightness */
 
 /*
  * Keys found on some "Internet" keyboards.
@@ -203,6 +204,8 @@
 #define XF86XK_RFKill		0x1008FFB5   /* Toggle radios on/off */
 
 #define XF86XK_AudioPreset	0x1008FFB6   /* Select equalizer preset, e.g. theatre-mode */
+
+#define XF86XK_RotationLockToggle 0x1008FFB7 /* Toggle screen rotation lock on/off */
 
 /* Keys for special action keys (hot keys) */
 /* Virtual terminals on some operating systems */

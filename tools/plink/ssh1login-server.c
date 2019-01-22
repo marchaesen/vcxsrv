@@ -241,9 +241,9 @@ static void ssh1_login_server_process_queue(PacketProtocolLayer *ppl)
         s->session_key[i] ^= s->session_id[i];
 
     {
-        const ssh1_cipheralg *cipher =
-            (s->cipher_type == SSH_CIPHER_BLOWFISH ? &ssh1_blowfish :
-             s->cipher_type == SSH_CIPHER_DES ? &ssh1_des : &ssh1_3des);
+        const ssh_cipheralg *cipher =
+            (s->cipher_type == SSH_CIPHER_BLOWFISH ? &ssh_blowfish_ssh1 :
+             s->cipher_type == SSH_CIPHER_DES ? &ssh_des : &ssh_3des_ssh1);
         ssh1_bpp_new_cipher(s->ppl.bpp, cipher, s->session_key);
     }
 
@@ -306,15 +306,16 @@ static void ssh1_login_server_process_queue(PacketProtocolLayer *ppl)
             {
                 unsigned char *rsabuf =
                     snewn(s->authkey->bytes, unsigned char);
-                struct MD5Context md5c;
 
                 for (i = 0; i < 32; i++)
                     rsabuf[i] = random_byte();
 
-                MD5Init(&md5c);
-                put_data(&md5c, rsabuf, 32);
-                put_data(&md5c, s->session_id, 16);
-                MD5Final(s->auth_rsa_expected_response, &md5c);
+                {
+                    ssh_hash *h = ssh_hash_new(&ssh_md5);
+                    put_data(h, rsabuf, 32);
+                    put_data(h, s->session_id, 16);
+                    ssh_hash_final(h, s->auth_rsa_expected_response);
+                }
 
                 if (!rsa_ssh1_encrypt(rsabuf, 32, s->authkey)) {
                     sfree(rsabuf);

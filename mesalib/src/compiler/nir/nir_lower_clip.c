@@ -212,7 +212,7 @@ nir_lower_clip_vs(nir_shader *shader, unsigned ucp_enables, bool use_vars)
 
       if (clipvertex) {
          exec_node_remove(&clipvertex->node);
-         clipvertex->data.mode = nir_var_private;
+         clipvertex->data.mode = nir_var_shader_temp;
          exec_list_push_tail(&shader->globals, &clipvertex->node);
       }
    } else {

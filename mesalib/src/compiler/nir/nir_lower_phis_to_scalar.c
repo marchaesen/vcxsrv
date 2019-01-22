@@ -86,7 +86,9 @@ is_phi_src_scalarizable(nir_phi_src *src,
       case nir_intrinsic_load_deref: {
          nir_deref_instr *deref = nir_src_as_deref(src_intrin->src[0]);
          return deref->mode == nir_var_shader_in ||
-                deref->mode == nir_var_uniform;
+                deref->mode == nir_var_uniform ||
+                deref->mode == nir_var_mem_ubo ||
+                deref->mode == nir_var_mem_ssbo;
       }
 
       case nir_intrinsic_interp_deref_at_centroid:

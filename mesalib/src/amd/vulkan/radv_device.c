@@ -122,19 +122,30 @@ radv_get_device_name(enum radeon_family family, char *name, size_t name_len)
 	snprintf(name, name_len, "%s%s", chip_string, llvm_string);
 }
 
+static uint64_t
+radv_get_visible_vram_size(struct radv_physical_device *device)
+{
+	return MIN2(device->rad_info.vram_size, device->rad_info.vram_vis_size);
+}
+
+static uint64_t
+radv_get_vram_size(struct radv_physical_device *device)
+{
+	return device->rad_info.vram_size - radv_get_visible_vram_size(device);
+}
+
 static void
 radv_physical_device_init_mem_types(struct radv_physical_device *device)
 {
 	STATIC_ASSERT(RADV_MEM_HEAP_COUNT <= VK_MAX_MEMORY_HEAPS);
-	uint64_t visible_vram_size = MIN2(device->rad_info.vram_size,
-	                                  device->rad_info.vram_vis_size);
-
+	uint64_t visible_vram_size = radv_get_visible_vram_size(device);
+	uint64_t vram_size = radv_get_vram_size(device);
 	int vram_index = -1, visible_vram_index = -1, gart_index = -1;
 	device->memory_properties.memoryHeapCount = 0;
-	if (device->rad_info.vram_size - visible_vram_size > 0) {
+	if (vram_size > 0) {
 		vram_index = device->memory_properties.memoryHeapCount++;
 		device->memory_properties.memoryHeaps[vram_index] = (VkMemoryHeap) {
-			.size = device->rad_info.vram_size - visible_vram_size,
+			.size = vram_size,
 			.flags = VK_MEMORY_HEAP_DEVICE_LOCAL_BIT,
 		};
 	}
@@ -1299,7 +1310,7 @@ void radv_GetPhysicalDeviceQueueFamilyProperties(
 {
 	RADV_FROM_HANDLE(radv_physical_device, pdevice, physicalDevice);
 	if (!pQueueFamilyProperties) {
-		return radv_get_physical_device_queue_family_properties(pdevice, pCount, NULL);
+		radv_get_physical_device_queue_family_properties(pdevice, pCount, NULL);
 		return;
 	}
 	VkQueueFamilyProperties *properties[] = {
@@ -1318,7 +1329,7 @@ void radv_GetPhysicalDeviceQueueFamilyProperties2(
 {
 	RADV_FROM_HANDLE(radv_physical_device, pdevice, physicalDevice);
 	if (!pQueueFamilyProperties) {
-		return radv_get_physical_device_queue_family_properties(pdevice, pCount, NULL);
+		radv_get_physical_device_queue_family_properties(pdevice, pCount, NULL);
 		return;
 	}
 	VkQueueFamilyProperties *properties[] = {
@@ -1339,12 +1350,84 @@ void radv_GetPhysicalDeviceMemoryProperties(
 	*pMemoryProperties = physical_device->memory_properties;
 }
 
+static void
+radv_get_memory_budget_properties(VkPhysicalDevice physicalDevice,
+				  VkPhysicalDeviceMemoryBudgetPropertiesEXT *memoryBudget)
+{
+	RADV_FROM_HANDLE(radv_physical_device, device, physicalDevice);
+	VkPhysicalDeviceMemoryProperties *memory_properties = &device->memory_properties;
+	uint64_t visible_vram_size = radv_get_visible_vram_size(device);
+	uint64_t vram_size = radv_get_vram_size(device);
+	uint64_t gtt_size = device->rad_info.gart_size;
+	uint64_t heap_budget, heap_usage;
+
+	/* For all memory heaps, the computation of budget is as follow:
+	 *	heap_budget = heap_size - global_heap_usage + app_heap_usage
+	 *
+	 * The Vulkan spec 1.1.97 says that the budget should include any
+	 * currently allocated device memory.
+	 *
+	 * Note that the application heap usages are not really accurate (eg.
+	 * in presence of shared buffers).
+	 */
+	if (vram_size) {
+		heap_usage = device->ws->query_value(device->ws,
+						     RADEON_ALLOCATED_VRAM);
+
+		heap_budget = vram_size -
+			device->ws->query_value(device->ws, RADEON_VRAM_USAGE) +
+			heap_usage;
+
+		memoryBudget->heapBudget[RADV_MEM_HEAP_VRAM] = heap_budget;
+		memoryBudget->heapUsage[RADV_MEM_HEAP_VRAM] = heap_usage;
+	}
+
+	if (visible_vram_size) {
+		heap_usage = device->ws->query_value(device->ws,
+						     RADEON_ALLOCATED_VRAM_VIS);
+
+		heap_budget = visible_vram_size -
+			device->ws->query_value(device->ws, RADEON_VRAM_VIS_USAGE) +
+			heap_usage;
+
+		memoryBudget->heapBudget[RADV_MEM_HEAP_VRAM_CPU_ACCESS] = heap_budget;
+		memoryBudget->heapUsage[RADV_MEM_HEAP_VRAM_CPU_ACCESS] = heap_usage;
+	}
+
+	if (gtt_size) {
+		heap_usage = device->ws->query_value(device->ws,
+						     RADEON_ALLOCATED_GTT);
+
+		heap_budget = gtt_size -
+			device->ws->query_value(device->ws, RADEON_GTT_USAGE) +
+			heap_usage;
+
+		memoryBudget->heapBudget[RADV_MEM_HEAP_GTT] = heap_budget;
+		memoryBudget->heapUsage[RADV_MEM_HEAP_GTT] = heap_usage;
+	}
+
+	/* The heapBudget and heapUsage values must be zero for array elements
+	 * greater than or equal to
+	 * VkPhysicalDeviceMemoryProperties::memoryHeapCount.
+	 */
+	for (uint32_t i = memory_properties->memoryHeapCount; i < VK_MAX_MEMORY_HEAPS; i++) {
+		memoryBudget->heapBudget[i] = 0;
+		memoryBudget->heapUsage[i] = 0;
+	}
+}
+
 void radv_GetPhysicalDeviceMemoryProperties2(
 	VkPhysicalDevice                            physicalDevice,
 	VkPhysicalDeviceMemoryProperties2          *pMemoryProperties)
 {
-	return radv_GetPhysicalDeviceMemoryProperties(physicalDevice,
-						      &pMemoryProperties->memoryProperties);
+	radv_GetPhysicalDeviceMemoryProperties(physicalDevice,
+					       &pMemoryProperties->memoryProperties);
+
+	VkPhysicalDeviceMemoryBudgetPropertiesEXT *memory_budget =
+		vk_find_struct(pMemoryProperties->pNext,
+			       PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT);
+	if (memory_budget)
+		radv_get_memory_budget_properties(physicalDevice, memory_budget);
 }
 
 VkResult radv_GetMemoryHostPointerPropertiesEXT(
@@ -1882,136 +1965,138 @@ fill_geom_tess_rings(struct radv_queue *queue,
 		     uint32_t tess_offchip_ring_size,
 		     struct radeon_winsys_bo *tess_rings_bo)
 {
-	uint64_t esgs_va = 0, gsvs_va = 0;
-	uint64_t tess_va = 0, tess_offchip_va = 0;
 	uint32_t *desc = &map[4];
 
-	if (esgs_ring_bo)
-		esgs_va = radv_buffer_get_va(esgs_ring_bo);
-	if (gsvs_ring_bo)
-		gsvs_va = radv_buffer_get_va(gsvs_ring_bo);
-	if (tess_rings_bo) {
-		tess_va = radv_buffer_get_va(tess_rings_bo);
-		tess_offchip_va = tess_va + tess_offchip_ring_offset;
+	if (esgs_ring_bo) {
+		uint64_t esgs_va = radv_buffer_get_va(esgs_ring_bo);
+
+		/* stride 0, num records - size, add tid, swizzle, elsize4,
+		   index stride 64 */
+		desc[0] = esgs_va;
+		desc[1] = S_008F04_BASE_ADDRESS_HI(esgs_va >> 32) |
+			  S_008F04_STRIDE(0) |
+			  S_008F04_SWIZZLE_ENABLE(true);
+		desc[2] = esgs_ring_size;
+		desc[3] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
+			  S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
+			  S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
+			  S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
+			  S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
+			  S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) |
+			  S_008F0C_ELEMENT_SIZE(1) |
+			  S_008F0C_INDEX_STRIDE(3) |
+			  S_008F0C_ADD_TID_ENABLE(true);
+
+		/* GS entry for ES->GS ring */
+		/* stride 0, num records - size, elsize0,
+		   index stride 0 */
+		desc[4] = esgs_va;
+		desc[5] = S_008F04_BASE_ADDRESS_HI(esgs_va >> 32)|
+			  S_008F04_STRIDE(0) |
+			  S_008F04_SWIZZLE_ENABLE(false);
+		desc[6] = esgs_ring_size;
+		desc[7] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
+			  S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
+			  S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
+			  S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
+			  S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
+			  S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) |
+			  S_008F0C_ELEMENT_SIZE(0) |
+			  S_008F0C_INDEX_STRIDE(0) |
+			  S_008F0C_ADD_TID_ENABLE(false);
 	}
 
-	/* stride 0, num records - size, add tid, swizzle, elsize4,
-	   index stride 64 */
-	desc[0] = esgs_va;
-	desc[1] = S_008F04_BASE_ADDRESS_HI(esgs_va >> 32) |
-		S_008F04_STRIDE(0) |
-		S_008F04_SWIZZLE_ENABLE(true);
-	desc[2] = esgs_ring_size;
-	desc[3] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
-		S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
-		S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
-		S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
-		S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
-		S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) |
-		S_008F0C_ELEMENT_SIZE(1) |
-		S_008F0C_INDEX_STRIDE(3) |
-		S_008F0C_ADD_TID_ENABLE(true);
-
-	desc += 4;
-	/* GS entry for ES->GS ring */
-	/* stride 0, num records - size, elsize0,
-	   index stride 0 */
-	desc[0] = esgs_va;
-	desc[1] = S_008F04_BASE_ADDRESS_HI(esgs_va >> 32)|
-		S_008F04_STRIDE(0) |
-		S_008F04_SWIZZLE_ENABLE(false);
-	desc[2] = esgs_ring_size;
-	desc[3] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
-		S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
-		S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
-		S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
-		S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
-		S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) |
-		S_008F0C_ELEMENT_SIZE(0) |
-		S_008F0C_INDEX_STRIDE(0) |
-		S_008F0C_ADD_TID_ENABLE(false);
-
-	desc += 4;
-	/* VS entry for GS->VS ring */
-	/* stride 0, num records - size, elsize0,
-	   index stride 0 */
-	desc[0] = gsvs_va;
-	desc[1] = S_008F04_BASE_ADDRESS_HI(gsvs_va >> 32)|
-		S_008F04_STRIDE(0) |
-		S_008F04_SWIZZLE_ENABLE(false);
-	desc[2] = gsvs_ring_size;
-	desc[3] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
-		S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
-		S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
-		S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
-		S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
-		S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) |
-		S_008F0C_ELEMENT_SIZE(0) |
-		S_008F0C_INDEX_STRIDE(0) |
-		S_008F0C_ADD_TID_ENABLE(false);
-	desc += 4;
-
-	/* stride gsvs_itemsize, num records 64
-	   elsize 4, index stride 16 */
-	/* shader will patch stride and desc[2] */
-	desc[0] = gsvs_va;
-	desc[1] = S_008F04_BASE_ADDRESS_HI(gsvs_va >> 32)|
-		S_008F04_STRIDE(0) |
-		S_008F04_SWIZZLE_ENABLE(true);
-	desc[2] = 0;
-	desc[3] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
-		S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
-		S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
-		S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
-		S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
-		S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) |
-		S_008F0C_ELEMENT_SIZE(1) |
-		S_008F0C_INDEX_STRIDE(1) |
-		S_008F0C_ADD_TID_ENABLE(true);
-	desc += 4;
-
-	desc[0] = tess_va;
-	desc[1] = S_008F04_BASE_ADDRESS_HI(tess_va >> 32) |
-		S_008F04_STRIDE(0) |
-		S_008F04_SWIZZLE_ENABLE(false);
-	desc[2] = tess_factor_ring_size;
-	desc[3] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
-		S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
-		S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
-		S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
-		S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
-		S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) |
-		S_008F0C_ELEMENT_SIZE(0) |
-		S_008F0C_INDEX_STRIDE(0) |
-		S_008F0C_ADD_TID_ENABLE(false);
-	desc += 4;
-
-	desc[0] = tess_offchip_va;
-	desc[1] = S_008F04_BASE_ADDRESS_HI(tess_offchip_va >> 32) |
-		S_008F04_STRIDE(0) |
-		S_008F04_SWIZZLE_ENABLE(false);
-	desc[2] = tess_offchip_ring_size;
-	desc[3] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
-		S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
-		S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
-		S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
-		S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
-		S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) |
-		S_008F0C_ELEMENT_SIZE(0) |
-		S_008F0C_INDEX_STRIDE(0) |
-		S_008F0C_ADD_TID_ENABLE(false);
-	desc += 4;
-
-	/* add sample positions after all rings */
-	memcpy(desc, queue->device->sample_locations_1x, 8);
-	desc += 2;
-	memcpy(desc, queue->device->sample_locations_2x, 16);
-	desc += 4;
-	memcpy(desc, queue->device->sample_locations_4x, 32);
 	desc += 8;
-	memcpy(desc, queue->device->sample_locations_8x, 64);
-	desc += 16;
-	memcpy(desc, queue->device->sample_locations_16x, 128);
+
+	if (gsvs_ring_bo) {
+		uint64_t gsvs_va = radv_buffer_get_va(gsvs_ring_bo);
+
+		/* VS entry for GS->VS ring */
+		/* stride 0, num records - size, elsize0,
+		   index stride 0 */
+		desc[0] = gsvs_va;
+		desc[1] = S_008F04_BASE_ADDRESS_HI(gsvs_va >> 32)|
+			  S_008F04_STRIDE(0) |
+			  S_008F04_SWIZZLE_ENABLE(false);
+		desc[2] = gsvs_ring_size;
+		desc[3] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
+			  S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
+			  S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
+			  S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
+			  S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
+			  S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) |
+			  S_008F0C_ELEMENT_SIZE(0) |
+			  S_008F0C_INDEX_STRIDE(0) |
+			  S_008F0C_ADD_TID_ENABLE(false);
+
+		/* stride gsvs_itemsize, num records 64
+		   elsize 4, index stride 16 */
+		/* shader will patch stride and desc[2] */
+		desc[4] = gsvs_va;
+		desc[5] = S_008F04_BASE_ADDRESS_HI(gsvs_va >> 32)|
+			  S_008F04_STRIDE(0) |
+			  S_008F04_SWIZZLE_ENABLE(true);
+		desc[6] = 0;
+		desc[7] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
+			  S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
+			  S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
+			  S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
+			  S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
+			  S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) |
+			  S_008F0C_ELEMENT_SIZE(1) |
+			  S_008F0C_INDEX_STRIDE(1) |
+			  S_008F0C_ADD_TID_ENABLE(true);
+	}
+
+	desc += 8;
+
+	if (tess_rings_bo) {
+		uint64_t tess_va = radv_buffer_get_va(tess_rings_bo);
+		uint64_t tess_offchip_va = tess_va + tess_offchip_ring_offset;
+
+		desc[0] = tess_va;
+		desc[1] = S_008F04_BASE_ADDRESS_HI(tess_va >> 32) |
+			  S_008F04_STRIDE(0) |
+			  S_008F04_SWIZZLE_ENABLE(false);
+		desc[2] = tess_factor_ring_size;
+		desc[3] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
+			  S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
+			  S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
+			  S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
+			  S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
+			  S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) |
+			  S_008F0C_ELEMENT_SIZE(0) |
+			  S_008F0C_INDEX_STRIDE(0) |
+			  S_008F0C_ADD_TID_ENABLE(false);
+
+		desc[4] = tess_offchip_va;
+		desc[5] = S_008F04_BASE_ADDRESS_HI(tess_offchip_va >> 32) |
+			  S_008F04_STRIDE(0) |
+			  S_008F04_SWIZZLE_ENABLE(false);
+		desc[6] = tess_offchip_ring_size;
+		desc[7] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
+			  S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
+			  S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
+			  S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
+			  S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
+			  S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) |
+			  S_008F0C_ELEMENT_SIZE(0) |
+			  S_008F0C_INDEX_STRIDE(0) |
+			  S_008F0C_ADD_TID_ENABLE(false);
+	}
+
+	desc += 8;
+
+	if (add_sample_positions) {
+		/* add sample positions after all rings */
+		memcpy(desc, queue->device->sample_locations_1x, 8);
+		desc += 2;
+		memcpy(desc, queue->device->sample_locations_2x, 16);
+		desc += 4;
+		memcpy(desc, queue->device->sample_locations_4x, 32);
+		desc += 8;
+		memcpy(desc, queue->device->sample_locations_8x, 64);
+	}
 }
 
 static unsigned
@@ -2354,7 +2439,7 @@ radv_get_preamble_cs(struct radv_queue *queue,
 		    tess_rings_bo || add_sample_positions) {
 			size = 112; /* 2 dword + 2 padding + 4 dword * 6 */
 			if (add_sample_positions)
-				size += 256; /* 32+16+8+4+2+1 samples * 4 * 2 = 248 bytes. */
+				size += 128; /* 64+32+16+8 = 120 bytes */
 		}
 		else if (scratch_bo)
 			size = 8; /* 2 dword */
@@ -2370,6 +2455,29 @@ radv_get_preamble_cs(struct radv_queue *queue,
 			goto fail;
 	} else
 		descriptor_bo = queue->descriptor_bo;
+
+	if (descriptor_bo != queue->descriptor_bo) {
+		uint32_t *map = (uint32_t*)queue->device->ws->buffer_map(descriptor_bo);
+
+		if (scratch_bo) {
+			uint64_t scratch_va = radv_buffer_get_va(scratch_bo);
+			uint32_t rsrc1 = S_008F04_BASE_ADDRESS_HI(scratch_va >> 32) |
+				         S_008F04_SWIZZLE_ENABLE(1);
+			map[0] = scratch_va;
+			map[1] = rsrc1;
+		}
+
+		if (esgs_ring_bo || gsvs_ring_bo || tess_rings_bo || add_sample_positions)
+			fill_geom_tess_rings(queue, map, add_sample_positions,
+					     esgs_ring_size, esgs_ring_bo,
+					     gsvs_ring_size, gsvs_ring_bo,
+					     tess_factor_ring_size,
+					     tess_offchip_ring_offset,
+					     tess_offchip_ring_size,
+					     tess_rings_bo);
+
+		queue->device->ws->buffer_unmap(descriptor_bo);
+	}
 
 	for(int i = 0; i < 3; ++i) {
 		struct radeon_cmdbuf *cs = NULL;
@@ -2393,30 +2501,6 @@ radv_get_preamble_cs(struct radv_queue *queue,
 			break;
 		case RADV_QUEUE_TRANSFER:
 			break;
-		}
-
-		if (descriptor_bo != queue->descriptor_bo) {
-			uint32_t *map = (uint32_t*)queue->device->ws->buffer_map(descriptor_bo);
-
-			if (scratch_bo) {
-				uint64_t scratch_va = radv_buffer_get_va(scratch_bo);
-				uint32_t rsrc1 = S_008F04_BASE_ADDRESS_HI(scratch_va >> 32) |
-				                 S_008F04_SWIZZLE_ENABLE(1);
-				map[0] = scratch_va;
-				map[1] = rsrc1;
-			}
-
-			if (esgs_ring_bo || gsvs_ring_bo || tess_rings_bo ||
-			    add_sample_positions)
-				fill_geom_tess_rings(queue, map, add_sample_positions,
-						     esgs_ring_size, esgs_ring_bo,
-						     gsvs_ring_size, gsvs_ring_bo,
-						     tess_factor_ring_size,
-						     tess_offchip_ring_offset,
-						     tess_offchip_ring_size,
-						     tess_rings_bo);
-
-			queue->device->ws->buffer_unmap(descriptor_bo);
 		}
 
 		if (esgs_ring_bo || gsvs_ring_bo || tess_rings_bo)  {

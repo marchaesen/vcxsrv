@@ -2831,6 +2831,7 @@ static const unsigned max_sysvals[] = {
 	[MESA_SHADER_FRAGMENT] = 24,  // TODO
 	[MESA_SHADER_VERTEX]  = 16,
 	[MESA_SHADER_COMPUTE] = 16, // TODO how many do we actually need?
+	[MESA_SHADER_KERNEL]  = 16, // TODO how many do we actually need?
 };
 
 static void

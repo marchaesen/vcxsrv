@@ -52,6 +52,10 @@ struct radv_amdgpu_winsys {
 
 	pthread_mutex_t global_bo_list_lock;
 	struct list_head global_bo_list;
+
+	uint64_t allocated_vram;
+	uint64_t allocated_vram_vis;
+	uint64_t allocated_gtt;
 };
 
 static inline struct radv_amdgpu_winsys *

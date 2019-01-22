@@ -97,13 +97,14 @@ typedef struct {
 typedef enum {
    nir_var_shader_in       = (1 << 0),
    nir_var_shader_out      = (1 << 1),
-   nir_var_private         = (1 << 2),
-   nir_var_function        = (1 << 3),
+   nir_var_shader_temp     = (1 << 2),
+   nir_var_function_temp   = (1 << 3),
    nir_var_uniform         = (1 << 4),
-   nir_var_ubo             = (1 << 5),
+   nir_var_mem_ubo         = (1 << 5),
    nir_var_system_value    = (1 << 6),
-   nir_var_ssbo            = (1 << 7),
-   nir_var_shared          = (1 << 8),
+   nir_var_mem_ssbo        = (1 << 7),
+   nir_var_mem_shared      = (1 << 8),
+   nir_var_mem_global      = (1 << 9),
    nir_var_all             = ~0,
 } nir_variable_mode;
 
@@ -441,7 +442,7 @@ typedef struct nir_variable {
 static inline bool
 nir_variable_is_global(const nir_variable *var)
 {
-   return var->data.mode != nir_var_function;
+   return var->data.mode != nir_var_function_temp;
 }
 
 typedef struct nir_register {
@@ -1311,6 +1312,9 @@ typedef struct {
     * num_components field of nir_intrinsic_instr.
     */
    unsigned dest_components;
+
+   /** bitfield of legal bit sizes */
+   unsigned dest_bit_sizes;
 
    /** the number of constant indices used by the intrinsic */
    unsigned num_indices;
@@ -2324,7 +2328,7 @@ void nir_shader_add_variable(nir_shader *shader, nir_variable *var);
 static inline void
 nir_function_impl_add_variable(nir_function_impl *impl, nir_variable *var)
 {
-   assert(var->data.mode == nir_var_function);
+   assert(var->data.mode == nir_var_function_temp);
    exec_list_push_tail(&impl->locals, &var->node);
 }
 
@@ -2772,6 +2776,23 @@ void nir_metadata_set_validation_flag(nir_shader *shader);
 void nir_metadata_check_validation_flag(nir_shader *shader);
 
 static inline bool
+should_skip_nir(const char *name)
+{
+   static const char *list = NULL;
+   if (!list) {
+      /* Comma separated list of names to skip. */
+      list = getenv("NIR_SKIP");
+      if (!list)
+         list = "";
+   }
+
+   if (!list[0])
+      return false;
+
+   return comma_separated_list_contains(list, name);
+}
+
+static inline bool
 should_clone_nir(void)
 {
    static int should_clone = -1;
@@ -2804,12 +2825,17 @@ should_print_nir(void)
 static inline void nir_validate_shader(nir_shader *shader, const char *when) { (void) shader; (void)when; }
 static inline void nir_metadata_set_validation_flag(nir_shader *shader) { (void) shader; }
 static inline void nir_metadata_check_validation_flag(nir_shader *shader) { (void) shader; }
+static inline bool should_skip_nir(const char *pass_name) { return false; }
 static inline bool should_clone_nir(void) { return false; }
 static inline bool should_serialize_deserialize_nir(void) { return false; }
 static inline bool should_print_nir(void) { return false; }
 #endif /* NDEBUG */
 
 #define _PASS(pass, nir, do_pass) do {                               \
+   if (should_skip_nir(#pass)) {                                     \
+      printf("skipping %s\n", #pass);                                \
+      break;                                                         \
+   }                                                                 \
    do_pass                                                           \
    nir_validate_shader(nir, "after " #pass);                         \
    if (should_clone_nir()) {                                         \
@@ -2842,6 +2868,8 @@ static inline bool should_print_nir(void) { return false; }
    if (should_print_nir())                                           \
       nir_print_shader(nir, stdout);                                 \
 )
+
+#define NIR_SKIP(name) should_skip_nir(#name)
 
 void nir_calc_dominance_impl(nir_function_impl *impl);
 void nir_calc_dominance(nir_shader *shader);

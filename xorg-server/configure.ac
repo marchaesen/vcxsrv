@@ -193,7 +193,12 @@ AC_CHECK_LIB(m, sqrt)
 AC_CHECK_FUNCS([cbrt])
 
 dnl AGPGART headers
-AC_CHECK_HEADERS([linux/agpgart.h sys/agpio.h sys/agpgart.h], AGP=yes)
+AC_ARG_ENABLE(agp, AS_HELP_STRING([--enable-agp],
+				  [Enable AGP support (default: auto)]),
+			          [AGP=$enableval], [AGP=auto])
+if test "x$AGP" = "xauto" ; then
+    AC_CHECK_HEADERS([linux/agpgart.h sys/agpio.h sys/agpgart.h], AGP=yes)
+fi
 AM_CONDITIONAL(AGP, [test "x$AGP" = xyes])
 
 dnl fbdev header

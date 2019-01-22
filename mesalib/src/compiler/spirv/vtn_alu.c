@@ -395,7 +395,7 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
    if (glsl_type_is_matrix(vtn_src[0]->type) ||
        (num_inputs >= 2 && glsl_type_is_matrix(vtn_src[1]->type))) {
       vtn_handle_matrix_alu(b, opcode, val, vtn_src[0], vtn_src[1]);
-      b->nb.exact = false;
+      b->nb.exact = b->exact;
       return;
    }
 
@@ -661,5 +661,5 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
    } /* default */
    }
 
-   b->nb.exact = false;
+   b->nb.exact = b->exact;
 }

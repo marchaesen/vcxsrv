@@ -2090,14 +2090,6 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
        */
       if (shader->CompileStatus == COMPILE_SUCCESS)
          return;
-
-      if (shader->CompileStatus == COMPILED_NO_OPTS) {
-         opt_shader_and_create_symbol_table(ctx,
-                                            NULL, /* source_symbols */
-                                            shader);
-         shader->CompileStatus = COMPILE_SUCCESS;
-         return;
-      }
    }
 
    struct _mesa_glsl_parse_state *state =
@@ -2153,13 +2145,7 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
    if (!state->error && !shader->ir->is_empty()) {
       assign_subroutine_indexes(state);
       lower_subroutine(shader->ir, state);
-
-      if (!ctx->Cache || force_recompile)
-         opt_shader_and_create_symbol_table(ctx, state->symbols, shader);
-      else {
-         reparent_ir(shader->ir, shader->ir);
-         shader->CompileStatus = COMPILED_NO_OPTS;
-      }
+      opt_shader_and_create_symbol_table(ctx, state->symbols, shader);
    }
 
    if (!force_recompile) {
@@ -2169,6 +2155,15 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
 
    delete state->symbols;
    ralloc_free(state);
+
+   if (ctx->Cache && shader->CompileStatus == COMPILE_SUCCESS) {
+      char sha1_buf[41];
+      disk_cache_put_key(ctx->Cache, shader->sha1);
+      if (ctx->_Shader->Flags & GLSL_CACHE_INFO) {
+         _mesa_sha1_format(sha1_buf, shader->sha1);
+         fprintf(stderr, "marking shader: %s\n", sha1_buf);
+      }
+   }
 }
 
 } /* extern "C" */

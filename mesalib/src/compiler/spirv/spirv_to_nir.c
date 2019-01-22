@@ -820,8 +820,10 @@ struct_member_decoration_cb(struct vtn_builder *b,
    case SpvDecorationFPRoundingMode:
    case SpvDecorationFPFastMathMode:
    case SpvDecorationAlignment:
-      vtn_warn("Decoration only allowed for CL-style kernels: %s",
-               spirv_decoration_to_string(dec->decoration));
+      if (b->shader->info.stage != MESA_SHADER_KERNEL) {
+         vtn_warn("Decoration only allowed for CL-style kernels: %s",
+                  spirv_decoration_to_string(dec->decoration));
+      }
       break;
 
    case SpvDecorationHlslSemanticGOOGLE:
@@ -3422,6 +3424,8 @@ stage_for_execution_model(struct vtn_builder *b, SpvExecutionModel model)
       return MESA_SHADER_FRAGMENT;
    case SpvExecutionModelGLCompute:
       return MESA_SHADER_COMPUTE;
+   case SpvExecutionModelKernel:
+      return MESA_SHADER_KERNEL;
    default:
       vtn_fail("Unsupported execution model");
    }
@@ -3519,7 +3523,6 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       case SpvCapabilityVector16:
       case SpvCapabilityFloat16Buffer:
       case SpvCapabilityFloat16:
-      case SpvCapabilityInt8:
       case SpvCapabilitySparseResidency:
          vtn_warn("Unsupported SPIR-V capability: %s",
                   spirv_capability_to_string(cap));
@@ -3553,6 +3556,9 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
 
       case SpvCapabilityInt64Atomics:
          spv_check_supported(int64_atomics, cap);
+
+      case SpvCapabilityInt8:
+         spv_check_supported(int8, cap);
          break;
 
       case SpvCapabilityStorageImageMultisample:
@@ -3560,7 +3566,13 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          break;
 
       case SpvCapabilityAddresses:
+         spv_check_supported(address, cap);
+         break;
+
       case SpvCapabilityKernel:
+         spv_check_supported(kernel, cap);
+         break;
+
       case SpvCapabilityImageBasic:
       case SpvCapabilityImageReadWrite:
       case SpvCapabilityImageMipmap:
@@ -3767,7 +3779,7 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
       break;
 
    case SpvExecutionModeLocalSize:
-      vtn_assert(b->shader->info.stage == MESA_SHADER_COMPUTE);
+      vtn_assert(gl_shader_stage_is_compute(b->shader->info.stage));
       b->shader->info.cs.local_size[0] = mode->literals[0];
       b->shader->info.cs.local_size[1] = mode->literals[1];
       b->shader->info.cs.local_size[2] = mode->literals[2];
@@ -3853,8 +3865,15 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
       break;
 
    case SpvExecutionModeVecTypeHint:
-   case SpvExecutionModeContractionOff:
       break; /* OpenCL */
+
+   case SpvExecutionModeContractionOff:
+      if (b->shader->info.stage != MESA_SHADER_KERNEL)
+         vtn_warn("ExectionMode only allowed for CL-style kernels: %s",
+                  spirv_executionmode_to_string(mode->exec_mode));
+      else
+         b->exact = true;
+      break;
 
    case SpvExecutionModeStencilRefReplacingEXT:
       vtn_assert(b->shader->info.stage == MESA_SHADER_FRAGMENT);

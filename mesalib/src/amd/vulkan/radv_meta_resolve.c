@@ -456,14 +456,6 @@ void radv_CmdResolveImage(
 	}
 	assert(dest_image->info.samples == 1);
 
-	if (src_image->info.samples >= 16) {
-		/* See commit aa3f9aaf31e9056a255f9e0472ebdfdaa60abe54 for the
-		 * glBlitFramebuffer workaround for samples >= 16.
-		 */
-		radv_finishme("vkCmdResolveImage: need interpolation workaround when "
-			      "samples >= 16");
-	}
-
 	if (src_image->info.array_size > 1)
 		radv_finishme("vkCmdResolveImage: multisample array images");
 

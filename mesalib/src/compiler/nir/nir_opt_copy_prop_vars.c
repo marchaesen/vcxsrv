@@ -133,10 +133,10 @@ gather_vars_written(struct copy_prop_var_state *state,
       nir_foreach_instr(instr, block) {
          if (instr->type == nir_instr_type_call) {
             written->modes |= nir_var_shader_out |
-                              nir_var_private |
-                              nir_var_function |
-                              nir_var_ssbo |
-                              nir_var_shared;
+                              nir_var_shader_temp |
+                              nir_var_function_temp |
+                              nir_var_mem_ssbo |
+                              nir_var_mem_shared;
             continue;
          }
 
@@ -148,8 +148,8 @@ gather_vars_written(struct copy_prop_var_state *state,
          case nir_intrinsic_barrier:
          case nir_intrinsic_memory_barrier:
             written->modes |= nir_var_shader_out |
-                              nir_var_ssbo |
-                              nir_var_shared;
+                              nir_var_mem_ssbo |
+                              nir_var_mem_shared;
             break;
 
          case nir_intrinsic_emit_vertex:
@@ -157,9 +157,19 @@ gather_vars_written(struct copy_prop_var_state *state,
             written->modes = nir_var_shader_out;
             break;
 
+         case nir_intrinsic_deref_atomic_add:
+         case nir_intrinsic_deref_atomic_imin:
+         case nir_intrinsic_deref_atomic_umin:
+         case nir_intrinsic_deref_atomic_imax:
+         case nir_intrinsic_deref_atomic_umax:
+         case nir_intrinsic_deref_atomic_and:
+         case nir_intrinsic_deref_atomic_or:
+         case nir_intrinsic_deref_atomic_xor:
+         case nir_intrinsic_deref_atomic_exchange:
+         case nir_intrinsic_deref_atomic_comp_swap:
          case nir_intrinsic_store_deref:
          case nir_intrinsic_copy_deref: {
-            /* Destination in _both_ store_deref and copy_deref is src[0]. */
+            /* Destination in all of store_deref, copy_deref and the atomics is src[0]. */
             nir_deref_instr *dst = nir_src_as_deref(intrin->src[0]);
 
             uintptr_t mask = intrin->intrinsic == nir_intrinsic_store_deref ?
@@ -614,10 +624,10 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
    nir_foreach_instr_safe(instr, block) {
       if (instr->type == nir_instr_type_call) {
          apply_barrier_for_modes(copies, nir_var_shader_out |
-                                         nir_var_private |
-                                         nir_var_function |
-                                         nir_var_ssbo |
-                                         nir_var_shared);
+                                         nir_var_shader_temp |
+                                         nir_var_function_temp |
+                                         nir_var_mem_ssbo |
+                                         nir_var_mem_shared);
          continue;
       }
 
@@ -629,8 +639,8 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
       case nir_intrinsic_barrier:
       case nir_intrinsic_memory_barrier:
          apply_barrier_for_modes(copies, nir_var_shader_out |
-                                         nir_var_ssbo |
-                                         nir_var_shared);
+                                         nir_var_mem_ssbo |
+                                         nir_var_mem_shared);
          break;
 
       case nir_intrinsic_emit_vertex:
@@ -769,6 +779,19 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
          store_to_entry(state, dst_entry, &value, 0xf);
          break;
       }
+
+      case nir_intrinsic_deref_atomic_add:
+      case nir_intrinsic_deref_atomic_imin:
+      case nir_intrinsic_deref_atomic_umin:
+      case nir_intrinsic_deref_atomic_imax:
+      case nir_intrinsic_deref_atomic_umax:
+      case nir_intrinsic_deref_atomic_and:
+      case nir_intrinsic_deref_atomic_or:
+      case nir_intrinsic_deref_atomic_xor:
+      case nir_intrinsic_deref_atomic_exchange:
+      case nir_intrinsic_deref_atomic_comp_swap:
+         kill_aliases(copies, nir_src_as_deref(intrin->src[0]), 0xf);
+         break;
 
       default:
          break;

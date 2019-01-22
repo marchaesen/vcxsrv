@@ -98,6 +98,8 @@ option('linux_acpi', type: 'boolean', value: true,
        description: 'ACPI support on Linux')
 option('mitshm', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'SHM extension')
+option('agp', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
+       description: 'AGP support')
 
 option('dri1', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto', description: 'Build DRI1 extension (default: auto)')
 option('dri2', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto', description: 'Build DRI2 extension (default: auto)')

@@ -158,11 +158,10 @@ nir_lower_two_sided_color_block(nir_block *block,
        * bcsel(load_system_value(FACE), load_input(COLn), load_input(BFCn))
        */
       b->cursor = nir_before_instr(&intr->instr);
-      nir_ssa_def *face = nir_load_front_face(b);
       /* gl_FrontFace is a boolean but the intrinsic constructor creates
        * 32-bit value by default.
        */
-      face->bit_size = 1;
+      nir_ssa_def *face = nir_load_front_face(b, 1);
       nir_ssa_def *front = load_input(b, state->colors[idx].front);
       nir_ssa_def *back  = load_input(b, state->colors[idx].back);
       nir_ssa_def *color = nir_bcsel(b, face, front, back);

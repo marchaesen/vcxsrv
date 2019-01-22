@@ -1,4 +1,9 @@
-EXTRA_DIST = parrot.c parrot.jpg scale.ui
+EXTRA_DIST =		\
+     parrot.c		\
+     parrot.jpg		\
+     scale.ui		\
+     meson.build	\
+     $(NULL)
 
 if HAVE_GTK
 

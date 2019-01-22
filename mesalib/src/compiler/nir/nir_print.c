@@ -413,18 +413,20 @@ get_variable_mode_str(nir_variable_mode mode, bool want_local_global_mode)
       return "shader_out";
    case nir_var_uniform:
       return "uniform";
-   case nir_var_ubo:
+   case nir_var_mem_ubo:
       return "ubo";
    case nir_var_system_value:
       return "system";
-   case nir_var_ssbo:
+   case nir_var_mem_ssbo:
       return "ssbo";
-   case nir_var_shared:
+   case nir_var_mem_shared:
       return "shared";
-   case nir_var_private:
-      return want_local_global_mode ? "private" : "";
-   case nir_var_function:
-      return want_local_global_mode ? "function" : "";
+   case nir_var_mem_global:
+      return "global";
+   case nir_var_shader_temp:
+      return want_local_global_mode ? "shader_temp" : "";
+   case nir_var_function_temp:
+      return want_local_global_mode ? "function_temp" : "";
    default:
       return "";
    }
@@ -506,8 +508,8 @@ print_var_decl(nir_variable *var, print_state *state)
    if (var->data.mode == nir_var_shader_in ||
        var->data.mode == nir_var_shader_out ||
        var->data.mode == nir_var_uniform ||
-       var->data.mode == nir_var_ubo ||
-       var->data.mode == nir_var_ssbo) {
+       var->data.mode == nir_var_mem_ubo ||
+       var->data.mode == nir_var_mem_ssbo) {
       const char *loc = NULL;
       char buf[4];
 
@@ -532,6 +534,7 @@ print_var_decl(nir_variable *var, print_state *state)
       case MESA_SHADER_TESS_CTRL:
       case MESA_SHADER_TESS_EVAL:
       case MESA_SHADER_COMPUTE:
+      case MESA_SHADER_KERNEL:
       default:
          /* TODO */
          break;
@@ -1348,17 +1351,13 @@ nir_print_shader_annotated(nir_shader *shader, FILE *fp,
    if (shader->info.label)
       fprintf(fp, "label: %s\n", shader->info.label);
 
-   switch (shader->info.stage) {
-   case MESA_SHADER_COMPUTE:
+   if (gl_shader_stage_is_compute(shader->info.stage)) {
       fprintf(fp, "local-size: %u, %u, %u%s\n",
               shader->info.cs.local_size[0],
               shader->info.cs.local_size[1],
               shader->info.cs.local_size[2],
               shader->info.cs.local_size_variable ? " (variable)" : "");
       fprintf(fp, "shared-size: %u\n", shader->info.cs.shared_size);
-      break;
-   default:
-      break;
    }
 
    fprintf(fp, "inputs: %u\n", shader->num_inputs);

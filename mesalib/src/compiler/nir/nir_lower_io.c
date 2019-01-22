@@ -54,7 +54,7 @@ nir_assign_var_locations(struct exec_list *var_list, unsigned *size,
        * UBOs have their own address spaces, so don't count them towards the
        * number of global uniforms
        */
-      if (var->data.mode == nir_var_ubo || var->data.mode == nir_var_ssbo)
+      if (var->data.mode == nir_var_mem_ubo || var->data.mode == nir_var_mem_ssbo)
          continue;
 
       var->data.driver_location = location;
@@ -189,7 +189,7 @@ lower_load(nir_intrinsic_instr *intrin, struct lower_io_state *state,
    case nir_var_uniform:
       op = nir_intrinsic_load_uniform;
       break;
-   case nir_var_shared:
+   case nir_var_mem_shared:
       op = nir_intrinsic_load_shared;
       break;
    default:
@@ -228,7 +228,7 @@ lower_store(nir_intrinsic_instr *intrin, struct lower_io_state *state,
    nir_variable_mode mode = var->data.mode;
 
    nir_intrinsic_op op;
-   if (mode == nir_var_shared) {
+   if (mode == nir_var_mem_shared) {
       op = nir_intrinsic_store_shared;
    } else {
       assert(mode == nir_var_shader_out);
@@ -261,7 +261,7 @@ static nir_intrinsic_instr *
 lower_atomic(nir_intrinsic_instr *intrin, struct lower_io_state *state,
              nir_variable *var, nir_ssa_def *offset)
 {
-   assert(var->data.mode == nir_var_shared);
+   assert(var->data.mode == nir_var_mem_shared);
 
    nir_intrinsic_op op;
    switch (intrin->intrinsic) {
@@ -407,7 +407,7 @@ nir_lower_io_block(nir_block *block,
 
       if (mode != nir_var_shader_in &&
           mode != nir_var_shader_out &&
-          mode != nir_var_shared &&
+          mode != nir_var_mem_shared &&
           mode != nir_var_uniform)
          continue;
 
@@ -587,10 +587,10 @@ build_explicit_io_load(nir_builder *b, nir_intrinsic_instr *intrin,
 
    nir_intrinsic_op op;
    switch (mode) {
-   case nir_var_ubo:
+   case nir_var_mem_ubo:
       op = nir_intrinsic_load_ubo;
       break;
-   case nir_var_ssbo:
+   case nir_var_mem_ssbo:
       op = nir_intrinsic_load_ssbo;
       break;
    default:
@@ -602,7 +602,7 @@ build_explicit_io_load(nir_builder *b, nir_intrinsic_instr *intrin,
    load->src[0] = nir_src_for_ssa(addr_to_index(b, addr, addr_format));
    load->src[1] = nir_src_for_ssa(addr_to_offset(b, addr, addr_format));
 
-   if (mode != nir_var_ubo)
+   if (mode != nir_var_mem_ubo)
       nir_intrinsic_set_access(load, nir_intrinsic_access(intrin));
 
    /* TODO: We should try and provide a better alignment.  For OpenCL, we need
@@ -628,7 +628,7 @@ build_explicit_io_store(nir_builder *b, nir_intrinsic_instr *intrin,
 
    nir_intrinsic_op op;
    switch (mode) {
-   case nir_var_ssbo:
+   case nir_var_mem_ssbo:
       op = nir_intrinsic_store_ssbo;
       break;
    default:
@@ -666,7 +666,7 @@ build_explicit_io_atomic(nir_builder *b, nir_intrinsic_instr *intrin,
 
    nir_intrinsic_op op;
    switch (mode) {
-   case nir_var_ssbo:
+   case nir_var_mem_ssbo:
       switch (intrin->intrinsic) {
 #define OP(O) case nir_intrinsic_deref_##O: op = nir_intrinsic_ssbo_##O; break;
       OP(atomic_exchange)

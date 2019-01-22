@@ -512,15 +512,17 @@ int rsa_ssh1_public_blob_len(ptrlen data);
 void freersapriv(RSAKey *key);
 void freersakey(RSAKey *key);
 
-unsigned long crc32_compute(const void *s, size_t len);
-unsigned long crc32_update(unsigned long crc_input, const void *s, size_t len);
+uint32_t crc32_rfc1662(ptrlen data);
+uint32_t crc32_ssh1(ptrlen data);
+uint32_t crc32_update(uint32_t crc_input, ptrlen data);
 
 /* SSH CRC compensation attack detector */
 struct crcda_ctx;
 struct crcda_ctx *crcda_make_context(void);
 void crcda_free_context(struct crcda_ctx *ctx);
-bool detect_attack(struct crcda_ctx *ctx, unsigned char *buf, uint32_t len,
-                   unsigned char *IV);
+bool detect_attack(struct crcda_ctx *ctx,
+                   const unsigned char *buf, uint32_t len,
+                   const unsigned char *IV);
 
 /*
  * SSH2 RSA key exchange functions
@@ -552,110 +554,25 @@ mp_int *dss_gen_k(const char *id_string,
                      mp_int *modulus, mp_int *private_key,
                      unsigned char *digest, int digest_len);
 
-struct ssh2_cipher {
-    const ssh2_cipheralg *vt;
+struct ssh_cipher {
+    const ssh_cipheralg *vt;
 };
-
-typedef struct {
-    uint32_t h[4];
-} MD5_Core_State;
-
-struct MD5Context {
-    MD5_Core_State core;
-    unsigned char block[64];
-    int blkused;
-    uint64_t len;
-    BinarySink_IMPLEMENTATION;
-};
-
-void MD5Init(struct MD5Context *context);
-void MD5Final(unsigned char digest[16], struct MD5Context *context);
-void MD5Simple(void const *p, unsigned len, unsigned char output[16]);
-
-struct hmacmd5_context;
-struct hmacmd5_context *hmacmd5_make_context(void);
-void hmacmd5_free_context(struct hmacmd5_context *ctx);
-void hmacmd5_key(struct hmacmd5_context *ctx, void const *key, int len);
-void hmacmd5_do_hmac(struct hmacmd5_context *ctx,
-                     const void *blk, int len, unsigned char *hmac);
 
 bool supports_sha_ni(void);
 
-typedef struct SHA_State {
-    uint32_t h[5];
-    unsigned char block[64];
-    int blkused;
-    uint64_t len;
-    void (*sha1)(struct SHA_State * s, const unsigned char *p, int len);
-    BinarySink_IMPLEMENTATION;
-} SHA_State;
-void SHA_Init(SHA_State * s);
-void SHA_Final(SHA_State * s, unsigned char *output);
-void SHA_Simple(const void *p, int len, unsigned char *output);
-
-void hmac_sha1_simple(const void *key, int keylen,
-                      const void *data, int datalen,
-		      unsigned char *output);
-typedef struct SHA256_State {
-    uint32_t h[8];
-    unsigned char block[64];
-    int blkused;
-    uint64_t len;
-    void (*sha256)(struct SHA256_State * s, const unsigned char *p, int len);
-    BinarySink_IMPLEMENTATION;
-} SHA256_State;
-void SHA256_Init(SHA256_State * s);
-void SHA256_Final(SHA256_State * s, unsigned char *output);
-void SHA256_Simple(const void *p, int len, unsigned char *output);
-
-typedef struct {
-    uint64_t h[8];
-    unsigned char block[128];
-    int blkused;
-    uint64_t lenhi, lenlo;
-    BinarySink_IMPLEMENTATION;
-} SHA512_State;
-#define SHA384_State SHA512_State
-void SHA512_Init(SHA512_State * s);
-void SHA512_Final(SHA512_State * s, unsigned char *output);
-void SHA512_Simple(const void *p, int len, unsigned char *output);
-void SHA384_Init(SHA384_State * s);
-void SHA384_Final(SHA384_State * s, unsigned char *output);
-void SHA384_Simple(const void *p, int len, unsigned char *output);
-
-struct ssh1_cipher {
-    const ssh1_cipheralg *vt;
-};
-
-struct ssh1_cipheralg {
-    ssh1_cipher *(*new)(void);
-    void (*free)(ssh1_cipher *);
-    void (*sesskey)(ssh1_cipher *, const void *key);
-    void (*encrypt)(ssh1_cipher *, void *blk, int len);
-    void (*decrypt)(ssh1_cipher *, void *blk, int len);
-    int blksize;
-    const char *text_name;
-};
-
-#define ssh1_cipher_new(alg) ((alg)->new())
-#define ssh1_cipher_free(ctx) ((ctx)->vt->free(ctx))
-#define ssh1_cipher_sesskey(ctx, key) ((ctx)->vt->sesskey(ctx, key))
-#define ssh1_cipher_encrypt(ctx, blk, len) ((ctx)->vt->encrypt(ctx, blk, len))
-#define ssh1_cipher_decrypt(ctx, blk, len) ((ctx)->vt->decrypt(ctx, blk, len))
-
-struct ssh2_cipheralg {
-    ssh2_cipher *(*new)(const ssh2_cipheralg *alg);
-    void (*free)(ssh2_cipher *);
-    void (*setiv)(ssh2_cipher *, const void *iv);
-    void (*setkey)(ssh2_cipher *, const void *key);
-    void (*encrypt)(ssh2_cipher *, void *blk, int len);
-    void (*decrypt)(ssh2_cipher *, void *blk, int len);
+struct ssh_cipheralg {
+    ssh_cipher *(*new)(const ssh_cipheralg *alg);
+    void (*free)(ssh_cipher *);
+    void (*setiv)(ssh_cipher *, const void *iv);
+    void (*setkey)(ssh_cipher *, const void *key);
+    void (*encrypt)(ssh_cipher *, void *blk, int len);
+    void (*decrypt)(ssh_cipher *, void *blk, int len);
     /* Ignored unless SSH_CIPHER_SEPARATE_LENGTH flag set */
-    void (*encrypt_length)(ssh2_cipher *, void *blk, int len,
+    void (*encrypt_length)(ssh_cipher *, void *blk, int len,
                            unsigned long seq);
-    void (*decrypt_length)(ssh2_cipher *, void *blk, int len,
+    void (*decrypt_length)(ssh_cipher *, void *blk, int len,
                            unsigned long seq);
-    const char *name;
+    const char *ssh2_id;
     int blksize;
     /* real_keybits is the number of bits of entropy genuinely used by
      * the cipher scheme; it's used for deciding how big a
@@ -681,21 +598,21 @@ struct ssh2_cipheralg {
     const void *extra;
 };
 
-#define ssh2_cipher_new(alg) ((alg)->new(alg))
-#define ssh2_cipher_free(ctx) ((ctx)->vt->free(ctx))
-#define ssh2_cipher_setiv(ctx, iv) ((ctx)->vt->setiv(ctx, iv))
-#define ssh2_cipher_setkey(ctx, key) ((ctx)->vt->setkey(ctx, key))
-#define ssh2_cipher_encrypt(ctx, blk, len) ((ctx)->vt->encrypt(ctx, blk, len))
-#define ssh2_cipher_decrypt(ctx, blk, len) ((ctx)->vt->decrypt(ctx, blk, len))
-#define ssh2_cipher_encrypt_length(ctx, blk, len, seq) \
+#define ssh_cipher_new(alg) ((alg)->new(alg))
+#define ssh_cipher_free(ctx) ((ctx)->vt->free(ctx))
+#define ssh_cipher_setiv(ctx, iv) ((ctx)->vt->setiv(ctx, iv))
+#define ssh_cipher_setkey(ctx, key) ((ctx)->vt->setkey(ctx, key))
+#define ssh_cipher_encrypt(ctx, blk, len) ((ctx)->vt->encrypt(ctx, blk, len))
+#define ssh_cipher_decrypt(ctx, blk, len) ((ctx)->vt->decrypt(ctx, blk, len))
+#define ssh_cipher_encrypt_length(ctx, blk, len, seq) \
     ((ctx)->vt->encrypt_length(ctx, blk, len, seq))
-#define ssh2_cipher_decrypt_length(ctx, blk, len, seq) \
+#define ssh_cipher_decrypt_length(ctx, blk, len, seq) \
     ((ctx)->vt->decrypt_length(ctx, blk, len, seq))
-#define ssh2_cipher_alg(ctx) ((ctx)->vt)
+#define ssh_cipher_alg(ctx) ((ctx)->vt)
 
 struct ssh2_ciphers {
     int nciphers;
-    const ssh2_cipheralg *const *list;
+    const ssh_cipheralg *const *list;
 };
 
 struct ssh2_mac {
@@ -705,14 +622,17 @@ struct ssh2_mac {
 
 struct ssh2_macalg {
     /* Passes in the cipher context */
-    ssh2_mac *(*new)(const ssh2_macalg *alg, ssh2_cipher *cipher);
+    ssh2_mac *(*new)(const ssh2_macalg *alg, ssh_cipher *cipher);
     void (*free)(ssh2_mac *);
     void (*setkey)(ssh2_mac *, ptrlen key);
     void (*start)(ssh2_mac *);
     void (*genresult)(ssh2_mac *, unsigned char *);
+    const char *(*text_name)(ssh2_mac *);
     const char *name, *etm_name;
     int len, keylen;
-    const char *text_name;
+
+    /* Pointer to any extra data used by a particular implementation. */
+    const void *extra;
 };
 
 #define ssh2_mac_new(alg, cipher) ((alg)->new(alg, cipher))
@@ -720,12 +640,19 @@ struct ssh2_macalg {
 #define ssh2_mac_setkey(ctx, key) ((ctx)->vt->setkey(ctx, key))
 #define ssh2_mac_start(ctx) ((ctx)->vt->start(ctx))
 #define ssh2_mac_genresult(ctx, out) ((ctx)->vt->genresult(ctx, out))
+#define ssh2_mac_text_name(ctx) ((ctx)->vt->text_name(ctx))
 #define ssh2_mac_alg(ctx) ((ctx)->vt)
 
-/* Centralised 'methods' for ssh2_mac, defined in sshmac.c */
+/* Centralised 'methods' for ssh2_mac, defined in sshmac.c. These run
+ * the MAC in a specifically SSH-2 style, i.e. taking account of a
+ * packet sequence number as well as the data to be authenticated. */
 bool ssh2_mac_verresult(ssh2_mac *, const void *);
 void ssh2_mac_generate(ssh2_mac *, void *, int, unsigned long seq);
 bool ssh2_mac_verify(ssh2_mac *, const void *, int, unsigned long seq);
+
+/* Use a MAC in its raw form, outside SSH-2 context, to MAC a given
+ * string with a given key in the most obvious way. */
+void mac_simple(const ssh2_macalg *alg, ptrlen key, ptrlen data, void *output);
 
 struct ssh_hash {
     const ssh_hashalg *vt;
@@ -746,6 +673,8 @@ struct ssh_hashalg {
 #define ssh_hash_final(ctx, out) ((ctx)->vt->final(ctx, out))
 #define ssh_hash_free(ctx) ((ctx)->vt->free(ctx))
 #define ssh_hash_alg(ctx) ((ctx)->vt)
+
+void hash_simple(const ssh_hashalg *alg, ptrlen data, void *output);
 
 struct ssh_kex {
     const char *name, *groupname;
@@ -852,36 +781,35 @@ struct ssh2_userkey {
 /* The maximum length of any hash algorithm. (bytes) */
 #define MAX_HASH_LEN (64)              /* longest is SHA-512 */
 
-extern const ssh1_cipheralg ssh1_3des;
-extern const ssh1_cipheralg ssh1_des;
-extern const ssh1_cipheralg ssh1_blowfish;
-extern const ssh2_cipheralg ssh_3des_ssh2_ctr;
-extern const ssh2_cipheralg ssh_3des_ssh2;
-extern const ssh2_cipheralg ssh_des_ssh2;
-extern const ssh2_cipheralg ssh_des_sshcom_ssh2;
-extern const ssh2_cipheralg ssh_aes256_sdctr;
-extern const ssh2_cipheralg ssh_aes256_sdctr_hw;
-extern const ssh2_cipheralg ssh_aes256_sdctr_sw;
-extern const ssh2_cipheralg ssh_aes256_cbc;
-extern const ssh2_cipheralg ssh_aes256_cbc_hw;
-extern const ssh2_cipheralg ssh_aes256_cbc_sw;
-extern const ssh2_cipheralg ssh_aes192_sdctr;
-extern const ssh2_cipheralg ssh_aes192_sdctr_hw;
-extern const ssh2_cipheralg ssh_aes192_sdctr_sw;
-extern const ssh2_cipheralg ssh_aes192_cbc;
-extern const ssh2_cipheralg ssh_aes192_cbc_hw;
-extern const ssh2_cipheralg ssh_aes192_cbc_sw;
-extern const ssh2_cipheralg ssh_aes128_sdctr;
-extern const ssh2_cipheralg ssh_aes128_sdctr_hw;
-extern const ssh2_cipheralg ssh_aes128_sdctr_sw;
-extern const ssh2_cipheralg ssh_aes128_cbc;
-extern const ssh2_cipheralg ssh_aes128_cbc_hw;
-extern const ssh2_cipheralg ssh_aes128_cbc_sw;
-extern const ssh2_cipheralg ssh_blowfish_ssh2_ctr;
-extern const ssh2_cipheralg ssh_blowfish_ssh2;
-extern const ssh2_cipheralg ssh_arcfour256_ssh2;
-extern const ssh2_cipheralg ssh_arcfour128_ssh2;
-extern const ssh2_cipheralg ssh2_chacha20_poly1305;
+extern const ssh_cipheralg ssh_3des_ssh1;
+extern const ssh_cipheralg ssh_blowfish_ssh1;
+extern const ssh_cipheralg ssh_3des_ssh2_ctr;
+extern const ssh_cipheralg ssh_3des_ssh2;
+extern const ssh_cipheralg ssh_des;
+extern const ssh_cipheralg ssh_des_sshcom_ssh2;
+extern const ssh_cipheralg ssh_aes256_sdctr;
+extern const ssh_cipheralg ssh_aes256_sdctr_hw;
+extern const ssh_cipheralg ssh_aes256_sdctr_sw;
+extern const ssh_cipheralg ssh_aes256_cbc;
+extern const ssh_cipheralg ssh_aes256_cbc_hw;
+extern const ssh_cipheralg ssh_aes256_cbc_sw;
+extern const ssh_cipheralg ssh_aes192_sdctr;
+extern const ssh_cipheralg ssh_aes192_sdctr_hw;
+extern const ssh_cipheralg ssh_aes192_sdctr_sw;
+extern const ssh_cipheralg ssh_aes192_cbc;
+extern const ssh_cipheralg ssh_aes192_cbc_hw;
+extern const ssh_cipheralg ssh_aes192_cbc_sw;
+extern const ssh_cipheralg ssh_aes128_sdctr;
+extern const ssh_cipheralg ssh_aes128_sdctr_hw;
+extern const ssh_cipheralg ssh_aes128_sdctr_sw;
+extern const ssh_cipheralg ssh_aes128_cbc;
+extern const ssh_cipheralg ssh_aes128_cbc_hw;
+extern const ssh_cipheralg ssh_aes128_cbc_sw;
+extern const ssh_cipheralg ssh_blowfish_ssh2_ctr;
+extern const ssh_cipheralg ssh_blowfish_ssh2;
+extern const ssh_cipheralg ssh_arcfour256_ssh2;
+extern const ssh_cipheralg ssh_arcfour128_ssh2;
+extern const ssh_cipheralg ssh2_chacha20_poly1305;
 extern const ssh2_ciphers ssh2_3des;
 extern const ssh2_ciphers ssh2_des;
 extern const ssh2_ciphers ssh2_aes;
@@ -917,6 +845,14 @@ extern const ssh2_macalg ssh_hmac_sha1_96_buggy;
 extern const ssh2_macalg ssh_hmac_sha256;
 extern const ssh2_macalg ssh2_poly1305;
 extern const ssh_compression_alg ssh_zlib;
+
+/*
+ * On some systems, you have to detect hardware crypto acceleration by
+ * asking the local OS API rather than OS-agnostically asking the CPU
+ * itself. If so, then this function should be implemented in each
+ * platform subdirectory.
+ */
+bool platform_aes_hw_available(void);
 
 /*
  * PuTTY version number formatted as an SSH version string. 

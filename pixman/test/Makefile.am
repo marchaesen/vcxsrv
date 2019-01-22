@@ -11,3 +11,7 @@ noinst_LTLIBRARIES = libutils.la
 noinst_PROGRAMS = $(TESTPROGRAMS) $(OTHERPROGRAMS)
 
 TESTS = $(TESTPROGRAMS)
+
+EXTRA_DIST =			\
+	meson.build		\
+	$(NULL)
