@@ -1,0 +1,265 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 18.3.2 Release Notes / January 17, 2019</h1>
+
+<p>
+Mesa 18.3.2 is a bug fix release which fixes bugs found since the 18.3.1 release.
+</p>
+<p>
+Mesa 18.3.2 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+1cde4fafd40cd1ad4ee3a13b364b7a0175a08b7afdd127fb46f918c1e1dfd4b0  mesa-18.3.2.tar.gz
+f7ce7181c07b6d8e0132da879af1729523a6c8aa87f79a9d59dfd064024cfb35  mesa-18.3.2.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=106595">Bug 106595</a> - [RADV] Rendering distortions only when MSAA is enabled</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=107728">Bug 107728</a> - Wrong background in Sascha Willem's Multisampling Demo</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=108114">Bug 108114</a> - [vulkancts] new VK_KHR_16bit_storage tests fail.</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=108116">Bug 108116</a> - [vulkancts] stencil partial clear tests fail.</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=108624">Bug 108624</a> - [regression][bisected] &quot;nir: Copy propagation between blocks&quot; regression</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=108910">Bug 108910</a> - Vkd3d test failure test_multisample_array_texture()</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=108911">Bug 108911</a> - Vkd3d test failure test_clear_render_target_view()</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=108943">Bug 108943</a> - Build fails on ppc64le with meson</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=109072">Bug 109072</a> - GPU hang in blender 2.80</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=109081">Bug 109081</a> - [bisected] [HSW] Regression in clipping.user_defined.clip_* vulkancts tests</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=109151">Bug 109151</a> - [KBL-G][vulkan] dEQP-VK.texture.explicit_lod.2d.sizes.31x55_nearest_linear_mipmap_nearest_repeat failed verification.</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=109202">Bug 109202</a> - nv50_ir.cpp:749:19: error: cannot use typeid with -fno-rtti</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=109204">Bug 109204</a> - [regression, bisected] retroarch's crt-royale shader crash radv</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Alex Deucher (3):</p>
+<ul>
+  <li>pci_ids: add new vega10 pci ids</li>
+  <li>pci_ids: add new vega20 pci id</li>
+  <li>pci_ids: add new VegaM pci id</li>
+</ul>
+
+<p>Alexander von Gluck IV (1):</p>
+<ul>
+  <li>egl/haiku: Fix reference to disp vs dpy</li>
+</ul>
+
+<p>Andres Gomez (2):</p>
+<ul>
+  <li>glsl: correct typo in GLSL compilation error message</li>
+  <li>glsl/linker: specify proper direction in location aliasing error</li>
+</ul>
+
+<p>Axel Davy (3):</p>
+<ul>
+  <li>st/nine: Fix volumetexture dtor on ctor failure</li>
+  <li>st/nine: Bind src not dst in nine_context_box_upload</li>
+  <li>st/nine: Add src reference to nine_context_range_upload</li>
+</ul>
+
+<p>Bas Nieuwenhuizen (5):</p>
+<ul>
+  <li>radv: Do a cache flush if needed before reading predicates.</li>
+  <li>radv: Implement buffer stores with less than 4 components.</li>
+  <li>anv/android: Do not reject storage images.</li>
+  <li>radv: Fix rasterization precision bits.</li>
+  <li>spirv: Fix matrix parameters in function calls.</li>
+</ul>
+
+<p>Caio Marcelo de Oliveira Filho (3):</p>
+<ul>
+  <li>nir: properly clear the entry sources in copy_prop_vars</li>
+  <li>nir: properly find the entry to keep in copy_prop_vars</li>
+  <li>nir: remove dead code from copy_prop_vars</li>
+</ul>
+
+<p>Dave Airlie (2):</p>
+<ul>
+  <li>radv/xfb: fix counter buffer bounds checks.</li>
+  <li>virgl/vtest: fix front buffer flush with protocol version 0.</li>
+</ul>
+
+<p>Dylan Baker (6):</p>
+<ul>
+  <li>meson: Fix ppc64 little endian detection</li>
+  <li>meson: Add support for gnu hurd</li>
+  <li>meson: Add toggle for glx-direct</li>
+  <li>meson: Override C++ standard to gnu++11 when building with altivec on ppc64</li>
+  <li>meson: Error out if building nouveau and using LLVM without rtti</li>
+  <li>autotools: Remove tegra vdpau driver</li>
+</ul>
+
+<p>Emil Velikov (12):</p>
+<ul>
+  <li>docs: add sha256 checksums for 18.3.1</li>
+  <li>bin/get-pick-list.sh: rework handing of sha nominations</li>
+  <li>bin/get-pick-list.sh: warn when commit lists invalid sha</li>
+  <li>cherry-ignore: meson: libfreedreno depends upon libdrm (for fence support)</li>
+  <li>glx: mandate xf86vidmode only for "drm" dri platforms</li>
+  <li>meson: don't require glx/egl/gbm with gallium drivers</li>
+  <li>pipe-loader: meson: reference correct library</li>
+  <li>TODO: glx: meson: build dri based glx tests, only with -Dglx=dri</li>
+  <li>glx: meson: drop includes from a link-only library</li>
+  <li>glx: meson: wire up the dispatch-index-check test</li>
+  <li>glx/test: meson: assorted include fixes</li>
+  <li>Update version to 18.3.2</li>
+</ul>
+
+<p>Eric Anholt (6):</p>
+<ul>
+  <li>v3d: Fix a leak of the transfer helper on screen destroy.</li>
+  <li>vc4: Fix a leak of the transfer helper on screen destroy.</li>
+  <li>v3d: Fix a leak of the disassembled instruction string during debug dumps.</li>
+  <li>v3d: Make sure that a thrsw doesn't split a multop from its umul24.</li>
+  <li>v3d: Add missing flagging of SYNCB as a TSY op.</li>
+  <li>gallium/ttn: Fix setup of outputs_written.</li>
+</ul>
+
+<p>Erik Faye-Lund (2):</p>
+<ul>
+  <li>virgl: wrap vertex element state in a struct</li>
+  <li>virgl: work around bad assumptions in virglrenderer</li>
+</ul>
+
+<p>Francisco Jerez (5):</p>
+<ul>
+  <li>intel/fs: Handle source modifiers in lower_integer_multiplication().</li>
+  <li>intel/fs: Implement quad swizzles on ICL+.</li>
+  <li>intel/fs: Fix bug in lower_simd_width while splitting an instruction which was already split.</li>
+  <li>intel/eu/gen7: Fix brw_MOV() with DF destination and strided source.</li>
+  <li>intel/fs: Respect CHV/BXT regioning restrictions in copy propagation pass.</li>
+</ul>
+
+<p>Ian Romanick (2):</p>
+<ul>
+  <li>i965/vec4/dce: Don't narrow the write mask if the flags are used</li>
+  <li>Revert "nir/lower_indirect: Bail early if modes == 0"</li>
+</ul>
+
+<p>Jan Vesely (1):</p>
+<ul>
+  <li>clover: Fix build after clang r348827</li>
+</ul>
+
+<p>Jason Ekstrand (6):</p>
+<ul>
+  <li>nir/constant_folding: Fix source bit size logic</li>
+  <li>intel/blorp: Be more conservative about copying clear colors</li>
+  <li>spirv: Handle any bit size in vector_insert/extract</li>
+  <li>anv/apply_pipeline_layout: Set the cursor in lower_res_reindex_intrinsic</li>
+  <li>spirv: Sign-extend array indices</li>
+  <li>intel/peephole_ffma: Fix swizzle propagation</li>
+</ul>
+
+<p>Karol Herbst (1):</p>
+<ul>
+  <li>nv50/ir: fix use-after-free in ConstantFolding::visit</li>
+</ul>
+
+<p>Kirill Burtsev (1):</p>
+<ul>
+  <li>loader: free error state, when checking the drawable type</li>
+</ul>
+
+<p>Lionel Landwerlin (5):</p>
+<ul>
+  <li>anv: don't do partial resolve on layer &gt; 0</li>
+  <li>i965: include draw_params/derived_draw_params for VF cache workaround</li>
+  <li>i965: add CS stall on VF invalidation workaround</li>
+  <li>anv: explictly specify format for blorp ccs/mcs op</li>
+  <li>anv: flush fast clear colors into compressed surfaces</li>
+</ul>
+
+<p>Marek Olšák (1):</p>
+<ul>
+  <li>st/mesa: don't leak pipe_surface if pipe_context is not current</li>
+</ul>
+
+<p>Mario Kleiner (1):</p>
+<ul>
+  <li>radeonsi: Fix use of 1- or 2- component GL_DOUBLE vbo's.</li>
+</ul>
+
+<p>Nicolai Hähnle (1):</p>
+<ul>
+  <li>meson: link LLVM 'native' component when LLVM is available</li>
+</ul>
+
+<p>Rhys Perry (3):</p>
+<ul>
+  <li>radv: don't set surf_index for stencil-only images</li>
+  <li>ac/nir,radv,radeonsi/nir: use correct indices for interpolation intrinsics</li>
+  <li>ac: split 16-bit ssbo loads that may not be dword aligned</li>
+</ul>
+
+<p>Rob Clark (2):</p>
+<ul>
+  <li>freedreno/drm: fix memory leak</li>
+  <li>mesa/st/nir: fix missing nir_compact_varyings</li>
+</ul>
+
+<p>Samuel Pitoiset (1):</p>
+<ul>
+  <li>radv: switch on EOP when primitive restart is enabled with triangle strips</li>
+</ul>
+
+<p>Timothy Arceri (2):</p>
+<ul>
+  <li>tgsi/scan: fix loop exit point in tgsi_scan_tess_ctrl()</li>
+  <li>tgsi/scan: correctly walk instructions in tgsi_scan_tess_ctrl()</li>
+</ul>
+
+<p>Vinson Lee (2):</p>
+<ul>
+  <li>meson: Fix typo.</li>
+  <li>meson: Fix libsensors detection.</li>
+</ul>
+
+
+
+</div>
+</body>
+</html>

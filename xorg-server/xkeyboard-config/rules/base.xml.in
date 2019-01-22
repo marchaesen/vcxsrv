@@ -5515,6 +5515,17 @@
             <_description>English (UK, Colemak)</_description>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>pl</name>
+            <!-- Keyboard indicator for Polish layouts -->
+            <_shortDescription>pl</_shortDescription>
+            <_description>Polish (British keyboard)</_description>
+            <languageList>
+              <iso639Id>pol</iso639Id>
+            </languageList>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>

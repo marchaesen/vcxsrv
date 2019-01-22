@@ -24,15 +24,20 @@ LOGIND_SRCS = systemd-logind.c
 XORG_CFLAGS += $(DBUS_CFLAGS)
 endif
 
+if AGP
+AGP_SRCS = lnx_agp.c
+endif
+
 liblinux_la_SOURCES = linux.h lnx_init.c lnx_video.c \
-                     lnx_agp.c lnx_kmod.c lnx_bell.c lnx_platform.c \
+                      lnx_kmod.c lnx_bell.c lnx_platform.c \
 		     $(srcdir)/../shared/VTsw_usl.c \
 		     $(srcdir)/../shared/posix_tty.c \
                      $(srcdir)/../shared/vidmem.c \
 		     $(srcdir)/../shared/sigio.c \
                      $(ACPI_SRCS) \
                      $(APM_SRCS) \
-                     $(LOGIND_SRCS)
+                     $(LOGIND_SRCS) \
+		     $(AGP_SRCS)
 
 AM_CFLAGS = -DHAVE_SYSV_IPC $(DIX_CFLAGS) $(XORG_CFLAGS) $(PLATFORM_DEFINES)
 

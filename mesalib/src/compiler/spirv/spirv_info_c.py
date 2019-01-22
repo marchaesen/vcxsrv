@@ -90,6 +90,7 @@ if __name__ == "__main__":
     info = [
         collect_data(spirv_info, "Capability"),
         collect_data(spirv_info, "Decoration"),
+        collect_data(spirv_info, "ExecutionMode"),
         collect_opcodes(spirv_info),
     ]
 

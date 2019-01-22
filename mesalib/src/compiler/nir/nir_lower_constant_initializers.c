@@ -103,13 +103,13 @@ nir_lower_constant_initializers(nir_shader *shader, nir_variable_mode modes)
       if ((modes & nir_var_shader_out) && function->is_entrypoint)
          impl_progress |= lower_const_initializer(&builder, &shader->outputs);
 
-      if ((modes & nir_var_private) && function->is_entrypoint)
+      if ((modes & nir_var_shader_temp) && function->is_entrypoint)
          impl_progress |= lower_const_initializer(&builder, &shader->globals);
 
       if ((modes & nir_var_system_value) && function->is_entrypoint)
          impl_progress |= lower_const_initializer(&builder, &shader->system_values);
 
-      if (modes & nir_var_function)
+      if (modes & nir_var_function_temp)
          impl_progress |= lower_const_initializer(&builder, &function->impl->locals);
 
       if (impl_progress) {

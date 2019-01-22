@@ -339,7 +339,10 @@
         { "kind" : "IdRef",        "name" : "'Pointer Type'" },
         { "kind" : "StorageClass" }
       ],
-      "capabilities" : [ "Addresses" ]
+      "capabilities" : [
+        "Addresses",
+        "PhysicalStorageBufferAddressesEXT"
+      ]
     },
     {
       "opname" : "OpConstantTrue",
@@ -563,7 +566,8 @@
       "capabilities" : [
         "Addresses",
         "VariablePointers",
-        "VariablePointersStorageBuffer"
+        "VariablePointersStorageBuffer",
+        "PhysicalStorageBufferAddressesEXT"
       ]
     },
     {
@@ -1048,7 +1052,10 @@
         { "kind" : "IdResult" },
         { "kind" : "IdRef",        "name" : "'Pointer'" }
       ],
-      "capabilities" : [ "Addresses" ]
+      "capabilities" : [
+        "Addresses",
+        "PhysicalStorageBufferAddressesEXT"
+      ]
     },
     {
       "opname" : "OpSatConvertSToU",
@@ -1078,7 +1085,10 @@
         { "kind" : "IdResult" },
         { "kind" : "IdRef",        "name" : "'Integer Value'" }
       ],
-      "capabilities" : [ "Addresses" ]
+      "capabilities" : [
+        "Addresses",
+        "PhysicalStorageBufferAddressesEXT"
+      ]
     },
     {
       "opname" : "OpPtrCastToGeneric",
@@ -3825,7 +3835,7 @@
       "version" : "None"
     },
     {
-      "opname" : "OpReportIntersectionNVX",
+      "opname" : "OpReportIntersectionNV",
       "opcode" : 5334,
       "operands" : [
         { "kind" : "IdResultType" },
@@ -3833,25 +3843,25 @@
         { "kind" : "IdRef", "name" : "'Hit'" },
         { "kind" : "IdRef", "name" : "'HitKind'" }
       ],
-      "capabilities" : [ "RaytracingNVX" ],
-      "extensions" : [ "SPV_NVX_raytracing" ]
+      "capabilities" : [ "RayTracingNV" ],
+      "extensions" : [ "SPV_NV_ray_tracing" ]
     },
     {
-      "opname" : "OpIgnoreIntersectionNVX",
+      "opname" : "OpIgnoreIntersectionNV",
       "opcode" : 5335,
 
-      "capabilities" : [ "RaytracingNVX" ],
-      "extensions" : [ "SPV_NVX_raytracing" ]
+      "capabilities" : [ "RayTracingNV" ],
+      "extensions" : [ "SPV_NV_ray_tracing" ]
     },
     {
-      "opname" : "OpTerminateRayNVX",
+      "opname" : "OpTerminateRayNV",
       "opcode" : 5336,
 
-      "capabilities" : [ "RaytracingNVX" ],
-      "extensions" : [ "SPV_NVX_raytracing" ]
+      "capabilities" : [ "RayTracingNV" ],
+      "extensions" : [ "SPV_NV_ray_tracing" ]
     },
     {
-      "opname" : "OpTraceNVX",
+      "opname" : "OpTraceNV",
       "opcode" : 5337,
       "operands" : [
 
@@ -3867,17 +3877,28 @@
         { "kind" : "IdRef", "name" : "'Ray Tmax'" },
         { "kind" : "IdRef", "name" : "'PayloadId'" }
       ],
-      "capabilities" : [ "RaytracingNVX" ],
-      "extensions" : [ "SPV_NVX_raytracing" ]
+      "capabilities" : [ "RayTracingNV" ],
+      "extensions" : [ "SPV_NV_ray_tracing" ]
     },
     {
-      "opname" : "OpTypeAccelerationStructureNVX",
+      "opname" : "OpTypeAccelerationStructureNV",
       "opcode" : 5341,
       "operands" : [
         { "kind" : "IdResult" }
       ],
-      "capabilities" : [ "RaytracingNVX" ],
-      "extensions" : [ "SPV_NVX_raytracing" ]
+      "capabilities" : [ "RayTracingNV" ],
+      "extensions" : [ "SPV_NV_ray_tracing" ]
+    },
+    {
+      "opname" : "OpExecuteCallableNV",
+      "opcode" : 5344,
+      "operands" : [
+
+        { "kind" : "IdRef", "name" : "'SBT Index'" },
+        { "kind" : "IdRef", "name" : "'Callable DataId'" }
+      ],
+      "capabilities" : [ "RayTracingNV" ],
+      "extensions" : [ "SPV_NV_ray_tracing" ]
     },
     {
       "opname" : "OpSubgroupShuffleINTEL",
@@ -4443,34 +4464,34 @@
           "capabilities" : [ "MeshShadingNV" ]
         },
         {
-          "enumerant" : "RayGenerationNVX",
+          "enumerant" : "RayGenerationNV",
           "value" : 5313,
-          "capabilities" : [ "RaytracingNVX" ]
+          "capabilities" : [ "RayTracingNV" ]
         },
         {
-          "enumerant" : "IntersectionNVX",
+          "enumerant" : "IntersectionNV",
           "value" : 5314,
-          "capabilities" : [ "RaytracingNVX" ]
+          "capabilities" : [ "RayTracingNV" ]
         },
         {
-          "enumerant" : "AnyHitNVX",
+          "enumerant" : "AnyHitNV",
           "value" : 5315,
-          "capabilities" : [ "RaytracingNVX" ]
+          "capabilities" : [ "RayTracingNV" ]
         },
         {
-          "enumerant" : "ClosestHitNVX",
+          "enumerant" : "ClosestHitNV",
           "value" : 5316,
-          "capabilities" : [ "RaytracingNVX" ]
+          "capabilities" : [ "RayTracingNV" ]
         },
         {
-          "enumerant" : "MissNVX",
+          "enumerant" : "MissNV",
           "value" : 5317,
-          "capabilities" : [ "RaytracingNVX" ]
+          "capabilities" : [ "RayTracingNV" ]
         },
         {
-          "enumerant" : "CallableNVX",
+          "enumerant" : "CallableNV",
           "value" : 5318,
-          "capabilities" : [ "RaytracingNVX" ]
+          "capabilities" : [ "RayTracingNV" ]
         }
       ]
     },
@@ -4491,6 +4512,12 @@
           "enumerant" : "Physical64",
           "value" : 2,
           "capabilities" : [ "Addresses" ]
+        },
+        {
+          "enumerant" : "PhysicalStorageBuffer64EXT",
+          "value" : 5348,
+          "extensions" : [ "SPV_EXT_physical_storage_buffer" ],
+          "capabilities" : [ "PhysicalStorageBufferAddressesEXT" ]
         }
       ]
     },
@@ -4762,6 +4789,56 @@
           "extensions" : [ "SPV_KHR_post_depth_coverage" ],
           "version" : "None"
         },
+{
+          "enumerant" : "DenormPreserve",
+          "value" : 4459,
+          "capabilities" : [ "DenormPreserve"],
+          "extensions" : [ "SPV_KHR_float_controls" ],
+          "parameters" : [
+            { "kind" : "LiteralInteger", "name" : "'Target Width'" }
+          ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "DenormFlushToZero",
+          "value" : 4460,
+          "capabilities" : [ "DenormFlushToZero"],
+          "extensions" : [ "SPV_KHR_float_controls" ],
+          "parameters" : [
+            { "kind" : "LiteralInteger", "name" : "'Target Width'" }
+          ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "SignedZeroInfNanPreserve",
+          "value" : 4461,
+          "capabilities" : [ "SignedZeroInfNanPreserve"],
+          "extensions" : [ "SPV_KHR_float_controls" ],
+          "parameters" : [
+            { "kind" : "LiteralInteger", "name" : "'Target Width'" }
+          ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "RoundingModeRTE",
+          "value" : 4462,
+          "capabilities" : [ "RoundingModeRTE"],
+          "extensions" : [ "SPV_KHR_float_controls" ],
+          "parameters" : [
+            { "kind" : "LiteralInteger", "name" : "'Target Width'" }
+          ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "RoundingModeRTZ",
+          "value" : 4463,
+          "capabilities" : [ "RoundingModeRTZ"],
+          "extensions" : [ "SPV_KHR_float_controls" ],
+          "parameters" : [
+            { "kind" : "LiteralInteger", "name" : "'Target Width'" }
+          ],
+          "version" : "None"
+        },
         {
           "enumerant" : "StencilRefReplacingEXT",
           "value" : 5027,
@@ -4878,28 +4955,46 @@
           "version" : "1.3"
         },
         {
-          "enumerant" : "RayPayloadNVX",
+          "enumerant" : "CallableDataNV",
+          "value" : 5328,
+          "extensions" : [ "SPV_NV_ray_tracing" ],
+          "capabilities" : [ "RayTracingNV" ]
+        },
+        {
+          "enumerant" : "IncomingCallableDataNV",
+          "value" : 5329,
+          "extensions" : [ "SPV_NV_ray_tracing" ],
+          "capabilities" : [ "RayTracingNV" ]
+        },
+        {
+          "enumerant" : "RayPayloadNV",
           "value" : 5338,
-          "extensions" : [ "SPV_NVX_raytracing" ],
-          "capabilities" : [ "RaytracingNVX" ]
+          "extensions" : [ "SPV_NV_ray_tracing" ],
+          "capabilities" : [ "RayTracingNV" ]
         },
         {
-          "enumerant" : "HitAttributeNVX",
+          "enumerant" : "HitAttributeNV",
           "value" : 5339,
-          "extensions" : [ "SPV_NVX_raytracing" ],
-          "capabilities" : [ "RaytracingNVX" ]
+          "extensions" : [ "SPV_NV_ray_tracing" ],
+          "capabilities" : [ "RayTracingNV" ]
         },
         {
-          "enumerant" : "IncomingRayPayloadNVX",
+          "enumerant" : "IncomingRayPayloadNV",
           "value" : 5342,
-          "extensions" : [ "SPV_NVX_raytracing" ],
-          "capabilities" : [ "RaytracingNVX" ]
+          "extensions" : [ "SPV_NV_ray_tracing" ],
+          "capabilities" : [ "RayTracingNV" ]
         },
-{
-          "enumerant" : "ShaderRecordBufferNVX",
+        {
+          "enumerant" : "ShaderRecordBufferNV",
           "value" : 5343,
-          "extensions" : [ "SPV_NVX_raytracing" ],
-          "capabilities" : [ "RaytracingNVX" ]
+          "extensions" : [ "SPV_NV_ray_tracing" ],
+          "capabilities" : [ "RayTracingNV" ]
+        },
+        {
+          "enumerant" : "PhysicalStorageBufferEXT",
+          "value" : 5349,
+          "extensions" : [ "SPV_EXT_physical_storage_buffer" ],
+          "capabilities" : [ "PhysicalStorageBufferAddressesEXT" ]
         }
       ]
     },
@@ -5794,6 +5889,18 @@
           "version" : "1.2"
         },
         {
+          "enumerant" : "NoSignedWrap",
+          "value" : 4469,
+          "extensions" : [ "SPV_KHR_no_integer_wrap_decoration" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "NoUnsignedWrap",
+          "value" : 4470,
+          "extensions" : [ "SPV_KHR_no_integer_wrap_decoration" ],
+          "version" : "None"
+        },
+        {
           "enumerant" : "ExplicitInterpAMD",
           "value" : 4999,
           "extensions" : [ "SPV_AMD_shader_explicit_vertex_parameter" ],
@@ -5879,6 +5986,20 @@
           ],
           "extensions" : [ "SPV_GOOGLE_hlsl_functionality1" ],
           "version" : "None"
+        },
+        {
+          "enumerant" : "RestrictPointerEXT",
+          "value" : 5355,
+          "capabilities" : [ "PhysicalStorageBufferAddressesEXT" ],
+          "extensions" : [ "SPV_EXT_physical_storage_buffer" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "AliasedPointerEXT",
+          "value" : 5356,
+          "capabilities" : [ "PhysicalStorageBufferAddressesEXT" ],
+          "extensions" : [ "SPV_EXT_physical_storage_buffer" ],
+          "version" : "None"
         }
       ]
     },
@@ -5919,7 +6040,7 @@
         {
           "enumerant" : "PrimitiveId",
           "value" : 7,
-          "capabilities" : [ "Geometry", "Tessellation", "RaytracingNVX" ]
+          "capabilities" : [ "Geometry", "Tessellation", "RayTracingNV" ]
         },
         {
           "enumerant" : "InvocationId",
@@ -6347,96 +6468,116 @@
           "version" : "None"
         },
         {
+          "enumerant" : "FragSizeEXT",
+          "value" : 5292 ,
+          "capabilities" : [ "FragmentDensityEXT", "ShadingRateNV" ],
+          "extensions" : [ "SPV_EXT_fragment_invocation_density", "SPV_NV_shading_rate" ],
+          "version" : "None"
+        },
+        {
           "enumerant" : "FragmentSizeNV",
           "value" : 5292 ,
-          "capabilities" : [ "ShadingRateNV" ],
-          "extensions" : [ "SPV_NV_shading_rate" ],
+          "capabilities" : [ "ShadingRateNV", "FragmentDensityEXT" ],
+          "extensions" : [ "SPV_NV_shading_rate", "SPV_EXT_fragment_invocation_density" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "FragInvocationCountEXT",
+          "value" : 5293,
+          "capabilities" : [ "FragmentDensityEXT", "ShadingRateNV" ],
+          "extensions" : [ "SPV_EXT_fragment_invocation_density", "SPV_NV_shading_rate" ],
           "version" : "None"
         },
         {
           "enumerant" : "InvocationsPerPixelNV",
           "value" : 5293,
-          "capabilities" : [ "ShadingRateNV" ],
-          "extensions" : [ "SPV_NV_shading_rate" ],
+          "capabilities" : [ "ShadingRateNV", "FragmentDensityEXT" ],
+          "extensions" : [ "SPV_NV_shading_rate", "SPV_EXT_fragment_invocation_density" ],
           "version" : "None"
         },
         {
-          "enumerant" : "LaunchIdNVX",
+          "enumerant" : "LaunchIdNV",
           "value" : 5319,
-          "capabilities" : [ "RaytracingNVX" ],
-          "extensions" : [ "SPV_NVX_raytracing" ]
+          "capabilities" : [ "RayTracingNV" ],
+          "extensions" : [ "SPV_NV_ray_tracing" ]
         },
         {
-          "enumerant" : "LaunchSizeNVX",
+          "enumerant" : "LaunchSizeNV",
           "value" : 5320,
-          "capabilities" : [ "RaytracingNVX" ],
-          "extensions" : [ "SPV_NVX_raytracing" ]
+          "capabilities" : [ "RayTracingNV" ],
+          "extensions" : [ "SPV_NV_ray_tracing" ]
         },
         {
-          "enumerant" : "WorldRayOriginNVX",
+          "enumerant" : "WorldRayOriginNV",
           "value" : 5321,
-          "capabilities" : [ "RaytracingNVX" ],
-          "extensions" : [ "SPV_NVX_raytracing" ]
+          "capabilities" : [ "RayTracingNV" ],
+          "extensions" : [ "SPV_NV_ray_tracing" ]
         },
         {
-          "enumerant" : "WorldRayDirectionNVX",
+          "enumerant" : "WorldRayDirectionNV",
           "value" : 5322,
-          "capabilities" : [ "RaytracingNVX" ],
-          "extensions" : [ "SPV_NVX_raytracing" ]
+          "capabilities" : [ "RayTracingNV" ],
+          "extensions" : [ "SPV_NV_ray_tracing" ]
         },
         {
-          "enumerant" : "ObjectRayOriginNVX",
+          "enumerant" : "ObjectRayOriginNV",
           "value" : 5323,
-          "capabilities" : [ "RaytracingNVX" ],
-          "extensions" : [ "SPV_NVX_raytracing" ]
+          "capabilities" : [ "RayTracingNV" ],
+          "extensions" : [ "SPV_NV_ray_tracing" ]
         },
         {
-          "enumerant" : "ObjectRayDirectionNVX",
+          "enumerant" : "ObjectRayDirectionNV",
           "value" : 5324,
-          "capabilities" : [ "RaytracingNVX" ],
-          "extensions" : [ "SPV_NVX_raytracing" ]
+          "capabilities" : [ "RayTracingNV" ],
+          "extensions" : [ "SPV_NV_ray_tracing" ]
         },
         {
-          "enumerant" : "RayTminNVX",
+          "enumerant" : "RayTminNV",
           "value" : 5325,
-          "capabilities" : [ "RaytracingNVX" ],
-          "extensions" : [ "SPV_NVX_raytracing" ]
+          "capabilities" : [ "RayTracingNV" ],
+          "extensions" : [ "SPV_NV_ray_tracing" ]
         },
         {
-          "enumerant" : "RayTmaxNVX",
+          "enumerant" : "RayTmaxNV",
           "value" : 5326,
-          "capabilities" : [ "RaytracingNVX" ],
-          "extensions" : [ "SPV_NVX_raytracing" ]
+          "capabilities" : [ "RayTracingNV" ],
+          "extensions" : [ "SPV_NV_ray_tracing" ]
         },
         {
-          "enumerant" : "InstanceCustomIndexNVX",
+          "enumerant" : "InstanceCustomIndexNV",
           "value" : 5327,
-          "capabilities" : [ "RaytracingNVX" ],
-          "extensions" : [ "SPV_NVX_raytracing" ]
+          "capabilities" : [ "RayTracingNV" ],
+          "extensions" : [ "SPV_NV_ray_tracing" ]
         },
         {
-          "enumerant" : "ObjectToWorldNVX",
+          "enumerant" : "ObjectToWorldNV",
           "value" : 5330,
-          "capabilities" : [ "RaytracingNVX" ],
-          "extensions" : [ "SPV_NVX_raytracing" ]
+          "capabilities" : [ "RayTracingNV" ],
+          "extensions" : [ "SPV_NV_ray_tracing" ]
         },
         {
-          "enumerant" : "WorldToObjectNVX",
+          "enumerant" : "WorldToObjectNV",
           "value" : 5331,
-          "capabilities" : [ "RaytracingNVX" ],
-          "extensions" : [ "SPV_NVX_raytracing" ]
+          "capabilities" : [ "RayTracingNV" ],
+          "extensions" : [ "SPV_NV_ray_tracing" ]
         },
         {
-          "enumerant" : "HitTNVX",
+          "enumerant" : "HitTNV",
           "value" : 5332,
-          "capabilities" : [ "RaytracingNVX" ],
-          "extensions" : [ "SPV_NVX_raytracing" ]
+          "capabilities" : [ "RayTracingNV" ],
+          "extensions" : [ "SPV_NV_ray_tracing" ]
         },
         {
-          "enumerant" : "HitKindNVX",
+          "enumerant" : "HitKindNV",
           "value" : 5333,
-          "capabilities" : [ "RaytracingNVX" ],
-          "extensions" : [ "SPV_NVX_raytracing" ]
+          "capabilities" : [ "RayTracingNV" ],
+          "extensions" : [ "SPV_NV_ray_tracing" ]
+        },
+        {
+          "enumerant" : "IncomingRayFlagsNV",
+          "value" : 5351,
+          "capabilities" : [ "RayTracingNV" ],
+          "extensions" : [ "SPV_NV_ray_tracing" ]
         }
       ]
     },
@@ -6999,6 +7140,36 @@
           "version" : "None"
         },
         {
+          "enumerant" : "DenormPreserve",
+          "value" : 4464,
+          "extensions" : [ "SPV_KHR_float_controls" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "DenormFlushToZero",
+          "value" : 4465,
+          "extensions" : [ "SPV_KHR_float_controls" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "SignedZeroInfNanPreserve",
+          "value" : 4466,
+          "extensions" : [ "SPV_KHR_float_controls" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "RoundingModeRTE",
+          "value" : 4467,
+          "extensions" : [ "SPV_KHR_float_controls" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "RoundingModeRTZ",
+          "value" : 4468,
+          "extensions" : [ "SPV_KHR_float_controls" ],
+          "version" : "None"
+        },
+        {
           "enumerant" : "Float16ImageAMD",
           "value" : 5008,
           "capabilities" : [ "Shader" ],
@@ -7181,10 +7352,10 @@
           "version" : "None"
         },
         {
-          "enumerant" : "RaytracingNVX",
+          "enumerant" : "RayTracingNV",
           "value" : 5340,
           "capabilities" : [ "Shader" ],
-          "extensions" : [ "SPV_NVX_raytracing" ],
+          "extensions" : [ "SPV_NV_ray_tracing" ],
           "version" : "None"
         },
         {
@@ -7248,10 +7419,24 @@
           "version" : "None"
         },
         {
+          "enumerant" : "FragmentDensityEXT",
+          "value" : 5291,
+          "capabilities" : [ "Shader" ],
+          "extensions" : [ "SPV_EXT_fragment_invocation_density", "SPV_NV_shading_rate" ],
+          "version" : "None"
+        },
+        {
           "enumerant" : "ShadingRateNV",
           "value" : 5291,
           "capabilities" : [ "Shader" ],
-          "extensions" : [ "SPV_NV_shading_rate" ],
+          "extensions" : [ "SPV_NV_shading_rate", "SPV_EXT_fragment_invocation_density" ],
+          "version" : "None"
+        },
+        {
+          "enumerant" : "PhysicalStorageBufferAddressesEXT",
+          "value" : 5347,
+          "capabilities" : [ "Shader" ],
+          "extensions" : [ "SPV_EXT_physical_storage_buffer" ],
           "version" : "None"
         }
       ]

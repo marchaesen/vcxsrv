@@ -249,6 +249,7 @@ radv_amdgpu_winsys_bo_virtual_bind(struct radeon_winsys_bo *_parent,
 static void radv_amdgpu_winsys_bo_destroy(struct radeon_winsys_bo *_bo)
 {
 	struct radv_amdgpu_winsys_bo *bo = radv_amdgpu_winsys_bo(_bo);
+	struct radv_amdgpu_winsys *ws = bo->ws;
 
 	if (p_atomic_dec_return(&bo->ref_count))
 		return;
@@ -269,6 +270,17 @@ static void radv_amdgpu_winsys_bo_destroy(struct radeon_winsys_bo *_bo)
 				     0, AMDGPU_VA_OP_UNMAP);
 		amdgpu_bo_free(bo->bo);
 	}
+
+	if (bo->initial_domain & RADEON_DOMAIN_VRAM)
+		p_atomic_add(&ws->allocated_vram,
+			     -align64(bo->size, ws->info.gart_page_size));
+	if (bo->base.vram_cpu_access)
+		p_atomic_add(&ws->allocated_vram_vis,
+			     -align64(bo->size, ws->info.gart_page_size));
+	if (bo->initial_domain & RADEON_DOMAIN_GTT)
+		p_atomic_add(&ws->allocated_gtt,
+			     -align64(bo->size, ws->info.gart_page_size));
+
 	amdgpu_va_range_free(bo->va_handle);
 	FREE(bo);
 }
@@ -344,8 +356,10 @@ radv_amdgpu_winsys_bo_create(struct radeon_winsys *_ws,
 	if (initial_domain & RADEON_DOMAIN_GTT)
 		request.preferred_heap |= AMDGPU_GEM_DOMAIN_GTT;
 
-	if (flags & RADEON_FLAG_CPU_ACCESS)
+	if (flags & RADEON_FLAG_CPU_ACCESS) {
+		bo->base.vram_cpu_access = initial_domain & RADEON_DOMAIN_VRAM;
 		request.flags |= AMDGPU_GEM_CREATE_CPU_ACCESS_REQUIRED;
+	}
 	if (flags & RADEON_FLAG_NO_CPU_ACCESS)
 		request.flags |= AMDGPU_GEM_CREATE_NO_CPU_ACCESS;
 	if (flags & RADEON_FLAG_GTT_WC)
@@ -378,6 +392,17 @@ radv_amdgpu_winsys_bo_create(struct radeon_winsys *_ws,
 	bo->bo = buf_handle;
 	bo->initial_domain = initial_domain;
 	bo->is_shared = false;
+
+	if (initial_domain & RADEON_DOMAIN_VRAM)
+		p_atomic_add(&ws->allocated_vram,
+			     align64(bo->size, ws->info.gart_page_size));
+	if (bo->base.vram_cpu_access)
+		p_atomic_add(&ws->allocated_vram_vis,
+			     align64(bo->size, ws->info.gart_page_size));
+	if (initial_domain & RADEON_DOMAIN_GTT)
+		p_atomic_add(&ws->allocated_gtt,
+			     align64(bo->size, ws->info.gart_page_size));
+
 	radv_amdgpu_add_buffer_to_global_list(bo);
 	return (struct radeon_winsys_bo *)bo;
 error_va_map:
@@ -474,6 +499,9 @@ radv_amdgpu_winsys_bo_from_ptr(struct radeon_winsys *_ws,
 	bo->bo = buf_handle;
 	bo->initial_domain = RADEON_DOMAIN_GTT;
 
+	p_atomic_add(&ws->allocated_gtt,
+		     align64(bo->size, ws->info.gart_page_size));
+
 	radv_amdgpu_add_buffer_to_global_list(bo);
 	return (struct radeon_winsys_bo *)bo;
 
@@ -538,6 +566,14 @@ radv_amdgpu_winsys_bo_from_fd(struct radeon_winsys *_ws,
 	bo->is_shared = true;
 	bo->ws = ws;
 	bo->ref_count = 1;
+
+	if (bo->initial_domain & RADEON_DOMAIN_VRAM)
+		p_atomic_add(&ws->allocated_vram,
+			     align64(bo->size, ws->info.gart_page_size));
+	if (bo->initial_domain & RADEON_DOMAIN_GTT)
+		p_atomic_add(&ws->allocated_gtt,
+			     align64(bo->size, ws->info.gart_page_size));
+
 	radv_amdgpu_add_buffer_to_global_list(bo);
 	return (struct radeon_winsys_bo *)bo;
 error_va_map:

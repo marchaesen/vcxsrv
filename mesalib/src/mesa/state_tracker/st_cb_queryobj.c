@@ -88,6 +88,44 @@ st_DeleteQuery(struct gl_context *ctx, struct gl_query_object *q)
    free(stq);
 }
 
+static int
+target_to_index(const struct st_context *st, const struct gl_query_object *q)
+{
+   if (q->Target == GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN ||
+       q->Target == GL_TRANSFORM_FEEDBACK_STREAM_OVERFLOW_ARB)
+      return q->Stream;
+
+   if (st->has_single_pipe_stat) {
+      switch (q->Target) {
+      case GL_VERTICES_SUBMITTED_ARB:
+         return PIPE_STAT_QUERY_IA_VERTICES;
+      case GL_PRIMITIVES_SUBMITTED_ARB:
+         return PIPE_STAT_QUERY_IA_PRIMITIVES;
+      case GL_VERTEX_SHADER_INVOCATIONS_ARB:
+         return PIPE_STAT_QUERY_VS_INVOCATIONS;
+      case GL_GEOMETRY_SHADER_INVOCATIONS:
+         return PIPE_STAT_QUERY_GS_INVOCATIONS;
+      case GL_GEOMETRY_SHADER_PRIMITIVES_EMITTED_ARB:
+         return PIPE_STAT_QUERY_GS_PRIMITIVES;
+      case GL_CLIPPING_INPUT_PRIMITIVES_ARB:
+         return PIPE_STAT_QUERY_C_INVOCATIONS;
+      case GL_CLIPPING_OUTPUT_PRIMITIVES_ARB:
+         return PIPE_STAT_QUERY_C_PRIMITIVES;
+      case GL_FRAGMENT_SHADER_INVOCATIONS_ARB:
+         return PIPE_STAT_QUERY_PS_INVOCATIONS;
+      case GL_TESS_CONTROL_SHADER_PATCHES_ARB:
+         return PIPE_STAT_QUERY_HS_INVOCATIONS;
+      case GL_TESS_EVALUATION_SHADER_INVOCATIONS_ARB:
+         return PIPE_STAT_QUERY_DS_INVOCATIONS;
+      case GL_COMPUTE_SHADER_INVOCATIONS_ARB:
+         return PIPE_STAT_QUERY_CS_INVOCATIONS;
+      default:
+         break;
+      }
+   }
+
+   return 0;
+}
 
 static void
 st_BeginQuery(struct gl_context *ctx, struct gl_query_object *q)
@@ -140,7 +178,8 @@ st_BeginQuery(struct gl_context *ctx, struct gl_query_object *q)
    case GL_COMPUTE_SHADER_INVOCATIONS_ARB:
    case GL_CLIPPING_INPUT_PRIMITIVES_ARB:
    case GL_CLIPPING_OUTPUT_PRIMITIVES_ARB:
-      type = PIPE_QUERY_PIPELINE_STATISTICS;
+      type = st->has_single_pipe_stat ? PIPE_QUERY_PIPELINE_STATISTICS_SINGLE
+                                      : PIPE_QUERY_PIPELINE_STATISTICS;
       break;
    default:
       assert(0 && "unexpected query target in st_BeginQuery()");
@@ -164,7 +203,7 @@ st_BeginQuery(struct gl_context *ctx, struct gl_query_object *q)
          ret = pipe->end_query(pipe, stq->pq_begin);
    } else {
       if (!stq->pq) {
-         stq->pq = pipe->create_query(pipe, type, q->Stream);
+         stq->pq = pipe->create_query(pipe, type, target_to_index(st, q));
          stq->type = type;
       }
       if (stq->pq)
@@ -226,52 +265,54 @@ get_query_result(struct pipe_context *pipe,
    if (!pipe->get_query_result(pipe, stq->pq, wait, &data))
       return FALSE;
 
-   switch (stq->base.Target) {
-   case GL_VERTICES_SUBMITTED_ARB:
-      stq->base.Result = data.pipeline_statistics.ia_vertices;
-      break;
-   case GL_PRIMITIVES_SUBMITTED_ARB:
-      stq->base.Result = data.pipeline_statistics.ia_primitives;
-      break;
-   case GL_VERTEX_SHADER_INVOCATIONS_ARB:
-      stq->base.Result = data.pipeline_statistics.vs_invocations;
-      break;
-   case GL_TESS_CONTROL_SHADER_PATCHES_ARB:
-      stq->base.Result = data.pipeline_statistics.hs_invocations;
-      break;
-   case GL_TESS_EVALUATION_SHADER_INVOCATIONS_ARB:
-      stq->base.Result = data.pipeline_statistics.ds_invocations;
-      break;
-   case GL_GEOMETRY_SHADER_INVOCATIONS:
-      stq->base.Result = data.pipeline_statistics.gs_invocations;
-      break;
-   case GL_GEOMETRY_SHADER_PRIMITIVES_EMITTED_ARB:
-      stq->base.Result = data.pipeline_statistics.gs_primitives;
-      break;
-   case GL_FRAGMENT_SHADER_INVOCATIONS_ARB:
-      stq->base.Result = data.pipeline_statistics.ps_invocations;
-      break;
-   case GL_COMPUTE_SHADER_INVOCATIONS_ARB:
-      stq->base.Result = data.pipeline_statistics.cs_invocations;
-      break;
-   case GL_CLIPPING_INPUT_PRIMITIVES_ARB:
-      stq->base.Result = data.pipeline_statistics.c_invocations;
-      break;
-   case GL_CLIPPING_OUTPUT_PRIMITIVES_ARB:
-      stq->base.Result = data.pipeline_statistics.c_primitives;
-      break;
-   default:
-      switch (stq->type) {
-      case PIPE_QUERY_OCCLUSION_PREDICATE:
-      case PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE:
-      case PIPE_QUERY_SO_OVERFLOW_PREDICATE:
-      case PIPE_QUERY_SO_OVERFLOW_ANY_PREDICATE:
-         stq->base.Result = !!data.b;
+   switch (stq->type) {
+   case PIPE_QUERY_PIPELINE_STATISTICS:
+      switch (stq->base.Target) {
+      case GL_VERTICES_SUBMITTED_ARB:
+         stq->base.Result = data.pipeline_statistics.ia_vertices;
+         break;
+      case GL_PRIMITIVES_SUBMITTED_ARB:
+         stq->base.Result = data.pipeline_statistics.ia_primitives;
+         break;
+      case GL_VERTEX_SHADER_INVOCATIONS_ARB:
+         stq->base.Result = data.pipeline_statistics.vs_invocations;
+         break;
+      case GL_TESS_CONTROL_SHADER_PATCHES_ARB:
+         stq->base.Result = data.pipeline_statistics.hs_invocations;
+         break;
+      case GL_TESS_EVALUATION_SHADER_INVOCATIONS_ARB:
+         stq->base.Result = data.pipeline_statistics.ds_invocations;
+         break;
+      case GL_GEOMETRY_SHADER_INVOCATIONS:
+         stq->base.Result = data.pipeline_statistics.gs_invocations;
+         break;
+      case GL_GEOMETRY_SHADER_PRIMITIVES_EMITTED_ARB:
+         stq->base.Result = data.pipeline_statistics.gs_primitives;
+         break;
+      case GL_FRAGMENT_SHADER_INVOCATIONS_ARB:
+         stq->base.Result = data.pipeline_statistics.ps_invocations;
+         break;
+      case GL_COMPUTE_SHADER_INVOCATIONS_ARB:
+         stq->base.Result = data.pipeline_statistics.cs_invocations;
+         break;
+      case GL_CLIPPING_INPUT_PRIMITIVES_ARB:
+         stq->base.Result = data.pipeline_statistics.c_invocations;
+         break;
+      case GL_CLIPPING_OUTPUT_PRIMITIVES_ARB:
+         stq->base.Result = data.pipeline_statistics.c_primitives;
          break;
       default:
-         stq->base.Result = data.u64;
-         break;
+         unreachable("invalid pipeline statistics counter");
       }
+      break;
+   case PIPE_QUERY_OCCLUSION_PREDICATE:
+   case PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE:
+   case PIPE_QUERY_SO_OVERFLOW_PREDICATE:
+   case PIPE_QUERY_SO_OVERFLOW_ANY_PREDICATE:
+      stq->base.Result = !!data.b;
+      break;
+   default:
+      stq->base.Result = data.u64;
       break;
    }
 
@@ -386,37 +427,37 @@ st_StoreQueryResult(struct gl_context *ctx, struct gl_query_object *q,
    } else if (stq->type == PIPE_QUERY_PIPELINE_STATISTICS) {
       switch (q->Target) {
       case GL_VERTICES_SUBMITTED_ARB:
-         index = 0;
+         index = PIPE_STAT_QUERY_IA_VERTICES;
          break;
       case GL_PRIMITIVES_SUBMITTED_ARB:
-         index = 1;
+         index = PIPE_STAT_QUERY_IA_PRIMITIVES;
          break;
       case GL_VERTEX_SHADER_INVOCATIONS_ARB:
-         index = 2;
+         index = PIPE_STAT_QUERY_VS_INVOCATIONS;
          break;
       case GL_GEOMETRY_SHADER_INVOCATIONS:
-         index = 3;
+         index = PIPE_STAT_QUERY_GS_INVOCATIONS;
          break;
       case GL_GEOMETRY_SHADER_PRIMITIVES_EMITTED_ARB:
-         index = 4;
+         index = PIPE_STAT_QUERY_GS_PRIMITIVES;
          break;
       case GL_CLIPPING_INPUT_PRIMITIVES_ARB:
-         index = 5;
+         index = PIPE_STAT_QUERY_C_INVOCATIONS;
          break;
       case GL_CLIPPING_OUTPUT_PRIMITIVES_ARB:
-         index = 6;
+         index = PIPE_STAT_QUERY_C_PRIMITIVES;
          break;
       case GL_FRAGMENT_SHADER_INVOCATIONS_ARB:
-         index = 7;
+         index = PIPE_STAT_QUERY_PS_INVOCATIONS;
          break;
       case GL_TESS_CONTROL_SHADER_PATCHES_ARB:
-         index = 8;
+         index = PIPE_STAT_QUERY_HS_INVOCATIONS;
          break;
       case GL_TESS_EVALUATION_SHADER_INVOCATIONS_ARB:
-         index = 9;
+         index = PIPE_STAT_QUERY_DS_INVOCATIONS;
          break;
       case GL_COMPUTE_SHADER_INVOCATIONS_ARB:
-         index = 10;
+         index = PIPE_STAT_QUERY_CS_INVOCATIONS;
          break;
       default:
          unreachable("Unexpected target");

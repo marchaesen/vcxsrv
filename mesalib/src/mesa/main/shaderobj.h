@@ -225,6 +225,9 @@ _mesa_shader_stage_to_subroutine(gl_shader_stage stage)
       return GL_TESS_EVALUATION_SUBROUTINE;
    case MESA_SHADER_NONE:
       break;
+   case MESA_SHADER_KERNEL:
+      unreachable("not reached");
+      break;
    }
    unreachable("not reached");
 }
@@ -246,6 +249,7 @@ _mesa_shader_stage_to_subroutine_uniform(gl_shader_stage stage)
    case MESA_SHADER_TESS_EVAL:
       return GL_TESS_EVALUATION_SUBROUTINE_UNIFORM;
    case MESA_SHADER_NONE:
+   case MESA_SHADER_KERNEL:
       break;
    }
    unreachable("not reached");

@@ -134,7 +134,7 @@ create_shadow_temp(struct lower_io_state *state, nir_variable *var)
    /* Give the original a new name with @<mode>-temp appended */
    const char *mode = (temp->data.mode == nir_var_shader_in) ? "in" : "out";
    temp->name = ralloc_asprintf(var, "%s@%s-temp", mode, nvar->name);
-   temp->data.mode = nir_var_private;
+   temp->data.mode = nir_var_shader_temp;
    temp->data.read_only = false;
    temp->data.fb_fetch_output = false;
    temp->data.compact = false;

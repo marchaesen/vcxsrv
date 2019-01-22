@@ -25,9 +25,14 @@ if get_option('pciaccess')
     endif
 endif
 
+if get_option('agp') == 'auto'
+    build_agp = cc.has_header('sys/agpio.h') or cc.has_header('sys/agpgart.h') or cc.has_header('linux/agpgart.h')
+else
+    build_agp = get_option('agp') == 'true'
+endif
+
 if host_machine.system() == 'linux'
     srcs_xorg_os_support += [
-        'linux/lnx_agp.c',
         'linux/lnx_bell.c',
         'linux/lnx_init.c',
         'linux/lnx_kmod.c',
@@ -36,6 +41,11 @@ if host_machine.system() == 'linux'
         'misc/SlowBcopy.c',
         'shared/VTsw_usl.c',
     ]
+    if build_agp
+        srcs_xorg_os_support += 'linux/lnx_agp.c'
+    else
+        srcs_xorg_os_support += 'shared/agp_noop.c'
+    endif
     if build_systemd_logind
         srcs_xorg_os_support += 'linux/systemd-logind.c'
     endif
@@ -65,7 +75,7 @@ elif host_machine.system() == 'solaris'
         srcs_xorg_os_support += 'shared/VTsw_noop.c'
     endif
 
-    if cc.has_header('sys/agpio.h') or cc.has_header('sys/agpgart.h')
+    if build_agp
         srcs_xorg_os_support += 'solaris/sun_agp.c'
     else
         srcs_xorg_os_support += 'shared/agp_noop.c'
@@ -132,7 +142,7 @@ elif host_machine.system().endswith('bsd')
         srcs_xorg_os_support += 'shared/kmod_noop.c'
     endif
 
-    if cc.has_header('sys/agpio.h') or cc.has_header('sys/agpgart.h')
+    if build_agp
         srcs_xorg_os_support += 'linux/lnx_agp.c'
     else
         srcs_xorg_os_support += 'shared/agp_noop.c'

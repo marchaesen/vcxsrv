@@ -192,7 +192,7 @@ lower_locals_to_regs_block(nir_block *block,
       switch (intrin->intrinsic) {
       case nir_intrinsic_load_deref: {
          nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
-         if (deref->mode != nir_var_function)
+         if (deref->mode != nir_var_function_temp)
             continue;
 
          b->cursor = nir_before_instr(&intrin->instr);
@@ -218,7 +218,7 @@ lower_locals_to_regs_block(nir_block *block,
 
       case nir_intrinsic_store_deref: {
          nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
-         if (deref->mode != nir_var_function)
+         if (deref->mode != nir_var_function_temp)
             continue;
 
          b->cursor = nir_before_instr(&intrin->instr);

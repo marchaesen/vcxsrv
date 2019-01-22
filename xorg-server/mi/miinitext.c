@@ -190,7 +190,7 @@ EnableDisableExtension(const char *name, Bool enable)
 
     for (i = 0; i < ARRAY_SIZE(staticExtensions); i++) {
         ext = &staticExtensions[i];
-        if (strcmp(name, ext->name) == 0) {
+        if (strcasecmp(name, ext->name) == 0) {
             if (ext->disablePtr != NULL) {
                 *ext->disablePtr = !enable;
                 return TRUE;

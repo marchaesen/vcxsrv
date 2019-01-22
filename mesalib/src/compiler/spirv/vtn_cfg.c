@@ -287,6 +287,7 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
       b->func->impl = nir_function_impl_create(func);
       nir_builder_init(&b->nb, func->impl);
       b->nb.cursor = nir_before_cf_list(&b->func->impl->body);
+      b->nb.exact = b->exact;
 
       b->func_param_idx = 0;
 
@@ -908,7 +909,7 @@ vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
                glsl_get_bare_type(b->func->type->return_type->type);
             nir_deref_instr *ret_deref =
                nir_build_deref_cast(&b->nb, nir_load_param(&b->nb, 0),
-                                    nir_var_function, ret_type, 0);
+                                    nir_var_function_temp, ret_type, 0);
             vtn_local_store(b, src, ret_deref);
          }
 
@@ -1038,6 +1039,7 @@ vtn_function_emit(struct vtn_builder *b, struct vtn_function *func,
    nir_builder_init(&b->nb, func->impl);
    b->func = func;
    b->nb.cursor = nir_after_cf_list(&func->impl->body);
+   b->nb.exact = b->exact;
    b->has_loop_continue = false;
    b->phi_table = _mesa_pointer_hash_table_create(b);
 

@@ -1,5 +1,5 @@
 /*
-** Copyright (c) 2014-2018 The Khronos Group Inc.
+** Copyright (c) 2014-2019 The Khronos Group Inc.
 ** 
 ** Permission is hereby granted, free of charge, to any person obtaining a copy
 ** of this software and/or associated documentation files (the "Materials"),
@@ -31,13 +31,16 @@
 
 /*
 ** Enumeration tokens for SPIR-V, in various styles:
-**   C, C++, C++11, JSON, Lua, Python
+**   C, C++, C++11, JSON, Lua, Python, C#, D
 ** 
 ** - C will have tokens with a "Spv" prefix, e.g.: SpvSourceLanguageGLSL
 ** - C++ will have tokens in the "spv" name space, e.g.: spv::SourceLanguageGLSL
 ** - C++11 will use enum classes in the spv namespace, e.g.: spv::SourceLanguage::GLSL
 ** - Lua will use tables, e.g.: spv.SourceLanguage.GLSL
 ** - Python will use dictionaries, e.g.: spv['SourceLanguage']['GLSL']
+** - C# will use enum classes in the Specification class located in the "Spv" namespace,
+**     e.g.: Spv.Specification.SourceLanguage.GLSL
+** - D will have tokens under the "spv" module, e.g: spv.SourceLanguage.GLSL
 ** 
 ** Some tokens act like mask values, which can be OR'd together,
 ** while others are mutually exclusive.  The mask-like ones have
@@ -51,11 +54,11 @@
 typedef unsigned int SpvId;
 
 #define SPV_VERSION 0x10300
-#define SPV_REVISION 1
+#define SPV_REVISION 6
 
 static const unsigned int SpvMagicNumber = 0x07230203;
 static const unsigned int SpvVersion = 0x00010300;
-static const unsigned int SpvRevision = 1;
+static const unsigned int SpvRevision = 6;
 static const unsigned int SpvOpCodeMask = 0xffff;
 static const unsigned int SpvWordCountShift = 16;
 
@@ -79,12 +82,12 @@ typedef enum SpvExecutionModel_ {
     SpvExecutionModelKernel = 6,
     SpvExecutionModelTaskNV = 5267,
     SpvExecutionModelMeshNV = 5268,
-    SpvExecutionModelRayGenerationNVX = 5313,
-    SpvExecutionModelIntersectionNVX = 5314,
-    SpvExecutionModelAnyHitNVX = 5315,
-    SpvExecutionModelClosestHitNVX = 5316,
-    SpvExecutionModelMissNVX = 5317,
-    SpvExecutionModelCallableNVX = 5318,
+    SpvExecutionModelRayGenerationNV = 5313,
+    SpvExecutionModelIntersectionNV = 5314,
+    SpvExecutionModelAnyHitNV = 5315,
+    SpvExecutionModelClosestHitNV = 5316,
+    SpvExecutionModelMissNV = 5317,
+    SpvExecutionModelCallableNV = 5318,
     SpvExecutionModelMax = 0x7fffffff,
 } SpvExecutionModel;
 
@@ -92,6 +95,7 @@ typedef enum SpvAddressingModel_ {
     SpvAddressingModelLogical = 0,
     SpvAddressingModelPhysical32 = 1,
     SpvAddressingModelPhysical64 = 2,
+    SpvAddressingModelPhysicalStorageBuffer64EXT = 5348,
     SpvAddressingModelMax = 0x7fffffff,
 } SpvAddressingModel;
 
@@ -143,6 +147,11 @@ typedef enum SpvExecutionMode_ {
     SpvExecutionModeLocalSizeId = 38,
     SpvExecutionModeLocalSizeHintId = 39,
     SpvExecutionModePostDepthCoverage = 4446,
+    SpvExecutionModeDenormPreserve = 4459,
+    SpvExecutionModeDenormFlushToZero = 4460,
+    SpvExecutionModeSignedZeroInfNanPreserve = 4461,
+    SpvExecutionModeRoundingModeRTE = 4462,
+    SpvExecutionModeRoundingModeRTZ = 4463,
     SpvExecutionModeStencilRefReplacingEXT = 5027,
     SpvExecutionModeOutputLinesNV = 5269,
     SpvExecutionModeOutputPrimitivesNV = 5270,
@@ -166,10 +175,13 @@ typedef enum SpvStorageClass_ {
     SpvStorageClassAtomicCounter = 10,
     SpvStorageClassImage = 11,
     SpvStorageClassStorageBuffer = 12,
-    SpvStorageClassRayPayloadNVX = 5338,
-    SpvStorageClassHitAttributeNVX = 5339,
-    SpvStorageClassIncomingRayPayloadNVX = 5342,
-    SpvStorageClassShaderRecordBufferNVX = 5343,
+    SpvStorageClassCallableDataNV = 5328,
+    SpvStorageClassIncomingCallableDataNV = 5329,
+    SpvStorageClassRayPayloadNV = 5338,
+    SpvStorageClassHitAttributeNV = 5339,
+    SpvStorageClassIncomingRayPayloadNV = 5342,
+    SpvStorageClassShaderRecordBufferNV = 5343,
+    SpvStorageClassPhysicalStorageBufferEXT = 5349,
     SpvStorageClassMax = 0x7fffffff,
 } SpvStorageClass;
 
@@ -418,6 +430,8 @@ typedef enum SpvDecoration_ {
     SpvDecorationMaxByteOffset = 45,
     SpvDecorationAlignmentId = 46,
     SpvDecorationMaxByteOffsetId = 47,
+    SpvDecorationNoSignedWrap = 4469,
+    SpvDecorationNoUnsignedWrap = 4470,
     SpvDecorationExplicitInterpAMD = 4999,
     SpvDecorationOverrideCoverageNV = 5248,
     SpvDecorationPassthroughNV = 5250,
@@ -428,6 +442,8 @@ typedef enum SpvDecoration_ {
     SpvDecorationPerTaskNV = 5273,
     SpvDecorationPerVertexNV = 5285,
     SpvDecorationNonUniformEXT = 5300,
+    SpvDecorationRestrictPointerEXT = 5355,
+    SpvDecorationAliasedPointerEXT = 5356,
     SpvDecorationHlslCounterBufferGOOGLE = 5634,
     SpvDecorationHlslSemanticGOOGLE = 5635,
     SpvDecorationMax = 0x7fffffff,
@@ -514,21 +530,24 @@ typedef enum SpvBuiltIn_ {
     SpvBuiltInMeshViewIndicesNV = 5281,
     SpvBuiltInBaryCoordNV = 5286,
     SpvBuiltInBaryCoordNoPerspNV = 5287,
+    SpvBuiltInFragSizeEXT = 5292,
     SpvBuiltInFragmentSizeNV = 5292,
+    SpvBuiltInFragInvocationCountEXT = 5293,
     SpvBuiltInInvocationsPerPixelNV = 5293,
-    SpvBuiltInLaunchIdNVX = 5319,
-    SpvBuiltInLaunchSizeNVX = 5320,
-    SpvBuiltInWorldRayOriginNVX = 5321,
-    SpvBuiltInWorldRayDirectionNVX = 5322,
-    SpvBuiltInObjectRayOriginNVX = 5323,
-    SpvBuiltInObjectRayDirectionNVX = 5324,
-    SpvBuiltInRayTminNVX = 5325,
-    SpvBuiltInRayTmaxNVX = 5326,
-    SpvBuiltInInstanceCustomIndexNVX = 5327,
-    SpvBuiltInObjectToWorldNVX = 5330,
-    SpvBuiltInWorldToObjectNVX = 5331,
-    SpvBuiltInHitTNVX = 5332,
-    SpvBuiltInHitKindNVX = 5333,
+    SpvBuiltInLaunchIdNV = 5319,
+    SpvBuiltInLaunchSizeNV = 5320,
+    SpvBuiltInWorldRayOriginNV = 5321,
+    SpvBuiltInWorldRayDirectionNV = 5322,
+    SpvBuiltInObjectRayOriginNV = 5323,
+    SpvBuiltInObjectRayDirectionNV = 5324,
+    SpvBuiltInRayTminNV = 5325,
+    SpvBuiltInRayTmaxNV = 5326,
+    SpvBuiltInInstanceCustomIndexNV = 5327,
+    SpvBuiltInObjectToWorldNV = 5330,
+    SpvBuiltInWorldToObjectNV = 5331,
+    SpvBuiltInHitTNV = 5332,
+    SpvBuiltInHitKindNV = 5333,
+    SpvBuiltInIncomingRayFlagsNV = 5351,
     SpvBuiltInMax = 0x7fffffff,
 } SpvBuiltIn;
 
@@ -754,6 +773,11 @@ typedef enum SpvCapability_ {
     SpvCapabilityStorageBuffer8BitAccess = 4448,
     SpvCapabilityUniformAndStorageBuffer8BitAccess = 4449,
     SpvCapabilityStoragePushConstant8 = 4450,
+    SpvCapabilityDenormPreserve = 4464,
+    SpvCapabilityDenormFlushToZero = 4465,
+    SpvCapabilitySignedZeroInfNanPreserve = 4466,
+    SpvCapabilityRoundingModeRTE = 4467,
+    SpvCapabilityRoundingModeRTZ = 4468,
     SpvCapabilityFloat16ImageAMD = 5008,
     SpvCapabilityImageGatherBiasLodAMD = 5009,
     SpvCapabilityFragmentMaskAMD = 5010,
@@ -771,6 +795,7 @@ typedef enum SpvCapability_ {
     SpvCapabilityImageFootprintNV = 5282,
     SpvCapabilityFragmentBarycentricNV = 5284,
     SpvCapabilityComputeDerivativeGroupQuadsNV = 5288,
+    SpvCapabilityFragmentDensityEXT = 5291,
     SpvCapabilityShadingRateNV = 5291,
     SpvCapabilityGroupNonUniformPartitionedNV = 5297,
     SpvCapabilityShaderNonUniformEXT = 5301,
@@ -785,9 +810,10 @@ typedef enum SpvCapability_ {
     SpvCapabilityInputAttachmentArrayNonUniformIndexingEXT = 5310,
     SpvCapabilityUniformTexelBufferArrayNonUniformIndexingEXT = 5311,
     SpvCapabilityStorageTexelBufferArrayNonUniformIndexingEXT = 5312,
-    SpvCapabilityRaytracingNVX = 5340,
+    SpvCapabilityRayTracingNV = 5340,
     SpvCapabilityVulkanMemoryModelKHR = 5345,
     SpvCapabilityVulkanMemoryModelDeviceScopeKHR = 5346,
+    SpvCapabilityPhysicalStorageBufferAddressesEXT = 5347,
     SpvCapabilityComputeDerivativeGroupLinearNV = 5350,
     SpvCapabilitySubgroupShuffleINTEL = 5568,
     SpvCapabilitySubgroupBufferBlockIOINTEL = 5569,
@@ -1155,11 +1181,12 @@ typedef enum SpvOp_ {
     SpvOpImageSampleFootprintNV = 5283,
     SpvOpGroupNonUniformPartitionNV = 5296,
     SpvOpWritePackedPrimitiveIndices4x8NV = 5299,
-    SpvOpReportIntersectionNVX = 5334,
-    SpvOpIgnoreIntersectionNVX = 5335,
-    SpvOpTerminateRayNVX = 5336,
-    SpvOpTraceNVX = 5337,
-    SpvOpTypeAccelerationStructureNVX = 5341,
+    SpvOpReportIntersectionNV = 5334,
+    SpvOpIgnoreIntersectionNV = 5335,
+    SpvOpTerminateRayNV = 5336,
+    SpvOpTraceNV = 5337,
+    SpvOpTypeAccelerationStructureNV = 5341,
+    SpvOpExecuteCallableNV = 5344,
     SpvOpSubgroupShuffleINTEL = 5571,
     SpvOpSubgroupShuffleDownINTEL = 5572,
     SpvOpSubgroupShuffleUpINTEL = 5573,

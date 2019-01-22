@@ -1,3 +1,5 @@
+from functools import reduce
+import operator
 
 template = """\
 /* Copyright (C) 2018 Red Hat
@@ -36,6 +38,7 @@ const nir_intrinsic_info nir_intrinsic_infos[nir_num_intrinsics] = {
 % endif
    .has_dest = ${"true" if opcode.has_dest else "false"},
    .dest_components = ${max(opcode.dest_components, 0)},
+   .dest_bit_sizes = ${hex(reduce(operator.or_, opcode.bit_sizes, 0))},
    .num_indices = ${opcode.num_indices},
 % if opcode.indices:
    .index_map = {
@@ -64,7 +67,7 @@ def main():
 
     path = os.path.join(args.outdir, 'nir_intrinsics.c')
     with open(path, 'wb') as f:
-        f.write(Template(template, output_encoding='utf-8').render(INTR_OPCODES=INTR_OPCODES))
+        f.write(Template(template, output_encoding='utf-8').render(INTR_OPCODES=INTR_OPCODES, reduce=reduce, operator=operator))
 
 if __name__ == '__main__':
     main()

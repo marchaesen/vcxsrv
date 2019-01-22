@@ -32,7 +32,7 @@ class Intrinsic(object):
    NOTE: this must be kept in sync with nir_intrinsic_info.
    """
    def __init__(self, name, src_components, dest_components,
-                indices, flags, sysval):
+                indices, flags, sysval, bit_sizes):
        """Parameters:
 
        - name: the intrinsic name
@@ -45,6 +45,7 @@ class Intrinsic(object):
        - indices: list of constant indicies
        - flags: list of semantic flags
        - sysval: is this a system-value intrinsic
+       - bit_sizes: allowed dest bit_sizes
        """
        assert isinstance(name, str)
        assert isinstance(src_components, list)
@@ -58,6 +59,8 @@ class Intrinsic(object):
        if flags:
            assert isinstance(flags[0], str)
        assert isinstance(sysval, bool)
+       if bit_sizes:
+           assert isinstance(bit_sizes[0], int)
 
        self.name = name
        self.num_srcs = len(src_components)
@@ -68,6 +71,7 @@ class Intrinsic(object):
        self.indices = indices
        self.flags = flags
        self.sysval = sysval
+       self.bit_sizes = bit_sizes
 
 #
 # Possible indices:
@@ -125,10 +129,10 @@ CAN_REORDER   = "NIR_INTRINSIC_CAN_REORDER"
 INTR_OPCODES = {}
 
 def intrinsic(name, src_comp=[], dest_comp=-1, indices=[],
-              flags=[], sysval=False):
+              flags=[], sysval=False, bit_sizes=[]):
     assert name not in INTR_OPCODES
     INTR_OPCODES[name] = Intrinsic(name, src_comp, dest_comp,
-                                   indices, flags, sysval)
+                                   indices, flags, sysval, bit_sizes)
 
 intrinsic("nop", flags=[CAN_ELIMINATE])
 
@@ -454,12 +458,13 @@ intrinsic("shared_atomic_fmin",  src_comp=[1, 1], dest_comp=1, indices=[BASE])
 intrinsic("shared_atomic_fmax",  src_comp=[1, 1], dest_comp=1, indices=[BASE])
 intrinsic("shared_atomic_fcomp_swap", src_comp=[1, 1, 1], dest_comp=1, indices=[BASE])
 
-def system_value(name, dest_comp, indices=[]):
+def system_value(name, dest_comp, indices=[], bit_sizes=[32]):
     intrinsic("load_" + name, [], dest_comp, indices,
-              flags=[CAN_ELIMINATE, CAN_REORDER], sysval=True)
+              flags=[CAN_ELIMINATE, CAN_REORDER], sysval=True,
+              bit_sizes=bit_sizes)
 
 system_value("frag_coord", 4)
-system_value("front_face", 1)
+system_value("front_face", 1, bit_sizes=[1, 32])
 system_value("vertex_id", 1)
 system_value("vertex_id_zero_base", 1)
 system_value("first_vertex", 1)
@@ -485,17 +490,17 @@ system_value("local_invocation_index", 1)
 system_value("work_group_id", 3)
 system_value("user_clip_plane", 4, indices=[UCP_ID])
 system_value("num_work_groups", 3)
-system_value("helper_invocation", 1)
+system_value("helper_invocation", 1, bit_sizes=[1, 32])
 system_value("alpha_ref_float", 1)
 system_value("layer_id", 1)
 system_value("view_index", 1)
 system_value("subgroup_size", 1)
 system_value("subgroup_invocation", 1)
-system_value("subgroup_eq_mask", 0)
-system_value("subgroup_ge_mask", 0)
-system_value("subgroup_gt_mask", 0)
-system_value("subgroup_le_mask", 0)
-system_value("subgroup_lt_mask", 0)
+system_value("subgroup_eq_mask", 0, bit_sizes=[32, 64])
+system_value("subgroup_ge_mask", 0, bit_sizes=[32, 64])
+system_value("subgroup_gt_mask", 0, bit_sizes=[32, 64])
+system_value("subgroup_le_mask", 0, bit_sizes=[32, 64])
+system_value("subgroup_lt_mask", 0, bit_sizes=[32, 64])
 system_value("num_subgroups", 1)
 system_value("subgroup_id", 1)
 system_value("local_group_size", 3)

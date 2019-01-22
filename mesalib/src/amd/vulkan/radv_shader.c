@@ -126,8 +126,8 @@ radv_optimize_nir(struct nir_shader *shader, bool optimize_conservatively,
         do {
                 progress = false;
 
-		NIR_PASS(progress, shader, nir_split_array_vars, nir_var_function);
-		NIR_PASS(progress, shader, nir_shrink_vec_array_vars, nir_var_function);
+		NIR_PASS(progress, shader, nir_split_array_vars, nir_var_function_temp);
+		NIR_PASS(progress, shader, nir_shrink_vec_array_vars, nir_var_function_temp);
 
                 NIR_PASS_V(shader, nir_lower_vars_to_ssa);
 		NIR_PASS_V(shader, nir_lower_pack);
@@ -267,7 +267,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 		 * inline functions.  That way they get properly initialized at the top
 		 * of the function and not at the top of its caller.
 		 */
-		NIR_PASS_V(nir, nir_lower_constant_initializers, nir_var_function);
+		NIR_PASS_V(nir, nir_lower_constant_initializers, nir_var_function_temp);
 		NIR_PASS_V(nir, nir_lower_returns);
 		NIR_PASS_V(nir, nir_inline_functions);
 		NIR_PASS_V(nir, nir_opt_deref);
@@ -329,7 +329,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 	nir_split_var_copies(nir);
 
 	nir_lower_global_vars_to_local(nir);
-	nir_remove_dead_variables(nir, nir_var_function);
+	nir_remove_dead_variables(nir, nir_var_function_temp);
 	nir_lower_subgroups(nir, &(struct nir_lower_subgroups_options) {
 			.subgroup_size = 64,
 			.ballot_bit_size = 64,

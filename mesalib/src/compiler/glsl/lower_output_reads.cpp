@@ -101,6 +101,10 @@ output_read_remover::visit(ir_dereference_variable *ir)
       void *var_ctx = ralloc_parent(ir->var);
       temp = new(var_ctx) ir_variable(ir->var->type, ir->var->name,
                                       ir_var_temporary);
+      /* copy flags which affect arithematical precision */
+      temp->data.invariant = ir->var->data.invariant;
+      temp->data.precise = ir->var->data.precise;
+      temp->data.precision = ir->var->data.precision;
       _mesa_hash_table_insert(replacements, ir->var, temp);
       ir->var->insert_after(temp);
    }

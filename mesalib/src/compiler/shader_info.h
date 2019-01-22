@@ -33,6 +33,7 @@ extern "C" {
 #endif
 
 struct spirv_supported_capabilities {
+   bool address;
    bool atomic_storage;
    bool descriptor_array_dynamic_indexing;
    bool device_group;
@@ -43,9 +44,11 @@ struct spirv_supported_capabilities {
    bool image_ms_array;
    bool image_read_without_format;
    bool image_write_without_format;
+   bool int8;
    bool int16;
    bool int64;
    bool int64_atomics;
+   bool kernel;
    bool min_lod;
    bool multiview;
    bool post_depth_coverage;

@@ -129,11 +129,11 @@ log_error(validate_state *state, const char *cond, const char *file, int line)
    } while (0)
 
 static void validate_src(nir_src *src, validate_state *state,
-                         unsigned bit_size, unsigned num_components);
+                         unsigned bit_sizes, unsigned num_components);
 
 static void
 validate_reg_src(nir_src *src, validate_state *state,
-                 unsigned bit_size, unsigned num_components)
+                 unsigned bit_sizes, unsigned num_components)
 {
    validate_assert(state, src->reg.reg != NULL);
 
@@ -156,8 +156,8 @@ validate_reg_src(nir_src *src, validate_state *state,
    }
 
    if (!src->reg.reg->is_packed) {
-      if (bit_size)
-         validate_assert(state, src->reg.reg->bit_size == bit_size);
+      if (bit_sizes)
+         validate_assert(state, src->reg.reg->bit_size & bit_sizes);
       if (num_components)
          validate_assert(state, src->reg.reg->num_components == num_components);
    }
@@ -177,7 +177,7 @@ validate_reg_src(nir_src *src, validate_state *state,
 
 static void
 validate_ssa_src(nir_src *src, validate_state *state,
-                 unsigned bit_size, unsigned num_components)
+                 unsigned bit_sizes, unsigned num_components)
 {
    validate_assert(state, src->ssa != NULL);
 
@@ -200,8 +200,8 @@ validate_ssa_src(nir_src *src, validate_state *state,
       _mesa_set_add(def_state->if_uses, src);
    }
 
-   if (bit_size)
-      validate_assert(state, src->ssa->bit_size == bit_size);
+   if (bit_sizes)
+      validate_assert(state, src->ssa->bit_size & bit_sizes);
    if (num_components)
       validate_assert(state, src->ssa->num_components == num_components);
 
@@ -210,7 +210,7 @@ validate_ssa_src(nir_src *src, validate_state *state,
 
 static void
 validate_src(nir_src *src, validate_state *state,
-             unsigned bit_size, unsigned num_components)
+             unsigned bit_sizes, unsigned num_components)
 {
    if (state->instr)
       validate_assert(state, src->parent_instr == state->instr);
@@ -218,9 +218,9 @@ validate_src(nir_src *src, validate_state *state,
       validate_assert(state, src->parent_if == state->if_stmt);
 
    if (src->is_ssa)
-      validate_ssa_src(src, state, bit_size, num_components);
+      validate_ssa_src(src, state, bit_sizes, num_components);
    else
-      validate_reg_src(src, state, bit_size, num_components);
+      validate_reg_src(src, state, bit_sizes, num_components);
 }
 
 static void
@@ -243,7 +243,7 @@ validate_alu_src(nir_alu_instr *instr, unsigned index, validate_state *state)
 
 static void
 validate_reg_dest(nir_reg_dest *dest, validate_state *state,
-                  unsigned bit_size, unsigned num_components)
+                  unsigned bit_sizes, unsigned num_components)
 {
    validate_assert(state, dest->reg != NULL);
 
@@ -263,8 +263,8 @@ validate_reg_dest(nir_reg_dest *dest, validate_state *state,
    }
 
    if (!dest->reg->is_packed) {
-      if (bit_size)
-         validate_assert(state, dest->reg->bit_size == bit_size);
+      if (bit_sizes)
+         validate_assert(state, dest->reg->bit_size & bit_sizes);
       if (num_components)
          validate_assert(state, dest->reg->num_components == num_components);
    }
@@ -307,16 +307,16 @@ validate_ssa_def(nir_ssa_def *def, validate_state *state)
 
 static void
 validate_dest(nir_dest *dest, validate_state *state,
-              unsigned bit_size, unsigned num_components)
+              unsigned bit_sizes, unsigned num_components)
 {
    if (dest->is_ssa) {
-      if (bit_size)
-         validate_assert(state, dest->ssa.bit_size == bit_size);
+      if (bit_sizes)
+         validate_assert(state, dest->ssa.bit_size & bit_sizes);
       if (num_components)
          validate_assert(state, dest->ssa.num_components == num_components);
       validate_ssa_def(&dest->ssa, state);
    } else {
-      validate_reg_dest(&dest->reg, state, bit_size, num_components);
+      validate_reg_dest(&dest->reg, state, bit_sizes, num_components);
    }
 }
 
@@ -395,7 +395,7 @@ validate_var_use(nir_variable *var, validate_state *state)
 {
    struct hash_entry *entry = _mesa_hash_table_search(state->var_defs, var);
    validate_assert(state, entry);
-   if (var->data.mode == nir_var_function)
+   if (var->data.mode == nir_var_function_temp)
       validate_assert(state, (nir_function_impl *) entry->data == state->impl);
 }
 
@@ -446,9 +446,9 @@ validate_deref_instr(nir_deref_instr *instr, validate_state *state)
 
       case nir_deref_type_array:
       case nir_deref_type_array_wildcard:
-         if (instr->mode == nir_var_ubo ||
-             instr->mode == nir_var_ssbo ||
-             instr->mode == nir_var_shared) {
+         if (instr->mode == nir_var_mem_ubo ||
+             instr->mode == nir_var_mem_ssbo ||
+             instr->mode == nir_var_mem_shared) {
             /* Shared variables and UBO/SSBOs have a bit more relaxed rules
              * because we need to be able to handle array derefs on vectors.
              * Fortunately, nir_lower_io handles these just fine.
@@ -563,8 +563,14 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
 
    if (nir_intrinsic_infos[instr->intrinsic].has_dest) {
       unsigned components_written = nir_intrinsic_dest_components(instr);
+      unsigned bit_sizes = nir_intrinsic_infos[instr->intrinsic].dest_bit_sizes;
 
       validate_assert(state, components_written > 0);
+
+      if (dest_bit_size && bit_sizes)
+         validate_assert(state, dest_bit_size & bit_sizes);
+      else
+         dest_bit_size = dest_bit_size ? dest_bit_size : bit_sizes;
 
       validate_dest(&instr->dest, state, dest_bit_size, components_written);
    }

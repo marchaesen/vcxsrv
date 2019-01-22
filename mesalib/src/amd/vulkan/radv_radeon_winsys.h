@@ -84,6 +84,9 @@ enum radeon_ctx_priority {
 };
 
 enum radeon_value_id {
+	RADEON_ALLOCATED_VRAM,
+	RADEON_ALLOCATED_VRAM_VIS,
+	RADEON_ALLOCATED_GTT,
 	RADEON_TIMESTAMP,
 	RADEON_NUM_BYTES_MOVED,
 	RADEON_NUM_EVICTIONS,
@@ -164,6 +167,7 @@ struct radeon_winsys_fence;
 struct radeon_winsys_bo {
 	uint64_t va;
 	bool is_local;
+	bool vram_cpu_access;
 };
 struct radv_winsys_sem_counts {
 	uint32_t syncobj_count;

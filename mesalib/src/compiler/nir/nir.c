@@ -125,11 +125,11 @@ nir_shader_add_variable(nir_shader *shader, nir_variable *var)
       assert(!"invalid mode");
       break;
 
-   case nir_var_function:
+   case nir_var_function_temp:
       assert(!"nir_shader_add_variable cannot be used for local variables");
       break;
 
-   case nir_var_private:
+   case nir_var_shader_temp:
       exec_list_push_tail(&shader->globals, &var->node);
       break;
 
@@ -142,14 +142,18 @@ nir_shader_add_variable(nir_shader *shader, nir_variable *var)
       break;
 
    case nir_var_uniform:
-   case nir_var_ubo:
-   case nir_var_ssbo:
+   case nir_var_mem_ubo:
+   case nir_var_mem_ssbo:
       exec_list_push_tail(&shader->uniforms, &var->node);
       break;
 
-   case nir_var_shared:
-      assert(shader->info.stage == MESA_SHADER_COMPUTE);
+   case nir_var_mem_shared:
+      assert(gl_shader_stage_is_compute(shader->info.stage));
       exec_list_push_tail(&shader->shared, &var->node);
+      break;
+
+   case nir_var_mem_global:
+      assert(!"nir_shader_add_variable cannot be used for global memory");
       break;
 
    case nir_var_system_value:
@@ -189,7 +193,7 @@ nir_local_variable_create(nir_function_impl *impl,
    nir_variable *var = rzalloc(impl->function->shader, nir_variable);
    var->name = ralloc_strdup(var, name);
    var->type = type;
-   var->data.mode = nir_var_function;
+   var->data.mode = nir_var_function_temp;
 
    nir_function_impl_add_variable(impl, var);
 

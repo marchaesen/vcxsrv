@@ -20,8 +20,17 @@
 #define smallsigma0(x) ( ror((x),7) ^ ror((x),18) ^ shr((x),3) )
 #define smallsigma1(x) ( ror((x),17) ^ ror((x),19) ^ shr((x),10) )
 
+typedef struct SHA256_State {
+    uint32_t h[8];
+    unsigned char block[64];
+    int blkused;
+    uint64_t len;
+    void (*sha256)(struct SHA256_State * s, const unsigned char *p, int len);
+    BinarySink_IMPLEMENTATION;
+} SHA256_State;
+
 static void SHA256_sw(SHA256_State *s, const unsigned char *q, int len);
-static void SHA256_ni(SHA256_State * s, const unsigned char *q, int len);
+static void SHA256_ni(SHA256_State *s, const unsigned char *q, int len);
 
 void SHA256_Core_Init(SHA256_State *s) {
     s->h[0] = 0x6a09e667;
@@ -244,90 +253,6 @@ static void sha256_final(ssh_hash *hash, unsigned char *output)
 
 const ssh_hashalg ssh_sha256 = {
     sha256_new, sha256_copy, sha256_final, sha256_free, 32, "SHA-256"
-};
-
-/* ----------------------------------------------------------------------
- * The above is the SHA-256 algorithm itself. Now we implement the
- * HMAC wrapper on it.
- */
-
-struct hmacsha256 {
-    SHA256_State sha[3];
-    ssh2_mac mac;
-};
-
-static ssh2_mac *hmacsha256_new(
-    const ssh2_macalg *alg, ssh2_cipher *cipher)
-{
-    struct hmacsha256 *ctx = snew(struct hmacsha256);
-    ctx->mac.vt = alg;
-    BinarySink_DELEGATE_INIT(&ctx->mac, &ctx->sha[2]);
-    return &ctx->mac;
-}
-
-static void hmacsha256_free(ssh2_mac *mac)
-{
-    struct hmacsha256 *ctx = container_of(mac, struct hmacsha256, mac);
-    smemclr(ctx, sizeof(*ctx));
-    sfree(ctx);
-}
-
-static void sha256_key_internal(struct hmacsha256 *ctx,
-                                const unsigned char *key, int len)
-{
-    unsigned char foo[64];
-    int i;
-
-    memset(foo, 0x36, 64);
-    for (i = 0; i < len && i < 64; i++)
-	foo[i] ^= key[i];
-    SHA256_Init(&ctx->sha[0]);
-    put_data(&ctx->sha[0], foo, 64);
-
-    memset(foo, 0x5C, 64);
-    for (i = 0; i < len && i < 64; i++)
-	foo[i] ^= key[i];
-    SHA256_Init(&ctx->sha[1]);
-    put_data(&ctx->sha[1], foo, 64);
-
-    smemclr(foo, 64);		       /* burn the evidence */
-}
-
-static void hmacsha256_key(ssh2_mac *mac, ptrlen key)
-{
-    struct hmacsha256 *ctx = container_of(mac, struct hmacsha256, mac);
-    sha256_key_internal(ctx, key.ptr, key.len);
-}
-
-static void hmacsha256_start(ssh2_mac *mac)
-{
-    struct hmacsha256 *ctx = container_of(mac, struct hmacsha256, mac);
-
-    ctx->sha[2] = ctx->sha[0];         /* structure copy */
-    BinarySink_COPIED(&ctx->sha[2]);
-}
-
-static void hmacsha256_genresult(ssh2_mac *mac, unsigned char *hmac)
-{
-    struct hmacsha256 *ctx = container_of(mac, struct hmacsha256, mac);
-    SHA256_State s;
-    unsigned char intermediate[32];
-
-    s = ctx->sha[2];                   /* structure copy */
-    BinarySink_COPIED(&s);
-    SHA256_Final(&s, intermediate);
-    s = ctx->sha[1];                   /* structure copy */
-    BinarySink_COPIED(&s);
-    put_data(&s, intermediate, 32);
-    SHA256_Final(&s, hmac);
-}
-
-const ssh2_macalg ssh_hmac_sha256 = {
-    hmacsha256_new, hmacsha256_free, hmacsha256_key,
-    hmacsha256_start, hmacsha256_genresult,
-    "hmac-sha2-256", "hmac-sha2-256-etm@openssh.com",
-    32, 32,
-    "HMAC-SHA-256"
 };
 
 #ifdef COMPILER_SUPPORTS_SHA_NI

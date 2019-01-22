@@ -3,8 +3,10 @@
 import unittest
 import struct
 import itertools
+import functools
 import contextlib
 import hashlib
+import binascii
 try:
     from math import gcd
 except ImportError:
@@ -28,7 +30,7 @@ def nbits(n):
     return toret
 
 def unhex(s):
-    return s.replace(" ", "").replace("\n", "").decode("hex")
+    return binascii.unhexlify(s.replace(" ", "").replace("\n", ""))
 
 def ssh_uint32(n):
     return struct.pack(">L", n)
@@ -140,7 +142,7 @@ class MyTestBase(unittest.TestCase):
     def assertEqualBin(self, x, y):
         # Like assertEqual, but produces more legible error reports
         # for random-looking binary data.
-        self.assertEqual(x.encode('hex'), y.encode('hex'))
+        self.assertEqual(binascii.hexlify(x), binascii.hexlify(y))
 
 class mpint(MyTestBase):
     def testCreation(self):
@@ -777,15 +779,15 @@ class crypt(MyTestBase):
 
         def vector(cipher, key, iv, plaintext, ciphertext):
             for suffix in "hw", "sw":
-                c = ssh2_cipher_new("{}_{}".format(cipher, suffix))
+                c = ssh_cipher_new("{}_{}".format(cipher, suffix))
                 if c is None: return # skip test if HW AES not available
-                ssh2_cipher_setkey(c, key)
-                ssh2_cipher_setiv(c, iv)
+                ssh_cipher_setkey(c, key)
+                ssh_cipher_setiv(c, iv)
                 self.assertEqualBin(
-                    ssh2_cipher_encrypt(c, plaintext), ciphertext)
-                ssh2_cipher_setiv(c, iv)
+                    ssh_cipher_encrypt(c, plaintext), ciphertext)
+                ssh_cipher_setiv(c, iv)
                 self.assertEqualBin(
-                    ssh2_cipher_decrypt(c, ciphertext), plaintext)
+                    ssh_cipher_decrypt(c, ciphertext), plaintext)
 
         # Tests of CBC mode.
 
@@ -862,19 +864,19 @@ class crypt(MyTestBase):
 
         def increment(keylen, suffix, iv):
             key = b'\xab' * (keylen//8)
-            sdctr = ssh2_cipher_new("aes{}_ctr_{}".format(keylen, suffix))
+            sdctr = ssh_cipher_new("aes{}_ctr_{}".format(keylen, suffix))
             if sdctr is None: return # skip test if HW AES not available
-            ssh2_cipher_setkey(sdctr, key)
-            cbc = ssh2_cipher_new("aes{}_{}".format(keylen, suffix))
-            ssh2_cipher_setkey(cbc, key)
+            ssh_cipher_setkey(sdctr, key)
+            cbc = ssh_cipher_new("aes{}_{}".format(keylen, suffix))
+            ssh_cipher_setkey(cbc, key)
 
-            ssh2_cipher_setiv(sdctr, iv)
-            ec0 = ssh2_cipher_encrypt(sdctr, b'\x00' * 16)
-            ec1 = ssh2_cipher_encrypt(sdctr, b'\x00' * 16)
-            ssh2_cipher_setiv(cbc, b'\x00' * 16)
-            dc0 = ssh2_cipher_decrypt(cbc, ec0)
-            ssh2_cipher_setiv(cbc, b'\x00' * 16)
-            dc1 = ssh2_cipher_decrypt(cbc, ec1)
+            ssh_cipher_setiv(sdctr, iv)
+            ec0 = ssh_cipher_encrypt(sdctr, b'\x00' * 16)
+            ec1 = ssh_cipher_encrypt(sdctr, b'\x00' * 16)
+            ssh_cipher_setiv(cbc, b'\x00' * 16)
+            dc0 = ssh_cipher_decrypt(cbc, ec0)
+            ssh_cipher_setiv(cbc, b'\x00' * 16)
+            dc1 = ssh_cipher_decrypt(cbc, ec1)
             self.assertEqualBin(iv, dc0)
             return dc1
 
@@ -910,7 +912,7 @@ class crypt(MyTestBase):
 
         # A pile of conveniently available random-looking test data.
         test_ciphertext = ssh2_mpint(last(fibonacci_scattered(14)))
-        test_ciphertext += "x" * (15 & -len(test_ciphertext)) # pad to a block
+        test_ciphertext += b"x" * (15 & -len(test_ciphertext)) # pad to a block
 
         # Test key and IV.
         test_key = b"foobarbazquxquuxFooBarBazQuxQuux"
@@ -920,27 +922,223 @@ class crypt(MyTestBase):
             decryptions = []
 
             for suffix in "hw", "sw":
-                c = ssh2_cipher_new("aes{:d}_{}".format(keylen, suffix))
+                c = ssh_cipher_new("aes{:d}_{}".format(keylen, suffix))
                 if c is None: continue
-                ssh2_cipher_setkey(c, test_key[:keylen//8])
+                ssh_cipher_setkey(c, test_key[:keylen//8])
                 for chunklen in range(16, 16*12, 16):
-                    ssh2_cipher_setiv(c, test_iv)
-                    decryption = ""
+                    ssh_cipher_setiv(c, test_iv)
+                    decryption = b""
                     for pos in range(0, len(test_ciphertext), chunklen):
                         chunk = test_ciphertext[pos:pos+chunklen]
-                        decryption += ssh2_cipher_decrypt(c, chunk)
+                        decryption += ssh_cipher_decrypt(c, chunk)
                     decryptions.append(decryption)
 
             for d in decryptions:
                 self.assertEqualBin(d, decryptions[0])
 
+    def testCRC32(self):
+        # Check the effect of every possible single-byte input to
+        # crc32_update. In the traditional implementation with a
+        # 256-word lookup table, this exercises every table entry; in
+        # _any_ implementation which iterates over the input one byte
+        # at a time, it should be a similarly exhaustive test. (But if
+        # a more optimised implementation absorbed _more_ than 8 bits
+        # at a time, then perhaps this test wouldn't be enough...)
+
+        # It would be nice if there was a functools.iterate() which
+        # would apply a function n times. Failing that, making shift1
+        # accept and ignore a second argument allows me to iterate it
+        # 8 times using functools.reduce.
+        shift1 = lambda x, dummy=None: (x >> 1) ^ (0xEDB88320 * (x & 1))
+        shift8 = lambda x: functools.reduce(shift1, [None]*8, x)
+
+        # A small selection of choices for the other input to
+        # crc32_update, just to check linearity.
+        test_prior_values = [0, 0xFFFFFFFF, 0x45CC1F6A, 0xA0C4ADCF, 0xD482CDF1]
+
+        for prior in test_prior_values:
+            prior_shifted = shift8(prior)
+        for i in range(256):
+            exp = shift8(i) ^ prior_shifted
+            self.assertEqual(crc32_update(prior, struct.pack("B", i)), exp)
+
+            # Check linearity of the _reference_ implementation, while
+            # we're at it!
+            self.assertEqual(shift8(i ^ prior), exp)
+
+    def testCRCDA(self):
+        def pattern(badblk, otherblks, pat):
+            # Arrange copies of the bad block in a pattern
+            # corresponding to the given bit string.
+            retstr = b""
+            while pat != 0:
+                retstr += (badblk if pat & 1 else next(otherblks))
+                pat >>= 1
+            return retstr
+
+        def testCases(pat):
+            badblock = b'muhahaha' # the block we'll maliciously repeat
+
+            # Various choices of the other blocks, including all the
+            # same, all different, and all different but only in the
+            # byte at one end.
+            for otherblocks in [
+                    itertools.repeat(b'GoodData'),
+                    (struct.pack('>Q', i) for i in itertools.count()),
+                    (struct.pack('<Q', i) for i in itertools.count())]:
+                yield pattern(badblock, otherblocks, pat)
+
+        def positiveTest(pat):
+            for data in testCases(pat):
+                self.assertTrue(crcda_detect(data, ""))
+                self.assertTrue(crcda_detect(data[8:], data[:8]))
+
+        def negativeTest(pat):
+            for data in testCases(pat):
+                self.assertFalse(crcda_detect(data, ""))
+                self.assertFalse(crcda_detect(data[8:], data[:8]))
+
+        # Tests of successful attack detection, derived by taking
+        # multiples of the CRC polynomial itself.
+        #
+        # (The CRC32 polynomial is usually written as 0xEDB88320.
+        # That's in bit-reversed form, but then, that's the form we
+        # need anyway for these patterns. But it's also missing the
+        # leading term - really, 0xEDB88320 is the value you get by
+        # reducing X^32 modulo the real poly, i.e. the value you put
+        # back in to the CRC to compensate for an X^32 that's just
+        # been shifted out. If you put that bit back on - at the
+        # bottom, because of the bit-reversal - you get the less
+        # familiar-looking 0x1db710641.)
+        positiveTest(0x1db710641) # the CRC polynomial P itself
+        positiveTest(0x26d930ac3) # (X+1) * P
+        positiveTest(0xbdbdf21cf) # (X^3+X^2+X+1) * P
+        positiveTest(0x3a66a39b653f6889d)
+        positiveTest(0x170db3167dd9f782b9765214c03e71a18f685b7f3)
+        positiveTest(0x1751997d000000000000000000000000000000001)
+        positiveTest(0x800000000000000000000000000000000f128a2d1)
+
+        # Tests of non-detection.
+        negativeTest(0x1db711a41)
+        negativeTest(0x3a66a39b453f6889d)
+        negativeTest(0x170db3167dd9f782b9765214c03e71b18f685b7f3)
+        negativeTest(0x1751997d000000000000000000000001000000001)
+        negativeTest(0x800000000000002000000000000000000f128a2d1)
+
+    def testAuxEncryptFns(self):
+        # Test helper functions such as aes256_encrypt_pubkey. The
+        # test cases are all just things I made up at random, and the
+        # expected outputs are generated by running PuTTY's own code;
+        # this doesn't independently check them against any other
+        # implementation, but it at least means we're protected
+        # against code reorganisations changing the behaviour from
+        # what it was before.
+
+        p = b'three AES blocks, or six DES, of arbitrary input'
+
+        k = b'thirty-two-byte aes-256 test key'
+        c = unhex('7b112d00c0fc95bc13fcdacfd43281bf'
+                  'de9389db1bbcfde79d59a303d41fd2eb'
+                  '0955c9477ae4ee3a4d6c1fbe474c0ef6')
+        self.assertEqualBin(aes256_encrypt_pubkey(k, p), c)
+        self.assertEqualBin(aes256_decrypt_pubkey(k, c), p)
+
+        k = b'3des with keys distinct.'
+        iv = b'randomIV'
+        c = unhex('be81ff840d885869a54d63b03d7cd8db'
+                  'd39ab875e5f7b9da1081f8434cb33c47'
+                  'dee5bcd530a3f6c13a9fc73e321a843a')
+        self.assertEqualBin(des3_encrypt_pubkey_ossh(k, iv, p), c)
+        self.assertEqualBin(des3_decrypt_pubkey_ossh(k, iv, c), p)
+
+        k = b'3des, 2keys only'
+        c = unhex('0b845650d73f615cf16ee3ed20535b5c'
+                  'd2a8866ee628547bbdad916e2b4b9f19'
+                  '67c15bde33c5b03ff7f403b4f8cf2364')
+        self.assertEqualBin(des3_encrypt_pubkey(k, p), c)
+        self.assertEqualBin(des3_decrypt_pubkey(k, c), p)
+
+        k = b'7 bytes'
+        c = unhex('5cac9999cffc980a1d1184d84b71c8cb'
+                  '313d12a1d25a7831179aeb11edaca5ad'
+                  '9482b224105a61c27137587620edcba8')
+        self.assertEqualBin(des_encrypt_xdmauth(k, p), c)
+        self.assertEqualBin(des_decrypt_xdmauth(k, c), p)
+
+    def testSSHCiphers(self):
+        # Test all the SSH ciphers we support, on the same principle
+        # as testAuxCryptFns that we should have test cases to verify
+        # that things still work the same today as they did yesterday.
+
+        p = b'64 bytes of test input data, enough to check any cipher mode xyz'
+        k = b'sixty-four bytes of test key data, enough to key any cipher pqrs'
+        iv = b'16 bytes of IV w'
+
+        ciphers = [
+            ("3des_ctr",      24,    8, False, unhex('83c17a29250d3d4fa81250fc0362c54e40456936445b77709a30fccf8b983d57129a969c59070d7c2977f3d25dd7d71163687c7b3cd2edb0d07514e6c77479f5')),
+            ("3des_ssh2",     24,    8, True,  unhex('d5f1cc25b8fbc62decc74b432344de674f7249b2e38871f764411eaae17a1097396bd97b66a1e4d49f08c219acaef2a483198ce837f75cc1ef67b37c2432da3e')),
+            ("3des_ssh1",     24,    8, False, unhex('d5f1cc25b8fbc62de63590b9b92344adf6dd72753273ff0fb32d4dbc6af858529129f34242f3d557eed3a5c84204eb4f868474294964cf70df5d8f45dfccfc45')),
+            ("des",            8,    8, True,  unhex('051524e77fb40e109d9fffeceacf0f28c940e2f8415ddccc117020bdd2612af5036490b12085d0e46129919b8e499f51cb82a4b341d7a1a1ea3e65201ef248f6')),
+            ("aes256_ctr",    32,   16, False, unhex('b87b35e819f60f0f398a37b05d7bcf0b04ad4ebe570bd08e8bfa8606bafb0db2cfcd82baf2ccceae5de1a3c1ae08a8b8fdd884fdc5092031ea8ce53333e62976')),
+            ("aes256_ctr_hw", 32,   16, False, unhex('b87b35e819f60f0f398a37b05d7bcf0b04ad4ebe570bd08e8bfa8606bafb0db2cfcd82baf2ccceae5de1a3c1ae08a8b8fdd884fdc5092031ea8ce53333e62976')),
+            ("aes256_ctr_sw", 32,   16, False, unhex('b87b35e819f60f0f398a37b05d7bcf0b04ad4ebe570bd08e8bfa8606bafb0db2cfcd82baf2ccceae5de1a3c1ae08a8b8fdd884fdc5092031ea8ce53333e62976')),
+            ("aes256",        32,   16, True,  unhex('381cbb2fbcc48118d0094540242bd990dd6af5b9a9890edd013d5cad2d904f34b9261c623a452f32ea60e5402919a77165df12862742f1059f8c4a862f0827c5')),
+            ("aes256_hw",     32,   16, True,  unhex('381cbb2fbcc48118d0094540242bd990dd6af5b9a9890edd013d5cad2d904f34b9261c623a452f32ea60e5402919a77165df12862742f1059f8c4a862f0827c5')),
+            ("aes256_sw",     32,   16, True,  unhex('381cbb2fbcc48118d0094540242bd990dd6af5b9a9890edd013d5cad2d904f34b9261c623a452f32ea60e5402919a77165df12862742f1059f8c4a862f0827c5')),
+            ("aes192_ctr",    24,   16, False, unhex('06bcfa7ccf075d723e12b724695a571a0fad67c56287ea609c410ac12749c51bb96e27fa7e1c7ea3b14792bbbb8856efb0617ebec24a8e4a87340d820cf347b8')),
+            ("aes192_ctr_hw", 24,   16, False, unhex('06bcfa7ccf075d723e12b724695a571a0fad67c56287ea609c410ac12749c51bb96e27fa7e1c7ea3b14792bbbb8856efb0617ebec24a8e4a87340d820cf347b8')),
+            ("aes192_ctr_sw", 24,   16, False, unhex('06bcfa7ccf075d723e12b724695a571a0fad67c56287ea609c410ac12749c51bb96e27fa7e1c7ea3b14792bbbb8856efb0617ebec24a8e4a87340d820cf347b8')),
+            ("aes192",        24,   16, True,  unhex('ac97f8698170f9c05341214bd7624d5d2efef8311596163dc597d9fe6c868971bd7557389974612cbf49ea4e7cc6cc302d4cc90519478dd88a4f09b530c141f3')),
+            ("aes192_hw",     24,   16, True,  unhex('ac97f8698170f9c05341214bd7624d5d2efef8311596163dc597d9fe6c868971bd7557389974612cbf49ea4e7cc6cc302d4cc90519478dd88a4f09b530c141f3')),
+            ("aes192_sw",     24,   16, True,  unhex('ac97f8698170f9c05341214bd7624d5d2efef8311596163dc597d9fe6c868971bd7557389974612cbf49ea4e7cc6cc302d4cc90519478dd88a4f09b530c141f3')),
+            ("aes128_ctr",    16,   16, False, unhex('0ad4ddfd2360ec59d77dcb9a981f92109437c68c5e7f02f92017d9f424f89ab7850473ac0e19274125e740f252c84ad1f6ad138b6020a03bdaba2f3a7378ce1e')),
+            ("aes128_ctr_hw", 16,   16, False, unhex('0ad4ddfd2360ec59d77dcb9a981f92109437c68c5e7f02f92017d9f424f89ab7850473ac0e19274125e740f252c84ad1f6ad138b6020a03bdaba2f3a7378ce1e')),
+            ("aes128_ctr_sw", 16,   16, False, unhex('0ad4ddfd2360ec59d77dcb9a981f92109437c68c5e7f02f92017d9f424f89ab7850473ac0e19274125e740f252c84ad1f6ad138b6020a03bdaba2f3a7378ce1e')),
+            ("aes128",        16,   16, True,  unhex('36de36917fb7955a711c8b0bf149b29120a77524f393ae3490f4ce5b1d5ca2a0d7064ce3c38e267807438d12c0e40cd0d84134647f9f4a5b11804a0cc5070e62')),
+            ("aes128_hw",     16,   16, True,  unhex('36de36917fb7955a711c8b0bf149b29120a77524f393ae3490f4ce5b1d5ca2a0d7064ce3c38e267807438d12c0e40cd0d84134647f9f4a5b11804a0cc5070e62')),
+            ("aes128_sw",     16,   16, True,  unhex('36de36917fb7955a711c8b0bf149b29120a77524f393ae3490f4ce5b1d5ca2a0d7064ce3c38e267807438d12c0e40cd0d84134647f9f4a5b11804a0cc5070e62')),
+            ("blowfish_ctr",  32,    8, False, unhex('079daf0f859363ccf72e975764d709232ec48adc74f88ccd1f342683f0bfa89ca0e8dbfccc8d4d99005d6b61e9cc4e6eaa2fd2a8163271b94bf08ef212129f01')),
+            ("blowfish_ssh2", 16,    8, True,  unhex('e986b7b01f17dfe80ee34cac81fa029b771ec0f859ae21ae3ec3df1674bc4ceb54a184c6c56c17dd2863c3e9c068e76fd9aef5673465995f0d648b0bb848017f')),
+            ("blowfish_ssh1", 32,    8, True,  unhex('d44092a9035d895acf564ba0365d19570fbb4f125d5a4fd2a1812ee6c8a1911a51bb181fbf7d1a261253cab71ee19346eb477b3e7ecf1d95dd941e635c1a4fbf')),
+            ("arcfour256",    32, None, False, unhex('db68db4cd9bbc1d302cce5919ff3181659272f5d38753e464b3122fc69518793fe15dd0fbdd9cd742bd86c5e8a3ae126c17ecc420bd2d5204f1a24874d00fda3')),
+            ("arcfour128",    16, None, False, unhex('fd4af54c5642cb29629e50a15d22e4944e21ffba77d0543b27590eafffe3886686d1aefae0484afc9e67edc0e67eb176bbb5340af1919ea39adfe866d066dd05')),
+        ]
+
+        for alg, keylen, ivlen, simple_cbc, c in ciphers:
+            cipher = ssh_cipher_new(alg)
+
+            ssh_cipher_setkey(cipher, k[:keylen])
+            if ivlen is not None:
+                ssh_cipher_setiv(cipher, iv[:ivlen])
+            self.assertEqualBin(ssh_cipher_encrypt(cipher, p), c)
+
+            ssh_cipher_setkey(cipher, k[:keylen])
+            if ivlen is not None:
+                ssh_cipher_setiv(cipher, iv[:ivlen])
+            self.assertEqualBin(ssh_cipher_decrypt(cipher, c), p)
+
+            if simple_cbc:
+                # CBC ciphers (other than the three-layered CBC used
+                # by SSH-1 3DES) have more specific semantics for
+                # their IV than 'some kind of starting state for the
+                # cipher mode': the IV is specifically supposed to
+                # represent the previous block of ciphertext. So we
+                # can check that, by supplying the IV _as_ a
+                # ciphertext block via a call to decrypt(), and seeing
+                # if that causes our test ciphertext to decrypt the
+                # same way as when we provided the same IV via
+                # setiv().
+                ssh_cipher_setkey(cipher, k[:keylen])
+                ssh_cipher_decrypt(cipher, iv[:ivlen])
+                self.assertEqualBin(ssh_cipher_decrypt(cipher, c), p)
+
 class standard_test_vectors(MyTestBase):
     def testAES(self):
         def vector(cipher, key, plaintext, ciphertext):
             for suffix in "hw", "sw":
-                c = ssh2_cipher_new("{}_{}".format(cipher, suffix))
+                c = ssh_cipher_new("{}_{}".format(cipher, suffix))
                 if c is None: return # skip test if HW AES not available
-                ssh2_cipher_setkey(c, key)
+                ssh_cipher_setkey(c, key)
 
                 # The AES test vectors are implicitly in ECB mode,
                 # because they're testing the cipher primitive rather
@@ -948,13 +1146,21 @@ class standard_test_vectors(MyTestBase):
                 # using PuTTY's CBC setting, and clearing the IV to
                 # all zeroes before each operation.
 
-                ssh2_cipher_setiv(c, b'\x00' * 16)
+                ssh_cipher_setiv(c, b'\x00' * 16)
                 self.assertEqualBin(
-                    ssh2_cipher_encrypt(c, plaintext), ciphertext)
+                    ssh_cipher_encrypt(c, plaintext), ciphertext)
 
-                ssh2_cipher_setiv(c, b'\x00' * 16)
+                ssh_cipher_setiv(c, b'\x00' * 16)
                 self.assertEqualBin(
-                    ssh2_cipher_decrypt(c, ciphertext), plaintext)
+                    ssh_cipher_decrypt(c, ciphertext), plaintext)
+
+        # The test vector from FIPS 197 appendix B. (This is also the
+        # same key whose key setup phase is shown in detail in
+        # appendix A.)
+        vector('aes128',
+               unhex('2b7e151628aed2a6abf7158809cf4f3c'),
+               unhex('3243f6a8885a308d313198a2e0370734'),
+               unhex('3925841d02dc09fbdc118597196a0b32'))
 
         # The test vectors from FIPS 197 appendix C: the key bytes go
         # 00 01 02 03 ... for as long as needed, and the plaintext
@@ -967,6 +1173,151 @@ class standard_test_vectors(MyTestBase):
                unhex('dda97ca4864cdfe06eaf70a0ec0d7191'))
         vector('aes256', fullkey[:32], plaintext,
                unhex('8ea2b7ca516745bfeafc49904b496089'))
+
+    def testDES(self):
+        c = ssh_cipher_new("des")
+        def vector(key, plaintext, ciphertext):
+            key = unhex(key)
+            plaintext = unhex(plaintext)
+            ciphertext = unhex(ciphertext)
+
+            # Similarly to above, we fake DES ECB by using DES CBC and
+            # resetting the IV to zero all the time
+            ssh_cipher_setkey(c, key)
+            ssh_cipher_setiv(c, b'\x00' * 8)
+            self.assertEqualBin(ssh_cipher_encrypt(c, plaintext), ciphertext)
+            ssh_cipher_setiv(c, b'\x00' * 8)
+            self.assertEqualBin(ssh_cipher_decrypt(c, ciphertext), plaintext)
+
+        # Source: FIPS SP PUB 500-20
+
+        # 'Initial permutation and expansion tests': key fixed at 8
+        # copies of the byte 01, but ciphertext and plaintext in turn
+        # run through all possible values with exactly 1 bit set.
+        # Expected plaintexts and ciphertexts (respectively) listed in
+        # the arrays below.
+        ipe_key = '01' * 8
+        ipe_plaintexts = [
+'166B40B44ABA4BD6', '06E7EA22CE92708F', 'D2FD8867D50D2DFE', 'CC083F1E6D9E85F6',
+'5B711BC4CEEBF2EE', '0953E2258E8E90A1', 'E07C30D7E4E26E12', '2FBC291A570DB5C4',
+'DD7C0BBD61FAFD54', '48221B9937748A23', 'E643D78090CA4207', '8405D1ABE24FB942',
+'CE332329248F3228', '1D1CA853AE7C0C5F', '5D86CB23639DBEA9', '1029D55E880EC2D0',
+'8DD45A2DDF90796C', 'CAFFC6AC4542DE31', 'EA51D3975595B86B', '8B54536F2F3E64A8',
+'866ECEDD8072BB0E', '79E90DBC98F92CCA', 'AB6A20C0620D1C6F', '25EB5FC3F8CF0621',
+'4D49DB1532919C9F', '814EEB3B91D90726', '5E0905517BB59BCF', 'CA3A2B036DBC8502',
+'FA0752B07D9C4AB8', 'B160E4680F6C696F', 'DF98C8276F54B04B', 'E943D7568AEC0C5C',
+'AEB5F5EDE22D1A36', 'E428581186EC8F46', 'E1652C6B138C64A5', 'D106FF0BED5255D7',
+'9D64555A9A10B852', 'F02B263B328E2B60', '64FEED9C724C2FAF', '750D079407521363',
+'FBE00A8A1EF8AD72', 'A484C3AD38DC9C19', '12A9F5817FF2D65D', 'E7FCE22557D23C97',
+'329A8ED523D71AEC', 'E19E275D846A1298', '889DE068A16F0BE6', '2B9F982F20037FA9',
+'F356834379D165CD', 'ECBFE3BD3F591A5E', 'E6D5F82752AD63D1', 'ADD0CC8D6E5DEBA1',
+'F15D0F286B65BD28', 'B8061B7ECD9A21E5', '424250B37C3DD951', 'D9031B0271BD5A0A',
+'0D9F279BA5D87260', '6CC5DEFAAF04512F', '55579380D77138EF', '20B9E767B2FB1456',
+'4BD388FF6CD81D4F', '2E8653104F3834EA', 'DD7F121CA5015619', '95F8A5E5DD31D900',
+        ]
+        ipe_ciphertexts = [
+'166B40B44ABA4BD6', '06E7EA22CE92708F', 'D2FD8867D50D2DFE', 'CC083F1E6D9E85F6',
+'5B711BC4CEEBF2EE', '0953E2258E8E90A1', 'E07C30D7E4E26E12', '2FBC291A570DB5C4',
+'DD7C0BBD61FAFD54', '48221B9937748A23', 'E643D78090CA4207', '8405D1ABE24FB942',
+'CE332329248F3228', '1D1CA853AE7C0C5F', '5D86CB23639DBEA9', '1029D55E880EC2D0',
+'8DD45A2DDF90796C', 'CAFFC6AC4542DE31', 'EA51D3975595B86B', '8B54536F2F3E64A8',
+'866ECEDD8072BB0E', '79E90DBC98F92CCA', 'AB6A20C0620D1C6F', '25EB5FC3F8CF0621',
+'4D49DB1532919C9F', '814EEB3B91D90726', '5E0905517BB59BCF', 'CA3A2B036DBC8502',
+'FA0752B07D9C4AB8', 'B160E4680F6C696F', 'DF98C8276F54B04B', 'E943D7568AEC0C5C',
+'AEB5F5EDE22D1A36', 'E428581186EC8F46', 'E1652C6B138C64A5', 'D106FF0BED5255D7',
+'9D64555A9A10B852', 'F02B263B328E2B60', '64FEED9C724C2FAF', '750D079407521363',
+'FBE00A8A1EF8AD72', 'A484C3AD38DC9C19', '12A9F5817FF2D65D', 'E7FCE22557D23C97',
+'329A8ED523D71AEC', 'E19E275D846A1298', '889DE068A16F0BE6', '2B9F982F20037FA9',
+'F356834379D165CD', 'ECBFE3BD3F591A5E', 'E6D5F82752AD63D1', 'ADD0CC8D6E5DEBA1',
+'F15D0F286B65BD28', 'B8061B7ECD9A21E5', '424250B37C3DD951', 'D9031B0271BD5A0A',
+'0D9F279BA5D87260', '6CC5DEFAAF04512F', '55579380D77138EF', '20B9E767B2FB1456',
+'4BD388FF6CD81D4F', '2E8653104F3834EA', 'DD7F121CA5015619', '95F8A5E5DD31D900',
+        ]
+        ipe_single_bits = ["{:016x}".format(1 << bit) for bit in range(64)]
+        for plaintext, ciphertext in zip(ipe_plaintexts, ipe_single_bits):
+            vector(ipe_key, plaintext, ciphertext)
+        for plaintext, ciphertext in zip(ipe_single_bits, ipe_ciphertexts):
+            vector(ipe_key, plaintext, ciphertext)
+
+        # 'Key permutation tests': plaintext fixed at all zeroes, key
+        # is a succession of tweaks of the previous key made by
+        # replacing each 01 byte in turn with one containing a
+        # different single set bit (e.g. 01 20 01 01 01 01 01 01).
+        # Expected ciphertexts listed.
+        kp_ciphertexts = [
+'95A8D72813DAA94D', '0EEC1487DD8C26D5', '7AD16FFB79C45926', 'D3746294CA6A6CF3',
+'809F5F873C1FD761', 'C02FAFFEC989D1FC', '4615AA1D33E72F10', '2055123350C00858',
+'DF3B99D6577397C8', '31FE17369B5288C9', 'DFDD3CC64DAE1642', '178C83CE2B399D94',
+'50F636324A9B7F80', 'A8468EE3BC18F06D', 'A2DC9E92FD3CDE92', 'CAC09F797D031287',
+'90BA680B22AEB525', 'CE7A24F350E280B6', '882BFF0AA01A0B87', '25610288924511C2',
+'C71516C29C75D170', '5199C29A52C9F059', 'C22F0A294A71F29F', 'EE371483714C02EA',
+'A81FBD448F9E522F', '4F644C92E192DFED', '1AFA9A66A6DF92AE', 'B3C1CC715CB879D8',
+'19D032E64AB0BD8B', '3CFAA7A7DC8720DC', 'B7265F7F447AC6F3', '9DB73B3C0D163F54',
+'8181B65BABF4A975', '93C9B64042EAA240', '5570530829705592', '8638809E878787A0',
+'41B9A79AF79AC208', '7A9BE42F2009A892', '29038D56BA6D2745', '5495C6ABF1E5DF51',
+'AE13DBD561488933', '024D1FFA8904E389', 'D1399712F99BF02E', '14C1D7C1CFFEC79E',
+'1DE5279DAE3BED6F', 'E941A33F85501303', 'DA99DBBC9A03F379', 'B7FC92F91D8E92E9',
+'AE8E5CAA3CA04E85', '9CC62DF43B6EED74', 'D863DBB5C59A91A0', 'A1AB2190545B91D7',
+'0875041E64C570F7', '5A594528BEBEF1CC', 'FCDB3291DE21F0C0', '869EFD7F9F265A09',
+        ]
+        kp_key_repl_bytes = ["{:02x}".format(0x80>>i) for i in range(7)]
+        kp_keys = ['01'*j + b + '01'*(7-j)
+                   for j in range(8) for b in kp_key_repl_bytes]
+        kp_plaintext = '0' * 16
+        for key, ciphertext in zip(kp_keys, kp_ciphertexts):
+            vector(key, kp_plaintext, ciphertext)
+
+        # 'Data permutation test': plaintext fixed at all zeroes,
+        # pairs of key and expected ciphertext listed below.
+        dp_keys_and_ciphertexts = [
+'1046913489980131:88D55E54F54C97B4', '1007103489988020:0C0CC00C83EA48FD',
+'10071034C8980120:83BC8EF3A6570183', '1046103489988020:DF725DCAD94EA2E9',
+'1086911519190101:E652B53B550BE8B0', '1086911519580101:AF527120C485CBB0',
+'5107B01519580101:0F04CE393DB926D5', '1007B01519190101:C9F00FFC74079067',
+'3107915498080101:7CFD82A593252B4E', '3107919498080101:CB49A2F9E91363E3',
+'10079115B9080140:00B588BE70D23F56', '3107911598080140:406A9A6AB43399AE',
+'1007D01589980101:6CB773611DCA9ADA', '9107911589980101:67FD21C17DBB5D70',
+'9107D01589190101:9592CB4110430787', '1007D01598980120:A6B7FF68A318DDD3',
+'1007940498190101:4D102196C914CA16', '0107910491190401:2DFA9F4573594965',
+'0107910491190101:B46604816C0E0774', '0107940491190401:6E7E6221A4F34E87',
+'19079210981A0101:AA85E74643233199', '1007911998190801:2E5A19DB4D1962D6',
+'10079119981A0801:23A866A809D30894', '1007921098190101:D812D961F017D320',
+'100791159819010B:055605816E58608F', '1004801598190101:ABD88E8B1B7716F1',
+'1004801598190102:537AC95BE69DA1E1', '1004801598190108:AED0F6AE3C25CDD8',
+'1002911498100104:B3E35A5EE53E7B8D', '1002911598190104:61C79C71921A2EF8',
+'1002911598100201:E2F5728F0995013C', '1002911698100101:1AEAC39A61F0A464',
+        ]
+        dp_plaintext = '0' * 16
+        for key_and_ciphertext in dp_keys_and_ciphertexts:
+            key, ciphertext = key_and_ciphertext.split(":")
+            vector(key, dp_plaintext, ciphertext)
+
+        # Tests intended to select every entry in every S-box. Full
+        # arbitrary triples (key, plaintext, ciphertext).
+        sb_complete_tests = [
+            '7CA110454A1A6E57:01A1D6D039776742:690F5B0D9A26939B',
+            '0131D9619DC1376E:5CD54CA83DEF57DA:7A389D10354BD271',
+            '07A1133E4A0B2686:0248D43806F67172:868EBB51CAB4599A',
+            '3849674C2602319E:51454B582DDF440A:7178876E01F19B2A',
+            '04B915BA43FEB5B6:42FD443059577FA2:AF37FB421F8C4095',
+            '0113B970FD34F2CE:059B5E0851CF143A:86A560F10EC6D85B',
+            '0170F175468FB5E6:0756D8E0774761D2:0CD3DA020021DC09',
+            '43297FAD38E373FE:762514B829BF486A:EA676B2CB7DB2B7A',
+            '07A7137045DA2A16:3BDD119049372802:DFD64A815CAF1A0F',
+            '04689104C2FD3B2F:26955F6835AF609A:5C513C9C4886C088',
+            '37D06BB516CB7546:164D5E404F275232:0A2AEEAE3FF4AB77',
+            '1F08260D1AC2465E:6B056E18759F5CCA:EF1BF03E5DFA575A',
+            '584023641ABA6176:004BD6EF09176062:88BF0DB6D70DEE56',
+            '025816164629B007:480D39006EE762F2:A1F9915541020B56',
+            '49793EBC79B3258F:437540C8698F3CFA:6FBF1CAFCFFD0556',
+            '4FB05E1515AB73A7:072D43A077075292:2F22E49BAB7CA1AC',
+            '49E95D6D4CA229BF:02FE55778117F12A:5A6B612CC26CCE4A',
+            '018310DC409B26D6:1D9D5C5018F728C2:5F4C038ED12B2E41',
+            '1C587F1C13924FEF:305532286D6F295A:63FAC0D034D9F793',
+        ]
+        for test in sb_complete_tests:
+            key, plaintext, ciphertext = test.split(":")
+            vector(key, plaintext, ciphertext)
 
     def testMD5(self):
         MD5 = lambda s: hash_str('md5', s)
@@ -1132,15 +1483,14 @@ class standard_test_vectors(MyTestBase):
             '77966b957a878e720584779a62825c18da26415e49a7176a894e7510fd1451f5'))
 
     def testHmacSHA(self):
-        # Test cases from RFC 6234 section 8.5, omitting the ones
-        # which have a long enough key to require hashing it first.
-        # (Our implementation doesn't support that, because it knows
-        # it only has to deal with a fixed key length.)
-        def vector(key, message, s1, s256):
-            self.assertEqualBin(
-                mac_str('hmac_sha1', key, message), unhex(s1))
-            self.assertEqualBin(
-                mac_str('hmac_sha256', key, message), unhex(s256))
+        # Test cases from RFC 6234 section 8.5.
+        def vector(key, message, s1=None, s256=None):
+            if s1 is not None:
+                self.assertEqualBin(
+                    mac_str('hmac_sha1', key, message), unhex(s1))
+            if s256 is not None:
+                self.assertEqualBin(
+                    mac_str('hmac_sha256', key, message), unhex(s256))
         vector(
             unhex("0b"*20), "Hi There",
             "b617318655057264e28bc0b6fb378c8ef146be00",
@@ -1158,6 +1508,26 @@ class standard_test_vectors(MyTestBase):
             unhex("cd"*50),
             "4c9007f4026250c6bc8414f9bf50c86c2d7235da",
             "82558a389a443c0ea4cc819899f2083a85f0faa3e578f8077a2e3ff46729665b")
+        vector(
+            unhex("aa"*80),
+            "Test Using Larger Than Block-Size Key - Hash Key First",
+            s1="aa4ae5e15272d00e95705637ce8a3b55ed402112")
+        vector(
+            unhex("aa"*131),
+            "Test Using Larger Than Block-Size Key - Hash Key First",
+            s256="60e431591ee0b67f0d8a26aacbf5b77f"
+            "8e0bc6213728c5140546040f0ee37f54")
+        vector(
+            unhex("aa"*80),
+            "Test Using Larger Than Block-Size Key and "
+            "Larger Than One Block-Size Data",
+            s1="e8e99d0f45237d786d6bbaa7965c7808bbff1a91")
+        vector(
+            unhex("aa"*131),
+            "This is a test using a larger than block-size key and a "
+            "larger than block-size data. The key needs to be hashed "
+            "before being used by the HMAC algorithm.",
+            s256="9B09FFA71B942FCB27635FBCD5B0E944BFDC63644F0713938A7F51535C3A35E2")
 
     def testEd25519(self):
         def vector(privkey, pubkey, message, signature):
@@ -1212,6 +1582,50 @@ class standard_test_vectors(MyTestBase):
                     message = unhex(words[2])
                     signature = unhex(words[3])[:64]
                     vector(privkey, pubkey, message, signature)
+
+    def testCRC32(self):
+        self.assertEqual(crc32_rfc1662("123456789"), 0xCBF43926)
+        self.assertEqual(crc32_ssh1("123456789"), 0x2DFD2D88)
+
+        # Source:
+        # http://reveng.sourceforge.net/crc-catalogue/17plus.htm#crc.cat.crc-32-iso-hdlc
+        # which collected these from various sources.
+        reveng_tests = [
+            '000000001CDF4421',
+            'F20183779DAB24',
+            '0FAA005587B2C9B6',
+            '00FF55111262A032',
+            '332255AABBCCDDEEFF3D86AEB0',
+            '926B559BA2DE9C',
+            'FFFFFFFFFFFFFFFF',
+            'C008300028CFE9521D3B08EA449900E808EA449900E8300102007E649416',
+            '6173640ACEDE2D15',
+        ]
+        for vec in map(unhex, reveng_tests):
+            # Each of these test vectors can be read two ways. One
+            # interpretation is that the last four bytes are the
+            # little-endian encoding of the CRC of the rest. (Because
+            # that's how the CRC is attached to a string at the
+            # sending end.)
+            #
+            # The other interpretation is that if you CRC the whole
+            # string, _including_ the final four bytes, you expect to
+            # get the same value for any correct string (because the
+            # little-endian encoding matches the way the rest of the
+            # string was interpreted as a polynomial in the first
+            # place). That's how a receiver is intended to check
+            # things.
+            #
+            # The expected output value is listed in RFC 1662, and in
+            # the reveng.sourceforge.net catalogue, as 0xDEBB20E3. But
+            # that's because their checking procedure omits the final
+            # complement step that the construction procedure
+            # includes. Our crc32_rfc1662 function does do the final
+            # complement, so we expect the bitwise NOT of that value,
+            # namely 0x2144DF1C.
+            expected = struct.unpack("<L", vec[-4:])[0]
+            self.assertEqual(crc32_rfc1662(vec[:-4]), expected)
+            self.assertEqual(crc32_rfc1662(vec), 0x2144DF1C)
 
 if __name__ == "__main__":
     try:
