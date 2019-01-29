@@ -38,9 +38,6 @@ cache:
 - '%LOCALAPPDATA%\pip\Cache -> appveyor.yml'
 - win_flex_bison-2.5.15.zip
 - llvm-5.0.1-msvc2017-mtd.7z
-- C:\pkgcache
-- 'C:\cygwin64\home\%USERNAME%\.ccache'
-- 'C:\cygwin\home\%USERNAME%\.ccache'
 
 os: Visual Studio 2017
 
@@ -50,23 +47,43 @@ init:
 - git config --global core.autocrlf true
 
 environment:
-  matrix:
-  - compiler: msvc
-    WINFLEXBISON_VERSION: 2.5.15
-    LLVM_ARCHIVE: llvm-5.0.1-msvc2017-mtd.7z
-  - compiler: cygwin
-    arch: x64
+  WINFLEXBISON_VERSION: 2.5.15
+  LLVM_ARCHIVE: llvm-5.0.1-msvc2017-mtd.7z
 
 install:
-- call scripts\appveyor_%compiler%.bat install
+# Check git config
+- git config core.autocrlf
+# Check pip
+- python --version
+- python -m pip --version
+# Install Mako
+- python -m pip install Mako==1.0.7
+# Install pywin32 extensions, needed by SCons
+- python -m pip install pypiwin32
+# Install python wheels, necessary to install SCons via pip
+- python -m pip install wheel
+# Install SCons
+- python -m pip install scons==3.0.1
+- scons --version
+# Install flex/bison
+- set WINFLEXBISON_ARCHIVE=win_flex_bison-%WINFLEXBISON_VERSION%.zip
+- if not exist "%WINFLEXBISON_ARCHIVE%" appveyor DownloadFile "https://github.com/lexxmark/winflexbison/releases/download/v%WINFLEXBISON_VERSION%/%WINFLEXBISON_ARCHIVE%"
+- 7z x -y -owinflexbison\ "%WINFLEXBISON_ARCHIVE%" > nul
+- set Path=%CD%\winflexbison;%Path%
+- win_flex --version
+- win_bison --version
+# Download and extract LLVM
+- if not exist "%LLVM_ARCHIVE%" appveyor DownloadFile "https://people.freedesktop.org/~jrfonseca/llvm/%LLVM_ARCHIVE%"
+- 7z x -y "%LLVM_ARCHIVE%" > nul
+- mkdir llvm\bin
+- set LLVM=%CD%\llvm
 
 build_script:
-- call scripts\appveyor_%compiler%.bat build_script
+- scons -j%NUMBER_OF_PROCESSORS% MSVC_VERSION=14.1 llvm=1
 
 after_build:
-- call scripts\appveyor_%compiler%.bat after_build
+- scons -j%NUMBER_OF_PROCESSORS% MSVC_VERSION=14.1 llvm=1 check
 
-test: off
 
 # It's possible to setup notification here, as described in
 # http://www.appveyor.com/docs/notifications#appveyor-yml-configuration , but

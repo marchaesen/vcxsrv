@@ -514,7 +514,7 @@ static void ssh2_bpp_handle_input(BinaryPacketProtocol *bpp)
 
         s->length = s->payload + 5;
 
-        DTS_CONSUME(s->stats, in, s->packetlen);
+        dts_consume(&s->stats->in, s->packetlen);
 
         s->pktin->sequence = s->in.sequence++;
 
@@ -726,7 +726,8 @@ static void ssh2_bpp_format_packet_inner(struct ssh2_bpp_state *s, PktOut *pkt)
     maclen = s->out.mac ? ssh2_mac_alg(s->out.mac)->len : 0;
     origlen = pkt->length;
     for (i = 0; i < padding; i++)
-        put_byte(pkt, random_byte());
+        put_byte(pkt, 0);              /* make space for random padding */
+    random_read(pkt->data + origlen, padding);
     pkt->data[4] = padding;
     PUT_32BIT(pkt->data, origlen + padding - 4);
 
@@ -761,8 +762,7 @@ static void ssh2_bpp_format_packet_inner(struct ssh2_bpp_state *s, PktOut *pkt)
 
     s->out.sequence++;       /* whether or not we MACed */
 
-    DTS_CONSUME(s->stats, out, origlen + padding);
-
+    dts_consume(&s->stats->out, origlen + padding);
 }
 
 static void ssh2_bpp_format_packet(struct ssh2_bpp_state *s, PktOut *pkt)
@@ -820,8 +820,10 @@ static void ssh2_bpp_format_packet(struct ssh2_bpp_state *s, PktOut *pkt)
 
             ignore_pkt = ssh2_bpp_new_pktout(SSH2_MSG_IGNORE);
             put_uint32(ignore_pkt, length);
-            while (length-- > 0)
-                put_byte(ignore_pkt, random_byte());
+            size_t origlen = ignore_pkt->length;
+            for (size_t i = 0; i < length; i++)
+                put_byte(ignore_pkt, 0);  /* make space for random padding */
+            random_read(ignore_pkt->data + origlen, length);
             ssh2_bpp_format_packet_inner(s, ignore_pkt);
             bufchain_add(s->bpp.out_raw, ignore_pkt->data, ignore_pkt->length);
             ssh_free_pktout(ignore_pkt);

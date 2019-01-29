@@ -128,6 +128,9 @@ nir_remove_unused_io_vars(nir_shader *shader, struct exec_list *var_list,
       if (var->data.always_active_io)
          continue;
 
+      if (var->data.explicit_xfb_buffer)
+         continue;
+
       uint64_t other_stage = used[var->data.location_frac];
 
       if (!(other_stage & get_variable_io_mask(var, shader->info.stage))) {

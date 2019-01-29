@@ -1241,7 +1241,7 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
       break;
 
    case GL_SRGB_WRITE:
-      if (!_mesa_has_EXT_framebuffer_sRGB(ctx) ||
+      if (!ctx->Extensions.EXT_sRGB ||
           !_mesa_is_color_format(internalformat)) {
          goto end;
       }

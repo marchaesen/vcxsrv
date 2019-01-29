@@ -187,6 +187,26 @@ class Format:
                     return True
         return False
 
+    def is_compressed(self):
+        for channel in self.le_channels:
+            if channel.type != VOID:
+                return False
+        return True
+
+    def is_unorm(self):
+        # Non-compressed formats all have unorm or srgb in their name.
+        for keyword in ['_UNORM', '_SRGB']:
+            if keyword in self.name:
+                return True
+
+        # All the compressed formats in GLES3.2 and GL4.6 ("Table 8.14: Generic
+        # and specific compressed internal formats.") that aren't snorm for
+        # border colors are unorm, other than BPTC_*_FLOAT.
+        return self.is_compressed() and not ('FLOAT' in self.name or self.is_snorm())
+
+    def is_snorm(self):
+        return '_SNORM' in self.name
+
     def is_pot(self):
         return is_pot(self.block_size())
 

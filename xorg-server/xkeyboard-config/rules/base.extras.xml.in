@@ -990,6 +990,21 @@
     </layout>
     <layout>
       <configItem>
+        <name>pt</name>
+        <_shortDescription>pt</_shortDescription>
+        <_description>Portuguese</_description>
+      </configItem>
+      <variantList>
+        <variant>
+          <configItem>
+            <name>colemak</name>
+            <_description>Portuguese (Colemak)</_description>
+          </configItem>
+        </variant>
+      </variantList>
+    </layout>
+    <layout>
+      <configItem>
         <name>sk</name>
         <_shortDescription>sk</_shortDescription>
         <_description>Slovak</_description>

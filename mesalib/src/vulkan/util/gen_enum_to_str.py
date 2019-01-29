@@ -101,6 +101,10 @@ H_TEMPLATE = Template(textwrap.dedent(u"""\
     #include <vulkan/vulkan.h>
     #include <vulkan/vk_android_native_buffer.h>
 
+    #ifdef __cplusplus
+    extern "C" {
+    #endif
+
     % for ext in extensions:
     #define _${ext.name}_number (${ext.number})
     % endfor
@@ -108,6 +112,10 @@ H_TEMPLATE = Template(textwrap.dedent(u"""\
     % for enum in enums:
     const char * vk_${enum.name[2:]}_to_str(${enum.name} input);
     % endfor
+
+    #ifdef __cplusplus
+    } /* extern "C" */
+    #endif
 
     #endif"""),
     output_encoding='utf-8')

@@ -4265,6 +4265,7 @@ struct gl_extensions
    GLboolean EXT_semaphore_fd;
    GLboolean EXT_shader_integer_mix;
    GLboolean EXT_shader_samples_identical;
+   GLboolean EXT_sRGB;
    GLboolean EXT_stencil_two_side;
    GLboolean EXT_texture_array;
    GLboolean EXT_texture_compression_latc;

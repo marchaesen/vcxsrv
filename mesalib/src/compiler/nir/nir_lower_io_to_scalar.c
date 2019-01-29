@@ -192,6 +192,10 @@ lower_load_to_scalar_early(nir_builder *b, nir_intrinsic_instr *intr,
          chan_var = nir_variable_clone(var, b->shader);
          chan_var->data.location_frac =  var->data.location_frac + i;
          chan_var->type = glsl_channel_type(chan_var->type);
+         if (var->data.explicit_offset) {
+            unsigned comp_size = glsl_get_bit_size(chan_var->type) / 8;
+            chan_var->data.offset = var->data.offset + i * comp_size;
+         }
 
          chan_vars[var->data.location_frac + i] = chan_var;
 
@@ -246,6 +250,10 @@ lower_store_output_to_scalar_early(nir_builder *b, nir_intrinsic_instr *intr,
          chan_var = nir_variable_clone(var, b->shader);
          chan_var->data.location_frac =  var->data.location_frac + i;
          chan_var->type = glsl_channel_type(chan_var->type);
+         if (var->data.explicit_offset) {
+            unsigned comp_size = glsl_get_bit_size(chan_var->type) / 8;
+            chan_var->data.offset = var->data.offset + i * comp_size;
+         }
 
          chan_vars[var->data.location_frac + i] = chan_var;
 

@@ -558,8 +558,6 @@ struct ssh_cipher {
     const ssh_cipheralg *vt;
 };
 
-bool supports_sha_ni(void);
-
 struct ssh_cipheralg {
     ssh_cipher *(*new)(const ssh_cipheralg *alg);
     void (*free)(ssh_cipher *);
@@ -665,7 +663,10 @@ struct ssh_hashalg {
     void (*final)(ssh_hash *, unsigned char *); /* ALSO FREES THE ssh_hash! */
     void (*free)(ssh_hash *);
     int hlen; /* output length in bytes */
-    const char *text_name;
+    int blocklen; /* length of the hash's input block, or 0 for N/A */
+    const char *text_basename;     /* the semantic name of the hash */
+    const char *annotation;   /* extra info, e.g. which of multiple impls */
+    const char *text_name;    /* both combined, e.g. "SHA-n (unaccelerated)" */
 };
 
 #define ssh_hash_new(alg) ((alg)->new(alg))
@@ -673,6 +674,12 @@ struct ssh_hashalg {
 #define ssh_hash_final(ctx, out) ((ctx)->vt->final(ctx, out))
 #define ssh_hash_free(ctx) ((ctx)->vt->free(ctx))
 #define ssh_hash_alg(ctx) ((ctx)->vt)
+
+/* Handy macros for defining all those text-name fields at once */
+#define HASHALG_NAMES_BARE(base) \
+    base, NULL, base
+#define HASHALG_NAMES_ANNOTATED(base, annotation) \
+    base, annotation, base " (" annotation ")"
 
 void hash_simple(const ssh_hashalg *alg, ptrlen data, void *output);
 
@@ -818,7 +825,11 @@ extern const ssh2_ciphers ssh2_arcfour;
 extern const ssh2_ciphers ssh2_ccp;
 extern const ssh_hashalg ssh_md5;
 extern const ssh_hashalg ssh_sha1;
+extern const ssh_hashalg ssh_sha1_hw;
+extern const ssh_hashalg ssh_sha1_sw;
 extern const ssh_hashalg ssh_sha256;
+extern const ssh_hashalg ssh_sha256_hw;
+extern const ssh_hashalg ssh_sha256_sw;
 extern const ssh_hashalg ssh_sha384;
 extern const ssh_hashalg ssh_sha512;
 extern const ssh_kexes ssh_diffiehellman_group1;
@@ -853,6 +864,8 @@ extern const ssh_compression_alg ssh_zlib;
  * platform subdirectory.
  */
 bool platform_aes_hw_available(void);
+bool platform_sha256_hw_available(void);
+bool platform_sha1_hw_available(void);
 
 /*
  * PuTTY version number formatted as an SSH version string. 
@@ -866,34 +879,35 @@ extern const char sshver[];
  */
 extern bool ssh_fallback_cmd(Backend *backend);
 
-void SHATransform(uint32_t *digest, uint32_t *data);
-
 /*
- * Check of compiler version
+ * The PRNG type, defined in sshprng.c. Visible data fields are
+ * 'savesize', which suggests how many random bytes you should request
+ * from a particular PRNG instance to write to putty.rnd, and a
+ * BinarySink implementation which you can use to write seed data in
+ * between calling prng_seed_{begin,finish}.
  */
-#ifdef _FORCE_SHA_NI
-#   define COMPILER_SUPPORTS_SHA_NI
-#elif defined(__clang__)
-#   if __has_attribute(target) && __has_include(<shaintrin.h>) && (defined(__x86_64__) || defined(__i386))
-#       define COMPILER_SUPPORTS_SHA_NI
-#   endif
-#elif defined(__GNUC__)
-#    if ((__GNUC__ >= 5) && (defined(__x86_64__) || defined(__i386)))
-#       define COMPILER_SUPPORTS_SHA_NI
-#    endif
-#elif defined (_MSC_VER)
-#   if (defined(_M_X64) || defined(_M_IX86)) && _MSC_VER >= 1900
-#      define COMPILER_SUPPORTS_SHA_NI
-#   endif
-#endif
+struct prng {
+    size_t savesize;
+    BinarySink_IMPLEMENTATION;
+    /* (also there's a surrounding implementation struct in sshprng.c) */
+};
+prng *prng_new(const ssh_hashalg *hashalg);
+void prng_free(prng *p);
+void prng_seed_begin(prng *p);
+void prng_seed_finish(prng *p);
+void prng_read(prng *p, void *vout, size_t size);
+void prng_add_entropy(prng *p, unsigned source_id, ptrlen data);
 
-#ifdef _FORCE_SOFTWARE_SHA
-#   undef COMPILER_SUPPORTS_SHA_NI
-#endif
+/* This function must be implemented by the platform, and returns a
+ * timer in milliseconds that the PRNG can use to know whether it's
+ * been reseeded too recently to do it again.
+ *
+ * The PRNG system has its own special timing function not because its
+ * timing needs are unusual in the real applications, but simply so
+ * that testcrypt can mock it to keep the tests deterministic. */
+uint64_t prng_reseed_time_ms(void);
 
-int random_byte(void);
-void random_add_noise(void *noise, int length);
-void random_add_heavynoise(void *noise, int length);
+void random_read(void *out, size_t size);
 
 /* Exports from x11fwd.c */
 enum {

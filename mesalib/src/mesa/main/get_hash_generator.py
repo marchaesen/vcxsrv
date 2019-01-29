@@ -34,11 +34,10 @@ import os, sys, getopt
 from collections import defaultdict
 import get_hash_params
 
-cur_dir = os.path.dirname(sys.argv[0])
-param_desc_file = "%s/get_hash_params.py" % cur_dir
+param_desc_file = os.path.join(os.path.dirname(__file__), "get_hash_params.py")
 
-GLAPI = "%s/../../mapi/glapi/gen" % cur_dir
-sys.path.append(GLAPI)
+GLAPI = os.path.join(os.path.dirname(__file__), "..", "..", "mapi", "glapi", "gen")
+sys.path.insert(0, GLAPI)
 import gl_XML
 
 prime_factor = 89

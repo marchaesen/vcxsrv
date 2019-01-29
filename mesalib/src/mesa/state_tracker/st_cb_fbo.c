@@ -139,7 +139,7 @@ st_renderbuffer_alloc_storage(struct gl_context * ctx,
    /* If an sRGB framebuffer is unsupported, sRGB formats behave like linear
     * formats.
     */
-   if (!ctx->Extensions.EXT_framebuffer_sRGB) {
+   if (!ctx->Extensions.EXT_sRGB) {
       internalFormat = _mesa_get_linear_internalformat(internalFormat);
    }
 
@@ -662,7 +662,7 @@ st_validate_attachment(struct gl_context *ctx,
    /* If the encoding is sRGB and sRGB rendering cannot be enabled,
     * check for linear format support instead.
     * Later when we create a surface, we change the format to a linear one. */
-   if (!ctx->Extensions.EXT_framebuffer_sRGB &&
+   if (!ctx->Extensions.EXT_sRGB &&
        _mesa_get_format_color_encoding(texFormat) == GL_SRGB) {
       const mesa_format linearFormat = _mesa_get_srgb_format_linear(texFormat);
       format = st_mesa_format_to_pipe_format(st_context(ctx), linearFormat);

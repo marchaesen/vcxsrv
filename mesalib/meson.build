@@ -1,4 +1,4 @@
-# Copyright © 2017-2018 Intel Corporation
+# Copyright © 2017-2019 Intel Corporation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -131,7 +131,7 @@ if _drivers.contains('auto')
       ]
     elif ['arm', 'aarch64'].contains(host_machine.cpu_family())
       _drivers = [
-        'pl111', 'v3d', 'vc4', 'freedreno', 'etnaviv', 'imx', 'nouveau',
+        'kmsro', 'v3d', 'vc4', 'freedreno', 'etnaviv', 'nouveau',
         'tegra', 'virgl', 'swrast',
       ]
     else
@@ -145,7 +145,7 @@ if _drivers.contains('auto')
           host_machine.system()))
   endif
 endif
-with_gallium_pl111 = _drivers.contains('pl111')
+with_gallium_kmsro = _drivers.contains('kmsro')
 with_gallium_radeonsi = _drivers.contains('radeonsi')
 with_gallium_r300 = _drivers.contains('r300')
 with_gallium_r600 = _drivers.contains('r600')
@@ -155,12 +155,19 @@ with_gallium_softpipe = _drivers.contains('swrast')
 with_gallium_vc4 = _drivers.contains('vc4')
 with_gallium_v3d = _drivers.contains('v3d')
 with_gallium_etnaviv = _drivers.contains('etnaviv')
-with_gallium_imx = _drivers.contains('imx')
 with_gallium_tegra = _drivers.contains('tegra')
 with_gallium_i915 = _drivers.contains('i915')
 with_gallium_svga = _drivers.contains('svga')
 with_gallium_virgl = _drivers.contains('virgl')
 with_gallium_swr = _drivers.contains('swr')
+
+if cc.get_id() == 'intel'
+  if meson.version().version_compare('< 0.49.0')
+    error('Meson does not have sufficient support of ICC before 0.49.0 to compile mesa')
+  elif with_gallium_swr and meson.version().version_compare('== 0.49.0')
+    warning('Meson as of 0.49.0 is sufficient for compiling mesa with ICC, but there are some caveats with SWR. 0.49.1 should resolve all of these')
+  endif
+endif
 
 with_gallium = _drivers.length() != 0 and _drivers != ['']
 
@@ -202,11 +209,8 @@ endif
 if with_dri_i915 and with_gallium_i915
   error('Only one i915 provider can be built')
 endif
-if with_gallium_imx and not with_gallium_etnaviv
-  error('IMX driver requires etnaviv driver')
-endif
-if with_gallium_pl111 and not with_gallium_vc4
-  error('pl111 driver requires vc4 driver')
+if with_gallium_kmsro and not (with_gallium_vc4 or with_gallium_etnaviv or with_gallium_freedreno)
+  error('kmsro driver requires one or more renderonly drivers (vc4, etnaviv, freedreno)')
 endif
 if with_gallium_tegra and not with_gallium_nouveau
   error('tegra driver requires nouveau driver')
@@ -1109,7 +1113,7 @@ dep_libdrm_nouveau = null_dep
 dep_libdrm_etnaviv = null_dep
 dep_libdrm_intel = null_dep
 
-_drm_amdgpu_ver = '2.4.95'
+_drm_amdgpu_ver = '2.4.97'
 _drm_radeon_ver = '2.4.71'
 _drm_nouveau_ver = '2.4.66'
 _drm_etnaviv_ver = '2.4.89'

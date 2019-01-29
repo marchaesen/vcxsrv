@@ -89,27 +89,22 @@ if with_gallium_vc4
 else
   driver_vc4 = declare_dependency()
 endif
-if with_gallium_pl111
-  subdir('winsys/pl111/drm')
-else
-  driver_pl111 = declare_dependency()
-endif
-if with_gallium_v3d
-  subdir('winsys/v3d/drm')
-  subdir('drivers/v3d')
-else
-  driver_v3d = declare_dependency()
-endif
 if with_gallium_etnaviv
   subdir('winsys/etnaviv/drm')
   subdir('drivers/etnaviv')
 else
   driver_etnaviv = declare_dependency()
 endif
-if with_gallium_imx
-  subdir('winsys/imx/drm')
+if with_gallium_kmsro
+  subdir('winsys/kmsro/drm')
 else
-  driver_imx = declare_dependency()
+  driver_kmsro = declare_dependency()
+endif
+if with_gallium_v3d
+  subdir('winsys/v3d/drm')
+  subdir('drivers/v3d')
+else
+  driver_v3d = declare_dependency()
 endif
 if with_gallium_tegra
   subdir('winsys/tegra/drm')

@@ -62,6 +62,7 @@ vtn_pointer_is_external_block(struct vtn_builder *b,
 {
    return ptr->mode == vtn_variable_mode_ssbo ||
           ptr->mode == vtn_variable_mode_ubo ||
+          ptr->mode == vtn_variable_mode_phys_ssbo ||
           ptr->mode == vtn_variable_mode_push_constant ||
           (ptr->mode == vtn_variable_mode_workgroup &&
            b->options->lower_workgroup_access_to_offsets);
@@ -1521,6 +1522,11 @@ apply_var_decoration(struct vtn_builder *b,
       /* HLSL semantic decorations can safely be ignored by the driver. */
       break;
 
+   case SpvDecorationRestrictPointerEXT:
+   case SpvDecorationAliasedPointerEXT:
+      /* TODO: We should actually plumb alias information through NIR. */
+      break;
+
    default:
       vtn_fail("Unhandled decoration");
    }
@@ -1591,13 +1597,11 @@ var_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
     */
    if (dec->decoration == SpvDecorationLocation) {
       unsigned location = dec->literals[0];
-      bool is_vertex_input = false;
       if (b->shader->info.stage == MESA_SHADER_FRAGMENT &&
           vtn_var->mode == vtn_variable_mode_output) {
          location += FRAG_RESULT_DATA0;
       } else if (b->shader->info.stage == MESA_SHADER_VERTEX &&
                  vtn_var->mode == vtn_variable_mode_input) {
-         is_vertex_input = true;
          location += VERT_ATTRIB_GENERIC0;
       } else if (vtn_var->mode == vtn_variable_mode_input ||
                  vtn_var->mode == vtn_variable_mode_output) {
@@ -1614,20 +1618,23 @@ var_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
       } else {
          /* This handles the structure member case */
          assert(vtn_var->var->members);
-         for (unsigned i = 0; i < vtn_var->var->num_members; i++) {
-            vtn_var->var->members[i].location = location;
-            const struct glsl_type *member_type =
-               glsl_get_struct_field(vtn_var->var->interface_type, i);
-            location += glsl_count_attribute_slots(member_type,
-                                                   is_vertex_input);
-         }
+
+         if (member == -1)
+            vtn_var->base_location = location;
+         else
+            vtn_var->var->members[member].location = location;
       }
+
       return;
    } else {
       if (vtn_var->var) {
          if (vtn_var->var->num_members == 0) {
-            assert(member == -1);
-            apply_var_decoration(b, &vtn_var->var->data, dec);
+            /* We call this function on types as well as variables and not all
+             * struct types get split so we can end up having stray member
+             * decorations; just ignore them.
+             */
+            if (member == -1)
+               apply_var_decoration(b, &vtn_var->var->data, dec);
          } else if (member >= 0) {
             /* Member decorations must come from a type */
             assert(val->value_type == vtn_value_type_type);
@@ -1677,6 +1684,10 @@ vtn_storage_class_to_mode(struct vtn_builder *b,
    case SpvStorageClassStorageBuffer:
       mode = vtn_variable_mode_ssbo;
       nir_mode = nir_var_mem_ssbo;
+      break;
+   case SpvStorageClassPhysicalStorageBufferEXT:
+      mode = vtn_variable_mode_phys_ssbo;
+      nir_mode = nir_var_mem_global;
       break;
    case SpvStorageClassUniformConstant:
       mode = vtn_variable_mode_uniform;
@@ -1756,13 +1767,23 @@ vtn_pointer_to_ssa(struct vtn_builder *b, struct vtn_pointer *ptr)
       }
    } else {
       if (vtn_pointer_is_external_block(b, ptr) &&
-          vtn_type_contains_block(b, ptr->type)) {
+          vtn_type_contains_block(b, ptr->type) &&
+          ptr->mode != vtn_variable_mode_phys_ssbo) {
          const unsigned bit_size = glsl_get_bit_size(ptr->ptr_type->type);
          const unsigned num_components =
             glsl_get_vector_elements(ptr->ptr_type->type);
 
          /* In this case, we're looking for a block index and not an actual
           * deref.
+          *
+          * For PhysicalStorageBufferEXT pointers, we don't have a block index
+          * at all because we get the pointer directly from the client.  This
+          * assumes that there will never be a SSBO binding variable using the
+          * PhysicalStorageBufferEXT storage class.  This assumption appears
+          * to be correct according to the Vulkan spec because the table,
+          * "Shader Resource and Storage Class Correspondence," the only the
+          * Uniform storage class with BufferBlock or the StorageBuffer
+          * storage class with Block can be used.
           */
          if (!ptr->block_index) {
             /* If we don't have a block_index then we must be a pointer to the
@@ -1793,7 +1814,6 @@ struct vtn_pointer *
 vtn_pointer_from_ssa(struct vtn_builder *b, nir_ssa_def *ssa,
                      struct vtn_type *ptr_type)
 {
-   vtn_assert(ssa->num_components <= 2 && ssa->bit_size == 32);
    vtn_assert(ptr_type->base_type == vtn_base_type_pointer);
 
    struct vtn_type *interface_type = ptr_type->deref;
@@ -1840,7 +1860,8 @@ vtn_pointer_from_ssa(struct vtn_builder *b, nir_ssa_def *ssa,
          assert(ssa->bit_size == 32 && ssa->num_components == 1);
          ptr->deref = nir_build_deref_cast(&b->nb, ssa, nir_mode,
                                            glsl_get_bare_type(deref_type), 0);
-      } else if (vtn_type_contains_block(b, ptr->type)) {
+      } else if (vtn_type_contains_block(b, ptr->type) &&
+                 ptr->mode != vtn_variable_mode_phys_ssbo) {
          /* This is a pointer to somewhere in an array of blocks, not a
           * pointer to somewhere inside the block.  We squashed it into a
           * random vector type before so just pick off the first channel and
@@ -1850,6 +1871,15 @@ vtn_pointer_from_ssa(struct vtn_builder *b, nir_ssa_def *ssa,
       } else {
          /* This is a pointer to something internal or a pointer inside a
           * block.  It's just a regular cast.
+          *
+          * For PhysicalStorageBufferEXT pointers, we don't have a block index
+          * at all because we get the pointer directly from the client.  This
+          * assumes that there will never be a SSBO binding variable using the
+          * PhysicalStorageBufferEXT storage class.  This assumption appears
+          * to be correct according to the Vulkan spec because the table,
+          * "Shader Resource and Storage Class Correspondence," the only the
+          * Uniform storage class with BufferBlock or the StorageBuffer
+          * storage class with Block can be used.
           */
          ptr->deref = nir_build_deref_cast(&b->nb, ssa, nir_mode,
                                            ptr_type->deref->type,
@@ -1880,6 +1910,50 @@ is_per_vertex_inout(const struct vtn_variable *var, gl_shader_stage stage)
 
    return false;
 }
+
+static void
+assign_missing_member_locations(struct vtn_variable *var)
+{
+   unsigned length =
+      glsl_get_length(glsl_without_array(var->type->type));
+   int location = var->base_location;
+
+   for (unsigned i = 0; i < length; i++) {
+      /* From the Vulkan spec:
+       *
+       * “If the structure type is a Block but without a Location, then each
+       *  of its members must have a Location decoration.”
+       *
+       */
+      if (var->type->block) {
+         assert(var->base_location != -1 ||
+                var->var->members[i].location != -1);
+      }
+
+      /* From the Vulkan spec:
+       *
+       * “Any member with its own Location decoration is assigned that
+       *  location. Each remaining member is assigned the location after the
+       *  immediately preceding member in declaration order.”
+       */
+      if (var->var->members[i].location != -1)
+         location = var->var->members[i].location;
+      else
+         var->var->members[i].location = location;
+
+      /* Below we use type instead of interface_type, because interface_type
+       * is only available when it is a Block. This code also supports
+       * input/outputs that are just structs
+       */
+      const struct glsl_type *member_type =
+         glsl_get_struct_field(glsl_without_array(var->type->type), i);
+
+      location +=
+         glsl_count_attribute_slots(member_type,
+                                    false /* is_gl_vertex_input */);
+   }
+}
+
 
 static void
 vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
@@ -1930,6 +2004,12 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
    case vtn_variable_mode_push_constant:
       b->shader->num_uniforms = vtn_type_block_size(b, type);
       break;
+
+   case vtn_variable_mode_phys_ssbo:
+      vtn_fail("Cannot create a variable with the "
+               "PhysicalStorageBufferEXT storage class");
+      break;
+
    default:
       /* No tallying is needed */
       break;
@@ -1938,6 +2018,7 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
    struct vtn_variable *var = rzalloc(b, struct vtn_variable);
    var->type = type;
    var->mode = mode;
+   var->base_location = -1;
 
    vtn_assert(val->value_type == vtn_value_type_pointer);
    val->pointer = vtn_pointer_for_variable(b, var, ptr_type);
@@ -2018,7 +2099,7 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
        * able to preserve that information.
        */
 
-      struct vtn_type *interface_type = var->type;
+      struct vtn_type *per_vertex_type = var->type;
       if (is_per_vertex_inout(var, b->shader->info.stage)) {
          /* In Geometry shaders (and some tessellation), inputs come
           * in per-vertex arrays.  However, some builtins come in
@@ -2026,36 +2107,54 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
           * any case, there are no non-builtin arrays allowed so this
           * check should be sufficient.
           */
-         interface_type = var->type->array_element;
+         per_vertex_type = var->type->array_element;
       }
 
       var->var = rzalloc(b->shader, nir_variable);
       var->var->name = ralloc_strdup(var->var, val->name);
       /* In Vulkan, shader I/O variables don't have any explicit layout but
        * some layouts may have leaked through due to type deduplication in
-       * the SPIR-V.
+       * the SPIR-V.  We do, however, keep the layouts in the variable's
+       * interface_type because we need offsets for XFB arrays of blocks.
        */
       var->var->type = glsl_get_bare_type(var->type->type);
-      var->var->interface_type = interface_type->type;
       var->var->data.mode = nir_mode;
       var->var->data.patch = var->patch;
 
-      if (glsl_type_is_struct(interface_type->type)) {
+      /* Figure out the interface block type. */
+      struct vtn_type *iface_type = per_vertex_type;
+      if (var->mode == vtn_variable_mode_output &&
+          (b->shader->info.stage == MESA_SHADER_VERTEX ||
+           b->shader->info.stage == MESA_SHADER_TESS_EVAL ||
+           b->shader->info.stage == MESA_SHADER_GEOMETRY)) {
+         /* For vertex data outputs, we can end up with arrays of blocks for
+          * transform feedback where each array element corresponds to a
+          * different XFB output buffer.
+          */
+         while (iface_type->base_type == vtn_base_type_array)
+            iface_type = iface_type->array_element;
+      }
+      if (iface_type->base_type == vtn_base_type_struct && iface_type->block)
+         var->var->interface_type = iface_type->type;
+
+      if (per_vertex_type->base_type == vtn_base_type_struct &&
+          per_vertex_type->block) {
          /* It's a struct.  Set it up as per-member. */
-         var->var->num_members = glsl_get_length(interface_type->type);
+         var->var->num_members = glsl_get_length(per_vertex_type->type);
          var->var->members = rzalloc_array(var->var, struct nir_variable_data,
                                            var->var->num_members);
 
          for (unsigned i = 0; i < var->var->num_members; i++) {
             var->var->members[i].mode = nir_mode;
             var->var->members[i].patch = var->patch;
+            var->var->members[i].location = -1;
          }
       }
 
       /* For inputs and outputs, we need to grab locations and builtin
-       * information from the interface type.
+       * information from the per-vertex type.
        */
-      vtn_foreach_decoration(b, vtn_value(b, interface_type->id,
+      vtn_foreach_decoration(b, vtn_value(b, per_vertex_type->id,
                                           vtn_value_type_type),
                              var_decoration_cb, var);
       break;
@@ -2067,6 +2166,9 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
    case vtn_variable_mode_cross_workgroup:
       /* These don't need actual variables. */
       break;
+
+   case vtn_variable_mode_phys_ssbo:
+      unreachable("Should have been caught before");
    }
 
    if (initializer) {
@@ -2075,6 +2177,12 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
    }
 
    vtn_foreach_decoration(b, val, var_decoration_cb, var);
+
+   if ((var->mode == vtn_variable_mode_input ||
+        var->mode == vtn_variable_mode_output) &&
+       var->var->members) {
+      assign_missing_member_locations(var);
+   }
 
    if (var->mode == vtn_variable_mode_uniform) {
       /* XXX: We still need the binding information in the nir_variable
@@ -2128,6 +2236,44 @@ vtn_assert_types_equal(struct vtn_builder *b, SpvOp opcode,
             spirv_op_to_string(opcode),
             glsl_get_type_name(dst_type->type),
             glsl_get_type_name(src_type->type));
+}
+
+static nir_ssa_def *
+nir_shrink_zero_pad_vec(nir_builder *b, nir_ssa_def *val,
+                        unsigned num_components)
+{
+   if (val->num_components == num_components)
+      return val;
+
+   nir_ssa_def *comps[NIR_MAX_VEC_COMPONENTS];
+   for (unsigned i = 0; i < num_components; i++) {
+      if (i < val->num_components)
+         comps[i] = nir_channel(b, val, i);
+      else
+         comps[i] = nir_imm_intN_t(b, 0, val->bit_size);
+   }
+   return nir_vec(b, comps, num_components);
+}
+
+static nir_ssa_def *
+nir_sloppy_bitcast(nir_builder *b, nir_ssa_def *val,
+                   const struct glsl_type *type)
+{
+   const unsigned num_components = glsl_get_vector_elements(type);
+   const unsigned bit_size = glsl_get_bit_size(type);
+
+   /* First, zero-pad to ensure that the value is big enough that when we
+    * bit-cast it, we don't loose anything.
+    */
+   if (val->bit_size < bit_size) {
+      const unsigned src_num_components_needed =
+         vtn_align_u32(val->num_components, bit_size / val->bit_size);
+      val = nir_shrink_zero_pad_vec(b, val, src_num_components_needed);
+   }
+
+   val = nir_bitcast_vector(b, val, bit_size);
+
+   return nir_shrink_zero_pad_vec(b, val, num_components);
 }
 
 void
@@ -2329,6 +2475,41 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
       struct vtn_value *val = vtn_push_value(b, w[2], vtn_value_type_ssa);
       val->ssa = vtn_create_ssa_value(b, glsl_uint_type());
       val->ssa->def = array_length;
+      break;
+   }
+
+   case SpvOpConvertPtrToU: {
+      struct vtn_value *u_val = vtn_push_value(b, w[2], vtn_value_type_ssa);
+
+      vtn_fail_if(u_val->type->base_type != vtn_base_type_vector &&
+                  u_val->type->base_type != vtn_base_type_scalar,
+                  "OpConvertPtrToU can only be used to cast to a vector or "
+                  "scalar type");
+
+      /* The pointer will be converted to an SSA value automatically */
+      nir_ssa_def *ptr_ssa = vtn_ssa_value(b, w[3])->def;
+
+      u_val->ssa = vtn_create_ssa_value(b, u_val->type->type);
+      u_val->ssa->def = nir_sloppy_bitcast(&b->nb, ptr_ssa, u_val->type->type);
+      break;
+   }
+
+   case SpvOpConvertUToPtr: {
+      struct vtn_value *ptr_val =
+         vtn_push_value(b, w[2], vtn_value_type_pointer);
+      struct vtn_value *u_val = vtn_value(b, w[3], vtn_value_type_ssa);
+
+      vtn_fail_if(ptr_val->type->type == NULL,
+                  "OpConvertUToPtr can only be used on physical pointers");
+
+      vtn_fail_if(u_val->type->base_type != vtn_base_type_vector &&
+                  u_val->type->base_type != vtn_base_type_scalar,
+                  "OpConvertUToPtr can only be used to cast from a vector or "
+                  "scalar type");
+
+      nir_ssa_def *ptr_ssa = nir_sloppy_bitcast(&b->nb, u_val->ssa->def,
+                                                ptr_val->type->type);
+      ptr_val->pointer = vtn_pointer_from_ssa(b, ptr_ssa, ptr_val->type);
       break;
    }
 

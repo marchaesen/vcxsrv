@@ -1116,8 +1116,7 @@ struct radv_cmd_buffer {
 
 	VkResult record_result;
 
-	uint32_t gfx9_fence_offset;
-	struct radeon_winsys_bo *gfx9_fence_bo;
+	uint64_t gfx9_fence_va;
 	uint32_t gfx9_fence_idx;
 	uint64_t gfx9_eop_bug_va;
 
@@ -1152,7 +1151,6 @@ void si_cs_emit_write_event_eop(struct radeon_cmdbuf *cs,
 				unsigned event, unsigned event_flags,
 				unsigned data_sel,
 				uint64_t va,
-				uint32_t old_fence,
 				uint32_t new_fence,
 				uint64_t gfx9_eop_bug_va);
 

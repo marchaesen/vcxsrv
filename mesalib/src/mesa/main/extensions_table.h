@@ -257,6 +257,7 @@ EXT(EXT_read_format_bgra                    , dummy_true                        
 EXT(EXT_render_snorm                        , EXT_render_snorm                       ,  x ,  x ,  x,   31, 2014)
 EXT(EXT_rescale_normal                      , dummy_true                             , GLL,  x ,  x ,  x , 1997)
 EXT(EXT_robustness                          , KHR_robustness                         ,  x,   x,   x , ES2, 2011)
+EXT(EXT_sRGB_write_control                  , EXT_framebuffer_sRGB                   ,   x,  x ,  x ,  30, 2013)
 EXT(EXT_secondary_color                     , dummy_true                             , GLL,  x ,  x ,  x , 1999)
 EXT(EXT_semaphore                           , EXT_semaphore                          , GLL, GLC,  x , ES2, 2017)
 EXT(EXT_semaphore_fd                        , EXT_semaphore_fd                       , GLL, GLC,  x , ES2, 2017)

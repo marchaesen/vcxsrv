@@ -458,6 +458,34 @@ intrinsic("shared_atomic_fmin",  src_comp=[1, 1], dest_comp=1, indices=[BASE])
 intrinsic("shared_atomic_fmax",  src_comp=[1, 1], dest_comp=1, indices=[BASE])
 intrinsic("shared_atomic_fcomp_swap", src_comp=[1, 1, 1], dest_comp=1, indices=[BASE])
 
+# Global atomic intrinsics
+#
+# All of the shared variable atomic memory operations read a value from
+# memory, compute a new value using one of the operations below, write the
+# new value to memory, and return the original value read.
+#
+# All operations take 2 sources except CompSwap that takes 3. These
+# sources represent:
+#
+# 0: The memory address that the atomic operation will operate on.
+# 1: The data parameter to the atomic function (i.e. the value to add
+#    in shared_atomic_add, etc).
+# 2: For CompSwap only: the second data parameter.
+intrinsic("global_atomic_add",  src_comp=[1, 1], dest_comp=1, indices=[BASE])
+intrinsic("global_atomic_imin", src_comp=[1, 1], dest_comp=1, indices=[BASE])
+intrinsic("global_atomic_umin", src_comp=[1, 1], dest_comp=1, indices=[BASE])
+intrinsic("global_atomic_imax", src_comp=[1, 1], dest_comp=1, indices=[BASE])
+intrinsic("global_atomic_umax", src_comp=[1, 1], dest_comp=1, indices=[BASE])
+intrinsic("global_atomic_and",  src_comp=[1, 1], dest_comp=1, indices=[BASE])
+intrinsic("global_atomic_or",   src_comp=[1, 1], dest_comp=1, indices=[BASE])
+intrinsic("global_atomic_xor",  src_comp=[1, 1], dest_comp=1, indices=[BASE])
+intrinsic("global_atomic_exchange", src_comp=[1, 1], dest_comp=1, indices=[BASE])
+intrinsic("global_atomic_comp_swap", src_comp=[1, 1, 1], dest_comp=1, indices=[BASE])
+intrinsic("global_atomic_fadd",  src_comp=[1, 1], dest_comp=1, indices=[BASE])
+intrinsic("global_atomic_fmin",  src_comp=[1, 1], dest_comp=1, indices=[BASE])
+intrinsic("global_atomic_fmax",  src_comp=[1, 1], dest_comp=1, indices=[BASE])
+intrinsic("global_atomic_fcomp_swap", src_comp=[1, 1, 1], dest_comp=1, indices=[BASE])
+
 def system_value(name, dest_comp, indices=[], bit_sizes=[32]):
     intrinsic("load_" + name, [], dest_comp, indices,
               flags=[CAN_ELIMINATE, CAN_REORDER], sysval=True,
@@ -590,6 +618,9 @@ load("shared", 1, [BASE, ALIGN_MUL, ALIGN_OFFSET], [CAN_ELIMINATE])
 load("push_constant", 1, [BASE, RANGE], [CAN_ELIMINATE, CAN_REORDER])
 # src[] = { offset }. const_index[] = { base, range }
 load("constant", 1, [BASE, RANGE], [CAN_ELIMINATE, CAN_REORDER])
+# src[] = { address }.
+# const_index[] = { access, align_mul, align_offset }
+load("global", 1, [ACCESS, ALIGN_MUL, ALIGN_OFFSET], [CAN_ELIMINATE])
 
 # Stores work the same way as loads, except now the first source is the value
 # to store and the second (and possibly third) source specify where to store
@@ -610,3 +641,6 @@ store("ssbo", 3, [WRMASK, ACCESS, ALIGN_MUL, ALIGN_OFFSET])
 # src[] = { value, offset }.
 # const_index[] = { base, write_mask, align_mul, align_offset }
 store("shared", 2, [BASE, WRMASK, ALIGN_MUL, ALIGN_OFFSET])
+# src[] = { value, address }.
+# const_index[] = { write_mask, align_mul, align_offset }
+store("global", 2, [WRMASK, ACCESS, ALIGN_MUL, ALIGN_OFFSET])

@@ -73,8 +73,6 @@ void noise_get_heavy(void (*func) (void *, int))
     }
 
     read_random_seed(func);
-    /* Update the seed immediately, in case another instance uses it. */
-    random_save_seed();
 }
 
 void random_save_seed(void)
@@ -87,24 +85,6 @@ void random_save_seed(void)
 	write_random_seed(data, len);
 	sfree(data);
     }
-}
-
-/*
- * This function is called every time the random pool needs
- * stirring, and will acquire the system time in all available
- * forms.
- */
-void noise_get_light(void (*func) (void *, int))
-{
-    SYSTEMTIME systime;
-    DWORD adjust[2];
-    BOOL rubbish;
-
-    GetSystemTime(&systime);
-    func(&systime, sizeof(systime));
-
-    GetSystemTimeAdjustment(&adjust[0], &adjust[1], &rubbish);
-    func(&adjust, sizeof(adjust));
 }
 
 /*
@@ -122,26 +102,26 @@ void noise_regular(void)
     FILETIME times[4];
 
     w = GetForegroundWindow();
-    random_add_noise(&w, sizeof(w));
+    random_add_noise(NOISE_SOURCE_FGWINDOW, &w, sizeof(w));
     w = GetCapture();
-    random_add_noise(&w, sizeof(w));
+    random_add_noise(NOISE_SOURCE_CAPTURE, &w, sizeof(w));
     w = GetClipboardOwner();
-    random_add_noise(&w, sizeof(w));
+    random_add_noise(NOISE_SOURCE_CLIPBOARD, &w, sizeof(w));
     z = GetQueueStatus(QS_ALLEVENTS);
-    random_add_noise(&z, sizeof(z));
+    random_add_noise(NOISE_SOURCE_QUEUE, &z, sizeof(z));
 
     GetCursorPos(&pt);
-    random_add_noise(&pt, sizeof(pt));
+    random_add_noise(NOISE_SOURCE_CURSORPOS, &pt, sizeof(pt));
 
     GlobalMemoryStatus(&memstat);
-    random_add_noise(&memstat, sizeof(memstat));
+    random_add_noise(NOISE_SOURCE_MEMINFO, &memstat, sizeof(memstat));
 
     GetThreadTimes(GetCurrentThread(), times, times + 1, times + 2,
 		   times + 3);
-    random_add_noise(&times, sizeof(times));
+    random_add_noise(NOISE_SOURCE_THREADTIME, &times, sizeof(times));
     GetProcessTimes(GetCurrentProcess(), times, times + 1, times + 2,
 		    times + 3);
-    random_add_noise(&times, sizeof(times));
+    random_add_noise(NOISE_SOURCE_PROCTIME, &times, sizeof(times));
 }
 
 /*
@@ -150,16 +130,25 @@ void noise_regular(void)
  * counter to the noise pool. It gets the scan code or mouse
  * position passed in.
  */
-void noise_ultralight(unsigned long data)
+void noise_ultralight(NoiseSourceId id, unsigned long data)
 {
     DWORD wintime;
     LARGE_INTEGER perftime;
 
-    random_add_noise(&data, sizeof(DWORD));
+    random_add_noise(id, &data, sizeof(DWORD));
 
     wintime = GetTickCount();
-    random_add_noise(&wintime, sizeof(DWORD));
+    random_add_noise(NOISE_SOURCE_TIME, &wintime, sizeof(DWORD));
 
     if (QueryPerformanceCounter(&perftime))
-	random_add_noise(&perftime, sizeof(perftime));
+	random_add_noise(NOISE_SOURCE_PERFCOUNT, &perftime, sizeof(perftime));
+}
+
+uint64_t prng_reseed_time_ms(void)
+{
+    FILETIME ft;
+    GetSystemTimeAsFileTime(&ft);
+    uint64_t value = ft.dwHighDateTime;
+    value = (value << 32) + ft.dwLowDateTime;
+    return value / 10000;              /* 1 millisecond / 100ns */
 }

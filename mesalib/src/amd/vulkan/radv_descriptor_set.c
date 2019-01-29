@@ -345,6 +345,7 @@ VkResult radv_CreatePipelineLayout(
 	layout->num_sets = pCreateInfo->setLayoutCount;
 
 	unsigned dynamic_offset_count = 0;
+	uint16_t dynamic_shader_stages = 0;
 
 
 	_mesa_sha1_init(&ctx);
@@ -356,6 +357,7 @@ VkResult radv_CreatePipelineLayout(
 		layout->set[set].dynamic_offset_start = dynamic_offset_count;
 		for (uint32_t b = 0; b < set_layout->binding_count; b++) {
 			dynamic_offset_count += set_layout->binding[b].array_size * set_layout->binding[b].dynamic_offset_count;
+			dynamic_shader_stages |= set_layout->dynamic_shader_stages;
 			if (set_layout->binding[b].immutable_samplers_offset)
 				_mesa_sha1_update(&ctx, radv_immutable_samplers(set_layout, set_layout->binding + b),
 				                  set_layout->binding[b].array_size * 4 * sizeof(uint32_t));
@@ -365,6 +367,7 @@ VkResult radv_CreatePipelineLayout(
 	}
 
 	layout->dynamic_offset_count = dynamic_offset_count;
+	layout->dynamic_shader_stages = dynamic_shader_stages;
 	layout->push_constant_size = 0;
 
 	for (unsigned i = 0; i < pCreateInfo->pushConstantRangeCount; ++i) {
