@@ -133,11 +133,11 @@
 #define     S_370_WR_ONE_ADDR(x)		(((unsigned)(x) & 0x1) << 16)
 #define     S_370_DST_SEL(x)			(((unsigned)(x) & 0xf) << 8)
 #define       V_370_MEM_MAPPED_REGISTER		0
-#define       V_370_MEMORY_SYNC			1
+#define       V_370_MEM_GRBM			1 /* sync across GRBM */
 #define       V_370_TC_L2			2
 #define       V_370_GDS				3
 #define       V_370_RESERVED			4
-#define       V_370_MEM_ASYNC			5
+#define       V_370_MEM				5 /* not on SI */
 #define   R_371_DST_ADDR_LO			0x371
 #define   R_372_DST_ADDR_HI			0x372
 #define PKT3_DRAW_INDEX_INDIRECT_MULTI         0x38

@@ -365,7 +365,14 @@ check_os_arm_support(void)
     }
 #endif /* PIPE_OS_LINUX */
 }
-#endif /* PIPE_ARCH_ARM */
+
+#elif defined(PIPE_ARCH_AARCH64)
+static void
+check_os_arm_support(void)
+{
+    util_cpu_caps.has_neon = true;
+}
+#endif /* PIPE_ARCH_ARM || PIPE_ARCH_AARCH64 */
 
 static void
 get_cpu_topology(void)
@@ -534,7 +541,7 @@ util_cpu_detect_once(void)
    }
 #endif /* PIPE_ARCH_X86 || PIPE_ARCH_X86_64 */
 
-#if defined(PIPE_ARCH_ARM)
+#if defined(PIPE_ARCH_ARM) || defined(PIPE_ARCH_AARCH64)
    check_os_arm_support();
 #endif
 

@@ -332,15 +332,17 @@ radv_reset_cmd_buffer(struct radv_cmd_buffer *cmd_buffer)
 		cmd_buffer->descriptors[i].push_dirty = false;
 	}
 
-	if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9) {
+	if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9 &&
+	    cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL) {
 		unsigned num_db = cmd_buffer->device->physical_device->rad_info.num_render_backends;
-		unsigned eop_bug_offset;
+		unsigned fence_offset, eop_bug_offset;
 		void *fence_ptr;
 
-		radv_cmd_buffer_upload_alloc(cmd_buffer, 8, 0,
-					     &cmd_buffer->gfx9_fence_offset,
+		radv_cmd_buffer_upload_alloc(cmd_buffer, 8, 0, &fence_offset,
 					     &fence_ptr);
-		cmd_buffer->gfx9_fence_bo = cmd_buffer->upload.upload_bo;
+		cmd_buffer->gfx9_fence_va =
+			radv_buffer_get_va(cmd_buffer->upload.upload_bo);
+		cmd_buffer->gfx9_fence_va += fence_offset;
 
 		/* Allocate a buffer for the EOP bug on GFX9. */
 		radv_cmd_buffer_upload_alloc(cmd_buffer, 16 * num_db, 0,
@@ -453,7 +455,7 @@ radv_emit_write_data_packet(struct radv_cmd_buffer *cmd_buffer, uint64_t va,
 	radeon_check_space(cmd_buffer->device->ws, cs, 4 + count);
 
 	radeon_emit(cs, PKT3(PKT3_WRITE_DATA, 2 + count, 0));
-	radeon_emit(cs, S_370_DST_SEL(V_370_MEM_ASYNC) |
+	radeon_emit(cs, S_370_DST_SEL(V_370_MEM) |
 		    S_370_WR_CONFIRM(1) |
 		    S_370_ENGINE_SEL(V_370_ME));
 	radeon_emit(cs, va);
@@ -486,24 +488,16 @@ radv_cmd_buffer_after_draw(struct radv_cmd_buffer *cmd_buffer,
 			   enum radv_cmd_flush_bits flags)
 {
 	if (cmd_buffer->device->instance->debug_flags & RADV_DEBUG_SYNC_SHADERS) {
-		uint32_t *ptr = NULL;
-		uint64_t va = 0;
-
 		assert(flags & (RADV_CMD_FLAG_PS_PARTIAL_FLUSH |
 				RADV_CMD_FLAG_CS_PARTIAL_FLUSH));
-
-		if (cmd_buffer->device->physical_device->rad_info.chip_class == GFX9) {
-			va = radv_buffer_get_va(cmd_buffer->gfx9_fence_bo) +
-			     cmd_buffer->gfx9_fence_offset;
-			ptr = &cmd_buffer->gfx9_fence_idx;
-		}
 
 		radeon_check_space(cmd_buffer->device->ws, cmd_buffer->cs, 4);
 
 		/* Force wait for graphics or compute engines to be idle. */
 		si_cs_emit_cache_flush(cmd_buffer->cs,
 				       cmd_buffer->device->physical_device->rad_info.chip_class,
-				       ptr, va,
+				       &cmd_buffer->gfx9_fence_idx,
+				       cmd_buffer->gfx9_fence_va,
 				       radv_cmd_buffer_uses_mec(cmd_buffer),
 				       flags, cmd_buffer->gfx9_eop_bug_va);
 	}
@@ -595,7 +589,6 @@ radv_emit_userdata_address(struct radv_cmd_buffer *cmd_buffer,
 		return;
 
 	assert(loc->num_sgprs == 1);
-	assert(!loc->indirect);
 
 	radv_emit_shader_pointer(cmd_buffer->device, cmd_buffer->cs,
 				 base_reg + loc->sgpr_idx * 4, va, false);
@@ -1262,7 +1255,7 @@ radv_set_ds_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
 		++reg_count;
 
 	radeon_emit(cs, PKT3(PKT3_WRITE_DATA, 2 + reg_count, 0));
-	radeon_emit(cs, S_370_DST_SEL(V_370_MEM_ASYNC) |
+	radeon_emit(cs, S_370_DST_SEL(V_370_MEM) |
 			S_370_WR_CONFIRM(1) |
 			S_370_ENGINE_SEL(V_370_PFP));
 	radeon_emit(cs, va);
@@ -1286,7 +1279,7 @@ radv_set_tc_compat_zrange_metadata(struct radv_cmd_buffer *cmd_buffer,
 	va += image->offset + image->tc_compat_zrange_offset;
 
 	radeon_emit(cs, PKT3(PKT3_WRITE_DATA, 3, 0));
-	radeon_emit(cs, S_370_DST_SEL(V_370_MEM_ASYNC) |
+	radeon_emit(cs, S_370_DST_SEL(V_370_MEM) |
 			S_370_WR_CONFIRM(1) |
 			S_370_ENGINE_SEL(V_370_PFP));
 	radeon_emit(cs, va);
@@ -1399,7 +1392,7 @@ radv_update_fce_metadata(struct radv_cmd_buffer *cmd_buffer,
 	assert(radv_image_has_dcc(image));
 
 	radeon_emit(cmd_buffer->cs, PKT3(PKT3_WRITE_DATA, 4, 0));
-	radeon_emit(cmd_buffer->cs, S_370_DST_SEL(V_370_MEM_ASYNC) |
+	radeon_emit(cmd_buffer->cs, S_370_DST_SEL(V_370_MEM) |
 				    S_370_WR_CONFIRM(1) |
 				    S_370_ENGINE_SEL(V_370_PFP));
 	radeon_emit(cmd_buffer->cs, va);
@@ -1422,7 +1415,7 @@ radv_update_dcc_metadata(struct radv_cmd_buffer *cmd_buffer,
 	assert(radv_image_has_dcc(image));
 
 	radeon_emit(cmd_buffer->cs, PKT3(PKT3_WRITE_DATA, 4, 0));
-	radeon_emit(cmd_buffer->cs, S_370_DST_SEL(V_370_MEM_ASYNC) |
+	radeon_emit(cmd_buffer->cs, S_370_DST_SEL(V_370_MEM) |
 				    S_370_WR_CONFIRM(1) |
 				    S_370_ENGINE_SEL(V_370_PFP));
 	radeon_emit(cmd_buffer->cs, va);
@@ -1480,7 +1473,7 @@ radv_set_color_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
 	assert(radv_image_has_cmask(image) || radv_image_has_dcc(image));
 
 	radeon_emit(cs, PKT3(PKT3_WRITE_DATA, 4, 0));
-	radeon_emit(cs, S_370_DST_SEL(V_370_MEM_ASYNC) |
+	radeon_emit(cs, S_370_DST_SEL(V_370_MEM) |
 			S_370_WR_CONFIRM(1) |
 			S_370_ENGINE_SEL(V_370_PFP));
 	radeon_emit(cs, va);
@@ -4164,7 +4157,6 @@ radv_emit_dispatch_packets(struct radv_cmd_buffer *cmd_buffer,
 		}
 
 		if (loc->sgpr_idx != -1) {
-			assert(!loc->indirect);
 			assert(loc->num_sgprs == 3);
 
 			radeon_set_sh_reg_seq(cs, R_00B900_COMPUTE_USER_DATA_0 +
@@ -4758,7 +4750,7 @@ static void write_event(struct radv_cmd_buffer *cmd_buffer,
 	if (!(stageMask & ~top_of_pipe_flags)) {
 		/* Just need to sync the PFP engine. */
 		radeon_emit(cs, PKT3(PKT3_WRITE_DATA, 3, 0));
-		radeon_emit(cs, S_370_DST_SEL(V_370_MEM_ASYNC) |
+		radeon_emit(cs, S_370_DST_SEL(V_370_MEM) |
 				S_370_WR_CONFIRM(1) |
 				S_370_ENGINE_SEL(V_370_PFP));
 		radeon_emit(cs, va);
@@ -4767,7 +4759,7 @@ static void write_event(struct radv_cmd_buffer *cmd_buffer,
 	} else if (!(stageMask & ~post_index_fetch_flags)) {
 		/* Sync ME because PFP reads index and indirect buffers. */
 		radeon_emit(cs, PKT3(PKT3_WRITE_DATA, 3, 0));
-		radeon_emit(cs, S_370_DST_SEL(V_370_MEM_ASYNC) |
+		radeon_emit(cs, S_370_DST_SEL(V_370_MEM) |
 				S_370_WR_CONFIRM(1) |
 				S_370_ENGINE_SEL(V_370_ME));
 		radeon_emit(cs, va);
@@ -4779,7 +4771,7 @@ static void write_event(struct radv_cmd_buffer *cmd_buffer,
 					   cmd_buffer->device->physical_device->rad_info.chip_class,
 					   radv_cmd_buffer_uses_mec(cmd_buffer),
 					   V_028A90_BOTTOM_OF_PIPE_TS, 0,
-					   EOP_DATA_SEL_VALUE_32BIT, va, 2, value,
+					   EOP_DATA_SEL_VALUE_32BIT, va, value,
 					   cmd_buffer->gfx9_eop_bug_va);
 	}
 

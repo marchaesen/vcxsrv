@@ -15,7 +15,7 @@ env:
     - GLPROTO_VERSION=glproto-1.4.17
     - DRI2PROTO_VERSION=dri2proto-2.8
     - LIBPCIACCESS_VERSION=libpciaccess-0.13.4
-    - LIBDRM_VERSION=libdrm-2.4.95
+    - LIBDRM_VERSION=libdrm-2.4.97
     - XCBPROTO_VERSION=xcb-proto-1.13
     - RANDRPROTO_VERSION=randrproto-1.3.0
     - LIBXRANDR_VERSION=libXrandr-1.3.0
@@ -155,7 +155,7 @@ matrix:
         - UNWIND="true"
         - DRI_LOADERS="-Dglx=disabled -Degl=false -Dgbm=false"
         - GALLIUM_ST="-Ddri3=false -Dgallium-vdpau=false -Dgallium-xvmc=false -Dgallium-omx=disabled -Dgallium-va=false -Dgallium-xa=false -Dgallium-nine=false -Dgallium-opencl=disabled"
-        - GALLIUM_DRIVERS="i915,nouveau,pl111,r300,r600,freedreno,svga,swrast,v3d,vc4,virgl,etnaviv,imx"
+        - GALLIUM_DRIVERS="i915,nouveau,kmsro,r300,r600,freedreno,svga,swrast,v3d,vc4,virgl,etnaviv"
         - LLVM_VERSION=5.0
         - LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
       addons:
@@ -352,7 +352,7 @@ matrix:
         - DRI_LOADERS="--disable-glx --disable-gbm --disable-egl"
         - DRI_DRIVERS=""
         - GALLIUM_ST="--enable-dri --disable-opencl --disable-xa --disable-nine --disable-xvmc --disable-vdpau --disable-va --disable-omx-bellagio --disable-gallium-osmesa"
-        - GALLIUM_DRIVERS="i915,nouveau,pl111,r300,r600,freedreno,svga,swrast,v3d,vc4,virgl,etnaviv,imx"
+        - GALLIUM_DRIVERS="i915,nouveau,kmsro,r300,r600,freedreno,svga,swrast,v3d,vc4,virgl,etnaviv"
         - VULKAN_DRIVERS=""
         - LIBUNWIND_FLAGS="--enable-libunwind"
       addons:
@@ -805,7 +805,9 @@ script:
 
       mkdir build &&
       cd build &&
-      ../autogen.sh --enable-debug
+      ../autogen.sh
+        --enable-autotools
+        --enable-debug
         $LIBUNWIND_FLAGS
         $DRI_LOADERS
         --with-dri-drivers=$DRI_DRIVERS

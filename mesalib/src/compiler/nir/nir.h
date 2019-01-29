@@ -2947,6 +2947,16 @@ bool nir_lower_io(nir_shader *shader,
 
 typedef enum {
    /**
+    * An address format which is a simple 32-bit global GPU address.
+    */
+   nir_address_format_32bit_global,
+
+   /**
+    * An address format which is a simple 64-bit global GPU address.
+    */
+   nir_address_format_64bit_global,
+
+   /**
     * An address format which is comprised of a vec2 where the first
     * component is a vulkan descriptor index and the second is an offset.
     */

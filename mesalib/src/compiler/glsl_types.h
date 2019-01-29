@@ -393,8 +393,11 @@ public:
     *
     * For vertex shader attributes - doubles only take one slot.
     * For inter-shader varyings - dvec3/dvec4 take two slots.
+    *
+    * Vulkan doesn’t make this distinction so the argument should always be
+    * false.
     */
-   unsigned count_attribute_slots(bool is_vertex_input) const;
+   unsigned count_attribute_slots(bool is_gl_vertex_input) const;
 
    /**
     * Alignment in bytes of the start of this type in a std140 uniform

@@ -333,12 +333,10 @@ bool rsa_ssh1_savekey(const Filename *filename, RSAKey *key,
      * Two bytes, then the same two bytes repeated.
      */
     {
-        unsigned char b0 = random_byte();
-        unsigned char b1 = random_byte();
-        put_byte(buf, b0);
-        put_byte(buf, b1);
-        put_byte(buf, b0);
-        put_byte(buf, b1);
+        uint8_t bytes[2];
+        random_read(bytes, 2);
+        put_data(buf, bytes, 2);
+        put_data(buf, bytes, 2);
     }
 
     /*
@@ -553,6 +551,7 @@ static bool read_blob(FILE *fp, int nlines, BinarySink *bs)
 	}
 	sfree(line);
     }
+    sfree(blob);
     return true;
 }
 

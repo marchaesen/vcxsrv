@@ -2924,12 +2924,10 @@ static LLVMValueRef visit_interp(struct ac_nir_context *ctx,
 
 	}
 
-	LLVMValueRef array_idx = ctx->ac.i32_0;
+	LLVMValueRef attrib_idx = ctx->ac.i32_0;
 	while(deref_instr->deref_type != nir_deref_type_var) {
 		if (deref_instr->deref_type == nir_deref_type_array) {
-			unsigned array_size = glsl_get_aoa_size(deref_instr->type);
-			if (!array_size)
-				array_size = 1;
+			unsigned array_size = glsl_count_attribute_slots(deref_instr->type, false);
 
 			LLVMValueRef offset;
 			nir_const_value *const_value = nir_src_as_const_value(deref_instr->arr.index);
@@ -2942,23 +2940,26 @@ static LLVMValueRef visit_interp(struct ac_nir_context *ctx,
 						      LLVMConstInt(ctx->ac.i32, array_size, false), "");
 			}
 
-			array_idx = LLVMBuildAdd(ctx->ac.builder, array_idx, offset, "");
+			attrib_idx = LLVMBuildAdd(ctx->ac.builder, attrib_idx, offset, "");
 			deref_instr = nir_src_as_deref(deref_instr->parent);
+		} else if (deref_instr->deref_type == nir_deref_type_struct) {
+			LLVMValueRef offset;
+			unsigned sidx = deref_instr->strct.index;
+			deref_instr = nir_src_as_deref(deref_instr->parent);
+			offset = LLVMConstInt(ctx->ac.i32, glsl_get_record_location_offset(deref_instr->type, sidx), false);
+			attrib_idx = LLVMBuildAdd(ctx->ac.builder, attrib_idx, offset, "");
 		} else {
 			unreachable("Unsupported deref type");
 		}
 
 	}
 
-	unsigned input_array_size = glsl_get_aoa_size(var->type);
-	if (!input_array_size)
-		input_array_size = 1;
-
+	unsigned attrib_size = glsl_count_attribute_slots(var->type, false);
 	for (chan = 0; chan < 4; chan++) {
-		LLVMValueRef gather = LLVMGetUndef(LLVMVectorType(ctx->ac.f32, input_array_size));
+		LLVMValueRef gather = LLVMGetUndef(LLVMVectorType(ctx->ac.f32, attrib_size));
 		LLVMValueRef llvm_chan = LLVMConstInt(ctx->ac.i32, chan, false);
 
-		for (unsigned idx = 0; idx < input_array_size; ++idx) {
+		for (unsigned idx = 0; idx < attrib_size; ++idx) {
 			LLVMValueRef v, attr_number;
 
 			attr_number = LLVMConstInt(ctx->ac.i32, input_base + idx, false);
@@ -2981,7 +2982,7 @@ static LLVMValueRef visit_interp(struct ac_nir_context *ctx,
 							LLVMConstInt(ctx->ac.i32, idx, false), "");
 		}
 
-		result[chan] = LLVMBuildExtractElement(ctx->ac.builder, gather, array_idx, "");
+		result[chan] = LLVMBuildExtractElement(ctx->ac.builder, gather, attrib_idx, "");
 
 	}
 	return ac_build_varying_gather_values(&ctx->ac, result, instr->num_components,
@@ -3303,6 +3304,27 @@ static void visit_intrinsic(struct ac_nir_context *ctx,
 	}
 }
 
+static LLVMValueRef get_bindless_index_from_uniform(struct ac_nir_context *ctx,
+						    unsigned base_index,
+						    unsigned constant_index,
+						    LLVMValueRef dynamic_index)
+{
+	LLVMValueRef offset = LLVMConstInt(ctx->ac.i32, base_index * 4, 0);
+	LLVMValueRef index = LLVMBuildAdd(ctx->ac.builder, dynamic_index,
+					  LLVMConstInt(ctx->ac.i32, constant_index, 0), "");
+
+	/* Bindless uniforms are 64bit so multiple index by 8 */
+	index = LLVMBuildMul(ctx->ac.builder, index, LLVMConstInt(ctx->ac.i32, 8, 0), "");
+	offset = LLVMBuildAdd(ctx->ac.builder, offset, index, "");
+
+	LLVMValueRef ubo_index = ctx->abi->load_ubo(ctx->abi, ctx->ac.i32_0);
+
+	LLVMValueRef ret = ac_build_buffer_load(&ctx->ac, ubo_index, 1, NULL, offset,
+						NULL, 0, false, false, true, true);
+
+	return LLVMBuildBitCast(ctx->ac.builder, ret, ctx->ac.i32, "");
+}
+
 static LLVMValueRef get_sampler_desc(struct ac_nir_context *ctx,
 				     nir_deref_instr *deref_instr,
 				     enum ac_descriptor_type desc_type,
@@ -3353,8 +3375,15 @@ static LLVMValueRef get_sampler_desc(struct ac_nir_context *ctx,
 		descriptor_set = deref_instr->var->data.descriptor_set;
 
 		if (deref_instr->var->data.bindless) {
+			/* For now just assert on unhandled variable types */
+			assert(deref_instr->var->data.mode == nir_var_uniform);
+
 			base_index = deref_instr->var->data.driver_location;
 			bindless = true;
+
+			index = index ? index : ctx->ac.i32_0;
+			index = get_bindless_index_from_uniform(ctx, base_index,
+								constant_index, index);
 		} else
 			base_index = deref_instr->var->data.binding;
 	}
@@ -3557,7 +3586,7 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 	 * It's unnecessary if the original texture format was
 	 * Z32_FLOAT, but we don't know that here.
 	 */
-	if (args.compare && ctx->ac.chip_class == VI && ctx->abi->clamp_shadow_reference)
+	if (args.compare && ctx->ac.chip_class >= VI && ctx->abi->clamp_shadow_reference)
 		args.compare = ac_build_clamp(&ctx->ac, ac_to_float(&ctx->ac, args.compare));
 
 	/* pack derivatives */
@@ -3951,7 +3980,7 @@ ac_handle_shader_output_decl(struct ac_llvm_context *ctx,
 		}
 	}
 
-	bool is_16bit = glsl_type_is_16bit(variable->type);
+	bool is_16bit = glsl_type_is_16bit(glsl_without_array(variable->type));
 	LLVMTypeRef type = is_16bit ? ctx->f16 : ctx->f32;
 	for (unsigned i = 0; i < attrib_count; ++i) {
 		for (unsigned chan = 0; chan < 4; chan++) {

@@ -2438,7 +2438,7 @@ copytexture_error_check( struct gl_context *ctx, GLuint dimensions,
       bool rb_is_srgb = false;
       bool dst_is_srgb = false;
 
-      if (ctx->Extensions.EXT_framebuffer_sRGB &&
+      if (ctx->Extensions.EXT_sRGB &&
           _mesa_get_format_color_encoding(rb->Format) == GL_SRGB) {
          rb_is_srgb = true;
       }

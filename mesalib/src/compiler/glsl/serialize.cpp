@@ -764,6 +764,12 @@ get_shader_var_and_pointer_sizes(size_t *s_var_size, size_t *s_var_ptrs,
       sizeof(var->name);
 }
 
+enum uniform_type
+{
+   uniform_remapped,
+   uniform_not_remapped
+};
+
 static void
 write_program_resource_data(struct blob *metadata,
                             struct gl_shader_program *prog,
@@ -816,12 +822,19 @@ write_program_resource_data(struct blob *metadata,
    case GL_TESS_CONTROL_SUBROUTINE_UNIFORM:
    case GL_TESS_EVALUATION_SUBROUTINE_UNIFORM:
    case GL_UNIFORM:
-      for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
-         if (strcmp(((gl_uniform_storage *)res->Data)->name,
-                    prog->data->UniformStorage[i].name) == 0) {
-            blob_write_uint32(metadata, i);
-            break;
+      if (((gl_uniform_storage *)res->Data)->builtin ||
+          res->Type != GL_UNIFORM) {
+         blob_write_uint32(metadata, uniform_not_remapped);
+         for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
+            if (strcmp(((gl_uniform_storage *)res->Data)->name,
+                       prog->data->UniformStorage[i].name) == 0) {
+               blob_write_uint32(metadata, i);
+               break;
+            }
          }
+      } else {
+         blob_write_uint32(metadata, uniform_remapped);
+         blob_write_uint32(metadata, ((gl_uniform_storage *)res->Data)->remap_location);
       }
       break;
    case GL_ATOMIC_COUNTER_BUFFER:
@@ -906,9 +919,15 @@ read_program_resource_data(struct blob_reader *metadata,
    case GL_COMPUTE_SUBROUTINE_UNIFORM:
    case GL_TESS_CONTROL_SUBROUTINE_UNIFORM:
    case GL_TESS_EVALUATION_SUBROUTINE_UNIFORM:
-   case GL_UNIFORM:
-      res->Data = &prog->data->UniformStorage[blob_read_uint32(metadata)];
+   case GL_UNIFORM: {
+      enum uniform_type type = (enum uniform_type) blob_read_uint32(metadata);
+      if (type == uniform_not_remapped) {
+         res->Data = &prog->data->UniformStorage[blob_read_uint32(metadata)];
+      } else {
+         res->Data = prog->UniformRemapTable[blob_read_uint32(metadata)];
+      }
       break;
+   }
    case GL_ATOMIC_COUNTER_BUFFER:
       res->Data = &prog->data->AtomicBuffers[blob_read_uint32(metadata)];
       break;

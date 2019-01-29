@@ -184,6 +184,32 @@ def _init_exts_from_xml(xml):
 
         ext = ext_name_map[ext_name]
         ext.type = ext_elem.attrib['type']
+        ext.promotedto = ext_elem.attrib.get('promotedto', None)
+        try:
+            ext.requires = ext_elem.attrib['requires'].split(',')
+        except KeyError:
+            ext.requires = []
+
+    def extra_deps(ext):
+        if ext.type == 'instance':
+            check = 'instance->enabled_extensions.{}'.format(ext.name[3:])
+            if ext.promotedto is not None:
+                # the xml contains values like VK_VERSION_1_1, but we need to
+                # translate them to VK_API_VERSION_1_1 for the apiVersion check
+                api_ver = ext.promotedto.replace('VK_VER', 'VK_API_VER')
+                check = '({} || instance->apiVersion >= {})'.format(check, api_ver)
+            return set([check])
+
+        deps = set()
+        for dep in ext.requires:
+            deps |= extra_deps(ext_name_map[dep])
+
+        return deps
+
+    for ext in EXTENSIONS:
+        if ext.type == 'device':
+            for dep in extra_deps(ext):
+                ext.enable += ' && ' + dep
 
 _TEMPLATE_H = Template(COPYRIGHT + """
 #ifndef RADV_EXTENSIONS_H
@@ -278,6 +304,7 @@ const struct radv_instance_extension_table radv_supported_instance_extensions = 
 void radv_fill_device_extension_table(const struct radv_physical_device *device,
                                       struct radv_device_extension_table* table)
 {
+   const struct radv_instance *instance = device->instance;
 %for ext in device_extensions:
    table->${ext.name[3:]} = ${ext.enable};
 %endfor

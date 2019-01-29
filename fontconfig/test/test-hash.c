@@ -45,7 +45,7 @@ fini (Test *test)
 }
 
 static FcBool
-test_add (Test *test, FcChar8 *key, FcBool replace)
+test_add (Test *test, char *key, FcBool replace)
 {
     uuid_t uuid;
     void *u;
@@ -68,7 +68,7 @@ test_add (Test *test, FcChar8 *key, FcBool replace)
 }
 
 static FcBool
-test_remove (Test *test, FcChar8 *key)
+test_remove (Test *test, char *key)
 {
     void *u;
 
@@ -87,7 +87,6 @@ int
 main (void)
 {
     Test *test;
-    uuid_t uuid;
     int ret = 0;
 
     test = init ();

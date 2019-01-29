@@ -514,8 +514,8 @@ compute_version_es2(const struct gl_extensions *extensions,
                          extensions->OES_texture_half_float_linear &&
                          extensions->ARB_texture_rg &&
                          extensions->ARB_depth_buffer_float &&
-                         /* extensions->ARB_framebuffer_object && */
-                         extensions->EXT_framebuffer_sRGB &&
+                         extensions->ARB_framebuffer_object &&
+                         extensions->EXT_sRGB &&
                          extensions->EXT_packed_float &&
                          extensions->EXT_texture_array &&
                          extensions->EXT_texture_shared_exponent &&

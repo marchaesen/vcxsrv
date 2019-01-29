@@ -51,6 +51,7 @@ struct spirv_supported_capabilities {
    bool kernel;
    bool min_lod;
    bool multiview;
+   bool physical_storage_buffer_address;
    bool post_depth_coverage;
    bool runtime_descriptor_array;
    bool shader_viewport_index_layer;

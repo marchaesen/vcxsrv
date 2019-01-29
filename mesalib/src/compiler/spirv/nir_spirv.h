@@ -67,6 +67,7 @@ struct spirv_to_nir_options {
    /* Storage types for various kinds of pointers. */
    const struct glsl_type *ubo_ptr_type;
    const struct glsl_type *ssbo_ptr_type;
+   const struct glsl_type *phys_ssbo_ptr_type;
    const struct glsl_type *push_const_ptr_type;
    const struct glsl_type *shared_ptr_type;
 

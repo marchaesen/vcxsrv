@@ -34,17 +34,13 @@
 #include "util/macros.h"
 #include "common/v3d_debug.h"
 #include "common/v3d_device_info.h"
+#include "common/v3d_limits.h"
 #include "compiler/nir/nir.h"
 #include "util/list.h"
 #include "util/u_math.h"
 
 #include "qpu/qpu_instr.h"
 #include "pipe/p_state.h"
-
-#define V3D_MAX_TEXTURE_SAMPLERS 32
-#define V3D_MAX_SAMPLES 4
-#define V3D_MAX_FS_INPUTS 64
-#define V3D_MAX_VS_INPUTS 64
 
 struct nir_builder;
 
@@ -557,7 +553,7 @@ struct v3d_compile {
         struct qreg cs_shared_offset;
         int local_invocation_index_bits;
 
-        uint8_t vattr_sizes[V3D_MAX_VS_INPUTS];
+        uint8_t vattr_sizes[V3D_MAX_VS_INPUTS / 4];
         uint32_t num_vpm_writes;
 
         /* Size in bytes of registers that have been spilled. This is how much
@@ -686,7 +682,7 @@ struct v3d_vs_prog_data {
         bool uses_iid, uses_vid;
 
         /* Number of components read from each vertex attribute. */
-        uint8_t vattr_sizes[32];
+        uint8_t vattr_sizes[V3D_MAX_VS_INPUTS / 4];
 
         /* Total number of components read, for the shader state record. */
         uint32_t vpm_input_size;

@@ -1480,6 +1480,11 @@ FcParseMatrix (FcConfigParse *parse)
     m.xy = FcPopExpr (parse);
     m.xx = FcPopExpr (parse);
 
+    if (!m.yy || !m.yx || !m.xy || !m.xx)
+    {
+	FcConfigMessage (parse, FcSevereWarning, "Missing values in matrix element");
+	return;
+    }
     if (FcPopExpr (parse))
       FcConfigMessage (parse, FcSevereError, "wrong number of matrix elements");
     else
@@ -3259,8 +3264,8 @@ FcConfigParseAndLoadDir (FcConfig	*config,
 	/*
 	 * Add all files of the form [0-9]*.conf
 	 */
+	d_len = strlen (e->d_name);
 	if ('0' <= e->d_name[0] && e->d_name[0] <= '9' &&
-	    (d_len = strlen (e->d_name)) < FC_MAX_FILE_LEN &&
 	    d_len > TAIL_LEN &&
 	    strcmp (e->d_name + d_len - TAIL_LEN, TAIL) == 0)
 	{

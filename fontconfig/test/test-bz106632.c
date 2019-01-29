@@ -158,11 +158,11 @@ unlink_dirs (const char *dir)
 int
 main (void)
 {
-    FcChar8 *fontdir = NULL, *cachedir = NULL, *fontname;
+    FcChar8 *fontdir = NULL, *cachedir = NULL;
     char *basedir, template[512] = "/tmp/bz106632-XXXXXX";
     char cmd[512];
     FcConfig *config;
-    const FcChar8 *tconf = "<fontconfig>\n"
+    const FcChar8 *tconf = (const FcChar8 *) "<fontconfig>\n"
 	"  <dir>%s</dir>\n"
 	"  <cachedir>%s</cachedir>\n"
 	"</fontconfig>\n";
@@ -178,21 +178,21 @@ main (void)
 	fprintf (stderr, "%s: %s\n", template, strerror (errno));
 	goto bail;
     }
-    fontdir = FcStrBuildFilename (basedir, "fonts", NULL);
-    cachedir = FcStrBuildFilename (basedir, "cache", NULL);
+    fontdir = FcStrBuildFilename ((const FcChar8 *) basedir, (const FcChar8 *) "fonts", NULL);
+    cachedir = FcStrBuildFilename ((const FcChar8 *) basedir, (const FcChar8 *) "cache", NULL);
     fprintf (stderr, "D: Creating %s\n", fontdir);
-    mkdir_p (fontdir);
+    mkdir_p ((const char *) fontdir);
     fprintf (stderr, "D: Creating %s\n", cachedir);
-    mkdir_p (cachedir);
+    mkdir_p ((const char *) cachedir);
 
     fprintf (stderr, "D: Copying %s to %s\n", FONTFILE, fontdir);
     snprintf (cmd, 512, "cp -a %s %s", FONTFILE, fontdir);
-    system (cmd);
+    (void) system (cmd);
 
     fprintf (stderr, "D: Loading a config\n");
-    snprintf (conf, 1024, tconf, fontdir, cachedir);
+    snprintf (conf, 1024, (const char *) tconf, fontdir, cachedir);
     config = FcConfigCreate ();
-    if (!FcConfigParseAndLoadFromMemory (config, conf, FcTrue))
+    if (!FcConfigParseAndLoadFromMemory (config, (const FcChar8 *) conf, FcTrue))
     {
 	printf ("E: Unable to load config\n");
 	ret = 1;
@@ -216,7 +216,7 @@ main (void)
     }
     fprintf (stderr, "D: Removing %s\n", fontdir);
     snprintf (cmd, 512, "rm -f %s%s*; sleep 1", fontdir, FC_DIR_SEPARATOR_S);
-    system (cmd);
+    (void) system (cmd);
     fprintf (stderr, "D: Reinitializing\n");
     if (!FcConfigUptoDate (config) || !FcInitReinitialize ())
     {
@@ -231,7 +231,7 @@ main (void)
 	goto bail;
     }
     config = FcConfigCreate ();
-    if (!FcConfigParseAndLoadFromMemory (config, conf, FcTrue))
+    if (!FcConfigParseAndLoadFromMemory (config, (const FcChar8 *) conf, FcTrue))
     {
 	printf ("E: Unable to load config again\n");
 	ret = 4;
@@ -255,7 +255,7 @@ main (void)
     }
     fprintf (stderr, "D: Copying %s to %s\n", FONTFILE, fontdir);
     snprintf (cmd, 512, "cp -a %s %s; sleep 1", FONTFILE, fontdir);
-    system (cmd);
+    (void) system (cmd);
     fprintf (stderr, "D: Reinitializing\n");
     if (!FcConfigUptoDate (config) || !FcInitReinitialize ())
     {
@@ -270,7 +270,7 @@ main (void)
 	goto bail;
     }
     config = FcConfigCreate ();
-    if (!FcConfigParseAndLoadFromMemory (config, conf, FcTrue))
+    if (!FcConfigParseAndLoadFromMemory (config, (const FcChar8 *) conf, FcTrue))
     {
 	printf ("E: Unable to load config again\n");
 	ret = 4;
@@ -295,7 +295,8 @@ main (void)
 
 bail:
     fprintf (stderr, "Cleaning up\n");
-    unlink_dirs (basedir);
+    if (basedir)
+	unlink_dirs (basedir);
     if (fontdir)
 	FcStrFree (fontdir);
     if (cachedir)

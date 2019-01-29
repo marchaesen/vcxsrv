@@ -522,7 +522,7 @@ void radv_CmdUpdateBuffer(
 
 		radeon_emit(cmd_buffer->cs, PKT3(PKT3_WRITE_DATA, 2 + words, 0));
 		radeon_emit(cmd_buffer->cs, S_370_DST_SEL(mec ?
-		                                V_370_MEM_ASYNC : V_370_MEMORY_SYNC) |
+		                                V_370_MEM : V_370_MEM_GRBM) |
 		                            S_370_WR_CONFIRM(1) |
 		                            S_370_ENGINE_SEL(V_370_ME));
 		radeon_emit(cmd_buffer->cs, va);

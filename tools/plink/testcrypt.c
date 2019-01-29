@@ -49,13 +49,16 @@ static NORETURN void fatal_error(const char *p, ...)
 void out_of_memory(void) { fatal_error("out of memory"); }
 
 static bufchain random_data_queue;
-int random_byte(void)
+void random_read(void *buf, size_t size)
 {
-    unsigned char u;
-    if (bufchain_try_fetch_consume(&random_data_queue, &u, 1))
-        return u;
-    fatal_error("No random data in queue");
-    return 0;
+    if (!bufchain_try_fetch_consume(&random_data_queue, buf, size))
+        fatal_error("No random data in queue");
+}
+
+uint64_t prng_reseed_time_ms(void)
+{
+    static uint64_t previous_time = 0;
+    return previous_time += 200;
 }
 
 #define VALUE_TYPES(X)                                                  \
@@ -77,6 +80,7 @@ int random_byte(void)
     X(ecdh, ecdh_key *, ssh_ecdhkex_freekey(v))                         \
     X(rsakex, RSAKey *, ssh_rsakex_freekey(v))                          \
     X(rsa, RSAKey *, rsa_free(v))                                       \
+    X(prng, prng *, prng_free(v))                                       \
     /* end of list */
 
 typedef struct Value Value;
@@ -181,7 +185,11 @@ static const ssh_hashalg *get_hashalg(BinarySource *in)
     } algs[] = {
         {"md5", &ssh_md5},
         {"sha1", &ssh_sha1},
+        {"sha1_sw", &ssh_sha1_sw},
+        {"sha1_hw", &ssh_sha1_hw},
         {"sha256", &ssh_sha256},
+        {"sha256_sw", &ssh_sha256_sw},
+        {"sha256_hw", &ssh_sha256_hw},
         {"sha384", &ssh_sha384},
         {"sha512", &ssh_sha512},
     };
@@ -506,9 +514,17 @@ static void return_opt_val_cipher(strbuf *out, ssh_cipher *c)
         return_val_cipher(out, c);
 }
 
+static void return_opt_val_hash(strbuf *out, ssh_hash *h)
+{
+    if (!h)
+        strbuf_catf(out, "NULL\n");
+    else
+        return_val_hash(out, h);
+}
+
 static void handle_hello(BinarySource *in, strbuf *out)
 {
-    strbuf_catf(out, "hello, world");
+    strbuf_catf(out, "hello, world\n");
 }
 
 static void rsa_free(RSAKey *rsa)
@@ -856,6 +872,19 @@ strbuf *aes256_decrypt_pubkey_wrapper(ptrlen key, ptrlen data)
 }
 #define aes256_decrypt_pubkey aes256_decrypt_pubkey_wrapper
 
+strbuf *prng_read_wrapper(prng *pr, size_t size)
+{
+    strbuf *sb = strbuf_new();
+    prng_read(pr, strbuf_append(sb, size), size);
+    return sb;
+}
+#define prng_read prng_read_wrapper
+
+void prng_seed_update(prng *pr, ptrlen data)
+{
+    put_datapl(pr, data);
+}
+
 bool crcda_detect(ptrlen packet, ptrlen iv)
 {
     if (iv.len != 0 && iv.len != 8)
@@ -990,6 +1019,11 @@ static void free_all_values(void)
     for (Value *val; (val = delpos234(values, 0)) != NULL ;)
         free_value(val);
     freetree234(values);
+}
+
+void dputs(const char *buf)
+{
+    fputs(buf, stderr);
 }
 
 int main(int argc, char **argv)

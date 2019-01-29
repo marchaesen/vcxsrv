@@ -2817,15 +2817,6 @@
         <glx sop="135" dimensions_in_reply="true"/>
     </function>
 
-    <function name="GetnTexImage">
-        <param name="target" type="GLenum"/>
-        <param name="level" type="GLint"/>
-        <param name="format" type="GLenum"/>
-        <param name="type" type="GLenum"/>
-        <param name="bufSize" type="GLsizei"/>
-        <param name="img" type="GLvoid *" output="true"/>
-    </function>
-
     <function name="GetTexParameterfv" es1="1.1" es2="2.0">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>

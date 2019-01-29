@@ -1044,14 +1044,16 @@ vtn_type_layout_std430(struct vtn_builder *b, struct vtn_type *type,
 {
    switch (type->base_type) {
    case vtn_base_type_scalar: {
-      uint32_t comp_size = glsl_get_bit_size(type->type) / 8;
+      uint32_t comp_size = glsl_type_is_boolean(type->type)
+         ? 4 : glsl_get_bit_size(type->type) / 8;
       *size_out = comp_size;
       *align_out = comp_size;
       return type;
    }
 
    case vtn_base_type_vector: {
-      uint32_t comp_size = glsl_get_bit_size(type->type) / 8;
+      uint32_t comp_size = glsl_type_is_boolean(type->type)
+         ? 4 : glsl_get_bit_size(type->type) / 8;
       unsigned align_comps = type->length == 3 ? 4 : type->length;
       *size_out = comp_size * type->length,
       *align_out = comp_size * align_comps;
@@ -1099,10 +1101,18 @@ static void
 vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
                 const uint32_t *w, unsigned count)
 {
-   struct vtn_value *val = vtn_push_value(b, w[1], vtn_value_type_type);
+   struct vtn_value *val = NULL;
 
-   val->type = rzalloc(b, struct vtn_type);
-   val->type->id = w[1];
+   /* In order to properly handle forward declarations, we have to defer
+    * allocation for pointer types.
+    */
+   if (opcode != SpvOpTypePointer && opcode != SpvOpTypeForwardPointer) {
+      val = vtn_push_value(b, w[1], vtn_value_type_type);
+      vtn_fail_if(val->type != NULL,
+                  "Only pointers can have forward declarations");
+      val->type = rzalloc(b, struct vtn_type);
+      val->type->id = w[1];
+   }
 
    switch (opcode) {
    case SpvOpTypeVoid:
@@ -1170,7 +1180,8 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
       val->type->base_type = vtn_base_type_vector;
       val->type->type = glsl_vector_type(glsl_get_base_type(base->type), elems);
       val->type->length = elems;
-      val->type->stride = glsl_get_bit_size(base->type) / 8;
+      val->type->stride = glsl_type_is_boolean(val->type->type)
+         ? 4 : glsl_get_bit_size(base->type) / 8;
       val->type->array_element = base;
       break;
    }
@@ -1236,6 +1247,7 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
             .type = val->type->members[i]->type,
             .name = ralloc_asprintf(b, "field%d", i),
             .location = -1,
+            .offset = -1,
          };
       }
 
@@ -1270,46 +1282,73 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
       break;
    }
 
-   case SpvOpTypePointer: {
-      SpvStorageClass storage_class = w[2];
-      struct vtn_type *deref_type =
-         vtn_value(b, w[3], vtn_value_type_type)->type;
-
-      val->type->base_type = vtn_base_type_pointer;
-      val->type->storage_class = storage_class;
-      val->type->deref = deref_type;
-
-      vtn_foreach_decoration(b, val, array_stride_decoration_cb, NULL);
-
-      /* These can actually be stored to nir_variables and used as SSA
-       * values so they need a real glsl_type.
+   case SpvOpTypePointer:
+   case SpvOpTypeForwardPointer: {
+      /* We can't blindly push the value because it might be a forward
+       * declaration.
        */
-      switch (storage_class) {
-      case SpvStorageClassUniform:
-         val->type->type = b->options->ubo_ptr_type;
-         break;
-      case SpvStorageClassStorageBuffer:
-         val->type->type = b->options->ssbo_ptr_type;
-         break;
-      case SpvStorageClassPushConstant:
-         val->type->type = b->options->push_const_ptr_type;
-         break;
-      case SpvStorageClassWorkgroup:
-         val->type->type = b->options->shared_ptr_type;
-         if (b->options->lower_workgroup_access_to_offsets) {
+      val = vtn_untyped_value(b, w[1]);
+
+      SpvStorageClass storage_class = w[2];
+
+      if (val->value_type == vtn_value_type_invalid) {
+         val->value_type = vtn_value_type_type;
+         val->type = rzalloc(b, struct vtn_type);
+         val->type->id = w[1];
+         val->type->base_type = vtn_base_type_pointer;
+         val->type->storage_class = storage_class;
+
+         /* These can actually be stored to nir_variables and used as SSA
+          * values so they need a real glsl_type.
+          */
+         switch (storage_class) {
+         case SpvStorageClassUniform:
+            val->type->type = b->options->ubo_ptr_type;
+            break;
+         case SpvStorageClassStorageBuffer:
+            val->type->type = b->options->ssbo_ptr_type;
+            break;
+         case SpvStorageClassPhysicalStorageBufferEXT:
+            val->type->type = b->options->phys_ssbo_ptr_type;
+            break;
+         case SpvStorageClassPushConstant:
+            val->type->type = b->options->push_const_ptr_type;
+            break;
+         case SpvStorageClassWorkgroup:
+            val->type->type = b->options->shared_ptr_type;
+            break;
+         default:
+            /* In this case, no variable pointers are allowed so all deref
+             * chains are complete back to the variable and it doesn't matter
+             * what type gets used so we leave it NULL.
+             */
+            break;
+         }
+      } else {
+         vtn_fail_if(val->type->storage_class != storage_class,
+                     "The storage classes of an OpTypePointer and any "
+                     "OpTypeForwardPointers that provide forward "
+                     "declarations of it must match.");
+      }
+
+      if (opcode == SpvOpTypePointer) {
+         vtn_fail_if(val->type->deref != NULL,
+                     "While OpTypeForwardPointer can be used to provide a "
+                     "forward declaration of a pointer, OpTypePointer can "
+                     "only be used once for a given id.");
+
+         val->type->deref = vtn_value(b, w[3], vtn_value_type_type)->type;
+
+         vtn_foreach_decoration(b, val, array_stride_decoration_cb, NULL);
+
+         if (storage_class == SpvStorageClassWorkgroup &&
+             b->options->lower_workgroup_access_to_offsets) {
             uint32_t size, align;
             val->type->deref = vtn_type_layout_std430(b, val->type->deref,
                                                       &size, &align);
             val->type->length = size;
             val->type->align = align;
          }
-         break;
-      default:
-         /* In this case, no variable pointers are allowed so all deref chains
-          * are complete back to the variable and it doesn't matter what type
-          * gets used so we leave it NULL.
-          */
-         break;
       }
       break;
    }
@@ -3682,6 +3721,10 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          spv_check_supported(post_depth_coverage, cap);
          break;
 
+      case SpvCapabilityPhysicalStorageBufferAddressesEXT:
+         spv_check_supported(physical_storage_buffer_address, cap);
+         break;
+
       default:
          vtn_fail("Unhandled capability");
       }
@@ -3693,7 +3736,10 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       break;
 
    case SpvOpMemoryModel:
-      vtn_assert(w[1] == SpvAddressingModelLogical);
+      vtn_assert(w[1] == SpvAddressingModelLogical ||
+                 (b->options &&
+                  b->options->caps.physical_storage_buffer_address &&
+                  w[1] == SpvAddressingModelPhysicalStorageBuffer64EXT));
       vtn_assert(w[2] == SpvMemoryModelSimple ||
                  w[2] == SpvMemoryModelGLSL450);
       break;
@@ -3927,6 +3973,7 @@ vtn_handle_variable_or_type_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpTypeStruct:
    case SpvOpTypeOpaque:
    case SpvOpTypePointer:
+   case SpvOpTypeForwardPointer:
    case SpvOpTypeFunction:
    case SpvOpTypeEvent:
    case SpvOpTypeDeviceEvent:
@@ -3994,6 +4041,8 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpPtrAccessChain:
    case SpvOpInBoundsAccessChain:
    case SpvOpArrayLength:
+   case SpvOpConvertPtrToU:
+   case SpvOpConvertUToPtr:
       vtn_handle_variables(b, opcode, w, count);
       break;
 
@@ -4150,8 +4199,6 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpSConvert:
    case SpvOpFConvert:
    case SpvOpQuantizeToF16:
-   case SpvOpConvertPtrToU:
-   case SpvOpConvertUToPtr:
    case SpvOpPtrCastToGeneric:
    case SpvOpGenericCastToPtr:
    case SpvOpBitcast:

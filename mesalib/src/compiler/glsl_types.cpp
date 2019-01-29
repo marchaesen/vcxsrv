@@ -2051,7 +2051,7 @@ glsl_type::std430_size(bool row_major) const
 }
 
 unsigned
-glsl_type::count_attribute_slots(bool is_vertex_input) const
+glsl_type::count_attribute_slots(bool is_gl_vertex_input) const
 {
    /* From page 31 (page 37 of the PDF) of the GLSL 1.50 spec:
     *
@@ -2094,7 +2094,7 @@ glsl_type::count_attribute_slots(bool is_vertex_input) const
    case GLSL_TYPE_DOUBLE:
    case GLSL_TYPE_UINT64:
    case GLSL_TYPE_INT64:
-      if (this->vector_elements > 2 && !is_vertex_input)
+      if (this->vector_elements > 2 && !is_gl_vertex_input)
          return this->matrix_columns * 2;
       else
          return this->matrix_columns;
@@ -2102,14 +2102,18 @@ glsl_type::count_attribute_slots(bool is_vertex_input) const
    case GLSL_TYPE_INTERFACE: {
       unsigned size = 0;
 
-      for (unsigned i = 0; i < this->length; i++)
-         size += this->fields.structure[i].type->count_attribute_slots(is_vertex_input);
+      for (unsigned i = 0; i < this->length; i++) {
+         const glsl_type *member_type = this->fields.structure[i].type;
+         size += member_type->count_attribute_slots(is_gl_vertex_input);
+      }
 
       return size;
    }
 
-   case GLSL_TYPE_ARRAY:
-      return this->length * this->fields.array->count_attribute_slots(is_vertex_input);
+   case GLSL_TYPE_ARRAY: {
+      const glsl_type *element = this->fields.array;
+      return this->length * element->count_attribute_slots(is_gl_vertex_input);
+   }
 
    case GLSL_TYPE_SUBROUTINE:
       return 1;

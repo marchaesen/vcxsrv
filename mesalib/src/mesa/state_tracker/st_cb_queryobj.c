@@ -91,7 +91,8 @@ st_DeleteQuery(struct gl_context *ctx, struct gl_query_object *q)
 static int
 target_to_index(const struct st_context *st, const struct gl_query_object *q)
 {
-   if (q->Target == GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN ||
+   if (q->Target == GL_PRIMITIVES_GENERATED ||
+       q->Target == GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN ||
        q->Target == GL_TRANSFORM_FEEDBACK_STREAM_OVERFLOW_ARB)
       return q->Stream;
 

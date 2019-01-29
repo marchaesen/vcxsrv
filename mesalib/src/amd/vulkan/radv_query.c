@@ -1569,7 +1569,7 @@ static void emit_end_query(struct radv_cmd_buffer *cmd_buffer,
 					   radv_cmd_buffer_uses_mec(cmd_buffer),
 					   V_028A90_BOTTOM_OF_PIPE_TS, 0,
 					   EOP_DATA_SEL_VALUE_32BIT,
-					   avail_va, 0, 1,
+					   avail_va, 1,
 					   cmd_buffer->gfx9_eop_bug_va);
 		break;
 	case VK_QUERY_TYPE_TRANSFORM_FEEDBACK_STREAM_EXT:
@@ -1692,7 +1692,7 @@ void radv_CmdWriteTimestamp(
 			radeon_emit(cs, PKT3(PKT3_COPY_DATA, 4, 0));
 			radeon_emit(cs, COPY_DATA_COUNT_SEL | COPY_DATA_WR_CONFIRM |
 				    COPY_DATA_SRC_SEL(COPY_DATA_TIMESTAMP) |
-				    COPY_DATA_DST_SEL(V_370_MEM_ASYNC));
+				    COPY_DATA_DST_SEL(V_370_MEM));
 			radeon_emit(cs, 0);
 			radeon_emit(cs, 0);
 			radeon_emit(cs, query_va);
@@ -1704,7 +1704,7 @@ void radv_CmdWriteTimestamp(
 						   mec,
 						   V_028A90_BOTTOM_OF_PIPE_TS, 0,
 						   EOP_DATA_SEL_TIMESTAMP,
-						   query_va, 0, 0,
+						   query_va, 0,
 						   cmd_buffer->gfx9_eop_bug_va);
 			break;
 		}

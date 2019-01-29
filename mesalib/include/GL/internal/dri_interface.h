@@ -589,7 +589,7 @@ struct __DRIdamageExtensionRec {
  * SWRast Loader extension.
  */
 #define __DRI_SWRAST_LOADER "DRI_SWRastLoader"
-#define __DRI_SWRAST_LOADER_VERSION 4
+#define __DRI_SWRAST_LOADER_VERSION 5
 struct __DRIswrastLoaderExtensionRec {
     __DRIextension base;
 
@@ -649,6 +649,23 @@ struct __DRIswrastLoaderExtensionRec {
     void (*getImageShm)(__DRIdrawable *readable,
                         int x, int y, int width, int height,
                         int shmid, void *loaderPrivate);
+
+   /**
+     * Put shm image to drawable (v2)
+     *
+     * The original version fixes srcx/y to 0, and expected
+     * the offset to be adjusted. This version allows src x,y
+     * to not be included in the offset. This is needed to
+     * avoid certain overflow checks in the X server, that
+     * result in lost rendering.
+     *
+     * \since 5
+     */
+    void (*putImageShm2)(__DRIdrawable *drawable, int op,
+                         int x, int y,
+                         int width, int height, int stride,
+                         int shmid, char *shmaddr, unsigned offset,
+                         void *loaderPrivate);
 };
 
 /**

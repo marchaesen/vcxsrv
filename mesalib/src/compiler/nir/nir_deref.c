@@ -293,7 +293,12 @@ nir_fixup_deref_modes(nir_shader *shader)
 static bool
 modes_may_alias(nir_variable_mode a, nir_variable_mode b)
 {
-   /* Two pointers can only alias if they have the same mode.
+   /* Generic pointers can alias with SSBOs */
+   if ((a == nir_var_mem_ssbo || a == nir_var_mem_global) &&
+       (b == nir_var_mem_ssbo || b == nir_var_mem_global))
+      return true;
+
+   /* In the general case, pointers can only alias if they have the same mode.
     *
     * NOTE: In future, with things like OpenCL generic pointers, this may not
     * be true and will have to be re-evaluated.  However, with graphics only,

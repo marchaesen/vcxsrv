@@ -178,6 +178,16 @@ struct util_format_description
    unsigned is_mixed:1;
 
    /**
+    * Whether the format contains UNORM channels
+    */
+   unsigned is_unorm:1;
+
+   /**
+    * Whether the format contains SNORM channels
+    */
+   unsigned is_snorm:1;
+
+   /**
     * Input channel description, in the order XYZW.
     *
     * Only valid for UTIL_FORMAT_LAYOUT_PLAIN formats.
@@ -1357,6 +1367,9 @@ void pipe_swizzle_4f(float *dst, const float *src,
 
 void util_format_unswizzle_4f(float *dst, const float *src,
                               const unsigned char swz[4]);
+
+enum pipe_format
+util_format_snorm8_to_sint8(enum pipe_format format);
 
 #ifdef __cplusplus
 } // extern "C" {

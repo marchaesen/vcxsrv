@@ -100,11 +100,11 @@
   </enum>
 
   <enum name="Wrap Mode" prefix="V3D_WRAP_MODE">
-      <value name="Wrap mode REPEAT" value="0"/>
-      <value name="Wrap mode CLAMP" value="1"/>
-      <value name="Wrap mode MIRROR" value="2"/>
-      <value name="Wrap mode BORDER" value="3"/>
-      <value name="Wrap mode MIRROR_ONCE" value="4"/>
+      <value name="REPEAT" value="0"/>
+      <value name="CLAMP" value="1"/>
+      <value name="MIRROR" value="2"/>
+      <value name="BORDER" value="3"/>
+      <value name="MIRROR_ONCE" value="4"/>
   </enum>
 
   <enum name="TMU Op" prefix="V3D_TMU_OP" min_ver="41">
@@ -1457,10 +1457,10 @@
   </struct>
 
   <struct name="Sampler State" min_ver="41">
-    <field name="Border color Alpha" size="32" start="160" type="uint"/>
-    <field name="Border color Blue" size="32" start="128" type="uint"/>
-    <field name="Border color Green" size="32" start="96" type="uint"/>
-    <field name="Border color Red" size="32" start="64" type="uint"/>
+    <field name="Border color word 3" size="32" start="160" type="uint"/>
+    <field name="Border color word 2" size="32" start="128" type="uint"/>
+    <field name="Border color word 1" size="32" start="96" type="uint"/>
+    <field name="Border color word 0" size="32" start="64" type="uint"/>
 
     <field name="Maximum Anisotropy" size="2" start="61" type="uint"/>
     <field name="Border Color Mode" size="3" start="58" type="Border Color Mode"/>

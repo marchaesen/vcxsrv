@@ -45,7 +45,7 @@
 #   - optionally followed by 'p' if it is pure
 #   - number of bits
 # - channel swizzle 
-# - color space: rgb, yub, sz
+# - color space: rgb, srgb, yuv, zs
 # - (optional) channel encoding for big-endian targets
 # - (optional) channel swizzle for big-endian targets
 #
@@ -434,13 +434,17 @@ PIPE_FORMAT_B5G6R5_SRGB             , plain, 1, 1, un5 , un6 , un5 ,     , zyx1,
 
 PIPE_FORMAT_A8L8_UNORM            , plain, 1, 1, un8 , un8 , , , yyyx, rgb
 PIPE_FORMAT_A8L8_SNORM            , plain, 1, 1, sn8 , sn8 , , , yyyx, rgb
+PIPE_FORMAT_A8L8_SINT             , plain, 1, 1, sp8 , sp8 , , , yyyx, rgb
 PIPE_FORMAT_A8L8_SRGB             , plain, 1, 1, un8 , un8 , , , yyyx, srgb
 PIPE_FORMAT_A16L16_UNORM          , plain, 1, 1, un16, un16, , , yyyx, rgb
 
 PIPE_FORMAT_G8R8_UNORM            , plain, 1, 1, un8 , un8 , , , yx01, rgb
 PIPE_FORMAT_G8R8_SNORM            , plain, 1, 1, sn8 , sn8 , , , yx01, rgb
+PIPE_FORMAT_G8R8_SINT             , plain, 1, 1, sp8 , sp8 , , , yx01, rgb
 PIPE_FORMAT_G16R16_UNORM          , plain, 1, 1, un16, un16, , , yx01, rgb
 PIPE_FORMAT_G16R16_SNORM          , plain, 1, 1, sn16, sn16, , , yx01, rgb
 
 PIPE_FORMAT_A8B8G8R8_SNORM        , plain, 1, 1, sn8 , sn8 , sn8 , sn8 , wzyx, rgb
+PIPE_FORMAT_A8B8G8R8_SINT         , plain, 1, 1, sp8 , sp8 , sp8 , sp8 , wzyx, rgb
 PIPE_FORMAT_X8B8G8R8_SNORM        , plain, 1, 1, x8,   sn8,  sn8,  sn8,  wzy1, rgb
+PIPE_FORMAT_X8B8G8R8_SINT         , plain, 1, 1, x8,   sp8,  sp8,  sp8,  wzy1, rgb
