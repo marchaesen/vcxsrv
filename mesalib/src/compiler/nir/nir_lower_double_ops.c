@@ -392,50 +392,18 @@ lower_fract(nir_builder *b, nir_ssa_def *src)
 static nir_ssa_def *
 lower_round_even(nir_builder *b, nir_ssa_def *src)
 {
-   /* If fract(src) == 0.5, then we will have to decide the rounding direction.
-    * We will do this by computing the mod(abs(src), 2) and testing if it
-    * is < 1 or not.
-    *
-    * We compute mod(abs(src), 2) as:
-    * abs(src) - 2.0 * floor(abs(src) / 2.0)
-    */
-   nir_ssa_def *two = nir_imm_double(b, 2.0);
-   nir_ssa_def *abs_src = nir_fabs(b, src);
-   nir_ssa_def *mod =
-      nir_fsub(b,
-               abs_src,
-               nir_fmul(b,
-                        two,
-                        nir_ffloor(b,
-                                   nir_fmul(b,
-                                            abs_src,
-                                            nir_imm_double(b, 0.5)))));
+   /* Add and subtract 2**52 to round off any fractional bits. */
+   nir_ssa_def *two52 = nir_imm_double(b, (double)(1ull << 52));
+   nir_ssa_def *sign = nir_iand(b, nir_unpack_64_2x32_split_y(b, src),
+                                nir_imm_int(b, 1ull << 31));
 
-   /*
-    * If fract(src) != 0.5, then we round as floor(src + 0.5)
-    *
-    * If fract(src) == 0.5, then we have to check the modulo:
-    *
-    *   if it is < 1 we need a trunc operation so we get:
-    *      0.5 -> 0,   -0.5 -> -0
-    *      2.5 -> 2,   -2.5 -> -2
-    *
-    *   otherwise we need to check if src >= 0, in which case we need to round
-    *   upwards, or not, in which case we need to round downwards so we get:
-    *      1.5 -> 2,   -1.5 -> -2
-    *      3.5 -> 4,   -3.5 -> -4
-    */
-   nir_ssa_def *fract = nir_ffract(b, src);
-   return nir_bcsel(b,
-                    nir_fne(b, fract, nir_imm_double(b, 0.5)),
-                    nir_ffloor(b, nir_fadd(b, src, nir_imm_double(b, 0.5))),
-                    nir_bcsel(b,
-                              nir_flt(b, mod, nir_imm_double(b, 1.0)),
-                              nir_ftrunc(b, src),
-                              nir_bcsel(b,
-                                        nir_fge(b, src, nir_imm_double(b, 0.0)),
-                                        nir_fadd(b, src, nir_imm_double(b, 0.5)),
-                                        nir_fsub(b, src, nir_imm_double(b, 0.5)))));
+   b->exact = true;
+   nir_ssa_def *res = nir_fsub(b, nir_fadd(b, nir_fabs(b, src), two52), two52);
+   b->exact = false;
+
+   return nir_bcsel(b, nir_flt(b, nir_fabs(b, src), two52),
+                    nir_pack_64_2x32_split(b, nir_unpack_64_2x32_split_x(b, res),
+                                           nir_ior(b, nir_unpack_64_2x32_split_y(b, res), sign)), src);
 }
 
 static nir_ssa_def *

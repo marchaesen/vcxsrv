@@ -159,9 +159,8 @@ v3d_store_utile(void *gpu, uint32_t gpu_stride,
                          * d0-d7.
                          */
                         "vstm %[gpu], {q0, q1, q2, q3}\n"
-                        :
+                        : [cpu]         "+r"(cpu)
                         : [gpu]         "r"(gpu),
-                          [cpu]         "r"(cpu),
                           [cpu_stride]  "r"(cpu_stride)
                         : "q0", "q1", "q2", "q3");
                 return;

@@ -134,7 +134,7 @@ const char *ac_get_llvm_processor_name(enum radeon_family family)
 	case CHIP_VEGA20:
 		return "gfx906";
 	case CHIP_RAVEN2:
-		return "gfx902"; /* TODO: use gfx909 when it's available */
+		return HAVE_LLVM >= 0x0800 ? "gfx909" : "gfx902";
 	default:
 		return "";
 	}

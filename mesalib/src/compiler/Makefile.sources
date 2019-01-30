@@ -179,7 +179,7 @@ LIBGLSL_GENERATED_FILES = \
 	glsl/glsl_lexer.cpp \
 	glsl/glsl_parser.cpp \
 	glsl/glsl_parser.h \
-	compiler/glsl/float64_glsl.h
+	glsl/float64_glsl.h
 
 # libglcpp
 

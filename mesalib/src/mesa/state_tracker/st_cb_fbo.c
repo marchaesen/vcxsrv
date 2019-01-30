@@ -763,6 +763,30 @@ st_validate_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb)
 
 
 /**
+ * Called by ctx->Driver.DiscardFramebuffer
+ */
+static void
+st_discard_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
+                       struct gl_renderbuffer_attachment *att)
+{
+   struct st_context *st = st_context(ctx);
+   struct pipe_resource *prsc;
+
+   if (!att->Renderbuffer)
+      return;
+
+   prsc = st_renderbuffer(att->Renderbuffer)->surface->texture;
+
+   /* using invalidate_resource will only work for simple 2D resources */
+   if (prsc->depth0 != 1 || prsc->array_size != 1 || prsc->last_level != 0)
+      return;
+
+   if (st->pipe->invalidate_resource)
+      st->pipe->invalidate_resource(st->pipe, prsc);
+}
+
+
+/**
  * Called via glDrawBuffer.  We only provide this driver function so that we
  * can check if we need to allocate a new renderbuffer.  Specifically, we
  * don't usually allocate a front color buffer when using a double-buffered
@@ -939,6 +963,7 @@ st_init_fbo_functions(struct dd_function_table *functions)
    functions->RenderTexture = st_render_texture;
    functions->FinishRenderTexture = st_finish_render_texture;
    functions->ValidateFramebuffer = st_validate_framebuffer;
+   functions->DiscardFramebuffer = st_discard_framebuffer;
 
    functions->DrawBufferAllocate = st_DrawBufferAllocate;
    functions->ReadBuffer = st_ReadBuffer;

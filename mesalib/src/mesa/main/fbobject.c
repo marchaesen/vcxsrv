@@ -4641,6 +4641,59 @@ invalid_enum:
    return;
 }
 
+static struct gl_renderbuffer_attachment *
+get_fb_attachment(struct gl_context *ctx, struct gl_framebuffer *fb,
+                  const GLenum attachment)
+{
+   switch (attachment) {
+   case GL_COLOR:
+      return &fb->Attachment[BUFFER_BACK_LEFT];
+   case GL_COLOR_ATTACHMENT0:
+   case GL_COLOR_ATTACHMENT1:
+   case GL_COLOR_ATTACHMENT2:
+   case GL_COLOR_ATTACHMENT3:
+   case GL_COLOR_ATTACHMENT4:
+   case GL_COLOR_ATTACHMENT5:
+   case GL_COLOR_ATTACHMENT6:
+   case GL_COLOR_ATTACHMENT7:
+   case GL_COLOR_ATTACHMENT8:
+   case GL_COLOR_ATTACHMENT9:
+   case GL_COLOR_ATTACHMENT10:
+   case GL_COLOR_ATTACHMENT11:
+   case GL_COLOR_ATTACHMENT12:
+   case GL_COLOR_ATTACHMENT13:
+   case GL_COLOR_ATTACHMENT14:
+   case GL_COLOR_ATTACHMENT15:
+      return &fb->Attachment[BUFFER_COLOR0 + attachment - GL_COLOR_ATTACHMENT0];
+   case GL_DEPTH:
+   case GL_DEPTH_ATTACHMENT:
+   case GL_DEPTH_STENCIL_ATTACHMENT:
+      return &fb->Attachment[BUFFER_DEPTH];
+   case GL_STENCIL:
+   case GL_STENCIL_ATTACHMENT:
+      return &fb->Attachment[BUFFER_STENCIL];
+   default:
+      return NULL;
+   }
+}
+
+static void
+discard_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
+                    GLsizei numAttachments, const GLenum *attachments)
+{
+   if (!ctx->Driver.DiscardFramebuffer)
+      return;
+
+   for (int i = 0; i < numAttachments; i++) {
+      struct gl_renderbuffer_attachment *att =
+            get_fb_attachment(ctx, fb, attachments[i]);
+
+      if (!att)
+         continue;
+
+      ctx->Driver.DiscardFramebuffer(ctx, fb, att);
+   }
+}
 
 void GLAPIENTRY
 _mesa_InvalidateSubFramebuffer_no_error(GLenum target, GLsizei numAttachments,
@@ -4701,12 +4754,18 @@ _mesa_InvalidateNamedFramebufferSubData(GLuint framebuffer,
                                   "glInvalidateNamedFramebufferSubData");
 }
 
-
 void GLAPIENTRY
 _mesa_InvalidateFramebuffer_no_error(GLenum target, GLsizei numAttachments,
                                      const GLenum *attachments)
 {
-   /* no-op */
+   struct gl_framebuffer *fb;
+   GET_CURRENT_CONTEXT(ctx);
+
+   fb = get_framebuffer_target(ctx, target);
+   if (!fb)
+      return;
+
+   discard_framebuffer(ctx, fb, numAttachments, attachments);
 }
 
 
@@ -4742,6 +4801,8 @@ _mesa_InvalidateFramebuffer(GLenum target, GLsizei numAttachments,
                                   ctx->Const.MaxViewportWidth,
                                   ctx->Const.MaxViewportHeight,
                                   "glInvalidateFramebuffer");
+
+   discard_framebuffer(ctx, fb, numAttachments, attachments);
 }
 
 
@@ -4828,8 +4889,7 @@ _mesa_DiscardFramebufferEXT(GLenum target, GLsizei numAttachments,
       }
    }
 
-   if (ctx->Driver.DiscardFramebuffer)
-      ctx->Driver.DiscardFramebuffer(ctx, target, numAttachments, attachments);
+   discard_framebuffer(ctx, fb, numAttachments, attachments);
 
    return;
 

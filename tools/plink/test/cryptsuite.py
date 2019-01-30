@@ -155,10 +155,12 @@ class mpint(MyTestBase):
         decstr = '91596559417721901505460351493238411077414937428167'
         self.assertEqual(int(mp_from_decimal_pl(decstr)), int(decstr, 10))
         self.assertEqual(int(mp_from_decimal(decstr)), int(decstr, 10))
+        self.assertEqual(int(mp_from_decimal("")), 0)
         # For hex, test both upper and lower case digits
         hexstr = 'ea7cb89f409ae845215822e37D32D0C63EC43E1381C2FF8094'
         self.assertEqual(int(mp_from_hex_pl(hexstr)), int(hexstr, 16))
         self.assertEqual(int(mp_from_hex(hexstr)), int(hexstr, 16))
+        self.assertEqual(int(mp_from_hex("")), 0)
         p2 = mp_power_2(123)
         self.assertEqual(int(p2), 1 << 123)
         p2c = mp_copy(p2)
@@ -252,11 +254,16 @@ class mpint(MyTestBase):
                     self.assertEqual(mp_eq_integer(am, bi) == 1, ai == bi)
                     self.assertEqual(mp_hs_integer(am, bi) == 1, ai >= bi)
 
-                # mp_min{,_into} is a reasonable thing to test here as well
+                # mp_{min,max}{,_into} is a reasonable thing to test
+                # here as well
                 self.assertEqual(int(mp_min(am, bm)), min(ai, bi))
-                am2 = mp_copy(am)
-                mp_min_into(am2, am, bm)
-                self.assertEqual(int(am2), min(ai, bi))
+                self.assertEqual(int(mp_max(am, bm)), max(ai, bi))
+                am_small = mp_copy(am if ai<bi else bm)
+                mp_min_into(am_small, am, bm)
+                self.assertEqual(int(am_small), min(ai, bi))
+                am_big = mp_copy(am if ai>bi else bm)
+                mp_max_into(am_big, am, bm)
+                self.assertEqual(int(am_big), max(ai, bi))
 
     def testConditionals(self):
         testnumbers = [(mp_copy(n),n) for n in fibonacci_scattered()]
@@ -314,7 +321,7 @@ class mpint(MyTestBase):
                 diff = mp_sub(am, bm)
                 self.assertEqual(int(diff), (ai - bi) & mp_mask(diff))
 
-                for bits in range(0, 512, 64):
+                for bits in range(64, 512, 64):
                     cm = mp_new(bits)
                     mp_add_into(cm, am, bm)
                     self.assertEqual(int(cm), (ai + bi) & mp_mask(cm))
@@ -352,8 +359,8 @@ class mpint(MyTestBase):
                     if r >= d:
                         continue # silly cases with tiny divisors
                     n = q*d + r
-                    mq = mp_new(nbits(q))
-                    mr = mp_new(nbits(r))
+                    mq = mp_new(max(nbits(q), 1))
+                    mr = mp_new(max(nbits(r), 1))
                     mp_divmod_into(n, d, mq, mr)
                     self.assertEqual(int(mq), q)
                     self.assertEqual(int(mr), r)

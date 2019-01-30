@@ -25,6 +25,7 @@ AM_CPPFLAGS = \
 	-I$(top_builddir)/src \
 	-I$(top_srcdir)/src \
 	-I$(top_builddir)/src/compiler/nir \
+	-I$(top_srcdir)/src/compiler/nir \
 	-I$(top_srcdir)/src/broadcom/ \
 	-I$(top_srcdir)/src/broadcom/cle \
 	-I$(top_srcdir)/src/broadcom/include \
