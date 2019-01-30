@@ -188,6 +188,27 @@ struct radv_winsys_bo_list {
 	unsigned count;
 };
 
+/* Kernel effectively allows 0-31. This sets some priorities for fixed
+ * functionality buffers */
+enum {
+	RADV_BO_PRIORITY_APPLICATION_MAX = 28,
+
+	/* virtual buffers have 0 priority since the priority is not used. */
+	RADV_BO_PRIORITY_VIRTUAL = 0,
+
+	/* This should be considerably lower than most of the stuff below,
+	 * but how much lower is hard to say since we don't know application
+	 * assignments. Put it pretty high since it is GTT anyway. */
+	RADV_BO_PRIORITY_QUERY_POOL = 29,
+
+	RADV_BO_PRIORITY_DESCRIPTOR = 30,
+	RADV_BO_PRIORITY_UPLOAD_BUFFER = 30,
+	RADV_BO_PRIORITY_FENCE = 30,
+	RADV_BO_PRIORITY_SHADER = 31,
+	RADV_BO_PRIORITY_SCRATCH = 31,
+	RADV_BO_PRIORITY_CS = 31,
+};
+
 struct radeon_winsys {
 	void (*destroy)(struct radeon_winsys *ws);
 
@@ -206,17 +227,20 @@ struct radeon_winsys {
 						  uint64_t size,
 						  unsigned alignment,
 						  enum radeon_bo_domain domain,
-						  enum radeon_bo_flag flags);
+						  enum radeon_bo_flag flags,
+						  unsigned priority);
 
 	void (*buffer_destroy)(struct radeon_winsys_bo *bo);
 	void *(*buffer_map)(struct radeon_winsys_bo *bo);
 
 	struct radeon_winsys_bo *(*buffer_from_ptr)(struct radeon_winsys *ws,
 						    void *pointer,
-						    uint64_t size);
+						    uint64_t size,
+						    unsigned priority);
 
 	struct radeon_winsys_bo *(*buffer_from_fd)(struct radeon_winsys *ws,
 						   int fd,
+						   unsigned priority,
 						   unsigned *stride, unsigned *offset);
 
 	bool (*buffer_get_fd)(struct radeon_winsys *ws,

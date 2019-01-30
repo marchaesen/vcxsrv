@@ -598,7 +598,8 @@ VkResult radv_CreateDescriptorPool(
 						     RADEON_DOMAIN_VRAM,
 						     RADEON_FLAG_NO_INTERPROCESS_SHARING |
 						     RADEON_FLAG_READ_ONLY |
-						     RADEON_FLAG_32BIT);
+						     RADEON_FLAG_32BIT,
+						     RADV_BO_PRIORITY_DESCRIPTOR);
 		pool->mapped_ptr = (uint8_t*)device->ws->buffer_map(pool->bo);
 	}
 	pool->size = bo_size;

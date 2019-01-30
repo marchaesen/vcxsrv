@@ -1046,7 +1046,7 @@ radv_image_create(VkDevice _device,
 		image->offset = 0;
 
 		image->bo = device->ws->buffer_create(device->ws, image->size, image->alignment,
-		                                      0, RADEON_FLAG_VIRTUAL);
+		                                      0, RADEON_FLAG_VIRTUAL, RADV_BO_PRIORITY_VIRTUAL);
 		if (!image->bo) {
 			vk_free2(&device->alloc, alloc, image);
 			return vk_error(device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);

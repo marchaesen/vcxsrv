@@ -22,7 +22,7 @@
  */
 
 #include "v3d_compiler.h"
-#include "nir_deref.h"
+#include "compiler/nir/nir_deref.h"
 
 /* We don't do any address packing. */
 #define __gen_user_data void

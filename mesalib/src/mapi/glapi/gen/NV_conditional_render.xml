@@ -13,12 +13,12 @@
     <enum name="QUERY_BY_REGION_WAIT_NV"     value="0x8E15"/>
     <enum name="QUERY_BY_REGION_NO_WAIT_NV"  value="0x8E16"/>
 
-    <function name="BeginConditionalRenderNV" alias="BeginConditionalRender">
+    <function name="BeginConditionalRenderNV" alias="BeginConditionalRender" es2="2.0">
 	<param name="query" type="GLuint"/>
 	<param name="mode" type="GLenum"/>
     </function>
 
-    <function name="EndConditionalRenderNV" alias="EndConditionalRender">
+    <function name="EndConditionalRenderNV" alias="EndConditionalRender" es2="2.0">
     </function>
 
 </category>

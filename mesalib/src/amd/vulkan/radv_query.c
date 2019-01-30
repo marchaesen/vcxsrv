@@ -1061,7 +1061,8 @@ VkResult radv_CreateQueryPool(
 		pool->size += 4 * pCreateInfo->queryCount;
 
 	pool->bo = device->ws->buffer_create(device->ws, pool->size,
-					     64, RADEON_DOMAIN_GTT, RADEON_FLAG_NO_INTERPROCESS_SHARING);
+					     64, RADEON_DOMAIN_GTT, RADEON_FLAG_NO_INTERPROCESS_SHARING,
+					     RADV_BO_PRIORITY_QUERY_POOL);
 
 	if (!pool->bo) {
 		vk_free2(&device->alloc, pAllocator, pool);
