@@ -469,6 +469,16 @@ _mesa_init_image_units(struct gl_context *ctx)
       ctx->ImageUnits[i] = _mesa_default_image_unit(ctx);
 }
 
+
+void
+_mesa_free_image_textures(struct gl_context *ctx)
+{
+   unsigned i;
+
+   for (i = 0; i < ARRAY_SIZE(ctx->ImageUnits); ++i)
+      _mesa_reference_texobj(&ctx->ImageUnits[i].TexObj, NULL);
+}
+
 GLboolean
 _mesa_is_image_unit_valid(struct gl_context *ctx, struct gl_image_unit *u)
 {

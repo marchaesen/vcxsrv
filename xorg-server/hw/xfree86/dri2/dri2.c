@@ -44,7 +44,6 @@
 #include "dixstruct.h"
 #include "dri2.h"
 #include "dri2int.h"
-#include "xf86VGAarbiter.h"
 #include "damage.h"
 #include "xf86.h"
 
@@ -1506,12 +1505,6 @@ DRI2ScreenInit(ScreenPtr pScreen, DRI2InfoPtr info)
 
     if (info->version < 3)
         return FALSE;
-
-    if (!xf86VGAarbiterAllowDRI(pScreen)) {
-        xf86DrvMsg(pScreen->myNum, X_WARNING,
-                   "[DRI2] Direct rendering is not supported when VGA arb is necessary for the device\n");
-        return FALSE;
-    }
 
     if (!dixRegisterPrivateKey(&dri2ScreenPrivateKeyRec, PRIVATE_SCREEN, 0))
         return FALSE;

@@ -129,6 +129,7 @@
 #include "util/disk_cache.h"
 #include "util/strtod.h"
 #include "stencil.h"
+#include "shaderimage.h"
 #include "texcompress_s3tc.h"
 #include "texstate.h"
 #include "transformfeedback.h"
@@ -1345,6 +1346,7 @@ _mesa_free_context_data( struct gl_context *ctx )
    _mesa_free_buffer_objects(ctx);
    _mesa_free_eval_data( ctx );
    _mesa_free_texture_data( ctx );
+   _mesa_free_image_textures(ctx);
    _mesa_free_matrix_data( ctx );
    _mesa_free_pipeline_data(ctx);
    _mesa_free_program_data(ctx);

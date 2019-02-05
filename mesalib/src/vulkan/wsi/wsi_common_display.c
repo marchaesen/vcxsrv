@@ -96,7 +96,7 @@ struct wsi_display {
    pthread_cond_t               wait_cond;
    pthread_t                    wait_thread;
 
-   struct list_head             connectors;
+   struct list_head             connectors; /* list of all discovered connectors */
 };
 
 #define wsi_for_each_display_mode(_mode, _conn)                 \

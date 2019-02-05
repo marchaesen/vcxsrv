@@ -45,6 +45,7 @@ TESTS =
 BUILT_SOURCES =
 CLEANFILES =
 EXTRA_DIST = \
+	meson.build \
 	drm/meson.build \
 	ir3/ir3_nir_trig.py \
 	ir3/meson.build

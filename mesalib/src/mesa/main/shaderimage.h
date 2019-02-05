@@ -68,6 +68,9 @@ _mesa_default_image_unit(struct gl_context *ctx);
 void
 _mesa_init_image_units(struct gl_context *ctx);
 
+void
+_mesa_free_image_textures(struct gl_context *ctx);
+
 /**
  * Return GL_TRUE if the state of the image unit passed as argument is valid
  * and access from the shader is allowed.  Otherwise loads from this unit

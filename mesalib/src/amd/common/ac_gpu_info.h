@@ -172,6 +172,12 @@ static inline unsigned ac_get_max_simd_waves(enum radeon_family family)
 	}
 }
 
+static inline uint32_t
+ac_get_num_physical_sgprs(enum chip_class chip_class)
+{
+	return chip_class >= VI ? 800 : 512;
+}
+
 #ifdef __cplusplus
 }
 #endif

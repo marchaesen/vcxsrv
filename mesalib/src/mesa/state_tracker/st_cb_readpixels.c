@@ -199,6 +199,7 @@ try_pbo_readpixels(struct st_context *st, struct st_renderbuffer *strb,
       image.resource = addr.buffer;
       image.format = dst_format;
       image.access = PIPE_IMAGE_ACCESS_WRITE;
+      image.shader_access = PIPE_IMAGE_ACCESS_WRITE;
       image.u.buf.offset = addr.first_element * addr.bytes_per_pixel;
       image.u.buf.size = (addr.last_element - addr.first_element + 1) *
                          addr.bytes_per_pixel;

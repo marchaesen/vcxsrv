@@ -463,6 +463,9 @@ st_glsl_to_nir_post_opts(struct st_context *st, struct gl_program *prog,
    NIR_PASS_V(nir, st_nir_lower_builtin);
    NIR_PASS_V(nir, gl_nir_lower_atomics, shader_program, true);
 
+   nir_variable_mode mask = nir_var_function_temp;
+   nir_remove_dead_variables(nir, mask);
+
    if (st->ctx->_Shader->Flags & GLSL_DUMP) {
       _mesa_log("\n");
       _mesa_log("NIR IR for linked %s program %d:\n",

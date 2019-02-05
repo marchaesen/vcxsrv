@@ -407,10 +407,4 @@ static inline unsigned shader_io_get_unique_index(gl_varying_slot slot)
 	unreachable("illegal slot in get unique index\n");
 }
 
-static inline uint32_t
-radv_get_num_physical_sgprs(struct radv_physical_device *physical_device)
-{
-	return physical_device->rad_info.chip_class >= VI ? 800 : 512;
-}
-
 #endif

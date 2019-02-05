@@ -950,8 +950,8 @@ radv_device_init_meta_blit_color(struct radv_device *device, bool on_demand)
 									.attachment = VK_ATTACHMENT_UNUSED,
 									.layout = VK_IMAGE_LAYOUT_GENERAL,
 								},
-								.preserveAttachmentCount = 1,
-								.pPreserveAttachments = (uint32_t[]) { 0 },
+								.preserveAttachmentCount = 0,
+								.pPreserveAttachments = NULL,
 							},
 							.dependencyCount = 0,
 						}, &device->meta_state.alloc, &device->meta_state.blit.render_pass[key][j]);
@@ -1010,8 +1010,8 @@ radv_device_init_meta_blit_depth(struct radv_device *device, bool on_demand)
 								       .attachment = 0,
 								       .layout = layout,
 								},
-							       .preserveAttachmentCount = 1,
-							       .pPreserveAttachments = (uint32_t[]) { 0 },
+							       .preserveAttachmentCount = 0,
+							       .pPreserveAttachments = NULL,
 							},
 						        .dependencyCount = 0,
 						}, &device->meta_state.alloc, &device->meta_state.blit.depth_only_rp[ds_layout]);
@@ -1067,8 +1067,8 @@ radv_device_init_meta_blit_stencil(struct radv_device *device, bool on_demand)
 								       .attachment = 0,
 								       .layout = layout,
 							       },
-							       .preserveAttachmentCount = 1,
-							       .pPreserveAttachments = (uint32_t[]) { 0 },
+							       .preserveAttachmentCount = 0,
+							       .pPreserveAttachments = NULL,
 						       },
 						       .dependencyCount = 0,
 					 }, &device->meta_state.alloc, &device->meta_state.blit.stencil_only_rp[ds_layout]);

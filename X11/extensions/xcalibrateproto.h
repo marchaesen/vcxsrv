@@ -1,6 +1,4 @@
 /*
- * $Id: xcalibrateproto.h,v 1.1.1.1 2004/06/02 19:18:47 pb Exp $
- *
  * Copyright © 2003 Philip Blundell
  *
  * Permission to use, copy, modify, distribute, and sell this software and its

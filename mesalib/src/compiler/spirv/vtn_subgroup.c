@@ -269,7 +269,7 @@ vtn_handle_subgroup(struct vtn_builder *b, SpvOp opcode,
       break;
 
    case SpvOpGroupNonUniformQuadSwap: {
-      unsigned direction = vtn_constant_value(b, w[5])->values[0].u32[0];
+      unsigned direction = vtn_constant_uint(b, w[5]);
       nir_intrinsic_op op;
       switch (direction) {
       case 0:
@@ -368,7 +368,7 @@ vtn_handle_subgroup(struct vtn_builder *b, SpvOp opcode,
       case SpvGroupOperationClusteredReduce:
          op = nir_intrinsic_reduce;
          assert(count == 7);
-         cluster_size = vtn_constant_value(b, w[6])->values[0].u32[0];
+         cluster_size = vtn_constant_uint(b, w[6]);
          break;
       default:
          unreachable("Invalid group operation");

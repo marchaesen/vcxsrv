@@ -966,11 +966,11 @@ radv_pipeline_out_of_order_rast(struct radv_pipeline *pipeline,
 	};
 
 	if (pCreateInfo->pDepthStencilState &&
-	    subpass->depth_stencil_attachment.attachment != VK_ATTACHMENT_UNUSED) {
+	    subpass->depth_stencil_attachment) {
 		const VkPipelineDepthStencilStateCreateInfo *vkds =
 			pCreateInfo->pDepthStencilState;
 		struct radv_render_pass_attachment *attachment =
-			pass->attachments + subpass->depth_stencil_attachment.attachment;
+			pass->attachments + subpass->depth_stencil_attachment->attachment;
 		bool has_stencil = vk_format_is_stencil(attachment->format);
 		struct radv_dsa_order_invariance order_invariance[2];
 		struct radv_shader_variant *ps =
@@ -1375,15 +1375,7 @@ radv_pipeline_init_dynamic_state(struct radv_pipeline *pipeline,
 	 *    disabled or if the subpass of the render pass the pipeline is
 	 *    created against does not use any color attachments.
 	 */
-	bool uses_color_att = false;
-	for (unsigned i = 0; i < subpass->color_count; ++i) {
-		if (subpass->color_attachments[i].attachment != VK_ATTACHMENT_UNUSED) {
-			uses_color_att = true;
-			break;
-		}
-	}
-
-	if (uses_color_att && states & RADV_DYNAMIC_BLEND_CONSTANTS) {
+	if (subpass->has_color_att && states & RADV_DYNAMIC_BLEND_CONSTANTS) {
 		assert(pCreateInfo->pColorBlendState);
 		typed_memcpy(dynamic->blend_constants,
 			     pCreateInfo->pColorBlendState->blendConstants, 4);
@@ -1401,8 +1393,7 @@ radv_pipeline_init_dynamic_state(struct radv_pipeline *pipeline,
 	 *    disabled or if the subpass of the render pass the pipeline is created
 	 *    against does not use a depth/stencil attachment.
 	 */
-	if (needed_states &&
-	    subpass->depth_stencil_attachment.attachment != VK_ATTACHMENT_UNUSED) {
+	if (needed_states && subpass->depth_stencil_attachment) {
 		assert(pCreateInfo->pDepthStencilState);
 
 		if (states & RADV_DYNAMIC_DEPTH_BOUNDS) {
@@ -2506,8 +2497,8 @@ radv_compute_bin_size(struct radv_pipeline *pipeline, const VkGraphicsPipelineCr
 
 	extent = color_entry->extent;
 
-	if (subpass->depth_stencil_attachment.attachment != VK_ATTACHMENT_UNUSED) {
-		struct radv_render_pass_attachment *attachment = pass->attachments + subpass->depth_stencil_attachment.attachment;
+	if (subpass->depth_stencil_attachment) {
+		struct radv_render_pass_attachment *attachment = pass->attachments + subpass->depth_stencil_attachment->attachment;
 
 		/* Coefficients taken from AMDVLK */
 		unsigned depth_coeff = vk_format_is_depth(attachment->format) ? 5 : 0;
@@ -2598,8 +2589,8 @@ radv_pipeline_generate_depth_stencil_state(struct radeon_cmdbuf *ctx_cs,
 	uint32_t db_render_control = 0, db_render_override2 = 0;
 	uint32_t db_render_override = 0;
 
-	if (subpass->depth_stencil_attachment.attachment != VK_ATTACHMENT_UNUSED)
-		attachment = pass->attachments + subpass->depth_stencil_attachment.attachment;
+	if (subpass->depth_stencil_attachment)
+		attachment = pass->attachments + subpass->depth_stencil_attachment->attachment;
 
 	bool has_depth_attachment = attachment && vk_format_is_depth(attachment->format);
 	bool has_stencil_attachment = attachment && vk_format_is_stencil(attachment->format);

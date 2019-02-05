@@ -156,7 +156,7 @@ pack_sint(nir_builder *b, nir_ssa_def *color, const unsigned *bits,
           int num_components)
 {
         color = nir_channels(b, color, (1 << num_components) - 1);
-        color = nir_format_clamp_uint(b, color, bits);
+        color = nir_format_clamp_sint(b, color, bits);
         return pack_bits(b, color, bits, num_components, true);
 }
 

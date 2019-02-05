@@ -89,6 +89,12 @@ if with_gallium_vc4
 else
   driver_vc4 = declare_dependency()
 endif
+if with_gallium_panfrost
+  subdir('winsys/panfrost/drm')
+  subdir('drivers/panfrost')
+else
+  driver_panfrost = declare_dependency()
+endif
 if with_gallium_etnaviv
   subdir('winsys/etnaviv/drm')
   subdir('drivers/etnaviv')
