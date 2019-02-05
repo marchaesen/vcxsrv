@@ -485,14 +485,15 @@ GetTimeInMicros(void)
     struct timeval tv;
 #ifdef MONOTONIC_CLOCK
     struct timespec tp;
+    static clockid_t uclockid;
 
-    if (!clockid) {
+    if (!uclockid) {
         if (clock_gettime(CLOCK_MONOTONIC, &tp) == 0)
-            clockid = CLOCK_MONOTONIC;
+            uclockid = CLOCK_MONOTONIC;
         else
-            clockid = ~0L;
+            uclockid = ~0L;
     }
-    if (clockid != ~0L && clock_gettime(clockid, &tp) == 0)
+    if (uclockid != ~0L && clock_gettime(uclockid, &tp) == 0)
         return (CARD64) tp.tv_sec * (CARD64)1000000 + tp.tv_nsec / 1000;
 #endif
 

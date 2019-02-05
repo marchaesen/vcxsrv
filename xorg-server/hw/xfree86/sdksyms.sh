@@ -147,11 +147,7 @@ cat > sdksyms.c << EOF
 
 
 /* hw/xfree86/ramdac/Makefile.am */
-#include "BT.h"
-#include "IBM.h"
-#include "TI.h"
 #include "xf86Cursor.h"
-#include "xf86RamDac.h"
 
 
 /* hw/xfree86/shadowfb/Makefile.am -- module */

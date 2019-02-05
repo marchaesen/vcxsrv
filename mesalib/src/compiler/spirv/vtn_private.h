@@ -600,6 +600,7 @@ struct vtn_builder {
    gl_shader_stage entry_point_stage;
    const char *entry_point_name;
    struct vtn_value *entry_point;
+   struct vtn_value *workgroup_size_builtin;
    bool origin_upper_left;
    bool pixel_center_integer;
    bool variable_pointers;
@@ -673,10 +674,22 @@ bool
 vtn_set_instruction_result_type(struct vtn_builder *b, SpvOp opcode,
                                 const uint32_t *w, unsigned count);
 
-static inline nir_constant *
-vtn_constant_value(struct vtn_builder *b, uint32_t value_id)
+static inline uint64_t
+vtn_constant_uint(struct vtn_builder *b, uint32_t value_id)
 {
-   return vtn_value(b, value_id, vtn_value_type_constant)->constant;
+   struct vtn_value *val = vtn_value(b, value_id, vtn_value_type_constant);
+
+   vtn_fail_if(val->type->base_type != vtn_base_type_scalar ||
+               !glsl_type_is_integer(val->type->type),
+               "Expected id %u to be an integer constant", value_id);
+
+   switch (glsl_get_bit_size(val->type->type)) {
+   case 8:  return val->constant->values[0].u8[0];
+   case 16: return val->constant->values[0].u16[0];
+   case 32: return val->constant->values[0].u32[0];
+   case 64: return val->constant->values[0].u64[0];
+   default: unreachable("Invalid bit size");
+   }
 }
 
 struct vtn_ssa_value *vtn_ssa_value(struct vtn_builder *b, uint32_t value_id);

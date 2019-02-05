@@ -1129,7 +1129,7 @@ void radv_GetPhysicalDeviceProperties2(
 
 			/* SGPR. */
 			properties->sgprsPerSimd =
-				radv_get_num_physical_sgprs(pdevice);
+				ac_get_num_physical_sgprs(pdevice->rad_info.chip_class);
 			properties->minSgprAllocation =
 				pdevice->rad_info.chip_class >= VI ? 16 : 8;
 			properties->maxSgprAllocation =

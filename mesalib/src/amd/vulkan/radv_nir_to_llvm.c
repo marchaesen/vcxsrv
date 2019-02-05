@@ -3372,9 +3372,9 @@ ac_setup_rings(struct radv_shader_context *ctx)
 	}
 }
 
-static unsigned
-ac_nir_get_max_workgroup_size(enum chip_class chip_class,
-			      const struct nir_shader *nir)
+unsigned
+radv_nir_get_max_workgroup_size(enum chip_class chip_class,
+				const struct nir_shader *nir)
 {
 	switch (nir->info.stage) {
 	case MESA_SHADER_TESS_CTRL:
@@ -3450,7 +3450,7 @@ LLVMModuleRef ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm,
 	ctx.max_workgroup_size = 0;
 	for (int i = 0; i < shader_count; ++i) {
 		ctx.max_workgroup_size = MAX2(ctx.max_workgroup_size,
-		                              ac_nir_get_max_workgroup_size(ctx.options->chip_class,
+		                              radv_nir_get_max_workgroup_size(ctx.options->chip_class,
 		                                                            shaders[i]));
 	}
 

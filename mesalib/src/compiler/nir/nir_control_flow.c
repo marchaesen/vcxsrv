@@ -195,8 +195,7 @@ split_block_beginning(nir_block *block)
    }
 
    /* Any phi nodes must stay part of the new block, or else their
-    * sourcse will be messed up. This will reverse the order of the phis, but
-    * order shouldn't matter.
+    * sources will be messed up.
     */
    nir_foreach_instr_safe(instr, block) {
       if (instr->type != nir_instr_type_phi)
@@ -204,7 +203,7 @@ split_block_beginning(nir_block *block)
 
       exec_node_remove(&instr->node);
       instr->block = new_block;
-      exec_list_push_head(&new_block->instr_list, &instr->node);
+      exec_list_push_tail(&new_block->instr_list, &instr->node);
    }
 
    return new_block;

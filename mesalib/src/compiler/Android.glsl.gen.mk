@@ -104,6 +104,6 @@ $(intermediates)/glsl/ir_expression_operation_strings.h: $(LOCAL_PATH)/glsl/ir_e
 	@mkdir -p $(dir $@)
 	$(hide) $(MESA_PYTHON2) $< strings > $@
 
-$(intermediates)/compiler/glsl/float64_glsl.h: $(LOCAL_PATH)/glsl/xxd.py
+$(intermediates)/glsl/float64_glsl.h: $(LOCAL_PATH)/glsl/xxd.py
 	@mkdir -p $(dir $@)
 	$(hide) $(MESA_PYTHON2) $< $(MESA_TOP)/src/compiler/glsl/float64.glsl $@ -n float64_source > $@

@@ -543,7 +543,7 @@ static void radv_amdgpu_cs_add_buffer_internal(struct radv_amdgpu_cs *cs,
 	cs->handles[cs->num_buffers].bo_handle = bo;
 	cs->handles[cs->num_buffers].bo_priority = priority;
 
-	hash = ((uintptr_t)bo >> 6) & (ARRAY_SIZE(cs->buffer_hash_table) - 1);
+	hash = bo & (ARRAY_SIZE(cs->buffer_hash_table) - 1);
 	cs->buffer_hash_table[hash] = cs->num_buffers;
 
 	++cs->num_buffers;

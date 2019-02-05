@@ -1373,7 +1373,8 @@ _mesa_is_compressed_format(const struct gl_context *ctx, GLenum format)
       if (_mesa_get_format_color_encoding(m_format) == GL_LINEAR) {
          return _mesa_has_EXT_texture_compression_s3tc(ctx);
       } else {
-         return _mesa_has_EXT_texture_sRGB(ctx) &&
+         return (_mesa_has_EXT_texture_sRGB(ctx) ||
+            _mesa_has_EXT_texture_compression_s3tc_srgb(ctx)) &&
             _mesa_has_EXT_texture_compression_s3tc(ctx);
       }
    case MESA_FORMAT_LAYOUT_FXT1:

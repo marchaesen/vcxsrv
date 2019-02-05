@@ -733,7 +733,8 @@ generate_shader_stats(struct radv_device *device,
 		      gl_shader_stage stage,
 		      struct _mesa_string_buffer *buf)
 {
-	unsigned lds_increment = device->physical_device->rad_info.chip_class >= CIK ? 512 : 256;
+	enum chip_class chip_class = device->physical_device->rad_info.chip_class;
+	unsigned lds_increment = chip_class >= CIK ? 512 : 256;
 	struct ac_shader_config *conf;
 	unsigned max_simd_waves;
 	unsigned lds_per_wave = 0;
@@ -746,12 +747,17 @@ generate_shader_stats(struct radv_device *device,
 		lds_per_wave = conf->lds_size * lds_increment +
 			       align(variant->info.fs.num_interp * 48,
 				     lds_increment);
+	} else if (stage == MESA_SHADER_COMPUTE) {
+		unsigned max_workgroup_size =
+				radv_nir_get_max_workgroup_size(chip_class, variant->nir);
+		lds_per_wave = (conf->lds_size * lds_increment) /
+			       DIV_ROUND_UP(max_workgroup_size, 64);
 	}
 
 	if (conf->num_sgprs)
 		max_simd_waves =
 			MIN2(max_simd_waves,
-			     radv_get_num_physical_sgprs(device->physical_device) / conf->num_sgprs);
+			     ac_get_num_physical_sgprs(chip_class) / conf->num_sgprs);
 
 	if (conf->num_vgprs)
 		max_simd_waves =
@@ -836,7 +842,7 @@ radv_GetShaderInfoAMD(VkDevice _device,
 			VkShaderStatisticsInfoAMD statistics = {};
 			statistics.shaderStageMask = shaderStage;
 			statistics.numPhysicalVgprs = RADV_NUM_PHYSICAL_VGPRS;
-			statistics.numPhysicalSgprs = radv_get_num_physical_sgprs(device->physical_device);
+			statistics.numPhysicalSgprs = ac_get_num_physical_sgprs(device->physical_device->rad_info.chip_class);
 			statistics.numAvailableSgprs = statistics.numPhysicalSgprs;
 
 			if (stage == MESA_SHADER_COMPUTE) {

@@ -22,6 +22,7 @@
 SUBDIRS = src
 
 AM_DISTCHECK_CONFIGURE_FLAGS = \
+	--enable-autotools \
 	--enable-dri \
 	--enable-dri3 \
 	--enable-egl \

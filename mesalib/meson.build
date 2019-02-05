@@ -132,7 +132,7 @@ if _drivers.contains('auto')
     elif ['arm', 'aarch64'].contains(host_machine.cpu_family())
       _drivers = [
         'kmsro', 'v3d', 'vc4', 'freedreno', 'etnaviv', 'nouveau',
-        'tegra', 'virgl', 'swrast',
+        'tegra', 'virgl', 'swrast', 'panfrost'
       ]
     else
       error('Unknown architecture @0@. Please pass -Dgallium-drivers to set driver options. Patches gladly accepted to fix this.'.format(
@@ -154,6 +154,7 @@ with_gallium_freedreno = _drivers.contains('freedreno')
 with_gallium_softpipe = _drivers.contains('swrast')
 with_gallium_vc4 = _drivers.contains('vc4')
 with_gallium_v3d = _drivers.contains('v3d')
+with_gallium_panfrost = _drivers.contains('panfrost')
 with_gallium_etnaviv = _drivers.contains('etnaviv')
 with_gallium_tegra = _drivers.contains('tegra')
 with_gallium_i915 = _drivers.contains('i915')
@@ -209,8 +210,8 @@ endif
 if with_dri_i915 and with_gallium_i915
   error('Only one i915 provider can be built')
 endif
-if with_gallium_kmsro and not (with_gallium_vc4 or with_gallium_etnaviv or with_gallium_freedreno)
-  error('kmsro driver requires one or more renderonly drivers (vc4, etnaviv, freedreno)')
+if with_gallium_kmsro and not (with_gallium_vc4 or with_gallium_etnaviv or with_gallium_freedreno or with_gallium_panfrost)
+  error('kmsro driver requires one or more renderonly drivers (vc4, etnaviv, freedreno, panfrost)')
 endif
 if with_gallium_tegra and not with_gallium_nouveau
   error('tegra driver requires nouveau driver')
@@ -1400,7 +1401,7 @@ if with_platform_x11
     dep_xcb_xfixes = dependency('xcb-xfixes')
   endif
   if with_xlib_lease
-    dep_xcb_xrandr = dependency('xcb-randr', version : '>= 1.12')
+    dep_xcb_xrandr = dependency('xcb-randr')
     dep_xlib_xrandr = dependency('xrandr', version : '>= 1.3')
   endif
 endif

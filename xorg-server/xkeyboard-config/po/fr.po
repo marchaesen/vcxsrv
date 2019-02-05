@@ -12,7 +12,7 @@ msgstr ""
 "Project-Id-Version: xkeyboard-config 2.24.99\n"
 "Report-Msgid-Bugs-To: svu@users.sourceforge.net\n"
 "POT-Creation-Date: 2018-10-03 01:12+0100\n"
-"PO-Revision-Date: 2018-10-03 22:18+0200\n"
+"PO-Revision-Date: 2018-10-19 21:52+0200\n"
 "Last-Translator: Jean-Philippe Guérard <jean-philippe.guerard@corbeaunoir.org>\n"
 "Language-Team: French <traduc@traduc.org>\n"
 "Language: fr\n"
@@ -1414,7 +1414,7 @@ msgstr "Berbère (Algérie, Tifinagh)"
 
 #: ../rules/base.xml.in.h:365
 msgid "Arabic (Algeria)"
-msgstr "Arabe (Algèrie)"
+msgstr "Arabe (Algérie)"
 
 #: ../rules/base.xml.in.h:366
 msgid "Arabic (Morocco)"
