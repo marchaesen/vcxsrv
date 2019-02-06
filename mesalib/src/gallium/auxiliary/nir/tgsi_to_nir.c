@@ -1798,6 +1798,9 @@ tgsi_to_nir(const void *tgsi_tokens,
                                   options);
    s = c->build.shader;
 
+   if (s->info.stage == MESA_SHADER_FRAGMENT)
+      s->info.fs.untyped_color_outputs = true;
+
    s->num_inputs = scan.file_max[TGSI_FILE_INPUT] + 1;
    s->num_uniforms = scan.const_file_max[0] + 1;
    s->num_outputs = scan.file_max[TGSI_FILE_OUTPUT] + 1;

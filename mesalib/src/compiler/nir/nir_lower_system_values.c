@@ -254,6 +254,12 @@ convert_block(nir_block *block, nir_builder *b)
          break;
       }
 
+      case SYSTEM_VALUE_FRAG_COORD:
+         assert(b->shader->info.stage == MESA_SHADER_FRAGMENT);
+         b->shader->info.fs.pixel_center_integer =
+            var->data.pixel_center_integer;
+         break;
+
       default:
          break;
       }

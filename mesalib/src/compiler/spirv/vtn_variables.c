@@ -1444,6 +1444,8 @@ apply_var_decoration(struct vtn_builder *b,
       switch (builtin) {
       case SpvBuiltInTessLevelOuter:
       case SpvBuiltInTessLevelInner:
+      case SpvBuiltInClipDistance:
+      case SpvBuiltInCullDistance:
          var_data->compact = true;
          break;
       case SpvBuiltInFragCoord:

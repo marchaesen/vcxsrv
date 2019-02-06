@@ -111,7 +111,7 @@ set_adaptive_sync_property(xcb_connection_t *conn, xcb_drawable_t drawable,
    xcb_intern_atom_reply_t* reply;
    xcb_void_cookie_t check;
 
-   cookie = xcb_intern_atom(conn, 0, sizeof(name), name);
+   cookie = xcb_intern_atom(conn, 0, strlen(name), name);
    reply = xcb_intern_atom_reply(conn, cookie, NULL);
    if (reply == NULL)
       return;

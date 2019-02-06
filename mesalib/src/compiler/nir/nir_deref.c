@@ -670,6 +670,27 @@ opt_deref_ptr_as_array(nir_builder *b, nir_deref_instr *deref)
    assert(deref->deref_type == nir_deref_type_ptr_as_array);
 
    nir_deref_instr *parent = nir_deref_instr_parent(deref);
+
+   if (nir_src_is_const(deref->arr.index) &&
+       nir_src_as_int(deref->arr.index) == 0) {
+      /* If it's a ptr_as_array deref with an index of 0, it does nothing
+       * and we can just replace its uses with its parent.
+       *
+       * The source of a ptr_as_array deref always has a deref_type of
+       * nir_deref_type_array or nir_deref_type_cast.  If it's a cast, it
+       * may be trivial and we may be able to get rid of that too.  Any
+       * trivial cast of trivial cast cases should be handled already by
+       * opt_deref_cast() above.
+       */
+      if (parent->deref_type == nir_deref_type_cast &&
+          is_trivial_deref_cast(parent))
+         parent = nir_deref_instr_parent(parent);
+      nir_ssa_def_rewrite_uses(&deref->dest.ssa,
+                               nir_src_for_ssa(&parent->dest.ssa));
+      nir_instr_remove(&deref->instr);
+      return true;
+   }
+
    if (parent->deref_type != nir_deref_type_array &&
        parent->deref_type != nir_deref_type_ptr_as_array)
       return false;

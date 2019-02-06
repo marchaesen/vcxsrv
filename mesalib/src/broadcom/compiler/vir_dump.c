@@ -30,6 +30,7 @@ vir_dump_uniform(enum quniform_contents contents,
                  uint32_t data)
 {
         static const char *quniform_names[] = {
+                [QUNIFORM_ALPHA_REF] = "alpha_ref",
                 [QUNIFORM_VIEWPORT_X_SCALE] = "vp_x_scale",
                 [QUNIFORM_VIEWPORT_Y_SCALE] = "vp_y_scale",
                 [QUNIFORM_VIEWPORT_Z_OFFSET] = "vp_z_offset",
@@ -118,7 +119,8 @@ vir_dump_uniform(enum quniform_contents contents,
                         fprintf(stderr, "tex[%d].p0: 0x%08x",
                                 contents - QUNIFORM_TEXTURE_CONFIG_P0_0,
                                 data);
-                } else if (contents < ARRAY_SIZE(quniform_names)) {
+                } else if (contents < ARRAY_SIZE(quniform_names) &&
+                           quniform_names[contents]) {
                         fprintf(stderr, "%s",
                                 quniform_names[contents]);
                 } else {
