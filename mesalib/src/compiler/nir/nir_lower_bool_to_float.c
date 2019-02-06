@@ -52,6 +52,12 @@ lower_alu_instr(nir_builder *b, nir_alu_instr *alu)
    /* Replacement SSA value */
    nir_ssa_def *rep = NULL;
    switch (alu->op) {
+   case nir_op_vec2:
+   case nir_op_vec3:
+   case nir_op_vec4:
+      /* These we expect to have booleans but the opcode doesn't change */
+      break;
+
    case nir_op_b2f32: alu->op = nir_op_fmov; break;
    case nir_op_b2i32: alu->op = nir_op_fmov; break;
    case nir_op_f2b1:

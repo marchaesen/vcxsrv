@@ -29,6 +29,7 @@
  */
 
 #include "state_tracker/st_context.h"
+#include "state_tracker/st_nir.h"
 #include "state_tracker/st_pbo.h"
 #include "state_tracker/st_cb_bufferobjects.h"
 
@@ -40,6 +41,8 @@
 #include "util/u_format.h"
 #include "util/u_inlines.h"
 #include "util/u_upload_mgr.h"
+
+#include "compiler/nir/nir_builder.h"
 
 /* Conversion to apply in the fragment shader. */
 enum st_pbo_conversion {
@@ -288,6 +291,21 @@ st_pbo_draw(struct st_context *st, const struct st_pbo_addresses *addr,
 void *
 st_pbo_create_vs(struct st_context *st)
 {
+   struct pipe_screen *pscreen = st->pipe->screen;
+   bool use_nir = PIPE_SHADER_IR_NIR ==
+      pscreen->get_shader_param(pscreen, PIPE_SHADER_VERTEX,
+                                PIPE_SHADER_CAP_PREFERRED_IR);
+
+   if (use_nir) {
+      unsigned inputs[] =  {  VERT_ATTRIB_POS, SYSTEM_VALUE_INSTANCE_ID, };
+      unsigned outputs[] = { VARYING_SLOT_POS,       VARYING_SLOT_LAYER  };
+
+      return st_nir_make_passthrough_shader(st, "st/pbo VS",
+                                            MESA_SHADER_VERTEX,
+                                            st->pbo.layers ? 2 : 1,
+                                            inputs, outputs, NULL, (1 << 1));
+   }
+
    struct ureg_program *ureg;
    struct ureg_src in_pos;
    struct ureg_src in_instanceid;
@@ -390,9 +408,162 @@ build_conversion(struct ureg_program *ureg, const struct ureg_dst *temp,
    }
 }
 
+static const struct glsl_type *
+sampler_type_for_target(enum pipe_texture_target target)
+{
+   bool is_array = target >= PIPE_TEXTURE_1D_ARRAY;
+   static const enum glsl_sampler_dim dim[] = {
+      [PIPE_BUFFER]             = GLSL_SAMPLER_DIM_BUF,
+      [PIPE_TEXTURE_1D]         = GLSL_SAMPLER_DIM_1D,
+      [PIPE_TEXTURE_2D]         = GLSL_SAMPLER_DIM_2D,
+      [PIPE_TEXTURE_3D]         = GLSL_SAMPLER_DIM_3D,
+      [PIPE_TEXTURE_CUBE]       = GLSL_SAMPLER_DIM_CUBE,
+      [PIPE_TEXTURE_RECT]       = GLSL_SAMPLER_DIM_RECT,
+      [PIPE_TEXTURE_1D_ARRAY]   = GLSL_SAMPLER_DIM_1D,
+      [PIPE_TEXTURE_2D_ARRAY]   = GLSL_SAMPLER_DIM_2D,
+      [PIPE_TEXTURE_CUBE_ARRAY] = GLSL_SAMPLER_DIM_CUBE,
+   };
+
+   return glsl_sampler_type(dim[target], false, is_array, GLSL_TYPE_FLOAT);
+}
+
 static void *
-create_fs(struct st_context *st, bool download, enum pipe_texture_target target,
-          enum st_pbo_conversion conversion)
+create_fs_nir(struct st_context *st,
+              bool download,
+              enum pipe_texture_target target,
+              enum st_pbo_conversion conversion)
+{
+   struct pipe_screen *screen = st->pipe->screen;
+   struct nir_builder b;
+   const nir_shader_compiler_options *options =
+      st->ctx->Const.ShaderCompilerOptions[MESA_SHADER_FRAGMENT].NirOptions;
+   bool pos_is_sysval =
+      screen->get_param(screen, PIPE_CAP_TGSI_FS_POSITION_IS_SYSVAL);
+
+   nir_builder_init_simple_shader(&b, NULL, MESA_SHADER_FRAGMENT, options);
+
+   nir_ssa_def *zero = nir_imm_int(&b, 0);
+
+   /* param = [ -xoffset + skip_pixels, -yoffset, stride, image_height ] */
+   nir_variable *param_var =
+      nir_variable_create(b.shader, nir_var_uniform, glsl_vec4_type(), "param");
+   nir_ssa_def *param = nir_load_var(&b, param_var);
+
+   nir_variable *fragcoord =
+      nir_variable_create(b.shader, pos_is_sysval ? nir_var_system_value :
+                          nir_var_shader_in, glsl_vec4_type(), "gl_FragCoord");
+   fragcoord->data.location = pos_is_sysval ? SYSTEM_VALUE_FRAG_COORD
+                                            : VARYING_SLOT_POS;
+   nir_ssa_def *coord = nir_load_var(&b, fragcoord);
+
+   nir_ssa_def *layer = NULL;
+   if (st->pbo.layers && (!download || target == PIPE_TEXTURE_1D_ARRAY ||
+                                       target == PIPE_TEXTURE_2D_ARRAY ||
+                                       target == PIPE_TEXTURE_3D ||
+                                       target == PIPE_TEXTURE_CUBE ||
+                                       target == PIPE_TEXTURE_CUBE_ARRAY)) {
+      nir_variable *var = nir_variable_create(b.shader, nir_var_shader_in,
+                                              glsl_int_type(), "gl_Layer");
+      var->data.location = VARYING_SLOT_LAYER;
+      var->data.interpolation = INTERP_MODE_FLAT;
+      layer = nir_load_var(&b, var);
+   }
+
+   /* offset_pos = param.xy + f2i(coord.xy) */
+   nir_ssa_def *offset_pos =
+      nir_iadd(&b, nir_channels(&b, param, TGSI_WRITEMASK_XY),
+               nir_f2i32(&b, nir_channels(&b, coord, TGSI_WRITEMASK_XY)));
+
+   /* addr = offset_pos.x + offset_pos.y * stride */
+   nir_ssa_def *pbo_addr =
+      nir_iadd(&b, nir_channel(&b, offset_pos, 0),
+               nir_imul(&b, nir_channel(&b, offset_pos, 1),
+                        nir_channel(&b, param, 2)));
+   if (layer) {
+      /* pbo_addr += image_height * layer */
+      pbo_addr = nir_iadd(&b, pbo_addr,
+                          nir_imul(&b, layer, nir_channel(&b, param, 3)));
+   }
+
+   nir_ssa_def *texcoord;
+   if (download) {
+      texcoord = nir_f2i32(&b, nir_channels(&b, coord, TGSI_WRITEMASK_XY));
+
+      if (layer) {
+         nir_ssa_def *src_layer = layer;
+
+         if (target == PIPE_TEXTURE_3D) {
+            nir_variable *layer_offset_var =
+               nir_variable_create(b.shader, nir_var_uniform,
+                                   glsl_int_type(), "layer_offset");
+            layer_offset_var->data.driver_location = 4;
+            nir_ssa_def *layer_offset = nir_load_var(&b, layer_offset_var);
+
+            src_layer = nir_iadd(&b, layer, layer_offset);
+         }
+
+         texcoord = nir_vec3(&b, nir_channel(&b, texcoord, 0),
+                                 nir_channel(&b, texcoord, 1),
+                                 src_layer);
+      }
+   } else {
+      texcoord = pbo_addr;
+   }
+
+   nir_variable *tex_var =
+      nir_variable_create(b.shader, nir_var_uniform,
+                          sampler_type_for_target(target), "tex");
+   nir_tex_instr *tex = nir_tex_instr_create(b.shader, 1);
+   tex->op = nir_texop_txf;
+   tex->sampler_dim = glsl_get_sampler_dim(tex_var->type);
+   tex->coord_components =
+      glsl_get_sampler_coordinate_components(tex_var->type);
+   tex->dest_type = nir_type_float;
+   tex->src[0].src_type = nir_tex_src_coord;
+   tex->src[0].src = nir_src_for_ssa(texcoord);
+   nir_ssa_dest_init(&tex->instr, &tex->dest, 4, 32, NULL);
+   nir_builder_instr_insert(&b, &tex->instr);
+   nir_ssa_def *result = &tex->dest.ssa;
+
+   if (conversion == ST_PBO_CONVERT_SINT_TO_UINT)
+      result = nir_imax(&b, result, zero);
+   else if (conversion == ST_PBO_CONVERT_UINT_TO_SINT)
+      result = nir_umin(&b, result, nir_imm_int(&b, (1u << 31) - 1));
+
+   if (download) {
+      nir_variable *img_var =
+         nir_variable_create(b.shader, nir_var_uniform,
+                             glsl_image_type(GLSL_SAMPLER_DIM_BUF, false,
+                                             GLSL_TYPE_FLOAT), "img");
+      img_var->data.image.access = ACCESS_NON_READABLE;
+      nir_deref_instr *img_deref = nir_build_deref_var(&b, img_var);
+      nir_intrinsic_instr *intrin =
+         nir_intrinsic_instr_create(b.shader, nir_intrinsic_image_deref_store);
+      intrin->src[0] = nir_src_for_ssa(&img_deref->dest.ssa);
+      intrin->src[1] =
+         nir_src_for_ssa(nir_vec4(&b, pbo_addr, zero, zero, zero));
+      intrin->src[2] = nir_src_for_ssa(zero);
+      intrin->src[3] = nir_src_for_ssa(result);
+      intrin->num_components = 4;
+      nir_builder_instr_insert(&b, &intrin->instr);
+   } else {
+      nir_variable *color =
+         nir_variable_create(b.shader, nir_var_shader_out, glsl_vec4_type(),
+                             "gl_FragColor");
+      color->data.location = FRAG_RESULT_COLOR;
+
+      nir_store_var(&b, color, result, TGSI_WRITEMASK_XYZW);
+   }
+
+   return st_nir_finish_builtin_shader(st, b.shader, download ?
+                                       "st/pbo download FS" :
+                                       "st/pbo upload FS");
+}
+
+static void *
+create_fs_tgsi(struct st_context *st, bool download,
+               enum pipe_texture_target target,
+               enum st_pbo_conversion conversion)
 {
    struct pipe_context *pipe = st->pipe;
    struct pipe_screen *screen = pipe->screen;
@@ -533,6 +704,22 @@ create_fs(struct st_context *st, bool download, enum pipe_texture_target target,
    ureg_END(ureg);
 
    return ureg_create_shader_and_destroy(ureg, pipe);
+}
+
+static void *
+create_fs(struct st_context *st, bool download,
+          enum pipe_texture_target target,
+          enum st_pbo_conversion conversion)
+{
+   struct pipe_screen *pscreen = st->pipe->screen;
+   bool use_nir = PIPE_SHADER_IR_NIR ==
+      pscreen->get_shader_param(pscreen, PIPE_SHADER_VERTEX,
+                                PIPE_SHADER_CAP_PREFERRED_IR);
+
+   if (use_nir)
+      return create_fs_nir(st, download, target, conversion);
+
+   return create_fs_tgsi(st, download, target, conversion);
 }
 
 static enum st_pbo_conversion

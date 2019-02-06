@@ -742,6 +742,7 @@ st_link_nir(struct gl_context *ctx,
                  st->pipe->screen);
 
       NIR_PASS_V(nir, nir_lower_system_values);
+      NIR_PASS_V(nir, nir_lower_clip_cull_distance_arrays);
 
       nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
       shader->Program->info = nir->info;
@@ -794,27 +795,9 @@ st_link_nir(struct gl_context *ctx,
    return true;
 }
 
-/* Last third of preparing nir from glsl, which happens after shader
- * variant lowering.
- */
 void
-st_finalize_nir(struct st_context *st, struct gl_program *prog,
-                struct gl_shader_program *shader_program, nir_shader *nir)
+st_nir_assign_varying_locations(struct st_context *st, nir_shader *nir)
 {
-   struct pipe_screen *screen = st->pipe->screen;
-   const nir_shader_compiler_options *options =
-      st->ctx->Const.ShaderCompilerOptions[prog->info.stage].NirOptions;
-
-   NIR_PASS_V(nir, nir_split_var_copies);
-   NIR_PASS_V(nir, nir_lower_var_copies);
-   if (options->lower_all_io_to_temps ||
-       nir->info.stage == MESA_SHADER_VERTEX ||
-       nir->info.stage == MESA_SHADER_GEOMETRY) {
-      NIR_PASS_V(nir, nir_lower_io_arrays_to_elements_no_indirects, false);
-   } else if (nir->info.stage == MESA_SHADER_FRAGMENT) {
-      NIR_PASS_V(nir, nir_lower_io_arrays_to_elements_no_indirects, true);
-   }
-
    if (nir->info.stage == MESA_SHADER_VERTEX) {
       /* Needs special handling so drvloc matches the vbo state: */
       st_nir_assign_vs_in_locations(nir);
@@ -852,8 +835,32 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog,
    } else if (nir->info.stage == MESA_SHADER_COMPUTE) {
        /* TODO? */
    } else {
-      unreachable("invalid shader type for tgsi bypass\n");
+      unreachable("invalid shader type");
    }
+}
+
+/* Last third of preparing nir from glsl, which happens after shader
+ * variant lowering.
+ */
+void
+st_finalize_nir(struct st_context *st, struct gl_program *prog,
+                struct gl_shader_program *shader_program, nir_shader *nir)
+{
+   struct pipe_screen *screen = st->pipe->screen;
+   const nir_shader_compiler_options *options =
+      st->ctx->Const.ShaderCompilerOptions[prog->info.stage].NirOptions;
+
+   NIR_PASS_V(nir, nir_split_var_copies);
+   NIR_PASS_V(nir, nir_lower_var_copies);
+   if (options->lower_all_io_to_temps ||
+       nir->info.stage == MESA_SHADER_VERTEX ||
+       nir->info.stage == MESA_SHADER_GEOMETRY) {
+      NIR_PASS_V(nir, nir_lower_io_arrays_to_elements_no_indirects, false);
+   } else if (nir->info.stage == MESA_SHADER_FRAGMENT) {
+      NIR_PASS_V(nir, nir_lower_io_arrays_to_elements_no_indirects, true);
+   }
+
+   st_nir_assign_varying_locations(st, nir);
 
    NIR_PASS_V(nir, nir_lower_atomics_to_ssbo,
          st->ctx->Const.Program[nir->info.stage].MaxAtomicBuffers);

@@ -48,6 +48,7 @@
 #include "st_cb_fbo.h"
 #include "st_draw.h"
 #include "st_format.h"
+#include "st_nir.h"
 #include "st_program.h"
 
 #include "pipe/p_context.h"
@@ -107,13 +108,51 @@ st_destroy_clear(struct st_context *st)
 static inline void
 set_fragment_shader(struct st_context *st)
 {
-   if (!st->clear.fs)
-      st->clear.fs =
-         util_make_fragment_passthrough_shader(st->pipe, TGSI_SEMANTIC_GENERIC,
-                                               TGSI_INTERPOLATE_CONSTANT,
-                                               TRUE);
+   struct pipe_screen *pscreen = st->pipe->screen;
+   bool use_nir = PIPE_SHADER_IR_NIR ==
+      pscreen->get_shader_param(pscreen, PIPE_SHADER_VERTEX,
+                                PIPE_SHADER_CAP_PREFERRED_IR);
+
+   if (!st->clear.fs) {
+      if (use_nir) {
+         unsigned inputs[] = { VARYING_SLOT_VAR0 };
+         unsigned outputs[] = { FRAG_RESULT_COLOR };
+         unsigned interpolation[] = { INTERP_MODE_FLAT };
+         st->clear.fs = st_nir_make_passthrough_shader(st, "clear FS",
+                                                       MESA_SHADER_FRAGMENT,
+                                                       1, inputs, outputs,
+                                                       interpolation, 0);
+      } else {
+         st->clear.fs =
+            util_make_fragment_passthrough_shader(st->pipe,
+                                                  TGSI_SEMANTIC_GENERIC,
+                                                  TGSI_INTERPOLATE_CONSTANT,
+                                                  TRUE);
+      }
+   }
 
    cso_set_fragment_shader_handle(st->cso_context, st->clear.fs);
+}
+
+
+static void *
+make_nir_clear_vertex_shader(struct st_context *st, bool layered)
+{
+   const char *shader_name = layered ? "layered clear VS" : "clear VS";
+   unsigned inputs[] = {
+      VERT_ATTRIB_POS,
+      VERT_ATTRIB_GENERIC0,
+      SYSTEM_VALUE_INSTANCE_ID,
+   };
+   unsigned outputs[] = {
+      VARYING_SLOT_POS,
+      VARYING_SLOT_VAR0,
+      VARYING_SLOT_LAYER
+   };
+
+   return st_nir_make_passthrough_shader(st, shader_name, MESA_SHADER_VERTEX,
+                                         layered ? 3 : 2, inputs, outputs,
+                                         NULL, (1 << 2));
 }
 
 
@@ -123,18 +162,27 @@ set_fragment_shader(struct st_context *st)
 static inline void
 set_vertex_shader(struct st_context *st)
 {
+   struct pipe_screen *pscreen = st->pipe->screen;
+   bool use_nir = PIPE_SHADER_IR_NIR ==
+      pscreen->get_shader_param(pscreen, PIPE_SHADER_VERTEX,
+                                PIPE_SHADER_CAP_PREFERRED_IR);
+
    /* vertex shader - still required to provide the linkage between
     * fragment shader input semantics and vertex_element/buffers.
     */
    if (!st->clear.vs)
    {
-      const uint semantic_names[] = { TGSI_SEMANTIC_POSITION,
-                                      TGSI_SEMANTIC_GENERIC };
-      const uint semantic_indexes[] = { 0, 0 };
-      st->clear.vs = util_make_vertex_passthrough_shader(st->pipe, 2,
-                                                         semantic_names,
-                                                         semantic_indexes,
-                                                         FALSE);
+      if (use_nir) {
+         st->clear.vs = make_nir_clear_vertex_shader(st, false);
+      } else {
+         const uint semantic_names[] = { TGSI_SEMANTIC_POSITION,
+                                         TGSI_SEMANTIC_GENERIC };
+         const uint semantic_indexes[] = { 0, 0 };
+         st->clear.vs = util_make_vertex_passthrough_shader(st->pipe, 2,
+                                                            semantic_names,
+                                                            semantic_indexes,
+                                                            FALSE);
+      }
    }
 
    cso_set_vertex_shader_handle(st->cso_context, st->clear.vs);
@@ -146,6 +194,10 @@ static void
 set_vertex_shader_layered(struct st_context *st)
 {
    struct pipe_context *pipe = st->pipe;
+   struct pipe_screen *pscreen = pipe->screen;
+   bool use_nir = PIPE_SHADER_IR_NIR ==
+      pscreen->get_shader_param(pscreen, PIPE_SHADER_VERTEX,
+                                PIPE_SHADER_CAP_PREFERRED_IR);
 
    if (!pipe->screen->get_param(pipe->screen, PIPE_CAP_TGSI_INSTANCEID)) {
       assert(!"Got layered clear, but VS instancing is unsupported");
@@ -157,7 +209,9 @@ set_vertex_shader_layered(struct st_context *st)
       bool vs_layer =
          pipe->screen->get_param(pipe->screen, PIPE_CAP_TGSI_VS_LAYER_VIEWPORT);
       if (vs_layer) {
-         st->clear.vs_layered = util_make_layered_clear_vertex_shader(pipe);
+         st->clear.vs_layered =
+            use_nir ? make_nir_clear_vertex_shader(st, true)
+                    : util_make_layered_clear_vertex_shader(pipe);
       } else {
          st->clear.vs_layered = util_make_layered_clear_helper_vertex_shader(pipe);
          st->clear.gs_layered = util_make_layered_clear_geometry_shader(pipe);

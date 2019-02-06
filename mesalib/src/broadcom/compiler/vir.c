@@ -133,38 +133,6 @@ vir_has_side_effects(struct v3d_compile *c, struct qinst *inst)
 }
 
 bool
-vir_is_float_input(struct qinst *inst)
-{
-        /* XXX: More instrs */
-        switch (inst->qpu.type) {
-        case V3D_QPU_INSTR_TYPE_BRANCH:
-                return false;
-        case V3D_QPU_INSTR_TYPE_ALU:
-                switch (inst->qpu.alu.add.op) {
-                case V3D_QPU_A_FADD:
-                case V3D_QPU_A_FSUB:
-                case V3D_QPU_A_FMIN:
-                case V3D_QPU_A_FMAX:
-                case V3D_QPU_A_FTOIN:
-                        return true;
-                default:
-                        break;
-                }
-
-                switch (inst->qpu.alu.mul.op) {
-                case V3D_QPU_M_FMOV:
-                case V3D_QPU_M_VFMUL:
-                case V3D_QPU_M_FMUL:
-                        return true;
-                default:
-                        break;
-                }
-        }
-
-        return false;
-}
-
-bool
 vir_is_raw_mov(struct qinst *inst)
 {
         if (inst->qpu.type != V3D_QPU_INSTR_TYPE_ALU ||

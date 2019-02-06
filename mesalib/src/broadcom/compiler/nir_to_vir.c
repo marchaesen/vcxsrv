@@ -1129,8 +1129,8 @@ emit_frag_end(struct v3d_compile *c)
         */
 
         bool has_any_tlb_color_write = false;
-        for (int rt = 0; rt < c->fs_key->nr_cbufs; rt++) {
-                if (c->output_color_var[rt])
+        for (int rt = 0; rt < V3D_MAX_DRAW_BUFFERS; rt++) {
+                if (c->fs_key->cbufs & (1 << rt) && c->output_color_var[rt])
                         has_any_tlb_color_write = true;
         }
 
@@ -1194,8 +1194,8 @@ emit_frag_end(struct v3d_compile *c)
          * uniform setup
          */
 
-        for (int rt = 0; rt < c->fs_key->nr_cbufs; rt++) {
-                if (!c->output_color_var[rt])
+        for (int rt = 0; rt < V3D_MAX_DRAW_BUFFERS; rt++) {
+                if (!(c->fs_key->cbufs & (1 << rt)) || !c->output_color_var[rt])
                         continue;
 
                 nir_variable *var = c->output_color_var[rt];

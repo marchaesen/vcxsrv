@@ -353,6 +353,12 @@ nir_visitor::visit(ir_variable *ir)
               ir->data.location == VARYING_SLOT_TESS_LEVEL_OUTER)) {
             var->data.compact = ir->type->without_array()->is_scalar();
          }
+
+         if (shader->info.stage > MESA_SHADER_VERTEX &&
+             ir->data.location >= VARYING_SLOT_CLIP_DIST0 &&
+             ir->data.location <= VARYING_SLOT_CULL_DIST1) {
+            var->data.compact = ir->type->without_array()->is_scalar();
+         }
       }
       break;
 
@@ -361,6 +367,12 @@ nir_visitor::visit(ir_variable *ir)
       if (shader->info.stage == MESA_SHADER_TESS_CTRL &&
           (ir->data.location == VARYING_SLOT_TESS_LEVEL_INNER ||
            ir->data.location == VARYING_SLOT_TESS_LEVEL_OUTER)) {
+         var->data.compact = ir->type->without_array()->is_scalar();
+      }
+
+      if (shader->info.stage <= MESA_SHADER_GEOMETRY &&
+          ir->data.location >= VARYING_SLOT_CLIP_DIST0 &&
+          ir->data.location <= VARYING_SLOT_CULL_DIST1) {
          var->data.compact = ir->type->without_array()->is_scalar();
       }
       break;
@@ -388,11 +400,6 @@ nir_visitor::visit(ir_variable *ir)
    var->data.origin_upper_left = ir->data.origin_upper_left;
    var->data.pixel_center_integer = ir->data.pixel_center_integer;
    var->data.location_frac = ir->data.location_frac;
-
-   if (var->data.pixel_center_integer) {
-      assert(shader->info.stage == MESA_SHADER_FRAGMENT);
-      shader->info.fs.pixel_center_integer = true;
-   }
 
    switch (ir->data.depth_layout) {
    case ir_depth_layout_none:

@@ -776,7 +776,11 @@ v3d_qpu_add_unpack(const struct v3d_device_info *devinfo, uint64_t packed_inst,
         case V3D_QPU_A_FMIN:
         case V3D_QPU_A_FMAX:
         case V3D_QPU_A_FCMP:
-                instr->alu.add.output_pack = (op >> 4) & 0x3;
+        case V3D_QPU_A_VFPACK:
+                if (instr->alu.add.op != V3D_QPU_A_VFPACK)
+                        instr->alu.add.output_pack = (op >> 4) & 0x3;
+                else
+                        instr->alu.add.output_pack = V3D_QPU_PACK_NONE;
 
                 if (!v3d_qpu_float32_unpack_unpack((op >> 2) & 0x3,
                                                    &instr->alu.add.a_unpack)) {
@@ -1042,6 +1046,32 @@ v3d_qpu_add_pack(const struct v3d_device_info *devinfo,
 
                 opcode |= a_unpack << 2;
                 opcode |= b_unpack << 0;
+
+                break;
+        }
+
+        case V3D_QPU_A_VFPACK: {
+                uint32_t a_unpack;
+                uint32_t b_unpack;
+
+                if (instr->alu.add.a_unpack == V3D_QPU_UNPACK_ABS ||
+                    instr->alu.add.b_unpack == V3D_QPU_UNPACK_ABS) {
+                        return false;
+                }
+
+                if (!v3d_qpu_float32_unpack_pack(instr->alu.add.a_unpack,
+                                                 &a_unpack)) {
+                        return false;
+                }
+
+                if (!v3d_qpu_float32_unpack_pack(instr->alu.add.b_unpack,
+                                                 &b_unpack)) {
+                        return false;
+                }
+
+                opcode = (opcode & ~(1 << 2)) | (a_unpack << 2);
+                opcode = (opcode & ~(1 << 0)) | (b_unpack << 0);
+
                 break;
         }
 
@@ -1065,7 +1095,7 @@ v3d_qpu_add_pack(const struct v3d_device_info *devinfo,
                 }
                 if (packed == 0)
                         return false;
-                opcode |= packed << 2;
+                opcode = (opcode & ~(1 << 2)) | packed << 2;
                 break;
         }
 

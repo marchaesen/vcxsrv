@@ -289,6 +289,7 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_POST_DEPTH_COVERAGE:
    case PIPE_CAP_BINDLESS_TEXTURE:
    case PIPE_CAP_NIR_SAMPLERS_AS_DEREF:
+   case PIPE_CAP_NIR_COMPACT_ARRAYS:
    case PIPE_CAP_QUERY_SO_OVERFLOW:
    case PIPE_CAP_MEMOBJ:
    case PIPE_CAP_LOAD_CONSTBUF:
