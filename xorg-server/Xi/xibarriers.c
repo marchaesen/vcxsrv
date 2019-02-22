@@ -611,7 +611,9 @@ CreatePointerBarrierClient(ClientPtr client,
         }
         pbd->deviceid = dev->id;
 
+        input_lock();
         xorg_list_add(&pbd->entry, &ret->per_device);
+        input_unlock();
     }
 
     ret->id = stuff->barrier;
@@ -626,7 +628,9 @@ CreatePointerBarrierClient(ClientPtr client,
         ret->barrier.directions &= ~(BarrierPositiveX | BarrierNegativeX);
     if (barrier_is_vertical(&ret->barrier))
         ret->barrier.directions &= ~(BarrierPositiveY | BarrierNegativeY);
+    input_lock();
     xorg_list_add(&ret->entry, &cs->barriers);
+    input_unlock();
 
     *client_out = ret;
     return Success;
@@ -689,7 +693,9 @@ BarrierFreeBarrier(void *data, XID id)
         mieqEnqueue(dev, (InternalEvent *) &ev);
     }
 
+    input_lock();
     xorg_list_del(&c->entry);
+    input_unlock();
 
     FreePointerBarrierClient(c);
     return Success;
@@ -709,7 +715,9 @@ static void add_master_func(void *res, XID id, void *devid)
     pbd = AllocBarrierDevice();
     pbd->deviceid = *deviceid;
 
+    input_lock();
     xorg_list_add(&pbd->entry, &barrier->per_device);
+    input_unlock();
 }
 
 static void remove_master_func(void *res, XID id, void *devid)
@@ -752,7 +760,9 @@ static void remove_master_func(void *res, XID id, void *devid)
         mieqEnqueue(dev, (InternalEvent *) &ev);
     }
 
+    input_lock();
     xorg_list_del(&pbd->entry);
+    input_unlock();
     free(pbd);
 }
 

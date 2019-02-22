@@ -25,7 +25,7 @@
 #ifndef __MSM_DRM_H__
 #define __MSM_DRM_H__
 
-#include "drm.h"
+#include "drm-uapi/drm.h"
 
 #if defined(__cplusplus)
 extern "C" {

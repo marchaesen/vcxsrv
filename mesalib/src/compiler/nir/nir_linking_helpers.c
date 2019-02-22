@@ -226,22 +226,41 @@ get_interp_loc(nir_variable *var)
       return INTERPOLATE_LOC_CENTER;
 }
 
+static bool
+is_packing_supported_for_type(const struct glsl_type *type)
+{
+   /* We ignore complex types such as arrays, matrices, structs and bitsizes
+    * other then 32bit. All other vector types should have been split into
+    * scalar variables by the lower_io_to_scalar pass. The only exception
+    * should be OpenGL xfb varyings.
+    * TODO: add support for more complex types?
+    */
+   return glsl_type_is_scalar(type) && glsl_type_is_32bit(type);
+}
+
+struct assigned_comps
+{
+   uint8_t comps;
+   uint8_t interp_type;
+   uint8_t interp_loc;
+};
+
+/* Packing arrays and dual slot varyings is difficult so to avoid complex
+ * algorithms this function just assigns them their existing location for now.
+ * TODO: allow better packing of complex types.
+ */
 static void
-get_slot_component_masks_and_interp_types(struct exec_list *var_list,
-                                          uint8_t *comps,
-                                          uint8_t *interp_type,
-                                          uint8_t *interp_loc,
-                                          gl_shader_stage stage,
-                                          bool default_to_smooth_interp)
+get_unmoveable_components_masks(struct exec_list *var_list,
+                                struct assigned_comps *comps,
+                                gl_shader_stage stage,
+                                bool default_to_smooth_interp)
 {
    nir_foreach_variable_safe(var, var_list) {
       assert(var->data.location >= 0);
 
-      /* Only remap things that aren't built-ins.
-       * TODO: add TES patch support.
-       */
+      /* Only remap things that aren't built-ins. */
       if (var->data.location >= VARYING_SLOT_VAR0 &&
-          var->data.location - VARYING_SLOT_VAR0 < 32) {
+          var->data.location - VARYING_SLOT_VAR0 < MAX_VARYINGS_INCL_PATCH) {
 
          const struct glsl_type *type = var->type;
          if (nir_is_per_vertex_io(var, stage)) {
@@ -249,37 +268,44 @@ get_slot_component_masks_and_interp_types(struct exec_list *var_list,
             type = glsl_get_array_element(type);
          }
 
+         /* If we can pack this varying then don't mark the components as
+          * used.
+          */
+         if (is_packing_supported_for_type(type))
+            continue;
+
          unsigned location = var->data.location - VARYING_SLOT_VAR0;
          unsigned elements =
             glsl_get_vector_elements(glsl_without_array(type));
 
          bool dual_slot = glsl_type_is_dual_slot(glsl_without_array(type));
          unsigned slots = glsl_count_attribute_slots(type, false);
+         unsigned dmul = glsl_type_is_64bit(glsl_without_array(type)) ? 2 : 1;
          unsigned comps_slot2 = 0;
          for (unsigned i = 0; i < slots; i++) {
-            interp_type[location + i] =
-               get_interp_type(var, type, default_to_smooth_interp);
-            interp_loc[location + i] = get_interp_loc(var);
-
             if (dual_slot) {
                if (i & 1) {
-                  comps[location + i] |= ((1 << comps_slot2) - 1);
+                  comps[location + i].comps |= ((1 << comps_slot2) - 1);
                } else {
                   unsigned num_comps = 4 - var->data.location_frac;
-                  comps_slot2 = (elements * 2) - num_comps;
+                  comps_slot2 = (elements * dmul) - num_comps;
 
                   /* Assume ARB_enhanced_layouts packing rules for doubles */
                   assert(var->data.location_frac == 0 ||
                          var->data.location_frac == 2);
                   assert(comps_slot2 <= 4);
 
-                  comps[location + i] |=
+                  comps[location + i].comps |=
                      ((1 << num_comps) - 1) << var->data.location_frac;
                }
             } else {
-               comps[location + i] |=
-                  ((1 << elements) - 1) << var->data.location_frac;
+               comps[location + i].comps |=
+                  ((1 << (elements * dmul)) - 1) << var->data.location_frac;
             }
+
+            comps[location + i].interp_type =
+               get_interp_type(var, type, default_to_smooth_interp);
+            comps[location + i].interp_loc = get_interp_loc(var);
          }
       }
    }
@@ -292,23 +318,42 @@ struct varying_loc
 };
 
 static void
+mark_all_used_slots(nir_variable *var, uint64_t *slots_used,
+                    uint64_t slots_used_mask, unsigned num_slots)
+{
+   unsigned loc_offset = var->data.patch ? VARYING_SLOT_PATCH0 : 0;
+
+   slots_used[var->data.patch ? 1 : 0] |= slots_used_mask &
+      BITFIELD64_RANGE(var->data.location - loc_offset, num_slots);
+}
+
+static void
+mark_used_slot(nir_variable *var, uint64_t *slots_used, unsigned offset)
+{
+   unsigned loc_offset = var->data.patch ? VARYING_SLOT_PATCH0 : 0;
+
+   slots_used[var->data.patch ? 1 : 0] |=
+      BITFIELD64_BIT(var->data.location - loc_offset + offset);
+}
+
+static void
 remap_slots_and_components(struct exec_list *var_list, gl_shader_stage stage,
                            struct varying_loc (*remap)[4],
-                           uint64_t *slots_used, uint64_t *out_slots_read)
+                           uint64_t *slots_used, uint64_t *out_slots_read,
+                           uint32_t *p_slots_used, uint32_t *p_out_slots_read)
  {
-   uint64_t out_slots_read_tmp = 0;
+   uint64_t out_slots_read_tmp[2] = {0};
+   uint64_t slots_used_tmp[2] = {0};
 
    /* We don't touch builtins so just copy the bitmask */
-   uint64_t slots_used_tmp =
-      *slots_used & (((uint64_t)1 << (VARYING_SLOT_VAR0 - 1)) - 1);
+   slots_used_tmp[0] = *slots_used & BITFIELD64_RANGE(0, VARYING_SLOT_VAR0);
 
    nir_foreach_variable(var, var_list) {
       assert(var->data.location >= 0);
 
       /* Only remap things that aren't built-ins */
       if (var->data.location >= VARYING_SLOT_VAR0 &&
-          var->data.location - VARYING_SLOT_VAR0 < 32) {
-         assert(var->data.location - VARYING_SLOT_VAR0 < 32);
+          var->data.location - VARYING_SLOT_VAR0 < MAX_VARYINGS_INCL_PATCH) {
 
          const struct glsl_type *type = var->type;
          if (nir_is_per_vertex_io(var, stage)) {
@@ -323,11 +368,17 @@ remap_slots_and_components(struct exec_list *var_list, gl_shader_stage stage,
          unsigned location = var->data.location - VARYING_SLOT_VAR0;
          struct varying_loc *new_loc = &remap[location][var->data.location_frac];
 
-         uint64_t slots = (((uint64_t)1 << num_slots) - 1) << var->data.location;
-         if (slots & *slots_used)
+         unsigned loc_offset = var->data.patch ? VARYING_SLOT_PATCH0 : 0;
+         uint64_t used = var->data.patch ? *p_slots_used : *slots_used;
+         uint64_t outs_used =
+            var->data.patch ? *p_out_slots_read : *out_slots_read;
+         uint64_t slots =
+            BITFIELD64_RANGE(var->data.location - loc_offset, num_slots);
+
+         if (slots & used)
             used_across_stages = true;
 
-         if (slots & *out_slots_read)
+         if (slots & outs_used)
             outputs_read = true;
 
          if (new_loc->location) {
@@ -341,58 +392,80 @@ remap_slots_and_components(struct exec_list *var_list, gl_shader_stage stage,
              * otherwise we will mess up the mask for things like partially
              * marked arrays.
              */
-            if (used_across_stages) {
-               slots_used_tmp |=
-                  *slots_used & (((uint64_t)1 << num_slots) - 1) << var->data.location;
-            }
+            if (used_across_stages)
+               mark_all_used_slots(var, slots_used_tmp, used, num_slots);
 
             if (outputs_read) {
-               out_slots_read_tmp |=
-                  *out_slots_read & (((uint64_t)1 << num_slots) - 1) << var->data.location;
+               mark_all_used_slots(var, out_slots_read_tmp, outs_used,
+                                   num_slots);
             }
-
          } else {
             for (unsigned i = 0; i < num_slots; i++) {
                if (used_across_stages)
-                  slots_used_tmp |= (uint64_t)1 << (var->data.location + i);
+                  mark_used_slot(var, slots_used_tmp, i);
 
                if (outputs_read)
-                  out_slots_read_tmp |= (uint64_t)1 << (var->data.location + i);
+                  mark_used_slot(var, out_slots_read_tmp, i);
             }
          }
       }
    }
 
-   *slots_used = slots_used_tmp;
-   *out_slots_read = out_slots_read_tmp;
+   *slots_used = slots_used_tmp[0];
+   *out_slots_read = out_slots_read_tmp[0];
+   *p_slots_used = slots_used_tmp[1];
+   *p_out_slots_read = out_slots_read_tmp[1];
 }
 
-/* If there are empty components in the slot compact the remaining components
- * as close to component 0 as possible. This will make it easier to fill the
- * empty components with components from a different slot in a following pass.
- */
-static void
-compact_components(nir_shader *producer, nir_shader *consumer, uint8_t *comps,
-                   uint8_t *interp_type, uint8_t *interp_loc,
-                   bool default_to_smooth_interp)
+struct varying_component {
+   nir_variable *var;
+   uint8_t interp_type;
+   uint8_t interp_loc;
+   bool is_patch;
+   bool initialised;
+};
+
+static int
+cmp_varying_component(const void *comp1_v, const void *comp2_v)
 {
-   struct exec_list *input_list = &consumer->inputs;
-   struct exec_list *output_list = &producer->outputs;
-   struct varying_loc remap[32][4] = {{{0}, {0}}};
+   struct varying_component *comp1 = (struct varying_component *) comp1_v;
+   struct varying_component *comp2 = (struct varying_component *) comp2_v;
 
-   /* Create a cursor for each interpolation type */
-   unsigned cursor[4] = {0};
+   /* We want patches to be order at the end of the array */
+   if (comp1->is_patch != comp2->is_patch)
+      return comp1->is_patch ? 1 : -1;
 
-   /* We only need to pass over one stage and we choose the consumer as it seems
-    * to cause a larger reduction in instruction counts (tested on i965).
+   /* We can only pack varyings with matching interpolation types so group
+    * them together.
     */
-   nir_foreach_variable(var, input_list) {
+   if (comp1->interp_type != comp2->interp_type)
+      return comp1->interp_type - comp2->interp_type;
 
-      /* Only remap things that aren't builtins.
-       * TODO: add TES patch support.
-       */
+   /* Interpolation loc must match also. */
+   if (comp1->interp_loc != comp2->interp_loc)
+      return comp1->interp_loc - comp2->interp_loc;
+
+   /* If everything else matches just use the original location to sort */
+   return comp1->var->data.location - comp2->var->data.location;
+}
+
+static void
+gather_varying_component_info(nir_shader *consumer,
+                              struct varying_component **varying_comp_info,
+                              unsigned *varying_comp_info_size,
+                              bool default_to_smooth_interp)
+{
+   unsigned store_varying_info_idx[MAX_VARYINGS_INCL_PATCH][4] = {0};
+   unsigned num_of_comps_to_pack = 0;
+
+   /* Count the number of varying that can be packed and create a mapping
+    * of those varyings to the array we will pass to qsort.
+    */
+   nir_foreach_variable(var, &consumer->inputs) {
+
+      /* Only remap things that aren't builtins. */
       if (var->data.location >= VARYING_SLOT_VAR0 &&
-          var->data.location - VARYING_SLOT_VAR0 < 32) {
+          var->data.location - VARYING_SLOT_VAR0 < MAX_VARYINGS_INCL_PATCH) {
 
          /* We can't repack xfb varyings. */
          if (var->data.always_active_io)
@@ -404,96 +477,205 @@ compact_components(nir_shader *producer, nir_shader *consumer, uint8_t *comps,
             type = glsl_get_array_element(type);
          }
 
-         /* Skip types that require more complex packing handling.
-          * TODO: add support for these types.
-          */
-         if (glsl_type_is_array(type) ||
-             glsl_type_is_dual_slot(type) ||
-             glsl_type_is_matrix(type) ||
-             glsl_type_is_struct(type) ||
-             glsl_type_is_64bit(type))
+         if (!is_packing_supported_for_type(type))
             continue;
 
-         /* We ignore complex types above and all other vector types should
-          * have been split into scalar variables by the lower_io_to_scalar
-          * pass. The only exception should by OpenGL xfb varyings.
-          */
-         if (glsl_get_vector_elements(type) != 1)
+         unsigned loc = var->data.location - VARYING_SLOT_VAR0;
+         store_varying_info_idx[loc][var->data.location_frac] =
+            ++num_of_comps_to_pack;
+      }
+   }
+
+   *varying_comp_info_size = num_of_comps_to_pack;
+   *varying_comp_info = rzalloc_array(NULL, struct varying_component,
+                                      num_of_comps_to_pack);
+
+   nir_function_impl *impl = nir_shader_get_entrypoint(consumer);
+
+   /* Walk over the shader and populate the varying component info array */
+   nir_foreach_block(block, impl) {
+      nir_foreach_instr(instr, block) {
+         if (instr->type != nir_instr_type_intrinsic)
             continue;
 
-         unsigned location = var->data.location - VARYING_SLOT_VAR0;
-         uint8_t used_comps = comps[location];
-
-         /* If there are no empty components there is nothing more for us to do.
-          */
-         if (used_comps == 0xf)
+         nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+         if (intr->intrinsic != nir_intrinsic_load_deref &&
+             intr->intrinsic != nir_intrinsic_interp_deref_at_centroid &&
+             intr->intrinsic != nir_intrinsic_interp_deref_at_sample &&
+             intr->intrinsic != nir_intrinsic_interp_deref_at_offset)
             continue;
 
-         bool found_new_offset = false;
-         uint8_t interp = get_interp_type(var, type, default_to_smooth_interp);
-         for (; cursor[interp] < 32; cursor[interp]++) {
-            uint8_t cursor_used_comps = comps[cursor[interp]];
+         nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
+         if (deref->mode != nir_var_shader_in)
+            continue;
 
-            /* We couldn't find anywhere to pack the varying continue on. */
-            if (cursor[interp] == location &&
-                (var->data.location_frac == 0 ||
-                 cursor_used_comps & ((1 << (var->data.location_frac)) - 1)))
-               break;
+         /* We only remap things that aren't builtins. */
+         nir_variable *in_var = nir_deref_instr_get_variable(deref);
+         if (in_var->data.location < VARYING_SLOT_VAR0)
+            continue;
 
-            /* We can only pack varyings with matching interpolation types */
-            if (interp_type[cursor[interp]] != interp)
-               continue;
+         unsigned location = in_var->data.location - VARYING_SLOT_VAR0;
+         if (location >= MAX_VARYINGS_INCL_PATCH)
+            continue;
 
-            /* Interpolation loc must match also.
-             * TODO: i965 can handle these if they don't match, but the
-             * radeonsi nir backend handles everything as vec4s and so expects
-             * this to be the same for all components. We could make this
-             * check driver specfific or drop it if NIR ever become the only
-             * radeonsi backend.
-             */
-            if (interp_loc[cursor[interp]] != get_interp_loc(var))
-               continue;
+         unsigned var_info_idx =
+            store_varying_info_idx[location][in_var->data.location_frac];
+         if (!var_info_idx)
+            continue;
 
-            /* If the slot is empty just skip it for now, compact_var_list()
-             * can be called after this function to remove empty slots for us.
-             * TODO: finish implementing compact_var_list() requires array and
-             * matrix splitting.
-             */
-            if (!cursor_used_comps)
-               continue;
+         struct varying_component *vc_info =
+            &(*varying_comp_info)[var_info_idx-1];
 
-            uint8_t unused_comps = ~cursor_used_comps;
-
-            for (unsigned i = 0; i < 4; i++) {
-               uint8_t new_var_comps = 1 << i;
-               if (unused_comps & new_var_comps) {
-                  remap[location][var->data.location_frac].component = i;
-                  remap[location][var->data.location_frac].location =
-                     cursor[interp] + VARYING_SLOT_VAR0;
-
-                  found_new_offset = true;
-
-                  /* Turn off the mask for the component we are remapping */
-                  if (comps[location] & 1 << var->data.location_frac) {
-                     comps[location] ^= 1 << var->data.location_frac;
-                     comps[cursor[interp]] |= new_var_comps;
-                  }
-                  break;
-               }
+         if (!vc_info->initialised) {
+            const struct glsl_type *type = in_var->type;
+            if (nir_is_per_vertex_io(in_var, consumer->info.stage)) {
+               assert(glsl_type_is_array(type));
+               type = glsl_get_array_element(type);
             }
 
-            if (found_new_offset)
-               break;
+            vc_info->var = in_var;
+            vc_info->interp_type =
+               get_interp_type(in_var, type, default_to_smooth_interp);
+            vc_info->interp_loc = get_interp_loc(in_var);
+            vc_info->is_patch = in_var->data.patch;
+         }
+      }
+   }
+}
+
+static void
+assign_remap_locations(struct varying_loc (*remap)[4],
+                       struct assigned_comps *assigned_comps,
+                       struct varying_component *info,
+                       unsigned *cursor, unsigned *comp,
+                       unsigned max_location)
+{
+   unsigned tmp_cursor = *cursor;
+   unsigned tmp_comp = *comp;
+
+   for (; tmp_cursor < max_location; tmp_cursor++) {
+
+      if (assigned_comps[tmp_cursor].comps) {
+         /* We can only pack varyings with matching interpolation types,
+          * interpolation loc must match also.
+          * TODO: i965 can handle interpolation locations that don't match,
+          * but the radeonsi nir backend handles everything as vec4s and so
+          * expects this to be the same for all components. We could make this
+          * check driver specfific or drop it if NIR ever become the only
+          * radeonsi backend.
+          */
+         if (assigned_comps[tmp_cursor].interp_type != info->interp_type ||
+             assigned_comps[tmp_cursor].interp_loc != info->interp_loc) {
+            tmp_comp = 0;
+            continue;
+         }
+
+         while (tmp_comp < 4 &&
+                (assigned_comps[tmp_cursor].comps & (1 << tmp_comp))) {
+            tmp_comp++;
+         }
+      }
+
+      if (tmp_comp == 4) {
+         tmp_comp = 0;
+         continue;
+      }
+
+      unsigned location = info->var->data.location - VARYING_SLOT_VAR0;
+
+      /* Once we have assigned a location mark it as used */
+      assigned_comps[tmp_cursor].comps |= (1 << tmp_comp);
+      assigned_comps[tmp_cursor].interp_type = info->interp_type;
+      assigned_comps[tmp_cursor].interp_loc = info->interp_loc;
+
+      /* Assign remap location */
+      remap[location][info->var->data.location_frac].component = tmp_comp++;
+      remap[location][info->var->data.location_frac].location =
+         tmp_cursor + VARYING_SLOT_VAR0;
+
+      break;
+   }
+
+   *cursor = tmp_cursor;
+   *comp = tmp_comp;
+}
+
+/* If there are empty components in the slot compact the remaining components
+ * as close to component 0 as possible. This will make it easier to fill the
+ * empty components with components from a different slot in a following pass.
+ */
+static void
+compact_components(nir_shader *producer, nir_shader *consumer,
+                   struct assigned_comps *assigned_comps,
+                   bool default_to_smooth_interp)
+{
+   struct exec_list *input_list = &consumer->inputs;
+   struct exec_list *output_list = &producer->outputs;
+   struct varying_loc remap[MAX_VARYINGS_INCL_PATCH][4] = {{{0}, {0}}};
+   struct varying_component *varying_comp_info;
+   unsigned varying_comp_info_size;
+
+   /* Gather varying component info */
+   gather_varying_component_info(consumer, &varying_comp_info,
+                                 &varying_comp_info_size,
+                                 default_to_smooth_interp);
+
+   /* Sort varying components. */
+   qsort(varying_comp_info, varying_comp_info_size,
+         sizeof(struct varying_component), cmp_varying_component);
+
+   unsigned cursor = 0;
+   unsigned comp = 0;
+
+   /* Set the remap array based on the sorted components */
+   for (unsigned i = 0; i < varying_comp_info_size; i++ ) {
+      struct varying_component *info = &varying_comp_info[i];
+
+      assert(info->is_patch || cursor < MAX_VARYING);
+      if (info->is_patch) {
+         /* The list should be sorted with all non-patch inputs first followed
+          * by patch inputs.  When we hit our first patch input, we need to
+          * reset the cursor to MAX_VARYING so we put them in the right slot.
+          */
+         if (cursor < MAX_VARYING) {
+            cursor = MAX_VARYING;
+            comp = 0;
+         }
+
+         assign_remap_locations(remap, assigned_comps, info,
+                                &cursor, &comp, MAX_VARYINGS_INCL_PATCH);
+      } else {
+         assign_remap_locations(remap, assigned_comps, info,
+                                &cursor, &comp, MAX_VARYING);
+
+         /* Check if we failed to assign a remap location. This can happen if
+          * for example there are a bunch of unmovable components with
+          * mismatching interpolation types causing us to skip over locations
+          * that would have been useful for packing later components.
+          * The solution is to iterate over the locations again (this should
+          * happen very rarely in practice).
+          */
+         if (cursor == MAX_VARYING) {
+            cursor = 0;
+            comp = 0;
+            assign_remap_locations(remap, assigned_comps, info,
+                                   &cursor, &comp, MAX_VARYING);
          }
       }
    }
 
+   ralloc_free(varying_comp_info);
+
    uint64_t zero = 0;
+   uint32_t zero32 = 0;
    remap_slots_and_components(input_list, consumer->info.stage, remap,
-                              &consumer->info.inputs_read, &zero);
+                              &consumer->info.inputs_read, &zero,
+                              &consumer->info.patch_inputs_read, &zero32);
    remap_slots_and_components(output_list, producer->info.stage, remap,
                               &producer->info.outputs_written,
-                              &producer->info.outputs_read);
+                              &producer->info.outputs_read,
+                              &producer->info.patch_outputs_written,
+                              &producer->info.patch_outputs_read);
 }
 
 /* We assume that this has been called more-or-less directly after
@@ -513,20 +695,16 @@ nir_compact_varyings(nir_shader *producer, nir_shader *consumer,
    assert(producer->info.stage != MESA_SHADER_FRAGMENT);
    assert(consumer->info.stage != MESA_SHADER_VERTEX);
 
-   uint8_t comps[32] = {0};
-   uint8_t interp_type[32] = {0};
-   uint8_t interp_loc[32] = {0};
+   struct assigned_comps assigned_comps[MAX_VARYINGS_INCL_PATCH] = {0};
 
-   get_slot_component_masks_and_interp_types(&producer->outputs, comps,
-                                             interp_type, interp_loc,
-                                             producer->info.stage,
-                                             default_to_smooth_interp);
-   get_slot_component_masks_and_interp_types(&consumer->inputs, comps,
-                                             interp_type, interp_loc,
-                                             consumer->info.stage,
-                                             default_to_smooth_interp);
+   get_unmoveable_components_masks(&producer->outputs, assigned_comps,
+                                   producer->info.stage,
+                                   default_to_smooth_interp);
+   get_unmoveable_components_masks(&consumer->inputs, assigned_comps,
+                                   consumer->info.stage,
+                                   default_to_smooth_interp);
 
-   compact_components(producer, consumer, comps, interp_type, interp_loc,
+   compact_components(producer, consumer, assigned_comps,
                       default_to_smooth_interp);
 }
 

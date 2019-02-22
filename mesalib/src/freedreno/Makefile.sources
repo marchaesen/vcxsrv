@@ -19,6 +19,8 @@ ir3_SOURCES := \
 	ir3/disasm-a3xx.c \
 	ir3/instr-a3xx.h \
 	ir3/ir3.c \
+	ir3/ir3_a4xx.c \
+	ir3/ir3_a6xx.c \
 	ir3/ir3_compiler.c \
 	ir3/ir3_compiler.h \
 	ir3/ir3_compiler_nir.c \
@@ -27,6 +29,8 @@ ir3_SOURCES := \
 	ir3/ir3_cp.c \
 	ir3/ir3_depth.c \
 	ir3/ir3_group.c \
+	ir3/ir3_image.c \
+	ir3/ir3_image.h \
 	ir3/ir3.h \
 	ir3/ir3_legalize.c \
 	ir3/ir3_nir.c \

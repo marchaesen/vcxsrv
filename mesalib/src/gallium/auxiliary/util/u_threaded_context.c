@@ -676,6 +676,7 @@ tc_set_constant_buffer(struct pipe_context *_pipe,
    if (cb && cb->user_buffer) {
       u_upload_data(tc->base.const_uploader, 0, cb->buffer_size, 64,
                     cb->user_buffer, &offset, &buffer);
+      u_upload_unmap(tc->base.const_uploader);
    }
 
    struct tc_constant_buffer *p =
@@ -1524,7 +1525,8 @@ tc_buffer_do_flush_region(struct threaded_context *tc,
    if (ttrans->staging) {
       struct pipe_box src_box;
 
-      u_box_1d(ttrans->offset + box->x % tc->map_buffer_alignment,
+      u_box_1d(ttrans->offset + ttrans->b.box.x % tc->map_buffer_alignment +
+               (box->x - ttrans->b.box.x),
                box->width, &src_box);
 
       /* Copy the staging buffer into the original one. */

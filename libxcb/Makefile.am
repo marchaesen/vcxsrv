@@ -99,6 +99,7 @@ tools/README \
 tools/api_conv.pl \
 tools/constants \
 autogen.sh \
+README.md \
 $(TESTS)
 
 MAINTAINERCLEANFILES = ChangeLog INSTALL

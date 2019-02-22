@@ -4,6 +4,7 @@ damage.*
 dpms.*
 dri2.*
 dri3.*
+ge.*
 glx.*
 present.*
 randr.*

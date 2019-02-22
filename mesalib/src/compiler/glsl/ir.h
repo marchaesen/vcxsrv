@@ -712,14 +712,6 @@ public:
       unsigned interpolation:2;
 
       /**
-       * \name ARB_fragment_coord_conventions
-       * @{
-       */
-      unsigned origin_upper_left:1;
-      unsigned pixel_center_integer:1;
-      /*@}*/
-
-      /**
        * Was the location explicitly set in the shader?
        *
        * If the location is explicitly set in the shader, it \b cannot be changed

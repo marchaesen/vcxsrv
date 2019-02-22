@@ -278,7 +278,7 @@ However, you can call
 .I XkbSelectEventDetails 
 using XkbBellNotify as the 
 .I event_type 
-and specifying XkbAllBellNotifyMask in 
+and specifying XkbAllBellEventsMask in
 .I bits_to_change 
 and 
 .I values_for_bits. 

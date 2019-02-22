@@ -529,6 +529,9 @@ ptn_tex(struct ptn_compile *c, nir_alu_dest dest, nir_ssa_def **src,
       abort();
    }
 
+   /* Deref sources */
+   num_srcs += 2;
+
    if (prog_inst->TexShadow)
       num_srcs++;
 
@@ -536,8 +539,6 @@ ptn_tex(struct ptn_compile *c, nir_alu_dest dest, nir_ssa_def **src,
    instr->op = op;
    instr->dest_type = nir_type_float;
    instr->is_shadow = prog_inst->TexShadow;
-   instr->texture_index = prog_inst->TexSrcUnit;
-   instr->sampler_index = prog_inst->TexSrcUnit;
 
    switch (prog_inst->TexSrcTarget) {
    case TEXTURE_1D_INDEX:
@@ -580,16 +581,26 @@ ptn_tex(struct ptn_compile *c, nir_alu_dest dest, nir_ssa_def **src,
       unreachable("can't reach");
    }
 
-   if (!c->sampler_vars[prog_inst->TexSrcUnit]) {
+   nir_variable *var = c->sampler_vars[prog_inst->TexSrcUnit];
+   if (!var) {
       const struct glsl_type *type =
          glsl_sampler_type(instr->sampler_dim, false, false, GLSL_TYPE_FLOAT);
-      nir_variable *var =
-         nir_variable_create(b->shader, nir_var_uniform, type, "sampler");
+      var = nir_variable_create(b->shader, nir_var_uniform, type, "sampler");
       var->data.binding = prog_inst->TexSrcUnit;
+      var->data.explicit_binding = true;
       c->sampler_vars[prog_inst->TexSrcUnit] = var;
    }
 
+   nir_deref_instr *deref = nir_build_deref_var(b, var);
+
    unsigned src_number = 0;
+
+   instr->src[src_number].src = nir_src_for_ssa(&deref->dest.ssa);
+   instr->src[src_number].src_type = nir_tex_src_texture_deref;
+   src_number++;
+   instr->src[src_number].src = nir_src_for_ssa(&deref->dest.ssa);
+   instr->src[src_number].src_type = nir_tex_src_sampler_deref;
+   src_number++;
 
    instr->src[src_number].src =
       nir_src_for_ssa(nir_swizzle(b, src[0], SWIZ(X, Y, Z, W),
@@ -879,10 +890,7 @@ setup_registers_and_variables(struct ptn_compile *c)
       var->data.index = 0;
 
       if (c->prog->Target == GL_FRAGMENT_PROGRAM_ARB) {
-         if (i == VARYING_SLOT_POS) {
-            var->data.origin_upper_left = c->prog->OriginUpperLeft;
-            var->data.pixel_center_integer = c->prog->PixelCenterInteger;
-         } else if (i == VARYING_SLOT_FOGC) {
+         if (i == VARYING_SLOT_FOGC) {
             /* fogcoord is defined as <f, 0.0, 0.0, 1.0>.  Make the actual
              * input variable a float, and create a local containing the
              * full vec4 value.
@@ -922,12 +930,6 @@ setup_registers_and_variables(struct ptn_compile *c)
                              ralloc_asprintf(shader, "sv_%d", i));
       var->data.location = i;
       var->data.index = 0;
-
-      if (c->prog->Target == GL_FRAGMENT_PROGRAM_ARB &&
-          i == SYSTEM_VALUE_FRAG_COORD) {
-         var->data.origin_upper_left = c->prog->OriginUpperLeft;
-         var->data.pixel_center_integer = c->prog->PixelCenterInteger;
-      }
 
       c->sysval_vars[i] = var;
    }
@@ -1013,7 +1015,7 @@ prog_to_nir(const struct gl_program *prog,
       c->parameters = rzalloc(s, nir_variable);
       c->parameters->type =
          glsl_array_type(glsl_vec4_type(), prog->Parameters->NumParameters, 0);
-      c->parameters->name = "parameters";
+      c->parameters->name = strdup(prog->Parameters->Parameters[0].Name);
       c->parameters->data.read_only = true;
       c->parameters->data.mode = nir_var_uniform;
       exec_list_push_tail(&s->uniforms, &c->parameters->node);

@@ -32,7 +32,7 @@
 #include <math.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
-#include <drm_fourcc.h>
+#include "drm-uapi/drm_fourcc.h"
 #ifdef VK_USE_PLATFORM_XLIB_XRANDR_EXT
 #include <xcb/randr.h>
 #include <X11/Xlib-xcb.h>
@@ -811,6 +811,7 @@ wsi_display_surface_get_support(VkIcdSurfaceBase *surface,
 
 static VkResult
 wsi_display_surface_get_capabilities(VkIcdSurfaceBase *surface_base,
+                                     struct wsi_device *wsi_device,
                                      VkSurfaceCapabilitiesKHR* caps)
 {
    VkIcdSurfaceDisplay *surface = (VkIcdSurfaceDisplay *) surface_base;
@@ -819,8 +820,11 @@ wsi_display_surface_get_capabilities(VkIcdSurfaceBase *surface_base,
    caps->currentExtent.width = mode->hdisplay;
    caps->currentExtent.height = mode->vdisplay;
 
-   /* XXX Figure out extents based on driver capabilities */
-   caps->maxImageExtent = caps->minImageExtent = caps->currentExtent;
+   caps->minImageExtent = (VkExtent2D) { 1, 1 };
+   caps->maxImageExtent = (VkExtent2D) {
+      wsi_device->maxImageDimension2D,
+      wsi_device->maxImageDimension2D,
+   };
 
    caps->supportedCompositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
@@ -851,13 +855,14 @@ wsi_display_surface_get_surface_counters(
 
 static VkResult
 wsi_display_surface_get_capabilities2(VkIcdSurfaceBase *icd_surface,
+                                      struct wsi_device *wsi_device,
                                       const void *info_next,
                                       VkSurfaceCapabilities2KHR *caps)
 {
    assert(caps->sType == VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR);
    VkResult result;
 
-   result = wsi_display_surface_get_capabilities(icd_surface,
+   result = wsi_display_surface_get_capabilities(icd_surface, wsi_device,
                                                  &caps->surfaceCapabilities);
    if (result != VK_SUCCESS)
       return result;

@@ -367,6 +367,23 @@ class mpint(MyTestBase):
                     self.assertEqual(int(mp_div(n, d)), q)
                     self.assertEqual(int(mp_mod(n, d)), r)
 
+    def testBitwise(self):
+        p = 0x3243f6a8885a308d313198a2e03707344a4093822299f31d0082efa98ec4e
+        e = 0x2b7e151628aed2a6abf7158809cf4f3c762e7160f38b4da56a784d9045190
+        x = mp_new(nbits(p))
+
+        mp_and_into(x, p, e)
+        self.assertEqual(int(x), p & e)
+
+        mp_or_into(x, p, e)
+        self.assertEqual(int(x), p | e)
+
+        mp_xor_into(x, p, e)
+        self.assertEqual(int(x), p ^ e)
+
+        mp_bic_into(x, p, e)
+        self.assertEqual(int(x), p & ~e)
+
     def testInversion(self):
         # Test mp_invert_mod_2to.
         testnumbers = [(mp_copy(n),n) for n in fibonacci_scattered()
@@ -1224,6 +1241,28 @@ culpa qui officia deserunt mollit anim id est laborum.
              'cb725b4b4ec0ac1174d69427b4d97848b7db4fc01181f99a8049a4d721862578'
              'f91e026778bb2d389a9dd88153405189e6ba438b213c5387284103d2267fd055'
         )
+
+    def testDSA(self):
+        p = 0xe93618c54716992ffd54e79df6e1b0edd517f7bbe4a49d64631eb3efe8105f676e8146248cfb4f05720862533210f0c2ab0f9dd61dbc0e5195200c4ebd95364b
+        q = 0xf3533bcece2e164ca7c5ce64bc1e395e9a15bbdd
+        g = 0x5ac9d0401c27d7abfbc5c17cdc1dc43323cd0ef18b79e1909bdace6d17af675a10d37dde8bd8b70e72a8666592216ccb00614629c27e870e4fbf393b812a9f05
+        y = 0xac3ddeb22d65a5a2ded4a28418b2a748d8e5e544ba5e818c137d7b042ef356b0ef6d66cfca0b3ab5affa2969522e7b07bee60562fa4869829a5afce0ad0c4cd0
+        x = 0x664f8250b7f1a5093047fe0c7fe4b58e46b73295
+        pubblob = ssh_string(b"ssh-dss") + b"".join(map(ssh2_mpint, [p,q,g,y]))
+        privblob = ssh2_mpint(x)
+        pubkey = ssh_key_new_pub('dsa', pubblob)
+        privkey = ssh_key_new_priv('dsa', pubblob, privblob)
+
+        sig = ssh_key_sign(privkey, b"hello, world", 0)
+        self.assertTrue(ssh_key_verify(pubkey, sig, b"hello, world"))
+        self.assertFalse(ssh_key_verify(pubkey, sig, b"hello, again"))
+
+        badsig0 = unhex('{:040x}{:040x}'.format(1, 0))
+        badsigq = unhex('{:040x}{:040x}'.format(1, q))
+        self.assertFalse(ssh_key_verify(pubkey, badsig0, "hello, world"))
+        self.assertFalse(ssh_key_verify(pubkey, badsigq, "hello, world"))
+        self.assertFalse(ssh_key_verify(pubkey, badsig0, "hello, again"))
+        self.assertFalse(ssh_key_verify(pubkey, badsigq, "hello, again"))
 
 class standard_test_vectors(MyTestBase):
     def testAES(self):

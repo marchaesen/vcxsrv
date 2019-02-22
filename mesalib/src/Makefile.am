@@ -136,3 +136,18 @@ libglsl_util_la_SOURCES = \
 	mesa/program/prog_parameter.c \
 	mesa/program/symbol_table.c \
 	mesa/program/dummy_errors.c
+
+EXTRA_DIST += \
+	tools/imgui/imconfig.h \
+	tools/imgui/imgui.cpp \
+	tools/imgui/imgui.h \
+	tools/imgui/imgui_draw.cpp \
+	tools/imgui/imgui_demo.cpp \
+	tools/imgui/imgui_internal.h \
+	tools/imgui/imgui_memory_editor.h \
+	tools/imgui/stb_rect_pack.h \
+	tools/imgui/stb_textedit.h \
+	tools/imgui/stb_truetype.h \
+	tools/imgui/README \
+	tools/imgui/LICENSE.txt \
+	tools/imgui/meson.build

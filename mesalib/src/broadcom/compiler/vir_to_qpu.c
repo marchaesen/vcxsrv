@@ -76,7 +76,7 @@ v3d_qpu_nop(void)
 static struct qinst *
 vir_nop(void)
 {
-        struct qreg undef = { QFILE_NULL, 0 };
+        struct qreg undef = vir_nop_reg();
         struct qinst *qinst = vir_add_inst(V3D_QPU_A_NOP, undef, undef, undef);
 
         return qinst;

@@ -9,25 +9,6 @@ This repository lives at https://gitlab.freedesktop.org/mesa/mesa.
 Other repositories are likely forks, and code found there is not supported.
 
 
-Build status
-------------
-
-Travis:
-
-.. image:: https://travis-ci.org/mesa3d/mesa.svg?branch=master
-    :target: https://travis-ci.org/mesa3d/mesa
-
-Appveyor:
-
-.. image:: https://img.shields.io/appveyor/ci/mesa3d/mesa.svg
-    :target: https://ci.appveyor.com/project/mesa3d/mesa
-
-Coverity:
-
-.. image:: https://scan.coverity.com/projects/139/badge.svg?flat=1
-    :target: https://scan.coverity.com/projects/mesa
-
-
 Build & install
 ---------------
 

@@ -159,7 +159,7 @@ dnl Checks for library functions.
 AC_CHECK_FUNCS([backtrace geteuid getuid issetugid getresuid \
 	getdtablesize getifaddrs getpeereid getpeerucred getprogname getzoneid \
 	mmap posix_fallocate seteuid shmctl64 strncasecmp vasprintf vsnprintf \
-	walkcontext setitimer poll epoll_create1 mkostemp])
+	walkcontext setitimer poll epoll_create1 mkostemp memfd_create])
 AC_CONFIG_LIBOBJ_DIR([os])
 AC_REPLACE_FUNCS([reallocarray strcasecmp strcasestr strlcat strlcpy strndup\
 	timingsafe_memcmp])

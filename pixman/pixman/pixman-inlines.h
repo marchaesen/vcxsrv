@@ -222,6 +222,31 @@ bilinear_interpolation (uint32_t tl, uint32_t tr,
 #endif
 #endif // BILINEAR_INTERPOLATION_BITS <= 4
 
+static force_inline argb_t
+bilinear_interpolation_float (argb_t tl, argb_t tr,
+			      argb_t bl, argb_t br,
+			      float distx, float disty)
+{
+    float distxy, distxiy, distixy, distixiy;
+    argb_t r;
+
+    distxy = distx * disty;
+    distxiy = distx - (1.f - distxy);
+    distixy = (1.f - distx) * disty;
+    distixiy = (1.f - distx) * (1.f - disty);
+
+    r.a = tl.a * distixiy + tr.a * distxiy +
+          bl.a * distixy  + br.a * distxy;
+    r.r = tl.r * distixiy + tr.r * distxiy +
+          bl.r * distixy  + br.r * distxy;
+    r.g = tl.g * distixiy + tr.g * distxiy +
+          bl.g * distixy  + br.g * distxy;
+    r.b = tl.b * distixiy + tr.b * distxiy +
+          bl.b * distixy  + br.b * distxy;
+
+    return r;
+}
+
 /*
  * For each scanline fetched from source image with PAD repeat:
  * - calculate how many pixels need to be padded on the left side

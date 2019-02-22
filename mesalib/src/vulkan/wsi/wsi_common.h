@@ -100,6 +100,8 @@ struct wsi_device {
    VkPhysicalDevicePCIBusInfoPropertiesEXT pci_bus_info;
 
    bool supports_modifiers;
+   uint32_t maxImageDimension2D;
+
    uint64_t (*image_get_modifier)(VkImage image);
 
 #define WSI_CB(cb) PFN_vk##cb cb

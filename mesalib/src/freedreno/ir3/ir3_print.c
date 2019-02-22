@@ -125,6 +125,8 @@ static void print_reg_name(struct ir3_register *reg)
 		else
 			printf("\x1b[0;31mr<a0.x + %d>\x1b[0m (%u)", reg->array.offset, reg->size);
 	} else {
+		if (reg->flags & IR3_REG_HIGH)
+			printf("H");
 		if (reg->flags & IR3_REG_HALF)
 			printf("h");
 		if (reg->flags & IR3_REG_CONST)

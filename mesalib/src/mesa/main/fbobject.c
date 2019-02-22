@@ -1004,6 +1004,7 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
    fb->_HasAttachments = true;
    fb->_IntegerBuffers = 0;
    fb->_RGBBuffers = 0;
+   fb->_FP32Buffers = 0;
 
    /* Start at -2 to more easily loop over all attachment points.
     *  -2: depth buffer
@@ -1152,6 +1153,9 @@ _mesa_test_framebuffer_completeness(struct gl_context *ctx,
 
          if (f == GL_RGB)
             fb->_RGBBuffers |= (1 << i);
+
+         if (type == GL_FLOAT && _mesa_get_format_max_bits(attFormat) > 16)
+            fb->_FP32Buffers |= (1 << i);
 
          fb->_AllColorBuffersFixedPoint =
             fb->_AllColorBuffersFixedPoint &&
@@ -4663,8 +4667,12 @@ get_fb_attachment(struct gl_context *ctx, struct gl_framebuffer *fb,
    case GL_COLOR_ATTACHMENT12:
    case GL_COLOR_ATTACHMENT13:
    case GL_COLOR_ATTACHMENT14:
-   case GL_COLOR_ATTACHMENT15:
-      return &fb->Attachment[BUFFER_COLOR0 + attachment - GL_COLOR_ATTACHMENT0];
+   case GL_COLOR_ATTACHMENT15: {
+      const unsigned i = attachment - GL_COLOR_ATTACHMENT0;
+      if (i >= ctx->Const.MaxColorAttachments)
+         return NULL;
+      return &fb->Attachment[BUFFER_COLOR0 + i];
+   }
    case GL_DEPTH:
    case GL_DEPTH_ATTACHMENT:
    case GL_DEPTH_STENCIL_ATTACHMENT:

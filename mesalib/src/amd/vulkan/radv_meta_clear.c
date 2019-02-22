@@ -1522,9 +1522,7 @@ emit_clear(struct radv_cmd_buffer *cmd_buffer,
 
 	if (aspects & VK_IMAGE_ASPECT_COLOR_BIT) {
 		const uint32_t subpass_att = clear_att->colorAttachment;
-		if (subpass_att == VK_ATTACHMENT_UNUSED)
-			return;
-
+		assert(subpass_att < subpass->color_count);
 		const uint32_t pass_att = subpass->color_attachments[subpass_att].attachment;
 		if (pass_att == VK_ATTACHMENT_UNUSED)
 			return;

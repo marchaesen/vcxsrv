@@ -132,20 +132,26 @@ lower_color(lower_drawpixels_state *state, nir_intrinsic_instr *intr)
       state->tex =
          nir_variable_create(b->shader, nir_var_uniform, sampler2D, "drawpix");
       state->tex->data.binding = state->options->drawpix_sampler;
+      state->tex->data.explicit_binding = true;
+      state->tex->data.how_declared = nir_var_hidden;
    }
+
+   nir_deref_instr *tex_deref = nir_build_deref_var(b, state->tex);
 
    /* replace load_var(gl_Color) w/ texture sample:
     *   TEX def, texcoord, drawpix_sampler, 2D
     */
-   tex = nir_tex_instr_create(state->shader, 1);
+   tex = nir_tex_instr_create(state->shader, 3);
    tex->op = nir_texop_tex;
    tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
    tex->coord_components = 2;
-   tex->sampler_index = state->options->drawpix_sampler;
-   tex->texture_index = state->options->drawpix_sampler;
    tex->dest_type = nir_type_float;
-   tex->src[0].src_type = nir_tex_src_coord;
-   tex->src[0].src =
+   tex->src[0].src_type = nir_tex_src_texture_deref;
+   tex->src[0].src = nir_src_for_ssa(&tex_deref->dest.ssa);
+   tex->src[1].src_type = nir_tex_src_sampler_deref;
+   tex->src[1].src = nir_src_for_ssa(&tex_deref->dest.ssa);
+   tex->src[2].src_type = nir_tex_src_coord;
+   tex->src[2].src =
       nir_src_for_ssa(nir_channels(b, texcoord,
                                    (1 << tex->coord_components) - 1));
 
@@ -164,21 +170,30 @@ lower_color(lower_drawpixels_state *state, nir_intrinsic_instr *intr)
          state->pixelmap = nir_variable_create(b->shader, nir_var_uniform,
                                                sampler2D, "pixelmap");
          state->pixelmap->data.binding = state->options->pixelmap_sampler;
+         state->pixelmap->data.explicit_binding = true;
+         state->pixelmap->data.how_declared = nir_var_hidden;
       }
+
+      nir_deref_instr *pixelmap_deref =
+         nir_build_deref_var(b, state->pixelmap);
 
       /* do four pixel map look-ups with two TEX instructions: */
       nir_ssa_def *def_xy, *def_zw;
 
       /* TEX def.xy, def.xyyy, pixelmap_sampler, 2D; */
-      tex = nir_tex_instr_create(state->shader, 1);
+      tex = nir_tex_instr_create(state->shader, 3);
       tex->op = nir_texop_tex;
       tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
       tex->coord_components = 2;
       tex->sampler_index = state->options->pixelmap_sampler;
       tex->texture_index = state->options->pixelmap_sampler;
       tex->dest_type = nir_type_float;
-      tex->src[0].src_type = nir_tex_src_coord;
-      tex->src[0].src = nir_src_for_ssa(nir_channels(b, def, 0x3));
+      tex->src[0].src_type = nir_tex_src_texture_deref;
+      tex->src[0].src = nir_src_for_ssa(&pixelmap_deref->dest.ssa);
+      tex->src[1].src_type = nir_tex_src_sampler_deref;
+      tex->src[1].src = nir_src_for_ssa(&pixelmap_deref->dest.ssa);
+      tex->src[2].src_type = nir_tex_src_coord;
+      tex->src[2].src = nir_src_for_ssa(nir_channels(b, def, 0x3));
 
       nir_ssa_dest_init(&tex->instr, &tex->dest, 4, 32, NULL);
       nir_builder_instr_insert(b, &tex->instr);

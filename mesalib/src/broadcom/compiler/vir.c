@@ -401,7 +401,7 @@ vir_branch_inst(enum v3d_qpu_branch_cond cond, struct qreg src)
         inst->qpu.branch.ub = true;
         inst->qpu.branch.bdu = V3D_QPU_BRANCH_DEST_REL;
 
-        inst->dst = vir_reg(QFILE_NULL, 0);
+        inst->dst = vir_nop_reg();
         inst->src[0] = src;
         inst->uniform = ~0;
 
@@ -665,8 +665,6 @@ static void
 v3d_vs_set_prog_data(struct v3d_compile *c,
                      struct v3d_vs_prog_data *prog_data)
 {
-        prog_data->base.num_inputs = c->num_inputs;
-
         /* The vertex data gets format converted by the VPM so that
          * each attribute channel takes up a VPM column.  Precompute
          * the sizes for the shader record.
@@ -722,7 +720,7 @@ static void
 v3d_set_fs_prog_data_inputs(struct v3d_compile *c,
                             struct v3d_fs_prog_data *prog_data)
 {
-        prog_data->base.num_inputs = c->num_inputs;
+        prog_data->num_inputs = c->num_inputs;
         memcpy(prog_data->input_slots, c->input_slots,
                c->num_inputs * sizeof(*c->input_slots));
 
@@ -745,21 +743,9 @@ v3d_fs_set_prog_data(struct v3d_compile *c,
                      struct v3d_fs_prog_data *prog_data)
 {
         v3d_set_fs_prog_data_inputs(c, prog_data);
-        prog_data->writes_z = (c->s->info.outputs_written &
-                               (1 << FRAG_RESULT_DEPTH));
-        prog_data->discard = (c->s->info.fs.uses_discard ||
-                              c->fs_key->sample_alpha_to_coverage);
+        prog_data->writes_z = c->writes_z;
+        prog_data->disable_ez = !c->s->info.fs.early_fragment_tests;
         prog_data->uses_center_w = c->uses_center_w;
-
-        /* If the shader has some side effects and hasn't allowed early
-         * fragment tests, disable them.
-         */
-        if (!c->s->info.fs.early_fragment_tests &&
-            (c->s->info.num_images ||
-             c->s->info.num_ssbos ||
-             c->s->info.num_abos)) {
-                prog_data->discard = true;
-        }
 }
 
 static void
@@ -856,6 +842,15 @@ v3d_nir_lower_fs_early(struct v3d_compile *c)
 {
         if (c->fs_key->int_color_rb || c->fs_key->uint_color_rb)
                 v3d_fixup_fs_output_types(c);
+
+        /* If the shader has no non-TLB side effects, we can promote it to
+         * enabling early_fragment_tests even if the user didn't.
+         */
+        if (!(c->s->info.num_images ||
+              c->s->info.num_ssbos ||
+              c->s->info.num_abos)) {
+                c->s->info.fs.early_fragment_tests = true;
+        }
 }
 
 static void
@@ -1060,51 +1055,6 @@ vir_uniform(struct v3d_compile *c,
         c->uniform_data[uniform] = data;
 
         return vir_reg(QFILE_UNIF, uniform);
-}
-
-static bool
-vir_can_set_flags(struct v3d_compile *c, struct qinst *inst)
-{
-        if (c->devinfo->ver >= 40 && (v3d_qpu_reads_vpm(&inst->qpu) ||
-                                      v3d_qpu_uses_sfu(&inst->qpu))) {
-                return false;
-        }
-
-        if (inst->qpu.type != V3D_QPU_INSTR_TYPE_ALU ||
-            (inst->qpu.alu.add.op == V3D_QPU_A_NOP &&
-             inst->qpu.alu.mul.op == V3D_QPU_M_NOP)) {
-               return false;
-        }
-
-        return true;
-}
-
-void
-vir_PF(struct v3d_compile *c, struct qreg src, enum v3d_qpu_pf pf)
-{
-        struct qinst *last_inst = NULL;
-
-        if (!list_empty(&c->cur_block->instructions)) {
-                last_inst = (struct qinst *)c->cur_block->instructions.prev;
-
-                /* Can't stuff the PF into the last last inst if our cursor
-                 * isn't pointing after it.
-                 */
-                struct vir_cursor after_inst = vir_after_inst(last_inst);
-                if (c->cursor.mode != after_inst.mode ||
-                    c->cursor.link != after_inst.link)
-                        last_inst = NULL;
-        }
-
-        if (src.file != QFILE_TEMP ||
-            !c->defs[src.index] ||
-            last_inst != c->defs[src.index] ||
-            !vir_can_set_flags(c, last_inst)) {
-                /* XXX: Make the MOV be the appropriate type */
-                last_inst = vir_MOV_dest(c, vir_reg(QFILE_NULL, 0), src);
-        }
-
-        vir_set_pf(last_inst, pf);
 }
 
 #define OPTPASS(func)                                                   \

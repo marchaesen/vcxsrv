@@ -574,10 +574,9 @@ nir_rematerialize_derefs_in_use_blocks_impl(nir_function_impl *impl)
          _mesa_hash_table_clear(state.cache, NULL);
 
       nir_foreach_instr_safe(instr, block) {
-         if (instr->type == nir_instr_type_deref) {
-            nir_deref_instr_remove_if_unused(nir_instr_as_deref(instr));
+         if (instr->type == nir_instr_type_deref &&
+             nir_deref_instr_remove_if_unused(nir_instr_as_deref(instr)))
             continue;
-         }
 
          state.builder.cursor = nir_before_instr(instr);
          nir_foreach_src(instr, rematerialize_deref_src, &state);

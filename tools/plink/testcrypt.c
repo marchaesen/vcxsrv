@@ -236,7 +236,7 @@ static const ssh_keyalg *get_keyalg(BinarySource *in)
         {"ed25519", &ssh_ecdsa_ed25519},
         {"p256", &ssh_ecdsa_nistp256},
         {"p384", &ssh_ecdsa_nistp384},
-        {"521", &ssh_ecdsa_nistp521},
+        {"p521", &ssh_ecdsa_nistp521},
     };
 
     ptrlen name = get_word(in);
@@ -504,6 +504,14 @@ static void return_val_string_asciz(strbuf *out, char *s)
     put_data(sb, s, strlen(s));
     sfree(s);
     return_val_string(out, sb);
+}
+
+static void return_opt_val_string_asciz(strbuf *out, char *s)
+{
+    if (!s)
+        strbuf_catf(out, "NULL\n");
+    else
+        return_val_string_asciz(out, s);
 }
 
 static void return_opt_val_cipher(strbuf *out, ssh_cipher *c)
@@ -900,6 +908,16 @@ bool crcda_detect(ptrlen packet, ptrlen iv)
 
 #define return_void(out, expression) (expression)
 
+static void no_progress(void *param, int action, int phase, int iprogress) {}
+
+mp_int *primegen_wrapper(
+    int bits, int modulus, int residue, mp_int *factor, unsigned firstbits)
+{
+    return primegen(bits, modulus, residue, factor,
+                    0, no_progress, NULL, firstbits);
+}
+#define primegen primegen_wrapper
+
 #define VALTYPE_TYPEDEF(n,t,f)                  \
     typedef t TD_val_##n;                       \
     typedef t *TD_out_val_##n;
@@ -967,8 +985,19 @@ typedef RsaSsh1Order TD_rsaorder;
         return_##rettype(out, function(arg1, arg2, arg3, arg4));        \
     }
 
+#define FUNC5(rettype, function, type1, type2, type3, type4, type5)     \
+    static void handle_##function(BinarySource *in, strbuf *out) {      \
+        TD_##type1 arg1 = get_##type1(in);                              \
+        TD_##type2 arg2 = get_##type2(in);                              \
+        TD_##type3 arg3 = get_##type3(in);                              \
+        TD_##type4 arg4 = get_##type4(in);                              \
+        TD_##type5 arg5 = get_##type5(in);                              \
+        return_##rettype(out, function(arg1, arg2, arg3, arg4, arg5));  \
+    }
+
 #include "testcrypt.h"
 
+#undef FUNC5
 #undef FUNC4
 #undef FUNC3
 #undef FUNC2
@@ -1002,9 +1031,11 @@ static void process_line(BinarySource *in, strbuf *out)
 #define FUNC2 FUNC
 #define FUNC3 FUNC
 #define FUNC4 FUNC
+#define FUNC5 FUNC
 
 #include "testcrypt.h"
 
+#undef FUNC5
 #undef FUNC4
 #undef FUNC3
 #undef FUNC2

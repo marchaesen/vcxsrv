@@ -47,11 +47,8 @@ fi
 
 AC_CHECK_FUNCS([strdup strcasecmp])
 
-REQUIRED_MODULES="x11 xkbfile xproto >= 7.0.17"
-
 # Checks for pkg-config packages
-PKG_CHECK_MODULES(XKBCOMP, [$REQUIRED_MODULES])
-AC_SUBST(REQUIRED_MODULES)
+PKG_CHECK_MODULES(XKBCOMP, [x11 xkbfile xproto >= 7.0.17])
 
 AC_ARG_WITH([xkb_config_root],
     [AS_HELP_STRING([--with-xkb-config-root=<paths>],

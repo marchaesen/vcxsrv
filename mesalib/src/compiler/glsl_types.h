@@ -545,6 +545,12 @@ public:
    bool contains_double() const;
 
    /**
+    * Query whether or not type is a 64-bit type, or for struct, interface and
+    * array types, contains a double type.
+    */
+   bool contains_64bit() const;
+
+   /**
     * Query whether or not a type is a float type
     */
    bool is_float() const
@@ -582,6 +588,16 @@ public:
    bool is_16bit() const
    {
       return glsl_base_type_is_16bit(base_type);
+   }
+
+   /**
+    * Query whether or not a type is 32-bit
+    */
+   bool is_32bit() const
+   {
+      return base_type == GLSL_TYPE_UINT ||
+             base_type == GLSL_TYPE_INT ||
+             base_type == GLSL_TYPE_FLOAT;
    }
 
    /**
@@ -1073,7 +1089,7 @@ struct glsl_struct_field {
    unsigned implicit_sized_array:1;
 #ifdef __cplusplus
    glsl_struct_field(const struct glsl_type *_type, const char *_name)
-      : type(_type), name(_name), location(-1), offset(0), xfb_buffer(0),
+      : type(_type), name(_name), location(-1), offset(-1), xfb_buffer(0),
         xfb_stride(0), interpolation(0), centroid(0),
         sample(0), matrix_layout(GLSL_MATRIX_LAYOUT_INHERITED), patch(0),
         precision(GLSL_PRECISION_NONE), memory_read_only(0),
@@ -1085,7 +1101,7 @@ struct glsl_struct_field {
    }
 
    glsl_struct_field()
-      : type(NULL), name(NULL), location(0), offset(0), xfb_buffer(0),
+      : type(NULL), name(NULL), location(-1), offset(-1), xfb_buffer(0),
         xfb_stride(0), interpolation(0), centroid(0),
         sample(0), matrix_layout(0), patch(0),
         precision(0), memory_read_only(0),

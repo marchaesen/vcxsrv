@@ -194,7 +194,6 @@ vir_opt_dead_code(struct v3d_compile *c)
                                 uint32_t offset = (inst->src[i].index % 4);
 
                                 if (c->vattr_sizes[attr] == offset) {
-                                        c->num_inputs--;
                                         c->vattr_sizes[attr]--;
                                 }
                         }

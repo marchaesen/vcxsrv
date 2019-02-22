@@ -34,6 +34,8 @@
 
 static bool is_move(nir_alu_instr *instr)
 {
+   assert(instr->src[0].src.is_ssa);
+
    if (instr->op != nir_op_fmov &&
        instr->op != nir_op_imov)
       return false;
@@ -46,9 +48,6 @@ static bool is_move(nir_alu_instr *instr)
    if (instr->src[0].abs || instr->src[0].negate)
       return false;
 
-   if (!instr->src[0].src.is_ssa)
-      return false;
-
    return true;
 
 }
@@ -56,8 +55,7 @@ static bool is_move(nir_alu_instr *instr)
 static bool is_vec(nir_alu_instr *instr)
 {
    for (unsigned i = 0; i < nir_op_infos[instr->op].num_inputs; i++) {
-      if (!instr->src[i].src.is_ssa)
-         return false;
+      assert(instr->src[i].src.is_ssa);
 
       /* we handle modifiers in a separate pass */
       if (instr->src[i].abs || instr->src[i].negate)
@@ -102,11 +100,7 @@ static bool
 copy_prop_src(nir_src *src, nir_instr *parent_instr, nir_if *parent_if,
               unsigned num_components)
 {
-   if (!src->is_ssa) {
-      if (src->reg.indirect)
-         return copy_prop_src(src->reg.indirect, parent_instr, parent_if, 1);
-      return false;
-   }
+   assert(src->is_ssa);
 
    nir_instr *src_instr = src->ssa->parent_instr;
    nir_ssa_def *copy_def;
@@ -137,12 +131,7 @@ static bool
 copy_prop_alu_src(nir_alu_instr *parent_alu_instr, unsigned index)
 {
    nir_alu_src *src = &parent_alu_instr->src[index];
-   if (!src->src.is_ssa) {
-      if (src->src.reg.indirect)
-         return copy_prop_src(src->src.reg.indirect, &parent_alu_instr->instr,
-                              NULL, 1);
-      return false;
-   }
+   assert(src->src.is_ssa);
 
    nir_instr *src_instr =  src->src.ssa->parent_instr;
    if (src_instr->type != nir_instr_type_alu)
@@ -188,15 +177,6 @@ copy_prop_alu_src(nir_alu_instr *parent_alu_instr, unsigned index)
 }
 
 static bool
-copy_prop_dest(nir_dest *dest, nir_instr *instr)
-{
-   if (!dest->is_ssa && dest->reg.indirect)
-      return copy_prop_src(dest->reg.indirect, instr, NULL, 1);
-
-   return false;
-}
-
-static bool
 copy_prop_instr(nir_instr *instr)
 {
    bool progress = false;
@@ -207,9 +187,6 @@ copy_prop_instr(nir_instr *instr)
       for (unsigned i = 0; i < nir_op_infos[alu_instr->op].num_inputs; i++)
          while (copy_prop_alu_src(alu_instr, i))
             progress = true;
-
-      while (copy_prop_dest(&alu_instr->dest.dest, instr))
-         progress = true;
 
       return progress;
    }
@@ -241,9 +218,6 @@ copy_prop_instr(nir_instr *instr)
             progress = true;
       }
 
-      while (copy_prop_dest(&tex->dest, instr))
-         progress = true;
-
       return progress;
    }
 
@@ -254,11 +228,6 @@ copy_prop_instr(nir_instr *instr)
          unsigned num_components = nir_intrinsic_src_components(intrin, i);
 
          while (copy_prop_src(&intrin->src[i], instr, NULL, num_components))
-            progress = true;
-      }
-
-      if (nir_intrinsic_infos[intrin->intrinsic].has_dest) {
-         while (copy_prop_dest(&intrin->dest, instr))
             progress = true;
       }
 

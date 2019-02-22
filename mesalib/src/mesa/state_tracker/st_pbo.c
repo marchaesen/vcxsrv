@@ -513,14 +513,23 @@ create_fs_nir(struct st_context *st,
    nir_variable *tex_var =
       nir_variable_create(b.shader, nir_var_uniform,
                           sampler_type_for_target(target), "tex");
-   nir_tex_instr *tex = nir_tex_instr_create(b.shader, 1);
+   tex_var->data.explicit_binding = true;
+   tex_var->data.binding = 0;
+
+   nir_deref_instr *tex_deref = nir_build_deref_var(&b, tex_var);
+
+   nir_tex_instr *tex = nir_tex_instr_create(b.shader, 3);
    tex->op = nir_texop_txf;
    tex->sampler_dim = glsl_get_sampler_dim(tex_var->type);
    tex->coord_components =
       glsl_get_sampler_coordinate_components(tex_var->type);
    tex->dest_type = nir_type_float;
-   tex->src[0].src_type = nir_tex_src_coord;
-   tex->src[0].src = nir_src_for_ssa(texcoord);
+   tex->src[0].src_type = nir_tex_src_texture_deref;
+   tex->src[0].src = nir_src_for_ssa(&tex_deref->dest.ssa);
+   tex->src[1].src_type = nir_tex_src_sampler_deref;
+   tex->src[1].src = nir_src_for_ssa(&tex_deref->dest.ssa);
+   tex->src[2].src_type = nir_tex_src_coord;
+   tex->src[2].src = nir_src_for_ssa(texcoord);
    nir_ssa_dest_init(&tex->instr, &tex->dest, 4, 32, NULL);
    nir_builder_instr_insert(&b, &tex->instr);
    nir_ssa_def *result = &tex->dest.ssa;
@@ -536,6 +545,8 @@ create_fs_nir(struct st_context *st,
                              glsl_image_type(GLSL_SAMPLER_DIM_BUF, false,
                                              GLSL_TYPE_FLOAT), "img");
       img_var->data.image.access = ACCESS_NON_READABLE;
+      img_var->data.explicit_binding = true;
+      img_var->data.binding = 0;
       nir_deref_instr *img_deref = nir_build_deref_var(&b, img_var);
       nir_intrinsic_instr *intrin =
          nir_intrinsic_instr_create(b.shader, nir_intrinsic_image_deref_store);

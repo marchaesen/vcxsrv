@@ -369,6 +369,11 @@ radv_physical_device_init(struct radv_physical_device *device,
 	device->dcc_msaa_allowed =
 		(device->instance->perftest_flags & RADV_PERFTEST_DCC_MSAA);
 
+	/* TODO: Figure out how to use LOAD_CONTEXT_REG on SI/CIK. */
+	device->has_load_ctx_reg_pkt = device->rad_info.chip_class >= GFX9 ||
+				       (device->rad_info.chip_class >= VI &&
+				        device->rad_info.me_fw_feature >= 41);
+
 	radv_physical_device_init_mem_types(device);
 	radv_fill_device_extension_table(device, &device->supported_extensions);
 
@@ -734,8 +739,7 @@ void radv_GetPhysicalDeviceFeatures(
 		.alphaToOne                               = true,
 		.multiViewport                            = true,
 		.samplerAnisotropy                        = true,
-		.textureCompressionETC2                   = pdevice->rad_info.chip_class >= GFX9 ||
-		                                            pdevice->rad_info.family == CHIP_STONEY,
+		.textureCompressionETC2                   = radv_device_supports_etc(pdevice),
 		.textureCompressionASTC_LDR               = false,
 		.textureCompressionBC                     = true,
 		.occlusionQueryPrecise                    = true,
@@ -802,7 +806,7 @@ void radv_GetPhysicalDeviceFeatures2(
 			features->storageBuffer16BitAccess = enabled;
 			features->uniformAndStorageBuffer16BitAccess = enabled;
 			features->storagePushConstant16 = enabled;
-			features->storageInputOutput16 = enabled;
+			features->storageInputOutput16 = enabled && HAVE_LLVM >= 0x900;
 			break;
 		}
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES: {
@@ -869,6 +873,20 @@ void radv_GetPhysicalDeviceFeatures2(
 			features->memoryPriority = VK_TRUE;
 			break;
 		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_ADDRESS_FEATURES_EXT: {
+			VkPhysicalDeviceBufferAddressFeaturesEXT *features =
+				(VkPhysicalDeviceBufferAddressFeaturesEXT *)ext;
+			features->bufferDeviceAddress = true;
+			features->bufferDeviceAddressCaptureReplay = false;
+			features->bufferDeviceAddressMultiDevice = false;
+			break;
+		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT: {
+			VkPhysicalDeviceDepthClipEnableFeaturesEXT *features =
+				(VkPhysicalDeviceDepthClipEnableFeaturesEXT *)ext;
+			features->depthClipEnable = true;
+			break;
+		}
 		default:
 			break;
 		}
@@ -926,8 +944,8 @@ void radv_GetPhysicalDeviceProperties(
 		.maxDescriptorSetSampledImages            = max_descriptor_set_size,
 		.maxDescriptorSetStorageImages            = max_descriptor_set_size,
 		.maxDescriptorSetInputAttachments         = max_descriptor_set_size,
-		.maxVertexInputAttributes                 = 32,
-		.maxVertexInputBindings                   = 32,
+		.maxVertexInputAttributes                 = MAX_VERTEX_ATTRIBS,
+		.maxVertexInputBindings                   = MAX_VBS,
 		.maxVertexInputAttributeOffset            = 2047,
 		.maxVertexInputBindingStride              = 2048,
 		.maxVertexOutputComponents                = 128,
@@ -1551,6 +1569,9 @@ static VkResult radv_bo_list_add(struct radv_device *device,
 {
 	struct radv_bo_list *bo_list = &device->bo_list;
 
+	if (bo->is_local)
+		return VK_SUCCESS;
+
 	if (unlikely(!device->use_global_bo_list))
 		return VK_SUCCESS;
 
@@ -1577,6 +1598,9 @@ static void radv_bo_list_remove(struct radv_device *device,
 				struct radeon_winsys_bo *bo)
 {
 	struct radv_bo_list *bo_list = &device->bo_list;
+
+	if (bo->is_local)
+		return;
 
 	if (unlikely(!device->use_global_bo_list))
 		return;
@@ -1688,7 +1712,8 @@ VkResult radv_CreateDevice(
 	 * from the descriptor set anymore, so we have to use a global BO list.
 	 */
 	device->use_global_bo_list =
-		device->enabled_extensions.EXT_descriptor_indexing;
+		device->enabled_extensions.EXT_descriptor_indexing ||
+		device->enabled_extensions.EXT_buffer_device_address;
 
 	mtx_init(&device->shader_slab_mutex, mtx_plain);
 	list_inithead(&device->shader_slabs);
@@ -4025,6 +4050,15 @@ void radv_DestroyBuffer(
 
 	vk_free2(&device->alloc, pAllocator, buffer);
 }
+
+VkDeviceAddress radv_GetBufferDeviceAddressEXT(
+	VkDevice                                    device,
+	const VkBufferDeviceAddressInfoEXT*         pInfo)
+{
+	RADV_FROM_HANDLE(radv_buffer, buffer, pInfo->buffer);
+	return radv_buffer_get_va(buffer->bo) + buffer->offset;
+}
+
 
 static inline unsigned
 si_tile_mode_index(const struct radv_image *image, unsigned level, bool stencil)

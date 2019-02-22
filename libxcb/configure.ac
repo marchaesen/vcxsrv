@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 # Initialize Autoconf
 AC_PREREQ([2.60])
 AC_INIT([libxcb],[1.13.1],
-        [https://bugs.freedesktop.org/enter_bug.cgi?product=xcb],
+        [https://gitlab.freedesktop.org/xorg/lib/libxcb/issues],
         [libxcb])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])

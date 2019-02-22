@@ -35,7 +35,7 @@
 
 #include "loader_dri3_helper.h"
 #include "util/macros.h"
-#include "drm_fourcc.h"
+#include "drm-uapi/drm_fourcc.h"
 
 /* From xmlpool/options.h, user exposed so should be stable */
 #define DRI_CONF_VBLANK_NEVER 0

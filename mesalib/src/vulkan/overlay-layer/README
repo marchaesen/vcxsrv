@@ -1,0 +1,22 @@
+A Vulkan layer to display information about the running application
+using an overlay.
+
+To turn on the layer run :
+```
+VK_INSTANCE_LAYERS=VK_LAYER_MESA_overlay /path/to/my_vulkan_app
+```
+
+List the available statistics :
+```
+VK_INSTANCE_LAYERS=VK_LAYER_MESA_overlay VK_LAYER_MESA_OVERLAY_STATS=help /path/to/my_vulkan_app
+```
+
+Turn on some statistics :
+```
+VK_INSTANCE_LAYERS=VK_LAYER_MESA_overlay VK_LAYER_MESA_OVERLAY_STATS=submit,draw,pipeline-graphics /path/to/my_vulkan_app
+```
+
+Position the layer :
+```
+VK_INSTANCE_LAYERS=VK_LAYER_MESA_overlay VK_LAYER_MESA_OVERLAY_STATS=submit,draw,pipeline-graphics VK_LAYER_MESA_OVERLAY_POSITION=top-right /path/to/my_vulkan_app
+```

@@ -164,9 +164,9 @@ init_machine(struct gl_context *ctx, struct gl_program_machine *machine,
    GLfloat *wpos = span->array->attribs[VARYING_SLOT_POS][col];
 
    /* ARB_fragment_coord_conventions */
-   if (program->OriginUpperLeft)
+   if (program->info.fs.origin_upper_left)
       wpos[1] = ctx->DrawBuffer->Height - 1 - wpos[1];
-   if (!program->PixelCenterInteger) {
+   if (!program->info.fs.pixel_center_integer) {
       wpos[0] += 0.5F;
       wpos[1] += 0.5F;
    }

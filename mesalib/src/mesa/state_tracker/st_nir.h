@@ -55,6 +55,10 @@ st_link_nir(struct gl_context *ctx,
 void st_nir_assign_varying_locations(struct st_context *st,
                                      struct nir_shader *nir);
 
+void st_nir_lower_samplers(struct pipe_screen *screen, struct nir_shader *nir,
+                           struct gl_shader_program *shader_program,
+                           struct gl_program *prog);
+
 struct pipe_shader_state *
 st_nir_finish_builtin_shader(struct st_context *st,
                              struct nir_shader *nir,

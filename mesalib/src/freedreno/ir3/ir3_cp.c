@@ -27,6 +27,7 @@
 #include <math.h>
 
 #include "ir3.h"
+#include "ir3_compiler.h"
 #include "ir3_shader.h"
 
 /*
@@ -88,6 +89,12 @@ static bool valid_flags(struct ir3_instruction *instr, unsigned n,
 		unsigned flags)
 {
 	unsigned valid_flags;
+
+	if ((flags & IR3_REG_HIGH) &&
+			(opc_cat(instr->opc) > 1) &&
+			(instr->block->shader->compiler->gpu_id >= 600))
+		return false;
+
 	flags = cp_flags(flags);
 
 	/* If destination is indirect, then source cannot be.. at least
@@ -243,6 +250,7 @@ static void combine_flags(unsigned *dstflags, struct ir3_instruction *src)
 	*dstflags |= srcflags & IR3_REG_IMMED;
 	*dstflags |= srcflags & IR3_REG_RELATIV;
 	*dstflags |= srcflags & IR3_REG_ARRAY;
+	*dstflags |= srcflags & IR3_REG_HIGH;
 
 	/* if src of the src is boolean we can drop the (abs) since we know
 	 * the source value is already a postitive integer.  This cleans

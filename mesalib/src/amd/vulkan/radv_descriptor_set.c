@@ -84,7 +84,9 @@ VkResult radv_CreateDescriptorSetLayout(
 	uint32_t immutable_sampler_count = 0;
 	for (uint32_t j = 0; j < pCreateInfo->bindingCount; j++) {
 		max_binding = MAX2(max_binding, pCreateInfo->pBindings[j].binding);
-		if (pCreateInfo->pBindings[j].pImmutableSamplers)
+		if ((pCreateInfo->pBindings[j].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+		     pCreateInfo->pBindings[j].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER) &&
+		     pCreateInfo->pBindings[j].pImmutableSamplers)
 			immutable_sampler_count += pCreateInfo->pBindings[j].descriptorCount;
 	}
 
@@ -182,7 +184,9 @@ VkResult radv_CreateDescriptorSetLayout(
 			set_layout->has_variable_descriptors = true;
 		}
 
-		if (binding->pImmutableSamplers) {
+		if ((binding->descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+		     binding->descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER) &&
+		    binding->pImmutableSamplers) {
 			set_layout->binding[b].immutable_samplers_offset = samplers_offset;
 			set_layout->binding[b].immutable_samplers_equal =
 				has_equal_immutable_samplers(binding->pImmutableSamplers, binding->descriptorCount);

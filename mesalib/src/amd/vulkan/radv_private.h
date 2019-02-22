@@ -306,6 +306,9 @@ struct radv_physical_device {
 	/* Whether DCC should be enabled for MSAA textures. */
 	bool dcc_msaa_allowed;
 
+	/* Whether LOAD_CONTEXT_REG packets are supported. */
+	bool has_load_ctx_reg_pkt;
+
 	/* This is the drivers on-disk cache used as a fallback as opposed to
 	 * the pipeline cache defined by apps.
 	 */
@@ -362,6 +365,7 @@ struct radv_pipeline_cache {
 struct radv_pipeline_key {
 	uint32_t instance_rate_inputs;
 	uint32_t instance_rate_divisors[MAX_VERTEX_ATTRIBS];
+	uint8_t vertex_attribute_formats[MAX_VERTEX_ATTRIBS];
 	uint64_t vertex_alpha_adjust;
 	unsigned tess_input_vertices;
 	uint32_t col_format;
@@ -1461,6 +1465,7 @@ bool radv_format_pack_clear_color(VkFormat format,
 bool radv_is_colorbuffer_format_supported(VkFormat format, bool *blendable);
 bool radv_dcc_formats_compatible(VkFormat format1,
                                  VkFormat format2);
+bool radv_device_supports_etc(struct radv_physical_device *physical_device);
 
 struct radv_fmask_info {
 	uint64_t offset;
@@ -1950,6 +1955,8 @@ struct radv_shader_info;
 void radv_nir_shader_info_pass(const struct nir_shader *nir,
 			       const struct radv_nir_compiler_options *options,
 			       struct radv_shader_info *info);
+
+void radv_nir_shader_info_init(struct radv_shader_info *info);
 
 struct radeon_winsys_sem;
 

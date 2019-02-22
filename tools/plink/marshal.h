@@ -3,6 +3,8 @@
 
 #include "defs.h"
 
+#include <stdio.h>
+
 /*
  * A sort of 'abstract base class' or 'interface' or 'trait' which is
  * the common feature of all types that want to accept data formatted
@@ -227,19 +229,25 @@ struct BinarySource {
  * Implementation macros, similar to BinarySink.
  */
 #define BinarySource_IMPLEMENTATION BinarySource binarysource_[1]
-#define BinarySource_INIT__(obj, data_, len_)    \
-    ((obj)->data = (data_),                             \
-     (obj)->len = (len_),                               \
-     (obj)->pos = 0,                                    \
-     (obj)->err = BSE_NO_ERROR,                         \
-     (obj)->binarysource_ = (obj))
-#define BinarySource_BARE_INIT(obj, data_, len_)                \
+static inline void BinarySource_INIT__(BinarySource *src, ptrlen data)
+{
+    src->data = data.ptr;
+    src->len = data.len;
+    src->pos = 0;
+    src->err = BSE_NO_ERROR;
+    src->binarysource_ = src;
+}
+#define BinarySource_BARE_INIT_PL(obj, pl)                      \
     TYPECHECK(&(obj)->binarysource_ == (BinarySource **)0,      \
-              BinarySource_INIT__(obj, data_, len_))
-#define BinarySource_INIT(obj, data_, len_)                             \
+              BinarySource_INIT__(obj, pl))
+#define BinarySource_BARE_INIT(obj, data_, len_)                \
+    BinarySource_BARE_INIT_PL(obj, make_ptrlen(data_, len_))
+#define BinarySource_INIT_PL(obj, pl)                                   \
     TYPECHECK(&(obj)->binarysource_ == (BinarySource (*)[1])0,          \
-              BinarySource_INIT__(BinarySource_UPCAST(obj), data_, len_))
-#define BinarySource_DOWNCAST(object, type)                               \
+              BinarySource_INIT__(BinarySource_UPCAST(obj), pl))
+#define BinarySource_INIT(obj, data_, len_)             \
+    BinarySource_INIT_PL(obj, make_ptrlen(data_, len_))
+#define BinarySource_DOWNCAST(object, type)                             \
     TYPECHECK((object) == ((type *)0)->binarysource_,                     \
               ((type *)(((char *)(object)) - offsetof(type, binarysource_))))
 #define BinarySource_UPCAST(object)                                       \
@@ -294,5 +302,22 @@ const char *BinarySource_get_asciz(BinarySource *);
 ptrlen BinarySource_get_pstring(BinarySource *);
 mp_int *BinarySource_get_mp_ssh1(BinarySource *src);
 mp_int *BinarySource_get_mp_ssh2(BinarySource *src);
+
+/*
+ * A couple of useful standard BinarySink implementations, which live
+ * as sensibly here as anywhere else: one that makes a BinarySink
+ * whose effect is to write to a stdio stream, and one whose effect is
+ * to append to a bufchain.
+ */
+struct stdio_sink {
+    FILE *fp;
+    BinarySink_IMPLEMENTATION;
+};
+struct bufchain_sink {
+    bufchain *ch;
+    BinarySink_IMPLEMENTATION;
+};
+void stdio_sink_init(stdio_sink *sink, FILE *fp);
+void bufchain_sink_init(bufchain_sink *sink, bufchain *ch);
 
 #endif /* PUTTY_MARSHAL_H */

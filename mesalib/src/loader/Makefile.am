@@ -31,7 +31,6 @@ AM_CPPFLAGS = \
 	-DDEFAULT_DRIVER_DIR=\"$(DRI_DRIVER_SEARCH_DIR)\" \
 	$(DEFINES) \
 	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/include/drm-uapi \
 	-I$(top_srcdir)/src \
 	$(VISIBILITY_CFLAGS) \
 	$(XCB_DRI3_CFLAGS) \

@@ -498,6 +498,16 @@ dest_is_ssa(nir_dest *dest, void *data)
    return dest->is_ssa;
 }
 
+static inline bool
+instr_each_src_and_dest_is_ssa(nir_instr *instr)
+{
+   if (!nir_foreach_dest(instr, dest_is_ssa, NULL) ||
+       !nir_foreach_src(instr, src_is_ssa, NULL))
+      return false;
+
+   return true;
+}
+
 /* This function determines if uses of an instruction can safely be rewritten
  * to use another identical instruction instead. Note that this function must
  * be kept in sync with hash_instr() and nir_instrs_equal() -- only
@@ -509,9 +519,7 @@ static bool
 instr_can_rewrite(nir_instr *instr)
 {
    /* We only handle SSA. */
-   if (!nir_foreach_dest(instr, dest_is_ssa, NULL) ||
-       !nir_foreach_src(instr, src_is_ssa, NULL))
-      return false;
+   assert(instr_each_src_and_dest_is_ssa(instr));
 
    switch (instr->type) {
    case nir_instr_type_alu:
@@ -588,10 +596,11 @@ nir_instr_set_add_or_rewrite(struct set *instr_set, nir_instr *instr)
    if (!instr_can_rewrite(instr))
       return false;
 
-   struct set_entry *entry = _mesa_set_search(instr_set, instr);
-   if (entry) {
+   uint32_t hash = hash_instr(instr);
+   struct set_entry *e = _mesa_set_search_pre_hashed(instr_set, hash, instr);
+   if (e) {
       nir_ssa_def *def = nir_instr_get_dest_ssa_def(instr);
-      nir_instr *match = (nir_instr *) entry->key;
+      nir_instr *match = (nir_instr *) e->key;
       nir_ssa_def *new_def = nir_instr_get_dest_ssa_def(match);
 
       /* It's safe to replace an exact instruction with an inexact one as
@@ -606,7 +615,7 @@ nir_instr_set_add_or_rewrite(struct set *instr_set, nir_instr *instr)
       return true;
    }
 
-   _mesa_set_add(instr_set, instr);
+   _mesa_set_add_pre_hashed(instr_set, hash, instr);
    return false;
 }
 

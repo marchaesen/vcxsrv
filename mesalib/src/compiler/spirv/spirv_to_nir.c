@@ -3590,6 +3590,7 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
 
       case SpvCapabilityInt64Atomics:
          spv_check_supported(int64_atomics, cap);
+         break;
 
       case SpvCapabilityInt8:
          spv_check_supported(int8, cap);
@@ -3784,7 +3785,8 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
    switch(mode->exec_mode) {
    case SpvExecutionModeOriginUpperLeft:
    case SpvExecutionModeOriginLowerLeft:
-      b->origin_upper_left =
+      vtn_assert(b->shader->info.stage == MESA_SHADER_FRAGMENT);
+      b->shader->info.fs.origin_upper_left =
          (mode->exec_mode == SpvExecutionModeOriginUpperLeft);
       break;
 
@@ -3907,7 +3909,8 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
       break;
 
    case SpvExecutionModePixelCenterInteger:
-      b->pixel_center_integer = true;
+      vtn_assert(b->shader->info.stage == MESA_SHADER_FRAGMENT);
+      b->shader->info.fs.pixel_center_integer = true;
       break;
 
    case SpvExecutionModeXfb:
@@ -4496,20 +4499,35 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
       }
    } while (progress);
 
+   vtn_assert(b->entry_point->value_type == vtn_value_type_function);
+   nir_function *entry_point = b->entry_point->func->impl->function;
+   vtn_assert(entry_point);
+
+   entry_point->is_entrypoint = true;
+
+   /* When multiple shader stages exist in the same SPIR-V module, we
+    * generate input and output variables for every stage, in the same
+    * NIR program.  These dead variables can be invalid NIR.  For example,
+    * TCS outputs must be per-vertex arrays (or decorated 'patch'), while
+    * VS output variables wouldn't be.
+    *
+    * To ensure we have valid NIR, we eliminate any dead inputs and outputs
+    * right away.  In order to do so, we must lower any constant initializers
+    * on outputs so nir_remove_dead_variables sees that they're written to.
+    */
+   nir_lower_constant_initializers(b->shader, nir_var_shader_out);
+   nir_remove_dead_variables(b->shader,
+                             nir_var_shader_in | nir_var_shader_out);
+
    /* We sometimes generate bogus derefs that, while never used, give the
     * validator a bit of heartburn.  Run dead code to get rid of them.
     */
    nir_opt_dce(b->shader);
-
-   vtn_assert(b->entry_point->value_type == vtn_value_type_function);
-   nir_function *entry_point = b->entry_point->func->impl->function;
-   vtn_assert(entry_point);
 
    /* Unparent the shader from the vtn_builder before we delete the builder */
    ralloc_steal(NULL, b->shader);
 
    ralloc_free(b);
 
-   entry_point->is_entrypoint = true;
    return entry_point;
 }

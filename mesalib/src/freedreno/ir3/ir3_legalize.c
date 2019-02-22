@@ -28,6 +28,7 @@
 #include "util/u_math.h"
 
 #include "ir3.h"
+#include "ir3_compiler.h"
 
 /*
  * Legalize:
@@ -39,6 +40,7 @@
  */
 
 struct ir3_legalize_ctx {
+	struct ir3_compiler *compiler;
 	int num_samp;
 	bool has_ssbo;
 	int max_bary;
@@ -227,10 +229,16 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 			else
 				regmask_set(&state->needs_sy, n->regs[0]);
 		} else if (is_atomic(n->opc)) {
-			if (n->flags & IR3_INSTR_G)
-				regmask_set(&state->needs_sy, n->regs[0]);
-			else
+			if (n->flags & IR3_INSTR_G) {
+				if (ctx->compiler->gpu_id >= 600) {
+					/* New encoding, returns  result via second src: */
+					regmask_set(&state->needs_sy, n->regs[3]);
+				} else {
+					regmask_set(&state->needs_sy, n->regs[0]);
+				}
+			} else {
 				regmask_set(&state->needs_ss, n->regs[0]);
+			}
 		}
 
 		if (is_ssbo(n->opc) || (is_atomic(n->opc) && (n->flags & IR3_INSTR_G)))
@@ -468,6 +476,7 @@ ir3_legalize(struct ir3 *ir, int *num_samp, bool *has_ssbo, int *max_bary)
 	bool progress;
 
 	ctx->max_bary = -1;
+	ctx->compiler = ir->compiler;
 
 	/* allocate per-block data: */
 	list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {

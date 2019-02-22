@@ -181,7 +181,7 @@ lower_fragcoord(lower_wpos_ytransform_state *state,
     * u,h -> l,i: (99.5 + 0.5) * -1 + 100 = 0
     */
 
-   if (fragcoord->data.origin_upper_left) {
+   if (state->shader->info.fs.origin_upper_left) {
       /* Fragment shader wants origin in upper-left */
       if (options->fs_coord_origin_upper_left) {
          /* the driver supports upper-left origin */
@@ -203,7 +203,7 @@ lower_fragcoord(lower_wpos_ytransform_state *state,
       }
    }
 
-   if (fragcoord->data.pixel_center_integer) {
+   if (state->shader->info.fs.pixel_center_integer) {
       /* Fragment shader wants pixel center integer */
       if (options->fs_coord_pixel_center_integer) {
          /* the driver supports pixel center integer */

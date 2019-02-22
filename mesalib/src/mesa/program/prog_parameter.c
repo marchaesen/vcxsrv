@@ -246,8 +246,12 @@ _mesa_add_parameter(struct gl_program_parameter_list *paramList,
 {
    assert(0 < size && size <=4);
    const GLuint oldNum = paramList->NumParameters;
-   unsigned oldValNum = pad_and_align ?
-      align(paramList->NumParameterValues, 4) : paramList->NumParameterValues;
+   unsigned oldValNum = paramList->NumParameterValues;
+
+   if (pad_and_align)
+      oldValNum = align(oldValNum, 4); /* pad start to a vec4 boundary */
+   else if (_mesa_gl_datatype_is_64bit(datatype))
+      oldValNum = align(oldValNum, 2); /* pad start to 64-bit */
 
    _mesa_reserve_parameter_storage(paramList, 1);
 

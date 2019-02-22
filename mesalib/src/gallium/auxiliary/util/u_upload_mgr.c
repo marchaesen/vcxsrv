@@ -53,6 +53,7 @@ struct u_upload_mgr {
    uint8_t *map;    /* Pointer to the mapped upload buffer. */
    unsigned offset; /* Aligned offset to the upload buffer, pointing
                      * at the first unused byte. */
+   unsigned flushed_size; /* Size we have flushed by transfer_flush_region. */
 };
 
 
@@ -102,27 +103,47 @@ u_upload_create_default(struct pipe_context *pipe)
 struct u_upload_mgr *
 u_upload_clone(struct pipe_context *pipe, struct u_upload_mgr *upload)
 {
-   return u_upload_create(pipe, upload->default_size, upload->bind,
-                          upload->usage, upload->flags);
+   struct u_upload_mgr *result = u_upload_create(pipe, upload->default_size,
+                                                 upload->bind, upload->usage,
+                                                 upload->flags);
+   if (upload->map_persistent &&
+       upload->map_flags & PIPE_TRANSFER_FLUSH_EXPLICIT)
+      u_upload_enable_flush_explicit(result);
+
+   return result;
+}
+
+void
+u_upload_enable_flush_explicit(struct u_upload_mgr *upload)
+{
+   assert(upload->map_persistent);
+   upload->map_flags &= ~PIPE_TRANSFER_COHERENT;
+   upload->map_flags |= PIPE_TRANSFER_FLUSH_EXPLICIT;
 }
 
 static void
 upload_unmap_internal(struct u_upload_mgr *upload, boolean destroying)
 {
-   if (!destroying && upload->map_persistent)
+   if (!upload->transfer)
       return;
 
-   if (upload->transfer) {
+   if (upload->map_flags & PIPE_TRANSFER_FLUSH_EXPLICIT) {
       struct pipe_box *box = &upload->transfer->box;
+      unsigned flush_offset = box->x + upload->flushed_size;
 
-      if (!upload->map_persistent && (int) upload->offset > box->x) {
+      if (upload->offset > flush_offset) {
          pipe_buffer_flush_mapped_range(upload->pipe, upload->transfer,
-                                        box->x, upload->offset - box->x);
+                                        flush_offset,
+                                        upload->offset - flush_offset);
+         upload->flushed_size = upload->offset;
       }
+   }
 
+   if (destroying || !upload->map_persistent) {
       pipe_transfer_unmap(upload->pipe, upload->transfer);
       upload->transfer = NULL;
       upload->map = NULL;
+      upload->flushed_size = 0;
    }
 }
 

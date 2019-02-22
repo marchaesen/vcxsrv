@@ -274,8 +274,53 @@ ir3_normalize_key(struct ir3_shader_key *key, gl_shader_stage type)
 		/* TODO */
 		break;
 	}
-
 }
+
+/**
+ * On a4xx+a5xx, Images share state with textures and SSBOs:
+ *
+ *   + Uses texture (cat5) state/instruction (isam) to read
+ *   + Uses SSBO state and instructions (cat6) to write and for atomics
+ *
+ * Starting with a6xx, Images and SSBOs are basically the same thing,
+ * with texture state and isam also used for SSBO reads.
+ *
+ * On top of that, gallium makes the SSBO (shader_buffers) state semi
+ * sparse, with the first half of the state space used for atomic
+ * counters lowered to atomic buffers.  We could ignore this, but I
+ * don't think we could *really* handle the case of a single shader
+ * that used the max # of textures + images + SSBOs.  And once we are
+ * offsetting images by num_ssbos (or visa versa) to map them into
+ * the same hardware state, the hardware state has become coupled to
+ * the shader state, so at this point we might as well just use a
+ * mapping table to remap things from image/SSBO idx to hw idx.
+ *
+ * To make things less (more?) confusing, for the hw "SSBO" state
+ * (since it is really both SSBO and Image) I'll use the name "IBO"
+ */
+struct ir3_ibo_mapping {
+#define IBO_INVALID 0xff
+	/* Maps logical SSBO state to hw state: */
+	uint8_t ssbo_to_ibo[IR3_MAX_SHADER_BUFFERS];
+	uint8_t ssbo_to_tex[IR3_MAX_SHADER_BUFFERS];
+
+	/* Maps logical Image state to hw state: */
+	uint8_t image_to_ibo[IR3_MAX_SHADER_IMAGES];
+	uint8_t image_to_tex[IR3_MAX_SHADER_IMAGES];
+
+	/* Maps hw state back to logical SSBO or Image state:
+	 *
+	 * note IBO_SSBO ORd into values to indicate that the
+	 * hw slot is used for SSBO state vs Image state.
+	 */
+#define IBO_SSBO    0x80
+	uint8_t ibo_to_image[32];
+	uint8_t tex_to_image[32];
+
+	uint8_t num_ibo;
+	uint8_t num_tex;    /* including real textures */
+	uint8_t tex_base;   /* the number of real textures, ie. image/ssbo start here */
+};
 
 struct ir3_shader_variant {
 	struct fd_bo *bo;
@@ -374,6 +419,9 @@ struct ir3_shader_variant {
 	 * ie. SP_VS_PARAM_REG.TOTALVSOUTVAR)
 	 */
 	unsigned varying_in;
+
+	/* Remapping table to map Image and SSBO to hw state: */
+	struct ir3_ibo_mapping image_mapping;
 
 	/* number of samplers/textures (which are currently 1:1): */
 	int num_samp;

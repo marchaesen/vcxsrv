@@ -25,3 +25,6 @@ inc_vulkan_wsi = include_directories('wsi')
 
 subdir('util')
 subdir('wsi')
+if get_option('vulkan-overlay-layer')
+  subdir('overlay-layer')
+endif

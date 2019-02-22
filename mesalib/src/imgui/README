@@ -1,0 +1,15 @@
+Dear ImGui
+==========
+
+This directory contains a copy of the Dear ImGui library at the following commit :
+
+commit 6211f40f3d903dd9df961256e044029c49793aa3
+Author: omar <omarcornut@gmail.com>
+Date:   Fri Jul 27 12:29:33 2018 +0200
+
+Embedding the library into one's project is main way people seems to
+work with ImGui. Since this is just for a debugging tool, we're not
+exposing ourselves too much.
+
+Apart from tweaking the GLEW include path, there is no other
+modification to the files in this directory.

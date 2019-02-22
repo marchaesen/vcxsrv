@@ -9,6 +9,14 @@ MKDIR_GEN = $(AM_V_at)$(MKDIR_P) $(@D)
 PYTHON_GEN = $(AM_V_GEN)$(PYTHON) $(PYTHON_FLAGS)
 
 EXTRA_DIST = \
+	overlay-layer/README \
+	overlay-layer/meson.build \
+	overlay-layer/overlay.cpp \
+	overlay-layer/overlay.frag \
+	overlay-layer/overlay.vert \
+	overlay-layer/VkLayer_MESA_overlay.json.in \
+	overlay-layer/vk_layer_table.cpp \
+	overlay-layer/vk_layer_table.h \
 	util/gen_enum_to_str.py \
 	util/meson.build \
 	wsi/meson.build \
@@ -30,7 +38,6 @@ libvulkan_util_la_SOURCES = $(VULKAN_UTIL_SOURCES)
 AM_CPPFLAGS = \
 	$(DEFINES) \
 	-I$(top_srcdir)/include \
-	-I$(top_srcdir)/include/drm-uapi \
 	-I$(top_srcdir)/src \
 	-I$(top_srcdir)/src/vulkan/util \
 	-I$(top_srcdir)/src/gallium/auxiliary \
