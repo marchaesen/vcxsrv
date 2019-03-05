@@ -62,9 +62,10 @@ generated_gl_thunks.ic: $(srcdir)/gen_gl_wrappers.py $(KHRONOS_SPEC_DIR)/gl.xml 
 
 generated_gl_thunks.def: $(srcdir)/gen_gl_wrappers.py $(KHRONOS_SPEC_DIR)/gl.xml $(KHRONOS_SPEC_DIR)/reg.py
 	$(AM_V_GEN)PYTHONPATH=$(KHRONOS_SPEC_DIR) $(PYTHON3) $(srcdir)/gen_gl_wrappers.py -registry $(KHRONOS_SPEC_DIR)/gl.xml -thunkdefs $(GENGLWRAPPERSOPTS) -outfile $@
-endif
 
 BUILT_SOURCES = generated_gl_shim.ic generated_gl_thunks.ic generated_gl_thunks.def generated_wgl_wrappers.ic
 CLEANFILES = $(BUILT_SOURCES)
+
+endif
 
 EXTRA_DIST = gen_gl_wrappers.py

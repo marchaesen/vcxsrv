@@ -275,6 +275,7 @@ _mesa_add_parameter(struct gl_program_parameter_list *paramList,
    p->Name = strdup(name ? name : "");
    p->Type = type;
    p->Size = size;
+   p->Padded = pad_and_align;
    p->DataType = datatype;
 
    paramList->ParameterValueOffset[oldNum] = oldValNum;

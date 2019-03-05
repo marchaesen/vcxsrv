@@ -28,6 +28,7 @@
 #ifndef ST_CONTEXT_H
 #define ST_CONTEXT_H
 
+#include "main/arrayobj.h"
 #include "main/mtypes.h"
 #include "state_tracker/st_api.h"
 #include "main/fbobject.h"
@@ -396,6 +397,14 @@ st_user_clip_planes_enabled(struct gl_context *ctx)
    return (ctx->API == API_OPENGL_COMPAT ||
            ctx->API == API_OPENGLES) && /* only ES 1.x */
           ctx->Transform.ClipPlanesEnabled;
+}
+
+
+static inline bool
+st_vp_uses_current_values(const struct gl_context *ctx)
+{
+   const uint64_t inputs = ctx->VertexProgram._Current->info.inputs_read;
+   return _mesa_draw_current_bits(ctx) & inputs;
 }
 
 /** clear-alloc a struct-sized object, with casting */

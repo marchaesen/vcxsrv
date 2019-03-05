@@ -7379,6 +7379,7 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
                          FDIV_TO_MUL_RCP |
                          EXP_TO_EXP2 |
                          LOG_TO_LOG2 |
+                         MUL64_TO_MUL_AND_MUL_HIGH |
                          (have_ldexp ? 0 : LDEXP_TO_ARITH) |
                          (have_dfrexp ? 0 : DFREXP_DLDEXP_TO_ARITH) |
                          CARRY_TO_ARITH |

@@ -47,6 +47,16 @@ from The Open Group.
 #include <direct.h>
 #endif
 
+/* Needed for FIONREAD on Solaris */
+#ifdef HAVE_SYS_FILIO_H
+#include <sys/filio.h>
+#endif
+
+/* Needed for ioctl() on Solaris */
+#ifdef HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
 #ifdef XTHREADS
 #include "locking.h"
 

@@ -13,9 +13,9 @@ $ make headers_install INSTALL_HDR_PATH=/path/to/install
 
 The last update was done at the following kernel commit :
 
-commit 78230c46ec0a91dd4256c9e54934b3c7095a7ee3
-Merge: b65bd4031156 037f03155b7d
+commit a5f2fafece141ef3509e686cea576366d55cabb6
+Merge: 71f4e45a4ed3 860433ed2a55
 Author: Dave Airlie <airlied@redhat.com>
-Date:   Wed Mar 21 14:07:03 2018 +1000
+Date:   Wed Feb 20 12:16:30 2019 +1000
 
-    Merge tag 'omapdrm-4.17' of git://git.kernel.org/pub/scm/linux/kernel/git/tomba/linux into drm-next
+    Merge https://gitlab.freedesktop.org/drm/msm into drm-next

@@ -37,7 +37,7 @@ static int rsa_ssh1_load_main(FILE * fp, RSAKey *key, bool pub_only,
     *error = NULL;
 
     /* Slurp the whole file (minus the header) into a buffer. */
-    buf = strbuf_new();
+    buf = strbuf_new_nm();
     {
         int ch;
         while ((ch = fgetc(fp)) != EOF)
@@ -310,7 +310,7 @@ int rsa_ssh1_loadpub(const Filename *filename, BinarySink *bs,
 bool rsa_ssh1_savekey(const Filename *filename, RSAKey *key,
                       char *passphrase)
 {
-    strbuf *buf = strbuf_new();
+    strbuf *buf = strbuf_new_nm();
     int estart;
     FILE *fp;
 
@@ -490,32 +490,19 @@ static bool read_header(FILE * fp, char *header)
 
 static char *read_body(FILE * fp)
 {
-    char *text;
-    int len;
-    int size;
-    int c;
-
-    size = 128;
-    text = snewn(size, char);
-    len = 0;
-    text[len] = '\0';
+    strbuf *buf = strbuf_new_nm();
 
     while (1) {
-	c = fgetc(fp);
+	int c = fgetc(fp);
 	if (c == '\r' || c == '\n' || c == EOF) {
 	    if (c != EOF) {
 		c = fgetc(fp);
 		if (c != '\r' && c != '\n')
 		    ungetc(c, fp);
 	    }
-	    return text;
+	    return strbuf_to_str(buf);
 	}
-	if (len + 1 >= size) {
-	    size += 128;
-	    text = sresize(text, size, char);
-	}
-	text[len++] = c;
-	text[len] = '\0';
+	put_byte(buf, c);
     }
 }
 
@@ -691,7 +678,7 @@ ssh2_userkey *ssh2_load_userkey(
 	goto error;
     i = atoi(b);
     sfree(b);
-    private_blob = strbuf_new();
+    private_blob = strbuf_new_nm();
     if (!read_blob(fp, i, BinarySink_UPCAST(private_blob)))
 	goto error;
 
@@ -741,7 +728,7 @@ ssh2_userkey *ssh2_load_userkey(
 	    macdata = private_blob;
 	    free_macdata = false;
 	} else {
-            macdata = strbuf_new();
+            macdata = strbuf_new_nm();
 	    put_stringz(macdata, alg->ssh_id);
 	    put_stringz(macdata, encryption);
 	    put_stringz(macdata, comment);
@@ -847,8 +834,7 @@ bool rfc4716_loadpub(FILE *fp, char **algorithm,
     const char *error;
     char *line, *colon, *value;
     char *comment = NULL;
-    unsigned char *pubblob = NULL;
-    int pubbloblen, pubblobsize;
+    strbuf *pubblob = NULL;
     char base64in[4];
     unsigned char base64out[3];
     int base64bytes;
@@ -909,9 +895,7 @@ bool rfc4716_loadpub(FILE *fp, char **algorithm,
      * Now line contains the initial line of base64 data. Loop round
      * while it still does contain base64.
      */
-    pubblobsize = 4096;
-    pubblob = snewn(pubblobsize, unsigned char);
-    pubbloblen = 0;
+    pubblob = strbuf_new();
     base64bytes = 0;
     while (line && line[0] != '-') {
         char *p;
@@ -919,12 +903,7 @@ bool rfc4716_loadpub(FILE *fp, char **algorithm,
             base64in[base64bytes++] = *p;
             if (base64bytes == 4) {
                 int n = base64_decode_atom(base64in, base64out);
-                if (pubbloblen + n > pubblobsize) {
-                    pubblobsize = (pubbloblen + n) * 5 / 4 + 1024;
-                    pubblob = sresize(pubblob, pubblobsize, unsigned char);
-                }
-                memcpy(pubblob + pubbloblen, base64out, n);
-                pubbloblen += n;
+                put_data(pubblob, base64out, n);
                 base64bytes = 0;
             }
         }
@@ -946,29 +925,30 @@ bool rfc4716_loadpub(FILE *fp, char **algorithm,
      * return the key algorithm string too, so look for that at the
      * start of the public blob.
      */
-    if (pubbloblen < 4) {
+    if (pubblob->len < 4) {
         error = "not enough data in SSH-2 public key file";
         goto error;
     }
-    alglen = toint(GET_32BIT_MSB_FIRST(pubblob));
-    if (alglen < 0 || alglen > pubbloblen-4) {
+    alglen = toint(GET_32BIT_MSB_FIRST(pubblob->u));
+    if (alglen < 0 || alglen > pubblob->len-4) {
         error = "invalid algorithm prefix in SSH-2 public key file";
         goto error;
     }
     if (algorithm)
-        *algorithm = dupprintf("%.*s", alglen, pubblob+4);
+        *algorithm = dupprintf("%.*s", alglen, pubblob->s+4);
     if (commentptr)
         *commentptr = comment;
     else
         sfree(comment);
-    put_data(bs, pubblob, pubbloblen);
-    sfree(pubblob);
+    put_datapl(bs, ptrlen_from_strbuf(pubblob));
+    strbuf_free(pubblob);
     return true;
 
   error:
     sfree(line);
     sfree(comment);
-    sfree(pubblob);
+    if (pubblob)
+        strbuf_free(pubblob);
     if (errorstr)
         *errorstr = error;
     return false;
@@ -1256,7 +1236,7 @@ bool ssh2_save_userkey(
      */
     pub_blob = strbuf_new();
     ssh_key_public_blob(key->key, BinarySink_UPCAST(pub_blob));
-    priv_blob = strbuf_new();
+    priv_blob = strbuf_new_nm();
     ssh_key_private_blob(key->key, BinarySink_UPCAST(priv_blob));
 
     /*
@@ -1287,7 +1267,7 @@ bool ssh2_save_userkey(
 	unsigned char mackey[20];
 	char header[] = "putty-private-key-file-mac-key";
 
-	macdata = strbuf_new();
+	macdata = strbuf_new_nm();
 	put_stringz(macdata, ssh_key_ssh_id(key->key));
 	put_stringz(macdata, cipherstr);
 	put_stringz(macdata, key->comment);

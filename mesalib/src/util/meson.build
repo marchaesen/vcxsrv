@@ -100,7 +100,21 @@ files_mesa_util = files(
   'vma.h',
 )
 
-install_data('00-mesa-defaults.conf', install_dir : join_paths(get_option('datadir'), 'drirc.d'))
+files_drirc = files('00-mesa-defaults.conf')
+
+install_data(files_drirc, install_dir : join_paths(get_option('datadir'), 'drirc.d'))
+
+if with_tests
+  prog_xmllint = find_program('xmllint', required : false, native : true)
+  if prog_xmllint.found()
+    test(
+      'drirc xml validation',
+      prog_xmllint,
+      args : ['--noout', '--valid', files_drirc],
+      suite : ['util'],
+    )
+  endif
+endif
 
 files_xmlconfig = files(
   'xmlconfig.c',

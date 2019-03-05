@@ -1543,27 +1543,6 @@ emit_tex(struct ir3_context *ctx, nir_tex_instr *tex)
 
 	nsrc0 = i;
 
-	/* NOTE a3xx (and possibly a4xx?) might be different, using isaml
-	 * with scaled x coord according to requested sample:
-	 */
-	if (tex->op == nir_texop_txf_ms) {
-		if (ctx->compiler->txf_ms_with_isaml) {
-			/* the samples are laid out in x dimension as
-			 *     0 1 2 3
-			 * x_ms = (x << ms) + sample_index;
-			 */
-			struct ir3_instruction *ms;
-			ms = create_immed(b, (ctx->samples >> (2 * tex->texture_index)) & 3);
-
-			src0[0] = ir3_SHL_B(b, src0[0], 0, ms, 0);
-			src0[0] = ir3_ADD_U(b, src0[0], 0, sample_index, 0);
-
-			opc = OPC_ISAML;
-		} else {
-			src0[nsrc0++] = sample_index;
-		}
-	}
-
 	/* scale up integer coords for TXF based on the LOD */
 	if (ctx->compiler->unminify_coords && (opc == OPC_ISAML)) {
 		assert(has_lod);
@@ -1575,16 +1554,10 @@ emit_tex(struct ir3_context *ctx, nir_tex_instr *tex)
 		/* hw doesn't do 1d, so we treat it as 2d with
 		 * height of 1, and patch up the y coord.
 		 */
-		switch (opc) {
-		case OPC_ISAM:
-		case OPC_ISAML:
-		case OPC_ISAMM:
-			/* These instructions expect integer coord: */
+		if (is_isam(opc)) {
 			src0[nsrc0++] = create_immed(b, 0);
-			break;
-		default:
+		} else {
 			src0[nsrc0++] = create_immed(b, fui(0.5));
-			break;
 		}
 	}
 
@@ -1595,7 +1568,7 @@ emit_tex(struct ir3_context *ctx, nir_tex_instr *tex)
 		struct ir3_instruction *idx = coord[coords];
 
 		/* the array coord for cube arrays needs 0.5 added to it */
-		if (ctx->compiler->array_index_add_half && (opc != OPC_ISAML))
+		if (ctx->compiler->array_index_add_half && !is_isam(opc))
 			idx = ir3_ADD_F(b, idx, 0, create_immed(b, fui(0.5)), 0);
 
 		src0[nsrc0++] = idx;
@@ -1618,6 +1591,27 @@ emit_tex(struct ir3_context *ctx, nir_tex_instr *tex)
 			src0[nsrc0++] = ddy[i];
 		if (coords < 2)
 			src0[nsrc0++] = create_immed(b, fui(0.0));
+	}
+
+	/* NOTE a3xx (and possibly a4xx?) might be different, using isaml
+	 * with scaled x coord according to requested sample:
+	 */
+	if (tex->op == nir_texop_txf_ms) {
+		if (ctx->compiler->txf_ms_with_isaml) {
+			/* the samples are laid out in x dimension as
+			 *     0 1 2 3
+			 * x_ms = (x << ms) + sample_index;
+			 */
+			struct ir3_instruction *ms;
+			ms = create_immed(b, (ctx->samples >> (2 * tex->texture_index)) & 3);
+
+			src0[0] = ir3_SHL_B(b, src0[0], 0, ms, 0);
+			src0[0] = ir3_ADD_U(b, src0[0], 0, sample_index, 0);
+
+			opc = OPC_ISAML;
+		} else {
+			src0[nsrc0++] = sample_index;
+		}
 	}
 
 	/*
@@ -2616,6 +2610,9 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
 		ir3_print(ir);
 	}
 
+	/* do Sethi–Ullman numbering before scheduling: */
+	ir3_sun(ir);
+
 	ret = ir3_sched(ir);
 	if (ret) {
 		DBG("SCHED failed!");
@@ -2713,6 +2710,8 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
 		so->total_in = actual_in;
 	else
 		so->total_in = max_bary + 1;
+
+	so->max_sun = ir->max_sun;
 
 out:
 	if (ret) {

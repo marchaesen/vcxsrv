@@ -51,9 +51,32 @@ static const nir_shader_compiler_options options = {
 		.lower_helper_invocation = true,
 };
 
+/* we don't want to lower vertex_id to _zero_based on newer gpus: */
+static const nir_shader_compiler_options options_a6xx = {
+		.lower_fpow = true,
+		.lower_scmp = true,
+		.lower_flrp32 = true,
+		.lower_flrp64 = true,
+		.lower_ffract = true,
+		.lower_fmod32 = true,
+		.lower_fmod64 = true,
+		.lower_fdiv = true,
+		.lower_isign = true,
+		.lower_ldexp = true,
+		.fuse_ffma = true,
+		.native_integers = true,
+		.vertex_id_zero_based = false,
+		.lower_extract_byte = true,
+		.lower_extract_word = true,
+		.lower_all_io_to_temps = true,
+		.lower_helper_invocation = true,
+};
+
 const nir_shader_compiler_options *
 ir3_get_compiler_options(struct ir3_compiler *compiler)
 {
+	if (compiler->gpu_id >= 600)
+		return &options_a6xx;
 	return &options;
 }
 

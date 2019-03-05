@@ -996,15 +996,14 @@ write_shader_parameters(struct blob *metadata,
                         struct gl_program_parameter_list *params)
 {
    blob_write_uint32(metadata, params->NumParameters);
-   blob_write_uint32(metadata, params->NumParameterValues);
    uint32_t i = 0;
 
    while (i < params->NumParameters) {
       struct gl_program_parameter *param = &params->Parameters[i];
-
       blob_write_uint32(metadata, param->Type);
       blob_write_string(metadata, param->Name);
       blob_write_uint32(metadata, param->Size);
+      blob_write_uint32(metadata, param->Padded);
       blob_write_uint32(metadata, param->DataType);
       blob_write_bytes(metadata, param->StateIndexes,
                        sizeof(param->StateIndexes));
@@ -1014,9 +1013,6 @@ write_shader_parameters(struct blob *metadata,
 
    blob_write_bytes(metadata, params->ParameterValues,
                     sizeof(gl_constant_value) * params->NumParameterValues);
-
-   blob_write_bytes(metadata, params->ParameterValueOffset,
-                    sizeof(uint32_t) * params->NumParameters);
 
    blob_write_uint32(metadata, params->StateFlags);
 }
@@ -1028,28 +1024,25 @@ read_shader_parameters(struct blob_reader *metadata,
    gl_state_index16 state_indexes[STATE_LENGTH];
    uint32_t i = 0;
    uint32_t num_parameters = blob_read_uint32(metadata);
-   uint32_t num_parameters_values = blob_read_uint32(metadata);
 
    _mesa_reserve_parameter_storage(params, num_parameters);
    while (i < num_parameters) {
       gl_register_file type = (gl_register_file) blob_read_uint32(metadata);
       const char *name = blob_read_string(metadata);
       unsigned size = blob_read_uint32(metadata);
+      bool padded = blob_read_uint32(metadata);
       unsigned data_type = blob_read_uint32(metadata);
       blob_copy_bytes(metadata, (uint8_t *) state_indexes,
                       sizeof(state_indexes));
 
       _mesa_add_parameter(params, type, name, size, data_type,
-                          NULL, state_indexes, false);
+                          NULL, state_indexes, padded);
 
       i++;
    }
 
    blob_copy_bytes(metadata, (uint8_t *) params->ParameterValues,
-                   sizeof(gl_constant_value) * num_parameters_values);
-
-   blob_copy_bytes(metadata, (uint8_t *) params->ParameterValueOffset,
-                   sizeof(uint32_t) * num_parameters);
+                   sizeof(gl_constant_value) * params->NumParameterValues);
 
    params->StateFlags = blob_read_uint32(metadata);
 }

@@ -1423,6 +1423,12 @@ shrink_vec_var_access_impl(nir_function_impl *impl,
                continue;
             }
 
+            /* If we're not dropping any components, there's no need to
+             * compact vectors.
+             */
+            if (usage->comps_kept == usage->all_comps)
+               continue;
+
             if (intrin->intrinsic == nir_intrinsic_load_deref) {
                b.cursor = nir_after_instr(&intrin->instr);
 

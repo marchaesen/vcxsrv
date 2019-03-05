@@ -113,8 +113,13 @@ get_buffer_target(struct gl_context *ctx, GLenum target)
 
    switch (target) {
    case GL_ARRAY_BUFFER_ARB:
+      if (ctx->Array.ArrayBufferObj)
+         ctx->Array.ArrayBufferObj->UsageHistory |= USAGE_ARRAY_BUFFER;
       return &ctx->Array.ArrayBufferObj;
    case GL_ELEMENT_ARRAY_BUFFER_ARB:
+      if (ctx->Array.VAO->IndexBufferObj)
+         ctx->Array.VAO->IndexBufferObj->UsageHistory
+            |= USAGE_ELEMENT_ARRAY_BUFFER;
       return &ctx->Array.VAO->IndexBufferObj;
    case GL_PIXEL_PACK_BUFFER_EXT:
       return &ctx->Pack.BufferObj;

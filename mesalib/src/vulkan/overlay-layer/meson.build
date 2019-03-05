@@ -18,8 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-vklayer_install_dir = join_paths(get_option('prefix'), 'share', 'vulkan', 'explicit_layer.d')
-
 glslang = find_program('glslangValidator')
 
 overlay_shaders = [
@@ -35,6 +33,7 @@ endforeach
 
 vklayer_files = files(
   'overlay.cpp',
+  'overlay_params.c',
   'vk_layer_table.cpp',
 )
 
@@ -47,16 +46,10 @@ vklayer_mesa_overlay = shared_library(
   include_directories : [inc_common, inc_vulkan_util],
   link_args : cc.get_supported_link_arguments(['-Wl,-Bsymbolic-functions', '-Wl,-z,relro']),
   link_with : [libmesa_util, libvulkan_util],
-  install_dir : vklayer_install_dir,
+  install : true
 )
 
-sdata = configuration_data()
-sdata.set('install_dir', vklayer_install_dir)
-
-configure_file(
-  input : 'VkLayer_MESA_overlay.json.in',
-  output : '@BASENAME@',
-  configuration : sdata,
-  install_dir : vklayer_install_dir,
-  install : true
+install_data(
+  files('VkLayer_MESA_overlay.json'),
+  install_dir : join_paths(get_option('datadir'), 'vulkan', 'explicit_layer.d'),
 )

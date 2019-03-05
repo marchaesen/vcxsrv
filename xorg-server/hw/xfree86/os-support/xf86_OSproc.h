@@ -136,6 +136,7 @@ extern _X_EXPORT int xf86GetSerialModemState(int fd);
 extern _X_EXPORT int xf86SerialModemSetBits(int fd, int bits);
 extern _X_EXPORT int xf86SerialModemClearBits(int fd, int bits);
 extern _X_EXPORT int xf86LoadKernelModule(const char *pathname);
+extern _X_EXPORT void xf86OSInputThreadInit(void);
 
 /* AGP GART interface */
 

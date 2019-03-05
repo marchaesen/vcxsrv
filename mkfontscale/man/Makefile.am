@@ -1,6 +1,6 @@
 
 appmandir = $(APP_MAN_DIR)
-appman_PRE = mkfontscale.man
+appman_PRE = mkfontdir.man mkfontscale.man
 appman_DATA = $(appman_PRE:man=$(APP_MAN_SUFFIX))
 
 EXTRA_DIST = $(appman_PRE)

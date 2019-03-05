@@ -790,11 +790,9 @@ test_texture_barrier(struct pipe_context *ctx, bool use_fbfetch,
 static void
 test_compute_clear_image(struct pipe_context *ctx)
 {
-   struct cso_context *cso;
    struct pipe_resource *cb;
    const char *text;
 
-   cso = cso_create_context(ctx, 0);
    cb = util_create_texture2d(ctx->screen, 256, 256,
                               PIPE_FORMAT_R8G8B8A8_UNORM, 1);
 
@@ -827,7 +825,7 @@ test_compute_clear_image(struct pipe_context *ctx)
    state.prog = tokens;
 
    void *compute_shader = ctx->create_compute_state(ctx, &state);
-   cso_set_compute_shader_handle(cso, compute_shader);
+   ctx->bind_compute_state(ctx, compute_shader);
 
    /* Bind the image. */
    struct pipe_image_view image = {0};
@@ -854,7 +852,6 @@ test_compute_clear_image(struct pipe_context *ctx)
                                     cb->width0, cb->height0, expected);
 
    /* Cleanup. */
-   cso_destroy_context(cso);
    ctx->delete_compute_state(ctx, compute_shader);
    pipe_resource_reference(&cb, NULL);
 
@@ -881,9 +878,10 @@ util_run_tests(struct pipe_screen *screen)
       test_texture_barrier(ctx, false, i);
    for (int i = 1; i <= 8; i = i * 2)
       test_texture_barrier(ctx, true, i);
+   ctx->destroy(ctx);
 
+   ctx = screen->context_create(screen, NULL, PIPE_CONTEXT_COMPUTE_ONLY);
    test_compute_clear_image(ctx);
-
    ctx->destroy(ctx);
 
    puts("Done. Exiting..");

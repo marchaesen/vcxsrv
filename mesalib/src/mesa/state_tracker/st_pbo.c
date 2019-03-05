@@ -447,6 +447,7 @@ create_fs_nir(struct st_context *st,
    /* param = [ -xoffset + skip_pixels, -yoffset, stride, image_height ] */
    nir_variable *param_var =
       nir_variable_create(b.shader, nir_var_uniform, glsl_vec4_type(), "param");
+   b.shader->num_uniforms += 4;
    nir_ssa_def *param = nir_load_var(&b, param_var);
 
    nir_variable *fragcoord =
@@ -496,6 +497,7 @@ create_fs_nir(struct st_context *st,
             nir_variable *layer_offset_var =
                nir_variable_create(b.shader, nir_var_uniform,
                                    glsl_int_type(), "layer_offset");
+            b.shader->num_uniforms += 1;
             layer_offset_var->data.driver_location = 4;
             nir_ssa_def *layer_offset = nir_load_var(&b, layer_offset_var);
 

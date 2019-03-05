@@ -45,6 +45,9 @@ nir_lower_to_source_mods_block(nir_block *block,
 
       nir_alu_instr *alu = nir_instr_as_alu(instr);
 
+      bool lower_abs = (nir_op_infos[alu->op].num_inputs < 3) ||
+            (options & nir_lower_triop_abs);
+
       for (unsigned i = 0; i < nir_op_infos[alu->op].num_inputs; i++) {
          if (!alu->src[i].src.is_ssa)
             continue;
@@ -79,6 +82,9 @@ nir_lower_to_source_mods_block(nir_block *block,
           * on a register.
           */
          if (!parent->src[0].src.is_ssa)
+            continue;
+
+         if (!lower_abs && parent->src[0].abs)
             continue;
 
          nir_instr_rewrite_src(instr, &alu->src[i].src, parent->src[0].src);

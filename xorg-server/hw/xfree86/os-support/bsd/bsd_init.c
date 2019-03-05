@@ -661,3 +661,9 @@ xf86UseMsg()
     ErrorF("don't detach controlling tty (for debugging only)\n");
     return;
 }
+
+void
+xf86OSInputThreadInit()
+{
+    return;
+}

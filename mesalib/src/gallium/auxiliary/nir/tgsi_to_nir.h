@@ -22,7 +22,12 @@
  */
 
 #include "compiler/nir/nir.h"
+#include "pipe/p_screen.h"
 
 struct nir_shader *
 tgsi_to_nir(const void *tgsi_tokens,
-            const struct nir_shader_compiler_options *options);
+            struct pipe_screen *screen);
+
+struct nir_shader *
+tgsi_to_nir_noscreen(const void *tgsi_tokens,
+                     const nir_shader_compiler_options *options);

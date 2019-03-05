@@ -42,6 +42,10 @@
 #include "xmlconfig.h"
 #include "u_process.h"
 
+/* For systems like Hurd */
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
 
 /** \brief Find an option in an option cache with the name as key */
 static uint32_t

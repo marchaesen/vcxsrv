@@ -374,6 +374,11 @@ get_atomic_dest_mov(struct ir3_instruction *atomic)
 
 	mov->flags |= IR3_INSTR_SY;
 
+	if (atomic->regs[0]->flags & IR3_REG_ARRAY) {
+		mov->regs[0]->flags |= IR3_REG_ARRAY;
+		mov->regs[0]->array = atomic->regs[0]->array;
+	}
+
 	/* it will have already been appended to the end of the block, which
 	 * isn't where we want it, so fix-up the location:
 	 */
@@ -421,6 +426,14 @@ ir3_a6xx_fixup_atomic_dests(struct ir3 *ir, struct ir3_shader_variant *so)
 				if (is_atomic(src->opc) && (src->flags & IR3_INSTR_G))
 					reg->instr = get_atomic_dest_mov(src);
 			}
+		}
+
+		/* we also need to fixup shader outputs: */
+		for (unsigned i = 0; i < ir->noutputs; i++) {
+			if (!ir->outputs[i])
+				continue;
+			if (is_atomic(ir->outputs[i]->opc) && (ir->outputs[i]->flags & IR3_INSTR_G))
+				ir->outputs[i] = get_atomic_dest_mov(ir->outputs[i]);
 		}
 	}
 

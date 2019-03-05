@@ -621,6 +621,17 @@ ir_validate::visit_leave(ir_expression *ir)
       assert(ir->operands[0]->type->base_type ==
              ir->operands[1]->type->base_type);
 
+      if (ir->operation == ir_binop_mul &&
+          (ir->type->base_type == GLSL_TYPE_UINT64 ||
+           ir->type->base_type == GLSL_TYPE_INT64) &&
+          (ir->operands[0]->type->base_type == GLSL_TYPE_INT ||
+           ir->operands[1]->type->base_type == GLSL_TYPE_INT ||
+           ir->operands[0]->type->base_type == GLSL_TYPE_UINT ||
+           ir->operands[1]->type->base_type == GLSL_TYPE_UINT)) {
+         assert(ir->operands[0]->type == ir->operands[1]->type);
+         break;
+      }
+
       if (ir->operands[0]->type->is_scalar())
 	 assert(ir->operands[1]->type == ir->type);
       else if (ir->operands[1]->type->is_scalar())

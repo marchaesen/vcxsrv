@@ -32,8 +32,11 @@ LOCAL_SRC_FILES := \
 	$(C_SOURCES) \
 	$(NIR_SOURCES) \
 	$(RENDERONLY_SOURCES) \
-	$(VL_STUB_SOURCES) \
-	util/u_debug_stack_android.cpp
+	$(VL_STUB_SOURCES)
+
+ifeq ($(USE_LIBBACKTRACE),true)
+	LOCAL_SRC_FILES += util/u_debug_stack_android.cpp
+endif
 
 LOCAL_C_INCLUDES := \
 	$(GALLIUM_TOP)/auxiliary/util \

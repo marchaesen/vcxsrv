@@ -393,6 +393,8 @@ ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
 
 	fprintf(out, "; %u (ss), %u (sy)\n", so->info.ss, so->info.sy);
 
+	fprintf(out, "; max_sun=%u\n", ir->max_sun);
+
 	/* print shader type specific info: */
 	switch (so->type) {
 	case MESA_SHADER_VERTEX:

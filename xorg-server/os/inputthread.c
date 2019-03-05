@@ -318,6 +318,8 @@ InputThreadDoWork(void *arg)
     sigfillset(&set);
     pthread_sigmask(SIG_BLOCK, &set, NULL);
 
+    ddxInputThreadInit();
+
     inputThreadInfo->running = TRUE;
 
 #if defined(HAVE_PTHREAD_SETNAME_NP_WITH_TID)

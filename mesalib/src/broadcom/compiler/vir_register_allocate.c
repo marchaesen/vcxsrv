@@ -47,10 +47,21 @@ is_last_ldtmu(struct qinst *inst, struct qblock *block)
         return true;
 }
 
+static bool
+vir_is_mov_uniform(struct v3d_compile *c, int temp)
+{
+        struct qinst *def = c->defs[temp];
+
+        return (def &&
+                vir_is_raw_mov(def) &&
+                def->src[0].file == QFILE_UNIF);
+}
+
 static int
 v3d_choose_spill_node(struct v3d_compile *c, struct ra_graph *g,
                       uint32_t *temp_to_node)
 {
+        const float tmu_scale = 5;
         float block_scale = 1.0;
         float spill_costs[c->num_temps];
         bool in_tmu_operation = false;
@@ -75,22 +86,28 @@ v3d_choose_spill_node(struct v3d_compile *c, struct ra_graph *g,
                                         continue;
 
                                 int temp = inst->src[i].index;
-                                if (no_spilling) {
-                                        BITSET_CLEAR(c->spillable,
-                                                     temp);
-                                } else {
+                                if (vir_is_mov_uniform(c, temp)) {
                                         spill_costs[temp] += block_scale;
+                                } else if (!no_spilling) {
+                                        spill_costs[temp] += (block_scale *
+                                                              tmu_scale);
+                                } else {
+                                        BITSET_CLEAR(c->spillable, temp);
                                 }
                         }
 
                         if (inst->dst.file == QFILE_TEMP) {
                                 int temp = inst->dst.index;
 
-                                if (no_spilling) {
-                                        BITSET_CLEAR(c->spillable,
-                                                     temp);
+                                if (vir_is_mov_uniform(c, temp)) {
+                                        /* We just rematerialize the unform
+                                         * later.
+                                         */
+                                } else if (!no_spilling) {
+                                        spill_costs[temp] += (block_scale *
+                                                              tmu_scale);
                                 } else {
-                                        spill_costs[temp] += block_scale;
+                                        BITSET_CLEAR(c->spillable, temp);
                                 }
                         }
 
@@ -184,18 +201,28 @@ v3d_emit_spill_tmua(struct v3d_compile *c, uint32_t spill_offset)
 static void
 v3d_spill_reg(struct v3d_compile *c, int spill_temp)
 {
-        uint32_t spill_offset = c->spill_size;
-        c->spill_size += 16 * sizeof(uint32_t);
+        bool is_uniform = vir_is_mov_uniform(c, spill_temp);
 
-        if (spill_offset == 0)
-                v3d_setup_spill_base(c);
+        uint32_t spill_offset = 0;
+
+        if (!is_uniform) {
+                uint32_t spill_offset = c->spill_size;
+                c->spill_size += 16 * sizeof(uint32_t);
+
+                if (spill_offset == 0)
+                        v3d_setup_spill_base(c);
+        }
 
         struct qinst *last_thrsw = c->last_thrsw;
         assert(!last_thrsw || last_thrsw->is_last_thrsw);
 
         int start_num_temps = c->num_temps;
 
-        vir_for_each_inst_inorder(inst, c) {
+        struct qreg uniform_src = c->undef;
+        if (is_uniform)
+                uniform_src = c->defs[spill_temp]->src[0];
+
+        vir_for_each_inst_inorder_safe(inst, c) {
                 for (int i = 0; i < vir_get_nsrc(inst); i++) {
                         if (inst->src[i].file != QFILE_TEMP ||
                             inst->src[i].index != spill_temp) {
@@ -204,23 +231,33 @@ v3d_spill_reg(struct v3d_compile *c, int spill_temp)
 
                         c->cursor = vir_before_inst(inst);
 
-                        v3d_emit_spill_tmua(c, spill_offset);
-                        vir_emit_thrsw(c);
-                        inst->src[i] = vir_LDTMU(c);
-                        c->fills++;
+                        if (is_uniform) {
+                                inst->src[i] = vir_MOV(c, uniform_src);
+                        } else {
+                                v3d_emit_spill_tmua(c, spill_offset);
+                                vir_emit_thrsw(c);
+                                inst->src[i] = vir_LDTMU(c);
+                                c->fills++;
+                        }
                 }
 
                 if (inst->dst.file == QFILE_TEMP &&
                     inst->dst.index == spill_temp) {
-                        c->cursor = vir_after_inst(inst);
+                        if (is_uniform) {
+                                c->cursor.link = NULL;
+                                vir_remove_instruction(c, inst);
+                        } else {
+                                c->cursor = vir_after_inst(inst);
 
-                        inst->dst.index = c->num_temps++;
-                        vir_MOV_dest(c, vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_TMUD),
-                                     inst->dst);
-                        v3d_emit_spill_tmua(c, spill_offset);
-                        vir_emit_thrsw(c);
-                        vir_TMUWT(c);
-                        c->spills++;
+                                inst->dst.index = c->num_temps++;
+                                vir_MOV_dest(c, vir_reg(QFILE_MAGIC,
+                                                        V3D_QPU_WADDR_TMUD),
+                                             inst->dst);
+                                v3d_emit_spill_tmua(c, spill_offset);
+                                vir_emit_thrsw(c);
+                                vir_TMUWT(c);
+                                c->spills++;
+                        }
                 }
 
                 /* If we didn't have a last-thrsw inserted by nir_to_vir and
@@ -228,7 +265,7 @@ v3d_spill_reg(struct v3d_compile *c, int spill_temp)
                  * right before we start the vpm/tlb sequence for the last
                  * thread segment.
                  */
-                if (!last_thrsw && c->last_thrsw &&
+                if (!is_uniform && !last_thrsw && c->last_thrsw &&
                     (v3d_qpu_writes_vpm(&inst->qpu) ||
                      v3d_qpu_uses_tlb(&inst->qpu))) {
                         c->cursor = vir_before_inst(inst);

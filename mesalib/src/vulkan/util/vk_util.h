@@ -27,17 +27,12 @@
 
 #include <vulkan/vulkan.h>
 
-struct vk_struct_common {
-    VkStructureType sType;
-    struct vk_struct_common *pNext;
-};
-
 #define vk_foreach_struct(__iter, __start) \
-   for (struct vk_struct_common *__iter = (struct vk_struct_common *)(__start); \
+   for (struct VkBaseOutStructure *__iter = (struct VkBaseOutStructure *)(__start); \
         __iter; __iter = __iter->pNext)
 
 #define vk_foreach_struct_const(__iter, __start) \
-   for (const struct vk_struct_common *__iter = (const struct vk_struct_common *)(__start); \
+   for (const struct VkBaseInStructure *__iter = (const struct VkBaseInStructure *)(__start); \
         __iter; __iter = __iter->pNext)
 
 /**

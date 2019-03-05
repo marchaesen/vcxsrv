@@ -149,6 +149,9 @@ typedef struct shader_info {
       struct {
          /* Which inputs are doubles */
          uint64_t double_inputs;
+
+         /* True if the shader writes position in window space coordinates pre-transform */
+         bool window_space_position;
       } vs;
 
       struct {

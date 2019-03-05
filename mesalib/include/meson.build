@@ -18,6 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+inc_include = include_directories('.')
 inc_vulkan = include_directories('vulkan')
 inc_d3d9 = include_directories('D3D9')
 inc_gl_internal = include_directories('GL/internal')
@@ -93,14 +94,19 @@ if with_gallium_opencl and not with_opencl_icd
   install_headers(
     'CL/cl.h',
     'CL/cl.hpp',
+    'CL/cl2.hpp',
     'CL/cl_d3d10.h',
     'CL/cl_d3d11.h',
     'CL/cl_dx9_media_sharing.h',
+    'CL/cl_dx9_media_sharing_intel.h',
     'CL/cl_egl.h',
     'CL/cl_ext.h',
+    'CL/cl_ext_intel.h',
     'CL/cl_gl.h',
     'CL/cl_gl_ext.h',
     'CL/cl_platform.h',
+    'CL/cl_va_api_media_sharing_intel.h',
+    'CL/cl_version.h',
     'CL/opencl.h',
     subdir: 'CL'
   )

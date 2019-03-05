@@ -40,7 +40,8 @@ static void print_instr_name(struct ir3_instruction *instr)
 #endif
 	printf("%04u:", instr->name);
 	printf("%04u:", instr->ip);
-	printf("%03u: ", instr->depth);
+	printf("%03u:", instr->depth);
+	printf("%03u: ", instr->sun);
 
 	if (instr->flags & IR3_INSTR_SY)
 		printf("(sy)");

@@ -55,12 +55,84 @@ struct ir3_sched_ctx {
 	struct ir3_instruction *scheduled; /* last scheduled instr XXX remove*/
 	struct ir3_instruction *addr;      /* current a0.x user, if any */
 	struct ir3_instruction *pred;      /* current p0.x user, if any */
+	int live_values;                   /* estimate of current live values */
 	bool error;
 };
 
 static bool is_sfu_or_mem(struct ir3_instruction *instr)
 {
 	return is_sfu(instr) || is_mem(instr);
+}
+
+static void
+unuse_each_src(struct ir3_sched_ctx *ctx, struct ir3_instruction *instr)
+{
+	struct ir3_instruction *src;
+
+	foreach_ssa_src_n(src, n, instr) {
+		if (__is_false_dep(instr, n))
+			continue;
+		if (instr->block != src->block)
+			continue;
+		if ((src->opc == OPC_META_FI) || (src->opc == OPC_META_FO)) {
+			unuse_each_src(ctx, src);
+		} else {
+			debug_assert(src->use_count > 0);
+
+			if (--src->use_count == 0) {
+				ctx->live_values -= dest_regs(src);
+				debug_assert(ctx->live_values >= 0);
+			}
+		}
+	}
+}
+
+static void
+use_each_src(struct ir3_instruction *instr)
+{
+	struct ir3_instruction *src;
+
+	foreach_ssa_src_n(src, n, instr) {
+		if (__is_false_dep(instr, n))
+			continue;
+		if (instr->block != src->block)
+			continue;
+		if ((src->opc == OPC_META_FI) || (src->opc == OPC_META_FO)) {
+			use_each_src(src);
+		} else {
+			src->use_count++;
+		}
+	}
+}
+
+static void
+update_live_values(struct ir3_sched_ctx *ctx, struct ir3_instruction *instr)
+{
+	if ((instr->opc == OPC_META_FI) || (instr->opc == OPC_META_FO))
+		return;
+
+	ctx->live_values += dest_regs(instr);
+	unuse_each_src(ctx, instr);
+}
+
+/* This is *slightly* different than how ir3_cp uses use_count, in that
+ * we just track it per block (because we schedule a block at a time) and
+ * because we don't track meta instructions and false dependencies (since
+ * they don't contribute real register pressure).
+ */
+static void
+update_use_count(struct ir3_block *block)
+{
+	list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
+		instr->use_count = 0;
+	}
+
+	list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
+		if ((instr->opc == OPC_META_FI) || (instr->opc == OPC_META_FO))
+			continue;
+
+		use_each_src(instr);
+	}
 }
 
 #define NULL_INSTR ((void *)~0)
@@ -105,6 +177,8 @@ schedule(struct ir3_sched_ctx *ctx, struct ir3_instruction *instr)
 	list_addtail(&instr->node, &instr->block->instr_list);
 	ctx->scheduled = instr;
 
+	update_live_values(ctx, instr);
+
 	if (writes_addr(instr) || writes_pred(instr) || is_input(instr)) {
 		clear_cache(ctx, NULL);
 	} else {
@@ -126,7 +200,7 @@ deepest(struct ir3_instruction **srcs, unsigned nsrcs)
 		return NULL;
 
 	for (; i < nsrcs; i++)
-		if (srcs[i] && (srcs[i]->depth > d->depth))
+		if (srcs[i] && (srcs[i]->sun > d->sun))
 			d = srcs[id = i];
 
 	srcs[id] = NULL;
@@ -432,14 +506,18 @@ find_eligible_instr(struct ir3_sched_ctx *ctx, struct ir3_sched_notes *notes,
 		if (!candidate)
 			continue;
 
-		delay = delay_calc(ctx->block, candidate, soft, false);
-		if (delay < min_delay) {
-			best_instr = candidate;
-			min_delay = delay;
+		if (ctx->live_values > 16*4) {
+			/* under register pressure, only care about reducing live values: */
+			if (!best_instr || (candidate->sun > best_instr->sun))
+				best_instr = candidate;
+		} else {
+			delay = delay_calc(ctx->block, candidate, soft, false);
+			if ((delay < min_delay) ||
+					((delay <= (min_delay + 2)) && (candidate->sun > best_instr->sun))) {
+				best_instr = candidate;
+				min_delay = delay;
+			}
 		}
-
-		if (min_delay == 0)
-			break;
 	}
 
 	return best_instr;
@@ -714,6 +792,8 @@ int ir3_sched(struct ir3 *ir)
 	ir3_clear_mark(ir);
 
 	list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
+		ctx.live_values = 0;
+		update_use_count(block);
 		sched_block(&ctx, block);
 	}
 
@@ -723,6 +803,7 @@ int ir3_sched(struct ir3 *ir)
 
 	if (ctx.error)
 		return -1;
+
 	return 0;
 }
 

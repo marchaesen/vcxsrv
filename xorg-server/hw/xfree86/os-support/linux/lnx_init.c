@@ -407,3 +407,9 @@ xf86UseMsg(void)
     ErrorF("don't detach controlling tty (for debugging only)\n");
     ErrorF("-masterfd <fd>         use the specified fd as the DRM master fd (not if setuid/gid)\n");
 }
+
+void
+xf86OSInputThreadInit()
+{
+    return;
+}

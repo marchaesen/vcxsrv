@@ -137,7 +137,7 @@ loader_open_render_node(const char *name)
           (device->bustype == DRM_BUS_PLATFORM)) {
          drmVersionPtr version;
 
-         fd = open(device->nodes[DRM_NODE_RENDER], O_RDWR | O_CLOEXEC);
+         fd = loader_open_device(device->nodes[DRM_NODE_RENDER]);
          if (fd < 0)
             continue;
 

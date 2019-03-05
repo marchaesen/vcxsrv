@@ -224,7 +224,7 @@ st_invalidate_state(struct gl_context *ctx)
    if (new_state & _NEW_PIXEL)
       st->dirty |= ST_NEW_PIXEL_TRANSFER;
 
-   if (new_state & _NEW_CURRENT_ATTRIB)
+   if (new_state & _NEW_CURRENT_ATTRIB && st_vp_uses_current_values(ctx))
       st->dirty |= ST_NEW_VERTEX_ARRAYS;
 
    /* Update the vertex shader if ctx->Light._ClampVertexColor was changed. */

@@ -969,9 +969,11 @@ void radv_update_descriptor_sets(
 			}
 			src_ptr += src_binding_layout->size / 4;
 			dst_ptr += dst_binding_layout->size / 4;
-			dst_buffer_list[j] = src_buffer_list[j];
-			++src_buffer_list;
-			++dst_buffer_list;
+
+			if (src_binding_layout->type != VK_DESCRIPTOR_TYPE_SAMPLER) {
+				/* Sampler descriptors don't have a buffer list. */
+				dst_buffer_list[j] = src_buffer_list[j];
+			}
 		}
 	}
 }

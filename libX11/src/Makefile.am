@@ -239,6 +239,7 @@ libX11_la_SOURCES = \
                   QuTree.c \
                   RaiseWin.c \
                   RdBitF.c \
+                  reallocarray.h \
                   RecolorC.c \
                   ReconfWin.c \
                   ReconfWM.c \

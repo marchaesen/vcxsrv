@@ -465,17 +465,21 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
       val->ssa->elems[1]->def = nir_usub_borrow(&b->nb, src[0], src[1]);
       break;
 
-   case SpvOpUMulExtended:
+   case SpvOpUMulExtended: {
       vtn_assert(glsl_type_is_struct(val->ssa->type));
-      val->ssa->elems[0]->def = nir_imul(&b->nb, src[0], src[1]);
-      val->ssa->elems[1]->def = nir_umul_high(&b->nb, src[0], src[1]);
+      nir_ssa_def *umul = nir_umul_2x32_64(&b->nb, src[0], src[1]);
+      val->ssa->elems[0]->def = nir_unpack_64_2x32_split_x(&b->nb, umul);
+      val->ssa->elems[1]->def = nir_unpack_64_2x32_split_y(&b->nb, umul);
       break;
+   }
 
-   case SpvOpSMulExtended:
+   case SpvOpSMulExtended: {
       vtn_assert(glsl_type_is_struct(val->ssa->type));
-      val->ssa->elems[0]->def = nir_imul(&b->nb, src[0], src[1]);
-      val->ssa->elems[1]->def = nir_imul_high(&b->nb, src[0], src[1]);
+      nir_ssa_def *smul = nir_imul_2x32_64(&b->nb, src[0], src[1]);
+      val->ssa->elems[0]->def = nir_unpack_64_2x32_split_x(&b->nb, smul);
+      val->ssa->elems[1]->def = nir_unpack_64_2x32_split_y(&b->nb, smul);
       break;
+   }
 
    case SpvOpFwidth:
       val->ssa->def = nir_fadd(&b->nb,

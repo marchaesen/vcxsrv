@@ -12,6 +12,8 @@ EXTRA_DIST = \
 	overlay-layer/README \
 	overlay-layer/meson.build \
 	overlay-layer/overlay.cpp \
+	overlay-layer/overlay_params.c \
+	overlay-layer/overlay_params.h \
 	overlay-layer/overlay.frag \
 	overlay-layer/overlay.vert \
 	overlay-layer/VkLayer_MESA_overlay.json.in \

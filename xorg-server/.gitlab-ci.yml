@@ -23,10 +23,6 @@ stages:
 
 debian-testing:
     stage: docker-image
-    only:
-        changes:
-            - .gitlab-ci.yml
-            - .gitlab-ci/Dockerfile
     image:
         name: gcr.io/kaniko-project/executor:debug
         entrypoint: [""]
@@ -64,8 +60,6 @@ debian-testing:
             - ccache/
     variables:
         LC_ALL: C.UTF-8
-        PIGLIT_DIR: /root/piglit
-        XTEST_DIR: /root/xts
     before_script:
         - export CCACHE_BASEDIR="$PWD"
         - export CCACHE_DIR="$PWD/ccache"
@@ -81,9 +75,10 @@ autotools-build-and-test:
     script:
         - mkdir build/
         - cd build/
+        - ../autogen.sh --prefix=/usr
+        - make -j$(nproc) distcheck
         - |
-          ../autogen.sh --prefix=/usr
-          make -j$(nproc) install
+          export PIGLIT_DIR=/root/piglit XTEST_DIR=/root/xts
           set +e
           set -x
           make -j$(nproc) check
@@ -93,6 +88,9 @@ autotools-build-and-test:
 
 meson-build-and-test:
     extends: .common-build-and-test
+    variables:
+        PIGLIT_DIR: /root/piglit
+        XTEST_DIR: /root/xts
     script:
         - meson -Dprefix=/usr build/
         - |

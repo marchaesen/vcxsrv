@@ -19,8 +19,8 @@
 
 #pragma once
 
-#include "vulkan/vk_layer.h"
-#include "vulkan/vulkan.h"
+#include <vulkan/vk_layer.h>
+#include <vulkan/vulkan.h>
 #include <unordered_map>
 
 typedef std::unordered_map<void *, VkLayerDispatchTable *> device_table_map;

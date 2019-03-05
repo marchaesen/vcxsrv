@@ -51,7 +51,8 @@ RUN apt-get install -y \
       python-setuptools \
       python3.5 \
       python3-pip \
-      python3-setuptools
+      python3-setuptools \
+      ninja-build
 
 RUN apt-get install -y \
       libxcb-randr0
@@ -143,15 +144,6 @@ RUN wget $WAYLAND_RELEASES/$WAYLAND_PROTOCOLS_VERSION.tar.xz
 RUN tar -xvf $WAYLAND_PROTOCOLS_VERSION.tar.xz && rm $WAYLAND_PROTOCOLS_VERSION.tar.xz
 RUN (cd $WAYLAND_PROTOCOLS_VERSION && ./configure && make install) && rm -rf $WAYLAND_PROTOCOLS_VERSION
 
-
-RUN apt-get install -y unzip
-
-# Meson requires ninja >= 1.6, but xenial has 1.3.x
-RUN wget https://github.com/ninja-build/ninja/releases/download/v1.6.0/ninja-linux.zip
-RUN unzip ninja-linux.zip && rm ninja-linux.zip
-RUN mv ninja /usr/bin/
-
-
 RUN pip3 install 'meson>=0.49'
 RUN pip2 install 'scons>=2.4'
 
@@ -160,6 +152,9 @@ RUN pip3 install mako
 
 # Use ccache to speed up builds
 RUN apt-get install -y ccache
+
+# We need xmllint to validate the XML files in Mesa
+RUN apt-get install -y libxml2-utils
 
 # Cleanup workdir
 WORKDIR /

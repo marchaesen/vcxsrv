@@ -338,14 +338,15 @@ radv_reset_cmd_buffer(struct radv_cmd_buffer *cmd_buffer)
 		unsigned fence_offset, eop_bug_offset;
 		void *fence_ptr;
 
-		radv_cmd_buffer_upload_alloc(cmd_buffer, 8, 0, &fence_offset,
+		radv_cmd_buffer_upload_alloc(cmd_buffer, 8, 8, &fence_offset,
 					     &fence_ptr);
+
 		cmd_buffer->gfx9_fence_va =
 			radv_buffer_get_va(cmd_buffer->upload.upload_bo);
 		cmd_buffer->gfx9_fence_va += fence_offset;
 
 		/* Allocate a buffer for the EOP bug on GFX9. */
-		radv_cmd_buffer_upload_alloc(cmd_buffer, 16 * num_db, 0,
+		radv_cmd_buffer_upload_alloc(cmd_buffer, 16 * num_db, 8,
 					     &eop_bug_offset, &fence_ptr);
 		cmd_buffer->gfx9_eop_bug_va =
 			radv_buffer_get_va(cmd_buffer->upload.upload_bo);
@@ -416,6 +417,8 @@ radv_cmd_buffer_upload_alloc(struct radv_cmd_buffer *cmd_buffer,
 			     unsigned *out_offset,
 			     void **ptr)
 {
+	assert(util_is_power_of_two_nonzero(alignment));
+
 	uint64_t offset = align(cmd_buffer->upload.offset, alignment);
 	if (offset + size > cmd_buffer->upload.size) {
 		if (!radv_cmd_buffer_resize_upload_buf(cmd_buffer, size))
@@ -3446,7 +3449,7 @@ radv_cmd_buffer_begin_subpass(struct radv_cmd_buffer *cmd_buffer,
 	struct radv_subpass *subpass = &state->pass->subpasses[subpass_id];
 
 	MAYBE_UNUSED unsigned cdw_max = radeon_check_space(cmd_buffer->device->ws,
-							   cmd_buffer->cs, 2048);
+							   cmd_buffer->cs, 4096);
 
 	radv_subpass_barrier(cmd_buffer, &subpass->start_barrier);
 

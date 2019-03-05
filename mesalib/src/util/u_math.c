@@ -35,7 +35,9 @@
 #include <xmmintrin.h>
 /* This is defined in pmmintrin.h, but it can only be included when -msse3 is
  * used, so just define it here to avoid further. */
+#ifndef _MM_DENORMALS_ZERO_MASK
 #define _MM_DENORMALS_ZERO_MASK	0x0040
+#endif
 #endif
 
 

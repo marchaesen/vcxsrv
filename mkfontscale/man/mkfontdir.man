@@ -1,0 +1,175 @@
+.\" Copyright 1993, 1994, 1998  The Open Group
+.\"
+.\" Permission to use, copy, modify, distribute, and sell this software and its
+.\" documentation for any purpose is hereby granted without fee, provided that
+.\" the above copyright notice appear in all copies and that both that
+.\" copyright notice and this permission notice appear in supporting
+.\" documentation.
+.\"
+.\" The above copyright notice and this permission notice shall be included
+.\" in all copies or substantial portions of the Software.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+.\" OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+.\" MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+.\" IN NO EVENT SHALL THE OPEN GROUP BE LIABLE FOR ANY CLAIM, DAMAGES OR
+.\" OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+.\" ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+.\" OTHER DEALINGS IN THE SOFTWARE.
+.\"
+.\" Except as contained in this notice, the name of The Open Group shall
+.\" not be used in advertising or otherwise to promote the sale, use or
+.\" other dealings in this Software without prior written authorization
+.\" from The Open Group.
+.\"
+.TH MKFONTDIR __appmansuffix__ __xorgversion__
+.SH NAME
+mkfontdir \- create an index of X font files in a directory
+.SH SYNOPSIS
+.B "mkfontdir"
+.RB [ \-n ]
+.RB [ \-x
+.IR suffix ]
+.RB [ \-r ]
+.RB [ \-p
+.IR prefix ]
+.RB [ \-e
+.IR encoding-directory-name ]
+\&\|.\|.\|.
+.RB [ \-\- ]
+.RI [ directory-name
+\&\|.\|.\|. ]
+.SH DESCRIPTION
+For each directory argument,
+.I mkfontdir
+reads all of the font files in the
+directory searching for properties named "FONT", or (failing that) the name
+of the file stripped of its suffix.  These are converted to lower case and
+used as font names, and,
+along with the name of the font file, are
+written out to the file "fonts.dir" in the directory.
+The X server and font server use "fonts.dir" to find font files.
+.PP
+The kinds of font files read by
+.I mkfontdir
+depend on configuration
+parameters, but typically include PCF (suffix ".pcf"), SNF (suffix ".snf")
+and BDF (suffix ".bdf").  If a font exists in multiple formats,
+.I mkfontdir
+will first choose PCF, then SNF and finally BDF.
+.PP
+The first line of fonts.dir gives the number of fonts in the file.
+The remaining lines list the fonts themselves, one per line, in two
+fields.  First is the name of the font file, followed by a space and
+the name of the font.
+.SH "SCALABLE FONTS"
+Because scalable font files do not usually include the X font name, the
+file "fonts.scale" can be used to name the scalable fonts in the
+directory.
+The fonts listed in it are copied to fonts.dir by
+.IR mkfontdir .
+"fonts.scale" has the same format as the "fonts.dir" file, and can be
+created with the
+.IR mkfontscale (__appmansuffix__)
+program.
+.SH "FONT NAME ALIASES"
+The file "fonts.alias", which can be put in any directory of the font-path, is
+used to map new names to existing fonts, and should be edited by hand.  The
+format is two white-space separated columns, the
+first containing aliases and the second containing font-name patterns.
+Lines beginning with "!" are comment lines and are ignored.
+.PP
+If neither the alias nor the value specifies the size fields of the
+font name, this is a scalable alias.  A font name of any size that
+matches this alias will be mapped to the same size of the font that
+the alias resolves to.
+.PP
+When a font alias is used, the name it references is searched for in the normal
+manner, looking through each font directory in turn.  This means that the
+aliases need not mention fonts in the same directory as the alias file.
+.PP
+To embed white space in either name, simply enclose it in double-quote
+marks; to embed double-quote marks (or any other character), precede them
+with back-slash:
+.PP
+.nf
+"magic-alias with spaces"	"\\"font name\\" with quotes"
+regular-alias			fixed
+.fi
+.PP
+If the string "FILE_NAMES_ALIASES" stands alone on a line, each file-name
+in the directory (stripped of its suffix) will be used as an alias for
+that font.
+.SH ENCODING FILES
+The option
+.B -e
+can be used to specify a directory with encoding files.  Every such
+directory is scanned for encoding files, the list of which is then
+written to an "encodings.dir" file in every font directory.  The
+"encodings.dir" file is used by the server to find encoding
+information.
+.PP
+The "encodings.dir" file has the same format as "fonts.dir".
+It maps encoding names (strings of the form
+.BI CHARSET_REGISTRY \- CHARSET_ENCODING
+) to encoding file names.
+.SH OPTIONS
+The following options are supported:
+.TP
+.B \-e
+Specify a directory containing encoding files.  The
+.B \-e
+option may be specified multiple times, and all the specified
+directories will be read.  The order of the entries is significant, as
+encodings found in earlier directories override those in later ones;
+encoding files in the same directory are discriminated by preferring
+compressed versions.
+.TP
+.B \-n
+do not scan for fonts, do not write font directory files.  This option
+is useful when generating encoding directories only.
+.TP
+.B \-p
+Specify a prefix that is prepended to the encoding file path names
+when they are written to the "encodings.dir" file.  The prefix is
+prepended as-is.  If a `/' is required between the prefix and the path
+names, it must be supplied explicitly as part of the prefix.
+.TP
+.B \-r
+Keep non-absolute encoding directories in their relative form when
+writing the "encodings.dir" file.  The default is to convert relative
+encoding directories to absolute directories by prepending the current
+directory.  The positioning of this options is significant, as this
+option only applies to subsequent
+.B \-e
+options.
+.TP
+.BI "\-x " suffix
+Ignore fonts files of type
+.IR suffix .
+.TP
+.B \-\-
+End options.
+.SH FILES
+.TP 15
+.B fonts.dir
+List of fonts in the directory and the files they are stored in.
+Created by \fImkfontdir\fP.  Read by the X server and font server each
+time the font path is set (see xset(__appmansuffix__)).
+.TP 15
+.B fonts.scale
+List of scalable fonts in the directory.  Contents are copied to
+fonts.dir by \fImkfontdir\fP.   Can be created with
+.IR mkfontscale (__appmansuffix__).
+.TP 15
+.B fonts.alias
+List of font name aliases.
+Read by the X server and font server each
+time the font path is set (see xset(__appmansuffix__)).
+.TP 15
+.B encodings.dir
+List of known encodings and the files they are stored in.
+Created by \fImkfontdir\fP.  Read by the X server and font server each
+time a font with an unknown charset is opened.
+.SH "SEE ALSO"
+X(__miscmansuffix__), Xserver(__appmansuffix__), mkfontscale(__appmansuffix__), xfs(__appmansuffix__), xset(__appmansuffix__)

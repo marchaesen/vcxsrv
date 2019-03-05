@@ -270,7 +270,7 @@ struct terminal_tag {
     bidi_char *wcFrom, *wcTo;
     int wcFromTo_size;
     struct bidi_cache_entry *pre_bidi_cache, *post_bidi_cache;
-    int bidi_cache_size;
+    size_t bidi_cache_size;
 
     /*
      * We copy a bunch of stuff out of the Conf structure into local
@@ -330,6 +330,9 @@ struct terminal_tag {
     int mouse_paste_clipboard;
 };
 
-#define in_utf(term) ((term)->utf || (term)->ucsdata->line_codepage==CP_UTF8)
+static inline bool in_utf(Terminal *term)
+{
+    return term->utf || term->ucsdata->line_codepage == CP_UTF8;
+}
 
 #endif

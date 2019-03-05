@@ -16,7 +16,7 @@
 # The format of the tag is "%Y-%m-%d-${counter}" where ${counter} stays
 # at "01" unless you have multiple updates on the same day :)
 variables:
-  UBUNTU_TAG: 2019-02-12-01
+  UBUNTU_TAG: 2019-03-05-01
   UBUNTU_IMAGE: "$CI_REGISTRY_IMAGE/ubuntu:$UBUNTU_TAG"
   UBUNTU_IMAGE_MAIN: "registry.freedesktop.org/mesa/mesa/ubuntu:$UBUNTU_TAG"
 
@@ -29,9 +29,18 @@ stages:
   - build+test
 
 
+# When to automatically run the CI
+.ci-run-policy:
+  only:
+    - master
+    - merge_requests
+    - /^ci([-/].*)?$/
+
+
 # CONTAINERS
 
 containers:ubuntu:
+  extends: .ci-run-policy
   stage: containers-build
   image: docker:stable
   services:
@@ -52,21 +61,14 @@ containers:ubuntu:
       docker image push $UBUNTU_IMAGE && exit || true
     - docker build -t $UBUNTU_IMAGE -f .gitlab-ci/Dockerfile.ubuntu .
     - docker push $UBUNTU_IMAGE
-  only:
-    changes:
-      - .gitlab-ci.yml
-      - .gitlab-ci/Dockerfile.ubuntu
 
 
 # BUILD
 
 .build:
+  extends: .ci-run-policy
   image: $UBUNTU_IMAGE
   stage: build+test
-  only:
-    - master
-    - merge_requests
-    - /^ci([-/].*)?$/
   artifacts:
     when: on_failure
     untracked: true
@@ -265,7 +267,7 @@ build:meson-gallium-drivers-other:
       -D gallium-xa=false
       -D gallium-nine=false
       -D gallium-opencl=disabled
-    GALLIUM_DRIVERS: "i915,nouveau,kmsro,r300,r600,freedreno,svga,swrast,v3d,vc4,virgl,etnaviv"
+    GALLIUM_DRIVERS: "i915,iris,nouveau,kmsro,r300,r600,freedreno,svga,swrast,v3d,vc4,virgl,etnaviv"
     LLVM_VERSION: "5.0"
 
 build:meson-gallium-clover-llvm5:

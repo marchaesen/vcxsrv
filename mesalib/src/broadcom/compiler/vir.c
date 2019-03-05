@@ -146,6 +146,13 @@ vir_is_raw_mov(struct qinst *inst)
                 return false;
         }
 
+        if (inst->qpu.alu.add.a_unpack != V3D_QPU_UNPACK_NONE ||
+            inst->qpu.alu.add.b_unpack != V3D_QPU_UNPACK_NONE ||
+            inst->qpu.alu.mul.a_unpack != V3D_QPU_UNPACK_NONE ||
+            inst->qpu.alu.mul.b_unpack != V3D_QPU_UNPACK_NONE) {
+                return false;
+        }
+
         if (inst->qpu.flags.ac != V3D_QPU_COND_NONE ||
             inst->qpu.flags.mc != V3D_QPU_COND_NONE)
                 return false;
@@ -559,7 +566,6 @@ vir_compile_init(const struct v3d_compiler *compiler,
         vir_set_emit_block(c, vir_new_block(c));
 
         c->output_position_index = -1;
-        c->output_point_size_index = -1;
         c->output_sample_mask_index = -1;
 
         c->def_ht = _mesa_hash_table_create(c, _mesa_hash_pointer,
@@ -688,7 +694,7 @@ v3d_vs_set_prog_data(struct v3d_compile *c,
          * channel).
          */
         prog_data->vpm_input_size = align(prog_data->vpm_input_size, 8) / 8;
-        prog_data->vpm_output_size = align(c->num_vpm_writes, 8) / 8;
+        prog_data->vpm_output_size = align(c->vpm_output_size, 8) / 8;
 
         /* Set us up for shared input/output segments.  This is apparently
          * necessary for our VCM setup to avoid varying corruption.

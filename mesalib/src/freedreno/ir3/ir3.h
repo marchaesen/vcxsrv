@@ -29,8 +29,9 @@
 
 #include "compiler/shader_enums.h"
 
-#include "util/u_debug.h"
+#include "util/bitscan.h"
 #include "util/list.h"
+#include "util/u_debug.h"
 
 #include "instr-a3xx.h"
 
@@ -212,7 +213,8 @@ struct ir3_instruction {
 		IR3_INSTR_MARK  = 0x1000,
 		IR3_INSTR_UNUSED= 0x2000,
 	} flags;
-	int repeat;
+	uint8_t repeat;
+	uint8_t nop;
 #ifdef DEBUG
 	unsigned regs_max;
 #endif
@@ -247,7 +249,7 @@ struct ir3_instruction {
 			int src_offset;
 			int dst_offset;
 			int iim_val : 3;      /* for ldgb/stgb, # of components */
-			int d : 3;
+			unsigned d : 3;
 			bool typed : 1;
 		} cat6;
 		struct {
@@ -290,6 +292,9 @@ struct ir3_instruction {
 	/* used for per-pass extra instruction data.
 	 */
 	void *data;
+
+	int sun;            /* Sethi–Ullman number, used by sched */
+	int use_count;      /* currently just updated/used by cp */
 
 	/* Used during CP and RA stages.  For fanin and shader inputs/
 	 * outputs where we need a sequence of consecutive registers,
@@ -361,8 +366,6 @@ struct ir3_instruction {
 
 	/* Entry in ir3_block's instruction list: */
 	struct list_head node;
-
-	int use_count;      /* currently just updated/used by cp */
 
 #ifdef DEBUG
 	uint32_t serialno;
@@ -441,6 +444,8 @@ struct ir3 {
 
 	/* List of ir3_array's: */
 	struct list_head array_list;
+
+	unsigned max_sun;   /* max Sethi–Ullman number */
 
 #ifdef DEBUG
 	unsigned block_count, instr_count;
@@ -738,6 +743,14 @@ static inline bool is_meta(struct ir3_instruction *instr)
 	return (opc_cat(instr->opc) == -1);
 }
 
+static inline unsigned dest_regs(struct ir3_instruction *instr)
+{
+	if ((instr->regs_count == 0) || is_store(instr))
+		return 0;
+
+	return util_last_bit(instr->regs[0]->wrmask);
+}
+
 static inline bool writes_addr(struct ir3_instruction *instr)
 {
 	if (instr->regs_count > 0) {
@@ -997,6 +1010,9 @@ void ir3_cp(struct ir3 *ir, struct ir3_shader_variant *so);
 
 /* group neighbors and insert mov's to resolve conflicts: */
 void ir3_group(struct ir3 *ir);
+
+/* Sethi–Ullman numbering: */
+void ir3_sun(struct ir3 *ir);
 
 /* scheduling: */
 void ir3_sched_add_deps(struct ir3 *ir);
