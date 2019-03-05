@@ -405,7 +405,8 @@ static bool
 texture_query_lod(const _mesa_glsl_parse_state *state)
 {
    return state->stage == MESA_SHADER_FRAGMENT &&
-          state->ARB_texture_query_lod_enable;
+          (state->ARB_texture_query_lod_enable ||
+           state->EXT_texture_query_lod_enable);
 }
 
 static bool
@@ -5865,14 +5866,42 @@ builtin_builder::_usubBorrow(const glsl_type *type)
 ir_function_signature *
 builtin_builder::_mulExtended(const glsl_type *type)
 {
+   const glsl_type *mul_type, *unpack_type;
+   ir_expression_operation unpack_op;
+
+   if (type->base_type == GLSL_TYPE_INT) {
+      unpack_op = ir_unop_unpack_int_2x32;
+      mul_type = glsl_type::get_instance(GLSL_TYPE_INT64, type->vector_elements, 1);
+      unpack_type = glsl_type::ivec2_type;
+   } else {
+      unpack_op = ir_unop_unpack_uint_2x32;
+      mul_type = glsl_type::get_instance(GLSL_TYPE_UINT64, type->vector_elements, 1);
+      unpack_type = glsl_type::uvec2_type;
+   }
+
    ir_variable *x = in_var(type, "x");
    ir_variable *y = in_var(type, "y");
    ir_variable *msb = out_var(type, "msb");
    ir_variable *lsb = out_var(type, "lsb");
    MAKE_SIG(glsl_type::void_type, gpu_shader5_or_es31_or_integer_functions, 4, x, y, msb, lsb);
 
-   body.emit(assign(msb, imul_high(x, y)));
-   body.emit(assign(lsb, mul(x, y)));
+   ir_variable *unpack_val = body.make_temp(unpack_type, "_unpack_val");
+
+   ir_expression *mul_res = new(mem_ctx) ir_expression(ir_binop_mul, mul_type,
+                                                       new(mem_ctx)ir_dereference_variable(x),
+                                                       new(mem_ctx)ir_dereference_variable(y));
+
+   if (type->vector_elements == 1) {
+      body.emit(assign(unpack_val, expr(unpack_op, mul_res)));
+      body.emit(assign(msb, swizzle_y(unpack_val)));
+      body.emit(assign(lsb, swizzle_x(unpack_val)));
+   } else {
+      for (int i = 0; i < type->vector_elements; i++) {
+         body.emit(assign(unpack_val, expr(unpack_op, swizzle(mul_res, i, 1))));
+         body.emit(assign(array_ref(msb, i), swizzle_y(unpack_val)));
+         body.emit(assign(array_ref(lsb, i), swizzle_x(unpack_val)));
+      }
+   }
 
    return sig;
 }

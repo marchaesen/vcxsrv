@@ -36,6 +36,7 @@
 #include "main/shaderapi.h"
 #include "main/uniforms.h"
 
+#include "main/shaderobj.h"
 #include "st_context.h"
 #include "st_glsl_types.h"
 #include "st_program.h"
@@ -47,7 +48,7 @@
 #include "compiler/glsl/ir.h"
 #include "compiler/glsl/ir_optimization.h"
 #include "compiler/glsl/string_to_uint_map.h"
-
+#include "compiler/glsl/float64_glsl.h"
 
 static int
 type_size(const struct glsl_type *type)
@@ -340,6 +341,50 @@ st_nir_opts(nir_shader *nir, bool scalar)
    } while (progress);
 }
 
+static nir_shader *
+compile_fp64_funcs(struct gl_context *ctx,
+                   const nir_shader_compiler_options *options,
+                   void *mem_ctx,
+                   gl_shader_stage stage)
+{
+   const GLuint name = ~0;
+   struct gl_shader *sh;
+
+   sh = _mesa_new_shader(name, stage);
+
+   sh->Source = float64_source;
+   sh->CompileStatus = COMPILE_FAILURE;
+   _mesa_compile_shader(ctx, sh);
+
+   if (!sh->CompileStatus) {
+      if (sh->InfoLog) {
+         _mesa_problem(ctx,
+                       "fp64 software impl compile failed:\n%s\nsource:\n%s\n",
+                       sh->InfoLog, float64_source);
+      }
+   }
+
+   struct gl_shader_program *sh_prog;
+   sh_prog = _mesa_new_shader_program(name);
+   sh_prog->Label = NULL;
+   sh_prog->NumShaders = 1;
+   sh_prog->Shaders = (struct gl_shader **)malloc(sizeof(struct gl_shader *));
+   sh_prog->Shaders[0] = sh;
+
+   struct gl_linked_shader *linked = rzalloc(NULL, struct gl_linked_shader);
+   linked->Stage = stage;
+   linked->Program =
+      ctx->Driver.NewProgram(ctx, _mesa_shader_stage_to_program(stage),
+                             name, false);
+
+   linked->ir = sh->ir;
+   sh_prog->_LinkedShaders[stage] = linked;
+
+   nir_shader *nir = glsl_to_nir(sh_prog, stage, options);
+
+   return nir_shader_clone(mem_ctx, nir);
+}
+
 /* First third of converting glsl_to_nir.. this leaves things in a pre-
  * nir_lower_io state, so that shader variants can more easily insert/
  * replace variables, etc.
@@ -355,6 +400,8 @@ st_glsl_to_nir(struct st_context *st, struct gl_program *prog,
    struct pipe_screen *screen = st->pipe->screen;
    bool is_scalar = screen->get_shader_param(screen, type, PIPE_SHADER_CAP_SCALAR_ISA);
    assert(options);
+   bool lower_64bit =
+      options->lower_int64_options || options->lower_doubles_options;
 
    if (prog->nir)
       return prog->nir;
@@ -376,6 +423,16 @@ st_glsl_to_nir(struct st_context *st, struct gl_program *prog,
       nir->info.next_stage = MESA_SHADER_FRAGMENT;
    }
 
+   nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
+   if (nir->info.uses_64bit &&
+       (options->lower_doubles_options & nir_lower_fp64_full_software) != 0) {
+      nir_shader *fp64 =
+         compile_fp64_funcs(st->ctx, options, ralloc_parent(nir),
+                            nir->info.stage);
+      nir_validate_shader(fp64, "fp64");
+      exec_list_append(&nir->functions, &fp64->functions);
+   }
+
    nir_variable_mode mask =
       (nir_variable_mode) (nir_var_shader_in | nir_var_shader_out);
    nir_remove_dead_variables(nir, mask);
@@ -395,6 +452,46 @@ st_glsl_to_nir(struct st_context *st, struct gl_program *prog,
    NIR_PASS_V(nir, nir_lower_global_vars_to_local);
    NIR_PASS_V(nir, nir_split_var_copies);
    NIR_PASS_V(nir, nir_lower_var_copies);
+
+   if (is_scalar) {
+     NIR_PASS_V(nir, nir_lower_alu_to_scalar);
+   }
+
+   if (lower_64bit) {
+      bool lowered_64bit_ops = false;
+      bool progress = false;
+
+      NIR_PASS_V(nir, nir_opt_algebraic);
+
+      do {
+         progress = false;
+         if (options->lower_int64_options) {
+            NIR_PASS(progress, nir, nir_lower_int64,
+                     options->lower_int64_options);
+         }
+         if (options->lower_doubles_options) {
+            NIR_PASS(progress, nir, nir_lower_doubles,
+                     options->lower_doubles_options);
+         }
+         NIR_PASS(progress, nir, nir_opt_algebraic);
+         lowered_64bit_ops |= progress;
+      } while (progress);
+
+      if (lowered_64bit_ops) {
+         NIR_PASS_V(nir, nir_lower_constant_initializers, nir_var_function_temp);
+         NIR_PASS_V(nir, nir_lower_returns);
+         NIR_PASS_V(nir, nir_inline_functions);
+         NIR_PASS_V(nir, nir_opt_deref);
+      }
+
+      const nir_function *entry_point = nir_shader_get_entrypoint(nir)->function;
+      foreach_list_typed_safe(nir_function, func, node, &nir->functions) {
+         if (func != entry_point) {
+            exec_node_remove(&func->node);
+         }
+      }
+      assert(exec_list_length(&nir->functions) == 1);
+   }
 
    st_nir_opts(nir, is_scalar);
 
@@ -894,7 +991,7 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog,
    if (st->ctx->Const.PackedDriverUniformStorage) {
       NIR_PASS_V(nir, nir_lower_io, nir_var_uniform, st_glsl_type_dword_size,
                  (nir_lower_io_options)0);
-      NIR_PASS_V(nir, st_nir_lower_uniforms_to_ubo);
+      NIR_PASS_V(nir, nir_lower_uniforms_to_ubo, 4);
    }
 
    st_nir_lower_samplers(screen, nir, shader_program, prog);

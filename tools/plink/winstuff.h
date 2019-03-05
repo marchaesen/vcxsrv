@@ -41,7 +41,11 @@
 struct Filename {
     char *path;
 };
-#define f_open(filename, mode, isprivate) ( fopen((filename)->path, (mode)) )
+static inline FILE *f_open(const Filename *filename, const char *mode,
+                           bool isprivate)
+{
+    return fopen(filename->path, mode);
+}
 
 struct FontSpec {
     char *name;
@@ -695,16 +699,5 @@ char *get_jumplist_registry_entries(void);
 #define CLIPUI_DEFAULT_AUTOCOPY true
 #define CLIPUI_DEFAULT_MOUSE CLIPUI_EXPLICIT
 #define CLIPUI_DEFAULT_INS CLIPUI_EXPLICIT
-
-#ifdef MINEFIELD
-/*
- * Definitions for Minefield, PuTTY's own Windows-specific malloc
- * debugger in the style of Electric Fence. Implemented in winmisc.c,
- * and referred to by the main malloc wrappers in memory.c.
- */
-void *minefield_c_malloc(size_t size);
-void minefield_c_free(void *p);
-void *minefield_c_realloc(void *p, size_t size);
-#endif
 
 #endif

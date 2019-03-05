@@ -1922,7 +1922,7 @@ if test x"$enable_dri3" = xyes; then
     dri3_modifier_modules="xcb-dri3 >= $XCBDRI3_MODIFIERS_REQUIRED xcb-present >= $XCBPRESENT_MODIFIERS_REQUIRED"
     PKG_CHECK_MODULES([XCB_DRI3_MODIFIERS], [$dri3_modifier_modules], [have_dri3_modifiers=yes], [have_dri3_modifiers=no])
 
-    if test "x$have_dri3_modifiers" == xyes; then
+    if test "x$have_dri3_modifiers" = xyes; then
         DEFINES="$DEFINES -DHAVE_DRI3_MODIFIERS"
     fi
 fi
@@ -2949,7 +2949,7 @@ if test "x$enable_llvm" = xyes; then
     dnl the LLVM library propagated in the Libs.private of the respective .pc
     dnl file which ensures complete dependency information when statically
     dnl linking.
-    if test "x$enable_glx" == xgallium-xlib; then
+    if test "x$enable_glx" = xgallium-xlib; then
         GL_PC_LIB_PRIV="$GL_PC_LIB_PRIV $LLVM_LIBS"
     fi
     if test "x$enable_gallium_osmesa" = xyes; then

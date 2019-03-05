@@ -2103,6 +2103,37 @@ typedef struct nir_function {
    bool is_entrypoint;
 } nir_function;
 
+typedef enum {
+   nir_lower_imul64 = (1 << 0),
+   nir_lower_isign64 = (1 << 1),
+   /** Lower all int64 modulus and division opcodes */
+   nir_lower_divmod64 = (1 << 2),
+   /** Lower all 64-bit umul_high and imul_high opcodes */
+   nir_lower_imul_high64 = (1 << 3),
+   nir_lower_mov64 = (1 << 4),
+   nir_lower_icmp64 = (1 << 5),
+   nir_lower_iadd64 = (1 << 6),
+   nir_lower_iabs64 = (1 << 7),
+   nir_lower_ineg64 = (1 << 8),
+   nir_lower_logic64 = (1 << 9),
+   nir_lower_minmax64 = (1 << 10),
+   nir_lower_shift64 = (1 << 11),
+   nir_lower_imul_2x32_64 = (1 << 12),
+} nir_lower_int64_options;
+
+typedef enum {
+   nir_lower_drcp = (1 << 0),
+   nir_lower_dsqrt = (1 << 1),
+   nir_lower_drsq = (1 << 2),
+   nir_lower_dtrunc = (1 << 3),
+   nir_lower_dfloor = (1 << 4),
+   nir_lower_dceil = (1 << 5),
+   nir_lower_dfract = (1 << 6),
+   nir_lower_dround_even = (1 << 7),
+   nir_lower_dmod = (1 << 8),
+   nir_lower_fp64_full_software = (1 << 9),
+} nir_lower_doubles_options;
+
 typedef struct nir_shader_compiler_options {
    bool lower_fdiv;
    bool lower_ffma;
@@ -2229,7 +2260,13 @@ typedef struct nir_shader_compiler_options {
     */
    bool use_interpolated_input_intrinsics;
 
+   /* Lowers when 32x32->64 bit multiplication is not supported */
+   bool lower_mul_2x32_64;
+
    unsigned max_unroll_iterations;
+
+   nir_lower_int64_options lower_int64_options;
+   nir_lower_doubles_options lower_doubles_options;
 } nir_shader_compiler_options;
 
 typedef struct nir_shader {
@@ -2999,6 +3036,8 @@ void nir_lower_io_arrays_to_elements_no_indirects(nir_shader *shader,
 void nir_lower_io_to_scalar(nir_shader *shader, nir_variable_mode mask);
 void nir_lower_io_to_scalar_early(nir_shader *shader, nir_variable_mode mask);
 
+bool nir_lower_uniforms_to_ubo(nir_shader *shader, int multiplier);
+
 typedef struct nir_lower_subgroups_options {
    uint8_t subgroup_size;
    uint8_t ballot_bit_size;
@@ -3058,6 +3097,7 @@ typedef struct nir_lower_tex_options {
    unsigned lower_yx_xuxv_external;
    unsigned lower_xy_uxvx_external;
    unsigned lower_ayuv_external;
+   unsigned lower_xyuv_external;
 
    /**
     * To emulate certain texture wrap modes, this can be used
@@ -3142,6 +3182,12 @@ typedef struct nir_lower_tex_options {
    bool lower_txd_offset_clamp;
 
    /**
+    * If true, lower nir_texop_txd with min_lod to a nir_texop_txl if the
+    * sampler index is not statically determinable to be less than 16.
+    */
+   bool lower_txd_clamp_if_sampler_index_not_lt_16;
+
+   /**
     * If true, apply a .bagr swizzle on tg4 results to handle Broadcom's
     * mixed-up tg4 locations.
     */
@@ -3204,7 +3250,8 @@ bool nir_lower_atomics_to_ssbo(nir_shader *shader, unsigned ssbo_offset);
 typedef enum  {
    nir_lower_int_source_mods = 1 << 0,
    nir_lower_float_source_mods = 1 << 1,
-   nir_lower_all_source_mods = (1 << 2) - 1
+   nir_lower_triop_abs = 1 << 2,
+   nir_lower_all_source_mods = (1 << 3) - 1
 } nir_lower_to_source_mods_flags;
 
 
@@ -3218,37 +3265,7 @@ bool nir_lower_bit_size(nir_shader *shader,
                         nir_lower_bit_size_callback callback,
                         void *callback_data);
 
-typedef enum {
-   nir_lower_imul64 = (1 << 0),
-   nir_lower_isign64 = (1 << 1),
-   /** Lower all int64 modulus and division opcodes */
-   nir_lower_divmod64 = (1 << 2),
-   /** Lower all 64-bit umul_high and imul_high opcodes */
-   nir_lower_imul_high64 = (1 << 3),
-   nir_lower_mov64 = (1 << 4),
-   nir_lower_icmp64 = (1 << 5),
-   nir_lower_iadd64 = (1 << 6),
-   nir_lower_iabs64 = (1 << 7),
-   nir_lower_ineg64 = (1 << 8),
-   nir_lower_logic64 = (1 << 9),
-   nir_lower_minmax64 = (1 << 10),
-   nir_lower_shift64 = (1 << 11),
-} nir_lower_int64_options;
-
 bool nir_lower_int64(nir_shader *shader, nir_lower_int64_options options);
-
-typedef enum {
-   nir_lower_drcp = (1 << 0),
-   nir_lower_dsqrt = (1 << 1),
-   nir_lower_drsq = (1 << 2),
-   nir_lower_dtrunc = (1 << 3),
-   nir_lower_dfloor = (1 << 4),
-   nir_lower_dceil = (1 << 5),
-   nir_lower_dfract = (1 << 6),
-   nir_lower_dround_even = (1 << 7),
-   nir_lower_dmod = (1 << 8),
-   nir_lower_fp64_full_software = (1 << 9),
-} nir_lower_doubles_options;
 
 bool nir_lower_doubles(nir_shader *shader, nir_lower_doubles_options options);
 bool nir_lower_pack(nir_shader *shader);

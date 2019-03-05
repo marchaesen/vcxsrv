@@ -534,6 +534,9 @@ libgallium = static_library(
     idep_nir_headers,
   ],
   build_by_default : false,
+  link_with: [
+    libglsl
+  ]
 )
 
 libgalliumvl_stub = static_library(

@@ -308,7 +308,13 @@ def generate(env):
     if env.GetOption('num_jobs') <= 1:
         env.SetOption('num_jobs', num_jobs())
 
-    env.Decider('MD5-timestamp')
+    # Speed up dependency checking.  See
+    # - https://github.com/SCons/scons/wiki/GoFastButton
+    # - https://bugs.freedesktop.org/show_bug.cgi?id=109443
+    scons_version = distutils.version.StrictVersion(SCons.__version__)
+    if scons_version < distutils.version.StrictVersion('3.0.2') or \
+       scons_version > distutils.version.StrictVersion('3.0.4'):
+        env.Decider('MD5-timestamp')
     env.SetOption('max_drift', 60)
 
     # C preprocessor options

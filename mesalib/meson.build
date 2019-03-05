@@ -61,11 +61,11 @@ endif
 
 dri_drivers_path = get_option('dri-drivers-path')
 if dri_drivers_path == ''
-  dri_drivers_path = join_paths(get_option('libdir'), 'dri')
+  dri_drivers_path = join_paths(get_option('prefix'), get_option('libdir'), 'dri')
 endif
 dri_search_path = get_option('dri-search-path')
 if dri_search_path == ''
-  dri_search_path = join_paths(get_option('prefix'), dri_drivers_path)
+  dri_search_path = dri_drivers_path
 endif
 
 with_gles1 = get_option('gles1')
@@ -610,7 +610,7 @@ with_gallium_xa = _xa != 'false'
 
 d3d_drivers_path = get_option('d3d-drivers-path')
 if d3d_drivers_path == ''
-  d3d_drivers_path = join_paths(get_option('libdir'), 'd3d')
+  d3d_drivers_path = join_paths(get_option('prefix'), get_option('libdir'), 'd3d')
 endif
 
 with_gallium_st_nine =  get_option('gallium-nine')
@@ -1431,8 +1431,6 @@ endforeach
 foreach a : cpp_args
   add_project_arguments(a, language : ['cpp'])
 endforeach
-
-inc_include = include_directories('include')
 
 gl_priv_reqs = []
 

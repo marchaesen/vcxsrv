@@ -497,8 +497,16 @@ nir_swizzle(nir_builder *build, nir_ssa_def *src, const unsigned *swiz,
    assert(num_components <= NIR_MAX_VEC_COMPONENTS);
    nir_alu_src alu_src = { NIR_SRC_INIT };
    alu_src.src = nir_src_for_ssa(src);
-   for (unsigned i = 0; i < num_components && i < NIR_MAX_VEC_COMPONENTS; i++)
+
+   bool is_identity_swizzle = true;
+   for (unsigned i = 0; i < num_components && i < NIR_MAX_VEC_COMPONENTS; i++) {
+      if (swiz[i] != i)
+         is_identity_swizzle = false;
       alu_src.swizzle[i] = swiz[i];
+   }
+
+   if (num_components == src->num_components && is_identity_swizzle)
+      return src;
 
    return use_fmov ? nir_fmov_alu(build, alu_src, num_components) :
                      nir_imov_alu(build, alu_src, num_components);
@@ -928,7 +936,9 @@ nir_build_deref_follower(nir_builder *b, nir_deref_instr *parent,
    case nir_deref_type_array:
    case nir_deref_type_array_wildcard:
       assert(glsl_type_is_matrix(parent->type) ||
-             glsl_type_is_array(parent->type));
+             glsl_type_is_array(parent->type) ||
+             (leader->deref_type == nir_deref_type_array &&
+              glsl_type_is_vector(parent->type)));
       assert(glsl_get_length(parent->type) ==
              glsl_get_length(leader_parent->type));
 

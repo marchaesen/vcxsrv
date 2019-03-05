@@ -200,6 +200,16 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 				last->flags |= n->flags;
 				continue;
 			}
+
+			/* NOTE: I think the nopN encoding works for a5xx and
+			 * probably a4xx, but not a3xx.  So far only tested on
+			 * a6xx.
+			 */
+			if ((ctx->compiler->gpu_id >= 600) && !n->flags && (last->nop < 3) &&
+					((opc_cat(last->opc) == 2) || (opc_cat(last->opc) == 3))) {
+				last->nop++;
+				continue;
+			}
 		}
 
 		list_addtail(&n->node, &block->instr_list);

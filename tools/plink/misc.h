@@ -34,14 +34,26 @@ char *dupprintf(const char *fmt, ...)
 char *dupvprintf(const char *fmt, va_list ap);
 void burnstr(char *string);
 
+/*
+ * The visible part of a strbuf structure. There's a surrounding
+ * implementation struct in misc.c, which isn't exposed to client
+ * code.
+ */
 struct strbuf {
     char *s;
     unsigned char *u;
-    int len;
+    size_t len;
     BinarySink_IMPLEMENTATION;
-    /* (also there's a surrounding implementation struct in misc.c) */
 };
+
+/* strbuf constructors: strbuf_new_nm and strbuf_new differ in that a
+ * strbuf constructed using the _nm version will resize itself by
+ * alloc/copy/smemclr/free instead of realloc. Use that version for
+ * data sensitive enough that it's worth costing performance to
+ * avoid copies of it lingering in process memory. */
 strbuf *strbuf_new(void);
+strbuf *strbuf_new_nm(void);
+
 void strbuf_free(strbuf *buf);
 void *strbuf_append(strbuf *buf, size_t len);
 char *strbuf_to_str(strbuf *buf); /* does free buf, but you must free result */
@@ -222,12 +234,12 @@ static inline NORETURN void unreachable_internal(void) { abort(); }
 void debug_printf(const char *fmt, ...);
 void debug_memdump(const void *buf, int len, bool L);
 #define debug(...) (debug_printf(__VA_ARGS__))
-#define dmemdump(buf,len) debug_memdump (buf, len, false);
-#define dmemdumpl(buf,len) debug_memdump (buf, len, true);
+#define dmemdump(buf,len) (debug_memdump(buf, len, false))
+#define dmemdumpl(buf,len) (debug_memdump(buf, len, true))
 #else
-#define debug(...)
-#define dmemdump(buf,len)
-#define dmemdumpl(buf,len)
+#define debug(...) ((void)0)
+#define dmemdump(buf,len) ((void)0)
+#define dmemdumpl(buf,len) ((void)0)
 #endif
 
 #ifndef lenof

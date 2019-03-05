@@ -2124,9 +2124,11 @@ class tfeedback_candidate_generator : public program_resource_visitor
 {
 public:
    tfeedback_candidate_generator(void *mem_ctx,
-                                 hash_table *tfeedback_candidates)
+                                 hash_table *tfeedback_candidates,
+                                 gl_shader_stage stage)
       : mem_ctx(mem_ctx),
         tfeedback_candidates(tfeedback_candidates),
+        stage(stage),
         toplevel_var(NULL),
         varying_floats(0)
    {
@@ -2136,10 +2138,17 @@ public:
    {
       /* All named varying interface blocks should be flattened by now */
       assert(!var->is_interface_instance());
+      assert(var->data.mode == ir_var_shader_out);
 
       this->toplevel_var = var;
       this->varying_floats = 0;
-      program_resource_visitor::process(var, false);
+      const glsl_type *t =
+         var->data.from_named_ifc_block ? var->get_interface_type() : var->type;
+      if (!var->data.patch && stage == MESA_SHADER_TESS_CTRL) {
+         assert(t->is_array());
+         t = t->fields.array;
+      }
+      program_resource_visitor::process(var, t, false);
    }
 
 private:
@@ -2172,6 +2181,8 @@ private:
     * Hash table in which tfeedback_candidate objects should be stored.
     */
    hash_table * const tfeedback_candidates;
+
+   gl_shader_stage stage;
 
    /**
     * Pointer to the toplevel variable that is being traversed.
@@ -2503,8 +2514,28 @@ assign_varying_locations(struct gl_context *ctx,
                  producer->Stage == MESA_SHADER_GEOMETRY));
 
          if (num_tfeedback_decls > 0) {
-            tfeedback_candidate_generator g(mem_ctx, tfeedback_candidates);
-            g.process(output_var);
+            tfeedback_candidate_generator g(mem_ctx, tfeedback_candidates, producer->Stage);
+            /* From OpenGL 4.6 (Core Profile) spec, section 11.1.2.1
+             * ("Vertex Shader Variables / Output Variables")
+             *
+             * "Each program object can specify a set of output variables from
+             * one shader to be recorded in transform feedback mode (see
+             * section 13.3). The variables that can be recorded are those
+             * emitted by the first active shader, in order, from the
+             * following list:
+             *
+             *  * geometry shader
+             *  * tessellation evaluation shader
+             *  * tessellation control shader
+             *  * vertex shader"
+             *
+             * But on OpenGL ES 3.2, section 11.1.2.1 ("Vertex Shader
+             * Variables / Output Variables") tessellation control shader is
+             * not included in the stages list.
+             */
+            if (!prog->IsES || producer->Stage != MESA_SHADER_TESS_CTRL) {
+               g.process(output_var);
+            }
          }
 
          ir_variable *const input_var =

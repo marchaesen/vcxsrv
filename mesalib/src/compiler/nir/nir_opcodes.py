@@ -475,6 +475,12 @@ binop("fmul", tfloat, commutative + associative, "src0 * src1")
 # low 32-bits of signed/unsigned integer multiply
 binop("imul", tint, commutative + associative, "src0 * src1")
 
+# Generate 64 bit result from 2 32 bits quantity
+binop_convert("imul_2x32_64", tint64, tint32, commutative,
+              "(int64_t)src0 * (int64_t)src1")
+binop_convert("umul_2x32_64", tuint64, tuint32, commutative,
+              "(uint64_t)src0 * (uint64_t)src1")
+
 # high 32-bits of signed integer multiply
 binop("imul_high", tint, commutative, """
 if (bit_size == 64) {
@@ -610,10 +616,12 @@ binop("sge", tfloat, "", "(src0 >= src1) ? 1.0f : 0.0f") # Set on Greater or Equ
 binop("seq", tfloat32, commutative, "(src0 == src1) ? 1.0f : 0.0f") # Set on Equal
 binop("sne", tfloat32, commutative, "(src0 != src1) ? 1.0f : 0.0f") # Set on Not Equal
 
-
-opcode("ishl", 0, tint, [0, 0], [tint, tuint32], "", "src0 << src1")
-opcode("ishr", 0, tint, [0, 0], [tint, tuint32], "", "src0 >> src1")
-opcode("ushr", 0, tuint, [0, 0], [tuint, tuint32], "", "src0 >> src1")
+# SPIRV shifts are undefined for shift-operands >= bitsize,
+# but SM5 shifts are defined to use the least significant bits, only
+# The NIR definition is according to the SM5 specification.
+opcode("ishl", 0, tint, [0, 0], [tint, tuint32], "", "src0 << (src1 & (sizeof(src0) * 8 - 1))")
+opcode("ishr", 0, tint, [0, 0], [tint, tuint32], "", "src0 >> (src1 & (sizeof(src0) * 8 - 1))")
+opcode("ushr", 0, tuint, [0, 0], [tuint, tuint32], "", "src0 >> (src1 & (sizeof(src0) * 8 - 1))")
 
 # bitwise logic operators
 #

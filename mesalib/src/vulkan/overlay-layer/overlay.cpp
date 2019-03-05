@@ -25,15 +25,17 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include <vk_loader_platform.h>
 #include <vulkan/vulkan.h>
-#include <vk_dispatch_table_helper.h>
+#include <vulkan/vk_dispatch_table_helper.h>
 #include <vulkan/vk_layer.h>
-#include "vk_layer_data.h"
+#include <vulkan/vk_layer_data.h>
+#include <vulkan/vk_layer_extension_utils.h>
+#include <vulkan/vk_loader_platform.h>
 #include "vk_layer_table.h"
-#include "vk_layer_extension_utils.h"
 
 #include "imgui.h"
+
+#include "overlay_params.h"
 
 #include "util/debug.h"
 #include "util/hash_table.h"
@@ -43,78 +45,16 @@
 
 #include "vk_enum_to_str.h"
 
-enum layer_position {
-   LAYER_POSITION_TOP_LEFT,
-   LAYER_POSITION_TOP_RIGHT,
-   LAYER_POSITION_BOTTOM_LEFT,
-   LAYER_POSITION_BOTTOM_RIGHT,
-};
-
-static enum layer_position
-parse_layer_position(const char *str)
-{
-   if (!str || !strcmp(str, "top-left"))
-      return LAYER_POSITION_TOP_LEFT;
-   if (!strcmp(str, "top-right"))
-      return LAYER_POSITION_TOP_RIGHT;
-   if (!strcmp(str, "bottom-left"))
-      return LAYER_POSITION_BOTTOM_LEFT;
-   if (!strcmp(str, "bottom-right"))
-      return LAYER_POSITION_BOTTOM_RIGHT;
-   return LAYER_POSITION_TOP_LEFT;
-}
-
 /* Mapped from VkInstace/VkPhysicalDevice */
 struct instance_data {
    VkLayerInstanceDispatchTable vtable;
    VkInstance instance;
 
-   enum layer_position position;
-   uint64_t enabled_stats;
-};
-
-enum frame_stat_type {
-   FRAME_STAT_SUBMIT,
-   FRAME_STAT_DRAW,
-   FRAME_STAT_DRAW_INDEXED,
-   FRAME_STAT_DRAW_INDIRECT,
-   FRAME_STAT_DRAW_INDEXED_INDIRECT,
-   FRAME_STAT_DRAW_INDIRECT_COUNT,
-   FRAME_STAT_DRAW_INDEXED_INDIRECT_COUNT,
-   FRAME_STAT_DISPATCH,
-   FRAME_STAT_DISPATCH_INDIRECT,
-   FRAME_STAT_PIPELINE_GRAPHICS,
-   FRAME_STAT_PIPELINE_COMPUTE,
-   FRAME_STAT_PIPELINE_RAYTRACING,
-
-   FRAME_STAT_COUNT,
-
-   FRAME_STAT_ACQUIRE_TIMING = FRAME_STAT_COUNT,
-   FRAME_STAT_HELP,
-};
-
-#define FRAME_STAT_ENABLED(id) (1ULL << (FRAME_STAT_ ## id))
-
-static struct debug_control enable_flags[] = {
-   { "submit",                      FRAME_STAT_ENABLED(SUBMIT) },
-   { "draw",                        FRAME_STAT_ENABLED(DRAW) },
-   { "draw-indexed",                FRAME_STAT_ENABLED(DRAW_INDEXED) },
-   { "draw-indirect",               FRAME_STAT_ENABLED(DRAW_INDIRECT) },
-   { "draw-indexed-indirect",       FRAME_STAT_ENABLED(DRAW_INDEXED_INDIRECT) },
-   { "draw-indirect-count",         FRAME_STAT_ENABLED(DRAW_INDIRECT_COUNT) },
-   { "draw-indexed-indirect-count", FRAME_STAT_ENABLED(DRAW_INDEXED_INDIRECT_COUNT) },
-   { "dispatch",                    FRAME_STAT_ENABLED(DISPATCH) },
-   { "dispatch-indirect",           FRAME_STAT_ENABLED(DISPATCH_INDIRECT) },
-   { "pipeline-graphics",           FRAME_STAT_ENABLED(PIPELINE_GRAPHICS) },
-   { "pipeline-compute",            FRAME_STAT_ENABLED(PIPELINE_COMPUTE) },
-   { "pipeline-raytracing",         FRAME_STAT_ENABLED(PIPELINE_RAYTRACING) },
-   { "acquire-timing",              FRAME_STAT_ENABLED(ACQUIRE_TIMING) },
-   { "help",                        FRAME_STAT_ENABLED(HELP) },
-   { NULL,                          0 },
+   struct overlay_params params;
 };
 
 struct frame_stat {
-   uint32_t stats[FRAME_STAT_COUNT];
+   uint32_t stats[OVERLAY_PARAM_ENABLED_MAX];
 };
 
 /* Mapped from VkDevice/VkCommandBuffer */
@@ -201,12 +141,16 @@ struct swapchain_data {
    uint64_t n_frames;
    uint64_t last_present_time;
 
+   unsigned n_frames_since_update;
+   uint64_t last_fps_update;
+   double fps;
+
    double frame_times[200];
 
    double acquire_times[200];
    uint64_t n_acquire;
 
-   enum frame_stat_type stat_selector;
+   enum overlay_param_enabled stat_selector;
    struct frame_stat stats_min, stats_max;
    struct frame_stat stats[200];
 };
@@ -267,6 +211,8 @@ static struct instance_data *new_instance_data(VkInstance instance)
 
 static void destroy_instance_data(struct instance_data *data)
 {
+   if (data->params.output_file)
+      fclose(data->params.output_file);
    unmap_object(data->instance);
    ralloc_free(data);
 }
@@ -394,11 +340,27 @@ static void destroy_swapchain_data(struct swapchain_data *data)
 
 static void snapshot_swapchain_frame(struct swapchain_data *data)
 {
-   uint64_t now = os_time_get();
+   struct instance_data *instance_data = data->device->instance;
+   uint64_t now = os_time_get(); /* us */
 
    if (data->last_present_time) {
       data->frame_times[(data->n_frames - 1) % ARRAY_SIZE(data->frame_times)] =
          ((double)now - (double)data->last_present_time) / 1000.0;
+   }
+
+   if (data->last_fps_update) {
+      double elapsed = (double)(now - data->last_fps_update); /* us */
+      if (elapsed >= instance_data->params.fps_sampling_period) {
+         data->fps = 1000000.0f * data->n_frames_since_update / elapsed;
+         data->n_frames_since_update = 0;
+         data->last_fps_update = now;
+         if (instance_data->params.output_file) {
+            fprintf(instance_data->params.output_file, "%.2f\n", data->fps);
+            fflush(instance_data->params.output_file);
+         }
+      }
+   } else {
+      data->last_fps_update = now;
    }
 
    struct device_data *device_data = data->device;
@@ -407,6 +369,7 @@ static void snapshot_swapchain_frame(struct swapchain_data *data)
 
    data->last_present_time = now;
    data->n_frames++;
+   data->n_frames_since_update++;
 }
 
 static float get_frame_timing(void *_data, int _idx)
@@ -456,7 +419,7 @@ static void position_layer(struct swapchain_data *data)
 
    ImGui::SetNextWindowBgAlpha(0.5);
    ImGui::SetNextWindowSize(data->window_size, ImGuiCond_Always);
-   switch (instance_data->position) {
+   switch (instance_data->params.position) {
    case LAYER_POSITION_TOP_LEFT:
       ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
       break;
@@ -491,8 +454,10 @@ static void compute_swapchain_display(struct swapchain_data *data)
    format_name = format_name ? (format_name + strlen("VK_FORMAT_")) : "unknown";
    ImGui::Text("Swapchain format: %s", format_name);
    ImGui::Text("Frames: %" PRIu64, data->n_frames);
+   if (instance_data->params.enabled[OVERLAY_PARAM_ENABLED_fps])
+      ImGui::Text("FPS: %.2f" , data->fps);
 
-   {
+   if (instance_data->params.enabled[OVERLAY_PARAM_ENABLED_frame_timing]){
       double min_time = FLT_MAX, max_time = 0.0f;
       for (uint32_t i = 0; i < MIN2(data->n_frames - 2, ARRAY_SIZE(data->frame_times)); i++) {
          min_time = MIN2(min_time, data->frame_times[i]);
@@ -507,7 +472,7 @@ static void compute_swapchain_display(struct swapchain_data *data)
                   min_time, max_time);
    }
 
-   if (instance_data->enabled_stats & FRAME_STAT_ENABLED(ACQUIRE_TIMING)) {
+   if (instance_data->params.enabled[OVERLAY_PARAM_ENABLED_acquire_timing]) {
       double min_time = FLT_MAX, max_time = 0.0f;
       for (uint32_t i = 0; i < MIN2(data->n_acquire - 2, ARRAY_SIZE(data->acquire_times)); i++) {
          min_time = MIN2(min_time, data->acquire_times[i]);
@@ -520,28 +485,31 @@ static void compute_swapchain_display(struct swapchain_data *data)
       ImGui::Text("Acquire timing: %.3fms [%.3f, %.3f]",
                   get_acquire_timing(data, ARRAY_SIZE(data->acquire_times) - 1),
                   min_time, max_time);
+   }
 
-      for (uint32_t i = 0; i < ARRAY_SIZE(data->stats_min.stats); i++) {
-         data->stats_min.stats[i] = UINT32_MAX;
-         data->stats_max.stats[i] = 0;
-      }
-      for (uint32_t i = 0; i < MIN2(data->n_frames - 1, ARRAY_SIZE(data->stats)); i++) {
-         for (uint32_t j = 0; j < ARRAY_SIZE(data->stats[0].stats); j++) {
-            data->stats_min.stats[j] = MIN2(data->stats[i].stats[j],
-                                            data->stats_min.stats[j]);
-            data->stats_max.stats[j] = MAX2(data->stats[i].stats[j],
-                                            data->stats_max.stats[j]);
-         }
+   for (uint32_t i = 0; i < ARRAY_SIZE(data->stats_min.stats); i++) {
+      data->stats_min.stats[i] = UINT32_MAX;
+      data->stats_max.stats[i] = 0;
+   }
+   for (uint32_t i = 0; i < MIN2(data->n_frames - 1, ARRAY_SIZE(data->stats)); i++) {
+      for (uint32_t j = 0; j < ARRAY_SIZE(data->stats[0].stats); j++) {
+         data->stats_min.stats[j] = MIN2(data->stats[i].stats[j],
+                                         data->stats_min.stats[j]);
+         data->stats_max.stats[j] = MAX2(data->stats[i].stats[j],
+                                         data->stats_max.stats[j]);
       }
    }
 
    for (uint32_t i = 0; i < ARRAY_SIZE(device_data->stats.stats); i++) {
-      if (!(instance_data->enabled_stats & (1ULL << i)))
+      if (!instance_data->params.enabled[i] ||
+          i == OVERLAY_PARAM_ENABLED_fps ||
+          i == OVERLAY_PARAM_ENABLED_frame_timing ||
+          i == OVERLAY_PARAM_ENABLED_acquire_timing)
          continue;
 
       char hash[40];
-      snprintf(hash, sizeof(hash), "##%s", enable_flags[i].string);
-      data->stat_selector = (enum frame_stat_type) i;
+      snprintf(hash, sizeof(hash), "##%s", overlay_param_names[i]);
+      data->stat_selector = (enum overlay_param_enabled) i;
 
       ImGui::PlotHistogram(hash, get_stat, data,
                            ARRAY_SIZE(data->stats), 0,
@@ -549,7 +517,7 @@ static void compute_swapchain_display(struct swapchain_data *data)
                            data->stats_min.stats[i],
                            data->stats_max.stats[i],
                            ImVec2(ImGui::GetContentRegionAvailWidth(), 30));
-      ImGui::Text("%s: %.0f [%u, %u]", enable_flags[i].string,
+      ImGui::Text("%s: %.0f [%u, %u]", overlay_param_names[i],
                   get_stat(data, ARRAY_SIZE(data->stats) - 1),
                   data->stats_min.stats[i], data->stats_max.stats[i]);
    }
@@ -1517,7 +1485,7 @@ VKAPI_ATTR void VKAPI_CALL overlay_CmdDraw(
    struct device_data *device_data = FIND_DEVICE_DATA(commandBuffer);
    device_data->vtable.CmdDraw(commandBuffer, vertexCount, instanceCount,
                                firstVertex, firstInstance);
-   device_data->stats.stats[FRAME_STAT_DRAW]++;
+   device_data->stats.stats[OVERLAY_PARAM_ENABLED_draw]++;
 }
 
 VKAPI_ATTR void VKAPI_CALL overlay_CmdDrawIndexed(
@@ -1531,7 +1499,7 @@ VKAPI_ATTR void VKAPI_CALL overlay_CmdDrawIndexed(
    struct device_data *device_data = FIND_DEVICE_DATA(commandBuffer);
    device_data->vtable.CmdDrawIndexed(commandBuffer, indexCount, instanceCount,
                                       firstIndex, vertexOffset, firstInstance);
-   device_data->stats.stats[FRAME_STAT_DRAW_INDEXED]++;
+   device_data->stats.stats[OVERLAY_PARAM_ENABLED_draw_indexed]++;
 }
 
 VKAPI_ATTR void VKAPI_CALL overlay_CmdDrawIndirect(
@@ -1543,7 +1511,7 @@ VKAPI_ATTR void VKAPI_CALL overlay_CmdDrawIndirect(
 {
    struct device_data *device_data = FIND_DEVICE_DATA(commandBuffer);
    device_data->vtable.CmdDrawIndirect(commandBuffer, buffer, offset, drawCount, stride);
-   device_data->stats.stats[FRAME_STAT_DRAW_INDIRECT]++;
+   device_data->stats.stats[OVERLAY_PARAM_ENABLED_draw_indirect]++;
 }
 
 VKAPI_ATTR void VKAPI_CALL overlay_CmdDrawIndexedIndirect(
@@ -1555,7 +1523,7 @@ VKAPI_ATTR void VKAPI_CALL overlay_CmdDrawIndexedIndirect(
 {
    struct device_data *device_data = FIND_DEVICE_DATA(commandBuffer);
    device_data->vtable.CmdDrawIndexedIndirect(commandBuffer, buffer, offset, drawCount, stride);
-   device_data->stats.stats[FRAME_STAT_DRAW_INDEXED_INDIRECT]++;
+   device_data->stats.stats[OVERLAY_PARAM_ENABLED_draw_indexed_indirect]++;
 }
 
 VKAPI_ATTR void VKAPI_CALL overlay_CmdDrawIndirectCountKHR(
@@ -1571,7 +1539,7 @@ VKAPI_ATTR void VKAPI_CALL overlay_CmdDrawIndirectCountKHR(
    device_data->vtable.CmdDrawIndirectCountKHR(commandBuffer, buffer, offset,
                                                countBuffer, countBufferOffset,
                                                maxDrawCount, stride);
-   device_data->stats.stats[FRAME_STAT_DRAW_INDIRECT_COUNT]++;
+   device_data->stats.stats[OVERLAY_PARAM_ENABLED_draw_indirect_count]++;
 }
 
 VKAPI_ATTR void VKAPI_CALL overlay_CmdDrawIndexedIndirectCountKHR(
@@ -1587,7 +1555,7 @@ VKAPI_ATTR void VKAPI_CALL overlay_CmdDrawIndexedIndirectCountKHR(
    device_data->vtable.CmdDrawIndexedIndirectCountKHR(commandBuffer, buffer, offset,
                                                       countBuffer, countBufferOffset,
                                                       maxDrawCount, stride);
-   device_data->stats.stats[FRAME_STAT_DRAW_INDEXED_INDIRECT_COUNT]++;
+   device_data->stats.stats[OVERLAY_PARAM_ENABLED_draw_indexed_indirect_count]++;
 }
 
 VKAPI_ATTR void VKAPI_CALL overlay_CmdDispatch(
@@ -1598,7 +1566,7 @@ VKAPI_ATTR void VKAPI_CALL overlay_CmdDispatch(
 {
    struct device_data *device_data = FIND_DEVICE_DATA(commandBuffer);
    device_data->vtable.CmdDispatch(commandBuffer, groupCountX, groupCountY, groupCountZ);
-   device_data->stats.stats[FRAME_STAT_DISPATCH]++;
+   device_data->stats.stats[OVERLAY_PARAM_ENABLED_dispatch]++;
 }
 
 VKAPI_ATTR void VKAPI_CALL overlay_CmdDispatchIndirect(
@@ -1608,7 +1576,7 @@ VKAPI_ATTR void VKAPI_CALL overlay_CmdDispatchIndirect(
 {
    struct device_data *device_data = FIND_DEVICE_DATA(commandBuffer);
    device_data->vtable.CmdDispatchIndirect(commandBuffer, buffer, offset);
-   device_data->stats.stats[FRAME_STAT_DISPATCH_INDIRECT]++;
+   device_data->stats.stats[OVERLAY_PARAM_ENABLED_dispatch_indirect]++;
 }
 
 VKAPI_ATTR void VKAPI_CALL overlay_CmdBindPipeline(
@@ -1619,9 +1587,9 @@ VKAPI_ATTR void VKAPI_CALL overlay_CmdBindPipeline(
    struct device_data *device_data = FIND_DEVICE_DATA(commandBuffer);
    device_data->vtable.CmdBindPipeline(commandBuffer, pipelineBindPoint, pipeline);
    switch (pipelineBindPoint) {
-   case VK_PIPELINE_BIND_POINT_GRAPHICS: device_data->stats.stats[FRAME_STAT_PIPELINE_GRAPHICS]++; break;
-   case VK_PIPELINE_BIND_POINT_COMPUTE: device_data->stats.stats[FRAME_STAT_PIPELINE_COMPUTE]++; break;
-   case VK_PIPELINE_BIND_POINT_RAY_TRACING_NV: device_data->stats.stats[FRAME_STAT_PIPELINE_RAYTRACING]++; break;
+   case VK_PIPELINE_BIND_POINT_GRAPHICS: device_data->stats.stats[OVERLAY_PARAM_ENABLED_pipeline_graphics]++; break;
+   case VK_PIPELINE_BIND_POINT_COMPUTE: device_data->stats.stats[OVERLAY_PARAM_ENABLED_pipeline_compute]++; break;
+   case VK_PIPELINE_BIND_POINT_RAY_TRACING_NV: device_data->stats.stats[OVERLAY_PARAM_ENABLED_pipeline_raytracing]++; break;
    default: break;
    }
 }
@@ -1665,7 +1633,7 @@ VKAPI_ATTR VkResult VKAPI_CALL overlay_QueueSubmit(
    struct queue_data *queue_data = FIND_QUEUE_DATA(queue);
    struct device_data *device_data = queue_data->device;
 
-   device_data->stats.stats[FRAME_STAT_SUBMIT]++;
+   device_data->stats.stats[OVERLAY_PARAM_ENABLED_submit]++;
 
    return device_data->vtable.QueueSubmit(queue, submitCount, pSubmits, fence);
 }
@@ -1743,23 +1711,7 @@ VKAPI_ATTR VkResult VKAPI_CALL overlay_CreateInstance(
                                       fpGetInstanceProcAddr);
    instance_data_map_physical_devices(instance_data, true);
 
-   const char *stats_config = getenv("VK_LAYER_MESA_OVERLAY_STATS");
-   instance_data->enabled_stats = parse_debug_string(stats_config,
-                                                     enable_flags);
-
-   if (instance_data->enabled_stats & FRAME_STAT_ENABLED(HELP)) {
-      fprintf(stderr, "Available stats:\n");
-      for (uint32_t i = 0; enable_flags[i].string != NULL; i++)
-         fprintf(stderr, "\t%s\n", enable_flags[i].string);
-      fprintf(stderr, "Position layer using VK_LAYER_MESA_OVERLAY_POSITION=\n"
-              "\ttop-left\n"
-              "\ttop-right\n"
-              "\tbottom-left\n"
-              "\tbottom-right\n");
-   }
-
-   instance_data->position =
-      parse_layer_position(getenv("VK_LAYER_MESA_OVERLAY_POSITION"));
+   parse_overlay_env(&instance_data->params, getenv("VK_LAYER_MESA_OVERLAY_CONFIG"));
 
    return result;
 }

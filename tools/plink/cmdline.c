@@ -35,7 +35,7 @@ struct cmdline_saved_param {
 };
 struct cmdline_saved_param_set {
     struct cmdline_saved_param *params;
-    int nsaved, savesize;
+    size_t nsaved, savesize;
 };
 
 /*
@@ -46,11 +46,7 @@ static struct cmdline_saved_param_set saves[NPRIORITIES];
 
 static void cmdline_save_param(const char *p, const char *value, int pri)
 {
-    if (saves[pri].nsaved >= saves[pri].savesize) {
-	saves[pri].savesize = saves[pri].nsaved + 32;
-	saves[pri].params = sresize(saves[pri].params, saves[pri].savesize,
-				    struct cmdline_saved_param);
-    }
+    sgrowarray(saves[pri].params, saves[pri].savesize, saves[pri].nsaved);
     saves[pri].params[saves[pri].nsaved].p = dupstr(p);
     saves[pri].params[saves[pri].nsaved].value = dupstr(value);
     saves[pri].nsaved++;
@@ -332,7 +328,8 @@ int cmdline_process_param(const char *p, char *value,
 		     * hostname argument and an argument naming a
 		     * saved session. Here we attempt to load a
 		     * session with the specified name, and if that
-		     * succeeds, we overwrite the entire Conf with it.
+		     * session exists and is launchable, we overwrite
+		     * the entire Conf with it.
                      *
                      * We skip this check if a -load option has
                      * already happened, so that
@@ -350,8 +347,8 @@ int cmdline_process_param(const char *p, char *value,
                      * -load completely.)
 		     */
                     Conf *conf2 = conf_new();
-                    do_defaults(hostname_after_user, conf2);
-                    if (conf_launchable(conf2)) {
+                    if (do_defaults(hostname_after_user, conf2) &&
+                        conf_launchable(conf2)) {
                         conf_copy_into(conf, conf2);
                         loaded_session = true;
                         /* And override the username if one was given. */
@@ -562,10 +559,7 @@ int cmdline_process_param(const char *p, char *value,
     }
     if (!strcmp(p, "-m")) {
 	const char *filename;
-        char *command;
-	int cmdlen, cmdsize;
 	FILE *fp;
-	int c, d;
 
 	RETURN(2);
 	UNAVAILABLE_IN(TOOLTYPE_FILETRANSFER | TOOLTYPE_NONNETWORK);
@@ -573,29 +567,24 @@ int cmdline_process_param(const char *p, char *value,
 
 	filename = value;
 
-	cmdlen = cmdsize = 0;
-	command = NULL;
 	fp = fopen(filename, "r");
 	if (!fp) {
 	    cmdline_error("unable to open command file \"%s\"", filename);
 	    return ret;
 	}
-	do {
-	    c = fgetc(fp);
-	    d = c;
-	    if (c == EOF)
-		d = 0;
-	    if (cmdlen >= cmdsize) {
-		cmdsize = cmdlen + 512;
-		command = sresize(command, cmdsize, char);
-	    }
-	    command[cmdlen++] = d;
-	} while (c != EOF);
+        strbuf *command = strbuf_new();
+        char readbuf[4096];
+	while (1) {
+            size_t nread = fread(readbuf, 1, sizeof(readbuf), fp);
+            if (nread == 0)
+                break;
+            put_data(command, readbuf, nread);
+	}
 	fclose(fp);
-	conf_set_str(conf, CONF_remote_cmd, command);
+	conf_set_str(conf, CONF_remote_cmd, command->s);
 	conf_set_str(conf, CONF_remote_cmd2, "");
 	conf_set_bool(conf, CONF_nopty, true);   /* command => no terminal */
-	sfree(command);
+	strbuf_free(command);
     }
     if (!strcmp(p, "-P")) {
 	RETURN(2);

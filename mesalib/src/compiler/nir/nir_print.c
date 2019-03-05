@@ -850,8 +850,10 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
    nir_foreach_variable(var, var_list) {
       if ((var->data.driver_location == nir_intrinsic_base(instr)) &&
           (instr->intrinsic == nir_intrinsic_load_uniform ||
-           var->data.location_frac == nir_intrinsic_component(instr)) &&
-          var->name) {
+           (nir_intrinsic_component(instr) >= var->data.location_frac  &&
+            nir_intrinsic_component(instr) <
+            (var->data.location_frac + glsl_get_components(var->type)))) &&
+           var->name) {
          fprintf(fp, "\t/* %s */", var->name);
          break;
       }

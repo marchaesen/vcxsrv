@@ -47,7 +47,7 @@
 #endif
 
 
-#if defined(PIPE_OS_LINUX) || defined(PIPE_OS_CYGWIN) || defined(PIPE_OS_SOLARIS)
+#if defined(PIPE_OS_LINUX) || defined(PIPE_OS_CYGWIN) || defined(PIPE_OS_SOLARIS) || defined(PIPE_OS_HURD)
 #  include <unistd.h>
 #elif defined(PIPE_OS_APPLE) || defined(PIPE_OS_BSD)
 #  include <sys/sysctl.h>
@@ -124,7 +124,7 @@ os_get_option(const char *name)
 bool
 os_get_total_physical_memory(uint64_t *size)
 {
-#if defined(PIPE_OS_LINUX) || defined(PIPE_OS_CYGWIN) || defined(PIPE_OS_SOLARIS)
+#if defined(PIPE_OS_LINUX) || defined(PIPE_OS_CYGWIN) || defined(PIPE_OS_SOLARIS) || defined(PIPE_OS_HURD)
    const long phys_pages = sysconf(_SC_PHYS_PAGES);
    const long page_size = sysconf(_SC_PAGE_SIZE);
 

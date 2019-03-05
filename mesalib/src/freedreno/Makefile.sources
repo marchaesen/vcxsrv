@@ -40,7 +40,8 @@ ir3_SOURCES := \
 	ir3/ir3_ra.c \
 	ir3/ir3_sched.c \
 	ir3/ir3_shader.c \
-	ir3/ir3_shader.h
+	ir3/ir3_shader.h \
+	ir3/ir3_sun.c
 
 ir3_GENERATED_FILES := \
 	ir3/ir3_nir_trig.c

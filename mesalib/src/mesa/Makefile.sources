@@ -435,7 +435,6 @@ STATETRACKER_FILES = \
 	state_tracker/st_atom_sampler.c \
 	state_tracker/st_atom_scissor.c \
 	state_tracker/st_atom_shader.c \
-	state_tracker/st_atom_shader.h \
 	state_tracker/st_atom_stipple.c \
 	state_tracker/st_atom_storagebuf.c \
 	state_tracker/st_atom_tess.c \
@@ -532,7 +531,6 @@ STATETRACKER_FILES = \
 	state_tracker/st_nir_builtins.c \
 	state_tracker/st_nir_lower_builtin.c \
 	state_tracker/st_nir_lower_tex_src_plane.c \
-	state_tracker/st_nir_lower_uniforms_to_ubo.c \
 	state_tracker/st_pbo.c \
 	state_tracker/st_pbo.h \
 	state_tracker/st_program.c \

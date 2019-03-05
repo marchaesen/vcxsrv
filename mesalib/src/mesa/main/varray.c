@@ -209,10 +209,12 @@ _mesa_bind_vertex_buffer(struct gl_context *ctx,
       binding->Offset = offset;
       binding->Stride = stride;
 
-      if (!_mesa_is_bufferobj(vbo))
+      if (!_mesa_is_bufferobj(vbo)) {
          vao->VertexAttribBufferMask &= ~binding->_BoundArrays;
-      else
+      } else {
          vao->VertexAttribBufferMask |= binding->_BoundArrays;
+         vbo->UsageHistory |= USAGE_ARRAY_BUFFER;
+      }
 
       vao->NewArrays |= vao->Enabled & binding->_BoundArrays;
       if (vao == ctx->Array.VAO)

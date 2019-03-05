@@ -42,6 +42,22 @@
 
 /** \brief Begin __driConfigOptions */
 #define DRI_CONF_BEGIN \
+"<?xml version=\"1.0\" standalone=\"yes\"?>" \
+"<!DOCTYPE driinfo [" \
+"   <!ELEMENT driinfo      (section*)>" \
+"   <!ELEMENT section      (description+, option+)>" \
+"   <!ELEMENT description  (enum*)>" \
+"   <!ATTLIST description  lang CDATA #REQUIRED" \
+"                          text CDATA #REQUIRED>" \
+"   <!ELEMENT option       (description+)>" \
+"   <!ATTLIST option       name CDATA #REQUIRED" \
+"                          type (bool|enum|int|float) #REQUIRED" \
+"                          default CDATA #REQUIRED" \
+"                          valid CDATA #IMPLIED>" \
+"   <!ELEMENT enum         EMPTY>" \
+"   <!ATTLIST enum         value CDATA #REQUIRED" \
+"                          text CDATA #REQUIRED>" \
+"]>" \
 "<driinfo>\n"
 
 /** \brief End __driConfigOptions */

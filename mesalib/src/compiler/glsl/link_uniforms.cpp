@@ -63,6 +63,15 @@ program_resource_visitor::process(const glsl_type *type, const char *name,
 void
 program_resource_visitor::process(ir_variable *var, bool use_std430_as_default)
 {
+   const glsl_type *t =
+      var->data.from_named_ifc_block ? var->get_interface_type() : var->type;
+   process(var, t, use_std430_as_default);
+}
+
+void
+program_resource_visitor::process(ir_variable *var, const glsl_type *var_type,
+                                  bool use_std430_as_default)
+{
    unsigned record_array_count = 1;
    const bool row_major =
       var->data.matrix_layout == GLSL_MATRIX_LAYOUT_ROW_MAJOR;
@@ -72,8 +81,7 @@ program_resource_visitor::process(ir_variable *var, bool use_std430_as_default)
          get_internal_ifc_packing(use_std430_as_default) :
       var->type->get_internal_ifc_packing(use_std430_as_default);
 
-   const glsl_type *t =
-      var->data.from_named_ifc_block ? var->get_interface_type() : var->type;
+   const glsl_type *t = var_type;
    const glsl_type *t_without_array = t->without_array();
 
    /* false is always passed for the row_major parameter to the other

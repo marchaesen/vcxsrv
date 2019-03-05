@@ -916,6 +916,7 @@ vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
          if (block->branch_type != vtn_branch_type_none) {
             vtn_emit_branch(b, block->branch_type,
                             switch_fall_var, has_switch_break);
+            return;
          }
 
          break;

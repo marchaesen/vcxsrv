@@ -87,3 +87,9 @@ xf86CloseConsole()
     close(xf86Info.consoleFd);
     return;
 }
+
+void
+xf86OSInputThreadInit()
+{
+    return;
+}

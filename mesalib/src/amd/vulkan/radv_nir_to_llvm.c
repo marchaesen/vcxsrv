@@ -2297,16 +2297,19 @@ handle_fs_input_decl(struct radv_shader_context *ctx,
 
 	mask = ((1ull << attrib_count) - 1) << variable->data.location;
 
-	unsigned interp_type;
-	if (variable->data.sample)
-		interp_type = INTERP_SAMPLE;
-	else if (variable->data.centroid)
-		interp_type = INTERP_CENTROID;
-	else
-		interp_type = INTERP_CENTER;
+	if (glsl_get_base_type(glsl_without_array(variable->type)) == GLSL_TYPE_FLOAT ||
+	    glsl_get_base_type(glsl_without_array(variable->type)) == GLSL_TYPE_FLOAT16 ||
+	    glsl_get_base_type(glsl_without_array(variable->type)) == GLSL_TYPE_STRUCT) {
+		unsigned interp_type;
+		if (variable->data.sample)
+			interp_type = INTERP_SAMPLE;
+		else if (variable->data.centroid)
+			interp_type = INTERP_CENTROID;
+		else
+			interp_type = INTERP_CENTER;
 
-	interp = lookup_interp_param(&ctx->abi, variable->data.interpolation, interp_type);
-
+		interp = lookup_interp_param(&ctx->abi, variable->data.interpolation, interp_type);
+	}
 	if (interp == NULL)
 		interp = LLVMGetUndef(ctx->ac.i32);
 

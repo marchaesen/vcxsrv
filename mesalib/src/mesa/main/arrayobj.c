@@ -1213,8 +1213,10 @@ vertex_array_element_buffer(struct gl_context *ctx, GLuint vaobj, GLuint buffer,
       bufObj = ctx->Shared->NullBufferObj;
    }
 
-   if (bufObj)
+   if (bufObj) {
+      bufObj->UsageHistory |= USAGE_ELEMENT_ARRAY_BUFFER;
       _mesa_reference_buffer_object(ctx, &vao->IndexBufferObj, bufObj);
+   }
 }
 
 

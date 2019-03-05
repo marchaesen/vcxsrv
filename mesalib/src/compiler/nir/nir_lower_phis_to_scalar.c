@@ -75,9 +75,14 @@ is_phi_src_scalarizable(nir_phi_src *src,
       return should_lower_phi(nir_instr_as_phi(src_instr), state);
 
    case nir_instr_type_load_const:
-   case nir_instr_type_ssa_undef:
       /* These are trivially scalarizable */
       return true;
+
+   case nir_instr_type_ssa_undef:
+      /* The caller of this function is going to OR the results and we don't
+       * want undefs to count so we return false.
+       */
+      return false;
 
    case nir_instr_type_intrinsic: {
       nir_intrinsic_instr *src_intrin = nir_instr_as_intrinsic(src_instr);
@@ -150,11 +155,16 @@ should_lower_phi(nir_phi_instr *phi, struct lower_phis_to_scalar_state *state)
     */
    entry = _mesa_hash_table_insert(state->phi_table, phi, (void *)(intptr_t)1);
 
-   bool scalarizable = true;
+   bool scalarizable = false;
 
    nir_foreach_phi_src(src, phi) {
+      /* This loop ignores srcs that are not scalarizable because its likely
+       * still worth copying to temps if another phi source is scalarizable.
+       * This reduces register spilling by a huge amount in the i965 driver for
+       * Deus Ex: MD.
+       */
       scalarizable = is_phi_src_scalarizable(src, state);
-      if (!scalarizable)
+      if (scalarizable)
          break;
    }
 

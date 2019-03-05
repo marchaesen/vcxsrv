@@ -169,6 +169,7 @@ private:
    void find_msb_to_float_cast(ir_expression *ir);
    void imul_high_to_mul(ir_expression *ir);
    void sqrt_to_abs_sqrt(ir_expression *ir);
+   void mul64_to_mul_and_mul_high(ir_expression *ir);
 
    ir_expression *_carry(operand a, operand b);
 };
@@ -1666,6 +1667,66 @@ lower_instructions_visitor::sqrt_to_abs_sqrt(ir_expression *ir)
    this->progress = true;
 }
 
+void
+lower_instructions_visitor::mul64_to_mul_and_mul_high(ir_expression *ir)
+{
+   /* Lower 32x32-> 64 to
+    *    msb = imul_high(x_lo, y_lo)
+    *    lsb = mul(x_lo, y_lo)
+    */
+   const unsigned elements = ir->operands[0]->type->vector_elements;
+
+   const ir_expression_operation operation =
+      ir->type->base_type == GLSL_TYPE_UINT64 ? ir_unop_pack_uint_2x32
+                                              : ir_unop_pack_int_2x32;
+
+   const glsl_type *var_type = ir->type->base_type == GLSL_TYPE_UINT64
+                               ? glsl_type::uvec(elements)
+                               : glsl_type::ivec(elements);
+
+   const glsl_type *ret_type = ir->type->base_type == GLSL_TYPE_UINT64
+                               ? glsl_type::uvec2_type
+                               : glsl_type::ivec2_type;
+
+   ir_instruction &i = *base_ir;
+
+   ir_variable *msb =
+      new(ir) ir_variable(var_type, "msb", ir_var_temporary);
+   ir_variable *lsb =
+      new(ir) ir_variable(var_type, "lsb", ir_var_temporary);
+   ir_variable *x =
+      new(ir) ir_variable(var_type, "x", ir_var_temporary);
+   ir_variable *y =
+      new(ir) ir_variable(var_type, "y", ir_var_temporary);
+
+   i.insert_before(x);
+   i.insert_before(assign(x, ir->operands[0]));
+   i.insert_before(y);
+   i.insert_before(assign(y, ir->operands[1]));
+   i.insert_before(msb);
+   i.insert_before(lsb);
+
+   i.insert_before(assign(msb, imul_high(x, y)));
+   i.insert_before(assign(lsb, mul(x, y)));
+
+   ir_rvalue *result[4] = {NULL};
+   for (unsigned elem = 0; elem < elements; elem++) {
+      ir_rvalue *val = new(ir) ir_expression(ir_quadop_vector, ret_type,
+                                             swizzle(lsb, elem, 1),
+                                             swizzle(msb, elem, 1), NULL, NULL);
+      result[elem] = expr(operation, val);
+   }
+
+   ir->operation = ir_quadop_vector;
+   ir->init_num_operands();
+   ir->operands[0] = result[0];
+   ir->operands[1] = result[1];
+   ir->operands[2] = result[2];
+   ir->operands[3] = result[3];
+
+   this->progress = true;
+}
+
 ir_visitor_status
 lower_instructions_visitor::visit_leave(ir_expression *ir)
 {
@@ -1801,6 +1862,15 @@ lower_instructions_visitor::visit_leave(ir_expression *ir)
    case ir_binop_imul_high:
       if (lowering(IMUL_HIGH_TO_MUL))
          imul_high_to_mul(ir);
+      break;
+
+   case ir_binop_mul:
+      if (lowering(MUL64_TO_MUL_AND_MUL_HIGH) &&
+          (ir->type->base_type == GLSL_TYPE_INT64 ||
+           ir->type->base_type == GLSL_TYPE_UINT64) &&
+          (ir->operands[0]->type->base_type == GLSL_TYPE_INT ||
+           ir->operands[1]->type->base_type == GLSL_TYPE_UINT))
+         mul64_to_mul_and_mul_high(ir);
       break;
 
    case ir_unop_rsq:

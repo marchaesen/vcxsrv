@@ -73,22 +73,24 @@ xf86OSInitVidMem(VidMemInfoPtr pVidMem)
 /* I/O Permissions section						   */
 /***************************************************************************/
 
-#if defined(__i386__) || defined(__i386) || defined(__x86)
-static Bool ExtendedEnabled = FALSE;
-#endif
+void
+xf86OSInputThreadInit()
+{
+    /*
+     * Need to enable in input thread as well, as Solaris kernel tracks
+     * IOPL per-thread and doesn't inherit when creating a new thread.
+     */
+    xf86EnableIO();
+}
 
 Bool
 xf86EnableIO(void)
 {
 #if defined(__i386__) || defined(__i386) || defined(__x86)
-    if (ExtendedEnabled)
-        return TRUE;
-
     if (sysi86(SI86V86, V86SC_IOPL, PS_IOPL) < 0) {
         xf86Msg(X_WARNING, "xf86EnableIOPorts: Failed to set IOPL for I/O\n");
         return FALSE;
     }
-    ExtendedEnabled = TRUE;
 #endif                          /* i386 */
     return TRUE;
 }
@@ -97,11 +99,6 @@ void
 xf86DisableIO(void)
 {
 #if defined(__i386__) || defined(__i386) || defined(__x86)
-    if (!ExtendedEnabled)
-        return;
-
     sysi86(SI86V86, V86SC_IOPL, 0);
-
-    ExtendedEnabled = FALSE;
 #endif                          /* i386 */
 }

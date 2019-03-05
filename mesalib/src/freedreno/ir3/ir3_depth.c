@@ -90,7 +90,7 @@ int ir3_delayslots(struct ir3_instruction *assigner,
 	 * handled with sync bits
 	 */
 
-	if (is_meta(assigner))
+	if (is_meta(assigner) || is_meta(consumer))
 		return 0;
 
 	if (writes_addr(assigner))

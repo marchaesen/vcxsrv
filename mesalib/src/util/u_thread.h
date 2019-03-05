@@ -44,7 +44,8 @@ static inline thrd_t u_thread_create(int (*routine)(void *), void *param)
    int ret;
 
    sigfillset(&new_set);
-   pthread_sigmask(SIG_SETMASK, &new_set, &saved_set);
+   sigdelset(&new_set, SIGSYS);
+   pthread_sigmask(SIG_BLOCK, &new_set, &saved_set);
    ret = thrd_create( &thread, routine, param );
    pthread_sigmask(SIG_SETMASK, &saved_set, NULL);
 #else

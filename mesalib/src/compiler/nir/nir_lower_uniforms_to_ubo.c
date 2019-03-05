@@ -22,21 +22,24 @@
  */
 
 /*
- * Remap load_uniform intrinsics to UBO accesses of UBO binding point 0. Both
- * the base and the offset are interpreted as 16-byte units.
- *
+ * Remap load_uniform intrinsics to UBO accesses of UBO binding point 0.
  * Simultaneously, remap existing UBO accesses by increasing their binding
  * point by 1.
+ *
+ * Both the base and the offset are interpreted as 16-byte units.
+ *
+ * Note that locations can be set in different units, and the multiplier
+ * argument caters to supporting these different units.
+ * For example:
+ * - st_glsl_to_nir uses dwords (4 bytes) so the multiplier should be 4
+ * - tgsi_to_nir uses bytes, so the multiplier should be 16
  */
 
-#include "compiler/nir/nir.h"
-#include "compiler/nir/nir_builder.h"
-#include "st_nir.h"
-
-#include "program/prog_parameter.h"
+#include "nir.h"
+#include "nir_builder.h"
 
 static bool
-lower_instr(nir_intrinsic_instr *instr, nir_builder *b)
+lower_instr(nir_intrinsic_instr *instr, nir_builder *b, int multiplier)
 {
    b->cursor = nir_before_instr(&instr->instr);
 
@@ -51,8 +54,8 @@ lower_instr(nir_intrinsic_instr *instr, nir_builder *b)
    if (instr->intrinsic == nir_intrinsic_load_uniform) {
       nir_ssa_def *ubo_idx = nir_imm_int(b, 0);
       nir_ssa_def *ubo_offset =
-         nir_iadd(b, nir_imm_int(b, 4 * nir_intrinsic_base(instr)),
-                  nir_imul(b, nir_imm_int(b, 4),
+         nir_iadd(b, nir_imm_int(b, multiplier * nir_intrinsic_base(instr)),
+                  nir_imul(b, nir_imm_int(b, multiplier),
                            nir_ssa_for_src(b, instr->src[0], 1)));
 
       nir_intrinsic_instr *load =
@@ -74,7 +77,7 @@ lower_instr(nir_intrinsic_instr *instr, nir_builder *b)
 }
 
 bool
-st_nir_lower_uniforms_to_ubo(nir_shader *shader)
+nir_lower_uniforms_to_ubo(nir_shader *shader, int multiplier)
 {
    bool progress = false;
 
@@ -86,7 +89,8 @@ st_nir_lower_uniforms_to_ubo(nir_shader *shader)
             nir_foreach_instr_safe(instr, block) {
                if (instr->type == nir_instr_type_intrinsic)
                   progress |= lower_instr(nir_instr_as_intrinsic(instr),
-                                          &builder);
+                                          &builder,
+                                          multiplier);
             }
          }
 
@@ -97,4 +101,5 @@ st_nir_lower_uniforms_to_ubo(nir_shader *shader)
 
    return progress;
 }
+
 

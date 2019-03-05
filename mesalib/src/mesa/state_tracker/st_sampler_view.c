@@ -480,8 +480,8 @@ get_sampler_view_format(struct st_context *st,
 
 static struct pipe_sampler_view *
 st_create_texture_sampler_view_from_stobj(struct st_context *st,
-					  struct st_texture_object *stObj,
-					  enum pipe_format format,
+                                          struct st_texture_object *stObj,
+                                          enum pipe_format format,
                                           bool glsl130_or_later)
 {
    /* There is no need to clear this structure (consider CPU overhead). */
@@ -553,11 +553,14 @@ st_get_texture_sampler_view_from_stobj(struct st_context *st,
    }
 
    /* create new sampler view */
-   enum pipe_format format = get_sampler_view_format(st, stObj, srgb_skip_decode);
+   enum pipe_format format = get_sampler_view_format(st, stObj,
+                                                     srgb_skip_decode);
    struct pipe_sampler_view *view =
-         st_create_texture_sampler_view_from_stobj(st, stObj, format, glsl130_or_later);
+         st_create_texture_sampler_view_from_stobj(st, stObj, format,
+                                                   glsl130_or_later);
 
-   view = st_texture_set_sampler_view(st, stObj, view, glsl130_or_later, srgb_skip_decode);
+   view = st_texture_set_sampler_view(st, stObj, view,
+                                      glsl130_or_later, srgb_skip_decode);
 
    return view;
 }
@@ -585,7 +588,8 @@ st_get_buffer_sampler_view_from_stobj(struct st_context *st,
          /* Debug check: make sure that the sampler view's parameters are
           * what they're supposed to be.
           */
-         assert(st_mesa_format_to_pipe_format(st, stObj->base._BufferObjectFormat)
+         assert(st_mesa_format_to_pipe_format(st,
+                                              stObj->base._BufferObjectFormat)
              == view->format);
          assert(view->target == PIPE_BUFFER);
          unsigned base = stObj->base.BufferOffset;

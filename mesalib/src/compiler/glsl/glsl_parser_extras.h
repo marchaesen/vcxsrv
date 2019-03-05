@@ -834,6 +834,8 @@ struct _mesa_glsl_parse_state {
    bool EXT_texture_buffer_warn;
    bool EXT_texture_cube_map_array_enable;
    bool EXT_texture_cube_map_array_warn;
+   bool EXT_texture_query_lod_enable;
+   bool EXT_texture_query_lod_warn;
    bool INTEL_conservative_rasterization_enable;
    bool INTEL_conservative_rasterization_warn;
    bool INTEL_shader_atomic_float_minmax_enable;

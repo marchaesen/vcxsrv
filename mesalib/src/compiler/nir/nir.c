@@ -1511,7 +1511,8 @@ void
 nir_ssa_def_rewrite_uses_after(nir_ssa_def *def, nir_src new_src,
                                nir_instr *after_me)
 {
-   assert(!new_src.is_ssa || def != new_src.ssa);
+   if (new_src.is_ssa && def == new_src.ssa)
+      return;
 
    nir_foreach_use_safe(use_src, def) {
       assert(use_src->parent_instr != def->parent_instr);

@@ -134,7 +134,6 @@ struct qinst {
         /* Pre-register-allocation references to src/dst registers */
         struct qreg dst;
         struct qreg src[3];
-        bool cond_is_exec_mask;
         bool has_implicit_uniform;
         bool is_last_thrsw;
 
@@ -419,6 +418,8 @@ struct qblock {
 
         /** @{ used by v3d_vir_live_variables.c */
         BITSET_WORD *def;
+        BITSET_WORD *defin;
+        BITSET_WORD *defout;
         BITSET_WORD *use;
         BITSET_WORD *live_in;
         BITSET_WORD *live_out;
@@ -562,7 +563,7 @@ struct v3d_compile {
         int local_invocation_index_bits;
 
         uint8_t vattr_sizes[V3D_MAX_VS_INPUTS / 4];
-        uint32_t num_vpm_writes;
+        uint32_t vpm_output_size;
 
         /* Size in bytes of registers that have been spilled. This is how much
          * space needs to be available in the spill BO per thread per QPU.
@@ -606,10 +607,8 @@ struct v3d_compile {
         enum quniform_contents *uniform_contents;
         uint32_t uniform_array_size;
         uint32_t num_uniforms;
-        uint32_t num_outputs;
         uint32_t output_position_index;
         nir_variable *output_color_var[4];
-        uint32_t output_point_size_index;
         uint32_t output_sample_mask_index;
 
         struct qreg undef;
@@ -1151,5 +1150,9 @@ vir_BRANCH(struct v3d_compile *c, enum v3d_qpu_branch_cond cond)
 #define vir_for_each_inst_inorder(inst, c)                              \
         vir_for_each_block(_block, c)                                   \
                 vir_for_each_inst(inst, _block)
+
+#define vir_for_each_inst_inorder_safe(inst, c)                         \
+        vir_for_each_block(_block, c)                                   \
+                vir_for_each_inst_safe(inst, _block)
 
 #endif /* V3D_COMPILER_H */

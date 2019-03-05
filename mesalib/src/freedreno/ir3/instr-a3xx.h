@@ -916,6 +916,18 @@ static inline bool is_ssbo(opc_t opc)
 	}
 }
 
+static inline bool is_isam(opc_t opc)
+{
+	switch (opc) {
+	case OPC_ISAM:
+	case OPC_ISAML:
+	case OPC_ISAMM:
+		return true;
+	default:
+		return false;
+	}
+}
+
 int disasm_a3xx(uint32_t *dwords, int sizedwords, int level, FILE *out, unsigned gpu_id);
 
 #endif /* INSTR_A3XX_H_ */

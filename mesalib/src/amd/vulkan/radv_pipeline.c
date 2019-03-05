@@ -529,7 +529,7 @@ radv_pipeline_compute_spi_color_formats(struct radv_pipeline *pipeline,
 		 * alpha channel of MRT0 when alpha coverage is enabled because
 		 * the depth attachment needs it.
 		 */
-		col_format |= V_028714_SPI_SHADER_32_ABGR;
+		col_format |= V_028714_SPI_SHADER_32_AR;
 	}
 
 	/* If the i-th target format is set, all previous target formats must

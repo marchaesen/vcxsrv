@@ -759,17 +759,17 @@ public:
       unsigned is_xfb_only:1;
 
       /**
-       * Was a transfor feedback buffer set in the shader?
+       * Was a transform feedback buffer set in the shader?
        */
       unsigned explicit_xfb_buffer:1;
 
       /**
-       * Was a transfor feedback offset set in the shader?
+       * Was a transform feedback offset set in the shader?
        */
       unsigned explicit_xfb_offset:1;
 
       /**
-       * Was a transfor feedback stride set in the shader?
+       * Was a transform feedback stride set in the shader?
        */
       unsigned explicit_xfb_stride:1;
 

@@ -1865,8 +1865,18 @@ nir_visitor::visit(ir_expression *ir)
                                        : nir_isub(&b, srcs[0], srcs[1]);
       break;
    case ir_binop_mul:
-      result = type_is_float(out_type) ? nir_fmul(&b, srcs[0], srcs[1])
-                                       : nir_imul(&b, srcs[0], srcs[1]);
+      if (type_is_float(out_type))
+         result = nir_fmul(&b, srcs[0], srcs[1]);
+      else if (out_type == GLSL_TYPE_INT64 &&
+               (ir->operands[0]->type->base_type == GLSL_TYPE_INT ||
+                ir->operands[1]->type->base_type == GLSL_TYPE_INT))
+         result = nir_imul_2x32_64(&b, srcs[0], srcs[1]);
+      else if (out_type == GLSL_TYPE_UINT64 &&
+               (ir->operands[0]->type->base_type == GLSL_TYPE_UINT ||
+                ir->operands[1]->type->base_type == GLSL_TYPE_UINT))
+         result = nir_umul_2x32_64(&b, srcs[0], srcs[1]);
+      else
+         result = nir_imul(&b, srcs[0], srcs[1]);
       break;
    case ir_binop_div:
       if (type_is_float(out_type))

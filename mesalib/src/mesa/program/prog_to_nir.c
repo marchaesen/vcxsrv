@@ -1012,13 +1012,11 @@ prog_to_nir(const struct gl_program *prog,
    s = c->build.shader;
 
    if (prog->Parameters->NumParameters > 0) {
-      c->parameters = rzalloc(s, nir_variable);
-      c->parameters->type =
+      const struct glsl_type *type =
          glsl_array_type(glsl_vec4_type(), prog->Parameters->NumParameters, 0);
-      c->parameters->name = strdup(prog->Parameters->Parameters[0].Name);
-      c->parameters->data.read_only = true;
-      c->parameters->data.mode = nir_var_uniform;
-      exec_list_push_tail(&s->uniforms, &c->parameters->node);
+      c->parameters =
+         nir_variable_create(s, nir_var_uniform, type,
+                             prog->Parameters->Parameters[0].Name);
    }
 
    setup_registers_and_variables(c);

@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 #ifndef ST_TEXTURE_H
@@ -39,7 +39,8 @@
 struct pipe_resource;
 
 
-struct st_texture_image_transfer {
+struct st_texture_image_transfer
+{
    struct pipe_transfer *transfer;
 
    /* For compressed texture fallback. */
@@ -52,7 +53,8 @@ struct st_texture_image_transfer {
 /**
  * Container for one context's validated sampler view.
  */
-struct st_sampler_view {
+struct st_sampler_view
+{
    struct pipe_sampler_view *view;
 
    /** The glsl version of the shader seen during validation */
@@ -65,12 +67,14 @@ struct st_sampler_view {
 /**
  * Container for per-context sampler views of a texture.
  */
-struct st_sampler_views {
+struct st_sampler_views
+{
    struct st_sampler_views *next;
    uint32_t max;
    uint32_t count;
    struct st_sampler_view views[0];
 };
+
 
 /**
  * Subclass of gl_texure_image.
@@ -249,7 +253,7 @@ st_get_view_format(struct st_texture_object *stObj)
 extern struct pipe_resource *
 st_texture_create(struct st_context *st,
                   enum pipe_texture_target target,
-		  enum pipe_format format,
+                  enum pipe_format format,
                   GLuint last_level,
                   GLuint width0,
                   GLuint height0,

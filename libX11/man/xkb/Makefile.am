@@ -26,7 +26,7 @@ libman_PRE = \
 	XkbAllocGeomKeyAliases.man              \
 	XkbAllocGeomKeys.man                    \
 	XkbAllocGeomOutlines.man                \
-	XkbAllocGeomOverlayKey.man              \
+	XkbAllocGeomOverlayKeys.man             \
 	XkbAllocGeomOverlayRows.man             \
 	XkbAllocGeomOverlays.man                \
 	XkbAllocGeomPoints.man                  \

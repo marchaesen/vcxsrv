@@ -68,6 +68,15 @@ ddxBeforeReset(void)
 }
 #endif
 
+#if INPUTTHREAD
+/** This function is called in Xserver/os/inputthread.c when starting
+    the input thread. */
+void
+ddxInputThreadInit(void)
+{
+}
+#endif
+
  _X_NORETURN
 static void _X_ATTRIBUTE_PRINTF(1, 2)
 xwl_give_up(const char *f, ...)

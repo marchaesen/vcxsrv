@@ -962,6 +962,8 @@ make_list(GLuint name, GLuint count)
    dlist->Name = name;
    dlist->Head = malloc(sizeof(Node) * count);
    dlist->Head[0].opcode = OPCODE_END_OF_LIST;
+   /* All InstSize[] entries must be non-zero */
+   InstSize[OPCODE_END_OF_LIST] = 1;
    return dlist;
 }
 

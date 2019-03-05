@@ -104,6 +104,12 @@ struct gl_program_parameter
     * A sequence of STATE_* tokens and integers to identify GL state.
     */
    gl_state_index16 StateIndexes[STATE_LENGTH];
+
+   /**
+    * We need to keep track of whether the param is padded for use in the
+    * shader cache.
+    */
+   bool Padded;
 };
 
 

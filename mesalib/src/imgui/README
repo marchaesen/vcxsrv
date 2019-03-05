@@ -1,11 +1,24 @@
 Dear ImGui
 ==========
 
-This directory contains a copy of the Dear ImGui library at the following commit :
+This directory contains a copy of the Dear ImGui library
+(https://github.com/ocornut/imgui) at the following commit :
 
-commit 6211f40f3d903dd9df961256e044029c49793aa3
+commit f977871854af941289f2a9090dcc90f7aa3449a8
 Author: omar <omarcornut@gmail.com>
-Date:   Fri Jul 27 12:29:33 2018 +0200
+Date:   Fri Feb 15 13:10:22 2019 +0100
+
+    ImFont: Minor adjustment to the structure.
+    Examples: Removed unused variable.
+
+There is also a copy of the memory editor
+(https://github.com/ocornut/imgui_club) at the following commit :
+
+commit 378e32ac92aa120512ee1aeb90522c9214e9b694
+Author: omar <omarcornut@gmail.com>
+Date:   Wed Oct 10 15:20:32 2018 +0200
+
+    Comments (#9)
 
 Embedding the library into one's project is main way people seems to
 work with ImGui. Since this is just for a debugging tool, we're not

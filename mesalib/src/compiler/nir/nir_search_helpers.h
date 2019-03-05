@@ -155,6 +155,12 @@ is_used_once(nir_alu_instr *instr)
 }
 
 static inline bool
+is_used_by_if(nir_alu_instr *instr)
+{
+   return !list_empty(&instr->dest.dest.ssa.if_uses);
+}
+
+static inline bool
 is_not_used_by_if(nir_alu_instr *instr)
 {
    return list_empty(&instr->dest.dest.ssa.if_uses);
