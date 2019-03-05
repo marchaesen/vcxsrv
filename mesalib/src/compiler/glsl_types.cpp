@@ -261,6 +261,22 @@ glsl_type::contains_double() const
 }
 
 bool
+glsl_type::contains_64bit() const
+{
+   if (this->is_array()) {
+      return this->fields.array->contains_64bit();
+   } else if (this->is_record() || this->is_interface()) {
+      for (unsigned int i = 0; i < this->length; i++) {
+         if (this->fields.structure[i].type->contains_64bit())
+            return true;
+      }
+      return false;
+   } else {
+      return this->is_64bit();
+   }
+}
+
+bool
 glsl_type::contains_opaque() const {
    switch (base_type) {
    case GLSL_TYPE_SAMPLER:

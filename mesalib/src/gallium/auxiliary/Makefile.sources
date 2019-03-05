@@ -348,6 +348,10 @@ VL_SOURCES := \
 	vl/vl_bicubic_filter.h \
 	vl/vl_compositor.c \
 	vl/vl_compositor.h \
+	vl/vl_compositor_gfx.c \
+	vl/vl_compositor_gfx.h \
+	vl/vl_compositor_cs.c \
+	vl/vl_compositor_cs.h \
 	vl/vl_csc.c \
 	vl/vl_csc.h \
 	vl/vl_decoder.c \

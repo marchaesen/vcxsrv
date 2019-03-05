@@ -264,6 +264,11 @@ DRI_CONF_OPT_BEGIN_B(allow_rgb10_configs, def) \
 DRI_CONF_DESC(en,gettext("Allow exposure of visuals and fbconfigs with rgb10a2 formats")) \
 DRI_CONF_OPT_END
 
+#define DRI_CONF_ALLOW_RGB565_CONFIGS(def) \
+DRI_CONF_OPT_BEGIN_B(allow_rgb565_configs, def) \
+DRI_CONF_DESC(en,gettext("Allow exposure of visuals and fbconfigs with rgb565 formats")) \
+DRI_CONF_OPT_END
+
 /**
  * \brief Initialization configuration options
  */
@@ -346,4 +351,9 @@ DRI_CONF_OPT_END
 #define DRI_CONF_RADEONSI_ZERO_ALL_VRAM_ALLOCS(def) \
 DRI_CONF_OPT_BEGIN_B(radeonsi_zerovram, def) \
         DRI_CONF_DESC(en,"Zero all vram allocations") \
+DRI_CONF_OPT_END
+
+#define DRI_CONF_RADEONSI_ENABLE_NIR(def) \
+DRI_CONF_OPT_BEGIN_B(radeonsi_enable_nir, def) \
+        DRI_CONF_DESC(en,gettext("Enable NIR")) \
 DRI_CONF_OPT_END

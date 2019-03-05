@@ -524,6 +524,14 @@ radv_pipeline_compute_spi_color_formats(struct radv_pipeline *pipeline,
 		col_format |= cf << (4 * i);
 	}
 
+	if (!col_format && blend->need_src_alpha & (1 << 0)) {
+		/* When a subpass doesn't have any color attachments, write the
+		 * alpha channel of MRT0 when alpha coverage is enabled because
+		 * the depth attachment needs it.
+		 */
+		col_format |= V_028714_SPI_SHADER_32_ABGR;
+	}
+
 	/* If the i-th target format is set, all previous target formats must
 	 * be non-zero to avoid hangs.
 	 */
@@ -689,6 +697,7 @@ radv_pipeline_init_blend_state(struct radv_pipeline *pipeline,
 
 	if (vkms && vkms->alphaToCoverageEnable) {
 		blend.db_alpha_to_mask |= S_028B70_ALPHA_TO_MASK_ENABLE(1);
+		blend.need_src_alpha |= 0x1;
 	}
 
 	blend.cb_target_mask = 0;
@@ -1874,12 +1883,26 @@ radv_generate_graphics_pipeline_key(struct radv_pipeline *pipeline,
 	}
 
 	for (unsigned i = 0; i < input_state->vertexAttributeDescriptionCount; ++i) {
-		unsigned location = input_state->pVertexAttributeDescriptions[i].location;
-		unsigned binding = input_state->pVertexAttributeDescriptions[i].binding;
+		const VkVertexInputAttributeDescription *desc =
+			&input_state->pVertexAttributeDescriptions[i];
+		const struct vk_format_description *format_desc;
+		unsigned location = desc->location;
+		unsigned binding = desc->binding;
+		unsigned num_format, data_format;
+		int first_non_void;
+
 		if (binding_input_rate & (1u << binding)) {
 			key.instance_rate_inputs |= 1u << location;
 			key.instance_rate_divisors[location] = instance_rate_divisors[binding];
 		}
+
+		format_desc = vk_format_description(desc->format);
+		first_non_void = vk_format_get_first_non_void_channel(desc->format);
+
+		num_format = radv_translate_buffer_numformat(format_desc, first_non_void);
+		data_format = radv_translate_buffer_dataformat(format_desc, first_non_void);
+
+		key.vertex_attribute_formats[location] = data_format | (num_format << 4);
 
 		if (pipeline->device->physical_device->rad_info.chip_class <= VI &&
 		    pipeline->device->physical_device->rad_info.family != CHIP_STONEY) {
@@ -1932,8 +1955,10 @@ radv_fill_shader_keys(struct radv_shader_variant_key *keys,
 {
 	keys[MESA_SHADER_VERTEX].vs.instance_rate_inputs = key->instance_rate_inputs;
 	keys[MESA_SHADER_VERTEX].vs.alpha_adjust = key->vertex_alpha_adjust;
-	for (unsigned i = 0; i < MAX_VERTEX_ATTRIBS; ++i)
+	for (unsigned i = 0; i < MAX_VERTEX_ATTRIBS; ++i) {
 		keys[MESA_SHADER_VERTEX].vs.instance_rate_divisors[i] = key->instance_rate_divisors[i];
+		keys[MESA_SHADER_VERTEX].vs.vertex_attribute_formats[i] = key->vertex_attribute_formats[i];
+	}
 
 	if (nir[MESA_SHADER_TESS_CTRL]) {
 		keys[MESA_SHADER_VERTEX].vs.as_ls = true;
@@ -2632,8 +2657,7 @@ radv_pipeline_generate_depth_stencil_state(struct radeon_cmdbuf *ctx_cs,
 	db_render_override |= S_02800C_FORCE_HIS_ENABLE0(V_02800C_FORCE_DISABLE) |
 			      S_02800C_FORCE_HIS_ENABLE1(V_02800C_FORCE_DISABLE);
 
-	if (pipeline->device->enabled_extensions.EXT_depth_range_unrestricted &&
-	    !pCreateInfo->pRasterizationState->depthClampEnable &&
+	if (!pCreateInfo->pRasterizationState->depthClampEnable &&
 	    ps->info.info.ps.writes_z) {
 		/* From VK_EXT_depth_range_unrestricted spec:
 		 *
@@ -2702,11 +2726,18 @@ radv_pipeline_generate_raster_state(struct radeon_cmdbuf *ctx_cs,
 	const VkConservativeRasterizationModeEXT mode =
 		radv_get_conservative_raster_mode(vkraster);
 	uint32_t pa_sc_conservative_rast = S_028C4C_NULL_SQUAD_AA_MASK_ENABLE(1);
+	bool depth_clip_disable = vkraster->depthClampEnable;
+
+	const VkPipelineRasterizationDepthClipStateCreateInfoEXT *depth_clip_state =
+		vk_find_struct_const(vkraster->pNext, PIPELINE_RASTERIZATION_DEPTH_CLIP_STATE_CREATE_INFO_EXT);
+	if (depth_clip_state) {
+		depth_clip_disable = !depth_clip_state->depthClipEnable;
+	}
 
 	radeon_set_context_reg(ctx_cs, R_028810_PA_CL_CLIP_CNTL,
 	                       S_028810_DX_CLIP_SPACE_DEF(1) | // vulkan uses DX conventions.
-	                       S_028810_ZCLIP_NEAR_DISABLE(vkraster->depthClampEnable ? 1 : 0) |
-	                       S_028810_ZCLIP_FAR_DISABLE(vkraster->depthClampEnable ? 1 : 0) |
+	                       S_028810_ZCLIP_NEAR_DISABLE(depth_clip_disable ? 1 : 0) |
+	                       S_028810_ZCLIP_FAR_DISABLE(depth_clip_disable ? 1 : 0) |
 	                       S_028810_DX_RASTERIZATION_KILL(vkraster->rasterizerDiscardEnable ? 1 : 0) |
 	                       S_028810_DX_LINEAR_ATTR_CLIP_ENA(1));
 
@@ -3070,13 +3101,17 @@ radv_pipeline_generate_geometry_shader(struct radeon_cmdbuf *ctx_cs,
 	radv_pipeline_generate_hw_vs(ctx_cs, cs, pipeline, pipeline->gs_copy_shader);
 }
 
-static uint32_t offset_to_ps_input(uint32_t offset, bool flat_shade)
+static uint32_t offset_to_ps_input(uint32_t offset, bool flat_shade, bool float16)
 {
 	uint32_t ps_input_cntl;
 	if (offset <= AC_EXP_PARAM_OFFSET_31) {
 		ps_input_cntl = S_028644_OFFSET(offset);
 		if (flat_shade)
 			ps_input_cntl |= S_028644_FLAT_SHADE(1);
+		if (float16) {
+			ps_input_cntl |= S_028644_FP16_INTERP_MODE(1) |
+			                 S_028644_ATTR0_VALID(1);
+		}
 	} else {
 		/* The input is a DEFAULT_VAL constant. */
 		assert(offset >= AC_EXP_PARAM_DEFAULT_VAL_0000 &&
@@ -3101,7 +3136,7 @@ radv_pipeline_generate_ps_inputs(struct radeon_cmdbuf *ctx_cs,
 	if (ps->info.info.ps.prim_id_input) {
 		unsigned vs_offset = outinfo->vs_output_param_offset[VARYING_SLOT_PRIMITIVE_ID];
 		if (vs_offset != AC_EXP_PARAM_UNDEFINED) {
-			ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, true);
+			ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, true, false);
 			++ps_offset;
 		}
 	}
@@ -3111,9 +3146,9 @@ radv_pipeline_generate_ps_inputs(struct radeon_cmdbuf *ctx_cs,
 	    ps->info.info.needs_multiview_view_index) {
 		unsigned vs_offset = outinfo->vs_output_param_offset[VARYING_SLOT_LAYER];
 		if (vs_offset != AC_EXP_PARAM_UNDEFINED)
-			ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, true);
+			ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, true, false);
 		else
-			ps_input_cntl[ps_offset] = offset_to_ps_input(AC_EXP_PARAM_DEFAULT_VAL_0000, true);
+			ps_input_cntl[ps_offset] = offset_to_ps_input(AC_EXP_PARAM_DEFAULT_VAL_0000, true, false);
 		++ps_offset;
 	}
 
@@ -3129,14 +3164,14 @@ radv_pipeline_generate_ps_inputs(struct radeon_cmdbuf *ctx_cs,
 
 		vs_offset = outinfo->vs_output_param_offset[VARYING_SLOT_CLIP_DIST0];
 		if (vs_offset != AC_EXP_PARAM_UNDEFINED) {
-			ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, false);
+			ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, false, false);
 			++ps_offset;
 		}
 
 		vs_offset = outinfo->vs_output_param_offset[VARYING_SLOT_CLIP_DIST1];
 		if (vs_offset != AC_EXP_PARAM_UNDEFINED &&
 		    ps->info.info.ps.num_input_clips_culls > 4) {
-			ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, false);
+			ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, false, false);
 			++ps_offset;
 		}
 	}
@@ -3144,6 +3179,7 @@ radv_pipeline_generate_ps_inputs(struct radeon_cmdbuf *ctx_cs,
 	for (unsigned i = 0; i < 32 && (1u << i) <= ps->info.fs.input_mask; ++i) {
 		unsigned vs_offset;
 		bool flat_shade;
+		bool float16;
 		if (!(ps->info.fs.input_mask & (1u << i)))
 			continue;
 
@@ -3155,8 +3191,9 @@ radv_pipeline_generate_ps_inputs(struct radeon_cmdbuf *ctx_cs,
 		}
 
 		flat_shade = !!(ps->info.fs.flat_shaded_mask & (1u << ps_offset));
+		float16 = !!(ps->info.fs.float16_shaded_mask & (1u << ps_offset));
 
-		ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, flat_shade);
+		ps_input_cntl[ps_offset] = offset_to_ps_input(vs_offset, flat_shade, float16);
 		++ps_offset;
 	}
 
@@ -3173,7 +3210,6 @@ radv_compute_db_shader_control(const struct radv_device *device,
 			       const struct radv_pipeline *pipeline,
                                const struct radv_shader_variant *ps)
 {
-	const struct radv_multisample_state *ms = &pipeline->graphics.ms;
 	unsigned z_order;
 	if (ps->info.fs.early_fragment_test || !ps->info.info.ps.writes_memory)
 		z_order = V_02880C_EARLY_Z_THEN_LATE_Z;
@@ -3183,11 +3219,11 @@ radv_compute_db_shader_control(const struct radv_device *device,
 	bool disable_rbplus = device->physical_device->has_rbplus &&
 	                      !device->physical_device->rbplus_allowed;
 
-	/* Do not enable the gl_SampleMask fragment shader output if MSAA is
-	 * disabled.
+	/* It shouldn't be needed to export gl_SampleMask when MSAA is disabled
+	 * but this appears to break Project Cars (DXVK). See
+	 * https://bugs.freedesktop.org/show_bug.cgi?id=109401
 	 */
-	bool mask_export_enable = ms->num_samples > 1 &&
-				  ps->info.info.ps.writes_sample_mask;
+	bool mask_export_enable = ps->info.info.ps.writes_sample_mask;
 
 	return  S_02880C_Z_EXPORT_ENABLE(ps->info.info.ps.writes_z) |
 		S_02880C_STENCIL_TEST_VAL_EXPORT_ENABLE(ps->info.info.ps.writes_stencil) |
@@ -3543,8 +3579,7 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 		   struct radv_device *device,
 		   struct radv_pipeline_cache *cache,
 		   const VkGraphicsPipelineCreateInfo *pCreateInfo,
-		   const struct radv_graphics_pipeline_create_info *extra,
-		   const VkAllocationCallbacks *alloc)
+		   const struct radv_graphics_pipeline_create_info *extra)
 {
 	VkResult result;
 	bool has_view_index = false;
@@ -3553,8 +3588,6 @@ radv_pipeline_init(struct radv_pipeline *pipeline,
 	struct radv_subpass *subpass = pass->subpasses + pCreateInfo->subpass;
 	if (subpass->view_mask)
 		has_view_index = true;
-	if (alloc == NULL)
-		alloc = &device->alloc;
 
 	pipeline->device = device;
 	pipeline->layout = radv_pipeline_layout_from_handle(pCreateInfo->layout);
@@ -3682,7 +3715,7 @@ radv_graphics_pipeline_create(
 		return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
 	result = radv_pipeline_init(pipeline, device, cache,
-				    pCreateInfo, extra, pAllocator);
+				    pCreateInfo, extra);
 	if (result != VK_SUCCESS) {
 		radv_pipeline_destroy(device, pipeline, pAllocator);
 		return result;

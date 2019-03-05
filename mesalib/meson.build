@@ -157,6 +157,7 @@ with_gallium_v3d = _drivers.contains('v3d')
 with_gallium_panfrost = _drivers.contains('panfrost')
 with_gallium_etnaviv = _drivers.contains('etnaviv')
 with_gallium_tegra = _drivers.contains('tegra')
+with_gallium_iris = _drivers.contains('iris')
 with_gallium_i915 = _drivers.contains('i915')
 with_gallium_svga = _drivers.contains('svga')
 with_gallium_virgl = _drivers.contains('virgl')
@@ -617,7 +618,8 @@ if with_gallium_st_nine
   if not with_gallium_softpipe
     error('The nine state tracker requires gallium softpipe/llvmpipe.')
   elif not (with_gallium_radeonsi or with_gallium_nouveau or with_gallium_r600
-            or with_gallium_r300 or with_gallium_svga or with_gallium_i915)
+            or with_gallium_r300 or with_gallium_svga or with_gallium_i915
+            or with_gallium_iris)
     error('The nine state tracker requires at least one non-swrast gallium driver.')
   endif
   if not with_dri3
@@ -1464,6 +1466,10 @@ pkg = import('pkgconfig')
 
 env_test = environment()
 env_test.set('NM', find_program('nm').path())
+
+# This quirk needs to be applied to sources with functions defined in assembly
+# as GCC LTO drops them. See: https://bugs.freedesktop.org/show_bug.cgi?id=109391
+gcc_lto_quirk = (cc.get_id() == 'gcc') ? ['-fno-lto'] : []
 
 subdir('include')
 subdir('bin')

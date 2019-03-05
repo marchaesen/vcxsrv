@@ -306,7 +306,8 @@ lower_implicit_lod(nir_builder *b, nir_tex_instr *tex)
 }
 
 static nir_ssa_def *
-sample_plane(nir_builder *b, nir_tex_instr *tex, int plane)
+sample_plane(nir_builder *b, nir_tex_instr *tex, int plane,
+             const nir_lower_tex_options *options)
 {
    assert(tex->dest.is_ssa);
    assert(nir_tex_instr_dest_size(tex) == 4);
@@ -333,6 +334,11 @@ sample_plane(nir_builder *b, nir_tex_instr *tex, int plane)
    nir_ssa_dest_init(&plane_tex->instr, &plane_tex->dest, 4, 32, NULL);
 
    nir_builder_instr_insert(b, &plane_tex->instr);
+
+   /* If scaling_factor is set, return a scaled value. */
+   if (options->scale_factors[tex->texture_index])
+      return nir_fmul_imm(b, &plane_tex->dest.ssa,
+                          options->scale_factors[tex->texture_index]);
 
    return &plane_tex->dest.ssa;
 }
@@ -366,12 +372,13 @@ convert_yuv_to_rgb(nir_builder *b, nir_tex_instr *tex,
 }
 
 static void
-lower_y_uv_external(nir_builder *b, nir_tex_instr *tex)
+lower_y_uv_external(nir_builder *b, nir_tex_instr *tex,
+                    const nir_lower_tex_options *options)
 {
    b->cursor = nir_after_instr(&tex->instr);
 
-   nir_ssa_def *y = sample_plane(b, tex, 0);
-   nir_ssa_def *uv = sample_plane(b, tex, 1);
+   nir_ssa_def *y = sample_plane(b, tex, 0, options);
+   nir_ssa_def *uv = sample_plane(b, tex, 1, options);
 
    convert_yuv_to_rgb(b, tex,
                       nir_channel(b, y, 0),
@@ -381,13 +388,14 @@ lower_y_uv_external(nir_builder *b, nir_tex_instr *tex)
 }
 
 static void
-lower_y_u_v_external(nir_builder *b, nir_tex_instr *tex)
+lower_y_u_v_external(nir_builder *b, nir_tex_instr *tex,
+                     const nir_lower_tex_options *options)
 {
    b->cursor = nir_after_instr(&tex->instr);
 
-   nir_ssa_def *y = sample_plane(b, tex, 0);
-   nir_ssa_def *u = sample_plane(b, tex, 1);
-   nir_ssa_def *v = sample_plane(b, tex, 2);
+   nir_ssa_def *y = sample_plane(b, tex, 0, options);
+   nir_ssa_def *u = sample_plane(b, tex, 1, options);
+   nir_ssa_def *v = sample_plane(b, tex, 2, options);
 
    convert_yuv_to_rgb(b, tex,
                       nir_channel(b, y, 0),
@@ -397,12 +405,13 @@ lower_y_u_v_external(nir_builder *b, nir_tex_instr *tex)
 }
 
 static void
-lower_yx_xuxv_external(nir_builder *b, nir_tex_instr *tex)
+lower_yx_xuxv_external(nir_builder *b, nir_tex_instr *tex,
+                       const nir_lower_tex_options *options)
 {
    b->cursor = nir_after_instr(&tex->instr);
 
-   nir_ssa_def *y = sample_plane(b, tex, 0);
-   nir_ssa_def *xuxv = sample_plane(b, tex, 1);
+   nir_ssa_def *y = sample_plane(b, tex, 0, options);
+   nir_ssa_def *xuxv = sample_plane(b, tex, 1, options);
 
    convert_yuv_to_rgb(b, tex,
                       nir_channel(b, y, 0),
@@ -412,12 +421,13 @@ lower_yx_xuxv_external(nir_builder *b, nir_tex_instr *tex)
 }
 
 static void
-lower_xy_uxvx_external(nir_builder *b, nir_tex_instr *tex)
+lower_xy_uxvx_external(nir_builder *b, nir_tex_instr *tex,
+                       const nir_lower_tex_options *options)
 {
   b->cursor = nir_after_instr(&tex->instr);
 
-  nir_ssa_def *y = sample_plane(b, tex, 0);
-  nir_ssa_def *uxvx = sample_plane(b, tex, 1);
+  nir_ssa_def *y = sample_plane(b, tex, 0, options);
+  nir_ssa_def *uxvx = sample_plane(b, tex, 1, options);
 
   convert_yuv_to_rgb(b, tex,
                      nir_channel(b, y, 1),
@@ -427,11 +437,12 @@ lower_xy_uxvx_external(nir_builder *b, nir_tex_instr *tex)
 }
 
 static void
-lower_ayuv_external(nir_builder *b, nir_tex_instr *tex)
+lower_ayuv_external(nir_builder *b, nir_tex_instr *tex,
+                    const nir_lower_tex_options *options)
 {
   b->cursor = nir_after_instr(&tex->instr);
 
-  nir_ssa_def *ayuv = sample_plane(b, tex, 0);
+  nir_ssa_def *ayuv = sample_plane(b, tex, 0, options);
 
   convert_yuv_to_rgb(b, tex,
                      nir_channel(b, ayuv, 2),
@@ -923,27 +934,27 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
       }
 
       if ((1 << tex->texture_index) & options->lower_y_uv_external) {
-         lower_y_uv_external(b, tex);
+         lower_y_uv_external(b, tex, options);
          progress = true;
       }
 
       if ((1 << tex->texture_index) & options->lower_y_u_v_external) {
-         lower_y_u_v_external(b, tex);
+         lower_y_u_v_external(b, tex, options);
          progress = true;
       }
 
       if ((1 << tex->texture_index) & options->lower_yx_xuxv_external) {
-         lower_yx_xuxv_external(b, tex);
+         lower_yx_xuxv_external(b, tex, options);
          progress = true;
       }
 
       if ((1 << tex->texture_index) & options->lower_xy_uxvx_external) {
-         lower_xy_uxvx_external(b, tex);
+         lower_xy_uxvx_external(b, tex, options);
          progress = true;
       }
 
       if ((1 << tex->texture_index) & options->lower_ayuv_external) {
-         lower_ayuv_external(b, tex);
+         lower_ayuv_external(b, tex, options);
          progress = true;
       }
 

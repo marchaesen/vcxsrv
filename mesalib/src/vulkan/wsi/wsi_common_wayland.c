@@ -31,7 +31,7 @@
 #include <string.h>
 #include <pthread.h>
 
-#include <drm_fourcc.h>
+#include "drm-uapi/drm_fourcc.h"
 
 #include "vk_util.h"
 #include "wsi_common_private.h"
@@ -480,6 +480,7 @@ static const VkPresentModeKHR present_modes[] = {
 
 static VkResult
 wsi_wl_surface_get_capabilities(VkIcdSurfaceBase *surface,
+                                struct wsi_device *wsi_device,
                                 VkSurfaceCapabilitiesKHR* caps)
 {
    /* For true mailbox mode, we need at least 4 images:
@@ -494,8 +495,11 @@ wsi_wl_surface_get_capabilities(VkIcdSurfaceBase *surface,
 
    caps->currentExtent = (VkExtent2D) { -1, -1 };
    caps->minImageExtent = (VkExtent2D) { 1, 1 };
-   /* This is the maximum supported size on Intel */
-   caps->maxImageExtent = (VkExtent2D) { 1 << 14, 1 << 14 };
+   caps->maxImageExtent = (VkExtent2D) {
+      wsi_device->maxImageDimension2D,
+      wsi_device->maxImageDimension2D,
+   };
+
    caps->supportedTransforms = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
    caps->currentTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
    caps->maxImageArrayLayers = 1;
@@ -516,12 +520,14 @@ wsi_wl_surface_get_capabilities(VkIcdSurfaceBase *surface,
 
 static VkResult
 wsi_wl_surface_get_capabilities2(VkIcdSurfaceBase *surface,
+                                 struct wsi_device *wsi_device,
                                  const void *info_next,
                                  VkSurfaceCapabilities2KHR* caps)
 {
    assert(caps->sType == VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR);
 
-   return wsi_wl_surface_get_capabilities(surface, &caps->surfaceCapabilities);
+   return wsi_wl_surface_get_capabilities(surface, wsi_device,
+                                          &caps->surfaceCapabilities);
 }
 
 static VkResult

@@ -118,6 +118,12 @@ if with_gallium_tegra
 else
   driver_tegra = declare_dependency()
 endif
+if with_gallium_iris
+  subdir('winsys/iris/drm')
+  subdir('drivers/iris')
+else
+  driver_iris = declare_dependency()
+endif
 if with_gallium_i915
   subdir('winsys/i915/drm')
   subdir('drivers/i915')

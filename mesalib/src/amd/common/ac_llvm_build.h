@@ -171,9 +171,6 @@ LLVMValueRef
 ac_build_gather_values(struct ac_llvm_context *ctx,
 		       LLVMValueRef *values,
 		       unsigned value_count);
-LLVMValueRef ac_build_expand(struct ac_llvm_context *ctx,
-			     LLVMValueRef value,
-			     unsigned src_channels, unsigned dst_channels);
 LLVMValueRef ac_build_expand_to_vec4(struct ac_llvm_context *ctx,
 				     LLVMValueRef value,
 				     unsigned num_channels);
@@ -217,11 +214,24 @@ ac_build_fs_interp(struct ac_llvm_context *ctx,
 		   LLVMValueRef j);
 
 LLVMValueRef
+ac_build_fs_interp_f16(struct ac_llvm_context *ctx,
+		       LLVMValueRef llvm_chan,
+		       LLVMValueRef attr_number,
+		       LLVMValueRef params,
+		       LLVMValueRef i,
+		       LLVMValueRef j);
+
+LLVMValueRef
 ac_build_fs_interp_mov(struct ac_llvm_context *ctx,
 		       LLVMValueRef parameter,
 		       LLVMValueRef llvm_chan,
 		       LLVMValueRef attr_number,
 		       LLVMValueRef params);
+
+LLVMValueRef
+ac_build_gep_ptr(struct ac_llvm_context *ctx,
+	         LLVMValueRef base_ptr,
+	         LLVMValueRef index);
 
 LLVMValueRef
 ac_build_gep0(struct ac_llvm_context *ctx,
@@ -295,6 +305,20 @@ ac_build_tbuffer_load_short(struct ac_llvm_context *ctx,
 				LLVMValueRef soffset,
 				LLVMValueRef immoffset,
 				LLVMValueRef glc);
+
+LLVMValueRef
+ac_build_llvm8_tbuffer_load(struct ac_llvm_context *ctx,
+			    LLVMValueRef rsrc,
+			    LLVMValueRef vindex,
+			    LLVMValueRef voffset,
+			    LLVMValueRef soffset,
+			    unsigned num_channels,
+			    unsigned dfmt,
+			    unsigned nfmt,
+			    bool glc,
+			    bool slc,
+			    bool can_speculate,
+			    bool structurized);
 
 LLVMValueRef
 ac_get_thread_id(struct ac_llvm_context *ctx);

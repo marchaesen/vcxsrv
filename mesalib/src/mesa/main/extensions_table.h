@@ -226,6 +226,7 @@ EXT(EXT_draw_buffers_indexed                , ARB_draw_buffers_blend            
 EXT(EXT_draw_elements_base_vertex           , ARB_draw_elements_base_vertex          ,  x ,  x ,  x , ES2, 2014)
 EXT(EXT_draw_instanced                      , ARB_draw_instanced                     , GLL, GLC,  x ,  x , 2006)
 EXT(EXT_draw_range_elements                 , dummy_true                             , GLL,  x ,  x ,  x , 1997)
+EXT(EXT_float_blend                         , EXT_float_blend                        ,  x ,  x ,  x ,  30, 2015)
 EXT(EXT_fog_coord                           , dummy_true                             , GLL,  x ,  x ,  x , 1999)
 EXT(EXT_frag_depth                          , dummy_true                             ,  x ,  x ,  x , ES2, 2010)
 EXT(EXT_framebuffer_blit                    , dummy_true                             , GLL, GLC,  x ,  x , 2005)

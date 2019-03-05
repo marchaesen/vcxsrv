@@ -13,12 +13,12 @@
 
 is_stable_nomination()
 {
-	git show --summary "$1" | grep -q -i -o "CC:.*mesa-stable"
+	git show --pretty=medium --summary "$1" | grep -q -i -o "CC:.*mesa-stable"
 }
 
 is_typod_nomination()
 {
-	git show --summary "$1" | grep -q -i -o "CC:.*mesa-dev"
+	git show --pretty=medium --summary "$1" | grep -q -i -o "CC:.*mesa-dev"
 }
 
 fixes=

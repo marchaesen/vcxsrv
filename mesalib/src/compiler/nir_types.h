@@ -131,6 +131,7 @@ glsl_get_bit_size(const struct glsl_type *type)
 }
 
 bool glsl_type_is_16bit(const struct glsl_type *type);
+bool glsl_type_is_32bit(const struct glsl_type *type);
 bool glsl_type_is_64bit(const struct glsl_type *type);
 bool glsl_type_is_void(const struct glsl_type *type);
 bool glsl_type_is_error(const struct glsl_type *type);
@@ -149,6 +150,7 @@ bool glsl_type_is_dual_slot(const struct glsl_type *type);
 bool glsl_type_is_numeric(const struct glsl_type *type);
 bool glsl_type_is_boolean(const struct glsl_type *type);
 bool glsl_type_is_integer(const struct glsl_type *type);
+bool glsl_type_contains_64bit(const struct glsl_type *type);
 bool glsl_sampler_type_is_shadow(const struct glsl_type *type);
 bool glsl_sampler_type_is_array(const struct glsl_type *type);
 bool glsl_contains_atomic(const struct glsl_type *type);

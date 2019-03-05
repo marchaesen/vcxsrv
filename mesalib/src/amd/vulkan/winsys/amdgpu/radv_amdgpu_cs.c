@@ -665,6 +665,7 @@ static int radv_amdgpu_create_bo_list(struct radv_amdgpu_winsys *ws,
 			assert(num < ws->num_buffers);
 			handles[num].bo_handle = bo->bo_handle;
 			handles[num].bo_priority = bo->priority;
+			num++;
 		}
 
 		r = amdgpu_bo_list_create_raw(ws->dev, ws->num_buffers,

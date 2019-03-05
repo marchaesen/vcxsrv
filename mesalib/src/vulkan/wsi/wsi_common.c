@@ -22,7 +22,7 @@
  */
 
 #include "wsi_common_private.h"
-#include "drm_fourcc.h"
+#include "drm-uapi/drm_fourcc.h"
 #include "util/macros.h"
 #include "vk_util.h"
 
@@ -57,6 +57,8 @@ wsi_device_init(struct wsi_device *wsi,
       .pNext = &wsi->pci_bus_info,
    };
    GetPhysicalDeviceProperties2(pdevice, &pdp2);
+
+   wsi->maxImageDimension2D = pdp2.properties.limits.maxImageDimension2D;
 
    GetPhysicalDeviceMemoryProperties(pdevice, &wsi->memory_props);
    GetPhysicalDeviceQueueFamilyProperties(pdevice, &wsi->queue_family_count, NULL);
@@ -734,7 +736,7 @@ wsi_common_get_surface_capabilities(struct wsi_device *wsi_device,
       .sType = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR,
    };
 
-   VkResult result = iface->get_capabilities2(surface, NULL, &caps2);
+   VkResult result = iface->get_capabilities2(surface, wsi_device, NULL, &caps2);
 
    if (result == VK_SUCCESS)
       *pSurfaceCapabilities = caps2.surfaceCapabilities;
@@ -750,7 +752,7 @@ wsi_common_get_surface_capabilities2(struct wsi_device *wsi_device,
    ICD_FROM_HANDLE(VkIcdSurfaceBase, surface, pSurfaceInfo->surface);
    struct wsi_interface *iface = wsi_device->wsi[surface->platform];
 
-   return iface->get_capabilities2(surface, pSurfaceInfo->pNext,
+   return iface->get_capabilities2(surface, wsi_device, pSurfaceInfo->pNext,
                                    pSurfaceCapabilities);
 }
 
@@ -777,7 +779,7 @@ wsi_common_get_surface_capabilities2ext(
       .pNext = &counters,
    };
 
-   VkResult result = iface->get_capabilities2(surface, NULL, &caps2);
+   VkResult result = iface->get_capabilities2(surface, wsi_device, NULL, &caps2);
 
    if (result == VK_SUCCESS) {
       VkSurfaceCapabilities2EXT *ext_caps = pSurfaceCapabilities;

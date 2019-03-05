@@ -185,6 +185,37 @@ _mesa_lookup_parameter_index(const struct gl_program_parameter_list *paramList,
    return -1;
 }
 
+static inline bool
+_mesa_gl_datatype_is_64bit(GLenum datatype)
+{
+   switch (datatype) {
+   case GL_DOUBLE:
+   case GL_DOUBLE_VEC2:
+   case GL_DOUBLE_VEC3:
+   case GL_DOUBLE_VEC4:
+   case GL_DOUBLE_MAT2:
+   case GL_DOUBLE_MAT2x3:
+   case GL_DOUBLE_MAT2x4:
+   case GL_DOUBLE_MAT3:
+   case GL_DOUBLE_MAT3x2:
+   case GL_DOUBLE_MAT3x4:
+   case GL_DOUBLE_MAT4:
+   case GL_DOUBLE_MAT4x2:
+   case GL_DOUBLE_MAT4x3:
+   case GL_INT64_ARB:
+   case GL_INT64_VEC2_ARB:
+   case GL_INT64_VEC3_ARB:
+   case GL_INT64_VEC4_ARB:
+   case GL_UNSIGNED_INT64_ARB:
+   case GL_UNSIGNED_INT64_VEC2_ARB:
+   case GL_UNSIGNED_INT64_VEC3_ARB:
+   case GL_UNSIGNED_INT64_VEC4_ARB:
+      return true;
+   default:
+      return false;
+   }
+}
+
 #ifdef __cplusplus
 }
 #endif

@@ -338,6 +338,9 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_DEST_SURFACE_SRGB_CONTROL:
       return 1;
 
+   case PIPE_CAP_MAX_VARYINGS:
+      return 8;
+
    default:
       unreachable("bad PIPE_CAP_*");
    }

@@ -104,11 +104,11 @@ SOFTWARE.
  * When adding new keysyms to this file, do not forget to also update the
  * following as needed:
  *
- *   - the mappings in src/KeyBind.c in the repo
- *     git://anongit.freedesktop.org/xorg/lib/libX11.git
+ *   - the mappings in src/KeyBind.c in the libX11 repo
+ *     https://gitlab.freedesktop.org/xorg/lib/libx11
  *
- *   - the protocol specification in specs/keysyms.xml
- *     in the repo git://anongit.freedesktop.org/xorg/proto/x11proto.git
+ *   - the protocol specification in specs/keysyms.xml in this repo
+ *     https://gitlab.freedesktop.org/xorg/proto/xorgproto
  *
  */
 

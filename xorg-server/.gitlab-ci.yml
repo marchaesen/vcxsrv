@@ -13,9 +13,9 @@
 # container registry, so that the image from the main repository's registry
 # will be used there as well.
 variables:
-    IMAGE_TAG: "debian-testing-20181217"
+    IMAGE_TAG: "debian-testing-20190219"
     IMAGE_LOCAL: "$CI_REGISTRY_IMAGE:$IMAGE_TAG"
-    IMAGE_MAIN: "registry.freedesktop.org/xorg/$CI_PROJECT_NAME:$IMAGE_TAG"
+    IMAGE_MAIN: "registry.freedesktop.org/xorg/xserver:$IMAGE_TAG"
 
 stages:
     - docker-image
@@ -23,6 +23,10 @@ stages:
 
 debian-testing:
     stage: docker-image
+    only:
+        changes:
+            - .gitlab-ci.yml
+            - .gitlab-ci/Dockerfile
     image:
         name: gcr.io/kaniko-project/executor:debug
         entrypoint: [""]
@@ -48,17 +52,47 @@ debian-testing:
           set -e
         - /kaniko/executor --context $CI_PROJECT_DIR/.gitlab-ci --destination $IMAGE_LOCAL
 
-build-and-test:
+.common-build-and-test:
     stage: build-and-test
     image: $IMAGE_LOCAL
     artifacts:
         when: on_failure
         paths:
             - build/test/piglit-results/
+    cache:
+        paths:
+            - ccache/
     variables:
         LC_ALL: C.UTF-8
         PIGLIT_DIR: /root/piglit
         XTEST_DIR: /root/xts
+    before_script:
+        - export CCACHE_BASEDIR="$PWD"
+        - export CCACHE_DIR="$PWD/ccache"
+        - export CCACHE_COMPILERCHECK=content
+        - export PATH="/usr/lib/ccache:$PATH"
+        - ccache --zero-stats
+        - ccache --show-stats
+    after_script:
+        - CCACHE_DIR="$PWD/ccache" ccache --show-stats
+
+autotools-build-and-test:
+    extends: .common-build-and-test
+    script:
+        - mkdir build/
+        - cd build/
+        - |
+          ../autogen.sh --prefix=/usr
+          make -j$(nproc) install
+          set +e
+          set -x
+          make -j$(nproc) check
+          status=$?
+          cat test/piglit-results/xvfb/long-summary || :
+          exit $status
+
+meson-build-and-test:
+    extends: .common-build-and-test
     script:
         - meson -Dprefix=/usr build/
         - |

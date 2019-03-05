@@ -36,7 +36,7 @@
 #include <fcntl.h>
 #include <poll.h>
 #include <xf86drm.h>
-#include <drm_fourcc.h>
+#include "drm-uapi/drm_fourcc.h"
 #include "util/hash_table.h"
 
 #include "vk_util.h"
@@ -451,6 +451,7 @@ x11_surface_get_support(VkIcdSurfaceBase *icd_surface,
 
 static VkResult
 x11_surface_get_capabilities(VkIcdSurfaceBase *icd_surface,
+                             struct wsi_device *wsi_device,
                              VkSurfaceCapabilitiesKHR *caps)
 {
    xcb_connection_t *conn = x11_surface_get_connection(icd_surface);
@@ -484,8 +485,10 @@ x11_surface_get_capabilities(VkIcdSurfaceBase *icd_surface,
        */
       caps->currentExtent = (VkExtent2D) { -1, -1 };
       caps->minImageExtent = (VkExtent2D) { 1, 1 };
-      /* This is the maximum supported size on Intel */
-      caps->maxImageExtent = (VkExtent2D) { 1 << 14, 1 << 14 };
+      caps->maxImageExtent = (VkExtent2D) {
+         wsi_device->maxImageDimension2D,
+         wsi_device->maxImageDimension2D,
+      };
    }
    free(err);
    free(geom);
@@ -523,12 +526,13 @@ x11_surface_get_capabilities(VkIcdSurfaceBase *icd_surface,
 
 static VkResult
 x11_surface_get_capabilities2(VkIcdSurfaceBase *icd_surface,
+                              struct wsi_device *wsi_device,
                               const void *info_next,
                               VkSurfaceCapabilities2KHR *caps)
 {
    assert(caps->sType == VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR);
 
-   return x11_surface_get_capabilities(icd_surface, &caps->surfaceCapabilities);
+   return x11_surface_get_capabilities(icd_surface, wsi_device, &caps->surfaceCapabilities);
 }
 
 static VkResult

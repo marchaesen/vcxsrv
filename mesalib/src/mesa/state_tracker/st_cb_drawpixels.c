@@ -118,16 +118,21 @@ sample_via_nir(nir_builder *b, nir_variable *texcoord,
    nir_variable *var =
       nir_variable_create(b->shader, nir_var_uniform, sampler2D, name);
    var->data.binding = sampler;
+   var->data.explicit_binding = true;
 
-   nir_tex_instr *tex = nir_tex_instr_create(b->shader, 1);
+   nir_deref_instr *deref = nir_build_deref_var(b, var);
+
+   nir_tex_instr *tex = nir_tex_instr_create(b->shader, 3);
    tex->op = nir_texop_tex;
    tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
    tex->coord_components = 2;
-   tex->sampler_index = sampler;
-   tex->texture_index = sampler;
    tex->dest_type = nir_type_float;
-   tex->src[0].src_type = nir_tex_src_coord;
-   tex->src[0].src =
+   tex->src[0].src_type = nir_tex_src_texture_deref;
+   tex->src[0].src = nir_src_for_ssa(&deref->dest.ssa);
+   tex->src[1].src_type = nir_tex_src_sampler_deref;
+   tex->src[1].src = nir_src_for_ssa(&deref->dest.ssa);
+   tex->src[2].src_type = nir_tex_src_coord;
+   tex->src[2].src =
       nir_src_for_ssa(nir_channels(b, nir_load_var(b, texcoord),
                                    (1 << tex->coord_components) - 1));
 

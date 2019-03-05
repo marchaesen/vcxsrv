@@ -228,7 +228,7 @@ ir3_shader_get_variant(struct ir3_shader *shader, struct ir3_shader_key *key,
 	struct ir3_shader_variant *v =
 			shader_variant(shader, key, created);
 
-	if (binning_pass) {
+	if (v && binning_pass) {
 		if (!v->binning)
 			v->binning = create_variant(shader, key, true);
 		return v->binning;

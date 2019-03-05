@@ -39,9 +39,10 @@
  */
 
 static bool
-cse_block(nir_block *block, struct set *instr_set)
+cse_block(nir_block *block, struct set *dominance_set)
 {
    bool progress = false;
+   struct set *instr_set = _mesa_set_clone(dominance_set, NULL);
 
    nir_foreach_instr_safe(instr, block) {
       if (nir_instr_set_add_or_rewrite(instr_set, instr)) {
@@ -55,8 +56,7 @@ cse_block(nir_block *block, struct set *instr_set)
       progress |= cse_block(child, instr_set);
    }
 
-   nir_foreach_instr(instr, block)
-     nir_instr_set_remove(instr_set, instr);
+   _mesa_set_destroy(instr_set, NULL);
 
    return progress;
 }

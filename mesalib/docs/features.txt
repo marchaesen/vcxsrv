@@ -204,7 +204,7 @@ GL 4.4, GLSL 4.40 -- all DONE: i965/gen8+, nvc0, r600, radeonsi
   - specified transform/feedback layout                 DONE
   - input/output block locations                        DONE
   GL_ARB_multi_bind                                     DONE (all drivers)
-  GL_ARB_query_buffer_object                            DONE (i965/hsw+)
+  GL_ARB_query_buffer_object                            DONE (i965/hsw+, virgl)
   GL_ARB_texture_mirror_clamp_to_edge                   DONE (i965, nv50, llvmpipe, softpipe, swr, virgl)
   GL_ARB_texture_stencil8                               DONE (freedreno, i965/hsw+, nv50, llvmpipe, softpipe, swr, virgl)
   GL_ARB_vertex_type_10f_11f_11f_rev                    DONE (i965, nv50, llvmpipe, softpipe, swr, virgl)

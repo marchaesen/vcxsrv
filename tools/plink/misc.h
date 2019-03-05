@@ -95,7 +95,7 @@ int base64_decode_atom(const char *atom, unsigned char *out);
 struct bufchain_granule;
 struct bufchain_tag {
     struct bufchain_granule *head, *tail;
-    int buffersize;		       /* current amount of buffered data */
+    size_t buffersize;           /* current amount of buffered data */
 
     void (*queue_idempotent_callback)(IdempotentCallback *ic);
     IdempotentCallback *ic;
@@ -103,14 +103,14 @@ struct bufchain_tag {
 
 void bufchain_init(bufchain *ch);
 void bufchain_clear(bufchain *ch);
-int bufchain_size(bufchain *ch);
-void bufchain_add(bufchain *ch, const void *data, int len);
-void bufchain_prefix(bufchain *ch, void **data, int *len);
-void bufchain_consume(bufchain *ch, int len);
-void bufchain_fetch(bufchain *ch, void *data, int len);
-void bufchain_fetch_consume(bufchain *ch, void *data, int len);
-bool bufchain_try_fetch_consume(bufchain *ch, void *data, int len);
-int bufchain_fetch_consume_up_to(bufchain *ch, void *data, int len);
+size_t bufchain_size(bufchain *ch);
+void bufchain_add(bufchain *ch, const void *data, size_t len);
+ptrlen bufchain_prefix(bufchain *ch);
+void bufchain_consume(bufchain *ch, size_t len);
+void bufchain_fetch(bufchain *ch, void *data, size_t len);
+void bufchain_fetch_consume(bufchain *ch, void *data, size_t len);
+bool bufchain_try_fetch_consume(bufchain *ch, void *data, size_t len);
+size_t bufchain_fetch_consume_up_to(bufchain *ch, void *data, size_t len);
 void bufchain_set_callback_inner(
     bufchain *ch, IdempotentCallback *ic,
     void (*queue_idempotent_callback)(IdempotentCallback *ic));
@@ -125,7 +125,7 @@ static inline void bufchain_set_callback(bufchain *ch, IdempotentCallback *ic)
     bufchain_set_callback_inner(ch, ic, queue_idempotent_callback);
 }
 
-void sanitise_term_data(bufchain *out, const void *vdata, int len);
+void sanitise_term_data(bufchain *out, const void *vdata, size_t len);
 
 bool validate_manual_hostkey(char *key);
 
@@ -170,6 +170,8 @@ int string_length_for_printf(size_t);
  * string. */
 #define PTRLEN_LITERAL(stringlit) \
     TYPECHECK("" stringlit "", make_ptrlen(stringlit, sizeof(stringlit)-1))
+/* Make a ptrlen out of a constant byte array. */
+#define PTRLEN_FROM_CONST_BYTES(a) make_ptrlen(a, sizeof(a))
 
 /* Wipe sensitive data out of memory that's about to be freed. Simpler
  * than memset because we don't need the fill char parameter; also
@@ -347,6 +349,24 @@ static inline void PUT_16BIT_MSB_FIRST(void *vp, uint16_t value)
 static inline const char *NULLTOEMPTY(const char *s)
 {
     return s ? s : "";
+}
+
+/* StripCtrlChars, defined in stripctrl.c: an adapter you can put on
+ * the front of one BinarySink and which functions as one in turn.
+ * Interprets its input as a stream of multibyte characters in the
+ * system locale, and removes any that are not either printable
+ * characters or newlines. */
+struct StripCtrlChars {
+    BinarySink_IMPLEMENTATION;
+    /* and this is contained in a larger structure */
+};
+StripCtrlChars *stripctrl_new(
+    BinarySink *bs_out, bool permit_cr, wchar_t substitution);
+void stripctrl_free(StripCtrlChars *sanpub);
+char *stripctrl_string_ptrlen(ptrlen str);
+static inline char *stripctrl_string(const char *str)
+{
+    return stripctrl_string_ptrlen(ptrlen_from_asciz(str));
 }
 
 #endif

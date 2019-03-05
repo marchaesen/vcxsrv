@@ -200,8 +200,7 @@ match_value(const nir_search_value *value, nir_alu_instr *instr, unsigned src,
     * replacing so those reads will happen after the original reads and may
     * not be valid if they're register reads.
     */
-   if (!instr->src[src].src.is_ssa)
-      return false;
+   assert(instr->src[src].src.is_ssa);
 
    /* If the source is an explicitly sized source, then we need to reset
     * both the number of components and the swizzle.

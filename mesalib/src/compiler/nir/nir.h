@@ -238,14 +238,6 @@ typedef struct nir_variable {
       unsigned interpolation:2;
 
       /**
-       * \name ARB_fragment_coord_conventions
-       * @{
-       */
-      unsigned origin_upper_left:1;
-      unsigned pixel_center_integer:1;
-      /*@}*/
-
-      /**
        * If non-zero, then this variable may be packed along with other variables
        * into a single varying slot, so this offset should be applied when
        * accessing components.  For example, an offset of 1 means that the x
@@ -1904,11 +1896,16 @@ typedef struct nir_if {
 typedef struct {
    nir_if *nif;
 
+   /** Instruction that generates nif::condition. */
    nir_instr *conditional_instr;
 
+   /** Block within ::nif that has the break instruction. */
    nir_block *break_block;
+
+   /** Last block for the then- or else-path that does not contain the break. */
    nir_block *continue_from_block;
 
+   /** True when ::break_block is in the else-path of ::nif. */
    bool continue_from_then;
 
    struct list_head loop_terminator_link;
@@ -2150,6 +2147,9 @@ typedef struct nir_shader_compiler_options {
 
    /** enables rules to lower idiv by power-of-two: */
    bool lower_idiv;
+
+   /** enables rules to lower isign to imin+imax */
+   bool lower_isign;
 
    /* Does the native fdot instruction replicate its result for four
     * components?  If so, then opt_algebraic_late will turn all fdotN
@@ -2825,7 +2825,7 @@ should_print_nir(void)
 static inline void nir_validate_shader(nir_shader *shader, const char *when) { (void) shader; (void)when; }
 static inline void nir_metadata_set_validation_flag(nir_shader *shader) { (void) shader; }
 static inline void nir_metadata_check_validation_flag(nir_shader *shader) { (void) shader; }
-static inline bool should_skip_nir(const char *pass_name) { return false; }
+static inline bool should_skip_nir(UNUSED const char *pass_name) { return false; }
 static inline bool should_clone_nir(void) { return false; }
 static inline bool should_serialize_deserialize_nir(void) { return false; }
 static inline bool should_print_nir(void) { return false; }
@@ -3089,6 +3089,9 @@ typedef struct nir_lower_tex_options {
     * while 4 and 5 represent 0 and 1 respectively.
     */
    uint8_t swizzles[32][4];
+
+   /* Can be used to scale sampled values in range required by the format. */
+   float scale_factors[32];
 
    /**
     * Bitmap of textures that need srgb to linear conversion.  If

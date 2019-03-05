@@ -29,7 +29,7 @@ class radv_llvm_per_thread_info {
 public:
 	radv_llvm_per_thread_info(enum radeon_family arg_family,
 				enum ac_target_machine_options arg_tm_options)
-		: family(arg_family), tm_options(arg_tm_options) {}
+		: family(arg_family), tm_options(arg_tm_options), passes(NULL) {}
 
 	~radv_llvm_per_thread_info()
 	{

@@ -67,10 +67,6 @@
 #define DRI_CONF_OPT_BEGIN_B(name,def) \
 "<option name=\""#name"\" type=\"bool\" default="#def">\n"
 
-/** \brief Begin an option definition with quoted default value */
-#define DRI_CONF_OPT_BEGIN_Q(name,type,def) \
-"<option name=\""#name"\" type=\""#type"\" default="#def">\n"
-
 /** \brief Begin an option definition with restrictions on valid values */
 #define DRI_CONF_OPT_BEGIN_V(name,type,def,valid) \
 "<option name=\""#name"\" type=\""#type"\" default=\""#def"\" valid=\""valid"\">\n"

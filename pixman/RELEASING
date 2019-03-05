@@ -10,8 +10,8 @@ Here are the steps to follow to create a new pixman release:
 
 	git log master...origin		(no output; note: *3* dots)
 
-2) Increment pixman_(major|minor|micro) in configure.ac according to
-   the directions in that file.
+2) Increment pixman_(major|minor|micro) in configure.ac and meson.build
+   according to the directions in those files.
 
 3) Make sure that new version works, including
 

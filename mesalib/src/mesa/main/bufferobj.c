@@ -346,7 +346,8 @@ buffer_object_subdata_range_good(struct gl_context *ctx,
 
 /**
  * Test the format and type parameters and set the GL error code for
- * \c glClearBufferData and \c glClearBufferSubData.
+ * \c glClearBufferData, \c glClearNamedBufferData, \c glClearBufferSubData
+ * and \c glClearNamedBufferSubData.
  *
  * \param ctx             GL context.
  * \param internalformat  Format to which the data is to be converted.
@@ -356,7 +357,8 @@ buffer_object_subdata_range_good(struct gl_context *ctx,
  * \return   If internalformat, format and type are legal the mesa_format
  *           corresponding to internalformat, otherwise MESA_FORMAT_NONE.
  *
- * \sa glClearBufferData and glClearBufferSubData
+ * \sa glClearBufferData, glClearNamedBufferData, glClearBufferSubData and
+ *     glClearNamedBufferSubData.
  */
 static mesa_format
 validate_clear_buffer_format(struct gl_context *ctx,
@@ -386,14 +388,14 @@ validate_clear_buffer_format(struct gl_context *ctx,
    }
 
    if (!_mesa_is_color_format(format)) {
-      _mesa_error(ctx, GL_INVALID_ENUM,
+      _mesa_error(ctx, GL_INVALID_VALUE,
                   "%s(format is not a color format)", caller);
       return MESA_FORMAT_NONE;
    }
 
    errorFormatType = _mesa_error_check_format_and_type(ctx, format, type);
    if (errorFormatType != GL_NO_ERROR) {
-      _mesa_error(ctx, GL_INVALID_ENUM,
+      _mesa_error(ctx, GL_INVALID_VALUE,
                   "%s(invalid format or type)", caller);
       return MESA_FORMAT_NONE;
    }

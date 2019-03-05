@@ -12,7 +12,7 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
     chmod +x /usr/sbin/policy-rc.d && \
     echo 'deb-src https://deb.debian.org/debian testing main' >/etc/apt/sources.list.d/deb-src.list && \
     apt-get update && \
-    apt-get install -y meson git ca-certificates cmake automake autoconf libtool libwaffle-dev \
+    apt-get install -y meson git ca-certificates ccache cmake automake autoconf libtool libwaffle-dev \
         libxkbcommon-dev python3-mako python3-numpy python3-six x11-utils x11-xserver-utils xauth xvfb && \
     apt-get build-dep -y xorg-server && \
     \
@@ -29,7 +29,7 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
     echo '[xts]' > piglit/piglit.conf && echo 'path=/root/xts' >> piglit/piglit.conf && \
     find -name \*.a -o -name \*.o | xargs rm && \
     \
-    apt-get purge -y git cmake automake autoconf libtool libwaffle-dev libxkbcommon-dev \
+    apt-get purge -y git cmake libwaffle-dev libxkbcommon-dev \
         x11-utils x11-xserver-utils xauth xvfb && \
     apt-get autoremove -y --purge && apt-get clean && \
     rm -f /var/lib/apt/lists/deb.debian.org_debian_dists_testing_*

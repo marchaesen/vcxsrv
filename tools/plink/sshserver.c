@@ -76,6 +76,7 @@ void share_setup_x11_channel(ssh_sharing_connstate *cs, share_channel *chan,
 Channel *agentf_new(SshChannel *c) { return NULL; }
 bool agent_exists(void) { return false; }
 void ssh_got_exitcode(Ssh *ssh, int exitcode) {}
+void ssh_check_frozen(Ssh *ssh) {}
 
 mainchan *mainchan_new(
     PacketProtocolLayer *ppl, ConnectionLayer *cl, Conf *conf,
@@ -133,7 +134,8 @@ static void server_closing(Plug *plug, const char *error_msg, int error_code,
     }
 }
 
-static void server_receive(Plug *plug, int urgent, char *data, int len)
+static void server_receive(
+    Plug *plug, int urgent, const char *data, size_t len)
 {
     server *srv = container_of(plug, server, plug);
 
@@ -147,7 +149,7 @@ static void server_receive(Plug *plug, int urgent, char *data, int len)
         queue_idempotent_callback(&srv->bpp->ic_in_raw);
 }
 
-static void server_sent(Plug *plug, int bufsize)
+static void server_sent(Plug *plug, size_t bufsize)
 {
 #ifdef FIXME
     server *srv = container_of(plug, server, plug);
@@ -199,6 +201,13 @@ void ssh_throttle_conn(Ssh *ssh, int adjust)
          */
         queue_idempotent_callback(&srv->bpp->ic_in_raw);
     }
+}
+
+void ssh_conn_processed_data(Ssh *ssh)
+{
+    /* FIXME: we could add the same check_frozen_state system as we
+     * have in ssh.c, but because that was originally added to work
+     * around a peculiarity of the GUI event loop, I haven't yet. */
 }
 
 static const PlugVtable ssh_server_plugvt = {
@@ -325,17 +334,16 @@ static void server_bpp_output_raw_data_callback(void *vctx)
         return;
 
     while (bufchain_size(&srv->out_raw) > 0) {
-        void *data;
-        int len, backlog;
+        size_t backlog;
 
-        bufchain_prefix(&srv->out_raw, &data, &len);
+        ptrlen data = bufchain_prefix(&srv->out_raw);
 
         if (srv->logctx)
-            log_packet(srv->logctx, PKT_OUTGOING, -1, NULL, data, len,
+            log_packet(srv->logctx, PKT_OUTGOING, -1, NULL, data.ptr, data.len,
                        0, NULL, NULL, 0, NULL);
-        backlog = sk_write(srv->socket, data, len);
+        backlog = sk_write(srv->socket, data.ptr, data.len);
 
-        bufchain_consume(&srv->out_raw, len);
+        bufchain_consume(&srv->out_raw, data.len);
 
         if (backlog > SSH_MAX_BACKLOG) {
 #ifdef FIXME

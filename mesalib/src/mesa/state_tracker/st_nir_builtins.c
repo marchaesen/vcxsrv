@@ -61,6 +61,8 @@ st_nir_finish_builtin_shader(struct st_context *st,
 
    st_nir_assign_varying_locations(st, nir);
 
+   st_nir_lower_samplers(screen, nir, NULL, NULL);
+
    if (st->ctx->Const.PackedDriverUniformStorage) {
       NIR_PASS_V(nir, nir_lower_io, nir_var_uniform, st_glsl_type_dword_size,
                  (nir_lower_io_options)0);

@@ -1725,8 +1725,6 @@ ir_variable::ir_variable(const struct glsl_type *type, const char *name,
    this->data.warn_extension_index = 0;
    this->constant_value = NULL;
    this->constant_initializer = NULL;
-   this->data.origin_upper_left = false;
-   this->data.pixel_center_integer = false;
    this->data.depth_layout = ir_depth_layout_none;
    this->data.used = false;
    this->data.always_active_io = false;

@@ -1028,7 +1028,7 @@ insert_scheduled_instruction(struct v3d_compile *c,
 static struct qinst *
 vir_nop()
 {
-        struct qreg undef = { QFILE_NULL, 0 };
+        struct qreg undef = vir_nop_reg();
         struct qinst *qinst = vir_add_inst(V3D_QPU_A_NOP, undef, undef, undef);
 
         return qinst;

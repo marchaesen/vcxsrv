@@ -496,17 +496,15 @@ st_setup_current(struct st_context *st,
        * times (thousands of times), so a better placement is going to
        * perform better.
        */
-      u_upload_data(st->can_bind_const_buffer_as_vertex ?
-                    st->pipe->const_uploader :
-                    st->pipe->stream_uploader,
+      struct u_upload_mgr *uploader = st->can_bind_const_buffer_as_vertex ?
+                                      st->pipe->const_uploader :
+                                      st->pipe->stream_uploader;
+      u_upload_data(uploader,
                     0, cursor - data, max_alignment, data,
                     &vbuffer[bufidx].buffer_offset,
                     &vbuffer[bufidx].buffer.resource);
-
-      if (!ctx->Const.AllowMappedBuffersDuringExecution &&
-          !st->can_bind_const_buffer_as_vertex) {
-         u_upload_unmap(st->pipe->stream_uploader);
-      }
+      /* Always unmap. The uploader might use explicit flushes. */
+      u_upload_unmap(uploader);
    }
 }
 

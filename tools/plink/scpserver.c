@@ -481,7 +481,7 @@ static void scp_source_push_name(
 }
 
 static void scp_source_free(ScpServer *s);
-static int scp_source_send(ScpServer *s, const void *data, size_t length);
+static size_t scp_source_send(ScpServer *s, const void *data, size_t length);
 static void scp_source_eof(ScpServer *s);
 static void scp_source_throttle(ScpServer *s, bool throttled);
 
@@ -859,7 +859,7 @@ static void scp_source_process_stack(ScpSource *scp)
     scp_requeue(scp);
 }
 
-static int scp_source_send(ScpServer *s, const void *vdata, size_t length)
+static size_t scp_source_send(ScpServer *s, const void *vdata, size_t length)
 {
     ScpSource *scp = container_of(s, ScpSource, scpserver);
     const char *data = (const char *)vdata;
@@ -994,7 +994,7 @@ static void scp_sink_pop(ScpSink *scp)
 }
 
 static void scp_sink_free(ScpServer *s);
-static int scp_sink_send(ScpServer *s, const void *data, size_t length);
+static size_t scp_sink_send(ScpServer *s, const void *data, size_t length);
 static void scp_sink_eof(ScpServer *s);
 static void scp_sink_throttle(ScpServer *s, bool throttled) {}
 
@@ -1077,17 +1077,13 @@ static void scp_sink_coroutine(ScpSink *scp)
             if (scp->input_eof)
                 goto done;
 
-            void *vdata;
-            int len;
-            const char *cdata, *newline;
-
-            bufchain_prefix(&scp->data, &vdata, &len);
-            cdata = vdata;
-            newline = memchr(cdata, '\012', len);
+            ptrlen data = bufchain_prefix(&scp->data);
+            const char *cdata = data.ptr;
+            const char *newline = memchr(cdata, '\012', data.len);
             if (newline)
-                len = (int)(newline+1 - cdata);
-            put_data(scp->command, cdata, len);
-            bufchain_consume(&scp->data, len);
+                data.len = (int)(newline+1 - cdata);
+            put_data(scp->command, cdata, data.len);
+            bufchain_consume(&scp->data, data.len);
 
             if (newline)
                 break;
@@ -1179,8 +1175,7 @@ static void scp_sink_coroutine(ScpSink *scp)
                 sshfwd_write(scp->sc, "\0", 1);
                 scp->file_offset = 0;
                 while (scp->file_offset < scp->file_size) {
-                    void *vdata;
-                    int len;
+                    ptrlen data;
                     uint64_t this_len, remaining;
 
                     crMaybeWaitUntilV(
@@ -1191,14 +1186,14 @@ static void scp_sink_coroutine(ScpSink *scp)
                         goto done;
                     }
 
-                    bufchain_prefix(&scp->data, &vdata, &len);
-                    this_len = len;
+                    data = bufchain_prefix(&scp->data);
+                    this_len = data.len;
                     remaining = scp->file_size - scp->file_offset;
                     if (this_len > remaining)
                         this_len = remaining;
                     sftpsrv_write(scp->sf, &scp->reply.srb,
                                   scp->reply.handle, scp->file_offset,
-                                  make_ptrlen(vdata, this_len));
+                                  make_ptrlen(data.ptr, this_len));
                     if (scp->reply.err) {
                         scp->errmsg = dupprintf(
                             "'%.*s': unable to write to file: %s",
@@ -1258,7 +1253,7 @@ static void scp_sink_coroutine(ScpSink *scp)
     crFinishV;
 }
 
-static int scp_sink_send(ScpServer *s, const void *data, size_t length)
+static size_t scp_sink_send(ScpServer *s, const void *data, size_t length)
 {
     ScpSink *scp = container_of(s, ScpSink, scpserver);
 
@@ -1292,7 +1287,7 @@ struct ScpError {
 
 static void scp_error_free(ScpServer *s);
 
-static int scp_error_send(ScpServer *s, const void *data, size_t length)
+static size_t scp_error_send(ScpServer *s, const void *data, size_t length)
 { return 0; }
 static void scp_error_eof(ScpServer *s) {}
 static void scp_error_throttle(ScpServer *s, bool throttled) {}

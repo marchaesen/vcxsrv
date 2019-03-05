@@ -168,6 +168,11 @@ glsl_to_nir(const struct gl_shader_program *shader_prog,
       shader->info.has_transform_feedback_varyings |=
          shader_prog->last_vert_prog->sh.LinkedTransformFeedback->NumVarying > 0;
 
+   if (shader->info.stage == MESA_SHADER_FRAGMENT) {
+      shader->info.fs.pixel_center_integer = sh->Program->info.fs.pixel_center_integer;
+      shader->info.fs.origin_upper_left = sh->Program->info.fs.origin_upper_left;
+   }
+
    return shader;
 }
 
@@ -180,6 +185,7 @@ nir_visitor::nir_visitor(nir_shader *shader)
    this->overload_table = _mesa_pointer_hash_table_create(NULL);
    this->result = NULL;
    this->impl = NULL;
+   this->deref = NULL;
    memset(&this->b, 0, sizeof(this->b));
 }
 
@@ -397,8 +403,6 @@ nir_visitor::visit(ir_variable *ir)
    }
 
    var->data.interpolation = ir->data.interpolation;
-   var->data.origin_upper_left = ir->data.origin_upper_left;
-   var->data.pixel_center_integer = ir->data.pixel_center_integer;
    var->data.location_frac = ir->data.location_frac;
 
    switch (ir->data.depth_layout) {

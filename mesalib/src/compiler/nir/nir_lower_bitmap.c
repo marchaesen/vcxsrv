@@ -94,16 +94,22 @@ lower_bitmap(nir_shader *shader, nir_builder *b,
    nir_variable *tex_var =
       nir_variable_create(shader, nir_var_uniform, sampler2D, "bitmap_tex");
    tex_var->data.binding = options->sampler;
+   tex_var->data.explicit_binding = true;
+   tex_var->data.how_declared = nir_var_hidden;
 
-   tex = nir_tex_instr_create(shader, 1);
+   nir_deref_instr *tex_deref = nir_build_deref_var(b, tex_var);
+
+   tex = nir_tex_instr_create(shader, 3);
    tex->op = nir_texop_tex;
    tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
    tex->coord_components = 2;
-   tex->sampler_index = options->sampler;
-   tex->texture_index = options->sampler;
    tex->dest_type = nir_type_float;
-   tex->src[0].src_type = nir_tex_src_coord;
-   tex->src[0].src =
+   tex->src[0].src_type = nir_tex_src_texture_deref;
+   tex->src[0].src = nir_src_for_ssa(&tex_deref->dest.ssa);
+   tex->src[1].src_type = nir_tex_src_sampler_deref;
+   tex->src[1].src = nir_src_for_ssa(&tex_deref->dest.ssa);
+   tex->src[2].src_type = nir_tex_src_coord;
+   tex->src[2].src =
       nir_src_for_ssa(nir_channels(b, texcoord,
                                    (1 << tex->coord_components) - 1));
 

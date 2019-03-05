@@ -32,6 +32,8 @@ struct nir_variable;
 
 #define AC_LLVM_MAX_OUTPUTS (VARYING_SLOT_VAR31 + 1)
 
+#define AC_MAX_INLINE_PUSH_CONSTS 8
+
 enum ac_descriptor_type {
 	AC_DESC_IMAGE,
 	AC_DESC_FMASK,
@@ -66,6 +68,9 @@ struct ac_shader_abi {
 
 	/* Vulkan only */
 	LLVMValueRef push_constants;
+	LLVMValueRef inline_push_consts[AC_MAX_INLINE_PUSH_CONSTS];
+	unsigned num_inline_push_consts;
+	unsigned base_inline_push_consts;
 	LLVMValueRef view_index;
 
 	LLVMValueRef outputs[AC_LLVM_MAX_OUTPUTS * 4];

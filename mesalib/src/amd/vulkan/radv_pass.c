@@ -250,7 +250,6 @@ VkResult radv_CreateRenderPass(
 			p += desc->colorAttachmentCount;
 
 			for (uint32_t j = 0; j < desc->colorAttachmentCount; j++) {
-				uint32_t a = desc->pResolveAttachments[j].attachment;
 				subpass->resolve_attachments[j] = (struct radv_subpass_attachment) {
 					.attachment = desc->pResolveAttachments[j].attachment,
 					.layout = desc->pResolveAttachments[j].layout,
@@ -397,7 +396,6 @@ VkResult radv_CreateRenderPass2KHR(
 			p += desc->colorAttachmentCount;
 
 			for (uint32_t j = 0; j < desc->colorAttachmentCount; j++) {
-				uint32_t a = desc->pResolveAttachments[j].attachment;
 				subpass->resolve_attachments[j] = (struct radv_subpass_attachment) {
 					.attachment = desc->pResolveAttachments[j].attachment,
 					.layout = desc->pResolveAttachments[j].layout,

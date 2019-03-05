@@ -60,7 +60,7 @@ option(
   choices : [
     '', 'auto', 'kmsro', 'radeonsi', 'r300', 'r600', 'nouveau', 'freedreno',
     'swrast', 'v3d', 'vc4', 'etnaviv', 'tegra', 'i915', 'svga', 'virgl',
-    'swr', 'panfrost'
+    'swr', 'panfrost', 'iris'
   ],
   description : 'List of gallium drivers to build. If this is set to auto all drivers applicable to the target OS/architecture will be built'
 )
@@ -166,6 +166,12 @@ option(
   type : 'string',
   value : '',
   description : 'Location relative to prefix to put vulkan icds on install. Default: $datadir/vulkan/icd.d'
+)
+option(
+  'vulkan-overlay-layer',
+  type : 'boolean',
+  value : false,
+  description : 'Whether to build the vulkan overlay layer'
 )
 option(
   'shared-glapi',

@@ -115,6 +115,9 @@ typedef struct shader_info {
    /* Whether or not this shader ever uses textureGather() */
    bool uses_texture_gather;
 
+   /** Bitfield of which textures are used */
+   uint32_t textures_used;
+
    /** Bitfield of which textures are used by texelFetch() */
    uint32_t textures_used_by_txf;
 
@@ -192,7 +195,13 @@ typedef struct shader_info {
 
          bool post_depth_coverage;
 
+         /**
+          * \name ARB_fragment_coord_conventions
+          * @{
+          */
          bool pixel_center_integer;
+         bool origin_upper_left;
+         /*@}*/
 
          bool pixel_interlock_ordered;
          bool pixel_interlock_unordered;

@@ -44,6 +44,7 @@ if with_shared_glapi
   static_glapi_args += [
     '-DMAPI_MODE_BRIDGE',
     '-DMAPI_ABI_HEADER="@0@"'.format(glapi_mapi_tmp_h.full_path()),
+    gcc_lto_quirk,
   ]
 else
   static_glapi_args += '-DMAPI_MODE_UTIL'

@@ -595,6 +595,14 @@ static bool radv_is_filter_minmax_format_supported(VkFormat format)
 	}
 }
 
+bool
+radv_device_supports_etc(struct radv_physical_device *physical_device)
+{
+	return physical_device->rad_info.family == CHIP_VEGA10 ||
+	       physical_device->rad_info.family == CHIP_RAVEN ||
+	       physical_device->rad_info.family == CHIP_STONEY;
+}
+
 static void
 radv_physical_device_get_format_properties(struct radv_physical_device *physical_device,
 					   VkFormat format,
@@ -612,9 +620,7 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 	}
 
 	if (desc->layout == VK_FORMAT_LAYOUT_ETC &&
-	    physical_device->rad_info.family != CHIP_VEGA10 &&
-	    physical_device->rad_info.family != CHIP_RAVEN &&
-	    physical_device->rad_info.family != CHIP_STONEY) {
+	    !radv_device_supports_etc(physical_device)) {
 		out_properties->linearTilingFeatures = linear;
 		out_properties->optimalTilingFeatures = tiled;
 		out_properties->bufferFeatures = buffer;

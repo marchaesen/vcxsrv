@@ -223,8 +223,13 @@ void st_init_limits(struct pipe_screen *screen,
       pc->MaxUniformComponents = MIN2(pc->MaxUniformComponents,
                                       MAX_UNIFORMS * 4);
 
+      /* For ARB programs, prog_src_register::Index is a signed 13-bit number.
+       * This gives us a limit of 4096 values - but we may need to generate
+       * internal values in addition to what the source program uses.  So, we
+       * drop the limit one step lower, to 2048, to be safe.
+       */
       pc->MaxParameters =
-      pc->MaxNativeParameters = pc->MaxUniformComponents / 4;
+      pc->MaxNativeParameters = MIN2(pc->MaxUniformComponents / 4, 2048);
       pc->MaxInputComponents =
          screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_INPUTS) * 4;
       pc->MaxOutputComponents =
@@ -365,10 +370,7 @@ void st_init_limits(struct pipe_screen *screen,
    c->Program[MESA_SHADER_VERTEX].MaxAttribs =
       MIN2(c->Program[MESA_SHADER_VERTEX].MaxAttribs, 16);
 
-   /* PIPE_SHADER_CAP_MAX_INPUTS for the FS specifies the maximum number
-    * of inputs. It's always 2 colors + N generic inputs. */
-   c->MaxVarying = screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT,
-                                            PIPE_SHADER_CAP_MAX_INPUTS);
+   c->MaxVarying = screen->get_param(screen, PIPE_CAP_MAX_VARYINGS);
    c->MaxVarying = MIN2(c->MaxVarying, MAX_VARYING);
    c->MaxGeometryOutputVertices =
       screen->get_param(screen, PIPE_CAP_MAX_GEOMETRY_OUTPUT_VERTICES);
@@ -818,6 +820,12 @@ void st_init_extensions(struct pipe_screen *screen,
           PIPE_FORMAT_R16G16B16A16_SNORM } },
    };
 
+   /* Required: render target, sampler, and blending */
+   static const struct st_extension_format_mapping rt_blendable[] = {
+      { { o(EXT_float_blend) },
+        { PIPE_FORMAT_R32G32B32A32_FLOAT } },
+   };
+
    /* Required: depth stencil and sampler support */
    static const struct st_extension_format_mapping depthstencil_mapping[] = {
       { { o(ARB_depth_buffer_float) },
@@ -1023,6 +1031,10 @@ void st_init_extensions(struct pipe_screen *screen,
    init_format_extensions(screen, extensions, rendertarget_mapping,
                           ARRAY_SIZE(rendertarget_mapping), PIPE_TEXTURE_2D,
                           PIPE_BIND_RENDER_TARGET | PIPE_BIND_SAMPLER_VIEW);
+   init_format_extensions(screen, extensions, rt_blendable,
+                          ARRAY_SIZE(rt_blendable), PIPE_TEXTURE_2D,
+                          PIPE_BIND_RENDER_TARGET | PIPE_BIND_SAMPLER_VIEW |
+                          PIPE_BIND_BLENDABLE);
    init_format_extensions(screen, extensions, depthstencil_mapping,
                           ARRAY_SIZE(depthstencil_mapping), PIPE_TEXTURE_2D,
                           PIPE_BIND_DEPTH_STENCIL | PIPE_BIND_SAMPLER_VIEW);

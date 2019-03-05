@@ -1,6 +1,6 @@
 This directory contains a copy of the installed kernel headers
-required by the anv & i965 drivers to communicate with the kernel.
-Whenever either of those driver needs new definitions for new kernel
+required by several drivers to communicate with the kernel.
+Whenever one of those driver needs new definitions for new kernel
 APIs, these files should be updated.
 
 These files in master should only be updated once the changes have landed

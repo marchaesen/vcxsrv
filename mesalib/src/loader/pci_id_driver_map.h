@@ -23,6 +23,14 @@ static const int i965_chip_ids[] = {
 #undef CHIPSET
 };
 
+static const int iris_chip_ids[] = {
+#define CHIPSET(chip, family, name) chip,
+#define IRIS 1
+#include "pci_ids/i965_pci_ids.h"
+#undef IRIS
+#undef CHIPSET
+};
+
 static const int r100_chip_ids[] = {
 #define CHIPSET(chip, name, family) chip,
 #include "pci_ids/radeon_pci_ids.h"
@@ -76,6 +84,7 @@ static const struct {
 } driver_map[] = {
    { 0x8086, "i915", i915_chip_ids, ARRAY_SIZE(i915_chip_ids) },
    { 0x8086, "i965", i965_chip_ids, ARRAY_SIZE(i965_chip_ids) },
+   { 0x8086, "iris", iris_chip_ids, ARRAY_SIZE(iris_chip_ids) },
    { 0x1002, "radeon", r100_chip_ids, ARRAY_SIZE(r100_chip_ids) },
    { 0x1002, "r200", r200_chip_ids, ARRAY_SIZE(r200_chip_ids) },
    { 0x1002, "r300", r300_chip_ids, ARRAY_SIZE(r300_chip_ids) },

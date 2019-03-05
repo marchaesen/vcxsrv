@@ -37,6 +37,9 @@ in this Software without prior written authorization from The Open Group.
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #endif
+#ifdef HAVE_MEMFD_CREATE
+#include <sys/mman.h>
+#endif
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -1217,6 +1220,15 @@ shm_tmpfile(void)
         "/tmp",
     };
     int	fd;
+
+#ifdef HAVE_MEMFD_CREATE
+    fd = memfd_create("xorg", MFD_CLOEXEC|MFD_ALLOW_SEALING);
+    if (fd != -1) {
+        fcntl(fd, F_ADD_SEALS, F_SEAL_SHRINK);
+        DebugF ("Using memfd_create\n");
+        return fd;
+    }
+#endif
 
 #ifdef O_TMPFILE
     for (int i = 0; i < ARRAY_SIZE(shmdirs); i++) {

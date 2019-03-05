@@ -24,7 +24,7 @@
 # BOARD_GPU_DRIVERS should be defined.  The valid values are
 #
 #   classic drivers: i915 i965
-#   gallium drivers: swrast freedreno i915g nouveau kmsro r300g r600g radeonsi vc4 virgl vmwgfx etnaviv
+#   gallium drivers: swrast freedreno i915g nouveau kmsro r300g r600g radeonsi vc4 virgl vmwgfx etnaviv iris
 #
 # The main target is libGLES_mesa.  For each classic driver enabled, a DRI
 # module will also be built.  DRI modules will be loaded by libGLES_mesa.
@@ -59,7 +59,8 @@ gallium_drivers := \
 	vmwgfx.HAVE_GALLIUM_VMWGFX \
 	vc4.HAVE_GALLIUM_VC4 \
 	virgl.HAVE_GALLIUM_VIRGL \
-	etnaviv.HAVE_GALLIUM_ETNAVIV
+	etnaviv.HAVE_GALLIUM_ETNAVIV \
+	iris.HAVE_GALLIUM_IRIS
 
 ifeq ($(BOARD_GPU_DRIVERS),all)
 MESA_BUILD_CLASSIC := $(filter HAVE_%, $(subst ., , $(classic_drivers)))

@@ -1352,6 +1352,10 @@ struct __DRIdri2ExtensionRec {
 #define __DRI_IMAGE_FOURCC_YVU422	0x36315659
 #define __DRI_IMAGE_FOURCC_YVU444	0x34325659
 
+#define __DRI_IMAGE_FOURCC_P010		0x30313050
+#define __DRI_IMAGE_FOURCC_P012		0x32313050
+#define __DRI_IMAGE_FOURCC_P016		0x36313050
+
 /**
  * Queryable on images created by createImageFromNames.
  *

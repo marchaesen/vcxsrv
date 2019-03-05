@@ -3670,8 +3670,6 @@ apply_layout_qualifier_to_variable(const struct ast_type_qualifier *qual,
          state->fs_redeclares_gl_fragcoord_with_no_layout_qualifiers;
    }
 
-   var->data.pixel_center_integer = qual->flags.q.pixel_center_integer;
-   var->data.origin_upper_left = qual->flags.q.origin_upper_left;
    if ((qual->flags.q.origin_upper_left || qual->flags.q.pixel_center_integer)
        && (strcmp(var->name, "gl_FragCoord") != 0)) {
       const char *const qual_string = (qual->flags.q.origin_upper_left)
@@ -4290,10 +4288,13 @@ get_variable_being_redeclared(ir_variable **var_ptr, YYLTYPE loc,
               && strcmp(var->name, "gl_FragCoord") == 0) {
       /* Allow redeclaration of gl_FragCoord for ARB_fcc layout
        * qualifiers.
+       *
+       * We don't really need to do anything here, just allow the
+       * redeclaration. Any error on the gl_FragCoord is handled on the ast
+       * level at apply_layout_qualifier_to_variable using the
+       * ast_type_qualifier and _mesa_glsl_parse_state, or later at
+       * linker.cpp.
        */
-      earlier->data.origin_upper_left = var->data.origin_upper_left;
-      earlier->data.pixel_center_integer = var->data.pixel_center_integer;
-
       /* According to section 4.3.7 of the GLSL 1.30 spec,
        * the following built-in varaibles can be redeclared with an
        * interpolation qualifier:
