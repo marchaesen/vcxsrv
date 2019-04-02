@@ -39,6 +39,14 @@ LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/include/vulkan \
 	$(MESA_TOP)/src/vulkan/util
 
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 27; echo $$?), 0)
+LOCAL_C_INCLUDES += \
+	frameworks/native/libs/nativebase/include \
+	frameworks/native/libs/nativewindow/include \
+	frameworks/native/libs/arect/include
+LOCAL_HEADER_LIBRARIES += libcutils_headers libsystem_headers
+endif
+
 LOCAL_GENERATED_SOURCES := $(addprefix $(intermediates)/, \
 	$(VULKAN_UTIL_GENERATED_FILES))
 

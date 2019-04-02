@@ -97,6 +97,7 @@ static inline int toint(unsigned u)
 }
 
 char *fgetline(FILE *fp);
+bool read_file_into(BinarySink *bs, FILE *fp);
 char *chomp(char *str);
 bool strstartswith(const char *s, const char *t);
 bool strendswith(const char *s, const char *t);
@@ -137,8 +138,6 @@ static inline void bufchain_set_callback(bufchain *ch, IdempotentCallback *ic)
     bufchain_set_callback_inner(ch, ic, queue_idempotent_callback);
 }
 
-void sanitise_term_data(bufchain *out, const void *vdata, size_t len);
-
 bool validate_manual_hostkey(char *key);
 
 struct tm ltime(void);
@@ -170,7 +169,14 @@ static inline ptrlen ptrlen_from_strbuf(strbuf *sb)
 bool ptrlen_eq_string(ptrlen pl, const char *str);
 bool ptrlen_eq_ptrlen(ptrlen pl1, ptrlen pl2);
 int ptrlen_strcmp(ptrlen pl1, ptrlen pl2);
+/* ptrlen_startswith and ptrlen_endswith write through their 'tail'
+ * argument if and only if it is non-NULL and they return true. Hence
+ * you can write ptrlen_startswith(thing, prefix, &thing), writing
+ * back to the same ptrlen it read from, to remove a prefix if present
+ * and say whether it did so. */
 bool ptrlen_startswith(ptrlen whole, ptrlen prefix, ptrlen *tail);
+bool ptrlen_endswith(ptrlen whole, ptrlen suffix, ptrlen *tail);
+ptrlen ptrlen_get_word(ptrlen *input, const char *separators);
 char *mkstr(ptrlen pl);
 int string_length_for_printf(size_t);
 /* Derive two printf arguments from a ptrlen, suitable for "%.*s" */
@@ -198,6 +204,11 @@ void smemclr(void *b, size_t len);
  * Returns false for mismatch or true for equality (unlike memcmp),
  * hinted at by the 'eq' in the name. */
 bool smemeq(const void *av, const void *bv, size_t len);
+
+/* Encode a single UTF-8 character. Assumes that illegal characters
+ * (such as things in the surrogate range, or > 0x10FFFF) have already
+ * been removed. */
+size_t encode_utf8(void *output, unsigned long ch);
 
 char *buildinfo(const char *newline);
 
@@ -374,11 +385,20 @@ struct StripCtrlChars {
 };
 StripCtrlChars *stripctrl_new(
     BinarySink *bs_out, bool permit_cr, wchar_t substitution);
+StripCtrlChars *stripctrl_new_term_fn(
+    BinarySink *bs_out, bool permit_cr, wchar_t substitution,
+    Terminal *term, unsigned long (*translate)(
+        Terminal *, term_utf8_decode *, unsigned char));
+#define stripctrl_new_term(bs, cr, sub, term) \
+    stripctrl_new_term_fn(bs, cr, sub, term, term_translate)
+void stripctrl_retarget(StripCtrlChars *sccpub, BinarySink *new_bs_out);
+void stripctrl_reset(StripCtrlChars *sccpub);
 void stripctrl_free(StripCtrlChars *sanpub);
-char *stripctrl_string_ptrlen(ptrlen str);
-static inline char *stripctrl_string(const char *str)
+void stripctrl_enable_line_limiting(StripCtrlChars *sccpub);
+char *stripctrl_string_ptrlen(StripCtrlChars *sccpub, ptrlen str);
+static inline char *stripctrl_string(StripCtrlChars *sccpub, const char *str)
 {
-    return stripctrl_string_ptrlen(ptrlen_from_asciz(str));
+    return stripctrl_string_ptrlen(sccpub, ptrlen_from_asciz(str));
 }
 
 #endif

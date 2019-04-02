@@ -54,6 +54,9 @@ if dri_drivers != []
       dep_selinux, dep_libdrm, dep_expat, dep_m, dep_thread, dep_dl, idep_nir,
     ],
     link_args : [ld_args_build_id, ld_args_bsymbolic, ld_args_gc_sections],
+    # Will be deleted during installation, see install_megadrivers.py
+    install : true,
+    install_dir : dri_drivers_path,
   )
 
   meson.add_install_script(

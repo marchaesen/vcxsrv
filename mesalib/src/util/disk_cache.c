@@ -330,8 +330,6 @@ disk_cache_create(const char *gpu_name, const char *driver_id,
       goto path_fail;
    cache->index_mmap_size = size;
 
-   close(fd);
-
    cache->size = (uint64_t *) cache->index_mmap;
    cache->stored_keys = cache->index_mmap + sizeof(uint64_t);
 
@@ -385,6 +383,9 @@ disk_cache_create(const char *gpu_name, const char *driver_id,
 
  path_fail:
 
+   if (fd != -1)
+      close(fd);
+
    cache->driver_keys_blob_size = cv_size;
 
    /* Create driver id keys */
@@ -423,8 +424,6 @@ disk_cache_create(const char *gpu_name, const char *driver_id,
    return cache;
 
  fail:
-   if (fd != -1)
-      close(fd);
    if (cache)
       ralloc_free(cache);
    ralloc_free(local);

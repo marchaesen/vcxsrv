@@ -124,7 +124,7 @@ ir3_context_init(struct ir3_compiler *compiler,
 	 * Immediates go last mostly because they are inserted in the CP pass
 	 * after the nir -> ir3 frontend.
 	 */
-	unsigned constoff = align(ctx->s->num_uniforms, 4);
+	unsigned constoff = align(ctx->so->shader->ubo_state.size / 16, 4);
 	unsigned ptrsz = ir3_pointer_size(ctx);
 
 	memset(&so->constbase, ~0, sizeof(so->constbase));

@@ -66,10 +66,11 @@ static void
 split_deref_copy_instr(nir_builder *b,
                        nir_deref_instr *dst, nir_deref_instr *src)
 {
-   assert(dst->type == src->type);
+   assert(glsl_get_bare_type(dst->type) ==
+          glsl_get_bare_type(src->type));
    if (glsl_type_is_vector_or_scalar(src->type)) {
       nir_copy_deref(b, dst, src);
-   } else if (glsl_type_is_struct(src->type)) {
+   } else if (glsl_type_is_struct_or_ifc(src->type)) {
       for (unsigned i = 0; i < glsl_get_length(src->type); i++) {
          split_deref_copy_instr(b, nir_build_deref_struct(b, dst, i),
                                    nir_build_deref_struct(b, src, i));

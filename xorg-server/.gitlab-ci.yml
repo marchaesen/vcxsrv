@@ -1,4 +1,4 @@
-# IMAGE_TAG is the tag of the docker image used for the build jobs. If the
+# DEBIAN_TAG is the tag of the docker image used for the build jobs. If the
 # image doesn't exist yet, the docker-image stage generates it.
 #
 # In order to generate a new image, one should generally change the tag.
@@ -11,44 +11,39 @@
 # After merging a change resulting in generating a new image to the main
 # repository, it's recommended to remove the image from the source repository's
 # container registry, so that the image from the main repository's registry
-# will be used there as well.
+# will be used there as well.  You can manage your images on your fork of:
+# https://gitlab.freedesktop.org/xorg/xserver/container_registry
 variables:
-    IMAGE_TAG: "debian-testing-20190219"
-    IMAGE_LOCAL: "$CI_REGISTRY_IMAGE:$IMAGE_TAG"
-    IMAGE_MAIN: "registry.freedesktop.org/xorg/xserver:$IMAGE_TAG"
+    UPSTREAM_REPO: xorg/xserver
+    DEBIAN_VERSION: testing-slim
+    DEBIAN_EXEC: 'bash .gitlab-ci/debian-install.sh'
+
+    DEBIAN_TAG: "2019-03-27-2"
+    IMAGE_LOCAL: "$CI_REGISTRY_IMAGE/debian/$DEBIAN_VERSION:$DEBIAN_TAG"
+
+include:
+  - project: 'wayland/ci-templates'
+    ref: c73dae8b84697ef18e2dbbf4fed7386d9652b0cd
+    file: '/templates/debian.yml'
 
 stages:
     - docker-image
     - build-and-test
 
+# Retry jobs after runner system failures
+.retry: &retry
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+
 debian-testing:
-    stage: docker-image
-    image:
-        name: gcr.io/kaniko-project/executor:debug
-        entrypoint: [""]
-    script:
-        - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-        - mkdir kaniko-context
-        - |
-          echo "FROM $IMAGE_LOCAL" > kaniko-context/Dockerfile
-          # If the image exists in the local registry, skip to the build-and-test job
-          set +e
-          set -x
-          /kaniko/executor --context kaniko-context --no-push && exit 0
-          set +x
-          set -e
-        - |
-          echo "FROM $IMAGE_MAIN" > kaniko-context/Dockerfile
-          # Try to re-use the image from the main repository's registry, and if
-          # that fails, generate a local image from scratch
-          set +e
-          set -x
-          /kaniko/executor --context kaniko-context --destination $IMAGE_LOCAL && exit 0
-          set +x
-          set -e
-        - /kaniko/executor --context $CI_PROJECT_DIR/.gitlab-ci --destination $IMAGE_LOCAL
+  extends: .debian@container-ifnot-exists
+  stage: docker-image
+  <<: *retry
 
 .common-build-and-test:
+    <<: *retry
     stage: build-and-test
     image: $IMAGE_LOCAL
     artifacts:
@@ -77,14 +72,7 @@ autotools-build-and-test:
         - cd build/
         - ../autogen.sh --prefix=/usr
         - make -j$(nproc) distcheck
-        - |
-          export PIGLIT_DIR=/root/piglit XTEST_DIR=/root/xts
-          set +e
-          set -x
-          make -j$(nproc) check
-          status=$?
-          cat test/piglit-results/xvfb/long-summary || :
-          exit $status
+        - PIGLIT_DIR=/root/piglit XTEST_DIR=/root/xts make -j$(nproc) check
 
 meson-build-and-test:
     extends: .common-build-and-test
@@ -92,13 +80,6 @@ meson-build-and-test:
         PIGLIT_DIR: /root/piglit
         XTEST_DIR: /root/xts
     script:
-        - meson -Dprefix=/usr build/
-        - |
-          ninja -C build/ install
-          set +e
-          set -x
-          ninja -C build/ test
-          status=$?
-          cat build/meson-logs/testlog.txt
-          cat build/test/piglit-results/xvfb/long-summary || :
-          exit $status
+        - meson -Dprefix=/usr -Dxephyr=true build/
+        - ninja -C build/ install
+        - ninja -C build/ test

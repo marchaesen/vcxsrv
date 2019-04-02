@@ -74,7 +74,7 @@ st_texture_set_sampler_view(struct st_context *st,
       if (sv->view) {
          /* check if the context matches */
          if (sv->view->context == st->pipe) {
-            pipe_sampler_view_release(st->pipe, &sv->view);
+            pipe_sampler_view_reference(&sv->view, NULL);
             goto found;
          }
       } else {
@@ -94,13 +94,13 @@ st_texture_set_sampler_view(struct st_context *st,
 
          if (new_max < views->max ||
              new_max > (UINT_MAX - sizeof(*views)) / sizeof(views->views[0])) {
-            pipe_sampler_view_release(st->pipe, &view);
+            pipe_sampler_view_reference(&view, NULL);
             goto out;
          }
 
          struct st_sampler_views *new_views = malloc(new_size);
          if (!new_views) {
-            pipe_sampler_view_release(st->pipe, &view);
+            pipe_sampler_view_reference(&view, NULL);
             goto out;
          }
 
@@ -150,6 +150,7 @@ found:
    sv->glsl130_or_later = glsl130_or_later;
    sv->srgb_skip_decode = srgb_skip_decode;
    sv->view = view;
+   sv->st = st;
 
 out:
    simple_mtx_unlock(&stObj->validate_mutex);
@@ -181,11 +182,12 @@ st_texture_get_current_sampler_view(const struct st_context *st,
 
 /**
  * For the given texture object, release any sampler views which belong
- * to the calling context.
+ * to the calling context.  This is used to free any sampler views
+ * which belong to the context before the context is destroyed.
  */
 void
-st_texture_release_sampler_view(struct st_context *st,
-                                struct st_texture_object *stObj)
+st_texture_release_context_sampler_view(struct st_context *st,
+                                        struct st_texture_object *stObj)
 {
    GLuint i;
 
@@ -205,14 +207,13 @@ st_texture_release_sampler_view(struct st_context *st,
 
 /**
  * Release all sampler views attached to the given texture object, regardless
- * of the context.
+ * of the context.  This is called fairly frequently.  For example, whenever
+ * the texture's base level, max level or swizzle change.
  */
 void
 st_texture_release_all_sampler_views(struct st_context *st,
                                      struct st_texture_object *stObj)
 {
-   GLuint i;
-
    /* TODO: This happens while a texture is deleted, because the Driver API
     * is asymmetric: the driver allocates the texture object memory, but
     * mesa/main frees it.
@@ -222,18 +223,41 @@ st_texture_release_all_sampler_views(struct st_context *st,
 
    simple_mtx_lock(&stObj->validate_mutex);
    struct st_sampler_views *views = stObj->sampler_views;
-   for (i = 0; i < views->count; ++i)
-      pipe_sampler_view_release(st->pipe, &views->views[i].view);
+   for (unsigned i = 0; i < views->count; ++i) {
+      struct st_sampler_view *stsv = &views->views[i];
+      if (stsv->view) {
+         if (stsv->st != st) {
+            /* Transfer this reference to the zombie list.  It will
+             * likely be freed when the zombie list is freed.
+             */
+            st_save_zombie_sampler_view(stsv->st, stsv->view);
+            stsv->view = NULL;
+         } else {
+            pipe_sampler_view_reference(&stsv->view, NULL);
+         }
+      }
+   }
+   views->count = 0;
    simple_mtx_unlock(&stObj->validate_mutex);
 }
 
 
+/*
+ * Delete the texture's sampler views and st_sampler_views containers.
+ * This is to be called just before a texture is deleted.
+ */
 void
-st_texture_free_sampler_views(struct st_texture_object *stObj)
+st_delete_texture_sampler_views(struct st_context *st,
+                                struct st_texture_object *stObj)
 {
+   st_texture_release_all_sampler_views(st, stObj);
+
+   /* Free the container of the current per-context sampler views */
+   assert(stObj->sampler_views->count == 0);
    free(stObj->sampler_views);
    stObj->sampler_views = NULL;
 
+   /* Free old sampler view containers */
    while (stObj->sampler_views_old) {
       struct st_sampler_views *views = stObj->sampler_views_old;
       stObj->sampler_views_old = views->next;

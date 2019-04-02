@@ -92,16 +92,6 @@ new_qpu_nop_before(struct qinst *inst)
         return q;
 }
 
-static void
-new_ldunif_instr(struct qinst *inst, int i)
-{
-        struct qinst *ldunif = new_qpu_nop_before(inst);
-
-        ldunif->qpu.sig.ldunif = true;
-        assert(inst->src[i].file == QFILE_UNIF);
-        ldunif->uniform = inst->src[i].index;
-}
-
 /**
  * Allocates the src register (accumulator or register file) into the RADDR
  * fields of the instruction.
@@ -214,16 +204,11 @@ v3d_generate_code_block(struct v3d_compile *c,
 
                 struct qinst *temp;
 
-                if (vir_has_implicit_uniform(qinst)) {
-                        int src = vir_get_implicit_uniform_src(qinst);
-                        assert(qinst->src[src].file == QFILE_UNIF);
-                        qinst->uniform = qinst->src[src].index;
+                if (vir_has_uniform(qinst))
                         c->num_uniforms++;
-                }
 
-                int nsrc = vir_get_non_sideband_nsrc(qinst);
+                int nsrc = vir_get_nsrc(qinst);
                 struct qpu_reg src[ARRAY_SIZE(qinst->src)];
-                bool emitted_ldunif = false;
                 for (int i = 0; i < nsrc; i++) {
                         int index = qinst->src[i].index;
                         switch (qinst->src[i].file) {
@@ -240,19 +225,6 @@ v3d_generate_code_block(struct v3d_compile *c,
                         case QFILE_TEMP:
                                 src[i] = temp_registers[index];
                                 break;
-                        case QFILE_UNIF:
-                                /* XXX perf: If the last ldunif we emitted was
-                                 * the same uniform value, skip it.  Common
-                                 * for multop/umul24 sequences.
-                                 */
-                                if (!emitted_ldunif) {
-                                        new_ldunif_instr(qinst, i);
-                                        c->num_uniforms++;
-                                        emitted_ldunif = true;
-                                }
-
-                                src[i] = qpu_acc(5);
-                                break;
                         case QFILE_SMALL_IMM:
                                 src[i].smimm = true;
                                 break;
@@ -268,10 +240,6 @@ v3d_generate_code_block(struct v3d_compile *c,
 
                                 src[i] = qpu_acc(3);
                                 break;
-
-                        case QFILE_TLB:
-                        case QFILE_TLBU:
-                                unreachable("bad vir src file");
                         }
                 }
 
@@ -297,15 +265,6 @@ v3d_generate_code_block(struct v3d_compile *c,
                         dst = qpu_magic(V3D_QPU_WADDR_VPM);
                         break;
 
-                case QFILE_TLB:
-                        dst = qpu_magic(V3D_QPU_WADDR_TLB);
-                        break;
-
-                case QFILE_TLBU:
-                        dst = qpu_magic(V3D_QPU_WADDR_TLBU);
-                        break;
-
-                case QFILE_UNIF:
                 case QFILE_SMALL_IMM:
                 case QFILE_LOAD_IMM:
                         assert(!"not reached");
@@ -313,7 +272,20 @@ v3d_generate_code_block(struct v3d_compile *c,
                 }
 
                 if (qinst->qpu.type == V3D_QPU_INSTR_TYPE_ALU) {
-                        if (v3d_qpu_sig_writes_address(c->devinfo,
+                        if (qinst->qpu.sig.ldunif) {
+                                assert(qinst->qpu.alu.add.op == V3D_QPU_A_NOP);
+                                assert(qinst->qpu.alu.mul.op == V3D_QPU_M_NOP);
+
+                                if (!dst.magic ||
+                                    dst.index != V3D_QPU_WADDR_R5) {
+                                        assert(c->devinfo->ver >= 40);
+
+                                        qinst->qpu.sig.ldunif = false;
+                                        qinst->qpu.sig.ldunifrf = true;
+                                        qinst->qpu.sig_addr = dst.index;
+                                        qinst->qpu.sig_magic = dst.magic;
+                                }
+                        } else if (v3d_qpu_sig_writes_address(c->devinfo,
                                                        &qinst->qpu.sig)) {
                                 assert(qinst->qpu.alu.add.op == V3D_QPU_A_NOP);
                                 assert(qinst->qpu.alu.mul.op == V3D_QPU_M_NOP);
@@ -365,7 +337,7 @@ reads_uniform(const struct v3d_device_info *devinfo, uint64_t instruction)
         assert(ok);
 
         if (qpu.sig.ldunif ||
-            qpu.sig.ldunifarf ||
+            qpu.sig.ldunifrf ||
             qpu.sig.wrtmuc) {
                 return true;
         }

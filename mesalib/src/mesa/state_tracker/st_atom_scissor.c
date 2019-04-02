@@ -36,6 +36,7 @@
 #include "st_context.h"
 #include "pipe/p_context.h"
 #include "st_atom.h"
+#include "st_util.h"
 
 
 /**

@@ -53,6 +53,7 @@
 #include "st_cb_texture.h"
 #include "st_format.h"
 #include "st_texture.h"
+#include "st_util.h"
 #include "st_manager.h"
 
 #include "util/u_format.h"

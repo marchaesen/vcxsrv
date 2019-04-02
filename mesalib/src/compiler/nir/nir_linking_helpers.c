@@ -275,8 +275,10 @@ get_unmoveable_components_masks(struct exec_list *var_list,
             continue;
 
          unsigned location = var->data.location - VARYING_SLOT_VAR0;
+
          unsigned elements =
-            glsl_get_vector_elements(glsl_without_array(type));
+            glsl_type_is_vector_or_scalar(glsl_without_array(type)) ?
+            glsl_get_vector_elements(glsl_without_array(type)) : 4;
 
          bool dual_slot = glsl_type_is_dual_slot(glsl_without_array(type));
          unsigned slots = glsl_count_attribute_slots(type, false);
@@ -768,7 +770,7 @@ can_replace_varying(nir_variable *out_var)
    if (glsl_type_is_array(out_var->type) ||
        glsl_type_is_dual_slot(out_var->type) ||
        glsl_type_is_matrix(out_var->type) ||
-       glsl_type_is_struct(out_var->type))
+       glsl_type_is_struct_or_ifc(out_var->type))
       return false;
 
    /* Limit this pass to scalars for now to keep things simple. Most varyings

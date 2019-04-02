@@ -55,26 +55,22 @@ vir_opt_small_immediates(struct v3d_compile *c)
                         continue;
 
                 for (int i = 0; i < vir_get_nsrc(inst); i++) {
-                        struct qreg src = vir_follow_movs(c, inst->src[i]);
-
-                        if (src.file != QFILE_UNIF ||
-                            c->uniform_contents[src.index] !=
-                            QUNIFORM_CONSTANT) {
+                        if (inst->src[i].file != QFILE_TEMP)
                                 continue;
-                        }
 
-                        if (vir_has_implicit_uniform(inst) &&
-                            i == vir_get_implicit_uniform_src(inst)) {
-                                /* No turning the implicit uniform read into
-                                 * an immediate.
-                                 */
+                        /* See if it's a uniform load. */
+                        struct qinst *src_def = c->defs[inst->src[i].index];
+                        if (!src_def || !src_def->qpu.sig.ldunif)
                                 continue;
-                        }
+                        int uniform = src_def->uniform;
+
+                        if (c->uniform_contents[uniform] != QUNIFORM_CONSTANT)
+                                continue;
 
                         /* Check if the uniform is suitable as a small
                          * immediate.
                          */
-                        uint32_t imm = c->uniform_data[src.index];
+                        uint32_t imm = c->uniform_data[uniform];
                         uint32_t packed;
                         if (!v3d_qpu_small_imm_pack(c->devinfo, imm, &packed))
                                 continue;

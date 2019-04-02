@@ -26,7 +26,7 @@ libgl = shared_library(
   link_args : [ld_args_bsymbolic, ld_args_gc_sections],
   include_directories : [
     inc_src, inc_mapi, inc_mesa, inc_include, inc_glapi, inc_haikugl,
-    inc_gl_internal, include_directories('/system/develop/headers/private')
+    include_directories('/system/develop/headers/private')
   ],
   link_with : [libglapi_static, libglapi],
   dependencies : cpp.find_library('be'),

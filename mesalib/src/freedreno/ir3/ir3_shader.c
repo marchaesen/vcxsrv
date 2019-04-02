@@ -262,6 +262,11 @@ ir3_shader_from_nir(struct ir3_compiler *compiler, nir_shader *nir)
 	NIR_PASS_V(nir, nir_lower_io, nir_var_all, ir3_glsl_type_size,
 			   (nir_lower_io_options)0);
 
+	if (nir->info.stage == MESA_SHADER_FRAGMENT)
+		NIR_PASS_V(nir, ir3_nir_move_varying_inputs);
+
+	NIR_PASS_V(nir, nir_lower_io_arrays_to_elements_no_indirects, false);
+
 	/* do first pass optimization, ignoring the key: */
 	shader->nir = ir3_optimize_nir(shader, nir, NULL);
 	if (ir3_shader_debug & IR3_DBG_DISASM) {

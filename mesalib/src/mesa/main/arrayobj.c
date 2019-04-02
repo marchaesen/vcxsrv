@@ -913,6 +913,90 @@ _mesa_all_buffers_are_unmapped(const struct gl_vertex_array_object *vao)
    return true;
 }
 
+
+/**
+ * Map buffer objects used in attribute arrays.
+ */
+void
+_mesa_vao_map_arrays(struct gl_context *ctx, struct gl_vertex_array_object *vao,
+                     GLbitfield access)
+{
+   GLbitfield mask = vao->Enabled & vao->VertexAttribBufferMask;
+   while (mask) {
+      /* Do not use u_bit_scan as we can walk multiple attrib arrays at once */
+      const gl_vert_attrib attr = ffs(mask) - 1;
+      const GLubyte bindex = vao->VertexAttrib[attr].BufferBindingIndex;
+      struct gl_vertex_buffer_binding *binding = &vao->BufferBinding[bindex];
+      mask &= ~binding->_BoundArrays;
+
+      struct gl_buffer_object *bo = binding->BufferObj;
+      assert(_mesa_is_bufferobj(bo));
+      if (_mesa_bufferobj_mapped(bo, MAP_INTERNAL))
+         continue;
+
+      ctx->Driver.MapBufferRange(ctx, 0, bo->Size, access, bo, MAP_INTERNAL);
+   }
+}
+
+
+/**
+ * Map buffer objects used in the vao, attribute arrays and index buffer.
+ */
+void
+_mesa_vao_map(struct gl_context *ctx, struct gl_vertex_array_object *vao,
+              GLbitfield access)
+{
+   struct gl_buffer_object *bo = vao->IndexBufferObj;
+
+   /* map the index buffer, if there is one, and not already mapped */
+   if (_mesa_is_bufferobj(bo) && !_mesa_bufferobj_mapped(bo, MAP_INTERNAL))
+      ctx->Driver.MapBufferRange(ctx, 0, bo->Size, access, bo, MAP_INTERNAL);
+
+   _mesa_vao_map_arrays(ctx, vao, access);
+}
+
+
+/**
+ * Unmap buffer objects used in attribute arrays.
+ */
+void
+_mesa_vao_unmap_arrays(struct gl_context *ctx,
+                       struct gl_vertex_array_object *vao)
+{
+   GLbitfield mask = vao->Enabled & vao->VertexAttribBufferMask;
+   while (mask) {
+      /* Do not use u_bit_scan as we can walk multiple attrib arrays at once */
+      const gl_vert_attrib attr = ffs(mask) - 1;
+      const GLubyte bindex = vao->VertexAttrib[attr].BufferBindingIndex;
+      struct gl_vertex_buffer_binding *binding = &vao->BufferBinding[bindex];
+      mask &= ~binding->_BoundArrays;
+
+      struct gl_buffer_object *bo = binding->BufferObj;
+      assert(_mesa_is_bufferobj(bo));
+      if (!_mesa_bufferobj_mapped(bo, MAP_INTERNAL))
+         continue;
+
+      ctx->Driver.UnmapBuffer(ctx, bo, MAP_INTERNAL);
+   }
+}
+
+
+/**
+ * Unmap buffer objects used in the vao, attribute arrays and index buffer.
+ */
+void
+_mesa_vao_unmap(struct gl_context *ctx, struct gl_vertex_array_object *vao)
+{
+   struct gl_buffer_object *bo = vao->IndexBufferObj;
+
+   /* unmap the index buffer, if there is one, and still mapped */
+   if (_mesa_is_bufferobj(bo) && _mesa_bufferobj_mapped(bo, MAP_INTERNAL))
+      ctx->Driver.UnmapBuffer(ctx, bo, MAP_INTERNAL);
+
+   _mesa_vao_unmap_arrays(ctx, vao);
+}
+
+
 /**********************************************************************/
 /* API Functions                                                      */
 /**********************************************************************/

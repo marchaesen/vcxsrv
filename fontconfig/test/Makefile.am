@@ -11,6 +11,7 @@ AM_TESTS_ENVIRONMENT= \
 BUILT_SOURCES = $(builddir)/out.expected
 
 SH_LOG_COMPILER = sh
+LOG_COMPILER = ${srcdir}/wrapper-script.sh
 TESTS=run-test.sh
 
 TESTDATA =			\
@@ -75,6 +76,7 @@ endif
 check_PROGRAMS += test-bz106618
 test_bz106618_LDADD = $(top_builddir)/src/libfontconfig.la
 
+if !OS_WIN32
 check_PROGRAMS += test-hash
 test_hash_CFLAGS = -I$(top_builddir) -I$(top_builddir)/src $(UUID_CFLAGS)
 test_hash_LDADD = $(UUID_LIBS)
@@ -91,6 +93,7 @@ test_bz106632_CFLAGS =					\
 	$(NULL)
 test_bz106632_LDADD = $(top_builddir)/src/libfontconfig.la
 TESTS += test-bz106632
+endif
 
 check_PROGRAMS += test-issue107
 test_issue107_LDADD =					\
@@ -99,6 +102,7 @@ test_issue107_LDADD =					\
 TESTS += test-issue107
 
 if !ENABLE_SHARED
+if !OS_WIN32
 check_PROGRAMS += test-issue110
 test_issue110_CFLAGS =					\
 	-I$(top_builddir)				\
@@ -127,8 +131,9 @@ test_d1f48f11_LDADD =					\
 	$(NULL)
 TESTS += test-d1f48f11
 endif
+endif
 
-EXTRA_DIST=run-test.sh run-test-conf.sh $(TESTDATA) out.expected-long-family-names out.expected-no-long-family-names
+EXTRA_DIST=run-test.sh run-test-conf.sh $(LOG_COMPILER) $(TESTDATA) out.expected-long-family-names out.expected-no-long-family-names
 
 CLEANFILES=out out1 out2 fonts.conf out.expected
 

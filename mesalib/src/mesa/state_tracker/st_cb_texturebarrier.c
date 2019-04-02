@@ -95,21 +95,25 @@ st_MemoryBarrier(struct gl_context *ctx, GLbitfield barriers)
        */
       flags |= PIPE_BARRIER_TEXTURE;
    }
-   /* GL_TEXTURE_UPDATE_BARRIER_BIT:
-    * Texture updates translate to:
-    *  (1) texture transfers to/from the CPU,
-    *  (2) texture as blit destination, or
-    *  (3) texture as framebuffer.
-    * In all cases, we assume the driver does the required flushing
-    * automatically.
-    */
-   /* GL_BUFFER_UPDATE_BARRIER_BIT:
-    * Buffer updates translate to
-    *  (1) buffer transfers to/from the CPU,
-    *  (2) resource copies and clears.
-    * In all cases, we assume the driver does the required flushing
-    * automatically.
-    */
+   if (barriers & GL_TEXTURE_UPDATE_BARRIER_BIT) {
+      /* GL_TEXTURE_UPDATE_BARRIER_BIT:
+       * Texture updates translate to:
+       *  (1) texture transfers to/from the CPU,
+       *  (2) texture as blit destination, or
+       *  (3) texture as framebuffer.
+       * Some drivers may handle these automatically, and can ignore the bit.
+       */
+      flags |= PIPE_BARRIER_UPDATE_TEXTURE;
+   }
+   if (barriers & GL_BUFFER_UPDATE_BARRIER_BIT) {
+      /* GL_BUFFER_UPDATE_BARRIER_BIT:
+       * Buffer updates translate to
+       *  (1) buffer transfers to/from the CPU,
+       *  (2) resource copies and clears.
+       * Some drivers may handle these automatically, and can ignore the bit.
+       */
+      flags |= PIPE_BARRIER_UPDATE_BUFFER;
+   }
    if (barriers & GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT)
       flags |= PIPE_BARRIER_MAPPED_BUFFER;
    if (barriers & GL_QUERY_BUFFER_BARRIER_BIT)

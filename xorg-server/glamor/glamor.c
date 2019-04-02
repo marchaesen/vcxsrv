@@ -136,6 +136,9 @@ glamor_get_pixmap_texture(PixmapPtr pixmap)
     if (!pixmap_priv)
         return 0;
 
+    if (!pixmap_priv->fbo)
+        return 0;
+
     if (pixmap_priv->type != GLAMOR_TEXTURE_ONLY)
         return 0;
 

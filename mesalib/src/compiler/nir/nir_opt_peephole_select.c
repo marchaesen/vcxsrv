@@ -191,6 +191,10 @@ nir_opt_peephole_select_block(nir_block *block, nir_shader *shader,
       return false;
 
    nir_if *if_stmt = nir_cf_node_as_if(prev_node);
+
+   if (if_stmt->control == nir_selection_control_dont_flatten)
+      return false;
+
    nir_block *then_block = nir_if_first_then_block(if_stmt);
    nir_block *else_block = nir_if_first_else_block(if_stmt);
 
@@ -198,6 +202,12 @@ nir_opt_peephole_select_block(nir_block *block, nir_shader *shader,
    if (nir_if_last_then_block(if_stmt) != then_block ||
        nir_if_last_else_block(if_stmt) != else_block)
       return false;
+
+   if (if_stmt->control == nir_selection_control_flatten) {
+      /* Override driver defaults */
+      indirect_load_ok = true;
+      expensive_alu_ok = true;
+   }
 
    /* ... and those blocks must only contain "allowed" instructions. */
    unsigned count = 0;
@@ -207,7 +217,7 @@ nir_opt_peephole_select_block(nir_block *block, nir_shader *shader,
                                        indirect_load_ok, expensive_alu_ok))
       return false;
 
-   if (count > limit)
+   if (count > limit && if_stmt->control != nir_selection_control_flatten)
       return false;
 
    /* At this point, we know that the previous CFG node is an if-then

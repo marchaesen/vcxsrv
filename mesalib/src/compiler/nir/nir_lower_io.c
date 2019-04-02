@@ -599,7 +599,14 @@ build_addr_iadd(nir_builder *b, nir_ssa_def *addr,
       assert(addr->num_components == 1);
       return nir_iadd(b, addr, offset);
 
-   case nir_address_format_vk_index_offset:
+   case nir_address_format_64bit_bounded_global:
+      assert(addr->num_components == 4);
+      return nir_vec4(b, nir_channel(b, addr, 0),
+                         nir_channel(b, addr, 1),
+                         nir_channel(b, addr, 2),
+                         nir_iadd(b, nir_channel(b, addr, 3), offset));
+
+   case nir_address_format_32bit_index_offset:
       assert(addr->num_components == 2);
       return nir_vec2(b, nir_channel(b, addr, 0),
                          nir_iadd(b, nir_channel(b, addr, 1), offset));
@@ -619,7 +626,7 @@ static nir_ssa_def *
 addr_to_index(nir_builder *b, nir_ssa_def *addr,
               nir_address_format addr_format)
 {
-   assert(addr_format == nir_address_format_vk_index_offset);
+   assert(addr_format == nir_address_format_32bit_index_offset);
    assert(addr->num_components == 2);
    return nir_channel(b, addr, 0);
 }
@@ -628,7 +635,7 @@ static nir_ssa_def *
 addr_to_offset(nir_builder *b, nir_ssa_def *addr,
                nir_address_format addr_format)
 {
-   assert(addr_format == nir_address_format_vk_index_offset);
+   assert(addr_format == nir_address_format_32bit_index_offset);
    assert(addr->num_components == 2);
    return nir_channel(b, addr, 1);
 }
@@ -638,7 +645,8 @@ static bool
 addr_format_is_global(nir_address_format addr_format)
 {
    return addr_format == nir_address_format_32bit_global ||
-          addr_format == nir_address_format_64bit_global;
+          addr_format == nir_address_format_64bit_global ||
+          addr_format == nir_address_format_64bit_bounded_global;
 }
 
 static nir_ssa_def *
@@ -651,11 +659,32 @@ addr_to_global(nir_builder *b, nir_ssa_def *addr,
       assert(addr->num_components == 1);
       return addr;
 
-   case nir_address_format_vk_index_offset:
+   case nir_address_format_64bit_bounded_global:
+      assert(addr->num_components == 4);
+      return nir_iadd(b, nir_pack_64_2x32(b, nir_channels(b, addr, 0x3)),
+                         nir_u2u64(b, nir_channel(b, addr, 3)));
+
+   case nir_address_format_32bit_index_offset:
       unreachable("Cannot get a 64-bit address with this address format");
    }
 
    unreachable("Invalid address format");
+}
+
+static bool
+addr_format_needs_bounds_check(nir_address_format addr_format)
+{
+   return addr_format == nir_address_format_64bit_bounded_global;
+}
+
+static nir_ssa_def *
+addr_is_in_bounds(nir_builder *b, nir_ssa_def *addr,
+                  nir_address_format addr_format, unsigned size)
+{
+   assert(addr_format == nir_address_format_64bit_bounded_global);
+   assert(addr->num_components == 4);
+   return nir_ige(b, nir_channel(b, addr, 2),
+                     nir_iadd_imm(b, nir_channel(b, addr, 3), size));
 }
 
 static nir_ssa_def *
@@ -680,6 +709,10 @@ build_explicit_io_load(nir_builder *b, nir_intrinsic_instr *intrin,
       assert(addr_format_is_global(addr_format));
       op = nir_intrinsic_load_global;
       break;
+   case nir_var_shader_in:
+      assert(addr_format_is_global(addr_format));
+      op = nir_intrinsic_load_kernel_input;
+      break;
    default:
       unreachable("Unsupported explicit IO variable mode");
    }
@@ -687,14 +720,13 @@ build_explicit_io_load(nir_builder *b, nir_intrinsic_instr *intrin,
    nir_intrinsic_instr *load = nir_intrinsic_instr_create(b->shader, op);
 
    if (addr_format_is_global(addr_format)) {
-      assert(op == nir_intrinsic_load_global);
       load->src[0] = nir_src_for_ssa(addr_to_global(b, addr, addr_format));
    } else {
       load->src[0] = nir_src_for_ssa(addr_to_index(b, addr, addr_format));
       load->src[1] = nir_src_for_ssa(addr_to_offset(b, addr, addr_format));
    }
 
-   if (mode != nir_var_mem_ubo)
+   if (mode != nir_var_mem_ubo && mode != nir_var_shader_in)
       nir_intrinsic_set_access(load, nir_intrinsic_access(intrin));
 
    /* TODO: We should try and provide a better alignment.  For OpenCL, we need
@@ -706,9 +738,32 @@ build_explicit_io_load(nir_builder *b, nir_intrinsic_instr *intrin,
    load->num_components = num_components;
    nir_ssa_dest_init(&load->instr, &load->dest, num_components,
                      intrin->dest.ssa.bit_size, intrin->dest.ssa.name);
-   nir_builder_instr_insert(b, &load->instr);
 
-   return &load->dest.ssa;
+   assert(load->dest.ssa.bit_size % 8 == 0);
+
+   if (addr_format_needs_bounds_check(addr_format)) {
+      /* The Vulkan spec for robustBufferAccess gives us quite a few options
+       * as to what we can do with an OOB read.  Unfortunately, returning
+       * undefined values isn't one of them so we return an actual zero.
+       */
+      nir_const_value zero_val;
+      memset(&zero_val, 0, sizeof(zero_val));
+      nir_ssa_def *zero = nir_build_imm(b, load->num_components,
+                                        load->dest.ssa.bit_size, zero_val);
+
+      const unsigned load_size =
+         (load->dest.ssa.bit_size / 8) * load->num_components;
+      nir_push_if(b, addr_is_in_bounds(b, addr, addr_format, load_size));
+
+      nir_builder_instr_insert(b, &load->instr);
+
+      nir_pop_if(b, NULL);
+
+      return nir_if_phi(b, &load->dest.ssa, zero);
+   } else {
+      nir_builder_instr_insert(b, &load->instr);
+      return &load->dest.ssa;
+   }
 }
 
 static void
@@ -756,7 +811,19 @@ build_explicit_io_store(nir_builder *b, nir_intrinsic_instr *intrin,
    assert(value->num_components == 1 ||
           value->num_components == intrin->num_components);
    store->num_components = value->num_components;
-   nir_builder_instr_insert(b, &store->instr);
+
+   assert(value->bit_size % 8 == 0);
+
+   if (addr_format_needs_bounds_check(addr_format)) {
+      const unsigned store_size = (value->bit_size / 8) * store->num_components;
+      nir_push_if(b, addr_is_in_bounds(b, addr, addr_format, store_size));
+
+      nir_builder_instr_insert(b, &store->instr);
+
+      nir_pop_if(b, NULL);
+   } else {
+      nir_builder_instr_insert(b, &store->instr);
+   }
 }
 
 static nir_ssa_def *
@@ -796,12 +863,31 @@ build_explicit_io_atomic(nir_builder *b, nir_intrinsic_instr *intrin,
       atomic->src[src++] = nir_src_for_ssa(intrin->src[1 + i].ssa);
    }
 
+   /* Global atomics don't have access flags because they assume that the
+    * address may be non-uniform.
+    */
+   if (!addr_format_is_global(addr_format))
+      nir_intrinsic_set_access(atomic, nir_intrinsic_access(intrin));
+
    assert(intrin->dest.ssa.num_components == 1);
    nir_ssa_dest_init(&atomic->instr, &atomic->dest,
                      1, intrin->dest.ssa.bit_size, intrin->dest.ssa.name);
-   nir_builder_instr_insert(b, &atomic->instr);
 
-   return &atomic->dest.ssa;
+   assert(atomic->dest.ssa.bit_size % 8 == 0);
+
+   if (addr_format_needs_bounds_check(addr_format)) {
+      const unsigned atomic_size = atomic->dest.ssa.bit_size / 8;
+      nir_push_if(b, addr_is_in_bounds(b, addr, addr_format, atomic_size));
+
+      nir_builder_instr_insert(b, &atomic->instr);
+
+      nir_pop_if(b, NULL);
+      return nir_if_phi(b, &atomic->dest.ssa,
+                           nir_ssa_undef(b, 1, atomic->dest.ssa.bit_size));
+   } else {
+      nir_builder_instr_insert(b, &atomic->instr);
+      return &atomic->dest.ssa;
+   }
 }
 
 static void
@@ -821,17 +907,20 @@ lower_explicit_io_deref(nir_builder *b, nir_deref_instr *deref,
 
    b->cursor = nir_after_instr(&deref->instr);
 
-   /* Var derefs must be lowered away by the driver */
-   assert(deref->deref_type != nir_deref_type_var);
+   nir_ssa_def *parent_addr = NULL;
+   if (deref->deref_type != nir_deref_type_var) {
+      assert(deref->parent.is_ssa);
+      parent_addr = deref->parent.ssa;
+   }
 
-   assert(deref->parent.is_ssa);
-   nir_ssa_def *parent_addr = deref->parent.ssa;
 
    nir_ssa_def *addr = NULL;
    assert(deref->dest.is_ssa);
    switch (deref->deref_type) {
    case nir_deref_type_var:
-      unreachable("Must be lowered by the driver");
+      assert(deref->mode == nir_var_shader_in);
+      addr = nir_imm_intN_t(b, deref->var->data.driver_location,
+                            deref->dest.ssa.bit_size);
       break;
 
    case nir_deref_type_array: {
@@ -940,6 +1029,38 @@ lower_explicit_io_access(nir_builder *b, nir_intrinsic_instr *intrin,
    nir_instr_remove(&intrin->instr);
 }
 
+static void
+lower_explicit_io_array_length(nir_builder *b, nir_intrinsic_instr *intrin,
+                               nir_address_format addr_format)
+{
+   b->cursor = nir_after_instr(&intrin->instr);
+
+   nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
+
+   assert(glsl_type_is_array(deref->type));
+   assert(glsl_get_length(deref->type) == 0);
+   unsigned stride = glsl_get_explicit_stride(deref->type);
+   assert(stride > 0);
+
+   assert(addr_format == nir_address_format_32bit_index_offset);
+   nir_ssa_def *addr = &deref->dest.ssa;
+   nir_ssa_def *index = addr_to_index(b, addr, addr_format);
+   nir_ssa_def *offset = addr_to_offset(b, addr, addr_format);
+
+   nir_intrinsic_instr *bsize =
+      nir_intrinsic_instr_create(b->shader, nir_intrinsic_get_buffer_size);
+   bsize->src[0] = nir_src_for_ssa(index);
+   nir_ssa_dest_init(&bsize->instr, &bsize->dest, 1, 32, NULL);
+   nir_builder_instr_insert(b, &bsize->instr);
+
+   nir_ssa_def *arr_size =
+      nir_idiv(b, nir_isub(b, &bsize->dest.ssa, offset),
+                  nir_imm_int(b, stride));
+
+   nir_ssa_def_rewrite_uses(&intrin->dest.ssa, nir_src_for_ssa(arr_size));
+   nir_instr_remove(&intrin->instr);
+}
+
 static bool
 nir_lower_explicit_io_impl(nir_function_impl *impl, nir_variable_mode modes,
                            nir_address_format addr_format)
@@ -987,6 +1108,15 @@ nir_lower_explicit_io_impl(nir_function_impl *impl, nir_variable_mode modes,
                nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
                if (deref->mode & modes) {
                   lower_explicit_io_access(&b, intrin, addr_format);
+                  progress = true;
+               }
+               break;
+            }
+
+            case nir_intrinsic_deref_buffer_array_length: {
+               nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
+               if (deref->mode & modes) {
+                  lower_explicit_io_array_length(&b, intrin, addr_format);
                   progress = true;
                }
                break;

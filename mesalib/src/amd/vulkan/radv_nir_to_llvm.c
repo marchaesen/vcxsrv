@@ -2008,6 +2008,8 @@ adjust_vertex_fetch_alpha(struct radv_shader_context *ctx,
 
 	LLVMValueRef c30 = LLVMConstInt(ctx->ac.i32, 30, 0);
 
+	alpha = LLVMBuildBitCast(ctx->ac.builder, alpha, ctx->ac.f32, "");
+
 	if (adjustment == RADV_ALPHA_ADJUST_SSCALED)
 		alpha = LLVMBuildFPToUI(ctx->ac.builder, alpha, ctx->ac.i32, "");
 	else
@@ -2035,7 +2037,7 @@ adjust_vertex_fetch_alpha(struct radv_shader_context *ctx,
 		alpha = LLVMBuildSIToFP(ctx->ac.builder, alpha, ctx->ac.f32, "");
 	}
 
-	return alpha;
+	return LLVMBuildBitCast(ctx->ac.builder, alpha, ctx->ac.i32, "");
 }
 
 static unsigned
@@ -2096,7 +2098,7 @@ radv_fixup_vertex_input_fetches(struct radv_shader_context *ctx,
 
 	for (unsigned i = num_channels; i < 4; i++) {
 		chan[i] = i == 3 ? one : zero;
-		chan[i] = ac_to_float(&ctx->ac, chan[i]);
+		chan[i] = ac_to_integer(&ctx->ac, chan[i]);
 	}
 
 	return ac_build_gather_values(&ctx->ac, chan, 4);
@@ -2154,20 +2156,55 @@ handle_vs_input_decl(struct radv_shader_context *ctx,
 		} else
 			buffer_index = LLVMBuildAdd(ctx->ac.builder, ctx->abi.vertex_id,
 			                            ctx->abi.base_vertex, "");
-		t_offset = LLVMConstInt(ctx->ac.i32, attrib_index, false);
-
-		t_list = ac_build_load_to_sgpr(&ctx->ac, t_list_ptr, t_offset);
 
 		/* Adjust the number of channels to load based on the vertex
 		 * attribute format.
 		 */
 		unsigned num_format_channels = get_num_channels_from_data_format(data_format);
 		unsigned num_channels = MIN2(num_input_channels, num_format_channels);
+		unsigned attrib_binding = ctx->options->key.vs.vertex_attribute_bindings[attrib_index];
+		unsigned attrib_offset = ctx->options->key.vs.vertex_attribute_offsets[attrib_index];
+		unsigned attrib_stride = ctx->options->key.vs.vertex_attribute_strides[attrib_index];
 
-		input = ac_build_buffer_load_format(&ctx->ac, t_list,
+		if (ctx->options->key.vs.post_shuffle & (1 << attrib_index)) {
+			/* Always load, at least, 3 channels for formats that
+			 * need to be shuffled because X<->Z.
+			 */
+			num_channels = MAX2(num_channels, 3);
+		}
+
+		if (attrib_stride != 0 && attrib_offset > attrib_stride) {
+			LLVMValueRef buffer_offset =
+				LLVMConstInt(ctx->ac.i32,
+					     attrib_offset / attrib_stride, false);
+
+			buffer_index = LLVMBuildAdd(ctx->ac.builder,
 						    buffer_index,
-						    ctx->ac.i32_0,
-						    num_channels, false, true);
+						    buffer_offset, "");
+
+			attrib_offset = attrib_offset % attrib_stride;
+		}
+
+		t_offset = LLVMConstInt(ctx->ac.i32, attrib_binding, false);
+		t_list = ac_build_load_to_sgpr(&ctx->ac, t_list_ptr, t_offset);
+
+		input = ac_build_struct_tbuffer_load(&ctx->ac, t_list,
+						     buffer_index,
+						     LLVMConstInt(ctx->ac.i32, attrib_offset, false),
+						     ctx->ac.i32_0, ctx->ac.i32_0,
+						     num_channels,
+						     data_format, num_format,
+						     false, false, true);
+
+		if (ctx->options->key.vs.post_shuffle & (1 << attrib_index)) {
+			LLVMValueRef c[4];
+			c[0] = ac_llvm_extract_elem(&ctx->ac, input, 2);
+			c[1] = ac_llvm_extract_elem(&ctx->ac, input, 1);
+			c[2] = ac_llvm_extract_elem(&ctx->ac, input, 0);
+			c[3] = ac_llvm_extract_elem(&ctx->ac, input, 3);
+
+			input = ac_build_gather_values(&ctx->ac, c, 4);
+		}
 
 		input = radv_fixup_vertex_input_fetches(ctx, input, num_channels,
 							is_float);
@@ -2268,7 +2305,7 @@ static void mark_16bit_fs_input(struct radv_shader_context *ctx,
 			mark_16bit_fs_input(ctx, glsl_get_array_element(type), location + i * stride);
 		}
 	} else {
-		assert(glsl_type_is_struct(type));
+		assert(glsl_type_is_struct_or_ifc(type));
 		for (unsigned i = 0; i < glsl_get_length(type); i++) {
 			mark_16bit_fs_input(ctx, glsl_get_struct_field(type, i), location);
 			location += glsl_count_attribute_slots(glsl_get_struct_field(type, i), false);

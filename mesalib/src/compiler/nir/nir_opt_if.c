@@ -855,7 +855,8 @@ opt_if_loop_last_continue(nir_loop *loop)
    /* If both branches end in a continue do nothing, this should be handled
     * by nir_opt_dead_cf().
     */
-   if (then_ends_in_continue && else_ends_in_continue)
+   if ((then_ends_in_continue || nir_block_ends_in_break(then_block)) &&
+       (else_ends_in_continue || nir_block_ends_in_break(else_block)))
       return false;
 
    if (!then_ends_in_continue && !else_ends_in_continue)
@@ -872,15 +873,10 @@ opt_if_loop_last_continue(nir_loop *loop)
    nir_cf_list tmp;
    nir_cf_extract(&tmp, nir_after_cf_node(if_node),
                         nir_after_block(last_block));
-   if (then_ends_in_continue) {
-      nir_cursor last_blk_cursor = nir_after_cf_list(&nif->else_list);
-      nir_cf_reinsert(&tmp,
-                      nir_after_block_before_jump(last_blk_cursor.block));
-   } else {
-      nir_cursor last_blk_cursor = nir_after_cf_list(&nif->then_list);
-      nir_cf_reinsert(&tmp,
-                      nir_after_block_before_jump(last_blk_cursor.block));
-   }
+   if (then_ends_in_continue)
+      nir_cf_reinsert(&tmp, nir_after_cf_list(&nif->else_list));
+   else
+      nir_cf_reinsert(&tmp, nir_after_cf_list(&nif->then_list));
 
    /* In order to avoid running nir_lower_regs_to_ssa_impl() every time an if
     * opt makes progress we leave nir_opt_trivial_continues() to remove the

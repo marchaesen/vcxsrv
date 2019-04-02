@@ -57,6 +57,9 @@ struct st_sampler_view
 {
    struct pipe_sampler_view *view;
 
+   /** The context which created this view */
+   struct st_context *st;
+
    /** The glsl version of the shader seen during validation */
    bool glsl130_or_later;
    /** Derived from the sampler's sRGBDecode state during validation */

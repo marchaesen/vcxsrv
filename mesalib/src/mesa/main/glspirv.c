@@ -211,6 +211,7 @@ _mesa_spirv_to_nir(struct gl_context *ctx,
    }
 
    const struct spirv_to_nir_options spirv_options = {
+      .environment = NIR_SPIRV_OPENGL,
       .lower_workgroup_access_to_offsets = true,
       .lower_ubo_ssbo_access_to_offsets = true,
       .caps = ctx->Const.SpirVCapabilities

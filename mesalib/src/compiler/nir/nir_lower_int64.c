@@ -630,8 +630,8 @@ lower_irem64(nir_builder *b, nir_ssa_def *n, nir_ssa_def *d)
    return nir_bcsel(b, n_is_neg, nir_ineg(b, r), r);
 }
 
-static nir_lower_int64_options
-opcode_to_options_mask(nir_op opcode)
+nir_lower_int64_options
+nir_lower_int64_op_to_options_mask(nir_op opcode)
 {
    switch (opcode) {
    case nir_op_imul:
@@ -834,7 +834,7 @@ lower_int64_impl(nir_function_impl *impl, nir_lower_int64_options options)
             break;
          }
 
-         if (!(options & opcode_to_options_mask(alu->op)))
+         if (!(options & nir_lower_int64_op_to_options_mask(alu->op)))
             continue;
 
          b.cursor = nir_before_instr(instr);

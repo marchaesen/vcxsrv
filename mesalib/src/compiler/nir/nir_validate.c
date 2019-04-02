@@ -26,6 +26,7 @@
  */
 
 #include "nir.h"
+#include "c11/threads.h"
 #include <assert.h>
 
 /*
@@ -437,7 +438,7 @@ validate_deref_instr(nir_deref_instr *instr, validate_state *state)
 
       switch (instr->deref_type) {
       case nir_deref_type_struct:
-         validate_assert(state, glsl_type_is_struct(parent->type));
+         validate_assert(state, glsl_type_is_struct_or_ifc(parent->type));
          validate_assert(state,
             instr->strct.index < glsl_get_length(parent->type));
          validate_assert(state, instr->type ==
@@ -525,6 +526,9 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
       validate_assert(state, instr->num_components ==
                              glsl_get_vector_elements(src->type));
       dest_bit_size = glsl_get_bit_size(src->type);
+      /* Also allow 32-bit boolean load operations */
+      if (glsl_type_is_boolean(src->type))
+         dest_bit_size |= 32;
       break;
    }
 
@@ -534,6 +538,9 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
       validate_assert(state, instr->num_components ==
                              glsl_get_vector_elements(dst->type));
       src_bit_sizes[1] = glsl_get_bit_size(dst->type);
+      /* Also allow 32-bit boolean store operations */
+      if (glsl_type_is_boolean(dst->type))
+         src_bit_sizes[1] |= 32;
       validate_assert(state, (dst->mode & (nir_var_shader_in |
                                            nir_var_uniform)) == 0);
       validate_assert(state, (nir_intrinsic_write_mask(instr) & ~((1 << instr->num_components) - 1)) == 0);
@@ -543,7 +550,8 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
    case nir_intrinsic_copy_deref: {
       nir_deref_instr *dst = nir_src_as_deref(instr->src[0]);
       nir_deref_instr *src = nir_src_as_deref(instr->src[1]);
-      validate_assert(state, dst->type == src->type);
+      validate_assert(state, glsl_get_bare_type(dst->type) ==
+                             glsl_get_bare_type(src->type));
       validate_assert(state, (dst->mode & (nir_var_shader_in |
                                            nir_var_uniform)) == 0);
       break;
@@ -589,6 +597,22 @@ validate_tex_instr(nir_tex_instr *instr, validate_state *state)
       src_type_seen[instr->src[i].src_type] = true;
       validate_src(&instr->src[i].src, state,
                    0, nir_tex_instr_src_size(instr, i));
+
+      switch (instr->src[i].src_type) {
+      case nir_tex_src_texture_deref:
+      case nir_tex_src_sampler_deref:
+         validate_assert(state, instr->src[i].src.is_ssa);
+         validate_assert(state,
+                         instr->src[i].src.ssa->parent_instr->type == nir_instr_type_deref);
+         break;
+      default:
+         break;
+      }
+   }
+
+   if (nir_tex_instr_has_explicit_tg4_offsets(instr)) {
+      validate_assert(state, instr->op == nir_texop_tg4);
+      validate_assert(state, !src_type_seen[nir_tex_src_offset]);
    }
 
    validate_dest(&instr->dest, state, 0, nir_tex_instr_dest_size(instr));
@@ -1017,7 +1041,7 @@ validate_var_decl(nir_variable *var, bool is_global, validate_state *state)
 
    if (var->num_members > 0) {
       const struct glsl_type *without_array = glsl_without_array(var->type);
-      validate_assert(state, glsl_type_is_struct(without_array));
+      validate_assert(state, glsl_type_is_struct_or_ifc(without_array));
       validate_assert(state, var->num_members == glsl_get_length(without_array));
       validate_assert(state, var->members != NULL);
    }
@@ -1157,10 +1181,17 @@ destroy_validate_state(validate_state *state)
    _mesa_hash_table_destroy(state->errors, NULL);
 }
 
+mtx_t fail_dump_mutex = _MTX_INITIALIZER_NP;
+
 static void
 dump_errors(validate_state *state, const char *when)
 {
    struct hash_table *errors = state->errors;
+
+   /* Lock around dumping so that we get clean dumps in a multi-threaded
+    * scenario
+    */
+   mtx_lock(&fail_dump_mutex);
 
    if (when) {
       fprintf(stderr, "NIR validation failed %s\n", when);
@@ -1179,6 +1210,8 @@ dump_errors(validate_state *state, const char *when)
          fprintf(stderr, "%s\n", (char *)entry->data);
       }
    }
+
+   mtx_unlock(&fail_dump_mutex);
 
    abort();
 }

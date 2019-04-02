@@ -452,7 +452,7 @@ find_instr_recursive(struct ir3_sched_ctx *ctx, struct ir3_sched_notes *notes,
 
 	/* find unscheduled srcs: */
 	foreach_ssa_src(src, instr) {
-		if (!is_scheduled(src)) {
+		if (!is_scheduled(src) && (src->block == instr->block)) {
 			debug_assert(nsrcs < ARRAY_SIZE(srcs));
 			srcs[nsrcs++] = src;
 		}
@@ -807,6 +807,20 @@ int ir3_sched(struct ir3 *ir)
 	return 0;
 }
 
+static unsigned
+get_array_id(struct ir3_instruction *instr)
+{
+	/* The expectation is that there is only a single array
+	 * src or dst, ir3_cp should enforce this.
+	 */
+
+	for (unsigned i = 0; i < instr->regs_count; i++)
+		if (instr->regs[i]->flags & IR3_REG_ARRAY)
+			return instr->regs[i]->array.id;
+
+	unreachable("this was unexpected");
+}
+
 /* does instruction 'prior' need to be scheduled before 'instr'? */
 static bool
 depends_on(struct ir3_instruction *instr, struct ir3_instruction *prior)
@@ -819,7 +833,22 @@ depends_on(struct ir3_instruction *instr, struct ir3_instruction *prior)
 	if (((instr->barrier_class & IR3_BARRIER_EVERYTHING) && prior->barrier_class) ||
 			((prior->barrier_class & IR3_BARRIER_EVERYTHING) && instr->barrier_class))
 		return true;
-	return !!(instr->barrier_class & prior->barrier_conflict);
+
+	if (instr->barrier_class & prior->barrier_conflict) {
+		if (!(instr->barrier_class & ~(IR3_BARRIER_ARRAY_R | IR3_BARRIER_ARRAY_W))) {
+			/* if only array barrier, then we can further limit false-deps
+			 * by considering the array-id, ie reads/writes to different
+			 * arrays do not depend on each other (no aliasing)
+			 */
+			if (get_array_id(instr) != get_array_id(prior)) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	return false;
 }
 
 static void

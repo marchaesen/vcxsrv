@@ -327,7 +327,7 @@ struct pipe_context {
    void (*set_sampler_views)(struct pipe_context *,
                              enum pipe_shader_type shader,
                              unsigned start_slot, unsigned num_views,
-                             struct pipe_sampler_view **);
+                             struct pipe_sampler_view **views);
 
    void (*set_tess_state)(struct pipe_context *,
                           const float default_outer_level[4],

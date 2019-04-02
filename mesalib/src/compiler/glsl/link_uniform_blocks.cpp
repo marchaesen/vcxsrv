@@ -68,7 +68,7 @@ private:
                              bool row_major,
                              const enum glsl_interface_packing packing)
    {
-      assert(type->is_record());
+      assert(type->is_struct());
       if (packing == GLSL_INTERFACE_PACKING_STD430)
          this->offset = glsl_align(
             this->offset, type->std430_base_alignment(row_major));
@@ -81,7 +81,7 @@ private:
                              bool row_major,
                              const enum glsl_interface_packing packing)
    {
-      assert(type->is_record());
+      assert(type->is_struct());
 
       /* If this is the last field of a structure, apply rule #9.  The
        * ARB_uniform_buffer_object spec says:

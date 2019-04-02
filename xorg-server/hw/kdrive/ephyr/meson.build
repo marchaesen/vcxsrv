@@ -38,7 +38,7 @@ if build_xv
     xephyr_dep += dependency('xcb-xv')
 endif
 
-executable(
+xephyr_server = executable(
     'Xephyr',
     srcs,
     include_directories: [

@@ -103,7 +103,7 @@ ir_structure_reference_visitor::get_variable_entry(ir_variable *var)
 {
    assert(var);
 
-   if (!var->type->is_record() ||
+   if (!var->type->is_struct() ||
        var->data.mode == ir_var_uniform || var->data.mode == ir_var_shader_storage ||
        var->data.mode == ir_var_shader_in || var->data.mode == ir_var_shader_out)
       return NULL;
@@ -206,7 +206,7 @@ ir_structure_splitting_visitor::get_splitting_entry(ir_variable *var)
 {
    assert(var);
 
-   if (!var->type->is_record())
+   if (!var->type->is_struct())
       return NULL;
 
    foreach_in_list(variable_entry, entry, this->variable_list) {

@@ -25,6 +25,7 @@
 #include "st_cb_bitmap.h"
 #include "st_cb_drawtex.h"
 #include "st_nir.h"
+#include "st_util.h"
 
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"
@@ -126,7 +127,7 @@ lookup_shader(struct st_context *st,
    }
 
    enum pipe_shader_ir preferred_ir =
-      screen->get_shader_param(screen, MESA_SHADER_VERTEX,
+      screen->get_shader_param(screen, PIPE_SHADER_VERTEX,
                                PIPE_SHADER_CAP_PREFERRED_IR);
 
    if (preferred_ir == PIPE_SHADER_IR_NIR) {

@@ -11,11 +11,13 @@
 #include <wchar.h>
 #include <wctype.h>
 
-#include "defs.h"
+#include "putty.h"
+#include "terminal.h"
 #include "misc.h"
 #include "marshal.h"
 
 #define SCC_BUFSIZE 64
+#define LINE_LIMIT 77
 
 typedef struct StripCtrlCharsImpl StripCtrlCharsImpl;
 struct StripCtrlCharsImpl {
@@ -27,15 +29,26 @@ struct StripCtrlCharsImpl {
     char buf[SCC_BUFSIZE];
     size_t buflen;
 
+    Terminal *term;
+    bool last_term_utf;
+    struct term_utf8_decode utf8;
+    unsigned long (*translate)(Terminal *, term_utf8_decode *, unsigned char);
+
+    bool line_limit;
+    bool line_start;
+    size_t line_chars_remaining;
+
     BinarySink *bs_out;
 
     StripCtrlChars public;
 };
 
-static void stripctrl_BinarySink_write(
+static void stripctrl_locale_BinarySink_write(
+    BinarySink *bs, const void *vp, size_t len);
+static void stripctrl_term_BinarySink_write(
     BinarySink *bs, const void *vp, size_t len);
 
-StripCtrlChars *stripctrl_new(
+static StripCtrlCharsImpl *stripctrl_new_common(
     BinarySink *bs_out, bool permit_cr, wchar_t substitution)
 {
     StripCtrlCharsImpl *scc = snew(StripCtrlCharsImpl);
@@ -43,8 +56,58 @@ StripCtrlChars *stripctrl_new(
     scc->bs_out = bs_out;
     scc->permit_cr = permit_cr;
     scc->substitution = substitution;
-    BinarySink_INIT(&scc->public, stripctrl_BinarySink_write);
+    return scc;
+}
+
+StripCtrlChars *stripctrl_new(
+    BinarySink *bs_out, bool permit_cr, wchar_t substitution)
+{
+    StripCtrlCharsImpl *scc = stripctrl_new_common(
+        bs_out, permit_cr, substitution);
+    BinarySink_INIT(&scc->public, stripctrl_locale_BinarySink_write);
     return &scc->public;
+}
+
+StripCtrlChars *stripctrl_new_term_fn(
+    BinarySink *bs_out, bool permit_cr, wchar_t substitution,
+    Terminal *term, unsigned long (*translate)(
+        Terminal *, term_utf8_decode *, unsigned char))
+{
+    StripCtrlCharsImpl *scc = stripctrl_new_common(
+        bs_out, permit_cr, substitution);
+    scc->term = term;
+    scc->translate = translate;
+    BinarySink_INIT(&scc->public, stripctrl_term_BinarySink_write);
+    return &scc->public;
+}
+
+void stripctrl_retarget(StripCtrlChars *sccpub, BinarySink *new_bs_out)
+{
+    StripCtrlCharsImpl *scc =
+        container_of(sccpub, StripCtrlCharsImpl, public);
+    scc->bs_out = new_bs_out;
+    stripctrl_reset(sccpub);
+}
+
+void stripctrl_reset(StripCtrlChars *sccpub)
+{
+    StripCtrlCharsImpl *scc =
+        container_of(sccpub, StripCtrlCharsImpl, public);
+
+    /*
+     * Clear all the fields that might have been in the middle of a
+     * multibyte character or non-default shift state, so that we can
+     * start converting a fresh piece of data to send to a channel
+     * that hasn't seen the previous output.
+     */
+    memset(&scc->utf8, 0, sizeof(scc->utf8));
+    memset(&scc->mbs_in, 0, sizeof(scc->mbs_in));
+    memset(&scc->mbs_out, 0, sizeof(scc->mbs_out));
+
+    /*
+     * Also, reset the line-limiting system to its starting state.
+     */
+    scc->line_start = true;
 }
 
 void stripctrl_free(StripCtrlChars *sccpub)
@@ -55,9 +118,48 @@ void stripctrl_free(StripCtrlChars *sccpub)
     sfree(scc);
 }
 
-static inline void stripctrl_put_wc(StripCtrlCharsImpl *scc, wchar_t wc)
+void stripctrl_enable_line_limiting(StripCtrlChars *sccpub)
 {
-    if (wc == L'\n' || (wc == L'\r' && scc->permit_cr) || iswprint(wc)) {
+    StripCtrlCharsImpl *scc =
+        container_of(sccpub, StripCtrlCharsImpl, public);
+    scc->line_limit = true;
+    scc->line_start = true;
+}
+
+static inline bool stripctrl_ctrlchar_ok(StripCtrlCharsImpl *scc, wchar_t wc)
+{
+    return wc == L'\n' || (wc == L'\r' && scc->permit_cr);
+}
+
+static inline void stripctrl_check_line_limit(
+    StripCtrlCharsImpl *scc, wchar_t wc, size_t width)
+{
+    if (!scc->line_limit)
+        return;                        /* nothing to do */
+
+    if (scc->line_start) {
+        put_datapl(scc->bs_out, PTRLEN_LITERAL("| "));
+        scc->line_start = false;
+        scc->line_chars_remaining = LINE_LIMIT;
+    }
+
+    if (wc == '\n') {
+        scc->line_start = true;
+        return;
+    }
+
+    if (scc->line_chars_remaining < width) {
+        put_datapl(scc->bs_out, PTRLEN_LITERAL("\r\n> "));
+        scc->line_chars_remaining = LINE_LIMIT;
+    }
+
+    assert(width <= scc->line_chars_remaining);
+    scc->line_chars_remaining -= width;
+}
+
+static inline void stripctrl_locale_put_wc(StripCtrlCharsImpl *scc, wchar_t wc)
+{
+    if (iswprint(wc) || stripctrl_ctrlchar_ok(scc, wc)) {
         /* Printable character, or one we're going to let through anyway. */
     } else if (scc->substitution) {
         wc = scc->substitution;
@@ -66,13 +168,69 @@ static inline void stripctrl_put_wc(StripCtrlCharsImpl *scc, wchar_t wc)
         return;
     }
 
+    stripctrl_check_line_limit(scc, wc, mk_wcwidth(wc));
+
     char outbuf[MB_LEN_MAX];
     size_t produced = wcrtomb(outbuf, wc, &scc->mbs_out);
     if (produced > 0)
         put_data(scc->bs_out, outbuf, produced);
 }
 
-static inline size_t stripctrl_try_consume(
+static inline void stripctrl_term_put_wc(
+    StripCtrlCharsImpl *scc, unsigned long wc)
+{
+    ptrlen prefix = PTRLEN_LITERAL("");
+
+    if (!(wc & ~0x9F)) {
+        /* This is something the terminal interprets as a control
+         * character. */
+        if (!stripctrl_ctrlchar_ok(scc, wc)) {
+            if (!scc->substitution)
+                return;
+            else
+                wc = scc->substitution;
+        }
+
+        if (wc == '\012') {
+            /* Precede \n with \r, because our terminal will not
+             * generally be in the ONLCR mode where it assumes that
+             * internally, and any \r on input has been stripped
+             * out. */
+            prefix = PTRLEN_LITERAL("\r");
+        }
+    }
+
+    stripctrl_check_line_limit(scc, wc, term_char_width(scc->term, wc));
+
+    if (prefix.len)
+        put_datapl(scc->bs_out, prefix);
+
+    char outbuf[6];
+    size_t produced;
+
+    /*
+     * The Terminal implementation encodes 7-bit ASCII characters in
+     * UTF-8 mode, and all printing characters in non-UTF-8 (i.e.
+     * single-byte character set) mode, as values in the surrogate
+     * range (a conveniently unused piece of space in this context)
+     * whose low byte is the original 1-byte representation of the
+     * character.
+     */
+    if ((wc - 0xD800) < (0xE000 - 0xD800))
+        wc &= 0xFF;
+
+    if (in_utf(scc->term)) {
+        produced = encode_utf8(outbuf, wc);
+    } else {
+        outbuf[0] = wc;
+        produced = 1;
+    }
+
+    if (produced > 0)
+        put_data(scc->bs_out, outbuf, produced);
+}
+
+static inline size_t stripctrl_locale_try_consume(
     StripCtrlCharsImpl *scc, const char *p, size_t len)
 {
     wchar_t wc;
@@ -115,7 +273,7 @@ static inline size_t stripctrl_try_consume(
          * some way other than a single zero byte - then probably lots
          * of other things will have gone wrong before we get here!)
          */
-        stripctrl_put_wc(scc, L'\0');
+        stripctrl_locale_put_wc(scc, L'\0');
         return 1;
     }
 
@@ -123,11 +281,11 @@ static inline size_t stripctrl_try_consume(
      * Otherwise, this is the easy case: consumed > 0, and we've eaten
      * a valid multibyte character.
      */
-    stripctrl_put_wc(scc, wc);
+    stripctrl_locale_put_wc(scc, wc);
     return consumed;
 }
 
-static void stripctrl_BinarySink_write(
+static void stripctrl_locale_BinarySink_write(
     BinarySink *bs, const void *vp, size_t len)
 {
     StripCtrlChars *sccpub = BinarySink_DOWNCAST(bs, StripCtrlChars);
@@ -148,7 +306,7 @@ static void stripctrl_BinarySink_write(
             to_copy = len;
 
         memcpy(scc->buf + scc->buflen, p, to_copy);
-        size_t consumed = stripctrl_try_consume(
+        size_t consumed = stripctrl_locale_try_consume(
             scc, scc->buf, scc->buflen + to_copy);
 
         if (consumed >= scc->buflen) {
@@ -203,7 +361,7 @@ static void stripctrl_BinarySink_write(
      * Now charge along the main string.
      */
     while (len > 0) {
-        size_t consumed = stripctrl_try_consume(scc, p, len);
+        size_t consumed = stripctrl_locale_try_consume(scc, p, len);
         if (consumed == 0)
             break;
         assert(consumed <= len);
@@ -223,19 +381,49 @@ static void stripctrl_BinarySink_write(
     setlocale(LC_CTYPE, previous_locale);
 }
 
-char *stripctrl_string_ptrlen(ptrlen str)
+static void stripctrl_term_BinarySink_write(
+    BinarySink *bs, const void *vp, size_t len)
+{
+    StripCtrlChars *sccpub = BinarySink_DOWNCAST(bs, StripCtrlChars);
+    StripCtrlCharsImpl *scc =
+        container_of(sccpub, StripCtrlCharsImpl, public);
+
+    bool utf = in_utf(scc->term);
+    if (utf != scc->last_term_utf) {
+        scc->last_term_utf = utf;
+        scc->utf8.state = 0;
+    }
+
+    for (const unsigned char *p = (const unsigned char *)vp;
+         len > 0; len--, p++) {
+        unsigned long t = scc->translate(scc->term, &scc->utf8, *p);
+        if (t == UCSTRUNCATED) {
+            stripctrl_term_put_wc(scc, 0xFFFD);
+            /* go round again */
+            t = scc->translate(scc->term, &scc->utf8, *p);
+        }
+        if (t == UCSINCOMPLETE)
+            continue;
+        if (t == UCSINVALID)
+            t = 0xFFFD;
+
+        stripctrl_term_put_wc(scc, t);
+    }
+}
+
+char *stripctrl_string_ptrlen(StripCtrlChars *sccpub, ptrlen str)
 {
     strbuf *out = strbuf_new();
-    StripCtrlChars *scc = stripctrl_new(BinarySink_UPCAST(out), false, L'?');
-    put_datapl(scc, str);
-    stripctrl_free(scc);
+    stripctrl_retarget(sccpub, BinarySink_UPCAST(out));
+    put_datapl(sccpub, str);
+    stripctrl_retarget(sccpub, NULL);
     return strbuf_to_str(out);
 }
 
 #ifdef STRIPCTRL_TEST
 
 /*
-gcc -DSTRIPCTRL_TEST -o scctest stripctrl.c marshal.c utils.c memory.c
+gcc -std=c99 -DSTRIPCTRL_TEST -o scctest stripctrl.c marshal.c utils.c memory.c wcwidth.c -I . -I unix -I charset
 */
 
 void out_of_memory(void) { fprintf(stderr, "out of memory\n"); abort(); }
@@ -261,7 +449,7 @@ int main(void)
 {
     struct foo { BinarySink_IMPLEMENTATION; } foo;
     BinarySink_INIT(&foo, stripctrl_write);
-    StripCtrlChars *scc = stripctrl_new(BinarySink_UPCAST(&foo));
+    StripCtrlChars *scc = stripctrl_new(BinarySink_UPCAST(&foo), false, '?');
     stripctrl_test(scc, PTRLEN_LITERAL("a\033[1mb"));
     stripctrl_test(scc, PTRLEN_LITERAL("a\xC2\x9B[1mb"));
     stripctrl_test(scc, PTRLEN_LITERAL("a\xC2\xC2[1mb"));

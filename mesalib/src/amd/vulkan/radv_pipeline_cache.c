@@ -255,18 +255,23 @@ bool
 radv_create_shader_variants_from_pipeline_cache(struct radv_device *device,
 					        struct radv_pipeline_cache *cache,
 					        const unsigned char *sha1,
-					        struct radv_shader_variant **variants)
+					        struct radv_shader_variant **variants,
+						bool *found_in_application_cache)
 {
 	struct cache_entry *entry;
 
-	if (!cache)
+	if (!cache) {
 		cache = device->mem_cache;
+		*found_in_application_cache = false;
+	}
 
 	pthread_mutex_lock(&cache->mutex);
 
 	entry = radv_pipeline_cache_search_unlocked(cache, sha1);
 
 	if (!entry) {
+		*found_in_application_cache = false;
+
 		/* Don't cache when we want debug info, since this isn't
 		 * present in the cache.
 		 */

@@ -51,10 +51,10 @@ FcDirCacheCreateUUID (FcChar8  *dir,
 		      FcBool    force,
 		      FcConfig *config)
 {
-    const FcChar8 *sysroot = FcConfigGetSysRoot (config);
-    FcChar8 *target;
     FcBool ret = FcTrue;
 #ifndef _WIN32
+    const FcChar8 *sysroot = FcConfigGetSysRoot (config);
+    FcChar8 *target;
     FcChar8 *uuidname;
 
     if (sysroot)
@@ -154,9 +154,10 @@ FcBool
 FcDirCacheDeleteUUID (const FcChar8  *dir,
 		      FcConfig       *config)
 {
+    FcBool ret = FcTrue;
+#ifndef _WIN32
     const FcChar8 *sysroot = FcConfigGetSysRoot (config);
     FcChar8 *target, *d;
-    FcBool ret = FcTrue;
     struct stat statb;
     struct timeval times[2];
 
@@ -191,6 +192,7 @@ FcDirCacheDeleteUUID (const FcChar8  *dir,
     FcStrFree (target);
 bail:
     FcStrFree (d);
+#endif
 
     return ret;
 }

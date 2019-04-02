@@ -100,6 +100,24 @@ extern bool
 _mesa_all_buffers_are_unmapped(const struct gl_vertex_array_object *vao);
 
 
+extern void
+_mesa_vao_map_arrays(struct gl_context *ctx, struct gl_vertex_array_object *vao,
+                     GLbitfield access);
+
+extern void
+_mesa_vao_map(struct gl_context *ctx, struct gl_vertex_array_object *vao,
+              GLbitfield access);
+
+
+extern void
+_mesa_vao_unmap_arrays(struct gl_context *ctx,
+                       struct gl_vertex_array_object *vao);
+
+extern void
+_mesa_vao_unmap(struct gl_context *ctx,
+                struct gl_vertex_array_object *vao);
+
+
 /**
  * Array to apply the position/generic0 aliasing map to
  * an attribute value used in vertex processing inputs to an attribute

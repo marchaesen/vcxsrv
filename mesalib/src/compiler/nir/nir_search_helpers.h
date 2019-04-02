@@ -110,6 +110,33 @@ is_zero_to_one(nir_alu_instr *instr, unsigned src, unsigned num_components,
 }
 
 static inline bool
+is_not_const_zero(nir_alu_instr *instr, unsigned src, unsigned num_components,
+                  const uint8_t *swizzle)
+{
+   if (nir_src_as_const_value(instr->src[src].src) == NULL)
+      return true;
+
+   for (unsigned i = 0; i < num_components; i++) {
+      switch (nir_op_infos[instr->op].input_types[src]) {
+      case nir_type_float:
+         if (nir_src_comp_as_float(instr->src[src].src, swizzle[i]) == 0.0)
+            return false;
+         break;
+      case nir_type_bool:
+      case nir_type_int:
+      case nir_type_uint:
+         if (nir_src_comp_as_uint(instr->src[src].src, swizzle[i]) == 0)
+            return false;
+         break;
+      default:
+         return false;
+      }
+   }
+
+   return true;
+}
+
+static inline bool
 is_not_const(nir_alu_instr *instr, unsigned src, UNUSED unsigned num_components,
              UNUSED const uint8_t *swizzle)
 {

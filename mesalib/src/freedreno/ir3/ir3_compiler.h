@@ -63,6 +63,10 @@ struct ir3_compiler {
 	 * index coordinate:
 	 */
 	bool array_index_add_half;
+
+	/* on a6xx, rewrite samgp to sequence of samgq0-3 in vertex shaders:
+	 */
+	bool samgq_workaround;
 };
 
 struct ir3_compiler * ir3_compiler_create(struct fd_device *dev, uint32_t gpu_id);
@@ -76,6 +80,7 @@ enum ir3_shader_debug {
 	IR3_DBG_SHADER_CS = 0x04,
 	IR3_DBG_DISASM    = 0x08,
 	IR3_DBG_OPTMSGS   = 0x10,
+	IR3_DBG_FORCES2EN = 0x20,
 };
 
 extern enum ir3_shader_debug ir3_shader_debug;

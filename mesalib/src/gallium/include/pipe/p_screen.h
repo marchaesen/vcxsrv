@@ -442,6 +442,19 @@ struct pipe_screen {
     * \param uuid    pointer to a memory region of PIPE_UUID_SIZE bytes
     */
    void (*get_device_uuid)(struct pipe_screen *screen, char *uuid);
+
+   /**
+    * Set the maximum number of parallel shader compiler threads.
+    */
+   void (*set_max_shader_compiler_threads)(struct pipe_screen *screen,
+                                           unsigned max_threads);
+
+   /**
+    * Return whether parallel shader compilation has finished.
+    */
+   bool (*is_parallel_shader_compilation_finished)(struct pipe_screen *screen,
+                                                   void *shader,
+                                                   unsigned shader_type);
 };
 
 

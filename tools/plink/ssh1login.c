@@ -57,6 +57,9 @@ struct ssh1_login_state {
     RSAKey servkey, hostkey;
     bool want_user_input;
 
+    StripCtrlChars *tis_scc;
+    bool tis_scc_initialised;
+
     PacketProtocolLayer ppl;
 };
 
@@ -134,6 +137,8 @@ static PktIn *ssh1_login_pop(struct ssh1_login_state *s)
         return NULL;
     return pq_pop(s->ppl.in_pq);
 }
+
+static void ssh1_login_setup_tis_scc(struct ssh1_login_state *s);
 
 static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
 {
@@ -295,11 +300,11 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
                 ppl_logevent("AES not supported in SSH-1, skipping");
             } else {
                 switch (next_cipher) {
-                  case CIPHER_3DES:     s->cipher_type = SSH_CIPHER_3DES;
+                  case CIPHER_3DES:     s->cipher_type = SSH1_CIPHER_3DES;
                     cipher_string = "3DES"; break;
-                  case CIPHER_BLOWFISH: s->cipher_type = SSH_CIPHER_BLOWFISH;
+                  case CIPHER_BLOWFISH: s->cipher_type = SSH1_CIPHER_BLOWFISH;
                     cipher_string = "Blowfish"; break;
-                  case CIPHER_DES:      s->cipher_type = SSH_CIPHER_DES;
+                  case CIPHER_DES:      s->cipher_type = SSH1_CIPHER_DES;
                     cipher_string = "single-DES"; break;
                 }
                 if (s->supported_ciphers_mask & (1 << s->cipher_type))
@@ -307,7 +312,7 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
             }
         }
         if (!cipher_chosen) {
-            if ((s->supported_ciphers_mask & (1 << SSH_CIPHER_3DES)) == 0) {
+            if ((s->supported_ciphers_mask & (1 << SSH1_CIPHER_3DES)) == 0) {
                 ssh_proto_error(s->ppl.ssh, "Server violates SSH-1 protocol "
                                 "by not supporting 3DES encryption");
             } else {
@@ -331,13 +336,13 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
     }
 
     switch (s->cipher_type) {
-      case SSH_CIPHER_3DES:
+      case SSH1_CIPHER_3DES:
         ppl_logevent("Using 3DES encryption");
         break;
-      case SSH_CIPHER_DES:
+      case SSH1_CIPHER_DES:
         ppl_logevent("Using single-DES encryption");
         break;
-      case SSH_CIPHER_BLOWFISH:
+      case SSH1_CIPHER_BLOWFISH:
         ppl_logevent("Using Blowfish encryption");
         break;
     }
@@ -364,8 +369,8 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
 
     {
         const ssh_cipheralg *cipher =
-            (s->cipher_type == SSH_CIPHER_BLOWFISH ? &ssh_blowfish_ssh1 :
-             s->cipher_type == SSH_CIPHER_DES ? &ssh_des : &ssh_3des_ssh1);
+            (s->cipher_type == SSH1_CIPHER_BLOWFISH ? &ssh_blowfish_ssh1 :
+             s->cipher_type == SSH1_CIPHER_DES ? &ssh_des : &ssh_3des_ssh1);
         ssh1_bpp_new_cipher(s->ppl.bpp, cipher, s->session_key);
     }
 
@@ -383,6 +388,7 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
     if ((s->username = get_remote_username(s->conf)) == NULL) {
         s->cur_prompt = new_prompts();
         s->cur_prompt->to_server = true;
+        s->cur_prompt->from_server = false;
         s->cur_prompt->name = dupstr("SSH login name");
         add_prompt(s->cur_prompt, dupstr("login as: "), true);
         s->userpass_ret = seat_get_userpass_input(
@@ -641,6 +647,7 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
                 } else {
                     s->cur_prompt = new_prompts(s->ppl.seat);
                     s->cur_prompt->to_server = false;
+                    s->cur_prompt->from_server = false;
                     s->cur_prompt->name = dupstr("SSH key passphrase");
                     add_prompt(s->cur_prompt,
                                dupprintf("Passphrase for key \"%s\": ",
@@ -782,6 +789,7 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
         if (conf_get_bool(s->conf, CONF_try_tis_auth) &&
             (s->supported_auths_mask & (1 << SSH1_AUTH_TIS)) &&
             !s->tis_auth_refused) {
+            ssh1_login_setup_tis_scc(s);
             s->pwpkt_type = SSH1_CMSG_AUTH_TIS_RESPONSE;
             ppl_logevent("Requested TIS authentication");
             pkt = ssh_bpp_new_pktout(s->ppl.bpp, SSH1_CMSG_AUTH_TIS);
@@ -794,10 +802,7 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
                 s->tis_auth_refused = true;
                 continue;
             } else if (pktin->type == SSH1_SMSG_AUTH_TIS_CHALLENGE) {
-                ptrlen challenge;
-                char *instr_suf, *prompt;
-
-                challenge = get_string(pktin);
+                ptrlen challenge = get_string(pktin);
                 if (get_err(pktin)) {
                     ssh_proto_error(s->ppl.ssh, "TIS challenge packet was "
                                     "badly formed");
@@ -805,22 +810,30 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
                 }
                 ppl_logevent("Received TIS challenge");
                 s->cur_prompt->to_server = true;
+                s->cur_prompt->from_server = true;
                 s->cur_prompt->name = dupstr("SSH TIS authentication");
-                /* Prompt heuristic comes from OpenSSH */
-                if (!memchr(challenge.ptr, '\n', challenge.len)) {
-                    instr_suf = dupstr("");
-                    prompt = mkstr(challenge);
+
+                strbuf *sb = strbuf_new();
+                put_datapl(sb, PTRLEN_LITERAL("\
+-- TIS authentication challenge from server: ---------------------------------\
+\r\n"));
+                if (s->tis_scc) {
+                    stripctrl_retarget(s->tis_scc, BinarySink_UPCAST(sb));
+                    put_datapl(s->tis_scc, challenge);
+                    stripctrl_retarget(s->tis_scc, NULL);
                 } else {
-                    instr_suf = mkstr(challenge);
-                    prompt = dupstr("Response: ");
+                    put_datapl(sb, challenge);
                 }
-                s->cur_prompt->instruction =
-                    dupprintf("Using TIS authentication.%s%s",
-                              (*instr_suf) ? "\n" : "",
-                              instr_suf);
+                if (!ptrlen_endswith(challenge, PTRLEN_LITERAL("\n"), NULL))
+                    put_datapl(sb, PTRLEN_LITERAL("\r\n"));
+                put_datapl(sb, PTRLEN_LITERAL("\
+-- End of TIS authentication challenge from server: --------------------------\
+\r\n"));
+
+                s->cur_prompt->instruction = strbuf_to_str(sb);
                 s->cur_prompt->instr_reqd = true;
-                add_prompt(s->cur_prompt, prompt, false);
-                sfree(instr_suf);
+                add_prompt(s->cur_prompt, dupstr(
+                               "TIS authentication response: "), false);
             } else {
                 ssh_proto_error(s->ppl.ssh, "Received unexpected packet"
                                 " in response to TIS authentication, "
@@ -831,6 +844,7 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
         } else if (conf_get_bool(s->conf, CONF_try_tis_auth) &&
             (s->supported_auths_mask & (1 << SSH1_AUTH_CCARD)) &&
             !s->ccard_auth_refused) {
+            ssh1_login_setup_tis_scc(s);
             s->pwpkt_type = SSH1_CMSG_AUTH_CCARD_RESPONSE;
             ppl_logevent("Requested CryptoCard authentication");
             pkt = ssh_bpp_new_pktout(s->ppl.bpp, SSH1_CMSG_AUTH_CCARD);
@@ -842,10 +856,7 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
                 s->ccard_auth_refused = true;
                 continue;
             } else if (pktin->type == SSH1_SMSG_AUTH_CCARD_CHALLENGE) {
-                ptrlen challenge;
-                char *instr_suf, *prompt;
-
-                challenge = get_string(pktin);
+                ptrlen challenge = get_string(pktin);
                 if (get_err(pktin)) {
                     ssh_proto_error(s->ppl.ssh, "CryptoCard challenge packet "
                                     "was badly formed");
@@ -853,23 +864,30 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
                 }
                 ppl_logevent("Received CryptoCard challenge");
                 s->cur_prompt->to_server = true;
+                s->cur_prompt->from_server = true;
                 s->cur_prompt->name = dupstr("SSH CryptoCard authentication");
-                s->cur_prompt->name_reqd = false;
-                /* Prompt heuristic comes from OpenSSH */
-                if (!memchr(challenge.ptr, '\n', challenge.len)) {
-                    instr_suf = dupstr("");
-                    prompt = mkstr(challenge);
+
+                strbuf *sb = strbuf_new();
+                put_datapl(sb, PTRLEN_LITERAL("\
+-- CryptoCard authentication challenge from server: --------------------------\
+\r\n"));
+                if (s->tis_scc) {
+                    stripctrl_retarget(s->tis_scc, BinarySink_UPCAST(sb));
+                    put_datapl(s->tis_scc, challenge);
+                    stripctrl_retarget(s->tis_scc, NULL);
                 } else {
-                    instr_suf = mkstr(challenge);
-                    prompt = dupstr("Response: ");
+                    put_datapl(sb, challenge);
                 }
-                s->cur_prompt->instruction =
-                    dupprintf("Using CryptoCard authentication.%s%s",
-                              (*instr_suf) ? "\n" : "",
-                              instr_suf);
+                if (!ptrlen_endswith(challenge, PTRLEN_LITERAL("\n"), NULL))
+                    put_datapl(sb, PTRLEN_LITERAL("\r\n"));
+                put_datapl(sb, PTRLEN_LITERAL("\
+-- End of CryptoCard authentication challenge from server: -------------------\
+\r\n"));
+
+                s->cur_prompt->instruction = strbuf_to_str(sb);
                 s->cur_prompt->instr_reqd = true;
-                add_prompt(s->cur_prompt, prompt, false);
-                sfree(instr_suf);
+                add_prompt(s->cur_prompt, dupstr(
+                               "CryptoCard authentication response: "), false);
             } else {
                 ssh_proto_error(s->ppl.ssh, "Received unexpected packet"
                                 " in response to TIS authentication, "
@@ -885,6 +903,7 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
                 return;
             }
             s->cur_prompt->to_server = true;
+            s->cur_prompt->from_server = false;
             s->cur_prompt->name = dupstr("SSH password");
             add_prompt(s->cur_prompt, dupprintf("%s@%s's password: ",
                                                 s->username, s->savedhost),
@@ -1078,6 +1097,16 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
     }
 
     crFinishV;
+}
+
+static void ssh1_login_setup_tis_scc(struct ssh1_login_state *s)
+{
+    if (s->tis_scc_initialised)
+        return;
+    s->tis_scc = seat_stripctrl_new(s->ppl.seat, NULL, SIC_KI_PROMPTS);
+    if (s->tis_scc)
+        stripctrl_enable_line_limiting(s->tis_scc);
+    s->tis_scc_initialised = true;
 }
 
 static void ssh1_login_dialog_callback(void *loginv, int ret)

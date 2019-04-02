@@ -35,7 +35,10 @@ ir3_SOURCES := \
 	ir3/ir3_legalize.c \
 	ir3/ir3_nir.c \
 	ir3/ir3_nir.h \
+	ir3/ir3_nir_analyze_ubo_ranges.c \
+	ir3/ir3_nir_lower_io_offsets.c \
 	ir3/ir3_nir_lower_tg4_to_tex.c \
+	ir3/ir3_nir_move_varying_inputs.c \
 	ir3/ir3_print.c \
 	ir3/ir3_ra.c \
 	ir3/ir3_sched.c \

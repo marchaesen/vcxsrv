@@ -23,6 +23,40 @@ vk_api_xml = files('registry/vk.xml')
 inc_vulkan_util = include_directories('util')
 inc_vulkan_wsi = include_directories('wsi')
 
+vulkan_wsi_args = []
+vulkan_wsi_deps = []
+vulkan_wsi_list = []
+
+if with_platform_x11
+  vulkan_wsi_args += ['-DVK_USE_PLATFORM_XCB_KHR', '-DVK_USE_PLATFORM_XLIB_KHR']
+  vulkan_wsi_deps += [
+    dep_xcb,
+    dep_x11_xcb,
+    dep_xcb_dri2,
+    dep_xcb_dri3,
+    dep_xcb_present,
+    dep_xcb_sync,
+    dep_xshmfence,
+  ]
+  vulkan_wsi_list += ['xcb', 'x11']
+endif
+if with_platform_wayland
+  vulkan_wsi_args += ['-DVK_USE_PLATFORM_WAYLAND_KHR']
+  vulkan_wsi_deps += dep_wayland_client
+  vulkan_wsi_list += ['wayland']
+endif
+if with_platform_drm
+  vulkan_wsi_args += '-DVK_USE_PLATFORM_DISPLAY_KHR'
+  vulkan_wsi_deps += [dep_libdrm]
+  vulkan_wsi_list += ['drm']
+endif
+if with_xlib_lease
+  vulkan_wsi_args += '-DVK_USE_PLATFORM_XLIB_XRANDR_EXT'
+  vulkan_wsi_deps += [dep_xcb_xrandr, dep_xlib_xrandr]
+  vulkan_wsi_list += ['xlib_xrandr']
+endif
+
+
 subdir('util')
 subdir('wsi')
 if get_option('vulkan-overlay-layer')

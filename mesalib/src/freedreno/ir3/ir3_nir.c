@@ -42,13 +42,19 @@ static const nir_shader_compiler_options options = {
 		.lower_fdiv = true,
 		.lower_isign = true,
 		.lower_ldexp = true,
+		.lower_uadd_carry = true,
+		.lower_mul_high = true,
 		.fuse_ffma = true,
 		.native_integers = true,
 		.vertex_id_zero_based = true,
 		.lower_extract_byte = true,
 		.lower_extract_word = true,
-		.lower_all_io_to_temps = true,
+		.lower_all_io_to_elements = true,
 		.lower_helper_invocation = true,
+		.lower_bitfield_insert_to_shifts = true,
+		.lower_bitfield_extract_to_shifts = true,
+		.lower_bfm = true,
+		.use_interpolated_input_intrinsics = true,
 };
 
 /* we don't want to lower vertex_id to _zero_based on newer gpus: */
@@ -63,13 +69,19 @@ static const nir_shader_compiler_options options_a6xx = {
 		.lower_fdiv = true,
 		.lower_isign = true,
 		.lower_ldexp = true,
+		.lower_uadd_carry = true,
+		.lower_mul_high = true,
 		.fuse_ffma = true,
 		.native_integers = true,
 		.vertex_id_zero_based = false,
 		.lower_extract_byte = true,
 		.lower_extract_word = true,
-		.lower_all_io_to_temps = true,
+		.lower_all_io_to_elements = true,
 		.lower_helper_invocation = true,
+		.lower_bitfield_insert_to_shifts = true,
+		.lower_bitfield_extract_to_shifts = true,
+		.lower_bfm = true,
+		.use_interpolated_input_intrinsics = true,
 };
 
 const nir_shader_compiler_options *
@@ -148,6 +160,7 @@ ir3_optimize_nir(struct ir3_shader *shader, nir_shader *s,
 {
 	struct nir_lower_tex_options tex_options = {
 			.lower_rect = 0,
+			.lower_tg4_offsets = true,
 	};
 
 	if (key) {
@@ -184,6 +197,7 @@ ir3_optimize_nir(struct ir3_shader *shader, nir_shader *s,
 
 	OPT_V(s, nir_opt_global_to_local);
 	OPT_V(s, nir_lower_regs_to_ssa);
+	OPT_V(s, ir3_nir_lower_io_offsets);
 
 	if (key) {
 		if (s->info.stage == MESA_SHADER_VERTEX) {
@@ -212,10 +226,13 @@ ir3_optimize_nir(struct ir3_shader *shader, nir_shader *s,
 
 	ir3_optimize_loop(s);
 
-	/* do idiv lowering after first opt loop to give a chance for
-	 * divide by immed power-of-two to be caught first:
+	/* do ubo load and idiv lowering after first opt loop to get a chance to
+	 * propagate constants for divide by immed power-of-two and constant ubo
+	 * block/offsets:
 	 */
-	if (OPT(s, nir_lower_idiv))
+	const bool ubo_progress = OPT(s, ir3_nir_analyze_ubo_ranges, shader);
+	const bool idiv_progress = OPT(s, nir_lower_idiv);
+	if (ubo_progress || idiv_progress)
 		ir3_optimize_loop(s);
 
 	OPT_V(s, nir_remove_dead_variables, nir_var_function_temp);

@@ -409,10 +409,22 @@ void ssh_proto_error(Ssh *ssh, const char *fmt, ...);
 void ssh_sw_abort(Ssh *ssh, const char *fmt, ...);
 void ssh_user_close(Ssh *ssh, const char *fmt, ...);
 
-#define SSH_CIPHER_IDEA		1
-#define SSH_CIPHER_DES		2
-#define SSH_CIPHER_3DES		3
-#define SSH_CIPHER_BLOWFISH	6
+/* Bit positions in the SSH-1 cipher protocol word */
+#define SSH1_CIPHER_IDEA        1
+#define SSH1_CIPHER_DES         2
+#define SSH1_CIPHER_3DES        3
+#define SSH1_CIPHER_BLOWFISH    6
+
+/* The subset of those that we support, with names for selecting them
+ * on Uppity's command line */
+#define SSH1_SUPPORTED_CIPHER_LIST(X)           \
+    X(SSH1_CIPHER_3DES, "3des")                 \
+    X(SSH1_CIPHER_BLOWFISH, "blowfish")         \
+    X(SSH1_CIPHER_DES, "des")                   \
+    /* end of list */
+#define SSH1_CIPHER_LIST_MAKE_MASK(bitpos, name) | (1U << bitpos)
+#define SSH1_SUPPORTED_CIPHER_MASK \
+    (0 SSH1_SUPPORTED_CIPHER_LIST(SSH1_CIPHER_LIST_MAKE_MASK))
 
 struct ssh_key {
     const ssh_keyalg *vt;
@@ -451,6 +463,7 @@ struct ec_mcurve
 {
     MontgomeryCurve *mc;
     MontgomeryPoint *G;
+    unsigned log2_cofactor;
 };
 
 /* Edwards form curve */
@@ -739,6 +752,13 @@ struct ssh_kex {
 struct ssh_kexes {
     int nkexes;
     const ssh_kex *const *list;
+};
+
+/* Indices of the negotiation strings in the KEXINIT packet */
+enum kexlist {
+    KEXLIST_KEX, KEXLIST_HOSTKEY, KEXLIST_CSCIPHER, KEXLIST_SCCIPHER,
+    KEXLIST_CSMAC, KEXLIST_SCMAC, KEXLIST_CSCOMP, KEXLIST_SCCOMP,
+    NKEXLIST
 };
 
 struct ssh_keyalg {

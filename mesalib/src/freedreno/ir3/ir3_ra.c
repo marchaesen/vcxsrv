@@ -286,13 +286,20 @@ ir3_ra_alloc_reg_set(struct ir3_compiler *compiler)
 		/* because of transitivity, we can get away with just setting up
 		 * conflicts between the first class of full and half regs:
 		 */
-		for (unsigned j = 0; j < CLASS_REGS(0) / 2; j++) {
-			unsigned freg  = set->gpr_to_ra_reg[0][j];
-			unsigned hreg0 = set->gpr_to_ra_reg[HALF_OFFSET][(j * 2) + 0];
-			unsigned hreg1 = set->gpr_to_ra_reg[HALF_OFFSET][(j * 2) + 1];
+		for (unsigned i = 0; i < half_class_count; i++) {
+			/* NOTE there are fewer half class sizes, but they match the
+			 * first N full class sizes.. but assert in case that ever
+			 * accidentially changes:
+			 */
+			debug_assert(class_sizes[i] == half_class_sizes[i]);
+			for (unsigned j = 0; j < CLASS_REGS(i) / 2; j++) {
+				unsigned freg  = set->gpr_to_ra_reg[i][j];
+				unsigned hreg0 = set->gpr_to_ra_reg[i + HALF_OFFSET][(j * 2) + 0];
+				unsigned hreg1 = set->gpr_to_ra_reg[i + HALF_OFFSET][(j * 2) + 1];
 
-			ra_add_transitive_reg_conflict(set->regs, freg, hreg0);
-			ra_add_transitive_reg_conflict(set->regs, freg, hreg1);
+				ra_add_transitive_reg_conflict(set->regs, freg, hreg0);
+				ra_add_transitive_reg_conflict(set->regs, freg, hreg1);
+			}
 		}
 
 		// TODO also need to update q_values, but for now:

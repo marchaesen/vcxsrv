@@ -906,6 +906,9 @@ find_custom_value(struct gl_context *ctx, const struct value_desc *d, union valu
       break;
 
    /* GL_EXT_external_objects */
+   case GL_NUM_DEVICE_UUIDS_EXT:
+      v->value_int = 1;
+      break;
    case GL_DRIVER_UUID_EXT:
       _mesa_get_driver_uuid(ctx, v->value_int_4);
       break;

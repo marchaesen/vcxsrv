@@ -219,6 +219,10 @@ ntq_emit_tmu_general(struct v3d_compile *c, nir_intrinsic_instr *instr,
                 }
         }
 
+        uint32_t const_offset = 0;
+        if (nir_src_is_const(instr->src[offset_src]))
+                const_offset = nir_src_as_uint(instr->src[offset_src]);
+
         /* Make sure we won't exceed the 16-entry TMU fifo if each thread is
          * storing at the same time.
          */
@@ -227,41 +231,18 @@ ntq_emit_tmu_general(struct v3d_compile *c, nir_intrinsic_instr *instr,
 
         struct qreg offset;
         if (instr->intrinsic == nir_intrinsic_load_uniform) {
-                offset = vir_uniform(c, QUNIFORM_UBO_ADDR, 0);
-
-                /* Find what variable in the default uniform block this
-                 * uniform load is coming from.
-                 */
-                uint32_t base = nir_intrinsic_base(instr);
-                int i;
-                struct v3d_ubo_range *range = NULL;
-                for (i = 0; i < c->num_ubo_ranges; i++) {
-                        range = &c->ubo_ranges[i];
-                        if (base >= range->src_offset &&
-                            base < range->src_offset + range->size) {
-                                break;
-                        }
-                }
-                /* The driver-location-based offset always has to be within a
-                 * declared uniform range.
-                 */
-                assert(i != c->num_ubo_ranges);
-                if (!c->ubo_range_used[i]) {
-                        c->ubo_range_used[i] = true;
-                        range->dst_offset = c->next_ubo_dst_offset;
-                        c->next_ubo_dst_offset += range->size;
-                }
-
-                base = base - range->src_offset + range->dst_offset;
-
-                if (base != 0)
-                        offset = vir_ADD(c, offset, vir_uniform_ui(c, base));
+                const_offset += nir_intrinsic_base(instr);
+                offset = vir_uniform(c, QUNIFORM_UBO_ADDR,
+                                     v3d_unit_data_create(0, const_offset));
+                const_offset = 0;
         } else if (instr->intrinsic == nir_intrinsic_load_ubo) {
+                uint32_t index = nir_src_as_uint(instr->src[0]) + 1;
                 /* Note that QUNIFORM_UBO_ADDR takes a UBO index shifted up by
                  * 1 (0 is gallium's constant buffer 0).
                  */
                 offset = vir_uniform(c, QUNIFORM_UBO_ADDR,
-                                     nir_src_as_uint(instr->src[0]) + 1);
+                                     v3d_unit_data_create(index, const_offset));
+                const_offset = 0;
         } else if (is_shared) {
                 /* Shared variables have no buffer index, and all start from a
                  * common base that we set up at the start of dispatch
@@ -295,8 +276,7 @@ ntq_emit_tmu_general(struct v3d_compile *c, nir_intrinsic_instr *instr,
                 dest = vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_TMUAU);
 
         struct qinst *tmu;
-        if (nir_src_is_const(instr->src[offset_src]) &&
-            nir_src_as_uint(instr->src[offset_src]) == 0) {
+        if (nir_src_is_const(instr->src[offset_src]) && const_offset == 0) {
                 tmu = vir_MOV_dest(c, dest, offset);
         } else {
                 tmu = vir_ADD_dest(c, dest,
@@ -305,8 +285,8 @@ ntq_emit_tmu_general(struct v3d_compile *c, nir_intrinsic_instr *instr,
         }
 
         if (config != ~0) {
-                tmu->src[vir_get_implicit_uniform_src(tmu)] =
-                        vir_uniform_ui(c, config);
+                tmu->uniform = vir_get_uniform_index(c, QUNIFORM_CONSTANT,
+                                                     config);
         }
 
         if (vir_in_nonuniform_control_flow(c))
@@ -354,8 +334,7 @@ ntq_store_dest(struct v3d_compile *c, nir_dest *dest, int chan,
         if (!list_empty(&c->cur_block->instructions))
                 last_inst = (struct qinst *)c->cur_block->instructions.prev;
 
-        assert(result.file == QFILE_UNIF ||
-               (result.file == QFILE_TEMP &&
+        assert((result.file == QFILE_TEMP &&
                 last_inst && last_inst == c->defs[result.index]));
 
         if (dest->is_ssa) {
@@ -382,7 +361,8 @@ ntq_store_dest(struct v3d_compile *c, nir_dest *dest, int chan,
                 /* Insert a MOV if the source wasn't an SSA def in the
                  * previous instruction.
                  */
-                if (result.file == QFILE_UNIF) {
+                if ((vir_in_nonuniform_control_flow(c) &&
+                     c->defs[last_inst->dst.index]->qpu.sig.ldunif)) {
                         result = vir_MOV(c, result);
                         last_inst = c->defs[result.index];
                 }
@@ -662,27 +642,6 @@ add_output(struct v3d_compile *c,
 
         c->output_slots[decl_offset] =
                 v3d_slot_from_slot_and_component(slot, swizzle);
-}
-
-static void
-declare_uniform_range(struct v3d_compile *c, uint32_t start, uint32_t size)
-{
-        unsigned array_id = c->num_ubo_ranges++;
-        if (array_id >= c->ubo_ranges_array_size) {
-                c->ubo_ranges_array_size = MAX2(c->ubo_ranges_array_size * 2,
-                                                array_id + 1);
-                c->ubo_ranges = reralloc(c, c->ubo_ranges,
-                                         struct v3d_ubo_range,
-                                         c->ubo_ranges_array_size);
-                c->ubo_range_used = reralloc(c, c->ubo_range_used,
-                                             bool,
-                                             c->ubo_ranges_array_size);
-        }
-
-        c->ubo_ranges[array_id].dst_offset = 0;
-        c->ubo_ranges[array_id].src_offset = start;
-        c->ubo_ranges[array_id].size = size;
-        c->ubo_range_used[array_id] = false;
 }
 
 /**
@@ -1137,9 +1096,10 @@ emit_frag_end(struct v3d_compile *c)
                                         vir_FTOC(c, color[3])));
         }
 
+        struct qreg tlb_reg = vir_magic_reg(V3D_QPU_WADDR_TLB);
+        struct qreg tlbu_reg = vir_magic_reg(V3D_QPU_WADDR_TLBU);
         if (c->output_position_index != -1) {
-                struct qinst *inst = vir_MOV_dest(c,
-                                                  vir_reg(QFILE_TLBU, 0),
+                struct qinst *inst = vir_MOV_dest(c, tlbu_reg,
                                                   c->outputs[c->output_position_index]);
                 uint8_t tlb_specifier = TLB_TYPE_DEPTH;
 
@@ -1149,8 +1109,9 @@ emit_frag_end(struct v3d_compile *c)
                 } else
                         tlb_specifier |= TLB_DEPTH_TYPE_PER_PIXEL;
 
-                inst->src[vir_get_implicit_uniform_src(inst)] =
-                        vir_uniform_ui(c, tlb_specifier | 0xffffff00);
+                inst->uniform = vir_get_uniform_index(c, QUNIFORM_CONSTANT,
+                                                      tlb_specifier |
+                                                      0xffffff00);
                 c->writes_z = true;
         } else if (c->s->info.fs.uses_discard ||
                    !c->s->info.fs.early_fragment_tests ||
@@ -1166,8 +1127,7 @@ emit_frag_end(struct v3d_compile *c)
                  */
                 c->s->info.fs.uses_discard = true;
 
-                struct qinst *inst = vir_MOV_dest(c,
-                                                  vir_reg(QFILE_TLBU, 0),
+                struct qinst *inst = vir_MOV_dest(c, tlbu_reg,
                                                   vir_nop_reg());
                 uint8_t tlb_specifier = TLB_TYPE_DEPTH;
 
@@ -1181,8 +1141,10 @@ emit_frag_end(struct v3d_compile *c)
                         tlb_specifier |= TLB_DEPTH_TYPE_INVARIANT;
                 }
 
-                inst->src[vir_get_implicit_uniform_src(inst)] =
-                        vir_uniform_ui(c, tlb_specifier | 0xffffff00);
+                inst->uniform = vir_get_uniform_index(c,
+                                                      QUNIFORM_CONSTANT,
+                                                      tlb_specifier |
+                                                      0xffffff00);
                 c->writes_z = true;
         }
 
@@ -1218,13 +1180,13 @@ emit_frag_end(struct v3d_compile *c)
                         conf |= ((num_components - 1) <<
                                  TLB_VEC_SIZE_MINUS_1_SHIFT);
 
-                        inst = vir_MOV_dest(c, vir_reg(QFILE_TLBU, 0), color[0]);
-                        inst->src[vir_get_implicit_uniform_src(inst)] =
-                                vir_uniform_ui(c, conf);
+                        inst = vir_MOV_dest(c, tlbu_reg, color[0]);
+                        inst->uniform = vir_get_uniform_index(c,
+                                                              QUNIFORM_CONSTANT,
+                                                              conf);
 
                         for (int i = 1; i < num_components; i++) {
-                                inst = vir_MOV_dest(c, vir_reg(QFILE_TLB, 0),
-                                                    color[i]);
+                                inst = vir_MOV_dest(c, tlb_reg, color[i]);
                         }
                         break;
 
@@ -1256,26 +1218,28 @@ emit_frag_end(struct v3d_compile *c)
                                 a = vir_uniform_f(c, 1.0);
 
                         if (c->fs_key->f32_color_rb & (1 << rt)) {
-                                inst = vir_MOV_dest(c, vir_reg(QFILE_TLBU, 0), r);
-                                inst->src[vir_get_implicit_uniform_src(inst)] =
-                                        vir_uniform_ui(c, conf);
+                                inst = vir_MOV_dest(c, tlbu_reg, r);
+                                inst->uniform = vir_get_uniform_index(c,
+                                                                      QUNIFORM_CONSTANT,
+                                                                      conf);
 
                                 if (num_components >= 2)
-                                        vir_MOV_dest(c, vir_reg(QFILE_TLB, 0), g);
+                                        vir_MOV_dest(c, tlb_reg, g);
                                 if (num_components >= 3)
-                                        vir_MOV_dest(c, vir_reg(QFILE_TLB, 0), b);
+                                        vir_MOV_dest(c, tlb_reg, b);
                                 if (num_components >= 4)
-                                        vir_MOV_dest(c, vir_reg(QFILE_TLB, 0), a);
+                                        vir_MOV_dest(c, tlb_reg, a);
                         } else {
-                                inst = vir_VFPACK_dest(c, vir_reg(QFILE_TLB, 0), r, g);
+                                inst = vir_VFPACK_dest(c, tlb_reg, r, g);
                                 if (conf != ~0) {
-                                        inst->dst.file = QFILE_TLBU;
-                                        inst->src[vir_get_implicit_uniform_src(inst)] =
-                                                vir_uniform_ui(c, conf);
+                                        inst->dst = tlbu_reg;
+                                        inst->uniform = vir_get_uniform_index(c,
+                                                                              QUNIFORM_CONSTANT,
+                                                                              conf);
                                 }
 
                                 if (num_components >= 3)
-                                        inst = vir_VFPACK_dest(c, vir_reg(QFILE_TLB, 0), b, a);
+                                        inst = vir_VFPACK_dest(c, tlb_reg, b, a);
                         }
                         break;
                 }
@@ -1524,23 +1488,6 @@ ntq_setup_outputs(struct v3d_compile *c)
                         c->output_sample_mask_index = loc;
                         break;
                 }
-        }
-}
-
-static void
-ntq_setup_uniforms(struct v3d_compile *c)
-{
-        nir_foreach_variable(var, &c->s->uniforms) {
-                uint32_t vec4_count = glsl_count_attribute_slots(var->type,
-                                                                 false);
-                unsigned vec4_size = 4 * sizeof(float);
-
-                if (var->data.mode != nir_var_uniform)
-                        continue;
-
-                declare_uniform_range(c, var->data.driver_location * vec4_size,
-                                      vec4_count * vec4_size);
-
         }
 }
 
@@ -1882,10 +1829,10 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
                                 vir_BARRIERID_dest(c,
                                                    vir_reg(QFILE_MAGIC,
                                                            V3D_QPU_WADDR_SYNCU));
-                        sync->src[vir_get_implicit_uniform_src(sync)] =
-                                vir_uniform_ui(c,
-                                               0xffffff00 |
-                                               V3D_TSY_WAIT_INC_CHECK);
+                        sync->uniform =
+                                vir_get_uniform_index(c, QUNIFORM_CONSTANT,
+                                                      0xffffff00 |
+                                                      V3D_TSY_WAIT_INC_CHECK);
 
                 }
 
@@ -2352,7 +2299,6 @@ nir_to_vir(struct v3d_compile *c)
                 ntq_setup_vpm_inputs(c);
 
         ntq_setup_outputs(c);
-        ntq_setup_uniforms(c);
         ntq_setup_registers(c, &c->s->registers);
 
         /* Find the main function and emit the body. */
@@ -2513,7 +2459,6 @@ v3d_nir_to_vir(struct v3d_compile *c)
         }
 
         vir_optimize(c);
-        vir_lower_uniforms(c);
 
         vir_check_payload_w(c);
 

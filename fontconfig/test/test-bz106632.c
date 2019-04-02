@@ -45,6 +45,11 @@
 #  define FC_DIR_SEPARATOR_S       "/"
 #endif
 
+#ifdef _WIN32
+#include <direct.h>
+#define mkdir(path,mode) _mkdir(path)
+#endif
+
 #ifdef HAVE_MKDTEMP
 #define fc_mkdtemp	mkdtemp
 #else

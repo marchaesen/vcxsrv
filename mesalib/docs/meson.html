@@ -17,17 +17,32 @@
 <h1>Compilation and Installation using Meson</h1>
 
 <ul>
+  <li><a href="#intro">Introduction</a></li>
   <li><a href="#basic">Basic Usage</a></li>
+  <li><a href="#advanced">Advanced Usage</a></li>
   <li><a href="#cross-compilation">Cross-compilation and 32-bit builds</a></li>
 </ul>
 
-<h2 id="basic">1. Basic Usage</h2>
+<h2 id="intro">1. Introduction</h2>
 
-<p><strong>The Meson build system is generally considered stable and ready
-for production</strong></p>
+<p>For general information about Meson see the
+<a href="http://mesonbuild.com/">Meson website</a>.</p>
 
-<p>The meson build is tested on Linux, macOS, Cygwin and Haiku, FreeBSD,
+<p><strong>Mesa's Meson build system is generally considered stable and ready
+for production.</strong></p>
+
+<p>The Meson build of Mesa is tested on Linux, macOS, Cygwin and Haiku, FreeBSD,
 DragonflyBSD, NetBSD, and should work on OpenBSD.</p>
+
+<p>If Meson is not already installed on your system, you can typically
+install it with your package installer.  For example:</p>
+<pre>
+sudo apt-get install meson   # Ubuntu
+</pre>
+or
+<pre>
+sudo dnf install meson   # Fedora
+</pre>
 
 <p><strong>Mesa requires Meson >= 0.45.0 to build.</strong>
 
@@ -35,47 +50,73 @@ Some older versions of meson do not check that they are too old and will error
 out in odd ways.
 </p>
 
+<p>You'll also need <a href="https://ninja-build.org/">Ninja</a>.
+If it's not already installed, use apt-get or dnf to install
+the <em>ninja-build</em> package.
+</p>
+
+<h2 id="basic">2. Basic Usage</h2>
+
 <p>
 The meson program is used to configure the source directory and generates
 either a ninja build file or Visual Studio® build files. The latter must
-be enabled via the <code>--backend</code> switch, as ninja is the default backend on all
-operating systems. Meson only supports out-of-tree builds, and must be passed a
-directory to put built and generated sources into. We'll call that directory
-"build" for examples.
+be enabled via the <code>--backend</code> switch, as ninja is the default
+backend on all
+operating systems.
 </p>
 
+<p>
+Meson only supports out-of-tree builds, and must be passed a
+directory to put built and generated sources into. We'll call that directory
+"build" here.
+It's recommended to create a
+<a href="http://mesonbuild.com/Using-multiple-build-directories.html">
+separate build directory</a> for each configuration you might want to use.
+</p>
+
+
+
+</p>
+
+<p>Basic configuration is done with:</p>
+
 <pre>
-    meson build/
+meson build/
 </pre>
 
 <p>
-To see a description of your options you can run <code>meson configure</code>
-along with a build directory to view the selected options for. This will show
-your meson global arguments and project arguments, along with their defaults
-and your local settings.
+This will create the build directory.
+If any dependencies are missing, you can install them, or try to remove
+the dependency with a Meson configuration option (see below).
 </p>
 
 <p>
-Meson does not currently support listing options before configure a build
-directory, but this feature is being discussed upstream.
+To review the options which Meson chose, run:
+</p>
+<pre>
+meson configure build/
+</pre>
+
+<p>
+Meson does not currently support listing configuration options before
+running "meson build/" but this feature is being discussed upstream.
 For now, we have a <code>bin/meson-options.py</code> script that prints
 the options for you.
 If that script doesn't work for some reason, you can always look in the
-<code>meson_options.txt</code> file at the root of the project.
+<a href="https://gitlab.freedesktop.org/mesa/mesa/blob/master/meson_options.txt">
+meson_options.txt</a> file at the root of the project.
 </p>
-
-<pre>
-    meson configure build/
-</pre>
 
 <p>
-With additional arguments <code>meson configure</code> is used to change
-options on already configured build directory. All options passed to this
-command are in the form <code>-D "command"="value"</code>.
+With additional arguments <code>meson configure</code> can be used to change
+options for a previously configured build directory.
+All options passed to this command are in the form
+<code>-D "option"="value"</code>.
+For example:
 </p>
 
 <pre>
-    meson configure build/ -Dprefix=/tmp/install -Dglx=true
+meson configure build/ -Dprefix=/tmp/install -Dglx=true
 </pre>
 
 <p>
@@ -88,63 +129,109 @@ and brackets to represent an empty list (<code>-D platforms=[]</code>).
 
 <p>
 Once you've run the initial <code>meson</code> command successfully you can use
-your configured backend to build the project. With ninja, the -C option can be
-be used to point at a directory to build.
+your configured backend to build the project in your build directory:
 </p>
 
 <pre>
-    ninja -C build/
+ninja -C build/
 </pre>
 
 <p>
-Without arguments, it will produce libGL.so and/or several other libraries
-depending on the options you have chosen. Later, if you want to rebuild for a
-different configuration, you should run <code>ninja clean</code> before
-changing the configuration, or create a new out of tree build directory for
-each configuration you want to build
-<a href="http://mesonbuild.com/Using-multiple-build-directories.html">as
-recommended in the documentation</a>
+The next step is to install the Mesa libraries, drivers, etc.
+This also finishes up some final steps of the build process (such as creating
+symbolic links for drivers).  To install:
 </p>
 
+<pre>
+ninja -C build/ install
+</pre>
+
 <p>
-Autotools automatically updates translation files as part of the build process,
-meson does not do this. Instead if you want translated drirc files you will need 
-to invoke non-default targets for ninja to update them:
-<code>ninja -C build/ xmlpool-pot xmlpool-update-po xmlpool-gmo</code>
+Note: autotools automatically updates translation files (used by the DRI
+configuration tool) as part of the build process,
+Meson does not do this.  Instead, you will need do this:
 </p>
+<pre>
+ninja -C build/ xmlpool-pot xmlpool-update-po xmlpool-gmo
+</pre>
+
+<h2 id="advanced">3. Advanced Usage</h2>
 
 <dl>
-<dt><code>Environment Variables</code></dt>
-<dd><p>Meson supports the standard CC and CXX environment variables for
-changing the default compiler. Meson does support CFLAGS, CXXFLAGS, etc. But
-their use is discouraged because of the many caveats in using them. Instead it
-is recomended to use <code>-D${lang}_args</code> and
-<code>-D${lang}_link_args</code> instead. Among the benefits of these options
-is that they are guaranteed to persist across rebuilds and reconfigurations.
 
-Meson does not allow changing compiler in a configured builddir, you will need
+<dt>Installation Location</dt>
+<dd>
+<p>
+Meson default to installing libGL.so in your system's main lib/ directory
+and DRI drivers to a dri/ subdirectory.
+</p>
+<p>
+Developers will often want to install Mesa to a testing directory rather
+than the system library directory.
+This can be done with the --prefix option.  For example:
+</p>
+<pre>
+meson --prefix="${PWD}/build/install" build/
+</pre>
+<p>
+will put the final libraries and drivers into the build/install/
+directory.
+Then you can set LD_LIBRARY_PATH and LIBGL_DRIVERS_PATH to that location
+to run/test the driver.
+</p>
+<p>
+Meson also honors <code>DESTDIR</code> for installs.
+</p>
+</dd>
+
+<dt>Compiler Options</dt>
+<dd>
+<p>Meson supports the common CFLAGS, CXXFLAGS, etc. environment
+variables but their use is discouraged because of the many caveats
+in using them.
+</p>
+<p>Instead, it is recomended to use <code>-D${lang}_args</code> and
+<code>-D${lang}_link_args</code>. Among the benefits of these options
+is that they are guaranteed to persist across rebuilds and reconfigurations.
+</p>
+This example sets -fmax-errors for compiling C sources and -DMAGIC=123
+for C++ sources:
+</p>
+<p>
+<pre>
+meson builddir/ -Dc_args=-fmax-errors=10 -Dcpp_args=-DMAGIC=123
+</pre>
+</p>
+</dd>
+
+
+<dt>Compiler Specification</dt>
+<dd>
+<p>
+Meson supports the standard CC and CXX environment variables for
+changing the default compiler.  Note that Meson does not allow
+changing the compilers in a configured builddir so you will need
 to create a new build dir for a different compiler.
 </p>
-
+<p>
+This is an example of specifying the clang compilers and cleaning
+the build directory before reconfiguring with an extra C option:
+</p>
 <pre>
-    CC=clang CXX=clang++ meson build-clang
-    ninja -C build-clang
-    ninja -C build-clang clean
-    meson configure build -Dc_args="-Wno-typedef-redefinition"
-    ninja -C build-clang
+CC=clang CXX=clang++ meson build-clang
+ninja -C build-clang
+ninja -C build-clang clean
+meson configure build -Dc_args="-Wno-typedef-redefinition"
+ninja -C build-clang
 </pre>
-
 <p>
 The default compilers depends on your operating system. Meson supports most of
 the popular compilers, a complete list is available
 <a href="http://mesonbuild.com/Reference-tables.html#compiler-ids">here</a>.
 </p>
-
-<p>Meson also honors <code>DESTDIR</code> for installs</p>
 </dd>
 
-
-<dt><code>LLVM</code></dt>
+<dt>LLVM</dt>
 <dd><p>Meson includes upstream logic to wrap llvm-config using its standard
 dependency interface.
 </p></dd>
@@ -246,7 +333,7 @@ is unrelated to the <code>buildtype</code>; setting the latter to
 </dd>
 </dl>
 
-<h2 id="cross-compilation">2. Cross-compilation and 32-bit builds</h2>
+<h2 id="cross-compilation">4. Cross-compilation and 32-bit builds</h2>
 
 <p><a href="https://mesonbuild.com/Cross-compilation.html">Meson supports
 cross-compilation</a> by specifying a number of binary paths and

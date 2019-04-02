@@ -111,12 +111,18 @@ radial_write_color (double                         a,
 	if (repeat == PIXMAN_REPEAT_NONE)
 	{
 	    if (0 <= t && t <= pixman_fixed_1)
-		return write_pixel (walker, t, buffer);
+	    {
+		write_pixel (walker, t, buffer);
+		return;
+	    }
 	}
 	else
 	{
 	    if (t * dr >= mindr)
-		return write_pixel (walker, t, buffer);
+	    {
+		write_pixel (walker, t, buffer);
+		return;
+	    }
 	}
 
 	memset (buffer, 0, Bpp);
@@ -146,16 +152,28 @@ radial_write_color (double                         a,
 	if (repeat == PIXMAN_REPEAT_NONE)
 	{
 	    if (0 <= t0 && t0 <= pixman_fixed_1)
-		return write_pixel (walker, t0, buffer);
+	    {
+		write_pixel (walker, t0, buffer);
+		return;
+	    }
 	    else if (0 <= t1 && t1 <= pixman_fixed_1)
-		return write_pixel (walker, t1, buffer);
+	    {
+		write_pixel (walker, t1, buffer);
+		return;
+           }
 	}
 	else
 	{
 	    if (t0 * dr >= mindr)
-		return write_pixel (walker, t0, buffer);
+	    {
+		write_pixel (walker, t0, buffer);
+		return;
+	    }
 	    else if (t1 * dr >= mindr)
-		return write_pixel (walker, t1, buffer);
+	    {
+		write_pixel (walker, t1, buffer);
+		return;
+	    }
 	}
     }
 

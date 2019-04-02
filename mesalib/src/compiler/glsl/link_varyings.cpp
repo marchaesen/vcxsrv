@@ -79,7 +79,7 @@ create_xfb_varying_names(void *mem_ctx, const glsl_type *t, char **name,
 
       create_xfb_varying_names(mem_ctx, ifc_member_t, name, new_length, count,
                                NULL, NULL, varying_names);
-   } else if (t->is_record()) {
+   } else if (t->is_struct()) {
       for (unsigned i = 0; i < t->length; i++) {
          const char *field = t->fields.structure[i].name;
          size_t new_length = name_length;
@@ -90,7 +90,7 @@ create_xfb_varying_names(void *mem_ctx, const glsl_type *t, char **name,
                                   new_length, count, NULL, NULL,
                                   varying_names);
       }
-   } else if (t->without_array()->is_record() ||
+   } else if (t->without_array()->is_struct() ||
               t->without_array()->is_interface() ||
               (t->is_array() && t->fields.array->is_array())) {
       for (unsigned i = 0; i < t->length; i++) {
@@ -309,16 +309,16 @@ cross_validate_types_and_qualifiers(struct gl_context *ctx,
     *    "The invariance of varyings that are declared in both the vertex
     *     and fragment shaders must match."
     */
-   if (input->data.invariant != output->data.invariant &&
+   if (input->data.explicit_invariant != output->data.explicit_invariant &&
        prog->data->Version < (prog->IsES ? 300 : 430)) {
       linker_error(prog,
                    "%s shader output `%s' %s invariant qualifier, "
                    "but %s shader input %s invariant qualifier\n",
                    _mesa_shader_stage_to_string(producer_stage),
                    output->name,
-                   (output->data.invariant) ? "has" : "lacks",
+                   (output->data.explicit_invariant) ? "has" : "lacks",
                    _mesa_shader_stage_to_string(consumer_stage),
-                   (input->data.invariant) ? "has" : "lacks");
+                   (input->data.explicit_invariant) ? "has" : "lacks");
       return;
    }
 
@@ -461,7 +461,7 @@ check_location_aliasing(struct explicit_location_info explicit_locations[][4],
                         gl_shader_stage stage)
 {
    unsigned last_comp;
-   if (type->without_array()->is_record()) {
+   if (type->without_array()->is_struct()) {
       /* The component qualifier can't be used on structs so just treat
        * all component slots as used.
        */
@@ -687,7 +687,8 @@ cross_validate_outputs_to_inputs(struct gl_context *ctx,
                                  gl_linked_shader *consumer)
 {
    glsl_symbol_table parameters;
-   struct explicit_location_info explicit_locations[MAX_VARYING][4] = { 0 };
+   struct explicit_location_info output_explicit_locations[MAX_VARYING][4] = { 0 };
+   struct explicit_location_info input_explicit_locations[MAX_VARYING][4] = { 0 };
 
    /* Find all shader outputs in the "producer" stage.
     */
@@ -705,7 +706,7 @@ cross_validate_outputs_to_inputs(struct gl_context *ctx,
           * differently because they do not need to have matching names.
           */
          if (!validate_explicit_variable_location(ctx,
-                                                  explicit_locations,
+                                                  output_explicit_locations,
                                                   var, prog, producer)) {
             return;
          }
@@ -763,6 +764,12 @@ cross_validate_outputs_to_inputs(struct gl_context *ctx,
                compute_variable_location_slot(input, consumer->Stage);
             unsigned slot_limit = idx + num_elements;
 
+            if (!validate_explicit_variable_location(ctx,
+                                                     input_explicit_locations,
+                                                     input, prog, consumer)) {
+               return;
+            }
+
             while (idx < slot_limit) {
                if (idx >= MAX_VARYING) {
                   linker_error(prog,
@@ -771,10 +778,22 @@ cross_validate_outputs_to_inputs(struct gl_context *ctx,
                   return;
                }
 
-               output = explicit_locations[idx][input->data.location_frac].var;
+               output = output_explicit_locations[idx][input->data.location_frac].var;
 
-               if (output == NULL ||
-                   input->data.location != output->data.location) {
+               if (output == NULL) {
+                  /* A linker failure should only happen when there is no
+                   * output declaration and there is Static Use of the
+                   * declared input.
+                   */
+                  if (input->data.used) {
+                     linker_error(prog,
+                                  "%s shader input `%s' with explicit location "
+                                  "has no matching output\n",
+                                  _mesa_shader_stage_to_string(consumer->Stage),
+                                  input->name);
+                     break;
+                  }
+               } else if (input->data.location != output->data.location) {
                   linker_error(prog,
                                "%s shader input `%s' with explicit location "
                                "has no matching output\n",
@@ -804,7 +823,7 @@ cross_validate_outputs_to_inputs(struct gl_context *ctx,
              */
             assert(!input->data.assigned);
             if (input->data.used && !input->get_interface_type() &&
-                !input->data.explicit_location && !prog->SeparateShader)
+                !input->data.explicit_location)
                linker_error(prog,
                             "%s shader input `%s' "
                             "has no matching output in the previous stage\n",
@@ -1166,8 +1185,7 @@ tfeedback_decl::store(struct gl_context *ctx, struct gl_shader_program *prog,
          return false;
       }
 
-      if ((this->offset / 4) / info->Buffers[buffer].Stride !=
-          (xfb_offset - 1) / info->Buffers[buffer].Stride) {
+      if (xfb_offset > info->Buffers[buffer].Stride) {
          linker_error(prog, "xfb_offset (%d) overflows xfb_stride (%d) for "
                       "buffer (%d)", xfb_offset * 4,
                       info->Buffers[buffer].Stride * 4, buffer);
@@ -1619,7 +1637,7 @@ varying_matches::is_varying_packing_safe(const glsl_type *type,
        producer_stage == MESA_SHADER_TESS_CTRL)
       return false;
 
-   return xfb_enabled && (type->is_array() || type->is_record() ||
+   return xfb_enabled && (type->is_array() || type->is_struct() ||
                           type->is_matrix() || var->data.is_xfb_only);
 }
 
@@ -1926,7 +1944,7 @@ varying_matches::store_locations() const
          if (enhanced_layouts_enabled) {
             const glsl_type *type =
                get_varying_type(producer_var, producer_stage);
-            if (type->is_array() || type->is_matrix() || type->is_record() ||
+            if (type->is_array() || type->is_matrix() || type->is_struct() ||
                 type->is_double()) {
                unsigned comp_slots = type->component_slots() + offset;
                unsigned slots = comp_slots / 4;
@@ -2158,7 +2176,7 @@ private:
                             const enum glsl_interface_packing,
                             bool /* last_field */)
    {
-      assert(!type->without_array()->is_record());
+      assert(!type->without_array()->is_struct());
       assert(!type->without_array()->is_interface());
 
       tfeedback_candidate *candidate

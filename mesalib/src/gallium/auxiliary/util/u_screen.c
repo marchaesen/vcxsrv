@@ -107,6 +107,10 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
       /* Minimum GLSL level implemented by gallium drivers. */
       return 120;
 
+   case PIPE_CAP_ESSL_FEATURE_LEVEL:
+      /* Tell state-tracker to fallback to PIPE_CAP_GLSL_FEATURE_LEVEL */
+      return 0;
+
    case PIPE_CAP_QUADS_FOLLOW_PROVOKING_VERTEX_CONVENTION:
    case PIPE_CAP_USER_VERTEX_BUFFERS:
    case PIPE_CAP_VERTEX_BUFFER_OFFSET_4BYTE_ALIGNED_ONLY:
@@ -340,6 +344,9 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
 
    case PIPE_CAP_MAX_VARYINGS:
       return 8;
+
+   case PIPE_CAP_COMPUTE_GRID_INFO_LAST_BLOCK:
+      return 0;
 
    default:
       unreachable("bad PIPE_CAP_*");

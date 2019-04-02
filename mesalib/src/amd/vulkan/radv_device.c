@@ -337,7 +337,7 @@ radv_physical_device_init(struct radv_physical_device *device,
 	    device->rad_info.chip_class > GFX9)
 		fprintf(stderr, "WARNING: radv is not a conformant vulkan implementation, testing use only.\n");
 
-	radv_get_driver_uuid(&device->device_uuid);
+	radv_get_driver_uuid(&device->driver_uuid);
 	radv_get_device_uuid(&device->rad_info, &device->device_uuid);
 
 	if (device->rad_info.family == CHIP_STONEY ||
@@ -887,6 +887,29 @@ void radv_GetPhysicalDeviceFeatures2(
 			features->depthClipEnable = true;
 			break;
 		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES_EXT: {
+			VkPhysicalDeviceHostQueryResetFeaturesEXT *features =
+				(VkPhysicalDeviceHostQueryResetFeaturesEXT *)ext;
+			features->hostQueryReset = true;
+			break;
+		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES_KHR: {
+			VkPhysicalDevice8BitStorageFeaturesKHR *features =
+			    (VkPhysicalDevice8BitStorageFeaturesKHR*)ext;
+			bool enabled = pdevice->rad_info.chip_class >= VI;
+			features->storageBuffer8BitAccess = enabled;
+			features->uniformAndStorageBuffer8BitAccess = enabled;
+			features->storagePushConstant8 = enabled;
+			break;
+		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR: {
+			VkPhysicalDeviceFloat16Int8FeaturesKHR *features =
+				(VkPhysicalDeviceFloat16Int8FeaturesKHR*)ext;
+			bool enabled = pdevice->rad_info.chip_class >= VI;
+			features->shaderFloat16 = VK_FALSE;
+			features->shaderInt8 = enabled;
+			break;
+		}
 		default:
 			break;
 		}
@@ -1016,7 +1039,7 @@ void radv_GetPhysicalDeviceProperties(
 		.maxCullDistances                         = 8,
 		.maxCombinedClipAndCullDistances          = 8,
 		.discreteQueuePriorities                  = 2,
-		.pointSizeRange                           = { 0.125, 255.875 },
+		.pointSizeRange                           = { 0.0, 8192.0 },
 		.lineWidthRange                           = { 0.0, 7.9921875 },
 		.pointSizeGranularity                     = (1.0 / 8.0),
 		.lineWidthGranularity                     = (1.0 / 128.0),
@@ -2815,7 +2838,7 @@ VkResult radv_QueueSubmit(
 	struct radeon_winsys_fence *base_fence = fence ? fence->fence : NULL;
 	struct radeon_winsys_ctx *ctx = queue->hw_ctx;
 	int ret;
-	uint32_t max_cs_submission = queue->device->trace_bo ? 1 : UINT32_MAX;
+	uint32_t max_cs_submission = queue->device->trace_bo ? 1 : RADV_MAX_IBS_PER_SUBMIT;
 	uint32_t scratch_size = 0;
 	uint32_t compute_scratch_size = 0;
 	uint32_t esgs_ring_size = 0, gsvs_ring_size = 0;
@@ -3641,7 +3664,7 @@ void radv_DestroyFence(
 }
 
 
-static uint64_t radv_get_current_time()
+uint64_t radv_get_current_time(void)
 {
 	struct timespec tv;
 	clock_gettime(CLOCK_MONOTONIC, &tv);

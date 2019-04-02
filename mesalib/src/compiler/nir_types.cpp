@@ -78,6 +78,14 @@ glsl_get_struct_field_offset(const struct glsl_type *type,
    return type->fields.structure[index].offset;
 }
 
+const struct glsl_struct_field *
+glsl_get_struct_field_data(const struct glsl_type *type, unsigned index)
+{
+   assert(type->is_struct() || type->is_interface());
+   assert(index < type->length);
+   return &type->fields.structure[index];
+}
+
 unsigned
 glsl_get_explicit_stride(const struct glsl_type *type)
 {
@@ -157,6 +165,12 @@ glsl_get_component_slots(const struct glsl_type *type)
    return type->component_slots();
 }
 
+unsigned
+glsl_varying_count(const struct glsl_type *type)
+{
+   return type->varying_count();
+}
+
 const char *
 glsl_get_struct_elem_name(const struct glsl_type *type, unsigned index)
 {
@@ -192,10 +206,10 @@ glsl_get_sampler_coordinate_components(const struct glsl_type *type)
 }
 
 unsigned
-glsl_get_record_location_offset(const struct glsl_type *type,
+glsl_get_struct_location_offset(const struct glsl_type *type,
                                 unsigned length)
 {
-   return type->record_location_offset(length);
+   return type->struct_location_offset(length);
 }
 
 bool
@@ -280,7 +294,19 @@ glsl_type_is_array_or_matrix(const struct glsl_type *type)
 bool
 glsl_type_is_struct(const struct glsl_type *type)
 {
-   return type->is_record() || type->is_interface();
+   return type->is_struct();
+}
+
+bool
+glsl_type_is_interface(const struct glsl_type *type)
+{
+   return type->is_interface();
+}
+
+bool
+glsl_type_is_struct_or_ifc(const struct glsl_type *type)
+{
+   return type->is_struct() || type->is_interface();
 }
 
 bool
@@ -484,9 +510,10 @@ glsl_array_type(const glsl_type *base, unsigned elements,
 
 const glsl_type *
 glsl_struct_type(const glsl_struct_field *fields,
-                 unsigned num_fields, const char *name)
+                 unsigned num_fields, const char *name,
+                 bool packed)
 {
-   return glsl_type::get_record_instance(fields, num_fields, name);
+   return glsl_type::get_struct_instance(fields, num_fields, name, packed);
 }
 
 const glsl_type *
@@ -639,4 +666,58 @@ bool
 glsl_contains_atomic(const struct glsl_type *type)
 {
    return type->contains_atomic();
+}
+
+int
+glsl_get_cl_size(const struct glsl_type *type)
+{
+   return type->cl_size();
+}
+
+int
+glsl_get_cl_alignment(const struct glsl_type *type)
+{
+   return type->cl_alignment();
+}
+
+unsigned
+glsl_type_get_sampler_count(const struct glsl_type *type)
+{
+   if (glsl_type_is_array(type)) {
+      return (glsl_get_aoa_size(type) *
+              glsl_type_get_sampler_count(glsl_without_array(type)));
+   }
+
+   if (glsl_type_is_struct_or_ifc(type)) {
+      unsigned count = 0;
+      for (unsigned i = 0; i < glsl_get_length(type); i++)
+         count += glsl_type_get_sampler_count(glsl_get_struct_field(type, i));
+      return count;
+   }
+
+   if (glsl_type_is_sampler(type))
+      return 1;
+
+   return 0;
+}
+
+unsigned
+glsl_type_get_image_count(const struct glsl_type *type)
+{
+   if (glsl_type_is_array(type)) {
+      return (glsl_get_aoa_size(type) *
+              glsl_type_get_image_count(glsl_without_array(type)));
+   }
+
+   if (glsl_type_is_struct_or_ifc(type)) {
+      unsigned count = 0;
+      for (unsigned i = 0; i < glsl_get_length(type); i++)
+         count += glsl_type_get_image_count(glsl_get_struct_field(type, i));
+      return count;
+   }
+
+   if (glsl_type_is_image(type))
+      return 1;
+
+   return 0;
 }

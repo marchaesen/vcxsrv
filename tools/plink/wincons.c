@@ -279,6 +279,34 @@ int console_confirm_weak_cached_hostkey(
     }
 }
 
+bool is_interactive(void)
+{
+    return is_console_handle(GetStdHandle(STD_INPUT_HANDLE));
+}
+
+bool console_antispoof_prompt = true;
+bool console_set_trust_status(Seat *seat, bool trusted)
+{
+    if (console_batch_mode || !is_interactive() || !console_antispoof_prompt) {
+        /*
+         * In batch mode, we don't need to worry about the server
+         * mimicking our interactive authentication, because the user
+         * already knows not to expect any.
+         *
+         * If standard input isn't connected to a terminal, likewise,
+         * because even if the server did send a spoof authentication
+         * prompt, the user couldn't respond to it via the terminal
+         * anyway.
+         *
+         * We also vacuously return success if the user has purposely
+         * disabled the antispoof prompt.
+         */
+        return true;
+    }
+
+    return false;
+}
+
 /*
  * Ask whether to wipe a session log file before writing to it.
  * Returns 2 for wipe, 1 for append, 0 for cancel (don't log).
@@ -388,18 +416,16 @@ static void console_eventlog(LogPolicy *lp, const char *string)
         console_logging_error(lp, string);
 }
 
-static void console_data_untrusted(HANDLE hout, const char *data, size_t len)
+StripCtrlChars *console_stripctrl_new(
+    Seat *seat, BinarySink *bs_out, SeatInteractionContext sic)
+{
+    return stripctrl_new(bs_out, false, 0);
+}
+
+static void console_write(HANDLE hout, ptrlen data)
 {
     DWORD dummy;
-    bufchain sanitised;
-
-    bufchain_init(&sanitised);
-    sanitise_term_data(&sanitised, data, len);
-    while (bufchain_size(&sanitised) > 0) {
-        ptrlen sdata = bufchain_prefix(&sanitised);
-        WriteFile(hout, sdata.ptr, sdata.len, &dummy, NULL);
-        bufchain_consume(&sanitised, sdata.len);
-    }
+    WriteFile(hout, data.ptr, data.len, &dummy, NULL);
 }
 
 int console_get_userpass_input(prompts_t *p)
@@ -448,17 +474,17 @@ int console_get_userpass_input(prompts_t *p)
      */
     /* We only print the `name' caption if we have to... */
     if (p->name_reqd && p->name) {
-	size_t l = strlen(p->name);
-	console_data_untrusted(hout, p->name, l);
-	if (p->name[l-1] != '\n')
-	    console_data_untrusted(hout, "\n", 1);
+	ptrlen plname = ptrlen_from_asciz(p->name);
+	console_write(hout, plname);
+        if (!ptrlen_endswith(plname, PTRLEN_LITERAL("\n"), NULL))
+	    console_write(hout, PTRLEN_LITERAL("\n"));
     }
     /* ...but we always print any `instruction'. */
     if (p->instruction) {
-	size_t l = strlen(p->instruction);
-	console_data_untrusted(hout, p->instruction, l);
-	if (p->instruction[l-1] != '\n')
-	    console_data_untrusted(hout, "\n", 1);
+	ptrlen plinst = ptrlen_from_asciz(p->instruction);
+	console_write(hout, plinst);
+        if (!ptrlen_endswith(plinst, PTRLEN_LITERAL("\n"), NULL))
+	    console_write(hout, PTRLEN_LITERAL("\n"));
     }
 
     for (curr_prompt = 0; curr_prompt < p->n_prompts; curr_prompt++) {
@@ -475,7 +501,7 @@ int console_get_userpass_input(prompts_t *p)
 	    newmode |= ENABLE_ECHO_INPUT;
 	SetConsoleMode(hin, newmode);
 
-	console_data_untrusted(hout, pr->prompt, strlen(pr->prompt));
+	console_write(hout, ptrlen_from_asciz(pr->prompt));
 
         len = 0;
         while (1) {
@@ -499,10 +525,8 @@ int console_get_userpass_input(prompts_t *p)
 
 	SetConsoleMode(hin, savemode);
 
-	if (!pr->echo) {
-	    DWORD dummy;
-	    WriteFile(hout, "\r\n", 2, &dummy, NULL);
-	}
+	if (!pr->echo)
+            console_write(hout, PTRLEN_LITERAL("\r\n"));
 
         if (len == (size_t)-1) {
             return 0;                  /* failure due to read error */

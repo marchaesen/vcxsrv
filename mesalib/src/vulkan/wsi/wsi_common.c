@@ -26,6 +26,7 @@
 #include "util/macros.h"
 #include "vk_util.h"
 
+#include <time.h>
 #include <unistd.h>
 #include <xf86drm.h>
 
@@ -1020,4 +1021,12 @@ wsi_common_queue_present(const struct wsi_device *wsi,
    }
 
    return final_result;
+}
+
+uint64_t
+wsi_common_get_current_time(void)
+{
+   struct timespec current;
+   clock_gettime(CLOCK_MONOTONIC, &current);
+   return current.tv_nsec + current.tv_sec * 1000000000ull;
 }

@@ -940,7 +940,7 @@ _mesa_ast_set_aggregate_type(const glsl_type *type,
       }
 
    /* If the aggregate is a struct, recursively set its fields' types. */
-   } else if (type->is_record()) {
+   } else if (type->is_struct()) {
       exec_node *expr_node = ai->expressions.get_head_raw();
 
       /* Iterate through the struct's fields. */

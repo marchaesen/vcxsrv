@@ -203,7 +203,12 @@ endif
 
 with_intel_vk = _vulkan_drivers.contains('intel')
 with_amd_vk = _vulkan_drivers.contains('amd')
+with_freedreno_vk = _vulkan_drivers.contains('freedreno')
 with_any_vk = _vulkan_drivers.length() != 0 and _vulkan_drivers != ['']
+
+if with_freedreno_vk and get_option('I-love-half-baked-turnips') != true
+  error('Cannot enable freedreno vulkan driver')
+endif
 
 if with_dri_swrast and (with_gallium_softpipe or with_gallium_swr)
   error('Only one swrast provider can be built')
@@ -370,13 +375,17 @@ if with_glvnd
   elif with_glx == 'disabled' and not with_egl
     error('glvnd requires DRI based GLX and/or EGL')
   endif
+  if get_option('egl-lib-suffix') != ''
+    error('''EGL lib suffix can't be used with libglvnd''')
+  endif
 endif
 
 if with_vulkan_icd_dir == ''
   with_vulkan_icd_dir = join_paths(get_option('datadir'), 'vulkan/icd.d')
 endif
 
-with_dri2 = (with_dri or with_any_vk) and with_dri_platform == 'drm'
+with_dri2 = (with_dri or with_any_vk) and (with_dri_platform == 'drm' or
+  host_machine.system() == 'gnu')
 _dri3 = get_option('dri3')
 if _dri3 == 'auto'
   with_dri3 = system_has_kms_drm and with_dri2
@@ -717,6 +726,9 @@ if with_platform_android
     dependency('hardware'),
     dependency('sync'),
   ]
+  if get_option('platform-sdk-version') >= 26
+    dep_android += dependency('nativewindow')
+  endif
   pre_args += '-DHAVE_ANDROID_PLATFORM'
 endif
 if with_platform_haiku
@@ -803,6 +815,7 @@ endif
 c_args = []
 foreach a : ['-Werror=implicit-function-declaration',
              '-Werror=missing-prototypes', '-Werror=return-type',
+             '-Werror=incompatible-pointer-types',
              '-fno-math-errno',
              '-fno-trapping-math', '-Qunused-arguments']
   if cc.has_argument(a)

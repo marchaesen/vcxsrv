@@ -37,18 +37,16 @@
 #include "qpu/qpu_disasm.h"
 #include "v3d_compiler.h"
 #include "util/ralloc.h"
+#include "util/dag.h"
 
 static bool debug;
 
 struct schedule_node_child;
 
 struct schedule_node {
+        struct dag_node dag;
         struct list_head link;
         struct qinst *inst;
-        struct schedule_node_child *children;
-        uint32_t child_count;
-        uint32_t child_array_size;
-        uint32_t parent_count;
 
         /* Longest cycles + instruction_latency() of any parent of this node. */
         uint32_t unblocked_time;
@@ -67,11 +65,6 @@ struct schedule_node {
         uint32_t latency;
 };
 
-struct schedule_node_child {
-        struct schedule_node *node;
-        bool write_after_read;
-};
-
 /* When walking the instructions in reverse, we need to swap before/after in
  * add_dep().
  */
@@ -79,6 +72,7 @@ enum direction { F, R };
 
 struct schedule_state {
         const struct v3d_device_info *devinfo;
+        struct dag *dag;
         struct schedule_node *last_r[6];
         struct schedule_node *last_rf[64];
         struct schedule_node *last_sf;
@@ -101,37 +95,17 @@ add_dep(struct schedule_state *state,
         bool write)
 {
         bool write_after_read = !write && state->dir == R;
+        void *edge_data = (void *)(uintptr_t)write_after_read;
 
         if (!before || !after)
                 return;
 
         assert(before != after);
 
-        if (state->dir == R) {
-                struct schedule_node *t = before;
-                before = after;
-                after = t;
-        }
-
-        for (int i = 0; i < before->child_count; i++) {
-                if (before->children[i].node == after &&
-                    (before->children[i].write_after_read == write_after_read)) {
-                        return;
-                }
-        }
-
-        if (before->child_array_size <= before->child_count) {
-                before->child_array_size = MAX2(before->child_array_size * 2, 16);
-                before->children = reralloc(before, before->children,
-                                            struct schedule_node_child,
-                                            before->child_array_size);
-        }
-
-        before->children[before->child_count].node = after;
-        before->children[before->child_count].write_after_read =
-                write_after_read;
-        before->child_count++;
-        after->parent_count++;
+        if (state->dir == F)
+                dag_add_edge(&before->dag, &after->dag, edge_data);
+        else
+                dag_add_edge(&after->dag, &before->dag, edge_data);
 }
 
 static void
@@ -415,7 +389,7 @@ calculate_deps(struct schedule_state *state, struct schedule_node *n)
         }
 
         /* inst->sig.ldunif or sideband uniform read */
-        if (qinst->uniform != ~0)
+        if (vir_has_uniform(qinst))
                 add_write_dep(state, &state->last_unif, n);
 
         if (v3d_qpu_reads_flags(inst))
@@ -425,11 +399,13 @@ calculate_deps(struct schedule_state *state, struct schedule_node *n)
 }
 
 static void
-calculate_forward_deps(struct v3d_compile *c, struct list_head *schedule_list)
+calculate_forward_deps(struct v3d_compile *c, struct dag *dag,
+                       struct list_head *schedule_list)
 {
         struct schedule_state state;
 
         memset(&state, 0, sizeof(state));
+        state.dag = dag;
         state.devinfo = c->devinfo;
         state.dir = F;
 
@@ -438,21 +414,24 @@ calculate_forward_deps(struct v3d_compile *c, struct list_head *schedule_list)
 }
 
 static void
-calculate_reverse_deps(struct v3d_compile *c, struct list_head *schedule_list)
+calculate_reverse_deps(struct v3d_compile *c, struct dag *dag,
+                       struct list_head *schedule_list)
 {
-        struct list_head *node;
         struct schedule_state state;
 
         memset(&state, 0, sizeof(state));
+        state.dag = dag;
         state.devinfo = c->devinfo;
         state.dir = R;
 
-        for (node = schedule_list->prev; schedule_list != node; node = node->prev) {
+        list_for_each_entry_rev(struct schedule_node, node, schedule_list,
+                                link) {
                 calculate_deps(&state, (struct schedule_node *)node);
         }
 }
 
 struct choose_scoreboard {
+        struct dag *dag;
         int tick;
         int last_magic_sfu_write_tick;
         int last_ldvary_tick;
@@ -714,7 +693,6 @@ qpu_merge_inst(const struct v3d_device_info *devinfo,
 static struct schedule_node *
 choose_instruction_to_schedule(const struct v3d_device_info *devinfo,
                                struct choose_scoreboard *scoreboard,
-                               struct list_head *schedule_list,
                                struct schedule_node *prev_inst)
 {
         struct schedule_node *chosen = NULL;
@@ -728,7 +706,8 @@ choose_instruction_to_schedule(const struct v3d_device_info *devinfo,
                         return NULL;
         }
 
-        list_for_each_entry(struct schedule_node, n, schedule_list, link) {
+        list_for_each_entry(struct schedule_node, n, &scoreboard->dag->heads,
+                            dag.link) {
                 const struct v3d_qpu_instr *inst = &n->inst->qpu;
 
                 /* Don't choose the branch instruction until it's the last one
@@ -736,7 +715,7 @@ choose_instruction_to_schedule(const struct v3d_device_info *devinfo,
                  * choose it.
                  */
                 if (inst->type == V3D_QPU_INSTR_TYPE_BRANCH &&
-                    !list_is_singular(schedule_list)) {
+                    !list_is_singular(&scoreboard->dag->heads)) {
                         continue;
                 }
 
@@ -871,24 +850,24 @@ update_scoreboard_for_chosen(struct choose_scoreboard *scoreboard,
 }
 
 static void
-dump_state(const struct v3d_device_info *devinfo,
-           struct list_head *schedule_list)
+dump_state(const struct v3d_device_info *devinfo, struct dag *dag)
 {
-        list_for_each_entry(struct schedule_node, n, schedule_list, link) {
+        list_for_each_entry(struct schedule_node, n, &dag->heads, dag.link) {
                 fprintf(stderr, "         t=%4d: ", n->unblocked_time);
                 v3d_qpu_dump(devinfo, &n->inst->qpu);
                 fprintf(stderr, "\n");
 
-                for (int i = 0; i < n->child_count; i++) {
-                        struct schedule_node *child = n->children[i].node;
+                util_dynarray_foreach(&n->dag.edges, struct dag_edge, edge) {
+                        struct schedule_node *child =
+                                (struct schedule_node *)edge->child;
                         if (!child)
                                 continue;
 
                         fprintf(stderr, "                 - ");
                         v3d_qpu_dump(devinfo, &child->inst->qpu);
                         fprintf(stderr, " (%d parents, %c)\n",
-                                child->parent_count,
-                                n->children[i].write_after_read ? 'w' : 'r');
+                                child->dag.parent_count,
+                                edge->data ? 'w' : 'r');
                 }
         }
 }
@@ -957,59 +936,56 @@ instruction_latency(struct schedule_node *before, struct schedule_node *after)
 
 /** Recursive computation of the delay member of a node. */
 static void
-compute_delay(struct schedule_node *n)
+compute_delay(struct dag_node *node, void *state)
 {
-        if (!n->child_count) {
-                n->delay = 1;
-        } else {
-                for (int i = 0; i < n->child_count; i++) {
-                        if (!n->children[i].node->delay)
-                                compute_delay(n->children[i].node);
-                        n->delay = MAX2(n->delay,
-                                        n->children[i].node->delay +
-                                        instruction_latency(n, n->children[i].node));
-                }
+        struct schedule_node *n = (struct schedule_node *)node;
+
+        n->delay = 1;
+
+        util_dynarray_foreach(&n->dag.edges, struct dag_edge, edge) {
+                struct schedule_node *child =
+                        (struct schedule_node *)edge->child;
+
+                n->delay = MAX2(n->delay, (child->delay +
+                                           instruction_latency(n, child)));
+        }
+}
+
+/* Removes a DAG head, but removing only the WAR edges. (dag_prune_head()
+ * should be called on it later to finish pruning the other edges).
+ */
+static void
+pre_remove_head(struct dag *dag, struct schedule_node *n)
+{
+        list_delinit(&n->dag.link);
+
+        util_dynarray_foreach(&n->dag.edges, struct dag_edge, edge) {
+                if (edge->data)
+                        dag_remove_edge(dag, edge);
         }
 }
 
 static void
-mark_instruction_scheduled(struct list_head *schedule_list,
+mark_instruction_scheduled(struct dag *dag,
                            uint32_t time,
-                           struct schedule_node *node,
-                           bool war_only)
+                           struct schedule_node *node)
 {
         if (!node)
                 return;
 
-        for (int i = node->child_count - 1; i >= 0; i--) {
+        util_dynarray_foreach(&node->dag.edges, struct dag_edge, edge) {
                 struct schedule_node *child =
-                        node->children[i].node;
+                        (struct schedule_node *)edge->child;
 
                 if (!child)
                         continue;
 
-                if (war_only && !node->children[i].write_after_read)
-                        continue;
-
-                /* If the requirement is only that the node not appear before
-                 * the last read of its destination, then it can be scheduled
-                 * immediately after (or paired with!) the thing reading the
-                 * destination.
-                 */
-                uint32_t latency = 0;
-                if (!war_only) {
-                        latency = instruction_latency(node,
-                                                      node->children[i].node);
-                }
+                uint32_t latency = instruction_latency(node, child);
 
                 child->unblocked_time = MAX2(child->unblocked_time,
                                              time + latency);
-                child->parent_count--;
-                if (child->parent_count == 0)
-                        list_add(&child->link, schedule_list);
-
-                node->children[i].node = NULL;
         }
+        dag_prune_head(dag, &node->dag);
 }
 
 static void
@@ -1223,7 +1199,6 @@ static uint32_t
 schedule_instructions(struct v3d_compile *c,
                       struct choose_scoreboard *scoreboard,
                       struct qblock *block,
-                      struct list_head *schedule_list,
                       enum quniform_contents *orig_uniform_contents,
                       uint32_t *orig_uniform_data,
                       uint32_t *next_uniform)
@@ -1231,23 +1206,10 @@ schedule_instructions(struct v3d_compile *c,
         const struct v3d_device_info *devinfo = c->devinfo;
         uint32_t time = 0;
 
-        if (debug) {
-                fprintf(stderr, "initial deps:\n");
-                dump_state(devinfo, schedule_list);
-                fprintf(stderr, "\n");
-        }
-
-        /* Remove non-DAG heads from the list. */
-        list_for_each_entry_safe(struct schedule_node, n, schedule_list, link) {
-                if (n->parent_count != 0)
-                        list_del(&n->link);
-        }
-
-        while (!list_empty(schedule_list)) {
+        while (!list_empty(&scoreboard->dag->heads)) {
                 struct schedule_node *chosen =
                         choose_instruction_to_schedule(devinfo,
                                                        scoreboard,
-                                                       schedule_list,
                                                        NULL);
                 struct schedule_node *merge = NULL;
 
@@ -1260,7 +1222,7 @@ schedule_instructions(struct v3d_compile *c,
                 if (debug) {
                         fprintf(stderr, "t=%4d: current list:\n",
                                 time);
-                        dump_state(devinfo, schedule_list);
+                        dump_state(devinfo, scoreboard->dag);
                         fprintf(stderr, "t=%4d: chose:   ", time);
                         v3d_qpu_dump(devinfo, inst);
                         fprintf(stderr, "\n");
@@ -1278,17 +1240,14 @@ schedule_instructions(struct v3d_compile *c,
                  */
                 if (chosen) {
                         time = MAX2(chosen->unblocked_time, time);
-                        list_del(&chosen->link);
-                        mark_instruction_scheduled(schedule_list, time,
-                                                   chosen, true);
+                        pre_remove_head(scoreboard->dag, chosen);
 
                         while ((merge =
                                 choose_instruction_to_schedule(devinfo,
                                                                scoreboard,
-                                                               schedule_list,
                                                                chosen))) {
                                 time = MAX2(merge->unblocked_time, time);
-                                list_del(&merge->link);
+                                pre_remove_head(scoreboard->dag, chosen);
                                 list_addtail(&merge->link, &merged_list);
                                 (void)qpu_merge_inst(devinfo, inst,
                                                      inst, &merge->inst->qpu);
@@ -1334,11 +1293,10 @@ schedule_instructions(struct v3d_compile *c,
                  * be scheduled.  Update the children's unblocked time for this
                  * DAG edge as we do so.
                  */
-                mark_instruction_scheduled(schedule_list, time, chosen, false);
+                mark_instruction_scheduled(scoreboard->dag, time, chosen);
                 list_for_each_entry(struct schedule_node, merge, &merged_list,
                                     link) {
-                        mark_instruction_scheduled(schedule_list, time, merge,
-                                                   false);
+                        mark_instruction_scheduled(scoreboard->dag, time, merge);
 
                         /* The merged VIR instruction doesn't get re-added to the
                          * block, so free it now.
@@ -1380,9 +1338,10 @@ qpu_schedule_instructions_block(struct v3d_compile *c,
                                 uint32_t *next_uniform)
 {
         void *mem_ctx = ralloc_context(NULL);
-        struct list_head schedule_list;
+        scoreboard->dag = dag_create(mem_ctx);
+        struct list_head setup_list;
 
-        list_inithead(&schedule_list);
+        list_inithead(&setup_list);
 
         /* Wrap each instruction in a scheduler structure. */
         while (!list_empty(&block->instructions)) {
@@ -1390,26 +1349,25 @@ qpu_schedule_instructions_block(struct v3d_compile *c,
                 struct schedule_node *n =
                         rzalloc(mem_ctx, struct schedule_node);
 
+                dag_init_node(scoreboard->dag, &n->dag);
                 n->inst = qinst;
 
                 list_del(&qinst->link);
-                list_addtail(&n->link, &schedule_list);
+                list_addtail(&n->link, &setup_list);
         }
 
-        calculate_forward_deps(c, &schedule_list);
-        calculate_reverse_deps(c, &schedule_list);
+        calculate_forward_deps(c, scoreboard->dag, &setup_list);
+        calculate_reverse_deps(c, scoreboard->dag, &setup_list);
 
-        list_for_each_entry(struct schedule_node, n, &schedule_list, link) {
-                compute_delay(n);
-        }
+        dag_traverse_bottom_up(scoreboard->dag, compute_delay, NULL);
 
         uint32_t cycles = schedule_instructions(c, scoreboard, block,
-                                                &schedule_list,
                                                 orig_uniform_contents,
                                                 orig_uniform_data,
                                                 next_uniform);
 
         ralloc_free(mem_ctx);
+        scoreboard->dag = NULL;
 
         return cycles;
 }

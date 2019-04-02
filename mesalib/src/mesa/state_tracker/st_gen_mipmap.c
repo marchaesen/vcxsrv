@@ -40,6 +40,7 @@
 #include "st_debug.h"
 #include "st_context.h"
 #include "st_texture.h"
+#include "st_util.h"
 #include "st_gen_mipmap.h"
 #include "st_cb_bitmap.h"
 #include "st_cb_texture.h"

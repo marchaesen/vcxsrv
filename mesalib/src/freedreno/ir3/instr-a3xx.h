@@ -835,6 +835,28 @@ static inline bool instr_sat(instr_t *instr)
 	}
 }
 
+/* We can probably drop the gpu_id arg, but keeping it for now so we can
+ * assert if we see something we think should be new encoding on an older
+ * gpu.
+ */
+static inline bool is_cat6_legacy(instr_t *instr, unsigned gpu_id)
+{
+	instr_cat6_a6xx_t *cat6 = &instr->cat6_a6xx;
+
+	/* At least one of these two bits is pad in all the possible
+	 * "legacy" cat6 encodings, and a analysis of all the pre-a6xx
+	 * cmdstream traces I have indicates that the pad bit is zero
+	 * in all cases.  So we can use this to detect new encoding:
+	 */
+	if ((cat6->pad2 & 0x8) && (cat6->pad4 & 0x2)) {
+		assert(gpu_id >= 600);
+		assert(instr->cat6.opc == 0);
+		return false;
+	}
+
+	return true;
+}
+
 static inline uint32_t instr_opc(instr_t *instr, unsigned gpu_id)
 {
 	switch (instr->opc_cat) {
@@ -845,10 +867,7 @@ static inline uint32_t instr_opc(instr_t *instr, unsigned gpu_id)
 	case 4:  return instr->cat4.opc;
 	case 5:  return instr->cat5.opc;
 	case 6:
-		// TODO not sure if this is the best way to figure
-		// out if new vs old encoding, but it kinda seems
-		// to work:
-		if ((gpu_id >= 600) && (instr->cat6.opc == 0))
+		if (!is_cat6_legacy(instr, gpu_id))
 			return instr->cat6_a6xx.opc;
 		return instr->cat6.opc;
 	case 7:  return instr->cat7.opc;

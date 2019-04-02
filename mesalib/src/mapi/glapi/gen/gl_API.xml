@@ -8400,7 +8400,20 @@
 
 <xi:include href="ARB_gpu_shader_int64.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
-<!-- ARB extension 179 - 189 -->
+<category name="ARB_parallel_shader_compile" number="179">
+    <enum name="MAX_SHADER_COMPILER_THREADS_ARB"   value="0x91B0"/>
+    <enum name="COMPLETION_STATUS_ARB"             value="0x91B1"/>
+
+    <function name="MaxShaderCompilerThreadsKHR" es2="2.0">
+        <param name="count" type="GLuint"/>
+    </function>
+
+    <function name="MaxShaderCompilerThreadsARB" alias="MaxShaderCompilerThreadsKHR">
+        <param name="count" type="GLuint"/>
+    </function>
+</category>
+
+<!-- ARB extension 180 - 189 -->
 
 <xi:include href="ARB_gl_spirv.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 

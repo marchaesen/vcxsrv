@@ -335,6 +335,13 @@ struct vtn_type {
           * (i.e. a block that contains only builtins).
           */
          bool builtin_block:1;
+
+         /* for structs and unions it specifies the minimum alignment of the
+          * members. 0 means packed.
+          *
+          * Set by CPacked and Alignment Decorations in kernels.
+          */
+         bool packed:1;
       };
 
       /* Members for pointer types */
@@ -564,7 +571,7 @@ struct vtn_builder {
    size_t spirv_word_count;
 
    nir_shader *shader;
-   const struct spirv_to_nir_options *options;
+   struct spirv_to_nir_options *options;
    struct vtn_block *block;
 
    /* Current offset, file, line, and column.  Useful for debugging.  Set
@@ -613,6 +620,9 @@ struct vtn_builder {
 
    /* false by default, set to true by the ContractionOff execution mode */
    bool exact;
+
+   /* when a physical memory model is choosen */
+   bool physical_ptrs;
 };
 
 nir_ssa_def *
@@ -720,10 +730,12 @@ vtn_pointer_to_offset(struct vtn_builder *b, struct vtn_pointer *ptr,
                       nir_ssa_def **index_out);
 
 struct vtn_ssa_value *
-vtn_local_load(struct vtn_builder *b, nir_deref_instr *src);
+vtn_local_load(struct vtn_builder *b, nir_deref_instr *src,
+               enum gl_access_qualifier access);
 
 void vtn_local_store(struct vtn_builder *b, struct vtn_ssa_value *src,
-                     nir_deref_instr *dest);
+                     nir_deref_instr *dest,
+                     enum gl_access_qualifier access);
 
 struct vtn_ssa_value *
 vtn_variable_load(struct vtn_builder *b, struct vtn_pointer *src);
@@ -764,6 +776,9 @@ void vtn_handle_subgroup(struct vtn_builder *b, SpvOp opcode,
 
 bool vtn_handle_glsl450_instruction(struct vtn_builder *b, SpvOp ext_opcode,
                                     const uint32_t *words, unsigned count);
+
+bool vtn_handle_opencl_instruction(struct vtn_builder *b, uint32_t ext_opcode,
+                                   const uint32_t *words, unsigned count);
 
 struct vtn_builder* vtn_create_builder(const uint32_t *words, size_t word_count,
                                        gl_shader_stage stage, const char *entry_point_name,

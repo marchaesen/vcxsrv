@@ -207,11 +207,21 @@ char *host_strduptrim(const char *s)
                 break;
             p++;
         }
+        if (*p == '%') {
+            /*
+             * This delimiter character introduces an RFC 4007 scope
+             * id suffix (e.g. suffixing the address literal with
+             * %eth1 or %2 or some such). There's no syntax
+             * specification for the scope id, so just accept anything
+             * except the closing ].
+             */
+            p += strcspn(p, "]");
+        }
         if (*p == ']' && !p[1] && colons > 1) {
             /*
              * This looks like an IPv6 address literal (hex digits and
-             * at least two colons, contained in square brackets).
-             * Trim off the brackets.
+             * at least two colons, plus optional scope id, contained
+             * in square brackets). Trim off the brackets.
              */
             return dupprintf("%.*s", (int)(p - (s+1)), s+1);
         }
@@ -492,6 +502,20 @@ char *fgetline(FILE *fp)
 }
 
 /*
+ * Read an entire file into a BinarySink.
+ */
+bool read_file_into(BinarySink *bs, FILE *fp)
+{
+    char buf[4096];
+    while (1) {
+        size_t retd = fread(buf, 1, sizeof(buf), fp);
+        if (retd == 0)
+            return !ferror(fp);
+        put_data(bs, buf, retd);
+    }
+}
+
+/*
  * Perl-style 'chomp', for a line we just read with fgetline. Unlike
  * Perl chomp, however, we're deliberately forgiving of strange
  * line-ending conventions. Also we forgive NULL on input, so you can
@@ -757,32 +781,6 @@ size_t bufchain_fetch_consume_up_to(bufchain *ch, void *data, size_t len)
 }
 
 /* ----------------------------------------------------------------------
- * Sanitise terminal output that we have reason not to trust, e.g.
- * because it appears in the login banner or password prompt from a
- * server, which we'd rather not permit to use arbitrary escape
- * sequences.
- */
-
-void sanitise_term_data(bufchain *out, const void *vdata, size_t len)
-{
-    const char *data = (const char *)vdata;
-
-    /*
-     * FIXME: this method of sanitisation is ASCII-centric. It would
-     * be nice to permit SSH banners and the like to contain printable
-     * Unicode, but that would need a lot more complicated code here
-     * (not to mention knowing what character set it should interpret
-     * the data as).
-     */
-    for (size_t i = 0; i < len; i++) {
-        if (data[i] == '\n')
-            bufchain_add(out, "\r\n", 2);
-        else if (data[i] >= ' ' && data[i] < 0x7F)
-            bufchain_add(out, data + i, 1);
-    }
-}
-
-/* ----------------------------------------------------------------------
  * Debugging routines.
  */
 
@@ -940,6 +938,40 @@ bool ptrlen_startswith(ptrlen whole, ptrlen prefix, ptrlen *tail)
     return false;
 }
 
+bool ptrlen_endswith(ptrlen whole, ptrlen suffix, ptrlen *tail)
+{
+    if (whole.len >= suffix.len &&
+        !memcmp((char *)whole.ptr + (whole.len - suffix.len),
+                suffix.ptr, suffix.len)) {
+        if (tail) {
+            tail->ptr = whole.ptr;
+            tail->len = whole.len - suffix.len;
+        }
+        return true;
+    }
+    return false;
+}
+
+ptrlen ptrlen_get_word(ptrlen *input, const char *separators)
+{
+    const char *p = input->ptr, *end = p + input->len;
+    ptrlen toret;
+
+    while (p < end && strchr(separators, *p))
+        p++;
+    toret.ptr = p;
+    while (p < end && !strchr(separators, *p))
+        p++;
+    toret.len = p - (const char *)toret.ptr;
+
+    size_t to_consume = p - (const char *)input->ptr;
+    assert(to_consume <= input->len);
+    input->ptr = (const char *)input->ptr + to_consume;
+    input->len -= to_consume;
+
+    return toret;
+}
+
 char *mkstr(ptrlen pl)
 {
     char *p = snewn(pl.len + 1, char);
@@ -957,4 +989,26 @@ bool strendswith(const char *s, const char *t)
 {
     size_t slen = strlen(s), tlen = strlen(t);
     return slen >= tlen && !strcmp(s + (slen - tlen), t);
+}
+
+size_t encode_utf8(void *output, unsigned long ch)
+{
+    unsigned char *start = (unsigned char *)output, *p = start;
+
+    if (ch < 0x80) {
+        *p++ = ch;
+    } else if (ch < 0x800) {
+        *p++ = 0xC0 | (ch >> 6);
+        *p++ = 0x80 | (ch & 0x3F);
+    } else if (ch < 0x10000) {
+        *p++ = 0xE0 | (ch >> 12);
+        *p++ = 0x80 | ((ch >> 6) & 0x3F);
+        *p++ = 0x80 | (ch & 0x3F);
+    } else {
+        *p++ = 0xF0 | (ch >> 18);
+        *p++ = 0x80 | ((ch >> 12) & 0x3F);
+        *p++ = 0x80 | ((ch >> 6) & 0x3F);
+        *p++ = 0x80 | (ch & 0x3F);
+    }
+    return p - start;
 }

@@ -31,6 +31,7 @@ files_mesa_util = files(
   'build_id.h',
   'crc32.c',
   'crc32.h',
+  'dag.c',
   'debug.c',
   'debug.h',
   'disk_cache.c',

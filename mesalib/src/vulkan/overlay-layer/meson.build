@@ -34,15 +34,14 @@ endforeach
 vklayer_files = files(
   'overlay.cpp',
   'overlay_params.c',
-  'vk_layer_table.cpp',
 )
 
 vklayer_mesa_overlay = shared_library(
   'VkLayer_MESA_overlay',
   vklayer_files, overlay_spv,
-  c_args : [c_vis_args, no_override_init_args],
-  cpp_args : [cpp_vis_args],
-  dependencies : [libimgui_core_dep, dep_dl],
+  c_args : [c_vis_args, no_override_init_args, vulkan_wsi_args],
+  cpp_args : [cpp_vis_args, vulkan_wsi_args],
+  dependencies : [vulkan_wsi_deps, libimgui_core_dep, dep_dl],
   include_directories : [inc_common, inc_vulkan_util],
   link_args : cc.get_supported_link_arguments(['-Wl,-Bsymbolic-functions', '-Wl,-z,relro']),
   link_with : [libmesa_util, libvulkan_util],

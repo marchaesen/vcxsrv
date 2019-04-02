@@ -141,8 +141,11 @@ write_variable(write_ctx *ctx, const nir_variable *var)
       blob_write_string(ctx->blob, var->name);
    blob_write_bytes(ctx->blob, (uint8_t *) &var->data, sizeof(var->data));
    blob_write_uint32(ctx->blob, var->num_state_slots);
-   blob_write_bytes(ctx->blob, (uint8_t *) var->state_slots,
-                    var->num_state_slots * sizeof(nir_state_slot));
+   for (unsigned i = 0; i < var->num_state_slots; i++) {
+      for (unsigned j = 0; j < STATE_LENGTH; j++)
+         blob_write_uint32(ctx->blob, var->state_slots[i].tokens[j]);
+      blob_write_uint32(ctx->blob, var->state_slots[i].swizzle);
+   }
    blob_write_uint32(ctx->blob, !!(var->constant_initializer));
    if (var->constant_initializer)
       write_constant(ctx, var->constant_initializer);
@@ -172,9 +175,15 @@ read_variable(read_ctx *ctx)
    }
    blob_copy_bytes(ctx->blob, (uint8_t *) &var->data, sizeof(var->data));
    var->num_state_slots = blob_read_uint32(ctx->blob);
-   var->state_slots = ralloc_array(var, nir_state_slot, var->num_state_slots);
-   blob_copy_bytes(ctx->blob, (uint8_t *) var->state_slots,
-                   var->num_state_slots * sizeof(nir_state_slot));
+   if (var->num_state_slots != 0) {
+      var->state_slots = ralloc_array(var, nir_state_slot,
+                                      var->num_state_slots);
+      for (unsigned i = 0; i < var->num_state_slots; i++) {
+         for (unsigned j = 0; j < STATE_LENGTH; j++)
+            var->state_slots[i].tokens[j] = blob_read_uint32(ctx->blob);
+         var->state_slots[i].swizzle = blob_read_uint32(ctx->blob);
+      }
+   }
    bool has_const_initializer = blob_read_uint32(ctx->blob);
    if (has_const_initializer)
       var->constant_initializer = read_constant(ctx, var);
@@ -608,6 +617,7 @@ write_tex(write_ctx *ctx, const nir_tex_instr *tex)
    blob_write_uint32(ctx->blob, tex->texture_index);
    blob_write_uint32(ctx->blob, tex->texture_array_size);
    blob_write_uint32(ctx->blob, tex->sampler_index);
+   blob_write_bytes(ctx->blob, tex->tg4_offsets, sizeof(tex->tg4_offsets));
 
    STATIC_ASSERT(sizeof(union packed_tex_data) == sizeof(uint32_t));
    union packed_tex_data packed = {
@@ -638,6 +648,7 @@ read_tex(read_ctx *ctx)
    tex->texture_index = blob_read_uint32(ctx->blob);
    tex->texture_array_size = blob_read_uint32(ctx->blob);
    tex->sampler_index = blob_read_uint32(ctx->blob);
+   blob_copy_bytes(ctx->blob, tex->tg4_offsets, sizeof(tex->tg4_offsets));
 
    union packed_tex_data packed;
    packed.u32 = blob_read_uint32(ctx->blob);

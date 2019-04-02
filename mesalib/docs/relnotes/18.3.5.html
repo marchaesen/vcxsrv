@@ -1,0 +1,271 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 18.3.5 Release Notes / March 18, 2019</h1>
+
+<p>
+Mesa 18.3.5 is a bug fix release which fixes bugs found since the 18.3.4 release.
+</p>
+<p>
+Mesa 18.3.5 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+5f40a336cb2af9b1d66fa243bb03c2c8a3f9b3f067aab6aaaad4316d1bc0e58b  mesa-18.3.5.tar.gz
+4027aea82cc63240b3fcf60eec9eea882955f098c989b29357b01d1695747953  mesa-18.3.5.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104297">Bug 104297</a> - [i965] Downward causes GPU hangs and misrendering on Haswell</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104602">Bug 104602</a> - [apitrace] Graphical artifacts in Civilization VI on RX Vega</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=107052">Bug 107052</a> - [Regression][bisected]. Crookz - The Big Heist Demo can't be launched despite the &quot;true&quot; flag in &quot;drirc&quot;</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=107563">Bug 107563</a> - [RADV] Broken rendering in Unity demos</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=108457">Bug 108457</a> - [OpenGL CTS] KHR-GL46.tessellation_shader.single.xfb_captures_data_from_correct_stage fails</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=108999">Bug 108999</a> - Calculating the scissors fields when the y is flipped (0 on top) can generate negative numbers that will cause assertion failure later on.</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=109328">Bug 109328</a> - [BSW BXT GLK] dEQP-VK.subgroups.arithmetic.subgroup regressions</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=109443">Bug 109443</a> - Build failure with MSVC when using Scons &gt;= 3.0.2</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=109451">Bug 109451</a> - [IVB,SNB] LINE_STRIPs following a TRIANGLE_FAN fail to use primitive restart</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=109594">Bug 109594</a> - totem assert failure: totem: src/intel/genxml/gen9_pack.h:72: __gen_uint: La declaración `v &lt;= max' no se cumple.</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=109597">Bug 109597</a> - wreckfest issues with transparent objects &amp; skybox</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=109601">Bug 109601</a> - [Regression] RuneLite GPU rendering broken on 18.3.x</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=109698">Bug 109698</a> - dri.pc contents invalid when built with meson</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=109735">Bug 109735</a> - [Regression] broken font with mesa_vulkan_overlay</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Alok Hota (1):</p>
+<ul>
+  <li>swr/rast: bypass size limit for non-sampled textures</li>
+</ul>
+
+<p>Andrii Simiklit (1):</p>
+<ul>
+  <li>i965: re-emit index buffer state on a reset option change.</li>
+</ul>
+
+<p>Axel Davy (2):</p>
+<ul>
+  <li>st/nine: Ignore window size if error</li>
+  <li>st/nine: Ignore multisample quality level if no ms</li>
+</ul>
+
+<p>Bas Nieuwenhuizen (4):</p>
+<ul>
+  <li>radv: Sync ETC2 whitelisted devices.</li>
+  <li>radv: Fix float16 interpolation set up.</li>
+  <li>radv: Allow interpolation on non-float types.</li>
+  <li>radv: Interpolate less aggressively.</li>
+</ul>
+
+<p>Carlos Garnacho (1):</p>
+<ul>
+  <li>wayland/egl: Ensure EGL surface is resized on DRI update_buffers()</li>
+</ul>
+
+<p>Danylo Piliaiev (1):</p>
+<ul>
+  <li>glsl/linker: Fix unmatched TCS outputs being reduced to local variable</li>
+</ul>
+
+<p>David Shao (1):</p>
+<ul>
+  <li>meson: ensure that xmlpool_options.h is generated for gallium targets that need it</li>
+</ul>
+
+<p>Eleni Maria Stea (1):</p>
+<ul>
+  <li>i965: fixed clamping in set_scissor_bits when the y is flipped</li>
+</ul>
+
+<p>Emil Velikov (7):</p>
+<ul>
+  <li>docs: add sha256 checksums for 18.3.4</li>
+  <li>meson: egl: correctly manage loader/xmlconfig</li>
+  <li>cherry-ignore: add 19.0 only anv/push buffer nominations</li>
+  <li>cherry-ignore: add gitlab-ci fixup commit</li>
+  <li>cherry-ignore: ignore glsl_types memory cleanup patch</li>
+  <li>cherry-ignore: add explicit 19.0 performance optimisations</li>
+  <li>Update version to 18.3.5</li>
+</ul>
+
+<p>Eric Engestrom (1):</p>
+<ul>
+  <li>egl: fix libdrm-less builds</li>
+</ul>
+
+<p>Francisco Jerez (1):</p>
+<ul>
+  <li>intel/fs: Implement extended strides greater than 4 for IR source regions.</li>
+</ul>
+
+<p>Ian Romanick (2):</p>
+<ul>
+  <li>intel/fs: nir_op_extract_i8 extracts a byte, not a word</li>
+  <li>intel/fs: Fix extract_u8 of an odd byte from a 64-bit integer</li>
+</ul>
+
+<p>Ilia Mirkin (1):</p>
+<ul>
+  <li>glsl: fix recording of variables for XFB in TCS shaders</li>
+</ul>
+
+<p>Jason Ekstrand (10):</p>
+<ul>
+  <li>intel/fs: Bail in optimize_extract_to_float if we have modifiers</li>
+  <li>compiler/types: Add a contains_64bit helper</li>
+  <li>nir/xfb: Properly align 64-bit values</li>
+  <li>nir/xfb: Work in terms of components rather than slots</li>
+  <li>nir/xfb: Handle compact arrays in gather_xfb_info</li>
+  <li>anv: Count surfaces for non-YCbCr images in GetDescriptorSetLayoutSupport</li>
+  <li>spirv: OpImageQueryLod requires a sampler</li>
+  <li>spirv: Pull offset/stride from the pointer for OpArrayLength</li>
+  <li>glsl/list: Add a list variant of insert_after</li>
+  <li>glsl/lower_vector_derefs: Don't use a temporary for TCS outputs</li>
+</ul>
+
+<p>Jose Maria Casanova Crespo (1):</p>
+<ul>
+  <li>glsl: TCS outputs can not be transform feedback candidates on GLES</li>
+</ul>
+
+<p>José Fonseca (1):</p>
+<ul>
+  <li>scons: Workaround failures with MSVC when using SCons 3.0.[2-4].</li>
+</ul>
+
+<p>Juan A. Suarez Romero (3):</p>
+<ul>
+  <li>genxml: add missing field values for 3DSTATE_SF</li>
+  <li>anv: advertise 8 subpixel precision bits</li>
+  <li>anv: destroy descriptor sets when pool gets reset</li>
+</ul>
+
+<p>Kenneth Graunke (1):</p>
+<ul>
+  <li>intel/fs: Fix opt_peephole_csel to not throw away saturates.</li>
+</ul>
+
+<p>Kevin Strasser (1):</p>
+<ul>
+  <li>egl/dri: Avoid out of bounds array access</li>
+</ul>
+
+<p>Lionel Landwerlin (1):</p>
+<ul>
+  <li>intel: fix urb size for CFL GT1</li>
+</ul>
+
+<p>Marek Olšák (5):</p>
+<ul>
+  <li>radeonsi: add driconf option radeonsi_enable_nir</li>
+  <li>radeonsi: always enable NIR for Civilization 6 to fix corruption</li>
+  <li>driconf: add Civ6Sub executable for Civilization 6</li>
+  <li>tgsi: don't set tgsi_info::uses_bindless_images for constbufs and hw atomics</li>
+  <li>radeonsi: compile clear and copy buffer compute shaders on demand</li>
+</ul>
+
+<p>Mauro Rossi (2):</p>
+<ul>
+  <li>android: anv: fix generated files depedencies (v2)</li>
+  <li>android: anv: fix libexpat shared dependency</li>
+</ul>
+
+<p>Ray Zhang (1):</p>
+<ul>
+  <li>glx: fix shared memory leak in X11</li>
+</ul>
+
+<p>Rhys Perry (2):</p>
+<ul>
+  <li>radv: bitcast 16-bit outputs to integers</li>
+  <li>radv: ensure export arguments are always float</li>
+</ul>
+
+<p>Samuel Pitoiset (8):</p>
+<ul>
+  <li>radv: write the alpha channel of MRT0 when alpha coverage is enabled</li>
+  <li>radv: fix writing the alpha channel of MRT0 when alpha coverage is enabled</li>
+  <li>radv: fix clearing attachments in secondary command buffers</li>
+  <li>radv: fix out-of-bounds access when copying descriptors BO list</li>
+  <li>radv: don't copy buffer descriptors list for samplers</li>
+  <li>radv: properly align the fence and EOP bug VA on GFX9</li>
+  <li>radv: fix pointSizeRange limits</li>
+  <li>radv: always initialize HTILE when the src layout is UNDEFINED</li>
+</ul>
+
+<p>Sergii Romantsov (2):</p>
+<ul>
+  <li>dri: meson: do not prefix user provided dri-drivers-path</li>
+  <li>d3d: meson: do not prefix user provided d3d-drivers-path</li>
+</ul>
+
+<p>Tapani Pälli (3):</p>
+<ul>
+  <li>nir: initialize value in copy_prop_vars_block</li>
+  <li>anv: retain the is_array state in create_plane_tex_instr_implicit</li>
+  <li>anv: destroy descriptor sets when pool gets destroyed</li>
+</ul>
+
+<p>Timothy Arceri (1):</p>
+<ul>
+  <li>glsl: fix shader cache for packed param list</li>
+</ul>
+
+<p>Yevhenii Kolesnikov (1):</p>
+<ul>
+  <li>i965: Fix allow_higher_compat_version workaround limited by OpenGL 3.0</li>
+</ul>
+
+<p>pal1000 (1):</p>
+<ul>
+  <li>scons: Compatibility with Scons development version string</li>
+</ul>
+
+
+</div>
+</body>
+</html>

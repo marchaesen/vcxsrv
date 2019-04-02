@@ -27,7 +27,6 @@ BROADCOM_FILES = \
 	compiler/vir.c \
 	compiler/vir_dump.c \
 	compiler/vir_live_variables.c \
-	compiler/vir_lower_uniforms.c \
 	compiler/vir_opt_copy_propagate.c \
 	compiler/vir_opt_dead_code.c \
 	compiler/vir_opt_small_immediates.c \

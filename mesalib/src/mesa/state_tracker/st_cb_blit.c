@@ -41,6 +41,7 @@
 #include "st_cb_fbo.h"
 #include "st_manager.h"
 #include "st_scissor.h"
+#include "st_util.h"
 
 #include "util/u_format.h"
 

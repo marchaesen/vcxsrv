@@ -74,12 +74,16 @@ struct ac_llvm_context {
 	LLVMTypeRef v4f32;
 	LLVMTypeRef v8i32;
 
+	LLVMValueRef i8_0;
+	LLVMValueRef i8_1;
 	LLVMValueRef i16_0;
 	LLVMValueRef i16_1;
 	LLVMValueRef i32_0;
 	LLVMValueRef i32_1;
 	LLVMValueRef i64_0;
 	LLVMValueRef i64_1;
+	LLVMValueRef f16_0;
+	LLVMValueRef f16_1;
 	LLVMValueRef f32_0;
 	LLVMValueRef f32_1;
 	LLVMValueRef f64_0;
@@ -266,6 +270,17 @@ ac_build_buffer_store_dword(struct ac_llvm_context *ctx,
 		            bool slc,
 			    bool writeonly_memory,
 			    bool swizzle_enable_hint);
+
+void
+ac_build_buffer_store_format(struct ac_llvm_context *ctx,
+			     LLVMValueRef rsrc,
+			     LLVMValueRef data,
+			     LLVMValueRef vindex,
+			     LLVMValueRef voffset,
+			     unsigned num_channels,
+			     bool glc,
+			     bool writeonly_memory);
+
 LLVMValueRef
 ac_build_buffer_load(struct ac_llvm_context *ctx,
 		     LLVMValueRef rsrc,
@@ -300,25 +315,92 @@ LLVMValueRef ac_build_buffer_load_format_gfx9_safe(struct ac_llvm_context *ctx,
 LLVMValueRef
 ac_build_tbuffer_load_short(struct ac_llvm_context *ctx,
 			    LLVMValueRef rsrc,
-			    LLVMValueRef vindex,
-			    LLVMValueRef voffset,
-				LLVMValueRef soffset,
-				LLVMValueRef immoffset,
-				LLVMValueRef glc);
-
-LLVMValueRef
-ac_build_llvm8_tbuffer_load(struct ac_llvm_context *ctx,
-			    LLVMValueRef rsrc,
-			    LLVMValueRef vindex,
 			    LLVMValueRef voffset,
 			    LLVMValueRef soffset,
-			    unsigned num_channels,
-			    unsigned dfmt,
-			    unsigned nfmt,
+			    LLVMValueRef immoffset,
+			    bool glc);
+
+LLVMValueRef
+ac_build_tbuffer_load_byte(struct ac_llvm_context *ctx,
+			   LLVMValueRef rsrc,
+			   LLVMValueRef voffset,
+			   LLVMValueRef soffset,
+			   LLVMValueRef immoffset,
+			   bool glc);
+
+LLVMValueRef
+ac_build_struct_tbuffer_load(struct ac_llvm_context *ctx,
+			     LLVMValueRef rsrc,
+			     LLVMValueRef vindex,
+			     LLVMValueRef voffset,
+			     LLVMValueRef soffset,
+			     LLVMValueRef immoffset,
+			     unsigned num_channels,
+			     unsigned dfmt,
+			     unsigned nfmt,
+			     bool glc,
+			     bool slc,
+			     bool can_speculate);
+
+LLVMValueRef
+ac_build_raw_tbuffer_load(struct ac_llvm_context *ctx,
+			  LLVMValueRef rsrc,
+			  LLVMValueRef voffset,
+			  LLVMValueRef soffset,
+			  LLVMValueRef immoffset,
+			  unsigned num_channels,
+			  unsigned dfmt,
+			  unsigned nfmt,
+			  bool glc,
+			  bool slc,
+		          bool can_speculate);
+
+void
+ac_build_tbuffer_store_short(struct ac_llvm_context *ctx,
+			     LLVMValueRef rsrc,
+			     LLVMValueRef vdata,
+			     LLVMValueRef voffset,
+			     LLVMValueRef soffset,
+			     bool glc,
+			     bool writeonly_memory);
+
+void
+ac_build_tbuffer_store_byte(struct ac_llvm_context *ctx,
+			    LLVMValueRef rsrc,
+			    LLVMValueRef vdata,
+			    LLVMValueRef voffset,
+			    LLVMValueRef soffset,
 			    bool glc,
-			    bool slc,
-			    bool can_speculate,
-			    bool structurized);
+			    bool writeonly_memory);
+
+void
+ac_build_struct_tbuffer_store(struct ac_llvm_context *ctx,
+			      LLVMValueRef rsrc,
+			      LLVMValueRef vdata,
+			      LLVMValueRef vindex,
+			      LLVMValueRef voffset,
+			      LLVMValueRef soffset,
+			      LLVMValueRef immoffset,
+			      unsigned num_channels,
+			      unsigned dfmt,
+			      unsigned nfmt,
+			      bool glc,
+			      bool slc,
+			      bool writeonly_memory);
+
+void
+ac_build_raw_tbuffer_store(struct ac_llvm_context *ctx,
+			   LLVMValueRef rsrc,
+			   LLVMValueRef vdata,
+			   LLVMValueRef voffset,
+			   LLVMValueRef soffset,
+			   LLVMValueRef immoffset,
+			   unsigned num_channels,
+			   unsigned dfmt,
+			   unsigned nfmt,
+			   bool glc,
+			   bool slc,
+			   bool writeonly_memory);
 
 LLVMValueRef
 ac_get_thread_id(struct ac_llvm_context *ctx);
@@ -467,6 +549,10 @@ void ac_build_waitcnt(struct ac_llvm_context *ctx, unsigned simm16);
 LLVMValueRef ac_build_fract(struct ac_llvm_context *ctx, LLVMValueRef src0,
 			   unsigned bitsize);
 
+LLVMValueRef ac_build_fmed3(struct ac_llvm_context *ctx, LLVMValueRef src0,
+			    LLVMValueRef src1, LLVMValueRef src2,
+			    unsigned bitsize);
+
 LLVMValueRef ac_build_isign(struct ac_llvm_context *ctx, LLVMValueRef src0,
 			    unsigned bitsize);
 
@@ -590,6 +676,14 @@ ac_build_quad_swizzle(struct ac_llvm_context *ctx, LLVMValueRef src,
 
 LLVMValueRef
 ac_build_shuffle(struct ac_llvm_context *ctx, LLVMValueRef src, LLVMValueRef index);
+
+LLVMValueRef
+ac_build_frexp_exp(struct ac_llvm_context *ctx, LLVMValueRef src0,
+		   unsigned bitsize);
+
+LLVMValueRef
+ac_build_frexp_mant(struct ac_llvm_context *ctx, LLVMValueRef src0,
+		    unsigned bitsize);
 
 #ifdef __cplusplus
 }

@@ -267,6 +267,7 @@ zh_TW/Compose:			zh_TW.eucTW
 iso8859-1/Compose:		zu_ZA.ISO8859-1
 XCOMM
 XCOMM
+en_US.UTF-8/Compose:		C.UTF-8
 en_US.UTF-8/Compose:		af_ZA.UTF-8
 am_ET.UTF-8/Compose:		am_ET.UTF-8
 en_US.UTF-8/Compose:		ar_AA.UTF-8
@@ -309,6 +310,7 @@ en_US.UTF-8/Compose:		de_AT.UTF-8
 en_US.UTF-8/Compose:		de_BE.UTF-8
 en_US.UTF-8/Compose:		de_CH.UTF-8
 en_US.UTF-8/Compose:		de_DE.UTF-8
+en_US.UTF-8/Compose:		de_IT.UTF-8
 en_US.UTF-8/Compose:		de_LI.UTF-8
 en_US.UTF-8/Compose:		de_LU.UTF-8
 el_GR.UTF-8/Compose:		el_CY.UTF-8

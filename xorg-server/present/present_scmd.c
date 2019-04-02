@@ -78,7 +78,7 @@ present_check_flip(RRCrtcPtr            crtc,
                    PresentFlipReason   *reason)
 {
     ScreenPtr                   screen = window->drawable.pScreen;
-    PixmapPtr                   window_pixmap;
+    PixmapPtr                   screen_pixmap, window_pixmap;
     WindowPtr                   root = screen->root;
     present_screen_priv_ptr     screen_priv = present_screen_priv(screen);
 
@@ -99,8 +99,9 @@ present_check_flip(RRCrtcPtr            crtc,
         return FALSE;
 
     /* Make sure the window hasn't been redirected with Composite */
+    screen_pixmap = screen->GetScreenPixmap(screen);
     window_pixmap = screen->GetWindowPixmap(window);
-    if (window_pixmap != screen->GetScreenPixmap(screen) &&
+    if (window_pixmap != screen_pixmap &&
         window_pixmap != screen_priv->flip_pixmap &&
         window_pixmap != present_flip_pending_pixmap(screen))
         return FALSE;
@@ -126,7 +127,8 @@ present_check_flip(RRCrtcPtr            crtc,
         window->drawable.x != pixmap->screen_x || window->drawable.y != pixmap->screen_y ||
 #endif
         window->drawable.width != pixmap->drawable.width ||
-        window->drawable.height != pixmap->drawable.height) {
+        window->drawable.height != pixmap->drawable.height ||
+        pixmap->devKind != screen_pixmap->devKind) {
         return FALSE;
     }
 
@@ -714,18 +716,7 @@ present_scmd_pixmap(WindowPtr window,
             if (vblank->crtc != target_crtc || vblank->target_msc != target_msc)
                 continue;
 
-            DebugPresent(("\tx %" PRIu64 " %p %" PRIu64 ": %08" PRIx32 " -> %08" PRIx32 " (crtc %p)\n",
-                          vblank->event_id, vblank, vblank->target_msc,
-                          vblank->pixmap->drawable.id, vblank->window->drawable.id,
-                          vblank->crtc));
-
-            present_pixmap_idle(vblank->pixmap, vblank->window, vblank->serial, vblank->idle_fence);
-            present_fence_destroy(vblank->idle_fence);
-            dixDestroyPixmap(vblank->pixmap, vblank->pixmap->drawable.id);
-
-            vblank->pixmap = NULL;
-            vblank->idle_fence = NULL;
-            vblank->flip = FALSE;
+            present_vblank_scrap(vblank);
             if (vblank->flip_ready)
                 present_re_execute(vblank);
         }

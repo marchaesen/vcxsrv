@@ -104,7 +104,7 @@ remove_struct_derefs_prep(nir_deref_instr **p, char **name,
    }
 
    case nir_deref_type_struct: {
-      *location += glsl_get_record_location_offset(cur->type, next->strct.index);
+      *location += glsl_get_struct_location_offset(cur->type, next->strct.index);
       ralloc_asprintf_append(name, ".%s",
                              glsl_get_struct_elem_name(cur->type, next->strct.index));
 

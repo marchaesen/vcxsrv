@@ -1298,6 +1298,13 @@ struct dd_function_table {
    void (*ShaderCacheSerializeDriverBlob)(struct gl_context *ctx,
                                           struct gl_program *prog);
    /*@}*/
+
+   /**
+    * \name Set the number of compiler threads for ARB_parallel_shader_compile
+    */
+   void (*SetMaxShaderCompilerThreads)(struct gl_context *ctx, unsigned count);
+   bool (*GetShaderProgramCompletionStatus)(struct gl_context *ctx,
+                                            struct gl_shader_program *shprog);
 };
 
 

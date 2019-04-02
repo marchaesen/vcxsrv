@@ -1090,7 +1090,7 @@ cross_validate_globals(struct gl_context *ctx, struct gl_shader_program *prog,
             }
          }
 
-         if (existing->data.invariant != var->data.invariant) {
+         if (existing->data.explicit_invariant != var->data.explicit_invariant) {
             linker_error(prog, "declarations for %s `%s' have "
                          "mismatching invariant qualifiers\n",
                          mode_string(var), var->name);
@@ -4303,7 +4303,7 @@ get_array_stride(struct gl_context *ctx, struct gl_uniform_storage *uni,
       if (GLSL_INTERFACE_PACKING_STD140 ==
           iface->
              get_internal_ifc_packing(ctx->Const.UseSTD430AsDefaultPacking)) {
-         if (array_type->is_record() || array_type->is_array())
+         if (array_type->is_struct() || array_type->is_array())
             return glsl_align(array_type->std140_size(row_major), 16);
          else
             return MAX2(array_type->std140_base_alignment(row_major), 16);

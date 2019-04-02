@@ -25,7 +25,7 @@
 #include "v3d_compiler.h"
 
 int
-vir_get_non_sideband_nsrc(struct qinst *inst)
+vir_get_nsrc(struct qinst *inst)
 {
         switch (inst->qpu.type) {
         case V3D_QPU_INSTR_TYPE_BRANCH:
@@ -38,55 +38,6 @@ vir_get_non_sideband_nsrc(struct qinst *inst)
         }
 
         return 0;
-}
-
-int
-vir_get_nsrc(struct qinst *inst)
-{
-        int nsrc = vir_get_non_sideband_nsrc(inst);
-
-        if (vir_has_implicit_uniform(inst))
-                nsrc++;
-
-        return nsrc;
-}
-
-bool
-vir_has_implicit_uniform(struct qinst *inst)
-{
-        switch (inst->qpu.type) {
-        case V3D_QPU_INSTR_TYPE_BRANCH:
-                return true;
-        case V3D_QPU_INSTR_TYPE_ALU:
-                switch (inst->dst.file) {
-                case QFILE_TLBU:
-                        return true;
-                case QFILE_MAGIC:
-                        switch (inst->dst.index) {
-                        case V3D_QPU_WADDR_TLBU:
-                        case V3D_QPU_WADDR_TMUAU:
-                        case V3D_QPU_WADDR_SYNCU:
-                                return true;
-                        default:
-                                break;
-                        }
-                        break;
-                default:
-                        return inst->has_implicit_uniform;
-                }
-        }
-        return false;
-}
-
-/* The sideband uniform for textures gets stored after the normal ALU
- * arguments.
- */
-int
-vir_get_implicit_uniform_src(struct qinst *inst)
-{
-        if (!vir_has_implicit_uniform(inst))
-                return -1;
-        return vir_get_nsrc(inst) - 1;
 }
 
 /**
@@ -396,7 +347,7 @@ vir_mul_inst(enum v3d_qpu_mul_op op, struct qreg dst, struct qreg src0, struct q
 }
 
 struct qinst *
-vir_branch_inst(enum v3d_qpu_branch_cond cond, struct qreg src)
+vir_branch_inst(struct v3d_compile *c, enum v3d_qpu_branch_cond cond)
 {
         struct qinst *inst = calloc(1, sizeof(*inst));
 
@@ -409,8 +360,7 @@ vir_branch_inst(enum v3d_qpu_branch_cond cond, struct qreg src)
         inst->qpu.branch.bdu = V3D_QPU_BRANCH_DEST_REL;
 
         inst->dst = vir_nop_reg();
-        inst->src[0] = src;
-        inst->uniform = ~0;
+        inst->uniform = vir_get_uniform_index(c, QUNIFORM_CONSTANT, 0);
 
         return inst;
 }
@@ -632,41 +582,6 @@ v3d_set_prog_data_uniforms(struct v3d_compile *c,
                count * sizeof(*ulist->contents));
 }
 
-/* Copy the compiler UBO range state to the compiled shader, dropping out
- * arrays that were never referenced by an indirect load.
- *
- * (Note that QIR dead code elimination of an array access still leaves that
- * array alive, though)
- */
-static void
-v3d_set_prog_data_ubo(struct v3d_compile *c,
-                      struct v3d_prog_data *prog_data)
-{
-        if (!c->num_ubo_ranges)
-                return;
-
-        prog_data->num_ubo_ranges = 0;
-        prog_data->ubo_ranges = ralloc_array(prog_data, struct v3d_ubo_range,
-                                             c->num_ubo_ranges);
-        for (int i = 0; i < c->num_ubo_ranges; i++) {
-                if (!c->ubo_range_used[i])
-                        continue;
-
-                struct v3d_ubo_range *range = &c->ubo_ranges[i];
-                prog_data->ubo_ranges[prog_data->num_ubo_ranges++] = *range;
-                prog_data->ubo_size += range->size;
-        }
-
-        if (prog_data->ubo_size) {
-                if (V3D_DEBUG & V3D_DEBUG_SHADERDB) {
-                        fprintf(stderr, "SHADER-DB: %s prog %d/%d: %d UBO uniforms\n",
-                                vir_get_stage_name(c),
-                                c->program_id, c->variant_id,
-                                prog_data->ubo_size / 4);
-                }
-        }
-}
-
 static void
 v3d_vs_set_prog_data(struct v3d_compile *c,
                      struct v3d_vs_prog_data *prog_data)
@@ -763,7 +678,6 @@ v3d_set_prog_data(struct v3d_compile *c,
         prog_data->spill_size = c->spill_size;
 
         v3d_set_prog_data_uniforms(c, prog_data);
-        v3d_set_prog_data_ubo(c, prog_data);
 
         if (c->s->info.stage == MESA_SHADER_VERTEX) {
                 v3d_vs_set_prog_data(c, (struct v3d_vs_prog_data *)prog_data);
@@ -1031,15 +945,15 @@ vir_compile_destroy(struct v3d_compile *c)
         ralloc_free(c);
 }
 
-struct qreg
-vir_uniform(struct v3d_compile *c,
-            enum quniform_contents contents,
-            uint32_t data)
+uint32_t
+vir_get_uniform_index(struct v3d_compile *c,
+                      enum quniform_contents contents,
+                      uint32_t data)
 {
         for (int i = 0; i < c->num_uniforms; i++) {
                 if (c->uniform_contents[i] == contents &&
                     c->uniform_data[i] == data) {
-                        return vir_reg(QFILE_UNIF, i);
+                        return i;
                 }
         }
 
@@ -1060,7 +974,20 @@ vir_uniform(struct v3d_compile *c,
         c->uniform_contents[uniform] = contents;
         c->uniform_data[uniform] = data;
 
-        return vir_reg(QFILE_UNIF, uniform);
+        return uniform;
+}
+
+struct qreg
+vir_uniform(struct v3d_compile *c,
+            enum quniform_contents contents,
+            uint32_t data)
+{
+        struct qinst *inst = vir_NOP(c);
+        inst->qpu.sig.ldunif = true;
+        inst->uniform = vir_get_uniform_index(c, contents, data);
+        inst->dst = vir_get_temp(c);
+        c->defs[inst->dst.index] = inst;
+        return inst->dst;
 }
 
 #define OPTPASS(func)                                                   \

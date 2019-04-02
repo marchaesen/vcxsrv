@@ -331,9 +331,6 @@ rescaleValuatorAxis(double coord, AxisInfoPtr from, AxisInfoPtr to,
 static void
 updateSlaveDeviceCoords(DeviceIntPtr master, DeviceIntPtr pDev)
 {
-    int i;
-    DeviceIntPtr lastSlave;
-
     /* master->last.valuators[0]/[1] is in desktop-wide coords and the actual
      * position of the pointer */
     pDev->last.valuators[0] = master->last.valuators[0];
@@ -358,27 +355,7 @@ updateSlaveDeviceCoords(DeviceIntPtr master, DeviceIntPtr pDev)
                                                       screenInfo.height);
     }
 
-    /* calculate the other axis as well based on info from the old
-     * slave-device. If the old slave had less axes than this one,
-     * last.valuators is reset to 0.
-     */
-    if ((lastSlave = master->last.slave) && lastSlave->valuator) {
-        for (i = 2; i < pDev->valuator->numAxes; i++) {
-            if (i >= lastSlave->valuator->numAxes) {
-                pDev->last.valuators[i] = 0;
-                valuator_mask_set_double(pDev->last.scroll, i, 0);
-            }
-            else {
-                double val = pDev->last.valuators[i];
-
-                val = rescaleValuatorAxis(val, lastSlave->valuator->axes + i,
-                                          pDev->valuator->axes + i, 0, 0);
-                pDev->last.valuators[i] = val;
-                valuator_mask_set_double(pDev->last.scroll, i, val);
-            }
-        }
-    }
-
+    /* other axes are left as-is */
 }
 
 /**

@@ -313,34 +313,10 @@ message_filter(DBusConnection * connection, DBusMessage * message, void *data)
     dbus_int32_t major, minor;
     char *pause_str;
 
-    if (dbus_message_get_type (message) != DBUS_MESSAGE_TYPE_SIGNAL)
+    if (strcmp(dbus_message_get_path(message), info->session) != 0)
         return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
     dbus_error_init(&error);
-
-    if (dbus_message_is_signal(message,
-                               "org.freedesktop.DBus", "NameOwnerChanged")) {
-        char *name, *old_owner, *new_owner;
-
-        dbus_message_get_args(message, &error,
-                              DBUS_TYPE_STRING, &name,
-                              DBUS_TYPE_STRING, &old_owner,
-                              DBUS_TYPE_STRING, &new_owner, DBUS_TYPE_INVALID);
-        if (dbus_error_is_set(&error)) {
-            LogMessage(X_ERROR, "systemd-logind: NameOwnerChanged: %s\n",
-                       error.message);
-            dbus_error_free(&error);
-            return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
-        }
-
-        if (name && strcmp(name, "org.freedesktop.login1") == 0)
-            FatalError("systemd-logind disappeared (stopped/restarted?)\n");
-
-        return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
-    }
-
-    if (strcmp(dbus_message_get_path(message), info->session) != 0)
-        return DBUS_HANDLER_RESULT_NOT_YET_HANDLED;
 
     if (dbus_message_is_signal(message, "org.freedesktop.login1.Session",
                                "PauseDevice")) {
@@ -495,15 +471,6 @@ connect_hook(DBusConnection *connection, void *data)
                                                       DBUS_TIMEOUT_USE_DEFAULT, &error);
     if (!reply) {
         LogMessage(X_ERROR, "systemd-logind: TakeControl failed: %s\n",
-                   error.message);
-        goto cleanup;
-    }
-
-    dbus_bus_add_match(connection,
-        "type='signal',sender='org.freedesktop.DBus',interface='org.freedesktop.DBus',member='NameOwnerChanged',path='/org/freedesktop/DBus'",
-        &error);
-    if (dbus_error_is_set(&error)) {
-        LogMessage(X_ERROR, "systemd-logind: could not add match: %s\n",
                    error.message);
         goto cleanup;
     }

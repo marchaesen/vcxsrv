@@ -73,12 +73,6 @@ check_array_data(struct gl_context *ctx, struct gl_vertex_array_object *vao,
       struct gl_buffer_object *bo = binding->BufferObj;
       const void *data = array->Ptr;
       if (_mesa_is_bufferobj(bo)) {
-         if (!bo->Mappings[MAP_INTERNAL].Pointer) {
-            /* need to map now */
-            bo->Mappings[MAP_INTERNAL].Pointer =
-               ctx->Driver.MapBufferRange(ctx, 0, bo->Size,
-                                          GL_MAP_READ_BIT, bo, MAP_INTERNAL);
-         }
          data = ADD_POINTERS(_mesa_vertex_attrib_address(array, binding),
                              bo->Mappings[MAP_INTERNAL].Pointer);
       }
@@ -105,25 +99,6 @@ check_array_data(struct gl_context *ctx, struct gl_vertex_array_object *vao,
          break;
       default:
          ;
-      }
-   }
-}
-
-
-/**
- * Unmap the buffer object referenced by given array, if mapped.
- */
-static void
-unmap_array_buffer(struct gl_context *ctx, struct gl_vertex_array_object *vao,
-                   GLuint attrib)
-{
-   const struct gl_array_attributes *array = &vao->VertexAttrib[attrib];
-   if (vao->Enabled & VERT_BIT(attrib)) {
-      const struct gl_vertex_buffer_binding *binding =
-         &vao->BufferBinding[array->BufferBindingIndex];
-      struct gl_buffer_object *bo = binding->BufferObj;
-      if (_mesa_is_bufferobj(bo) && _mesa_bufferobj_mapped(bo, MAP_INTERNAL)) {
-         ctx->Driver.UnmapBuffer(ctx, bo, MAP_INTERNAL);
       }
    }
 }
@@ -156,17 +131,14 @@ check_draw_elements_data(struct gl_context *ctx, GLsizei count,
                          GLint basevertex)
 {
    struct gl_vertex_array_object *vao = ctx->Array.VAO;
-   const void *elemMap;
    GLint i;
    GLuint k;
 
-   if (_mesa_is_bufferobj(vao->IndexBufferObj)) {
-      elemMap = ctx->Driver.MapBufferRange(ctx, 0,
-                                           vao->IndexBufferObj->Size,
-                                           GL_MAP_READ_BIT,
-                                           vao->IndexBufferObj, MAP_INTERNAL);
-      elements = ADD_POINTERS(elements, elemMap);
-   }
+   _mesa_vao_map(ctx, vao, GL_MAP_READ_BIT);
+
+   if (_mesa_is_bufferobj(vao->IndexBufferObj))
+       elements =
+          ADD_POINTERS(vao->IndexBufferObj->Mappings[MAP_INTERNAL].Pointer, elements);
 
    for (i = 0; i < count; i++) {
       GLuint j;
@@ -192,13 +164,7 @@ check_draw_elements_data(struct gl_context *ctx, GLsizei count,
       }
    }
 
-   if (_mesa_is_bufferobj(vao->IndexBufferObj)) {
-      ctx->Driver.UnmapBuffer(ctx, vao->IndexBufferObj, MAP_INTERNAL);
-   }
-
-   for (k = 0; k < VERT_ATTRIB_MAX; k++) {
-      unmap_array_buffer(ctx, vao, k);
-   }
+   _mesa_vao_unmap(ctx, vao);
 }
 
 
@@ -272,10 +238,12 @@ static void
 print_draw_arrays(struct gl_context *ctx,
                   GLenum mode, GLint start, GLsizei count)
 {
-   const struct gl_vertex_array_object *vao = ctx->Array.VAO;
+   struct gl_vertex_array_object *vao = ctx->Array.VAO;
 
    printf("_mesa_DrawArrays(mode 0x%x, start %d, count %d):\n",
           mode, start, count);
+
+   _mesa_vao_map_arrays(ctx, vao, GL_MAP_READ_BIT);
 
    GLbitfield mask = vao->Enabled;
    while (mask) {
@@ -293,9 +261,7 @@ print_draw_arrays(struct gl_context *ctx,
              array->Ptr, bufObj->Name);
 
       if (_mesa_is_bufferobj(bufObj)) {
-         GLubyte *p = ctx->Driver.MapBufferRange(ctx, 0, bufObj->Size,
-                                                 GL_MAP_READ_BIT, bufObj,
-                                                 MAP_INTERNAL);
+         GLubyte *p = bufObj->Mappings[MAP_INTERNAL].Pointer;
          int offset = (int) (GLintptr)
             _mesa_vertex_attrib_address(array, binding);
 
@@ -326,9 +292,10 @@ print_draw_arrays(struct gl_context *ctx,
                printf("    float[%d] = 0x%08x %f\n", i, k[i], f[i]);
             i++;
          } while (i < n);
-         ctx->Driver.UnmapBuffer(ctx, bufObj, MAP_INTERNAL);
       }
    }
+
+   _mesa_vao_unmap_arrays(ctx, vao);
 }
 
 

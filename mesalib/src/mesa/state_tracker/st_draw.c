@@ -55,6 +55,7 @@
 #include "st_debug.h"
 #include "st_draw.h"
 #include "st_program.h"
+#include "st_util.h"
 
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"

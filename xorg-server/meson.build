@@ -107,7 +107,9 @@ build_hashtable = false
 # Resolve default values of some options
 xkb_dir = get_option('xkb_dir')
 if xkb_dir == ''
-    xkb_dir = xkbcomp_dep.get_pkgconfig_variable('xkbconfigdir')
+    if xkbcomp_dep.found() and xkbcomp_dep.type_name() == 'pkgconfig'
+        xkb_dir = xkbcomp_dep.get_pkgconfig_variable('xkbconfigdir')
+    endif
     if xkb_dir == ''
         xkb_dir = join_paths(get_option('prefix'), 'share/X11/xkb')
     endif
@@ -120,7 +122,9 @@ endif
 
 xkb_bin_dir = get_option('xkb_bin_dir')
 if xkb_bin_dir == ''
-    xkb_bin_dir = xkbcomp_dep.get_pkgconfig_variable('bindir')
+    if xkbcomp_dep.found() and xkbcomp_dep.type_name() == 'pkgconfig'
+        xkb_bin_dir = xkbcomp_dep.get_pkgconfig_variable('bindir')
+    endif
     if xkb_bin_dir == ''
         xkb_bin_dir = join_paths(get_option('prefix'), get_option('bindir'))
     endif

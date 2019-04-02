@@ -1,6 +1,9 @@
 libXft - X FreeType library
 ---------------------------
 
+libXft is the client side font rendering library, using libfreetype,
+libX11, and the X Render extension to display anti-aliased text.
+
 Xft version 2.1 was the first stand alone release of Xft, a library that
 connects X applications with the FreeType font rasterization library. Xft
 uses fontconfig to locate fonts so it has no configuration files.

@@ -385,123 +385,6 @@ build_atan2(nir_builder *b, nir_ssa_def *y, nir_ssa_def *x)
                     nir_fneg(b, arc), arc);
 }
 
-static nir_ssa_def *
-build_frexp16(nir_builder *b, nir_ssa_def *x, nir_ssa_def **exponent)
-{
-   assert(x->bit_size == 16);
-
-   nir_ssa_def *abs_x = nir_fabs(b, x);
-   nir_ssa_def *zero = nir_imm_floatN_t(b, 0, 16);
-
-   /* Half-precision floating-point values are stored as
-    *   1 sign bit;
-    *   5 exponent bits;
-    *   10 mantissa bits.
-    *
-    * An exponent shift of 10 will shift the mantissa out, leaving only the
-    * exponent and sign bit (which itself may be zero, if the absolute value
-    * was taken before the bitcast and shift).
-    */
-   nir_ssa_def *exponent_shift = nir_imm_int(b, 10);
-   nir_ssa_def *exponent_bias = nir_imm_intN_t(b, -14, 16);
-
-   nir_ssa_def *sign_mantissa_mask = nir_imm_intN_t(b, 0x83ffu, 16);
-
-   /* Exponent of floating-point values in the range [0.5, 1.0). */
-   nir_ssa_def *exponent_value = nir_imm_intN_t(b, 0x3800u, 16);
-
-   nir_ssa_def *is_not_zero = nir_fne(b, abs_x, zero);
-
-   /* Significand return must be of the same type as the input, but the
-    * exponent must be a 32-bit integer.
-    */
-   *exponent =
-      nir_i2i32(b,
-                nir_iadd(b, nir_ushr(b, abs_x, exponent_shift),
-                            nir_bcsel(b, is_not_zero, exponent_bias, zero)));
-
-   return nir_ior(b, nir_iand(b, x, sign_mantissa_mask),
-                     nir_bcsel(b, is_not_zero, exponent_value, zero));
-}
-
-static nir_ssa_def *
-build_frexp32(nir_builder *b, nir_ssa_def *x, nir_ssa_def **exponent)
-{
-   nir_ssa_def *abs_x = nir_fabs(b, x);
-   nir_ssa_def *zero = nir_imm_float(b, 0.0f);
-
-   /* Single-precision floating-point values are stored as
-    *   1 sign bit;
-    *   8 exponent bits;
-    *   23 mantissa bits.
-    *
-    * An exponent shift of 23 will shift the mantissa out, leaving only the
-    * exponent and sign bit (which itself may be zero, if the absolute value
-    * was taken before the bitcast and shift.
-    */
-   nir_ssa_def *exponent_shift = nir_imm_int(b, 23);
-   nir_ssa_def *exponent_bias = nir_imm_int(b, -126);
-
-   nir_ssa_def *sign_mantissa_mask = nir_imm_int(b, 0x807fffffu);
-
-   /* Exponent of floating-point values in the range [0.5, 1.0). */
-   nir_ssa_def *exponent_value = nir_imm_int(b, 0x3f000000u);
-
-   nir_ssa_def *is_not_zero = nir_fne(b, abs_x, zero);
-
-   *exponent =
-      nir_iadd(b, nir_ushr(b, abs_x, exponent_shift),
-                  nir_bcsel(b, is_not_zero, exponent_bias, zero));
-
-   return nir_ior(b, nir_iand(b, x, sign_mantissa_mask),
-                     nir_bcsel(b, is_not_zero, exponent_value, zero));
-}
-
-static nir_ssa_def *
-build_frexp64(nir_builder *b, nir_ssa_def *x, nir_ssa_def **exponent)
-{
-   nir_ssa_def *abs_x = nir_fabs(b, x);
-   nir_ssa_def *zero = nir_imm_double(b, 0.0);
-   nir_ssa_def *zero32 = nir_imm_float(b, 0.0f);
-
-   /* Double-precision floating-point values are stored as
-    *   1 sign bit;
-    *   11 exponent bits;
-    *   52 mantissa bits.
-    *
-    * We only need to deal with the exponent so first we extract the upper 32
-    * bits using nir_unpack_64_2x32_split_y.
-    */
-   nir_ssa_def *upper_x = nir_unpack_64_2x32_split_y(b, x);
-   nir_ssa_def *abs_upper_x = nir_unpack_64_2x32_split_y(b, abs_x);
-
-   /* An exponent shift of 20 will shift the remaining mantissa bits out,
-    * leaving only the exponent and sign bit (which itself may be zero, if the
-    * absolute value was taken before the bitcast and shift.
-    */
-   nir_ssa_def *exponent_shift = nir_imm_int(b, 20);
-   nir_ssa_def *exponent_bias = nir_imm_int(b, -1022);
-
-   nir_ssa_def *sign_mantissa_mask = nir_imm_int(b, 0x800fffffu);
-
-   /* Exponent of floating-point values in the range [0.5, 1.0). */
-   nir_ssa_def *exponent_value = nir_imm_int(b, 0x3fe00000u);
-
-   nir_ssa_def *is_not_zero = nir_fne(b, abs_x, zero);
-
-   *exponent =
-      nir_iadd(b, nir_ushr(b, abs_upper_x, exponent_shift),
-                  nir_bcsel(b, is_not_zero, exponent_bias, zero32));
-
-   nir_ssa_def *new_upper =
-      nir_ior(b, nir_iand(b, upper_x, sign_mantissa_mask),
-                 nir_bcsel(b, is_not_zero, exponent_value, zero32));
-
-   nir_ssa_def *lower_x = nir_unpack_64_2x32_split_x(b, x);
-
-   return nir_pack_64_2x32_split(b, lower_x, new_upper);
-}
-
 static nir_op
 vtn_nir_alu_op_for_spirv_glsl_opcode(struct vtn_builder *b,
                                      enum GLSLstd450 opcode)
@@ -606,7 +489,7 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
    case GLSLstd450ModfStruct: {
       nir_ssa_def *sign = nir_fsign(nb, src[0]);
       nir_ssa_def *abs = nir_fabs(nb, src[0]);
-      vtn_assert(glsl_type_is_struct(val->ssa->type));
+      vtn_assert(glsl_type_is_struct_or_ifc(val->ssa->type));
       val->ssa->elems[0]->def = nir_fmul(nb, sign, nir_ffract(nb, abs));
       val->ssa->elems[1]->def = nir_fmul(nb, sign, nir_ffloor(nb, abs));
       return;
@@ -646,7 +529,7 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
       return;
 
    case GLSLstd450Cross: {
-      val->ssa->def = nir_cross(nb, src[0], src[1]);
+      val->ssa->def = nir_cross3(nb, src[0], src[1]);
       return;
    }
 
@@ -782,28 +665,16 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
       return;
 
    case GLSLstd450Frexp: {
-      nir_ssa_def *exponent;
-      if (src[0]->bit_size == 64)
-         val->ssa->def = build_frexp64(nb, src[0], &exponent);
-      else if (src[0]->bit_size == 32)
-         val->ssa->def = build_frexp32(nb, src[0], &exponent);
-      else
-         val->ssa->def = build_frexp16(nb, src[0], &exponent);
+      nir_ssa_def *exponent = nir_frexp_exp(nb, src[0]);
+      val->ssa->def = nir_frexp_sig(nb, src[0]);
       nir_store_deref(nb, vtn_nir_deref(b, w[6]), exponent, 0xf);
       return;
    }
 
    case GLSLstd450FrexpStruct: {
-      vtn_assert(glsl_type_is_struct(val->ssa->type));
-      if (src[0]->bit_size == 64)
-         val->ssa->elems[0]->def = build_frexp64(nb, src[0],
-                                                 &val->ssa->elems[1]->def);
-      else if (src[0]->bit_size == 32)
-         val->ssa->elems[0]->def = build_frexp32(nb, src[0],
-                                                 &val->ssa->elems[1]->def);
-      else
-         val->ssa->elems[0]->def = build_frexp16(nb, src[0],
-                                                 &val->ssa->elems[1]->def);
+      vtn_assert(glsl_type_is_struct_or_ifc(val->ssa->type));
+      val->ssa->elems[0]->def = nir_frexp_sig(nb, src[0]);
+      val->ssa->elems[1]->def = nir_frexp_exp(nb, src[0]);
       return;
    }
 
@@ -916,7 +787,7 @@ vtn_handle_glsl450_instruction(struct vtn_builder *b, SpvOp ext_opcode,
    case GLSLstd450InterpolateAtCentroid:
    case GLSLstd450InterpolateAtSample:
    case GLSLstd450InterpolateAtOffset:
-      handle_glsl450_interpolation(b, ext_opcode, w, count);
+      handle_glsl450_interpolation(b, (enum GLSLstd450)ext_opcode, w, count);
       break;
 
    default:

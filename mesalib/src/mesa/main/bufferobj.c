@@ -73,11 +73,11 @@ buffer_usage_warning(struct gl_context *ctx, GLuint *id, const char *fmt, ...)
    va_list args;
 
    va_start(args, fmt);
-   _mesa_gl_vdebug(ctx, id,
-                   MESA_DEBUG_SOURCE_API,
-                   MESA_DEBUG_TYPE_PERFORMANCE,
-                   MESA_DEBUG_SEVERITY_MEDIUM,
-                   fmt, args);
+   _mesa_gl_vdebugf(ctx, id,
+                    MESA_DEBUG_SOURCE_API,
+                    MESA_DEBUG_TYPE_PERFORMANCE,
+                    MESA_DEBUG_SEVERITY_MEDIUM,
+                    fmt, args);
    va_end(args);
 }
 

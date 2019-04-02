@@ -50,6 +50,7 @@
 #include "st_format.h"
 #include "st_nir.h"
 #include "st_program.h"
+#include "st_util.h"
 
 #include "pipe/p_context.h"
 #include "pipe/p_shader_tokens.h"

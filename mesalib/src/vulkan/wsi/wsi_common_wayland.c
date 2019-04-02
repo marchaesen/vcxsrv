@@ -526,8 +526,25 @@ wsi_wl_surface_get_capabilities2(VkIcdSurfaceBase *surface,
 {
    assert(caps->sType == VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_KHR);
 
-   return wsi_wl_surface_get_capabilities(surface, wsi_device,
-                                          &caps->surfaceCapabilities);
+   VkResult result =
+      wsi_wl_surface_get_capabilities(surface, wsi_device,
+                                      &caps->surfaceCapabilities);
+
+   vk_foreach_struct(ext, caps->pNext) {
+      switch (ext->sType) {
+      case VK_STRUCTURE_TYPE_SURFACE_PROTECTED_CAPABILITIES_KHR: {
+         VkSurfaceProtectedCapabilitiesKHR *protected = (void *)ext;
+         protected->supportsProtected = VK_FALSE;
+         break;
+      }
+
+      default:
+         /* Ignored */
+         break;
+      }
+   }
+
+   return result;
 }
 
 static VkResult
@@ -672,6 +689,7 @@ struct wsi_wl_swapchain {
 
    struct wsi_wl_image                          images[0];
 };
+WSI_DEFINE_NONDISP_HANDLE_CASTS(wsi_wl_swapchain, VkSwapchainKHR)
 
 static struct wsi_image *
 wsi_wl_swapchain_get_wsi_image(struct wsi_swapchain *wsi_chain,
@@ -967,7 +985,7 @@ wsi_wl_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
       /* If we have an oldSwapchain parameter, copy the display struct over
        * from the old one so we don't have to fully re-initialize it.
        */
-      struct wsi_wl_swapchain *old_chain = (void *)pCreateInfo->oldSwapchain;
+      WSI_FROM_HANDLE(wsi_wl_swapchain, old_chain, pCreateInfo->oldSwapchain);
       chain->display = wsi_wl_display_ref(old_chain->display);
    } else {
       chain->display = NULL;

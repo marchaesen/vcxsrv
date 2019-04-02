@@ -114,7 +114,9 @@ get_texture_size(nir_builder *b, nir_tex_instr *tex)
       if (tex->src[i].src_type == nir_tex_src_texture_deref ||
           tex->src[i].src_type == nir_tex_src_sampler_deref ||
           tex->src[i].src_type == nir_tex_src_texture_offset ||
-          tex->src[i].src_type == nir_tex_src_sampler_offset)
+          tex->src[i].src_type == nir_tex_src_sampler_offset ||
+          tex->src[i].src_type == nir_tex_src_texture_handle ||
+          tex->src[i].src_type == nir_tex_src_sampler_handle)
          num_srcs++;
    }
 
@@ -133,7 +135,9 @@ get_texture_size(nir_builder *b, nir_tex_instr *tex)
       if (tex->src[i].src_type == nir_tex_src_texture_deref ||
           tex->src[i].src_type == nir_tex_src_sampler_deref ||
           tex->src[i].src_type == nir_tex_src_texture_offset ||
-          tex->src[i].src_type == nir_tex_src_sampler_offset) {
+          tex->src[i].src_type == nir_tex_src_sampler_offset ||
+          tex->src[i].src_type == nir_tex_src_texture_handle ||
+          tex->src[i].src_type == nir_tex_src_sampler_handle) {
          nir_src_copy(&txs->src[idx].src, &tex->src[i].src, txs);
          txs->src[idx].src_type = tex->src[i].src_type;
          idx++;
@@ -163,7 +167,9 @@ get_texture_lod(nir_builder *b, nir_tex_instr *tex)
           tex->src[i].src_type == nir_tex_src_texture_deref ||
           tex->src[i].src_type == nir_tex_src_sampler_deref ||
           tex->src[i].src_type == nir_tex_src_texture_offset ||
-          tex->src[i].src_type == nir_tex_src_sampler_offset)
+          tex->src[i].src_type == nir_tex_src_sampler_offset ||
+          tex->src[i].src_type == nir_tex_src_texture_handle ||
+          tex->src[i].src_type == nir_tex_src_sampler_handle)
          num_srcs++;
    }
 
@@ -184,7 +190,9 @@ get_texture_lod(nir_builder *b, nir_tex_instr *tex)
           tex->src[i].src_type == nir_tex_src_texture_deref ||
           tex->src[i].src_type == nir_tex_src_sampler_deref ||
           tex->src[i].src_type == nir_tex_src_texture_offset ||
-          tex->src[i].src_type == nir_tex_src_sampler_offset) {
+          tex->src[i].src_type == nir_tex_src_sampler_offset ||
+          tex->src[i].src_type == nir_tex_src_texture_handle ||
+          tex->src[i].src_type == nir_tex_src_sampler_handle) {
          nir_src_copy(&tql->src[idx].src, &tex->src[i].src, tql);
          tql->src[idx].src_type = tex->src[i].src_type;
          idx++;
@@ -925,6 +933,53 @@ sampler_index_lt(nir_tex_instr *tex, unsigned max)
 }
 
 static bool
+lower_tg4_offsets(nir_builder *b, nir_tex_instr *tex)
+{
+   assert(tex->op == nir_texop_tg4);
+   assert(nir_tex_instr_has_explicit_tg4_offsets(tex));
+   assert(nir_tex_instr_src_index(tex, nir_tex_src_offset) == -1);
+
+   b->cursor = nir_after_instr(&tex->instr);
+
+   nir_ssa_def *dest[4];
+   for (unsigned i = 0; i < 4; ++i) {
+      nir_tex_instr *tex_copy = nir_tex_instr_create(b->shader, tex->num_srcs + 1);
+      tex_copy->op = tex->op;
+      tex_copy->coord_components = tex->coord_components;
+      tex_copy->sampler_dim = tex->sampler_dim;
+      tex_copy->is_array = tex->is_array;
+      tex_copy->is_shadow = tex->is_shadow;
+      tex_copy->is_new_style_shadow = tex->is_new_style_shadow;
+      tex_copy->component = tex->component;
+      tex_copy->dest_type = tex->dest_type;
+
+      for (unsigned j = 0; j < tex->num_srcs; ++j) {
+         nir_src_copy(&tex_copy->src[j].src, &tex->src[j].src, tex_copy);
+         tex_copy->src[j].src_type = tex->src[j].src_type;
+      }
+
+      nir_tex_src src;
+      src.src = nir_src_for_ssa(nir_imm_ivec2(b, tex->tg4_offsets[i][0],
+                                                 tex->tg4_offsets[i][1]));
+      src.src_type = nir_tex_src_offset;
+      tex_copy->src[tex_copy->num_srcs - 1] = src;
+
+      nir_ssa_dest_init(&tex_copy->instr, &tex_copy->dest,
+                        nir_tex_instr_dest_size(tex), 32, NULL);
+
+      nir_builder_instr_insert(b, &tex_copy->instr);
+
+      dest[i] = nir_channel(b, &tex_copy->dest.ssa, 3);
+   }
+
+   nir_ssa_def *res = nir_vec4(b, dest[0], dest[1], dest[2], dest[3]);
+   nir_ssa_def_rewrite_uses(&tex->dest.ssa, nir_src_for_ssa(res));
+   nir_instr_remove(&tex->instr);
+
+   return true;
+}
+
+static bool
 nir_lower_tex_block(nir_block *block, nir_builder *b,
                     const nir_lower_tex_options *options)
 {
@@ -1067,6 +1122,16 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
          b->cursor = nir_before_instr(&tex->instr);
          nir_tex_instr_add_src(tex, nir_tex_src_lod, nir_src_for_ssa(nir_imm_int(b, 0)));
          progress = true;
+         continue;
+      }
+
+      /* has to happen after all the other lowerings as the original tg4 gets
+       * replaced by 4 tg4 instructions.
+       */
+      if (tex->op == nir_texop_tg4 &&
+          nir_tex_instr_has_explicit_tg4_offsets(tex) &&
+          options->lower_tg4_offsets) {
+         progress |= lower_tg4_offsets(b, tex);
          continue;
       }
    }

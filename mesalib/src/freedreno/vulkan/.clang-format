@@ -1,0 +1,31 @@
+BasedOnStyle: LLVM
+AlwaysBreakAfterReturnType: TopLevel
+BinPackParameters: false
+BraceWrapping:
+  AfterControlStatement: false
+  AfterEnum: true
+  AfterFunction: true
+  AfterStruct: true
+  BeforeElse: false
+  SplitEmptyFunction: true
+BreakBeforeBraces: Custom
+ColumnLimit: 78
+ContinuationIndentWidth: 3
+Cpp11BracedListStyle: false
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex:           '^"tu_private.h"$'
+    Priority:        0
+  - Regex:           '^"(drm/|ir3/|tu_)'
+    Priority:        4
+  - Regex:           '^"(c11/|compiler/|main/|nir/|spirv/|util/|vk_|wsi_)'
+    Priority:        3
+  - Regex:           '^<(vulkan/)'
+    Priority:        2
+  - Regex:           '.*'
+    Priority:        1
+IndentWidth: 3
+PenaltyBreakBeforeFirstCallParameter: 1
+PenaltyExcessCharacter: 100
+SpaceAfterCStyleCast: true
+SpaceBeforeCpp11BracedList: true

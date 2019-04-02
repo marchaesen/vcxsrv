@@ -85,7 +85,8 @@ emit_output_copies_impl(struct lower_io_state *state, nir_function_impl *impl)
                continue;
 
             nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
-            if (intrin->intrinsic == nir_intrinsic_emit_vertex) {
+            if (intrin->intrinsic == nir_intrinsic_emit_vertex ||
+                intrin->intrinsic == nir_intrinsic_emit_vertex_with_counter) {
                b.cursor = nir_before_instr(&intrin->instr);
                emit_copies(&b, &state->shader->outputs, &state->old_outputs);
             }

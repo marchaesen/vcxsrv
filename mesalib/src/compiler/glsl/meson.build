@@ -74,6 +74,7 @@ files_libglsl = files(
   'builtin_variables.cpp',
   'generate_ir.cpp',
   'gl_nir_lower_atomics.c',
+  'gl_nir_lower_buffers.c',
   'gl_nir_lower_samplers.c',
   'gl_nir_lower_samplers_as_deref.c',
   'gl_nir_link_atomics.c',

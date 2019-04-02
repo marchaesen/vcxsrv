@@ -288,6 +288,7 @@ typedef struct glamor_screen_private {
 
     Bool suppress_gl_out_of_memory_logging;
     Bool logged_any_fbo_allocation_failure;
+    Bool logged_any_pbo_allocation_failure;
 
     /* xv */
     glamor_program xv_prog;

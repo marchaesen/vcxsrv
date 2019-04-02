@@ -66,11 +66,12 @@ static void initialise_wcurve(
 
 static void initialise_mcurve(
     struct ec_curve *curve, mp_int *p, mp_int *a, mp_int *b,
-    mp_int *G_x)
+    mp_int *G_x, unsigned log2_cofactor)
 {
     initialise_common(curve, EC_MONTGOMERY, p);
 
     curve->m.mc = ecc_montgomery_curve(p, a, b);
+    curve->m.log2_cofactor = log2_cofactor;
 
     curve->m.G = ecc_montgomery_point_new(curve->m.mc, G_x);
 }
@@ -194,7 +195,7 @@ static struct ec_curve *ec_curve25519(void)
         mp_int *a = MP_LITERAL(0x0000000000000000000000000000000000000000000000000000000000076d06);
         mp_int *b = MP_LITERAL(0x0000000000000000000000000000000000000000000000000000000000000001);
         mp_int *G_x = MP_LITERAL(0x0000000000000000000000000000000000000000000000000000000000000009);
-        initialise_mcurve(&curve, p, a, b, G_x);
+        initialise_mcurve(&curve, p, a, b, G_x, 3);
         mp_free(p);
         mp_free(a);
         mp_free(b);
@@ -796,12 +797,12 @@ static ssh_key *ecdsa_new_priv_openssh(
 
     get_string(src);
 
-    struct eddsa_key *ek = snew(struct eddsa_key);
+    struct ecdsa_key *ek = snew(struct ecdsa_key);
     ek->sshk.vt = alg;
     ek->curve = curve;
     ek->privateKey = NULL;
 
-    ek->publicKey = get_epoint(src, curve);
+    ek->publicKey = get_wpoint(src, curve);
     if (!ek->publicKey) {
         eddsa_freekey(&ek->sshk);
         return NULL;
@@ -1283,10 +1284,17 @@ static void ssh_ecdhkex_m_setup(ecdh_key *dh)
     random_read(strbuf_append(bytes, dh->curve->fieldBytes),
                 dh->curve->fieldBytes);
 
-    bytes->u[0] &= 0xF8;
-    bytes->u[bytes->len-1] &= 0x7F;
-    bytes->u[bytes->len-1] |= 0x40;
     dh->private = mp_from_bytes_le(ptrlen_from_strbuf(bytes));
+
+    /* Ensure the private key has the highest valid bit set, and no
+     * bits _above_ the highest valid one */
+    mp_reduce_mod_2to(dh->private, dh->curve->fieldBits);
+    mp_set_bit(dh->private, dh->curve->fieldBits - 1, 1);
+
+    /* Clear a curve-specific number of low bits */
+    for (unsigned bit = 0; bit < dh->curve->m.log2_cofactor; bit++)
+        mp_set_bit(dh->private, bit, 0);
+
     strbuf_free(bytes);
 
     dh->m_public = ecc_montgomery_multiply(dh->curve->m.G, dh->private);
@@ -1329,6 +1337,12 @@ static mp_int *ssh_ecdhkex_w_getkey(ecdh_key *dh, ptrlen remoteKey)
     if (!remote_p)
         return NULL;
 
+    if (ecc_weierstrass_is_identity(remote_p)) {
+        /* Not a sensible Diffie-Hellman input value */
+        ecc_weierstrass_point_free(remote_p);
+        return NULL;
+    }
+
     WeierstrassPoint *p = ecc_weierstrass_multiply(remote_p, dh->private);
 
     mp_int *x;
@@ -1343,6 +1357,29 @@ static mp_int *ssh_ecdhkex_w_getkey(ecdh_key *dh, ptrlen remoteKey)
 static mp_int *ssh_ecdhkex_m_getkey(ecdh_key *dh, ptrlen remoteKey)
 {
     mp_int *remote_x = mp_from_bytes_le(remoteKey);
+
+    /* Per RFC 7748 section 5, discard any set bits of the other
+     * side's public value beyond the minimum number of bits required
+     * to represent all valid values. However, an overlarge value that
+     * still fits into the remaining number of bits is accepted, and
+     * will be reduced mod p. */
+    mp_reduce_mod_2to(remote_x, dh->curve->fieldBits);
+
+    if (mp_eq_integer(remote_x, 0)) {
+        /*
+         * The libssh spec for Curve25519 key exchange says that
+         * 'every possible public key maps to a valid ECC Point' and
+         * therefore no validation needs to be done on the server's
+         * provided x-coordinate. However, I don't believe it: an
+         * x-coordinate of zero doesn't work sensibly, because you end
+         * up dividing by zero in the doubling formula
+         * (x+1)^2(x-1)^2/(4(x^3+ax^2+x)). (Put another way, although
+         * that point P is not the _identity_ of the curve, it is a
+         * torsion point such that 2P is the identity.)
+         */
+        mp_free(remote_x);
+        return NULL;
+    }
     MontgomeryPoint *remote_p = ecc_montgomery_point_new(
         dh->curve->m.mc, remote_x);
     mp_free(remote_x);

@@ -2856,13 +2856,11 @@ UnmapWindow(WindowPtr pWin, Bool fromConfigure)
     pWin->mapped = FALSE;
     if (wasRealized)
         UnrealizeTree(pWin, fromConfigure);
-    if (wasViewable) {
-        if (!fromConfigure) {
-            (*pScreen->ValidateTree) (pLayerWin->parent, pWin, VTUnmap);
-            (*pScreen->HandleExposures) (pLayerWin->parent);
-            if (pScreen->PostValidateTree)
-                (*pScreen->PostValidateTree) (pLayerWin->parent, pWin, VTUnmap);
-        }
+    if (wasViewable && !fromConfigure) {
+        (*pScreen->ValidateTree) (pLayerWin->parent, pWin, VTUnmap);
+        (*pScreen->HandleExposures) (pLayerWin->parent);
+        if (pScreen->PostValidateTree)
+            (*pScreen->PostValidateTree) (pLayerWin->parent, pWin, VTUnmap);
     }
     if (wasRealized && !fromConfigure) {
         WindowsRestructured();
@@ -2909,31 +2907,28 @@ UnmapSubwindows(WindowPtr pWin)
                 UnrealizeTree(pChild, FALSE);
         }
     }
-    if (wasViewable) {
-        if (anyMarked) {
-            if (pLayerWin->parent == pWin)
-                (*pScreen->MarkWindow) (pWin);
-            else {
-                WindowPtr ptmp;
+    if (wasViewable && anyMarked) {
+        if (pLayerWin->parent == pWin)
+            (*pScreen->MarkWindow) (pWin);
+        else {
+            WindowPtr ptmp;
 
-                (*pScreen->MarkOverlappedWindows) (pWin, pLayerWin, NULL);
-                (*pScreen->MarkWindow) (pLayerWin->parent);
+            (*pScreen->MarkOverlappedWindows) (pWin, pLayerWin, NULL);
+            (*pScreen->MarkWindow) (pLayerWin->parent);
 
-                /* Windows between pWin and pLayerWin may not have been marked */
-                ptmp = pWin;
+            /* Windows between pWin and pLayerWin may not have been marked */
+            ptmp = pWin;
 
-                while (ptmp != pLayerWin->parent) {
-                    (*pScreen->MarkWindow) (ptmp);
-                    ptmp = ptmp->parent;
-                }
-                pHead = pWin->firstChild;
+            while (ptmp != pLayerWin->parent) {
+                (*pScreen->MarkWindow) (ptmp);
+                ptmp = ptmp->parent;
             }
-            (*pScreen->ValidateTree) (pLayerWin->parent, pHead, VTUnmap);
-            (*pScreen->HandleExposures) (pLayerWin->parent);
-            if (pScreen->PostValidateTree)
-                (*pScreen->PostValidateTree) (pLayerWin->parent, pHead,
-                                              VTUnmap);
+            pHead = pWin->firstChild;
         }
+        (*pScreen->ValidateTree) (pLayerWin->parent, pHead, VTUnmap);
+        (*pScreen->HandleExposures) (pLayerWin->parent);
+        if (pScreen->PostValidateTree)
+            (*pScreen->PostValidateTree) (pLayerWin->parent, pHead, VTUnmap);
     }
     if (wasRealized) {
         WindowsRestructured();
