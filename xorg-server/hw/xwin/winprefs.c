@@ -382,6 +382,12 @@ HandleCustomWM_COMMAND(HWND hwnd, WORD command, winPrivScreenPtr pScreenPriv)
                         SetWindowPos(hwnd,
                                      HWND_TOPMOST,
                                      0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
+                    {
+                        winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
+                        if (pScreenInfo->fMultiWindow)
+                            /* Reflect the changed Z order */
+                            winReorderWindowsMultiWindow();
+                    }
                     return TRUE;
 
                 case CMD_RELOAD:

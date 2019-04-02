@@ -413,74 +413,6 @@ static int isWindowOnTop(HWND hAbove, HWND hBeneath)
     return hNext==hBeneath;
 }
 
-static void dowinRestackWindowMultiWindow(WindowPtr pWin)
-{
-    winWindowPriv(pWin);
-
-    if (localConfigureWindow)
-    {
-      return;
-    }
-    if (!pWinPriv->hWnd)
-    {
-      return;
-    }
-
-    WindowPtr pNextSib = pWin->nextSib;
-
-    if (pNextSib == NullWindow)
-    {
-        #ifdef _DEBUG
-        char window1[100];
-        GetWindowText(pWinPriv->hWnd, window1, 100);
-        ErrorF ("Setting windows %x(%s) to bottom\n", pWinPriv->hWnd, window1);
-        #endif
-        SetWindowPos(pWinPriv->hWnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
-    }
-    else
-    {
-        /* Window is not at the bottom of the stack */
-	      winPrivWinPtr pNextSibPriv = winGetWindowPriv(pNextSib);
-
-        /* Handle case where siblings have not yet been created due to
-           lazy window creation optimization by first finding the next
-           sibling in the sibling list that has been created (if any)
-           and then putting the current window just above that sibling,
-           and if no next siblings have been created yet, then put it at
-           the bottom of the stack (since it might have a previous
-           sibling that should be above it). */
-        while (!pNextSibPriv->hWnd) {
-            pNextSib = pNextSib->nextSib;
-            if (pNextSib == NullWindow) {
-                /* Window is at the bottom of the stack */
-                #ifdef _DEBUG
-                char window1[100];
-                GetWindowText(pWinPriv->hWnd, window1, 100);
-                ErrorF ("Setting windows %x(%s) to bottom\n", pWinPriv->hWnd, window1);
-                #endif
-                SetWindowPos(pWinPriv->hWnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
-                return;
-            }
-	          pNextSibPriv = winGetWindowPriv(pNextSib);
-        }
-
-        /* Bring window on top pNextSibPriv->hwnd, but only if it is not yet the case.
-         * ( Pay attention to the fact that pNextSibPriv->hwnd is the next X-window, and there
-         * can be non X-windos in between.)        */
-        if (!isWindowOnTop(pWinPriv->hWnd, pNextSibPriv->hWnd))
-        {
-            #ifdef _DEBUG
-            char window1[100];
-            char window2[100];
-            GetWindowText(pWinPriv->hWnd, window1, 100);
-            GetWindowText(pNextSibPriv->hWnd, window2, 100);
-            ErrorF ("Setting windows %x(%s) on top of %x(%s)\n", pWinPriv->hWnd, window1, pNextSibPriv->hWnd, window2);
-            #endif
-            SetWindowPos(pWinPriv->hWnd, pNextSibPriv->hWnd, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE);
-        }
-    }
-}
-
 /*
  * RestackWindow - Shuffle the z-order of a window
  */
@@ -499,8 +431,12 @@ winRestackWindowMultiWindow(WindowPtr pWin, WindowPtr pOldNextSib)
         (*pScreen->RestackWindow) (pWin, pOldNextSib);
     WIN_WRAP(RestackWindow, winRestackWindowMultiWindow);
 
+    /*
+     * Calling winReorderWindowsMultiWindow here means our window manager
+     * (i.e. Windows Explorer) has initiative to determine Z order.
+     */
     if (pWin->nextSib != pOldNextSib)
-        dowinRestackWindowMultiWindow(pWin);
+        winReorderWindowsMultiWindow();
 }
 
 /*
