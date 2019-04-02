@@ -14,11 +14,13 @@
 #include "sshserver.h"
 
 void ssh2connection_server_configure(
-    PacketProtocolLayer *ppl, const SftpServerVtable *sftpserver_vt)
+    PacketProtocolLayer *ppl, const SftpServerVtable *sftpserver_vt,
+    const SshServerConfig *ssc)
 {
     struct ssh2_connection_state *s =
         container_of(ppl, struct ssh2_connection_state, ppl);
     s->sftpserver_vt = sftpserver_vt;
+    s->ssc = ssc;
 }
 
 static ChanopenResult chan_open_session(
@@ -28,7 +30,7 @@ static ChanopenResult chan_open_session(
 
     ppl_logevent("Opened session channel");
     CHANOPEN_RETURN_SUCCESS(sesschan_new(sc, s->ppl.logctx,
-                                         s->sftpserver_vt));
+                                         s->sftpserver_vt, s->ssc));
 }
 
 static ChanopenResult chan_open_direct_tcpip(
@@ -296,4 +298,9 @@ bool ssh2channel_send_signal(
 void ssh2channel_send_terminal_size_change(SshChannel *sc, int w, int h)
 {
     unreachable("Should never be called in the server");
+}
+
+bool ssh2_connection_need_antispoof_prompt(struct ssh2_connection_state *s)
+{
+    return false;
 }

@@ -23,6 +23,13 @@ SUBDIRS = man
 bin_PROGRAMS = mkfontscale
 bin_SCRIPTS = mkfontdir
 
+CLEANFILES = $(bin_SCRIPTS)
+EXTRA_DIST = $(bin_SCRIPTS:=.in)
+DIR_SUBSTS = -e 's|@bindir[@]|$(bindir)|g'
+
+mkfontdir: mkfontdir.in
+	$(AM_V_GEN)$(SED) $(DIR_SUBSTS) < $(srcdir)/mkfontdir.in > $@
+
 AM_CPPFLAGS = @MKFONTSCALE_CFLAGS@ @X11_CFLAGS@ -D_BSD_SOURCE
 AM_CFLAGS = $(CWARNFLAGS)
 mkfontscale_LDADD  = @MKFONTSCALE_LIBS@
@@ -59,4 +66,4 @@ lint:
 	$(LINT) $(ALL_LINT_FLAGS) $(mkfontscale_SOURCES)
 endif LINT
 
-EXTRA_DIST = README.md
+EXTRA_DIST += README.md

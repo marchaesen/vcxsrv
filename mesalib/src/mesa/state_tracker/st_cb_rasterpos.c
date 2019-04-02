@@ -49,6 +49,7 @@
 #include "st_draw.h"
 #include "st_program.h"
 #include "st_cb_rasterpos.h"
+#include "st_util.h"
 #include "draw/draw_context.h"
 #include "draw/draw_pipe.h"
 #include "vbo/vbo.h"

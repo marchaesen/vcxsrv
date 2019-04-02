@@ -41,6 +41,9 @@ glsl/ir_expression_operation_constant.h: glsl/ir_expression_operation.py
 glsl/ir_expression_operation_strings.h: glsl/ir_expression_operation.py
 	$(PYTHON_GEN) $(srcdir)/glsl/ir_expression_operation.py strings > $@
 
+glsl/float64_glsl.h: glsl/xxd.py glsl/float64.glsl
+	$(PYTHON_GEN) $(srcdir)/glsl/xxd.py $(srcdir)/glsl/float64.glsl $@ -n float64_source
+
 nir/nir_builder_opcodes.h: nir/nir_opcodes.py nir/nir_builder_opcodes_h.py
 	$(PYTHON_GEN) $(srcdir)/nir/nir_builder_opcodes_h.py > $@
 

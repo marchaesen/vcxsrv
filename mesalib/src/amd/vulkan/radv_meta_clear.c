@@ -651,7 +651,7 @@ static bool depth_view_can_fast_clear(struct radv_cmd_buffer *cmd_buffer,
 	    iview->base_mip == 0 &&
 	    iview->base_layer == 0 &&
 	    radv_layout_is_htile_compressed(iview->image, layout, queue_mask) &&
-	    !radv_image_extent_compare(iview->image, &iview->extent))
+	    radv_image_extent_compare(iview->image, &iview->extent))
 		return true;
 	return false;
 }
@@ -1078,9 +1078,10 @@ build_clear_htile_mask_shader()
 					   nir_intrinsic_vulkan_resource_index);
 
 	buf->src[0] = nir_src_for_ssa(nir_imm_int(&b, 0));
+	buf->num_components = 1;
 	nir_intrinsic_set_desc_set(buf, 0);
 	nir_intrinsic_set_binding(buf, 0);
-	nir_ssa_dest_init(&buf->instr, &buf->dest, 1, 32, NULL);
+	nir_ssa_dest_init(&buf->instr, &buf->dest, buf->num_components, 32, NULL);
 	nir_builder_instr_insert(&b, &buf->instr);
 
 	nir_intrinsic_instr *constants =

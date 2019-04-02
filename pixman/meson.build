@@ -50,7 +50,7 @@ endforeach
 
 use_loongson_mmi = get_option('loongson-mmi')
 have_loongson_mmi = false
-loongson_mmi_flags = ['-mach=loongson2f']
+loongson_mmi_flags = ['-march=loongson2f']
 if not use_loongson_mmi.disabled()
   if host_machine.cpu_family() == 'mips64' and cc.compiles('''
       #ifndef __mips_loongson_vector_rev
@@ -70,6 +70,7 @@ if not use_loongson_mmi.disabled()
         return 0;
       }''',
       args : loongson_mmi_flags,
+      include_directories : include_directories('.'),
       name : 'Loongson MMI Intrinsic Support')
     have_loongson_mmi = true
   endif
@@ -223,20 +224,7 @@ use_armv6_simd = get_option('arm-simd')
 have_armv6_simd = false
 if not use_armv6_simd.disabled()
   if host_machine.cpu_family() == 'arm'
-    if cc.compiles('''
-        .text
-        .arch armv6
-        .object_arch armv4
-        .arm
-        .altmacro
-        #ifndef __ARM_EABI__
-        #error EABI is required (to be sure that calling conventions are compatible)
-        #endif
-        pld [r0]
-        uqadd8 r0, r0, r0
-        ''',
-        args : ['-x assembler-with-cpp'],
-        name : 'ARMv6 SIMD Intrinsic Support')
+    if cc.compiles(files('arm-simd-test.S'), name : 'ARMv6 SIMD Intrinsic Support')
       have_armv6_simd = true
     endif
   endif
@@ -252,22 +240,7 @@ use_neon = get_option('neon')
 have_neon = false
 if not use_neon.disabled()
   if host_machine.cpu_family() == 'arm'
-    if cc.compiles('''
-        .text
-        .fpu neon
-        .arch armv7a
-        .object_arch armv4
-        .eabi_attribute 10, 0
-        .arm
-        .altmacro
-        #ifndef __ARM_EABI__
-        #error EABI is required (to be sure that calling conventions are compatible)
-        #endif
-        pld [r0]
-        vmovn.u16 d0, q0
-        ''',
-        args : ['-x assembler-with-cpp'],
-        name : 'NEON Intrinsic Support')
+    if cc.compiles(files('neon-test.S'), name : 'NEON Intrinsic Support')
       have_neon = true
     endif
   endif
@@ -376,13 +349,15 @@ if get_option('gnuplot')
   config.set('PIXMAN_GNUPLOT', 1)
 endif
 
-use_openmp = get_option('openmp')
-dep_openmp = null_dep
-if not use_openmp.disabled()
-  dep_openmp = dependency('openmp', required : get_option('openmp'))
-  if dep_openmp.found()
-    config.set10('USE_OPENMP', true)
-  endif
+dep_openmp = dependency('openmp', required : get_option('openmp'))
+if dep_openmp.found()
+  config.set10('USE_OPENMP', true)
+elif meson.version().version_compare('<0.51.0')
+# In versions of meson before 0.51 the openmp dependency can still
+# inject arguments in the the auto case when it is not found, the
+# detection does work correctly in that case however, so we just
+# replace dep_openmp with null_dep to work around this.
+  dep_openmp = null_dep
 endif
 
 dep_gtk = dependency('gtk+-2.0', version : '>= 2.16', required : get_option('gtk'))

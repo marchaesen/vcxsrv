@@ -8,18 +8,94 @@ piglit_env = environment()
 piglit_env.set('XSERVER_DIR', meson.source_root())
 piglit_env.set('XSERVER_BUILDDIR', meson.build_root())
 
+some_ops = ' -o clear,src,dst,over,xor,disjointover'
+rendercheck_tests = [
+    ['blend/All/a8r8g8b8', '-t blend -f a8r8g8b8'],
+    ['blend/All/x8r8g8b8', '-t blend -f a8r8g8b8,x8r8g8b8'],
+    ['blend/All/a2r10g10b10', '-t blend -f a8r8g8b8,a2r10g10b10'],
+    ['blend/Clear', '-t blend -o clear'],
+    ['blend/Src', '-t blend -o src'],
+    ['blend/Over', '-t blend -o over'],
+    ['composite/Some/a8r8g8b8', '-t composite -f a8r8g8b8' + some_ops],
+    ['composite/Some/x8r8g8b8', '-t composite -f a8r8g8b8,x8r8g8b8' + some_ops],
+    ['composite/Some/a2r10g10b10', '-t composite -f a8r8g8b8,a2r10g10b10' + some_ops],
+    ['ca composite/Some/a8r8g8b8', '-t cacomposite -f a8r8g8b8' + some_ops],
+    ['ca composite/Some/a8', '-t cacomposite -f a8r8g8b8,a8' + some_ops],
+    ['ca composite/Some/x8r8g8b8', '-t cacomposite -f a8r8g8b8,x8r8g8b8' + some_ops],
+    ['ca composite/Some/a2r10g10b10', '-t cacomposite -f a8r8g8b8,a2r10g10b10' + some_ops],
+    ['fill', '-t fill'],
+    ['bug7366', '-t bug7366'],
+    ['destination coordinates', '-t dcoords'],
+    ['source coordinates', '-t scoords'],
+    ['mask coordinates', '-t mcoords'],
+    ['translated source coordinates', '-t tscoords'],
+    ['translated mask coordinates', '-t tmcoords'],
+    ['triangles', '-t triangles'],
+    ['LibreOffice xRGB', '-t libreoffice_xrgb'],
+    ['GTK ARGB vs xBGR', '-t gtk_argb_xbgr'],
+]
+
+rendercheck = find_program('rendercheck', required:false)
+xvfb_args = [
+    xvfb_server.full_path(),
+    '-screen',
+    'scrn',
+    '1280x1024x24',
+  ]
+
 if get_option('xvfb')
-    test('xvfb-piglit', find_program('scripts/xvfb-piglit.sh'),
+    test('XTS',
+        find_program('scripts/xvfb-piglit.sh'),
         env: piglit_env,
         timeout: 1200,
+        suite: 'xvfb'
     )
 
+    if rendercheck.found()
+        foreach rctest: rendercheck_tests
+            test(rctest[0],
+                 simple_xinit,
+                 # Use full_path so people can copy and paste the
+                 # command line from testlog.txt easily.
+                 args: [
+                     rendercheck.path(),
+                     rctest[1].split(' '),
+                     '--',
+                     xvfb_args,
+                 ],
+                 suite: 'xvfb'
+                )
+        endforeach
+    endif
+
     if get_option('xephyr') and build_glamor
-        test('xephyr-glamor',
+        test('XTS',
             find_program('scripts/xephyr-glamor-piglit.sh'),
             env: piglit_env,
             timeout: 1200,
+            suite: 'xephr-glamor',
         )
+
+        if rendercheck.found()
+            foreach rctest: rendercheck_tests
+                test(rctest[0],
+                     simple_xinit,
+                     args: [simple_xinit.full_path(),
+                            rendercheck.path(),
+                            rctest[1].split(' '),
+                            '----',
+                            xephyr_server.full_path(),
+                            '-glamor',
+                            '-glamor-skip-present',
+                            '-schedMax', '2000',
+                            '--',
+                            xvfb_args,
+                           ],
+                     suite: 'xephr-glamor',
+                     timeout: 300,
+                    )
+            endforeach
+        endif
     endif
 endif
 
@@ -53,7 +129,7 @@ if build_xorg
         unit_defines += ['-DRES_TESTS']
     endif
 
-    if meson.version().version_compare('>=0.46.0') and meson.get_compiler('c').has_link_argument('-Wl,-wrap')
+    if meson.get_compiler('c').has_link_argument('-Wl,-wrap')
        unit_sources += [
         'xi1/protocol-xchangedevicecontrol.c',
         'xi2/protocol-common.c',

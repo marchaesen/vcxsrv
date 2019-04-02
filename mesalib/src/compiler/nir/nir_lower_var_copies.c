@@ -75,15 +75,15 @@ emit_deref_copy_load_store(nir_builder *b,
       assert(length > 0);
 
       for (unsigned i = 0; i < length; i++) {
-         nir_ssa_def *index = nir_imm_int(b, i);
          emit_deref_copy_load_store(b,
-                                    nir_build_deref_array(b, dst_deref, index),
+                                    nir_build_deref_array_imm(b, dst_deref, i),
                                     dst_deref_arr + 1,
-                                    nir_build_deref_array(b, src_deref, index),
+                                    nir_build_deref_array_imm(b, src_deref, i),
                                     src_deref_arr + 1);
       }
    } else {
-      assert(dst_deref->type == src_deref->type);
+      assert(glsl_get_bare_type(dst_deref->type) ==
+             glsl_get_bare_type(src_deref->type));
       assert(glsl_type_is_vector_or_scalar(dst_deref->type));
 
       nir_store_deref(b, dst_deref, nir_load_deref(b, src_deref), ~0);

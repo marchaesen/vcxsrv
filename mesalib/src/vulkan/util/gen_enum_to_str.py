@@ -57,6 +57,7 @@ C_TEMPLATE = Template(textwrap.dedent(u"""\
      ${copyright}
      */
 
+    #include <string.h>
     #include <vulkan/vulkan.h>
     #include <vulkan/vk_android_native_buffer.h>
     #include "util/macros.h"
@@ -64,6 +65,9 @@ C_TEMPLATE = Template(textwrap.dedent(u"""\
 
     % for enum in enums:
 
+      % if enum.guard:
+#ifdef ${enum.guard}
+      % endif
     const char *
     vk_${enum.name[2:]}_to_str(${enum.name} input)
     {
@@ -85,7 +89,50 @@ C_TEMPLATE = Template(textwrap.dedent(u"""\
             unreachable("Undefined enum value.");
         }
     }
-    %endfor"""),
+
+      % if enum.guard:
+#endif
+      % endif
+    %endfor
+
+    void vk_load_instance_commands(VkInstance instance,
+                                   PFN_vkGetInstanceProcAddr gpa,
+                                   struct vk_instance_dispatch_table *table)
+    {
+        memset(table, 0, sizeof(*table));
+        table->GetInstanceProcAddr = gpa;
+    % for cmd in commands:
+        % if not cmd.device_entrypoint and cmd.name != 'vkGetInstanceProcAddr':
+            % if cmd.extension is not None and cmd.extension.define is not None:
+    #ifdef ${cmd.extension.define}
+        table->${cmd.name[2:]} = (PFN_${cmd.name}) gpa(instance, "${cmd.name}");
+    #endif
+            % else:
+        table->${cmd.name[2:]} = (PFN_${cmd.name}) gpa(instance, "${cmd.name}");
+            % endif
+        % endif
+    %endfor
+    }
+
+    void vk_load_device_commands(VkDevice device,
+                                 PFN_vkGetDeviceProcAddr gpa,
+                                 struct vk_device_dispatch_table *table)
+    {
+        memset(table, 0, sizeof(*table));
+        table->GetDeviceProcAddr = gpa;
+    % for cmd in commands:
+        % if cmd.device_entrypoint and cmd.name != 'vkGetDeviceProcAddr':
+            % if cmd.extension is not None and cmd.extension.define is not None:
+    #ifdef ${cmd.extension.define}
+        table->${cmd.name[2:]} = (PFN_${cmd.name}) gpa(device, "${cmd.name}");
+    #endif
+            % else:
+        table->${cmd.name[2:]} = (PFN_${cmd.name}) gpa(device, "${cmd.name}");
+            % endif
+        % endif
+    %endfor
+    }
+    """),
     output_encoding='utf-8')
 
 H_TEMPLATE = Template(textwrap.dedent(u"""\
@@ -110,8 +157,47 @@ H_TEMPLATE = Template(textwrap.dedent(u"""\
     % endfor
 
     % for enum in enums:
+      % if enum.guard:
+#ifdef ${enum.guard}
+      % endif
     const char * vk_${enum.name[2:]}_to_str(${enum.name} input);
+      % if enum.guard:
+#endif
+      % endif
     % endfor
+
+    struct vk_instance_dispatch_table {
+        PFN_vkGetInstanceProcAddr GetInstanceProcAddr;
+    % for cmd in commands:
+        % if not cmd.device_entrypoint and cmd.name != 'vkGetInstanceProcAddr':
+            % if cmd.extension is not None and cmd.extension.define is not None:
+    #ifdef ${cmd.extension.define}
+        PFN_${cmd.name} ${cmd.name[2:]};
+    #endif
+            % else:
+        PFN_${cmd.name} ${cmd.name[2:]};
+            % endif
+        % endif
+    %endfor
+    };
+
+    struct vk_device_dispatch_table {
+        PFN_vkGetDeviceProcAddr GetDeviceProcAddr;
+    % for cmd in commands:
+        % if cmd.device_entrypoint and cmd.name != 'vkGetDeviceProcAddr':
+            % if cmd.extension is not None and cmd.extension.define is not None:
+    #ifdef ${cmd.extension.define}
+        PFN_${cmd.name} ${cmd.name[2:]};
+    #endif
+            % else:
+        PFN_${cmd.name} ${cmd.name[2:]};
+            % endif
+        % endif
+    %endfor
+    };
+
+    void vk_load_instance_commands(VkInstance instance, PFN_vkGetInstanceProcAddr gpa, struct vk_instance_dispatch_table *table);
+    void vk_load_device_commands(VkDevice device, PFN_vkGetDeviceProcAddr gpa, struct vk_device_dispatch_table *table);
 
     #ifdef __cplusplus
     } /* extern "C" */
@@ -148,9 +234,10 @@ class NamedFactory(object):
 class VkExtension(object):
     """Simple struct-like class representing extensions"""
 
-    def __init__(self, name, number=None):
+    def __init__(self, name, number=None, define=None):
         self.name = name
         self.number = number
+        self.define = define
 
 
 class VkEnum(object):
@@ -161,6 +248,7 @@ class VkEnum(object):
         # Maps numbers to names
         self.values = values or dict()
         self.name_to_value = dict()
+        self.guard = None
 
     def add_value(self, name, value=None,
                   extnum=None, offset=None,
@@ -195,8 +283,20 @@ class VkEnum(object):
                            offset=int(elem.attrib['offset']),
                            error=error)
 
+    def set_guard(self, g):
+        self.guard = g
 
-def parse_xml(enum_factory, ext_factory, filename):
+
+class VkCommand(object):
+    """Simple struct-like class representing a single Vulkan command"""
+
+    def __init__(self, name, device_entrypoint=False):
+        self.name = name
+        self.device_entrypoint = device_entrypoint
+        self.extension = None
+
+
+def parse_xml(cmd_factory, enum_factory, ext_factory, filename):
     """Parse the XML file. Accumulate results into the factories.
 
     This parser is a memory efficient iterative XML parser that returns a list
@@ -215,14 +315,43 @@ def parse_xml(enum_factory, ext_factory, filename):
         if enum is not None:
             enum.add_value_from_xml(value)
 
+    for command in xml.findall('./commands/command'):
+        name = command.find('./proto/name')
+        first_arg = command.find('./param/type')
+        # Some commands are alias KHR -> nonKHR, ignore those
+        if name is not None:
+            cmd_factory(name.text,
+                        device_entrypoint=(first_arg.text in ('VkDevice', 'VkCommandBuffer', 'VkQueue')))
+
+    platform_define = {}
+    for platform in xml.findall('./platforms/platform'):
+        name = platform.attrib['name']
+        define = platform.attrib['protect']
+        platform_define[name] = define
+
     for ext_elem in xml.findall('./extensions/extension[@supported="vulkan"]'):
+        define = None
+        if "platform" in ext_elem.attrib:
+            define = platform_define[ext_elem.attrib['platform']]
         extension = ext_factory(ext_elem.attrib['name'],
-                                number=int(ext_elem.attrib['number']))
+                                number=int(ext_elem.attrib['number']),
+                                define=define)
 
         for value in ext_elem.findall('./require/enum[@extends]'):
             enum = enum_factory.get(value.attrib['extends'])
             if enum is not None:
                 enum.add_value_from_xml(value, extension)
+
+        if define:
+            for value in ext_elem.findall('./require/type[@name]'):
+                enum = enum_factory.get(value.attrib['name'])
+                if enum is not None:
+                    enum.set_guard(define)
+
+        for t in ext_elem.findall('./require/command'):
+            command = cmd_factory.get(t.attrib['name'])
+            if command is not None:
+                command.extension = extension
 
 
 def main():
@@ -237,10 +366,12 @@ def main():
 
     args = parser.parse_args()
 
+    command_factory = NamedFactory(VkCommand)
     enum_factory = NamedFactory(VkEnum)
     ext_factory = NamedFactory(VkExtension)
     for filename in args.xml_files:
-        parse_xml(enum_factory, ext_factory, filename)
+        parse_xml(command_factory, enum_factory, ext_factory, filename)
+    commands = sorted(command_factory.registry.values(), key=lambda e: e.name)
     enums = sorted(enum_factory.registry.values(), key=lambda e: e.name)
     extensions = sorted(ext_factory.registry.values(), key=lambda e: e.name)
 
@@ -249,6 +380,7 @@ def main():
         with open(file_, 'wb') as f:
             f.write(template.render(
                 file=os.path.basename(__file__),
+                commands=commands,
                 enums=enums,
                 extensions=extensions,
                 copyright=COPYRIGHT,

@@ -45,8 +45,9 @@
 #include "st_program.h"
 #include "st_mesa_to_tgsi.h"
 #include "st_cb_program.h"
-#include "st_glsl_to_tgsi.h"
+#include "st_glsl_to_ir.h"
 #include "st_atifs_to_tgsi.h"
+#include "st_util.h"
 
 
 /**
@@ -266,6 +267,61 @@ st_new_ati_fs(struct gl_context *ctx, struct ati_fragment_shader *curProg)
    return prog;
 }
 
+static void
+st_max_shader_compiler_threads(struct gl_context *ctx, unsigned count)
+{
+   struct pipe_screen *screen = st_context(ctx)->pipe->screen;
+
+   if (screen->set_max_shader_compiler_threads)
+      screen->set_max_shader_compiler_threads(screen, count);
+}
+
+static bool
+st_get_shader_program_completion_status(struct gl_context *ctx,
+                                        struct gl_shader_program *shprog)
+{
+   struct pipe_screen *screen = st_context(ctx)->pipe->screen;
+
+   if (!screen->is_parallel_shader_compilation_finished)
+      return true;
+
+   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+      struct gl_linked_shader *linked = shprog->_LinkedShaders[i];
+      void *sh = NULL;
+
+      if (!linked || !linked->Program)
+         continue;
+
+      switch (i) {
+      case MESA_SHADER_VERTEX:
+         if (st_vertex_program(linked->Program)->variants)
+            sh = st_vertex_program(linked->Program)->variants->driver_shader;
+         break;
+      case MESA_SHADER_FRAGMENT:
+         if (st_fragment_program(linked->Program)->variants)
+            sh = st_fragment_program(linked->Program)->variants->driver_shader;
+         break;
+      case MESA_SHADER_TESS_CTRL:
+      case MESA_SHADER_TESS_EVAL:
+      case MESA_SHADER_GEOMETRY:
+         if (st_common_program(linked->Program)->variants)
+            sh = st_common_program(linked->Program)->variants->driver_shader;
+         break;
+      case MESA_SHADER_COMPUTE:
+         if (st_compute_program(linked->Program)->variants)
+            sh = st_compute_program(linked->Program)->variants->driver_shader;
+         break;
+      }
+
+      unsigned type = pipe_shader_type_from_mesa(i);
+
+      if (sh &&
+          !screen->is_parallel_shader_compilation_finished(screen, sh, type))
+         return false;
+   }
+   return true;
+}
+
 /**
  * Plug in the program and shader-related device driver functions.
  */
@@ -276,6 +332,8 @@ st_init_program_functions(struct dd_function_table *functions)
    functions->DeleteProgram = st_delete_program;
    functions->ProgramStringNotify = st_program_string_notify;
    functions->NewATIfs = st_new_ati_fs;
-   
    functions->LinkShader = st_link_shader;
+   functions->SetMaxShaderCompilerThreads = st_max_shader_compiler_threads;
+   functions->GetShaderProgramCompletionStatus =
+      st_get_shader_program_completion_status;
 }

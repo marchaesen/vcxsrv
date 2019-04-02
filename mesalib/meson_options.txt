@@ -152,7 +152,7 @@ option(
   'vulkan-drivers',
   type : 'array',
   value : ['auto'],
-  choices : ['', 'auto', 'amd', 'intel'],
+  choices : ['', 'auto', 'amd', 'freedreno', 'intel'],
   description : 'List of vulkan drivers to build. If this is set to auto all drivers applicable to the target OS/architecture will be built'
 )
 option(
@@ -329,4 +329,29 @@ option(
   type : 'boolean',
   value : true,
   description : 'Enable direct rendering in GLX and EGL for DRI',
+)
+option(
+  'I-love-half-baked-turnips',
+  type : 'boolean',
+  value : false,
+  description : 'Allow work-in-progress freedreno vulkan driver to be enabled',
+)
+option('egl-lib-suffix',
+  type : 'string',
+  value : '',
+  description : 'Suffix to append to EGL library name.  Default: none.'
+)
+option(
+  'gles-lib-suffix',
+  type : 'string',
+  value : '',
+  description : 'Suffix to append to GLES library names.  Default: none.'
+)
+option(
+  'platform-sdk-version',
+  type : 'integer',
+  min : 25,
+  max : 28,
+  value : 25,
+  description : 'Android Platform SDK version. Default: Nougat version.'
 )

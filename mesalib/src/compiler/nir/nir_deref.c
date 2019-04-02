@@ -152,7 +152,7 @@ struct_type_get_field_offset(const struct glsl_type *struct_type,
                              glsl_type_size_align_func size_align,
                              unsigned field_idx)
 {
-   assert(glsl_type_is_struct(struct_type));
+   assert(glsl_type_is_struct_or_ifc(struct_type));
    unsigned offset = 0;
    for (unsigned i = 0; i <= field_idx; i++) {
       unsigned elem_size, elem_align;
@@ -307,6 +307,28 @@ modes_may_alias(nir_variable_mode a, nir_variable_mode b)
    return a == b;
 }
 
+static bool
+deref_path_contains_coherent_decoration(nir_deref_path *path)
+{
+   assert(path->path[0]->deref_type == nir_deref_type_var);
+
+   if (path->path[0]->var->data.image.access & ACCESS_COHERENT)
+      return true;
+
+   for (nir_deref_instr **p = &path->path[1]; *p; p++) {
+      if ((*p)->deref_type != nir_deref_type_struct)
+         continue;
+
+      const struct glsl_type *struct_type = (*(p - 1))->type;
+      const struct glsl_struct_field *field =
+         glsl_get_struct_field_data(struct_type, (*p)->strct.index);
+      if (field->memory_coherent)
+         return true;
+   }
+
+   return false;
+}
+
 nir_deref_compare_result
 nir_compare_deref_paths(nir_deref_path *a_path,
                         nir_deref_path *b_path)
@@ -318,11 +340,32 @@ nir_compare_deref_paths(nir_deref_path *a_path,
       return nir_derefs_may_alias_bit;
 
    if (a_path->path[0]->deref_type == nir_deref_type_var) {
-      /* If we can chase the deref all the way back to the variable and
-       * they're not the same variable, we know they can't possibly alias.
-       */
-      if (a_path->path[0]->var != b_path->path[0]->var)
+      if (a_path->path[0]->var != b_path->path[0]->var) {
+         /* Shader and function temporaries aren't backed by memory so two
+          * distinct variables never alias.
+          */
+         static const nir_variable_mode temp_var_modes =
+            nir_var_shader_temp | nir_var_function_temp;
+         if ((a_path->path[0]->mode & temp_var_modes) ||
+             (b_path->path[0]->mode & temp_var_modes))
+            return nir_derefs_do_not_alias;
+
+         /* If they are both declared coherent or have coherent somewhere in
+          * their path (due to a member of an interface being declared
+          * coherent), we have to assume we that we could have any kind of
+          * aliasing.  Otherwise, they could still alias but the client didn't
+          * tell us and that's their fault.
+          */
+         if (deref_path_contains_coherent_decoration(a_path) &&
+             deref_path_contains_coherent_decoration(b_path))
+            return nir_derefs_may_alias_bit;
+
+         /* If we can chase the deref all the way back to the variable and
+          * they're not the same variable and at least one is not declared
+          * coherent, we know they can't possibly alias.
+          */
          return nir_derefs_do_not_alias;
+      }
    } else {
       assert(a_path->path[0]->deref_type == nir_deref_type_cast);
       /* If they're not exactly the same cast, it's hard to compare them so we
@@ -632,18 +675,76 @@ is_deref_ptr_as_array(nir_instr *instr)
           nir_instr_as_deref(instr)->deref_type == nir_deref_type_ptr_as_array;
 }
 
+/**
+ * Remove casts that just wrap other casts.
+ */
 static bool
-opt_deref_cast(nir_deref_instr *cast)
+opt_remove_cast_cast(nir_deref_instr *cast)
 {
-   if (!is_trivial_deref_cast(cast))
+   nir_deref_instr *first_cast = cast;
+
+   while (true) {
+      nir_deref_instr *parent = nir_deref_instr_parent(first_cast);
+      if (parent == NULL || parent->deref_type != nir_deref_type_cast)
+         break;
+      first_cast = parent;
+   }
+   if (cast == first_cast)
       return false;
+
+   nir_instr_rewrite_src(&cast->instr, &cast->parent,
+                         nir_src_for_ssa(first_cast->parent.ssa));
+   return true;
+}
+
+/**
+ * Is this casting a struct to a contained struct.
+ * struct a { struct b field0 };
+ * ssa_5 is structa;
+ * deref_cast (structb *)ssa_5 (function_temp structb);
+ * converts to
+ * deref_struct &ssa_5->field0 (function_temp structb);
+ * This allows subsequent copy propagation to work.
+ */
+static bool
+opt_replace_struct_wrapper_cast(nir_builder *b, nir_deref_instr *cast)
+{
+   nir_deref_instr *parent = nir_src_as_deref(cast->parent);
+   if (!parent)
+      return false;
+
+   if (!glsl_type_is_struct(parent->type))
+      return false;
+
+   if (glsl_get_struct_field_offset(parent->type, 0) != 0)
+      return false;
+
+   if (cast->type != glsl_get_struct_field(parent->type, 0))
+      return false;
+
+   nir_deref_instr *replace = nir_build_deref_struct(b, parent, 0);
+   nir_ssa_def_rewrite_uses(&cast->dest.ssa, nir_src_for_ssa(&replace->dest.ssa));
+   nir_deref_instr_remove_if_unused(cast);
+   return true;
+}
+
+static bool
+opt_deref_cast(nir_builder *b, nir_deref_instr *cast)
+{
+   bool progress;
+
+   if (opt_replace_struct_wrapper_cast(b, cast))
+      return true;
+
+   progress = opt_remove_cast_cast(cast);
+   if (!is_trivial_deref_cast(cast))
+      return progress;
 
    bool trivial_array_cast = is_trivial_array_deref_cast(cast);
 
    assert(cast->dest.is_ssa);
    assert(cast->parent.is_ssa);
 
-   bool progress = false;
    nir_foreach_use_safe(use_src, &cast->dest.ssa) {
       /* If this isn't a trivial array cast, we can't propagate into
        * ptr_as_array derefs.
@@ -708,7 +809,7 @@ opt_deref_ptr_as_array(nir_builder *b, nir_deref_instr *deref)
    return true;
 }
 
-static bool
+bool
 nir_opt_deref_impl(nir_function_impl *impl)
 {
    bool progress = false;
@@ -731,7 +832,7 @@ nir_opt_deref_impl(nir_function_impl *impl)
             break;
 
          case nir_deref_type_cast:
-            if (opt_deref_cast(deref))
+            if (opt_deref_cast(&b, deref))
                progress = true;
             break;
 

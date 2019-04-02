@@ -24,19 +24,6 @@ EXTRA_DIST = \
 	wsi/meson.build \
 	meson.build
 
-VULKAN_UTIL_SOURCES = \
-	$(VULKAN_UTIL_FILES) \
-	$(VULKAN_UTIL_GENERATED_FILES)
-
-util/vk_enum_to_str.c util/vk_enum_to_str.h: util/gen_enum_to_str.py \
-		$(vulkan_api_xml)
-	$(MKDIR_GEN)
-	$(PYTHON_GEN) $(srcdir)/util/gen_enum_to_str.py \
-	    --xml $(vulkan_api_xml) \
-	    --outdir $(top_builddir)/src/vulkan/util
-
-libvulkan_util_la_SOURCES = $(VULKAN_UTIL_SOURCES)
-
 AM_CPPFLAGS = \
 	$(DEFINES) \
 	-I$(top_srcdir)/include \
@@ -118,6 +105,19 @@ VULKAN_WSI_GENERATED_SOURCES += \
 	$(VULKAN_WSI_WAYLAND_GENERATED_FILES)
 
 endif
+
+VULKAN_UTIL_SOURCES = \
+	$(VULKAN_UTIL_FILES) \
+	$(VULKAN_UTIL_GENERATED_FILES)
+
+util/vk_enum_to_str.c util/vk_enum_to_str.h: util/gen_enum_to_str.py \
+		$(vulkan_api_xml)
+	$(MKDIR_GEN)
+	$(PYTHON_GEN) $(srcdir)/util/gen_enum_to_str.py \
+	    --xml $(vulkan_api_xml) \
+	    --outdir $(top_builddir)/src/vulkan/util
+
+libvulkan_util_la_SOURCES = $(VULKAN_UTIL_SOURCES)
 
 nodist_libvulkan_wsi_la_SOURCES = $(VULKAN_WSI_GENERATED_SOURCES)
 

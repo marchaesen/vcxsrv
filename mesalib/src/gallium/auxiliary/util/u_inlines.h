@@ -192,26 +192,6 @@ pipe_sampler_view_reference(struct pipe_sampler_view **dst,
    *dst = src;
 }
 
-/**
- * Similar to pipe_sampler_view_reference() but always set the pointer to
- * NULL and pass in the current context explicitly.
- *
- * If *ptr is non-NULL, it may refer to a view that was created in a different
- * context (however, that context must still be alive).
- */
-static inline void
-pipe_sampler_view_release(struct pipe_context *ctx,
-                          struct pipe_sampler_view **ptr)
-{
-   struct pipe_sampler_view *old_view = *ptr;
-
-   if (pipe_reference_described(&old_view->reference, NULL,
-                    (debug_reference_descriptor)debug_describe_sampler_view)) {
-      ctx->sampler_view_destroy(ctx, old_view);
-   }
-   *ptr = NULL;
-}
-
 static inline void
 pipe_so_target_reference(struct pipe_stream_output_target **dst,
                          struct pipe_stream_output_target *src)

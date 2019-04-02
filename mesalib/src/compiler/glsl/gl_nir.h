@@ -40,6 +40,9 @@ bool gl_nir_lower_samplers(nir_shader *shader,
 bool gl_nir_lower_samplers_as_deref(nir_shader *shader,
                                     const struct gl_shader_program *shader_program);
 
+bool gl_nir_lower_buffers(nir_shader *shader,
+                          const struct gl_shader_program *shader_program);
+
 #ifdef __cplusplus
 }
 #endif

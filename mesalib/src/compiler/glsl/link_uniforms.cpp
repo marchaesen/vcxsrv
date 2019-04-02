@@ -46,7 +46,7 @@ void
 program_resource_visitor::process(const glsl_type *type, const char *name,
                                   bool use_std430_as_default)
 {
-   assert(type->without_array()->is_record()
+   assert(type->without_array()->is_struct()
           || type->without_array()->is_interface());
 
    unsigned record_array_count = 1;
@@ -88,7 +88,7 @@ program_resource_visitor::process(ir_variable *var, const glsl_type *var_type,
     * processing functions because no information is available to do
     * otherwise.  See the warning in linker.h.
     */
-   if (t_without_array->is_record() ||
+   if (t_without_array->is_struct() ||
               (t->is_array() && t->fields.array->is_array())) {
       char *name = ralloc_strdup(NULL, var->name);
       recursion(var->type, &name, strlen(name), row_major, NULL, packing,
@@ -129,11 +129,11 @@ program_resource_visitor::recursion(const glsl_type *t, char **name,
                                    named_ifc_member->name);
       recursion(named_ifc_member->type, name, name_length, row_major, NULL,
                 packing, false, record_array_count, NULL);
-   } else if (t->is_record() || t->is_interface()) {
-      if (record_type == NULL && t->is_record())
+   } else if (t->is_struct() || t->is_interface()) {
+      if (record_type == NULL && t->is_struct())
          record_type = t;
 
-      if (t->is_record())
+      if (t->is_struct())
          this->enter_record(t, *name, row_major, packing);
 
       for (unsigned i = 0; i < t->length; i++) {
@@ -177,14 +177,14 @@ program_resource_visitor::recursion(const glsl_type *t, char **name,
          record_type = NULL;
       }
 
-      if (t->is_record()) {
+      if (t->is_struct()) {
          (*name)[name_length] = '\0';
          this->leave_record(t, *name, row_major, packing);
       }
-   } else if (t->without_array()->is_record() ||
+   } else if (t->without_array()->is_struct() ||
               t->without_array()->is_interface() ||
               (t->is_array() && t->fields.array->is_array())) {
-      if (record_type == NULL && t->fields.array->is_record())
+      if (record_type == NULL && t->fields.array->is_struct())
          record_type = t->fields.array;
 
       unsigned length = t->length;
@@ -334,7 +334,7 @@ private:
                             const enum glsl_interface_packing,
                             bool /* last_field */)
    {
-      assert(!type->without_array()->is_record());
+      assert(!type->without_array()->is_struct());
       assert(!type->without_array()->is_interface());
       assert(!(type->is_array() && type->fields.array->is_array()));
 
@@ -767,7 +767,7 @@ private:
                              bool row_major,
                              const enum glsl_interface_packing packing)
    {
-      assert(type->is_record());
+      assert(type->is_struct());
       if (this->buffer_block_index == -1)
          return;
       if (packing == GLSL_INTERFACE_PACKING_STD430)
@@ -782,7 +782,7 @@ private:
                              bool row_major,
                              const enum glsl_interface_packing packing)
    {
-      assert(type->is_record());
+      assert(type->is_struct());
       if (this->buffer_block_index == -1)
          return;
       if (packing == GLSL_INTERFACE_PACKING_STD430)
@@ -798,7 +798,7 @@ private:
                             const enum glsl_interface_packing packing,
                             bool /* last_field */)
    {
-      assert(!type->without_array()->is_record());
+      assert(!type->without_array()->is_struct());
       assert(!type->without_array()->is_interface());
       assert(!(type->is_array() && type->fields.array->is_array()));
 
@@ -849,7 +849,7 @@ private:
       /* Assign explicit locations. */
       if (current_var->data.explicit_location) {
          /* Set sequential locations for struct fields. */
-         if (current_var->type->without_array()->is_record() ||
+         if (current_var->type->without_array()->is_struct() ||
              current_var->type->is_array_of_arrays()) {
             const unsigned entries = MAX2(1, this->uniforms[id].array_elements);
             this->uniforms[id].remap_location =
@@ -1105,10 +1105,10 @@ link_update_uniform_buffer_variables(struct gl_linked_shader *shader,
       bool found = false;
       char sentinel = '\0';
 
-      if (var->type->is_record()) {
+      if (var->type->is_struct()) {
          sentinel = '.';
       } else if (var->type->is_array() && (var->type->fields.array->is_array()
-                 || var->type->without_array()->is_record())) {
+                 || var->type->without_array()->is_struct())) {
          sentinel = '[';
       }
 

@@ -69,9 +69,6 @@ enum qfile {
          * or physical registers later.
          */
         QFILE_TEMP,
-        QFILE_UNIF,
-        QFILE_TLB,
-        QFILE_TLBU,
 
         /**
          * VPM reads use this with an index value to say what part of the VPM
@@ -105,6 +102,11 @@ static inline struct qreg vir_reg(enum qfile file, uint32_t index)
         return (struct qreg){file, index};
 }
 
+static inline struct qreg vir_magic_reg(uint32_t index)
+{
+        return (struct qreg){QFILE_MAGIC, index};
+}
+
 static inline struct qreg vir_nop_reg(void)
 {
         return (struct qreg){QFILE_NULL, 0};
@@ -134,11 +136,11 @@ struct qinst {
         /* Pre-register-allocation references to src/dst registers */
         struct qreg dst;
         struct qreg src[3];
-        bool has_implicit_uniform;
         bool is_last_thrsw;
 
-        /* After vir_to_qpu.c: If instr reads a uniform, which uniform from
-         * the uncompiled stream it is.
+        /* If the instruction reads a uniform (other than through src[i].file
+         * == QFILE_UNIF), that uniform's index in c->uniform_contents.  ~0
+         * otherwise.
          */
         int uniform;
 };
@@ -279,17 +281,18 @@ enum quniform_contents {
         QUNIFORM_SHARED_OFFSET,
 };
 
-static inline uint32_t v3d_tmu_config_data_create(uint32_t unit, uint32_t value)
+static inline uint32_t v3d_unit_data_create(uint32_t unit, uint32_t value)
 {
+        assert(value < (1 << 24));
         return unit << 24 | value;
 }
 
-static inline uint32_t v3d_tmu_config_data_get_unit(uint32_t data)
+static inline uint32_t v3d_unit_data_get_unit(uint32_t data)
 {
         return data >> 24;
 }
 
-static inline uint32_t v3d_tmu_config_data_get_value(uint32_t data)
+static inline uint32_t v3d_unit_data_get_offset(uint32_t data)
 {
         return data & 0xffffff;
 }
@@ -314,25 +317,6 @@ static inline uint8_t v3d_slot_get_component(struct v3d_varying_slot slot)
 {
         return slot.slot_and_component & 3;
 }
-
-struct v3d_ubo_range {
-        /**
-         * offset in bytes from the start of the ubo where this range is
-         * uploaded.
-         *
-         * Only set once used is set.
-         */
-        uint32_t dst_offset;
-
-        /**
-         * offset in bytes from the start of the gallium uniforms where the
-         * data comes from.
-         */
-        uint32_t src_offset;
-
-        /** size in bytes of this ubo range */
-        uint32_t size;
-};
 
 struct v3d_key {
         void *shader_state;
@@ -476,6 +460,8 @@ vir_after_block(struct qblock *block)
 struct v3d_compiler {
         const struct v3d_device_info *devinfo;
         struct ra_regs *regs;
+        unsigned int reg_class_any[3];
+        unsigned int reg_class_r5[3];
         unsigned int reg_class_phys[3];
         unsigned int reg_class_phys_or_acc[3];
 };
@@ -527,13 +513,6 @@ struct v3d_compile {
 
         bool uses_center_w;
         bool writes_z;
-
-        struct v3d_ubo_range *ubo_ranges;
-        bool *ubo_range_used;
-        uint32_t ubo_ranges_array_size;
-        /** Number of uniform areas tracked in ubo_ranges. */
-        uint32_t num_ubo_ranges;
-        uint32_t next_ubo_dst_offset;
 
         /* State for whether we're executing on each channel currently.  0 if
          * yes, otherwise a block number + 1 that the channel jumped to.
@@ -630,18 +609,6 @@ struct v3d_compile {
          */
         uint32_t num_inputs;
 
-        /**
-         * Number of inputs from num_inputs remaining to be queued to the read
-         * FIFO in the VS/CS.
-         */
-        uint32_t num_inputs_remaining;
-
-        /* Number of inputs currently in the read FIFO for the VS/CS */
-        uint32_t num_inputs_in_fifo;
-
-        /** Next offset in the VPM to read from in the VS/CS */
-        uint32_t vpm_read_offset;
-
         uint32_t program_id;
         uint32_t variant_id;
 
@@ -669,9 +636,6 @@ struct v3d_uniform_list {
 struct v3d_prog_data {
         struct v3d_uniform_list uniforms;
 
-        struct v3d_ubo_range *ubo_ranges;
-        uint32_t num_ubo_ranges;
-        uint32_t ubo_size;
         uint32_t spill_size;
 
         uint8_t threads;
@@ -727,6 +691,12 @@ struct v3d_fs_prog_data {
         bool uses_center_w;
 };
 
+static inline bool
+vir_has_uniform(struct qinst *inst)
+{
+        return inst->uniform != ~0;
+}
+
 /* Special nir_load_input intrinsic index for loading the current TLB
  * destination color.
  */
@@ -763,8 +733,12 @@ struct qinst *vir_add_inst(enum v3d_qpu_add_op op, struct qreg dst,
                            struct qreg src0, struct qreg src1);
 struct qinst *vir_mul_inst(enum v3d_qpu_mul_op op, struct qreg dst,
                            struct qreg src0, struct qreg src1);
-struct qinst *vir_branch_inst(enum v3d_qpu_branch_cond cond, struct qreg src0);
+struct qinst *vir_branch_inst(struct v3d_compile *c,
+                              enum v3d_qpu_branch_cond cond);
 void vir_remove_instruction(struct v3d_compile *c, struct qinst *qinst);
+uint32_t vir_get_uniform_index(struct v3d_compile *c,
+                               enum quniform_contents contents,
+                               uint32_t data);
 struct qreg vir_uniform(struct v3d_compile *c,
                         enum quniform_contents contents,
                         uint32_t data);
@@ -782,9 +756,6 @@ void vir_set_unpack(struct qinst *inst, int src,
 struct qreg vir_get_temp(struct v3d_compile *c);
 void vir_emit_last_thrsw(struct v3d_compile *c);
 void vir_calculate_live_intervals(struct v3d_compile *c);
-bool vir_has_implicit_uniform(struct qinst *inst);
-int vir_get_implicit_uniform_src(struct qinst *inst);
-int vir_get_non_sideband_nsrc(struct qinst *inst);
 int vir_get_nsrc(struct qinst *inst);
 bool vir_has_side_effects(struct v3d_compile *c, struct qinst *inst);
 bool vir_get_add_op(struct qinst *inst, enum v3d_qpu_add_op *op);
@@ -1122,7 +1093,7 @@ static inline struct qinst *
 vir_BRANCH(struct v3d_compile *c, enum v3d_qpu_branch_cond cond)
 {
         /* The actual uniform_data value will be set at scheduling time */
-        return vir_emit_nondef(c, vir_branch_inst(cond, vir_uniform_ui(c, 0)));
+        return vir_emit_nondef(c, vir_branch_inst(c, cond));
 }
 
 #define vir_for_each_block(block, c)                                    \

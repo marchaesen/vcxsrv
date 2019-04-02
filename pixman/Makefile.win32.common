@@ -1,5 +1,17 @@
 LIBRARY = pixman-1
 
+ifeq ($(shell echo ""),)
+# POSIX style shell
+mkdir_p = mkdir -p $1
+rm = $(RM) $1
+echo = echo "$1"
+else
+# DOS/Windows style shell
+mkdir_p = if not exist $(subst /,\,$1) md $(subst /,\,$1)
+echo = echo $1
+rm = del $(subst /,\,$1)
+endif
+
 CC = cl
 LD = link
 AR = lib
@@ -50,12 +62,12 @@ endif
 endif
 
 $(CFG_VAR):
-	@mkdir $@
+	@$(call mkdir_p,$@)
 
 $(CFG_VAR)/%.obj: %.c $(libpixman_headers) | $(CFG_VAR)
-	@$(CC) -c $(PIXMAN_CFLAGS) -Fo"$@" $<
+	$(CC) -c $(PIXMAN_CFLAGS) -Fo"$@" $<
 
 clean: inform $(CFG_VAR)
-	@cd $(CFG_VAR) && echo > silence_error.exe && $(RM) *.exe *.ilk *.lib *.obj *.pdb
+	-$(call rm,$(CFG_VAR)/*.exe $(CFG_VAR)/*.ilk $(CFG_VAR)/*.lib $(CFG_VAR)/*.obj $(CFG_VAR)/*.pdb)
 
 .PHONY: inform clean

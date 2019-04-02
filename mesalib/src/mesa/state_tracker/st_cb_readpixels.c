@@ -46,6 +46,8 @@
 #include "state_tracker/st_format.h"
 #include "state_tracker/st_pbo.h"
 #include "state_tracker/st_texture.h"
+#include "state_tracker/st_util.h"
+
 
 /* The readpixels cache caches a blitted staging texture so that back-to-back
  * calls to glReadPixels with user pointers require less CPU-GPU synchronization.

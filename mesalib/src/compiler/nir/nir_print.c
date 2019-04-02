@@ -812,8 +812,8 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
          assert(dim < ARRAY_SIZE(dim_name) && dim_name[dim]);
          fprintf(fp, " image_dim=%s", dim_name[dim]);
       } else if (idx == NIR_INTRINSIC_IMAGE_ARRAY) {
-         bool array = nir_intrinsic_image_dim(instr);
-         fprintf(fp, " image_dim=%s", array ? "true" : "false");
+         bool array = nir_intrinsic_image_array(instr);
+         fprintf(fp, " image_array=%s", array ? "true" : "false");
       } else if (idx == NIR_INTRINSIC_DESC_TYPE) {
          VkDescriptorType desc_type = nir_intrinsic_desc_type(instr);
          fprintf(fp, " desc_type=%s", vulkan_descriptor_type_name(desc_type));
@@ -835,6 +835,7 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
       var_list = &state->shader->uniforms;
       break;
    case nir_intrinsic_load_input:
+   case nir_intrinsic_load_interpolated_input:
    case nir_intrinsic_load_per_vertex_input:
       var_list = &state->shader->inputs;
       break;
@@ -968,6 +969,12 @@ print_tex_instr(nir_tex_instr *instr, print_state *state)
       case nir_tex_src_sampler_offset:
          fprintf(fp, "(sampler_offset)");
          break;
+      case nir_tex_src_texture_handle:
+         fprintf(fp, "(texture_handle)");
+         break;
+      case nir_tex_src_sampler_handle:
+         fprintf(fp, "(sampler_handle)");
+         break;
       case nir_tex_src_plane:
          fprintf(fp, "(plane)");
          break;
@@ -982,6 +989,14 @@ print_tex_instr(nir_tex_instr *instr, print_state *state)
 
    if (instr->op == nir_texop_tg4) {
       fprintf(fp, "%u (gather_component), ", instr->component);
+   }
+
+   if (nir_tex_instr_has_explicit_tg4_offsets(instr)) {
+      fprintf(fp, "{ (%i, %i)", instr->tg4_offsets[0][0], instr->tg4_offsets[0][1]);
+      for (unsigned i = 1; i < 4; ++i)
+         fprintf(fp, ", (%i, %i)", instr->tg4_offsets[i][0],
+                 instr->tg4_offsets[i][1]);
+      fprintf(fp, " } (offsets), ");
    }
 
    if (!has_texture_deref) {

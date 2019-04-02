@@ -243,6 +243,15 @@ typedef struct shader_info {
           * Size of shared variables accessed by the compute shader.
           */
          unsigned shared_size;
+
+
+         /**
+          * pointer size is:
+          *   AddressingModelLogical:    0    (default)
+          *   AddressingModelPhysical32: 32
+          *   AddressingModelPhysical64: 64
+          */
+         unsigned ptr_size;
       } cs;
 
       /* Applies to both TCS and TES. */

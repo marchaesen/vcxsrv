@@ -171,17 +171,9 @@ wsi_display_mode_refresh(struct wsi_display_mode *wsi)
                                           (double) MAX2(wsi->vscan, 1));
 }
 
-static uint64_t wsi_get_current_monotonic(void)
-{
-   struct timespec tv;
-
-   clock_gettime(CLOCK_MONOTONIC, &tv);
-   return tv.tv_nsec + tv.tv_sec*1000000000ull;
-}
-
 static uint64_t wsi_rel_to_abs_time(uint64_t rel_time)
 {
-   uint64_t current_time = wsi_get_current_monotonic();
+   uint64_t current_time = wsi_common_get_current_time();
 
    /* check for overflow */
    if (rel_time > UINT64_MAX - current_time)
@@ -766,10 +758,27 @@ wsi_get_display_plane_capabilities2(
    assert(capabilities->sType ==
           VK_STRUCTURE_TYPE_DISPLAY_PLANE_CAPABILITIES_2_KHR);
 
-   return wsi_get_display_plane_capabilities(physical_device, wsi_device,
-                                             pDisplayPlaneInfo->mode,
-                                             pDisplayPlaneInfo->planeIndex,
-                                             &capabilities->capabilities);
+   VkResult result =
+      wsi_get_display_plane_capabilities(physical_device, wsi_device,
+                                         pDisplayPlaneInfo->mode,
+                                         pDisplayPlaneInfo->planeIndex,
+                                         &capabilities->capabilities);
+
+   vk_foreach_struct(ext, capabilities->pNext) {
+      switch (ext->sType) {
+      case VK_STRUCTURE_TYPE_SURFACE_PROTECTED_CAPABILITIES_KHR: {
+         VkSurfaceProtectedCapabilitiesKHR *protected = (void *)ext;
+         protected->supportsProtected = VK_FALSE;
+         break;
+      }
+
+      default:
+         /* Ignored */
+         break;
+      }
+   }
+
+   return result;
 }
 
 VkResult
@@ -1436,8 +1445,8 @@ wsi_display_fence_wait(struct wsi_fence *fence_wsi, uint64_t timeout)
 
    wsi_display_debug("%9lu wait fence %lu %ld\n",
                      pthread_self(), fence->sequence,
-                     (int64_t) (timeout - wsi_get_current_monotonic()));
-   wsi_display_debug_code(uint64_t start_ns = wsi_get_current_monotonic());
+                     (int64_t) (timeout - wsi_common_get_current_time()));
+   wsi_display_debug_code(uint64_t start_ns = wsi_common_get_current_time());
    pthread_mutex_lock(&wsi->wait_mutex);
 
    VkResult result;
@@ -1469,7 +1478,7 @@ wsi_display_fence_wait(struct wsi_fence *fence_wsi, uint64_t timeout)
    pthread_mutex_unlock(&wsi->wait_mutex);
    wsi_display_debug("%9lu fence wait %f ms\n",
                      pthread_self(),
-                     ((int64_t) (wsi_get_current_monotonic() - start_ns)) /
+                     ((int64_t) (wsi_common_get_current_time() - start_ns)) /
                      1.0e6);
    return result;
 }

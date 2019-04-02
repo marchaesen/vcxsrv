@@ -53,6 +53,7 @@
 static const struct nir_shader_compiler_options nir_options = {
 	.vertex_id_zero_based = true,
 	.lower_scmp = true,
+	.lower_flrp16 = true,
 	.lower_flrp32 = true,
 	.lower_flrp64 = true,
 	.lower_device_index_to_zero = true,
@@ -71,6 +72,7 @@ static const struct nir_shader_compiler_options nir_options = {
 	.lower_extract_word = true,
 	.lower_ffma = true,
 	.lower_fpow = true,
+	.lower_mul_2x32_64 = true,
 	.max_unroll_iterations = 32
 };
 
@@ -248,6 +250,8 @@ radv_shader_compile_to_nir(struct radv_device *device,
 				.transform_feedback = true,
 				.trinary_minmax = true,
 				.variable_pointers = true,
+				.storage_8bit = true,
+				.int8 = true,
 			},
 			.ubo_ptr_type = glsl_vector_type(GLSL_TYPE_UINT, 2),
 			.ssbo_ptr_type = glsl_vector_type(GLSL_TYPE_UINT, 2),
@@ -312,6 +316,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 
 	static const nir_lower_tex_options tex_options = {
 	  .lower_txp = ~0,
+	  .lower_tg4_offsets = true,
 	};
 
 	nir_lower_tex(nir, &tex_options);

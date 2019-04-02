@@ -521,7 +521,7 @@ lower_packed_varyings_visitor::lower_rvalue(ir_rvalue *rvalue,
     */
    assert(!gs_input_toplevel || rvalue->type->is_array());
 
-   if (rvalue->type->is_record()) {
+   if (rvalue->type->is_struct()) {
       for (unsigned i = 0; i < rvalue->type->length; i++) {
          if (i != 0)
             rvalue = rvalue->clone(this->mem_ctx, NULL);
@@ -776,7 +776,7 @@ lower_packed_varyings_visitor::needs_lowering(ir_variable *var)
     */
    const glsl_type *type = var->type;
    if (disable_varying_packing && !var->data.is_xfb_only &&
-       !((type->is_array() || type->is_record() || type->is_matrix()) &&
+       !((type->is_array() || type->is_struct() || type->is_matrix()) &&
          xfb_enabled))
       return false;
 

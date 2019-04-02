@@ -341,7 +341,7 @@ nir_lower_io_to_scalar_early(nir_shader *shader, nir_variable_mode mask)
 
               /* Skip types we cannot split */
               if (glsl_type_is_matrix(glsl_without_array(var->type)) ||
-                  glsl_type_is_struct(glsl_without_array(var->type)))
+                  glsl_type_is_struct_or_ifc(glsl_without_array(var->type)))
                  continue;
 
                switch (intr->intrinsic) {

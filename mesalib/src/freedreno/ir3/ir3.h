@@ -98,11 +98,13 @@ struct ir3_register {
 
 	} flags;
 
+	bool merged : 1;    /* half-regs conflict with full regs (ie >= a6xx) */
+
 	/* normal registers:
 	 * the component is in the low two bits of the reg #, so
 	 * rN.x becomes: (N << 2) | x
 	 */
-	int   num;
+	uint16_t num;
 	union {
 		/* immediate: */
 		int32_t  iim_val;
@@ -406,6 +408,7 @@ static inline int ir3_neighbor_count(struct ir3_instruction *instr)
 
 struct ir3 {
 	struct ir3_compiler *compiler;
+	gl_shader_stage type;
 
 	unsigned ninputs, noutputs;
 	struct ir3_instruction **inputs;
@@ -521,7 +524,7 @@ block_id(struct ir3_block *block)
 }
 
 struct ir3 * ir3_create(struct ir3_compiler *compiler,
-		unsigned nin, unsigned nout);
+		gl_shader_stage type, unsigned nin, unsigned nout);
 void ir3_destroy(struct ir3 *shader);
 void * ir3_assemble(struct ir3 *shader,
 		struct ir3_info *info, uint32_t gpu_id);
@@ -1026,7 +1029,7 @@ int ir3_ra(struct ir3 *ir3, gl_shader_stage type,
 		bool frag_coord, bool frag_face);
 
 /* legalize: */
-void ir3_legalize(struct ir3 *ir, int *num_samp, bool *has_ssbo, int *max_bary);
+void ir3_legalize(struct ir3 *ir, bool *has_ssbo, bool *need_pixlod, int *max_bary);
 
 /* ************************************************************************* */
 /* instruction helpers */
@@ -1330,15 +1333,16 @@ INSTR1(DSY)
 
 static inline struct ir3_instruction *
 ir3_SAM(struct ir3_block *block, opc_t opc, type_t type,
-		unsigned wrmask, unsigned flags, unsigned samp, unsigned tex,
+		unsigned wrmask, unsigned flags, struct ir3_instruction *samp_tex,
 		struct ir3_instruction *src0, struct ir3_instruction *src1)
 {
 	struct ir3_instruction *sam;
 	struct ir3_register *reg;
 
 	sam = ir3_instr_create(block, opc);
-	sam->flags |= flags;
+	sam->flags |= flags | IR3_INSTR_S2EN;
 	ir3_reg_create(sam, 0, 0)->wrmask = wrmask;
+	__ssa_src(sam, samp_tex, IR3_REG_HALF);
 	if (src0) {
 		reg = ir3_reg_create(sam, 0, IR3_REG_SSA);
 		reg->wrmask = (1 << (src0->regs_count - 1)) - 1;
@@ -1349,8 +1353,6 @@ ir3_SAM(struct ir3_block *block, opc_t opc, type_t type,
 		reg->instr = src1;
 		reg->wrmask = (1 << (src1->regs_count - 1)) - 1;
 	}
-	sam->cat5.samp = samp;
-	sam->cat5.tex  = tex;
 	sam->cat5.type  = type;
 
 	return sam;
@@ -1423,8 +1425,13 @@ static inline unsigned regmask_idx(struct ir3_register *reg)
 {
 	unsigned num = (reg->flags & IR3_REG_RELATIV) ? reg->array.offset : reg->num;
 	debug_assert(num < MAX_REG);
-	if (reg->flags & IR3_REG_HALF)
-		num += MAX_REG;
+	if (reg->flags & IR3_REG_HALF) {
+		if (reg->merged) {
+			num /= 2;
+		} else {
+			num += MAX_REG;
+		}
+	}
 	return num;
 }
 

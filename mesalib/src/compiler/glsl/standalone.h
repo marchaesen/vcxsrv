@@ -42,7 +42,8 @@ struct gl_shader_program;
 
 struct gl_shader_program * standalone_compile_shader(
       const struct standalone_options *options,
-      unsigned num_files, char* const* files);
+      unsigned num_files, char* const* files,
+      struct gl_context *ctx);
 
 void standalone_compiler_cleanup(struct gl_shader_program *prog);
 

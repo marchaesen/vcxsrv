@@ -26,6 +26,7 @@ LIBGLSL_FILES = \
 	glsl/builtin_variables.cpp \
 	glsl/generate_ir.cpp \
 	glsl/gl_nir_lower_atomics.c \
+	glsl/gl_nir_lower_buffers.c \
 	glsl/gl_nir_lower_samplers.c \
 	glsl/gl_nir_lower_samplers_as_deref.c \
 	glsl/gl_nir_link_atomics.c \
@@ -229,6 +230,7 @@ NIR_FILES = \
 	nir/nir_lower_alpha_test.c \
 	nir/nir_lower_alu.c \
 	nir/nir_lower_alu_to_scalar.c \
+	nir/nir_lower_array_deref_of_vec.c \
 	nir/nir_lower_atomics_to_ssbo.c \
 	nir/nir_lower_bitmap.c \
 	nir/nir_lower_bit_size.c \
@@ -240,6 +242,7 @@ NIR_FILES = \
 	nir/nir_lower_constant_initializers.c \
 	nir/nir_lower_double_ops.c \
 	nir/nir_lower_drawpixels.c \
+	nir/nir_lower_frexp.c \
 	nir/nir_lower_global_vars_to_local.c \
 	nir/nir_lower_gs_intrinsics.c \
 	nir/nir_lower_load_const_to_scalar.c \
@@ -251,6 +254,8 @@ NIR_FILES = \
 	nir/nir_lower_io_arrays_to_elements.c \
 	nir/nir_lower_io_to_temporaries.c \
 	nir/nir_lower_io_to_scalar.c \
+	nir/nir_lower_io_to_vector.c \
+	nir/nir_lower_non_uniform_access.c \
 	nir/nir_lower_packing.c \
 	nir/nir_lower_passthrough_edgeflags.c \
 	nir/nir_lower_patch_vertices.c \
@@ -272,6 +277,8 @@ NIR_FILES = \
 	nir/nir_move_load_const.c \
 	nir/nir_move_vec_src_uses_to_dest.c \
 	nir/nir_normalize_cubemap_coords.c \
+	nir/nir_opt_combine_stores.c \
+	nir/nir_opt_comparison_pre.c \
 	nir/nir_opt_conditional_discard.c \
 	nir/nir_opt_constant_folding.c \
 	nir/nir_opt_copy_prop_vars.c \
@@ -306,6 +313,7 @@ NIR_FILES = \
 	nir/nir_search_helpers.h \
 	nir/nir_serialize.c \
 	nir/nir_serialize.h \
+	nir/nir_strip.c \
 	nir/nir_split_per_member_structs.c \
 	nir/nir_split_var_copies.c \
 	nir/nir_split_vars.c \
@@ -326,6 +334,7 @@ SPIRV_FILES = \
 	spirv/GLSL.std.450.h \
 	spirv/gl_spirv.c \
 	spirv/nir_spirv.h \
+	spirv/OpenCL.std.h \
 	spirv/spirv.h \
 	spirv/spirv_info.h \
 	spirv/spirv_to_nir.c \
@@ -333,6 +342,7 @@ SPIRV_FILES = \
 	spirv/vtn_amd.c \
 	spirv/vtn_cfg.c \
 	spirv/vtn_glsl450.c \
+	spirv/vtn_opencl.c \
 	spirv/vtn_private.h \
 	spirv/vtn_subgroup.c \
 	spirv/vtn_variables.c

@@ -32,17 +32,25 @@ version_h = configure_file(
 
 pixman_simd_libs = []
 simds = [
+  # the mmx library can be compiled with mmx on x86/x86_64, iwmmxt on
+  # some arm cores, or loongson mmi on loongson mips systems. The
+  # libraries will all have the same name, "pixman-mmx", but there is
+  # no chance of more than one version being built in the same build
+  # because no system could have mmx, iwmmxt, and mmi, and it
+  # simplifies the build logic to give them the same name.
   ['mmx', have_mmx, mmx_flags, []],
+  ['mmx', have_loongson_mmi, loongson_mmi_flags, []],
+  ['mmx', have_iwmmxt, iwmmxt_flags, []],
+
   ['sse2', have_sse2, sse2_flags, []],
   ['ssse3', have_ssse3, ssse3_flags, []],
   ['vmx', have_vmx, vmx_flags, []],
   ['arm-simd', have_armv6_simd, [],
    ['pixman-arm-simd-asm.S', 'pixman-arm-simd-asm-scaled.S']],
   ['arm-neon', have_neon, [],
-   ['pixman-arm-neon-asm.S', 'pixman-arm-neon-asm-scaled.S']],
+   ['pixman-arm-neon-asm.S', 'pixman-arm-neon-asm-bilinear.S']],
   ['mips-dspr2', have_mips_dspr2, mips_dspr2_flags,
    ['pixman-mips-dspr2-asm.S', 'pixman-mips-memcpy-asm.S']],
-  ['loongson-mmi', have_loongson_mmi, loongson_mmi_flags, []]
 ]
 
 foreach simd : simds
@@ -55,14 +63,6 @@ foreach simd : simds
     )
   endif
 endforeach
-
-if have_iwmmxt
-  pixman_simd_libs += static_library(
-    'pixman-iwmmt',
-    'pixman-mmx.c',
-    c_args : iwmmxt_flags,
-  )
-endif
 
 pixman_files = files(
   'pixman.c',

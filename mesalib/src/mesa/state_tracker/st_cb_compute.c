@@ -31,6 +31,7 @@
 #include "st_cb_bitmap.h"
 #include "st_cb_bufferobjects.h"
 #include "st_cb_compute.h"
+#include "st_util.h"
 
 #include "pipe/p_context.h"
 

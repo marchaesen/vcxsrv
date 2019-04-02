@@ -221,7 +221,9 @@ glamor_copy_cpu_fbo(DrawablePtr src,
         goto bail;
 
     glamor_make_current(glamor_priv);
-    glamor_prepare_access(src, GLAMOR_ACCESS_RO);
+
+    if (!glamor_prepare_access(src, GLAMOR_ACCESS_RO))
+        goto bail;
 
     glamor_get_drawable_deltas(dst, dst_pixmap, &dst_xoff, &dst_yoff);
 
@@ -309,7 +311,9 @@ glamor_copy_fbo_cpu(DrawablePtr src,
         goto bail;
 
     glamor_make_current(glamor_priv);
-    glamor_prepare_access(dst, GLAMOR_ACCESS_RW);
+
+    if (!glamor_prepare_access(dst, GLAMOR_ACCESS_RW))
+        goto bail;
 
     glamor_get_drawable_deltas(src, src_pixmap, &src_xoff, &src_yoff);
 

@@ -454,19 +454,19 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
       break;
 
    case SpvOpIAddCarry:
-      vtn_assert(glsl_type_is_struct(val->ssa->type));
+      vtn_assert(glsl_type_is_struct_or_ifc(val->ssa->type));
       val->ssa->elems[0]->def = nir_iadd(&b->nb, src[0], src[1]);
       val->ssa->elems[1]->def = nir_uadd_carry(&b->nb, src[0], src[1]);
       break;
 
    case SpvOpISubBorrow:
-      vtn_assert(glsl_type_is_struct(val->ssa->type));
+      vtn_assert(glsl_type_is_struct_or_ifc(val->ssa->type));
       val->ssa->elems[0]->def = nir_isub(&b->nb, src[0], src[1]);
       val->ssa->elems[1]->def = nir_usub_borrow(&b->nb, src[0], src[1]);
       break;
 
    case SpvOpUMulExtended: {
-      vtn_assert(glsl_type_is_struct(val->ssa->type));
+      vtn_assert(glsl_type_is_struct_or_ifc(val->ssa->type));
       nir_ssa_def *umul = nir_umul_2x32_64(&b->nb, src[0], src[1]);
       val->ssa->elems[0]->def = nir_unpack_64_2x32_split_x(&b->nb, umul);
       val->ssa->elems[1]->def = nir_unpack_64_2x32_split_y(&b->nb, umul);
@@ -474,7 +474,7 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
    }
 
    case SpvOpSMulExtended: {
-      vtn_assert(glsl_type_is_struct(val->ssa->type));
+      vtn_assert(glsl_type_is_struct_or_ifc(val->ssa->type));
       nir_ssa_def *smul = nir_imul_2x32_64(&b->nb, src[0], src[1]);
       val->ssa->elems[0]->def = nir_unpack_64_2x32_split_x(&b->nb, smul);
       val->ssa->elems[1]->def = nir_unpack_64_2x32_split_y(&b->nb, smul);
@@ -633,6 +633,21 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
          }
       }
       val->ssa->def = nir_build_alu(&b->nb, op, src[0], src[1], src[2], src[3]);
+      break;
+   }
+
+   case SpvOpSignBitSet: {
+      unsigned src_bit_size = glsl_get_bit_size(vtn_src[0]->type);
+      if (src[0]->num_components == 1)
+         val->ssa->def =
+            nir_ushr(&b->nb, src[0], nir_imm_int(&b->nb, src_bit_size - 1));
+      else
+         val->ssa->def =
+            nir_ishr(&b->nb, src[0], nir_imm_int(&b->nb, src_bit_size - 1));
+
+      if (src_bit_size != 32)
+         val->ssa->def = nir_u2u32(&b->nb, val->ssa->def);
+
       break;
    }
 

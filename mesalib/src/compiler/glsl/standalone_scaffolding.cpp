@@ -55,6 +55,24 @@ _mesa_warning(struct gl_context *ctx, const char *fmt, ...)
 }
 
 void
+_mesa_problem(struct gl_context *ctx, const char *fmt, ...)
+{
+    va_list vargs;
+    (void) ctx;
+
+    va_start(vargs, fmt);
+
+    /* This output is not thread-safe, but that's good enough for the
+     * standalone compiler.
+     */
+    fprintf(stderr, "Mesa problem: ");
+    vfprintf(stderr, fmt, vargs);
+    fprintf(stderr, "\n");
+
+    va_end(vargs);
+}
+
+void
 _mesa_reference_shader_program_data(struct gl_context *ctx,
                                     struct gl_shader_program_data **ptr,
                                     struct gl_shader_program_data *data)

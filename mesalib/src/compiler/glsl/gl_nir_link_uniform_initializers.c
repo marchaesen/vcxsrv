@@ -184,7 +184,7 @@ set_uniform_initializer(struct set_uniform_initializer_closure *data,
 {
    const struct glsl_type *t_without_array = glsl_without_array(type);
 
-   if (glsl_type_is_struct(type)) {
+   if (glsl_type_is_struct_or_ifc(type)) {
       for (unsigned int i = 0; i < glsl_get_length(type); i++) {
          const struct glsl_type *field_type = glsl_get_struct_field(type, i);
          set_uniform_initializer(data, field_type, val->elements[i]);
@@ -192,7 +192,7 @@ set_uniform_initializer(struct set_uniform_initializer_closure *data,
       return;
    }
 
-   if (glsl_type_is_struct(t_without_array) ||
+   if (glsl_type_is_struct_or_ifc(t_without_array) ||
        (glsl_type_is_array(type) &&
         glsl_type_is_array(glsl_get_array_element(type)))) {
       const struct glsl_type *element_type = glsl_get_array_element(type);

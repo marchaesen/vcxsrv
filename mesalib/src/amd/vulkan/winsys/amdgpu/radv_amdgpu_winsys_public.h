@@ -29,6 +29,13 @@
 #ifndef RADV_AMDGPU_WINSYS_PUBLIC_H
 #define RADV_AMDGPU_WINSYS_PUBLIC_H
 
+/* The number of IBs per submit isn't infinite, it depends on the ring type
+ * (ie. some initial setup needed for a submit) and the number of IBs (4 DW).
+ * This limit is arbitrary but should be safe for now.  Ideally, we should get
+ * this limit from the KMD.
+*/
+#define RADV_MAX_IBS_PER_SUBMIT 192
+
 struct radeon_winsys *radv_amdgpu_winsys_create(int fd, uint64_t debug_flags,
 						uint64_t perftest_flags);
 

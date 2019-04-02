@@ -49,10 +49,8 @@ is_copy_mov(struct qinst *inst)
         if (inst->dst.file != QFILE_TEMP)
                 return false;
 
-        if (inst->src[0].file != QFILE_TEMP &&
-            inst->src[0].file != QFILE_UNIF) {
+        if (inst->src[0].file != QFILE_TEMP)
                 return false;
-        }
 
         if (inst->qpu.alu.add.output_pack != V3D_QPU_PACK_NONE ||
             inst->qpu.alu.mul.output_pack != V3D_QPU_PACK_NONE) {

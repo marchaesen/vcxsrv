@@ -204,7 +204,7 @@ build_type_tree_for_type(const struct glsl_type *type)
       entry->array_size = glsl_get_length(type);
       entry->children = build_type_tree_for_type(glsl_get_array_element(type));
       entry->children->parent = entry;
-   } else if (glsl_type_is_struct(type)) {
+   } else if (glsl_type_is_struct_or_ifc(type)) {
       struct type_tree_entry *last = NULL;
 
       for (unsigned i = 0; i < glsl_get_length(type); i++) {
@@ -291,10 +291,10 @@ nir_link_uniform(struct gl_context *ctx,
     * composite type or an array where each element occupies more than one
     * location than we need to recursively process it.
     */
-   if (glsl_type_is_struct(type) ||
+   if (glsl_type_is_struct_or_ifc(type) ||
        (glsl_type_is_array(type) &&
         (glsl_type_is_array(glsl_get_array_element(type)) ||
-         glsl_type_is_struct(glsl_get_array_element(type))))) {
+         glsl_type_is_struct_or_ifc(glsl_get_array_element(type))))) {
       int location_count = 0;
       struct type_tree_entry *old_type = state->current_type;
 
@@ -303,7 +303,7 @@ nir_link_uniform(struct gl_context *ctx,
       for (unsigned i = 0; i < glsl_get_length(type); i++) {
          const struct glsl_type *field_type;
 
-         if (glsl_type_is_struct(type))
+         if (glsl_type_is_struct_or_ifc(type))
             field_type = glsl_get_struct_field(type, i);
          else
             field_type = glsl_get_array_element(type);
@@ -318,7 +318,7 @@ nir_link_uniform(struct gl_context *ctx,
             location += entries;
          location_count += entries;
 
-         if (glsl_type_is_struct(type))
+         if (glsl_type_is_struct_or_ifc(type))
             state->current_type = state->current_type->next_sibling;
       }
 

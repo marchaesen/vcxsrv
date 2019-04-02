@@ -512,6 +512,8 @@ STATETRACKER_FILES = \
 	state_tracker/st_gen_mipmap.c \
 	state_tracker/st_gen_mipmap.h \
 	state_tracker/st_gl_api.h \
+	state_tracker/st_glsl_to_ir.cpp \
+	state_tracker/st_glsl_to_ir.h \
 	state_tracker/st_glsl_to_nir.cpp \
 	state_tracker/st_glsl_to_tgsi.cpp \
 	state_tracker/st_glsl_to_tgsi.h \
@@ -545,6 +547,7 @@ STATETRACKER_FILES = \
 	state_tracker/st_texture.h \
 	state_tracker/st_tgsi_lower_yuv.c \
 	state_tracker/st_tgsi_lower_yuv.h \
+	state_tracker/st_util.h \
 	state_tracker/st_vdpau.c \
 	state_tracker/st_vdpau.h
 

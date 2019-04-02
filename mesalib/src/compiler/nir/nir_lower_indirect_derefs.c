@@ -40,9 +40,8 @@ emit_indirect_load_store_deref(nir_builder *b, nir_intrinsic_instr *orig_instr,
 {
    assert(start < end);
    if (start == end - 1) {
-      nir_ssa_def *index = nir_imm_int(b, start);
       emit_load_store_deref(b, orig_instr,
-                            nir_build_deref_array(b, parent, index),
+                            nir_build_deref_array_imm(b, parent, start),
                             deref_arr + 1, dest, src);
    } else {
       int mid = start + (end - start) / 2;

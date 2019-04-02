@@ -451,10 +451,12 @@ load_element_from_ssa_entry_value(struct copy_prop_var_state *state,
 
    *value = (struct value) {
       .is_ssa = true,
-      .ssa = {
-         .def = { def },
-         .component = { 0 },
-      },
+      {
+	.ssa = {
+	  .def = { def },
+	  .component = { 0 },
+	},
+      }
    };
 
    return true;

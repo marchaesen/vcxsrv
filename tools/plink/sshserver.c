@@ -36,10 +36,12 @@ struct server {
     bool frozen;
 
     Conf *conf;
+    const SshServerConfig *ssc;
     ssh_key *const *hostkeys;
     int nhostkeys;
     RSAKey *hostkey1;
     AuthPolicy *authpolicy;
+    LogPolicy *logpolicy;
     const SftpServerVtable *sftpserver_vt;
 
     Seat seat;
@@ -50,7 +52,9 @@ struct server {
     PacketProtocolLayer *base_layer;
     ConnectionLayer *cl;
 
+#ifndef NO_GSSAPI
     struct ssh_connection_shared_gss_state gss_state;
+#endif
 };
 
 static void ssh_server_free_callback(void *vsrv);
@@ -113,6 +117,8 @@ static const SeatVtable server_seat_vt = {
     nullseat_get_x_display,
     nullseat_get_windowid,
     nullseat_get_window_pixel_size,
+    nullseat_stripctrl_new,
+    nullseat_set_trust_status,
 };
 
 static void server_socket_log(Plug *plug, int type, SockAddr *addr, int port,
@@ -210,6 +216,19 @@ void ssh_conn_processed_data(Ssh *ssh)
      * around a peculiarity of the GUI event loop, I haven't yet. */
 }
 
+Conf *make_ssh_server_conf(void)
+{
+    Conf *conf = conf_new();
+    load_open_settings(NULL, conf);
+    /* In Uppity, we support even the legacy des-cbc cipher by
+     * default, so that it will be available if the user forces it by
+     * overriding the KEXINIT strings. If the user wants it _not_
+     * supported, of course, they can override KEXINIT in the other
+     * direction. */
+    conf_set_bool(conf, CONF_ssh2_des_cbc, true);
+    return conf;
+}
+
 static const PlugVtable ssh_server_plugvt = {
     server_socket_log,
     server_closing,
@@ -219,7 +238,8 @@ static const PlugVtable ssh_server_plugvt = {
 };
 
 Plug *ssh_server_plug(
-    Conf *conf, ssh_key *const *hostkeys, int nhostkeys,
+    Conf *conf, const SshServerConfig *ssc,
+    ssh_key *const *hostkeys, int nhostkeys,
     RSAKey *hostkey1, AuthPolicy *authpolicy, LogPolicy *logpolicy,
     const SftpServerVtable *sftpserver_vt)
 {
@@ -229,12 +249,14 @@ Plug *ssh_server_plug(
 
     srv->plug.vt = &ssh_server_plugvt;
     srv->conf = conf_copy(conf);
+    srv->ssc = ssc;
     srv->logctx = log_init(logpolicy, conf);
     conf_set_bool(srv->conf, CONF_ssh_no_shell, true);
     srv->nhostkeys = nhostkeys;
     srv->hostkeys = hostkeys;
     srv->hostkey1 = hostkey1;
     srv->authpolicy = authpolicy;
+    srv->logpolicy = logpolicy;
     srv->sftpserver_vt = sftpserver_vt;
 
     srv->seat.vt = &server_seat_vt;
@@ -243,9 +265,11 @@ Plug *ssh_server_plug(
     bufchain_init(&srv->out_raw);
     bufchain_init(&srv->dummy_user_input);
 
+#ifndef NO_GSSAPI
     /* FIXME: replace with sensible */
     srv->gss_state.libs = snew(struct ssh_gss_liblist);
     srv->gss_state.libs->nlibraries = 0;
+#endif
 
     return &srv->plug;
 }
@@ -295,11 +319,14 @@ static void ssh_server_free_callback(void *vsrv)
     conf_free(srv->conf);
     log_free(srv->logctx);
 
+#ifndef NO_GSSAPI
     sfree(srv->gss_state.libs);        /* FIXME: replace with sensible */
+#endif
 
+    LogPolicy *lp = srv->logpolicy;
     sfree(srv);
 
-    server_instance_terminated();
+    server_instance_terminated(lp);
 }
 
 static void server_connect_bpp(server *srv)
@@ -423,7 +450,8 @@ static void server_got_ssh_version(struct ssh_version_receiver *rcv,
         connection_layer = ssh2_connection_new(
             &srv->ssh, NULL, false, srv->conf, 
             ssh_verstring_get_local(old_bpp), &srv->cl);
-        ssh2connection_server_configure(connection_layer, srv->sftpserver_vt);
+        ssh2connection_server_configure(connection_layer,
+                                        srv->sftpserver_vt, srv->ssc);
         server_connect_ppl(srv, connection_layer);
 
         if (conf_get_bool(srv->conf, CONF_ssh_no_userauth)) {
@@ -431,7 +459,7 @@ static void server_got_ssh_version(struct ssh_version_receiver *rcv,
             transport_child_layer = connection_layer;
         } else {
             userauth_layer = ssh2_userauth_server_new(
-                connection_layer, srv->authpolicy);
+                connection_layer, srv->authpolicy, srv->ssc);
             server_connect_ppl(srv, userauth_layer);
             transport_child_layer = userauth_layer;
         }
@@ -440,7 +468,12 @@ static void server_got_ssh_version(struct ssh_version_receiver *rcv,
             srv->conf, NULL, 0, NULL,
             ssh_verstring_get_remote(old_bpp),
             ssh_verstring_get_local(old_bpp),
-            &srv->gss_state, &srv->stats, transport_child_layer, true);
+#ifndef NO_GSSAPI
+            &srv->gss_state,
+#else
+            NULL,
+#endif
+            &srv->stats, transport_child_layer, srv->ssc);
         ssh2_transport_provide_hostkeys(
             srv->base_layer, srv->hostkeys, srv->nhostkeys);
         if (userauth_layer)
@@ -453,10 +486,11 @@ static void server_got_ssh_version(struct ssh_version_receiver *rcv,
         server_connect_bpp(srv);
 
         connection_layer = ssh1_connection_new(&srv->ssh, srv->conf, &srv->cl);
+        ssh1connection_server_configure(connection_layer, srv->ssc);
         server_connect_ppl(srv, connection_layer);
 
         srv->base_layer = ssh1_login_server_new(
-            connection_layer, srv->hostkey1, srv->authpolicy);
+            connection_layer, srv->hostkey1, srv->authpolicy, srv->ssc);
         server_connect_ppl(srv, srv->base_layer);
     }
 

@@ -100,7 +100,7 @@ XrmDatabase XrmGetFileDatabase\^(\^char *\fIfilename\fP\^);
 void XrmPutFileDatabase\^(\^XrmDatabase \fIdatabase\fP\^, char
 *\fIstored_db\fP\^); 
 .HP
-XrmDatabase XrmGetStringDatabase\^(\^char *\fIdata\fP\^, 
+XrmDatabase XrmGetStringDatabase\^(\^char *\fIdata\fP\^);
 .HP
 char *XrmLocaleOfDatabase\^(\^XrmDatabase \fIdatabase\fP\^); 
 .HP

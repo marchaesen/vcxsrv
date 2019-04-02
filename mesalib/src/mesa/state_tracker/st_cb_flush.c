@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
  /*
@@ -39,6 +39,7 @@
 #include "st_cb_flush.h"
 #include "st_cb_clear.h"
 #include "st_cb_fbo.h"
+#include "st_context.h"
 #include "st_manager.h"
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"
@@ -46,11 +47,17 @@
 #include "util/u_gen_mipmap.h"
 
 
-void st_flush(struct st_context *st,
-              struct pipe_fence_handle **fence,
-              unsigned flags)
+void
+st_flush(struct st_context *st,
+         struct pipe_fence_handle **fence,
+         unsigned flags)
 {
    st_flush_bitmap_cache(st);
+
+   /* We want to call this function periodically.
+    * Typically, it has nothing to do so it shouldn't be expensive.
+    */
+   st_context_free_zombie_objects(st);
 
    st->pipe->flush(st->pipe, fence, flags);
 }
@@ -59,13 +66,14 @@ void st_flush(struct st_context *st,
 /**
  * Flush, and wait for completion.
  */
-void st_finish( struct st_context *st )
+void
+st_finish(struct st_context *st)
 {
    struct pipe_fence_handle *fence = NULL;
 
    st_flush(st, &fence, PIPE_FLUSH_ASYNC | PIPE_FLUSH_HINT_FINISH);
 
-   if(fence) {
+   if (fence) {
       st->pipe->screen->fence_finish(st->pipe->screen, NULL, fence,
                                      PIPE_TIMEOUT_INFINITE);
       st->pipe->screen->fence_reference(st->pipe->screen, &fence, NULL);
@@ -79,7 +87,8 @@ void st_finish( struct st_context *st )
 /**
  * Called via ctx->Driver.Flush()
  */
-static void st_glFlush(struct gl_context *ctx)
+static void
+st_glFlush(struct gl_context *ctx)
 {
    struct st_context *st = st_context(ctx);
 
@@ -97,7 +106,8 @@ static void st_glFlush(struct gl_context *ctx)
 /**
  * Called via ctx->Driver.Finish()
  */
-static void st_glFinish(struct gl_context *ctx)
+static void
+st_glFinish(struct gl_context *ctx)
 {
    struct st_context *st = st_context(ctx);
 
@@ -172,8 +182,9 @@ st_install_device_reset_callback(struct st_context *st)
 }
 
 
-void st_init_flush_functions(struct pipe_screen *screen,
-                             struct dd_function_table *functions)
+void
+st_init_flush_functions(struct pipe_screen *screen,
+                        struct dd_function_table *functions)
 {
    functions->Flush = st_glFlush;
    functions->Finish = st_glFinish;

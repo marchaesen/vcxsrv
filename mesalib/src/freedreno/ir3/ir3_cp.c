@@ -210,6 +210,12 @@ static bool valid_flags(struct ir3_instruction *instr, unsigned n,
 
 			if (is_atomic(instr->opc) && !(instr->flags & IR3_INSTR_G))
 				return false;
+
+			/* as with atomics, ldib on a6xx can only have immediate for
+			 * SSBO slot argument
+			 */
+			if ((instr->opc == OPC_LDIB) && (n != 0))
+				return false;
 		}
 
 		break;
@@ -605,6 +611,34 @@ instr_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr)
 			break;
 		default:
 			break;
+		}
+	}
+
+	/* Handle converting a sam.s2en (taking samp/tex idx params via
+	 * register) into a normal sam (encoding immediate samp/tex idx)
+	 * if they are immediate.  This saves some instructions and regs
+	 * in the common case where we know samp/tex at compile time:
+	 */
+	if (is_tex(instr) && (instr->flags & IR3_INSTR_S2EN) &&
+			!(ir3_shader_debug & IR3_DBG_FORCES2EN)) {
+		/* The first src will be a fan-in (collect), if both of it's
+		 * two sources are mov from imm, then we can
+		 */
+		struct ir3_instruction *samp_tex = ssa(instr->regs[1]);
+
+		debug_assert(samp_tex->opc == OPC_META_FI);
+
+		struct ir3_instruction *samp = ssa(samp_tex->regs[1]);
+		struct ir3_instruction *tex  = ssa(samp_tex->regs[2]);
+
+		if ((samp->opc == OPC_MOV) &&
+				(samp->regs[1]->flags & IR3_REG_IMMED) &&
+				(tex->opc == OPC_MOV) &&
+				(tex->regs[1]->flags & IR3_REG_IMMED)) {
+			instr->flags &= ~IR3_INSTR_S2EN;
+			instr->cat5.samp = samp->regs[1]->iim_val;
+			instr->cat5.tex  = tex->regs[1]->iim_val;
+			instr->regs[1]->instr = NULL;
 		}
 	}
 }

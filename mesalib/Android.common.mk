@@ -32,6 +32,7 @@ LOCAL_C_INCLUDES += \
 MESA_VERSION := $(shell cat $(MESA_TOP)/VERSION)
 LOCAL_CFLAGS += \
 	-Wno-error \
+	-Werror=incompatible-pointer-types \
 	-Wno-unused-parameter \
 	-Wno-pointer-arith \
 	-Wno-missing-field-initializers \

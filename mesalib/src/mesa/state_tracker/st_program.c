@@ -206,6 +206,22 @@ st_set_prog_affected_state_flags(struct gl_program *prog)
    }
 }
 
+static void
+delete_ir(struct pipe_shader_state *ir)
+{
+   if (ir->tokens)
+      ureg_free_tokens(ir->tokens);
+
+   /* Note: Any setup of ->ir.nir that has had pipe->create_*_state called on
+    * it has resulted in the driver taking ownership of the NIR.  Those
+    * callers should be NULLing out the nir field in any pipe_shader_state
+    * that might have this called in order to indicate that.
+    *
+    * GLSL IR and ARB programs will have set gl_program->nir to the same
+    * shader as ir->ir.nir, so it will be freed by _mesa_delete_program().
+    */
+}
+
 /**
  * Delete a vertex program variant.  Note the caller must unlink
  * the variant from the linked list.
@@ -213,14 +229,19 @@ st_set_prog_affected_state_flags(struct gl_program *prog)
 static void
 delete_vp_variant(struct st_context *st, struct st_vp_variant *vpv)
 {
-   if (vpv->driver_shader) 
-      cso_delete_vertex_shader(st->cso_context, vpv->driver_shader);
-      
+   if (vpv->driver_shader) {
+      if (st->has_shareable_shaders || vpv->key.st == st) {
+         cso_delete_vertex_shader(st->cso_context, vpv->driver_shader);
+      } else {
+         st_save_zombie_shader(vpv->key.st, PIPE_SHADER_VERTEX,
+                               vpv->driver_shader);
+      }
+   }
+
    if (vpv->draw_shader)
       draw_delete_vertex_shader( st->draw, vpv->draw_shader );
 
-   if (((vpv->tgsi.type == PIPE_SHADER_IR_TGSI)) && vpv->tgsi.tokens)
-      ureg_free_tokens(vpv->tgsi.tokens);
+   delete_ir(&vpv->tgsi);
 
    free( vpv );
 }
@@ -244,10 +265,7 @@ st_release_vp_variants( struct st_context *st,
 
    stvp->variants = NULL;
 
-   if ((stvp->tgsi.type == PIPE_SHADER_IR_TGSI) && stvp->tgsi.tokens) {
-      tgsi_free_tokens(stvp->tgsi.tokens);
-      stvp->tgsi.tokens = NULL;
-   }
+   delete_ir(&stvp->tgsi);
 }
 
 
@@ -259,8 +277,15 @@ st_release_vp_variants( struct st_context *st,
 static void
 delete_fp_variant(struct st_context *st, struct st_fp_variant *fpv)
 {
-   if (fpv->driver_shader) 
-      cso_delete_fragment_shader(st->cso_context, fpv->driver_shader);
+   if (fpv->driver_shader) {
+      if (st->has_shareable_shaders || fpv->key.st == st) {
+         cso_delete_fragment_shader(st->cso_context, fpv->driver_shader);
+      } else {
+         st_save_zombie_shader(fpv->key.st, PIPE_SHADER_FRAGMENT,
+                               fpv->driver_shader);
+      }
+   }
+
    free(fpv);
 }
 
@@ -281,10 +306,7 @@ st_release_fp_variants(struct st_context *st, struct st_fragment_program *stfp)
 
    stfp->variants = NULL;
 
-   if ((stfp->tgsi.type == PIPE_SHADER_IR_TGSI) && stfp->tgsi.tokens) {
-      ureg_free_tokens(stfp->tgsi.tokens);
-      stfp->tgsi.tokens = NULL;
-   }
+   delete_ir(&stfp->tgsi);
 }
 
 
@@ -297,21 +319,45 @@ delete_basic_variant(struct st_context *st, struct st_basic_variant *v,
                      GLenum target)
 {
    if (v->driver_shader) {
-      switch (target) {
-      case GL_TESS_CONTROL_PROGRAM_NV:
-         cso_delete_tessctrl_shader(st->cso_context, v->driver_shader);
-         break;
-      case GL_TESS_EVALUATION_PROGRAM_NV:
-         cso_delete_tesseval_shader(st->cso_context, v->driver_shader);
-         break;
-      case GL_GEOMETRY_PROGRAM_NV:
-         cso_delete_geometry_shader(st->cso_context, v->driver_shader);
-         break;
-      case GL_COMPUTE_PROGRAM_NV:
-         cso_delete_compute_shader(st->cso_context, v->driver_shader);
-         break;
-      default:
-         assert(!"this shouldn't occur");
+      if (st->has_shareable_shaders || v->key.st == st) {
+         /* The shader's context matches the calling context, or we
+          * don't care.
+          */
+         switch (target) {
+         case GL_TESS_CONTROL_PROGRAM_NV:
+            cso_delete_tessctrl_shader(st->cso_context, v->driver_shader);
+            break;
+         case GL_TESS_EVALUATION_PROGRAM_NV:
+            cso_delete_tesseval_shader(st->cso_context, v->driver_shader);
+            break;
+         case GL_GEOMETRY_PROGRAM_NV:
+            cso_delete_geometry_shader(st->cso_context, v->driver_shader);
+            break;
+         case GL_COMPUTE_PROGRAM_NV:
+            cso_delete_compute_shader(st->cso_context, v->driver_shader);
+            break;
+         default:
+            unreachable("bad shader type in delete_basic_variant");
+         }
+      } else {
+         /* We can't delete a shader with a context different from the one
+          * that created it.  Add it to the creating context's zombie list.
+          */
+         enum pipe_shader_type type;
+         switch (target) {
+         case GL_TESS_CONTROL_PROGRAM_NV:
+            type = PIPE_SHADER_TESS_CTRL;
+            break;
+         case GL_TESS_EVALUATION_PROGRAM_NV:
+            type = PIPE_SHADER_TESS_EVAL;
+            break;
+         case GL_GEOMETRY_PROGRAM_NV:
+            type = PIPE_SHADER_GEOMETRY;
+            break;
+         default:
+            unreachable("");
+         }
+         st_save_zombie_shader(v->key.st, type, v->driver_shader);
       }
    }
 
@@ -337,10 +383,7 @@ st_release_basic_variants(struct st_context *st, GLenum target,
 
    *variants = NULL;
 
-   if (tgsi->tokens) {
-      ureg_free_tokens(tgsi->tokens);
-      tgsi->tokens = NULL;
-   }
+   delete_ir(tgsi);
 }
 
 
@@ -579,8 +622,11 @@ st_translate_vertex_program(struct st_context *st,
       nir_shader *nir =
          st_translate_prog_to_nir(st, &stvp->Base, MESA_SHADER_VERTEX);
 
+      if (stvp->tgsi.ir.nir)
+         ralloc_free(stvp->tgsi.ir.nir);
       stvp->tgsi.type = PIPE_SHADER_IR_NIR;
       stvp->tgsi.ir.nir = nir;
+      stvp->Base.nir = nir;
       return true;
    }
 
@@ -763,8 +809,11 @@ st_translate_fragment_program(struct st_context *st,
       nir_shader *nir =
          st_translate_prog_to_nir(st, &stfp->Base, MESA_SHADER_FRAGMENT);
 
+      if (stfp->tgsi.ir.nir)
+         ralloc_free(stfp->tgsi.ir.nir);
       stfp->tgsi.type = PIPE_SHADER_IR_NIR;
       stfp->tgsi.ir.nir = nir;
+      stfp->Base.nir = nir;
       return true;
    }
 
@@ -1774,7 +1823,9 @@ st_get_cp_variant(struct st_context *st,
    struct st_basic_variant *v;
    struct st_basic_variant_key key;
 
+   /* use memset, not an initializer to be sure all memory is zeroed */
    memset(&key, 0, sizeof(key));
+
    key.st = st->has_shareable_shaders ? NULL : st;
 
    /* Search for existing variant */
@@ -1999,6 +2050,7 @@ st_precompile_shader_variant(struct st_context *st,
       struct st_vp_variant_key key;
 
       memset(&key, 0, sizeof(key));
+
       key.st = st->has_shareable_shaders ? NULL : st;
       st_get_vp_variant(st, p, &key);
       break;
@@ -2027,6 +2079,7 @@ st_precompile_shader_variant(struct st_context *st,
       struct st_fp_variant_key key;
 
       memset(&key, 0, sizeof(key));
+
       key.st = st->has_shareable_shaders ? NULL : st;
       st_get_fp_variant(st, p, &key);
       break;

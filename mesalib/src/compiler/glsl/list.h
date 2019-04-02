@@ -81,6 +81,12 @@ struct exec_node {
     * Insert a node in the list after the current node
     */
    void insert_after(exec_node *after);
+
+   /**
+    * Insert another list in the list after the current node
+    */
+   void insert_after(struct exec_list *after);
+
    /**
     * Insert a node in the list before the current node
     */
@@ -508,6 +514,21 @@ exec_list_append(struct exec_list *list, struct exec_list *source)
 }
 
 static inline void
+exec_node_insert_list_after(struct exec_node *n, struct exec_list *after)
+{
+   if (exec_list_is_empty(after))
+      return;
+
+   after->tail_sentinel.prev->next = n->next;
+   after->head_sentinel.next->prev = n;
+
+   n->next->prev = after->tail_sentinel.prev;
+   n->next = after->head_sentinel.next;
+
+   exec_list_make_empty(after);
+}
+
+static inline void
 exec_list_prepend(struct exec_list *list, struct exec_list *source)
 {
    exec_list_append(source, list);
@@ -633,6 +654,11 @@ inline void exec_list::move_nodes_to(exec_list *target)
 inline void exec_list::append_list(exec_list *source)
 {
    exec_list_append(this, source);
+}
+
+inline void exec_node::insert_after(exec_list *after)
+{
+   exec_node_insert_list_after(this, after);
 }
 
 inline void exec_list::prepend_list(exec_list *source)

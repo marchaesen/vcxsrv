@@ -243,4 +243,7 @@ wsi_common_queue_present(const struct wsi_device *wsi,
                          int queue_family_index,
                          const VkPresentInfoKHR *pPresentInfo);
 
+uint64_t
+wsi_common_get_current_time(void);
+
 #endif

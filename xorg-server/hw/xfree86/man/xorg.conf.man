@@ -1494,6 +1494,17 @@ option.
 Enable printing of additional debugging information about modesetting to
 the server log.
 .TP 7
+.BI "Option \*qNoOutputInitialSize\*q \*q" width " " height \*q
+Normally, the X server infers the initial screen size based on any
+connected outputs.
+However, if no outputs are connected, the X server picks a default screen size
+of 1024 x 768.
+This option overrides the default screen size to use when no outputs are
+connected.
+In contrast to the \*qVirtual\*q Display SubSection entry, which applies
+unconditionally, \*qNoOutputInitialSize\*q is only used if no outputs are
+detected when the X server starts.
+.TP 7
 .BI "Option \*qPreferCloneMode\*q \*q" boolean \*q
 If enabled, bring up monitors of a screen in clone mode instead of horizontal
 extended layout by default. (Defaults to off; the video driver can change the

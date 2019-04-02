@@ -58,7 +58,8 @@ enum pipe_error st_translate_program(
 
 void free_glsl_to_tgsi_visitor(struct glsl_to_tgsi_visitor *v);
 
-GLboolean st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog);
+GLboolean
+st_link_tgsi(struct gl_context *ctx, struct gl_shader_program *prog);
 
 void
 st_translate_stream_output_info(struct gl_transform_feedback_info *info,

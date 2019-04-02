@@ -285,7 +285,8 @@ default xkb_keycodes "evdev" {
 	<I255> = 255;	// #define KEY_RFKILL              247
 
 	<I372> = 372;   // #define KEY_FAVORITES           364
-	<I374> = 374;   // #define KEY_KEYBOARD            366
+	<I382> = 382;   // #define KEY_KEYBOARD            374
+	<I569> = 569;   // #define KEY_ROTATE_LOCK_TOGGLE  561
 
 	// Fake keycodes for virtual keys
 	<LVL3> =   92;

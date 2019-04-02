@@ -232,7 +232,7 @@ vtn_handle_function_call(struct vtn_builder *b, SpvOp opcode,
    if (ret_type->base_type == vtn_base_type_void) {
       vtn_push_value(b, w[2], vtn_value_type_undef);
    } else {
-      vtn_push_ssa(b, w[2], res_type, vtn_local_load(b, ret_deref));
+      vtn_push_ssa(b, w[2], res_type, vtn_local_load(b, ret_deref, 0));
    }
 }
 
@@ -586,6 +586,8 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
          if (block->merge &&
              (*block->merge & SpvOpCodeMask) == SpvOpSelectionMerge) {
             if_stmt->control = block->merge[2];
+         } else {
+            if_stmt->control = SpvSelectionControlMaskNone;
          }
 
          if_stmt->then_type = vtn_get_branch_type(b, then_block,
@@ -792,7 +794,7 @@ vtn_handle_phis_first_pass(struct vtn_builder *b, SpvOp opcode,
    _mesa_hash_table_insert(b->phi_table, w, phi_var);
 
    vtn_push_ssa(b, w[2], type,
-                vtn_local_load(b, nir_build_deref_var(&b->nb, phi_var)));
+                vtn_local_load(b, nir_build_deref_var(&b->nb, phi_var), 0));
 
    return true;
 }
@@ -816,7 +818,7 @@ vtn_handle_phi_second_pass(struct vtn_builder *b, SpvOp opcode,
 
       struct vtn_ssa_value *src = vtn_ssa_value(b, w[i]);
 
-      vtn_local_store(b, src, nir_build_deref_var(&b->nb, phi_var));
+      vtn_local_store(b, src, nir_build_deref_var(&b->nb, phi_var), 0);
    }
 
    return true;
@@ -877,6 +879,37 @@ vtn_switch_case_condition(struct vtn_builder *b, struct vtn_switch *swtch,
    }
 }
 
+static nir_loop_control
+vtn_loop_control(struct vtn_builder *b, struct vtn_loop *vtn_loop)
+{
+   if (vtn_loop->control == SpvLoopControlMaskNone)
+      return nir_loop_control_none;
+   else if (vtn_loop->control & SpvLoopControlDontUnrollMask)
+      return nir_loop_control_dont_unroll;
+   else if (vtn_loop->control & SpvLoopControlUnrollMask)
+      return nir_loop_control_unroll;
+   else if (vtn_loop->control & SpvLoopControlDependencyInfiniteMask ||
+            vtn_loop->control & SpvLoopControlDependencyLengthMask) {
+      /* We do not do anything special with these yet. */
+      return nir_loop_control_none;
+   } else {
+      vtn_fail("Invalid loop control");
+   }
+}
+
+static nir_selection_control
+vtn_selection_control(struct vtn_builder *b, struct vtn_if *vtn_if)
+{
+   if (vtn_if->control == SpvSelectionControlMaskNone)
+      return nir_selection_control_none;
+   else if (vtn_if->control & SpvSelectionControlDontFlattenMask)
+      return nir_selection_control_dont_flatten;
+   else if (vtn_if->control & SpvSelectionControlFlattenMask)
+      return nir_selection_control_flatten;
+   else
+      vtn_fail("Invalid selection control");
+}
+
 static void
 vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
                  nir_variable *switch_fall_var, bool *has_switch_break,
@@ -910,7 +943,7 @@ vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
             nir_deref_instr *ret_deref =
                nir_build_deref_cast(&b->nb, nir_load_param(&b->nb, 0),
                                     nir_var_function_temp, ret_type, 0);
-            vtn_local_store(b, src, ret_deref);
+            vtn_local_store(b, src, ret_deref, 0);
          }
 
          if (block->branch_type != vtn_branch_type_none) {
@@ -928,6 +961,9 @@ vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
 
          nir_if *nif =
             nir_push_if(&b->nb, vtn_ssa_value(b, vtn_if->condition)->def);
+
+         nif->control = vtn_selection_control(b, vtn_if);
+
          if (vtn_if->then_type == vtn_branch_type_none) {
             vtn_emit_cf_list(b, &vtn_if->then_body,
                              switch_fall_var, &sw_break, handler);
@@ -962,6 +998,8 @@ vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
          struct vtn_loop *vtn_loop = (struct vtn_loop *)node;
 
          nir_loop *loop = nir_push_loop(&b->nb);
+         loop->control = vtn_loop_control(b, vtn_loop);
+
          vtn_emit_cf_list(b, &vtn_loop->body, NULL, NULL, handler);
 
          if (!list_empty(&vtn_loop->cont_body)) {

@@ -318,7 +318,7 @@ lower_io_arrays_to_elements(nir_shader *shader, nir_variable_mode mask,
                 * TODO: Add support for struct splitting.
                 */
                if ((!glsl_type_is_array(type) && !glsl_type_is_matrix(type))||
-                   glsl_type_is_struct(glsl_without_array(type)))
+                   glsl_type_is_struct_or_ifc(glsl_without_array(type)))
                   continue;
 
                /* Skip builtins */

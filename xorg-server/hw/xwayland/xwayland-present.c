@@ -123,6 +123,11 @@ xwl_present_cleanup(WindowPtr window)
         xwl_present_window->frame_callback = NULL;
     }
 
+    if (xwl_present_window->sync_callback) {
+        wl_callback_destroy(xwl_present_window->sync_callback);
+        xwl_present_window->sync_callback = NULL;
+    }
+
     /* Clear remaining events */
     xorg_list_for_each_entry_safe(event, tmp, &xwl_present_window->event_list, list) {
         xorg_list_del(&event->list);

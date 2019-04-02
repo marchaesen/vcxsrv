@@ -55,28 +55,8 @@ static bool
 has_nonremovable_reads(struct v3d_compile *c, struct qinst *inst)
 {
         for (int i = 0; i < vir_get_nsrc(inst); i++) {
-                if (inst->src[i].file == QFILE_VPM) {
-                        /* Instance ID, Vertex ID: Should have been removed at
-                         * the NIR level
-                         */
-                        if (inst->src[i].index == ~0)
-                                return true;
-
-                        uint32_t attr = inst->src[i].index / 4;
-                        uint32_t offset = inst->src[i].index % 4;
-
-                        if (c->vattr_sizes[attr] != offset)
-                                return true;
-
-                        /* Can't get rid of the last VPM read, or the
-                         * simulator (at least) throws an error.
-                         */
-                        uint32_t total_size = 0;
-                        for (uint32_t i = 0; i < ARRAY_SIZE(c->vattr_sizes); i++)
-                                total_size += c->vattr_sizes[i];
-                        if (total_size == 1)
-                                return true;
-                }
+                if (inst->src[i].file == QFILE_VPM)
+                        return true;
         }
 
         return false;
@@ -185,17 +165,6 @@ vir_opt_dead_code(struct v3d_compile *c)
                                         progress = true;
                                 }
                                 continue;
-                        }
-
-                        for (int i = 0; i < vir_get_nsrc(inst); i++) {
-                                if (inst->src[i].file != QFILE_VPM)
-                                        continue;
-                                uint32_t attr = inst->src[i].index / 4;
-                                uint32_t offset = (inst->src[i].index % 4);
-
-                                if (c->vattr_sizes[attr] == offset) {
-                                        c->vattr_sizes[attr]--;
-                                }
                         }
 
                         assert(inst != last_flags_write);

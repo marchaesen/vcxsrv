@@ -366,7 +366,11 @@ struct radv_pipeline_key {
 	uint32_t instance_rate_inputs;
 	uint32_t instance_rate_divisors[MAX_VERTEX_ATTRIBS];
 	uint8_t vertex_attribute_formats[MAX_VERTEX_ATTRIBS];
+	uint32_t vertex_attribute_bindings[MAX_VERTEX_ATTRIBS];
+	uint32_t vertex_attribute_offsets[MAX_VERTEX_ATTRIBS];
+	uint32_t vertex_attribute_strides[MAX_VERTEX_ATTRIBS];
 	uint64_t vertex_alpha_adjust;
+	uint32_t vertex_post_shuffle;
 	unsigned tess_input_vertices;
 	uint32_t col_format;
 	uint32_t is_int8;
@@ -392,7 +396,8 @@ bool
 radv_create_shader_variants_from_pipeline_cache(struct radv_device *device,
 					        struct radv_pipeline_cache *cache,
 					        const unsigned char *sha1,
-					        struct radv_shader_variant **variants);
+					        struct radv_shader_variant **variants,
+						bool *found_in_application_cache);
 
 void
 radv_pipeline_cache_insert_shaders(struct radv_device *device,
@@ -1338,11 +1343,7 @@ struct radv_prim_vertex_count {
 };
 
 struct radv_vertex_elements_info {
-	uint32_t rsrc_word3[MAX_VERTEX_ATTRIBS];
 	uint32_t format_size[MAX_VERTEX_ATTRIBS];
-	uint32_t binding[MAX_VERTEX_ATTRIBS];
-	uint32_t offset[MAX_VERTEX_ATTRIBS];
-	uint32_t count;
 };
 
 struct radv_ia_multi_vgt_param_helpers {
@@ -1374,6 +1375,7 @@ struct radv_pipeline {
 	struct radv_vertex_elements_info             vertex_elements;
 
 	uint32_t                                     binding_stride[MAX_VBS];
+	uint8_t                                      num_vertex_bindings;
 
 	uint32_t user_data_0[MESA_SHADER_STAGES];
 	union {
@@ -1959,6 +1961,8 @@ void radv_nir_shader_info_pass(const struct nir_shader *nir,
 void radv_nir_shader_info_init(struct radv_shader_info *info);
 
 struct radeon_winsys_sem;
+
+uint64_t radv_get_current_time(void);
 
 #define RADV_DEFINE_HANDLE_CASTS(__radv_type, __VkType)		\
 								\

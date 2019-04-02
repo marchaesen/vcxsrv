@@ -16,6 +16,9 @@ struct beeptime {
     unsigned long ticks;
 };
 
+#define TRUST_SIGIL_WIDTH 3
+#define TRUST_SIGIL_CHAR 0xDFFE
+
 typedef struct {
     int y, x;
 } pos;
@@ -55,12 +58,20 @@ struct termline {
     bool temporary;                    /* true if decompressed from scrollback */
     int cc_free;		       /* offset to first cc in free list */
     struct termchar *chars;
+    bool trusted;
 };
 
 struct bidi_cache_entry {
     int width;
+    bool trusted;
     struct termchar *chars;
     int *forward, *backward;	       /* the permutations of line positions */
+};
+
+struct term_utf8_decode {
+    int state;                         /* Is there a pending UTF-8 character */
+    int chr;                           /* and what is it so far? */
+    int size;                          /* The size of the UTF character. */
 };
 
 struct terminal_tag {
@@ -94,6 +105,7 @@ struct terminal_tag {
     termchar basic_erase_char, erase_char;
 
     bufchain inbuf;		       /* terminal input buffer */
+
     pos curs;			       /* cursor */
     pos savecurs;		       /* saved cursor position */
     int marg_t, marg_b;		       /* scroll margins */
@@ -116,9 +128,7 @@ struct terminal_tag {
     int sco_acs, save_sco_acs;	       /* CSI 10,11,12m -> OEM charset */
     bool vt52_bold;                    /* Force bold on non-bold colours */
     bool utf;                          /* Are we in toggleable UTF-8 mode? */
-    int utf_state;		       /* Is there a pending UTF-8 character */
-    int utf_char;		       /* and what is it so far. */
-    int utf_size;		       /* The size of the UTF character. */
+    term_utf8_decode utf8;             /* If so, here's our decoding state */
     bool printing, only_printing;      /* Are we doing ANSI printing? */
     int print_state;		       /* state of print-end-sequence scan */
     bufchain printer_buf;	       /* buffered data for printer */
@@ -273,6 +283,12 @@ struct terminal_tag {
     size_t bidi_cache_size;
 
     /*
+     * Current trust state, used to annotate every line of the
+     * terminal that a graphic character is output to.
+     */
+    bool trusted;
+
+    /*
      * We copy a bunch of stuff out of the Conf structure into local
      * fields in the Terminal structure, to avoid the repeated
      * tree234 lookups which would be involved in fetching them from
@@ -281,13 +297,13 @@ struct terminal_tag {
     bool ansi_colour;
     char *answerback;
     int answerbacklen;
-    bool arabicshaping;
+    bool no_arabicshaping;
     int beep;
     bool bellovl;
     int bellovl_n;
     int bellovl_s;
     int bellovl_t;
-    bool bidi;
+    bool no_bidi;
     bool bksp_is_delete;
     bool blink_cur;
     bool blinktext;
@@ -334,5 +350,41 @@ static inline bool in_utf(Terminal *term)
 {
     return term->utf || term->ucsdata->line_codepage == CP_UTF8;
 }
+
+unsigned long term_translate(
+    Terminal *term, term_utf8_decode *utf8, unsigned char c);
+static inline int term_char_width(Terminal *term, unsigned int c)
+{
+    return term->cjk_ambig_wide ? mk_wcwidth_cjk(c) : mk_wcwidth(c);
+}
+
+/*
+ * UCSINCOMPLETE is returned from term_translate if it's successfully
+ * absorbed a byte but not emitted a complete character yet.
+ * UCSTRUNCATED indicates a truncated multibyte sequence (so the
+ * caller emits an error character and then calls term_translate again
+ * with the same input byte). UCSINVALID indicates some other invalid
+ * multibyte sequence, such as an overlong synonym, or a standalone
+ * continuation byte, or a completely illegal thing like 0xFE. These
+ * values are not stored in the terminal data structures at all.
+ */
+#define UCSINCOMPLETE 0x8000003FU    /* '?' */
+#define UCSTRUNCATED  0x80000021U    /* '!' */
+#define UCSINVALID    0x8000002AU    /* '*' */
+
+/*
+ * Maximum number of combining characters we're willing to store in a
+ * character cell. Our linked-list data representation permits an
+ * unlimited number of these in principle, but if we allowed that in
+ * practice then it would be an easy DoS to just squirt a squillion
+ * identical combining characters to someone's terminal and cause
+ * their PuTTY or pterm to consume lots of memory and CPU pointlessly.
+ *
+ * The precise figure of 32 is more or less arbitrary, but one point
+ * supporting it is UAX #15's comment that 30 combining characters is
+ * "significantly beyond what is required for any linguistic or
+ * technical usage".
+ */
+#define CC_LIMIT 32
 
 #endif

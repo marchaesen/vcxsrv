@@ -201,15 +201,15 @@ struct util_queue_job {
 /* Put this into your context. */
 struct util_queue {
    char name[14]; /* 13 characters = the thread name without the index */
-   mtx_t finish_lock; /* only for util_queue_finish */
+   mtx_t finish_lock; /* for util_queue_finish and protects threads/num_threads */
    mtx_t lock;
    cnd_t has_queued_cond;
    cnd_t has_space_cond;
    thrd_t *threads;
    unsigned flags;
    int num_queued;
-   unsigned num_threads;
-   int kill_threads;
+   unsigned max_threads;
+   unsigned num_threads; /* decreasing this number will terminate threads */
    int max_jobs;
    int write_idx, read_idx; /* ring buffer pointers */
    struct util_queue_job *jobs;
@@ -235,6 +235,13 @@ void util_queue_drop_job(struct util_queue *queue,
                          struct util_queue_fence *fence);
 
 void util_queue_finish(struct util_queue *queue);
+
+/* Adjust the number of active threads. The new number of threads can't be
+ * greater than the initial number of threads at the creation of the queue,
+ * and it can't be less than 1.
+ */
+void
+util_queue_adjust_num_threads(struct util_queue *queue, unsigned num_threads);
 
 int64_t util_queue_get_thread_time_nano(struct util_queue *queue,
                                         unsigned thread_index);

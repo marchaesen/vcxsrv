@@ -1019,14 +1019,14 @@ _mesa_validate_program_pipeline(struct gl_context* ctx,
 
       static GLuint msg_id = 0;
 
-      _mesa_gl_debug(ctx, &msg_id,
-                     MESA_DEBUG_SOURCE_API,
-                     MESA_DEBUG_TYPE_PORTABILITY,
-                     MESA_DEBUG_SEVERITY_MEDIUM,
-                     "glValidateProgramPipeline: pipeline %u does not meet "
-                     "strict OpenGL ES 3.1 requirements and may not be "
-                     "portable across desktop hardware\n",
-                     pipe->Name);
+      _mesa_gl_debugf(ctx, &msg_id,
+                      MESA_DEBUG_SOURCE_API,
+                      MESA_DEBUG_TYPE_PORTABILITY,
+                      MESA_DEBUG_SEVERITY_MEDIUM,
+                      "glValidateProgramPipeline: pipeline %u does not meet "
+                      "strict OpenGL ES 3.1 requirements and may not be "
+                      "portable across desktop hardware\n",
+                      pipe->Name);
    }
 
    pipe->Validated = GL_TRUE;

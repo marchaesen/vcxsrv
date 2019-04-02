@@ -88,11 +88,29 @@ glamor_prep_pixmap_box(PixmapPtr pixmap, glamor_access_t access, BoxPtr box)
 
             gl_usage = GL_STREAM_READ;
 
+            glamor_priv->suppress_gl_out_of_memory_logging = true;
+
             glBindBuffer(GL_PIXEL_PACK_BUFFER, priv->pbo);
             glBufferData(GL_PIXEL_PACK_BUFFER,
                          pixmap->devKind * pixmap->drawable.height, NULL,
                          gl_usage);
-        } else {
+
+            glamor_priv->suppress_gl_out_of_memory_logging = false;
+
+            if (glGetError() == GL_OUT_OF_MEMORY) {
+                if (!glamor_priv->logged_any_pbo_allocation_failure) {
+                    LogMessageVerb(X_WARNING, 0, "glamor: Failed to allocate %d "
+                                   "bytes PBO due to GL_OUT_OF_MEMORY.\n",
+                                   pixmap->devKind * pixmap->drawable.height);
+                    glamor_priv->logged_any_pbo_allocation_failure = true;
+                }
+                glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+                glDeleteBuffers(1, &priv->pbo);
+                priv->pbo = 0;
+            }
+        }
+
+        if (!priv->pbo) {
             pixmap->devPrivate.ptr = xallocarray(pixmap->devKind,
                                                  pixmap->drawable.height);
             if (!pixmap->devPrivate.ptr)
@@ -106,7 +124,7 @@ glamor_prep_pixmap_box(PixmapPtr pixmap, glamor_access_t access, BoxPtr box)
 
     RegionUninit(&region);
 
-    if (glamor_priv->has_rw_pbo) {
+    if (priv->pbo) {
         if (priv->map_access == GLAMOR_ACCESS_RW)
             gl_access = GL_READ_WRITE;
         else
@@ -128,8 +146,6 @@ glamor_prep_pixmap_box(PixmapPtr pixmap, glamor_access_t access, BoxPtr box)
 static void
 glamor_fini_pixmap(PixmapPtr pixmap)
 {
-    ScreenPtr                   screen = pixmap->drawable.pScreen;
-    glamor_screen_private       *glamor_priv = glamor_get_screen_private(screen);
     glamor_pixmap_private       *priv = glamor_get_pixmap_private(pixmap);
 
     if (!GLAMOR_PIXMAP_PRIV_HAS_FBO(priv))
@@ -138,7 +154,7 @@ glamor_fini_pixmap(PixmapPtr pixmap)
     if (!priv->prepared)
         return;
 
-    if (glamor_priv->has_rw_pbo) {
+    if (priv->pbo) {
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, priv->pbo);
         glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
         pixmap->devPrivate.ptr = NULL;
@@ -153,7 +169,7 @@ glamor_fini_pixmap(PixmapPtr pixmap)
 
     RegionUninit(&priv->prepare_region);
 
-    if (glamor_priv->has_rw_pbo) {
+    if (priv->pbo) {
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
         glDeleteBuffers(1, &priv->pbo);
         priv->pbo = 0;

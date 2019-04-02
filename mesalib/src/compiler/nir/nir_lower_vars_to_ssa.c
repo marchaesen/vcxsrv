@@ -150,7 +150,7 @@ get_deref_node_recur(nir_deref_instr *deref,
 
    switch (deref->deref_type) {
    case nir_deref_type_struct:
-      assert(glsl_type_is_struct(parent->type));
+      assert(glsl_type_is_struct_or_ifc(parent->type));
       assert(deref->strct.index < glsl_get_length(parent->type));
 
       if (parent->children[deref->strct.index] == NULL) {

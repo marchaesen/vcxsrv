@@ -867,6 +867,11 @@ ptn_add_output_stores(struct ptn_compile *c)
           */
          src = nir_channel(b, src, 2);
       }
+      if (c->prog->Target == GL_VERTEX_PROGRAM_ARB &&
+          var->data.location == VARYING_SLOT_FOGC) {
+         /* result.fogcoord is a single component value */
+         src = nir_channel(b, src, 0);
+      }
       unsigned num_components = glsl_get_vector_elements(var->type);
       nir_store_var(b, var, src, (1 << num_components) - 1);
    }
@@ -950,7 +955,8 @@ setup_registers_and_variables(struct ptn_compile *c)
       reg->num_components = 4;
 
       nir_variable *var = rzalloc(shader, nir_variable);
-      if (c->prog->Target == GL_FRAGMENT_PROGRAM_ARB && i == FRAG_RESULT_DEPTH)
+      if ((c->prog->Target == GL_FRAGMENT_PROGRAM_ARB && i == FRAG_RESULT_DEPTH) ||
+          (c->prog->Target == GL_VERTEX_PROGRAM_ARB && i == VARYING_SLOT_FOGC))
          var->type = glsl_float_type();
       else
          var->type = glsl_vec4_type();

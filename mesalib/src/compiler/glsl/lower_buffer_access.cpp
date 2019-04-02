@@ -63,7 +63,7 @@ lower_buffer_access::emit_access(void *mem_ctx,
                                  enum glsl_interface_packing packing,
                                  unsigned int write_mask)
 {
-   if (deref->type->is_record()) {
+   if (deref->type->is_struct()) {
       unsigned int field_offset = 0;
 
       for (unsigned i = 0; i < deref->type->length; i++) {
@@ -214,7 +214,7 @@ lower_buffer_access::is_dereferenced_thing_row_major(const ir_rvalue *deref)
          case GLSL_MATRIX_LAYOUT_COLUMN_MAJOR:
             return false;
          case GLSL_MATRIX_LAYOUT_ROW_MAJOR:
-            return matrix || deref->type->without_array()->is_record();
+            return matrix || deref->type->without_array()->is_struct();
          }
 
          break;
@@ -241,7 +241,7 @@ lower_buffer_access::is_dereferenced_thing_row_major(const ir_rvalue *deref)
          case GLSL_MATRIX_LAYOUT_COLUMN_MAJOR:
             return false;
          case GLSL_MATRIX_LAYOUT_ROW_MAJOR:
-            return matrix || deref->type->without_array()->is_record();
+            return matrix || deref->type->without_array()->is_struct();
          }
 
          unreachable("invalid matrix layout");
@@ -414,7 +414,7 @@ lower_buffer_access::setup_buffer_access(void *mem_ctx,
              *     of the member following the sub-structure is rounded up to
              *     the next multiple of the base alignment of the structure."
              */
-            if (type->without_array()->is_record()) {
+            if (type->without_array()->is_struct()) {
                intra_struct_offset = glsl_align(intra_struct_offset,
                                                 field_align);
 

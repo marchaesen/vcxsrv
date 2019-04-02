@@ -50,7 +50,15 @@ enum nir_spirv_debug_level {
    NIR_SPIRV_DEBUG_LEVEL_ERROR,
 };
 
+enum nir_spirv_execution_environment {
+   NIR_SPIRV_VULKAN = 0,
+   NIR_SPIRV_OPENCL,
+   NIR_SPIRV_OPENGL,
+};
+
 struct spirv_to_nir_options {
+   enum nir_spirv_execution_environment environment;
+
    /* Whether or not to lower all workgroup variable access to offsets
     * up-front.  This means you will _shared intrinsics instead of _var
     * for workgroup data access.
@@ -70,6 +78,8 @@ struct spirv_to_nir_options {
    const struct glsl_type *phys_ssbo_ptr_type;
    const struct glsl_type *push_const_ptr_type;
    const struct glsl_type *shared_ptr_type;
+   const struct glsl_type *global_ptr_type;
+   const struct glsl_type *temp_ptr_type;
 
    struct {
       void (*func)(void *private_data,

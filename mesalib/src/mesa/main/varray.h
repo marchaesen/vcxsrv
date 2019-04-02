@@ -316,6 +316,9 @@ static inline unsigned
 _mesa_primitive_restart_index(const struct gl_context *ctx,
                               unsigned index_size)
 {
+   /* The index_size parameter is menat to be in bytes. */
+   assert(index_size == 1 || index_size == 2 || index_size == 4);
+
    /* From the OpenGL 4.3 core specification, page 302:
     * "If both PRIMITIVE_RESTART and PRIMITIVE_RESTART_FIXED_INDEX are
     *  enabled, the index value determined by PRIMITIVE_RESTART_FIXED_INDEX

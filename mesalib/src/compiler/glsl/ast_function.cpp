@@ -2118,7 +2118,7 @@ ast_function_expression::hir(exec_list *instructions,
        * must have the exact number of arguments with matching types in the
        * correct order.
        */
-      if (constructor_type->is_record()) {
+      if (constructor_type->is_struct()) {
          return process_record_constructor(instructions, constructor_type,
                                            &loc, &this->expressions,
                                            state);
@@ -2458,7 +2458,7 @@ ast_aggregate_initializer::hir(exec_list *instructions,
                                        &this->expressions, state);
    }
 
-   if (constructor_type->is_record()) {
+   if (constructor_type->is_struct()) {
       return process_record_constructor(instructions, constructor_type, &loc,
                                         &this->expressions, state);
    }

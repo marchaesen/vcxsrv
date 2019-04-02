@@ -24,24 +24,26 @@ install location to your Python path by creating a file with a `.pth'
 extension in a directory that _is_ on the Python path, and put the
 path to the install location in that file.  For example, on my system
 there is a file named 'local.pth' in /usr/lib/python2.5/site-packages,
-which contains '/usr/local/lib/python2.5/site-packages'.  Note that 
-this is only necessary on machines where XCB is being built. 
+which contains '/usr/local/lib/python2.5/site-packages'.  Note that
+this is only necessary on machines where XCB is being built.
 
-Please report any issues you find to the freedesktop.org bug tracker,
-at:
+Please report any issues you find to the freedesktop.org bug tracker at:
 
-	<https://bugs.freedesktop.org/enter_bug.cgi?product=XCB>
+  https://gitlab.freedesktop.org/xorg/proto/xcbproto/issues
 
 Discussion about XCB occurs on the XCB mailing list:
 
-        <mailto:xcb at lists.freedesktop.org>
-        <http://lists.freedesktop.org/mailman/listinfo/xcb>
+  https://lists.freedesktop.org/mailman/listinfo/xcb
 
-You can obtain the latest development versions of XCB using GIT.
-For anonymous checkouts, use:
+You can obtain the latest development versions of xcb-proto using GIT from
+the xcbproto code repository at:
 
-        git clone git://anongit.freedesktop.org/git/xcb/proto
+  https://gitlab.freedesktop.org/xorg/proto/xcbproto
 
-For developers, use:
+  For anonymous checkouts, use:
 
-        git clone git+ssh://git.freedesktop.org/git/xcb/proto
+    git clone https://gitlab.freedesktop.org/xorg/proto/xcbproto.git
+
+  For developers, use:
+
+    git clone git@gitlab.freedesktop.org:xorg/proto/xcbproto.git

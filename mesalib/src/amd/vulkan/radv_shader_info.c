@@ -519,7 +519,7 @@ gather_xfb_info(const nir_shader *nir, struct radv_shader_info *info)
 	}
 
 	for (unsigned i = 0; i < NIR_MAX_XFB_BUFFERS; i++) {
-		so->strides[i] = xfb->strides[i] / 4;
+		so->strides[i] = xfb->buffers[i].stride / 4;
 	}
 
 	ralloc_free(xfb);

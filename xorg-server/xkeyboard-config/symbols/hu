@@ -438,7 +438,7 @@ xkb_symbols "def_common" {
 // 
 //
 // (C) 2013 Andras Tisza
-// (C) 2017 Viktor Kovacs <kovacs.viktor.dev@gmail.com>
+// (C) 2017,2018  Viktor Kovacs <kovacs.viktor.dev@gmail.com>
 //
 // Permission is granted to anyone to use, distribute and modify
 // this file in any way, provided that the above copyright notice
@@ -450,39 +450,39 @@ xkb_symbols "def_common" {
 // Changes:
 // 2013 - Planned Old Hungarian layout
 // 2017 - Added Old Hungarian layout
+//2018 - Resolved several easy-to-use issue, added extra punctuation and quotation marks  
 
 partial alphanumeric_keys
 xkb_symbols "oldhun" {
 name[Group1]="Old Hungarian";
-include "level3(caps_switch_latch)"
 include "level3(ralt_switch)"
-key.type[Group1]="FOUR_LEVEL_SEMIALPHABETIC";
+key.type[Group1]="FOUR_LEVEL_ALPHABETIC";
 // In the remarks you can read characters displayed only Unicode point
-    key <AE01> {[U10CFA,         apostrophe,	1,	asciitilde    ]};
-//Old Hungarian one
+    key <AE01> {[U10CFA,         apostrophe,	U2E42,	1    ]};
+//Old Hungarian one, reversed 9 double low quotemark
     
-    key <AE02> {[                 U10CFB,	quotedbl,	2,quotedbl]};
-//Old Hungarian five
+    key <AE02> {[                 U10CFB,	quotedbl,U201F,	2]};
+//Old Hungarian five, reversed 9 double upper quotemark
     
-    key <AE03> {[                 U10CFC,	plus,	3,	plus]};
+    key <AE03> {[                 U10CFC,	plus,minus,	3]};
 //Old Hungarian ten
     
-    key <AE04> {[       U10CFD,	exclam,	4,	exclam]};
-//Old Hungarian fifty
+    key <AE04> {[       U10CFD,	exclam,		U203C,	4]};
+//Old Hungarian fifty,double exclam
     
-    key <AE05> {[       U10CFE,	percent,	5,	percent]};
-//Old Hungarian hundred
+    key <AE05> {[       U10CFE,	percent,U2026,	5]};
+//Old Hungarian hundred, triple dot
     
-    key <AE06> {[       U10CFF,	slash, 6,   slash]};
+    key <AE06> {[       U10CFF,	slash, backslash,6]};
 //Old Hungarian thousand
  
-    key <AE07> {[U10CC6,	U10C86,	7,	equal]};
+    key <AE07> {[U10CC6,	U10C86,	equal,7]};
 //Old Hungarian cs, Cs
     
-    key <AE08> {[ U10CDA,	U10C9A,	8,	parenleft]};
+    key <AE08> {[ U10CDA,	U10C9A,		parenleft,8]};
 //Old Hungarian ny, Ny
     
-    key <AE09> {[U10CE8,	U10CA8,	9,	parenright]};
+    key <AE09> {[U10CE8,	U10CA8,	parenright,9 ]};
 //Old Hungarian ty, Ty
     
     key <AE10> {[     U10CDE,     U10C9E,    U10CDD,       U10C9D          ]};
@@ -539,14 +539,14 @@ key.type[Group1]="FOUR_LEVEL_SEMIALPHABETIC";
     key <AC03> {[     U10CC7,         U10C87,       U10CE7,         U10CA7 ]};
 //Old Hungarian d,D, ent/ant/int, Ent/Ant/Int
 	
-	key <AC04> {[U10CCC,         U10C8C,	U10CE9,         U10CA9]};
-//Old Hungarian f,F ech, Ech
+	key <AC04> {[U10CCC,         U10C8C,	bracketleft]};
+//Old Hungarian f,F
     
-    key <AC05> {[     U10CCD,         U10C8D,	bracketleft	 ]};
+    key <AC05> {[     U10CCD,         U10C8D,	bracketright	 ]};
 //Old Hungarian g, G
     
-    key <AC06> {[     U10CCF,         U10C8F,       bracketright	        ]};
-//Old Hungarian h, H
+    key <AC06> {[     U10CCF,         U10C8F,	U10CE9,         U10CA9	        ]};
+//Old Hungarian h, H,ech, Ech
     
     
     key <AC07> {[      U10CD2,         U10C92,       backslash         ]};
@@ -590,7 +590,7 @@ key.type[Group1]="FOUR_LEVEL_SEMIALPHABETIC";
 //Old Hungarian m, M
     
     key <AB08> {[U2E41,     U2E2E,         U204F   	               ]};
-//reserved question mark,reserved semicolon, reserved comma
+//reversed question mark,reversed semicolon, reversed comma
     
     key <AB09> {[period,        colon, 	greater	                    ]};
     
@@ -599,7 +599,7 @@ key.type[Group1]="FOUR_LEVEL_SEMIALPHABETIC";
 	key <LSGT> {[U10CD1,         U10C91,	less	]};
 //Old Hungarian ii,II
 	
-	key <TLDE> {[	section,	U200F,	0,	U200E]};
+	key <TLDE> {[	section,	U200F,	U200E,	0]};
 //Right to left mark, left to right mark
 
 	    };

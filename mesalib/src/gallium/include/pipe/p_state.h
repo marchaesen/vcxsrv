@@ -839,6 +839,27 @@ struct pipe_grid_info
    uint block[3];
 
    /**
+    * last_block allows disabling threads at the farthermost grid boundary.
+    * Full blocks as specified by "block" are launched, but the threads
+    * outside of "last_block" dimensions are disabled.
+    *
+    * If a block touches the grid boundary in the i-th axis, threads with
+    * THREAD_ID[i] >= last_block[i] are disabled.
+    *
+    * If last_block[i] is 0, it has the same behavior as last_block[i] = block[i],
+    * meaning no effect.
+    *
+    * It's equivalent to doing this at the beginning of the compute shader:
+    *
+    *   for (i = 0; i < 3; i++) {
+    *      if (block_id[i] == grid[i] - 1 &&
+    *          last_block[i] && thread_id[i] >= last_block[i])
+    *         return;
+    *   }
+    */
+   uint last_block[3];
+
+   /**
     * Determine the layout of the grid (in block units) to be used.
     */
    uint grid[3];

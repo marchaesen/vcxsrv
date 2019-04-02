@@ -394,6 +394,7 @@ clone_tex(clone_state *state, const nir_tex_instr *tex)
    ntex->is_shadow = tex->is_shadow;
    ntex->is_new_style_shadow = tex->is_new_style_shadow;
    ntex->component = tex->component;
+   memcpy(ntex->tg4_offsets, tex->tg4_offsets, sizeof(tex->tg4_offsets));
 
    ntex->texture_index = tex->texture_index;
    ntex->texture_array_size = tex->texture_array_size;
@@ -536,6 +537,7 @@ static nir_if *
 clone_if(clone_state *state, struct exec_list *cf_list, const nir_if *i)
 {
    nir_if *ni = nir_if_create(state->ns);
+   ni->control = i->control;
 
    __clone_src(state, ni, &ni->condition, &i->condition);
 
@@ -551,6 +553,8 @@ static nir_loop *
 clone_loop(clone_state *state, struct exec_list *cf_list, const nir_loop *loop)
 {
    nir_loop *nloop = nir_loop_create(state->ns);
+   nloop->control = loop->control;
+   nloop->partially_unrolled = loop->partially_unrolled;
 
    nir_cf_node_insert_end(cf_list, &nloop->cf_node);
 
@@ -656,13 +660,12 @@ clone_function_impl(clone_state *state, const nir_function_impl *fi)
 }
 
 nir_function_impl *
-nir_function_impl_clone(const nir_function_impl *fi)
+nir_function_impl_clone(nir_shader *shader, const nir_function_impl *fi)
 {
    clone_state state;
    init_clone_state(&state, NULL, false, false);
 
-   /* We use the same shader */
-   state.ns = fi->function->shader;
+   state.ns = shader;
 
    nir_function_impl *nfi = clone_function_impl(&state, fi);
 

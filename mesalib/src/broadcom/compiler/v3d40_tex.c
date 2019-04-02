@@ -48,8 +48,7 @@ vir_WRTMUC(struct v3d_compile *c, enum quniform_contents contents, uint32_t data
 {
         struct qinst *inst = vir_NOP(c);
         inst->qpu.sig.wrtmuc = true;
-        inst->has_implicit_uniform = true;
-        inst->src[0] = vir_uniform(c, contents, data);
+        inst->uniform = vir_get_uniform_index(c, contents, data);
 }
 
 static const struct V3D41_TMU_CONFIG_PARAMETER_1 p1_unpacked_default = {

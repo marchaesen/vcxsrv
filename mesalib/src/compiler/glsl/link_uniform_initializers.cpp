@@ -190,7 +190,7 @@ set_uniform_initializer(void *mem_ctx, gl_shader_program *prog,
                         ir_constant *val, unsigned int boolean_true)
 {
    const glsl_type *t_without_array = type->without_array();
-   if (type->is_record()) {
+   if (type->is_struct()) {
       for (unsigned int i = 0; i < type->length; i++) {
          const glsl_type *field_type = type->fields.structure[i].type;
          const char *field_name = ralloc_asprintf(mem_ctx, "%s.%s", name,
@@ -200,7 +200,7 @@ set_uniform_initializer(void *mem_ctx, gl_shader_program *prog,
                                  boolean_true);
       }
       return;
-   } else if (t_without_array->is_record() ||
+   } else if (t_without_array->is_struct() ||
               (type->is_array() && type->fields.array->is_array())) {
       const glsl_type *const element_type = type->fields.array;
 

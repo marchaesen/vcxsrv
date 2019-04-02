@@ -863,7 +863,7 @@ program_resource_location(struct gl_program_resource *res, unsigned array_index)
       *     "A valid name cannot be a structure, an array of structures, or any
       *     portion of a single vector or a matrix."
       */
-      if (RESOURCE_UNI(res)->type->without_array()->is_record())
+      if (RESOURCE_UNI(res)->type->without_array()->is_struct())
          return -1;
 
       /* From the GL_ARB_uniform_buffer_object spec:

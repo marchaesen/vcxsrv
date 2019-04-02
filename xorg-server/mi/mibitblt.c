@@ -92,9 +92,9 @@ miCopyArea(DrawablePtr pSrcDrawable,
     srcx = xIn + pSrcDrawable->x;
     srcy = yIn + pSrcDrawable->y;
 
-    /* If the destination isn't realized, this is easy */
+    /* If the destination is clipped away, this is easy */
     if (pDstDrawable->type == DRAWABLE_WINDOW &&
-        !((WindowPtr) pDstDrawable)->realized)
+        RegionNil(&((WindowPtr)pDstDrawable)->clipList))
         return NULL;
 
     /* clip the source */

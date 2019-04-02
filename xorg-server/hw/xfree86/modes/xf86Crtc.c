@@ -500,11 +500,13 @@ static OptionInfoRec xf86OutputOptions[] = {
 enum {
     OPTION_MODEDEBUG,
     OPTION_PREFER_CLONEMODE,
+    OPTION_NO_OUTPUT_INITIAL_SIZE,
 };
 
 static OptionInfoRec xf86DeviceOptions[] = {
     {OPTION_MODEDEBUG, "ModeDebug", OPTV_BOOLEAN, {0}, FALSE},
     {OPTION_PREFER_CLONEMODE, "PreferCloneMode", OPTV_BOOLEAN, {0}, FALSE},
+    {OPTION_NO_OUTPUT_INITIAL_SIZE, "NoOutputInitialSize", OPTV_STRING, {0}, FALSE},
     {-1, NULL, OPTV_NONE, {0}, FALSE},
 };
 
@@ -2484,6 +2486,32 @@ xf86TargetUserpref(ScrnInfoPtr scrn, xf86CrtcConfigPtr config,
     return FALSE;
 }
 
+void
+xf86AssignNoOutputInitialSize(ScrnInfoPtr scrn, const OptionInfoRec *options,
+                              int *no_output_width, int *no_output_height)
+{
+    int width = 0, height = 0;
+    const char *no_output_size =
+        xf86GetOptValString(options, OPTION_NO_OUTPUT_INITIAL_SIZE);
+
+    *no_output_width = NO_OUTPUT_DEFAULT_WIDTH;
+    *no_output_height = NO_OUTPUT_DEFAULT_HEIGHT;
+
+    if (no_output_size == NULL) {
+        return;
+    }
+
+    if (sscanf(no_output_size, "%d %d", &width, &height) != 2) {
+        xf86DrvMsg(scrn->scrnIndex, X_ERROR,
+                   "\"NoOutputInitialSize\" string \"%s\" not of form "
+                   "\"width height\"\n", no_output_size);
+        return;
+    }
+
+    *no_output_width = width;
+    *no_output_height = height;
+}
+
 /**
  * Construct default screen configuration
  *
@@ -2507,6 +2535,7 @@ xf86InitialConfiguration(ScrnInfoPtr scrn, Bool canGrow)
     DisplayModePtr *modes;
     Bool *enabled;
     int width, height;
+    int no_output_width, no_output_height;
     int i = scrn->scrnIndex;
     Bool have_outputs = TRUE;
     Bool ret;
@@ -2528,6 +2557,9 @@ xf86InitialConfiguration(ScrnInfoPtr scrn, Bool canGrow)
     else
         height = config->maxHeight;
 
+    xf86AssignNoOutputInitialSize(scrn, config->options,
+                                  &no_output_width, &no_output_height);
+
     xf86ProbeOutputModes(scrn, width, height);
 
     crtcs = xnfcalloc(config->num_output, sizeof(xf86CrtcPtr));
@@ -2540,7 +2572,7 @@ xf86InitialConfiguration(ScrnInfoPtr scrn, Bool canGrow)
             xf86DrvMsg(i, X_WARNING,
 		       "Unable to find connected outputs - setting %dx%d "
                        "initial framebuffer\n",
-                       NO_OUTPUT_DEFAULT_WIDTH, NO_OUTPUT_DEFAULT_HEIGHT);
+                       no_output_width, no_output_height);
         have_outputs = FALSE;
     }
     else {
@@ -2641,10 +2673,10 @@ xf86InitialConfiguration(ScrnInfoPtr scrn, Bool canGrow)
         xf86DefaultScreenLimits(scrn, &width, &height, canGrow);
 
         if (have_outputs == FALSE) {
-            if (width < NO_OUTPUT_DEFAULT_WIDTH &&
-                height < NO_OUTPUT_DEFAULT_HEIGHT) {
-                width = NO_OUTPUT_DEFAULT_WIDTH;
-                height = NO_OUTPUT_DEFAULT_HEIGHT;
+            if (width < no_output_width &&
+                height < no_output_height) {
+                width = no_output_width;
+                height = no_output_height;
             }
         }
 

@@ -657,6 +657,19 @@ public:
       unsigned centroid:1;
       unsigned sample:1;
       unsigned patch:1;
+      /**
+       * Was an 'invariant' qualifier explicitly set in the shader?
+       *
+       * This is used to cross validate qualifiers.
+       */
+      unsigned explicit_invariant:1;
+      /**
+       * Is the variable invariant?
+       *
+       * It can happen either by having the 'invariant' qualifier
+       * explicitly set in the shader or by being used in calculations
+       * of other invariant variables.
+       */
       unsigned invariant:1;
       unsigned precise:1;
 

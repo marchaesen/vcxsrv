@@ -24,3 +24,9 @@ void
 xf86UseMsg(void)
 {
 }
+
+void
+xf86OSInputThreadInit()
+{
+    return;
+}

@@ -463,9 +463,11 @@ static void print_instr_cat5(struct disasm_ctx *ctx, instr_t *instr)
 	}
 
 	if (cat5->is_s2en) {
-		fprintf(ctx->out, ", ");
-		print_reg_src(ctx, (reg_t)(cat5->s2en.src2), cat5->full, false, false, false,
-				false, false, false);
+		if (cat5->is_o || info[cat5->opc].src2) {
+			fprintf(ctx->out, ", ");
+			print_reg_src(ctx, (reg_t)(cat5->s2en.src2), cat5->full,
+					false, false, false, false, false, false);
+		}
 		fprintf(ctx->out, ", ");
 		print_reg_src(ctx, (reg_t)(cat5->s2en.src3), false, false, false, false,
 				false, false, false);
@@ -827,10 +829,7 @@ static void print_instr_cat6_a6xx(struct disasm_ctx *ctx, instr_t *instr)
 
 static void print_instr_cat6(struct disasm_ctx *ctx, instr_t *instr)
 {
-	// TODO not sure if this is the best way to figure
-	// out if new vs old encoding, but it kinda seems
-	// to work:
-	if ((ctx->gpu_id >= 600) && (instr->cat6.opc == 0)) {
+	if (!is_cat6_legacy(instr, ctx->gpu_id)) {
 		print_instr_cat6_a6xx(ctx, instr);
 		if (debug & PRINT_VERBOSE)
 			fprintf(ctx->out, " NEW");

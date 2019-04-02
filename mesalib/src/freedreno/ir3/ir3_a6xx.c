@@ -38,17 +38,6 @@
  */
 
 
-static struct ir3_instruction *
-ssbo_offset(struct ir3_block *b, struct ir3_instruction *byte_offset)
-{
-	/* TODO hardware wants offset in terms of elements, not bytes.  Which
-	 * is kinda nice but opposite of what nir does.  It would be nice if
-	 * we had a way to request the units of the offset to avoid the extra
-	 * shift instructions..
-	 */
-	return ir3_SHR_B(b, byte_offset, 0, create_immed(b, 2), 0);
-}
-
 /* src[] = { buffer_index, offset }. No const_index */
 static void
 emit_intrinsic_load_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr,
@@ -65,7 +54,7 @@ emit_intrinsic_load_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr,
 
 	int ibo_idx = ir3_ssbo_to_ibo(&ctx->so->image_mapping, buffer_index->u32[0]);
 
-	offset = ssbo_offset(b, ir3_get_src(ctx, &intr->src[1])[0]);
+	offset = ir3_get_src(ctx, &intr->src[2])[0];
 
 	ldib = ir3_LDIB(b, create_immed(b, ibo_idx), 0, offset, 0);
 	ldib->regs[0]->wrmask = MASK(intr->num_components);
@@ -101,7 +90,7 @@ emit_intrinsic_store_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	/* src0 is offset, src1 is value:
 	 */
 	val = ir3_create_collect(ctx, ir3_get_src(ctx, &intr->src[0]), ncomp);
-	offset = ssbo_offset(b, ir3_get_src(ctx, &intr->src[2])[0]);
+	offset = ir3_get_src(ctx, &intr->src[3])[0];
 
 	stib = ir3_STIB(b, create_immed(b, ibo_idx), 0, offset, 0, val, 0);
 	stib->cat6.iim_val = ncomp;
@@ -134,7 +123,7 @@ static struct ir3_instruction *
 emit_intrinsic_atomic_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 {
 	struct ir3_block *b = ctx->block;
-	struct ir3_instruction *atomic, *ibo, *src0, *src1, *offset, *data, *dummy;
+	struct ir3_instruction *atomic, *ibo, *src0, *src1, *data, *dummy;
 	nir_const_value *buffer_index;
 	type_t type = TYPE_U32;
 
@@ -145,7 +134,6 @@ emit_intrinsic_atomic_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	int ibo_idx = ir3_ssbo_to_ibo(&ctx->so->image_mapping,  buffer_index->u32[0]);
 	ibo = create_immed(b, ibo_idx);
 
-	offset = ir3_get_src(ctx, &intr->src[1])[0];
 	data   = ir3_get_src(ctx, &intr->src[2])[0];
 
 	/* So this gets a bit creative:
@@ -163,50 +151,51 @@ emit_intrinsic_atomic_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	 * Note that nir already multiplies the offset by four
 	 */
 	dummy = create_immed(b, 0);
-	src0 = ssbo_offset(b, offset);
 
-	if (intr->intrinsic == nir_intrinsic_ssbo_atomic_comp_swap) {
+	if (intr->intrinsic == nir_intrinsic_ssbo_atomic_comp_swap_ir3) {
+		src0 = ir3_get_src(ctx, &intr->src[4])[0];
 		struct ir3_instruction *compare = ir3_get_src(ctx, &intr->src[3])[0];
 		src1 = ir3_create_collect(ctx, (struct ir3_instruction*[]){
 			dummy, compare, data
 		}, 3);
 	} else {
+		src0 = ir3_get_src(ctx, &intr->src[3])[0];
 		src1 = ir3_create_collect(ctx, (struct ir3_instruction*[]){
 			dummy, data
 		}, 2);
 	}
 
 	switch (intr->intrinsic) {
-	case nir_intrinsic_ssbo_atomic_add:
+	case nir_intrinsic_ssbo_atomic_add_ir3:
 		atomic = ir3_ATOMIC_ADD_G(b, ibo, 0, src0, 0, src1, 0);
 		break;
-	case nir_intrinsic_ssbo_atomic_imin:
+	case nir_intrinsic_ssbo_atomic_imin_ir3:
 		atomic = ir3_ATOMIC_MIN_G(b, ibo, 0, src0, 0, src1, 0);
 		type = TYPE_S32;
 		break;
-	case nir_intrinsic_ssbo_atomic_umin:
+	case nir_intrinsic_ssbo_atomic_umin_ir3:
 		atomic = ir3_ATOMIC_MIN_G(b, ibo, 0, src0, 0, src1, 0);
 		break;
-	case nir_intrinsic_ssbo_atomic_imax:
+	case nir_intrinsic_ssbo_atomic_imax_ir3:
 		atomic = ir3_ATOMIC_MAX_G(b, ibo, 0, src0, 0, src1, 0);
 		type = TYPE_S32;
 		break;
-	case nir_intrinsic_ssbo_atomic_umax:
+	case nir_intrinsic_ssbo_atomic_umax_ir3:
 		atomic = ir3_ATOMIC_MAX_G(b, ibo, 0, src0, 0, src1, 0);
 		break;
-	case nir_intrinsic_ssbo_atomic_and:
+	case nir_intrinsic_ssbo_atomic_and_ir3:
 		atomic = ir3_ATOMIC_AND_G(b, ibo, 0, src0, 0, src1, 0);
 		break;
-	case nir_intrinsic_ssbo_atomic_or:
+	case nir_intrinsic_ssbo_atomic_or_ir3:
 		atomic = ir3_ATOMIC_OR_G(b, ibo, 0, src0, 0, src1, 0);
 		break;
-	case nir_intrinsic_ssbo_atomic_xor:
+	case nir_intrinsic_ssbo_atomic_xor_ir3:
 		atomic = ir3_ATOMIC_XOR_G(b, ibo, 0, src0, 0, src1, 0);
 		break;
-	case nir_intrinsic_ssbo_atomic_exchange:
+	case nir_intrinsic_ssbo_atomic_exchange_ir3:
 		atomic = ir3_ATOMIC_XCHG_G(b, ibo, 0, src0, 0, src1, 0);
 		break;
-	case nir_intrinsic_ssbo_atomic_comp_swap:
+	case nir_intrinsic_ssbo_atomic_comp_swap_ir3:
 		atomic = ir3_ATOMIC_CMPXCHG_G(b, ibo, 0, src0, 0, src1, 0);
 		break;
 	default:

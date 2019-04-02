@@ -115,7 +115,7 @@ wsi_release_display(VkPhysicalDevice            physical_device,
                     VkDisplayKHR                display);
 
 
-#if VK_USE_PLATFORM_XLIB_XRANDR_EXT
+#ifdef VK_USE_PLATFORM_XLIB_XRANDR_EXT
 VkResult
 wsi_acquire_xlib_display(VkPhysicalDevice       physical_device,
                          struct wsi_device      *wsi_device,

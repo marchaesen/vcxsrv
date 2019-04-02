@@ -152,10 +152,9 @@ miDoCopy(DrawablePtr pSrcDrawable,
     Bool fastDst = FALSE;       /* for fast clipping with one rect dest */
     Bool fastExpose = FALSE;    /* for fast exposures with pixmap source */
 
-    /* Short cut for unmapped windows */
-
+    /* Short cut for unmapped or fully clipped windows */
     if (pDstDrawable->type == DRAWABLE_WINDOW &&
-        !((WindowPtr) pDstDrawable)->realized) {
+        RegionNil(&((WindowPtr)pDstDrawable)->clipList)) {
         return NULL;
     }
 

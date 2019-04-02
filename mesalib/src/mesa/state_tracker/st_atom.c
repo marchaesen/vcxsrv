@@ -36,6 +36,8 @@
 #include "st_atom.h"
 #include "st_program.h"
 #include "st_manager.h"
+#include "st_util.h"
+
 
 typedef void (*update_func_t)(struct st_context *st);
 

@@ -161,7 +161,7 @@ st_debug_message(void *data,
    default:
       unreachable("invalid debug type");
    }
-   _mesa_gl_vdebug(st->ctx, id, source, type, severity, fmt, args);
+   _mesa_gl_vdebugf(st->ctx, id, source, type, severity, fmt, args);
 }
 
 void

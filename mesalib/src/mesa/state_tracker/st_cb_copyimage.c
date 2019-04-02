@@ -27,6 +27,7 @@
 #include "state_tracker/st_cb_copyimage.h"
 #include "state_tracker/st_cb_fbo.h"
 #include "state_tracker/st_texture.h"
+#include "state_tracker/st_util.h"
 
 #include "util/u_box.h"
 #include "util/u_format.h"

@@ -97,7 +97,6 @@ void
 st_update_fp( struct st_context *st )
 {
    struct st_fragment_program *stfp;
-   struct st_fp_variant_key key;
 
    assert(st->ctx->FragmentProgram._Current);
    stfp = st_fragment_program(st->ctx->FragmentProgram._Current);
@@ -113,7 +112,11 @@ st_update_fp( struct st_context *st )
        !stfp->variants->key.bitmap) {
       shader = stfp->variants->driver_shader;
    } else {
+      struct st_fp_variant_key key;
+
+      /* use memset, not an initializer to be sure all memory is zeroed */
       memset(&key, 0, sizeof(key));
+
       key.st = st->has_shareable_shaders ? NULL : st;
 
       /* _NEW_FRAG_CLAMP */
@@ -155,7 +158,6 @@ void
 st_update_vp( struct st_context *st )
 {
    struct st_vertex_program *stvp;
-   struct st_vp_variant_key key;
 
    /* find active shader and params -- Should be covered by
     * ST_NEW_VERTEX_PROGRAM
@@ -169,7 +171,10 @@ st_update_vp( struct st_context *st )
        stvp->variants->key.passthrough_edgeflags == st->vertdata_edgeflags) {
       st->vp_variant = stvp->variants;
    } else {
-      memset(&key, 0, sizeof key);
+      struct st_vp_variant_key key;
+
+      memset(&key, 0, sizeof(key));
+
       key.st = st->has_shareable_shaders ? NULL : st;
 
       /* When this is true, we will add an extra input to the vertex

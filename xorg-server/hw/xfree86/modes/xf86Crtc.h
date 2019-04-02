@@ -964,6 +964,10 @@ extern _X_EXPORT void
 
 extern _X_EXPORT ScreenInitRetType xf86CrtcScreenInit(ScreenPtr pScreen);
 
+extern _X_EXPORT void
+xf86AssignNoOutputInitialSize(ScrnInfoPtr scrn, const OptionInfoRec *options,
+                              int *no_output_width, int *no_output_height);
+
 extern _X_EXPORT Bool
  xf86InitialConfiguration(ScrnInfoPtr pScrn, Bool canGrow);
 

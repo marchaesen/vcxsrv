@@ -600,6 +600,7 @@ typedef enum
    SYSTEM_VALUE_LOCAL_INVOCATION_ID,
    SYSTEM_VALUE_LOCAL_INVOCATION_INDEX,
    SYSTEM_VALUE_GLOBAL_INVOCATION_ID,
+   SYSTEM_VALUE_GLOBAL_INVOCATION_INDEX,
    SYSTEM_VALUE_WORK_GROUP_ID,
    SYSTEM_VALUE_NUM_WORK_GROUPS,
    SYSTEM_VALUE_LOCAL_GROUP_SIZE,
@@ -715,6 +716,9 @@ enum gl_access_qualifier
    ACCESS_VOLATILE      = (1 << 2),
    ACCESS_NON_READABLE  = (1 << 3),
    ACCESS_NON_WRITEABLE = (1 << 4),
+
+   /** The access may use a non-uniform buffer or image index */
+   ACCESS_NON_UNIFORM   = (1 << 5),
 };
 
 /**
