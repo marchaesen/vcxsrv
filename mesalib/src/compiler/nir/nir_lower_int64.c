@@ -493,9 +493,8 @@ lower_udiv64_mod64(nir_builder *b, nir_ssa_def *n, nir_ssa_def *d,
    nir_ssa_def *d_lo = nir_unpack_64_2x32_split_x(b, d);
    nir_ssa_def *d_hi = nir_unpack_64_2x32_split_y(b, d);
 
-   nir_const_value v = { .u32 = { 0, 0, 0, 0 } };
-   nir_ssa_def *q_lo = nir_build_imm(b, n->num_components, 32, v);
-   nir_ssa_def *q_hi = nir_build_imm(b, n->num_components, 32, v);
+   nir_ssa_def *q_lo = nir_imm_zero(b, n->num_components, 32);
+   nir_ssa_def *q_hi = nir_imm_zero(b, n->num_components, 32);
 
    nir_ssa_def *n_hi_before_if = n_hi;
    nir_ssa_def *q_hi_before_if = q_hi;

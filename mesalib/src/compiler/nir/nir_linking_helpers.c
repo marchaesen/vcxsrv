@@ -243,6 +243,7 @@ struct assigned_comps
    uint8_t comps;
    uint8_t interp_type;
    uint8_t interp_loc;
+   bool is_32bit;
 };
 
 /* Packing arrays and dual slot varyings is difficult so to avoid complex
@@ -308,6 +309,8 @@ get_unmoveable_components_masks(struct exec_list *var_list,
             comps[location + i].interp_type =
                get_interp_type(var, type, default_to_smooth_interp);
             comps[location + i].interp_loc = get_interp_loc(var);
+            comps[location + i].is_32bit =
+               glsl_type_is_32bit(glsl_without_array(type));
          }
       }
    }
@@ -423,6 +426,7 @@ struct varying_component {
    nir_variable *var;
    uint8_t interp_type;
    uint8_t interp_loc;
+   bool is_32bit;
    bool is_patch;
    bool initialised;
 };
@@ -539,6 +543,7 @@ gather_varying_component_info(nir_shader *consumer,
             vc_info->interp_type =
                get_interp_type(in_var, type, default_to_smooth_interp);
             vc_info->interp_loc = get_interp_loc(in_var);
+            vc_info->is_32bit = glsl_type_is_32bit(type);
             vc_info->is_patch = in_var->data.patch;
          }
       }
@@ -572,6 +577,14 @@ assign_remap_locations(struct varying_loc (*remap)[4],
             continue;
          }
 
+         /* We can only pack varyings with matching types, and the current
+          * algorithm only supports packing 32-bit.
+          */
+         if (!assigned_comps[tmp_cursor].is_32bit) {
+            tmp_comp = 0;
+            continue;
+         }
+
          while (tmp_comp < 4 &&
                 (assigned_comps[tmp_cursor].comps & (1 << tmp_comp))) {
             tmp_comp++;
@@ -589,6 +602,7 @@ assign_remap_locations(struct varying_loc (*remap)[4],
       assigned_comps[tmp_cursor].comps |= (1 << tmp_comp);
       assigned_comps[tmp_cursor].interp_type = info->interp_type;
       assigned_comps[tmp_cursor].interp_loc = info->interp_loc;
+      assigned_comps[tmp_cursor].is_32bit = info->is_32bit;
 
       /* Assign remap location */
       remap[location][info->var->data.location_frac].component = tmp_comp++;

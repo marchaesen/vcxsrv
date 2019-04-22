@@ -38,6 +38,11 @@
 #ifdef PIPE_OS_WINDOWS
 #include <windows.h>
 #endif
+#ifdef PIPE_OS_FREEBSD
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#include <sys/resource.h>
+#endif
 
 
 #ifdef PIPE_OS_WINDOWS
@@ -83,6 +88,46 @@ get_cpu_stats(unsigned cpu_index, uint64_t *busy_time, uint64_t *total_time)
    /* XXX: we ignore cpu_index, i.e, we assume that the individual CPU usage
     * and the system usage are one and the same.
     */
+   return TRUE;
+}
+
+#elif defined(PIPE_OS_FREEBSD)
+
+static boolean
+get_cpu_stats(unsigned cpu_index, uint64_t *busy_time, uint64_t *total_time)
+{
+   long cp_time[CPUSTATES];
+   size_t len;
+
+   if (cpu_index == ALL_CPUS) {
+      len = sizeof(cp_time);
+
+      if (sysctlbyname("kern.cp_time", cp_time, &len, NULL, 0) == -1)
+         return FALSE;
+   } else {
+      long *cp_times = NULL;
+
+      if (sysctlbyname("kern.cp_times", NULL, &len, NULL, 0) == -1)
+         return FALSE;
+
+      if (len < (cpu_index + 1) * sizeof(cp_time))
+         return FALSE;
+
+      cp_times = malloc(len);
+
+      if (sysctlbyname("kern.cp_times", cp_times, &len, NULL, 0) == -1)
+         return FALSE;
+
+      memcpy(cp_time, cp_times + (cpu_index * CPUSTATES),
+            sizeof(cp_time));
+      free(cp_times);
+   }
+
+   *busy_time = cp_time[CP_USER] + cp_time[CP_NICE] +
+      cp_time[CP_SYS] + cp_time[CP_INTR];
+
+   *total_time = *busy_time + cp_time[CP_IDLE];
+
    return TRUE;
 }
 

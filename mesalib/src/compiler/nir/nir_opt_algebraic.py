@@ -35,6 +35,7 @@ a = 'a'
 b = 'b'
 c = 'c'
 d = 'd'
+e = 'e'
 
 # Written in the form (<search>, <replace>) where <search> is an expression
 # and <replace> is either an expression or a value.  An expression is
@@ -131,6 +132,7 @@ optimizations = [
    (('flrp@16', a, b, c), ('fadd', ('fmul', c, ('fsub', b, a)), a), 'options->lower_flrp16'),
    (('flrp@32', a, b, c), ('fadd', ('fmul', c, ('fsub', b, a)), a), 'options->lower_flrp32'),
    (('flrp@64', a, b, c), ('fadd', ('fmul', c, ('fsub', b, a)), a), 'options->lower_flrp64'),
+   (('ftrunc', a), ('bcsel', ('flt', a, 0.0), ('fneg', ('ffloor', ('fabs', a))), ('ffloor', ('fabs', a))), 'options->lower_ftrunc'),
    (('ffloor', a), ('fsub', a, ('ffract', a)), 'options->lower_ffloor'),
    (('fadd', a, ('fneg', ('ffract', a))), ('ffloor', a), '!options->lower_ffloor'),
    (('ffract', a), ('fsub', a, ('ffloor', a)), 'options->lower_ffract'),
@@ -143,6 +145,9 @@ optimizations = [
    (('~fadd@64', a, ('fmul',         c , ('fadd', b, ('fneg', a)))), ('flrp', a, b, c), '!options->lower_flrp64'),
    (('ffma', a, b, c), ('fadd', ('fmul', a, b), c), 'options->lower_ffma'),
    (('~fadd', ('fmul', a, b), c), ('ffma', a, b, c), 'options->fuse_ffma'),
+
+   (('~fmul', ('fadd', ('iand', ('ineg', ('b2i32', 'a@bool')), ('fmul', b, c)), '#d'), '#e'),
+    ('bcsel', a, ('fmul', ('fadd', ('fmul', b, c), d), e), ('fmul', d, e))),
 
    (('fdot4', ('vec4', a, b,   c,   1.0), d), ('fdph',  ('vec3', a, b, c), d)),
    (('fdot4', ('vec4', a, 0.0, 0.0, 0.0), b), ('fmul', a, b)),
@@ -216,6 +221,9 @@ optimizations = [
    # !(a || b)
    (('fge', ('fneg', ('fadd', ('b2f', 'a@1'), ('b2f', 'b@1'))), 0.0), ('inot', ('ior', a, b))),
    (('fge', 0.0, ('fadd', ('b2f', 'a@1'), ('b2f', 'b@1'))), ('inot', ('ior', a, b))),
+
+   (('flt', a, ('fneg', a)), ('flt', a, 0.0)),
+   (('fge', a, ('fneg', a)), ('fge', a, 0.0)),
 
    # Some optimizations (below) convert things like (a < b || c < b) into
    # (min(a, c) < b).  However, this interfers with the previous optimizations
@@ -312,7 +320,10 @@ optimizations = [
    (('bcsel', a, ('bcsel(is_used_once)', b, c, d), ('bcsel', b, c, 'e')), ('bcsel', b, c, ('bcsel', a, d, 'e'))),
    (('bcsel', a, ('bcsel', b, c, d), ('bcsel(is_used_once)', b, 'e', d)), ('bcsel', b, ('bcsel', a, c, 'e'), d)),
    (('bcsel', a, ('bcsel(is_used_once)', b, c, d), ('bcsel', b, 'e', d)), ('bcsel', b, ('bcsel', a, c, 'e'), d)),
-   (('bcsel', a, True, 'b@bool'), ('ior', a, b)),
+   (('bcsel', a, True, b), ('ior', a, b)),
+   (('bcsel', a, a, b), ('ior', a, b)),
+   (('bcsel', a, b, False), ('iand', a, b)),
+   (('bcsel', a, b, a), ('iand', a, b)),
    (('fmin', a, a), a),
    (('fmax', a, a), a),
    (('imin', a, a), a),
@@ -390,8 +401,17 @@ optimizations = [
    (('ior', ('uge', 1, a), ('ieq', a, 2)), ('uge', 2, a)),
    (('ior', ('uge', 2, a), ('ieq', a, 3)), ('uge', 3, a)),
 
-   (('ior', 'a@bool', ('ieq', a, False)), True),
+   # The (i2f32, ...) part is an open-coded fsign.  When that is combined with
+   # the bcsel, it's basically copysign(1.0, a).  There is no copysign in NIR,
+   # so emit an open-coded version of that.
+   (('bcsel@32', ('feq', a, 0.0), 1.0, ('i2f32', ('iadd', ('b2i32', ('flt', 0.0, 'a@32')), ('ineg', ('b2i32', ('flt', 'a@32', 0.0)))))),
+    ('ior', 0x3f800000, ('iand', a, 0x80000000))),
+
+   (('ior', a, ('ieq', a, False)), True),
    (('ior', a, ('inot', a)), -1),
+
+   (('ine', ('ineg', ('b2i32', 'a@1')), ('ineg', ('b2i32', 'b@1'))), ('ine', a, b)),
+   (('b2i32', ('ine', 'a@1', 'b@1')), ('b2i32', ('ixor', a, b))),
 
    (('iand', ('ieq', 'a@32', 0), ('ieq', 'b@32', 0)), ('ieq', ('ior', 'a@32', 'b@32'), 0)),
 
@@ -535,10 +555,10 @@ optimizations = [
    # Boolean simplifications
    (('i2b32(is_used_by_if)', a), ('ine32', a, 0)),
    (('i2b1(is_used_by_if)', a), ('ine', a, 0)),
-   (('ieq', 'a@bool', True), a),
-   (('ine(is_not_used_by_if)', 'a@bool', True), ('inot', a)),
-   (('ine', 'a@bool', False), a),
-   (('ieq(is_not_used_by_if)', 'a@bool', False), ('inot', 'a')),
+   (('ieq', a, True), a),
+   (('ine(is_not_used_by_if)', a, True), ('inot', a)),
+   (('ine', a, False), a),
+   (('ieq(is_not_used_by_if)', a, False), ('inot', 'a')),
    (('bcsel', a, True, False), a),
    (('bcsel', a, False, True), ('inot', a)),
    (('bcsel@32', a, 1.0, 0.0), ('b2f', a)),
@@ -820,6 +840,7 @@ optimizations.extend([
      'options->lower_unpack_snorm_4x8'),
 
    (('isign', a), ('imin', ('imax', a, -1), 1), 'options->lower_isign'),
+   (('fsign', a), ('fsub', ('b2f', ('flt', 0.0, a)), ('b2f', ('flt', a, 0.0))), 'options->lower_fsign'),
 ])
 
 # bit_size dependent lowerings
@@ -969,6 +990,18 @@ for op in ['fadd', 'fmul', 'iadd', 'imul']:
       ((op, ('bcsel(is_used_once)', a, '#b', c), '#d'), ('bcsel', a, (op, b, d), (op, c, d)))
    ]
 
+# For derivatives in compute shaders, GLSL_NV_compute_shader_derivatives
+# states:
+#
+#     If neither layout qualifier is specified, derivatives in compute shaders
+#     return zero, which is consistent with the handling of built-in texture
+#     functions like texture() in GLSL 4.50 compute shaders.
+for op in ['fddx', 'fddx_fine', 'fddx_coarse',
+           'fddy', 'fddy_fine', 'fddy_coarse']:
+   optimizations += [
+      ((op, 'a'), 0.0, 'info->stage == MESA_SHADER_COMPUTE && info->cs.derivative_group == DERIVATIVE_GROUP_NONE')
+]
+
 # This section contains "late" optimizations that should be run before
 # creating ffmas and calling regular optimizations for the final time.
 # Optimizations should go here if they help code generation and conflict
@@ -1018,7 +1051,7 @@ late_optimizations = [
    (('fmin', ('fadd(is_used_once)', '#c', a), ('fadd(is_used_once)', '#c', b)), ('fadd', c, ('fmin', a, b))),
    (('fmax', ('fadd(is_used_once)', '#c', a), ('fadd(is_used_once)', '#c', b)), ('fadd', c, ('fmax', a, b))),
 
-   (('bcsel', 'a@bool', 0, ('b2f32', ('inot', 'b@bool'))), ('b2f32', ('inot', ('ior', a, b)))),
+   (('bcsel', a, 0, ('b2f32', ('inot', 'b@bool'))), ('b2f32', ('inot', ('ior', a, b)))),
 ]
 
 print(nir_algebraic.AlgebraicPass("nir_opt_algebraic", optimizations).render())

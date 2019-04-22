@@ -76,15 +76,15 @@ lower_tex_src_plane_block(lower_tex_src_state *state, nir_block *block)
       nir_const_value *plane = nir_src_as_const_value(tex->src[plane_index].src);
       assume(plane);
 
-      if (plane->i32[0] > 0) {
+      if (plane[0].i32 > 0) {
          unsigned y_samp = tex->texture_index;
 
          assume(tex->texture_index == tex->sampler_index);
-         assume(((state->lower_3plane & (1 << y_samp)) && plane->i32[0] < 3) ||
-               (plane->i32[0] < 2));
+         assume(((state->lower_3plane & (1 << y_samp)) && plane[0].i32 < 3) ||
+               (plane[0].i32 < 2));
 
          tex->texture_index = tex->sampler_index =
-               state->sampler_map[y_samp][plane->i32[0] - 1];
+               state->sampler_map[y_samp][plane[0].i32 - 1];
       }
 
       nir_tex_instr_remove_src(tex, plane_index);

@@ -74,9 +74,9 @@ phi_has_constant_from_outside_and_one_from_inside_loop(nir_phi_instr *phi,
           return false;
 
        if (src->pred != entry_block) {
-          *continue_val = const_src->u32[0];
+          *continue_val = const_src[0].u32;
        } else {
-          *entry_val = const_src->u32[0];
+          *entry_val = const_src[0].u32;
        }
     }
 
@@ -824,47 +824,60 @@ nir_block_ends_in_continue(nir_block *block)
  * The continue should then be removed by nir_opt_trivial_continues() and the
  * loop can potentially be unrolled.
  *
- * Note: do_work_2() is only ever blocks and nested loops. We could also nest
- * other if-statments in the branch which would allow further continues to
- * be removed. However in practice this can result in increased register
- * pressure.
+ * Note: Unless the function param aggressive_last_continue==true do_work_2()
+ * is only ever blocks and nested loops. We avoid nesting other if-statments
+ * in the branch as this can result in increased register pressure, and in
+ * the i965 driver it causes a large amount of spilling in shader-db.
+ * For RADV however nesting these if-statements allows further continues to be
+ * remove and provides a significant FPS boost in Doom, which is why we have
+ * opted for this special bool to enable more aggresive optimisations.
+ * TODO: The GCM pass solves most of the spilling regressions in i965, if it
+ * is ever enabled we should consider removing the aggressive_last_continue
+ * param.
  */
 static bool
-opt_if_loop_last_continue(nir_loop *loop)
+opt_if_loop_last_continue(nir_loop *loop, bool aggressive_last_continue)
 {
-   /* Get the last if-stament in the loop */
+   nir_if *nif;
+   bool then_ends_in_continue = false;
+   bool else_ends_in_continue = false;
+
+   /* Scan the control flow of the loop from the last to the first node
+    * looking for an if-statement we can optimise.
+    */
    nir_block *last_block = nir_loop_last_block(loop);
    nir_cf_node *if_node = nir_cf_node_prev(&last_block->cf_node);
    while (if_node) {
-      if (if_node->type == nir_cf_node_if)
-         break;
+      if (if_node->type == nir_cf_node_if) {
+         nif = nir_cf_node_as_if(if_node);
+         nir_block *then_block = nir_if_last_then_block(nif);
+         nir_block *else_block = nir_if_last_else_block(nif);
+
+         then_ends_in_continue = nir_block_ends_in_continue(then_block);
+         else_ends_in_continue = nir_block_ends_in_continue(else_block);
+
+         /* If both branches end in a jump do nothing, this should be handled
+          * by nir_opt_dead_cf().
+          */
+         if ((then_ends_in_continue || nir_block_ends_in_break(then_block)) &&
+             (else_ends_in_continue || nir_block_ends_in_break(else_block)))
+            return false;
+
+         /* If continue found stop scanning and attempt optimisation, or
+          */
+         if (then_ends_in_continue || else_ends_in_continue ||
+             !aggressive_last_continue)
+            break;
+      }
 
       if_node = nir_cf_node_prev(if_node);
    }
 
-   if (!if_node || if_node->type != nir_cf_node_if)
-      return false;
-
-   nir_if *nif = nir_cf_node_as_if(if_node);
-   nir_block *then_block = nir_if_last_then_block(nif);
-   nir_block *else_block = nir_if_last_else_block(nif);
-
-   bool then_ends_in_continue = nir_block_ends_in_continue(then_block);
-   bool else_ends_in_continue = nir_block_ends_in_continue(else_block);
-
-   /* If both branches end in a continue do nothing, this should be handled
-    * by nir_opt_dead_cf().
-    */
-   if ((then_ends_in_continue || nir_block_ends_in_break(then_block)) &&
-       (else_ends_in_continue || nir_block_ends_in_break(else_block)))
-      return false;
-
+   /* If we didn't find an if to optimise return */
    if (!then_ends_in_continue && !else_ends_in_continue)
       return false;
 
-   /* if the block after the if/else is empty we bail, otherwise we might end
-    * up looping forever
-    */
+   /* If there is nothing after the if-statement we bail */
    if (&nif->cf_node == nir_cf_node_prev(&last_block->cf_node) &&
        exec_list_is_empty(&last_block->instr_list))
       return false;
@@ -1327,7 +1340,8 @@ opt_if_merge(nir_if *nif)
 }
 
 static bool
-opt_if_cf_list(nir_builder *b, struct exec_list *cf_list)
+opt_if_cf_list(nir_builder *b, struct exec_list *cf_list,
+               bool aggressive_last_continue)
 {
    bool progress = false;
    foreach_list_typed(nir_cf_node, cf_node, node, cf_list) {
@@ -1337,8 +1351,10 @@ opt_if_cf_list(nir_builder *b, struct exec_list *cf_list)
 
       case nir_cf_node_if: {
          nir_if *nif = nir_cf_node_as_if(cf_node);
-         progress |= opt_if_cf_list(b, &nif->then_list);
-         progress |= opt_if_cf_list(b, &nif->else_list);
+         progress |= opt_if_cf_list(b, &nif->then_list,
+                                    aggressive_last_continue);
+         progress |= opt_if_cf_list(b, &nif->else_list,
+                                    aggressive_last_continue);
          progress |= opt_if_loop_terminator(nif);
          progress |= opt_if_merge(nif);
          progress |= opt_if_simplification(b, nif);
@@ -1347,10 +1363,12 @@ opt_if_cf_list(nir_builder *b, struct exec_list *cf_list)
 
       case nir_cf_node_loop: {
          nir_loop *loop = nir_cf_node_as_loop(cf_node);
-         progress |= opt_if_cf_list(b, &loop->body);
+         progress |= opt_if_cf_list(b, &loop->body,
+                                    aggressive_last_continue);
          progress |= opt_simplify_bcsel_of_phi(b, loop);
          progress |= opt_peel_loop_initial_if(loop);
-         progress |= opt_if_loop_last_continue(loop);
+         progress |= opt_if_loop_last_continue(loop,
+                                               aggressive_last_continue);
          break;
       }
 
@@ -1399,7 +1417,7 @@ opt_if_safe_cf_list(nir_builder *b, struct exec_list *cf_list)
 }
 
 bool
-nir_opt_if(nir_shader *shader)
+nir_opt_if(nir_shader *shader, bool aggressive_last_continue)
 {
    bool progress = false;
 
@@ -1416,7 +1434,8 @@ nir_opt_if(nir_shader *shader)
       nir_metadata_preserve(function->impl, nir_metadata_block_index |
                             nir_metadata_dominance);
 
-      if (opt_if_cf_list(&b, &function->impl->body)) {
+      if (opt_if_cf_list(&b, &function->impl->body,
+                         aggressive_last_continue)) {
          nir_metadata_preserve(function->impl, nir_metadata_none);
 
          /* If that made progress, we're no longer really in SSA form.  We

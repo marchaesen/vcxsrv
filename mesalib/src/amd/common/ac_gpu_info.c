@@ -367,9 +367,7 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	info->has_syncobj_wait_for_submit = info->has_syncobj && info->drm_minor >= 20;
 	info->has_fence_to_handle = info->has_syncobj && info->drm_minor >= 21;
 	info->has_ctx_priority = info->drm_minor >= 22;
-	/* TODO: Enable this once the kernel handles it efficiently. */
-	info->has_local_buffers = info->drm_minor >= 20 &&
-				  !info->has_dedicated_vram;
+	info->has_local_buffers = info->drm_minor >= 20;
 	info->kernel_flushes_hdp_before_ib = true;
 	info->htile_cmask_support_1d_tiling = true;
 	info->si_TA_CS_BC_BASE_ADDR_allowed = true;
@@ -458,6 +456,14 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	assert(ib_align);
 	info->ib_start_alignment = ib_align;
 
+	if (info->drm_minor >= 31 &&
+	    (info->family == CHIP_RAVEN ||
+	     info->family == CHIP_RAVEN2)) {
+		if (info->num_render_backends == 1)
+			info->use_display_dcc_unaligned = true;
+		else
+			info->use_display_dcc_with_retile_blit = true;
+	}
 	return true;
 }
 
@@ -502,6 +508,9 @@ void ac_print_gpu_info(struct radeon_info *info)
 	printf("    num_sdma_rings = %i\n", info->num_sdma_rings);
 	printf("    clock_crystal_freq = %i\n", info->clock_crystal_freq);
 	printf("    tcc_cache_line_size = %u\n", info->tcc_cache_line_size);
+
+	printf("    use_display_dcc_unaligned = %u\n", info->use_display_dcc_unaligned);
+	printf("    use_display_dcc_with_retile_blit = %u\n", info->use_display_dcc_with_retile_blit);
 
 	printf("Memory info:\n");
 	printf("    pte_fragment_size = %u\n", info->pte_fragment_size);

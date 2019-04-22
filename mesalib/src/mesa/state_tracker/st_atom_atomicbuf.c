@@ -81,7 +81,7 @@ st_bind_atomics(struct st_context *st, struct gl_program *prog,
       st_binding_to_sb(&st->ctx->AtomicBufferBindings[atomic->Binding], &sb);
 
       st->pipe->set_shader_buffers(st->pipe, shader_type,
-                                   atomic->Binding, 1, &sb);
+                                   atomic->Binding, 1, &sb, 0x1);
    }
 }
 

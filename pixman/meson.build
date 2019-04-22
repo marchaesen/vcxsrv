@@ -21,7 +21,7 @@
 project(
   'pixman',
   ['c'],
-  version : '0.38.0',
+  version : '0.38.5',
   license : 'MIT',
   meson_version : '>= 0.47.2',
   default_options : ['buildtype=debugoptimized'],
@@ -290,7 +290,7 @@ endif
 if have_iwmmxt
   config.set10('USE_ARM_IWMMXT', true)
 elif use_iwmmxt.enabled()
-  error('NEON Support unavailable, but required')
+  error('IWMMXT Support unavailable, but required')
 endif
 
 use_mips_dspr2 = get_option('mips-dspr2')

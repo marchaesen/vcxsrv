@@ -121,10 +121,9 @@ glamor_set_color_depth(ScreenPtr      pScreen,
 
     glamor_get_rgba_from_pixel(pixel,
                                &color[0], &color[1], &color[2], &color[3],
-                               format_for_depth(depth));
+                               glamor_priv->formats[depth].render_format);
 
-    if ((depth == 1 || depth == 8) &&
-        glamor_priv->one_channel_format == GL_RED)
+    if ((depth <= 8) && glamor_priv->formats[8].format == GL_RED)
       color[0] = color[3];
 
     glUniform4fv(uniform, 1, color);

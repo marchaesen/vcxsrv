@@ -348,6 +348,15 @@ dd_screen_fence_finish(struct pipe_screen *_screen,
    return screen->fence_finish(screen, ctx, fence, timeout);
 }
 
+static int
+dd_screen_fence_get_fd(struct pipe_screen *_screen,
+                       struct pipe_fence_handle *fence)
+{
+   struct pipe_screen *screen = dd_screen(_screen)->screen;
+
+   return screen->fence_get_fd(screen, fence);
+}
+
 /********************************************************************
  * memobj
  */
@@ -550,6 +559,7 @@ ddebug_screen_create(struct pipe_screen *screen)
    SCR_INIT(flush_frontbuffer);
    SCR_INIT(fence_reference);
    SCR_INIT(fence_finish);
+   SCR_INIT(fence_get_fd);
    SCR_INIT(memobj_create_from_handle);
    SCR_INIT(memobj_destroy);
    SCR_INIT(get_driver_query_info);

@@ -525,7 +525,7 @@ vir_compile_init(const struct v3d_compiler *compiler,
 }
 
 static int
-type_size_vec4(const struct glsl_type *type)
+type_size_vec4(const struct glsl_type *type, bool bindless)
 {
         return glsl_count_attribute_slots(type, false);
 }
@@ -562,8 +562,29 @@ v3d_lower_nir(struct v3d_compile *c)
                 }
         }
 
+        /* CS textures may not have return_size reflecting the shadow state. */
+        nir_foreach_variable(var, &c->s->uniforms) {
+                const struct glsl_type *type = glsl_without_array(var->type);
+                unsigned array_len = MAX2(glsl_get_length(var->type), 1);
+
+                if (!glsl_type_is_sampler(type) ||
+                    !glsl_sampler_type_is_shadow(type))
+                        continue;
+
+                for (int i = 0; i < array_len; i++) {
+                        tex_options.lower_tex_packing[var->data.binding + i] =
+                                nir_lower_tex_packing_16;
+                }
+        }
+
         NIR_PASS_V(c->s, nir_lower_tex, &tex_options);
         NIR_PASS_V(c->s, nir_lower_system_values);
+
+        NIR_PASS_V(c->s, nir_lower_vars_to_scratch,
+                   nir_var_function_temp,
+                   0,
+                   glsl_get_natural_size_align_bytes);
+        NIR_PASS_V(c->s, v3d_nir_lower_scratch);
 }
 
 static void
@@ -628,7 +649,7 @@ v3d_vs_set_prog_data(struct v3d_compile *c,
          * batches.
          */
         assert(c->devinfo->vpm_size);
-        int sector_size = 16 * sizeof(uint32_t) * 8;
+        int sector_size = V3D_CHANNELS * sizeof(uint32_t) * 8;
         int vpm_size_in_sectors = c->devinfo->vpm_size / sector_size;
         int half_vpm = vpm_size_in_sectors / 2;
         int vpm_output_sectors = half_vpm - prog_data->vpm_input_size;
@@ -670,6 +691,13 @@ v3d_fs_set_prog_data(struct v3d_compile *c,
 }
 
 static void
+v3d_cs_set_prog_data(struct v3d_compile *c,
+                     struct v3d_compute_prog_data *prog_data)
+{
+        prog_data->shared_size = c->s->info.cs.shared_size;
+}
+
+static void
 v3d_set_prog_data(struct v3d_compile *c,
                   struct v3d_prog_data *prog_data)
 {
@@ -679,7 +707,9 @@ v3d_set_prog_data(struct v3d_compile *c,
 
         v3d_set_prog_data_uniforms(c, prog_data);
 
-        if (c->s->info.stage == MESA_SHADER_VERTEX) {
+        if (c->s->info.stage == MESA_SHADER_COMPUTE) {
+                v3d_cs_set_prog_data(c, (struct v3d_compute_prog_data *)prog_data);
+        } else if (c->s->info.stage == MESA_SHADER_VERTEX) {
                 v3d_vs_set_prog_data(c, (struct v3d_vs_prog_data *)prog_data);
         } else {
                 assert(c->s->info.stage == MESA_SHADER_FRAGMENT);
@@ -814,6 +844,33 @@ v3d_nir_lower_fs_late(struct v3d_compile *c)
         NIR_PASS_V(c->s, nir_lower_io_to_scalar, nir_var_shader_in);
 }
 
+static uint32_t
+vir_get_max_temps(struct v3d_compile *c)
+{
+        int max_ip = 0;
+        vir_for_each_inst_inorder(inst, c)
+                max_ip++;
+
+        uint32_t *pressure = rzalloc_array(NULL, uint32_t, max_ip);
+
+        for (int t = 0; t < c->num_temps; t++) {
+                for (int i = c->temp_start[t]; (i < c->temp_end[t] &&
+                                                i < max_ip); i++) {
+                        if (i > max_ip)
+                                break;
+                        pressure[i]++;
+                }
+        }
+
+        uint32_t max_temps = 0;
+        for (int i = 0; i < max_ip; i++)
+                max_temps = MAX2(max_temps, pressure[i]);
+
+        ralloc_free(pressure);
+
+        return max_temps;
+}
+
 uint64_t *v3d_compile(const struct v3d_compiler *compiler,
                       struct v3d_key *key,
                       struct v3d_prog_data **out_prog_data,
@@ -838,13 +895,17 @@ uint64_t *v3d_compile(const struct v3d_compiler *compiler,
                 c->fs_key = (struct v3d_fs_key *)key;
                 prog_data = rzalloc_size(NULL, sizeof(struct v3d_fs_prog_data));
                 break;
+        case MESA_SHADER_COMPUTE:
+                prog_data = rzalloc_size(NULL,
+                                         sizeof(struct v3d_compute_prog_data));
+                break;
         default:
                 unreachable("unsupported shader stage");
         }
 
         if (c->s->info.stage == MESA_SHADER_VERTEX) {
                 v3d_nir_lower_vs_early(c);
-        } else {
+        } else if (c->s->info.stage != MESA_SHADER_COMPUTE) {
                 assert(c->s->info.stage == MESA_SHADER_FRAGMENT);
                 v3d_nir_lower_fs_early(c);
         }
@@ -853,7 +914,7 @@ uint64_t *v3d_compile(const struct v3d_compiler *compiler,
 
         if (c->s->info.stage == MESA_SHADER_VERTEX) {
                 v3d_nir_lower_vs_late(c);
-        } else {
+        } else if (c->s->info.stage != MESA_SHADER_COMPUTE)  {
                 assert(c->s->info.stage == MESA_SHADER_FRAGMENT);
                 v3d_nir_lower_fs_late(c);
         }
@@ -876,15 +937,19 @@ uint64_t *v3d_compile(const struct v3d_compiler *compiler,
         char *shaderdb;
         int ret = asprintf(&shaderdb,
                            "%s shader: %d inst, %d threads, %d loops, "
-                           "%d uniforms, %d:%d spills:fills",
+                           "%d uniforms, %d max-temps, %d:%d spills:fills",
                            vir_get_stage_name(c),
                            c->qpu_inst_count,
                            c->threads,
                            c->loops,
                            c->num_uniforms,
+                           vir_get_max_temps(c),
                            c->spills,
                            c->fills);
         if (ret >= 0) {
+                if (V3D_DEBUG & V3D_DEBUG_SHADERDB)
+                        fprintf(stderr, "SHADER-DB: %s\n", shaderdb);
+
                 c->debug_output(shaderdb, c->debug_output_data);
                 free(shaderdb);
         }
@@ -1014,6 +1079,7 @@ vir_optimize(struct v3d_compile *c)
                 bool progress = false;
 
                 OPTPASS(vir_opt_copy_propagate);
+                OPTPASS(vir_opt_redundant_flags);
                 OPTPASS(vir_opt_dead_code);
                 OPTPASS(vir_opt_small_immediates);
 

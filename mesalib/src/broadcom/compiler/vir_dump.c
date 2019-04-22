@@ -98,6 +98,14 @@ vir_dump_uniform(enum quniform_contents contents,
                 fprintf(stderr, "img[%d].array_size", data);
                 break;
 
+        case QUNIFORM_SPILL_OFFSET:
+                fprintf(stderr, "spill_offset");
+                break;
+
+        case QUNIFORM_SPILL_SIZE_PER_THREAD:
+                fprintf(stderr, "spill_size_per_thread");
+                break;
+
         case QUNIFORM_UBO_ADDR:
                 fprintf(stderr, "ubo[%d]+0x%x",
                         v3d_unit_data_get_unit(data),

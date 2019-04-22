@@ -29,6 +29,9 @@
 extern _X_EXPORT int
  SyncVerifyFence(SyncFence ** ppFence, XID fid, ClientPtr client, Mask mode);
 
+extern _X_EXPORT SyncObject*
+ SyncCreate(ClientPtr client, XID id, unsigned char type);
+
 #define VERIFY_SYNC_FENCE(pFence, fid, client, mode)			\
     do {								\
 	int rc;								\

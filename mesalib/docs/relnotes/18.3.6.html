@@ -1,0 +1,169 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 18.3.6 Release Notes / April 5, 2019</h1>
+
+<p>
+Mesa 18.3.6 is a bug fix release which fixes bugs found since the 18.3.5 release.
+</p>
+<p>
+Mesa 18.3.6 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+4619d92afadf7072f7956599a2ccd0934fc45b4ddbc2eb865bdcb50ddf963f87  mesa-18.3.6.tar.gz
+aaf17638dcf5a90b93b6389e152fdc9ef147768b09598f24d2c5cf482fcfc705  mesa-18.3.6.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=100316">Bug 100316</a> - Linking GLSL 1.30 shaders with invariant and deprecated variables triggers an 'mismatching invariant qualifiers' error</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=108766">Bug 108766</a> - Mesa built with meson has RPATH entries</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=109648">Bug 109648</a> - AMD Raven hang during va-api decoding</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=109980">Bug 109980</a> - [i915 CI][HSW] spec&#64;arb_fragment_shader_interlock&#64;arb_fragment_shader_interlock-image-load-store - fail</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=110211">Bug 110211</a> - If DESTDIR is set to an empty string, the dri drivers are not installed</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=110221">Bug 110221</a> - build error with meson</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=110259">Bug 110259</a> - radv: Sampling depth-stencil image in GENERAL layout returns nothing but zero (regression, bisected)</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Andres Gomez (4):</p>
+<ul>
+  <li>glsl: correctly validate component layout qualifier for dvec{3,4}</li>
+  <li>glsl/linker: don't fail non static used inputs without matching outputs</li>
+  <li>glsl/linker: simplify xfb_offset vs xfb_stride overflow check</li>
+  <li>Revert "glsl: relax input-&gt;output validation for SSO programs"</li>
+</ul>
+
+<p>Bas Nieuwenhuizen (2):</p>
+<ul>
+  <li>radv: Use correct image view comparison for fast clears.</li>
+  <li>ac/nir: Return frag_coord as integer.</li>
+</ul>
+
+<p>Danylo Piliaiev (1):</p>
+<ul>
+  <li>glsl: Cross validate variable's invariance by explicit invariance only</li>
+</ul>
+
+<p>Dave Airlie (1):</p>
+<ul>
+  <li>softpipe: fix texture view crashes</li>
+</ul>
+
+<p>Dylan Baker (1):</p>
+<ul>
+  <li>bin/install_megadrivers.py: Correctly handle DESTDIR=''</li>
+</ul>
+
+<p>Emil Velikov (2):</p>
+<ul>
+  <li>docs: add sha256 checksums for 18.3.5</li>
+  <li>Update version to 18.3.6</li>
+</ul>
+
+<p>Eric Anholt (1):</p>
+<ul>
+  <li>dri3: Return the current swap interval from glXGetSwapIntervalMESA().</li>
+</ul>
+
+<p>Eric Engestrom (1):</p>
+<ul>
+  <li>meson: strip rpath from megadrivers</li>
+</ul>
+
+<p>Jason Ekstrand (2):</p>
+<ul>
+  <li>anv/pass: Flag the need for a RT flush for resolve attachments</li>
+  <li>Revert "anv/radv: release memory allocated by glsl types during spirv_to_nir"</li>
+</ul>
+
+<p>Józef Kucia (2):</p>
+<ul>
+  <li>mesa: Fix GL_NUM_DEVICE_UUIDS_EXT</li>
+  <li>radv: Fix driverUUID</li>
+</ul>
+
+<p>Leo Liu (2):</p>
+<ul>
+  <li>radeon/vcn: add H.264 constrained baseline support</li>
+  <li>radeon/vcn/vp9: search the render target from the whole list</li>
+</ul>
+
+<p>Marek Olšák (1):</p>
+<ul>
+  <li>radeonsi: fix assertion failure by using the correct type</li>
+</ul>
+
+<p>Mark Janes (1):</p>
+<ul>
+  <li>mesa: properly report the length of truncated log messages</li>
+</ul>
+
+<p>Plamena Manolova (1):</p>
+<ul>
+  <li>i965: Disable ARB_fragment_shader_interlock for platforms prior to GEN9</li>
+</ul>
+
+<p>Samuel Pitoiset (2):</p>
+<ul>
+  <li>radv: fix binding transform feedback buffers</li>
+  <li>radv: do not always initialize HTILE in compressed state</li>
+</ul>
+
+<p>Tapani Pälli (1):</p>
+<ul>
+  <li>anv/radv: release memory allocated by glsl types during spirv_to_nir</li>
+</ul>
+
+<p>Timothy Arceri (1):</p>
+<ul>
+  <li>st/glsl_to_nir: fix incorrect arrary access</li>
+</ul>
+
+<p>Tobias Klausmann (1):</p>
+<ul>
+  <li>vulkan/util: meson build - add wayland client include</li>
+</ul>
+
+</div>
+</body>
+</html>
+
+

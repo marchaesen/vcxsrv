@@ -410,12 +410,21 @@ dst.x = dst.y = 0.0;
 float absX = fabs(src0.x);
 float absY = fabs(src0.y);
 float absZ = fabs(src0.z);
-if (src0.x >= 0 && absX >= absY && absX >= absZ) { dst.x = -src0.y; dst.y = -src0.z; }
-if (src0.x < 0 && absX >= absY && absX >= absZ) { dst.x = -src0.y; dst.y = src0.z; }
-if (src0.y >= 0 && absY >= absX && absY >= absZ) { dst.x = src0.z; dst.y = src0.x; }
-if (src0.y < 0 && absY >= absX && absY >= absZ) { dst.x = -src0.z; dst.y = src0.x; }
-if (src0.z >= 0 && absZ >= absX && absZ >= absY) { dst.x = -src0.y; dst.y = src0.x; }
-if (src0.z < 0 && absZ >= absX && absZ >= absY) { dst.x = -src0.y; dst.y = -src0.x; }
+
+float ma = 0.0;
+if (absX >= absY && absX >= absZ) { ma = 2 * src0.x; }
+if (absY >= absX && absY >= absZ) { ma = 2 * src0.y; }
+if (absZ >= absX && absZ >= absY) { ma = 2 * src0.z; }
+
+if (src0.x >= 0 && absX >= absY && absX >= absZ) { dst.x = -src0.z; dst.y = -src0.y; }
+if (src0.x < 0 && absX >= absY && absX >= absZ) { dst.x = src0.z; dst.y = -src0.y; }
+if (src0.y >= 0 && absY >= absX && absY >= absZ) { dst.x = src0.x; dst.y = src0.z; }
+if (src0.y < 0 && absY >= absX && absY >= absZ) { dst.x = src0.x; dst.y = -src0.z; }
+if (src0.z >= 0 && absZ >= absX && absZ >= absY) { dst.x = src0.x; dst.y = -src0.y; }
+if (src0.z < 0 && absZ >= absX && absZ >= absY) { dst.x = -src0.x; dst.y = -src0.y; }
+
+dst.x = dst.x / ma + 0.5;
+dst.y = dst.y / ma + 0.5;
 """)
 
 unop_horiz("cube_face_index", 1, tfloat32, 3, tfloat32, """
@@ -479,7 +488,7 @@ binop("iadd_sat", tint, commutative + associative, """
          (src0 < src0 + src1 ? (1ull << (bit_size - 1))     : src0 + src1)
 """)
 binop("uadd_sat", tuint, commutative,
-      "(src0 + src1) < src0 ? UINT64_MAX : (src0 + src1)")
+      "(src0 + src1) < src0 ? MAX_UINT_FOR_SIZE(sizeof(src0) * 8) : (src0 + src1)")
 binop("isub_sat", tint, "", """
       src1 < 0 ?
          (src0 - src1 < src0 ? (1ull << (bit_size - 1)) - 1 : src0 - src1) :

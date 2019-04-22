@@ -36,14 +36,15 @@ rendercheck_tests = [
 ]
 
 rendercheck = find_program('rendercheck', required:false)
-xvfb_args = [
-    xvfb_server.full_path(),
-    '-screen',
-    'scrn',
-    '1280x1024x24',
-  ]
 
 if get_option('xvfb')
+    xvfb_args = [
+        xvfb_server.full_path(),
+        '-screen',
+        'scrn',
+        '1280x1024x24',
+    ]
+
     test('XTS',
         find_program('scripts/xvfb-piglit.sh'),
         env: piglit_env,

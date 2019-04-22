@@ -46,13 +46,9 @@ emit_intrinsic_load_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr,
 	struct ir3_block *b = ctx->block;
 	struct ir3_instruction *offset;
 	struct ir3_instruction *ldib;
-	nir_const_value *buffer_index;
 
 	/* can this be non-const buffer_index?  how do we handle that? */
-	buffer_index = nir_src_as_const_value(intr->src[0]);
-	compile_assert(ctx, buffer_index);
-
-	int ibo_idx = ir3_ssbo_to_ibo(&ctx->so->image_mapping, buffer_index->u32[0]);
+	int ibo_idx = ir3_ssbo_to_ibo(&ctx->so->image_mapping, nir_src_as_uint(intr->src[0]));
 
 	offset = ir3_get_src(ctx, &intr->src[2])[0];
 
@@ -73,7 +69,6 @@ emit_intrinsic_store_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 {
 	struct ir3_block *b = ctx->block;
 	struct ir3_instruction *stib, *val, *offset;
-	nir_const_value *buffer_index;
 	/* TODO handle wrmask properly, see _store_shared().. but I think
 	 * it is more a PITA than that, since blob ends up loading the
 	 * masked components and writing them back out.
@@ -82,10 +77,7 @@ emit_intrinsic_store_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	unsigned ncomp = ffs(~wrmask) - 1;
 
 	/* can this be non-const buffer_index?  how do we handle that? */
-	buffer_index = nir_src_as_const_value(intr->src[1]);
-	compile_assert(ctx, buffer_index);
-
-	int ibo_idx = ir3_ssbo_to_ibo(&ctx->so->image_mapping,  buffer_index->u32[0]);
+	int ibo_idx = ir3_ssbo_to_ibo(&ctx->so->image_mapping, nir_src_as_uint(intr->src[1]));
 
 	/* src0 is offset, src1 is value:
 	 */
@@ -124,14 +116,10 @@ emit_intrinsic_atomic_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 {
 	struct ir3_block *b = ctx->block;
 	struct ir3_instruction *atomic, *ibo, *src0, *src1, *data, *dummy;
-	nir_const_value *buffer_index;
 	type_t type = TYPE_U32;
 
 	/* can this be non-const buffer_index?  how do we handle that? */
-	buffer_index = nir_src_as_const_value(intr->src[0]);
-	compile_assert(ctx, buffer_index);
-
-	int ibo_idx = ir3_ssbo_to_ibo(&ctx->so->image_mapping,  buffer_index->u32[0]);
+	int ibo_idx = ir3_ssbo_to_ibo(&ctx->so->image_mapping, nir_src_as_uint(intr->src[0]));
 	ibo = create_immed(b, ibo_idx);
 
 	data   = ir3_get_src(ctx, &intr->src[2])[0];

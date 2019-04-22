@@ -52,6 +52,10 @@ __getProgramName()
       static char *path;
 
       if (!path)
+         /* Note: realpath() allocates memory that we will keep around for
+          * the lifetime of the app, and then leak as the app closes.
+          * FIXME: we should find a way to clean this properly
+          */
          path = realpath("/proc/self/exe", NULL);
 
       if (path && strncmp(path, program_invocation_name, strlen(path)) == 0) {

@@ -35,7 +35,7 @@
 #include "ir3_nir.h"
 
 int
-ir3_glsl_type_size(const struct glsl_type *type)
+ir3_glsl_type_size(const struct glsl_type *type, bool bindless)
 {
 	return glsl_count_attribute_slots(type, false);
 }

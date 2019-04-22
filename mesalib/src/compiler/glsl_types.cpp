@@ -37,6 +37,12 @@ hash_table *glsl_type::interface_types = NULL;
 hash_table *glsl_type::function_types = NULL;
 hash_table *glsl_type::subroutine_types = NULL;
 
+/* There might be multiple users for types (e.g. application using OpenGL
+ * and Vulkan simultanously or app using multiple Vulkan instances). Counter
+ * is used to make sure we don't release the types if a user is still present.
+ */
+static uint32_t glsl_type_users = 0;
+
 glsl_type::glsl_type(GLenum gl_type,
                      glsl_base_type base_type, unsigned vector_elements,
                      unsigned matrix_columns, const char *name,
@@ -469,12 +475,26 @@ hash_free_type_function(struct hash_entry *entry)
 }
 
 void
-_mesa_glsl_release_types(void)
+glsl_type_singleton_init_or_ref()
 {
-   /* Should only be called during atexit (either when unloading shared
-    * object, or if process terminates), so no mutex-locking should be
-    * necessary.
-    */
+   mtx_lock(&glsl_type::hash_mutex);
+   glsl_type_users++;
+   mtx_unlock(&glsl_type::hash_mutex);
+}
+
+void
+glsl_type_singleton_decref()
+{
+   mtx_lock(&glsl_type::hash_mutex);
+
+   assert(glsl_type_users > 0);
+
+   /* Do not release glsl_types if they are still used. */
+   if (--glsl_type_users) {
+      mtx_unlock(&glsl_type::hash_mutex);
+      return;
+   }
+
    if (glsl_type::explicit_matrix_types != NULL) {
       _mesa_hash_table_destroy(glsl_type::explicit_matrix_types,
                                hash_free_type_function);
@@ -505,6 +525,8 @@ _mesa_glsl_release_types(void)
       _mesa_hash_table_destroy(glsl_type::subroutine_types, hash_free_type_function);
       glsl_type::subroutine_types = NULL;
    }
+
+   mtx_unlock(&glsl_type::hash_mutex);
 }
 
 
@@ -1008,7 +1030,8 @@ glsl_type::get_array_instance(const glsl_type *base,
 
 
 bool
-glsl_type::record_compare(const glsl_type *b, bool match_locations) const
+glsl_type::record_compare(const glsl_type *b, bool match_name,
+                          bool match_locations) const
 {
    if (this->length != b->length)
       return false;
@@ -1025,9 +1048,16 @@ glsl_type::record_compare(const glsl_type *b, bool match_locations) const
     *     type definitions, and field names to be considered the same type."
     *
     * GLSL ES behaves the same (Ver 1.00 Sec 4.2.4, Ver 3.00 Sec 4.2.5).
+    *
+    * Section 7.4.1 (Shader Interface Matching) of the OpenGL 4.30 spec says:
+    *
+    *     "Variables or block members declared as structures are considered
+    *     to match in type if and only if structure members match in name,
+    *     type, qualification, and declaration order."
     */
-   if (strcmp(this->name, b->name) != 0)
-      return false;
+   if (match_name)
+      if (strcmp(this->name, b->name) != 0)
+         return false;
 
    for (unsigned i = 0; i < this->length; i++) {
       if (this->fields.structure[i].type != b->fields.structure[i].type)
@@ -1098,7 +1128,8 @@ glsl_type::record_key_compare(const void *a, const void *b)
    const glsl_type *const key1 = (glsl_type *) a;
    const glsl_type *const key2 = (glsl_type *) b;
 
-   return strcmp(key1->name, key2->name) == 0 && key1->record_compare(key2);
+   return strcmp(key1->name, key2->name) == 0 &&
+                 key1->record_compare(key2, true);
 }
 
 

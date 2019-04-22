@@ -24,11 +24,27 @@ char *host_strchr(const char *s, int c);
 char *host_strrchr(const char *s, int c);
 char *host_strduptrim(const char *s);
 
+#ifdef __GNUC__
+/*
+ * On MinGW, the correct compiler format checking for vsnprintf() etc
+ * can depend on compile-time flags; these control whether you get
+ * ISO C or Microsoft's non-standard format strings.
+ * We sometimes use __attribute__ ((format)) for our own printf-like
+ * functions, which are ultimately interpreted by the toolchain-chosen
+ * printf, so we need to take that into account to get correct warnings.
+ */
+#ifdef __MINGW_PRINTF_FORMAT
+#define PUTTY_PRINTF_ARCHETYPE __MINGW_PRINTF_FORMAT
+#else
+#define PUTTY_PRINTF_ARCHETYPE printf
+#endif
+#endif /* __GNUC__ */
+
 char *dupstr(const char *s);
 char *dupcat(const char *s1, ...);
 char *dupprintf(const char *fmt, ...)
 #ifdef __GNUC__
-    __attribute__ ((format (printf, 1, 2)))
+    __attribute__ ((format (PUTTY_PRINTF_ARCHETYPE, 1, 2)))
 #endif
     ;
 char *dupvprintf(const char *fmt, va_list ap);
@@ -276,14 +292,14 @@ static inline uint64_t GET_64BIT_LSB_FIRST(const void *vp)
 static inline void PUT_64BIT_LSB_FIRST(void *vp, uint64_t value)
 {
     uint8_t *p = (uint8_t *)vp;
-    p[0] = value;
-    p[1] = (value) >> 8;
-    p[2] = (value) >> 16;
-    p[3] = (value) >> 24;
-    p[4] = (value) >> 32;
-    p[5] = (value) >> 40;
-    p[6] = (value) >> 48;
-    p[7] = (value) >> 56;
+    p[0] = (uint8_t)(value);
+    p[1] = (uint8_t)(value >> 8);
+    p[2] = (uint8_t)(value >> 16);
+    p[3] = (uint8_t)(value >> 24);
+    p[4] = (uint8_t)(value >> 32);
+    p[5] = (uint8_t)(value >> 40);
+    p[6] = (uint8_t)(value >> 48);
+    p[7] = (uint8_t)(value >> 56);
 }
 
 static inline uint32_t GET_32BIT_LSB_FIRST(const void *vp)
@@ -296,10 +312,10 @@ static inline uint32_t GET_32BIT_LSB_FIRST(const void *vp)
 static inline void PUT_32BIT_LSB_FIRST(void *vp, uint32_t value)
 {
     uint8_t *p = (uint8_t *)vp;
-    p[0] = value;
-    p[1] = (value) >> 8;
-    p[2] = (value) >> 16;
-    p[3] = (value) >> 24;
+    p[0] = (uint8_t)(value);
+    p[1] = (uint8_t)(value >> 8);
+    p[2] = (uint8_t)(value >> 16);
+    p[3] = (uint8_t)(value >> 24);
 }
 
 static inline uint16_t GET_16BIT_LSB_FIRST(const void *vp)
@@ -311,8 +327,8 @@ static inline uint16_t GET_16BIT_LSB_FIRST(const void *vp)
 static inline void PUT_16BIT_LSB_FIRST(void *vp, uint16_t value)
 {
     uint8_t *p = (uint8_t *)vp;
-    p[0] = value;
-    p[1] = (value) >> 8;
+    p[0] = (uint8_t)(value);
+    p[1] = (uint8_t)(value >> 8);
 }
 
 static inline uint64_t GET_64BIT_MSB_FIRST(const void *vp)
@@ -327,14 +343,14 @@ static inline uint64_t GET_64BIT_MSB_FIRST(const void *vp)
 static inline void PUT_64BIT_MSB_FIRST(void *vp, uint64_t value)
 {
     uint8_t *p = (uint8_t *)vp;
-    p[7] = value;
-    p[6] = (value) >> 8;
-    p[5] = (value) >> 16;
-    p[4] = (value) >> 24;
-    p[3] = (value) >> 32;
-    p[2] = (value) >> 40;
-    p[1] = (value) >> 48;
-    p[0] = (value) >> 56;
+    p[7] = (uint8_t)(value);
+    p[6] = (uint8_t)(value >> 8);
+    p[5] = (uint8_t)(value >> 16);
+    p[4] = (uint8_t)(value >> 24);
+    p[3] = (uint8_t)(value >> 32);
+    p[2] = (uint8_t)(value >> 40);
+    p[1] = (uint8_t)(value >> 48);
+    p[0] = (uint8_t)(value >> 56);
 }
 
 static inline uint32_t GET_32BIT_MSB_FIRST(const void *vp)
@@ -347,10 +363,10 @@ static inline uint32_t GET_32BIT_MSB_FIRST(const void *vp)
 static inline void PUT_32BIT_MSB_FIRST(void *vp, uint32_t value)
 {
     uint8_t *p = (uint8_t *)vp;
-    p[3] = value;
-    p[2] = (value) >> 8;
-    p[1] = (value) >> 16;
-    p[0] = (value) >> 24;
+    p[3] = (uint8_t)(value);
+    p[2] = (uint8_t)(value >> 8);
+    p[1] = (uint8_t)(value >> 16);
+    p[0] = (uint8_t)(value >> 24);
 }
 
 static inline uint16_t GET_16BIT_MSB_FIRST(const void *vp)
@@ -362,8 +378,8 @@ static inline uint16_t GET_16BIT_MSB_FIRST(const void *vp)
 static inline void PUT_16BIT_MSB_FIRST(void *vp, uint16_t value)
 {
     uint8_t *p = (uint8_t *)vp;
-    p[1] = value;
-    p[0] = (value) >> 8;
+    p[1] = (uint8_t)(value);
+    p[0] = (uint8_t)(value >> 8);
 }
 
 /* Replace NULL with the empty string, permitting an idiom in which we

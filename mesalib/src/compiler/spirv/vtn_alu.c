@@ -23,6 +23,7 @@
 
 #include <math.h>
 #include "vtn_private.h"
+#include "spirv_info.h"
 
 /*
  * Normally, column vectors in SPIR-V correspond to a single NIR SSA
@@ -207,7 +208,7 @@ vtn_handle_matrix_alu(struct vtn_builder *b, SpvOp opcode,
       }
       break;
 
-   default: vtn_fail("unknown matrix opcode");
+   default: vtn_fail_with_opcode("unknown matrix opcode", opcode);
    }
 }
 

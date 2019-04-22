@@ -405,7 +405,7 @@ v3d_vir_to_qpu(struct v3d_compile *c, struct qpu_reg *temp_registers)
         vir_for_each_block(block, c)
                 v3d_generate_code_block(c, block, temp_registers);
 
-        uint32_t cycles = v3d_qpu_schedule_instructions(c);
+        v3d_qpu_schedule_instructions(c);
 
         c->qpu_insts = rzalloc_array(c, uint64_t, c->qpu_inst_count);
         int i = 0;
@@ -421,23 +421,6 @@ v3d_vir_to_qpu(struct v3d_compile *c, struct qpu_reg *temp_registers)
                 }
         }
         assert(i == c->qpu_inst_count);
-
-        if (V3D_DEBUG & V3D_DEBUG_SHADERDB) {
-                fprintf(stderr, "SHADER-DB: %s prog %d/%d: %d instructions\n",
-                        vir_get_stage_name(c),
-                        c->program_id, c->variant_id,
-                        c->qpu_inst_count);
-        }
-
-        /* The QPU cycle estimates are pretty broken (see waddr_latency()), so
-         * don't report them for now.
-         */
-        if (false) {
-                fprintf(stderr, "SHADER-DB: %s prog %d/%d: %d estimated cycles\n",
-                        vir_get_stage_name(c),
-                        c->program_id, c->variant_id,
-                        cycles);
-        }
 
         if (V3D_DEBUG & (V3D_DEBUG_QPU |
                          v3d_debug_flag_for_shader_stage(c->s->info.stage))) {

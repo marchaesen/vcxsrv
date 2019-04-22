@@ -29,6 +29,7 @@
 
 struct _FcConfig {
     FcStrSet	*configDirs;	    /* directories to scan for fonts */
+    FcStrSet    *configMapDirs;
     FcStrSet	*fontDirs;
     FcStrSet	*cacheDirs;
     FcStrSet	*configFiles;	    /* config files loaded */

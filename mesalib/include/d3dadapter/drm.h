@@ -29,11 +29,14 @@
 #define D3DADAPTER9DRM_NAME "drm"
 /* current version */
 #define D3DADAPTER9DRM_MAJOR 0
-#define D3DADAPTER9DRM_MINOR 1
+#define D3DADAPTER9DRM_MINOR 2
 
 /* version 0.0: Initial release
  *         0.1: All IDirect3D objects can be assumed to have a pointer to the
- *              internal vtable in second position of the structure */
+ *              internal vtable in second position of the structure
+ *         0.2: IDirect3DDevice9_SetCursorPosition always calls
+ *              ID3DPresent_SetCursorPos for hardware cursors
+ */
 
 struct D3DAdapter9DRM
 {

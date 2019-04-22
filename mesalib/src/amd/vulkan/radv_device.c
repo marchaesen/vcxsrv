@@ -48,6 +48,7 @@
 #include "util/build_id.h"
 #include "util/debug.h"
 #include "util/mesa-sha1.h"
+#include "compiler/glsl_types.h"
 
 static int
 radv_device_get_cache_uuid(enum radeon_family family, void *uuid)
@@ -87,7 +88,6 @@ static void
 radv_get_device_name(enum radeon_family family, char *name, size_t name_len)
 {
 	const char *chip_string;
-	char llvm_string[32] = {};
 
 	switch (family) {
 	case CHIP_TAHITI: chip_string = "AMD RADV TAHITI"; break;
@@ -116,10 +116,7 @@ radv_get_device_name(enum radeon_family family, char *name, size_t name_len)
 	default: chip_string = "AMD RADV unknown"; break;
 	}
 
-	snprintf(llvm_string, sizeof(llvm_string),
-		 " (LLVM %i.%i.%i)", (HAVE_LLVM >> 8) & 0xff,
-		 HAVE_LLVM & 0xff, MESA_LLVM_VERSION_PATCH);
-	snprintf(name, name_len, "%s%s", chip_string, llvm_string);
+	snprintf(name, name_len, "%s (LLVM " MESA_LLVM_VERSION_STRING ")", chip_string);
 }
 
 static uint64_t
@@ -480,6 +477,7 @@ static const struct debug_control radv_perftest_options[] = {
 	{"sisched", RADV_PERFTEST_SISCHED},
 	{"localbos", RADV_PERFTEST_LOCAL_BOS},
 	{"dccmsaa", RADV_PERFTEST_DCC_MSAA},
+	{"bolist", RADV_PERFTEST_BO_LIST},
 	{NULL, 0}
 };
 
@@ -585,6 +583,7 @@ VkResult radv_CreateInstance(
 	}
 
 	_mesa_locale_init();
+	glsl_type_singleton_init_or_ref();
 
 	VG(VALGRIND_CREATE_MEMPOOL(instance, 0, false));
 
@@ -610,6 +609,7 @@ void radv_DestroyInstance(
 
 	VG(VALGRIND_DESTROY_MEMPOOL(instance));
 
+	glsl_type_singleton_decref();
 	_mesa_locale_fini();
 
 	vk_debug_report_instance_destroy(&instance->debug_report_callbacks);
@@ -821,13 +821,13 @@ void radv_GetPhysicalDeviceFeatures2(
 			features->shaderInputAttachmentArrayDynamicIndexing = true;
 			features->shaderUniformTexelBufferArrayDynamicIndexing = true;
 			features->shaderStorageTexelBufferArrayDynamicIndexing = true;
-			features->shaderUniformBufferArrayNonUniformIndexing = false;
-			features->shaderSampledImageArrayNonUniformIndexing = false;
-			features->shaderStorageBufferArrayNonUniformIndexing = false;
-			features->shaderStorageImageArrayNonUniformIndexing = false;
-			features->shaderInputAttachmentArrayNonUniformIndexing = false;
-			features->shaderUniformTexelBufferArrayNonUniformIndexing = false;
-			features->shaderStorageTexelBufferArrayNonUniformIndexing = false;
+			features->shaderUniformBufferArrayNonUniformIndexing = true;
+			features->shaderSampledImageArrayNonUniformIndexing = true;
+			features->shaderStorageBufferArrayNonUniformIndexing = true;
+			features->shaderStorageImageArrayNonUniformIndexing = true;
+			features->shaderInputAttachmentArrayNonUniformIndexing = true;
+			features->shaderUniformTexelBufferArrayNonUniformIndexing = true;
+			features->shaderStorageTexelBufferArrayNonUniformIndexing = true;
 			features->descriptorBindingUniformBufferUpdateAfterBind = true;
 			features->descriptorBindingSampledImageUpdateAfterBind = true;
 			features->descriptorBindingStorageImageUpdateAfterBind = true;
@@ -905,9 +905,26 @@ void radv_GetPhysicalDeviceFeatures2(
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR: {
 			VkPhysicalDeviceFloat16Int8FeaturesKHR *features =
 				(VkPhysicalDeviceFloat16Int8FeaturesKHR*)ext;
-			bool enabled = pdevice->rad_info.chip_class >= VI;
-			features->shaderFloat16 = VK_FALSE;
-			features->shaderInt8 = enabled;
+			features->shaderFloat16 = pdevice->rad_info.chip_class >= VI && HAVE_LLVM >= 0x0800;
+			features->shaderInt8 = true;
+			break;
+		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_INT64_FEATURES_KHR: {
+			VkPhysicalDeviceShaderAtomicInt64FeaturesKHR *features =
+				(VkPhysicalDeviceShaderAtomicInt64FeaturesKHR *)ext;
+			/* TODO: Enable this once the driver supports 64-bit
+			 * compare&swap atomic operations.
+			 */
+			features->shaderBufferInt64Atomics = false;
+			features->shaderSharedInt64Atomics = false;
+			break;
+		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_FEATURES_EXT: {
+			VkPhysicalDeviceInlineUniformBlockFeaturesEXT *features =
+				(VkPhysicalDeviceInlineUniformBlockFeaturesEXT *)ext;
+
+			features->inlineUniformBlock = true;
+			features->descriptorBindingInlineUniformBlockUpdateAfterBind = true;
 			break;
 		}
 		default:
@@ -1204,7 +1221,8 @@ void radv_GetPhysicalDeviceProperties2(
 			properties->robustBufferAccessUpdateAfterBind = false;
 			properties->quadDivergentImplicitLod = false;
 
-			size_t max_descriptor_set_size = ((1ull << 31) - 16 * MAX_DYNAMIC_BUFFERS) /
+			size_t max_descriptor_set_size = ((1ull << 31) - 16 * MAX_DYNAMIC_BUFFERS -
+				MAX_INLINE_UNIFORM_BLOCK_SIZE * MAX_INLINE_UNIFORM_BLOCK_COUNT) /
 			          (32 /* uniform buffer, 32 due to potential space wasted on alignment */ +
 			           32 /* storage buffer, 32 due to potential space wasted on alignment */ +
 			           32 /* sampler, largest when combined with image */ +
@@ -1267,9 +1285,7 @@ void radv_GetPhysicalDeviceProperties2(
 			memset(driver_props->driverInfo, 0, VK_MAX_DRIVER_INFO_SIZE_KHR);
 			snprintf(driver_props->driverInfo, VK_MAX_DRIVER_INFO_SIZE_KHR,
 				"Mesa " PACKAGE_VERSION MESA_GIT_SHA1
-				" (LLVM %d.%d.%d)",
-				 (HAVE_LLVM >> 8) & 0xff, HAVE_LLVM & 0xff,
-				 MESA_LLVM_VERSION_PATCH);
+				" (LLVM " MESA_LLVM_VERSION_STRING ")");
 
 			driver_props->conformanceVersion = (VkConformanceVersionKHR) {
 				.major = 1,
@@ -1292,6 +1308,17 @@ void radv_GetPhysicalDeviceProperties2(
 			properties->transformFeedbackStreamsLinesTriangles = false;
 			properties->transformFeedbackRasterizationStreamSelect = false;
 			properties->transformFeedbackDraw = true;
+			break;
+		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INLINE_UNIFORM_BLOCK_PROPERTIES_EXT: {
+			VkPhysicalDeviceInlineUniformBlockPropertiesEXT *props =
+				(VkPhysicalDeviceInlineUniformBlockPropertiesEXT *)ext;
+
+			props->maxInlineUniformBlockSize = MAX_INLINE_UNIFORM_BLOCK_SIZE;
+			props->maxPerStageDescriptorInlineUniformBlocks = MAX_INLINE_UNIFORM_BLOCK_SIZE * MAX_SETS;
+			props->maxPerStageDescriptorUpdateAfterBindInlineUniformBlocks = MAX_INLINE_UNIFORM_BLOCK_SIZE * MAX_SETS;
+			props->maxDescriptorSetInlineUniformBlocks = MAX_INLINE_UNIFORM_BLOCK_COUNT;
+			props->maxDescriptorSetUpdateAfterBindInlineUniformBlocks = MAX_INLINE_UNIFORM_BLOCK_COUNT;
 			break;
 		}
 		default:
@@ -1735,6 +1762,7 @@ VkResult radv_CreateDevice(
 	 * from the descriptor set anymore, so we have to use a global BO list.
 	 */
 	device->use_global_bo_list =
+		(device->instance->perftest_flags & RADV_PERFTEST_BO_LIST) ||
 		device->enabled_extensions.EXT_descriptor_indexing ||
 		device->enabled_extensions.EXT_buffer_device_address;
 
@@ -3193,8 +3221,12 @@ static VkResult radv_alloc_memory(struct radv_device *device,
 		if (mem_type_index == RADV_MEM_TYPE_GTT_WRITE_COMBINE)
 			flags |= RADEON_FLAG_GTT_WC;
 
-		if (!dedicate_info && !import_info && (!export_info || !export_info->handleTypes))
+		if (!dedicate_info && !import_info && (!export_info || !export_info->handleTypes)) {
 			flags |= RADEON_FLAG_NO_INTERPROCESS_SHARING;
+			if (device->use_global_bo_list) {
+				flags |= RADEON_FLAG_PREFER_LOCAL_BO;
+			}
+		}
 
 		mem->bo = device->ws->buffer_create(device->ws, alloc_size, device->physical_device->rad_info.max_alignment,
 		                                    domain, flags, priority);

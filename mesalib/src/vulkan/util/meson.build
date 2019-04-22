@@ -28,7 +28,7 @@ files_vulkan_util = files(
 
 vk_enum_to_str = custom_target(
   'vk_enum_to_str',
-  input : ['gen_enum_to_str.py', vk_api_xml[0]],
+  input : ['gen_enum_to_str.py', vk_api_xml],
   output : ['vk_enum_to_str.c', 'vk_enum_to_str.h'],
   command : [
     prog_python, '@INPUT0@', '--xml', '@INPUT1@', '--outdir',

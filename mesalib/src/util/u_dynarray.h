@@ -77,16 +77,14 @@ util_dynarray_clear(struct util_dynarray *buf)
 
 #define DYN_ARRAY_INITIAL_SIZE 64
 
-/* use util_dynarray_trim to reduce the allocated storage */
 static inline void *
-util_dynarray_resize(struct util_dynarray *buf, unsigned newsize)
+util_dynarray_ensure_cap(struct util_dynarray *buf, unsigned newcap)
 {
-   void *p;
-   if (newsize > buf->capacity) {
+   if (newcap > buf->capacity) {
       if (buf->capacity == 0)
          buf->capacity = DYN_ARRAY_INITIAL_SIZE;
 
-      while (newsize > buf->capacity)
+      while (newcap > buf->capacity)
          buf->capacity *= 2;
 
       if (buf->mem_ctx) {
@@ -96,7 +94,20 @@ util_dynarray_resize(struct util_dynarray *buf, unsigned newsize)
       }
    }
 
-   p = (void *)((char *)buf->data + buf->size);
+   return (void *)((char *)buf->data + buf->size);
+}
+
+static inline void *
+util_dynarray_grow_cap(struct util_dynarray *buf, int diff)
+{
+   return util_dynarray_ensure_cap(buf, buf->size + diff);
+}
+
+/* use util_dynarray_trim to reduce the allocated storage */
+static inline void *
+util_dynarray_resize(struct util_dynarray *buf, unsigned newsize)
+{
+   void *p = util_dynarray_ensure_cap(buf, newsize);
    buf->size = newsize;
 
    return p;

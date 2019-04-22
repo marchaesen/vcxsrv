@@ -468,96 +468,48 @@ So we do a quick 'touch test'
 </p>
 
 <ul>
-<li>make distcheck (you can omit this if you're not using --dist below)
+<li>meson dist
 <li>scons (from release tarball)
 <li>the produced binaries work
 </ul>
 
 <p>
-Here is one solution that I've been using.
+  Here is one solution:
 </p>
 
 <pre>
-	# Set MAKEFLAGS if you haven't already
-	git clean -fXd; git clean -nxd
-	read # quick cross check any outstanding files
-	export __version=`cat VERSION`
-	export __mesa_root=../
-	export __build_root=./foo
-	chmod 755 -fR $__build_root; rm -rf $__build_root
-	mkdir -p $__build_root &amp;&amp; cd $__build_root
-
-	# For the native builds - such as distcheck, scons, sanity test, you
-	# may want to specify which LLVM to use:
-	# export LLVM_CONFIG=/usr/lib/llvm-3.9/bin/llvm-config
-
-	# Do a full distcheck
-	$__mesa_root/autogen.sh &amp;&amp; make distcheck
-
-	# Build check the tarballs (scons, linux)
-	tar -xaf mesa-$__version.tar.xz &amp;&amp; cd mesa-$__version
-	scons
-	cd .. &amp;&amp; rm -rf mesa-$__version
-
-	# Build check the tarballs (scons, windows/mingw)
-	# Temporary drop LLVM_CONFIG, unless you have a Windows/mingw one.
-	# save_LLVM_CONFIG=`echo $LLVM_CONFIG`; unset LLVM_CONFIG
-	tar -xaf mesa-$__version.tar.xz &amp;&amp; cd mesa-$__version
-	scons platform=windows toolchain=crossmingw
-	cd .. &amp;&amp; rm -rf mesa-$__version
-
-	# Test the automake binaries
-	# Restore LLVM_CONFIG, if applicable:
-	# export LLVM_CONFIG=`echo $save_LLVM_CONFIG`; unset save_LLVM_CONFIG
-	tar -xaf mesa-$__version.tar.xz &amp;&amp; cd mesa-$__version
-	./configure \
-		--with-dri-drivers=i965,swrast \
-		--with-gallium-drivers=swrast \
-		--with-vulkan-drivers=intel \
-		--enable-llvm-shared-libs \
-		--enable-llvm \
-		--enable-glx-tls \
-		--enable-gbm \
-		--enable-egl \
-		--with-platforms=x11,drm,wayland,surfaceless
-	make &amp;&amp; DESTDIR=`pwd`/test make install
-
-	# Drop LLVM_CONFIG, if applicable:
-	# unset LLVM_CONFIG
-
-	__glxinfo_cmd='glxinfo 2&gt;&amp;1 | egrep -o "Mesa.*|Gallium.*|.*dri\.so"'
-	__glxgears_cmd='glxgears 2&gt;&amp;1 | grep -v "configuration file"'
-	__es2info_cmd='es2_info 2&gt;&amp;1 | egrep "GL_VERSION|GL_RENDERER|.*dri\.so"'
-	__es2gears_cmd='es2gears_x11 2&gt;&amp;1 | grep -v "configuration file"'
-	test "x$LD_LIBRARY_PATH" != 'x' &amp;&amp; __old_ld="$LD_LIBRARY_PATH"
-	export LD_LIBRARY_PATH=`pwd`/test/usr/local/lib/:"${__old_ld}"
-	export LIBGL_DRIVERS_PATH=`pwd`/test/usr/local/lib/dri/
-	export LIBGL_DEBUG=verbose
-	eval $__glxinfo_cmd
-	eval $__glxgears_cmd
-	eval $__es2info_cmd
-	eval $__es2gears_cmd
-	export LIBGL_ALWAYS_SOFTWARE=true
-	eval $__glxinfo_cmd
-	eval $__glxgears_cmd
-	eval $__es2info_cmd
-	eval $__es2gears_cmd
-	export LIBGL_ALWAYS_SOFTWARE=true
-	export GALLIUM_DRIVER=softpipe
-	eval $__glxinfo_cmd
-	eval $__glxgears_cmd
-	eval $__es2info_cmd
-	eval $__es2gears_cmd
-	# Smoke test DOTA2
-	unset LD_LIBRARY_PATH
-	test "x$__old_ld" != 'x' &amp;&amp; export LD_LIBRARY_PATH="$__old_ld" &amp;&amp; unset __old_ld
-	unset LIBGL_DRIVERS_PATH
-	unset LIBGL_DEBUG
-	unset LIBGL_ALWAYS_SOFTWARE
-	unset GALLIUM_DRIVER
-	export VK_ICD_FILENAMES=`pwd`/src/intel/vulkan/dev_icd.json
-	steam steam://rungameid/570  -vconsole -vulkan
-	unset VK_ICD_FILENAMES
+    __glxgears_cmd='glxgears 2&gt;&amp;1 | grep -v "configuration file"'
+    __es2info_cmd='es2_info 2&gt;&amp;1 | egrep "GL_VERSION|GL_RENDERER|.*dri\.so"'
+    __es2gears_cmd='es2gears_x11 2&gt;&amp;1 | grep -v "configuration file"'
+    test "x$LD_LIBRARY_PATH" != 'x' &amp;&amp; __old_ld="$LD_LIBRARY_PATH"
+    export LD_LIBRARY_PATH=`pwd`/test/usr/local/lib/:"${__old_ld}"
+    export LIBGL_DRIVERS_PATH=`pwd`/test/usr/local/lib/dri/
+    export LIBGL_DEBUG=verbose
+    eval $__glxinfo_cmd
+    eval $__glxgears_cmd
+    eval $__es2info_cmd
+    eval $__es2gears_cmd
+    export LIBGL_ALWAYS_SOFTWARE=true
+    eval $__glxinfo_cmd
+    eval $__glxgears_cmd
+    eval $__es2info_cmd
+    eval $__es2gears_cmd
+    export LIBGL_ALWAYS_SOFTWARE=true
+    export GALLIUM_DRIVER=softpipe
+    eval $__glxinfo_cmd
+    eval $__glxgears_cmd
+    eval $__es2info_cmd
+    eval $__es2gears_cmd
+    # Smoke test DOTA2
+    unset LD_LIBRARY_PATH
+    test "x$__old_ld" != 'x' &amp;&amp; export LD_LIBRARY_PATH="$__old_ld" &amp;&amp; unset __old_ld
+    unset LIBGL_DRIVERS_PATH
+    unset LIBGL_DEBUG
+    unset LIBGL_ALWAYS_SOFTWARE
+    unset GALLIUM_DRIVER
+    export VK_ICD_FILENAMES=`pwd`/src/intel/vulkan/dev_icd.json
+    steam steam://rungameid/570  -vconsole -vulkan
+    unset VK_ICD_FILENAMES
 </pre>
 
 <h3>Update version in file VERSION</h3>

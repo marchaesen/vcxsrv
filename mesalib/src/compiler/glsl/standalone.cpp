@@ -132,12 +132,15 @@ static void
 initialize_context(struct gl_context *ctx, gl_api api)
 {
    initialize_context_to_defaults(ctx, api);
+   glsl_type_singleton_init_or_ref();
 
    /* The standalone compiler needs to claim support for almost
     * everything in order to compile the built-in functions.
     */
    ctx->Const.GLSLVersion = options->glsl_version;
    ctx->Extensions.ARB_ES3_compatibility = true;
+   ctx->Extensions.ARB_ES3_1_compatibility = true;
+   ctx->Extensions.ARB_ES3_2_compatibility = true;
    ctx->Const.MaxComputeWorkGroupCount[0] = 65535;
    ctx->Const.MaxComputeWorkGroupCount[1] = 65535;
    ctx->Const.MaxComputeWorkGroupCount[2] = 65535;
@@ -265,6 +268,9 @@ initialize_context(struct gl_context *ctx, gl_api api)
       ctx->Const.MaxUniformBufferBindings = 84;
       ctx->Const.MaxVertexStreams = 4;
       ctx->Const.MaxTransformFeedbackBuffers = 4;
+      ctx->Const.MaxShaderStorageBufferBindings = 4;
+      ctx->Const.MaxShaderStorageBlockSize = 4096;
+      ctx->Const.MaxAtomicBufferBindings = 4;
 
       ctx->Const.Program[MESA_SHADER_VERTEX].MaxAttribs = 16;
       ctx->Const.Program[MESA_SHADER_VERTEX].MaxTextureImageUnits = 16;
@@ -612,6 +618,6 @@ standalone_compiler_cleanup(struct gl_shader_program *whole_program)
    delete whole_program->FragDataIndexBindings;
 
    ralloc_free(whole_program);
-   _mesa_glsl_release_types();
+   glsl_type_singleton_decref();
    _mesa_glsl_release_builtin_functions();
 }

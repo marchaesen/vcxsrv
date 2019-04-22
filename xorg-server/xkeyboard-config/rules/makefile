@@ -213,24 +213,12 @@ dist_files = xkb.dtd README
 
 rules_DATA = $(rules_files) $(lst_files) $(dist_files)
 
-COMPATFILES=xorg xorg.xml xorg.lst
-$(DESTDIR)\xorg: $(DESTDIR)\base
-	copy $< $@
-$(DESTDIR)\xorg%: $(DESTDIR)\base%
-	copy $< $@
+xml_DATA = base.xml evdev.xml base.extras.xml evdev.extras.xml
 
-rules_DATA := $(rules_DATA) $(COMPATFILES)
-
-xml_in_files = base.xml.in evdev.xml.in base.extras.xml.in evdev.extras.xml.in
-xml_DATA = $(xml_in_files:.xml.in=.xml) 
-
-$(DESTDIR)\%.xml: %.xml.in
+$(DESTDIR)\evdev.xml: base.xml
 	copy $< $@
 
-$(DESTDIR)\evdev.xml: base.xml.in
-	copy $< $@
-
-$(DESTDIR)\evdev.extras.xml: base.extras.xml.in
+$(DESTDIR)\evdev.extras.xml: base.extras.xml
 	copy $< $@
 
 DATA_FILES=$(rules_DATA:%=$(DESTDIR)\%) $(xml_DATA:%=$(DESTDIR)\%)

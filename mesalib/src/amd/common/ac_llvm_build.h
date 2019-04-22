@@ -443,6 +443,7 @@ LLVMValueRef ac_build_imin(struct ac_llvm_context *ctx, LLVMValueRef a,
 LLVMValueRef ac_build_imax(struct ac_llvm_context *ctx, LLVMValueRef a,
 			   LLVMValueRef b);
 LLVMValueRef ac_build_umin(struct ac_llvm_context *ctx, LLVMValueRef a, LLVMValueRef b);
+LLVMValueRef ac_build_umax(struct ac_llvm_context *ctx, LLVMValueRef a, LLVMValueRef b);
 LLVMValueRef ac_build_clamp(struct ac_llvm_context *ctx, LLVMValueRef value);
 
 struct ac_export_args {
@@ -684,6 +685,12 @@ ac_build_frexp_exp(struct ac_llvm_context *ctx, LLVMValueRef src0,
 LLVMValueRef
 ac_build_frexp_mant(struct ac_llvm_context *ctx, LLVMValueRef src0,
 		    unsigned bitsize);
+
+LLVMValueRef
+ac_build_ddxy_interp(struct ac_llvm_context *ctx, LLVMValueRef interp_ij);
+
+LLVMValueRef
+ac_build_load_helper_invocation(struct ac_llvm_context *ctx);
 
 #ifdef __cplusplus
 }

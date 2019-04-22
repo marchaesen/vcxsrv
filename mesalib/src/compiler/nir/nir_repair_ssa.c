@@ -77,6 +77,15 @@ repair_ssa_def(nir_ssa_def *def, void *void_state)
       }
    }
 
+   nir_foreach_if_use(src, def) {
+      nir_block *block_before_if =
+         nir_cf_node_as_block(nir_cf_node_prev(&src->parent_if->cf_node));
+      if (!nir_block_dominates(def->parent_instr->block, block_before_if)) {
+         is_valid = false;
+         break;
+      }
+   }
+
    if (is_valid)
       return true;
 
@@ -95,6 +104,15 @@ repair_ssa_def(nir_ssa_def *def, void *void_state)
       if (!nir_block_dominates(def->parent_instr->block, src_block)) {
          nir_instr_rewrite_src(src->parent_instr, src, nir_src_for_ssa(
             nir_phi_builder_value_get_block_def(val, src_block)));
+      }
+   }
+
+   nir_foreach_if_use_safe(src, def) {
+      nir_block *block_before_if =
+         nir_cf_node_as_block(nir_cf_node_prev(&src->parent_if->cf_node));
+      if (!nir_block_dominates(def->parent_instr->block, block_before_if)) {
+         nir_if_rewrite_condition(src->parent_if, nir_src_for_ssa(
+            nir_phi_builder_value_get_block_def(val, block_before_if)));
       }
    }
 

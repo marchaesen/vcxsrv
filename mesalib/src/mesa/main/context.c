@@ -1196,6 +1196,8 @@ _mesa_initialize_context(struct gl_context *ctx,
    /* misc one-time initializations */
    one_time_init(ctx);
 
+   _mesa_init_shader_compiler_types();
+
    /* Plug in driver functions and context pointer here.
     * This is important because when we call alloc_shared_state() below
     * we'll call ctx->Driver.NewTextureObject() to create the default
@@ -1382,6 +1384,8 @@ _mesa_free_context_data( struct gl_context *ctx )
    free((void *)ctx->Extensions.String);
 
    free(ctx->VersionString);
+
+   _mesa_destroy_shader_compiler_types();
 
    /* unbind the context if it's currently bound */
    if (ctx == _mesa_get_current_context()) {

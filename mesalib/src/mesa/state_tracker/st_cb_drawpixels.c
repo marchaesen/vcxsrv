@@ -1144,6 +1144,35 @@ get_color_fp_variant(struct st_context *st)
    return fpv;
 }
 
+/**
+ * Get fragment program variant for a glDrawPixels command
+ * for COLOR_INDEX data
+ */
+static struct st_fp_variant *
+get_color_index_fp_variant(struct st_context *st)
+{
+   struct gl_context *ctx = st->ctx;
+   struct st_fp_variant_key key;
+   struct st_fp_variant *fpv;
+
+   memset(&key, 0, sizeof(key));
+
+   key.st = st->has_shareable_shaders ? NULL : st;
+   key.drawpixels = 1;
+   /* Since GL is always in RGBA mode MapColorFlag does not
+    * affect GL_COLOR_INDEX format.
+    * Scale and bias also never affect GL_COLOR_INDEX format.
+    */
+   key.scaleAndBias = 0;
+   key.pixelMaps = 0;
+   key.clamp_color = st->clamp_frag_color_in_shader &&
+                     ctx->Color._ClampFragmentColor;
+
+   fpv = st_get_fp_variant(st, st->fp, &key);
+
+   return fpv;
+}
+
 
 /**
  * Clamp glDrawPixels width and height to the maximum texture size.
@@ -1299,11 +1328,12 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
                                                 write_stencil);
    }
    else {
-      fpv = get_color_fp_variant(st);
+      fpv = (format != GL_COLOR_INDEX) ? get_color_fp_variant(st) :
+                                         get_color_index_fp_variant(st);
 
       driver_fp = fpv->driver_shader;
 
-      if (ctx->Pixel.MapColorFlag) {
+      if (ctx->Pixel.MapColorFlag && format != GL_COLOR_INDEX) {
          pipe_sampler_view_reference(&sv[1],
                                      st->pixel_xfer.pixelmap_sampler_view);
          num_sampler_view++;

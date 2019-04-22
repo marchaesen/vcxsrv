@@ -772,6 +772,47 @@ enum compare_func
    COMPARE_FUNC_ALWAYS,
 };
 
+/**
+ * Arrangements for grouping invocations from NV_compute_shader_derivatives.
+ *
+ *   The extension provides new layout qualifiers that support two different
+ *   arrangements of compute shader invocations for the purpose of derivative
+ *   computation.  When specifying
+ *
+ *     layout(derivative_group_quadsNV) in;
+ *
+ *   compute shader invocations are grouped into 2x2x1 arrays whose four local
+ *   invocation ID values follow the pattern:
+ *
+ *       +-----------------+------------------+
+ *       | (2x+0, 2y+0, z) |  (2x+1, 2y+0, z) |
+ *       +-----------------+------------------+
+ *       | (2x+0, 2y+1, z) |  (2x+1, 2y+1, z) |
+ *       +-----------------+------------------+
+ *
+ *   where Y increases from bottom to top.  When specifying
+ *
+ *     layout(derivative_group_linearNV) in;
+ *
+ *   compute shader invocations are grouped into 2x2x1 arrays whose four local
+ *   invocation index values follow the pattern:
+ *
+ *       +------+------+
+ *       | 4n+0 | 4n+1 |
+ *       +------+------+
+ *       | 4n+2 | 4n+3 |
+ *       +------+------+
+ *
+ *   If neither layout qualifier is specified, derivatives in compute shaders
+ *   return zero, which is consistent with the handling of built-in texture
+ *   functions like texture() in GLSL 4.50 compute shaders.
+ */
+enum gl_derivative_group {
+   DERIVATIVE_GROUP_NONE = 0,
+   DERIVATIVE_GROUP_QUADS,
+   DERIVATIVE_GROUP_LINEAR,
+};
+
 #ifdef __cplusplus
 } /* extern "C" */
 #endif

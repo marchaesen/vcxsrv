@@ -231,7 +231,7 @@ nir_gather_xfb_info_with_varyings(const nir_shader *shader,
        */
       bool is_array_block = var->interface_type != NULL &&
          glsl_type_is_array(var->type) &&
-         glsl_without_array(var->type) == glsl_get_bare_type(var->interface_type);
+         glsl_without_array(var->type) == var->interface_type;
 
       if (var->data.explicit_offset && !is_array_block) {
          unsigned offset = var->data.offset;

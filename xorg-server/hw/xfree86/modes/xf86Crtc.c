@@ -552,6 +552,16 @@ xf86OutputSetMonitor(xf86OutputPtr output)
                    "Output %s has no monitor section\n", output->name);
 }
 
+Bool
+xf86OutputForceEnabled(xf86OutputPtr output)
+{
+    Bool enable;
+
+    if (xf86GetOptValBool(output->options, OPTION_ENABLE, &enable) && enable)
+        return TRUE;
+    return FALSE;
+}
+
 static Bool
 xf86OutputEnabled(xf86OutputPtr output, Bool strict)
 {

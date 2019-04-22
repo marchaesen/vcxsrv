@@ -535,7 +535,7 @@ guess_loop_limit(loop_info_state *state, nir_const_value *limit_val,
    }
 
    if (min_array_size) {
-      limit_val->i32[0] = min_array_size;
+      limit_val->i32 = min_array_size;
       return true;
    }
 
@@ -561,7 +561,7 @@ try_find_limit_of_alu(nir_loop_variable *limit, nir_const_value *limit_val,
       if (!is_var_constant(limit))
          return false;
 
-      *limit_val = nir_instr_as_load_const(limit->def->parent_instr)->value;
+      *limit_val = nir_instr_as_load_const(limit->def->parent_instr)->value[0];
 
       terminator->exact_trip_count_unknown = true;
 
@@ -582,25 +582,25 @@ get_iteration(nir_op cond_op, nir_const_value *initial, nir_const_value *step,
    case nir_op_ilt:
    case nir_op_ieq:
    case nir_op_ine: {
-      int32_t initial_val = initial->i32[0];
-      int32_t span = limit->i32[0] - initial_val;
-      iter = span / step->i32[0];
+      int32_t initial_val = initial->i32;
+      int32_t span = limit->i32 - initial_val;
+      iter = span / step->i32;
       break;
    }
    case nir_op_uge:
    case nir_op_ult: {
-      uint32_t initial_val = initial->u32[0];
-      uint32_t span = limit->u32[0] - initial_val;
-      iter = span / step->u32[0];
+      uint32_t initial_val = initial->u32;
+      uint32_t span = limit->u32 - initial_val;
+      iter = span / step->u32;
       break;
    }
    case nir_op_fge:
    case nir_op_flt:
    case nir_op_feq:
    case nir_op_fne: {
-      float initial_val = initial->f32[0];
-      float span = limit->f32[0] - initial_val;
-      iter = span / step->f32[0];
+      float initial_val = initial->f32;
+      float span = limit->f32 - initial_val;
+      iter = span / step->f32;
       break;
    }
    default:
@@ -618,18 +618,18 @@ test_iterations(int32_t iter_int, nir_const_value *step,
 {
    assert(nir_op_infos[cond_op].num_inputs == 2);
 
-   nir_const_value iter_src = { {0, } };
+   nir_const_value iter_src = {0, };
    nir_op mul_op;
    nir_op add_op;
    switch (induction_base_type) {
    case nir_type_float:
-      iter_src.f32[0] = (float) iter_int;
+      iter_src.f32 = (float) iter_int;
       mul_op = nir_op_fmul;
       add_op = nir_op_fadd;
       break;
    case nir_type_int:
    case nir_type_uint:
-      iter_src.i32[0] = iter_int;
+      iter_src.i32 = iter_int;
       mul_op = nir_op_imul;
       add_op = nir_op_iadd;
       break;
@@ -640,23 +640,24 @@ test_iterations(int32_t iter_int, nir_const_value *step,
    /* Multiple the iteration count we are testing by the number of times we
     * step the induction variable each iteration.
     */
-   nir_const_value mul_src[2] = { iter_src, *step };
-   nir_const_value mul_result =
-      nir_eval_const_opcode(mul_op, 1, bit_size, mul_src);
+   nir_const_value *mul_src[2] = { &iter_src, step };
+   nir_const_value mul_result;
+   nir_eval_const_opcode(mul_op, &mul_result, 1, bit_size, mul_src);
 
    /* Add the initial value to the accumulated induction variable total */
-   nir_const_value add_src[2] = { mul_result, *initial };
-   nir_const_value add_result =
-      nir_eval_const_opcode(add_op, 1, bit_size, add_src);
+   nir_const_value *add_src[2] = { &mul_result, initial };
+   nir_const_value add_result;
+   nir_eval_const_opcode(add_op, &add_result, 1, bit_size, add_src);
 
-   nir_const_value src[2] = { { {0, } }, { {0, } } };
-   src[limit_rhs ? 0 : 1] = add_result;
-   src[limit_rhs ? 1 : 0] = *limit;
+   nir_const_value *src[2];
+   src[limit_rhs ? 0 : 1] = &add_result;
+   src[limit_rhs ? 1 : 0] = limit;
 
    /* Evaluate the loop exit condition */
-   nir_const_value result = nir_eval_const_opcode(cond_op, 1, bit_size, src);
+   nir_const_value result;
+   nir_eval_const_opcode(cond_op, &result, 1, bit_size, src);
 
-   return invert_cond ? (result.u32[0] == 0) : (result.u32[0] != 0);
+   return invert_cond ? !result.b : result.b;
 }
 
 static int
@@ -822,9 +823,9 @@ try_find_trip_count_vars_in_iand(nir_alu_instr **alu,
       }
 
       /* If the loop is not breaking on (x && y) == 0 then return */
-      nir_const_value zero =
+      nir_const_value *zero =
          nir_instr_as_load_const(zero_def->parent_instr)->value;
-      if (zero.i32[0] != 0)
+      if (zero[0].i32 != 0)
          return;
    }
 
@@ -932,7 +933,7 @@ find_trip_count(loop_info_state *state)
       nir_const_value limit_val;
       if (is_var_constant(limit)) {
          limit_val =
-            nir_instr_as_load_const(limit->def->parent_instr)->value;
+            nir_instr_as_load_const(limit->def->parent_instr)->value[0];
       } else {
          trip_count_known = false;
 
@@ -954,15 +955,15 @@ find_trip_count(loop_info_state *state)
        * Thats all thats needed to calculate the trip-count
        */
 
-      nir_const_value initial_val =
+      nir_const_value *initial_val =
          nir_instr_as_load_const(basic_ind->ind->def_outside_loop->
                                     def->parent_instr)->value;
 
-      nir_const_value step_val =
+      nir_const_value *step_val =
          nir_instr_as_load_const(basic_ind->ind->invariant->def->
                                     parent_instr)->value;
 
-      int iterations = calculate_iterations(&initial_val, &step_val,
+      int iterations = calculate_iterations(initial_val, step_val,
                                             &limit_val,
                                             basic_ind->ind->alu_def, alu,
                                             alu_op, limit_rhs,

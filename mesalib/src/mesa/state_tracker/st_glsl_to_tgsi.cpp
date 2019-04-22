@@ -2715,6 +2715,42 @@ shrink_array_declarations(struct inout_decl *decls, unsigned count,
    }
 }
 
+
+static void
+mark_array_io(struct inout_decl *decls, unsigned count,
+              GLbitfield64* usage_mask,
+              GLbitfield64 double_usage_mask,
+              GLbitfield* patch_usage_mask)
+{
+   unsigned i;
+   int j;
+
+   /* Fix array declarations by removing unused array elements at both ends
+    * of the arrays. For example, mat4[3] where only mat[1] is used.
+    */
+   for (i = 0; i < count; i++) {
+      struct inout_decl *decl = &decls[i];
+      if (!decl->array_id)
+         continue;
+
+      /* When not all entries of an array are accessed, we mark them as used
+       * here anyway, to ensure that the input/output mapping logic doesn't get
+       * confused.
+       *
+       * TODO This happens when an array isn't used via indirect access, which
+       * some game ports do (at least eON-based). There is an optimization
+       * opportunity here by replacing the array declaration with non-array
+       * declarations of those slots that are actually used.
+       */
+      for (j = 0; j < (int)decl->size; ++j) {
+         if (decl->mesa_index >= VARYING_SLOT_PATCH0)
+            *patch_usage_mask |= BITFIELD64_BIT(decl->mesa_index - VARYING_SLOT_PATCH0 + j);
+         else
+            *usage_mask |= BITFIELD64_BIT(decl->mesa_index + j);
+      }
+   }
+}
+
 void
 glsl_to_tgsi_visitor::visit(ir_dereference_array *ir)
 {
@@ -7157,14 +7193,28 @@ get_mesa_program_tgsi(struct gl_context *ctx,
    }
 
    do_set_program_inouts(shader->ir, prog, shader->Stage);
+
    _mesa_copy_linked_program_data(shader_program, shader);
-   shrink_array_declarations(v->inputs, v->num_inputs,
-                             &prog->info.inputs_read,
-                             prog->DualSlotInputs,
-                             &prog->info.patch_inputs_read);
-   shrink_array_declarations(v->outputs, v->num_outputs,
-                             &prog->info.outputs_written, 0ULL,
-                             &prog->info.patch_outputs_written);
+
+   if (pscreen->get_param(pscreen, PIPE_CAP_TGSI_SKIP_SHRINK_IO_ARRAYS)) {
+      mark_array_io(v->inputs, v->num_inputs,
+                    &prog->info.inputs_read,
+                    prog->DualSlotInputs,
+                    &prog->info.patch_inputs_read);
+
+      mark_array_io(v->outputs, v->num_outputs,
+                    &prog->info.outputs_written, 0ULL,
+                    &prog->info.patch_outputs_written);
+   } else  {
+      shrink_array_declarations(v->inputs, v->num_inputs,
+                                &prog->info.inputs_read,
+                                prog->DualSlotInputs,
+                                &prog->info.patch_inputs_read);
+      shrink_array_declarations(v->outputs, v->num_outputs,
+                                &prog->info.outputs_written, 0ULL,
+                                &prog->info.patch_outputs_written);
+   }
+
    count_resources(v, prog);
 
    /* The GLSL IR won't be needed anymore. */

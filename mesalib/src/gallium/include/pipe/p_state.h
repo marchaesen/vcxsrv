@@ -77,6 +77,7 @@ extern "C" {
 #define PIPE_MAX_SAMPLE_LOCATION_GRID_SIZE 4
 
 #define PIPE_MAX_HW_ATOMIC_BUFFERS 32
+#define PIPE_MAX_VERTEX_STREAMS   4
 
 struct pipe_reference
 {

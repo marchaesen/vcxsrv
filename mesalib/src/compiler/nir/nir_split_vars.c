@@ -1030,14 +1030,8 @@ mark_deref_used(nir_deref_instr *deref,
 static bool
 src_is_load_deref(nir_src src, nir_src deref_src)
 {
-   assert(src.is_ssa);
-   assert(deref_src.is_ssa);
-
-   if (src.ssa->parent_instr->type != nir_instr_type_intrinsic)
-      return false;
-
-   nir_intrinsic_instr *load = nir_instr_as_intrinsic(src.ssa->parent_instr);
-   if (load->intrinsic != nir_intrinsic_load_deref)
+   nir_intrinsic_instr *load = nir_src_as_intrinsic(src);
+   if (load == NULL || load->intrinsic != nir_intrinsic_load_deref)
       return false;
 
    assert(load->src[0].is_ssa);

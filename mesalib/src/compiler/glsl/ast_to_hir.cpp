@@ -3476,6 +3476,11 @@ apply_image_qualifier_to_variable(const struct ast_type_qualifier *qual,
       }
 
       var->data.image_format = qual->image_format;
+   } else if (state->has_image_load_formatted()) {
+      if (var->data.mode == ir_var_uniform &&
+          state->EXT_shader_image_load_formatted_warn) {
+         _mesa_glsl_warning(loc, state, "GL_EXT_image_load_formatted used");
+      }
    } else {
       if (var->data.mode == ir_var_uniform) {
          if (state->es_shader) {
@@ -7594,7 +7599,7 @@ ast_struct_specifier::hir(exec_list *instructions,
    if (!type->is_anonymous() && !state->symbols->add_type(name, type)) {
       const glsl_type *match = state->symbols->get_type(name);
       /* allow struct matching for desktop GL - older UE4 does this */
-      if (match != NULL && state->is_version(130, 0) && match->record_compare(type, false))
+      if (match != NULL && state->is_version(130, 0) && match->record_compare(type, true, false))
          _mesa_glsl_warning(& loc, state, "struct `%s' previously defined", name);
       else
          _mesa_glsl_error(& loc, state, "struct `%s' previously defined", name);

@@ -106,8 +106,8 @@ push_block(struct block_queue *bq)
    }
 
    if (!u_vector_init(&bi->instructions,
-                      sizeof(struct nir_alu_instr *),
-                      8 * sizeof(struct nir_alu_instr *)))
+                      sizeof(nir_alu_instr *),
+                      8 * sizeof(nir_alu_instr *)))
       return NULL;
 
    exec_list_push_tail(&bq->blocks, &bi->node);
@@ -125,9 +125,9 @@ pop_block(struct block_queue *bq, struct block_instructions *bi)
 
 static void
 add_instruction_for_block(struct block_instructions *bi,
-                          struct nir_alu_instr *alu)
+                          nir_alu_instr *alu)
 {
-   struct nir_alu_instr **data =
+   nir_alu_instr **data =
       u_vector_add(&bi->instructions);
 
    *data = alu;
@@ -227,7 +227,7 @@ comparison_pre_block(nir_block *block, struct block_queue *bq, nir_builder *bld)
       if (instr->type != nir_instr_type_alu)
          continue;
 
-      struct nir_alu_instr *const alu = nir_instr_as_alu(instr);
+      nir_alu_instr *const alu = nir_instr_as_alu(instr);
 
       if (alu->dest.dest.ssa.num_components != 1)
          continue;

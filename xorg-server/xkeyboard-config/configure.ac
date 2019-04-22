@@ -1,5 +1,5 @@
 AC_INIT(xkeyboard-config, 2.26)
-AC_CONFIG_SRCDIR(rules/base.xml.in)
+AC_CONFIG_SRCDIR(rules/base.xml)
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 
 # Require X.Org macros 1.12 or later for XORG_WITH_XSLTPROC
@@ -62,16 +62,12 @@ AM_CONDITIONAL(USE_COMPAT_RULES, test "x$enable_compat_rules" = "xyes")
 # ****
 # i18n
 # ****
-AC_PROG_INTLTOOL(0.30)
-
-AM_GNU_GETTEXT_VERSION([0.17])
+AM_GNU_GETTEXT_VERSION([0.19.8])
 AM_GNU_GETTEXT([external])
 
 GETTEXT_PACKAGE=xkeyboard-config
 AC_SUBST(GETTEXT_PACKAGE)
 AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "$GETTEXT_PACKAGE", [Gettext package])
-
-ALL_LINGUAS="af az bg ca crh cs da de el en_GB eo es fi fr fur gl hr hu id it ja ka ko ky lt nb nl pl pt_BR ro ru rw sk sl sq sr sv tr uk vi zh_CN zh_TW"
 
 AC_SUBST(xkb_base)
 AC_SUBST(xkb_rules_symlink)

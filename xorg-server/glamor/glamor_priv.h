@@ -154,12 +154,22 @@ enum gradient_shader {
 struct glamor_screen_private;
 struct glamor_pixmap_private;
 
-enum glamor_gl_flavor {
-    GLAMOR_GL_DESKTOP,          // OPENGL API
-    GLAMOR_GL_ES2               // OPENGL ES2.0 API
-};
-
 #define GLAMOR_COMPOSITE_VBO_VERT_CNT (64*1024)
+
+struct glamor_format {
+    /** X Server's "depth" value */
+    int depth;
+    /** GL internalformat for creating textures of this type */
+    GLenum internalformat;
+    /** GL format transferring pixels in/out of textures of this type. */
+    GLenum format;
+    /** GL type transferring pixels in/out of textures of this type. */
+    GLenum type;
+    /* Render PICT_* matching GL's channel layout for pixels
+     * transferred using format/type.
+     */
+    CARD32 render_format;
+};
 
 struct glamor_saved_procs {
     CloseScreenProcPtr close_screen;
@@ -184,7 +194,7 @@ struct glamor_saved_procs {
 };
 
 typedef struct glamor_screen_private {
-    enum glamor_gl_flavor gl_flavor;
+    Bool is_gles;
     int glsl_version;
     Bool has_pack_invert;
     Bool has_fbo_blit;
@@ -203,7 +213,8 @@ typedef struct glamor_screen_private {
     Bool can_copyplane;
     int max_fbo_size;
 
-    GLuint one_channel_format;
+    struct glamor_format formats[33];
+    struct glamor_format cbcr_format;
 
     /* glamor point shader */
     glamor_program point_prog;
@@ -316,8 +327,7 @@ typedef struct glamor_pixmap_fbo {
     GLuint fb; /**< GL FBO name */
     int width; /**< width in pixels */
     int height; /**< height in pixels */
-    GLenum format; /**< GL format used to create the texture. */
-    GLenum type; /**< GL type used to create the texture. */
+    Bool is_red;
 } glamor_pixmap_fbo;
 
 typedef struct glamor_pixmap_clipped_regions {
@@ -531,28 +541,22 @@ glamor_pixmap_fbo *glamor_pixmap_detach_fbo(glamor_pixmap_private *
                                             pixmap_priv);
 void glamor_pixmap_attach_fbo(PixmapPtr pixmap, glamor_pixmap_fbo *fbo);
 glamor_pixmap_fbo *glamor_create_fbo_from_tex(glamor_screen_private *
-                                              glamor_priv, int w, int h,
-                                              GLenum format, GLint tex,
+                                              glamor_priv, PixmapPtr pixmap,
+                                              int w, int h, GLint tex,
                                               int flag);
-glamor_pixmap_fbo *glamor_create_fbo(glamor_screen_private *glamor_priv, int w,
-                                     int h, GLenum format, int flag);
+glamor_pixmap_fbo *glamor_create_fbo(glamor_screen_private *glamor_priv,
+                                     PixmapPtr pixmap, int w, int h, int flag);
 void glamor_destroy_fbo(glamor_screen_private *glamor_priv,
                         glamor_pixmap_fbo *fbo);
 void glamor_pixmap_destroy_fbo(PixmapPtr pixmap);
 Bool glamor_pixmap_fbo_fixup(ScreenPtr screen, PixmapPtr pixmap);
 
+const struct glamor_format *glamor_format_for_pixmap(PixmapPtr pixmap);
+
 /* Return whether 'picture' is alpha-only */
 static inline Bool glamor_picture_is_alpha(PicturePtr picture)
 {
     return picture->format == PICT_a1 || picture->format == PICT_a8;
-}
-
-/* Return whether 'fbo' is storing alpha bits in the red channel */
-static inline Bool
-glamor_fbo_red_is_alpha(glamor_screen_private *glamor_priv, glamor_pixmap_fbo *fbo)
-{
-    /* True when the format is GL_RED (that can only happen when our one channel format is GL_RED */
-    return fbo->format == GL_RED;
 }
 
 /* Return whether 'picture' is storing alpha bits in the red channel */
@@ -561,7 +565,7 @@ glamor_picture_red_is_alpha(PicturePtr picture)
 {
     /* True when the picture is alpha only and the screen is using GL_RED for alpha pictures */
     return glamor_picture_is_alpha(picture) &&
-        glamor_get_screen_private(picture->pDrawable->pScreen)->one_channel_format == GL_RED;
+        glamor_get_screen_private(picture->pDrawable->pScreen)->formats[8].format == GL_RED;
 }
 
 void glamor_bind_texture(glamor_screen_private *glamor_priv,
@@ -570,7 +574,7 @@ void glamor_bind_texture(glamor_screen_private *glamor_priv,
                          Bool destination_red);
 
 glamor_pixmap_fbo *glamor_create_fbo_array(glamor_screen_private *glamor_priv,
-                                           int w, int h, GLenum format,
+                                           PixmapPtr pixmap,
                                            int flag, int block_w, int block_h,
                                            glamor_pixmap_private *);
 
@@ -680,7 +684,7 @@ glamor_put_vbo_space(ScreenPtr screen);
  * the fbo has valid texture and attach to a valid fb.
  * If the fbo already has a valid glfbo then do nothing.
  */
-Bool glamor_pixmap_ensure_fbo(PixmapPtr pixmap, GLenum format, int flag);
+Bool glamor_pixmap_ensure_fbo(PixmapPtr pixmap, int flag);
 
 glamor_pixmap_clipped_regions *
 glamor_compute_clipped_regions(PixmapPtr pixmap,

@@ -504,6 +504,7 @@ public:
       this->next_bindless_image = 0;
       free(this->bindless_access);
       this->bindless_access = NULL;
+      this->shader_storage_blocks_write_access = 0;
    }
 
    void set_and_process(ir_variable *var)
@@ -541,6 +542,10 @@ public:
             }
          }
          assert(buffer_block_index != -1);
+
+         if (var->is_in_shader_storage_block() &&
+             !var->data.memory_read_only)
+            shader_storage_blocks_write_access |= 1 << buffer_block_index;
 
          /* Uniform blocks that were specified with an instance name must be
           * handled a little bit differently.  The name of the variable is the
@@ -1021,6 +1026,10 @@ public:
     */
    GLenum *bindless_access;
 
+   /**
+    * Bitmask of shader storage blocks not declared as read-only.
+    */
+   unsigned shader_storage_blocks_write_access;
 };
 
 static bool
@@ -1382,6 +1391,8 @@ link_assign_uniform_storage(struct gl_context *ctx,
 
       shader->Program->SamplersUsed = parcel.shader_samplers_used;
       shader->shadow_samplers = parcel.shader_shadow_samplers;
+      shader->Program->sh.ShaderStorageBlocksWriteAccess =
+         parcel.shader_storage_blocks_write_access;
 
       if (parcel.num_bindless_samplers > 0) {
          shader->Program->sh.NumBindlessSamplers = parcel.num_bindless_samplers;

@@ -128,6 +128,17 @@ CAN_REORDER   = "NIR_INTRINSIC_CAN_REORDER"
 
 INTR_OPCODES = {}
 
+# Defines a new NIR intrinsic.  By default, the intrinsic will have no sources
+# and no destination.
+#
+# You can set dest_comp=n to enable a destination for the intrinsic, in which
+# case it will have that many components, or =0 for "as many components as the
+# NIR destination value."
+#
+# Set src_comp=n to enable sources for the intruction.  It can be an array of
+# component counts, or (for convenience) a scalar component count if there's
+# only one source.  If a component count is 0, it will be as many components as
+# the intrinsic has based on the dest_comp.
 def intrinsic(name, src_comp=[], dest_comp=-1, indices=[],
               flags=[], sysval=False, bit_sizes=[]):
     assert name not in INTR_OPCODES
@@ -547,10 +558,15 @@ system_value("work_dim", 1)
 # VC4 and V3D need to emit a scaled version of the position in the vertex
 # shaders for binning, and having system values lets us move the math for that
 # into NIR.
+#
+# Panfrost needs to implement all coordinate transformation in the
+# vertex shader; system values allow us to share this routine in NIR.
 system_value("viewport_x_scale", 1)
 system_value("viewport_y_scale", 1)
 system_value("viewport_z_scale", 1)
 system_value("viewport_z_offset", 1)
+system_value("viewport_scale", 3)
+system_value("viewport_offset", 3)
 
 # Blend constant color values.  Float values are clamped.#
 system_value("blend_const_color_r_float", 1)
@@ -577,26 +593,26 @@ def barycentric(name, src_comp=[]):
     intrinsic("load_barycentric_" + name, src_comp=src_comp, dest_comp=2,
               indices=[INTERP_MODE], flags=[CAN_ELIMINATE, CAN_REORDER])
 
-# no sources.  const_index[] = { interp_mode }
+# no sources.
 barycentric("pixel")
 barycentric("centroid")
 barycentric("sample")
-# src[] = { sample_id }.  const_index[] = { interp_mode }
+# src[] = { sample_id }.
 barycentric("at_sample", [1])
-# src[] = { offset.xy }.  const_index[] = { interp_mode }
+# src[] = { offset.xy }.
 barycentric("at_offset", [2])
 
 # Load operations pull data from some piece of GPU memory.  All load
 # operations operate in terms of offsets into some piece of theoretical
 # memory.  Loads from externally visible memory (UBO and SSBO) simply take a
 # byte offset as a source.  Loads from opaque memory (uniforms, inputs, etc.)
-# take a base+offset pair where the base (const_index[0]) gives the location
+# take a base+offset pair where the nir_intrinsic_base() gives the location
 # of the start of the variable being loaded and and the offset source is a
 # offset into that variable.
 #
-# Uniform load operations have a second "range" index that specifies the
+# Uniform load operations have a nir_intrinsic_range() index that specifies the
 # range (starting at base) of the data from which we are loading.  If
-# const_index[1] == 0, then the range is unknown.
+# range == 0, then the range is unknown.
 #
 # Some load operations such as UBO/SSBO load and per_vertex loads take an
 # additional source to specify which UBO/SSBO/vertex to load from.
@@ -610,60 +626,57 @@ def load(name, num_srcs, indices=[], flags=[]):
     intrinsic("load_" + name, [1] * num_srcs, dest_comp=0, indices=indices,
               flags=flags)
 
-# src[] = { offset }. const_index[] = { base, range }
+# src[] = { offset }.
 load("uniform", 1, [BASE, RANGE], [CAN_ELIMINATE, CAN_REORDER])
-# src[] = { buffer_index, offset }. const_index[] = { align_mul, align_offset }
-load("ubo", 2, [ALIGN_MUL, ALIGN_OFFSET], flags=[CAN_ELIMINATE, CAN_REORDER])
-# src[] = { offset }. const_index[] = { base, component }
+# src[] = { buffer_index, offset }.
+load("ubo", 2, [ACCESS, ALIGN_MUL, ALIGN_OFFSET], flags=[CAN_ELIMINATE, CAN_REORDER])
+# src[] = { offset }.
 load("input", 1, [BASE, COMPONENT], [CAN_ELIMINATE, CAN_REORDER])
-# src[] = { vertex, offset }. const_index[] = { base, component }
+# src[] = { vertex, offset }.
 load("per_vertex_input", 2, [BASE, COMPONENT], [CAN_ELIMINATE, CAN_REORDER])
-# src[] = { barycoord, offset }. const_index[] = { base, component }
+# src[] = { barycoord, offset }.
 intrinsic("load_interpolated_input", src_comp=[2, 1], dest_comp=0,
           indices=[BASE, COMPONENT], flags=[CAN_ELIMINATE, CAN_REORDER])
 
 # src[] = { buffer_index, offset }.
-# const_index[] = { access, align_mul, align_offset }
 load("ssbo", 2, [ACCESS, ALIGN_MUL, ALIGN_OFFSET], [CAN_ELIMINATE])
-# src[] = { offset }. const_index[] = { base, component }
+# src[] = { offset }.
 load("output", 1, [BASE, COMPONENT], flags=[CAN_ELIMINATE])
-# src[] = { vertex, offset }. const_index[] = { base }
+# src[] = { vertex, offset }.
 load("per_vertex_output", 2, [BASE, COMPONENT], [CAN_ELIMINATE])
-# src[] = { offset }. const_index[] = { base, align_mul, align_offset }
+# src[] = { offset }.
 load("shared", 1, [BASE, ALIGN_MUL, ALIGN_OFFSET], [CAN_ELIMINATE])
-# src[] = { offset }. const_index[] = { base, range }
+# src[] = { offset }.
 load("push_constant", 1, [BASE, RANGE], [CAN_ELIMINATE, CAN_REORDER])
-# src[] = { offset }. const_index[] = { base, range }
+# src[] = { offset }.
 load("constant", 1, [BASE, RANGE], [CAN_ELIMINATE, CAN_REORDER])
 # src[] = { address }.
-# const_index[] = { access, align_mul, align_offset }
 load("global", 1, [ACCESS, ALIGN_MUL, ALIGN_OFFSET], [CAN_ELIMINATE])
-# src[] = { address }. const_index[] = { base, range, align_mul, align_offset }
+# src[] = { address }.
 load("kernel_input", 1, [BASE, RANGE, ALIGN_MUL, ALIGN_OFFSET], [CAN_ELIMINATE, CAN_REORDER])
+# src[] = { offset }.
+load("scratch", 1, [ALIGN_MUL, ALIGN_OFFSET], [CAN_ELIMINATE])
 
 # Stores work the same way as loads, except now the first source is the value
 # to store and the second (and possibly third) source specify where to store
-# the value.  SSBO and shared memory stores also have a write mask as
-# const_index[0].
+# the value.  SSBO and shared memory stores also have a
+# nir_intrinsic_write_mask()
 
 def store(name, num_srcs, indices=[], flags=[]):
     intrinsic("store_" + name, [0] + ([1] * (num_srcs - 1)), indices=indices, flags=flags)
 
-# src[] = { value, offset }. const_index[] = { base, write_mask, component }
+# src[] = { value, offset }.
 store("output", 2, [BASE, WRMASK, COMPONENT])
 # src[] = { value, vertex, offset }.
-# const_index[] = { base, write_mask, component }
 store("per_vertex_output", 3, [BASE, WRMASK, COMPONENT])
 # src[] = { value, block_index, offset }
-# const_index[] = { write_mask, access, align_mul, align_offset }
 store("ssbo", 3, [WRMASK, ACCESS, ALIGN_MUL, ALIGN_OFFSET])
 # src[] = { value, offset }.
-# const_index[] = { base, write_mask, align_mul, align_offset }
 store("shared", 2, [BASE, WRMASK, ALIGN_MUL, ALIGN_OFFSET])
 # src[] = { value, address }.
-# const_index[] = { write_mask, align_mul, align_offset }
 store("global", 2, [WRMASK, ACCESS, ALIGN_MUL, ALIGN_OFFSET])
-
+# src[] = { value, offset }.
+store("scratch", 2, [ALIGN_MUL, ALIGN_OFFSET, WRMASK])
 
 # IR3-specific version of most SSBO intrinsics. The only different
 # compare to the originals is that they add an extra source to hold

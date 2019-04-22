@@ -716,6 +716,68 @@ util_format_translate(enum pipe_format dst_format,
 
       FREE(tmp_row);
    }
+   else if (util_format_is_pure_sint(src_format) ||
+            util_format_is_pure_sint(dst_format)) {
+      unsigned tmp_stride;
+      int *tmp_row;
+
+      if (!src_format_desc->unpack_rgba_sint ||
+          !dst_format_desc->pack_rgba_sint) {
+         return FALSE;
+      }
+
+      tmp_stride = MAX2(width, x_step) * 4 * sizeof *tmp_row;
+      tmp_row = MALLOC(y_step * tmp_stride);
+      if (!tmp_row)
+         return FALSE;
+
+      while (height >= y_step) {
+         src_format_desc->unpack_rgba_sint(tmp_row, tmp_stride, src_row, src_stride, width, y_step);
+         dst_format_desc->pack_rgba_sint(dst_row, dst_stride, tmp_row, tmp_stride, width, y_step);
+
+         dst_row += dst_step;
+         src_row += src_step;
+         height -= y_step;
+      }
+
+      if (height) {
+         src_format_desc->unpack_rgba_sint(tmp_row, tmp_stride, src_row, src_stride, width, height);
+         dst_format_desc->pack_rgba_sint(dst_row, dst_stride, tmp_row, tmp_stride, width, height);
+      }
+
+      FREE(tmp_row);
+   }
+   else if (util_format_is_pure_uint(src_format) ||
+            util_format_is_pure_uint(dst_format)) {
+      unsigned tmp_stride;
+      unsigned int *tmp_row;
+
+      if (!src_format_desc->unpack_rgba_uint ||
+          !dst_format_desc->pack_rgba_uint) {
+         return FALSE;
+      }
+
+      tmp_stride = MAX2(width, x_step) * 4 * sizeof *tmp_row;
+      tmp_row = MALLOC(y_step * tmp_stride);
+      if (!tmp_row)
+         return FALSE;
+
+      while (height >= y_step) {
+         src_format_desc->unpack_rgba_uint(tmp_row, tmp_stride, src_row, src_stride, width, y_step);
+         dst_format_desc->pack_rgba_uint(dst_row, dst_stride, tmp_row, tmp_stride, width, y_step);
+
+         dst_row += dst_step;
+         src_row += src_step;
+         height -= y_step;
+      }
+
+      if (height) {
+         src_format_desc->unpack_rgba_uint(tmp_row, tmp_stride, src_row, src_stride, width, height);
+         dst_format_desc->pack_rgba_uint(dst_row, dst_stride, tmp_row, tmp_stride, width, height);
+      }
+
+      FREE(tmp_row);
+   }
    else {
       unsigned tmp_stride;
       float *tmp_row;

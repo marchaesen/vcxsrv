@@ -50,25 +50,7 @@ lower_load_const_instr_scalar(nir_load_const_instr *lower)
    for (unsigned i = 0; i < lower->def.num_components; i++) {
       nir_load_const_instr *load_comp =
          nir_load_const_instr_create(b.shader, 1, lower->def.bit_size);
-      switch (lower->def.bit_size) {
-      case 64:
-         load_comp->value.u64[0] = lower->value.u64[i];
-         break;
-      case 32:
-         load_comp->value.u32[0] = lower->value.u32[i];
-         break;
-      case 16:
-         load_comp->value.u16[0] = lower->value.u16[i];
-         break;
-      case 8:
-         load_comp->value.u8[0] = lower->value.u8[i];
-         break;
-      case 1:
-         load_comp->value.b[0] = lower->value.b[i];
-         break;
-      default:
-         assert(!"invalid bit size");
-      }
+      load_comp->value[0] = lower->value[i];
       nir_builder_instr_insert(&b, &load_comp->instr);
       loads[i] = &load_comp->def;
    }

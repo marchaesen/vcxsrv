@@ -136,6 +136,8 @@ Gfx9Lib::Gfx9Lib(const Client* pClient)
     m_class = AI_ADDRLIB;
     memset(&m_settings, 0, sizeof(m_settings));
     memcpy(m_swizzleModeTable, SwizzleModeTable, sizeof(SwizzleModeTable));
+    m_metaEqOverrideIndex = 0;
+    memset(m_cachedMetaEqKey, 0, sizeof(m_cachedMetaEqKey));
 }
 
 /**

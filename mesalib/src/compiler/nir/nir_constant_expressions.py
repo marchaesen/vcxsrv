@@ -66,6 +66,8 @@ template = """\
 #include "util/bigmath.h"
 #include "nir_constant_expressions.h"
 
+#define MAX_UINT_FOR_SIZE(bits) (UINT64_MAX >> (64 - (bits)))
+
 /**
  * Evaluate one component of packSnorm4x8.
  */
@@ -281,11 +283,11 @@ struct ${type}${width}_vec {
       % for k in range(op.input_sizes[j]):
          % if input_types[j] == "int1":
              /* 1-bit integers use a 0/-1 convention */
-             -(int1_t)_src[${j}].b[${k}],
+             -(int1_t)_src[${j}][${k}].b,
          % elif input_types[j] == "float16":
-            _mesa_half_to_float(_src[${j}].u16[${k}]),
+            _mesa_half_to_float(_src[${j}][${k}].u16),
          % else:
-            _src[${j}].${get_const_field(input_types[j])}[${k}],
+            _src[${j}][${k}].${get_const_field(input_types[j])},
          % endif
       % endfor
       % for k in range(op.input_sizes[j], 4):
@@ -309,13 +311,13 @@ struct ${type}${width}_vec {
                <% continue %>
             % elif input_types[j] == "int1":
                /* 1-bit integers use a 0/-1 convention */
-               const int1_t src${j} = -(int1_t)_src[${j}].b[_i];
+               const int1_t src${j} = -(int1_t)_src[${j}][_i].b;
             % elif input_types[j] == "float16":
                const float src${j} =
-                  _mesa_half_to_float(_src[${j}].u16[_i]);
+                  _mesa_half_to_float(_src[${j}][_i].u16);
             % else:
                const ${input_types[j]}_t src${j} =
-                  _src[${j}].${get_const_field(input_types[j])}[_i];
+                  _src[${j}][_i].${get_const_field(input_types[j])};
             % endif
          % endfor
 
@@ -334,14 +336,14 @@ struct ${type}${width}_vec {
          ## value of dst.
          % if output_type == "int1" or output_type == "uint1":
             /* 1-bit integers get truncated */
-            _dst_val.b[_i] = dst & 1;
+            _dst_val[_i].b = dst & 1;
          % elif output_type.startswith("bool"):
             ## Sanitize the C value to a proper NIR 0/-1 bool
-            _dst_val.${get_const_field(output_type)}[_i] = -(int)dst;
+            _dst_val[_i].${get_const_field(output_type)} = -(int)dst;
          % elif output_type == "float16":
-            _dst_val.u16[_i] = _mesa_float_to_half(dst);
+            _dst_val[_i].u16 = _mesa_float_to_half(dst);
          % else:
-            _dst_val.${get_const_field(output_type)}[_i] = dst;
+            _dst_val[_i].${get_const_field(output_type)} = dst;
          % endif
       }
    % else:
@@ -366,27 +368,26 @@ struct ${type}${width}_vec {
       % for k in range(op.output_size):
          % if output_type == "int1" or output_type == "uint1":
             /* 1-bit integers get truncated */
-            _dst_val.b[${k}] = dst.${"xyzw"[k]} & 1;
+            _dst_val[${k}].b = dst.${"xyzw"[k]} & 1;
          % elif output_type.startswith("bool"):
             ## Sanitize the C value to a proper NIR 0/-1 bool
-            _dst_val.${get_const_field(output_type)}[${k}] = -(int)dst.${"xyzw"[k]};
+            _dst_val[${k}].${get_const_field(output_type)} = -(int)dst.${"xyzw"[k]};
          % elif output_type == "float16":
-            _dst_val.u16[${k}] = _mesa_float_to_half(dst.${"xyzw"[k]});
+            _dst_val[${k}].u16 = _mesa_float_to_half(dst.${"xyzw"[k]});
          % else:
-            _dst_val.${get_const_field(output_type)}[${k}] = dst.${"xyzw"[k]};
+            _dst_val[${k}].${get_const_field(output_type)} = dst.${"xyzw"[k]};
          % endif
       % endfor
    % endif
 </%def>
 
 % for name, op in sorted(opcodes.items()):
-static nir_const_value
-evaluate_${name}(MAYBE_UNUSED unsigned num_components,
+static void
+evaluate_${name}(nir_const_value *_dst_val,
+                 MAYBE_UNUSED unsigned num_components,
                  ${"UNUSED" if op_bit_sizes(op) is None else ""} unsigned bit_size,
-                 MAYBE_UNUSED nir_const_value *_src)
+                 MAYBE_UNUSED nir_const_value **_src)
 {
-   nir_const_value _dst_val = { {0, } };
-
    % if op_bit_sizes(op) is not None:
       switch (bit_size) {
       % for bit_size in op_bit_sizes(op):
@@ -402,19 +403,18 @@ evaluate_${name}(MAYBE_UNUSED unsigned num_components,
    % else:
       ${evaluate_op(op, 0)}
    % endif
-
-   return _dst_val;
 }
 % endfor
 
-nir_const_value
-nir_eval_const_opcode(nir_op op, unsigned num_components,
-                      unsigned bit_width, nir_const_value *src)
+void
+nir_eval_const_opcode(nir_op op, nir_const_value *dest,
+                      unsigned num_components, unsigned bit_width,
+                      nir_const_value **src)
 {
    switch (op) {
 % for name in sorted(opcodes.keys()):
    case nir_op_${name}:
-      return evaluate_${name}(num_components, bit_width, src);
+      return evaluate_${name}(dest, num_components, bit_width, src);
 % endfor
    default:
       unreachable("shouldn't get here");

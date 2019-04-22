@@ -769,7 +769,7 @@ clip_span( struct gl_context *ctx, SWspan *span )
           * For arrays of values, shift them left.
           */
          for (i = 0; i < VARYING_SLOT_MAX; i++) {
-            if (span->interpMask & (1 << i)) {
+            if (span->interpMask & (1u << i)) {
                GLuint j;
                for (j = 0; j < 4; j++) {
                   span->attrStart[i][j] += leftClip * span->attrStepX[i][j];

@@ -196,6 +196,18 @@ __vk_find_struct(void *start, VkStructureType sType)
 #define vk_find_struct_const(__start, __sType) \
    (const void *)__vk_find_struct((void *)(__start), VK_STRUCTURE_TYPE_##__sType)
 
+static inline void
+__vk_append_struct(void *start, void *element)
+{
+   vk_foreach_struct(s, start) {
+      if (s->pNext)
+         continue;
+
+      s->pNext = (struct VkBaseOutStructure *) element;
+      break;
+   }
+}
+
 uint32_t vk_get_driver_version(void);
 
 uint32_t vk_get_version_override(void);

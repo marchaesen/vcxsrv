@@ -29,6 +29,8 @@
 #include <time.h>
 #include <unistd.h>
 #include <xf86drm.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 VkResult
 wsi_device_init(struct wsi_device *wsi,
@@ -37,6 +39,7 @@ wsi_device_init(struct wsi_device *wsi,
                 const VkAllocationCallbacks *alloc,
                 int display_fd)
 {
+   const char *present_mode;
    VkResult result;
 
    memset(wsi, 0, sizeof(*wsi));
@@ -60,6 +63,7 @@ wsi_device_init(struct wsi_device *wsi,
    GetPhysicalDeviceProperties2(pdevice, &pdp2);
 
    wsi->maxImageDimension2D = pdp2.properties.limits.maxImageDimension2D;
+   wsi->override_present_mode = VK_PRESENT_MODE_MAX_ENUM_KHR;
 
    GetPhysicalDeviceMemoryProperties(pdevice, &wsi->memory_props);
    GetPhysicalDeviceQueueFamilyProperties(pdevice, &wsi->queue_family_count, NULL);
@@ -111,6 +115,19 @@ wsi_device_init(struct wsi_device *wsi,
    if (result != VK_SUCCESS)
       goto fail;
 #endif
+
+   present_mode = getenv("MESA_VK_WSI_PRESENT_MODE");
+   if (present_mode) {
+      if (!strcmp(present_mode, "fifo")) {
+         wsi->override_present_mode = VK_PRESENT_MODE_FIFO_KHR;
+      } else if (!strcmp(present_mode, "mailbox")) {
+         wsi->override_present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
+      } else if (!strcmp(present_mode, "immediate")) {
+         wsi->override_present_mode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+      } else {
+         fprintf(stderr, "Invalid MESA_VK_WSI_PRESENT_MODE value!\n");
+      }
+   }
 
    return VK_SUCCESS;
 
@@ -200,6 +217,59 @@ wsi_swapchain_init(const struct wsi_device *wsi,
 fail:
    wsi_swapchain_finish(chain);
    return result;
+}
+
+static bool
+wsi_swapchain_is_present_mode_supported(struct wsi_device *wsi,
+                                        const VkSwapchainCreateInfoKHR *pCreateInfo,
+                                        VkPresentModeKHR mode)
+{
+      ICD_FROM_HANDLE(VkIcdSurfaceBase, surface, pCreateInfo->surface);
+      struct wsi_interface *iface = wsi->wsi[surface->platform];
+      VkPresentModeKHR *present_modes;
+      uint32_t present_mode_count;
+      bool supported = false;
+      VkResult result;
+
+      result = iface->get_present_modes(surface, &present_mode_count, NULL);
+      if (result != VK_SUCCESS)
+         return supported;
+
+      present_modes = malloc(present_mode_count * sizeof(*present_modes));
+      if (!present_modes)
+         return supported;
+
+      result = iface->get_present_modes(surface, &present_mode_count,
+                                        present_modes);
+      if (result != VK_SUCCESS)
+         goto fail;
+
+      for (uint32_t i = 0; i < present_mode_count; i++) {
+         if (present_modes[i] == mode) {
+            supported = true;
+            break;
+         }
+      }
+
+fail:
+      free(present_modes);
+      return supported;
+}
+
+enum VkPresentModeKHR
+wsi_swapchain_get_present_mode(struct wsi_device *wsi,
+                               const VkSwapchainCreateInfoKHR *pCreateInfo)
+{
+   if (wsi->override_present_mode == VK_PRESENT_MODE_MAX_ENUM_KHR)
+      return pCreateInfo->presentMode;
+
+   if (!wsi_swapchain_is_present_mode_supported(wsi, pCreateInfo,
+                                                wsi->override_present_mode)) {
+      fprintf(stderr, "Unsupported MESA_VK_WSI_PRESENT_MODE value!\n");
+      return pCreateInfo->presentMode;
+   }
+
+   return wsi->override_present_mode;
 }
 
 void

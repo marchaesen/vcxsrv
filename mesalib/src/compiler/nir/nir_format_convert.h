@@ -53,10 +53,11 @@ nir_mask_shift_or(struct nir_builder *b, nir_ssa_def *dst, nir_ssa_def *src,
 static inline nir_ssa_def *
 nir_format_mask_uvec(nir_builder *b, nir_ssa_def *src, const unsigned *bits)
 {
-   nir_const_value mask;
+   nir_const_value mask[NIR_MAX_VEC_COMPONENTS];
+   memset(mask, 0, sizeof(mask));
    for (unsigned i = 0; i < src->num_components; i++) {
       assert(bits[i] < 32);
-      mask.u32[i] = (1u << bits[i]) - 1;
+      mask[i].u32 = (1u << bits[i]) - 1;
    }
    return nir_iand(b, src, nir_build_imm(b, src->num_components, 32, mask));
 }
@@ -210,10 +211,11 @@ _nir_format_norm_factor(nir_builder *b, const unsigned *bits,
                         unsigned num_components,
                         bool is_signed)
 {
-   nir_const_value factor;
+   nir_const_value factor[NIR_MAX_VEC_COMPONENTS];
+   memset(factor, 0, sizeof(factor));
    for (unsigned i = 0; i < num_components; i++) {
       assert(bits[i] < 32);
-      factor.f32[i] = (1ul << (bits[i] - is_signed)) - 1;
+      factor[i].f32 = (1ul << (bits[i] - is_signed)) - 1;
    }
    return nir_build_imm(b, num_components, 32, factor);
 }
@@ -309,10 +311,11 @@ nir_format_clamp_uint(nir_builder *b, nir_ssa_def *f, const unsigned *bits)
    if (bits[0] == 32)
       return f;
 
-   nir_const_value max;
+   nir_const_value max[NIR_MAX_VEC_COMPONENTS];
+   memset(max, 0, sizeof(max));
    for (unsigned i = 0; i < f->num_components; i++) {
       assert(bits[i] < 32);
-      max.u32[i] = (1 << bits[i]) - 1;
+      max[i].u32 = (1 << bits[i]) - 1;
    }
    return nir_umin(b, f, nir_build_imm(b, f->num_components, 32, max));
 }
@@ -326,11 +329,13 @@ nir_format_clamp_sint(nir_builder *b, nir_ssa_def *f, const unsigned *bits)
    if (bits[0] == 32)
       return f;
 
-   nir_const_value min, max;
+   nir_const_value min[NIR_MAX_VEC_COMPONENTS], max[NIR_MAX_VEC_COMPONENTS];
+   memset(min, 0, sizeof(min));
+   memset(max, 0, sizeof(max));
    for (unsigned i = 0; i < f->num_components; i++) {
       assert(bits[i] < 32);
-      max.i32[i] = (1 << (bits[i] - 1)) - 1;
-      min.i32[i] = -(1 << (bits[i] - 1));
+      max[i].i32 = (1 << (bits[i] - 1)) - 1;
+      min[i].i32 = -(1 << (bits[i] - 1));
    }
    f = nir_imin(b, f, nir_build_imm(b, f->num_components, 32, max));
    f = nir_imax(b, f, nir_build_imm(b, f->num_components, 32, min));

@@ -151,6 +151,7 @@ hud_cpufreq_graph_install(struct hud_pane *pane, int cpu_index,
       snprintf(gr->name, sizeof(gr->name), "%s-Max", cfi->name);
       break;
    default:
+      free(gr);
       return;
    }
 

@@ -6,7 +6,7 @@ stages:
 before_script:
   - dnf -y upgrade --disablerepo=rawhide-modular --nogpgcheck fedora-repos fedora-repos-rawhide
   - dnf -y upgrade --disablerepo=rawhide-modular
-  - dnf -y install --disablerepo=rawhide-modular --allowerasing --skip-broken @buildsys-build autoconf automake libtool gettext gettext-devel gperf expat-devel freetype-devel libuuid-devel json-c-devel git docbook-utils docbook-utils-pdf bubblewrap
+  - dnf -y install --disablerepo=rawhide-modular --allowerasing --skip-broken @buildsys-build autoconf automake libtool gettext gettext-devel gperf expat-devel freetype-devel json-c-devel git docbook-utils docbook-utils-pdf bubblewrap
   - dnf -y install --disablerepo=rawhide-modular --allowerasing --skip-broken mingw64-gettext mingw64-freetype mingw64-expat wine
 
 shared-build:
@@ -27,13 +27,15 @@ shared-build:
     name: fontconfig-$CI_COMMIT_SHA-$CI_JOB_ID
     when: always
     paths:
-      - build-*/fontconfig-*.tar.bz2
+      - build-*/fontconfig-*.tar.*
       - build-*/fontconfig*/_build/sub/*.log
       - build-*/fontconfig*/_build/sub/test/*.log
       - build-*/fontconfig*/_build/sub/test/*.trs
+      - build-*/fontconfig*/_build/sub/test/out*
       - build-*/*.log
       - build-*/test/*.log
       - build-*/test/*.trs
+      - build-*/test/out*
       - prefix-*
 static-build:
   stage: build
@@ -54,6 +56,7 @@ static-build:
       - build-*/*.log
       - build-*/test/*.log
       - build-*/test/*.trs
+      - build-*/test/out*
 mingw-build:
   stage: build
   script:
@@ -74,4 +77,4 @@ mingw-build:
       - build-*/*.log
       - build-*/test/*.log
       - build-*/test/*.trs
-
+      - build-*/test/out*

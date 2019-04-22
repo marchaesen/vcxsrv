@@ -224,7 +224,9 @@ main(void)
 	goto bail;
     free (ret);
     free (s);
+    FcConfigDestroy (cfg);
     setenv ("FONTCONFIG_SYSROOT", sysroot, 1);
+    cfg = FcConfigCreate ();
     fprintf (stderr, "D: Creating %s\n", sysroot);
     mkdir_p (sysroot);
     retval++;

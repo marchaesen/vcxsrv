@@ -58,10 +58,8 @@ nir_shader_create(void *mem_ctx,
    }
 
    exec_list_make_empty(&shader->functions);
-   exec_list_make_empty(&shader->registers);
    exec_list_make_empty(&shader->globals);
    exec_list_make_empty(&shader->system_values);
-   shader->reg_alloc = 0;
 
    shader->num_inputs = 0;
    shader->num_outputs = 0;
@@ -83,20 +81,9 @@ reg_create(void *mem_ctx, struct exec_list *list)
    reg->num_components = 0;
    reg->bit_size = 32;
    reg->num_array_elems = 0;
-   reg->is_packed = false;
    reg->name = NULL;
 
    exec_list_push_tail(list, &reg->node);
-
-   return reg;
-}
-
-nir_register *
-nir_global_reg_create(nir_shader *shader)
-{
-   nir_register *reg = reg_create(shader, &shader->registers);
-   reg->index = shader->reg_alloc++;
-   reg->is_global = true;
 
    return reg;
 }
@@ -106,7 +93,6 @@ nir_local_reg_create(nir_function_impl *impl)
 {
    nir_register *reg = reg_create(ralloc_parent(impl), &impl->registers);
    reg->index = impl->reg_alloc++;
-   reg->is_global = false;
 
    return reg;
 }
@@ -487,7 +473,8 @@ nir_load_const_instr *
 nir_load_const_instr_create(nir_shader *shader, unsigned num_components,
                             unsigned bit_size)
 {
-   nir_load_const_instr *instr = rzalloc(shader, nir_load_const_instr);
+   nir_load_const_instr *instr =
+      rzalloc_size(shader, sizeof(*instr) + num_components * sizeof(*instr->value));
    instr_init(&instr->instr, nir_instr_type_load_const);
 
    nir_ssa_def_init(&instr->instr, &instr->def, num_components, bit_size, NULL);
@@ -648,10 +635,11 @@ static nir_const_value
 const_value_float(double d, unsigned bit_size)
 {
    nir_const_value v;
+   memset(&v, 0, sizeof(v));
    switch (bit_size) {
-   case 16: v.u16[0] = _mesa_float_to_half(d);  break;
-   case 32: v.f32[0] = d;                       break;
-   case 64: v.f64[0] = d;                       break;
+   case 16: v.u16 = _mesa_float_to_half(d);  break;
+   case 32: v.f32 = d;                       break;
+   case 64: v.f64 = d;                       break;
    default:
       unreachable("Invalid bit size");
    }
@@ -662,12 +650,13 @@ static nir_const_value
 const_value_int(int64_t i, unsigned bit_size)
 {
    nir_const_value v;
+   memset(&v, 0, sizeof(v));
    switch (bit_size) {
-   case 1:  v.b[0]   = i & 1;  break;
-   case 8:  v.i8[0]  = i;  break;
-   case 16: v.i16[0] = i;  break;
-   case 32: v.i32[0] = i;  break;
-   case 64: v.i64[0] = i;  break;
+   case 1:  v.b   = i & 1;  break;
+   case 8:  v.i8  = i;  break;
+   case 16: v.i16 = i;  break;
+   case 32: v.i32 = i;  break;
+   case 64: v.i64 = i;  break;
    default:
       unreachable("Invalid bit size");
    }
@@ -929,16 +918,6 @@ nir_index_local_regs(nir_function_impl *impl)
       reg->index = index++;
    }
    impl->reg_alloc = index;
-}
-
-void
-nir_index_global_regs(nir_shader *shader)
-{
-   unsigned index = 0;
-   foreach_list_typed(nir_register, reg, node, &shader->registers) {
-      reg->index = index++;
-   }
-   shader->reg_alloc = index;
 }
 
 static bool
@@ -1234,11 +1213,11 @@ nir_src_comp_as_int(nir_src src, unsigned comp)
    assert(comp < load->def.num_components);
    switch (load->def.bit_size) {
    /* int1_t uses 0/-1 convention */
-   case 1:  return -(int)load->value.b[comp];
-   case 8:  return load->value.i8[comp];
-   case 16: return load->value.i16[comp];
-   case 32: return load->value.i32[comp];
-   case 64: return load->value.i64[comp];
+   case 1:  return -(int)load->value[comp].b;
+   case 8:  return load->value[comp].i8;
+   case 16: return load->value[comp].i16;
+   case 32: return load->value[comp].i32;
+   case 64: return load->value[comp].i64;
    default:
       unreachable("Invalid bit size");
    }
@@ -1252,11 +1231,11 @@ nir_src_comp_as_uint(nir_src src, unsigned comp)
 
    assert(comp < load->def.num_components);
    switch (load->def.bit_size) {
-   case 1:  return load->value.b[comp];
-   case 8:  return load->value.u8[comp];
-   case 16: return load->value.u16[comp];
-   case 32: return load->value.u32[comp];
-   case 64: return load->value.u64[comp];
+   case 1:  return load->value[comp].b;
+   case 8:  return load->value[comp].u8;
+   case 16: return load->value[comp].u16;
+   case 32: return load->value[comp].u32;
+   case 64: return load->value[comp].u64;
    default:
       unreachable("Invalid bit size");
    }
@@ -1281,9 +1260,9 @@ nir_src_comp_as_float(nir_src src, unsigned comp)
 
    assert(comp < load->def.num_components);
    switch (load->def.bit_size) {
-   case 16: return _mesa_half_to_float(load->value.u16[comp]);
-   case 32: return load->value.f32[comp];
-   case 64: return load->value.f64[comp];
+   case 16: return _mesa_half_to_float(load->value[comp].u16);
+   case 32: return load->value[comp].f32;
+   case 64: return load->value[comp].f64;
    default:
       unreachable("Invalid bit size");
    }
@@ -1328,7 +1307,7 @@ nir_src_as_const_value(nir_src src)
 
    nir_load_const_instr *load = nir_instr_as_load_const(src.ssa->parent_instr);
 
-   return &load->value;
+   return load->value;
 }
 
 /**
@@ -2012,4 +1991,46 @@ nir_get_single_slot_attribs_mask(uint64_t attribs, uint64_t dual_slot)
       attribs = (attribs & mask) | ((attribs & ~mask) >> 1);
    }
    return attribs;
+}
+
+void
+nir_rewrite_image_intrinsic(nir_intrinsic_instr *intrin, nir_ssa_def *src,
+                            bool bindless)
+{
+   switch (intrin->intrinsic) {
+#define CASE(op) \
+   case nir_intrinsic_image_deref_##op: \
+      intrin->intrinsic = bindless ? nir_intrinsic_bindless_image_##op \
+                                   : nir_intrinsic_image_##op; \
+      break;
+   CASE(load)
+   CASE(store)
+   CASE(atomic_add)
+   CASE(atomic_min)
+   CASE(atomic_max)
+   CASE(atomic_and)
+   CASE(atomic_or)
+   CASE(atomic_xor)
+   CASE(atomic_exchange)
+   CASE(atomic_comp_swap)
+   CASE(atomic_fadd)
+   CASE(size)
+   CASE(samples)
+   CASE(load_raw_intel)
+   CASE(store_raw_intel)
+#undef CASE
+   default:
+      unreachable("Unhanded image intrinsic");
+   }
+
+   nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
+   nir_variable *var = nir_deref_instr_get_variable(deref);
+
+   nir_intrinsic_set_image_dim(intrin, glsl_get_sampler_dim(deref->type));
+   nir_intrinsic_set_image_array(intrin, glsl_sampler_type_is_array(deref->type));
+   nir_intrinsic_set_access(intrin, var->data.image.access);
+   nir_intrinsic_set_format(intrin, var->data.image.format);
+
+   nir_instr_rewrite_src(&intrin->instr, &intrin->src[0],
+                         nir_src_for_ssa(src));
 }

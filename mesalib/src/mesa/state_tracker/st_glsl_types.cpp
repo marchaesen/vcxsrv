@@ -110,7 +110,7 @@ st_glsl_storage_type_size(const struct glsl_type *type, bool is_bindless)
 }
 
 int
-st_glsl_type_dword_size(const struct glsl_type *type)
+st_glsl_type_dword_size(const struct glsl_type *type, bool bindless)
 {
    unsigned int size, i;
 
@@ -127,20 +127,24 @@ st_glsl_type_dword_size(const struct glsl_type *type)
    case GLSL_TYPE_UINT8:
    case GLSL_TYPE_INT8:
       return DIV_ROUND_UP(type->components(), 4);
+   case GLSL_TYPE_IMAGE:
+   case GLSL_TYPE_SAMPLER:
+      if (!bindless)
+         return 0;
    case GLSL_TYPE_DOUBLE:
    case GLSL_TYPE_UINT64:
    case GLSL_TYPE_INT64:
       return type->components() * 2;
    case GLSL_TYPE_ARRAY:
-      return st_glsl_type_dword_size(type->fields.array) * type->length;
+      return st_glsl_type_dword_size(type->fields.array, bindless) *
+             type->length;
    case GLSL_TYPE_STRUCT:
       size = 0;
       for (i = 0; i < type->length; i++) {
-         size += st_glsl_type_dword_size(type->fields.structure[i].type);
+         size += st_glsl_type_dword_size(type->fields.structure[i].type,
+                                         bindless);
       }
       return size;
-   case GLSL_TYPE_IMAGE:
-   case GLSL_TYPE_SAMPLER:
    case GLSL_TYPE_ATOMIC_UINT:
       return 0;
    case GLSL_TYPE_SUBROUTINE:
@@ -154,4 +158,15 @@ st_glsl_type_dword_size(const struct glsl_type *type)
    }
 
    return 0;
+}
+
+/**
+ * Returns the type size of uniforms when !PIPE_CAP_PACKED_UNIFORMS -- each
+ * value or array element is aligned to a vec4 offset and expanded out to a
+ * vec4.
+ */
+int
+st_glsl_uniforms_type_size(const struct glsl_type *type, bool bindless)
+{
+   return st_glsl_storage_type_size(type, bindless);
 }

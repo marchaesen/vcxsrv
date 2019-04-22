@@ -191,9 +191,9 @@ For 64-bit Fedora systems:
 <li>Build libdrm:
   <pre>
   cd $TOP/drm
-  ./autogen.sh --prefix=/usr --libdir=${LIBDIR}
-  make
-  sudo make install
+  meson builddir --prefix=/usr --libdir=${LIBDIR}
+  ninja -C builddir
+  sudo ninja -C builddir install
   </pre>
 <li>Build Mesa and the vmwgfx_dri.so driver, the vmwgfx_drv.so xorg driver, the X acceleration library libxatracker.
 The vmwgfx_dri.so is used by the OpenGL libraries during direct rendering,
@@ -204,9 +204,9 @@ copy and video acceleration:
 The following configure options doesn't build the EGL system.
   <pre>
   cd $TOP/mesa
-  ./autogen.sh --prefix=/usr --libdir=${LIBDIR} --with-gallium-drivers=svga --with-dri-drivers=swrast --enable-xa --disable-dri3 --enable-glx-tls
-  make
-  sudo make install
+  meson builddir --prefix=/usr --libdir=${LIBDIR} -Dgallium-drivers=svga -Ddri-drivers=swrast -Dgallium-xa=true -Ddri3=false
+  ninja -C builddir
+  sudo ninja -C builddir install
   </pre>
 
 Note that you may have to install other packages that Mesa depends upon

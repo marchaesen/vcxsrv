@@ -40,10 +40,10 @@ Build system.
 </p>
 
 <ul>
-<li><a href="https://mesonbuild.com">meson</a> is recommended when building on *nix platforms.
-<li>Autoconf is another option when building on *nix platforms.
+<li><a href="https://mesonbuild.com">meson</a> is required when building on *nix platforms.
+<li>Autoconf was removed in 19.1.0, use meson instead
 <li><a href="http://www.scons.org/">SCons</a> is required for building on
-Windows and optional for Linux (it's an alternative to autoconf/automake or meson.)
+Windows and optional for Linux (it's an alternative to meson.)
 </li>
 <li>Android Build system when building as native Android component. Autoconf
 is used when when building ARC.
@@ -138,21 +138,7 @@ for more information
 <h1 id="autoconf">3. Building with autoconf (Linux/Unix/X11)</h1>
 
 <p>
-Although meson is recommended, another supported way to build on *nix systems
-is with autoconf.
-</p>
-
-<p>
-The general approach is the standard:
-</p>
-<pre>
-  ./configure
-  make
-  sudo make install
-</pre>
-<p>
-But please read the <a href="autoconf.html">detailed autoconf instructions</a>
-for more details.
+  Autoconf support was removed in Mesa 19.1.0. Please use meson instead.
 </p>
 
 

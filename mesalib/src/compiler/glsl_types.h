@@ -47,10 +47,13 @@ struct _mesa_glsl_parse_state;
 struct glsl_symbol_table;
 
 extern void
-_mesa_glsl_initialize_types(struct _mesa_glsl_parse_state *state);
+glsl_type_singleton_init_or_ref();
 
 extern void
-_mesa_glsl_release_types(void);
+glsl_type_singleton_decref();
+
+extern void
+_mesa_glsl_initialize_types(struct _mesa_glsl_parse_state *state);
 
 void encode_type_to_blob(struct blob *blob, const struct glsl_type *type);
 
@@ -934,11 +937,15 @@ public:
    /**
     * Compare a record type against another record type.
     *
-    * This is useful for matching record types declared across shader stages.
+    * This is useful for matching record types declared on the same shader
+    * stage as well as across different shader stages.
+    * The option to not match name is needed for matching record types
+    * declared across different shader stages.
     * The option to not match locations is to deal with places where the
     * same struct is defined in a block which has a location set on it.
     */
-   bool record_compare(const glsl_type *b, bool match_locations = true) const;
+   bool record_compare(const glsl_type *b, bool match_name,
+                       bool match_locations = true) const;
 
    /**
     * Get the type interface packing.
@@ -1058,8 +1065,9 @@ private:
     * data.
     */
    /*@{*/
+   friend void glsl_type_singleton_init_or_ref(void);
+   friend void glsl_type_singleton_decref(void);
    friend void _mesa_glsl_initialize_types(struct _mesa_glsl_parse_state *);
-   friend void _mesa_glsl_release_types(void);
    /*@}*/
 };
 

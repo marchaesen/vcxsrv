@@ -23,44 +23,6 @@
 #include "glamor_priv.h"
 #include "glamor_transfer.h"
 
-/* XXX a kludge for now */
-void
-glamor_format_for_pixmap(PixmapPtr pixmap, GLenum *format, GLenum *type)
-{
-    glamor_pixmap_private       *priv = glamor_get_pixmap_private(pixmap);
-    switch (pixmap->drawable.depth) {
-    case 24:
-    case 32:
-        *format = GL_BGRA;
-        *type = GL_UNSIGNED_INT_8_8_8_8_REV;
-        break;
-    case 30:
-        *format = GL_BGRA;
-        *type = GL_UNSIGNED_INT_2_10_10_10_REV;
-        break;
-    case 16:
-        if (priv->is_cbcr) {
-          *format = priv->fbo->format;
-          *type = GL_UNSIGNED_BYTE;
-        } else {
-          *format = GL_RGB;
-          *type = GL_UNSIGNED_SHORT_5_6_5;
-        }
-        break;
-    case 15:
-        *format = GL_BGRA;
-        *type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
-        break;
-    case 8:
-        *format = glamor_get_screen_private(pixmap->drawable.pScreen)->one_channel_format;
-        *type = GL_UNSIGNED_BYTE;
-        break;
-    default:
-        FatalError("Invalid pixmap depth %d\n", pixmap->drawable.depth);
-        break;
-    }
-}
-
 /*
  * Write a region of bits into a pixmap
  */
@@ -75,10 +37,7 @@ glamor_upload_boxes(PixmapPtr pixmap, BoxPtr in_boxes, int in_nbox,
     glamor_pixmap_private       *priv = glamor_get_pixmap_private(pixmap);
     int                         box_index;
     int                         bytes_per_pixel = pixmap->drawable.bitsPerPixel >> 3;
-    GLenum                      type;
-    GLenum                      format;
-
-    glamor_format_for_pixmap(pixmap, &format, &type);
+    const struct glamor_format *f = glamor_format_for_pixmap(pixmap);
 
     glamor_make_current(glamor_priv);
 
@@ -116,14 +75,14 @@ glamor_upload_boxes(PixmapPtr pixmap, BoxPtr in_boxes, int in_nbox,
                 glTexSubImage2D(GL_TEXTURE_2D, 0,
                                 x1 - box->x1, y1 - box->y1,
                                 x2 - x1, y2 - y1,
-                                format, type,
+                                f->format, f->type,
                                 bits + ofs);
             } else {
                 for (; y1 < y2; y1++, ofs += byte_stride)
                     glTexSubImage2D(GL_TEXTURE_2D, 0,
                                     x1 - box->x1, y1 - box->y1,
                                     x2 - x1, 1,
-                                    format, type,
+                                    f->format, f->type,
                                     bits + ofs);
             }
         }
@@ -178,10 +137,7 @@ glamor_download_boxes(PixmapPtr pixmap, BoxPtr in_boxes, int in_nbox,
     glamor_pixmap_private *priv = glamor_get_pixmap_private(pixmap);
     int box_index;
     int bytes_per_pixel = pixmap->drawable.bitsPerPixel >> 3;
-    GLenum type;
-    GLenum format;
-
-    glamor_format_for_pixmap(pixmap, &format, &type);
+    const struct glamor_format *f = glamor_format_for_pixmap(pixmap);
 
     glamor_make_current(glamor_priv);
 
@@ -216,10 +172,10 @@ glamor_download_boxes(PixmapPtr pixmap, BoxPtr in_boxes, int in_nbox,
 
             if (glamor_priv->has_pack_subimage ||
                 x2 - x1 == byte_stride / bytes_per_pixel) {
-                glReadPixels(x1 - box->x1, y1 - box->y1, x2 - x1, y2 - y1, format, type, bits + ofs);
+                glReadPixels(x1 - box->x1, y1 - box->y1, x2 - x1, y2 - y1, f->format, f->type, bits + ofs);
             } else {
                 for (; y1 < y2; y1++, ofs += byte_stride)
-                    glReadPixels(x1 - box->x1, y1 - box->y1, x2 - x1, 1, format, type, bits + ofs);
+                    glReadPixels(x1 - box->x1, y1 - box->y1, x2 - x1, 1, f->format, f->type, bits + ofs);
             }
         }
     }

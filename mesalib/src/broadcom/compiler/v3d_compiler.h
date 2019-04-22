@@ -691,6 +691,12 @@ struct v3d_fs_prog_data {
         bool uses_center_w;
 };
 
+struct v3d_compute_prog_data {
+        struct v3d_prog_data base;
+        /* Size in bytes of the workgroup's shared space. */
+        uint32_t shared_size;
+};
+
 static inline bool
 vir_has_uniform(struct qinst *inst)
 {
@@ -743,6 +749,7 @@ struct qreg vir_uniform(struct v3d_compile *c,
                         enum quniform_contents contents,
                         uint32_t data);
 void vir_schedule_instructions(struct v3d_compile *c);
+void v3d_setup_spill_base(struct v3d_compile *c);
 struct v3d_qpu_instr v3d_qpu_nop(void);
 
 struct qreg vir_emit_def(struct v3d_compile *c, struct qinst *inst);
@@ -785,10 +792,12 @@ bool vir_opt_constant_folding(struct v3d_compile *c);
 bool vir_opt_copy_propagate(struct v3d_compile *c);
 bool vir_opt_dead_code(struct v3d_compile *c);
 bool vir_opt_peephole_sf(struct v3d_compile *c);
+bool vir_opt_redundant_flags(struct v3d_compile *c);
 bool vir_opt_small_immediates(struct v3d_compile *c);
 bool vir_opt_vpm(struct v3d_compile *c);
 void v3d_nir_lower_blend(nir_shader *s, struct v3d_compile *c);
 void v3d_nir_lower_io(nir_shader *s, struct v3d_compile *c);
+void v3d_nir_lower_scratch(nir_shader *s);
 void v3d_nir_lower_txf_ms(nir_shader *s, struct v3d_compile *c);
 void v3d_nir_lower_image_load_store(nir_shader *s);
 void vir_lower_uniforms(struct v3d_compile *c);

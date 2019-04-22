@@ -1093,10 +1093,9 @@ u_vbuf_get_minmax_index_mapped(const struct pipe_draw_info *info,
    *out_max_index = max;
 }
 
-static void
-u_vbuf_get_minmax_index(struct pipe_context *pipe,
-                        const struct pipe_draw_info *info,
-                        unsigned *out_min_index, unsigned *out_max_index)
+void u_vbuf_get_minmax_index(struct pipe_context *pipe,
+                             const struct pipe_draw_info *info,
+                             unsigned *out_min_index, unsigned *out_max_index)
 {
    struct pipe_transfer *transfer = NULL;
    const void *indices;

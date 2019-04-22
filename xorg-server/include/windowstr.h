@@ -149,7 +149,6 @@ typedef struct _Window {
     unsigned borderIsPixel:1;
     unsigned cursorIsNone:1;    /* else real cursor (might inherit) */
     unsigned backingStore:2;
-    unsigned backStorage:1;     /* if bs is allocated */
     unsigned saveUnder:1;
     unsigned bitGravity:4;
     unsigned winGravity:4;

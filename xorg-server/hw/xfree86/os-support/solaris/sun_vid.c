@@ -74,7 +74,7 @@ xf86OSInitVidMem(VidMemInfoPtr pVidMem)
 /***************************************************************************/
 
 void
-xf86OSInputThreadInit()
+xf86OSInputThreadInit(void)
 {
     /*
      * Need to enable in input thread as well, as Solaris kernel tracks

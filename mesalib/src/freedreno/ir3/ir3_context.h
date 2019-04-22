@@ -160,7 +160,7 @@ struct ir3_instruction * ir3_create_collect(struct ir3_context *ctx,
 void ir3_split_dest(struct ir3_block *block, struct ir3_instruction **dst,
 		struct ir3_instruction *src, unsigned base, unsigned n);
 
-void ir3_context_error(struct ir3_context *ctx, const char *format, ...);
+NORETURN void ir3_context_error(struct ir3_context *ctx, const char *format, ...);
 
 #define compile_assert(ctx, cond) do { \
 		if (!(cond)) ir3_context_error((ctx), "failed assert: "#cond"\n"); \

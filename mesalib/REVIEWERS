@@ -94,14 +94,6 @@ GALLIUM TARGETS
 R: Emil Velikov <emil.l.velikov@gmail.com>
 F: src/gallium/targets/
 
-AUTOCONF BUILD
-R: Emil Velikov <emil.l.velikov@gmail.com>
-F: autogen.sh
-F: configure.ac
-F: */Automake.inc
-F: */Makefile.*am
-F: */Makefile.sources
-
 SCONS BUILD
 F: scons/
 F: */SConscript*
