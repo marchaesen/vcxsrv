@@ -169,7 +169,6 @@ nir_sweep(nir_shader *nir)
    steal_list(nir, nir_variable, &nir->shared);
    steal_list(nir, nir_variable, &nir->globals);
    steal_list(nir, nir_variable, &nir->system_values);
-   steal_list(nir, nir_register, &nir->registers);
 
    /* Recurse into functions, stealing their contents back. */
    foreach_list_typed(nir_function, func, node, &nir->functions) {

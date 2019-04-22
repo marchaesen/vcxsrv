@@ -2169,6 +2169,11 @@ struct gl_program
          struct gl_uniform_block **UniformBlocks;
          struct gl_uniform_block **ShaderStorageBlocks;
 
+         /**
+          * Bitmask of shader storage blocks not declared as read-only.
+          */
+         unsigned ShaderStorageBlocksWriteAccess;
+
          /** Which texture target is being sampled
           * (TEXTURE_1D/2D/3D/etc_INDEX)
           */
@@ -2511,6 +2516,12 @@ struct gl_shader_info
        * ARB_compute_variable_group_size.
        */
       bool LocalSizeVariable;
+
+      /*
+       * Arrangement of invocations used to calculate derivatives in a compute
+       * shader.  From NV_compute_shader_derivatives.
+       */
+      enum gl_derivative_group DerivativeGroup;
    } Comp;
 };
 
@@ -4264,6 +4275,7 @@ struct gl_extensions
    GLboolean EXT_render_snorm;
    GLboolean EXT_semaphore;
    GLboolean EXT_semaphore_fd;
+   GLboolean EXT_shader_image_load_formatted;
    GLboolean EXT_shader_integer_mix;
    GLboolean EXT_shader_samples_identical;
    GLboolean EXT_sRGB;
@@ -4327,6 +4339,7 @@ struct gl_extensions
    GLboolean EXT_shader_framebuffer_fetch_non_coherent;
    GLboolean MESA_shader_integer_functions;
    GLboolean MESA_ycbcr_texture;
+   GLboolean NV_compute_shader_derivatives;
    GLboolean NV_conditional_render;
    GLboolean NV_fill_rectangle;
    GLboolean NV_fog_distance;

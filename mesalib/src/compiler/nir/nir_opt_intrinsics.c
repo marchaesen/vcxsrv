@@ -29,7 +29,8 @@
  */
 
 static bool
-opt_intrinsics_impl(nir_function_impl *impl)
+opt_intrinsics_impl(nir_function_impl *impl,
+                    const struct nir_shader_compiler_options *options)
 {
    nir_builder b;
    nir_builder_init(&b, impl);
@@ -55,6 +56,41 @@ opt_intrinsics_impl(nir_function_impl *impl)
             if (nir_src_is_const(intrin->src[0]))
                replacement = nir_imm_true(&b);
             break;
+         case nir_intrinsic_load_sample_mask_in:
+            /* Transform:
+             *   gl_SampleMaskIn == 0 ---> gl_HelperInvocation
+             *   gl_SampleMaskIn != 0 ---> !gl_HelperInvocation
+             */
+            if (!options->optimize_sample_mask_in)
+               continue;
+
+            nir_foreach_use_safe(use_src, &intrin->dest.ssa) {
+               if (use_src->parent_instr->type == nir_instr_type_alu) {
+                  nir_alu_instr *alu = nir_instr_as_alu(use_src->parent_instr);
+
+                  if (alu->op == nir_op_ieq ||
+                      alu->op == nir_op_ine) {
+                     /* Check for 0 in either operand. */
+                     nir_const_value *const_val =
+                         nir_src_as_const_value(alu->src[0].src);
+                     if (!const_val)
+                        const_val = nir_src_as_const_value(alu->src[1].src);
+                     if (!const_val || const_val->i32 != 0)
+                        continue;
+
+                     nir_ssa_def *new_expr = nir_load_helper_invocation(&b, 1);
+
+                     if (alu->op == nir_op_ine)
+                        new_expr = nir_inot(&b, new_expr);
+
+                     nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa,
+                                              nir_src_for_ssa(new_expr));
+                     nir_instr_remove(&alu->instr);
+                     continue;
+                  }
+               }
+            }
+            continue;
          default:
             break;
          }
@@ -81,7 +117,7 @@ nir_opt_intrinsics(nir_shader *shader)
       if (!function->impl)
          continue;
 
-      if (opt_intrinsics_impl(function->impl)) {
+      if (opt_intrinsics_impl(function->impl, shader->options)) {
          progress = true;
          nir_metadata_preserve(function->impl, nir_metadata_block_index |
                                                nir_metadata_dominance);

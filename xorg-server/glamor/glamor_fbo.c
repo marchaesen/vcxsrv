@@ -95,8 +95,9 @@ glamor_pixmap_ensure_fb(glamor_screen_private *glamor_priv,
 
 glamor_pixmap_fbo *
 glamor_create_fbo_from_tex(glamor_screen_private *glamor_priv,
-                           int w, int h, GLenum format, GLint tex, int flag)
+                           PixmapPtr pixmap, int w, int h, GLint tex, int flag)
 {
+    const struct glamor_format *f = glamor_format_for_pixmap(pixmap);
     glamor_pixmap_fbo *fbo;
 
     fbo = calloc(1, sizeof(*fbo));
@@ -106,7 +107,7 @@ glamor_create_fbo_from_tex(glamor_screen_private *glamor_priv,
     fbo->tex = tex;
     fbo->width = w;
     fbo->height = h;
-    fbo->format = format;
+    fbo->is_red = f->format == GL_RED;
 
     if (flag != GLAMOR_CREATE_FBO_NO_FBO) {
         if (glamor_pixmap_ensure_fb(glamor_priv, fbo) != 0) {
@@ -120,23 +121,21 @@ glamor_create_fbo_from_tex(glamor_screen_private *glamor_priv,
 
 static int
 _glamor_create_tex(glamor_screen_private *glamor_priv,
-                   int w, int h, GLenum format)
+                   PixmapPtr pixmap, int w, int h)
 {
+    const struct glamor_format *f = glamor_format_for_pixmap(pixmap);
     unsigned int tex;
-    GLenum iformat = format;
 
-    if (format == GL_RGB10_A2)
-        format = GL_RGBA;
     glamor_make_current(glamor_priv);
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    if (format == glamor_priv->one_channel_format && format == GL_RED)
+    if (f->format == GL_RED)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, GL_RED);
     glamor_priv->suppress_gl_out_of_memory_logging = true;
-    glTexImage2D(GL_TEXTURE_2D, 0, iformat, w, h, 0,
-                 format, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, f->internalformat, w, h, 0,
+                 f->format, f->type, NULL);
     glamor_priv->suppress_gl_out_of_memory_logging = false;
 
     if (glGetError() == GL_OUT_OF_MEMORY) {
@@ -156,14 +155,15 @@ _glamor_create_tex(glamor_screen_private *glamor_priv,
 
 glamor_pixmap_fbo *
 glamor_create_fbo(glamor_screen_private *glamor_priv,
-                  int w, int h, GLenum format, int flag)
+                  PixmapPtr pixmap, int w, int h, int flag)
 {
-    GLint tex = _glamor_create_tex(glamor_priv, w, h, format);
+    GLint tex = _glamor_create_tex(glamor_priv, pixmap, w, h);
 
     if (!tex) /* Texture creation failed due to GL_OUT_OF_MEMORY */
         return NULL;
 
-    return glamor_create_fbo_from_tex(glamor_priv, w, h, format, tex, flag);
+    return glamor_create_fbo_from_tex(glamor_priv, pixmap, w, h,
+                                      tex, flag);
 }
 
 /**
@@ -172,10 +172,12 @@ glamor_create_fbo(glamor_screen_private *glamor_priv,
  */
 glamor_pixmap_fbo *
 glamor_create_fbo_array(glamor_screen_private *glamor_priv,
-                         int w, int h, GLenum format, int flag,
+                        PixmapPtr pixmap, int flag,
                          int block_w, int block_h,
                          glamor_pixmap_private *priv)
 {
+    int w = pixmap->drawable.width;
+    int h = pixmap->drawable.height;
     int block_wcnt;
     int block_hcnt;
     glamor_pixmap_fbo **fbo_array;
@@ -215,8 +217,8 @@ glamor_create_fbo_array(glamor_screen_private *glamor_priv,
                 box_array[i * block_wcnt + j].x2 - box_array[i * block_wcnt +
                                                              j].x1;
             fbo_array[i * block_wcnt + j] = glamor_create_fbo(glamor_priv,
+                                                              pixmap,
                                                               fbo_w, fbo_h,
-                                                              format,
                                                               GLAMOR_CREATE_PIXMAP_FIXUP);
             if (fbo_array[i * block_wcnt + j] == NULL)
                 goto cleanup;
@@ -302,7 +304,7 @@ glamor_pixmap_destroy_fbo(PixmapPtr pixmap)
 }
 
 Bool
-glamor_pixmap_ensure_fbo(PixmapPtr pixmap, GLenum format, int flag)
+glamor_pixmap_ensure_fbo(PixmapPtr pixmap, int flag)
 {
     glamor_screen_private *glamor_priv;
     glamor_pixmap_private *pixmap_priv;
@@ -312,8 +314,8 @@ glamor_pixmap_ensure_fbo(PixmapPtr pixmap, GLenum format, int flag)
     pixmap_priv = glamor_get_pixmap_private(pixmap);
     if (pixmap_priv->fbo == NULL) {
 
-        fbo = glamor_create_fbo(glamor_priv, pixmap->drawable.width,
-                                pixmap->drawable.height, format, flag);
+        fbo = glamor_create_fbo(glamor_priv, pixmap, pixmap->drawable.width,
+                                pixmap->drawable.height, flag);
         if (fbo == NULL)
             return FALSE;
 
@@ -323,8 +325,8 @@ glamor_pixmap_ensure_fbo(PixmapPtr pixmap, GLenum format, int flag)
         /* We do have a fbo, but it may lack of fb or tex. */
         if (!pixmap_priv->fbo->tex)
             pixmap_priv->fbo->tex =
-                _glamor_create_tex(glamor_priv, pixmap->drawable.width,
-                                   pixmap->drawable.height, format);
+                _glamor_create_tex(glamor_priv, pixmap, pixmap->drawable.width,
+                                   pixmap->drawable.height);
 
         if (flag != GLAMOR_CREATE_FBO_NO_FBO && pixmap_priv->fbo->fb == 0)
             if (glamor_pixmap_ensure_fb(glamor_priv, pixmap_priv->fbo) != 0)

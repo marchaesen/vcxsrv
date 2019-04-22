@@ -59,9 +59,7 @@ get_deref_offset(nir_deref_instr *instr,
 
 	if (var->data.compact) {
 		assert(instr->deref_type == nir_deref_type_array);
-		nir_const_value *v = nir_src_as_const_value(instr->arr.index);
-		assert(v);
-		*const_out = v->u32[0];
+		*const_out = nir_src_as_uint(instr->arr.index);
 		return;
 	}
 
@@ -80,9 +78,8 @@ get_deref_offset(nir_deref_instr *instr,
 			}
 		} else if(path.path[idx_lvl]->deref_type == nir_deref_type_array) {
 			unsigned size = glsl_count_attribute_slots(path.path[idx_lvl]->type, false);
-			nir_const_value *v = nir_src_as_const_value(path.path[idx_lvl]->arr.index);
-			if (v)
-				const_offset += v->u32[0] * size;
+			if (nir_src_is_const(path.path[idx_lvl]->arr.index))
+				const_offset += nir_src_as_uint(path.path[idx_lvl]->arr.index) * size;
 		} else
 			unreachable("Uhandled deref type in get_deref_instr_offset");
 	}
@@ -189,13 +186,12 @@ gather_push_constant_info(const nir_shader *nir,
 			  const nir_intrinsic_instr *instr,
 			  struct radv_shader_info *info)
 {
-	nir_const_value *cval = nir_src_as_const_value(instr->src[0]);
 	int base = nir_intrinsic_base(instr);
 
-	if (!cval) {
+	if (!nir_src_is_const(instr->src[0])) {
 		info->has_indirect_push_constants = true;
 	} else {
-		uint32_t min = base + cval->u32[0];
+		uint32_t min = base + nir_src_as_uint(instr->src[0]);
 		uint32_t max = min + instr->num_components * 4;
 
 		info->max_push_constant_used =

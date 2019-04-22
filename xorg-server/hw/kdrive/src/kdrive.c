@@ -995,11 +995,13 @@ DeleteGPUDeviceRequest(struct OdevAttributes *attribs)
 }
 #endif
 
+#if defined(CONFIG_UDEV) || defined(CONFIG_HAL)
 struct xf86_platform_device *
 xf86_find_platform_device_by_devnum(int major, int minor)
 {
     return NULL;
 }
+#endif
 
 #ifdef SYSTEMD_LOGIND
 void

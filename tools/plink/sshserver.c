@@ -133,7 +133,7 @@ static void server_closing(Plug *plug, const char *error_msg, int error_code,
 {
     server *srv = container_of(plug, server, plug);
     if (error_msg) {
-        ssh_remote_error(&srv->ssh, "Network error: %s", error_msg);
+        ssh_remote_error(&srv->ssh, "%s", error_msg);
     } else if (srv->bpp) {
         srv->bpp->input_eof = true;
         queue_idempotent_callback(&srv->bpp->ic_in_raw);
@@ -311,6 +311,8 @@ static void ssh_server_free_callback(void *vsrv)
 
     sk_close(srv->socket);
 
+    if (srv->base_layer)
+        ssh_ppl_free(srv->base_layer);
     if (srv->bpp)
         ssh_bpp_free(srv->bpp);
 

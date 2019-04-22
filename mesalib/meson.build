@@ -132,7 +132,7 @@ if _drivers.contains('auto')
     elif ['arm', 'aarch64'].contains(host_machine.cpu_family())
       _drivers = [
         'kmsro', 'v3d', 'vc4', 'freedreno', 'etnaviv', 'nouveau',
-        'tegra', 'virgl', 'swrast'
+        'tegra', 'virgl', 'lima', 'swrast'
       ]
     else
       error('Unknown architecture @0@. Please pass -Dgallium-drivers to set driver options. Patches gladly accepted to fix this.'.format(
@@ -162,6 +162,7 @@ with_gallium_i915 = _drivers.contains('i915')
 with_gallium_svga = _drivers.contains('svga')
 with_gallium_virgl = _drivers.contains('virgl')
 with_gallium_swr = _drivers.contains('swr')
+with_gallium_lima = _drivers.contains('lima')
 
 if cc.get_id() == 'intel'
   if meson.version().version_compare('< 0.49.0')
@@ -216,8 +217,8 @@ endif
 if with_dri_i915 and with_gallium_i915
   error('Only one i915 provider can be built')
 endif
-if with_gallium_kmsro and not (with_gallium_vc4 or with_gallium_etnaviv or with_gallium_freedreno or with_gallium_panfrost)
-  error('kmsro driver requires one or more renderonly drivers (vc4, etnaviv, freedreno, panfrost)')
+if with_gallium_kmsro and not (with_gallium_vc4 or with_gallium_etnaviv or with_gallium_freedreno or with_gallium_panfrost or with_gallium_lima)
+  error('kmsro driver requires one or more renderonly drivers (vc4, etnaviv, freedreno, panfrost, lima)')
 endif
 if with_gallium_tegra and not with_gallium_nouveau
   error('tegra driver requires nouveau driver')
@@ -1234,17 +1235,9 @@ if _llvm != 'false'
 endif
 if with_llvm
   _llvm_version = dep_llvm.version().split('.')
-
-  # 3 digits versions in LLVM only started from 3.4.1 on
-  if dep_llvm.version().version_compare('>= 3.4.1')
-    _llvm_patch = _llvm_version[2]
-  else
-    _llvm_patch = '0'
-  endif
-
   pre_args += [
     '-DHAVE_LLVM=0x0@0@0@1@'.format(_llvm_version[0], _llvm_version[1]),
-    '-DMESA_LLVM_VERSION_PATCH=@0@'.format(_llvm_patch),
+    '-DMESA_LLVM_VERSION_STRING="@0@"'.format(dep_llvm.version()),
   ]
 
   # LLVM can be built without rtti, turning off rtti changes the ABI of C++
@@ -1253,11 +1246,15 @@ if with_llvm
   if dep_llvm.get_configtool_variable('has-rtti') == 'NO'
     if with_gallium_nouveau
       error('The Nouveau driver requires rtti. You either need to turn off nouveau or use an LLVM built with LLVM_ENABLE_RTTI.')
+    elif with_gallium_opencl
+      error('The Clover OpenCL state tracker requires rtti, you need to turn off clover or use an LLVM built with LLVM_ENABLE_RTTI.')
     endif
     cpp_args += '-fno-rtti'
   endif
 elif with_amd_vk or with_gallium_radeonsi or with_gallium_swr
   error('The following drivers require LLVM: Radv, RadeonSI, SWR. One of these is enabled, but LLVM is disabled.')
+elif with_gallium_opencl
+  error('The OpenCL "Clover" state tracker requires LLVM, but LLVM is disabled.')
 endif
 
 if (with_amd_vk or with_gallium_radeonsi or with_gallium_opencl or

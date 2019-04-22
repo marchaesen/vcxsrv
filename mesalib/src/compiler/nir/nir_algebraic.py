@@ -102,24 +102,6 @@ class Value(object):
       elif isinstance(val, (bool, float) + integer_types):
          return Constant(val, name_base)
 
-   __template = mako.template.Template("""
-static const ${val.c_type} ${val.name} = {
-   { ${val.type_enum}, ${val.c_bit_size} },
-% if isinstance(val, Constant):
-   ${val.type()}, { ${val.hex()} /* ${val.value} */ },
-% elif isinstance(val, Variable):
-   ${val.index}, /* ${val.var_name} */
-   ${'true' if val.is_constant else 'false'},
-   ${val.type() or 'nir_type_invalid' },
-   ${val.cond if val.cond else 'NULL'},
-% elif isinstance(val, Expression):
-   ${'true' if val.inexact else 'false'},
-   ${val.c_opcode()},
-   { ${', '.join(src.c_ptr for src in val.sources)} },
-   ${val.cond if val.cond else 'NULL'},
-% endif
-};""")
-
    def __init__(self, val, name, type_str):
       self.in_val = str(val)
       self.name = name
@@ -170,9 +152,17 @@ static const ${val.c_type} ${val.name} = {
    def c_type(self):
       return "nir_search_" + self.type_str
 
-   @property
-   def c_ptr(self):
-      return "&{0}.value".format(self.name)
+   def __c_name(self, cache):
+      if cache is not None and self.name in cache:
+         return cache[self.name]
+      else:
+         return self.name
+
+   def c_value_ptr(self, cache):
+      return "&{0}.value".format(self.__c_name(cache))
+
+   def c_ptr(self, cache):
+      return "&{0}".format(self.__c_name(cache))
 
    @property
    def c_bit_size(self):
@@ -189,11 +179,40 @@ static const ${val.c_type} ${val.name} = {
          # We represent these cases with a 0 bit-size.
          return 0
 
-   def render(self):
-      return self.__template.render(val=self,
-                                    Constant=Constant,
-                                    Variable=Variable,
-                                    Expression=Expression)
+   __template = mako.template.Template("""{
+   { ${val.type_enum}, ${val.c_bit_size} },
+% if isinstance(val, Constant):
+   ${val.type()}, { ${val.hex()} /* ${val.value} */ },
+% elif isinstance(val, Variable):
+   ${val.index}, /* ${val.var_name} */
+   ${'true' if val.is_constant else 'false'},
+   ${val.type() or 'nir_type_invalid' },
+   ${val.cond if val.cond else 'NULL'},
+% elif isinstance(val, Expression):
+   ${'true' if val.inexact else 'false'},
+   ${val.comm_expr_idx}, ${val.comm_exprs},
+   ${val.c_opcode()},
+   { ${', '.join(src.c_value_ptr(cache) for src in val.sources)} },
+   ${val.cond if val.cond else 'NULL'},
+% endif
+};""")
+
+   def render(self, cache):
+      struct_init = self.__template.render(val=self, cache=cache,
+                                           Constant=Constant,
+                                           Variable=Variable,
+                                           Expression=Expression)
+      if cache is not None and struct_init in cache:
+         # If it's in the cache, register a name remap in the cache and render
+         # only a comment saying it's been remapped
+         cache[self.name] = cache[struct_init]
+         return "/* {} -> {} in the cache */\n".format(self.name,
+                                                       cache[struct_init])
+      else:
+         if cache is not None:
+            cache[struct_init] = self.name
+         return "static const {} {} = {}\n".format(self.c_type, self.name,
+                                                   struct_init)
 
 _constant_re = re.compile(r"(?P<value>[^@\(]+)(?:@(?P<bits>\d+))?")
 
@@ -307,6 +326,25 @@ class Expression(Value):
                 'Expression cannot use an unsized conversion opcode with ' \
                 'an explicit size; that\'s silly.'
 
+      self.__index_comm_exprs(0)
+
+   def __index_comm_exprs(self, base_idx):
+      """Recursively count and index commutative expressions
+      """
+      self.comm_exprs = 0
+      if self.opcode not in conv_opcode_types and \
+         "commutative" in opcodes[self.opcode].algebraic_properties:
+         self.comm_expr_idx = base_idx
+         self.comm_exprs += 1
+      else:
+         self.comm_expr_idx = -1
+
+      for s in self.sources:
+         if isinstance(s, Expression):
+            s.__index_comm_exprs(base_idx + self.comm_exprs)
+            self.comm_exprs += s.comm_exprs
+
+      return self.comm_exprs
 
    def c_opcode(self):
       if self.opcode in conv_opcode_types:
@@ -314,9 +352,9 @@ class Expression(Value):
       else:
          return 'nir_op_' + self.opcode
 
-   def render(self):
-      srcs = "\n".join(src.render() for src in self.sources)
-      return srcs + super(Expression, self).render()
+   def render(self, cache):
+      srcs = "\n".join(src.render(cache) for src in self.sources)
+      return srcs + super(Expression, self).render(cache)
 
 class BitSizeValidator(object):
    """A class for validating bit sizes of expressions.
@@ -671,15 +709,16 @@ struct transform {
 
 #endif
 
+<% cache = {} %>
 % for xform in xforms:
-   ${xform.search.render()}
-   ${xform.replace.render()}
+   ${xform.search.render(cache)}
+   ${xform.replace.render(cache)}
 % endfor
 
 % for (opcode, xform_list) in sorted(opcode_xforms.items()):
 static const struct transform ${pass_name}_${opcode}_xforms[] = {
 % for xform in xform_list:
-   { &${xform.search.name}, ${xform.replace.c_ptr}, ${xform.condition_index} },
+   { ${xform.search.c_ptr(cache)}, ${xform.replace.c_value_ptr(cache)}, ${xform.condition_index} },
 % endfor
 };
 % endfor
@@ -750,7 +789,9 @@ ${pass_name}(nir_shader *shader)
    bool progress = false;
    bool condition_flags[${len(condition_list)}];
    const nir_shader_compiler_options *options = shader->options;
+   const shader_info *info = &shader->info;
    (void) options;
+   (void) info;
 
    % for index, condition in enumerate(condition_list):
    condition_flags[${index}] = ${condition};

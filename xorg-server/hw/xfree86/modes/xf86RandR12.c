@@ -1647,7 +1647,10 @@ xf86RandR12SetInfo12(ScreenPtr pScreen)
             RROutputSetConnection(output->randr_output, RR_Connected);
             break;
         case XF86OutputStatusDisconnected:
-            RROutputSetConnection(output->randr_output, RR_Disconnected);
+	    if (xf86OutputForceEnabled(output))
+                RROutputSetConnection(output->randr_output, RR_Connected);
+	    else
+                RROutputSetConnection(output->randr_output, RR_Disconnected);
             break;
         case XF86OutputStatusUnknown:
             RROutputSetConnection(output->randr_output, RR_UnknownConnection);

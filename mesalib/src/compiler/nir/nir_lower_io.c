@@ -38,7 +38,7 @@
 struct lower_io_state {
    void *dead_ctx;
    nir_builder builder;
-   int (*type_size)(const struct glsl_type *type);
+   int (*type_size)(const struct glsl_type *type, bool);
    nir_variable_mode modes;
    nir_lower_io_options options;
 };
@@ -95,7 +95,7 @@ global_atomic_for_deref(nir_intrinsic_op deref_op)
 
 void
 nir_assign_var_locations(struct exec_list *var_list, unsigned *size,
-                         int (*type_size)(const struct glsl_type *))
+                         int (*type_size)(const struct glsl_type *, bool))
 {
    unsigned location = 0;
 
@@ -108,7 +108,10 @@ nir_assign_var_locations(struct exec_list *var_list, unsigned *size,
          continue;
 
       var->data.driver_location = location;
-      location += type_size(var->type);
+      bool bindless_type_size = var->data.mode == nir_var_shader_in ||
+                                var->data.mode == nir_var_shader_out ||
+                                var->data.bindless;
+      location += type_size(var->type, bindless_type_size);
    }
 
    *size = location;
@@ -138,8 +141,8 @@ nir_is_per_vertex_io(const nir_variable *var, gl_shader_stage stage)
 static nir_ssa_def *
 get_io_offset(nir_builder *b, nir_deref_instr *deref,
               nir_ssa_def **vertex_index,
-              int (*type_size)(const struct glsl_type *),
-              unsigned *component)
+              int (*type_size)(const struct glsl_type *, bool),
+              unsigned *component, bool bts)
 {
    nir_deref_path path;
    nir_deref_path_init(&path, deref, NULL);
@@ -165,7 +168,7 @@ get_io_offset(nir_builder *b, nir_deref_instr *deref,
       const unsigned total_offset = *component + index;
       const unsigned slot_offset = total_offset / 4;
       *component = total_offset % 4;
-      return nir_imm_int(b, type_size(glsl_vec4_type()) * slot_offset);
+      return nir_imm_int(b, type_size(glsl_vec4_type(), bts) * slot_offset);
    }
 
    /* Just emit code and let constant-folding go to town */
@@ -173,7 +176,7 @@ get_io_offset(nir_builder *b, nir_deref_instr *deref,
 
    for (; *p; p++) {
       if ((*p)->deref_type == nir_deref_type_array) {
-         unsigned size = type_size((*p)->type);
+         unsigned size = type_size((*p)->type, bts);
 
          nir_ssa_def *mul =
             nir_imul_imm(b, nir_ssa_for_src(b, (*p)->arr.index, 1), size);
@@ -185,7 +188,7 @@ get_io_offset(nir_builder *b, nir_deref_instr *deref,
 
          unsigned field_offset = 0;
          for (unsigned i = 0; i < (*p)->strct.index; i++) {
-            field_offset += type_size(glsl_get_struct_field(parent->type, i));
+            field_offset += type_size(glsl_get_struct_field(parent->type, i), bts);
          }
          offset = nir_iadd_imm(b, offset, field_offset);
       } else {
@@ -255,7 +258,8 @@ lower_load(nir_intrinsic_instr *intrin, struct lower_io_state *state,
       nir_intrinsic_set_component(load, component);
 
    if (load->intrinsic == nir_intrinsic_load_uniform)
-      nir_intrinsic_set_range(load, state->type_size(var->type));
+      nir_intrinsic_set_range(load,
+                              state->type_size(var->type, var->data.bindless));
 
    if (vertex_index) {
       load->src[0] = nir_src_for_ssa(vertex_index);
@@ -468,9 +472,13 @@ nir_lower_io_block(nir_block *block,
       nir_ssa_def *offset;
       nir_ssa_def *vertex_index = NULL;
       unsigned component_offset = var->data.location_frac;
+      bool bindless_type_size = mode == nir_var_shader_in ||
+                                mode == nir_var_shader_out ||
+                                var->data.bindless;
 
       offset = get_io_offset(b, deref, per_vertex ? &vertex_index : NULL,
-                             state->type_size, &component_offset);
+                             state->type_size, &component_offset,
+                             bindless_type_size);
 
       nir_intrinsic_instr *replacement;
 
@@ -538,7 +546,7 @@ nir_lower_io_block(nir_block *block,
 static bool
 nir_lower_io_impl(nir_function_impl *impl,
                   nir_variable_mode modes,
-                  int (*type_size)(const struct glsl_type *),
+                  int (*type_size)(const struct glsl_type *, bool),
                   nir_lower_io_options options)
 {
    struct lower_io_state state;
@@ -563,7 +571,7 @@ nir_lower_io_impl(nir_function_impl *impl,
 
 bool
 nir_lower_io(nir_shader *shader, nir_variable_mode modes,
-             int (*type_size)(const struct glsl_type *),
+             int (*type_size)(const struct glsl_type *, bool),
              nir_lower_io_options options)
 {
    bool progress = false;
@@ -746,10 +754,8 @@ build_explicit_io_load(nir_builder *b, nir_intrinsic_instr *intrin,
        * as to what we can do with an OOB read.  Unfortunately, returning
        * undefined values isn't one of them so we return an actual zero.
        */
-      nir_const_value zero_val;
-      memset(&zero_val, 0, sizeof(zero_val));
-      nir_ssa_def *zero = nir_build_imm(b, load->num_components,
-                                        load->dest.ssa.bit_size, zero_val);
+      nir_ssa_def *zero = nir_imm_zero(b, load->num_components,
+                                          load->dest.ssa.bit_size);
 
       const unsigned load_size =
          (load->dest.ssa.bit_size / 8) * load->num_components;
@@ -890,38 +896,17 @@ build_explicit_io_atomic(nir_builder *b, nir_intrinsic_instr *intrin,
    }
 }
 
-static void
-lower_explicit_io_deref(nir_builder *b, nir_deref_instr *deref,
-                        nir_address_format addr_format)
+nir_ssa_def *
+nir_explicit_io_address_from_deref(nir_builder *b, nir_deref_instr *deref,
+                                   nir_ssa_def *base_addr,
+                                   nir_address_format addr_format)
 {
-   /* Just delete the deref if it's not used.  We can't use
-    * nir_deref_instr_remove_if_unused here because it may remove more than
-    * one deref which could break our list walking since we walk the list
-    * backwards.
-    */
-   assert(list_empty(&deref->dest.ssa.if_uses));
-   if (list_empty(&deref->dest.ssa.uses)) {
-      nir_instr_remove(&deref->instr);
-      return;
-   }
-
-   b->cursor = nir_after_instr(&deref->instr);
-
-   nir_ssa_def *parent_addr = NULL;
-   if (deref->deref_type != nir_deref_type_var) {
-      assert(deref->parent.is_ssa);
-      parent_addr = deref->parent.ssa;
-   }
-
-
-   nir_ssa_def *addr = NULL;
    assert(deref->dest.is_ssa);
    switch (deref->deref_type) {
    case nir_deref_type_var:
       assert(deref->mode == nir_var_shader_in);
-      addr = nir_imm_intN_t(b, deref->var->data.driver_location,
+      return nir_imm_intN_t(b, deref->var->data.driver_location,
                             deref->dest.ssa.bit_size);
-      break;
 
    case nir_deref_type_array: {
       nir_deref_instr *parent = nir_deref_instr_parent(deref);
@@ -935,19 +920,17 @@ lower_explicit_io_deref(nir_builder *b, nir_deref_instr *deref,
       assert(stride > 0);
 
       nir_ssa_def *index = nir_ssa_for_src(b, deref->arr.index, 1);
-      index = nir_i2i(b, index, parent_addr->bit_size);
-      addr = build_addr_iadd(b, parent_addr, addr_format,
+      index = nir_i2i(b, index, base_addr->bit_size);
+      return build_addr_iadd(b, base_addr, addr_format,
                                 nir_imul_imm(b, index, stride));
-      break;
    }
 
    case nir_deref_type_ptr_as_array: {
       nir_ssa_def *index = nir_ssa_for_src(b, deref->arr.index, 1);
-      index = nir_i2i(b, index, parent_addr->bit_size);
+      index = nir_i2i(b, index, base_addr->bit_size);
       unsigned stride = nir_deref_instr_ptr_as_array_stride(deref);
-      addr = build_addr_iadd(b, parent_addr, addr_format,
+      return build_addr_iadd(b, base_addr, addr_format,
                                 nir_imul_imm(b, index, stride));
-      break;
    }
 
    case nir_deref_type_array_wildcard:
@@ -959,23 +942,22 @@ lower_explicit_io_deref(nir_builder *b, nir_deref_instr *deref,
       int offset = glsl_get_struct_field_offset(parent->type,
                                                 deref->strct.index);
       assert(offset >= 0);
-      addr = build_addr_iadd_imm(b, parent_addr, addr_format, offset);
-      break;
+      return build_addr_iadd_imm(b, base_addr, addr_format, offset);
    }
 
    case nir_deref_type_cast:
       /* Nothing to do here */
-      addr = parent_addr;
-      break;
+      return base_addr;
    }
 
-   nir_instr_remove(&deref->instr);
-   nir_ssa_def_rewrite_uses(&deref->dest.ssa, nir_src_for_ssa(addr));
+   unreachable("Invalid NIR deref type");
 }
 
-static void
-lower_explicit_io_access(nir_builder *b, nir_intrinsic_instr *intrin,
-                         nir_address_format addr_format)
+void
+nir_lower_explicit_io_instr(nir_builder *b,
+                            nir_intrinsic_instr *intrin,
+                            nir_ssa_def *addr,
+                            nir_address_format addr_format)
 {
    b->cursor = nir_after_instr(&intrin->instr);
 
@@ -985,7 +967,6 @@ lower_explicit_io_access(nir_builder *b, nir_intrinsic_instr *intrin,
    assert(vec_stride == 0 || glsl_type_is_vector(deref->type));
    assert(vec_stride == 0 || vec_stride >= scalar_size);
 
-   nir_ssa_def *addr = &deref->dest.ssa;
    if (intrin->intrinsic == nir_intrinsic_load_deref) {
       nir_ssa_def *value;
       if (vec_stride > scalar_size) {
@@ -1027,6 +1008,44 @@ lower_explicit_io_access(nir_builder *b, nir_intrinsic_instr *intrin,
    }
 
    nir_instr_remove(&intrin->instr);
+}
+
+static void
+lower_explicit_io_deref(nir_builder *b, nir_deref_instr *deref,
+                        nir_address_format addr_format)
+{
+   /* Just delete the deref if it's not used.  We can't use
+    * nir_deref_instr_remove_if_unused here because it may remove more than
+    * one deref which could break our list walking since we walk the list
+    * backwards.
+    */
+   assert(list_empty(&deref->dest.ssa.if_uses));
+   if (list_empty(&deref->dest.ssa.uses)) {
+      nir_instr_remove(&deref->instr);
+      return;
+   }
+
+   b->cursor = nir_after_instr(&deref->instr);
+
+   nir_ssa_def *base_addr = NULL;
+   if (deref->deref_type != nir_deref_type_var) {
+      assert(deref->parent.is_ssa);
+      base_addr = deref->parent.ssa;
+   }
+
+   nir_ssa_def *addr = nir_explicit_io_address_from_deref(b, deref, base_addr,
+                                                          addr_format);
+
+   nir_instr_remove(&deref->instr);
+   nir_ssa_def_rewrite_uses(&deref->dest.ssa, nir_src_for_ssa(addr));
+}
+
+static void
+lower_explicit_io_access(nir_builder *b, nir_intrinsic_instr *intrin,
+                         nir_address_format addr_format)
+{
+   assert(intrin->src[0].is_ssa);
+   nir_lower_explicit_io_instr(b, intrin, intrin->src[0].ssa, addr_format);
 }
 
 static void
@@ -1170,6 +1189,7 @@ nir_get_io_offset_src(nir_intrinsic_instr *instr)
    case nir_intrinsic_load_shared:
    case nir_intrinsic_load_uniform:
    case nir_intrinsic_load_global:
+   case nir_intrinsic_load_scratch:
       return &instr->src[0];
    case nir_intrinsic_load_ubo:
    case nir_intrinsic_load_ssbo:
@@ -1179,6 +1199,7 @@ nir_get_io_offset_src(nir_intrinsic_instr *instr)
    case nir_intrinsic_store_output:
    case nir_intrinsic_store_shared:
    case nir_intrinsic_store_global:
+   case nir_intrinsic_store_scratch:
       return &instr->src[1];
    case nir_intrinsic_store_ssbo:
    case nir_intrinsic_store_per_vertex_output:

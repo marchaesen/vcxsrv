@@ -24,9 +24,6 @@
 #define _GLAMOR_TRANSFER_H_
 
 void
-glamor_format_for_pixmap(PixmapPtr pixmap, GLenum *format, GLenum *type);
-
-void
 glamor_upload_boxes(PixmapPtr pixmap, BoxPtr in_boxes, int in_nbox,
                     int dx_src, int dy_src,
                     int dx_dst, int dy_dst,

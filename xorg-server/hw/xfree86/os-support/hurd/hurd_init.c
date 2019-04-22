@@ -89,7 +89,7 @@ xf86CloseConsole()
 }
 
 void
-xf86OSInputThreadInit()
+xf86OSInputThreadInit(void)
 {
     return;
 }

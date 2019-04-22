@@ -881,24 +881,32 @@ SyncChangeAlarmAttributes(ClientPtr client, SyncAlarm * pAlarm, Mask mask,
     return Success;
 }
 
-static SyncObject *
+SyncObject *
 SyncCreate(ClientPtr client, XID id, unsigned char type)
 {
     SyncObject *pSync;
+    RESTYPE resType;
 
     switch (type) {
     case SYNC_COUNTER:
         pSync = malloc(sizeof(SyncCounter));
+        resType = RTCounter;
         break;
     case SYNC_FENCE:
         pSync = (SyncObject *) dixAllocateObjectWithPrivates(SyncFence,
                                                              PRIVATE_SYNC_FENCE);
+        resType = RTFence;
         break;
     default:
         return NULL;
     }
 
     if (!pSync)
+        return NULL;
+
+    pSync->initialized = FALSE;
+
+    if (!AddResource(id, resType, (void *) pSync))
         return NULL;
 
     pSync->client = client;
@@ -923,12 +931,9 @@ SyncCreateFenceFromFD(ClientPtr client, DrawablePtr pDraw, XID id, int fd, BOOL 
 
     status = miSyncInitFenceFromFD(pDraw, pFence, fd, initially_triggered);
     if (status != Success) {
-        dixFreeObjectWithPrivates(pFence, PRIVATE_SYNC_FENCE);
+        FreeResource(pFence->sync.id, RT_NONE);
         return status;
     }
-
-    if (!AddResource(id, RTFence, (void *) pFence))
-        return BadAlloc;
 
     return Success;
 #else
@@ -957,8 +962,7 @@ SyncCreateCounter(ClientPtr client, XSyncCounter id, int64_t initialvalue)
     pCounter->value = initialvalue;
     pCounter->pSysCounterInfo = NULL;
 
-    if (!AddResource(id, RTCounter, (void *) pCounter))
-        return NULL;
+    pCounter->sync.initialized = TRUE;
 
     return pCounter;
 }
@@ -1137,21 +1141,26 @@ static int
 FreeCounter(void *env, XID id)
 {
     SyncCounter *pCounter = (SyncCounter *) env;
-    SyncTriggerList *ptl, *pnext;
 
     pCounter->sync.beingDestroyed = TRUE;
-    /* tell all the counter's triggers that the counter has been destroyed */
-    for (ptl = pCounter->sync.pTriglist; ptl; ptl = pnext) {
-        (*ptl->pTrigger->CounterDestroyed) (ptl->pTrigger);
-        pnext = ptl->next;
-        free(ptl);              /* destroy the trigger list as we go */
+
+    if (pCounter->sync.initialized) {
+        SyncTriggerList *ptl, *pnext;
+
+        /* tell all the counter's triggers that counter has been destroyed */
+        for (ptl = pCounter->sync.pTriglist; ptl; ptl = pnext) {
+            (*ptl->pTrigger->CounterDestroyed) (ptl->pTrigger);
+            pnext = ptl->next;
+            free(ptl); /* destroy the trigger list as we go */
+        }
+        if (IsSystemCounter(pCounter)) {
+            xorg_list_del(&pCounter->pSysCounterInfo->entry);
+            free(pCounter->pSysCounterInfo->name);
+            free(pCounter->pSysCounterInfo->private);
+            free(pCounter->pSysCounterInfo);
+        }
     }
-    if (IsSystemCounter(pCounter)) {
-        xorg_list_del(&pCounter->pSysCounterInfo->entry);
-        free(pCounter->pSysCounterInfo->name);
-        free(pCounter->pSysCounterInfo->private);
-        free(pCounter->pSysCounterInfo);
-    }
+
     free(pCounter);
     return Success;
 }
@@ -1888,9 +1897,6 @@ ProcSyncCreateFence(ClientPtr client)
         return BadAlloc;
 
     miSyncInitFence(pDraw->pScreen, pFence, stuff->initially_triggered);
-
-    if (!AddResource(stuff->fid, RTFence, (void *) pFence))
-        return BadAlloc;
 
     return Success;
 }

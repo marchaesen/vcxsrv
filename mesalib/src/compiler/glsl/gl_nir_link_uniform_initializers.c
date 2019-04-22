@@ -124,25 +124,25 @@ copy_constant_to_storage(union gl_constant_value *storage,
       for (unsigned int row = 0; row < n_rows; row++) {
          switch (base_type) {
          case GLSL_TYPE_UINT:
-            storage[i].u = val->values[column].u32[row];
+            storage[i].u = val->values[column][row].u32;
             break;
          case GLSL_TYPE_INT:
          case GLSL_TYPE_SAMPLER:
-            storage[i].i = val->values[column].i32[row];
+            storage[i].i = val->values[column][row].i32;
             break;
          case GLSL_TYPE_FLOAT:
-            storage[i].f = val->values[column].f32[row];
+            storage[i].f = val->values[column][row].f32;
             break;
          case GLSL_TYPE_DOUBLE:
          case GLSL_TYPE_UINT64:
          case GLSL_TYPE_INT64:
             /* XXX need to check on big-endian */
             memcpy(&storage[i * 2].u,
-                   &val->values[column].f64[row],
+                   &val->values[column][row].f64,
                    sizeof(double));
             break;
          case GLSL_TYPE_BOOL:
-            storage[i].b = val->values[column].u32[row] ? boolean_true : 0;
+            storage[i].b = val->values[column][row].u32 ? boolean_true : 0;
             break;
          case GLSL_TYPE_ARRAY:
          case GLSL_TYPE_STRUCT:

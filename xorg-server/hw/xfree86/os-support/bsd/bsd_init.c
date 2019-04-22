@@ -663,7 +663,7 @@ xf86UseMsg()
 }
 
 void
-xf86OSInputThreadInit()
+xf86OSInputThreadInit(void)
 {
     return;
 }

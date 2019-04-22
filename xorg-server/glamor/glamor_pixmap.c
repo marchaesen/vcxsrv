@@ -124,7 +124,7 @@ glamor_set_alu(ScreenPtr screen, unsigned char alu)
 {
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
 
-    if (glamor_priv->gl_flavor == GLAMOR_GL_ES2) {
+    if (glamor_priv->is_gles) {
         if (alu != GXcopy)
             return FALSE;
         else

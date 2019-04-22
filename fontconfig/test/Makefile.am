@@ -6,12 +6,15 @@ TEST_EXTENSIONS = \
 AM_TESTS_ENVIRONMENT= \
 	src=${srcdir}; export src; \
 	EXEEXT=${EXEEXT}; export EXEEXT; \
+	LOG_COMPILER=${LOG_COMPILER} ; export LOG_COMPILER; \
 	$(NULL)
 
 BUILT_SOURCES = $(builddir)/out.expected
 
 SH_LOG_COMPILER = sh
+if OS_WIN32
 LOG_COMPILER = ${srcdir}/wrapper-script.sh
+endif
 TESTS=run-test.sh
 
 TESTDATA =			\
@@ -77,11 +80,6 @@ check_PROGRAMS += test-bz106618
 test_bz106618_LDADD = $(top_builddir)/src/libfontconfig.la
 
 if !OS_WIN32
-check_PROGRAMS += test-hash
-test_hash_CFLAGS = -I$(top_builddir) -I$(top_builddir)/src $(UUID_CFLAGS)
-test_hash_LDADD = $(UUID_LIBS)
-TESTS += test-hash
-
 check_PROGRAMS += test-bz106632
 test_bz106632_CFLAGS =					\
 	-I$(top_builddir)				\

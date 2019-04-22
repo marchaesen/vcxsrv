@@ -38,13 +38,14 @@
 #define SYNC_COUNTER		0
 #define SYNC_FENCE		1
 
-typedef struct _SyncObject {
+struct _SyncObject {
     ClientPtr client;           /* Owning client. 0 for system counters */
     struct _SyncTriggerList *pTriglist; /* list of triggers */
     XID id;                     /* resource ID */
     unsigned char type;         /* SYNC_* */
+    Bool initialized;           /* FALSE if created but not initialized */
     Bool beingDestroyed;        /* in process of going away */
-} SyncObject;
+};
 
 typedef struct _SyncCounter {
     SyncObject sync;            /* Common sync object data */

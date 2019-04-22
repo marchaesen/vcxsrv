@@ -191,7 +191,7 @@ main (void)
     mkdir_p ((const char *) cachedir);
 
     fprintf (stderr, "D: Copying %s to %s\n", FONTFILE, fontdir);
-    snprintf (cmd, 512, "cp -a %s %s", FONTFILE, fontdir);
+    snprintf (cmd, 512, "sleep 1; cp -a %s %s; sleep 1", FONTFILE, fontdir);
     (void) system (cmd);
 
     fprintf (stderr, "D: Loading a config\n");
@@ -220,13 +220,19 @@ main (void)
 	goto bail;
     }
     fprintf (stderr, "D: Removing %s\n", fontdir);
-    snprintf (cmd, 512, "rm -f %s%s*; sleep 1", fontdir, FC_DIR_SEPARATOR_S);
+    snprintf (cmd, 512, "sleep 1; rm -f %s%s*; sleep 1", fontdir, FC_DIR_SEPARATOR_S);
     (void) system (cmd);
     fprintf (stderr, "D: Reinitializing\n");
-    if (!FcConfigUptoDate (config) || !FcInitReinitialize ())
+    if (FcConfigUptoDate(config))
+    {
+	fprintf (stderr, "E: Config reports up-to-date\n");
+	ret = 2;
+	goto bail;
+    }
+    if (!FcInitReinitialize ())
     {
 	fprintf (stderr, "E: Unable to reinitialize\n");
-	ret = 2;
+	ret = 3;
 	goto bail;
     }
     if (FcConfigGetCurrent () == config)
@@ -259,10 +265,16 @@ main (void)
 	goto bail;
     }
     fprintf (stderr, "D: Copying %s to %s\n", FONTFILE, fontdir);
-    snprintf (cmd, 512, "cp -a %s %s; sleep 1", FONTFILE, fontdir);
+    snprintf (cmd, 512, "sleep 1; cp -a %s %s; sleep 1", FONTFILE, fontdir);
     (void) system (cmd);
     fprintf (stderr, "D: Reinitializing\n");
-    if (!FcConfigUptoDate (config) || !FcInitReinitialize ())
+    if (FcConfigUptoDate(config))
+    {
+	fprintf (stderr, "E: Config up-to-date after addition\n");
+	ret = 3;
+	goto bail;
+    }
+    if (!FcInitReinitialize ())
     {
 	fprintf (stderr, "E: Unable to reinitialize\n");
 	ret = 2;

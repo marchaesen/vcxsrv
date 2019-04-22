@@ -151,17 +151,13 @@ validate_reg_src(nir_src *src, validate_state *state,
       _mesa_set_add(reg_state->if_uses, src);
    }
 
-   if (!src->reg.reg->is_global) {
-      validate_assert(state, reg_state->where_defined == state->impl &&
-             "using a register declared in a different function");
-   }
+   validate_assert(state, reg_state->where_defined == state->impl &&
+          "using a register declared in a different function");
 
-   if (!src->reg.reg->is_packed) {
-      if (bit_sizes)
-         validate_assert(state, src->reg.reg->bit_size & bit_sizes);
-      if (num_components)
-         validate_assert(state, src->reg.reg->num_components == num_components);
-   }
+   if (bit_sizes)
+      validate_assert(state, src->reg.reg->bit_size & bit_sizes);
+   if (num_components)
+      validate_assert(state, src->reg.reg->num_components == num_components);
 
    validate_assert(state, (src->reg.reg->num_array_elems == 0 ||
           src->reg.base_offset < src->reg.reg->num_array_elems) &&
@@ -230,8 +226,6 @@ validate_alu_src(nir_alu_instr *instr, unsigned index, validate_state *state)
    nir_alu_src *src = &instr->src[index];
 
    unsigned num_components = nir_src_num_components(src->src);
-   if (!src->src.is_ssa && src->src.reg.reg->is_packed)
-      num_components = NIR_MAX_VEC_COMPONENTS; /* can't check anything */
    for (unsigned i = 0; i < NIR_MAX_VEC_COMPONENTS; i++) {
       validate_assert(state, src->swizzle[i] < NIR_MAX_VEC_COMPONENTS);
 
@@ -258,17 +252,13 @@ validate_reg_dest(nir_reg_dest *dest, validate_state *state,
    reg_validate_state *reg_state = (reg_validate_state *) entry2->data;
    _mesa_set_add(reg_state->defs, dest);
 
-   if (!dest->reg->is_global) {
-      validate_assert(state, reg_state->where_defined == state->impl &&
-             "writing to a register declared in a different function");
-   }
+   validate_assert(state, reg_state->where_defined == state->impl &&
+          "writing to a register declared in a different function");
 
-   if (!dest->reg->is_packed) {
-      if (bit_sizes)
-         validate_assert(state, dest->reg->bit_size & bit_sizes);
-      if (num_components)
-         validate_assert(state, dest->reg->num_components == num_components);
-   }
+   if (bit_sizes)
+      validate_assert(state, dest->reg->bit_size & bit_sizes);
+   if (num_components)
+      validate_assert(state, dest->reg->num_components == num_components);
 
    validate_assert(state, (dest->reg->num_array_elems == 0 ||
           dest->base_offset < dest->reg->num_array_elems) &&
@@ -327,12 +317,11 @@ validate_alu_dest(nir_alu_instr *instr, validate_state *state)
    nir_alu_dest *dest = &instr->dest;
 
    unsigned dest_size = nir_dest_num_components(dest->dest);
-   bool is_packed = !dest->dest.is_ssa && dest->dest.reg.reg->is_packed;
    /*
     * validate that the instruction doesn't write to components not in the
     * register/SSA value
     */
-   validate_assert(state, is_packed || !(dest->write_mask & ~((1 << dest_size) - 1)));
+   validate_assert(state, !(dest->write_mask & ~((1 << dest_size) - 1)));
 
    /* validate that saturate is only ever used on instructions with
     * destinations of type float
@@ -631,9 +620,44 @@ validate_call_instr(nir_call_instr *instr, validate_state *state)
 }
 
 static void
+validate_const_value(nir_const_value *val, unsigned bit_size,
+                     validate_state *state)
+{
+   /* In order for block copies to work properly for things like instruction
+    * comparisons and [de]serialization, we require the unused bits of the
+    * nir_const_value to be zero.
+    */
+   nir_const_value cmp_val;
+   memset(&cmp_val, 0, sizeof(cmp_val));
+   switch (bit_size) {
+   case 1:
+      cmp_val.b = val->b;
+      break;
+   case 8:
+      cmp_val.u8 = val->u8;
+      break;
+   case 16:
+      cmp_val.u16 = val->u16;
+      break;
+   case 32:
+      cmp_val.u32 = val->u32;
+      break;
+   case 64:
+      cmp_val.u64 = val->u64;
+      break;
+   default:
+      validate_assert(state, !"Invalid load_const bit size");
+   }
+   validate_assert(state, memcmp(val, &cmp_val, sizeof(cmp_val)) == 0);
+}
+
+static void
 validate_load_const_instr(nir_load_const_instr *instr, validate_state *state)
 {
    validate_ssa_def(&instr->def, state);
+
+   for (unsigned i = 0; i < instr->def.num_components; i++)
+      validate_const_value(&instr->value[i], instr->def.bit_size, state);
 }
 
 static void
@@ -940,14 +964,9 @@ validate_cf_node(nir_cf_node *node, validate_state *state)
 }
 
 static void
-prevalidate_reg_decl(nir_register *reg, bool is_global, validate_state *state)
+prevalidate_reg_decl(nir_register *reg, validate_state *state)
 {
-   validate_assert(state, reg->is_global == is_global);
-
-   if (is_global)
-      validate_assert(state, reg->index < state->shader->reg_alloc);
-   else
-      validate_assert(state, reg->index < state->impl->reg_alloc);
+   validate_assert(state, reg->index < state->impl->reg_alloc);
    validate_assert(state, !BITSET_TEST(state->regs_found, reg->index));
    BITSET_SET(state->regs_found, reg->index);
 
@@ -960,7 +979,7 @@ prevalidate_reg_decl(nir_register *reg, bool is_global, validate_state *state)
    reg_state->if_uses = _mesa_pointer_set_create(reg_state);
    reg_state->defs = _mesa_pointer_set_create(reg_state);
 
-   reg_state->where_defined = is_global ? NULL : state->impl;
+   reg_state->where_defined = state->impl;
 
    _mesa_hash_table_insert(state->regs, reg, reg_state);
 }
@@ -1123,7 +1142,7 @@ validate_function_impl(nir_function_impl *impl, validate_state *state)
                                 sizeof(BITSET_WORD));
    exec_list_validate(&impl->registers);
    foreach_list_typed(nir_register, reg, node, &impl->registers) {
-      prevalidate_reg_decl(reg, false, state);
+      prevalidate_reg_decl(reg, state);
    }
 
    state->ssa_defs_found = realloc(state->ssa_defs_found,
@@ -1260,23 +1279,9 @@ nir_validate_shader(nir_shader *shader, const char *when)
      validate_var_decl(var, true, &state);
    }
 
-   state.regs_found = realloc(state.regs_found,
-                              BITSET_WORDS(shader->reg_alloc) *
-                              sizeof(BITSET_WORD));
-   memset(state.regs_found, 0, BITSET_WORDS(shader->reg_alloc) *
-                               sizeof(BITSET_WORD));
-   exec_list_validate(&shader->registers);
-   foreach_list_typed(nir_register, reg, node, &shader->registers) {
-      prevalidate_reg_decl(reg, true, &state);
-   }
-
    exec_list_validate(&shader->functions);
    foreach_list_typed(nir_function, func, node, &shader->functions) {
       validate_function(func, &state);
-   }
-
-   foreach_list_typed(nir_register, reg, node, &shader->registers) {
-      postvalidate_reg_decl(reg, &state);
    }
 
    if (_mesa_hash_table_num_entries(state.errors) > 0)

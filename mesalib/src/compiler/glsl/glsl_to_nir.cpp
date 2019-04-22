@@ -308,9 +308,9 @@ nir_visitor::constant_copy(ir_constant *ir, void *mem_ctx)
 
       for (unsigned r = 0; r < rows; r++)
          if (supports_ints)
-            ret->values[0].u32[r] = ir->value.u[r];
+            ret->values[0][r].u32 = ir->value.u[r];
          else
-            ret->values[0].f32[r] = ir->value.u[r];
+            ret->values[0][r].f32 = ir->value.u[r];
 
       break;
 
@@ -320,23 +320,23 @@ nir_visitor::constant_copy(ir_constant *ir, void *mem_ctx)
 
       for (unsigned r = 0; r < rows; r++)
          if (supports_ints)
-            ret->values[0].i32[r] = ir->value.i[r];
+            ret->values[0][r].i32 = ir->value.i[r];
          else
-            ret->values[0].f32[r] = ir->value.i[r];
+            ret->values[0][r].f32 = ir->value.i[r];
 
       break;
 
    case GLSL_TYPE_FLOAT:
       for (unsigned c = 0; c < cols; c++) {
          for (unsigned r = 0; r < rows; r++)
-            ret->values[c].f32[r] = ir->value.f[c * rows + r];
+            ret->values[c][r].f32 = ir->value.f[c * rows + r];
       }
       break;
 
    case GLSL_TYPE_DOUBLE:
       for (unsigned c = 0; c < cols; c++) {
          for (unsigned r = 0; r < rows; r++)
-            ret->values[c].f64[r] = ir->value.d[c * rows + r];
+            ret->values[c][r].f64 = ir->value.d[c * rows + r];
       }
       break;
 
@@ -345,7 +345,7 @@ nir_visitor::constant_copy(ir_constant *ir, void *mem_ctx)
       assert(cols == 1);
 
       for (unsigned r = 0; r < rows; r++)
-         ret->values[0].u64[r] = ir->value.u64[r];
+         ret->values[0][r].u64 = ir->value.u64[r];
       break;
 
    case GLSL_TYPE_INT64:
@@ -353,7 +353,7 @@ nir_visitor::constant_copy(ir_constant *ir, void *mem_ctx)
       assert(cols == 1);
 
       for (unsigned r = 0; r < rows; r++)
-         ret->values[0].i64[r] = ir->value.i64[r];
+         ret->values[0][r].i64 = ir->value.i64[r];
       break;
 
    case GLSL_TYPE_BOOL:
@@ -361,7 +361,7 @@ nir_visitor::constant_copy(ir_constant *ir, void *mem_ctx)
       assert(cols == 1);
 
       for (unsigned r = 0; r < rows; r++)
-         ret->values[0].b[r] = ir->value.b[r];
+         ret->values[0][r].b = ir->value.b[r];
 
       break;
 
@@ -523,7 +523,7 @@ nir_visitor::visit(ir_variable *ir)
          var->type = wrap_type_in_array(explicit_ifc_type, ir->type);
       } else {
          /* Otherwise, this variable is one entry in the interface */
-         UNUSED bool found;
+         UNUSED bool found = false;
          for (unsigned i = 0; i < explicit_ifc_type->length; i++) {
             const glsl_struct_field *field =
                &explicit_ifc_type->fields.structure[i];
@@ -1208,10 +1208,10 @@ nir_visitor::visit(ir_call *ir)
          /* Set the image variable dereference. */
          exec_node *param = ir->actual_parameters.get_head();
          ir_dereference *image = (ir_dereference *)param;
-         const glsl_type *type =
-            image->variable_referenced()->type->without_array();
+         nir_deref_instr *deref = evaluate_deref(image);
+         const glsl_type *type = deref->type;
 
-         instr->src[0] = nir_src_for_ssa(&evaluate_deref(image)->dest.ssa);
+         instr->src[0] = nir_src_for_ssa(&deref->dest.ssa);
          param = param->get_next();
 
          /* Set the intrinsic destination. */
@@ -2410,10 +2410,21 @@ nir_visitor::visit(ir_texture *ir)
    }
 
    nir_deref_instr *sampler_deref = evaluate_deref(ir->sampler);
-   instr->src[0].src = nir_src_for_ssa(&sampler_deref->dest.ssa);
-   instr->src[0].src_type = nir_tex_src_texture_deref;
-   instr->src[1].src = nir_src_for_ssa(&sampler_deref->dest.ssa);
-   instr->src[1].src_type = nir_tex_src_sampler_deref;
+
+   /* check for bindless handles */
+   if (sampler_deref->mode != nir_var_uniform ||
+       nir_deref_instr_get_variable(sampler_deref)->data.bindless) {
+      nir_ssa_def *load = nir_load_deref(&b, sampler_deref);
+      instr->src[0].src = nir_src_for_ssa(load);
+      instr->src[0].src_type = nir_tex_src_texture_handle;
+      instr->src[1].src = nir_src_for_ssa(load);
+      instr->src[1].src_type = nir_tex_src_sampler_handle;
+   } else {
+      instr->src[0].src = nir_src_for_ssa(&sampler_deref->dest.ssa);
+      instr->src[0].src_type = nir_tex_src_texture_deref;
+      instr->src[1].src = nir_src_for_ssa(&sampler_deref->dest.ssa);
+      instr->src[1].src_type = nir_tex_src_sampler_deref;
+   }
 
    unsigned src_number = 2;
 

@@ -93,27 +93,27 @@ handle_constant_store(nir_builder *b, nir_intrinsic_instr *store,
    case 1:
       /* Booleans are special-cased to be 32-bit */
       for (unsigned i = 0; i < num_components; i++)
-         ((int32_t *)dst)[i] = -(int)val->b[i];
+         ((int32_t *)dst)[i] = -(int)val[i].b;
       break;
 
    case 8:
       for (unsigned i = 0; i < num_components; i++)
-         ((uint8_t *)dst)[i] = val->u8[i];
+         ((uint8_t *)dst)[i] = val[i].u8;
       break;
 
    case 16:
       for (unsigned i = 0; i < num_components; i++)
-         ((uint16_t *)dst)[i] = val->u16[i];
+         ((uint16_t *)dst)[i] = val[i].u16;
       break;
 
    case 32:
       for (unsigned i = 0; i < num_components; i++)
-         ((uint32_t *)dst)[i] = val->u32[i];
+         ((uint32_t *)dst)[i] = val[i].u32;
       break;
 
    case 64:
       for (unsigned i = 0; i < num_components; i++)
-         ((uint64_t *)dst)[i] = val->u64[i];
+         ((uint64_t *)dst)[i] = val[i].u64;
       break;
 
    default:

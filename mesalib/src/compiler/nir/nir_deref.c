@@ -206,16 +206,15 @@ nir_build_deref_offset(nir_builder *b, nir_deref_instr *deref,
    for (nir_deref_instr **p = &path.path[1]; *p; p++) {
       if ((*p)->deref_type == nir_deref_type_array) {
          nir_ssa_def *index = nir_ssa_for_src(b, (*p)->arr.index, 1);
-         nir_ssa_def *stride =
-            nir_imm_int(b, type_get_array_stride((*p)->type, size_align));
-         offset = nir_iadd(b, offset, nir_imul(b, index, stride));
+         int stride = type_get_array_stride((*p)->type, size_align);
+         offset = nir_iadd(b, offset, nir_imul_imm(b, index, stride));
       } else if ((*p)->deref_type == nir_deref_type_struct) {
          /* p starts at path[1], so this is safe */
          nir_deref_instr *parent = *(p - 1);
          unsigned field_offset =
             struct_type_get_field_offset(parent->type, size_align,
                                          (*p)->strct.index);
-         nir_iadd(b, offset, nir_imm_int(b, field_offset));
+         offset = nir_iadd_imm(b, offset, field_offset);
       } else {
          unreachable("Unsupported deref type");
       }

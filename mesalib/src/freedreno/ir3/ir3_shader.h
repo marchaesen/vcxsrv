@@ -518,7 +518,7 @@ void ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out);
 uint64_t ir3_shader_outputs(const struct ir3_shader *so);
 
 int
-ir3_glsl_type_size(const struct glsl_type *type);
+ir3_glsl_type_size(const struct glsl_type *type, bool bindless);
 
 static inline const char *
 ir3_shader_stage(struct ir3_shader *shader)

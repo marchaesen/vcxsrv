@@ -680,7 +680,6 @@ emit_intrinsic_load_ubo(struct ir3_context *ctx, nir_intrinsic_instr *intr,
 {
 	struct ir3_block *b = ctx->block;
 	struct ir3_instruction *base_lo, *base_hi, *addr, *src0, *src1;
-	nir_const_value *const_offset;
 	/* UBO addresses are the first driver params, but subtract 2 here to
 	 * account for nir_lower_uniforms_to_ubo rebasing the UBOs such that UBO 0
 	 * is the uniforms: */
@@ -703,9 +702,8 @@ emit_intrinsic_load_ubo(struct ir3_context *ctx, nir_intrinsic_instr *intr,
 	/* note: on 32bit gpu's base_hi is ignored and DCE'd */
 	addr = base_lo;
 
-	const_offset = nir_src_as_const_value(intr->src[1]);
-	if (const_offset) {
-		off += const_offset->u32[0];
+	if (nir_src_is_const(intr->src[1])) {
+		off += nir_src_as_uint(intr->src[1]);
 	} else {
 		/* For load_ubo_indirect, second src is indirect offset: */
 		src1 = ir3_get_src(ctx, &intr->src[1])[0];
@@ -753,7 +751,7 @@ emit_intrinsic_ssbo_size(struct ir3_context *ctx, nir_intrinsic_instr *intr,
 		struct ir3_instruction **dst)
 {
 	/* SSBO size stored as a const starting at ssbo_sizes: */
-	unsigned blk_idx = nir_src_as_const_value(intr->src[0])->u32[0];
+	unsigned blk_idx = nir_src_as_uint(intr->src[0]);
 	unsigned idx = regid(ctx->so->constbase.ssbo_sizes, 0) +
 		ctx->so->const_layout.ssbo_size.off[blk_idx];
 
@@ -1136,7 +1134,6 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	struct ir3_instruction **dst;
 	struct ir3_instruction * const *src;
 	struct ir3_block *b = ctx->block;
-	nir_const_value *const_offset;
 	int idx, comp;
 
 	if (info->has_dest) {
@@ -1149,9 +1146,8 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	switch (intr->intrinsic) {
 	case nir_intrinsic_load_uniform:
 		idx = nir_intrinsic_base(intr);
-		const_offset = nir_src_as_const_value(intr->src[0]);
-		if (const_offset) {
-			idx += const_offset->u32[0];
+		if (nir_src_is_const(intr->src[0])) {
+			idx += nir_src_as_uint(intr->src[0]);
 			for (int i = 0; i < intr->num_components; i++) {
 				dst[i] = create_uniform(b, idx + i);
 			}
@@ -1180,10 +1176,9 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 		idx = nir_intrinsic_base(intr);
 		comp = nir_intrinsic_component(intr);
 		src = ir3_get_src(ctx, &intr->src[0]);
-		const_offset = nir_src_as_const_value(intr->src[1]);
-		if (const_offset) {
+		if (nir_src_is_const(intr->src[1])) {
 			struct ir3_instruction *coord = ir3_create_collect(ctx, src, 2);
-			idx += const_offset->u32[0];
+			idx += nir_src_as_uint(intr->src[1]);
 			for (int i = 0; i < intr->num_components; i++) {
 				unsigned inloc = idx * 4 + i + comp;
 				if (ctx->so->inputs[idx * 4].bary) {
@@ -1203,9 +1198,8 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	case nir_intrinsic_load_input:
 		idx = nir_intrinsic_base(intr);
 		comp = nir_intrinsic_component(intr);
-		const_offset = nir_src_as_const_value(intr->src[0]);
-		if (const_offset) {
-			idx += const_offset->u32[0];
+		if (nir_src_is_const(intr->src[0])) {
+			idx += nir_src_as_uint(intr->src[0]);
 			for (int i = 0; i < intr->num_components; i++) {
 				unsigned n = idx * 4 + i + comp;
 				dst[i] = ctx->ir->inputs[n];
@@ -1311,9 +1305,8 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	case nir_intrinsic_store_output:
 		idx = nir_intrinsic_base(intr);
 		comp = nir_intrinsic_component(intr);
-		const_offset = nir_src_as_const_value(intr->src[1]);
-		compile_assert(ctx, const_offset != NULL);
-		idx += const_offset->u32[0];
+		compile_assert(ctx, nir_src_is_const(intr->src[1]));
+		idx += nir_src_as_uint(intr->src[1]);
 
 		src = ir3_get_src(ctx, &intr->src[0]);
 		for (int i = 0; i < intr->num_components; i++) {
@@ -1458,7 +1451,7 @@ emit_load_const(struct ir3_context *ctx, nir_load_const_instr *instr)
 	type_t type = (instr->def.bit_size < 32) ? TYPE_U16 : TYPE_U32;
 
 	for (int i = 0; i < instr->def.num_components; i++)
-		dst[i] = create_immed_typed(ctx->block, instr->value.u32[i], type);
+		dst[i] = create_immed_typed(ctx->block, instr->value[i].u32, type);
 }
 
 static void
@@ -2606,11 +2599,6 @@ emit_instructions(struct ir3_context *ctx)
 		 * if there is a good way to know?
 		 */
 		ctx->so->num_samp += glsl_type_get_image_count(var->type);
-	}
-
-	/* Setup registers (which should only be arrays): */
-	nir_foreach_register(reg, &ctx->s->registers) {
-		ir3_declare_array(ctx, reg);
 	}
 
 	/* NOTE: need to do something more clever when we support >1 fxn */

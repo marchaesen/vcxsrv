@@ -1655,6 +1655,37 @@ layout_qualifier_id:
             $$.flags.q.non_coherent = 1;
       }
 
+      // Layout qualifiers for NV_compute_shader_derivatives.
+      if (!$$.flags.i) {
+         if (match_layout_qualifier($1, "derivative_group_quadsNV", state) == 0) {
+            $$.flags.q.derivative_group = 1;
+            $$.derivative_group = DERIVATIVE_GROUP_QUADS;
+         } else if (match_layout_qualifier($1, "derivative_group_linearNV", state) == 0) {
+            $$.flags.q.derivative_group = 1;
+            $$.derivative_group = DERIVATIVE_GROUP_LINEAR;
+         }
+
+         if ($$.flags.i) {
+            if (!state->has_compute_shader()) {
+               _mesa_glsl_error(& @1, state,
+                                "qualifier `%s' requires "
+                                "a compute shader", $1);
+            }
+
+            if (!state->NV_compute_shader_derivatives_enable) {
+               _mesa_glsl_error(& @1, state,
+                                "qualifier `%s' requires "
+                                "NV_compute_shader_derivatives", $1);
+            }
+
+            if (state->NV_compute_shader_derivatives_warn) {
+               _mesa_glsl_warning(& @1, state,
+                                  "NV_compute_shader_derivatives layout "
+                                  "qualifier `%s' used", $1);
+            }
+         }
+      }
+
       if (!$$.flags.i) {
          _mesa_glsl_error(& @1, state, "unrecognized layout identifier "
                           "`%s'", $1);
@@ -2506,6 +2537,15 @@ statement_list:
       }
       $$ = $1;
       $$->link.insert_before(& $2->link);
+   }
+   | statement_list extension_statement
+   {
+      if (!state->allow_extension_directive_midshader) {
+         _mesa_glsl_error(& @1, state,
+                          "#extension directive is not allowed "
+                          "in the middle of a shader");
+         YYERROR;
+      }
    }
    ;
 

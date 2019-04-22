@@ -1240,10 +1240,24 @@ link_program(struct gl_context *ctx, struct gl_shader_program *shProg,
    /* Capture .shader_test files. */
    const char *capture_path = _mesa_get_shader_capture_path();
    if (shProg->Name != 0 && shProg->Name != ~0 && capture_path != NULL) {
-      FILE *file;
-      char *filename = ralloc_asprintf(NULL, "%s/%u.shader_test",
+      /* Find an unused filename. */
+      char *filename = NULL;
+      for (unsigned i = 0;; i++) {
+         if (i) {
+            filename = ralloc_asprintf(NULL, "%s/%u-%u.shader_test",
+                                       capture_path, shProg->Name, i);
+         } else {
+            filename = ralloc_asprintf(NULL, "%s/%u.shader_test",
                                        capture_path, shProg->Name);
-      file = fopen(filename, "w");
+         }
+         FILE *file = fopen(filename, "r");
+         if (!file)
+            break;
+         fclose(file);
+         ralloc_free(filename);
+      }
+
+      FILE *file = fopen(filename, "w");
       if (file) {
          fprintf(file, "[require]\nGLSL%s >= %u.%02u\n",
                  shProg->IsES ? " ES" : "",

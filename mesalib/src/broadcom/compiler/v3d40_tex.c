@@ -138,14 +138,13 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
 
                 case nir_tex_src_offset: {
                         if (nir_src_is_const(instr->src[i].src)) {
-                                nir_const_value *offset =
-                                        nir_src_as_const_value(instr->src[i].src);
-
-                                p2_unpacked.offset_s = offset->i32[0];
+                                p2_unpacked.offset_s = nir_src_comp_as_int(instr->src[i].src, 0);
                                 if (instr->coord_components >= 2)
-                                        p2_unpacked.offset_t = offset->i32[1];
-                                if (instr->coord_components >= 3)
-                                        p2_unpacked.offset_r = offset->i32[2];
+                                        p2_unpacked.offset_t =
+                                                nir_src_comp_as_int(instr->src[i].src, 1);
+                                if (non_array_components >= 3)
+                                        p2_unpacked.offset_r =
+                                                nir_src_comp_as_int(instr->src[i].src, 2);
                         } else {
                                 struct qreg mask = vir_uniform_ui(c, 0xf);
                                 struct qreg x, y, offset;

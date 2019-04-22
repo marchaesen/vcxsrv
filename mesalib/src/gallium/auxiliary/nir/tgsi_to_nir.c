@@ -442,8 +442,8 @@ ttn_emit_immediate(struct ttn_compile *c)
    c->imm_defs[c->next_imm] = &load_const->def;
    c->next_imm++;
 
-   for (i = 0; i < 4; i++)
-      load_const->value.u32[i] = tgsi_imm->u[i].Uint;
+   for (i = 0; i < load_const->def.num_components; i++)
+      load_const->value[i].u32 = tgsi_imm->u[i].Uint;
 
    nir_builder_instr_insert(b, &load_const->instr);
 }
@@ -2066,7 +2066,7 @@ ttn_optimize_nir(nir_shader *nir, bool scalar)
          NIR_PASS(progress, nir, nir_opt_dce);
       }
 
-      NIR_PASS(progress, nir, nir_opt_if);
+      NIR_PASS(progress, nir, nir_opt_if, false);
       NIR_PASS(progress, nir, nir_opt_dead_cf);
       NIR_PASS(progress, nir, nir_opt_cse);
       NIR_PASS(progress, nir, nir_opt_peephole_select, 8, true, true);

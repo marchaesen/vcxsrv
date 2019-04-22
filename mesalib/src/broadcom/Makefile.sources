@@ -29,6 +29,7 @@ BROADCOM_FILES = \
 	compiler/vir_live_variables.c \
 	compiler/vir_opt_copy_propagate.c \
 	compiler/vir_opt_dead_code.c \
+	compiler/vir_opt_redundant_flags.c \
 	compiler/vir_opt_small_immediates.c \
 	compiler/vir_register_allocate.c \
 	compiler/vir_to_qpu.c \
@@ -40,6 +41,7 @@ BROADCOM_FILES = \
 	compiler/v3d_compiler.h \
 	compiler/v3d_nir_lower_image_load_store.c \
 	compiler/v3d_nir_lower_io.c \
+	compiler/v3d_nir_lower_scratch.c \
 	compiler/v3d_nir_lower_txf_ms.c \
 	qpu/qpu_disasm.c \
 	qpu/qpu_disasm.h \

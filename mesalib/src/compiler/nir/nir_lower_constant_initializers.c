@@ -32,7 +32,7 @@ build_constant_load(nir_builder *b, nir_deref_instr *deref, nir_constant *c)
          nir_load_const_instr_create(b->shader,
                                      glsl_get_vector_elements(deref->type),
                                      glsl_get_bit_size(deref->type));
-      load->value = c->values[0];
+      memcpy(load->value, c->values[0], sizeof(*load->value) * load->def.num_components);
       nir_builder_instr_insert(b, &load->instr);
       nir_store_deref(b, deref, &load->def, ~0);
    } else if (glsl_type_is_matrix(deref->type)) {
@@ -42,7 +42,7 @@ build_constant_load(nir_builder *b, nir_deref_instr *deref, nir_constant *c)
       for (unsigned i = 0; i < cols; i++) {
          nir_load_const_instr *load =
             nir_load_const_instr_create(b->shader, rows, bit_size);
-         load->value = c->values[i];
+         memcpy(load->value, c->values[i], sizeof(*load->value) * load->def.num_components);
          nir_builder_instr_insert(b, &load->instr);
          nir_store_deref(b, nir_build_deref_array_imm(b, deref, i),
                          &load->def, ~0);

@@ -288,12 +288,6 @@ typedef struct VkSurfaceCapabilitiesFullScreenExclusiveEXT {
     VkBool32           fullScreenExclusiveSupported;
 } VkSurfaceCapabilitiesFullScreenExclusiveEXT;
 
-typedef struct VkPhysicalDeviceSurfaceInfo2KHR {
-    VkStructureType    sType;
-    const void*        pNext;
-    VkSurfaceKHR       surface;
-} VkPhysicalDeviceSurfaceInfo2KHR;
-
 typedef struct VkSurfaceFullScreenExclusiveWin32InfoEXT {
     VkStructureType    sType;
     const void*        pNext;

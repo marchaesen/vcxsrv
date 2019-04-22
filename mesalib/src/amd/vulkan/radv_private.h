@@ -102,6 +102,8 @@ typedef uint32_t xcb_window_t;
 #define MAX_SO_STREAMS 4
 #define MAX_SO_BUFFERS 4
 #define MAX_SO_OUTPUTS 64
+#define MAX_INLINE_UNIFORM_BLOCK_SIZE (4ull * 1024 * 1024)
+#define MAX_INLINE_UNIFORM_BLOCK_COUNT 64
 
 #define NUM_DEPTH_CLEAR_PIPELINES 3
 

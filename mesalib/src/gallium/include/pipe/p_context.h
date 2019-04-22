@@ -352,11 +352,14 @@ struct pipe_context {
     *                   should contain at least \a count elements
     *                   unless it's NULL, in which case no buffers will
     *                   be bound.
+    * \param writable_bitmask  If bit i is not set, buffers[i] will only be
+    *                          used with loads. If unsure, set to ~0.
     */
    void (*set_shader_buffers)(struct pipe_context *,
                               enum pipe_shader_type shader,
                               unsigned start_slot, unsigned count,
-                              const struct pipe_shader_buffer *buffers);
+                              const struct pipe_shader_buffer *buffers,
+                              unsigned writable_bitmask);
 
    /**
     * Bind an array of hw atomic buffers for use by all shaders.

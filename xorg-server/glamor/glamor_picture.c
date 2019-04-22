@@ -83,14 +83,14 @@ glamor_get_tex_format_type_from_pictformat(ScreenPtr pScreen,
 
     switch (format) {
     case PICT_a1:
-        *tex_format = glamor_priv->one_channel_format;
+        *tex_format = glamor_priv->formats[1].format;
         *tex_type = GL_UNSIGNED_BYTE;
         *temp_format = PICT_a8;
         break;
 
     case PICT_b8g8r8x8:
     case PICT_b8g8r8a8:
-        if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
+        if (!glamor_priv->is_gles) {
             *tex_format = GL_BGRA;
             *tex_type = GL_UNSIGNED_INT_8_8_8_8;
         } else {
@@ -109,7 +109,7 @@ glamor_get_tex_format_type_from_pictformat(ScreenPtr pScreen,
 
     case PICT_x8r8g8b8:
     case PICT_a8r8g8b8:
-        if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
+        if (!glamor_priv->is_gles) {
             *tex_format = GL_BGRA;
             *tex_type = GL_UNSIGNED_INT_8_8_8_8_REV;
         } else {
@@ -128,7 +128,7 @@ glamor_get_tex_format_type_from_pictformat(ScreenPtr pScreen,
     case PICT_x8b8g8r8:
     case PICT_a8b8g8r8:
         *tex_format = GL_RGBA;
-        if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
+        if (!glamor_priv->is_gles) {
             *tex_type = GL_UNSIGNED_INT_8_8_8_8_REV;
         } else {
             *tex_format = GL_RGBA;
@@ -141,7 +141,7 @@ glamor_get_tex_format_type_from_pictformat(ScreenPtr pScreen,
 
     case PICT_x2r10g10b10:
     case PICT_a2r10g10b10:
-        if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
+        if (!glamor_priv->is_gles) {
             *tex_format = GL_BGRA;
             *tex_type = GL_UNSIGNED_INT_2_10_10_10_REV;
         } else {
@@ -151,7 +151,7 @@ glamor_get_tex_format_type_from_pictformat(ScreenPtr pScreen,
 
     case PICT_x2b10g10r10:
     case PICT_a2b10g10r10:
-        if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
+        if (!glamor_priv->is_gles) {
             *tex_format = GL_RGBA;
             *tex_type = GL_UNSIGNED_INT_2_10_10_10_REV;
         } else {
@@ -165,7 +165,7 @@ glamor_get_tex_format_type_from_pictformat(ScreenPtr pScreen,
         break;
     case PICT_b5g6r5:
         *tex_format = GL_RGB;
-        if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
+        if (!glamor_priv->is_gles) {
             *tex_type = GL_UNSIGNED_SHORT_5_6_5_REV;
         } else {
             *tex_type = GL_UNSIGNED_SHORT_5_6_5;
@@ -177,7 +177,7 @@ glamor_get_tex_format_type_from_pictformat(ScreenPtr pScreen,
     case PICT_x1b5g5r5:
     case PICT_a1b5g5r5:
         *tex_format = GL_RGBA;
-        if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
+        if (!glamor_priv->is_gles) {
             *tex_type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
         } else {
             return FALSE;
@@ -186,7 +186,7 @@ glamor_get_tex_format_type_from_pictformat(ScreenPtr pScreen,
 
     case PICT_x1r5g5b5:
     case PICT_a1r5g5b5:
-        if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
+        if (!glamor_priv->is_gles) {
             *tex_format = GL_BGRA;
             *tex_type = GL_UNSIGNED_SHORT_1_5_5_5_REV;
         } else {
@@ -195,13 +195,13 @@ glamor_get_tex_format_type_from_pictformat(ScreenPtr pScreen,
         break;
 
     case PICT_a8:
-        *tex_format = glamor_priv->one_channel_format;
+        *tex_format = glamor_priv->formats[8].format;
         *tex_type = GL_UNSIGNED_BYTE;
         break;
 
     case PICT_x4r4g4b4:
     case PICT_a4r4g4b4:
-        if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
+        if (!glamor_priv->is_gles) {
             *tex_format = GL_BGRA;
             *tex_type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
         } else {
@@ -213,7 +213,7 @@ glamor_get_tex_format_type_from_pictformat(ScreenPtr pScreen,
 
     case PICT_x4b4g4r4:
     case PICT_a4b4g4r4:
-        if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP) {
+        if (!glamor_priv->is_gles) {
             *tex_format = GL_RGBA;
             *tex_type = GL_UNSIGNED_SHORT_4_4_4_4_REV;
         } else {
@@ -286,6 +286,7 @@ glamor_upload_picture_to_texture(PicturePtr picture)
     Bool ret = TRUE;
     Bool needs_swizzle;
     pixman_image_t *converted_image = NULL;
+    const struct glamor_format *f = glamor_format_for_pixmap(pixmap);
 
     assert(glamor_pixmap_is_memory(pixmap));
     assert(!pixmap_priv->fbo);
@@ -335,12 +336,12 @@ glamor_upload_picture_to_texture(PicturePtr picture)
         stride = pixman_image_get_stride(converted_image);
     }
 
-    if (glamor_priv->gl_flavor == GLAMOR_GL_DESKTOP)
-        iformat = gl_iformat_for_pixmap(pixmap);
+    if (!glamor_priv->is_gles)
+        iformat = f->internalformat;
     else
         iformat = format;
 
-    if (!glamor_pixmap_ensure_fbo(pixmap, iformat, GLAMOR_CREATE_FBO_NO_FBO)) {
+    if (!glamor_pixmap_ensure_fbo(pixmap, GLAMOR_CREATE_FBO_NO_FBO)) {
         ret = FALSE;
         goto fail;
     }

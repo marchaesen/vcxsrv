@@ -1,2 +1,2 @@
-rules/base.xml.in
-rules/base.extras.xml.in
+rules/base.xml
+rules/base.extras.xml

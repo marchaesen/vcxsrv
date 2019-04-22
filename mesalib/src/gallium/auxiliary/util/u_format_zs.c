@@ -830,11 +830,11 @@ util_format_z32_float_s8x24_uint_pack_s_8uint(uint8_t *dst_row, unsigned dst_str
    unsigned x, y;
    for(y = 0; y < height; ++y) {
       const uint8_t *src = src_row;
-      uint8_t *dst = dst_row + 4;
+      uint32_t *dst = ((uint32_t *)dst_row) + 1;
       for(x = 0; x < width; ++x) {
-         *dst = *src;
+         *dst = util_cpu_to_le32(*src);
          src += 1;
-         dst += 8;
+         dst += 2;
       }
       dst_row += dst_stride/sizeof(*dst_row);
       src_row += src_stride/sizeof(*src_row);

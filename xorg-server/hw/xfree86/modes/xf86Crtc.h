@@ -1144,4 +1144,5 @@ xf86ProviderSetup(ScrnInfoPtr scrn,
 extern _X_EXPORT void
 xf86DetachAllCrtc(ScrnInfoPtr scrn);
 
+Bool xf86OutputForceEnabled(xf86OutputPtr output);
 #endif                          /* _XF86CRTC_H_ */

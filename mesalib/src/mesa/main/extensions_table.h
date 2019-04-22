@@ -268,6 +268,7 @@ EXT(EXT_separate_shader_objects             , dummy_true                        
 EXT(EXT_separate_specular_color             , dummy_true                             , GLL,  x ,  x ,  x , 1997)
 EXT(EXT_shader_framebuffer_fetch            , EXT_shader_framebuffer_fetch           , GLL, GLC,  x , ES2, 2013)
 EXT(EXT_shader_framebuffer_fetch_non_coherent, EXT_shader_framebuffer_fetch_non_coherent, GLL, GLC,  x, ES2, 2018)
+EXT(EXT_shader_image_load_formatted         , EXT_shader_image_load_formatted        , GLL, GLC,  x ,  x , 2014)
 EXT(EXT_shader_implicit_conversions         , dummy_true                             ,  x ,  x ,  x ,  31, 2013)
 EXT(EXT_shader_integer_mix                  , EXT_shader_integer_mix                 , GLL, GLC,  x ,  30, 2013)
 EXT(EXT_shader_io_blocks                    , dummy_true                             ,  x ,  x ,  x ,  31, 2014)
@@ -356,6 +357,7 @@ EXT(MESA_ycbcr_texture                      , MESA_ycbcr_texture                
 EXT(NVX_gpu_memory_info                     , NVX_gpu_memory_info                    , GLL, GLC,  x ,  x , 2013)
 
 EXT(NV_blend_square                         , dummy_true                             , GLL,  x ,  x ,  x , 1999)
+EXT(NV_compute_shader_derivatives           , NV_compute_shader_derivatives          , GLL, GLC,  x ,  32, 2018)
 EXT(NV_conditional_render                   , NV_conditional_render                  , GLL, GLC,  x , ES2, 2008)
 EXT(NV_conservative_raster                  , NV_conservative_raster                 , GLL, GLC, ES1, ES2, 2015)
 EXT(NV_conservative_raster_dilate           , NV_conservative_raster_dilate          , GLL, GLC, ES1, ES2, 2015)

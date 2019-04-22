@@ -59,6 +59,7 @@ enum {
 	RADV_PERFTEST_LOCAL_BOS      =   0x4,
 	RADV_PERFTEST_OUT_OF_ORDER   =   0x8,
 	RADV_PERFTEST_DCC_MSAA       =  0x10,
+	RADV_PERFTEST_BO_LIST        =  0x20,
 };
 
 bool

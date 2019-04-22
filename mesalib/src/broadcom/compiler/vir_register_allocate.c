@@ -156,7 +156,7 @@ v3d_choose_spill_node(struct v3d_compile *c, struct ra_graph *g,
 /* The spill offset for this thread takes a bit of setup, so do it once at
  * program start.
  */
-static void
+void
 v3d_setup_spill_base(struct v3d_compile *c)
 {
         c->cursor = vir_before_block(vir_entry_block(c));
@@ -185,6 +185,8 @@ v3d_setup_spill_base(struct v3d_compile *c)
         /* Make sure that we don't spill the spilling setup instructions. */
         for (int i = start_num_temps; i < c->num_temps; i++)
                 BITSET_CLEAR(c->spillable, i);
+
+        c->cursor = vir_after_block(c->cur_block);
 }
 
 static void
@@ -205,7 +207,7 @@ v3d_spill_reg(struct v3d_compile *c, int spill_temp)
 
         if (!is_uniform) {
                 uint32_t spill_offset = c->spill_size;
-                c->spill_size += 16 * sizeof(uint32_t);
+                c->spill_size += V3D_CHANNELS * sizeof(uint32_t);
 
                 if (spill_offset == 0)
                         v3d_setup_spill_base(c);
@@ -624,7 +626,8 @@ v3d_register_allocate(struct v3d_compile *c, bool *spilled)
          * conformance tests to make sure that spilling works.
          */
         int force_register_spills = 0;
-        if (c->spill_size < 16 * sizeof(uint32_t) * force_register_spills) {
+        if (c->spill_size <
+            V3D_CHANNELS * sizeof(uint32_t) * force_register_spills) {
                 int node = v3d_choose_spill_node(c, g, temp_to_node);
                 if (node != -1) {
                         v3d_spill_reg(c, map[node].temp);
@@ -678,18 +681,6 @@ v3d_register_allocate(struct v3d_compile *c, bool *spilled)
         }
 
         ralloc_free(g);
-
-        if (V3D_DEBUG & V3D_DEBUG_SHADERDB) {
-                fprintf(stderr, "SHADER-DB: %s prog %d/%d: %d spills\n",
-                        vir_get_stage_name(c),
-                        c->program_id, c->variant_id,
-                        c->spills);
-
-                fprintf(stderr, "SHADER-DB: %s prog %d/%d: %d fills\n",
-                        vir_get_stage_name(c),
-                        c->program_id, c->variant_id,
-                        c->fills);
-        }
 
         return temp_registers;
 }

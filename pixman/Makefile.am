@@ -15,8 +15,8 @@ USERNAME=$$USER
 RELEASE_OR_SNAPSHOT = $$(if test "x$(PIXMAN_VERSION_MINOR)" = "x$$(echo "$(PIXMAN_VERSION_MINOR)/2*2" | bc)" ; then echo release; else echo snapshot; fi)
 RELEASE_CAIRO_HOST =	$(USERNAME)@cairographics.org
 RELEASE_CAIRO_DIR =	/srv/cairo.freedesktop.org/www/$(RELEASE_OR_SNAPSHOT)s
-RELEASE_CAIRO_URL = 	http://cairographics.org/$(RELEASE_OR_SNAPSHOT)s
-RELEASE_XORG_URL =	http://xorg.freedesktop.org/archive/individual/lib
+RELEASE_CAIRO_URL = 	https://cairographics.org/$(RELEASE_OR_SNAPSHOT)s
+RELEASE_XORG_URL =	https://www.x.org/releases/individual/lib
 RELEASE_XORG_HOST =	$(USERNAME)@xorg.freedesktop.org
 RELEASE_XORG_DIR =	/srv/xorg.freedesktop.org/archive/individual/lib
 RELEASE_ANNOUNCE_LIST = cairo-announce@cairographics.org, xorg-announce@lists.freedesktop.org, pixman@lists.freedesktop.org
@@ -26,6 +26,8 @@ EXTRA_DIST =				\
 	Makefile.win32.common		\
 	meson.build			\
 	meson_options.txt		\
+	neon-test.S			\
+	arm-simd-test.S			\
 	$(NULL)
 
 tar_gz = $(PACKAGE)-$(VERSION).tar.gz

@@ -7,6 +7,8 @@
 		      dir |
 		      include |
 		      match |
+		      remap-dir |
+		      reset-dirs |
 		      selectfont)* >
 
 <!-- 
@@ -109,6 +111,21 @@
 	</edit>
     </match>
 -->
+
+<!--
+    Map a font path as the path "as-path"
+-->
+<!ELEMENT remap-dir (#PCDATA)>
+<!ATTLIST remap-dir
+          as-path   CDATA                       #REQUIRED
+          prefix    (default|xdg|relative|cwd)  "default"
+	  xml:space (default|preserve)          "preserve">
+
+<!--
+    Reset the list of fonts directories
+-->
+<!ELEMENT reset-dirs >
+
 <!--
     Periodically rescan the font configuration and
     directories to synch internal state with filesystem

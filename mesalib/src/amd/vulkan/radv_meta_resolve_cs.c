@@ -34,33 +34,27 @@
 static nir_ssa_def *radv_meta_build_resolve_srgb_conversion(nir_builder *b,
 							    nir_ssa_def *input)
 {
-	nir_const_value v;
 	unsigned i;
-	v.u32[0] = 0x3b4d2e1c; // 0.00313080009
 
 	nir_ssa_def *cmp[3];
 	for (i = 0; i < 3; i++)
 		cmp[i] = nir_flt(b, nir_channel(b, input, i),
-				 nir_build_imm(b, 1, 32, v));
+				 nir_imm_int(b, 0x3b4d2e1c));
 
 	nir_ssa_def *ltvals[3];
-	v.f32[0] = 12.92;
 	for (i = 0; i < 3; i++)
 		ltvals[i] = nir_fmul(b, nir_channel(b, input, i),
-				     nir_build_imm(b, 1, 32, v));
+				     nir_imm_float(b, 12.92));
 
 	nir_ssa_def *gtvals[3];
 
 	for (i = 0; i < 3; i++) {
-		v.f32[0] = 1.0/2.4;
 		gtvals[i] = nir_fpow(b, nir_channel(b, input, i),
-				     nir_build_imm(b, 1, 32, v));
-		v.f32[0] = 1.055;
+				     nir_imm_float(b, 1.0/2.4));
 		gtvals[i] = nir_fmul(b, gtvals[i],
-				     nir_build_imm(b, 1, 32, v));
-		v.f32[0] = 0.055;
+				     nir_imm_float(b, 1.055));
 		gtvals[i] = nir_fsub(b, gtvals[i],
-				     nir_build_imm(b, 1, 32, v));
+				     nir_imm_float(b, 0.055));
 	}
 
 	nir_ssa_def *comp[4];

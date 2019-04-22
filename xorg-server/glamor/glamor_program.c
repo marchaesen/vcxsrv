@@ -459,7 +459,7 @@ glamor_set_blend(CARD8 op, glamor_program_alpha alpha, PicturePtr dst)
         break;
     }
 
-    if (glamor_priv->gl_flavor != GLAMOR_GL_ES2)
+    if (!glamor_priv->is_gles)
         glDisable(GL_COLOR_LOGIC_OP);
 
     if (op == PictOpSrc)

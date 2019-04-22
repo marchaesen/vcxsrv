@@ -97,9 +97,6 @@ nir_strip(nir_shader *shader)
    nir_foreach_variable(var, &shader->globals)
       strip_variable(var);
 
-   nir_foreach_register(reg, &shader->registers)
-      strip_register(reg);
-
    nir_foreach_function(func, shader) {
       if (func->impl)
          strip_impl(func->impl);

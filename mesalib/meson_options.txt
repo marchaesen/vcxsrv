@@ -60,7 +60,7 @@ option(
   choices : [
     '', 'auto', 'kmsro', 'radeonsi', 'r300', 'r600', 'nouveau', 'freedreno',
     'swrast', 'v3d', 'vc4', 'etnaviv', 'tegra', 'i915', 'svga', 'virgl',
-    'swr', 'panfrost', 'iris'
+    'swr', 'panfrost', 'iris', 'lima'
   ],
   description : 'List of gallium drivers to build. If this is set to auto all drivers applicable to the target OS/architecture will be built'
 )
@@ -275,6 +275,12 @@ option(
   type : 'boolean',
   value : false,
   description : 'Build unit tests. Currently this will build *all* unit tests, which may build more than expected.'
+)
+option(
+  'install-intel-gpu-tests',
+  type : 'boolean',
+  value : false,
+  description : 'Build and install Intel unit tests which require the GPU.  This option is for developers and the Intel CI system only.'
 )
 option(
   'selinux',

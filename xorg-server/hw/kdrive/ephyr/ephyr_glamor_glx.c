@@ -321,7 +321,7 @@ ephyr_glamor_glx_screen_init(xcb_window_t win)
             ctx = glXCreateContextAttribsARB(dpy, fb_config, NULL, True,
                                              context_attribs);
         } else {
-            FatalError("Xephyr -glamor_gles2 rquires "
+            FatalError("Xephyr -glamor_gles2 requires "
                        "GLX_EXT_create_context_es2_profile\n");
         }
     } else {

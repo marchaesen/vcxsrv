@@ -214,25 +214,42 @@ cross_validate_types_and_qualifiers(struct gl_context *ctx,
    }
 
    if (type_to_match != output->type) {
-      /* There is a bit of a special case for gl_TexCoord.  This
-       * built-in is unsized by default.  Applications that variable
-       * access it must redeclare it with a size.  There is some
-       * language in the GLSL spec that implies the fragment shader
-       * and vertex shader do not have to agree on this size.  Other
-       * driver behave this way, and one or two applications seem to
-       * rely on it.
-       *
-       * Neither declaration needs to be modified here because the array
-       * sizes are fixed later when update_array_sizes is called.
-       *
-       * From page 48 (page 54 of the PDF) of the GLSL 1.10 spec:
-       *
-       *     "Unlike user-defined varying variables, the built-in
-       *     varying variables don't have a strict one-to-one
-       *     correspondence between the vertex language and the
-       *     fragment language."
-       */
-      if (!output->type->is_array() || !is_gl_identifier(output->name)) {
+      if (output->type->is_struct()) {
+         /* Structures across shader stages can have different name
+          * and considered to match in type if and only if structure
+          * members match in name, type, qualification, and declaration
+          * order.
+          */
+         if (!output->type->record_compare(type_to_match, false, true)) {
+            linker_error(prog,
+                  "%s shader output `%s' declared as struct `%s', "
+                  "doesn't match in type with %s shader input "
+                  "declared as struct `%s'\n",
+                  _mesa_shader_stage_to_string(producer_stage),
+                  output->name,
+                  output->type->name,
+                  _mesa_shader_stage_to_string(consumer_stage),
+                  input->type->name);
+         }
+      } else if (!output->type->is_array() || !is_gl_identifier(output->name)) {
+         /* There is a bit of a special case for gl_TexCoord.  This
+          * built-in is unsized by default.  Applications that variable
+          * access it must redeclare it with a size.  There is some
+          * language in the GLSL spec that implies the fragment shader
+          * and vertex shader do not have to agree on this size.  Other
+          * driver behave this way, and one or two applications seem to
+          * rely on it.
+          *
+          * Neither declaration needs to be modified here because the array
+          * sizes are fixed later when update_array_sizes is called.
+          *
+          * From page 48 (page 54 of the PDF) of the GLSL 1.10 spec:
+          *
+          *     "Unlike user-defined varying variables, the built-in
+          *     varying variables don't have a strict one-to-one
+          *     correspondence between the vertex language and the
+          *     fragment language."
+          */
          linker_error(prog,
                       "%s shader output `%s' declared as type `%s', "
                       "but %s shader input declared as type `%s'\n",
@@ -424,27 +441,13 @@ compute_variable_location_slot(ir_variable *var, gl_shader_stage stage)
 
 struct explicit_location_info {
    ir_variable *var;
-   unsigned numerical_type;
+   bool base_type_is_integer;
+   unsigned base_type_bit_size;
    unsigned interpolation;
    bool centroid;
    bool sample;
    bool patch;
 };
-
-static inline unsigned
-get_numerical_type(const glsl_type *type)
-{
-   /* From the OpenGL 4.6 spec, section 4.4.1 Input Layout Qualifiers, Page 68,
-    * (Location aliasing):
-    *
-    *    "Further, when location aliasing, the aliases sharing the location
-    *     must have the same underlying numerical type  (floating-point or
-    *     integer)
-    */
-   if (type->is_float() || type->is_double())
-      return GLSL_TYPE_FLOAT;
-   return GLSL_TYPE_INT;
-}
 
 static bool
 check_location_aliasing(struct explicit_location_info explicit_locations[][4],
@@ -461,14 +464,23 @@ check_location_aliasing(struct explicit_location_info explicit_locations[][4],
                         gl_shader_stage stage)
 {
    unsigned last_comp;
-   if (type->without_array()->is_struct()) {
-      /* The component qualifier can't be used on structs so just treat
-       * all component slots as used.
+   unsigned base_type_bit_size;
+   const glsl_type *type_without_array = type->without_array();
+   const bool base_type_is_integer =
+      glsl_base_type_is_integer(type_without_array->base_type);
+   const bool is_struct = type_without_array->is_struct();
+   if (is_struct) {
+      /* structs don't have a defined underlying base type so just treat all
+       * component slots as used and set the bit size to 0. If there is
+       * location aliasing, we'll fail anyway later.
        */
       last_comp = 4;
+      base_type_bit_size = 0;
    } else {
-      unsigned dmul = type->without_array()->is_64bit() ? 2 : 1;
-      last_comp = component + type->without_array()->vector_elements * dmul;
+      unsigned dmul = type_without_array->is_64bit() ? 2 : 1;
+      last_comp = component + type_without_array->vector_elements * dmul;
+      base_type_bit_size =
+         glsl_base_type_get_bit_size(type_without_array->base_type);
    }
 
    while (location < location_limit) {
@@ -478,8 +490,22 @@ check_location_aliasing(struct explicit_location_info explicit_locations[][4],
             &explicit_locations[location][comp];
 
          if (info->var) {
-            /* Component aliasing is not alloed */
-            if (comp >= component && comp < last_comp) {
+            if (info->var->type->without_array()->is_struct() || is_struct) {
+               /* Structs cannot share location since they are incompatible
+                * with any other underlying numerical type.
+                */
+               linker_error(prog,
+                            "%s shader has multiple %sputs sharing the "
+                            "same location that don't have the same "
+                            "underlying numerical type. Struct variable '%s', "
+                            "location %u\n",
+                            _mesa_shader_stage_to_string(stage),
+                            var->data.mode == ir_var_shader_in ? "in" : "out",
+                            is_struct ? var->name : info->var->name,
+                            location);
+               return false;
+            } else if (comp >= component && comp < last_comp) {
+               /* Component aliasing is not allowed */
                linker_error(prog,
                             "%s shader has multiple %sputs explicitly "
                             "assigned to location %d and component %d\n",
@@ -488,27 +514,52 @@ check_location_aliasing(struct explicit_location_info explicit_locations[][4],
                             location, comp);
                return false;
             } else {
-               /* For all other used components we need to have matching
-                * types, interpolation and auxiliary storage
+               /* From the OpenGL 4.60.5 spec, section 4.4.1 Input Layout
+                * Qualifiers, Page 67, (Location aliasing):
+                *
+                *   " Further, when location aliasing, the aliases sharing the
+                *     location must have the same underlying numerical type
+                *     and bit width (floating-point or integer, 32-bit versus
+                *     64-bit, etc.) and the same auxiliary storage and
+                *     interpolation qualification."
                 */
-               if (info->numerical_type !=
-                   get_numerical_type(type->without_array())) {
+
+               /* If the underlying numerical type isn't integer, implicitly
+                * it will be float or else we would have failed by now.
+                */
+               if (info->base_type_is_integer != base_type_is_integer) {
                   linker_error(prog,
-                               "Varyings sharing the same location must "
-                               "have the same underlying numerical type. "
-                               "Location %u component %u\n",
-                               location, comp);
+                               "%s shader has multiple %sputs sharing the "
+                               "same location that don't have the same "
+                               "underlying numerical type. Location %u "
+                               "component %u.\n",
+                               _mesa_shader_stage_to_string(stage),
+                               var->data.mode == ir_var_shader_in ?
+                               "in" : "out", location, comp);
+                  return false;
+               }
+
+               if (info->base_type_bit_size != base_type_bit_size) {
+                  linker_error(prog,
+                               "%s shader has multiple %sputs sharing the "
+                               "same location that don't have the same "
+                               "underlying numerical bit size. Location %u "
+                               "component %u.\n",
+                               _mesa_shader_stage_to_string(stage),
+                               var->data.mode == ir_var_shader_in ?
+                               "in" : "out", location, comp);
                   return false;
                }
 
                if (info->interpolation != interpolation) {
                   linker_error(prog,
-                               "%s shader has multiple %sputs at explicit "
-                               "location %u with different interpolation "
-                               "settings\n",
+                               "%s shader has multiple %sputs sharing the "
+                               "same location that don't have the same "
+                               "interpolation qualification. Location %u "
+                               "component %u.\n",
                                _mesa_shader_stage_to_string(stage),
                                var->data.mode == ir_var_shader_in ?
-                               "in" : "out", location);
+                               "in" : "out", location, comp);
                   return false;
                }
 
@@ -516,17 +567,20 @@ check_location_aliasing(struct explicit_location_info explicit_locations[][4],
                    info->sample != sample ||
                    info->patch != patch) {
                   linker_error(prog,
-                               "%s shader has multiple %sputs at explicit "
-                               "location %u with different aux storage\n",
+                               "%s shader has multiple %sputs sharing the "
+                               "same location that don't have the same "
+                               "auxiliary storage qualification. Location %u "
+                               "component %u.\n",
                                _mesa_shader_stage_to_string(stage),
                                var->data.mode == ir_var_shader_in ?
-                               "in" : "out", location);
+                               "in" : "out", location, comp);
                   return false;
                }
             }
          } else if (comp >= component && comp < last_comp) {
             info->var = var;
-            info->numerical_type = get_numerical_type(type->without_array());
+            info->base_type_is_integer = base_type_is_integer;
+            info->base_type_bit_size = base_type_bit_size;
             info->interpolation = interpolation;
             info->centroid = centroid;
             info->sample = sample;
@@ -624,17 +678,15 @@ validate_explicit_variable_location(struct gl_context *ctx,
 
 /**
  * Validate explicit locations for the inputs to the first stage and the
- * outputs of the last stage in an SSO program (everything in between is
- * validated in cross_validate_outputs_to_inputs).
+ * outputs of the last stage in a program, if those are not the VS and FS
+ * shaders.
  */
 void
-validate_sso_explicit_locations(struct gl_context *ctx,
-                                struct gl_shader_program *prog,
-                                gl_shader_stage first_stage,
-                                gl_shader_stage last_stage)
+validate_first_and_last_interface_explicit_locations(struct gl_context *ctx,
+                                                     struct gl_shader_program *prog,
+                                                     gl_shader_stage first_stage,
+                                                     gl_shader_stage last_stage)
 {
-   assert(prog->SeparateShader);
-
    /* VS inputs and FS outputs are validated in
     * assign_attribute_or_color_locations()
     */

@@ -119,16 +119,16 @@ nir_opt_idiv_const_instr(nir_builder *b, nir_alu_instr *alu)
       int64_t d;
       switch (bit_size) {
       case 8:
-         d = const_denom->i8[alu->src[1].swizzle[comp]];
+         d = const_denom[alu->src[1].swizzle[comp]].i8;
          break;
       case 16:
-         d = const_denom->i16[alu->src[1].swizzle[comp]];
+         d = const_denom[alu->src[1].swizzle[comp]].i16;
          break;
       case 32:
-         d = const_denom->i32[alu->src[1].swizzle[comp]];
+         d = const_denom[alu->src[1].swizzle[comp]].i32;
          break;
       case 64:
-         d = const_denom->i64[alu->src[1].swizzle[comp]];
+         d = const_denom[alu->src[1].swizzle[comp]].i64;
          break;
       default:
          unreachable("Invalid bit size");

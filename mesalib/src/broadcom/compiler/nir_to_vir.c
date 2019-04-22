@@ -132,9 +132,11 @@ v3d_general_tmu_op(nir_intrinsic_instr *instr)
         case nir_intrinsic_load_ubo:
         case nir_intrinsic_load_uniform:
         case nir_intrinsic_load_shared:
+        case nir_intrinsic_load_scratch:
                 return GENERAL_TMU_READ_OP_READ;
         case nir_intrinsic_store_ssbo:
         case nir_intrinsic_store_shared:
+        case nir_intrinsic_store_scratch:
                 return GENERAL_TMU_WRITE_OP_WRITE;
         case nir_intrinsic_ssbo_atomic_add:
         case nir_intrinsic_shared_atomic_add:
@@ -177,7 +179,7 @@ v3d_general_tmu_op(nir_intrinsic_instr *instr)
  */
 static void
 ntq_emit_tmu_general(struct v3d_compile *c, nir_intrinsic_instr *instr,
-                     bool is_shared)
+                     bool is_shared_or_scratch)
 {
         /* XXX perf: We should turn add/sub of 1 to inc/dec.  Perhaps NIR
          * wants to have support for inc/dec?
@@ -185,8 +187,9 @@ ntq_emit_tmu_general(struct v3d_compile *c, nir_intrinsic_instr *instr,
 
         uint32_t tmu_op = v3d_general_tmu_op(instr);
         bool is_store = (instr->intrinsic == nir_intrinsic_store_ssbo ||
+                         instr->intrinsic == nir_intrinsic_store_scratch ||
                          instr->intrinsic == nir_intrinsic_store_shared);
-        bool has_index = !is_shared;
+        bool has_index = !is_shared_or_scratch;
 
         int offset_src;
         int tmu_writes = 1; /* address */
@@ -194,6 +197,7 @@ ntq_emit_tmu_general(struct v3d_compile *c, nir_intrinsic_instr *instr,
                 offset_src = 0;
         } else if (instr->intrinsic == nir_intrinsic_load_ssbo ||
                    instr->intrinsic == nir_intrinsic_load_ubo ||
+                   instr->intrinsic == nir_intrinsic_load_scratch ||
                    instr->intrinsic == nir_intrinsic_load_shared) {
                 offset_src = 0 + has_index;
         } else if (is_store) {
@@ -219,8 +223,9 @@ ntq_emit_tmu_general(struct v3d_compile *c, nir_intrinsic_instr *instr,
                 }
         }
 
+        bool dynamic_src = !nir_src_is_const(instr->src[offset_src]);
         uint32_t const_offset = 0;
-        if (nir_src_is_const(instr->src[offset_src]))
+        if (!dynamic_src)
                 const_offset = nir_src_as_uint(instr->src[offset_src]);
 
         /* Make sure we won't exceed the 16-entry TMU fifo if each thread is
@@ -243,25 +248,42 @@ ntq_emit_tmu_general(struct v3d_compile *c, nir_intrinsic_instr *instr,
                 offset = vir_uniform(c, QUNIFORM_UBO_ADDR,
                                      v3d_unit_data_create(index, const_offset));
                 const_offset = 0;
-        } else if (is_shared) {
-                /* Shared variables have no buffer index, and all start from a
-                 * common base that we set up at the start of dispatch
+        } else if (is_shared_or_scratch) {
+                /* Shared and scratch variables have no buffer index, and all
+                 * start from a common base that we set up at the start of
+                 * dispatch.
                  */
-                offset = c->cs_shared_offset;
+                if (instr->intrinsic == nir_intrinsic_load_scratch ||
+                    instr->intrinsic == nir_intrinsic_store_scratch) {
+                        offset = c->spill_base;
+                } else {
+                        offset = c->cs_shared_offset;
+                        const_offset += nir_intrinsic_base(instr);
+                }
         } else {
                 offset = vir_uniform(c, QUNIFORM_SSBO_OFFSET,
                                      nir_src_as_uint(instr->src[is_store ?
                                                                 1 : 0]));
         }
 
+        /* The spec says that for atomics, the TYPE field is ignored, but that
+         * doesn't seem to be the case for CMPXCHG.  Just use the number of
+         * tmud writes we did to decide the type (or choose "32bit" for atomic
+         * reads, which has been fine).
+         */
+        int num_components;
+        if (tmu_op == GENERAL_TMU_WRITE_OP_ATOMIC_CMPXCHG)
+                num_components = 2;
+        else
+                num_components = instr->num_components;
+
         uint32_t config = (0xffffff00 |
                            tmu_op |
                            GENERAL_TMU_LOOKUP_PER_PIXEL);
-        if (instr->num_components == 1) {
+        if (num_components == 1) {
                 config |= GENERAL_TMU_LOOKUP_TYPE_32BIT_UI;
         } else {
-                config |= (GENERAL_TMU_LOOKUP_TYPE_VEC2 +
-                           instr->num_components - 2);
+                config |= GENERAL_TMU_LOOKUP_TYPE_VEC2 + num_components - 2;
         }
 
         if (vir_in_nonuniform_control_flow(c)) {
@@ -269,19 +291,27 @@ ntq_emit_tmu_general(struct v3d_compile *c, nir_intrinsic_instr *instr,
                            V3D_QPU_PF_PUSHZ);
         }
 
-        struct qreg dest;
+        struct qreg tmua;
         if (config == ~0)
-                dest = vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_TMUA);
+                tmua = vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_TMUA);
         else
-                dest = vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_TMUAU);
+                tmua = vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_TMUAU);
 
         struct qinst *tmu;
-        if (nir_src_is_const(instr->src[offset_src]) && const_offset == 0) {
-                tmu = vir_MOV_dest(c, dest, offset);
-        } else {
-                tmu = vir_ADD_dest(c, dest,
-                                   offset,
+        if (dynamic_src) {
+                if (const_offset != 0) {
+                        offset = vir_ADD(c, offset,
+                                         vir_uniform_ui(c, const_offset));
+                }
+                tmu = vir_ADD_dest(c, tmua, offset,
                                    ntq_get_src(c, instr->src[offset_src], 0));
+        } else {
+                if (const_offset != 0) {
+                        tmu = vir_ADD_dest(c, tmua, offset,
+                                           vir_uniform_ui(c, const_offset));
+                } else {
+                        tmu = vir_MOV_dest(c, tmua, offset);
+                }
         }
 
         if (config != ~0) {
@@ -1521,7 +1551,7 @@ ntq_emit_load_const(struct v3d_compile *c, nir_load_const_instr *instr)
          */
         struct qreg *qregs = ntq_init_ssa_def(c, &instr->def);
         for (int i = 0; i < instr->def.num_components; i++)
-                qregs[i] = vir_uniform_ui(c, instr->value.u32[i]);
+                qregs[i] = vir_uniform_ui(c, instr->value[i].u32);
 
         _mesa_hash_table_insert(c->def_ht, &instr->def, qregs);
 }
@@ -1618,6 +1648,8 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
         case nir_intrinsic_shared_atomic_comp_swap:
         case nir_intrinsic_load_shared:
         case nir_intrinsic_store_shared:
+        case nir_intrinsic_load_scratch:
+        case nir_intrinsic_store_scratch:
                 ntq_emit_tmu_general(c, instr, true);
                 break;
 
@@ -1806,7 +1838,7 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
         case nir_intrinsic_memory_barrier_atomic_counter:
         case nir_intrinsic_memory_barrier_buffer:
         case nir_intrinsic_memory_barrier_image:
-        case nir_intrinsic_memory_barrier_shared:
+        case nir_intrinsic_group_memory_barrier:
                 /* We don't do any instruction scheduling of these NIR
                  * instructions between each other, so we just need to make
                  * sure that the TMU operations before the barrier are flushed
@@ -1867,6 +1899,10 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
                 ntq_store_dest(c, &instr->dest, 2,
                                vir_AND(c, c->cs_payload[1],
                                        vir_uniform_ui(c, 0xffff)));
+                break;
+
+        case nir_intrinsic_load_subgroup_id:
+                ntq_store_dest(c, &instr->dest, 0, vir_EIDX(c));
                 break;
 
         default:
@@ -2247,16 +2283,8 @@ nir_to_vir(struct v3d_compile *c)
                                                       V3D_QPU_WADDR_SYNC));
                 }
 
-                if (c->s->info.system_values_read &
-                    ((1ull << SYSTEM_VALUE_LOCAL_INVOCATION_INDEX) |
-                     (1ull << SYSTEM_VALUE_WORK_GROUP_ID))) {
-                        c->cs_payload[0] = vir_MOV(c, vir_reg(QFILE_REG, 0));
-                }
-                if ((c->s->info.system_values_read &
-                     ((1ull << SYSTEM_VALUE_WORK_GROUP_ID))) ||
-                    c->s->info.cs.shared_size) {
-                        c->cs_payload[1] = vir_MOV(c, vir_reg(QFILE_REG, 2));
-                }
+                c->cs_payload[0] = vir_MOV(c, vir_reg(QFILE_REG, 0));
+                c->cs_payload[1] = vir_MOV(c, vir_reg(QFILE_REG, 2));
 
                 /* Set up the division between gl_LocalInvocationIndex and
                  * wg_in_mem in the payload reg.
@@ -2293,13 +2321,17 @@ nir_to_vir(struct v3d_compile *c)
                 break;
         }
 
+        if (c->s->scratch_size) {
+                v3d_setup_spill_base(c);
+                c->spill_size += V3D_CHANNELS * c->s->scratch_size;
+        }
+
         if (c->s->info.stage == MESA_SHADER_FRAGMENT)
                 ntq_setup_fs_inputs(c);
         else
                 ntq_setup_vpm_inputs(c);
 
         ntq_setup_outputs(c);
-        ntq_setup_registers(c, &c->s->registers);
 
         /* Find the main function and emit the body. */
         nir_foreach_function(function, c->s) {
@@ -2445,6 +2477,8 @@ v3d_nir_to_vir(struct v3d_compile *c)
         case MESA_SHADER_VERTEX:
                 emit_vert_end(c);
                 break;
+        case MESA_SHADER_COMPUTE:
+                break;
         default:
                 unreachable("bad stage");
         }
@@ -2508,7 +2542,7 @@ v3d_nir_to_vir(struct v3d_compile *c)
                         vir_remove_thrsw(c);
         }
 
-        if (c->spill_size &&
+        if (c->spills &&
             (V3D_DEBUG & (V3D_DEBUG_VIR |
                           v3d_debug_flag_for_shader_stage(c->s->info.stage)))) {
                 fprintf(stderr, "%s prog %d/%d spilled VIR:\n",

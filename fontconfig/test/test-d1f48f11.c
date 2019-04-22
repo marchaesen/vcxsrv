@@ -268,7 +268,9 @@ main (void)
     }
 
     free (d);
+    FcConfigDestroy (cfg);
     setenv ("FONTCONFIG_SYSROOT", sysroot, 1);
+    cfg = FcConfigCreate ();
     dsa = FcStrBuildFilename (sysroot, da, NULL);
     dsac = FcStrCanonFilename (dsa);
     d = FcConfigRealFilename (cfg, dc);

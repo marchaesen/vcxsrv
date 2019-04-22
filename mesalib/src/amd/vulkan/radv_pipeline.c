@@ -1827,6 +1827,20 @@ radv_link_shaders(struct radv_pipeline *pipeline, nir_shader **shaders)
 	}
 }
 
+static uint32_t
+radv_get_attrib_stride(const VkPipelineVertexInputStateCreateInfo *input_state,
+		       uint32_t attrib_binding)
+{
+	for (uint32_t i = 0; i < input_state->vertexBindingDescriptionCount; i++) {
+		const VkVertexInputBindingDescription *input_binding =
+			&input_state->pVertexBindingDescriptions[i];
+
+		if (input_binding->binding == attrib_binding)
+			return input_binding->stride;
+	}
+
+	return 0;
+}
 
 static struct radv_pipeline_key
 radv_generate_graphics_pipeline_key(struct radv_pipeline *pipeline,
@@ -1886,7 +1900,7 @@ radv_generate_graphics_pipeline_key(struct radv_pipeline *pipeline,
 		key.vertex_attribute_formats[location] = data_format | (num_format << 4);
 		key.vertex_attribute_bindings[location] = desc->binding;
 		key.vertex_attribute_offsets[location] = desc->offset;
-		key.vertex_attribute_strides[location] = input_state->pVertexBindingDescriptions[desc->binding].stride;
+		key.vertex_attribute_strides[location] = radv_get_attrib_stride(input_state, desc->binding);
 
 		if (pipeline->device->physical_device->rad_info.chip_class <= VI &&
 		    pipeline->device->physical_device->rad_info.family != CHIP_STONEY) {
@@ -2164,6 +2178,11 @@ void radv_create_shaders(struct radv_pipeline *pipeline,
 	for (int i = 0; i < MESA_SHADER_STAGES; ++i) {
 		if (nir[i]) {
 			NIR_PASS_V(nir[i], nir_lower_bool_to_int32);
+			NIR_PASS_V(nir[i], nir_lower_non_uniform_access,
+			                   nir_lower_non_uniform_ubo_access |
+			                   nir_lower_non_uniform_ssbo_access |
+			                   nir_lower_non_uniform_texture_access |
+			                   nir_lower_non_uniform_image_access);
 		}
 
 		if (radv_can_dump_shader(device, modules[i], false))

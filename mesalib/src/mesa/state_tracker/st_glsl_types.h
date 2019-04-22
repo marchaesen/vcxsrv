@@ -36,7 +36,9 @@ extern "C" {
 int st_glsl_storage_type_size(const struct glsl_type *type,
                               bool is_bindless);
 
-int st_glsl_type_dword_size(const struct glsl_type *type);
+int st_glsl_uniforms_type_size(const struct glsl_type *type, bool bindless);
+
+int st_glsl_type_dword_size(const struct glsl_type *type, bool bindless);
 
 #ifdef __cplusplus
 }

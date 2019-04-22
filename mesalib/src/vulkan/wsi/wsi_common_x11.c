@@ -1361,7 +1361,7 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
    chain->base.get_wsi_image = x11_get_wsi_image;
    chain->base.acquire_next_image = x11_acquire_next_image;
    chain->base.queue_present = x11_queue_present;
-   chain->base.present_mode = pCreateInfo->presentMode;
+   chain->base.present_mode = wsi_swapchain_get_present_mode(wsi_device, pCreateInfo);
    chain->base.image_count = num_images;
    chain->conn = conn;
    chain->window = window;

@@ -42,11 +42,11 @@ build_local_group_size(nir_builder *b, unsigned bit_size)
    } else {
       /* using a 32 bit constant is safe here as no device/driver needs more
        * than 32 bits for the local size */
-      nir_const_value local_size_const;
-      memset(&local_size_const, 0, sizeof(local_size_const));
-      local_size_const.u32[0] = b->shader->info.cs.local_size[0];
-      local_size_const.u32[1] = b->shader->info.cs.local_size[1];
-      local_size_const.u32[2] = b->shader->info.cs.local_size[2];
+      nir_const_value local_size_const[3];
+      memset(local_size_const, 0, sizeof(local_size_const));
+      local_size_const[0].u32 = b->shader->info.cs.local_size[0];
+      local_size_const[1].u32 = b->shader->info.cs.local_size[1];
+      local_size_const[2].u32 = b->shader->info.cs.local_size[2];
       local_size = nir_build_imm(b, 3, 32, local_size_const);
    }
 

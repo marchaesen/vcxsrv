@@ -272,6 +272,8 @@ _mesa_initialize_texture_object( struct gl_context *ctx,
           target == GL_TEXTURE_2D_MULTISAMPLE ||
           target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY);
 
+   GLenum filter = GL_LINEAR;
+
    memset(obj, 0, sizeof(*obj));
    /* init the non-zero fields */
    simple_mtx_init(&obj->Mutex, mtx_plain);
@@ -292,20 +294,30 @@ _mesa_initialize_texture_object( struct gl_context *ctx,
    obj->RequiredTextureImageUnits = 1;
 
    /* sampler state */
-   if (target == GL_TEXTURE_RECTANGLE_NV ||
-       target == GL_TEXTURE_EXTERNAL_OES) {
-      obj->Sampler.WrapS = GL_CLAMP_TO_EDGE;
-      obj->Sampler.WrapT = GL_CLAMP_TO_EDGE;
-      obj->Sampler.WrapR = GL_CLAMP_TO_EDGE;
-      obj->Sampler.MinFilter = GL_LINEAR;
+   switch (target) {
+      case GL_TEXTURE_2D_MULTISAMPLE:
+      case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+         filter = GL_NEAREST;
+         /* fallthrough */
+
+      case GL_TEXTURE_RECTANGLE_NV:
+      case GL_TEXTURE_EXTERNAL_OES:
+         obj->Sampler.WrapS = GL_CLAMP_TO_EDGE;
+         obj->Sampler.WrapT = GL_CLAMP_TO_EDGE;
+         obj->Sampler.WrapR = GL_CLAMP_TO_EDGE;
+         obj->Sampler.MinFilter = filter;
+         obj->Sampler.MagFilter = filter;
+         break;
+
+      default:
+         obj->Sampler.WrapS = GL_REPEAT;
+         obj->Sampler.WrapT = GL_REPEAT;
+         obj->Sampler.WrapR = GL_REPEAT;
+         obj->Sampler.MinFilter = GL_NEAREST_MIPMAP_LINEAR;
+         obj->Sampler.MagFilter = GL_LINEAR;
+         break;
    }
-   else {
-      obj->Sampler.WrapS = GL_REPEAT;
-      obj->Sampler.WrapT = GL_REPEAT;
-      obj->Sampler.WrapR = GL_REPEAT;
-      obj->Sampler.MinFilter = GL_NEAREST_MIPMAP_LINEAR;
-   }
-   obj->Sampler.MagFilter = GL_LINEAR;
+
    obj->Sampler.MinLod = -1000.0;
    obj->Sampler.MaxLod = 1000.0;
    obj->Sampler.LodBias = 0.0;

@@ -654,6 +654,11 @@ struct ast_type_qualifier {
          /** \{ */
          unsigned non_coherent:1;
          /** \} */
+
+         /** \name Layout qualifiers for NV_compute_shader_derivatives */
+         /** \{ */
+         unsigned derivative_group:1;
+         /** \} */
       }
       /** \brief Set of flags, accessed by name. */
       q;
@@ -765,6 +770,12 @@ struct ast_type_qualifier {
     * This field is only valid if \c explicit_image_format is set.
     */
    GLenum image_format;
+
+   /**
+    * Arrangement of invocations used to calculate derivatives in a compute
+    * shader.  From NV_compute_shader_derivatives.
+    */
+   enum gl_derivative_group derivative_group;
 
    /**
     * Base type of the data read from or written to this image.  Only

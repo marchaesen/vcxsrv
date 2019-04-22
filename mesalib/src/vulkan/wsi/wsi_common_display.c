@@ -1757,7 +1757,7 @@ wsi_display_surface_create_swapchain(
    chain->base.get_wsi_image = wsi_display_get_wsi_image;
    chain->base.acquire_next_image = wsi_display_acquire_next_image;
    chain->base.queue_present = wsi_display_queue_present;
-   chain->base.present_mode = create_info->presentMode;
+   chain->base.present_mode = wsi_swapchain_get_present_mode(wsi_device, create_info);
    chain->base.image_count = num_images;
 
    chain->wsi = wsi;

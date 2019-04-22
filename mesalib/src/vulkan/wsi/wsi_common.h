@@ -101,6 +101,7 @@ struct wsi_device {
 
    bool supports_modifiers;
    uint32_t maxImageDimension2D;
+   VkPresentModeKHR override_present_mode;
 
    uint64_t (*image_get_modifier)(VkImage image);
 

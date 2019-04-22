@@ -67,7 +67,8 @@ util_range_add(struct util_range *range, unsigned start, unsigned end)
 }
 
 static inline boolean
-util_ranges_intersect(struct util_range *range, unsigned start, unsigned end)
+util_ranges_intersect(const struct util_range *range,
+                      unsigned start, unsigned end)
 {
    return MAX2(start, range->start) < MIN2(end, range->end);
 }

@@ -81,10 +81,7 @@ print_register(nir_register *reg, print_state *state)
    FILE *fp = state->fp;
    if (reg->name != NULL)
       fprintf(fp, "/* %s */ ", reg->name);
-   if (reg->is_global)
-      fprintf(fp, "gr%u", reg->index);
-   else
-      fprintf(fp, "r%u", reg->index);
+   fprintf(fp, "r%u", reg->index);
 }
 
 static const char *sizes[] = { "error", "vec1", "vec2", "vec3", "vec4",
@@ -97,8 +94,6 @@ print_register_decl(nir_register *reg, print_state *state)
 {
    FILE *fp = state->fp;
    fprintf(fp, "decl_reg %s %u ", sizes[reg->num_components], reg->bit_size);
-   if (reg->is_packed)
-      fprintf(fp, "(packed) ");
    print_register(reg, state);
    if (reg->num_array_elems != 0)
       fprintf(fp, "[%u]", reg->num_array_elems);
@@ -305,7 +300,7 @@ print_constant(nir_constant *c, const struct glsl_type *type, print_state *state
 
       for (i = 0; i < rows; i++) {
          if (i > 0) fprintf(fp, ", ");
-         fprintf(fp, "%s", c->values[0].b[i] ? "true" : "false");
+         fprintf(fp, "%s", c->values[0][i].b ? "true" : "false");
       }
       break;
 
@@ -316,7 +311,7 @@ print_constant(nir_constant *c, const struct glsl_type *type, print_state *state
 
       for (i = 0; i < rows; i++) {
          if (i > 0) fprintf(fp, ", ");
-         fprintf(fp, "0x%02x", c->values[0].u8[i]);
+         fprintf(fp, "0x%02x", c->values[0][i].u8);
       }
       break;
 
@@ -327,7 +322,7 @@ print_constant(nir_constant *c, const struct glsl_type *type, print_state *state
 
       for (i = 0; i < rows; i++) {
          if (i > 0) fprintf(fp, ", ");
-         fprintf(fp, "0x%04x", c->values[0].u16[i]);
+         fprintf(fp, "0x%04x", c->values[0][i].u16);
       }
       break;
 
@@ -338,7 +333,7 @@ print_constant(nir_constant *c, const struct glsl_type *type, print_state *state
 
       for (i = 0; i < rows; i++) {
          if (i > 0) fprintf(fp, ", ");
-         fprintf(fp, "0x%08x", c->values[0].u32[i]);
+         fprintf(fp, "0x%08x", c->values[0][i].u32);
       }
       break;
 
@@ -346,7 +341,7 @@ print_constant(nir_constant *c, const struct glsl_type *type, print_state *state
       for (i = 0; i < cols; i++) {
          for (j = 0; j < rows; j++) {
             if (i + j > 0) fprintf(fp, ", ");
-            fprintf(fp, "%f", _mesa_half_to_float(c->values[i].u16[j]));
+            fprintf(fp, "%f", _mesa_half_to_float(c->values[i][j].u16));
          }
       }
       break;
@@ -355,7 +350,7 @@ print_constant(nir_constant *c, const struct glsl_type *type, print_state *state
       for (i = 0; i < cols; i++) {
          for (j = 0; j < rows; j++) {
             if (i + j > 0) fprintf(fp, ", ");
-            fprintf(fp, "%f", c->values[i].f32[j]);
+            fprintf(fp, "%f", c->values[i][j].f32);
          }
       }
       break;
@@ -364,7 +359,7 @@ print_constant(nir_constant *c, const struct glsl_type *type, print_state *state
       for (i = 0; i < cols; i++) {
          for (j = 0; j < rows; j++) {
             if (i + j > 0) fprintf(fp, ", ");
-            fprintf(fp, "%f", c->values[i].f64[j]);
+            fprintf(fp, "%f", c->values[i][j].f64);
          }
       }
       break;
@@ -376,7 +371,7 @@ print_constant(nir_constant *c, const struct glsl_type *type, print_state *state
 
       for (i = 0; i < cols; i++) {
          if (i > 0) fprintf(fp, ", ");
-         fprintf(fp, "0x%08" PRIx64, c->values[0].u64[i]);
+         fprintf(fp, "0x%08" PRIx64, c->values[0][i].u64);
       }
       break;
 
@@ -642,9 +637,8 @@ print_deref_link(const nir_deref_instr *instr, bool whole_chain, print_state *st
 
    case nir_deref_type_array:
    case nir_deref_type_ptr_as_array: {
-      nir_const_value *const_index = nir_src_as_const_value(instr->arr.index);
-      if (const_index) {
-         fprintf(fp, "[%u]", const_index->u32[0]);
+      if (nir_src_is_const(instr->arr.index)) {
+         fprintf(fp, "[%"PRIx64"]", nir_src_as_int(instr->arr.index));
       } else {
          fprintf(fp, "[");
          print_src(&instr->arr.index, state);
@@ -1044,21 +1038,21 @@ print_load_const_instr(nir_load_const_instr *instr, print_state *state)
 
       switch (instr->def.bit_size) {
       case 64:
-         fprintf(fp, "0x%16" PRIx64 " /* %f */", instr->value.u64[i],
-                 instr->value.f64[i]);
+         fprintf(fp, "0x%16" PRIx64 " /* %f */", instr->value[i].u64,
+                 instr->value[i].f64);
          break;
       case 32:
-         fprintf(fp, "0x%08x /* %f */", instr->value.u32[i], instr->value.f32[i]);
+         fprintf(fp, "0x%08x /* %f */", instr->value[i].u32, instr->value[i].f32);
          break;
       case 16:
-         fprintf(fp, "0x%04x /* %f */", instr->value.u16[i],
-                 _mesa_half_to_float(instr->value.u16[i]));
+         fprintf(fp, "0x%04x /* %f */", instr->value[i].u16,
+                 _mesa_half_to_float(instr->value[i].u16));
          break;
       case 8:
-         fprintf(fp, "0x%02x", instr->value.u8[i]);
+         fprintf(fp, "0x%02x", instr->value[i].u8);
          break;
       case 1:
-         fprintf(fp, "%s", instr->value.b[i] ? "true" : "false");
+         fprintf(fp, "%s", instr->value[i].b ? "true" : "false");
          break;
       }
    }
@@ -1381,6 +1375,8 @@ nir_print_shader_annotated(nir_shader *shader, FILE *fp,
    fprintf(fp, "outputs: %u\n", shader->num_outputs);
    fprintf(fp, "uniforms: %u\n", shader->num_uniforms);
    fprintf(fp, "shared: %u\n", shader->num_shared);
+   if (shader->scratch_size)
+      fprintf(fp, "scratch: %u\n", shader->scratch_size);
 
    nir_foreach_variable(var, &shader->uniforms) {
       print_var_decl(var, &state);
@@ -1404,10 +1400,6 @@ nir_print_shader_annotated(nir_shader *shader, FILE *fp,
 
    nir_foreach_variable(var, &shader->system_values) {
       print_var_decl(var, &state);
-   }
-
-   foreach_list_typed(nir_register, reg, node, &shader->registers) {
-      print_register_decl(reg, &state);
    }
 
    foreach_list_typed(nir_function, func, node, &shader->functions) {

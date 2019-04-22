@@ -250,6 +250,18 @@
     <value name="RGBA" value="3"/>
   </enum>
 
+  <enum name="Pack Mode" prefix="V3D_PACK_MODE">
+    <value name="16-way" value="0"/>
+    <value name="8-way" value="1"/>
+    <value name="4-way" value="2"/>
+  </enum>
+
+  <enum name="TCS flush mode" prefix="V3D_TCS_FLUSH_MODE">
+    <value name="fully packed" value="0"/>
+    <value name="single patch" value="1"/>
+    <value name="packed complete patches" value="2"/>
+  </enum>
+
   <packet code="0" name="Halt"/>
   <packet code="1" name="NOP"/>
   <packet code="4" name="Flush"/>
@@ -552,6 +564,14 @@
     <field name="mode" size="8" start="0" type="Primitive"/>
   </packet>
 
+  <packet code="39" name="Vertex Array Single Instance Prims" cl="B">
+    <field name="Index of First Vertex" size="32" start="72" type="uint"/>
+    <field name="Instance ID" size="32" start="40" type="uint"/>
+    <field name="Instance Length" size="32" start="8" type="uint"/>
+
+    <field name="mode" size="8" start="0" type="Primitive"/>
+  </packet>
+
   <packet code="43" name="Base Vertex Base Instance" cl="B">
     <field name="Base Instance" size="32" start="32" type="uint"/>
 
@@ -563,6 +583,14 @@
     <field name="Size" size="32" start="32" type="uint"/>
   </packet>
 
+  <packet code="54" name="Set InstanceID" cl="B" min_ver="41">
+    <field name="Instance ID" size="32" start="32" type="uint"/>
+  </packet>
+
+  <packet code="55" name="Set PrimitiveID" cl="B" min_ver="41">
+    <field name="Primitive ID" size="32" start="32" type="uint"/>
+  </packet>
+
   <packet code="56" name="Prim List Format">
     <field name="tri strip or fan" size="1" start="7" type="bool"/>
     <field name="primitive type" size="6" start="0" type="uint">
@@ -572,7 +600,31 @@
     </field>
   </packet>
 
+  <packet code="57" name="Serial Number List Start">
+    <field name="address" size="26" start="6" type="address"/>
+    <field name="block size" size="2" start="0" type="uint">
+      <value name="block size 64b" value="0"/>
+      <value name="block size 128b" value="1"/>
+      <value name="block size 256b" value="2"/>
+    </field>
+  </packet>
+
   <packet code="64" shortname="gl_shader" name="GL Shader State">
+    <field name="address" size="27" start="5" type="address"/>
+    <field name="number of attribute arrays" size="5" start="0" type="uint"/>
+  </packet>
+
+  <packet code="65" shortname="gl_t_shader" name="GL Shader State including TS" min_ver="41">
+    <field name="address" size="27" start="5" type="address"/>
+    <field name="number of attribute arrays" size="5" start="0" type="uint"/>
+  </packet>
+
+  <packet code="66" shortname="gl_g_shader" name="GL Shader State including GS" min_ver="41">
+    <field name="address" size="27" start="5" type="address"/>
+    <field name="number of attribute arrays" size="5" start="0" type="uint"/>
+  </packet>
+
+  <packet code="67" shortname="gl_tg_shader" name="GL Shader State including TS/GS" min_ver="41">
     <field name="address" size="27" start="5" type="address"/>
     <field name="number of attribute arrays" size="5" start="0" type="uint"/>
   </packet>
@@ -580,6 +632,30 @@
   <packet code="71" name="VCM Cache Size" min_ver="41">
     <field name="Number of 16-vertex batches for rendering" size="4" start="4" type="uint"/>
     <field name="Number of 16-vertex batches for binning" size="4" start="0" type="uint"/>
+  </packet>
+
+  <packet code="72" shortname="prim_counts_feedback" name="Primitive Counts Feedback">
+    <field name="address" size="27" start="5" type="address"/>
+    <field name="read/write 64byte" size="1" start="4" type="bool"/>
+    <field name="op" size="4" start="0" type="uint">
+      <!--
+	  dword 0-3 are words written to TFB 0-3.  4 is prims generated, 5 is prims written, 6 is
+	  prims overflowed
+      -->
+      <value name="store primitive counts" value="0"/>
+      <value name="store primitive counts and zero" value="1"/>
+      <!--
+	  write 4 pairs of TFB state: remaining TFB space in buffer n, current address in buffer n
+      -->
+      <value name="store buffer state" value="2"/>
+      <value name="store buffer state CL" value="3"/>
+      <!--
+	  Waits for buffer state stores to complete, then loads from
+	  the given buffer state.  This op can be offset by n to skip
+	  waiting for the last n.
+      -->
+      <value name="load buffer state" value="8"/>
+    </field>
   </packet>
 
   <packet code="73" name="VCM Cache Size" max_ver="33">
@@ -820,8 +896,8 @@
 
   <packet code="120" name="Tile Binning Mode Cfg" min_ver="41">
 
-    <field name="Height (in pixels)" size="12" start="48" type="uint" minus_one="true"/>
-    <field name="Width (in pixels)" size="12" start="32" type="uint" minus_one="true"/>
+    <field name="Height (in pixels)" size="16" start="48" type="uint" minus_one="true"/>
+    <field name="Width (in pixels)" size="16" start="32" type="uint" minus_one="true"/>
 
     <field name="Double-buffer in non-ms mode" size="1" start="15" type="bool"/>
     <field name="Multisample Mode (4x)" size="1" start="14" type="bool"/>
@@ -1198,6 +1274,61 @@
     <field name="Tessellation Bin Mode Evaluation Shader Uniforms Address" size="32" start="20b" type="address"/>
     <field name="Tessellation Render Mode Evaluation Shader Code Address" size="32" start="24b" type="address"/>
     <field name="Tessellation Render Mode Evaluation Shader Uniforms Address" size="32" start="28b" type="address"/>
+  </struct>
+
+  <struct name="Tessellation/Geometry Common Params" min_ver="41">
+    <field name="Tessellation Type" size="2" start="1" type="uint">
+      <value name="Tessellation Type Triangle" value="0"/>
+      <value name="Tessellation Type Quads" value="1"/>
+      <value name="Tessellation Type Isolines" value="2"/>
+    </field>
+
+    <field name="Tessellation point mode" size="1" start="3" type="bool"/>
+
+    <field name="Tessellation Edge Spacing" size="2" start="4" type="uint">
+      <value name="Tessellation Edge Spacing Even" value="0"/>
+      <value name="Tessellation Edge Spacing Fractional Even" value="1"/>
+      <value name="Tessellation Edge Spacing Fractional Odd" value="2"/>
+    </field>
+
+    <field name="Tessellation clockwise" size="1" start="6" type="bool"/>
+
+    <field name="Tessellation Invocations" size="5" start="12" type="uint"/> <!-- 0 == 32 -->
+
+    <field name="Geometry Shader output format" size="2" start="17" type="uint">
+      <value name="Geometry Shader Points" value="0"/>
+      <value name="Geometry Shader Line Strip" value="1"/>
+      <value name="Geometry Shader Tri Strip" value="2"/>
+    </field>
+
+    <field name="Geometry Shader Instances" size="5" start="19" type="uint"/> <!-- 0 == 32 -->
+
+    <!-- followed by "Tessellation/Geometry Shader Params" for bin, then render -->
+  </struct>
+
+  <struct name="Tessellation/Geometry Shader Params">
+    <field name="TCS Batch Flush Mode" size="2" start="0" type="TCS flush mode"/>
+    <field name="Per-patch data column depth" size="4" start="2" type="uint"/> <!-- 8-dword units, 0==16 -->
+
+    <field name="TCS output segment size in sectors" size="6" start="8" type="uint"/>
+    <field name="TCS output segment pack mode" size="2" start="14" type="Pack Mode"/>
+
+    <field name="TES output segment size in sectors" size="6" start="16" type="uint"/>
+    <field name="TES output segment pack mode" size="2" start="22" type="Pack Mode"/>
+
+    <field name="GS output segment size in sectors" size="6" start="24" type="uint"/>
+    <field name="GS output segment pack mode" size="2" start="30" type="Pack Mode"/>
+
+    <field name="TBG max patches per TCS batch" size="4" start="32" type="uint" minus_one="true"/>
+    <field name="TBG max extra vertex segs for patches after first" size="2" start="36" type="uint"/>
+    <field name="TBG min TCS output segments required in play" size="2" start="38" type="uint" minus_one="true"/>
+    <field name="TBG min per-patch data segments required in play" size="3" start="40" type="uint" minus_one="true"/>
+    <field name="TPG max patches per TES batch" size="4" start="45" type="uint" minus_one="true"/>
+    <field name="TPG max vertex segments per TES batch" size="2" start="49" type="uint"/>
+    <field name="TPG max TCS output segments per TES batch" size="3" start="51" type="uint" minus_one="true"/>
+    <field name="TPG min TES output segments required in play" size="3" start="54" type="uint" minus_one="true"/>
+    <field name="GBG max TES output/vertex segments per GS batch" size="2" start="57" type="uint"/>
+    <field name="GBG max TES output/vertex segments required in play" size="3" start="59" type="uint" minus_one="true"/>
   </struct>
 
   <struct name="GL Shader State Attribute Record" max_ver="33">

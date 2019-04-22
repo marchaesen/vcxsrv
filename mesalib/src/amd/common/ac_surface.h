@@ -27,6 +27,7 @@
 #define AC_SURFACE_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "amd_family.h"
 
@@ -149,9 +150,19 @@ struct gfx9_surf_layout {
     /* Mipmap level offset within the slice in bytes. Only valid for LINEAR. */
     uint32_t                    offset[RADEON_SURF_MAX_LEVELS];
 
-    uint16_t                    dcc_pitch_max;  /* (mip chain pitch - 1) */
-
     uint64_t                    stencil_offset; /* separate stencil */
+
+    /* Displayable DCC. This is always rb_aligned=0 and pipe_aligned=0.
+     * The 3D engine doesn't support that layout except for chips with 1 RB.
+     * All other chips must set rb_aligned=1.
+     * A compute shader needs to convert from aligned DCC to unaligned.
+     */
+    uint32_t                    display_dcc_size;
+    uint32_t                    display_dcc_alignment;
+    uint16_t                    display_dcc_pitch_max;  /* (mip chain pitch - 1) */
+    bool                        dcc_retile_use_uint16; /* if all values fit into uint16_t */
+    uint32_t                    dcc_retile_num_elements;
+    uint32_t                    *dcc_retile_map;
 };
 
 struct radeon_surf {

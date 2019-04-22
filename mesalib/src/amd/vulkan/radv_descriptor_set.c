@@ -127,6 +127,7 @@ VkResult radv_CreateDescriptorSetLayout(
 		uint32_t b = binding->binding;
 		uint32_t alignment;
 		unsigned binding_buffer_count = 0;
+		uint32_t descriptor_count = binding->descriptorCount;
 
 		switch (binding->descriptorType) {
 		case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
@@ -164,6 +165,11 @@ VkResult radv_CreateDescriptorSetLayout(
 			set_layout->binding[b].size = 16;
 			alignment = 16;
 			break;
+		case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT:
+			alignment = 16;
+			set_layout->binding[b].size = descriptor_count;
+			descriptor_count = 1;
+			break;
 		default:
 			unreachable("unknown descriptor type\n");
 			break;
@@ -171,7 +177,7 @@ VkResult radv_CreateDescriptorSetLayout(
 
 		set_layout->size = align(set_layout->size, alignment);
 		set_layout->binding[b].type = binding->descriptorType;
-		set_layout->binding[b].array_size = binding->descriptorCount;
+		set_layout->binding[b].array_size = descriptor_count;
 		set_layout->binding[b].offset = set_layout->size;
 		set_layout->binding[b].buffer_offset = buffer_count;
 		set_layout->binding[b].dynamic_offset_offset = dynamic_offset_count;
@@ -207,9 +213,9 @@ VkResult radv_CreateDescriptorSetLayout(
 			samplers_offset += 4 * sizeof(uint32_t) * binding->descriptorCount;
 		}
 
-		set_layout->size += binding->descriptorCount * set_layout->binding[b].size;
-		buffer_count += binding->descriptorCount * binding_buffer_count;
-		dynamic_offset_count += binding->descriptorCount *
+		set_layout->size += descriptor_count * set_layout->binding[b].size;
+		buffer_count += descriptor_count * binding_buffer_count;
+		dynamic_offset_count += descriptor_count *
 			set_layout->binding[b].dynamic_offset_count;
 		set_layout->shader_stages |= binding->stageFlags;
 	}
@@ -264,6 +270,7 @@ void radv_GetDescriptorSetLayoutSupport(VkDevice device,
 
 		uint64_t descriptor_size = 0;
 		uint64_t descriptor_alignment = 1;
+		uint32_t descriptor_count = binding->descriptorCount;
 		switch (binding->descriptorType) {
 		case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
 		case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
@@ -282,7 +289,7 @@ void radv_GetDescriptorSetLayoutSupport(VkDevice device,
 			descriptor_alignment = 32;
 			break;
 		case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-			if (!has_equal_immutable_samplers(binding->pImmutableSamplers, binding->descriptorCount)) {
+			if (!has_equal_immutable_samplers(binding->pImmutableSamplers, descriptor_count)) {
 				descriptor_size = 64;
 			} else {
 				descriptor_size = 96;
@@ -290,10 +297,15 @@ void radv_GetDescriptorSetLayoutSupport(VkDevice device,
 			descriptor_alignment = 32;
 			break;
 		case VK_DESCRIPTOR_TYPE_SAMPLER:
-			if (!has_equal_immutable_samplers(binding->pImmutableSamplers, binding->descriptorCount)) {
+			if (!has_equal_immutable_samplers(binding->pImmutableSamplers, descriptor_count)) {
 				descriptor_size = 16;
 				descriptor_alignment = 16;
 			}
+			break;
+		case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT:
+			descriptor_alignment = 16;
+			descriptor_size = descriptor_count;
+			descriptor_count = 1;
 			break;
 		default:
 			unreachable("unknown descriptor type\n");
@@ -305,18 +317,20 @@ void radv_GetDescriptorSetLayoutSupport(VkDevice device,
 		}
 		size = align_u64(size, descriptor_alignment);
 
-		uint64_t max_count = UINT64_MAX;
-		if (descriptor_size)
-			max_count = (UINT64_MAX - size) / descriptor_size;
+		uint64_t max_count = INT32_MAX;
+		if (binding->descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+			max_count = INT32_MAX - size;
+		else if (descriptor_size)
+			max_count = (INT32_MAX - size) / descriptor_size;
 
-		if (max_count < binding->descriptorCount) {
+		if (max_count < descriptor_count) {
 			supported = false;
 		}
 		if (variable_flags && binding->binding <variable_flags->bindingCount && variable_count &&
 		    (variable_flags->pBindingFlags[binding->binding] & VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT_EXT)) {
 			variable_count->maxVariableDescriptorCount = MIN2(UINT32_MAX, max_count);
 		}
-		size += binding->descriptorCount * descriptor_size;
+		size += descriptor_count * descriptor_size;
 	}
 
 	free(bindings);
@@ -543,6 +557,21 @@ VkResult radv_CreateDescriptorPool(
 	uint64_t size = sizeof(struct radv_descriptor_pool);
 	uint64_t bo_size = 0, bo_count = 0, range_count = 0;
 
+	vk_foreach_struct(ext, pCreateInfo->pNext) {
+		switch (ext->sType) {
+		case VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_INLINE_UNIFORM_BLOCK_CREATE_INFO_EXT: {
+			const struct VkDescriptorPoolInlineUniformBlockCreateInfoEXT *info =
+				(const struct VkDescriptorPoolInlineUniformBlockCreateInfoEXT*)ext;
+			/* the sizes are 4 aligned, and we need to align to at
+			 * most 32, which needs at most 28 bytes extra per
+			 * binding. */
+			bo_size += 28llu * info->maxInlineUniformBlockBindings;
+			break;
+		}
+		default:
+			break;
+		}
+	}
 
 	for (unsigned i = 0; i < pCreateInfo->poolSizeCount; ++i) {
 		if (pCreateInfo->pPoolSizes[i].type != VK_DESCRIPTOR_TYPE_SAMPLER)
@@ -568,6 +597,9 @@ VkResult radv_CreateDescriptorPool(
 			break;
 		case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
 			bo_size += 96 * pCreateInfo->pPoolSizes[i].descriptorCount;
+			break;
+		case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT:
+			bo_size += pCreateInfo->pPoolSizes[i].descriptorCount;
 			break;
 		default:
 			unreachable("unknown descriptor type\n");
@@ -764,6 +796,17 @@ static void write_buffer_descriptor(struct radv_device *device,
 		*buffer_list = buffer->bo;
 }
 
+static void write_block_descriptor(struct radv_device *device,
+                                   struct radv_cmd_buffer *cmd_buffer,
+                                   void *dst,
+                                   const VkWriteDescriptorSet *writeset)
+{
+	const VkWriteDescriptorSetInlineUniformBlockEXT *inline_ub =
+		vk_find_struct_const(writeset->pNext, WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK_EXT);
+
+	memcpy(dst, inline_ub->pData, inline_ub->dataSize);
+}
+
 static void write_dynamic_buffer_descriptor(struct radv_device *device,
                                             struct radv_descriptor_range *range,
                                             struct radeon_winsys_bo **buffer_list,
@@ -862,6 +905,12 @@ void radv_update_descriptor_sets(
 		const uint32_t *samplers = radv_immutable_samplers(set->layout, binding_layout);
 
 		ptr += binding_layout->offset / 4;
+
+		if (writeset->descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT) {
+			write_block_descriptor(device, cmd_buffer, (uint8_t*)ptr + writeset->dstArrayElement, writeset);
+			continue;
+		}
+
 		ptr += binding_layout->size * writeset->dstArrayElement / 4;
 		buffer_list += binding_layout->buffer_offset;
 		buffer_list += writeset->dstArrayElement;
@@ -1042,7 +1091,12 @@ VkResult radv_CreateDescriptorUpdateTemplate(VkDevice _device,
 			default:
 				break;
 			}
-			dst_offset = binding_layout->offset / 4 + binding_layout->size * entry->dstArrayElement / 4;
+			dst_offset = binding_layout->offset / 4;
+			if (entry->descriptorType == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+				dst_offset += entry->dstArrayElement / 4;
+			else
+				dst_offset += binding_layout->size * entry->dstArrayElement / 4;
+
 			dst_stride = binding_layout->size / 4;
 			break;
 		}
@@ -1091,6 +1145,11 @@ void radv_update_descriptor_set_with_template(struct radv_device *device,
 		uint32_t *pDst = set->mapped_ptr + templ->entry[i].dst_offset;
 		const uint8_t *pSrc = ((const uint8_t *) pData) + templ->entry[i].src_offset;
 		uint32_t j;
+
+		if (templ->entry[i].descriptor_type == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT) {
+			memcpy((uint8_t*)pDst, pSrc, templ->entry[i].descriptor_count);
+			continue;
+		}
 
 		for (j = 0; j < templ->entry[i].descriptor_count; ++j) {
 			switch (templ->entry[i].descriptor_type) {

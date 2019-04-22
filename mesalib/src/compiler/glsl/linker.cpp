@@ -2170,9 +2170,9 @@ link_gs_inout_layout_qualifiers(struct gl_shader_program *prog,
 
 
 /**
- * Perform cross-validation of compute shader local_size_{x,y,z} layout
- * qualifiers for the attached compute shaders, and propagate them to the
- * linked CS and linked shader program.
+ * Perform cross-validation of compute shader local_size_{x,y,z} layout and
+ * derivative arrangement qualifiers for the attached compute shaders, and
+ * propagate them to the linked CS and linked shader program.
  */
 static void
 link_cs_input_layout_qualifiers(struct gl_shader_program *prog,
@@ -2190,6 +2190,8 @@ link_cs_input_layout_qualifiers(struct gl_shader_program *prog,
       gl_prog->info.cs.local_size[i] = 0;
 
    gl_prog->info.cs.local_size_variable = false;
+
+   gl_prog->info.cs.derivative_group = DERIVATIVE_GROUP_NONE;
 
    /* From the ARB_compute_shader spec, in the section describing local size
     * declarations:
@@ -2234,6 +2236,17 @@ link_cs_input_layout_qualifiers(struct gl_shader_program *prog,
          }
          gl_prog->info.cs.local_size_variable = true;
       }
+
+      enum gl_derivative_group group = shader->info.Comp.DerivativeGroup;
+      if (group != DERIVATIVE_GROUP_NONE) {
+         if (gl_prog->info.cs.derivative_group != DERIVATIVE_GROUP_NONE &&
+             gl_prog->info.cs.derivative_group != group) {
+            linker_error(prog, "compute shader defined with conflicting "
+                         "derivative groups\n");
+            return;
+         }
+         gl_prog->info.cs.derivative_group = group;
+      }
    }
 
    /* Just do the intrastage -> interstage propagation right now,
@@ -2245,6 +2258,30 @@ link_cs_input_layout_qualifiers(struct gl_shader_program *prog,
       linker_error(prog, "compute shader must contain a fixed or a variable "
                          "local group size\n");
       return;
+   }
+
+   if (gl_prog->info.cs.derivative_group == DERIVATIVE_GROUP_QUADS) {
+      if (gl_prog->info.cs.local_size[0] % 2 != 0) {
+         linker_error(prog, "derivative_group_quadsNV must be used with a "
+                      "local group size whose first dimension "
+                      "is a multiple of 2\n");
+         return;
+      }
+      if (gl_prog->info.cs.local_size[1] % 2 != 0) {
+         linker_error(prog, "derivative_group_quadsNV must be used with a local"
+                      "group size whose second dimension "
+                      "is a multiple of 2\n");
+         return;
+      }
+   } else if (gl_prog->info.cs.derivative_group == DERIVATIVE_GROUP_LINEAR) {
+      if ((gl_prog->info.cs.local_size[0] *
+           gl_prog->info.cs.local_size[1] *
+           gl_prog->info.cs.local_size[2]) % 4 != 0) {
+         linker_error(prog, "derivative_group_linearNV must be used with a "
+                      "local group size whose total number of invocations "
+                      "is a multiple of 4\n");
+         return;
+      }
    }
 }
 
@@ -5104,15 +5141,14 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       prev = i;
    }
 
-   /* The cross validation of outputs/inputs above validates explicit locations
-    * but for SSO programs we need to do this also for the inputs in the
-    * first stage and outputs of the last stage included in the program, since
-    * there is no cross validation for these.
+   /* The cross validation of outputs/inputs above validates interstage
+    * explicit locations. We need to do this also for the inputs in the first
+    * stage and outputs of the last stage included in the program, since there
+    * is no cross validation for these.
     */
-   if (prog->SeparateShader)
-      validate_sso_explicit_locations(ctx, prog,
-                                      (gl_shader_stage) first,
-                                      (gl_shader_stage) last);
+   validate_first_and_last_interface_explicit_locations(ctx, prog,
+                                                        (gl_shader_stage) first,
+                                                        (gl_shader_stage) last);
 
    /* Cross-validate uniform blocks between shader stages */
    validate_interstage_uniform_blocks(prog, prog->_LinkedShaders);

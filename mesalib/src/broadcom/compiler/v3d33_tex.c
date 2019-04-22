@@ -106,18 +106,16 @@ v3d33_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
                         break;
 
                 case nir_tex_src_offset: {
-                        nir_const_value *offset =
-                                nir_src_as_const_value(instr->src[i].src);
                         p0_unpacked.texel_offset_for_s_coordinate =
-                                offset->i32[0];
+                                nir_src_comp_as_int(instr->src[i].src, 0);
 
                         if (instr->coord_components >= 2)
                                 p0_unpacked.texel_offset_for_t_coordinate =
-                                        offset->i32[1];
+                                        nir_src_comp_as_int(instr->src[i].src, 1);
 
                         if (instr->coord_components >= 3)
                                 p0_unpacked.texel_offset_for_r_coordinate =
-                                        offset->i32[2];
+                                        nir_src_comp_as_int(instr->src[i].src, 2);
                         break;
                 }
 

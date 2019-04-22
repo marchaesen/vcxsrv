@@ -389,6 +389,37 @@ float_to_ubyte(float f)
    }
 }
 
+/**
+ * Convert ushort to float in [0, 1].
+ */
+static inline float
+ushort_to_float(ushort us)
+{
+   return (float) us * (1.0f / 65535.0f);
+}
+
+
+/**
+ * Convert float in [0,1] to ushort in [0,65535] with clamping.
+ */
+static inline ushort
+float_to_ushort(float f)
+{
+   /* return 0 for NaN too */
+   if (!(f > 0.0f)) {
+      return (ushort) 0;
+   }
+   else if (f >= 1.0f) {
+      return (ushort) 65535;
+   }
+   else {
+      union fi tmp;
+      tmp.f = f;
+      tmp.f = tmp.f * (65535.0f/65536.0f) + 128.0f;
+      return (ushort) tmp.i;
+   }
+}
+
 static inline float
 byte_to_float_tex(int8_t b)
 {

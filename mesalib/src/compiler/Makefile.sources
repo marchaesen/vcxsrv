@@ -26,6 +26,7 @@ LIBGLSL_FILES = \
 	glsl/builtin_variables.cpp \
 	glsl/generate_ir.cpp \
 	glsl/gl_nir_lower_atomics.c \
+	glsl/gl_nir_lower_bindless_images.c \
 	glsl/gl_nir_lower_buffers.c \
 	glsl/gl_nir_lower_samplers.c \
 	glsl/gl_nir_lower_samplers_as_deref.c \
@@ -262,6 +263,7 @@ NIR_FILES = \
 	nir/nir_lower_phis_to_scalar.c \
 	nir/nir_lower_regs_to_ssa.c \
 	nir/nir_lower_returns.c \
+	nir/nir_lower_scratch.c \
 	nir/nir_lower_subgroups.c \
 	nir/nir_lower_system_values.c \
 	nir/nir_lower_tex.c \
@@ -271,6 +273,7 @@ NIR_FILES = \
 	nir/nir_lower_vars_to_ssa.c \
 	nir/nir_lower_var_copies.c \
 	nir/nir_lower_vec_to_movs.c \
+	nir/nir_lower_viewport_transform.c \
 	nir/nir_lower_wpos_center.c \
 	nir/nir_lower_wpos_ytransform.c \
 	nir/nir_metadata.c \
@@ -289,7 +292,6 @@ NIR_FILES = \
 	nir/nir_opt_dead_write_vars.c \
 	nir/nir_opt_find_array_copies.c \
 	nir/nir_opt_gcm.c \
-	nir/nir_opt_global_to_local.c \
 	nir/nir_opt_idiv_const.c \
 	nir/nir_opt_if.c \
 	nir/nir_opt_intrinsics.c \

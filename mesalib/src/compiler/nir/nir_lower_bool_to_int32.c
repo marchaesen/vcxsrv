@@ -117,9 +117,9 @@ nir_lower_bool_to_int32_impl(nir_function_impl *impl)
          case nir_instr_type_load_const: {
             nir_load_const_instr *load = nir_instr_as_load_const(instr);
             if (load->def.bit_size == 1) {
-               nir_const_value value = load->value;
+               nir_const_value *value = load->value;
                for (unsigned i = 0; i < load->def.num_components; i++)
-                  load->value.u32[i] = value.b[i] ? NIR_TRUE : NIR_FALSE;
+                  load->value[i].u32 = value[i].b ? NIR_TRUE : NIR_FALSE;
                load->def.bit_size = 32;
                progress = true;
             }

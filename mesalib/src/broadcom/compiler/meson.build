@@ -25,6 +25,7 @@ libbroadcom_compiler_files = files(
   'vir_live_variables.c',
   'vir_opt_copy_propagate.c',
   'vir_opt_dead_code.c',
+  'vir_opt_redundant_flags.c',
   'vir_opt_small_immediates.c',
   'vir_register_allocate.c',
   'vir_to_qpu.c',
@@ -36,6 +37,7 @@ libbroadcom_compiler_files = files(
   'v3d_compiler.h',
   'v3d_nir_lower_io.c',
   'v3d_nir_lower_image_load_store.c',
+  'v3d_nir_lower_scratch.c',
   'v3d_nir_lower_txf_ms.c',
 )
 

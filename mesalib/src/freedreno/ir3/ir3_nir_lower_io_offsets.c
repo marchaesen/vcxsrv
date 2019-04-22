@@ -98,7 +98,7 @@ check_and_propagate_bit_shift32(nir_builder *b, nir_ssa_def *offset,
 	if (!const_val)
 		return NULL;
 
-	int32_t current_shift = const_val->i32[0] * direction;
+	int32_t current_shift = const_val[0].i32 * direction;
 	int32_t new_shift = current_shift + shift;
 
 	/* If the merge would reverse the direction, bail out.

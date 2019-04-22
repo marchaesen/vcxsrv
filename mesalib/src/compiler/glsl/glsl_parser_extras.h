@@ -344,6 +344,11 @@ struct _mesa_glsl_parse_state {
       return ARB_bindless_texture_enable;
    }
 
+   bool has_image_load_formatted() const
+   {
+      return EXT_shader_image_load_formatted_enable;
+   }
+
    bool has_implicit_conversions() const
    {
       return EXT_shader_implicit_conversions_enable || is_version(120, 0);
@@ -444,6 +449,12 @@ struct _mesa_glsl_parse_state {
     * a layout directive as specified by ARB_compute_variable_group_size.
     */
    bool cs_input_local_size_variable_specified;
+
+   /**
+    * Arrangement of invocations used to calculate derivatives in a compute
+    * shader.  From NV_compute_shader_derivatives.
+    */
+   enum gl_derivative_group cs_derivative_group;
 
    /**
     * True if a shader declare bindless_sampler/bindless_image, and
@@ -816,6 +827,8 @@ struct _mesa_glsl_parse_state {
    bool EXT_shader_framebuffer_fetch_warn;
    bool EXT_shader_framebuffer_fetch_non_coherent_enable;
    bool EXT_shader_framebuffer_fetch_non_coherent_warn;
+   bool EXT_shader_image_load_formatted_enable;
+   bool EXT_shader_image_load_formatted_warn;
    bool EXT_shader_implicit_conversions_enable;
    bool EXT_shader_implicit_conversions_warn;
    bool EXT_shader_integer_mix_enable;
@@ -842,6 +855,8 @@ struct _mesa_glsl_parse_state {
    bool INTEL_shader_atomic_float_minmax_warn;
    bool MESA_shader_integer_functions_enable;
    bool MESA_shader_integer_functions_warn;
+   bool NV_compute_shader_derivatives_enable;
+   bool NV_compute_shader_derivatives_warn;
    bool NV_fragment_shader_interlock_enable;
    bool NV_fragment_shader_interlock_warn;
    bool NV_image_formats_enable;
@@ -995,6 +1010,8 @@ extern int glcpp_preprocess(void *ctx, const char **shader, char **info_log,
                             struct _mesa_glsl_parse_state *state,
                             struct gl_context *gl_ctx);
 
+extern void _mesa_init_shader_compiler_types(void);
+extern void _mesa_destroy_shader_compiler_types(void);
 extern void _mesa_destroy_shader_compiler(void);
 extern void _mesa_destroy_shader_compiler_caches(void);
 

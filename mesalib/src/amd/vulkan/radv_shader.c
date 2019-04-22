@@ -158,7 +158,7 @@ radv_optimize_nir(struct nir_shader *shader, bool optimize_conservatively,
 			NIR_PASS(progress, shader, nir_opt_remove_phis);
                         NIR_PASS(progress, shader, nir_opt_dce);
                 }
-                NIR_PASS(progress, shader, nir_opt_if);
+                NIR_PASS(progress, shader, nir_opt_if, true);
                 NIR_PASS(progress, shader, nir_opt_dead_cf);
                 NIR_PASS(progress, shader, nir_opt_cse);
                 NIR_PASS(progress, shader, nir_opt_peephole_select, 8, true, true);
@@ -226,18 +226,22 @@ radv_shader_compile_to_nir(struct radv_device *device,
 				.descriptor_array_dynamic_indexing = true,
 				.device_group = true,
 				.draw_parameters = true,
+				.float16 = true,
 				.float64 = true,
 				.gcn_shader = true,
 				.geometry_streams = true,
 				.image_read_without_format = true,
 				.image_write_without_format = true,
+				.int8 = true,
 				.int16 = true,
 				.int64 = true,
+				.int64_atomics = true,
 				.multiview = true,
 				.physical_storage_buffer_address = true,
 				.runtime_descriptor_array = true,
 				.shader_viewport_index_layer = true,
 				.stencil_export = true,
+				.storage_8bit = true,
 				.storage_16bit = true,
 				.storage_image_ms = true,
 				.subgroup_arithmetic = true,
@@ -250,8 +254,6 @@ radv_shader_compile_to_nir(struct radv_device *device,
 				.transform_feedback = true,
 				.trinary_minmax = true,
 				.variable_pointers = true,
-				.storage_8bit = true,
-				.int8 = true,
 			},
 			.ubo_ptr_type = glsl_vector_type(GLSL_TYPE_UINT, 2),
 			.ssbo_ptr_type = glsl_vector_type(GLSL_TYPE_UINT, 2),

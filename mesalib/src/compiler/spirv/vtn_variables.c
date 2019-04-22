@@ -783,7 +783,8 @@ _vtn_load_store_tail(struct vtn_builder *b, nir_intrinsic_op op, bool load,
       nir_intrinsic_set_range(instr, access_size);
    }
 
-   if (op == nir_intrinsic_load_ssbo ||
+   if (op == nir_intrinsic_load_ubo ||
+       op == nir_intrinsic_load_ssbo ||
        op == nir_intrinsic_store_ssbo) {
       nir_intrinsic_set_access(instr, access);
    }
@@ -1421,7 +1422,8 @@ vtn_get_builtin_location(struct vtn_builder *b,
       set_mode_system_value(b, mode);
       break;
    default:
-      vtn_fail("unsupported builtin: %u", builtin);
+      vtn_fail("Unsupported builtin: %s (%u)",
+               spirv_builtin_to_string(builtin), builtin);
    }
 }
 
@@ -1563,7 +1565,7 @@ apply_var_decoration(struct vtn_builder *b,
       break;
 
    default:
-      vtn_fail("Unhandled decoration");
+      vtn_fail_with_decoration("Unhandled decoration", dec->decoration);
    }
 }
 
@@ -1778,7 +1780,8 @@ vtn_storage_class_to_mode(struct vtn_builder *b,
       break;
    case SpvStorageClassGeneric:
    default:
-      vtn_fail("Unhandled variable storage class");
+      vtn_fail("Unhandled variable storage class: %s (%u)",
+               spirv_storageclass_to_string(class), class);
    }
 
    if (nir_mode_out)
@@ -2353,21 +2356,22 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
          struct vtn_value *link_val = vtn_untyped_value(b, w[i]);
          if (link_val->value_type == vtn_value_type_constant) {
             chain->link[idx].mode = vtn_access_mode_literal;
-            switch (glsl_get_bit_size(link_val->type->type)) {
+            const unsigned bit_size = glsl_get_bit_size(link_val->type->type);
+            switch (bit_size) {
             case 8:
-               chain->link[idx].id = link_val->constant->values[0].i8[0];
+               chain->link[idx].id = link_val->constant->values[0][0].i8;
                break;
             case 16:
-               chain->link[idx].id = link_val->constant->values[0].i16[0];
+               chain->link[idx].id = link_val->constant->values[0][0].i16;
                break;
             case 32:
-               chain->link[idx].id = link_val->constant->values[0].i32[0];
+               chain->link[idx].id = link_val->constant->values[0][0].i32;
                break;
             case 64:
-               chain->link[idx].id = link_val->constant->values[0].i64[0];
+               chain->link[idx].id = link_val->constant->values[0][0].i64;
                break;
             default:
-               vtn_fail("Invalid bit size");
+               vtn_fail("Invalid bit size: %u", bit_size);
             }
          } else {
             chain->link[idx].mode = vtn_access_mode_id;
@@ -2569,6 +2573,6 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
 
    case SpvOpCopyMemorySized:
    default:
-      vtn_fail("Unhandled opcode");
+      vtn_fail_with_opcode("Unhandled opcode", opcode);
    }
 }

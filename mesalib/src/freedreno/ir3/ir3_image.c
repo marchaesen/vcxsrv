@@ -95,15 +95,14 @@ ir3_get_image_slot(nir_deref_instr *deref)
 
 	while (deref->deref_type != nir_deref_type_var) {
 		assert(deref->deref_type == nir_deref_type_array);
-		nir_const_value *const_index = nir_src_as_const_value(deref->arr.index);
-		assert(const_index);
+		unsigned const_index = nir_src_as_uint(deref->arr.index);
 
 		/* Go to the next instruction */
 		deref = nir_deref_instr_parent(deref);
 
 		assert(glsl_type_is_array(deref->type));
 		const unsigned array_len = glsl_get_length(deref->type);
-		loc += MIN2(const_index->u32[0], array_len - 1) * inner_size;
+		loc += MIN2(const_index, array_len - 1) * inner_size;
 
 		/* Update the inner size */
 		inner_size *= array_len;

@@ -430,7 +430,7 @@ bool ralloc_vasprintf_append(char **str, const char *fmt, va_list args);
 private:                                                                 \
    static void _ralloc_destructor(void *p)                               \
    {                                                                     \
-      reinterpret_cast<TYPE *>(p)->~TYPE();                              \
+      reinterpret_cast<TYPE *>(p)->TYPE::~TYPE();                        \
    }                                                                     \
 public:                                                                  \
    static void* operator new(size_t size, void *mem_ctx)                 \

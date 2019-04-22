@@ -51,8 +51,8 @@ There are several examples of OSMesa in the mesa/demos repository.
 Configure and build Mesa with something like:
 
 <pre>
-configure --enable-osmesa --disable-driglx-direct --disable-dri --with-gallium-drivers=swrast
-make
+meson builddir -Dosmesa=gallium -Dgallium-drivers=swrast -Ddri-drivers= -Dvulkan-drivers= -Dprefix=$PWD/builddir/install
+ninja -C builddir install
 </pre>
 
 <p>
@@ -63,13 +63,12 @@ Make sure you have LLVM installed first if you want to use the llvmpipe driver.
 When the build is complete you should find:
 </p>
 <pre>
-lib/libOSMesa.so  (swrast-based OSMesa)
-lib/gallium/libOSMsea.so  (gallium-based OSMesa)
+$PWD/builddir/install/lib/libOSMesa.so  (swrast-based OSMesa)
+$PWD/builddir/install/lib/gallium/libOSMsea.so  (gallium-based OSMesa)
 </pre>
 
 <p>
-Set your LD_LIBRARY_PATH to point to one directory or the other to select
-the library you want to use.
+Set your LD_LIBRARY_PATH to point to $PWD/builddir/install to use the libraries
 </p>
 
 <p>

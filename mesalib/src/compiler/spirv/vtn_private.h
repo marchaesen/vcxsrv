@@ -88,6 +88,12 @@ _vtn_fail(struct vtn_builder *b, const char *file, unsigned line,
          vtn_fail(__VA_ARGS__); \
    } while (0)
 
+#define _vtn_fail_with(t, msg, v) \
+   vtn_fail("%s: %s (%u)\n", msg, spirv_ ## t ## _to_string(v), v)
+
+#define vtn_fail_with_decoration(msg, v) _vtn_fail_with(decoration, msg, v)
+#define vtn_fail_with_opcode(msg, v)     _vtn_fail_with(op, msg, v)
+
 /** Assert that a condition is true and, if it isn't, vtn_fail
  *
  * This macro is transitional only and should not be used in new code.  Use
@@ -692,10 +698,10 @@ vtn_constant_uint(struct vtn_builder *b, uint32_t value_id)
                "Expected id %u to be an integer constant", value_id);
 
    switch (glsl_get_bit_size(val->type->type)) {
-   case 8:  return val->constant->values[0].u8[0];
-   case 16: return val->constant->values[0].u16[0];
-   case 32: return val->constant->values[0].u32[0];
-   case 64: return val->constant->values[0].u64[0];
+   case 8:  return val->constant->values[0][0].u8;
+   case 16: return val->constant->values[0][0].u16;
+   case 32: return val->constant->values[0][0].u32;
+   case 64: return val->constant->values[0][0].u64;
    default: unreachable("Invalid bit size");
    }
 }
