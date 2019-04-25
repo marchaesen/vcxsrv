@@ -42,6 +42,7 @@ libvulkan_wsi = static_library(
   'vulkan_wsi',
   files_vulkan_wsi,
   include_directories : [inc_common, inc_vulkan_util, inc_include],
+  link_with: [libxmlconfig],
   dependencies : [vulkan_wsi_deps, dep_libdrm],
   c_args : [c_vis_args, vulkan_wsi_args],
   build_by_default : false,

@@ -177,7 +177,14 @@ lower_deref(nir_builder *b, struct lower_samplers_as_deref_state *state,
    } else {
       var = nir_variable_create(state->shader, nir_var_uniform, type, name);
       var->data.binding = binding;
-      var->data.location = location;
+
+      /* Don't set var->data.location.  The old structure location could be
+       * used to index into gl_uniform_storage, assuming the full structure
+       * was walked in order.  With the new split variables, this invariant
+       * no longer holds and there's no meaningful way to start from a base
+       * location and access a particular array element.  Just leave it 0.
+       */
+
       _mesa_hash_table_insert_pre_hashed(state->remap_table, hash, name, var);
    }
 

@@ -206,6 +206,7 @@
 #define PKT3_RELEASE_MEM                       0x49 /* GFX9+ [any ring] or GFX8 [compute ring only] */
 #define PKT3_ONE_REG_WRITE                     0x57 /* not on CIK */
 #define PKT3_ACQUIRE_MEM                       0x58 /* new for CIK */
+#define PKT3_REWIND                            0x59 /* VI+ [any ring] or CIK [compute ring only] */
 #define PKT3_SET_CONFIG_REG                    0x68
 #define PKT3_SET_CONTEXT_REG                   0x69
 #define PKT3_SET_SH_REG                        0x76
@@ -2623,6 +2624,21 @@
 #define   S_030FFC_COUNT_HI(x)                                        (((unsigned)(x) & 0x7FFFFFFF) << 0)
 #define   G_030FFC_COUNT_HI(x)                                        (((x) >> 0) & 0x7FFFFFFF)
 #define   C_030FFC_COUNT_HI                                           0x80000000
+#define R_031074_GDS_OA_CNTL						0x031074
+#define   S_031074_INDEX(x)                                           (((unsigned)(x) & 0xF) << 0)
+#define R_031078_GDS_OA_COUNTER						0x031078
+#define   S_031078_SPACE_AVAILABLE(x)                                 (((unsigned)(x) & 0xFFFFFFFF) << 0)
+#define R_03107C_GDS_OA_ADDRESS						0x03107C
+#define   S_03107C_DS_ADDRESS(x)                                      (((unsigned)(x) & 0xFFFF) << 0)
+#define   S_03107C_CRAWLER(x)                                         (((unsigned)(x) & 0xF) << 16)
+#define   S_03107C_CRAWLER_TYPE(x)                                    (((unsigned)(x) & 0x3) << 20)
+#define   S_03107C_NO_ALLOC(x)                                        (((unsigned)(x) & 0x1) << 30)
+#define   S_03107C_ENABLE(x)                                          (((unsigned)(x) & 0x1) << 31)
+#define R_031080_GDS_OA_INCDEC						0x031080
+#define   S_031080_VALUE(x)                                           (((unsigned)(x) & 0x7FFFFFFF) << 0)
+#define   S_031080_INCDEC(x)                                          (((unsigned)(x) & 0x1) << 31)
+#define R_031084_GDS_OA_RING_SIZE					0x031084
+#define   S_031084_RING_SIZE(x)                                       (((unsigned)(x) & 0xFFFFFFFF) << 0)
 #define R_009100_SPI_CONFIG_CNTL                                        0x009100
 #define   S_009100_GPR_WRITE_PRIORITY(x)                              (((unsigned)(x) & 0x1FFFFF) << 0)
 #define   G_009100_GPR_WRITE_PRIORITY(x)                              (((x) >> 0) & 0x1FFFFF)

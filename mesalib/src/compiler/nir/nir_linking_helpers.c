@@ -59,6 +59,15 @@ get_variable_io_mask(nir_variable *var, gl_shader_stage stage)
    return ((1ull << slots) - 1) << location;
 }
 
+static uint8_t
+get_num_components(nir_variable *var)
+{
+   if (glsl_type_is_struct_or_ifc(glsl_without_array(var->type)))
+      return 4;
+
+   return glsl_get_vector_elements(glsl_without_array(var->type));
+}
+
 static void
 tcs_add_output_reads(nir_shader *shader, uint64_t *read, uint64_t *patches_read)
 {
@@ -80,12 +89,14 @@ tcs_add_output_reads(nir_shader *shader, uint64_t *read, uint64_t *patches_read)
                continue;
 
             nir_variable *var = nir_deref_instr_get_variable(deref);
-            if (var->data.patch) {
-               patches_read[var->data.location_frac] |=
-                  get_variable_io_mask(var, shader->info.stage);
-            } else {
-               read[var->data.location_frac] |=
-                  get_variable_io_mask(var, shader->info.stage);
+            for (unsigned i = 0; i < get_num_components(var); i++) {
+               if (var->data.patch) {
+                  patches_read[var->data.location_frac + i] |=
+                     get_variable_io_mask(var, shader->info.stage);
+               } else {
+                  read[var->data.location_frac + i] |=
+                     get_variable_io_mask(var, shader->info.stage);
+               }
             }
          }
       }
@@ -161,22 +172,26 @@ nir_remove_unused_varyings(nir_shader *producer, nir_shader *consumer)
    uint64_t patches_read[4] = { 0 }, patches_written[4] = { 0 };
 
    nir_foreach_variable(var, &producer->outputs) {
-      if (var->data.patch) {
-         patches_written[var->data.location_frac] |=
-            get_variable_io_mask(var, producer->info.stage);
-      } else {
-         written[var->data.location_frac] |=
-            get_variable_io_mask(var, producer->info.stage);
+      for (unsigned i = 0; i < get_num_components(var); i++) {
+         if (var->data.patch) {
+            patches_written[var->data.location_frac + i] |=
+               get_variable_io_mask(var, producer->info.stage);
+         } else {
+            written[var->data.location_frac + i] |=
+               get_variable_io_mask(var, producer->info.stage);
+         }
       }
    }
 
    nir_foreach_variable(var, &consumer->inputs) {
-      if (var->data.patch) {
-         patches_read[var->data.location_frac] |=
-            get_variable_io_mask(var, consumer->info.stage);
-      } else {
-         read[var->data.location_frac] |=
-            get_variable_io_mask(var, consumer->info.stage);
+      for (unsigned i = 0; i < get_num_components(var); i++) {
+         if (var->data.patch) {
+            patches_read[var->data.location_frac + i] |=
+               get_variable_io_mask(var, consumer->info.stage);
+         } else {
+            read[var->data.location_frac + i] |=
+               get_variable_io_mask(var, consumer->info.stage);
+         }
       }
    }
 

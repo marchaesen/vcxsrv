@@ -644,7 +644,18 @@ enum pipe_reset_status
 enum pipe_conservative_raster_mode
 {
    PIPE_CONSERVATIVE_RASTER_OFF,
+
+   /**
+    * The post-snap mode means the conservative rasterization occurs after
+    * the conversion from floating-point to fixed-point coordinates
+    * on the subpixel grid.
+    */
    PIPE_CONSERVATIVE_RASTER_POST_SNAP,
+
+   /**
+    * The pre-snap mode means the conservative rasterization occurs before
+    * the conversion from floating-point to fixed-point coordinates.
+    */
    PIPE_CONSERVATIVE_RASTER_PRE_SNAP,
 };
 
@@ -848,6 +859,7 @@ enum pipe_cap
    PIPE_CAP_CONSERVATIVE_RASTER_PRE_SNAP_POINTS_LINES,
    PIPE_CAP_MAX_CONSERVATIVE_RASTER_SUBPIXEL_PRECISION_BIAS,
    PIPE_CAP_CONSERVATIVE_RASTER_POST_DEPTH_COVERAGE,
+   PIPE_CAP_CONSERVATIVE_RASTER_INNER_COVERAGE,
    PIPE_CAP_PROGRAMMABLE_SAMPLE_LOCATIONS,
    PIPE_CAP_MAX_GS_INVOCATIONS,
    PIPE_CAP_MAX_SHADER_BUFFER_SIZE,
@@ -868,6 +880,9 @@ enum pipe_cap
    PIPE_CAP_COMPUTE_SHADER_DERIVATIVES,
    PIPE_CAP_TGSI_SKIP_SHRINK_IO_ARRAYS,
    PIPE_CAP_IMAGE_LOAD_FORMATTED,
+   PIPE_CAP_MAX_FRAMES_IN_FLIGHT,
+   PIPE_CAP_DMABUF,
+   PIPE_CAP_PREFER_COMPUTE_BLIT_FOR_MULTIMEDIA,
 };
 
 /**

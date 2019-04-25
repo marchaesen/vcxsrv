@@ -60,6 +60,7 @@ struct dd_screen
 
 enum call_type
 {
+   CALL_FLUSH,
    CALL_DRAW_VBO,
    CALL_LAUNCH_GRID,
    CALL_RESOURCE_COPY_REGION,
@@ -113,6 +114,10 @@ struct call_generate_mipmap {
    unsigned last_level;
    unsigned first_layer;
    unsigned last_layer;
+};
+
+struct call_flush {
+   unsigned flags;
 };
 
 struct call_draw_info {
@@ -170,6 +175,7 @@ struct dd_call
    enum call_type type;
 
    union {
+      struct call_flush flush;
       struct call_draw_info draw_vbo;
       struct pipe_grid_info launch_grid;
       struct call_resource_copy_region resource_copy_region;

@@ -364,7 +364,7 @@ handle_rounding_mode(struct vtn_builder *b, struct vtn_value *val, int member,
    assert(dec->scope == VTN_DEC_DECORATION);
    if (dec->decoration != SpvDecorationFPRoundingMode)
       return;
-   switch (dec->literals[0]) {
+   switch (dec->operands[0]) {
    case SpvFPRoundingModeRTE:
       *out_rounding_mode = nir_rounding_mode_rtne;
       break;

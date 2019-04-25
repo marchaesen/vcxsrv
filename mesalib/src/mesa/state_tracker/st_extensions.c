@@ -259,7 +259,7 @@ void st_init_limits(struct pipe_screen *screen,
           */
          pc->MaxAtomicCounters = temp;
          pc->MaxAtomicBuffers = screen->get_shader_param(screen, sh, PIPE_SHADER_CAP_MAX_HW_ATOMIC_COUNTER_BUFFERS);
-      } else {
+      } else if (pc->MaxShaderStorageBlocks) {
          pc->MaxAtomicCounters = MAX_ATOMIC_COUNTERS;
          /*
           * without separate atomic counters, reserve half of the available
@@ -772,6 +772,7 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(ATI_meminfo),                      PIPE_CAP_QUERY_MEMORY_INFO                },
       { o(AMD_seamless_cubemap_per_texture), PIPE_CAP_SEAMLESS_CUBE_MAP_PER_TEXTURE    },
       { o(ATI_texture_mirror_once),          PIPE_CAP_TEXTURE_MIRROR_CLAMP             },
+      { o(INTEL_conservative_rasterization), PIPE_CAP_CONSERVATIVE_RASTER_INNER_COVERAGE },
       { o(MESA_tile_raster_order),           PIPE_CAP_TILE_RASTER_ORDER                },
       { o(NV_compute_shader_derivatives),    PIPE_CAP_COMPUTE_SHADER_DERIVATIVES       },
       { o(NV_conditional_render),            PIPE_CAP_CONDITIONAL_RENDER               },
@@ -952,6 +953,11 @@ void st_init_extensions(struct pipe_screen *screen,
         { PIPE_FORMAT_X24S8_UINT,
           PIPE_FORMAT_S8X24_UINT },
         GL_TRUE }, /* at least one format must be supported */
+
+      { { o(AMD_compressed_ATC_texture) },
+        { PIPE_FORMAT_ATC_RGB,
+          PIPE_FORMAT_ATC_RGBA_EXPLICIT,
+          PIPE_FORMAT_ATC_RGBA_INTERPOLATED } },
    };
 
    /* Required: vertex fetch support. */
@@ -1101,6 +1107,14 @@ void st_init_extensions(struct pipe_screen *screen,
    }
 
    if (GLSLVersion >= 140) {
+      /* Since GLSL 1.40 has support for all of the features of gpu_shader4,
+       * we can always expose it if the driver can do 140. Supporting
+       * gpu_shader4 on drivers without GLSL 1.40 is left for a future
+       * pipe cap.
+       */
+      extensions->EXT_gpu_shader4 = GL_TRUE;
+      extensions->EXT_texture_buffer_object = GL_TRUE;
+
       if (screen->get_param(screen, PIPE_CAP_TGSI_ARRAY_COMPONENTS))
          extensions->ARB_enhanced_layouts = GL_TRUE;
    }

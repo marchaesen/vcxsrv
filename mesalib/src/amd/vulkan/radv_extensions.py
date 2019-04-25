@@ -133,6 +133,7 @@ EXTENSIONS = [
     Extension('VK_AMD_shader_trinary_minmax',             1, True),
     Extension('VK_GOOGLE_decorate_string',                1, True),
     Extension('VK_GOOGLE_hlsl_functionality1',            1, True),
+    Extension('VK_NV_compute_shader_derivatives',         1, 'device->rad_info.chip_class >= VI'),
 ]
 
 class VkVersion:

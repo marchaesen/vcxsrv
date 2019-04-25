@@ -4281,6 +4281,7 @@ struct gl_extensions
    GLboolean EXT_sRGB;
    GLboolean EXT_stencil_two_side;
    GLboolean EXT_texture_array;
+   GLboolean EXT_texture_buffer_object;
    GLboolean EXT_texture_compression_latc;
    GLboolean EXT_texture_compression_s3tc;
    GLboolean EXT_texture_compression_s3tc_srgb;
@@ -4308,6 +4309,7 @@ struct gl_extensions
    GLboolean OES_texture_view;
    GLboolean OES_viewport_array;
    /* vendor extensions */
+   GLboolean AMD_compressed_ATC_texture;
    GLboolean AMD_framebuffer_multisample_advanced;
    GLboolean AMD_depth_clamp_separate;
    GLboolean AMD_performance_monitor;

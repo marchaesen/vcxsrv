@@ -602,6 +602,13 @@ st_mesa_format_to_pipe_format(const struct st_context *st,
          return PIPE_FORMAT_R8G8B8A8_SRGB;
       return PIPE_FORMAT_ASTC_12x12_SRGB;
 
+   case MESA_FORMAT_ATC_RGB:
+      return PIPE_FORMAT_ATC_RGB;
+   case MESA_FORMAT_ATC_RGBA_EXPLICIT:
+      return PIPE_FORMAT_ATC_RGBA_EXPLICIT;
+   case MESA_FORMAT_ATC_RGBA_INTERPOLATED:
+      return PIPE_FORMAT_ATC_RGBA_INTERPOLATED;
+
    default:
       return PIPE_FORMAT_NONE;
    }
@@ -1087,6 +1094,13 @@ st_pipe_format_to_mesa_format(enum pipe_format format)
       return MESA_FORMAT_SRGB8_ALPHA8_ASTC_12x10;
    case PIPE_FORMAT_ASTC_12x12_SRGB:
       return MESA_FORMAT_SRGB8_ALPHA8_ASTC_12x12;
+
+   case PIPE_FORMAT_ATC_RGB:
+      return MESA_FORMAT_ATC_RGB;
+   case PIPE_FORMAT_ATC_RGBA_EXPLICIT:
+      return MESA_FORMAT_ATC_RGBA_EXPLICIT;
+   case PIPE_FORMAT_ATC_RGBA_INTERPOLATED:
+      return MESA_FORMAT_ATC_RGBA_INTERPOLATED;
 
    default:
       return MESA_FORMAT_NONE;

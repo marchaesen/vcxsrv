@@ -500,6 +500,7 @@ vtn_handle_decoration(struct vtn_builder *b, SpvOp opcode,
       break;
 
    case SpvOpDecorate:
+   case SpvOpDecorateId:
    case SpvOpMemberDecorate:
    case SpvOpDecorateStringGOOGLE:
    case SpvOpMemberDecorateStringGOOGLE:
@@ -510,6 +511,7 @@ vtn_handle_decoration(struct vtn_builder *b, SpvOp opcode,
       struct vtn_decoration *dec = rzalloc(b, struct vtn_decoration);
       switch (opcode) {
       case SpvOpDecorate:
+      case SpvOpDecorateId:
       case SpvOpDecorateStringGOOGLE:
          dec->scope = VTN_DEC_DECORATION;
          break;
@@ -527,7 +529,7 @@ vtn_handle_decoration(struct vtn_builder *b, SpvOp opcode,
          unreachable("Invalid decoration opcode");
       }
       dec->decoration = *(w++);
-      dec->literals = w;
+      dec->operands = w;
 
       /* Link into the list */
       dec->next = val->decoration;
@@ -721,8 +723,8 @@ array_stride_decoration_cb(struct vtn_builder *b,
    struct vtn_type *type = val->type;
 
    if (dec->decoration == SpvDecorationArrayStride) {
-      vtn_fail_if(dec->literals[0] == 0, "ArrayStride must be non-zero");
-      type->stride = dec->literals[0];
+      vtn_fail_if(dec->operands[0] == 0, "ArrayStride must be non-zero");
+      type->stride = dec->operands[0];
    }
 }
 
@@ -768,22 +770,22 @@ struct_member_decoration_cb(struct vtn_builder *b,
       break;
    case SpvDecorationStream:
       /* Vulkan only allows one GS stream */
-      vtn_assert(dec->literals[0] == 0);
+      vtn_assert(dec->operands[0] == 0);
       break;
    case SpvDecorationLocation:
-      ctx->fields[member].location = dec->literals[0];
+      ctx->fields[member].location = dec->operands[0];
       break;
    case SpvDecorationComponent:
       break; /* FIXME: What should we do with these? */
    case SpvDecorationBuiltIn:
       ctx->type->members[member] = vtn_type_copy(b, ctx->type->members[member]);
       ctx->type->members[member]->is_builtin = true;
-      ctx->type->members[member]->builtin = dec->literals[0];
+      ctx->type->members[member]->builtin = dec->operands[0];
       ctx->type->builtin_block = true;
       break;
    case SpvDecorationOffset:
-      ctx->type->offsets[member] = dec->literals[0];
-      ctx->fields[member].offset = dec->literals[0];
+      ctx->type->offsets[member] = dec->operands[0];
+      ctx->fields[member].offset = dec->operands[0];
       break;
    case SpvDecorationMatrixStride:
       /* Handled as a second pass */
@@ -880,7 +882,7 @@ struct_member_matrix_stride_cb(struct vtn_builder *b,
    vtn_fail_if(member < 0,
                "The MatrixStride decoration is only allowed on members "
                "of OpTypeStruct");
-   vtn_fail_if(dec->literals[0] == 0, "MatrixStride must be non-zero");
+   vtn_fail_if(dec->operands[0] == 0, "MatrixStride must be non-zero");
 
    struct member_decoration_ctx *ctx = void_ctx;
 
@@ -888,17 +890,17 @@ struct_member_matrix_stride_cb(struct vtn_builder *b,
    if (mat_type->row_major) {
       mat_type->array_element = vtn_type_copy(b, mat_type->array_element);
       mat_type->stride = mat_type->array_element->stride;
-      mat_type->array_element->stride = dec->literals[0];
+      mat_type->array_element->stride = dec->operands[0];
 
       mat_type->type = glsl_explicit_matrix_type(mat_type->type,
-                                                 dec->literals[0], true);
+                                                 dec->operands[0], true);
       mat_type->array_element->type = glsl_get_column_type(mat_type->type);
    } else {
       vtn_assert(mat_type->array_element->stride > 0);
-      mat_type->stride = dec->literals[0];
+      mat_type->stride = dec->operands[0];
 
       mat_type->type = glsl_explicit_matrix_type(mat_type->type,
-                                                 dec->literals[0], false);
+                                                 dec->operands[0], false);
    }
 
    /* Now that we've replaced the glsl_type with a properly strided matrix
@@ -1602,7 +1604,7 @@ spec_constant_decoration_cb(struct vtn_builder *b, struct vtn_value *v,
    struct spec_constant_value *const_value = data;
 
    for (unsigned i = 0; i < b->num_specializations; i++) {
-      if (b->specializations[i].id == dec->literals[0]) {
+      if (b->specializations[i].id == dec->operands[0]) {
          if (const_value->is_double)
             const_value->data64 = b->specializations[i].data64;
          else
@@ -1643,7 +1645,7 @@ handle_workgroup_size_decoration_cb(struct vtn_builder *b,
 {
    vtn_assert(member == -1);
    if (dec->decoration != SpvDecorationBuiltIn ||
-       dec->literals[0] != SpvBuiltInWorkgroupSize)
+       dec->operands[0] != SpvBuiltInWorkgroupSize)
       return;
 
    vtn_assert(val->type->type == glsl_vector_type(GLSL_TYPE_UINT, 3));
@@ -3812,6 +3814,7 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpExecutionModeId:
    case SpvOpDecorationGroup:
    case SpvOpDecorate:
+   case SpvOpDecorateId:
    case SpvOpMemberDecorate:
    case SpvOpGroupDecorate:
    case SpvOpGroupMemberDecorate:
@@ -3853,7 +3856,7 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
 
    case SpvExecutionModeInvocations:
       vtn_assert(b->shader->info.stage == MESA_SHADER_GEOMETRY);
-      b->shader->info.gs.invocations = MAX2(1, mode->literals[0]);
+      b->shader->info.gs.invocations = MAX2(1, mode->operands[0]);
       break;
 
    case SpvExecutionModeDepthReplacing:
@@ -3875,15 +3878,15 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
 
    case SpvExecutionModeLocalSize:
       vtn_assert(gl_shader_stage_is_compute(b->shader->info.stage));
-      b->shader->info.cs.local_size[0] = mode->literals[0];
-      b->shader->info.cs.local_size[1] = mode->literals[1];
-      b->shader->info.cs.local_size[2] = mode->literals[2];
+      b->shader->info.cs.local_size[0] = mode->operands[0];
+      b->shader->info.cs.local_size[1] = mode->operands[1];
+      b->shader->info.cs.local_size[2] = mode->operands[2];
       break;
 
    case SpvExecutionModeLocalSizeId:
-      b->shader->info.cs.local_size[0] = vtn_constant_uint(b, mode->literals[0]);
-      b->shader->info.cs.local_size[1] = vtn_constant_uint(b, mode->literals[1]);
-      b->shader->info.cs.local_size[2] = vtn_constant_uint(b, mode->literals[2]);
+      b->shader->info.cs.local_size[0] = vtn_constant_uint(b, mode->operands[0]);
+      b->shader->info.cs.local_size[1] = vtn_constant_uint(b, mode->operands[1]);
+      b->shader->info.cs.local_size[2] = vtn_constant_uint(b, mode->operands[2]);
       break;
 
    case SpvExecutionModeLocalSizeHint:
@@ -3893,10 +3896,10 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
    case SpvExecutionModeOutputVertices:
       if (b->shader->info.stage == MESA_SHADER_TESS_CTRL ||
           b->shader->info.stage == MESA_SHADER_TESS_EVAL) {
-         b->shader->info.tess.tcs_vertices_out = mode->literals[0];
+         b->shader->info.tess.tcs_vertices_out = mode->operands[0];
       } else {
          vtn_assert(b->shader->info.stage == MESA_SHADER_GEOMETRY);
-         b->shader->info.gs.vertices_out = mode->literals[0];
+         b->shader->info.gs.vertices_out = mode->operands[0];
       }
       break;
 
@@ -4021,6 +4024,7 @@ vtn_handle_variable_or_type_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpMemberName:
    case SpvOpDecorationGroup:
    case SpvOpDecorate:
+   case SpvOpDecorateId:
    case SpvOpMemberDecorate:
    case SpvOpGroupDecorate:
    case SpvOpGroupMemberDecorate:

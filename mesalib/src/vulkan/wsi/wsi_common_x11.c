@@ -1315,6 +1315,33 @@ x11_swapchain_destroy(struct wsi_swapchain *anv_chain,
    return VK_SUCCESS;
 }
 
+static void
+wsi_x11_set_adaptive_sync_property(xcb_connection_t *conn,
+                                   xcb_drawable_t drawable,
+                                   uint32_t state)
+{
+   static char const name[] = "_VARIABLE_REFRESH";
+   xcb_intern_atom_cookie_t cookie;
+   xcb_intern_atom_reply_t* reply;
+   xcb_void_cookie_t check;
+
+   cookie = xcb_intern_atom(conn, 0, strlen(name), name);
+   reply = xcb_intern_atom_reply(conn, cookie, NULL);
+   if (reply == NULL)
+      return;
+
+   if (state)
+      check = xcb_change_property_checked(conn, XCB_PROP_MODE_REPLACE,
+                                          drawable, reply->atom,
+                                          XCB_ATOM_CARDINAL, 32, 1, &state);
+   else
+      check = xcb_delete_property_checked(conn, drawable, reply->atom);
+
+   xcb_discard_reply(conn, check.sequence);
+   free(reply);
+}
+
+
 static VkResult
 x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
                              VkDevice device,
@@ -1467,6 +1494,13 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
 
    for (int i = 0; i < ARRAY_SIZE(modifiers); i++)
       vk_free(pAllocator, modifiers[i]);
+
+   /* It is safe to set it here as only one swapchain can be associated with
+    * the window, and swapchain creation does the association. At this point
+    * we know the creation is going to succeed. */
+   wsi_x11_set_adaptive_sync_property(conn, window,
+                                      wsi_device->enable_adaptive_sync);
+
    *swapchain_out = &chain->base;
 
    return VK_SUCCESS;

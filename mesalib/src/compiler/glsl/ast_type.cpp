@@ -489,6 +489,13 @@ ast_type_qualifier::merge_qualifier(YYLTYPE *loc,
        q.flags.q.bound_image)
       merge_bindless_qualifier(state);
 
+   if (state->EXT_gpu_shader4_enable &&
+       state->stage == MESA_SHADER_FRAGMENT &&
+       this->flags.q.varying && q.flags.q.out) {
+      this->flags.q.varying = 0;
+      this->flags.q.out = 1;
+   }
+
    return r;
 }
 

@@ -85,6 +85,7 @@
 #include "util/u_upload_mgr.h"
 #include "util/u_vbuf.h"
 #include "cso_cache/cso_context.h"
+#include "compiler/glsl/glsl_parser_extras.h"
 
 
 DEBUG_GET_ONCE_BOOL_OPTION(mesa_mvp_dp4, "MESA_MVP_DP4", FALSE)
@@ -513,6 +514,7 @@ st_init_driver_flags(struct st_context *st)
    f->NewViewport = ST_NEW_VIEWPORT;
    f->NewNvConservativeRasterization = ST_NEW_RASTERIZER;
    f->NewNvConservativeRasterizationParams = ST_NEW_RASTERIZER;
+   f->NewIntelConservativeRasterization = ST_NEW_RASTERIZER;
 }
 
 
@@ -976,12 +978,17 @@ st_destroy_context(struct st_context *st)
 
    st_destroy_program_variants(st);
 
-   _mesa_free_context_data(ctx);
+   _mesa_free_context_data(ctx, false);
 
    /* This will free the st_context too, so 'st' must not be accessed
     * afterwards. */
    st_destroy_context_priv(st, true);
    st = NULL;
+
+   /* This must be called after st_destroy_context_priv() to avoid a race
+    * condition between any shader compiler threads and context destruction.
+    */
+   _mesa_destroy_shader_compiler_types();
 
    free(ctx);
 

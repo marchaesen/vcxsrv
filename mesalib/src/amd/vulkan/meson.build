@@ -130,14 +130,14 @@ endif
 
 libvulkan_radeon = shared_library(
   'vulkan_radeon',
-  [libradv_files, radv_entrypoints, radv_extensions_c, amd_vk_format_table_c, sha1_h],
+  [libradv_files, radv_entrypoints, radv_extensions_c, amd_vk_format_table_c, sha1_h, xmlpool_options_h],
   include_directories : [
-    inc_common, inc_amd, inc_amd_common, inc_compiler, inc_vulkan_util,
+    inc_common, inc_amd, inc_amd_common, inc_compiler, inc_util, inc_vulkan_util,
     inc_vulkan_wsi,
   ],
   link_with : [
     libamd_common, libamdgpu_addrlib, libvulkan_util, libvulkan_wsi,
-    libmesa_util,
+    libmesa_util, libxmlconfig
   ],
   dependencies : [
     dep_llvm, dep_libdrm_amdgpu, dep_thread, dep_elf, dep_dl, dep_m,

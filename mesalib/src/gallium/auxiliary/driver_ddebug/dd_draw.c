@@ -33,14 +33,76 @@
 #include "util/u_helpers.h"
 #include "util/u_inlines.h"
 #include "util/u_memory.h"
+#include "util/u_process.h"
 #include "tgsi/tgsi_parse.h"
 #include "tgsi/tgsi_scan.h"
 #include "util/os_time.h"
 #include <inttypes.h>
 #include "pipe/p_config.h"
 
+void
+dd_get_debug_filename_and_mkdir(char *buf, size_t buflen, bool verbose)
+{
+   static unsigned index;
+   char proc_name[128], dir[256];
 
-static void
+   if (!os_get_process_name(proc_name, sizeof(proc_name))) {
+      fprintf(stderr, "dd: can't get the process name\n");
+      strcpy(proc_name, "unknown");
+   }
+
+   util_snprintf(dir, sizeof(dir), "%s/"DD_DIR, debug_get_option("HOME", "."));
+
+   if (mkdir(dir, 0774) && errno != EEXIST)
+      fprintf(stderr, "dd: can't create a directory (%i)\n", errno);
+
+   util_snprintf(buf, buflen, "%s/%s_%u_%08u", dir, proc_name, getpid(),
+                 p_atomic_inc_return(&index) - 1);
+
+   if (verbose)
+      fprintf(stderr, "dd: dumping to file %s\n", buf);
+}
+
+FILE *
+dd_get_debug_file(bool verbose)
+{
+   char name[512];
+   FILE *f;
+
+   dd_get_debug_filename_and_mkdir(name, sizeof(name), verbose);
+   f = fopen(name, "w");
+   if (!f) {
+      fprintf(stderr, "dd: can't open file %s\n", name);
+      return NULL;
+   }
+
+   return f;
+}
+
+void
+dd_parse_apitrace_marker(const char *string, int len, unsigned *call_number)
+{
+   unsigned num;
+   char *s;
+
+   if (len <= 0)
+      return;
+
+   /* Make it zero-terminated. */
+   s = alloca(len + 1);
+   memcpy(s, string, len);
+   s[len] = 0;
+
+   /* Parse the number. */
+   errno = 0;
+   num = strtol(s, NULL, 10);
+   if (errno)
+      return;
+
+   *call_number = num;
+}
+
+void
 dd_write_header(FILE *f, struct pipe_screen *screen, unsigned apitrace_call_number)
 {
    char cmd_line[4096];
@@ -279,6 +341,13 @@ dd_dump_shader(struct dd_draw_state *dstate, enum pipe_shader_type sh, FILE *f)
       }
 
    fprintf(f, COLOR_SHADER "end shader: %s" COLOR_RESET "\n\n", shader_str[sh]);
+}
+
+static void
+dd_dump_flush(struct dd_draw_state *dstate, struct call_flush *info, FILE *f)
+{
+   fprintf(f, "%s:\n", __func__+8);
+   DUMP_M(hex, info, flags);
 }
 
 static void
@@ -556,6 +625,9 @@ static void
 dd_dump_call(FILE *f, struct dd_draw_state *state, struct dd_call *call)
 {
    switch (call->type) {
+   case CALL_FLUSH:
+      dd_dump_flush(state, &call->info.flush, f);
+      break;
    case CALL_DRAW_VBO:
       dd_dump_draw_vbo(state, &call->info.draw_vbo.draw, f);
       break;
@@ -627,6 +699,8 @@ static void
 dd_unreference_copy_of_call(struct dd_call *dst)
 {
    switch (dst->type) {
+   case CALL_FLUSH:
+      break;
    case CALL_DRAW_VBO:
       pipe_so_target_reference(&dst->info.draw_vbo.draw.count_from_stream_output, NULL);
       pipe_resource_reference(&dst->info.draw_vbo.indirect.buffer, NULL);
@@ -975,11 +1049,6 @@ dd_report_hang(struct dd_context *dctx)
          dd_write_header(f, dscreen->screen, record->draw_state.base.apitrace_call_number);
          dd_write_record(f, record);
 
-         if (!encountered_hang) {
-            dd_dump_driver_state(dctx, f, PIPE_DUMP_DEVICE_STATUS_REGISTERS);
-            dd_dump_dmesg(f);
-         }
-
          fclose(f);
       }
 
@@ -991,6 +1060,18 @@ dd_report_hang(struct dd_context *dctx)
    if (num_later)
       fprintf(stderr, "... and %u additional draws.\n", num_later);
 
+   char name[512];
+   dd_get_debug_filename_and_mkdir(name, sizeof(name), false);
+   FILE *f = fopen(name, "w");
+   if (!f) {
+      fprintf(stderr, "fopen failed\n");
+   } else {
+      dd_write_header(f, dscreen->screen, 0);
+      dd_dump_driver_state(dctx, f, PIPE_DUMP_DEVICE_STATUS_REGISTERS);
+      dd_dump_dmesg(f);
+      fclose(f);
+   }
+
    fprintf(stderr, "\nDone.\n");
    dd_kill_process();
 }
@@ -1001,6 +1082,15 @@ dd_thread_main(void *input)
    struct dd_context *dctx = (struct dd_context *)input;
    struct dd_screen *dscreen = dd_screen(dctx->base.screen);
    struct pipe_screen *screen = dscreen->screen;
+
+   const char *process_name = util_get_process_name();
+   if (process_name) {
+      char threadname[16];
+      util_snprintf(threadname, sizeof(threadname), "%.*s:ddbg",
+                    (int)MIN2(strlen(process_name), sizeof(threadname) - 6),
+                    process_name);
+      u_thread_setname(threadname);
+   }
 
    mtx_lock(&dctx->mutex);
 
@@ -1083,13 +1173,23 @@ dd_create_record(struct dd_context *dctx)
 }
 
 static void
-dd_context_flush(struct pipe_context *_pipe,
-                 struct pipe_fence_handle **fence, unsigned flags)
+dd_add_record(struct dd_context *dctx, struct dd_draw_record *record)
 {
-   struct dd_context *dctx = dd_context(_pipe);
-   struct pipe_context *pipe = dctx->pipe;
+   mtx_lock(&dctx->mutex);
+   if (unlikely(dctx->num_records > 10000)) {
+      dctx->api_stalled = true;
+      /* Since this is only a heuristic to prevent the API thread from getting
+       * too far ahead, we don't need a loop here. */
+      cnd_wait(&dctx->cond, &dctx->mutex);
+      dctx->api_stalled = false;
+   }
 
-   pipe->flush(pipe, fence, flags);
+   if (list_empty(&dctx->records))
+      cnd_signal(&dctx->cond);
+
+   list_addtail(&record->list, &dctx->records);
+   dctx->num_records++;
+   mtx_unlock(&dctx->mutex);
 }
 
 static void
@@ -1115,21 +1215,7 @@ dd_before_draw(struct dd_context *dctx, struct dd_draw_record *record)
       pipe->flush(pipe, NULL, 0);
    }
 
-   mtx_lock(&dctx->mutex);
-   if (unlikely(dctx->num_records > 10000)) {
-      dctx->api_stalled = true;
-      /* Since this is only a heuristic to prevent the API thread from getting
-       * too far ahead, we don't need a loop here. */
-      cnd_wait(&dctx->cond, &dctx->mutex);
-      dctx->api_stalled = false;
-   }
-
-   if (list_empty(&dctx->records))
-      cnd_signal(&dctx->cond);
-
-   list_addtail(&record->list, &dctx->records);
-   dctx->num_records++;
-   mtx_unlock(&dctx->mutex);
+   dd_add_record(dctx, record);
 }
 
 static void
@@ -1177,6 +1263,33 @@ dd_after_draw(struct dd_context *dctx, struct dd_draw_record *record)
    if (dscreen->skip_count && dctx->num_draw_calls % 10000 == 0)
       fprintf(stderr, "Gallium debugger reached %u draw calls.\n",
               dctx->num_draw_calls);
+}
+
+static void
+dd_context_flush(struct pipe_context *_pipe,
+                 struct pipe_fence_handle **fence, unsigned flags)
+{
+   struct dd_context *dctx = dd_context(_pipe);
+   struct pipe_context *pipe = dctx->pipe;
+   struct pipe_screen *screen = pipe->screen;
+   struct dd_draw_record *record = dd_create_record(dctx);
+
+   record->call.type = CALL_FLUSH;
+   record->call.info.flush.flags = flags;
+
+   record->time_before = os_time_get_nano();
+
+   dd_add_record(dctx, record);
+
+   pipe->flush(pipe, &record->bottom_of_pipe, flags);
+   if (fence)
+      screen->fence_reference(screen, fence, record->bottom_of_pipe);
+
+   if (pipe->callback) {
+      pipe->callback(pipe, dd_after_draw_async, record, true);
+   } else {
+      dd_after_draw_async(record);
+   }
 }
 
 static void

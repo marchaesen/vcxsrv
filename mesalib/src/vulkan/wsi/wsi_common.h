@@ -87,6 +87,8 @@ struct wsi_fence {
 
 struct wsi_interface;
 
+struct driOptionCache;
+
 #define VK_ICD_WSI_PLATFORM_MAX (VK_ICD_WSI_PLATFORM_DISPLAY + 1)
 
 struct wsi_device {
@@ -102,6 +104,10 @@ struct wsi_device {
    bool supports_modifiers;
    uint32_t maxImageDimension2D;
    VkPresentModeKHR override_present_mode;
+
+   /* Whether to enable adaptive sync for a swapchain if implemented and
+    * available. Not all window systems might support this. */
+   bool enable_adaptive_sync;
 
    uint64_t (*image_get_modifier)(VkImage image);
 
@@ -144,7 +150,8 @@ wsi_device_init(struct wsi_device *wsi,
                 VkPhysicalDevice pdevice,
                 WSI_FN_GetPhysicalDeviceProcAddr proc_addr,
                 const VkAllocationCallbacks *alloc,
-                int display_fd);
+                int display_fd,
+                const struct driOptionCache *dri_options);
 
 void
 wsi_device_finish(struct wsi_device *wsi,

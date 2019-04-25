@@ -461,6 +461,22 @@ ac_build_ballot(struct ac_llvm_context *ctx,
 				  AC_FUNC_ATTR_CONVERGENT);
 }
 
+LLVMValueRef ac_get_i1_sgpr_mask(struct ac_llvm_context *ctx,
+				 LLVMValueRef value)
+{
+	LLVMValueRef args[3] = {
+		value,
+		ctx->i1false,
+		LLVMConstInt(ctx->i32, LLVMIntNE, 0),
+	};
+
+	assert(HAVE_LLVM >= 0x0800);
+	return ac_build_intrinsic(ctx, "llvm.amdgcn.icmp.i1", ctx->i64, args, 3,
+				  AC_FUNC_ATTR_NOUNWIND |
+				  AC_FUNC_ATTR_READNONE |
+				  AC_FUNC_ATTR_CONVERGENT);
+}
+
 LLVMValueRef
 ac_build_vote_all(struct ac_llvm_context *ctx, LLVMValueRef value)
 {

@@ -1009,7 +1009,7 @@ builtin_variable_generator::generate_vs_special_vars()
 {
    ir_variable *var;
 
-   if (state->is_version(130, 300))
+   if (state->is_version(130, 300) || state->EXT_gpu_shader4_enable)
       add_system_value(SYSTEM_VALUE_VERTEX_ID, int_t, "gl_VertexID");
    if (state->is_version(460, 0)) {
       add_system_value(SYSTEM_VALUE_BASE_VERTEX, int_t, "gl_BaseVertex");
@@ -1018,7 +1018,8 @@ builtin_variable_generator::generate_vs_special_vars()
    }
    if (state->ARB_draw_instanced_enable)
       add_system_value(SYSTEM_VALUE_INSTANCE_ID, int_t, "gl_InstanceIDARB");
-   if (state->ARB_draw_instanced_enable || state->is_version(140, 300))
+   if (state->ARB_draw_instanced_enable || state->is_version(140, 300) ||
+       state->EXT_gpu_shader4_enable)
       add_system_value(SYSTEM_VALUE_INSTANCE_ID, int_t, "gl_InstanceID");
    if (state->ARB_shader_draw_parameters_enable) {
       add_system_value(SYSTEM_VALUE_BASE_VERTEX, int_t, "gl_BaseVertexARB");
@@ -1171,7 +1172,7 @@ builtin_variable_generator::generate_fs_special_vars()
    if (state->is_version(120, 100))
       add_input(VARYING_SLOT_PNTC, vec2_t, "gl_PointCoord");
 
-   if (state->has_geometry_shader()) {
+   if (state->has_geometry_shader() || state->EXT_gpu_shader4_enable) {
       var = add_input(VARYING_SLOT_PRIMITIVE_ID, int_t, "gl_PrimitiveID");
       var->data.interpolation = INTERP_MODE_FLAT;
    }

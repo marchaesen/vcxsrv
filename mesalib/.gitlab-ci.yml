@@ -94,6 +94,7 @@ debian:
     - meson --version
     - meson _build
             --native-file=native.file
+            -D buildtype=debug
             -D build-tests=true
             -D libunwind=${UNWIND}
             ${DRI_LOADERS}

@@ -237,6 +237,10 @@ PIPE_FORMAT_ASTC_10x10_SRGB       , astc,10,10, x128,     ,     ,     , xyzw, sr
 PIPE_FORMAT_ASTC_12x10_SRGB       , astc,12,10, x128,     ,     ,     , xyzw, srgb
 PIPE_FORMAT_ASTC_12x12_SRGB       , astc,12,12, x128,     ,     ,     , xyzw, srgb
 
+PIPE_FORMAT_ATC_RGB               ,  atc, 4, 4, x64,      ,     ,     , xyz1, rgb
+PIPE_FORMAT_ATC_RGBA_EXPLICIT     ,  atc, 4, 4, x128,     ,     ,     , xyzw, rgb
+PIPE_FORMAT_ATC_RGBA_INTERPOLATED ,  atc, 4, 4, x128,     ,     ,     , xyzw, rgb
+
 # Straightforward D3D10-like formats (also used for 
 # vertex buffer element description)
 # 

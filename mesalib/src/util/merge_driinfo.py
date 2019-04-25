@@ -52,6 +52,14 @@ class Option(object):
       self.defaults = defaults
 
 
+class Verbatim(object):
+   """
+   Represent a chunk of code that is copied into the result file verbatim.
+   """
+   def __init__(self):
+      self.string = ''
+
+
 class Section(object):
    """
    Represent a config section description as:
@@ -75,8 +83,29 @@ def parse_inputs(input_filenames):
          section = None
 
          linenum = 0
+         verbatim = None
          for line in infile:
             linenum += 1
+
+            if line.startswith('//= BEGIN VERBATIM'):
+               if verbatim is not None:
+                  print('{}:{}: nested verbatim'
+                        .format(input_filename, linenum))
+                  success = False
+                  continue
+               verbatim = Verbatim()
+
+            if verbatim is not None:
+               verbatim.string += line
+
+               if line.startswith('//= END VERBATIM'):
+                  if section is None:
+                     sections.append(verbatim)
+                  else:
+                     section.options.append(verbatim)
+                  verbatim = None
+               continue
+
             line = line.strip()
             if not line:
                continue
@@ -144,12 +173,17 @@ def merge_sections(section_list):
       assert section.name == merged_section.name
 
       for orig_option in section.options:
-         for merged_option in merged_section.options:
-            if orig_option.name == merged_option.name:
-               merged_option.defaults = orig_option.defaults
-               break
+         if isinstance(orig_option, Option):
+            for merged_option in merged_section.options:
+               if not isinstance(merged_option, Option):
+                  continue
+               if orig_option.name == merged_option.name:
+                  merged_option.defaults = orig_option.defaults
+                  break
+            else:
+               merged_section.options.append(Option(orig_option.name, orig_option.defaults))
          else:
-            merged_section.options.append(Option(orig_option.name, orig_option.defaults))
+            merged_section.options.append(orig_option)
 
    return merged_section
 
@@ -164,6 +198,10 @@ def merge_sections_lists(sections_lists):
 
    for idx,sections in enumerate(sections_lists):
       for base_section in sections:
+         if not isinstance(base_section, Section):
+            merged_sections.append(base_section)
+            continue
+
          original_sections = [base_section]
          for next_sections in sections_lists[idx+1:]:
             for j,section in enumerate(next_sections):
@@ -201,15 +239,23 @@ static const char driinfo_xml[] =
 
 DRI_CONF_BEGIN
 % for section in sections:
+% if isinstance(section, Section):
    DRI_CONF_SECTION_${section.name}
 % for option in section.options:
+% if isinstance(option, Option):
       DRI_CONF_${option.name}(${option.defaults})
+% else:
+${option.string}
+% endif
 % endfor
    DRI_CONF_SECTION_END
+% else:
+${section.string}
+% endif
 % endfor
 DRI_CONF_END""")
 
-   print(driinfo_h_template.render(sections=merged_sections_list))
+   print(driinfo_h_template.render(sections=merged_sections_list, Section=Section, Option=Option))
    return True
 
 

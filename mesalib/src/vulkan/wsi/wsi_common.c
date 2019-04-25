@@ -24,6 +24,7 @@
 #include "wsi_common_private.h"
 #include "drm-uapi/drm_fourcc.h"
 #include "util/macros.h"
+#include "util/xmlconfig.h"
 #include "vk_util.h"
 
 #include <time.h>
@@ -37,7 +38,8 @@ wsi_device_init(struct wsi_device *wsi,
                 VkPhysicalDevice pdevice,
                 WSI_FN_GetPhysicalDeviceProcAddr proc_addr,
                 const VkAllocationCallbacks *alloc,
-                int display_fd)
+                int display_fd,
+                const struct driOptionCache *dri_options)
 {
    const char *present_mode;
    VkResult result;
@@ -127,6 +129,12 @@ wsi_device_init(struct wsi_device *wsi,
       } else {
          fprintf(stderr, "Invalid MESA_VK_WSI_PRESENT_MODE value!\n");
       }
+   }
+
+   if (dri_options) {
+      if (driCheckOption(dri_options, "adaptive_sync", DRI_BOOL))
+         wsi->enable_adaptive_sync = driQueryOptionb(dri_options,
+                                                     "adaptive_sync");
    }
 
    return VK_SUCCESS;

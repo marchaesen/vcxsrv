@@ -558,7 +558,7 @@ struct vtn_decoration {
     */
    int scope;
 
-   const uint32_t *literals;
+   const uint32_t *operands;
    struct vtn_value *group;
 
    union {
