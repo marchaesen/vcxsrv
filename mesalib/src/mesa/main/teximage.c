@@ -176,7 +176,7 @@ oes_float_internal_format(const struct gl_context *ctx,
 /**
  * Install gl_texture_image in a gl_texture_object according to the target
  * and level parameters.
- * 
+ *
  * \param tObj texture object.
  * \param target texture target.
  * \param level image level.
@@ -1366,6 +1366,9 @@ compressedteximage_only_format(GLenum format)
    case GL_PALETTE8_R5_G6_B5_OES:
    case GL_PALETTE8_RGBA4_OES:
    case GL_PALETTE8_RGB5_A1_OES:
+   case GL_ATC_RGB_AMD:
+   case GL_ATC_RGBA_EXPLICIT_ALPHA_AMD:
+   case GL_ATC_RGBA_INTERPOLATED_ALPHA_AMD:
       return true;
    default:
       return false;

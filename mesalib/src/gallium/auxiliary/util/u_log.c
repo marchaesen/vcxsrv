@@ -187,6 +187,8 @@ out_of_memory:
 void
 u_log_new_page_print(struct u_log_context *ctx, FILE *stream)
 {
+   u_log_flush(ctx);
+
    if (ctx->cur) {
       u_log_page_print(ctx->cur, stream);
       u_log_page_destroy(ctx->cur);
@@ -202,6 +204,8 @@ u_log_new_page_print(struct u_log_context *ctx, FILE *stream)
 struct u_log_page *
 u_log_new_page(struct u_log_context *ctx)
 {
+   u_log_flush(ctx);
+
    struct u_log_page *page = ctx->cur;
    ctx->cur = NULL;
    return page;

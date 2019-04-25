@@ -48,6 +48,7 @@
 #include "compiler/shader_enums.h"
 #include "util/macros.h"
 #include "util/list.h"
+#include "util/xmlconfig.h"
 #include "main/macros.h"
 #include "vk_alloc.h"
 #include "vk_debug_report.h"
@@ -339,6 +340,9 @@ struct radv_instance {
 	struct vk_debug_report_instance             debug_report_callbacks;
 
 	struct radv_instance_extension_table enabled_extensions;
+
+	struct driOptionCache dri_options;
+	struct driOptionCache available_dri_options;
 };
 
 VkResult radv_init_wsi(struct radv_physical_device *physical_device);

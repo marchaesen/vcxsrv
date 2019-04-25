@@ -403,6 +403,10 @@ enum pipe_format {
    PIPE_FORMAT_A8B8G8R8_SINT           = 315,
    PIPE_FORMAT_X8B8G8R8_SINT           = 316,
 
+   PIPE_FORMAT_ATC_RGB                 = 317,
+   PIPE_FORMAT_ATC_RGBA_EXPLICIT       = 318,
+   PIPE_FORMAT_ATC_RGBA_INTERPOLATED   = 319,
+
    PIPE_FORMAT_COUNT
 };
 

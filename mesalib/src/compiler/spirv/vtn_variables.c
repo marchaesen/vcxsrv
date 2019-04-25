@@ -1470,13 +1470,13 @@ apply_var_decoration(struct vtn_builder *b,
       var_data->image.access |= ACCESS_COHERENT;
       break;
    case SpvDecorationComponent:
-      var_data->location_frac = dec->literals[0];
+      var_data->location_frac = dec->operands[0];
       break;
    case SpvDecorationIndex:
-      var_data->index = dec->literals[0];
+      var_data->index = dec->operands[0];
       break;
    case SpvDecorationBuiltIn: {
-      SpvBuiltIn builtin = dec->literals[0];
+      SpvBuiltIn builtin = dec->operands[0];
 
       nir_variable_mode mode = var_data->mode;
       vtn_get_builtin_location(b, builtin, &var_data->location, &mode);
@@ -1527,20 +1527,20 @@ apply_var_decoration(struct vtn_builder *b,
 
    case SpvDecorationXfbBuffer:
       var_data->explicit_xfb_buffer = true;
-      var_data->xfb_buffer = dec->literals[0];
+      var_data->xfb_buffer = dec->operands[0];
       var_data->always_active_io = true;
       break;
    case SpvDecorationXfbStride:
       var_data->explicit_xfb_stride = true;
-      var_data->xfb_stride = dec->literals[0];
+      var_data->xfb_stride = dec->operands[0];
       break;
    case SpvDecorationOffset:
       var_data->explicit_offset = true;
-      var_data->offset = dec->literals[0];
+      var_data->offset = dec->operands[0];
       break;
 
    case SpvDecorationStream:
-      var_data->stream = dec->literals[0];
+      var_data->stream = dec->operands[0];
       break;
 
    case SpvDecorationCPacked:
@@ -1587,20 +1587,20 @@ var_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
    /* Handle decorations that apply to a vtn_variable as a whole */
    switch (dec->decoration) {
    case SpvDecorationBinding:
-      vtn_var->binding = dec->literals[0];
+      vtn_var->binding = dec->operands[0];
       vtn_var->explicit_binding = true;
       return;
    case SpvDecorationDescriptorSet:
-      vtn_var->descriptor_set = dec->literals[0];
+      vtn_var->descriptor_set = dec->operands[0];
       return;
    case SpvDecorationInputAttachmentIndex:
-      vtn_var->input_attachment_index = dec->literals[0];
+      vtn_var->input_attachment_index = dec->operands[0];
       return;
    case SpvDecorationPatch:
       vtn_var->patch = true;
       break;
    case SpvDecorationOffset:
-      vtn_var->offset = dec->literals[0];
+      vtn_var->offset = dec->operands[0];
       break;
    case SpvDecorationNonWritable:
       vtn_var->access |= ACCESS_NON_WRITEABLE;
@@ -1633,7 +1633,7 @@ var_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
     * special case.
     */
    if (dec->decoration == SpvDecorationLocation) {
-      unsigned location = dec->literals[0];
+      unsigned location = dec->operands[0];
       if (b->shader->info.stage == MESA_SHADER_FRAGMENT &&
           vtn_var->mode == vtn_variable_mode_output) {
          location += FRAG_RESULT_DATA0;

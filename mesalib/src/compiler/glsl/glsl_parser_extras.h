@@ -141,7 +141,8 @@ struct _mesa_glsl_parse_state {
 
    bool check_bitwise_operations_allowed(YYLTYPE *locp)
    {
-      return check_version(130, 300, locp, "bit-wise operations are forbidden");
+      return EXT_gpu_shader4_enable ||
+             check_version(130, 300, locp, "bit-wise operations are forbidden");
    }
 
    bool check_explicit_attrib_stream_allowed(YYLTYPE *locp)
@@ -817,6 +818,8 @@ struct _mesa_glsl_parse_state {
    bool EXT_geometry_point_size_warn;
    bool EXT_geometry_shader_enable;
    bool EXT_geometry_shader_warn;
+   bool EXT_gpu_shader4_enable;
+   bool EXT_gpu_shader4_warn;
    bool EXT_gpu_shader5_enable;
    bool EXT_gpu_shader5_warn;
    bool EXT_primitive_bounding_box_enable;
@@ -997,6 +1000,7 @@ extern "C" {
 #endif
 
 struct glcpp_parser;
+struct _mesa_glsl_parse_state;
 
 typedef void (*glcpp_extension_iterator)(
               struct _mesa_glsl_parse_state *state,

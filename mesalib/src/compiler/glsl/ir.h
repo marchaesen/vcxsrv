@@ -233,7 +233,7 @@ public:
 
    ir_rvalue *as_rvalue_to_saturate();
 
-   virtual bool is_lvalue(const struct _mesa_glsl_parse_state *state = NULL) const
+   virtual bool is_lvalue(const struct _mesa_glsl_parse_state * = NULL) const
    {
       return false;
    }

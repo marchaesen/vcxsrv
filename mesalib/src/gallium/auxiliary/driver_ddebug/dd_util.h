@@ -51,66 +51,16 @@
 /* name of the directory in home */
 #define DD_DIR "ddebug_dumps"
 
-static inline void
-dd_get_debug_filename_and_mkdir(char *buf, size_t buflen, bool verbose)
-{
-   static unsigned index;
-   char proc_name[128], dir[256];
+void
+dd_get_debug_filename_and_mkdir(char *buf, size_t buflen, bool verbose);
 
-   if (!os_get_process_name(proc_name, sizeof(proc_name))) {
-      fprintf(stderr, "dd: can't get the process name\n");
-      strcpy(proc_name, "unknown");
-   }
+FILE *
+dd_get_debug_file(bool verbose);
 
-   util_snprintf(dir, sizeof(dir), "%s/"DD_DIR, debug_get_option("HOME", "."));
+void
+dd_parse_apitrace_marker(const char *string, int len, unsigned *call_number);
 
-   if (mkdir(dir, 0774) && errno != EEXIST)
-      fprintf(stderr, "dd: can't create a directory (%i)\n", errno);
-
-   util_snprintf(buf, buflen, "%s/%s_%u_%08u", dir, proc_name, getpid(),
-                 p_atomic_inc_return(&index) - 1);
-
-   if (verbose)
-      fprintf(stderr, "dd: dumping to file %s\n", buf);
-}
-
-static inline FILE *
-dd_get_debug_file(bool verbose)
-{
-   char name[512];
-   FILE *f;
-
-   dd_get_debug_filename_and_mkdir(name, sizeof(name), verbose);
-   f = fopen(name, "w");
-   if (!f) {
-      fprintf(stderr, "dd: can't open file %s\n", name);
-      return NULL;
-   }
-
-   return f;
-}
-
-static inline void
-dd_parse_apitrace_marker(const char *string, int len, unsigned *call_number)
-{
-   unsigned num;
-   char *s;
-
-   if (len <= 0)
-      return;
-
-   /* Make it zero-terminated. */
-   s = alloca(len + 1);
-   memcpy(s, string, len);
-   s[len] = 0;
-
-   /* Parse the number. */
-   errno = 0;
-   num = strtol(s, NULL, 10);
-   if (errno)
-      return;
-
-   *call_number = num;
-}
+void
+dd_write_header(FILE *f, struct pipe_screen *screen, unsigned apitrace_call_number);
 
 #endif /* DD_UTIL_H */

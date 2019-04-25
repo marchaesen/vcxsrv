@@ -317,6 +317,7 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_CONSERVATIVE_RASTER_PRE_SNAP_POINTS_LINES:
    case PIPE_CAP_MAX_CONSERVATIVE_RASTER_SUBPIXEL_PRECISION_BIAS:
    case PIPE_CAP_CONSERVATIVE_RASTER_POST_DEPTH_COVERAGE:
+   case PIPE_CAP_CONSERVATIVE_RASTER_INNER_COVERAGE:
    case PIPE_CAP_PROGRAMMABLE_SAMPLE_LOCATIONS:
    case PIPE_CAP_MAX_COMBINED_SHADER_BUFFERS:
    case PIPE_CAP_MAX_COMBINED_HW_ATOMIC_COUNTERS:
@@ -324,6 +325,7 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_TGSI_ATOMFADD:
    case PIPE_CAP_TGSI_SKIP_SHRINK_IO_ARRAYS:
    case PIPE_CAP_IMAGE_LOAD_FORMATTED:
+   case PIPE_CAP_PREFER_COMPUTE_BLIT_FOR_MULTIMEDIA:
       return 0;
 
    case PIPE_CAP_MAX_GS_INVOCATIONS:
@@ -352,6 +354,16 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
 
    case PIPE_CAP_COMPUTE_SHADER_DERIVATIVES:
       return 0;
+
+   case PIPE_CAP_MAX_FRAMES_IN_FLIGHT:
+      return 2;
+
+   case PIPE_CAP_DMABUF:
+#ifdef PIPE_OS_LINUX
+      return 1;
+#else
+      return 0;
+#endif
 
    default:
       unreachable("bad PIPE_CAP_*");

@@ -57,6 +57,7 @@ if dri_drivers != []
     # Will be deleted during installation, see install_megadrivers.py
     install : true,
     install_dir : dri_drivers_path,
+    name_suffix : 'so',
   )
 
   meson.add_install_script(

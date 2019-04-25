@@ -1041,20 +1041,7 @@ typedef struct {
    nir_dest dest;
 } nir_deref_instr;
 
-NIR_DEFINE_CAST(nir_instr_as_deref, nir_instr, nir_deref_instr, instr,
-                type, nir_instr_type_deref)
-
-static inline nir_deref_instr *
-nir_src_as_deref(nir_src src)
-{
-   if (!src.is_ssa)
-      return NULL;
-
-   if (src.ssa->parent_instr->type != nir_instr_type_deref)
-      return NULL;
-
-   return nir_instr_as_deref(src.ssa->parent_instr);
-}
+static inline nir_deref_instr *nir_src_as_deref(nir_src src);
 
 static inline nir_deref_instr *
 nir_deref_instr_parent(const nir_deref_instr *instr)
@@ -1793,6 +1780,8 @@ typedef struct {
 
 NIR_DEFINE_CAST(nir_instr_as_alu, nir_instr, nir_alu_instr, instr,
                 type, nir_instr_type_alu)
+NIR_DEFINE_CAST(nir_instr_as_deref, nir_instr, nir_deref_instr, instr,
+                type, nir_instr_type_deref)
 NIR_DEFINE_CAST(nir_instr_as_call, nir_instr, nir_call_instr, instr,
                 type, nir_instr_type_call)
 NIR_DEFINE_CAST(nir_instr_as_jump, nir_instr, nir_jump_instr, instr,
@@ -2762,6 +2751,7 @@ nir_src_as_ ## name (nir_src src)                                       \
 NIR_SRC_AS_(alu_instr, nir_alu_instr, nir_instr_type_alu, nir_instr_as_alu)
 NIR_SRC_AS_(intrinsic, nir_intrinsic_instr,
             nir_instr_type_intrinsic, nir_instr_as_intrinsic)
+NIR_SRC_AS_(deref, nir_deref_instr, nir_instr_type_deref, nir_instr_as_deref)
 
 bool nir_src_is_dynamically_uniform(nir_src src);
 bool nir_srcs_equal(nir_src src1, nir_src src2);

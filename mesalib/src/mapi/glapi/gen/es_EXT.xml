@@ -565,6 +565,12 @@
     <enum name="HALF_FLOAT_OES"                           value="0x8D61"/>
 </category>
 
+<category name="GL_AMD_compressed_ATC_texture" number="40">
+    <enum name="ATC_RGB_AMD"                              value="0x8C92"/>
+    <enum name="ATC_RGBA_EXPLICIT_ALPHA_AMD"              value="0x8C93"/>
+    <enum name="ATC_RGBA_INTERPOLATED_ALPHA_AMD"          value="0x87EE"/>
+</category>
+
 <!-- 41. GL_EXT_texture_filter_anisotropic -->
 
 <category name="GL_EXT_texture_type_2_10_10_10_REV" number="42">

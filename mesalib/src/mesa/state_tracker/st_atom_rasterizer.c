@@ -306,6 +306,8 @@ st_update_rasterizer(struct st_context *st)
          raster->conservative_raster_mode = PIPE_CONSERVATIVE_RASTER_POST_SNAP;
       else
          raster->conservative_raster_mode = PIPE_CONSERVATIVE_RASTER_PRE_SNAP;
+   } else if (ctx->IntelConservativeRasterization) {
+      raster->conservative_raster_mode = PIPE_CONSERVATIVE_RASTER_POST_SNAP;
    } else {
       raster->conservative_raster_mode = PIPE_CONSERVATIVE_RASTER_OFF;
    }

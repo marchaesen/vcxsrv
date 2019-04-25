@@ -142,6 +142,12 @@ typedef int GLclampx;
 #define GL_SR8_EXT                                              0x8FBD
 #endif
 
+#ifndef GL_AMD_compressed_ATC_texture
+#define GL_ATC_RGB_AMD                                          0x8C92
+#define GL_ATC_RGBA_EXPLICIT_ALPHA_AMD                          0x8C93
+#define GL_ATC_RGBA_INTERPOLATED_ALPHA_AMD                      0x87EE
+#endif
+
 /**
  * Internal token to represent a GLSL shader program (a collection of
  * one or more shaders that get linked together).  Note that GLSL

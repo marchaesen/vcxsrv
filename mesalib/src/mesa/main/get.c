@@ -315,9 +315,10 @@ static const int extra_EXT_texture_integer_and_new_buffers[] = {
    EXTRA_END
 };
 
-static const int extra_GLSL_130_es3[] = {
+static const int extra_GLSL_130_es3_gpushader4[] = {
    EXTRA_GLSL_130,
    EXTRA_API_ES3,
+   EXT(EXT_gpu_shader4),
    EXTRA_END
 };
 

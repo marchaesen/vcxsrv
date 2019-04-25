@@ -21,10 +21,14 @@ Xwayland_SOURCES =				\
 	$(top_srcdir)/Xi/stubs.c		\
 	$(top_srcdir)/mi/miinitext.c
 
+if GLX
+GLXVND_LIB = $(top_builddir)/glx/libglxvnd.la
+endif
+
 Xwayland_LDADD =				\
 	$(glamor_lib)				\
 	$(XWAYLAND_LIBS)			\
-	$(top_builddir)/glx/libglxvnd.la	\
+	$(GLXVND_LIB)				\
 	$(XWAYLAND_SYS_LIBS)			\
 	$(top_builddir)/Xext/libXvidmode.la	\
 	$(XSERVER_SYS_LIBS)

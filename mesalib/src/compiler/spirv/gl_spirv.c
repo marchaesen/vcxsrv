@@ -75,7 +75,7 @@ spec_constant_decoration_cb(struct vtn_builder *b, struct vtn_value *v,
       return;
 
    for (unsigned i = 0; i < b->num_specializations; i++) {
-      if (b->specializations[i].id == dec->literals[0]) {
+      if (b->specializations[i].id == dec->operands[0]) {
          b->specializations[i].defined_on_module = true;
          return;
       }
