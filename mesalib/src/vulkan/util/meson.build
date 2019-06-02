@@ -31,8 +31,8 @@ vk_enum_to_str = custom_target(
   input : ['gen_enum_to_str.py', vk_api_xml],
   output : ['vk_enum_to_str.c', 'vk_enum_to_str.h'],
   command : [
-    prog_python, '@INPUT0@', '--xml', '@INPUT1@', '--outdir',
-    meson.current_build_dir()
+    prog_python, '@INPUT0@', '--xml', '@INPUT1@',
+    '--outdir', meson.current_build_dir()
   ],
 )
 
@@ -43,4 +43,16 @@ libvulkan_util = static_library(
   dependencies : vulkan_wsi_deps,
   c_args : [c_vis_args, vulkan_wsi_args],
   build_by_default : false,
+)
+
+idep_vulkan_util_headers = declare_dependency(
+  sources : vk_enum_to_str[1],
+  include_directories : include_directories('.')
+)
+
+idep_vulkan_util = declare_dependency(
+  sources : vk_enum_to_str[1],
+  link_with : libvulkan_util,
+  include_directories : include_directories('.'),
+  dependencies : idep_vulkan_util_headers
 )

@@ -90,8 +90,6 @@ $(intermediates)/glsl/glcpp/glcpp-lex.c: $(LOCAL_PATH)/glsl/glcpp/glcpp-lex.l
 $(intermediates)/glsl/glcpp/glcpp-parse.c: $(LOCAL_PATH)/glsl/glcpp/glcpp-parse.y
 	$(call glsl_local-y-to-c-and-h)
 
-$(LOCAL_PATH)/glsl/ir.h: $(intermediates)/glsl/ir_expression_operation.h
-
 $(intermediates)/glsl/ir_expression_operation.h: $(LOCAL_PATH)/glsl/ir_expression_operation.py
 	@mkdir -p $(dir $@)
 	$(hide) $(MESA_PYTHON2) $< enum > $@

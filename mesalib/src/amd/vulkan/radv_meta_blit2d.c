@@ -256,13 +256,17 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer,
 		unsigned i;
 		for_each_bit(i, dst->aspect_mask) {
 			unsigned aspect_mask = 1u << i;
+			unsigned src_aspect_mask = aspect_mask;
 			VkFormat depth_format = 0;
 			if (aspect_mask == VK_IMAGE_ASPECT_STENCIL_BIT)
 				depth_format = vk_format_stencil_only(dst->image->vk_format);
 			else if (aspect_mask == VK_IMAGE_ASPECT_DEPTH_BIT)
 				depth_format = vk_format_depth_only(dst->image->vk_format);
+			else if (src_img)
+				src_aspect_mask = src_img->aspect_mask;
+
 			struct blit2d_src_temps src_temps;
-			blit2d_bind_src(cmd_buffer, src_img, src_buf, &src_temps, src_type, depth_format, aspect_mask, log2_samples);
+			blit2d_bind_src(cmd_buffer, src_img, src_buf, &src_temps, src_type, depth_format, src_aspect_mask, log2_samples);
 
 			struct blit2d_dst_temps dst_temps;
 			blit2d_bind_dst(cmd_buffer, dst, rects[r].dst_x + rects[r].width,
@@ -280,7 +284,10 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer,
 					VK_SHADER_STAGE_VERTEX_BIT, 0, 16,
 					vertex_push_constants);
 
-			if (aspect_mask == VK_IMAGE_ASPECT_COLOR_BIT) {
+			if (aspect_mask == VK_IMAGE_ASPECT_COLOR_BIT ||
+			    aspect_mask == VK_IMAGE_ASPECT_PLANE_0_BIT ||
+			    aspect_mask == VK_IMAGE_ASPECT_PLANE_1_BIT ||
+			    aspect_mask == VK_IMAGE_ASPECT_PLANE_2_BIT) {
 				unsigned fs_key = radv_format_meta_fs_key(dst_temps.iview.vk_format);
 				unsigned dst_layout = radv_meta_dst_layout_from_layout(dst->current_layout);
 

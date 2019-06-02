@@ -3,64 +3,48 @@ body {
 	background-color: #ffffff;
 	font: 14px 'Lucida Grande', Geneva, Arial, Verdana, sans-serif;
 	color: black;
- 	link: #111188;
 }
 
 h1 {
-	font: 24px 'Lucida Grande', Geneva, Arial, Verdana, sans-serif;
+	font-size: 24px;
 	font-weight: bold;
-	color: black;
 }
 
 h2 {
-	font: 18px 'Lucida Grande', Geneva, Arial, Verdana, sans-serif, bold;
+	font-size: 18px;
 	font-weight: bold;
-	color: black;
 }
 
 code {
 	font-family: monospace;
 	font-size: 10pt;
-	color: black;
 }
 
-
 pre {
-	/*font-family: monospace;*/
 	font-size: 10pt;
-	/*color: black;*/
 	background-color: #eee;
 	margin-left: 2em;
 	padding: .5em;
 }
 
 iframe {
-  width: 19em;
-  height: 80em;
-  border: none;
-  float: left;
+	width: 19em;
+	height: 80em;
+	border: none;
+	float: left;
 }
 
 .content {
-  position: absolute;
-  left: 20em;
-  right: 10px;
-  overflow: hidden
+	position: absolute;
+	left: 20em;
+	right: 10px;
+	overflow: hidden;
 }
 
 .header {
-  background: black url('gears.png') 15px no-repeat;
-  margin:0;
-  padding: 5px;
-  clear:both;
-}
-
-.header h1 {
-  background: url('gears.png') right no-repeat;
-  color: white;
-  font: x-large sans-serif;
-  text-align: center;
-  height: 50px;
-  margin: 0;
-  padding-top: 30px;
+	background: url('gears.png') 15px no-repeat, black url('gears.png') right no-repeat;
+	padding: 1.75rem;
+	text-align: center;
+	color: white;
+	font: x-large sans-serif;
 }

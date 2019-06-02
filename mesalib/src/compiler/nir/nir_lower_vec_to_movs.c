@@ -57,7 +57,7 @@ insert_mov(nir_alu_instr *vec, unsigned start_idx, nir_shader *shader)
 {
    assert(start_idx < nir_op_infos[vec->op].num_inputs);
 
-   nir_alu_instr *mov = nir_alu_instr_create(shader, nir_op_imov);
+   nir_alu_instr *mov = nir_alu_instr_create(shader, nir_op_mov);
    nir_alu_src_copy(&mov->src[0], &vec->src[start_idx], mov);
    nir_alu_dest_copy(&mov->dest, &vec->dest, mov);
 

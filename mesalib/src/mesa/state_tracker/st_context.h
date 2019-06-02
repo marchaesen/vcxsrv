@@ -162,7 +162,6 @@ struct st_context
     */
    boolean invalidate_on_gl_viewport;
    boolean draw_needs_minmax_index;
-   boolean vertex_array_out_of_memory;
    boolean has_hw_atomics;
 
    /* Some state is contained in constant objects.

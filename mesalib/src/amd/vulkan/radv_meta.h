@@ -183,8 +183,10 @@ void radv_expand_fmask_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 
 void radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer,
 				     struct radv_image *src_image,
+				     VkFormat src_format,
 				     VkImageLayout src_image_layout,
 				     struct radv_image *dest_image,
+				     VkFormat dest_format,
 				     VkImageLayout dest_image_layout,
 				     uint32_t region_count,
 				     const VkImageResolve *regions);
@@ -211,6 +213,9 @@ uint32_t radv_clear_fmask(struct radv_cmd_buffer *cmd_buffer,
 			  struct radv_image *image, uint32_t value);
 uint32_t radv_clear_dcc(struct radv_cmd_buffer *cmd_buffer,
 			struct radv_image *image, uint32_t value);
+uint32_t radv_clear_htile(struct radv_cmd_buffer *cmd_buffer,
+			  struct radv_image *image,
+			  const VkImageSubresourceRange *range, uint32_t value);
 
 /* common nir builder helpers */
 #include "nir/nir_builder.h"

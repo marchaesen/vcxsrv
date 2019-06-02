@@ -372,6 +372,13 @@ exec_list_is_empty(const struct exec_list *list)
    return list->head_sentinel.next == &list->tail_sentinel;
 }
 
+static inline bool
+exec_list_is_singular(const struct exec_list *list)
+{
+   return !exec_list_is_empty(list) &&
+          list->head_sentinel.next->next == &list->tail_sentinel;
+}
+
 static inline const struct exec_node *
 exec_list_get_head_const(const struct exec_list *list)
 {

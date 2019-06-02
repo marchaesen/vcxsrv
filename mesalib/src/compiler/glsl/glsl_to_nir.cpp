@@ -90,7 +90,6 @@ private:
    nir_alu_instr *emit(nir_op op, unsigned dest_size, nir_ssa_def *src1,
                        nir_ssa_def *src2, nir_ssa_def *src3);
 
-   bool supports_ints;
    bool supports_std430;
 
    nir_shader *shader;
@@ -263,7 +262,6 @@ glsl_to_nir(struct gl_context *ctx,
 
 nir_visitor::nir_visitor(gl_context *ctx, nir_shader *shader)
 {
-   this->supports_ints = shader->options->native_integers;
    this->supports_std430 = ctx->Const.UseSTD430AsDefaultPacking;
    this->shader = shader;
    this->is_global = true;
@@ -272,6 +270,7 @@ nir_visitor::nir_visitor(gl_context *ctx, nir_shader *shader)
    this->result = NULL;
    this->impl = NULL;
    this->deref = NULL;
+   this->sig = NULL;
    memset(&this->b, 0, sizeof(this->b));
 }
 
@@ -307,10 +306,7 @@ nir_visitor::constant_copy(ir_constant *ir, void *mem_ctx)
       assert(cols == 1);
 
       for (unsigned r = 0; r < rows; r++)
-         if (supports_ints)
-            ret->values[0][r].u32 = ir->value.u[r];
-         else
-            ret->values[0][r].f32 = ir->value.u[r];
+         ret->values[0][r].u32 = ir->value.u[r];
 
       break;
 
@@ -319,10 +315,7 @@ nir_visitor::constant_copy(ir_constant *ir, void *mem_ctx)
       assert(cols == 1);
 
       for (unsigned r = 0; r < rows; r++)
-         if (supports_ints)
-            ret->values[0][r].i32 = ir->value.i[r];
-         else
-            ret->values[0][r].f32 = ir->value.i[r];
+         ret->values[0][r].i32 = ir->value.i[r];
 
       break;
 
@@ -1641,7 +1634,7 @@ nir_visitor::visit(ir_assignment *ir)
       for (unsigned i = 0; i < 4; i++) {
          swiz[i] = ir->write_mask & (1 << i) ? component++ : 0;
       }
-      src = nir_swizzle(&b, src, swiz, num_components, false);
+      src = nir_swizzle(&b, src, swiz, num_components);
    }
 
    if (ir->condition) {
@@ -1736,15 +1729,6 @@ type_is_signed(glsl_base_type type)
       type == GLSL_TYPE_INT16;
 }
 
-static bool
-type_is_int(glsl_base_type type)
-{
-   return type == GLSL_TYPE_UINT || type == GLSL_TYPE_INT ||
-      type == GLSL_TYPE_UINT8 || type == GLSL_TYPE_INT8 ||
-      type == GLSL_TYPE_UINT16 || type == GLSL_TYPE_INT16 ||
-      type == GLSL_TYPE_UINT64 || type == GLSL_TYPE_INT64;
-}
-
 void
 nir_visitor::visit(ir_expression *ir)
 {
@@ -1832,7 +1816,7 @@ nir_visitor::visit(ir_expression *ir)
          };
 
          result = nir_swizzle(&b, result, swiz,
-                              swizzle->type->vector_elements, false);
+                              swizzle->type->vector_elements);
       }
 
       return;
@@ -1860,16 +1844,9 @@ nir_visitor::visit(ir_expression *ir)
 
    glsl_base_type types[4];
    for (unsigned i = 0; i < ir->num_operands; i++)
-      if (supports_ints || !type_is_int(ir->operands[i]->type->base_type))
-         types[i] = ir->operands[i]->type->base_type;
-      else
-         types[i] = GLSL_TYPE_FLOAT;
+      types[i] = ir->operands[i]->type->base_type;
 
-   glsl_base_type out_type;
-   if (supports_ints || !type_is_int(ir->type->base_type))
-      out_type = ir->type->base_type;
-   else
-      out_type = GLSL_TYPE_FLOAT;
+   glsl_base_type out_type = ir->type->base_type;
 
    switch (ir->operation) {
    case ir_unop_bit_not: result = nir_inot(&b, srcs[0]); break;
@@ -1900,20 +1877,10 @@ nir_visitor::visit(ir_expression *ir)
    case ir_unop_exp2: result = nir_fexp2(&b, srcs[0]); break;
    case ir_unop_log2: result = nir_flog2(&b, srcs[0]); break;
    case ir_unop_i2f:
-      result = supports_ints ? nir_i2f32(&b, srcs[0]) : nir_fmov(&b, srcs[0]);
-      break;
    case ir_unop_u2f:
-      result = supports_ints ? nir_u2f32(&b, srcs[0]) : nir_fmov(&b, srcs[0]);
-      break;
    case ir_unop_b2f:
-      result = nir_b2f32(&b, srcs[0]);
-      break;
    case ir_unop_f2i:
-      result = supports_ints ? nir_f2i32(&b, srcs[0]) : nir_ftrunc(&b, srcs[0]);
-      break;
    case ir_unop_f2u:
-      result = supports_ints ? nir_f2u32(&b, srcs[0]) : nir_ftrunc(&b, srcs[0]);
-      break;
    case ir_unop_f2b:
    case ir_unop_i2b:
    case ir_unop_b2i:
@@ -1968,7 +1935,7 @@ nir_visitor::visit(ir_expression *ir)
    case ir_unop_bitcast_d2u64:
    case ir_unop_subroutine_to_int:
       /* no-op */
-      result = nir_imov(&b, srcs[0]);
+      result = nir_mov(&b, srcs[0]);
       break;
    case ir_unop_trunc: result = nir_ftrunc(&b, srcs[0]); break;
    case ir_unop_ceil:  result = nir_fceil(&b, srcs[0]); break;
@@ -2299,7 +2266,7 @@ nir_visitor::visit(ir_swizzle *ir)
 {
    unsigned swizzle[4] = { ir->mask.x, ir->mask.y, ir->mask.z, ir->mask.w };
    result = nir_swizzle(&b, evaluate_rvalue(ir->val), swizzle,
-                        ir->type->vector_elements, false);
+                        ir->type->vector_elements);
 }
 
 void

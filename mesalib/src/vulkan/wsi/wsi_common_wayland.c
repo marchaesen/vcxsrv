@@ -755,6 +755,16 @@ wsi_wl_swapchain_acquire_next_image(struct wsi_swapchain *wsi_chain,
 {
    struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
 
+#ifdef DEBUG
+   /*
+    * TODO: We need to implement this
+    */
+   if (info->timeout != 0 && info->timeout != UINT64_MAX)
+   {
+      fprintf(stderr, "timeout not supported; ignoring");
+   }
+#endif
+
    int ret = wl_display_dispatch_queue_pending(chain->display->wl_display,
                                                chain->display->queue);
    /* XXX: I'm not sure if out-of-date is the right error here.  If
@@ -774,9 +784,14 @@ wsi_wl_swapchain_acquire_next_image(struct wsi_swapchain *wsi_chain,
          }
       }
 
-      /* This time we do a blocking dispatch because we can't go
-       * anywhere until we get an event.
+      /* We now have to do a blocking dispatch, because all our images
+       * are in use and we cannot return one until the server does. However,
+       * if the client has requested non-blocking ANI, then we tell it up front
+       * that we have nothing to return.
        */
+      if (info->timeout == 0)
+         return VK_NOT_READY;
+
       int ret = wl_display_roundtrip_queue(chain->display->wl_display,
                                            chain->display->queue);
       if (ret < 0)

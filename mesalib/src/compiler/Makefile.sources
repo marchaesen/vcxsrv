@@ -219,6 +219,7 @@ NIR_FILES = \
 	nir/nir_format_convert.h \
 	nir/nir_from_ssa.c \
 	nir/nir_gather_info.c \
+	nir/nir_gather_ssa_types.c \
 	nir/nir_gather_xfb_info.c \
 	nir/nir_gs_count_vertices.c \
 	nir/nir_inline_functions.c \
@@ -243,6 +244,9 @@ NIR_FILES = \
 	nir/nir_lower_constant_initializers.c \
 	nir/nir_lower_double_ops.c \
 	nir/nir_lower_drawpixels.c \
+	nir/nir_lower_fb_read.c \
+	nir/nir_lower_flrp.c \
+	nir/nir_lower_fragcoord_wtrans.c \
 	nir/nir_lower_frexp.c \
 	nir/nir_lower_global_vars_to_local.c \
 	nir/nir_lower_gs_intrinsics.c \
@@ -251,6 +255,7 @@ NIR_FILES = \
 	nir/nir_lower_idiv.c \
 	nir/nir_lower_indirect_derefs.c \
 	nir/nir_lower_int64.c \
+	nir/nir_lower_int_to_float.c \
 	nir/nir_lower_io.c \
 	nir/nir_lower_io_arrays_to_elements.c \
 	nir/nir_lower_io_to_temporaries.c \
@@ -264,6 +269,7 @@ NIR_FILES = \
 	nir/nir_lower_regs_to_ssa.c \
 	nir/nir_lower_returns.c \
 	nir/nir_lower_scratch.c \
+	nir/nir_lower_sincos.c \
 	nir/nir_lower_subgroups.c \
 	nir/nir_lower_system_values.c \
 	nir/nir_lower_tex.c \
@@ -300,6 +306,7 @@ NIR_FILES = \
 	nir/nir_opt_move_comparisons.c \
 	nir/nir_opt_move_load_ubo.c \
 	nir/nir_opt_peephole_select.c \
+	nir/nir_opt_rematerialize_compares.c \
 	nir/nir_opt_remove_phis.c \
 	nir/nir_opt_shrink_load.c \
 	nir/nir_opt_trivial_continues.c \

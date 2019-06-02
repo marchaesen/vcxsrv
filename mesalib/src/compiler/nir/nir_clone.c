@@ -151,9 +151,11 @@ nir_variable_clone(const nir_variable *var, nir_shader *shader)
    nvar->name = ralloc_strdup(nvar, var->name);
    nvar->data = var->data;
    nvar->num_state_slots = var->num_state_slots;
-   nvar->state_slots = ralloc_array(nvar, nir_state_slot, var->num_state_slots);
-   memcpy(nvar->state_slots, var->state_slots,
-          var->num_state_slots * sizeof(nir_state_slot));
+   if (var->num_state_slots) {
+      nvar->state_slots = ralloc_array(nvar, nir_state_slot, var->num_state_slots);
+      memcpy(nvar->state_slots, var->state_slots,
+             var->num_state_slots * sizeof(nir_state_slot));
+   }
    if (var->constant_initializer) {
       nvar->constant_initializer =
          nir_constant_clone(var->constant_initializer, nvar);
@@ -261,6 +263,26 @@ __clone_dst(clone_state *state, nir_instr *ninstr,
       }
       ndst->reg.base_offset = dst->reg.base_offset;
    }
+}
+
+nir_alu_instr *
+nir_alu_instr_clone(nir_shader *shader, const nir_alu_instr *orig)
+{
+   nir_alu_instr *clone = nir_alu_instr_create(shader, orig->op);
+
+   clone->exact = orig->exact;
+
+   for (unsigned i = 0; i < nir_op_infos[orig->op].num_inputs; i++)
+      nir_alu_src_copy(&clone->src[i], &orig->src[i], clone);
+
+   nir_ssa_dest_init(&clone->instr,
+                     &clone->dest.dest,
+                     orig->dest.dest.ssa.num_components,
+                     orig->dest.dest.ssa.bit_size,
+                     orig->dest.dest.ssa.name);
+   clone->dest.write_mask = orig->dest.write_mask;
+
+   return clone;
 }
 
 static nir_alu_instr *

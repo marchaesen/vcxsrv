@@ -1141,42 +1141,53 @@ ir3_NOP(struct ir3_block *block)
 	return ir3_instr_create(block, OPC_NOP);
 }
 
-#define INSTR0(name)                                                     \
+#define IR3_INSTR_0 0
+
+#define __INSTR0(flag, name, opc)                                        \
 static inline struct ir3_instruction *                                   \
 ir3_##name(struct ir3_block *block)                                      \
 {                                                                        \
 	struct ir3_instruction *instr =                                      \
-		ir3_instr_create(block, OPC_##name);                             \
+		ir3_instr_create(block, opc);                                    \
+	instr->flags |= flag;                                                \
 	return instr;                                                        \
 }
+#define INSTR0F(f, name)    __INSTR0(IR3_INSTR_##f, name##_##f, OPC_##name)
+#define INSTR0(name)        __INSTR0(0, name, OPC_##name)
 
-#define INSTR1(name)                                                     \
+#define __INSTR1(flag, name, opc)                                        \
 static inline struct ir3_instruction *                                   \
 ir3_##name(struct ir3_block *block,                                      \
 		struct ir3_instruction *a, unsigned aflags)                      \
 {                                                                        \
 	struct ir3_instruction *instr =                                      \
-		ir3_instr_create(block, OPC_##name);                             \
+		ir3_instr_create(block, opc);                                    \
 	ir3_reg_create(instr, 0, 0);   /* dst */                             \
 	__ssa_src(instr, a, aflags);                                         \
+	instr->flags |= flag;                                                \
 	return instr;                                                        \
 }
+#define INSTR1F(f, name)    __INSTR1(IR3_INSTR_##f, name##_##f, OPC_##name)
+#define INSTR1(name)        __INSTR1(0, name, OPC_##name)
 
-#define INSTR2(name)                                                     \
+#define __INSTR2(flag, name, opc)                                        \
 static inline struct ir3_instruction *                                   \
 ir3_##name(struct ir3_block *block,                                      \
 		struct ir3_instruction *a, unsigned aflags,                      \
 		struct ir3_instruction *b, unsigned bflags)                      \
 {                                                                        \
 	struct ir3_instruction *instr =                                      \
-		ir3_instr_create(block, OPC_##name);                             \
+		ir3_instr_create(block, opc);                                    \
 	ir3_reg_create(instr, 0, 0);   /* dst */                             \
 	__ssa_src(instr, a, aflags);                                         \
 	__ssa_src(instr, b, bflags);                                         \
+	instr->flags |= flag;                                                \
 	return instr;                                                        \
 }
+#define INSTR2F(f, name)    __INSTR2(IR3_INSTR_##f, name##_##f, OPC_##name)
+#define INSTR2(name)        __INSTR2(0, name, OPC_##name)
 
-#define INSTR3(name)                                                     \
+#define __INSTR3(flag, name, opc)                                        \
 static inline struct ir3_instruction *                                   \
 ir3_##name(struct ir3_block *block,                                      \
 		struct ir3_instruction *a, unsigned aflags,                      \
@@ -1184,32 +1195,18 @@ ir3_##name(struct ir3_block *block,                                      \
 		struct ir3_instruction *c, unsigned cflags)                      \
 {                                                                        \
 	struct ir3_instruction *instr =                                      \
-		ir3_instr_create(block, OPC_##name);                             \
+		ir3_instr_create2(block, opc, 4);                                \
 	ir3_reg_create(instr, 0, 0);   /* dst */                             \
 	__ssa_src(instr, a, aflags);                                         \
 	__ssa_src(instr, b, bflags);                                         \
 	__ssa_src(instr, c, cflags);                                         \
+	instr->flags |= flag;                                                \
 	return instr;                                                        \
 }
+#define INSTR3F(f, name)    __INSTR3(IR3_INSTR_##f, name##_##f, OPC_##name)
+#define INSTR3(name)        __INSTR3(0, name, OPC_##name)
 
-#define INSTR3F(f, name)                                                 \
-static inline struct ir3_instruction *                                   \
-ir3_##name##_##f(struct ir3_block *block,                                \
-		struct ir3_instruction *a, unsigned aflags,                      \
-		struct ir3_instruction *b, unsigned bflags,                      \
-		struct ir3_instruction *c, unsigned cflags)                      \
-{                                                                        \
-	struct ir3_instruction *instr =                                      \
-		ir3_instr_create2(block, OPC_##name, 5);                         \
-	ir3_reg_create(instr, 0, 0);   /* dst */                             \
-	__ssa_src(instr, a, aflags);                                         \
-	__ssa_src(instr, b, bflags);                                         \
-	__ssa_src(instr, c, cflags);                                         \
-	instr->flags |= IR3_INSTR_##f;                                       \
-	return instr;                                                        \
-}
-
-#define INSTR4(name)                                                     \
+#define __INSTR4(flag, name, opc)                                        \
 static inline struct ir3_instruction *                                   \
 ir3_##name(struct ir3_block *block,                                      \
 		struct ir3_instruction *a, unsigned aflags,                      \
@@ -1218,33 +1215,17 @@ ir3_##name(struct ir3_block *block,                                      \
 		struct ir3_instruction *d, unsigned dflags)                      \
 {                                                                        \
 	struct ir3_instruction *instr =                                      \
-		ir3_instr_create2(block, OPC_##name, 5);                         \
+		ir3_instr_create2(block, opc, 5);                                \
 	ir3_reg_create(instr, 0, 0);   /* dst */                             \
 	__ssa_src(instr, a, aflags);                                         \
 	__ssa_src(instr, b, bflags);                                         \
 	__ssa_src(instr, c, cflags);                                         \
 	__ssa_src(instr, d, dflags);                                         \
+	instr->flags |= flag;                                                \
 	return instr;                                                        \
 }
-
-#define INSTR4F(f, name)                                                 \
-static inline struct ir3_instruction *                                   \
-ir3_##name##_##f(struct ir3_block *block,                                \
-		struct ir3_instruction *a, unsigned aflags,                      \
-		struct ir3_instruction *b, unsigned bflags,                      \
-		struct ir3_instruction *c, unsigned cflags,                      \
-		struct ir3_instruction *d, unsigned dflags)                      \
-{                                                                        \
-	struct ir3_instruction *instr =                                      \
-		ir3_instr_create2(block, OPC_##name, 5);                         \
-	ir3_reg_create(instr, 0, 0);   /* dst */                             \
-	__ssa_src(instr, a, aflags);                                         \
-	__ssa_src(instr, b, bflags);                                         \
-	__ssa_src(instr, c, cflags);                                         \
-	__ssa_src(instr, d, dflags);                                         \
-	instr->flags |= IR3_INSTR_##f;                                       \
-	return instr;                                                        \
-}
+#define INSTR4F(f, name)    __INSTR4(IR3_INSTR_##f, name##_##f, OPC_##name)
+#define INSTR4(name)        __INSTR4(0, name, OPC_##name)
 
 /* cat0 instructions: */
 INSTR0(BR)
@@ -1330,6 +1311,9 @@ INSTR1(SQRT)
 /* cat5 instructions: */
 INSTR1(DSX)
 INSTR1(DSY)
+INSTR1F(3D, DSX)
+INSTR1F(3D, DSY)
+INSTR1(RGETPOS)
 
 static inline struct ir3_instruction *
 ir3_SAM(struct ir3_block *block, opc_t opc, type_t type,

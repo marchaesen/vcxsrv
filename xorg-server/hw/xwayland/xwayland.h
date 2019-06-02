@@ -485,4 +485,9 @@ static inline void xwl_glamor_init_eglstream(struct xwl_screen *xwl_screen)
 }
 #endif
 
+#ifdef GLXEXT
+#include "glx_extinit.h"
+extern __GLXprovider glamor_provider;
+#endif
+
 #endif

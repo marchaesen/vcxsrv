@@ -88,9 +88,7 @@ __glXDisp_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
     int minor_version = 0;
     uint32_t flags = 0;
     uint32_t render_type = GLX_RGBA_TYPE;
-#ifdef GLX_CONTEXT_RELEASE_BEHAVIOR_ARB
     uint32_t flush = GLX_CONTEXT_RELEASE_BEHAVIOR_FLUSH_ARB;
-#endif
     __GLXcontext *ctx = NULL;
     __GLXcontext *shareCtx = NULL;
     __GLXscreen *glxScreen;
@@ -201,14 +199,12 @@ __glXDisp_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
 
             break;
 
-#ifdef GLX_CONTEXT_RELEASE_BEHAVIOR_ARB
         case GLX_CONTEXT_RELEASE_BEHAVIOR_ARB:
             flush = attribs[2 * i + 1];
             if (flush != GLX_CONTEXT_RELEASE_BEHAVIOR_NONE_ARB
                 && flush != GLX_CONTEXT_RELEASE_BEHAVIOR_FLUSH_ARB)
                 return BadValue;
             break;
-#endif
 
         case GLX_SCREEN:
             /* Only valid for GLX_EXT_no_config_context */
@@ -348,9 +344,7 @@ __glXDisp_CreateContextAttribsARB(__GLXclientState * cl, GLbyte * pc)
     ctx->isDirect = req->isDirect;
     ctx->renderMode = GL_RENDER;
     ctx->resetNotificationStrategy = reset;
-#ifdef GLX_CONTEXT_RELEASE_BEHAVIOR_ARB
     ctx->releaseBehavior = flush;
-#endif
 
     /* Add the new context to the various global tables of GLX contexts.
      */

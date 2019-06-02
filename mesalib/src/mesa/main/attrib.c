@@ -1839,7 +1839,6 @@ _mesa_PopClientAttrib(void)
                (struct gl_array_attrib *) node->data;
             restore_array_attrib(ctx, &ctx->Array, attr);
             free_array_attrib_data(ctx, attr);
-            ctx->NewState |= _NEW_ARRAY;
             break;
          }
          default:

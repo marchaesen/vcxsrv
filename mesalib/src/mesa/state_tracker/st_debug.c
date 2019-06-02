@@ -42,7 +42,6 @@
 
 
 
-#ifdef DEBUG
 int ST_DEBUG = 0;
 
 static const struct debug_named_value st_debug_flags[] = {
@@ -64,15 +63,12 @@ static const struct debug_named_value st_debug_flags[] = {
 };
 
 DEBUG_GET_ONCE_FLAGS_OPTION(st_debug, "ST_DEBUG", st_debug_flags, 0)
-#endif
 
 
 void
 st_debug_init(void)
 {
-#ifdef DEBUG
    ST_DEBUG = debug_get_option_st_debug();
-#endif
 }
 
 

@@ -99,7 +99,7 @@ glamor_set_pixmap_type(PixmapPtr pixmap, glamor_pixmap_type_t type)
     glamor_init_pixmap_private_small(pixmap, pixmap_priv);
 }
 
-_X_EXPORT void
+_X_EXPORT Bool
 glamor_set_pixmap_texture(PixmapPtr pixmap, unsigned int tex)
 {
     ScreenPtr screen = pixmap->drawable.pScreen;
@@ -121,10 +121,12 @@ glamor_set_pixmap_texture(PixmapPtr pixmap, unsigned int tex)
 
     if (fbo == NULL) {
         ErrorF("XXX fail to create fbo.\n");
-        return;
+        return FALSE;
     }
 
     glamor_pixmap_attach_fbo(pixmap, fbo);
+
+    return TRUE;
 }
 
 uint32_t

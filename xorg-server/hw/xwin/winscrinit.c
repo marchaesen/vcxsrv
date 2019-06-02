@@ -38,31 +38,6 @@
 #include "win.h"
 #include "winmsg.h"
 
-#ifdef XWIN_MULTIWINDOWEXTWM
-static RootlessFrameProcsRec winMWExtWMProcs = {
-    winMWExtWMCreateFrame,
-    winMWExtWMDestroyFrame,
-
-    winMWExtWMMoveFrame,
-    winMWExtWMResizeFrame,
-    winMWExtWMRestackFrame,
-    winMWExtWMReshapeFrame,
-    winMWExtWMUnmapFrame,
-
-    winMWExtWMStartDrawing,
-    winMWExtWMStopDrawing,
-    winMWExtWMUpdateRegion,
-    winMWExtWMDamageRects,
-    winMWExtWMRootlessSwitchWindow,
-    NULL,                       //winMWExtWMDoReorderWindow,
-    NULL,                       //winMWExtWMHideWindow,
-    NULL,                       //winMWExtWMUpdateColorMap,
-
-    NULL,                       //winMWExtWMCopyBytes,
-    winMWExtWMCopyWindow
-};
-#endif
-
 /*
  * Determine what type of screen we are initializing
  * and call the appropriate procedure to intiailize
@@ -370,11 +345,7 @@ winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv)
 
     /* Initialize the shadow framebuffer layer */
     if ((pScreenInfo->dwEngine == WIN_SERVER_SHADOW_GDI
-         || pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DDNL)
-#ifdef XWIN_MULTIWINDOWEXTWM
-        && !pScreenInfo->fMWExtWM
-#endif
-        ) {
+         || pScreenInfo->dwEngine == WIN_SERVER_SHADOW_DDNL)) {
 #if CYGDEBUG
         winDebug("winFinishScreenInitFB - Calling shadowSetup ()\n");
 #endif
@@ -388,23 +359,6 @@ winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv)
         pScreenPriv->pwinCreateScreenResources = pScreen->CreateScreenResources;
         pScreen->CreateScreenResources = winCreateScreenResources;
     }
-
-#ifdef XWIN_MULTIWINDOWEXTWM
-    /* Handle multi-window external window manager mode */
-    if (pScreenInfo->fMWExtWM) {
-        winDebug("winScreenInit - MultiWindowExtWM - Calling RootlessInit\n");
-
-        RootlessInit(pScreen, &winMWExtWMProcs);
-
-        winDebug("winScreenInit - MultiWindowExtWM - RootlessInit returned\n");
-
-        rootless_CopyBytes_threshold = 0;
-        /* FIXME: How many? Profiling needed? */
-        rootless_CopyWindow_threshold = 1;
-
-        winWindowsWMExtensionInit();
-    }
-#endif
 
     /* Handle rootless mode */
     if (pScreenInfo->fRootless) {
@@ -505,9 +459,6 @@ winFinishScreenInitFB(int i, ScreenPtr pScreen, int argc, char **argv)
     /* Set the ServerStarted flag to false */
     pScreenPriv->fServerStarted = FALSE;
 
-#ifdef XWIN_MULTIWINDOWEXTWM
-    pScreenPriv->fRestacking = FALSE;
-#endif
 
     if (pScreenInfo->fMultiWindow) {
 #if CYGDEBUG || YES

@@ -889,7 +889,12 @@ vtn_loop_control(struct vtn_builder *b, struct vtn_loop *vtn_loop)
    else if (vtn_loop->control & SpvLoopControlUnrollMask)
       return nir_loop_control_unroll;
    else if (vtn_loop->control & SpvLoopControlDependencyInfiniteMask ||
-            vtn_loop->control & SpvLoopControlDependencyLengthMask) {
+            vtn_loop->control & SpvLoopControlDependencyLengthMask ||
+            vtn_loop->control & SpvLoopControlMinIterationsMask ||
+            vtn_loop->control & SpvLoopControlMaxIterationsMask ||
+            vtn_loop->control & SpvLoopControlIterationMultipleMask ||
+            vtn_loop->control & SpvLoopControlPeelCountMask ||
+            vtn_loop->control & SpvLoopControlPartialCountMask) {
       /* We do not do anything special with these yet. */
       return nir_loop_control_none;
    } else {

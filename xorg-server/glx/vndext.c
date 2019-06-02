@@ -139,8 +139,17 @@ GlxGetClientData(ClientPtr client)
 {
     GlxClientPriv *cl = xglvGetClientPrivate(client);
     if (cl == NULL) {
-        cl = calloc(1, sizeof(GlxClientPriv));
+        cl = calloc(1, sizeof(GlxClientPriv)
+                + screenInfo.numScreens * sizeof(GlxServerVendor *));
         if (cl != NULL) {
+            int i;
+
+            cl->vendors = (GlxServerVendor **) (cl + 1);
+            for (i=0; i<screenInfo.numScreens; i++)
+            {
+                cl->vendors[i] = GlxGetVendorForScreen(NULL, screenInfo.screens[i]);
+            }
+
             xglvSetClientPrivate(client, cl);
         }
     }
@@ -295,8 +304,8 @@ GlxFreeServerImports(GlxServerImports *imports)
 }
 
 _X_EXPORT const GlxServerExports glxServer = {
-    .majorVersion = 0,
-    .minorVersion = 0,
+    .majorVersion = GLXSERVER_VENDOR_ABI_MAJOR_VERSION,
+    .minorVersion = GLXSERVER_VENDOR_ABI_MINOR_VERSION,
 
     .extensionInitCallback = &vndInitCallbackListPtr,
 
@@ -315,6 +324,7 @@ _X_EXPORT const GlxServerExports glxServer = {
     .getContextTagPrivate = GlxGetContextTagPrivate,
     .getVendorForScreen = GlxGetVendorForScreen,
     .forwardRequest =  GlxForwardRequest,
+    .setClientScreenVendor = GlxSetClientScreenVendor,
 };
 
 const GlxServerExports *

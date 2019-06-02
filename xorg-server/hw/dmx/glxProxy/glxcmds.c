@@ -285,10 +285,13 @@ CreateContext(__GLXclientState * cl,
     num_be_screens = to_screen - from_screen + 1;
     glxc->real_ids = xallocarray(num_be_screens, sizeof(XID));
     if (!glxc->real_ids) {
+        free(glxc);
         return BadAlloc;
     }
     glxc->real_vids = xallocarray(num_be_screens, sizeof(XID));
     if (!glxc->real_vids) {
+        free(glxc->real_ids);
+        free(glxc);
         return BadAlloc;
     }
 

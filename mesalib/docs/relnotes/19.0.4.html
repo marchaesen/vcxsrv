@@ -1,0 +1,243 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 19.0.4 Release Notes / May 9, 2019</h1>
+
+<p>
+Mesa 19.0.4 is a bug fix release which fixes bugs found since the 19.0.3 release.
+</p>
+<p>
+Mesa 19.0.4 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+de361c76bf7aae09219f571b9ae77a34864a1cd9f6ba24c845b18b3cd5e4b9a2  mesa-19.0.4.tar.gz
+39f9f32f448d77388ef817c6098d50eb0c1595815ce7e895dec09dd68774ce47  mesa-19.0.4.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+
+<p>N/A</p>
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=99781">Bug 99781</a> - Some Unity games fail assertion on startup in glXCreateContextAttribsARB</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=100239">Bug 100239</a> - Incorrect rendering in CS:GO</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=108540">Bug 108540</a> - vkAcquireNextImageKHR blocks when timeout=0 in Wayland</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=110143">Bug 110143</a> - Doom 3: BFG Edition - Steam and GOG.com - white flickering screen</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=110291">Bug 110291</a> - Vega 64 GPU hang running Space Engineers</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=110355">Bug 110355</a> - radeonsi: GTK elements become invisible in some applications (GIMP, LibreOffice)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=110573">Bug 110573</a> - Mesa vulkan-radeon 19.0.3 system freeze and visual artifacts (RADV)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=110590">Bug 110590</a> - [Regression][Bisected] GTAⅣ under wine fails with GLXBadFBConfig</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=110632">Bug 110632</a> - &quot;glx: Fix synthetic error generation in __glXSendError&quot; broke wine games on 32-bit</li>
+
+</ul>
+
+<h2>Changes</h2>
+
+<p>Alejandro Piñeiro (1):</p>
+<ul>
+  <li>docs: document MESA_GLSL=errors keyword</li>
+</ul>
+
+<p>Andrii Simiklit (1):</p>
+<ul>
+  <li>egl: return correct error code for a case req ver &lt; 3 with forward-compatible</li>
+</ul>
+
+<p>Axel Davy (1):</p>
+<ul>
+  <li>st/nine: Fix D3DWindowBuffer_release for old wine nine support</li>
+</ul>
+
+<p>Bas Nieuwenhuizen (1):</p>
+<ul>
+  <li>radv: Disable VK_EXT_descriptor_indexing.</li>
+</ul>
+
+<p>Brian Paul (1):</p>
+<ul>
+  <li>svga: add SVGA_NO_LOGGING env var (v2)</li>
+</ul>
+
+<p>Caio Marcelo de Oliveira Filho (1):</p>
+<ul>
+  <li>spirv: Handle SpvOpDecorateId</li>
+</ul>
+
+<p>Charmaine Lee (1):</p>
+<ul>
+  <li>svga: move host logging to winsys</li>
+</ul>
+
+<p>Chuck Atkins (1):</p>
+<ul>
+  <li>meson: Fix missing glproto dependency for gallium-glx</li>
+</ul>
+
+<p>Daniel Stone (1):</p>
+<ul>
+  <li>vulkan/wsi/wayland: Respect non-blocking AcquireNextImage</li>
+</ul>
+
+<p>Dave Airlie (2):</p>
+<ul>
+  <li>r600: reset tex array override even when no view bound</li>
+  <li>util/bitset: fix bitset range mask calculations.</li>
+</ul>
+
+<p>Dylan Baker (7):</p>
+<ul>
+  <li>docs: Add SHA256 sums for mesa 19.0.3</li>
+  <li>cherry-ignore: Add a patch that was manually backported</li>
+  <li>cherry-ignore: Add more backported patches</li>
+  <li>cherry-ignore: Add another patch</li>
+  <li>cherry-ignore: Add more patches</li>
+  <li>meson: Force the use of config-tool for llvm</li>
+  <li>VERSION: bump for 19.0.4 release</li>
+</ul>
+
+<p>Emil Velikov (3):</p>
+<ul>
+  <li>vulkan/wsi: check if the display_fd given is master</li>
+  <li>vulkan/wsi: don't use DUMB_CLOSE for normal GEM handles</li>
+  <li>configure.ac: check for libdrm when using VL with X11</li>
+</ul>
+
+<p>Erik Faye-Lund (2):</p>
+<ul>
+  <li>softpipe: setup pixel_offset for all primitive types</li>
+  <li>draw: flush when setting stream-out targets</li>
+</ul>
+
+<p>Francisco Jerez (2):</p>
+<ul>
+  <li>intel/fs: Lower integer multiply correctly when destination stride equals 4.</li>
+  <li>intel/fs: Cap dst-aligned region stride to maximum representable hstride value.</li>
+</ul>
+
+<p>Hal Gentz (1):</p>
+<ul>
+  <li>glx: Fix synthetic error generation in __glXSendError</li>
+</ul>
+
+<p>Ian Romanick (2):</p>
+<ul>
+  <li>glsl: Silence may unused parameter warnings in glsl/ir.h</li>
+  <li>mesa: Add missing display list support for GL_FOG_COORDINATE_SOURCE</li>
+</ul>
+
+<p>Jason Ekstrand (1):</p>
+<ul>
+  <li>anv/descriptor_set: Destroy sets before pool finalization</li>
+</ul>
+
+<p>Jon Turney (1):</p>
+<ul>
+  <li>meson: Force '.so' extension for DRI drivers</li>
+</ul>
+
+<p>Juan A. Suarez Romero (2):</p>
+<ul>
+  <li>spirv: add missing SPV_EXT_descriptor_indexing capabilities</li>
+  <li>radv: enable descriptor indexing capabilities</li>
+</ul>
+
+<p>Kenneth Graunke (6):</p>
+<ul>
+  <li>glsl: Allow gl_nir_lower_samplers*() without a gl_shader_program</li>
+  <li>glsl: Don't look at sampler uniform storage for internal vars</li>
+  <li>i965: Ignore uniform storage for samplers or images, use binding info</li>
+  <li>i965: Fix BRW_MEMZONE_LOW_4G heap size.</li>
+  <li>i965: Force VMA alignment to be a multiple of the page size.</li>
+  <li>i965: leave the top 4Gb of the high heap VMA unused</li>
+</ul>
+
+<p>Lionel Landwerlin (4):</p>
+<ul>
+  <li>anv: store heap address bounds when initializing physical device</li>
+  <li>anv: leave the top 4Gb of the high heap VMA unused</li>
+  <li>anv: fix argument name for vkCmdEndQuery</li>
+  <li>anv: rework queries writes to ensure ordering memory writes</li>
+</ul>
+
+<p>Marek Olšák (2):</p>
+<ul>
+  <li>radeonsi/gfx9: set that window_rectangles always roll the context</li>
+  <li>radeonsi/gfx9: rework the gfx9 scissor bug workaround (v2)</li>
+</ul>
+
+<p>Nicolai Hähnle (1):</p>
+<ul>
+  <li>radeonsi: add si_debug_options for convenient adding/removing of options</li>
+</ul>
+
+<p>Rhys Perry (1):</p>
+<ul>
+  <li>radv: fix set_output_usage_mask() with composite and 64-bit types</li>
+</ul>
+
+<p>Ross Burton (1):</p>
+<ul>
+  <li>Revert "meson: drop GLESv1 .so version back to 1.0.0"</li>
+</ul>
+
+<p>Samuel Pitoiset (8):</p>
+<ul>
+  <li>radv: add missing VEGA20 chip in radv_get_device_name()</li>
+  <li>radv: do not need to force emit the TCS regs on Vega20</li>
+  <li>radv: fix color conversions for normalized uint/sint formats</li>
+  <li>radv: implement a workaround for VK_EXT_conditional_rendering</li>
+  <li>radv: set WD_SWITCH_ON_EOP=1 when drawing primitives from a stream output buffer</li>
+  <li>radv: only need to force emit the TCS regs on Vega10 and Raven1</li>
+  <li>radv: apply the indexing workaround for atomic buffer operations on GFX9</li>
+  <li>radv: fix setting the number of rectangles when it's dyanmic</li>
+</ul>
+
+<p>Tapani Pälli (1):</p>
+<ul>
+  <li>anv: expose VK_EXT_queue_family_foreign on Android</li>
+</ul>
+
+<p>Timothy Arceri (4):</p>
+<ul>
+  <li>nir: fix nir_remove_unused_varyings()</li>
+  <li>util/drirc: add workarounds for bugs in Doom 3: BFG</li>
+  <li>radeonsi: add config entry for Counter-Strike Global Offensive</li>
+  <li>Revert "glx: Fix synthetic error generation in __glXSendError"</li>
+</ul>
+
+</div>
+</body>
+</html>

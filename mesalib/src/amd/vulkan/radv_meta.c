@@ -127,8 +127,8 @@ radv_meta_restore(const struct radv_meta_saved_state *state,
 			     state->scissor.scissors,
 			     MAX_SCISSORS);
 
-		cmd_buffer->state.dirty |= 1 << VK_DYNAMIC_STATE_VIEWPORT |
-					   1 << VK_DYNAMIC_STATE_SCISSOR;
+		cmd_buffer->state.dirty |= RADV_CMD_DIRTY_DYNAMIC_VIEWPORT |
+					   RADV_CMD_DIRTY_DYNAMIC_SCISSOR;
 	}
 
 	if (state->flags & RADV_META_SAVE_COMPUTE_PIPELINE) {
@@ -143,13 +143,15 @@ radv_meta_restore(const struct radv_meta_saved_state *state,
 	}
 
 	if (state->flags & RADV_META_SAVE_CONSTANTS) {
-		memcpy(cmd_buffer->push_constants, state->push_constants,
-		       MAX_PUSH_CONSTANTS_SIZE);
-		cmd_buffer->push_constant_stages |= VK_SHADER_STAGE_COMPUTE_BIT;
+		VkShaderStageFlags stages = VK_SHADER_STAGE_COMPUTE_BIT;
 
-		if (state->flags & RADV_META_SAVE_GRAPHICS_PIPELINE) {
-			cmd_buffer->push_constant_stages |= VK_SHADER_STAGE_ALL_GRAPHICS;
-		}
+		if (state->flags & RADV_META_SAVE_GRAPHICS_PIPELINE)
+			stages |= VK_SHADER_STAGE_ALL_GRAPHICS;
+
+		radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer),
+				      VK_NULL_HANDLE, stages, 0,
+				      MAX_PUSH_CONSTANTS_SIZE,
+				      state->push_constants);
 	}
 
 	if (state->flags & RADV_META_SAVE_PASS) {

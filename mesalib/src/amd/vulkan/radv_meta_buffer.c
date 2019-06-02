@@ -44,7 +44,7 @@ build_buffer_fill_shader(struct radv_device *dev)
 	nir_ssa_dest_init(&load->instr, &load->dest, 1, 32, "fill_value");
 	nir_builder_instr_insert(&b, &load->instr);
 
-	nir_ssa_def *swizzled_load = nir_swizzle(&b, &load->dest.ssa, (unsigned[]) { 0, 0, 0, 0}, 4, false);
+	nir_ssa_def *swizzled_load = nir_swizzle(&b, &load->dest.ssa, (unsigned[]) { 0, 0, 0, 0}, 4);
 
 	nir_intrinsic_instr *store = nir_intrinsic_instr_create(b.shader, nir_intrinsic_store_ssbo);
 	store->src[0] = nir_src_for_ssa(swizzled_load);

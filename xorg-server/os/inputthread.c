@@ -558,7 +558,11 @@ extern int InputThreadUnregisterDev(int fd)
 
 int xthread_sigmask(int how, const sigset_t *set, sigset_t *oldset)
 {
+#ifdef HAVE_SIGPROCMASK
     return sigprocmask(how, set, oldset);
+#else
+    return 0;
+#endif
 }
 
 #endif

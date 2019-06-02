@@ -1128,7 +1128,7 @@ radv_pipeline_init_multisample_state(struct radv_pipeline *pipeline,
 			S_028804_MASK_EXPORT_NUM_SAMPLES(log_samples) |
 			S_028804_ALPHA_TO_MASK_NUM_SAMPLES(log_samples);
 		ms->pa_sc_aa_config |= S_028BE0_MSAA_NUM_SAMPLES(log_samples) |
-			S_028BE0_MAX_SAMPLE_DIST(radv_cayman_get_maxdist(log_samples)) |
+			S_028BE0_MAX_SAMPLE_DIST(radv_get_default_max_sample_dist(log_samples)) |
 			S_028BE0_MSAA_EXPOSED_SAMPLES(log_samples); /* CM_R_028BE0_PA_SC_AA_CONFIG */
 		ms->pa_sc_mode_cntl_1 |= S_028A4C_PS_ITER_SAMPLE(ps_iter_samples > 1);
 		if (ps_iter_samples > 1)
@@ -1267,6 +1267,8 @@ static unsigned radv_dynamic_state_mask(VkDynamicState state)
 		return RADV_DYNAMIC_STENCIL_REFERENCE;
 	case VK_DYNAMIC_STATE_DISCARD_RECTANGLE_EXT:
 		return RADV_DYNAMIC_DISCARD_RECTANGLE;
+	case VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_EXT:
+		return RADV_DYNAMIC_SAMPLE_LOCATIONS;
 	default:
 		unreachable("Unhandled dynamic state");
 	}
@@ -1296,6 +1298,11 @@ static uint32_t radv_pipeline_needed_dynamic_state(const VkGraphicsPipelineCreat
 
 	if (!vk_find_struct_const(pCreateInfo->pNext, PIPELINE_DISCARD_RECTANGLE_STATE_CREATE_INFO_EXT))
 		states &= ~RADV_DYNAMIC_DISCARD_RECTANGLE;
+
+	if (!pCreateInfo->pMultisampleState ||
+	    !vk_find_struct_const(pCreateInfo->pMultisampleState->pNext,
+				  PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT))
+		states &= ~RADV_DYNAMIC_SAMPLE_LOCATIONS;
 
 	/* TODO: blend constants & line width. */
 
@@ -1417,11 +1424,36 @@ radv_pipeline_init_dynamic_state(struct radv_pipeline *pipeline,
 
 	const  VkPipelineDiscardRectangleStateCreateInfoEXT *discard_rectangle_info =
 			vk_find_struct_const(pCreateInfo->pNext, PIPELINE_DISCARD_RECTANGLE_STATE_CREATE_INFO_EXT);
-	if (states & RADV_DYNAMIC_DISCARD_RECTANGLE) {
+	if (needed_states & RADV_DYNAMIC_DISCARD_RECTANGLE) {
 		dynamic->discard_rectangle.count = discard_rectangle_info->discardRectangleCount;
-		typed_memcpy(dynamic->discard_rectangle.rectangles,
-		             discard_rectangle_info->pDiscardRectangles,
-		             discard_rectangle_info->discardRectangleCount);
+		if (states & RADV_DYNAMIC_DISCARD_RECTANGLE) {
+			typed_memcpy(dynamic->discard_rectangle.rectangles,
+			             discard_rectangle_info->pDiscardRectangles,
+			             discard_rectangle_info->discardRectangleCount);
+		}
+	}
+
+	if (needed_states & RADV_DYNAMIC_SAMPLE_LOCATIONS) {
+		const VkPipelineSampleLocationsStateCreateInfoEXT *sample_location_info =
+			vk_find_struct_const(pCreateInfo->pMultisampleState->pNext,
+					     PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT);
+		/* If sampleLocationsEnable is VK_FALSE, the default sample
+		 * locations are used and the values specified in
+		 * sampleLocationsInfo are ignored.
+		 */
+		if (sample_location_info->sampleLocationsEnable) {
+			const VkSampleLocationsInfoEXT *pSampleLocationsInfo =
+				&sample_location_info->sampleLocationsInfo;
+
+			assert(pSampleLocationsInfo->sampleLocationsCount <= MAX_SAMPLE_LOCATIONS);
+
+			dynamic->sample_location.per_pixel = pSampleLocationsInfo->sampleLocationsPerPixel;
+			dynamic->sample_location.grid_size = pSampleLocationsInfo->sampleLocationGridSize;
+			dynamic->sample_location.count = pSampleLocationsInfo->sampleLocationsCount;
+			typed_memcpy(&dynamic->sample_location.locations[0],
+				     pSampleLocationsInfo->pSampleLocations,
+				     pSampleLocationsInfo->sampleLocationsCount);
+		}
 	}
 
 	pipeline->dynamic_state.mask = states;
@@ -1556,11 +1588,11 @@ calculate_gs_ring_sizes(struct radv_pipeline *pipeline, const struct radv_gs_sta
 	unsigned num_se = device->physical_device->rad_info.max_se;
 	unsigned wave_size = 64;
 	unsigned max_gs_waves = 32 * num_se; /* max 32 per SE on GCN */
-	/* On SI-CI, the value comes from VGT_GS_VERTEX_REUSE = 16.
-	 * On VI+, the value comes from VGT_VERTEX_REUSE_BLOCK_CNTL = 30 (+2).
+	/* On GFX6-GFX7, the value comes from VGT_GS_VERTEX_REUSE = 16.
+	 * On GFX8+, the value comes from VGT_VERTEX_REUSE_BLOCK_CNTL = 30 (+2).
 	 */
 	unsigned gs_vertex_reuse =
-		(device->physical_device->rad_info.chip_class >= VI ? 32 : 16) * num_se;
+		(device->physical_device->rad_info.chip_class >= GFX8 ? 32 : 16) * num_se;
 	unsigned alignment = 256 * num_se;
 	/* The maximum size is 63.999 MB per SE. */
 	unsigned max_size = ((unsigned)(63.999 * 1024 * 1024) & ~255) * num_se;
@@ -1579,7 +1611,7 @@ calculate_gs_ring_sizes(struct radv_pipeline *pipeline, const struct radv_gs_sta
 	esgs_ring_size = align(esgs_ring_size, alignment);
 	gsvs_ring_size = align(gsvs_ring_size, alignment);
 
-	if (pipeline->device->physical_device->rad_info.chip_class <= VI)
+	if (pipeline->device->physical_device->rad_info.chip_class <= GFX8)
 		pipeline->graphics.esgs_ring_size = CLAMP(esgs_ring_size, min_esgs_ring_size, max_size);
 
 	pipeline->graphics.gsvs_ring_size = MIN2(gsvs_ring_size, max_size);
@@ -1598,8 +1630,7 @@ static void si_multiwave_lds_size_workaround(struct radv_device *device,
 	 *   It applies to workgroup sizes of more than one wavefront.
 	 */
 	if (device->physical_device->rad_info.family == CHIP_BONAIRE ||
-	    device->physical_device->rad_info.family == CHIP_KABINI ||
-	    device->physical_device->rad_info.family == CHIP_MULLINS)
+	    device->physical_device->rad_info.family == CHIP_KABINI)
 		*lds_size = MAX2(*lds_size, 8);
 }
 
@@ -1641,7 +1672,7 @@ calculate_tess_state(struct radv_pipeline *pipeline,
 
 	lds_size = pipeline->shaders[MESA_SHADER_TESS_CTRL]->info.tcs.lds_size;
 
-	if (pipeline->device->physical_device->rad_info.chip_class >= CIK) {
+	if (pipeline->device->physical_device->rad_info.chip_class >= GFX7) {
 		assert(lds_size <= 65536);
 		lds_size = align(lds_size, 512) / 512;
 	} else {
@@ -1902,7 +1933,7 @@ radv_generate_graphics_pipeline_key(struct radv_pipeline *pipeline,
 		key.vertex_attribute_offsets[location] = desc->offset;
 		key.vertex_attribute_strides[location] = radv_get_attrib_stride(input_state, desc->binding);
 
-		if (pipeline->device->physical_device->rad_info.chip_class <= VI &&
+		if (pipeline->device->physical_device->rad_info.chip_class <= GFX8 &&
 		    pipeline->device->physical_device->rad_info.family != CHIP_STONEY) {
 			VkFormat format = input_state->pVertexAttributeDescriptions[i].format;
 			uint64_t adjust;
@@ -1960,7 +1991,7 @@ radv_generate_graphics_pipeline_key(struct radv_pipeline *pipeline,
 	}
 
 	key.col_format = blend->spi_shader_col_format;
-	if (pipeline->device->physical_device->rad_info.chip_class < VI)
+	if (pipeline->device->physical_device->rad_info.chip_class < GFX8)
 		radv_pipeline_compute_get_int_clamp(pCreateInfo, &key.is_int8, &key.is_int10);
 
 	return key;
@@ -2155,7 +2186,7 @@ void radv_create_shaders(struct radv_pipeline *pipeline,
 		nir[i] = radv_shader_compile_to_nir(device, modules[i],
 						    stage ? stage->pName : "main", i,
 						    stage ? stage->pSpecializationInfo : NULL,
-						    flags);
+						    flags, pipeline->layout);
 
 		/* We don't want to alter meta shaders IR directly so clone it
 		 * first.
@@ -2916,7 +2947,7 @@ radv_pipeline_generate_multisample_state(struct radeon_cmdbuf *ctx_cs,
 	 * if no sample lies on the pixel boundary (-8 sample offset). It's
 	 * currently always TRUE because the driver doesn't support 16 samples.
 	 */
-	bool exclusion = pipeline->device->physical_device->rad_info.chip_class >= CIK;
+	bool exclusion = pipeline->device->physical_device->rad_info.chip_class >= GFX7;
 	radeon_set_context_reg(ctx_cs, R_02882C_PA_SU_PRIM_FILTER_CNTL,
 			       S_02882C_XMAX_RIGHT_EXCLUSION(exclusion) |
 			       S_02882C_YMAX_BOTTOM_EXCLUSION(exclusion));
@@ -3001,7 +3032,7 @@ radv_pipeline_generate_hw_vs(struct radeon_cmdbuf *ctx_cs,
 	                       cull_dist_mask << 8 |
 	                       clip_dist_mask);
 
-	if (pipeline->device->physical_device->rad_info.chip_class <= VI)
+	if (pipeline->device->physical_device->rad_info.chip_class <= GFX8)
 		radeon_set_context_reg(ctx_cs, R_028AB4_VGT_REUSE_OFF,
 		                       outinfo->writes_viewport_index);
 }
@@ -3034,7 +3065,7 @@ radv_pipeline_generate_hw_ls(struct radeon_cmdbuf *cs,
 	radeon_emit(cs, S_00B524_MEM_BASE(va >> 40));
 
 	rsrc2 |= S_00B52C_LDS_SIZE(tess->lds_size);
-	if (pipeline->device->physical_device->rad_info.chip_class == CIK &&
+	if (pipeline->device->physical_device->rad_info.chip_class == GFX7 &&
 	    pipeline->device->physical_device->rad_info.family != CHIP_HAWAII)
 		radeon_set_sh_reg(cs, R_00B52C_SPI_SHADER_PGM_RSRC2_LS, rsrc2);
 
@@ -3116,7 +3147,7 @@ radv_pipeline_generate_tess_shaders(struct radeon_cmdbuf *ctx_cs,
 	radeon_set_context_reg(ctx_cs, R_028B6C_VGT_TF_PARAM,
 			       tess->tf_param);
 
-	if (pipeline->device->physical_device->rad_info.chip_class >= CIK)
+	if (pipeline->device->physical_device->rad_info.chip_class >= GFX7)
 		radeon_set_context_reg_idx(ctx_cs, R_028B58_VGT_LS_HS_CONFIG, 2,
 					   tess->ls_hs_config);
 	else
@@ -3488,7 +3519,7 @@ radv_pipeline_generate_pm4(struct radv_pipeline *pipeline,
 
 	radeon_set_context_reg(ctx_cs, R_028B54_VGT_SHADER_STAGES_EN, radv_compute_vgt_shader_stages_en(pipeline));
 
-	if (pipeline->device->physical_device->rad_info.chip_class >= CIK) {
+	if (pipeline->device->physical_device->rad_info.chip_class >= GFX7) {
 		radeon_set_uconfig_reg_idx(cs, R_030908_VGT_PRIMITIVE_TYPE, 1, prim);
 	} else {
 		radeon_set_config_reg(cs, R_008958_VGT_PRIMITIVE_TYPE, prim);
@@ -3520,12 +3551,12 @@ radv_compute_ia_multi_vgt_param_helpers(struct radv_pipeline *pipeline,
 
 	/* GS requirement. */
 	ia_multi_vgt_param.partial_es_wave = false;
-	if (radv_pipeline_has_gs(pipeline) && device->physical_device->rad_info.chip_class <= VI)
+	if (radv_pipeline_has_gs(pipeline) && device->physical_device->rad_info.chip_class <= GFX8)
 		if (SI_GS_PER_ES / ia_multi_vgt_param.primgroup_size >= pipeline->device->gs_table_depth - 3)
 			ia_multi_vgt_param.partial_es_wave = true;
 
 	ia_multi_vgt_param.wd_switch_on_eop = false;
-	if (device->physical_device->rad_info.chip_class >= CIK) {
+	if (device->physical_device->rad_info.chip_class >= GFX7) {
 		/* WD_SWITCH_ON_EOP has no effect on GPUs with less than
 		 * 4 shader engines. Set 1 to pass the assertion below.
 		 * The other cases are hardware requirements. */
@@ -3565,7 +3596,7 @@ radv_compute_ia_multi_vgt_param_helpers(struct radv_pipeline *pipeline,
 		/* Needed for 028B6C_DISTRIBUTION_MODE != 0 */
 		if (device->has_distributed_tess) {
 			if (radv_pipeline_has_gs(pipeline)) {
-				if (device->physical_device->rad_info.chip_class <= VI)
+				if (device->physical_device->rad_info.chip_class <= GFX8)
 					ia_multi_vgt_param.partial_es_wave = true;
 			} else {
 				ia_multi_vgt_param.partial_vs_wave = true;
@@ -3607,7 +3638,7 @@ radv_compute_ia_multi_vgt_param_helpers(struct radv_pipeline *pipeline,
 	ia_multi_vgt_param.base =
 		S_028AA8_PRIMGROUP_SIZE(ia_multi_vgt_param.primgroup_size - 1) |
 		/* The following field was moved to VGT_SHADER_STAGES_EN in GFX9. */
-		S_028AA8_MAX_PRIMGRP_IN_WAVE(device->physical_device->rad_info.chip_class == VI ? 2 : 0) |
+		S_028AA8_MAX_PRIMGRP_IN_WAVE(device->physical_device->rad_info.chip_class == GFX8 ? 2 : 0) |
 		S_030960_EN_INST_OPT_BASIC(device->physical_device->rad_info.chip_class >= GFX9) |
 		S_030960_EN_INST_OPT_ADV(device->physical_device->rad_info.chip_class >= GFX9);
 
@@ -3883,7 +3914,7 @@ radv_compute_generate_pm4(struct radv_pipeline *pipeline)
 	compute_resource_limits =
 		S_00B854_SIMD_DEST_CNTL(waves_per_threadgroup % 4 == 0);
 
-	if (device->physical_device->rad_info.chip_class >= CIK) {
+	if (device->physical_device->rad_info.chip_class >= GFX7) {
 		unsigned num_cu_per_se =
 			device->physical_device->rad_info.num_good_compute_units /
 			device->physical_device->rad_info.max_se;

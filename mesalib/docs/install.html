@@ -8,7 +8,7 @@
 <body>
 
 <div class="header">
-  <h1>The Mesa 3D Graphics Library</h1>
+  The Mesa 3D Graphics Library
 </div>
 
 <iframe src="contents.html"></iframe>
@@ -31,9 +31,9 @@
 </ol>
 
 
-<h1 id="prereq-general">1. Prerequisites for building</h1>
+<h2 id="prereq-general">1. Prerequisites for building</h2>
 
-<h2>1.1 General</h2>
+<h3>1.1 General</h3>
 
 <p>
 Build system.
@@ -76,7 +76,6 @@ you think you've spotted a bug let developers know by filing a
 <li><a href="https://www.python.org/">Python</a> - Python is required.
 When building with scons 2.7 is required.
 When building with meson 3.5 or newer is required.
-When building with autotools 2.7, or 3.5 or later are required.
 </li>
 <li><a href="http://www.makotemplates.org/">Python Mako module</a> -
 Python Mako module is required. Version 0.8.0 or later should work.
@@ -115,7 +114,7 @@ the packaging tool used by your distro.
   ... # others
 </pre>
 
-<h1 id="meson">2. Building with meson</h1>
+<h2 id="meson">2. Building with meson</h2>
 
 <p>
 Meson is the latest build system in mesa, it is currently able to build for
@@ -135,7 +134,7 @@ Please read the <a href="meson.html">detailed meson instructions</a>
 for more information
 </p>
 
-<h1 id="autoconf">3. Building with autoconf (Linux/Unix/X11)</h1>
+<h2 id="autoconf">3. Building with autoconf (Linux/Unix/X11)</h2>
 
 <p>
   Autoconf support was removed in Mesa 19.1.0. Please use meson instead.
@@ -143,7 +142,7 @@ for more information
 
 
 
-<h1 id="scons">4. Building with SCons (Windows/Linux)</h1>
+<h2 id="scons">4. Building with SCons (Windows/Linux)</h2>
 
 <p>
 To build Mesa with SCons on Linux or Windows do
@@ -179,7 +178,7 @@ Additional information is available in <a href="README.WIN32">README.WIN32</a>.
 
 
 
-<h1 id="android">5. Building with AOSP (Android)</h1>
+<h2 id="android">5. Building with AOSP (Android)</h2>
 
 <p>
 Currently one can build Mesa for Android as part of the AOSP project, yet
@@ -198,7 +197,7 @@ Android-x86 and/or other resources.
 </p>
 
 
-<h1 id="libs">6. Library Information</h1>
+<h2 id="libs">6. Library Information</h2>
 
 <p>
 When compilation has finished, look in the top-level <code>lib/</code>
@@ -206,11 +205,11 @@ When compilation has finished, look in the top-level <code>lib/</code>
 You'll see a set of library files similar to this:
 </p>
 <pre>
-lrwxrwxrwx    1 brian    users          10 Mar 26 07:53 libGL.so -> libGL.so.1*
-lrwxrwxrwx    1 brian    users          19 Mar 26 07:53 libGL.so.1 -> libGL.so.1.5.060100*
+lrwxrwxrwx    1 brian    users          10 Mar 26 07:53 libGL.so -&gt; libGL.so.1*
+lrwxrwxrwx    1 brian    users          19 Mar 26 07:53 libGL.so.1 -&gt; libGL.so.1.5.060100*
 -rwxr-xr-x    1 brian    users     3375861 Mar 26 07:53 libGL.so.1.5.060100*
-lrwxrwxrwx    1 brian    users          14 Mar 26 07:53 libOSMesa.so -> libOSMesa.so.6*
-lrwxrwxrwx    1 brian    users          23 Mar 26 07:53 libOSMesa.so.6 -> libOSMesa.so.6.1.060100*
+lrwxrwxrwx    1 brian    users          14 Mar 26 07:53 libOSMesa.so -&gt; libOSMesa.so.6*
+lrwxrwxrwx    1 brian    users          23 Mar 26 07:53 libOSMesa.so.6 -&gt; libOSMesa.so.6.1.060100*
 -rwxr-xr-x    1 brian    users       23871 Mar 26 07:53 libOSMesa.so.6.1.060100*
 </pre>
 
@@ -236,10 +235,10 @@ versions of libGL and device drivers.
 </p>
 
 
-<h1 id="pkg-config">7. Building OpenGL programs with pkg-config</h1>
+<h2 id="pkg-config">7. Building OpenGL programs with pkg-config</h2>
 
 <p>
-Running <code>make install</code> will install package configuration files
+Running <code>ninja install</code> will install package configuration files
 for the pkg-config utility.
 </p>
 

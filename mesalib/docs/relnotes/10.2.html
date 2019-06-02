@@ -8,7 +8,7 @@
 <body>
 
 <div class="header">
-  <h1>The Mesa 3D Graphics Library</h1>
+  The Mesa 3D Graphics Library
 </div>
 
 <iframe src="../contents.html"></iframe>
@@ -69,14 +69,15 @@ TBD.
 <h2>Changes</h2>
 
 <ul>
-<li>Renamed <i>--with-llvm-shared-libs</i> to <i>--enable-llvm-shared-libs</i></li>
+<li>Renamed <i>--with-llvm-shared-libs</i> to <i>--enable-llvm-shared-libs</i>
 <p>
 The option is used to control how mesa is linked against LLVM, and now
 defaults to enabled (shared linking).
 </p>
+</li>
 
 <li>Split <i>libxatracker.so</i> into a standalone library which can be used
-with any gallium driver.</li>
+with any gallium driver.
 <p>
 Previously the library was linked statically against vmware's virtual gpu
 driver(svga), whereas now it loads a shared pipe_*.so driver. Provide the
@@ -88,6 +89,7 @@ following options during configure, if you would like support for svga driver
 Note: The files are installed in $(libdir)/gallium-pipe/ and the interface
 between them and libxatracker.so is <strong>not</strong> stable.
 </p>
+</li>
 
 <li>The environment variable GALLIUM_MSAA that forced a multisample GLX visual was removed.</li>
 </ul>

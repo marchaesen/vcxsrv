@@ -281,7 +281,8 @@ list_sort_1(x_list *lst, int length,
 
     /* Then merge them back together. */
 
-    assert(lst != NULL && mid != NULL);
+    assert(lst != NULL);
+    assert(mid != NULL);
 
     if ((*less)(mid->data, lst->data))
         out = out_head = mid, mid = mid->next;

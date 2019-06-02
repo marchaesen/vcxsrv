@@ -458,6 +458,20 @@ vbo_exec_begin_vertices(struct gl_context *ctx)
 
 
 /**
+ * If index=0, does glVertexAttrib*() alias glVertex() to emit a vertex?
+ * It depends on a few things, including whether we're inside or outside
+ * of glBegin/glEnd.
+ */
+static inline bool
+is_vertex_position(const struct gl_context *ctx, GLuint index)
+{
+   return (index == 0 &&
+           _mesa_attr_zero_aliases_vertex(ctx) &&
+           _mesa_inside_begin_end(ctx));
+}
+
+
+/**
  * This macro is used to implement all the glVertex, glColor, glTexCoord,
  * glVertexAttrib, etc functions.
  * \param A  VBO_ATTRIB_x attribute index
@@ -1237,7 +1251,7 @@ vbo_exec_FlushVertices(struct gl_context *ctx, GLuint flags)
 {
    struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
 
-#ifdef DEBUG
+#ifndef NDEBUG
    /* debug check: make sure we don't get called recursively */
    exec->flush_call_depth++;
    assert(exec->flush_call_depth == 1);
@@ -1245,7 +1259,7 @@ vbo_exec_FlushVertices(struct gl_context *ctx, GLuint flags)
 
    if (_mesa_inside_begin_end(ctx)) {
       /* We've had glBegin but not glEnd! */
-#ifdef DEBUG
+#ifndef NDEBUG
       exec->flush_call_depth--;
       assert(exec->flush_call_depth == 0);
 #endif
@@ -1259,7 +1273,7 @@ vbo_exec_FlushVertices(struct gl_context *ctx, GLuint flags)
     */
    ctx->Driver.NeedFlush &= ~(FLUSH_UPDATE_CURRENT | flags);
 
-#ifdef DEBUG
+#ifndef NDEBUG
    exec->flush_call_depth--;
    assert(exec->flush_call_depth == 0);
 #endif

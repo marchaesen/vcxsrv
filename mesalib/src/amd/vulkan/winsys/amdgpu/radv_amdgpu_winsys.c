@@ -58,7 +58,7 @@ do_winsys_init(struct radv_amdgpu_winsys *ws, int fd)
 	ws->info.num_sdma_rings = MIN2(ws->info.num_sdma_rings, MAX_RINGS_PER_TYPE);
 	ws->info.num_compute_rings = MIN2(ws->info.num_compute_rings, MAX_RINGS_PER_TYPE);
 
-	ws->use_ib_bos = ws->info.chip_class >= CIK;
+	ws->use_ib_bos = ws->info.chip_class >= GFX7;
 	return true;
 }
 

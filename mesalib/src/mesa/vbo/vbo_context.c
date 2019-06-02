@@ -153,9 +153,6 @@ vbo_exec_invalidate_state(struct gl_context *ctx)
    struct vbo_context *vbo = vbo_context(ctx);
    struct vbo_exec_context *exec = &vbo->exec;
 
-   if (ctx->NewState & _NEW_ARRAY) {
-      _ae_invalidate_state(ctx);
-   }
    if (ctx->NewState & _NEW_EVAL)
       exec->eval.recalculate_maps = GL_TRUE;
 }
@@ -167,13 +164,6 @@ _vbo_CreateContext(struct gl_context *ctx)
    struct vbo_context *vbo = CALLOC_STRUCT(vbo_context);
 
    ctx->vbo_context = vbo;
-
-   /* Initialize the arrayelt helper
-    */
-   if (!ctx->aelt_context &&
-       !_ae_create_context(ctx)) {
-      return GL_FALSE;
-   }
 
    vbo->binding.Offset = 0;
    vbo->binding.Stride = 0;
@@ -210,11 +200,6 @@ void
 _vbo_DestroyContext(struct gl_context *ctx)
 {
    struct vbo_context *vbo = vbo_context(ctx);
-
-   if (ctx->aelt_context) {
-      _ae_destroy_context(ctx);
-      ctx->aelt_context = NULL;
-   }
 
    if (vbo) {
 

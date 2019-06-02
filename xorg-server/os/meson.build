@@ -62,7 +62,7 @@ if get_option('secure-rpc')
     if not (rpc_dep.found() or cc.has_header('rpc/rpc.h'))
         error('secure-rpc requested, but neither libtirpc or libc RPC support were found')
     endif
-
+    # XXX: also check if RPC library provides xdr_opaque_auth, authdes_(sec)create ???
     srcs_os += 'rpcauth.c'
 endif
 

@@ -468,15 +468,24 @@ void GlxDispatchReset(void)
 int GlxDispatchRequest(ClientPtr client)
 {
     REQUEST(xReq);
+    int result;
+
     if (GlxExtensionEntry->base == 0)
         return BadRequest;
+
+    GlxSetRequestClient(client);
+
     if (stuff->data < OPCODE_ARRAY_LEN) {
         if (dispatchFuncs[stuff->data] == NULL) {
             // Try to find a dispatch stub.
             dispatchFuncs[stuff->data] = GetVendorDispatchFunc(stuff->data, 0);
         }
-        return dispatchFuncs[stuff->data](client);
+        result = dispatchFuncs[stuff->data](client);
     } else {
-        return dispatch_GLXSingle(client);
+        result = dispatch_GLXSingle(client);
     }
+
+    GlxSetRequestClient(NULL);
+
+    return result;
 }

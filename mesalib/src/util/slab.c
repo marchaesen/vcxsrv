@@ -31,7 +31,7 @@
 #define SLAB_MAGIC_ALLOCATED 0xcafe4321
 #define SLAB_MAGIC_FREE 0x7ee01234
 
-#ifdef DEBUG
+#ifndef NDEBUG
 #define SET_MAGIC(element, value)   (element)->magic = (value)
 #define CHECK_MAGIC(element, value) assert((element)->magic == (value))
 #else
@@ -51,7 +51,7 @@ struct slab_element_header {
     */
    intptr_t owner;
 
-#ifdef DEBUG
+#ifndef NDEBUG
    intptr_t magic;
 #endif
 };

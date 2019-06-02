@@ -534,7 +534,8 @@ dd_context_set_shader_images(struct pipe_context *_pipe,
 }
 
 static void
-dd_context_set_shader_buffers(struct pipe_context *_pipe, unsigned shader,
+dd_context_set_shader_buffers(struct pipe_context *_pipe,
+                              enum pipe_shader_type shader,
                               unsigned start, unsigned num_buffers,
                               const struct pipe_shader_buffer *buffers,
                               unsigned writable_bitmask)
@@ -680,7 +681,7 @@ dd_context_set_compute_resources(struct pipe_context *_pipe,
 				 struct pipe_surface **resources)
 {
    struct pipe_context *pipe = dd_context(_pipe)->pipe;
-   return pipe->set_compute_resources(pipe, start, count, resources);
+   pipe->set_compute_resources(pipe, start, count, resources);
 }
 
 static void
@@ -690,7 +691,7 @@ dd_context_set_global_binding(struct pipe_context *_pipe,
 			      uint32_t **handles)
 {
    struct pipe_context *pipe = dd_context(_pipe)->pipe;
-   return pipe->set_global_binding(pipe, first, count, resources, handles);
+   pipe->set_global_binding(pipe, first, count, resources, handles);
 }
 
 static void
@@ -700,8 +701,8 @@ dd_context_get_sample_position(struct pipe_context *_pipe,
 {
    struct pipe_context *pipe = dd_context(_pipe)->pipe;
 
-   return pipe->get_sample_position(pipe, sample_count, sample_index,
-                                    out_value);
+   pipe->get_sample_position(pipe, sample_count, sample_index,
+                             out_value);
 }
 
 static void
@@ -727,7 +728,7 @@ dd_context_set_device_reset_callback(struct pipe_context *_pipe,
 {
    struct pipe_context *pipe = dd_context(_pipe)->pipe;
 
-   return pipe->set_device_reset_callback(pipe, cb);
+   pipe->set_device_reset_callback(pipe, cb);
 }
 
 static void
@@ -747,7 +748,7 @@ dd_context_dump_debug_state(struct pipe_context *_pipe, FILE *stream,
 {
    struct pipe_context *pipe = dd_context(_pipe)->pipe;
 
-   return pipe->dump_debug_state(pipe, stream, flags);
+   pipe->dump_debug_state(pipe, stream, flags);
 }
 
 static uint64_t

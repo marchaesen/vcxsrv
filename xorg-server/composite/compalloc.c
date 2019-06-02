@@ -669,7 +669,8 @@ compReallocPixmap(WindowPtr pWin, int draw_x, int draw_y,
     int pix_x, pix_y;
     int pix_w, pix_h;
 
-    assert(cw && pWin->redirectDraw != RedirectDrawNone);
+    assert(cw);
+    assert(pWin->redirectDraw != RedirectDrawNone);
     cw->oldx = pOld->screen_x;
     cw->oldy = pOld->screen_y;
     pix_x = draw_x - bw;

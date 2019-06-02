@@ -2661,6 +2661,7 @@ xwl_pointer_warp_emulator_maybe_lock(struct xwl_pointer_warp_emulator *warp_emul
      */
     if (pointer_grab &&
         !pointer_grab->ownerEvents &&
+        sprite &&
         XYToWindow(sprite, x, y) != xwl_seat->focus_window->window)
         return;
 

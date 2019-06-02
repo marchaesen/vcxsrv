@@ -41,6 +41,7 @@ For guidelines to making contributions to this project, see:
 
   http://www.freedesktop.org/wiki/Software/XKeyboardConfig/Rules
 
-To submit bug reports (and patches), please use the bugzilla system:
+To submit bug reports (and patches), please use the issue system in
+freedesktop.org's gitlab instance:
 
-  https://bugs.freedesktop.org/enter_bug.cgi?product=xkeyboard-config
+  https://gitlab.freedesktop.org/xkeyboard-config/xkeyboard-config/issues

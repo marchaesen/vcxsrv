@@ -29,17 +29,6 @@ SRCS_MULTIWINDOW = \
 	winSetAppUserModelID.c
 MULTIWINDOW_SYS_LIBS = -lshlwapi -lole32
 
-if XWIN_MULTIWINDOWEXTWM
-SRCS_MULTIWINDOWEXTWM = \
-	winwin32rootless.c \
-	winwin32rootlesswindow.c \
-	winwin32rootlesswndproc.c \
-	winwindowswm.c
-DEFS_MULTIWINDOWEXTWM = -DXWIN_MULTIWINDOWEXTWM
-MULTIWINDOWEXTWM_LIBS = $(top_builddir)/miext/rootless/librootless.la
-MULTIWINDOWEXTWM_CFLAGS = -I$(top_srcdir)/miext/rootless
-endif
-
 SRCS_RANDR = \
 	winrandr.c
 
@@ -101,7 +90,6 @@ SRCS =	InitInput.c \
 	$(top_srcdir)/mi/miinitext.c \
 	$(SRCS_CLIPBOARD) \
 	$(SRCS_MULTIWINDOW) \
-	$(SRCS_MULTIWINDOWEXTWM) \
 	$(SRCS_RANDR)
 
 DEFS = \
@@ -117,7 +105,6 @@ XWIN_LIBS += \
 	$(top_builddir)/Xi/libXistubs.la
 
 XWin_DEPENDENCIES = \
-	$(MULTIWINDOWEXTWM_LIBS) \
 	$(XWIN_GLX_LIBS) \
 	$(XWIN_LIBS) \
 	$(CLIPBOARD_LIBS) \
@@ -125,7 +112,6 @@ XWin_DEPENDENCIES = \
 
 
 XWin_LDADD = \
-	$(MULTIWINDOWEXTWM_LIBS) \
 	$(XWIN_GLX_LIBS) \
 	$(XWIN_LIBS) \
 	$(CLIPBOARD_LIBS) \
@@ -154,7 +140,6 @@ AM_LFLAGS = -i
 AM_CFLAGS = -DHAVE_XWIN_CONFIG_H $(DIX_CFLAGS) \
             $(XWINMODULES_CFLAGS) \
             -I$(top_srcdir) \
-            $(MULTIWINDOWEXTWM_CFLAGS) \
             -Wno-bad-function-cast
 
 xwinconfigdir = $(sysconfdir)/X11

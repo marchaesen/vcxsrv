@@ -34,6 +34,7 @@
 
 #include <X11/X.h>
 #include <X11/Xproto.h>
+#include "buildDateTime.h"
 #include "os.h"
 #include "servermd.h"
 #include "inputstr.h"
@@ -168,7 +169,7 @@ DarwinPrintBanner(void)
 {
     ErrorF("Xquartz starting:\n");
     ErrorF("X.Org X Server %s\n", XSERVER_VERSION);
-    ErrorF("Build Date: %s\n", BUILD_DATE);
+    ErrorF("Build Date: %d\n", BUILD_DATE);
 }
 
 /*
@@ -826,3 +827,12 @@ ddxGiveUp(enum ExitCode error)
 {
     LogClose(error);
 }
+
+#if INPUTTHREAD
+/** This function is called in Xserver/os/inputthread.c when starting
+    the input thread. */
+void
+ddxInputThreadInit(void)
+{
+}
+#endif

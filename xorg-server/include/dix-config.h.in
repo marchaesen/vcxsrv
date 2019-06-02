@@ -512,4 +512,7 @@
 /* Have <sys/sysmacros.h> header */
 #undef HAVE_SYS_SYSMACROS_H
 
+/* Have sigprocmask */
+#undef HAVE_SIGPROCMASK
+
 #endif /* _DIX_CONFIG_H_ */

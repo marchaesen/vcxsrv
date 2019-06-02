@@ -56,10 +56,18 @@ struct deref_node {
     */
    bool is_direct;
 
+   /* Set on a root node for a variable to indicate that variable is used by a
+    * cast or passed through some other sequence of instructions that are not
+    * derefs.
+    */
+   bool has_complex_use;
+
    struct deref_node *wildcard;
    struct deref_node *indirect;
    struct deref_node *children[0];
 };
+
+#define UNDEF_NODE ((struct deref_node *)(uintptr_t)1)
 
 struct lower_variables_state {
    nir_shader *shader;
@@ -145,8 +153,13 @@ get_deref_node_recur(nir_deref_instr *deref,
    if (deref->deref_type == nir_deref_type_var)
       return get_deref_node_for_var(deref->var, state);
 
+   if (deref->deref_type == nir_deref_type_cast)
+      return NULL;
+
    struct deref_node *parent =
       get_deref_node_recur(nir_deref_instr_parent(deref), state);
+   if (parent == NULL)
+      return NULL;
 
    switch (deref->deref_type) {
    case nir_deref_type_struct:
@@ -169,7 +182,7 @@ get_deref_node_recur(nir_deref_instr *deref,
           * somewhat gracefully.
           */
          if (index >= glsl_get_length(parent->type))
-            return NULL;
+            return UNDEF_NODE;
 
          if (parent->children[index] == NULL) {
             parent->children[index] =
@@ -361,9 +374,28 @@ path_may_be_aliased(nir_deref_path *path,
 {
    assert(path->path[0]->deref_type == nir_deref_type_var);
    nir_variable *var = path->path[0]->var;
+   struct deref_node *var_node = get_deref_node_for_var(var, state);
 
-   return path_may_be_aliased_node(get_deref_node_for_var(var, state),
-                                   &path->path[1], state);
+   /* First see if this variable is ever used by anything other than a
+    * load/store.  If there's even so much as a cast in the way, we have to
+    * assume aliasing and bail.
+    */
+   if (var_node->has_complex_use)
+      return true;
+
+   return path_may_be_aliased_node(var_node, &path->path[1], state);
+}
+
+static void
+register_complex_use(nir_deref_instr *deref,
+                     struct lower_variables_state *state)
+{
+   assert(deref->deref_type == nir_deref_type_var);
+   struct deref_node *node = get_deref_node_for_var(deref->var, state);
+   if (node == NULL)
+      return;
+
+   node->has_complex_use = true;
 }
 
 static void
@@ -419,26 +451,41 @@ register_variable_uses(nir_function_impl *impl,
 {
    nir_foreach_block(block, impl) {
       nir_foreach_instr_safe(instr, block) {
-         if (instr->type != nir_instr_type_intrinsic)
-            continue;
+         switch (instr->type) {
+         case nir_instr_type_deref: {
+            nir_deref_instr *deref = nir_instr_as_deref(instr);
 
-         nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+            if (deref->deref_type == nir_deref_type_var &&
+                nir_deref_instr_has_complex_use(deref))
+               register_complex_use(deref, state);
 
-         switch (intrin->intrinsic) {
-         case nir_intrinsic_load_deref:
-            register_load_instr(intrin, state);
             break;
+         }
 
-         case nir_intrinsic_store_deref:
-            register_store_instr(intrin, state);
-            break;
+         case nir_instr_type_intrinsic: {
+            nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
 
-         case nir_intrinsic_copy_deref:
-            register_copy_instr(intrin, state);
+            switch (intrin->intrinsic) {
+            case nir_intrinsic_load_deref:
+               register_load_instr(intrin, state);
+               break;
+
+            case nir_intrinsic_store_deref:
+               register_store_instr(intrin, state);
+               break;
+
+            case nir_intrinsic_copy_deref:
+               register_copy_instr(intrin, state);
+               break;
+
+            default:
+               continue;
+            }
             break;
+         }
 
          default:
-            continue;
+            break;
          }
       }
    }
@@ -508,7 +555,10 @@ rename_variables(struct lower_variables_state *state)
                continue;
 
             struct deref_node *node = get_deref_node(deref, state);
-            if (node == NULL) {
+            if (node == NULL)
+               continue;
+
+            if (node == UNDEF_NODE) {
                /* If we hit this path then we are referencing an invalid
                 * value.  Most likely, we unrolled something and are
                 * reading past the end of some array.  In any case, this
@@ -531,10 +581,10 @@ rename_variables(struct lower_variables_state *state)
                continue;
 
             nir_alu_instr *mov = nir_alu_instr_create(state->shader,
-                                                      nir_op_imov);
+                                                      nir_op_mov);
             mov->src[0].src = nir_src_for_ssa(
                nir_phi_builder_value_get_block_def(node->pb_value, block));
-            for (unsigned i = intrin->num_components; i < 4; i++)
+            for (unsigned i = intrin->num_components; i < NIR_MAX_VEC_COMPONENTS; i++)
                mov->src[0].swizzle[i] = 0;
 
             assert(intrin->dest.is_ssa);
@@ -558,11 +608,13 @@ rename_variables(struct lower_variables_state *state)
                continue;
 
             struct deref_node *node = get_deref_node(deref, state);
+            if (node == NULL)
+               continue;
 
             assert(intrin->src[1].is_ssa);
             nir_ssa_def *value = intrin->src[1].ssa;
 
-            if (node == NULL) {
+            if (node == UNDEF_NODE) {
                /* Probably an out-of-bounds array store.  That should be a
                 * no-op. */
                nir_instr_remove(&intrin->instr);
@@ -584,12 +636,12 @@ rename_variables(struct lower_variables_state *state)
                 * intrin->num_components and value->num_components
                 * may differ.
                 */
-               unsigned swiz[4];
-               for (unsigned i = 0; i < 4; i++)
+               unsigned swiz[NIR_MAX_VEC_COMPONENTS];
+               for (unsigned i = 0; i < NIR_MAX_VEC_COMPONENTS; i++)
                   swiz[i] = i < intrin->num_components ? i : 0;
 
                new_def = nir_swizzle(&b, value, swiz,
-                                     intrin->num_components, false);
+                                     intrin->num_components);
             } else {
                nir_ssa_def *old_def =
                   nir_phi_builder_value_get_block_def(node->pb_value, block);
@@ -597,7 +649,7 @@ rename_variables(struct lower_variables_state *state)
                 * written values with the existing contents of unwritten
                 * channels, creating a new SSA value for the whole vector.
                 */
-               nir_ssa_def *srcs[4];
+               nir_ssa_def *srcs[NIR_MAX_VEC_COMPONENTS];
                for (unsigned i = 0; i < intrin->num_components; i++) {
                   if (wrmask & (1 << i)) {
                      srcs[i] = nir_channel(&b, value, i);

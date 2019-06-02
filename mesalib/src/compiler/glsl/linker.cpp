@@ -3685,81 +3685,6 @@ check_explicit_uniform_locations(struct gl_context *ctx,
    prog->NumExplicitUniformLocations = entries_total;
 }
 
-static bool
-should_add_buffer_variable(struct gl_shader_program *shProg,
-                           GLenum type, const char *name)
-{
-   bool found_interface = false;
-   unsigned block_name_len = 0;
-   const char *block_name_dot = strchr(name, '.');
-
-   /* These rules only apply to buffer variables. So we return
-    * true for the rest of types.
-    */
-   if (type != GL_BUFFER_VARIABLE)
-      return true;
-
-   for (unsigned i = 0; i < shProg->data->NumShaderStorageBlocks; i++) {
-      const char *block_name = shProg->data->ShaderStorageBlocks[i].Name;
-      block_name_len = strlen(block_name);
-
-      const char *block_square_bracket = strchr(block_name, '[');
-      if (block_square_bracket) {
-         /* The block is part of an array of named interfaces,
-          * for the name comparison we ignore the "[x]" part.
-          */
-         block_name_len -= strlen(block_square_bracket);
-      }
-
-      if (block_name_dot) {
-         /* Check if the variable name starts with the interface
-          * name. The interface name (if present) should have the
-          * length than the interface block name we are comparing to.
-          */
-         unsigned len = strlen(name) - strlen(block_name_dot);
-         if (len != block_name_len)
-            continue;
-      }
-
-      if (strncmp(block_name, name, block_name_len) == 0) {
-         found_interface = true;
-         break;
-      }
-   }
-
-   /* We remove the interface name from the buffer variable name,
-    * including the dot that follows it.
-    */
-   if (found_interface)
-      name = name + block_name_len + 1;
-
-   /* The ARB_program_interface_query spec says:
-    *
-    *     "For an active shader storage block member declared as an array, an
-    *     entry will be generated only for the first array element, regardless
-    *     of its type.  For arrays of aggregate types, the enumeration rules
-    *     are applied recursively for the single enumerated array element."
-    */
-   const char *struct_first_dot = strchr(name, '.');
-   const char *first_square_bracket = strchr(name, '[');
-
-   /* The buffer variable is on top level and it is not an array */
-   if (!first_square_bracket) {
-      return true;
-   /* The shader storage block member is a struct, then generate the entry */
-   } else if (struct_first_dot && struct_first_dot < first_square_bracket) {
-      return true;
-   } else {
-      /* Shader storage block member is an array, only generate an entry for the
-       * first array element.
-       */
-      if (strncmp(first_square_bracket, "[0]", 3) == 0)
-         return true;
-   }
-
-   return false;
-}
-
 /* Function checks if a variable var is a packed varying and
  * if given name is part of packed varying's list.
  *
@@ -4500,6 +4425,11 @@ build_program_resource_list(struct gl_context *ctx,
       }
    }
 
+   int top_level_array_base_offset = -1;
+   int top_level_array_size_in_bytes = -1;
+   int second_element_offset = -1;
+   int buffer_block_index = -1;
+
    /* Add uniforms from uniform storage. */
    for (unsigned i = 0; i < shProg->data->NumUniformStorage; i++) {
       /* Do not add uniforms internally used by Mesa. */
@@ -4521,13 +4451,48 @@ build_program_resource_list(struct gl_context *ctx,
       }
 
       GLenum type = is_shader_storage ? GL_BUFFER_VARIABLE : GL_UNIFORM;
-      if (!should_add_buffer_variable(shProg, type,
-                                      shProg->data->UniformStorage[i].name))
+      if (!link_util_should_add_buffer_variable(shProg,
+                                                &shProg->data->UniformStorage[i],
+                                                top_level_array_base_offset,
+                                                top_level_array_size_in_bytes,
+                                                second_element_offset,
+                                                buffer_block_index))
          continue;
 
       if (is_shader_storage) {
          calculate_array_size_and_stride(ctx, shProg,
                                          &shProg->data->UniformStorage[i]);
+
+         /* From the OpenGL 4.6 specification, 7.3.1.1 Naming Active Resources:
+          *
+          *    "For an active shader storage block member declared as an array
+          *    of an aggregate type, an entry will be generated only for the
+          *    first array element, regardless of its type. Such block members
+          *    are referred to as top-level arrays. If the block member is an
+          *    aggregate type, the enumeration rules are then applied
+          *    recursively."
+          *
+          * Below we update our tracking values used by
+          * link_util_should_add_buffer_variable(). We only want to reset the
+          * offsets once we have moved past the first element.
+          */
+         if (shProg->data->UniformStorage[i].offset >= second_element_offset) {
+            top_level_array_base_offset =
+               shProg->data->UniformStorage[i].offset;
+
+            top_level_array_size_in_bytes =
+               shProg->data->UniformStorage[i].top_level_array_size *
+               shProg->data->UniformStorage[i].top_level_array_stride;
+
+            /* Set or reset the second element offset. For non arrays this
+             * will be set to -1.
+             */
+            second_element_offset = top_level_array_size_in_bytes ?
+               top_level_array_base_offset +
+               shProg->data->UniformStorage[i].top_level_array_stride : -1;
+         }
+
+         buffer_block_index = shProg->data->UniformStorage[i].block_index;
       }
 
       if (!link_util_add_program_resource(shProg, resource_set, type,

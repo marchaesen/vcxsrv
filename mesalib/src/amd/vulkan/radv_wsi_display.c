@@ -283,8 +283,6 @@ radv_RegisterDeviceEventEXT(VkDevice                    _device,
 		return VK_ERROR_OUT_OF_HOST_MEMORY;
 
 	fence->fence = NULL;
-	fence->submitted = true;
-	fence->signalled = false;
 	fence->syncobj = 0;
 	fence->temp_syncobj = 0;
 
@@ -318,8 +316,6 @@ radv_RegisterDisplayEventEXT(VkDevice                           _device,
 		return VK_ERROR_OUT_OF_HOST_MEMORY;
 
 	fence->fence = NULL;
-	fence->submitted = true;
-	fence->signalled = false;
 	fence->syncobj = 0;
 	fence->temp_syncobj = 0;
 

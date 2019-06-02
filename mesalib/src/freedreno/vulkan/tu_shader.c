@@ -28,7 +28,7 @@
 
 #include "ir3/ir3_nir.h"
 
-static nir_function *
+static nir_shader *
 tu_spirv_to_nir(struct ir3_compiler *compiler,
                 const uint32_t *words,
                 size_t word_count,
@@ -68,16 +68,16 @@ tu_spirv_to_nir(struct ir3_compiler *compiler,
       num_spec = spec_info->mapEntryCount;
    }
 
-   nir_function *entry_point =
+   nir_shader *nir =
       spirv_to_nir(words, word_count, spec, num_spec, stage, entry_point_name,
                    &spirv_options, nir_options);
 
    free(spec);
 
-   assert(entry_point->shader->info.stage == stage);
-   nir_validate_shader(entry_point->shader, "after spirv_to_nir");
+   assert(nir->info.stage == stage);
+   nir_validate_shader(nir, "after spirv_to_nir");
 
-   return entry_point;
+   return nir;
 }
 
 static void
@@ -128,15 +128,13 @@ tu_shader_create(struct tu_device *dev,
 
    /* translate SPIR-V to NIR */
    assert(module->code_size % 4 == 0);
-   nir_function *entry_point = tu_spirv_to_nir(
+   nir_shader *nir = tu_spirv_to_nir(
       dev->compiler, (const uint32_t *) module->code, module->code_size / 4,
       stage, stage_info->pName, stage_info->pSpecializationInfo);
-   if (!entry_point) {
+   if (!nir) {
       vk_free2(&dev->alloc, alloc, shader);
       return NULL;
    }
-
-   nir_shader *nir = entry_point->shader;
 
    if (unlikely(dev->physical_device->instance->debug_flags & TU_DEBUG_NIR)) {
       fprintf(stderr, "translated nir:\n");
@@ -176,7 +174,7 @@ tu_shader_create(struct tu_device *dev,
    NIR_PASS_V(nir, nir_lower_frexp);
    NIR_PASS_V(nir, nir_lower_io, nir_var_all, ir3_glsl_type_size, 0);
 
-   nir_shader_gather_info(nir, entry_point->impl);
+   nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
 
    shader->ir3_shader.compiler = dev->compiler;
    shader->ir3_shader.type = stage;
@@ -196,10 +194,10 @@ tu_shader_destroy(struct tu_device *dev,
    for (uint32_t i = 0; i < 1 + shader->has_binning_pass; i++) {
       if (shader->variants[i].ir)
          ir3_destroy(shader->variants[i].ir);
-      if (shader->variants[i].immediates)
-         free(shader->variants[i].immediates);
    }
 
+   if (shader->ir3_shader.const_state.immediates)
+	   free(shader->ir3_shader.const_state.immediates);
    if (shader->binary)
       free(shader->binary);
    if (shader->binning_binary)

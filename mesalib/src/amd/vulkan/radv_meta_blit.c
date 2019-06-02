@@ -128,7 +128,7 @@ build_nir_copy_fragment_shader(enum glsl_sampler_dim tex_dim)
 	unsigned swz[] = { 0, (tex_dim == GLSL_SAMPLER_DIM_1D ? 2 : 1), 2 };
 	nir_ssa_def *const tex_pos =
 		nir_swizzle(&b, nir_load_var(&b, tex_pos_in), swz,
-			    (tex_dim == GLSL_SAMPLER_DIM_1D ? 2 : 3), false);
+			    (tex_dim == GLSL_SAMPLER_DIM_1D ? 2 : 3));
 
 	const struct glsl_type *sampler_type =
 		glsl_sampler_type(tex_dim, false, tex_dim != GLSL_SAMPLER_DIM_3D,
@@ -186,7 +186,7 @@ build_nir_copy_fragment_shader_depth(enum glsl_sampler_dim tex_dim)
 	unsigned swz[] = { 0, (tex_dim == GLSL_SAMPLER_DIM_1D ? 2 : 1), 2 };
 	nir_ssa_def *const tex_pos =
 		nir_swizzle(&b, nir_load_var(&b, tex_pos_in), swz,
-			    (tex_dim == GLSL_SAMPLER_DIM_1D ? 2 : 3), false);
+			    (tex_dim == GLSL_SAMPLER_DIM_1D ? 2 : 3));
 
 	const struct glsl_type *sampler_type =
 		glsl_sampler_type(tex_dim, false, tex_dim != GLSL_SAMPLER_DIM_3D,
@@ -244,7 +244,7 @@ build_nir_copy_fragment_shader_stencil(enum glsl_sampler_dim tex_dim)
 	unsigned swz[] = { 0, (tex_dim == GLSL_SAMPLER_DIM_1D ? 2 : 1), 2 };
 	nir_ssa_def *const tex_pos =
 		nir_swizzle(&b, nir_load_var(&b, tex_pos_in), swz,
-			    (tex_dim == GLSL_SAMPLER_DIM_1D ? 2 : 3), false);
+			    (tex_dim == GLSL_SAMPLER_DIM_1D ? 2 : 3));
 
 	const struct glsl_type *sampler_type =
 		glsl_sampler_type(tex_dim, false, tex_dim != GLSL_SAMPLER_DIM_3D,

@@ -188,7 +188,7 @@ st_update_framebuffer_state( struct st_context *st )
    else
       framebuffer.zsbuf = NULL;
 
-#ifdef DEBUG
+#ifndef NDEBUG
    /* Make sure the resource binding flags were set properly */
    for (i = 0; i < framebuffer.nr_cbufs; i++) {
       assert(!framebuffer.cbufs[i] ||

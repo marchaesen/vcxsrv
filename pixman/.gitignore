@@ -32,6 +32,7 @@ demos/clip-in
 demos/linear-gradient
 demos/quad2quad
 demos/scale
+demos/dither
 pixman/pixman-srgb.c
 pixman/pixman-version.h
 test/*-test

@@ -31,7 +31,7 @@ from The Open Group.
  * These macros are used to make fast, function-local memory allocations.
  * Their characteristics are as follows:
  *
- * void *ALLOCATE_LOCAL(int size)
+ * void *ALLOCATE_LOCAL(size_t size)
  *    Returns a pointer to size bytes of memory, or NULL if the allocation
  *    failed.  The memory must be freed with DEALLOCATE_LOCAL before the
  *    function that made the allocation returns.  You should not ask for
@@ -80,7 +80,7 @@ from The Open Group.
 #    ifndef alloca
 #      define alloca __builtin_alloca
 #    endif /* !alloca */
-#    define ALLOCATE_LOCAL(size) alloca((int)(size))
+#    define ALLOCATE_LOCAL(size) alloca((size_t)(size))
 #  else /* ! __GNUC__ */
 
 /*
@@ -98,7 +98,7 @@ from The Open Group.
 #          define __Xnullarg		/* as nothing */
            extern void *alloca(__Xnullarg);
 #        endif
-#        define ALLOCATE_LOCAL(size) alloca((int)(size))
+#        define ALLOCATE_LOCAL(size) alloca((size_t)(size))
 #      endif /* who does alloca */
 #  endif /* __GNUC__ */
 

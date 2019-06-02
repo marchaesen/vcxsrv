@@ -48,12 +48,12 @@ Colormap XCreateColormap(
     if (visual == CopyFromParent) req->visual = CopyFromParent;
     else req->visual = visual->visualid;
 
-    UnlockDisplay(dpy);
-    SyncHandle();
-
 #ifdef XCMS
     _XcmsAddCmapRec(dpy, mid, w, visual);
 #endif
+
+    UnlockDisplay(dpy);
+    SyncHandle();
 
     return(mid);
 }

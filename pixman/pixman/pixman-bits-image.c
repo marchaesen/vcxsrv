@@ -35,6 +35,7 @@
 #include "pixman-private.h"
 #include "pixman-combine32.h"
 #include "pixman-inlines.h"
+#include "dither/blue-noise-64x64.h"
 
 /* Fetch functions */
 
@@ -1048,6 +1049,119 @@ dest_write_back_narrow (pixman_iter_t *iter)
     iter->y++;
 }
 
+static const float
+dither_factor_blue_noise_64 (int x, int y)
+{
+    float m = dither_blue_noise_64x64[((y & 0x3f) << 6) | (x & 0x3f)];
+    return m * (1. / 4096.f) + (1. / 8192.f);
+}
+
+static const float
+dither_factor_bayer_8 (int x, int y)
+{
+    uint32_t m;
+
+    y ^= x;
+
+    /* Compute reverse(interleave(xor(x mod n, y mod n), x mod n))
+     * Here n = 8 and `mod n` is the bottom 3 bits.
+     */
+    m = ((y & 0b001) << 5) | ((x & 0b001) << 4) |
+	((y & 0b010) << 2) | ((x & 0b010) << 1) |
+	((y & 0b100) >> 1) | ((x & 0b100) >> 2);
+
+    /* m is in range [0, 63].  We scale it to [0, 63.0f/64.0f], then
+     * shift it to to [1.0f/128.0f, 127.0f/128.0f] so that 0 < d < 1.
+     * This ensures exact values are not changed by dithering.
+     */
+    return (float)(m) * (1 / 64.0f) + (1.0f / 128.0f);
+}
+
+typedef float (* dither_factor_t)(int x, int y);
+
+static force_inline float
+dither_apply_channel (float f, float d, float s)
+{
+    /* float_to_unorm splits the [0, 1] segment in (1 << n_bits)
+     * subsections of equal length; however unorm_to_float does not
+     * map to the center of those sections.  In fact, pixel value u is
+     * mapped to:
+     *
+     *       u              u              u               1
+     * -------------- = ---------- + -------------- * ----------
+     *  2^n_bits - 1     2^n_bits     2^n_bits - 1     2^n_bits
+     *
+     * Hence if f = u / (2^n_bits - 1) is exactly representable on a
+     * n_bits palette, all the numbers between
+     *
+     *     u
+     * ----------  =  f - f * 2^n_bits = f + (0 - f) * 2^n_bits
+     *  2^n_bits
+     *
+     *  and
+     *
+     *    u + 1
+     * ---------- = f - (f - 1) * 2^n_bits = f + (1 - f) * 2^n_bits
+     *  2^n_bits
+     *
+     * are also mapped back to u.
+     *
+     * Hence the following calculation ensures that we add as much
+     * noise as possible without perturbing values which are exactly
+     * representable in the target colorspace.  Note that this corresponds to
+     * mixing the original color with noise with a ratio of `1 / 2^n_bits`.
+     */
+    return f + (d - f) * s;
+}
+
+static force_inline float
+dither_compute_scale (int n_bits)
+{
+    // No dithering for wide formats
+    if (n_bits == 0 || n_bits >= 32)
+	return 0.f;
+
+    return 1.f / (float)(1 << n_bits);
+}
+
+static const uint32_t *
+dither_apply_ordered (pixman_iter_t *iter, dither_factor_t factor)
+{
+    bits_image_t        *image  = &iter->image->bits;
+    int                  x      = iter->x + image->dither_offset_x;
+    int                  y      = iter->y + image->dither_offset_y;
+    int                  width  = iter->width;
+    argb_t              *buffer = (argb_t *)iter->buffer;
+
+    pixman_format_code_t format = image->format;
+    int                  a_size = PIXMAN_FORMAT_A (format);
+    int                  r_size = PIXMAN_FORMAT_R (format);
+    int                  g_size = PIXMAN_FORMAT_G (format);
+    int                  b_size = PIXMAN_FORMAT_B (format);
+
+    float a_scale = dither_compute_scale (a_size);
+    float r_scale = dither_compute_scale (r_size);
+    float g_scale = dither_compute_scale (g_size);
+    float b_scale = dither_compute_scale (b_size);
+
+    int   i;
+    float d;
+
+    for (i = 0; i < width; ++i)
+    {
+	d = factor (x + i, y);
+
+	buffer->a = dither_apply_channel (buffer->a, d, a_scale);
+	buffer->r = dither_apply_channel (buffer->r, d, r_scale);
+	buffer->g = dither_apply_channel (buffer->g, d, g_scale);
+	buffer->b = dither_apply_channel (buffer->b, d, b_scale);
+
+	buffer++;
+    }
+
+    return iter->buffer;
+}
+
 static void
 dest_write_back_wide (pixman_iter_t *iter)
 {
@@ -1056,6 +1170,23 @@ dest_write_back_wide (pixman_iter_t *iter)
     int             y      = iter->y;
     int             width  = iter->width;
     const uint32_t *buffer = iter->buffer;
+
+    switch (image->dither)
+    {
+    case PIXMAN_DITHER_NONE:
+	break;
+
+    case PIXMAN_DITHER_GOOD:
+    case PIXMAN_DITHER_BEST:
+    case PIXMAN_DITHER_ORDERED_BLUE_NOISE_64:
+	buffer = dither_apply_ordered (iter, dither_factor_blue_noise_64);
+	break;
+
+    case PIXMAN_DITHER_FAST:
+    case PIXMAN_DITHER_ORDERED_BAYER_8:
+	buffer = dither_apply_ordered (iter, dither_factor_bayer_8);
+	break;
+    }
 
     image->store_scanline_float (image, x, y, width, buffer);
 
@@ -1172,6 +1303,9 @@ _pixman_bits_image_init (pixman_image_t *     image,
     image->bits.height = height;
     image->bits.bits = bits;
     image->bits.free_me = free_me;
+    image->bits.dither = PIXMAN_DITHER_NONE;
+    image->bits.dither_offset_x = 0;
+    image->bits.dither_offset_y = 0;
     image->bits.read_func = NULL;
     image->bits.write_func = NULL;
     image->bits.rowstride = rowstride;

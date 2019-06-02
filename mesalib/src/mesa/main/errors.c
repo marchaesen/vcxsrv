@@ -59,7 +59,7 @@ output_if_debug(const char *prefixString, const char *outputString,
          LogFile = fopen(logFile, "w");
       if (!LogFile)
          LogFile = stderr;
-#ifdef DEBUG
+#ifndef NDEBUG
       /* in debug builds, print messages unless MESA_DEBUG="silent" */
       if (MESA_DEBUG_FLAGS & DEBUG_SILENT)
          debug = 0;
@@ -189,7 +189,7 @@ should_output(struct gl_context *ctx, GLenum error, const char *fmtString)
    if (debug == -1) {
       const char *debugEnv = getenv("MESA_DEBUG");
 
-#ifdef DEBUG
+#ifndef NDEBUG
       if (debugEnv && strstr(debugEnv, "silent"))
          debug = GL_FALSE;
       else
@@ -378,7 +378,7 @@ _mesa_error_no_memory(const char *caller)
 void
 _mesa_debug( const struct gl_context *ctx, const char *fmtString, ... )
 {
-#ifdef DEBUG
+#ifndef NDEBUG
    char s[MAX_DEBUG_MESSAGE_LENGTH];
    va_list args;
    va_start(args, fmtString);

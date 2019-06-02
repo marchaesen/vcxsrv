@@ -45,14 +45,15 @@ libcommon_la_SOURCES = xf86Configure.c xf86Bus.c xf86Config.c \
                       xf86Mode.c xorgHelper.c xf86Extensions.h \
 		      xf86Extensions.c $(XF86VMODESOURCES) \
                       $(XVSOURCES) $(BUSSOURCES) $(RANDRSOURCES)
-nodist_libcommon_la_SOURCES = xf86DefModeSet.c xf86Build.h
+nodist_libcommon_la_SOURCES = xf86DefModeSet.c
 libcommon_la_LIBADD = $(top_builddir)/config/libconfig.la
 
 AM_CPPFLAGS = $(XORG_INCS) -I$(srcdir)/../ddc -I$(srcdir)/../i2c \
 	   -I$(srcdir)/../loader -I$(srcdir)/../parser \
            -I$(srcdir)/../vbe -I$(srcdir)/../int10 \
 	   -I$(srcdir)/../vgahw -I$(srcdir)/../dixmods/extmod \
-	   -I$(srcdir)/../modes -I$(srcdir)/../ramdac -I$(srcdir)/../dri2
+	   -I$(srcdir)/../modes -I$(srcdir)/../ramdac -I$(srcdir)/../dri2 \
+	   -I$(top_builddir)
 
 sdk_HEADERS = compiler.h fourcc.h xf86.h xf86Module.h xf86Opt.h \
               xf86PciInfo.h xf86Priv.h xf86Privstr.h \
@@ -62,7 +63,6 @@ sdk_HEADERS = compiler.h fourcc.h xf86.h xf86Module.h xf86Opt.h \
 	      xf86platformBus.h xf86MatchDrivers.h \
 	      xaarop.h
 
-DISTCLEANFILES = xf86Build.h
 CLEANFILES = $(BUILT_SOURCES)
 
 EXTRA_DIST = \

@@ -357,24 +357,23 @@ convert_yuv_to_rgb(nir_builder *b, nir_tex_instr *tex,
                    nir_ssa_def *a)
 {
    nir_const_value m[3][4] = {
-      { { .f32 = 1.0f }, { .f32 =  0.0f        }, { .f32 =  1.59602678f }, { .f32 = 0.0f } },
-      { { .f32 = 1.0f }, { .f32 = -0.39176229f }, { .f32 = -0.81296764f }, { .f32 = 0.0f } },
-      { { .f32 = 1.0f }, { .f32 =  2.01723214f }, { .f32 =  0.0f        }, { .f32 = 0.0f } },
+      { { .f32 = 1.16438356f }, { .f32 =  1.16438356f }, { .f32 = 1.16438356f }, { .f32 = 0.0f } },
+      { { .f32 = 0.0f        }, { .f32 = -0.39176229f }, { .f32 = 2.01723214f }, { .f32 = 0.0f } },
+      { { .f32 = 1.59602678f }, { .f32 = -0.81296764f }, { .f32 = 0.0f        }, { .f32 = 0.0f } },
    };
 
-   nir_ssa_def *yuv =
+   nir_ssa_def *offset =
       nir_vec4(b,
-               nir_fmul(b, nir_imm_float(b, 1.16438356f),
-                        nir_fadd(b, y, nir_imm_float(b, -16.0f / 255.0f))),
-               nir_channel(b, nir_fadd(b, u, nir_imm_float(b, -128.0f / 255.0f)), 0),
-               nir_channel(b, nir_fadd(b, v, nir_imm_float(b, -128.0f / 255.0f)), 0),
-               nir_imm_float(b, 0.0));
+               nir_imm_float(b, -0.874202214f),
+               nir_imm_float(b,  0.531667820f),
+               nir_imm_float(b, -1.085630787f),
+               a);
 
-   nir_ssa_def *red = nir_fdot4(b, yuv, nir_build_imm(b, 4, 32, m[0]));
-   nir_ssa_def *green = nir_fdot4(b, yuv, nir_build_imm(b, 4, 32, m[1]));
-   nir_ssa_def *blue = nir_fdot4(b, yuv, nir_build_imm(b, 4, 32, m[2]));
-
-   nir_ssa_def *result = nir_vec4(b, red, green, blue, a);
+   nir_ssa_def *result =
+      nir_ffma(b, y, nir_build_imm(b, 4, 32, m[0]),
+               nir_ffma(b, u, nir_build_imm(b, 4, 32, m[1]),
+                        nir_ffma(b, v, nir_build_imm(b, 4, 32, m[2]),
+                                 offset)));
 
    nir_ssa_def_rewrite_uses(&tex->dest.ssa, nir_src_for_ssa(result));
 }
@@ -590,20 +589,20 @@ lower_gradient_cube_map(nir_builder *b, nir_tex_instr *tex)
    Q = nir_bcsel(b, cond_z,
                  p,
                  nir_bcsel(b, cond_y,
-                           nir_swizzle(b, p, xzy, 3, false),
-                           nir_swizzle(b, p, yzx, 3, false)));
+                           nir_swizzle(b, p, xzy, 3),
+                           nir_swizzle(b, p, yzx, 3)));
 
    dQdx = nir_bcsel(b, cond_z,
                     dPdx,
                     nir_bcsel(b, cond_y,
-                              nir_swizzle(b, dPdx, xzy, 3, false),
-                              nir_swizzle(b, dPdx, yzx, 3, false)));
+                              nir_swizzle(b, dPdx, xzy, 3),
+                              nir_swizzle(b, dPdx, yzx, 3)));
 
    dQdy = nir_bcsel(b, cond_z,
                     dPdy,
                     nir_bcsel(b, cond_y,
-                              nir_swizzle(b, dPdy, xzy, 3, false),
-                              nir_swizzle(b, dPdy, yzx, 3, false)));
+                              nir_swizzle(b, dPdy, xzy, 3),
+                              nir_swizzle(b, dPdy, yzx, 3)));
 
    /* 2. quotient rule */
 
@@ -781,7 +780,7 @@ swizzle_tg4_broadcom(nir_builder *b, nir_tex_instr *tex)
 
    assert(nir_tex_instr_dest_size(tex) == 4);
    unsigned swiz[4] = { 2, 3, 1, 0 };
-   nir_ssa_def *swizzled = nir_swizzle(b, &tex->dest.ssa, swiz, 4, false);
+   nir_ssa_def *swizzled = nir_swizzle(b, &tex->dest.ssa, swiz, 4);
 
    nir_ssa_def_rewrite_uses_after(&tex->dest.ssa, nir_src_for_ssa(swizzled),
                                   swizzled->parent_instr);
@@ -809,7 +808,7 @@ swizzle_result(nir_builder *b, nir_tex_instr *tex, const uint8_t swizzle[4])
           swizzle[2] < 4 && swizzle[3] < 4) {
          unsigned swiz[4] = { swizzle[0], swizzle[1], swizzle[2], swizzle[3] };
          /* We have no 0s or 1s, just emit a swizzling MOV */
-         swizzled = nir_swizzle(b, &tex->dest.ssa, swiz, 4, false);
+         swizzled = nir_swizzle(b, &tex->dest.ssa, swiz, 4);
       } else {
          nir_ssa_def *srcs[4];
          for (unsigned i = 0; i < 4; i++) {
@@ -1127,6 +1126,8 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
            (tex->op == nir_texop_tex && !shader_supports_implicit_lod))) {
          b->cursor = nir_before_instr(&tex->instr);
          nir_tex_instr_add_src(tex, nir_tex_src_lod, nir_src_for_ssa(nir_imm_int(b, 0)));
+         if (tex->op == nir_texop_tex && options->lower_tex_without_implicit_lod)
+            tex->op = nir_texop_txl;
          progress = true;
          continue;
       }

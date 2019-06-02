@@ -1035,8 +1035,6 @@ VkResult radv_CreateQueryPool(
 	struct radv_query_pool *pool = vk_alloc2(&device->alloc, pAllocator,
 					       sizeof(*pool), 8,
 					       VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-	uint32_t initial_value = pCreateInfo->queryType == VK_QUERY_TYPE_TIMESTAMP
-				 ? TIMESTAMP_NOT_READY : 0;
 
 	if (!pool)
 		return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -1082,7 +1080,6 @@ VkResult radv_CreateQueryPool(
 		vk_free2(&device->alloc, pAllocator, pool);
 		return vk_error(device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
 	}
-	memset(pool->ptr, initial_value, pool->size);
 
 	*pQueryPool = radv_query_pool_to_handle(pool);
 	return VK_SUCCESS;
@@ -1123,13 +1120,6 @@ VkResult radv_GetQueryPoolResults(
 		unsigned query = firstQuery + i;
 		char *src = pool->ptr + query * pool->stride;
 		uint32_t available;
-
-		if (pool->type == VK_QUERY_TYPE_PIPELINE_STATISTICS) {
-			if (flags & VK_QUERY_RESULT_WAIT_BIT)
-				while(!*(volatile uint32_t*)(pool->ptr + pool->availability_offset + 4 * query))
-					;
-			available = *(uint32_t*)(pool->ptr + pool->availability_offset + 4 * query);
-		}
 
 		switch (pool->type) {
 		case VK_QUERY_TYPE_TIMESTAMP: {
@@ -1190,6 +1180,11 @@ VkResult radv_GetQueryPoolResults(
 			break;
 		}
 		case VK_QUERY_TYPE_PIPELINE_STATISTICS: {
+			if (flags & VK_QUERY_RESULT_WAIT_BIT)
+				while(!*(volatile uint32_t*)(pool->ptr + pool->availability_offset + 4 * query))
+					;
+			available = *(uint32_t*)(pool->ptr + pool->availability_offset + 4 * query);
+
 			if (!available && !(flags & VK_QUERY_RESULT_PARTIAL_BIT))
 				result = VK_NOT_READY;
 
@@ -1424,6 +1419,12 @@ void radv_CmdResetQueryPool(
 			 ? TIMESTAMP_NOT_READY : 0;
 	uint32_t flush_bits = 0;
 
+	/* Make sure to sync all previous work if the given command buffer has
+	 * pending active queries. Otherwise the GPU might write queries data
+	 * after the reset operation.
+	 */
+	cmd_buffer->state.flush_bits |= cmd_buffer->active_query_flush_bits;
+
 	flush_bits |= radv_fill_buffer(cmd_buffer, pool->bo,
 				       firstQuery * pool->stride,
 				       queryCount * pool->stride, value);
@@ -1619,6 +1620,11 @@ static void emit_end_query(struct radv_cmd_buffer *cmd_buffer,
 	default:
 		unreachable("ending unhandled query type");
 	}
+
+	cmd_buffer->active_query_flush_bits |= RADV_CMD_FLAG_PS_PARTIAL_FLUSH |
+					       RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
+					       RADV_CMD_FLAG_INV_GLOBAL_L2 |
+					       RADV_CMD_FLAG_INV_VMEM_L1;
 }
 
 void radv_CmdBeginQueryIndexedEXT(

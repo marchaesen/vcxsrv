@@ -157,8 +157,9 @@ option(
 )
 option(
   'shader-cache',
-  type : 'boolean',
-  value : true,
+  type : 'combo',
+  value : 'auto',
+  choices : ['auto', 'true', 'false'],
   description : 'Build with on-disk shader cache support'
 )
 option(
@@ -181,14 +182,16 @@ option(
 )
 option(
   'gles1',
-  type : 'boolean',
-  value : true,
+  type : 'combo',
+  value : 'auto',
+  choices : ['auto', 'true', 'false'],
   description : 'Build support for OpenGL ES 1.x'
 )
 option(
   'gles2',
-  type : 'boolean',
-  value : true,
+  type : 'combo',
+  value : 'auto',
+  choices : ['auto', 'true', 'false'],
   description : 'Build support for OpenGL ES 2.x and 3.x'
 )
 option(

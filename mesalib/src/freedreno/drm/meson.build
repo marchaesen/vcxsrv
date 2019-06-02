@@ -29,7 +29,6 @@ libfreedreno_drm_files = files(
   'freedreno_ringbuffer.h',
   'msm_bo.c',
   'msm_device.c',
-  'msm_drm.h',
   'msm_pipe.c',
   'msm_priv.h',
   'msm_ringbuffer.c',

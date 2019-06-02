@@ -522,20 +522,6 @@ TAG(MultiTexCoord4fv)(GLenum target, const GLfloat * v)
 }
 
 
-/**
- * If index=0, does glVertexAttrib*() alias glVertex() to emit a vertex?
- * It depends on a few things, including whether we're inside or outside
- * of glBegin/glEnd.
- */
-static inline bool
-is_vertex_position(const struct gl_context *ctx, GLuint index)
-{
-   return (index == 0 &&
-           _mesa_attr_zero_aliases_vertex(ctx) &&
-           _mesa_inside_begin_end(ctx));
-}
-
-
 static void GLAPIENTRY
 TAG(VertexAttrib1fARB)(GLuint index, GLfloat x)
 {

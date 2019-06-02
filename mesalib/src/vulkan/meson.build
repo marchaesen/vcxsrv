@@ -20,7 +20,6 @@
 
 vk_api_xml = files('registry/vk.xml')
 
-inc_vulkan_util = include_directories('util')
 inc_vulkan_wsi = include_directories('wsi')
 
 vulkan_wsi_args = []

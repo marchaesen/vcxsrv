@@ -104,7 +104,7 @@ ac_vgt_gs_mode(unsigned gs_max_vert_out, enum chip_class chip_class)
 
 	return S_028A40_MODE(V_028A40_GS_SCENARIO_G) |
 	       S_028A40_CUT_MODE(cut_mode)|
-	       S_028A40_ES_WRITE_OPTIMIZE(chip_class <= VI) |
+	       S_028A40_ES_WRITE_OPTIMIZE(chip_class <= GFX8) |
 	       S_028A40_GS_WRITE_OPTIMIZE(1) |
 	       S_028A40_ONCHIP(chip_class >= GFX9 ? 1 : 0);
 }
@@ -167,9 +167,9 @@ ac_export_mrt_z(struct ac_llvm_context *ctx, LLVMValueRef depth,
 		}
 	}
 
-	/* SI (except OLAND and HAINAN) has a bug that it only looks
+	/* GFX6 (except OLAND and HAINAN) has a bug that it only looks
 	 * at the X writemask component. */
-	if (ctx->chip_class == SI &&
+	if (ctx->chip_class == GFX6 &&
 	    ctx->family != CHIP_OLAND &&
 	    ctx->family != CHIP_HAINAN)
 		mask |= 0x1;

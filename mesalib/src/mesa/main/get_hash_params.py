@@ -21,7 +21,7 @@ descriptor=[
   [ "ALIASED_LINE_WIDTH_RANGE", "CONTEXT_FLOAT2(Const.MinLineWidth), NO_EXTRA" ],
   [ "MAX_ELEMENTS_VERTICES", "CONTEXT_INT(Const.MaxArrayLockSize), NO_EXTRA" ],
   [ "MAX_ELEMENTS_INDICES", "CONTEXT_INT(Const.MaxArrayLockSize), NO_EXTRA" ],
-  [ "MAX_TEXTURE_SIZE", "LOC_CUSTOM, TYPE_INT, offsetof(struct gl_context, Const.MaxTextureLevels), NO_EXTRA" ],
+  [ "MAX_TEXTURE_SIZE", "CONTEXT_INT(Const.MaxTextureSize), NO_EXTRA" ],
   [ "MAX_VIEWPORT_DIMS", "CONTEXT_INT2(Const.MaxViewportWidth), NO_EXTRA" ],
   [ "PACK_ALIGNMENT", "CONTEXT_INT(Pack.Alignment), NO_EXTRA" ],
   [ "ALIASED_POINT_SIZE_RANGE", "CONTEXT_FLOAT2(Const.MinPointSize), NO_EXTRA" ],

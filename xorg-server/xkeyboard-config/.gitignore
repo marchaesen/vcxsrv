@@ -4,6 +4,7 @@ Makefile
 Makefile.in
 aclocal.m4
 autom4te-2.53.cache
+compile
 config.cache
 config.log
 config.rpath
@@ -11,16 +12,9 @@ config.status
 config.status.lineno
 configure
 intl
-intltool-extract
-intltool-extract.in
-intltool-merge
-intltool-merge.in
-intltool-update
-intltool-update.in
 m4
 autom4te.cache
 mkinstalldirs
-intltool-modules
 config.h
 config.h.in
 stamp-h1
@@ -42,7 +36,6 @@ keycodes/keycodes.dir
 keymap/keymap.dir
 man/xkeyboard-config.7
 man/xkeyboard-config.man
-po/.intltool-merge-cache
 po/Makefile.in.in
 po/Makevars.template
 po/POTFILES

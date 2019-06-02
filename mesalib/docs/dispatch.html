@@ -2,19 +2,19 @@
 <html lang="en">
 <head>
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <title>GL Dispatch in Mesa</title>
+  <title>GL Dispatch</title>
   <link rel="stylesheet" type="text/css" href="mesa.css">
 </head>
 <body>
 
 <div class="header">
-  <h1>The Mesa 3D Graphics Library</h1>
+  The Mesa 3D Graphics Library
 </div>
 
 <iframe src="contents.html"></iframe>
 <div class="content">
 
-<h1>GL Dispatch in Mesa</h1>
+<h1>GL Dispatch</h1>
 
 <p>Several factors combine to make efficient dispatch of OpenGL functions
 fairly complicated.  This document attempts to explain some of the issues
@@ -134,7 +134,7 @@ the common case.</p>
 <tr><td><pre>
 #define GET_DISPATCH() \
     (_glapi_Dispatch != NULL) \
-        ? _glapi_Dispatch : pthread_getspecific(&_glapi_Dispatch_key)
+        ? _glapi_Dispatch : pthread_getspecific(&amp;_glapi_Dispatch_key)
 </pre></td></tr>
 <tr><td>Improved <tt>GET_DISPATCH</tt> Implementation</td></tr></table>
 </blockquote>

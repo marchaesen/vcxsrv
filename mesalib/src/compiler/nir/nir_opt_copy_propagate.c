@@ -36,8 +36,7 @@ static bool is_move(nir_alu_instr *instr)
 {
    assert(instr->src[0].src.is_ssa);
 
-   if (instr->op != nir_op_fmov &&
-       instr->op != nir_op_imov)
+   if (instr->op != nir_op_mov)
       return false;
 
    if (instr->dest.saturate)
@@ -144,8 +143,7 @@ copy_prop_alu_src(nir_alu_instr *parent_alu_instr, unsigned index)
    nir_ssa_def *def;
    unsigned new_swizzle[NIR_MAX_VEC_COMPONENTS] = {0, 0, 0, 0};
 
-   if (alu_instr->op == nir_op_fmov ||
-       alu_instr->op == nir_op_imov) {
+   if (alu_instr->op == nir_op_mov) {
       for (unsigned i = 0; i < NIR_MAX_VEC_COMPONENTS; i++)
          new_swizzle[i] = alu_instr->src[0].swizzle[src->swizzle[i]];
       def = alu_instr->src[0].src.ssa;

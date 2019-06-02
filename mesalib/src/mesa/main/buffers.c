@@ -93,32 +93,48 @@ supported_buffer_bitmask(const struct gl_context *ctx,
 static GLbitfield
 draw_buffer_enum_to_bitmask(const struct gl_context *ctx, GLenum buffer)
 {
+   /* If the front buffer is the only buffer, GL_BACK and all other flags
+    * that include BACK select the front buffer for drawing. There are
+    * several reasons we want to do this.
+    *
+    * 1) OpenGL ES 3.0 requires it:
+    *
+    *   Page 181 (page 192 of the PDF) in section 4.2.1 of the OpenGL
+    *   ES 3.0.1 specification says:
+    *
+    *     "When draw buffer zero is BACK, color values are written
+    *     into the sole buffer for single-buffered contexts, or into
+    *     the back buffer for double-buffered contexts."
+    *
+    *   We also do this for GLES 1 and 2 because those APIs have no
+    *   concept of selecting the front and back buffer anyway and it's
+    *   convenient to be able to maintain the magic behaviour of
+    *   GL_BACK in that case.
+    *
+    * 2) Pbuffers are back buffers from the application point of view,
+    *    but they are front buffers from the Mesa point of view,
+    *    because they are always single buffered.
+    */
+   if (!ctx->DrawBuffer->Visual.doubleBufferMode) {
+      switch (buffer) {
+      case GL_BACK:
+         buffer = GL_FRONT;
+         break;
+      case GL_BACK_RIGHT:
+         buffer = GL_FRONT_RIGHT;
+         break;
+      case GL_BACK_LEFT:
+         buffer = GL_FRONT_LEFT;
+         break;
+      }
+   }
+
    switch (buffer) {
       case GL_NONE:
          return 0;
       case GL_FRONT:
          return BUFFER_BIT_FRONT_LEFT | BUFFER_BIT_FRONT_RIGHT;
       case GL_BACK:
-         if (_mesa_is_gles(ctx)) {
-            /* Page 181 (page 192 of the PDF) in section 4.2.1 of the OpenGL
-             * ES 3.0.1 specification says:
-             *
-             *     "When draw buffer zero is BACK, color values are written
-             *     into the sole buffer for single-buffered contexts, or into
-             *     the back buffer for double-buffered contexts."
-             *
-             * Since there is no stereo rendering in ES 3.0, only return the
-             * LEFT bits.  This also satisfies the "n must be 1" requirement.
-             *
-             * We also do this for GLES 1 and 2 because those APIs have no
-             * concept of selecting the front and back buffer anyway and it's
-             * convenient to be able to maintain the magic behaviour of
-             * GL_BACK in that case.
-             */
-            if (ctx->DrawBuffer->Visual.doubleBufferMode)
-               return BUFFER_BIT_BACK_LEFT;
-            return BUFFER_BIT_FRONT_LEFT;
-         }
          return BUFFER_BIT_BACK_LEFT | BUFFER_BIT_BACK_RIGHT;
       case GL_RIGHT:
          return BUFFER_BIT_FRONT_RIGHT | BUFFER_BIT_BACK_RIGHT;
@@ -437,19 +453,7 @@ draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb, GLsizei n,
 
    /* complicated error checking... */
    for (output = 0; output < n; output++) {
-      destMask[output] = draw_buffer_enum_to_bitmask(ctx, buffers[output]);
-
       if (!no_error) {
-         /* From the OpenGL 3.0 specification, page 258:
-          * "Each buffer listed in bufs must be one of the values from tables
-          *  4.5 or 4.6.  Otherwise, an INVALID_ENUM error is generated.
-          */
-         if (destMask[output] == BAD_MASK) {
-            _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid buffer %s)",
-                        caller, _mesa_enum_to_string(buffers[output]));
-            return;
-         }
-
          /* From the OpenGL 4.5 specification, page 493 (page 515 of the PDF)
           * "An INVALID_ENUM error is generated if any value in bufs is FRONT,
           * LEFT, RIGHT, or FRONT_AND_BACK . This restriction applies to both
@@ -457,7 +461,7 @@ draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb, GLsizei n,
           * these constants may themselves refer to multiple buffers, as shown
           * in table 17.4."
           *
-          * And on page 492 (page 514 of the PDF):
+          * From the OpenGL 4.5 specification, page 492 (page 514 of the PDF):
           * "If the default framebuffer is affected, then each of the constants
           * must be one of the values listed in table 17.6 or the special value
           * BACK. When BACK is used, n must be 1 and color values are written
@@ -469,19 +473,38 @@ draw_buffers(struct gl_context *ctx, struct gl_framebuffer *fb, GLsizei n,
           * For OpenGL 4.x we check that behaviour. For any previous version we
           * keep considering it wrong (as INVALID_ENUM).
           */
-         if (util_bitcount(destMask[output]) > 1) {
-            if (_mesa_is_winsys_fbo(fb) && ctx->Version >= 40 &&
-                buffers[output] == GL_BACK) {
-               if (n != 1) {
-                  _mesa_error(ctx, GL_INVALID_OPERATION, "%s(with GL_BACK n must be 1)",
-                              caller);
-                  return;
-               }
-            } else {
-               _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid buffer %s)",
-                           caller, _mesa_enum_to_string(buffers[output]));
+         if (buffers[output] == GL_BACK &&
+             _mesa_is_winsys_fbo(fb) &&
+             _mesa_is_desktop_gl(ctx) &&
+             ctx->Version >= 40) {
+            if (n != 1) {
+               _mesa_error(ctx, GL_INVALID_OPERATION, "%s(with GL_BACK n must be 1)",
+                           caller);
                return;
             }
+         } else if (buffers[output] == GL_FRONT ||
+                    buffers[output] == GL_LEFT ||
+                    buffers[output] == GL_RIGHT ||
+                    buffers[output] == GL_FRONT_AND_BACK ||
+                    (buffers[output] == GL_BACK &&
+                     _mesa_is_desktop_gl(ctx))) {
+            _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid buffer %s)",
+                        caller, _mesa_enum_to_string(buffers[output]));
+            return;
+         }
+      }
+
+      destMask[output] = draw_buffer_enum_to_bitmask(ctx, buffers[output]);
+
+      if (!no_error) {
+         /* From the OpenGL 3.0 specification, page 258:
+          * "Each buffer listed in bufs must be one of the values from tables
+          *  4.5 or 4.6.  Otherwise, an INVALID_ENUM error is generated.
+          */
+         if (destMask[output] == BAD_MASK) {
+            _mesa_error(ctx, GL_INVALID_ENUM, "%s(invalid buffer %s)",
+                        caller, _mesa_enum_to_string(buffers[output]));
+            return;
          }
 
          /* Section 4.2 (Whole Framebuffer Operations) of the OpenGL ES 3.0

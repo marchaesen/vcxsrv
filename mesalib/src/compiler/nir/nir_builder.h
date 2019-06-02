@@ -389,23 +389,11 @@ nir_imm_boolN_t(nir_builder *build, bool x, unsigned bit_size)
 }
 
 static inline nir_ssa_def *
-nir_build_alu(nir_builder *build, nir_op op, nir_ssa_def *src0,
-              nir_ssa_def *src1, nir_ssa_def *src2, nir_ssa_def *src3)
+nir_builder_alu_instr_finish_and_insert(nir_builder *build, nir_alu_instr *instr)
 {
-   const nir_op_info *op_info = &nir_op_infos[op];
-   nir_alu_instr *instr = nir_alu_instr_create(build->shader, op);
-   if (!instr)
-      return NULL;
+   const nir_op_info *op_info = &nir_op_infos[instr->op];
 
    instr->exact = build->exact;
-
-   instr->src[0].src = nir_src_for_ssa(src0);
-   if (src1)
-      instr->src[1].src = nir_src_for_ssa(src1);
-   if (src2)
-      instr->src[2].src = nir_src_for_ssa(src2);
-   if (src3)
-      instr->src[3].src = nir_src_for_ssa(src3);
 
    /* Guess the number of components the destination temporary should have
     * based on our input sizes, if it's not fixed for the op.
@@ -462,47 +450,53 @@ nir_build_alu(nir_builder *build, nir_op op, nir_ssa_def *src0,
    return &instr->dest.dest.ssa;
 }
 
+static inline nir_ssa_def *
+nir_build_alu(nir_builder *build, nir_op op, nir_ssa_def *src0,
+              nir_ssa_def *src1, nir_ssa_def *src2, nir_ssa_def *src3)
+{
+   nir_alu_instr *instr = nir_alu_instr_create(build->shader, op);
+   if (!instr)
+      return NULL;
+
+   instr->src[0].src = nir_src_for_ssa(src0);
+   if (src1)
+      instr->src[1].src = nir_src_for_ssa(src1);
+   if (src2)
+      instr->src[2].src = nir_src_for_ssa(src2);
+   if (src3)
+      instr->src[3].src = nir_src_for_ssa(src3);
+
+   return nir_builder_alu_instr_finish_and_insert(build, instr);
+}
+
+/* for the couple special cases with more than 4 src args: */
+static inline nir_ssa_def *
+nir_build_alu_src_arr(nir_builder *build, nir_op op, nir_ssa_def **srcs)
+{
+   const nir_op_info *op_info = &nir_op_infos[op];
+   nir_alu_instr *instr = nir_alu_instr_create(build->shader, op);
+   if (!instr)
+      return NULL;
+
+   for (unsigned i = 0; i < op_info->num_inputs; i++)
+      instr->src[i].src = nir_src_for_ssa(srcs[i]);
+
+   return nir_builder_alu_instr_finish_and_insert(build, instr);
+}
+
 #include "nir_builder_opcodes.h"
 
 static inline nir_ssa_def *
 nir_vec(nir_builder *build, nir_ssa_def **comp, unsigned num_components)
 {
-   switch (num_components) {
-   case 4:
-      return nir_vec4(build, comp[0], comp[1], comp[2], comp[3]);
-   case 3:
-      return nir_vec3(build, comp[0], comp[1], comp[2]);
-   case 2:
-      return nir_vec2(build, comp[0], comp[1]);
-   case 1:
-      return comp[0];
-   default:
-      unreachable("bad component count");
-      return NULL;
-   }
-}
-
-/**
- * Similar to nir_fmov, but takes a nir_alu_src instead of a nir_ssa_def.
- */
-static inline nir_ssa_def *
-nir_fmov_alu(nir_builder *build, nir_alu_src src, unsigned num_components)
-{
-   nir_alu_instr *mov = nir_alu_instr_create(build->shader, nir_op_fmov);
-   nir_ssa_dest_init(&mov->instr, &mov->dest.dest, num_components,
-                     nir_src_bit_size(src.src), NULL);
-   mov->exact = build->exact;
-   mov->dest.write_mask = (1 << num_components) - 1;
-   mov->src[0] = src;
-   nir_builder_instr_insert(build, &mov->instr);
-
-   return &mov->dest.dest.ssa;
+   return nir_build_alu_src_arr(build, nir_op_vec(num_components), comp);
 }
 
 static inline nir_ssa_def *
-nir_imov_alu(nir_builder *build, nir_alu_src src, unsigned num_components)
+nir_mov_alu(nir_builder *build, nir_alu_src src, unsigned num_components)
 {
-   nir_alu_instr *mov = nir_alu_instr_create(build->shader, nir_op_imov);
+   assert(!src.abs && !src.negate);
+   nir_alu_instr *mov = nir_alu_instr_create(build->shader, nir_op_mov);
    nir_ssa_dest_init(&mov->instr, &mov->dest.dest, num_components,
                      nir_src_bit_size(src.src), NULL);
    mov->exact = build->exact;
@@ -518,7 +512,7 @@ nir_imov_alu(nir_builder *build, nir_alu_src src, unsigned num_components)
  */
 static inline nir_ssa_def *
 nir_swizzle(nir_builder *build, nir_ssa_def *src, const unsigned *swiz,
-            unsigned num_components, bool use_fmov)
+            unsigned num_components)
 {
    assert(num_components <= NIR_MAX_VEC_COMPONENTS);
    nir_alu_src alu_src = { NIR_SRC_INIT };
@@ -534,8 +528,7 @@ nir_swizzle(nir_builder *build, nir_ssa_def *src, const unsigned *swiz,
    if (num_components == src->num_components && is_identity_swizzle)
       return src;
 
-   return use_fmov ? nir_fmov_alu(build, alu_src, num_components) :
-                     nir_imov_alu(build, alu_src, num_components);
+   return nir_mov_alu(build, alu_src, num_components);
 }
 
 /* Selects the right fdot given the number of components in each source. */
@@ -577,7 +570,7 @@ nir_bany(nir_builder *b, nir_ssa_def *src)
 static inline nir_ssa_def *
 nir_channel(nir_builder *b, nir_ssa_def *def, unsigned c)
 {
-   return nir_swizzle(b, def, &c, 1, false);
+   return nir_swizzle(b, def, &c, 1);
 }
 
 static inline nir_ssa_def *
@@ -591,7 +584,7 @@ nir_channels(nir_builder *b, nir_ssa_def *def, nir_component_mask_t mask)
       swizzle[num_channels++] = i;
    }
 
-   return nir_swizzle(b, def, swizzle, num_channels, false);
+   return nir_swizzle(b, def, swizzle, num_channels);
 }
 
 static inline nir_ssa_def *
@@ -829,7 +822,7 @@ nir_ssa_for_src(nir_builder *build, nir_src src, int num_components)
    for (int j = 0; j < 4; j++)
       alu.swizzle[j] = j;
 
-   return nir_imov_alu(build, alu, num_components);
+   return nir_mov_alu(build, alu, num_components);
 }
 
 /**
@@ -850,7 +843,7 @@ nir_ssa_for_alu_src(nir_builder *build, nir_alu_instr *instr, unsigned srcn)
        (memcmp(src->swizzle, trivial_swizzle, num_components) == 0))
       return src->src.ssa;
 
-   return nir_imov_alu(build, *src, num_components);
+   return nir_mov_alu(build, *src, num_components);
 }
 
 static inline unsigned

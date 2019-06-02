@@ -102,7 +102,7 @@ _mesa_align_malloc(size_t bytes, unsigned long alignment)
    buf = (ptr + alignment + sizeof(void *)) & ~(uintptr_t)(alignment - 1);
    *(uintptr_t *)(buf - sizeof(void *)) = ptr;
 
-#ifdef DEBUG
+#ifndef NDEBUG
    /* mark the non-aligned area */
    while ( ptr < buf - sizeof(void *) ) {
       *(unsigned long *)ptr = 0xcdcdcdcd;
@@ -151,7 +151,7 @@ _mesa_align_calloc(size_t bytes, unsigned long alignment)
    buf = (ptr + alignment + sizeof(void *)) & ~(uintptr_t)(alignment - 1);
    *(uintptr_t *)(buf - sizeof(void *)) = ptr;
 
-#ifdef DEBUG
+#ifndef NDEBUG
    /* mark the non-aligned area */
    while ( ptr < buf - sizeof(void *) ) {
       *(unsigned long *)ptr = 0xcdcdcdcd;

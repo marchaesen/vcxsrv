@@ -739,8 +739,8 @@ cross_validate_outputs_to_inputs(struct gl_context *ctx,
                                  gl_linked_shader *consumer)
 {
    glsl_symbol_table parameters;
-   struct explicit_location_info output_explicit_locations[MAX_VARYING][4] = { 0 };
-   struct explicit_location_info input_explicit_locations[MAX_VARYING][4] = { 0 };
+   struct explicit_location_info output_explicit_locations[MAX_VARYING][4] = {};
+   struct explicit_location_info input_explicit_locations[MAX_VARYING][4] = {};
 
    /* Find all shader outputs in the "producer" stage.
     */
@@ -1169,8 +1169,10 @@ bool
 tfeedback_decl::store(struct gl_context *ctx, struct gl_shader_program *prog,
                       struct gl_transform_feedback_info *info,
                       unsigned buffer, unsigned buffer_index,
-                      const unsigned max_outputs, bool *explicit_stride,
-                      bool has_xfb_qualifiers) const
+                      const unsigned max_outputs,
+                      BITSET_WORD *used_components[MAX_FEEDBACK_BUFFERS],
+                      bool *explicit_stride, bool has_xfb_qualifiers,
+                      const void* mem_ctx) const
 {
    unsigned xfb_offset = 0;
    unsigned size = this->size;
@@ -1197,6 +1199,72 @@ tfeedback_decl::store(struct gl_context *ctx, struct gl_shader_program *prog,
       unsigned location = this->location;
       unsigned location_frac = this->location_frac;
       unsigned num_components = this->num_components();
+
+      /* From GL_EXT_transform_feedback:
+       *
+       *   " A program will fail to link if:
+       *
+       *       * the total number of components to capture is greater than the
+       *         constant MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS_EXT
+       *         and the buffer mode is INTERLEAVED_ATTRIBS_EXT."
+       *
+       * From GL_ARB_enhanced_layouts:
+       *
+       *   " The resulting stride (implicit or explicit) must be less than or
+       *     equal to the implementation-dependent constant
+       *     gl_MaxTransformFeedbackInterleavedComponents."
+       */
+      if ((prog->TransformFeedback.BufferMode == GL_INTERLEAVED_ATTRIBS ||
+           has_xfb_qualifiers) &&
+          xfb_offset + num_components >
+          ctx->Const.MaxTransformFeedbackInterleavedComponents) {
+         linker_error(prog,
+                      "The MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS "
+                      "limit has been exceeded.");
+         return false;
+      }
+
+      /* From the OpenGL 4.60.5 spec, section 4.4.2. Output Layout Qualifiers,
+       * Page 76, (Transform Feedback Layout Qualifiers):
+       *
+       *   " No aliasing in output buffers is allowed: It is a compile-time or
+       *     link-time error to specify variables with overlapping transform
+       *     feedback offsets."
+       */
+      const unsigned max_components =
+         ctx->Const.MaxTransformFeedbackInterleavedComponents;
+      const unsigned first_component = xfb_offset;
+      const unsigned last_component = xfb_offset + num_components - 1;
+      const unsigned start_word = BITSET_BITWORD(first_component);
+      const unsigned end_word = BITSET_BITWORD(last_component);
+      BITSET_WORD *used;
+      assert(last_component < max_components);
+
+      if (!used_components[buffer]) {
+         used_components[buffer] =
+            rzalloc_array(mem_ctx, BITSET_WORD, BITSET_WORDS(max_components));
+      }
+      used = used_components[buffer];
+
+      for (unsigned word = start_word; word <= end_word; word++) {
+         unsigned start_range = 0;
+         unsigned end_range = BITSET_WORDBITS - 1;
+
+         if (word == start_word)
+            start_range = first_component % BITSET_WORDBITS;
+
+         if (word == end_word)
+            end_range = last_component % BITSET_WORDBITS;
+
+         if (used[word] & BITSET_RANGE(start_range, end_range)) {
+            linker_error(prog,
+                         "variable '%s', xfb_offset (%d) is causing aliasing.",
+                         this->orig_name, xfb_offset * 4);
+            return false;
+         }
+         used[word] |= BITSET_RANGE(start_range, end_range);
+      }
+
       while (num_components > 0) {
          unsigned output_size = MIN2(num_components, 4 - location_frac);
          assert((info->NumOutputs == 0 && max_outputs == 0) ||
@@ -1245,28 +1313,6 @@ tfeedback_decl::store(struct gl_context *ctx, struct gl_shader_program *prog,
       }
    } else {
       info->Buffers[buffer].Stride = xfb_offset;
-   }
-
-   /* From GL_EXT_transform_feedback:
-    *   A program will fail to link if:
-    *
-    *     * the total number of components to capture is greater than
-    *       the constant MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS_EXT
-    *       and the buffer mode is INTERLEAVED_ATTRIBS_EXT.
-    *
-    * From GL_ARB_enhanced_layouts:
-    *
-    *   "The resulting stride (implicit or explicit) must be less than or
-    *   equal to the implementation-dependent constant
-    *   gl_MaxTransformFeedbackInterleavedComponents."
-    */
-   if ((prog->TransformFeedback.BufferMode == GL_INTERLEAVED_ATTRIBS ||
-        has_xfb_qualifiers) &&
-       info->Buffers[buffer].Stride >
-       ctx->Const.MaxTransformFeedbackInterleavedComponents) {
-      linker_error(prog, "The MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS "
-                   "limit has been exceeded.");
-      return false;
    }
 
  store_varying:
@@ -1389,7 +1435,8 @@ cmp_xfb_offset(const void * x_generic, const void * y_generic)
 static bool
 store_tfeedback_info(struct gl_context *ctx, struct gl_shader_program *prog,
                      unsigned num_tfeedback_decls,
-                     tfeedback_decl *tfeedback_decls, bool has_xfb_qualifiers)
+                     tfeedback_decl *tfeedback_decls, bool has_xfb_qualifiers,
+                     const void *mem_ctx)
 {
    if (!prog->last_vert_prog)
       return true;
@@ -1431,6 +1478,7 @@ store_tfeedback_info(struct gl_context *ctx, struct gl_shader_program *prog,
 
    unsigned num_buffers = 0;
    unsigned buffers = 0;
+   BITSET_WORD *used_components[MAX_FEEDBACK_BUFFERS] = {};
 
    if (!has_xfb_qualifiers && separate_attribs_mode) {
       /* GL_SEPARATE_ATTRIBS */
@@ -1438,7 +1486,8 @@ store_tfeedback_info(struct gl_context *ctx, struct gl_shader_program *prog,
          if (!tfeedback_decls[i].store(ctx, prog,
                                        xfb_prog->sh.LinkedTransformFeedback,
                                        num_buffers, num_buffers, num_outputs,
-                                       NULL, has_xfb_qualifiers))
+                                       used_components, NULL,
+                                       has_xfb_qualifiers, mem_ctx))
             return false;
 
          buffers |= 1 << num_buffers;
@@ -1475,7 +1524,8 @@ store_tfeedback_info(struct gl_context *ctx, struct gl_shader_program *prog,
             if (!tfeedback_decls[i].store(ctx, prog,
                                           xfb_prog->sh.LinkedTransformFeedback,
                                           buffer, num_buffers, num_outputs,
-                                          explicit_stride, has_xfb_qualifiers))
+                                          used_components, explicit_stride,
+                                          has_xfb_qualifiers, mem_ctx))
                return false;
             num_buffers++;
             buffer_stream_id = -1;
@@ -1516,7 +1566,8 @@ store_tfeedback_info(struct gl_context *ctx, struct gl_shader_program *prog,
          if (!tfeedback_decls[i].store(ctx, prog,
                                        xfb_prog->sh.LinkedTransformFeedback,
                                        buffer, num_buffers, num_outputs,
-                                       explicit_stride, has_xfb_qualifiers))
+                                       used_components, explicit_stride,
+                                       has_xfb_qualifiers, mem_ctx))
             return false;
       }
    }
@@ -3002,7 +3053,7 @@ link_varyings(struct gl_shader_program *prog, unsigned first, unsigned last,
    }
 
    if (!store_tfeedback_info(ctx, prog, num_tfeedback_decls, tfeedback_decls,
-                             has_xfb_qualifiers))
+                             has_xfb_qualifiers, mem_ctx))
       return false;
 
    return true;

@@ -197,7 +197,7 @@ lower_locals_to_regs_block(nir_block *block,
 
          b->cursor = nir_before_instr(&intrin->instr);
 
-         nir_alu_instr *mov = nir_alu_instr_create(b->shader, nir_op_imov);
+         nir_alu_instr *mov = nir_alu_instr_create(b->shader, nir_op_mov);
          mov->src[0].src = get_deref_reg_src(deref, state);
          mov->dest.write_mask = (1 << intrin->num_components) - 1;
          if (intrin->dest.is_ssa) {
@@ -225,7 +225,7 @@ lower_locals_to_regs_block(nir_block *block,
 
          nir_src reg_src = get_deref_reg_src(deref, state);
 
-         nir_alu_instr *mov = nir_alu_instr_create(b->shader, nir_op_imov);
+         nir_alu_instr *mov = nir_alu_instr_create(b->shader, nir_op_mov);
          nir_src_copy(&mov->src[0].src, &intrin->src[1], mov);
          mov->dest.write_mask = nir_intrinsic_write_mask(intrin);
          mov->dest.dest.is_ssa = false;

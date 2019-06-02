@@ -112,6 +112,15 @@ gather_intrinsic_load_deref_info(const nir_shader *nir,
 	}
 }
 
+static uint32_t
+widen_writemask(uint32_t wrmask)
+{
+	uint32_t new_wrmask = 0;
+	for(unsigned i = 0; i < 4; i++)
+		new_wrmask |= (wrmask & (1 << i) ? 0x3 : 0x0) << (i * 2);
+	return new_wrmask;
+}
+
 static void
 set_output_usage_mask(const nir_shader *nir, const nir_intrinsic_instr *instr,
 		      uint8_t *output_usage_mask)
@@ -119,7 +128,7 @@ set_output_usage_mask(const nir_shader *nir, const nir_intrinsic_instr *instr,
 	nir_deref_instr *deref_instr =
 		nir_instr_as_deref(instr->src[0].ssa->parent_instr);
 	nir_variable *var = nir_deref_instr_get_variable(deref_instr);
-	unsigned attrib_count = glsl_count_attribute_slots(var->type, false);
+	unsigned attrib_count = glsl_count_attribute_slots(deref_instr->type, false);
 	unsigned idx = var->data.location;
 	unsigned comp = var->data.location_frac;
 	unsigned const_offset = 0;
@@ -127,15 +136,19 @@ set_output_usage_mask(const nir_shader *nir, const nir_intrinsic_instr *instr,
 	get_deref_offset(deref_instr, &const_offset);
 
 	if (var->data.compact) {
+		assert(!glsl_type_is_64bit(deref_instr->type));
 		const_offset += comp;
 		output_usage_mask[idx + const_offset / 4] |= 1 << (const_offset % 4);
 		return;
 	}
 
-	for (unsigned i = 0; i < attrib_count; i++) {
+	uint32_t wrmask = nir_intrinsic_write_mask(instr);
+	if (glsl_type_is_64bit(deref_instr->type))
+		wrmask = widen_writemask(wrmask);
+
+	for (unsigned i = 0; i < attrib_count; i++)
 		output_usage_mask[idx + i + const_offset] |=
-			instr->const_index[0] << comp;
-	}
+			((wrmask >> (i * 4)) & 0xf) << comp;
 }
 
 static void

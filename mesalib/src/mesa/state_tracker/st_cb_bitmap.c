@@ -304,8 +304,7 @@ draw_bitmap_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
        * it up into chunks.
        */
       GLuint MAYBE_UNUSED maxSize =
-         1 << (pipe->screen->get_param(pipe->screen,
-                                       PIPE_CAP_MAX_TEXTURE_2D_LEVELS) - 1);
+         pipe->screen->get_param(pipe->screen, PIPE_CAP_MAX_TEXTURE_2D_SIZE);
       assert(width <= (GLsizei) maxSize);
       assert(height <= (GLsizei) maxSize);
    }

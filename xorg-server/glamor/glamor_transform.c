@@ -158,7 +158,7 @@ glamor_set_solid(PixmapPtr      pixmap,
             return FALSE;
         }
     }
-    glamor_set_color(pixmap, gc->fgPixel, uniform);
+    glamor_set_color(pixmap, pixel, uniform);
 
     return TRUE;
 }

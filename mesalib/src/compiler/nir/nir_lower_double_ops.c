@@ -142,8 +142,8 @@ lower_rcp(nir_builder *b, nir_ssa_def *src)
     * See https://en.wikipedia.org/wiki/Division_algorithm for more details.
     */
 
-   ra = nir_ffma(b, ra, nir_ffma(b, ra, src, nir_imm_double(b, -1)), ra);
-   ra = nir_ffma(b, ra, nir_ffma(b, ra, src, nir_imm_double(b, -1)), ra);
+   ra = nir_ffma(b, nir_fneg(b, ra), nir_ffma(b, ra, src, nir_imm_double(b, -1)), ra);
+   ra = nir_ffma(b, nir_fneg(b, ra), nir_ffma(b, ra, src, nir_imm_double(b, -1)), ra);
 
    return fix_inv_result(b, ra, src, new_exp);
 }
@@ -550,6 +550,9 @@ lower_doubles_instr_to_soft(nir_builder *b, nir_alu_instr *instr,
    case nir_op_ffma:
       name = "__ffma64";
       break;
+   case nir_op_fsat:
+      name = "__fsat64";
+      break;
    default:
       return false;
    }
@@ -578,7 +581,7 @@ lower_doubles_instr_to_soft(nir_builder *b, nir_alu_instr *instr,
    assert(nir_op_infos[instr->op].num_inputs + 1 == func->num_params);
    for (unsigned i = 0; i < nir_op_infos[instr->op].num_inputs; i++) {
       assert(i + 1 < ARRAY_SIZE(params));
-      params[i + 1] = nir_imov_alu(b, instr->src[i], 1);
+      params[i + 1] = nir_mov_alu(b, instr->src[i], 1);
    }
 
    nir_inline_function_impl(b, func->impl, params);
@@ -630,8 +633,8 @@ lower_doubles_instr(nir_builder *b, nir_alu_instr *instr,
 
    b->cursor = nir_before_instr(&instr->instr);
 
-   nir_ssa_def *src = nir_fmov_alu(b, instr->src[0],
-                                   instr->dest.dest.ssa.num_components);
+   nir_ssa_def *src = nir_mov_alu(b, instr->src[0],
+                                  instr->dest.dest.ssa.num_components);
 
    nir_ssa_def *result;
 
@@ -662,8 +665,8 @@ lower_doubles_instr(nir_builder *b, nir_alu_instr *instr,
       break;
 
    case nir_op_fmod: {
-      nir_ssa_def *src1 = nir_fmov_alu(b, instr->src[1],
-                                       instr->dest.dest.ssa.num_components);
+      nir_ssa_def *src1 = nir_mov_alu(b, instr->src[1],
+                                      instr->dest.dest.ssa.num_components);
       result = lower_mod(b, src, src1);
    }
       break;

@@ -2376,7 +2376,8 @@ RecordDisableContext(RecordContextPtr pContext)
      * where all the disabled contexts are
      */
     i = RecordFindContextOnAllContexts(pContext);
-    assert((i != -1) && (i < numEnabledContexts));
+    assert(i != -1);
+    assert(i < numEnabledContexts);
     if (i != (numEnabledContexts - 1)) {
         ppAllContexts[i] = ppAllContexts[numEnabledContexts - 1];
         ppAllContexts[numEnabledContexts - 1] = pContext;

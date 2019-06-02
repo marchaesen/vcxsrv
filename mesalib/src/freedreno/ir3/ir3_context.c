@@ -24,8 +24,6 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
-#include "util/u_math.h"
-
 #include "ir3_compiler.h"
 #include "ir3_context.h"
 #include "ir3_image.h"
@@ -101,69 +99,7 @@ ir3_context_init(struct ir3_compiler *compiler,
 		nir_print_shader(ctx->s, stderr);
 	}
 
-	ir3_nir_scan_driver_consts(ctx->s, &so->const_layout);
-
-	so->num_uniforms = ctx->s->num_uniforms;
-	so->num_ubos = ctx->s->info.num_ubos;
-
 	ir3_ibo_mapping_init(&so->image_mapping, ctx->s->info.num_textures);
-
-	/* Layout of constant registers, each section aligned to vec4.  Note
-	 * that pointer size (ubo, etc) changes depending on generation.
-	 *
-	 *    user consts
-	 *    UBO addresses
-	 *    SSBO sizes
-	 *    if (vertex shader) {
-	 *        driver params (IR3_DP_*)
-	 *        if (stream_output.num_outputs > 0)
-	 *           stream-out addresses
-	 *    }
-	 *    immediates
-	 *
-	 * Immediates go last mostly because they are inserted in the CP pass
-	 * after the nir -> ir3 frontend.
-	 */
-	unsigned constoff = align(ctx->so->shader->ubo_state.size / 16, 4);
-	unsigned ptrsz = ir3_pointer_size(ctx);
-
-	memset(&so->constbase, ~0, sizeof(so->constbase));
-
-	if (so->num_ubos > 0) {
-		so->constbase.ubo = constoff;
-		constoff += align(ctx->s->info.num_ubos * ptrsz, 4) / 4;
-	}
-
-	if (so->const_layout.ssbo_size.count > 0) {
-		unsigned cnt = so->const_layout.ssbo_size.count;
-		so->constbase.ssbo_sizes = constoff;
-		constoff += align(cnt, 4) / 4;
-	}
-
-	if (so->const_layout.image_dims.count > 0) {
-		unsigned cnt = so->const_layout.image_dims.count;
-		so->constbase.image_dims = constoff;
-		constoff += align(cnt, 4) / 4;
-	}
-
-	unsigned num_driver_params = 0;
-	if (so->type == MESA_SHADER_VERTEX) {
-		num_driver_params = IR3_DP_VS_COUNT;
-	} else if (so->type == MESA_SHADER_COMPUTE) {
-		num_driver_params = IR3_DP_CS_COUNT;
-	}
-
-	so->constbase.driver_param = constoff;
-	constoff += align(num_driver_params, 4) / 4;
-
-	if ((so->type == MESA_SHADER_VERTEX) &&
-			(compiler->gpu_id < 500) &&
-			so->shader->stream_output.num_outputs > 0) {
-		so->constbase.tfbo = constoff;
-		constoff += align(IR3_MAX_SO_BUFFERS * ptrsz, 4) / 4;
-	}
-
-	so->constbase.immediate = constoff;
 
 	return ctx;
 }

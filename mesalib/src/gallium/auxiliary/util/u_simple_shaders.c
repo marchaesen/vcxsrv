@@ -117,8 +117,8 @@ util_make_vertex_passthrough_shader_with_so(struct pipe_context *pipe,
 
 void *util_make_layered_clear_vertex_shader(struct pipe_context *pipe)
 {
-   const unsigned semantic_names[] = {TGSI_SEMANTIC_POSITION,
-                                      TGSI_SEMANTIC_GENERIC};
+   const enum tgsi_semantic semantic_names[] = {TGSI_SEMANTIC_POSITION,
+                                                TGSI_SEMANTIC_GENERIC};
    const unsigned semantic_indices[] = {0, 0};
 
    return util_make_vertex_passthrough_shader_with_so(pipe, 2, semantic_names,

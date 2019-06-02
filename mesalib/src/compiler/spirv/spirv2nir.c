@@ -74,10 +74,10 @@ int main(int argc, char **argv)
 
    struct spirv_to_nir_options spirv_opts = {};
 
-   nir_function *func = spirv_to_nir(map, word_count, NULL, 0,
-                                     MESA_SHADER_FRAGMENT, "main",
-                                     &spirv_opts, NULL);
-   nir_print_shader(func->shader, stderr);
+   nir_shader *nir = spirv_to_nir(map, word_count, NULL, 0,
+                                  MESA_SHADER_FRAGMENT, "main",
+                                  &spirv_opts, NULL);
+   nir_print_shader(nir, stderr);
 
    return 0;
 }

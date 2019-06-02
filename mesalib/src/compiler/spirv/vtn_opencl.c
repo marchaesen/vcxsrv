@@ -98,7 +98,7 @@ nir_alu_op_for_opencl_opcode(struct vtn_builder *b, enum OpenCLstd opcode)
    case USub_sat: return nir_op_usub_sat;
    case Trunc: return nir_op_ftrunc;
    /* uhm... */
-   case UAbs: return nir_op_imov;
+   case UAbs: return nir_op_mov;
    default:
       vtn_fail("No NIR equivalent");
    }
@@ -182,6 +182,55 @@ handle_special(struct vtn_builder *b, enum OpenCLstd opcode, unsigned num_srcs,
    }
 }
 
+static void
+_handle_v_load_store(struct vtn_builder *b, enum OpenCLstd opcode,
+                     const uint32_t *w, unsigned count, bool load)
+{
+   struct vtn_type *type;
+   if (load)
+      type = vtn_value(b, w[1], vtn_value_type_type)->type;
+   else
+      type = vtn_untyped_value(b, w[5])->type;
+   unsigned a = load ? 0 : 1;
+
+   const struct glsl_type *dest_type = type->type;
+   unsigned components = glsl_get_vector_elements(dest_type);
+   unsigned stride = components * glsl_get_bit_size(dest_type) / 8;
+
+   nir_ssa_def *offset = vtn_ssa_value(b, w[5 + a])->def;
+   struct vtn_value *p = vtn_value(b, w[6 + a], vtn_value_type_pointer);
+
+   nir_deref_instr *deref = vtn_pointer_to_deref(b, p->pointer);
+
+   /* 1. cast to vec type with adjusted stride */
+   deref = nir_build_deref_cast(&b->nb, &deref->dest.ssa, deref->mode,
+                                dest_type, stride);
+   /* 2. deref ptr_as_array */
+   deref = nir_build_deref_ptr_as_array(&b->nb, deref, offset);
+
+   if (load) {
+      struct vtn_ssa_value *val = vtn_local_load(b, deref, p->type->access);
+      vtn_push_ssa(b, w[2], type, val);
+   } else {
+      struct vtn_ssa_value *val = vtn_ssa_value(b, w[5]);
+      vtn_local_store(b, val, deref, p->type->access);
+   }
+}
+
+static void
+vtn_handle_opencl_vload(struct vtn_builder *b, enum OpenCLstd opcode,
+                        const uint32_t *w, unsigned count)
+{
+   _handle_v_load_store(b, opcode, w, count, true);
+}
+
+static void
+vtn_handle_opencl_vstore(struct vtn_builder *b, enum OpenCLstd opcode,
+                         const uint32_t *w, unsigned count)
+{
+   _handle_v_load_store(b, opcode, w, count, false);
+}
+
 static nir_ssa_def *
 handle_printf(struct vtn_builder *b, enum OpenCLstd opcode, unsigned num_srcs,
               nir_ssa_def **srcs, const struct glsl_type *dest_type)
@@ -261,6 +310,12 @@ vtn_handle_opencl_instruction(struct vtn_builder *b, uint32_t ext_opcode,
    case S_Upsample:
    case U_Upsample:
       handle_instr(b, ext_opcode, w, count, handle_special);
+      return true;
+   case Vloadn:
+      vtn_handle_opencl_vload(b, ext_opcode, w, count);
+      return true;
+   case Vstoren:
+      vtn_handle_opencl_vstore(b, ext_opcode, w, count);
       return true;
    case Printf:
       handle_instr(b, ext_opcode, w, count, handle_printf);

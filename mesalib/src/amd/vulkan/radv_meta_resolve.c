@@ -331,6 +331,7 @@ enum radv_resolve_method {
 };
 
 static void radv_pick_resolve_method_images(struct radv_image *src_image,
+					    VkFormat src_format,
 					    struct radv_image *dest_image,
 					    VkImageLayout dest_image_layout,
 					    struct radv_cmd_buffer *cmd_buffer,
@@ -341,10 +342,10 @@ static void radv_pick_resolve_method_images(struct radv_image *src_image,
 	                                                   cmd_buffer->queue_family_index,
 	                                                   cmd_buffer->queue_family_index);
 
-	if (src_image->vk_format == VK_FORMAT_R16G16_UNORM ||
-	    src_image->vk_format == VK_FORMAT_R16G16_SNORM)
+	if (src_format == VK_FORMAT_R16G16_UNORM ||
+	    src_format == VK_FORMAT_R16G16_SNORM)
 		*method = RESOLVE_COMPUTE;
-	else if (vk_format_is_int(src_image->vk_format))
+	else if (vk_format_is_int(src_format))
 		*method = RESOLVE_COMPUTE;
 	else if (src_image->info.array_size > 1 ||
 		 dest_image->info.array_size > 1)
@@ -352,7 +353,8 @@ static void radv_pick_resolve_method_images(struct radv_image *src_image,
 	
 	if (radv_layout_dcc_compressed(dest_image, dest_image_layout, queue_mask)) {
 		*method = RESOLVE_FRAGMENT;
-	} else if (dest_image->surface.micro_tile_mode != src_image->surface.micro_tile_mode) {
+	} else if (dest_image->planes[0].surface.micro_tile_mode !=
+	           src_image->planes[0].surface.micro_tile_mode) {
 		*method = RESOLVE_COMPUTE;
 	}
 }
@@ -421,9 +423,9 @@ void radv_CmdResolveImage(
 	} else
 		resolve_method = RESOLVE_COMPUTE;
 
-	radv_pick_resolve_method_images(src_image, dest_image,
-					dest_image_layout, cmd_buffer,
-					&resolve_method);
+	radv_pick_resolve_method_images(src_image, src_image->vk_format,
+					dest_image, dest_image_layout,
+					cmd_buffer, &resolve_method);
 
 	if (resolve_method == RESOLVE_FRAGMENT) {
 		radv_meta_resolve_fragment_image(cmd_buffer,
@@ -438,8 +440,10 @@ void radv_CmdResolveImage(
 	if (resolve_method == RESOLVE_COMPUTE) {
 		radv_meta_resolve_compute_image(cmd_buffer,
 						src_image,
+						src_image->vk_format,
 						src_image_layout,
 						dest_image,
+						dest_image->vk_format,
 						dest_image_layout,
 						region_count, regions);
 		return;
@@ -617,15 +621,6 @@ radv_cmd_buffer_resolve_subpass(struct radv_cmd_buffer *cmd_buffer)
 	struct radv_meta_saved_state saved_state;
 	enum radv_resolve_method resolve_method = RESOLVE_HW;
 
-	/* FINISHME(perf): Skip clears for resolve attachments.
-	 *
-	 * From the Vulkan 1.0 spec:
-	 *
-	 *    If the first use of an attachment in a render pass is as a resolve
-	 *    attachment, then the loadOp is effectively ignored as the resolve is
-	 *    guaranteed to overwrite all pixels in the render area.
-	 */
-
 	if (!subpass->has_resolve)
 		return;
 
@@ -636,10 +631,17 @@ radv_cmd_buffer_resolve_subpass(struct radv_cmd_buffer *cmd_buffer)
 		if (dest_att.attachment == VK_ATTACHMENT_UNUSED)
 			continue;
 
-		struct radv_image *dst_img = cmd_buffer->state.framebuffer->attachments[dest_att.attachment].attachment->image;
-		struct radv_image *src_img = cmd_buffer->state.framebuffer->attachments[src_att.attachment].attachment->image;
+		/* Make sure to not clear color attachments after resolves. */
+		cmd_buffer->state.attachments[dest_att.attachment].pending_clear_aspects = 0;
 
-		radv_pick_resolve_method_images(src_img, dst_img, dest_att.layout, cmd_buffer, &resolve_method);
+		struct radv_image *dst_img = cmd_buffer->state.framebuffer->attachments[dest_att.attachment].attachment->image;
+		struct radv_image_view *src_iview= cmd_buffer->state.framebuffer->attachments[src_att.attachment].attachment;
+		struct radv_image *src_img = src_iview->image;
+
+		radv_pick_resolve_method_images(src_img, src_iview->vk_format,
+						dst_img, dest_att.layout,
+						cmd_buffer, &resolve_method);
+
 		if (resolve_method == RESOLVE_FRAGMENT) {
 			break;
 		}
@@ -663,7 +665,8 @@ radv_cmd_buffer_resolve_subpass(struct radv_cmd_buffer *cmd_buffer)
 		if (dest_att.attachment == VK_ATTACHMENT_UNUSED)
 			continue;
 
-		struct radv_image *dst_img = cmd_buffer->state.framebuffer->attachments[dest_att.attachment].attachment->image;
+		struct radv_image_view *dest_iview = cmd_buffer->state.framebuffer->attachments[dest_att.attachment].attachment;
+		struct radv_image *dst_img = dest_iview->image;
 
 		if (radv_image_has_dcc(dst_img)) {
 			radv_initialize_dcc(cmd_buffer, dst_img, 0xffffffff);
@@ -678,19 +681,20 @@ radv_cmd_buffer_resolve_subpass(struct radv_cmd_buffer *cmd_buffer)
 
 		radv_cmd_buffer_set_subpass(cmd_buffer, &resolve_subpass);
 
-		VkResult ret = build_resolve_pipeline(cmd_buffer->device, radv_format_meta_fs_key(dst_img->vk_format));
+		VkResult ret = build_resolve_pipeline(cmd_buffer->device, radv_format_meta_fs_key(dest_iview->vk_format));
 		if (ret != VK_SUCCESS) {
 			cmd_buffer->record_result = ret;
 			continue;
 		}
 
 		emit_resolve(cmd_buffer,
-			     dst_img->vk_format,
+			     dest_iview->vk_format,
 			     &(VkOffset2D) { 0, 0 },
 			     &(VkExtent2D) { fb->width, fb->height });
 	}
 
-	cmd_buffer->state.subpass = subpass;
+	radv_cmd_buffer_set_subpass(cmd_buffer, subpass);
+
 	radv_meta_restore(&saved_state, cmd_buffer);
 }
 

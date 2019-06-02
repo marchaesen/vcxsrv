@@ -52,6 +52,11 @@ from The Open Group.
 #include <sys/filio.h>
 #endif
 
+/* Needed for FIONREAD on Cygwin */
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif
+
 /* Needed for ioctl() on Solaris */
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -60,7 +65,9 @@ from The Open Group.
 #ifdef XTHREADS
 #include "locking.h"
 
+#ifdef HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
+#endif
 
 /* these pointers get initialized by XInitThreads */
 LockInfoPtr _Xglobal_lock = NULL;

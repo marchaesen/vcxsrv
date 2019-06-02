@@ -288,10 +288,10 @@ void ac_shader_binary_read_config(struct ac_shader_binary *binary,
 			}
 			break;
 		}
-
-		if (!conf->spi_ps_input_addr)
-			conf->spi_ps_input_addr = conf->spi_ps_input_ena;
 	}
+
+	if (!conf->spi_ps_input_addr)
+		conf->spi_ps_input_addr = conf->spi_ps_input_ena;
 
 	if (really_needs_scratch) {
 		/* sgprs spills aren't spilling */

@@ -54,7 +54,8 @@ The X server may also be started directly by the user, though this
 method is usually reserved for testing and is not recommended for
 normal operation.  On some platforms, the user must have special
 permission to start the X server, often because access to certain
-devices (e.g. \fI/dev/mouse\fP) is restricted.
+devices (e.g. \fI/dev/mouse\fP) is restricted.  Where applicable, the
+X server notifies systemd when it is ready to process requests.
 .PP
 When the X server starts up, it typically takes over the display.  If
 you are running on a workstation whose console is the display, you may

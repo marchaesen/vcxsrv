@@ -262,7 +262,7 @@ get_tcs_num_patches(struct radv_shader_context *ctx)
 	 *
 	 * Test: dEQP-VK.tessellation.shader_input_output.barrier
 	 */
-	if (ctx->options->chip_class >= CIK && ctx->options->family != CHIP_STONEY)
+	if (ctx->options->chip_class >= GFX7 && ctx->options->family != CHIP_STONEY)
 		hardware_lds_size = 65536;
 
 	num_patches = MIN2(num_patches, hardware_lds_size / (input_patch_size + output_patch_size));
@@ -273,8 +273,8 @@ get_tcs_num_patches(struct radv_shader_context *ctx)
 	 */
 	num_patches = MIN2(num_patches, 40);
 
-	/* SI bug workaround - limit LS-HS threadgroups to only one wave. */
-	if (ctx->options->chip_class == SI) {
+	/* GFX6 bug workaround - limit LS-HS threadgroups to only one wave. */
+	if (ctx->options->chip_class == GFX6) {
 		unsigned one_wave = 64 / MAX2(num_tcs_input_cp, num_tcs_output_cp);
 		num_patches = MIN2(num_patches, one_wave);
 	}
@@ -1311,7 +1311,7 @@ radv_load_resource(struct ac_shader_abi *abi, LLVMValueRef index,
 		offset = ac_build_imad(&ctx->ac, index, stride, offset);
 	}
 
-	desc_ptr = ac_build_gep0(&ctx->ac, desc_ptr, offset);
+	desc_ptr = LLVMBuildGEP(ctx->ac.builder, desc_ptr, &offset, 1, "");
 	desc_ptr = ac_cast_ptr(&ctx->ac, desc_ptr, ctx->ac.v4i32);
 	LLVMSetMetadata(desc_ptr, ctx->ac.uniform_md_kind, ctx->ac.empty_md);
 
@@ -1755,7 +1755,8 @@ static LLVMValueRef load_sample_position(struct ac_shader_abi *abi,
 	struct radv_shader_context *ctx = radv_shader_context_from_abi(abi);
 
 	LLVMValueRef result;
-	LLVMValueRef ptr = ac_build_gep0(&ctx->ac, ctx->ring_offsets, LLVMConstInt(ctx->ac.i32, RING_PS_SAMPLE_POSITIONS, false));
+	LLVMValueRef index = LLVMConstInt(ctx->ac.i32, RING_PS_SAMPLE_POSITIONS, false);
+	LLVMValueRef ptr = LLVMBuildGEP(ctx->ac.builder, ctx->ring_offsets, &index, 1, "");
 
 	ptr = LLVMBuildBitCast(ctx->ac.builder, ptr,
 			       ac_array_in_const_addr_space(ctx->ac.v2f32), "");
@@ -1978,14 +1979,22 @@ static LLVMValueRef radv_get_sampler_desc(struct ac_shader_abi *abi,
 		break;
 	case AC_DESC_SAMPLER:
 		type = ctx->ac.v4i32;
-		if (binding->type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
-			offset += 64;
+		if (binding->type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
+			offset += radv_combined_image_descriptor_sampler_offset(binding);
+		}
 
 		type_size = 16;
 		break;
 	case AC_DESC_BUFFER:
 		type = ctx->ac.v4i32;
 		type_size = 16;
+		break;
+	case AC_DESC_PLANE_0:
+	case AC_DESC_PLANE_1:
+	case AC_DESC_PLANE_2:
+		type = ctx->ac.v8i32;
+		type_size = 32;
+		offset += 32 * (desc_type - AC_DESC_PLANE_0);
 		break;
 	default:
 		unreachable("invalid desc_type\n");
@@ -2011,16 +2020,35 @@ static LLVMValueRef radv_get_sampler_desc(struct ac_shader_abi *abi,
 
 	assert(stride % type_size == 0);
 
-	if (!index)
-		index = ctx->ac.i32_0;
+	LLVMValueRef adjusted_index = index;
+	if (!adjusted_index)
+		adjusted_index = ctx->ac.i32_0;
 
-	index = LLVMBuildMul(builder, index, LLVMConstInt(ctx->ac.i32, stride / type_size, 0), "");
+	adjusted_index = LLVMBuildMul(builder, adjusted_index, LLVMConstInt(ctx->ac.i32, stride / type_size, 0), "");
 
-	list = ac_build_gep0(&ctx->ac, list, LLVMConstInt(ctx->ac.i32, offset, 0));
+	LLVMValueRef val_offset = LLVMConstInt(ctx->ac.i32, offset, 0);
+	list = LLVMBuildGEP(builder, list, &val_offset, 1, "");
 	list = LLVMBuildPointerCast(builder, list,
 				    ac_array_in_const32_addr_space(type), "");
 
-	return ac_build_load_to_sgpr(&ctx->ac, list, index);
+	LLVMValueRef descriptor = ac_build_load_to_sgpr(&ctx->ac, list, adjusted_index);
+
+	/* 3 plane formats always have same size and format for plane 1 & 2, so
+	 * use the tail from plane 1 so that we can store only the first 16 bytes
+	 * of the last plane. */
+	if (desc_type == AC_DESC_PLANE_2) {
+		LLVMValueRef descriptor2 = radv_get_sampler_desc(abi, descriptor_set, base_index, constant_index, index, AC_DESC_PLANE_1,image, write, bindless);
+
+		LLVMValueRef components[8];
+		for (unsigned i = 0; i < 4; ++i)
+			components[i] = ac_llvm_extract_elem(&ctx->ac, descriptor, i);
+
+		for (unsigned i = 4; i < 8; ++i)
+			components[i] = ac_llvm_extract_elem(&ctx->ac, descriptor2, i);
+		descriptor = ac_build_gather_values(&ctx->ac, components, 8);
+	}
+
+	return descriptor;
 }
 
 /* For 2_10_10_10 formats the alpha is handled as unsigned by pre-vega HW.
@@ -3248,7 +3276,7 @@ write_tess_factors(struct radv_shader_context *ctx)
 				  LLVMConstInt(ctx->ac.i32, 4 * stride, false), "");
 	unsigned tf_offset = 0;
 
-	if (ctx->options->chip_class <= VI) {
+	if (ctx->options->chip_class <= GFX8) {
 		ac_nir_build_if(&inner_if_ctx, ctx,
 		                LLVMBuildICmp(ctx->ac.builder, LLVMIntEQ,
 		                              rel_patch_id, ctx->ac.i32_0, ""));
@@ -3490,7 +3518,7 @@ ac_nir_eliminate_const_vs_outputs(struct radv_shader_context *ctx)
 static void
 ac_setup_rings(struct radv_shader_context *ctx)
 {
-	if (ctx->options->chip_class <= VI &&
+	if (ctx->options->chip_class <= GFX8 &&
 	    (ctx->stage == MESA_SHADER_GEOMETRY ||
 	     ctx->options->key.vs.as_es || ctx->options->key.tes.as_es)) {
 		unsigned ring = ctx->stage == MESA_SHADER_GEOMETRY ? RING_ESGS_GS
@@ -3540,7 +3568,7 @@ ac_setup_rings(struct radv_shader_context *ctx)
 
 			stride = 4 * num_components * ctx->gs_max_out_vertices;
 
-			/* Limit on the stride field for <= CIK. */
+			/* Limit on the stride field for <= GFX7. */
 			assert(stride < (1 << 14));
 
 			ring = LLVMBuildBitCast(ctx->ac.builder,
@@ -3588,7 +3616,7 @@ radv_nir_get_max_workgroup_size(enum chip_class chip_class,
 {
 	switch (nir->info.stage) {
 	case MESA_SHADER_TESS_CTRL:
-		return chip_class >= CIK ? 128 : 64;
+		return chip_class >= GFX7 ? 128 : 64;
 	case MESA_SHADER_GEOMETRY:
 		return chip_class >= GFX9 ? 128 : 64;
 	case MESA_SHADER_COMPUTE:
@@ -3679,10 +3707,17 @@ LLVMModuleRef ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm,
 	ctx.abi.clamp_shadow_reference = false;
 	ctx.abi.gfx9_stride_size_workaround = ctx.ac.chip_class == GFX9 && HAVE_LLVM < 0x800;
 
+	/* Because the new raw/struct atomic intrinsics are buggy with LLVM 8,
+	 * we fallback to the old intrinsics for atomic buffer image operations
+	 * and thus we need to apply the indexing workaround...
+	 */
+	ctx.abi.gfx9_stride_size_workaround_for_atomic = ctx.ac.chip_class == GFX9 && HAVE_LLVM < 0x900;
+
 	if (shader_count >= 2)
 		ac_init_exec_full_mask(&ctx.ac);
 
-	if (ctx.ac.chip_class == GFX9 &&
+	if ((ctx.ac.family == CHIP_VEGA10 ||
+	     ctx.ac.family == CHIP_RAVEN) &&
 	    shaders[shader_count - 1]->info.stage == MESA_SHADER_TESS_CTRL)
 		ac_nir_fixup_ls_hs_input_vgprs(&ctx);
 
@@ -3926,7 +3961,7 @@ static void ac_compile_llvm_module(struct ac_llvm_compiler *ac_llvm,
 	 * - Floating-point output modifiers would be ignored by the hw.
 	 * - Some opcodes don't support denormals, such as v_mad_f32. We would
 	 *   have to stop using those.
-	 * - SI & CI would be very slow.
+	 * - GFX6 & GFX7 would be very slow.
 	 */
 	config->float_mode |= V_00B028_FP_64_DENORMS;
 }

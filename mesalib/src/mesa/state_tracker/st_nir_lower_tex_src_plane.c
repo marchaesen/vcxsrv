@@ -33,6 +33,8 @@
 #include "st_nir.h"
 
 typedef struct {
+   struct shader_info *info;
+
    unsigned lower_2plane;
    unsigned lower_3plane;
 
@@ -85,6 +87,8 @@ lower_tex_src_plane_block(lower_tex_src_state *state, nir_block *block)
 
          tex->texture_index = tex->sampler_index =
                state->sampler_map[y_samp][plane[0].i32 - 1];
+
+         state->info->textures_used |= 1u << tex->texture_index;
       }
 
       nir_tex_instr_remove_src(tex, plane_index);
@@ -108,6 +112,7 @@ st_nir_lower_tex_src_plane(struct nir_shader *shader, unsigned free_slots,
 {
    lower_tex_src_state state = {0};
 
+   state.info = &shader->info;
    state.lower_2plane = lower_2plane;
    state.lower_3plane = lower_3plane;
 

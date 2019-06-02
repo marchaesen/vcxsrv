@@ -8,7 +8,7 @@
 <body>
 
 <div class="header">
-  <h1>The Mesa 3D Graphics Library</h1>
+  The Mesa 3D Graphics Library
 </div>
 
 <iframe src="contents.html"></iframe>
@@ -26,12 +26,8 @@
 </p>
 
 <p>
-   More extensive error checking is done when Mesa is compiled with the
-   DEBUG symbol defined.  You'll have to edit the Make-config file and
-   add -DDEBUG to the CFLAGS line for your system configuration.  You may
-   also want to replace any optimization flags with the -g flag so you can
-   use your debugger.  After you've edited Make-config type 'make clean'
-   before recompiling.
+   More extensive error checking is done in DEBUG builds
+   (<code>--buildtype debug</code> for meson, <code>build=debug</code> for scons).
 </p>
 <p>
    In your debugger you can set a breakpoint in _mesa_error() to trap Mesa

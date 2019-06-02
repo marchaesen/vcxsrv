@@ -141,7 +141,8 @@ general_composite_rect  (pixman_implementation_t *imp,
     if ((src_image->common.flags & FAST_PATH_NARROW_FORMAT)		     &&
 	(!mask_image || mask_image->common.flags & FAST_PATH_NARROW_FORMAT)  &&
 	(dest_image->common.flags & FAST_PATH_NARROW_FORMAT)		     &&
-	!(operator_needs_division (op)))
+	!(operator_needs_division (op))                                      &&
+	(dest_image->bits.dither == PIXMAN_DITHER_NONE))
     {
 	width_flag = ITER_NARROW;
 	Bpp = 4;

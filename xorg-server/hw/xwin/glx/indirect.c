@@ -502,8 +502,10 @@ glxWinScreenProbe(ScreenPtr pScreen)
         return NULL;
 
     // Select the native GL implementation (WGL)
-    if (glWinSelectImplementation(1))
+    if (glWinSelectImplementation(1)) {
+        free(screen);
         return NULL;
+    }
 
     // create window class
 #define WIN_GL_TEST_WINDOW_CLASS "XWinGLTest"

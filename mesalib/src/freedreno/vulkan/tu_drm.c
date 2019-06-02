@@ -30,7 +30,7 @@
 #include <sys/ioctl.h>
 #include <xf86drm.h>
 
-#include "drm/msm_drm.h"
+#include "drm-uapi/msm_drm.h"
 
 static int
 tu_drm_get_param(const struct tu_physical_device *dev,

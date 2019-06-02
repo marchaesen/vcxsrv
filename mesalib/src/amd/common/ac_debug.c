@@ -268,7 +268,7 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
 		print_named_value(f, "POLL_INTERVAL", ac_ib_get(ib), 16);
 		break;
 	case PKT3_SURFACE_SYNC:
-		if (ib->chip_class >= CIK) {
+		if (ib->chip_class >= GFX7) {
 			ac_dump_reg(f, ib->chip_class, R_0301F0_CP_COHER_CNTL, ac_ib_get(ib), ~0);
 			ac_dump_reg(f, ib->chip_class, R_0301F4_CP_COHER_SIZE, ac_ib_get(ib), ~0);
 			ac_dump_reg(f, ib->chip_class, R_0301F8_CP_COHER_BASE, ac_ib_get(ib), ~0);

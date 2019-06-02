@@ -217,10 +217,11 @@ get_image_offset(struct ir3_context *ctx, const nir_variable *var,
 	/* to calculate the byte offset (yes, uggg) we need (up to) three
 	 * const values to know the bytes per pixel, and y and z stride:
 	 */
-	unsigned cb = regid(ctx->so->constbase.image_dims, 0) +
-		ctx->so->const_layout.image_dims.off[var->data.driver_location];
+	struct ir3_const_state *const_state = &ctx->so->shader->const_state;
+	unsigned cb = regid(const_state->offsets.image_dims, 0) +
+		const_state->image_dims.off[var->data.driver_location];
 
-	debug_assert(ctx->so->const_layout.image_dims.mask &
+	debug_assert(const_state->image_dims.mask &
 			(1 << var->data.driver_location));
 
 	/* offset = coords.x * bytes_per_pixel: */

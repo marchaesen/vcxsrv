@@ -10,6 +10,7 @@ apt-get install -y \
       ca-certificates \
       curl \
       wget \
+      unzip \
       gnupg \
       software-properties-common
 
@@ -26,12 +27,18 @@ apt-get install -y -t stretch-backports \
       llvm-3.4-dev \
       llvm-3.9-dev \
       libclang-3.9-dev \
+      llvm-4.0-dev \
+      libclang-4.0-dev \
       llvm-5.0-dev \
+      libclang-5.0-dev \
       llvm-6.0-dev \
+      libclang-6.0-dev \
       llvm-7-dev \
+      libclang-7-dev \
+      llvm-8-dev \
+      libclang-8-dev \
       g++ \
-      clang-8 \
-      libclang-7-dev
+      clang-8
 
 # Install remaining packages from Debian buster to get newer versions
 add-apt-repository "deb https://deb.debian.org/debian/ buster main"
@@ -67,6 +74,16 @@ apt-get install -y \
       flex \
       gettext \
       make
+
+# for 64bit windows cross-builds
+apt-get install -y mingw-w64
+
+# for the vulkan overlay layer
+wget https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-linux-Release.zip
+unzip glslang-master-linux-Release.zip bin/glslangValidator
+install -m755 bin/glslangValidator /usr/local/bin/
+rm bin/glslangValidator glslang-master-linux-Release.zip
+
 
 # dependencies where we want a specific version
 export              XORG_RELEASES=https://xorg.freedesktop.org/releases/individual
@@ -170,6 +187,7 @@ apt-get purge -y \
       libtool \
       make \
       curl \
+      unzip \
       wget \
       gnupg \
       software-properties-common

@@ -263,6 +263,15 @@ struct pipe_screen {
 				  unsigned usage);
 
    /**
+    * Get stride and offset for the given pipe resource without the need to get
+    * a winsys_handle.
+    */
+   void (*resource_get_info)(struct pipe_screen *screen,
+                             struct pipe_resource *resource,
+                             unsigned *stride,
+                             unsigned *offset);
+
+   /**
     * Mark the resource as changed so derived internal resources will be
     * recreated on next use.
     *

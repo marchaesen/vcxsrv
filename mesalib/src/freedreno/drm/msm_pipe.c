@@ -48,6 +48,26 @@ static int query_param(struct fd_pipe *pipe, uint32_t param,
 	return 0;
 }
 
+static int query_queue_param(struct fd_pipe *pipe, uint32_t param,
+		uint64_t *value)
+{
+	struct msm_pipe *msm_pipe = to_msm_pipe(pipe);
+	struct drm_msm_submitqueue_query req = {
+			.data = VOID2U64(value),
+			.id = msm_pipe->queue_id,
+			.param = param,
+			.len = sizeof(*value),
+	};
+	int ret;
+
+	ret = drmCommandWriteRead(pipe->dev->fd, DRM_MSM_SUBMITQUEUE_QUERY,
+			&req, sizeof(req));
+	if (ret)
+		return ret;
+
+	return 0;
+}
+
 static int msm_pipe_get_param(struct fd_pipe *pipe,
 		enum fd_param_id param, uint64_t *value)
 {
@@ -60,6 +80,9 @@ static int msm_pipe_get_param(struct fd_pipe *pipe,
 	case FD_GMEM_SIZE:
 		*value = msm_pipe->gmem;
 		return 0;
+	case FD_GMEM_BASE:
+		*value = msm_pipe->gmem_base;
+		return 0;
 	case FD_CHIP_ID:
 		*value = msm_pipe->chip_id;
 		return 0;
@@ -69,6 +92,12 @@ static int msm_pipe_get_param(struct fd_pipe *pipe,
 		return query_param(pipe, MSM_PARAM_TIMESTAMP, value);
 	case FD_NR_RINGS:
 		return query_param(pipe, MSM_PARAM_NR_RINGS, value);
+	case FD_PP_PGTABLE:
+		return query_param(pipe, MSM_PARAM_PP_PGTABLE, value);
+	case FD_CTX_FAULTS:
+		return query_queue_param(pipe, MSM_SUBMITQUEUE_PARAM_FAULTS, value);
+	case FD_GLOBAL_FAULTS:
+		return query_param(pipe, MSM_PARAM_FAULTS, value);
 	default:
 		ERROR_MSG("invalid param id: %d", param);
 		return -1;
@@ -200,6 +229,9 @@ struct fd_pipe * msm_pipe_new(struct fd_device *dev,
 	msm_pipe->gpu_id = get_param(pipe, MSM_PARAM_GPU_ID);
 	msm_pipe->gmem   = get_param(pipe, MSM_PARAM_GMEM_SIZE);
 	msm_pipe->chip_id = get_param(pipe, MSM_PARAM_CHIP_ID);
+
+	if (fd_device_version(pipe->dev) >= FD_VERSION_GMEM_BASE)
+		msm_pipe->gmem_base = get_param(pipe, MSM_PARAM_GMEM_BASE);
 
 	if (! msm_pipe->gpu_id)
 		goto fail;

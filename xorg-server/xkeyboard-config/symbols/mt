@@ -74,3 +74,143 @@ xkb_symbols "us" {
     include "level3(ralt_switch)"
 
 };
+
+// Alternative Maltese keyboard map (US-based layout using AltGr)
+// by Johann A. Briffa (johann.briffa@um.edu.mt)
+
+partial alphanumeric_keys
+xkb_symbols "alt-us" {
+
+    include "us(basic)"
+    include "level3(ralt_switch)"
+
+    name[Group1]="Maltese (US layout with AltGr overrides)";
+
+    // Currency symbols
+    key <AE03>  { [         3,  numbersign,    sterling,     NoSymbol ] };
+    key <AE04>  { [         4,     dollar,     EuroSign,     NoSymbol ] };
+
+    // Maltese characters
+    key <AC05>  { [         g,          G,    gabovedot,    Gabovedot ] };
+    key <AC06>  { [         h,          H,      hstroke,      Hstroke ] };
+    key <AB01>  { [         z,          Z,    zabovedot,    Zabovedot ] };
+    key <AB03>  { [         c,          C,    cabovedot,    Cabovedot ] };
+
+    // Maltese accented vowels
+    key <AD03>  { [         e,          E,       egrave,       Egrave ] };
+    key <AD07>  { [         u,          U,       ugrave,       Ugrave ] };
+    key <AD08>  { [         i,          I,       igrave,       Igrave ] };
+    key <AD09>  { [         o,          O,       ograve,       Ograve ] };
+    key <AC01>  { [         a,          A,       agrave,       Agrave ] };
+
+    // Other accents (dead-key)
+    key <TLDE>  { [     grave,  asciitilde,  dead_grave,   dead_tilde ] };
+    key <AE06>  { [         6, asciicircum,    NoSymbol, dead_circumflex ] };
+    key <AC11>  { [ apostrophe,   quotedbl,  dead_acute, dead_diaeresis ] };
+};
+
+// Alternative Maltese keyboard map (UK-based layout using AltGr)
+// by Johann A. Briffa (johann.briffa@um.edu.mt)
+
+partial alphanumeric_keys
+xkb_symbols "alt-gb" {
+
+    include "gb(basic)"
+    include "level3(ralt_switch)"
+
+    name[Group1]="Maltese (UK layout with AltGr overrides)";
+
+    // Currency symbols
+    key <AE03>  { [         3,   sterling,   numbersign,     NoSymbol ] };
+    key <AE04>  { [         4,     dollar,     EuroSign,     NoSymbol ] };
+
+    // Maltese characters
+    key <AC05>  { [         g,          G,    gabovedot,    Gabovedot ] };
+    key <AC06>  { [         h,          H,      hstroke,      Hstroke ] };
+    key <AB01>  { [         z,          Z,    zabovedot,    Zabovedot ] };
+    key <AB03>  { [         c,          C,    cabovedot,    Cabovedot ] };
+
+    // Maltese accented vowels
+    key <AD03>  { [         e,          E,       egrave,       Egrave ] };
+    key <AD07>  { [         u,          U,       ugrave,       Ugrave ] };
+    key <AD08>  { [         i,          I,       igrave,       Igrave ] };
+    key <AD09>  { [         o,          O,       ograve,       Ograve ] };
+    key <AC01>  { [         a,          A,       agrave,       Agrave ] };
+
+    // Other accents (dead-key)
+    key <TLDE>  { [     grave,     notsign,  dead_grave,     NoSymbol ] };
+    key <AE02>  { [         2,    quotedbl,    NoSymbol, dead_diaeresis ] };
+    key <AE06>  { [         6, asciicircum,    NoSymbol, dead_circumflex ] };
+    key <AC11>  { [ apostrophe,         at,  dead_acute,     NoSymbol ] };
+    key <BKSL>  { [numbersign,  asciitilde,    NoSymbol,   dead_tilde ] };
+};
+
+// Alternative Maltese keyboard map (US-based layout using AltGr)
+// by Johann A. Briffa (johann.briffa@um.edu.mt)
+
+partial alphanumeric_keys
+xkb_symbols "alt-us" {
+
+    include "us(basic)"
+    include "level3(ralt_switch)"
+
+    name[Group1]="Maltese (US layout with AltGr overrides)";
+
+    // Currency symbols
+    key <AE03>  { [         3,  numbersign,    sterling,     NoSymbol ] };
+    key <AE04>  { [         4,     dollar,     EuroSign,     NoSymbol ] };
+
+    // Maltese characters
+    key <AC05>  { [         g,          G,    gabovedot,    Gabovedot ] };
+    key <AC06>  { [         h,          H,      hstroke,      Hstroke ] };
+    key <AB01>  { [         z,          Z,    zabovedot,    Zabovedot ] };
+    key <AB03>  { [         c,          C,    cabovedot,    Cabovedot ] };
+
+    // Maltese accented vowels
+    key <AD03>  { [         e,          E,       egrave,       Egrave ] };
+    key <AD07>  { [         u,          U,       ugrave,       Ugrave ] };
+    key <AD08>  { [         i,          I,       igrave,       Igrave ] };
+    key <AD09>  { [         o,          O,       ograve,       Ograve ] };
+    key <AC01>  { [         a,          A,       agrave,       Agrave ] };
+
+    // Other accents (dead-key)
+    key <TLDE>  { [     grave,  asciitilde,  dead_grave,   dead_tilde ] };
+    key <AE06>  { [         6, asciicircum,    NoSymbol, dead_circumflex ] };
+    key <AC11>  { [ apostrophe,   quotedbl,  dead_acute, dead_diaeresis ] };
+};
+
+// Alternative Maltese keyboard map (UK-based layout using AltGr)
+// by Johann A. Briffa (johann.briffa@um.edu.mt)
+
+partial alphanumeric_keys
+xkb_symbols "alt-gb" {
+
+    include "gb(basic)"
+    include "level3(ralt_switch)"
+
+    name[Group1]="Maltese (UK layout with AltGr overrides)";
+
+    // Currency symbols
+    key <AE03>  { [         3,   sterling,   numbersign,     NoSymbol ] };
+    key <AE04>  { [         4,     dollar,     EuroSign,     NoSymbol ] };
+
+    // Maltese characters
+    key <AC05>  { [         g,          G,    gabovedot,    Gabovedot ] };
+    key <AC06>  { [         h,          H,      hstroke,      Hstroke ] };
+    key <AB01>  { [         z,          Z,    zabovedot,    Zabovedot ] };
+    key <AB03>  { [         c,          C,    cabovedot,    Cabovedot ] };
+
+    // Maltese accented vowels
+    key <AD03>  { [         e,          E,       egrave,       Egrave ] };
+    key <AD07>  { [         u,          U,       ugrave,       Ugrave ] };
+    key <AD08>  { [         i,          I,       igrave,       Igrave ] };
+    key <AD09>  { [         o,          O,       ograve,       Ograve ] };
+    key <AC01>  { [         a,          A,       agrave,       Agrave ] };
+
+    // Other accents (dead-key)
+    key <TLDE>  { [     grave,     notsign,  dead_grave,     NoSymbol ] };
+    key <AE02>  { [         2,    quotedbl,    NoSymbol, dead_diaeresis ] };
+    key <AE06>  { [         6, asciicircum,    NoSymbol, dead_circumflex ] };
+    key <AC11>  { [ apostrophe,         at,  dead_acute,     NoSymbol ] };
+    key <BKSL>  { [numbersign,  asciitilde,    NoSymbol,   dead_tilde ] };
+};

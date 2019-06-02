@@ -34,6 +34,7 @@ extern "C" {
 
 #define OVERLAY_PARAMS                               \
    OVERLAY_PARAM_BOOL(fps)                           \
+   OVERLAY_PARAM_BOOL(frame)                         \
    OVERLAY_PARAM_BOOL(frame_timing)                  \
    OVERLAY_PARAM_BOOL(submit)                        \
    OVERLAY_PARAM_BOOL(draw)                          \
@@ -47,10 +48,26 @@ extern "C" {
    OVERLAY_PARAM_BOOL(pipeline_graphics)             \
    OVERLAY_PARAM_BOOL(pipeline_compute)              \
    OVERLAY_PARAM_BOOL(pipeline_raytracing)           \
+   OVERLAY_PARAM_BOOL(acquire)                       \
    OVERLAY_PARAM_BOOL(acquire_timing)                \
+   OVERLAY_PARAM_BOOL(vertices)                      \
+   OVERLAY_PARAM_BOOL(primitives)                    \
+   OVERLAY_PARAM_BOOL(vert_invocations)              \
+   OVERLAY_PARAM_BOOL(geom_invocations)              \
+   OVERLAY_PARAM_BOOL(geom_primitives)               \
+   OVERLAY_PARAM_BOOL(clip_invocations)              \
+   OVERLAY_PARAM_BOOL(clip_primitives)               \
+   OVERLAY_PARAM_BOOL(frag_invocations)              \
+   OVERLAY_PARAM_BOOL(tess_ctrl_patches)             \
+   OVERLAY_PARAM_BOOL(tess_eval_invocations)         \
+   OVERLAY_PARAM_BOOL(compute_invocations)           \
+   OVERLAY_PARAM_BOOL(gpu_timing)                    \
    OVERLAY_PARAM_CUSTOM(fps_sampling_period)         \
    OVERLAY_PARAM_CUSTOM(output_file)                 \
    OVERLAY_PARAM_CUSTOM(position)                    \
+   OVERLAY_PARAM_CUSTOM(width)                       \
+   OVERLAY_PARAM_CUSTOM(height)                      \
+   OVERLAY_PARAM_CUSTOM(no_display)                  \
    OVERLAY_PARAM_CUSTOM(help)
 
 enum overlay_param_position {
@@ -75,6 +92,9 @@ struct overlay_params {
    FILE *output_file;
    uint32_t fps_sampling_period; /* us */
    bool help;
+   bool no_display;
+   unsigned width;
+   unsigned height;
 };
 
 const extern char *overlay_param_names[];

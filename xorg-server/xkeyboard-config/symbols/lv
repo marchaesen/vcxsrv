@@ -309,7 +309,7 @@ xkb_symbols "modern" {
 	key <AB04> {[ v,		V,		bar,		V			]};
 	key <AB05> {[ w,		W,		backslash,	W			]};
 	key <AB06> {[ f,		F,		period,		F			]};
-	key <AB07> {[ y,		Y,		slash,		Y			]};
+	key <AB07> {[ y,		Y,		U0233,		U0232			]};
 	key <AB08> {[ h,		H,		U1E29,		U1E28			]};
 	key <AB09> {[ comma,		semicolon,	less,		multiply		]};
 	key <AB10> {[ period,		colon,		greater,	division		]};

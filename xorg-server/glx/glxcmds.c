@@ -765,7 +765,7 @@ __glXDisp_WaitGL(__GLXclientState * cl, GLbyte * pc)
         glFinish();
     }
 
-    if (glxc && glxc->drawPriv->waitGL)
+    if (glxc && glxc->drawPriv && glxc->drawPriv->waitGL)
         (*glxc->drawPriv->waitGL) (glxc->drawPriv);
 
     return Success;
@@ -789,7 +789,7 @@ __glXDisp_WaitX(__GLXclientState * cl, GLbyte * pc)
             return error;
     }
 
-    if (glxc && glxc->drawPriv->waitX)
+    if (glxc && glxc->drawPriv && glxc->drawPriv->waitX)
         (*glxc->drawPriv->waitX) (glxc->drawPriv);
 
     return Success;

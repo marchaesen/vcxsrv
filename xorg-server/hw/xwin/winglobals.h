@@ -82,10 +82,6 @@ extern DWORD g_dwCurrentThreadID;
 extern Bool g_fKeyboardHookLL;
 extern Bool g_fButton[3];
 
-#ifdef XWIN_MULTIWINDOWEXTWM
-extern Bool g_fNoConfigureWindow;
-#endif
-
 extern pthread_mutex_t g_pmTerminating;
 
 #endif                          /* WINGLOBALS_H */

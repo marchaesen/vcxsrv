@@ -424,7 +424,7 @@ static void print_instr_cat5(struct disasm_ctx *ctx, instr_t *instr)
 			[opc_op(OPC_SAMGP3)]   = { true,  false, true,  true,  },
 			[opc_op(OPC_DSXPP_1)]  = { true,  false, false, false, },
 			[opc_op(OPC_DSYPP_1)]  = { true,  false, false, false, },
-			[opc_op(OPC_RGETPOS)]  = { false, false, false, false, },
+			[opc_op(OPC_RGETPOS)]  = { true,  false, false, false, },
 			[opc_op(OPC_RGETINFO)] = { false, false, false, false, },
 	};
 	instr_cat5_t *cat5 = &instr->cat5;

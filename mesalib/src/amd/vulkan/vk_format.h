@@ -74,7 +74,12 @@ enum vk_format_layout {
 	/**
 	 * Everything else that doesn't fit in any of the above layouts.
 	 */
-	VK_FORMAT_LAYOUT_OTHER = 9
+	VK_FORMAT_LAYOUT_OTHER = 9,
+
+	/**
+	 * Formats that contain multiple planes.
+	 */
+	VK_FORMAT_LAYOUT_MULTIPLANE = 10,
 };
 
 struct vk_format_block
@@ -133,6 +138,11 @@ struct vk_format_description
 	unsigned char swizzle[4];
 
 	enum vk_format_colorspace colorspace;
+
+	unsigned plane_count:2;
+	unsigned width_divisor:2;
+	unsigned height_divisor:2;
+	VkFormat plane_formats[3];
 };
 
 extern const struct vk_format_description vk_format_description_table[];
@@ -323,6 +333,19 @@ vk_format_is_compressed(VkFormat format)
 	default:
 		return false;
 	}
+}
+
+static inline bool
+vk_format_is_subsampled(VkFormat format)
+{
+	const struct vk_format_description *desc = vk_format_description(format);
+
+	assert(desc);
+	if (!desc) {
+		return false;
+	}
+
+	return desc->layout == VK_FORMAT_LAYOUT_SUBSAMPLED;
 }
 
 static inline bool
@@ -534,5 +557,29 @@ vk_format_get_nr_components(VkFormat format)
 	const struct vk_format_description *desc = vk_format_description(format);
 	return desc->nr_channels;
 }
+
+static inline unsigned
+vk_format_get_plane_count(VkFormat format)
+{
+	const struct vk_format_description *desc = vk_format_description(format);
+
+	return desc->plane_count;
+}
+
+static inline VkFormat
+vk_format_get_plane_format(VkFormat format, unsigned plane_id)
+{
+	const struct vk_format_description *desc = vk_format_description(format);
+
+	if (desc->layout != VK_FORMAT_LAYOUT_MULTIPLANE) {
+		assert(plane_id == 0);
+		return format;
+	}
+
+	assert(plane_id < desc->plane_count);
+
+	return desc->plane_formats[plane_id];
+}
+
 
 #endif /* VK_FORMAT_H */

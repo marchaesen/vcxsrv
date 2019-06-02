@@ -1170,3 +1170,92 @@ xkb_symbols "us-azerty" {
     include "eurosign(e)"
     include "level3(ralt_switch)"
 };
+
+// Unicode French standardized new azerty
+// Defined by the French national organization for standardization (AFNOR) in norm NF Z71-300 (http://norme-azerty.fr/)
+//
+// Credits
+//   © 2019 Cimbali <me @ cimba.li>
+//
+// ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┲━━━━━━━━━┓
+// │ # ̑  │ 1 À │ 2 É │ 3 È │ 4 Ê │ 5 ̋  │ 6 ̏  │ 7   │ 8 — │ 9 ‹ │ 0 › │ "   │ ¨   ┃ ⌫ Retour┃
+// │ @ ̆̆̆  ̆│ à § │ é  ́ │ è  ̀ │ ê & │ ( [ │ ) ] │ ‘ ̄̄  │ ’ _ │ « “ │ » ” │ ' ° │ ̂  ̌̌̌  ┃  arrière┃
+// ┢━━━━━┷━┱───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┺━┳━━━━━━━┫
+// ┃       ┃ A Æ │ Z   │ E   │ R   │ T ™ │ Y   │ U Ù │ I  ̣ │ O Œ │ P ‰ │ – ‑ │ ± ‡ ┃Entrée ┃
+// ┃Tab ↹  ┃ a æ │ z £ │ e € │ r ® │ t { │ y } │ u ù │ i ̇  │ o œ │ p % │ - − │ + † ┃   ⏎   ┃
+// ┣━━━━━━━┻┱────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┺┓      ┃
+// ┃        ┃ Q   │ S ẞ │ D   │ F   │ G   │ H ̱  │ J", │ K   │ L   │ M   │ \ √ │ ½ ¼ ┃      ┃
+// ┃Maj ⇬   ┃ q θ │ s ß │ d $ │ f ¤ │ g µ │ h   │ j   │ k ̷  │ l | │ m ∞ │ / ÷ │ * × ┃      ┃
+// ┣━━━━━━━┳┹────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┲┷━━━━━┻━━━━━━┫
+// ┃       ┃ > ≥ │ W “ │ X ” │ C ® │ V ← │ B ↑ │ N → │ ? … │ . . │ / ∕ │ § − ┃             ┃
+// ┃Shift ⇧┃ < ≤ │ w « │ x » │ c © │ v ⍽ │ b ↓ │ n ¬ │ , ¿ │ ; × │ : ÷ │ ! ¡ ┃Shift ⇧      ┃
+// ┣━━━━━━━╋━━━━━┷━┳━━━┷━━━┱─┴─────┴─────┴─────┴─────┴─────┴───┲━┷━━━━━╈━━━━━┻━┳━━━━━━━┳━━━┛
+// ┃       ┃       ┃       ┃ ␣         Espace fine insécable ⍽ ┃       ┃       ┃       ┃
+// ┃Ctrl   ┃Meta   ┃Alt    ┃ ␣ Espace       Espace insécable ⍽ ┃AltGr ⇮┃Menu   ┃Ctrl   ┃
+// ┗━━━━━━━┻━━━━━━━┻━━━━━━━┹───────────────────────────────────┺━━━━━━━┻━━━━━━━┻━━━━━━━┛
+partial alphanumeric_keys
+xkb_symbols "afnor" {
+
+    include "latin"
+    include "level3(ralt_switch)"
+    include "nbsp(level3n)"
+    include "keypad(oss)"
+
+    name[Group1]="French (AFNOR standardized AZERTY)";
+
+     // First row
+     key <TLDE> { [                  at,      numbersign,               dead_breve,   dead_invertedbreve ] }; // @ # ̑  ̆̆̆  //
+     key <AE01> { [              agrave,               1,                  section,               Agrave ] }; // à 1 § À
+     key <AE02> { [              eacute,               2,               dead_acute,               Eacute ] }; // é 2  ́ É
+     key <AE03> { [              egrave,               3,               dead_grave,               Egrave ] }; // è 3  ̀ È
+     key <AE04> { [         ecircumflex,               4,                ampersand,          Ecircumflex ] }; // ê 4 & Ê
+     key <AE05> { [           parenleft,               5,              bracketleft,     dead_doubleacute ] }; // ( 5 [
+     key <AE06> { [          parenright,               6,             bracketright,     dead_doublegrave ] }; // ) 6 ]
+     key <AE07> { [ leftsinglequotemark,               7,              dead_macron,           VoidSymbol ] }; // ‘ 7
+     key <AE08> { [rightsinglequotemark,               8,               underscore,               emdash ] }; // ’ 8 _ —
+     key <AE09> { [       guillemotleft,               9,      leftdoublequotemark,           VoidSymbol ] }; // « 9 “ ‹
+     key <AE10> { [      guillemotright,               0,     rightdoublequotemark,           VoidSymbol ] }; // » 0 ” ›
+     key <AE11> { [          apostrophe,        quotedbl,                   degree,       dead_abovering ] }; // ' " °
+     key <AE12> { [     dead_circumflex,  dead_diaeresis,               dead_caron,           VoidSymbol ] }; // ̂  ¨ ̌̌̌    //
+
+     // Second  ow
+     key <AD01> { [                   a,               A,                       ae,                   AE ] }; // a A æ Æ
+     key <AD02> { [                   z,               Z,                 sterling,           VoidSymbol ] }; // z Z £
+     key <AD03> { [                   e,               E,                 EuroSign,           VoidSymbol ] }; // e E €
+     key <AD04> { [                   r,               R,               registered,           VoidSymbol ] }; // r R ®
+     key <AD05> { [                   t,               T,                braceleft,            trademark ] }; // t T { ™
+     key <AD06> { [                   y,               Y,               braceright,           VoidSymbol ] }; // y Y }
+     key <AD07> { [                   u,               U,                   ugrave,               Ugrave ] }; // u U ù Ù
+     key <AD08> { [                   i,               I,            dead_abovedot,        dead_belowdot ] }; // i I ̇   ̣ //
+     key <AD09> { [                   o,               O,                       oe,                   OE ] }; // o O œ Œ
+     key <AD10> { [                   p,               P,                  percent,             permille ] }; // p P % ‰
+     key <AD11> { [               minus,          endash,                0x1002212,            0x1002011 ] }; // - – − ‑ // signe moins (minus sign), trait d'union insécable (non-breaking hyphen)
+     key <AD12> { [                plus,       plusminus,                   dagger,         doubledagger ] }; // + ± † ‡
+
+     // Third r w
+     key <AC01> { [                   q,               Q,              Greek_theta,           VoidSymbol ] }; // q Q θ
+     key <AC02> { [                   s,               S,                   ssharp,            0x1001E9E ] }; // s S ß ẞ // lettre majuscule latine S dur (latin capital letter sharp s)
+     key <AC03> { [                   d,               D,                   dollar,           VoidSymbol ] }; // d D $
+     key <AC04> { [                   f,               F,            dead_currency,           VoidSymbol ] }; // f F ¤
+     key <AC05> { [                   g,               G,               dead_greek,           VoidSymbol ] }; // g G µ
+     key <AC06> { [                   h,               H,               VoidSymbol,     dead_belowmacron ] }; // h H   ̱  // Missing dead key for other european keys (ªəƏþÞıİºſðÐƞȠĳĲ)
+     key <AC07> { [                   j,               J,               VoidSymbol,           VoidSymbol ] }; // j J
+     key <AC08> { [                   k,               K,  dead_longsolidusoverlay,           VoidSymbol ] }; // k K ̷    //
+     key <AC09> { [                   l,               L,                      bar,           VoidSymbol ] }; // l L |
+     key <AC10> { [                   m,               M,                 infinity,           VoidSymbol ] }; // m M ∞
+     key <AC11> { [               slash,       backslash,                 division,              radical ] }; // / \ ÷ √
+     key <BKSL> { [            asterisk,         onehalf,                 multiply,           onequarter ] }; // * ½ × ¼
+
+     // Fourth row
+     key <LSGT> { [                less,         greater,            lessthanequal,    greaterthanequal ] }; // < > ≤ ≥
+     key <AB01> { [                   w,               W,                      ezh,                 EZH ] }; // w W ʒ Ʒ
+     key <AB02> { [                   x,               X,                copyright,          VoidSymbol ] }; // x X ©
+     key <AB03> { [                   c,               C,                 ccedilla,            Ccedilla ] }; // c C ç Ç
+     key <AB04> { [                   v,               V,             dead_cedilla,         dead_ogonek ] }; // v V ̧  ̨  //
+     key <AB05> { [                   b,               B,              dead_stroke,          VoidSymbol ] }; // b B ̵    //
+     key <AB06> { [                   n,               N,               dead_tilde,          VoidSymbol ] }; // n N ~
+     key <AB07> { [              period,        question,             questiondown,          VoidSymbol ] }; // . ? ¿
+     key <AB08> { [               comma,          exclam,               exclamdown,     dead_belowcomma ] }; // , ! ¡ ̦  //
+     key <AB09> { [               colon,        ellipsis,           periodcentered,          VoidSymbol ] }; // : … ·
+     key <AB10> { [           semicolon,           equal,             similarequal,            notequal ] }; // ; = ≃ ≠
+};

@@ -827,8 +827,7 @@ ntq_emit_alu(struct v3d_compile *c, nir_alu_instr *instr)
         struct qreg result;
 
         switch (instr->op) {
-        case nir_op_fmov:
-        case nir_op_imov:
+        case nir_op_mov:
                 result = vir_MOV(c, src[0]);
                 break;
 
@@ -1301,12 +1300,16 @@ void
 v3d_optimize_nir(struct nir_shader *s)
 {
         bool progress;
+        unsigned lower_flrp =
+                (s->options->lower_flrp16 ? 16 : 0) |
+                (s->options->lower_flrp32 ? 32 : 0) |
+                (s->options->lower_flrp64 ? 64 : 0);
 
         do {
                 progress = false;
 
                 NIR_PASS_V(s, nir_lower_vars_to_ssa);
-                NIR_PASS(progress, s, nir_lower_alu_to_scalar);
+                NIR_PASS(progress, s, nir_lower_alu_to_scalar, NULL);
                 NIR_PASS(progress, s, nir_lower_phis_to_scalar);
                 NIR_PASS(progress, s, nir_copy_prop);
                 NIR_PASS(progress, s, nir_opt_remove_phis);
@@ -1316,6 +1319,25 @@ v3d_optimize_nir(struct nir_shader *s)
                 NIR_PASS(progress, s, nir_opt_peephole_select, 8, true, true);
                 NIR_PASS(progress, s, nir_opt_algebraic);
                 NIR_PASS(progress, s, nir_opt_constant_folding);
+
+                if (lower_flrp != 0) {
+                        bool lower_flrp_progress = false;
+
+                        NIR_PASS(lower_flrp_progress, s, nir_lower_flrp,
+                                 lower_flrp,
+                                 false /* always_precise */,
+                                 s->options->lower_ffma);
+                        if (lower_flrp_progress) {
+                                NIR_PASS(progress, s, nir_opt_constant_folding);
+                                progress = true;
+                        }
+
+                        /* Nothing should rematerialize any flrps, so we only
+                         * need to do this lowering once.
+                         */
+                        lower_flrp = 0;
+                }
+
                 NIR_PASS(progress, s, nir_opt_undef);
         } while (progress);
 
@@ -1737,6 +1759,9 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
                 break;
 
         case nir_intrinsic_load_input:
+                /* Use ldvpmv (uniform offset) or ldvpmd (non-uniform offset)
+                 * and enable PIPE_SHADER_CAP_INDIRECT_INPUT_ADDR.
+                 */
                 offset = (nir_intrinsic_base(instr) +
                           nir_src_as_uint(instr->src[0]));
                 if (c->s->info.stage != MESA_SHADER_FRAGMENT &&
@@ -1778,6 +1803,10 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
                 break;
 
         case nir_intrinsic_store_output:
+                /* XXX perf: Use stvpmv with uniform non-constant offsets and
+                 * stvpmd with non-uniform offsets and enable
+                 * PIPE_SHADER_CAP_INDIRECT_OUTPUT_ADDR.
+                 */
                 if (c->s->info.stage == MESA_SHADER_FRAGMENT) {
                         offset = ((nir_intrinsic_base(instr) +
                                    nir_src_as_uint(instr->src[1])) * 4 +
@@ -1838,6 +1867,7 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
         case nir_intrinsic_memory_barrier_atomic_counter:
         case nir_intrinsic_memory_barrier_buffer:
         case nir_intrinsic_memory_barrier_image:
+        case nir_intrinsic_memory_barrier_shared:
         case nir_intrinsic_group_memory_barrier:
                 /* We don't do any instruction scheduling of these NIR
                  * instructions between each other, so we just need to make
@@ -2372,7 +2402,6 @@ const nir_shader_compiler_options v3d_nir_options = {
         .lower_ldexp = true,
         .lower_mul_high = true,
         .lower_wpos_pntc = true,
-        .native_integers = true,
 };
 
 /**

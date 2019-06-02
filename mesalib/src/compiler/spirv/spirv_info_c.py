@@ -46,11 +46,18 @@ def collect_data(spirv, kind):
     return (kind, values)
 
 def collect_opcodes(spirv):
+    seen = set()
     values = []
     for x in spirv["instructions"]:
+        # Handle aliases by choosing the first one in the grammar.
+        # E.g. OpDecorateString and OpDecorateStringGOOGLE share same opcode.
+        if x["opcode"] in seen:
+            continue
+        opcode = x["opcode"]
         name = x["opname"]
         assert name.startswith("Op")
         values.append(name[2:])
+        seen.add(opcode)
 
     return ("Op", values)
 

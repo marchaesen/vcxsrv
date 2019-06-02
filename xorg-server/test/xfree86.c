@@ -69,7 +69,8 @@ xfree86_option_list_duplicate(void)
 
     a = xf86FindOption(options, o_null);
     b = xf86FindOption(duplicate, o_null);
-    assert(a && b);
+    assert(a);
+    assert(b);
 }
 
 static void

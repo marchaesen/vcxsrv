@@ -35,6 +35,15 @@ xkb_symbols "escape" {
 };
 
 hidden partial modifier_keys
+xkb_symbols "escape_shifted_capslock" {
+    key <CAPS> {
+        type[Group1] = "TWO_LEVEL",
+        symbols[Group1] = [ Escape, Caps_Lock ],
+        actions[Group1] = [ NoAction(), LockMods(modifiers = Lock) ]
+    };
+};
+
+hidden partial modifier_keys
 xkb_symbols "backspace" {
     key <CAPS> { [ BackSpace ] };
 };

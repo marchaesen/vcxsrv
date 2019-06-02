@@ -36,6 +36,7 @@
 #include "main/api_exec.h"
 #include "main/context.h"
 #include "main/extensions.h"
+#include "main/fbobject.h"
 #include "main/formats.h"
 #include "main/framebuffer.h"
 #include "main/imports.h"
@@ -679,7 +680,7 @@ swrast_check_and_update_window_size( struct gl_context *ctx, struct gl_framebuff
 {
     GLsizei width, height;
 
-    if (!fb)
+    if (!fb || fb == _mesa_get_incomplete_framebuffer())
         return;
 
     get_window_size(fb, &width, &height);
@@ -876,6 +877,12 @@ dri_make_current(__DRIcontext * cPriv,
            struct dri_drawable *read = dri_drawable(driReadPriv);
            mesaDraw = &draw->Base;
            mesaRead = &read->Base;
+        }
+        else {
+           struct gl_framebuffer *incomplete
+              = _mesa_get_incomplete_framebuffer();
+           mesaDraw = incomplete;
+           mesaRead = incomplete;
         }
 
         /* check for same context and buffer */

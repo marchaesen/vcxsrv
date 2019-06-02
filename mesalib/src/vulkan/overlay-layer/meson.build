@@ -41,10 +41,10 @@ vklayer_mesa_overlay = shared_library(
   vklayer_files, overlay_spv,
   c_args : [c_vis_args, no_override_init_args, vulkan_wsi_args],
   cpp_args : [cpp_vis_args, vulkan_wsi_args],
-  dependencies : [vulkan_wsi_deps, libimgui_core_dep, dep_dl],
-  include_directories : [inc_common, inc_vulkan_util],
+  dependencies : [idep_vulkan_util, vulkan_wsi_deps, libimgui_core_dep, dep_dl],
+  include_directories : inc_common,
   link_args : cc.get_supported_link_arguments(['-Wl,-Bsymbolic-functions', '-Wl,-z,relro']),
-  link_with : [libmesa_util, libvulkan_util],
+  link_with : libmesa_util,
   install : true
 )
 

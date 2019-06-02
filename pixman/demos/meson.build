@@ -34,6 +34,7 @@ demos = [
   'srgb-test',
   'srgb-trap-test',
   'scale',
+  'dither',
 ]
 
 if dep_gtk.found()

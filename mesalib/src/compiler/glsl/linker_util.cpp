@@ -28,6 +28,43 @@
 
 /* Utility methods shared between the GLSL IR and the NIR */
 
+/* From the OpenGL 4.6 specification, 7.3.1.1 Naming Active Resources:
+ *
+ *    "For an active shader storage block member declared as an array of an
+ *     aggregate type, an entry will be generated only for the first array
+ *     element, regardless of its type. Such block members are referred to as
+ *     top-level arrays. If the block member is an aggregate type, the
+ *     enumeration rules are then applied recursively."
+ */
+bool
+link_util_should_add_buffer_variable(struct gl_shader_program *prog,
+                                     struct gl_uniform_storage *uniform,
+                                     int top_level_array_base_offset,
+                                     int top_level_array_size_in_bytes,
+                                     int second_element_offset,
+                                     int block_index)
+{
+   /* If the uniform is not a shader storage buffer or is not an array return
+    * true.
+    */
+   if (!uniform->is_shader_storage || top_level_array_size_in_bytes == 0)
+      return true;
+
+   int after_top_level_array = top_level_array_base_offset +
+      top_level_array_size_in_bytes;
+
+   /* Check for a new block, or that we are not dealing with array elements of
+    * a top member array other than the first element.
+    */
+   if (block_index != uniform->block_index ||
+       uniform->offset >= after_top_level_array ||
+       uniform->offset < second_element_offset) {
+      return true;
+   }
+
+   return false;
+}
+
 bool
 link_util_add_program_resource(struct gl_shader_program *prog,
                                struct set *resource_set,

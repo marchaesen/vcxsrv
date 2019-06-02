@@ -54,6 +54,9 @@ xwayland_glamor = []
 eglstream_srcs = []
 if build_glamor
     srcs += 'xwayland-glamor.c'
+    if build_glx
+        srcs += 'xwayland-glx.c'
+    endif
     if gbm_dep.found()
         srcs += 'xwayland-glamor-gbm.c'
     endif
@@ -80,10 +83,15 @@ if build_glamor
     xwayland_glamor += glamor
 endif
 
+wayland_inc = [ inc, ]
+if build_glx
+    wayland_inc += glx_inc
+endif
+
 executable(
     'Xwayland',
     srcs,
-    include_directories: inc,
+    include_directories: wayland_inc,
     dependencies: [
         common_dep,
         xwayland_dep,

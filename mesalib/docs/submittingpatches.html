@@ -2,19 +2,19 @@
 <html lang="en">
 <head>
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <title>Submitting patches</title>
+  <title>Submitting Patches</title>
   <link rel="stylesheet" type="text/css" href="mesa.css">
 </head>
 <body>
 
 <div class="header">
-  <h1>The Mesa 3D Graphics Library</h1>
+  The Mesa 3D Graphics Library
 </div>
 
 <iframe src="contents.html"></iframe>
 <div class="content">
 
-<h1>Submitting patches</h1>
+<h1>Submitting Patches</h1>
 
 
 <ul>
@@ -141,7 +141,7 @@ do whatever testing is prudent.
 
 <p>
 You should always run the Mesa test suite before submitting patches.
-The test suite can be run using the 'make check' command. All tests
+The test suite can be run using the 'meson test' command. All tests
 must pass before patches will be accepted, this may mean you have
 to update the tests themselves.
 </p>
@@ -160,10 +160,10 @@ to run your tests on each commit. Assuming your branch is based off
 <code>origin/master</code>, you can run:
 </p>
 <pre>
-$ git rebase --interactive --exec "make check" origin/master
+$ git rebase --interactive --exec "meson test -C build/" origin/master
 </pre>
 <p>
-replacing <code>"make check"</code> with whatever other test you want to
+replacing <code>"meson test"</code> with whatever other test you want to
 run.
 </p>
 
@@ -228,19 +228,19 @@ your email administrator for this.)
 </p>
 <p>
   Add labels to your MR to help reviewers find it. For example:
-  <ul>
-    <li>Mesa changes affecting all drivers: mesa
-    <li>Hardware vendor specific code: amd, intel, nvidia, ...
-    <li>Driver specific code: anvil, freedreno, i965, iris, radeonsi,
-      radv, vc4, ...
-    <li>Other tag examples: gallium, util
-  </ul>
 </p>
+<ul>
+  <li>Mesa changes affecting all drivers: mesa
+  <li>Hardware vendor specific code: amd, intel, nvidia, ...
+  <li>Driver specific code: anvil, freedreno, i965, iris, radeonsi,
+    radv, vc4, ...
+  <li>Other tag examples: gallium, util
+</ul>
 <p>
   Tick the following when creating the MR. It allows developers to
   rebase your work on top of master.
-  <pre>Allow commits from members who can merge to the target branch</pre>
 </p>
+<pre>Allow commits from members who can merge to the target branch</pre>
 <p>
   If you revise your patches based on code review and push an update
   to your branch, you should maintain a <strong>clean</strong> history
@@ -255,18 +255,21 @@ your email administrator for this.)
 </p>
 <p>
   Some other notes:
-  <ul>
-    <li>Make changes and update your branch based on feedback
-    <li>Old, stale MR may be closed, but you can reopen it if you
-      still want to pursue the changes
-    <li>You should periodically check to see if your MR needs to be
-      rebased
-    <li>Make sure your MR is closed if your patches get pushed outside
-      of GitLab
-    <li>Please send MRs from a personal fork rather than from the main
-      Mesa repository, as it clutters it unnecessarily.
-  </ul>
 </p>
+<ul>
+  <li>Make changes and update your branch based on feedback
+  <li>After an update, for the feedback you handled, close the
+    feedback discussion with the "Resolve Discussion" button. This way
+    the reviewers know which feedback got handled and which didn't.
+  <li>Old, stale MR may be closed, but you can reopen it if you
+    still want to pursue the changes
+  <li>You should periodically check to see if your MR needs to be
+    rebased
+  <li>Make sure your MR is closed if your patches get pushed outside
+    of GitLab
+  <li>Please send MRs from a personal fork rather than from the main
+    Mesa repository, as it clutters it unnecessarily.
+</ul>
 
 <h2 id="reviewing">Reviewing Patches</h2>
 
@@ -466,7 +469,7 @@ within the commit summary.
 </pre>
 <li>Test for build breakage between patches e.g last 8 commits.
 <pre>
-    git rebase -i --exec="make -j4" HEAD~8
+    git rebase -i --exec="ninja -C build/" HEAD~8
 </pre>
 <li>Sets the default mailing address for your repo.
 <pre>

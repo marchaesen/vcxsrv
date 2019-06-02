@@ -115,16 +115,10 @@ vbo_exec_init(struct gl_context *ctx)
 
    exec->ctx = ctx;
 
-   /* aelt_context should have been created by the caller */
-   assert(ctx->aelt_context);
-
    vbo_exec_vtx_init(exec);
 
    ctx->Driver.NeedFlush = 0;
    ctx->Driver.CurrentExecPrimitive = PRIM_OUTSIDE_BEGIN_END;
-
-   /* The aelt_context state should still be dirty from its creation */
-   assert(_ae_is_state_dirty(ctx));
 
    exec->eval.recalculate_maps = GL_TRUE;
 }
@@ -133,11 +127,6 @@ vbo_exec_init(struct gl_context *ctx)
 void vbo_exec_destroy( struct gl_context *ctx )
 {
    struct vbo_exec_context *exec = &vbo_context(ctx)->exec;
-
-   if (ctx->aelt_context) {
-      _ae_destroy_context( ctx );
-      ctx->aelt_context = NULL;
-   }
 
    vbo_exec_vtx_destroy( exec );
 }

@@ -110,7 +110,6 @@ struct radeon_info {
 	bool                        si_TA_CS_BC_BASE_ADDR_allowed;
 	bool                        has_bo_metadata;
 	bool                        has_gpu_reset_status_query;
-	bool                        has_gpu_reset_counter_query;
 	bool                        has_eqaa_surface_allocator;
 	bool                        has_format_bc1_through_bc7;
 	bool                        kernel_flushes_tc_l2_after_ib;
@@ -119,6 +118,8 @@ struct radeon_info {
 	bool                        has_sparse_vm_mappings;
 	bool                        has_2d_tiling;
 	bool                        has_read_registers_query;
+	bool                        has_gds_ordered_append;
+	bool                        has_scheduled_fence_dependency;
 
 	/* Shader cores. */
 	uint32_t                    r600_max_quad_pipes; /* wave size / 16 */
@@ -183,7 +184,7 @@ static inline unsigned ac_get_max_simd_waves(enum radeon_family family)
 static inline uint32_t
 ac_get_num_physical_sgprs(enum chip_class chip_class)
 {
-	return chip_class >= VI ? 800 : 512;
+	return chip_class >= GFX8 ? 800 : 512;
 }
 
 #ifdef __cplusplus

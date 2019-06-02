@@ -191,6 +191,8 @@ radv_image_from_gralloc(VkDevice device_h,
 
 	image = radv_image_from_handle(image_h);
 
+	radv_image_override_offset_stride(device, image, 0, gralloc_info->stride);
+
 	radv_BindImageMemory(device_h, image_h, memory_h, 0);
 
 	image->owned_memory = memory_h;

@@ -2,19 +2,19 @@
 <html lang="en">
 <head>
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <title>Shading Language Support</title>
+  <title>Shading Language</title>
   <link rel="stylesheet" type="text/css" href="mesa.css">
 </head>
 <body>
 
 <div class="header">
-  <h1>The Mesa 3D Graphics Library</h1>
+  The Mesa 3D Graphics Library
 </div>
 
 <iframe src="contents.html"></iframe>
 <div class="content">
 
-<h1>Shading Language Support</h1>
+<h1>Shading Language</h1>
 
 <p>
 This page describes the features and status of Mesa's support for the
@@ -59,6 +59,7 @@ execution.  These are generally used for debugging.
 <li><b>nopfrag</b> - force fragment shader to be a simple shader that passes
     through the color attribute.
 <li><b>useprog</b> - log glUseProgram calls to stderr
+<li><b>errors</b> - GLSL compilation and link errors will be reported to stderr.
 </ul>
 <p>
 Example:  export MESA_GLSL=dump,nopt
@@ -70,6 +71,7 @@ Shaders can be dumped and replaced on runtime for debugging purposes. This
 feature is not currently supported by SCons build.
 
 This is controlled via following environment variables:
+</p>
 <ul>
 <li><b>MESA_SHADER_DUMP_PATH</b> - path where shader sources are dumped
 <li><b>MESA_SHADER_READ_PATH</b> - path where replacement shaders are read
@@ -78,7 +80,6 @@ Note, path set must exist before running for dumping or replacing to work.
 When both are set, these paths should be different so the dumped shaders do 
 not clobber the replacement shaders. Also, the filenames of the replacement shaders
 should match the filenames of the corresponding dumped shaders.
-</p>
 
 <h3 id="capture">Capturing Shaders</h3>
 

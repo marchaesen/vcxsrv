@@ -116,6 +116,10 @@ SOFTWARE.
 #define zoneid_t int
 #endif
 
+#ifdef HAVE_SYSTEMD_DAEMON
+#include <systemd/sd-daemon.h>
+#endif
+
 #include "probes.h"
 
 struct ospoll   *server_poll;
@@ -207,6 +211,11 @@ NotifyParentProcess(void)
     }
     if (RunFromSigStopParent)
         raise(SIGSTOP);
+#ifdef HAVE_SYSTEMD_DAEMON
+    /* If we have been started as a systemd service, tell systemd that
+       we are ready. Otherwise sd_notify() won't do anything. */
+    sd_notify(0, "READY=1");
+#endif
 #endif
 }
 

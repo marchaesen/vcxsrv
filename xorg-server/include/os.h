@@ -721,6 +721,10 @@ os_move_fd(int fd);
 
 #include <signal.h>
 
+#if defined(WIN32) && !defined(__CYGWIN__)
+typedef _sigset_t sigset_t;
+#endif
+
 extern _X_EXPORT int
 xthread_sigmask(int how, const sigset_t *set, sigset_t *oldest);
 

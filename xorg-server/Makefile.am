@@ -142,7 +142,7 @@ EXTRA_DIST += \
 	include/xorg-config.h.meson.in \
 	include/xwin-config.h.meson.in \
 	hw/xfree86/loader/symbol-test.c \
-	hw/xfree86/common/xf86Build.sh \
+	buildDateTime.sh \
 	composite/meson.build \
 	config/meson.build \
 	damageext/meson.build \
@@ -213,3 +213,5 @@ EXTRA_DIST += \
 	xfixes/meson.build \
 	Xi/meson.build \
 	xkb/meson.build
+
+DISTCLEANFILES = buildDateTime.h

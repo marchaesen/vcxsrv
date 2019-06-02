@@ -690,21 +690,23 @@ tu6_emit_fs_system_values(struct tu_cs *cs,
                                           ? (fragcoord_xy_regid + 2)
                                           : fragcoord_xy_regid;
    const uint32_t varyingcoord_regid =
-      ir3_find_sysval_regid(fs, SYSTEM_VALUE_VARYING_COORD);
+      ir3_find_sysval_regid(fs, SYSTEM_VALUE_BARYCENTRIC_PIXEL);
 
    tu_cs_emit_pkt4(cs, REG_A6XX_HLSQ_CONTROL_1_REG, 5);
    tu_cs_emit(cs, 0x7);
    tu_cs_emit(cs, A6XX_HLSQ_CONTROL_2_REG_FACEREGID(frontfacing_regid) |
                      A6XX_HLSQ_CONTROL_2_REG_SAMPLEID(sampleid_regid) |
                      A6XX_HLSQ_CONTROL_2_REG_SAMPLEMASK(samplemaskin_regid) |
-                     0xfc000000);
+                     A6XX_HLSQ_CONTROL_2_REG_SIZE(regid(63, 0)));
    tu_cs_emit(cs,
-              A6XX_HLSQ_CONTROL_3_REG_FRAGCOORDXYREGID(varyingcoord_regid) |
-                 0xfcfcfc00);
+                 A6XX_HLSQ_CONTROL_3_REG_BARY_IJ_PIXEL(varyingcoord_regid) |
+                 A6XX_HLSQ_CONTROL_3_REG_BARY_IJ_CENTROID(regid(63, 0)) |
+                 0xfc00fc00);
    tu_cs_emit(cs,
               A6XX_HLSQ_CONTROL_4_REG_XYCOORDREGID(fragcoord_xy_regid) |
                  A6XX_HLSQ_CONTROL_4_REG_ZWCOORDREGID(fragcoord_zw_regid) |
-                 0x0000fcfc);
+                 A6XX_HLSQ_CONTROL_4_REG_BARY_IJ_PIXEL_PERSAMP(regid(63, 0)) |
+                 0x0000fc00);
    tu_cs_emit(cs, 0xfc);
 }
 
@@ -724,7 +726,7 @@ tu6_emit_fs_inputs(struct tu_cs *cs, const struct ir3_shader_variant *fs)
    if (fs->total_in > 0)
       gras_cntl |= A6XX_GRAS_CNTL_VARYING;
    if (fs->frag_coord) {
-      gras_cntl |= A6XX_GRAS_CNTL_UNK3 | A6XX_GRAS_CNTL_XCOORD |
+      gras_cntl |= A6XX_GRAS_CNTL_SIZE | A6XX_GRAS_CNTL_XCOORD |
                    A6XX_GRAS_CNTL_YCOORD | A6XX_GRAS_CNTL_ZCOORD |
                    A6XX_GRAS_CNTL_WCOORD;
    }
@@ -739,7 +741,7 @@ tu6_emit_fs_inputs(struct tu_cs *cs, const struct ir3_shader_variant *fs)
    }
    if (fs->frag_coord) {
       rb_render_control |=
-         A6XX_RB_RENDER_CONTROL0_UNK3 | A6XX_RB_RENDER_CONTROL0_XCOORD |
+         A6XX_RB_RENDER_CONTROL0_SIZE | A6XX_RB_RENDER_CONTROL0_XCOORD |
          A6XX_RB_RENDER_CONTROL0_YCOORD | A6XX_RB_RENDER_CONTROL0_ZCOORD |
          A6XX_RB_RENDER_CONTROL0_WCOORD;
    }

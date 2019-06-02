@@ -621,10 +621,16 @@ typedef enum
    SYSTEM_VALUE_VERTEX_CNT,
 
    /**
-    * Driver internal varying-coord, used for varying-fetch instructions.
+    * Driver internal varying-coords, used for varying-fetch instructions.
     * Not externally visible.
+    *
+    * The _SIZE value is "primitive size", used to scale i/j in primitive
+    * space to pixel space.
     */
-   SYSTEM_VALUE_VARYING_COORD,
+   SYSTEM_VALUE_BARYCENTRIC_PIXEL,
+   SYSTEM_VALUE_BARYCENTRIC_SAMPLE,
+   SYSTEM_VALUE_BARYCENTRIC_CENTROID,
+   SYSTEM_VALUE_BARYCENTRIC_SIZE,
 
    SYSTEM_VALUE_MAX             /**< Number of values */
 } gl_system_value;
@@ -745,6 +751,27 @@ enum gl_advanced_blend_mode
    BLEND_HSL_LUMINOSITY = 0x4000,
 
    BLEND_ALL            = 0x7fff,
+};
+
+enum blend_func
+{
+   BLEND_FUNC_ADD,
+   BLEND_FUNC_SUBTRACT,
+   BLEND_FUNC_REVERSE_SUBTRACT,
+   BLEND_FUNC_MIN,
+   BLEND_FUNC_MAX,
+};
+
+enum blend_factor
+{
+   BLEND_FACTOR_ZERO,
+   BLEND_FACTOR_SRC_COLOR,
+   BLEND_FACTOR_DST_COLOR,
+   BLEND_FACTOR_SRC_ALPHA,
+   BLEND_FACTOR_DST_ALPHA,
+   BLEND_FACTOR_CONSTANT_COLOR,
+   BLEND_FACTOR_CONSTANT_ALPHA,
+   BLEND_FACTOR_SRC_ALPHA_SATURATE,
 };
 
 enum gl_tess_spacing

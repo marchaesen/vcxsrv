@@ -39,6 +39,9 @@ enum ac_descriptor_type {
 	AC_DESC_FMASK,
 	AC_DESC_SAMPLER,
 	AC_DESC_BUFFER,
+	AC_DESC_PLANE_0,
+	AC_DESC_PLANE_1,
+	AC_DESC_PLANE_2,
 };
 
 /* Document the shader ABI during compilation. This is what allows radeonsi and
@@ -193,13 +196,14 @@ struct ac_shader_abi {
 
 	LLVMValueRef (*load_base_vertex)(struct ac_shader_abi *abi);
 
-	/* Whether to clamp the shadow reference value to [0,1]on VI. Radeonsi currently
+	/* Whether to clamp the shadow reference value to [0,1]on GFX8. Radeonsi currently
 	 * uses it due to promoting D16 to D32, but radv needs it off. */
 	bool clamp_shadow_reference;
 
 	/* Whether to workaround GFX9 ignoring the stride for the buffer size if IDXEN=0
 	* and LLVM optimizes an indexed load with constant index to IDXEN=0. */
 	bool gfx9_stride_size_workaround;
+	bool gfx9_stride_size_workaround_for_atomic;
 };
 
 #endif /* AC_SHADER_ABI_H */

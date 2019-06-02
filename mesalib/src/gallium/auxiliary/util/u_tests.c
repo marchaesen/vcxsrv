@@ -631,7 +631,7 @@ test_texture_barrier(struct pipe_context *ctx, bool use_fbfetch,
       return;
    }
    if (use_fbfetch &&
-       !ctx->screen->get_param(ctx->screen, PIPE_CAP_TGSI_FS_FBFETCH)) {
+       !ctx->screen->get_param(ctx->screen, PIPE_CAP_FBFETCH)) {
       util_report_result_helper(SKIP, name);
       return;
    }

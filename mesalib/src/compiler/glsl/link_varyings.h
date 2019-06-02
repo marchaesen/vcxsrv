@@ -34,7 +34,7 @@
 
 #include "main/glheader.h"
 #include "program/prog_parameter.h"
-
+#include "util/bitset.h"
 
 struct gl_shader_program;
 struct gl_shader;
@@ -99,7 +99,9 @@ public:
    bool store(struct gl_context *ctx, struct gl_shader_program *prog,
               struct gl_transform_feedback_info *info, unsigned buffer,
               unsigned buffer_index, const unsigned max_outputs,
-              bool *explicit_stride, bool has_xfb_qualifiers) const;
+              BITSET_WORD *used_components[MAX_FEEDBACK_BUFFERS],
+              bool *explicit_stride, bool has_xfb_qualifiers,
+              const void *mem_ctx) const;
    const tfeedback_candidate *find_candidate(gl_shader_program *prog,
                                              hash_table *tfeedback_candidates);
 

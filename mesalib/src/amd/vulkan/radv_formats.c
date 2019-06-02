@@ -39,6 +39,8 @@ uint32_t radv_translate_buffer_dataformat(const struct vk_format_description *de
 	unsigned type;
 	int i;
 
+	assert(desc->layout != VK_FORMAT_LAYOUT_MULTIPLANE);
+
 	if (desc->format == VK_FORMAT_B10G11R11_UFLOAT_PACK32)
 		return V_008F0C_BUF_DATA_FORMAT_10_11_11;
 
@@ -110,6 +112,8 @@ uint32_t radv_translate_buffer_dataformat(const struct vk_format_description *de
 uint32_t radv_translate_buffer_numformat(const struct vk_format_description *desc,
 					 int first_non_void)
 {
+	assert(desc->layout != VK_FORMAT_LAYOUT_MULTIPLANE);
+
 	if (desc->format == VK_FORMAT_B10G11R11_UFLOAT_PACK32)
 		return V_008F0C_BUF_NUM_FORMAT_FLOAT;
 
@@ -146,6 +150,8 @@ uint32_t radv_translate_tex_dataformat(VkFormat format,
 	bool uniform = true;
 	int i;
 
+	assert(vk_format_get_plane_count(format) == 1);
+
 	if (!desc)
 		return ~0;
 	/* Colorspace (return non-RGB formats directly). */
@@ -178,6 +184,18 @@ uint32_t radv_translate_tex_dataformat(VkFormat format,
 
 	default:
 		break;
+	}
+
+	if (desc->layout == VK_FORMAT_LAYOUT_SUBSAMPLED) {
+		switch(format) {
+		/* Don't ask me why this looks inverted. PAL does the same. */
+		case VK_FORMAT_G8B8G8R8_422_UNORM:
+			return V_008F14_IMG_DATA_FORMAT_BG_RG;
+		case VK_FORMAT_B8G8R8G8_422_UNORM:
+			return V_008F14_IMG_DATA_FORMAT_GB_GR;
+		default:
+			goto out_unknown;
+		}
 	}
 
 	if (desc->layout == VK_FORMAT_LAYOUT_RGTC) {
@@ -359,6 +377,8 @@ uint32_t radv_translate_tex_numformat(VkFormat format,
 				      const struct vk_format_description *desc,
 				      int first_non_void)
 {
+	assert(vk_format_get_plane_count(format) == 1);
+
 	switch (format) {
 	case VK_FORMAT_D24_UNORM_S8_UINT:
 		return V_008F14_IMG_NUM_FORMAT_UNORM;
@@ -421,6 +441,9 @@ uint32_t radv_translate_color_numformat(VkFormat format,
 					int first_non_void)
 {
 	unsigned ntype;
+
+	assert(vk_format_get_plane_count(format) == 1);
+
 	if (first_non_void == -1 || desc->channel[first_non_void].type == VK_FORMAT_TYPE_FLOAT)
 		ntype = V_028C70_NUMBER_FLOAT;
 	else {
@@ -612,7 +635,8 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 	const struct vk_format_description *desc = vk_format_description(format);
 	bool blendable;
 	bool scaled = false;
-	if (!desc) {
+	/* TODO: implement some software emulation of SUBSAMPLED formats. */
+	if (!desc || desc->layout == VK_FORMAT_LAYOUT_SUBSAMPLED) {
 		out_properties->linearTilingFeatures = linear;
 		out_properties->optimalTilingFeatures = tiled;
 		out_properties->bufferFeatures = buffer;
@@ -624,6 +648,26 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 		out_properties->linearTilingFeatures = linear;
 		out_properties->optimalTilingFeatures = tiled;
 		out_properties->bufferFeatures = buffer;
+		return;
+	}
+
+	if (desc->layout == VK_FORMAT_LAYOUT_MULTIPLANE ||
+	    desc->layout == VK_FORMAT_LAYOUT_SUBSAMPLED) {
+		uint32_t tiling = VK_FORMAT_FEATURE_TRANSFER_SRC_BIT |
+		                  VK_FORMAT_FEATURE_TRANSFER_DST_BIT |
+		                  VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
+		                  VK_FORMAT_FEATURE_COSITED_CHROMA_SAMPLES_BIT |
+		                  VK_FORMAT_FEATURE_MIDPOINT_CHROMA_SAMPLES_BIT;
+
+		/* The subsampled formats have no support for linear filters. */
+		if (desc->layout != VK_FORMAT_LAYOUT_SUBSAMPLED) {
+			tiling |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER_BIT;
+		}
+
+		/* Fails for unknown reasons with linear tiling & subsampled formats. */
+		out_properties->linearTilingFeatures = desc->layout == VK_FORMAT_LAYOUT_SUBSAMPLED ? 0 : tiling;
+		out_properties->optimalTilingFeatures = tiling;
+		out_properties->bufferFeatures = 0;
 		return;
 	}
 
@@ -717,7 +761,7 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 	case VK_FORMAT_A2B10G10R10_SSCALED_PACK32:
 	case VK_FORMAT_A2R10G10B10_SINT_PACK32:
 	case VK_FORMAT_A2B10G10R10_SINT_PACK32:
-		if (physical_device->rad_info.chip_class <= VI &&
+		if (physical_device->rad_info.chip_class <= GFX8 &&
 		    physical_device->rad_info.family != CHIP_STONEY) {
 			buffer &= ~(VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT |
 			            VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT);
@@ -990,10 +1034,22 @@ bool radv_format_pack_clear_color(VkFormat format,
 				assert(channel->size == 8);
 
 				v = util_format_linear_float_to_srgb_8unorm(value->float32[c]);
-			} else if (channel->type == VK_FORMAT_TYPE_UNSIGNED) {
-				v = MAX2(MIN2(value->float32[c], 1.0f), 0.0f) * ((1ULL << channel->size) - 1);
-			} else  {
-				v = MAX2(MIN2(value->float32[c], 1.0f), -1.0f) * ((1ULL << (channel->size - 1)) - 1);
+			} else {
+				float f = MIN2(value->float32[c], 1.0f);
+
+				if (channel->type == VK_FORMAT_TYPE_UNSIGNED) {
+					f = MAX2(f, 0.0f) * ((1ULL << channel->size) - 1);
+				} else {
+					f = MAX2(f, -1.0f) * ((1ULL << (channel->size - 1)) - 1);
+				}
+
+				/* The hardware rounds before conversion. */
+				if (f > 0)
+					f += 0.5f;
+				else
+					f -= 0.5f;
+
+				v = (uint64_t)f;
 			}
 		} else if (channel->type == VK_FORMAT_TYPE_FLOAT) {
 			if (channel->size == 32) {
@@ -1052,6 +1108,7 @@ static VkResult radv_get_image_format_properties(struct radv_physical_device *ph
 	uint32_t maxMipLevels;
 	uint32_t maxArraySize;
 	VkSampleCountFlags sampleCounts = VK_SAMPLE_COUNT_1_BIT;
+	const struct vk_format_description *desc = vk_format_description(info->format);
 
 	radv_physical_device_get_format_properties(physical_device, info->format,
 						   &format_props);
@@ -1093,6 +1150,12 @@ static VkResult radv_get_image_format_properties(struct radv_physical_device *ph
 		maxMipLevels = 12; /* log2(maxWidth) + 1 */
 		maxArraySize = 1;
 		break;
+	}
+
+	if (desc->layout == VK_FORMAT_LAYOUT_SUBSAMPLED) {
+		/* Might be able to support but the entire format support is
+		 * messy, so taking the lazy way out. */
+		maxArraySize = 1;
 	}
 
 	if (info->tiling == VK_IMAGE_TILING_OPTIMAL &&
@@ -1266,6 +1329,7 @@ VkResult radv_GetPhysicalDeviceImageFormatProperties2(
 	RADV_FROM_HANDLE(radv_physical_device, physical_device, physicalDevice);
 	const VkPhysicalDeviceExternalImageFormatInfo *external_info = NULL;
 	VkExternalImageFormatProperties *external_props = NULL;
+	VkSamplerYcbcrConversionImageFormatProperties *ycbcr_props = NULL;
 	VkResult result;
 
 	result = radv_get_image_format_properties(physical_device, base_info,
@@ -1289,6 +1353,9 @@ VkResult radv_GetPhysicalDeviceImageFormatProperties2(
 		switch (s->sType) {
 		case VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES:
 			external_props = (void *) s;
+			break;
+		case VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_IMAGE_FORMAT_PROPERTIES:
+			ycbcr_props = (void *) s;
 			break;
 		default:
 			break;
@@ -1322,6 +1389,10 @@ VkResult radv_GetPhysicalDeviceImageFormatProperties2(
 					   external_info->handleType);
 			goto fail;
 		}
+	}
+
+	if (ycbcr_props) {
+		ycbcr_props->combinedImageSamplerDescriptorCount = vk_format_get_plane_count(base_info->format);
 	}
 
 	return VK_SUCCESS;

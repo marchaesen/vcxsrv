@@ -72,7 +72,7 @@ xwin_glx = static_library(
     srcs_windows_glx,
     include_directories: [
         inc,
-        top_srcdir_inc,
+        top_dir_inc,
         include_directories('../'),
     ],
     dependencies: common_dep,
@@ -89,7 +89,7 @@ WGLthunk = shared_library(
     srcs_wgl_thunk,
     include_directories: [
         inc,
-        top_srcdir_inc,
+        top_dir_inc,
     ],
     c_args: xwin_glx_c_args + [
       '-Wno-unused-function',

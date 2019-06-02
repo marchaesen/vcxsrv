@@ -121,6 +121,23 @@ void *rzalloc_size(const void *ctx, size_t size) MALLOCLIKE;
  */
 void *reralloc_size(const void *ctx, void *ptr, size_t size);
 
+/**
+ * Resize a ralloc-managed array, preserving data and initializing any newly
+ * allocated data to zero.
+ *
+ * Similar to \c realloc.  Unlike C89, passing 0 for \p size does not free the
+ * memory.  Instead, it resizes it to a 0-byte ralloc context, just like
+ * calling ralloc_size(ctx, 0).  This is different from talloc.
+ *
+ * \param ctx        The context to use for new allocation.  If \p ptr != NULL,
+ *                   it must be the same as ralloc_parent(\p ptr).
+ * \param ptr        Pointer to the memory to be resized.  May be NULL.
+ * \param old_size   The amount of memory in the previous allocation, in bytes.
+ * \param new_size   The amount of memory to allocate, in bytes.
+ */
+void *rerzalloc_size(const void *ctx, void *ptr,
+                     size_t old_size, size_t new_size);
+
 /// \defgroup array Array Allocators @{
 
 /**
@@ -178,6 +195,28 @@ void *reralloc_size(const void *ctx, void *ptr, size_t size);
    ((type *) reralloc_array_size(ctx, ptr, sizeof(type), count))
 
 /**
+ * \def rerzalloc(ctx, ptr, type, count)
+ * Resize a ralloc-managed array, preserving data and initializing any newly
+ * allocated data to zero.
+ *
+ * Similar to \c realloc.  Unlike C89, passing 0 for \p size does not free the
+ * memory.  Instead, it resizes it to a 0-byte ralloc context, just like
+ * calling ralloc_size(ctx, 0).  This is different from talloc.
+ *
+ * More than a convenience function, this also checks for integer overflow when
+ * multiplying \c sizeof(type) and \p count.  This is necessary for security.
+ *
+ * \param ctx        The context to use for new allocation.  If \p ptr != NULL,
+ *                   it must be the same as ralloc_parent(\p ptr).
+ * \param ptr        Pointer to the array to be resized.  May be NULL.
+ * \param type       The element type.
+ * \param old_count  The number of elements in the previous allocation.
+ * \param new_count  The number of elements to allocate.
+ */
+#define rerzalloc(ctx, ptr, type, old_count, new_count) \
+   ((type *) rerzalloc_array_size(ctx, ptr, sizeof(type), old_count, new_count))
+
+/**
  * Allocate memory for an array chained off the given context.
  *
  * Similar to \c calloc, but does not initialize the memory to zero.
@@ -217,6 +256,29 @@ void *rzalloc_array_size(const void *ctx, size_t size, unsigned count) MALLOCLIK
  */
 void *reralloc_array_size(const void *ctx, void *ptr, size_t size,
 			  unsigned count);
+
+/**
+ * Resize a ralloc-managed array, preserving data and initializing any newly
+ * allocated data to zero.
+ *
+ * Similar to \c realloc.  Unlike C89, passing 0 for \p size does not free the
+ * memory.  Instead, it resizes it to a 0-byte ralloc context, just like
+ * calling ralloc_size(ctx, 0).  This is different from talloc.
+ *
+ * More than a convenience function, this also checks for integer overflow when
+ * multiplying \c sizeof(type) and \p count.  This is necessary for security.
+ *
+ * \param ctx        The context to use for new allocation.  If \p ptr != NULL,
+ *                   it must be the same as ralloc_parent(\p ptr).
+ * \param ptr        Pointer to the array to be resized.  May be NULL.
+ * \param size       The size of an individual element.
+ * \param old_count  The number of elements in the previous allocation.
+ * \param new_count  The number of elements to allocate.
+ *
+ * \return True unless allocation failed.
+ */
+void *rerzalloc_array_size(const void *ctx, void *ptr, size_t size,
+			   unsigned old_count, unsigned new_count);
 /// @}
 
 /**

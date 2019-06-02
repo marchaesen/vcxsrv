@@ -57,10 +57,10 @@ typedef void (*texture_sample_func)(struct gl_context *ctx,
                                     GLuint n, const GLfloat texcoords[][4],
                                     const GLfloat lambda[], GLfloat rgba[][4]);
 
-typedef void (*blend_func)(struct gl_context *ctx, GLuint n,
-                           const GLubyte mask[],
-                           GLvoid *src, const GLvoid *dst,
-                           GLenum chanType);
+typedef void (*swrast_blend_func)(struct gl_context *ctx, GLuint n,
+                                  const GLubyte mask[],
+                                  GLvoid *src, const GLvoid *dst,
+                                  GLenum chanType);
 
 typedef void (*swrast_point_func)( struct gl_context *ctx, const SWvertex *);
 
@@ -310,7 +310,7 @@ typedef struct
 
    /** Internal hooks, kept up to date by the same mechanism as above.
     */
-   blend_func BlendFunc;
+   swrast_blend_func BlendFunc;
    texture_sample_func TextureSample[MAX_COMBINED_TEXTURE_IMAGE_UNITS];
 
    /** Buffer for saving the sampled texture colors.

@@ -227,6 +227,35 @@ radv_entrypoint_is_enabled(int index, uint32_t core_version,
    }
 }
 
+static bool
+radv_entrypoint_is_enabled_physical_device(int index, uint32_t core_version,
+                                           const struct radv_instance_extension_table *instance)
+{
+   switch (index) {
+% for e in entrypoints:
+  %if e.physical_device_command:
+   case ${e.num}:
+   % if e.core_version:
+      return instance && ${e.core_version.c_vk_version()} <= core_version;
+   % elif e.extensions:
+      % for ext in e.extensions:
+         % if ext.type == 'instance':
+      if (instance && instance->${ext.name[3:]}) return true;
+         % else:
+      return true;
+         % endif
+      %endfor
+      return false;
+   % else:
+      return instance;
+   % endif
+  %endif
+% endfor
+   default:
+      return false;
+   }
+}
+
 static int
 radv_lookup_entrypoint(const char *name)
 {
@@ -274,7 +303,20 @@ radv_lookup_entrypoint_checked(const char *name,
    if (index < 0 || !radv_entrypoint_is_enabled(index, core_version, instance, device))
       return NULL;
    return radv_resolve_entrypoint(index);
-}""", output_encoding='utf-8')
+}
+
+void *
+radv_lookup_physical_device_entrypoint_checked(const char *name,
+                                               uint32_t core_version,
+                                               const struct radv_instance_extension_table *instance)
+{
+   int index = radv_lookup_entrypoint(name);
+   if (index < 0 || !radv_entrypoint_is_enabled_physical_device(index, core_version, instance))
+      return NULL;
+   return radv_resolve_entrypoint(index);
+}
+
+""", output_encoding='utf-8')
 
 U32_MASK = 2**32 - 1
 
@@ -353,6 +395,7 @@ class Entrypoint(EntrypointBase):
         self.params = params
         self.guard = guard
         self.device_command = len(params) > 0 and (params[0].type == 'VkDevice' or params[0].type == 'VkQueue' or params[0].type == 'VkCommandBuffer')
+        self.physical_device_command = len(params) > 0 and params[0].type == 'VkPhysicalDevice'
 
     def prefixed_name(self, prefix):
         assert self.name.startswith('vk')
@@ -369,6 +412,7 @@ class EntrypointAlias(EntrypointBase):
         super(EntrypointAlias, self).__init__(name)
         self.alias = entrypoint
         self.device_command = entrypoint.device_command
+        self.physical_device_command = entrypoint.physical_device_command
 
     def prefixed_name(self, prefix):
         return self.alias.prefixed_name(prefix)

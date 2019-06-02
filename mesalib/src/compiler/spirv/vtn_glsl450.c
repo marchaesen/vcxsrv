@@ -40,7 +40,7 @@ static nir_ssa_def *
 build_mat2_det(nir_builder *b, nir_ssa_def *col[2])
 {
    unsigned swiz[2] = {1, 0 };
-   nir_ssa_def *p = nir_fmul(b, col[0], nir_swizzle(b, col[1], swiz, 2, true));
+   nir_ssa_def *p = nir_fmul(b, col[0], nir_swizzle(b, col[1], swiz, 2));
    return nir_fsub(b, nir_channel(b, p, 0), nir_channel(b, p, 1));
 }
 
@@ -52,12 +52,12 @@ build_mat3_det(nir_builder *b, nir_ssa_def *col[3])
 
    nir_ssa_def *prod0 =
       nir_fmul(b, col[0],
-               nir_fmul(b, nir_swizzle(b, col[1], yzx, 3, true),
-                           nir_swizzle(b, col[2], zxy, 3, true)));
+               nir_fmul(b, nir_swizzle(b, col[1], yzx, 3),
+                           nir_swizzle(b, col[2], zxy, 3)));
    nir_ssa_def *prod1 =
       nir_fmul(b, col[0],
-               nir_fmul(b, nir_swizzle(b, col[1], zxy, 3, true),
-                           nir_swizzle(b, col[2], yzx, 3, true)));
+               nir_fmul(b, nir_swizzle(b, col[1], zxy, 3),
+                           nir_swizzle(b, col[2], yzx, 3)));
 
    nir_ssa_def *diff = nir_fsub(b, prod0, prod1);
 
@@ -76,9 +76,9 @@ build_mat4_det(nir_builder *b, nir_ssa_def **col)
          swiz[j] = j + (j >= i);
 
       nir_ssa_def *subcol[3];
-      subcol[0] = nir_swizzle(b, col[1], swiz, 3, true);
-      subcol[1] = nir_swizzle(b, col[2], swiz, 3, true);
-      subcol[2] = nir_swizzle(b, col[3], swiz, 3, true);
+      subcol[0] = nir_swizzle(b, col[1], swiz, 3);
+      subcol[1] = nir_swizzle(b, col[2], swiz, 3);
+      subcol[2] = nir_swizzle(b, col[3], swiz, 3);
 
       subdet[i] = build_mat3_det(b, subcol);
    }
@@ -130,7 +130,7 @@ build_mat_subdet(struct nir_builder *b, struct vtn_ssa_value *src,
       for (unsigned j = 0; j < size; j++) {
          if (j != col) {
             subcol[j - (j > col)] = nir_swizzle(b, src->elems[j]->def,
-                                                swiz, size - 1, true);
+                                                swiz, size - 1);
          }
       }
 

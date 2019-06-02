@@ -1245,7 +1245,7 @@ init_temp_texture(struct gl_context *ctx, struct temp_texture *tex)
    else {
       /* use 2D texture, NPOT if possible */
       tex->Target = GL_TEXTURE_2D;
-      tex->MaxSize = 1 << (ctx->Const.MaxTextureLevels - 1);
+      tex->MaxSize = ctx->Const.MaxTextureSize;
       tex->NPOT = ctx->Extensions.ARB_texture_non_power_of_two;
    }
    tex->MinSize = 16;  /* 16 x 16 at least */

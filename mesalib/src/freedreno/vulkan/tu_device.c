@@ -42,7 +42,7 @@
 #include "vk_format.h"
 #include "vk_util.h"
 
-#include "drm/msm_drm.h"
+#include "drm-uapi/msm_drm.h"
 
 static int
 tu_device_get_cache_uuid(uint16_t family, void *uuid)
@@ -198,8 +198,6 @@ tu_physical_device_init(struct tu_physical_device *device,
 
    if (strcmp(version->name, "msm")) {
       drmFreeVersion(version);
-      if (master_fd != -1)
-         close(master_fd);
       close(fd);
       return vk_errorf(instance, VK_ERROR_INCOMPATIBLE_DRIVER,
                        "device %s does not use the msm kernel driver", path);
@@ -617,8 +615,8 @@ tu_GetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
    vk_foreach_struct(ext, pFeatures->pNext)
    {
       switch (ext->sType) {
-      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTER_FEATURES: {
-         VkPhysicalDeviceVariablePointerFeatures *features = (void *) ext;
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTERS_FEATURES: {
+         VkPhysicalDeviceVariablePointersFeatures *features = (void *) ext;
          features->variablePointersStorageBuffer = false;
          features->variablePointers = false;
          break;
@@ -631,9 +629,9 @@ tu_GetPhysicalDeviceFeatures2(VkPhysicalDevice physicalDevice,
          features->multiviewTessellationShader = false;
          break;
       }
-      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETER_FEATURES: {
-         VkPhysicalDeviceShaderDrawParameterFeatures *features =
-            (VkPhysicalDeviceShaderDrawParameterFeatures *) ext;
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES: {
+         VkPhysicalDeviceShaderDrawParametersFeatures *features =
+            (VkPhysicalDeviceShaderDrawParametersFeatures *) ext;
          features->shaderDrawParameters = false;
          break;
       }

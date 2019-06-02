@@ -49,7 +49,7 @@ lower_alu_instr(nir_alu_instr *alu)
    assert(alu->dest.dest.is_ssa);
 
    switch (alu->op) {
-   case nir_op_imov:
+   case nir_op_mov:
    case nir_op_vec2:
    case nir_op_vec3:
    case nir_op_vec4:

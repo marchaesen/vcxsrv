@@ -26,6 +26,8 @@
 
 #ifdef HAVE_DL_ITERATE_PHDR
 
+#include <stdint.h>
+
 struct build_id_note;
 
 const struct build_id_note *

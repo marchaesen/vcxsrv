@@ -62,6 +62,10 @@ SOFTWARE.
 #include <X11/Xmd.h>
 #include "servermd.h"
 
+#ifdef __MINGW32__
+#define ffs __builtin_ffs
+#endif
+
 /* MICOPYAREA -- public entry for the CopyArea request
  * For each rectangle in the source region
  *     get the pixels with GetSpans

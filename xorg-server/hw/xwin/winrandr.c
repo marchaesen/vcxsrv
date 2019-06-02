@@ -170,9 +170,6 @@ winRandRScreenSetSize(ScreenPtr pScreen,
        resize the native display size
      */
     if (FALSE
-#ifdef XWIN_MULTIWINDOWEXTWM
-        || pScreenInfo->fMWExtWM
-#endif
         || pScreenInfo->fRootless
         || pScreenInfo->fMultiWindow
         ) {

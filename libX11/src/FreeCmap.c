@@ -41,12 +41,12 @@ XFreeColormap(
     LockDisplay(dpy);
     GetResReq(FreeColormap, cmap, req);
 
-    UnlockDisplay(dpy);
-    SyncHandle();
-
 #ifdef XCMS
     _XcmsDeleteCmapRec(dpy, cmap);
 #endif
+
+    UnlockDisplay(dpy);
+    SyncHandle();
 
     return 1;
 }

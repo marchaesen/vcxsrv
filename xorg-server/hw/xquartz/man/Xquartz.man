@@ -84,7 +84,7 @@ This option defaults to false and is provided only "for experts."  It updates th
 .B defaults write @bundle_id_prefix@.X11 enable_test_extensions -boolean true
 This option defaults to false and is only accessible through the command line.  Enable this option to turn on the DEC-XTRAP, RECORD, and XTEST extensions in the server.
 .TP 8
-.B defaults write @laucnd_id_prefix@.X11 scroll_in_device_direction -boolean true
+.B defaults write @bundle_id_prefix@.X11 scroll_in_device_direction -boolean true
 This option defaults to false.  Enable this option to ensure that X11 scroll events are always in the direction of the device.  This overrides the related option in the Mouse/Trackpad section of System Preferences.
 .SH OPTIONS
 .PP

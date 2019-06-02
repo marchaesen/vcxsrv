@@ -783,11 +783,6 @@ winUseMsg(void)
 
     ErrorF("-multiwindow\n" "\tRun the server in multi-window mode.\n");
 
-#ifdef XWIN_MULTIWINDOWEXTWM
-    ErrorF("-mwextwm\n"
-           "\tRun the server in multi-window external window manager mode.\n");
-#endif
-
     ErrorF("-nodecoration\n"
            "\tDo not draw a window border, title bar, etc.  Windowed\n"
            "\tmode only.\n");

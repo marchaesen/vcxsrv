@@ -33,6 +33,20 @@
  * easier to not have them when we're doing optimizations.
  */
 
+static void
+alu_src_consume_abs(nir_alu_src *src)
+{
+   src->abs = true;
+}
+
+static void
+alu_src_consume_negate(nir_alu_src *src)
+{
+   /* If abs is set on the source, the negate goes away */
+   if (!src->abs)
+      src->negate = !src->negate;
+}
+
 static bool
 nir_lower_to_source_mods_block(nir_block *block,
                                nir_lower_to_source_mods_flags options)
@@ -64,13 +78,13 @@ nir_lower_to_source_mods_block(nir_block *block,
          case nir_type_float:
             if (!(options & nir_lower_float_source_mods))
                continue;
-            if (parent->op != nir_op_fmov)
+            if (parent->op != nir_op_fabs && parent->op != nir_op_fneg)
                continue;
             break;
          case nir_type_int:
             if (!(options & nir_lower_int_source_mods))
                continue;
-            if (parent->op != nir_op_imov)
+            if (parent->op != nir_op_iabs && parent->op != nir_op_ineg)
                continue;
             break;
          default:
@@ -84,16 +98,23 @@ nir_lower_to_source_mods_block(nir_block *block,
          if (!parent->src[0].src.is_ssa)
             continue;
 
-         if (!lower_abs && parent->src[0].abs)
+         if (!lower_abs && (parent->op == nir_op_fabs &&
+                            parent->op == nir_op_iabs))
             continue;
 
          nir_instr_rewrite_src(instr, &alu->src[i].src, parent->src[0].src);
-         if (alu->src[i].abs) {
-            /* abs trumps both neg and abs, do nothing */
-         } else {
-            alu->src[i].negate = (alu->src[i].negate != parent->src[0].negate);
-            alu->src[i].abs |= parent->src[0].abs;
-         }
+
+         /* Apply any modifiers that come from the parent opcode */
+         if (parent->op == nir_op_fneg || parent->op == nir_op_ineg)
+            alu_src_consume_negate(&alu->src[i]);
+         if (parent->op == nir_op_fabs || parent->op == nir_op_iabs)
+            alu_src_consume_abs(&alu->src[i]);
+
+         /* Apply modifiers from the parent source */
+         if (parent->src[0].negate)
+            alu_src_consume_negate(&alu->src[i]);
+         if (parent->src[0].abs)
+            alu_src_consume_abs(&alu->src[i]);
 
          for (int j = 0; j < 4; ++j) {
             if (!nir_alu_instr_channel_used(alu, i, j))
@@ -108,41 +129,6 @@ nir_lower_to_source_mods_block(nir_block *block,
          progress = true;
       }
 
-      if (options & nir_lower_float_source_mods) {
-         switch (alu->op) {
-         case nir_op_fsat:
-            alu->op = nir_op_fmov;
-            alu->dest.saturate = true;
-            break;
-         case nir_op_fneg:
-            alu->op = nir_op_fmov;
-            alu->src[0].negate = !alu->src[0].negate;
-            break;
-         case nir_op_fabs:
-            alu->op = nir_op_fmov;
-            alu->src[0].abs = true;
-            alu->src[0].negate = false;
-            break;
-         default:
-            break;
-         }
-      }
-
-      if (options & nir_lower_int_source_mods) {
-         switch (alu->op) {
-         case nir_op_ineg:
-            alu->op = nir_op_imov;
-            alu->src[0].negate = !alu->src[0].negate;
-            break;
-         case nir_op_iabs:
-            alu->op = nir_op_imov;
-            alu->src[0].abs = true;
-            alu->src[0].negate = false;
-            break;
-         default:
-            break;
-         }
-      }
       /* We've covered sources.  Now we're going to try and saturate the
        * destination if we can.
        */
@@ -176,8 +162,7 @@ nir_lower_to_source_mods_block(nir_block *block,
             continue;
          }
 
-         if (child_alu->op != nir_op_fsat &&
-             !(child_alu->op == nir_op_fmov && child_alu->dest.saturate)) {
+         if (child_alu->op != nir_op_fsat) {
             all_children_are_sat = false;
             continue;
          }
@@ -193,7 +178,7 @@ nir_lower_to_source_mods_block(nir_block *block,
          assert(child_src->is_ssa);
          nir_alu_instr *child_alu = nir_instr_as_alu(child_src->parent_instr);
 
-         child_alu->op = nir_op_fmov;
+         child_alu->op = nir_op_mov;
          child_alu->dest.saturate = false;
          /* We could propagate the dest of our instruction to the
           * destinations of the uses here.  However, one quick round of

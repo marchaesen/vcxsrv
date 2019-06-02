@@ -179,7 +179,7 @@ _mesa_base_tex_image(const struct gl_texture_object *texObj)
 
 
 extern GLint
-_mesa_max_texture_levels(struct gl_context *ctx, GLenum target);
+_mesa_max_texture_levels(const struct gl_context *ctx, GLenum target);
 
 
 extern GLboolean

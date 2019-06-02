@@ -218,6 +218,18 @@ __fge64(uint64_t a, uint64_t b)
    return !__flt64_nonnan(a, b);
 }
 
+uint64_t
+__fsat64(uint64_t __a)
+{
+   if (__flt64(__a, 0ul))
+      return 0ul;
+
+   if (__fge64(__a, 0x3FF0000000000000ul /* 1.0 */))
+      return 0x3FF0000000000000ul;
+
+   return __a;
+}
+
 /* Adds the 64-bit value formed by concatenating `a0' and `a1' to the 64-bit
  * value formed by concatenating `b0' and `b1'.  Addition is modulo 2^64, so
  * any carry out is lost.  The result is broken into two 32-bit pieces which

@@ -51,7 +51,7 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_TEXTURE_SWIZZLE:
       return 0;
 
-   case PIPE_CAP_MAX_TEXTURE_2D_LEVELS:
+   case PIPE_CAP_MAX_TEXTURE_2D_SIZE:
    case PIPE_CAP_MAX_TEXTURE_3D_LEVELS:
    case PIPE_CAP_MAX_TEXTURE_CUBE_LEVELS:
       unreachable("driver must implement these.");
@@ -270,7 +270,8 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_GLSL_TESS_LEVELS_AS_INPUTS:
       return 0;
 
-   case PIPE_CAP_TGSI_FS_FBFETCH:
+   case PIPE_CAP_FBFETCH:
+   case PIPE_CAP_FBFETCH_COHERENT:
    case PIPE_CAP_TGSI_MUL_ZERO_WINS:
    case PIPE_CAP_DOUBLES:
    case PIPE_CAP_INT64:
@@ -326,6 +327,7 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_TGSI_SKIP_SHRINK_IO_ARRAYS:
    case PIPE_CAP_IMAGE_LOAD_FORMATTED:
    case PIPE_CAP_PREFER_COMPUTE_BLIT_FOR_MULTIMEDIA:
+   case PIPE_CAP_FRAGMENT_SHADER_INTERLOCK:
       return 0;
 
    case PIPE_CAP_MAX_GS_INVOCATIONS:
@@ -356,10 +358,10 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
       return 0;
 
    case PIPE_CAP_MAX_FRAMES_IN_FLIGHT:
-      return 2;
+      return 1;
 
    case PIPE_CAP_DMABUF:
-#ifdef PIPE_OS_LINUX
+#if defined(PIPE_OS_LINUX) || defined(PIPE_OS_BSD)
       return 1;
 #else
       return 0;

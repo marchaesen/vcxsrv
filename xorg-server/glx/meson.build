@@ -65,7 +65,7 @@ hdrs_vnd = [
     'vndserver.h',
 ]
 
-libglxvnd = ''
+libglxvnd = []
 if build_glx
     libglxvnd = static_library('libglxvnd',
     srcs_vnd,

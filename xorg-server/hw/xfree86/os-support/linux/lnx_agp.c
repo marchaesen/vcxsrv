@@ -143,6 +143,7 @@ xf86GetAGPInfo(int screenNum)
         xf86DrvMsg(screenNum, X_ERROR,
                    "xf86GetAGPInfo: AGPIOC_INFO failed (%s)\n",
                    strerror(errno));
+        free(info);
         return NULL;
     }
 
