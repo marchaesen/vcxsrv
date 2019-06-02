@@ -8,7 +8,7 @@
 <body>
 
 <div class="header">
-  <h1>The Mesa 3D Graphics Library</h1>
+  The Mesa 3D Graphics Library
 </div>
 
 <iframe src="contents.html"></iframe>
@@ -25,7 +25,7 @@ https://www.khronos.org/opengles/</a>.</p>
 
 <h2>Build the Libraries</h2>
 <ol>
-<li>Run <code>configure</code> with <code>--enable-gles1 --enable-gles2</code> and enable the Gallium driver for your hardware.</li>
+<li>Run <code>meson configure</code> with <code>-D gles1=true -D gles2=true</code> and enable the Gallium driver for your hardware.</li>
 <li>Build and install Mesa as usual.</li>
 </ol>
 
@@ -33,7 +33,7 @@ Alternatively, if XCB-DRI2 is installed on the system, one can use
 <code>egl_dri2</code> EGL driver with OpenGL|ES-enabled DRI drivers
 
 <ol>
-<li>Run <code>configure</code> with <code>--enable-gles1 --enable-gles2</code>.</li>
+<li>Run <code>meson configure</code> with <code>-D gles1=true -D gles2=true</code>.</li>
 <li>Build and install Mesa as usual.</li>
 </ol>
 

@@ -48,6 +48,7 @@
 #include "ralloc.h"
 #include "macros.h"
 #include "main/hash.h"
+#include "fast_urem_by_const.h"
 
 static const uint32_t deleted_key_value;
 
@@ -58,38 +59,43 @@ static const uint32_t deleted_key_value;
  */
 static const struct {
    uint32_t max_entries, size, rehash;
+   uint64_t size_magic, rehash_magic;
 } hash_sizes[] = {
-   { 2,			5,		3	  },
-   { 4,			7,		5	  },
-   { 8,			13,		11	  },
-   { 16,		19,		17	  },
-   { 32,		43,		41        },
-   { 64,		73,		71        },
-   { 128,		151,		149       },
-   { 256,		283,		281       },
-   { 512,		571,		569       },
-   { 1024,		1153,		1151      },
-   { 2048,		2269,		2267      },
-   { 4096,		4519,		4517      },
-   { 8192,		9013,		9011      },
-   { 16384,		18043,		18041     },
-   { 32768,		36109,		36107     },
-   { 65536,		72091,		72089     },
-   { 131072,		144409,		144407    },
-   { 262144,		288361,		288359    },
-   { 524288,		576883,		576881    },
-   { 1048576,		1153459,	1153457   },
-   { 2097152,		2307163,	2307161   },
-   { 4194304,		4613893,	4613891   },
-   { 8388608,		9227641,	9227639   },
-   { 16777216,		18455029,	18455027  },
-   { 33554432,		36911011,	36911009  },
-   { 67108864,		73819861,	73819859  },
-   { 134217728,		147639589,	147639587 },
-   { 268435456,		295279081,	295279079 },
-   { 536870912,		590559793,	590559791 },
-   { 1073741824,	1181116273,	1181116271},
-   { 2147483648ul,	2362232233ul,	2362232231ul}
+#define ENTRY(max_entries, size, rehash) \
+   { max_entries, size, rehash, \
+      REMAINDER_MAGIC(size), REMAINDER_MAGIC(rehash) }
+
+   ENTRY(2,            5,            3            ),
+   ENTRY(4,            7,            5            ),
+   ENTRY(8,            13,           11           ),
+   ENTRY(16,           19,           17           ),
+   ENTRY(32,           43,           41           ),
+   ENTRY(64,           73,           71           ),
+   ENTRY(128,          151,          149          ),
+   ENTRY(256,          283,          281          ),
+   ENTRY(512,          571,          569          ),
+   ENTRY(1024,         1153,         1151         ),
+   ENTRY(2048,         2269,         2267         ),
+   ENTRY(4096,         4519,         4517         ),
+   ENTRY(8192,         9013,         9011         ),
+   ENTRY(16384,        18043,        18041        ),
+   ENTRY(32768,        36109,        36107        ),
+   ENTRY(65536,        72091,        72089        ),
+   ENTRY(131072,       144409,       144407       ),
+   ENTRY(262144,       288361,       288359       ),
+   ENTRY(524288,       576883,       576881       ),
+   ENTRY(1048576,      1153459,      1153457      ),
+   ENTRY(2097152,      2307163,      2307161      ),
+   ENTRY(4194304,      4613893,      4613891      ),
+   ENTRY(8388608,      9227641,      9227639      ),
+   ENTRY(16777216,     18455029,     18455027     ),
+   ENTRY(33554432,     36911011,     36911009     ),
+   ENTRY(67108864,     73819861,     73819859     ),
+   ENTRY(134217728,    147639589,    147639587    ),
+   ENTRY(268435456,    295279081,    295279079    ),
+   ENTRY(536870912,    590559793,    590559791    ),
+   ENTRY(1073741824,   1181116273,   1181116271   ),
+   ENTRY(2147483648ul, 2362232233ul, 2362232231ul )
 };
 
 static int
@@ -120,6 +126,8 @@ _mesa_hash_table_init(struct hash_table *ht,
    ht->size_index = 0;
    ht->size = hash_sizes[ht->size_index].size;
    ht->rehash = hash_sizes[ht->size_index].rehash;
+   ht->size_magic = hash_sizes[ht->size_index].size_magic;
+   ht->rehash_magic = hash_sizes[ht->size_index].rehash_magic;
    ht->max_entries = hash_sizes[ht->size_index].max_entries;
    ht->key_hash_function = key_hash_function;
    ht->key_equals_function = key_equals_function;
@@ -242,12 +250,13 @@ _mesa_hash_table_set_deleted_key(struct hash_table *ht, const void *deleted_key)
 static struct hash_entry *
 hash_table_search(struct hash_table *ht, uint32_t hash, const void *key)
 {
-   uint32_t start_hash_address = hash % ht->size;
+   uint32_t size = ht->size;
+   uint32_t start_hash_address = util_fast_urem32(hash, size, ht->size_magic);
+   uint32_t double_hash = 1 + util_fast_urem32(hash, ht->rehash,
+                                               ht->rehash_magic);
    uint32_t hash_address = start_hash_address;
 
    do {
-      uint32_t double_hash;
-
       struct hash_entry *entry = ht->table + hash_address;
 
       if (entry_is_free(entry)) {
@@ -258,9 +267,9 @@ hash_table_search(struct hash_table *ht, uint32_t hash, const void *key)
          }
       }
 
-      double_hash = 1 + hash % ht->rehash;
-
-      hash_address = (hash_address + double_hash) % ht->size;
+      hash_address += double_hash;
+      if (hash_address >= size)
+         hash_address -= size;
    } while (hash_address != start_hash_address);
 
    return NULL;
@@ -292,6 +301,31 @@ hash_table_insert(struct hash_table *ht, uint32_t hash,
                   const void *key, void *data);
 
 static void
+hash_table_insert_rehash(struct hash_table *ht, uint32_t hash,
+                         const void *key, void *data)
+{
+   uint32_t size = ht->size;
+   uint32_t start_hash_address = util_fast_urem32(hash, size, ht->size_magic);
+   uint32_t double_hash = 1 + util_fast_urem32(hash, ht->rehash,
+                                               ht->rehash_magic);
+   uint32_t hash_address = start_hash_address;
+   do {
+      struct hash_entry *entry = ht->table + hash_address;
+
+      if (likely(entry->key == NULL)) {
+         entry->hash = hash;
+         entry->key = key;
+         entry->data = data;
+         return;
+      }
+
+      hash_address += double_hash;
+      if (hash_address >= size)
+         hash_address -= size;
+   } while (true);
+}
+
+static void
 _mesa_hash_table_rehash(struct hash_table *ht, unsigned new_size_index)
 {
    struct hash_table old_ht;
@@ -311,13 +345,17 @@ _mesa_hash_table_rehash(struct hash_table *ht, unsigned new_size_index)
    ht->size_index = new_size_index;
    ht->size = hash_sizes[ht->size_index].size;
    ht->rehash = hash_sizes[ht->size_index].rehash;
+   ht->size_magic = hash_sizes[ht->size_index].size_magic;
+   ht->rehash_magic = hash_sizes[ht->size_index].rehash_magic;
    ht->max_entries = hash_sizes[ht->size_index].max_entries;
    ht->entries = 0;
    ht->deleted_entries = 0;
 
    hash_table_foreach(&old_ht, entry) {
-      hash_table_insert(ht, entry->hash, entry->key, entry->data);
+      hash_table_insert_rehash(ht, entry->hash, entry->key, entry->data);
    }
+
+   ht->entries = old_ht.entries;
 
    ralloc_free(old_ht.table);
 }
@@ -326,7 +364,6 @@ static struct hash_entry *
 hash_table_insert(struct hash_table *ht, uint32_t hash,
                   const void *key, void *data)
 {
-   uint32_t start_hash_address, hash_address;
    struct hash_entry *available_entry = NULL;
 
    assert(key != NULL);
@@ -337,11 +374,13 @@ hash_table_insert(struct hash_table *ht, uint32_t hash,
       _mesa_hash_table_rehash(ht, ht->size_index);
    }
 
-   start_hash_address = hash % ht->size;
-   hash_address = start_hash_address;
+   uint32_t size = ht->size;
+   uint32_t start_hash_address = util_fast_urem32(hash, size, ht->size_magic);
+   uint32_t double_hash = 1 + util_fast_urem32(hash, ht->rehash,
+                                               ht->rehash_magic);
+   uint32_t hash_address = start_hash_address;
    do {
       struct hash_entry *entry = ht->table + hash_address;
-      uint32_t double_hash;
 
       if (!entry_is_present(ht, entry)) {
          /* Stash the first available entry we find */
@@ -370,10 +409,9 @@ hash_table_insert(struct hash_table *ht, uint32_t hash,
          return entry;
       }
 
-
-      double_hash = 1 + hash % ht->rehash;
-
-      hash_address = (hash_address + double_hash) % ht->size;
+      hash_address += double_hash;
+      if (hash_address >= size)
+         hash_address -= size;
    } while (hash_address != start_hash_address);
 
    if (available_entry) {

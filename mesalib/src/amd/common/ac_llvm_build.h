@@ -26,7 +26,7 @@
 #define AC_LLVM_BUILD_H
 
 #include <stdbool.h>
-#include <llvm-c/TargetMachine.h>
+#include <llvm-c/Core.h>
 #include "compiler/nir/nir.h"
 #include "amd_family.h"
 
@@ -356,6 +356,36 @@ ac_build_raw_tbuffer_load(struct ac_llvm_context *ctx,
 			  bool glc,
 			  bool slc,
 		          bool can_speculate);
+
+/* For ac_build_fetch_format.
+ *
+ * Note: FLOAT must be 0 (used for convenience of encoding in radeonsi).
+ */
+enum {
+	AC_FETCH_FORMAT_FLOAT = 0,
+	AC_FETCH_FORMAT_FIXED,
+	AC_FETCH_FORMAT_UNORM,
+	AC_FETCH_FORMAT_SNORM,
+	AC_FETCH_FORMAT_USCALED,
+	AC_FETCH_FORMAT_SSCALED,
+	AC_FETCH_FORMAT_UINT,
+	AC_FETCH_FORMAT_SINT,
+};
+
+LLVMValueRef
+ac_build_opencoded_load_format(struct ac_llvm_context *ctx,
+			       unsigned log_size,
+			       unsigned num_channels,
+			       unsigned format,
+			       bool reverse,
+			       bool known_aligned,
+			       LLVMValueRef rsrc,
+			       LLVMValueRef vindex,
+			       LLVMValueRef voffset,
+			       LLVMValueRef soffset,
+			       bool glc,
+			       bool slc,
+			       bool can_speculate);
 
 void
 ac_build_tbuffer_store_short(struct ac_llvm_context *ctx,
@@ -693,6 +723,14 @@ ac_build_ddxy_interp(struct ac_llvm_context *ctx, LLVMValueRef interp_ij);
 
 LLVMValueRef
 ac_build_load_helper_invocation(struct ac_llvm_context *ctx);
+
+LLVMValueRef ac_build_atomic_rmw(struct ac_llvm_context *ctx, LLVMAtomicRMWBinOp op,
+				 LLVMValueRef ptr, LLVMValueRef val,
+				 const char *sync_scope);
+
+LLVMValueRef ac_build_atomic_cmp_xchg(struct ac_llvm_context *ctx, LLVMValueRef ptr,
+				      LLVMValueRef cmp, LLVMValueRef val,
+				      const char *sync_scope);
 
 #ifdef __cplusplus
 }

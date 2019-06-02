@@ -87,6 +87,7 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 	struct list_head instr_list;
 	struct ir3_legalize_state prev_state = bd->state;
 	struct ir3_legalize_state *state = &bd->state;
+	bool last_input_needs_ss = false;
 
 	/* our input state is the OR of all predecessor blocks' state: */
 	for (unsigned i = 0; i < block->predecessors_count; i++) {
@@ -125,8 +126,10 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 			ctx->max_bary = MAX2(ctx->max_bary, inloc->iim_val);
 		}
 
-		if (last_n && is_barrier(last_n))
+		if (last_n && is_barrier(last_n)) {
 			n->flags |= IR3_INSTR_SS | IR3_INSTR_SY;
+			last_input_needs_ss = false;
+		}
 
 		/* NOTE: consider dst register too.. it could happen that
 		 * texture sample instruction (for example) writes some
@@ -145,6 +148,7 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 				 */
 				if (regmask_get(&state->needs_ss, reg)) {
 					n->flags |= IR3_INSTR_SS;
+					last_input_needs_ss = false;
 					regmask_init(&state->needs_ss_war);
 					regmask_init(&state->needs_ss);
 				}
@@ -167,6 +171,7 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 			reg = n->regs[0];
 			if (regmask_get(&state->needs_ss_war, reg)) {
 				n->flags |= IR3_INSTR_SS;
+				last_input_needs_ss = false;
 				regmask_init(&state->needs_ss_war);
 				regmask_init(&state->needs_ss);
 			}
@@ -237,6 +242,7 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 		} else if (n->opc == OPC_RESINFO) {
 			regmask_set(&state->needs_ss, n->regs[0]);
 			ir3_NOP(block)->flags |= IR3_INSTR_SS;
+			last_input_needs_ss = false;
 		} else if (is_load(n)) {
 			/* seems like ldlv needs (ss) bit instead??  which is odd but
 			 * makes a bunch of flat-varying tests start working on a4xx.
@@ -271,13 +277,17 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 			}
 		}
 
-		if (is_input(n))
+		if (is_input(n)) {
 			last_input = n;
+			last_input_needs_ss |= (n->opc == OPC_LDLV);
+		}
 
 		last_n = n;
 	}
 
 	if (last_input) {
+		assert(block == list_first_entry(&block->shader->block_list,
+				struct ir3_block, node));
 		/* special hack.. if using ldlv to bypass interpolation,
 		 * we need to insert a dummy bary.f on which we can set
 		 * the (ei) flag:
@@ -287,7 +297,6 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 
 			/* (ss)bary.f (ei)r63.x, 0, r0.x */
 			baryf = ir3_instr_create(block, OPC_BARY_F);
-			baryf->flags |= IR3_INSTR_SS;
 			ir3_reg_create(baryf, regid(63, 0), 0);
 			ir3_reg_create(baryf, 0, IR3_REG_IMMED)->iim_val = 0;
 			ir3_reg_create(baryf, regid(0, 0), 0);
@@ -299,6 +308,8 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 			last_input = baryf;
 		}
 		last_input->regs[0]->flags |= IR3_REG_EI;
+		if (last_input_needs_ss)
+			last_input->flags |= IR3_INSTR_SS;
 	}
 
 	if (last_rel)

@@ -6,7 +6,7 @@ project('xserver', 'c',
         version: '1.20.99.1',
         meson_version: '>= 0.46.0',
 )
-add_project_arguments('-DHAVE_DIX_CONFIG_H', language: 'c')
+add_project_arguments('-DHAVE_DIX_CONFIG_H', language: ['c', 'objc'])
 cc = meson.get_compiler('c')
 
 add_global_arguments('-fno-strict-aliasing', language : 'c')
@@ -56,7 +56,7 @@ foreach wflag: test_wflags
     endif
 endforeach
 
-add_global_arguments(common_wflags, language : 'c')
+add_global_arguments(common_wflags, language : ['c', 'objc'])
 
 xproto_dep = dependency('xproto', version: '>= 7.0.31')
 randrproto_dep = dependency('randrproto', version: '>= 1.6.0')
@@ -82,7 +82,6 @@ dri3proto_dep = dependency('dri3proto', version: '>= 1.2', required: get_option(
 xineramaproto_dep = dependency('xineramaproto')
 xf86bigfontproto_dep = dependency('xf86bigfontproto', version: '>= 1.2.0')
 xf86vidmodeproto_dep = dependency('xf86vidmodeproto', version: '>= 2.2.99.1')
-windowswmproto_dep = dependency('windowswmproto', required: false)
 applewmproto_dep = dependency('applewmproto', version: '>= 1.4', required: false)
 xshmfence_dep = dependency('xshmfence', version: '>= 1.1', required: false)
 
@@ -134,14 +133,21 @@ dfp = get_option('default_font_path')
 if dfp == ''
     fontutil_dep = dependency('fontutil')
     fontrootdir = fontutil_dep.get_pkgconfig_variable('fontrootdir')
-    default_font_path = ','.join([
+    dfp_elements = [
         join_paths(fontrootdir, 'misc'),
         join_paths(fontrootdir, 'TTF'),
         join_paths(fontrootdir, 'OTF'),
         join_paths(fontrootdir, 'Type1'),
         join_paths(fontrootdir, '100dpi'),
         join_paths(fontrootdir, '75dpi'),
-    ])
+    ]
+    if host_machine.system() == 'darwin'
+       dfp_elements += [
+       '/Library/Fonts',
+       '/System/Library/Fonts',
+    ]
+    endif
+    default_font_path = ','.join(dfp_elements)
 else
     default_font_path = dfp
 endif
@@ -150,7 +156,7 @@ hal_option = get_option('hal')
 glamor_option = get_option('glamor')
 
 build_udev = get_option('udev')
-if host_machine.system() == 'windows'
+if host_machine.system() == 'windows' or host_machine.system() == 'darwin'
     build_udev = false
     hal_option = 'false'
 endif
@@ -228,8 +234,19 @@ else
     build_xwin = get_option('xwin') == 'true'
 endif
 
-# XXX: Finish these.
 build_xquartz = false
+if get_option('xquartz') == 'auto'
+    if host_machine.system() == 'darwin'
+            build_xquartz = true
+    endif
+else
+    build_xquartz = get_option('xquartz') == 'true'
+endif
+
+build_rootless = false
+if build_xquartz
+    build_rootless = true
+endif
 
 if get_option('ipv6') == 'auto'
     build_ipv6 = cc.has_function('getaddrinfo')
@@ -477,7 +494,6 @@ common_dep = [
     xf86bigfontproto_dep,
     xf86dgaproto_dep,
     xf86vidmodeproto_dep,
-    windowswmproto_dep,
     applewmproto_dep,
 
     pixman_dep,
@@ -525,9 +541,15 @@ if get_option('xselinux') != 'false'
     endif
 endif
 
+socket_dep = []
+if host_machine.system() == 'windows'
+    socket_dep = meson.get_compiler('c').find_library('ws2_32')
+    common_dep += socket_dep
+endif
+
 glx_inc = include_directories('glx')
 
-top_srcdir_inc = include_directories('.')
+top_dir_inc = include_directories('.')
 
 serverconfigdir = join_paths(get_option('libdir'), 'xorg')
 
@@ -562,6 +584,12 @@ manpage_config.set('modulepath', module_dir)
 manpage_config.set('suid_wrapper_dir', join_paths(get_option('prefix'), 'libexec'))
 manpage_config.set('default_font_path', default_font_path)
 
+# generate header containing date & time build was configued
+build_date_time = configure_file(
+    output: 'buildDateTime.h',
+    command: ['sh', join_paths(meson.current_source_dir(), 'buildDateTime.sh'), '@OUTPUT@'],
+)
+
 # Include must come first, as it sets up dix-config.h
 subdir('include')
 
@@ -580,6 +608,9 @@ subdir('dbe')
 subdir('miext/damage')
 subdir('miext/shadow')
 subdir('miext/sync')
+if build_rootless
+    subdir('miext/rootless')
+endif
 subdir('present')
 if build_xwin or build_xquartz
     subdir('pseudoramiX')
@@ -624,7 +655,10 @@ libxserver = [
 libxserver += libxserver_dri3
 
 subdir('hw')
-subdir('test')
+
+if host_machine.system() != 'windows'
+    subdir('test')
+endif
 
 install_man(configure_file(
     input: 'man/Xserver.man',

@@ -51,6 +51,14 @@ void
 linker_warning(struct gl_shader_program *prog, const char *fmt, ...);
 
 bool
+link_util_should_add_buffer_variable(struct gl_shader_program *prog,
+                                     struct gl_uniform_storage *uniform,
+                                     int top_level_array_base_offset,
+                                     int top_level_array_size_in_bytes,
+                                     int second_element_offset,
+                                     int block_index);
+
+bool
 link_util_add_program_resource(struct gl_shader_program *prog,
                                struct set *resource_set,
                                GLenum type, const void *data, uint8_t stages);

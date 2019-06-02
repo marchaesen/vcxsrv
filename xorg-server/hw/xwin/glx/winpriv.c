@@ -149,22 +149,6 @@ winGetWindowInfo(WindowPtr pWin)
               hwnd = pWinPriv->hWnd;
             }
         }
-#ifdef XWIN_MULTIWINDOWEXTWM
-        /* check for multiwindow external wm mode */
-        if (pScreenInfo->fMWExtWM) {
-            win32RootlessWindowPtr pRLWinPriv
-                = (win32RootlessWindowPtr) RootlessFrameForWindow(pWin, FALSE);
-
-            if (pRLWinPriv == NULL) {
-                ErrorF("winGetWindowInfo: window has no privates\n");
-            }
-
-            if (pRLWinPriv->hWnd != NULL) {
-                /* copy window handle */
-                hwnd = pRLWinPriv->hWnd;
-            }
-        }
-#endif
     }
     else {
         ScreenPtr pScreen = g_ScreenInfo[0].pScreen;
@@ -193,14 +177,9 @@ winCheckScreenAiglxIsSupported(ScreenPtr pScreen)
     if (pScreenInfo->fMultiWindow)
         return TRUE;
 
-#ifdef XWIN_MULTIWINDOWEXTWM
-    if (pScreenInfo->fMWExtWM)
-        return TRUE;
-#endif
 
   if (g_fXdmcpEnabled)
     return TRUE;
-
     return FALSE;
 }
 

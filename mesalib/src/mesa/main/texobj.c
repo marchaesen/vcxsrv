@@ -715,33 +715,8 @@ _mesa_test_texobj_completeness( const struct gl_context *ctx,
       return;
    }
 
-   /* Compute _MaxLevel (the maximum mipmap level we'll sample from given the
-    * mipmap image sizes and GL_TEXTURE_MAX_LEVEL state).
-    */
-   switch (t->Target) {
-   case GL_TEXTURE_1D:
-   case GL_TEXTURE_1D_ARRAY_EXT:
-      maxLevels = ctx->Const.MaxTextureLevels;
-      break;
-   case GL_TEXTURE_2D:
-   case GL_TEXTURE_2D_ARRAY_EXT:
-      maxLevels = ctx->Const.MaxTextureLevels;
-      break;
-   case GL_TEXTURE_3D:
-      maxLevels = ctx->Const.Max3DTextureLevels;
-      break;
-   case GL_TEXTURE_CUBE_MAP:
-   case GL_TEXTURE_CUBE_MAP_ARRAY:
-      maxLevels = ctx->Const.MaxCubeTextureLevels;
-      break;
-   case GL_TEXTURE_RECTANGLE_NV:
-   case GL_TEXTURE_BUFFER:
-   case GL_TEXTURE_EXTERNAL_OES:
-   case GL_TEXTURE_2D_MULTISAMPLE:
-   case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
-      maxLevels = 1;  /* no mipmapping */
-      break;
-   default:
+   maxLevels = _mesa_max_texture_levels(ctx, t->Target);
+   if (maxLevels == 0) {
       _mesa_problem(ctx, "Bad t->Target in _mesa_test_texobj_completeness");
       return;
    }

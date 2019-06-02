@@ -31,6 +31,7 @@
 
 #include "ac_binary.h"
 #include "ac_llvm_util.h"
+#include "ac_llvm_build.h"
 
 #include <llvm-c/Core.h>
 #include <llvm/Target/TargetMachine.h>
@@ -166,4 +167,62 @@ void ac_llvm_add_barrier_noop_pass(LLVMPassManagerRef passmgr)
 void ac_enable_global_isel(LLVMTargetMachineRef tm)
 {
   reinterpret_cast<llvm::TargetMachine*>(tm)->setGlobalISel(true);
+}
+
+LLVMValueRef ac_build_atomic_rmw(struct ac_llvm_context *ctx, LLVMAtomicRMWBinOp op,
+				 LLVMValueRef ptr, LLVMValueRef val,
+				 const char *sync_scope) {
+	llvm::AtomicRMWInst::BinOp binop;
+	switch (op) {
+	case LLVMAtomicRMWBinOpXchg:
+		binop = llvm::AtomicRMWInst::Xchg;
+		break;
+	case LLVMAtomicRMWBinOpAdd:
+		binop = llvm::AtomicRMWInst::Add;
+		break;
+	case LLVMAtomicRMWBinOpSub:
+		binop = llvm::AtomicRMWInst::Sub;
+		break;
+	case LLVMAtomicRMWBinOpAnd:
+		binop = llvm::AtomicRMWInst::And;
+		break;
+	case LLVMAtomicRMWBinOpNand:
+		binop = llvm::AtomicRMWInst::Nand;
+		break;
+	case LLVMAtomicRMWBinOpOr:
+		binop = llvm::AtomicRMWInst::Or;
+		break;
+	case LLVMAtomicRMWBinOpXor:
+		binop = llvm::AtomicRMWInst::Xor;
+		break;
+	case LLVMAtomicRMWBinOpMax:
+		binop = llvm::AtomicRMWInst::Max;
+		break;
+	case LLVMAtomicRMWBinOpMin:
+		binop = llvm::AtomicRMWInst::Min;
+		break;
+	case LLVMAtomicRMWBinOpUMax:
+		binop = llvm::AtomicRMWInst::UMax;
+		break;
+	case LLVMAtomicRMWBinOpUMin:
+		binop = llvm::AtomicRMWInst::UMin;
+		break;
+	default:
+		unreachable(!"invalid LLVMAtomicRMWBinOp");
+	   break;
+	}
+	unsigned SSID = llvm::unwrap(ctx->context)->getOrInsertSyncScopeID(sync_scope);
+	return llvm::wrap(llvm::unwrap(ctx->builder)->CreateAtomicRMW(
+		binop, llvm::unwrap(ptr), llvm::unwrap(val),
+		llvm::AtomicOrdering::SequentiallyConsistent, SSID));
+}
+
+LLVMValueRef ac_build_atomic_cmp_xchg(struct ac_llvm_context *ctx, LLVMValueRef ptr,
+				      LLVMValueRef cmp, LLVMValueRef val,
+				      const char *sync_scope) {
+	unsigned SSID = llvm::unwrap(ctx->context)->getOrInsertSyncScopeID(sync_scope);
+	return llvm::wrap(llvm::unwrap(ctx->builder)->CreateAtomicCmpXchg(
+			  llvm::unwrap(ptr), llvm::unwrap(cmp), llvm::unwrap(val),
+			  llvm::AtomicOrdering::SequentiallyConsistent,
+			  llvm::AtomicOrdering::SequentiallyConsistent, SSID));
 }

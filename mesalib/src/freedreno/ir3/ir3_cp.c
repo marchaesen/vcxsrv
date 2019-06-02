@@ -37,7 +37,6 @@
 struct ir3_cp_ctx {
 	struct ir3 *shader;
 	struct ir3_shader_variant *so;
-	unsigned immediate_idx;
 };
 
 /* is it a type preserving mov, with ok flags? */
@@ -299,34 +298,35 @@ lower_immed(struct ir3_cp_ctx *ctx, struct ir3_register *reg, unsigned new_flags
 	}
 
 	/* Reallocate for 4 more elements whenever it's necessary */
-	if (ctx->immediate_idx == ctx->so->immediates_size * 4) {
-		ctx->so->immediates_size += 4;
-		ctx->so->immediates = realloc (ctx->so->immediates,
-			ctx->so->immediates_size * sizeof (ctx->so->immediates[0]));
+	struct ir3_const_state *const_state = &ctx->so->shader->const_state;
+	if (const_state->immediate_idx == const_state->immediates_size * 4) {
+		const_state->immediates_size += 4;
+		const_state->immediates = realloc (const_state->immediates,
+			const_state->immediates_size * sizeof(const_state->immediates[0]));
 	}
 
-	for (i = 0; i < ctx->immediate_idx; i++) {
+	for (i = 0; i < const_state->immediate_idx; i++) {
 		swiz = i % 4;
 		idx  = i / 4;
 
-		if (ctx->so->immediates[idx].val[swiz] == reg->uim_val) {
+		if (const_state->immediates[idx].val[swiz] == reg->uim_val) {
 			break;
 		}
 	}
 
-	if (i == ctx->immediate_idx) {
+	if (i == const_state->immediate_idx) {
 		/* need to generate a new immediate: */
 		swiz = i % 4;
 		idx  = i / 4;
-		ctx->so->immediates[idx].val[swiz] = reg->uim_val;
-		ctx->so->immediates_count = idx + 1;
-		ctx->immediate_idx++;
+		const_state->immediates[idx].val[swiz] = reg->uim_val;
+		const_state->immediates_count = idx + 1;
+		const_state->immediate_idx++;
 	}
 
 	new_flags &= ~IR3_REG_IMMED;
 	new_flags |= IR3_REG_CONST;
 	reg->flags = new_flags;
-	reg->num = i + (4 * ctx->so->constbase.immediate);
+	reg->num = i + (4 * const_state->offsets.immediate);
 
 	return reg;
 }

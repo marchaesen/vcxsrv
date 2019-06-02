@@ -124,6 +124,10 @@ typedef int pid_t;
 #define zoneid_t int
 #endif
 
+#ifdef HAVE_SYSTEMD_DAEMON
+#include <systemd/sd-daemon.h>
+#endif
+
 #include "probes.h"
 
 struct ospoll   *server_poll;
@@ -144,7 +148,7 @@ Bool PartialNetwork;            /* continue even if unable to bind all addrs */
 int GrabInProgress = 0;
 
 static void
-EstablishNewConnections(int curconn, int ready, void *data);
+EstablishNewConnections_local(int curconn, int ready, void *data);
 
 static void
 set_poll_client(ClientPtr client);
@@ -235,6 +239,11 @@ NotifyParentProcess(void)
     }
     if (RunFromSigStopParent)
         raise(SIGSTOP);
+#ifdef HAVE_SYSTEMD_DAEMON
+    /* If we have been started as a systemd service, tell systemd that
+       we are ready. Otherwise sd_notify() won't do anything. */
+    sd_notify(0, "READY=1");
+#endif
 #else
 /* On windows the displayfd points to shared memory, so write the id to it */
     int *pDisplayfd=(int*)MapViewOfFile((HANDLE)displayfd, FILE_MAP_READ|FILE_MAP_WRITE, 0, 0, 0);
@@ -304,7 +313,7 @@ CreateWellKnownSockets(void)
         int fd = _XSERVTransGetConnectionNumber (ListenTransConns[i-1]);
 
         ListenTransFds[i-1] = fd;
-        SetNotifyFd(fd, EstablishNewConnections, X_NOTIFY_READ, NULL);
+        SetNotifyFd(fd, EstablishNewConnections_local, X_NOTIFY_READ, NULL);
 
         if (!_XSERVTransIsLocal (ListenTransConns[i-1]))
             DefineSelf (fd);
@@ -364,7 +373,7 @@ ResetWellKnownSockets(void)
         }
     }
     for (i = 0; i < ListenTransCount; i++)
-        SetNotifyFd(ListenTransFds[i], EstablishNewConnections, X_NOTIFY_READ,
+        SetNotifyFd(ListenTransFds[i], EstablishNewConnections_local, X_NOTIFY_READ,
                     NULL);
 
     ResetAuthorization();
@@ -671,13 +680,13 @@ AllocNewConnection(XtransConnInfo trans_conn, int fd, CARD32 conn_time)
 }
 
 /*****************
- * EstablishNewConnections
+ * EstablishNewConnections_local
  *    If anyone is waiting on listened sockets, accept them.
  *    Updates AllClients and AllSockets.
  *****************/
 
-void
-EstablishNewConnections(int curconn, int ready, void *data)
+static void
+EstablishNewConnections_local(int curconn, int ready, void *data)
 {
     int newconn;       /* fd of new client */
     CARD32 connect_time;
@@ -1096,7 +1105,7 @@ ListenOnOpenFD(int fd, int noxauth)
     ListenTransConns[ListenTransCount] = ciptr;
     ListenTransFds[ListenTransCount] = fd;
 
-    SetNotifyFd(fd, EstablishNewConnections, X_NOTIFY_READ, NULL);
+    SetNotifyFd(fd, EstablishNewConnections_local, X_NOTIFY_READ, NULL);
 
     /* Increment the count */
     ListenTransCount++;

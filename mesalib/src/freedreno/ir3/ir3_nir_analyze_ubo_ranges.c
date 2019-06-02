@@ -22,9 +22,9 @@
  */
 
 #include "ir3_nir.h"
+#include "ir3_compiler.h"
 #include "compiler/nir/nir.h"
 #include "compiler/nir/nir_builder.h"
-#include "util/u_dynarray.h"
 #include "mesa/main/macros.h"
 
 static inline struct ir3_ubo_range
@@ -53,6 +53,12 @@ gather_ubo_ranges(nir_intrinsic_instr *instr,
 
 	const struct ir3_ubo_range r = get_ubo_load_range(instr);
 	const uint32_t block = nir_src_as_uint(instr->src[0]);
+
+	/* if UBO lowering is disabled, we still want to lower block 0
+	 * (which is normal uniforms):
+	 */
+	if ((block > 0) && (ir3_shader_debug & IR3_DBG_NOUBOOPT))
+		return;
 
 	if (r.start < state->range[block].start)
 		state->range[block].start = r.start;
@@ -126,7 +132,7 @@ ir3_nir_analyze_ubo_ranges(nir_shader *nir, struct ir3_shader *shader)
 	struct ir3_ubo_analysis_state *state = &shader->ubo_state;
 
 	memset(state, 0, sizeof(*state));
-	state->range[0].end = nir->num_uniforms * 16;
+	state->range[0].end = align(nir->num_uniforms * 16, 16 * 4); /* align to 4*vec4 */
 
 	nir_foreach_function(function, nir) {
 		if (function->impl) {

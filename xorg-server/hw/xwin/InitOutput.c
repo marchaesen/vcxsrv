@@ -821,11 +821,6 @@ winUseMsg(void)
            "\tRun the server in multiwindow mode.  Not to be used\n"
            "\ttogether with -rootless or -fullscreen.\n");
 
-#ifdef XWIN_MULTIWINDOWEXTWM
-    ErrorF("-mwextwm\n"
-           "\tRun the server in multi-window external window manager mode.\n");
-#endif
-
     ErrorF("-nodecoration\n"
            "\tDo not draw a window border, title bar, etc.  Windowed\n"
            "\tmode only i.e. ignored when -fullscreen specified.\n");

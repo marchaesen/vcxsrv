@@ -30,6 +30,9 @@
 
 #include <glamor.h>
 #include <glamor_context.h>
+#ifdef GLXEXT
+#include "glx_extinit.h"
+#endif
 
 static void
 glamor_egl_make_current(struct glamor_context *glamor_ctx)
@@ -262,6 +265,10 @@ xwl_glamor_init(struct xwl_screen *xwl_screen)
 #ifdef XV
     if (!xwl_glamor_xv_init(screen))
         ErrorF("Failed to initialize glamor Xv extension\n");
+#endif
+
+#ifdef GLXEXT
+    GlxPushProvider(&glamor_provider);
 #endif
 
     return TRUE;

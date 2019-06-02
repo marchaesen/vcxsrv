@@ -2226,7 +2226,7 @@ do_common_optimization(exec_list *ir, bool linked,
                        bool native_integers)
 {
    const bool debug = false;
-   GLboolean progress = GL_FALSE;
+   bool progress = false;
 
 #define OPT(PASS, ...) do {                                             \
       if (debug) {                                                      \

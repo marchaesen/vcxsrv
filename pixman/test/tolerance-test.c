@@ -76,6 +76,12 @@ static const pixman_op_t operators[] =
     PIXMAN_OP_EXCLUSION,
 };
 
+static const pixman_dither_t dithers[] =
+{
+    PIXMAN_DITHER_ORDERED_BAYER_8,
+    PIXMAN_DITHER_ORDERED_BLUE_NOISE_64,
+};
+
 #define RANDOM_ELT(array)                                               \
     (array[prng_rand_n (ARRAY_LENGTH (array))])
 
@@ -176,7 +182,8 @@ verify (int test_no,
         pixman_image_t *orig_dest,
         int x, int y,
         int width, int height,
-	pixman_bool_t component_alpha)
+	pixman_bool_t component_alpha,
+	pixman_dither_t dither)
 {
     pixel_checker_t dest_checker, src_checker, mask_checker;
     int i, j;
@@ -184,6 +191,9 @@ verify (int test_no,
     pixel_checker_init (&src_checker, source->bits.format);
     pixel_checker_init (&dest_checker, dest->bits.format);
     pixel_checker_init (&mask_checker, mask->bits.format);
+
+    if (dest->bits.dither != PIXMAN_DITHER_NONE)
+	pixel_checker_allow_dither (&dest_checker);
 
     assert (dest->bits.format == orig_dest->bits.format);
 
@@ -220,6 +230,7 @@ verify (int test_no,
                 
                 printf ("   operator:         %s (%s alpha)\n", operator_name (op),
 			component_alpha? "component" : "unified");
+		printf ("   dither:           %s\n", dither_name (dither));
                 printf ("   dest_x, dest_y:   %d %d\n", x, y);
                 printf ("   width, height:    %d %d\n", width, height);
                 printf ("   source:           format: %-14s  size: %2d x %2d\n",
@@ -275,6 +286,7 @@ do_check (int i)
     pixman_image_t *dest_copy;
     pixman_bool_t result = TRUE;
     pixman_bool_t component_alpha;
+    pixman_dither_t dither = PIXMAN_DITHER_NONE;
 
     prng_srand (i);
     op = RANDOM_ELT (operators);
@@ -296,6 +308,12 @@ do_check (int i)
     if (y + height > dest->bits.height)
         height = dest->bits.height - y;
 
+    if (prng_rand_n (2))
+    {
+	dither = RANDOM_ELT (dithers);
+	pixman_image_set_dither (dest, dither);
+    }
+
     component_alpha = prng_rand_n (2);
 
     pixman_image_set_component_alpha (mask, component_alpha);
@@ -305,7 +323,8 @@ do_check (int i)
                               x, y, width, height);
 
     if (!verify (i, op, source, mask, dest, dest_copy,
-		 x, y, width, height, component_alpha))
+		 x, y, width, height, component_alpha,
+	         dither))
     {
 	result = FALSE;
     }

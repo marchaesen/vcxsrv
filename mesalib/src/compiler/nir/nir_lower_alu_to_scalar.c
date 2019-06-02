@@ -74,7 +74,7 @@ lower_reduction(nir_alu_instr *instr, nir_op chan_op, nir_op merge_op,
 }
 
 static bool
-lower_alu_instr_scalar(nir_alu_instr *instr, nir_builder *b)
+lower_alu_instr_scalar(nir_alu_instr *instr, nir_builder *b, BITSET_WORD *lower_set)
 {
    unsigned num_src = nir_op_infos[instr->op].num_inputs;
    unsigned i, chan;
@@ -84,6 +84,9 @@ lower_alu_instr_scalar(nir_alu_instr *instr, nir_builder *b)
 
    b->cursor = nir_before_instr(&instr->instr);
    b->exact = instr->exact;
+
+   if (lower_set && !BITSET_TEST(lower_set, instr->op))
+      return false;
 
 #define LOWER_REDUCTION(name, chan, merge) \
    case name##2: \
@@ -254,7 +257,7 @@ lower_alu_instr_scalar(nir_alu_instr *instr, nir_builder *b)
 }
 
 static bool
-nir_lower_alu_to_scalar_impl(nir_function_impl *impl)
+nir_lower_alu_to_scalar_impl(nir_function_impl *impl, BITSET_WORD *lower_set)
 {
    nir_builder builder;
    nir_builder_init(&builder, impl);
@@ -264,7 +267,8 @@ nir_lower_alu_to_scalar_impl(nir_function_impl *impl)
       nir_foreach_instr_safe(instr, block) {
          if (instr->type == nir_instr_type_alu) {
             progress = lower_alu_instr_scalar(nir_instr_as_alu(instr),
-                                              &builder) || progress;
+                                              &builder,
+                                              lower_set) || progress;
          }
       }
    }
@@ -276,13 +280,14 @@ nir_lower_alu_to_scalar_impl(nir_function_impl *impl)
 }
 
 bool
-nir_lower_alu_to_scalar(nir_shader *shader)
+nir_lower_alu_to_scalar(nir_shader *shader, BITSET_WORD *lower_set)
 {
    bool progress = false;
 
    nir_foreach_function(function, shader) {
       if (function->impl)
-         progress = nir_lower_alu_to_scalar_impl(function->impl) || progress;
+         progress = nir_lower_alu_to_scalar_impl(function->impl,
+                                                 lower_set) || progress;
    }
 
    return progress;

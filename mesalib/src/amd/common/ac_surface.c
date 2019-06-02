@@ -95,10 +95,6 @@ static void addrlib_family_rev_id(enum radeon_family family,
 		*addrlib_family = FAMILY_CI;
 		*addrlib_revid = get_first(AMDGPU_HAWAII_RANGE);
 		break;
-	case CHIP_MULLINS:
-		*addrlib_family = FAMILY_KV;
-		*addrlib_revid = get_first(AMDGPU_GODAVARI_RANGE);
-		break;
 	case CHIP_TONGA:
 		*addrlib_family = FAMILY_VI;
 		*addrlib_revid = get_first(AMDGPU_TONGA_RANGE);
@@ -452,7 +448,7 @@ static void gfx6_set_micro_tile_mode(struct radeon_surf *surf,
 {
 	uint32_t tile_mode = info->si_tile_mode_array[surf->u.legacy.tiling_index[0]];
 
-	if (info->chip_class >= CIK)
+	if (info->chip_class >= GFX7)
 		surf->micro_tile_mode = G_009910_MICRO_TILE_MODE_NEW(tile_mode);
 	else
 		surf->micro_tile_mode = G_009910_MICRO_TILE_MODE(tile_mode);
@@ -526,8 +522,8 @@ static int gfx6_surface_settings(ADDR_HANDLE addrlib,
 	}
 
 	/* Compute tile swizzle. */
-	/* TODO: fix tile swizzle with mipmapping for SI */
-	if ((info->chip_class >= CIK || config->info.levels == 1) &&
+	/* TODO: fix tile swizzle with mipmapping for GFX6 */
+	if ((info->chip_class >= GFX7 || config->info.levels == 1) &&
 	    config->info.surf_index &&
 	    surf->u.legacy.level[0].mode == RADEON_SURF_MODE_2D &&
 	    !(surf->flags & (RADEON_SURF_Z_OR_SBUFFER | RADEON_SURF_SHAREABLE)) &&
@@ -567,7 +563,7 @@ void ac_compute_cmask(const struct radeon_info *info,
 	if (surf->flags & RADEON_SURF_Z_OR_SBUFFER)
 		return;
 
-	assert(info->chip_class <= VI);
+	assert(info->chip_class <= GFX8);
 
 	switch (num_pipes) {
 	case 2:
@@ -732,7 +728,7 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 	 *   driver team).
 	 */
 	AddrSurfInfoIn.flags.dccCompatible =
-		info->chip_class >= VI &&
+		info->chip_class >= GFX8 &&
 		!(surf->flags & RADEON_SURF_Z_OR_SBUFFER) &&
 		!(surf->flags & RADEON_SURF_DISABLE_DCC) &&
 		!compressed &&
@@ -742,7 +738,7 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 	AddrSurfInfoIn.flags.noStencil = (surf->flags & RADEON_SURF_SBUFFER) == 0;
 	AddrSurfInfoIn.flags.compressZ = !!(surf->flags & RADEON_SURF_Z_OR_SBUFFER);
 
-	/* On CI/VI, the DB uses the same pitch and tile mode (except tilesplit)
+	/* On GFX7-GFX8, the DB uses the same pitch and tile mode (except tilesplit)
 	 * for Z and stencil. This can cause a number of problems which we work
 	 * around here:
 	 *
@@ -799,7 +795,7 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 		assert(!(surf->flags & RADEON_SURF_Z_OR_SBUFFER));
 		assert(AddrSurfInfoIn.tileMode == ADDR_TM_2D_TILED_THIN1);
 
-		if (info->chip_class == SI) {
+		if (info->chip_class == GFX6) {
 			if (AddrSurfInfoIn.tileType == ADDR_DISPLAYABLE) {
 				if (surf->bpe == 2)
 					AddrSurfInfoIn.tileIndex = 11; /* 16bpp */
@@ -816,7 +812,7 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 					AddrSurfInfoIn.tileIndex = 17; /* 64bpp (and 128bpp) */
 			}
 		} else {
-			/* CIK - VI */
+			/* GFX7 - GFX8 */
 			if (AddrSurfInfoIn.tileType == ADDR_DISPLAYABLE)
 				AddrSurfInfoIn.tileIndex = 10; /* 2D displayable */
 			else

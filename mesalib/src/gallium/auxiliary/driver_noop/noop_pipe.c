@@ -172,7 +172,7 @@ static void noop_resource_destroy(struct pipe_screen *screen,
 static void *noop_transfer_map(struct pipe_context *pipe,
                                struct pipe_resource *resource,
                                unsigned level,
-                               enum pipe_transfer_usage usage,
+                               unsigned usage,
                                const struct pipe_box *box,
                                struct pipe_transfer **ptransfer)
 {

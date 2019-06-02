@@ -108,8 +108,7 @@ block_check_for_allowed_instrs(nir_block *block, unsigned *count,
       case nir_instr_type_alu: {
          nir_alu_instr *mov = nir_instr_as_alu(instr);
          switch (mov->op) {
-         case nir_op_fmov:
-         case nir_op_imov:
+         case nir_op_mov:
          case nir_op_fneg:
          case nir_op_ineg:
          case nir_op_fabs:

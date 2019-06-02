@@ -337,6 +337,9 @@ struct radv_shader_slab {
 void
 radv_optimize_nir(struct nir_shader *shader, bool optimize_conservatively,
 		  bool allow_copies);
+bool
+radv_nir_lower_ycbcr_textures(nir_shader *shader,
+                             const struct radv_pipeline_layout *layout);
 
 nir_shader *
 radv_shader_compile_to_nir(struct radv_device *device,
@@ -344,7 +347,8 @@ radv_shader_compile_to_nir(struct radv_device *device,
 			   const char *entrypoint_name,
 			   gl_shader_stage stage,
 			   const VkSpecializationInfo *spec_info,
-			   const VkPipelineCreateFlags flags);
+			   const VkPipelineCreateFlags flags,
+			   const struct radv_pipeline_layout *layout);
 
 void *
 radv_alloc_shader_memory(struct radv_device *device,

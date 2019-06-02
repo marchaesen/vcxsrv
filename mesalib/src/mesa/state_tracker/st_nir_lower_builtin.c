@@ -209,7 +209,7 @@ lower_builtin_block(lower_builtin_state *state, nir_block *block)
          swiz[i] = GET_SWZ(element->swizzle, i);
          assert(swiz[i] <= SWIZZLE_W);
       }
-      def = nir_swizzle(b, def, swiz, intrin->num_components, true);
+      def = nir_swizzle(b, def, swiz, intrin->num_components);
 
       /* and rewrite uses of original instruction: */
       assert(intrin->dest.is_ssa);

@@ -21,6 +21,21 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+
+/**
+ * Building this file with MinGW g++ 7.3 or 7.4 with:
+ *   scons platform=windows toolchain=crossmingw machine=x86 build=profile
+ * triggers an internal compiler error.
+ * Overriding the optimization level to -O1 works around the issue.
+ * MinGW 5.3.1 does not seem to have the bug, neither does 8.3.  So for now
+ * we're simply testing for version 7.x here.
+ */
+#if defined(__MINGW32__) && __GNUC__ == 7
+#warning "disabling optimizations for this file to work around compiler bug in MinGW gcc 7.x"
+#pragma GCC optimize("O1")
+#endif
+
+
 #include "ir.h"
 #include "ir_builder.h"
 #include "linker.h"

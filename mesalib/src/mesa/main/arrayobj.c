@@ -1049,7 +1049,6 @@ bind_vertex_array(struct gl_context *ctx, GLuint id, bool no_error)
     */
    _mesa_set_draw_vao(ctx, ctx->Array._EmptyVAO, 0);
 
-   ctx->NewState |= _NEW_ARRAY;
    _mesa_reference_vao(ctx, &ctx->Array.VAO, newObj);
 }
 

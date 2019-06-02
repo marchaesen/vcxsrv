@@ -8,7 +8,7 @@
 <body>
 
 <div class="header">
-  <h1>The Mesa 3D Graphics Library</h1>
+  The Mesa 3D Graphics Library
 </div>
 
 <iframe src="contents.html"></iframe>
@@ -338,6 +338,9 @@ See src/mesa/state_tracker/st_debug.c for other options.
 for details.
 <li>SVGA_EXTRA_LOGGING - if set, enables extra logging to the vmware.log file,
 such as the OpenGL program's name and command line arguments.
+<li>SVGA_NO_LOGGING - if set, disables logging to the vmware.log file.
+This is useful when using Valgrind because it otherwise crashes when
+initializing the host log feature.
 <li>See the driver code for other, lesser-used variables.
 </ul>
 

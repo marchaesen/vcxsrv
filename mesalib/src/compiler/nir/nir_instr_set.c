@@ -56,8 +56,9 @@ hash_alu(uint32_t hash, const nir_alu_instr *instr)
    hash = HASH(hash, instr->dest.dest.ssa.bit_size);
    /* We explicitly don't hash instr->dest.dest.exact */
 
-   if (nir_op_infos[instr->op].algebraic_properties & NIR_OP_IS_COMMUTATIVE) {
-      assert(nir_op_infos[instr->op].num_inputs == 2);
+   if (nir_op_infos[instr->op].algebraic_properties & NIR_OP_IS_2SRC_COMMUTATIVE) {
+      assert(nir_op_infos[instr->op].num_inputs >= 2);
+
       uint32_t hash0 = hash_alu_src(hash, &instr->src[0],
                                     nir_ssa_alu_instr_src_components(instr, 0));
       uint32_t hash1 = hash_alu_src(hash, &instr->src[1],
@@ -69,6 +70,11 @@ hash_alu(uint32_t hash, const nir_alu_instr *instr)
        * collision.  Either addition or multiplication will also work.
        */
       hash = hash0 * hash1;
+
+      for (unsigned i = 2; i < nir_op_infos[instr->op].num_inputs; i++) {
+         hash = hash_alu_src(hash, &instr->src[i],
+                             nir_ssa_alu_instr_src_components(instr, i));
+      }
    } else {
       for (unsigned i = 0; i < nir_op_infos[instr->op].num_inputs; i++) {
          hash = hash_alu_src(hash, &instr->src[i],
@@ -528,12 +534,17 @@ nir_instrs_equal(const nir_instr *instr1, const nir_instr *instr2)
 
       /* We explicitly don't hash instr->dest.dest.exact */
 
-      if (nir_op_infos[alu1->op].algebraic_properties & NIR_OP_IS_COMMUTATIVE) {
-         assert(nir_op_infos[alu1->op].num_inputs == 2);
-         return (nir_alu_srcs_equal(alu1, alu2, 0, 0) &&
-                 nir_alu_srcs_equal(alu1, alu2, 1, 1)) ||
-                (nir_alu_srcs_equal(alu1, alu2, 0, 1) &&
-                 nir_alu_srcs_equal(alu1, alu2, 1, 0));
+      if (nir_op_infos[alu1->op].algebraic_properties & NIR_OP_IS_2SRC_COMMUTATIVE) {
+         if ((!nir_alu_srcs_equal(alu1, alu2, 0, 0) ||
+              !nir_alu_srcs_equal(alu1, alu2, 1, 1)) &&
+             (!nir_alu_srcs_equal(alu1, alu2, 0, 1) ||
+              !nir_alu_srcs_equal(alu1, alu2, 1, 0)))
+            return false;
+
+         for (unsigned i = 2; i < nir_op_infos[alu1->op].num_inputs; i++) {
+            if (!nir_alu_srcs_equal(alu1, alu2, i, i))
+               return false;
+         }
       } else {
          for (unsigned i = 0; i < nir_op_infos[alu1->op].num_inputs; i++) {
             if (!nir_alu_srcs_equal(alu1, alu2, i, i))
@@ -813,11 +824,10 @@ nir_instr_set_add_or_rewrite(struct set *instr_set, nir_instr *instr)
    if (!instr_can_rewrite(instr))
       return false;
 
-   uint32_t hash = hash_instr(instr);
-   struct set_entry *e = _mesa_set_search_pre_hashed(instr_set, hash, instr);
-   if (e) {
+   struct set_entry *e = _mesa_set_search_or_add(instr_set, instr);
+   nir_instr *match = (nir_instr *) e->key;
+   if (match != instr) {
       nir_ssa_def *def = nir_instr_get_dest_ssa_def(instr);
-      nir_instr *match = (nir_instr *) e->key;
       nir_ssa_def *new_def = nir_instr_get_dest_ssa_def(match);
 
       /* It's safe to replace an exact instruction with an inexact one as
@@ -832,7 +842,6 @@ nir_instr_set_add_or_rewrite(struct set *instr_set, nir_instr *instr)
       return true;
    }
 
-   _mesa_set_add_pre_hashed(instr_set, hash, instr);
    return false;
 }
 

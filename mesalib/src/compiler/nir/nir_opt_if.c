@@ -400,8 +400,8 @@ opt_split_alu_of_phi(nir_builder *b, nir_loop *loop)
        * should be one of the other two operands, so the result of the bcsel
        * should never be replaced with undef.
        *
-       * nir_op_vec{2,3,4}, nir_op_imov, and nir_op_fmov are excluded because
-       * they can easily lead to infinite optimization loops.
+       * nir_op_vec{2,3,4} and nir_op_mov are excluded because they can easily
+       * lead to infinite optimization loops.
        */
       if (alu->op == nir_op_bcsel ||
           alu->op == nir_op_b32csel ||
@@ -409,8 +409,7 @@ opt_split_alu_of_phi(nir_builder *b, nir_loop *loop)
           alu->op == nir_op_vec2 ||
           alu->op == nir_op_vec3 ||
           alu->op == nir_op_vec4 ||
-          alu->op == nir_op_imov ||
-          alu->op == nir_op_fmov ||
+          alu->op == nir_op_mov ||
           alu_instr_is_comparison(alu) ||
           alu_instr_is_type_conversion(alu))
          continue;

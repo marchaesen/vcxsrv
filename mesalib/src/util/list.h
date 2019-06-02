@@ -43,6 +43,11 @@
 #include <assert.h>
 #include "c99_compat.h"
 
+#ifdef DEBUG
+#  define list_assert(cond, msg)  assert(cond && msg)
+#else
+#  define list_assert(cond, msg)  (void)(0 && (cond))
+#endif
 
 struct list_head
 {
@@ -212,21 +217,27 @@ static inline void list_validate(const struct list_head *list)
 	pos = container_of(pos->member.prev, pos, member))
 
 #define list_for_each_entry(type, pos, head, member)                    \
-   for (type *pos = LIST_ENTRY(type, (head)->next, member);             \
+   for (type *pos = LIST_ENTRY(type, (head)->next, member),             \
+	     *__next = LIST_ENTRY(type, pos->member.next, member);      \
 	&pos->member != (head);                                         \
-	pos = LIST_ENTRY(type, pos->member.next, member))
+	pos = LIST_ENTRY(type, pos->member.next, member),               \
+	list_assert(pos == __next, "use _safe iterator"),               \
+	__next = LIST_ENTRY(type, __next->member.next, member))
 
 #define list_for_each_entry_safe(type, pos, head, member)               \
    for (type *pos = LIST_ENTRY(type, (head)->next, member),             \
 	     *__next = LIST_ENTRY(type, pos->member.next, member);      \
 	&pos->member != (head);                                         \
 	pos = __next,                                                   \
-        __next = LIST_ENTRY(type, __next->member.next, member))
+	__next = LIST_ENTRY(type, __next->member.next, member))
 
 #define list_for_each_entry_rev(type, pos, head, member)                \
-   for (type *pos = LIST_ENTRY(type, (head)->prev, member);             \
+   for (type *pos = LIST_ENTRY(type, (head)->prev, member),             \
+	     *__prev = LIST_ENTRY(type, pos->member.prev, member);      \
 	&pos->member != (head);                                         \
-	pos = LIST_ENTRY(type, pos->member.prev, member))
+	pos = LIST_ENTRY(type, pos->member.prev, member),               \
+	list_assert(pos == __prev, "use _safe iterator"),               \
+	__prev = LIST_ENTRY(type, __prev->member.prev, member))
 
 #define list_for_each_entry_safe_rev(type, pos, head, member)           \
    for (type *pos = LIST_ENTRY(type, (head)->prev, member),             \

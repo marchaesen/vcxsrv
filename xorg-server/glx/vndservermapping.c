@@ -33,6 +33,13 @@
 
 #include "vndservervendor.h"
 
+static ClientPtr requestClient = NULL;
+
+void GlxSetRequestClient(ClientPtr client)
+{
+    requestClient = client;
+}
+
 static GlxServerVendor *LookupXIDMapResource(XID id)
 {
     void *ptr = NULL;
@@ -59,10 +66,7 @@ GlxServerVendor *GlxGetXIDMap(XID id)
                                          DixGetAttrAccess);
         if (rv == Success && ptr != NULL) {
             DrawablePtr draw = (DrawablePtr) ptr;
-            GlxScreenPriv *screenPriv = GlxGetScreen(draw->pScreen);
-            if (screenPriv != NULL) {
-                vendor = screenPriv->vendor;
-            }
+            vendor = GlxGetVendorForScreen(requestClient, draw->pScreen);
         }
     }
     return vendor;
@@ -185,12 +189,44 @@ Bool GlxSetScreenVendor(ScreenPtr screen, GlxServerVendor *vendor)
     return TRUE;
 }
 
+Bool GlxSetClientScreenVendor(ClientPtr client, ScreenPtr screen, GlxServerVendor *vendor)
+{
+    GlxClientPriv *cl;
+
+    if (screen == NULL || screen->isGPU) {
+        return FALSE;
+    }
+
+    cl = GlxGetClientData(client);
+    if (cl == NULL) {
+        return FALSE;
+    }
+
+    if (vendor != NULL) {
+        cl->vendors[screen->myNum] = vendor;
+    } else {
+        cl->vendors[screen->myNum] = GlxGetVendorForScreen(NULL, screen);
+    }
+    return TRUE;
+}
+
 GlxServerVendor *GlxGetVendorForScreen(ClientPtr client, ScreenPtr screen)
 {
-    GlxScreenPriv *priv = GlxGetScreen(screen);
-    if (priv != NULL) {
-        return priv->vendor;
+    // Note that the client won't be sending GPU screen numbers, so we don't
+    // need per-client mappings for them.
+    if (client != NULL && !screen->isGPU) {
+        GlxClientPriv *cl = GlxGetClientData(client);
+        if (cl != NULL) {
+            return cl->vendors[screen->myNum];
+        } else {
+            return NULL;
+        }
     } else {
-        return NULL;
+        GlxScreenPriv *priv = GlxGetScreen(screen);
+        if (priv != NULL) {
+            return priv->vendor;
+        } else {
+            return NULL;
+        }
     }
 }

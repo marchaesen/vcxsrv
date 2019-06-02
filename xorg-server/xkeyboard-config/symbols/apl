@@ -14,7 +14,7 @@
 
 // Tim Nelson (this file's creator) says:
 
-// This file does not deal with all the combining stuff -- I'm not an APL programmer,
+// This file doesn't deal with all the combining stuff -- I'm not an APL programmer,
 // and am not quite sure what's needed here.  However, it may be possible to get this
 // working with dead keys and the like.  Patches gratefully accepted.  
 // [Geoff Streeter: What has been done to is to support all of the APL overstrikes in the compose table]
@@ -27,6 +27,7 @@
 // I'm assuming that this will be used with another keyboard layout (ie. for 
 // your language), with a special shift key to use these maps.  
 
+// 2018-07-02 added some codes to the Unicode Private Use page.
 // 2017-02-27 changed ¤ to ⌺, added ⊆
 // 2012-09-26 changed "overbar" to macron which fixed some strangeness in xterm
 
@@ -44,6 +45,9 @@
 
 default partial alphanumeric_keys
 xkb_symbols "basic" {
+
+	name[Group1]="APL";
+
 	include "apl(dyalog_base)"	// forward reference good APL keyboard without Dyalogs extras
 };
 
@@ -66,7 +70,6 @@ xkb_symbols "basic" {
 
 partial hidden alphanumeric_keys
 xkb_symbols "common" {
-	name[Group1]= "APL";
 
 	key <AB01> { [	U2282		] }; // Z: ⊂ -- Subset Of
 	key <AB02> { [	U2283		] }; // X: ⊃ -- Superset Of
@@ -370,22 +373,25 @@ xkb_symbols "aplx" {
 // add quad query 2014-05-23
 // add dagger 2014-05-23
 // correct spelling of key name LTGT→LSGT 2016-05-26
+// add enclose underbar 2017-02-27
+// add alpha underbar 2019-03-22
+// add omega underbar 2019-03-22
 
 // The intention is that this keyboard layout overlays a base keyboard that provides 
 // the alphabet and similar. If this keyboard is placed as the 2nd layout then it can
 // be reached with a latching shift to increase group by one.
 
-partial alphanumeric_keys
+partial hidden alphanumeric_keys
 xkb_symbols "dyalog_base" {
 
 // ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┲━━━━━━━━━┓
 // │ ⌺   │ ⌶   │ ⍫   │ ⍒   │ ⍋   │ ⌽   │ ⍉   │ ⊖   │ ⍟   │ ⍱   │ ⍲   │ !   │ ⌹   ┃         ┃
 // │ ⋄   │ ¨   │ ¯   │ <   │ ≤   │ =   │ ≥   │ >   │ ≠   │ ∨   │ ∧   │ ×   │ ÷   ┃         ┃
 // ┢━━━━━┷━┱───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┴─┬───┺━┳━━━━━━━┫
-// ┃       ┃ ⍰   │     │ ⍷   │ ⌾   │ ⍨   │     │     │ ⍸   │ ⍥   │ ⍣   │ ⍞   │ ⍬   ┃       ┃
+// ┃       ┃ ⍰   │ ⍹   │ ⍷   │ ⌾   │ ⍨   │     │     │ ⍸   │ ⍥   │ ⍣   │ ⍞   │ ⍬   ┃       ┃
 // ┃       ┃ ?   │ ⍵   │ ∊   │ ⍴   │ ~   │ ↑   │ ↓   │ ⍳   │ ○   │ *   │ ←   │ →   ┃       ┃
 // ┣━━━━━━━┻┱────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┴┬────┺┓      ┃
-// ┃        ┃     │     │     │     │ ⍢   │     │ ⍤   │ ⌸   │ ⌷   │ ≡   │ ≢   │ ⊣   ┃      ┃
+// ┃        ┃ ⍶   │     │     │     │ ⍢   │     │ ⍤   │ ⌸   │ ⌷   │ ≡   │ ≢   │ ⊣   ┃      ┃
 // ┃        ┃ ⍺   │ ⌈   │ ⌊   │ _   │ ∇   │ ∆   │ ∘   │ '   │ ⎕   │ ⍎   │ ⍕   │ ⊢   ┃      ┃
 // ┣━━━━━━━┳┹────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┬┴────┲┷━━━━━┻━━━━━━┫
 // ┃       ┃  ⊣  │ ⊆   │     │     │     │ ⍭   │ ⍡   │ ∥   │ ⍪   │ ⍙   │ ⍠   ┃             ┃
@@ -406,7 +412,7 @@ xkb_symbols "dyalog_base" {
 	key <AB08> { [ U235d,		U236a	] };	// up shoe jot, comma bar
 	key <AB09> { [ U2340,		U2359	] };	// backslash bar, delta underbar
 	key <AB10> { [ U233f,		U2360	] };	// slash bar, quad colon
-	key <AC01> { [ U237a			] };	// alpha
+	key <AC01> { [ U237a,		U2376	] };	// alpha, alpha underscore
 	key <AC02> { [ U2308			] };	// left ceiling
 	key <AC03> { [ U230a			] };	// left floor
 	key <AC04> { [ underscore		] };	// low line
@@ -418,7 +424,7 @@ xkb_symbols "dyalog_base" {
 	key <AC10> { [ U234e,		U2261	] };	// up tack jot, identical to
 	key <AC11> { [ U2355,		U2262	] };	// down tack jot,  not identical to
 	key <AD01> { [ question,	U2370	] };	// ?, quad question
-	key <AD02> { [ U2375			] };	// omega
+	key <AD02> { [ U2375,		U2379	] };	// omega, omega underscore
 	key <AD03> { [ U220a,		U2377	] };	// small element of, epsilon underbar
 	key <AD04> { [ U2374,		U233E	] };	// rho, circle jot
 	key <AD05> { [ asciitilde,	U2368	] };	// tilde, tilde diaeresis
@@ -446,7 +452,7 @@ xkb_symbols "dyalog_base" {
 	key <TLDE> { [ U22c4,		U233a	] };	// diamond, quad diamond
 };
 
-partial keypad_keys
+partial hidden keypad_keys
 xkb_symbols "dyalog_box" {
 
 // ┌───┬───┬───┬───┐
@@ -475,7 +481,7 @@ xkb_symbols "dyalog_box" {
 
 }; 
 
-xkb_symbols "dyalog_codes" {
+xkb_symbols hidden "dyalog_codes" {
 
 //	Layout of private use area for this. In the style of the Unicode book
 //
@@ -485,27 +491,27 @@ xkb_symbols "dyalog_codes" {
 //	├────┬────┬────┬────┬────┬────┬────┬────┬────┐
 //     0│QT  │LL  │BK  │FX  │Rc  │BP  │PA  │    │    │
 //	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
-//     1│ER  │HO  │ZM  │LN  │LW  │AB  │    │    │    │
+//     1│ER  │HO  │ZM  │LN  │LW  │AB  │SA  │    │    │
 //	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
-//     2│TB  │CT  │SC  │MC  │RW  │HT  │    │    │    │
+//     2│TB  │CT  │SC  │MC  │RW  │HT  │RZ  │    │    │
 //	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
-//     3│BT  │PT  │RP  │MR  │Lw  │TH  │    │    │    │
+//     3│BT  │PT  │RP  │MR  │Lw  │TH  │AC  │    │    │
 //	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
-//     4│EP  │IN  │NX  │JP  │Rw  │RM  │    │    │    │
+//     4│EP  │IN  │NX  │JP  │Rw  │RM  │MA  │    │    │
 //	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
-//     5│UC  │II  │PV  │D1  │Uc  │CB  │    │    │    │
+//     5│UC  │II  │PV  │D1  │Uc  │CB  │OF  │    │    │
 //	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
-//     6│DC  │DI  │RT  │D2  │Dc  │PR  │    │    │TO  │
+//     6│DC  │DI  │RT  │D2  │Dc  │PR  │FS  │    │TO  │
 //	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
-//     7│RC  │DP  │RA  │D3  │Ll  │SR  │    │    │MO  │
+//     7│RC  │DP  │RA  │D3  │Ll  │SR  │FA  │    │MO  │
 //	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
-//     8│LC  │DB  │ED  │D4  │Rl  │    │    │    │    │
+//     8│LC  │DB  │ED  │D4  │Rl  │IS  │TT  │    │    │
 //	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
-//     9│US  │RD  │TC  │D5  │Ul  │TL  │    │    │    │
+//     9│US  │RD  │TC  │D5  │Ul  │TL  │FT  │    │    │
 //	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
-//     A│DS  │TG  │NB  │U1  │Dl  │UA  │    │    │    │
+//     A│DS  │TG  │NB  │U1  │Dl  │UA  │PL  │    │    │
 //	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
-//     B│RS  │DK  │NS  │U2  │Us  │AO  │    │    │    │
+//     B│RS  │DK  │NS  │U2  │Us  │AO  │CA  │    │    │
 //	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
 //     C│LS  │OP  │ST  │U3  │Ds  │DO  │    │    │    │
 //	├────┼────┼────┼────┼────┼────┼────┼────┼────┤
@@ -531,7 +537,7 @@ xkb_symbols "dyalog_codes" {
 //	normal function keys from the base keyboard rather than this overlay
 
 // ┌─────┐                                                                       ┌───┐
-// │     │                                                                       │ZM │
+// │ CA  │                                                                       │ZM │
 // │ QT  │                                                                       │ZM │
 // └─────┘                                                                       └───┘
 
@@ -554,7 +560,7 @@ xkb_symbols "dyalog_codes" {
 
 
 	key <BKSP> { [ Uf850,	Uf855	] };	// BP CB
-	key <ESC>  { [ Uf800		] };	// QT
+	key <ESC>  { [ Uf800,	Uf86b	] };	// QT CA
 	key <FK11> { [ Uf821,	Uf821	] };	// ZM, ZM put this on both, the unshifted one sometimes gets lost
 	key <RTRN> { [ Uf828,	Uf829	] };	// ED, TC
 	key <SPCE> { [ Uf886,	Uf887	] };	// TO, MO
@@ -609,6 +615,7 @@ xkb_symbols "dyalog_codes" {
 };
 
 xkb_symbols "dyalog" {
+
 	include "apl(dyalog_base)"
 	include "apl(dyalog_box)"
 	include "apl(dyalog_codes)"

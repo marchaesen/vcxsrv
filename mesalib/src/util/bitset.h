@@ -58,18 +58,18 @@
 
 /* single bit operations
  */
-#define BITSET_TEST(x, b) ((x)[BITSET_BITWORD(b)] & BITSET_BIT(b))
+#define BITSET_TEST(x, b) (((x)[BITSET_BITWORD(b)] & BITSET_BIT(b)) != 0)
 #define BITSET_SET(x, b) ((x)[BITSET_BITWORD(b)] |= BITSET_BIT(b))
 #define BITSET_CLEAR(x, b) ((x)[BITSET_BITWORD(b)] &= ~BITSET_BIT(b))
 
-#define BITSET_MASK(b) ((b) == BITSET_WORDBITS ? ~0 : BITSET_BIT(b) - 1)
-#define BITSET_RANGE(b, e) (BITSET_MASK((e) + 1) & ~BITSET_MASK(b))
+#define BITSET_MASK(b) (((b) % BITSET_WORDBITS == 0) ? ~0 : BITSET_BIT(b) - 1)
+#define BITSET_RANGE(b, e) ((BITSET_MASK((e) + 1)) & ~(BITSET_BIT(b) - 1))
 
 /* bit range operations
  */
 #define BITSET_TEST_RANGE(x, b, e) \
    (BITSET_BITWORD(b) == BITSET_BITWORD(e) ? \
-   ((x)[BITSET_BITWORD(b)] & BITSET_RANGE(b, e)) : \
+   (((x)[BITSET_BITWORD(b)] & BITSET_RANGE(b, e)) != 0) : \
    (assert (!"BITSET_TEST_RANGE: bit range crosses word boundary"), 0))
 #define BITSET_SET_RANGE(x, b, e) \
    (BITSET_BITWORD(b) == BITSET_BITWORD(e) ? \

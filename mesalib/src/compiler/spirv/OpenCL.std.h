@@ -1,5 +1,5 @@
 /*
-** Copyright (c) 2015-2017 The Khronos Group Inc.
+** Copyright (c) 2015-2019 The Khronos Group Inc.
 **
 ** Permission is hereby granted, free of charge, to any person obtaining a copy
 ** of this software and/or associated documentation files (the "Materials"),
@@ -24,8 +24,8 @@
 ** IN THE MATERIALS.
 */
 
-#ifndef OpenCLstd_H
-#define OpenCLstd_H
+#ifndef OPENCLstd_H
+#define OPENCLstd_H
 
 enum OpenCLstd {
 
@@ -208,4 +208,4 @@ enum OpenCLstd {
     Prefetch = 185,
 };
 
-#endif
+#endif  // #ifndef OPENCLstd_H

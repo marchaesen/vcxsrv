@@ -57,6 +57,11 @@ typedef struct GlxContextTagInfoRec {
 typedef struct GlxClientPrivRec {
     GlxContextTagInfo *contextTags;
     unsigned int contextTagCount;
+
+    /**
+     * The vendor handles for each screen.
+     */
+    GlxServerVendor **vendors;
 } GlxClientPriv;
 
 extern int GlxErrorBase;
@@ -90,11 +95,19 @@ Bool GlxAddXIDMap(XID id, GlxServerVendor *vendor);
 GlxServerVendor * GlxGetXIDMap(XID id);
 void GlxRemoveXIDMap(XID id);
 
+/**
+ * Records the client that sent the current request. This is needed in
+ * GlxGetXIDMap to know which client's (screen -> vendor) mapping to use for a
+ * regular X window.
+ */
+void GlxSetRequestClient(ClientPtr client);
+
 GlxContextTagInfo *GlxAllocContextTag(ClientPtr client, GlxServerVendor *vendor);
 GlxContextTagInfo *GlxLookupContextTag(ClientPtr client, GLXContextTag tag);
 void GlxFreeContextTag(GlxContextTagInfo *tagInfo);
 
 Bool GlxSetScreenVendor(ScreenPtr screen, GlxServerVendor *vendor);
+Bool GlxSetClientScreenVendor(ClientPtr client, ScreenPtr screen, GlxServerVendor *vendor);
 GlxScreenPriv *GlxGetScreen(ScreenPtr pScreen);
 GlxServerVendor *GlxGetVendorForScreen(ClientPtr client, ScreenPtr screen);
 

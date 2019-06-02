@@ -32,6 +32,8 @@ amd_common_files = files(
   'ac_exp_param.h',
   'ac_llvm_build.c',
   'ac_llvm_build.h',
+  'ac_llvm_cull.c',
+  'ac_llvm_cull.h',
   'ac_llvm_helper.cpp',
   'ac_llvm_util.c',
   'ac_llvm_util.h',

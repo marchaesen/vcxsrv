@@ -140,9 +140,13 @@ def write_format_table(formats):
         print_channels(format, do_channel_array)
         print_channels(format, do_swizzle_array)
         print("   %s," % (colorspace_map(format.colorspace),))
+        print("   %u,\t/* plane_count */" % (format.plane_count))
+        print("   %u,\t/* width_divisor */" % (format.width_divisor))
+        print("   %u,\t/* height_divisor */" % (format.height_divisor))
+        print("   {%s, %s, %s}," % (format.plane_formats[0], format.plane_formats[1], format.plane_formats[2]))
         print("};")
         print()
-        
+
     print("const struct vk_format_description *")
     print("vk_format_description(VkFormat format)")
     print("{")

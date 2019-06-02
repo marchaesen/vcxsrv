@@ -418,6 +418,9 @@ u_vbuf_translate_buffers(struct u_vbuf *mgr, struct translate_key *key,
          unsigned size = vb->stride ? num_vertices * vb->stride
                                     : sizeof(double)*4;
 
+         if (!vb->buffer.resource)
+            continue;
+
          if (offset + size > vb->buffer.resource->width0) {
             /* Don't try to map past end of buffer.  This often happens when
              * we're translating an attribute that's at offset > 0 from the

@@ -48,8 +48,8 @@ ExaOffscreenValidate(ScreenPtr pScreen)
     assert(pExaScr->info->offScreenAreas->base_offset ==
            pExaScr->info->offScreenBase);
     for (area = pExaScr->info->offScreenAreas; area; area = area->next) {
-        assert(area->offset >= area->base_offset &&
-               area->offset < (area->base_offset + area->size));
+        assert(area->offset >= area->base_offset);
+        assert(area->offset < (area->base_offset + area->size));
         if (prev)
             assert(prev->base_offset + prev->size == area->base_offset);
         prev = area;
@@ -230,7 +230,8 @@ exaOffscreenAlloc(ScreenPtr pScreen, int size, int align,
          * Now get the system to merge the other needed areas together
          */
         while (area->size < real_size) {
-            assert(area->next && area->next->state == ExaOffscreenRemovable);
+            assert(area->next);
+            assert(area->next->state == ExaOffscreenRemovable);
             (void) ExaOffscreenKickOut(pScreen, area->next);
         }
     }
@@ -568,8 +569,8 @@ ExaOffscreenDefragment(ScreenPtr pScreen)
         area->base_offset = prev->base_offset;
         area->offset = area->base_offset;
         prev->offset += pExaDstPix->fb_ptr - pExaSrcPix->fb_ptr;
-        assert(prev->offset >= pExaScr->info->offScreenBase &&
-               prev->offset < pExaScr->info->memorySize);
+        assert(prev->offset >= pExaScr->info->offScreenBase);
+        assert(prev->offset < pExaScr->info->memorySize);
         prev->base_offset = prev->offset;
         if (area->next)
             prev->size = area->next->base_offset - prev->base_offset;

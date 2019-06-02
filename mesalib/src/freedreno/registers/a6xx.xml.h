@@ -8,17 +8,17 @@ http://github.com/freedreno/envytools/
 git clone https://github.com/freedreno/envytools.git
 
 The rules-ng-ng source files this header was generated from are:
-- /work/envytools/rnndb/adreno.xml               (    501 bytes, from 2018-07-10 14:59:32)
-- /work/envytools/rnndb/freedreno_copyright.xml  (   1572 bytes, from 2018-07-10 14:59:32)
-- /work/envytools/rnndb/adreno/a2xx.xml          (  79608 bytes, from 2019-02-11 18:07:21)
-- /work/envytools/rnndb/adreno/adreno_common.xml (  14239 bytes, from 2018-12-17 18:59:13)
-- /work/envytools/rnndb/adreno/adreno_pm4.xml    (  43155 bytes, from 2019-02-12 18:24:48)
-- /work/envytools/rnndb/adreno/a3xx.xml          (  83840 bytes, from 2018-07-10 14:59:32)
-- /work/envytools/rnndb/adreno/a4xx.xml          ( 112086 bytes, from 2018-07-10 14:59:32)
-- /work/envytools/rnndb/adreno/a5xx.xml          ( 147240 bytes, from 2018-09-28 22:41:49)
-- /work/envytools/rnndb/adreno/a6xx.xml          ( 145669 bytes, from 2019-02-15 07:12:43)
-- /work/envytools/rnndb/adreno/a6xx_gmu.xml      (  10431 bytes, from 2018-09-28 22:41:49)
-- /work/envytools/rnndb/adreno/ocmem.xml         (   1773 bytes, from 2018-07-10 14:59:32)
+- /home/robclark/src/envytools/rnndb/adreno.xml               (    501 bytes, from 2018-07-03 19:37:13)
+- /home/robclark/src/envytools/rnndb/freedreno_copyright.xml  (   1572 bytes, from 2018-07-03 19:37:13)
+- /home/robclark/src/envytools/rnndb/adreno/a2xx.xml          (  79608 bytes, from 2019-01-21 14:36:17)
+- /home/robclark/src/envytools/rnndb/adreno/adreno_common.xml (  14239 bytes, from 2018-12-05 15:25:53)
+- /home/robclark/src/envytools/rnndb/adreno/adreno_pm4.xml    (  43155 bytes, from 2019-05-03 18:24:29)
+- /home/robclark/src/envytools/rnndb/adreno/a3xx.xml          (  83840 bytes, from 2018-07-03 19:37:13)
+- /home/robclark/src/envytools/rnndb/adreno/a4xx.xml          ( 112086 bytes, from 2018-07-03 19:37:13)
+- /home/robclark/src/envytools/rnndb/adreno/a5xx.xml          ( 147240 bytes, from 2019-05-03 18:24:29)
+- /home/robclark/src/envytools/rnndb/adreno/a6xx.xml          ( 148461 bytes, from 2019-05-03 18:24:37)
+- /home/robclark/src/envytools/rnndb/adreno/a6xx_gmu.xml      (  10431 bytes, from 2018-09-14 13:03:07)
+- /home/robclark/src/envytools/rnndb/adreno/ocmem.xml         (   1773 bytes, from 2018-07-03 19:37:13)
 
 Copyright (C) 2013-2019 by the following authors:
 - Rob Clark <robdclark@gmail.com> (robclark)
@@ -2713,7 +2713,10 @@ static inline uint32_t REG_A6XX_VSC_SIZE_REG(uint32_t i0) { return 0x00000c78 + 
 
 #define REG_A6XX_GRAS_CNTL					0x00008005
 #define A6XX_GRAS_CNTL_VARYING					0x00000001
-#define A6XX_GRAS_CNTL_UNK3					0x00000008
+#define A6XX_GRAS_CNTL_CENTROID					0x00000002
+#define A6XX_GRAS_CNTL_PERSAMP_VARYING				0x00000004
+#define A6XX_GRAS_CNTL_SIZE					0x00000008
+#define A6XX_GRAS_CNTL_SIZE_PERSAMP				0x00000020
 #define A6XX_GRAS_CNTL_XCOORD					0x00000040
 #define A6XX_GRAS_CNTL_YCOORD					0x00000080
 #define A6XX_GRAS_CNTL_ZCOORD					0x00000100
@@ -3013,7 +3016,8 @@ static inline uint32_t A6XX_GRAS_LRZ_BUFFER_PITCH_ARRAY_PITCH(uint32_t val)
 
 #define REG_A6XX_GRAS_LRZ_FAST_CLEAR_BUFFER_BASE_HI		0x00008107
 
-#define REG_A6XX_GRAS_UNKNOWN_8109				0x00008109
+#define REG_A6XX_GRAS_SAMPLE_CNTL				0x00008109
+#define A6XX_GRAS_SAMPLE_CNTL_PER_SAMP_MODE			0x00000001
 
 #define REG_A6XX_GRAS_UNKNOWN_8110				0x00008110
 
@@ -3188,7 +3192,10 @@ static inline uint32_t A6XX_RB_DEST_MSAA_CNTL_SAMPLES(enum a3xx_msaa_samples val
 
 #define REG_A6XX_RB_RENDER_CONTROL0				0x00008809
 #define A6XX_RB_RENDER_CONTROL0_VARYING				0x00000001
-#define A6XX_RB_RENDER_CONTROL0_UNK3				0x00000008
+#define A6XX_RB_RENDER_CONTROL0_CENTROID			0x00000002
+#define A6XX_RB_RENDER_CONTROL0_PERSAMP_VARYING			0x00000004
+#define A6XX_RB_RENDER_CONTROL0_SIZE				0x00000008
+#define A6XX_RB_RENDER_CONTROL0_SIZE_PERSAMP			0x00000020
 #define A6XX_RB_RENDER_CONTROL0_XCOORD				0x00000040
 #define A6XX_RB_RENDER_CONTROL0_YCOORD				0x00000080
 #define A6XX_RB_RENDER_CONTROL0_ZCOORD				0x00000100
@@ -3199,9 +3206,13 @@ static inline uint32_t A6XX_RB_DEST_MSAA_CNTL_SAMPLES(enum a3xx_msaa_samples val
 #define A6XX_RB_RENDER_CONTROL1_SAMPLEMASK			0x00000001
 #define A6XX_RB_RENDER_CONTROL1_FACENESS			0x00000004
 #define A6XX_RB_RENDER_CONTROL1_SAMPLEID			0x00000008
+#define A6XX_RB_RENDER_CONTROL1_UNK4				0x00000010
+#define A6XX_RB_RENDER_CONTROL1_UNK5				0x00000020
+#define A6XX_RB_RENDER_CONTROL1_SIZE				0x00000040
 
 #define REG_A6XX_RB_FS_OUTPUT_CNTL0				0x0000880b
 #define A6XX_RB_FS_OUTPUT_CNTL0_FRAG_WRITES_Z			0x00000002
+#define A6XX_RB_FS_OUTPUT_CNTL0_FRAG_WRITES_SAMPMASK		0x00000004
 
 #define REG_A6XX_RB_FS_OUTPUT_CNTL1				0x0000880c
 #define A6XX_RB_FS_OUTPUT_CNTL1_MRT__MASK			0x0000000f
@@ -3321,7 +3332,8 @@ static inline uint32_t A6XX_RB_DITHER_CNTL_DITHER_MODE_MRT7(enum adreno_rb_dithe
 #define A6XX_RB_SRGB_CNTL_SRGB_MRT6				0x00000040
 #define A6XX_RB_SRGB_CNTL_SRGB_MRT7				0x00000080
 
-#define REG_A6XX_RB_UNKNOWN_8810				0x00008810
+#define REG_A6XX_RB_SAMPLE_CNTL					0x00008810
+#define A6XX_RB_SAMPLE_CNTL_PER_SAMP_MODE			0x00000001
 
 #define REG_A6XX_RB_UNKNOWN_8811				0x00008811
 
@@ -4656,6 +4668,12 @@ static inline uint32_t A6XX_SP_FS_OUTPUT_CNTL0_DEPTH_REGID(uint32_t val)
 {
 	return ((val) << A6XX_SP_FS_OUTPUT_CNTL0_DEPTH_REGID__SHIFT) & A6XX_SP_FS_OUTPUT_CNTL0_DEPTH_REGID__MASK;
 }
+#define A6XX_SP_FS_OUTPUT_CNTL0_SAMPMASK_REGID__MASK		0x00ff0000
+#define A6XX_SP_FS_OUTPUT_CNTL0_SAMPMASK_REGID__SHIFT		16
+static inline uint32_t A6XX_SP_FS_OUTPUT_CNTL0_SAMPMASK_REGID(uint32_t val)
+{
+	return ((val) << A6XX_SP_FS_OUTPUT_CNTL0_SAMPMASK_REGID__SHIFT) & A6XX_SP_FS_OUTPUT_CNTL0_SAMPMASK_REGID__MASK;
+}
 
 #define REG_A6XX_SP_FS_OUTPUT_CNTL1				0x0000a98d
 #define A6XX_SP_FS_OUTPUT_CNTL1_MRT__MASK			0x0000000f
@@ -4983,16 +5001,34 @@ static inline uint32_t A6XX_HLSQ_CONTROL_2_REG_SAMPLEMASK(uint32_t val)
 {
 	return ((val) << A6XX_HLSQ_CONTROL_2_REG_SAMPLEMASK__SHIFT) & A6XX_HLSQ_CONTROL_2_REG_SAMPLEMASK__MASK;
 }
+#define A6XX_HLSQ_CONTROL_2_REG_SIZE__MASK			0xff000000
+#define A6XX_HLSQ_CONTROL_2_REG_SIZE__SHIFT			24
+static inline uint32_t A6XX_HLSQ_CONTROL_2_REG_SIZE(uint32_t val)
+{
+	return ((val) << A6XX_HLSQ_CONTROL_2_REG_SIZE__SHIFT) & A6XX_HLSQ_CONTROL_2_REG_SIZE__MASK;
+}
 
 #define REG_A6XX_HLSQ_CONTROL_3_REG				0x0000b984
-#define A6XX_HLSQ_CONTROL_3_REG_FRAGCOORDXYREGID__MASK		0x000000ff
-#define A6XX_HLSQ_CONTROL_3_REG_FRAGCOORDXYREGID__SHIFT		0
-static inline uint32_t A6XX_HLSQ_CONTROL_3_REG_FRAGCOORDXYREGID(uint32_t val)
+#define A6XX_HLSQ_CONTROL_3_REG_BARY_IJ_PIXEL__MASK		0x000000ff
+#define A6XX_HLSQ_CONTROL_3_REG_BARY_IJ_PIXEL__SHIFT		0
+static inline uint32_t A6XX_HLSQ_CONTROL_3_REG_BARY_IJ_PIXEL(uint32_t val)
 {
-	return ((val) << A6XX_HLSQ_CONTROL_3_REG_FRAGCOORDXYREGID__SHIFT) & A6XX_HLSQ_CONTROL_3_REG_FRAGCOORDXYREGID__MASK;
+	return ((val) << A6XX_HLSQ_CONTROL_3_REG_BARY_IJ_PIXEL__SHIFT) & A6XX_HLSQ_CONTROL_3_REG_BARY_IJ_PIXEL__MASK;
+}
+#define A6XX_HLSQ_CONTROL_3_REG_BARY_IJ_CENTROID__MASK		0x00ff0000
+#define A6XX_HLSQ_CONTROL_3_REG_BARY_IJ_CENTROID__SHIFT		16
+static inline uint32_t A6XX_HLSQ_CONTROL_3_REG_BARY_IJ_CENTROID(uint32_t val)
+{
+	return ((val) << A6XX_HLSQ_CONTROL_3_REG_BARY_IJ_CENTROID__SHIFT) & A6XX_HLSQ_CONTROL_3_REG_BARY_IJ_CENTROID__MASK;
 }
 
 #define REG_A6XX_HLSQ_CONTROL_4_REG				0x0000b985
+#define A6XX_HLSQ_CONTROL_4_REG_BARY_IJ_PIXEL_PERSAMP__MASK	0x000000ff
+#define A6XX_HLSQ_CONTROL_4_REG_BARY_IJ_PIXEL_PERSAMP__SHIFT	0
+static inline uint32_t A6XX_HLSQ_CONTROL_4_REG_BARY_IJ_PIXEL_PERSAMP(uint32_t val)
+{
+	return ((val) << A6XX_HLSQ_CONTROL_4_REG_BARY_IJ_PIXEL_PERSAMP__SHIFT) & A6XX_HLSQ_CONTROL_4_REG_BARY_IJ_PIXEL_PERSAMP__MASK;
+}
 #define A6XX_HLSQ_CONTROL_4_REG_XYCOORDREGID__MASK		0x00ff0000
 #define A6XX_HLSQ_CONTROL_4_REG_XYCOORDREGID__SHIFT		16
 static inline uint32_t A6XX_HLSQ_CONTROL_4_REG_XYCOORDREGID(uint32_t val)
@@ -5332,8 +5368,8 @@ static inline uint32_t A6XX_TEX_CONST_3_MIN_LAYERSZ(uint32_t val)
 	assert(!(val & 0xfff));
 	return ((val >> 12) << A6XX_TEX_CONST_3_MIN_LAYERSZ__SHIFT) & A6XX_TEX_CONST_3_MIN_LAYERSZ__MASK;
 }
-#define A6XX_TEX_CONST_3_FLAG					0x10000000
 #define A6XX_TEX_CONST_3_UNK27					0x08000000
+#define A6XX_TEX_CONST_3_FLAG					0x10000000
 
 #define REG_A6XX_TEX_CONST_4					0x00000004
 #define A6XX_TEX_CONST_4_BASE_LO__MASK				0xffffffe0
@@ -5378,21 +5414,21 @@ static inline uint32_t A6XX_TEX_CONST_8_FLAG_HI(uint32_t val)
 }
 
 #define REG_A6XX_TEX_CONST_9					0x00000009
-#define A6XX_TEX_CONST_9_FLAG_BUFFER_PITCH__MASK		0x0001ffff
-#define A6XX_TEX_CONST_9_FLAG_BUFFER_PITCH__SHIFT		0
-static inline uint32_t A6XX_TEX_CONST_9_FLAG_BUFFER_PITCH(uint32_t val)
+#define A6XX_TEX_CONST_9_FLAG_BUFFER_ARRAY_PITCH__MASK		0x0001ffff
+#define A6XX_TEX_CONST_9_FLAG_BUFFER_ARRAY_PITCH__SHIFT		0
+static inline uint32_t A6XX_TEX_CONST_9_FLAG_BUFFER_ARRAY_PITCH(uint32_t val)
 {
 	assert(!(val & 0xf));
-	return ((val >> 4) << A6XX_TEX_CONST_9_FLAG_BUFFER_PITCH__SHIFT) & A6XX_TEX_CONST_9_FLAG_BUFFER_PITCH__MASK;
+	return ((val >> 4) << A6XX_TEX_CONST_9_FLAG_BUFFER_ARRAY_PITCH__SHIFT) & A6XX_TEX_CONST_9_FLAG_BUFFER_ARRAY_PITCH__MASK;
 }
 
 #define REG_A6XX_TEX_CONST_10					0x0000000a
-#define A6XX_TEX_CONST_10_FLAG_BUFFER_ARRAY_PITCH__MASK		0x0001ffff
-#define A6XX_TEX_CONST_10_FLAG_BUFFER_ARRAY_PITCH__SHIFT	0
-static inline uint32_t A6XX_TEX_CONST_10_FLAG_BUFFER_ARRAY_PITCH(uint32_t val)
+#define A6XX_TEX_CONST_10_FLAG_BUFFER_PITCH__MASK		0x0000007f
+#define A6XX_TEX_CONST_10_FLAG_BUFFER_PITCH__SHIFT		0
+static inline uint32_t A6XX_TEX_CONST_10_FLAG_BUFFER_PITCH(uint32_t val)
 {
 	assert(!(val & 0x3f));
-	return ((val >> 6) << A6XX_TEX_CONST_10_FLAG_BUFFER_ARRAY_PITCH__SHIFT) & A6XX_TEX_CONST_10_FLAG_BUFFER_ARRAY_PITCH__MASK;
+	return ((val >> 6) << A6XX_TEX_CONST_10_FLAG_BUFFER_PITCH__SHIFT) & A6XX_TEX_CONST_10_FLAG_BUFFER_PITCH__MASK;
 }
 
 #define REG_A6XX_TEX_CONST_11					0x0000000b
@@ -5457,6 +5493,8 @@ static inline uint32_t A6XX_IBO_3_ARRAY_PITCH(uint32_t val)
 	assert(!(val & 0xfff));
 	return ((val >> 12) << A6XX_IBO_3_ARRAY_PITCH__SHIFT) & A6XX_IBO_3_ARRAY_PITCH__MASK;
 }
+#define A6XX_IBO_3_UNK27					0x08000000
+#define A6XX_IBO_3_FLAG						0x10000000
 
 #define REG_A6XX_IBO_4						0x00000004
 #define A6XX_IBO_4_BASE_LO__MASK				0xffffffff
@@ -5478,6 +5516,30 @@ static inline uint32_t A6XX_IBO_5_BASE_HI(uint32_t val)
 static inline uint32_t A6XX_IBO_5_DEPTH(uint32_t val)
 {
 	return ((val) << A6XX_IBO_5_DEPTH__SHIFT) & A6XX_IBO_5_DEPTH__MASK;
+}
+
+#define REG_A6XX_IBO_6						0x00000006
+
+#define REG_A6XX_IBO_7						0x00000007
+
+#define REG_A6XX_IBO_8						0x00000008
+
+#define REG_A6XX_IBO_9						0x00000009
+#define A6XX_IBO_9_FLAG_BUFFER_ARRAY_PITCH__MASK		0x0001ffff
+#define A6XX_IBO_9_FLAG_BUFFER_ARRAY_PITCH__SHIFT		0
+static inline uint32_t A6XX_IBO_9_FLAG_BUFFER_ARRAY_PITCH(uint32_t val)
+{
+	assert(!(val & 0xf));
+	return ((val >> 4) << A6XX_IBO_9_FLAG_BUFFER_ARRAY_PITCH__SHIFT) & A6XX_IBO_9_FLAG_BUFFER_ARRAY_PITCH__MASK;
+}
+
+#define REG_A6XX_IBO_10						0x0000000a
+#define A6XX_IBO_10_FLAG_BUFFER_PITCH__MASK			0x0000007f
+#define A6XX_IBO_10_FLAG_BUFFER_PITCH__SHIFT			0
+static inline uint32_t A6XX_IBO_10_FLAG_BUFFER_PITCH(uint32_t val)
+{
+	assert(!(val & 0x3f));
+	return ((val >> 6) << A6XX_IBO_10_FLAG_BUFFER_PITCH__SHIFT) & A6XX_IBO_10_FLAG_BUFFER_PITCH__MASK;
 }
 
 #define REG_A6XX_PDC_GPU_ENABLE_PDC				0x00001140

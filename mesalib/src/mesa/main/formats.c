@@ -734,9 +734,7 @@ _mesa_get_uncompressed_format(mesa_format format)
    case MESA_FORMAT_BPTC_RGB_SIGNED_FLOAT:
       return MESA_FORMAT_RGB_FLOAT32;
    default:
-#ifdef DEBUG
       assert(!_mesa_is_format_compressed(format));
-#endif
       return format;
    }
 }

@@ -476,7 +476,7 @@ gather_varying_component_info(nir_shader *consumer,
                               unsigned *varying_comp_info_size,
                               bool default_to_smooth_interp)
 {
-   unsigned store_varying_info_idx[MAX_VARYINGS_INCL_PATCH][4] = {0};
+   unsigned store_varying_info_idx[MAX_VARYINGS_INCL_PATCH][4] = {{0}};
    unsigned num_of_comps_to_pack = 0;
 
    /* Count the number of varying that can be packed and create a mapping
@@ -726,7 +726,7 @@ nir_compact_varyings(nir_shader *producer, nir_shader *consumer,
    assert(producer->info.stage != MESA_SHADER_FRAGMENT);
    assert(consumer->info.stage != MESA_SHADER_VERTEX);
 
-   struct assigned_comps assigned_comps[MAX_VARYINGS_INCL_PATCH] = {0};
+   struct assigned_comps assigned_comps[MAX_VARYINGS_INCL_PATCH] = {{0}};
 
    get_unmoveable_components_masks(&producer->outputs, assigned_comps,
                                    producer->info.stage,

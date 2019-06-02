@@ -775,6 +775,7 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
       [NIR_INTRINSIC_ALIGN_MUL] = "align_mul",
       [NIR_INTRINSIC_ALIGN_OFFSET] = "align_offset",
       [NIR_INTRINSIC_DESC_TYPE] = "desc_type",
+      [NIR_INTRINSIC_TYPE] = "type",
    };
    for (unsigned idx = 1; idx < NIR_INTRINSIC_NUM_INDEX_FLAGS; idx++) {
       if (!info->index_map[idx])
@@ -811,6 +812,21 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
       } else if (idx == NIR_INTRINSIC_DESC_TYPE) {
          VkDescriptorType desc_type = nir_intrinsic_desc_type(instr);
          fprintf(fp, " desc_type=%s", vulkan_descriptor_type_name(desc_type));
+      } else if (idx == NIR_INTRINSIC_TYPE) {
+         nir_alu_type type = nir_intrinsic_type(instr);
+         unsigned size = nir_alu_type_get_type_size(type);
+         const char *name;
+         switch (nir_alu_type_get_base_type(type)) {
+         case nir_type_int: name = "int"; break;
+         case nir_type_uint: name = "uint"; break;
+         case nir_type_bool: name = "bool"; break;
+         case nir_type_float: name = "float"; break;
+         default: name = "invalid";
+         }
+         if (size)
+            fprintf(fp, " type=%s%u", name, size);
+         else
+            fprintf(fp, " type=%s", name);
       } else {
          unsigned off = info->index_map[idx] - 1;
          assert(index_name[idx]);  /* forgot to update index_name table? */
@@ -883,6 +899,9 @@ print_tex_instr(nir_tex_instr *instr, print_state *state)
    case nir_texop_txf_ms:
       fprintf(fp, "txf_ms ");
       break;
+   case nir_texop_txf_ms_fb:
+      fprintf(fp, "txf_ms_fb ");
+      break;
    case nir_texop_txf_ms_mcs:
       fprintf(fp, "txf_ms_mcs ");
       break;
@@ -911,8 +930,11 @@ print_tex_instr(nir_tex_instr *instr, print_state *state)
 
    bool has_texture_deref = false, has_sampler_deref = false;
    for (unsigned i = 0; i < instr->num_srcs; i++) {
-      print_src(&instr->src[i].src, state);
+      if (i > 0) {
+         fprintf(fp, ", ");
+      }
 
+      print_src(&instr->src[i].src, state);
       fprintf(fp, " ");
 
       switch(instr->src[i].src_type) {
@@ -977,28 +999,28 @@ print_tex_instr(nir_tex_instr *instr, print_state *state)
          unreachable("Invalid texture source type");
          break;
       }
-
-      fprintf(fp, ", ");
    }
 
    if (instr->op == nir_texop_tg4) {
-      fprintf(fp, "%u (gather_component), ", instr->component);
+      fprintf(fp, ", %u (gather_component)", instr->component);
    }
 
    if (nir_tex_instr_has_explicit_tg4_offsets(instr)) {
-      fprintf(fp, "{ (%i, %i)", instr->tg4_offsets[0][0], instr->tg4_offsets[0][1]);
+      fprintf(fp, ", { (%i, %i)", instr->tg4_offsets[0][0], instr->tg4_offsets[0][1]);
       for (unsigned i = 1; i < 4; ++i)
          fprintf(fp, ", (%i, %i)", instr->tg4_offsets[i][0],
                  instr->tg4_offsets[i][1]);
-      fprintf(fp, " } (offsets), ");
+      fprintf(fp, " } (offsets)");
    }
 
-   if (!has_texture_deref) {
-      fprintf(fp, "%u (texture), ", instr->texture_index);
-   }
+   if (instr->op != nir_texop_txf_ms_fb) {
+      if (!has_texture_deref) {
+         fprintf(fp, ", %u (texture)", instr->texture_index);
+      }
 
-   if (!has_sampler_deref) {
-      fprintf(fp, "%u (sampler), ", instr->sampler_index);
+      if (!has_sampler_deref) {
+         fprintf(fp, ", %u (sampler)", instr->sampler_index);
+      }
    }
 }
 

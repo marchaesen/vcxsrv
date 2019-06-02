@@ -407,6 +407,20 @@ trace_screen_resource_get_handle(struct pipe_screen *_screen,
                                       resource, handle, usage);
 }
 
+static void
+trace_screen_resource_get_info(struct pipe_screen *_screen,
+                               struct pipe_resource *resource,
+                               unsigned *stride,
+                               unsigned *offset)
+{
+   struct trace_screen *tr_screen = trace_screen(_screen);
+   struct pipe_screen *screen = tr_screen->screen;
+
+   /* TODO trace call */
+
+   screen->resource_get_info(screen, resource, stride, offset);
+}
+
 static struct pipe_resource *
 trace_screen_resource_from_memobj(struct pipe_screen *_screen,
                                   const struct pipe_resource *templ,
@@ -673,6 +687,7 @@ trace_screen_create(struct pipe_screen *screen)
    tr_scr->base.resource_from_handle = trace_screen_resource_from_handle;
    SCR_INIT(check_resource_capability);
    tr_scr->base.resource_get_handle = trace_screen_resource_get_handle;
+   SCR_INIT(resource_get_info);
    SCR_INIT(resource_from_memobj);
    SCR_INIT(resource_changed);
    tr_scr->base.resource_destroy = trace_screen_resource_destroy;

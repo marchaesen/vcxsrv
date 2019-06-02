@@ -1,0 +1,137 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 19.0.5 Release Notes / May 21, 2019</h1>
+
+<p>
+Mesa 19.0.5 is a bug fix release which fixes bugs found since the 19.0.4 release.
+</p>
+<p>
+Mesa 19.0.5 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+b6e6b78c23bec15d1e7887c78b7ad00ce395ea1b20ad8aab6ce441f55f724e70  mesa-19.0.5.tar.gz
+6aecb7f67c136768692fb3c33a54196186c6c4fcafab7973516a355e1a54f831  mesa-19.0.5.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+
+<p>N/A</p>
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=109659">Bug 109659</a> - Missing OpenGL symbols in OSMesa Gallium when building with meson</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=110134">Bug 110134</a> - SIGSEGV while playing large hevc video in mpv</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=110648">Bug 110648</a> - Dota2 will not open using vulkan since 19.0 series</li>
+
+</ul>
+
+<h2>Changes</h2>
+
+<p>Caio Marcelo de Oliveira Filho (2):</p>
+<ul>
+  <li>nir: Fix nir_opt_idiv_const when negatives are involved</li>
+  <li>nir: Fix clone of nir_variable state slots</li>
+</ul>
+
+<p>Charmaine Lee (2):</p>
+<ul>
+  <li>st/mesa: purge framebuffers with current context after unbinding winsys buffers</li>
+  <li>mesa: unreference current winsys buffers when unbinding winsys buffers</li>
+</ul>
+
+<p>Dylan Baker (4):</p>
+<ul>
+  <li>docs: Add SHA256 sums for mesa 19.0.4</li>
+  <li>cherry-ignore: add patches for panfrost</li>
+  <li>cherry-ignore: Add more 19.1 patches</li>
+  <li>bump version to 19.0.5</li>
+</ul>
+
+<p>Eric Engestrom (1):</p>
+<ul>
+  <li>meson: expose glapi through osmesa</li>
+</ul>
+
+<p>Gert Wollny (2):</p>
+<ul>
+  <li>softpipe/buffer: load only as many components as the the buffer resource type provides</li>
+  <li>Revert "softpipe/buffer: load only as many components as the the buffer resource type provides"</li>
+</ul>
+
+<p>Ian Romanick (1):</p>
+<ul>
+  <li>Revert "nir: add late opt to turn inot/b2f combos back to bcsel"</li>
+</ul>
+
+<p>Jason Ekstrand (3):</p>
+<ul>
+  <li>intel/fs/ra: Only add dest interference to sources that exist</li>
+  <li>intel/fs/ra: Stop adding RA interference to too many SENDS nodes</li>
+  <li>anv: Only consider minSampleShading when sampleShadingEnable is set</li>
+</ul>
+
+<p>Józef Kucia (1):</p>
+<ul>
+  <li>radv: clear vertex bindings while resetting command buffer</li>
+</ul>
+
+<p>Kenneth Graunke (1):</p>
+<ul>
+  <li>i965: Fix memory leaks in brw_upload_cs_work_groups_surface().</li>
+</ul>
+
+<p>Leo Liu (1):</p>
+<ul>
+  <li>winsys/amdgpu: add VCN JPEG to no user fence group</li>
+</ul>
+
+<p>Lionel Landwerlin (1):</p>
+<ul>
+  <li>anv: Use corresponding type from the vector allocation</li>
+</ul>
+
+<p>Marek Olšák (1):</p>
+<ul>
+  <li>st/mesa: fix 2 crashes in st_tgsi_lower_yuv</li>
+</ul>
+
+<p>Nanley Chery (1):</p>
+<ul>
+  <li>anv: Fix some depth buffer sampling cases on ICL+</li>
+</ul>
+
+<p>Samuel Pitoiset (1):</p>
+<ul>
+  <li>radv: add a workaround for Monster Hunter World and LLVM 7&amp;8</li>
+</ul>
+
+</div>
+</body>
+</html>

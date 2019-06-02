@@ -2,13 +2,13 @@ noinst_LTLIBRARIES = libXquartz.la
 AM_CFLAGS = $(DIX_CFLAGS)
 AM_OBJCFLAGS = $(DIX_CFLAGS)
 AM_CPPFLAGS = \
-	-DBUILD_DATE=\"$(BUILD_DATE)\" \
 	-DXSERVER_VERSION=\"$(VERSION)\" \
 	-DINXQUARTZ \
 	-DUSE_NEW_CLUT \
 	-DXFree86Server \
 	-I$(top_srcdir)/miext/rootless \
 	-I$(top_builddir)/pseudoramiX \
+	-I$(top_builddir) \
 	-DX11LIBDIR=\"$(libdir)\"
 
 if GLX

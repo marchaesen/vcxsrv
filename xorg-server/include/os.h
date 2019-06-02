@@ -735,6 +735,10 @@ xorg_backtrace(void);
 #define snprintf _snprintf
 #endif
 
+#if defined(WIN32) && !defined(__CYGWIN__) && !defined(_MSC_VER)
+typedef _sigset_t sigset_t;
+#endif
+
 extern _X_EXPORT int
 os_move_fd(int fd);
 

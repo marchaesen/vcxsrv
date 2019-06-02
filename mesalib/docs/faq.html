@@ -2,42 +2,36 @@
 <html lang="en">
 <head>
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <title>Mesa FAQ</title>
+  <title>Frequently Asked Questions</title>
   <link rel="stylesheet" type="text/css" href="mesa.css">
 </head>
 <body>
 
 <div class="header">
-  <h1>The Mesa 3D Graphics Library</h1>
+  The Mesa 3D Graphics Library
 </div>
 
 <iframe src="contents.html"></iframe>
 <div class="content">
 
-<center>
-<h1>Mesa Frequently Asked Questions</h1>
+<h1>Frequently Asked Questions</h1>
 Last updated: 19 September 2018
-</center>
 
 <br>
 <br>
 <h2>Index</h2>
-<a href="#part1">1. High-level Questions and Answers</a>
-<br>
-<a href="#part2">2. Compilation and Installation Problems</a>
-<br>
-<a href="#part3">3. Runtime / Rendering Problems</a>
-<br>
-<a href="#part4">4. Developer Questions</a>
-<br>
+<ol>
+  <li><a href="#part1">High-level Questions and Answers</a></li>
+  <li><a href="#part2">Compilation and Installation Problems</a></li>
+  <li><a href="#part3">Runtime / Rendering Problems</a></li>
+  <li><a href="#part4">Developer Questions</a></li>
+</ol>
 <br>
 <br>
 
+<h2 id="part1">1. High-level Questions and Answers</h2>
 
-
-<h1 id="part1">1. High-level Questions and Answers</h1>
-
-<h2>1.1 What is Mesa?</h2>
+<h3>1.1 What is Mesa?</h3>
 <p>
 Mesa is an open-source implementation of the OpenGL specification.
 OpenGL is a programming library for writing interactive 3D applications.
@@ -184,17 +178,17 @@ popular and feature-complete.
 <br>
 
 
-<h1 id="part2">2. Compilation and Installation Problems</h1>
+<h2 id="part2">2. Compilation and Installation Problems</h2>
 
 
-<h2>2.1 What's the easiest way to install Mesa?</h2>
+<h3>2.1 What's the easiest way to install Mesa?</h3>
 <p>
 If you're using a Linux-based system, your distro CD most likely already
 has Mesa packages (like RPM or DEB) which you can easily install.
 </p>
 
 
-<h2>2.2 I get undefined symbols such as bgnpolygon, v3f, etc...</h2>
+<h3>2.2 I get undefined symbols such as bgnpolygon, v3f, etc...</h3>
 <p>
 You're application is written in IRIS GL, not OpenGL.
 IRIS GL was the predecessor to OpenGL and is a different thing (almost)
@@ -203,7 +197,7 @@ Mesa's not the solution.
 </p>
 
 
-<h2>2.3 Where is the GLUT library?</h2>
+<h3>2.3 Where is the GLUT library?</h3>
 <p>
 GLUT (OpenGL Utility Toolkit) is no longer in the separate MesaGLUT-x.y.z.tar.gz file.
 If you don't already have GLUT installed, you should grab 
@@ -211,7 +205,7 @@ If you don't already have GLUT installed, you should grab
 </p>
 
 
-<h2>2.4 Where is the GLw library?</h2>
+<h3>2.4 Where is the GLw library?</h3>
 <p>
 GLw (OpenGL widget library) is now available from a separate <a href="https://cgit.freedesktop.org/mesa/glw/">git repository</a>.  Unless you're using very old Xt/Motif applications with OpenGL, you shouldn't need it.
 </p>
@@ -236,30 +230,30 @@ Basically you'll want the following:
 Mesa version number.
 </li></ul>
 <p>
-When configuring Mesa, there are three autoconf options that affect the install
+When configuring Mesa, there are three meson options that affect the install
 location that you should take care with: <code>--prefix</code>,
-<code>--libdir</code>, and <code>--with-dri-driverdir</code>. To install Mesa
+<code>--libdir</code>, and <code>-D dri-drivers-path</code>. To install Mesa
 into the system location where it will be available for all programs to use, set
 <code>--prefix=/usr</code>. Set <code>--libdir</code> to where your Linux
 distribution installs system libraries, usually either <code>/usr/lib</code> or
-<code>/usr/lib64</code>. Set <code>--with-dri-driverdir</code> to the directory
+<code>/usr/lib64</code>. Set <code>-D dri-drivers-path</code> to the directory
 where your Linux distribution installs DRI drivers. To find your system's DRI
 driver directory, try executing <code>find /usr -type d -name dri</code>. For
 example, if the <code>find</code> command listed <code>/usr/lib64/dri</code>,
-then set <code>--with-dri-driverdir=/usr/lib64/dri</code>.
+then set <code>-D dri-drivers-path=/usr/lib64/dri</code>.
 </p>
 <p>
 After determining the correct values for the install location, configure Mesa
-with <code>./configure --prefix=/usr --libdir=xxx --with-dri-driverdir=xxx</code>
-and then install with <code>sudo make install</code>.
+with <code>meson configure --prefix=/usr --libdir=xxx -D dri-drivers-path=xxx</code>
+and then install with <code>sudo ninja install</code>.
 </p>
 <br>
 <br>
 
 
-<h1 id="part3">3. Runtime / Rendering Problems</h1>
+<h2 id="part3">3. Runtime / Rendering Problems</h2>
 
-<h2>3.1 Rendering is slow / why isn't my graphics hardware being used?</h2>
+<h3>3.1 Rendering is slow / why isn't my graphics hardware being used?</h3>
 <p>
 If Mesa can't use its hardware accelerated drivers it falls back on one of its software renderers.
 (eg. classic swrast, softpipe or llvmpipe)
@@ -280,7 +274,7 @@ If your DRI-based driver isn't working, go to the
 </p>
 
 
-<h2>3.2 I'm seeing errors in depth (Z) buffering.  Why?</h2>
+<h3>3.2 I'm seeing errors in depth (Z) buffering.  Why?</h3>
 <p>
 Make sure the ratio of the far to near clipping planes isn't too great.
 Look
@@ -295,7 +289,7 @@ If you need a deeper you can modify the parameters to
 </p>
 
 
-<h2>3.3 Why Isn't depth buffering working at all?</h2>
+<h3>3.3 Why Isn't depth buffering working at all?</h3>
 <p>
 Be sure you're requesting a depth buffered-visual.  If you set the MESA_DEBUG
 environment variable it will warn you about trying to enable depth testing
@@ -310,14 +304,14 @@ alpha channels too.
 </p>
 
 
-<h2>3.4 Why does glGetString() always return NULL?</h2>
+<h3>3.4 Why does glGetString() always return NULL?</h3>
 <p>
 Be sure you have an active/current OpenGL rendering context before
 calling glGetString.
 </p>
 
 
-<h2>3.5 GL_POINTS and GL_LINES don't touch the right pixels</h2>
+<h3>3.5 GL_POINTS and GL_LINES don't touch the right pixels</h3>
 <p>
 If you're trying to draw a filled region by using GL_POINTS or GL_LINES
 and seeing holes or gaps it's because of a float-to-int rounding problem.
@@ -331,9 +325,9 @@ will fix the problem.
 <br>
 
 
-<h1 id="part4">4. Developer Questions</h1>
+<h2 id="part4">4. Developer Questions</h2>
 
-<h2>4.1 How can I contribute?</h2>
+<h3>4.1 How can I contribute?</h3>
 <p>
 First, join the <a href="lists.html">mesa-dev mailing list</a>.
 That's where Mesa development is discussed.
@@ -347,7 +341,7 @@ You should read it.
 extensions, writing hardware drivers (for the DRI), and code optimization.
 </p>
 
-<h2>4.2 How do I write a new device driver?</h2>
+<h3>4.2 How do I write a new device driver?</h3>
 <p>
 Unfortunately, writing a device driver isn't easy.
 It requires detailed understanding of OpenGL, the Mesa code, and your
@@ -371,7 +365,7 @@ the archives) is a good way to get information.
 </p>
 
 
-<h2>4.3 Why isn't GL_EXT_texture_compression_s3tc implemented in Mesa?</h2>
+<h3>4.3 Why isn't GL_EXT_texture_compression_s3tc implemented in Mesa?</h3>
 <p>
 Oh but it is! Prior to 2nd October 2017, the Mesa project did not include s3tc
 support due to intellectual property (IP) and/or patent issues around the s3tc

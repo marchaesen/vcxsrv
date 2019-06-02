@@ -2196,7 +2196,7 @@ st_choose_format(struct st_context *st, GLenum internalFormat,
    int j;
    enum pipe_format pf;
 
-#ifdef DEBUG
+#ifndef NDEBUG
    {
       static boolean firstCall = TRUE;
       if (firstCall) {

@@ -1805,3 +1805,84 @@ partial alphanumeric_keys
 	xkb_symbols "sun_type6" {
 	include "sun_vndr/us(sun_type6)"
 };
+
+// Implementation of the 3l keyboard layout
+// See https://github.com/jackrosenthal/threelayout for specification
+partial alphanumeric_keys modifier_keys
+xkb_symbols "3l" {
+    name[Group1] = "English (3l)";
+
+    key.type[Group1] = "ONE_LEVEL";
+    key <TAB> { [ Escape ] };
+    key <CAPS> { [ Tab ] };
+    key <AC11> { [ ISO_Level3_Shift ] }; // Sym Modifier
+    key <AB10> { [ ISO_Level5_Shift ] }; // Cur/Num Modifier
+
+    // Top row numbers - not part of spec, but given for convenience
+    key <AE01> { [ 1 ] };
+    key <AE02> { [ 2 ] };
+    key <AE03> { [ 3 ] };
+    key <AE04> { [ 4 ] };
+    key <AE05> { [ 5 ] };
+    key <AE06> { [ 6 ] };
+    key <AE07> { [ 7 ] };
+    key <AE08> { [ 8 ] };
+    key <AE09> { [ 9 ] };
+    key <AE10> { [ 0 ] };
+
+    // Main keys
+    // Order of mods (defined by EIGHT_LEVEL_SEMIALPHABETIC) is:
+    //           [ None,      Shift,     Sym,          Shift+Sym,      Num,       Shift+Num,  Sym+Num,  Shift+Sym+Num ]
+    key.type[Group1] = "EIGHT_LEVEL_SEMIALPHABETIC";
+
+    // Second row
+    key <AD01> { [ q,         Q,         quotedbl,     Greek_omicron,  Prior,     Prior,      U21CD,    Greek_OMICRON ] };
+    key <AD02> { [ f,         F,         underscore,   Greek_phi,      BackSpace, BackSpace,  U21A4,    Greek_PHI ] };
+    key <AD03> { [ u,         U,         bracketleft,  Greek_upsilon,  Up,        Up,         U2191,    Greek_UPSILON ] };
+    key <AD04> { [ y,         Y,         bracketright, Greek_psi,      Delete,    Delete,     U21A6,    Greek_PSI ] };
+    key <AD05> { [ z,         Z,         asciicircum,  Greek_zeta,     Next,      Next,       U21CF,    Greek_ZETA ] };
+    key <AD06> { [ x,         X,         exclam,       Greek_xi,       NoSymbol,  NoSymbol,   U2260,    Greek_XI ] };
+    key <AD07> { [ k,         K,         less,         Greek_kappa,    1,         A,          U2A7D,    Greek_KAPPA ] };
+    key <AD08> { [ c,         C,         greater,      Greek_chi,      2,         B,          U2A7E,    Greek_CHI ] };
+    key <AD09> { [ w,         W,         equal,        Greek_omega,    3,         C,          U2261,    Greek_OMEGA ] };
+    key <AD10> { [ b,         B,         ampersand,    Greek_beta,     NoSymbol,  NoSymbol,   U2248,    Greek_BETA ] };
+
+    // Home row
+    key <AC01> { [ o,         O,         slash,        Greek_omega,    Home,      Home,       U21D0,    Greek_OMEGA ] };
+    key <AC02> { [ h,         H,         minus,        Greek_theta,    Left,      Left,       U2190,    Greek_THETA ] };
+    key <AC03> { [ e,         E,         braceleft,    Greek_epsilon,  Down,      Down,       U2193,    Greek_EPSILON ] };
+    key <AC04> { [ a,         A,         braceright,   Greek_alpha,    Right,     Right,      U2192,    Greek_ALPHA ] };
+    key <AC05> { [ i,         I,         asterisk,     Greek_iota,     End,       End,        U21D2,    Greek_IOTA ] };
+    key <AC06> { [ d,         D,         question,     Greek_delta,    period,    colon,      U2286,    Greek_DELTA ] };
+    key <AC07> { [ r,         R,         parenleft,    Greek_rho,      4,         D,          U2227,    Greek_RHO ] };
+    key <AC08> { [ t,         T,         parenright,   Greek_tau,      5,         E,          U2228,    Greek_TAU ] };
+    key <AC09> { [ n,         N,         apostrophe,   Greek_eta,      6,         F,          U2200,    Greek_ETA ] };
+    key <AC10> { [ s,         S,         colon,        Greek_sigma,    NoSymbol,  NoSymbol,   U2203,    Greek_SIGMA ] };
+
+    // Bottom row
+    key <AB01> { [ comma,     comma,     numbersign,   NoSymbol,       slash,     NoSymbol,   U21AE,    NoSymbol ] };
+    key <AB02> { [ m,         M,         dollar,       Greek_mu,       asterisk,  NoSymbol,   U2194,    Greek_MU ] };
+    key <AB03> { [ period,    period,    bar,          NoSymbol,       minus,     NoSymbol,   U21CE,    NoSymbol ] };
+    key <AB04> { [ j,         J,         asciitilde,   Greek_SIGMA,    plus,      NoSymbol,   U21D4,    NoSymbol ] };
+    key <AB05> { [ semicolon, semicolon, grave,        NoSymbol,       comma,     NoSymbol,   U2282,    NoSymbol ] };
+    key <AB06> { [ g,         G,         plus,         Greek_gamma,    0,         NoSymbol,   U2229,    Greek_GAMMA ] };
+    key <AB07> { [ l,         L,         percent,      Greek_lambda,   7,         parenleft,  U222A,    Greek_LAMBDA ] };
+    key <AB08> { [ p,         P,         backslash,    Greek_pi,       8,         parenright, U2208,    Greek_PI ] };
+    key <AB09> { [ v,         V,         at,           Greek_nu,       9,         NoSymbol,   U2209,    Greek_NU ] };
+
+    include "level5(modifier_mapping)"
+};
+
+// Chromebooks typically have the key which is normally in the caps
+// lock position mapped to keycode 133 (LWIN). For 3l, it is critical
+// that the key in this positon correspond to tab, so there is a
+// variant available for chromebook hardware.
+partial modifier_keys
+xkb_symbols "3l-cros" {
+    include "us(3l)"
+    name[Group1] = "English (3l, chromebook)";
+    key <LWIN> {
+        type[Group1] = "ONE_LEVEL",
+        symbols[Group1] = [ Tab ]
+    };
+};

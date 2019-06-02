@@ -221,7 +221,7 @@ struct radeon_surf {
     uint32_t                    cmask_alignment;
 
     union {
-        /* R600-VI return values.
+        /* Return values for GFX8 and older.
          *
          * Some of them can be set by the caller if certain parameters are
          * desirable. The allocator will try to obey them.

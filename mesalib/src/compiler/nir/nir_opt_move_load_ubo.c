@@ -91,7 +91,7 @@ move_load_ubo(nir_block *block)
       }
    }
 
-   return false;
+   return progress;
 }
 
 bool

@@ -974,8 +974,8 @@ static void
 wsi_display_destroy_buffer(struct wsi_display *wsi,
                            uint32_t buffer)
 {
-   (void) drmIoctl(wsi->fd, DRM_IOCTL_MODE_DESTROY_DUMB,
-                   &((struct drm_mode_destroy_dumb) { .handle = buffer }));
+   (void) drmIoctl(wsi->fd, DRM_IOCTL_GEM_CLOSE,
+                   &((struct drm_gem_close) { .handle = buffer }));
 }
 
 static VkResult
@@ -1812,6 +1812,30 @@ fail_attr_init:
    return ret;
 }
 
+
+/*
+ * Local version fo the libdrm helper. Added to avoid depending on bleeding
+ * edge version of the library.
+ */
+static int
+local_drmIsMaster(int fd)
+{
+   /* Detect master by attempting something that requires master.
+    *
+    * Authenticating magic tokens requires master and 0 is an
+    * internal kernel detail which we could use. Attempting this on
+    * a master fd would fail therefore fail with EINVAL because 0
+    * is invalid.
+    *
+    * A non-master fd will fail with EACCES, as the kernel checks
+    * for master before attempting to do anything else.
+    *
+    * Since we don't want to leak implementation details, use
+    * EACCES.
+    */
+   return drmAuthMagic(fd, 0) != -EACCES;
+}
+
 VkResult
 wsi_display_init_wsi(struct wsi_device *wsi_device,
                      const VkAllocationCallbacks *alloc,
@@ -1827,6 +1851,9 @@ wsi_display_init_wsi(struct wsi_device *wsi_device,
    }
 
    wsi->fd = display_fd;
+   if (wsi->fd != -1 && !local_drmIsMaster(wsi->fd))
+      wsi->fd = -1;
+
    wsi->alloc = alloc;
 
    list_inithead(&wsi->connectors);

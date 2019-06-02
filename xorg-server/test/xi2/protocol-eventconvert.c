@@ -366,8 +366,10 @@ test_values_XIDeviceEvent(DeviceEvent *in, xXIDeviceEvent * out, BOOL swap)
     values = (FP3232 *) (ptr + out->valuators_len * 4);
     for (i = 0; i < sizeof(in->valuators.mask) * 8 ||
          i < (out->valuators_len * 4) * 8; i++) {
-        if (i >= MAX_VALUATORS)
-            assert(!XIMaskIsSet(in->valuators.mask, i) && !XIMaskIsSet(ptr, i));
+        if (i >= MAX_VALUATORS) {
+            assert(!XIMaskIsSet(in->valuators.mask, i));
+            assert(!XIMaskIsSet(ptr, i));
+        }
         else if (i > sizeof(in->valuators.mask) * 8)
             assert(!XIMaskIsSet(ptr, i));
         else if (i > out->valuators_len * 4 * 8)

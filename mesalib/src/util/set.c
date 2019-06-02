@@ -40,6 +40,7 @@
 #include "macros.h"
 #include "ralloc.h"
 #include "set.h"
+#include "fast_urem_by_const.h"
 
 /*
  * From Knuth -- a good choice for hash/rehash values is p, p-2 where
@@ -52,38 +53,43 @@ static const void *deleted_key = &deleted_key_value;
 
 static const struct {
    uint32_t max_entries, size, rehash;
+   uint64_t size_magic, rehash_magic;
 } hash_sizes[] = {
-   { 2,            5,            3            },
-   { 4,            7,            5            },
-   { 8,            13,           11           },
-   { 16,           19,           17           },
-   { 32,           43,           41           },
-   { 64,           73,           71           },
-   { 128,          151,          149          },
-   { 256,          283,          281          },
-   { 512,          571,          569          },
-   { 1024,         1153,         1151         },
-   { 2048,         2269,         2267         },
-   { 4096,         4519,         4517         },
-   { 8192,         9013,         9011         },
-   { 16384,        18043,        18041        },
-   { 32768,        36109,        36107        },
-   { 65536,        72091,        72089        },
-   { 131072,       144409,       144407       },
-   { 262144,       288361,       288359       },
-   { 524288,       576883,       576881       },
-   { 1048576,      1153459,      1153457      },
-   { 2097152,      2307163,      2307161      },
-   { 4194304,      4613893,      4613891      },
-   { 8388608,      9227641,      9227639      },
-   { 16777216,     18455029,     18455027     },
-   { 33554432,     36911011,     36911009     },
-   { 67108864,     73819861,     73819859     },
-   { 134217728,    147639589,    147639587    },
-   { 268435456,    295279081,    295279079    },
-   { 536870912,    590559793,    590559791    },
-   { 1073741824,   1181116273,   1181116271   },
-   { 2147483648ul, 2362232233ul, 2362232231ul }
+#define ENTRY(max_entries, size, rehash) \
+   { max_entries, size, rehash, \
+      REMAINDER_MAGIC(size), REMAINDER_MAGIC(rehash) }
+
+   ENTRY(2,            5,            3            ),
+   ENTRY(4,            7,            5            ),
+   ENTRY(8,            13,           11           ),
+   ENTRY(16,           19,           17           ),
+   ENTRY(32,           43,           41           ),
+   ENTRY(64,           73,           71           ),
+   ENTRY(128,          151,          149          ),
+   ENTRY(256,          283,          281          ),
+   ENTRY(512,          571,          569          ),
+   ENTRY(1024,         1153,         1151         ),
+   ENTRY(2048,         2269,         2267         ),
+   ENTRY(4096,         4519,         4517         ),
+   ENTRY(8192,         9013,         9011         ),
+   ENTRY(16384,        18043,        18041        ),
+   ENTRY(32768,        36109,        36107        ),
+   ENTRY(65536,        72091,        72089        ),
+   ENTRY(131072,       144409,       144407       ),
+   ENTRY(262144,       288361,       288359       ),
+   ENTRY(524288,       576883,       576881       ),
+   ENTRY(1048576,      1153459,      1153457      ),
+   ENTRY(2097152,      2307163,      2307161      ),
+   ENTRY(4194304,      4613893,      4613891      ),
+   ENTRY(8388608,      9227641,      9227639      ),
+   ENTRY(16777216,     18455029,     18455027     ),
+   ENTRY(33554432,     36911011,     36911009     ),
+   ENTRY(67108864,     73819861,     73819859     ),
+   ENTRY(134217728,    147639589,    147639587    ),
+   ENTRY(268435456,    295279081,    295279079    ),
+   ENTRY(536870912,    590559793,    590559791    ),
+   ENTRY(1073741824,   1181116273,   1181116271   ),
+   ENTRY(2147483648ul, 2362232233ul, 2362232231ul )
 };
 
 static int
@@ -119,6 +125,8 @@ _mesa_set_create(void *mem_ctx,
    ht->size_index = 0;
    ht->size = hash_sizes[ht->size_index].size;
    ht->rehash = hash_sizes[ht->size_index].rehash;
+   ht->size_magic = hash_sizes[ht->size_index].size_magic;
+   ht->rehash_magic = hash_sizes[ht->size_index].rehash_magic;
    ht->max_entries = hash_sizes[ht->size_index].max_entries;
    ht->key_hash_function = key_hash_function;
    ht->key_equals_function = key_equals_function;
@@ -206,12 +214,12 @@ _mesa_set_clear(struct set *set, void (*delete_function)(struct set_entry *entry
 static struct set_entry *
 set_search(const struct set *ht, uint32_t hash, const void *key)
 {
-   uint32_t hash_address;
-
-   hash_address = hash % ht->size;
+   uint32_t size = ht->size;
+   uint32_t start_address = util_fast_urem32(hash, size, ht->size_magic);
+   uint32_t double_hash = util_fast_urem32(hash, ht->rehash,
+                                           ht->rehash_magic) + 1;
+   uint32_t hash_address = start_address;
    do {
-      uint32_t double_hash;
-
       struct set_entry *entry = ht->table + hash_address;
 
       if (entry_is_free(entry)) {
@@ -222,10 +230,10 @@ set_search(const struct set *ht, uint32_t hash, const void *key)
          }
       }
 
-      double_hash = 1 + hash % ht->rehash;
-
-      hash_address = (hash_address + double_hash) % ht->size;
-   } while (hash_address != hash % ht->size);
+      hash_address += double_hash;
+      if (hash_address >= size)
+         hash_address -= size;
+   } while (hash_address != start_address);
 
    return NULL;
 }
@@ -246,8 +254,27 @@ _mesa_set_search_pre_hashed(const struct set *set, uint32_t hash,
    return set_search(set, hash, key);
 }
 
-static struct set_entry *
-set_add(struct set *ht, uint32_t hash, const void *key);
+static void
+set_add_rehash(struct set *ht, uint32_t hash, const void *key)
+{
+   uint32_t size = ht->size;
+   uint32_t start_address = util_fast_urem32(hash, size, ht->size_magic);
+   uint32_t double_hash = util_fast_urem32(hash, ht->rehash,
+                                           ht->rehash_magic) + 1;
+   uint32_t hash_address = start_address;
+   do {
+      struct set_entry *entry = ht->table + hash_address;
+      if (likely(entry->key == NULL)) {
+         entry->hash = hash;
+         entry->key = key;
+         return;
+      }
+
+      hash_address = hash_address + double_hash;
+      if (hash_address >= size)
+         hash_address -= size;
+   } while (true);
+}
 
 static void
 set_rehash(struct set *ht, unsigned new_size_index)
@@ -269,15 +296,98 @@ set_rehash(struct set *ht, unsigned new_size_index)
    ht->size_index = new_size_index;
    ht->size = hash_sizes[ht->size_index].size;
    ht->rehash = hash_sizes[ht->size_index].rehash;
+   ht->size_magic = hash_sizes[ht->size_index].size_magic;
+   ht->rehash_magic = hash_sizes[ht->size_index].rehash_magic;
    ht->max_entries = hash_sizes[ht->size_index].max_entries;
    ht->entries = 0;
    ht->deleted_entries = 0;
 
    set_foreach(&old_ht, entry) {
-      set_add(ht, entry->hash, entry->key);
+      set_add_rehash(ht, entry->hash, entry->key);
    }
 
+   ht->entries = old_ht.entries;
+
    ralloc_free(old_ht.table);
+}
+
+void
+_mesa_set_resize(struct set *set, uint32_t entries)
+{
+   /* You can't shrink a set below its number of entries */
+   if (set->entries > entries)
+      entries = set->entries;
+
+   unsigned size_index = 0;
+   while (hash_sizes[size_index].max_entries < entries)
+      size_index++;
+
+   set_rehash(set, size_index);
+}
+
+/**
+ * Find a matching entry for the given key, or insert it if it doesn't already
+ * exist.
+ *
+ * Note that insertion may rearrange the table on a resize or rehash,
+ * so previously found hash_entries are no longer valid after this function.
+ */
+static struct set_entry *
+set_search_or_add(struct set *ht, uint32_t hash, const void *key, bool *found)
+{
+   struct set_entry *available_entry = NULL;
+
+   if (ht->entries >= ht->max_entries) {
+      set_rehash(ht, ht->size_index + 1);
+   } else if (ht->deleted_entries + ht->entries >= ht->max_entries) {
+      set_rehash(ht, ht->size_index);
+   }
+
+   uint32_t size = ht->size;
+   uint32_t start_address = util_fast_urem32(hash, size, ht->size_magic);
+   uint32_t double_hash = util_fast_urem32(hash, ht->rehash,
+                                           ht->rehash_magic) + 1;
+   uint32_t hash_address = start_address;
+   do {
+      struct set_entry *entry = ht->table + hash_address;
+
+      if (!entry_is_present(entry)) {
+         /* Stash the first available entry we find */
+         if (available_entry == NULL)
+            available_entry = entry;
+         if (entry_is_free(entry))
+            break;
+      }
+
+      if (!entry_is_deleted(entry) &&
+          entry->hash == hash &&
+          ht->key_equals_function(key, entry->key)) {
+         if (found)
+            *found = true;
+         return entry;
+      }
+
+      hash_address = hash_address + double_hash;
+      if (hash_address >= size)
+         hash_address -= size;
+   } while (hash_address != start_address);
+
+   if (available_entry) {
+      /* There is no matching entry, create it. */
+      if (entry_is_deleted(available_entry))
+         ht->deleted_entries--;
+      available_entry->hash = hash;
+      available_entry->key = key;
+      ht->entries++;
+      if (found)
+         *found = false;
+      return available_entry;
+   }
+
+   /* We could hit here if a required resize failed. An unchecked-malloc
+    * application could ignore this result.
+    */
+   return NULL;
 }
 
 /**
@@ -289,63 +399,22 @@ set_rehash(struct set *ht, unsigned new_size_index)
 static struct set_entry *
 set_add(struct set *ht, uint32_t hash, const void *key)
 {
-   uint32_t hash_address;
-   struct set_entry *available_entry = NULL;
+   struct set_entry *entry = set_search_or_add(ht, hash, key, NULL);
 
-   if (ht->entries >= ht->max_entries) {
-      set_rehash(ht, ht->size_index + 1);
-   } else if (ht->deleted_entries + ht->entries >= ht->max_entries) {
-      set_rehash(ht, ht->size_index);
-   }
+   if (unlikely(!entry))
+      return NULL;
 
-   hash_address = hash % ht->size;
-   do {
-      struct set_entry *entry = ht->table + hash_address;
-      uint32_t double_hash;
-
-      if (!entry_is_present(entry)) {
-         /* Stash the first available entry we find */
-         if (available_entry == NULL)
-            available_entry = entry;
-         if (entry_is_free(entry))
-            break;
-      }
-
-      /* Implement replacement when another insert happens
-       * with a matching key.  This is a relatively common
-       * feature of hash tables, with the alternative
-       * generally being "insert the new value as well, and
-       * return it first when the key is searched for".
-       *
-       * Note that the hash table doesn't have a delete callback.
-       * If freeing of old keys is required to avoid memory leaks,
-       * perform a search before inserting.
-       */
-      if (!entry_is_deleted(entry) &&
-          entry->hash == hash &&
-          ht->key_equals_function(key, entry->key)) {
-         entry->key = key;
-         return entry;
-      }
-
-      double_hash = 1 + hash % ht->rehash;
-
-      hash_address = (hash_address + double_hash) % ht->size;
-   } while (hash_address != hash % ht->size);
-
-   if (available_entry) {
-      if (entry_is_deleted(available_entry))
-         ht->deleted_entries--;
-      available_entry->hash = hash;
-      available_entry->key = key;
-      ht->entries++;
-      return available_entry;
-   }
-
-   /* We could hit here if a required resize failed. An unchecked-malloc
-    * application could ignore this result.
+   /* Note: If a matching entry already exists, this will replace it.  This is
+    * a relatively common feature of hash tables, with the alternative
+    * generally being "insert the new value as well, and return it first when
+    * the key is searched for".
+    *
+    * Note that the hash table doesn't have a delete callback.  If freeing of
+    * old keys is required to avoid memory leaks, use the alternative
+    * _mesa_set_search_or_add function and implement the replacement yourself.
     */
-   return NULL;
+   entry->key = key;
+   return entry;
 }
 
 struct set_entry *
@@ -361,6 +430,49 @@ _mesa_set_add_pre_hashed(struct set *set, uint32_t hash, const void *key)
    assert(set->key_hash_function == NULL ||
           hash == set->key_hash_function(key));
    return set_add(set, hash, key);
+}
+
+struct set_entry *
+_mesa_set_search_and_add(struct set *set, const void *key, bool *replaced)
+{
+   assert(set->key_hash_function);
+   return _mesa_set_search_and_add_pre_hashed(set,
+                                              set->key_hash_function(key),
+                                              key, replaced);
+}
+
+struct set_entry *
+_mesa_set_search_and_add_pre_hashed(struct set *set, uint32_t hash,
+                                    const void *key, bool *replaced)
+{
+   assert(set->key_hash_function == NULL ||
+          hash == set->key_hash_function(key));
+   struct set_entry *entry = set_search_or_add(set, hash, key, replaced);
+
+   if (unlikely(!entry))
+      return NULL;
+
+   /* This implements the replacement, same as _mesa_set_add(). The user will
+    * be notified if we're overwriting a found entry.
+    */
+   entry->key = key;
+   return entry;
+}
+
+struct set_entry *
+_mesa_set_search_or_add(struct set *set, const void *key)
+{
+   assert(set->key_hash_function);
+   return set_search_or_add(set, set->key_hash_function(key), key, NULL);
+}
+
+struct set_entry *
+_mesa_set_search_or_add_pre_hashed(struct set *set, uint32_t hash,
+                                   const void *key)
+{
+   assert(set->key_hash_function == NULL ||
+          hash == set->key_hash_function(key));
+   return set_search_or_add(set, hash, key, NULL);
 }
 
 /**

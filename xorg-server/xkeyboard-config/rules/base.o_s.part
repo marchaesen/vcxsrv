@@ -70,6 +70,7 @@
   caps:shiftlock	=	+capslock(shiftlock)
   caps:swapescape	=	+capslock(swapescape)
   caps:escape		=	+capslock(escape)
+  caps:escape_shifted_capslock	=	+capslock(escape_shifted_capslock)
   caps:backspace	=	+capslock(backspace)
   caps:super		=	+capslock(super)
   caps:hyper		=	+capslock(hyper)

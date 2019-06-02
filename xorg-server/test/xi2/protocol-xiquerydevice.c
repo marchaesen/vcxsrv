@@ -251,7 +251,8 @@ reply_XIQueryDevice_data(ClientPtr client, int len, char *data, void *closure)
                     }
 
                     assert(vi->length == 11);
-                    assert(vi->number >= 0 && vi->number < 4);
+                    assert(vi->number >= 0);
+                    assert(vi->number < 4);
                     if (info->deviceid == 2)    /* VCP */
                         assert(vi->number < 2);
 

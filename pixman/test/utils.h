@@ -219,14 +219,22 @@ list_formats (void);
 void
 list_operators (void);
 
+void list_dithers (void);
+
 pixman_op_t
 operator_from_string (const char *s);
+
+pixman_dither_t
+dither_from_string (const char *s);
 
 const char *
 operator_name (pixman_op_t op);
 
 const char *
 format_name (pixman_format_code_t format);
+
+const char *
+dither_name (pixman_dither_t dither);
 
 typedef struct
 {
@@ -250,10 +258,14 @@ typedef struct
     uint32_t am, rm, gm, bm;
     uint32_t as, rs, gs, bs;
     uint32_t aw, rw, gw, bw;
+    float ad, rd, gd, bd;
 } pixel_checker_t;
 
 void
 pixel_checker_init (pixel_checker_t *checker, pixman_format_code_t format);
+
+void
+pixel_checker_allow_dither (pixel_checker_t *checker);
 
 void
 pixel_checker_split_pixel (const pixel_checker_t *checker, uint32_t pixel,

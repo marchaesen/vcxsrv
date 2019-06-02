@@ -50,7 +50,7 @@ glsl_type::glsl_type(GLenum gl_type,
    gl_type(gl_type),
    base_type(base_type), sampled_type(GLSL_TYPE_VOID),
    sampler_dimensionality(0), sampler_shadow(0), sampler_array(0),
-   interface_packing(0), interface_row_major(row_major),
+   interface_packing(0), interface_row_major(row_major), packed(0),
    vector_elements(vector_elements), matrix_columns(matrix_columns),
    length(0), explicit_stride(explicit_stride)
 {
@@ -85,7 +85,7 @@ glsl_type::glsl_type(GLenum gl_type, glsl_base_type base_type,
    base_type(base_type), sampled_type(type),
    sampler_dimensionality(dim), sampler_shadow(shadow),
    sampler_array(array), interface_packing(0),
-   interface_row_major(0),
+   interface_row_major(0), packed(0),
    length(0), explicit_stride(0)
 {
    this->mem_ctx = ralloc_context(NULL);
@@ -134,7 +134,7 @@ glsl_type::glsl_type(const glsl_struct_field *fields, unsigned num_fields,
    base_type(GLSL_TYPE_INTERFACE), sampled_type(GLSL_TYPE_VOID),
    sampler_dimensionality(0), sampler_shadow(0), sampler_array(0),
    interface_packing((unsigned) packing),
-   interface_row_major((unsigned) row_major),
+   interface_row_major((unsigned) row_major), packed(0),
    vector_elements(0), matrix_columns(0),
    length(num_fields), explicit_stride(0)
 {
@@ -159,7 +159,7 @@ glsl_type::glsl_type(const glsl_type *return_type,
    gl_type(0),
    base_type(GLSL_TYPE_FUNCTION), sampled_type(GLSL_TYPE_VOID),
    sampler_dimensionality(0), sampler_shadow(0), sampler_array(0),
-   interface_packing(0), interface_row_major(0),
+   interface_packing(0), interface_row_major(0), packed(0),
    vector_elements(0), matrix_columns(0),
    length(num_params), explicit_stride(0)
 {
@@ -188,7 +188,7 @@ glsl_type::glsl_type(const char *subroutine_name) :
    gl_type(0),
    base_type(GLSL_TYPE_SUBROUTINE), sampled_type(GLSL_TYPE_VOID),
    sampler_dimensionality(0), sampler_shadow(0), sampler_array(0),
-   interface_packing(0), interface_row_major(0),
+   interface_packing(0), interface_row_major(0), packed(0),
    vector_elements(1), matrix_columns(1),
    length(0), explicit_stride(0)
 {
@@ -534,7 +534,7 @@ glsl_type::glsl_type(const glsl_type *array, unsigned length,
                      unsigned explicit_stride) :
    base_type(GLSL_TYPE_ARRAY), sampled_type(GLSL_TYPE_VOID),
    sampler_dimensionality(0), sampler_shadow(0), sampler_array(0),
-   interface_packing(0), interface_row_major(0),
+   interface_packing(0), interface_row_major(0), packed(0),
    vector_elements(0), matrix_columns(0),
    length(length), name(NULL), explicit_stride(explicit_stride)
 {

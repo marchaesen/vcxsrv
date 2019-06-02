@@ -180,6 +180,10 @@ struct bits_image
     uint32_t *                 free_me;
     int                        rowstride;  /* in number of uint32_t's */
 
+    pixman_dither_t            dither;
+    uint32_t                   dither_offset_y;
+    uint32_t                   dither_offset_x;
+
     fetch_scanline_t           fetch_scanline_32;
     fetch_pixel_32_t	       fetch_pixel_32;
     store_scanline_t           store_scanline_32;

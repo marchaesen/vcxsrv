@@ -52,9 +52,9 @@ struct ra_regs *ra_alloc_reg_set(void *mem_ctx, unsigned int count,
 void ra_set_allocate_round_robin(struct ra_regs *regs);
 unsigned int ra_alloc_reg_class(struct ra_regs *regs);
 void ra_add_reg_conflict(struct ra_regs *regs,
-			 unsigned int r1, unsigned int r2);
+                         unsigned int r1, unsigned int r2);
 void ra_add_transitive_reg_conflict(struct ra_regs *regs,
-				    unsigned int base_reg, unsigned int reg);
+                                    unsigned int base_reg, unsigned int reg);
 void ra_make_reg_conflicts_transitive(struct ra_regs *regs, unsigned int reg);
 void ra_class_add_reg(struct ra_regs *regs, unsigned int c, unsigned int reg);
 void ra_set_num_conflicts(struct ra_regs *regs, unsigned int class_a,
@@ -73,15 +73,18 @@ void ra_set_finalize(struct ra_regs *regs, unsigned int **conflicts);
  * graph.
  */
 struct ra_graph *ra_alloc_interference_graph(struct ra_regs *regs,
-					     unsigned int count);
+                                             unsigned int count);
+void ra_resize_interference_graph(struct ra_graph *g, unsigned int count);
 void ra_set_node_class(struct ra_graph *g, unsigned int n, unsigned int c);
+unsigned int ra_add_node(struct ra_graph *g, unsigned int c);
 void ra_set_select_reg_callback(struct ra_graph *g,
                                 unsigned int (*callback)(struct ra_graph *g,
                                                          BITSET_WORD *regs,
                                                          void *data),
                                 void *data);
 void ra_add_node_interference(struct ra_graph *g,
-			      unsigned int n1, unsigned int n2);
+                              unsigned int n1, unsigned int n2);
+void ra_reset_node_interference(struct ra_graph *g, unsigned int n);
 /** @} */
 
 /** @{ Graph-coloring register allocation */

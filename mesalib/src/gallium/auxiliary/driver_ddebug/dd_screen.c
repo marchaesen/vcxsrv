@@ -126,7 +126,7 @@ static void dd_screen_query_memory_info(struct pipe_screen *_screen,
 {
    struct pipe_screen *screen = dd_screen(_screen)->screen;
 
-   return screen->query_memory_info(screen, info);
+   screen->query_memory_info(screen, info);
 }
 
 static struct pipe_context *
@@ -309,6 +309,17 @@ dd_screen_resource_get_handle(struct pipe_screen *_screen,
    struct pipe_context *pipe = _pipe ? dd_context(_pipe)->pipe : NULL;
 
    return screen->resource_get_handle(screen, pipe, resource, handle, usage);
+}
+
+static void
+dd_screen_resource_get_info(struct pipe_screen *_screen,
+                            struct pipe_resource *resource,
+                            unsigned *stride,
+                            unsigned *offset)
+{
+   struct pipe_screen *screen = dd_screen(_screen)->screen;
+
+   screen->resource_get_info(screen, resource, stride, offset);
 }
 
 static bool
@@ -554,6 +565,7 @@ ddebug_screen_create(struct pipe_screen *screen)
    SCR_INIT(resource_from_user_memory);
    SCR_INIT(check_resource_capability);
    dscreen->base.resource_get_handle = dd_screen_resource_get_handle;
+   SCR_INIT(resource_get_info);
    SCR_INIT(resource_changed);
    dscreen->base.resource_destroy = dd_screen_resource_destroy;
    SCR_INIT(flush_frontbuffer);

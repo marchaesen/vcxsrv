@@ -111,7 +111,7 @@ struct vbo_exec_context
    /* Which flags to set in vbo_exec_begin_vertices() */
    GLbitfield begin_vertices_flags;
 
-#ifdef DEBUG
+#ifndef NDEBUG
    GLint flush_call_depth;
 #endif
 };

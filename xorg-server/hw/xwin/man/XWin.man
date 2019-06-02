@@ -51,11 +51,6 @@ Also start the integrated \fIWindows\fP-based window manager.
 Run the server in rootless mode.
 The X server works on a window covering the whole screen but the root window
 is hidden from view.
-.TP 8
-.B \-mwextwm
-Experimental.
-The mode combines \fB\-rootless\fP mode drawing with native \fIWindows\fP
-window frames managed by the experimental external window manager \fIxwinwm\fP.
 .PP
 \fBNOTE:\fP \fI-multiwindow\fP mode uses its own internal window manager.
 All other modes require an external window manager in order to move, resize, and perform other

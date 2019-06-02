@@ -1105,10 +1105,17 @@ st_api_make_current(struct st_api *stapi, struct st_context_iface *stctxi,
    else {
       GET_CURRENT_CONTEXT(ctx);
 
-      ret = _mesa_make_current(NULL, NULL, NULL);
-
-      if (ctx)
+      if (ctx) {
+         /* Before releasing the context, release its associated
+          * winsys buffers first. Then purge the context's winsys buffers list
+          * to free the resources of any winsys buffers that no longer have
+          * an existing drawable.
+          */
+         ret = _mesa_make_current(ctx, NULL, NULL);
          st_framebuffers_purge(ctx->st);
+      }
+
+      ret = _mesa_make_current(NULL, NULL, NULL);
    }
 
    return ret;
@@ -1130,9 +1137,19 @@ st_manager_flush_frontbuffer(struct st_context *st)
    struct st_framebuffer *stfb = st_ws_framebuffer(st->ctx->DrawBuffer);
    struct st_renderbuffer *strb = NULL;
 
-   if (stfb)
-      strb = st_renderbuffer(stfb->Base.Attachment[BUFFER_FRONT_LEFT].
-                             Renderbuffer);
+   if (!stfb)
+      return;
+
+   /* If the context uses a doublebuffered visual, but the buffer is
+    * single-buffered, guess that it's a pbuffer, which doesn't need
+    * flushing.
+    */
+   if (st->ctx->Visual.doubleBufferMode &&
+       !stfb->Base.Visual.doubleBufferMode)
+      return;
+
+   strb = st_renderbuffer(stfb->Base.Attachment[BUFFER_FRONT_LEFT].
+                          Renderbuffer);
 
    /* Do we have a front color buffer and has it been drawn to since last
     * frontbuffer flush?
@@ -1252,7 +1269,7 @@ get_version(struct pipe_screen *screen,
    _mesa_init_constants(&consts, api);
    _mesa_init_extensions(&extensions);
 
-   st_init_limits(screen, &consts, &extensions, api);
+   st_init_limits(screen, &consts, &extensions);
    st_init_extensions(screen, &consts, &extensions, options, api);
 
    return _mesa_get_version(&extensions, &consts, api);

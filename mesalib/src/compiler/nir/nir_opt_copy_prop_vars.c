@@ -433,9 +433,7 @@ load_element_from_ssa_entry_value(struct copy_prop_var_state *state,
                                   nir_builder *b, nir_intrinsic_instr *intrin,
                                   struct value *value, unsigned index)
 {
-   const struct glsl_type *type = entry->dst->type;
-   unsigned num_components = glsl_get_vector_elements(type);
-   assert(index < num_components);
+   assert(index < glsl_get_vector_elements(entry->dst->type));
 
    /* We don't have the element available, so let the instruction do the work. */
    if (!entry->src.ssa.def[index])

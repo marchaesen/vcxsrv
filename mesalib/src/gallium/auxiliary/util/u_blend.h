@@ -2,6 +2,7 @@
 #define U_BLEND_H
 
 #include "pipe/p_state.h"
+#include "compiler/shader_enums.h"
 
 /**
  * When faking RGBX render target formats with RGBA ones, the blender is still
@@ -19,6 +20,97 @@ util_blend_dst_alpha_to_one(int factor)
       return PIPE_BLENDFACTOR_ZERO;
    default:
       return factor;
+   }
+}
+
+/** To lower blending to software shaders, the Gallium blend mode has to
+ * be translated to something API-agnostic, as defined in shader_enums.h
+ * */
+
+static inline enum blend_func
+util_blend_func_to_shader(enum pipe_blend_func func)
+{
+   switch (func) {
+      case PIPE_BLEND_ADD:
+         return BLEND_FUNC_ADD;
+      case PIPE_BLEND_SUBTRACT:
+         return BLEND_FUNC_SUBTRACT;
+      case PIPE_BLEND_REVERSE_SUBTRACT:
+         return BLEND_FUNC_REVERSE_SUBTRACT;
+      case PIPE_BLEND_MIN:
+         return BLEND_FUNC_MIN;
+      case PIPE_BLEND_MAX:
+         return BLEND_FUNC_MAX;
+      default:
+         unreachable("Invalid blend function");
+   }
+}
+
+static inline enum blend_factor
+util_blend_factor_to_shader(enum pipe_blendfactor factor)
+{
+   switch (factor) {
+      case PIPE_BLENDFACTOR_ZERO:
+      case PIPE_BLENDFACTOR_ONE:
+         return BLEND_FACTOR_ZERO;
+
+      case PIPE_BLENDFACTOR_SRC_COLOR:
+      case PIPE_BLENDFACTOR_INV_SRC_COLOR:
+         return BLEND_FACTOR_SRC_COLOR;
+
+      case PIPE_BLENDFACTOR_SRC_ALPHA:
+      case PIPE_BLENDFACTOR_INV_SRC_ALPHA:
+         return BLEND_FACTOR_SRC_ALPHA;
+
+      case PIPE_BLENDFACTOR_DST_ALPHA:
+      case PIPE_BLENDFACTOR_INV_DST_ALPHA:
+         return BLEND_FACTOR_DST_ALPHA;
+
+      case PIPE_BLENDFACTOR_DST_COLOR:
+      case PIPE_BLENDFACTOR_INV_DST_COLOR:
+         return BLEND_FACTOR_DST_COLOR;
+
+      case PIPE_BLENDFACTOR_SRC_ALPHA_SATURATE:
+         return BLEND_FACTOR_SRC_ALPHA_SATURATE;
+
+      case PIPE_BLENDFACTOR_CONST_COLOR:
+      case PIPE_BLENDFACTOR_INV_CONST_COLOR:
+         return BLEND_FACTOR_CONSTANT_COLOR;
+
+      case PIPE_BLENDFACTOR_CONST_ALPHA:
+      case PIPE_BLENDFACTOR_INV_CONST_ALPHA:
+         return BLEND_FACTOR_CONSTANT_ALPHA;
+
+      case PIPE_BLENDFACTOR_SRC1_COLOR:
+      case PIPE_BLENDFACTOR_SRC1_ALPHA:
+      case PIPE_BLENDFACTOR_INV_SRC1_COLOR:
+      case PIPE_BLENDFACTOR_INV_SRC1_ALPHA:
+         /* unimplemented */
+         assert(0);
+         return BLEND_FACTOR_ZERO;
+
+      default:
+         unreachable("Invalid factor");
+   }
+}
+
+static inline bool
+util_blend_factor_is_inverted(enum pipe_blendfactor factor)
+{
+   switch (factor) {
+      case PIPE_BLENDFACTOR_ONE:
+      case PIPE_BLENDFACTOR_INV_SRC_COLOR:
+      case PIPE_BLENDFACTOR_INV_SRC_ALPHA:
+      case PIPE_BLENDFACTOR_INV_DST_ALPHA:
+      case PIPE_BLENDFACTOR_INV_DST_COLOR:
+      case PIPE_BLENDFACTOR_INV_CONST_COLOR:
+      case PIPE_BLENDFACTOR_INV_CONST_ALPHA:
+      case PIPE_BLENDFACTOR_INV_SRC1_COLOR:
+      case PIPE_BLENDFACTOR_INV_SRC1_ALPHA:
+         return true;
+
+      default:
+         return false;
    }
 }
 

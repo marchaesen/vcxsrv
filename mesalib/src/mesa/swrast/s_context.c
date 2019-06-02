@@ -728,7 +728,7 @@ _swrast_CreateContext( struct gl_context *ctx )
    assert(ctx->Const.MaxRenderbufferSize <= SWRAST_MAX_WIDTH);
 
    /* make sure largest texture image is <= SWRAST_MAX_WIDTH in size */
-   assert((1 << (ctx->Const.MaxTextureLevels - 1)) <= SWRAST_MAX_WIDTH);
+   assert(ctx->Const.MaxTextureSize <= SWRAST_MAX_WIDTH);
    assert((1 << (ctx->Const.MaxCubeTextureLevels - 1)) <= SWRAST_MAX_WIDTH);
    assert((1 << (ctx->Const.Max3DTextureLevels - 1)) <= SWRAST_MAX_WIDTH);
 

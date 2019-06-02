@@ -23,6 +23,7 @@
 #
 
 import argparse
+import copy
 import functools
 import math
 import os

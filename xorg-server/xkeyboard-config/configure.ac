@@ -1,4 +1,4 @@
-AC_INIT(xkeyboard-config, 2.26)
+AC_INIT(xkeyboard-config, 2.27)
 AC_CONFIG_SRCDIR(rules/base.xml)
 AM_INIT_AUTOMAKE([foreign dist-bzip2])
 

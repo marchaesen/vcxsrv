@@ -123,7 +123,7 @@ def generate(env):
             if env['platform'] == 'windows' and env['crosscompile']:
                 # LLVM 5.0 requires MinGW w/ pthreads due to use of std::thread and friends.
                 assert env['gcc']
-                env['CXX'] = env['CXX'] + '-posix'
+                env.AppendUnique(CXXFLAGS = ['-posix'])
         elif llvm_version >= distutils.version.LooseVersion('4.0'):
             env.Prepend(LIBS = [
                 'LLVMX86Disassembler', 'LLVMX86AsmParser',
@@ -260,7 +260,10 @@ def generate(env):
             if '-fno-rtti' in cxxflags:
                 env.Append(CXXFLAGS = ['-fno-rtti'])
 
-            components = ['engine', 'mcjit', 'bitwriter', 'x86asmprinter', 'mcdisassembler', 'irreader']
+            if llvm_version < distutils.version.LooseVersion('9.0'):
+               components = ['engine', 'mcjit', 'bitwriter', 'x86asmprinter', 'mcdisassembler', 'irreader']
+            else:
+               components = ['engine', 'mcjit', 'bitwriter', 'mcdisassembler', 'irreader']
 
             env.ParseConfig('%s --libs ' % llvm_config + ' '.join(components))
             env.ParseConfig('%s --ldflags' % llvm_config)

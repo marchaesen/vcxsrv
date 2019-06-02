@@ -901,7 +901,8 @@ RegionUnionO(RegionPtr pReg,
     int x2;
 
     assert(y1 < y2);
-    assert(r1 != r1End && r2 != r2End);
+    assert(r1 != r1End);
+    assert(r2 != r2End);
 
     pNextRect = RegionTop(pReg);
 

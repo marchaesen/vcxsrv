@@ -198,6 +198,21 @@ reralloc_size(const void *ctx, void *ptr, size_t size)
 }
 
 void *
+rerzalloc_size(const void *ctx, void *ptr, size_t old_size, size_t new_size)
+{
+   if (unlikely(ptr == NULL))
+      return rzalloc_size(ctx, new_size);
+
+   assert(ralloc_parent(ptr) == ctx);
+   ptr = resize(ptr, new_size);
+
+   if (new_size > old_size)
+      memset((char *)ptr + old_size, 0, new_size - old_size);
+
+   return ptr;
+}
+
+void *
 ralloc_array_size(const void *ctx, size_t size, unsigned count)
 {
    if (count > SIZE_MAX/size)
@@ -222,6 +237,16 @@ reralloc_array_size(const void *ctx, void *ptr, size_t size, unsigned count)
       return NULL;
 
    return reralloc_size(ctx, ptr, size * count);
+}
+
+void *
+rerzalloc_array_size(const void *ctx, void *ptr, size_t size,
+                     unsigned old_count, unsigned new_count)
+{
+   if (new_count > SIZE_MAX/size)
+      return NULL;
+
+   return rerzalloc_size(ctx, ptr, size * old_count, size * new_count);
 }
 
 void

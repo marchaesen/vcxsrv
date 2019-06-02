@@ -131,7 +131,7 @@ radv_dump_debug_registers(struct radv_device *device, FILE *f)
 	radv_dump_mmapped_reg(device, f, R_00803C_GRBM_STATUS_SE3);
 	radv_dump_mmapped_reg(device, f, R_00D034_SDMA0_STATUS_REG);
 	radv_dump_mmapped_reg(device, f, R_00D834_SDMA1_STATUS_REG);
-	if (info->chip_class <= VI) {
+	if (info->chip_class <= GFX8) {
 		radv_dump_mmapped_reg(device, f, R_000E50_SRBM_STATUS);
 		radv_dump_mmapped_reg(device, f, R_000E4C_SRBM_STATUS2);
 		radv_dump_mmapped_reg(device, f, R_000E54_SRBM_STATUS3);

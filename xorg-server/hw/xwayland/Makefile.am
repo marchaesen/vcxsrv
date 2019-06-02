@@ -22,6 +22,10 @@ Xwayland_SOURCES =				\
 	$(top_srcdir)/mi/miinitext.c
 
 if GLX
+Xwayland_SOURCES += 				\
+	xwayland-glx.c
+Xwayland_CFLAGS +=				\
+	-I$(top_srcdir)/glx
 GLXVND_LIB = $(top_builddir)/glx/libglxvnd.la
 endif
 

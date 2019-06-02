@@ -78,7 +78,7 @@ static unsigned cik_get_num_tile_pipes(struct amdgpu_gpu_info *info)
    case CIK__PIPE_CONFIG__ADDR_SURF_P16_32X32_16X16:
        return 16;
    default:
-       fprintf(stderr, "Invalid CIK pipe configuration, assuming P2\n");
+       fprintf(stderr, "Invalid GFX7 pipe configuration, assuming P2\n");
        assert(!"this should never occur");
        return 2;
    }
@@ -323,11 +323,11 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	if (info->family >= CHIP_VEGA10)
 		info->chip_class = GFX9;
 	else if (info->family >= CHIP_TONGA)
-		info->chip_class = VI;
+		info->chip_class = GFX8;
 	else if (info->family >= CHIP_BONAIRE)
-		info->chip_class = CIK;
+		info->chip_class = GFX7;
 	else if (info->family >= CHIP_TAHITI)
-		info->chip_class = SI;
+		info->chip_class = GFX6;
 	else {
 		fprintf(stderr, "amdgpu: Unknown family.\n");
 		return false;
@@ -379,24 +379,24 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	info->si_TA_CS_BC_BASE_ADDR_allowed = true;
 	info->has_bo_metadata = true;
 	info->has_gpu_reset_status_query = true;
-	info->has_gpu_reset_counter_query = false;
 	info->has_eqaa_surface_allocator = true;
 	info->has_format_bc1_through_bc7 = true;
-	/* DRM 3.1.0 doesn't flush TC for VI correctly. */
-	info->kernel_flushes_tc_l2_after_ib = info->chip_class != VI ||
+	/* DRM 3.1.0 doesn't flush TC for GFX8 correctly. */
+	info->kernel_flushes_tc_l2_after_ib = info->chip_class != GFX8 ||
 					      info->drm_minor >= 2;
 	info->has_indirect_compute_dispatch = true;
-	/* SI doesn't support unaligned loads. */
-	info->has_unaligned_shader_loads = info->chip_class != SI;
-	/* Disable sparse mappings on SI due to VM faults in CP DMA. Enable them once
+	/* GFX6 doesn't support unaligned loads. */
+	info->has_unaligned_shader_loads = info->chip_class != GFX6;
+	/* Disable sparse mappings on GFX6 due to VM faults in CP DMA. Enable them once
 	 * these faults are mitigated in software.
 	 * Disable sparse mappings on GFX9 due to hangs.
 	 */
 	info->has_sparse_vm_mappings =
-		info->chip_class >= CIK && info->chip_class <= VI &&
+		info->chip_class >= GFX7 && info->chip_class <= GFX8 &&
 		info->drm_minor >= 13;
 	info->has_2d_tiling = true;
 	info->has_read_registers_query = true;
+	info->has_scheduled_fence_dependency = info->drm_minor >= 28;
 
 	info->num_render_backends = amdinfo->rb_pipes;
 	/* The value returned by the kernel driver was wrong. */
@@ -446,7 +446,7 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 	info->pte_fragment_size = alignment_info.size_local;
 	info->gart_page_size = alignment_info.size_remote;
 
-	if (info->chip_class == SI)
+	if (info->chip_class == GFX6)
 		info->gfx_ib_pad_with_type2 = TRUE;
 
 	unsigned ib_align = 0;
@@ -470,6 +470,10 @@ bool ac_query_gpu_info(int fd, amdgpu_device_handle dev,
 		else
 			info->use_display_dcc_with_retile_blit = true;
 	}
+
+	info->has_gds_ordered_append = info->chip_class >= GFX7 &&
+				       info->drm_minor >= 29 &&
+				       HAVE_LLVM >= 0x0800;
 	return true;
 }
 
@@ -563,7 +567,6 @@ void ac_print_gpu_info(struct radeon_info *info)
 	printf("    si_TA_CS_BC_BASE_ADDR_allowed = %u\n", info->si_TA_CS_BC_BASE_ADDR_allowed);
 	printf("    has_bo_metadata = %u\n", info->has_bo_metadata);
 	printf("    has_gpu_reset_status_query = %u\n", info->has_gpu_reset_status_query);
-	printf("    has_gpu_reset_counter_query = %u\n", info->has_gpu_reset_counter_query);
 	printf("    has_eqaa_surface_allocator = %u\n", info->has_eqaa_surface_allocator);
 	printf("    has_format_bc1_through_bc7 = %u\n", info->has_format_bc1_through_bc7);
 	printf("    kernel_flushes_tc_l2_after_ib = %u\n", info->kernel_flushes_tc_l2_after_ib);
@@ -572,6 +575,8 @@ void ac_print_gpu_info(struct radeon_info *info)
 	printf("    has_sparse_vm_mappings = %u\n", info->has_sparse_vm_mappings);
 	printf("    has_2d_tiling = %u\n", info->has_2d_tiling);
 	printf("    has_read_registers_query = %u\n", info->has_read_registers_query);
+	printf("    has_gds_ordered_append = %u\n", info->has_gds_ordered_append);
+	printf("    has_scheduled_fence_dependency = %u\n", info->has_scheduled_fence_dependency);
 
 	printf("Shader core info:\n");
 	printf("    max_shader_clock = %i\n", info->max_shader_clock);
@@ -649,7 +654,6 @@ ac_get_gs_table_depth(enum chip_class chip_class, enum radeon_family family)
 	case CHIP_HAINAN:
 	case CHIP_KAVERI:
 	case CHIP_KABINI:
-	case CHIP_MULLINS:
 	case CHIP_ICELAND:
 	case CHIP_CARRIZO:
 	case CHIP_STONEY:
@@ -683,7 +687,6 @@ ac_get_raster_config(struct radeon_info *info,
 	/* 1 SE / 1 RB */
 	case CHIP_HAINAN:
 	case CHIP_KABINI:
-	case CHIP_MULLINS:
 	case CHIP_STONEY:
 		raster_config = 0x00000000;
 		raster_config_1 = 0x00000000;
@@ -791,7 +794,7 @@ ac_get_harvested_configs(struct radeon_info *info,
 	assert(rb_per_pkr == 1 || rb_per_pkr == 2);
 
 
-	if (info->chip_class >= CIK) {
+	if (info->chip_class >= GFX7) {
 		unsigned raster_config_1 = *cik_raster_config_1_p;
 		if ((num_se > 2) && ((!se_mask[0] && !se_mask[1]) ||
 				     (!se_mask[2] && !se_mask[3]))) {

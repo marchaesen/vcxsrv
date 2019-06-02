@@ -2,19 +2,19 @@
 <html lang="en">
 <head>
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <title>VMware guest GL driver</title>
+  <title>VMware SVGA3D Guest Driver</title>
   <link rel="stylesheet" type="text/css" href="mesa.css">
 </head>
 <body>
 
 <div class="header">
-  <h1>The Mesa 3D Graphics Library</h1>
+  The Mesa 3D Graphics Library
 </div>
 
 <iframe src="contents.html"></iframe>
 <div class="content">
 
-<h1>VMware guest GL driver</h1>
+<h1>VMware SVGA3D Guest Driver</h1>
 
 <p>
 This page describes how to build, install and use the
@@ -30,6 +30,7 @@ MacOS are all supported.
 With the August 2015 Workstation 12 / Fusion 8 releases, OpenGL 3.3
 is supported in the guest.
 This requires:
+</p>
 <ul>
 <li>The VM is configured for virtual hardware version 12.
 <li>The host OS, GPU and graphics driver supports DX11 (Windows) or
@@ -37,7 +38,6 @@ This requires:
 <li>On Linux, the vmwgfx kernel module must be version 2.9.0 or later.
 <li>A recent version of Mesa with the updated svga gallium driver.
 </ul>
-</p>
 
 <p>
 Otherwise, OpenGL 2.1 is supported.
@@ -311,7 +311,7 @@ If OpenGL 3.3 is not working (you only get OpenGL 2.1):
 <li>Make sure the vmwgfx kernel module is version 2.9.0 or later.
 <li>Check the vmware.log file for errors.
 <li>Run 'dmesg | grep vmwgfx' and look for "DX: yes".
-
+</ul>
 
 </div>
 </body>

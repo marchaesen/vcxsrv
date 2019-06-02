@@ -52,7 +52,7 @@
 #include "vk_debug_report.h"
 #include "wsi_common.h"
 
-#include "drm/msm_drm.h"
+#include "drm-uapi/msm_drm.h"
 #include "ir3/ir3_compiler.h"
 #include "ir3/ir3_shader.h"
 

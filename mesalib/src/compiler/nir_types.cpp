@@ -630,7 +630,7 @@ glsl_get_natural_size_align_bytes(const struct glsl_type *type,
       *size = 0;
       *align = 0;
       for (unsigned i = 0; i < type->length; i++) {
-         unsigned elem_size, elem_align;
+         unsigned elem_size = 0, elem_align = 0;
          glsl_get_natural_size_align_bytes(type->fields.structure[i].type,
                                            &elem_size, &elem_align);
          *align = MAX2(*align, elem_align);

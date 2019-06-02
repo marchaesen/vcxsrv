@@ -26,7 +26,7 @@
 
 enum radeon_family {
     CHIP_UNKNOWN = 0,
-    CHIP_R300, /* R3xx-based cores. */
+    CHIP_R300,     /* R3xx-based cores. (GFX2) */
     CHIP_R350,
     CHIP_RV350,
     CHIP_RV370,
@@ -34,7 +34,7 @@ enum radeon_family {
     CHIP_RS400,
     CHIP_RC410,
     CHIP_RS480,
-    CHIP_R420,     /* R4xx-based cores. */
+    CHIP_R420,     /* R4xx-based cores. (GFX2) */
     CHIP_R423,
     CHIP_R430,
     CHIP_R480,
@@ -43,13 +43,13 @@ enum radeon_family {
     CHIP_RS600,
     CHIP_RS690,
     CHIP_RS740,
-    CHIP_RV515,    /* R5xx-based cores. */
+    CHIP_RV515,    /* R5xx-based cores. (GFX2) */
     CHIP_R520,
     CHIP_RV530,
     CHIP_R580,
     CHIP_RV560,
     CHIP_RV570,
-    CHIP_R600,
+    CHIP_R600,     /* GFX3 (R6xx) */
     CHIP_RV610,
     CHIP_RV630,
     CHIP_RV670,
@@ -57,11 +57,11 @@ enum radeon_family {
     CHIP_RV635,
     CHIP_RS780,
     CHIP_RS880,
-    CHIP_RV770,
+    CHIP_RV770,    /* GFX3 (R7xx) */
     CHIP_RV730,
     CHIP_RV710,
     CHIP_RV740,
-    CHIP_CEDAR,
+    CHIP_CEDAR,    /* GFX4 (Evergreen) */
     CHIP_REDWOOD,
     CHIP_JUNIPER,
     CHIP_CYPRESS,
@@ -72,19 +72,18 @@ enum radeon_family {
     CHIP_BARTS,
     CHIP_TURKS,
     CHIP_CAICOS,
-    CHIP_CAYMAN,
+    CHIP_CAYMAN,   /* GFX5 (Northern Islands) */
     CHIP_ARUBA,
-    CHIP_TAHITI,
+    CHIP_TAHITI,   /* GFX6 (Southern Islands) */
     CHIP_PITCAIRN,
     CHIP_VERDE,
     CHIP_OLAND,
     CHIP_HAINAN,
-    CHIP_BONAIRE,
+    CHIP_BONAIRE,  /* GFX7 (Sea Islands) */
     CHIP_KAVERI,
     CHIP_KABINI,
     CHIP_HAWAII,
-    CHIP_MULLINS,
-    CHIP_TONGA,
+    CHIP_TONGA,    /* GFX8 (Volcanic Islands & Polaris) */
     CHIP_ICELAND,
     CHIP_CARRIZO,
     CHIP_FIJI,
@@ -93,7 +92,7 @@ enum radeon_family {
     CHIP_POLARIS11,
     CHIP_POLARIS12,
     CHIP_VEGAM,
-    CHIP_VEGA10,
+    CHIP_VEGA10,   /* GFX9 (Vega) */
     CHIP_VEGA12,
     CHIP_VEGA20,
     CHIP_RAVEN,
@@ -110,9 +109,9 @@ enum chip_class {
     R700,
     EVERGREEN,
     CAYMAN,
-    SI,  /* GFX6 */
-    CIK, /* GFX7 */
-    VI,  /* GFX8 */
+    GFX6,
+    GFX7,
+    GFX8,
     GFX9,
 };
 

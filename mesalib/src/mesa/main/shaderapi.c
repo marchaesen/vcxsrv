@@ -474,7 +474,7 @@ detach_shader(struct gl_context *ctx, GLuint program, GLuint shader,
          shProg->Shaders = newList;
          shProg->NumShaders = n - 1;
 
-#ifdef DEBUG
+#ifndef NDEBUG
          /* sanity check - make sure the new list's entries are sensible */
          for (j = 0; j < shProg->NumShaders; j++) {
             assert(shProg->Shaders[j]->Stage == MESA_SHADER_VERTEX ||
@@ -843,7 +843,7 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
       if (!_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
          break;
 
-      *params = shProg->BinaryRetreivableHint;
+      *params = shProg->BinaryRetrievableHint;
       return;
    case GL_PROGRAM_BINARY_LENGTH:
       if (ctx->Const.NumProgramBinaryFormats == 0 || !shProg->data->LinkStatus) {
@@ -1286,6 +1286,8 @@ link_program(struct gl_context *ctx, struct gl_shader_program *shProg,
    }
 
    _mesa_update_vertex_processing_mode(ctx);
+
+   shProg->BinaryRetrievableHint = shProg->BinaryRetrievableHintPending;
 
    /* debug code */
    if (0) {
@@ -2380,7 +2382,7 @@ program_parameteri(struct gl_context *ctx, struct gl_shader_program *shProg,
        *     will not be in effect until the next time LinkProgram or
        *     ProgramBinary has been called successfully."
        *
-       * The resloution of issue 9 in the extension spec also says:
+       * The resolution of issue 9 in the extension spec also says:
        *
        *     "The application may use the PROGRAM_BINARY_RETRIEVABLE_HINT hint
        *     to indicate to the GL implementation that this program will
@@ -2389,7 +2391,7 @@ program_parameteri(struct gl_context *ctx, struct gl_shader_program *shProg,
        *     changes made to the program before being saved such that when it
        *     is loaded again a recompile can be avoided."
        */
-      shProg->BinaryRetreivableHint = value;
+      shProg->BinaryRetrievableHintPending = value;
       return;
 
    case GL_PROGRAM_SEPARABLE:

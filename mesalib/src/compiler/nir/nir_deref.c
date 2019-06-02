@@ -121,6 +121,84 @@ nir_deref_instr_has_indirect(nir_deref_instr *instr)
    return false;
 }
 
+bool
+nir_deref_instr_has_complex_use(nir_deref_instr *deref)
+{
+   nir_foreach_use(use_src, &deref->dest.ssa) {
+      nir_instr *use_instr = use_src->parent_instr;
+
+      switch (use_instr->type) {
+      case nir_instr_type_deref: {
+         nir_deref_instr *use_deref = nir_instr_as_deref(use_instr);
+
+         /* A var deref has no sources */
+         assert(use_deref->deref_type != nir_deref_type_var);
+
+         /* If a deref shows up in an array index or something like that, it's
+          * a complex use.
+          */
+         if (use_src != &use_deref->parent)
+            return true;
+
+         /* Anything that isn't a basic struct or array deref is considered to
+          * be a "complex" use.  In particular, we don't allow ptr_as_array
+          * because we assume that opt_deref will turn any non-complex
+          * ptr_as_array derefs into regular array derefs eventually so passes
+          * which only want to handle simple derefs will pick them up in a
+          * later pass.
+          */
+         if (use_deref->deref_type != nir_deref_type_struct &&
+             use_deref->deref_type != nir_deref_type_array_wildcard &&
+             use_deref->deref_type != nir_deref_type_array)
+            return true;
+
+         if (nir_deref_instr_has_complex_use(use_deref))
+            return true;
+
+         continue;
+      }
+
+      case nir_instr_type_intrinsic: {
+         nir_intrinsic_instr *use_intrin = nir_instr_as_intrinsic(use_instr);
+         switch (use_intrin->intrinsic) {
+         case nir_intrinsic_load_deref:
+            assert(use_src == &use_intrin->src[0]);
+            continue;
+
+         case nir_intrinsic_copy_deref:
+            assert(use_src == &use_intrin->src[0] ||
+                   use_src == &use_intrin->src[1]);
+            continue;
+
+         case nir_intrinsic_store_deref:
+            /* A use in src[1] of a store means we're taking that pointer and
+             * writing it to a variable.  Because we have no idea who will
+             * read that variable and what they will do with the pointer, it's
+             * considered a "complex" use.  A use in src[0], on the other
+             * hand, is a simple use because we're just going to dereference
+             * it and write a value there.
+             */
+            if (use_src == &use_intrin->src[0])
+               continue;
+            return true;
+
+         default:
+            return true;
+         }
+         unreachable("Switch default failed");
+      }
+
+      default:
+         return true;
+      }
+   }
+
+   nir_foreach_if_use(use, &deref->dest.ssa)
+      return true;
+
+   return false;
+}
+
 unsigned
 nir_deref_instr_ptr_as_array_stride(nir_deref_instr *deref)
 {
@@ -601,6 +679,8 @@ rematerialize_deref_src(nir_src *src, void *_state)
  * used.  After this pass has been run, every use of a deref will be of a
  * deref in the same block as the use.  Also, all unused derefs will be
  * deleted as a side-effect.
+ *
+ * Derefs used as sources of phi instructions are not rematerialized.
  */
 bool
 nir_rematerialize_derefs_in_use_blocks_impl(nir_function_impl *impl)
@@ -618,6 +698,12 @@ nir_rematerialize_derefs_in_use_blocks_impl(nir_function_impl *impl)
       nir_foreach_instr_safe(instr, block) {
          if (instr->type == nir_instr_type_deref &&
              nir_deref_instr_remove_if_unused(nir_instr_as_deref(instr)))
+            continue;
+
+         /* If a deref is used in a phi, we can't rematerialize it, as the new
+          * derefs would appear before the phi, which is not valid.
+          */
+         if (instr->type == nir_instr_type_phi)
             continue;
 
          state.builder.cursor = nir_before_instr(instr);

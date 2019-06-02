@@ -53,13 +53,7 @@ st_print_current(void);
 #define DEBUG_GREMEDY   0x1000
 #define DEBUG_NOREADPIXCACHE 0x2000
 
-#ifdef DEBUG
 extern int ST_DEBUG;
-#define DBSTR(x) x
-#else
-#define ST_DEBUG 0
-#define DBSTR(x) ""
-#endif
 
 void st_debug_init( void );
 

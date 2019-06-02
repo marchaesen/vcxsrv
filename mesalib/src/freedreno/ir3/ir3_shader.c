@@ -47,8 +47,6 @@ delete_variant(struct ir3_shader_variant *v)
 		ir3_destroy(v->ir);
 	if (v->bo)
 		fd_bo_del(v->bo);
-	if (v->immediates)
-		free(v->immediates);
 	free(v);
 }
 
@@ -63,7 +61,7 @@ delete_variant(struct ir3_shader_variant *v)
  * the reg off.
  */
 static void
-fixup_regfootprint(struct ir3_shader_variant *v)
+fixup_regfootprint(struct ir3_shader_variant *v, uint32_t gpu_id)
 {
 	unsigned i;
 
@@ -83,14 +81,30 @@ fixup_regfootprint(struct ir3_shader_variant *v)
 
 		if (v->inputs[i].compmask) {
 			unsigned n = util_last_bit(v->inputs[i].compmask) - 1;
-			int32_t regid = (v->inputs[i].regid + n) >> 2;
-			v->info.max_reg = MAX2(v->info.max_reg, regid);
+			int32_t regid = v->inputs[i].regid + n;
+			if (v->inputs[i].half) {
+				if (gpu_id < 500) {
+					v->info.max_half_reg = MAX2(v->info.max_half_reg, regid >> 2);
+				} else {
+					v->info.max_reg = MAX2(v->info.max_reg, regid >> 3);
+				}
+			} else {
+				v->info.max_reg = MAX2(v->info.max_reg, regid >> 2);
+			}
 		}
 	}
 
 	for (i = 0; i < v->outputs_count; i++) {
-		int32_t regid = (v->outputs[i].regid + 3) >> 2;
-		v->info.max_reg = MAX2(v->info.max_reg, regid);
+		int32_t regid = v->outputs[i].regid + 3;
+		if (v->outputs[i].half) {
+			if (gpu_id < 500) {
+				v->info.max_half_reg = MAX2(v->info.max_half_reg, regid >> 2);
+			} else {
+				v->info.max_reg = MAX2(v->info.max_reg, regid >> 3);
+			}
+		} else {
+			v->info.max_reg = MAX2(v->info.max_reg, regid >> 2);
+		}
 	}
 }
 
@@ -115,9 +129,9 @@ void * ir3_shader_assemble(struct ir3_shader_variant *v, uint32_t gpu_id)
 	 * the compiler (to worst-case value) since we don't know in
 	 * the assembler what the max addr reg value can be:
 	 */
-	v->constlen = MIN2(255, MAX2(v->constlen, v->info.max_const + 1));
+	v->constlen = MAX2(v->constlen, v->info.max_const + 1);
 
-	fixup_regfootprint(v);
+	fixup_regfootprint(v, gpu_id);
 
 	return bin;
 }
@@ -246,6 +260,7 @@ ir3_shader_destroy(struct ir3_shader *shader)
 		v = v->next;
 		delete_variant(t);
 	}
+	free(shader->const_state.immediates);
 	ralloc_free(shader->nir);
 	free(shader);
 }
@@ -262,8 +277,15 @@ ir3_shader_from_nir(struct ir3_compiler *compiler, nir_shader *nir)
 	NIR_PASS_V(nir, nir_lower_io, nir_var_all, ir3_glsl_type_size,
 			   (nir_lower_io_options)0);
 
-	if (nir->info.stage == MESA_SHADER_FRAGMENT)
+	if (nir->info.stage == MESA_SHADER_FRAGMENT) {
+		/* NOTE: lower load_barycentric_at_sample first, since it
+		 * produces load_barycentric_at_offset:
+		 */
+		NIR_PASS_V(nir, ir3_nir_lower_load_barycentric_at_sample);
+		NIR_PASS_V(nir, ir3_nir_lower_load_barycentric_at_offset);
+
 		NIR_PASS_V(nir, ir3_nir_move_varying_inputs);
+	}
 
 	NIR_PASS_V(nir, nir_lower_io_arrays_to_elements_no_indirects, false);
 
@@ -327,13 +349,14 @@ ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
 				(regid >> 2), "xyzw"[regid & 0x3], i);
 	}
 
-	for (i = 0; i < so->immediates_count; i++) {
-		fprintf(out, "@const(c%d.x)\t", so->constbase.immediate + i);
+	struct ir3_const_state *const_state = &so->shader->const_state;
+	for (i = 0; i < const_state->immediates_count; i++) {
+		fprintf(out, "@const(c%d.x)\t", const_state->offsets.immediate + i);
 		fprintf(out, "0x%08x, 0x%08x, 0x%08x, 0x%08x\n",
-				so->immediates[i].val[0],
-				so->immediates[i].val[1],
-				so->immediates[i].val[2],
-				so->immediates[i].val[3]);
+				const_state->immediates[i].val[0],
+				const_state->immediates[i].val[1],
+				const_state->immediates[i].val[2],
+				const_state->immediates[i].val[3]);
 	}
 
 	disasm_a3xx(bin, so->info.sizedwords, 0, out, ir->compiler->gpu_id);
@@ -407,8 +430,12 @@ ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
 		dump_output(out, so, VARYING_SLOT_PSIZ, "psize");
 		break;
 	case MESA_SHADER_FRAGMENT:
-		dump_reg(out, "pos (bary)",
-			ir3_find_sysval_regid(so, SYSTEM_VALUE_VARYING_COORD));
+		dump_reg(out, "pos (ij_pixel)",
+			ir3_find_sysval_regid(so, SYSTEM_VALUE_BARYCENTRIC_PIXEL));
+		dump_reg(out, "pos (ij_centroid)",
+			ir3_find_sysval_regid(so, SYSTEM_VALUE_BARYCENTRIC_CENTROID));
+		dump_reg(out, "pos (ij_size)",
+			ir3_find_sysval_regid(so, SYSTEM_VALUE_BARYCENTRIC_SIZE));
 		dump_output(out, so, FRAG_RESULT_DEPTH, "posz");
 		if (so->color0_mrt) {
 			dump_output(out, so, FRAG_RESULT_COLOR, "color");

@@ -18,7 +18,7 @@ hdiutil detach /Volumes/XQuartz-${XQUARTZ_VERSION}
 export PATH="/opt/X11/bin:${PATH}"
 export PKG_CONFIG_PATH="/opt/X11/share/pkgconfig:/opt/X11/lib/pkgconfig:${PKG_CONFIG_PATH}"
 export ACLOCAL="aclocal -I /opt/X11/share/aclocal -I /usr/local/share/aclocal"
-export CFLAGS="-Wall -O2 -ggdb3 -arch i386 -arch x86_64 -pipe"
+export CFLAGS="-Wall -O2 -ggdb3 -arch x86_64 -pipe -Wno-typedef-redefinition -Wno-deprecated-declarations"
 export CXXFLAGS=$CFLAGS
 export OBJCFLAGS=$CFLAGS
 export LDFLAGS=$CFLAGS
@@ -30,14 +30,29 @@ export PATH="/usr/local/opt/ccache/libexec:$PATH"
 pushd $HOME
 git clone git://anongit.freedesktop.org/git/xorg/proto/xorgproto
 cd xorgproto
-autoreconf -fvi
-./configure --prefix=/opt/X11
-sudo make install
+if [[ "$1" == "autotools" ]]; then
+    autoreconf -fvi
+    ./configure --prefix=/opt/X11
+    sudo make install
+elif [[ "$1" == "meson" ]]; then
+    meson _build/ -Dprefix=/opt/X11
+    ninja -C _build/
+    sudo ninja -C _build/ install
+else
+    echo "Unknown build tool $1"
+    exit 1
+fi
 popd
 
 # build
-autoreconf -fvi
-./configure --prefix=/opt/X11 --disable-dependency-tracking --with-apple-application-name=XQuartz --with-bundle-id-prefix=org.macosforge.xquartz
-make
-make check
-make install DESTDIR=$(pwd)/staging
+if [[ "$1" == "autotools" ]]; then
+    autoreconf -fvi
+    ./configure --prefix=/opt/X11 --disable-dependency-tracking --with-apple-application-name=XQuartz --with-bundle-id-prefix=org.macosforge.xquartz
+    make
+    make check
+    make install DESTDIR=$(pwd)/staging
+elif [[ "$1" == "meson" ]]; then
+    meson _build/ -Dprefix=/opt/X11 -Dsecure-rpc=false
+    DESTDIR=$(pwd)/staging ninja -C _build/ install
+    ninja -C _build/ test
+fi

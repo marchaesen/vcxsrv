@@ -10,7 +10,7 @@ endif
 
 release = major * 10000000 + minor * 100000 + patch * 1000 + subpatch
 
-dri_dep = dependency('dri', required: build_dri2 or build_dri3)
+dri_dep = dependency('dri', required: build_glx)
 
 conf_data = configuration_data()
 conf_data.set('_DIX_CONFIG_H_', '1')
@@ -20,7 +20,8 @@ conf_data.set('HAVE_TYPEOF', cc.compiles('''
 ''',
     name: 'typeof()'))
 
-conf_data.set('MONOTONIC_CLOCK', cc.compiles('''
+conf_data.set('MONOTONIC_CLOCK', cc.has_function('clock_gettime') and
+cc.compiles('''
     #define _POSIX_C_SOURCE 200112L
     #include <time.h>
     #include <unistd.h>
@@ -51,8 +52,6 @@ conf_data.set('_GNU_SOURCE', '1')
 # ifdef for openbsd?
 conf_data.set('HAS_APERTURE_DRV', host_machine.system() == 'openbsd')
 
-# XXX: BUNDLE_ID_PREFIX
-
 if get_option('input_thread') == 'false'
   enable_input_thread = false
 else
@@ -60,6 +59,9 @@ else
 					     'PTHREAD_MUTEX_RECURSIVE')
   if not enable_input_thread and get_option('input_thread') == 'true'
     error('Input thread enabled and PTHREAD_MUTEX_RECURSIVE not found')
+  endif
+  if host_machine.system() == 'windows' and get_option('input_thread') == 'auto'
+      enable_input_thread = false
   endif
 endif
 conf_data.set('HAVE_INPUTTHREAD', enable_input_thread)
@@ -153,12 +155,13 @@ conf_data.set('HAVE_SETEUID', cc.has_function('seteuid'))
 conf_data.set('HAVE_SETITIMER', cc.has_function('setitimer'))
 conf_data.set('HAVE_SHMCTL64', cc.has_function('shmctl64'))
 conf_data.set('HAVE_SIGACTION', cc.has_function('sigaction'))
+conf_data.set('HAVE_SIGPROCMASK', cc.has_function('sigprocmask'))
 conf_data.set('HAVE_STRCASECMP', cc.has_function('strcasecmp'))
 conf_data.set('HAVE_STRCASESTR', cc.has_function('strcasestr'))
 conf_data.set('HAVE_STRLCAT', cc.has_function('strlcat', dependencies: libbsd_dep))
 conf_data.set('HAVE_STRLCPY', cc.has_function('strlcpy', dependencies: libbsd_dep))
 conf_data.set('HAVE_STRNCASECMP', cc.has_function('strncasecmp'))
-conf_data.set('HAVE_STRNDUP', cc.has_function('strndup'))
+conf_data.set('HAVE_STRNDUP', cc.has_function('strndup') and cc.has_header_symbol('string.h', 'strndup'))
 conf_data.set('HAVE_TIMINGSAFE_MEMCMP', cc.has_function('timingsafe_memcmp'))
 conf_data.set('HAVE_VASPRINTF', cc.has_function('vasprintf'))
 conf_data.set('HAVE_VSNPRINTF', cc.has_function('vsnprintf'))
@@ -185,7 +188,7 @@ if not conf_data.get('HAVE_GETPEEREID') and not conf_data.get('HAVE_GETPEERUCRED
 endif
 
 conf_data.set('TCPCONN', '1')
-conf_data.set('UNIXCONN', '1')
+conf_data.set('UNIXCONN', host_machine.system() != 'windows')
 conf_data.set('IPv6', build_ipv6)
 
 conf_data.set('BIGREQS', '1')
@@ -196,7 +199,9 @@ conf_data.set('DGA', build_dga)
 conf_data.set('DPMSExtension', build_dpms)
 conf_data.set('DRI2', build_dri2)
 conf_data.set('DRI3', build_dri3)
-conf_data.set_quoted('DRI_DRIVER_PATH', dri_dep.get_pkgconfig_variable('dridriverdir'))
+if build_glx
+    conf_data.set_quoted('DRI_DRIVER_PATH', dri_dep.get_pkgconfig_variable('dridriverdir'))
+endif
 conf_data.set('HAS_SHM', build_mitshm)
 conf_data.set('MITSHM', build_mitshm)
 conf_data.set('PANORAMIX', build_xinerama)
@@ -239,6 +244,12 @@ conf_data.set_quoted('__VENDORDWEBSUPPORT__', get_option('vendor_web'))
 conf_data.set_quoted('BUILDERADDR', get_option('builder_addr'))
 conf_data.set_quoted('BUILDERSTRING', get_option('builder_string'))
 
+if build_rootless
+    conf_data.set('ROOTLESS', build_rootless)
+    conf_data.set('ROOTLESS_WORKAROUND', 1)
+    conf_data.set('ROOTLESS_SAFEALPHA', 1)
+endif
+
 #
 # for xorg-server.h only
 #
@@ -277,6 +288,10 @@ endif
 if host_machine.system() == 'openbsd'
   supports_pcvt = true
   supports_wscons = true
+  csrg_based = true
+endif
+
+if host_machine.system() == 'darwin'
   csrg_based = true
 endif
 

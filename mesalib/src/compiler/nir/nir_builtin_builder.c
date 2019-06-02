@@ -32,10 +32,10 @@ nir_cross3(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y)
    unsigned yzx[3] = { 1, 2, 0 };
    unsigned zxy[3] = { 2, 0, 1 };
 
-   return nir_fsub(b, nir_fmul(b, nir_swizzle(b, x, yzx, 3, true),
-                                  nir_swizzle(b, y, zxy, 3, true)),
-                      nir_fmul(b, nir_swizzle(b, x, zxy, 3, true),
-                                  nir_swizzle(b, y, yzx, 3, true)));
+   return nir_fsub(b, nir_fmul(b, nir_swizzle(b, x, yzx, 3),
+                                  nir_swizzle(b, y, zxy, 3)),
+                      nir_fmul(b, nir_swizzle(b, x, zxy, 3),
+                                  nir_swizzle(b, y, yzx, 3)));
 }
 
 nir_ssa_def*

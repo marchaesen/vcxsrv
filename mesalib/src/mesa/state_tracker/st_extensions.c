@@ -76,17 +76,15 @@ static int _clamp(int a, int min, int max)
  * Note that we have to limit/clamp against Mesa's internal limits too.
  */
 void st_init_limits(struct pipe_screen *screen,
-                    struct gl_constants *c, struct gl_extensions *extensions,
-                    gl_api api)
+                    struct gl_constants *c, struct gl_extensions *extensions)
 {
    int supported_irs;
    unsigned sh;
    bool can_ubo = true;
    int temp;
 
-   c->MaxTextureLevels
-      = _min(screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_2D_LEVELS),
-            MAX_TEXTURE_LEVELS);
+   c->MaxTextureSize = screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_2D_SIZE);
+   c->MaxTextureSize = MIN2(c->MaxTextureSize, 1 << (MAX_TEXTURE_LEVELS - 1));
 
    c->Max3DTextureLevels
       = _min(screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_3D_LEVELS),
@@ -96,8 +94,7 @@ void st_init_limits(struct pipe_screen *screen,
       = _min(screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_CUBE_LEVELS),
             MAX_CUBE_TEXTURE_LEVELS);
 
-   c->MaxTextureRectSize
-      = _min(1 << (c->MaxTextureLevels - 1), MAX_TEXTURE_RECT_SIZE);
+   c->MaxTextureRectSize = _min(c->MaxTextureSize, MAX_TEXTURE_RECT_SIZE);
 
    c->MaxArrayTextureLayers
       = screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS);
@@ -449,14 +446,8 @@ void st_init_limits(struct pipe_screen *screen,
    c->GLSLFrontFacingIsSysVal =
       screen->get_param(screen, PIPE_CAP_TGSI_FS_FACE_IS_INTEGER_SYSVAL);
 
-   /* GL_ARB_get_program_binary
-    *
-    * The QT framework has a bug in their shader program cache, which is built
-    * on GL_ARB_get_program_binary. In an effort to allow them to fix the bug
-    * we don't enable more than 1 binary format for compatibility profiles.
-    */
-   if (api != API_OPENGL_COMPAT &&
-       screen->get_disk_shader_cache && screen->get_disk_shader_cache(screen))
+   /* GL_ARB_get_program_binary */
+   if (screen->get_disk_shader_cache && screen->get_disk_shader_cache(screen))
       c->NumProgramBinaryFormats = 1;
 
    c->MaxAtomicBufferBindings =
@@ -747,8 +738,7 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(ARB_transform_feedback2),          PIPE_CAP_STREAM_OUTPUT_PAUSE_RESUME       },
       { o(ARB_transform_feedback3),          PIPE_CAP_STREAM_OUTPUT_INTERLEAVE_BUFFERS },
       { o(ARB_transform_feedback_overflow_query), PIPE_CAP_QUERY_SO_OVERFLOW           },
-
-      { o(KHR_blend_equation_advanced),      PIPE_CAP_TGSI_FS_FBFETCH                  },
+      { o(ARB_fragment_shader_interlock),    PIPE_CAP_FRAGMENT_SHADER_INTERLOCK        },
 
       { o(EXT_blend_equation_separate),      PIPE_CAP_BLEND_EQUATION_SEPARATE          },
       { o(EXT_depth_bounds_test),            PIPE_CAP_DEPTH_BOUNDS_TEST                },
@@ -1395,6 +1385,21 @@ void st_init_extensions(struct pipe_screen *screen,
        */
       if (!extensions->EXT_transform_feedback)
          consts->DisableVaryingPacking = GL_TRUE;
+   }
+
+   unsigned max_fb_fetch_rts = screen->get_param(screen, PIPE_CAP_FBFETCH);
+   bool coherent_fb_fetch =
+      screen->get_param(screen, PIPE_CAP_FBFETCH_COHERENT);
+
+   if (max_fb_fetch_rts > 0) {
+      extensions->KHR_blend_equation_advanced = true;
+      extensions->KHR_blend_equation_advanced_coherent = coherent_fb_fetch;
+
+      if (max_fb_fetch_rts >=
+          screen->get_param(screen, PIPE_CAP_MAX_RENDER_TARGETS)) {
+         extensions->EXT_shader_framebuffer_fetch_non_coherent = true;
+         extensions->EXT_shader_framebuffer_fetch = coherent_fb_fetch;
+      }
    }
 
    consts->MaxViewports = screen->get_param(screen, PIPE_CAP_MAX_VIEWPORTS);

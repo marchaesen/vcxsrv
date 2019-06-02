@@ -58,18 +58,14 @@ struct ir3_context {
 	nir_function_impl *impl;
 
 	/* For fragment shaders, varyings are not actual shader inputs,
-	 * instead the hw passes a varying-coord which is used with
+	 * instead the hw passes a ij coord which is used with
 	 * bary.f.
 	 *
 	 * But NIR doesn't know that, it still declares varyings as
 	 * inputs.  So we do all the input tracking normally and fix
 	 * things up after compile_instructions()
-	 *
-	 * NOTE that frag_vcoord is the hardware position (possibly it
-	 * is actually an index or tag or some such.. it is *not*
-	 * values that can be directly used for gl_FragCoord..)
 	 */
-	struct ir3_instruction *frag_vcoord;
+	struct ir3_instruction *ij_pixel, *ij_sample, *ij_centroid, *ij_size;
 
 	/* for fragment shaders, for gl_FrontFacing and gl_FragCoord: */
 	struct ir3_instruction *frag_face, *frag_coord;
@@ -143,13 +139,6 @@ extern const struct ir3_context_funcs ir3_a6xx_funcs;
 struct ir3_context * ir3_context_init(struct ir3_compiler *compiler,
 		struct ir3_shader_variant *so);
 void ir3_context_free(struct ir3_context *ctx);
-
-/* gpu pointer size in units of 32bit registers/slots */
-static inline
-unsigned ir3_pointer_size(struct ir3_context *ctx)
-{
-	return (ctx->compiler->gpu_id >= 500) ? 2 : 1;
-}
 
 struct ir3_instruction ** ir3_get_dst_ssa(struct ir3_context *ctx, nir_ssa_def *dst, unsigned n);
 struct ir3_instruction ** ir3_get_dst(struct ir3_context *ctx, nir_dest *dst, unsigned n);

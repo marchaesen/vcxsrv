@@ -74,11 +74,6 @@ if get_option('pciaccess')
     srcs_xorg_common += ['xf86pciBus.c', 'xf86VGAarbiter.c']
 endif
 
-srcs_xorg_common += configure_file(
-    output: 'xf86Build.h',
-    command: ['sh', join_paths(meson.current_source_dir(), 'xf86Build.sh'), '@OUTPUT@'],
-)
-
 srcs_xorg_common += custom_target(
     'xf86DefModeSet.c',
     output: 'xf86DefModeSet.c',
@@ -89,7 +84,7 @@ srcs_xorg_common += custom_target(
 
 xorg_common = static_library('xorg_common',
     srcs_xorg_common,
-    include_directories: [inc, xorg_inc],
+    include_directories: [inc, xorg_inc, top_dir_inc],
     dependencies: [
         common_dep,
         dbus_dep,

@@ -16,6 +16,9 @@ option('xvfb', type: 'boolean', value: true,
        description: 'Enable Xvfb X server')
 option('xwin', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'Enable XWin X server')
+option('xquartz', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
+       description: 'Enable Xquartz X server')
+
 
 option('builder_addr', type: 'string', description: 'Builder address', value: 'xorg@lists.freedesktop.org')
 option('builder_string', type: 'string', description: 'Additional builder string')
@@ -104,3 +107,14 @@ option('agp', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
 option('dri1', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto', description: 'Build DRI1 extension (default: auto)')
 option('dri2', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto', description: 'Build DRI2 extension (default: auto)')
 option('dri3', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto', description: 'Build DRI3 extension (default: auto)')
+
+option('apple-applications-dir', type: 'string', value: '/Applications/Utilities',
+        description: 'Applications directory')
+option('apple-application-name', type: 'string', value: 'X11',
+        description: 'Application name')
+option('bundle-id-prefix', type: 'string', value: 'org.x',
+        description: 'RDNS prefix for bundle identifier')
+option('sparkle-feed-url', type: 'string',
+        description: 'Feed URL for autoupdating with the Sparkle Framework (default: disabled)')
+option('xpbproxy', type: 'boolean', value: false,
+        description: 'Build a standalone X pasteboard proxy')

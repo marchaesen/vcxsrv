@@ -1368,7 +1368,7 @@ SmartScheduleInit(void)
 #endif
 }
 
-#ifdef SIG_BLOCK
+#ifdef HAVE_SIGPROCMASK
 static sigset_t PreviousSignalMask;
 static int BlockedSignalCount;
 #endif
@@ -1376,7 +1376,7 @@ static int BlockedSignalCount;
 void
 OsBlockSignals(void)
 {
-#ifdef SIG_BLOCK
+#ifdef HAVE_SIGPROCMASK
     if (BlockedSignalCount++ == 0) {
         sigset_t set;
 
@@ -1398,7 +1398,7 @@ OsBlockSignals(void)
 void
 OsReleaseSignals(void)
 {
-#ifdef SIG_BLOCK
+#ifdef HAVE_SIGPROCMASK
     if (--BlockedSignalCount == 0) {
         xthread_sigmask(SIG_SETMASK, &PreviousSignalMask, 0);
     }
@@ -1408,7 +1408,7 @@ OsReleaseSignals(void)
 void
 OsResetSignals(void)
 {
-#ifdef SIG_BLOCK
+#ifdef HAVE_SIGPROCMASK
     while (BlockedSignalCount > 0)
         OsReleaseSignals();
     input_force_unlock();

@@ -169,6 +169,8 @@ xwl_glamor_gbm_create_pixmap_for_bo(ScreenPtr screen, struct gbm_bo *bo,
                                           xwl_screen->egl_context,
                                           EGL_NATIVE_PIXMAP_KHR,
                                           xwl_pixmap->bo, NULL);
+    if (xwl_pixmap->image == EGL_NO_IMAGE_KHR)
+      goto error;
 
     glGenTextures(1, &xwl_pixmap->texture);
     glBindTexture(GL_TEXTURE_2D, xwl_pixmap->texture);
@@ -176,14 +178,27 @@ xwl_glamor_gbm_create_pixmap_for_bo(ScreenPtr screen, struct gbm_bo *bo,
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
     glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, xwl_pixmap->image);
+    if (eglGetError() != EGL_SUCCESS)
+      goto error;
+
     glBindTexture(GL_TEXTURE_2D, 0);
 
+    if (!glamor_set_pixmap_texture(pixmap, xwl_pixmap->texture))
+      goto error;
+
+    glamor_set_pixmap_type(pixmap, GLAMOR_TEXTURE_DRM);
     xwl_pixmap_set_private(pixmap, xwl_pixmap);
 
-    glamor_set_pixmap_texture(pixmap, xwl_pixmap->texture);
-    glamor_set_pixmap_type(pixmap, GLAMOR_TEXTURE_DRM);
-
     return pixmap;
+
+error:
+    if (xwl_pixmap->image != EGL_NO_IMAGE_KHR)
+      eglDestroyImageKHR(xwl_screen->egl_display, xwl_pixmap->image);
+    if (pixmap)
+      glamor_destroy_pixmap(pixmap);
+    free(xwl_pixmap);
+
+    return NULL;
 }
 
 static PixmapPtr
@@ -194,6 +209,7 @@ xwl_glamor_gbm_create_pixmap(ScreenPtr screen,
     struct xwl_screen *xwl_screen = xwl_screen_get(screen);
     struct xwl_gbm_private *xwl_gbm = xwl_gbm_get(xwl_screen);
     struct gbm_bo *bo;
+    PixmapPtr pixmap = NULL;
 
     if (width > 0 && height > 0 && depth >= 15 &&
         (hint == 0 ||
@@ -219,10 +235,16 @@ xwl_glamor_gbm_create_pixmap(ScreenPtr screen,
         }
 
         if (bo)
-            return xwl_glamor_gbm_create_pixmap_for_bo(screen, bo, depth);
+            pixmap = xwl_glamor_gbm_create_pixmap_for_bo(screen, bo, depth);
+
+        if (!pixmap)
+            gbm_bo_destroy(bo);
     }
 
-    return glamor_create_pixmap(screen, width, height, depth, hint);
+    if (!pixmap)
+        pixmap = glamor_create_pixmap(screen, width, height, depth, hint);
+
+    return pixmap;
 }
 
 static Bool

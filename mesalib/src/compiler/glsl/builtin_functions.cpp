@@ -132,9 +132,7 @@ static bool
 v110_derivatives_only(const _mesa_glsl_parse_state *state)
 {
    return !state->es_shader &&
-          (state->stage == MESA_SHADER_FRAGMENT ||
-           (state->stage == MESA_SHADER_COMPUTE &&
-            state->NV_compute_shader_derivatives_enable));
+          derivatives_only(state);
 }
 
 static bool
@@ -165,9 +163,7 @@ static bool
 v130_derivatives_only(const _mesa_glsl_parse_state *state)
 {
    return state->is_version(130, 300) &&
-          (state->stage == MESA_SHADER_FRAGMENT ||
-           (state->stage == MESA_SHADER_COMPUTE &&
-            state->NV_compute_shader_derivatives_enable));
+          derivatives_only(state);
 }
 
 static bool
@@ -180,9 +176,7 @@ static bool
 v400_derivatives_only(const _mesa_glsl_parse_state *state)
 {
    return state->is_version(400, 0) &&
-          (state->stage == MESA_SHADER_FRAGMENT ||
-           (state->stage == MESA_SHADER_COMPUTE &&
-            state->NV_compute_shader_derivatives_enable));
+          derivatives_only(state);
 }
 
 static bool
@@ -340,9 +334,7 @@ static bool
 gpu_shader4_derivs_only(const _mesa_glsl_parse_state *state)
 {
    return state->EXT_gpu_shader4_enable &&
-          (state->stage == MESA_SHADER_FRAGMENT ||
-           (state->stage == MESA_SHADER_COMPUTE &&
-            state->NV_compute_shader_derivatives_enable));
+          derivatives_only(state);
 }
 
 static bool
@@ -443,20 +435,18 @@ texture_array_lod(const _mesa_glsl_parse_state *state)
 }
 
 static bool
-fs_texture_array(const _mesa_glsl_parse_state *state)
-{
-   return state->stage == MESA_SHADER_FRAGMENT &&
-          (state->EXT_texture_array_enable ||
-           (state->EXT_gpu_shader4_enable &&
-            state->ctx->Extensions.EXT_texture_array));
-}
-
-static bool
 texture_array(const _mesa_glsl_parse_state *state)
 {
    return state->EXT_texture_array_enable ||
           (state->EXT_gpu_shader4_enable &&
            state->ctx->Extensions.EXT_texture_array);
+}
+
+static bool
+texture_array_derivs_only(const _mesa_glsl_parse_state *state)
+{
+   return derivatives_only(state) &&
+          texture_array(state);
 }
 
 static bool
@@ -492,9 +482,7 @@ static bool
 derivatives_texture_cube_map_array(const _mesa_glsl_parse_state *state)
 {
    return state->has_texture_cube_map_array() &&
-          (state->stage == MESA_SHADER_FRAGMENT ||
-           (state->stage == MESA_SHADER_COMPUTE &&
-            state->NV_compute_shader_derivatives_enable));
+          derivatives_only(state);
 }
 
 static bool
@@ -513,7 +501,7 @@ texture_query_levels(const _mesa_glsl_parse_state *state)
 static bool
 texture_query_lod(const _mesa_glsl_parse_state *state)
 {
-   return state->stage == MESA_SHADER_FRAGMENT &&
+   return derivatives_only(state) &&
           (state->ARB_texture_query_lod_enable ||
            state->EXT_texture_query_lod_enable);
 }
@@ -556,38 +544,22 @@ texture_gather_only_or_es31(const _mesa_glsl_parse_state *state)
            state->is_version(0, 310));
 }
 
-/* Desktop GL or OES_standard_derivatives + fragment shader only */
+/* Desktop GL or OES_standard_derivatives */
 static bool
-fs_oes_derivatives(const _mesa_glsl_parse_state *state)
+derivatives(const _mesa_glsl_parse_state *state)
 {
-   return state->stage == MESA_SHADER_FRAGMENT &&
+   return derivatives_only(state) &&
           (state->is_version(110, 300) ||
            state->OES_standard_derivatives_enable ||
            state->ctx->Const.AllowGLSLRelaxedES);
 }
 
 static bool
-derivatives(const _mesa_glsl_parse_state *state)
-{
-   return fs_oes_derivatives(state) ||
-          (state->stage == MESA_SHADER_COMPUTE &&
-           state->NV_compute_shader_derivatives_enable);
-}
-
-static bool
-fs_derivative_control(const _mesa_glsl_parse_state *state)
-{
-   return state->stage == MESA_SHADER_FRAGMENT &&
-          (state->is_version(450, 0) ||
-           state->ARB_derivative_control_enable);
-}
-
-static bool
 derivative_control(const _mesa_glsl_parse_state *state)
 {
-   return fs_derivative_control(state) ||
-      (state->stage == MESA_SHADER_COMPUTE &&
-       state->NV_compute_shader_derivatives_enable);
+   return derivatives_only(state) &&
+          (state->is_version(450, 0) ||
+           state->ARB_derivative_control_enable);
 }
 
 static bool
@@ -612,9 +584,7 @@ static bool
 derivatives_tex3d(const _mesa_glsl_parse_state *state)
 {
    return (!state->es_shader || state->OES_texture_3D_enable) &&
-          (state->stage == MESA_SHADER_FRAGMENT ||
-           (state->stage == MESA_SHADER_COMPUTE &&
-            state->NV_compute_shader_derivatives_enable));
+          derivatives_only(state);
 }
 
 static bool
@@ -3261,7 +3231,7 @@ builtin_builder::create_builtins()
 
    add_function("texture1DArray",
                 _texture(ir_tex, texture_array,           glsl_type::vec4_type, glsl_type::sampler1DArray_type, glsl_type::vec2_type),
-                _texture(ir_txb, fs_texture_array,        glsl_type::vec4_type, glsl_type::sampler1DArray_type, glsl_type::vec2_type),
+                _texture(ir_txb, texture_array_derivs_only,glsl_type::vec4_type, glsl_type::sampler1DArray_type, glsl_type::vec2_type),
                 _texture(ir_tex, gpu_shader4_array_integer,             glsl_type::ivec4_type, glsl_type::isampler1DArray_type, glsl_type::vec2_type),
                 _texture(ir_txb, gpu_shader4_array_integer_derivs_only, glsl_type::ivec4_type, glsl_type::isampler1DArray_type, glsl_type::vec2_type),
                 _texture(ir_tex, gpu_shader4_array_integer,             glsl_type::uvec4_type, glsl_type::usampler1DArray_type, glsl_type::vec2_type),
@@ -3316,7 +3286,7 @@ builtin_builder::create_builtins()
 
    add_function("texture2DArray",
                 _texture(ir_tex, texture_array,           glsl_type::vec4_type, glsl_type::sampler2DArray_type, glsl_type::vec3_type),
-                _texture(ir_txb, fs_texture_array,        glsl_type::vec4_type, glsl_type::sampler2DArray_type, glsl_type::vec3_type),
+                _texture(ir_txb, texture_array_derivs_only, glsl_type::vec4_type, glsl_type::sampler2DArray_type, glsl_type::vec3_type),
                 _texture(ir_tex, gpu_shader4_array_integer,             glsl_type::ivec4_type, glsl_type::isampler2DArray_type, glsl_type::vec3_type),
                 _texture(ir_txb, gpu_shader4_array_integer_derivs_only, glsl_type::ivec4_type, glsl_type::isampler2DArray_type, glsl_type::vec3_type),
                 _texture(ir_tex, gpu_shader4_array_integer,             glsl_type::uvec4_type, glsl_type::usampler2DArray_type, glsl_type::vec3_type),
@@ -3428,7 +3398,7 @@ builtin_builder::create_builtins()
 
    add_function("shadow1DArray",
                 _texture(ir_tex, texture_array,    glsl_type::vec4_type,  glsl_type::sampler1DArrayShadow_type, glsl_type::vec3_type),
-                _texture(ir_txb, fs_texture_array, glsl_type::vec4_type,  glsl_type::sampler1DArrayShadow_type, glsl_type::vec3_type),
+                _texture(ir_txb, texture_array_derivs_only, glsl_type::vec4_type,  glsl_type::sampler1DArrayShadow_type, glsl_type::vec3_type),
                 NULL);
 
    add_function("shadow2D",
@@ -3438,7 +3408,7 @@ builtin_builder::create_builtins()
 
    add_function("shadow2DArray",
                 _texture(ir_tex, texture_array,    glsl_type::vec4_type,  glsl_type::sampler2DArrayShadow_type, glsl_type::vec4_type),
-                _texture(ir_txb, fs_texture_array, glsl_type::vec4_type,  glsl_type::sampler2DArrayShadow_type, glsl_type::vec4_type),
+                _texture(ir_txb, texture_array_derivs_only, glsl_type::vec4_type,  glsl_type::sampler2DArrayShadow_type, glsl_type::vec4_type),
                 NULL);
 
    add_function("shadow1DProj",
@@ -3448,7 +3418,7 @@ builtin_builder::create_builtins()
 
    add_function("shadow2DArray",
                 _texture(ir_tex, texture_array,    glsl_type::vec4_type,  glsl_type::sampler2DArrayShadow_type, glsl_type::vec4_type),
-                _texture(ir_txb, fs_texture_array, glsl_type::vec4_type,  glsl_type::sampler2DArrayShadow_type, glsl_type::vec4_type),
+                _texture(ir_txb, texture_array_derivs_only, glsl_type::vec4_type,  glsl_type::sampler2DArrayShadow_type, glsl_type::vec4_type),
                 NULL);
 
    add_function("shadowCube",

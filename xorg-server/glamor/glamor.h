@@ -110,7 +110,7 @@ extern _X_EXPORT Bool glamor_close_screen(ScreenPtr screen);
 
 extern _X_EXPORT uint32_t glamor_get_pixmap_texture(PixmapPtr pixmap);
 
-extern _X_EXPORT void glamor_set_pixmap_texture(PixmapPtr pixmap,
+extern _X_EXPORT Bool glamor_set_pixmap_texture(PixmapPtr pixmap,
                                                 unsigned int tex);
 
 extern _X_EXPORT void glamor_set_pixmap_type(PixmapPtr pixmap,

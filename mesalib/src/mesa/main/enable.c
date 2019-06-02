@@ -44,13 +44,6 @@
 #include "varray.h"
 
 
-
-#define CHECK_EXTENSION(EXTNAME, CAP)					\
-   if (!ctx->Extensions.EXTNAME) {					\
-      goto invalid_enum_error;						\
-   }
-
-
 static void
 update_derived_primitive_restart_state(struct gl_context *ctx)
 {
@@ -114,7 +107,7 @@ client_state(struct gl_context *ctx, GLenum cap, GLboolean state)
 
       /* GL_NV_primitive_restart */
       case GL_PRIMITIVE_RESTART_NV:
-         if (!ctx->Extensions.NV_primitive_restart)
+         if (!_mesa_has_NV_primitive_restart(ctx))
             goto invalid_enum_error;
          if (ctx->Array.PrimitiveRestart == state)
             return;
@@ -170,13 +163,12 @@ _mesa_DisableClientState( GLenum cap )
 }
 
 
-#undef CHECK_EXTENSION
-#define CHECK_EXTENSION(EXTNAME, CAP)					\
+#define CHECK_EXTENSION(EXTNAME)					\
    if (!ctx->Extensions.EXTNAME) {					\
       goto invalid_enum_error;						\
    }
 
-#define CHECK_EXTENSION2(EXT1, EXT2, CAP)				\
+#define CHECK_EXTENSION2(EXT1, EXT2)				\
    if (!ctx->Extensions.EXT1 && !ctx->Extensions.EXT2) {		\
       goto invalid_enum_error;						\
    }
@@ -827,9 +819,9 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
 
       /* GL_ARB_texture_cube_map */
       case GL_TEXTURE_CUBE_MAP:
-         if (ctx->API != API_OPENGL_COMPAT && ctx->API != API_OPENGLES)
+         if (!_mesa_has_ARB_texture_cube_map(ctx) &&
+             !_mesa_has_OES_texture_cube_map(ctx))
             goto invalid_enum_error;
-         CHECK_EXTENSION(ARB_texture_cube_map, cap);
          if (!enable_texture(ctx, state, TEXTURE_CUBE_BIT)) {
             return;
          }
@@ -890,9 +882,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
 
       /* GL_ARB_sample_shading */
       case GL_SAMPLE_SHADING:
-         if (!_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
+         if (!_mesa_has_ARB_sample_shading(ctx) && !_mesa_is_gles3(ctx))
             goto invalid_enum_error;
-         CHECK_EXTENSION(ARB_sample_shading, cap);
          if (ctx->Multisample.SampleShading == state)
             return;
          FLUSH_VERTICES(ctx, ctx->DriverFlags.NewSampleShading ? 0 :
@@ -915,7 +906,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
       case GL_POINT_SPRITE_NV:
          if (ctx->API != API_OPENGL_COMPAT && ctx->API != API_OPENGLES)
             goto invalid_enum_error;
-         CHECK_EXTENSION2(NV_point_sprite, ARB_point_sprite, cap);
+         CHECK_EXTENSION2(NV_point_sprite, ARB_point_sprite);
          if (ctx->Point.PointSprite == state)
             return;
          FLUSH_VERTICES(ctx, _NEW_POINT);
@@ -925,7 +916,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
       case GL_VERTEX_PROGRAM_ARB:
          if (ctx->API != API_OPENGL_COMPAT)
             goto invalid_enum_error;
-         CHECK_EXTENSION(ARB_vertex_program, cap);
+         CHECK_EXTENSION(ARB_vertex_program);
          if (ctx->VertexProgram.Enabled == state)
             return;
          FLUSH_VERTICES(ctx, _NEW_PROGRAM);
@@ -938,7 +929,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
           */
          if (!_mesa_is_desktop_gl(ctx))
             goto invalid_enum_error;
-         CHECK_EXTENSION(ARB_vertex_program, cap);
+         CHECK_EXTENSION(ARB_vertex_program);
          if (ctx->VertexProgram.PointSizeEnabled == state)
             return;
          FLUSH_VERTICES(ctx, _NEW_PROGRAM);
@@ -947,7 +938,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
       case GL_VERTEX_PROGRAM_TWO_SIDE_ARB:
          if (ctx->API != API_OPENGL_COMPAT)
             goto invalid_enum_error;
-         CHECK_EXTENSION(ARB_vertex_program, cap);
+         CHECK_EXTENSION(ARB_vertex_program);
          if (ctx->VertexProgram.TwoSideEnabled == state)
             return;
          FLUSH_VERTICES(ctx, _NEW_PROGRAM);
@@ -958,7 +949,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
       case GL_TEXTURE_RECTANGLE_NV:
          if (ctx->API != API_OPENGL_COMPAT)
             goto invalid_enum_error;
-         CHECK_EXTENSION(NV_texture_rectangle, cap);
+         CHECK_EXTENSION(NV_texture_rectangle);
          if (!enable_texture(ctx, state, TEXTURE_RECT_BIT)) {
             return;
          }
@@ -968,7 +959,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
       case GL_STENCIL_TEST_TWO_SIDE_EXT:
          if (ctx->API != API_OPENGL_COMPAT)
             goto invalid_enum_error;
-         CHECK_EXTENSION(EXT_stencil_two_side, cap);
+         CHECK_EXTENSION(EXT_stencil_two_side);
          if (ctx->Stencil.TestTwoSide == state)
             return;
          FLUSH_VERTICES(ctx, ctx->DriverFlags.NewStencil ? 0 : _NEW_STENCIL);
@@ -982,9 +973,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          break;
 
       case GL_FRAGMENT_PROGRAM_ARB:
-         if (ctx->API != API_OPENGL_COMPAT)
+         if (!_mesa_has_ARB_fragment_program(ctx))
             goto invalid_enum_error;
-         CHECK_EXTENSION(ARB_fragment_program, cap);
          if (ctx->FragmentProgram.Enabled == state)
             return;
          FLUSH_VERTICES(ctx, _NEW_PROGRAM);
@@ -995,7 +985,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
       case GL_DEPTH_BOUNDS_TEST_EXT:
          if (!_mesa_is_desktop_gl(ctx))
             goto invalid_enum_error;
-         CHECK_EXTENSION(EXT_depth_bounds_test, cap);
+         CHECK_EXTENSION(EXT_depth_bounds_test);
          if (ctx->Depth.BoundsTest == state)
             return;
          FLUSH_VERTICES(ctx, ctx->DriverFlags.NewDepth ? 0 : _NEW_DEPTH);
@@ -1020,7 +1010,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
       case GL_DEPTH_CLAMP_NEAR_AMD:
          if (!_mesa_is_desktop_gl(ctx))
             goto invalid_enum_error;
-         CHECK_EXTENSION(AMD_depth_clamp_separate, cap);
+         CHECK_EXTENSION(AMD_depth_clamp_separate);
          if (ctx->Transform.DepthClampNear == state)
             return;
          FLUSH_VERTICES(ctx, ctx->DriverFlags.NewDepthClamp ? 0 :
@@ -1032,7 +1022,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
       case GL_DEPTH_CLAMP_FAR_AMD:
          if (!_mesa_is_desktop_gl(ctx))
             goto invalid_enum_error;
-         CHECK_EXTENSION(AMD_depth_clamp_separate, cap);
+         CHECK_EXTENSION(AMD_depth_clamp_separate);
          if (ctx->Transform.DepthClampFar == state)
             return;
          FLUSH_VERTICES(ctx, ctx->DriverFlags.NewDepthClamp ? 0 :
@@ -1044,7 +1034,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
       case GL_FRAGMENT_SHADER_ATI:
          if (ctx->API != API_OPENGL_COMPAT)
             goto invalid_enum_error;
-        CHECK_EXTENSION(ATI_fragment_shader, cap);
+        CHECK_EXTENSION(ATI_fragment_shader);
         if (ctx->ATIFragmentShader.Enabled == state)
            return;
         FLUSH_VERTICES(ctx, _NEW_PROGRAM);
@@ -1054,7 +1044,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
       case GL_TEXTURE_CUBE_MAP_SEAMLESS:
          if (!_mesa_is_desktop_gl(ctx))
             goto invalid_enum_error;
-         CHECK_EXTENSION(ARB_seamless_cube_map, cap);
+         CHECK_EXTENSION(ARB_seamless_cube_map);
          if (ctx->Texture.CubeMapSeamless != state) {
             FLUSH_VERTICES(ctx, _NEW_TEXTURE_OBJECT);
             ctx->Texture.CubeMapSeamless = state;
@@ -1064,7 +1054,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
       case GL_RASTERIZER_DISCARD:
          if (!_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
             goto invalid_enum_error;
-         CHECK_EXTENSION(EXT_transform_feedback, cap);
+         CHECK_EXTENSION(EXT_transform_feedback);
          if (ctx->RasterDiscard != state) {
             FLUSH_VERTICES(ctx, 0);
             ctx->NewDriverState |= ctx->DriverFlags.NewRasterizerDiscard;
@@ -1073,7 +1063,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          break;
 
       case GL_TILE_RASTER_ORDER_FIXED_MESA:
-         CHECK_EXTENSION(MESA_tile_raster_order, cap);
+         if (!_mesa_has_MESA_tile_raster_order(ctx))
+            goto invalid_enum_error;
          if (ctx->TileRasterOrderFixed != state) {
             FLUSH_VERTICES(ctx, 0);
             ctx->NewDriverState |= ctx->DriverFlags.NewTileRasterOrder;
@@ -1082,7 +1073,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          break;
 
       case GL_TILE_RASTER_ORDER_INCREASING_X_MESA:
-         CHECK_EXTENSION(MESA_tile_raster_order, cap);
+         if (!_mesa_has_MESA_tile_raster_order(ctx))
+            goto invalid_enum_error;
          if (ctx->TileRasterOrderIncreasingX != state) {
             FLUSH_VERTICES(ctx, 0);
             ctx->NewDriverState |= ctx->DriverFlags.NewTileRasterOrder;
@@ -1091,7 +1083,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          break;
 
       case GL_TILE_RASTER_ORDER_INCREASING_Y_MESA:
-         CHECK_EXTENSION(MESA_tile_raster_order, cap);
+         if (!_mesa_has_MESA_tile_raster_order(ctx))
+            goto invalid_enum_error;
          if (ctx->TileRasterOrderIncreasingY != state) {
             FLUSH_VERTICES(ctx, 0);
             ctx->NewDriverState |= ctx->DriverFlags.NewTileRasterOrder;
@@ -1114,7 +1107,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          break;
 
       case GL_PRIMITIVE_RESTART_FIXED_INDEX:
-         if (!_mesa_is_gles3(ctx) && !ctx->Extensions.ARB_ES3_compatibility)
+         if (!_mesa_is_gles3(ctx) && !_mesa_has_ARB_ES3_compatibility(ctx))
             goto invalid_enum_error;
          if (ctx->Array.PrimitiveRestartFixedIndex != state) {
             FLUSH_VERTICES(ctx, 0);
@@ -1125,7 +1118,9 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
 
       /* GL3.0 - GL_framebuffer_sRGB */
       case GL_FRAMEBUFFER_SRGB_EXT:
-         CHECK_EXTENSION(EXT_framebuffer_sRGB, cap);
+         if (!_mesa_has_EXT_framebuffer_sRGB(ctx) &&
+             !_mesa_has_EXT_sRGB_write_control(ctx))
+            goto invalid_enum_error;
          _mesa_set_framebuffer_srgb(ctx, state);
          return;
 
@@ -1133,7 +1128,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
       case GL_TEXTURE_EXTERNAL_OES:
          if (!_mesa_is_gles(ctx))
             goto invalid_enum_error;
-         CHECK_EXTENSION(OES_EGL_image_external, cap);
+         CHECK_EXTENSION(OES_EGL_image_external);
          if (!enable_texture(ctx, state, TEXTURE_EXTERNAL_BIT)) {
             return;
          }
@@ -1141,9 +1136,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
 
       /* ARB_texture_multisample */
       case GL_SAMPLE_MASK:
-         if (!_mesa_is_desktop_gl(ctx) && !_mesa_is_gles31(ctx))
+         if (!_mesa_has_ARB_texture_multisample(ctx) && !_mesa_is_gles31(ctx))
             goto invalid_enum_error;
-         CHECK_EXTENSION(ARB_texture_multisample, cap);
          if (ctx->Multisample.SampleMask == state)
             return;
          FLUSH_VERTICES(ctx, ctx->DriverFlags.NewSampleMask ? 0 :
@@ -1153,7 +1147,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          break;
 
       case GL_BLEND_ADVANCED_COHERENT_KHR:
-         CHECK_EXTENSION(KHR_blend_equation_advanced_coherent, cap);
+         if (!_mesa_has_KHR_blend_equation_advanced_coherent(ctx))
+            goto invalid_enum_error;
          if (ctx->Color.BlendCoherent == state)
             return;
          FLUSH_VERTICES(ctx, ctx->DriverFlags.NewBlend ? 0 : _NEW_COLOR);
@@ -1306,20 +1301,6 @@ _mesa_IsEnabledi( GLenum cap, GLuint index )
    }
 }
 
-
-
-
-#undef CHECK_EXTENSION
-#define CHECK_EXTENSION(EXTNAME)			\
-   if (!ctx->Extensions.EXTNAME) {			\
-      goto invalid_enum_error;				\
-   }
-
-#undef CHECK_EXTENSION2
-#define CHECK_EXTENSION2(EXT1, EXT2)				\
-   if (!ctx->Extensions.EXT1 && !ctx->Extensions.EXT2) {	\
-      goto invalid_enum_error;					\
-   }
 
 
 /**
@@ -1617,7 +1598,9 @@ _mesa_IsEnabled( GLenum cap )
 
       /* GL_ARB_texture_cube_map */
       case GL_TEXTURE_CUBE_MAP:
-         CHECK_EXTENSION(ARB_texture_cube_map);
+         if (!_mesa_has_ARB_texture_cube_map(ctx) &&
+             !_mesa_has_OES_texture_cube_map(ctx))
+            goto invalid_enum_error;
          return is_texture_enabled(ctx, TEXTURE_CUBE_BIT);
 
       /* GL_EXT_secondary_color */
@@ -1691,7 +1674,7 @@ _mesa_IsEnabled( GLenum cap )
          return ctx->Stencil.TestTwoSide;
 
       case GL_FRAGMENT_PROGRAM_ARB:
-         if (ctx->API != API_OPENGL_COMPAT)
+         if (!_mesa_has_ARB_fragment_program(ctx))
             goto invalid_enum_error;
          return ctx->FragmentProgram.Enabled;
 
@@ -1742,9 +1725,8 @@ _mesa_IsEnabled( GLenum cap )
 
       /* GL_NV_primitive_restart */
       case GL_PRIMITIVE_RESTART_NV:
-         if (ctx->API != API_OPENGL_COMPAT || !ctx->Extensions.NV_primitive_restart) {
+         if (!_mesa_has_NV_primitive_restart(ctx))
             goto invalid_enum_error;
-         }
          return ctx->Array.PrimitiveRestart;
 
       /* GL 3.1 primitive restart */
@@ -1755,14 +1737,15 @@ _mesa_IsEnabled( GLenum cap )
          return ctx->Array.PrimitiveRestart;
 
       case GL_PRIMITIVE_RESTART_FIXED_INDEX:
-         if (!_mesa_is_gles3(ctx) && !ctx->Extensions.ARB_ES3_compatibility) {
+         if (!_mesa_is_gles3(ctx) && !_mesa_has_ARB_ES3_compatibility(ctx))
             goto invalid_enum_error;
-         }
          return ctx->Array.PrimitiveRestartFixedIndex;
 
       /* GL3.0 - GL_framebuffer_sRGB */
       case GL_FRAMEBUFFER_SRGB_EXT:
-         CHECK_EXTENSION(EXT_framebuffer_sRGB);
+         if (!_mesa_has_EXT_framebuffer_sRGB(ctx) &&
+             !_mesa_has_EXT_sRGB_write_control(ctx))
+            goto invalid_enum_error;
          return ctx->Color.sRGBEnabled;
 
       /* GL_OES_EGL_image_external */
@@ -1774,40 +1757,44 @@ _mesa_IsEnabled( GLenum cap )
 
       /* ARB_texture_multisample */
       case GL_SAMPLE_MASK:
-         if (!_mesa_is_desktop_gl(ctx) && !_mesa_is_gles31(ctx))
+         if (!_mesa_has_ARB_texture_multisample(ctx) && !_mesa_is_gles31(ctx))
             goto invalid_enum_error;
-         CHECK_EXTENSION(ARB_texture_multisample);
          return ctx->Multisample.SampleMask;
 
       /* ARB_sample_shading */
       case GL_SAMPLE_SHADING:
-         if (!_mesa_is_desktop_gl(ctx) && !_mesa_is_gles3(ctx))
+         if (!_mesa_has_ARB_sample_shading(ctx) && !_mesa_is_gles3(ctx))
             goto invalid_enum_error;
-         CHECK_EXTENSION(ARB_sample_shading);
          return ctx->Multisample.SampleShading;
 
       case GL_BLEND_ADVANCED_COHERENT_KHR:
-         CHECK_EXTENSION(KHR_blend_equation_advanced_coherent);
+         if (!_mesa_has_KHR_blend_equation_advanced_coherent(ctx))
+            goto invalid_enum_error;
          return ctx->Color.BlendCoherent;
 
       case GL_CONSERVATIVE_RASTERIZATION_INTEL:
-         CHECK_EXTENSION(INTEL_conservative_rasterization);
+         if (!_mesa_has_INTEL_conservative_rasterization(ctx))
+            goto invalid_enum_error;
          return ctx->IntelConservativeRasterization;
 
       case GL_CONSERVATIVE_RASTERIZATION_NV:
-         CHECK_EXTENSION(NV_conservative_raster);
+         if (!_mesa_has_NV_conservative_raster(ctx))
+            goto invalid_enum_error;
          return ctx->ConservativeRasterization;
 
       case GL_TILE_RASTER_ORDER_FIXED_MESA:
-         CHECK_EXTENSION(MESA_tile_raster_order);
+         if (!_mesa_has_MESA_tile_raster_order(ctx))
+            goto invalid_enum_error;
          return ctx->TileRasterOrderFixed;
 
       case GL_TILE_RASTER_ORDER_INCREASING_X_MESA:
-         CHECK_EXTENSION(MESA_tile_raster_order);
+         if (!_mesa_has_MESA_tile_raster_order(ctx))
+            goto invalid_enum_error;
          return ctx->TileRasterOrderIncreasingX;
 
       case GL_TILE_RASTER_ORDER_INCREASING_Y_MESA:
-         CHECK_EXTENSION(MESA_tile_raster_order);
+         if (!_mesa_has_MESA_tile_raster_order(ctx))
+            goto invalid_enum_error;
          return ctx->TileRasterOrderIncreasingY;
 
       default:

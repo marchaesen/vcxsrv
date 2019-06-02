@@ -121,7 +121,10 @@ enum nir_search_op {
    nir_search_op_b2i,
    nir_search_op_i2b,
    nir_search_op_f2b,
+   nir_num_search_ops,
 };
+
+uint16_t nir_search_op_for_nir_op(nir_op op);
 
 typedef struct {
    nir_search_value value;

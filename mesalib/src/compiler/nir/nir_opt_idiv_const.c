@@ -65,15 +65,17 @@ build_umod(nir_builder *b, nir_ssa_def *n, uint64_t d)
 static nir_ssa_def *
 build_idiv(nir_builder *b, nir_ssa_def *n, int64_t d)
 {
+   uint64_t abs_d = d < 0 ? -d : d;
+
    if (d == 0) {
       return nir_imm_intN_t(b, 0, n->bit_size);
    } else if (d == 1) {
       return n;
    } else if (d == -1) {
       return nir_ineg(b, n);
-   } else if (util_is_power_of_two_or_zero64(d)) {
-      uint64_t abs_d = d < 0 ? -d : d;
-      nir_ssa_def *uq = nir_ishr(b, n, nir_imm_int(b, util_logbase2_64(abs_d)));
+   } else if (util_is_power_of_two_or_zero64(abs_d)) {
+      nir_ssa_def *uq = nir_ushr(b, nir_iabs(b, n),
+                                    nir_imm_int(b, util_logbase2_64(abs_d)));
       nir_ssa_def *n_neg = nir_ilt(b, n, nir_imm_intN_t(b, 0, n->bit_size));
       nir_ssa_def *neg = d < 0 ? nir_inot(b, n_neg) : n_neg;
       return nir_bcsel(b, neg, nir_ineg(b, uq), uq);

@@ -979,6 +979,20 @@ reset_vertex(struct gl_context *ctx)
 }
 
 
+/**
+ * If index=0, does glVertexAttrib*() alias glVertex() to emit a vertex?
+ * It depends on a few things, including whether we're inside or outside
+ * of glBegin/glEnd.
+ */
+static inline bool
+is_vertex_position(const struct gl_context *ctx, GLuint index)
+{
+   return (index == 0 &&
+           _mesa_attr_zero_aliases_vertex(ctx) &&
+           _mesa_inside_dlist_begin_end(ctx));
+}
+
+
 
 #define ERROR(err)   _mesa_compile_error(ctx, err, __func__);
 
@@ -1198,6 +1212,8 @@ vbo_save_NotifyBegin(struct gl_context *ctx, GLenum mode,
    struct vbo_save_context *save = &vbo_context(ctx)->save;
    const GLuint i = save->prim_count++;
 
+   ctx->Driver.CurrentSavePrimitive = mode;
+
    assert(i < save->prim_max);
    save->prims[i].mode = mode & VBO_SAVE_PRIM_MODE_MASK;
    save->prims[i].begin = 1;
@@ -1331,7 +1347,7 @@ _save_OBE_DrawArrays(GLenum mode, GLint start, GLsizei count)
    vbo_save_NotifyBegin(ctx, mode, true);
 
    for (i = 0; i < count; i++)
-      _mesa_array_element(ctx, GET_DISPATCH(), start + i);
+      _mesa_array_element(ctx, start + i);
    CALL_End(GET_DISPATCH(), ());
 
    _mesa_vao_unmap_arrays(ctx, vao);
@@ -1373,7 +1389,7 @@ _save_OBE_MultiDrawArrays(GLenum mode, const GLint *first,
 
 
 static void
-array_element(struct gl_context *ctx, struct _glapi_table *disp,
+array_element(struct gl_context *ctx,
               GLint basevertex, GLuint elt, unsigned index_size)
 {
    /* Section 10.3.5 Primitive Restart:
@@ -1387,11 +1403,11 @@ array_element(struct gl_context *ctx, struct _glapi_table *disp,
     */
    if (ctx->Array._PrimitiveRestart &&
        elt == _mesa_primitive_restart_index(ctx, index_size)) {
-      CALL_PrimitiveRestartNV(disp, ());
+      CALL_PrimitiveRestartNV(GET_DISPATCH(), ());
       return;
    }
 
-   _mesa_array_element(ctx, disp, basevertex + elt);
+   _mesa_array_element(ctx, basevertex + elt);
 }
 
 
@@ -1440,18 +1456,15 @@ _save_OBE_DrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type,
    switch (type) {
    case GL_UNSIGNED_BYTE:
       for (i = 0; i < count; i++)
-         array_element(ctx, GET_DISPATCH(), basevertex,
-                       ((GLubyte *) indices)[i], 1);
+         array_element(ctx, basevertex, ((GLubyte *) indices)[i], 1);
       break;
    case GL_UNSIGNED_SHORT:
       for (i = 0; i < count; i++)
-         array_element(ctx, GET_DISPATCH(), basevertex,
-                       ((GLushort *) indices)[i], 2);
+         array_element(ctx, basevertex, ((GLushort *) indices)[i], 2);
       break;
    case GL_UNSIGNED_INT:
       for (i = 0; i < count; i++)
-         array_element(ctx, GET_DISPATCH(), basevertex,
-                       ((GLuint *) indices)[i], 4);
+         array_element(ctx, basevertex, ((GLuint *) indices)[i], 4);
       break;
    default:
       _mesa_error(ctx, GL_INVALID_ENUM, "glDrawElements(type)");

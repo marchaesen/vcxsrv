@@ -139,7 +139,7 @@ fi
 AC_MSG_RESULT($XLIB_LOADABLE_XCURSOR)
 
 # Checks for header files.
-AC_CHECK_HEADERS([sys/filio.h sys/select.h])
+AC_CHECK_HEADERS([sys/filio.h sys/select.h sys/ioctl.h sys/socket.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 

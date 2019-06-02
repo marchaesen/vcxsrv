@@ -1174,6 +1174,32 @@ static const operator_entry_t op_list[] =
 #undef ALIAS
 };
 
+typedef struct {
+    pixman_dither_t	 dither;
+    const char		*name;
+    pixman_bool_t	 is_alias;
+} dither_entry_t;
+
+static const dither_entry_t dither_list[] =
+{
+#define ENTRY(dither)							\
+    { PIXMAN_DITHER_##dither, "PIXMAN_DITHER_" #dither, FALSE }
+#define ALIAS(dither, nam)							\
+    { PIXMAN_DITHER_##dither, nam, TRUE }
+
+    /* dither_name () will return the first hit in this table,
+     * so keep the list properly ordered between entries and aliases.
+     * Aliases are not listed by list_dithers ().
+     */
+
+    ENTRY (ORDERED_BAYER_8),
+    ENTRY (ORDERED_BLUE_NOISE_64),
+    ENTRY (NONE),
+
+#undef ENTRY
+#undef ALIAS
+};
+
 struct format_entry
 {
     pixman_format_code_t format;
@@ -1382,6 +1408,28 @@ list_operators (void)
     printf ("\n\n");
 }
 
+void
+list_dithers (void)
+{
+    int n_chars;
+    int i;
+
+    printf ("Dithers:\n    ");
+
+    n_chars = 0;
+    for (i = 0; i < ARRAY_LENGTH (dither_list); ++i)
+    {
+        const dither_entry_t *ent = &dither_list[i];
+
+        if (ent->is_alias)
+            continue;
+
+        emit (ent->name, &n_chars);
+    }
+
+    printf ("\n\n");
+}
+
 pixman_op_t
 operator_from_string (const char *s)
 {
@@ -1404,6 +1452,22 @@ operator_from_string (const char *s)
     }
 
     return PIXMAN_OP_NONE;
+}
+
+pixman_dither_t
+dither_from_string (const char *s)
+{
+    int i;
+
+    for (i = 0; i < ARRAY_LENGTH (dither_list); ++i)
+    {
+        const dither_entry_t *ent = &dither_list[i];
+
+        if (strcasecmp (ent->name, s) == 0)
+            return ent->dither;
+    }
+
+    return PIXMAN_DITHER_NONE;
 }
 
 const char *
@@ -1437,6 +1501,22 @@ format_name (pixman_format_code_t format)
 
     return "<unknown format>";
 };
+
+const char *
+dither_name (pixman_dither_t dither)
+{
+    int i;
+
+    for (i = 0; i < ARRAY_LENGTH (dither_list); ++i)
+    {
+	const dither_entry_t *ent = &dither_list[i];
+
+	if (ent->dither == dither)
+	    return ent->name;
+    }
+
+    return "<unknown dither>";
+}
 
 #define IS_ZERO(f)     (-DBL_MIN < (f) && (f) < DBL_MIN)
 
@@ -1924,6 +2004,10 @@ round_color (pixman_format_code_t format, color_t *color)
 	color->a = round_channel (color->a, PIXMAN_FORMAT_A (format));
 }
 
+/* The acceptable deviation in units of [0.0, 1.0]
+ */
+#define DEVIATION (0.0128)
+
 /* Check whether @pixel is a valid quantization of the a, r, g, b
  * parameters. Some slack is permitted.
  */
@@ -1992,6 +2076,22 @@ pixel_checker_init (pixel_checker_t *checker, pixman_format_code_t format)
     checker->rw = PIXMAN_FORMAT_R (format);
     checker->gw = PIXMAN_FORMAT_G (format);
     checker->bw = PIXMAN_FORMAT_B (format);
+
+    checker->ad = DEVIATION;
+    checker->rd = DEVIATION;
+    checker->gd = DEVIATION;
+    checker->bd = DEVIATION;
+}
+
+/* When dithering is enabled, we allow one extra pixel of tolerance
+ */
+void
+pixel_checker_allow_dither (pixel_checker_t *checker)
+{
+    checker->ad += 1 / (double)((1 << checker->aw) - 1);
+    checker->rd += 1 / (double)((1 << checker->rw) - 1);
+    checker->gd += 1 / (double)((1 << checker->gw) - 1);
+    checker->bd += 1 / (double)((1 << checker->bw) - 1);
 }
 
 static void
@@ -2085,7 +2185,7 @@ convert (double v, uint32_t width, uint32_t mask, uint32_t shift, double def)
 }
 
 static void
-get_limits (const pixel_checker_t *checker, double limit,
+get_limits (const pixel_checker_t *checker, double sign,
 	    color_t *color,
 	    int *ao, int *ro, int *go, int *bo)
 {
@@ -2101,15 +2201,15 @@ get_limits (const pixel_checker_t *checker, double limit,
 	color = &tmp;
     }
     
-    *ao = convert (color->a + limit, checker->aw, checker->am, checker->as, 1.0);
-    *ro = convert (color->r + limit, checker->rw, checker->rm, checker->rs, 0.0);
-    *go = convert (color->g + limit, checker->gw, checker->gm, checker->gs, 0.0);
-    *bo = convert (color->b + limit, checker->bw, checker->bm, checker->bs, 0.0);
+    *ao = convert (color->a + sign * checker->ad,
+		   checker->aw, checker->am, checker->as, 1.0);
+    *ro = convert (color->r + sign * checker->rd,
+		   checker->rw, checker->rm, checker->rs, 0.0);
+    *go = convert (color->g + sign * checker->gd,
+		   checker->gw, checker->gm, checker->gs, 0.0);
+    *bo = convert (color->b + sign * checker->bd,
+		   checker->bw, checker->bm, checker->bs, 0.0);
 }
-
-/* The acceptable deviation in units of [0.0, 1.0]
- */
-#define DEVIATION (0.0128)
 
 void
 pixel_checker_get_max (const pixel_checker_t *checker, color_t *color,
@@ -2117,7 +2217,7 @@ pixel_checker_get_max (const pixel_checker_t *checker, color_t *color,
 {
     pixel_checker_require_uint32_format(checker);
 
-    get_limits (checker, DEVIATION, color, am, rm, gm, bm);
+    get_limits (checker, 1, color, am, rm, gm, bm);
 }
 
 void
@@ -2126,7 +2226,7 @@ pixel_checker_get_min (const pixel_checker_t *checker, color_t *color,
 {
     pixel_checker_require_uint32_format(checker);
 
-    get_limits (checker, - DEVIATION, color, am, rm, gm, bm);
+    get_limits (checker, - 1, color, am, rm, gm, bm);
 }
 
 pixman_bool_t

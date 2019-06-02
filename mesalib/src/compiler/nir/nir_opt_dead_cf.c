@@ -216,7 +216,7 @@ node_is_dead(nir_cf_node *node)
 
       nir_foreach_instr(instr, block) {
          if (instr->type == nir_instr_type_call)
-            return true;
+            return false;
 
          /* Return instructions can cause us to skip over other side-effecting
           * instructions after the loop, so consider them to have side effects

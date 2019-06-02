@@ -420,28 +420,24 @@ _mesa_update_state( struct gl_context *ctx )
  * may vary or otherwise differ from the ctx->Current values.
  * Otherwise, the fp should track them as state values instead.
  */
-void
-_mesa_set_varying_vp_inputs( struct gl_context *ctx,
-                             GLbitfield varying_inputs )
+static void
+set_varying_vp_inputs(struct gl_context *ctx, GLbitfield varying_inputs)
 {
-   if (ctx->API != API_OPENGL_COMPAT &&
-       ctx->API != API_OPENGLES)
+   /*
+    * The gl_context::varying_vp_inputs value is only used when in
+    * VP_MODE_FF mode.
+    */
+   if (VP_MODE_FF != ctx->VertexProgram._VPMode)
+      return;
+
+   /* Only fixed-func generated programs ever uses varying_vp_inputs. */
+   if (!ctx->VertexProgram._MaintainTnlProgram &&
+       !ctx->FragmentProgram._MaintainTexEnvProgram)
       return;
 
    if (ctx->varying_vp_inputs != varying_inputs) {
       ctx->varying_vp_inputs = varying_inputs;
-
-      /* Only the fixed-func generated programs need to use the flag
-       * and the fixed-func fragment program uses it only if there is also
-       * a fixed-func vertex program, so this only depends on the latter.
-       *
-       * It's okay to check the VP pointer here, because this is called after
-       * _mesa_update_state in the vbo module. */
-      if (ctx->VertexProgram._TnlProgram ||
-          ctx->FragmentProgram._TexEnvProgram) {
-         ctx->NewState |= _NEW_VARYING_VP_INPUTS;
-      }
-      /*printf("%s %x\n", __func__, varying_inputs);*/
+      ctx->NewState |= _NEW_VARYING_VP_INPUTS;
    }
 }
 
@@ -477,6 +473,12 @@ set_vertex_processing_mode(struct gl_context *ctx, gl_vertex_processing_mode m)
 
    /* Finally memorize the value */
    ctx->VertexProgram._VPMode = m;
+
+   /* Since we only track the varying inputs while being in fixed function
+    * vertex processing mode, we may need to recheck for the
+    * _NEW_VARYING_VP_INPUTS bit.
+    */
+   set_varying_vp_inputs(ctx, ctx->Array._DrawVAOEnabledAttribs);
 }
 
 
@@ -535,5 +537,5 @@ _mesa_set_draw_vao(struct gl_context *ctx, struct gl_vertex_array_object *vao,
       ctx->NewDriverState |= ctx->DriverFlags.NewArray;
 
    ctx->Array._DrawVAOEnabledAttribs = enabled;
-   _mesa_set_varying_vp_inputs(ctx, enabled);
+   set_varying_vp_inputs(ctx, enabled);
 }

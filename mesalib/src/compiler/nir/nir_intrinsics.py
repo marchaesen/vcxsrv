@@ -118,6 +118,8 @@ ALIGN_MUL = "NIR_INTRINSIC_ALIGN_MUL"
 ALIGN_OFFSET = "NIR_INTRINSIC_ALIGN_OFFSET"
 # The vulkan descriptor type for vulkan_resource_index
 DESC_TYPE = "NIR_INTRINSIC_DESC_TYPE"
+# The nir_alu_type of a uniform/input/output
+TYPE = "NIR_INTRINSIC_TYPE"
 
 #
 # Possible flags:
@@ -568,11 +570,14 @@ system_value("viewport_z_offset", 1)
 system_value("viewport_scale", 3)
 system_value("viewport_offset", 3)
 
-# Blend constant color values.  Float values are clamped.#
+# Blend constant color values.  Float values are clamped. Vectored versions are
+# provided as well for driver convenience
+
 system_value("blend_const_color_r_float", 1)
 system_value("blend_const_color_g_float", 1)
 system_value("blend_const_color_b_float", 1)
 system_value("blend_const_color_a_float", 1)
+system_value("blend_const_color_rgba", 4)
 system_value("blend_const_color_rgba8888_unorm", 1)
 system_value("blend_const_color_aaaa8888_unorm", 1)
 
@@ -602,6 +607,16 @@ barycentric("at_sample", [1])
 # src[] = { offset.xy }.
 barycentric("at_offset", [2])
 
+# Load sample position:
+#
+# Takes a sample # and returns a sample position.  Used for lowering
+# interpolateAtSample() to interpolateAtOffset()
+intrinsic("load_sample_pos_from_id", src_comp=[1], dest_comp=2,
+          flags=[CAN_ELIMINATE, CAN_REORDER])
+
+# Loads what I believe is the primitive size, for scaling ij to pixel size:
+intrinsic("load_size_ir3", dest_comp=1, flags=[CAN_ELIMINATE, CAN_REORDER])
+
 # Load operations pull data from some piece of GPU memory.  All load
 # operations operate in terms of offsets into some piece of theoretical
 # memory.  Loads from externally visible memory (UBO and SSBO) simply take a
@@ -627,11 +642,11 @@ def load(name, num_srcs, indices=[], flags=[]):
               flags=flags)
 
 # src[] = { offset }.
-load("uniform", 1, [BASE, RANGE], [CAN_ELIMINATE, CAN_REORDER])
+load("uniform", 1, [BASE, RANGE, TYPE], [CAN_ELIMINATE, CAN_REORDER])
 # src[] = { buffer_index, offset }.
 load("ubo", 2, [ACCESS, ALIGN_MUL, ALIGN_OFFSET], flags=[CAN_ELIMINATE, CAN_REORDER])
 # src[] = { offset }.
-load("input", 1, [BASE, COMPONENT], [CAN_ELIMINATE, CAN_REORDER])
+load("input", 1, [BASE, COMPONENT, TYPE], [CAN_ELIMINATE, CAN_REORDER])
 # src[] = { vertex, offset }.
 load("per_vertex_input", 2, [BASE, COMPONENT], [CAN_ELIMINATE, CAN_REORDER])
 # src[] = { barycoord, offset }.
@@ -666,7 +681,7 @@ def store(name, num_srcs, indices=[], flags=[]):
     intrinsic("store_" + name, [0] + ([1] * (num_srcs - 1)), indices=indices, flags=flags)
 
 # src[] = { value, offset }.
-store("output", 2, [BASE, WRMASK, COMPONENT])
+store("output", 2, [BASE, WRMASK, COMPONENT, TYPE])
 # src[] = { value, vertex, offset }.
 store("per_vertex_output", 3, [BASE, WRMASK, COMPONENT])
 # src[] = { value, block_index, offset }

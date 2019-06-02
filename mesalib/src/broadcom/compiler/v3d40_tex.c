@@ -183,6 +183,8 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
         assert(p1_unpacked.output_type_32_bit ||
                p0_unpacked.return_words_of_texture_data < (1 << 2));
 
+        assert(p0_unpacked.return_words_of_texture_data != 0);
+
         uint32_t p0_packed;
         V3D41_TMU_CONFIG_PARAMETER_0_pack(NULL,
                                           (uint8_t *)&p0_packed,

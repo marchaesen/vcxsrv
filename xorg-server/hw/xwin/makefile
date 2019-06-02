@@ -1,7 +1,5 @@
 LIBRARY = libXWin
 
-XWIN_MULTIWINDOWEXTWM=0  # currently not working correctly
-XWIN_MULTIWINDOWINTWM=0  # currently not working correctly
 XWIN_GLX_WINDOWS=1       # everything is in the glx makefile
 
 if XWIN_GLX_WINDOWS
@@ -9,16 +7,6 @@ GLX_DIR = glx
 DEFS_GLX_WINDOWS = -DXWIN_GLX_WINDOWS
 XWIN_GLX_LIBS = $(top_builddir)/hw/xwin/glx/libXwinGLX.la
 XWIN_GLX_LINK_FLAGS = -lopengl32
-endif
-
-if XWIN_MULTIWINDOWEXTWM
-SRCS_MULTIWINDOWEXTWM = \
-	winwin32rootless.c \
-	winwin32rootlesswindow.c \
-	winwin32rootlesswndproc.c \
-	winwindowswm.c
-DEFS_MULTIWINDOWEXTWM = -DXWIN_MULTIWINDOWEXTWM
-MULTIWINDOWEXTWM_LIBS = $(top_builddir)/miext/rootless/librootless.la
 endif
 
 if XWIN_XV
@@ -90,7 +78,6 @@ SRCS =	InitInput.c \
 	winmultiwindowwndproc.c \
 	winSetAppUserModelID.c \
 	winrandr.c \
-	$(SRCS_MULTIWINDOWEXTWM) \
 	$(SRCS_XV) \
 	xdmcphostselect.c
 
@@ -99,7 +86,6 @@ CSRCS := $(CSRCS:%.y=%.c)
 CSRCS := $(CSRCS:%.l=%.c)
 
  DEFS = $(DEFS_GLX_WINDOWS) \
-	$(DEFS_MULTIWINDOWEXTWM) \
 	$(DEFS_XV)
 
 DEFINES += $(DEFS:-D%=%) HAVE_XWIN_CONFIG_H PTW32_STATIC_LIB RELOCATE_PROJECTROOT READ_FONTDIRS

@@ -2,19 +2,19 @@
 <html lang="en">
 <head>
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
-  <title>Compilation and Installation using Meson</title>
+  <title>Compilation and Installation Using Meson</title>
   <link rel="stylesheet" type="text/css" href="mesa.css">
 </head>
 <body>
 
 <div class="header">
-  <h1>The Mesa 3D Graphics Library</h1>
+  The Mesa 3D Graphics Library
 </div>
 
 <iframe src="contents.html"></iframe>
 <div class="content">
 
-<h1>Compilation and Installation using Meson</h1>
+<h1>Compilation and Installation Using Meson</h1>
 
 <ul>
   <li><a href="#intro">Introduction</a></li>
@@ -44,7 +44,7 @@ or
 sudo dnf install meson   # Fedora
 </pre>
 
-<p><strong>Mesa requires Meson >= 0.45.0 to build.</strong>
+<p><strong>Mesa requires Meson &gt;= 0.45.0 to build.</strong>
 
 Some older versions of meson do not check that they are too old and will error
 out in odd ways.
@@ -75,8 +75,6 @@ separate build directory</a> for each configuration you might want to use.
 </p>
 
 
-
-</p>
 
 <p>Basic configuration is done with:</p>
 
@@ -147,7 +145,7 @@ ninja -C build/ install
 </pre>
 
 <p>
-Note: autotools automatically updates translation files (used by the DRI
+Note: autotools automatically updated translation files (used by the DRI
 configuration tool) as part of the build process,
 Meson does not do this.  Instead, you will need do this:
 </p>
@@ -194,14 +192,13 @@ in using them.
 <code>-D${lang}_link_args</code>. Among the benefits of these options
 is that they are guaranteed to persist across rebuilds and reconfigurations.
 </p>
+<p>
 This example sets -fmax-errors for compiling C sources and -DMAGIC=123
 for C++ sources:
 </p>
-<p>
 <pre>
 meson builddir/ -Dc_args=-fmax-errors=10 -Dcpp_args=-DMAGIC=123
 </pre>
-</p>
 </dd>
 
 
@@ -242,6 +239,7 @@ As of meson 0.49.0 meson also has the concept of a
 these files provide information about the native build environment (as opposed
 to a cross build environment). They are ini formatted and can override where to
 find llvm-config:
+</p>
 
 custom-llvm.ini
 <pre>
@@ -254,38 +252,36 @@ Then configure meson:
 <pre>
     meson builddir/ --native-file custom-llvm.ini
 </pre>
-</p></dd>
+</dd>
 
 <dd><p>
 For selecting llvm-config for cross compiling a
 <a href="https://mesonbuild.com/Cross-compilation.html#defining-the-environment">"cross file"</a>
 should be used. It uses the same format as the native file above:
+</p>
 
-cross-llvm.ini
+<p>cross-llvm.ini</p>
 <pre>
     [binaries]
     ...
     llvm-config = '/usr/lib/llvm-config-32'
 </pre>
 
-Then configure meson:
-
+<p>Then configure meson:</p>
 <pre>
     meson builddir/ --cross-file cross-llvm.ini
 </pre>
 
 See the <a href="#cross-compilation">Cross Compilation</a> section for more information.
-</dd></p>
+</dd>
 
 <dd><p>
 For older versions of meson <code>$PATH</code> (or <code>%PATH%</code> on
 windows) will be searched for llvm-config (and llvm-config$version and
 llvm-config-$version), you can override this environment variable to control
 the search: <code>PATH=/path/with/llvm-config:$PATH meson build</code>.
-</dd></p>
-</dl>
+</p></dd>
 
-<dl>
 <dt><code>PKG_CONFIG_PATH</code></dt>
 <dd><p>The
 <code>pkg-config</code> utility is a hard requirement for configuring and
@@ -321,9 +317,7 @@ with debugging as some code and validation will be optimized away.
 buildtype, which causes meson to inject no additional compiler arguments, only
 those in the C/CXXFLAGS and those that mesa itself defines.</p>
 </dd>
-</dl>
 
-<dl>
 <dt><code>-Db_ndebug</code></dt>
 <dd><p>This option controls assertions in meson projects. When set to <code>false</code>
 (the default) assertions are enabled, when set to true they are disabled. This
@@ -351,14 +345,15 @@ will likely have to alter them for your system.</p>
 <p>
 Those running on ArchLinux can use the AUR-maintained packages for some
 of those, as they'll have the right values for your system:
+</p>
 <ul>
   <li><a href="https://aur.archlinux.org/packages/meson-cross-x86-linux-gnu">meson-cross-x86-linux-gnu</a></li>
   <li><a href="https://aur.archlinux.org/packages/meson-cross-aarch64-linux-gnu">meson-cross-aarch64-linux-gnu</a></li>
 </ul>
-</p>
 
 <p>
 32-bit build on x86 linux:
+</p>
 <pre>
 [binaries]
 c = '/usr/bin/gcc'
@@ -380,10 +375,10 @@ cpu_family = 'x86'
 cpu = 'i686'
 endian = 'little'
 </pre>
-</p>
 
 <p>
 64-bit build on ARM linux:
+</p>
 <pre>
 [binaries]
 c = '/usr/bin/aarch64-linux-gnu-gcc'
@@ -399,10 +394,10 @@ cpu_family = 'aarch64'
 cpu = 'aarch64'
 endian = 'little'
 </pre>
-</p>
 
 <p>
 64-bit build on x86 windows:
+</p>
 <pre>
 [binaries]
 c = '/usr/bin/x86_64-w64-mingw32-gcc'
@@ -418,7 +413,6 @@ cpu_family = 'x86_64'
 cpu = 'i686'
 endian = 'little'
 </pre>
-</p>
 
 </div>
 </body>

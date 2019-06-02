@@ -72,14 +72,14 @@ struct spirv_to_nir_options {
 
    struct spirv_supported_capabilities caps;
 
-   /* Storage types for various kinds of pointers. */
-   const struct glsl_type *ubo_ptr_type;
-   const struct glsl_type *ssbo_ptr_type;
-   const struct glsl_type *phys_ssbo_ptr_type;
-   const struct glsl_type *push_const_ptr_type;
-   const struct glsl_type *shared_ptr_type;
-   const struct glsl_type *global_ptr_type;
-   const struct glsl_type *temp_ptr_type;
+   /* Address format for various kinds of pointers. */
+   nir_address_format ubo_addr_format;
+   nir_address_format ssbo_addr_format;
+   nir_address_format phys_ssbo_addr_format;
+   nir_address_format push_const_addr_format;
+   nir_address_format shared_addr_format;
+   nir_address_format global_addr_format;
+   nir_address_format temp_addr_format;
 
    struct {
       void (*func)(void *private_data,
@@ -94,12 +94,12 @@ bool gl_spirv_validation(const uint32_t *words, size_t word_count,
                          struct nir_spirv_specialization *spec, unsigned num_spec,
                          gl_shader_stage stage, const char *entry_point_name);
 
-nir_function *spirv_to_nir(const uint32_t *words, size_t word_count,
-                           struct nir_spirv_specialization *specializations,
-                           unsigned num_specializations,
-                           gl_shader_stage stage, const char *entry_point_name,
-                           const struct spirv_to_nir_options *options,
-                           const nir_shader_compiler_options *nir_options);
+nir_shader *spirv_to_nir(const uint32_t *words, size_t word_count,
+                         struct nir_spirv_specialization *specializations,
+                         unsigned num_specializations,
+                         gl_shader_stage stage, const char *entry_point_name,
+                         const struct spirv_to_nir_options *options,
+                         const nir_shader_compiler_options *nir_options);
 
 #ifdef __cplusplus
 }

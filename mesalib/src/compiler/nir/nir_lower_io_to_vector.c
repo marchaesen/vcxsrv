@@ -197,10 +197,10 @@ nir_lower_io_to_vector_impl(nir_function_impl *impl, nir_variable_mode modes)
    nir_metadata_require(impl, nir_metadata_dominance);
 
    nir_shader *shader = impl->function->shader;
-   nir_variable *old_inputs[MAX_VARYINGS_INCL_PATCH][4] = {0};
-   nir_variable *new_inputs[MAX_VARYINGS_INCL_PATCH][4] = {0};
-   nir_variable *old_outputs[MAX_VARYINGS_INCL_PATCH][4] = {0};
-   nir_variable *new_outputs[MAX_VARYINGS_INCL_PATCH][4] = {0};
+   nir_variable *old_inputs[MAX_VARYINGS_INCL_PATCH][4] = {{0}};
+   nir_variable *new_inputs[MAX_VARYINGS_INCL_PATCH][4] = {{0}};
+   nir_variable *old_outputs[MAX_VARYINGS_INCL_PATCH][4] = {{0}};
+   nir_variable *new_outputs[MAX_VARYINGS_INCL_PATCH][4] = {{0}};
 
    if (modes & nir_var_shader_in) {
       /* Vertex shaders support overlapping inputs.  We don't do those */

@@ -502,8 +502,8 @@ vtn_handle_decoration(struct vtn_builder *b, SpvOp opcode,
    case SpvOpDecorate:
    case SpvOpDecorateId:
    case SpvOpMemberDecorate:
-   case SpvOpDecorateStringGOOGLE:
-   case SpvOpMemberDecorateStringGOOGLE:
+   case SpvOpDecorateString:
+   case SpvOpMemberDecorateString:
    case SpvOpExecutionMode:
    case SpvOpExecutionModeId: {
       struct vtn_value *val = vtn_untyped_value(b, target);
@@ -512,11 +512,11 @@ vtn_handle_decoration(struct vtn_builder *b, SpvOp opcode,
       switch (opcode) {
       case SpvOpDecorate:
       case SpvOpDecorateId:
-      case SpvOpDecorateStringGOOGLE:
+      case SpvOpDecorateString:
          dec->scope = VTN_DEC_DECORATION;
          break;
       case SpvOpMemberDecorate:
-      case SpvOpMemberDecorateStringGOOGLE:
+      case SpvOpMemberDecorateString:
          dec->scope = VTN_DEC_STRUCT_MEMBER0 + *(w++);
          vtn_fail_if(dec->scope < VTN_DEC_STRUCT_MEMBER0, /* overflow */
                      "Member argument of OpMemberDecorate too large");
@@ -646,6 +646,14 @@ vtn_types_compatible(struct vtn_builder *b,
    }
 
    vtn_fail("Invalid base type");
+}
+
+struct vtn_type *
+vtn_type_without_array(struct vtn_type *type)
+{
+   while (type->base_type == vtn_base_type_array)
+      type = type->array_element;
+   return type;
 }
 
 /* does a shallow copy of a vtn_type */
@@ -843,8 +851,8 @@ struct_member_decoration_cb(struct vtn_builder *b,
       }
       break;
 
-   case SpvDecorationHlslSemanticGOOGLE:
-      /* HLSL semantic decorations can safely be ignored by the driver. */
+   case SpvDecorationUserSemantic:
+      /* User semantic decorations can safely be ignored by the driver. */
       break;
 
    default:
@@ -977,7 +985,7 @@ type_decoration_cb(struct vtn_builder *b,
    case SpvDecorationOffset:
    case SpvDecorationXfbBuffer:
    case SpvDecorationXfbStride:
-   case SpvDecorationHlslSemanticGOOGLE:
+   case SpvDecorationUserSemantic:
       vtn_warn("Decoration only allowed for struct members: %s",
                spirv_decoration_to_string(dec->decoration));
       break;
@@ -1364,36 +1372,10 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
          /* These can actually be stored to nir_variables and used as SSA
           * values so they need a real glsl_type.
           */
-         switch (storage_class) {
-         case SpvStorageClassUniform:
-            val->type->type = b->options->ubo_ptr_type;
-            break;
-         case SpvStorageClassStorageBuffer:
-            val->type->type = b->options->ssbo_ptr_type;
-            break;
-         case SpvStorageClassPhysicalStorageBufferEXT:
-            val->type->type = b->options->phys_ssbo_ptr_type;
-            break;
-         case SpvStorageClassPushConstant:
-            val->type->type = b->options->push_const_ptr_type;
-            break;
-         case SpvStorageClassWorkgroup:
-            val->type->type = b->options->shared_ptr_type;
-            break;
-         case SpvStorageClassCrossWorkgroup:
-            val->type->type = b->options->global_ptr_type;
-            break;
-         case SpvStorageClassFunction:
-            if (b->physical_ptrs)
-               val->type->type = b->options->temp_ptr_type;
-            break;
-         default:
-            /* In this case, no variable pointers are allowed so all deref
-             * chains are complete back to the variable and it doesn't matter
-             * what type gets used so we leave it NULL.
-             */
-            break;
-         }
+         enum vtn_variable_mode mode = vtn_storage_class_to_mode(
+            b, storage_class, NULL, NULL);
+         val->type->type = nir_address_format_to_glsl_type(
+            vtn_mode_to_address_format(b, mode));
       } else {
          vtn_fail_if(val->type->storage_class != storage_class,
                      "The storage classes of an OpTypePointer and any "
@@ -1540,49 +1522,51 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
 }
 
 static nir_constant *
-vtn_null_constant(struct vtn_builder *b, const struct glsl_type *type)
+vtn_null_constant(struct vtn_builder *b, struct vtn_type *type)
 {
    nir_constant *c = rzalloc(b, nir_constant);
 
-   /* For pointers and other typeless things, we have to return something but
-    * it doesn't matter what.
-    */
-   if (!type)
-      return c;
-
-   switch (glsl_get_base_type(type)) {
-   case GLSL_TYPE_INT:
-   case GLSL_TYPE_UINT:
-   case GLSL_TYPE_INT16:
-   case GLSL_TYPE_UINT16:
-   case GLSL_TYPE_UINT8:
-   case GLSL_TYPE_INT8:
-   case GLSL_TYPE_INT64:
-   case GLSL_TYPE_UINT64:
-   case GLSL_TYPE_BOOL:
-   case GLSL_TYPE_FLOAT:
-   case GLSL_TYPE_FLOAT16:
-   case GLSL_TYPE_DOUBLE:
+   switch (type->base_type) {
+   case vtn_base_type_scalar:
+   case vtn_base_type_vector:
       /* Nothing to do here.  It's already initialized to zero */
       break;
 
-   case GLSL_TYPE_ARRAY:
-      vtn_assert(glsl_get_length(type) > 0);
-      c->num_elements = glsl_get_length(type);
+   case vtn_base_type_pointer: {
+      enum vtn_variable_mode mode = vtn_storage_class_to_mode(
+         b, type->storage_class, type->deref, NULL);
+      nir_address_format addr_format = vtn_mode_to_address_format(b, mode);
+
+      const nir_const_value *null_value = nir_address_format_null_value(addr_format);
+      memcpy(c->values[0], null_value,
+             sizeof(nir_const_value) * nir_address_format_num_components(addr_format));
+      break;
+   }
+
+   case vtn_base_type_void:
+   case vtn_base_type_image:
+   case vtn_base_type_sampler:
+   case vtn_base_type_sampled_image:
+   case vtn_base_type_function:
+      /* For those we have to return something but it doesn't matter what. */
+      break;
+
+   case vtn_base_type_matrix:
+   case vtn_base_type_array:
+      vtn_assert(type->length > 0);
+      c->num_elements = type->length;
       c->elements = ralloc_array(b, nir_constant *, c->num_elements);
 
-      c->elements[0] = vtn_null_constant(b, glsl_get_array_element(type));
+      c->elements[0] = vtn_null_constant(b, type->array_element);
       for (unsigned i = 1; i < c->num_elements; i++)
          c->elements[i] = c->elements[0];
       break;
 
-   case GLSL_TYPE_STRUCT:
-      c->num_elements = glsl_get_length(type);
+   case vtn_base_type_struct:
+      c->num_elements = type->length;
       c->elements = ralloc_array(b, nir_constant *, c->num_elements);
-
-      for (unsigned i = 0; i < c->num_elements; i++) {
-         c->elements[i] = vtn_null_constant(b, glsl_get_struct_field(type, i));
-      }
+      for (unsigned i = 0; i < c->num_elements; i++)
+         c->elements[i] = vtn_null_constant(b, type->members[i]);
       break;
 
    default:
@@ -1745,7 +1729,7 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
                         "only constants or undefs allowed for "
                         "SpvOpConstantComposite");
             /* to make it easier, just insert a NULL constant for now */
-            elems[i] = vtn_null_constant(b, val->type->type);
+            elems[i] = vtn_null_constant(b, val->type);
          }
       }
 
@@ -1942,6 +1926,7 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
          switch (opcode) {
          case SpvOpSConvert:
          case SpvOpFConvert:
+         case SpvOpUConvert:
             /* We have a source in a conversion */
             src_alu_type =
                nir_get_nir_type_for_glsl_type(
@@ -2004,7 +1989,7 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
    }
 
    case SpvOpConstantNull:
-      val->constant = vtn_null_constant(b, val->type->type);
+      val->constant = vtn_null_constant(b, val->type);
       break;
 
    case SpvOpConstantSampler:
@@ -2199,6 +2184,9 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
    case nir_texop_texture_samples:
    case nir_texop_samples_identical:
       /* These don't */
+      break;
+   case nir_texop_txf_ms_fb:
+      vtn_fail("unexpected nir_texop_txf_ms_fb");
       break;
    case nir_texop_txf_ms_mcs:
       vtn_fail("unexpected nir_texop_txf_ms_mcs");
@@ -2437,6 +2425,7 @@ fill_common_atomic_sources(struct vtn_builder *b, SpvOp opcode,
       break;
 
    case SpvOpAtomicCompareExchange:
+   case SpvOpAtomicCompareExchangeWeak:
       src[0] = nir_src_for_ssa(vtn_ssa_value(b, w[8])->def);
       src[1] = nir_src_for_ssa(vtn_ssa_value(b, w[7])->def);
       break;
@@ -2469,7 +2458,7 @@ get_image_coord(struct vtn_builder *b, uint32_t value)
    for (unsigned i = 0; i < 4; i++)
       swizzle[i] = MIN2(i, dim - 1);
 
-   return nir_swizzle(&b->nb, coord->def, swizzle, 4, false);
+   return nir_swizzle(&b->nb, coord->def, swizzle, 4);
 }
 
 static nir_ssa_def *
@@ -2481,7 +2470,7 @@ expand_to_vec4(nir_builder *b, nir_ssa_def *value)
    unsigned swiz[4];
    for (unsigned i = 0; i < 4; i++)
       swiz[i] = i < value->num_components ? i : 0;
-   return nir_swizzle(b, value, swiz, 4, false);
+   return nir_swizzle(b, value, swiz, 4);
 }
 
 static void
@@ -2564,24 +2553,25 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
    nir_intrinsic_op op;
    switch (opcode) {
 #define OP(S, N) case SpvOp##S: op = nir_intrinsic_image_deref_##N; break;
-   OP(ImageQuerySize,         size)
-   OP(ImageRead,              load)
-   OP(ImageWrite,             store)
-   OP(AtomicLoad,             load)
-   OP(AtomicStore,            store)
-   OP(AtomicExchange,         atomic_exchange)
-   OP(AtomicCompareExchange,  atomic_comp_swap)
-   OP(AtomicIIncrement,       atomic_add)
-   OP(AtomicIDecrement,       atomic_add)
-   OP(AtomicIAdd,             atomic_add)
-   OP(AtomicISub,             atomic_add)
-   OP(AtomicSMin,             atomic_min)
-   OP(AtomicUMin,             atomic_min)
-   OP(AtomicSMax,             atomic_max)
-   OP(AtomicUMax,             atomic_max)
-   OP(AtomicAnd,              atomic_and)
-   OP(AtomicOr,               atomic_or)
-   OP(AtomicXor,              atomic_xor)
+   OP(ImageQuerySize,            size)
+   OP(ImageRead,                 load)
+   OP(ImageWrite,                store)
+   OP(AtomicLoad,                load)
+   OP(AtomicStore,               store)
+   OP(AtomicExchange,            atomic_exchange)
+   OP(AtomicCompareExchange,     atomic_comp_swap)
+   OP(AtomicCompareExchangeWeak, atomic_comp_swap)
+   OP(AtomicIIncrement,          atomic_add)
+   OP(AtomicIDecrement,          atomic_add)
+   OP(AtomicIAdd,                atomic_add)
+   OP(AtomicISub,                atomic_add)
+   OP(AtomicSMin,                atomic_min)
+   OP(AtomicUMin,                atomic_min)
+   OP(AtomicSMax,                atomic_max)
+   OP(AtomicUMax,                atomic_max)
+   OP(AtomicAnd,                 atomic_and)
+   OP(AtomicOr,                  atomic_or)
+   OP(AtomicXor,                 atomic_xor)
 #undef OP
    default:
       vtn_fail_with_opcode("Invalid image opcode", opcode);
@@ -2618,6 +2608,7 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
    }
 
    case SpvOpAtomicCompareExchange:
+   case SpvOpAtomicCompareExchangeWeak:
    case SpvOpAtomicIIncrement:
    case SpvOpAtomicIDecrement:
    case SpvOpAtomicExchange:
@@ -2666,22 +2657,23 @@ static nir_intrinsic_op
 get_ssbo_nir_atomic_op(struct vtn_builder *b, SpvOp opcode)
 {
    switch (opcode) {
-   case SpvOpAtomicLoad:      return nir_intrinsic_load_ssbo;
-   case SpvOpAtomicStore:     return nir_intrinsic_store_ssbo;
+   case SpvOpAtomicLoad:         return nir_intrinsic_load_ssbo;
+   case SpvOpAtomicStore:        return nir_intrinsic_store_ssbo;
 #define OP(S, N) case SpvOp##S: return nir_intrinsic_ssbo_##N;
-   OP(AtomicExchange,         atomic_exchange)
-   OP(AtomicCompareExchange,  atomic_comp_swap)
-   OP(AtomicIIncrement,       atomic_add)
-   OP(AtomicIDecrement,       atomic_add)
-   OP(AtomicIAdd,             atomic_add)
-   OP(AtomicISub,             atomic_add)
-   OP(AtomicSMin,             atomic_imin)
-   OP(AtomicUMin,             atomic_umin)
-   OP(AtomicSMax,             atomic_imax)
-   OP(AtomicUMax,             atomic_umax)
-   OP(AtomicAnd,              atomic_and)
-   OP(AtomicOr,               atomic_or)
-   OP(AtomicXor,              atomic_xor)
+   OP(AtomicExchange,            atomic_exchange)
+   OP(AtomicCompareExchange,     atomic_comp_swap)
+   OP(AtomicCompareExchangeWeak, atomic_comp_swap)
+   OP(AtomicIIncrement,          atomic_add)
+   OP(AtomicIDecrement,          atomic_add)
+   OP(AtomicIAdd,                atomic_add)
+   OP(AtomicISub,                atomic_add)
+   OP(AtomicSMin,                atomic_imin)
+   OP(AtomicUMin,                atomic_umin)
+   OP(AtomicSMax,                atomic_imax)
+   OP(AtomicUMax,                atomic_umax)
+   OP(AtomicAnd,                 atomic_and)
+   OP(AtomicOr,                  atomic_or)
+   OP(AtomicXor,                 atomic_xor)
 #undef OP
    default:
       vtn_fail_with_opcode("Invalid SSBO atomic", opcode);
@@ -2693,18 +2685,19 @@ get_uniform_nir_atomic_op(struct vtn_builder *b, SpvOp opcode)
 {
    switch (opcode) {
 #define OP(S, N) case SpvOp##S: return nir_intrinsic_atomic_counter_ ##N;
-   OP(AtomicLoad,             read_deref)
-   OP(AtomicExchange,         exchange)
-   OP(AtomicCompareExchange,  comp_swap)
-   OP(AtomicIIncrement,       inc_deref)
-   OP(AtomicIDecrement,       post_dec_deref)
-   OP(AtomicIAdd,             add_deref)
-   OP(AtomicISub,             add_deref)
-   OP(AtomicUMin,             min_deref)
-   OP(AtomicUMax,             max_deref)
-   OP(AtomicAnd,              and_deref)
-   OP(AtomicOr,               or_deref)
-   OP(AtomicXor,              xor_deref)
+   OP(AtomicLoad,                read_deref)
+   OP(AtomicExchange,            exchange)
+   OP(AtomicCompareExchange,     comp_swap)
+   OP(AtomicCompareExchangeWeak, comp_swap)
+   OP(AtomicIIncrement,          inc_deref)
+   OP(AtomicIDecrement,          post_dec_deref)
+   OP(AtomicIAdd,                add_deref)
+   OP(AtomicISub,                add_deref)
+   OP(AtomicUMin,                min_deref)
+   OP(AtomicUMax,                max_deref)
+   OP(AtomicAnd,                 and_deref)
+   OP(AtomicOr,                  or_deref)
+   OP(AtomicXor,                 xor_deref)
 #undef OP
    default:
       /* We left the following out: AtomicStore, AtomicSMin and
@@ -2721,22 +2714,23 @@ static nir_intrinsic_op
 get_shared_nir_atomic_op(struct vtn_builder *b, SpvOp opcode)
 {
    switch (opcode) {
-   case SpvOpAtomicLoad:      return nir_intrinsic_load_shared;
-   case SpvOpAtomicStore:     return nir_intrinsic_store_shared;
+   case SpvOpAtomicLoad:         return nir_intrinsic_load_shared;
+   case SpvOpAtomicStore:        return nir_intrinsic_store_shared;
 #define OP(S, N) case SpvOp##S: return nir_intrinsic_shared_##N;
-   OP(AtomicExchange,         atomic_exchange)
-   OP(AtomicCompareExchange,  atomic_comp_swap)
-   OP(AtomicIIncrement,       atomic_add)
-   OP(AtomicIDecrement,       atomic_add)
-   OP(AtomicIAdd,             atomic_add)
-   OP(AtomicISub,             atomic_add)
-   OP(AtomicSMin,             atomic_imin)
-   OP(AtomicUMin,             atomic_umin)
-   OP(AtomicSMax,             atomic_imax)
-   OP(AtomicUMax,             atomic_umax)
-   OP(AtomicAnd,              atomic_and)
-   OP(AtomicOr,               atomic_or)
-   OP(AtomicXor,              atomic_xor)
+   OP(AtomicExchange,            atomic_exchange)
+   OP(AtomicCompareExchange,     atomic_comp_swap)
+   OP(AtomicCompareExchangeWeak, atomic_comp_swap)
+   OP(AtomicIIncrement,          atomic_add)
+   OP(AtomicIDecrement,          atomic_add)
+   OP(AtomicIAdd,                atomic_add)
+   OP(AtomicISub,                atomic_add)
+   OP(AtomicSMin,                atomic_imin)
+   OP(AtomicUMin,                atomic_umin)
+   OP(AtomicSMax,                atomic_imax)
+   OP(AtomicUMax,                atomic_umax)
+   OP(AtomicAnd,                 atomic_and)
+   OP(AtomicOr,                  atomic_or)
+   OP(AtomicXor,                 atomic_xor)
 #undef OP
    default:
       vtn_fail_with_opcode("Invalid shared atomic", opcode);
@@ -2747,22 +2741,23 @@ static nir_intrinsic_op
 get_deref_nir_atomic_op(struct vtn_builder *b, SpvOp opcode)
 {
    switch (opcode) {
-   case SpvOpAtomicLoad:      return nir_intrinsic_load_deref;
-   case SpvOpAtomicStore:     return nir_intrinsic_store_deref;
+   case SpvOpAtomicLoad:         return nir_intrinsic_load_deref;
+   case SpvOpAtomicStore:        return nir_intrinsic_store_deref;
 #define OP(S, N) case SpvOp##S: return nir_intrinsic_deref_##N;
-   OP(AtomicExchange,         atomic_exchange)
-   OP(AtomicCompareExchange,  atomic_comp_swap)
-   OP(AtomicIIncrement,       atomic_add)
-   OP(AtomicIDecrement,       atomic_add)
-   OP(AtomicIAdd,             atomic_add)
-   OP(AtomicISub,             atomic_add)
-   OP(AtomicSMin,             atomic_imin)
-   OP(AtomicUMin,             atomic_umin)
-   OP(AtomicSMax,             atomic_imax)
-   OP(AtomicUMax,             atomic_umax)
-   OP(AtomicAnd,              atomic_and)
-   OP(AtomicOr,               atomic_or)
-   OP(AtomicXor,              atomic_xor)
+   OP(AtomicExchange,            atomic_exchange)
+   OP(AtomicCompareExchange,     atomic_comp_swap)
+   OP(AtomicCompareExchangeWeak, atomic_comp_swap)
+   OP(AtomicIIncrement,          atomic_add)
+   OP(AtomicIDecrement,          atomic_add)
+   OP(AtomicIAdd,                atomic_add)
+   OP(AtomicISub,                atomic_add)
+   OP(AtomicSMin,                atomic_imin)
+   OP(AtomicUMin,                atomic_umin)
+   OP(AtomicSMax,                atomic_imax)
+   OP(AtomicUMax,                atomic_umax)
+   OP(AtomicAnd,                 atomic_and)
+   OP(AtomicOr,                  atomic_or)
+   OP(AtomicXor,                 atomic_xor)
 #undef OP
    default:
       vtn_fail_with_opcode("Invalid shared atomic", opcode);
@@ -2974,15 +2969,7 @@ vtn_handle_atomics(struct vtn_builder *b, SpvOp opcode,
 static nir_alu_instr *
 create_vec(struct vtn_builder *b, unsigned num_components, unsigned bit_size)
 {
-   nir_op op;
-   switch (num_components) {
-   case 1: op = nir_op_imov; break;
-   case 2: op = nir_op_vec2; break;
-   case 3: op = nir_op_vec3; break;
-   case 4: op = nir_op_vec4; break;
-   default: vtn_fail("bad vector size: %u", num_components);
-   }
-
+   nir_op op = nir_op_vec(num_components);
    nir_alu_instr *vec = nir_alu_instr_create(b->shader, op);
    nir_ssa_dest_init(&vec->instr, &vec->dest.dest, num_components,
                      bit_size, NULL);
@@ -3709,10 +3696,24 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          spv_check_supported(storage_8bit, cap);
          break;
 
+      case SpvCapabilityShaderNonUniformEXT:
+         spv_check_supported(descriptor_indexing, cap);
+         break;
+
       case SpvCapabilityInputAttachmentArrayDynamicIndexingEXT:
       case SpvCapabilityUniformTexelBufferArrayDynamicIndexingEXT:
       case SpvCapabilityStorageTexelBufferArrayDynamicIndexingEXT:
          spv_check_supported(descriptor_array_dynamic_indexing, cap);
+         break;
+
+      case SpvCapabilityUniformBufferArrayNonUniformIndexingEXT:
+      case SpvCapabilitySampledImageArrayNonUniformIndexingEXT:
+      case SpvCapabilityStorageBufferArrayNonUniformIndexingEXT:
+      case SpvCapabilityStorageImageArrayNonUniformIndexingEXT:
+      case SpvCapabilityInputAttachmentArrayNonUniformIndexingEXT:
+      case SpvCapabilityUniformTexelBufferArrayNonUniformIndexingEXT:
+      case SpvCapabilityStorageTexelBufferArrayNonUniformIndexingEXT:
+         spv_check_supported(descriptor_array_non_uniform_indexing, cap);
          break;
 
       case SpvCapabilityRuntimeDescriptorArrayEXT:
@@ -3758,18 +3759,18 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
                      "AddressingModelPhysical32 only supported for kernels");
          b->shader->info.cs.ptr_size = 32;
          b->physical_ptrs = true;
-         b->options->shared_ptr_type = glsl_uint_type();
-         b->options->global_ptr_type = glsl_uint_type();
-         b->options->temp_ptr_type = glsl_uint_type();
+         b->options->shared_addr_format = nir_address_format_32bit_global;
+         b->options->global_addr_format = nir_address_format_32bit_global;
+         b->options->temp_addr_format = nir_address_format_32bit_global;
          break;
       case SpvAddressingModelPhysical64:
          vtn_fail_if(b->shader->info.stage != MESA_SHADER_KERNEL,
                      "AddressingModelPhysical64 only supported for kernels");
          b->shader->info.cs.ptr_size = 64;
          b->physical_ptrs = true;
-         b->options->shared_ptr_type = glsl_uint64_t_type();
-         b->options->global_ptr_type = glsl_uint64_t_type();
-         b->options->temp_ptr_type = glsl_uint64_t_type();
+         b->options->shared_addr_format = nir_address_format_64bit_global;
+         b->options->global_addr_format = nir_address_format_64bit_global;
+         b->options->temp_addr_format = nir_address_format_64bit_global;
          break;
       case SpvAddressingModelLogical:
          vtn_fail_if(b->shader->info.stage >= MESA_SHADER_STAGES,
@@ -3818,8 +3819,8 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpMemberDecorate:
    case SpvOpGroupDecorate:
    case SpvOpGroupMemberDecorate:
-   case SpvOpDecorateStringGOOGLE:
-   case SpvOpMemberDecorateStringGOOGLE:
+   case SpvOpDecorateString:
+   case SpvOpMemberDecorateString:
       vtn_handle_decoration(b, opcode, w, count);
       break;
 
@@ -4028,8 +4029,8 @@ vtn_handle_variable_or_type_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpMemberDecorate:
    case SpvOpGroupDecorate:
    case SpvOpGroupMemberDecorate:
-   case SpvOpDecorateStringGOOGLE:
-   case SpvOpMemberDecorateStringGOOGLE:
+   case SpvOpDecorateString:
+   case SpvOpMemberDecorateString:
       vtn_fail("Invalid opcode types and variables section");
       break;
 
@@ -4276,7 +4277,6 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpQuantizeToF16:
    case SpvOpPtrCastToGeneric:
    case SpvOpGenericCastToPtr:
-   case SpvOpBitcast:
    case SpvOpIsNan:
    case SpvOpIsInf:
    case SpvOpIsFinite:
@@ -4359,6 +4359,10 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpMatrixTimesVector:
    case SpvOpMatrixTimesMatrix:
       vtn_handle_alu(b, opcode, w, count);
+      break;
+
+   case SpvOpBitcast:
+      vtn_handle_bitcast(b, w, count);
       break;
 
    case SpvOpVectorExtractDynamic:
@@ -4548,7 +4552,7 @@ vtn_emit_kernel_entry_point_wrapper(struct vtn_builder *b,
    return main_entry_point;
 }
 
-nir_function *
+nir_shader *
 spirv_to_nir(const uint32_t *words, size_t word_count,
              struct nir_spirv_specialization *spec, unsigned num_spec,
              gl_shader_stage stage, const char *entry_point_name,
@@ -4665,7 +4669,8 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
    /* Unparent the shader from the vtn_builder before we delete the builder */
    ralloc_steal(NULL, b->shader);
 
+   nir_shader *shader = b->shader;
    ralloc_free(b);
 
-   return entry_point;
+   return shader;
 }

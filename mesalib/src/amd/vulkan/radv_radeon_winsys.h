@@ -301,6 +301,9 @@ struct radeon_winsys {
 
 	struct radeon_winsys_fence *(*create_fence)();
 	void (*destroy_fence)(struct radeon_winsys_fence *fence);
+	void (*reset_fence)(struct radeon_winsys_fence *fence);
+	void (*signal_fence)(struct radeon_winsys_fence *fence);
+	bool (*is_fence_waitable)(struct radeon_winsys_fence *fence);
 	bool (*fence_wait)(struct radeon_winsys *ws,
 			   struct radeon_winsys_fence *fence,
 			   bool absolute,
