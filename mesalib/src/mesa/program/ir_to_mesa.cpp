@@ -2506,8 +2506,7 @@ _mesa_generate_parameters_list_for_uniforms(struct gl_context *ctx,
 void
 _mesa_associate_uniform_storage(struct gl_context *ctx,
                                 struct gl_shader_program *shader_program,
-                                struct gl_program *prog,
-                                bool propagate_to_storage)
+                                struct gl_program *prog)
 {
    struct gl_program_parameter_list *params = prog->Parameters;
    gl_shader_stage shader_type = prog->info.stage;
@@ -2633,26 +2632,24 @@ _mesa_associate_uniform_storage(struct gl_context *ctx,
           * data from the linker's backing store.  This will cause values from
           * initializers in the source code to be copied over.
           */
-         if (propagate_to_storage) {
-            unsigned array_elements = MAX2(1, storage->array_elements);
-            if (ctx->Const.PackedDriverUniformStorage && !prog->is_arb_asm &&
-                (storage->is_bindless || !storage->type->contains_opaque())) {
-               const int dmul = storage->type->is_64bit() ? 2 : 1;
-               const unsigned components =
-                  storage->type->vector_elements *
-                  storage->type->matrix_columns;
+         unsigned array_elements = MAX2(1, storage->array_elements);
+         if (ctx->Const.PackedDriverUniformStorage && !prog->is_arb_asm &&
+             (storage->is_bindless || !storage->type->contains_opaque())) {
+            const int dmul = storage->type->is_64bit() ? 2 : 1;
+            const unsigned components =
+               storage->type->vector_elements *
+               storage->type->matrix_columns;
 
-               for (unsigned s = 0; s < storage->num_driver_storage; s++) {
-                  gl_constant_value *uni_storage = (gl_constant_value *)
-                     storage->driver_storage[s].data;
-                  memcpy(uni_storage, storage->storage,
-                         sizeof(storage->storage[0]) * components *
-                         array_elements * dmul);
-               }
-            } else {
-               _mesa_propagate_uniforms_to_driver_storage(storage, 0,
-                                                          array_elements);
+            for (unsigned s = 0; s < storage->num_driver_storage; s++) {
+               gl_constant_value *uni_storage = (gl_constant_value *)
+                  storage->driver_storage[s].data;
+               memcpy(uni_storage, storage->storage,
+                      sizeof(storage->storage[0]) * components *
+                      array_elements * dmul);
             }
+         } else {
+            _mesa_propagate_uniforms_to_driver_storage(storage, 0,
+                                                       array_elements);
          }
 
 	      last_location = location;
@@ -3011,7 +3008,7 @@ get_mesa_program(struct gl_context *ctx,
     * prog->ParameterValues to get reallocated (e.g., anything that adds a
     * program constant) has to happen before creating this linkage.
     */
-   _mesa_associate_uniform_storage(ctx, shader_program, prog, true);
+   _mesa_associate_uniform_storage(ctx, shader_program, prog);
    if (!shader_program->data->LinkStatus) {
       goto fail_exit;
    }

@@ -366,7 +366,7 @@ st_deserialise_ir_program(struct gl_context *ctx,
    }
 
    st_set_prog_affected_state_flags(prog);
-   _mesa_associate_uniform_storage(ctx, shProg, prog, false);
+   _mesa_associate_uniform_storage(ctx, shProg, prog);
 
    /* Create Gallium shaders now instead of on demand. */
    if (ST_DEBUG & DEBUG_PRECOMPILE ||

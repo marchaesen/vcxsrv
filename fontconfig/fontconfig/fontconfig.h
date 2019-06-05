@@ -108,7 +108,7 @@ typedef int		FcBool;
 #define FC_MINSPACE	    "minspace"		/* Bool use minimum line spacing */
 #define FC_SOURCE	    "source"		/* String (deprecated) */
 #define FC_CHARSET	    "charset"		/* CharSet */
-#define FC_LANG		    "lang"		/* String RFC 3066 langs */
+#define FC_LANG		    "lang"		/* LangSet Set of RFC 3066 langs */
 #define FC_FONTVERSION	    "fontversion"	/* Int from 'head' table */
 #define FC_FULLNAME	    "fullname"		/* String */
 #define FC_FAMILYLANG	    "familylang"	/* String RFC 3066 langs */

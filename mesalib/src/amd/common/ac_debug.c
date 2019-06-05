@@ -34,7 +34,6 @@
 #include <inttypes.h>
 
 #include "sid.h"
-#include "gfx9d.h"
 #include "sid_tables.h"
 #include "util/u_math.h"
 #include "util/u_memory.h"
@@ -120,9 +119,13 @@ void ac_dump_reg(FILE *file, enum chip_class chip_class, unsigned offset,
 	const struct si_reg *reg = NULL;
 
 	if (chip_class >= GFX9)
-		reg = find_register(gfx9d_reg_table, ARRAY_SIZE(gfx9d_reg_table), offset);
-	if (!reg)
-		reg = find_register(sid_reg_table, ARRAY_SIZE(sid_reg_table), offset);
+		reg = find_register(gfx9_reg_table, ARRAY_SIZE(gfx9_reg_table), offset);
+	else if (chip_class >= GFX8)
+		reg = find_register(gfx8_reg_table, ARRAY_SIZE(gfx8_reg_table), offset);
+	else if (chip_class >= GFX7)
+		reg = find_register(gfx7_reg_table, ARRAY_SIZE(gfx7_reg_table), offset);
+	else
+		reg = find_register(gfx6_reg_table, ARRAY_SIZE(gfx6_reg_table), offset);
 
 	if (reg) {
 		const char *reg_name = sid_strings + reg->name_offset;
@@ -389,7 +392,7 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
 		uint32_t base_hi_dw = ac_ib_get(ib);
 		ac_dump_reg(f, ib->chip_class, R_3F1_IB_BASE_HI, base_hi_dw, ~0);
 		uint32_t control_dw = ac_ib_get(ib);
-		ac_dump_reg(f, ib->chip_class, R_3F2_CONTROL, control_dw, ~0);
+		ac_dump_reg(f, ib->chip_class, R_3F2_IB_CONTROL, control_dw, ~0);
 
 		if (!ib->addr_callback)
 			break;

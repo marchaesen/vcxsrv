@@ -26,8 +26,8 @@ import argparse
 import sys
 
 trig_workarounds = [
-   (('fsin', 'x'), ('fsin', ('fsub', ('fmul', 6.283185, ('ffract', ('fadd', ('fmul', 0.159155, 'x'), 0.5))), 3.141593))),
-   (('fcos', 'x'), ('fcos', ('fsub', ('fmul', 6.283185, ('ffract', ('fadd', ('fmul', 0.159155, 'x'), 0.5))), 3.141593))),
+   (('fsin', 'x'), ('fsin', ('fsub', ('fmul', 6.2831853, ('ffract', ('fadd', ('fmul', 0.15915494, 'x'), 0.5))), 3.14159265))),
+   (('fcos', 'x'), ('fcos', ('fsub', ('fmul', 6.2831853, ('ffract', ('fadd', ('fmul', 0.15915494, 'x'), 0.5))), 3.14159265))),
 ]
 
 

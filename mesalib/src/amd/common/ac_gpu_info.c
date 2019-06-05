@@ -25,7 +25,6 @@
 
 #include "ac_gpu_info.h"
 #include "sid.h"
-#include "gfx9d.h"
 
 #include "util/u_math.h"
 

@@ -2532,6 +2532,10 @@ _mesa_parse_arb_program(struct gl_context *ctx, GLenum target, const GLubyte *st
     */
    strz = (GLubyte *) ralloc_size(state->mem_ctx, len + 1);
    if (strz == NULL) {
+      if (state->prog->Parameters) {
+         _mesa_free_parameter_list(state->prog->Parameters);
+         state->prog->Parameters = NULL;
+      }
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glProgramStringARB");
       return GL_FALSE;
    }
@@ -2642,6 +2646,15 @@ error:
 
    _mesa_symbol_table_dtor(state->st);
    state->st = NULL;
+
+   if (result != GL_TRUE) {
+      if (state->prog->Parameters) {
+         _mesa_free_parameter_list(state->prog->Parameters);
+         state->prog->Parameters = NULL;
+      }
+      ralloc_free(state->prog->String);
+      state->prog->String = NULL;
+   }
 
    return result;
 }

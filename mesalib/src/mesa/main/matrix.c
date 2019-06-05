@@ -46,6 +46,85 @@
 #include "util/bitscan.h"
 
 
+static struct gl_matrix_stack *
+get_named_matrix_stack(struct gl_context *ctx, GLenum mode, const char* caller)
+{
+   switch (mode) {
+   case GL_MODELVIEW:
+      return &ctx->ModelviewMatrixStack;
+   case GL_PROJECTION:
+      return &ctx->ProjectionMatrixStack;
+   case GL_TEXTURE:
+      /* This error check is disabled because if we're called from
+       * glPopAttrib() when the active texture unit is >= MaxTextureCoordUnits
+       * we'll generate an unexpected error.
+       * From the GL_ARB_vertex_shader spec it sounds like we should instead
+       * do error checking in other places when we actually try to access
+       * texture matrices beyond MaxTextureCoordUnits.
+       */
+#if 0
+      if (ctx->Texture.CurrentUnit >= ctx->Const.MaxTextureCoordUnits) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "glMatrixMode(invalid tex unit %d)",
+                     ctx->Texture.CurrentUnit);
+         return;
+      }
+#endif
+      assert(ctx->Texture.CurrentUnit < ARRAY_SIZE(ctx->TextureMatrixStack));
+      return &ctx->TextureMatrixStack[ctx->Texture.CurrentUnit];
+   case GL_MATRIX0_ARB:
+   case GL_MATRIX1_ARB:
+   case GL_MATRIX2_ARB:
+   case GL_MATRIX3_ARB:
+   case GL_MATRIX4_ARB:
+   case GL_MATRIX5_ARB:
+   case GL_MATRIX6_ARB:
+   case GL_MATRIX7_ARB:
+      if (ctx->API == API_OPENGL_COMPAT
+          && (ctx->Extensions.ARB_vertex_program ||
+              ctx->Extensions.ARB_fragment_program)) {
+         const GLuint m = mode - GL_MATRIX0_ARB;
+         if (m <= ctx->Const.MaxProgramMatrices)
+            return &ctx->ProgramMatrixStack[m];
+      }
+      /* fallthrough */
+   default:
+      break;
+   }
+   if (mode >= GL_TEXTURE0 && mode < (GL_TEXTURE0 + ctx->Const.MaxTextureCoordUnits)) {
+      return &ctx->TextureMatrixStack[mode - GL_TEXTURE0];
+   }
+   _mesa_error(ctx, GL_INVALID_ENUM, "%s", caller);
+   return NULL;
+}
+
+
+static void matrix_frustum(struct gl_matrix_stack* stack,
+                           GLdouble left, GLdouble right,
+                           GLdouble bottom, GLdouble top,
+                           GLdouble nearval, GLdouble farval,
+                           const char* caller)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (nearval <= 0.0 ||
+       farval <= 0.0 ||
+       nearval == farval ||
+       left == right ||
+       top == bottom) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s", caller);
+      return;
+   }
+
+   FLUSH_VERTICES(ctx, 0);
+
+   _math_matrix_frustum(stack->Top,
+                        (GLfloat) left, (GLfloat) right,
+                        (GLfloat) bottom, (GLfloat) top,
+                        (GLfloat) nearval, (GLfloat) farval);
+   ctx->NewState |= stack->DirtyFlag;
+}
+
+
 /**
  * Apply a perspective projection matrix.
  *
@@ -68,24 +147,62 @@ _mesa_Frustum( GLdouble left, GLdouble right,
                GLdouble nearval, GLdouble farval )
 {
    GET_CURRENT_CONTEXT(ctx);
+   matrix_frustum(ctx->CurrentStack,
+                  (GLfloat) left, (GLfloat) right,
+			         (GLfloat) bottom, (GLfloat) top,
+			         (GLfloat) nearval, (GLfloat) farval,
+                  "glFrustum");
+}
 
-   FLUSH_VERTICES(ctx, 0);
 
-   if (nearval <= 0.0 ||
-       farval <= 0.0 ||
-       nearval == farval ||
-       left == right ||
-       top == bottom)
+void GLAPIENTRY
+_mesa_MatrixFrustumEXT( GLenum matrixMode,
+                        GLdouble left, GLdouble right,
+                        GLdouble bottom, GLdouble top,
+                        GLdouble nearval, GLdouble farval )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_matrix_stack *stack = get_named_matrix_stack(ctx, matrixMode,
+                                                          "glMatrixFrustumEXT");
+   if (!stack)
+      return;
+
+   matrix_frustum(stack,
+                  (GLfloat) left, (GLfloat) right,
+                  (GLfloat) bottom, (GLfloat) top,
+                  (GLfloat) nearval, (GLfloat) farval,
+                  "glMatrixFrustumEXT");
+}
+
+
+static void
+matrix_ortho(struct gl_matrix_stack* stack,
+             GLdouble left, GLdouble right,
+             GLdouble bottom, GLdouble top,
+             GLdouble nearval, GLdouble farval,
+             const char* caller)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (MESA_VERBOSE & VERBOSE_API)
+      _mesa_debug(ctx, "%s(%f, %f, %f, %f, %f, %f)\n", caller,
+                  left, right, bottom, top, nearval, farval);
+
+   if (left == right ||
+       bottom == top ||
+       nearval == farval)
    {
-      _mesa_error( ctx,  GL_INVALID_VALUE, "glFrustum" );
+      _mesa_error( ctx,  GL_INVALID_VALUE, "%s", caller );
       return;
    }
 
-   _math_matrix_frustum( ctx->CurrentStack->Top,
-                         (GLfloat) left, (GLfloat) right, 
-			 (GLfloat) bottom, (GLfloat) top, 
-			 (GLfloat) nearval, (GLfloat) farval );
-   ctx->NewState |= ctx->CurrentStack->DirtyFlag;
+   FLUSH_VERTICES(ctx, 0);
+
+   _math_matrix_ortho( stack->Top,
+                       (GLfloat) left, (GLfloat) right,
+             (GLfloat) bottom, (GLfloat) top,
+             (GLfloat) nearval, (GLfloat) farval );
+   ctx->NewState |= stack->DirtyFlag;
 }
 
 
@@ -111,26 +228,31 @@ _mesa_Ortho( GLdouble left, GLdouble right,
              GLdouble nearval, GLdouble farval )
 {
    GET_CURRENT_CONTEXT(ctx);
+   matrix_ortho(ctx->CurrentStack,
+                (GLfloat) left, (GLfloat) right,
+		          (GLfloat) bottom, (GLfloat) top,
+		          (GLfloat) nearval, (GLfloat) farval,
+                "glOrtho");
+}
 
-   FLUSH_VERTICES(ctx, 0);
 
-   if (MESA_VERBOSE & VERBOSE_API)
-      _mesa_debug(ctx, "glOrtho(%f, %f, %f, %f, %f, %f)\n",
-                  left, right, bottom, top, nearval, farval);
-
-   if (left == right ||
-       bottom == top ||
-       nearval == farval)
-   {
-      _mesa_error( ctx,  GL_INVALID_VALUE, "glOrtho" );
+void GLAPIENTRY
+_mesa_MatrixOrthoEXT( GLenum matrixMode,
+                      GLdouble left, GLdouble right,
+                      GLdouble bottom, GLdouble top,
+                      GLdouble nearval, GLdouble farval )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_matrix_stack *stack = get_named_matrix_stack(ctx, matrixMode,
+                                                          "glMatrixOrthoEXT");
+   if (!stack)
       return;
-   }
 
-   _math_matrix_ortho( ctx->CurrentStack->Top,
-                       (GLfloat) left, (GLfloat) right, 
-		       (GLfloat) bottom, (GLfloat) top, 
-		       (GLfloat) nearval, (GLfloat) farval );
-   ctx->NewState |= ctx->CurrentStack->DirtyFlag;
+   matrix_ortho(stack,
+                (GLfloat) left, (GLfloat) right,
+                (GLfloat) bottom, (GLfloat) top,
+                (GLfloat) nearval, (GLfloat) farval,
+                "glMatrixOrthoEXT");
 }
 
 
@@ -148,101 +270,40 @@ _mesa_Ortho( GLdouble left, GLdouble right,
 void GLAPIENTRY
 _mesa_MatrixMode( GLenum mode )
 {
+   struct gl_matrix_stack * stack;
    GET_CURRENT_CONTEXT(ctx);
 
    if (ctx->Transform.MatrixMode == mode && mode != GL_TEXTURE)
       return;
 
-   switch (mode) {
-   case GL_MODELVIEW:
-      ctx->CurrentStack = &ctx->ModelviewMatrixStack;
-      break;
-   case GL_PROJECTION:
-      ctx->CurrentStack = &ctx->ProjectionMatrixStack;
-      break;
-   case GL_TEXTURE:
-      /* This error check is disabled because if we're called from
-       * glPopAttrib() when the active texture unit is >= MaxTextureCoordUnits
-       * we'll generate an unexpected error.
-       * From the GL_ARB_vertex_shader spec it sounds like we should instead
-       * do error checking in other places when we actually try to access
-       * texture matrices beyond MaxTextureCoordUnits.
-       */
-#if 0
-      if (ctx->Texture.CurrentUnit >= ctx->Const.MaxTextureCoordUnits) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glMatrixMode(invalid tex unit %d)",
-                     ctx->Texture.CurrentUnit);
-         return;
-      }
-#endif
-      assert(ctx->Texture.CurrentUnit < ARRAY_SIZE(ctx->TextureMatrixStack));
-      ctx->CurrentStack = &ctx->TextureMatrixStack[ctx->Texture.CurrentUnit];
-      break;
-   case GL_MATRIX0_ARB:
-   case GL_MATRIX1_ARB:
-   case GL_MATRIX2_ARB:
-   case GL_MATRIX3_ARB:
-   case GL_MATRIX4_ARB:
-   case GL_MATRIX5_ARB:
-   case GL_MATRIX6_ARB:
-   case GL_MATRIX7_ARB:
-      if (ctx->API == API_OPENGL_COMPAT
-          && (ctx->Extensions.ARB_vertex_program ||
-              ctx->Extensions.ARB_fragment_program)) {
-         const GLuint m = mode - GL_MATRIX0_ARB;
-         if (m > ctx->Const.MaxProgramMatrices) {
-            _mesa_error(ctx, GL_INVALID_ENUM,
-                        "glMatrixMode(GL_MATRIX%d_ARB)", m);
-            return;
-         }
-         ctx->CurrentStack = &ctx->ProgramMatrixStack[m];
-      }
-      else {
-         _mesa_error( ctx,  GL_INVALID_ENUM, "glMatrixMode(mode)" );
-         return;
-      }
-      break;
-   default:
-      _mesa_error( ctx,  GL_INVALID_ENUM, "glMatrixMode(mode)" );
-      return;
+   if (mode >= GL_TEXTURE0 && mode < (GL_TEXTURE0 + ctx->Const.MaxTextureCoordUnits)) {
+      stack = NULL;
+   } else {
+      stack = get_named_matrix_stack(ctx, mode, "glMatrixMode");
    }
 
-   ctx->Transform.MatrixMode = mode;
+   if (stack) {
+      ctx->CurrentStack = stack;
+      ctx->Transform.MatrixMode = mode;
+   }
 }
 
 
-/**
- * Push the current matrix stack.
- *
- * \sa glPushMatrix().
- * 
- * Verifies the current matrix stack is not full, and duplicates the top-most
- * matrix in the stack.
- * Marks __struct gl_contextRec::NewState with the stack dirty flag.
- */
-void GLAPIENTRY
-_mesa_PushMatrix( void )
+static void
+push_matrix(struct gl_context *ctx, struct gl_matrix_stack *stack,
+            GLenum matrixMode, const char *func)
 {
-   GET_CURRENT_CONTEXT(ctx);
-   struct gl_matrix_stack *stack = ctx->CurrentStack;
-
-   if (MESA_VERBOSE&VERBOSE_API)
-      _mesa_debug(ctx, "glPushMatrix %s\n",
-                  _mesa_enum_to_string(ctx->Transform.MatrixMode));
-
    if (stack->Depth + 1 >= stack->MaxDepth) {
       if (ctx->Transform.MatrixMode == GL_TEXTURE) {
-         _mesa_error(ctx,  GL_STACK_OVERFLOW,
-                     "glPushMatrix(mode=GL_TEXTURE, unit=%d)",
-                      ctx->Texture.CurrentUnit);
-      }
-      else {
-         _mesa_error(ctx,  GL_STACK_OVERFLOW, "glPushMatrix(mode=%s)",
-                     _mesa_enum_to_string(ctx->Transform.MatrixMode));
+         _mesa_error(ctx, GL_STACK_OVERFLOW, "%s(mode=GL_TEXTURE, unit=%d)",
+                     func, ctx->Texture.CurrentUnit);
+      } else {
+         _mesa_error(ctx, GL_STACK_OVERFLOW, "%s(mode=%s)",
+                     func, _mesa_enum_to_string(matrixMode));
       }
       return;
    }
+
    if (stack->Depth + 1 >= stack->StackSize) {
       unsigned new_stack_size = stack->StackSize * 2;
       unsigned i;
@@ -250,7 +311,7 @@ _mesa_PushMatrix( void )
                                     sizeof(*new_stack) * new_stack_size);
 
       if (!new_stack) {
-         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glPushMatrix()");
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", func);
          return;
       }
 
@@ -266,6 +327,54 @@ _mesa_PushMatrix( void )
    stack->Depth++;
    stack->Top = &(stack->Stack[stack->Depth]);
    ctx->NewState |= stack->DirtyFlag;
+}
+
+
+/**
+ * Push the current matrix stack.
+ *
+ * \sa glPushMatrix().
+ *
+ * Verifies the current matrix stack is not full, and duplicates the top-most
+ * matrix in the stack.
+ * Marks __struct gl_contextRec::NewState with the stack dirty flag.
+ */
+void GLAPIENTRY
+_mesa_PushMatrix( void )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_matrix_stack *stack = ctx->CurrentStack;
+
+   if (MESA_VERBOSE&VERBOSE_API)
+      _mesa_debug(ctx, "glPushMatrix %s\n",
+                  _mesa_enum_to_string(ctx->Transform.MatrixMode));
+
+   push_matrix(ctx, stack, ctx->Transform.MatrixMode, "glPushMatrix");
+}
+
+
+void GLAPIENTRY
+_mesa_MatrixPushEXT( GLenum matrixMode )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_matrix_stack *stack = get_named_matrix_stack(ctx, matrixMode,
+                                                          "glMatrixPushEXT");
+   ASSERT_OUTSIDE_BEGIN_END(ctx);
+   if (stack)
+      push_matrix(ctx, stack, matrixMode, "glMatrixPushEXT");
+}
+
+
+static GLboolean
+pop_matrix( struct gl_context *ctx, struct gl_matrix_stack *stack )
+{
+   if (stack->Depth == 0)
+      return GL_FALSE;
+
+   stack->Depth--;
+   stack->Top = &(stack->Stack[stack->Depth]);
+   ctx->NewState |= stack->DirtyFlag;
+   return GL_TRUE;
 }
 
 
@@ -290,24 +399,53 @@ _mesa_PopMatrix( void )
       _mesa_debug(ctx, "glPopMatrix %s\n",
                   _mesa_enum_to_string(ctx->Transform.MatrixMode));
 
-   if (stack->Depth == 0) {
+   if (!pop_matrix(ctx, stack)) {
       if (ctx->Transform.MatrixMode == GL_TEXTURE) {
-         _mesa_error(ctx,  GL_STACK_UNDERFLOW,
+         _mesa_error(ctx, GL_STACK_UNDERFLOW,
                      "glPopMatrix(mode=GL_TEXTURE, unit=%d)",
                       ctx->Texture.CurrentUnit);
       }
       else {
-         _mesa_error(ctx,  GL_STACK_UNDERFLOW, "glPopMatrix(mode=%s)",
+         _mesa_error(ctx, GL_STACK_UNDERFLOW, "glPopMatrix(mode=%s)",
                      _mesa_enum_to_string(ctx->Transform.MatrixMode));
       }
-      return;
    }
-   stack->Depth--;
-   stack->Top = &(stack->Stack[stack->Depth]);
-   ctx->NewState |= stack->DirtyFlag;
 }
 
 
+void GLAPIENTRY
+_mesa_MatrixPopEXT( GLenum matrixMode )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_matrix_stack *stack = get_named_matrix_stack(ctx, matrixMode,
+                                                          "glMatrixPopEXT");
+   if (!stack)
+      return;
+
+   if (!pop_matrix(ctx, stack)) {
+      if (matrixMode == GL_TEXTURE) {
+         _mesa_error(ctx, GL_STACK_UNDERFLOW,
+                     "glMatrixPopEXT(mode=GL_TEXTURE, unit=%d)",
+                      ctx->Texture.CurrentUnit);
+      }
+      else {
+         _mesa_error(ctx, GL_STACK_UNDERFLOW, "glMatrixPopEXT(mode=%s)",
+                     _mesa_enum_to_string(matrixMode));
+      }
+   }
+}
+
+
+static void
+matrix_load_identity(struct gl_matrix_stack* stack)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   FLUSH_VERTICES(ctx, 0);
+
+   _math_matrix_set_identity(stack->Top);
+   ctx->NewState |= stack->DirtyFlag;
+}
 /**
  * Replace the current matrix with the identity matrix.
  *
@@ -322,13 +460,45 @@ _mesa_LoadIdentity( void )
 {
    GET_CURRENT_CONTEXT(ctx);
 
-   FLUSH_VERTICES(ctx, 0);
-
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glLoadIdentity()\n");
 
-   _math_matrix_set_identity( ctx->CurrentStack->Top );
-   ctx->NewState |= ctx->CurrentStack->DirtyFlag;
+   matrix_load_identity(ctx->CurrentStack);
+}
+
+
+void GLAPIENTRY
+_mesa_MatrixLoadIdentityEXT( GLenum matrixMode )
+{
+   struct gl_matrix_stack *stack;
+   GET_CURRENT_CONTEXT(ctx);
+   stack = get_named_matrix_stack(ctx, matrixMode, "glMatrixLoadIdentityEXT");
+   if (!stack)
+      return;
+
+   matrix_load_identity(stack);
+}
+
+
+static void
+matrix_load(struct gl_matrix_stack *stack, const GLfloat *m, const char* caller)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (!m) return;
+   if (MESA_VERBOSE & VERBOSE_API)
+      _mesa_debug(ctx,
+          "%s(%f %f %f %f, %f %f %f %f, %f %f %f %f, %f %f %f %f\n",
+          caller,
+          m[0], m[4], m[8], m[12],
+          m[1], m[5], m[9], m[13],
+          m[2], m[6], m[10], m[14],
+          m[3], m[7], m[11], m[15]);
+
+   if (memcmp(m, stack->Top->m, 16 * sizeof(GLfloat)) != 0) {
+      FLUSH_VERTICES(ctx, 0);
+      _math_matrix_loadf( stack->Top, m );
+      ctx->NewState |= stack->DirtyFlag;
+   }
 }
 
 
@@ -347,20 +517,48 @@ void GLAPIENTRY
 _mesa_LoadMatrixf( const GLfloat *m )
 {
    GET_CURRENT_CONTEXT(ctx);
+   matrix_load(ctx->CurrentStack, m, "glLoadMatrix");
+}
+
+
+/**
+ * Replace the named matrix with a given matrix.
+ *
+ * \param matrixMode matrix to replace
+ * \param m matrix
+ *
+ * \sa glLoadMatrixf().
+ */
+void GLAPIENTRY
+_mesa_MatrixLoadfEXT( GLenum matrixMode, const GLfloat *m )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_matrix_stack * stack =
+      get_named_matrix_stack(ctx, matrixMode, "glMatrixLoadfEXT");
+   if (!stack)
+      return;
+
+   matrix_load(stack, m, "glMatrixLoadfEXT");
+}
+
+
+static void
+matrix_mult(struct gl_matrix_stack *stack, const GLfloat *m, const char* caller)
+{
+   GET_CURRENT_CONTEXT(ctx);
    if (!m) return;
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx,
-          "glLoadMatrix(%f %f %f %f, %f %f %f %f, %f %f %f %f, %f %f %f %f\n",
+          "%s(%f %f %f %f, %f %f %f %f, %f %f %f %f, %f %f %f %f\n",
+          caller,
           m[0], m[4], m[8], m[12],
           m[1], m[5], m[9], m[13],
           m[2], m[6], m[10], m[14],
           m[3], m[7], m[11], m[15]);
 
-   if (memcmp(m, ctx->CurrentStack->Top->m, 16 * sizeof(GLfloat)) != 0) {
-      FLUSH_VERTICES(ctx, 0);
-      _math_matrix_loadf( ctx->CurrentStack->Top, m );
-      ctx->NewState |= ctx->CurrentStack->DirtyFlag;
-   }
+   FLUSH_VERTICES(ctx, 0);
+   _math_matrix_mul_floats(stack->Top, m);
+   ctx->NewState |= stack->DirtyFlag;
 }
 
 
@@ -379,18 +577,34 @@ void GLAPIENTRY
 _mesa_MultMatrixf( const GLfloat *m )
 {
    GET_CURRENT_CONTEXT(ctx);
-   if (!m) return;
-   if (MESA_VERBOSE & VERBOSE_API)
-      _mesa_debug(ctx,
-          "glMultMatrix(%f %f %f %f, %f %f %f %f, %f %f %f %f, %f %f %f %f\n",
-          m[0], m[4], m[8], m[12],
-          m[1], m[5], m[9], m[13],
-          m[2], m[6], m[10], m[14],
-          m[3], m[7], m[11], m[15]);
+   matrix_mult(ctx->CurrentStack, m, "glMultMatrix");
+}
+
+
+void GLAPIENTRY
+_mesa_MatrixMultfEXT( GLenum matrixMode, const GLfloat *m )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_matrix_stack * stack =
+      get_named_matrix_stack(ctx, matrixMode, "glMatrixMultfEXT");
+   if (!stack)
+      return;
+
+   matrix_mult(stack, m, "glMultMatrix");
+}
+
+
+static void
+matrix_rotate(struct gl_matrix_stack *stack, GLfloat angle,
+              GLfloat x, GLfloat y, GLfloat z, const char* caller)
+{
+   GET_CURRENT_CONTEXT(ctx);
 
    FLUSH_VERTICES(ctx, 0);
-   _math_matrix_mul_floats( ctx->CurrentStack->Top, m );
-   ctx->NewState |= ctx->CurrentStack->DirtyFlag;
+   if (angle != 0.0F) {
+      _math_matrix_rotate(stack->Top, angle, x, y, z);
+      ctx->NewState |=stack->DirtyFlag;
+   }
 }
 
 
@@ -412,12 +626,20 @@ void GLAPIENTRY
 _mesa_Rotatef( GLfloat angle, GLfloat x, GLfloat y, GLfloat z )
 {
    GET_CURRENT_CONTEXT(ctx);
+   matrix_rotate(ctx->CurrentStack, angle, x, y, z, "glRotatef");
+}
 
-   FLUSH_VERTICES(ctx, 0);
-   if (angle != 0.0F) {
-      _math_matrix_rotate( ctx->CurrentStack->Top, angle, x, y, z);
-      ctx->NewState |= ctx->CurrentStack->DirtyFlag;
-   }
+
+void GLAPIENTRY
+_mesa_MatrixRotatefEXT( GLenum matrixMode, GLfloat angle, GLfloat x, GLfloat y, GLfloat z )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_matrix_stack *stack =
+      get_named_matrix_stack(ctx, matrixMode, "glMatrixRotatefEXT");
+   if (!stack)
+      return;
+
+   matrix_rotate(stack, angle, x, y, z, "glMatrixRotatefEXT");
 }
 
 
@@ -445,6 +667,22 @@ _mesa_Scalef( GLfloat x, GLfloat y, GLfloat z )
 }
 
 
+void GLAPIENTRY
+_mesa_MatrixScalefEXT( GLenum matrixMode, GLfloat x, GLfloat y, GLfloat z )
+{
+   struct gl_matrix_stack *stack;
+   GET_CURRENT_CONTEXT(ctx);
+
+   stack = get_named_matrix_stack(ctx, matrixMode, "glMatrixScalefEXT");
+   if (!stack)
+      return;
+
+   FLUSH_VERTICES(ctx, 0);
+   _math_matrix_scale(stack->Top, x, y, z);
+   ctx->NewState |= stack->DirtyFlag;
+}
+
+
 /**
  * Multiply the current matrix with a translation matrix.
  *
@@ -468,7 +706,22 @@ _mesa_Translatef( GLfloat x, GLfloat y, GLfloat z )
    ctx->NewState |= ctx->CurrentStack->DirtyFlag;
 }
 
- 
+
+void GLAPIENTRY
+_mesa_MatrixTranslatefEXT( GLenum matrixMode, GLfloat x, GLfloat y, GLfloat z )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_matrix_stack *stack =
+      get_named_matrix_stack(ctx, matrixMode, "glMatrixTranslatefEXT");
+   if (!stack)
+      return;
+
+   FLUSH_VERTICES(ctx, 0);
+   _math_matrix_translate(stack->Top, x, y, z);
+   ctx->NewState |= stack->DirtyFlag;
+}
+
+
 void GLAPIENTRY
 _mesa_LoadMatrixd( const GLdouble *m )
 {
@@ -479,6 +732,18 @@ _mesa_LoadMatrixd( const GLdouble *m )
       f[i] = (GLfloat) m[i];
    _mesa_LoadMatrixf(f);
 }
+
+
+void GLAPIENTRY
+_mesa_MatrixLoaddEXT( GLenum matrixMode, const GLdouble *m )
+{
+   GLfloat f[16];
+   if (!m) return;
+   for (unsigned i = 0; i < 16; i++)
+      f[i] = (GLfloat) m[i];
+   _mesa_MatrixLoadfEXT(matrixMode, f);
+}
+
 
 void GLAPIENTRY
 _mesa_MultMatrixd( const GLdouble *m )
@@ -493,9 +758,29 @@ _mesa_MultMatrixd( const GLdouble *m )
 
 
 void GLAPIENTRY
+_mesa_MatrixMultdEXT( GLenum matrixMode, const GLdouble *m )
+{
+   GLfloat f[16];
+   if (!m) return;
+   for (unsigned i = 0; i < 16; i++)
+      f[i] = (GLfloat) m[i];
+   _mesa_MatrixMultfEXT(matrixMode, f);
+}
+
+
+void GLAPIENTRY
 _mesa_Rotated( GLdouble angle, GLdouble x, GLdouble y, GLdouble z )
 {
    _mesa_Rotatef((GLfloat) angle, (GLfloat) x, (GLfloat) y, (GLfloat) z);
+}
+
+
+void GLAPIENTRY
+_mesa_MatrixRotatedEXT( GLenum matrixMode, GLdouble angle,
+      GLdouble x, GLdouble y, GLdouble z )
+{
+   _mesa_MatrixRotatefEXT(matrixMode, (GLfloat) angle,
+         (GLfloat) x, (GLfloat) y, (GLfloat) z);
 }
 
 
@@ -507,9 +792,23 @@ _mesa_Scaled( GLdouble x, GLdouble y, GLdouble z )
 
 
 void GLAPIENTRY
+_mesa_MatrixScaledEXT( GLenum matrixMode, GLdouble x, GLdouble y, GLdouble z )
+{
+   _mesa_MatrixScalefEXT(matrixMode, (GLfloat) x, (GLfloat) y, (GLfloat) z);
+}
+
+
+void GLAPIENTRY
 _mesa_Translated( GLdouble x, GLdouble y, GLdouble z )
 {
    _mesa_Translatef((GLfloat) x, (GLfloat) y, (GLfloat) z);
+}
+
+
+void GLAPIENTRY
+_mesa_MatrixTranslatedEXT( GLenum matrixMode, GLdouble x, GLdouble y, GLdouble z )
+{
+   _mesa_MatrixTranslatefEXT(matrixMode, (GLfloat) x, (GLfloat) y, (GLfloat) z);
 }
 
 
@@ -522,6 +821,14 @@ _mesa_LoadTransposeMatrixf( const GLfloat *m )
    _mesa_LoadMatrixf(tm);
 }
 
+void GLAPIENTRY
+_mesa_MatrixLoadTransposefEXT( GLenum matrixMode, const GLfloat *m )
+{
+   GLfloat tm[16];
+   if (!m) return;
+   _math_transposef(tm, m);
+   _mesa_MatrixLoadfEXT(matrixMode, tm);
+}
 
 void GLAPIENTRY
 _mesa_LoadTransposeMatrixd( const GLdouble *m )
@@ -532,6 +839,14 @@ _mesa_LoadTransposeMatrixd( const GLdouble *m )
    _mesa_LoadMatrixf(tm);
 }
 
+void GLAPIENTRY
+_mesa_MatrixLoadTransposedEXT( GLenum matrixMode, const GLdouble *m )
+{
+   GLfloat tm[16];
+   if (!m) return;
+   _math_transposefd(tm, m);
+   _mesa_MatrixLoadfEXT(matrixMode, tm);
+}
 
 void GLAPIENTRY
 _mesa_MultTransposeMatrixf( const GLfloat *m )
@@ -542,6 +857,14 @@ _mesa_MultTransposeMatrixf( const GLfloat *m )
    _mesa_MultMatrixf(tm);
 }
 
+void GLAPIENTRY
+_mesa_MatrixMultTransposefEXT( GLenum matrixMode, const GLfloat *m )
+{
+   GLfloat tm[16];
+   if (!m) return;
+   _math_transposef(tm, m);
+   _mesa_MatrixMultfEXT(matrixMode, tm);
+}
 
 void GLAPIENTRY
 _mesa_MultTransposeMatrixd( const GLdouble *m )
@@ -552,7 +875,14 @@ _mesa_MultTransposeMatrixd( const GLdouble *m )
    _mesa_MultMatrixf(tm);
 }
 
-
+void GLAPIENTRY
+_mesa_MatrixMultTransposedEXT( GLenum matrixMode, const GLdouble *m )
+{
+   GLfloat tm[16];
+   if (!m) return;
+   _math_transposefd(tm, m);
+   _mesa_MatrixMultfEXT(matrixMode, tm);
+}
 
 /**********************************************************************/
 /** \name State management */

@@ -292,6 +292,11 @@ struct ir3_instruction {
 	};
 
 	/* used for per-pass extra instruction data.
+	 *
+	 * TODO we should remove the per-pass data like this and 'use_count'
+	 * and do something similar to what RA does w/ ir3_ra_instr_data..
+	 * ie. use the ir3_count_instructions pass, and then use instr->ip
+	 * to index into a table of pass-private data.
 	 */
 	void *data;
 
@@ -609,6 +614,18 @@ static inline bool is_nop(struct ir3_instruction *instr)
 	return instr->opc == OPC_NOP;
 }
 
+static inline bool is_same_type_reg(struct ir3_register *reg1,
+		struct ir3_register *reg2)
+{
+	unsigned type_reg1 = (reg1->flags & (IR3_REG_HIGH | IR3_REG_HALF));
+	unsigned type_reg2 = (reg1->flags & (IR3_REG_HIGH | IR3_REG_HALF));
+
+	if (type_reg1 ^ type_reg2)
+		return false;
+	else
+		return true;
+}
+
 /* Is it a non-transformative (ie. not type changing) mov?  This can
  * also include absneg.s/absneg.f, which for the most part can be
  * treated as a mov (single src argument).
@@ -625,6 +642,10 @@ static inline bool is_same_type_mov(struct ir3_instruction *instr)
 	case OPC_ABSNEG_F:
 	case OPC_ABSNEG_S:
 		if (instr->flags & IR3_INSTR_SAT)
+			return false;
+		/* If the type of dest reg and src reg are different,
+		 * it shouldn't be considered as same type mov */
+		if (!is_same_type_reg(instr->regs[0], instr->regs[1]))
 			return false;
 		break;
 	default:
@@ -856,6 +877,41 @@ static inline bool ir3_cat2_int(opc_t opc)
 	}
 }
 
+static inline bool ir3_cat2_float(opc_t opc)
+{
+	switch (opc) {
+	case OPC_ADD_F:
+	case OPC_MIN_F:
+	case OPC_MAX_F:
+	case OPC_MUL_F:
+	case OPC_SIGN_F:
+	case OPC_CMPS_F:
+	case OPC_ABSNEG_F:
+	case OPC_CMPV_F:
+	case OPC_FLOOR_F:
+	case OPC_CEIL_F:
+	case OPC_RNDNE_F:
+	case OPC_RNDAZ_F:
+	case OPC_TRUNC_F:
+		return true;
+
+	default:
+		return false;
+	}
+}
+
+static inline bool ir3_cat3_float(opc_t opc)
+{
+	switch (opc) {
+	case OPC_MAD_F16:
+	case OPC_MAD_F32:
+	case OPC_SEL_F16:
+	case OPC_SEL_F32:
+		return true;
+	default:
+		return false;
+	}
+}
 
 /* map cat2 instruction to valid abs/neg flags: */
 static inline unsigned ir3_cat2_absneg(opc_t opc)
@@ -1056,18 +1112,24 @@ create_immed(struct ir3_block *block, uint32_t val)
 }
 
 static inline struct ir3_instruction *
-create_uniform(struct ir3_block *block, unsigned n)
+create_uniform_typed(struct ir3_block *block, unsigned n, type_t type)
 {
 	struct ir3_instruction *mov;
+	unsigned flags = (type_size(type) < 32) ? IR3_REG_HALF : 0;
 
 	mov = ir3_instr_create(block, OPC_MOV);
-	/* TODO get types right? */
-	mov->cat1.src_type = TYPE_F32;
-	mov->cat1.dst_type = TYPE_F32;
-	ir3_reg_create(mov, 0, 0);
-	ir3_reg_create(mov, n, IR3_REG_CONST);
+	mov->cat1.src_type = type;
+	mov->cat1.dst_type = type;
+	ir3_reg_create(mov, 0, flags);
+	ir3_reg_create(mov, n, IR3_REG_CONST | flags);
 
 	return mov;
+}
+
+static inline struct ir3_instruction *
+create_uniform(struct ir3_block *block, unsigned n)
+{
+	return create_uniform_typed(block, n, TYPE_F32);
 }
 
 static inline struct ir3_instruction *

@@ -30,7 +30,6 @@
 #include "radv_shader.h"
 #include "radv_cs.h"
 #include "sid.h"
-#include "gfx9d.h"
 #include "vk_format.h"
 #include "radv_debug.h"
 #include "radv_meta.h"

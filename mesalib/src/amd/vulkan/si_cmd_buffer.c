@@ -31,7 +31,6 @@
 #include "radv_shader.h"
 #include "radv_cs.h"
 #include "sid.h"
-#include "gfx9d.h"
 #include "radv_util.h"
 #include "main/macros.h"
 
@@ -91,16 +90,16 @@ si_emit_compute(struct radv_physical_device *physical_device,
 	radeon_set_sh_reg_seq(cs, R_00B858_COMPUTE_STATIC_THREAD_MGMT_SE0, 2);
 	/* R_00B858_COMPUTE_STATIC_THREAD_MGMT_SE0 / SE1 */
 	radeon_emit(cs, S_00B858_SH0_CU_EN(0xffff) | S_00B858_SH1_CU_EN(0xffff));
-	radeon_emit(cs, S_00B85C_SH0_CU_EN(0xffff) | S_00B85C_SH1_CU_EN(0xffff));
+	radeon_emit(cs, S_00B858_SH0_CU_EN(0xffff) | S_00B858_SH1_CU_EN(0xffff));
 
 	if (physical_device->rad_info.chip_class >= GFX7) {
 		/* Also set R_00B858_COMPUTE_STATIC_THREAD_MGMT_SE2 / SE3 */
 		radeon_set_sh_reg_seq(cs,
 				      R_00B864_COMPUTE_STATIC_THREAD_MGMT_SE2, 2);
-		radeon_emit(cs, S_00B864_SH0_CU_EN(0xffff) |
-			    S_00B864_SH1_CU_EN(0xffff));
-		radeon_emit(cs, S_00B868_SH0_CU_EN(0xffff) |
-			    S_00B868_SH1_CU_EN(0xffff));
+		radeon_emit(cs, S_00B858_SH0_CU_EN(0xffff) |
+			    S_00B858_SH1_CU_EN(0xffff));
+		radeon_emit(cs, S_00B858_SH0_CU_EN(0xffff) |
+			    S_00B858_SH1_CU_EN(0xffff));
 	}
 
 	/* This register has been moved to R_00CD20_COMPUTE_MAX_WAVE_ID
@@ -1360,7 +1359,7 @@ void radv_emit_default_sample_locations(struct radeon_cmdbuf *cs, int nr_samples
 	default:
 	case 1:
 		radeon_set_context_reg_seq(cs, R_028BD4_PA_SC_CENTROID_PRIORITY_0, 2);
-		radeon_emit(cs, centroid_priority_1x);
+		radeon_emit(cs, (uint32_t)centroid_priority_1x);
 		radeon_emit(cs, centroid_priority_1x >> 32);
 		radeon_set_context_reg(cs, R_028BF8_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_0, sample_locs_1x);
 		radeon_set_context_reg(cs, R_028C08_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y0_0, sample_locs_1x);
@@ -1369,7 +1368,7 @@ void radv_emit_default_sample_locations(struct radeon_cmdbuf *cs, int nr_samples
 		break;
 	case 2:
 		radeon_set_context_reg_seq(cs, R_028BD4_PA_SC_CENTROID_PRIORITY_0, 2);
-		radeon_emit(cs, centroid_priority_2x);
+		radeon_emit(cs, (uint32_t)centroid_priority_2x);
 		radeon_emit(cs, centroid_priority_2x >> 32);
 		radeon_set_context_reg(cs, R_028BF8_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_0, sample_locs_2x);
 		radeon_set_context_reg(cs, R_028C08_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y0_0, sample_locs_2x);
@@ -1378,7 +1377,7 @@ void radv_emit_default_sample_locations(struct radeon_cmdbuf *cs, int nr_samples
 		break;
 	case 4:
 		radeon_set_context_reg_seq(cs, R_028BD4_PA_SC_CENTROID_PRIORITY_0, 2);
-		radeon_emit(cs, centroid_priority_4x);
+		radeon_emit(cs, (uint32_t)centroid_priority_4x);
 		radeon_emit(cs, centroid_priority_4x >> 32);
 		radeon_set_context_reg(cs, R_028BF8_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_0, sample_locs_4x);
 		radeon_set_context_reg(cs, R_028C08_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y0_0, sample_locs_4x);
@@ -1387,7 +1386,7 @@ void radv_emit_default_sample_locations(struct radeon_cmdbuf *cs, int nr_samples
 		break;
 	case 8:
 		radeon_set_context_reg_seq(cs, R_028BD4_PA_SC_CENTROID_PRIORITY_0, 2);
-		radeon_emit(cs, centroid_priority_8x);
+		radeon_emit(cs, (uint32_t)centroid_priority_8x);
 		radeon_emit(cs, centroid_priority_8x >> 32);
 		radeon_set_context_reg_seq(cs, R_028BF8_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_0, 14);
 		radeon_emit_array(cs, sample_locs_8x, 4);

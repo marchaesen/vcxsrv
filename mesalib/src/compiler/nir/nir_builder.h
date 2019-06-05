@@ -549,6 +549,19 @@ nir_fdot(nir_builder *build, nir_ssa_def *src0, nir_ssa_def *src1)
 }
 
 static inline nir_ssa_def *
+nir_ball_iequal(nir_builder *b, nir_ssa_def *src0, nir_ssa_def *src1)
+{
+   switch (src0->num_components) {
+   case 1: return nir_ieq(b, src0, src1);
+   case 2: return nir_ball_iequal2(b, src0, src1);
+   case 3: return nir_ball_iequal3(b, src0, src1);
+   case 4: return nir_ball_iequal4(b, src0, src1);
+   default:
+      unreachable("bad component size");
+   }
+}
+
+static inline nir_ssa_def *
 nir_bany_inequal(nir_builder *b, nir_ssa_def *src0, nir_ssa_def *src1)
 {
    switch (src0->num_components) {

@@ -1082,9 +1082,8 @@ ra_block_alloc(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 		foreach_src_n(reg, n, instr) {
 			struct ir3_instruction *src = reg->instr;
 			/* Note: reg->instr could be null for IR3_REG_ARRAY */
-			if (!(src || (reg->flags & IR3_REG_ARRAY)))
-				continue;
-			reg_assign(ctx, instr->regs[n+1], src);
+			if (src || (reg->flags & IR3_REG_ARRAY))
+				reg_assign(ctx, instr->regs[n+1], src);
 			if (instr->regs[n+1]->flags & IR3_REG_HALF)
 				fixup_half_instr_src(instr);
 		}

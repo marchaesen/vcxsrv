@@ -38,6 +38,7 @@ struct ac_nir_context {
 	struct ac_shader_abi *abi;
 
 	gl_shader_stage stage;
+	shader_info *info;
 
 	LLVMValueRef *ssa_defs;
 
@@ -1265,7 +1266,7 @@ static LLVMValueRef lower_gather4_integer(struct ac_llvm_context *ctx,
 					      LLVMConstInt(ctx->i32, 0x14000000, false), "");
 
 		/* replace the NUM FORMAT in the descriptor */
-		tmp2 = LLVMBuildAnd(ctx->builder, tmp2, LLVMConstInt(ctx->i32, C_008F14_NUM_FORMAT_GFX6, false), "");
+		tmp2 = LLVMBuildAnd(ctx->builder, tmp2, LLVMConstInt(ctx->i32, C_008F14_NUM_FORMAT, false), "");
 		tmp2 = LLVMBuildOr(ctx->builder, tmp2, tmp, "");
 
 		args->resource = LLVMBuildInsertElement(ctx->builder, args->resource, tmp2, ctx->i32_1, "");
@@ -1394,6 +1395,22 @@ static LLVMValueRef build_tex_intrinsic(struct ac_nir_context *ctx,
 	}
 
 	args->attributes = AC_FUNC_ATTR_READNONE;
+	bool cs_derivs = ctx->stage == MESA_SHADER_COMPUTE &&
+			 ctx->info->cs.derivative_group != DERIVATIVE_GROUP_NONE;
+	if (ctx->stage == MESA_SHADER_FRAGMENT || cs_derivs) {
+		/* Prevent texture instructions with implicit derivatives from being
+		 * sinked into branches. */
+		switch (instr->op) {
+		case nir_texop_tex:
+		case nir_texop_txb:
+		case nir_texop_lod:
+			args->attributes |= AC_FUNC_ATTR_CONVERGENT;
+			break;
+		default:
+			break;
+		}
+	}
+
 	return ac_build_image_opcode(&ctx->ac, args);
 }
 
@@ -1574,9 +1591,10 @@ static void visit_store_ssbo(struct ac_nir_context *ctx,
 
 		u_bit_scan_consecutive_range(&writemask, &start, &count);
 
-		/* Due to an LLVM limitation, split 3-element writes
-		 * into a 2-element and a 1-element write. */
-		if (count == 3) {
+		/* Due to an LLVM limitation with LLVM < 9, split 3-element
+		 * writes into a 2-element and a 1-element write. */
+		if (count == 3 &&
+		    (elem_size_bytes != 4 || !ac_has_vec3_support(ctx->ac.chip_class, false))) {
 			writemask |= 1 << (start + 2);
 			count = 2;
 		}
@@ -1617,6 +1635,9 @@ static void visit_store_ssbo(struct ac_nir_context *ctx,
 			switch (num_bytes) {
 			case 16: /* v4f32 */
 				data_type = ctx->ac.v4f32;
+				break;
+			case 12: /* v3f32 */
+				data_type = ctx->ac.v3f32;
 				break;
 			case 8: /* v2f32 */
 				data_type = ctx->ac.v2f32;
@@ -4350,6 +4371,7 @@ void ac_nir_translate(struct ac_llvm_context *ac, struct ac_shader_abi *abi,
 	ctx.abi = abi;
 
 	ctx.stage = nir->info.stage;
+	ctx.info = &nir->info;
 
 	ctx.main_function = LLVMGetBasicBlockParent(LLVMGetInsertBlock(ctx.ac.builder));
 

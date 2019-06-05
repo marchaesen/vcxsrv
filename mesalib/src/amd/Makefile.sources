@@ -1,5 +1,4 @@
 COMMON_HEADER_FILES = \
-	common/gfx9d.h \
 	common/sid.h \
 	common/amd_family.h \
 	common/amd_kernel_code_t.h
@@ -64,4 +63,5 @@ AMD_DEBUG_FILES = \
 	common/ac_debug.h
 
 AMD_GENERATED_FILES = \
+	common/amdgfxregs.h \
 	common/sid_tables.h

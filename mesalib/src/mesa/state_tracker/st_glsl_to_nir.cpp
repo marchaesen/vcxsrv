@@ -524,7 +524,7 @@ st_glsl_to_nir_post_opts(struct st_context *st, struct gl_program *prog,
     * prog->ParameterValues to get reallocated (e.g., anything that adds a
     * program constant) has to happen before creating this linkage.
     */
-   _mesa_associate_uniform_storage(st->ctx, shader_program, prog, true);
+   _mesa_associate_uniform_storage(st->ctx, shader_program, prog);
 
    st_set_prog_affected_state_flags(prog);
 

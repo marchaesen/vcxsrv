@@ -160,14 +160,6 @@ radv_image_from_gralloc(VkDevice device_h,
 	struct radeon_bo_metadata md;
 	device->ws->buffer_get_metadata(radv_device_memory_from_handle(memory_h)->bo, &md);
 
-	bool is_scanout;
-	if (device->physical_device->rad_info.chip_class >= GFX9) {
-		/* Copied from radeonsi, but is hacky so should be cleaned up. */
-		is_scanout =  md.u.gfx9.swizzle_mode == 0 || md.u.gfx9.swizzle_mode % 4 == 2;
-	} else {
-		is_scanout = md.u.legacy.scanout;
-	}
-
 	VkImageCreateInfo updated_base_info = *base_info;
 
 	VkExternalMemoryImageCreateInfo external_memory_info = {
@@ -181,8 +173,9 @@ radv_image_from_gralloc(VkDevice device_h,
 	result = radv_image_create(device_h,
 	                           &(struct radv_image_create_info) {
 	                               .vk_info = &updated_base_info,
-	                               .scanout = is_scanout,
-	                               .no_metadata_planes = true},
+	                               .no_metadata_planes = true,
+	                               .bo_metadata = &md,
+	                           },
 	                           alloc,
 	                           &image_h);
 
