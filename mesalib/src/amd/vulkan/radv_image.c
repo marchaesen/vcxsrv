@@ -31,9 +31,9 @@
 #include "vk_util.h"
 #include "radv_radeon_winsys.h"
 #include "sid.h"
-#include "gfx9d.h"
 #include "util/debug.h"
 #include "util/u_atomic.h"
+
 static unsigned
 radv_choose_tiling(struct radv_device *device,
 		   const struct radv_image_create_info *create_info)
@@ -128,6 +128,22 @@ radv_use_tc_compat_htile_for_image(struct radv_device *device,
 }
 
 static bool
+radv_surface_has_scanout(struct radv_device *device, const struct radv_image_create_info *info)
+{
+	if (info->scanout)
+		return true;
+
+	if (!info->bo_metadata)
+		return false;
+
+	if (device->physical_device->rad_info.chip_class >= GFX9) {
+		return info->bo_metadata->u.gfx9.swizzle_mode == 0 || info->bo_metadata->u.gfx9.swizzle_mode % 4 == 2;
+	} else {
+		return info->bo_metadata->u.legacy.scanout;
+	}
+}
+
+static bool
 radv_use_dcc_for_image(struct radv_device *device,
 		       const struct radv_image *image,
 		       const struct radv_image_create_info *create_info,
@@ -164,7 +180,7 @@ radv_use_dcc_for_image(struct radv_device *device,
 	if (pCreateInfo->mipLevels > 1 || pCreateInfo->arrayLayers > 1)
 		return false;
 
-	if (create_info->scanout)
+	if (radv_surface_has_scanout(device, create_info))
 		return false;
 
 	/* FIXME: DCC for MSAA with 4x and 8x samples doesn't work yet, while
@@ -206,6 +222,37 @@ radv_use_dcc_for_image(struct radv_device *device,
 	return true;
 }
 
+static void
+radv_prefill_surface_from_metadata(struct radv_device *device,
+                                   struct radeon_surf *surface,
+                                   const struct radv_image_create_info *create_info)
+{
+	const struct radeon_bo_metadata *md = create_info->bo_metadata;
+	if (device->physical_device->rad_info.chip_class >= GFX9) {
+		if (md->u.gfx9.swizzle_mode > 0)
+			surface->flags |= RADEON_SURF_SET(RADEON_SURF_MODE_2D, MODE);
+		else
+			surface->flags |= RADEON_SURF_SET(RADEON_SURF_MODE_LINEAR_ALIGNED, MODE);
+
+		surface->u.gfx9.surf.swizzle_mode = md->u.gfx9.swizzle_mode;
+	} else {
+		surface->u.legacy.pipe_config = md->u.legacy.pipe_config;
+		surface->u.legacy.bankw = md->u.legacy.bankw;
+		surface->u.legacy.bankh = md->u.legacy.bankh;
+		surface->u.legacy.tile_split = md->u.legacy.tile_split;
+		surface->u.legacy.mtilea = md->u.legacy.mtilea;
+		surface->u.legacy.num_banks = md->u.legacy.num_banks;
+
+		if (md->u.legacy.macrotile == RADEON_LAYOUT_TILED)
+			surface->flags |= RADEON_SURF_SET(RADEON_SURF_MODE_2D, MODE);
+		else if (md->u.legacy.microtile == RADEON_LAYOUT_TILED)
+			surface->flags |= RADEON_SURF_SET(RADEON_SURF_MODE_1D, MODE);
+		else
+			surface->flags |= RADEON_SURF_SET(RADEON_SURF_MODE_LINEAR_ALIGNED, MODE);
+
+	}
+}
+
 static int
 radv_init_surface(struct radv_device *device,
 		  const struct radv_image *image,
@@ -230,7 +277,11 @@ radv_init_surface(struct radv_device *device,
 	if (surface->bpe == 3) {
 		surface->bpe = 4;
 	}
-	surface->flags = RADEON_SURF_SET(array_mode, MODE);
+	if (create_info->bo_metadata) {
+		radv_prefill_surface_from_metadata(device, surface, create_info);
+	} else {
+		surface->flags = RADEON_SURF_SET(array_mode, MODE);
+	}
 
 	switch (pCreateInfo->imageType){
 	case VK_IMAGE_TYPE_1D:
@@ -272,8 +323,9 @@ radv_init_surface(struct radv_device *device,
 	if (!radv_use_dcc_for_image(device, image, create_info, pCreateInfo))
 		surface->flags |= RADEON_SURF_DISABLE_DCC;
 
-	if (create_info->scanout)
+	if (radv_surface_has_scanout(device, create_info))
 		surface->flags |= RADEON_SURF_SCANOUT;
+
 	return 0;
 }
 
@@ -398,14 +450,14 @@ si_set_mutable_tex_desc_fields(struct radv_device *device,
 
 	if (chip_class >= GFX9) {
 		state[3] &= C_008F1C_SW_MODE;
-		state[4] &= C_008F20_PITCH_GFX9;
+		state[4] &= C_008F20_PITCH;
 
 		if (is_stencil) {
 			state[3] |= S_008F1C_SW_MODE(plane->surface.u.gfx9.stencil.swizzle_mode);
-			state[4] |= S_008F20_PITCH_GFX9(plane->surface.u.gfx9.stencil.epitch);
+			state[4] |= S_008F20_PITCH(plane->surface.u.gfx9.stencil.epitch);
 		} else {
 			state[3] |= S_008F1C_SW_MODE(plane->surface.u.gfx9.surf.swizzle_mode);
-			state[4] |= S_008F20_PITCH_GFX9(plane->surface.u.gfx9.surf.epitch);
+			state[4] |= S_008F20_PITCH(plane->surface.u.gfx9.surf.epitch);
 		}
 
 		state[5] &= C_008F24_META_DATA_ADDRESS &
@@ -430,8 +482,8 @@ si_set_mutable_tex_desc_fields(struct radv_device *device,
 
 		state[3] &= C_008F1C_TILING_INDEX;
 		state[3] |= S_008F1C_TILING_INDEX(index);
-		state[4] &= C_008F20_PITCH_GFX6;
-		state[4] |= S_008F20_PITCH_GFX6(pitch - 1);
+		state[4] &= C_008F20_PITCH;
+		state[4] |= S_008F20_PITCH(pitch - 1);
 	}
 }
 
@@ -555,8 +607,8 @@ si_make_texture_descriptor(struct radv_device *device,
 		depth = image->info.array_size / 6;
 
 	state[0] = 0;
-	state[1] = (S_008F14_DATA_FORMAT_GFX6(data_format) |
-		    S_008F14_NUM_FORMAT_GFX6(num_format));
+	state[1] = (S_008F14_DATA_FORMAT(data_format) |
+		    S_008F14_NUM_FORMAT(num_format));
 	state[2] = (S_008F18_WIDTH(width - 1) |
 		    S_008F18_HEIGHT(height - 1) |
 		    S_008F18_PERF_MOD(4));
@@ -657,8 +709,8 @@ si_make_texture_descriptor(struct radv_device *device,
 		fmask_state[0] = va >> 8;
 		fmask_state[0] |= image->fmask.tile_swizzle;
 		fmask_state[1] = S_008F14_BASE_ADDRESS_HI(va >> 40) |
-			S_008F14_DATA_FORMAT_GFX6(fmask_format) |
-			S_008F14_NUM_FORMAT_GFX6(num_format);
+			S_008F14_DATA_FORMAT(fmask_format) |
+			S_008F14_NUM_FORMAT(num_format);
 		fmask_state[2] = S_008F18_WIDTH(width - 1) |
 			S_008F18_HEIGHT(height - 1);
 		fmask_state[3] = S_008F1C_DST_SEL_X(V_008F1C_SQ_SEL_X) |
@@ -674,13 +726,13 @@ si_make_texture_descriptor(struct radv_device *device,
 		if (device->physical_device->rad_info.chip_class >= GFX9) {
 			fmask_state[3] |= S_008F1C_SW_MODE(image->planes[0].surface.u.gfx9.fmask.swizzle_mode);
 			fmask_state[4] |= S_008F20_DEPTH(last_layer) |
-					  S_008F20_PITCH_GFX9(image->planes[0].surface.u.gfx9.fmask.epitch);
+					  S_008F20_PITCH(image->planes[0].surface.u.gfx9.fmask.epitch);
 			fmask_state[5] |= S_008F24_META_PIPE_ALIGNED(image->planes[0].surface.u.gfx9.cmask.pipe_aligned) |
 					  S_008F24_META_RB_ALIGNED(image->planes[0].surface.u.gfx9.cmask.rb_aligned);
 		} else {
 			fmask_state[3] |= S_008F1C_TILING_INDEX(image->fmask.tile_mode_index);
 			fmask_state[4] |= S_008F20_DEPTH(depth - 1) |
-				S_008F20_PITCH_GFX6(image->fmask.pitch_in_pixels - 1);
+				S_008F20_PITCH(image->fmask.pitch_in_pixels - 1);
 			fmask_state[5] |= S_008F24_LAST_ARRAY(last_layer);
 		}
 	} else if (fmask_state)
@@ -1057,7 +1109,8 @@ radv_image_create(VkDevice _device,
 
 	image->shareable = vk_find_struct_const(pCreateInfo->pNext,
 	                                        EXTERNAL_MEMORY_IMAGE_CREATE_INFO) != NULL;
-	if (!vk_format_is_depth_or_stencil(pCreateInfo->format) && !create_info->scanout && !image->shareable) {
+	if (!vk_format_is_depth_or_stencil(pCreateInfo->format) &&
+	    !radv_surface_has_scanout(device, create_info) && !image->shareable) {
 		image->info.surf_index = &device->image_mrt_offset_counter;
 	}
 

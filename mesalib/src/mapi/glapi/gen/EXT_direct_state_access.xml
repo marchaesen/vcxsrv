@@ -1,0 +1,126 @@
+<?xml version="1.0"?>
+<!DOCTYPE OpenGLAPI SYSTEM "gl_API.dtd">
+
+<!-- Note: no GLX protocol info yet. -->
+
+<OpenGLAPI>
+
+<category name="GL_EXT_direct_state_access" number="353">
+
+   <!--
+      This extension is unusual in that it is ALL interactions
+      with specific GL versions and other extensions.
+   -->
+
+   <enum name="PROGRAM_MATRIX_EXT" value="0x8E2D"/>
+   <enum name="TRANSPOSE_PROGRAM_MATRIX_EXT" value="0x8E2E"/>
+   <enum name="PROGRAM_MATRIX_STACK_DEPTH_EXT" value="0x8E2F"/>
+
+   <!-- GL1.0 extras -->
+
+   <function name="MatrixLoadfEXT" offset="assign">
+      <param name="matrixMode" type="GLenum" />
+      <param name="m" type="const GLfloat *" />
+   </function>
+   <function name="MatrixLoaddEXT" offset="assign">
+      <param name="matrixMode" type="GLenum" />
+      <param name="m" type="const GLdouble *" />
+   </function>
+   <function name="MatrixMultfEXT" offset="assign">
+      <param name="matrixMode" type="GLenum" />
+      <param name="m" type="const GLfloat *" />
+   </function>
+   <function name="MatrixMultdEXT" offset="assign">
+      <param name="matrixMode" type="GLenum" />
+      <param name="m" type="const GLdouble *" />
+   </function>
+   <function name="MatrixLoadIdentityEXT" offset="assign">
+      <param name="matrixMode" type="GLenum" />
+   </function>
+   <function name="MatrixRotatefEXT" offset="assign">
+      <param name="matrixMode" type="GLenum" />
+      <param name="angle" type="GLfloat" />
+      <param name="x" type="GLfloat" />
+      <param name="y" type="GLfloat" />
+      <param name="z" type="GLfloat" />
+   </function>
+   <function name="MatrixRotatedEXT" offset="assign">
+      <param name="matrixMode" type="GLenum" />
+      <param name="angle" type="GLdouble" />
+      <param name="x" type="GLdouble" />
+      <param name="y" type="GLdouble" />
+      <param name="z" type="GLdouble" />
+   </function>
+   <function name="MatrixScalefEXT" offset="assign">
+      <param name="matrixMode" type="GLenum" />
+      <param name="x" type="GLfloat" />
+      <param name="y" type="GLfloat" />
+      <param name="z" type="GLfloat" />
+   </function>
+   <function name="MatrixScaledEXT" offset="assign">
+      <param name="matrixMode" type="GLenum" />
+      <param name="x" type="GLdouble" />
+      <param name="y" type="GLdouble" />
+      <param name="z" type="GLdouble" />
+   </function>
+   <function name="MatrixTranslatefEXT" offset="assign">
+      <param name="matrixMode" type="GLenum" />
+      <param name="x" type="GLfloat" />
+      <param name="y" type="GLfloat" />
+      <param name="z" type="GLfloat" />
+   </function>
+   <function name="MatrixTranslatedEXT" offset="assign">
+      <param name="matrixMode" type="GLenum" />
+      <param name="x" type="GLdouble" />
+      <param name="y" type="GLdouble" />
+      <param name="z" type="GLdouble" />
+   </function>
+   <function name="MatrixOrthoEXT" offset="assign">
+      <param name="matrixMode" type="GLenum" />
+      <param name="l" type="GLdouble" />
+      <param name="r" type="GLdouble" />
+      <param name="b" type="GLdouble" />
+      <param name="t" type="GLdouble" />
+      <param name="n" type="GLdouble" />
+      <param name="f" type="GLdouble" />
+   </function>
+   <function name="MatrixFrustumEXT" offset="assign">
+      <param name="matrixMode" type="GLenum" />
+      <param name="l" type="GLdouble" />
+      <param name="r" type="GLdouble" />
+      <param name="b" type="GLdouble" />
+      <param name="t" type="GLdouble" />
+      <param name="n" type="GLdouble" />
+      <param name="f" type="GLdouble" />
+   </function>
+   <function name="MatrixPushEXT" offset="assign">
+      <param name="matrixMode" type="GLenum" />
+   </function>
+   <function name="MatrixPopEXT" offset="assign">
+      <param name="matrixMode" type="GLenum" />
+   </function>
+
+   <!-- OpenGL 1.3 -->
+
+   <function name="MatrixLoadTransposefEXT" offset="assign">
+      <param name="matrixMode" type="GLenum" />
+      <param name="m" type="const GLfloat *" />
+   </function>
+
+   <function name="MatrixLoadTransposedEXT" offset="assign">
+      <param name="matrixMode" type="GLenum" />
+      <param name="m" type="const GLdouble *" />
+   </function>
+
+   <function name="MatrixMultTransposefEXT" offset="assign">
+      <param name="matrixMode" type="GLenum" />
+      <param name="m" type="const GLfloat *" />
+   </function>
+
+   <function name="MatrixMultTransposedEXT" offset="assign">
+      <param name="matrixMode" type="GLenum" />
+      <param name="m" type="const GLdouble *" />
+   </function>
+</category>
+
+</OpenGLAPI>

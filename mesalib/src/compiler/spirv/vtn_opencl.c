@@ -31,13 +31,14 @@
 #include "vtn_private.h"
 #include "OpenCL.std.h"
 
-typedef nir_ssa_def *(*nir_handler)(struct vtn_builder *b, enum OpenCLstd opcode,
+typedef nir_ssa_def *(*nir_handler)(struct vtn_builder *b,
+                                    enum OpenCLstd_Entrypoints opcode,
                                     unsigned num_srcs, nir_ssa_def **srcs,
                                     const struct glsl_type *dest_type);
 
 static void
-handle_instr(struct vtn_builder *b, enum OpenCLstd opcode, const uint32_t *w,
-             unsigned count, nir_handler handler)
+handle_instr(struct vtn_builder *b, enum OpenCLstd_Entrypoints opcode,
+             const uint32_t *w, unsigned count, nir_handler handler)
 {
    const struct glsl_type *dest_type =
       vtn_value(b, w[1], vtn_value_type_type)->type->type;
@@ -60,121 +61,124 @@ handle_instr(struct vtn_builder *b, enum OpenCLstd opcode, const uint32_t *w,
 }
 
 static nir_op
-nir_alu_op_for_opencl_opcode(struct vtn_builder *b, enum OpenCLstd opcode)
+nir_alu_op_for_opencl_opcode(struct vtn_builder *b,
+                             enum OpenCLstd_Entrypoints opcode)
 {
    switch (opcode) {
-   case Fabs: return nir_op_fabs;
-   case SAbs: return nir_op_iabs;
-   case SAdd_sat: return nir_op_iadd_sat;
-   case UAdd_sat: return nir_op_uadd_sat;
-   case Ceil: return nir_op_fceil;
-   case Cos: return nir_op_fcos;
-   case Exp2: return nir_op_fexp2;
-   case Log2: return nir_op_flog2;
-   case Floor: return nir_op_ffloor;
-   case SHadd: return nir_op_ihadd;
-   case UHadd: return nir_op_uhadd;
-   case Fma: return nir_op_ffma;
-   case Fmax: return nir_op_fmax;
-   case SMax: return nir_op_imax;
-   case UMax: return nir_op_umax;
-   case Fmin: return nir_op_fmin;
-   case SMin: return nir_op_imin;
-   case UMin: return nir_op_umin;
-   case Fmod: return nir_op_fmod;
-   case Mix: return nir_op_flrp;
-   case SMul_hi: return nir_op_imul_high;
-   case UMul_hi: return nir_op_umul_high;
-   case Popcount: return nir_op_bit_count;
-   case Pow: return nir_op_fpow;
-   case Remainder: return nir_op_frem;
-   case SRhadd: return nir_op_irhadd;
-   case URhadd: return nir_op_urhadd;
-   case Rsqrt: return nir_op_frsq;
-   case Sign: return nir_op_fsign;
-   case Sin: return nir_op_fsin;
-   case Sqrt: return nir_op_fsqrt;
-   case SSub_sat: return nir_op_isub_sat;
-   case USub_sat: return nir_op_usub_sat;
-   case Trunc: return nir_op_ftrunc;
+   case OpenCLstd_Fabs: return nir_op_fabs;
+   case OpenCLstd_SAbs: return nir_op_iabs;
+   case OpenCLstd_SAdd_sat: return nir_op_iadd_sat;
+   case OpenCLstd_UAdd_sat: return nir_op_uadd_sat;
+   case OpenCLstd_Ceil: return nir_op_fceil;
+   case OpenCLstd_Cos: return nir_op_fcos;
+   case OpenCLstd_Exp2: return nir_op_fexp2;
+   case OpenCLstd_Log2: return nir_op_flog2;
+   case OpenCLstd_Floor: return nir_op_ffloor;
+   case OpenCLstd_SHadd: return nir_op_ihadd;
+   case OpenCLstd_UHadd: return nir_op_uhadd;
+   case OpenCLstd_Fma: return nir_op_ffma;
+   case OpenCLstd_Fmax: return nir_op_fmax;
+   case OpenCLstd_SMax: return nir_op_imax;
+   case OpenCLstd_UMax: return nir_op_umax;
+   case OpenCLstd_Fmin: return nir_op_fmin;
+   case OpenCLstd_SMin: return nir_op_imin;
+   case OpenCLstd_UMin: return nir_op_umin;
+   case OpenCLstd_Fmod: return nir_op_fmod;
+   case OpenCLstd_Mix: return nir_op_flrp;
+   case OpenCLstd_SMul_hi: return nir_op_imul_high;
+   case OpenCLstd_UMul_hi: return nir_op_umul_high;
+   case OpenCLstd_Popcount: return nir_op_bit_count;
+   case OpenCLstd_Pow: return nir_op_fpow;
+   case OpenCLstd_Remainder: return nir_op_frem;
+   case OpenCLstd_SRhadd: return nir_op_irhadd;
+   case OpenCLstd_URhadd: return nir_op_urhadd;
+   case OpenCLstd_Rsqrt: return nir_op_frsq;
+   case OpenCLstd_Sign: return nir_op_fsign;
+   case OpenCLstd_Sin: return nir_op_fsin;
+   case OpenCLstd_Sqrt: return nir_op_fsqrt;
+   case OpenCLstd_SSub_sat: return nir_op_isub_sat;
+   case OpenCLstd_USub_sat: return nir_op_usub_sat;
+   case OpenCLstd_Trunc: return nir_op_ftrunc;
    /* uhm... */
-   case UAbs: return nir_op_mov;
+   case OpenCLstd_UAbs: return nir_op_mov;
    default:
       vtn_fail("No NIR equivalent");
    }
 }
 
 static nir_ssa_def *
-handle_alu(struct vtn_builder *b, enum OpenCLstd opcode, unsigned num_srcs,
-           nir_ssa_def **srcs, const struct glsl_type *dest_type)
+handle_alu(struct vtn_builder *b, enum OpenCLstd_Entrypoints opcode,
+           unsigned num_srcs, nir_ssa_def **srcs,
+           const struct glsl_type *dest_type)
 {
    return nir_build_alu(&b->nb, nir_alu_op_for_opencl_opcode(b, opcode),
                         srcs[0], srcs[1], srcs[2], NULL);
 }
 
 static nir_ssa_def *
-handle_special(struct vtn_builder *b, enum OpenCLstd opcode, unsigned num_srcs,
-               nir_ssa_def **srcs, const struct glsl_type *dest_type)
+handle_special(struct vtn_builder *b, enum OpenCLstd_Entrypoints opcode,
+               unsigned num_srcs, nir_ssa_def **srcs,
+               const struct glsl_type *dest_type)
 {
    nir_builder *nb = &b->nb;
 
    switch (opcode) {
-   case SAbs_diff:
+   case OpenCLstd_SAbs_diff:
       return nir_iabs_diff(nb, srcs[0], srcs[1]);
-   case UAbs_diff:
+   case OpenCLstd_UAbs_diff:
       return nir_uabs_diff(nb, srcs[0], srcs[1]);
-   case Bitselect:
+   case OpenCLstd_Bitselect:
       return nir_bitselect(nb, srcs[0], srcs[1], srcs[2]);
-   case FClamp:
+   case OpenCLstd_FClamp:
       return nir_fclamp(nb, srcs[0], srcs[1], srcs[2]);
-   case SClamp:
+   case OpenCLstd_SClamp:
       return nir_iclamp(nb, srcs[0], srcs[1], srcs[2]);
-   case UClamp:
+   case OpenCLstd_UClamp:
       return nir_uclamp(nb, srcs[0], srcs[1], srcs[2]);
-   case Copysign:
+   case OpenCLstd_Copysign:
       return nir_copysign(nb, srcs[0], srcs[1]);
-   case Cross:
+   case OpenCLstd_Cross:
       if (glsl_get_components(dest_type) == 4)
          return nir_cross4(nb, srcs[0], srcs[1]);
       return nir_cross3(nb, srcs[0], srcs[1]);
-   case Degrees:
+   case OpenCLstd_Degrees:
       return nir_degrees(nb, srcs[0]);
-   case Fdim:
+   case OpenCLstd_Fdim:
       return nir_fdim(nb, srcs[0], srcs[1]);
-   case Distance:
+   case OpenCLstd_Distance:
       return nir_distance(nb, srcs[0], srcs[1]);
-   case Fast_distance:
+   case OpenCLstd_Fast_distance:
       return nir_fast_distance(nb, srcs[0], srcs[1]);
-   case Fast_length:
+   case OpenCLstd_Fast_length:
       return nir_fast_length(nb, srcs[0]);
-   case Fast_normalize:
+   case OpenCLstd_Fast_normalize:
       return nir_fast_normalize(nb, srcs[0]);
-   case Length:
+   case OpenCLstd_Length:
       return nir_length(nb, srcs[0]);
-   case Mad:
+   case OpenCLstd_Mad:
       return nir_fmad(nb, srcs[0], srcs[1], srcs[2]);
-   case Maxmag:
+   case OpenCLstd_Maxmag:
       return nir_maxmag(nb, srcs[0], srcs[1]);
-   case Minmag:
+   case OpenCLstd_Minmag:
       return nir_minmag(nb, srcs[0], srcs[1]);
-   case Nan:
+   case OpenCLstd_Nan:
       return nir_nan(nb, srcs[0]);
-   case Nextafter:
+   case OpenCLstd_Nextafter:
       return nir_nextafter(nb, srcs[0], srcs[1]);
-   case Normalize:
+   case OpenCLstd_Normalize:
       return nir_normalize(nb, srcs[0]);
-   case Radians:
+   case OpenCLstd_Radians:
       return nir_radians(nb, srcs[0]);
-   case Rotate:
+   case OpenCLstd_Rotate:
       return nir_rotate(nb, srcs[0], srcs[1]);
-   case Smoothstep:
+   case OpenCLstd_Smoothstep:
       return nir_smoothstep(nb, srcs[0], srcs[1], srcs[2]);
-   case Select:
+   case OpenCLstd_Select:
       return nir_select(nb, srcs[0], srcs[1], srcs[2]);
-   case Step:
+   case OpenCLstd_Step:
       return nir_sge(nb, srcs[1], srcs[0]);
-   case S_Upsample:
-   case U_Upsample:
+   case OpenCLstd_S_Upsample:
+   case OpenCLstd_U_Upsample:
       return nir_upsample(nb, srcs[0], srcs[1]);
    default:
       vtn_fail("No NIR equivalent");
@@ -183,7 +187,7 @@ handle_special(struct vtn_builder *b, enum OpenCLstd opcode, unsigned num_srcs,
 }
 
 static void
-_handle_v_load_store(struct vtn_builder *b, enum OpenCLstd opcode,
+_handle_v_load_store(struct vtn_builder *b, enum OpenCLstd_Entrypoints opcode,
                      const uint32_t *w, unsigned count, bool load)
 {
    struct vtn_type *type;
@@ -218,22 +222,23 @@ _handle_v_load_store(struct vtn_builder *b, enum OpenCLstd opcode,
 }
 
 static void
-vtn_handle_opencl_vload(struct vtn_builder *b, enum OpenCLstd opcode,
+vtn_handle_opencl_vload(struct vtn_builder *b, enum OpenCLstd_Entrypoints opcode,
                         const uint32_t *w, unsigned count)
 {
    _handle_v_load_store(b, opcode, w, count, true);
 }
 
 static void
-vtn_handle_opencl_vstore(struct vtn_builder *b, enum OpenCLstd opcode,
+vtn_handle_opencl_vstore(struct vtn_builder *b, enum OpenCLstd_Entrypoints opcode,
                          const uint32_t *w, unsigned count)
 {
    _handle_v_load_store(b, opcode, w, count, false);
 }
 
 static nir_ssa_def *
-handle_printf(struct vtn_builder *b, enum OpenCLstd opcode, unsigned num_srcs,
-              nir_ssa_def **srcs, const struct glsl_type *dest_type)
+handle_printf(struct vtn_builder *b, enum OpenCLstd_Entrypoints opcode,
+              unsigned num_srcs, nir_ssa_def **srcs,
+              const struct glsl_type *dest_type)
 {
    /* hahah, yeah, right.. */
    return nir_imm_int(&b->nb, -1);
@@ -244,83 +249,83 @@ vtn_handle_opencl_instruction(struct vtn_builder *b, uint32_t ext_opcode,
                               const uint32_t *w, unsigned count)
 {
    switch (ext_opcode) {
-   case Fabs:
-   case SAbs:
-   case UAbs:
-   case SAdd_sat:
-   case UAdd_sat:
-   case Ceil:
-   case Cos:
-   case Exp2:
-   case Log2:
-   case Floor:
-   case Fma:
-   case Fmax:
-   case SHadd:
-   case UHadd:
-   case SMax:
-   case UMax:
-   case Fmin:
-   case SMin:
-   case UMin:
-   case Mix:
-   case Fmod:
-   case SMul_hi:
-   case UMul_hi:
-   case Popcount:
-   case Pow:
-   case Remainder:
-   case SRhadd:
-   case URhadd:
-   case Rsqrt:
-   case Sign:
-   case Sin:
-   case Sqrt:
-   case SSub_sat:
-   case USub_sat:
-   case Trunc:
+   case OpenCLstd_Fabs:
+   case OpenCLstd_SAbs:
+   case OpenCLstd_UAbs:
+   case OpenCLstd_SAdd_sat:
+   case OpenCLstd_UAdd_sat:
+   case OpenCLstd_Ceil:
+   case OpenCLstd_Cos:
+   case OpenCLstd_Exp2:
+   case OpenCLstd_Log2:
+   case OpenCLstd_Floor:
+   case OpenCLstd_Fma:
+   case OpenCLstd_Fmax:
+   case OpenCLstd_SHadd:
+   case OpenCLstd_UHadd:
+   case OpenCLstd_SMax:
+   case OpenCLstd_UMax:
+   case OpenCLstd_Fmin:
+   case OpenCLstd_SMin:
+   case OpenCLstd_UMin:
+   case OpenCLstd_Mix:
+   case OpenCLstd_Fmod:
+   case OpenCLstd_SMul_hi:
+   case OpenCLstd_UMul_hi:
+   case OpenCLstd_Popcount:
+   case OpenCLstd_Pow:
+   case OpenCLstd_Remainder:
+   case OpenCLstd_SRhadd:
+   case OpenCLstd_URhadd:
+   case OpenCLstd_Rsqrt:
+   case OpenCLstd_Sign:
+   case OpenCLstd_Sin:
+   case OpenCLstd_Sqrt:
+   case OpenCLstd_SSub_sat:
+   case OpenCLstd_USub_sat:
+   case OpenCLstd_Trunc:
       handle_instr(b, ext_opcode, w, count, handle_alu);
       return true;
-   case SAbs_diff:
-   case UAbs_diff:
-   case Bitselect:
-   case FClamp:
-   case SClamp:
-   case UClamp:
-   case Copysign:
-   case Cross:
-   case Degrees:
-   case Fdim:
-   case Distance:
-   case Fast_distance:
-   case Fast_length:
-   case Fast_normalize:
-   case Length:
-   case Mad:
-   case Maxmag:
-   case Minmag:
-   case Nan:
-   case Nextafter:
-   case Normalize:
-   case Radians:
-   case Rotate:
-   case Select:
-   case Step:
-   case Smoothstep:
-   case S_Upsample:
-   case U_Upsample:
+   case OpenCLstd_SAbs_diff:
+   case OpenCLstd_UAbs_diff:
+   case OpenCLstd_Bitselect:
+   case OpenCLstd_FClamp:
+   case OpenCLstd_SClamp:
+   case OpenCLstd_UClamp:
+   case OpenCLstd_Copysign:
+   case OpenCLstd_Cross:
+   case OpenCLstd_Degrees:
+   case OpenCLstd_Fdim:
+   case OpenCLstd_Distance:
+   case OpenCLstd_Fast_distance:
+   case OpenCLstd_Fast_length:
+   case OpenCLstd_Fast_normalize:
+   case OpenCLstd_Length:
+   case OpenCLstd_Mad:
+   case OpenCLstd_Maxmag:
+   case OpenCLstd_Minmag:
+   case OpenCLstd_Nan:
+   case OpenCLstd_Nextafter:
+   case OpenCLstd_Normalize:
+   case OpenCLstd_Radians:
+   case OpenCLstd_Rotate:
+   case OpenCLstd_Select:
+   case OpenCLstd_Step:
+   case OpenCLstd_Smoothstep:
+   case OpenCLstd_S_Upsample:
+   case OpenCLstd_U_Upsample:
       handle_instr(b, ext_opcode, w, count, handle_special);
       return true;
-   case Vloadn:
+   case OpenCLstd_Vloadn:
       vtn_handle_opencl_vload(b, ext_opcode, w, count);
       return true;
-   case Vstoren:
+   case OpenCLstd_Vstoren:
       vtn_handle_opencl_vstore(b, ext_opcode, w, count);
       return true;
-   case Printf:
+   case OpenCLstd_Printf:
       handle_instr(b, ext_opcode, w, count, handle_printf);
       return true;
-   case Prefetch:
+   case OpenCLstd_Prefetch:
       /* TODO maybe add a nir instruction for this? */
       return true;
    default:

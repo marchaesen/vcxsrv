@@ -1501,6 +1501,7 @@ apply_var_decoration(struct vtn_builder *b,
    case SpvDecorationMatrixStride:
    case SpvDecorationAliased:
    case SpvDecorationUniform:
+   case SpvDecorationUniformId:
    case SpvDecorationLinkageAttributes:
       break; /* Do nothing with these here */
 

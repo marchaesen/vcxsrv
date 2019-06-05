@@ -36,7 +36,6 @@
 #include <llvm-c/Transforms/Utils.h>
 
 #include "sid.h"
-#include "gfx9d.h"
 #include "ac_binary.h"
 #include "ac_llvm_util.h"
 #include "ac_llvm_build.h"
@@ -518,11 +517,8 @@ create_llvm_function(LLVMContextRef ctx, LLVMModuleRef module,
 						     options->address32_hi);
 	}
 
-	if (max_workgroup_size) {
-		ac_llvm_add_target_dep_function_attr(main_function,
-						     "amdgpu-max-work-group-size",
-						     max_workgroup_size);
-	}
+	ac_llvm_set_workgroup_size(main_function, max_workgroup_size);
+
 	if (options->unsafe_math) {
 		/* These were copied from some LLVM test. */
 		LLVMAddTargetDependentFunctionAttr(main_function,
@@ -2768,7 +2764,9 @@ radv_emit_stream_output(struct radv_shader_context *ctx,
 		/* fall through */
 	case 4: /* as v4i32 */
 		vdata = ac_build_gather_values(&ctx->ac, out,
-					       util_next_power_of_two(num_comps));
+					       !ac_has_vec3_support(ctx->ac.chip_class, false) ?
+					       util_next_power_of_two(num_comps) :
+					       num_comps);
 		break;
 	}
 

@@ -1733,6 +1733,7 @@ struct radv_image_create_info {
 	const VkImageCreateInfo *vk_info;
 	bool scanout;
 	bool no_metadata_planes;
+	const struct radeon_bo_metadata *bo_metadata;
 };
 
 VkResult radv_image_create(VkDevice _device,

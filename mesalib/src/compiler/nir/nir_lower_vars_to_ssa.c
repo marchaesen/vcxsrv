@@ -161,6 +161,9 @@ get_deref_node_recur(nir_deref_instr *deref,
    if (parent == NULL)
       return NULL;
 
+   if (parent == UNDEF_NODE)
+      return UNDEF_NODE;
+
    switch (deref->deref_type) {
    case nir_deref_type_struct:
       assert(glsl_type_is_struct_or_ifc(parent->type));
@@ -232,7 +235,8 @@ get_deref_node(nir_deref_instr *deref, struct lower_variables_state *state)
     * already in the list and we only bother for deref nodes which are used
     * directly in a load or store.
     */
-   if (node->is_direct && state->add_to_direct_deref_nodes &&
+   if (node != UNDEF_NODE && node->is_direct &&
+       state->add_to_direct_deref_nodes &&
        node->direct_derefs_link.next == NULL) {
       nir_deref_path_init(&node->path, deref, state->dead_ctx);
       assert(deref->var != NULL);
@@ -404,7 +408,7 @@ register_load_instr(nir_intrinsic_instr *load_instr,
 {
    nir_deref_instr *deref = nir_src_as_deref(load_instr->src[0]);
    struct deref_node *node = get_deref_node(deref, state);
-   if (node == NULL)
+   if (node == NULL || node == UNDEF_NODE)
       return;
 
    if (node->loads == NULL)
@@ -419,7 +423,7 @@ register_store_instr(nir_intrinsic_instr *store_instr,
 {
    nir_deref_instr *deref = nir_src_as_deref(store_instr->src[0]);
    struct deref_node *node = get_deref_node(deref, state);
-   if (node == NULL)
+   if (node == NULL || node == UNDEF_NODE)
       return;
 
    if (node->stores == NULL)
@@ -435,7 +439,7 @@ register_copy_instr(nir_intrinsic_instr *copy_instr,
    for (unsigned idx = 0; idx < 2; idx++) {
       nir_deref_instr *deref = nir_src_as_deref(copy_instr->src[idx]);
       struct deref_node *node = get_deref_node(deref, state);
-      if (node == NULL)
+      if (node == NULL || node == UNDEF_NODE)
          continue;
 
       if (node->copies == NULL)

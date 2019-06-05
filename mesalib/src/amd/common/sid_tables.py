@@ -2,7 +2,7 @@ from __future__ import print_function, division, unicode_literals
 
 CopyRight = '''
 /*
- * Copyright 2015 Advanced Micro Devices, Inc.
+ * Copyright 2015-2019 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -26,12 +26,18 @@ CopyRight = '''
  */
 '''
 
-import collections
+from collections import defaultdict
 import functools
 import itertools
+import json
 import os.path
 import re
 import sys
+
+AMD_REGISTERS = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), "../registers"))
+sys.path.append(AMD_REGISTERS)
+
+from regdb import Object, RegisterDatabase
 
 
 class StringTable:
@@ -132,27 +138,30 @@ class IntTable:
         ))
 
 class Field:
-    def __init__(self, reg, s_name):
-        self.s_name = s_name
-        self.name = strip_prefix(s_name)
-        self.values = []
+    def __init__(self, name, bits):
+        self.name = name
+        self.bits = bits   # [first, last]
+        self.values = []   # [(name, value), ...]
 
     def format(self, string_table, idx_table):
+        mask = ((1 << (self.bits[1] - self.bits[0] + 1)) - 1) << self.bits[0]
         if len(self.values):
             values_offsets = []
             for value in self.values:
                 while value[1] >= len(values_offsets):
                     values_offsets.append(-1)
-                values_offsets[value[1]] = string_table.add(strip_prefix(value[0]))
-            return '{%s, %s(~0u), %s, %s}' % (
-                string_table.add(self.name), self.s_name,
-                len(values_offsets), idx_table.add(values_offsets))
+                values_offsets[value[1]] = string_table.add(value[0])
+            return '{{{0}, 0x{mask:X}, {1}, {2}}}'.format(
+                string_table.add(self.name),
+                len(values_offsets), idx_table.add(values_offsets),
+                **locals()
+            )
         else:
-            return '{%s, %s(~0u)}' % (string_table.add(self.name), self.s_name)
+            return '{{{0}, 0x{mask:X}}}'.format(string_table.add(self.name), **locals())
 
     def __eq__(self, other):
-        return (self.s_name == other.s_name and
-                self.name == other.name and
+        return (self.name == other.name and
+                self.bits[0] == other.bits[0] and self.bits[1] == other.bits[1] and
                 len(self.values) == len(other.values) and
                 all(a[0] == b[0] and a[1] == b[1] for a, b, in zip(self.values, other.values)))
 
@@ -168,7 +177,7 @@ class FieldTable:
     def __init__(self):
         self.table = []
         self.idxs = set()
-        self.name_to_idx = collections.defaultdict(lambda: [])
+        self.name_to_idx = defaultdict(lambda: [])
 
     def add(self, array):
         """
@@ -214,130 +223,36 @@ class FieldTable:
         filp.write('};\n')
 
 
-class Reg:
-    def __init__(self, r_name):
-        self.r_name = r_name
-        self.name = strip_prefix(r_name)
-        self.fields = []
-
-    def __eq__(self, other):
-        if not isinstance(other, Reg):
-            return False
-        return (self.r_name == other.r_name and
-                self.name == other.name and
-                len(self.fields) == len(other.fields) and
-                all(a == b for a, b in zip(self.fields, other.fields)))
-
-    def __ne__(self, other):
-        return not (self == other)
-
-
-def strip_prefix(s):
-    '''Strip prefix in the form ._.*_, e.g. R_001234_'''
-    return s[s[2:].find('_')+3:]
-
-
-class Asic:
+def parse_packet3(filp):
     """
-    Store the registers of one ASIC class / group of classes.
+    Parse PKT3 commands from the given header file.
     """
-    def __init__(self, name):
-        self.name = name
-        self.registers = []
+    packets = []
+    for line in filp:
+        if not line.startswith('#define '):
+            continue
 
-    def parse(self, filp, packets, older_asics):
-        """
-        Parse registers from the given header file. Packets are separately
-        stored in the packets array.
-        """
-        for line in filp:
-            if not line.startswith('#define '):
-                continue
+        line = line[8:].strip()
 
-            line = line[8:].strip()
-
-            if line.startswith('R_'):
-                name = line.split()[0]
-
-                for it in self.registers:
-                    if it.r_name == name:
-                        sys.exit('Duplicate register define: %s' % (name))
-                else:
-                    reg = Reg(name)
-                    self.registers.append(reg)
-
-            elif line.startswith('S_'):
-                name = line[:line.find('(')]
-
-                for it in reg.fields:
-                    if it.s_name == name:
-                        sys.exit('Duplicate field define: %s' % (name))
-                else:
-                    field = Field(reg, name)
-                    reg.fields.append(field)
-
-            elif line.startswith('V_'):
-                split = line.split()
-                name = split[0]
-                value = int(split[1], 0)
-
-                for (n,v) in field.values:
-                    if n == name:
-                        sys.exit('Duplicate value define: name = ' + name)
-
-                field.values.append((name, value))
-
-            elif line.startswith('PKT3_') and line.find('0x') != -1 and line.find('(') == -1:
-                packets.append(line.split()[0])
-
-        # Copy values for corresponding fields from older ASICs if they were
-        # not redefined
-        for reg in self.registers:
-            old_reg = False
-            for field in reg.fields:
-                if len(field.values) > 0:
-                    continue
-                if old_reg is False:
-                    for old_reg in itertools.chain(
-                            *(asic.registers for asic in reversed(older_asics))):
-                        if old_reg.name == reg.name:
-                            break
-                    else:
-                        old_reg = None
-                if old_reg is not None:
-                    for old_field in old_reg.fields:
-                        if old_field.name == field.name:
-                            field.values = old_field.values
-                            break
-
-        # Copy fields to indexed registers which have their fields only defined
-        # at register index 0.
-        # For example, copy fields from CB_COLOR0_INFO to CB_COLORn_INFO, n > 0.
-        match_number = re.compile('[0-9]+')
-        reg_dict = dict()
-
-        # Create a dict of registers with fields and '0' in their name
-        for reg in self.registers:
-            if len(reg.fields) and reg.name.find('0') != -1:
-                reg_dict[reg.name] = reg
-
-        # Assign fields
-        for reg in self.registers:
-            if not len(reg.fields):
-                reg0 = reg_dict.get(match_number.sub('0', reg.name))
-                if reg0 != None:
-                    reg.fields = reg0.fields
+        if line.startswith('PKT3_') and line.find('0x') != -1 and line.find('(') == -1:
+            packets.append(line.split()[0])
+    return packets
 
 
-def write_tables(asics, packets):
-    strings = StringTable()
-    strings_offsets = IntTable("int")
-    fields = FieldTable()
+class TableWriter(object):
+    def __init__(self):
+        self.__strings = StringTable()
+        self.__strings_offsets = IntTable('int')
+        self.__fields = FieldTable()
 
-    print('/* This file is autogenerated by sid_tables.py from sid.h. Do not edit directly. */')
-    print()
-    print(CopyRight.strip())
-    print('''
+    def write(self, regdb, packets, file=sys.stdout):
+        def out(*args):
+            print(*args, file=file)
+
+        out('/* This file is autogenerated by sid_tables.py from sid.h. Do not edit directly. */')
+        out()
+        out(CopyRight.strip())
+        out('''
 #ifndef SID_TABLES_H
 #define SID_TABLES_H
 
@@ -361,58 +276,93 @@ struct si_packet3 {
 };
 ''')
 
-    print('static const struct si_packet3 packet3_table[] = {')
-    for pkt in packets:
-        print('\t{%s, %s},' % (strings.add(pkt[5:]), pkt))
-    print('};')
-    print()
+        out('static const struct si_packet3 packet3_table[] = {')
+        for pkt in packets:
+            out('\t{%s, %s},' % (self.__strings.add(pkt[5:]), pkt))
+        out('};')
+        out()
 
-    regs = {}
-    for asic in asics:
-        print('static const struct si_reg %s_reg_table[] = {' % (asic.name))
-        for reg in asic.registers:
-            # Only output a register that was changed or added relative to
-            # the previous generation
-            previous = regs.get(reg.r_name, None)
-            if previous == reg:
-                continue
+        regmaps_by_chip = defaultdict(list)
 
-            if len(reg.fields):
-                print('\t{%s, %s, %s, %s},' % (strings.add(reg.name), reg.r_name,
-                    len(reg.fields), fields.add(reg.fields)))
-            else:
-                print('\t{%s, %s},' % (strings.add(reg.name), reg.r_name))
+        for regmap in regdb.register_mappings():
+            for chip in regmap.chips:
+                regmaps_by_chip[chip].append(regmap)
 
-            regs[reg.r_name] = reg
-        print('};')
-        print()
+        regtypes = {}
 
-    fields.emit(sys.stdout, strings, strings_offsets)
+        # Sorted iteration over chips for deterministic builds
+        for chip in sorted(regmaps_by_chip.keys()):
+            regmaps = regmaps_by_chip[chip]
+            regmaps.sort(key=lambda regmap: (regmap.map.to, regmap.map.at))
 
-    print()
+            out('static const struct si_reg {chip}_reg_table[] = {{'.format(**locals()))
 
-    strings.emit(sys.stdout, "sid_strings")
+            for regmap in regmaps:
+                if hasattr(regmap, 'type_ref'):
+                    if not regmap.type_ref in regtypes:
+                        regtype = regdb.register_type(regmap.type_ref)
+                        fields = []
+                        for dbfield in regtype.fields:
+                            field = Field(dbfield.name, dbfield.bits)
+                            if hasattr(dbfield, 'enum_ref'):
+                                enum = regdb.enum(dbfield.enum_ref)
+                                for entry in enum.entries:
+                                    field.values.append((entry.name, entry.value))
+                            fields.append(field)
 
-    print()
+                        num_fields = len(regtype.fields)
+                        fields_offset = self.__fields.add(fields)
+                        regtypes[regmap.type_ref] = (num_fields, fields_offset)
+                    else:
+                        num_fields, fields_offset = regtypes[regmap.type_ref]
 
-    strings_offsets.emit(sys.stdout, "sid_strings_offsets")
+                    print('\t{{{0}, {regmap.map.at}, {num_fields}, {fields_offset}}},'
+                          .format(self.__strings.add(regmap.name), **locals()))
+                else:
+                    print('\t{{{0}, {regmap.map.at}}},'
+                          .format(self.__strings.add(regmap.name), **locals()))
 
-    print()
-    print('#endif')
+            out('};\n')
+
+        self.__fields.emit(file, self.__strings, self.__strings_offsets)
+
+        out()
+
+        self.__strings.emit(file, "sid_strings")
+
+        out()
+
+        self.__strings_offsets.emit(file, "sid_strings_offsets")
+
+        out()
+        out('#endif')
 
 
 def main():
-    asics = []
-    packets = []
-    for arg in sys.argv[1:]:
-        basename = os.path.basename(arg)
-        m = re.match(r'(.*)\.h', basename)
-        asic = Asic(m.group(1))
-        with open(arg) as filp:
-            asic.parse(filp, packets, asics)
-        asics.append(asic)
-    write_tables(asics, packets)
+    # Parse PKT3 types
+    with open(sys.argv[1], 'r') as filp:
+        packets = parse_packet3(filp)
 
+    # Register database parse
+    regdb = None
+    for filename in sys.argv[2:]:
+        with open(filename, 'r') as filp:
+            try:
+                db = RegisterDatabase.from_json(json.load(filp))
+                if regdb is None:
+                    regdb = db
+                else:
+                    regdb.update(db)
+            except json.JSONDecodeError as e:
+                print('Error reading {}'.format(sys.argv[1]), file=sys.stderr)
+                raise
+
+    # The ac_debug code only distinguishes by chip_class
+    regdb.merge_chips(['gfx8', 'fiji', 'stoney'], 'gfx8')
+
+    # Write it all out
+    w = TableWriter()
+    w.write(regdb, packets)
 
 if __name__ == '__main__':
     main()

@@ -294,6 +294,8 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
 	unsigned bs[info->num_inputs];     /* bit size */
 	struct ir3_block *b = ctx->block;
 	unsigned dst_sz, wrmask;
+	type_t dst_type = nir_dest_bit_size(alu->dest.dest) < 32 ?
+			TYPE_U16 : TYPE_U32;
 
 	if (alu->dest.dest.is_ssa) {
 		dst_sz = alu->dest.dest.ssa.num_components;
@@ -321,8 +323,8 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
 
 			src[i] = ir3_get_src(ctx, &asrc->src)[asrc->swizzle[0]];
 			if (!src[i])
-				src[i] = create_immed(ctx->block, 0);
-			dst[i] = ir3_MOV(b, src[i], TYPE_U32);
+				src[i] = create_immed_typed(ctx->block, 0, dst_type);
+			dst[i] = ir3_MOV(b, src[i], dst_type);
 		}
 
 		ir3_put_dst(ctx, &alu->dest.dest);
@@ -333,13 +335,12 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
 	 * handle those specially:
 	 */
 	if (alu->op == nir_op_mov) {
-		type_t type = TYPE_U32;
 		nir_alu_src *asrc = &alu->src[0];
 		struct ir3_instruction *const *src0 = ir3_get_src(ctx, &asrc->src);
 
 		for (unsigned i = 0; i < dst_sz; i++) {
 			if (wrmask & (1 << i)) {
-				dst[i] = ir3_MOV(b, src0[asrc->swizzle[i]], type);
+				dst[i] = ir3_MOV(b, src0[asrc->swizzle[i]], dst_type);
 			} else {
 				dst[i] = NULL;
 			}
@@ -392,6 +393,8 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
 		dst[0] = ir3_n2b(b, dst[0]);
 		break;
 	case nir_op_b2f16:
+		dst[0] = ir3_COV(b, ir3_b2n(b, src[0]), TYPE_U32, TYPE_F16);
+		break;
 	case nir_op_b2f32:
 		dst[0] = ir3_COV(b, ir3_b2n(b, src[0]), TYPE_U32, TYPE_F32);
 		break;
@@ -430,7 +433,7 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
 				(list_length(&alu->src[0].src.ssa->uses) == 1) &&
 				((opc_cat(src[0]->opc) == 2) || (opc_cat(src[0]->opc) == 3))) {
 			src[0]->flags |= IR3_INSTR_SAT;
-			dst[0] = ir3_MOV(b, src[0], TYPE_U32);
+			dst[0] = ir3_MOV(b, src[0], dst_type);
 		} else {
 			/* otherwise generate a max.f that saturates.. blob does
 			 * similar (generating a cat2 mov using max.f)
@@ -540,15 +543,21 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
 		dst[0] = ir3_MIN_U(b, src[0], 0, src[1], 0);
 		break;
 	case nir_op_imul:
-		/*
-		 * dst = (al * bl) + (ah * bl << 16) + (al * bh << 16)
-		 *   mull.u tmp0, a, b           ; mul low, i.e. al * bl
-		 *   madsh.m16 tmp1, a, b, tmp0  ; mul-add shift high mix, i.e. ah * bl << 16
-		 *   madsh.m16 dst, b, a, tmp1   ; i.e. al * bh << 16
-		 */
-		dst[0] = ir3_MADSH_M16(b, src[1], 0, src[0], 0,
-					ir3_MADSH_M16(b, src[0], 0, src[1], 0,
-						ir3_MULL_U(b, src[0], 0, src[1], 0), 0), 0);
+		if (bs[0] > 16 || bs[1] > 16) {
+			/*
+			 * dst = (al * bl) + (ah * bl << 16) + (al * bh << 16)
+			 *   mull.u tmp0, a, b           ; mul low, i.e. al * bl
+			 *   madsh.m16 tmp1, a, b, tmp0  ; mul-add shift high mix,
+			 *                               ; i.e. ah * bl << 16
+			 *   madsh.m16 dst, b, a, tmp1   ; i.e. al * bh << 16
+			 */
+			dst[0] = ir3_MADSH_M16(b, src[1], 0, src[0], 0,
+								   ir3_MADSH_M16(b, src[0], 0, src[1], 0,
+												 ir3_MULL_U(b, src[0], 0,
+															src[1], 0), 0), 0);
+		} else {
+			dst[0] = ir3_MUL_S(b, src[0], 0, src[1], 0);
+		}
 		break;
 	case nir_op_ineg:
 		dst[0] = ir3_ABSNEG_S(b, src[0], IR3_REG_SNEG);
@@ -1250,7 +1259,8 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 		if (nir_src_is_const(intr->src[0])) {
 			idx += nir_src_as_uint(intr->src[0]);
 			for (int i = 0; i < intr->num_components; i++) {
-				dst[i] = create_uniform(b, idx + i);
+				dst[i] = create_uniform_typed(b, idx + i,
+					nir_dest_bit_size(intr->dest) < 32 ? TYPE_F16 : TYPE_F32);
 			}
 		} else {
 			src = ir3_get_src(ctx, &intr->src[0]);
@@ -1586,10 +1596,19 @@ emit_load_const(struct ir3_context *ctx, nir_load_const_instr *instr)
 {
 	struct ir3_instruction **dst = ir3_get_dst_ssa(ctx, &instr->def,
 			instr->def.num_components);
-	type_t type = (instr->def.bit_size < 32) ? TYPE_U16 : TYPE_U32;
 
-	for (int i = 0; i < instr->def.num_components; i++)
-		dst[i] = create_immed_typed(ctx->block, instr->value[i].u32, type);
+	if (instr->def.bit_size < 32) {
+		for (int i = 0; i < instr->def.num_components; i++)
+			dst[i] = create_immed_typed(ctx->block,
+										instr->value[i].u16,
+										TYPE_U16);
+	} else {
+		for (int i = 0; i < instr->def.num_components; i++)
+			dst[i] = create_immed_typed(ctx->block,
+										instr->value[i].u32,
+										TYPE_U32);
+	}
+
 }
 
 static void

@@ -379,6 +379,9 @@ struct ir3_ibo_mapping {
 	uint8_t tex_base;   /* the number of real textures, ie. image/ssbo start here */
 };
 
+/* Represents half register in regid */
+#define HALF_REG_ID    0x100
+
 struct ir3_shader_variant {
 	struct fd_bo *bo;
 
@@ -673,8 +676,12 @@ ir3_find_output_regid(const struct ir3_shader_variant *so, unsigned slot)
 {
 	int j;
 	for (j = 0; j < so->outputs_count; j++)
-		if (so->outputs[j].slot == slot)
-			return so->outputs[j].regid;
+		if (so->outputs[j].slot == slot) {
+			uint32_t regid = so->outputs[j].regid;
+			if (so->outputs[j].half)
+				regid |= HALF_REG_ID;
+			return regid;
+		}
 	return regid(63, 0);
 }
 

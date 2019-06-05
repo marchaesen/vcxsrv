@@ -25,6 +25,8 @@
  */
 
 #include <math.h>
+#include "util/half_float.h"
+#include "util/u_math.h"
 
 #include "ir3.h"
 #include "ir3_compiler.h"
@@ -268,7 +270,7 @@ static void combine_flags(unsigned *dstflags, struct ir3_instruction *src)
 }
 
 static struct ir3_register *
-lower_immed(struct ir3_cp_ctx *ctx, struct ir3_register *reg, unsigned new_flags)
+lower_immed(struct ir3_cp_ctx *ctx, struct ir3_register *reg, unsigned new_flags, bool f_opcode)
 {
 	unsigned swiz, idx, i;
 
@@ -318,6 +320,13 @@ lower_immed(struct ir3_cp_ctx *ctx, struct ir3_register *reg, unsigned new_flags
 		/* need to generate a new immediate: */
 		swiz = i % 4;
 		idx  = i / 4;
+
+		/* Half constant registers seems to handle only 32-bit values
+		 * within floating-point opcodes. So convert back to 32-bit values. */
+		if (f_opcode && (new_flags & IR3_REG_HALF)) {
+			reg->uim_val = fui(_mesa_half_to_float(reg->uim_val));
+		}
+
 		const_state->immediates[idx].val[swiz] = reg->uim_val;
 		const_state->immediates_count = idx + 1;
 		const_state->immediate_idx++;
@@ -398,8 +407,12 @@ reg_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr,
 		if (!valid_flags(instr, n, new_flags)) {
 			/* See if lowering an immediate to const would help. */
 			if (valid_flags(instr, n, (new_flags & ~IR3_REG_IMMED) | IR3_REG_CONST)) {
+				bool f_opcode = (ir3_cat2_float(instr->opc) ||
+						ir3_cat3_float(instr->opc)) ? true : false;
+
 				debug_assert(new_flags & IR3_REG_IMMED);
-				instr->regs[n + 1] = lower_immed(ctx, src_reg, new_flags);
+
+				instr->regs[n + 1] = lower_immed(ctx, src_reg, new_flags, f_opcode);
 				return;
 			}
 
@@ -504,10 +517,12 @@ reg_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr,
 				src_reg->iim_val = iim_val;
 				instr->regs[n+1] = src_reg;
 			} else if (valid_flags(instr, n, (new_flags & ~IR3_REG_IMMED) | IR3_REG_CONST)) {
-				/* See if lowering an immediate to const would help. */
-				instr->regs[n+1] = lower_immed(ctx, src_reg, new_flags);
-			}
+				bool f_opcode = (ir3_cat2_float(instr->opc) ||
+						ir3_cat3_float(instr->opc)) ? true : false;
 
+				/* See if lowering an immediate to const would help. */
+				instr->regs[n+1] = lower_immed(ctx, src_reg, new_flags, f_opcode);
+			}
 			return;
 		}
 	}

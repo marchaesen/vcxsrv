@@ -42,6 +42,8 @@ struct spirv_supported_capabilities {
    bool device_group;
    bool draw_parameters;
    bool float64;
+   bool fragment_shader_sample_interlock;
+   bool fragment_shader_pixel_interlock;
    bool geometry_streams;
    bool gcn_shader;
    bool image_ms_array;

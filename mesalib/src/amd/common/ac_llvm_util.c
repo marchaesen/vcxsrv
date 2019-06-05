@@ -269,6 +269,16 @@ ac_llvm_add_target_dep_function_attr(LLVMValueRef F,
 	LLVMAddTargetDependentFunctionAttr(F, name, str);
 }
 
+void ac_llvm_set_workgroup_size(LLVMValueRef F, unsigned size)
+{
+	if (!size)
+		return;
+
+	char str[32];
+	snprintf(str, sizeof(str), "%u,%u", size, size);
+	LLVMAddTargetDependentFunctionAttr(F, "amdgpu-flat-work-group-size", str);
+}
+
 unsigned
 ac_count_scratch_private_memory(LLVMValueRef function)
 {

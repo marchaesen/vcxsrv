@@ -2059,7 +2059,8 @@ void util_blitter_generate_mipmap(struct blitter_context *blitter,
       target = PIPE_TEXTURE_2D_ARRAY;
 
    assert(tex->nr_samples <= 1);
-   assert(!util_format_has_stencil(desc));
+   /* Disallow stencil formats without depth. */
+   assert(!util_format_has_stencil(desc) || util_format_has_depth(desc));
 
    is_depth = desc->colorspace == UTIL_FORMAT_COLORSPACE_ZS;
 

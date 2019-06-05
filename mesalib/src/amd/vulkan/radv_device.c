@@ -44,7 +44,6 @@
 #include "vk_format.h"
 #include "sid.h"
 #include "git_sha1.h"
-#include "gfx9d.h"
 #include "util/build_id.h"
 #include "util/debug.h"
 #include "util/mesa-sha1.h"

@@ -1272,6 +1272,21 @@ VkResult radv_GetQueryPoolResults(
 	return result;
 }
 
+static void emit_query_flush(struct radv_cmd_buffer *cmd_buffer,
+			     struct radv_query_pool *pool)
+{
+	if (cmd_buffer->pending_reset_query) {
+		if (pool->size >= RADV_BUFFER_OPS_CS_THRESHOLD) {
+			/* Only need to flush caches if the query pool size is
+			 * large enough to be resetted using the compute shader
+			 * path. Small pools don't need any cache flushes
+			 * because we use a CP dma clear.
+			 */
+			si_emit_cache_flush(cmd_buffer);
+		}
+	}
+}
+
 void radv_CmdCopyQueryPoolResults(
     VkCommandBuffer                             commandBuffer,
     VkQueryPool                                 queryPool,
@@ -1293,6 +1308,16 @@ void radv_CmdCopyQueryPoolResults(
 
 	radv_cs_add_buffer(cmd_buffer->device->ws, cmd_buffer->cs, pool->bo);
 	radv_cs_add_buffer(cmd_buffer->device->ws, cmd_buffer->cs, dst_buffer->bo);
+
+	/* From the Vulkan spec 1.1.108:
+	 *
+	 * "vkCmdCopyQueryPoolResults is guaranteed to see the effect of
+	 *  previous uses of vkCmdResetQueryPool in the same queue, without any
+	 *  additional synchronization."
+	 *
+	 * So, we have to flush the caches if the compute shader path was used.
+	 */
+	emit_query_flush(cmd_buffer, pool);
 
 	switch (pool->type) {
 	case VK_QUERY_TYPE_OCCLUSION:
@@ -1472,21 +1497,6 @@ static unsigned event_type_for_stream(unsigned stream)
 	case 1: return V_028A90_SAMPLE_STREAMOUTSTATS1;
 	case 2: return V_028A90_SAMPLE_STREAMOUTSTATS2;
 	case 3: return V_028A90_SAMPLE_STREAMOUTSTATS3;
-	}
-}
-
-static void emit_query_flush(struct radv_cmd_buffer *cmd_buffer,
-			     struct radv_query_pool *pool)
-{
-	if (cmd_buffer->pending_reset_query) {
-		if (pool->size >= RADV_BUFFER_OPS_CS_THRESHOLD) {
-			/* Only need to flush caches if the query pool size is
-			 * large enough to be resetted using the compute shader
-			 * path. Small pools don't need any cache flushes
-			 * because we use a CP dma clear.
-			 */
-			si_emit_cache_flush(cmd_buffer);
-		}
 	}
 }
 

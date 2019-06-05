@@ -175,8 +175,6 @@ _mesa_parse_arb_vertex_program(struct gl_context *ctx, GLenum target,
 
    if (!_mesa_parse_arb_program(ctx, target, (const GLubyte*) str, len,
 				&state)) {
-      ralloc_free(prog.arb.Instructions);
-      ralloc_free(prog.String);
       _mesa_error(ctx, GL_INVALID_OPERATION, "glProgramString(bad program)");
       return;
    }

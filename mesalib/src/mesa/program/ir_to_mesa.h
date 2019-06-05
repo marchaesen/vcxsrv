@@ -50,8 +50,7 @@ _mesa_generate_parameters_list_for_uniforms(struct gl_context *ctx,
 void
 _mesa_associate_uniform_storage(struct gl_context *ctx,
                                 struct gl_shader_program *shader_program,
-                                struct gl_program *prog,
-                                bool propagate_to_storage);
+                                struct gl_program *prog);
 
 #ifdef __cplusplus
 }

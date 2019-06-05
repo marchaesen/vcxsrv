@@ -170,7 +170,7 @@ ir3_get_src(struct ir3_context *ctx, nir_src *src)
 		for (unsigned i = 0; i < num_components; i++) {
 			unsigned n = src->reg.base_offset * reg->num_components + i;
 			compile_assert(ctx, n < arr->length);
-			value[i] = ir3_create_array_load(ctx, arr, n, addr);
+			value[i] = ir3_create_array_load(ctx, arr, n, addr, reg->bit_size);
 		}
 
 		return value;
@@ -474,20 +474,28 @@ ir3_get_array(struct ir3_context *ctx, nir_register *reg)
 /* relative (indirect) if address!=NULL */
 struct ir3_instruction *
 ir3_create_array_load(struct ir3_context *ctx, struct ir3_array *arr, int n,
-		struct ir3_instruction *address)
+		struct ir3_instruction *address, unsigned bitsize)
 {
 	struct ir3_block *block = ctx->block;
 	struct ir3_instruction *mov;
 	struct ir3_register *src;
+	unsigned flags = 0;
 
 	mov = ir3_instr_create(block, OPC_MOV);
-	mov->cat1.src_type = TYPE_U32;
-	mov->cat1.dst_type = TYPE_U32;
+	if (bitsize < 32) {
+		mov->cat1.src_type = TYPE_U16;
+		mov->cat1.dst_type = TYPE_U16;
+		flags |= IR3_REG_HALF;
+	} else {
+		mov->cat1.src_type = TYPE_U32;
+		mov->cat1.dst_type = TYPE_U32;
+	}
+
 	mov->barrier_class = IR3_BARRIER_ARRAY_R;
 	mov->barrier_conflict = IR3_BARRIER_ARRAY_W;
-	ir3_reg_create(mov, 0, 0);
+	ir3_reg_create(mov, 0, flags);
 	src = ir3_reg_create(mov, 0, IR3_REG_ARRAY |
-			COND(address, IR3_REG_RELATIV));
+			COND(address, IR3_REG_RELATIV) | flags);
 	src->instr = arr->last_write;
 	src->size  = arr->length;
 	src->array.id = arr->id;

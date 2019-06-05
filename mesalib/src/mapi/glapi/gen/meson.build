@@ -109,6 +109,7 @@ api_xml_files = files(
   'ARB_vertex_type_2_10_10_10_rev.xml',
   'APPLE_object_purgeable.xml',
   'APPLE_vertex_array_object.xml',
+  'EXT_direct_state_access.xml',
   'EXT_draw_buffers2.xml',
   'EXT_external_objects.xml',
   'EXT_external_objects_fd.xml',

@@ -31,7 +31,6 @@
 
 #include "util/mesa-sha1.h"
 #include "sid.h"
-#include "gfx9d.h"
 #include "ac_debug.h"
 #include "radv_debug.h"
 #include "radv_shader.h"

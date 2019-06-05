@@ -1258,3 +1258,51 @@ nir_address_format_null_value(nir_address_format addr_format)
    assert(addr_format < ARRAY_SIZE(null_values));
    return null_values[addr_format];
 }
+
+nir_ssa_def *
+nir_build_addr_ieq(nir_builder *b, nir_ssa_def *addr0, nir_ssa_def *addr1,
+                   nir_address_format addr_format)
+{
+   switch (addr_format) {
+   case nir_address_format_32bit_global:
+   case nir_address_format_64bit_global:
+   case nir_address_format_64bit_bounded_global:
+   case nir_address_format_32bit_index_offset:
+   case nir_address_format_32bit_offset:
+      return nir_ball_iequal(b, addr0, addr1);
+
+   case nir_address_format_logical:
+      unreachable("Unsupported address format");
+   }
+
+   unreachable("Invalid address format");
+}
+
+nir_ssa_def *
+nir_build_addr_isub(nir_builder *b, nir_ssa_def *addr0, nir_ssa_def *addr1,
+                    nir_address_format addr_format)
+{
+   switch (addr_format) {
+   case nir_address_format_32bit_global:
+   case nir_address_format_64bit_global:
+   case nir_address_format_32bit_offset:
+      assert(addr0->num_components == 1);
+      assert(addr1->num_components == 1);
+      return nir_isub(b, addr0, addr1);
+
+   case nir_address_format_64bit_bounded_global:
+      return nir_isub(b, addr_to_global(b, addr0, addr_format),
+                         addr_to_global(b, addr1, addr_format));
+
+   case nir_address_format_32bit_index_offset:
+      assert(addr0->num_components == 2);
+      assert(addr1->num_components == 2);
+      /* Assume the same buffer index. */
+      return nir_isub(b, nir_channel(b, addr0, 1), nir_channel(b, addr1, 1));
+
+   case nir_address_format_logical:
+      unreachable("Unsupported address format");
+   }
+
+   unreachable("Invalid address format");
+}

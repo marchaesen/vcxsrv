@@ -156,7 +156,7 @@ assemble_variant(struct ir3_shader_variant *v)
 
 	if (ir3_shader_debug & IR3_DBG_DISASM) {
 		struct ir3_shader_key key = v->key;
-		printf("disassemble: type=%d, k={bp=%u,cts=%u,hp=%u}", v->type,
+		printf("disassemble: type=%d, k={bp=%u,cts=%u,hp=%u}\n", v->type,
 			v->binning_pass, key.color_two_side, key.half_precision);
 		ir3_shader_disasm(v, bin, stdout);
 	}
@@ -301,8 +301,11 @@ ir3_shader_from_nir(struct ir3_compiler *compiler, nir_shader *nir)
 
 static void dump_reg(FILE *out, const char *name, uint32_t r)
 {
-	if (r != regid(63,0))
-		fprintf(out, "; %s: r%d.%c\n", name, r >> 2, "xyzw"[r & 0x3]);
+	if (r != regid(63,0)) {
+		const char *reg_type = (r & HALF_REG_ID) ? "hr" : "r";
+		fprintf(out, "; %s: %s%d.%c\n", name, reg_type,
+				(r & ~HALF_REG_ID) >> 2, "xyzw"[r & 0x3]);
+	}
 }
 
 static void dump_output(FILE *out, struct ir3_shader_variant *so,
@@ -386,8 +389,9 @@ ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
 		fprintf(out, "; %s: outputs:", type);
 		for (i = 0; i < so->outputs_count; i++) {
 			uint8_t regid = so->outputs[i].regid;
-			fprintf(out, " r%d.%c (%s)",
-					(regid >> 2), "xyzw"[regid & 0x3],
+			const char *reg_type = so->outputs[i].half ? "hr" : "r";
+			fprintf(out, " %s%d.%c (%s)",
+					reg_type, (regid >> 2), "xyzw"[regid & 0x3],
 					gl_frag_result_name(so->outputs[i].slot));
 		}
 		fprintf(out, "\n");
