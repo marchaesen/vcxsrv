@@ -59,8 +59,8 @@ static void ac_init_llvm_target()
 	 * This option tells the backend to fall-back to SelectionDAG and print
 	 * a diagnostic message if global isel fails.
 	 */
-	const char *argv[3] = { "mesa", "-simplifycfg-sink-common=false", "-global-isel-abort=2" };
-	LLVMParseCommandLineOptions(3, argv, NULL);
+	const char *argv[] = { "mesa", "-simplifycfg-sink-common=false", "-global-isel-abort=2" };
+	LLVMParseCommandLineOptions(ARRAY_SIZE(argv), argv, NULL);
 }
 
 static once_flag ac_init_llvm_target_once_flag = ONCE_FLAG_INIT;

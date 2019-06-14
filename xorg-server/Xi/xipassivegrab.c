@@ -203,8 +203,14 @@ ProcXIPassiveGrabDevice(ClientPtr client)
                                 &param, XI2, &mask);
             break;
         case XIGrabtypeKeycode:
-            status = GrabKey(client, dev, mod_dev, stuff->detail,
-                             &param, XI2, &mask);
+            /* XI2 allows 32-bit keycodes but thanks to XKB we can never
+             * implement this. Just return an error for all keycodes that
+             * cannot work anyway */
+            if (stuff->detail > 255)
+                status = XIAlreadyGrabbed;
+            else
+                status = GrabKey(client, dev, mod_dev, stuff->detail,
+                                 &param, XI2, &mask);
             break;
         case XIGrabtypeEnter:
         case XIGrabtypeFocusIn:

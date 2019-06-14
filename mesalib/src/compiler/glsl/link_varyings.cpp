@@ -218,9 +218,12 @@ cross_validate_types_and_qualifiers(struct gl_context *ctx,
          /* Structures across shader stages can have different name
           * and considered to match in type if and only if structure
           * members match in name, type, qualification, and declaration
-          * order.
+          * order. The precision doesn’t need to match.
           */
-         if (!output->type->record_compare(type_to_match, false, true)) {
+         if (!output->type->record_compare(type_to_match,
+                                           false, /* match_name */
+                                           true, /* match_locations */
+                                           false /* match_precision */)) {
             linker_error(prog,
                   "%s shader output `%s' declared as struct `%s', "
                   "doesn't match in type with %s shader input "

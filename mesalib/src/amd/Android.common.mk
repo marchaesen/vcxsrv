@@ -58,6 +58,7 @@ LOCAL_C_INCLUDES := \
 	$(call generated-sources-dir-for,STATIC_LIBRARIES,libmesa_nir,,)/nir \
 	$(MESA_TOP)/src/gallium/include \
 	$(MESA_TOP)/src/gallium/auxiliary \
+	$(MESA_TOP)/src/mesa \
 	$(intermediates)/common
 
 LOCAL_EXPORT_C_INCLUDE_DIRS := \

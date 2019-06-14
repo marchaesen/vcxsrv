@@ -30,6 +30,9 @@
 
 static const struct debug_named_value shader_debug_options[] = {
 	{"vs",         IR3_DBG_SHADER_VS,  "Print shader disasm for vertex shaders"},
+	{"tcs",        IR3_DBG_SHADER_TCS, "Print shader disasm for tess ctrl shaders"},
+	{"tes",        IR3_DBG_SHADER_TES, "Print shader disasm for tess eval shaders"},
+	{"gs",         IR3_DBG_SHADER_GS,  "Print shader disasm for geometry shaders"},
 	{"fs",         IR3_DBG_SHADER_FS,  "Print shader disasm for fragment shaders"},
 	{"cs",         IR3_DBG_SHADER_CS,  "Print shader disasm for compute shaders"},
 	{"disasm",     IR3_DBG_DISASM,     "Dump NIR and adreno shader disassembly"},

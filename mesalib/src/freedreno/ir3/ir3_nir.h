@@ -34,6 +34,7 @@
 #include "ir3_shader.h"
 
 bool ir3_nir_apply_trig_workarounds(nir_shader *shader);
+bool ir3_nir_lower_imul(nir_shader *shader);
 bool ir3_nir_lower_tg4_to_tex(nir_shader *shader);
 bool ir3_nir_lower_io_offsets(nir_shader *shader);
 bool ir3_nir_lower_load_barycentric_at_sample(nir_shader *shader);

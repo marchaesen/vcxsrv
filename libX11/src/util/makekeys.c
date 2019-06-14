@@ -28,16 +28,21 @@ from The Open Group.
 
 /* Constructs hash tables for XStringToKeysym and XKeysymToString. */
 
-#include <X11/X.h>
-#include <X11/Xos.h>
-#include <X11/Xresource.h>
-#include <X11/keysymdef.h>
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../Xresinternal.h"
 
 #define KTNUM 4000
+
+#define XK_VoidSymbol                  0xffffff  /* Void symbol */
+
+typedef unsigned long KeySym;
 
 static struct info {
     char	*name;

@@ -71,7 +71,8 @@ LOCAL_C_INCLUDES := \
 	$(call generated-sources-dir-for,STATIC_LIBRARIES,libmesa_amd_common,,) \
 	$(call generated-sources-dir-for,STATIC_LIBRARIES,libmesa_nir,,)/nir \
 	$(call generated-sources-dir-for,STATIC_LIBRARIES,libmesa_radv_common,,) \
-	$(call generated-sources-dir-for,STATIC_LIBRARIES,libmesa_vulkan_util,,)/util
+	$(call generated-sources-dir-for,STATIC_LIBRARIES,libmesa_vulkan_util,,)/util \
+	$(call generated-sources-dir-for,STATIC_LIBRARIES,libmesa_util,,)
 
 LOCAL_WHOLE_STATIC_LIBRARIES := \
 	libmesa_vulkan_util \
@@ -164,6 +165,15 @@ LOCAL_WHOLE_STATIC_LIBRARIES := \
 	libmesa_radv_common
 
 LOCAL_SHARED_LIBRARIES += $(RADV_SHARED_LIBRARIES) libz libsync liblog
+
+# If Android version >=8 MESA should static link libexpat else should dynamic link
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 27; echo $$?), 0)
+LOCAL_STATIC_LIBRARIES := \
+	libexpat
+else
+LOCAL_SHARED_LIBRARIES += \
+	libexpat
+endif
 
 include $(MESA_COMMON_MK)
 include $(BUILD_SHARED_LIBRARY)

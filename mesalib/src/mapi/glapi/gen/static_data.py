@@ -29,7 +29,7 @@ MAX_OFFSETS = 407
 """Table of functions that have ABI-mandated offsets in the dispatch table.
 
 The first MAX_OFFSETS entries are required by indirect GLX. The rest are
-required to preserve the glapi <> drivers ABI. This is to be addressed shortly.
+required to preserve the glapi <> GL/GLES ABI. This is to be addressed shortly.
 
 This list will never change."""
 offsets = {
@@ -1453,6 +1453,26 @@ offsets = {
     "TexParameterxv": 1417,
     "BlendBarrier": 1418,
     "PrimitiveBoundingBox": 1419,
+    "MaxShaderCompilerThreadsKHR": 1420,
+    "MatrixLoadfEXT": 1421,
+    "MatrixLoaddEXT": 1422,
+    "MatrixMultfEXT": 1423,
+    "MatrixMultdEXT": 1424,
+    "MatrixLoadIdentityEXT": 1425,
+    "MatrixRotatefEXT": 1426,
+    "MatrixRotatedEXT": 1427,
+    "MatrixScalefEXT": 1428,
+    "MatrixScaledEXT": 1429,
+    "MatrixTranslatefEXT": 1430,
+    "MatrixTranslatedEXT": 1431,
+    "MatrixOrthoEXT": 1432,
+    "MatrixFrustumEXT": 1433,
+    "MatrixPushEXT": 1434,
+    "MatrixPopEXT": 1435,
+    "MatrixLoadTransposefEXT": 1436,
+    "MatrixLoadTransposedEXT": 1437,
+    "MatrixMultTransposefEXT": 1438,
+    "MatrixMultTransposedEXT": 1439,
 }
 
 functions = [

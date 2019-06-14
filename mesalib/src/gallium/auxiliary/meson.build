@@ -479,7 +479,8 @@ files_libgalliumvl = files(
 )
 
 vlwinsys_deps = []
-files_libgalliumvlwinsys = files('vl/vl_winsys.h')
+files_libgalliumvlwinsys = files('vl/vl_winsys.h',
+                                 'vl/vl_winsys_drm.c')
 if with_dri2 and with_platform_x11
   files_libgalliumvlwinsys += files('vl/vl_winsys_dri.c')
   if with_dri3
@@ -489,9 +490,6 @@ if with_dri2 and with_platform_x11
     ]
     files_libgalliumvlwinsys += files('vl/vl_winsys_dri3.c')
   endif
-endif
-if with_platform_drm
-  files_libgalliumvlwinsys += files('vl/vl_winsys_drm.c')
 endif
 
 u_indices_gen_c = custom_target(

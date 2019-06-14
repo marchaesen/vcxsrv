@@ -40,18 +40,6 @@
 static const int pipelinestat_block_size = 11 * 8;
 static const unsigned pipeline_statistics_indices[] = {7, 6, 3, 4, 5, 2, 1, 0, 8, 9, 10};
 
-static unsigned get_max_db(struct radv_device *device)
-{
-	unsigned num_db = device->physical_device->rad_info.num_render_backends;
-	MAYBE_UNUSED unsigned rb_mask = device->physical_device->rad_info.enabled_rb_mask;
-
-	/* Otherwise we need to change the query reset procedure */
-	assert(rb_mask == ((1ull << num_db) - 1));
-
-	return num_db;
-}
-
-
 static nir_ssa_def *nir_test_flag(nir_builder *b, nir_ssa_def *flags, uint32_t flag)
 {
 	return nir_i2b(b, nir_iand(b, flags, nir_imm_int(b, flag)));
@@ -108,12 +96,14 @@ build_occlusion_query_shader(struct radv_device *device) {
 	 * 	uint64_t dst_offset = dst_stride * global_id.x;
 	 * 	bool available = true;
 	 * 	for (int i = 0; i < db_count; ++i) {
-	 * 		uint64_t start = src_buf[src_offset + 16 * i];
-	 * 		uint64_t end = src_buf[src_offset + 16 * i + 8];
-	 * 		if ((start & (1ull << 63)) && (end & (1ull << 63)))
-	 * 			result += end - start;
-	 * 		else
-	 * 			available = false;
+	 *		if (enabled_rb_mask & (1 << i)) {
+	 *			uint64_t start = src_buf[src_offset + 16 * i];
+	 *			uint64_t end = src_buf[src_offset + 16 * i + 8];
+	 *			if ((start & (1ull << 63)) && (end & (1ull << 63)))
+	 *				result += end - start;
+	 *			else
+	 *				available = false;
+	 *		}
 	 * 	}
 	 * 	uint32_t elem_size = flags & VK_QUERY_RESULT_64_BIT ? 8 : 4;
 	 * 	if ((flags & VK_QUERY_RESULT_PARTIAL_BIT) || available) {
@@ -139,7 +129,8 @@ build_occlusion_query_shader(struct radv_device *device) {
 	nir_variable *start = nir_local_variable_create(b.impl, glsl_uint64_t_type(), "start");
 	nir_variable *end = nir_local_variable_create(b.impl, glsl_uint64_t_type(), "end");
 	nir_variable *available = nir_local_variable_create(b.impl, glsl_bool_type(), "available");
-	unsigned db_count = get_max_db(device);
+	unsigned enabled_rb_mask = device->physical_device->rad_info.enabled_rb_mask;
+	unsigned db_count = device->physical_device->rad_info.num_render_backends;
 
 	nir_ssa_def *flags = radv_load_push_int(&b, 0, "flags");
 
@@ -186,6 +177,16 @@ build_occlusion_query_shader(struct radv_device *device) {
 
 	nir_ssa_def *current_outer_count = nir_load_var(&b, outer_counter);
 	radv_break_on_count(&b, outer_counter, nir_imm_int(&b, db_count));
+
+	nir_ssa_def *enabled_cond =
+		nir_iand(&b, nir_imm_int(&b, enabled_rb_mask),
+			     nir_ishl(&b, nir_imm_int(&b, 1), current_outer_count));
+
+	nir_if *enabled_if = nir_if_create(b.shader);
+	enabled_if->condition = nir_src_for_ssa(nir_i2b(&b, enabled_cond));
+	nir_cf_node_insert(b.cursor, &enabled_if->cf_node);
+
+	b.cursor = nir_after_cf_list(&enabled_if->then_list);
 
 	nir_ssa_def *load_offset = nir_imul(&b, current_outer_count, nir_imm_int(&b, 16));
 	load_offset = nir_iadd(&b, input_base, load_offset);
@@ -1042,7 +1043,7 @@ VkResult radv_CreateQueryPool(
 
 	switch(pCreateInfo->queryType) {
 	case VK_QUERY_TYPE_OCCLUSION:
-		pool->stride = 16 * get_max_db(device);
+		pool->stride = 16 * device->physical_device->rad_info.num_render_backends;
 		break;
 	case VK_QUERY_TYPE_PIPELINE_STATISTICS:
 		pool->stride = pipelinestat_block_size * 2;
@@ -1147,12 +1148,17 @@ VkResult radv_GetQueryPoolResults(
 		}
 		case VK_QUERY_TYPE_OCCLUSION: {
 			volatile uint64_t const *src64 = (volatile uint64_t const *)src;
+			uint32_t db_count = device->physical_device->rad_info.num_render_backends;
+			uint32_t enabled_rb_mask = device->physical_device->rad_info.enabled_rb_mask;
 			uint64_t sample_count = 0;
-			int db_count = get_max_db(device);
 			available = 1;
 
 			for (int i = 0; i < db_count; ++i) {
 				uint64_t start, end;
+
+				if (!(enabled_rb_mask & (1 << i)))
+					continue;
+
 				do {
 					start = src64[2 * i];
 					end = src64[2 * i + 1];
@@ -1635,6 +1641,10 @@ static void emit_end_query(struct radv_cmd_buffer *cmd_buffer,
 					       RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
 					       RADV_CMD_FLAG_INV_GLOBAL_L2 |
 					       RADV_CMD_FLAG_INV_VMEM_L1;
+	if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9) {
+		cmd_buffer->active_query_flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
+						       RADV_CMD_FLAG_FLUSH_AND_INV_DB;
+	}
 }
 
 void radv_CmdBeginQueryIndexedEXT(

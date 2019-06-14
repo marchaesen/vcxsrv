@@ -29,9 +29,13 @@
 #pragma push_macro("DEBUG")
 #undef DEBUG
 
+#include <cstring>
+
 #include "ac_binary.h"
 #include "ac_llvm_util.h"
 #include "ac_llvm_build.h"
+
+#include "util/macros.h"
 
 #include <llvm-c/Core.h>
 #include <llvm/Target/TargetMachine.h>
@@ -110,14 +114,76 @@ ac_dispose_target_library_info(LLVMTargetLibraryInfoRef library_info)
 	delete reinterpret_cast<llvm::TargetLibraryInfoImpl *>(library_info);
 }
 
+/* Implementation of raw_pwrite_stream that works on malloc()ed memory for
+ * better compatibility with C code. */
+struct raw_memory_ostream : public llvm::raw_pwrite_stream {
+	char *buffer;
+	size_t written;
+	size_t bufsize;
+
+	raw_memory_ostream()
+	{
+		buffer = NULL;
+		written = 0;
+		bufsize = 0;
+		SetUnbuffered();
+	}
+
+	~raw_memory_ostream()
+	{
+		free(buffer);
+	}
+
+	void clear()
+	{
+		written = 0;
+	}
+
+	void take(char *&out_buffer, size_t &out_size)
+	{
+		out_buffer = buffer;
+		out_size = written;
+		buffer = NULL;
+		written = 0;
+		bufsize = 0;
+	}
+
+	void flush() = delete;
+
+	void write_impl(const char *ptr, size_t size) override
+	{
+		if (unlikely(written + size < written))
+			abort();
+		if (written + size > bufsize) {
+			bufsize = MAX3(1024, written + size, bufsize / 3 * 4);
+			buffer = (char *)realloc(buffer, bufsize);
+			if (!buffer) {
+				fprintf(stderr, "amd: out of memory allocating ELF buffer\n");
+				abort();
+			}
+		}
+		memcpy(buffer + written, ptr, size);
+		written += size;
+	}
+
+	void pwrite_impl(const char *ptr, size_t size, uint64_t offset) override
+	{
+		assert(offset == (size_t)offset &&
+		       offset + size >= offset && offset + size <= written);
+		memcpy(buffer + offset, ptr, size);
+	}
+
+	uint64_t current_pos() const override
+	{
+		return written;
+	}
+};
+
 /* The LLVM compiler is represented as a pass manager containing passes for
  * optimizations, instruction selection, and code generation.
  */
 struct ac_compiler_passes {
-	ac_compiler_passes(): ostream(code_string) {}
-
-	llvm::SmallString<0> code_string;  /* ELF shader binary */
-	llvm::raw_svector_ostream ostream; /* stream for appending data to the binary */
+	raw_memory_ostream ostream; /* ELF shader binary stream */
 	llvm::legacy::PassManager passmgr; /* list of passes */
 };
 
@@ -150,13 +216,21 @@ bool ac_compile_module_to_binary(struct ac_compiler_passes *p, LLVMModuleRef mod
 {
 	p->passmgr.run(*llvm::unwrap(module));
 
-	llvm::StringRef data = p->ostream.str();
-	bool success = ac_elf_read(data.data(), data.size(), binary);
-	p->code_string = ""; /* release the ELF shader binary */
+	bool success = ac_elf_read(p->ostream.buffer, p->ostream.written, binary);
+	p->ostream.clear();
 
 	if (!success)
 		fprintf(stderr, "amd: cannot read an ELF shader binary\n");
 	return success;
+}
+
+/* This returns false on failure. */
+bool ac_compile_module_to_elf(struct ac_compiler_passes *p, LLVMModuleRef module,
+			      char **pelf_buffer, size_t *pelf_size)
+{
+	p->passmgr.run(*llvm::unwrap(module));
+	p->ostream.take(*pelf_buffer, *pelf_size);
+	return true;
 }
 
 void ac_llvm_add_barrier_noop_pass(LLVMPassManagerRef passmgr)

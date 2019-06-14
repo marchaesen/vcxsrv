@@ -713,12 +713,6 @@
     {"name": "IMG_DATA_FORMAT_16_AS_16_16_16_16", "value": 43},
     {"name": "IMG_DATA_FORMAT_16_AS_32_32_32_32", "value": 44},
     {"comment": "NUM_FORMAT selects the format", "name": "IMG_DATA_FORMAT_FMASK", "value": 45},
-    {"comment": "NUM_FORMAT selects the block size", "name": "IMG_DATA_FORMAT_ASTC_2D_LDR", "value": 46},
-    {"comment": "ditto", "name": "IMG_DATA_FORMAT_ASTC_2D_HDR", "value": 47},
-    {"comment": "ditto", "name": "IMG_DATA_FORMAT_ASTC_2D_LDR_SRGB", "value": 48},
-    {"comment": "ditto", "name": "IMG_DATA_FORMAT_ASTC_3D_LDR", "value": 49},
-    {"comment": "ditto", "name": "IMG_DATA_FORMAT_ASTC_3D_HDR", "value": 50},
-    {"comment": "ditto", "name": "IMG_DATA_FORMAT_ASTC_3D_LDR_SRGB", "value": 51},
     {"name": "IMG_DATA_FORMAT_N_IN_16", "value": 52},
     {"name": "IMG_DATA_FORMAT_N_IN_16_16", "value": 53},
     {"name": "IMG_DATA_FORMAT_N_IN_16_16_16_16", "value": 54},
@@ -1364,50 +1358,6 @@
     {"name": "PIXEL_PIPE_STAT_RESET", "value": 58},
     {"comment": "new", "name": "ENABLE_NGG_PIPELINE", "value": 61},
     {"comment": "new", "name": "ENABLE_LEGACY_PIPELINE", "value": 62}
-   ]
-  },
-  "VGT_GROUP_PRIM_TYPE__PRIM_ORDER": {
-   "entries": [
-    {"name": "VGT_GRP_LIST", "value": 0},
-    {"name": "VGT_GRP_STRIP", "value": 1},
-    {"name": "VGT_GRP_FAN", "value": 2},
-    {"name": "VGT_GRP_LOOP", "value": 3},
-    {"name": "VGT_GRP_POLYGON", "value": 4}
-   ]
-  },
-  "VGT_GROUP_VECT_0_FMT_CNTL__X_CONV": {
-   "entries": [
-    {"name": "VGT_GRP_INDEX_16", "value": 0},
-    {"name": "VGT_GRP_INDEX_32", "value": 1},
-    {"name": "VGT_GRP_UINT_16", "value": 2},
-    {"name": "VGT_GRP_UINT_32", "value": 3},
-    {"name": "VGT_GRP_SINT_16", "value": 4},
-    {"name": "VGT_GRP_SINT_32", "value": 5},
-    {"name": "VGT_GRP_FLOAT_32", "value": 6},
-    {"name": "VGT_GRP_AUTO_PRIM", "value": 7},
-    {"name": "VGT_GRP_FIX_1_23_TO_FLOAT", "value": 8}
-   ]
-  },
-  "VGT_GRP_PRIM_TYPE": {
-   "entries": [
-    {"name": "VGT_GRP_3D_POINT", "value": 0},
-    {"name": "VGT_GRP_3D_LINE", "value": 1},
-    {"name": "VGT_GRP_3D_TRI", "value": 2},
-    {"name": "VGT_GRP_3D_RECT", "value": 3},
-    {"name": "VGT_GRP_3D_QUAD", "value": 4},
-    {"name": "VGT_GRP_2D_COPY_RECT_V0", "value": 5},
-    {"name": "VGT_GRP_2D_COPY_RECT_V1", "value": 6},
-    {"name": "VGT_GRP_2D_COPY_RECT_V2", "value": 7},
-    {"name": "VGT_GRP_2D_COPY_RECT_V3", "value": 8},
-    {"name": "VGT_GRP_2D_FILL_RECT", "value": 9},
-    {"name": "VGT_GRP_2D_LINE", "value": 10},
-    {"name": "VGT_GRP_2D_TRI", "value": 11},
-    {"name": "VGT_GRP_PRIM_INDEX_LINE", "value": 12},
-    {"name": "VGT_GRP_PRIM_INDEX_TRI", "value": 13},
-    {"name": "VGT_GRP_PRIM_INDEX_QUAD", "value": 14},
-    {"name": "VGT_GRP_3D_LINE_ADJ", "value": 15},
-    {"name": "VGT_GRP_3D_TRI_ADJ", "value": 16},
-    {"name": "VGT_GRP_3D_PATCH", "value": 17}
    ]
   },
   "VGT_GS_CUT_MODE": {
@@ -6055,18 +6005,6 @@
    "type_ref": "PA_SC_ENHANCE"
   },
   {
-   "chips": ["gfx9"],
-   "map": {"at": 164780, "to": "mm"},
-   "name": "PA_SC_FOV_WINDOW_LR",
-   "type_ref": "PA_SC_FOV_WINDOW_LR"
-  },
-  {
-   "chips": ["gfx9"],
-   "map": {"at": 164784, "to": "mm"},
-   "name": "PA_SC_FOV_WINDOW_TB",
-   "type_ref": "PA_SC_FOV_WINDOW_TB"
-  },
-  {
    "chips": ["gfx7", "fiji", "gfx9", "gfx6", "stoney", "gfx8"],
    "map": {"at": 164420, "to": "mm"},
    "name": "PA_SC_GENERIC_SCISSOR_BR",
@@ -10613,48 +10551,6 @@
   },
   {
    "chips": ["gfx7", "fiji", "gfx9", "gfx6", "stoney", "gfx8"],
-   "map": {"at": 166444, "to": "mm"},
-   "name": "VGT_GROUP_DECR",
-   "type_ref": "VGT_GROUP_DECR"
-  },
-  {
-   "chips": ["gfx7", "fiji", "gfx9", "gfx6", "stoney", "gfx8"],
-   "map": {"at": 166440, "to": "mm"},
-   "name": "VGT_GROUP_FIRST_DECR",
-   "type_ref": "VGT_GROUP_FIRST_DECR"
-  },
-  {
-   "chips": ["gfx7", "fiji", "gfx9", "gfx6", "stoney", "gfx8"],
-   "map": {"at": 166436, "to": "mm"},
-   "name": "VGT_GROUP_PRIM_TYPE",
-   "type_ref": "VGT_GROUP_PRIM_TYPE"
-  },
-  {
-   "chips": ["gfx7", "fiji", "gfx9", "gfx6", "stoney", "gfx8"],
-   "map": {"at": 166448, "to": "mm"},
-   "name": "VGT_GROUP_VECT_0_CNTL",
-   "type_ref": "VGT_GROUP_VECT_0_CNTL"
-  },
-  {
-   "chips": ["gfx7", "fiji", "gfx9", "gfx6", "stoney", "gfx8"],
-   "map": {"at": 166456, "to": "mm"},
-   "name": "VGT_GROUP_VECT_0_FMT_CNTL",
-   "type_ref": "VGT_GROUP_VECT_0_FMT_CNTL"
-  },
-  {
-   "chips": ["gfx7", "fiji", "gfx9", "gfx6", "stoney", "gfx8"],
-   "map": {"at": 166452, "to": "mm"},
-   "name": "VGT_GROUP_VECT_1_CNTL",
-   "type_ref": "VGT_GROUP_VECT_0_CNTL"
-  },
-  {
-   "chips": ["gfx7", "fiji", "gfx9", "gfx6", "stoney", "gfx8"],
-   "map": {"at": 166460, "to": "mm"},
-   "name": "VGT_GROUP_VECT_1_FMT_CNTL",
-   "type_ref": "VGT_GROUP_VECT_0_FMT_CNTL"
-  },
-  {
-   "chips": ["gfx7", "fiji", "gfx9", "gfx6", "stoney", "gfx8"],
    "map": {"at": 166576, "to": "mm"},
    "name": "VGT_GSVS_RING_ITEMSIZE",
    "type_ref": "VGT_ESGS_RING_ITEMSIZE"
@@ -10791,12 +10687,6 @@
   },
   {
    "chips": ["gfx7", "fiji", "gfx9", "gfx6", "stoney", "gfx8"],
-   "map": {"at": 166420, "to": "mm"},
-   "name": "VGT_HOS_CNTL",
-   "type_ref": "VGT_HOS_CNTL"
-  },
-  {
-   "chips": ["gfx7", "fiji", "gfx9", "gfx6", "stoney", "gfx8"],
    "map": {"at": 166424, "to": "mm"},
    "name": "VGT_HOS_MAX_TESS_LEVEL"
   },
@@ -10804,12 +10694,6 @@
    "chips": ["gfx7", "fiji", "gfx9", "gfx6", "stoney", "gfx8"],
    "map": {"at": 166428, "to": "mm"},
    "name": "VGT_HOS_MIN_TESS_LEVEL"
-  },
-  {
-   "chips": ["gfx7", "fiji", "gfx9", "gfx6", "stoney", "gfx8"],
-   "map": {"at": 166432, "to": "mm"},
-   "name": "VGT_HOS_REUSE_DEPTH",
-   "type_ref": "VGT_HOS_REUSE_DEPTH"
   },
   {
    "chips": ["gfx6"],
@@ -13723,20 +13607,6 @@
     {"bits": [9, 9], "name": "DISABLE_DUALGRAD_PERF_OPTIMIZATION"}
    ]
   },
-  "PA_SC_FOV_WINDOW_LR": {
-   "fields": [
-    {"bits": [0, 7], "name": "LEFT_EYE_FOV_LEFT"},
-    {"bits": [8, 15], "name": "LEFT_EYE_FOV_RIGHT"},
-    {"bits": [16, 23], "name": "RIGHT_EYE_FOV_LEFT"},
-    {"bits": [24, 31], "name": "RIGHT_EYE_FOV_RIGHT"}
-   ]
-  },
-  "PA_SC_FOV_WINDOW_TB": {
-   "fields": [
-    {"bits": [0, 7], "name": "FOV_TOP"},
-    {"bits": [8, 15], "name": "FOV_BOT"}
-   ]
-  },
   "PA_SC_HORIZ_GRID": {
    "fields": [
     {"bits": [0, 7], "name": "TOP_QTR"},
@@ -15528,46 +15398,6 @@
     {"bits": [27, 27], "name": "EXTENDED_EVENT"}
    ]
   },
-  "VGT_GROUP_DECR": {
-   "fields": [
-    {"bits": [0, 3], "name": "DECR"}
-   ]
-  },
-  "VGT_GROUP_FIRST_DECR": {
-   "fields": [
-    {"bits": [0, 3], "name": "FIRST_DECR"}
-   ]
-  },
-  "VGT_GROUP_PRIM_TYPE": {
-   "fields": [
-    {"bits": [0, 4], "enum_ref": "VGT_GRP_PRIM_TYPE", "name": "PRIM_TYPE"},
-    {"bits": [14, 14], "name": "RETAIN_ORDER"},
-    {"bits": [15, 15], "name": "RETAIN_QUADS"},
-    {"bits": [16, 18], "enum_ref": "VGT_GROUP_PRIM_TYPE__PRIM_ORDER", "name": "PRIM_ORDER"}
-   ]
-  },
-  "VGT_GROUP_VECT_0_CNTL": {
-   "fields": [
-    {"bits": [0, 0], "name": "COMP_X_EN"},
-    {"bits": [1, 1], "name": "COMP_Y_EN"},
-    {"bits": [2, 2], "name": "COMP_Z_EN"},
-    {"bits": [3, 3], "name": "COMP_W_EN"},
-    {"bits": [8, 15], "name": "STRIDE"},
-    {"bits": [16, 23], "name": "SHIFT"}
-   ]
-  },
-  "VGT_GROUP_VECT_0_FMT_CNTL": {
-   "fields": [
-    {"bits": [0, 3], "enum_ref": "VGT_GROUP_VECT_0_FMT_CNTL__X_CONV", "name": "X_CONV"},
-    {"bits": [4, 7], "name": "X_OFFSET"},
-    {"bits": [8, 11], "enum_ref": "VGT_GROUP_VECT_0_FMT_CNTL__X_CONV", "name": "Y_CONV"},
-    {"bits": [12, 15], "name": "Y_OFFSET"},
-    {"bits": [16, 19], "enum_ref": "VGT_GROUP_VECT_0_FMT_CNTL__X_CONV", "name": "Z_CONV"},
-    {"bits": [20, 23], "name": "Z_OFFSET"},
-    {"bits": [24, 27], "enum_ref": "VGT_GROUP_VECT_0_FMT_CNTL__X_CONV", "name": "W_CONV"},
-    {"bits": [28, 31], "name": "W_OFFSET"}
-   ]
-  },
   "VGT_GSVS_RING_OFFSET_1": {
    "fields": [
     {"bits": [0, 14], "name": "OFFSET"}
@@ -15696,16 +15526,6 @@
   "VGT_GS_VERTEX_REUSE": {
    "fields": [
     {"bits": [0, 4], "name": "VERT_REUSE"}
-   ]
-  },
-  "VGT_HOS_CNTL": {
-   "fields": [
-    {"bits": [0, 1], "name": "TESS_MODE"}
-   ]
-  },
-  "VGT_HOS_REUSE_DEPTH": {
-   "fields": [
-    {"bits": [0, 7], "name": "REUSE_DEPTH"}
    ]
   },
   "VGT_HS_OFFCHIP_PARAM": {

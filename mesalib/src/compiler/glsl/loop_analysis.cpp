@@ -288,6 +288,9 @@ loop_state::get(const ir_loop *ir)
 loop_variable *
 loop_variable_state::get(const ir_variable *ir)
 {
+   if (ir == NULL)
+      return NULL;
+
    hash_entry *entry = _mesa_hash_table_search(this->var_hash, ir);
    return entry ? (loop_variable *) entry->data : NULL;
 }

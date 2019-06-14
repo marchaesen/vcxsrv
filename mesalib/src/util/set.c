@@ -92,6 +92,12 @@ static const struct {
    ENTRY(2147483648ul, 2362232233ul, 2362232231ul )
 };
 
+static inline bool
+key_pointer_is_reserved(const void *key)
+{
+   return key == NULL || key == deleted_key;
+}
+
 static int
 entry_is_free(struct set_entry *entry)
 {
@@ -214,6 +220,8 @@ _mesa_set_clear(struct set *set, void (*delete_function)(struct set_entry *entry
 static struct set_entry *
 set_search(const struct set *ht, uint32_t hash, const void *key)
 {
+   assert(!key_pointer_is_reserved(key));
+
    uint32_t size = ht->size;
    uint32_t start_address = util_fast_urem32(hash, size, ht->size_magic);
    uint32_t double_hash = util_fast_urem32(hash, ht->rehash,
@@ -336,6 +344,8 @@ static struct set_entry *
 set_search_or_add(struct set *ht, uint32_t hash, const void *key, bool *found)
 {
    struct set_entry *available_entry = NULL;
+
+   assert(!key_pointer_is_reserved(key));
 
    if (ht->entries >= ht->max_entries) {
       set_rehash(ht, ht->size_index + 1);

@@ -542,22 +542,11 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
 	case nir_op_umin:
 		dst[0] = ir3_MIN_U(b, src[0], 0, src[1], 0);
 		break;
-	case nir_op_imul:
-		if (bs[0] > 16 || bs[1] > 16) {
-			/*
-			 * dst = (al * bl) + (ah * bl << 16) + (al * bh << 16)
-			 *   mull.u tmp0, a, b           ; mul low, i.e. al * bl
-			 *   madsh.m16 tmp1, a, b, tmp0  ; mul-add shift high mix,
-			 *                               ; i.e. ah * bl << 16
-			 *   madsh.m16 dst, b, a, tmp1   ; i.e. al * bh << 16
-			 */
-			dst[0] = ir3_MADSH_M16(b, src[1], 0, src[0], 0,
-								   ir3_MADSH_M16(b, src[0], 0, src[1], 0,
-												 ir3_MULL_U(b, src[0], 0,
-															src[1], 0), 0), 0);
-		} else {
-			dst[0] = ir3_MUL_S(b, src[0], 0, src[1], 0);
-		}
+	case nir_op_umul_low:
+		dst[0] = ir3_MULL_U(b, src[0], 0, src[1], 0);
+		break;
+	case nir_op_imadsh_mix16:
+		dst[0] = ir3_MADSH_M16(b, src[0], 0, src[1], 0, src[2], 0);
 		break;
 	case nir_op_ineg:
 		dst[0] = ir3_ABSNEG_S(b, src[0], IR3_REG_SNEG);

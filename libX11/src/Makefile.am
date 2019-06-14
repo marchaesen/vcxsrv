@@ -413,9 +413,9 @@ endif MAKE_LINT_LIB
 
 KEYSYMDEFS=@KEYSYMDEFS@
 
-ks_tables.h: $(KEYSYMDEFS) $(top_builddir)/src/util/makekeys$(EXEEXT)
+ks_tables.h: $(KEYSYMDEFS) $(top_builddir)/src/util/makekeys$(EXEEXT_FOR_BUILD)
 	$(top_builddir)/src/util/makekeys $(KEYSYMDEFS) > ks_tables_h
 	mv ks_tables_h $@
 
-$(top_builddir)/src/util/makekeys$(EXEEXT): $(top_builddir)/src/util/makekeys.c
+$(top_builddir)/src/util/makekeys$(EXEEXT_FOR_BUILD): $(top_builddir)/src/util/makekeys.c
 	cd util && $(MAKE)

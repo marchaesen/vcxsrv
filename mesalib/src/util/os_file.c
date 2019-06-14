@@ -29,13 +29,15 @@ readN(int fd, char *buf, size_t len)
       if (ret == -EINTR || ret == -EAGAIN)
          continue;
 
-      if (ret <= 0)
+      if (ret <= 0) {
+         err = ret;
          break;
+      }
 
       total += ret;
    } while (total != len);
 
-   return total ? total : err;
+   return total ? (ssize_t)total : err;
 }
 
 char *
@@ -68,9 +70,9 @@ os_read_file(const char *filename)
       return NULL;
    }
 
-   ssize_t read;
+   ssize_t actually_read;
    size_t offset = 0, remaining = len - 1;
-   while ((read = readN(fd, buf + offset, remaining)) == remaining) {
+   while ((actually_read = readN(fd, buf + offset, remaining)) == (ssize_t)remaining) {
       char *newbuf = realloc(buf, 2 * len);
       if (!newbuf) {
          free(buf);
@@ -81,14 +83,14 @@ os_read_file(const char *filename)
 
       buf = newbuf;
       len *= 2;
-      offset += read;
+      offset += actually_read;
       remaining = len - offset - 1;
    }
 
    close(fd);
 
-   if (read > 0)
-      offset += read;
+   if (actually_read > 0)
+      offset += actually_read;
 
    buf[offset] = '\0';
 

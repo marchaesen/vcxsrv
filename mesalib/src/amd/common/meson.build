@@ -52,6 +52,8 @@ amd_common_files = files(
   'ac_nir_to_llvm.h',
   'ac_gpu_info.c',
   'ac_gpu_info.h',
+  'ac_rtld.c',
+  'ac_rtld.h',
   'ac_surface.c',
   'ac_surface.h',
   'ac_debug.c',

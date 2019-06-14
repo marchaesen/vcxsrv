@@ -316,6 +316,28 @@ static void dump_output(FILE *out, struct ir3_shader_variant *so,
 	dump_reg(out, name, regid);
 }
 
+static const char *
+input_name(struct ir3_shader_variant *so, int i)
+{
+	if (so->inputs[i].sysval) {
+		return gl_system_value_name(so->inputs[i].slot);
+	} else if (so->type == MESA_SHADER_VERTEX) {
+		return gl_vert_attrib_name(so->inputs[i].slot);
+	} else {
+		return gl_varying_slot_name(so->inputs[i].slot);
+	}
+}
+
+static const char *
+output_name(struct ir3_shader_variant *so, int i)
+{
+	if (so->type == MESA_SHADER_FRAGMENT) {
+		return gl_frag_result_name(so->outputs[i].slot);
+	} else {
+		return gl_varying_slot_name(so->outputs[i].slot);
+	}
+}
+
 void
 ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
 {
@@ -364,53 +386,27 @@ ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
 
 	disasm_a3xx(bin, so->info.sizedwords, 0, out, ir->compiler->gpu_id);
 
-	switch (so->type) {
-	case MESA_SHADER_VERTEX:
-		fprintf(out, "; %s: outputs:", type);
-		for (i = 0; i < so->outputs_count; i++) {
-			uint8_t regid = so->outputs[i].regid;
-			fprintf(out, " r%d.%c (%s)",
-					(regid >> 2), "xyzw"[regid & 0x3],
-					gl_varying_slot_name(so->outputs[i].slot));
-		}
-		fprintf(out, "\n");
-		fprintf(out, "; %s: inputs:", type);
-		for (i = 0; i < so->inputs_count; i++) {
-			uint8_t regid = so->inputs[i].regid;
-			fprintf(out, " r%d.%c (cm=%x,il=%u,b=%u)",
-					(regid >> 2), "xyzw"[regid & 0x3],
-					so->inputs[i].compmask,
-					so->inputs[i].inloc,
-					so->inputs[i].bary);
-		}
-		fprintf(out, "\n");
-		break;
-	case MESA_SHADER_FRAGMENT:
-		fprintf(out, "; %s: outputs:", type);
-		for (i = 0; i < so->outputs_count; i++) {
-			uint8_t regid = so->outputs[i].regid;
-			const char *reg_type = so->outputs[i].half ? "hr" : "r";
-			fprintf(out, " %s%d.%c (%s)",
-					reg_type, (regid >> 2), "xyzw"[regid & 0x3],
-					gl_frag_result_name(so->outputs[i].slot));
-		}
-		fprintf(out, "\n");
-		fprintf(out, "; %s: inputs:", type);
-		for (i = 0; i < so->inputs_count; i++) {
-			uint8_t regid = so->inputs[i].regid;
-			fprintf(out, " r%d.%c (%s,cm=%x,il=%u,b=%u)",
-					(regid >> 2), "xyzw"[regid & 0x3],
-					gl_varying_slot_name(so->inputs[i].slot),
-					so->inputs[i].compmask,
-					so->inputs[i].inloc,
-					so->inputs[i].bary);
-		}
-		fprintf(out, "\n");
-		break;
-	default:
-		/* TODO */
-		break;
+	fprintf(out, "; %s: outputs:", type);
+	for (i = 0; i < so->outputs_count; i++) {
+		uint8_t regid = so->outputs[i].regid;
+		fprintf(out, " r%d.%c (%s)",
+				(regid >> 2), "xyzw"[regid & 0x3],
+				output_name(so, i));
 	}
+	fprintf(out, "\n");
+
+	fprintf(out, "; %s: inputs:", type);
+	for (i = 0; i < so->inputs_count; i++) {
+		uint8_t regid = so->inputs[i].regid;
+		fprintf(out, " r%d.%c (%s slot=%d cm=%x,il=%u,b=%u)",
+				(regid >> 2), "xyzw"[regid & 0x3],
+				input_name(so, i),
+				so->inputs[i].slot,
+				so->inputs[i].compmask,
+				so->inputs[i].inloc,
+				so->inputs[i].bary);
+	}
+	fprintf(out, "\n");
 
 	/* print generic shader info: */
 	fprintf(out, "; %s prog %d/%d: %u instructions, %d half, %d full\n",

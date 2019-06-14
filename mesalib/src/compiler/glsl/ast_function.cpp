@@ -2387,23 +2387,51 @@ ast_function_expression::hir(exec_list *instructions,
                                         new(ctx) ir_dereference_variable(mvp),
                                         new(ctx) ir_dereference_variable(vtx));
       } else {
-         if (state->stage == MESA_SHADER_TESS_CTRL &&
-             sig->is_builtin() && strcmp(func_name, "barrier") == 0) {
+         bool is_begin_interlock = false;
+         bool is_end_interlock = false;
+         if (sig->is_builtin() &&
+             state->stage == MESA_SHADER_FRAGMENT &&
+             state->ARB_fragment_shader_interlock_enable) {
+            is_begin_interlock = strcmp(func_name, "beginInvocationInterlockARB") == 0;
+            is_end_interlock = strcmp(func_name, "endInvocationInterlockARB") == 0;
+         }
+
+         if (sig->is_builtin() &&
+             ((state->stage == MESA_SHADER_TESS_CTRL &&
+               strcmp(func_name, "barrier") == 0) ||
+              is_begin_interlock || is_end_interlock)) {
             if (state->current_function == NULL ||
                 strcmp(state->current_function->function_name(), "main") != 0) {
                _mesa_glsl_error(&loc, state,
-                                "barrier() may only be used in main()");
+                                "%s() may only be used in main()", func_name);
             }
 
             if (state->found_return) {
                _mesa_glsl_error(&loc, state,
-                                "barrier() may not be used after return");
+                                "%s() may not be used after return", func_name);
             }
 
             if (instructions != &state->current_function->body) {
                _mesa_glsl_error(&loc, state,
-                                "barrier() may not be used in control flow");
+                                "%s() may not be used in control flow", func_name);
             }
+         }
+
+         /* There can be only one begin/end interlock pair in the function. */
+         if (is_begin_interlock) {
+            if (state->found_begin_interlock)
+               _mesa_glsl_error(&loc, state,
+                                "beginInvocationInterlockARB may not be used twice");
+            state->found_begin_interlock = true;
+         } else if (is_end_interlock) {
+            if (!state->found_begin_interlock)
+               _mesa_glsl_error(&loc, state,
+                                "endInvocationInterlockARB may not be used "
+                                "before beginInvocationInterlockARB");
+            if (state->found_end_interlock)
+               _mesa_glsl_error(&loc, state,
+                                "endInvocationInterlockARB may not be used twice");
+            state->found_end_interlock = true;
          }
 
          value = generate_call(instructions, sig, &actual_parameters, sub_var,

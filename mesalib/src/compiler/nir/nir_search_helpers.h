@@ -242,4 +242,50 @@ is_used_by_non_fsat(nir_alu_instr *instr)
    return false;
 }
 
+/**
+ * Returns true if a NIR ALU src represents a constant integer
+ * of either 32 or 64 bits, and the higher word (bit-size / 2)
+ * of all its components is zero.
+ */
+static inline bool
+is_upper_half_zero(nir_alu_instr *instr, unsigned src,
+                   unsigned num_components, const uint8_t *swizzle)
+{
+   if (nir_src_as_const_value(instr->src[src].src) == NULL)
+      return false;
+
+   for (unsigned i = 0; i < num_components; i++) {
+      unsigned half_bit_size = nir_src_bit_size(instr->src[src].src) / 2;
+      uint32_t high_bits = ((1 << half_bit_size) - 1) << half_bit_size;
+      if ((nir_src_comp_as_uint(instr->src[src].src,
+                                swizzle[i]) & high_bits) != 0) {
+         return false;
+      }
+   }
+
+   return true;
+}
+
+/**
+ * Returns true if a NIR ALU src represents a constant integer
+ * of either 32 or 64 bits, and the lower word (bit-size / 2)
+ * of all its components is zero.
+ */
+static inline bool
+is_lower_half_zero(nir_alu_instr *instr, unsigned src,
+                   unsigned num_components, const uint8_t *swizzle)
+{
+   if (nir_src_as_const_value(instr->src[src].src) == NULL)
+      return false;
+
+   for (unsigned i = 0; i < num_components; i++) {
+      uint32_t low_bits =
+         (1 << (nir_src_bit_size(instr->src[src].src) / 2)) - 1;
+      if ((nir_src_comp_as_int(instr->src[src].src, swizzle[i]) & low_bits) != 0)
+         return false;
+   }
+
+   return true;
+}
+
 #endif /* _NIR_SEARCH_ */

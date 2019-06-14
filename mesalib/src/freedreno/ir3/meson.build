@@ -30,6 +30,18 @@ ir3_nir_trig_c = custom_target(
   depend_files : nir_algebraic_py,
 )
 
+ir3_nir_imul_c = custom_target(
+  'ir3_nir_imul.c',
+  input : 'ir3_nir_imul.py',
+  output : 'ir3_nir_imul.c',
+  command : [
+    prog_python, '@INPUT@',
+    '-p', join_paths(meson.source_root(), 'src/compiler/nir/'),
+  ],
+  capture : true,
+  depend_files : nir_algebraic_py,
+)
+
 libfreedreno_ir3_files = files(
   'disasm-a3xx.c',
   'instr-a3xx.h',
@@ -66,7 +78,7 @@ libfreedreno_ir3_files = files(
 
 libfreedreno_ir3 = static_library(
   'freedreno_ir3',
-  [libfreedreno_ir3_files, ir3_nir_trig_c],
+  [libfreedreno_ir3_files, ir3_nir_trig_c, ir3_nir_imul_c],
   include_directories : [inc_freedreno, inc_common],
   c_args : [c_vis_args, no_override_init_args],
   cpp_args : [cpp_vis_args],

@@ -707,6 +707,10 @@ radv_decompress_resolve_subpass_src(struct radv_cmd_buffer *cmd_buffer)
 {
 	const struct radv_subpass *subpass = cmd_buffer->state.subpass;
 	struct radv_framebuffer *fb = cmd_buffer->state.framebuffer;
+	uint32_t layer_count = fb->layers;
+
+	if (subpass->view_mask)
+		layer_count = util_last_bit(subpass->view_mask);
 
 	for (uint32_t i = 0; i < subpass->color_count; ++i) {
 		struct radv_subpass_attachment src_att = subpass->color_attachments[i];
@@ -715,13 +719,15 @@ radv_decompress_resolve_subpass_src(struct radv_cmd_buffer *cmd_buffer)
 		if (dest_att.attachment == VK_ATTACHMENT_UNUSED)
 			continue;
 
-		struct radv_image *src_image =
-			fb->attachments[src_att.attachment].attachment->image;
+		struct radv_image_view *src_iview =
+			fb->attachments[src_att.attachment].attachment;
+		struct radv_image *src_image = src_iview->image;
 
 		VkImageResolve region = {};
-		region.srcSubresource.baseArrayLayer = 0;
+		region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		region.srcSubresource.mipLevel = 0;
-		region.srcSubresource.layerCount = src_image->info.array_size;
+		region.srcSubresource.baseArrayLayer = src_iview->base_layer;
+		region.srcSubresource.layerCount = layer_count;
 
 		radv_decompress_resolve_src(cmd_buffer, src_image,
 					    src_att.layout, 1, &region);
@@ -743,24 +749,24 @@ radv_decompress_resolve_src(struct radv_cmd_buffer *cmd_buffer,
 		const uint32_t src_base_layer =
 			radv_meta_get_iview_layer(src_image, &region->srcSubresource,
 						  &region->srcOffset);
-		VkImageSubresourceRange range;
-		range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		range.baseMipLevel = region->srcSubresource.mipLevel;
-		range.levelCount = 1;
-		range.baseArrayLayer = src_base_layer;
-		range.layerCount = region->srcSubresource.layerCount;
 
-		uint32_t queue_mask =
-			radv_image_queue_family_mask(src_image,
-						     cmd_buffer->queue_family_index,
-						     cmd_buffer->queue_family_index);
+		VkImageMemoryBarrier barrier = {};
+		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+		barrier.oldLayout = src_image_layout;
+		barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+		barrier.image = radv_image_to_handle(src_image);
+		barrier.subresourceRange = (VkImageSubresourceRange) {
+			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			.baseMipLevel = region->srcSubresource.mipLevel,
+			.levelCount = 1,
+			.baseArrayLayer = src_base_layer,
+			.layerCount = region->srcSubresource.layerCount,
+		};
 
-		if (radv_layout_dcc_compressed(src_image, src_image_layout,
-					       queue_mask)) {
-			radv_decompress_dcc(cmd_buffer, src_image, &range);
-		} else {
-			radv_fast_clear_flush_image_inplace(cmd_buffer,
-							    src_image, &range);
-		}
+		radv_CmdPipelineBarrier(radv_cmd_buffer_to_handle(cmd_buffer),
+					VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+					VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+					false, 0, NULL, 0, NULL, 1, &barrier);
 	}
 }

@@ -153,7 +153,10 @@ process_mux_deps(struct schedule_state *state, struct schedule_node *n,
                 add_read_dep(state, state->last_rf[n->inst->qpu.raddr_a], n);
                 break;
         case V3D_QPU_MUX_B:
-                add_read_dep(state, state->last_rf[n->inst->qpu.raddr_b], n);
+                if (!n->inst->qpu.sig.small_imm) {
+                        add_read_dep(state,
+                                     state->last_rf[n->inst->qpu.raddr_b], n);
+                }
                 break;
         default:
                 add_read_dep(state, state->last_r[mux - V3D_QPU_MUX_R0], n);

@@ -76,13 +76,6 @@ radv_use_tc_compat_htile_for_image(struct radv_device *device,
 	    (pCreateInfo->flags & VK_IMAGE_CREATE_EXTENDED_USAGE_BIT))
 		return false;
 
-	/* TODO: Implement layout transitions with variable sample locations
-	 * before enabling HTILE for depth/stencil images created with this
-	 * flags because the depth decompress pass needs to know them.
-	 */
-	if (pCreateInfo->flags & VK_IMAGE_CREATE_SAMPLE_LOCATIONS_COMPATIBLE_DEPTH_BIT_EXT)
-		return false;
-
 	if (pCreateInfo->tiling == VK_IMAGE_TILING_LINEAR)
 		return false;
 
@@ -116,6 +109,9 @@ radv_use_tc_compat_htile_for_image(struct radv_device *device,
 			 * one format with everything else.
 			 */
 			for (unsigned i = 0; i < format_list->viewFormatCount; ++i) {
+				if (format_list->pViewFormats[i] == VK_FORMAT_UNDEFINED)
+					continue;
+
 				if (pCreateInfo->format != format_list->pViewFormats[i])
 					return false;
 			}
@@ -159,9 +155,7 @@ radv_use_dcc_for_image(struct radv_device *device,
 	if (device->instance->debug_flags & RADV_DEBUG_NO_DCC)
 		return false;
 
-	/* FIXME: DCC is broken for shareable images starting with GFX9 */
-	if (device->physical_device->rad_info.chip_class >= GFX9 &&
-	    image->shareable)
+	if (image->shareable)
 		return false;
 
 	/* TODO: Enable DCC for storage images. */
@@ -207,6 +201,9 @@ radv_use_dcc_for_image(struct radv_device *device,
 			/* compatibility is transitive, so we only need to check
 			 * one format with everything else. */
 			for (unsigned i = 0; i < format_list->viewFormatCount; ++i) {
+				if (format_list->pViewFormats[i] == VK_FORMAT_UNDEFINED)
+					continue;
+
 				if (!radv_dcc_formats_compatible(pCreateInfo->format,
 				                                 format_list->pViewFormats[i]))
 					dcc_compatible_formats = false;

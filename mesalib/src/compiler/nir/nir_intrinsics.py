@@ -120,6 +120,8 @@ ALIGN_OFFSET = "NIR_INTRINSIC_ALIGN_OFFSET"
 DESC_TYPE = "NIR_INTRINSIC_DESC_TYPE"
 # The nir_alu_type of a uniform/input/output
 TYPE = "NIR_INTRINSIC_TYPE"
+# The swizzle mask for quad_swizzle_amd & masked_swizzle_amd
+SWIZZLE_MASK = "NIR_INTRINSIC_SWIZZLE_MASK"
 
 #
 # Possible flags:
@@ -266,6 +268,14 @@ intrinsic("inclusive_scan", src_comp=[0], dest_comp=0, indices=[REDUCTION_OP],
           flags=[CAN_ELIMINATE])
 intrinsic("exclusive_scan", src_comp=[0], dest_comp=0, indices=[REDUCTION_OP],
           flags=[CAN_ELIMINATE])
+
+# AMD shader ballot operations
+intrinsic("quad_swizzle_amd", src_comp=[0], dest_comp=0, indices=[SWIZZLE_MASK],
+          flags=[CAN_ELIMINATE])
+intrinsic("masked_swizzle_amd", src_comp=[0], dest_comp=0, indices=[SWIZZLE_MASK],
+          flags=[CAN_ELIMINATE])
+intrinsic("write_invocation_amd", src_comp=[0, 0, 1], dest_comp=0, flags=[CAN_ELIMINATE])
+intrinsic("mbcnt_amd", src_comp=[1], dest_comp=1, flags=[CAN_ELIMINATE])
 
 # Basic Geometry Shader intrinsics.
 #

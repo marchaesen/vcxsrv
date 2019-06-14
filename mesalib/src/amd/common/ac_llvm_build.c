@@ -1194,16 +1194,17 @@ ac_build_buffer_store_format(struct ac_llvm_context *ctx,
 			     LLVMValueRef voffset,
 			     unsigned num_channels,
 			     bool glc,
+			     bool slc,
 			     bool writeonly_memory)
 {
 	if (HAVE_LLVM >= 0x800) {
 		ac_build_llvm8_buffer_store_common(ctx, rsrc, data, vindex,
 						   voffset, NULL, num_channels,
-						   ctx->f32, glc, false,
+						   ctx->f32, glc, slc,
 						   writeonly_memory, true, true);
 	} else {
 		ac_build_llvm7_buffer_store_common(ctx, rsrc, data, vindex, voffset,
-						   num_channels, glc, false,
+						   num_channels, glc, slc,
 						   writeonly_memory, true);
 	}
 }

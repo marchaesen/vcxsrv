@@ -567,6 +567,9 @@ ir3_shader_stage(struct ir3_shader *shader)
 {
 	switch (shader->type) {
 	case MESA_SHADER_VERTEX:     return "VERT";
+	case MESA_SHADER_TESS_CTRL:  return "TCS";
+	case MESA_SHADER_TESS_EVAL:  return "TES";
+	case MESA_SHADER_GEOMETRY:   return "GEOM";
 	case MESA_SHADER_FRAGMENT:   return "FRAG";
 	case MESA_SHADER_COMPUTE:    return "CL";
 	default:

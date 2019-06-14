@@ -112,7 +112,7 @@ On the host, all you're doing is running VMware
 <li>Ubuntu: For ubuntu you need to install a number of build dependencies. 
   <pre>
   sudo apt-get install git-core
-  sudo apt-get install automake libtool libpthread-stubs0-dev
+  sudo apt-get install ninja-build meson libpthread-stubs0-dev
   sudo apt-get install xserver-xorg-dev x11proto-xinerama-dev libx11-xcb-dev
   sudo apt-get install libxcb-glx0-dev libxrender-dev
   sudo apt-get build-dep libgl1-mesa-dri libxcb-glx0-dev
@@ -121,14 +121,14 @@ On the host, all you're doing is running VMware
   <pre>
   sudo yum install mesa-libGL-devel xorg-x11-server-devel xorg-x11-util-macros
   sudo yum install libXrender-devel.i686
-  sudo yum install automake gcc libtool expat-devel kernel-devel git-core
+  sudo yum install ninja-build meson gcc expat-devel kernel-devel git-core
   sudo yum install makedepend flex bison
   </pre>
 </ul>
 
 <p>
 Depending on your Linux distro, other packages may be needed.
-The configure scripts should tell you what's missing.
+Meson should tell you what's missing.
 </p>
 
 
@@ -166,9 +166,10 @@ To get the latest code from git:
 
 <ul>
 <li>
+<p>
 Determine where the GL-related libraries reside on your system and set
 the LIBDIR environment variable accordingly.
-<br><br>
+</p>
 For 32-bit Ubuntu systems:
 <pre>
   export LIBDIR=/usr/lib/i386-linux-gnu
@@ -195,12 +196,14 @@ For 64-bit Fedora systems:
   ninja -C builddir
   sudo ninja -C builddir install
   </pre>
-<li>Build Mesa and the vmwgfx_dri.so driver, the vmwgfx_drv.so xorg driver, the X acceleration library libxatracker.
+<li>
+<p>Build Mesa and the vmwgfx_dri.so driver, the vmwgfx_drv.so xorg driver, the X acceleration library libxatracker.
 The vmwgfx_dri.so is used by the OpenGL libraries during direct rendering,
 and by the Xorg server during accelerated indirect GL rendering.
 The libxatracker library is used exclusively by the X server to do render,
 copy and video acceleration:
-<br>
+</p>
+
 The following configure options doesn't build the EGL system.
   <pre>
   cd $TOP/mesa
@@ -209,10 +212,10 @@ The following configure options doesn't build the EGL system.
   sudo ninja -C builddir install
   </pre>
 
+<p>
 Note that you may have to install other packages that Mesa depends upon
 if they're not installed in your system.  You should be told what's missing.
-<br>
-<br>
+</p>
 
 <li>xf86-video-vmware: Now, once libxatracker is installed, we proceed with
 building and replacing the current Xorg driver.

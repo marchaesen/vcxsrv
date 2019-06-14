@@ -939,6 +939,15 @@ public:
    int coordinate_components() const;
 
    /**
+    * Compares whether this type matches another type without taking into
+    * account the precision in structures.
+    *
+    * This is applied recursively so that structures containing structure
+    * members can also ignore the precision.
+    */
+   bool compare_no_precision(const glsl_type *b) const;
+
+   /**
     * Compare a record type against another record type.
     *
     * This is useful for matching record types declared on the same shader
@@ -949,7 +958,8 @@ public:
     * same struct is defined in a block which has a location set on it.
     */
    bool record_compare(const glsl_type *b, bool match_name,
-                       bool match_locations = true) const;
+                       bool match_locations = true,
+                       bool match_precision = true) const;
 
    /**
     * Get the type interface packing.

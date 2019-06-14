@@ -137,6 +137,7 @@ else
   driver_svga = declare_dependency()
 endif
 if with_gallium_virgl
+  subdir('winsys/virgl/common')
   subdir('winsys/virgl/drm')
   subdir('winsys/virgl/vtest')
   subdir('drivers/virgl')

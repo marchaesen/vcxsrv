@@ -2556,7 +2556,7 @@ static void visit_image_store(struct ac_nir_context *ctx,
 
 		ac_build_buffer_store_format(&ctx->ac, rsrc, src, vindex,
 					     ctx->ac.i32_0, src_channels,
-					     args.cache_policy & ac_glc,
+					     args.cache_policy & ac_glc, false,
 					     writeonly_memory);
 	} else {
 		args.opcode = ac_image_store;
@@ -3458,6 +3458,26 @@ static void visit_intrinsic(struct ac_nir_context *ctx,
 	case nir_intrinsic_quad_swap_diagonal:
 		result = ac_build_quad_swizzle(&ctx->ac, get_src(ctx, instr->src[0]), 3, 2, 1 ,0);
 		break;
+	case nir_intrinsic_quad_swizzle_amd: {
+		uint32_t mask = nir_intrinsic_swizzle_mask(instr);
+		result = ac_build_quad_swizzle(&ctx->ac, get_src(ctx, instr->src[0]),
+					       mask & 0x3, (mask >> 2) & 0x3,
+					       (mask >> 4) & 0x3, (mask >> 6) & 0x3);
+		break;
+	}
+	case nir_intrinsic_masked_swizzle_amd: {
+		uint32_t mask = nir_intrinsic_swizzle_mask(instr);
+		result = ac_build_ds_swizzle(&ctx->ac, get_src(ctx, instr->src[0]), mask);
+		break;
+	}
+	case nir_intrinsic_write_invocation_amd:
+		result = ac_build_writelane(&ctx->ac, get_src(ctx, instr->src[0]),
+					    get_src(ctx, instr->src[1]),
+					    get_src(ctx, instr->src[2]));
+		break;
+	case nir_intrinsic_mbcnt_amd:
+		result = ac_build_mbcnt(&ctx->ac, get_src(ctx, instr->src[0]));
+		break;
 	default:
 		fprintf(stderr, "Unknown intrinsic: ");
 		nir_print_instr(&instr->instr, stderr);
@@ -3895,7 +3915,13 @@ static void visit_tex(struct ac_nir_context *ctx, nir_tex_instr *instr)
 		args.offset = NULL;
 	}
 
-	/* TODO TG4 support */
+	/* DMASK was repurposed for GATHER4. 4 components are always
+	 * returned and DMASK works like a swizzle - it selects
+	 * the component to fetch. The only valid DMASK values are
+	 * 1=red, 2=green, 4=blue, 8=alpha. (e.g. 1 returns
+	 * (red,red,red,red) etc.) The ISA document doesn't mention
+	 * this.
+	 */
 	args.dmask = 0xf;
 	if (instr->op == nir_texop_tg4) {
 		if (instr->is_shadow)

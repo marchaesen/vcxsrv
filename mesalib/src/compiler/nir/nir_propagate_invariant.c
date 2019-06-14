@@ -65,12 +65,21 @@ add_cf_node(nir_cf_node *cf, struct set *invariants)
 static void
 add_var(nir_variable *var, struct set *invariants)
 {
-   _mesa_set_add(invariants, var);
+   /* Because we pass the result of nir_intrinsic_get_var directly to this
+    * function, it's possible for var to be NULL if, for instance, there's a
+    * cast somewhere in the chain.
+    */
+   if (var != NULL)
+      _mesa_set_add(invariants, var);
 }
 
 static bool
 var_is_invariant(nir_variable *var, struct set * invariants)
 {
+   /* Because we pass the result of nir_intrinsic_get_var directly to this
+    * function, it's possible for var to be NULL if, for instance, there's a
+    * cast somewhere in the chain.
+    */
    return var && (var->data.invariant || _mesa_set_search(invariants, var));
 }
 
