@@ -87,7 +87,7 @@ blit_surf_for_image_level_layer(struct radv_image *image,
 {
 	VkFormat format = radv_get_aspect_format(image, aspect_mask);
 
-	if (!radv_image_has_dcc(image) &&
+	if (!radv_dcc_enabled(image, subres->mipLevel) &&
 	    !(radv_image_is_tc_compat_htile(image)))
 		format = vk_format_for_size(vk_format_get_blocksize(format));
 
@@ -186,6 +186,24 @@ meta_copy_buffer_to_image(struct radv_cmd_buffer *cmd_buffer,
 							layout,
 							&pRegions[r].imageSubresource,
 							pRegions[r].imageSubresource.aspectMask);
+
+		if (!radv_is_buffer_format_supported(img_bsurf.format, NULL)) {
+			uint32_t queue_mask = radv_image_queue_family_mask(image,
+			                                                   cmd_buffer->queue_family_index,
+			                                                   cmd_buffer->queue_family_index);
+			MAYBE_UNUSED bool compressed = radv_layout_dcc_compressed(image, layout, queue_mask);
+			if (compressed) {
+				radv_decompress_dcc(cmd_buffer, image, &(VkImageSubresourceRange) {
+								.aspectMask = pRegions[r].imageSubresource.aspectMask,
+								.baseMipLevel = pRegions[r].imageSubresource.mipLevel,
+								.levelCount = 1,
+								.baseArrayLayer = pRegions[r].imageSubresource.baseArrayLayer,
+								.layerCount = pRegions[r].imageSubresource.layerCount,
+			                                });
+			}
+			img_bsurf.format = vk_format_for_size(vk_format_get_blocksize(img_bsurf.format));
+			img_bsurf.current_layout = VK_IMAGE_LAYOUT_GENERAL;
+		}
 
 		struct radv_meta_blit2d_buffer buf_bsurf = {
 			.bs = img_bsurf.bs,
@@ -312,6 +330,24 @@ meta_copy_image_to_buffer(struct radv_cmd_buffer *cmd_buffer,
 							layout,
 							&pRegions[r].imageSubresource,
 							pRegions[r].imageSubresource.aspectMask);
+
+		if (!radv_is_buffer_format_supported(img_info.format, NULL)) {
+			uint32_t queue_mask = radv_image_queue_family_mask(image,
+			                                                   cmd_buffer->queue_family_index,
+			                                                   cmd_buffer->queue_family_index);
+			MAYBE_UNUSED bool compressed = radv_layout_dcc_compressed(image, layout, queue_mask);
+			if (compressed) {
+				radv_decompress_dcc(cmd_buffer, image, &(VkImageSubresourceRange) {
+								.aspectMask = pRegions[r].imageSubresource.aspectMask,
+								.baseMipLevel = pRegions[r].imageSubresource.mipLevel,
+								.levelCount = 1,
+								.baseArrayLayer = pRegions[r].imageSubresource.baseArrayLayer,
+								.layerCount = pRegions[r].imageSubresource.layerCount,
+			                                });
+			}
+			img_info.format = vk_format_for_size(vk_format_get_blocksize(img_info.format));
+			img_info.current_layout = VK_IMAGE_LAYOUT_GENERAL;
+		}
 
 		struct radv_meta_blit2d_buffer buf_info = {
 			.bs = img_info.bs,

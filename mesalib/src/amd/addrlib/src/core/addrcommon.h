@@ -1,5 +1,5 @@
 /*
- * Copyright © 2007-2018 Advanced Micro Devices, Inc.
+ * Copyright © 2007-2019 Advanced Micro Devices, Inc.
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -36,16 +36,20 @@
 
 #include "addrinterface.h"
 
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-
 #if !defined(DEBUG)
 #ifdef NDEBUG
 #define DEBUG 0
 #else
 #define DEBUG 1
 #endif
+#endif
+
+// ADDR_LNX_KERNEL_BUILD is for internal build
+// Moved from addrinterface.h so __KERNEL__ is not needed any more
+#if   !defined(__APPLE__) || defined(HAVE_TSERVER)
+    #include <stdlib.h>
+    #include <string.h>
+    #include <assert.h>
 #endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -152,7 +156,11 @@
 #endif // DEBUG
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#if defined(static_assert)
+#define ADDR_C_ASSERT(__e) static_assert(__e, "")
+#else
 #define ADDR_C_ASSERT(__e) typedef char __ADDR_C_ASSERT__[(__e) ? 1 : -1]
+#endif
 
 namespace Addr
 {
@@ -260,7 +268,8 @@ union ConfigFlags
         UINT_32 allowLargeThickTile    : 1;    ///< Allow 64*thickness*bytesPerPixel > rowSize
         UINT_32 disableLinearOpt       : 1;    ///< Disallow tile modes to be optimized to linear
         UINT_32 use32bppFor422Fmt      : 1;    ///< View 422 formats as 32 bits per pixel element
-        UINT_32 reserved               : 21;   ///< Reserved bits for future use
+        UINT_32 forceDccAndTcCompat    : 1;    ///< Force enable DCC and TC compatibility
+        UINT_32 reserved               : 20;   ///< Reserved bits for future use
     };
 
     UINT_32 value;

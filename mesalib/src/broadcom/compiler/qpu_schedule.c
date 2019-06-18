@@ -605,6 +605,37 @@ qpu_accesses_peripheral(const struct v3d_qpu_instr *inst)
 }
 
 static bool
+qpu_compatible_peripheral_access(const struct v3d_device_info *devinfo,
+                                 const struct v3d_qpu_instr *a,
+                                 const struct v3d_qpu_instr *b)
+{
+        const bool a_uses_peripheral = qpu_accesses_peripheral(a);
+        const bool b_uses_peripheral = qpu_accesses_peripheral(b);
+
+        /* We can always do one peripheral access per instruction. */
+        if (!a_uses_peripheral || !b_uses_peripheral)
+                return true;
+
+        if (devinfo->ver < 41)
+                return false;
+
+        /* V3D 4.1 and later allow TMU read along with a VPM read or write, and
+         * WRTMUC with a TMU magic register write (other than tmuc).
+         */
+        if ((a->sig.ldtmu && v3d_qpu_uses_vpm(b)) ||
+            (b->sig.ldtmu && v3d_qpu_uses_vpm(a))) {
+                return true;
+        }
+
+        if ((a->sig.wrtmuc && v3d_qpu_writes_tmu_not_tmuc(b)) ||
+            (b->sig.wrtmuc && v3d_qpu_writes_tmu_not_tmuc(a))) {
+                return true;
+        }
+
+        return false;
+}
+
+static bool
 qpu_merge_inst(const struct v3d_device_info *devinfo,
                struct v3d_qpu_instr *result,
                const struct v3d_qpu_instr *a,
@@ -615,12 +646,7 @@ qpu_merge_inst(const struct v3d_device_info *devinfo,
                 return false;
         }
 
-        /* Can't do more than one peripheral access in an instruction.
-         *
-         * XXX: V3D 4.1 allows TMU read along with a VPM read or write, and
-         * WRTMUC with a TMU magic register write (other than tmuc).
-         */
-        if (qpu_accesses_peripheral(a) && qpu_accesses_peripheral(b))
+        if (!qpu_compatible_peripheral_access(devinfo, a, b))
                 return false;
 
         struct v3d_qpu_instr merge = *a;

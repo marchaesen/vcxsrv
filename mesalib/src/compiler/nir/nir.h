@@ -3427,6 +3427,12 @@ typedef struct nir_lower_tex_options {
    bool lower_txd_clamp_if_sampler_index_not_lt_16;
 
    /**
+    * If true, lower nir_texop_txs with a non-0-lod into nir_texop_txs with
+    * 0-lod followed by a nir_ishr.
+    */
+   bool lower_txs_lod;
+
+   /**
     * If true, apply a .bagr swizzle on tg4 results to handle Broadcom's
     * mixed-up tg4 locations.
     */
@@ -3611,6 +3617,8 @@ bool nir_opt_shrink_load(nir_shader *shader);
 bool nir_opt_trivial_continues(nir_shader *shader);
 
 bool nir_opt_undef(nir_shader *shader);
+
+bool nir_opt_vectorize(nir_shader *shader);
 
 bool nir_opt_conditional_discard(nir_shader *shader);
 

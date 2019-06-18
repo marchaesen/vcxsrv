@@ -80,6 +80,7 @@
   ctrl:nocaps		=	+ctrl(nocaps)
   ctrl:lctrl_meta	=	+ctrl(lctrl_meta)
   ctrl:swapcaps		=	+ctrl(swapcaps)
+  ctrl:swapcaps_hyper	=	+ctrl(swapcaps_hyper)
   ctrl:ac_ctrl		=	+ctrl(ac_ctrl)
   ctrl:aa_ctrl		=	+ctrl(aa_ctrl)
   ctrl:rctrl_ralt	=	+ctrl(rctrl_ralt)

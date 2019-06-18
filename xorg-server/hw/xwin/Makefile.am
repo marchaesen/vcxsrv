@@ -27,7 +27,7 @@ SRCS_MULTIWINDOW = \
 	winmultiwindowwndproc.c \
 	propertystore.h \
 	winSetAppUserModelID.c
-MULTIWINDOW_SYS_LIBS = -lshlwapi -lole32
+MULTIWINDOW_SYS_LIBS = -lshlwapi -lole32 -ldwmapi
 
 SRCS_RANDR = \
 	winrandr.c

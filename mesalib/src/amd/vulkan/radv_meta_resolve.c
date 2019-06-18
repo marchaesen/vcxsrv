@@ -463,9 +463,6 @@ void radv_CmdResolveImage(
 	if (src_image->info.array_size > 1)
 		radv_finishme("vkCmdResolveImage: multisample array images");
 
-	if (radv_image_has_dcc(dest_image)) {
-		radv_initialize_dcc(cmd_buffer, dest_image, 0xffffffff);
-	}
 	unsigned fs_key = radv_format_meta_fs_key(dest_image->vk_format);
 	for (uint32_t r = 0; r < region_count; ++r) {
 		const VkImageResolve *region = &regions[r];
@@ -509,6 +506,17 @@ void radv_CmdResolveImage(
 		const struct VkOffset3D dstOffset =
 			radv_sanitize_image_offset(dest_image->type, region->dstOffset);
 
+		if (radv_dcc_enabled(dest_image, region->dstSubresource.mipLevel)) {
+			VkImageSubresourceRange range = {
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.baseMipLevel = region->dstSubresource.mipLevel,
+				.levelCount = 1,
+				.baseArrayLayer = dest_base_layer,
+				.layerCount = region->dstSubresource.layerCount,
+			};
+
+			radv_initialize_dcc(cmd_buffer, dest_image, &range, 0xffffffff);
+		}
 
 		for (uint32_t layer = 0; layer < region->srcSubresource.layerCount;
 		     ++layer) {
@@ -668,8 +676,16 @@ radv_cmd_buffer_resolve_subpass(struct radv_cmd_buffer *cmd_buffer)
 		struct radv_image_view *dest_iview = cmd_buffer->state.framebuffer->attachments[dest_att.attachment].attachment;
 		struct radv_image *dst_img = dest_iview->image;
 
-		if (radv_image_has_dcc(dst_img)) {
-			radv_initialize_dcc(cmd_buffer, dst_img, 0xffffffff);
+		if (radv_dcc_enabled(dst_img, dest_iview->base_mip)) {
+			VkImageSubresourceRange range = {
+				.aspectMask = dest_iview->aspect_mask,
+				.baseMipLevel = dest_iview->base_mip,
+				.levelCount = dest_iview->level_count,
+				.baseArrayLayer = dest_iview->base_layer,
+				.layerCount = dest_iview->layer_count,
+			};
+
+			radv_initialize_dcc(cmd_buffer, dst_img, &range, 0xffffffff);
 			cmd_buffer->state.attachments[dest_att.attachment].current_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		}
 

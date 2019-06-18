@@ -44,7 +44,7 @@ srcs_windows += [
      'propertystore.h',
      'winSetAppUserModelID.c',
 ]
-xwin_sys_libs += ['-lshlwapi', '-lole32']
+xwin_sys_libs += ['-lshlwapi', '-lole32', '-ldwmapi']
 
 srcs_windows += [
      'winrandr.c',
@@ -137,6 +137,7 @@ xwin_dep = [
     dependency('xcb-image'),
     dependency('xcb-ewmh'),
     dependency('xcb-icccm'),
+    dependency('xcb-composite'),
 ]
 
 executable(

@@ -960,3 +960,259 @@ winAdjustXWindow(WindowPtr pWin, HWND hwnd)
 #undef WIDTH
 #undef HEIGHT
 }
+
+/*
+  Helper function for creating a DIB to back a pixmap
+ */
+static HBITMAP winCreateDIB(ScreenPtr pScreen, int width, int height, int bpp, void **ppvBits, BITMAPINFOHEADER **ppbmih)
+{
+    winScreenPriv(pScreen);
+    BITMAPV4HEADER *pbmih = NULL;
+    HBITMAP hBitmap = NULL;
+
+    /* Allocate bitmap info header */
+    pbmih = malloc(sizeof(BITMAPV4HEADER) + 256 * sizeof(RGBQUAD));
+    if (pbmih == NULL) {
+        ErrorF("winCreateDIB: malloc() failed\n");
+        return NULL;
+    }
+    memset(pbmih, 0, sizeof(BITMAPV4HEADER) + 256 * sizeof(RGBQUAD));
+
+    /* Describe bitmap to be created */
+    pbmih->bV4Size = sizeof(BITMAPV4HEADER);
+    pbmih->bV4Width = width;
+    pbmih->bV4Height = -height;  /* top-down bitmap */
+    pbmih->bV4Planes = 1;
+    pbmih->bV4BitCount = bpp;
+    if (bpp == 1) {
+        RGBQUAD *bmiColors = (RGBQUAD *)((char *)pbmih + sizeof(BITMAPV4HEADER));
+        pbmih->bV4V4Compression = BI_RGB;
+        bmiColors[1].rgbBlue = 255;
+        bmiColors[1].rgbGreen = 255;
+        bmiColors[1].rgbRed = 255;
+    }
+    else if (bpp == 8) {
+        pbmih->bV4V4Compression = BI_RGB;
+        pbmih->bV4ClrUsed = 0;
+    }
+    else if (bpp == 16) {
+        pbmih->bV4V4Compression = BI_RGB;
+        pbmih->bV4ClrUsed = 0;
+    }
+    else if (bpp == 32) {
+        pbmih->bV4V4Compression = BI_BITFIELDS;
+        pbmih->bV4RedMask = pScreenPriv->dwRedMask;
+        pbmih->bV4GreenMask = pScreenPriv->dwGreenMask;
+        pbmih->bV4BlueMask = pScreenPriv->dwBlueMask;
+        pbmih->bV4AlphaMask = 0;
+    }
+    else {
+        ErrorF("winCreateDIB: %d bpp unhandled\n", bpp);
+    }
+
+    /* Create a DIB with a bit pointer */
+    hBitmap = CreateDIBSection(NULL,
+                               (BITMAPINFO *) pbmih,
+                               DIB_RGB_COLORS, ppvBits, NULL, 0);
+    if (hBitmap == NULL) {
+        ErrorF("winCreateDIB: CreateDIBSection() failed\n");
+        return NULL;
+    }
+
+    /* Store the address of the BMIH in the ppbmih parameter */
+    *ppbmih = (BITMAPINFOHEADER *)pbmih;
+
+    winDebug("winCreateDIB: HBITMAP %p pBMIH %p pBits %p\n", hBitmap, pbmih, *ppvBits);
+
+    return hBitmap;
+}
+
+
+/*
+ * CreatePixmap - See Porting Layer Definition
+ */
+PixmapPtr
+winCreatePixmapMultiwindow(ScreenPtr pScreen, int width, int height, int depth,
+                           unsigned usage_hint)
+{
+    winPrivPixmapPtr pPixmapPriv = NULL;
+    PixmapPtr pPixmap = NULL;
+    int bpp, paddedwidth;
+
+    /* allocate Pixmap header and privates */
+    pPixmap = AllocatePixmap(pScreen, 0);
+    if (!pPixmap)
+        return NullPixmap;
+
+    bpp = BitsPerPixel(depth);
+    /*
+      DIBs have 4-byte aligned rows
+
+      paddedwidth is the width in bytes, padded to align
+
+      i.e. round up the number of bits used by a row so it is a multiple of 32,
+      then convert to bytes
+    */
+    paddedwidth = (((bpp * width) + 31) & ~31)/8;
+
+    /* setup Pixmap header */
+    pPixmap->drawable.type = DRAWABLE_PIXMAP;
+    pPixmap->drawable.class = 0;
+    pPixmap->drawable.pScreen = pScreen;
+    pPixmap->drawable.depth = depth;
+    pPixmap->drawable.bitsPerPixel = bpp;
+    pPixmap->drawable.id = 0;
+    pPixmap->drawable.serialNumber = NEXT_SERIAL_NUMBER;
+    pPixmap->drawable.x = 0;
+    pPixmap->drawable.y = 0;
+    pPixmap->drawable.width = width;
+    pPixmap->drawable.height = height;
+    pPixmap->devKind = paddedwidth;
+    pPixmap->refcnt = 1;
+    pPixmap->devPrivate.ptr = NULL; // later set to pbBits
+    pPixmap->master_pixmap = NULL;
+#ifdef COMPOSITE
+    pPixmap->screen_x = 0;
+    pPixmap->screen_y = 0;
+#endif
+    pPixmap->usage_hint = usage_hint;
+
+    /* Check for zero width or height pixmaps */
+    if (width == 0 || height == 0) {
+        /* DIBs with a dimension of 0 aren't permitted, so don't try to allocate
+           a DIB, just set fields and return */
+        return pPixmap;
+    }
+
+    /* Initialize pixmap privates */
+    pPixmapPriv = winGetPixmapPriv(pPixmap);
+    pPixmapPriv->hBitmap = NULL;
+    pPixmapPriv->pbBits = NULL;
+    pPixmapPriv->pbmih = NULL;
+
+    /* Create a DIB for the pixmap */
+    pPixmapPriv->hBitmap = winCreateDIB(pScreen, width, height, bpp, &pPixmapPriv->pbBits, &pPixmapPriv->pbmih);
+    pPixmapPriv->owned = TRUE;
+
+    winDebug("winCreatePixmap: pPixmap %p HBITMAP %p pBMIH %p pBits %p\n", pPixmap, pPixmapPriv->hBitmap, pPixmapPriv->pbmih, pPixmapPriv->pbBits);
+    /* XXX: so why do we need this in privates ??? */
+    pPixmap->devPrivate.ptr = pPixmapPriv->pbBits;
+
+    return pPixmap;
+}
+
+/*
+ * DestroyPixmap - See Porting Layer Definition
+ */
+Bool
+winDestroyPixmapMultiwindow(PixmapPtr pPixmap)
+{
+    winPrivPixmapPtr pPixmapPriv = NULL;
+
+    /* Bail early if there is not a pixmap to destroy */
+    if (pPixmap == NULL) {
+        return TRUE;
+    }
+
+    /* Decrement reference count, return if nonzero */
+    --pPixmap->refcnt;
+    if (pPixmap->refcnt != 0)
+        return TRUE;
+
+    winDebug("winDestroyPixmap: pPixmap %p\n", pPixmap);
+
+    /* Get a handle to the pixmap privates */
+    pPixmapPriv = winGetPixmapPriv(pPixmap);
+
+    /* Nothing to do if we don't own the DIB */
+    if (!pPixmapPriv->owned)
+        return TRUE;
+
+    /* Free GDI bitmap */
+    if (pPixmapPriv->hBitmap)
+        DeleteObject(pPixmapPriv->hBitmap);
+
+    /* Free the bitmap info header memory */
+    free(pPixmapPriv->pbmih);
+    pPixmapPriv->pbmih = NULL;
+
+    /* Free the pixmap memory */
+    free(pPixmap);
+    pPixmap = NULL;
+
+    return TRUE;
+}
+
+/*
+ * ModifyPixmapHeader - See Porting Layer Definition
+ */
+Bool
+winModifyPixmapHeaderMultiwindow(PixmapPtr pPixmap,
+                                 int width,
+                                 int height,
+                                 int depth,
+                                 int bitsPerPixel, int devKind, void *pPixData)
+{
+    int i;
+    winPrivPixmapPtr pPixmapPriv = winGetPixmapPriv(pPixmap);
+    Bool fResult;
+
+    /* reinitialize everything */
+    pPixmap->drawable.depth = depth;
+    pPixmap->drawable.bitsPerPixel = bitsPerPixel;
+    pPixmap->drawable.id = 0;
+    pPixmap->drawable.x = 0;
+    pPixmap->drawable.y = 0;
+    pPixmap->drawable.width = width;
+    pPixmap->drawable.height = height;
+    pPixmap->devKind = devKind;
+    pPixmap->refcnt = 1;
+    pPixmap->devPrivate.ptr = pPixData;
+    pPixmap->drawable.serialNumber = NEXT_SERIAL_NUMBER;
+
+    /*
+      This can be used for some out-of-order initialization on the screen
+      pixmap, which is the only case we can properly support.
+    */
+
+    /* Look for which screen this pixmap corresponds to */
+    for (i = 0; i < screenInfo.numScreens; i++) {
+        ScreenPtr pScreen = screenInfo.screens[i];
+        winScreenPriv(pScreen);
+        winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
+
+        if (pScreenInfo->pfb == pPixData)
+            {
+                /* and initialize pixmap privates from screen privates */
+                pPixmapPriv->hBitmap = pScreenPriv->hbmpShadow;
+                pPixmapPriv->pbBits = pScreenInfo->pfb;
+                pPixmapPriv->pbmih = pScreenPriv->pbmih;
+
+                /* mark these not to get released by DestroyPixmap */
+                pPixmapPriv->owned = FALSE;
+
+                return TRUE;
+            }
+    }
+
+    /* Otherwise, since creating a DIBSection from arbitrary memory is not
+     * possible, fallback to normal.  If needed, we can create a DIBSection with
+     * a copy of the bits later (see comment about a potential slow-path in
+     * winBltExposedWindowRegionShadowGDI()). */
+    pPixmapPriv->hBitmap = 0;
+    pPixmapPriv->pbBits = 0;
+    pPixmapPriv->pbmih = 0;
+    pPixmapPriv->owned = FALSE;
+
+    winDebug("winModifyPixmapHeaderMultiwindow: falling back\n");
+
+    {
+        ScreenPtr pScreen = pPixmap->drawable.pScreen;
+        winScreenPriv(pScreen);
+        WIN_UNWRAP(ModifyPixmapHeader);
+        fResult = (*pScreen->ModifyPixmapHeader) (pPixmap, width, height, depth, bitsPerPixel, devKind, pPixData);
+        WIN_WRAP(ModifyPixmapHeader, winModifyPixmapHeaderMultiwindow);
+    }
+
+    return fResult;
+}

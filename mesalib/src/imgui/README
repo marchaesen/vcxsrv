@@ -14,11 +14,11 @@ Date:   Fri Feb 15 13:10:22 2019 +0100
 There is also a copy of the memory editor
 (https://github.com/ocornut/imgui_club) at the following commit :
 
-commit 378e32ac92aa120512ee1aeb90522c9214e9b694
+commit e680ad8d6b9278367d0f71a698beb96b70762ed4
 Author: omar <omarcornut@gmail.com>
-Date:   Wed Oct 10 15:20:32 2018 +0200
+Date:   Thu May 9 14:11:22 2019 +0200
 
-    Comments (#9)
+    imgui_memory_editor: Silence compiler warning. (#13)
 
 Embedding the library into one's project is main way people seems to
 work with ImGui. Since this is just for a debugging tool, we're not

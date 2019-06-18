@@ -1,5 +1,5 @@
 /*
- * Copyright © 2007-2018 Advanced Micro Devices, Inc.
+ * Copyright © 2007-2019 Advanced Micro Devices, Inc.
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -741,8 +741,6 @@ BOOL_32 EgBasedLib::ComputeSurfaceAlignmentsMicroTiled(
 
     AdjustPitchAlignment(flags, pPitchAlign);
 
-    // Workaround 2 for 1D tiling -  There is HW bug for Carrizo,
-    // where it requires the following alignments for 1D tiling.
     if (flags.czDispCompatible && (mipLevel == 0))
     {
         *pBaseAlign  = PowTwoAlign(*pBaseAlign, 4096);                         //Base address MOD 4096 = 0

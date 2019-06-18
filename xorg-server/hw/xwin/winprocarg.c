@@ -128,6 +128,7 @@ winInitializeScreenDefaults(void)
     defaultScreenInfo.fDecoration = TRUE;
     defaultScreenInfo.fRootless = FALSE;
     defaultScreenInfo.fMultiWindow = FALSE;
+    defaultScreenInfo.fCompositeWM = TRUE;
     defaultScreenInfo.fMultiMonitorOverride = FALSE;
     defaultScreenInfo.fMultipleMonitors = FALSE;
     defaultScreenInfo.fLessPointer = FALSE;
@@ -566,6 +567,44 @@ ddxProcessArgument(int argc, char *argv[], int i)
         if (!screenInfoPtr->fMultiMonitorOverride)
             screenInfoPtr->fMultipleMonitors = TRUE;
         screenInfoPtr->fMultiWindow = TRUE;
+
+        /* Indicate that we have processed this argument */
+        return 1;
+    }
+
+    /*
+     * Look for the '-compositewm' argument
+     */
+    if (IS_OPTION("-compositewm")) {
+        screenInfoPtr->fCompositeWM = TRUE;
+
+        /* Indicate that we have processed this argument */
+        return 1;
+    }
+    /*
+     * Look for the '-nocompositewm' argument
+     */
+    if (IS_OPTION("-nocompositewm")) {
+        screenInfoPtr->fCompositeWM = FALSE;
+
+        /* Indicate that we have processed this argument */
+        return 1;
+    }
+
+    /*
+     * Look for the '-compositealpha' argument
+     */
+    if (IS_OPTION("-compositealpha")) {
+        g_fCompositeAlpha = TRUE;
+
+        /* Indicate that we have processed this argument */
+        return 1;
+    }
+    /*
+     * Look for the '-nocompositealpha' argument
+     */
+    if (IS_OPTION("-nocompositealpha")) {
+        g_fCompositeAlpha  = FALSE;
 
         /* Indicate that we have processed this argument */
         return 1;

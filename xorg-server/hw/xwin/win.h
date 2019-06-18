@@ -268,6 +268,8 @@ typedef Bool (*winFinishScreenInitProcPtr) (int, ScreenPtr, int, char **);
 
 typedef Bool (*winBltExposedRegionsProcPtr) (ScreenPtr);
 
+typedef Bool (*winBltExposedWindowRegionProcPtr) (ScreenPtr, WindowPtr);
+
 typedef Bool (*winActivateAppProcPtr) (ScreenPtr);
 
 typedef Bool (*winRedrawScreenProcPtr) (ScreenPtr pScreen);
@@ -294,11 +296,10 @@ typedef Bool (*winCreateScreenResourcesProc) (ScreenPtr);
  */
 
 typedef struct {
-    HDC hdcSelected;
     HBITMAP hBitmap;
-    BYTE *pbBits;
-    DWORD dwScanlineBytes;
+    void *pbBits;
     BITMAPINFOHEADER *pbmih;
+    BOOL owned;
 } winPrivPixmapRec, *winPrivPixmapPtr;
 
 /*
@@ -389,6 +390,7 @@ typedef struct {
     Bool fDecoration;
     Bool fRootless;
     Bool fMultiWindow;
+    Bool fCompositeWM;
     Bool fMultiMonitorOverride;
     Bool fMultipleMonitors;
     Bool fLessPointer;
@@ -479,6 +481,7 @@ typedef struct _winPrivScreenRec {
     winCreateBoundingWindowProcPtr pwinCreateBoundingWindow;
     winFinishScreenInitProcPtr pwinFinishScreenInit;
     winBltExposedRegionsProcPtr pwinBltExposedRegions;
+    winBltExposedWindowRegionProcPtr pwinBltExposedWindowRegion;
     winActivateAppProcPtr pwinActivateApp;
     winRedrawScreenProcPtr pwinRedrawScreen;
     winRealizeInstalledPaletteProcPtr pwinRealizeInstalledPalette;
@@ -507,6 +510,7 @@ typedef struct _winPrivScreenRec {
     ResizeWindowProcPtr ResizeWindow;
     MoveWindowProcPtr MoveWindow;
     SetShapeProcPtr SetShape;
+    ModifyPixmapHeaderProcPtr ModifyPixmapHeader;
 
     winCursorRec cursor;
 
@@ -941,6 +945,19 @@ void
 
 winCopyWindowMultiWindow(WindowPtr pWin, DDXPointRec oldpt,
                          RegionPtr oldRegion);
+
+PixmapPtr
+winCreatePixmapMultiwindow(ScreenPtr pScreen, int width, int height, int depth,
+                           unsigned usage_hint);
+Bool
+winDestroyPixmapMultiwindow(PixmapPtr pPixmap);
+
+Bool
+winModifyPixmapHeaderMultiwindow(PixmapPtr pPixmap,
+                                 int width,
+                                 int height,
+                                 int depth,
+                                 int bitsPerPixel, int devKind, void *pPixData);
 
 XID
  winGetWindowID(WindowPtr pWin);

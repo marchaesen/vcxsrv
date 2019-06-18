@@ -261,10 +261,6 @@ int ac_compute_surface(ADDR_HANDLE addrlib, const struct radeon_info *info,
 		       enum radeon_surf_mode mode,
 		       struct radeon_surf *surf);
 
-void ac_compute_cmask(const struct radeon_info *info,
-		      const struct ac_surf_config *config,
-		      struct radeon_surf *surf);
-
 #ifdef __cplusplus
 }
 #endif

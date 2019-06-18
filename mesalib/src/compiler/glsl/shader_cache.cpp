@@ -165,9 +165,8 @@ shader_cache_read_program_metadata(struct gl_context *ctx,
    prog->FragDataIndexBindings->iterate(create_binding_str, &buf);
    ralloc_asprintf_append(&buf, "tf: %d ", prog->TransformFeedback.BufferMode);
    for (unsigned int i = 0; i < prog->TransformFeedback.NumVarying; i++) {
-      ralloc_asprintf_append(&buf, "%s:%d ",
-                             prog->TransformFeedback.VaryingNames[i],
-                             prog->TransformFeedback.BufferStride[i]);
+      ralloc_asprintf_append(&buf, "%s ",
+                             prog->TransformFeedback.VaryingNames[i]);
    }
 
    /* SSO has an effect on the linked program so include this when generating

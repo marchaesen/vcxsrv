@@ -1174,6 +1174,7 @@ struct radv_cmd_buffer {
 };
 
 struct radv_image;
+struct radv_image_view;
 
 bool radv_cmd_buffer_uses_mec(struct radv_cmd_buffer *cmd_buffer);
 
@@ -1251,15 +1252,17 @@ void radv_update_ds_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
 				   VkImageAspectFlags aspects);
 
 void radv_update_color_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
-				      struct radv_image *image,
+				      const struct radv_image_view *iview,
 				      int cb_idx,
 				      uint32_t color_values[2]);
 
 void radv_update_fce_metadata(struct radv_cmd_buffer *cmd_buffer,
-			      struct radv_image *image, bool value);
+			      struct radv_image *image,
+			      const VkImageSubresourceRange *range, bool value);
 
 void radv_update_dcc_metadata(struct radv_cmd_buffer *cmd_buffer,
-			      struct radv_image *image, bool value);
+			      struct radv_image *image,
+			      const VkImageSubresourceRange *range, bool value);
 
 uint32_t radv_fill_buffer(struct radv_cmd_buffer *cmd_buffer,
 			  struct radeon_winsys_bo *bo,
@@ -1487,6 +1490,7 @@ uint32_t radv_translate_buffer_dataformat(const struct vk_format_description *de
 					  int first_non_void);
 uint32_t radv_translate_buffer_numformat(const struct vk_format_description *desc,
 					 int first_non_void);
+bool radv_is_buffer_format_supported(VkFormat format, bool *scaled);
 uint32_t radv_translate_colorformat(VkFormat format);
 uint32_t radv_translate_color_numformat(VkFormat format,
 					const struct vk_format_description *desc,
@@ -1677,6 +1681,33 @@ static inline bool
 radv_image_is_tc_compat_htile(const struct radv_image *image)
 {
 	return radv_image_has_htile(image) && image->tc_compatible_htile;
+}
+
+static inline uint64_t
+radv_image_get_fast_clear_va(const struct radv_image *image,
+			     uint32_t base_level)
+{
+	uint64_t va = radv_buffer_get_va(image->bo);
+	va += image->offset + image->clear_value_offset + base_level * 8;
+	return va;
+}
+
+static inline uint64_t
+radv_image_get_fce_pred_va(const struct radv_image *image,
+			   uint32_t base_level)
+{
+	uint64_t va = radv_buffer_get_va(image->bo);
+	va += image->offset + image->fce_pred_offset + base_level * 8;
+	return va;
+}
+
+static inline uint64_t
+radv_image_get_dcc_pred_va(const struct radv_image *image,
+			   uint32_t base_level)
+{
+	uint64_t va = radv_buffer_get_va(image->bo);
+	va += image->offset + image->dcc_pred_offset + base_level * 8;
+	return va;
 }
 
 unsigned radv_image_queue_family_mask(const struct radv_image *image, uint32_t family, uint32_t queue_family);
@@ -1996,7 +2027,8 @@ void radv_meta_push_descriptor_set(struct radv_cmd_buffer *cmd_buffer,
                                    const VkWriteDescriptorSet *pDescriptorWrites);
 
 void radv_initialize_dcc(struct radv_cmd_buffer *cmd_buffer,
-			 struct radv_image *image, uint32_t value);
+			 struct radv_image *image,
+			 const VkImageSubresourceRange *range, uint32_t value);
 
 void radv_initialize_fmask(struct radv_cmd_buffer *cmd_buffer,
 			   struct radv_image *image);

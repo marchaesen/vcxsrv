@@ -59,7 +59,7 @@ struct drm_panfrost_submit {
 
 /**
  * struct drm_panfrost_wait_bo - ioctl argument for waiting for
- * completion of the last DRM_PANFROST_SUBMIT_CL on a BO.
+ * completion of the last DRM_PANFROST_SUBMIT on a BO.
  *
  * This is useful for cases where multiple processes might be
  * rendering to a BO and you want to wait for all rendering to be
@@ -82,6 +82,8 @@ struct drm_panfrost_create_bo {
 	__u32 flags;
 	/** Returned GEM handle for the BO. */
 	__u32 handle;
+	/* Pad, must be zero-filled. */
+	__u32 pad;
 	/**
 	 * Returned offset for the BO in the GPU address space.  This offset
 	 * is private to the DRM fd and is valid for the lifetime of the GEM
@@ -113,7 +115,7 @@ struct drm_panfrost_mmap_bo {
 };
 
 enum drm_panfrost_param {
-	DRM_PANFROST_PARAM_GPU_ID,
+	DRM_PANFROST_PARAM_GPU_PROD_ID,
 };
 
 struct drm_panfrost_get_param {

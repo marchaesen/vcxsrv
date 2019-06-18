@@ -155,6 +155,14 @@ winValidateArgs(void)
                    "-scrollbars, -resize, -nodecoration, or -lesspointer.\n");
             return FALSE;
         }
+
+        /* Ignore -swcursor if -multiwindow -compositewm is requested */
+        if (g_ScreenInfo[i].fMultiWindow && g_ScreenInfo[i].fCompositeWM) {
+            if (g_fSoftwareCursor) {
+                g_fSoftwareCursor = FALSE;
+                winMsg(X_WARNING, "Ignoring -swcursor due to -compositewm\n");
+            }
+        }
     }
 
     winDebug("winValidateArgs - Returning.\n");

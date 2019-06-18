@@ -1,5 +1,5 @@
 /*
- * Copyright © 2007-2018 Advanced Micro Devices, Inc.
+ * Copyright © 2007-2019 Advanced Micro Devices, Inc.
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -691,21 +691,6 @@ protected:
         UINT_32           blockHeight,
         UINT_32           blockDepth) const;
 
-    BOOL_32 IsInMipTail(
-        AddrResourceType  resourceType,
-        AddrSwizzleMode   swizzleMode,
-        Dim3d             mipTailDim,
-        UINT_32           width,
-        UINT_32           height,
-        UINT_32           depth) const
-    {
-        BOOL_32 inTail = ((width <= mipTailDim.w) &&
-                          (height <= mipTailDim.h) &&
-                          (IsThin(resourceType, swizzleMode) || (depth <= mipTailDim.d)));
-
-        return inTail;
-    }
-
     static BOOL_32 IsLocalHeap(AddrResrouceLocation resourceType)
     {
         return ((resourceType == ADDR_RSRC_LOC_LOCAL) ||
@@ -794,7 +779,6 @@ protected:
     }
 
     UINT_32 GetPipeXorBits(UINT_32 macroBlockBits) const;
-    UINT_32 GetBankXorBits(UINT_32 macroBlockBits) const;
 
     ADDR_E_RETURNCODE ApplyCustomizedPitchHeight(
         const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn,

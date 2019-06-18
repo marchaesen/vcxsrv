@@ -379,6 +379,9 @@ radv_make_buffer_descriptor(struct radv_device *device,
 	num_format = radv_translate_buffer_numformat(desc, first_non_void);
 	data_format = radv_translate_buffer_dataformat(desc, first_non_void);
 
+	assert(data_format != V_008F0C_BUF_DATA_FORMAT_INVALID);
+	assert(num_format != ~0);
+
 	va += offset;
 	state[0] = va;
 	state[1] = S_008F04_BASE_ADDRESS_HI(va >> 32) |
@@ -885,10 +888,6 @@ radv_image_get_cmask_info(struct radv_device *device,
 			  struct radv_image *image,
 			  struct radv_cmask_info *out)
 {
-	unsigned pipe_interleave_bytes = device->physical_device->rad_info.pipe_interleave_bytes;
-	unsigned num_pipes = device->physical_device->rad_info.num_tile_pipes;
-	unsigned cl_width, cl_height;
-
 	assert(image->plane_count == 1);
 
 	if (device->physical_device->rad_info.chip_class >= GFX9) {
@@ -897,44 +896,9 @@ radv_image_get_cmask_info(struct radv_device *device,
 		return;
 	}
 
-	switch (num_pipes) {
-	case 2:
-		cl_width = 32;
-		cl_height = 16;
-		break;
-	case 4:
-		cl_width = 32;
-		cl_height = 32;
-		break;
-	case 8:
-		cl_width = 64;
-		cl_height = 32;
-		break;
-	case 16: /* Hawaii */
-		cl_width = 64;
-		cl_height = 64;
-		break;
-	default:
-		assert(0);
-		return;
-	}
-
-	unsigned base_align = num_pipes * pipe_interleave_bytes;
-
-	unsigned width = align(image->planes[0].surface.u.legacy.level[0].nblk_x, cl_width*8);
-	unsigned height = align(image->planes[0].surface.u.legacy.level[0].nblk_y, cl_height*8);
-	unsigned slice_elements = (width * height) / (8*8);
-
-	/* Each element of CMASK is a nibble. */
-	unsigned slice_bytes = slice_elements / 2;
-
-	out->slice_tile_max = (width * height) / (128*128);
-	if (out->slice_tile_max)
-		out->slice_tile_max -= 1;
-
-	out->alignment = MAX2(256, base_align);
-	out->size = (image->type == VK_IMAGE_TYPE_3D ? image->info.depth : image->info.array_size) *
-		    align(slice_bytes, base_align);
+	out->slice_tile_max = image->planes[0].surface.u.legacy.cmask_slice_tile_max;
+	out->alignment = image->planes[0].surface.cmask_alignment;
+	out->size = image->planes[0].surface.cmask_size;
 }
 
 static void
@@ -960,11 +924,11 @@ radv_image_alloc_dcc(struct radv_image *image)
 	assert(image->plane_count == 1);
 
 	image->dcc_offset = align64(image->size, image->planes[0].surface.dcc_alignment);
-	/* + 16 for storing the clear values + dcc pred */
+	/* + 24 for storing the clear values + fce pred + dcc pred for each mip */
 	image->clear_value_offset = image->dcc_offset + image->planes[0].surface.dcc_size;
-	image->fce_pred_offset = image->clear_value_offset + 8;
-	image->dcc_pred_offset = image->clear_value_offset + 16;
-	image->size = image->dcc_offset + image->planes[0].surface.dcc_size + 24;
+	image->fce_pred_offset = image->clear_value_offset + 8 * image->info.levels;
+	image->dcc_pred_offset = image->clear_value_offset + 16 * image->info.levels;
+	image->size = image->dcc_offset + image->planes[0].surface.dcc_size + 24 * image->info.levels;
 	image->alignment = MAX2(image->alignment, image->planes[0].surface.dcc_alignment);
 }
 

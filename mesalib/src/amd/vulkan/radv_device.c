@@ -4202,7 +4202,7 @@ radv_init_dcc_control_reg(struct radv_device *device,
 	unsigned max_compressed_block_size;
 	unsigned independent_64b_blocks;
 
-	if (!radv_image_has_dcc(iview->image))
+	if (!radv_dcc_enabled(iview->image, iview->base_mip))
 		return 0;
 
 	if (iview->image->info.samples > 1) {
@@ -4322,6 +4322,11 @@ radv_initialise_color_surface(struct radv_device *device,
 
 	va = radv_buffer_get_va(iview->bo) + iview->image->offset;
 	va += iview->image->dcc_offset;
+
+	if (radv_dcc_enabled(iview->image, iview->base_mip) &&
+	    device->physical_device->rad_info.chip_class <= GFX8)
+		va += plane->surface.u.legacy.level[iview->base_mip].dcc_offset;
+
 	cb->cb_dcc_base = va >> 8;
 	cb->cb_dcc_base |= surf->tile_swizzle;
 

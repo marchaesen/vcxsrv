@@ -683,6 +683,16 @@ v3d_qpu_writes_tmu(const struct v3d_qpu_instr *inst)
 }
 
 bool
+v3d_qpu_writes_tmu_not_tmuc(const struct v3d_qpu_instr *inst)
+{
+        return v3d_qpu_writes_tmu(inst) &&
+               (!inst->alu.add.magic_write ||
+                inst->alu.add.waddr != V3D_QPU_WADDR_TMUC) &&
+               (!inst->alu.mul.magic_write ||
+                inst->alu.mul.waddr != V3D_QPU_WADDR_TMUC);
+}
+
+bool
 v3d_qpu_reads_vpm(const struct v3d_qpu_instr *inst)
 {
         if (inst->sig.ldvpm)
