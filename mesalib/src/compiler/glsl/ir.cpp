@@ -1358,7 +1358,7 @@ ir_constant::is_negative_one() const
 bool
 ir_constant::is_uint16_constant() const
 {
-   if (!type->is_integer())
+   if (!type->is_integer_32())
       return false;
 
    return value.u[0] < (1 << 16);

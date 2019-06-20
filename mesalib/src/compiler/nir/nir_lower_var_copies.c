@@ -56,7 +56,9 @@ emit_deref_copy_load_store(nir_builder *b,
                            nir_deref_instr *dst_deref,
                            nir_deref_instr **dst_deref_arr,
                            nir_deref_instr *src_deref,
-                           nir_deref_instr **src_deref_arr)
+                           nir_deref_instr **src_deref_arr,
+                           enum gl_access_qualifier dst_access,
+                           enum gl_access_qualifier src_access)
 {
    if (dst_deref_arr || src_deref_arr) {
       assert(dst_deref_arr && src_deref_arr);
@@ -79,14 +81,16 @@ emit_deref_copy_load_store(nir_builder *b,
                                     nir_build_deref_array_imm(b, dst_deref, i),
                                     dst_deref_arr + 1,
                                     nir_build_deref_array_imm(b, src_deref, i),
-                                    src_deref_arr + 1);
+                                    src_deref_arr + 1, dst_access, src_access);
       }
    } else {
       assert(glsl_get_bare_type(dst_deref->type) ==
              glsl_get_bare_type(src_deref->type));
       assert(glsl_type_is_vector_or_scalar(dst_deref->type));
 
-      nir_store_deref(b, dst_deref, nir_load_deref(b, src_deref), ~0);
+      nir_store_deref_with_access(b, dst_deref,
+                                  nir_load_deref_with_access(b, src_deref, src_access),
+                                  ~0, src_access);
    }
 }
 
@@ -106,7 +110,9 @@ nir_lower_deref_copy_instr(nir_builder *b, nir_intrinsic_instr *copy)
 
    b->cursor = nir_before_instr(&copy->instr);
    emit_deref_copy_load_store(b, dst_path.path[0], &dst_path.path[1],
-                                 src_path.path[0], &src_path.path[1]);
+                                 src_path.path[0], &src_path.path[1],
+                                 nir_intrinsic_dst_access(copy),
+                                 nir_intrinsic_src_access(copy));
 
    nir_deref_path_finish(&dst_path);
    nir_deref_path_finish(&src_path);

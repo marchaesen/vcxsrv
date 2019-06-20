@@ -106,8 +106,10 @@ u_upload_clone(struct pipe_context *pipe, struct u_upload_mgr *upload)
    struct u_upload_mgr *result = u_upload_create(pipe, upload->default_size,
                                                  upload->bind, upload->usage,
                                                  upload->flags);
-   if (upload->map_persistent &&
-       upload->map_flags & PIPE_TRANSFER_FLUSH_EXPLICIT)
+   if (!upload->map_persistent && result->map_persistent)
+      u_upload_disable_persistent(result);
+   else if (upload->map_persistent &&
+            upload->map_flags & PIPE_TRANSFER_FLUSH_EXPLICIT)
       u_upload_enable_flush_explicit(result);
 
    return result;
@@ -118,6 +120,14 @@ u_upload_enable_flush_explicit(struct u_upload_mgr *upload)
 {
    assert(upload->map_persistent);
    upload->map_flags &= ~PIPE_TRANSFER_COHERENT;
+   upload->map_flags |= PIPE_TRANSFER_FLUSH_EXPLICIT;
+}
+
+void
+u_upload_disable_persistent(struct u_upload_mgr *upload)
+{
+   upload->map_persistent = FALSE;
+   upload->map_flags &= ~(PIPE_TRANSFER_COHERENT | PIPE_TRANSFER_PERSISTENT);
    upload->map_flags |= PIPE_TRANSFER_FLUSH_EXPLICIT;
 }
 

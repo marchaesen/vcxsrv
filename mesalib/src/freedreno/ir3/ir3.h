@@ -618,7 +618,7 @@ static inline bool is_same_type_reg(struct ir3_register *reg1,
 		struct ir3_register *reg2)
 {
 	unsigned type_reg1 = (reg1->flags & (IR3_REG_HIGH | IR3_REG_HALF));
-	unsigned type_reg2 = (reg1->flags & (IR3_REG_HIGH | IR3_REG_HALF));
+	unsigned type_reg2 = (reg2->flags & (IR3_REG_HIGH | IR3_REG_HALF));
 
 	if (type_reg1 ^ type_reg2)
 		return false;

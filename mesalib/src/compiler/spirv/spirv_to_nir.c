@@ -236,31 +236,19 @@ vtn_const_ssa_value(struct vtn_builder *b, nir_constant *constant,
          nir_load_const_instr *load =
             nir_load_const_instr_create(b->shader, num_components, bit_size);
 
-         memcpy(load->value, constant->values[0],
+         memcpy(load->value, constant->values,
                 sizeof(nir_const_value) * load->def.num_components);
 
          nir_instr_insert_before_cf_list(&b->nb.impl->body, &load->instr);
          val->def = &load->def;
       } else {
          assert(glsl_type_is_matrix(type));
-         unsigned rows = glsl_get_vector_elements(val->type);
          unsigned columns = glsl_get_matrix_columns(val->type);
          val->elems = ralloc_array(b, struct vtn_ssa_value *, columns);
-
-         for (unsigned i = 0; i < columns; i++) {
-            struct vtn_ssa_value *col_val = rzalloc(b, struct vtn_ssa_value);
-            col_val->type = glsl_get_column_type(val->type);
-            nir_load_const_instr *load =
-               nir_load_const_instr_create(b->shader, rows, bit_size);
-
-            memcpy(load->value, constant->values[i],
-                   sizeof(nir_const_value) * load->def.num_components);
-
-            nir_instr_insert_before_cf_list(&b->nb.impl->body, &load->instr);
-            col_val->def = &load->def;
-
-            val->elems[i] = col_val;
-         }
+         const struct glsl_type *column_type = glsl_get_column_type(val->type);
+         for (unsigned i = 0; i < columns; i++)
+            val->elems[i] = vtn_const_ssa_value(b, constant->elements[i],
+                                                column_type);
       }
       break;
    }
@@ -1271,8 +1259,7 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
          /* A length of 0 is used to denote unsized arrays */
          val->type->length = 0;
       } else {
-         val->type->length =
-            vtn_value(b, w[3], vtn_value_type_constant)->constant->values[0][0].u32;
+         val->type->length = vtn_constant_uint(b, w[3]);
       }
 
       val->type->base_type = vtn_base_type_array;
@@ -1543,7 +1530,7 @@ vtn_null_constant(struct vtn_builder *b, struct vtn_type *type)
       nir_address_format addr_format = vtn_mode_to_address_format(b, mode);
 
       const nir_const_value *null_value = nir_address_format_null_value(addr_format);
-      memcpy(c->values[0], null_value,
+      memcpy(c->values, null_value,
              sizeof(nir_const_value) * nir_address_format_num_components(addr_format));
       break;
    }
@@ -1663,7 +1650,7 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
           opcode == SpvOpSpecConstantFalse)
          int_val = get_specialization(b, val, int_val);
 
-      val->constant->values[0][0].b = int_val != 0;
+      val->constant->values[0].b = int_val != 0;
       break;
    }
 
@@ -1674,16 +1661,16 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
       int bit_size = glsl_get_bit_size(val->type->type);
       switch (bit_size) {
       case 64:
-         val->constant->values[0][0].u64 = vtn_u64_literal(&w[3]);
+         val->constant->values[0].u64 = vtn_u64_literal(&w[3]);
          break;
       case 32:
-         val->constant->values[0][0].u32 = w[3];
+         val->constant->values[0].u32 = w[3];
          break;
       case 16:
-         val->constant->values[0][0].u16 = w[3];
+         val->constant->values[0].u16 = w[3];
          break;
       case 8:
-         val->constant->values[0][0].u8 = w[3];
+         val->constant->values[0].u8 = w[3];
          break;
       default:
          vtn_fail("Unsupported SpvOpConstant bit size: %u", bit_size);
@@ -1698,17 +1685,17 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
       int bit_size = glsl_get_bit_size(val->type->type);
       switch (bit_size) {
       case 64:
-         val->constant->values[0][0].u64 =
+         val->constant->values[0].u64 =
             get_specialization64(b, val, vtn_u64_literal(&w[3]));
          break;
       case 32:
-         val->constant->values[0][0].u32 = get_specialization(b, val, w[3]);
+         val->constant->values[0].u32 = get_specialization(b, val, w[3]);
          break;
       case 16:
-         val->constant->values[0][0].u16 = get_specialization(b, val, w[3]);
+         val->constant->values[0].u16 = get_specialization(b, val, w[3]);
          break;
       case 8:
-         val->constant->values[0][0].u8 = get_specialization(b, val, w[3]);
+         val->constant->values[0].u8 = get_specialization(b, val, w[3]);
          break;
       default:
          vtn_fail("Unsupported SpvOpSpecConstant bit size");
@@ -1742,20 +1729,11 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
       case vtn_base_type_vector: {
          assert(glsl_type_is_vector(val->type->type));
          for (unsigned i = 0; i < elem_count; i++)
-            val->constant->values[0][i] = elems[i]->values[0][0];
+            val->constant->values[i] = elems[i]->values[0];
          break;
       }
 
       case vtn_base_type_matrix:
-         assert(glsl_type_is_matrix(val->type->type));
-         for (unsigned i = 0; i < elem_count; i++) {
-            unsigned components =
-               glsl_get_components(glsl_get_column_type(val->type->type));
-            memcpy(val->constant->values[i], elems[i]->values,
-                   sizeof(nir_const_value) * components);
-         }
-         break;
-
       case vtn_base_type_struct:
       case vtn_base_type_array:
          ralloc_steal(val->constant, elems);
@@ -1794,48 +1772,30 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
          vtn_assert(bit_size == bit_size0 && bit_size == bit_size1);
          (void)bit_size0; (void)bit_size1;
 
-         if (bit_size == 64) {
-            uint64_t u64[8];
-            if (v0->value_type == vtn_value_type_constant) {
-               for (unsigned i = 0; i < len0; i++)
-                  u64[i] = v0->constant->values[0][i].u64;
-            }
-            if (v1->value_type == vtn_value_type_constant) {
-               for (unsigned i = 0; i < len1; i++)
-                  u64[len0 + i] = v1->constant->values[0][i].u64;
-            }
+         nir_const_value undef = { .u64 = 0xdeadbeefdeadbeef };
+         nir_const_value combined[NIR_MAX_VEC_COMPONENTS * 2];
 
-            for (unsigned i = 0, j = 0; i < count - 6; i++, j++) {
-               uint32_t comp = w[i + 6];
+         if (v0->value_type == vtn_value_type_constant) {
+            for (unsigned i = 0; i < len0; i++)
+               combined[i] = v0->constant->values[i];
+         }
+         if (v1->value_type == vtn_value_type_constant) {
+            for (unsigned i = 0; i < len1; i++)
+               combined[len0 + i] = v1->constant->values[i];
+         }
+
+         for (unsigned i = 0, j = 0; i < count - 6; i++, j++) {
+            uint32_t comp = w[i + 6];
+            if (comp == (uint32_t)-1) {
                /* If component is not used, set the value to a known constant
                 * to detect if it is wrongly used.
                 */
-               if (comp == (uint32_t)-1)
-                  val->constant->values[0][j].u64 = 0xdeadbeefdeadbeef;
-               else
-                  val->constant->values[0][j].u64 = u64[comp];
-            }
-         } else {
-            /* This is for both 32-bit and 16-bit values */
-            uint32_t u32[8];
-            if (v0->value_type == vtn_value_type_constant) {
-               for (unsigned i = 0; i < len0; i++)
-                  u32[i] = v0->constant->values[0][i].u32;
-            }
-            if (v1->value_type == vtn_value_type_constant) {
-               for (unsigned i = 0; i < len1; i++)
-                  u32[len0 + i] = v1->constant->values[0][i].u32;
-            }
-
-            for (unsigned i = 0, j = 0; i < count - 6; i++, j++) {
-               uint32_t comp = w[i + 6];
-               /* If component is not used, set the value to a known constant
-                * to detect if it is wrongly used.
-                */
-               if (comp == (uint32_t)-1)
-                  val->constant->values[0][j].u32 = 0xdeadbeef;
-               else
-                  val->constant->values[0][j].u32 = u32[comp];
+               val->constant->values[j] = undef;
+            } else {
+               vtn_fail_if(comp >= len0 + len1,
+                           "All Component literals must either be FFFFFFFF "
+                           "or in [0, N - 1] (inclusive).");
+               val->constant->values[j] = combined[comp];
             }
          }
          break;
@@ -1859,7 +1819,6 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
          }
 
          int elem = -1;
-         int col = 0;
          const struct vtn_type *type = comp->type;
          for (unsigned i = deref_start; i < count; i++) {
             vtn_fail_if(w[i] > type->length,
@@ -1874,12 +1833,6 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
                break;
 
             case vtn_base_type_matrix:
-               assert(col == 0 && elem == -1);
-               col = w[i];
-               elem = 0;
-               type = type->array_element;
-               break;
-
             case vtn_base_type_array:
                c = &(*c)->elements[w[i]];
                type = type->array_element;
@@ -1902,7 +1855,7 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
             } else {
                unsigned num_components = type->length;
                for (unsigned i = 0; i < num_components; i++)
-                  val->constant->values[0][i] = (*c)->values[col][elem + i];
+                  val->constant->values[i] = (*c)->values[elem + i];
             }
          } else {
             struct vtn_value *insert =
@@ -1913,7 +1866,7 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
             } else {
                unsigned num_components = type->length;
                for (unsigned i = 0; i < num_components; i++)
-                  (*c)->values[col][elem + i] = insert->constant->values[0][i];
+                  (*c)->values[elem + i] = insert->constant->values[i];
             }
          }
          break;
@@ -1959,8 +1912,13 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
             if (!nir_alu_type_get_type_size(nir_op_infos[op].input_types[i]))
                bit_size = glsl_get_bit_size(src_val->type->type);
 
+            unsigned src_comps = nir_op_infos[op].input_sizes[i] ?
+                                 nir_op_infos[op].input_sizes[i] :
+                                 num_components;
+
             unsigned j = swap ? 1 - i : i;
-            memcpy(src[j], src_val->constant->values[0], sizeof(src[j]));
+            for (unsigned c = 0; c < src_comps; c++)
+               src[j][c] = src_val->constant->values[c];
          }
 
          /* fix up fixed size sources */
@@ -1986,7 +1944,7 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
          nir_const_value *srcs[3] = {
             src[0], src[1], src[2],
          };
-         nir_eval_const_opcode(op, val->constant->values[0], num_components, bit_size, srcs);
+         nir_eval_const_opcode(op, val->constant->values, num_components, bit_size, srcs);
          break;
       } /* default */
       }
@@ -2280,8 +2238,7 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
 
    case SpvOpImageGather:
       /* This has a component as its next source */
-      gather_component =
-         vtn_value(b, w[idx++], vtn_value_type_constant)->constant->values[0][0].u32;
+      gather_component = vtn_constant_uint(b, w[idx++]);
       break;
 
    default:
@@ -2391,7 +2348,7 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
       unsigned bit_size = glsl_get_bit_size(vec_type->type);
       for (uint32_t i = 0; i < 4; i++) {
          const nir_const_value *cvec =
-            gather_offsets->constant->elements[i]->values[0];
+            gather_offsets->constant->elements[i]->values;
          for (uint32_t j = 0; j < 2; j++) {
             switch (bit_size) {
             case 8:  instr->tg4_offsets[i][j] = cvec[j].i8;    break;
@@ -4761,7 +4718,7 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
                  glsl_vector_type(GLSL_TYPE_UINT, 3));
 
       nir_const_value *const_size =
-         b->workgroup_size_builtin->constant->values[0];
+         b->workgroup_size_builtin->constant->values;
 
       b->shader->info.cs.local_size[0] = const_size[0].u32;
       b->shader->info.cs.local_size[1] = const_size[1].u32;

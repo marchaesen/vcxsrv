@@ -747,7 +747,7 @@ shift_result_type(const struct glsl_type *type_a,
      return glsl_type::error_type;
 
    }
-   if (!type_b->is_integer()) {
+   if (!type_b->is_integer_32()) {
       _mesa_glsl_error(loc, state, "RHS of operator %s must be an integer or "
                        "integer vector", ast_expression::operator_string(op));
      return glsl_type::error_type;
@@ -2289,7 +2289,7 @@ process_array_size(exec_node *node,
       return 0;
    }
 
-   if (!ir->type->is_integer()) {
+   if (!ir->type->is_integer_32()) {
       _mesa_glsl_error(& loc, state,
                        "array size must be integer type");
       return 0;
@@ -2389,7 +2389,7 @@ precision_qualifier_allowed(const glsl_type *type)
     */
    const glsl_type *const t = type->without_array();
 
-   return (t->is_float() || t->is_integer() || t->contains_opaque()) &&
+   return (t->is_float() || t->is_integer_32() || t->contains_opaque()) &&
           !t->is_struct();
 }
 
@@ -6502,7 +6502,7 @@ ast_switch_statement::hir(exec_list *instructions,
     *     scalar integer."
     */
    if (!test_expression->type->is_scalar() ||
-       !test_expression->type->is_integer()) {
+       !test_expression->type->is_integer_32()) {
       YYLTYPE loc = this->test_expression->get_location();
 
       _mesa_glsl_error(& loc,
@@ -6821,7 +6821,7 @@ ast_case_label::hir(exec_list *instructions,
             glsl_type::int_type->can_implicitly_convert_to(glsl_type::uint_type,
                                                            state);
 
-         if ((!type_a->is_integer() || !type_b->is_integer()) ||
+         if ((!type_a->is_integer_32() || !type_b->is_integer_32()) ||
               !integer_conversion_supported) {
             _mesa_glsl_error(&loc, state, "type mismatch with switch "
                              "init-expression and case label (%s != %s)",

@@ -246,13 +246,36 @@ translate_eglconfig(struct egl_screen *screen, EGLConfig hc,
      * XXX do something less ugly
      */
     if (c->base.renderType == GLX_RGBA_BIT) {
-        if (c->base.rgbBits == 24 || c->base.rgbBits == 32) {
-            c->base.redMask = 0xff0000;
-            c->base.greenMask = 0x00ff00;
-            c->base.blueMask = 0x0000ff;
+        if (c->base.redBits == 5 &&
+            (c->base.rgbBits == 15 || c->base.rgbBits == 16)) {
+            c->base.blueMask  = 0x0000001f;
+            if (c->base.alphaBits) {
+                c->base.greenMask = 0x000003e0;
+                c->base.redMask   = 0x00007c00;
+                c->base.alphaMask = 0x00008000;
+            } else {
+                c->base.greenMask = 0x000007e0;
+                c->base.redMask   = 0x0000f800;
+                c->base.alphaMask = 0x00000000;
+            }
+        }
+        else if (c->base.redBits == 8 &&
+            (c->base.rgbBits == 24 || c->base.rgbBits == 32)) {
+            c->base.blueMask  = 0x000000ff;
+            c->base.greenMask = 0x0000ff00;
+            c->base.redMask   = 0x00ff0000;
             if (c->base.alphaBits)
                 /* assume all remaining bits are alpha */
                 c->base.alphaMask = 0xff000000;
+        }
+        else if (c->base.redBits == 10 &&
+            (c->base.rgbBits == 30 || c->base.rgbBits == 32)) {
+            c->base.blueMask  = 0x000003ff;
+            c->base.greenMask = 0x000ffc00;
+            c->base.redMask   = 0x3ff00000;
+            if (c->base.alphaBits)
+                /* assume all remaining bits are alpha */
+                c->base.alphaMask = 0xc000000;
         }
     }
 

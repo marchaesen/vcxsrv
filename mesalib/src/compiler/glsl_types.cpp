@@ -1633,7 +1633,7 @@ glsl_type::can_implicitly_convert_to(const glsl_type *desired,
       return false;
 
    /* int and uint can be converted to float. */
-   if (desired->is_float() && this->is_integer())
+   if (desired->is_float() && this->is_integer_32())
       return true;
 
    /* With GLSL 4.0, ARB_gpu_shader5, or MESA_shader_integer_functions, int
@@ -1654,7 +1654,7 @@ glsl_type::can_implicitly_convert_to(const glsl_type *desired,
    if ((!state || state->has_double()) && desired->is_double()) {
       if (this->is_float())
          return true;
-      if (this->is_integer())
+      if (this->is_integer_32())
          return true;
    }
 

@@ -64,21 +64,25 @@
 
 static void
 split_deref_copy_instr(nir_builder *b,
-                       nir_deref_instr *dst, nir_deref_instr *src)
+                       nir_deref_instr *dst, nir_deref_instr *src,
+                       enum gl_access_qualifier dst_access,
+                       enum gl_access_qualifier src_access)
 {
    assert(glsl_get_bare_type(dst->type) ==
           glsl_get_bare_type(src->type));
    if (glsl_type_is_vector_or_scalar(src->type)) {
-      nir_copy_deref(b, dst, src);
+      nir_copy_deref_with_access(b, dst, src, dst_access, src_access);
    } else if (glsl_type_is_struct_or_ifc(src->type)) {
       for (unsigned i = 0; i < glsl_get_length(src->type); i++) {
          split_deref_copy_instr(b, nir_build_deref_struct(b, dst, i),
-                                   nir_build_deref_struct(b, src, i));
+                                   nir_build_deref_struct(b, src, i),
+                                   dst_access, src_access);
       }
    } else {
       assert(glsl_type_is_matrix(src->type) || glsl_type_is_array(src->type));
       split_deref_copy_instr(b, nir_build_deref_array_wildcard(b, dst),
-                                nir_build_deref_array_wildcard(b, src));
+                                nir_build_deref_array_wildcard(b, src),
+                                dst_access, src_access);
    }
 }
 
@@ -105,7 +109,9 @@ split_var_copies_impl(nir_function_impl *impl)
             nir_instr_as_deref(copy->src[0].ssa->parent_instr);
          nir_deref_instr *src =
             nir_instr_as_deref(copy->src[1].ssa->parent_instr);
-         split_deref_copy_instr(&b, dst, src);
+         split_deref_copy_instr(&b, dst, src,
+                                nir_intrinsic_dst_access(copy),
+                                nir_intrinsic_src_access(copy));
 
          progress = true;
       }

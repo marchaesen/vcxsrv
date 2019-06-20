@@ -354,7 +354,7 @@ lower_shared_reference_visitor::lower_shared_atomic_intrinsic(ir_call *ir)
 
    ir_rvalue *deref = (ir_rvalue *) inst;
    assert(deref->type->is_scalar() &&
-          (deref->type->is_integer() || deref->type->is_float()));
+          (deref->type->is_integer_32() || deref->type->is_float()));
 
    ir_variable *var = deref->variable_referenced();
    assert(var);

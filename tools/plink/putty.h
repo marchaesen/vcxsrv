@@ -1630,7 +1630,6 @@ void term_invalidate(Terminal *);
 void term_blink(Terminal *, bool set_cursor);
 void term_do_paste(Terminal *, const wchar_t *, int);
 void term_nopaste(Terminal *);
-bool term_ldisc(Terminal *, int option);
 void term_copyall(Terminal *, const int *, int);
 void term_reconfig(Terminal *, Conf *);
 void term_request_copy(Terminal *, const int *clipboards, int n_clipboards);
@@ -1643,6 +1642,8 @@ void term_set_focus(Terminal *term, bool has_focus);
 char *term_get_ttymode(Terminal *term, const char *mode);
 int term_get_userpass_input(Terminal *term, prompts_t *p, bufchain *input);
 void term_set_trust_status(Terminal *term, bool trusted);
+void term_keyinput(Terminal *, int codepage, const void *buf, int len);
+void term_keyinputw(Terminal *, const wchar_t * widebuf, int len);
 
 typedef enum SmallKeypadKey {
     SKK_HOME, SKK_END, SKK_INSERT, SKK_DELETE, SKK_PGUP, SKK_PGDN,
@@ -1778,13 +1779,6 @@ void ldisc_configure(Ldisc *, Conf *);
 void ldisc_free(Ldisc *);
 void ldisc_send(Ldisc *, const void *buf, int len, bool interactive);
 void ldisc_echoedit_update(Ldisc *);
-
-/*
- * Exports from ldiscucs.c.
- */
-void lpage_send(Ldisc *, int codepage, const char *buf, int len,
-                bool interactive);
-void luni_send(Ldisc *, const wchar_t * widebuf, int len, bool interactive);
 
 /*
  * Exports from sshrand.c.

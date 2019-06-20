@@ -24,6 +24,7 @@
 
 #include "radv_meta.h"
 #include "radv_private.h"
+#include "vk_format.h"
 
 static nir_shader *
 build_fmask_expand_compute_shader(struct radv_device *device, int samples)
@@ -130,7 +131,7 @@ radv_expand_fmask_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 					     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 					     .image = radv_image_to_handle(image),
 					     .viewType = radv_meta_get_view_type(image),
-					     .format = image->vk_format,
+					     .format = vk_format_no_srgb(image->vk_format),
 					     .subresourceRange = {
 						     .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 						     .baseMipLevel = 0,

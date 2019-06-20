@@ -306,7 +306,7 @@ Khronos, ARB, and OES extensions that are not part of any OpenGL or OpenGL ES ve
   GL_ARB_post_depth_coverage                            DONE (i965, nvc0)
   GL_ARB_robustness_isolation                           not started
   GL_ARB_sample_locations                               DONE (nvc0)
-  GL_ARB_seamless_cubemap_per_texture                   DONE (freedreno, i965, nvc0, radeonsi, r600, softpipe, swr, virgl)
+  GL_ARB_seamless_cubemap_per_texture                   DONE (etnaviv/SEAMLESS_CUBE_MAP, freedreno, i965, nvc0, radeonsi, r600, softpipe, swr, virgl)
   GL_ARB_shader_ballot                                  DONE (i965/gen8+, nvc0, radeonsi)
   GL_ARB_shader_clock                                   DONE (i965/gen7+, nv50, nvc0, r600, radeonsi, virgl)
   GL_ARB_shader_stencil_export                          DONE (i965/gen9+, r600, radeonsi, softpipe, llvmpipe, swr, virgl)

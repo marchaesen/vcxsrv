@@ -725,6 +725,14 @@ enum gl_access_qualifier
 
    /** The access may use a non-uniform buffer or image index */
    ACCESS_NON_UNIFORM   = (1 << 5),
+
+   /* This has the same semantics as NIR_INTRINSIC_CAN_REORDER, only to be
+    * used with loads. In other words, it means that the load can be
+    * arbitrarily reordered, or combined with other loads to the same address.
+    * It is implied by ACCESS_NON_WRITEABLE together with ACCESS_RESTRICT, and
+    * a lack of ACCESS_COHERENT and ACCESS_VOLATILE.
+    */
+   ACCESS_CAN_REORDER = (1 << 6),
 };
 
 /**

@@ -155,7 +155,7 @@ _mesa_ast_array_index_to_hir(void *mem_ctx,
    }
 
    if (!idx->type->is_error()) {
-      if (!idx->type->is_integer()) {
+      if (!idx->type->is_integer_32()) {
          _mesa_glsl_error(& idx_loc, state, "array index must be integer type");
       } else if (!idx->type->is_scalar()) {
          _mesa_glsl_error(& idx_loc, state, "array index must be scalar");
@@ -168,7 +168,7 @@ _mesa_ast_array_index_to_hir(void *mem_ctx,
     * declared size.
     */
    ir_constant *const const_index = idx->constant_expression_value(mem_ctx);
-   if (const_index != NULL && idx->type->is_integer()) {
+   if (const_index != NULL && idx->type->is_integer_32()) {
       const int idx = const_index->value.i[0];
       const char *type_name = "error";
       unsigned bound = 0;

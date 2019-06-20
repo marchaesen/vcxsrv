@@ -47,12 +47,12 @@ struct debug_flush_ctx;
 /**
  * Create a buffer (AKA allocation) representation.
  *
- * @param support_unsync Whether unsynchronous maps are truly supported.
+ * @param supports_persistent Whether persistent maps are truly supported.
  * @param bt_depth Depth of backtrace to be captured for this buffer
  * representation.
  */
 struct debug_flush_buf *
-debug_flush_buf_create(boolean supports_unsync, unsigned bt_depth);
+debug_flush_buf_create(boolean supports_persistent, unsigned bt_depth);
 
 /**
  * Reference a buffer representation.

@@ -646,7 +646,7 @@ radv_process_color_image(struct radv_cmd_buffer *cmd_buffer,
 
 	if (decompress_dcc && radv_dcc_enabled(image, subresourceRange->baseMipLevel)) {
 		pipeline = &cmd_buffer->device->meta_state.fast_clear_flush.dcc_decompress_pipeline;
-	} else if (radv_image_has_fmask(image)) {
+	} else if (radv_image_has_fmask(image) && !image->tc_compatible_cmask) {
 		pipeline = &cmd_buffer->device->meta_state.fast_clear_flush.fmask_decompress_pipeline;
 	} else {
 		pipeline = &cmd_buffer->device->meta_state.fast_clear_flush.cmask_eliminate_pipeline;
@@ -875,11 +875,9 @@ radv_decompress_dcc_compute(struct radv_cmd_buffer *cmd_buffer,
 	state->flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
 			     RADV_CMD_FLAG_INV_VMEM_L1;
 
-	state->flush_bits |= radv_clear_dcc(cmd_buffer, image, subresourceRange,
-					    0xffffffff);
 
-	state->flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
-			     RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
+	/* Initialize the DCC metadata as "fully expanded". */
+	radv_initialize_dcc(cmd_buffer, image, subresourceRange, 0xffffffff);
 }
 
 void

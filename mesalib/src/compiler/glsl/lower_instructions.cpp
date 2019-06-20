@@ -222,7 +222,7 @@ lower_instructions_visitor::div_to_mul_rcp(ir_expression *ir)
 void
 lower_instructions_visitor::int_div_to_mul_rcp(ir_expression *ir)
 {
-   assert(ir->operands[1]->type->is_integer());
+   assert(ir->operands[1]->type->is_integer_32());
 
    /* Be careful with integer division -- we need to do it as a
     * float and re-truncate, since rcp(n > 1) of an integer would
@@ -1745,7 +1745,7 @@ lower_instructions_visitor::visit_leave(ir_expression *ir)
       break;
 
    case ir_binop_div:
-      if (ir->operands[1]->type->is_integer() && lowering(INT_DIV_TO_MUL_RCP))
+      if (ir->operands[1]->type->is_integer_32() && lowering(INT_DIV_TO_MUL_RCP))
 	 int_div_to_mul_rcp(ir);
       else if ((ir->operands[1]->type->is_float() && lowering(FDIV_TO_MUL_RCP)) ||
                (ir->operands[1]->type->is_double() && lowering(DDIV_TO_MUL_RCP)))

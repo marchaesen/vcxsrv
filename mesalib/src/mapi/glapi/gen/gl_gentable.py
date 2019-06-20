@@ -45,7 +45,7 @@ header = """/* GLXEXT is the define used in the xserver when the GLX extension i
 #endif
 
 #if (defined(GLXEXT) && defined(HAVE_BACKTRACE)) \\
-	|| (!defined(GLXEXT) && defined(DEBUG) && !defined(__CYGWIN__) && !defined(__MINGW32__) && !defined(__OpenBSD__) && !defined(__NetBSD__) && !defined(__DragonFly__))
+	|| (!defined(GLXEXT) && defined(DEBUG) && defined(HAVE_EXECINFO_H))
 #define USE_BACKTRACE
 #endif
 

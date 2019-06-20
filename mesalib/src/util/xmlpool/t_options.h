@@ -363,3 +363,21 @@ DRI_CONF_OPT_BEGIN_B(v3d_nonmsaa_texture_size_limit, def) \
         DRI_CONF_DESC(en,"Report the non-MSAA-only texture size limit") \
 DRI_CONF_OPT_END
 
+/**
+ * \brief virgl specific configuration options
+ */
+
+#define DRI_CONF_GLES_EMULATE_BGRA(def) \
+DRI_CONF_OPT_BEGIN_B(gles_emulate_bgra, def) \
+        DRI_CONF_DESC(en,gettext("On GLES emulate BGRA formats by using a swizzled RGBA format")) \
+DRI_CONF_OPT_END
+
+#define DRI_CONF_GLES_APPLY_BGRA_DEST_SWIZZLE(def) \
+DRI_CONF_OPT_BEGIN_B(gles_apply_bgra_dest_swizzle, def) \
+        DRI_CONF_DESC(en,gettext("When the BGRA formats are emulated by using swizzled RGBA formats on GLES apply the swizzle when writing")) \
+DRI_CONF_OPT_END
+
+#define DRI_CONF_GLES_SAMPLES_PASSED_VALUE(def, minimum, maximum) \
+DRI_CONF_OPT_BEGIN_V(gles_samples_passed_value, def, minimum, maximum) \
+        DRI_CONF_DESC(en,gettext("GL_SAMPLES_PASSED value when emulated by GL_ANY_SAMPLES_PASSED")) \
+DRI_CONF_OPT_END

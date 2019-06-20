@@ -2041,7 +2041,6 @@ nir_rewrite_image_intrinsic(nir_intrinsic_instr *intrin, nir_ssa_def *src,
 
    nir_intrinsic_set_image_dim(intrin, glsl_get_sampler_dim(deref->type));
    nir_intrinsic_set_image_array(intrin, glsl_sampler_type_is_array(deref->type));
-   nir_intrinsic_set_access(intrin, var->data.image.access);
    nir_intrinsic_set_format(intrin, var->data.image.format);
 
    nir_instr_rewrite_src(&intrin->instr, &intrin->src[0],

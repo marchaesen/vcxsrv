@@ -129,6 +129,13 @@ if with_xlib_lease
   radv_flags += '-DVK_USE_PLATFORM_XLIB_XRANDR_EXT'
 endif
 
+if with_platform_android
+  radv_flags += [
+    '-DVK_USE_PLATFORM_ANDROID_KHR'
+  ]
+  libradv_files += files('radv_android.c')
+endif
+
 libvulkan_radeon = shared_library(
   'vulkan_radeon',
   [libradv_files, radv_entrypoints, radv_extensions_c, amd_vk_format_table_c, sha1_h, xmlpool_options_h],

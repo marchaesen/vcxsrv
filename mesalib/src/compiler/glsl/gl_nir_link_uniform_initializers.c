@@ -118,31 +118,37 @@ copy_constant_to_storage(union gl_constant_value *storage,
    const enum glsl_base_type base_type = glsl_get_base_type(type);
    const unsigned n_columns = glsl_get_matrix_columns(type);
    const unsigned n_rows = glsl_get_vector_elements(type);
+   unsigned dmul = glsl_base_type_is_64bit(base_type) ? 2 : 1;
    int i = 0;
 
-   for (unsigned int column = 0; column < n_columns; column++) {
+   if (n_columns > 0) {
+      const struct glsl_type *column_type = glsl_get_column_type(type);
+      for (unsigned int column = 0; column < n_columns; column++) {
+         copy_constant_to_storage(&storage[i], val->elements[column],
+                                  column_type, boolean_true);
+         i += n_rows * dmul;
+      }
+   } else {
       for (unsigned int row = 0; row < n_rows; row++) {
          switch (base_type) {
          case GLSL_TYPE_UINT:
-            storage[i].u = val->values[column][row].u32;
+            storage[i].u = val->values[row].u32;
             break;
          case GLSL_TYPE_INT:
          case GLSL_TYPE_SAMPLER:
-            storage[i].i = val->values[column][row].i32;
+            storage[i].i = val->values[row].i32;
             break;
          case GLSL_TYPE_FLOAT:
-            storage[i].f = val->values[column][row].f32;
+            storage[i].f = val->values[row].f32;
             break;
          case GLSL_TYPE_DOUBLE:
          case GLSL_TYPE_UINT64:
          case GLSL_TYPE_INT64:
             /* XXX need to check on big-endian */
-            memcpy(&storage[i * 2].u,
-                   &val->values[column][row].f64,
-                   sizeof(double));
+            memcpy(&storage[i * 2].u, &val->values[row].f64, sizeof(double));
             break;
          case GLSL_TYPE_BOOL:
-            storage[i].b = val->values[column][row].u32 ? boolean_true : 0;
+            storage[i].b = val->values[row].u32 ? boolean_true : 0;
             break;
          case GLSL_TYPE_ARRAY:
          case GLSL_TYPE_STRUCT:
@@ -164,7 +170,7 @@ copy_constant_to_storage(union gl_constant_value *storage,
             assert(!"Should not get here.");
             break;
          }
-         i++;
+         i += dmul;
       }
    }
 }

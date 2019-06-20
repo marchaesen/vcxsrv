@@ -1334,16 +1334,50 @@ radv_clear_fmask(struct radv_cmd_buffer *cmd_buffer,
 }
 
 uint32_t
+radv_dcc_clear_level(struct radv_cmd_buffer *cmd_buffer,
+		     const struct radv_image *image,
+		     uint32_t level, uint32_t value)
+{
+	uint64_t offset = image->offset + image->dcc_offset;
+	uint32_t size;
+
+	if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9) {
+		/* Mipmap levels aren't implemented. */
+		assert(level == 0);
+		size = image->planes[0].surface.dcc_size;
+	} else {
+		const struct legacy_surf_level *surf_level =
+			&image->planes[0].surface.u.legacy.level[level];
+
+		/* If this is 0, fast clear isn't possible. */
+		assert(surf_level->dcc_fast_clear_size);
+
+		offset += surf_level->dcc_offset;
+		size = surf_level->dcc_fast_clear_size;
+	}
+
+	return radv_fill_buffer(cmd_buffer, image->bo, offset, size, value);
+}
+
+uint32_t
 radv_clear_dcc(struct radv_cmd_buffer *cmd_buffer,
 	       struct radv_image *image,
 	       const VkImageSubresourceRange *range, uint32_t value)
 {
+	uint32_t level_count = radv_get_levelCount(image, range);
+	uint32_t flush_bits = 0;
+
 	/* Mark the image as being compressed. */
 	radv_update_dcc_metadata(cmd_buffer, image, range, true);
 
-	return radv_fill_buffer(cmd_buffer, image->bo,
-				image->offset + image->dcc_offset,
-				image->planes[0].surface.dcc_size, value);
+	for (uint32_t l = 0; l < level_count; l++) {
+		uint32_t level = range->baseMipLevel + l;
+
+		flush_bits |= radv_dcc_clear_level(cmd_buffer, image,
+						   level, value);
+	}
+
+	return flush_bits;
 }
 
 uint32_t
@@ -1487,6 +1521,21 @@ radv_can_fast_clear_color(struct radv_cmd_buffer *cmd_buffer,
 			 */
 			if (!can_avoid_fast_clear_elim)
 				return false;
+		}
+
+		if (iview->image->info.levels > 1 &&
+		    cmd_buffer->device->physical_device->rad_info.chip_class == GFX8) {
+			for (uint32_t l = 0; l < iview->level_count; l++) {
+				uint32_t level = iview->base_mip + l;
+				struct legacy_surf_level *surf_level =
+					&iview->image->planes[0].surface.u.legacy.level[level];
+
+				/* Do not fast clears if one level can't be
+				 * fast cleared.
+				 */
+				if (!surf_level->dcc_fast_clear_size)
+					return false;
+			}
 		}
 	}
 

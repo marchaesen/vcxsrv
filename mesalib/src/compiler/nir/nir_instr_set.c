@@ -756,12 +756,8 @@ instr_can_rewrite(nir_instr *instr)
    case nir_instr_type_load_const:
    case nir_instr_type_phi:
       return true;
-   case nir_instr_type_intrinsic: {
-      const nir_intrinsic_info *info =
-         &nir_intrinsic_infos[nir_instr_as_intrinsic(instr)->intrinsic];
-      return (info->flags & NIR_INTRINSIC_CAN_ELIMINATE) &&
-             (info->flags & NIR_INTRINSIC_CAN_REORDER);
-   }
+   case nir_instr_type_intrinsic:
+      return nir_intrinsic_can_reorder(nir_instr_as_intrinsic(instr));
    case nir_instr_type_call:
    case nir_instr_type_jump:
    case nir_instr_type_ssa_undef:

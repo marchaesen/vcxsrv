@@ -126,7 +126,7 @@ ir_validate::visit_enter(class ir_dereference_array *ir)
       abort();
    }
 
-   if (!ir->array_index->type->is_integer()) {
+   if (!ir->array_index->type->is_integer_32()) {
       printf("ir_dereference_array @ %p does not have integer index: %s\n",
              (void *) ir, ir->array_index->type->name);
       abort();
@@ -535,14 +535,14 @@ ir_validate::visit_leave(ir_expression *ir)
 
    case ir_unop_bitfield_reverse:
       assert(ir->operands[0]->type == ir->type);
-      assert(ir->type->is_integer());
+      assert(ir->type->is_integer_32());
       break;
 
    case ir_unop_bit_count:
    case ir_unop_find_msb:
    case ir_unop_find_lsb:
       assert(ir->operands[0]->type->vector_elements == ir->type->vector_elements);
-      assert(ir->operands[0]->type->is_integer());
+      assert(ir->operands[0]->type->is_integer_32());
       assert(ir->type->base_type == GLSL_TYPE_INT);
       break;
 
@@ -646,7 +646,7 @@ ir_validate::visit_leave(ir_expression *ir)
    case ir_binop_imul_high:
       assert(ir->type == ir->operands[0]->type);
       assert(ir->type == ir->operands[1]->type);
-      assert(ir->type->is_integer());
+      assert(ir->type->is_integer_32());
       break;
 
    case ir_binop_carry:
@@ -685,7 +685,7 @@ ir_validate::visit_leave(ir_expression *ir)
    case ir_binop_lshift:
    case ir_binop_rshift:
       assert(ir->operands[0]->type->is_integer_32_64() &&
-             ir->operands[1]->type->is_integer());
+             ir->operands[1]->type->is_integer_32());
       if (ir->operands[0]->type->is_scalar()) {
           assert(ir->operands[1]->type->is_scalar());
       }
@@ -745,7 +745,7 @@ ir_validate::visit_leave(ir_expression *ir)
    case ir_binop_vector_extract:
       assert(ir->operands[0]->type->is_vector());
       assert(ir->operands[1]->type->is_scalar()
-             && ir->operands[1]->type->is_integer());
+             && ir->operands[1]->type->is_integer_32());
       break;
 
    case ir_binop_interpolate_at_offset:
@@ -786,7 +786,7 @@ ir_validate::visit_leave(ir_expression *ir)
       break;
 
    case ir_triop_bitfield_extract:
-      assert(ir->type->is_integer());
+      assert(ir->type->is_integer_32());
       assert(ir->operands[0]->type == ir->type);
       assert(ir->operands[1]->type == ir->type);
       assert(ir->operands[2]->type == ir->type);
@@ -797,12 +797,12 @@ ir_validate::visit_leave(ir_expression *ir)
       assert(ir->operands[1]->type->is_scalar());
       assert(ir->operands[0]->type->base_type == ir->operands[1]->type->base_type);
       assert(ir->operands[2]->type->is_scalar()
-             && ir->operands[2]->type->is_integer());
+             && ir->operands[2]->type->is_integer_32());
       assert(ir->type == ir->operands[0]->type);
       break;
 
    case ir_quadop_bitfield_insert:
-      assert(ir->type->is_integer());
+      assert(ir->type->is_integer_32());
       assert(ir->operands[0]->type == ir->type);
       assert(ir->operands[1]->type == ir->type);
       assert(ir->operands[2]->type == ir->type);

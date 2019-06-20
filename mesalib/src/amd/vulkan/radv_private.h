@@ -1562,6 +1562,7 @@ struct radv_image {
 	uint64_t dcc_offset;
 	uint64_t htile_offset;
 	bool tc_compatible_htile;
+	bool tc_compatible_cmask;
 
 	struct radv_fmask_info fmask;
 	struct radv_cmask_info cmask;
@@ -1633,6 +1634,15 @@ static inline bool
 radv_image_has_dcc(const struct radv_image *image)
 {
 	return image->planes[0].surface.dcc_size;
+}
+
+/**
+ * Return whether the image is TC-compatible CMASK.
+ */
+static inline bool
+radv_image_is_tc_compat_cmask(const struct radv_image *image)
+{
+	return radv_image_has_fmask(image) && image->tc_compatible_cmask;
 }
 
 /**

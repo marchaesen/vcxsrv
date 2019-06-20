@@ -1585,13 +1585,13 @@ store_tcs_output(struct ac_shader_abi *abi,
 		if (!is_tess_factor && writemask != 0xF)
 			ac_build_buffer_store_dword(&ctx->ac, ctx->hs_ring_tess_offchip, value, 1,
 						    buf_addr, ctx->oc_lds,
-						    4 * (base + chan), 1, 0, true, false);
+						    4 * (base + chan), 1, 0, false);
 	}
 
 	if (writemask == 0xF) {
 		ac_build_buffer_store_dword(&ctx->ac, ctx->hs_ring_tess_offchip, src, 4,
 					    buf_addr, ctx->oc_lds,
-					    (base * 4), 1, 0, true, false);
+					    (base * 4), 1, 0, false);
 	}
 }
 
@@ -1858,7 +1858,7 @@ visit_emit_vertex(struct ac_shader_abi *abi, unsigned stream, LLVMValueRef *addr
 						    ctx->gsvs_ring[stream],
 						    out_val, 1,
 						    voffset, ctx->gs2vs_offset, 0,
-						    1, 1, true, true);
+						    1, 1, true);
 		}
 	}
 
@@ -2773,7 +2773,7 @@ radv_emit_stream_output(struct radv_shader_context *ctx,
 	ac_build_buffer_store_dword(&ctx->ac, so_buffers[buf],
 				    vdata, num_comps, so_write_offsets[buf],
 				    ctx->ac.i32_0, offset,
-				    1, 1, true, false);
+				    1, 1, false);
 }
 
 static void
@@ -3150,7 +3150,7 @@ handle_es_outputs_post(struct radv_shader_context *ctx,
 				                            out_val, 1,
 				                            NULL, ctx->es2gs_offset,
 				                            (4 * param_index + j) * 4,
-				                            1, 1, true, true);
+				                            1, 1, true);
 			}
 		}
 	}
@@ -3283,7 +3283,7 @@ write_tess_factors(struct radv_shader_context *ctx)
 		ac_build_buffer_store_dword(&ctx->ac, buffer,
 					    LLVMConstInt(ctx->ac.i32, 0x80000000, false),
 					    1, ctx->ac.i32_0, tf_base,
-					    0, 1, 0, true, false);
+					    0, 1, 0, false);
 		tf_offset += 4;
 
 		ac_nir_build_endif(&inner_if_ctx);
@@ -3292,11 +3292,11 @@ write_tess_factors(struct radv_shader_context *ctx)
 	/* Store the tessellation factors. */
 	ac_build_buffer_store_dword(&ctx->ac, buffer, vec0,
 				    MIN2(stride, 4), byteoffset, tf_base,
-				    tf_offset, 1, 0, true, false);
+				    tf_offset, 1, 0, false);
 	if (vec1)
 		ac_build_buffer_store_dword(&ctx->ac, buffer, vec1,
 					    stride - 4, byteoffset, tf_base,
-					    16 + tf_offset, 1, 0, true, false);
+					    16 + tf_offset, 1, 0, false);
 
 	//store to offchip for TES to read - only if TES reads them
 	if (ctx->options->key.tcs.tes_reads_tess_factors) {
@@ -3313,7 +3313,7 @@ write_tess_factors(struct radv_shader_context *ctx)
 
 		ac_build_buffer_store_dword(&ctx->ac, ctx->hs_ring_tess_offchip, outer_vec,
 					    outer_comps, tf_outer_offset,
-					    ctx->oc_lds, 0, 1, 0, true, false);
+					    ctx->oc_lds, 0, 1, 0, false);
 		if (inner_comps) {
 			param_inner = shader_io_get_unique_index(VARYING_SLOT_TESS_LEVEL_INNER);
 			tf_inner_offset = get_tcs_tes_buffer_address(ctx, NULL,
@@ -3323,7 +3323,7 @@ write_tess_factors(struct radv_shader_context *ctx)
 				ac_build_gather_values(&ctx->ac, inner, inner_comps);
 			ac_build_buffer_store_dword(&ctx->ac, ctx->hs_ring_tess_offchip, inner_vec,
 						    inner_comps, tf_inner_offset,
-						    ctx->oc_lds, 0, 1, 0, true, false);
+						    ctx->oc_lds, 0, 1, 0, false);
 		}
 	}
 	ac_nir_build_endif(&if_ctx);

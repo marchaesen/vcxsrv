@@ -29,6 +29,7 @@
 #include <stddef.h>
 
 #include "util/u_dynarray.h"
+#include "compiler/shader_enums.h"
 
 struct ac_rtld_part;
 struct ac_shader_config;
@@ -42,8 +43,16 @@ struct ac_rtld_symbol {
 	unsigned part_idx; /* shader part in which this symbol appears */
 };
 
+struct ac_rtld_options {
+	/* Loader will insert an s_sethalt 1 instruction as the
+	 * first instruction. */
+	bool halt_at_entry:1;
+};
+
 /* Lightweight wrapper around underlying ELF objects. */
 struct ac_rtld_binary {
+	struct ac_rtld_options options;
+
 	/* Required buffer sizes, currently read/executable only. */
 	uint64_t rx_size;
 
@@ -75,6 +84,8 @@ typedef bool (*ac_rtld_get_external_symbol_cb)(
  */
 struct ac_rtld_open_info {
 	const struct radeon_info *info;
+	struct ac_rtld_options options;
+	gl_shader_stage shader_type;
 
 	unsigned num_parts;
 	const char * const *elf_ptrs; /* in-memory ELF objects of each part */

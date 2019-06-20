@@ -1011,6 +1011,7 @@ nir_lower_txs_lod(nir_builder *b, nir_tex_instr *tex)
    if (tex->is_array) {
       nir_ssa_def *comp[3];
 
+      assert(dest_size <= ARRAY_SIZE(comp));
       for (unsigned i = 0; i < dest_size - 1; i++)
          comp[i] = nir_channel(b, minified, i);
 
