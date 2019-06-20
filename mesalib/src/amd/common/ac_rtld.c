@@ -130,9 +130,9 @@ static int compare_symbol_by_align(const void *lhsp, const void *rhsp)
 	const struct ac_rtld_symbol *lhs = lhsp;
 	const struct ac_rtld_symbol *rhs = rhsp;
 	if (rhs->align > lhs->align)
-		return -1;
-	if (rhs->align < lhs->align)
 		return 1;
+	if (rhs->align < lhs->align)
+		return -1;
 	return 0;
 }
 
@@ -243,6 +243,7 @@ bool ac_rtld_open(struct ac_rtld_binary *binary,
 	elf_version(EV_CURRENT);
 
 	memset(binary, 0, sizeof(*binary));
+	memcpy(&binary->options, &i.options, sizeof(binary->options));
 	binary->num_parts = i.num_parts;
 	binary->parts = calloc(sizeof(*binary->parts), i.num_parts);
 	if (!binary->parts)
@@ -279,16 +280,30 @@ bool ac_rtld_open(struct ac_rtld_binary *binary,
 	util_dynarray_foreach(&binary->lds_symbols, struct ac_rtld_symbol, symbol)
 		symbol->part_idx = ~0u;
 
-	unsigned max_lds_size = i.info->chip_class >= GFX7 ? 64 * 1024 : 32 * 1024;
+	unsigned max_lds_size = 64 * 1024;
+
+	if (i.info->chip_class == GFX6 ||
+	    (i.shader_type != MESA_SHADER_COMPUTE &&
+	     i.shader_type != MESA_SHADER_FRAGMENT))
+		max_lds_size = 32 * 1024;
+
 	uint64_t shared_lds_size = 0;
 	if (!layout_symbols(binary->lds_symbols.data, i.num_shared_lds_symbols, &shared_lds_size))
 		goto fail;
-	report_if(shared_lds_size > max_lds_size);
+
+	if (shared_lds_size > max_lds_size) {
+		fprintf(stderr, "ac_rtld error(1): too much LDS (used = %u, max = %u)\n",
+			(unsigned)shared_lds_size, max_lds_size);
+		goto fail;
+	}
 	binary->lds_size = shared_lds_size;
 
 	/* First pass over all parts: open ELFs, pre-determine the placement of
 	 * sections in the memory image, and collect and layout private LDS symbols. */
 	uint32_t lds_end_align = 0;
+
+	if (binary->options.halt_at_entry)
+		pasted_text_size += 4;
 
 	for (unsigned part_idx = 0; part_idx < i.num_parts; ++part_idx) {
 		struct ac_rtld_part *part = &binary->parts[part_idx];
@@ -381,7 +396,11 @@ bool ac_rtld_open(struct ac_rtld_binary *binary,
 		lds_end->part_idx = ~0u;
 	}
 
-	report_elf_if(binary->lds_size > max_lds_size);
+	if (binary->lds_size > max_lds_size) {
+		fprintf(stderr, "ac_rtld error(2): too much LDS (used = %u, max = %u)\n",
+			(unsigned)binary->lds_size, max_lds_size);
+		goto fail;
+	}
 
 	/* Second pass: Adjust offsets of non-pasted text sections. */
 	binary->rx_size = pasted_text_size;
@@ -691,6 +710,11 @@ bool ac_rtld_upload(struct ac_rtld_upload_info *u)
 			return false; \
 		} \
 	} while (false)
+
+	if (u->binary->options.halt_at_entry) {
+		/* s_sethalt 1 */
+		*(uint32_t *)u->rx_ptr = util_cpu_to_le32(0xbf8d0001);
+	}
 
 	/* First pass: upload raw section data and lay out private LDS symbols. */
 	for (unsigned i = 0; i < u->binary->num_parts; ++i) {

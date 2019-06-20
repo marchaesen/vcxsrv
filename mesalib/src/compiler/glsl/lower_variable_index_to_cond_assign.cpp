@@ -280,7 +280,7 @@ struct switch_generator
    {
       unsigned middle = (begin + end) >> 1;
 
-      assert(index->type->is_integer());
+      assert(index->type->is_integer_32());
 
       ir_constant *const middle_c = (index->type->base_type == GLSL_TYPE_UINT)
          ? new(body.mem_ctx) ir_constant((unsigned)middle)

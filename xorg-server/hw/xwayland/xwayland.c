@@ -98,13 +98,25 @@ ddxUseMsg(void)
 {
     ErrorF("-rootless              run rootless, requires wm support\n");
     ErrorF("-wm fd                 create X client for wm on given fd\n");
-    ErrorF("-listen fd             add give fd as a listen socket\n");
+    ErrorF("-listenfd fd           add give fd as a listen socket\n");
+    ErrorF("-listen fd             deprecated, use \"-listenfd\" instead\n");
     ErrorF("-eglstream             use eglstream backend for nvidia GPUs\n");
 }
 
 static int wm_fd = -1;
 static int listen_fds[5] = { -1, -1, -1, -1, -1 };
 static int listen_fd_count = 0;
+
+static void
+xwl_add_listen_fd(int argc, char *argv[], int i)
+{
+    NoListenAll = TRUE;
+    if (listen_fd_count == ARRAY_SIZE(listen_fds))
+        FatalError("Too many -listen arguments given, max is %zu\n",
+                   ARRAY_SIZE(listen_fds));
+
+    listen_fds[listen_fd_count++] = atoi(argv[i + 1]);
+}
 
 int
 ddxProcessArgument(int argc, char *argv[], int i)
@@ -115,12 +127,20 @@ ddxProcessArgument(int argc, char *argv[], int i)
     else if (strcmp(argv[i], "-listen") == 0) {
         CHECK_FOR_REQUIRED_ARGUMENTS(1);
 
-        NoListenAll = TRUE;
-        if (listen_fd_count == ARRAY_SIZE(listen_fds))
-            FatalError("Too many -listen arguments given, max is %zu\n",
-                       ARRAY_SIZE(listen_fds));
+        /* Not an FD */
+        if (!isdigit(*argv[i + 1]))
+            return 0;
 
-        listen_fds[listen_fd_count++] = atoi(argv[i + 1]);
+        LogMessage(X_WARNING, "Option \"-listen\" for file descriptors is deprecated\n"
+                              "Please use \"-listenfd\" instead.\n");
+
+        xwl_add_listen_fd (argc, argv, i);
+        return 2;
+    }
+    else if (strcmp(argv[i], "-listenfd") == 0) {
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
+
+        xwl_add_listen_fd (argc, argv, i);
         return 2;
     }
     else if (strcmp(argv[i], "-wm") == 0) {

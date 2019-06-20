@@ -34,6 +34,7 @@
 #include "program.h"
 #include "compiler/nir/nir_control_flow.h"
 #include "compiler/nir/nir_builder.h"
+#include "compiler/nir/nir_deref.h"
 #include "main/errors.h"
 #include "main/imports.h"
 #include "main/mtypes.h"
@@ -306,7 +307,7 @@ nir_visitor::constant_copy(ir_constant *ir, void *mem_ctx)
       assert(cols == 1);
 
       for (unsigned r = 0; r < rows; r++)
-         ret->values[0][r].u32 = ir->value.u[r];
+         ret->values[r].u32 = ir->value.u[r];
 
       break;
 
@@ -315,21 +316,49 @@ nir_visitor::constant_copy(ir_constant *ir, void *mem_ctx)
       assert(cols == 1);
 
       for (unsigned r = 0; r < rows; r++)
-         ret->values[0][r].i32 = ir->value.i[r];
+         ret->values[r].i32 = ir->value.i[r];
 
       break;
 
    case GLSL_TYPE_FLOAT:
-      for (unsigned c = 0; c < cols; c++) {
-         for (unsigned r = 0; r < rows; r++)
-            ret->values[c][r].f32 = ir->value.f[c * rows + r];
-      }
-      break;
-
    case GLSL_TYPE_DOUBLE:
-      for (unsigned c = 0; c < cols; c++) {
-         for (unsigned r = 0; r < rows; r++)
-            ret->values[c][r].f64 = ir->value.d[c * rows + r];
+      if (cols > 1) {
+         ret->elements = ralloc_array(mem_ctx, nir_constant *, cols);
+         ret->num_elements = cols;
+         for (unsigned c = 0; c < cols; c++) {
+            nir_constant *col_const = rzalloc(mem_ctx, nir_constant);
+            col_const->num_elements = 0;
+            switch (ir->type->base_type) {
+            case GLSL_TYPE_FLOAT:
+               for (unsigned r = 0; r < rows; r++)
+                  col_const->values[r].f32 = ir->value.f[c * rows + r];
+               break;
+
+            case GLSL_TYPE_DOUBLE:
+               for (unsigned r = 0; r < rows; r++)
+                  col_const->values[r].f64 = ir->value.d[c * rows + r];
+               break;
+
+            default:
+               unreachable("Cannot get here from the first level switch");
+            }
+            ret->elements[c] = col_const;
+         }
+      } else {
+         switch (ir->type->base_type) {
+         case GLSL_TYPE_FLOAT:
+            for (unsigned r = 0; r < rows; r++)
+               ret->values[r].f32 = ir->value.f[r];
+            break;
+
+         case GLSL_TYPE_DOUBLE:
+            for (unsigned r = 0; r < rows; r++)
+               ret->values[r].f64 = ir->value.d[r];
+            break;
+
+         default:
+            unreachable("Cannot get here from the first level switch");
+         }
       }
       break;
 
@@ -338,7 +367,7 @@ nir_visitor::constant_copy(ir_constant *ir, void *mem_ctx)
       assert(cols == 1);
 
       for (unsigned r = 0; r < rows; r++)
-         ret->values[0][r].u64 = ir->value.u64[r];
+         ret->values[r].u64 = ir->value.u64[r];
       break;
 
    case GLSL_TYPE_INT64:
@@ -346,7 +375,7 @@ nir_visitor::constant_copy(ir_constant *ir, void *mem_ctx)
       assert(cols == 1);
 
       for (unsigned r = 0; r < rows; r++)
-         ret->values[0][r].i64 = ir->value.i64[r];
+         ret->values[r].i64 = ir->value.i64[r];
       break;
 
    case GLSL_TYPE_BOOL:
@@ -354,7 +383,7 @@ nir_visitor::constant_copy(ir_constant *ir, void *mem_ctx)
       assert(cols == 1);
 
       for (unsigned r = 0; r < rows; r++)
-         ret->values[0][r].b = ir->value.b[r];
+         ret->values[r].b = ir->value.b[r];
 
       break;
 
@@ -812,6 +841,45 @@ intrinsic_set_std430_align(nir_intrinsic_instr *intrin, const glsl_type *type)
    nir_intrinsic_set_align(intrin, (bit_size / 8) * pow2_components, 0);
 }
 
+/* Accumulate any qualifiers along the deref chain to get the actual
+ * load/store qualifier.
+ */
+
+static enum gl_access_qualifier
+deref_get_qualifier(nir_deref_instr *deref)
+{
+   nir_deref_path path;
+   nir_deref_path_init(&path, deref, NULL);
+
+   unsigned qualifiers = path.path[0]->var->data.image.access;
+
+   const glsl_type *parent_type = path.path[0]->type;
+   for (nir_deref_instr **cur_ptr = &path.path[1]; *cur_ptr; cur_ptr++) {
+      nir_deref_instr *cur = *cur_ptr;
+
+      if (parent_type->is_interface()) {
+         const struct glsl_struct_field *field =
+            &parent_type->fields.structure[cur->strct.index];
+         if (field->memory_read_only)
+            qualifiers |= ACCESS_NON_WRITEABLE;
+         if (field->memory_write_only)
+            qualifiers |= ACCESS_NON_READABLE;
+         if (field->memory_coherent)
+            qualifiers |= ACCESS_COHERENT;
+         if (field->memory_volatile)
+            qualifiers |= ACCESS_VOLATILE;
+         if (field->memory_restrict)
+            qualifiers |= ACCESS_RESTRICT;
+      }
+      
+      parent_type = cur->type;
+   }
+
+   nir_deref_path_finish(&path);
+
+   return (gl_access_qualifier) qualifiers;
+}
+
 void
 nir_visitor::visit(ir_call *ir)
 {
@@ -1121,6 +1189,8 @@ nir_visitor::visit(ir_call *ir)
          }
          instr->src[0] = nir_src_for_ssa(&nir_deref->dest.ssa);
 
+         nir_intrinsic_set_access(instr, deref_get_qualifier(nir_deref));
+
          /* data1 parameter (this is always present) */
          param = param->get_next();
          ir_instruction *inst = (ir_instruction *) param;
@@ -1203,6 +1273,8 @@ nir_visitor::visit(ir_call *ir)
          ir_dereference *image = (ir_dereference *)param;
          nir_deref_instr *deref = evaluate_deref(image);
          const glsl_type *type = deref->type;
+
+         nir_intrinsic_set_access(instr, deref_get_qualifier(deref));
 
          instr->src[0] = nir_src_for_ssa(&deref->dest.ssa);
          param = param->get_next();
@@ -1607,12 +1679,18 @@ nir_visitor::visit(ir_assignment *ir)
 
    if ((ir->rhs->as_dereference() || ir->rhs->as_constant()) &&
        (ir->write_mask == (1 << num_components) - 1 || ir->write_mask == 0)) {
+      nir_deref_instr *lhs = evaluate_deref(ir->lhs);
+      nir_deref_instr *rhs = evaluate_deref(ir->rhs);
+      enum gl_access_qualifier lhs_qualifiers = deref_get_qualifier(lhs);
+      enum gl_access_qualifier rhs_qualifiers = deref_get_qualifier(rhs);
       if (ir->condition) {
          nir_push_if(&b, evaluate_rvalue(ir->condition));
-         nir_copy_deref(&b, evaluate_deref(ir->lhs), evaluate_deref(ir->rhs));
+         nir_copy_deref_with_access(&b, lhs, rhs, lhs_qualifiers,
+                                    rhs_qualifiers);
          nir_pop_if(&b, NULL);
       } else {
-         nir_copy_deref(&b, evaluate_deref(ir->lhs), evaluate_deref(ir->rhs));
+         nir_copy_deref_with_access(&b, lhs, rhs, lhs_qualifiers,
+                                    rhs_qualifiers);
       }
       return;
    }
@@ -1637,12 +1715,15 @@ nir_visitor::visit(ir_assignment *ir)
       src = nir_swizzle(&b, src, swiz, num_components);
    }
 
+   enum gl_access_qualifier qualifiers = deref_get_qualifier(lhs_deref);
    if (ir->condition) {
       nir_push_if(&b, evaluate_rvalue(ir->condition));
-      nir_store_deref(&b, lhs_deref, src, ir->write_mask);
+      nir_store_deref_with_access(&b, lhs_deref, src, ir->write_mask,
+                                  qualifiers);
       nir_pop_if(&b, NULL);
    } else {
-      nir_store_deref(&b, lhs_deref, src, ir->write_mask);
+      nir_store_deref_with_access(&b, lhs_deref, src, ir->write_mask,
+                                  qualifiers);
    }
 }
 
@@ -1709,7 +1790,8 @@ nir_visitor::evaluate_rvalue(ir_rvalue* ir)
        * must emit a variable load.
        */
 
-      this->result = nir_load_deref(&b, this->deref);
+      enum gl_access_qualifier access = deref_get_qualifier(this->deref);
+      this->result = nir_load_deref_with_access(&b, this->deref, access);
    }
 
    return this->result;

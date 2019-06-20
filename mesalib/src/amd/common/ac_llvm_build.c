@@ -1116,7 +1116,6 @@ ac_build_llvm7_buffer_store_common(struct ac_llvm_context *ctx,
 				   unsigned num_channels,
 				   bool glc,
 				   bool slc,
-				   bool writeonly_memory,
 				   bool use_format)
 {
 	LLVMValueRef args[] = {
@@ -1141,7 +1140,7 @@ ac_build_llvm7_buffer_store_common(struct ac_llvm_context *ctx,
 	}
 
 	ac_build_intrinsic(ctx, name, ctx->voidt, args, ARRAY_SIZE(args),
-			   ac_get_store_intr_attribs(writeonly_memory));
+			   AC_FUNC_ATTR_INACCESSIBLE_MEM_ONLY);
 }
 
 static void
@@ -1155,7 +1154,6 @@ ac_build_llvm8_buffer_store_common(struct ac_llvm_context *ctx,
 				   LLVMTypeRef return_channel_type,
 				   bool glc,
 				   bool slc,
-				   bool writeonly_memory,
 				   bool use_format,
 				   bool structurized)
 {
@@ -1184,7 +1182,7 @@ ac_build_llvm8_buffer_store_common(struct ac_llvm_context *ctx,
 	}
 
 	ac_build_intrinsic(ctx, name, ctx->voidt, args, idx,
-			   ac_get_store_intr_attribs(writeonly_memory));
+			   AC_FUNC_ATTR_INACCESSIBLE_MEM_ONLY);
 }
 
 void
@@ -1195,18 +1193,17 @@ ac_build_buffer_store_format(struct ac_llvm_context *ctx,
 			     LLVMValueRef voffset,
 			     unsigned num_channels,
 			     bool glc,
-			     bool slc,
-			     bool writeonly_memory)
+			     bool slc)
 {
 	if (HAVE_LLVM >= 0x800) {
 		ac_build_llvm8_buffer_store_common(ctx, rsrc, data, vindex,
 						   voffset, NULL, num_channels,
 						   ctx->f32, glc, slc,
-						   writeonly_memory, true, true);
+						   true, true);
 	} else {
 		ac_build_llvm7_buffer_store_common(ctx, rsrc, data, vindex, voffset,
 						   num_channels, glc, slc,
-						   writeonly_memory, true);
+						   true);
 	}
 }
 
@@ -1224,7 +1221,6 @@ ac_build_buffer_store_dword(struct ac_llvm_context *ctx,
 			    unsigned inst_offset,
 			    bool glc,
 			    bool slc,
-			    bool writeonly_memory,
 			    bool swizzle_enable_hint)
 {
 	/* Split 3 channel stores, because only LLVM 9+ support 3-channel
@@ -1240,11 +1236,11 @@ ac_build_buffer_store_dword(struct ac_llvm_context *ctx,
 
 		ac_build_buffer_store_dword(ctx, rsrc, v01, 2, voffset,
 					    soffset, inst_offset, glc, slc,
-					    writeonly_memory, swizzle_enable_hint);
+					    swizzle_enable_hint);
 		ac_build_buffer_store_dword(ctx, rsrc, v[2], 1, voffset,
 					    soffset, inst_offset + 8,
 					    glc, slc,
-					    writeonly_memory, swizzle_enable_hint);
+					    swizzle_enable_hint);
 		return;
 	}
 
@@ -1267,7 +1263,6 @@ ac_build_buffer_store_dword(struct ac_llvm_context *ctx,
 							   num_channels,
 							   ctx->f32,
 							   glc, slc,
-							   writeonly_memory,
 							   false, false);
 		} else {
 			if (voffset)
@@ -1277,7 +1272,7 @@ ac_build_buffer_store_dword(struct ac_llvm_context *ctx,
 							   ac_to_float(ctx, vdata),
 							   ctx->i32_0, offset,
 							   num_channels, glc, slc,
-							   writeonly_memory, false);
+							   false);
 		}
 		return;
 	}
@@ -1294,7 +1289,7 @@ ac_build_buffer_store_dword(struct ac_llvm_context *ctx,
 
 	ac_build_raw_tbuffer_store(ctx, rsrc, vdata, voffset, soffset,
 			           immoffset, num_channels, dfmt, nfmt, glc,
-				   slc, writeonly_memory);
+				   slc);
 }
 
 static LLVMValueRef
@@ -2000,7 +1995,6 @@ ac_build_llvm8_tbuffer_store(struct ac_llvm_context *ctx,
 			     unsigned nfmt,
 			     bool glc,
 			     bool slc,
-			     bool writeonly_memory,
 			     bool structurized)
 {
 	LLVMValueRef args[7];
@@ -2024,7 +2018,7 @@ ac_build_llvm8_tbuffer_store(struct ac_llvm_context *ctx,
 		 indexing_kind, type_name);
 
 	ac_build_intrinsic(ctx, name, ctx->voidt, args, idx,
-			   ac_get_store_intr_attribs(writeonly_memory));
+			   AC_FUNC_ATTR_INACCESSIBLE_MEM_ONLY);
 }
 
 static void
@@ -2040,7 +2034,6 @@ ac_build_tbuffer_store(struct ac_llvm_context *ctx,
 		       unsigned nfmt,
 		       bool glc,
 		       bool slc,
-		       bool writeonly_memory,
 		       bool structurized) /* only matters for LLVM 8+ */
 {
 	if (HAVE_LLVM >= 0x800) {
@@ -2050,8 +2043,7 @@ ac_build_tbuffer_store(struct ac_llvm_context *ctx,
 
 		ac_build_llvm8_tbuffer_store(ctx, rsrc, vdata, vindex, voffset,
 					     soffset, num_channels, dfmt, nfmt,
-					     glc, slc, writeonly_memory,
-					     structurized);
+					     glc, slc, structurized);
 	} else {
 		LLVMValueRef params[] = {
 			vdata,
@@ -2073,7 +2065,7 @@ ac_build_tbuffer_store(struct ac_llvm_context *ctx,
 			 type_names[func]);
 
 		ac_build_intrinsic(ctx, name, ctx->voidt, params, 10,
-				   ac_get_store_intr_attribs(writeonly_memory));
+				   AC_FUNC_ATTR_INACCESSIBLE_MEM_ONLY);
 	}
 }
 
@@ -2089,12 +2081,11 @@ ac_build_struct_tbuffer_store(struct ac_llvm_context *ctx,
 			      unsigned dfmt,
 			      unsigned nfmt,
 			      bool glc,
-			      bool slc,
-			      bool writeonly_memory)
+			      bool slc)
 {
 	ac_build_tbuffer_store(ctx, rsrc, vdata, vindex, voffset, soffset,
 			       immoffset, num_channels, dfmt, nfmt, glc, slc,
-			       writeonly_memory, true);
+			       true);
 }
 
 void
@@ -2108,12 +2099,11 @@ ac_build_raw_tbuffer_store(struct ac_llvm_context *ctx,
 			   unsigned dfmt,
 			   unsigned nfmt,
 			   bool glc,
-			   bool slc,
-			   bool writeonly_memory)
+			   bool slc)
 {
 	ac_build_tbuffer_store(ctx, rsrc, vdata, NULL, voffset, soffset,
 			       immoffset, num_channels, dfmt, nfmt, glc, slc,
-			       writeonly_memory, false);
+			       false);
 }
 
 void
@@ -2122,8 +2112,7 @@ ac_build_tbuffer_store_short(struct ac_llvm_context *ctx,
 			     LLVMValueRef vdata,
 			     LLVMValueRef voffset,
 			     LLVMValueRef soffset,
-			     bool glc,
-			     bool writeonly_memory)
+			     bool glc)
 {
 	vdata = LLVMBuildBitCast(ctx->builder, vdata, ctx->i16, "");
 
@@ -2132,8 +2121,7 @@ ac_build_tbuffer_store_short(struct ac_llvm_context *ctx,
 		ac_build_llvm8_buffer_store_common(ctx, rsrc, vdata, NULL,
 						   voffset, soffset, 1,
 						   ctx->i16, glc, false,
-						   writeonly_memory, false,
-						   false);
+						   false, false);
 	} else {
 		unsigned dfmt = V_008F0C_BUF_DATA_FORMAT_16;
 		unsigned nfmt = V_008F0C_BUF_NUM_FORMAT_UINT;
@@ -2141,8 +2129,8 @@ ac_build_tbuffer_store_short(struct ac_llvm_context *ctx,
 		vdata = LLVMBuildZExt(ctx->builder, vdata, ctx->i32, "");
 
 		ac_build_raw_tbuffer_store(ctx, rsrc, vdata, voffset, soffset,
-					   ctx->i32_0, 1, dfmt, nfmt, glc, false,
-					   writeonly_memory);
+					   ctx->i32_0, 1, dfmt, nfmt, glc,
+					   false);
 	}
 }
 
@@ -2152,8 +2140,7 @@ ac_build_tbuffer_store_byte(struct ac_llvm_context *ctx,
 			    LLVMValueRef vdata,
 			    LLVMValueRef voffset,
 			    LLVMValueRef soffset,
-			    bool glc,
-			    bool writeonly_memory)
+			    bool glc)
 {
 	vdata = LLVMBuildBitCast(ctx->builder, vdata, ctx->i8, "");
 
@@ -2162,8 +2149,7 @@ ac_build_tbuffer_store_byte(struct ac_llvm_context *ctx,
 		ac_build_llvm8_buffer_store_common(ctx, rsrc, vdata, NULL,
 						   voffset, soffset, 1,
 						   ctx->i8, glc, false,
-						   writeonly_memory, false,
-						   false);
+						   false, false);
 	} else {
 		unsigned dfmt = V_008F0C_BUF_DATA_FORMAT_8;
 		unsigned nfmt = V_008F0C_BUF_NUM_FORMAT_UINT;
@@ -2171,8 +2157,7 @@ ac_build_tbuffer_store_byte(struct ac_llvm_context *ctx,
 		vdata = LLVMBuildZExt(ctx->builder, vdata, ctx->i32, "");
 
 		ac_build_raw_tbuffer_store(ctx, rsrc, vdata, voffset, soffset,
-					   ctx->i32_0, 1, dfmt, nfmt, glc, false,
-					   writeonly_memory);
+					   ctx->i32_0, 1, dfmt, nfmt, glc, false);
 	}
 }
 /**

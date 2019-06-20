@@ -1128,7 +1128,7 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
       break;
    case ir_binop_mod:
       /* Floating point should be lowered by MOD_TO_FLOOR in the compiler. */
-      assert(ir->type->is_integer());
+      assert(ir->type->is_integer_32());
       emit(ir, OPCODE_MUL, result_dst, op[0], op[1]);
       break;
 

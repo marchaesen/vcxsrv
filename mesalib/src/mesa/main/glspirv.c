@@ -262,6 +262,8 @@ _mesa_spirv_to_nir(struct gl_context *ctx,
    if (nir->info.stage == MESA_SHADER_VERTEX)
       nir_remap_dual_slot_attributes(nir, &linked_shader->Program->DualSlotInputs);
 
+   NIR_PASS_V(nir, nir_lower_frexp);
+
    return nir;
 }
 

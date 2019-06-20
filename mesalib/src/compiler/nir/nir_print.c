@@ -291,7 +291,7 @@ print_constant(nir_constant *c, const struct glsl_type *type, print_state *state
    FILE *fp = state->fp;
    const unsigned rows = glsl_get_vector_elements(type);
    const unsigned cols = glsl_get_matrix_columns(type);
-   unsigned i, j;
+   unsigned i;
 
    switch (glsl_get_base_type(type)) {
    case GLSL_TYPE_BOOL:
@@ -300,7 +300,7 @@ print_constant(nir_constant *c, const struct glsl_type *type, print_state *state
 
       for (i = 0; i < rows; i++) {
          if (i > 0) fprintf(fp, ", ");
-         fprintf(fp, "%s", c->values[0][i].b ? "true" : "false");
+         fprintf(fp, "%s", c->values[i].b ? "true" : "false");
       }
       break;
 
@@ -311,7 +311,7 @@ print_constant(nir_constant *c, const struct glsl_type *type, print_state *state
 
       for (i = 0; i < rows; i++) {
          if (i > 0) fprintf(fp, ", ");
-         fprintf(fp, "0x%02x", c->values[0][i].u8);
+         fprintf(fp, "0x%02x", c->values[i].u8);
       }
       break;
 
@@ -322,7 +322,7 @@ print_constant(nir_constant *c, const struct glsl_type *type, print_state *state
 
       for (i = 0; i < rows; i++) {
          if (i > 0) fprintf(fp, ", ");
-         fprintf(fp, "0x%04x", c->values[0][i].u16);
+         fprintf(fp, "0x%04x", c->values[i].u16);
       }
       break;
 
@@ -333,33 +333,43 @@ print_constant(nir_constant *c, const struct glsl_type *type, print_state *state
 
       for (i = 0; i < rows; i++) {
          if (i > 0) fprintf(fp, ", ");
-         fprintf(fp, "0x%08x", c->values[0][i].u32);
+         fprintf(fp, "0x%08x", c->values[i].u32);
       }
       break;
 
    case GLSL_TYPE_FLOAT16:
-      for (i = 0; i < cols; i++) {
-         for (j = 0; j < rows; j++) {
-            if (i + j > 0) fprintf(fp, ", ");
-            fprintf(fp, "%f", _mesa_half_to_float(c->values[i][j].u16));
-         }
-      }
-      break;
-
    case GLSL_TYPE_FLOAT:
-      for (i = 0; i < cols; i++) {
-         for (j = 0; j < rows; j++) {
-            if (i + j > 0) fprintf(fp, ", ");
-            fprintf(fp, "%f", c->values[i][j].f32);
-         }
-      }
-      break;
-
    case GLSL_TYPE_DOUBLE:
-      for (i = 0; i < cols; i++) {
-         for (j = 0; j < rows; j++) {
-            if (i + j > 0) fprintf(fp, ", ");
-            fprintf(fp, "%f", c->values[i][j].f64);
+      if (cols > 1) {
+         for (i = 0; i < cols; i++) {
+            if (i > 0) fprintf(fp, ", ");
+            print_constant(c->elements[i], glsl_get_column_type(type), state);
+         }
+      } else {
+         switch (glsl_get_base_type(type)) {
+         case GLSL_TYPE_FLOAT16:
+            for (i = 0; i < rows; i++) {
+               if (i > 0) fprintf(fp, ", ");
+               fprintf(fp, "%f", _mesa_half_to_float(c->values[i].u16));
+            }
+            break;
+
+         case GLSL_TYPE_FLOAT:
+            for (i = 0; i < rows; i++) {
+               if (i > 0) fprintf(fp, ", ");
+               fprintf(fp, "%f", c->values[i].f32);
+            }
+            break;
+
+         case GLSL_TYPE_DOUBLE:
+            for (i = 0; i < rows; i++) {
+               if (i > 0) fprintf(fp, ", ");
+               fprintf(fp, "%f", c->values[i].f64);
+            }
+            break;
+
+         default:
+            unreachable("Cannot get here from the first level switch");
          }
       }
       break;
@@ -371,7 +381,7 @@ print_constant(nir_constant *c, const struct glsl_type *type, print_state *state
 
       for (i = 0; i < cols; i++) {
          if (i > 0) fprintf(fp, ", ");
-         fprintf(fp, "0x%08" PRIx64, c->values[0][i].u64);
+         fprintf(fp, "0x%08" PRIx64, c->values[i].u64);
       }
       break;
 
@@ -448,7 +458,8 @@ print_var_decl(nir_variable *var, print_state *state)
    const char *const restr = (access & ACCESS_RESTRICT) ? "restrict " : "";
    const char *const ronly = (access & ACCESS_NON_WRITEABLE) ? "readonly " : "";
    const char *const wonly = (access & ACCESS_NON_READABLE) ? "writeonly " : "";
-   fprintf(fp, "%s%s%s%s%s", coher, volat, restr, ronly, wonly);
+   const char *const reorder = (access & ACCESS_CAN_REORDER) ? "reorderable " : "";
+   fprintf(fp, "%s%s%s%s%s%s", coher, volat, restr, ronly, wonly, reorder);
 
 #define FORMAT_CASE(x) case x: fprintf(stderr, #x " "); break
    switch (var->data.image.format) {
@@ -771,6 +782,8 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
       [NIR_INTRINSIC_IMAGE_DIM] = "image_dim",
       [NIR_INTRINSIC_IMAGE_ARRAY] = "image_array",
       [NIR_INTRINSIC_ACCESS] = "access",
+      [NIR_INTRINSIC_SRC_ACCESS] = "src-access",
+      [NIR_INTRINSIC_DST_ACCESS] = "dst-access",
       [NIR_INTRINSIC_FORMAT] = "format",
       [NIR_INTRINSIC_ALIGN_MUL] = "align_mul",
       [NIR_INTRINSIC_ALIGN_OFFSET] = "align_offset",

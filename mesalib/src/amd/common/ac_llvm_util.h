@@ -120,13 +120,6 @@ ac_get_load_intr_attribs(bool can_speculate)
 			       AC_FUNC_ATTR_READONLY;
 }
 
-static inline unsigned
-ac_get_store_intr_attribs(bool writeonly_memory)
-{
-	return writeonly_memory ? AC_FUNC_ATTR_INACCESSIBLE_MEM_ONLY :
-				  AC_FUNC_ATTR_WRITEONLY;
-}
-
 unsigned
 ac_count_scratch_private_memory(LLVMValueRef function);
 

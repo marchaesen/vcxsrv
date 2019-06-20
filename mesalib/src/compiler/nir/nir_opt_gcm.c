@@ -152,11 +152,7 @@ gcm_pin_instructions_block(nir_block *block, struct gcm_state *state)
          break;
 
       case nir_instr_type_intrinsic: {
-         const nir_intrinsic_info *info =
-            &nir_intrinsic_infos[nir_instr_as_intrinsic(instr)->intrinsic];
-
-         if ((info->flags & NIR_INTRINSIC_CAN_ELIMINATE) &&
-             (info->flags & NIR_INTRINSIC_CAN_REORDER)) {
+         if (nir_intrinsic_can_reorder(nir_instr_as_intrinsic(instr))) {
             instr->pass_flags = 0;
          } else {
             instr->pass_flags = GCM_INSTR_PINNED;

@@ -271,7 +271,6 @@ ac_build_buffer_store_dword(struct ac_llvm_context *ctx,
 			    unsigned inst_offset,
 		            bool glc,
 		            bool slc,
-			    bool writeonly_memory,
 			    bool swizzle_enable_hint);
 
 void
@@ -282,8 +281,7 @@ ac_build_buffer_store_format(struct ac_llvm_context *ctx,
 			     LLVMValueRef voffset,
 			     unsigned num_channels,
 			     bool glc,
-			     bool slc,
-			     bool writeonly_memory);
+			     bool slc);
 
 LLVMValueRef
 ac_build_buffer_load(struct ac_llvm_context *ctx,
@@ -395,8 +393,7 @@ ac_build_tbuffer_store_short(struct ac_llvm_context *ctx,
 			     LLVMValueRef vdata,
 			     LLVMValueRef voffset,
 			     LLVMValueRef soffset,
-			     bool glc,
-			     bool writeonly_memory);
+			     bool glc);
 
 void
 ac_build_tbuffer_store_byte(struct ac_llvm_context *ctx,
@@ -404,8 +401,7 @@ ac_build_tbuffer_store_byte(struct ac_llvm_context *ctx,
 			    LLVMValueRef vdata,
 			    LLVMValueRef voffset,
 			    LLVMValueRef soffset,
-			    bool glc,
-			    bool writeonly_memory);
+			    bool glc);
 
 void
 ac_build_struct_tbuffer_store(struct ac_llvm_context *ctx,
@@ -419,8 +415,7 @@ ac_build_struct_tbuffer_store(struct ac_llvm_context *ctx,
 			      unsigned dfmt,
 			      unsigned nfmt,
 			      bool glc,
-			      bool slc,
-			      bool writeonly_memory);
+			      bool slc);
 
 void
 ac_build_raw_tbuffer_store(struct ac_llvm_context *ctx,
@@ -433,8 +428,7 @@ ac_build_raw_tbuffer_store(struct ac_llvm_context *ctx,
 			   unsigned dfmt,
 			   unsigned nfmt,
 			   bool glc,
-			   bool slc,
-			   bool writeonly_memory);
+			   bool slc);
 
 LLVMValueRef
 ac_get_thread_id(struct ac_llvm_context *ctx);

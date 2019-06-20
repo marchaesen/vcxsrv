@@ -586,9 +586,17 @@ public:
    }
 
    /**
-    * Query whether or not a type is an integral type
+    * Query whether or not a type is an integer.
     */
    bool is_integer() const
+   {
+      return glsl_base_type_is_integer(base_type);
+   }
+
+   /**
+    * Query whether or not a type is an 32-bit integer.
+    */
+   bool is_integer_32() const
    {
       return (base_type == GLSL_TYPE_UINT) || (base_type == GLSL_TYPE_INT);
    }
@@ -606,7 +614,7 @@ public:
     */
    bool is_integer_32_64() const
    {
-      return is_integer() || is_integer_64();
+      return is_integer_32() || is_integer_64();
    }
 
    /**

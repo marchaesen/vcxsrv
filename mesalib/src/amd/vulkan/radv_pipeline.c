@@ -2739,7 +2739,6 @@ radv_pipeline_generate_depth_stencil_state(struct radeon_cmdbuf *ctx_cs,
 	const VkPipelineDepthStencilStateCreateInfo *vkds = pCreateInfo->pDepthStencilState;
 	RADV_FROM_HANDLE(radv_render_pass, pass, pCreateInfo->renderPass);
 	struct radv_subpass *subpass = pass->subpasses + pCreateInfo->subpass;
-	struct radv_shader_variant *ps = pipeline->shaders[MESA_SHADER_FRAGMENT];
 	struct radv_render_pass_attachment *attachment = NULL;
 	uint32_t db_depth_control = 0, db_stencil_control = 0;
 	uint32_t db_render_control = 0, db_render_override2 = 0;
@@ -2788,8 +2787,7 @@ radv_pipeline_generate_depth_stencil_state(struct radeon_cmdbuf *ctx_cs,
 	db_render_override |= S_02800C_FORCE_HIS_ENABLE0(V_02800C_FORCE_DISABLE) |
 			      S_02800C_FORCE_HIS_ENABLE1(V_02800C_FORCE_DISABLE);
 
-	if (!pCreateInfo->pRasterizationState->depthClampEnable &&
-	    ps->info.info.ps.writes_z) {
+	if (!pCreateInfo->pRasterizationState->depthClampEnable) {
 		/* From VK_EXT_depth_range_unrestricted spec:
 		 *
 		 * "The behavior described in Primitive Clipping still applies.

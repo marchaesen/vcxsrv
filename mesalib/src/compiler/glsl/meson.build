@@ -84,6 +84,7 @@ files_libglsl = files(
   'gl_nir_link_xfb.c',
   'gl_nir_linker.c',
   'gl_nir_linker.h',
+  'gl_nir_opt_access.c',
   'gl_nir.h',
   'glsl_parser_extras.cpp',
   'glsl_parser_extras.h',

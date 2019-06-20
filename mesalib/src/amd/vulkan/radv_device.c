@@ -482,6 +482,7 @@ static const struct debug_control radv_perftest_options[] = {
 	{"dccmsaa", RADV_PERFTEST_DCC_MSAA},
 	{"bolist", RADV_PERFTEST_BO_LIST},
 	{"shader_ballot", RADV_PERFTEST_SHADER_BALLOT},
+	{"tccompatcmask", RADV_PERFTEST_TC_COMPAT_CMASK},
 	{NULL, 0}
 };
 
@@ -4396,6 +4397,20 @@ radv_initialise_color_surface(struct radv_device *device,
 		if (device->physical_device->rad_info.chip_class == GFX6) {
 			unsigned fmask_bankh = util_logbase2(iview->image->fmask.bank_height);
 			cb->cb_color_attrib |= S_028C74_FMASK_BANK_HEIGHT(fmask_bankh);
+		}
+
+		if (radv_image_is_tc_compat_cmask(iview->image)) {
+			/* Allow the texture block to read FMASK directly
+			 * without decompressing it. This bit must be cleared
+			 * when performing FMASK_DECOMPRESS or DCC_COMPRESS,
+			 * otherwise the operation doesn't happen.
+			 */
+			cb->cb_color_info |= S_028C70_FMASK_COMPRESS_1FRAG_ONLY(1);
+
+			/* Set CMASK into a tiling format that allows the
+			 * texture block to read it.
+			 */
+			cb->cb_color_info |= S_028C70_CMASK_ADDR_TYPE(2);
 		}
 	}
 

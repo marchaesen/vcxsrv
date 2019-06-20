@@ -111,6 +111,8 @@ IMAGE_DIM = "NIR_INTRINSIC_IMAGE_DIM"
 IMAGE_ARRAY = "NIR_INTRINSIC_IMAGE_ARRAY"
 # Access qualifiers for image and memory access intrinsics
 ACCESS = "NIR_INTRINSIC_ACCESS"
+DST_ACCESS = "NIR_INTRINSIC_DST_ACCESS"
+SRC_ACCESS = "NIR_INTRINSIC_SRC_ACCESS"
 # Image format for image intrinsics
 FORMAT = "NIR_INTRINSIC_FORMAT"
 # Offset or address alignment
@@ -156,7 +158,7 @@ intrinsic("load_param", dest_comp=0, indices=[PARAM_IDX], flags=[CAN_ELIMINATE])
 intrinsic("load_deref", dest_comp=0, src_comp=[-1],
           indices=[ACCESS], flags=[CAN_ELIMINATE])
 intrinsic("store_deref", src_comp=[-1, 0], indices=[WRMASK, ACCESS])
-intrinsic("copy_deref", src_comp=[-1, -1])
+intrinsic("copy_deref", src_comp=[-1, -1], indices=[DST_ACCESS, SRC_ACCESS])
 
 # Interpolation of input.  The interp_deref_at* intrinsics are similar to the
 # load_var intrinsic acting on a shader input except that they interpolate the
@@ -345,7 +347,8 @@ atomic3("atomic_counter_comp_swap")
 # either one or two additional scalar arguments with the same meaning as in
 # the ARB_shader_image_load_store specification.
 def image(name, src_comp=[], **kwargs):
-    intrinsic("image_deref_" + name, src_comp=[1] + src_comp, **kwargs)
+    intrinsic("image_deref_" + name, src_comp=[1] + src_comp,
+              indices=[ACCESS], **kwargs)
     intrinsic("image_" + name, src_comp=[1] + src_comp,
               indices=[IMAGE_DIM, IMAGE_ARRAY, FORMAT, ACCESS], **kwargs)
     intrinsic("bindless_image_" + name, src_comp=[1] + src_comp,

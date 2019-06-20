@@ -170,8 +170,13 @@ radv_use_dcc_for_image(struct radv_device *device,
 	    vk_format_get_plane_count(pCreateInfo->format) > 1)
 		return false;
 
-	/* TODO: Enable DCC for mipmaps and array layers. */
-	if (pCreateInfo->mipLevels > 1 || pCreateInfo->arrayLayers > 1)
+	/* TODO: Enable DCC for mipmaps on GFX9+. */
+	if (pCreateInfo->mipLevels > 1 &&
+	    device->physical_device->rad_info.chip_class >= GFX9)
+		return false;
+
+	/* TODO: Enable DCC for array layers. */
+	if (pCreateInfo->arrayLayers > 1)
 		return false;
 
 	if (radv_surface_has_scanout(device, create_info))
@@ -214,6 +219,29 @@ radv_use_dcc_for_image(struct radv_device *device,
 	}
 
 	if (!dcc_compatible_formats)
+		return false;
+
+	return true;
+}
+
+static bool
+radv_use_tc_compat_cmask_for_image(struct radv_device *device,
+				   struct radv_image *image)
+{
+	if (!(device->instance->perftest_flags & RADV_PERFTEST_TC_COMPAT_CMASK))
+		return false;
+
+	/* TC-compat CMASK is only available for GFX8+. */
+	if (device->physical_device->rad_info.chip_class < GFX8)
+		return false;
+
+	if (image->usage & VK_IMAGE_USAGE_STORAGE_BIT)
+		return false;
+
+	if (radv_image_has_dcc(image))
+		return false;
+
+	if (!radv_image_has_cmask(image))
 		return false;
 
 	return true;
@@ -729,11 +757,26 @@ si_make_texture_descriptor(struct radv_device *device,
 					  S_008F20_PITCH(image->planes[0].surface.u.gfx9.fmask.epitch);
 			fmask_state[5] |= S_008F24_META_PIPE_ALIGNED(image->planes[0].surface.u.gfx9.cmask.pipe_aligned) |
 					  S_008F24_META_RB_ALIGNED(image->planes[0].surface.u.gfx9.cmask.rb_aligned);
+
+			if (radv_image_is_tc_compat_cmask(image)) {
+				va = gpu_address + image->offset + image->cmask.offset;
+
+				fmask_state[5] |= S_008F24_META_DATA_ADDRESS(va >> 40);
+				fmask_state[6] |= S_008F28_COMPRESSION_EN(1);
+				fmask_state[7] |= va >> 8;
+			}
 		} else {
 			fmask_state[3] |= S_008F1C_TILING_INDEX(image->fmask.tile_mode_index);
 			fmask_state[4] |= S_008F20_DEPTH(depth - 1) |
 				S_008F20_PITCH(image->fmask.pitch_in_pixels - 1);
 			fmask_state[5] |= S_008F24_LAST_ARRAY(last_layer);
+
+			if (radv_image_is_tc_compat_cmask(image)) {
+				va = gpu_address + image->offset + image->cmask.offset;
+
+				fmask_state[6] |= S_008F28_COMPRESSION_EN(1);
+				fmask_state[7] |= va >> 8;
+			}
 		}
 	} else if (fmask_state)
 		memset(fmask_state, 0, 8 * 4);
@@ -1122,6 +1165,9 @@ radv_image_create(VkDevice _device,
 		/* Try to enable FMASK for multisampled images. */
 		if (radv_image_can_enable_fmask(image)) {
 			radv_image_alloc_fmask(device, image);
+
+			if (radv_use_tc_compat_cmask_for_image(device, image))
+				image->tc_compatible_cmask = true;
 		} else {
 			/* Otherwise, try to enable HTILE for depth surfaces. */
 			if (radv_image_can_enable_htile(image) &&

@@ -353,12 +353,12 @@ else
   with_egl = false
 endif
 
-if with_egl and not (with_platform_drm or with_platform_surfaceless)
+if with_egl and not (with_platform_drm or with_platform_surfaceless or with_platform_android)
   if with_gallium_radeonsi
-    error('RadeonSI requires drm or surfaceless platform when using EGL')
+    error('RadeonSI requires the drm, surfaceless or android platform when using EGL')
   endif
   if with_gallium_virgl
-    error('Virgl requires drm or surfaceless platform when using EGL')
+    error('Virgl requires the drm, surfaceless or android platform when using EGL')
   endif
 endif
 
@@ -1036,7 +1036,7 @@ elif cc.has_header_symbol('sys/mkdev.h', 'major')
   pre_args += '-DMAJOR_IN_MKDEV'
 endif
 
-foreach h : ['xlocale.h', 'sys/sysctl.h', 'linux/futex.h', 'endian.h', 'dlfcn.h']
+foreach h : ['xlocale.h', 'sys/sysctl.h', 'linux/futex.h', 'endian.h', 'dlfcn.h', 'execinfo.h']
   if cc.compiles('#include <@0@>'.format(h), name : '@0@'.format(h))
     pre_args += '-DHAVE_@0@'.format(h.to_upper().underscorify())
   endif

@@ -36,6 +36,7 @@ LIBGLSL_FILES = \
 	glsl/gl_nir_link_xfb.c \
 	glsl/gl_nir_linker.c \
 	glsl/gl_nir_linker.h \
+	glsl/gl_nir_opt_access.c \
 	glsl/gl_nir.h \
 	glsl/glsl_parser_extras.cpp \
 	glsl/glsl_parser_extras.h \

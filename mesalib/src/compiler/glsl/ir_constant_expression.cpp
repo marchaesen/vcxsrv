@@ -435,7 +435,8 @@ constant_referenced(const ir_dereference *deref,
       ir_constant *const index_c =
          da->array_index->constant_expression_value(variable_context);
 
-      if (!index_c || !index_c->type->is_scalar() || !index_c->type->is_integer())
+      if (!index_c || !index_c->type->is_scalar() ||
+          !index_c->type->is_integer_32())
          break;
 
       const int index = index_c->type->base_type == GLSL_TYPE_INT ?

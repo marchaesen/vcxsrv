@@ -97,17 +97,17 @@ vtn_handle_amd_shader_ballot_instruction(struct vtn_builder *b, SpvOp ext_opcode
 
    if (intrin->intrinsic == nir_intrinsic_quad_swizzle_amd) {
       struct vtn_value *val = vtn_value(b, w[6], vtn_value_type_constant);
-      unsigned mask = val->constant->values[0][0].u32 |
-                      val->constant->values[0][1].u32 << 2 |
-                      val->constant->values[0][2].u32 << 4 |
-                      val->constant->values[0][3].u32 << 6;
+      unsigned mask = val->constant->values[0].u32 |
+                      val->constant->values[1].u32 << 2 |
+                      val->constant->values[2].u32 << 4 |
+                      val->constant->values[3].u32 << 6;
       nir_intrinsic_set_swizzle_mask(intrin, mask);
 
    } else if (intrin->intrinsic == nir_intrinsic_masked_swizzle_amd) {
       struct vtn_value *val = vtn_value(b, w[6], vtn_value_type_constant);
-      unsigned mask = val->constant->values[0][0].u32 |
-                      val->constant->values[0][1].u32 << 5 |
-                      val->constant->values[0][2].u32 << 10;
+      unsigned mask = val->constant->values[0].u32 |
+                      val->constant->values[1].u32 << 5 |
+                      val->constant->values[2].u32 << 10;
       nir_intrinsic_set_swizzle_mask(intrin, mask);
    }
 
