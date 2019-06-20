@@ -552,6 +552,13 @@ if (bit_size == 64) {
 }
 """)
 
+# low 32-bits of unsigned integer multiply
+binop("umul_low", tuint32, _2src_commutative, """
+uint64_t mask = (1 << (bit_size / 2)) - 1;
+dst = ((uint64_t)src0 & mask) * ((uint64_t)src1 & mask);
+""")
+
+
 binop("fdiv", tfloat, "", "src0 / src1")
 binop("idiv", tint, "", "src1 == 0 ? 0 : (src0 / src1)")
 binop("udiv", tuint, "", "src1 == 0 ? 0 : (src0 / src1)")
@@ -958,4 +965,10 @@ dst.z = src2.x;
 dst.w = src3.x;
 """)
 
-
+# ir3-specific instruction that maps directly to mul-add shift high mix,
+# (IMADSH_MIX16 i.e. ah * bl << 16 + c). It is used for lowering integer
+# multiplication (imul) on Freedreno backend..
+opcode("imadsh_mix16", 1, tint32,
+       [1, 1, 1], [tint32, tint32, tint32], False, "", """
+dst.x = ((((src0.x & 0xffff0000) >> 16) * (src1.x & 0x0000ffff)) << 16) + src2.x;
+""")

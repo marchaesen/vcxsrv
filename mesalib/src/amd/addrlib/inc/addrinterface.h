@@ -1,5 +1,5 @@
 /*
- * Copyright © 2007-2018 Advanced Micro Devices, Inc.
+ * Copyright © 2007-2019 Advanced Micro Devices, Inc.
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -307,7 +307,8 @@ typedef union _ADDR_CREATE_FLAGS
         UINT_32 checkLast2DLevel       : 1;    ///< Check the last 2D mip sub level
         UINT_32 useHtileSliceAlign     : 1;    ///< Do htile single slice alignment
         UINT_32 allowLargeThickTile    : 1;    ///< Allow 64*thickness*bytesPerPixel > rowSize
-        UINT_32 reserved               : 25;   ///< Reserved bits for future use
+        UINT_32 forceDccAndTcCompat    : 1;    ///< Force enable DCC and TC compatibility
+        UINT_32 reserved               : 24;   ///< Reserved bits for future use
     };
 
     UINT_32 value;
@@ -2879,6 +2880,9 @@ typedef struct _ADDR2_COMPUTE_CMASKINFO_INPUT
     UINT_32             unalignedWidth;     ///< Color surface original width
     UINT_32             unalignedHeight;    ///< Color surface original height
     UINT_32             numSlices;          ///< Number of slices of color buffer
+    UINT_32             numMipLevels;       ///< Number of mip levels
+    UINT_32             firstMipIdInTail;   ///< The id of first mip in tail, if no mip is in tail,
+                                            ///  it should be number of mip levels
 } ADDR2_COMPUTE_CMASK_INFO_INPUT;
 
 /**
@@ -2904,7 +2908,9 @@ typedef struct _ADDR2_COMPUTE_CMASK_INFO_OUTPUT
     UINT_32    metaBlkWidth;  ///< Meta block width
     UINT_32    metaBlkHeight; ///< Meta block height
 
-    UINT_32    metaBlkNumPerSlice; ///< Number of metablock within one slice
+    UINT_32    metaBlkNumPerSlice;  ///< Number of metablock within one slice
+
+    ADDR2_META_MIP_INFO* pMipInfo;  ///< CMASK mip information
 } ADDR2_COMPUTE_CMASK_INFO_OUTPUT;
 
 /**

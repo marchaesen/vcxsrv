@@ -111,14 +111,11 @@ radv_dump_debug_registers(struct radv_device *device, FILE *f)
 {
 	struct radeon_info *info = &device->physical_device->rad_info;
 
-	if (info->drm_major == 2 && info->drm_minor < 42)
-		return; /* no radeon support */
-
 	fprintf(f, "Memory-mapped registers:\n");
 	radv_dump_mmapped_reg(device, f, R_008010_GRBM_STATUS);
 
 	/* No other registers can be read on DRM < 3.1.0. */
-	if (info->drm_major < 3 || info->drm_minor < 1) {
+	if (info->drm_minor < 1) {
 		fprintf(f, "\n");
 		return;
 	}

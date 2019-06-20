@@ -49,7 +49,7 @@ load_makefile $(NOSERVLIBDIRS:%$(NOSERVOBJDIR)\=%makefile MAKESERVER=0 DEBUG=$(D
 
 OBJS = dix\$(OBJDIR)\main.obj
 
-LINKLIBS += $(PTHREADLIB) $(FREETYPELIB) $(OPENSSLLIB) opengl32.lib
+LINKLIBS += $(PTHREADLIB) $(FREETYPELIB) $(OPENSSLLIB) opengl32.lib dwmapi.lib
 
 ifeq ($(DEBUG),1)
 TTYAPP=vcxsrv

@@ -125,6 +125,9 @@ st_generate_mipmap(struct gl_context *ctx, GLenum target,
    else
       format = pt->format;
 
+   if (texObj->Sampler.sRGBDecode == GL_SKIP_DECODE_EXT)
+      format = util_format_linear(format);
+
    /* First see if the driver supports hardware mipmap generation,
     * if not then generate the mipmap by rendering/texturing.
     * If that fails, use the software fallback.

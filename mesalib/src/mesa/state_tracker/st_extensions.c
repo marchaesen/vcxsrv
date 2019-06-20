@@ -348,7 +348,8 @@ void st_init_limits(struct pipe_screen *screen,
       screen->get_param(screen, PIPE_CAP_GLSL_TESS_LEVELS_AS_INPUTS);
    c->LowerTessLevel =
       !screen->get_param(screen, PIPE_CAP_NIR_COMPACT_ARRAYS);
-   c->LowerCsDerivedVariables = true;
+   c->LowerCsDerivedVariables =
+      !screen->get_param(screen, PIPE_CAP_CS_DERIVED_SYSTEM_VALUES_SUPPORTED);
    c->PrimitiveRestartForPatches =
       screen->get_param(screen, PIPE_CAP_PRIMITIVE_RESTART_FOR_PATCHES);
 
@@ -763,6 +764,7 @@ void st_init_extensions(struct pipe_screen *screen,
       { o(AMD_seamless_cubemap_per_texture), PIPE_CAP_SEAMLESS_CUBE_MAP_PER_TEXTURE    },
       { o(ATI_texture_mirror_once),          PIPE_CAP_TEXTURE_MIRROR_CLAMP             },
       { o(INTEL_conservative_rasterization), PIPE_CAP_CONSERVATIVE_RASTER_INNER_COVERAGE },
+      { o(INTEL_shader_atomic_float_minmax), PIPE_CAP_ATOMIC_FLOAT_MINMAX              },
       { o(MESA_tile_raster_order),           PIPE_CAP_TILE_RASTER_ORDER                },
       { o(NV_compute_shader_derivatives),    PIPE_CAP_COMPUTE_SHADER_DERIVATIVES       },
       { o(NV_conditional_render),            PIPE_CAP_CONDITIONAL_RENDER               },

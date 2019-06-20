@@ -1202,21 +1202,28 @@ nir_deserialize(void *mem_ctx,
    return ctx.nir;
 }
 
-nir_shader *
-nir_shader_serialize_deserialize(void *mem_ctx, nir_shader *s)
+void
+nir_shader_serialize_deserialize(nir_shader *shader)
 {
-   const struct nir_shader_compiler_options *options = s->options;
+   const struct nir_shader_compiler_options *options = shader->options;
 
    struct blob writer;
    blob_init(&writer);
-   nir_serialize(&writer, s);
-   ralloc_free(s);
+   nir_serialize(&writer, shader);
+
+   /* Delete all of dest's ralloc children but leave dest alone */
+   void *dead_ctx = ralloc_context(NULL);
+   ralloc_adopt(dead_ctx, shader);
+   ralloc_free(dead_ctx);
+
+   dead_ctx = ralloc_context(NULL);
 
    struct blob_reader reader;
    blob_reader_init(&reader, writer.data, writer.size);
-   nir_shader *ns = nir_deserialize(mem_ctx, options, &reader);
+   nir_shader *copy = nir_deserialize(dead_ctx, options, &reader);
 
    blob_finish(&writer);
 
-   return ns;
+   nir_shader_replace(shader, copy);
+   ralloc_free(dead_ctx);
 }

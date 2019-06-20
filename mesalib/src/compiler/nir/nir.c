@@ -1333,6 +1333,19 @@ nir_src_is_dynamically_uniform(nir_src src)
          return true;
    }
 
+   /* Operating together dynamically uniform expressions produces a
+    * dynamically uniform result
+    */
+   if (src.ssa->parent_instr->type == nir_instr_type_alu) {
+      nir_alu_instr *alu = nir_instr_as_alu(src.ssa->parent_instr);
+      for (int i = 0; i < nir_op_infos[alu->op].num_inputs; i++) {
+         if (!nir_src_is_dynamically_uniform(alu->src[i].src))
+            return false;
+      }
+
+      return true;
+   }
+
    /* XXX: this could have many more tests, such as when a sampler function is
     * called with dynamically uniform arguments.
     */

@@ -39,6 +39,7 @@ enum radv_meta_save_flags {
 	RADV_META_SAVE_DESCRIPTORS       = (1 << 2),
 	RADV_META_SAVE_GRAPHICS_PIPELINE = (1 << 3),
 	RADV_META_SAVE_COMPUTE_PIPELINE  = (1 << 4),
+	RADV_META_SAVE_SAMPLE_LOCATIONS  = (1 << 5),
 };
 
 struct radv_meta_saved_state {
@@ -48,6 +49,7 @@ struct radv_meta_saved_state {
 	struct radv_pipeline *old_pipeline;
 	struct radv_viewport_state viewport;
 	struct radv_scissor_state scissor;
+	struct radv_sample_locations_state sample_location;
 
 	char push_constants[128];
 
@@ -167,10 +169,12 @@ void radv_meta_clear_image_cs(struct radv_cmd_buffer *cmd_buffer,
 
 void radv_decompress_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 					 struct radv_image *image,
-					 VkImageSubresourceRange *subresourceRange);
+					 VkImageSubresourceRange *subresourceRange,
+					 struct radv_sample_locations_state *sample_locs);
 void radv_resummarize_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 					  struct radv_image *image,
-					  VkImageSubresourceRange *subresourceRange);
+					  VkImageSubresourceRange *subresourceRange,
+					  struct radv_sample_locations_state *sample_locs);
 void radv_fast_clear_flush_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 					 struct radv_image *image,
 					 const VkImageSubresourceRange *subresourceRange);
@@ -212,7 +216,8 @@ uint32_t radv_clear_cmask(struct radv_cmd_buffer *cmd_buffer,
 uint32_t radv_clear_fmask(struct radv_cmd_buffer *cmd_buffer,
 			  struct radv_image *image, uint32_t value);
 uint32_t radv_clear_dcc(struct radv_cmd_buffer *cmd_buffer,
-			struct radv_image *image, uint32_t value);
+			struct radv_image *image,
+			const VkImageSubresourceRange *range, uint32_t value);
 uint32_t radv_clear_htile(struct radv_cmd_buffer *cmd_buffer,
 			  struct radv_image *image,
 			  const VkImageSubresourceRange *range, uint32_t value);

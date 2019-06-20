@@ -97,7 +97,7 @@ pixman_files = files(
   'pixman-utils.c',
 )
 
-libpixman = shared_library(
+libpixman = library(
   'pixman-1',
   [pixman_files, config_h, version_h],
   link_with : [pixman_simd_libs],

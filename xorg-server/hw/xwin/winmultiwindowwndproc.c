@@ -37,6 +37,7 @@
 #endif
 #define GC tempGC  // This is to avoid name conflicts when including the next headers which also define GC
 #include <X11/Xutil.h>
+#include <X11/Xwindows.h>
 #undef GC
 
 #include "win.h"
@@ -45,6 +46,11 @@
 #include "winprefs.h"
 #include "winmsg.h"
 #include "inputstr.h"
+#include <dwmapi.h>
+
+#ifndef WM_DWMCOMPOSITIONCHANGED
+#define WM_DWMCOMPOSITIONCHANGED 0x031e
+#endif
 
 extern void winUpdateWindowPosition(HWND hWnd, HWND * zstyle);
 
@@ -333,6 +339,113 @@ winStartMousePolling(winPrivScreenPtr s_pScreenPriv)
                                             MOUSE_POLLING_INTERVAL, NULL);
 }
 
+/* Undocumented */
+typedef struct _ACCENTPOLICY
+{
+    ULONG AccentState;
+    ULONG AccentFlags;
+    ULONG GradientColor;
+    ULONG AnimationId;
+} ACCENTPOLICY;
+
+#define ACCENT_ENABLE_BLURBEHIND 3
+
+typedef struct _WINCOMPATTR
+{
+    DWORD attribute;
+    PVOID pData;
+    ULONG dataSize;
+} WINCOMPATTR;
+
+#define WCA_ACCENT_POLICY 19
+
+typedef BOOL (WINAPI *PFNSETWINDOWCOMPOSITIONATTRIBUTE)(HWND, WINCOMPATTR *);
+
+static void
+CheckForAlpha(HWND hWnd, WindowPtr pWin, winScreenInfo *pScreenInfo)
+{
+    /* Check (once) which API we should use */
+    static Bool doOnce = TRUE;
+    static PFNSETWINDOWCOMPOSITIONATTRIBUTE pSetWindowCompositionAttribute = NULL;
+    static Bool useDwmEnableBlurBehindWindow = FALSE;
+
+    if (doOnce)
+        {
+            OSVERSIONINFOEX osvi = {0};
+            osvi.dwOSVersionInfoSize = sizeof(osvi);
+            GetVersionEx((LPOSVERSIONINFO)&osvi);
+
+            /* SetWindowCompositionAttribute() exists on Windows 7 and later,
+               but doesn't work for this purpose, so first check for Windows 10
+               or later */
+            if (osvi.dwMajorVersion >= 10)
+                {
+                    HMODULE hUser32 = GetModuleHandle("user32");
+
+                    if (hUser32)
+                        pSetWindowCompositionAttribute = (PFNSETWINDOWCOMPOSITIONATTRIBUTE) GetProcAddress(hUser32, "SetWindowCompositionAttribute");
+                    winDebug("SetWindowCompositionAttribute %s\n", pSetWindowCompositionAttribute ? "found" : "not found");
+                }
+            /* On Windows 7 and Windows Vista, use DwmEnableBlurBehindWindow() */
+            else if ((osvi.dwMajorVersion == 6) && (osvi.dwMinorVersion <= 1))
+                {
+                    useDwmEnableBlurBehindWindow = TRUE;
+                }
+            /* On Windows 8 and Windows 8.1, using the alpha channel on those
+               seems near impossible, so we don't do anything. */
+
+            doOnce = FALSE;
+        }
+
+    /* alpha-channel use is wanted */
+    if (!g_fCompositeAlpha || !pScreenInfo->fCompositeWM)
+        return;
+
+    /* Image has alpha ... */
+    if (pWin->drawable.depth != 32)
+        return;
+
+    /* ... and we can do something useful with it? */
+    if (pSetWindowCompositionAttribute)
+        {
+            WINBOOL rc;
+            /* Use the (undocumented) SetWindowCompositionAttribute, if
+               available, to turn on alpha channel use on Windows 10. */
+            ACCENTPOLICY policy = { ACCENT_ENABLE_BLURBEHIND, 0, 0, 0 } ;
+            WINCOMPATTR data = { WCA_ACCENT_POLICY,  &policy, sizeof(ACCENTPOLICY) };
+
+            /* This turns on DWM looking at the alpha-channel of this window */
+            winDebug("enabling alpha for XID %08x hWnd %p, using SetWindowCompositionAttribute()\n", (unsigned int)pWin->drawable.id, hWnd);
+            rc = pSetWindowCompositionAttribute(hWnd, &data);
+            if (!rc)
+                ErrorF("SetWindowCompositionAttribute failed: %d\n", (int)GetLastError());
+        }
+    else if (useDwmEnableBlurBehindWindow)
+        {
+            HRESULT rc;
+            WINBOOL enabled;
+
+            rc = DwmIsCompositionEnabled(&enabled);
+            if ((rc == S_OK) && enabled)
+                {
+                    /* Use DwmEnableBlurBehindWindow, to turn on alpha channel
+                       use on Windows Vista and Windows 7 */
+                    DWM_BLURBEHIND bbh;
+                    bbh.dwFlags = DWM_BB_ENABLE | DWM_BB_BLURREGION | DWM_BB_TRANSITIONONMAXIMIZED;
+                    bbh.fEnable = TRUE;
+                    bbh.hRgnBlur = NULL;
+                    bbh.fTransitionOnMaximized = TRUE; /* What does this do ??? */
+
+                    /* This terribly-named function actually controls if DWM
+                       looks at the alpha channel of this window */
+                    winDebug("enabling alpha for XID %08x hWnd %p, using DwmEnableBlurBehindWindow()\n", (unsigned int)pWin->drawable.id, hWnd);
+                    rc = DwmEnableBlurBehindWindow(hWnd, &bbh);
+                    if (rc != S_OK)
+                        ErrorF("DwmEnableBlurBehindWindow failed: %x, %d\n", (int)rc, (int)GetLastError());
+                }
+        }
+}
+
 void DispatchQueuedEvents(Bool);
 #define UPDATETIMER 1234
 
@@ -389,6 +502,20 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     winDebugWin32Message("winTopLevelWindowProc", hwnd, message, wParam,
                          lParam);
 
+    /*
+       If this is WM_CREATE, set up the Windows window properties which point to
+       X window information, before we populate local convenience variables...
+     */
+    if (message == WM_CREATE) {
+        SetProp(hwnd,
+                WIN_WINDOW_PROP,
+                (HANDLE) ((LPCREATESTRUCT) lParam)->lpCreateParams);
+        SetProp(hwnd,
+                WIN_WID_PROP,
+                (HANDLE) (INT_PTR)winGetWindowID(((LPCREATESTRUCT) lParam)->
+                                                 lpCreateParams));
+    }
+
     /* Check if the Windows window property for our X window pointer is valid */
     if ((pWin = GetProp(hwnd, WIN_WINDOW_PROP)) != NULL) {
         /* Our X window pointer is valid */
@@ -417,7 +544,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         wmMsg.iWidth = pDraw->width;
         wmMsg.iHeight = pDraw->height;
     }
-    else if (message!=WM_CREATE)
+    else
     {
         winDebug("Warning: message 0x%x received when WIN_WINDOW_PROP NULL\n",message);
     }
@@ -425,18 +552,6 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     /* Branch on message type */
     switch (message) {
     case WM_CREATE:
-
-        /* */
-        SetProp(hwnd,
-                WIN_WINDOW_PROP,
-                (HANDLE) ((LPCREATESTRUCT) lParam)->lpCreateParams);
-
-        /* */
-        SetProp(hwnd,
-                WIN_WID_PROP,
-                (HANDLE) (INT_PTR) winGetWindowID(((LPCREATESTRUCT) lParam)->
-                                                  lpCreateParams));
-
         /*
          * Make X windows' Z orders sync with Windows windows because
          * there can be AlwaysOnTop windows overlapped on the window
@@ -455,6 +570,8 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
 
         SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)VCXSRV_SIGNATURE);
+
+        CheckForAlpha(hwnd, pWin, s_pScreenInfo);
 
         return 0;
 
@@ -1110,6 +1227,12 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         }
         break;
 
+
+    case WM_DWMCOMPOSITIONCHANGED:
+        /* This message is only sent on Vista/W7 */
+        CheckForAlpha(hwnd, pWin, s_pScreenInfo);
+
+        return 0;
     default:
         break;
     }

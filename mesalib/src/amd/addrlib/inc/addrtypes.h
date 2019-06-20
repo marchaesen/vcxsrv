@@ -1,5 +1,5 @@
 /*
- * Copyright © 2007-2018 Advanced Micro Devices, Inc.
+ * Copyright © 2007-2019 Advanced Micro Devices, Inc.
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -567,23 +567,23 @@ typedef enum _AddrHtileBlockSize
 */
 typedef enum _AddrPipeCfg
 {
-    ADDR_PIPECFG_INVALID         = 0,
-    ADDR_PIPECFG_P2              = 1, /// 2 pipes,
-    ADDR_PIPECFG_P4_8x16         = 5, /// 4 pipes,
-    ADDR_PIPECFG_P4_16x16        = 6,
-    ADDR_PIPECFG_P4_16x32        = 7,
-    ADDR_PIPECFG_P4_32x32        = 8,
-    ADDR_PIPECFG_P8_16x16_8x16   = 9, /// 8 pipes
-    ADDR_PIPECFG_P8_16x32_8x16   = 10,
-    ADDR_PIPECFG_P8_32x32_8x16   = 11,
-    ADDR_PIPECFG_P8_16x32_16x16  = 12,
-    ADDR_PIPECFG_P8_32x32_16x16  = 13,
-    ADDR_PIPECFG_P8_32x32_16x32  = 14,
-    ADDR_PIPECFG_P8_32x64_32x32  = 15,
-    ADDR_PIPECFG_P16_32x32_8x16  = 17, /// 16 pipes
-    ADDR_PIPECFG_P16_32x32_16x16 = 18,
-    ADDR_PIPECFG_RESERVED        = 19, /// reserved for internal use
-    ADDR_PIPECFG_MAX             = 20,
+    ADDR_PIPECFG_INVALID              = 0,
+    ADDR_PIPECFG_P2                   = 1, /// 2 pipes,
+    ADDR_PIPECFG_P4_8x16              = 5, /// 4 pipes,
+    ADDR_PIPECFG_P4_16x16             = 6,
+    ADDR_PIPECFG_P4_16x32             = 7,
+    ADDR_PIPECFG_P4_32x32             = 8,
+    ADDR_PIPECFG_P8_16x16_8x16        = 9, /// 8 pipes
+    ADDR_PIPECFG_P8_16x32_8x16        = 10,
+    ADDR_PIPECFG_P8_32x32_8x16        = 11,
+    ADDR_PIPECFG_P8_16x32_16x16       = 12,
+    ADDR_PIPECFG_P8_32x32_16x16       = 13,
+    ADDR_PIPECFG_P8_32x32_16x32       = 14,
+    ADDR_PIPECFG_P8_32x64_32x32       = 15,
+    ADDR_PIPECFG_P16_32x32_8x16       = 17, /// 16 pipes
+    ADDR_PIPECFG_P16_32x32_16x16      = 18,
+    ADDR_PIPECFG_UNUSED               = 19,
+    ADDR_PIPECFG_MAX                  = 20,
 } AddrPipeCfg;
 
 /**

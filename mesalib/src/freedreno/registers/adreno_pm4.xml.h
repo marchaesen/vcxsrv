@@ -12,11 +12,11 @@ The rules-ng-ng source files this header was generated from are:
 - /home/robclark/src/envytools/rnndb/freedreno_copyright.xml  (   1572 bytes, from 2018-07-03 19:37:13)
 - /home/robclark/src/envytools/rnndb/adreno/a2xx.xml          (  79608 bytes, from 2019-01-21 14:36:17)
 - /home/robclark/src/envytools/rnndb/adreno/adreno_common.xml (  14239 bytes, from 2018-12-05 15:25:53)
-- /home/robclark/src/envytools/rnndb/adreno/adreno_pm4.xml    (  43155 bytes, from 2019-05-03 18:24:29)
+- /home/robclark/src/envytools/rnndb/adreno/adreno_pm4.xml    (  43561 bytes, from 2019-06-10 13:39:33)
 - /home/robclark/src/envytools/rnndb/adreno/a3xx.xml          (  83840 bytes, from 2018-07-03 19:37:13)
 - /home/robclark/src/envytools/rnndb/adreno/a4xx.xml          ( 112086 bytes, from 2018-07-03 19:37:13)
-- /home/robclark/src/envytools/rnndb/adreno/a5xx.xml          ( 147240 bytes, from 2019-05-03 18:24:29)
-- /home/robclark/src/envytools/rnndb/adreno/a6xx.xml          ( 148461 bytes, from 2019-05-03 18:24:37)
+- /home/robclark/src/envytools/rnndb/adreno/a5xx.xml          ( 147548 bytes, from 2019-06-10 13:39:33)
+- /home/robclark/src/envytools/rnndb/adreno/a6xx.xml          ( 152605 bytes, from 2019-06-11 15:59:35)
 - /home/robclark/src/envytools/rnndb/adreno/a6xx_gmu.xml      (  10431 bytes, from 2018-09-14 13:03:07)
 - /home/robclark/src/envytools/rnndb/adreno/ocmem.xml         (   1773 bytes, from 2018-07-03 19:37:13)
 
@@ -99,6 +99,7 @@ enum pc_di_primtype {
 	DI_PT_LINESTRIP_ADJ = 11,
 	DI_PT_TRI_ADJ = 12,
 	DI_PT_TRISTRIP_ADJ = 13,
+	DI_PT_PATCHES = 41,
 };
 
 enum pc_di_src_sel {
@@ -292,6 +293,7 @@ enum a4xx_state_block {
 enum a4xx_state_type {
 	ST4_SHADER = 0,
 	ST4_CONSTANTS = 1,
+	ST4_UBO = 2,
 };
 
 enum a4xx_state_src {
@@ -319,6 +321,7 @@ enum a6xx_state_block {
 enum a6xx_state_type {
 	ST6_SHADER = 0,
 	ST6_CONSTANTS = 1,
+	ST6_UBO = 2,
 	ST6_IBO = 3,
 };
 
@@ -331,6 +334,12 @@ enum a4xx_index_size {
 	INDEX4_SIZE_8_BIT = 0,
 	INDEX4_SIZE_16_BIT = 1,
 	INDEX4_SIZE_32_BIT = 2,
+};
+
+enum a6xx_patch_type {
+	TESS_QUADS = 0,
+	TESS_TRIANGLES = 1,
+	TESS_ISOLINES = 2,
 };
 
 enum cp_cond_function {
@@ -657,12 +666,13 @@ static inline uint32_t CP_DRAW_INDX_OFFSET_0_INDEX_SIZE(enum a4xx_index_size val
 {
 	return ((val) << CP_DRAW_INDX_OFFSET_0_INDEX_SIZE__SHIFT) & CP_DRAW_INDX_OFFSET_0_INDEX_SIZE__MASK;
 }
-#define CP_DRAW_INDX_OFFSET_0_TESS_MODE__MASK			0x01f00000
-#define CP_DRAW_INDX_OFFSET_0_TESS_MODE__SHIFT			20
-static inline uint32_t CP_DRAW_INDX_OFFSET_0_TESS_MODE(uint32_t val)
+#define CP_DRAW_INDX_OFFSET_0_PATCH_TYPE__MASK			0x00003000
+#define CP_DRAW_INDX_OFFSET_0_PATCH_TYPE__SHIFT			12
+static inline uint32_t CP_DRAW_INDX_OFFSET_0_PATCH_TYPE(enum a6xx_patch_type val)
 {
-	return ((val) << CP_DRAW_INDX_OFFSET_0_TESS_MODE__SHIFT) & CP_DRAW_INDX_OFFSET_0_TESS_MODE__MASK;
+	return ((val) << CP_DRAW_INDX_OFFSET_0_PATCH_TYPE__SHIFT) & CP_DRAW_INDX_OFFSET_0_PATCH_TYPE__MASK;
 }
+#define CP_DRAW_INDX_OFFSET_0_TESS_ENABLE			0x00020000
 
 #define REG_CP_DRAW_INDX_OFFSET_1				0x00000001
 #define CP_DRAW_INDX_OFFSET_1_NUM_INSTANCES__MASK		0xffffffff
@@ -723,12 +733,13 @@ static inline uint32_t A4XX_CP_DRAW_INDIRECT_0_INDEX_SIZE(enum a4xx_index_size v
 {
 	return ((val) << A4XX_CP_DRAW_INDIRECT_0_INDEX_SIZE__SHIFT) & A4XX_CP_DRAW_INDIRECT_0_INDEX_SIZE__MASK;
 }
-#define A4XX_CP_DRAW_INDIRECT_0_TESS_MODE__MASK			0x01f00000
-#define A4XX_CP_DRAW_INDIRECT_0_TESS_MODE__SHIFT		20
-static inline uint32_t A4XX_CP_DRAW_INDIRECT_0_TESS_MODE(uint32_t val)
+#define A4XX_CP_DRAW_INDIRECT_0_PATCH_TYPE__MASK		0x00003000
+#define A4XX_CP_DRAW_INDIRECT_0_PATCH_TYPE__SHIFT		12
+static inline uint32_t A4XX_CP_DRAW_INDIRECT_0_PATCH_TYPE(enum a6xx_patch_type val)
 {
-	return ((val) << A4XX_CP_DRAW_INDIRECT_0_TESS_MODE__SHIFT) & A4XX_CP_DRAW_INDIRECT_0_TESS_MODE__MASK;
+	return ((val) << A4XX_CP_DRAW_INDIRECT_0_PATCH_TYPE__SHIFT) & A4XX_CP_DRAW_INDIRECT_0_PATCH_TYPE__MASK;
 }
+#define A4XX_CP_DRAW_INDIRECT_0_TESS_ENABLE			0x00020000
 
 #define REG_A4XX_CP_DRAW_INDIRECT_1				0x00000001
 #define A4XX_CP_DRAW_INDIRECT_1_INDIRECT__MASK			0xffffffff
@@ -772,12 +783,13 @@ static inline uint32_t A4XX_CP_DRAW_INDX_INDIRECT_0_INDEX_SIZE(enum a4xx_index_s
 {
 	return ((val) << A4XX_CP_DRAW_INDX_INDIRECT_0_INDEX_SIZE__SHIFT) & A4XX_CP_DRAW_INDX_INDIRECT_0_INDEX_SIZE__MASK;
 }
-#define A4XX_CP_DRAW_INDX_INDIRECT_0_TESS_MODE__MASK		0x01f00000
-#define A4XX_CP_DRAW_INDX_INDIRECT_0_TESS_MODE__SHIFT		20
-static inline uint32_t A4XX_CP_DRAW_INDX_INDIRECT_0_TESS_MODE(uint32_t val)
+#define A4XX_CP_DRAW_INDX_INDIRECT_0_PATCH_TYPE__MASK		0x00003000
+#define A4XX_CP_DRAW_INDX_INDIRECT_0_PATCH_TYPE__SHIFT		12
+static inline uint32_t A4XX_CP_DRAW_INDX_INDIRECT_0_PATCH_TYPE(enum a6xx_patch_type val)
 {
-	return ((val) << A4XX_CP_DRAW_INDX_INDIRECT_0_TESS_MODE__SHIFT) & A4XX_CP_DRAW_INDX_INDIRECT_0_TESS_MODE__MASK;
+	return ((val) << A4XX_CP_DRAW_INDX_INDIRECT_0_PATCH_TYPE__SHIFT) & A4XX_CP_DRAW_INDX_INDIRECT_0_PATCH_TYPE__MASK;
 }
+#define A4XX_CP_DRAW_INDX_INDIRECT_0_TESS_ENABLE		0x00020000
 
 
 #define REG_A4XX_CP_DRAW_INDX_INDIRECT_1			0x00000001

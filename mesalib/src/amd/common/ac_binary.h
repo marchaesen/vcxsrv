@@ -24,6 +24,7 @@
 #ifndef AC_BINARY_H
 #define AC_BINARY_H
 
+#include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -74,11 +75,13 @@ struct ac_shader_config {
 	unsigned num_vgprs;
 	unsigned spilled_sgprs;
 	unsigned spilled_vgprs;
-	unsigned lds_size;
+	unsigned lds_size; /* in HW allocation units; i.e 256 bytes on SI, 512 bytes on CI+ */
 	unsigned spi_ps_input_ena;
 	unsigned spi_ps_input_addr;
 	unsigned float_mode;
 	unsigned scratch_bytes_per_wave;
+	unsigned rsrc1;
+	unsigned rsrc2;
 };
 
 /*
@@ -96,6 +99,9 @@ const unsigned char *ac_shader_binary_config_start(
 	const struct ac_shader_binary *binary,
 	uint64_t symbol_offset);
 
+void ac_parse_shader_binary_config(const char *data, size_t nbytes,
+				   bool really_needs_scratch,
+				   struct ac_shader_config *conf);
 void ac_shader_binary_read_config(struct ac_shader_binary *binary,
 				  struct ac_shader_config *conf,
 				  unsigned symbol_offset,

@@ -29,6 +29,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 #include "ralloc.h"
 
 #ifdef __cplusplus
@@ -77,37 +78,40 @@ util_dynarray_clear(struct util_dynarray *buf)
 
 #define DYN_ARRAY_INITIAL_SIZE 64
 
-static inline void *
+MUST_CHECK static inline void *
 util_dynarray_ensure_cap(struct util_dynarray *buf, unsigned newcap)
 {
    if (newcap > buf->capacity) {
-      if (buf->capacity == 0)
-         buf->capacity = DYN_ARRAY_INITIAL_SIZE;
-
-      while (newcap > buf->capacity)
-         buf->capacity *= 2;
+      unsigned capacity = MAX3(DYN_ARRAY_INITIAL_SIZE, buf->capacity * 2, newcap);
+      void *data;
 
       if (buf->mem_ctx) {
-         buf->data = reralloc_size(buf->mem_ctx, buf->data, buf->capacity);
+         data = reralloc_size(buf->mem_ctx, buf->data, capacity);
       } else {
-         buf->data = realloc(buf->data, buf->capacity);
+         data = realloc(buf->data, capacity);
       }
+      if (!data)
+         return 0;
+
+      buf->data = data;
+      buf->capacity = capacity;
    }
 
    return (void *)((char *)buf->data + buf->size);
 }
 
-static inline void *
-util_dynarray_grow_cap(struct util_dynarray *buf, int diff)
-{
-   return util_dynarray_ensure_cap(buf, buf->size + diff);
-}
-
 /* use util_dynarray_trim to reduce the allocated storage */
-static inline void *
-util_dynarray_resize(struct util_dynarray *buf, unsigned newsize)
+MUST_CHECK static inline void *
+util_dynarray_resize_bytes(struct util_dynarray *buf, unsigned nelts, size_t eltsize)
 {
+   if (unlikely(nelts > UINT_MAX / eltsize))
+      return 0;
+
+   unsigned newsize = nelts * eltsize;
    void *p = util_dynarray_ensure_cap(buf, newsize);
+   if (!p)
+      return 0;
+
    buf->size = newsize;
 
    return p;
@@ -118,14 +122,27 @@ util_dynarray_clone(struct util_dynarray *buf, void *mem_ctx,
                     struct util_dynarray *from_buf)
 {
    util_dynarray_init(buf, mem_ctx);
-   util_dynarray_resize(buf, from_buf->size);
-   memcpy(buf->data, from_buf->data, from_buf->size);
+   if (util_dynarray_resize_bytes(buf, from_buf->size, 1))
+      memcpy(buf->data, from_buf->data, from_buf->size);
 }
 
-static inline void *
-util_dynarray_grow(struct util_dynarray *buf, int diff)
+MUST_CHECK static inline void *
+util_dynarray_grow_bytes(struct util_dynarray *buf, unsigned ngrow, size_t eltsize)
 {
-   return util_dynarray_resize(buf, buf->size + diff);
+   unsigned growbytes = ngrow * eltsize;
+
+   if (unlikely(ngrow > (UINT_MAX / eltsize) ||
+                growbytes > UINT_MAX - buf->size))
+      return 0;
+
+   unsigned newsize = buf->size + growbytes;
+   void *p = util_dynarray_ensure_cap(buf, newsize);
+   if (!p)
+      return 0;
+
+   buf->size = newsize;
+
+   return p;
 }
 
 static inline void
@@ -151,7 +168,10 @@ util_dynarray_trim(struct util_dynarray *buf)
    }
 }
 
-#define util_dynarray_append(buf, type, v) do {type __v = (v); memcpy(util_dynarray_grow((buf), sizeof(type)), &__v, sizeof(type));} while(0)
+#define util_dynarray_append(buf, type, v) do {type __v = (v); memcpy(util_dynarray_grow_bytes((buf), 1, sizeof(type)), &__v, sizeof(type));} while(0)
+/* Returns a pointer to the space of the first new element (in case of growth) or NULL on failure. */
+#define util_dynarray_resize(buf, type, nelts) util_dynarray_resize_bytes(buf, (nelts), sizeof(type))
+#define util_dynarray_grow(buf, type, ngrow) util_dynarray_grow_bytes(buf, (ngrow), sizeof(type))
 #define util_dynarray_top_ptr(buf, type) (type*)((char*)(buf)->data + (buf)->size - sizeof(type))
 #define util_dynarray_top(buf, type) *util_dynarray_top_ptr(buf, type)
 #define util_dynarray_pop_ptr(buf, type) (type*)((char*)(buf)->data + ((buf)->size -= sizeof(type)))

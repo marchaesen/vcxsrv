@@ -99,6 +99,7 @@ struct radeon_info {
 	uint32_t                    drm_major; /* version */
 	uint32_t                    drm_minor;
 	uint32_t                    drm_patchlevel;
+	bool                        is_amdgpu;
 	bool                        has_userptr;
 	bool                        has_syncobj;
 	bool                        has_syncobj_wait_for_submit;

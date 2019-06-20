@@ -776,6 +776,7 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
       [NIR_INTRINSIC_ALIGN_OFFSET] = "align_offset",
       [NIR_INTRINSIC_DESC_TYPE] = "desc_type",
       [NIR_INTRINSIC_TYPE] = "type",
+      [NIR_INTRINSIC_SWIZZLE_MASK] = "swizzle_mask",
    };
    for (unsigned idx = 1; idx < NIR_INTRINSIC_NUM_INDEX_FLAGS; idx++) {
       if (!info->index_map[idx])
@@ -827,6 +828,19 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
             fprintf(fp, " type=%s%u", name, size);
          else
             fprintf(fp, " type=%s", name);
+      } else if (idx == NIR_INTRINSIC_SWIZZLE_MASK) {
+         fprintf(fp, " swizzle_mask=");
+         unsigned mask = nir_intrinsic_swizzle_mask(instr);
+         if (instr->intrinsic == nir_intrinsic_quad_swizzle_amd) {
+            for (unsigned i = 0; i < 4; i++)
+               fprintf(fp, "%d", (mask >> (i * 2) & 3));
+         } else if (instr->intrinsic == nir_intrinsic_masked_swizzle_amd) {
+            fprintf(fp, "((id & %d) | %d) ^ %d", mask & 0x1F,
+                                                (mask >> 5) & 0x1F,
+                                                (mask >> 10) & 0x1F);
+         } else {
+            fprintf(fp, "%d", mask);
+         }
       } else {
          unsigned off = info->index_map[idx] - 1;
          assert(index_name[idx]);  /* forgot to update index_name table? */

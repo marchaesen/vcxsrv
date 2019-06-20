@@ -144,6 +144,8 @@ struct ac_compiler_passes *ac_create_llvm_passes(LLVMTargetMachineRef tm);
 void ac_destroy_llvm_passes(struct ac_compiler_passes *p);
 bool ac_compile_module_to_binary(struct ac_compiler_passes *p, LLVMModuleRef module,
 				 struct ac_shader_binary *binary);
+bool ac_compile_module_to_elf(struct ac_compiler_passes *p, LLVMModuleRef module,
+			      char **pelf_buffer, size_t *pelf_size);
 void ac_llvm_add_barrier_noop_pass(LLVMPassManagerRef passmgr);
 void ac_enable_global_isel(LLVMTargetMachineRef tm);
 

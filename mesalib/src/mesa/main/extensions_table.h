@@ -213,6 +213,7 @@ EXT(EXT_blend_func_separate                 , EXT_blend_func_separate           
 EXT(EXT_blend_minmax                        , EXT_blend_minmax                       , GLL,  x , ES1, ES2, 1995)
 EXT(EXT_blend_subtract                      , dummy_true                             , GLL,  x ,  x ,  x , 1995)
 EXT(EXT_buffer_storage                      , ARB_buffer_storage                     ,  x ,  x ,  x ,  31, 2015)
+EXT(EXT_clip_control                        , ARB_clip_control                       ,  x ,  x ,  x , ES2, 2017)
 EXT(EXT_clip_cull_distance                  , ARB_cull_distance                      ,  x ,  x ,  x ,  30, 2016)
 EXT(EXT_color_buffer_float                  , dummy_true                             ,  x ,  x ,  x ,  30, 2013)
 EXT(EXT_compiled_vertex_array               , dummy_true                             , GLL,  x ,  x ,  x , 1996)

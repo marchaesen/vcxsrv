@@ -73,6 +73,11 @@ radv_meta_save(struct radv_meta_saved_state *state,
 					   1 << VK_DYNAMIC_STATE_SCISSOR;
 	}
 
+	if (state->flags & RADV_META_SAVE_SAMPLE_LOCATIONS) {
+		typed_memcpy(&state->sample_location,
+			     &cmd_buffer->state.dynamic.sample_location, 1);
+	}
+
 	if (state->flags & RADV_META_SAVE_COMPUTE_PIPELINE) {
 		assert(!(state->flags & RADV_META_SAVE_GRAPHICS_PIPELINE));
 
@@ -129,6 +134,13 @@ radv_meta_restore(const struct radv_meta_saved_state *state,
 
 		cmd_buffer->state.dirty |= RADV_CMD_DIRTY_DYNAMIC_VIEWPORT |
 					   RADV_CMD_DIRTY_DYNAMIC_SCISSOR;
+	}
+
+	if (state->flags & RADV_META_SAVE_SAMPLE_LOCATIONS) {
+		typed_memcpy(&cmd_buffer->state.dynamic.sample_location.locations,
+			     &state->sample_location.locations, 1);
+
+		cmd_buffer->state.dirty |= RADV_CMD_DIRTY_DYNAMIC_SAMPLE_LOCATIONS;
 	}
 
 	if (state->flags & RADV_META_SAVE_COMPUTE_PIPELINE) {

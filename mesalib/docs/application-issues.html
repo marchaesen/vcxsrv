@@ -48,16 +48,16 @@ start-up because of an extension string buffer-overflow problem.
 
 <p>
 The problem is a modern OpenGL driver will return a very long string
-for the glGetString(GL_EXTENSIONS) query and if the application
+for the <code>glGetString(GL_EXTENSIONS)</code> query and if the application
 naively copies the string into a fixed-size buffer it can overflow the
 buffer and crash the application.
 </p>
 
 <p>
-The work-around is to set the MESA_EXTENSION_MAX_YEAR environment variable
-to the approximate release year of the game.
-This will cause the glGetString(GL_EXTENSIONS) query to only report extensions
-older than the given year.
+The work-around is to set the <code>MESA_EXTENSION_MAX_YEAR</code>
+environment variable to the approximate release year of the game.
+This will cause the <code>glGetString(GL_EXTENSIONS)</code> query to only report
+extensions older than the given year.
 </p>
 
 <p>

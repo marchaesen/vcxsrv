@@ -35,9 +35,7 @@
 
 <h3>1.1 General</h3>
 
-<p>
-Build system.
-</p>
+<h4>Build system</h4>
 
 <ul>
 <li><a href="https://mesonbuild.com">meson</a> is required when building on *nix platforms.
@@ -51,6 +49,7 @@ is used when when building ARC.
 </ul>
 
 
+<h4>Compiler</h4>
 <p>
 The following compilers are known to work, if you know of others or you're
 willing to maintain support for other compiler get in touch.
@@ -63,9 +62,8 @@ willing to maintain support for other compiler get in touch.
 </ul>
 
 
+<h4>Third party/extra tools.</h4>
 <p>
-Third party/extra tools.
-<br>
 <strong>Note</strong>: These should not be required, when building from a release tarball. If
 you think you've spotted a bug let developers know by filing a
 <a href="bugs.html">bug report</a>.
@@ -81,14 +79,14 @@ When building with meson 3.5 or newer is required.
 Python Mako module is required. Version 0.8.0 or later should work.
 </li>
 <li>lex / yacc - for building the Mesa IR and GLSL compiler.
-<div>
+<p>
 On Linux systems, flex and bison versions 2.5.35 and 2.4.1, respectively,
 (or later) should work.
 On Windows with MinGW, install flex and bison with:
 <pre>mingw-get install msys-flex msys-bison</pre>
 For MSVC on Windows, install
 <a href="http://winflexbison.sourceforge.net/">Win flex-bison</a>.
-</div>
+</p>
 </ul>
 <p><strong>Note</strong>: Some versions can be buggy (eg. flex 2.6.2) so do try others if things fail.</p>
 
@@ -214,9 +212,8 @@ lrwxrwxrwx    1 brian    users          23 Mar 26 07:53 libOSMesa.so.6 -&gt; lib
 </pre>
 
 <p>
-<b>libGL</b> is the main OpenGL library (i.e. Mesa).
-<br>
-<b>libOSMesa</b> is the OSMesa (Off-Screen) interface library.
+<b>libGL</b> is the main OpenGL library (i.e. Mesa), while <b>libOSMesa</b>
+is the OSMesa (Off-Screen) interface library.
 </p>
 
 <p>
@@ -253,8 +250,6 @@ For example, compiling and linking a GLUT application can be done with:
 <pre>
    gcc `pkg-config --cflags --libs glut` mydemo.c -o mydemo
 </pre>
-
-<br>
 
 </div>
 </body>

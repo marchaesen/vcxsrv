@@ -71,6 +71,7 @@ _XimLocalFilter(Display *d, Window w, XEvent *ev, XPointer client_data)
 		keysym = XK_braille_blank | ic->private.local.brl_committing;
 		ev->type = KeyPress;
 		braille = True;
+		ic->private.local.brl_committing = 0;
 	    } else {
 	        return(True);
 	    }

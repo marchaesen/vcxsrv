@@ -508,6 +508,10 @@ radv_cmd_buffer_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer)
 	struct radv_framebuffer *fb = cmd_buffer->state.framebuffer;
 	const struct radv_subpass *subpass = cmd_buffer->state.subpass;
 	struct radv_subpass_barrier barrier;
+	uint32_t layer_count = fb->layers;
+
+	if (subpass->view_mask)
+		layer_count = util_last_bit(subpass->view_mask);
 
 	/* Resolves happen before the end-of-subpass barriers get executed, so
 	 * we have to make the attachment shader-readable.
@@ -531,14 +535,14 @@ radv_cmd_buffer_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer)
 			.srcSubresource = (VkImageSubresourceLayers) {
 				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 				.mipLevel = src_iview->base_mip,
-				.baseArrayLayer = 0,
-				.layerCount = src_iview->image->info.array_size
+				.baseArrayLayer = src_iview->base_layer,
+				.layerCount = layer_count,
 			},
 			.dstSubresource = (VkImageSubresourceLayers) {
 				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 				.mipLevel = dst_iview->base_mip,
-				.baseArrayLayer = 0,
-				.layerCount = dst_iview->image->info.array_size
+				.baseArrayLayer = dst_iview->base_layer,
+				.layerCount = layer_count,
 			},
 			.srcOffset = (VkOffset3D){ 0, 0, 0 },
 			.dstOffset = (VkOffset3D){ 0, 0, 0 },

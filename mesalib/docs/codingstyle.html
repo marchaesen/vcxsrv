@@ -48,19 +48,19 @@ For example:
    }
 </pre>
 
-<li>Put a space before/after operators.  For example, <tt>a = b + c;</tt>
-and not <tt>a=b+c;</tt>
+<li>Put a space before/after operators.  For example, <code>a = b + c;</code>
+and not <code>a=b+c;</code>
 
 <li>This GNU indent command generally does the right thing for formatting:
 <pre>
    indent -br -i3 -npcs --no-tabs infile.c -o outfile.c
 </pre>
 
-<li>Use comments wherever you think it would be helpful for other developers.
+<li>
+<p>Use comments wherever you think it would be helpful for other developers.
 Several specific cases and style examples follow.  Note that we roughly
-follow <a href="https://www.stack.nl/~dimitri/doxygen/">Doxygen</a> conventions.
-<br>
-<br>
+follow <a href="http://www.doxygen.nl">Doxygen</a> conventions.
+</p>
 Single-line comments:
 <pre>
    /* null-out pointer to prevent dangling reference below */
@@ -120,19 +120,21 @@ the opening brace goes on the next line by itself (see above.)
    _mesa_foo_bar()  - an internal non-static Mesa function
 </pre>
 
-<li>Constants, macros and enum names are ALL_UPPERCASE, with _ between
-words.
-<li>Mesa usually uses camel case for local variables (Ex: "localVarname")
-while gallium typically uses underscores (Ex: "local_var_name").
+<li>Constants, macros and enum names are <code>ALL_UPPERCASE</code>, with _
+between words.
+<li>Mesa usually uses camel case for local variables (Ex:
+<code>localVarname</code>) while gallium typically uses underscores (Ex:
+<code>local_var_name</code>).
 <li>Global variables are almost never used because Mesa should be thread-safe.
 
 <li>Booleans.  Places that are not directly visible to the GL API
-should prefer the use of <tt>bool</tt>, <tt>true</tt>, and
-<tt>false</tt> over <tt>GLboolean</tt>, <tt>GL_TRUE</tt>, and
-<tt>GL_FALSE</tt>.  In C code, this may mean that
-<tt>#include &lt;stdbool.h&gt;</tt> needs to be added.  The
-<tt>try_emit_</tt>* methods in src/mesa/program/ir_to_mesa.cpp and
-src/mesa/state_tracker/st_glsl_to_tgsi.cpp can serve as examples.
+should prefer the use of <code>bool</code>, <code>true</code>, and
+<code>false</code> over <code>GLboolean</code>, <code>GL_TRUE</code>, and
+<code>GL_FALSE</code>.  In C code, this may mean that
+<code>#include &lt;stdbool.h&gt;</code> needs to be added.  The
+<code>try_emit_*</code> methods in <code>src/mesa/program/ir_to_mesa.cpp</code>
+and <code>src/mesa/state_tracker/st_glsl_to_tgsi.cpp</code> can serve as
+examples.
 
 </ul>
 

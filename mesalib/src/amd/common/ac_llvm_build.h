@@ -282,6 +282,7 @@ ac_build_buffer_store_format(struct ac_llvm_context *ctx,
 			     LLVMValueRef voffset,
 			     unsigned num_channels,
 			     bool glc,
+			     bool slc,
 			     bool writeonly_memory);
 
 LLVMValueRef

@@ -605,6 +605,10 @@ struct _mesa_glsl_parse_state {
    /** Have we found a return statement in this function? */
    bool found_return;
 
+   /** Have we found the interlock builtins in this function? */
+   bool found_begin_interlock;
+   bool found_end_interlock;
+
    /** Was there an error during compilation? */
    bool error;
 

@@ -39,13 +39,13 @@
 #include "nir_builder.h"
 #include "nir_format_convert.h"
 
-static void
+static bool
 project_src(nir_builder *b, nir_tex_instr *tex)
 {
    /* Find the projector in the srcs list, if present. */
    int proj_index = nir_tex_instr_src_index(tex, nir_tex_src_projector);
    if (proj_index < 0)
-      return;
+      return false;
 
    b->cursor = nir_before_instr(&tex->instr);
 
@@ -100,6 +100,7 @@ project_src(nir_builder *b, nir_tex_instr *tex)
    }
 
    nir_tex_instr_remove_src(tex, proj_index);
+   return true;
 }
 
 static nir_ssa_def *
@@ -265,6 +266,11 @@ lower_offset(nir_builder *b, nir_tex_instr *tex)
 static void
 lower_rect(nir_builder *b, nir_tex_instr *tex)
 {
+   /* Set the sampler_dim to 2D here so that get_texture_size picks up the
+    * right dimensionality.
+    */
+   tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
+
    nir_ssa_def *txs = get_texture_size(b, tex);
    nir_ssa_def *scale = nir_frcp(b, txs);
 
@@ -279,8 +285,6 @@ lower_rect(nir_builder *b, nir_tex_instr *tex)
                             &tex->src[i].src,
                             nir_src_for_ssa(nir_fmul(b, coords, scale)));
    }
-
-   tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
 }
 
 static void
@@ -979,6 +983,47 @@ lower_tg4_offsets(nir_builder *b, nir_tex_instr *tex)
 }
 
 static bool
+nir_lower_txs_lod(nir_builder *b, nir_tex_instr *tex)
+{
+   int lod_idx = nir_tex_instr_src_index(tex, nir_tex_src_lod);
+   if (lod_idx < 0 ||
+       (nir_src_is_const(tex->src[lod_idx].src) &&
+        nir_src_as_int(tex->src[lod_idx].src) == 0))
+      return false;
+
+   unsigned dest_size = nir_tex_instr_dest_size(tex);
+
+   b->cursor = nir_before_instr(&tex->instr);
+   nir_ssa_def *lod = nir_ssa_for_src(b, tex->src[lod_idx].src, 1);
+
+   /* Replace the non-0-LOD in the initial TXS operation by a 0-LOD. */
+   nir_instr_rewrite_src(&tex->instr, &tex->src[lod_idx].src,
+                         nir_src_for_ssa(nir_imm_int(b, 0)));
+
+   /* TXS(LOD) = max(TXS(0) >> LOD, 1) */
+   b->cursor = nir_after_instr(&tex->instr);
+   nir_ssa_def *minified = nir_imax(b, nir_ushr(b, &tex->dest.ssa, lod),
+                                    nir_imm_int(b, 1));
+
+   /* Make sure the component encoding the array size (if any) is not
+    * minified.
+    */
+   if (tex->is_array) {
+      nir_ssa_def *comp[3];
+
+      for (unsigned i = 0; i < dest_size - 1; i++)
+         comp[i] = nir_channel(b, minified, i);
+
+      comp[dest_size - 1] = nir_channel(b, &tex->dest.ssa, dest_size - 1);
+      minified = nir_vec(b, comp, dest_size);
+   }
+
+   nir_ssa_def_rewrite_uses_after(&tex->dest.ssa, nir_src_for_ssa(minified),
+                                  minified->parent_instr);
+   return true;
+}
+
+static bool
 nir_lower_tex_block(nir_block *block, nir_builder *b,
                     const nir_lower_tex_options *options)
 {
@@ -1005,8 +1050,7 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
        * as clamping happens *after* projection:
        */
       if (lower_txp || sat_mask) {
-         project_src(b, tex);
-         progress = true;
+         progress |= project_src(b, tex);
       }
 
       if ((tex->op == nir_texop_txf && options->lower_txf_offset) ||
@@ -1129,6 +1173,11 @@ nir_lower_tex_block(nir_block *block, nir_builder *b,
          if (tex->op == nir_texop_tex && options->lower_tex_without_implicit_lod)
             tex->op = nir_texop_txl;
          progress = true;
+         continue;
+      }
+
+      if (options->lower_txs_lod && tex->op == nir_texop_txs) {
+         progress |= nir_lower_txs_lod(b, tex);
          continue;
       }
 

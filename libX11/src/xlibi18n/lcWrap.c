@@ -328,7 +328,7 @@ _XCloseLC(
     for (prev = &lcd_list; (cur = *prev); prev = &cur->next) {
 	if (cur->lcd == lcd) {
 	    if (--cur->ref_count < 1) {
-		(*lcd->methods->close)(lcd);
+		_XlcDestroyLC(lcd);
 		*prev = cur->next;
 		Xfree(cur);
 	    }

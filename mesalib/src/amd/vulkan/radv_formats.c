@@ -547,7 +547,7 @@ static bool radv_is_storage_image_format_supported(struct radv_physical_device *
 	}
 }
 
-static bool radv_is_buffer_format_supported(VkFormat format, bool *scaled)
+bool radv_is_buffer_format_supported(VkFormat format, bool *scaled)
 {
 	const struct vk_format_description *desc = vk_format_description(format);
 	unsigned data_format, num_format;
@@ -559,7 +559,8 @@ static bool radv_is_buffer_format_supported(VkFormat format, bool *scaled)
 	num_format = radv_translate_buffer_numformat(desc,
 						     vk_format_get_first_non_void_channel(format));
 
-	*scaled = (num_format == V_008F0C_BUF_NUM_FORMAT_SSCALED) || (num_format == V_008F0C_BUF_NUM_FORMAT_USCALED);
+	if (scaled)
+		*scaled = (num_format == V_008F0C_BUF_NUM_FORMAT_SSCALED) || (num_format == V_008F0C_BUF_NUM_FORMAT_USCALED);
 	return data_format != V_008F0C_BUF_DATA_FORMAT_INVALID &&
 		num_format != ~0;
 }
@@ -772,6 +773,10 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 	default:
 		break;
 	}
+
+	/* addrlib does not support linear compressed textures. */
+	if (vk_format_is_compressed(format))
+		linear = 0;
 
 	out_properties->linearTilingFeatures = linear;
 	out_properties->optimalTilingFeatures = tiled;

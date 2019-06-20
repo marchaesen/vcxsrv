@@ -62,7 +62,7 @@ TODO: Solaris.
 
 TODO: *BSD.
 
-Windows-dependent code assumes at least NT 5.1.
+Windows-dependent code assumes at least NT 6.0.
 
 OSX support is generally limited to the most recent version.  Currently
 that means 10.5.

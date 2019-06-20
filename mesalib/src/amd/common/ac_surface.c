@@ -552,9 +552,9 @@ static int gfx6_surface_settings(ADDR_HANDLE addrlib,
 	return 0;
 }
 
-void ac_compute_cmask(const struct radeon_info *info,
-		      const struct ac_surf_config *config,
-		      struct radeon_surf *surf)
+static void ac_compute_cmask(const struct radeon_info *info,
+			     const struct ac_surf_config *config,
+			     struct radeon_surf *surf)
 {
 	unsigned pipe_interleave_bytes = info->pipe_interleave_bytes;
 	unsigned num_pipes = info->num_tile_pipes;

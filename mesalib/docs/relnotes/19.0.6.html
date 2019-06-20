@@ -1,0 +1,153 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 19.0.6 Release Notes / May 21, 2019</h1>
+
+<p>
+Mesa 19.0.6 is a bug fix release which fixes bugs found since the 19.0.5 release.
+</p>
+<p>
+Mesa 19.0.6 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+
+
+<h2>SHA256 checksums</h2>
+<pre>
+SHA256: ac8e9ea388ec5c69f5a690190edf8ede602afdbaeea62d49e108057737430ac7  mesa-19.0.6.tar.gz
+SHA256: 2db2f2fcaa4048b16e066fad76b8a93944f7d06d329972b0f5fd5ce692ce3d24  mesa-19.0.6.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+
+<p>N/A</p>
+
+<h2>Bug fixes</h2>
+
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=110721">Bug 110721</a> - graphics corruption on steam client with mesa 19.1.0 rc3 on polaris</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=110761">Bug 110761</a> - Huge problems between Mesa and Electron engine apps</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=110784">Bug 110784</a> - [regression][bisected] Reverting 'expose 0 shader binary formats for compat profiles for Qt' causes get_program_binary failures on Iris</li>
+
+</ul>
+
+<h2>Changes</h2>
+
+
+<p>Alok Hota (2):</p>
+<ul>
+  <li>gallium/swr: Param defaults for unhandled PIPE_CAPs</li>
+  <li>gallium/aux: add PIPE_CAP_MAX_VARYINGS to u_screen</li>
+</ul>
+
+<p>Bas Nieuwenhuizen (1):</p>
+<ul>
+  <li>nir: Actually propagate progress in nir_opt_move_load_ubo.</li>
+</ul>
+
+<p>Chenglei Ren (1):</p>
+<ul>
+  <li>anv/android: fix missing dependencies issue during parallel build</li>
+</ul>
+
+<p>Christian Gmeiner (1):</p>
+<ul>
+  <li>etnaviv: use the correct uniform dirty bits</li>
+</ul>
+
+<p>Dave Airlie (1):</p>
+<ul>
+  <li>Revert "mesa: unreference current winsys buffers when unbinding winsys buffers"</li>
+</ul>
+
+<p>Deepak Rawat (1):</p>
+<ul>
+  <li>winsys/drm: Fix out of scope variable usage</li>
+</ul>
+
+<p>Dylan Baker (6):</p>
+<ul>
+  <li>docs: Add Sha256 sums for 19.0.5</li>
+  <li>cherry-ignore: Add a commit that was manually backported</li>
+  <li>cherry-ignore: add another 19.1 only patch</li>
+  <li>cherry-ignore: add another 19.1 only patch</li>
+  <li>gallium: wrap u_screen in extern "C" for c++</li>
+  <li>VERSION: bump to 19.0.6</li>
+</ul>
+
+<p>Emil Velikov (1):</p>
+<ul>
+  <li>egl/dri: flesh out and use dri2_create_drawable()</li>
+</ul>
+
+<p>Jan Zielinski (1):</p>
+<ul>
+  <li>swr/rast: fix 32-bit compilation on Linux</li>
+</ul>
+
+<p>Lionel Landwerlin (1):</p>
+<ul>
+  <li>vulkan: fix build dependency issue with generated files</li>
+</ul>
+
+<p>Marek Olšák (2):</p>
+<ul>
+  <li>u_blitter: don't fail mipmap generation for depth formats containing stencil</li>
+  <li>ac: fix a typo in ac_build_wg_scan_bottom</li>
+</ul>
+
+<p>Philipp Zabel (1):</p>
+<ul>
+  <li>etnaviv: fill missing offset in etna_resource_get_handle</li>
+</ul>
+
+<p>Rob Clark (3):</p>
+<ul>
+  <li>freedreno/ir3: dynamic UBO indexing vs 64b pointers</li>
+  <li>freedreno/ir3: set more barrier bits</li>
+  <li>freedreno/a6xx: fix GPU crash on small render targets</li>
+</ul>
+
+<p>Sagar Ghuge (1):</p>
+<ul>
+  <li>intel/compiler: Fix assertions in brw_alu3</li>
+</ul>
+
+<p>Samuel Pitoiset (2):</p>
+<ul>
+  <li>radv: allocate more space in the CS when emitting events</li>
+  <li>radv: do not use gfx fast depth clears for layered depth/stencil images</li>
+</ul>
+
+<p>Timothy Arceri (2):</p>
+<ul>
+  <li>Revert "st/mesa: expose 0 shader binary formats for compat profiles for Qt"</li>
+  <li>st/glsl: make sure to propagate initialisers to driver storage</li>
+</ul>
+
+
+</div>
+</body>
+</html>

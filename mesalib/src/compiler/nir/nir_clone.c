@@ -769,3 +769,42 @@ nir_shader_clone(void *mem_ctx, const nir_shader *s)
 
    return ns;
 }
+
+/** Overwrites dst and replaces its contents with src
+ *
+ * Everything ralloc parented to dst and src itself (but not its children)
+ * will be freed.
+ *
+ * This should only be used by test code which needs to swap out shaders with
+ * a cloned or deserialized version.
+ */
+void
+nir_shader_replace(nir_shader *dst, nir_shader *src)
+{
+   /* Delete all of dest's ralloc children */
+   void *dead_ctx = ralloc_context(NULL);
+   ralloc_adopt(dead_ctx, dst);
+   ralloc_free(dead_ctx);
+
+   /* Re-parent all of src's ralloc children to dst */
+   ralloc_adopt(dst, src);
+
+   memcpy(dst, src, sizeof(*dst));
+
+   /* We have to move all the linked lists over separately because we need the
+    * pointers in the list elements to point to the lists in dst and not src.
+    */
+   exec_list_move_nodes_to(&src->uniforms,      &dst->uniforms);
+   exec_list_move_nodes_to(&src->inputs,        &dst->inputs);
+   exec_list_move_nodes_to(&src->outputs,       &dst->outputs);
+   exec_list_move_nodes_to(&src->shared,        &dst->shared);
+   exec_list_move_nodes_to(&src->globals,       &dst->globals);
+   exec_list_move_nodes_to(&src->system_values, &dst->system_values);
+
+   /* Now move the functions over.  This takes a tiny bit more work */
+   exec_list_move_nodes_to(&src->functions, &dst->functions);
+   nir_foreach_function(function, dst)
+      function->shader = dst;
+
+   ralloc_free(src);
+}

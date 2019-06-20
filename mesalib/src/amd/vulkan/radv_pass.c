@@ -64,6 +64,22 @@ radv_render_pass_compile(struct radv_render_pass *pass)
 {
 	for (uint32_t i = 0; i < pass->subpass_count; i++) {
 		struct radv_subpass *subpass = &pass->subpasses[i];
+
+		for (uint32_t j = 0; j < subpass->attachment_count; j++) {
+			struct radv_subpass_attachment *subpass_att =
+				&subpass->attachments[j];
+			if (subpass_att->attachment == VK_ATTACHMENT_UNUSED)
+				continue;
+
+			struct radv_render_pass_attachment *pass_att =
+				&pass->attachments[subpass_att->attachment];
+
+			pass_att->first_subpass_idx = UINT32_MAX;
+		}
+	}
+
+	for (uint32_t i = 0; i < pass->subpass_count; i++) {
+		struct radv_subpass *subpass = &pass->subpasses[i];
 		uint32_t color_sample_count = 1, depth_sample_count = 1;
 
 		/* We don't allow depth_stencil_attachment to be non-NULL and
@@ -84,6 +100,8 @@ radv_render_pass_compile(struct radv_render_pass *pass)
 			struct radv_render_pass_attachment *pass_att =
 				&pass->attachments[subpass_att->attachment];
 
+			if (i < pass_att->first_subpass_idx)
+				pass_att->first_subpass_idx = i;
 			pass_att->last_subpass_idx = i;
 		}
 

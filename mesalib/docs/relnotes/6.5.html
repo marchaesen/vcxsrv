@@ -39,33 +39,36 @@ ac1d585483617db0c91e5c15cb5ec3a3  MesaGLUT-6.5.tar.gz
 <h2>New Features</h2>
 <ul>
 <li>OpenGL Shading language support
-<br>
+<p>
    This includes the GL_ARB_shader_objects, GL_ARB_shading_language_100,
    GL_ARB_vertex_shader and GL_ARB_fragment_shader extensions.  Most of
    the work was done by Michal Krol.
    There's probably a fair number of bugs since this is a pretty large,
    complicated body of code.
-<br>
+</p>
+<p>
    The OpenGL 2.0 interface to these features will be implemented in a
    future version of Mesa,
+</p>
 
 <li>GL_EXT_timer_query
-<br>
+<p>
    Used to measure the time of OpenGL operations at high precision.
    Only supported in the software/Xlib driver at this time.
-
+</p>
 <li>GL_EXT_packed_depth_stencil
-<br>
+<p>
    Defines a new GL_DEPTH_STENCIL_EXT pixel format.
-
+</p>
 <li>GL_EXT_framebuffer_blit
-<br>
+<p>
    A simplified glCopyPixels-like feature for copying pixel rectangles.
-
+</p>
 <li>GL_ARB_half_float_pixel
-<br>
+<p>
    Adds a new half-precision floating point format for image transfers,
    such as for glDrawPixels, glReadPixels, glTexImage, etc.
+</p>
 </ul>
 
 <h2>Changes</h2>

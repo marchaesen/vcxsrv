@@ -1,5 +1,5 @@
 /*
- * Copyright © 2007-2018 Advanced Micro Devices, Inc.
+ * Copyright © 2007-2019 Advanced Micro Devices, Inc.
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -1603,8 +1603,9 @@ VOID SiLib::HwlComputeXmaskCoordFromAddr(
             {
                 macroOffset |= (pipebit1<<1);
             }
-            if((pTileInfo->pipeConfig == ADDR_PIPECFG_P16_32x32_8x16) ||
-               (pTileInfo->pipeConfig == ADDR_PIPECFG_P16_32x32_16x16))
+            if ((pTileInfo->pipeConfig == ADDR_PIPECFG_P16_32x32_8x16) ||
+                (pTileInfo->pipeConfig == ADDR_PIPECFG_P16_32x32_16x16)
+               )
             {
                 macroOffset |= (pipebit3<<1);
             }

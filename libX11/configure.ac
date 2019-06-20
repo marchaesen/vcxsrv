@@ -1,7 +1,7 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libX11], [1.6.7],
+AC_INIT([libX11], [1.6.8],
         [https://gitlab.freedesktop.org/xorg/lib/libx11/issues], [libX11])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([src/config.h include/X11/XlibConf.h])
@@ -18,6 +18,8 @@ AM_INIT_AUTOMAKE([foreign dist-bzip2])
 
 # Initialize libtool
 AC_PROG_LIBTOOL
+
+AC_SYS_LARGEFILE
 
 # Require xorg-macros minimum of 1.15 for fop minimum version
 m4_ifndef([XORG_MACROS_VERSION],
@@ -64,6 +66,14 @@ if test x"$LDFLAGS_FOR_BUILD" = x; then
 	fi
 fi
 AC_SUBST(LDFLAGS_FOR_BUILD)
+
+if test x"$EXEEXT_FOR_BUILD" = x; then
+	if test x"$cross_compiling" = xno; then
+		EXEEXT_FOR_BUILD=${EXEEXT}
+	fi
+	# If cross-compiling and not provided, assume EXEEXT_FOR_BUILD is empty
+fi
+AC_SUBST([EXEEXT_FOR_BUILD])
 
 # Checks for pkg-config packages
 

@@ -2081,7 +2081,7 @@ if test "x$XWIN" = xyes; then
 	AC_DEFINE_UNQUOTED(__VENDORDWEBSUPPORT__, ["$VENDOR_WEB"], [Vendor web address for support])
 	AC_CHECK_TOOL(WINDRES, windres)
 
-	PKG_CHECK_MODULES([XWINMODULES],[x11 xdmcp xau xfixes x11-xcb xcb-aux xcb-image xcb-ewmh xcb-icccm])
+	PKG_CHECK_MODULES([XWINMODULES],[x11 xau xdmcp xfixes x11-xcb xcb-aux xcb-composite xcb-image xcb-ewmh xcb-icccm])
 
 	if test "x$WINDOWSDRI" = xauto; then
 		PKG_CHECK_EXISTS([windowsdriproto], [WINDOWSDRI=yes], [WINDOWSDRI=no])

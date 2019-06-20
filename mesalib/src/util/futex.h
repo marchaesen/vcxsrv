@@ -69,15 +69,15 @@ static inline int futex_wake(uint32_t *addr, int count)
 static inline int futex_wait(uint32_t *addr, int32_t value, struct timespec *timeout)
 {
    void *uaddr = NULL, *uaddr2 = NULL;
+   struct _umtx_time tmo = {
+      ._flags = UMTX_ABSTIME,
+      ._clockid = CLOCK_MONOTONIC
+   };
 
    assert(value == (int)(uint32_t)value); /* Check that bits weren't discarded */
 
    if (timeout != NULL) {
-      const struct _umtx_time tmo = {
-         ._timeout = *timeout,
-         ._flags = UMTX_ABSTIME,
-         ._clockid = CLOCK_MONOTONIC
-      };
+      tmo._timeout = *timeout;
       uaddr = (void *)(uintptr_t)sizeof(tmo);
       uaddr2 = (void *)&tmo;
    }

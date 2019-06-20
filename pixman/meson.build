@@ -36,6 +36,7 @@ add_project_arguments(
     '-Wdeclaration-after-statement',
     '-fno-strict-aliasing',
     '-fvisibility=hidden',
+    '-Wundef',
   ]),
   language : ['c']
 )
@@ -407,8 +408,12 @@ foreach h : ['sys/mman.h', 'fenv.h', 'unistd.h']
   endif
 endforeach
 
+# gcc on Windows only warns that __declspec(thread) isn't supported,
+# passing -Werror=attributes makes it fail.
 if (host_machine.system() == 'windows' and
-    cc.compiles('int __declspec(thread) foo;', name : 'TLS via __declspec(thread)'))
+    cc.compiles('int __declspec(thread) foo;',
+                args : cc.get_supported_arguments(['-Werror=attributes']),
+                name : 'TLS via __declspec(thread)'))
   config.set('TLS', '__declspec(thread)')
 elif cc.compiles('int __thread foo;', name : 'TLS via __thread')
   config.set('TLS', '__thread')
@@ -444,6 +449,8 @@ endif
 if host_machine.endian() == 'big'
   config.set('WORDS_BIGENDIAN', 1)
 endif
+
+config.set('SIZEOF_LONG', cc.sizeof('long'))
 
 # Required to make pixman-private.h
 config.set('PACKAGE', 'foo')

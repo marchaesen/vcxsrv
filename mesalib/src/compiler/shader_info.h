@@ -45,7 +45,6 @@ struct spirv_supported_capabilities {
    bool fragment_shader_sample_interlock;
    bool fragment_shader_pixel_interlock;
    bool geometry_streams;
-   bool gcn_shader;
    bool image_ms_array;
    bool image_read_without_format;
    bool image_write_without_format;
@@ -72,9 +71,11 @@ struct spirv_supported_capabilities {
    bool subgroup_vote;
    bool tessellation;
    bool transform_feedback;
-   bool trinary_minmax;
    bool variable_pointers;
    bool float16;
+   bool amd_gcn_shader;
+   bool amd_shader_ballot;
+   bool amd_trinary_minmax;
 };
 
 typedef struct shader_info {

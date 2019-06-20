@@ -36,7 +36,9 @@
 <p>
 This document uses the convention X.Y.Z for the release number with X.Y being
 the stable branch name.
-<br>
+</p>
+
+<p>
 Mesa provides feature and bugfix releases. Former use zero as patch version (Z),
 while the latter have a non-zero one.
 </p>
@@ -57,7 +59,9 @@ For example:
 <p>
 Releases should happen on Wednesdays. Delays can occur although those
 should be kept to a minimum.
-<br>
+</p>
+
+<p>
 See our <a href="release-calendar.html" target="_parent">calendar</a>
 for information about how the release schedule is planned, and the
 date and other details for individual releases.
@@ -85,10 +89,14 @@ approximately 48 hours before the actual release.
 
 <p>
 Note: There is one or two releases overlap when changing branches. For example:
-<br>
+</p>
+
+<p>
 The final release from the 12.0 series Mesa 12.0.5 will be out around the same
 time (or shortly after) 13.0.1 is out.
-<br>
+</p>
+
+<p>
 This also involves that, as a final release may be delayed due to the
 need of additional candidates to solve some blocking regression(s),
 the release manager might have to update
@@ -114,7 +122,7 @@ a casual search for terms such as regression, fix, broken and similar.
 
 <p>
 Maintainer is also responsible for testing in various possible permutations of
-the autoconf and scons build.
+the meson and scons build.
 </p>
 
 <h2>Cherry-picking and build/check testing</h2>
@@ -167,9 +175,8 @@ good contact point.
 
 <p>
 <strong>Note:</strong> If a patch in the current queue needs any additional
-fix(es), then they should be squashed together.
-<br>
-The commit messages and the <code>cherry picked from</code> tags must be preserved.
+fix(es), then they should be squashed together. The commit messages and the
+&quot;<code>cherry picked from</code>&quot;-tags must be preserved.
 </p>
 
 <p>
@@ -252,9 +259,8 @@ stabilisation and bugfixing.
 
 <p>
 Note: Before doing a branch ensure that basic build and <code>meson test</code>
-testing is done and there are little to-no issues.
-<br>
-Ideally all of those should be tackled already.
+testing is done and there are little to-no issues. Ideally all of those should
+be tackled already.
 </p>
 
 <p>
@@ -300,7 +306,8 @@ It comes shortly after outstanding patches in the respective branch are pushed.
 Developers can check, in brief, what's the status of their patches. They,
 alongside very early testers, are strongly encouraged to test the branch and
 report any regressions.
-<br>
+</p>
+<p>
 It is followed by a brief period (normally 24 or 48 hours) before the actual
 release is made.
 </p>
@@ -330,10 +337,8 @@ Barring reported regressions or objections from developers.
 <p>
 Patch does not fit the
 <a href="submittingpatches.html#criteria" target="_parent">criteria</a> and
-is followed by a brief information.
-<br>
-The release maintainer is human so if you believe you've spotted a mistake do
-let them know.
+is followed by a brief information. The release maintainer is human so if you
+believe you've spotted a mistake do let them know.
 </p>
 
 <h2>Format/template</h2>
@@ -623,10 +628,8 @@ website. Manually check that it is updated 5-10 minutes after the final <code>gi
 
 <p>
 Parse through the bugreports as listed in the docs/relnotes/X.Y.Z.html
-document.
-<br>
-If there's outstanding action, close the bug referencing the commit ID which
-addresses the bug and mention the Mesa version that has the fix.
+document. If there's outstanding action, close the bug referencing the commit
+ID which addresses the bug and mention the Mesa version that has the fix.
 </p>
 
 <p>

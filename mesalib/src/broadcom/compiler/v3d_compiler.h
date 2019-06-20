@@ -513,6 +513,7 @@ struct v3d_compile {
 
         bool uses_center_w;
         bool writes_z;
+        bool uses_implicit_point_line_varyings;
 
         /* State for whether we're executing on each channel currently.  0 if
          * yes, otherwise a block number + 1 that the channel jumped to.
@@ -689,6 +690,7 @@ struct v3d_fs_prog_data {
         bool writes_z;
         bool disable_ez;
         bool uses_center_w;
+        bool uses_implicit_point_line_varyings;
 };
 
 struct v3d_compute_prog_data {

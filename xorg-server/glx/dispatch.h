@@ -63,7 +63,7 @@
     } while(0)
 
 /* total number of offsets below */
-#define _gloffset_COUNT 1421
+#define _gloffset_COUNT 1440
 
 #define _gloffset_NewList 0
 #define _gloffset_EndList 1
@@ -473,7 +473,7 @@
 #define _gloffset_MultiTexCoord4iv 405
 #define _gloffset_MultiTexCoord4s 406
 #define _gloffset_MultiTexCoord4sv 407
-#define driDispatchRemapTable_size 1013
+#define driDispatchRemapTable_size 1032
 SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 
 #define CompressedTexImage1D_remap_index 0
@@ -1244,251 +1244,270 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define MultiDrawElementsEXT_remap_index 765
 #define FogCoordfEXT_remap_index 766
 #define FogCoordfvEXT_remap_index 767
-#define MaxShaderCompilerThreadsKHR_remap_index 768
-#define ResizeBuffersMESA_remap_index 769
-#define WindowPos4dMESA_remap_index 770
-#define WindowPos4dvMESA_remap_index 771
-#define WindowPos4fMESA_remap_index 772
-#define WindowPos4fvMESA_remap_index 773
-#define WindowPos4iMESA_remap_index 774
-#define WindowPos4ivMESA_remap_index 775
-#define WindowPos4sMESA_remap_index 776
-#define WindowPos4svMESA_remap_index 777
-#define MultiModeDrawArraysIBM_remap_index 778
-#define MultiModeDrawElementsIBM_remap_index 779
-#define AreProgramsResidentNV_remap_index 780
-#define ExecuteProgramNV_remap_index 781
-#define GetProgramParameterdvNV_remap_index 782
-#define GetProgramParameterfvNV_remap_index 783
-#define GetProgramStringNV_remap_index 784
-#define GetProgramivNV_remap_index 785
-#define GetTrackMatrixivNV_remap_index 786
-#define GetVertexAttribdvNV_remap_index 787
-#define GetVertexAttribfvNV_remap_index 788
-#define GetVertexAttribivNV_remap_index 789
-#define LoadProgramNV_remap_index 790
-#define ProgramParameters4dvNV_remap_index 791
-#define ProgramParameters4fvNV_remap_index 792
-#define RequestResidentProgramsNV_remap_index 793
-#define TrackMatrixNV_remap_index 794
-#define VertexAttrib1dNV_remap_index 795
-#define VertexAttrib1dvNV_remap_index 796
-#define VertexAttrib1fNV_remap_index 797
-#define VertexAttrib1fvNV_remap_index 798
-#define VertexAttrib1sNV_remap_index 799
-#define VertexAttrib1svNV_remap_index 800
-#define VertexAttrib2dNV_remap_index 801
-#define VertexAttrib2dvNV_remap_index 802
-#define VertexAttrib2fNV_remap_index 803
-#define VertexAttrib2fvNV_remap_index 804
-#define VertexAttrib2sNV_remap_index 805
-#define VertexAttrib2svNV_remap_index 806
-#define VertexAttrib3dNV_remap_index 807
-#define VertexAttrib3dvNV_remap_index 808
-#define VertexAttrib3fNV_remap_index 809
-#define VertexAttrib3fvNV_remap_index 810
-#define VertexAttrib3sNV_remap_index 811
-#define VertexAttrib3svNV_remap_index 812
-#define VertexAttrib4dNV_remap_index 813
-#define VertexAttrib4dvNV_remap_index 814
-#define VertexAttrib4fNV_remap_index 815
-#define VertexAttrib4fvNV_remap_index 816
-#define VertexAttrib4sNV_remap_index 817
-#define VertexAttrib4svNV_remap_index 818
-#define VertexAttrib4ubNV_remap_index 819
-#define VertexAttrib4ubvNV_remap_index 820
-#define VertexAttribPointerNV_remap_index 821
-#define VertexAttribs1dvNV_remap_index 822
-#define VertexAttribs1fvNV_remap_index 823
-#define VertexAttribs1svNV_remap_index 824
-#define VertexAttribs2dvNV_remap_index 825
-#define VertexAttribs2fvNV_remap_index 826
-#define VertexAttribs2svNV_remap_index 827
-#define VertexAttribs3dvNV_remap_index 828
-#define VertexAttribs3fvNV_remap_index 829
-#define VertexAttribs3svNV_remap_index 830
-#define VertexAttribs4dvNV_remap_index 831
-#define VertexAttribs4fvNV_remap_index 832
-#define VertexAttribs4svNV_remap_index 833
-#define VertexAttribs4ubvNV_remap_index 834
-#define GetTexBumpParameterfvATI_remap_index 835
-#define GetTexBumpParameterivATI_remap_index 836
-#define TexBumpParameterfvATI_remap_index 837
-#define TexBumpParameterivATI_remap_index 838
-#define AlphaFragmentOp1ATI_remap_index 839
-#define AlphaFragmentOp2ATI_remap_index 840
-#define AlphaFragmentOp3ATI_remap_index 841
-#define BeginFragmentShaderATI_remap_index 842
-#define BindFragmentShaderATI_remap_index 843
-#define ColorFragmentOp1ATI_remap_index 844
-#define ColorFragmentOp2ATI_remap_index 845
-#define ColorFragmentOp3ATI_remap_index 846
-#define DeleteFragmentShaderATI_remap_index 847
-#define EndFragmentShaderATI_remap_index 848
-#define GenFragmentShadersATI_remap_index 849
-#define PassTexCoordATI_remap_index 850
-#define SampleMapATI_remap_index 851
-#define SetFragmentShaderConstantATI_remap_index 852
-#define DepthRangeArrayfvOES_remap_index 853
-#define DepthRangeIndexedfOES_remap_index 854
-#define ActiveStencilFaceEXT_remap_index 855
-#define GetProgramNamedParameterdvNV_remap_index 856
-#define GetProgramNamedParameterfvNV_remap_index 857
-#define ProgramNamedParameter4dNV_remap_index 858
-#define ProgramNamedParameter4dvNV_remap_index 859
-#define ProgramNamedParameter4fNV_remap_index 860
-#define ProgramNamedParameter4fvNV_remap_index 861
-#define PrimitiveRestartNV_remap_index 862
-#define GetTexGenxvOES_remap_index 863
-#define TexGenxOES_remap_index 864
-#define TexGenxvOES_remap_index 865
-#define DepthBoundsEXT_remap_index 866
-#define BindFramebufferEXT_remap_index 867
-#define BindRenderbufferEXT_remap_index 868
-#define StringMarkerGREMEDY_remap_index 869
-#define BufferParameteriAPPLE_remap_index 870
-#define FlushMappedBufferRangeAPPLE_remap_index 871
-#define VertexAttribI1iEXT_remap_index 872
-#define VertexAttribI1uiEXT_remap_index 873
-#define VertexAttribI2iEXT_remap_index 874
-#define VertexAttribI2ivEXT_remap_index 875
-#define VertexAttribI2uiEXT_remap_index 876
-#define VertexAttribI2uivEXT_remap_index 877
-#define VertexAttribI3iEXT_remap_index 878
-#define VertexAttribI3ivEXT_remap_index 879
-#define VertexAttribI3uiEXT_remap_index 880
-#define VertexAttribI3uivEXT_remap_index 881
-#define VertexAttribI4iEXT_remap_index 882
-#define VertexAttribI4ivEXT_remap_index 883
-#define VertexAttribI4uiEXT_remap_index 884
-#define VertexAttribI4uivEXT_remap_index 885
-#define ClearColorIiEXT_remap_index 886
-#define ClearColorIuiEXT_remap_index 887
-#define BindBufferOffsetEXT_remap_index 888
-#define BeginPerfMonitorAMD_remap_index 889
-#define DeletePerfMonitorsAMD_remap_index 890
-#define EndPerfMonitorAMD_remap_index 891
-#define GenPerfMonitorsAMD_remap_index 892
-#define GetPerfMonitorCounterDataAMD_remap_index 893
-#define GetPerfMonitorCounterInfoAMD_remap_index 894
-#define GetPerfMonitorCounterStringAMD_remap_index 895
-#define GetPerfMonitorCountersAMD_remap_index 896
-#define GetPerfMonitorGroupStringAMD_remap_index 897
-#define GetPerfMonitorGroupsAMD_remap_index 898
-#define SelectPerfMonitorCountersAMD_remap_index 899
-#define GetObjectParameterivAPPLE_remap_index 900
-#define ObjectPurgeableAPPLE_remap_index 901
-#define ObjectUnpurgeableAPPLE_remap_index 902
-#define ActiveProgramEXT_remap_index 903
-#define CreateShaderProgramEXT_remap_index 904
-#define UseShaderProgramEXT_remap_index 905
-#define TextureBarrierNV_remap_index 906
-#define VDPAUFiniNV_remap_index 907
-#define VDPAUGetSurfaceivNV_remap_index 908
-#define VDPAUInitNV_remap_index 909
-#define VDPAUIsSurfaceNV_remap_index 910
-#define VDPAUMapSurfacesNV_remap_index 911
-#define VDPAURegisterOutputSurfaceNV_remap_index 912
-#define VDPAURegisterVideoSurfaceNV_remap_index 913
-#define VDPAUSurfaceAccessNV_remap_index 914
-#define VDPAUUnmapSurfacesNV_remap_index 915
-#define VDPAUUnregisterSurfaceNV_remap_index 916
-#define BeginPerfQueryINTEL_remap_index 917
-#define CreatePerfQueryINTEL_remap_index 918
-#define DeletePerfQueryINTEL_remap_index 919
-#define EndPerfQueryINTEL_remap_index 920
-#define GetFirstPerfQueryIdINTEL_remap_index 921
-#define GetNextPerfQueryIdINTEL_remap_index 922
-#define GetPerfCounterInfoINTEL_remap_index 923
-#define GetPerfQueryDataINTEL_remap_index 924
-#define GetPerfQueryIdByNameINTEL_remap_index 925
-#define GetPerfQueryInfoINTEL_remap_index 926
-#define PolygonOffsetClampEXT_remap_index 927
-#define SubpixelPrecisionBiasNV_remap_index 928
-#define ConservativeRasterParameterfNV_remap_index 929
-#define ConservativeRasterParameteriNV_remap_index 930
-#define WindowRectanglesEXT_remap_index 931
-#define BufferStorageMemEXT_remap_index 932
-#define CreateMemoryObjectsEXT_remap_index 933
-#define DeleteMemoryObjectsEXT_remap_index 934
-#define DeleteSemaphoresEXT_remap_index 935
-#define GenSemaphoresEXT_remap_index 936
-#define GetMemoryObjectParameterivEXT_remap_index 937
-#define GetSemaphoreParameterui64vEXT_remap_index 938
-#define GetUnsignedBytei_vEXT_remap_index 939
-#define GetUnsignedBytevEXT_remap_index 940
-#define IsMemoryObjectEXT_remap_index 941
-#define IsSemaphoreEXT_remap_index 942
-#define MemoryObjectParameterivEXT_remap_index 943
-#define NamedBufferStorageMemEXT_remap_index 944
-#define SemaphoreParameterui64vEXT_remap_index 945
-#define SignalSemaphoreEXT_remap_index 946
-#define TexStorageMem1DEXT_remap_index 947
-#define TexStorageMem2DEXT_remap_index 948
-#define TexStorageMem2DMultisampleEXT_remap_index 949
-#define TexStorageMem3DEXT_remap_index 950
-#define TexStorageMem3DMultisampleEXT_remap_index 951
-#define TextureStorageMem1DEXT_remap_index 952
-#define TextureStorageMem2DEXT_remap_index 953
-#define TextureStorageMem2DMultisampleEXT_remap_index 954
-#define TextureStorageMem3DEXT_remap_index 955
-#define TextureStorageMem3DMultisampleEXT_remap_index 956
-#define WaitSemaphoreEXT_remap_index 957
-#define ImportMemoryFdEXT_remap_index 958
-#define ImportSemaphoreFdEXT_remap_index 959
-#define FramebufferFetchBarrierEXT_remap_index 960
-#define NamedRenderbufferStorageMultisampleAdvancedAMD_remap_index 961
-#define RenderbufferStorageMultisampleAdvancedAMD_remap_index 962
-#define StencilFuncSeparateATI_remap_index 963
-#define ProgramEnvParameters4fvEXT_remap_index 964
-#define ProgramLocalParameters4fvEXT_remap_index 965
-#define EGLImageTargetRenderbufferStorageOES_remap_index 966
-#define EGLImageTargetTexture2DOES_remap_index 967
-#define AlphaFuncx_remap_index 968
-#define ClearColorx_remap_index 969
-#define ClearDepthx_remap_index 970
-#define Color4x_remap_index 971
-#define DepthRangex_remap_index 972
-#define Fogx_remap_index 973
-#define Fogxv_remap_index 974
-#define Frustumf_remap_index 975
-#define Frustumx_remap_index 976
-#define LightModelx_remap_index 977
-#define LightModelxv_remap_index 978
-#define Lightx_remap_index 979
-#define Lightxv_remap_index 980
-#define LineWidthx_remap_index 981
-#define LoadMatrixx_remap_index 982
-#define Materialx_remap_index 983
-#define Materialxv_remap_index 984
-#define MultMatrixx_remap_index 985
-#define MultiTexCoord4x_remap_index 986
-#define Normal3x_remap_index 987
-#define Orthof_remap_index 988
-#define Orthox_remap_index 989
-#define PointSizex_remap_index 990
-#define PolygonOffsetx_remap_index 991
-#define Rotatex_remap_index 992
-#define SampleCoveragex_remap_index 993
-#define Scalex_remap_index 994
-#define TexEnvx_remap_index 995
-#define TexEnvxv_remap_index 996
-#define TexParameterx_remap_index 997
-#define Translatex_remap_index 998
-#define ClipPlanef_remap_index 999
-#define ClipPlanex_remap_index 1000
-#define GetClipPlanef_remap_index 1001
-#define GetClipPlanex_remap_index 1002
-#define GetFixedv_remap_index 1003
-#define GetLightxv_remap_index 1004
-#define GetMaterialxv_remap_index 1005
-#define GetTexEnvxv_remap_index 1006
-#define GetTexParameterxv_remap_index 1007
-#define PointParameterx_remap_index 1008
-#define PointParameterxv_remap_index 1009
-#define TexParameterxv_remap_index 1010
-#define BlendBarrier_remap_index 1011
-#define PrimitiveBoundingBox_remap_index 1012
+#define ResizeBuffersMESA_remap_index 768
+#define WindowPos4dMESA_remap_index 769
+#define WindowPos4dvMESA_remap_index 770
+#define WindowPos4fMESA_remap_index 771
+#define WindowPos4fvMESA_remap_index 772
+#define WindowPos4iMESA_remap_index 773
+#define WindowPos4ivMESA_remap_index 774
+#define WindowPos4sMESA_remap_index 775
+#define WindowPos4svMESA_remap_index 776
+#define MultiModeDrawArraysIBM_remap_index 777
+#define MultiModeDrawElementsIBM_remap_index 778
+#define AreProgramsResidentNV_remap_index 779
+#define ExecuteProgramNV_remap_index 780
+#define GetProgramParameterdvNV_remap_index 781
+#define GetProgramParameterfvNV_remap_index 782
+#define GetProgramStringNV_remap_index 783
+#define GetProgramivNV_remap_index 784
+#define GetTrackMatrixivNV_remap_index 785
+#define GetVertexAttribdvNV_remap_index 786
+#define GetVertexAttribfvNV_remap_index 787
+#define GetVertexAttribivNV_remap_index 788
+#define LoadProgramNV_remap_index 789
+#define ProgramParameters4dvNV_remap_index 790
+#define ProgramParameters4fvNV_remap_index 791
+#define RequestResidentProgramsNV_remap_index 792
+#define TrackMatrixNV_remap_index 793
+#define VertexAttrib1dNV_remap_index 794
+#define VertexAttrib1dvNV_remap_index 795
+#define VertexAttrib1fNV_remap_index 796
+#define VertexAttrib1fvNV_remap_index 797
+#define VertexAttrib1sNV_remap_index 798
+#define VertexAttrib1svNV_remap_index 799
+#define VertexAttrib2dNV_remap_index 800
+#define VertexAttrib2dvNV_remap_index 801
+#define VertexAttrib2fNV_remap_index 802
+#define VertexAttrib2fvNV_remap_index 803
+#define VertexAttrib2sNV_remap_index 804
+#define VertexAttrib2svNV_remap_index 805
+#define VertexAttrib3dNV_remap_index 806
+#define VertexAttrib3dvNV_remap_index 807
+#define VertexAttrib3fNV_remap_index 808
+#define VertexAttrib3fvNV_remap_index 809
+#define VertexAttrib3sNV_remap_index 810
+#define VertexAttrib3svNV_remap_index 811
+#define VertexAttrib4dNV_remap_index 812
+#define VertexAttrib4dvNV_remap_index 813
+#define VertexAttrib4fNV_remap_index 814
+#define VertexAttrib4fvNV_remap_index 815
+#define VertexAttrib4sNV_remap_index 816
+#define VertexAttrib4svNV_remap_index 817
+#define VertexAttrib4ubNV_remap_index 818
+#define VertexAttrib4ubvNV_remap_index 819
+#define VertexAttribPointerNV_remap_index 820
+#define VertexAttribs1dvNV_remap_index 821
+#define VertexAttribs1fvNV_remap_index 822
+#define VertexAttribs1svNV_remap_index 823
+#define VertexAttribs2dvNV_remap_index 824
+#define VertexAttribs2fvNV_remap_index 825
+#define VertexAttribs2svNV_remap_index 826
+#define VertexAttribs3dvNV_remap_index 827
+#define VertexAttribs3fvNV_remap_index 828
+#define VertexAttribs3svNV_remap_index 829
+#define VertexAttribs4dvNV_remap_index 830
+#define VertexAttribs4fvNV_remap_index 831
+#define VertexAttribs4svNV_remap_index 832
+#define VertexAttribs4ubvNV_remap_index 833
+#define GetTexBumpParameterfvATI_remap_index 834
+#define GetTexBumpParameterivATI_remap_index 835
+#define TexBumpParameterfvATI_remap_index 836
+#define TexBumpParameterivATI_remap_index 837
+#define AlphaFragmentOp1ATI_remap_index 838
+#define AlphaFragmentOp2ATI_remap_index 839
+#define AlphaFragmentOp3ATI_remap_index 840
+#define BeginFragmentShaderATI_remap_index 841
+#define BindFragmentShaderATI_remap_index 842
+#define ColorFragmentOp1ATI_remap_index 843
+#define ColorFragmentOp2ATI_remap_index 844
+#define ColorFragmentOp3ATI_remap_index 845
+#define DeleteFragmentShaderATI_remap_index 846
+#define EndFragmentShaderATI_remap_index 847
+#define GenFragmentShadersATI_remap_index 848
+#define PassTexCoordATI_remap_index 849
+#define SampleMapATI_remap_index 850
+#define SetFragmentShaderConstantATI_remap_index 851
+#define DepthRangeArrayfvOES_remap_index 852
+#define DepthRangeIndexedfOES_remap_index 853
+#define ActiveStencilFaceEXT_remap_index 854
+#define GetProgramNamedParameterdvNV_remap_index 855
+#define GetProgramNamedParameterfvNV_remap_index 856
+#define ProgramNamedParameter4dNV_remap_index 857
+#define ProgramNamedParameter4dvNV_remap_index 858
+#define ProgramNamedParameter4fNV_remap_index 859
+#define ProgramNamedParameter4fvNV_remap_index 860
+#define PrimitiveRestartNV_remap_index 861
+#define GetTexGenxvOES_remap_index 862
+#define TexGenxOES_remap_index 863
+#define TexGenxvOES_remap_index 864
+#define DepthBoundsEXT_remap_index 865
+#define BindFramebufferEXT_remap_index 866
+#define BindRenderbufferEXT_remap_index 867
+#define StringMarkerGREMEDY_remap_index 868
+#define BufferParameteriAPPLE_remap_index 869
+#define FlushMappedBufferRangeAPPLE_remap_index 870
+#define VertexAttribI1iEXT_remap_index 871
+#define VertexAttribI1uiEXT_remap_index 872
+#define VertexAttribI2iEXT_remap_index 873
+#define VertexAttribI2ivEXT_remap_index 874
+#define VertexAttribI2uiEXT_remap_index 875
+#define VertexAttribI2uivEXT_remap_index 876
+#define VertexAttribI3iEXT_remap_index 877
+#define VertexAttribI3ivEXT_remap_index 878
+#define VertexAttribI3uiEXT_remap_index 879
+#define VertexAttribI3uivEXT_remap_index 880
+#define VertexAttribI4iEXT_remap_index 881
+#define VertexAttribI4ivEXT_remap_index 882
+#define VertexAttribI4uiEXT_remap_index 883
+#define VertexAttribI4uivEXT_remap_index 884
+#define ClearColorIiEXT_remap_index 885
+#define ClearColorIuiEXT_remap_index 886
+#define BindBufferOffsetEXT_remap_index 887
+#define BeginPerfMonitorAMD_remap_index 888
+#define DeletePerfMonitorsAMD_remap_index 889
+#define EndPerfMonitorAMD_remap_index 890
+#define GenPerfMonitorsAMD_remap_index 891
+#define GetPerfMonitorCounterDataAMD_remap_index 892
+#define GetPerfMonitorCounterInfoAMD_remap_index 893
+#define GetPerfMonitorCounterStringAMD_remap_index 894
+#define GetPerfMonitorCountersAMD_remap_index 895
+#define GetPerfMonitorGroupStringAMD_remap_index 896
+#define GetPerfMonitorGroupsAMD_remap_index 897
+#define SelectPerfMonitorCountersAMD_remap_index 898
+#define GetObjectParameterivAPPLE_remap_index 899
+#define ObjectPurgeableAPPLE_remap_index 900
+#define ObjectUnpurgeableAPPLE_remap_index 901
+#define ActiveProgramEXT_remap_index 902
+#define CreateShaderProgramEXT_remap_index 903
+#define UseShaderProgramEXT_remap_index 904
+#define TextureBarrierNV_remap_index 905
+#define VDPAUFiniNV_remap_index 906
+#define VDPAUGetSurfaceivNV_remap_index 907
+#define VDPAUInitNV_remap_index 908
+#define VDPAUIsSurfaceNV_remap_index 909
+#define VDPAUMapSurfacesNV_remap_index 910
+#define VDPAURegisterOutputSurfaceNV_remap_index 911
+#define VDPAURegisterVideoSurfaceNV_remap_index 912
+#define VDPAUSurfaceAccessNV_remap_index 913
+#define VDPAUUnmapSurfacesNV_remap_index 914
+#define VDPAUUnregisterSurfaceNV_remap_index 915
+#define BeginPerfQueryINTEL_remap_index 916
+#define CreatePerfQueryINTEL_remap_index 917
+#define DeletePerfQueryINTEL_remap_index 918
+#define EndPerfQueryINTEL_remap_index 919
+#define GetFirstPerfQueryIdINTEL_remap_index 920
+#define GetNextPerfQueryIdINTEL_remap_index 921
+#define GetPerfCounterInfoINTEL_remap_index 922
+#define GetPerfQueryDataINTEL_remap_index 923
+#define GetPerfQueryIdByNameINTEL_remap_index 924
+#define GetPerfQueryInfoINTEL_remap_index 925
+#define PolygonOffsetClampEXT_remap_index 926
+#define SubpixelPrecisionBiasNV_remap_index 927
+#define ConservativeRasterParameterfNV_remap_index 928
+#define ConservativeRasterParameteriNV_remap_index 929
+#define WindowRectanglesEXT_remap_index 930
+#define BufferStorageMemEXT_remap_index 931
+#define CreateMemoryObjectsEXT_remap_index 932
+#define DeleteMemoryObjectsEXT_remap_index 933
+#define DeleteSemaphoresEXT_remap_index 934
+#define GenSemaphoresEXT_remap_index 935
+#define GetMemoryObjectParameterivEXT_remap_index 936
+#define GetSemaphoreParameterui64vEXT_remap_index 937
+#define GetUnsignedBytei_vEXT_remap_index 938
+#define GetUnsignedBytevEXT_remap_index 939
+#define IsMemoryObjectEXT_remap_index 940
+#define IsSemaphoreEXT_remap_index 941
+#define MemoryObjectParameterivEXT_remap_index 942
+#define NamedBufferStorageMemEXT_remap_index 943
+#define SemaphoreParameterui64vEXT_remap_index 944
+#define SignalSemaphoreEXT_remap_index 945
+#define TexStorageMem1DEXT_remap_index 946
+#define TexStorageMem2DEXT_remap_index 947
+#define TexStorageMem2DMultisampleEXT_remap_index 948
+#define TexStorageMem3DEXT_remap_index 949
+#define TexStorageMem3DMultisampleEXT_remap_index 950
+#define TextureStorageMem1DEXT_remap_index 951
+#define TextureStorageMem2DEXT_remap_index 952
+#define TextureStorageMem2DMultisampleEXT_remap_index 953
+#define TextureStorageMem3DEXT_remap_index 954
+#define TextureStorageMem3DMultisampleEXT_remap_index 955
+#define WaitSemaphoreEXT_remap_index 956
+#define ImportMemoryFdEXT_remap_index 957
+#define ImportSemaphoreFdEXT_remap_index 958
+#define FramebufferFetchBarrierEXT_remap_index 959
+#define NamedRenderbufferStorageMultisampleAdvancedAMD_remap_index 960
+#define RenderbufferStorageMultisampleAdvancedAMD_remap_index 961
+#define StencilFuncSeparateATI_remap_index 962
+#define ProgramEnvParameters4fvEXT_remap_index 963
+#define ProgramLocalParameters4fvEXT_remap_index 964
+#define EGLImageTargetRenderbufferStorageOES_remap_index 965
+#define EGLImageTargetTexture2DOES_remap_index 966
+#define AlphaFuncx_remap_index 967
+#define ClearColorx_remap_index 968
+#define ClearDepthx_remap_index 969
+#define Color4x_remap_index 970
+#define DepthRangex_remap_index 971
+#define Fogx_remap_index 972
+#define Fogxv_remap_index 973
+#define Frustumf_remap_index 974
+#define Frustumx_remap_index 975
+#define LightModelx_remap_index 976
+#define LightModelxv_remap_index 977
+#define Lightx_remap_index 978
+#define Lightxv_remap_index 979
+#define LineWidthx_remap_index 980
+#define LoadMatrixx_remap_index 981
+#define Materialx_remap_index 982
+#define Materialxv_remap_index 983
+#define MultMatrixx_remap_index 984
+#define MultiTexCoord4x_remap_index 985
+#define Normal3x_remap_index 986
+#define Orthof_remap_index 987
+#define Orthox_remap_index 988
+#define PointSizex_remap_index 989
+#define PolygonOffsetx_remap_index 990
+#define Rotatex_remap_index 991
+#define SampleCoveragex_remap_index 992
+#define Scalex_remap_index 993
+#define TexEnvx_remap_index 994
+#define TexEnvxv_remap_index 995
+#define TexParameterx_remap_index 996
+#define Translatex_remap_index 997
+#define ClipPlanef_remap_index 998
+#define ClipPlanex_remap_index 999
+#define GetClipPlanef_remap_index 1000
+#define GetClipPlanex_remap_index 1001
+#define GetFixedv_remap_index 1002
+#define GetLightxv_remap_index 1003
+#define GetMaterialxv_remap_index 1004
+#define GetTexEnvxv_remap_index 1005
+#define GetTexParameterxv_remap_index 1006
+#define PointParameterx_remap_index 1007
+#define PointParameterxv_remap_index 1008
+#define TexParameterxv_remap_index 1009
+#define BlendBarrier_remap_index 1010
+#define PrimitiveBoundingBox_remap_index 1011
+#define MaxShaderCompilerThreadsKHR_remap_index 1012
+#define MatrixLoadfEXT_remap_index 1013
+#define MatrixLoaddEXT_remap_index 1014
+#define MatrixMultfEXT_remap_index 1015
+#define MatrixMultdEXT_remap_index 1016
+#define MatrixLoadIdentityEXT_remap_index 1017
+#define MatrixRotatefEXT_remap_index 1018
+#define MatrixRotatedEXT_remap_index 1019
+#define MatrixScalefEXT_remap_index 1020
+#define MatrixScaledEXT_remap_index 1021
+#define MatrixTranslatefEXT_remap_index 1022
+#define MatrixTranslatedEXT_remap_index 1023
+#define MatrixOrthoEXT_remap_index 1024
+#define MatrixFrustumEXT_remap_index 1025
+#define MatrixPushEXT_remap_index 1026
+#define MatrixPopEXT_remap_index 1027
+#define MatrixLoadTransposefEXT_remap_index 1028
+#define MatrixLoadTransposedEXT_remap_index 1029
+#define MatrixMultTransposefEXT_remap_index 1030
+#define MatrixMultTransposedEXT_remap_index 1031
 
 #define _gloffset_CompressedTexImage1D driDispatchRemapTable[CompressedTexImage1D_remap_index]
 #define _gloffset_CompressedTexImage2D driDispatchRemapTable[CompressedTexImage2D_remap_index]
@@ -2258,7 +2277,6 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define _gloffset_MultiDrawElementsEXT driDispatchRemapTable[MultiDrawElementsEXT_remap_index]
 #define _gloffset_FogCoordfEXT driDispatchRemapTable[FogCoordfEXT_remap_index]
 #define _gloffset_FogCoordfvEXT driDispatchRemapTable[FogCoordfvEXT_remap_index]
-#define _gloffset_MaxShaderCompilerThreadsKHR driDispatchRemapTable[MaxShaderCompilerThreadsKHR_remap_index]
 #define _gloffset_ResizeBuffersMESA driDispatchRemapTable[ResizeBuffersMESA_remap_index]
 #define _gloffset_WindowPos4dMESA driDispatchRemapTable[WindowPos4dMESA_remap_index]
 #define _gloffset_WindowPos4dvMESA driDispatchRemapTable[WindowPos4dvMESA_remap_index]
@@ -2503,6 +2521,26 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define _gloffset_TexParameterxv driDispatchRemapTable[TexParameterxv_remap_index]
 #define _gloffset_BlendBarrier driDispatchRemapTable[BlendBarrier_remap_index]
 #define _gloffset_PrimitiveBoundingBox driDispatchRemapTable[PrimitiveBoundingBox_remap_index]
+#define _gloffset_MaxShaderCompilerThreadsKHR driDispatchRemapTable[MaxShaderCompilerThreadsKHR_remap_index]
+#define _gloffset_MatrixLoadfEXT driDispatchRemapTable[MatrixLoadfEXT_remap_index]
+#define _gloffset_MatrixLoaddEXT driDispatchRemapTable[MatrixLoaddEXT_remap_index]
+#define _gloffset_MatrixMultfEXT driDispatchRemapTable[MatrixMultfEXT_remap_index]
+#define _gloffset_MatrixMultdEXT driDispatchRemapTable[MatrixMultdEXT_remap_index]
+#define _gloffset_MatrixLoadIdentityEXT driDispatchRemapTable[MatrixLoadIdentityEXT_remap_index]
+#define _gloffset_MatrixRotatefEXT driDispatchRemapTable[MatrixRotatefEXT_remap_index]
+#define _gloffset_MatrixRotatedEXT driDispatchRemapTable[MatrixRotatedEXT_remap_index]
+#define _gloffset_MatrixScalefEXT driDispatchRemapTable[MatrixScalefEXT_remap_index]
+#define _gloffset_MatrixScaledEXT driDispatchRemapTable[MatrixScaledEXT_remap_index]
+#define _gloffset_MatrixTranslatefEXT driDispatchRemapTable[MatrixTranslatefEXT_remap_index]
+#define _gloffset_MatrixTranslatedEXT driDispatchRemapTable[MatrixTranslatedEXT_remap_index]
+#define _gloffset_MatrixOrthoEXT driDispatchRemapTable[MatrixOrthoEXT_remap_index]
+#define _gloffset_MatrixFrustumEXT driDispatchRemapTable[MatrixFrustumEXT_remap_index]
+#define _gloffset_MatrixPushEXT driDispatchRemapTable[MatrixPushEXT_remap_index]
+#define _gloffset_MatrixPopEXT driDispatchRemapTable[MatrixPopEXT_remap_index]
+#define _gloffset_MatrixLoadTransposefEXT driDispatchRemapTable[MatrixLoadTransposefEXT_remap_index]
+#define _gloffset_MatrixLoadTransposedEXT driDispatchRemapTable[MatrixLoadTransposedEXT_remap_index]
+#define _gloffset_MatrixMultTransposefEXT driDispatchRemapTable[MatrixMultTransposefEXT_remap_index]
+#define _gloffset_MatrixMultTransposedEXT driDispatchRemapTable[MatrixMultTransposedEXT_remap_index]
 
 typedef void (GLAPIENTRYP _glptr_NewList)(GLuint, GLenum);
 #define CALL_NewList(disp, parameters) \
@@ -15440,17 +15478,6 @@ static INLINE void SET_FogCoordfvEXT(struct _glapi_table *disp, void (GLAPIENTRY
    SET_by_offset(disp, _gloffset_FogCoordfvEXT, fn);
 }
 
-typedef void (GLAPIENTRYP _glptr_MaxShaderCompilerThreadsKHR)(GLuint);
-#define CALL_MaxShaderCompilerThreadsKHR(disp, parameters) \
-    (* GET_MaxShaderCompilerThreadsKHR(disp)) parameters
-static INLINE _glptr_MaxShaderCompilerThreadsKHR GET_MaxShaderCompilerThreadsKHR(struct _glapi_table *disp) {
-   return (_glptr_MaxShaderCompilerThreadsKHR) (GET_by_offset(disp, _gloffset_MaxShaderCompilerThreadsKHR));
-}
-
-static INLINE void SET_MaxShaderCompilerThreadsKHR(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint)) {
-   SET_by_offset(disp, _gloffset_MaxShaderCompilerThreadsKHR, fn);
-}
-
 typedef void (GLAPIENTRYP _glptr_ResizeBuffersMESA)(void);
 #define CALL_ResizeBuffersMESA(disp, parameters) \
     (* GET_ResizeBuffersMESA(disp)) parameters
@@ -18133,6 +18160,226 @@ static INLINE _glptr_PrimitiveBoundingBox GET_PrimitiveBoundingBox(struct _glapi
 
 static INLINE void SET_PrimitiveBoundingBox(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLfloat, GLfloat, GLfloat, GLfloat, GLfloat, GLfloat, GLfloat, GLfloat)) {
    SET_by_offset(disp, _gloffset_PrimitiveBoundingBox, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MaxShaderCompilerThreadsKHR)(GLuint);
+#define CALL_MaxShaderCompilerThreadsKHR(disp, parameters) \
+    (* GET_MaxShaderCompilerThreadsKHR(disp)) parameters
+static INLINE _glptr_MaxShaderCompilerThreadsKHR GET_MaxShaderCompilerThreadsKHR(struct _glapi_table *disp) {
+   return (_glptr_MaxShaderCompilerThreadsKHR) (GET_by_offset(disp, _gloffset_MaxShaderCompilerThreadsKHR));
+}
+
+static INLINE void SET_MaxShaderCompilerThreadsKHR(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint)) {
+   SET_by_offset(disp, _gloffset_MaxShaderCompilerThreadsKHR, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MatrixLoadfEXT)(GLenum, const GLfloat *);
+#define CALL_MatrixLoadfEXT(disp, parameters) \
+    (* GET_MatrixLoadfEXT(disp)) parameters
+static INLINE _glptr_MatrixLoadfEXT GET_MatrixLoadfEXT(struct _glapi_table *disp) {
+   return (_glptr_MatrixLoadfEXT) (GET_by_offset(disp, _gloffset_MatrixLoadfEXT));
+}
+
+static INLINE void SET_MatrixLoadfEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, const GLfloat *)) {
+   SET_by_offset(disp, _gloffset_MatrixLoadfEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MatrixLoaddEXT)(GLenum, const GLdouble *);
+#define CALL_MatrixLoaddEXT(disp, parameters) \
+    (* GET_MatrixLoaddEXT(disp)) parameters
+static INLINE _glptr_MatrixLoaddEXT GET_MatrixLoaddEXT(struct _glapi_table *disp) {
+   return (_glptr_MatrixLoaddEXT) (GET_by_offset(disp, _gloffset_MatrixLoaddEXT));
+}
+
+static INLINE void SET_MatrixLoaddEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, const GLdouble *)) {
+   SET_by_offset(disp, _gloffset_MatrixLoaddEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MatrixMultfEXT)(GLenum, const GLfloat *);
+#define CALL_MatrixMultfEXT(disp, parameters) \
+    (* GET_MatrixMultfEXT(disp)) parameters
+static INLINE _glptr_MatrixMultfEXT GET_MatrixMultfEXT(struct _glapi_table *disp) {
+   return (_glptr_MatrixMultfEXT) (GET_by_offset(disp, _gloffset_MatrixMultfEXT));
+}
+
+static INLINE void SET_MatrixMultfEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, const GLfloat *)) {
+   SET_by_offset(disp, _gloffset_MatrixMultfEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MatrixMultdEXT)(GLenum, const GLdouble *);
+#define CALL_MatrixMultdEXT(disp, parameters) \
+    (* GET_MatrixMultdEXT(disp)) parameters
+static INLINE _glptr_MatrixMultdEXT GET_MatrixMultdEXT(struct _glapi_table *disp) {
+   return (_glptr_MatrixMultdEXT) (GET_by_offset(disp, _gloffset_MatrixMultdEXT));
+}
+
+static INLINE void SET_MatrixMultdEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, const GLdouble *)) {
+   SET_by_offset(disp, _gloffset_MatrixMultdEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MatrixLoadIdentityEXT)(GLenum);
+#define CALL_MatrixLoadIdentityEXT(disp, parameters) \
+    (* GET_MatrixLoadIdentityEXT(disp)) parameters
+static INLINE _glptr_MatrixLoadIdentityEXT GET_MatrixLoadIdentityEXT(struct _glapi_table *disp) {
+   return (_glptr_MatrixLoadIdentityEXT) (GET_by_offset(disp, _gloffset_MatrixLoadIdentityEXT));
+}
+
+static INLINE void SET_MatrixLoadIdentityEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum)) {
+   SET_by_offset(disp, _gloffset_MatrixLoadIdentityEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MatrixRotatefEXT)(GLenum, GLfloat, GLfloat, GLfloat, GLfloat);
+#define CALL_MatrixRotatefEXT(disp, parameters) \
+    (* GET_MatrixRotatefEXT(disp)) parameters
+static INLINE _glptr_MatrixRotatefEXT GET_MatrixRotatefEXT(struct _glapi_table *disp) {
+   return (_glptr_MatrixRotatefEXT) (GET_by_offset(disp, _gloffset_MatrixRotatefEXT));
+}
+
+static INLINE void SET_MatrixRotatefEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLfloat, GLfloat, GLfloat, GLfloat)) {
+   SET_by_offset(disp, _gloffset_MatrixRotatefEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MatrixRotatedEXT)(GLenum, GLdouble, GLdouble, GLdouble, GLdouble);
+#define CALL_MatrixRotatedEXT(disp, parameters) \
+    (* GET_MatrixRotatedEXT(disp)) parameters
+static INLINE _glptr_MatrixRotatedEXT GET_MatrixRotatedEXT(struct _glapi_table *disp) {
+   return (_glptr_MatrixRotatedEXT) (GET_by_offset(disp, _gloffset_MatrixRotatedEXT));
+}
+
+static INLINE void SET_MatrixRotatedEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLdouble, GLdouble, GLdouble, GLdouble)) {
+   SET_by_offset(disp, _gloffset_MatrixRotatedEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MatrixScalefEXT)(GLenum, GLfloat, GLfloat, GLfloat);
+#define CALL_MatrixScalefEXT(disp, parameters) \
+    (* GET_MatrixScalefEXT(disp)) parameters
+static INLINE _glptr_MatrixScalefEXT GET_MatrixScalefEXT(struct _glapi_table *disp) {
+   return (_glptr_MatrixScalefEXT) (GET_by_offset(disp, _gloffset_MatrixScalefEXT));
+}
+
+static INLINE void SET_MatrixScalefEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLfloat, GLfloat, GLfloat)) {
+   SET_by_offset(disp, _gloffset_MatrixScalefEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MatrixScaledEXT)(GLenum, GLdouble, GLdouble, GLdouble);
+#define CALL_MatrixScaledEXT(disp, parameters) \
+    (* GET_MatrixScaledEXT(disp)) parameters
+static INLINE _glptr_MatrixScaledEXT GET_MatrixScaledEXT(struct _glapi_table *disp) {
+   return (_glptr_MatrixScaledEXT) (GET_by_offset(disp, _gloffset_MatrixScaledEXT));
+}
+
+static INLINE void SET_MatrixScaledEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLdouble, GLdouble, GLdouble)) {
+   SET_by_offset(disp, _gloffset_MatrixScaledEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MatrixTranslatefEXT)(GLenum, GLfloat, GLfloat, GLfloat);
+#define CALL_MatrixTranslatefEXT(disp, parameters) \
+    (* GET_MatrixTranslatefEXT(disp)) parameters
+static INLINE _glptr_MatrixTranslatefEXT GET_MatrixTranslatefEXT(struct _glapi_table *disp) {
+   return (_glptr_MatrixTranslatefEXT) (GET_by_offset(disp, _gloffset_MatrixTranslatefEXT));
+}
+
+static INLINE void SET_MatrixTranslatefEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLfloat, GLfloat, GLfloat)) {
+   SET_by_offset(disp, _gloffset_MatrixTranslatefEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MatrixTranslatedEXT)(GLenum, GLdouble, GLdouble, GLdouble);
+#define CALL_MatrixTranslatedEXT(disp, parameters) \
+    (* GET_MatrixTranslatedEXT(disp)) parameters
+static INLINE _glptr_MatrixTranslatedEXT GET_MatrixTranslatedEXT(struct _glapi_table *disp) {
+   return (_glptr_MatrixTranslatedEXT) (GET_by_offset(disp, _gloffset_MatrixTranslatedEXT));
+}
+
+static INLINE void SET_MatrixTranslatedEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLdouble, GLdouble, GLdouble)) {
+   SET_by_offset(disp, _gloffset_MatrixTranslatedEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MatrixOrthoEXT)(GLenum, GLdouble, GLdouble, GLdouble, GLdouble, GLdouble, GLdouble);
+#define CALL_MatrixOrthoEXT(disp, parameters) \
+    (* GET_MatrixOrthoEXT(disp)) parameters
+static INLINE _glptr_MatrixOrthoEXT GET_MatrixOrthoEXT(struct _glapi_table *disp) {
+   return (_glptr_MatrixOrthoEXT) (GET_by_offset(disp, _gloffset_MatrixOrthoEXT));
+}
+
+static INLINE void SET_MatrixOrthoEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLdouble, GLdouble, GLdouble, GLdouble, GLdouble, GLdouble)) {
+   SET_by_offset(disp, _gloffset_MatrixOrthoEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MatrixFrustumEXT)(GLenum, GLdouble, GLdouble, GLdouble, GLdouble, GLdouble, GLdouble);
+#define CALL_MatrixFrustumEXT(disp, parameters) \
+    (* GET_MatrixFrustumEXT(disp)) parameters
+static INLINE _glptr_MatrixFrustumEXT GET_MatrixFrustumEXT(struct _glapi_table *disp) {
+   return (_glptr_MatrixFrustumEXT) (GET_by_offset(disp, _gloffset_MatrixFrustumEXT));
+}
+
+static INLINE void SET_MatrixFrustumEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLdouble, GLdouble, GLdouble, GLdouble, GLdouble, GLdouble)) {
+   SET_by_offset(disp, _gloffset_MatrixFrustumEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MatrixPushEXT)(GLenum);
+#define CALL_MatrixPushEXT(disp, parameters) \
+    (* GET_MatrixPushEXT(disp)) parameters
+static INLINE _glptr_MatrixPushEXT GET_MatrixPushEXT(struct _glapi_table *disp) {
+   return (_glptr_MatrixPushEXT) (GET_by_offset(disp, _gloffset_MatrixPushEXT));
+}
+
+static INLINE void SET_MatrixPushEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum)) {
+   SET_by_offset(disp, _gloffset_MatrixPushEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MatrixPopEXT)(GLenum);
+#define CALL_MatrixPopEXT(disp, parameters) \
+    (* GET_MatrixPopEXT(disp)) parameters
+static INLINE _glptr_MatrixPopEXT GET_MatrixPopEXT(struct _glapi_table *disp) {
+   return (_glptr_MatrixPopEXT) (GET_by_offset(disp, _gloffset_MatrixPopEXT));
+}
+
+static INLINE void SET_MatrixPopEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum)) {
+   SET_by_offset(disp, _gloffset_MatrixPopEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MatrixLoadTransposefEXT)(GLenum, const GLfloat *);
+#define CALL_MatrixLoadTransposefEXT(disp, parameters) \
+    (* GET_MatrixLoadTransposefEXT(disp)) parameters
+static INLINE _glptr_MatrixLoadTransposefEXT GET_MatrixLoadTransposefEXT(struct _glapi_table *disp) {
+   return (_glptr_MatrixLoadTransposefEXT) (GET_by_offset(disp, _gloffset_MatrixLoadTransposefEXT));
+}
+
+static INLINE void SET_MatrixLoadTransposefEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, const GLfloat *)) {
+   SET_by_offset(disp, _gloffset_MatrixLoadTransposefEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MatrixLoadTransposedEXT)(GLenum, const GLdouble *);
+#define CALL_MatrixLoadTransposedEXT(disp, parameters) \
+    (* GET_MatrixLoadTransposedEXT(disp)) parameters
+static INLINE _glptr_MatrixLoadTransposedEXT GET_MatrixLoadTransposedEXT(struct _glapi_table *disp) {
+   return (_glptr_MatrixLoadTransposedEXT) (GET_by_offset(disp, _gloffset_MatrixLoadTransposedEXT));
+}
+
+static INLINE void SET_MatrixLoadTransposedEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, const GLdouble *)) {
+   SET_by_offset(disp, _gloffset_MatrixLoadTransposedEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MatrixMultTransposefEXT)(GLenum, const GLfloat *);
+#define CALL_MatrixMultTransposefEXT(disp, parameters) \
+    (* GET_MatrixMultTransposefEXT(disp)) parameters
+static INLINE _glptr_MatrixMultTransposefEXT GET_MatrixMultTransposefEXT(struct _glapi_table *disp) {
+   return (_glptr_MatrixMultTransposefEXT) (GET_by_offset(disp, _gloffset_MatrixMultTransposefEXT));
+}
+
+static INLINE void SET_MatrixMultTransposefEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, const GLfloat *)) {
+   SET_by_offset(disp, _gloffset_MatrixMultTransposefEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MatrixMultTransposedEXT)(GLenum, const GLdouble *);
+#define CALL_MatrixMultTransposedEXT(disp, parameters) \
+    (* GET_MatrixMultTransposedEXT(disp)) parameters
+static INLINE _glptr_MatrixMultTransposedEXT GET_MatrixMultTransposedEXT(struct _glapi_table *disp) {
+   return (_glptr_MatrixMultTransposedEXT) (GET_by_offset(disp, _gloffset_MatrixMultTransposedEXT));
+}
+
+static INLINE void SET_MatrixMultTransposedEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, const GLdouble *)) {
+   SET_by_offset(disp, _gloffset_MatrixMultTransposedEXT, fn);
 }
 
 

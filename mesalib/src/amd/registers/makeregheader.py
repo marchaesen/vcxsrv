@@ -44,10 +44,10 @@ from regdb import Object, RegisterDatabase, deduplicate_enums, deduplicate_regis
 # Chips are sorted chronologically
 CHIPS = [
     Object(name='gfx6', disambiguation='GFX6'),
-    Object(name='gfx7', disambiguation='GFX6'),
-    Object(name='gfx8', disambiguation='GFX6'),
-    Object(name='fiji', disambiguation='GFX6'),
-    Object(name='stoney', disambiguation='GFX6'),
+    Object(name='gfx7', disambiguation='GFX7'),
+    Object(name='gfx8', disambiguation='GFX8'),
+    Object(name='fiji', disambiguation='GFX8'),
+    Object(name='stoney', disambiguation='GFX8'),
     Object(name='gfx9', disambiguation='GFX9'),
 ]
 

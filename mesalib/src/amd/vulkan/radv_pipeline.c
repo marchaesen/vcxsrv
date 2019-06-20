@@ -523,7 +523,7 @@ radv_pipeline_compute_spi_color_formats(struct radv_pipeline *pipeline,
 		col_format |= cf << (4 * i);
 	}
 
-	if (!col_format && blend->need_src_alpha & (1 << 0)) {
+	if (!(col_format & 0xf) && blend->need_src_alpha & (1 << 0)) {
 		/* When a subpass doesn't have any color attachments, write the
 		 * alpha channel of MRT0 when alpha coverage is enabled because
 		 * the depth attachment needs it.
@@ -541,10 +541,13 @@ radv_pipeline_compute_spi_color_formats(struct radv_pipeline *pipeline,
 		}
 	}
 
-	blend->cb_shader_mask = ac_get_cb_shader_mask(col_format);
-
+	/* The output for dual source blending should have the same format as
+	 * the first output.
+	 */
 	if (blend->mrt0_is_dual_src)
 		col_format |= (col_format & 0xf) << 4;
+
+	blend->cb_shader_mask = ac_get_cb_shader_mask(col_format);
 	blend->spi_shader_col_format = col_format;
 }
 

@@ -854,7 +854,8 @@ validate_geometry_shader_emissions(struct gl_context *ctx,
 bool
 validate_intrastage_arrays(struct gl_shader_program *prog,
                            ir_variable *const var,
-                           ir_variable *const existing)
+                           ir_variable *const existing,
+                           bool match_precision)
 {
    /* Consider the types to be "the same" if both types are arrays
     * of the same type and one of the arrays is implicitly sized.
@@ -862,7 +863,15 @@ validate_intrastage_arrays(struct gl_shader_program *prog,
     * explicitly sized array.
     */
    if (var->type->is_array() && existing->type->is_array()) {
-      if ((var->type->fields.array == existing->type->fields.array) &&
+      const glsl_type *no_array_var = var->type->fields.array;
+      const glsl_type *no_array_existing = existing->type->fields.array;
+      bool type_matches;
+
+      type_matches = (match_precision ?
+                      no_array_var == no_array_existing :
+                      no_array_var->compare_no_precision(no_array_existing));
+
+      if (type_matches &&
           ((var->type->length == 0)|| (existing->type->length == 0))) {
          if (var->type->length != 0) {
             if ((int)var->type->length <= existing->data.max_array_access) {

@@ -367,6 +367,32 @@ radv_device_finish_meta_resolve_fragment_state(struct radv_device *device)
 				   &state->alloc);
 }
 
+static VkPipeline *
+radv_get_resolve_pipeline(struct radv_cmd_buffer *cmd_buffer,
+			  struct radv_image_view *src_iview,
+			  struct radv_image_view *dst_iview)
+{
+	struct radv_device *device = cmd_buffer->device;
+	unsigned fs_key = radv_format_meta_fs_key(dst_iview->vk_format);
+	const uint32_t samples = src_iview->image->info.samples;
+	const uint32_t samples_log2 = ffs(samples) - 1;
+	VkPipeline *pipeline;
+
+	pipeline = &device->meta_state.resolve_fragment.rc[samples_log2].pipeline[fs_key];
+	if (!*pipeline ) {
+		VkResult ret;
+
+		ret = create_resolve_pipeline(device, samples_log2,
+					      radv_fs_key_format_exemplars[fs_key]);
+		if (ret != VK_SUCCESS) {
+			cmd_buffer->record_result = ret;
+			return NULL;
+		}
+	}
+
+	return pipeline;
+}
+
 static void
 emit_resolve(struct radv_cmd_buffer *cmd_buffer,
 	     struct radv_image_view *src_iview,
@@ -377,8 +403,8 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer,
 {
 	struct radv_device *device = cmd_buffer->device;
 	VkCommandBuffer cmd_buffer_h = radv_cmd_buffer_to_handle(cmd_buffer);
-	const uint32_t samples = src_iview->image->info.samples;
-	const uint32_t samples_log2 = ffs(samples) - 1;
+	VkPipeline *pipeline;
+
 	radv_meta_push_descriptor_set(cmd_buffer,
 				      VK_PIPELINE_BIND_POINT_GRAPHICS,
 				      cmd_buffer->device->meta_state.resolve_fragment.p_layout,
@@ -412,16 +438,7 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer,
 			      VK_SHADER_STAGE_FRAGMENT_BIT, 0, 8,
 			      push_constants);
 
-	unsigned fs_key = radv_format_meta_fs_key(dest_iview->vk_format);
-	VkPipeline* pipeline = &device->meta_state.resolve_fragment.rc[samples_log2].pipeline[fs_key];
-
-	if (*pipeline == VK_NULL_HANDLE) {
-		VkResult ret = create_resolve_pipeline(device, samples_log2, radv_fs_key_format_exemplars[fs_key]);
-		if (ret != VK_SUCCESS) {
-			cmd_buffer->record_result = ret;
-			return;
-		}
-	}
+	pipeline = radv_get_resolve_pipeline(cmd_buffer, src_iview, dest_iview);
 
 	radv_CmdBindPipeline(cmd_buffer_h, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			     *pipeline);

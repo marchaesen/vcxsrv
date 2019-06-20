@@ -31,6 +31,7 @@
 #include "radv_cs.h"
 #include "sid.h"
 #include "vk_format.h"
+#include "vk_util.h"
 #include "radv_debug.h"
 #include "radv_meta.h"
 
@@ -56,7 +57,8 @@ static void radv_handle_image_transition(struct radv_cmd_buffer *cmd_buffer,
 					 VkImageLayout dst_layout,
 					 uint32_t src_family,
 					 uint32_t dst_family,
-					 const VkImageSubresourceRange *range);
+					 const VkImageSubresourceRange *range,
+					 struct radv_sample_locations_state *sample_locs);
 
 const struct radv_dynamic_state default_dynamic_state = {
 	.viewport = {
@@ -582,8 +584,8 @@ radv_save_descriptors(struct radv_cmd_buffer *cmd_buffer,
 
 	for_each_bit(i, descriptors_state->valid) {
 		struct radv_descriptor_set *set = descriptors_state->sets[i];
-		data[i * 2] = (uintptr_t)set;
-		data[i * 2 + 1] = (uintptr_t)set >> 32;
+		data[i * 2] = (uint64_t)(uintptr_t)set;
+		data[i * 2 + 1] = (uint64_t)(uintptr_t)set >> 32;
 	}
 
 	radv_emit_write_data_packet(cmd_buffer, va, MAX_SETS * 2, data);
@@ -1238,12 +1240,13 @@ static void
 radv_emit_fb_color_state(struct radv_cmd_buffer *cmd_buffer,
 			 int index,
 			 struct radv_attachment_info *att,
-			 struct radv_image *image,
+			 struct radv_image_view *iview,
 			 VkImageLayout layout)
 {
 	bool is_vi = cmd_buffer->device->physical_device->rad_info.chip_class >= GFX8;
 	struct radv_color_buffer_info *cb = &att->cb;
 	uint32_t cb_color_info = cb->cb_color_info;
+	struct radv_image *image = iview->image;
 
 	if (!radv_layout_dcc_compressed(image, layout,
 	                                radv_image_queue_family_mask(image,
@@ -1291,9 +1294,17 @@ radv_emit_fb_color_state(struct radv_cmd_buffer *cmd_buffer,
 		}
 	}
 
-	if (radv_image_has_dcc(image)) {
+	if (radv_dcc_enabled(image, iview->base_mip)) {
 		/* Drawing with DCC enabled also compresses colorbuffers. */
-		radv_update_dcc_metadata(cmd_buffer, image, true);
+		VkImageSubresourceRange range = {
+			.aspectMask = iview->aspect_mask,
+			.baseMipLevel = iview->base_mip,
+			.levelCount = iview->level_count,
+			.baseArrayLayer = iview->base_layer,
+			.layerCount = iview->layer_count,
+		};
+
+		radv_update_dcc_metadata(cmd_buffer, image, &range, true);
 	}
 }
 
@@ -1605,22 +1616,27 @@ radv_load_ds_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
  */
 void
 radv_update_fce_metadata(struct radv_cmd_buffer *cmd_buffer,
-			 struct radv_image *image, bool value)
+			 struct radv_image *image,
+			 const VkImageSubresourceRange *range, bool value)
 {
 	uint64_t pred_val = value;
-	uint64_t va = radv_buffer_get_va(image->bo);
-	va += image->offset + image->fce_pred_offset;
+	uint64_t va = radv_image_get_fce_pred_va(image, range->baseMipLevel);
+	uint32_t level_count = radv_get_levelCount(image, range);
+	uint32_t count = 2 * level_count;
 
-	assert(radv_image_has_dcc(image));
+	assert(radv_dcc_enabled(image, range->baseMipLevel));
 
-	radeon_emit(cmd_buffer->cs, PKT3(PKT3_WRITE_DATA, 4, 0));
+	radeon_emit(cmd_buffer->cs, PKT3(PKT3_WRITE_DATA, 2 + count, 0));
 	radeon_emit(cmd_buffer->cs, S_370_DST_SEL(V_370_MEM) |
 				    S_370_WR_CONFIRM(1) |
 				    S_370_ENGINE_SEL(V_370_PFP));
 	radeon_emit(cmd_buffer->cs, va);
 	radeon_emit(cmd_buffer->cs, va >> 32);
-	radeon_emit(cmd_buffer->cs, pred_val);
-	radeon_emit(cmd_buffer->cs, pred_val >> 32);
+
+	for (uint32_t l = 0; l < level_count; l++) {
+		radeon_emit(cmd_buffer->cs, pred_val);
+		radeon_emit(cmd_buffer->cs, pred_val >> 32);
+	}
 }
 
 /**
@@ -1628,22 +1644,27 @@ radv_update_fce_metadata(struct radv_cmd_buffer *cmd_buffer,
  */
 void
 radv_update_dcc_metadata(struct radv_cmd_buffer *cmd_buffer,
-			 struct radv_image *image, bool value)
+			 struct radv_image *image,
+			 const VkImageSubresourceRange *range, bool value)
 {
 	uint64_t pred_val = value;
-	uint64_t va = radv_buffer_get_va(image->bo);
-	va += image->offset + image->dcc_pred_offset;
+	uint64_t va = radv_image_get_dcc_pred_va(image, range->baseMipLevel);
+	uint32_t level_count = radv_get_levelCount(image, range);
+	uint32_t count = 2 * level_count;
 
-	assert(radv_image_has_dcc(image));
+	assert(radv_dcc_enabled(image, range->baseMipLevel));
 
-	radeon_emit(cmd_buffer->cs, PKT3(PKT3_WRITE_DATA, 4, 0));
+	radeon_emit(cmd_buffer->cs, PKT3(PKT3_WRITE_DATA, 2 + count, 0));
 	radeon_emit(cmd_buffer->cs, S_370_DST_SEL(V_370_MEM) |
 				    S_370_WR_CONFIRM(1) |
 				    S_370_ENGINE_SEL(V_370_PFP));
 	radeon_emit(cmd_buffer->cs, va);
 	radeon_emit(cmd_buffer->cs, va >> 32);
-	radeon_emit(cmd_buffer->cs, pred_val);
-	radeon_emit(cmd_buffer->cs, pred_val >> 32);
+
+	for (uint32_t l = 0; l < level_count; l++) {
+		radeon_emit(cmd_buffer->cs, pred_val);
+		radeon_emit(cmd_buffer->cs, pred_val >> 32);
+	}
 }
 
 /**
@@ -1685,23 +1706,28 @@ radv_update_bound_fast_clear_color(struct radv_cmd_buffer *cmd_buffer,
 static void
 radv_set_color_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
 			      struct radv_image *image,
+			      const VkImageSubresourceRange *range,
 			      uint32_t color_values[2])
 {
 	struct radeon_cmdbuf *cs = cmd_buffer->cs;
-	uint64_t va = radv_buffer_get_va(image->bo);
+	uint64_t va = radv_image_get_fast_clear_va(image, range->baseMipLevel);
+	uint32_t level_count = radv_get_levelCount(image, range);
+	uint32_t count = 2 * level_count;
 
-	va += image->offset + image->clear_value_offset;
+	assert(radv_image_has_cmask(image) ||
+	       radv_dcc_enabled(image, range->baseMipLevel));
 
-	assert(radv_image_has_cmask(image) || radv_image_has_dcc(image));
-
-	radeon_emit(cs, PKT3(PKT3_WRITE_DATA, 4, cmd_buffer->state.predicating));
+	radeon_emit(cs, PKT3(PKT3_WRITE_DATA, 2 + count, cmd_buffer->state.predicating));
 	radeon_emit(cs, S_370_DST_SEL(V_370_MEM) |
 			S_370_WR_CONFIRM(1) |
 			S_370_ENGINE_SEL(V_370_PFP));
 	radeon_emit(cs, va);
 	radeon_emit(cs, va >> 32);
-	radeon_emit(cs, color_values[0]);
-	radeon_emit(cs, color_values[1]);
+
+	for (uint32_t l = 0; l < level_count; l++) {
+		radeon_emit(cs, color_values[0]);
+		radeon_emit(cs, color_values[1]);
+	}
 }
 
 /**
@@ -1709,13 +1735,23 @@ radv_set_color_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
  */
 void
 radv_update_color_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
-				 struct radv_image *image,
+				 const struct radv_image_view *iview,
 				 int cb_idx,
 				 uint32_t color_values[2])
 {
-	assert(radv_image_has_cmask(image) || radv_image_has_dcc(image));
+	struct radv_image *image = iview->image;
+	VkImageSubresourceRange range = {
+		.aspectMask = iview->aspect_mask,
+		.baseMipLevel = iview->base_mip,
+		.levelCount = iview->level_count,
+		.baseArrayLayer = iview->base_layer,
+		.layerCount = iview->layer_count,
+	};
 
-	radv_set_color_clear_metadata(cmd_buffer, image, color_values);
+	assert(radv_image_has_cmask(image) ||
+	       radv_dcc_enabled(image, iview->base_mip));
+
+	radv_set_color_clear_metadata(cmd_buffer, image, &range, color_values);
 
 	radv_update_bound_fast_clear_color(cmd_buffer, image, cb_idx,
 					   color_values);
@@ -1726,15 +1762,15 @@ radv_update_color_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
  */
 static void
 radv_load_color_clear_metadata(struct radv_cmd_buffer *cmd_buffer,
-			       struct radv_image *image,
+			       struct radv_image_view *iview,
 			       int cb_idx)
 {
 	struct radeon_cmdbuf *cs = cmd_buffer->cs;
-	uint64_t va = radv_buffer_get_va(image->bo);
+	struct radv_image *image = iview->image;
+	uint64_t va = radv_image_get_fast_clear_va(image, iview->base_mip);
 
-	va += image->offset + image->clear_value_offset;
-
-	if (!radv_image_has_cmask(image) && !radv_image_has_dcc(image))
+	if (!radv_image_has_cmask(image) &&
+	    !radv_dcc_enabled(image, iview->base_mip))
 		return;
 
 	uint32_t reg = R_028C8C_CB_COLOR0_CLEAR_WORD0 + cb_idx * 0x3c;
@@ -1781,16 +1817,17 @@ radv_emit_framebuffer_state(struct radv_cmd_buffer *cmd_buffer)
 
 		int idx = subpass->color_attachments[i].attachment;
 		struct radv_attachment_info *att = &framebuffer->attachments[idx];
-		struct radv_image *image = att->attachment->image;
+		struct radv_image_view *iview = att->attachment;
+		struct radv_image *image = iview->image;
 		VkImageLayout layout = subpass->color_attachments[i].layout;
 
 		radv_cs_add_buffer(cmd_buffer->device->ws, cmd_buffer->cs, att->attachment->bo);
 
 		assert(att->attachment->aspect_mask & (VK_IMAGE_ASPECT_COLOR_BIT | VK_IMAGE_ASPECT_PLANE_0_BIT |
 		                                       VK_IMAGE_ASPECT_PLANE_1_BIT | VK_IMAGE_ASPECT_PLANE_2_BIT));
-		radv_emit_fb_color_state(cmd_buffer, i, att, image, layout);
+		radv_emit_fb_color_state(cmd_buffer, i, att, iview, layout);
 
-		radv_load_color_clear_metadata(cmd_buffer, image, i);
+		radv_load_color_clear_metadata(cmd_buffer, iview, i);
 
 		if (image->planes[0].surface.bpe >= 8)
 			num_bpp64_colorbufs++;
@@ -2642,11 +2679,67 @@ void radv_subpass_barrier(struct radv_cmd_buffer *cmd_buffer,
 	                                                      NULL);
 }
 
+static uint32_t
+radv_get_subpass_id(struct radv_cmd_buffer *cmd_buffer)
+{
+	struct radv_cmd_state *state = &cmd_buffer->state;
+	uint32_t subpass_id = state->subpass - state->pass->subpasses;
+
+	/* The id of this subpass shouldn't exceed the number of subpasses in
+	 * this render pass minus 1.
+	 */
+	assert(subpass_id < state->pass->subpass_count);
+	return subpass_id;
+}
+
+static struct radv_sample_locations_state *
+radv_get_attachment_sample_locations(struct radv_cmd_buffer *cmd_buffer,
+				     uint32_t att_idx,
+				     bool begin_subpass)
+{
+	struct radv_cmd_state *state = &cmd_buffer->state;
+	uint32_t subpass_id = radv_get_subpass_id(cmd_buffer);
+	struct radv_image_view *view = state->framebuffer->attachments[att_idx].attachment;
+
+	if (view->image->info.samples == 1)
+		return NULL;
+
+	if (state->pass->attachments[att_idx].first_subpass_idx == subpass_id) {
+		/* Return the initial sample locations if this is the initial
+		 * layout transition of the given subpass attachemnt.
+		 */
+		if (state->attachments[att_idx].sample_location.count > 0)
+			return &state->attachments[att_idx].sample_location;
+	} else {
+		/* Otherwise return the subpass sample locations if defined. */
+		if (state->subpass_sample_locs) {
+			/* Because the driver sets the current subpass before
+			 * initial layout transitions, we should use the sample
+			 * locations from the previous subpass to avoid an
+			 * off-by-one problem. Otherwise, use the sample
+			 * locations for the current subpass for final layout
+			 * transitions.
+			 */
+			if (begin_subpass)
+				subpass_id--;
+
+			for (uint32_t i = 0; i < state->num_subpass_sample_locs; i++) {
+				if (state->subpass_sample_locs[i].subpass_idx == subpass_id)
+					return &state->subpass_sample_locs[i].sample_location;
+			}
+		}
+	}
+
+	return NULL;
+}
+
 static void radv_handle_subpass_image_transition(struct radv_cmd_buffer *cmd_buffer,
-						 struct radv_subpass_attachment att)
+						 struct radv_subpass_attachment att,
+						 bool begin_subpass)
 {
 	unsigned idx = att.attachment;
 	struct radv_image_view *view = cmd_buffer->state.framebuffer->attachments[idx].attachment;
+	struct radv_sample_locations_state *sample_locs;
 	VkImageSubresourceRange range;
 	range.aspectMask = 0;
 	range.baseMipLevel = view->base_mip;
@@ -2654,7 +2747,7 @@ static void radv_handle_subpass_image_transition(struct radv_cmd_buffer *cmd_buf
 	range.baseArrayLayer = view->base_layer;
 	range.layerCount = cmd_buffer->state.framebuffer->layers;
 
-	if (cmd_buffer->state.subpass && cmd_buffer->state.subpass->view_mask) {
+	if (cmd_buffer->state.subpass->view_mask) {
 		/* If the current subpass uses multiview, the driver might have
 		 * performed a fast color/depth clear to the whole image
 		 * (including all layers). To make sure the driver will
@@ -2665,10 +2758,16 @@ static void radv_handle_subpass_image_transition(struct radv_cmd_buffer *cmd_buf
 		range.layerCount = util_last_bit(cmd_buffer->state.subpass->view_mask);
 	}
 
+	/* Get the subpass sample locations for the given attachment, if NULL
+	 * is returned the driver will use the default HW locations.
+	 */
+	sample_locs = radv_get_attachment_sample_locations(cmd_buffer, idx,
+							   begin_subpass);
+
 	radv_handle_image_transition(cmd_buffer,
 				     view->image,
 				     cmd_buffer->state.attachments[idx].current_layout,
-				     att.layout, 0, 0, &range);
+				     att.layout, 0, 0, &range, sample_locs);
 
 	cmd_buffer->state.attachments[idx].current_layout = att.layout;
 
@@ -2682,6 +2781,89 @@ radv_cmd_buffer_set_subpass(struct radv_cmd_buffer *cmd_buffer,
 	cmd_buffer->state.subpass = subpass;
 
 	cmd_buffer->state.dirty |= RADV_CMD_DIRTY_FRAMEBUFFER;
+}
+
+static VkResult
+radv_cmd_state_setup_sample_locations(struct radv_cmd_buffer *cmd_buffer,
+				      struct radv_render_pass *pass,
+				      const VkRenderPassBeginInfo *info)
+{
+	const struct VkRenderPassSampleLocationsBeginInfoEXT *sample_locs =
+		vk_find_struct_const(info->pNext,
+				     RENDER_PASS_SAMPLE_LOCATIONS_BEGIN_INFO_EXT);
+	struct radv_cmd_state *state = &cmd_buffer->state;
+	struct radv_framebuffer *framebuffer = state->framebuffer;
+
+	if (!sample_locs) {
+		state->subpass_sample_locs = NULL;
+		return VK_SUCCESS;
+	}
+
+	for (uint32_t i = 0; i < sample_locs->attachmentInitialSampleLocationsCount; i++) {
+		const VkAttachmentSampleLocationsEXT *att_sample_locs =
+			&sample_locs->pAttachmentInitialSampleLocations[i];
+		uint32_t att_idx = att_sample_locs->attachmentIndex;
+		struct radv_attachment_info *att = &framebuffer->attachments[att_idx];
+		struct radv_image *image = att->attachment->image;
+
+		assert(vk_format_is_depth_or_stencil(image->vk_format));
+
+		/* From the Vulkan spec 1.1.108:
+		 *
+		 * "If the image referenced by the framebuffer attachment at
+		 *  index attachmentIndex was not created with
+		 *  VK_IMAGE_CREATE_SAMPLE_LOCATIONS_COMPATIBLE_DEPTH_BIT_EXT
+		 *  then the values specified in sampleLocationsInfo are
+		 *  ignored."
+		 */
+		if (!(image->flags & VK_IMAGE_CREATE_SAMPLE_LOCATIONS_COMPATIBLE_DEPTH_BIT_EXT))
+			continue;
+
+		const VkSampleLocationsInfoEXT *sample_locs_info =
+			&att_sample_locs->sampleLocationsInfo;
+
+		state->attachments[att_idx].sample_location.per_pixel =
+			sample_locs_info->sampleLocationsPerPixel;
+		state->attachments[att_idx].sample_location.grid_size =
+			sample_locs_info->sampleLocationGridSize;
+		state->attachments[att_idx].sample_location.count =
+			sample_locs_info->sampleLocationsCount;
+		typed_memcpy(&state->attachments[att_idx].sample_location.locations[0],
+			     sample_locs_info->pSampleLocations,
+			     sample_locs_info->sampleLocationsCount);
+	}
+
+	state->subpass_sample_locs = vk_alloc(&cmd_buffer->pool->alloc,
+					      sample_locs->postSubpassSampleLocationsCount *
+					      sizeof(state->subpass_sample_locs[0]),
+					      8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+	if (state->subpass_sample_locs == NULL) {
+		cmd_buffer->record_result = VK_ERROR_OUT_OF_HOST_MEMORY;
+		return cmd_buffer->record_result;
+	}
+
+	state->num_subpass_sample_locs = sample_locs->postSubpassSampleLocationsCount;
+
+	for (uint32_t i = 0; i < sample_locs->postSubpassSampleLocationsCount; i++) {
+		const VkSubpassSampleLocationsEXT *subpass_sample_locs_info =
+			&sample_locs->pPostSubpassSampleLocations[i];
+		const VkSampleLocationsInfoEXT *sample_locs_info =
+			&subpass_sample_locs_info->sampleLocationsInfo;
+
+		state->subpass_sample_locs[i].subpass_idx =
+			subpass_sample_locs_info->subpassIndex;
+		state->subpass_sample_locs[i].sample_location.per_pixel =
+			sample_locs_info->sampleLocationsPerPixel;
+		state->subpass_sample_locs[i].sample_location.grid_size =
+			sample_locs_info->sampleLocationGridSize;
+		state->subpass_sample_locs[i].sample_location.count =
+			sample_locs_info->sampleLocationsCount;
+		typed_memcpy(&state->subpass_sample_locs[i].sample_location.locations[0],
+			     sample_locs_info->pSampleLocations,
+			     sample_locs_info->sampleLocationsCount);
+	}
+
+	return VK_SUCCESS;
 }
 
 static VkResult
@@ -2738,6 +2920,7 @@ radv_cmd_state_setup_attachments(struct radv_cmd_buffer *cmd_buffer,
 		}
 
 		state->attachments[i].current_layout = att->initial_layout;
+		state->attachments[i].sample_location.count = 0;
 	}
 
 	return VK_SUCCESS;
@@ -3097,6 +3280,14 @@ void radv_CmdPushDescriptorSetKHR(
 					   pipelineBindPoint))
 		return;
 
+	/* Check that there are no inline uniform block updates when calling vkCmdPushDescriptorSetKHR()
+	 * because it is invalid, according to Vulkan spec.
+	 */
+	for (int i = 0; i < descriptorWriteCount; i++) {
+		MAYBE_UNUSED const VkWriteDescriptorSet *writeset = &pDescriptorWrites[i];
+		assert(writeset->descriptorType != VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT);
+	}
+
 	radv_update_descriptor_sets(cmd_buffer->device, cmd_buffer,
 	                            radv_descriptor_set_to_handle(push_set),
 	                            descriptorWriteCount, pDescriptorWrites, 0, NULL);
@@ -3168,6 +3359,7 @@ VkResult radv_EndCommandBuffer(
 	si_cp_dma_wait_for_idle(cmd_buffer);
 
 	vk_free(&cmd_buffer->pool->alloc, cmd_buffer->state.attachments);
+	vk_free(&cmd_buffer->pool->alloc, cmd_buffer->state.subpass_sample_locs);
 
 	if (!cmd_buffer->device->ws->cs_finalize(cmd_buffer->cs))
 		return vk_error(cmd_buffer->device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
@@ -3666,19 +3858,6 @@ void radv_TrimCommandPool(
 	}
 }
 
-static uint32_t
-radv_get_subpass_id(struct radv_cmd_buffer *cmd_buffer)
-{
-	struct radv_cmd_state *state = &cmd_buffer->state;
-	uint32_t subpass_id = state->subpass - state->pass->subpasses;
-
-	/* The id of this subpass shouldn't exceed the number of subpasses in
-	 * this render pass minus 1.
-	 */
-	assert(subpass_id < state->pass->subpass_count);
-	return subpass_id;
-}
-
 static void
 radv_cmd_buffer_begin_subpass(struct radv_cmd_buffer *cmd_buffer,
 			      uint32_t subpass_id)
@@ -3691,16 +3870,18 @@ radv_cmd_buffer_begin_subpass(struct radv_cmd_buffer *cmd_buffer,
 
 	radv_subpass_barrier(cmd_buffer, &subpass->start_barrier);
 
+	radv_cmd_buffer_set_subpass(cmd_buffer, subpass);
+
 	for (uint32_t i = 0; i < subpass->attachment_count; ++i) {
 		const uint32_t a = subpass->attachments[i].attachment;
 		if (a == VK_ATTACHMENT_UNUSED)
 			continue;
 
 		radv_handle_subpass_image_transition(cmd_buffer,
-						     subpass->attachments[i]);
+						     subpass->attachments[i],
+						     true);
 	}
 
-	radv_cmd_buffer_set_subpass(cmd_buffer, subpass);
 	radv_cmd_buffer_clear_subpass(cmd_buffer);
 
 	assert(cmd_buffer->cs->cdw <= cdw_max);
@@ -3724,8 +3905,8 @@ radv_cmd_buffer_end_subpass(struct radv_cmd_buffer *cmd_buffer)
 			continue;
 
 		VkImageLayout layout = state->pass->attachments[a].final_layout;
-		radv_handle_subpass_image_transition(cmd_buffer,
-		                      (struct radv_subpass_attachment){a, layout});
+		struct radv_subpass_attachment att = { a, layout };
+		radv_handle_subpass_image_transition(cmd_buffer, att, false);
 	}
 }
 
@@ -3744,6 +3925,10 @@ void radv_CmdBeginRenderPass(
 	cmd_buffer->state.render_area = pRenderPassBegin->renderArea;
 
 	result = radv_cmd_state_setup_attachments(cmd_buffer, pass, pRenderPassBegin);
+	if (result != VK_SUCCESS)
+		return;
+
+	result = radv_cmd_state_setup_sample_locations(cmd_buffer, pass, pRenderPassBegin);
 	if (result != VK_SUCCESS)
 		return;
 
@@ -4589,11 +4774,13 @@ void radv_CmdEndRenderPass(
 	radv_cmd_buffer_end_subpass(cmd_buffer);
 
 	vk_free(&cmd_buffer->pool->alloc, cmd_buffer->state.attachments);
+	vk_free(&cmd_buffer->pool->alloc, cmd_buffer->state.subpass_sample_locs);
 
 	cmd_buffer->state.pass = NULL;
 	cmd_buffer->state.subpass = NULL;
 	cmd_buffer->state.attachments = NULL;
 	cmd_buffer->state.framebuffer = NULL;
+	cmd_buffer->state.subpass_sample_locs = NULL;
 }
 
 void radv_CmdEndRenderPass2KHR(
@@ -4649,7 +4836,8 @@ static void radv_handle_depth_image_transition(struct radv_cmd_buffer *cmd_buffe
 					       VkImageLayout dst_layout,
 					       unsigned src_queue_mask,
 					       unsigned dst_queue_mask,
-					       const VkImageSubresourceRange *range)
+					       const VkImageSubresourceRange *range,
+					       struct radv_sample_locations_state *sample_locs)
 {
 	if (!radv_image_has_htile(image))
 		return;
@@ -4677,7 +4865,8 @@ static void radv_handle_depth_image_transition(struct radv_cmd_buffer *cmd_buffe
 		cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_DB |
 		                                RADV_CMD_FLAG_FLUSH_AND_INV_DB_META;
 
-		radv_decompress_depth_image_inplace(cmd_buffer, image, &local_range);
+		radv_decompress_depth_image_inplace(cmd_buffer, image,
+						    &local_range, sample_locs);
 
 		cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_DB |
 		                                RADV_CMD_FLAG_FLUSH_AND_INV_DB_META;
@@ -4719,14 +4908,15 @@ void radv_initialize_fmask(struct radv_cmd_buffer *cmd_buffer,
 }
 
 void radv_initialize_dcc(struct radv_cmd_buffer *cmd_buffer,
-			 struct radv_image *image, uint32_t value)
+			 struct radv_image *image,
+			 const VkImageSubresourceRange *range, uint32_t value)
 {
 	struct radv_cmd_state *state = &cmd_buffer->state;
 
 	state->flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
 			     RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
 
-	state->flush_bits |= radv_clear_dcc(cmd_buffer, image, value);
+	state->flush_bits |= radv_clear_dcc(cmd_buffer, image, range, value);
 
 	state->flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
 			     RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
@@ -4740,7 +4930,8 @@ static void radv_init_color_image_metadata(struct radv_cmd_buffer *cmd_buffer,
 					   VkImageLayout src_layout,
 					   VkImageLayout dst_layout,
 					   unsigned src_queue_mask,
-					   unsigned dst_queue_mask)
+					   unsigned dst_queue_mask,
+					   const VkImageSubresourceRange *range)
 {
 	if (radv_image_has_cmask(image)) {
 		uint32_t value = 0xffffffffu; /* Fully expanded mode. */
@@ -4757,7 +4948,7 @@ static void radv_init_color_image_metadata(struct radv_cmd_buffer *cmd_buffer,
 		radv_initialize_fmask(cmd_buffer, image);
 	}
 
-	if (radv_image_has_dcc(image)) {
+	if (radv_dcc_enabled(image, range->baseMipLevel)) {
 		uint32_t value = 0xffffffffu; /* Fully expanded mode. */
 		bool need_decompress_pass = false;
 
@@ -4767,15 +4958,17 @@ static void radv_init_color_image_metadata(struct radv_cmd_buffer *cmd_buffer,
 			need_decompress_pass = true;
 		}
 
-		radv_initialize_dcc(cmd_buffer, image, value);
+		radv_initialize_dcc(cmd_buffer, image, range, value);
 
-		radv_update_fce_metadata(cmd_buffer, image,
+		radv_update_fce_metadata(cmd_buffer, image, range,
 					 need_decompress_pass);
 	}
 
-	if (radv_image_has_cmask(image) || radv_image_has_dcc(image)) {
+	if (radv_image_has_cmask(image) ||
+	    radv_dcc_enabled(image, range->baseMipLevel)) {
 		uint32_t color_values[2] = {};
-		radv_set_color_clear_metadata(cmd_buffer, image, color_values);
+		radv_set_color_clear_metadata(cmd_buffer, image, range,
+					      color_values);
 	}
 }
 
@@ -4793,13 +4986,14 @@ static void radv_handle_color_image_transition(struct radv_cmd_buffer *cmd_buffe
 	if (src_layout == VK_IMAGE_LAYOUT_UNDEFINED) {
 		radv_init_color_image_metadata(cmd_buffer, image,
 					       src_layout, dst_layout,
-					       src_queue_mask, dst_queue_mask);
+					       src_queue_mask, dst_queue_mask,
+					       range);
 		return;
 	}
 
-	if (radv_image_has_dcc(image)) {
+	if (radv_dcc_enabled(image, range->baseMipLevel)) {
 		if (src_layout == VK_IMAGE_LAYOUT_PREINITIALIZED) {
-			radv_initialize_dcc(cmd_buffer, image, 0xffffffffu);
+			radv_initialize_dcc(cmd_buffer, image, range, 0xffffffffu);
 		} else if (radv_layout_dcc_compressed(image, src_layout, src_queue_mask) &&
 		           !radv_layout_dcc_compressed(image, dst_layout, dst_queue_mask)) {
 			radv_decompress_dcc(cmd_buffer, image, range);
@@ -4839,7 +5033,8 @@ static void radv_handle_image_transition(struct radv_cmd_buffer *cmd_buffer,
 					 VkImageLayout dst_layout,
 					 uint32_t src_family,
 					 uint32_t dst_family,
-					 const VkImageSubresourceRange *range)
+					 const VkImageSubresourceRange *range,
+					 struct radv_sample_locations_state *sample_locs)
 {
 	if (image->exclusive && src_family != dst_family) {
 		/* This is an acquire or a release operation and there will be
@@ -4848,6 +5043,9 @@ static void radv_handle_image_transition(struct radv_cmd_buffer *cmd_buffer,
 
 		assert(src_family == cmd_buffer->queue_family_index ||
 		       dst_family == cmd_buffer->queue_family_index);
+
+		if (src_family == VK_QUEUE_FAMILY_EXTERNAL)
+			return;
 
 		if (cmd_buffer->queue_family_index == RADV_QUEUE_TRANSFER)
 			return;
@@ -4872,7 +5070,7 @@ static void radv_handle_image_transition(struct radv_cmd_buffer *cmd_buffer,
 		radv_handle_depth_image_transition(cmd_buffer, image,
 						   src_layout, dst_layout,
 						   src_queue_mask, dst_queue_mask,
-						   range);
+						   range, sample_locs);
 	} else {
 		radv_handle_color_image_transition(cmd_buffer, image,
 						   src_layout, dst_layout,
@@ -4954,12 +5152,29 @@ radv_barrier(struct radv_cmd_buffer *cmd_buffer,
 
 	for (uint32_t i = 0; i < imageMemoryBarrierCount; i++) {
 		RADV_FROM_HANDLE(radv_image, image, pImageMemoryBarriers[i].image);
+
+		const struct VkSampleLocationsInfoEXT *sample_locs_info =
+			vk_find_struct_const(pImageMemoryBarriers[i].pNext,
+					     SAMPLE_LOCATIONS_INFO_EXT);
+		struct radv_sample_locations_state sample_locations = {};
+
+		if (sample_locs_info) {
+			assert(image->flags & VK_IMAGE_CREATE_SAMPLE_LOCATIONS_COMPATIBLE_DEPTH_BIT_EXT);
+			sample_locations.per_pixel = sample_locs_info->sampleLocationsPerPixel;
+			sample_locations.grid_size = sample_locs_info->sampleLocationGridSize;
+			sample_locations.count = sample_locs_info->sampleLocationsCount;
+			typed_memcpy(&sample_locations.locations[0],
+				     sample_locs_info->pSampleLocations,
+				     sample_locs_info->sampleLocationsCount);
+		}
+
 		radv_handle_image_transition(cmd_buffer, image,
 					     pImageMemoryBarriers[i].oldLayout,
 					     pImageMemoryBarriers[i].newLayout,
 					     pImageMemoryBarriers[i].srcQueueFamilyIndex,
 					     pImageMemoryBarriers[i].dstQueueFamilyIndex,
-					     &pImageMemoryBarriers[i].subresourceRange);
+					     &pImageMemoryBarriers[i].subresourceRange,
+					     sample_locs_info ? &sample_locations : NULL);
 	}
 
 	/* Make sure CP DMA is idle because the driver might have performed a

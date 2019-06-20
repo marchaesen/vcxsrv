@@ -1066,9 +1066,9 @@ dither_factor_bayer_8 (int x, int y)
     /* Compute reverse(interleave(xor(x mod n, y mod n), x mod n))
      * Here n = 8 and `mod n` is the bottom 3 bits.
      */
-    m = ((y & 0b001) << 5) | ((x & 0b001) << 4) |
-	((y & 0b010) << 2) | ((x & 0b010) << 1) |
-	((y & 0b100) >> 1) | ((x & 0b100) >> 2);
+    m = ((y & 0x1) << 5) | ((x & 0x1) << 4) |
+	((y & 0x2) << 2) | ((x & 0x2) << 1) |
+	((y & 0x4) >> 1) | ((x & 0x4) >> 2);
 
     /* m is in range [0, 63].  We scale it to [0, 63.0f/64.0f], then
      * shift it to to [1.0f/128.0f, 127.0f/128.0f] so that 0 < d < 1.

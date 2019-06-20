@@ -188,6 +188,8 @@ xwl_tablet_tool_set_cursor(struct xwl_tablet_tool *xwl_tablet_tool)
         zwp_tablet_tool_v2_set_cursor(xwl_tablet_tool->tool,
                                       xwl_tablet_tool->proximity_in_serial,
                                       NULL, 0, 0);
+        clear_cursor_frame_callback(xwl_cursor);
+        xwl_cursor->needs_update = FALSE;
         return;
     }
 

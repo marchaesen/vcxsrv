@@ -47,7 +47,7 @@ It's the fastest software rasterizer for Mesa.
    built with LLVM version 4.0 or later.
    </p>
    <p>
-   See /proc/cpuinfo to know what your CPU supports.
+   See <code>/proc/cpuinfo</code> to know what your CPU supports.
    </p>
 </li>
 <li>
@@ -73,8 +73,9 @@ It's the fastest software rasterizer for Mesa.
 
    <p>
    For Windows you will need to build LLVM from source with MSVC or MINGW
-   (either natively or through cross compilers) and CMake, and set the LLVM
-   environment variable to the directory you installed it to.
+   (either natively or through cross compilers) and CMake, and set the
+   <code>LLVM</code> environment variable to the directory you installed
+   it to.
 
    LLVM will be statically linked, so when building on MSVC it needs to be
    built with a matching CRT as Mesa, and you'll need to pass
@@ -103,8 +104,8 @@ It's the fastest software rasterizer for Mesa.
    </table>
 
    <p>
-   You can build only the x86 target by passing -DLLVM_TARGETS_TO_BUILD=X86
-   to cmake.
+   You can build only the x86 target by passing
+   <code>-DLLVM_TARGETS_TO_BUILD=X86</code> to cmake.
    </p>
 </li>
 
@@ -143,7 +144,8 @@ For Windows the procedure is similar except the target:
 
 <h3>Linux</h3>
 
-<p>On Linux, building will create a drop-in alternative for libGL.so into</p>
+<p>On Linux, building will create a drop-in alternative for
+<code>libGL.so</code> into</p>
 
 <pre>
   build/foo/gallium/targets/libgl-xlib/libGL.so
@@ -153,10 +155,12 @@ or
   lib/gallium/libGL.so
 </pre>
 
-<p>To use it set the LD_LIBRARY_PATH environment variable accordingly.</p>
+<p>To use it set the <code>LD_LIBRARY_PATH</code> environment variable
+accordingly.</p>
 
-<p>For performance evaluation pass build=release to scons, and use the corresponding
-lib directory without the "-debug" suffix.</p>
+<p>For performance evaluation pass <code>build=release</code> to scons,
+and use the corresponding lib directory without the <code>-debug</code>
+suffix.</p>
 
 
 <h3>Windows</h3>
@@ -177,7 +181,9 @@ any OpenGL drivers):
 </p>
 
 <ul>
-  <li><p>copy build/windows-x86-debug/gallium/targets/libgl-gdi/opengl32.dll to C:\Windows\SysWOW64\mesadrv.dll</p></li>
+  <li><p>copy <code>build/windows-x86-debug/gallium/targets/libgl-gdi/opengl32.dll</code>
+         to <code>C:\Windows\SysWOW64\mesadrv.dll</code>
+  </p></li>
   <li><p>load this registry settings:</p>
   <pre>REGEDIT4
 
@@ -220,10 +226,11 @@ On Linux, it is possible to have symbol resolution of JIT code with <a href="htt
 </pre>
 
 <p>
-When run inside Linux perf, llvmpipe will create a /tmp/perf-XXXXX.map file with
-symbol address table.  It also dumps assembly code to /tmp/perf-XXXXX.map.asm,
-which can be used by the bin/perf-annotate-jit.py script to produce disassembly of
-the generated code annotated with the samples.
+When run inside Linux perf, llvmpipe will create a
+<code>/tmp/perf-XXXXX.map</code> file with symbol address table.  It also
+dumps assembly code to <code>/tmp/perf-XXXXX.map.asm</code>, which can be
+used by the <code>bin/perf-annotate-jit.py</code> script to produce
+disassembly of the generated code annotated with the samples.
 </p>
 
 <p>You can obtain a call graph via
@@ -234,13 +241,13 @@ the generated code annotated with the samples.
 
 <p>
 Building will also create several unit tests in
-build/linux-???-debug/gallium/drivers/llvmpipe:
+<code>build/linux-???-debug/gallium/drivers/llvmpipe</code>:
 </p>
 
 <ul>
-<li> lp_test_blend: blending
-<li> lp_test_conv: SIMD vector conversion
-<li> lp_test_format: pixel unpacking/packing
+<li> <code>lp_test_blend</code>: blending
+<li> <code>lp_test_conv</code>: SIMD vector conversion
+<li> <code>lp_test_format</code>: pixel unpacking/packing
 </ul>
 
 <p>
@@ -257,20 +264,22 @@ for later analysis, e.g.:
 <ul>
 <li>
   When looking at this code for the first time, start in lp_state_fs.c, and
-  then skim through the lp_bld_* functions called there, and the comments
-  at the top of the lp_bld_*.c functions.
+  then skim through the <code>lp_bld_*</code> functions called there, and
+  the comments at the top of the <code>lp_bld_*.c</code> functions.
 </li>
 <li>
   The driver-independent parts of the LLVM / Gallium code are found in
-  src/gallium/auxiliary/gallivm/.  The filenames and function prefixes
-  need to be renamed from "lp_bld_" to something else though.
+  <code>src/gallium/auxiliary/gallivm/</code>.  The filenames and function
+  prefixes need to be renamed from <code>lp_bld_</code> to something else
+  though.
 </li>
 <li>
   We use LLVM-C bindings for now. They are not documented, but follow the C++
   interfaces very closely, and appear to be complete enough for code
   generation. See 
   <a href="https://npcontemplation.blogspot.com/2008/06/secret-of-llvm-c-bindings.html">
-  this stand-alone example</a>.  See the llvm-c/Core.h file for reference.
+  this stand-alone example</a>.  See the <code>llvm-c/Core.h</code> file for
+  reference.
 </li>
 </ul>
 

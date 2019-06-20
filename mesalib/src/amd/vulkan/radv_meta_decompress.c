@@ -126,6 +126,11 @@ create_pipeline(struct radv_device *device,
 		goto cleanup;
 	}
 
+	const VkPipelineSampleLocationsStateCreateInfoEXT sample_locs_create_info = {
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT,
+		.sampleLocationsEnable = false,
+	};
+
 	const VkGraphicsPipelineCreateInfo pipeline_create_info = {
 		.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
 		.stageCount = 2,
@@ -168,6 +173,7 @@ create_pipeline(struct radv_device *device,
 		},
 		.pMultisampleState = &(VkPipelineMultisampleStateCreateInfo) {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+			.pNext = &sample_locs_create_info,
 			.rasterizationSamples = samples,
 			.sampleShadingEnable = false,
 			.pSampleMask = NULL,
@@ -189,10 +195,11 @@ create_pipeline(struct radv_device *device,
 		},
 		.pDynamicState = &(VkPipelineDynamicStateCreateInfo) {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-			.dynamicStateCount = 2,
+			.dynamicStateCount = 3,
 			.pDynamicStates = (VkDynamicState[]) {
 				VK_DYNAMIC_STATE_VIEWPORT,
 				VK_DYNAMIC_STATE_SCISSOR,
+				VK_DYNAMIC_STATE_SAMPLE_LOCATIONS_EXT,
 			},
 		},
 		.layout = layout,
@@ -316,6 +323,7 @@ enum radv_depth_op {
 static void radv_process_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 					     struct radv_image *image,
 					     VkImageSubresourceRange *subresourceRange,
+					     struct radv_sample_locations_state *sample_locs,
 					     enum radv_depth_op op)
 {
 	struct radv_meta_saved_state saved_state;
@@ -347,6 +355,7 @@ static void radv_process_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 
 	radv_meta_save(&saved_state, cmd_buffer,
 		       RADV_META_SAVE_GRAPHICS_PIPELINE |
+		       RADV_META_SAVE_SAMPLE_LOCATIONS |
 		       RADV_META_SAVE_PASS);
 
 	switch (op) {
@@ -376,6 +385,21 @@ static void radv_process_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 		.offset = { 0, 0 },
 		.extent = { width, height },
 	});
+
+	if (sample_locs) {
+		assert(image->flags & VK_IMAGE_CREATE_SAMPLE_LOCATIONS_COMPATIBLE_DEPTH_BIT_EXT);
+
+		/* Set the sample locations specified during explicit or
+		 * automatic layout transitions, otherwise the depth decompress
+		 * pass uses the default HW locations.
+		 */
+		radv_CmdSetSampleLocationsEXT(cmd_buffer_h, &(VkSampleLocationsInfoEXT) {
+			.sampleLocationsPerPixel = sample_locs->per_pixel,
+			.sampleLocationGridSize = sample_locs->grid_size,
+			.sampleLocationsCount = sample_locs->count,
+			.pSampleLocations = sample_locs->locations,
+		});
+	}
 
 	for (uint32_t layer = 0; layer < radv_get_layerCount(image, subresourceRange); layer++) {
 		struct radv_image_view iview;
@@ -442,16 +466,20 @@ static void radv_process_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 
 void radv_decompress_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 					 struct radv_image *image,
-					 VkImageSubresourceRange *subresourceRange)
+					 VkImageSubresourceRange *subresourceRange,
+					 struct radv_sample_locations_state *sample_locs)
 {
 	assert(cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL);
-	radv_process_depth_image_inplace(cmd_buffer, image, subresourceRange, DEPTH_DECOMPRESS);
+	radv_process_depth_image_inplace(cmd_buffer, image, subresourceRange,
+					 sample_locs, DEPTH_DECOMPRESS);
 }
 
 void radv_resummarize_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 					 struct radv_image *image,
-					 VkImageSubresourceRange *subresourceRange)
+					 VkImageSubresourceRange *subresourceRange,
+					 struct radv_sample_locations_state *sample_locs)
 {
 	assert(cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL);
-	radv_process_depth_image_inplace(cmd_buffer, image, subresourceRange, DEPTH_RESUMMARIZE);
+	radv_process_depth_image_inplace(cmd_buffer, image, subresourceRange,
+					 sample_locs, DEPTH_RESUMMARIZE);
 }

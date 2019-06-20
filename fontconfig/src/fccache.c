@@ -1706,7 +1706,7 @@ FcCacheNumFont args1(const FcCache *c)
  * will fill a supplied 16-byte array with the digest.
  */
 
-#ifndef HIGHFIRST
+#ifndef WORDS_BIGENDIAN
 #define byteReverse(buf, len)	/* Nothing */
 #else
 /*

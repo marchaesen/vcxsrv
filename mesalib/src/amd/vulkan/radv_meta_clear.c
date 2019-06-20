@@ -1335,10 +1335,11 @@ radv_clear_fmask(struct radv_cmd_buffer *cmd_buffer,
 
 uint32_t
 radv_clear_dcc(struct radv_cmd_buffer *cmd_buffer,
-	       struct radv_image *image, uint32_t value)
+	       struct radv_image *image,
+	       const VkImageSubresourceRange *range, uint32_t value)
 {
 	/* Mark the image as being compressed. */
-	radv_update_dcc_metadata(cmd_buffer, image, true);
+	radv_update_dcc_metadata(cmd_buffer, image, range, true);
 
 	return radv_fill_buffer(cmd_buffer, image->bo,
 				image->offset + image->dcc_offset,
@@ -1468,7 +1469,7 @@ radv_can_fast_clear_color(struct radv_cmd_buffer *cmd_buffer,
 					  clear_color, &clear_value))
 		return false;
 
-	if (radv_image_has_dcc(iview->image)) {
+	if (radv_dcc_enabled(iview->image, iview->base_mip)) {
 		bool can_avoid_fast_clear_elim;
 		uint32_t reset_value;
 
@@ -1517,10 +1518,17 @@ radv_fast_clear_color(struct radv_cmd_buffer *cmd_buffer,
 	cmask_clear_value = radv_get_cmask_fast_clear_value(iview->image);
 
 	/* clear cmask buffer */
-	if (radv_image_has_dcc(iview->image)) {
+	if (radv_dcc_enabled(iview->image, iview->base_mip)) {
 		uint32_t reset_value;
 		bool can_avoid_fast_clear_elim;
 		bool need_decompress_pass = false;
+		VkImageSubresourceRange range = {
+			.aspectMask = iview->aspect_mask,
+			.baseMipLevel = iview->base_mip,
+			.levelCount = iview->level_count,
+			.baseArrayLayer = iview->base_layer,
+			.layerCount = iview->layer_count,
+		};
 
 		vi_get_fast_clear_parameters(iview->vk_format,
 					     &clear_value, &reset_value,
@@ -1536,9 +1544,10 @@ radv_fast_clear_color(struct radv_cmd_buffer *cmd_buffer,
 		if (!can_avoid_fast_clear_elim)
 			need_decompress_pass = true;
 
-		flush_bits |= radv_clear_dcc(cmd_buffer, iview->image, reset_value);
+		flush_bits |= radv_clear_dcc(cmd_buffer, iview->image, &range,
+					     reset_value);
 
-		radv_update_fce_metadata(cmd_buffer, iview->image,
+		radv_update_fce_metadata(cmd_buffer, iview->image, &range,
 					 need_decompress_pass);
 	} else {
 		flush_bits = radv_clear_cmask(cmd_buffer, iview->image,
@@ -1549,7 +1558,7 @@ radv_fast_clear_color(struct radv_cmd_buffer *cmd_buffer,
 		*post_flush |= flush_bits;
 	}
 
-	radv_update_color_clear_metadata(cmd_buffer, iview->image, subpass_att,
+	radv_update_color_clear_metadata(cmd_buffer, iview, subpass_att,
 					 clear_color);
 }
 

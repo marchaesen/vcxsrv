@@ -50,6 +50,7 @@ libXmu-devel,\
 libXpm-devel,\
 libXrender-devel,\
 libXtst-devel,\
+libxcb-composite-devel,\
 libxcb-ewmh-devel,\
 libxcb-icccm-devel,\
 libxcb-image-devel,\

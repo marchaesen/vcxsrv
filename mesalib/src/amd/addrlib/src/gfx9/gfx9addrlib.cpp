@@ -1,5 +1,5 @@
 /*
- * Copyright © 2007-2018 Advanced Micro Devices, Inc.
+ * Copyright © 2007-2019 Advanced Micro Devices, Inc.
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -136,8 +136,8 @@ Gfx9Lib::Gfx9Lib(const Client* pClient)
     m_class = AI_ADDRLIB;
     memset(&m_settings, 0, sizeof(m_settings));
     memcpy(m_swizzleModeTable, SwizzleModeTable, sizeof(SwizzleModeTable));
-    m_metaEqOverrideIndex = 0;
     memset(m_cachedMetaEqKey, 0, sizeof(m_cachedMetaEqKey));
+    m_metaEqOverrideIndex = 0;
 }
 
 /**
@@ -1233,6 +1233,7 @@ BOOL_32 Gfx9Lib::HwlInitGlobalParams(
         {
             ADDR_ASSERT(m_settings.isVega10 == FALSE);
             ADDR_ASSERT(m_settings.isRaven == FALSE);
+
             ADDR_ASSERT(m_settings.isVega20 == FALSE);
 
             if (m_settings.isVega12)
@@ -2934,13 +2935,9 @@ BOOL_32 Gfx9Lib::IsValidDisplaySwizzleMode(
 {
     BOOL_32 support = FALSE;
 
-    const AddrResourceType resourceType = pIn->resourceType;
-    (void)resourceType;
-    const AddrSwizzleMode swizzleMode = pIn->swizzleMode;
-
     if (m_settings.isDce12)
     {
-        switch (swizzleMode)
+        switch (pIn->swizzleMode)
         {
             case ADDR_SW_256B_D:
             case ADDR_SW_256B_R:
@@ -2969,7 +2966,7 @@ BOOL_32 Gfx9Lib::IsValidDisplaySwizzleMode(
     }
     else if (m_settings.isDcn1)
     {
-        switch (swizzleMode)
+        switch (pIn->swizzleMode)
         {
             case ADDR_SW_4KB_D:
             case ADDR_SW_64KB_D:
@@ -3117,134 +3114,248 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlComputeSubResourceOffsetForSwizzlePattern(
 
 /**
 ************************************************************************************************************************
+*   Gfx9Lib::ValidateNonSwModeParams
+*
+*   @brief
+*       Validate compute surface info params except swizzle mode
+*
+*   @return
+*       TRUE if parameters are valid, FALSE otherwise
+************************************************************************************************************************
+*/
+BOOL_32 Gfx9Lib::ValidateNonSwModeParams(
+    const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const
+{
+    BOOL_32 valid = TRUE;
+
+    if ((pIn->bpp == 0) || (pIn->bpp > 128) || (pIn->width == 0) || (pIn->numFrags > 8) || (pIn->numSamples > 16))
+    {
+        ADDR_ASSERT_ALWAYS();
+        valid = FALSE;
+    }
+
+    if (pIn->resourceType >= ADDR_RSRC_MAX_TYPE)
+    {
+        ADDR_ASSERT_ALWAYS();
+        valid = FALSE;
+    }
+
+    const BOOL_32 mipmap = (pIn->numMipLevels > 1);
+    const BOOL_32 msaa   = (pIn->numFrags > 1);
+    const BOOL_32 isBc   = ElemLib::IsBlockCompressed(pIn->format);
+
+    const AddrResourceType rsrcType = pIn->resourceType;
+    const BOOL_32          tex3d    = IsTex3d(rsrcType);
+    const BOOL_32          tex2d    = IsTex2d(rsrcType);
+    const BOOL_32          tex1d    = IsTex1d(rsrcType);
+
+    const ADDR2_SURFACE_FLAGS flags   = pIn->flags;
+    const BOOL_32             zbuffer = flags.depth || flags.stencil;
+    const BOOL_32             display = flags.display || flags.rotated;
+    const BOOL_32             stereo  = flags.qbStereo;
+    const BOOL_32             fmask   = flags.fmask;
+
+    // Resource type check
+    if (tex1d)
+    {
+        if (msaa || zbuffer || display || stereo || isBc || fmask)
+        {
+            ADDR_ASSERT_ALWAYS();
+            valid = FALSE;
+        }
+    }
+    else if (tex2d)
+    {
+        if ((msaa && mipmap) || (stereo && msaa) || (stereo && mipmap))
+        {
+            ADDR_ASSERT_ALWAYS();
+            valid = FALSE;
+        }
+    }
+    else if (tex3d)
+    {
+        if (msaa || zbuffer || display || stereo || fmask)
+        {
+            ADDR_ASSERT_ALWAYS();
+            valid = FALSE;
+        }
+    }
+    else
+    {
+        ADDR_ASSERT_ALWAYS();
+        valid = FALSE;
+    }
+
+    return valid;
+}
+
+/**
+************************************************************************************************************************
+*   Gfx9Lib::ValidateSwModeParams
+*
+*   @brief
+*       Validate compute surface info related to swizzle mode
+*
+*   @return
+*       TRUE if parameters are valid, FALSE otherwise
+************************************************************************************************************************
+*/
+BOOL_32 Gfx9Lib::ValidateSwModeParams(
+    const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const
+{
+    BOOL_32 valid = TRUE;
+
+    if (pIn->swizzleMode >= ADDR_SW_MAX_TYPE)
+    {
+        ADDR_ASSERT_ALWAYS();
+        valid = FALSE;
+    }
+
+    const BOOL_32 mipmap = (pIn->numMipLevels > 1);
+    const BOOL_32 msaa   = (pIn->numFrags > 1);
+    const BOOL_32 isBc   = ElemLib::IsBlockCompressed(pIn->format);
+    const BOOL_32 is422  = ElemLib::IsMacroPixelPacked(pIn->format);
+
+    const AddrResourceType rsrcType = pIn->resourceType;
+    const BOOL_32          tex3d    = IsTex3d(rsrcType);
+    const BOOL_32          tex2d    = IsTex2d(rsrcType);
+    const BOOL_32          tex1d    = IsTex1d(rsrcType);
+
+    const AddrSwizzleMode  swizzle     = pIn->swizzleMode;
+    const BOOL_32          linear      = IsLinear(swizzle);
+    const BOOL_32          blk256B     = IsBlock256b(swizzle);
+    const BOOL_32          blkVar      = IsBlockVariable(swizzle);
+    const BOOL_32          isNonPrtXor = IsNonPrtXor(swizzle);
+
+    const ADDR2_SURFACE_FLAGS flags   = pIn->flags;
+    const BOOL_32             zbuffer = flags.depth || flags.stencil;
+    const BOOL_32             color   = flags.color;
+    const BOOL_32             texture = flags.texture;
+    const BOOL_32             display = flags.display || flags.rotated;
+    const BOOL_32             prt     = flags.prt;
+    const BOOL_32             fmask   = flags.fmask;
+
+    const BOOL_32             thin3d  = tex3d && flags.view3dAs2dArray;
+    const BOOL_32             zMaxMip = tex3d && mipmap &&
+                                        (pIn->numSlices >= pIn->width) && (pIn->numSlices >= pIn->height);
+
+    // Misc check
+    if (msaa && (GetBlockSize(swizzle) < (m_pipeInterleaveBytes * pIn->numFrags)))
+    {
+        // MSAA surface must have blk_bytes/pipe_interleave >= num_samples
+        ADDR_ASSERT_ALWAYS();
+        valid = FALSE;
+    }
+
+    if (display && (IsValidDisplaySwizzleMode(pIn) == FALSE))
+    {
+        ADDR_ASSERT_ALWAYS();
+        valid = FALSE;
+    }
+
+    if ((pIn->bpp == 96) && (linear == FALSE))
+    {
+        ADDR_ASSERT_ALWAYS();
+        valid = FALSE;
+    }
+
+    if (prt && isNonPrtXor)
+    {
+        ADDR_ASSERT_ALWAYS();
+        valid = FALSE;
+    }
+
+    // Resource type check
+    if (tex1d)
+    {
+        if (linear == FALSE)
+        {
+            ADDR_ASSERT_ALWAYS();
+            valid = FALSE;
+        }
+    }
+
+    // Swizzle type check
+    if (linear)
+    {
+        if (((tex1d == FALSE) && prt) || zbuffer || msaa || (pIn->bpp == 0) ||
+            ((pIn->bpp % 8) != 0) || (isBc && texture) || fmask)
+        {
+            ADDR_ASSERT_ALWAYS();
+            valid = FALSE;
+        }
+    }
+    else if (IsZOrderSwizzle(swizzle))
+    {
+        if ((color && msaa) || thin3d || isBc || is422 || (tex2d && (pIn->bpp > 64)) || (msaa && (pIn->bpp > 32)))
+        {
+            ADDR_ASSERT_ALWAYS();
+            valid = FALSE;
+        }
+    }
+    else if (IsStandardSwizzle(swizzle))
+    {
+        if (zbuffer || thin3d || (tex3d && (pIn->bpp == 128) && color) || fmask)
+        {
+            ADDR_ASSERT_ALWAYS();
+            valid = FALSE;
+        }
+    }
+    else if (IsDisplaySwizzle(swizzle))
+    {
+        if (zbuffer || (prt && tex3d) || fmask || zMaxMip)
+        {
+            ADDR_ASSERT_ALWAYS();
+            valid = FALSE;
+        }
+    }
+    else if (IsRotateSwizzle(swizzle))
+    {
+        if (zbuffer || (pIn->bpp > 64) || tex3d || isBc || fmask)
+        {
+            ADDR_ASSERT_ALWAYS();
+            valid = FALSE;
+        }
+    }
+    else
+    {
+        ADDR_ASSERT_ALWAYS();
+        valid = FALSE;
+    }
+
+    // Block type check
+    if (blk256B)
+    {
+        if (prt || zbuffer || tex3d || mipmap || msaa)
+        {
+            ADDR_ASSERT_ALWAYS();
+            valid = FALSE;
+        }
+    }
+    else if (blkVar)
+    {
+        ADDR_ASSERT_ALWAYS();
+        valid = FALSE;
+    }
+
+    return valid;
+}
+
+/**
+************************************************************************************************************************
 *   Gfx9Lib::HwlComputeSurfaceInfoSanityCheck
 *
 *   @brief
 *       Compute surface info sanity check
 *
 *   @return
-*       Offset
+*       ADDR_OK if parameters are valid, ADDR_INVALIDPARAMS otherwise
 ************************************************************************************************************************
 */
 ADDR_E_RETURNCODE Gfx9Lib::HwlComputeSurfaceInfoSanityCheck(
     const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const
 {
-    BOOL_32 invalid = FALSE;
-
-    if ((pIn->bpp > 128) || (pIn->width == 0) || (pIn->numFrags > 8) || (pIn->numSamples > 16))
-    {
-        invalid = TRUE;
-    }
-    else if ((pIn->swizzleMode >= ADDR_SW_MAX_TYPE)    ||
-             (pIn->resourceType >= ADDR_RSRC_MAX_TYPE))
-    {
-        invalid = TRUE;
-    }
-
-    BOOL_32 mipmap = (pIn->numMipLevels > 1);
-    BOOL_32 msaa   = (pIn->numFrags > 1);
-
-    ADDR2_SURFACE_FLAGS flags = pIn->flags;
-    BOOL_32 zbuffer = (flags.depth || flags.stencil);
-    BOOL_32 color   = flags.color;
-    BOOL_32 display = flags.display || flags.rotated;
-
-    AddrResourceType rsrcType    = pIn->resourceType;
-    BOOL_32          tex3d       = IsTex3d(rsrcType);
-    BOOL_32          thin3d      = tex3d && flags.view3dAs2dArray;
-    AddrSwizzleMode  swizzle     = pIn->swizzleMode;
-    BOOL_32          linear      = IsLinear(swizzle);
-    BOOL_32          blk256B     = IsBlock256b(swizzle);
-    BOOL_32          blkVar      = IsBlockVariable(swizzle);
-    BOOL_32          isNonPrtXor = IsNonPrtXor(swizzle);
-    BOOL_32          prt         = flags.prt;
-    BOOL_32          stereo      = flags.qbStereo;
-
-    if (invalid == FALSE)
-    {
-        if ((pIn->numFrags > 1) &&
-            (GetBlockSize(swizzle) < (m_pipeInterleaveBytes * pIn->numFrags)))
-        {
-            // MSAA surface must have blk_bytes/pipe_interleave >= num_samples
-            invalid = TRUE;
-        }
-    }
-
-    if (invalid == FALSE)
-    {
-        switch (rsrcType)
-        {
-            case ADDR_RSRC_TEX_1D:
-                invalid = msaa || zbuffer || display || (linear == FALSE) || stereo;
-                break;
-            case ADDR_RSRC_TEX_2D:
-                invalid = (msaa && mipmap) || (stereo && msaa) || (stereo && mipmap);
-                break;
-            case ADDR_RSRC_TEX_3D:
-                invalid = msaa || zbuffer || display || stereo;
-                break;
-            default:
-                invalid = TRUE;
-                break;
-        }
-    }
-
-    if (invalid == FALSE)
-    {
-        if (display)
-        {
-            invalid = (IsValidDisplaySwizzleMode(pIn) == FALSE);
-        }
-    }
-
-    if (invalid == FALSE)
-    {
-        if (linear)
-        {
-            invalid = ((ADDR_RSRC_TEX_1D != rsrcType) && prt) ||
-                      zbuffer || msaa || (pIn->bpp == 0) || ((pIn->bpp % 8) != 0);
-        }
-        else
-        {
-            if (blk256B || blkVar || isNonPrtXor)
-            {
-                invalid = prt;
-                if (blk256B)
-                {
-                    invalid = invalid || zbuffer || tex3d || mipmap || msaa;
-                }
-            }
-
-            if (invalid == FALSE)
-            {
-                if (IsZOrderSwizzle(swizzle))
-                {
-                    invalid = (color && msaa) || thin3d;
-                }
-                else if (IsStandardSwizzle(swizzle))
-                {
-                    invalid = zbuffer || thin3d;
-                }
-                else if (IsDisplaySwizzle(swizzle))
-                {
-                    invalid = zbuffer || (prt && (ADDR_RSRC_TEX_3D == rsrcType));
-                }
-                else if (IsRotateSwizzle(swizzle))
-                {
-                    invalid = zbuffer || (pIn->bpp > 64) || tex3d;
-                }
-                else
-                {
-                    ADDR_ASSERT(!"invalid swizzle mode");
-                    invalid = TRUE;
-                }
-            }
-        }
-    }
-
-    ADDR_ASSERT(invalid == FALSE);
-
-    return invalid ? ADDR_INVALIDPARAMS : ADDR_OK;
+    return ValidateNonSwModeParams(pIn) && ValidateSwModeParams(pIn) ? ADDR_OK : ADDR_INVALIDPARAMS;
 }
 
 /**
@@ -3262,14 +3373,14 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlGetPreferredSurfaceSetting(
     const ADDR2_GET_PREFERRED_SURF_SETTING_INPUT* pIn,
     ADDR2_GET_PREFERRED_SURF_SETTING_OUTPUT*      pOut) const
 {
-    ADDR_E_RETURNCODE returnCode = ADDR_OK;
+    ADDR_E_RETURNCODE returnCode = ADDR_INVALIDPARAMS;
     ElemLib*          pElemLib   = GetElemLib();
 
-    UINT_32 bpp          = pIn->bpp;
-    UINT_32 width        = pIn->width;
-    UINT_32 height       = pIn->height;
-    UINT_32 numSamples   = Max(pIn->numSamples, 1u);
-    UINT_32 numFrags     = (pIn->numFrags == 0) ? numSamples : pIn->numFrags;
+    UINT_32 bpp        = pIn->bpp;
+    UINT_32 width      = Max(pIn->width, 1u);
+    UINT_32 height     = Max(pIn->height, 1u);
+    UINT_32 numSamples = Max(pIn->numSamples, 1u);
+    UINT_32 numFrags   = (pIn->numFrags == 0) ? numSamples : pIn->numFrags;
 
     if (pIn->flags.fmask)
     {
@@ -3313,378 +3424,389 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlGetPreferredSurfaceSetting(
     const BOOL_32 msaa         = (numFrags > 1) || (numSamples > 1);
     const BOOL_32 displayRsrc  = pIn->flags.display || pIn->flags.rotated;
 
-    // Forbid swizzle mode(s) by client setting, for simplicity we never allow VAR swizzle mode for GFX9
-    ADDR2_SWMODE_SET allowedSwModeSet = {};
-    allowedSwModeSet.value |= pIn->forbiddenBlock.linear    ? 0 : Gfx9LinearSwModeMask;
-    allowedSwModeSet.value |= pIn->forbiddenBlock.micro     ? 0 : Gfx9Blk256BSwModeMask;
-    allowedSwModeSet.value |= pIn->forbiddenBlock.macro4KB  ? 0 : Gfx9Blk4KBSwModeMask;
-    allowedSwModeSet.value |= pIn->forbiddenBlock.macro64KB ? 0 : Gfx9Blk64KBSwModeMask;
+    // Pre sanity check on non swizzle mode parameters
+    ADDR2_COMPUTE_SURFACE_INFO_INPUT localIn = {};
+    localIn.flags        = pIn->flags;
+    localIn.resourceType = pOut->resourceType;
+    localIn.format       = pIn->format;
+    localIn.bpp          = bpp;
+    localIn.width        = width;
+    localIn.height       = height;
+    localIn.numSlices    = numSlices;
+    localIn.numMipLevels = numMipLevels;
+    localIn.numSamples   = numSamples;
+    localIn.numFrags     = numFrags;
 
-    if (pIn->preferredSwSet.value != 0)
+    if (ValidateNonSwModeParams(&localIn))
     {
-        allowedSwModeSet.value &= pIn->preferredSwSet.sw_Z ? ~0 : ~Gfx9ZSwModeMask;
-        allowedSwModeSet.value &= pIn->preferredSwSet.sw_S ? ~0 : ~Gfx9StandardSwModeMask;
-        allowedSwModeSet.value &= pIn->preferredSwSet.sw_D ? ~0 : ~Gfx9DisplaySwModeMask;
-        allowedSwModeSet.value &= pIn->preferredSwSet.sw_R ? ~0 : ~Gfx9RotateSwModeMask;
-    }
+        // Forbid swizzle mode(s) by client setting, for simplicity we never allow VAR swizzle mode for GFX9
+        ADDR2_SWMODE_SET allowedSwModeSet = {};
+        allowedSwModeSet.value |= pIn->forbiddenBlock.linear    ? 0 : Gfx9LinearSwModeMask;
+        allowedSwModeSet.value |= pIn->forbiddenBlock.micro     ? 0 : Gfx9Blk256BSwModeMask;
+        allowedSwModeSet.value |= pIn->forbiddenBlock.macro4KB  ? 0 : Gfx9Blk4KBSwModeMask;
+        allowedSwModeSet.value |= pIn->forbiddenBlock.macro64KB ? 0 : Gfx9Blk64KBSwModeMask;
 
-    if (pIn->noXor)
-    {
-        allowedSwModeSet.value &= ~Gfx9XorSwModeMask;
-    }
-
-    if (pIn->maxAlign > 0)
-    {
-        if (pIn->maxAlign < GetBlockSize(ADDR_SW_64KB))
+        if (pIn->preferredSwSet.value != 0)
         {
-            allowedSwModeSet.value &= ~Gfx9Blk64KBSwModeMask;
+            allowedSwModeSet.value &= pIn->preferredSwSet.sw_Z ? ~0 : ~Gfx9ZSwModeMask;
+            allowedSwModeSet.value &= pIn->preferredSwSet.sw_S ? ~0 : ~Gfx9StandardSwModeMask;
+            allowedSwModeSet.value &= pIn->preferredSwSet.sw_D ? ~0 : ~Gfx9DisplaySwModeMask;
+            allowedSwModeSet.value &= pIn->preferredSwSet.sw_R ? ~0 : ~Gfx9RotateSwModeMask;
         }
 
-        if (pIn->maxAlign < GetBlockSize(ADDR_SW_4KB))
+        if (pIn->noXor)
         {
-            allowedSwModeSet.value &= ~Gfx9Blk4KBSwModeMask;
+            allowedSwModeSet.value &= ~Gfx9XorSwModeMask;
         }
 
-        if (pIn->maxAlign < GetBlockSize(ADDR_SW_256B))
+        if (pIn->maxAlign > 0)
+        {
+            if (pIn->maxAlign < GetBlockSize(ADDR_SW_64KB))
+            {
+                allowedSwModeSet.value &= ~Gfx9Blk64KBSwModeMask;
+            }
+
+            if (pIn->maxAlign < GetBlockSize(ADDR_SW_4KB))
+            {
+                allowedSwModeSet.value &= ~Gfx9Blk4KBSwModeMask;
+            }
+
+            if (pIn->maxAlign < GetBlockSize(ADDR_SW_256B))
+            {
+                allowedSwModeSet.value &= ~Gfx9Blk256BSwModeMask;
+            }
+        }
+
+        // Filter out invalid swizzle mode(s) by image attributes and HW restrictions
+        switch (pOut->resourceType)
+        {
+            case ADDR_RSRC_TEX_1D:
+                allowedSwModeSet.value &= Gfx9Rsrc1dSwModeMask;
+                break;
+
+            case ADDR_RSRC_TEX_2D:
+                allowedSwModeSet.value &= pIn->flags.prt ? Gfx9Rsrc2dPrtSwModeMask : Gfx9Rsrc2dSwModeMask;
+
+                if (bpp > 64)
+                {
+                    allowedSwModeSet.value &= ~(Gfx9RotateSwModeMask | Gfx9ZSwModeMask);
+                }
+                break;
+
+            case ADDR_RSRC_TEX_3D:
+                allowedSwModeSet.value &= pIn->flags.prt ? Gfx9Rsrc3dPrtSwModeMask : Gfx9Rsrc3dSwModeMask;
+
+                if ((numMipLevels > 1) && (numSlices >= width) && (numSlices >= height))
+                {
+                    // SW_*_D for 3D mipmaps (maxmip > 0) is only supported for Xmajor or Ymajor mipmap
+                    // When depth (Z) is the maximum dimension then must use one of the SW_*_S
+                    // or SW_*_Z modes if mipmapping is desired on a 3D surface
+                    allowedSwModeSet.value &= ~Gfx9DisplaySwModeMask;
+                }
+
+                if ((bpp == 128) && pIn->flags.color)
+                {
+                    allowedSwModeSet.value &= ~Gfx9StandardSwModeMask;
+                }
+
+                if (pIn->flags.view3dAs2dArray)
+                {
+                    allowedSwModeSet.value &= Gfx9Rsrc3dThinSwModeMask | Gfx9LinearSwModeMask;
+                }
+                break;
+
+            default:
+                ADDR_ASSERT_ALWAYS();
+                allowedSwModeSet.value = 0;
+                break;
+        }
+
+        if (pIn->format == ADDR_FMT_32_32_32)
+        {
+            allowedSwModeSet.value &= Gfx9LinearSwModeMask;
+        }
+
+        if (ElemLib::IsBlockCompressed(pIn->format))
+        {
+            if (pIn->flags.texture)
+            {
+                allowedSwModeSet.value &= Gfx9StandardSwModeMask | Gfx9DisplaySwModeMask;
+            }
+            else
+            {
+                allowedSwModeSet.value &= Gfx9StandardSwModeMask | Gfx9DisplaySwModeMask | Gfx9LinearSwModeMask;
+            }
+        }
+
+        if (ElemLib::IsMacroPixelPacked(pIn->format) ||
+            (msaa && ((bpp > 32) || pIn->flags.color || pIn->flags.unordered)))
+        {
+            allowedSwModeSet.value &= ~Gfx9ZSwModeMask;
+        }
+
+        if (pIn->flags.fmask || pIn->flags.depth || pIn->flags.stencil)
+        {
+            allowedSwModeSet.value &= Gfx9ZSwModeMask;
+
+            if (pIn->flags.noMetadata == FALSE)
+            {
+                if (pIn->flags.depth &&
+                    pIn->flags.texture &&
+                    (((bpp == 16) && (numFrags >= 4)) || ((bpp == 32) && (numFrags >= 2))))
+                {
+                    // When _X/_T swizzle mode was used for MSAA depth texture, TC will get zplane
+                    // equation from wrong address within memory range a tile covered and use the
+                    // garbage data for compressed Z reading which finally leads to corruption.
+                    allowedSwModeSet.value &= ~Gfx9XorSwModeMask;
+                }
+
+                if (m_settings.htileCacheRbConflict &&
+                    (pIn->flags.depth || pIn->flags.stencil) &&
+                    (numSlices > 1) &&
+                    (pIn->flags.metaRbUnaligned == FALSE) &&
+                    (pIn->flags.metaPipeUnaligned == FALSE))
+                {
+                    // Z_X 2D array with Rb/Pipe aligned HTile won't have metadata cache coherency
+                    allowedSwModeSet.value &= ~Gfx9XSwModeMask;
+                }
+            }
+        }
+
+        if (msaa)
+        {
+            allowedSwModeSet.value &= Gfx9MsaaSwModeMask;
+        }
+
+        if ((numFrags > 1) &&
+            (GetBlockSize(ADDR_SW_4KB) < (m_pipeInterleaveBytes * numFrags)))
+        {
+            // MSAA surface must have blk_bytes/pipe_interleave >= num_samples
+            allowedSwModeSet.value &= Gfx9Blk64KBSwModeMask;
+        }
+
+        if (numMipLevels > 1)
         {
             allowedSwModeSet.value &= ~Gfx9Blk256BSwModeMask;
         }
-    }
 
-    // Filter out invalid swizzle mode(s) by image attributes and HW restrictions
-    switch (pOut->resourceType)
-    {
-        case ADDR_RSRC_TEX_1D:
-            allowedSwModeSet.value &= Gfx9Rsrc1dSwModeMask;
-            break;
-
-        case ADDR_RSRC_TEX_2D:
-            allowedSwModeSet.value &= pIn->flags.prt ? Gfx9Rsrc2dPrtSwModeMask : Gfx9Rsrc2dSwModeMask;
-
-            if (bpp > 64)
-            {
-                allowedSwModeSet.value &= ~(Gfx9RotateSwModeMask | Gfx9ZSwModeMask);
-            }
-            break;
-
-        case ADDR_RSRC_TEX_3D:
-            allowedSwModeSet.value &= pIn->flags.prt ? Gfx9Rsrc3dPrtSwModeMask : Gfx9Rsrc3dSwModeMask;
-
-            if ((numMipLevels > 1) && (numSlices >= width) && (numSlices >= height))
-            {
-                // SW_*_D for 3D mipmaps (maxmip > 0) is only supported for Xmajor or Ymajor mipmap
-                // When depth (Z) is the maximum dimension then must use one of the SW_*_S
-                // or SW_*_Z modes if mipmapping is desired on a 3D surface
-                allowedSwModeSet.value &= ~Gfx9DisplaySwModeMask;
-            }
-
-            if ((bpp == 128) && pIn->flags.color)
-            {
-                allowedSwModeSet.value &= ~Gfx9StandardSwModeMask;
-            }
-
-            if (pIn->flags.view3dAs2dArray)
-            {
-                allowedSwModeSet.value &= Gfx9Rsrc3dThinSwModeMask | Gfx9LinearSwModeMask;
-            }
-            break;
-
-        default:
-            ADDR_ASSERT_ALWAYS();
-            allowedSwModeSet.value = 0;
-            break;
-    }
-
-    if (pIn->format == ADDR_FMT_32_32_32)
-    {
-        allowedSwModeSet.value &= Gfx9LinearSwModeMask;
-    }
-
-    if (ElemLib::IsBlockCompressed(pIn->format))
-    {
-        if (pIn->flags.texture)
+        if (displayRsrc)
         {
-            allowedSwModeSet.value &= Gfx9StandardSwModeMask | Gfx9DisplaySwModeMask;
-        }
-        else
-        {
-            allowedSwModeSet.value &= Gfx9StandardSwModeMask | Gfx9DisplaySwModeMask | Gfx9LinearSwModeMask;
-        }
-    }
-
-    if (ElemLib::IsMacroPixelPacked(pIn->format) ||
-        (msaa && ((bpp > 32) || pIn->flags.color || pIn->flags.unordered)))
-    {
-        allowedSwModeSet.value &= ~Gfx9ZSwModeMask;
-    }
-
-    if (pIn->flags.fmask || pIn->flags.depth || pIn->flags.stencil)
-    {
-        allowedSwModeSet.value &= Gfx9ZSwModeMask;
-
-        if (pIn->flags.noMetadata == FALSE)
-        {
-            if (pIn->flags.depth &&
-                pIn->flags.texture &&
-                (((bpp == 16) && (numFrags >= 4)) || ((bpp == 32) && (numFrags >= 2))))
+            if (m_settings.isDce12)
             {
-                // When _X/_T swizzle mode was used for MSAA depth texture, TC will get zplane
-                // equation from wrong address within memory range a tile covered and use the
-                // garbage data for compressed Z reading which finally leads to corruption.
-                allowedSwModeSet.value &= ~Gfx9XorSwModeMask;
+                allowedSwModeSet.value &= (bpp == 32) ? Dce12Bpp32SwModeMask : Dce12NonBpp32SwModeMask;
             }
-
-            if (m_settings.htileCacheRbConflict &&
-                (pIn->flags.depth || pIn->flags.stencil) &&
-                (numSlices > 1) &&
-                (pIn->flags.metaRbUnaligned == FALSE) &&
-                (pIn->flags.metaPipeUnaligned == FALSE))
+            else if (m_settings.isDcn1)
             {
-                // Z_X 2D array with Rb/Pipe aligned HTile won't have metadata cache coherency
-                allowedSwModeSet.value &= ~Gfx9XSwModeMask;
+                allowedSwModeSet.value &= (bpp == 64) ? Dcn1Bpp64SwModeMask : Dcn1NonBpp64SwModeMask;
+            }
+            else
+            {
+                ADDR_NOT_IMPLEMENTED();
             }
         }
-    }
 
-    if (msaa)
-    {
-        allowedSwModeSet.value &= Gfx9MsaaSwModeMask;
-    }
-
-    if ((numFrags > 1) &&
-        (GetBlockSize(ADDR_SW_4KB) < (m_pipeInterleaveBytes * numFrags)))
-    {
-        // MSAA surface must have blk_bytes/pipe_interleave >= num_samples
-        allowedSwModeSet.value &= Gfx9Blk64KBSwModeMask;
-    }
-
-    if (numMipLevels > 1)
-    {
-        allowedSwModeSet.value &= ~Gfx9Blk256BSwModeMask;
-    }
-
-    if (displayRsrc)
-    {
-        if (m_settings.isDce12)
+        if (allowedSwModeSet.value != 0)
         {
-            allowedSwModeSet.value &= (bpp == 32) ? Dce12Bpp32SwModeMask : Dce12NonBpp32SwModeMask;
-        }
-        else if (m_settings.isDcn1)
-        {
-            allowedSwModeSet.value &= (bpp == 64) ? Dcn1Bpp64SwModeMask : Dcn1NonBpp64SwModeMask;
-        }
-        else
-        {
-            ADDR_NOT_IMPLEMENTED();
-        }
-    }
-
-    if (allowedSwModeSet.value != 0)
-    {
 #if DEBUG
-        // Post sanity check, at least AddrLib should accept the output generated by its own
-        ADDR2_COMPUTE_SURFACE_INFO_INPUT localIn = {};
-        localIn.flags        = pIn->flags;
-        localIn.resourceType = pOut->resourceType;
-        localIn.format       = pIn->format;
-        localIn.bpp          = bpp;
-        localIn.width        = width;
-        localIn.height       = height;
-        localIn.numSlices    = numSlices;
-        localIn.numMipLevels = numMipLevels;
-        localIn.numSamples   = numSamples;
-        localIn.numFrags     = numFrags;
+            // Post sanity check, at least AddrLib should accept the output generated by its own
+            UINT_32 validateSwModeSet = allowedSwModeSet.value;
 
-        UINT_32 validateSwModeSet = allowedSwModeSet.value;
-        for (UINT_32 i = 0; validateSwModeSet != 0; i++)
-        {
-            if (validateSwModeSet & 1)
+            for (UINT_32 i = 0; validateSwModeSet != 0; i++)
             {
-                localIn.swizzleMode = static_cast<AddrSwizzleMode>(i);
-                HwlComputeSurfaceInfoSanityCheck(&localIn);
-            }
+                if (validateSwModeSet & 1)
+                {
+                    localIn.swizzleMode = static_cast<AddrSwizzleMode>(i);
+                    ADDR_ASSERT(ValidateSwModeParams(&localIn));
+                }
 
-            validateSwModeSet >>= 1;
-        }
+                validateSwModeSet >>= 1;
+            }
 #endif
 
-        pOut->validSwModeSet = allowedSwModeSet;
-        pOut->canXor         = (allowedSwModeSet.value & Gfx9XorSwModeMask) ? TRUE : FALSE;
-        pOut->validBlockSet  = GetAllowedBlockSet(allowedSwModeSet);
-        pOut->validSwTypeSet = GetAllowedSwSet(allowedSwModeSet);
+            pOut->validSwModeSet = allowedSwModeSet;
+            pOut->canXor         = (allowedSwModeSet.value & Gfx9XorSwModeMask) ? TRUE : FALSE;
+            pOut->validBlockSet  = GetAllowedBlockSet(allowedSwModeSet);
+            pOut->validSwTypeSet = GetAllowedSwSet(allowedSwModeSet);
 
-        pOut->clientPreferredSwSet = pIn->preferredSwSet;
+            pOut->clientPreferredSwSet = pIn->preferredSwSet;
 
-        if (pOut->clientPreferredSwSet.value == 0)
-        {
-            pOut->clientPreferredSwSet.value = AddrSwSetAll;
-        }
+            if (pOut->clientPreferredSwSet.value == 0)
+            {
+                pOut->clientPreferredSwSet.value = AddrSwSetAll;
+            }
 
-        if (allowedSwModeSet.value == Gfx9LinearSwModeMask)
-        {
-            pOut->swizzleMode = ADDR_SW_LINEAR;
+            if (allowedSwModeSet.value == Gfx9LinearSwModeMask)
+            {
+                pOut->swizzleMode = ADDR_SW_LINEAR;
+            }
+            else
+            {
+                // Always ignore linear swizzle mode if there is other choice.
+                allowedSwModeSet.swLinear = 0;
+
+                ADDR2_BLOCK_SET allowedBlockSet = GetAllowedBlockSet(allowedSwModeSet);
+
+                // Determine block size if there is 2 or more block type candidates
+                if (IsPow2(allowedBlockSet.value) == FALSE)
+                {
+                    const AddrSwizzleMode swMode[AddrBlockMaxTiledType]  = {ADDR_SW_256B, ADDR_SW_4KB, ADDR_SW_64KB};
+                    Dim3d                 blkDim[AddrBlockMaxTiledType]  = {{0}, {0}, {0}};
+                    Dim3d                 padDim[AddrBlockMaxTiledType]  = {{0}, {0}, {0}};
+                    UINT_64               padSize[AddrBlockMaxTiledType] = {0};
+
+                    const UINT_32 ratioLow           = pIn->flags.minimizeAlign ? 1 : (pIn->flags.opt4space ? 3 : 2);
+                    const UINT_32 ratioHi            = pIn->flags.minimizeAlign ? 1 : (pIn->flags.opt4space ? 2 : 1);
+                    const UINT_64 sizeAlignInElement = Max(NextPow2(pIn->minSizeAlign) / (bpp >> 3), 1u);
+                    UINT_32       minSizeBlk         = AddrBlockMicro;
+                    UINT_64       minSize            = 0;
+
+                    for (UINT_32 i = AddrBlockMicro; i < AddrBlockMaxTiledType; i++)
+                    {
+                        if (allowedBlockSet.value & (1 << i))
+                        {
+                            ComputeBlockDimensionForSurf(&blkDim[i].w,
+                                                         &blkDim[i].h,
+                                                         &blkDim[i].d,
+                                                         bpp,
+                                                         numFrags,
+                                                         pOut->resourceType,
+                                                         swMode[i]);
+
+                            if (displayRsrc)
+                            {
+                                blkDim[i].w = PowTwoAlign(blkDim[i].w, 32);
+                            }
+
+                            padSize[i] = ComputePadSize(&blkDim[i], width, height, numSlices, &padDim[i]);
+                            padSize[i] = PowTwoAlign(padSize[i], sizeAlignInElement);
+
+                            if ((minSize == 0) ||
+                                ((padSize[i] * ratioHi) <= (minSize * ratioLow)))
+                            {
+                                minSize    = padSize[i];
+                                minSizeBlk = i;
+                            }
+                        }
+                    }
+
+                    if ((allowedBlockSet.micro == TRUE)      &&
+                        (width  <= blkDim[AddrBlockMicro].w) &&
+                        (height <= blkDim[AddrBlockMicro].h) &&
+                        (NextPow2(pIn->minSizeAlign) <= GetBlockSize(ADDR_SW_256B)))
+                    {
+                        minSizeBlk = AddrBlockMicro;
+                    }
+
+                    if (minSizeBlk == AddrBlockMicro)
+                    {
+                        allowedSwModeSet.value &= Gfx9Blk256BSwModeMask;
+                    }
+                    else if (minSizeBlk == AddrBlock4KB)
+                    {
+                        allowedSwModeSet.value &= Gfx9Blk4KBSwModeMask;
+                    }
+                    else
+                    {
+                        ADDR_ASSERT(minSizeBlk == AddrBlock64KB);
+                        allowedSwModeSet.value &= Gfx9Blk64KBSwModeMask;
+                    }
+                }
+
+                // Block type should be determined.
+                ADDR_ASSERT(IsPow2(GetAllowedBlockSet(allowedSwModeSet).value));
+
+                ADDR2_SWTYPE_SET allowedSwSet = GetAllowedSwSet(allowedSwModeSet);
+
+                // Determine swizzle type if there is 2 or more swizzle type candidates
+                if (IsPow2(allowedSwSet.value) == FALSE)
+                {
+                    if (ElemLib::IsBlockCompressed(pIn->format))
+                    {
+                        if (allowedSwSet.sw_D)
+                        {
+                            allowedSwModeSet.value &= Gfx9DisplaySwModeMask;
+                        }
+                        else
+                        {
+                            ADDR_ASSERT(allowedSwSet.sw_S);
+                            allowedSwModeSet.value &= Gfx9StandardSwModeMask;
+                        }
+                    }
+                    else if (ElemLib::IsMacroPixelPacked(pIn->format))
+                    {
+                        if (allowedSwSet.sw_S)
+                        {
+                            allowedSwModeSet.value &= Gfx9StandardSwModeMask;
+                        }
+                        else if (allowedSwSet.sw_D)
+                        {
+                            allowedSwModeSet.value &= Gfx9DisplaySwModeMask;
+                        }
+                        else
+                        {
+                            ADDR_ASSERT(allowedSwSet.sw_R);
+                            allowedSwModeSet.value &= Gfx9RotateSwModeMask;
+                        }
+                    }
+                    else if (pOut->resourceType == ADDR_RSRC_TEX_3D)
+                    {
+                        if (pIn->flags.color && allowedSwSet.sw_D)
+                        {
+                            allowedSwModeSet.value &= Gfx9DisplaySwModeMask;
+                        }
+                        else if (allowedSwSet.sw_Z)
+                        {
+                            allowedSwModeSet.value &= Gfx9ZSwModeMask;
+                        }
+                        else
+                        {
+                            ADDR_ASSERT(allowedSwSet.sw_S);
+                            allowedSwModeSet.value &= Gfx9StandardSwModeMask;
+                        }
+                    }
+                    else
+                    {
+                        if (pIn->flags.rotated && allowedSwSet.sw_R)
+                        {
+                            allowedSwModeSet.value &= Gfx9RotateSwModeMask;
+                        }
+                        else if (displayRsrc && allowedSwSet.sw_D)
+                        {
+                            allowedSwModeSet.value &= Gfx9DisplaySwModeMask;
+                        }
+                        else if (allowedSwSet.sw_S)
+                        {
+                            allowedSwModeSet.value &= Gfx9StandardSwModeMask;
+                        }
+                        else
+                        {
+                            ADDR_ASSERT(allowedSwSet.sw_Z);
+                            allowedSwModeSet.value &= Gfx9ZSwModeMask;
+                        }
+                    }
+                }
+
+                // Swizzle type should be determined.
+                ADDR_ASSERT(IsPow2(GetAllowedSwSet(allowedSwModeSet).value));
+
+                // Determine swizzle mode now - always select the "largest" swizzle mode for a given block type +
+                // swizzle type combination. For example, for AddrBlock64KB + ADDR_SW_S, select SW_64KB_S_X(25) if it's
+                // available, or otherwise select SW_64KB_S_T(17) if it's available, or otherwise select SW_64KB_S(9).
+                pOut->swizzleMode = static_cast<AddrSwizzleMode>(Log2NonPow2(allowedSwModeSet.value));
+            }
+
+            returnCode = ADDR_OK;
         }
         else
         {
-            // Always ignore linear swizzle mode if there is other choice.
-            allowedSwModeSet.swLinear = 0;
-
-            ADDR2_BLOCK_SET allowedBlockSet = GetAllowedBlockSet(allowedSwModeSet);
-
-            // Determine block size if there is 2 or more block type candidates
-            if (IsPow2(allowedBlockSet.value) == FALSE)
-            {
-                const AddrSwizzleMode swMode[AddrBlockMaxTiledType]  = {ADDR_SW_256B, ADDR_SW_4KB, ADDR_SW_64KB};
-                Dim3d                 blkDim[AddrBlockMaxTiledType]  = {{0}, {0}, {0}};
-                Dim3d                 padDim[AddrBlockMaxTiledType]  = {{0}, {0}, {0}};
-                UINT_64               padSize[AddrBlockMaxTiledType] = {0};
-
-                const UINT_32 ratioLow           = pIn->flags.minimizeAlign ? 1 : (pIn->flags.opt4space ? 3 : 2);
-                const UINT_32 ratioHi            = pIn->flags.minimizeAlign ? 1 : (pIn->flags.opt4space ? 2 : 1);
-                const UINT_64 sizeAlignInElement = Max(NextPow2(pIn->minSizeAlign) / (bpp >> 3), 1u);
-                UINT_32       minSizeBlk         = AddrBlockMicro;
-                UINT_64       minSize            = 0;
-
-                for (UINT_32 i = AddrBlockMicro; i < AddrBlockMaxTiledType; i++)
-                {
-                    if (allowedBlockSet.value & (1 << i))
-                    {
-                        ComputeBlockDimensionForSurf(&blkDim[i].w,
-                                                     &blkDim[i].h,
-                                                     &blkDim[i].d,
-                                                     bpp,
-                                                     numFrags,
-                                                     pOut->resourceType,
-                                                     swMode[i]);
-
-                        if (displayRsrc)
-                        {
-                            blkDim[i].w = PowTwoAlign(blkDim[i].w, 32);
-                        }
-
-                        padSize[i] = ComputePadSize(&blkDim[i], width, height, numSlices, &padDim[i]);
-                        padSize[i] = PowTwoAlign(padSize[i], sizeAlignInElement);
-
-                        if ((minSize == 0) ||
-                            ((padSize[i] * ratioHi) <= (minSize * ratioLow)))
-                        {
-                            minSize    = padSize[i];
-                            minSizeBlk = i;
-                        }
-                    }
-                }
-
-                if ((allowedBlockSet.micro == TRUE)      &&
-                    (width  <= blkDim[AddrBlockMicro].w) &&
-                    (height <= blkDim[AddrBlockMicro].h) &&
-                    (NextPow2(pIn->minSizeAlign) <= GetBlockSize(ADDR_SW_256B)))
-                {
-                    minSizeBlk = AddrBlockMicro;
-                }
-
-                if (minSizeBlk == AddrBlockMicro)
-                {
-                    allowedSwModeSet.value &= Gfx9Blk256BSwModeMask;
-                }
-                else if (minSizeBlk == AddrBlock4KB)
-                {
-                    allowedSwModeSet.value &= Gfx9Blk4KBSwModeMask;
-                }
-                else
-                {
-                    ADDR_ASSERT(minSizeBlk == AddrBlock64KB);
-                    allowedSwModeSet.value &= Gfx9Blk64KBSwModeMask;
-                }
-            }
-
-            // Block type should be determined.
-            ADDR_ASSERT(IsPow2(GetAllowedBlockSet(allowedSwModeSet).value));
-
-            ADDR2_SWTYPE_SET allowedSwSet = GetAllowedSwSet(allowedSwModeSet);
-
-            // Determine swizzle type if there is 2 or more swizzle type candidates
-            if (IsPow2(allowedSwSet.value) == FALSE)
-            {
-                if (ElemLib::IsBlockCompressed(pIn->format))
-                {
-                    if (allowedSwSet.sw_D)
-                    {
-                        allowedSwModeSet.value &= Gfx9DisplaySwModeMask;
-                    }
-                    else
-                    {
-                        ADDR_ASSERT(allowedSwSet.sw_S);
-                        allowedSwModeSet.value &= Gfx9StandardSwModeMask;
-                    }
-                }
-                else if (ElemLib::IsMacroPixelPacked(pIn->format))
-                {
-                    if (allowedSwSet.sw_S)
-                    {
-                        allowedSwModeSet.value &= Gfx9StandardSwModeMask;
-                    }
-                    else if (allowedSwSet.sw_D)
-                    {
-                        allowedSwModeSet.value &= Gfx9DisplaySwModeMask;
-                    }
-                    else
-                    {
-                        ADDR_ASSERT(allowedSwSet.sw_R);
-                        allowedSwModeSet.value &= Gfx9RotateSwModeMask;
-                    }
-                }
-                else if (pOut->resourceType == ADDR_RSRC_TEX_3D)
-                {
-                    if (pIn->flags.color && allowedSwSet.sw_D)
-                    {
-                        allowedSwModeSet.value &= Gfx9DisplaySwModeMask;
-                    }
-                    else if (allowedSwSet.sw_Z)
-                    {
-                        allowedSwModeSet.value &= Gfx9ZSwModeMask;
-                    }
-                    else
-                    {
-                        ADDR_ASSERT(allowedSwSet.sw_S);
-                        allowedSwModeSet.value &= Gfx9StandardSwModeMask;
-                    }
-                }
-                else
-                {
-                    if (pIn->flags.rotated && allowedSwSet.sw_R)
-                    {
-                        allowedSwModeSet.value &= Gfx9RotateSwModeMask;
-                    }
-                    else if (displayRsrc && allowedSwSet.sw_D)
-                    {
-                        allowedSwModeSet.value &= Gfx9DisplaySwModeMask;
-                    }
-                    else if (allowedSwSet.sw_S)
-                    {
-                        allowedSwModeSet.value &= Gfx9StandardSwModeMask;
-                    }
-                    else
-                    {
-                        ADDR_ASSERT(allowedSwSet.sw_Z);
-                        allowedSwModeSet.value &= Gfx9ZSwModeMask;
-                    }
-                }
-            }
-
-            // Swizzle type should be determined.
-            ADDR_ASSERT(IsPow2(GetAllowedSwSet(allowedSwModeSet).value));
-
-            // Determine swizzle mode now - always select the "largest" swizzle mode for a given block type +
-            // swizzle type combination. For example, for AddrBlock64KB + ADDR_SW_S, select SW_64KB_S_X(25) if it's
-            // available, or otherwise select SW_64KB_S_T(17) if it's available, or otherwise select SW_64KB_S(9).
-            pOut->swizzleMode = static_cast<AddrSwizzleMode>(Log2NonPow2(allowedSwModeSet.value));
+            // Invalid combination...
+            ADDR_ASSERT_ALWAYS();
         }
     }
     else
     {
         // Invalid combination...
         ADDR_ASSERT_ALWAYS();
-        returnCode = ADDR_INVALIDPARAMS;
     }
 
     return returnCode;
@@ -3992,7 +4114,7 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlComputeSurfaceInfoTiled(
                 // Then we need extra padding for base surface. Otherwise, metadata and data surface for same pixel will
                 // be flushed to different pipes, but texture engine only uses pipe id of data surface to fetch both of
                 // them, which may cause invalid metadata to be fetched.
-                pOut->baseAlign = Max(pOut->baseAlign, m_pipeInterleaveBytes * m_pipes);
+                pOut->baseAlign = Max(pOut->baseAlign, m_pipeInterleaveBytes * m_pipes * m_se);
             }
 
             if (pIn->flags.prt)

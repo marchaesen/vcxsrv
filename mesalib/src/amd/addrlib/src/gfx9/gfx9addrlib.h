@@ -1,5 +1,5 @@
 /*
- * Copyright © 2007-2018 Advanced Micro Devices, Inc.
+ * Copyright © 2007-2019 Advanced Micro Devices, Inc.
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining
@@ -613,6 +613,34 @@ private:
         allowedSwSet.sw_R = (allowedSwModeSet.value & Gfx9RotateSwModeMask)   ? TRUE : FALSE;
 
         return allowedSwSet;
+    }
+
+    BOOL_32 IsInMipTail(
+        AddrResourceType  resourceType,
+        AddrSwizzleMode   swizzleMode,
+        Dim3d             mipTailDim,
+        UINT_32           width,
+        UINT_32           height,
+        UINT_32           depth) const
+    {
+        BOOL_32 inTail = ((width <= mipTailDim.w) &&
+                          (height <= mipTailDim.h) &&
+                          (IsThin(resourceType, swizzleMode) || (depth <= mipTailDim.d)));
+
+        return inTail;
+    }
+
+    BOOL_32 ValidateNonSwModeParams(const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const;
+    BOOL_32 ValidateSwModeParams(const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const;
+
+    UINT_32 GetBankXorBits(UINT_32 macroBlockBits) const
+    {
+        UINT_32 pipeBits = GetPipeXorBits(macroBlockBits);
+
+        // Bank xor bits
+        UINT_32 bankBits = Min(macroBlockBits - pipeBits - m_pipeInterleaveLog2, m_banksLog2);
+
+        return bankBits;
     }
 
     Gfx9ChipSettings m_settings;

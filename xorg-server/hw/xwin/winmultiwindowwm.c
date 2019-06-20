@@ -52,6 +52,7 @@ typedef int pid_t;
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
 #include <X11/Xproto.h>
+#include <xcb/composite.h>
 #include <X11/Xutil.h>
 #include <X11/cursorfont.h>
 #include <X11/Xwindows.h>
@@ -1280,6 +1281,7 @@ winMultiWindowXMsgProc(void *pArg)
     /* Get root window id */
     root_screen = xcb_aux_get_screen(pProcArg->conn, pProcArg->dwScreen);
     root_window_id = root_screen->root;
+
     {
         /* Set WM_ICON_SIZE property indicating desired icon sizes */
         typedef struct {

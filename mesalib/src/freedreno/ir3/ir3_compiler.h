@@ -82,13 +82,16 @@ unsigned ir3_pointer_size(struct ir3_compiler *compiler)
 }
 
 enum ir3_shader_debug {
-	IR3_DBG_SHADER_VS = 0x01,
-	IR3_DBG_SHADER_FS = 0x02,
-	IR3_DBG_SHADER_CS = 0x04,
-	IR3_DBG_DISASM    = 0x08,
-	IR3_DBG_OPTMSGS   = 0x10,
-	IR3_DBG_FORCES2EN = 0x20,
-	IR3_DBG_NOUBOOPT  = 0x40,
+	IR3_DBG_SHADER_VS  = 0x001,
+	IR3_DBG_SHADER_TCS = 0x002,
+	IR3_DBG_SHADER_TES = 0x004,
+	IR3_DBG_SHADER_GS  = 0x008,
+	IR3_DBG_SHADER_FS  = 0x010,
+	IR3_DBG_SHADER_CS  = 0x020,
+	IR3_DBG_DISASM     = 0x040,
+	IR3_DBG_OPTMSGS    = 0x080,
+	IR3_DBG_FORCES2EN  = 0x100,
+	IR3_DBG_NOUBOOPT   = 0x200,
 };
 
 extern enum ir3_shader_debug ir3_shader_debug;
@@ -98,6 +101,9 @@ shader_debug_enabled(gl_shader_stage type)
 {
 	switch (type) {
 	case MESA_SHADER_VERTEX:      return !!(ir3_shader_debug & IR3_DBG_SHADER_VS);
+	case MESA_SHADER_TESS_CTRL:   return !!(ir3_shader_debug & IR3_DBG_SHADER_TCS);
+	case MESA_SHADER_TESS_EVAL:   return !!(ir3_shader_debug & IR3_DBG_SHADER_TES);
+	case MESA_SHADER_GEOMETRY:    return !!(ir3_shader_debug & IR3_DBG_SHADER_GS);
 	case MESA_SHADER_FRAGMENT:    return !!(ir3_shader_debug & IR3_DBG_SHADER_FS);
 	case MESA_SHADER_COMPUTE:     return !!(ir3_shader_debug & IR3_DBG_SHADER_CS);
 	default:

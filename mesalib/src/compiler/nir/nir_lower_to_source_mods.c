@@ -98,7 +98,7 @@ nir_lower_to_source_mods_block(nir_block *block,
          if (!parent->src[0].src.is_ssa)
             continue;
 
-         if (!lower_abs && (parent->op == nir_op_fabs &&
+         if (!lower_abs && (parent->op == nir_op_fabs ||
                             parent->op == nir_op_iabs))
             continue;
 

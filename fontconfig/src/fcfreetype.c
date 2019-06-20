@@ -2135,7 +2135,7 @@ FcFreeTypeQuery(const FcChar8	*file,
     if (FT_Init_FreeType (&ftLibrary))
 	return NULL;
 
-    if (FT_New_Face (ftLibrary, (char *) file, id & 0x7FFFFFFFF, &face))
+    if (FT_New_Face (ftLibrary, (char *) file, id & 0x7FFFFFFF, &face))
 	goto bail;
 
     if (count)
