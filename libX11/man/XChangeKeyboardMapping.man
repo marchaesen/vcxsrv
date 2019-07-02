@@ -110,9 +110,8 @@ int XFreeModifiermap(\^XModifierKeymap *\fImodmap\fP\^);
 .SH ARGUMENTS
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
-.ds Kc changed or returned
 .IP \fIfirst_keycode\fP 1i
-Specifies the first KeyCode that is to be \*(Kc.
+Specifies the first KeyCode that is to be changed or returned.
 .IP \fIkeycode_count\fP 1i
 Specifies the number of KeyCodes that are to be returned.
 .IP \fIkeycode_entry\fP 1i

@@ -46,3 +46,9 @@ frees the memory associated with the
 .I indicators 
 member of 
 .I xkb.
+
+If xkb is NULL, no operation is performed.
+
+.SH "SEE ALSO"
+.BR XkbAllocIndicatorMaps (__libmansuffix__)
+

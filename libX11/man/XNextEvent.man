@@ -117,10 +117,8 @@ Returns the next event in the queue.
 Returns a copy of the matched event's associated structure.
 .IP \fIevent_type\fP 1i
 Specifies the event type to be compared.
-
-.ds Wi \ whose event uou are interested in
 .IP \fIw\fP 1i
-Specifies the window \*(Wi.
+Specifies the window whose event you are interested in.
 .SH DESCRIPTION
 The
 .ZN XNextEvent

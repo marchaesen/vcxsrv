@@ -102,12 +102,8 @@ Specifies the array of atoms.
 Specifies the name associated with the atom you want returned.
 .IP \fIatoms_return\fP 1i
 Returns the atoms.
-.ds Cn atom names in the array
 .IP \fIcount\fP 1i
-Specifies the number of \*(Cn.
-.ds Cn atoms in the array
-.IP \fIcount\fP 1i
-Specifies the number of \*(Cn.
+Specifies the number of atom names in the array.
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fInames\fP 1i

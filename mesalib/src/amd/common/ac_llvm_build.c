@@ -2798,11 +2798,22 @@ LLVMValueRef ac_build_bfe(struct ac_llvm_context *ctx, LLVMValueRef input,
 		width,
 	};
 
-	return ac_build_intrinsic(ctx,
-				  is_signed ? "llvm.amdgcn.sbfe.i32" :
-					      "llvm.amdgcn.ubfe.i32",
-				  ctx->i32, args, 3,
-				  AC_FUNC_ATTR_READNONE);
+	LLVMValueRef result = ac_build_intrinsic(ctx,
+						 is_signed ? "llvm.amdgcn.sbfe.i32" :
+							     "llvm.amdgcn.ubfe.i32",
+						 ctx->i32, args, 3,
+						 AC_FUNC_ATTR_READNONE);
+
+	if (HAVE_LLVM < 0x0800) {
+		/* FIXME: LLVM 7+ returns incorrect result when count is 0.
+		 * https://bugs.freedesktop.org/show_bug.cgi?id=107276
+		 */
+		LLVMValueRef zero = ctx->i32_0;
+		LLVMValueRef icond = LLVMBuildICmp(ctx->builder, LLVMIntEQ, width, zero, "");
+		result = LLVMBuildSelect(ctx->builder, icond, zero, result, "");
+	}
+
+	return result;
 }
 
 LLVMValueRef ac_build_imad(struct ac_llvm_context *ctx, LLVMValueRef s0,
@@ -4433,4 +4444,12 @@ ac_build_load_helper_invocation(struct ac_llvm_context *ctx)
 						 AC_FUNC_ATTR_READNONE);
 	result = LLVMBuildNot(ctx->builder, result, "");
 	return LLVMBuildSExt(ctx->builder, result, ctx->i32, "");
+}
+
+LLVMValueRef ac_build_call(struct ac_llvm_context *ctx, LLVMValueRef func,
+			   LLVMValueRef *args, unsigned num_args)
+{
+	LLVMValueRef ret = LLVMBuildCall(ctx->builder, func, args, num_args, "");
+	LLVMSetInstructionCallConv(ret, LLVMGetFunctionCallConv(func));
+	return ret;
 }

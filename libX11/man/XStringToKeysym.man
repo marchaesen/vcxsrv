@@ -101,9 +101,8 @@ Specifies the connection to the X server.
 Specifies the element of KeyCode vector.
 .IP \fIkeycode\fP 1i
 Specifies the KeyCode.
-.ds Fn searched for or converted
 .IP \fIkeysym\fP 1i
-Specifies the KeySym that is to be \*(Fn.
+Specifies the KeySym that is to be searched for or converted.
 .IP \fIlower_return\fP 1i
 Returns the lowercase form of keysym, or keysym.
 .IP \fIstring\fP 1i

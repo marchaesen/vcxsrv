@@ -241,6 +241,9 @@ struct st_vertex_program
 struct st_basic_variant_key
 {
    struct st_context *st;          /**< variants are per-context */
+
+   /** For compat profile */
+   bool clamp_color;
 };
 
 
@@ -401,7 +404,8 @@ st_get_cp_variant(struct st_context *st,
 extern struct st_basic_variant *
 st_get_basic_variant(struct st_context *st,
                      unsigned pipe_shader,
-                     struct st_common_program *p);
+                     struct st_common_program *p,
+                     const struct st_basic_variant_key *key);
 
 extern void
 st_release_vp_variants( struct st_context *st,

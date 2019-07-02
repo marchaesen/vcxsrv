@@ -111,9 +111,8 @@ Specifies the connection to the X server.
 Specifies the GC.
 .IP \fIsrc\fP 1i
 Specifies the components of the source GC.
-.ds Vm set, copied, changed, or returned 
 .IP \fIvaluemask\fP 1i
-Specifies which components in the GC are to be \*(Vm. 
+Specifies which components in the GC are to be set, copied, changed, or returned. 
 This argument is the bitwise inclusive OR of zero or more of the valid
 GC component mask bits.
 .IP \fIvalues\fP 1i

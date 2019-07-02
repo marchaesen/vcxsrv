@@ -59,11 +59,11 @@ if _dri_drivers != []
     [],
     link_whole : _dri_drivers,
     link_with : [
-      libmegadriver_stub, libdricommon, libxmlconfig, libglapi, libmesa_util,
+      libmegadriver_stub, libdricommon, libglapi, libmesa_util,
       libmesa_classic,
     ],
     dependencies : [
-      dep_selinux, dep_libdrm, dep_expat, dep_m, dep_thread, dep_dl, idep_nir,
+      dep_selinux, dep_libdrm, dep_m, dep_thread, dep_dl, idep_nir, idep_xmlconfig,
     ],
     link_args : [ld_args_build_id, ld_args_bsymbolic, ld_args_gc_sections],
     # Will be deleted during installation, see install_megadrivers.py

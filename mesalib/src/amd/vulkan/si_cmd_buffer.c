@@ -781,7 +781,7 @@ si_cs_emit_cache_flush(struct radeon_cmdbuf *cs,
 	
 	if (flush_bits & RADV_CMD_FLAG_INV_ICACHE)
 		cp_coher_cntl |= S_0085F0_SH_ICACHE_ACTION_ENA(1);
-	if (flush_bits & RADV_CMD_FLAG_INV_SMEM_L1)
+	if (flush_bits & RADV_CMD_FLAG_INV_SCACHE)
 		cp_coher_cntl |= S_0085F0_SH_KCACHE_ACTION_ENA(1);
 
 	if (chip_class <= GFX8) {
@@ -859,16 +859,16 @@ si_cs_emit_cache_flush(struct radeon_cmdbuf *cs,
 		           EVENT_TC_MD_ACTION_ENA;
 
 		/* Ideally flush TC together with CB/DB. */
-		if (flush_bits & RADV_CMD_FLAG_INV_GLOBAL_L2) {
+		if (flush_bits & RADV_CMD_FLAG_INV_L2) {
 			/* Writeback and invalidate everything in L2 & L1. */
 			tc_flags = EVENT_TC_ACTION_ENA |
 			           EVENT_TC_WB_ACTION_ENA;
 
 
 			/* Clear the flags. */
-		        flush_bits &= ~(RADV_CMD_FLAG_INV_GLOBAL_L2 |
-					 RADV_CMD_FLAG_WRITEBACK_GLOBAL_L2 |
-					 RADV_CMD_FLAG_INV_VMEM_L1);
+		        flush_bits &= ~(RADV_CMD_FLAG_INV_L2 |
+					 RADV_CMD_FLAG_WB_L2 |
+					 RADV_CMD_FLAG_INV_VCACHE);
 		}
 		assert(flush_cnt);
 		(*flush_cnt)++;
@@ -898,16 +898,16 @@ si_cs_emit_cache_flush(struct radeon_cmdbuf *cs,
 	 */
 	if ((cp_coher_cntl ||
 	     (flush_bits & (RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
-			    RADV_CMD_FLAG_INV_VMEM_L1 |
-			    RADV_CMD_FLAG_INV_GLOBAL_L2 |
-			    RADV_CMD_FLAG_WRITEBACK_GLOBAL_L2))) &&
+			    RADV_CMD_FLAG_INV_VCACHE |
+			    RADV_CMD_FLAG_INV_L2 |
+			    RADV_CMD_FLAG_WB_L2))) &&
 	    !is_mec) {
 		radeon_emit(cs, PKT3(PKT3_PFP_SYNC_ME, 0, 0));
 		radeon_emit(cs, 0);
 	}
 
-	if ((flush_bits & RADV_CMD_FLAG_INV_GLOBAL_L2) ||
-	    (chip_class <= GFX7 && (flush_bits & RADV_CMD_FLAG_WRITEBACK_GLOBAL_L2))) {
+	if ((flush_bits & RADV_CMD_FLAG_INV_L2) ||
+	    (chip_class <= GFX7 && (flush_bits & RADV_CMD_FLAG_WB_L2))) {
 		si_emit_acquire_mem(cs, is_mec, chip_class >= GFX9,
 				    cp_coher_cntl |
 				    S_0085F0_TC_ACTION_ENA(1) |
@@ -915,7 +915,7 @@ si_cs_emit_cache_flush(struct radeon_cmdbuf *cs,
 				    S_0301F0_TC_WB_ACTION_ENA(chip_class >= GFX8));
 		cp_coher_cntl = 0;
 	} else {
-		if(flush_bits & RADV_CMD_FLAG_WRITEBACK_GLOBAL_L2) {
+		if(flush_bits & RADV_CMD_FLAG_WB_L2) {
 			/* WB = write-back
 			 * NC = apply to non-coherent MTYPEs
 			 *      (i.e. MTYPE <= 1, which is what we use everywhere)
@@ -929,7 +929,7 @@ si_cs_emit_cache_flush(struct radeon_cmdbuf *cs,
 					    S_0301F0_TC_NC_ACTION_ENA(1));
 			cp_coher_cntl = 0;
 		}
-		if (flush_bits & RADV_CMD_FLAG_INV_VMEM_L1) {
+		if (flush_bits & RADV_CMD_FLAG_INV_VCACHE) {
 			si_emit_acquire_mem(cs, is_mec,
 					    chip_class >= GFX9,
 					    cp_coher_cntl |

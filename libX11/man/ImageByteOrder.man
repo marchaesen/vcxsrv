@@ -103,9 +103,8 @@ int DisplayWidthMM\^(\^Display *\fIdisplay\fP\^, \^int \fIscreen_number\fP\^);
 .SH ARGUMENTS
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
-.ds Cn pixmap formats that are supported by the display
 .IP \fIcount_return\fP 1i
-Returns the number of \*(Cn.
+Returns the number of pixmap formats that are supported by the display.
 .IP \fIscreen_number\fP 1i
 Specifies the appropriate screen number on the host server.
 .SH DESCRIPTION

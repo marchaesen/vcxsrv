@@ -130,20 +130,82 @@ nir_setup_uniform_remap_tables(struct gl_context *ctx,
    }
 }
 
-static struct gl_uniform_storage *
-find_previous_uniform_storage(struct gl_shader_program *prog,
-                              int location)
+static void
+mark_stage_as_active(struct gl_uniform_storage *uniform,
+                     unsigned stage)
 {
-   /* This would only work for uniform with explicit location, as all the
-    * uniforms without location (ie: atomic counters) would have a initial
-    * location equal to -1. We early return in that case.
+   uniform->active_shader_mask |= 1 << stage;
+}
+
+/**
+ * Finds, returns, and updates the stage info for any uniform in UniformStorage
+ * defined by @var. In general this is done using the explicit location,
+ * except:
+ *
+ * * UBOs/SSBOs: as they lack explicit location, binding is used to locate
+ *   them. That means that more that one entry at the uniform storage can be
+ *   found. In that case all of them are updated, and the first entry is
+ *   returned, in order to update the location of the nir variable.
+ *
+ * * Special uniforms: like atomic counters. They lack a explicit location,
+ *   so they are skipped. They will be handled and assigned a location later.
+ *
+ */
+static struct gl_uniform_storage *
+find_and_update_previous_uniform_storage(struct gl_shader_program *prog,
+                                         nir_variable *var,
+                                         unsigned stage)
+{
+   if (nir_variable_is_in_block(var)) {
+      struct gl_uniform_storage *uniform = NULL;
+
+      unsigned num_blks = nir_variable_is_in_ubo(var) ?
+         prog->data->NumUniformBlocks :
+         prog->data->NumShaderStorageBlocks;
+
+      struct gl_uniform_block *blks = nir_variable_is_in_ubo(var) ?
+         prog->data->UniformBlocks : prog->data->ShaderStorageBlocks;
+
+      for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
+         /* UniformStorage contains both variables from ubos and ssbos */
+         if ( prog->data->UniformStorage[i].is_shader_storage !=
+              nir_variable_is_in_ssbo(var))
+            continue;
+
+         int block_index = prog->data->UniformStorage[i].block_index;
+         if (block_index != -1) {
+            assert(block_index < num_blks);
+
+            if (var->data.binding == blks[block_index].Binding) {
+               if (!uniform)
+                  uniform = &prog->data->UniformStorage[i];
+               mark_stage_as_active(&prog->data->UniformStorage[i],
+                                      stage);
+            }
+         }
+      }
+
+      return uniform;
+   }
+
+   /* Beyond blocks, there are still some corner cases of uniforms without
+    * location (ie: atomic counters) that would have a initial location equal
+    * to -1. We just return on that case. Those uniforms will be handled
+    * later.
     */
-   if (location == -1)
+   if (var->data.location == -1)
       return NULL;
 
-   for (unsigned i = 0; i < prog->data->NumUniformStorage; i++)
-      if (prog->data->UniformStorage[i].remap_location == location)
+   /* TODO: following search can be problematic with shaders with a lot of
+    * uniforms. Would it be better to use some type of hash
+    */
+   for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
+      if (prog->data->UniformStorage[i].remap_location == var->data.location) {
+         mark_stage_as_active(&prog->data->UniformStorage[i], stage);
+
          return &prog->data->UniformStorage[i];
+      }
+   }
 
    return NULL;
 }
@@ -282,6 +344,8 @@ nir_link_uniform(struct gl_context *ctx,
                  struct gl_program *stage_program,
                  gl_shader_stage stage,
                  const struct glsl_type *type,
+                 const struct glsl_type *parent_type,
+                 unsigned index_in_parent,
                  int location,
                  struct nir_link_uniforms_state *state)
 {
@@ -309,7 +373,7 @@ nir_link_uniform(struct gl_context *ctx,
             field_type = glsl_get_array_element(type);
 
          int entries = nir_link_uniform(ctx, prog, stage_program, stage,
-                                        field_type, location,
+                                        field_type, type, i, location,
                                         state);
          if (entries == -1)
             return -1;
@@ -369,17 +433,57 @@ nir_link_uniform(struct gl_context *ctx,
       if (uniform->hidden)
          state->num_hidden_uniforms++;
 
+      uniform->is_shader_storage = nir_variable_is_in_ssbo(state->current_var);
+
+      /* Set fields whose default value depend on the variable being inside a
+       * block.
+       *
+       * From the OpenGL 4.6 spec, 7.3 Program objects:
+       *
+       * "For the property ARRAY_STRIDE, ... For active variables not declared
+       * as an array of basic types, zero is written to params. For active
+       * variables not backed by a buffer object, -1 is written to params,
+       * regardless of the variable type."
+       *
+       * "For the property MATRIX_STRIDE, ... For active variables not declared
+       * as a matrix or array of matrices, zero is written to params. For active
+       * variables not backed by a buffer object, -1 is written to params,
+       * regardless of the variable type."
+       *
+       * For the property IS_ROW_MAJOR, ... For active variables backed by a
+       * buffer object, declared as a single matrix or array of matrices, and
+       * stored in row-major order, one is written to params. For all other
+       * active variables, zero is written to params.
+       */
+      uniform->array_stride = -1;
+      uniform->matrix_stride = -1;
+      uniform->row_major = false;
+
+      if (nir_variable_is_in_block(state->current_var)) {
+         uniform->array_stride = glsl_type_is_array(type) ?
+            glsl_get_explicit_stride(type) : 0;
+
+         if (glsl_type_is_matrix(type)) {
+            assert(parent_type);
+            uniform->matrix_stride = glsl_get_explicit_stride(type);
+
+            uniform->row_major = glsl_matrix_type_is_row_major(type);
+         } else {
+            uniform->matrix_stride = 0;
+         }
+      }
+
+      if (parent_type)
+         uniform->offset = glsl_get_struct_field_offset(parent_type, index_in_parent);
+      else
+         uniform->offset = 0;
+
       /* @FIXME: the initialization of the following will be done as we
        * implement support for their specific features, like SSBO, atomics,
        * etc.
        */
       uniform->block_index = -1;
-      uniform->offset = -1;
-      uniform->matrix_stride = -1;
-      uniform->array_stride = -1;
-      uniform->row_major = false;
       uniform->builtin = false;
-      uniform->is_shader_storage = false;
       uniform->atomic_buffer_index = -1;
       uniform->top_level_array_size = 0;
       uniform->top_level_array_stride = 0;
@@ -483,9 +587,8 @@ gl_nir_link_uniforms(struct gl_context *ctx,
           * other stage. If so, validate they are compatible and update
           * the active stage mask.
           */
-         uniform = find_previous_uniform_storage(prog, var->data.location);
+         uniform = find_and_update_previous_uniform_storage(prog, var, shader_type);
          if (uniform) {
-            uniform->active_shader_mask |= 1 << shader_type;
             var->data.location = uniform - prog->data->UniformStorage;
 
             continue;
@@ -497,11 +600,52 @@ gl_nir_link_uniforms(struct gl_context *ctx,
 
          state.current_var = var;
 
+         /*
+          * From ARB_program_interface spec, issue (16):
+          *
+          * "RESOLVED: We will follow the default rule for enumerating block
+          *  members in the OpenGL API, which is:
+          *
+          *  * If a variable is a member of an interface block without an
+          *    instance name, it is enumerated using just the variable name.
+          *
+          *  * If a variable is a member of an interface block with an
+          *    instance name, it is enumerated as "BlockName.Member", where
+          *    "BlockName" is the name of the interface block (not the
+          *    instance name) and "Member" is the name of the variable.
+          *
+          * For example, in the following code:
+          *
+          * uniform Block1 {
+          *   int member1;
+          * };
+          * uniform Block2 {
+          *   int member2;
+          * } instance2;
+          * uniform Block3 {
+          *  int member3;
+          * } instance3[2];  // uses two separate buffer bindings
+          *
+          * the three uniforms (if active) are enumerated as "member1",
+          * "Block2.member2", and "Block3.member3"."
+          *
+          * Note that in the last example, with an array of ubo, only one
+          * uniform is generated. For that reason, while unrolling the
+          * uniforms of a ubo, or the variables of a ssbo, we need to treat
+          * arrays of instance as a single block.
+          */
+         const struct glsl_type *type = var->type;
+         if (nir_variable_is_in_block(var) &&
+             glsl_type_is_array(type)) {
+            type = glsl_without_array(type);
+         }
+
          struct type_tree_entry *type_tree =
-            build_type_tree_for_type(var->type);
+            build_type_tree_for_type(type);
          state.current_type = type_tree;
 
-         int res = nir_link_uniform(ctx, prog, sh->Program, shader_type, var->type,
+         int res = nir_link_uniform(ctx, prog, sh->Program, shader_type, type,
+                                    NULL, 0,
                                     location, &state);
 
          free_type_tree(type_tree);

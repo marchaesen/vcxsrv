@@ -211,8 +211,16 @@ _mesa_spirv_to_nir(struct gl_context *ctx,
    const struct spirv_to_nir_options spirv_options = {
       .environment = NIR_SPIRV_OPENGL,
       .lower_workgroup_access_to_offsets = true,
-      .lower_ubo_ssbo_access_to_offsets = true,
-      .caps = ctx->Const.SpirVCapabilities
+      .caps = ctx->Const.SpirVCapabilities,
+      .ubo_addr_format = nir_address_format_32bit_index_offset,
+      .ssbo_addr_format = nir_address_format_32bit_index_offset,
+
+      /* TODO: Consider changing this to an address format that has the NULL
+       * pointer equals to 0.  That might be a better format to play nice
+       * with certain code / code generators.
+       */
+      .shared_addr_format = nir_address_format_32bit_offset,
+
    };
 
    nir_shader *nir =

@@ -2110,6 +2110,9 @@ SetKeySyms(ClientPtr client,
                 }
             }
         }
+        if (XkbKeyHasActions(xkb, i + req->firstKeySym))
+            XkbResizeKeyActions(xkb, i + req->firstKeySym,
+                                XkbNumGroups(wire->groupInfo) * wire->width);
         oldMap->kt_index[0] = wire->ktIndex[0];
         oldMap->kt_index[1] = wire->ktIndex[1];
         oldMap->kt_index[2] = wire->ktIndex[2];
@@ -2383,6 +2386,9 @@ _XkbSetMapChecks(ClientPtr client, DeviceIntPtr dev, xkbSetMapReq * req,
     XkbSymMapPtr map;
     int i;
 
+    if (!dev->key)
+        return 0;
+
     xkbi = dev->key->xkbInfo;
     xkb = xkbi->desc;
 
@@ -2494,6 +2500,9 @@ _XkbSetMap(ClientPtr client, DeviceIntPtr dev, xkbSetMapReq * req, char *values)
     Bool sentNKN;
     XkbSrvInfoPtr xkbi;
     XkbDescPtr xkb;
+
+    if (!dev->key)
+        return Success;
 
     xkbi = dev->key->xkbInfo;
     xkb = xkbi->desc;

@@ -109,9 +109,8 @@ The color specification stored for the color cell is returned in this
 structure.
 .IP \fIcolor_screen_return\fP 1i
 Returns the color that can be reproduced on the screen.
-.ds St
 .IP \fIcolor_string\fP 1i
-Specifies the color string\*(St.
+Specifies the color string.
 .IP \fIresult_format\fP 1i
 Specifies the color format for the returned color
 specifications (color_screen_return and color_exact_return arguments).

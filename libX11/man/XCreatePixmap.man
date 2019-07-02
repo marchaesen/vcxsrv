@@ -97,12 +97,11 @@ Specifies the depth of the pixmap.
 Specifies the connection to the X server.
 .IP \fIpixmap\fP 1i
 Specifies the pixmap.
-.ds Wh , which define the dimensions of the pixmap
 .IP \fIwidth\fP 1i
 .br
 .ns
 .IP \fIheight\fP 1i
-Specify the width and height\*(Wh.
+Specify the width and height, which define the dimensions of the pixmap.
 .SH DESCRIPTION
 The
 .ZN XCreatePixmap

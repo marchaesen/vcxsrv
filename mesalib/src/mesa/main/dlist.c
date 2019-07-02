@@ -568,6 +568,10 @@ typedef enum
    OPCODE_MATRIX_FRUSTUM,
    OPCODE_MATRIX_PUSH,
    OPCODE_MATRIX_POP,
+   OPCODE_TEXTUREPARAMETER_F,
+   OPCODE_TEXTUREPARAMETER_I,
+   OPCODE_TEXTURE_SUB_IMAGE2D,
+   OPCODE_COMPRESSED_TEXTURE_SUB_IMAGE_2D,
 
    /* The following three are meta instructions */
    OPCODE_ERROR,                /* raise compiled-in error */
@@ -1200,6 +1204,10 @@ _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist)
          case OPCODE_UNIFORM_SUBROUTINES:
          case OPCODE_WINDOW_RECTANGLES:
             free(get_pointer(&n[3]));
+            break;
+         case OPCODE_TEXTURE_SUB_IMAGE2D:
+         case OPCODE_COMPRESSED_TEXTURE_SUB_IMAGE_2D:
+            free(get_pointer(&n[10]));
             break;
          case OPCODE_CONTINUE:
             n = (Node *) get_pointer(&n[1]);
@@ -9461,6 +9469,132 @@ save_MatrixMultTransposedEXT(GLenum matrixMode, const GLdouble m[16])
    save_MatrixMultfEXT(matrixMode, tm);
 }
 
+static void GLAPIENTRY
+save_TextureParameterfvEXT(GLuint texture, GLenum target, GLenum pname,
+                           const GLfloat *params)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_TEXTUREPARAMETER_F, 7);
+   if (n) {
+      n[1].ui = texture;
+      n[2].e = target;
+      n[3].e = pname;
+      n[4].f = params[0];
+      n[5].f = params[1];
+      n[6].f = params[2];
+      n[7].f = params[3];
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_TextureParameterfvEXT(ctx->Exec, (texture, target, pname, params));
+   }
+}
+
+
+static void GLAPIENTRY
+save_TextureParameterfEXT(GLuint texture, GLenum target, GLenum pname, GLfloat param)
+{
+   GLfloat parray[4];
+   parray[0] = param;
+   parray[1] = parray[2] = parray[3] = 0.0F;
+   save_TextureParameterfvEXT(texture, target, pname, parray);
+}
+
+static void GLAPIENTRY
+save_TextureParameterivEXT(GLuint texture, GLenum target, GLenum pname, const GLint *params)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_TEXTUREPARAMETER_I, 7);
+   if (n) {
+      n[1].ui = texture;
+      n[2].e = target;
+      n[3].e = pname;
+      n[4].i = params[0];
+      n[5].i = params[1];
+      n[6].i = params[2];
+      n[7].i = params[3];
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_TextureParameterivEXT(ctx->Exec, (texture, target, pname, params));
+   }
+}
+
+static void GLAPIENTRY
+save_TextureParameteriEXT(GLuint texture, GLenum target, GLenum pname, GLint param)
+{
+   GLint fparam[4];
+   fparam[0] = param;
+   fparam[1] = fparam[2] = fparam[3] = 0;
+   save_TextureParameterivEXT(texture, target, pname, fparam);
+}
+
+static void GLAPIENTRY
+save_TextureSubImage2DEXT(GLuint texture, GLenum target, GLint level,
+                          GLint xoffset, GLint yoffset,
+                          GLsizei width, GLsizei height,
+                          GLenum format, GLenum type, const GLvoid * pixels)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+
+   n = alloc_instruction(ctx, OPCODE_TEXTURE_SUB_IMAGE2D, 9 + POINTER_DWORDS);
+   if (n) {
+      n[1].ui = texture;
+      n[2].e = target;
+      n[3].i = level;
+      n[4].i = xoffset;
+      n[5].i = yoffset;
+      n[6].i = (GLint) width;
+      n[7].i = (GLint) height;
+      n[8].e = format;
+      n[9].e = type;
+      save_pointer(&n[10],
+                   unpack_image(ctx, 2, width, height, 1, format, type,
+                                pixels, &ctx->Unpack));
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_TextureSubImage2DEXT(ctx->Exec, (texture, target, level, xoffset, yoffset,
+                                            width, height, format, type, pixels));
+   }
+}
+
+static void GLAPIENTRY
+save_CompressedTextureSubImage2DEXT(GLuint texture, GLenum target, GLint level, GLint xoffset,
+                                    GLint yoffset, GLsizei width, GLsizei height,
+                                    GLenum format, GLsizei imageSize,
+                                    const GLvoid * data)
+{
+   Node *n;
+   GET_CURRENT_CONTEXT(ctx);
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+
+   n = alloc_instruction(ctx, OPCODE_COMPRESSED_TEXTURE_SUB_IMAGE_2D,
+                         9 + POINTER_DWORDS);
+   if (n) {
+      n[1].ui = texture;
+      n[2].e = target;
+      n[3].i = level;
+      n[4].i = xoffset;
+      n[5].i = yoffset;
+      n[6].i = (GLint) width;
+      n[7].i = (GLint) height;
+      n[8].e = format;
+      n[9].i = imageSize;
+      save_pointer(&n[10],
+                   copy_data(data, imageSize, "glCompressedTextureSubImage2DEXT"));
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_CompressedTextureSubImage2DEXT(ctx->Exec,
+                                          (texture, target, level, xoffset, yoffset,
+                                           width, height, format, imageSize, data));
+   }
+}
+
 
 /**
  * Save an error-generating command into display list.
@@ -11027,6 +11161,43 @@ execute_list(struct gl_context *ctx, GLuint list)
          case OPCODE_MATRIX_POP:
             CALL_MatrixPopEXT(ctx->Exec, (n[1].e));
             break;
+         case OPCODE_TEXTUREPARAMETER_F:
+            {
+               GLfloat params[4];
+               params[0] = n[4].f;
+               params[1] = n[5].f;
+               params[2] = n[6].f;
+               params[3] = n[7].f;
+               CALL_TextureParameterfvEXT(ctx->Exec, (n[1].ui, n[2].e, n[3].e, params));
+            }
+            break;
+         case OPCODE_TEXTUREPARAMETER_I:
+            {
+               GLint params[4];
+               params[0] = n[4].i;
+               params[1] = n[5].i;
+               params[2] = n[6].i;
+               params[3] = n[7].i;
+               CALL_TextureParameterivEXT(ctx->Exec, (n[1].ui, n[2].e, n[3].e, params));
+            }
+            break;
+         case OPCODE_TEXTURE_SUB_IMAGE2D:
+            {
+               const struct gl_pixelstore_attrib save = ctx->Unpack;
+               ctx->Unpack = ctx->DefaultPacking;
+               CALL_TextureSubImage2DEXT(ctx->Exec, (n[1].ui, n[2].e, n[3].i,
+                                                     n[4].i, n[5].i, n[6].e,
+                                                     n[7].i, n[8].e, n[9].e,
+                                                     get_pointer(&n[10])));
+               ctx->Unpack = save;
+            }
+            break;
+         case OPCODE_COMPRESSED_TEXTURE_SUB_IMAGE_2D:
+            CALL_CompressedTextureSubImage2DEXT(ctx->Exec,
+                                                (n[1].ui, n[2].e, n[3].i, n[4].i,
+                                                 n[5].i, n[6].i, n[7].i, n[8].e,
+                                                 n[9].i, get_pointer(&n[10])));
+            break;
 
          case OPCODE_CONTINUE:
             n = (Node *) get_pointer(&n[1]);
@@ -12019,6 +12190,12 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
    SET_MatrixLoadTransposedEXT(table, save_MatrixLoadTransposedEXT);
    SET_MatrixMultTransposefEXT(table, save_MatrixMultTransposefEXT);
    SET_MatrixMultTransposedEXT(table, save_MatrixMultTransposedEXT);
+   SET_TextureParameteriEXT(table, save_TextureParameteriEXT);
+   SET_TextureParameterivEXT(table, save_TextureParameterivEXT);
+   SET_TextureParameterfEXT(table, save_TextureParameterfEXT);
+   SET_TextureParameterfvEXT(table, save_TextureParameterfvEXT);
+   SET_TextureSubImage2DEXT(table, save_TextureSubImage2DEXT);
+   SET_CompressedTextureSubImage2DEXT(table, save_CompressedTextureSubImage2DEXT);
 }
 
 

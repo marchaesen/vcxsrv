@@ -103,9 +103,9 @@ that is actually used in the colormap.
 .IP \fIcolor_screen_return\fP 1i
 Returns the pixel value of the color cell and color specification 
 that actually is stored for that cell.
-.ds St \ whose color definition structure is to be returned
+.ds St \
 .IP \fIcolor_string\fP 1i
-Specifies the color string\*(St.
+Specifies the color string whose color definition structure is to be returned.
 .IP \fIresult_format\fP 1i
 Specifies the color format for the returned color specification.
 .SH DESCRIPTION

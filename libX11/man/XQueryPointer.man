@@ -94,9 +94,8 @@ Returns the child window that the pointer is located in, if any.
 Specifies the connection to the X server.
 .IP \fImask_return\fP 1i
 Returns the current state of the modifier keys and pointer buttons.
-.ds Ro that the pointer is in
 .IP \fIroot_return\fP 1i
-Returns the root window \*(Ro.
+Returns the root window that the pointer is in.
 .IP \fIroot_x_return\fP 1i
 .br
 .ns

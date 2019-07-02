@@ -220,7 +220,25 @@ st_update_common_program(struct st_context *st, struct gl_program *prog,
    if (st->shader_has_one_variant[prog->info.stage] && stp->variants)
       return stp->variants->driver_shader;
 
-   return st_get_basic_variant(st, pipe_shader, stp)->driver_shader;
+   struct st_basic_variant_key key;
+
+   /* use memset, not an initializer to be sure all memory is zeroed */
+   memset(&key, 0, sizeof(key));
+
+   key.st = st->has_shareable_shaders ? NULL : st;
+
+   if (pipe_shader == PIPE_SHADER_GEOMETRY ||
+       pipe_shader == PIPE_SHADER_TESS_EVAL) {
+      key.clamp_color = st->clamp_vert_color_in_shader &&
+                        st->ctx->Light._ClampVertexColor &&
+                        (stp->Base.info.outputs_written &
+                         (VARYING_SLOT_COL0 |
+                          VARYING_SLOT_COL1 |
+                          VARYING_SLOT_BFC0 |
+                          VARYING_SLOT_BFC1));
+   }
+
+   return st_get_basic_variant(st, pipe_shader, stp, &key)->driver_shader;
 }
 
 

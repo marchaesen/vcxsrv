@@ -119,12 +119,12 @@ Specifies the shape of the source cursor.
 Specifies the character glyph for the source.
 .IP \fIsource_font\fP 1i
 Specifies the font for the source glyph.
-.ds Xy , which indicate the hotspot relative to the source's origin
 .IP \fIx\fP 1i
 .br
 .ns
 .IP \fIy\fP 1i
-Specify the x and y coordinates\*(Xy.
+Specify the x and y coordinates, which indicate the 
+hotspot relative to the source's origin.
 .SH DESCRIPTION
 X provides a set of standard cursor shapes in a special font named
 cursor.

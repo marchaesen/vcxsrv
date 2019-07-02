@@ -981,8 +981,7 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
           for (iMonitor = 1; ; iMonitor++)
             {
               struct GetMonitorInfoData data;
-              QueryMonitor(iMonitor, &data);
-              if (data.bMonitorSpecifiedExists)
+              if (QueryMonitor(iMonitor, &data))
                 {
                   MONITORINFO mi;
                   mi.cbSize = sizeof(MONITORINFO);

@@ -121,7 +121,7 @@ or
 .ZN KeyRelease
 event.
 .IP \fIkeysym\fP 1i
-Specifies the KeySym that is to be \*(Fn.
+Specifies the KeySym that is to be returned.
 .IP \fIkeysym_return\fP 1i
 Returns the KeySym computed from the event if this argument is not NULL.
 .IP \fIlist\fP 1i

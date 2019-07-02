@@ -58,6 +58,15 @@ debug_describe_resource(char* buf, const struct pipe_resource *ptr)
    case PIPE_TEXTURE_3D:
       util_sprintf(buf, "pipe_texture3d<%u,%u,%u,%s,%u>", ptr->width0, ptr->height0, ptr->depth0, util_format_short_name(ptr->format), ptr->last_level);
       break;
+   case PIPE_TEXTURE_1D_ARRAY:
+      util_sprintf(buf, "pipe_texture_1darray<%u,%u,%s,%u>", ptr->width0, ptr->array_size, util_format_short_name(ptr->format), ptr->last_level);
+      break;
+   case PIPE_TEXTURE_2D_ARRAY:
+      util_sprintf(buf, "pipe_texture_2darray<%u,%u,%u,%s,%u>", ptr->width0, ptr->height0, ptr->array_size, util_format_short_name(ptr->format), ptr->last_level);
+      break;
+   case PIPE_TEXTURE_CUBE_ARRAY:
+      util_sprintf(buf, "pipe_texture_cubearray<%u,%u,%u,%s,%u>", ptr->width0, ptr->height0, ptr->array_size, util_format_short_name(ptr->format), ptr->last_level);
+      break;
    default:
       util_sprintf(buf, "pipe_martian_resource<%u>", ptr->target);
       break;

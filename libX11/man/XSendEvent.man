@@ -109,12 +109,11 @@ Specify the time interval in which the events are returned from the motion
 history buffer.
 You can pass a timestamp or
 .ZN CurrentTime .
-.ds Wi the window the event is to be sent to,
 .ZN PointerWindow ,
 or
 .ZN InputFocus .
 .IP \fIw\fP 1i
-Specifies the window \*(Wi.
+Specifies the window the window the event is to be sent to.
 .SH DESCRIPTION
 The
 .ZN XSendEvent

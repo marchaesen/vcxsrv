@@ -228,12 +228,6 @@ option(
   description : 'Enable GLVND support.'
 )
 option(
-  'asm',
-  type : 'boolean',
-  value : true,
-  description : 'Build assembly code if possible'
-)
-option(
    'glx-read-only-text',
    type : 'boolean',
    value : false,

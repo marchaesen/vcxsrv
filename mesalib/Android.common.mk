@@ -98,12 +98,14 @@ ifeq ($(filter 5 6 7 8 9, $(MESA_ANDROID_MAJOR_VERSION)),)
 LOCAL_CFLAGS += -DHAVE_TIMESPEC_GET
 endif
 
-ifeq ($(strip $(MESA_ENABLE_ASM)),true)
+# Android's libc began supporting shm in Oreo
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 26 && echo true),true)
+LOCAL_CFLAGS += -DHAVE_SYS_SHM_H
+endif
+
 ifeq ($(TARGET_ARCH),x86)
 LOCAL_CFLAGS += \
 	-DUSE_X86_ASM
-
-endif
 endif
 ifeq ($(ARCH_ARM_HAVE_NEON),true)
 LOCAL_CFLAGS_arm += -DUSE_ARM_ASM

@@ -180,6 +180,11 @@ loop_unroll_visitor::simple_unroll(ir_loop *ir, int iterations)
    void *const mem_ctx = ralloc_parent(ir);
    loop_variable_state *const ls = this->state->get(ir);
 
+   /* If there are no terminators, then the loop iteration count must be 1.
+    * This is the 'do { } while (false);' case.
+    */
+   assert(!ls->terminators.is_empty() || iterations == 1);
+
    ir_instruction *first_ir =
       (ir_instruction *) ir->body_instructions.get_head();
 
@@ -221,7 +226,8 @@ loop_unroll_visitor::simple_unroll(ir_loop *ir, int iterations)
     * the loop, or it the exit branch contains instructions. This ensures we
     * execute any instructions before the terminator or in its exit branch.
     */
-   if (limit_if != first_ir->as_if() || exit_branch_has_instructions)
+   if (!ls->terminators.is_empty() &&
+       (limit_if != first_ir->as_if() || exit_branch_has_instructions))
       iterations++;
 
    for (int i = 0; i < iterations; i++) {

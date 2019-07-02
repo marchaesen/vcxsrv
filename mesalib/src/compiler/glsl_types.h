@@ -91,20 +91,55 @@ enum glsl_base_type {
    GLSL_TYPE_ERROR
 };
 
+/* Return the bit size of a type. Note that this differs from 
+ * glsl_get_bit_size in that it returns 32 bits for bools, whereas at
+ * the NIR level we would want to return 1 bit for bools.
+ */
+static unsigned glsl_base_type_bit_size(enum glsl_base_type type)
+{
+   switch (type) {
+   case GLSL_TYPE_BOOL:
+   case GLSL_TYPE_INT:
+   case GLSL_TYPE_UINT:
+   case GLSL_TYPE_FLOAT: /* TODO handle mediump */
+   case GLSL_TYPE_SUBROUTINE:
+      return 32;
+
+   case GLSL_TYPE_FLOAT16:
+   case GLSL_TYPE_UINT16:
+   case GLSL_TYPE_INT16:
+      return 16;
+
+   case GLSL_TYPE_UINT8:
+   case GLSL_TYPE_INT8:
+      return 8;
+
+   case GLSL_TYPE_DOUBLE:
+   case GLSL_TYPE_INT64:
+   case GLSL_TYPE_UINT64:
+   case GLSL_TYPE_IMAGE:
+   case GLSL_TYPE_SAMPLER:
+      return 64;
+
+   default:
+      /* For GLSL_TYPE_STRUCT etc, it should be ok to return 0. This usually
+       * happens when calling this method through is_64bit and is_16bit
+       * methods
+       */
+      return 0;
+   }
+
+   return 0;
+}
+
 static inline bool glsl_base_type_is_16bit(enum glsl_base_type type)
 {
-   return type == GLSL_TYPE_FLOAT16 ||
-          type == GLSL_TYPE_UINT16 ||
-          type == GLSL_TYPE_INT16;
+   return glsl_base_type_bit_size(type) == 16;
 }
 
 static inline bool glsl_base_type_is_64bit(enum glsl_base_type type)
 {
-   return type == GLSL_TYPE_DOUBLE ||
-          type == GLSL_TYPE_UINT64 ||
-          type == GLSL_TYPE_INT64  ||
-          type == GLSL_TYPE_IMAGE  ||
-          type == GLSL_TYPE_SAMPLER;
+   return glsl_base_type_bit_size(type) == 64;
 }
 
 static inline bool glsl_base_type_is_integer(enum glsl_base_type type)
@@ -509,6 +544,19 @@ public:
    unsigned cl_size() const;
 
    /**
+    * Size in bytes of this type based on its explicit data.
+    *
+    * When using SPIR-V shaders (ARB_gl_spirv), memory layouts are expressed
+    * through explicit offset, stride and matrix layout, so the size
+    * can/should be computed used those values.
+    *
+    * Note that the value returned by this method is only correct if such
+    * values are set, so only with SPIR-V shaders. Should not be used with
+    * GLSL shaders.
+    */
+   unsigned explicit_size(bool align_to_stride=false) const;
+
+   /**
     * \brief Can this type be implicitly converted to another?
     *
     * \return True if the types are identical or if this type can be converted
@@ -827,6 +875,15 @@ public:
       }
       return size;
    }
+
+   /**
+    * Return bit size for this type.
+    */
+   unsigned bit_size() const
+   {
+      return glsl_base_type_bit_size(this->base_type);
+   }
+
 
    /**
     * Query whether or not a type is an atomic_uint.

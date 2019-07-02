@@ -100,9 +100,8 @@ Status XInternalConnectionNumbers\^(\^Display *\fIdisplay\fP\^, int
 .SH ARGUMENTS
 .IP \fIclient_data\fP 1i
 Specifies the additional client data.
-.ds Cn file descriptors
 .IP \fIcount_return\fP 1i
-Returns the number of \*(Cn.
+Returns the number of file descriptors.
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fIfd\fP 1i

@@ -191,8 +191,8 @@
 #define KEY_BSlash2      /* \           _         0xcb  */  203
 
 #define KEY_Mute         /* Audio Mute                  */  152
-#define KEY_AudioLower   /* Audio Lower                 */  168
-#define KEY_AudioRaise   /* Audio Raise                 */  166
+#define KEY_AudioLower   /* Audio Lower                 */  166
+#define KEY_AudioRaise   /* Audio Raise                 */  168
 
 #define KEY_NEXTSONG     /* Media next                  */  145
 #define KEY_PLAYPAUSE    /* Media play/pause toggle     */  154

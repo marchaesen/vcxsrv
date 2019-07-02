@@ -102,10 +102,8 @@ Status XcmsQueryWhite\^(\^XcmsCCC \fIccc\fP\^, XcmsColorFormat
 Specifies the CCC.
 Note that the CCC's Client White Point and White Point Adjustment procedures
 are ignored.
-.ds Cs
 .IP \fIcolor_return\fP 1i
-Returns the color specification in the specified target format
-for \*(Cs.
+Returns the color specification in the specified target format.
 The white point associated with the returned
 color specification is the Screen White Point.
 The value returned in the pixel member is undefined.

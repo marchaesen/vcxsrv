@@ -39,6 +39,7 @@ get_block_array_index(nir_builder *b, nir_deref_instr *deref,
     * blocks later on as well as an optional dynamic index which gets added
     * to the block index later.
     */
+   int binding = 0;
    const char *block_name = "";
    nir_ssa_def *nonconst_index = NULL;
    while (deref->deref_type == nir_deref_type_array) {
@@ -53,6 +54,8 @@ get_block_array_index(nir_builder *b, nir_deref_instr *deref,
          /* We're walking the deref from the tail so prepend the array index */
          block_name = ralloc_asprintf(b->shader, "[%u]%s", arr_index,
                                       block_name);
+
+         binding += arr_index * array_elements;
       } else {
          nir_ssa_def *arr_index = nir_ssa_for_src(b, deref->arr.index, 1);
          arr_index = nir_umin(b, arr_index, nir_imm_int(b, arr_size - 1));
@@ -71,6 +74,7 @@ get_block_array_index(nir_builder *b, nir_deref_instr *deref,
    }
 
    assert(deref->deref_type == nir_deref_type_var);
+   binding += deref->var->data.binding;
    block_name = ralloc_asprintf(b->shader, "%s%s",
                                 glsl_get_type_name(deref->var->interface_type),
                                 block_name);
@@ -89,8 +93,12 @@ get_block_array_index(nir_builder *b, nir_deref_instr *deref,
       blocks = linked_shader->Program->sh.ShaderStorageBlocks;
    }
 
+   /* Block names are optional with ARB_gl_spirv so use the binding instead. */
+   bool use_bindings = shader_program->data->spirv;
+
    for (unsigned i = 0; i < num_blocks; i++) {
-      if (strcmp(block_name, blocks[i]->Name) == 0) {
+      if (( use_bindings && binding == blocks[i]->Binding) ||
+          (!use_bindings && strcmp(block_name, blocks[i]->Name) == 0)) {
          if (nonconst_index)
             return nir_iadd_imm(b, nonconst_index, i);
          else
@@ -98,7 +106,15 @@ get_block_array_index(nir_builder *b, nir_deref_instr *deref,
       }
    }
 
-   unreachable("Failed to find the block by name");
+   /* TODO: Investigate if we could change the code to assign Bindings to the
+    * blocks that were not explicitly assigned, so we can always compare
+    * bindings.
+    */
+
+   if (use_bindings)
+      unreachable("Failed to find the block by binding");
+   else
+      unreachable("Failed to find the block by name");
 }
 
 static void
@@ -122,16 +138,23 @@ get_block_index_offset(nir_variable *var,
       blocks = linked_shader->Program->sh.ShaderStorageBlocks;
    }
 
-   const char *block_name = glsl_get_type_name(var->interface_type);
+   /* Block names are optional with ARB_gl_spirv so use the binding instead. */
+   bool use_bindings = shader_program->data->spirv;
+
    for (unsigned i = 0; i < num_blocks; i++) {
-      if (strcmp(block_name, blocks[i]->Name) == 0) {
+      const char *block_name = glsl_get_type_name(var->interface_type);
+      if (( use_bindings && blocks[i]->Binding == var->data.binding) ||
+          (!use_bindings && strcmp(block_name, blocks[i]->Name) == 0)) {
          *index = i;
          *offset = blocks[i]->Uniforms[var->data.location].Offset;
          return;
       }
    }
 
-   unreachable("Failed to find the block by name");
+   if (use_bindings)
+      unreachable("Failed to find the block by binding");
+   else
+      unreachable("Failed to find the block by name");
 }
 
 static bool

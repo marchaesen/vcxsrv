@@ -96,10 +96,9 @@ int \fIbuffer\fP\^);
 .HP
 int XRotateBuffers\^(\^Display *\fIdisplay\fP\^, int \fIrotate\fP\^); 
 .SH ARGUMENTS
-.ds Fn in which you want to store the bytes \
-or from which you want the stored data returned
 .IP \fIbuffer\fP 1i
-Specifies the buffer \*(Fn.
+Specifies the buffer in which you want to store the bytes 
+or from which you want the stored data returned.
 .IP \fIbytes\fP 1i
 Specifies the bytes, which are not necessarily ASCII or null-terminated.
 .IP \fIdisplay\fP 1i

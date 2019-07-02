@@ -135,6 +135,7 @@ files_libnir = files(
   'nir_lower_idiv.c',
   'nir_lower_indirect_derefs.c',
   'nir_lower_int64.c',
+  'nir_lower_interpolation.c',
   'nir_lower_int_to_float.c',
   'nir_lower_io.c',
   'nir_lower_io_arrays_to_elements.c',

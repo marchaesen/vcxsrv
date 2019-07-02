@@ -25,7 +25,8 @@
 
 #ifdef USE_SSE_ASM
 #include "assyntax.h"
-#include "matypes.h"
+#define MATH_ASM_PTR_SIZE 4
+#include "math/m_vector_asm.h"
 #include "xform_args.h"
 
 	SEG_TEXT

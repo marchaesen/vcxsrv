@@ -81,10 +81,12 @@ env_var_as_boolean(const char *var_name, bool default_value)
 
    if (strcmp(str, "1") == 0 ||
        strcasecmp(str, "true") == 0 ||
+       strcasecmp(str, "y") == 0 ||
        strcasecmp(str, "yes") == 0) {
       return true;
    } else if (strcmp(str, "0") == 0 ||
               strcasecmp(str, "false") == 0 ||
+              strcasecmp(str, "n") == 0 ||
               strcasecmp(str, "no") == 0) {
       return false;
    } else {

@@ -2124,6 +2124,74 @@ glsl_type::std430_array_stride(bool row_major) const
    return stride;
 }
 
+/* Note that the value returned by this method is only correct if the
+ * explit offset, and stride values are set, so only with SPIR-V shaders.
+ * Should not be used with GLSL shaders.
+ */
+
+unsigned
+glsl_type::explicit_size(bool align_to_stride) const
+{
+   if (this->is_struct() || this->is_interface()) {
+      if (this->length > 0) {
+         unsigned size = 0;
+
+         for (unsigned i = 0; i < this->length; i++) {
+            assert(this->fields.structure[i].offset >= 0);
+            unsigned last_byte = this->fields.structure[i].offset +
+               this->fields.structure[i].type->explicit_size();
+            size = MAX2(size, last_byte);
+         }
+
+         return size;
+      } else {
+         return 0;
+      }
+   } else if (this->is_array()) {
+      /* From ARB_program_interface_query spec:
+       *
+       *   "For the property of BUFFER_DATA_SIZE, then the implementation-dependent
+       *   minimum total buffer object size, in basic machine units, required to
+       *   hold all active variables associated with an active uniform block, shader
+       *   storage block, or atomic counter buffer is written to <params>.  If the
+       *   final member of an active shader storage block is array with no declared
+       *   size, the minimum buffer size is computed assuming the array was declared
+       *   as an array with one element."
+       *
+       */
+      if (this->is_unsized_array())
+         return this->explicit_stride;
+
+      assert(this->length > 0);
+      unsigned elem_size = align_to_stride ? this->explicit_stride : this->fields.array->explicit_size();
+      assert(this->explicit_stride >= elem_size);
+
+      return this->explicit_stride * (this->length - 1) + elem_size;
+   } else if (this->is_matrix()) {
+      const struct glsl_type *elem_type;
+      unsigned length;
+
+      if (this->interface_row_major) {
+         elem_type = get_instance(this->base_type,
+                                  this->matrix_columns, 1);
+         length = this->vector_elements;
+      } else {
+         elem_type = get_instance(this->base_type,
+                                  this->vector_elements, 1);
+         length = this->matrix_columns;
+      }
+
+      unsigned elem_size = align_to_stride ? this->explicit_stride : elem_type->explicit_size();
+
+      assert(this->explicit_stride);
+      return this->explicit_stride * (length - 1) + elem_size;
+   }
+
+   unsigned N = this->bit_size() / 8;
+
+   return this->vector_elements * N;
+}
+
 unsigned
 glsl_type::std430_size(bool row_major) const
 {

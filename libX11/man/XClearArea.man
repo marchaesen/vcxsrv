@@ -97,19 +97,18 @@ Specifies a Boolean value that indicates if
 events are to be generated.
 .IP \fIw\fP 1i
 Specifies the window.
-.ds Wh , which are the dimensions of the rectangle
 .IP \fIwidth\fP 1i
 .br
 .ns
 .IP \fIheight\fP 1i
-Specify the width and height\*(Wh.
-.ds Xy , which are relative to the origin of the window \
-and specify the upper-left corner of the rectangle
+Specify the width and height, which are the dimensions of the rectangle.
+.ds Xy 
 .IP \fIx\fP 1i
 .br
 .ns
 .IP \fIy\fP 1i
-Specify the x and y coordinates\*(Xy.
+Specify the x and y coordinates, which are relative to the origin of the window 
+and specify the upper-left corner of the rectangle.
 .SH DESCRIPTION
 The
 .ZN XClearArea

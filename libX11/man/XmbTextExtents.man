@@ -102,11 +102,10 @@ Specifies the font set.
 Specifies the number of bytes in the string argument.
 .IP \fInum_wchars\fP 1i
 Specifies the number of characters in the string argument.
-.ds Ov dimensions
 .IP \fIoverall_ink_return\fP 1i
-Returns the overall ink \*(Ov.
+Returns the overall ink dimensions.
 .IP \fIoverall_logical_return\fP 1i
-Returns the overall logical \*(Ov.
+Returns the overall logical dimensions.
 .IP \fIstring\fP 1i
 Specifies the character string.
 .SH DESCRIPTION

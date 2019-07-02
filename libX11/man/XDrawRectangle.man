@@ -100,18 +100,16 @@ Specifies the GC.
 Specifies the number of rectangles in the array.
 .IP \fIrectangles\fP 1i
 Specifies an array of rectangles.
-.ds Wh , which specify the dimensions of the rectangle
 .IP \fIwidth\fP 1i
 .br
 .ns
 .IP \fIheight\fP 1i
-Specify the width and height\*(Wh.
-.ds Xy , which specify the upper-left corner of the rectangle
+Specify the width and height, which specify the dimensions of the rectangle.
 .IP \fIx\fP 1i
 .br
 .ns
 .IP \fIy\fP 1i
-Specify the x and y coordinates\*(Xy.
+Specify the x and y coordinates, which specify the upper-left corner of the rectangle.
 .SH DESCRIPTION
 The
 .ZN XDrawRectangle

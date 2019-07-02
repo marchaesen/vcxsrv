@@ -1012,8 +1012,8 @@ static void radv_query_shader(struct radv_cmd_buffer *cmd_buffer,
 				      VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(push_constants),
 				      &push_constants);
 
-	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_INV_GLOBAL_L2 |
-	                                RADV_CMD_FLAG_INV_VMEM_L1;
+	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_INV_L2 |
+	                                RADV_CMD_FLAG_INV_VCACHE;
 
 	if (flags & VK_QUERY_RESULT_WAIT_BIT)
 		cmd_buffer->state.flush_bits |= RADV_CMD_FLUSH_AND_INV_FRAMEBUFFER;
@@ -1639,8 +1639,8 @@ static void emit_end_query(struct radv_cmd_buffer *cmd_buffer,
 
 	cmd_buffer->active_query_flush_bits |= RADV_CMD_FLAG_PS_PARTIAL_FLUSH |
 					       RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
-					       RADV_CMD_FLAG_INV_GLOBAL_L2 |
-					       RADV_CMD_FLAG_INV_VMEM_L1;
+					       RADV_CMD_FLAG_INV_L2 |
+					       RADV_CMD_FLAG_INV_VCACHE;
 	if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9) {
 		cmd_buffer->active_query_flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
 						       RADV_CMD_FLAG_FLUSH_AND_INV_DB;

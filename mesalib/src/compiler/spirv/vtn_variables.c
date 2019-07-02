@@ -2143,6 +2143,19 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
       var->var->interface_type = NULL;
       break;
 
+   case vtn_variable_mode_ubo:
+   case vtn_variable_mode_ssbo:
+      var->var = rzalloc(b->shader, nir_variable);
+      var->var->name = ralloc_strdup(var->var, val->name);
+
+      var->var->type = var->type->type;
+      var->var->interface_type = var->type->type;
+
+      var->var->data.mode = nir_mode;
+      var->var->data.location = -1;
+
+      break;
+
    case vtn_variable_mode_workgroup:
       if (b->options->lower_workgroup_access_to_offsets) {
          var->shared_location = -1;
@@ -2255,8 +2268,6 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
       break;
    }
 
-   case vtn_variable_mode_ubo:
-   case vtn_variable_mode_ssbo:
    case vtn_variable_mode_push_constant:
    case vtn_variable_mode_cross_workgroup:
       /* These don't need actual variables. */
@@ -2281,7 +2292,9 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
       assign_missing_member_locations(var);
    }
 
-   if (var->mode == vtn_variable_mode_uniform) {
+   if (var->mode == vtn_variable_mode_uniform ||
+       var->mode == vtn_variable_mode_ubo ||
+       var->mode == vtn_variable_mode_ssbo) {
       /* XXX: We still need the binding information in the nir_variable
        * for these. We should fix that.
        */

@@ -106,13 +106,12 @@ int XShrinkRegion\^(\^Region \fIr\fP\^, int \fIdx\fP\^, int \fIdy\fP\^);
 Returns the destination region.
 .IP \fIdr_return\fP 1i
 Returns the result of the computation.
-ds Dy move or shrink
 .IP \fIdx\fP 1i
 .br
 .ns
 .IP \fIdy\fP 1i
 Specify the x and y coordinates,
-which define the amount you want to \*(Dy the specified region.
+which define the amount you want to move or shrink the specified region.
 .IP \fIr\fP 1i
 Specifies the region.
 .IP \fIrectangle\fP 1i

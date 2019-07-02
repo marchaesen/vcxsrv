@@ -668,11 +668,13 @@ util_copy_image_view(struct pipe_image_view *dst,
       pipe_resource_reference(&dst->resource, src->resource);
       dst->format = src->format;
       dst->access = src->access;
+      dst->shader_access = src->shader_access;
       dst->u = src->u;
    } else {
       pipe_resource_reference(&dst->resource, NULL);
       dst->format = PIPE_FORMAT_NONE;
       dst->access = 0;
+      dst->shader_access = 0;
       memset(&dst->u, 0, sizeof(dst->u));
    }
 }

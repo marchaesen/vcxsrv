@@ -39,7 +39,11 @@
 #define MY_EM_AMDGPU 224
 
 #ifndef STT_AMDGPU_LDS
-#define STT_AMDGPU_LDS 13
+#define STT_AMDGPU_LDS 13 // this is deprecated -- remove
+#endif
+
+#ifndef SHN_AMDGPU_LDS
+#define SHN_AMDGPU_LDS 0xff00
 #endif
 
 #ifndef R_AMDGPU_NONE
@@ -176,10 +180,17 @@ static bool read_private_lds_symbols(struct ac_rtld_binary *binary,
 				     Elf_Scn *section,
 				     uint32_t *lds_end_align)
 {
-#define report_elf_if(cond) \
+#define report_if(cond) \
 	do { \
 		if ((cond)) { \
 			report_errorf(#cond); \
+			return false; \
+		} \
+	} while (false)
+#define report_elf_if(cond) \
+	do { \
+		if ((cond)) { \
+			report_elf_errorf(#cond); \
 			return false; \
 		} \
 	} while (false)
@@ -194,15 +205,21 @@ static bool read_private_lds_symbols(struct ac_rtld_binary *binary,
 	size_t num_symbols = symbols_data->d_size / sizeof(Elf64_Sym);
 
 	for (size_t j = 0; j < num_symbols; ++j, ++symbol) {
-		if (ELF64_ST_TYPE(symbol->st_info) != STT_AMDGPU_LDS)
+		struct ac_rtld_symbol s = {};
+
+		if (ELF64_ST_TYPE(symbol->st_info) == STT_AMDGPU_LDS) {
+			/* old-style LDS symbols from initial prototype -- remove eventually */
+			s.align = MIN2(1u << (symbol->st_other >> 3), 1u << 16);
+		} else if (symbol->st_shndx == SHN_AMDGPU_LDS) {
+			s.align = MIN2(symbol->st_value, 1u << 16);
+			report_if(!util_is_power_of_two_nonzero(s.align));
+		} else
 			continue;
 
-		report_elf_if(symbol->st_size > 1u << 29);
+		report_if(symbol->st_size > 1u << 29);
 
-		struct ac_rtld_symbol s = {};
 		s.name = elf_strptr(part->elf, strtabidx, symbol->st_name);
 		s.size = symbol->st_size;
-		s.align = MIN2(1u << (symbol->st_other >> 3), 1u << 16);
 		s.part_idx = part_idx;
 
 		if (!strcmp(s.name, "__lds_end")) {
@@ -224,6 +241,7 @@ static bool read_private_lds_symbols(struct ac_rtld_binary *binary,
 
 	return true;
 
+#undef report_if
 #undef report_elf_if
 }
 
@@ -522,7 +540,9 @@ static bool resolve_symbol(const struct ac_rtld_upload_info *u,
 			   unsigned part_idx, const Elf64_Sym *sym,
 			   const char *name, uint64_t *value)
 {
-	if (sym->st_shndx == SHN_UNDEF) {
+	/* TODO: properly disentangle the undef and the LDS cases once
+	 * STT_AMDGPU_LDS is retired. */
+	if (sym->st_shndx == SHN_UNDEF || sym->st_shndx == SHN_AMDGPU_LDS) {
 		const struct ac_rtld_symbol *lds_sym =
 			find_symbol(&u->binary->lds_symbols, name, part_idx);
 

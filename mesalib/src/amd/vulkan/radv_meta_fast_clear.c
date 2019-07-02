@@ -807,63 +807,71 @@ radv_decompress_dcc_compute(struct radv_cmd_buffer *cmd_buffer,
 	                     device->meta_state.fast_clear_flush.dcc_decompress_compute_pipeline);
 
 	for (uint32_t l = 0; l < radv_get_levelCount(image, subresourceRange); l++) {
+		uint32_t width, height;
 
 		/* Do not decompress levels without DCC. */
 		if (!radv_dcc_enabled(image, subresourceRange->baseMipLevel + l))
 			continue;
 
-		radv_image_view_init(&iview, cmd_buffer->device,
-				     &(VkImageViewCreateInfo) {
-					     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-						     .image = radv_image_to_handle(image),
-						     .viewType = VK_IMAGE_VIEW_TYPE_2D,
-						     .format = image->vk_format,
-						     .subresourceRange = {
-							.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-							.baseMipLevel = subresourceRange->baseMipLevel + l,
-							.levelCount = 1,
-							.baseArrayLayer = 0,
-							.layerCount = 1
-						     },
-				     });
+		width = radv_minify(image->info.width,
+				    subresourceRange->baseMipLevel + l);
+		height = radv_minify(image->info.height,
+				    subresourceRange->baseMipLevel + l);
 
-		radv_meta_push_descriptor_set(cmd_buffer,
-					      VK_PIPELINE_BIND_POINT_COMPUTE,
-					      device->meta_state.fast_clear_flush.dcc_decompress_compute_p_layout,
-					      0, /* set */
-					      2, /* descriptorWriteCount */
-					      (VkWriteDescriptorSet[]) {
-				              {
-					                       .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-					                       .dstBinding = 0,
-					                       .dstArrayElement = 0,
-					                       .descriptorCount = 1,
-					                       .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-					                       .pImageInfo = (VkDescriptorImageInfo[]) {
-					                               {
-					                                       .sampler = VK_NULL_HANDLE,
-					                                       .imageView = radv_image_view_to_handle(&iview),
-					                                       .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
-					                               },
-					                       }
-					              },
+		for (uint32_t s = 0; s < radv_get_layerCount(image, subresourceRange); s++) {
+			radv_image_view_init(&iview, cmd_buffer->device,
+					     &(VkImageViewCreateInfo) {
+						     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+							     .image = radv_image_to_handle(image),
+							     .viewType = VK_IMAGE_VIEW_TYPE_2D,
+							     .format = image->vk_format,
+							     .subresourceRange = {
+								.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+								.baseMipLevel = subresourceRange->baseMipLevel + l,
+								.levelCount = 1,
+								.baseArrayLayer = subresourceRange->baseArrayLayer + s,
+								.layerCount = 1
+							     },
+					     });
+
+			radv_meta_push_descriptor_set(cmd_buffer,
+						      VK_PIPELINE_BIND_POINT_COMPUTE,
+						      device->meta_state.fast_clear_flush.dcc_decompress_compute_p_layout,
+						      0, /* set */
+						      2, /* descriptorWriteCount */
+						      (VkWriteDescriptorSet[]) {
 					              {
-					                       .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-					                       .dstBinding = 1,
-					                       .dstArrayElement = 0,
-					                       .descriptorCount = 1,
-					                       .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-					                       .pImageInfo = (VkDescriptorImageInfo[]) {
-					                               {
-					                                       .sampler = VK_NULL_HANDLE,
-					                                       .imageView = radv_image_view_to_handle(&iview),
-					                                       .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
-					                               },
-					                       }
-					              }
-					      });
+						                       .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+						                       .dstBinding = 0,
+						                       .dstArrayElement = 0,
+						                       .descriptorCount = 1,
+						                       .descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+						                       .pImageInfo = (VkDescriptorImageInfo[]) {
+						                               {
+						                                       .sampler = VK_NULL_HANDLE,
+						                                       .imageView = radv_image_view_to_handle(&iview),
+						                                       .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+						                               },
+						                       }
+						              },
+						              {
+						                       .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+						                       .dstBinding = 1,
+						                       .dstArrayElement = 0,
+						                       .descriptorCount = 1,
+						                       .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+						                       .pImageInfo = (VkDescriptorImageInfo[]) {
+						                               {
+						                                       .sampler = VK_NULL_HANDLE,
+						                                       .imageView = radv_image_view_to_handle(&iview),
+						                                       .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+						                               },
+						                       }
+						              }
+						      });
 
-		radv_unaligned_dispatch(cmd_buffer, image->info.width, image->info.height, 1);
+			radv_unaligned_dispatch(cmd_buffer, width, height, 1);
+		}
 	}
 
 	/* Mark this image as actually being decompressed. */
@@ -873,7 +881,7 @@ radv_decompress_dcc_compute(struct radv_cmd_buffer *cmd_buffer,
 	radv_meta_restore(&saved_state, cmd_buffer);
 
 	state->flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
-			     RADV_CMD_FLAG_INV_VMEM_L1;
+			     RADV_CMD_FLAG_INV_VCACHE;
 
 
 	/* Initialize the DCC metadata as "fully expanded". */

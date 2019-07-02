@@ -371,6 +371,8 @@ radv_physical_device_init(struct radv_physical_device *device,
 				       (device->rad_info.chip_class >= GFX8 &&
 				        device->rad_info.me_fw_feature >= 41);
 
+	device->has_dcc_constant_encode = device->rad_info.family == CHIP_RAVEN2;
+
 	device->use_shader_ballot = device->instance->perftest_flags & RADV_PERFTEST_SHADER_BALLOT;
 
 	radv_physical_device_init_mem_types(device);
@@ -1381,6 +1383,27 @@ void radv_GetPhysicalDeviceProperties2(
 			properties->sampleLocationCoordinateRange[1] = 0.9375f;
 			properties->sampleLocationSubPixelBits = 4;
 			properties->variableSampleLocations = VK_FALSE;
+			break;
+		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_STENCIL_RESOLVE_PROPERTIES_KHR: {
+			VkPhysicalDeviceDepthStencilResolvePropertiesKHR *properties =
+				(VkPhysicalDeviceDepthStencilResolvePropertiesKHR *)ext;
+
+			/* We support all of the depth resolve modes */
+			properties->supportedDepthResolveModes =
+				VK_RESOLVE_MODE_SAMPLE_ZERO_BIT_KHR |
+				VK_RESOLVE_MODE_AVERAGE_BIT_KHR |
+				VK_RESOLVE_MODE_MIN_BIT_KHR |
+				VK_RESOLVE_MODE_MAX_BIT_KHR;
+
+			/* Average doesn't make sense for stencil so we don't support that */
+			properties->supportedStencilResolveModes =
+				VK_RESOLVE_MODE_SAMPLE_ZERO_BIT_KHR |
+				VK_RESOLVE_MODE_MIN_BIT_KHR |
+				VK_RESOLVE_MODE_MAX_BIT_KHR;
+
+			properties->independentResolveNone = VK_TRUE;
+			properties->independentResolve = VK_TRUE;
 			break;
 		}
 		default:
@@ -2681,9 +2704,9 @@ radv_get_preamble_cs(struct radv_queue *queue,
 			                         queue->device->physical_device->rad_info.chip_class >= GFX7,
 			                       (queue->queue_family_index == RADV_QUEUE_COMPUTE ? RADV_CMD_FLAG_CS_PARTIAL_FLUSH : (RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_PS_PARTIAL_FLUSH)) |
 			                       RADV_CMD_FLAG_INV_ICACHE |
-			                       RADV_CMD_FLAG_INV_SMEM_L1 |
-			                       RADV_CMD_FLAG_INV_VMEM_L1 |
-			                       RADV_CMD_FLAG_INV_GLOBAL_L2 |
+			                       RADV_CMD_FLAG_INV_SCACHE |
+			                       RADV_CMD_FLAG_INV_VCACHE |
+			                       RADV_CMD_FLAG_INV_L2 |
 					       RADV_CMD_FLAG_START_PIPELINE_STATS, 0);
 		} else if (i == 1) {
 			si_cs_emit_cache_flush(cs,
@@ -2692,9 +2715,9 @@ radv_get_preamble_cs(struct radv_queue *queue,
 			                       queue->queue_family_index == RING_COMPUTE &&
 			                         queue->device->physical_device->rad_info.chip_class >= GFX7,
 			                       RADV_CMD_FLAG_INV_ICACHE |
-			                       RADV_CMD_FLAG_INV_SMEM_L1 |
-			                       RADV_CMD_FLAG_INV_VMEM_L1 |
-			                       RADV_CMD_FLAG_INV_GLOBAL_L2 |
+			                       RADV_CMD_FLAG_INV_SCACHE |
+			                       RADV_CMD_FLAG_INV_VCACHE |
+			                       RADV_CMD_FLAG_INV_L2 |
 					       RADV_CMD_FLAG_START_PIPELINE_STATS, 0);
 		}
 

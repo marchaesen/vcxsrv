@@ -377,6 +377,24 @@ handle_rounding_mode(struct vtn_builder *b, struct vtn_value *val, int member,
    }
 }
 
+static void
+handle_no_wrap(struct vtn_builder *b, struct vtn_value *val, int member,
+               const struct vtn_decoration *dec, void *_alu)
+{
+   nir_alu_instr *alu = _alu;
+   switch (dec->decoration) {
+   case SpvDecorationNoSignedWrap:
+      alu->no_signed_wrap = true;
+      break;
+   case SpvDecorationNoUnsignedWrap:
+      alu->no_unsigned_wrap = true;
+      break;
+   default:
+      /* Do nothing. */
+      break;
+   }
+}
+
 void
 vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
                const uint32_t *w, unsigned count)
@@ -649,6 +667,21 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
       val->ssa->def = nir_build_alu(&b->nb, op, src[0], src[1], src[2], src[3]);
       break;
    } /* default */
+   }
+
+   switch (opcode) {
+   case SpvOpIAdd:
+   case SpvOpIMul:
+   case SpvOpISub:
+   case SpvOpShiftLeftLogical:
+   case SpvOpSNegate: {
+      nir_alu_instr *alu = nir_instr_as_alu(val->ssa->def->parent_instr);
+      vtn_foreach_decoration(b, val, handle_no_wrap, alu);
+      break;
+   }
+   default:
+      /* Do nothing. */
+      break;
    }
 
    b->nb.exact = b->exact;

@@ -108,25 +108,22 @@ This mask is the bitwise inclusive OR of the valid configure window values bits.
 Specifies the 
 .ZN XWindowChanges 
 structure.
-.ds Wi to be reconfigured, moved, or resized.
 .IP \fIw\fP 1i
-Specifies the window \*(Wi.
+Specifies the window to be reconfigured, moved, or resized..
 .IP \fIwidth\fP 1i
 Specifies the width of the window border.
-.ds Wh , which are the interior dimensions of the window
 .IP \fIwidth\fP 1i
 .br
 .ns
 .IP \fIheight\fP 1i
-Specify the width and height\*(Wh.
-.ds Xy , which define the new location of the top-left pixel \
-of the window's border or the window itself if it has no border \
-or define the new position of the window relative to its parent
+Specify the width and height, which are the interior dimensions of the window.
 .IP \fIx\fP 1i
 .br
 .ns
 .IP \fIy\fP 1i
-Specify the x and y coordinates\*(Xy.
+Specify the x and y coordinates, which define the new location of the top-left pixel 
+of the window's border or the window itself if it has no border 
+or define the new position of the window relative to its parent.
 .SH DESCRIPTION
 The
 .ZN XConfigureWindow

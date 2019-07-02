@@ -319,6 +319,9 @@ struct radv_physical_device {
 	/* Whether to enable the AMD_shader_ballot extension */
 	bool use_shader_ballot;
 
+	/* Whether DISABLE_CONSTANT_ENCODE_REG is supported. */
+	bool has_dcc_constant_encode;
+
 	/* This is the drivers on-disk cache used as a fallback as opposed to
 	 * the pipeline cache defined by apps.
 	 */
@@ -577,6 +580,19 @@ struct radv_meta_state {
 			VkPipeline                                i_pipeline;
 			VkPipeline                                srgb_pipeline;
 		} rc[MAX_SAMPLES_LOG2];
+
+		VkPipeline depth_zero_pipeline;
+		struct {
+			VkPipeline average_pipeline;
+			VkPipeline max_pipeline;
+			VkPipeline min_pipeline;
+		} depth[MAX_SAMPLES_LOG2];
+
+		VkPipeline stencil_zero_pipeline;
+		struct {
+			VkPipeline max_pipeline;
+			VkPipeline min_pipeline;
+		} stencil[MAX_SAMPLES_LOG2];
 	} resolve_compute;
 
 	struct {
@@ -587,6 +603,21 @@ struct radv_meta_state {
 			VkRenderPass render_pass[NUM_META_FS_KEYS][RADV_META_DST_LAYOUT_COUNT];
 			VkPipeline   pipeline[NUM_META_FS_KEYS];
 		} rc[MAX_SAMPLES_LOG2];
+
+		VkRenderPass depth_render_pass;
+		VkPipeline depth_zero_pipeline;
+		struct {
+			VkPipeline average_pipeline;
+			VkPipeline max_pipeline;
+			VkPipeline min_pipeline;
+		} depth[MAX_SAMPLES_LOG2];
+
+		VkRenderPass stencil_render_pass;
+		VkPipeline stencil_zero_pipeline;
+		struct {
+			VkPipeline max_pipeline;
+			VkPipeline min_pipeline;
+		} stencil[MAX_SAMPLES_LOG2];
 	} resolve_fragment;
 
 	struct {
@@ -883,29 +914,33 @@ enum radv_cmd_dirty_bits {
 };
 
 enum radv_cmd_flush_bits {
-	RADV_CMD_FLAG_INV_ICACHE = 1 << 0,
-	/* SMEM L1, other names: KCACHE, constant cache, DCACHE, data cache */
-	RADV_CMD_FLAG_INV_SMEM_L1 = 1 << 1,
-	/* VMEM L1 can optionally be bypassed (GLC=1). Other names: TC L1 */
-	RADV_CMD_FLAG_INV_VMEM_L1 = 1 << 2,
-	/* Used by everything except CB/DB, can be bypassed (SLC=1). Other names: TC L2 */
-	RADV_CMD_FLAG_INV_GLOBAL_L2 = 1 << 3,
-	/* Same as above, but only writes back and doesn't invalidate */
-	RADV_CMD_FLAG_WRITEBACK_GLOBAL_L2 = 1 << 4,
+	/* Instruction cache. */
+	RADV_CMD_FLAG_INV_ICACHE			 = 1 << 0,
+	/* Scalar L1 cache. */
+	RADV_CMD_FLAG_INV_SCACHE			 = 1 << 1,
+	/* Vector L1 cache. */
+	RADV_CMD_FLAG_INV_VCACHE			 = 1 << 2,
+	/* L2 cache + L2 metadata cache writeback & invalidate.
+	 * GFX6-8: Used by shaders only. GFX9-10: Used by everything. */
+	RADV_CMD_FLAG_INV_L2				 = 1 << 3,
+	/* L2 writeback (write dirty L2 lines to memory for non-L2 clients).
+	 * Only used for coherency with non-L2 clients like CB, DB, CP on GFX6-8.
+	 * GFX6-7 will do complete invalidation, because the writeback is unsupported. */
+	RADV_CMD_FLAG_WB_L2				 = 1 << 4,
 	/* Framebuffer caches */
-	RADV_CMD_FLAG_FLUSH_AND_INV_CB_META = 1 << 5,
-	RADV_CMD_FLAG_FLUSH_AND_INV_DB_META = 1 << 6,
-	RADV_CMD_FLAG_FLUSH_AND_INV_DB = 1 << 7,
-	RADV_CMD_FLAG_FLUSH_AND_INV_CB = 1 << 8,
+	RADV_CMD_FLAG_FLUSH_AND_INV_CB_META		 = 1 << 5,
+	RADV_CMD_FLAG_FLUSH_AND_INV_DB_META		 = 1 << 6,
+	RADV_CMD_FLAG_FLUSH_AND_INV_DB			 = 1 << 7,
+	RADV_CMD_FLAG_FLUSH_AND_INV_CB			 = 1 << 8,
 	/* Engine synchronization. */
-	RADV_CMD_FLAG_VS_PARTIAL_FLUSH = 1 << 9,
-	RADV_CMD_FLAG_PS_PARTIAL_FLUSH = 1 << 10,
-	RADV_CMD_FLAG_CS_PARTIAL_FLUSH = 1 << 11,
-	RADV_CMD_FLAG_VGT_FLUSH        = 1 << 12,
+	RADV_CMD_FLAG_VS_PARTIAL_FLUSH			 = 1 << 9,
+	RADV_CMD_FLAG_PS_PARTIAL_FLUSH			 = 1 << 10,
+	RADV_CMD_FLAG_CS_PARTIAL_FLUSH			 = 1 << 11,
+	RADV_CMD_FLAG_VGT_FLUSH				 = 1 << 12,
 	/* Pipeline query controls. */
-	RADV_CMD_FLAG_START_PIPELINE_STATS = 1 << 13,
-	RADV_CMD_FLAG_STOP_PIPELINE_STATS  = 1 << 14,
-	RADV_CMD_FLAG_VGT_STREAMOUT_SYNC   = 1 << 15,
+	RADV_CMD_FLAG_START_PIPELINE_STATS		 = 1 << 13,
+	RADV_CMD_FLAG_STOP_PIPELINE_STATS		 = 1 << 14,
+	RADV_CMD_FLAG_VGT_STREAMOUT_SYNC		 = 1 << 15,
 
 	RADV_CMD_FLUSH_AND_INV_FRAMEBUFFER = (RADV_CMD_FLAG_FLUSH_AND_INV_CB |
 					      RADV_CMD_FLAG_FLUSH_AND_INV_CB_META |
@@ -1241,7 +1276,13 @@ radv_cmd_buffer_upload_data(struct radv_cmd_buffer *cmd_buffer,
 void radv_cmd_buffer_clear_subpass(struct radv_cmd_buffer *cmd_buffer);
 void radv_cmd_buffer_resolve_subpass(struct radv_cmd_buffer *cmd_buffer);
 void radv_cmd_buffer_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer);
+void radv_depth_stencil_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer,
+					   VkImageAspectFlags aspects,
+					   VkResolveModeFlagBitsKHR resolve_mode);
 void radv_cmd_buffer_resolve_subpass_fs(struct radv_cmd_buffer *cmd_buffer);
+void radv_depth_stencil_resolve_subpass_fs(struct radv_cmd_buffer *cmd_buffer,
+					   VkImageAspectFlags aspects,
+					   VkResolveModeFlagBitsKHR resolve_mode);
 void radv_emit_default_sample_locations(struct radeon_cmdbuf *cs, int nr_samples);
 unsigned radv_get_default_max_sample_dist(int log_samples);
 void radv_device_init_msaa(struct radv_device *device);
@@ -1521,6 +1562,7 @@ struct radv_fmask_info {
 	unsigned slice_tile_max;
 	unsigned tile_mode_index;
 	unsigned tile_swizzle;
+	uint64_t slice_size;
 };
 
 struct radv_cmask_info {
@@ -1528,6 +1570,7 @@ struct radv_cmask_info {
 	uint64_t size;
 	unsigned alignment;
 	unsigned slice_tile_max;
+	unsigned slice_size;
 };
 
 
@@ -1953,9 +1996,12 @@ struct radv_subpass {
 	struct radv_subpass_attachment *             color_attachments;
 	struct radv_subpass_attachment *             resolve_attachments;
 	struct radv_subpass_attachment *             depth_stencil_attachment;
+	struct radv_subpass_attachment *             ds_resolve_attachment;
+	VkResolveModeFlagBitsKHR                     depth_resolve_mode;
+	VkResolveModeFlagBitsKHR                     stencil_resolve_mode;
 
-	/** Subpass has at least one resolve attachment */
-	bool                                         has_resolve;
+	/** Subpass has at least one color resolve attachment */
+	bool                                         has_color_resolve;
 
 	/** Subpass has at least one color attachment */
 	bool                                         has_color_att;
@@ -1965,6 +2011,9 @@ struct radv_subpass {
 	uint32_t                                     view_mask;
 	VkSampleCountFlagBits                        max_sample_count;
 };
+
+uint32_t
+radv_get_subpass_id(struct radv_cmd_buffer *cmd_buffer);
 
 struct radv_render_pass_attachment {
 	VkFormat                                     format;
@@ -2041,7 +2090,8 @@ void radv_initialize_dcc(struct radv_cmd_buffer *cmd_buffer,
 			 const VkImageSubresourceRange *range, uint32_t value);
 
 void radv_initialize_fmask(struct radv_cmd_buffer *cmd_buffer,
-			   struct radv_image *image);
+			   struct radv_image *image,
+			   const VkImageSubresourceRange *range);
 
 struct radv_fence {
 	struct radeon_winsys_fence *fence;

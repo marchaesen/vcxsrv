@@ -133,20 +133,19 @@ A visual of
 .ZN CopyFromParent 
 means the visual type is taken from the 
 parent.
-.ds Wh , which are the created window's inside dimensions \
-and do not include the created window's borders
 .IP \fIwidth\fP 1i
 .br
 .ns
 .IP \fIheight\fP 1i
-Specify the width and height\*(Wh.
-.ds Xy , which are the top-left outside corner of the window's \
-borders and are relative to the inside of the parent window's borders
+Specify the width and height, which are the created window's inside dimensions 
+and do not include the created window's borders.
 .IP \fIx\fP 1i
 .br
 .ns
 .IP \fIy\fP 1i
-Specify the x and y coordinates\*(Xy.
+Specify the x and y coordinates, which are the top-left outside 
+corner of the window's 
+borders and are relative to the inside of the parent window's borders.
 .SH DESCRIPTION
 The
 .ZN XCreateWindow

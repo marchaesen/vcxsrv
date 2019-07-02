@@ -20,7 +20,6 @@
 
 LOCAL_PATH := $(call my-dir)
 
-include $(LOCAL_PATH)/Android.mesa_gen_matypes.mk
 include $(LOCAL_PATH)/Android.libmesa_glsl_utils.mk
 include $(LOCAL_PATH)/Android.libmesa_dricore.mk
 include $(LOCAL_PATH)/Android.libmesa_st_mesa.mk

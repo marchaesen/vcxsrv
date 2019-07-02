@@ -415,8 +415,8 @@ uint32_t radv_fill_buffer(struct radv_cmd_buffer *cmd_buffer,
 	if (size >= RADV_BUFFER_OPS_CS_THRESHOLD) {
 		fill_buffer_shader(cmd_buffer, bo, offset, size, value);
 		flush_bits = RADV_CMD_FLAG_CS_PARTIAL_FLUSH |
-			     RADV_CMD_FLAG_INV_VMEM_L1 |
-			     RADV_CMD_FLAG_WRITEBACK_GLOBAL_L2;
+			     RADV_CMD_FLAG_INV_VCACHE |
+			     RADV_CMD_FLAG_WB_L2;
 	} else if (size) {
 		uint64_t va = radv_buffer_get_va(bo);
 		va += offset;

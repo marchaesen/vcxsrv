@@ -108,9 +108,8 @@ char *\fIdata\fP\^, unsigned int \fIwidth\fP, unsigned int \fIheight\fP\^);
 Specifies the bitmap.
 .IP \fIbitmap_return\fP 1i
 Returns the bitmap that is created.
-.ds Dr \ that indicates the screen
 .IP \fId\fP 1i
-Specifies the drawable\*(Dr. 
+Specifies the drawable that indicates the screen. 
 .IP \fIdata\fP 1i
 Specifies the data in bitmap format.
 .IP \fIdata\fP 1i

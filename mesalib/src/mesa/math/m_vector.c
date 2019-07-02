@@ -79,6 +79,13 @@ static const GLubyte size_bits[5] = {
 void
 _mesa_vector4f_init( GLvector4f *v, GLbitfield flags, GLfloat (*storage)[4] )
 {
+   STATIC_ASSERT(V4F_DATA == offsetof(GLvector4f, data));
+   STATIC_ASSERT(V4F_START == offsetof(GLvector4f, start));
+   STATIC_ASSERT(V4F_COUNT == offsetof(GLvector4f, count));
+   STATIC_ASSERT(V4F_STRIDE == offsetof(GLvector4f, stride));
+   STATIC_ASSERT(V4F_SIZE == offsetof(GLvector4f, size));
+   STATIC_ASSERT(V4F_FLAGS == offsetof(GLvector4f, flags));
+
    v->stride = 4 * sizeof(GLfloat);
    v->size = 2;   /* may change: 2-4 for vertices and 1-4 for texcoords */
    v->data = storage;

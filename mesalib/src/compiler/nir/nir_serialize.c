@@ -379,8 +379,10 @@ write_alu(write_ctx *ctx, const nir_alu_instr *alu)
 {
    blob_write_uint32(ctx->blob, alu->op);
    uint32_t flags = alu->exact;
-   flags |= alu->dest.saturate << 1;
-   flags |= alu->dest.write_mask << 2;
+   flags |= alu->no_signed_wrap << 1;
+   flags |= alu->no_unsigned_wrap << 2;
+   flags |= alu->dest.saturate << 3;
+   flags |= alu->dest.write_mask << 4;
    blob_write_uint32(ctx->blob, flags);
 
    write_dest(ctx, &alu->dest.dest);
@@ -403,8 +405,10 @@ read_alu(read_ctx *ctx)
 
    uint32_t flags = blob_read_uint32(ctx->blob);
    alu->exact = flags & 1;
-   alu->dest.saturate = flags & 2;
-   alu->dest.write_mask = flags >> 2;
+   alu->no_signed_wrap = flags & 2;
+   alu->no_unsigned_wrap = flags & 4;
+   alu->dest.saturate = flags & 8;
+   alu->dest.write_mask = flags >> 4;
 
    read_dest(ctx, &alu->dest.dest, &alu->instr);
 

@@ -92,9 +92,8 @@ unsigned int \fImodifiers\fP\^, Window \fIgrab_window\fP\^, Bool
 int XUngrabButton\^(\^Display *\fIdisplay\fP\^, unsigned int \fIbutton\fP\^,
 unsigned int \fImodifiers\fP\^, Window \fIgrab_window\fP\^); 
 .SH ARGUMENTS
-.ds Bu grabbed or released
 .IP \fIbutton\fP 1i
-Specifies the pointer button that is to be \*(Bu or
+Specifies the pointer button that is to be grabbed or released or
 .ZN AnyButton .
 .IP \fIconfine_to\fP 1i
 Specifies the window to confine the pointer in or

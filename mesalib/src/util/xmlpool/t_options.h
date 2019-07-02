@@ -35,8 +35,8 @@
  * all the translations. The result (options.h) is included by
  * xmlpool.h which in turn can be included by drivers.
  *
- * The macros used to describe otions in this file are defined in
- * ../xmlpool.h.
+ * The macros used to describe options in this file are defined in
+ * src/util/xmlpool.h.
  */
 
 /* This is needed for xgettext to extract translatable strings.

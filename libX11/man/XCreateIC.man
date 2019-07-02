@@ -93,9 +93,8 @@ XIM XIMOfIC\^(\^XIC \fIic\fP\^);
 Specifies the input context.
 .IP \fIim\fP 1i
 Specifies the input method.
-.ds Al \ to set XIC values
 .IP ... 1i
-Specifies the variable length argument list\*(Al.
+Specifies the variable length argument list to set XIC values.
 .SH DESCRIPTION
 The
 .ZN XCreateIC 

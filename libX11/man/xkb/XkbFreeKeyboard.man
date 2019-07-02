@@ -60,3 +60,13 @@ and then frees the
 .I xkb 
 structure itself.
 
+If kbd is NULL, no operation is performed.
+
+.SH "SEE ALSO"
+.BR XkbFreeClientMap (__libmansuffix__),
+.BR XkbFreeServerMap (__libmansuffix__),
+.BR XkbFreeCompatMap (__libmansuffix__),
+.BR XkbFreeIndicatorMaps (__libmansuffix__),
+.BR XkbFreeNames (__libmansuffix__),
+.BR XkbFreeGeometry (__libmansuffix__),
+.BR XkbFreeControls (__libmansuffix__)

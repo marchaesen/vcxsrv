@@ -306,6 +306,11 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 			list_add(&baryf->node, &last_input->node);
 
 			last_input = baryf;
+
+			/* by definition, we need (ss) since we are inserting
+			 * the dummy bary.f immediately after the ldlv:
+			 */
+			last_input_needs_ss = true;
 		}
 		last_input->regs[0]->flags |= IR3_REG_EI;
 		if (last_input_needs_ss)
@@ -425,7 +430,7 @@ resolve_jump(struct ir3_instruction *instr)
 	else
 		next_block = 1;
 
-	if ((!target) || (target->ip == (instr->ip + next_block))) {
+	if (target->ip == (instr->ip + next_block)) {
 		list_delinit(&instr->node);
 		return true;
 	} else {

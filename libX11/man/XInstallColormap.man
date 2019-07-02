@@ -97,9 +97,8 @@ Specifies the colormap.
 Specifies the connection to the X server.
 .IP \fInum_return\fP 1i
 Returns the number of currently installed colormaps.
-.ds Wi that determines the screen
 .IP \fIw\fP 1i
-Specifies the window \*(Wi.
+Specifies the window that determines the screen.
 .SH DESCRIPTION
 The
 .ZN XInstallColormap

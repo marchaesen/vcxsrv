@@ -503,7 +503,13 @@ radv_descriptor_set_create(struct radv_device *device,
 	}
 
 	set->layout = layout;
-	uint32_t layout_size = align_u32(layout->size, 32);
+	uint32_t layout_size = layout->size;
+	if (variable_count) {
+		assert(layout->has_variable_descriptors);
+		layout_size = layout->binding[layout->binding_count - 1].offset +
+		              *variable_count * layout->binding[layout->binding_count - 1].size;
+	}
+	layout_size = align_u32(layout_size, 32);
 	if (layout_size) {
 		set->size = layout_size;
 

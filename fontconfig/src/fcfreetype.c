@@ -1546,7 +1546,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 		    lang = FcSfntNameLanguage (&sname);
 
 		    if (FcDebug () & FC_DBG_SCANV)
-			printf ("%s\n", utf8);
+			printf ("%s\n", utf8 ? (char *)utf8 : "(null)");
 
 		    if (!utf8)
 			continue;

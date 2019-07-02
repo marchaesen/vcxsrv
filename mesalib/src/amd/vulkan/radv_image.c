@@ -171,12 +171,12 @@ radv_use_dcc_for_image(struct radv_device *device,
 		return false;
 
 	/* TODO: Enable DCC for mipmaps on GFX9+. */
-	if (pCreateInfo->mipLevels > 1 &&
+	if ((pCreateInfo->arrayLayers > 1 || pCreateInfo->mipLevels > 1) &&
 	    device->physical_device->rad_info.chip_class >= GFX9)
 		return false;
 
-	/* TODO: Enable DCC for array layers. */
-	if (pCreateInfo->arrayLayers > 1)
+	/* Do not enable DCC for mipmapped arrays because performance is worse. */
+	if (pCreateInfo->arrayLayers > 1 && pCreateInfo->mipLevels > 1)
 		return false;
 
 	if (radv_surface_has_scanout(device, create_info))
@@ -907,6 +907,7 @@ radv_image_get_fmask_info(struct radv_device *device,
 	out->slice_tile_max = image->planes[0].surface.u.legacy.fmask.slice_tile_max;
 	out->tile_mode_index = image->planes[0].surface.u.legacy.fmask.tiling_index;
 	out->pitch_in_pixels = image->planes[0].surface.u.legacy.fmask.pitch_in_pixels;
+	out->slice_size = image->planes[0].surface.u.legacy.fmask.slice_size;
 	out->bank_height = image->planes[0].surface.u.legacy.fmask.bankh;
 	out->tile_swizzle = image->planes[0].surface.fmask_tile_swizzle;
 	out->alignment = image->planes[0].surface.fmask_alignment;
@@ -941,6 +942,7 @@ radv_image_get_cmask_info(struct radv_device *device,
 
 	out->slice_tile_max = image->planes[0].surface.u.legacy.cmask_slice_tile_max;
 	out->alignment = image->planes[0].surface.cmask_alignment;
+	out->slice_size = image->planes[0].surface.cmask_slice_size;
 	out->size = image->planes[0].surface.cmask_size;
 }
 
@@ -1012,10 +1014,28 @@ radv_image_can_enable_dcc_or_cmask(struct radv_image *image)
 }
 
 static inline bool
-radv_image_can_enable_dcc(struct radv_image *image)
+radv_image_can_enable_dcc(struct radv_device *device, struct radv_image *image)
 {
-	return radv_image_can_enable_dcc_or_cmask(image) &&
-	       radv_image_has_dcc(image);
+	if (!radv_image_can_enable_dcc_or_cmask(image) ||
+	    !radv_image_has_dcc(image))
+		return false;
+
+	/* On GFX8, DCC layers can be interleaved and it's currently only
+	 * enabled if slice size is equal to the per slice fast clear size
+	 * because the driver assumes that portions of multiple layers are
+	 * contiguous during fast clears.
+	 */
+	if (image->info.array_size > 1) {
+		const struct legacy_surf_level *surf_level =
+			&image->planes[0].surface.u.legacy.level[0];
+
+		assert(device->physical_device->rad_info.chip_class == GFX8);
+
+		if (image->planes[0].surface.dcc_slice_size != surf_level->dcc_fast_clear_size)
+			return false;
+	}
+
+	return true;
 }
 
 static inline bool
@@ -1145,7 +1165,7 @@ radv_image_create(VkDevice _device,
 
 	if (!create_info->no_metadata_planes) {
 		/* Try to enable DCC first. */
-		if (radv_image_can_enable_dcc(image)) {
+		if (radv_image_can_enable_dcc(device, image)) {
 			radv_image_alloc_dcc(image);
 			if (image->info.samples > 1) {
 				/* CMASK should be enabled because DCC fast

@@ -33,8 +33,9 @@ static uint32_t
 hash_src(uint32_t hash, const nir_src *src)
 {
    assert(src->is_ssa);
+   void *hash_data = nir_src_is_const(*src) ? NULL : src->ssa;
 
-   return HASH(hash, src->ssa);
+   return HASH(hash, hash_data);
 }
 
 static uint32_t
@@ -79,7 +80,8 @@ srcs_equal(const nir_src *src1, const nir_src *src2)
    assert(src1->is_ssa);
    assert(src2->is_ssa);
 
-   return src1->ssa == src2->ssa;
+   return src1->ssa == src2->ssa ||
+      nir_src_is_const(*src1) == nir_src_is_const(*src2);
 }
 
 static bool
@@ -185,6 +187,27 @@ instr_try_combine(nir_instr *instr1, nir_instr *instr2)
    new_alu->dest.write_mask = (1 << total_components) - 1;
 
    for (unsigned i = 0; i < nir_op_infos[alu1->op].num_inputs; i++) {
+      /* handle constant merging case */
+      if (alu1->src[i].src.ssa != alu2->src[i].src.ssa) {
+         nir_const_value *c1 = nir_src_as_const_value(alu1->src[i].src);
+         nir_const_value *c2 = nir_src_as_const_value(alu2->src[i].src);
+         assert(c1 && c2);
+         nir_const_value value[4];
+         unsigned bit_size = alu1->src[i].src.ssa->bit_size;
+
+         for (unsigned j = 0; j < total_components; j++) {
+            value[j].u64 = j < alu1_components ?
+                              c1[alu1->src[i].swizzle[j]].u64 :
+                              c2[alu2->src[i].swizzle[j - alu1_components]].u64;
+         }
+         nir_ssa_def *def = nir_build_imm(&b, total_components, bit_size, value);
+
+         new_alu->src[i].src = nir_src_for_ssa(def);
+         for (unsigned j = 0; j < total_components; j++)
+            new_alu->src[i].swizzle[j] = j;
+         continue;
+      }
+
       new_alu->src[i].src = alu1->src[i].src;
 
       for (unsigned j = 0; j < alu1_components; j++)

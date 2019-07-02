@@ -144,9 +144,8 @@ int VendorRelease\^(\^Display *\fIdisplay\fP\^)
 Specifies the connection to the X server.
 .IP \fIscreen_number\fP 1i
 Specifies the appropriate screen number on the host server.
-.ds Cn depths
 .IP \fIcount_return\fP 1i
-Returns the number of \*(Cn.
+Returns the number of depths.
 .SH DESCRIPTION
 The
 .ZN AllPlanes

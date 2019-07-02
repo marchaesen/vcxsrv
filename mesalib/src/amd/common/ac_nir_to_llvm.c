@@ -429,60 +429,30 @@ static LLVMValueRef emit_imul_high(struct ac_llvm_context *ctx,
 	return result;
 }
 
-static LLVMValueRef emit_bitfield_extract(struct ac_llvm_context *ctx,
-					  bool is_signed,
-					  const LLVMValueRef srcs[3])
+static LLVMValueRef emit_bfm(struct ac_llvm_context *ctx,
+			     LLVMValueRef bits, LLVMValueRef offset)
 {
-	LLVMValueRef result;
-
-	if (HAVE_LLVM >= 0x0800) {
-		LLVMValueRef icond = LLVMBuildICmp(ctx->builder, LLVMIntEQ, srcs[2], LLVMConstInt(ctx->i32, 32, false), "");
-		result = ac_build_bfe(ctx, srcs[0], srcs[1], srcs[2], is_signed);
-		result = LLVMBuildSelect(ctx->builder, icond, srcs[0], result, "");
-	} else {
-		/* FIXME: LLVM 7+ returns incorrect result when count is 0.
-		 * https://bugs.freedesktop.org/show_bug.cgi?id=107276
-		 */
-		LLVMValueRef zero = ctx->i32_0;
-		LLVMValueRef icond1 = LLVMBuildICmp(ctx->builder, LLVMIntEQ, srcs[2], LLVMConstInt(ctx->i32, 32, false), "");
-		LLVMValueRef icond2 = LLVMBuildICmp(ctx->builder, LLVMIntEQ, srcs[2], zero, "");
-
-		result = ac_build_bfe(ctx, srcs[0], srcs[1], srcs[2], is_signed);
-		result = LLVMBuildSelect(ctx->builder, icond1, srcs[0], result, "");
-		result = LLVMBuildSelect(ctx->builder, icond2, zero, result, "");
-	}
-
-	return result;
+	/* mask = ((1 << bits) - 1) << offset */
+	return LLVMBuildShl(ctx->builder,
+			    LLVMBuildSub(ctx->builder,
+					 LLVMBuildShl(ctx->builder,
+						      ctx->i32_1,
+						      bits, ""),
+					 ctx->i32_1, ""),
+			    offset, "");
 }
 
-static LLVMValueRef emit_bitfield_insert(struct ac_llvm_context *ctx,
-					 LLVMValueRef src0, LLVMValueRef src1,
-					 LLVMValueRef src2, LLVMValueRef src3)
+static LLVMValueRef emit_bitfield_select(struct ac_llvm_context *ctx,
+					 LLVMValueRef mask, LLVMValueRef insert,
+					 LLVMValueRef base)
 {
-	LLVMValueRef bfi_args[3], result;
-
-	bfi_args[0] = LLVMBuildShl(ctx->builder,
-				   LLVMBuildSub(ctx->builder,
-						LLVMBuildShl(ctx->builder,
-							     ctx->i32_1,
-							     src3, ""),
-						ctx->i32_1, ""),
-				   src2, "");
-	bfi_args[1] = LLVMBuildShl(ctx->builder, src1, src2, "");
-	bfi_args[2] = src0;
-
-	LLVMValueRef icond = LLVMBuildICmp(ctx->builder, LLVMIntEQ, src3, LLVMConstInt(ctx->i32, 32, false), "");
-
 	/* Calculate:
-	 *   (arg0 & arg1) | (~arg0 & arg2) = arg2 ^ (arg0 & (arg1 ^ arg2)
+	 *   (mask & insert) | (~mask & base) = base ^ (mask & (insert ^ base))
 	 * Use the right-hand side, which the LLVM backend can convert to V_BFI.
 	 */
-	result = LLVMBuildXor(ctx->builder, bfi_args[2],
-			      LLVMBuildAnd(ctx->builder, bfi_args[0],
-					   LLVMBuildXor(ctx->builder, bfi_args[1], bfi_args[2], ""), ""), "");
-
-	result = LLVMBuildSelect(ctx->builder, icond, src1, result, "");
-	return result;
+	return LLVMBuildXor(ctx->builder, base,
+			    LLVMBuildAnd(ctx->builder, mask,
+					 LLVMBuildXor(ctx->builder, insert, base, ""), ""), "");
 }
 
 static LLVMValueRef emit_pack_half_2x16(struct ac_llvm_context *ctx,
@@ -835,14 +805,17 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		else
 			result = ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.ldexp.f64", ctx->ac.f64, src, 2, AC_FUNC_ATTR_READNONE);
 		break;
-	case nir_op_ibitfield_extract:
-		result = emit_bitfield_extract(&ctx->ac, true, src);
+	case nir_op_bfm:
+		result = emit_bfm(&ctx->ac, src[0], src[1]);
 		break;
-	case nir_op_ubitfield_extract:
-		result = emit_bitfield_extract(&ctx->ac, false, src);
+	case nir_op_bitfield_select:
+		result = emit_bitfield_select(&ctx->ac, src[0], src[1], src[2]);
 		break;
-	case nir_op_bitfield_insert:
-		result = emit_bitfield_insert(&ctx->ac, src[0], src[1], src[2], src[3]);
+	case nir_op_ubfe:
+		result = ac_build_bfe(&ctx->ac, src[0], src[1], src[2], false);
+		break;
+	case nir_op_ibfe:
+		result = ac_build_bfe(&ctx->ac, src[0], src[1], src[2], true);
 		break;
 	case nir_op_bitfield_reverse:
 		result = ac_build_bitfield_reverse(&ctx->ac, src[0]);

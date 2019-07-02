@@ -96,9 +96,8 @@ int IsPFKey\^(\^KeySym \fIkeysym\fP\^);
 .LP
 int IsPrivateKeypadKey\^(\^KeySym \fIkeysym\fP\^);
 .SH ARGUMENTS
-.ds Fn tested
 .IP \fIkeysym\fP 1i
-Specifies the KeySym that is to be \*(Fn.
+Specifies the KeySym that is to be tested.
 .SH DESCRIPTION
 The
 .ZN IsCursorKey

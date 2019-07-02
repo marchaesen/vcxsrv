@@ -30,3 +30,4 @@ cd _build
 meson configure
 ninja -j4
 LC_ALL=C.UTF-8 ninja test
+DESTDIR=$PWD/../install ninja install

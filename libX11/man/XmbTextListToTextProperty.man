@@ -130,9 +130,8 @@ Specifies the
 structure to be used.
 .IP \fIlist_return\fP 1i
 Returns a list of null-terminated character strings.
-.ds Cn strings
 .IP \fIcount_return\fP 1i
-Returns the number of \*(Cn.
+Returns the number of strings.
 .IP \fIlist\fP 1i
 Specifies the list of strings to be freed.
 .SH DESCRIPTION

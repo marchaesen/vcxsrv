@@ -283,6 +283,7 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_TGSI_BALLOT:
    case PIPE_CAP_TGSI_TES_LAYER_VIEWPORT:
    case PIPE_CAP_CAN_BIND_CONST_BUFFER_AS_VERTEX:
+   case PIPE_CAP_TGSI_DIV:
       return 0;
 
    case PIPE_CAP_ALLOW_MAPPED_BUFFERS_DURING_EXECUTION:

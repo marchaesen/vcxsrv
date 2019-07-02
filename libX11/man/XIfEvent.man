@@ -96,9 +96,8 @@ Bool (\^*\fIpredicate\fP\^)\^(\^)\^, XPointer \fIarg\fP\^);
 Specifies the user-supplied argument that will be passed to the predicate procedure.
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
-.ds Ev \ either a copy of or 
 .IP \fIevent_return\fP 1i
-Returns\*(Ev the matched event's associated structure.
+Returns either a copy of or the matched event's associated structure.
 .IP \fIpredicate\fP 1i
 Specifies the procedure that is to be called to determine
 if the next event in the queue matches what you want.

@@ -13,14 +13,14 @@ The rules-ng-ng source files this header was generated from are:
 - /home/robclark/src/envytools/rnndb/adreno/a2xx.xml          (  79608 bytes, from 2019-01-21 14:36:17)
 - /home/robclark/src/envytools/rnndb/adreno/adreno_common.xml (  14239 bytes, from 2018-12-05 15:25:53)
 - /home/robclark/src/envytools/rnndb/adreno/adreno_pm4.xml    (  43561 bytes, from 2019-06-10 13:39:33)
-- /home/robclark/src/envytools/rnndb/adreno/a3xx.xml          (  83840 bytes, from 2018-07-03 19:37:13)
+- /home/robclark/src/envytools/rnndb/adreno/a3xx.xml          (  84030 bytes, from 2019-07-01 13:05:23)
 - /home/robclark/src/envytools/rnndb/adreno/a4xx.xml          ( 112086 bytes, from 2018-07-03 19:37:13)
 - /home/robclark/src/envytools/rnndb/adreno/a5xx.xml          ( 147548 bytes, from 2019-06-10 13:39:33)
-- /home/robclark/src/envytools/rnndb/adreno/a6xx.xml          ( 152605 bytes, from 2019-06-11 15:59:35)
+- /home/robclark/src/envytools/rnndb/adreno/a6xx.xml          ( 152605 bytes, from 2019-07-01 13:13:03)
 - /home/robclark/src/envytools/rnndb/adreno/a6xx_gmu.xml      (  10431 bytes, from 2018-09-14 13:03:07)
 - /home/robclark/src/envytools/rnndb/adreno/ocmem.xml         (   1773 bytes, from 2018-07-03 19:37:13)
 
-Copyright (C) 2013-2018 by the following authors:
+Copyright (C) 2013-2019 by the following authors:
 - Rob Clark <robdclark@gmail.com> (robclark)
 - Ilia Mirkin <imirkin@alum.mit.edu> (imirkin)
 
@@ -48,7 +48,9 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 enum a3xx_tile_mode {
 	LINEAR = 0,
+	TILE_4X4 = 1,
 	TILE_32X32 = 2,
+	TILE_4X2 = 3,
 };
 
 enum a3xx_state_block_id {
@@ -3121,7 +3123,12 @@ static inline uint32_t A3XX_TEX_SAMP_1_MIN_LOD(float val)
 }
 
 #define REG_A3XX_TEX_CONST_0					0x00000000
-#define A3XX_TEX_CONST_0_TILED					0x00000001
+#define A3XX_TEX_CONST_0_TILE_MODE__MASK			0x00000003
+#define A3XX_TEX_CONST_0_TILE_MODE__SHIFT			0
+static inline uint32_t A3XX_TEX_CONST_0_TILE_MODE(enum a3xx_tile_mode val)
+{
+	return ((val) << A3XX_TEX_CONST_0_TILE_MODE__SHIFT) & A3XX_TEX_CONST_0_TILE_MODE__MASK;
+}
 #define A3XX_TEX_CONST_0_SRGB					0x00000004
 #define A3XX_TEX_CONST_0_SWIZ_X__MASK				0x00000070
 #define A3XX_TEX_CONST_0_SWIZ_X__SHIFT				4

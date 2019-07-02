@@ -243,8 +243,10 @@ ir3_shader_get_variant(struct ir3_shader *shader, struct ir3_shader_key *key,
 			shader_variant(shader, key, created);
 
 	if (v && binning_pass) {
-		if (!v->binning)
+		if (!v->binning) {
 			v->binning = create_variant(shader, key, true);
+			*created = true;
+		}
 		return v->binning;
 	}
 
@@ -290,7 +292,9 @@ ir3_shader_from_nir(struct ir3_compiler *compiler, nir_shader *nir)
 	NIR_PASS_V(nir, nir_lower_io_arrays_to_elements_no_indirects, false);
 
 	/* do first pass optimization, ignoring the key: */
-	shader->nir = ir3_optimize_nir(shader, nir, NULL);
+	ir3_optimize_nir(shader, nir, NULL);
+
+	shader->nir = nir;
 	if (ir3_shader_debug & IR3_DBG_DISASM) {
 		printf("dump nir%d: type=%d", shader->id, shader->type);
 		nir_print_shader(shader->nir, stdout);
@@ -415,9 +419,7 @@ ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
 			so->info.max_half_reg + 1,
 			so->info.max_reg + 1);
 
-	fprintf(out, "; %d const, %u constlen\n",
-			so->info.max_const + 1,
-			so->constlen);
+	fprintf(out, "; %u constlen\n", so->constlen);
 
 	fprintf(out, "; %u (ss), %u (sy)\n", so->info.ss, so->info.sy);
 
