@@ -342,20 +342,28 @@ static void radv_pick_resolve_method_images(struct radv_image *src_image,
 	                                                   cmd_buffer->queue_family_index,
 	                                                   cmd_buffer->queue_family_index);
 
-	if (src_format == VK_FORMAT_R16G16_UNORM ||
-	    src_format == VK_FORMAT_R16G16_SNORM)
-		*method = RESOLVE_COMPUTE;
-	else if (vk_format_is_int(src_format))
-		*method = RESOLVE_COMPUTE;
-	else if (src_image->info.array_size > 1 ||
-		 dest_image->info.array_size > 1)
-		*method = RESOLVE_COMPUTE;
+	if (vk_format_is_color(src_format)) {
+		if (src_format == VK_FORMAT_R16G16_UNORM ||
+		    src_format == VK_FORMAT_R16G16_SNORM)
+			*method = RESOLVE_COMPUTE;
+		else if (vk_format_is_int(src_format))
+			*method = RESOLVE_COMPUTE;
+		else if (src_image->info.array_size > 1 ||
+			 dest_image->info.array_size > 1)
+			*method = RESOLVE_COMPUTE;
 	
-	if (radv_layout_dcc_compressed(dest_image, dest_image_layout, queue_mask)) {
-		*method = RESOLVE_FRAGMENT;
-	} else if (dest_image->planes[0].surface.micro_tile_mode !=
-	           src_image->planes[0].surface.micro_tile_mode) {
-		*method = RESOLVE_COMPUTE;
+		if (radv_layout_dcc_compressed(dest_image, dest_image_layout, queue_mask)) {
+			*method = RESOLVE_FRAGMENT;
+		} else if (dest_image->planes[0].surface.micro_tile_mode !=
+		           src_image->planes[0].surface.micro_tile_mode) {
+			*method = RESOLVE_COMPUTE;
+		}
+	} else {
+		if (src_image->info.array_size > 1 ||
+		    dest_image->info.array_size > 1)
+			*method = RESOLVE_COMPUTE;
+		else
+			*method = RESOLVE_FRAGMENT;
 	}
 }
 
@@ -629,7 +637,51 @@ radv_cmd_buffer_resolve_subpass(struct radv_cmd_buffer *cmd_buffer)
 	struct radv_meta_saved_state saved_state;
 	enum radv_resolve_method resolve_method = RESOLVE_HW;
 
-	if (!subpass->has_resolve)
+	if (subpass->ds_resolve_attachment) {
+		struct radv_subpass_attachment src_att = *subpass->depth_stencil_attachment;
+		struct radv_subpass_attachment dst_att = *subpass->ds_resolve_attachment;
+		struct radv_image_view *src_iview =
+			cmd_buffer->state.framebuffer->attachments[src_att.attachment].attachment;
+		struct radv_image_view *dst_iview =
+			cmd_buffer->state.framebuffer->attachments[dst_att.attachment].attachment;
+
+		radv_pick_resolve_method_images(src_iview->image,
+						src_iview->vk_format,
+						dst_iview->image,
+						dst_att.layout,
+						cmd_buffer,
+						&resolve_method);
+
+		if ((src_iview->aspect_mask & VK_IMAGE_ASPECT_DEPTH_BIT) &&
+		    subpass->depth_resolve_mode != VK_RESOLVE_MODE_NONE_KHR) {
+			if (resolve_method == RESOLVE_FRAGMENT) {
+				radv_depth_stencil_resolve_subpass_fs(cmd_buffer,
+								      VK_IMAGE_ASPECT_DEPTH_BIT,
+								      subpass->depth_resolve_mode);
+			} else {
+				assert(resolve_method == RESOLVE_COMPUTE);
+				radv_depth_stencil_resolve_subpass_cs(cmd_buffer,
+								      VK_IMAGE_ASPECT_DEPTH_BIT,
+								      subpass->depth_resolve_mode);
+			}
+		}
+
+		if ((src_iview->aspect_mask & VK_IMAGE_ASPECT_STENCIL_BIT) &&
+		    subpass->stencil_resolve_mode != VK_RESOLVE_MODE_NONE_KHR) {
+			if (resolve_method == RESOLVE_FRAGMENT) {
+				radv_depth_stencil_resolve_subpass_fs(cmd_buffer,
+								      VK_IMAGE_ASPECT_STENCIL_BIT,
+								      subpass->stencil_resolve_mode);
+			} else {
+				assert(resolve_method == RESOLVE_COMPUTE);
+				radv_depth_stencil_resolve_subpass_cs(cmd_buffer,
+								      VK_IMAGE_ASPECT_STENCIL_BIT,
+								      subpass->stencil_resolve_mode);
+			}
+		}
+	}
+
+	if (!subpass->has_color_resolve)
 		return;
 
 	for (uint32_t i = 0; i < subpass->color_count; ++i) {
@@ -748,6 +800,36 @@ radv_decompress_resolve_subpass_src(struct radv_cmd_buffer *cmd_buffer)
 		radv_decompress_resolve_src(cmd_buffer, src_image,
 					    src_att.layout, 1, &region);
 	}
+
+	if (subpass->ds_resolve_attachment) {
+		struct radv_subpass_attachment src_att = *subpass->depth_stencil_attachment;
+		struct radv_image_view *src_iview =
+			fb->attachments[src_att.attachment].attachment;
+		struct radv_image *src_image = src_iview->image;
+
+		VkImageResolve region = {};
+		region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+		region.srcSubresource.mipLevel = 0;
+		region.srcSubresource.baseArrayLayer = src_iview->base_layer;
+		region.srcSubresource.layerCount = layer_count;
+
+		radv_decompress_resolve_src(cmd_buffer, src_image,
+					    src_att.layout, 1, &region);
+	}
+}
+
+static struct radv_sample_locations_state *
+radv_get_resolve_sample_locations(struct radv_cmd_buffer *cmd_buffer)
+{
+	struct radv_cmd_state *state = &cmd_buffer->state;
+	uint32_t subpass_id = radv_get_subpass_id(cmd_buffer);
+
+	for (uint32_t i = 0; i < state->num_subpass_sample_locs; i++) {
+		if (state->subpass_sample_locs[i].subpass_idx == subpass_id)
+			return &state->subpass_sample_locs[i].sample_location;
+	}
+
+	return NULL;
 }
 
 /**
@@ -773,12 +855,28 @@ radv_decompress_resolve_src(struct radv_cmd_buffer *cmd_buffer,
 		barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 		barrier.image = radv_image_to_handle(src_image);
 		barrier.subresourceRange = (VkImageSubresourceRange) {
-			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+			.aspectMask = region->srcSubresource.aspectMask,
 			.baseMipLevel = region->srcSubresource.mipLevel,
 			.levelCount = 1,
 			.baseArrayLayer = src_base_layer,
 			.layerCount = region->srcSubresource.layerCount,
 		};
+
+		if (src_image->flags & VK_IMAGE_CREATE_SAMPLE_LOCATIONS_COMPATIBLE_DEPTH_BIT_EXT) {
+			/* If the depth/stencil image uses different sample
+			 * locations, we need them during HTILE decompressions.
+			 */
+			struct radv_sample_locations_state *sample_locs =
+				radv_get_resolve_sample_locations(cmd_buffer);
+
+			barrier.pNext = &(VkSampleLocationsInfoEXT) {
+				.sType = VK_STRUCTURE_TYPE_SAMPLE_LOCATIONS_INFO_EXT,
+				.sampleLocationsPerPixel = sample_locs->per_pixel,
+				.sampleLocationGridSize = sample_locs->grid_size,
+				.sampleLocationsCount = sample_locs->count,
+				.pSampleLocations = sample_locs->locations,
+			};
+		}
 
 		radv_CmdPipelineBarrier(radv_cmd_buffer_to_handle(cmd_buffer),
 					VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,

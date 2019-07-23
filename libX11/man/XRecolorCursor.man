@@ -96,19 +96,17 @@ unsigned int \fIwidth\fP\^, unsigned int \fIheight\fP\^, unsigned int
 Specifies the RGB values for the background of the source.
 .IP \fIcursor\fP 1i
 Specifies the cursor. 
-.ds Dr , which indicates the screen
 .IP \fId\fP 1i
-Specifies the drawable\*(Dr. 
+Specifies the drawable, which indicates the screen. 
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fIforeground_color\fP 1i
 Specifies the RGB values for the foreground of the source. 
-.ds Wh  of the cursor that you want the size information for
 .IP \fIwidth\fP 1i
 .br
 .ns
 .IP \fIheight\fP 1i
-Specify the width and height\*(Wh.
+Specify the width and height of the cursor that you want the size information for.
 .IP \fIwidth_return\fP 1i
 .br
 .ns

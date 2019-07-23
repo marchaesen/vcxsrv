@@ -95,18 +95,17 @@ int *\fIwidth_return\fP\^, unsigned int *\fIheight_return\fP\^, unsigned int
 .SH ARGUMENTS
 .IP \fIborder_width_return\fP 1i
 Returns the border width in pixels. 
-.ds Dr , which can be a window or a pixmap
 .IP \fId\fP 1i
-Specifies the drawable\*(Dr. 
+Specifies the drawable, which can be a window or a pixmap. 
 .IP \fIdepth_return\fP 1i
 Returns the depth of the drawable (bits per pixel for the object).
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fIroot_return\fP 1i
 Returns the root window.
-.ds Wi whose current attributes you want to obtain
+.ds Wi 
 .IP \fIw\fP 1i
-Specifies the window \*(Wi.
+Specifies the window whose current attributes you want to obtain.
 .IP \fIwidth_return\fP 1i
 .br
 .ns

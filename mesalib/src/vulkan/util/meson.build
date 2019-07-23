@@ -51,8 +51,6 @@ idep_vulkan_util_headers = declare_dependency(
 )
 
 idep_vulkan_util = declare_dependency(
-  sources : vk_enum_to_str[1],
   link_with : libvulkan_util,
-  include_directories : include_directories('.'),
   dependencies : idep_vulkan_util_headers
 )

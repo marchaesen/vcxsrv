@@ -85,12 +85,10 @@ XFilterEvent \- filter X events for an input method
 .HP
 Bool XFilterEvent\^(\^XEvent *\fIevent\fP\^, Window \fIw\fP\^); 
 .SH ARGUMENTS
-.ds Ev event to filter
 .IP \fIevent\fP 1i
-Specifies the \*(Ev.
-.ds Wi for which the filter is to be applied
+Specifies the event to filter.
 .IP \fIw\fP 1i
-Specifies the window \*(Wi.
+Specifies the window for which the filter is to be applied.
 .SH DESCRIPTION
 If the window argument is
 .ZN None ,

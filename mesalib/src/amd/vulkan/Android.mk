@@ -68,7 +68,7 @@ $(call mesa-build-with-llvm)
 
 LOCAL_C_INCLUDES := \
 	$(RADV_COMMON_INCLUDES) \
-	$(call generated-sources-dir-for,STATIC_LIBRARIES,libmesa_amd_common,,) \
+	$(call generated-sources-dir-for,STATIC_LIBRARIES,libmesa_amd_common,,)/common \
 	$(call generated-sources-dir-for,STATIC_LIBRARIES,libmesa_nir,,)/nir \
 	$(call generated-sources-dir-for,STATIC_LIBRARIES,libmesa_radv_common,,) \
 	$(call generated-sources-dir-for,STATIC_LIBRARIES,libmesa_vulkan_util,,)/util \

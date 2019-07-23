@@ -351,6 +351,12 @@ _mesa_TextureSubImage1D(GLuint texture, GLint level, GLint xoffset,
                         const GLvoid *pixels);
 
 void GLAPIENTRY
+_mesa_TextureSubImage2DEXT(GLuint texture, GLenum target, GLint level,
+                           GLint xoffset, GLint yoffset, GLsizei width,
+                           GLsizei height, GLenum format, GLenum type,
+                           const GLvoid *pixels);
+
+void GLAPIENTRY
 _mesa_TextureSubImage2D_no_error(GLuint texture, GLint level, GLint xoffset,
                                  GLint yoffset, GLsizei width, GLsizei height,
                                  GLenum format, GLenum type,
@@ -525,6 +531,13 @@ extern void GLAPIENTRY
 _mesa_CompressedTextureSubImage1D(GLuint texture, GLint level, GLint xoffset,
                                   GLsizei width, GLenum format,
                                   GLsizei imageSize, const GLvoid *data);
+
+void GLAPIENTRY
+_mesa_CompressedTextureSubImage2DEXT(GLuint texture, GLenum target,
+                                     GLint level, GLint xoffset,
+                                     GLint yoffset, GLsizei width,
+                                     GLsizei height, GLenum format,
+                                     GLsizei imageSize, const GLvoid *data);
 
 extern void GLAPIENTRY
 _mesa_CompressedTexSubImage2D_no_error(GLenum target, GLint level,

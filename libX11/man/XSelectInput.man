@@ -90,9 +90,8 @@ int XSelectInput\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, long
 Specifies the connection to the X server.
 .IP \fIevent_mask\fP 1i
 Specifies the event mask.
-.ds Wi whose events you are interested in
 .IP \fIw\fP 1i
-Specifies the window \*(Wi.
+Specifies the window whose events you are interested in.
 .SH DESCRIPTION
 The
 .ZN XSelectInput

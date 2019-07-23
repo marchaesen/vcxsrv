@@ -754,7 +754,7 @@ DAMAGEPROTO="damageproto >= 1.1"
 XCMISCPROTO="xcmiscproto >= 1.2.0"
 BIGREQSPROTO="bigreqsproto >= 1.1.0"
 XTRANS="xtrans >= 1.3.5"
-PRESENTPROTO="presentproto >= 1.1"
+PRESENTPROTO="presentproto >= 1.2"
 
 dnl List of libraries that require a specific version
 LIBAPPLEWM="applewm >= 1.4"

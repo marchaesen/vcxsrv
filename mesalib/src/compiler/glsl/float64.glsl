@@ -1693,17 +1693,22 @@ __fround64(uint64_t __a)
 
    if (unbiasedExp < 20) {
       if (unbiasedExp < 0) {
+         if ((aHi & 0x80000000u) != 0u && aLo == 0u) {
+            return 0;
+         }
          aHi &= 0x80000000u;
-         if (unbiasedExp == -1 && aLo != 0u)
-            aHi |= (1023u << 20);
+         if ((a.y & 0x000FFFFFu) == 0u && a.x == 0u) {
+            aLo = 0u;
+            return packUint2x32(uvec2(aLo, aHi));
+         }
+         aHi = mix(aHi, (aHi | 0x3FF00000u), unbiasedExp == -1);
          aLo = 0u;
       } else {
          uint maskExp = 0x000FFFFFu >> unbiasedExp;
-         /* a is an integral value */
-         if (((aHi & maskExp) == 0u) && (aLo == 0u))
-            return __a;
-
+         uint lastBit = maskExp + 1;
          aHi += 0x00080000u >> unbiasedExp;
+         if ((aHi & maskExp) == 0u)
+            aHi &= ~lastBit;
          aHi &= ~maskExp;
          aLo = 0u;
       }
@@ -1720,9 +1725,7 @@ __fround64(uint64_t __a)
       aLo &= ~maskExp;
    }
 
-   a.x = aLo;
-   a.y = aHi;
-   return packUint2x32(a);
+   return packUint2x32(uvec2(aLo, aHi));
 }
 
 uint64_t

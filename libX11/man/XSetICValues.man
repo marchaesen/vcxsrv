@@ -89,9 +89,8 @@ char * XGetICValues\^(\^XIC \fIic\fP, ...\^);
 .SH ARGUMENTS
 .IP \fIic\fP 1i
 Specifies the input context.
-.ds Al \ to set or get XIC values
 .IP ... 1i
-Specifies the variable length argument list\*(Al.
+Specifies the variable length argument list to set or get XIC values.
 .SH DESCRIPTION
 The
 .ZN XSetICValues

@@ -30,7 +30,8 @@
  */
 
 #include "assyntax.h"
-#include "matypes.h"
+#define MATH_ASM_PTR_SIZE 4
+#include "math/m_vector_asm.h"
 #include "clip_args.h"
 
 #define SRC0		REGOFF(0, ESI)

@@ -54,8 +54,8 @@ static const nir_shader_compiler_options options = {
 		.lower_helper_invocation = true,
 		.lower_bitfield_insert_to_shifts = true,
 		.lower_bitfield_extract_to_shifts = true,
-		.lower_bfm = true,
 		.use_interpolated_input_intrinsics = true,
+		.lower_rotate = true,
 };
 
 /* we don't want to lower vertex_id to _zero_based on newer gpus: */
@@ -79,8 +79,8 @@ static const nir_shader_compiler_options options_a6xx = {
 		.lower_helper_invocation = true,
 		.lower_bitfield_insert_to_shifts = true,
 		.lower_bitfield_extract_to_shifts = true,
-		.lower_bfm = true,
 		.use_interpolated_input_intrinsics = true,
+		.lower_rotate = true,
 };
 
 const nir_shader_compiler_options *
@@ -174,7 +174,7 @@ ir3_optimize_loop(nir_shader *s)
 	} while (progress);
 }
 
-struct nir_shader *
+void
 ir3_optimize_nir(struct ir3_shader *shader, nir_shader *s,
 		const struct ir3_shader_key *key)
 {
@@ -281,8 +281,6 @@ ir3_optimize_nir(struct ir3_shader *shader, nir_shader *s,
 	if (!key) {
 		ir3_setup_const_state(shader, s);
 	}
-
-	return s;
 }
 
 static void
@@ -330,6 +328,13 @@ ir3_nir_scan_driver_consts(nir_shader *shader,
 						layout->image_dims.count;
 					layout->image_dims.count += 3; /* three const per */
 					break;
+				case nir_intrinsic_load_ubo:
+					if (nir_src_is_const(intr->src[0])) {
+						layout->num_ubos = MAX2(layout->num_ubos,
+								nir_src_as_uint(intr->src[0]) + 1);
+					} else {
+						layout->num_ubos = shader->info.num_ubos;
+					}
 				default:
 					break;
 				}
@@ -347,9 +352,6 @@ ir3_setup_const_state(struct ir3_shader *shader, nir_shader *nir)
 	memset(&const_state->offsets, ~0, sizeof(const_state->offsets));
 
 	ir3_nir_scan_driver_consts(nir, const_state);
-
-	const_state->num_uniforms = nir->num_uniforms;
-	const_state->num_ubos = nir->info.num_ubos;
 
 	debug_assert((shader->ubo_state.size % 16) == 0);
 	unsigned constoff = align(shader->ubo_state.size / 16, 4);

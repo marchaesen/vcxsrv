@@ -36,6 +36,7 @@ is_color_output(lower_state *state, nir_variable *out)
    switch (state->shader->info.stage) {
    case MESA_SHADER_VERTEX:
    case MESA_SHADER_GEOMETRY:
+   case MESA_SHADER_TESS_EVAL:
       switch (out->data.location) {
       case VARYING_SLOT_COL0:
       case VARYING_SLOT_COL1:

@@ -2191,14 +2191,6 @@ handle_vs_input_decl(struct radv_shader_context *ctx,
 					buffer_index = LLVMBuildUDiv(ctx->ac.builder, buffer_index,
 					                             LLVMConstInt(ctx->ac.i32, divisor, 0), "");
 				}
-
-				if (ctx->options->key.vs.as_ls) {
-					ctx->shader_info->vs.vgpr_comp_cnt =
-						MAX2(2, ctx->shader_info->vs.vgpr_comp_cnt);
-				} else {
-					ctx->shader_info->vs.vgpr_comp_cnt =
-						MAX2(1, ctx->shader_info->vs.vgpr_comp_cnt);
-				}
 			} else {
 				buffer_index = ctx->ac.i32_0;
 			}
@@ -2861,6 +2853,7 @@ radv_emit_streamout(struct radv_shader_context *ctx, unsigned stream)
 static void
 handle_vs_outputs_post(struct radv_shader_context *ctx,
 		       bool export_prim_id, bool export_layer_id,
+		       bool export_clip_dists,
 		       struct radv_vs_output_info *outinfo)
 {
 	uint32_t param_count = 0;
@@ -2917,9 +2910,11 @@ handle_vs_outputs_post(struct radv_shader_context *ctx,
 			memcpy(&pos_args[target - V_008DFC_SQ_EXP_POS],
 			&args, sizeof(args));
 
-			/* Export the clip/cull distances values to the next stage. */
-			radv_export_param(ctx, param_count, &slots[0], 0xf);
-			outinfo->vs_output_param_offset[location] = param_count++;
+			if (export_clip_dists) {
+				/* Export the clip/cull distances values to the next stage. */
+				radv_export_param(ctx, param_count, &slots[0], 0xf);
+				outinfo->vs_output_param_offset[location] = param_count++;
+			}
 		}
 	}
 
@@ -3044,8 +3039,6 @@ handle_vs_outputs_post(struct radv_shader_context *ctx,
 		LLVMValueRef values[4];
 
 		values[0] = ctx->vs_prim_id;
-		ctx->shader_info->vs.vgpr_comp_cnt = MAX2(2,
-							  ctx->shader_info->vs.vgpr_comp_cnt);
 		for (unsigned j = 1; j < 4; j++)
 			values[j] = ctx->ac.f32_0;
 
@@ -3446,6 +3439,7 @@ handle_shader_outputs_post(struct ac_shader_abi *abi, unsigned max_outputs,
 		else
 			handle_vs_outputs_post(ctx, ctx->options->key.vs.export_prim_id,
 					       ctx->options->key.vs.export_layer_id,
+					       ctx->options->key.vs.export_clip_dists,
 					       &ctx->shader_info->vs.outinfo);
 		break;
 	case MESA_SHADER_FRAGMENT:
@@ -3463,6 +3457,7 @@ handle_shader_outputs_post(struct ac_shader_abi *abi, unsigned max_outputs,
 		else
 			handle_vs_outputs_post(ctx, ctx->options->key.tes.export_prim_id,
 					       ctx->options->key.tes.export_layer_id,
+					       ctx->options->key.tes.export_clip_dists,
 					       &ctx->shader_info->tes.outinfo);
 		break;
 	default:
@@ -3751,15 +3746,6 @@ LLVMModuleRef ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm,
 			ctx.tcs_vertices_per_patch = shaders[i]->info.tess.tcs_vertices_out;
 			ctx.tcs_num_patches = ctx.options->key.tes.num_patches;
 		} else if (shaders[i]->info.stage == MESA_SHADER_VERTEX) {
-			if (shader_info->info.vs.needs_instance_id) {
-				if (ctx.options->key.vs.as_ls) {
-					ctx.shader_info->vs.vgpr_comp_cnt =
-						MAX2(2, ctx.shader_info->vs.vgpr_comp_cnt);
-				} else {
-					ctx.shader_info->vs.vgpr_comp_cnt =
-						MAX2(1, ctx.shader_info->vs.vgpr_comp_cnt);
-				}
-			}
 			ctx.abi.load_base_vertex = radv_load_base_vertex;
 		} else if (shaders[i]->info.stage == MESA_SHADER_FRAGMENT) {
 			shader_info->fs.can_discard = shaders[i]->info.fs.uses_discard;
@@ -3994,9 +3980,6 @@ ac_fill_shader_info(struct radv_shader_variant_info *shader_info, struct nir_sha
         case MESA_SHADER_VERTEX:
                 shader_info->vs.as_es = options->key.vs.as_es;
                 shader_info->vs.as_ls = options->key.vs.as_ls;
-                /* in LS mode we need at least 1, invocation id needs 2, handled elsewhere */
-                if (options->key.vs.as_ls)
-                        shader_info->vs.vgpr_comp_cnt = MAX2(1, shader_info->vs.vgpr_comp_cnt);
                 break;
         default:
                 break;
@@ -4117,7 +4100,7 @@ ac_gs_copy_shader_emit(struct radv_shader_context *ctx)
 			radv_emit_streamout(ctx, stream);
 
 		if (stream == 0) {
-			handle_vs_outputs_post(ctx, false, false,
+			handle_vs_outputs_post(ctx, false, false, true,
 					       &ctx->shader_info->vs.outinfo);
 		}
 

@@ -88,9 +88,8 @@ XVaNestedList XVaCreateNestedList\^(\^int \fIdummy\fP\^, ...\^);
 .SH ARGUMENTS
 .IP \fIdummy\fP 1i
 Specifies an unused argument (required by ANSI C).
-.ds Al
 .IP ... 1i
-Specifies the variable length argument list\*(Al.
+Specifies the variable length argument list.
 .SH DESCRIPTION
 The
 .ZN XVaCreateNestedList

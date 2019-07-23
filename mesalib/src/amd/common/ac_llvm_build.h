@@ -720,6 +720,9 @@ ac_build_ddxy_interp(struct ac_llvm_context *ctx, LLVMValueRef interp_ij);
 LLVMValueRef
 ac_build_load_helper_invocation(struct ac_llvm_context *ctx);
 
+LLVMValueRef ac_build_call(struct ac_llvm_context *ctx, LLVMValueRef func,
+			   LLVMValueRef *args, unsigned num_args);
+
 LLVMValueRef ac_build_atomic_rmw(struct ac_llvm_context *ctx, LLVMAtomicRMWBinOp op,
 				 LLVMValueRef ptr, LLVMValueRef val,
 				 const char *sync_scope);

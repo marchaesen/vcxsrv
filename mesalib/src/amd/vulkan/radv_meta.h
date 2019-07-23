@@ -212,15 +212,14 @@ void radv_decompress_resolve_src(struct radv_cmd_buffer *cmd_buffer,
 				 const VkImageResolve *regions);
 
 uint32_t radv_clear_cmask(struct radv_cmd_buffer *cmd_buffer,
-			  struct radv_image *image, uint32_t value);
+			  struct radv_image *image,
+			  const VkImageSubresourceRange *range, uint32_t value);
 uint32_t radv_clear_fmask(struct radv_cmd_buffer *cmd_buffer,
-			  struct radv_image *image, uint32_t value);
+			  struct radv_image *image,
+			  const VkImageSubresourceRange *range, uint32_t value);
 uint32_t radv_clear_dcc(struct radv_cmd_buffer *cmd_buffer,
 			struct radv_image *image,
 			const VkImageSubresourceRange *range, uint32_t value);
-uint32_t radv_dcc_clear_level(struct radv_cmd_buffer *cmd_buffer,
-			      const struct radv_image *image,
-			      uint32_t level, uint32_t value);
 uint32_t radv_clear_htile(struct radv_cmd_buffer *cmd_buffer,
 			  struct radv_image *image,
 			  const VkImageSubresourceRange *range, uint32_t value);

@@ -95,12 +95,10 @@ Specifies the connection to the X server.
 Specifies the list of windows.
 .IP \fIcolormap_windows_return\fP 1i
 Returns the list of windows.
-.ds Cn windows in the list
 .IP \fIcount\fP 1i
-Specifies the number of \*(Cn.
-.ds Cn windows in the list
+Specifies the number of windows in the list.
 .IP \fIcount_return\fP 1i
-Returns the number of \*(Cn.
+Returns the number of windows in the list.
 .IP \fIw\fP 1i
 Specifies the window.
 .SH DESCRIPTION

@@ -575,7 +575,7 @@ _mesa_is_format_integer(mesa_format format)
 /**
  * Return true if the given format is a color format.
  */
-GLenum
+bool
 _mesa_is_format_color_format(mesa_format format)
 {
    const struct gl_format_info *info = _mesa_get_format_info(format);

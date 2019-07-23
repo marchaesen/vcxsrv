@@ -91,6 +91,10 @@ radv_render_pass_compile(struct radv_render_pass *pass)
 		    subpass->depth_stencil_attachment->attachment == VK_ATTACHMENT_UNUSED)
 			subpass->depth_stencil_attachment = NULL;
 
+		if (subpass->ds_resolve_attachment &&
+		    subpass->ds_resolve_attachment->attachment == VK_ATTACHMENT_UNUSED)
+			subpass->ds_resolve_attachment = NULL;
+
 		for (uint32_t j = 0; j < subpass->attachment_count; j++) {
 			struct radv_subpass_attachment *subpass_att =
 				&subpass->attachments[j];
@@ -132,7 +136,7 @@ radv_render_pass_compile(struct radv_render_pass *pass)
 						 depth_sample_count);
 
 		/* We have to handle resolve attachments specially */
-		subpass->has_resolve = false;
+		subpass->has_color_resolve = false;
 		if (subpass->resolve_attachments) {
 			for (uint32_t j = 0; j < subpass->color_count; j++) {
 				struct radv_subpass_attachment *resolve_att =
@@ -141,7 +145,7 @@ radv_render_pass_compile(struct radv_render_pass *pass)
 				if (resolve_att->attachment == VK_ATTACHMENT_UNUSED)
 					continue;
 
-				subpass->has_resolve = true;
+				subpass->has_color_resolve = true;
 			}
 		}
 	}
@@ -309,10 +313,15 @@ VkResult radv_CreateRenderPass(
 static unsigned
 radv_num_subpass_attachments2(const VkSubpassDescription2KHR *desc)
 {
+	const VkSubpassDescriptionDepthStencilResolveKHR *ds_resolve =
+		vk_find_struct_const(desc->pNext,
+				     SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE_KHR);
+
 	return desc->inputAttachmentCount +
 	       desc->colorAttachmentCount +
 	       (desc->pResolveAttachments ? desc->colorAttachmentCount : 0) +
-	       (desc->pDepthStencilAttachment != NULL);
+	       (desc->pDepthStencilAttachment != NULL) +
+	       (ds_resolve && ds_resolve->pDepthStencilResolveAttachment);
 }
 
 VkResult radv_CreateRenderPass2KHR(
@@ -428,6 +437,22 @@ VkResult radv_CreateRenderPass2KHR(
 				.attachment = desc->pDepthStencilAttachment->attachment,
 				.layout = desc->pDepthStencilAttachment->layout,
 			};
+		}
+
+		const VkSubpassDescriptionDepthStencilResolveKHR *ds_resolve =
+			vk_find_struct_const(desc->pNext,
+					     SUBPASS_DESCRIPTION_DEPTH_STENCIL_RESOLVE_KHR);
+
+		if (ds_resolve && ds_resolve->pDepthStencilResolveAttachment) {
+			subpass->ds_resolve_attachment = p++;
+
+			*subpass->ds_resolve_attachment = (struct radv_subpass_attachment) {
+				.attachment =  ds_resolve->pDepthStencilResolveAttachment->attachment,
+				.layout =      ds_resolve->pDepthStencilResolveAttachment->layout,
+			};
+
+			subpass->depth_resolve_mode = ds_resolve->depthResolveMode;
+			subpass->stencil_resolve_mode = ds_resolve->stencilResolveMode;
 		}
 	}
 

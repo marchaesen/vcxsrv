@@ -511,6 +511,8 @@ u_transfer_helper_transfer_unmap(struct pipe_context *pctx,
             helper->vtbl->transfer_unmap(pctx, trans->trans2);
       }
 
+      pipe_resource_reference(&ptrans->resource, NULL);
+
       free(trans->staging);
       free(trans);
    } else {

@@ -334,7 +334,7 @@ blit_nearest(struct gl_context *ctx,
                break;
             }
 
-            (*resampleRow)(srcWidth, dstWidth, srcBuffer, dstBuffer, invertX);
+            resampleRow(srcWidth, dstWidth, srcBuffer, dstBuffer, invertX);
             prevY = srcRow;
          }
 

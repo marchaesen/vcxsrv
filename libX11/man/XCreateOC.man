@@ -97,9 +97,8 @@ XOM XOMOfOC\^(\^XOC \fIoc\fP\^);
 Specifies the output context.
 .IP \fIom\fP 1i
 Specifies the output method.
-.ds Al \ to set or get XOC values
 .IP ... 1i
-Specifies the variable length argument list\*(Al.
+Specifies the variable length argument list to set or get XOC values.
 .SH DESCRIPTION
 The
 .ZN XCreateOC 

@@ -721,3 +721,22 @@ glsl_type_get_image_count(const struct glsl_type *type)
 
    return 0;
 }
+
+unsigned
+glsl_get_explicit_size(const struct glsl_type *type, bool align_to_stride)
+{
+   return type->explicit_size(align_to_stride);
+}
+
+bool
+glsl_type_is_leaf(const struct glsl_type *type)
+{
+   if (glsl_type_is_struct_or_ifc(type) ||
+       (glsl_type_is_array(type) &&
+        (glsl_type_is_array(glsl_get_array_element(type)) ||
+         glsl_type_is_struct_or_ifc(glsl_get_array_element(type))))) {
+      return false;
+   } else {
+      return true;
+   }
+}

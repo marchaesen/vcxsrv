@@ -189,6 +189,9 @@ void GLAPIENTRY
 _mesa_BufferStorage(GLenum target, GLsizeiptr size, const GLvoid *data,
                     GLbitfield flags);
 void GLAPIENTRY
+_mesa_NamedBufferStorageEXT(GLuint buffer, GLsizeiptr size,
+                            const GLvoid *data, GLbitfield flags);
+void GLAPIENTRY
 _mesa_BufferStorageMemEXT(GLenum target, GLsizeiptr size,
                           GLuint memory, GLuint64 offset);
 void GLAPIENTRY
@@ -222,6 +225,9 @@ _mesa_NamedBufferData_no_error(GLuint buffer, GLsizeiptr size,
 void GLAPIENTRY
 _mesa_NamedBufferData(GLuint buffer, GLsizeiptr size,
                       const GLvoid *data, GLenum usage);
+void GLAPIENTRY
+_mesa_NamedBufferDataEXT(GLuint buffer, GLsizeiptr size,
+                         const GLvoid *data, GLenum usage);
 
 void GLAPIENTRY
 _mesa_BufferSubData_no_error(GLenum target, GLintptr offset,
@@ -236,6 +242,9 @@ _mesa_NamedBufferSubData_no_error(GLuint buffer, GLintptr offset,
 void GLAPIENTRY
 _mesa_NamedBufferSubData(GLuint buffer, GLintptr offset,
                          GLsizeiptr size, const GLvoid *data);
+void GLAPIENTRY
+_mesa_NamedBufferSubDataEXT(GLuint buffer, GLintptr offset,
+                            GLsizeiptr size, const GLvoid *data);
 
 void GLAPIENTRY
 _mesa_GetBufferSubData(GLenum target, GLintptr offset,
@@ -294,9 +303,9 @@ GLboolean GLAPIENTRY
 _mesa_UnmapBuffer(GLenum target);
 
 GLboolean GLAPIENTRY
-_mesa_UnmapNamedBuffer_no_error(GLuint buffer);
+_mesa_UnmapNamedBufferEXT_no_error(GLuint buffer);
 GLboolean GLAPIENTRY
-_mesa_UnmapNamedBuffer(GLuint buffer);
+_mesa_UnmapNamedBufferEXT(GLuint buffer);
 
 void GLAPIENTRY
 _mesa_GetBufferParameteriv(GLenum target, GLenum pname, GLint *params);
@@ -348,6 +357,9 @@ _mesa_MapNamedBufferRange_no_error(GLuint buffer, GLintptr offset,
 void * GLAPIENTRY
 _mesa_MapNamedBufferRange(GLuint buffer, GLintptr offset, GLsizeiptr length,
                           GLbitfield access);
+void * GLAPIENTRY
+_mesa_MapNamedBufferRangeEXT(GLuint buffer, GLintptr offset,
+                             GLsizeiptr length, GLbitfield access);
 
 void * GLAPIENTRY
 _mesa_MapBuffer_no_error(GLenum target, GLenum access);
@@ -358,6 +370,8 @@ void * GLAPIENTRY
 _mesa_MapNamedBuffer_no_error(GLuint buffer, GLenum access);
 void * GLAPIENTRY
 _mesa_MapNamedBuffer(GLuint buffer, GLenum access);
+void * GLAPIENTRY
+_mesa_MapNamedBufferEXT(GLuint buffer, GLenum access);
 
 void GLAPIENTRY
 _mesa_FlushMappedBufferRange_no_error(GLenum target, GLintptr offset,

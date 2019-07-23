@@ -1064,7 +1064,7 @@ struct _glapi_table
    void (GLAPIENTRYP TextureSubImage3D)(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const GLvoid * pixels); /* 1017 */
    void (GLAPIENTRYP TransformFeedbackBufferBase)(GLuint xfb, GLuint index, GLuint buffer); /* 1018 */
    void (GLAPIENTRYP TransformFeedbackBufferRange)(GLuint xfb, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size); /* 1019 */
-   GLboolean (GLAPIENTRYP UnmapNamedBuffer)(GLuint buffer); /* 1020 */
+   GLboolean (GLAPIENTRYP UnmapNamedBufferEXT)(GLuint buffer); /* 1020 */
    void (GLAPIENTRYP VertexArrayAttribBinding)(GLuint vaobj, GLuint attribindex, GLuint bindingindex); /* 1021 */
    void (GLAPIENTRYP VertexArrayAttribFormat)(GLuint vaobj, GLuint attribindex, GLint size, GLenum type, GLboolean normalized, GLuint relativeoffset); /* 1022 */
    void (GLAPIENTRYP VertexArrayAttribIFormat)(GLuint vaobj, GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset); /* 1023 */
@@ -1484,6 +1484,20 @@ struct _glapi_table
    void (GLAPIENTRYP MatrixLoadTransposedEXT)(GLenum matrixMode, const GLdouble * m); /* 1437 */
    void (GLAPIENTRYP MatrixMultTransposefEXT)(GLenum matrixMode, const GLfloat * m); /* 1438 */
    void (GLAPIENTRYP MatrixMultTransposedEXT)(GLenum matrixMode, const GLdouble * m); /* 1439 */
+   void (GLAPIENTRYP BindMultiTextureEXT)(GLenum texunit, GLenum target, GLuint texture); /* 1440 */
+   void (GLAPIENTRYP NamedBufferDataEXT)(GLuint buffer, GLsizeiptr size, const GLvoid * data, GLenum usage); /* 1441 */
+   void (GLAPIENTRYP NamedBufferSubDataEXT)(GLuint buffer, GLintptr offset, GLsizeiptr size, const GLvoid * data); /* 1442 */
+   void (GLAPIENTRYP NamedBufferStorageEXT)(GLuint buffer, GLsizeiptr size, const GLvoid * data, GLbitfield flags); /* 1443 */
+   GLvoid * (GLAPIENTRYP MapNamedBufferRangeEXT)(GLuint buffer, GLintptr offset, GLsizeiptr length, GLbitfield access); /* 1444 */
+   void (GLAPIENTRYP TextureSubImage2DEXT)(GLuint texture, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const GLvoid * pixels); /* 1445 */
+   void (GLAPIENTRYP CompressedTextureSubImage2DEXT)(GLuint texture, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const GLvoid * data); /* 1446 */
+   GLvoid * (GLAPIENTRYP MapNamedBufferEXT)(GLuint buffer, GLenum access); /* 1447 */
+   void (GLAPIENTRYP GetTextureParameterivEXT)(GLuint texture, GLenum target, GLenum pname, GLint * params); /* 1448 */
+   void (GLAPIENTRYP GetTextureParameterfvEXT)(GLuint texture, GLenum target, GLenum pname, float * params); /* 1449 */
+   void (GLAPIENTRYP TextureParameteriEXT)(GLuint texture, GLenum target, GLenum pname, int param); /* 1450 */
+   void (GLAPIENTRYP TextureParameterivEXT)(GLuint texture, GLenum target, GLenum pname, const GLint * params); /* 1451 */
+   void (GLAPIENTRYP TextureParameterfEXT)(GLuint texture, GLenum target, GLenum pname, float param); /* 1452 */
+   void (GLAPIENTRYP TextureParameterfvEXT)(GLuint texture, GLenum target, GLenum pname, const float * params); /* 1453 */
 };
 
 #ifdef __cplusplus

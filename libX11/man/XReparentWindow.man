@@ -92,12 +92,11 @@ Specifies the connection to the X server.
 Specifies the parent window.
 .IP \fIw\fP 1i
 Specifies the window.
-.ds Xy of the position in the new parent window
 .IP \fIx\fP 1i
 .br
 .ns
 .IP \fIy\fP 1i
-Specify the x and y coordinates\*(Xy.
+Specify the x and y coordinates of the position in the new parent window.
 .SH DESCRIPTION
 If the specified window is mapped,
 .ZN XReparentWindow

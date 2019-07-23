@@ -110,12 +110,11 @@ Specifies the number of bytes in the string argument.
 Specifies the number of characters in the string argument.
 .IP \fIstring\fP 1i
 Specifies the character string.
-.ds Xy
 .IP \fIx\fP 1i
 .br
 .ns
 .IP \fIy\fP 1i
-Specify the x and y coordinates\*(Xy.
+Specify the x and y coordinates.
 .SH DESCRIPTION
 The
 .ZN XmbDrawString ,

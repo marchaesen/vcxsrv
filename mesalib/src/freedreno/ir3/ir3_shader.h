@@ -110,11 +110,6 @@ enum ir3_driver_param {
  * Note UBO size in bytes should be aligned to vec4
  */
 struct ir3_const_state {
-	/* number of uniforms (in vec4), not including built-in compiler
-	 * constants, etc.
-	 */
-	unsigned num_uniforms;
-
 	unsigned num_ubos;
 
 	struct {

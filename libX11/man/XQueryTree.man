@@ -97,10 +97,9 @@ Returns the number of children.
 Returns the parent window.
 .IP \fIroot_return\fP 1i
 Returns the root window.
-.ds Wi whose list of children, root, parent, and number of children \
-you want to obtain
 .IP \fIw\fP 1i
-Specifies the window \*(Wi.
+Specifies the window whose list of children, root, parent, and number of children 
+you want to obtain.
 .SH DESCRIPTION
 The
 .ZN XQueryTree

@@ -320,7 +320,6 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                     struct GetMonitorInfoData data;
 
                     if (QueryMonitor(s_pScreenInfo->iMonitor, &data)) {
-                        if (data.bMonitorSpecifiedExists == TRUE) {
                             dwWidth = data.monitorWidth;
                             dwHeight = data.monitorHeight;
                             /*
@@ -332,7 +331,6 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                             ErrorF("Monitor number %d no longer exists!\n",
                                    s_pScreenInfo->iMonitor);
                         }
-                    }
                 }
 
                 /*

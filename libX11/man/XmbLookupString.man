@@ -106,9 +106,8 @@ from the input method.
 .ns
 .IP \fIwchars_buffer\fP 1i
 Specifies space available in the return buffer.
-.ds Ev key event to be used
 .IP \fIevent\fP 1i
-Specifies the \*(Ev.
+Specifies the key event to be used.
 .IP \fIic\fP 1i
 Specifies the input context.
 .IP \fIkeysym_return\fP 1i

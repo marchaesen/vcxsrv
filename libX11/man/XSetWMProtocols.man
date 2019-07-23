@@ -91,12 +91,10 @@ Status XGetWMProtocols\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, Atom
 .SH ARGUMENTS
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
-.ds Cn protocols in the list
 .IP \fIcount\fP 1i
-Specifies the number of \*(Cn.
-.ds Cn protocols in the list
+Specifies the number of protocols in the list.
 .IP \fIcount_return\fP 1i
-Returns the number of \*(Cn.
+Returns the number of protocols in the list.
 .IP \fIprotocols\fP 1i
 Specifies the list of protocols.
 .IP \fIprotocols_return\fP 1i

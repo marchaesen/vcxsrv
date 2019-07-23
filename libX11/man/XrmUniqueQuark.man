@@ -132,9 +132,8 @@ Returns the binding list.
 Specifies the quark for which the equivalent string is desired.
 .IP \fIquarks_return\fP 1i
 Returns the list of quarks.
-.ds Ql \ or quark list
 .IP \fIstring\fP 1i
-Specifies the string for which a quark\*(Ql is to be allocated.
+Specifies the string for which a quark or quark list is to be allocated.
 .SH DESCRIPTION
 The
 .ZN XrmUniqueQuark

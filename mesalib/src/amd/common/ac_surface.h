@@ -76,6 +76,7 @@ struct legacy_surf_level {
     uint32_t                    slice_size_dw; /* in dwords; max = 4GB / 4. */
     uint32_t                    dcc_offset; /* relative offset within DCC mip tree */
     uint32_t                    dcc_fast_clear_size;
+    uint32_t                    dcc_slice_fast_clear_size;
     unsigned                    nblk_x:15;
     unsigned                    nblk_y:15;
     enum radeon_surf_mode       mode:2;
@@ -86,6 +87,7 @@ struct legacy_surf_fmask {
     uint8_t tiling_index;    /* max 31 */
     uint8_t bankh;           /* max 8 */
     uint16_t pitch_in_pixels;
+    uint64_t slice_size;
 };
 
 struct legacy_surf_layout {
@@ -211,6 +213,7 @@ struct radeon_surf {
 
     /* DCC and HTILE are very small. */
     uint32_t                    dcc_size;
+    uint32_t                    dcc_slice_size;
     uint32_t                    dcc_alignment;
 
     uint32_t                    htile_size;
@@ -218,6 +221,7 @@ struct radeon_surf {
     uint32_t                    htile_alignment;
 
     uint32_t                    cmask_size;
+    uint32_t                    cmask_slice_size;
     uint32_t                    cmask_alignment;
 
     union {

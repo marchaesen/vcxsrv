@@ -630,6 +630,19 @@ intrinsic("load_sample_pos_from_id", src_comp=[1], dest_comp=2,
 # Loads what I believe is the primitive size, for scaling ij to pixel size:
 intrinsic("load_size_ir3", dest_comp=1, flags=[CAN_ELIMINATE, CAN_REORDER])
 
+# Fragment shader input interpolation delta intrinsic.
+#
+# For hw where fragment shader input interpolation is handled in shader, the
+# load_fs_input_interp deltas intrinsics can be used to load the input deltas
+# used for interpolation as follows:
+#
+#    vec3 iid = load_fs_input_interp_deltas(varying_slot)
+#    vec2 bary = load_barycentric_*(...)
+#    float result = iid.x + iid.y * bary.y + iid.z * bary.x
+
+intrinsic("load_fs_input_interp_deltas", src_comp=[1], dest_comp=3,
+          indices=[BASE, COMPONENT], flags=[CAN_ELIMINATE, CAN_REORDER])
+
 # Load operations pull data from some piece of GPU memory.  All load
 # operations operate in terms of offsets into some piece of theoretical
 # memory.  Loads from externally visible memory (UBO and SSBO) simply take a

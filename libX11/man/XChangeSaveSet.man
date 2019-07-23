@@ -97,9 +97,8 @@ or
 .ZN SetModeDelete .
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
-.ds Wi that you want to add or delete from the client's save-set
 .IP \fIw\fP 1i
-Specifies the window \*(Wi.
+Specifies the window that you want to add or delete from the client's save-set.
 .SH DESCRIPTION
 Depending on the specified mode,
 .ZN XChangeSaveSet

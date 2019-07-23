@@ -37,6 +37,7 @@
  */
 
 
+#include <errno.h>
 #include <stdbool.h>
 #include <c99_alloca.h>
 #include "main/glheader.h"
@@ -63,6 +64,7 @@
 #include "util/hash_table.h"
 #include "util/mesa-sha1.h"
 #include "util/crc32.h"
+#include "util/os_file.h"
 
 /**
  * Return mask of GLSL_x flags by examining the MESA_GLSL env var.
@@ -1241,6 +1243,7 @@ link_program(struct gl_context *ctx, struct gl_shader_program *shProg,
    const char *capture_path = _mesa_get_shader_capture_path();
    if (shProg->Name != 0 && shProg->Name != ~0 && capture_path != NULL) {
       /* Find an unused filename. */
+      FILE *file = NULL;
       char *filename = NULL;
       for (unsigned i = 0;; i++) {
          if (i) {
@@ -1250,14 +1253,16 @@ link_program(struct gl_context *ctx, struct gl_shader_program *shProg,
             filename = ralloc_asprintf(NULL, "%s/%u.shader_test",
                                        capture_path, shProg->Name);
          }
-         FILE *file = fopen(filename, "r");
-         if (!file)
+         file = os_file_create_unique(filename, 0644);
+         if (file)
             break;
-         fclose(file);
+         /* If we are failing for another reason than "this filename already
+          * exists", we are likely to fail again with another filename, so
+          * let's just give up */
+         if (errno != EEXIST)
+            break;
          ralloc_free(filename);
       }
-
-      FILE *file = fopen(filename, "w");
       if (file) {
          fprintf(file, "[require]\nGLSL%s >= %u.%02u\n",
                  shProg->IsES ? " ES" : "",

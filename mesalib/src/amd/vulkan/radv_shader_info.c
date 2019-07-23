@@ -376,12 +376,21 @@ gather_info_block(const nir_shader *nir, const nir_block *block,
 
 static void
 gather_info_input_decl_vs(const nir_shader *nir, const nir_variable *var,
-			  struct radv_shader_info *info)
+			  struct radv_shader_info *info,
+			  const struct radv_nir_compiler_options *options)
 {
+	unsigned attrib_count = glsl_count_attribute_slots(var->type, true);
 	int idx = var->data.location;
 
 	if (idx >= VERT_ATTRIB_GENERIC0 && idx <= VERT_ATTRIB_GENERIC15)
 		info->vs.has_vertex_buffers = true;
+
+	for (unsigned i = 0; i < attrib_count; ++i) {
+		unsigned attrib_index = var->data.location + i - VERT_ATTRIB_GENERIC0;
+
+		if (options->key.vs.instance_rate_inputs & (1u << attrib_index))
+			info->vs.needs_instance_id = true;
+	}
 }
 
 static void
@@ -418,11 +427,12 @@ gather_info_input_decl_ps(const nir_shader *nir, const nir_variable *var,
 
 static void
 gather_info_input_decl(const nir_shader *nir, const nir_variable *var,
-		       struct radv_shader_info *info)
+		       struct radv_shader_info *info,
+		       const struct radv_nir_compiler_options *options)
 {
 	switch (nir->info.stage) {
 	case MESA_SHADER_VERTEX:
-		gather_info_input_decl_vs(nir, var, info);
+		gather_info_input_decl_vs(nir, var, info, options);
 		break;
 	case MESA_SHADER_FRAGMENT:
 		gather_info_input_decl_ps(nir, var, info);
@@ -557,7 +567,7 @@ radv_nir_shader_info_pass(const struct nir_shader *nir,
 	}
 
 	nir_foreach_variable(variable, &nir->inputs)
-		gather_info_input_decl(nir, variable, info);
+		gather_info_input_decl(nir, variable, info, options);
 
 	nir_foreach_block(block, func->impl) {
 		gather_info_block(nir, block, info);

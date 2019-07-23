@@ -97,9 +97,8 @@ You can pass
 .ZN AllocNone 
 or 
 .ZN AllocAll .
-.ds Cm that you want to create, copy, set, or destroy
 .IP \fIcolormap\fP 1i
-Specifies the colormap \*(Cm.
+Specifies the colormap that you want to create, copy, set, or destroy.
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fIvisual\fP 1i
@@ -108,9 +107,8 @@ If the visual type is not one supported by the screen,
 a
 .ZN BadMatch
 error results.
-.ds Wi on whose screen you want to create a colormap
 .IP \fIw\fP 1i
-Specifies the window \*(Wi.
+Specifies the window on whose screen you want to create a colormap.
 .SH DESCRIPTION
 The
 .ZN XCreateColormap

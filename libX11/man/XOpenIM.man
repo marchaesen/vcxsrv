@@ -119,9 +119,8 @@ Specifies the input method.
 Specifies the full class name of the application.
 .IP \fIres_name\fP 1i
 Specifies the full resource name of the application.
-.ds Al \ to set or get XIM values
 .IP ... 1i
-Specifies the variable length argument list\*(Al.
+Specifies the variable length argument list to set or get XIM values.
 .SH DESCRIPTION
 The
 .ZN XOpenIM

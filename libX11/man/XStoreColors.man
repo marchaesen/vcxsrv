@@ -92,9 +92,8 @@ XColor *\fIcolor\fP\^);
 int XStoreNamedColor\^(\^Display *\fIdisplay\fP\^, Colormap \fIcolormap\fP\^,
 char *\^\fIcolor\fP\^, unsigned long \fIpixel\fP\^, int \fIflags\fP\^);
 .SH ARGUMENTS
-.ds Co pixel and RGB values or the color name string (for example, red)
 .IP \fIcolor\fP 1i
-Specifies the \*(Co.
+Specifies the pixel and RGB values or the color name string (for example, red).
 .IP \fIcolor\fP 1i
 Specifies an array of color definition structures to be stored.
 .IP \fIcolormap\fP 1i

@@ -52,7 +52,8 @@ winRandRGetInfo(ScreenPtr pScreen, Rotation * pRotations)
 
 static void
 winRandRUpdateMode(ScreenPtr pScreen, RROutputPtr output)
-{    /* Delete previous mode */
+{
+    /* Delete previous mode */
     if (output->modes[0])
         {
             RRModeDestroy(output->modes[0]);
@@ -273,11 +274,12 @@ winRandRInit(ScreenPtr pScreen)
         output->modes = malloc(sizeof(RRModePtr));
         output->modes[0] = NULL;
 
+        /* Set mode to current display size */
         winRandRUpdateMode(pScreen, output);
 
         /* Make up some physical dimensions */
-        output->mmWidth = pScreen->mmWidth;
-        output->mmHeight = pScreen->mmHeight;
+        output->mmWidth = (pScreen->width * 25.4)/monitorResolution;
+        output->mmHeight = (pScreen->height * 25.4)/monitorResolution;
 
         /* Allocate and make up a (fixed, linear) gamma ramp */
         {

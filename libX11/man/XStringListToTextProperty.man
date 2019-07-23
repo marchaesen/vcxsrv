@@ -92,12 +92,10 @@ Status XTextPropertyToStringList\^(\^XTextProperty *\fItext_prop\fP\^, char
 .HP
 void XFreeStringList\^(\^char **\fIlist\fP\^); 
 .SH ARGUMENTS
-.ds Cn strings
 .IP \fIcount\fP 1i
-Specifies the number of \*(Cn.
-.ds Cn strings
+Specifies the number of strings.
 .IP \fIcount_return\fP 1i
-Returns the number of \*(Cn.
+Returns the number of strings.
 .IP \fIlist\fP 1i
 Specifies the list of strings to be freed.
 .IP \fIlist\fP 1i

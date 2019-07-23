@@ -62,7 +62,8 @@ LOCAL_C_INCLUDES := \
 	$(intermediates)/common
 
 LOCAL_EXPORT_C_INCLUDE_DIRS := \
-	$(LOCAL_PATH)/common
+	$(LOCAL_PATH)/common \
+	$(intermediates)/common
 
 LOCAL_SHARED_LIBRARIES := \
 	libdrm_amdgpu

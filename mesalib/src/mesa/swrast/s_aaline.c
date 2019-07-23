@@ -406,7 +406,7 @@ segment(struct gl_context *ctx,
          GLint iy;
          /* scan across the line, bottom-to-top */
          for (iy = iyBot; iy < iyTop; iy++) {
-            (*plot)(ctx, line, ix, iy);
+            plot(ctx, line, ix, iy);
          }
          yBot += dydx;
          yTop += dydx;
@@ -452,7 +452,7 @@ segment(struct gl_context *ctx,
          GLint ix;
          /* scan across the line, left-to-right */
          for (ix = ixLeft; ix < ixRight; ix++) {
-            (*plot)(ctx, line, ix, iy);
+            plot(ctx, line, ix, iy);
          }
          xLeft += dxdy;
          xRight += dxdy;

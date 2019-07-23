@@ -103,23 +103,6 @@ if env['platform'] not in ('cygwin', 'darwin', 'windows', 'haiku'):
     else:
         pass
 
-    # Generate matypes.h
-    if env['machine'] in ('x86', 'x86_64'):
-        # See http://www.scons.org/wiki/UsingCodeGenerators
-        gen_matypes = env.Program(
-            target = 'gen_matypes',
-            source = 'x86/gen_matypes.c',
-        )
-        matypes = env.Command(
-            'matypes.h',
-            gen_matypes,
-            gen_matypes[0].abspath + ' > $TARGET',
-        )
-        # Add the dir containing the generated header (somewhere inside  the
-        # build dir) to the include path
-        env.Prepend(CPPPATH = [matypes[0].dir])
-
-
 # The marshal_generated.c file is generated from the GL/ES API.xml file
 env.CodeGenerate(
     target = 'main/marshal_generated.c',

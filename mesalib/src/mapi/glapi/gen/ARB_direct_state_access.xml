@@ -115,7 +115,7 @@
       <param name="access" type="GLbitfield" />
    </function>
 
-   <function name="UnmapNamedBuffer" no_error="true">
+   <function name="UnmapNamedBuffer" alias="UnmapNamedBufferEXT" no_error="true">
       <return type="GLboolean" />
       <param name="buffer" type="GLuint" />
    </function>

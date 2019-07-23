@@ -99,26 +99,21 @@ Status XcmsCIELabQueryMinL\^(\^XcmsCCC \fIccc\fP\^, XcmsFloat
 Specifies the CCC.
 Note that the CCC's Client White Point and White Point Adjustment procedures
 are ignored.
-.ds Ch maximum lightness (MaxL) or minimum lightness (MinL)
 .IP \fIchroma\fP 1i
-Specifies the chroma at which to find \*(Ch.
-.ds Lc maximum chroma (MaxC and MaxLC), maximum lightness (MaxL), \
-or minimum lightness (MinL)
-.ds lC hue angle and lightness (MaxC), hue angle and chroma (MaxL and MinL), \
-or hue angle (MaxLC)
+Specifies the chroma at which to find maximum lightness (MaxL) or minimum lightness (MinL).
 .IP \fIcolor_return\fP 1i
-Returns the CIE L*a*b* coordinates of \*(Lc
-displayable by the screen for the given \*(lC.
+Returns the CIE L*a*b* coordinates of 
+maximum chroma (MaxC and MaxLC), maximum lightness (MaxL), 
+or minimum lightness (MinL)
+displayable by the screen for the given hue angle and lightness (MaxC), hue angle and chroma (MaxL and MinL), or hue angle (MaxLC).
 The white point associated with the returned
 color specification is the Screen White Point.
 The value returned in the pixel member is undefined.
-.ds Ha maximum chroma (MaxC and MaxLC), maximum lightness (MaxL), \
-or minimum lightness (MinL)
 .IP \fIhue_angle\fP 1i
-Specifies the hue angle (in degrees) at which to find \*(Ha.
-.ds Ls maximum chroma (MaxC)
+Specifies the hue angle (in degrees) at which to find maximum chroma (MaxC and MaxLC), maximum lightness (MaxL), 
+or minimum lightness (MinL).
 .IP \fIL_star\fP 1i
-Specifies the lightness (L*) at which to find \*(Ls.
+Specifies the lightness (L*) at which to find maximum chroma (MaxC).
 .SH DESCRIPTION
 The
 .ZN XcmsCIELabQueryMaxC

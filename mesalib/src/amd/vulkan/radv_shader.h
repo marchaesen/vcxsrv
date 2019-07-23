@@ -81,12 +81,14 @@ struct radv_vs_variant_key {
 	uint32_t as_ls:1;
 	uint32_t export_prim_id:1;
 	uint32_t export_layer_id:1;
+	uint32_t export_clip_dists:1;
 };
 
 struct radv_tes_variant_key {
 	uint32_t as_es:1;
 	uint32_t export_prim_id:1;
 	uint32_t export_layer_id:1;
+	uint32_t export_clip_dists:1;
 	uint8_t num_patches;
 	uint8_t tcs_num_outputs;
 };
@@ -264,7 +266,6 @@ struct radv_shader_variant_info {
 		struct {
 			struct radv_vs_output_info outinfo;
 			struct radv_es_output_info es_info;
-			unsigned vgpr_comp_cnt;
 			bool as_es;
 			bool as_ls;
 		} vs;

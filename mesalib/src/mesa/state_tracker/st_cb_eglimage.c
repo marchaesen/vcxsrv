@@ -196,25 +196,23 @@ st_bind_egl_image(struct gl_context *ctx,
       stObj->surface_based = GL_TRUE;
    }
 
-   texFormat = st_pipe_format_to_mesa_format(stimg->format);
-
    /* TODO RequiredTextureImageUnits should probably be reset back
     * to 1 somewhere if different texture is bound??
     */
-   if (texFormat == MESA_FORMAT_NONE) {
-      switch (stimg->format) {
-      case PIPE_FORMAT_NV12:
-         texFormat = MESA_FORMAT_R_UNORM8;
-         texObj->RequiredTextureImageUnits = 2;
-         break;
-      case PIPE_FORMAT_IYUV:
-         texFormat = MESA_FORMAT_R_UNORM8;
-         texObj->RequiredTextureImageUnits = 3;
-         break;
-      default:
-         unreachable("bad YUV format!");
-      }
+   switch (stimg->format) {
+   case PIPE_FORMAT_NV12:
+      texFormat = MESA_FORMAT_R_UNORM8;
+      texObj->RequiredTextureImageUnits = 2;
+      break;
+   case PIPE_FORMAT_IYUV:
+      texFormat = MESA_FORMAT_R_UNORM8;
+      texObj->RequiredTextureImageUnits = 3;
+      break;
+   default:
+      texFormat = st_pipe_format_to_mesa_format(stimg->format);
+      break;
    }
+   assert(texFormat != MESA_FORMAT_NONE);
 
    _mesa_init_teximage_fields(ctx, texImage,
                               stimg->texture->width0, stimg->texture->height0,

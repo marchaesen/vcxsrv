@@ -97,12 +97,10 @@ Atom \fIproperty\fP\^);
 .SH ARGUMENTS
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
-.ds Cn colormaps
 .IP \fIcount\fP 1i
-Specifies the number of \*(Cn.
-.ds Cn colormaps
+Specifies the number of colormaps.
 .IP \fIcount_return\fP 1i
-Returns the number of \*(Cn.
+Returns the number of colormaps.
 .IP \fIproperty\fP 1i
 Specifies the property name.
 .IP \fIstd_colormap\fP 1i

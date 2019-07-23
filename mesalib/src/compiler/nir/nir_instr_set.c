@@ -52,9 +52,14 @@ static uint32_t
 hash_alu(uint32_t hash, const nir_alu_instr *instr)
 {
    hash = HASH(hash, instr->op);
+
+   /* We explicitly don't hash instr->exact. */
+   uint8_t flags = instr->no_signed_wrap |
+                   instr->no_unsigned_wrap << 1;
+   hash = HASH(hash, flags);
+
    hash = HASH(hash, instr->dest.dest.ssa.num_components);
    hash = HASH(hash, instr->dest.dest.ssa.bit_size);
-   /* We explicitly don't hash instr->dest.dest.exact */
 
    if (nir_op_infos[instr->op].algebraic_properties & NIR_OP_IS_2SRC_COMMUTATIVE) {
       assert(nir_op_infos[instr->op].num_inputs >= 2);
@@ -523,6 +528,14 @@ nir_instrs_equal(const nir_instr *instr1, const nir_instr *instr2)
       if (alu1->op != alu2->op)
          return false;
 
+      /* We explicitly don't compare instr->exact. */
+
+      if (alu1->no_signed_wrap != alu2->no_signed_wrap)
+         return false;
+
+      if (alu1->no_unsigned_wrap != alu2->no_unsigned_wrap)
+         return false;
+
       /* TODO: We can probably acutally do something more inteligent such
        * as allowing different numbers and taking a maximum or something
        * here */
@@ -531,8 +544,6 @@ nir_instrs_equal(const nir_instr *instr1, const nir_instr *instr2)
 
       if (alu1->dest.dest.ssa.bit_size != alu2->dest.dest.ssa.bit_size)
          return false;
-
-      /* We explicitly don't hash instr->dest.dest.exact */
 
       if (nir_op_infos[alu1->op].algebraic_properties & NIR_OP_IS_2SRC_COMMUTATIVE) {
          if ((!nir_alu_srcs_equal(alu1, alu2, 0, 0) ||

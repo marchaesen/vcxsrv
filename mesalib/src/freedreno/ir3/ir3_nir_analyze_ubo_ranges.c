@@ -32,24 +32,32 @@ get_ubo_load_range(nir_intrinsic_instr *instr)
 {
 	struct ir3_ubo_range r;
 
-	const int bytes = nir_intrinsic_dest_components(instr) *
-		(nir_dest_bit_size(instr->dest) / 8);
+	const int offset = nir_src_as_uint(instr->src[1]);
+	const int bytes = nir_intrinsic_dest_components(instr) * 4;
 
-	r.start = ROUND_DOWN_TO(nir_src_as_uint(instr->src[1]), 16 * 4);
-	r.end = ALIGN(r.start + bytes, 16 * 4);
+	r.start = ROUND_DOWN_TO(offset, 16 * 4);
+	r.end = ALIGN(offset + bytes, 16 * 4);
 
 	return r;
 }
 
 static void
-gather_ubo_ranges(nir_intrinsic_instr *instr,
+gather_ubo_ranges(nir_shader *nir, nir_intrinsic_instr *instr,
 				  struct ir3_ubo_analysis_state *state)
 {
 	if (!nir_src_is_const(instr->src[0]))
 		return;
 
-	if (!nir_src_is_const(instr->src[1]))
+	if (!nir_src_is_const(instr->src[1])) {
+		if (nir_src_as_uint(instr->src[0]) == 0) {
+			/* If this is an indirect on UBO 0, we'll still lower it back to
+			 * load_uniform.  Set the range to cover all of UBO 0.
+			 */
+			state->range[0].end = align(nir->num_uniforms * 16, 16 * 4);
+		}
+
 		return;
+	}
 
 	const struct ir3_ubo_range r = get_ubo_load_range(instr);
 	const uint32_t block = nir_src_as_uint(instr->src[0]);
@@ -132,7 +140,6 @@ ir3_nir_analyze_ubo_ranges(nir_shader *nir, struct ir3_shader *shader)
 	struct ir3_ubo_analysis_state *state = &shader->ubo_state;
 
 	memset(state, 0, sizeof(*state));
-	state->range[0].end = align(nir->num_uniforms * 16, 16 * 4); /* align to 4*vec4 */
 
 	nir_foreach_function(function, nir) {
 		if (function->impl) {
@@ -140,7 +147,7 @@ ir3_nir_analyze_ubo_ranges(nir_shader *nir, struct ir3_shader *shader)
 				nir_foreach_instr(instr, block) {
 					if (instr->type == nir_instr_type_intrinsic &&
 						nir_instr_as_intrinsic(instr)->intrinsic == nir_intrinsic_load_ubo)
-						gather_ubo_ranges(nir_instr_as_intrinsic(instr), state);
+						gather_ubo_ranges(nir, nir_instr_as_intrinsic(instr), state);
 				}
 			}
 		}

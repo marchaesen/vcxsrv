@@ -100,13 +100,13 @@ Specifies the GC.
 Specifies an array of text items.
 .IP \fInitems\fP 1i
 Specifies the number of text items in the array.
-.ds Xy , which are relative to the origin of the specified drawable \
-and define the origin of the first character
 .IP \fIx\fP 1i
 .br
 .ns
 .IP \fIy\fP 1i
-Specify the x and y coordinates\*(Xy.
+Specify the x and y coordinates, which are relative to the origin 
+of the specified drawable 
+and define the origin of the first character.
 .SH DESCRIPTION
 The
 .ZN XDrawText16

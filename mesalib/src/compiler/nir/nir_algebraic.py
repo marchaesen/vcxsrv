@@ -35,6 +35,9 @@ import traceback
 
 from nir_opcodes import opcodes, type_sizes
 
+# This should be the same as NIR_SEARCH_MAX_COMM_OPS in nir_search.c
+nir_search_max_comm_ops = 8
+
 # These opcodes are only employed by nir_search.  This provides a mapping from
 # opcode to destination type.
 conv_opcode_types = {
@@ -266,6 +269,19 @@ class Constant(Value):
       elif isinstance(self.value, float):
          return "nir_type_float"
 
+   def equivalent(self, other):
+      """Check that two constants are equivalent.
+
+      This is check is much weaker than equality.  One generally cannot be
+      used in place of the other.  Using this implementation for the __eq__
+      will break BitSizeValidator.
+
+      """
+      if not isinstance(other, type(self)):
+         return False
+
+      return self.value == other.value
+
 _var_name_re = re.compile(r"(?P<const>#)?(?P<name>\w+)"
                           r"(?:@(?P<type>int|uint|bool|float)?(?P<bits>\d+)?)?"
                           r"(?P<cond>\([^\)]+\))?")
@@ -310,6 +326,19 @@ class Variable(Value):
       elif self.required_type == 'float':
          return "nir_type_float"
 
+   def equivalent(self, other):
+      """Check that two variables are equivalent.
+
+      This is check is much weaker than equality.  One generally cannot be
+      used in place of the other.  Using this implementation for the __eq__
+      will break BitSizeValidator.
+
+      """
+      if not isinstance(other, type(self)):
+         return False
+
+      return self.index == other.index
+
 _opcode_re = re.compile(r"(?P<inexact>~)?(?P<opcode>\w+)(?:@(?P<bits>\d+))?"
                         r"(?P<cond>\([^\)]+\))?")
 
@@ -325,6 +354,20 @@ class Expression(Value):
       self._bit_size = int(m.group('bits')) if m.group('bits') else None
       self.inexact = m.group('inexact') is not None
       self.cond = m.group('cond')
+
+      # "many-comm-expr" isn't really a condition.  It's notification to the
+      # generator that this pattern is known to have too many commutative
+      # expressions, and an error should not be generated for this case.
+      self.many_commutative_expressions = False
+      if self.cond and self.cond.find("many-comm-expr") >= 0:
+         # Split the condition into a comma-separated list.  Remove
+         # "many-comm-expr".  If there is anything left, put it back together.
+         c = self.cond[1:-1].split(",")
+         c.remove("many-comm-expr")
+
+         self.cond = "({})".format(",".join(c)) if c else None
+         self.many_commutative_expressions = True
+
       self.sources = [ Value.create(src, "{0}_{1}".format(name_base, i), varset)
                        for (i, src) in enumerate(expr[1:]) ]
 
@@ -335,12 +378,41 @@ class Expression(Value):
 
       self.__index_comm_exprs(0)
 
+   def equivalent(self, other):
+      """Check that two variables are equivalent.
+
+      This is check is much weaker than equality.  One generally cannot be
+      used in place of the other.  Using this implementation for the __eq__
+      will break BitSizeValidator.
+
+      This implementation does not check for equivalence due to commutativity,
+      but it could.
+
+      """
+      if not isinstance(other, type(self)):
+         return False
+
+      if len(self.sources) != len(other.sources):
+         return False
+
+      if self.opcode != other.opcode:
+         return False
+
+      return all(s.equivalent(o) for s, o in zip(self.sources, other.sources))
+
    def __index_comm_exprs(self, base_idx):
       """Recursively count and index commutative expressions
       """
       self.comm_exprs = 0
+
+      # A note about the explicit "len(self.sources)" check. The list of
+      # sources comes from user input, and that input might be bad.  Check
+      # that the expected second source exists before accessing it. Without
+      # this check, a unit test that does "('iadd', 'a')" will crash.
       if self.opcode not in conv_opcode_types and \
-         "2src_commutative" in opcodes[self.opcode].algebraic_properties:
+         "2src_commutative" in opcodes[self.opcode].algebraic_properties and \
+         len(self.sources) >= 2 and \
+         not self.sources[0].equivalent(self.sources[1]):
          self.comm_expr_idx = base_idx
          self.comm_exprs += 1
       else:
@@ -1161,7 +1233,6 @@ ${pass_name}(nir_shader *shader)
 }
 """)
 
-      
 
 class AlgebraicPass(object):
    def __init__(self, pass_name, transforms):
@@ -1191,6 +1262,32 @@ class AlgebraicPass(object):
                self.opcode_xforms[sized_opcode].append(xform)
          else:
             self.opcode_xforms[xform.search.opcode].append(xform)
+
+         # Check to make sure the search pattern does not unexpectedly contain
+         # more commutative expressions than match_expression (nir_search.c)
+         # can handle.
+         comm_exprs = xform.search.comm_exprs
+
+         if xform.search.many_commutative_expressions:
+            if comm_exprs <= nir_search_max_comm_ops:
+               print("Transform expected to have too many commutative " \
+                     "expression but did not " \
+                     "({} <= {}).".format(comm_exprs, nir_search_max_comm_op),
+                     file=sys.stderr)
+               print("  " + str(xform), file=sys.stderr)
+               traceback.print_exc(file=sys.stderr)
+               print('', file=sys.stderr)
+               error = True
+         else:
+            if comm_exprs > nir_search_max_comm_ops:
+               print("Transformation with too many commutative expressions " \
+                     "({} > {}).  Modify pattern or annotate with " \
+                     "\"many-comm-expr\".".format(comm_exprs,
+                                                  nir_search_max_comm_ops),
+                     file=sys.stderr)
+               print("  " + str(xform.search), file=sys.stderr)
+               print("{}".format(xform.search.cond), file=sys.stderr)
+               error = True
 
       self.automaton = TreeAutomaton(self.xforms)
 

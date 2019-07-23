@@ -48,6 +48,13 @@ static char *unrecognized_extensions = NULL;
  */
 #define o(x) offsetof(struct gl_extensions, x)
 
+static int
+extension_name_compare(const void *name, const void *elem)
+{
+   const struct mesa_extension *entry = elem;
+   return strcmp(name, entry->name);
+}
+
 /**
  * Given an extension name, lookup up the corresponding member of struct
  * gl_extensions and return that member's index.  If the name is
@@ -59,15 +66,18 @@ static char *unrecognized_extensions = NULL;
 static int
 name_to_index(const char* name)
 {
-   unsigned i;
+   const struct mesa_extension *entry;
 
-   if (name == 0)
+   if (!name)
       return -1;
 
-   for (i = 0; i < MESA_EXTENSION_COUNT; ++i) {
-      if (strcmp(name, _mesa_extension_table[i].name) == 0)
-	 return i;
-   }
+   entry = bsearch(name,
+                   _mesa_extension_table, MESA_EXTENSION_COUNT,
+                   sizeof(_mesa_extension_table[0]),
+                   extension_name_compare);
+
+   if (entry)
+      return entry - _mesa_extension_table;
 
    return -1;
 }

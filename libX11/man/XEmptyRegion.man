@@ -99,19 +99,19 @@ Specifies the region.
 .ns
 .IP \fIr2\fP 1i
 Specify the two regions.
-.ds Wh , which define the rectangle
+.ds Wh 
 .IP \fIwidth\fP 1i
 .br
 .ns
 .IP \fIheight\fP 1i
-Specify the width and height\*(Wh.
-.ds Xy , which define the point \
-or the coordinates of the upper-left corner of the rectangle
+Specify the width and height, which define the rectangle.
+.ds Xy 
 .IP \fIx\fP 1i
 .br
 .ns
 .IP \fIy\fP 1i
-Specify the x and y coordinates\*(Xy.
+Specify the x and y coordinates, which define the point 
+or the coordinates of the upper-left corner of the rectangle.
 .SH DESCRIPTION
 The
 .ZN XEmptyRegion

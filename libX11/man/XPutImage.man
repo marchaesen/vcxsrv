@@ -101,16 +101,16 @@ XImage *XGetSubImage\^(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^, int
 Specifies the drawable. 
 .IP \fIdest_image\fP 1i
 Specifies the destination image.
-.ds Dx , which are relative to the origin of the drawable \
-and are the coordinates of the subimage \
-or which are relative to the origin of the destination rectangle, \
-specify its upper-left corner, and determine where the subimage \
-is placed in the destination image
+.ds Dx 
 .IP \fIdest_x\fP 1i
 .br
 .ns
 .IP \fIdest_y\fP 1i
-Specify the x and y coordinates\*(Dx.
+Specify the x and y coordinates, which are relative to the origin of the drawable 
+and are the coordinates of the subimage 
+or which are relative to the origin of the destination rectangle, 
+specify its upper-left corner, and determine where the subimage 
+is placed in the destination image.
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fIformat\fP 1i
@@ -136,19 +136,18 @@ Specifies the offset in Y from the top edge of the image defined
 by the 
 .ZN XImage 
 structure.
-.ds Wh \ of the subimage, which define the dimensions of the rectangle
 .IP \fIwidth\fP 1i
 .br
 .ns
 .IP \fIheight\fP 1i
-Specify the width and height\*(Wh.
-.ds Xy , which are relative to the origin of the drawable \
-and define the upper-left corner of the rectangle
+Specify the width and height of the subimage, which define 
+the dimensions of the rectangle.
 .IP \fIx\fP 1i
 .br
 .ns
 .IP \fIy\fP 1i
-Specify the x and y coordinates\*(Xy.
+Specify the x and y coordinates, which are relative to the origin of the drawable 
+and define the upper-left corner of the rectangle.
 .SH DESCRIPTION
 The
 .ZN XPutImage

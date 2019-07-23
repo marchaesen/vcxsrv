@@ -90,12 +90,10 @@ XcmsWhiteAdjustProc \fIwhite_adjust_proc\fP\^, XPointer \fIclient_data\fP\^);
 .SH ARGUMENTS
 .IP \fIccc\fP 1i
 Specifies the CCC.
-.ds Cd the white point adjustment procedure
 .IP \fIclient_data\fP 1i
-Specifies client data for \*(Cd or NULL.
-.ds Co new Client White Point
+Specifies client data for the white point adjustment procedure or NULL.
 .IP \fIcolor\fP 1i
-Specifies the \*(Co.
+Specifies the new Client White Point.
 .IP \fIwhite_adjust_proc\fP 1i
 Specifies the white point adjustment procedure.
 .SH DESCRIPTION

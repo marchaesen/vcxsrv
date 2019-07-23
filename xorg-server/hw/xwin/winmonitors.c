@@ -41,7 +41,7 @@ from The Open Group.
  */
 
 static
-    wBOOL CALLBACK
+WINBOOL CALLBACK
 getMonitorInfo(HMONITOR hMonitor, HDC hdc, LPRECT rect, LPARAM _data)
 {
     struct GetMonitorInfoData *data = (struct GetMonitorInfoData *) _data;
@@ -75,5 +75,7 @@ QueryMonitor(int i, struct GetMonitorInfoData *data)
     data->requestedMonitor = i;
 
     /* query information */
-    return !EnumDisplayMonitors(NULL, NULL, getMonitorInfo, (LPARAM) data);
+    EnumDisplayMonitors(NULL, NULL, getMonitorInfo, (LPARAM) data);
+
+    return data->bMonitorSpecifiedExists;
 }

@@ -93,13 +93,11 @@ int XCopyPlane\^(\^Display *\fIdisplay\fP\^, Drawable \fIsrc\fP\^, Drawable
 \fIwidth\fP\^, int \fIheight\fP\^, int \fIdest_x\fP\^, int \fIdest_y\fP\^,
 unsigned long \fIplane\fP\^); 
 .SH ARGUMENTS
-.ds Dx , which are relative to the origin of the destination rectangle \
-and specify its upper-left corner
 .IP \fIdest_x\fP 1i
 .br
 .ns
 .IP \fIdest_y\fP 1i
-Specify the x and y coordinates\*(Dx. 
+Specify the x and y coordinates, which are relative to the origin of the destination rectangle and specify its upper-left corner. 
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fIgc\fP 1i
@@ -119,12 +117,12 @@ Specify the source and destination rectangles to be combined.
 Specify the x and y coordinates, 
 which are relative to the origin of the source rectangle
 and specify its upper-left corner.
-.ds Wh , which are the dimensions of both the source and destination rectangles
 .IP \fIwidth\fP 1i
 .br
 .ns
 .IP \fIheight\fP 1i
-Specify the width and height\*(Wh.
+Specify the width and height, which are the dimensions 
+of both the source and destination rectangles.
 .SH DESCRIPTION
 The
 .ZN XCopyArea

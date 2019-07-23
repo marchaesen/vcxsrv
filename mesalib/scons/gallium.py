@@ -371,6 +371,9 @@ def generate(env):
         if check_functions(env, ['timespec_get']):
             cppdefines += ['HAVE_TIMESPEC_GET']
 
+        if check_header(env, 'sys/shm.h'):
+            cppdefines += ['HAVE_SYS_SHM_H']
+
     if platform == 'windows':
         cppdefines += [
             'WIN32',

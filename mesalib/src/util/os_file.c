@@ -6,7 +6,30 @@
 #include "os_file.h"
 
 #include <errno.h>
+#include <fcntl.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+
+
+#if defined(WIN32)
+#include <io.h>
+#define open _open
+#define fdopen _fdopen
+#define O_CREAT _O_CREAT
+#define O_EXCL _O_EXCL
+#define O_WRONLY _O_WRONLY
+#endif
+
+
+FILE *
+os_file_create_unique(const char *filename, int filemode)
+{
+   int fd = open(filename, O_CREAT | O_EXCL | O_WRONLY, filemode);
+   if (fd == -1)
+      return NULL;
+   return fdopen(fd, "w");
+}
+
 
 #if defined(__linux__)
 
@@ -91,6 +114,17 @@ os_read_file(const char *filename)
 
    if (actually_read > 0)
       offset += actually_read;
+
+   /* Final resize to actual size */
+   len = offset + 1;
+   char *newbuf = realloc(buf, len);
+   if (!newbuf) {
+      free(buf);
+      close(fd);
+      errno = -ENOMEM;
+      return NULL;
+   }
+   buf = newbuf;
 
    buf[offset] = '\0';
 

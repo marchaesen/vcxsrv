@@ -100,6 +100,71 @@
       <param name="matrixMode" type="GLenum" />
    </function>
 
+   <!-- OpenGL 1.1 -->
+
+    <function name="GetTextureParameterivEXT">
+       <param name="texture" type="GLuint" />
+       <param name="target" type="GLenum" />
+       <param name="pname" type="GLenum" />
+       <param name="params" type="GLint *" />
+    </function>
+
+    <function name="GetTextureParameterfvEXT">
+       <param name="texture" type="GLuint" />
+       <param name="target" type="GLenum" />
+       <param name="pname" type="GLenum" />
+       <param name="params" type="float *" />
+    </function>
+
+    <function name="TextureParameteriEXT">
+       <param name="texture" type="GLuint" />
+       <param name="target" type="GLenum" />
+       <param name="pname" type="GLenum" />
+       <param name="param" type="int" />
+    </function>
+
+    <function name="TextureParameterivEXT">
+       <param name="texture" type="GLuint" />
+       <param name="target" type="GLenum" />
+       <param name="pname" type="GLenum" />
+       <param name="params" type="const GLint *" />
+    </function>
+
+    <function name="TextureParameterfEXT">
+       <param name="texture" type="GLuint" />
+       <param name="target" type="GLenum" />
+       <param name="pname" type="GLenum" />
+       <param name="param" type="float" />
+    </function>
+
+    <function name="TextureParameterfvEXT">
+       <param name="texture" type="GLuint" />
+       <param name="target" type="GLenum" />
+       <param name="pname" type="GLenum" />
+       <param name="params" type="const float *" />
+    </function>
+
+   <function name="TextureSubImage2DEXT">
+      <param name="texture" type="GLuint" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="yoffset" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="format" type="GLenum" />
+      <param name="type" type="GLenum" />
+      <param name="pixels" type="const GLvoid *" />
+   </function>
+
+   <!-- OpenGL 1.2.1 -->
+
+  <function name="BindMultiTextureEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="texture" type="GLuint" />
+   </function>
+
    <!-- OpenGL 1.3 -->
 
    <function name="MatrixLoadTransposefEXT" offset="assign">
@@ -120,7 +185,57 @@
    <function name="MatrixMultTransposedEXT" offset="assign">
       <param name="matrixMode" type="GLenum" />
       <param name="m" type="const GLdouble *" />
-   </function>
-</category>
+    </function>
 
+   <function name="CompressedTextureSubImage2DEXT">
+      <param name="texture" type="GLuint" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="yoffset" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="format" type="GLenum" />
+      <param name="imageSize" type="GLsizei" />
+      <param name="data" type="const GLvoid *" />
+   </function>
+
+   <!-- OpenGL 1.5 -->
+
+   <function name="NamedBufferDataEXT">
+      <param name="buffer" type="GLuint" />
+      <param name="size" type="GLsizeiptr" />
+      <param name="data" type="const GLvoid *" />
+      <param name="usage" type="GLenum" />
+   </function>
+
+   <function name="NamedBufferSubDataEXT">
+      <param name="buffer" type="GLuint" />
+      <param name="offset" type="GLintptr" />
+      <param name="size" type="GLsizeiptr" />
+      <param name="data" type="const GLvoid *" />
+   </function>
+
+   <function name="MapNamedBufferEXT">
+      <return type="GLvoid *" />
+      <param name="buffer" type="GLuint" />
+      <param name="access" type="GLenum" />
+   </function>
+
+   <function name="UnmapNamedBufferEXT">
+      <return type="GLboolean" />
+      <param name="buffer" type="GLuint" />
+   </function>
+
+   <!-- OpenGL 3.0 -->
+
+   <function name="MapNamedBufferRangeEXT">
+      <return type="GLvoid *" />
+      <param name="buffer" type="GLuint" />
+      <param name="offset" type="GLintptr" />
+      <param name="length" type="GLsizeiptr" />
+      <param name="access" type="GLbitfield" />
+   </function>
+
+</category>
 </OpenGLAPI>

@@ -129,12 +129,10 @@ int XDisableAccessControl\^(\^Display *\fIdisplay\fP\^);
 .SH ARGUMENTS
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
-.ds Ho added or removed
 .IP \fIhost\fP 1i
-Specifies the host that is to be \*(Ho.
-.ds Ho added or removed
+Specifies the host that is to be added or removed.
 .IP \fIhosts\fP 1i
-Specifies each host that is to be \*(Ho.
+Specifies each host that is to be added or removed.
 .IP \fImode\fP 1i
 Specifies the mode.
 You can pass

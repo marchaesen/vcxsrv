@@ -158,6 +158,13 @@ libxmlconfig = static_library(
   build_by_default : false,
 )
 
+idep_xmlconfig = declare_dependency(
+  sources : xmlpool_options_h,
+  include_directories : inc_util,
+  link_with : libxmlconfig,
+  dependencies : dep_expat,
+)
+
 if with_tests
   test(
     'u_atomic',

@@ -8271,6 +8271,13 @@
         <param name="data" type="const GLvoid *"/>
         <param name="flags" type="GLbitfield"/>
     </function>
+
+   <function name="NamedBufferStorageEXT">
+      <param name="buffer" type="GLuint" />
+      <param name="size" type="GLsizeiptr" />
+      <param name="data" type="const GLvoid *" />
+      <param name="flags" type="GLbitfield" />
+   </function>
 </category>
 
 <xi:include href="ARB_clear_texture.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>

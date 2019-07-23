@@ -169,9 +169,8 @@ Specifies the type of the property.
 The X server does not interpret the type but simply
 passes it back to an application that later calls 
 .ZN XGetWindowProperty .
-.ds Wi whose property you want to obtain, change, rotate or delete
 .IP \fIw\fP 1i
-Specifies the window \*(Wi.
+Specifies the window whose property you want to obtain, change, rotate or delete.
 .SH DESCRIPTION
 The
 .ZN XGetWindowProperty

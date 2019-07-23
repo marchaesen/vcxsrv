@@ -47,13 +47,6 @@ LOCAL_SRC_FILES := $(filter-out $(sources), $(LOCAL_SRC_FILES))
 
 LOCAL_C_INCLUDES += $(intermediates)/main
 
-ifeq ($(strip $(MESA_ENABLE_ASM)),true)
-ifeq ($(TARGET_ARCH),x86)
-sources += x86/matypes.h
-LOCAL_C_INCLUDES += $(intermediates)/x86
-endif
-endif
-
 sources := $(addprefix $(intermediates)/, $(sources))
 
 LOCAL_GENERATED_SOURCES += $(sources)
@@ -69,16 +62,6 @@ define es-gen
 	@echo "Gen ES: $(PRIVATE_MODULE) <= $(notdir $(@))"
 	$(hide) $(PRIVATE_SCRIPT) $(1) $(PRIVATE_XML) > $@
 endef
-
-matypes_deps := \
-	$(BUILD_OUT_EXECUTABLES)/mesa_gen_matypes$(BUILD_EXECUTABLE_SUFFIX) \
-	$(LOCAL_PATH)/main/mtypes.h \
-	$(LOCAL_PATH)/tnl/t_context.h
-
-$(intermediates)/x86/matypes.h: $(matypes_deps) 
-	@mkdir -p $(dir $@)
-	@echo "MATYPES: $(PRIVATE_MODULE) <= $(notdir $@)"
-	$(hide) $< > $@
 
 $(intermediates)/main/dispatch.h: PRIVATE_SCRIPT := $(MESA_PYTHON2) $(glapi)/gl_table.py
 $(intermediates)/main/dispatch.h: PRIVATE_XML := -f $(glapi)/gl_and_es_API.xml

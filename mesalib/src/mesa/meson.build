@@ -605,22 +605,6 @@ files_libmesa_gallium = files(
   'state_tracker/st_vdpau.h',
 )
 
-matypes_h = []
-if with_asm_arch == 'x86' or with_asm_arch == 'x86_64'
-  gen_matypes = executable(
-    'gen_matypes',
-    'x86/gen_matypes.c',
-    c_args : [c_vis_args, c_msvc_compat_args],
-    include_directories : inc_common,
-  )
-  matypes_h = custom_target(
-    'matypes.h',
-    output : 'matypes.h',
-    command : [gen_matypes],
-    capture : true,
-  )
-endif
-
 inc_libmesa_asm = []
 if with_asm_arch == 'x86'
   files_libmesa_common += files(
@@ -707,7 +691,6 @@ files_libmesa_common += [
   main_dispatch_h,
   ir_expression_operation_h,
   main_remap_helper_h,
-  matypes_h,
   sha1_h,
 ]
 

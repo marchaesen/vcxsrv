@@ -117,11 +117,10 @@ Specifies the number of bytes in the string argument.
 Returns the number of characters in the string argument.
 .IP \fInum_wchars\fP 1i
 Specifies the number of characters in the string argument.
-.ds Ov extents of the entire string
 .IP \fIoverall_ink_return\fP 1i
-Returns the overall ink \*(Ov.
+Returns the overall ink extents of the entire string.
 .IP \fIoverall_logical_return\fP 1i
-Returns the overall logical \*(Ov.
+Returns the overall logical extents of the entire string.
 .IP \fIstring\fP 1i
 Specifies the character string.
 .SH DESCRIPTION

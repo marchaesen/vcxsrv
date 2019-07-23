@@ -288,4 +288,16 @@ is_lower_half_zero(nir_alu_instr *instr, unsigned src,
    return true;
 }
 
+static inline bool
+no_signed_wrap(nir_alu_instr *instr)
+{
+   return instr->no_signed_wrap;
+}
+
+static inline bool
+no_unsigned_wrap(nir_alu_instr *instr)
+{
+   return instr->no_unsigned_wrap;
+}
+
 #endif /* _NIR_SEARCH_ */
