@@ -119,7 +119,7 @@ u_socket_connect(const char *hostname, uint16_t port)
    hints.ai_family = AF_UNSPEC; // AF_INET or AF_INET6 to force version
    hints.ai_socktype = SOCK_STREAM;
 
-   util_snprintf(portString, sizeof(portString), "%d", port);
+   snprintf(portString, sizeof(portString), "%d", port);
 
    r = getaddrinfo(hostname, portString, NULL, &addr);
    if (r != 0) {

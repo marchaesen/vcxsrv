@@ -133,7 +133,6 @@ struct st_context
    GLboolean clamp_vert_color_in_shader;
    boolean has_stencil_export; /**< can do shader stencil export? */
    boolean has_time_elapsed;
-   boolean has_shader_model3;
    boolean has_etc1;
    boolean has_etc2;
    boolean has_astc_2d_ldr;
@@ -146,6 +145,7 @@ struct st_context
    boolean has_indep_blend_func;
    boolean needs_rgb_dst_alpha_override;
    boolean can_bind_const_buffer_as_vertex;
+   boolean has_signed_vertex_buffer_offset;
 
    /**
     * If a shader can be created when we get its source.

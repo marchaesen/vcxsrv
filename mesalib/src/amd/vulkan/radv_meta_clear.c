@@ -1421,6 +1421,12 @@ radv_clear_htile(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image,
 	return radv_fill_buffer(cmd_buffer, image->bo, offset, size, value);
 }
 
+enum {
+	RADV_DCC_CLEAR_REG = 0x20202020U,
+	RADV_DCC_CLEAR_MAIN_1 = 0x80808080U,
+	RADV_DCC_CLEAR_SECONDARY_1 = 0x40404040U
+};
+
 static void vi_get_fast_clear_parameters(VkFormat format,
 					 const VkClearColorValue *clear_value,
 					 uint32_t* reset_value,
@@ -1433,7 +1439,7 @@ static void vi_get_fast_clear_parameters(VkFormat format,
 	int i;
 	*can_avoid_fast_clear_elim = false;
 
-	*reset_value = 0x20202020U;
+	*reset_value = RADV_DCC_CLEAR_REG;
 
 	const struct vk_format_description *desc = vk_format_description(format);
 	if (format == VK_FORMAT_B10G11R11_UFLOAT_PACK32 ||
@@ -1490,11 +1496,12 @@ static void vi_get_fast_clear_parameters(VkFormat format,
 			return;
 
 	*can_avoid_fast_clear_elim = true;
+	*reset_value = 0;
 	if (main_value)
-		*reset_value |= 0x80808080U;
+		*reset_value |= RADV_DCC_CLEAR_MAIN_1;
 
 	if (extra_value)
-		*reset_value |= 0x40404040U;
+		*reset_value |= RADV_DCC_CLEAR_SECONDARY_1;
 	return;
 }
 
@@ -1681,7 +1688,7 @@ emit_clear(struct radv_cmd_buffer *cmd_buffer,
 		if (ds_resolve_clear)
 			ds_att = subpass->ds_resolve_attachment;
 
-		if (ds_att->attachment == VK_ATTACHMENT_UNUSED)
+		if (!ds_att || ds_att->attachment == VK_ATTACHMENT_UNUSED)
 			return;
 
 		VkImageLayout image_layout = ds_att->layout;

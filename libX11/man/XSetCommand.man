@@ -103,28 +103,28 @@ Specifies the connection to the X server.
 Specifies the window.
 .SH DESCRIPTION
 The
-.ZN XSetCommand
+.B XSetCommand
 function sets the command and arguments used to invoke the
 application.
 (Typically, argv is the argv array of your main program.)
 If the strings are not in the Host Portable Character Encoding,
 the result is implementation-dependent.
 .LP
-.ZN XSetCommand
+.B XSetCommand
 can generate
-.ZN BadAlloc
+.B BadAlloc
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The 
-.ZN XGetCommand 
+.B XGetCommand
 function reads the WM_COMMAND property from the specified window 
 and returns a string list.
 If the WM_COMMAND property exists, 
 it is of type STRING and format 8.
 If sufficient memory can be allocated to contain the string list, 
-.ZN XGetCommand
+.B XGetCommand
 fills in the argv_return and argc_return arguments
 and returns a nonzero status.
 Otherwise, or if any other error is encountered, it returns a zero status.
@@ -132,7 +132,7 @@ If the data returned by the server is in the Latin Portable Character Encoding,
 then the returned strings are in the Host Portable Character Encoding.
 Otherwise, the result is implementation-dependent.
 To free the memory allocated to the string list, use
-.ZN XFreeStringList .
+.BR XFreeStringList .
 .SH PROPERTIES
 .TP 1i
 \s-1WM_COMMAND\s+1
@@ -140,10 +140,10 @@ The command and arguments, null-separated, used to invoke the
 application.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XAllocClassHint(__libmansuffix__),

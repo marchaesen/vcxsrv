@@ -83,9 +83,9 @@
 XGraphicsExposeEvent, XNoExposeEvent \- GraphicsExpose and NoExpose event structures
 .SH STRUCTURES
 The structures for
-.ZN GraphicsExpose
+.B GraphicsExpose
 and
-.ZN NoExpose
+.B NoExpose
 events contain:
 .LP
 .Ds 0
@@ -121,16 +121,16 @@ their structure members are set as follows.
 The type member is set to the event type constant name that uniquely identifies
 it.
 For example, when the X server reports a
-.ZN GraphicsExpose
+.B GraphicsExpose
 event to a client application, it sends an
-.ZN XGraphicsExposeEvent
+.B XGraphicsExposeEvent
 structure with the type member set to
-.ZN GraphicsExpose .
+.BR GraphicsExpose .
 The display member is set to a pointer to the display the event was read on.
 The send_event member is set to
-.ZN True
+.B True
 if the event came from a
-.ZN SendEvent
+.B SendEvent
 protocol request.
 The serial member is set from the serial number reported in the protocol
 but expanded from the 16-bit least-significant bits to a full 32-bit value.
@@ -142,18 +142,18 @@ The drawable member is set to the drawable of the destination region on
 which the graphics request was to be performed.
 The major_code member is set to the graphics request initiated by the client
 and can be either
-.ZN X_CopyArea
+.B X_CopyArea
 or
-.ZN X_CopyPlane .
+.BR X_CopyPlane .
 If it is
-.ZN X_CopyArea ,
+.BR X_CopyArea ,
 a call to
-.ZN XCopyArea
+.B XCopyArea
 initiated the request.
 If it is
-.ZN X_CopyPlane ,
+.BR X_CopyPlane ,
 a call to
-.ZN XCopyPlane
+.B XCopyPlane
 initiated the request.
 These constants are defined in 
 .hN X11/Xproto.h .
@@ -166,19 +166,19 @@ X protocol and will be zero in these cases,
 although it may be used by an extension.
 .LP
 The 
-.ZN XGraphicsExposeEvent
+.B XGraphicsExposeEvent
 structure has these additional members: x, y, width, height, and count. 
 The x and y members are set to the coordinates relative to the drawable's origin
 and indicate the upper-left corner of the rectangle.
 The width and height members are set to the size (extent) of the rectangle.
 The count member is set to the number of
-.ZN GraphicsExpose
+.B GraphicsExpose
 events to follow.
 If count is zero, no more
-.ZN GraphicsExpose
+.B GraphicsExpose
 events follow for this window.
 However, if count is nonzero, at least that number of
-.ZN GraphicsExpose
+.B GraphicsExpose
 events (and possibly more) are to follow for this window.
 .SH "SEE ALSO"
 XAnyEvent(__libmansuffix__),

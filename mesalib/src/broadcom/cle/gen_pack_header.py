@@ -30,7 +30,7 @@ import re
 import sys
 import copy
 
-license =  """/* Generated code, see packets.xml and gen_packet_header.py */
+license =  """/* Generated code, see v3d_packet_v21.xml, v3d_packet_v33.xml and gen_pack_header.py */
 """
 
 pack_header = """%(license)s

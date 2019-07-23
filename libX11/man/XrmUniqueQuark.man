@@ -136,7 +136,7 @@ Returns the list of quarks.
 Specifies the string for which a quark or quark list is to be allocated.
 .SH DESCRIPTION
 The
-.ZN XrmUniqueQuark
+.B XrmUniqueQuark
 function allocates a quark that is guaranteed not to represent any string that
 is known to the resource manager.
 .LP
@@ -144,18 +144,18 @@ These functions can be used to convert from string to quark representation.
 If the string is not in the Host Portable Character Encoding,
 the conversion is implementation-dependent.
 The string argument to
-.ZN XrmStringToQuark
+.B XrmStringToQuark
 need not be permanently allocated storage.
-.ZN XrmPermStringToQuark
+.B XrmPermStringToQuark
 is just like
-.ZN XrmStringToQuark ,
+.BR XrmStringToQuark ,
 except that Xlib is permitted to assume the string argument is permanently
 allocated,
 and, hence, that it can be used as the value to be returned by
-.ZN XrmQuarkToString .
+.BR XrmQuarkToString .
 .LP
 For any given quark, if
-.ZN XrmStringToQuark
+.B XrmStringToQuark
 returns a non-NULL value,
 all future calls will return the same value (identical address).
 .LP
@@ -164,10 +164,10 @@ The string pointed to by the return value must not be modified or freed.
 The returned string is byte-for-byte equal to the original
 string passed to one of the string-to-quark routines.
 If no string exists for that quark,
-.ZN XrmQuarkToString
+.B XrmQuarkToString
 returns NULL.
 For any given quark, if
-.ZN XrmQuarkToString
+.B XrmQuarkToString
 returns a non-NULL value,
 all future calls will return the same value (identical address).
 .LP
@@ -175,34 +175,34 @@ These functions can be used to convert from string to quark representation.
 If the string is not in the Host Portable Character Encoding,
 the conversion is implementation-dependent.
 The string argument to
-.ZN XrmStringToQuark
+.B XrmStringToQuark
 need not be permanently allocated storage.
-.ZN XrmPermStringToQuark
+.B XrmPermStringToQuark
 is just like
-.ZN XrmStringToQuark ,
+.BR XrmStringToQuark ,
 except that Xlib is permitted to assume the string argument is permanently
 allocated,
 and, hence, that it can be used as the value to be returned by
-.ZN XrmQuarkToString .
+.BR XrmQuarkToString .
 .LP
 For any given quark, if
-.ZN XrmStringToQuark
+.B XrmStringToQuark
 returns a non-NULL value,
 all future calls will return the same value (identical address).
 .LP
 The
-.ZN XrmStringToQuarkList
+.B XrmStringToQuarkList
 function converts the null-terminated string (generally a fully qualified name)
 to a list of quarks.
 The caller must allocate sufficient space for the quarks list before calling 
-.ZN XrmStringToQuarkList .
+.BR XrmStringToQuarkList .
 Note that the string must be in the valid ResourceName format 
 (see section 15.1).
 If the string is not in the Host Portable Character Encoding,
 the conversion is implementation-dependent.
 .LP
 A binding list is a list of type
-.ZN XrmBindingList
+.B XrmBindingList
 and indicates if components of name or class lists are bound tightly or loosely
 (that is, if wildcarding of intermediate components is specified).
 .LP
@@ -210,17 +210,17 @@ and indicates if components of name or class lists are bound tightly or loosely
 typedef enum {XrmBindTightly, XrmBindLoosely} XrmBinding, *XrmBindingList;
 .EE
 .LP
-.ZN XrmBindTightly
+.B XrmBindTightly
 indicates that a period separates the components, and
-.ZN XrmBindLoosely
+.B XrmBindLoosely
 indicates that an asterisk separates the components.
 .LP
 The
-.ZN XrmStringToBindingQuarkList
+.B XrmStringToBindingQuarkList
 function converts the specified string to a binding list and a quark list.
 The caller must allocate sufficient space for the quarks list and the
 binding list before calling 
-.ZN XrmStringToBindingQuarkList .
+.BR XrmStringToBindingQuarkList .
 If the string is not in the Host Portable Character Encoding
 the conversion is implementation-dependent.
 Component names in the list are separated by a period or
@@ -230,7 +230,7 @@ a period is assumed.
 For example, ``*a.b*c'' becomes:
 .LP
 .TS
-l l l.
+L l l l.
 quarks	a	b	c
 bindings	loose	tight	loose
 .TE

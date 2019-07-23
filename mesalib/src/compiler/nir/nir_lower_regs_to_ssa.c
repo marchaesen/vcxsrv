@@ -220,14 +220,16 @@ nir_lower_regs_to_ssa_impl(nir_function_impl *impl)
                               nir_metadata_dominance);
    nir_index_local_regs(impl);
 
+   void *dead_ctx = ralloc_context(NULL);
    struct regs_to_ssa_state state;
    state.shader = impl->function->shader;
-   state.values = malloc(impl->reg_alloc * sizeof(*state.values));
+   state.values = ralloc_array(dead_ctx, struct nir_phi_builder_value *,
+                               impl->reg_alloc);
 
    struct nir_phi_builder *phi_build = nir_phi_builder_create(impl);
 
    const unsigned block_set_words = BITSET_WORDS(impl->num_blocks);
-   NIR_VLA(BITSET_WORD, defs, block_set_words);
+   BITSET_WORD *defs = ralloc_array(dead_ctx, BITSET_WORD, block_set_words);
 
    nir_foreach_register(reg, &impl->registers) {
       if (reg->num_array_elems != 0) {
@@ -251,9 +253,17 @@ nir_lower_regs_to_ssa_impl(nir_function_impl *impl)
 
    nir_foreach_block(block, impl) {
       nir_foreach_instr(instr, block) {
-         if (instr->type == nir_instr_type_alu) {
+         switch (instr->type) {
+         case nir_instr_type_alu:
             rewrite_alu_instr(nir_instr_as_alu(instr), &state);
-         } else {
+            break;
+
+         case nir_instr_type_phi:
+            /* We rewrite sources as a separate pass */
+            nir_foreach_dest(instr, rewrite_dest, &state);
+            break;
+
+         default:
             nir_foreach_src(instr, rewrite_src, &state);
             nir_foreach_dest(instr, rewrite_dest, &state);
          }
@@ -262,6 +272,28 @@ nir_lower_regs_to_ssa_impl(nir_function_impl *impl)
       nir_if *following_if = nir_block_get_following_if(block);
       if (following_if)
          rewrite_if_condition(following_if, &state);
+
+      /* Handle phi sources that source from this block.  We have to do this
+       * as a separate pass because the phi builder assumes that uses and
+       * defs are processed in an order that respects dominance.  When we have
+       * loops, a phi source may be a back-edge so we have to handle it as if
+       * it were one of the last instructions in the predecessor block.
+       */
+      for (unsigned i = 0; i < ARRAY_SIZE(block->successors); i++) {
+         if (block->successors[i] == NULL)
+            continue;
+
+         nir_foreach_instr(instr, block->successors[i]) {
+            if (instr->type != nir_instr_type_phi)
+               break;
+
+            nir_phi_instr *phi = nir_instr_as_phi(instr);
+            nir_foreach_phi_src(phi_src, phi) {
+               if (phi_src->pred == block)
+                  rewrite_src(&phi_src->src, &state);
+            }
+         }
+      }
    }
 
    nir_phi_builder_finish(phi_build);
@@ -275,7 +307,7 @@ nir_lower_regs_to_ssa_impl(nir_function_impl *impl)
       }
    }
 
-   free(state.values);
+   ralloc_free(dead_ctx);
 
    nir_metadata_preserve(impl, nir_metadata_block_index |
                                nir_metadata_dominance);

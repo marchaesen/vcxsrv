@@ -88,9 +88,9 @@ int XNoOp\^(\^Display *\fIdisplay\fP\^);
 Specifies the connection to the X server.
 .SH DESCRIPTION
 The
-.ZN XNoOp
+.B XNoOp
 function sends a 
-.ZN NoOperation 
+.B NoOperation
 protocol request to the X server,
 thereby exercising the connection.
 .SH "SEE ALSO"

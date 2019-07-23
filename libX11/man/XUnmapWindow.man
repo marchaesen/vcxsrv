@@ -93,14 +93,14 @@ Specifies the connection to the X server.
 Specifies the window.
 .SH DESCRIPTION
 The
-.ZN XUnmapWindow
+.B XUnmapWindow
 function unmaps the specified window and causes the X server to generate an
-.ZN UnmapNotify
+.B UnmapNotify
 .IN "UnmapNotify Event"
 .IN "XUnmapWindow"
 event.
 If the specified window is already unmapped, 
-.ZN XUnmapWindow 
+.B XUnmapWindow
 has no effect.
 Normal exposure processing on formerly obscured windows is performed.
 Any child window will no longer be visible until another map call is
@@ -108,35 +108,35 @@ made on the parent.
 In other words, the subwindows are still mapped but are not visible
 until the parent is mapped.
 Unmapping a window will generate 
-.ZN Expose 
+.B Expose
 events on windows that were formerly obscured by it.
 .LP
-.ZN XUnmapWindow
+.B XUnmapWindow
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .LP
 The
-.ZN XUnmapSubwindows
+.B XUnmapSubwindows
 function unmaps all subwindows for the specified window in bottom-to-top
 stacking order.
 It causes the X server to generate an
-.ZN UnmapNotify
+.B UnmapNotify
 event on each subwindow and 
-.ZN Expose 
+.B Expose
 events on formerly obscured windows.
 .IN "UnmapNotify Event"
 Using this function is much more efficient than unmapping multiple windows
 one at a time because the server needs to perform much of the work
 only once, for all of the windows, rather than for each window.
 .LP
-.ZN XUnmapSubwindows
+.B XUnmapSubwindows
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XChangeWindowAttributes(__libmansuffix__),

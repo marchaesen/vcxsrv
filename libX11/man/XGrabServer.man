@@ -91,13 +91,13 @@ int XUngrabServer\^(\^Display *\fIdisplay\fP\^);
 Specifies the connection to the X server.
 .SH DESCRIPTION
 The
-.ZN XGrabServer
+.B XGrabServer
 function disables processing of requests and close downs on all other 
 connections than the one this request arrived on.
 You should not grab the X server any more than is absolutely necessary.
 .LP
 The
-.ZN XUngrabServer
+.B XUngrabServer
 function restarts processing of requests and close downs on other connections.
 You should avoid grabbing the X server as much as possible.
 .SH "SEE ALSO"

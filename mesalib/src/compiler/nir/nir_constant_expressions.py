@@ -414,7 +414,8 @@ nir_eval_const_opcode(nir_op op, nir_const_value *dest,
    switch (op) {
 % for name in sorted(opcodes.keys()):
    case nir_op_${name}:
-      return evaluate_${name}(dest, num_components, bit_width, src);
+      evaluate_${name}(dest, num_components, bit_width, src);
+      return;
 % endfor
    default:
       unreachable("shouldn't get here");

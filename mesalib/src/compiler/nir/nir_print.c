@@ -716,6 +716,10 @@ print_deref_instr(nir_deref_instr *instr, print_state *state)
       print_deref_link(instr, true, state);
       fprintf(fp, " */");
    }
+
+   if (instr->deref_type == nir_deref_type_cast) {
+      fprintf(fp, " /* ptr_stride=%u */", instr->cast.ptr_stride);
+   }
 }
 
 static const char *
@@ -799,17 +803,24 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
       if (!info->index_map[idx])
          continue;
       fprintf(fp, " /*");
-      if (idx == NIR_INTRINSIC_WRMASK) {
+      switch (idx) {
+      case NIR_INTRINSIC_WRMASK: {
          /* special case wrmask to show it as a writemask.. */
          unsigned wrmask = nir_intrinsic_write_mask(instr);
          fprintf(fp, " wrmask=");
          for (unsigned i = 0; i < 4; i++)
             if ((wrmask >> i) & 1)
                fprintf(fp, "%c", "xyzw"[i]);
-      } else if (idx == NIR_INTRINSIC_REDUCTION_OP) {
+         break;
+      }
+
+      case NIR_INTRINSIC_REDUCTION_OP: {
          nir_op reduction_op = nir_intrinsic_reduction_op(instr);
          fprintf(fp, " reduction_op=%s", nir_op_infos[reduction_op].name);
-      } else if (idx == NIR_INTRINSIC_IMAGE_DIM) {
+         break;
+      }
+
+      case NIR_INTRINSIC_IMAGE_DIM: {
          static const char *dim_name[] = {
             [GLSL_SAMPLER_DIM_1D] = "1D",
             [GLSL_SAMPLER_DIM_2D] = "2D",
@@ -824,13 +835,22 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
          enum glsl_sampler_dim dim = nir_intrinsic_image_dim(instr);
          assert(dim < ARRAY_SIZE(dim_name) && dim_name[dim]);
          fprintf(fp, " image_dim=%s", dim_name[dim]);
-      } else if (idx == NIR_INTRINSIC_IMAGE_ARRAY) {
+         break;
+      }
+
+      case NIR_INTRINSIC_IMAGE_ARRAY: {
          bool array = nir_intrinsic_image_array(instr);
          fprintf(fp, " image_array=%s", array ? "true" : "false");
-      } else if (idx == NIR_INTRINSIC_DESC_TYPE) {
+         break;
+      }
+
+      case NIR_INTRINSIC_DESC_TYPE: {
          VkDescriptorType desc_type = nir_intrinsic_desc_type(instr);
          fprintf(fp, " desc_type=%s", vulkan_descriptor_type_name(desc_type));
-      } else if (idx == NIR_INTRINSIC_TYPE) {
+         break;
+      }
+
+      case NIR_INTRINSIC_TYPE: {
          nir_alu_type type = nir_intrinsic_type(instr);
          unsigned size = nir_alu_type_get_type_size(type);
          const char *name;
@@ -845,7 +865,10 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
             fprintf(fp, " type=%s%u", name, size);
          else
             fprintf(fp, " type=%s", name);
-      } else if (idx == NIR_INTRINSIC_SWIZZLE_MASK) {
+         break;
+      }
+
+      case NIR_INTRINSIC_SWIZZLE_MASK: {
          fprintf(fp, " swizzle_mask=");
          unsigned mask = nir_intrinsic_swizzle_mask(instr);
          if (instr->intrinsic == nir_intrinsic_quad_swizzle_amd) {
@@ -858,10 +881,15 @@ print_intrinsic_instr(nir_intrinsic_instr *instr, print_state *state)
          } else {
             fprintf(fp, "%d", mask);
          }
-      } else {
+         break;
+      }
+
+      default: {
          unsigned off = info->index_map[idx] - 1;
          assert(index_name[idx]);  /* forgot to update index_name table? */
          fprintf(fp, " %s=%d", index_name[idx], instr->const_index[off]);
+         break;
+      }
       }
       fprintf(fp, " */");
    }

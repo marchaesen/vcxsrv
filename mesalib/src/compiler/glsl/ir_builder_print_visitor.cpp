@@ -60,6 +60,8 @@ public:
    virtual ir_visitor_status visit_leave(class ir_swizzle *);
    virtual ir_visitor_status visit_leave(class ir_return *);
 
+   virtual ir_visitor_status visit_enter(ir_texture *ir);
+
 private:
    void print_with_indent(const char *fmt, ...);
    void print_without_indent(const char *fmt, ...);
@@ -445,6 +447,7 @@ ir_builder_print_visitor::print_without_declaration(const ir_swizzle *ir)
          print_without_declaration(ir->val);
          print_without_indent(")");
       } else {
+         assert(he);
          print_without_indent("swizzle_%c(r%04X)",
                               swiz[ir->mask.x],
                               (unsigned)(uintptr_t) he->data);
@@ -452,6 +455,7 @@ ir_builder_print_visitor::print_without_declaration(const ir_swizzle *ir)
    } else {
       static const char swiz[4] = { 'X', 'Y', 'Z', 'W' };
 
+      assert(he);
       print_without_indent("swizzle(r%04X, MAKE_SWIZZLE4(SWIZZLE_%c, SWIZZLE_%c, SWIZZLE_%c, SWIZZLE_%c), %u)",
                            (unsigned)(uintptr_t) he->data,
                            swiz[ir->mask.x],
@@ -526,6 +530,7 @@ ir_builder_print_visitor::visit_leave(ir_assignment *ir)
       _mesa_hash_table_search(index_map, ir->rhs);
 
    assert(ir->condition == NULL);
+   assert(ir->lhs && ir->rhs);
 
    print_with_indent("body.emit(assign(r%04X, r%04X, 0x%02x));\n\n",
                      (unsigned)(uintptr_t) he_lhs->data,
@@ -640,7 +645,7 @@ ir_builder_print_visitor::visit_enter(ir_if *ir)
    if (s != visit_continue_with_parent) {
       s = visit_list_elements(this, &ir->then_instructions);
       if (s == visit_stop)
-	 return s;
+        return s;
    }
 
    print_without_indent("\n");
@@ -683,6 +688,14 @@ ir_builder_print_visitor::visit_leave(ir_return *ir)
 }
 
 ir_visitor_status
+ir_builder_print_visitor::visit_enter(ir_texture *ir)
+{
+   print_with_indent("\nUnsupported IR is encountered: texture functions are not supported. Exiting.\n");
+
+   return visit_stop;
+}
+
+ir_visitor_status
 ir_builder_print_visitor::visit_leave(ir_call *ir)
 {
    const unsigned my_index = next_ir_index++;
@@ -705,9 +718,8 @@ ir_builder_print_visitor::visit_leave(ir_call *ir)
       const struct hash_entry *const he =
          _mesa_hash_table_search(index_map, ir->return_deref);
 
-      util_snprintf(return_deref_string, sizeof(return_deref_string),
-                    "operand(r%04X).val",
-                    (unsigned)(uintptr_t) he->data);
+      snprintf(return_deref_string, sizeof(return_deref_string),
+               "operand(r%04X).val", (unsigned)(uintptr_t) he->data);
    } else {
       strcpy(return_deref_string, "NULL");
    }

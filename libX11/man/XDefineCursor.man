@@ -90,7 +90,7 @@ int XUndefineCursor\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^);
 .SH ARGUMENTS
 .IP \fIcursor\fP 1i
 Specifies the cursor that is to be displayed or
-.ZN None .
+.BR None .
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fIw\fP 1i
@@ -98,40 +98,40 @@ Specifies the window.
 .SH DESCRIPTION
 If a cursor is set, it will be used when the pointer is in the window.
 If the cursor is
-.ZN None ,
+.BR None ,
 it is equivalent to
-.ZN XUndefineCursor .
+.BR XUndefineCursor .
 .LP
-.ZN XDefineCursor
+.B XDefineCursor
 can generate
-.ZN BadCursor
+.B BadCursor
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XUndefineCursor
+.B XUndefineCursor
 function undoes the effect of a previous
-.ZN XDefineCursor
+.B XDefineCursor
 for this window.
 When the pointer is in the window,
 the parent's cursor will now be used.
 On the root window,
 the default cursor is restored.
 .LP
-.ZN XUndefineCursor
+.B XUndefineCursor
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadCursor
+.B BadCursor
 A value for a Cursor argument does not name a defined Cursor.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XCreateFontCursor(__libmansuffix__),

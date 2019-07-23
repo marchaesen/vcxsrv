@@ -32,12 +32,16 @@
 
 #include "nir.h"
 #include "nir_builder.h"
+#include "nir_deref.h"
 
 struct lower_io_state {
    nir_shader *shader;
    nir_function_impl *entrypoint;
    struct exec_list old_outputs;
    struct exec_list old_inputs;
+
+   /* map from temporary to new input */
+   struct hash_table *input_map;
 };
 
 static void
@@ -107,6 +111,164 @@ emit_output_copies_impl(struct lower_io_state *state, nir_function_impl *impl)
    }
 }
 
+/* For fragment shader inputs, when we lower to temporaries we'll invalidate
+ * interpolateAt*() because now they'll be pointing to the temporary instead
+ * of the actual variable. Since the caller presumably doesn't support
+ * indirect indexing of inputs, we'll need to lower something like:
+ *
+ * in vec4 foo[3];
+ *
+ * ... = interpolateAtCentroid(foo[i]);
+ *
+ * to a sequence of interpolations that store to our temporary, then a
+ * load at the end:
+ *
+ * in vec4 foo[3];
+ * vec4 foo_tmp[3];
+ *
+ * foo_tmp[0] = interpolateAtCentroid(foo[0]);
+ * foo_tmp[1] = interpolateAtCentroid(foo[1]);
+ * ... = foo_tmp[i];
+ */
+
+/*
+ * Recursively emit the interpolation instructions. Here old_interp_deref
+ * refers to foo[i], temp_deref is foo_tmp[0/1], and new_interp_deref is
+ * foo[0/1].
+ */
+
+static void
+emit_interp(nir_builder *b, nir_deref_instr **old_interp_deref,
+            nir_deref_instr *temp_deref, nir_deref_instr *new_interp_deref,
+            nir_intrinsic_instr *interp)
+{
+   while (*old_interp_deref) {
+      switch ((*old_interp_deref)->deref_type) {
+      case nir_deref_type_struct:
+         temp_deref =
+            nir_build_deref_struct(b, temp_deref,
+                                   (*old_interp_deref)->strct.index);
+         new_interp_deref =
+            nir_build_deref_struct(b, new_interp_deref,
+                                   (*old_interp_deref)->strct.index);
+         break;
+      case nir_deref_type_array:
+         if (nir_src_is_const((*old_interp_deref)->arr.index)) {
+            temp_deref =
+               nir_build_deref_array(b, temp_deref,
+                                     (*old_interp_deref)->arr.index.ssa);
+            new_interp_deref =
+               nir_build_deref_array(b, new_interp_deref,
+                                     (*old_interp_deref)->arr.index.ssa);
+            break;
+         } else {
+            /* We have an indirect deref, so we have to emit interpolations
+             * for every index. Recurse in case we have an array of arrays.
+             */
+            unsigned length = glsl_get_length(temp_deref->type);
+            for (unsigned i = 0; i < length; i++) {
+               nir_deref_instr *new_temp =
+                  nir_build_deref_array_imm(b, temp_deref, i);
+               nir_deref_instr *new_interp =
+                  nir_build_deref_array_imm(b, new_interp_deref, i);
+
+               emit_interp(b, old_interp_deref + 1, new_temp, new_interp,
+                           interp);
+            }
+
+            return;
+         }
+
+      case nir_deref_type_var:
+      case nir_deref_type_array_wildcard:
+      case nir_deref_type_ptr_as_array:
+      case nir_deref_type_cast:
+         unreachable("bad deref type");
+      }
+
+      old_interp_deref++;
+   }
+
+   /* Now that we've constructed a fully-qualified deref with all the indirect
+    * derefs replaced with direct ones, it's time to actually emit the new
+    * interpolation instruction.
+    */
+
+   nir_intrinsic_instr *new_interp =
+      nir_intrinsic_instr_create(b->shader, interp->intrinsic);
+
+   new_interp->src[0] = nir_src_for_ssa(&new_interp_deref->dest.ssa);
+   if (interp->intrinsic == nir_intrinsic_interp_deref_at_sample ||
+       interp->intrinsic == nir_intrinsic_interp_deref_at_offset) {
+      new_interp->src[1] = interp->src[1];
+   }
+
+   new_interp->num_components = interp->num_components;
+   nir_ssa_dest_init(&new_interp->instr, &new_interp->dest,
+                     interp->dest.ssa.num_components,
+                     interp->dest.ssa.bit_size, NULL);
+
+   nir_builder_instr_insert(b, &new_interp->instr);
+   nir_store_deref(b, temp_deref, &new_interp->dest.ssa,
+                   (1 << interp->dest.ssa.num_components) - 1);
+}
+
+static void
+fixup_interpolation_instr(struct lower_io_state *state,
+                          nir_intrinsic_instr *interp, nir_builder *b)
+{
+   nir_deref_path interp_path;
+   nir_deref_path_init(&interp_path, nir_src_as_deref(interp->src[0]), NULL);
+
+   b->cursor = nir_before_instr(&interp->instr);
+
+   /* The original interpolation instruction should contain a deref path
+    * starting with the original variable, which is now the temporary.
+    */
+   nir_deref_instr *temp_root = interp_path.path[0];
+
+   /* Fish out the newly-created input variable. */
+   assert(temp_root->deref_type == nir_deref_type_var);
+   struct hash_entry *entry = _mesa_hash_table_search(state->input_map,
+                                                      temp_root->var);
+   assert(entry);
+   nir_variable *input = entry->data;
+   nir_deref_instr *input_root = nir_build_deref_var(b, input);
+
+   /* Emit the interpolation instructions. */
+   emit_interp(b, interp_path.path + 1, temp_root, input_root, interp);
+
+   /* Now the temporary contains the interpolation results, and we can just
+    * load from it. We can reuse the original deref, since it points to the
+    * correct part of the temporary.
+    */
+   nir_ssa_def *load = nir_load_deref(b, nir_src_as_deref(interp->src[0]));
+   nir_ssa_def_rewrite_uses(&interp->dest.ssa, nir_src_for_ssa(load));
+   nir_instr_remove(&interp->instr);
+
+   nir_deref_path_finish(&interp_path);
+}
+
+static void
+fixup_interpolation(struct lower_io_state *state, nir_function_impl *impl,
+                    nir_builder *b)
+{
+   nir_foreach_block(block, impl) {
+      nir_foreach_instr_safe(instr, block) {
+         if (instr->type != nir_instr_type_intrinsic)
+            continue;
+
+         nir_intrinsic_instr *interp = nir_instr_as_intrinsic(instr);
+         
+         if (interp->intrinsic == nir_intrinsic_interp_deref_at_centroid ||
+             interp->intrinsic == nir_intrinsic_interp_deref_at_sample ||
+             interp->intrinsic == nir_intrinsic_interp_deref_at_offset) {
+            fixup_interpolation_instr(state, interp, b);
+         }
+      }
+   }
+}
+
 static void
 emit_input_copies_impl(struct lower_io_state *state, nir_function_impl *impl)
 {
@@ -115,6 +277,8 @@ emit_input_copies_impl(struct lower_io_state *state, nir_function_impl *impl)
       nir_builder_init(&b, impl);
       b.cursor = nir_before_block(nir_start_block(impl));
       emit_copies(&b, &state->old_inputs, &state->shader->inputs);
+      if (state->shader->info.stage == MESA_SHADER_FRAGMENT)
+         fixup_interpolation(state, impl, &b);
    }
 }
 
@@ -123,6 +287,7 @@ create_shadow_temp(struct lower_io_state *state, nir_variable *var)
 {
    nir_variable *nvar = ralloc(state->shader, nir_variable);
    memcpy(nvar, var, sizeof *nvar);
+   nvar->data.cannot_coalesce = true;
 
    /* The original is now the temporary */
    nir_variable *temp = var;
@@ -154,6 +319,7 @@ nir_lower_io_to_temporaries(nir_shader *shader, nir_function_impl *entrypoint,
 
    state.shader = shader;
    state.entrypoint = entrypoint;
+   state.input_map = _mesa_pointer_hash_table_create(NULL);
 
    if (inputs)
       exec_list_move_nodes_to(&shader->inputs, &state.old_inputs);
@@ -177,6 +343,7 @@ nir_lower_io_to_temporaries(nir_shader *shader, nir_function_impl *entrypoint,
    nir_foreach_variable(var, &state.old_inputs) {
       nir_variable *input = create_shadow_temp(&state, var);
       exec_list_push_tail(&shader->inputs, &input->node);
+      _mesa_hash_table_insert(state.input_map, var, input);
    }
 
    nir_foreach_function(function, shader) {
@@ -197,4 +364,6 @@ nir_lower_io_to_temporaries(nir_shader *shader, nir_function_impl *entrypoint,
    exec_list_append(&shader->globals, &state.old_outputs);
 
    nir_fixup_deref_modes(shader);
+
+   _mesa_hash_table_destroy(state.input_map, NULL);
 }

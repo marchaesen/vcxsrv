@@ -75,6 +75,8 @@ vir_has_side_effects(struct v3d_compile *c, struct qinst *inst)
 
         if (inst->qpu.sig.ldtmu ||
             inst->qpu.sig.ldvary ||
+            inst->qpu.sig.ldtlbu ||
+            inst->qpu.sig.ldtlb ||
             inst->qpu.sig.wrtmuc ||
             inst->qpu.sig.thrsw) {
                 return true;
@@ -690,6 +692,8 @@ v3d_fs_set_prog_data(struct v3d_compile *c,
         prog_data->uses_center_w = c->uses_center_w;
         prog_data->uses_implicit_point_line_varyings =
                 c->uses_implicit_point_line_varyings;
+        prog_data->lock_scoreboard_on_first_thrsw =
+                c->lock_scoreboard_on_first_thrsw;
 }
 
 static void
@@ -757,6 +761,8 @@ v3d_nir_lower_vs_early(struct v3d_compile *c)
         NIR_PASS_V(c->s, nir_lower_io, nir_var_shader_in | nir_var_shader_out,
                    type_size_vec4,
                    (nir_lower_io_options)0);
+        /* clean up nir_lower_io's deref_var remains */
+        NIR_PASS_V(c->s, nir_opt_dce);
 }
 
 static void
@@ -794,6 +800,8 @@ v3d_nir_lower_fs_early(struct v3d_compile *c)
 {
         if (c->fs_key->int_color_rb || c->fs_key->uint_color_rb)
                 v3d_fixup_fs_output_types(c);
+
+        NIR_PASS_V(c->s, v3d_nir_lower_logic_ops, c);
 
         /* If the shader has no non-TLB side effects, we can promote it to
          * enabling early_fragment_tests even if the user didn't.
@@ -939,7 +947,8 @@ uint64_t *v3d_compile(const struct v3d_compiler *compiler,
         char *shaderdb;
         int ret = asprintf(&shaderdb,
                            "%s shader: %d inst, %d threads, %d loops, "
-                           "%d uniforms, %d max-temps, %d:%d spills:fills",
+                           "%d uniforms, %d max-temps, %d:%d spills:fills, "
+                           "%d sfu-stalls, %d inst-and-stalls",
                            vir_get_stage_name(c),
                            c->qpu_inst_count,
                            c->threads,
@@ -947,7 +956,9 @@ uint64_t *v3d_compile(const struct v3d_compiler *compiler,
                            c->num_uniforms,
                            vir_get_max_temps(c),
                            c->spills,
-                           c->fills);
+                           c->fills,
+                           c->qpu_inst_stalled_count,
+                           c->qpu_inst_count + c->qpu_inst_stalled_count);
         if (ret >= 0) {
                 if (V3D_DEBUG & V3D_DEBUG_SHADERDB)
                         fprintf(stderr, "SHADER-DB: %s\n", shaderdb);

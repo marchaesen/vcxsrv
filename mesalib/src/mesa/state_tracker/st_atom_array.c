@@ -410,6 +410,18 @@ st_setup_arrays(struct st_context *st,
          vbuffer[bufidx].buffer.resource = stobj ? stobj->buffer : NULL;
          vbuffer[bufidx].is_user_buffer = false;
          vbuffer[bufidx].buffer_offset = _mesa_draw_binding_offset(binding);
+         if (st->has_signed_vertex_buffer_offset) {
+            /* 'buffer_offset' will be interpreted as an signed int, so make sure
+             * the user supplied offset is not negative (application bug).
+             */
+            if ((int) vbuffer[bufidx].buffer_offset < 0) {
+               assert ((int) vbuffer[bufidx].buffer_offset >= 0);
+               /* Fallback if assert are disabled: we can't disable this attribute
+                * since other parts expects it (e.g: velements, vp_variant), so
+                * use a non-buggy offset value instead */
+               vbuffer[bufidx].buffer_offset = 0;
+            }
+         }
       } else {
          /* Set the binding */
          const void *ptr = (const void *)_mesa_draw_binding_offset(binding);

@@ -94,37 +94,37 @@ char *Xutf8ResetIC\^(\^XIC \fIic\fP\^);
 Specifies the input context.
 .SH DESCRIPTION
 When
-.ZN XNResetState
+.B XNResetState
 is set to
-.ZN XIMInitialState ,
-.ZN XmbResetIC ,
-.ZN XwcResetIC
+.BR XIMInitialState ,
+.BR XmbResetIC ,
+.B XwcResetIC
 and
-.ZN Xutf8ResetIC
+.B Xutf8ResetIC
 reset an input context to its initial state;
 when
-.ZN XNResetState
+.B XNResetState
 is set to
-.ZN XIMPreserveState ,
+.BR XIMPreserveState ,
 the current input context state is preserved.
 In both cases, any input pending on that context is deleted.
 The input method is required to clear the preedit area, if any,
 and update the status accordingly.
 Calling 
-.ZN XmbResetIC ,
-.ZN XwcResetIC
+.BR XmbResetIC ,
+.B XwcResetIC
 or
-.ZN Xutf8ResetIC
+.B Xutf8ResetIC
 does not change the focus.
 .LP
 The return value of
-.ZN XmbResetIC
+.B XmbResetIC
 is its current preedit string as a multibyte string.
 The return value of
-.ZN XwcResetIC
+.B XwcResetIC
 is its current preedit string as a wide character string.
 The return value of
-.ZN Xutf8ResetIC
+.B Xutf8ResetIC
 is its current preedit string as an UTF-8 string.
 If there is any preedit text drawn or visible to the user,
 then these procedures must return a non-NULL string.
@@ -133,14 +133,14 @@ then it is input method implementation-dependent
 whether these procedures return a non-NULL string or NULL.
 .LP
 The client should free the returned string by calling
-.ZN XFree .
+.BR XFree .
 .LP
 The function
-.ZN Xutf8ResetIC
+.B Xutf8ResetIC
 is an extension introduced by The XFree86 Project, Inc. in their 4.0.2
 release. Its presence is
 indicated by the macro
-.ZN X_HAVE_UTF8_STRING .
+.BR X_HAVE_UTF8_STRING .
 .SH "SEE ALSO"
 XCreateIC(__libmansuffix__),
 XOpenIM(__libmansuffix__),

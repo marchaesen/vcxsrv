@@ -151,107 +151,107 @@ in the file.
 Return the hotspot coordinates.
 .SH DESCRIPTION
 The
-.ZN XReadBitmapFile
+.B XReadBitmapFile
 function reads in a file containing a bitmap.
 The file is parsed in the encoding of the current locale.
 The ability to read other than the standard format 
 is implementation-dependent.
 If the file cannot be opened, 
-.ZN XReadBitmapFile 
+.B XReadBitmapFile
 returns 
-.ZN BitmapOpenFailed .  
+.BR BitmapOpenFailed .
 If the file can be opened but does not contain valid bitmap data, 
 it returns 
-.ZN BitmapFileInvalid .  
+.BR BitmapFileInvalid .
 If insufficient working storage is allocated,
 it returns
-.ZN BitmapNoMemory .  
+.BR BitmapNoMemory .
 If the file is readable and valid,
 it returns 
-.ZN BitmapSuccess .
+.BR BitmapSuccess .
 .LP
-.ZN XReadBitmapFile 
+.B XReadBitmapFile
 returns the bitmap's height and width, as read
 from the file, to width_return and height_return.
 It then creates a pixmap of the appropriate size, 
 reads the bitmap data from the file into the pixmap,
 and assigns the pixmap to the caller's variable bitmap.  
 The caller must free the bitmap using 
-.ZN XFreePixmap 
+.B XFreePixmap
 when finished.
 If \fIname\fP_x_hot and \fIname\fP_y_hot exist,
-.ZN XReadBitmapFile 
+.B XReadBitmapFile
 returns them to x_hot_return and y_hot_return;
 otherwise, it returns \-1,\-1.
 .LP
-.ZN XReadBitmapFile
+.B XReadBitmapFile
 can generate
-.ZN BadAlloc
+.B BadAlloc
 and
-.ZN BadDrawable
+.B BadDrawable
 errors.
 .LP
 The
-.ZN XReadBitmapFileData
+.B XReadBitmapFileData
 function reads in a file containing a bitmap, in the same manner as
-.ZN XReadBitmapFile ,
+.BR XReadBitmapFile ,
 but returns the data directly rather than creating a pixmap in the server.
 The bitmap data is returned in data_return; the client must free this
 storage when finished with it by calling
-.ZN XFree .
+.BR XFree .
 The status and other return values are the same as for
-.ZN XReadBitmapFile .
+.BR XReadBitmapFile .
 .LP
 The
-.ZN XWriteBitmapFile
+.B XWriteBitmapFile
 function writes a bitmap out to a file in the X Version 11 format.
 The name used in the output file is derived from the file name
 by deleting the directory prefix.
 The file is written in the encoding of the current locale.
 If the file cannot be opened for writing, 
 it returns 
-.ZN BitmapOpenFailed .  
+.BR BitmapOpenFailed .
 If insufficient memory is allocated,
-.ZN XWriteBitmapFile
+.B XWriteBitmapFile
 returns
-.ZN BitmapNoMemory ;
+.BR BitmapNoMemory ;
 otherwise, on no error,
 it returns
-.ZN BitmapSuccess .
+.BR BitmapSuccess .
 If x_hot and y_hot are not \-1, \-1, 
-.ZN XWriteBitmapFile
+.B XWriteBitmapFile
 writes them out as the hotspot coordinates for the bitmap.
 .LP
-.ZN XWriteBitmapFile
+.B XWriteBitmapFile
 can generate
-.ZN BadDrawable
+.B BadDrawable
 and
-.ZN BadMatch
+.B BadMatch
 errors.
 .LP
 The
-.ZN XCreatePixmapFromBitmapData
+.B XCreatePixmapFromBitmapData
 function creates a pixmap of the given depth and then does a bitmap-format
-.ZN XPutImage
+.B XPutImage
 of the data into it.
 The depth must be supported by the screen of the specified drawable,
 or a
-.ZN BadMatch
+.B BadMatch
 error results.
 .LP
-.ZN XCreatePixmapFromBitmapData
+.B XCreatePixmapFromBitmapData
 can generate
-.ZN BadAlloc
+.B BadAlloc
 and
-.ZN BadMatch
+.B BadMatch
 errors.
 .LP
 The
-.ZN XCreateBitmapFromData
+.B XCreateBitmapFromData
 function allows you to include in your C program (using
-.ZN #include )
+.BR #include )
 a bitmap file that was written out by
-.ZN XWriteBitmapFile
+.B XWriteBitmapFile
 (X version 11 format only) without reading in the bitmap file.
 The following example creates a gray bitmap:
 .LP
@@ -263,29 +263,29 @@ bitmap = XCreateBitmapFromData(display, window, gray_bits, gray_width, gray_heig
 .De
 .LP
 If insufficient working storage was allocated,
-.ZN XCreateBitmapFromData
+.B XCreateBitmapFromData
 returns
-.ZN None .
+.BR None .
 It is your responsibility to free the
 bitmap using
-.ZN XFreePixmap
+.B XFreePixmap
 when finished.
 .LP
-.ZN XCreateBitmapFromData
+.B XCreateBitmapFromData
 can generate a
-.ZN BadAlloc
+.B BadAlloc
 error.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadDrawable
+.B BadDrawable
 A value for a Drawable argument does not name a defined Window or Pixmap.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 An
-.ZN InputOnly
+.B InputOnly
 window is used as a Drawable.
 .SH "SEE ALSO"
 XCreatePixmap(__libmansuffix__),

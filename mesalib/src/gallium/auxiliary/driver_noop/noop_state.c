@@ -248,7 +248,7 @@ static void noop_set_stream_output_targets(struct pipe_context *ctx,
 }
 
 static void noop_set_window_rectangles(struct pipe_context *ctx,
-                                       boolean include,
+                                       bool include,
                                        unsigned num_rectangles,
                                        const struct pipe_scissor_state *rects)
 {

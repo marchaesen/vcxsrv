@@ -106,7 +106,7 @@ dd_context_destroy_query(struct pipe_context *_pipe,
    FREE(query);
 }
 
-static boolean
+static bool
 dd_context_begin_query(struct pipe_context *_pipe, struct pipe_query *query)
 {
    struct dd_context *dctx = dd_context(_pipe);
@@ -124,9 +124,9 @@ dd_context_end_query(struct pipe_context *_pipe, struct pipe_query *query)
    return pipe->end_query(pipe, dd_query_unwrap(query));
 }
 
-static boolean
+static bool
 dd_context_get_query_result(struct pipe_context *_pipe,
-                            struct pipe_query *query, boolean wait,
+                            struct pipe_query *query, bool wait,
                             union pipe_query_result *result)
 {
    struct pipe_context *pipe = dd_context(_pipe)->pipe;
@@ -135,7 +135,7 @@ dd_context_get_query_result(struct pipe_context *_pipe,
 }
 
 static void
-dd_context_set_active_query_state(struct pipe_context *_pipe, boolean enable)
+dd_context_set_active_query_state(struct pipe_context *_pipe, bool enable)
 {
    struct pipe_context *pipe = dd_context(_pipe)->pipe;
 
@@ -144,7 +144,7 @@ dd_context_set_active_query_state(struct pipe_context *_pipe, boolean enable)
 
 static void
 dd_context_render_condition(struct pipe_context *_pipe,
-                            struct pipe_query *query, boolean condition,
+                            struct pipe_query *query, bool condition,
                             enum pipe_render_cond_flag mode)
 {
    struct dd_context *dctx = dd_context(_pipe);
@@ -411,7 +411,7 @@ static void dd_context_set_tess_state(struct pipe_context *_pipe,
 }
 
 static void dd_context_set_window_rectangles(struct pipe_context *_pipe,
-                                             boolean include,
+                                             bool include,
                                              unsigned num_rectangles,
                                              const struct pipe_scissor_state *rects)
 {

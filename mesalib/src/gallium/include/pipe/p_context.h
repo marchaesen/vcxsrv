@@ -118,7 +118,7 @@ struct pipe_context {
     */
    void (*render_condition)( struct pipe_context *pipe,
                              struct pipe_query *query,
-                             boolean condition,
+                             bool condition,
                              enum pipe_render_cond_flag mode );
 
    /**
@@ -151,7 +151,7 @@ struct pipe_context {
    void (*destroy_query)(struct pipe_context *pipe,
                          struct pipe_query *q);
 
-   boolean (*begin_query)(struct pipe_context *pipe, struct pipe_query *q);
+   bool (*begin_query)(struct pipe_context *pipe, struct pipe_query *q);
    bool (*end_query)(struct pipe_context *pipe, struct pipe_query *q);
 
    /**
@@ -159,10 +159,10 @@ struct pipe_context {
     * \param wait  if true, this query will block until the result is ready
     * \return TRUE if results are ready, FALSE otherwise
     */
-   boolean (*get_query_result)(struct pipe_context *pipe,
-                               struct pipe_query *q,
-                               boolean wait,
-                               union pipe_query_result *result);
+   bool (*get_query_result)(struct pipe_context *pipe,
+                            struct pipe_query *q,
+                            bool wait,
+                            union pipe_query_result *result);
 
    /**
     * Get results of a query, storing into resource. Note that this may not
@@ -179,7 +179,7 @@ struct pipe_context {
     */
    void (*get_query_result_resource)(struct pipe_context *pipe,
                                      struct pipe_query *q,
-                                     boolean wait,
+                                     bool wait,
                                      enum pipe_query_value_type result_type,
                                      int index,
                                      struct pipe_resource *resource,
@@ -189,7 +189,7 @@ struct pipe_context {
     * Set whether all current non-driver queries except TIME_ELAPSED are
     * active or paused.
     */
-   void (*set_active_query_state)(struct pipe_context *pipe, boolean enable);
+   void (*set_active_query_state)(struct pipe_context *pipe, bool enable);
 
    /*@}*/
 
@@ -315,7 +315,7 @@ struct pipe_context {
                                const struct pipe_scissor_state * );
 
    void (*set_window_rectangles)( struct pipe_context *,
-                                  boolean include,
+                                  bool include,
                                   unsigned num_rectangles,
                                   const struct pipe_scissor_state * );
 
@@ -853,13 +853,13 @@ struct pipe_context {
     * Generate mipmap.
     * \return TRUE if mipmap generation succeeds, FALSE otherwise
     */
-   boolean (*generate_mipmap)(struct pipe_context *ctx,
-                              struct pipe_resource *resource,
-                              enum pipe_format format,
-                              unsigned base_level,
-                              unsigned last_level,
-                              unsigned first_layer,
-                              unsigned last_layer);
+   bool (*generate_mipmap)(struct pipe_context *ctx,
+                           struct pipe_resource *resource,
+                           enum pipe_format format,
+                           unsigned base_level,
+                           unsigned last_level,
+                           unsigned first_layer,
+                           unsigned last_layer);
 
    /**
     * Create a 64-bit texture handle.

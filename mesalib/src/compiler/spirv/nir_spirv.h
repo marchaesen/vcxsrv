@@ -70,6 +70,11 @@ struct spirv_to_nir_options {
    /* Whether or not to lower all UBO/SSBO access to offsets up-front. */
    bool lower_ubo_ssbo_access_to_offsets;
 
+   /* Whether to make FragCoord to a system value, the same as
+    * GLSLFragCoordIsSysVal in GLSL.
+    */
+   bool frag_coord_is_sysval;
+
    struct spirv_supported_capabilities caps;
 
    /* Address format for various kinds of pointers. */

@@ -104,18 +104,18 @@ Specifies the width of the created window's border in pixels.
 .IP \fIclass\fP 1i
 Specifies the created window's class.
 You can pass
-.ZN InputOutput , 
-.ZN InputOnly , 
+.BR InputOutput ,
+.BR InputOnly ,
 or 
-.ZN CopyFromParent .
+.BR CopyFromParent .
 A class of 
-.ZN CopyFromParent
+.B CopyFromParent
 means the class
 is taken from the parent.
 .IP \fIdepth\fP 1i
 Specifies the window's depth.
 A depth of 
-.ZN CopyFromParent
+.B CopyFromParent
 means the depth is taken from the parent.
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
@@ -130,7 +130,7 @@ the attributes are ignored and are not referenced.
 .IP \fIvisual\fP 1i
 Specifies the visual type.
 A visual of 
-.ZN CopyFromParent 
+.B CopyFromParent
 means the visual type is taken from the 
 parent.
 .IP \fIwidth\fP 1i
@@ -148,11 +148,11 @@ corner of the window's
 borders and are relative to the inside of the parent window's borders.
 .SH DESCRIPTION
 The
-.ZN XCreateWindow
+.B XCreateWindow
 function creates an unmapped subwindow for a specified parent window, 
 returns the window ID of the created window, 
 and causes the X server to generate a
-.ZN CreateNotify
+.B CreateNotify
 event.
 The created window is placed on top in the stacking order 
 with respect to siblings.
@@ -167,91 +167,91 @@ For a window,
 the origin is inside the border at the inside, upper-left corner.
 .LP
 The border_width for an
-.ZN InputOnly
+.B InputOnly
 window must be zero, or a
-.ZN BadMatch
+.B BadMatch
 error results.
 For class
-.ZN InputOutput ,
+.BR InputOutput ,
 the visual type and depth must be a combination supported for the screen,
 or a
-.ZN BadMatch
+.B BadMatch
 error results.
 The depth need not be the same as the parent,
 but the parent must not be a window of class 
-.ZN InputOnly ,
+.BR InputOnly ,
 or a
-.ZN BadMatch
+.B BadMatch
 error results.
 For an
-.ZN InputOnly
+.B InputOnly
 window,
 the depth must be zero, and the visual must be one supported by the screen.
 If either condition is not met,
 a
-.ZN BadMatch
+.B BadMatch
 error results.
 The parent window, however, may have any depth and class.
 If you specify any invalid window attribute for a window, a
-.ZN BadMatch
+.B BadMatch
 error results.
 .LP
 The created window is not yet displayed (mapped) on the user's display.
 To display the window, call
-.ZN XMapWindow .
+.BR XMapWindow .
 The new window initially uses the same cursor as
 its parent. 
 A new cursor can be defined for the new window by calling
-.ZN XDefineCursor .
+.BR XDefineCursor .
 .IN "Cursor" "Initial State"
 .IN "XDefineCursor" 
 The window will not be visible on the screen unless it and all of its
 ancestors are mapped and it is not obscured by any of its ancestors.
 .LP
-.ZN XCreateWindow
+.B XCreateWindow
 can generate
-.ZN BadAlloc
-.ZN BadColor ,
-.ZN BadCursor ,
-.ZN BadMatch ,
-.ZN BadPixmap ,
-.ZN BadValue ,
+.B BadAlloc
+.BR BadColor ,
+.BR BadCursor ,
+.BR BadMatch ,
+.BR BadPixmap ,
+.BR BadValue ,
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XCreateSimpleWindow
+.B XCreateSimpleWindow
 function creates an unmapped
-.ZN InputOutput
+.B InputOutput
 subwindow for a specified parent window, returns the
 window ID of the created window, and causes the X server to generate a
-.ZN CreateNotify
+.B CreateNotify
 event.
 The created window is placed on top in the stacking order with respect to 
 siblings.
 Any part of the window that extends outside its parent window is clipped.
 The border_width for an
-.ZN InputOnly
+.B InputOnly
 window must be zero, or a
-.ZN BadMatch
+.B BadMatch
 error results.
-.ZN XCreateSimpleWindow
+.B XCreateSimpleWindow
 inherits its depth, class, and visual from its parent.
 All other window attributes, except background and border, 
 have their default values.
 .LP
-.ZN XCreateSimpleWindow
+.B XCreateSimpleWindow
 can generate
-.ZN BadAlloc ,
-.ZN BadMatch ,
-.ZN BadValue ,
+.BR BadAlloc ,
+.BR BadMatch ,
+.BR BadValue ,
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .SH STRUCTURES
 The
-.ZN XSetWindow Attributes
+.BR XSetWindow Attributes
 structure contains:
 .LP
 .LP
@@ -261,105 +261,105 @@ lw(.5i) lw(2.5i) lw(.8i).
 T{
 \&#define
 T}	T{
-.ZN CWBackPixmap
+.B CWBackPixmap
 T}	T{
 (1L<<0)
 T}
 T{
 \&#define
 T}	T{
-.ZN CWBackPixel
+.B CWBackPixel
 T}	T{
 (1L<<1)
 T}
 T{
 \&#define
 T}	T{
-.ZN CWBorderPixmap
+.B CWBorderPixmap
 T}	T{
 (1L<<2)
 T}
 T{
 \&#define
 T}	T{
-.ZN CWBorderPixel
+.B CWBorderPixel
 T}	T{
 (1L<<3)
 T}
 T{
 \&#define
 T}	T{
-.ZN CWBitGravity
+.B CWBitGravity
 T}	T{
 (1L<<4)
 T}
 T{
 \&#define
 T}	T{
-.ZN CWWinGravity
+.B CWWinGravity
 T}	T{
 (1L<<5)
 T}
 T{
 \&#define
 T}	T{
-.ZN CWBackingStore
+.B CWBackingStore
 T}	T{
 (1L<<6)
 T}
 T{
 \&#define
 T}	T{
-.ZN CWBackingPlanes
+.B CWBackingPlanes
 T}	T{
 (1L<<7)
 T}
 T{
 \&#define
 T}	T{
-.ZN CWBackingPixel
+.B CWBackingPixel
 T}	T{
 (1L<<8)
 T}
 T{
 \&#define
 T}	T{
-.ZN CWOverrideRedirect
+.B CWOverrideRedirect
 T}	T{
 (1L<<9)
 T}
 T{
 \&#define
 T}	T{
-.ZN CWSaveUnder
+.B CWSaveUnder
 T}	T{
 (1L<<10)
 T}
 T{
 \&#define
 T}	T{
-.ZN CWEventMask
+.B CWEventMask
 T}	T{
 (1L<<11)
 T}
 T{
 \&#define
 T}	T{
-.ZN CWDontPropagate
+.B CWDontPropagate
 T}	T{
 (1L<<12)
 T}
 T{
 \&#define
 T}	T{
-.ZN CWColormap
+.B CWColormap
 T}	T{
 (1L<<13)
 T}
 T{
 \&#define
 T}	T{
-.ZN CWCursor
+.B CWCursor
 T}	T{
 (1L<<14)
 T}
@@ -391,34 +391,34 @@ For a detailed explanation of the members of this structure,
 see \fI\*(xL\fP\^.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadColor
+.B BadColor
 A value for a Colormap argument does not name a defined Colormap.
 .TP 1i
-.ZN BadCursor
+.B BadCursor
 A value for a Cursor argument does not name a defined Cursor.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 The values do not exist for an
-.ZN InputOnly
+.B InputOnly
 window.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 Some argument or pair of arguments has the correct type and range but fails
 to match in some other way required by the request.
 .TP 1i
-.ZN BadPixmap
+.B BadPixmap
 A value for a Pixmap argument does not name a defined Pixmap.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of
 alternatives can generate this error.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XChangeWindowAttributes(__libmansuffix__),

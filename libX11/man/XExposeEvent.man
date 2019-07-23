@@ -83,7 +83,7 @@
 XExposeEvent \- Expose event structure
 .SH STRUCTURES
 The structure for
-.ZN Expose  
+.B Expose
 events contains:
 .LP
 .Ds 0
@@ -105,16 +105,16 @@ the structure members are set as follows.
 The type member is set to the event type constant name that uniquely identifies
 it.
 For example, when the X server reports a
-.ZN GraphicsExpose
+.B GraphicsExpose
 event to a client application, it sends an
-.ZN XGraphicsExposeEvent
+.B XGraphicsExposeEvent
 structure with the type member set to
-.ZN GraphicsExpose .
+.BR GraphicsExpose .
 The display member is set to a pointer to the display the event was read on.
 The send_event member is set to
-.ZN True
+.B True
 if the event came from a
-.ZN SendEvent
+.B SendEvent
 protocol request.
 The serial member is set from the serial number reported in the protocol
 but expanded from the 16-bit least-significant bits to a full 32-bit value.
@@ -126,17 +126,17 @@ The x and y members are set to the coordinates relative to the window's origin
 and indicate the upper-left corner of the rectangle.
 The width and height members are set to the size (extent) of the rectangle.
 The count member is set to the number of
-.ZN Expose
+.B Expose
 events that are to follow.
 If count is zero, no more
-.ZN Expose
+.B Expose
 events follow for this window.
 However, if count is nonzero, at least that number of 
-.ZN Expose 
+.B Expose
 events (and possibly more) follow for this window.
 Simple applications that do not want to optimize redisplay by distinguishing
 between subareas of its window can just ignore all
-.ZN Expose
+.B Expose
 events with nonzero counts and perform full redisplays
 on events with zero counts.
 .SH "SEE ALSO"

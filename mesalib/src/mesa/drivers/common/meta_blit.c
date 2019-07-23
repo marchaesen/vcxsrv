@@ -741,8 +741,7 @@ blitframebuffer_texture(struct gl_context *ctx,
        * defaults it to on for ES contexts, so we can safely check it.
        */
       const bool decode =
-         ctx->Color.sRGBEnabled &&
-         _mesa_get_format_color_encoding(rb->Format) == GL_SRGB;
+         ctx->Color.sRGBEnabled && _mesa_is_format_srgb(rb->Format);
 
       _mesa_set_sampler_srgb_decode(ctx, fb_tex_blit.samp_obj,
                                     decode ? GL_DECODE_EXT

@@ -244,9 +244,18 @@ _mesa_longest_attribute_name_length(struct gl_shader_program *shProg)
       if (res->Type == GL_PROGRAM_INPUT &&
           res->StageReferences & (1 << MESA_SHADER_VERTEX)) {
 
-          const size_t length = strlen(RESOURCE_VAR(res)->name);
-          if (length >= longest)
-             longest = length + 1;
+         /* From the ARB_gl_spirv spec:
+          *
+          *   "If pname is ACTIVE_ATTRIBUTE_MAX_LENGTH, the length of the
+          *    longest active attribute name, including a null terminator, is
+          *    returned.  If no active attributes exist, zero is returned. If
+          *    no name reflection information is available, one is returned."
+          */
+         const size_t length = RESOURCE_VAR(res)->name != NULL ?
+            strlen(RESOURCE_VAR(res)->name) : 0;
+
+         if (length >= longest)
+            longest = length + 1;
       }
    }
 
@@ -629,6 +638,119 @@ _mesa_program_resource_find_name(struct gl_shader_program *shProg,
    return NULL;
 }
 
+/* Find an uniform or buffer variable program resource with an specific offset
+ * inside a block with an specific binding.
+ *
+ * Valid interfaces are GL_BUFFER_VARIABLE and GL_UNIFORM.
+ */
+static struct gl_program_resource *
+program_resource_find_binding_offset(struct gl_shader_program *shProg,
+                                     GLenum programInterface,
+                                     const GLuint binding,
+                                     const GLint offset)
+{
+
+   /* First we need to get the BLOCK_INDEX from the BUFFER_BINDING */
+   GLenum blockInterface;
+
+   switch (programInterface) {
+   case GL_BUFFER_VARIABLE:
+      blockInterface = GL_SHADER_STORAGE_BLOCK;
+      break;
+   case GL_UNIFORM:
+      blockInterface = GL_UNIFORM_BLOCK;
+      break;
+   default:
+      assert("Invalid program interface");
+      return NULL;
+   }
+
+   int block_index = -1;
+   int starting_index = -1;
+   struct gl_program_resource *res = shProg->data->ProgramResourceList;
+
+   /* Blocks are added to the resource list in the same order that they are
+    * added to UniformBlocks/ShaderStorageBlocks. Furthermore, all the blocks
+    * of each type (UBO/SSBO) are contiguous, so we can infer block_index from
+    * the resource list.
+    */
+   for (unsigned i = 0; i < shProg->data->NumProgramResourceList; i++, res++) {
+      if (res->Type != blockInterface)
+         continue;
+
+      /* Store the first index where a resource of the specific interface is. */
+      if (starting_index == -1)
+         starting_index = i;
+
+      const struct gl_uniform_block *block = RESOURCE_UBO(res);
+
+      if (block->Binding == binding) {
+         /* For arrays, or arrays of arrays of blocks, we want the resource
+          * for the block with base index. Most properties for members of each
+          * block are inherited from the block with the base index, including
+          * a uniform being active or not.
+          */
+         block_index = i - starting_index - block->linearized_array_index;
+         break;
+      }
+   }
+
+   if (block_index == -1)
+      return NULL;
+
+   /* We now look for the resource corresponding to the uniform or buffer
+    * variable using the BLOCK_INDEX and OFFSET.
+    */
+   res = shProg->data->ProgramResourceList;
+   for (unsigned i = 0; i < shProg->data->NumProgramResourceList; i++, res++) {
+      if (res->Type != programInterface)
+         continue;
+
+      const struct gl_uniform_storage *uniform = RESOURCE_UNI(res);
+
+      if (uniform->block_index == block_index && uniform->offset == offset) {
+         return res;
+      }
+   }
+
+   return NULL;
+}
+
+/* Checks if an uniform or buffer variable is in the active program resource
+ * list.
+ *
+ * It takes into accout that for variables coming from SPIR-V binaries their
+ * names could not be available (ARB_gl_spirv). In that case, it will use the
+ * the offset and the block binding to locate the resource.
+ *
+ * Valid interfaces are GL_BUFFER_VARIABLE and GL_UNIFORM.
+ */
+struct gl_program_resource *
+_mesa_program_resource_find_active_variable(struct gl_shader_program *shProg,
+                                            GLenum programInterface,
+                                            const gl_uniform_block *block,
+                                            unsigned index)
+{
+   struct gl_program_resource *res;
+   struct gl_uniform_buffer_variable uni = block->Uniforms[index];
+
+   assert(programInterface == GL_UNIFORM ||
+          programInterface == GL_BUFFER_VARIABLE);
+
+   if (uni.IndexName) {
+      res = _mesa_program_resource_find_name(shProg, programInterface, uni.IndexName,
+                                             NULL);
+   } else {
+      /* As the resource has no associated name (ARB_gl_spirv),
+       * we can use the UBO/SSBO binding and offset to find it.
+       */
+      res = program_resource_find_binding_offset(shProg, programInterface,
+                                                 block->Binding, uni.Offset);
+   }
+
+   return res;
+}
+
 static GLuint
 calc_resource_index(struct gl_shader_program *shProg,
                     struct gl_program_resource *res)
@@ -769,7 +891,15 @@ add_index_to_name(struct gl_program_resource *res)
 extern unsigned
 _mesa_program_resource_name_len(struct gl_program_resource *res)
 {
-   unsigned length = strlen(_mesa_program_resource_name(res));
+   const char* name = _mesa_program_resource_name(res);
+
+   /* For shaders constructed from SPIR-V binaries, variables may not
+    * have names associated with them.
+    */
+   if (!name)
+      return 0;
+
+   unsigned length = strlen(name);
    if (_mesa_program_resource_array_size(res) && add_index_to_name(res))
       length += 3;
    return length;
@@ -810,7 +940,11 @@ _mesa_get_program_resource_name(struct gl_shader_program *shProg,
 
    _mesa_copy_string(name, bufSize, length, _mesa_program_resource_name(res));
 
-   if (_mesa_program_resource_array_size(res) && add_index_to_name(res)) {
+   /* The resource name can be NULL for shaders constructed from SPIR-V
+    * binaries. In that case, we do not add the '[0]'.
+    */
+   if (name && name[0] != '\0' &&
+       _mesa_program_resource_array_size(res) && add_index_to_name(res)) {
       int i;
 
       /* The comparison is strange because *length does *NOT* include the
@@ -917,17 +1051,9 @@ _mesa_program_resource_location(struct gl_shader_program *shProg,
    return program_resource_location(res, array_index);
 }
 
-/**
- * Function implements following index queries:
- *    glGetFragDataIndex
- */
-GLint
-_mesa_program_resource_location_index(struct gl_shader_program *shProg,
-                                      GLenum programInterface, const char *name)
+static GLint
+_get_resource_location_index(struct gl_program_resource *res)
 {
-   struct gl_program_resource *res =
-      _mesa_program_resource_find_name(shProg, programInterface, name, NULL);
-
    /* Non-existent variable or resource is not referenced by fragment stage. */
    if (!res || !(res->StageReferences & (1 << MESA_SHADER_FRAGMENT)))
       return -1;
@@ -940,6 +1066,20 @@ _mesa_program_resource_location_index(struct gl_shader_program *shProg,
    if (RESOURCE_VAR(res)->location == -1)
       return -1;
    return RESOURCE_VAR(res)->index;
+}
+
+/**
+ * Function implements following index queries:
+ *    glGetFragDataIndex
+ */
+GLint
+_mesa_program_resource_location_index(struct gl_shader_program *shProg,
+                                      GLenum programInterface, const char *name)
+{
+   struct gl_program_resource *res =
+      _mesa_program_resource_find_name(shProg, programInterface, name, NULL);
+
+   return _get_resource_location_index(res);
 }
 
 static uint8_t
@@ -1012,10 +1152,13 @@ get_buffer_property(struct gl_shader_program *shProg,
       case GL_NUM_ACTIVE_VARIABLES:
          *val = 0;
          for (unsigned i = 0; i < RESOURCE_UBO(res)->NumUniforms; i++) {
-            const char *iname = RESOURCE_UBO(res)->Uniforms[i].IndexName;
             struct gl_program_resource *uni =
-               _mesa_program_resource_find_name(shProg, GL_UNIFORM, iname,
-                                                NULL);
+               _mesa_program_resource_find_active_variable(
+                  shProg,
+                  GL_UNIFORM,
+                  RESOURCE_UBO(res),
+                  i);
+
             if (!uni)
                continue;
             (*val)++;
@@ -1024,10 +1167,13 @@ get_buffer_property(struct gl_shader_program *shProg,
       case GL_ACTIVE_VARIABLES: {
          unsigned num_values = 0;
          for (unsigned i = 0; i < RESOURCE_UBO(res)->NumUniforms; i++) {
-            const char *iname = RESOURCE_UBO(res)->Uniforms[i].IndexName;
             struct gl_program_resource *uni =
-               _mesa_program_resource_find_name(shProg, GL_UNIFORM, iname,
-                                                NULL);
+               _mesa_program_resource_find_active_variable(
+                  shProg,
+                  GL_UNIFORM,
+                  RESOURCE_UBO(res),
+                  i);
+
             if (!uni)
                continue;
             *val++ =
@@ -1048,10 +1194,13 @@ get_buffer_property(struct gl_shader_program *shProg,
       case GL_NUM_ACTIVE_VARIABLES:
          *val = 0;
          for (unsigned i = 0; i < RESOURCE_UBO(res)->NumUniforms; i++) {
-            const char *iname = RESOURCE_UBO(res)->Uniforms[i].IndexName;
             struct gl_program_resource *uni =
-               _mesa_program_resource_find_name(shProg, GL_BUFFER_VARIABLE,
-                                                iname, NULL);
+               _mesa_program_resource_find_active_variable(
+                  shProg,
+                  GL_BUFFER_VARIABLE,
+                  RESOURCE_UBO(res),
+                  i);
+
             if (!uni)
                continue;
             (*val)++;
@@ -1060,10 +1209,13 @@ get_buffer_property(struct gl_shader_program *shProg,
       case GL_ACTIVE_VARIABLES: {
          unsigned num_values = 0;
          for (unsigned i = 0; i < RESOURCE_UBO(res)->NumUniforms; i++) {
-            const char *iname = RESOURCE_UBO(res)->Uniforms[i].IndexName;
             struct gl_program_resource *uni =
-               _mesa_program_resource_find_name(shProg, GL_BUFFER_VARIABLE,
-                                                iname, NULL);
+               _mesa_program_resource_find_active_variable(
+                  shProg,
+                  GL_BUFFER_VARIABLE,
+                  RESOURCE_UBO(res),
+                  i);
+
             if (!uni)
                continue;
             *val++ =
@@ -1299,8 +1451,7 @@ _mesa_program_resource_prop(struct gl_shader_program *shProg,
       if (tmp == -1)
          *val = -1;
       else
-         *val = _mesa_program_resource_location_index(shProg, res->Type,
-                                                      RESOURCE_VAR(res)->name);
+         *val = _get_resource_location_index(res);
       return 1;
    }
    case GL_NUM_COMPATIBLE_SUBROUTINES:

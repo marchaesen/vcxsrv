@@ -83,7 +83,7 @@
 XFontSetExtents \- XFontSetExtents structure
 .SH STRUCTURES
 The
-.ZN XFontSetExtents
+.B XFontSetExtents
 structure contains:
 .LP
 .Ds 0
@@ -94,7 +94,7 @@ typedef struct {
 .De
 .LP
 The 
-.ZN XRectangle
+.B XRectangle
 structures used to return font set metrics are the usual Xlib screen-oriented 
 rectangles
 with x, y giving the upper left corner, and width and height always positive.
@@ -103,9 +103,9 @@ The max_ink_extent member gives the maximum extent, over all drawable characters
 the rectangles that bound the character glyph image drawn in the
 foreground color, relative to a constant origin.
 See 
-.ZN XmbTextExtents
+.B XmbTextExtents
 and
-.ZN XwcTextExtents
+.B XwcTextExtents
 for detailed semantics.
 .LP
 The max_logical_extent member gives the maximum extent,

@@ -94,7 +94,7 @@ Specifies the event mask.
 Specifies the window whose events you are interested in.
 .SH DESCRIPTION
 The
-.ZN XSelectInput
+.B XSelectInput
 function requests that the X server report the events associated with the 
 specified event mask.
 Initially, X will not report any of these events.
@@ -115,36 +115,36 @@ When the X server generates an event, it reports it
 to all interested clients.
 .IP \(bu 5
 Only one client at a time can select
-.ZN CirculateRequest ,
-.ZN ConfigureRequest ,
+.BR CirculateRequest ,
+.BR ConfigureRequest ,
 or
-.ZN MapRequest
+.B MapRequest
 events, which are associated with
 the event mask
-.ZN SubstructureRedirectMask . 
+.BR SubstructureRedirectMask .
 .IP \(bu 5
 Only one client at a time can select
 a
-.ZN ResizeRequest
+.B ResizeRequest
 event, which is associated with
 the event mask
-.ZN ResizeRedirectMask . 
+.BR ResizeRedirectMask .
 .IP \(bu 5
 Only one client at a time can select a 
-.ZN ButtonPress 
+.B ButtonPress
 event, which is associated with
 the event mask
-.ZN ButtonPressMask .
+.BR ButtonPressMask .
 .LP
 The server reports the event to all interested clients.
 .LP
-.ZN XSelectInput
+.B XSelectInput
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 \fI\*(xL\fP

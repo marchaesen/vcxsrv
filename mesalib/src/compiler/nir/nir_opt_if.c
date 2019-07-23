@@ -1039,6 +1039,13 @@ opt_if_loop_terminator(nir_if *nif)
    if (!nir_is_trivial_loop_if(nif, break_blk))
       return false;
 
+   /* Even though this if statement has a jump on one side, we may still have
+    * phis afterwards.  Single-source phis can be produced by loop unrolling
+    * or dead control-flow passes and are perfectly legal.  Run a quick phi
+    * removal on the block after the if to clean up any such phis.
+    */
+   nir_opt_remove_phis_block(nir_cf_node_as_block(nir_cf_node_next(&nif->cf_node)));
+
    /* Finally, move the continue from branch after the if-statement. */
    nir_cf_list tmp;
    nir_cf_extract(&tmp, nir_before_block(first_continue_from_blk),

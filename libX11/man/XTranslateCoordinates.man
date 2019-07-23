@@ -109,31 +109,31 @@ Specifies the source window.
 Specify the x and y coordinates within the source window.
 .SH DESCRIPTION
 If
-.ZN XTranslateCoordinates
+.B XTranslateCoordinates
 returns
-.ZN True ,
+.BR True ,
 it takes the src_x and src_y coordinates relative
 to the source window's origin and returns these coordinates to 
 dest_x_return and dest_y_return
 relative to the destination window's origin.
 If
-.ZN XTranslateCoordinates
+.B XTranslateCoordinates
 returns 
-.ZN False , 
+.BR False ,
 src_w and dest_w are on different screens,
 and dest_x_return and dest_y_return are zero.
 If the coordinates are contained in a mapped child of dest_w,
 that child is returned to child_return.
 Otherwise, child_return is set to
-.ZN None .
+.BR None .
 .LP
-.ZN XTranslateCoordinates
+.B XTranslateCoordinates
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 \fI\*(xL\fP

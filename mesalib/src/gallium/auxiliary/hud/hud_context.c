@@ -149,7 +149,7 @@ hud_draw_string(struct hud_context *hud, unsigned x, unsigned y,
 
    va_list ap;
    va_start(ap, str);
-   util_vsnprintf(buf, sizeof(buf), str, ap);
+   vsnprintf(buf, sizeof(buf), str, ap);
    va_end(ap);
 
    if (!*s)
@@ -1195,7 +1195,7 @@ hud_parse_env_var(struct hud_context *hud, struct pipe_screen *screen,
    boolean sort_items = false;
    const char *period_env;
 
-   if (util_strncmp(env, "simple,", 7) == 0) {
+   if (strncmp(env, "simple,", 7) == 0) {
       hud->simple = true;
       env += 7;
    }

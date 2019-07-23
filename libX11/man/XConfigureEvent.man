@@ -83,7 +83,7 @@
 XConfigureEvent \- ConfigureNotify event structure
 .SH STRUCTURES
 The structure for
-.ZN ConfigureNotify
+.B ConfigureNotify
 events contains:
 .LP
 .Ds 0
@@ -108,16 +108,16 @@ the structure members are set as follows.
 The type member is set to the event type constant name that uniquely identifies
 it.
 For example, when the X server reports a
-.ZN GraphicsExpose
+.B GraphicsExpose
 event to a client application, it sends an
-.ZN XGraphicsExposeEvent
+.B XGraphicsExposeEvent
 structure with the type member set to
-.ZN GraphicsExpose .
+.BR GraphicsExpose .
 The display member is set to a pointer to the display the event was read on.
 The send_event member is set to
-.ZN True
+.B True
 if the event came from a
-.ZN SendEvent
+.B SendEvent
 protocol request.
 The serial member is set from the serial number reported in the protocol
 but expanded from the 16-bit least-significant bits to a full 32-bit value.
@@ -126,9 +126,9 @@ dispatchers.
 .LP
 The event member is set either to the reconfigured window or to its parent,
 depending on whether
-.ZN StructureNotify
+.B StructureNotify
 or
-.ZN SubstructureNotify
+.B SubstructureNotify
 was selected.
 The window member is set to the window whose size, position, 
 border, and/or stacking
@@ -144,7 +144,7 @@ The border_width member is set to the width of the window's border, in pixels.
 The above member is set to the sibling window and is used 
 for stacking operations.
 If the X server sets this member to
-.ZN None ,
+.BR None ,
 the window whose state was changed is on the bottom of the stack
 with respect to sibling windows.
 However, if this member is set to a sibling window, 
@@ -155,7 +155,7 @@ window.
 Window manager clients normally should ignore this window if the 
 override_redirect member
 is
-.ZN True .
+.BR True .
 .SH "SEE ALSO"
 XAnyEvent(__libmansuffix__),
 XButtonEvent(__libmansuffix__),

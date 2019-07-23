@@ -107,12 +107,12 @@ int *\fIfont_ascent_return\fP, int *\fIfont_descent_return\fP\^, XCharStruct
 Returns the value of the direction hint
 .Pn ( FontLeftToRight
 or
-.ZN FontRightToLeft ).
+.BR FontRightToLeft ).
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fIfont_ID\fP 1i
 Specifies either the font ID or the 
-.ZN GContext
+.B GContext
 ID that contains the font.
 .IP \fIfont_ascent_return\fP 1i
 Returns the font ascent.
@@ -120,7 +120,7 @@ Returns the font ascent.
 Returns the font descent.
 .IP \fIfont_struct\fP 1i
 Specifies the 
-.ZN XFontStruct 
+.B XFontStruct
 structure.
 .IP \fInchars\fP 1i
 Specifies the number of characters in the character string.
@@ -128,21 +128,21 @@ Specifies the number of characters in the character string.
 Specifies the character string.
 .IP \fIoverall_return\fP 1i
 Returns the overall size in the specified
-.ZN XCharStruct 
+.B XCharStruct
 structure.
 .SH DESCRIPTION
 The
-.ZN XTextExtents
+.B XTextExtents
 and
-.ZN XTextExtents16
+.B XTextExtents16
 functions 
 perform the size computation locally and, thereby,
 avoid the round-trip overhead of
-.ZN XQueryTextExtents 
+.B XQueryTextExtents
 and
-.ZN XQueryTextExtents16 .
+.BR XQueryTextExtents16 .
 Both functions return an
-.ZN XCharStruct
+.B XCharStruct
 structure, whose members are set to the values as follows.
 .LP
 The ascent member is set to the maximum of the ascent metrics of all
@@ -160,26 +160,26 @@ The rbearing member is set to the maximum R.
 .LP
 For fonts defined with linear indexing rather than 2-byte matrix indexing,
 each 
-.ZN XChar2b 
+.B XChar2b
 structure is interpreted as a 16-bit number with byte1 as the 
 most significant byte.
 If the font has no defined default character,
 undefined characters in the string are taken to have all zero metrics.
 .LP
 The
-.ZN XQueryTextExtents
+.B XQueryTextExtents
 and
-.ZN XQueryTextExtents16
+.B XQueryTextExtents16
 functions return the bounding box of the specified 8-bit and 16-bit
 character string in the specified font or the font contained in the
 specified GC.
 These functions query the X server and, therefore, suffer the round-trip
 overhead that is avoided by
-.ZN XTextExtents
+.B XTextExtents
 and 
-.ZN XTextExtents16 .
+.BR XTextExtents16 .
 Both functions return a
-.ZN XCharStruct 
+.B XCharStruct
 structure, whose members are set to the values as follows.
 .LP
 The ascent member is set to the maximum of the ascent metrics 
@@ -197,7 +197,7 @@ The rbearing member is set to the maximum R.
 .LP
 For fonts defined with linear indexing rather than 2-byte matrix indexing,
 each 
-.ZN XChar2b 
+.B XChar2b
 structure is interpreted as a 16-bit number with byte1 as the 
 most significant byte.
 If the font has no defined default character,
@@ -207,20 +207,20 @@ Characters with all zero metrics are ignored.
 If the font has no defined default_char,
 the undefined characters in the string are also ignored.
 .LP
-.ZN XQueryTextExtents
+.B XQueryTextExtents
 and
-.ZN XQueryTextExtents16
+.B XQueryTextExtents16
 can generate
-.ZN BadFont
+.B BadFont
 and
-.ZN BadGC 
+.B BadGC
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadFont
+.B BadFont
 A value for a Font or GContext argument does not name a defined Font.
 .TP 1i
-.ZN BadGC
+.B BadGC
 A value for a GContext argument does not name a defined GContext.
 .SH "SEE ALSO"
 XLoadFont(__libmansuffix__),

@@ -63,7 +63,7 @@
     } while(0)
 
 /* total number of offsets below */
-#define _gloffset_COUNT 1454
+#define _gloffset_COUNT 1467
 
 #define _gloffset_NewList 0
 #define _gloffset_EndList 1
@@ -473,7 +473,7 @@
 #define _gloffset_MultiTexCoord4iv 405
 #define _gloffset_MultiTexCoord4s 406
 #define _gloffset_MultiTexCoord4sv 407
-#define driDispatchRemapTable_size 1046
+#define driDispatchRemapTable_size 1059
 SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 
 #define CompressedTexImage1D_remap_index 0
@@ -1513,15 +1513,28 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define NamedBufferSubDataEXT_remap_index 1034
 #define NamedBufferStorageEXT_remap_index 1035
 #define MapNamedBufferRangeEXT_remap_index 1036
-#define TextureSubImage2DEXT_remap_index 1037
-#define CompressedTextureSubImage2DEXT_remap_index 1038
-#define MapNamedBufferEXT_remap_index 1039
-#define GetTextureParameterivEXT_remap_index 1040
-#define GetTextureParameterfvEXT_remap_index 1041
-#define TextureParameteriEXT_remap_index 1042
-#define TextureParameterivEXT_remap_index 1043
-#define TextureParameterfEXT_remap_index 1044
-#define TextureParameterfvEXT_remap_index 1045
+#define TextureImage1DEXT_remap_index 1037
+#define TextureImage2DEXT_remap_index 1038
+#define TextureImage3DEXT_remap_index 1039
+#define TextureSubImage1DEXT_remap_index 1040
+#define TextureSubImage2DEXT_remap_index 1041
+#define TextureSubImage3DEXT_remap_index 1042
+#define CopyTextureImage1DEXT_remap_index 1043
+#define CopyTextureImage2DEXT_remap_index 1044
+#define CopyTextureSubImage1DEXT_remap_index 1045
+#define CopyTextureSubImage2DEXT_remap_index 1046
+#define CopyTextureSubImage3DEXT_remap_index 1047
+#define CompressedTextureSubImage2DEXT_remap_index 1048
+#define MapNamedBufferEXT_remap_index 1049
+#define GetTextureParameterivEXT_remap_index 1050
+#define GetTextureParameterfvEXT_remap_index 1051
+#define TextureParameteriEXT_remap_index 1052
+#define TextureParameterivEXT_remap_index 1053
+#define TextureParameterfEXT_remap_index 1054
+#define TextureParameterfvEXT_remap_index 1055
+#define GetTextureImageEXT_remap_index 1056
+#define GetTextureLevelParameterivEXT_remap_index 1057
+#define GetTextureLevelParameterfvEXT_remap_index 1058
 
 #define _gloffset_CompressedTexImage1D driDispatchRemapTable[CompressedTexImage1D_remap_index]
 #define _gloffset_CompressedTexImage2D driDispatchRemapTable[CompressedTexImage2D_remap_index]
@@ -2560,7 +2573,17 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define _gloffset_NamedBufferSubDataEXT driDispatchRemapTable[NamedBufferSubDataEXT_remap_index]
 #define _gloffset_NamedBufferStorageEXT driDispatchRemapTable[NamedBufferStorageEXT_remap_index]
 #define _gloffset_MapNamedBufferRangeEXT driDispatchRemapTable[MapNamedBufferRangeEXT_remap_index]
+#define _gloffset_TextureImage1DEXT driDispatchRemapTable[TextureImage1DEXT_remap_index]
+#define _gloffset_TextureImage2DEXT driDispatchRemapTable[TextureImage2DEXT_remap_index]
+#define _gloffset_TextureImage3DEXT driDispatchRemapTable[TextureImage3DEXT_remap_index]
+#define _gloffset_TextureSubImage1DEXT driDispatchRemapTable[TextureSubImage1DEXT_remap_index]
 #define _gloffset_TextureSubImage2DEXT driDispatchRemapTable[TextureSubImage2DEXT_remap_index]
+#define _gloffset_TextureSubImage3DEXT driDispatchRemapTable[TextureSubImage3DEXT_remap_index]
+#define _gloffset_CopyTextureImage1DEXT driDispatchRemapTable[CopyTextureImage1DEXT_remap_index]
+#define _gloffset_CopyTextureImage2DEXT driDispatchRemapTable[CopyTextureImage2DEXT_remap_index]
+#define _gloffset_CopyTextureSubImage1DEXT driDispatchRemapTable[CopyTextureSubImage1DEXT_remap_index]
+#define _gloffset_CopyTextureSubImage2DEXT driDispatchRemapTable[CopyTextureSubImage2DEXT_remap_index]
+#define _gloffset_CopyTextureSubImage3DEXT driDispatchRemapTable[CopyTextureSubImage3DEXT_remap_index]
 #define _gloffset_CompressedTextureSubImage2DEXT driDispatchRemapTable[CompressedTextureSubImage2DEXT_remap_index]
 #define _gloffset_MapNamedBufferEXT driDispatchRemapTable[MapNamedBufferEXT_remap_index]
 #define _gloffset_GetTextureParameterivEXT driDispatchRemapTable[GetTextureParameterivEXT_remap_index]
@@ -2569,6 +2592,9 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define _gloffset_TextureParameterivEXT driDispatchRemapTable[TextureParameterivEXT_remap_index]
 #define _gloffset_TextureParameterfEXT driDispatchRemapTable[TextureParameterfEXT_remap_index]
 #define _gloffset_TextureParameterfvEXT driDispatchRemapTable[TextureParameterfvEXT_remap_index]
+#define _gloffset_GetTextureImageEXT driDispatchRemapTable[GetTextureImageEXT_remap_index]
+#define _gloffset_GetTextureLevelParameterivEXT driDispatchRemapTable[GetTextureLevelParameterivEXT_remap_index]
+#define _gloffset_GetTextureLevelParameterfvEXT driDispatchRemapTable[GetTextureLevelParameterfvEXT_remap_index]
 
 typedef void (GLAPIENTRYP _glptr_NewList)(GLuint, GLenum);
 #define CALL_NewList(disp, parameters) \
@@ -18465,6 +18491,50 @@ static INLINE void SET_MapNamedBufferRangeEXT(struct _glapi_table *disp, GLvoid 
    SET_by_offset(disp, _gloffset_MapNamedBufferRangeEXT, fn);
 }
 
+typedef void (GLAPIENTRYP _glptr_TextureImage1DEXT)(GLuint, GLenum, GLint, GLint, GLsizei, GLint, GLenum, GLenum, const GLvoid *);
+#define CALL_TextureImage1DEXT(disp, parameters) \
+    (* GET_TextureImage1DEXT(disp)) parameters
+static INLINE _glptr_TextureImage1DEXT GET_TextureImage1DEXT(struct _glapi_table *disp) {
+   return (_glptr_TextureImage1DEXT) (GET_by_offset(disp, _gloffset_TextureImage1DEXT));
+}
+
+static INLINE void SET_TextureImage1DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLint, GLsizei, GLint, GLenum, GLenum, const GLvoid *)) {
+   SET_by_offset(disp, _gloffset_TextureImage1DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TextureImage2DEXT)(GLuint, GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, const GLvoid *);
+#define CALL_TextureImage2DEXT(disp, parameters) \
+    (* GET_TextureImage2DEXT(disp)) parameters
+static INLINE _glptr_TextureImage2DEXT GET_TextureImage2DEXT(struct _glapi_table *disp) {
+   return (_glptr_TextureImage2DEXT) (GET_by_offset(disp, _gloffset_TextureImage2DEXT));
+}
+
+static INLINE void SET_TextureImage2DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, const GLvoid *)) {
+   SET_by_offset(disp, _gloffset_TextureImage2DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TextureImage3DEXT)(GLuint, GLenum, GLint, GLint, GLsizei, GLsizei, GLsizei, GLint, GLenum, GLenum, const GLvoid *);
+#define CALL_TextureImage3DEXT(disp, parameters) \
+    (* GET_TextureImage3DEXT(disp)) parameters
+static INLINE _glptr_TextureImage3DEXT GET_TextureImage3DEXT(struct _glapi_table *disp) {
+   return (_glptr_TextureImage3DEXT) (GET_by_offset(disp, _gloffset_TextureImage3DEXT));
+}
+
+static INLINE void SET_TextureImage3DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLint, GLsizei, GLsizei, GLsizei, GLint, GLenum, GLenum, const GLvoid *)) {
+   SET_by_offset(disp, _gloffset_TextureImage3DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TextureSubImage1DEXT)(GLuint, GLenum, GLint, GLint, GLsizei, GLenum, GLenum, const GLvoid *);
+#define CALL_TextureSubImage1DEXT(disp, parameters) \
+    (* GET_TextureSubImage1DEXT(disp)) parameters
+static INLINE _glptr_TextureSubImage1DEXT GET_TextureSubImage1DEXT(struct _glapi_table *disp) {
+   return (_glptr_TextureSubImage1DEXT) (GET_by_offset(disp, _gloffset_TextureSubImage1DEXT));
+}
+
+static INLINE void SET_TextureSubImage1DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLint, GLsizei, GLenum, GLenum, const GLvoid *)) {
+   SET_by_offset(disp, _gloffset_TextureSubImage1DEXT, fn);
+}
+
 typedef void (GLAPIENTRYP _glptr_TextureSubImage2DEXT)(GLuint, GLenum, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, const GLvoid *);
 #define CALL_TextureSubImage2DEXT(disp, parameters) \
     (* GET_TextureSubImage2DEXT(disp)) parameters
@@ -18474,6 +18544,72 @@ static INLINE _glptr_TextureSubImage2DEXT GET_TextureSubImage2DEXT(struct _glapi
 
 static INLINE void SET_TextureSubImage2DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, const GLvoid *)) {
    SET_by_offset(disp, _gloffset_TextureSubImage2DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TextureSubImage3DEXT)(GLuint, GLenum, GLint, GLint, GLint, GLint, GLsizei, GLsizei, GLsizei, GLenum, GLenum, const GLvoid *);
+#define CALL_TextureSubImage3DEXT(disp, parameters) \
+    (* GET_TextureSubImage3DEXT(disp)) parameters
+static INLINE _glptr_TextureSubImage3DEXT GET_TextureSubImage3DEXT(struct _glapi_table *disp) {
+   return (_glptr_TextureSubImage3DEXT) (GET_by_offset(disp, _gloffset_TextureSubImage3DEXT));
+}
+
+static INLINE void SET_TextureSubImage3DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLint, GLint, GLint, GLsizei, GLsizei, GLsizei, GLenum, GLenum, const GLvoid *)) {
+   SET_by_offset(disp, _gloffset_TextureSubImage3DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CopyTextureImage1DEXT)(GLuint, GLenum, GLint, GLenum, GLint, GLint, GLsizei, int);
+#define CALL_CopyTextureImage1DEXT(disp, parameters) \
+    (* GET_CopyTextureImage1DEXT(disp)) parameters
+static INLINE _glptr_CopyTextureImage1DEXT GET_CopyTextureImage1DEXT(struct _glapi_table *disp) {
+   return (_glptr_CopyTextureImage1DEXT) (GET_by_offset(disp, _gloffset_CopyTextureImage1DEXT));
+}
+
+static INLINE void SET_CopyTextureImage1DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLenum, GLint, GLint, GLsizei, int)) {
+   SET_by_offset(disp, _gloffset_CopyTextureImage1DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CopyTextureImage2DEXT)(GLuint, GLenum, GLint, GLenum, GLint, GLint, GLsizei, GLsizei, int);
+#define CALL_CopyTextureImage2DEXT(disp, parameters) \
+    (* GET_CopyTextureImage2DEXT(disp)) parameters
+static INLINE _glptr_CopyTextureImage2DEXT GET_CopyTextureImage2DEXT(struct _glapi_table *disp) {
+   return (_glptr_CopyTextureImage2DEXT) (GET_by_offset(disp, _gloffset_CopyTextureImage2DEXT));
+}
+
+static INLINE void SET_CopyTextureImage2DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLenum, GLint, GLint, GLsizei, GLsizei, int)) {
+   SET_by_offset(disp, _gloffset_CopyTextureImage2DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CopyTextureSubImage1DEXT)(GLuint, GLenum, GLint, GLint, GLint, GLint, GLsizei);
+#define CALL_CopyTextureSubImage1DEXT(disp, parameters) \
+    (* GET_CopyTextureSubImage1DEXT(disp)) parameters
+static INLINE _glptr_CopyTextureSubImage1DEXT GET_CopyTextureSubImage1DEXT(struct _glapi_table *disp) {
+   return (_glptr_CopyTextureSubImage1DEXT) (GET_by_offset(disp, _gloffset_CopyTextureSubImage1DEXT));
+}
+
+static INLINE void SET_CopyTextureSubImage1DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLint, GLint, GLint, GLsizei)) {
+   SET_by_offset(disp, _gloffset_CopyTextureSubImage1DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CopyTextureSubImage2DEXT)(GLuint, GLenum, GLint, GLint, GLint, GLint, GLint, GLsizei, GLsizei);
+#define CALL_CopyTextureSubImage2DEXT(disp, parameters) \
+    (* GET_CopyTextureSubImage2DEXT(disp)) parameters
+static INLINE _glptr_CopyTextureSubImage2DEXT GET_CopyTextureSubImage2DEXT(struct _glapi_table *disp) {
+   return (_glptr_CopyTextureSubImage2DEXT) (GET_by_offset(disp, _gloffset_CopyTextureSubImage2DEXT));
+}
+
+static INLINE void SET_CopyTextureSubImage2DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLint, GLint, GLint, GLint, GLsizei, GLsizei)) {
+   SET_by_offset(disp, _gloffset_CopyTextureSubImage2DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CopyTextureSubImage3DEXT)(GLuint, GLenum, GLint, GLint, GLint, GLint, GLint, GLint, GLsizei, GLsizei);
+#define CALL_CopyTextureSubImage3DEXT(disp, parameters) \
+    (* GET_CopyTextureSubImage3DEXT(disp)) parameters
+static INLINE _glptr_CopyTextureSubImage3DEXT GET_CopyTextureSubImage3DEXT(struct _glapi_table *disp) {
+   return (_glptr_CopyTextureSubImage3DEXT) (GET_by_offset(disp, _gloffset_CopyTextureSubImage3DEXT));
+}
+
+static INLINE void SET_CopyTextureSubImage3DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLint, GLint, GLint, GLint, GLint, GLsizei, GLsizei)) {
+   SET_by_offset(disp, _gloffset_CopyTextureSubImage3DEXT, fn);
 }
 
 typedef void (GLAPIENTRYP _glptr_CompressedTextureSubImage2DEXT)(GLuint, GLenum, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLsizei, const GLvoid *);
@@ -18562,6 +18698,39 @@ static INLINE _glptr_TextureParameterfvEXT GET_TextureParameterfvEXT(struct _gla
 
 static INLINE void SET_TextureParameterfvEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLenum, const float *)) {
    SET_by_offset(disp, _gloffset_TextureParameterfvEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetTextureImageEXT)(GLuint, GLenum, GLint, GLenum, GLenum, GLvoid *);
+#define CALL_GetTextureImageEXT(disp, parameters) \
+    (* GET_GetTextureImageEXT(disp)) parameters
+static INLINE _glptr_GetTextureImageEXT GET_GetTextureImageEXT(struct _glapi_table *disp) {
+   return (_glptr_GetTextureImageEXT) (GET_by_offset(disp, _gloffset_GetTextureImageEXT));
+}
+
+static INLINE void SET_GetTextureImageEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLenum, GLenum, GLvoid *)) {
+   SET_by_offset(disp, _gloffset_GetTextureImageEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetTextureLevelParameterivEXT)(GLuint, GLenum, GLint, GLenum, GLint *);
+#define CALL_GetTextureLevelParameterivEXT(disp, parameters) \
+    (* GET_GetTextureLevelParameterivEXT(disp)) parameters
+static INLINE _glptr_GetTextureLevelParameterivEXT GET_GetTextureLevelParameterivEXT(struct _glapi_table *disp) {
+   return (_glptr_GetTextureLevelParameterivEXT) (GET_by_offset(disp, _gloffset_GetTextureLevelParameterivEXT));
+}
+
+static INLINE void SET_GetTextureLevelParameterivEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLenum, GLint *)) {
+   SET_by_offset(disp, _gloffset_GetTextureLevelParameterivEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetTextureLevelParameterfvEXT)(GLuint, GLenum, GLint, GLenum, float *);
+#define CALL_GetTextureLevelParameterfvEXT(disp, parameters) \
+    (* GET_GetTextureLevelParameterfvEXT(disp)) parameters
+static INLINE _glptr_GetTextureLevelParameterfvEXT GET_GetTextureLevelParameterfvEXT(struct _glapi_table *disp) {
+   return (_glptr_GetTextureLevelParameterfvEXT) (GET_by_offset(disp, _gloffset_GetTextureLevelParameterfvEXT));
+}
+
+static INLINE void SET_GetTextureLevelParameterfvEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLenum, float *)) {
+   SET_by_offset(disp, _gloffset_GetTextureLevelParameterfvEXT, fn);
 }
 
 

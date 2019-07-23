@@ -101,9 +101,9 @@ int XRestackWindows\^(\^Display *\fIdisplay\fP\^, Window \fIwindows\fP\^[], int
 Specifies the direction (up or down) that you want to circulate
 the window. 
 You can pass 
-.ZN RaiseLowest
+.B RaiseLowest
 or
-.ZN LowerHighest .
+.BR LowerHighest .
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fInwindows\fP 1i
@@ -114,7 +114,7 @@ Specifies the window.
 Specifies an array containing the windows to be restacked.
 .SH DESCRIPTION
 The
-.ZN XRaiseWindow
+.B XRaiseWindow
 function
 raises the specified window to the top of the stack so that no sibling window
 obscures it.
@@ -123,26 +123,26 @@ on a desk,
 then raising a window is analogous to moving the sheet to the top of
 the stack but leaving its x and y location on the desk constant.
 Raising a mapped window may generate 
-.ZN Expose
+.B Expose
 events for the window and any mapped subwindows that were formerly obscured.  
 .LP
 If the override-redirect attribute of the window is 
-.ZN False 
+.B False
 and some
 other client has selected 
-.ZN SubstructureRedirectMask 
+.B SubstructureRedirectMask
 on the parent, the X server generates a
-.ZN ConfigureRequest 
+.B ConfigureRequest
 event, and no processing is performed.
 Otherwise, the window is raised.
 .LP
-.ZN XRaiseWindow
+.B XRaiseWindow
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .LP
 The
-.ZN XLowerWindow
+.B XLowerWindow
 function lowers the specified window to the bottom of the stack
 so that it does not obscure any sibling
 windows.
@@ -151,93 +151,93 @@ stacked on a desk, then lowering a window is analogous to moving the
 sheet to the bottom of the stack but leaving its x and y location on
 the desk constant.
 Lowering a mapped window will generate 
-.ZN Expose 
+.B Expose
 events on any windows it formerly obscured.
 .LP
 If the override-redirect attribute of the window is 
-.ZN False 
+.B False
 and some
 other client has selected 
-.ZN SubstructureRedirectMask 
+.B SubstructureRedirectMask
 on the parent, the X server generates a
-.ZN ConfigureRequest 
+.B ConfigureRequest
 event, and no processing is performed.  
 Otherwise, the window is lowered to the bottom of the
 stack.
 .LP
-.ZN XLowerWindow
+.B XLowerWindow
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .LP
 The
-.ZN XCirculateSubwindows
+.B XCirculateSubwindows
 function circulates children of the specified window in the specified 
 direction.
 If you specify
-.ZN RaiseLowest ,
-.ZN XCirculateSubwindows
+.BR RaiseLowest ,
+.B XCirculateSubwindows
 raises the lowest mapped child (if any) that is occluded 
 by another child to the top of the stack.
 If you specify
-.ZN LowerHighest ,
-.ZN XCirculateSubwindows
+.BR LowerHighest ,
+.B XCirculateSubwindows
 lowers the highest mapped child (if any) that occludes another child
 to the bottom of the stack.
 Exposure processing is then performed on formerly obscured windows.
 If some other client has selected 
-.ZN SubstructureRedirectMask 
+.B SubstructureRedirectMask
 on the window, the X server generates a 
-.ZN CirculateRequest 
+.B CirculateRequest
 event, and no further processing is performed.
 If a child is actually restacked,
 the X server generates a
-.ZN CirculateNotify
+.B CirculateNotify
 event. 
 .LP
-.ZN XCirculateSubwindows
+.B XCirculateSubwindows
 can generate
-.ZN BadValue
+.B BadValue
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XCirculateSubwindowsUp
+.B XCirculateSubwindowsUp
 function raises the lowest mapped child of the specified window that
 is partially
 or completely
 occluded by another child.
 Completely unobscured children are not affected.
 This is a convenience function equivalent to
-.ZN XCirculateSubwindows
+.B XCirculateSubwindows
 with
-.ZN RaiseLowest
+.B RaiseLowest
 specified.
 .LP
-.ZN XCirculateSubwindowsUp
+.B XCirculateSubwindowsUp
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .LP
 The
-.ZN XCirculateSubwindowsDown
+.B XCirculateSubwindowsDown
 function lowers the highest mapped child of the specified window that partially
 or completely occludes another child.
 Completely unobscured children are not affected.
 This is a convenience function equivalent to
-.ZN XCirculateSubwindows
+.B XCirculateSubwindows
 with
-.ZN LowerHighest
+.B LowerHighest
 specified.
 .LP
-.ZN XCirculateSubwindowsDown
+.B XCirculateSubwindowsDown
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .LP
 The
-.ZN XRestackWindows
+.B XRestackWindows
 function restacks the windows in the order specified,
 from top to bottom.
 The stacking order of the first window in the windows array is unaffected,
@@ -246,33 +246,33 @@ in the order of the array.
 The stacking order of the other windows is not affected.
 For each window in the window array that is not a sibling of the first window,
 a
-.ZN BadMatch
+.B BadMatch
 error results.
 .LP
 If the override-redirect attribute of a window is 
-.ZN False 
+.B False
 and some
 other client has selected 
-.ZN SubstructureRedirectMask 
+.B SubstructureRedirectMask
 on the parent, the X server generates 
-.ZN ConfigureRequest 
+.B ConfigureRequest
 events for each window whose override-redirect flag is not set, 
 and no further processing is performed.
 Otherwise, the windows will be restacked in top-to-bottom order.
 .LP
-.ZN XRestackWindows
+.B XRestackWindows
 can generate
-.ZN BadWindow 
+.B BadWindow
 error.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of
 alternatives can generate this error.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XChangeWindowAttributes(__libmansuffix__),

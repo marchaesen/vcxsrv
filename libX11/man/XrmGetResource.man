@@ -113,7 +113,7 @@ Specifies a list of resource classes.
 Specifies the database that is to be used.
 .IP \fIlist\fP 1i
 Specifies the search list returned by
-.ZN XrmQGetSearchList .
+.BR XrmQGetSearchList .
 .IP \fIlist_length\fP 1i
 Specifies the number of entries (not the byte size) allocated for list_return.
 .IP \fIlist_return\fP 1i
@@ -140,9 +140,9 @@ Returns data representation type.
 Returns the value in the database.
 .SH DESCRIPTION
 The 
-.ZN XrmGetResource 
+.B XrmGetResource
 and 
-.ZN XrmQGetResource 
+.B XrmQGetResource
 functions retrieve a resource from the specified database.
 Both take a fully qualified name/class pair, a destination
 resource representation, and the address of a value
@@ -151,36 +151,36 @@ The value and returned type point into database memory;
 therefore, you must not modify the data.
 .LP
 The database only frees or overwrites entries on
-.ZN XrmPutResource , 
-.ZN XrmQPutResource ,
+.BR XrmPutResource ,
+.BR XrmQPutResource ,
 or 
-.ZN XrmMergeDatabases .
+.BR XrmMergeDatabases .
 A client that is not storing new values into the database or
 is not merging the database should be safe using the address passed 
 back at any time until it exits.
 If a resource was found, both
-.ZN XrmGetResource 
+.B XrmGetResource
 and
-.ZN XrmQGetResource 
+.B XrmQGetResource
 return 
-.ZN True ;
+.BR True ;
 otherwise, they return 
-.ZN False .
+.BR False .
 .LP
 The
-.ZN XrmQGetSearchList
+.B XrmQGetSearchList
 function takes a list of names and classes
 and returns a list of database levels where a match might occur.
 The returned list is in best-to-worst order and
 uses the same algorithm as 
-.ZN XrmGetResource 
+.B XrmGetResource
 for determining precedence.
 If list_return was large enough for the search list,
-.ZN XrmQGetSearchList
+.B XrmQGetSearchList
 returns 
-.ZN True ;
+.BR True ;
 otherwise, it returns
-.ZN False .
+.BR False .
 .LP
 The size of the search list that the caller must allocate is
 dependent upon the number of levels and wildcards in the resource specifiers 
@@ -189,32 +189,32 @@ The worst case length is %3 sup n%,
 where \fIn\fP is the number of name or class components in names or classes.
 .LP
 When using 
-.ZN XrmQGetSearchList 
+.B XrmQGetSearchList
 followed by multiple probes for resources with a common name and class prefix,
 only the common prefix should be specified in the name and class list to 
-.ZN XrmQGetSearchList .
+.BR XrmQGetSearchList .
 .LP
 The
-.ZN XrmQGetSearchResource
+.B XrmQGetSearchResource
 function searches the specified database levels for the resource 
 that is fully identified by the specified name and class.
 The search stops with the first match.
-.ZN XrmQGetSearchResource
+.B XrmQGetSearchResource
 returns 
-.ZN True 
+.B True
 if the resource was found;
 otherwise, it returns
-.ZN False .
+.BR False .
 .LP
 A call to 
-.ZN XrmQGetSearchList 
+.B XrmQGetSearchList
 with a name and class list containing all but the last component 
 of a resource name followed by a call to 
-.ZN XrmQGetSearchResource 
+.B XrmQGetSearchResource
 with the last component name and class returns the same database entry as 
-.ZN XrmGetResource 
+.B XrmGetResource
 and 
-.ZN XrmQGetResource 
+.B XrmQGetResource
 with the fully qualified name and class.
 .SH "MATCHING RULES"
 The algorithm for determining which resource database entry

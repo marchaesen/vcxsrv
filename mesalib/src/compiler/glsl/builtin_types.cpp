@@ -53,9 +53,9 @@
       &glsl_type::_struct_##NAME##_type;
 
 static const struct glsl_struct_field gl_DepthRangeParameters_fields[] = {
-   glsl_struct_field(glsl_type::float_type, "near"),
-   glsl_struct_field(glsl_type::float_type, "far"),
-   glsl_struct_field(glsl_type::float_type, "diff"),
+   glsl_struct_field(glsl_type::float_type, GLSL_PRECISION_HIGH, "near"),
+   glsl_struct_field(glsl_type::float_type, GLSL_PRECISION_HIGH, "far"),
+   glsl_struct_field(glsl_type::float_type, GLSL_PRECISION_HIGH, "diff"),
 };
 
 static const struct glsl_struct_field gl_PointParameters_fields[] = {

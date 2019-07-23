@@ -424,13 +424,13 @@ lower_mod(nir_builder *b, nir_ssa_def *src0, nir_ssa_def *src1)
                     nir_imm_double(b, 0.0));
 }
 
-static bool
+static nir_ssa_def *
 lower_doubles_instr_to_soft(nir_builder *b, nir_alu_instr *instr,
                             const nir_shader *softfp64,
                             nir_lower_doubles_options options)
 {
    if (!(options & nir_lower_fp64_full_software))
-      return false;
+      return NULL;
 
    assert(instr->dest.dest.is_ssa);
 
@@ -569,8 +569,6 @@ lower_doubles_instr_to_soft(nir_builder *b, nir_alu_instr *instr,
       assert(func);
    }
 
-   b->cursor = nir_before_instr(&instr->instr);
-
    nir_ssa_def *params[4] = { NULL, };
 
    nir_variable *ret_tmp =
@@ -586,10 +584,7 @@ lower_doubles_instr_to_soft(nir_builder *b, nir_alu_instr *instr,
 
    nir_inline_function_impl(b, func->impl, params);
 
-   nir_ssa_def_rewrite_uses(&instr->dest.dest.ssa,
-                            nir_src_for_ssa(nir_load_deref(b, ret_deref)));
-   nir_instr_remove(&instr->instr);
-   return true;
+   return nir_load_deref(b, ret_deref);
 }
 
 nir_lower_doubles_options
@@ -605,78 +600,100 @@ nir_lower_doubles_op_to_options_mask(nir_op opcode)
    case nir_op_ffract:        return nir_lower_dfract;
    case nir_op_fround_even:   return nir_lower_dround_even;
    case nir_op_fmod:          return nir_lower_dmod;
+   case nir_op_fsub:          return nir_lower_dsub;
+   case nir_op_fdiv:          return nir_lower_ddiv;
    default:                   return 0;
    }
 }
 
-static bool
-lower_doubles_instr(nir_builder *b, nir_alu_instr *instr,
-                    const nir_shader *softfp64,
-                    nir_lower_doubles_options options)
-{
-   assert(instr->dest.dest.is_ssa);
-   bool is_64 = instr->dest.dest.ssa.bit_size == 64;
+struct lower_doubles_data {
+   const nir_shader *softfp64;
+   nir_lower_doubles_options options;
+};
 
-   unsigned num_srcs = nir_op_infos[instr->op].num_inputs;
+static bool
+should_lower_double_instr(const nir_instr *instr, const void *_data)
+{
+   const struct lower_doubles_data *data = _data;
+   const nir_lower_doubles_options options = data->options;
+
+   if (instr->type != nir_instr_type_alu)
+      return false;
+
+   const nir_alu_instr *alu = nir_instr_as_alu(instr);
+
+   assert(alu->dest.dest.is_ssa);
+   bool is_64 = alu->dest.dest.ssa.bit_size == 64;
+
+   unsigned num_srcs = nir_op_infos[alu->op].num_inputs;
    for (unsigned i = 0; i < num_srcs; i++) {
-      is_64 |= (nir_src_bit_size(instr->src[i].src) == 64);
+      is_64 |= (nir_src_bit_size(alu->src[i].src) == 64);
    }
 
    if (!is_64)
       return false;
 
-   if (lower_doubles_instr_to_soft(b, instr, softfp64, options))
+   if (options & nir_lower_fp64_full_software)
       return true;
 
-   if (!(options & nir_lower_doubles_op_to_options_mask(instr->op)))
-      return false;
+   return options & nir_lower_doubles_op_to_options_mask(alu->op);
+}
 
-   b->cursor = nir_before_instr(&instr->instr);
+static nir_ssa_def *
+lower_doubles_instr(nir_builder *b, nir_instr *instr, void *_data)
+{
+   const struct lower_doubles_data *data = _data;
+   const nir_lower_doubles_options options = data->options;
+   nir_alu_instr *alu = nir_instr_as_alu(instr);
 
-   nir_ssa_def *src = nir_mov_alu(b, instr->src[0],
-                                  instr->dest.dest.ssa.num_components);
+   nir_ssa_def *soft_def =
+      lower_doubles_instr_to_soft(b, alu, data->softfp64, options);
+   if (soft_def)
+      return soft_def;
 
-   nir_ssa_def *result;
+   if (!(options & nir_lower_doubles_op_to_options_mask(alu->op)))
+      return NULL;
 
-   switch (instr->op) {
+   nir_ssa_def *src = nir_mov_alu(b, alu->src[0],
+                                  alu->dest.dest.ssa.num_components);
+
+   switch (alu->op) {
    case nir_op_frcp:
-      result = lower_rcp(b, src);
-      break;
+      return lower_rcp(b, src);
    case nir_op_fsqrt:
-      result = lower_sqrt_rsq(b, src, true);
-      break;
+      return lower_sqrt_rsq(b, src, true);
    case nir_op_frsq:
-      result = lower_sqrt_rsq(b, src, false);
-      break;
+      return lower_sqrt_rsq(b, src, false);
    case nir_op_ftrunc:
-      result = lower_trunc(b, src);
-      break;
+      return lower_trunc(b, src);
    case nir_op_ffloor:
-      result = lower_floor(b, src);
-      break;
+      return lower_floor(b, src);
    case nir_op_fceil:
-      result = lower_ceil(b, src);
-      break;
+      return lower_ceil(b, src);
    case nir_op_ffract:
-      result = lower_fract(b, src);
-      break;
+      return lower_fract(b, src);
    case nir_op_fround_even:
-      result = lower_round_even(b, src);
-      break;
+      return lower_round_even(b, src);
 
+   case nir_op_fdiv:
+   case nir_op_fsub:
    case nir_op_fmod: {
-      nir_ssa_def *src1 = nir_mov_alu(b, instr->src[1],
-                                      instr->dest.dest.ssa.num_components);
-      result = lower_mod(b, src, src1);
+      nir_ssa_def *src1 = nir_mov_alu(b, alu->src[1],
+                                      alu->dest.dest.ssa.num_components);
+      switch (alu->op) {
+      case nir_op_fdiv:
+         return nir_fmul(b, src, nir_frcp(b, src1));
+      case nir_op_fsub:
+         return nir_fadd(b, src, nir_fneg(b, src1));
+      case nir_op_fmod:
+         return lower_mod(b, src, src1);
+      default:
+         unreachable("unhandled opcode");
+      }
    }
-      break;
    default:
       unreachable("unhandled opcode");
    }
-
-   nir_ssa_def_rewrite_uses(&instr->dest.dest.ssa, nir_src_for_ssa(result));
-   nir_instr_remove(&instr->instr);
-   return true;
 }
 
 static bool
@@ -684,40 +701,29 @@ nir_lower_doubles_impl(nir_function_impl *impl,
                        const nir_shader *softfp64,
                        nir_lower_doubles_options options)
 {
-   bool progress = false;
+   struct lower_doubles_data data = {
+      .softfp64 = softfp64,
+      .options = options,
+   };
 
-   nir_builder b;
-   nir_builder_init(&b, impl);
+   bool progress =
+      nir_function_impl_lower_instructions(impl,
+                                           should_lower_double_instr,
+                                           lower_doubles_instr,
+                                           &data);
 
-   nir_foreach_block_safe(block, impl) {
-      nir_foreach_instr_safe(instr, block) {
-         if (instr->type == nir_instr_type_alu)
-            progress |= lower_doubles_instr(&b, nir_instr_as_alu(instr),
-                                            softfp64, options);
-      }
+   if (progress && (options & nir_lower_fp64_full_software)) {
+      /* SSA and register indices are completely messed up now */
+      nir_index_ssa_defs(impl);
+      nir_index_local_regs(impl);
+
+      nir_metadata_preserve(impl, nir_metadata_none);
+
+      /* And we have deref casts we need to clean up thanks to function
+       * inlining.
+       */
+      nir_opt_deref_impl(impl);
    }
-
-   if (progress) {
-      if (options & nir_lower_fp64_full_software) {
-         /* SSA and register indices are completely messed up now */
-         nir_index_ssa_defs(impl);
-         nir_index_local_regs(impl);
-
-         nir_metadata_preserve(impl, nir_metadata_none);
-
-         /* And we have deref casts we need to clean up thanks to function
-          * inlining.
-          */
-         nir_opt_deref_impl(impl);
-      } else {
-         nir_metadata_preserve(impl, nir_metadata_block_index |
-                                     nir_metadata_dominance);
-      }
-    } else {
-#ifndef NDEBUG
-      impl->valid_metadata &= ~nir_metadata_not_properly_reset;
-#endif
-    }
 
    return progress;
 }

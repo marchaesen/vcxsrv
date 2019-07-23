@@ -98,9 +98,9 @@ Specifies the GC.
 .IP \fImode\fP 1i
 Specifies the coordinate mode. 
 You can pass
-.ZN CoordModeOrigin
+.B CoordModeOrigin
 or
-.ZN CoordModePrevious .
+.BR CoordModePrevious .
 .IP \fInpoints\fP 1i
 Specifies the number of points in the array.
 .IP \fIpoints\fP 1i
@@ -112,40 +112,40 @@ Specifies an array of points.
 Specify the x and y coordinates where you want the point drawn.
 .SH DESCRIPTION
 The
-.ZN XDrawPoint
+.B XDrawPoint
 function uses the foreground pixel and function components of the
 GC to draw a single point into the specified drawable; 
-.ZN XDrawPoints
+.B XDrawPoints
 draws multiple points this way.
-.ZN CoordModeOrigin
+.B CoordModeOrigin
 treats all coordinates as relative to the origin,
 and
-.ZN CoordModePrevious
+.B CoordModePrevious
 treats all coordinates after the first as relative to the previous point.
-.ZN XDrawPoints
+.B XDrawPoints
 draws the points in the order listed in the array.
 .LP
 Both functions use these GC components: function, plane-mask,
 foreground, subwindow-mode, clip-x-origin, clip-y-origin, and clip-mask.
 .LP
-.ZN XDrawPoint
+.B XDrawPoint
 can generate
-.ZN BadDrawable ,
-.ZN BadGC ,
+.BR BadDrawable ,
+.BR BadGC ,
 and 
-.ZN BadMatch 
+.B BadMatch
 errors.
-.ZN XDrawPoints
+.B XDrawPoints
 can generate
-.ZN BadDrawable ,
-.ZN BadGC ,
-.ZN BadMatch ,
+.BR BadDrawable ,
+.BR BadGC ,
+.BR BadMatch ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .SH STRUCTURES
 The
-.ZN XPoint
+.B XPoint
 structure contains:
 .LP
 .Ds 0
@@ -161,22 +161,22 @@ out of the 16-bit ranges, because the protocol only has 16-bit fields
 for these values.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadDrawable
+.B BadDrawable
 A value for a Drawable argument does not name a defined Window or Pixmap.
 .TP 1i
-.ZN BadGC
+.B BadGC
 A value for a GContext argument does not name a defined GContext.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 An
-.ZN InputOnly
+.B InputOnly
 window is used as a Drawable.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 Some argument or pair of arguments has the correct type and range but fails
 to match in some other way required by the request.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

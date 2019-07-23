@@ -19,3 +19,4 @@
 # SOFTWARE.
 
 git_sha1_gen_py = files('git_sha1_gen.py')
+symbols_check = find_program('symbols-check.py')

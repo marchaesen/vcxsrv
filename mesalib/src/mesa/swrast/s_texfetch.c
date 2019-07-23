@@ -491,10 +491,8 @@ set_fetch_functions(const struct gl_sampler_object *samp,
 
    STATIC_ASSERT(ARRAY_SIZE(texfetch_funcs) == MESA_FORMAT_COUNT);
 
-   if (samp->sRGBDecode == GL_SKIP_DECODE_EXT &&
-       _mesa_get_format_color_encoding(format) == GL_SRGB) {
+   if (samp->sRGBDecode == GL_SKIP_DECODE_EXT)
       format = _mesa_get_srgb_format_linear(format);
-   }
 
    assert(format < MESA_FORMAT_COUNT);
 

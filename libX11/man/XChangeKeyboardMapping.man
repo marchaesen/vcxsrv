@@ -133,13 +133,13 @@ Returns the minimum number of KeyCodes.
 Specifies the modifier.
 .IP \fImodmap\fP 1i
 Specifies the 
-.ZN XModifierKeymap
+.B XModifierKeymap
 structure.
 .IP \fInum_codes\fP 1i
 Specifies the number of KeyCodes that are to be changed.
 .SH DESCRIPTION
 The
-.ZN XChangeKeyboardMapping
+.B XChangeKeyboardMapping
 function defines the symbols for the specified number of KeyCodes
 starting with first_keycode.
 The symbols for KeyCodes outside this range remain unchanged.  
@@ -151,15 +151,15 @@ num_codes * keysyms_per_keycode
 .LP
 The specified first_keycode must be greater than or equal to min_keycode 
 returned by
-.ZN XDisplayKeycodes ,
+.BR XDisplayKeycodes ,
 or a 
-.ZN BadValue 
+.B BadValue
 error results.
 In addition, the following expression must be less than or equal to 
 max_keycode as returned by
-.ZN XDisplayKeycodes ,
+.BR XDisplayKeycodes ,
 or a
-.ZN BadValue 
+.B BadValue
 error results:
 .LP
 .Ds
@@ -176,48 +176,48 @@ in keysyms, counting from zero:
 The specified keysyms_per_keycode can be chosen arbitrarily by the client
 to be large enough to hold all desired symbols. 
 A special KeySym value of 
-.ZN NoSymbol 
+.B NoSymbol
 should be used to fill in unused elements 
 for individual KeyCodes.  
 It is legal for 
-.ZN NoSymbol 
+.B NoSymbol
 to appear in nontrailing positions
 of the effective list for a KeyCode.
-.ZN XChangeKeyboardMapping
+.B XChangeKeyboardMapping
 generates a 
-.ZN MappingNotify 
+.B MappingNotify
 event.
 .LP
 There is no requirement that the X server interpret this mapping. 
 It is merely stored for reading and writing by clients.
 .LP
-.ZN XChangeKeyboardMapping
+.B XChangeKeyboardMapping
 can generate
-.ZN BadAlloc 
+.B BadAlloc
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .LP
 The
-.ZN XGetKeyboardMapping
+.B XGetKeyboardMapping
 function returns the symbols for the specified number of KeyCodes
 starting with first_keycode.
 The value specified in first_keycode must be greater than 
 or equal to min_keycode as returned by
-.ZN XDisplayKeycodes ,
+.BR XDisplayKeycodes ,
 or a
-.ZN BadValue 
+.B BadValue
 error results.
 In addition, the following expression must be less than or equal 
 to max_keycode as returned by
-.ZN XDisplayKeycodes :
+.BR XDisplayKeycodes :
 .LP
 .Ds 
 first_keycode + keycode_count \- 1
 .De
 .LP
 If this is not the case, a 
-.ZN BadValue 
+.B BadValue
 error results. 
 The number of elements in the KeySyms list is:
 .LP
@@ -234,21 +234,21 @@ in the list, counting from zero:
 The X server arbitrarily chooses the keysyms_per_keycode_return value 
 to be large enough to report all requested symbols. 
 A special KeySym value of 
-.ZN NoSymbol 
+.B NoSymbol
 is used to fill in unused elements for
 individual KeyCodes.
 To free the storage returned by 
-.ZN XGetKeyboardMapping ,
+.BR XGetKeyboardMapping ,
 use
-.ZN XFree .
+.BR XFree .
 .LP
-.ZN XGetKeyboardMapping
+.B XGetKeyboardMapping
 can generate a
-.ZN BadValue 
+.B BadValue
 error.
 .LP
 The
-.ZN XDisplayKeycodes
+.B XDisplayKeycodes
 function returns the min-keycodes and max-keycodes supported by the
 specified display.
 The minimum number of KeyCodes returned is never less than 8,
@@ -256,44 +256,44 @@ and the maximum number of KeyCodes returned is never greater than 255.
 Not all KeyCodes in this range are required to have corresponding keys.
 .LP
 The
-.ZN XSetModifierMapping
+.B XSetModifierMapping
 function specifies the KeyCodes of the keys (if any) that are to be used 
 as modifiers.
 If it succeeds,
 the X server generates a
-.ZN MappingNotify
+.B MappingNotify
 event, and
-.ZN XSetModifierMapping
+.B XSetModifierMapping
 returns
-.ZN MappingSuccess .
+.BR MappingSuccess .
 X permits at most 8 modifier keys.
 If more than 8 are specified in the
-.ZN XModifierKeymap
+.B XModifierKeymap
 structure, a
-.ZN BadLength
+.B BadLength
 error results.
 .LP
 The modifiermap member of the 
-.ZN XModifierKeymap
+.B XModifierKeymap
 structure contains 8 sets of max_keypermod KeyCodes, 
 one for each modifier in the order 
-.ZN Shift , 
-.ZN Lock , 
-.ZN Control , 
-.ZN Mod1 , 
-.ZN Mod2 , 
-.ZN Mod3 , 
-.ZN Mod4 , 
+.BR Shift ,
+.BR Lock ,
+.BR Control ,
+.BR Mod1 ,
+.BR Mod2 ,
+.BR Mod3 ,
+.BR Mod4 ,
 and 
-.ZN Mod5 .
+.BR Mod5 .
 Only nonzero KeyCodes have meaning in each set, 
 and zero KeyCodes are ignored.
 In addition, all of the nonzero KeyCodes must be in the range specified by 
 min_keycode and max_keycode in the 
-.ZN Display 
+.B Display
 structure,
 or a 
-.ZN BadValue 
+.B BadValue
 error results.
 .LP
 An X server can impose restrictions on how modifiers can be changed, 
@@ -303,61 +303,61 @@ if auto-repeat cannot be disabled on certain keys,
 or if multiple modifier keys are not supported.  
 If some such restriction is violated, 
 the status reply is
-.ZN MappingFailed ,
+.BR MappingFailed ,
 and none of the modifiers are changed.
 If the new KeyCodes specified for a modifier differ from those
 currently defined and any (current or new) keys for that modifier are
 in the logically down state, 
-.ZN XSetModifierMapping
+.B XSetModifierMapping
 returns
-.ZN MappingBusy , 
+.BR MappingBusy ,
 and none of the modifiers is changed.
 .LP
-.ZN XSetModifierMapping
+.B XSetModifierMapping
 can generate
-.ZN BadAlloc
+.B BadAlloc
 and 
-.ZN BadValue
+.B BadValue
 errors.
 .LP
 The
-.ZN XGetModifierMapping
+.B XGetModifierMapping
 function returns a pointer to a newly created
-.ZN XModifierKeymap
+.B XModifierKeymap
 structure that contains the keys being used as modifiers.
 The structure should be freed after use by calling
-.ZN XFreeModifiermap .
+.BR XFreeModifiermap .
 If only zero values appear in the set for any modifier, 
 that modifier is disabled.
 .LP
 The
-.ZN XNewModifiermap
+.B XNewModifiermap
 function returns a pointer to
-.ZN XModifierKeymap
+.B XModifierKeymap
 structure for later use.
 .LP
 The
-.ZN XInsertModifiermapEntry
+.B XInsertModifiermapEntry
 function adds the specified KeyCode to the set that controls the specified
 modifier and returns the resulting
-.ZN XModifierKeymap
+.B XModifierKeymap
 structure (expanded as needed).
 .LP
 The
-.ZN XDeleteModifiermapEntry
+.B XDeleteModifiermapEntry
 function deletes the specified KeyCode from the set that controls the
 specified modifier and returns a pointer to the resulting
-.ZN XModifierKeymap
+.B XModifierKeymap
 structure.
 .LP
 The
-.ZN XFreeModifiermap
+.B XFreeModifiermap
 function frees the specified
-.ZN XModifierKeymap
+.B XModifierKeymap
 structure.
 .SH STRUCTURES
 The
-.ZN XModifierKeymap
+.B XModifierKeymap
 structure contains:
 .LP
 .Ds 0
@@ -368,10 +368,10 @@ typedef struct {
 .De
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

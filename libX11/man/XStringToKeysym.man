@@ -121,36 +121,36 @@ and the mechanisms by which Xlib obtains them is implementation-dependent.
 If the KeySym name is not in the Host Portable Character Encoding,
 the result is implementation-dependent.
 If the specified string does not match a valid KeySym,
-.ZN XStringToKeysym
+.B XStringToKeysym
 returns
-.ZN NoSymbol .
+.BR NoSymbol .
 .LP
 The returned string is in a static area and must not be modified.
 The returned string is in the Host Portable Character Encoding.
 If the specified KeySym is not defined,
-.ZN XKeysymToString
+.B XKeysymToString
 returns a NULL.
 .LP
 The
-.ZN XKeycodeToKeysym
+.B XKeycodeToKeysym
 function uses internal Xlib tables
 and returns the KeySym defined for the specified KeyCode and
 the element of the KeyCode vector.
 If no symbol is defined,
-.ZN XKeycodeToKeysym
+.B XKeycodeToKeysym
 returns
-.ZN NoSymbol .
-.ZN XKeycodeToKeysym
+.BR NoSymbol .
+.B XKeycodeToKeysym
 predates the XKB extension. If you want to lookup a KeySym while
 using XKB you have to use
-.ZN XkbKeycodeToKeysym .
+.BR XkbKeycodeToKeysym .
 .LP
 If the specified KeySym is not defined for any KeyCode,
-.ZN XKeysymToKeycode
+.B XKeysymToKeycode
 returns zero.
 .LP
 The
-.ZN XConvertCase
+.B XConvertCase
 function returns the uppercase and lowercase forms of the specified Keysym,
 if the KeySym is subject to case conversion;
 otherwise, the specified KeySym is returned to both lower_return and

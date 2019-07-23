@@ -108,15 +108,15 @@ Specifies a Boolean value.
 Specify the time interval in which the events are returned from the motion
 history buffer.
 You can pass a timestamp or
-.ZN CurrentTime .
-.ZN PointerWindow ,
+.BR CurrentTime .
+.BR PointerWindow ,
 or
-.ZN InputFocus .
+.BR InputFocus .
 .IP \fIw\fP 1i
 Specifies the window the window the event is to be sent to.
 .SH DESCRIPTION
 The
-.ZN XSendEvent
+.B XSendEvent
 function identifies the destination window, 
 determines which clients should receive the specified events, 
 and ignores any active grabs.
@@ -126,17 +126,17 @@ see section 10.3.
 This function uses the w argument to identify the destination window as follows:
 .IP \(bu 5
 If w is
-.ZN PointerWindow ,
+.BR PointerWindow ,
 the destination window is the window that contains the pointer.
 .IP \(bu 5
 If w is
-.ZN InputFocus 
+.B InputFocus
 and if the focus window contains the pointer, 
 the destination window is the window that contains the pointer; 
 otherwise, the destination window is the focus window.
 .LP
 To determine which clients should receive the specified events,
-.ZN XSendEvent
+.B XSendEvent
 uses the propagate argument as follows:
 .IP \(bu 5
 If event_mask is the empty set,
@@ -145,12 +145,12 @@ If that client no longer exists,
 no event is sent.
 .IP \(bu 5
 If propagate is 
-.ZN False ,
+.BR False ,
 the event is sent to every client selecting on destination any of the event
 types in the event_mask argument.
 .IP \(bu 5
 If propagate is 
-.ZN True 
+.B True
 and no clients have selected on destination any of
 the event types in event-mask, the destination is replaced with the
 closest ancestor of destination for which some client has selected a
@@ -158,47 +158,47 @@ type in event-mask and for which no intervening window has that type in its
 do-not-propagate-mask. 
 If no such window exists or if the window is
 an ancestor of the focus window and 
-.ZN InputFocus 
+.B InputFocus
 was originally specified
 as the destination, the event is not sent to any clients.
 Otherwise, the event is reported to every client selecting on the final
 destination any of the types specified in event_mask.
 .LP
 The event in the
-.ZN XEvent
+.B XEvent
 structure must be one of the core events or one of the events
 defined by an extension (or a 
-.ZN BadValue
+.B BadValue
 error results) so that the X server can correctly byte-swap 
 the contents as necessary.  
 The contents of the event are
 otherwise unaltered and unchecked by the X server except to force send_event to
-.ZN True
+.B True
 in the forwarded event and to set the serial number in the event correctly;
 therefore these fields
 and the display field are ignored by
-.ZN XSendEvent .
+.BR XSendEvent .
 .LP
-.ZN XSendEvent
+.B XSendEvent
 returns zero if the conversion to wire protocol format failed
 and returns nonzero otherwise.
-.ZN XSendEvent
+.B XSendEvent
 can generate
-.ZN BadValue 
+.B BadValue
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The server may retain the recent history of the pointer motion
 and do so to a finer granularity than is reported by
-.ZN MotionNotify
+.B MotionNotify
 events.
 The
-.ZN XGetMotionEvents
+.B XGetMotionEvents
 function makes this history available.
 .LP
 The
-.ZN XGetMotionEvents
+.B XGetMotionEvents
 function returns all events in the motion history buffer that fall between the
 specified start and stop times, inclusive, and that have coordinates
 that lie within the specified window (including its borders) at its present
@@ -207,17 +207,17 @@ If the server does not support motion history,
 if the start time is later than the stop time,
 or if the start time is in the future, 
 no events are returned;
-.ZN XGetMotionEvents
+.B XGetMotionEvents
 returns NULL.
 If the stop time is in the future, it is equivalent to specifying
-.ZN CurrentTime .
-.ZN XGetMotionEvents
+.BR CurrentTime .
+.B XGetMotionEvents
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .SH STRUCTURES
 The
-.ZN XTimeCoord
+.B XTimeCoord
 structure contains:
 .LP
 .Ds 0
@@ -233,13 +233,13 @@ are reported relative to the origin
 of the specified window.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of
 alternatives can generate this error.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XAnyEvent(__libmansuffix__),

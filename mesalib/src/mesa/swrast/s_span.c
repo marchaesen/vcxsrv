@@ -1041,8 +1041,8 @@ put_values(struct gl_context *ctx, struct gl_renderbuffer *rb,
            GLuint count, const GLint x[], const GLint y[],
            const void *values, const GLubyte *mask)
 {
-   gl_pack_ubyte_rgba_func pack_ubyte = NULL;
-   gl_pack_float_rgba_func pack_float = NULL;
+   mesa_pack_ubyte_rgba_func pack_ubyte = NULL;
+   mesa_pack_float_rgba_func pack_float = NULL;
    GLuint i;
 
    if (datatype == GL_UNSIGNED_BYTE)

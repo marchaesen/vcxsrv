@@ -205,6 +205,8 @@ v3d_qpu_disasm_sig(struct disasm_state *disasm,
             !sig->ldvary &&
             !sig->ldvpm &&
             !sig->ldtmu &&
+            !sig->ldtlb &&
+            !sig->ldtlbu &&
             !sig->ldunif &&
             !sig->ldunifrf &&
             !sig->ldunifa &&

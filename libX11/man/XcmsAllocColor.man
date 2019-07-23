@@ -110,56 +110,56 @@ Specifies the color string whose color definition structure is to be returned.
 Specifies the color format for the returned color specification.
 .SH DESCRIPTION
 The
-.ZN XcmsAllocColor
+.B XcmsAllocColor
 function is similar to
-.ZN XAllocColor
+.B XAllocColor
 except the color can be specified in any format.
 The
-.ZN XcmsAllocColor
+.B XcmsAllocColor
 function ultimately calls 
-.ZN XAllocColor
+.B XAllocColor
 to allocate a read-only color cell (colormap entry) with the specified color.
-.ZN XcmsAllocColor
+.B XcmsAllocColor
 first converts the color specified
 to an RGB value and then passes this to
-.ZN XAllocColor .
-.ZN XcmsAllocColor
+.BR XAllocColor .
+.B XcmsAllocColor
 returns the pixel value of the color cell and the color specification
 actually allocated.
 This returned color specification is the result of converting the RGB value
 returned by 
-.ZN XAllocColor 
+.B XAllocColor
 into the format specified with the result_format argument.
 If there is no interest in a returned color specification, 
 unnecessary computation can be bypassed if result_format is set to
-.ZN XcmsRGBFormat .
+.BR XcmsRGBFormat .
 The corresponding colormap cell is read-only.
 If this routine returns 
-.ZN XcmsFailure , 
+.BR XcmsFailure ,
 the color_in_out color specification is left unchanged.
 .LP
-.ZN XcmsAllocColor
+.B XcmsAllocColor
 can generate a
-.ZN BadColor
+.B BadColor
 errors.
 .LP
 The
-.ZN XcmsAllocNamedColor
+.B XcmsAllocNamedColor
 function is similar to
-.ZN XAllocNamedColor
+.B XAllocNamedColor
 except that the color returned can be in any format specified.
 This function
 ultimately calls
-.ZN XAllocColor
+.B XAllocColor
 to allocate a read-only color cell with
 the color specified by a color string.
 The color string is parsed into an
-.ZN XcmsColor
+.B XcmsColor
 structure (see
-.ZN XcmsLookupColor ),
+.BR XcmsLookupColor ),
 converted
 to an RGB value, and finally passed to
-.ZN XAllocColor .
+.BR XAllocColor .
 If the color name is not in the Host Portable Character Encoding, 
 the result is implementation-dependent.
 Use of uppercase or lowercase does not matter.
@@ -169,23 +169,23 @@ of parsing (exact specification) and the actual color specification
 stored (screen specification).
 This screen specification is the result of converting the RGB value
 returned by
-.ZN XAllocColor
+.B XAllocColor
 into the format specified in result_format.
 If there is no interest in a returned color specification,
 unnecessary computation can be bypassed if result_format is set to
-.ZN XcmsRGBFormat .
+.BR XcmsRGBFormat .
 If color_screen_return and color_exact_return
 point to the same structure, the pixel field will be set correctly,
 but the color values are undefined.
 .LP
 .LP
-.ZN XcmsAllocNamedColor
+.B XcmsAllocNamedColor
 can generate a
-.ZN BadColor
+.B BadColor
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadColor
+.B BadColor
 A value for a Colormap argument does not name a defined Colormap.
 .SH "SEE ALSO"
 XcmsQueryColor(__libmansuffix__),

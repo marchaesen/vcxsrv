@@ -113,7 +113,7 @@ Specifies the acceleration threshold.
 Returns the acceleration threshold.
 .SH DESCRIPTION
 The
-.ZN XChangePointerControl
+.B XChangePointerControl
 function defines how the pointing device moves.
 The acceleration, expressed as a fraction, is a
 multiplier for movement. 
@@ -125,26 +125,26 @@ only takes effect if the pointer moves more than threshold pixels at
 once and only applies to the amount beyond the value in the threshold argument.
 Setting a value to \-1 restores the default.
 The values of the do_accel and do_threshold arguments must be 
-.ZN True 
+.B True
 for the pointer values to be set,
 or the parameters are unchanged.
 Negative values (other than \-1) generate a
-.ZN BadValue
+.B BadValue
 error, as does a zero value
 for the accel_denominator argument.
 .LP
-.ZN XChangePointerControl
+.B XChangePointerControl
 can generate a
-.ZN BadValue 
+.B BadValue
 error.
 .LP
 The
-.ZN XGetPointerControl
+.B XGetPointerControl
 function returns the pointer's current acceleration multiplier
 and acceleration threshold.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

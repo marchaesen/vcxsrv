@@ -63,7 +63,7 @@ rbug_draw_block_locked(struct rbug_context *rb_pipe, int flag)
    } else if ((rb_pipe->draw_rule.blocker & flag) &&
               (rb_pipe->draw_blocker & RBUG_BLOCK_RULE)) {
       unsigned k;
-      boolean block = FALSE;
+      bool block = false;
       unsigned sh;
 
       debug_printf("%s (%p %p) (%p %p) (%p %u) (%p %u)\n", __FUNCTION__,
@@ -76,21 +76,21 @@ rbug_draw_block_locked(struct rbug_context *rb_pipe, int flag)
       for (sh = 0; sh < PIPE_SHADER_TYPES; sh++) {
          if (rb_pipe->draw_rule.shader[sh] &&
              rb_pipe->draw_rule.shader[sh] == rb_pipe->curr.shader[sh])
-            block = TRUE;
+            block = true;
       }
 
       if (rb_pipe->draw_rule.surf &&
           rb_pipe->draw_rule.surf == rb_pipe->curr.zsbuf)
-            block = TRUE;
+            block = true;
       if (rb_pipe->draw_rule.surf)
          for (k = 0; k < rb_pipe->curr.nr_cbufs; k++)
             if (rb_pipe->draw_rule.surf == rb_pipe->curr.cbufs[k])
-               block = TRUE;
+               block = true;
       if (rb_pipe->draw_rule.texture) {
          for (sh = 0; sh < ARRAY_SIZE(rb_pipe->curr.num_views); sh++) {
             for (k = 0; k < rb_pipe->curr.num_views[sh]; k++) {
                if (rb_pipe->draw_rule.texture == rb_pipe->curr.texs[sh][k]) {
-                  block = TRUE;
+                  block = true;
                   sh = PIPE_SHADER_TYPES; /* to break out of both loops */
                   break;
                }
@@ -164,13 +164,13 @@ rbug_destroy_query(struct pipe_context *_pipe,
    mtx_unlock(&rb_pipe->call_mutex);
 }
 
-static boolean
+static bool
 rbug_begin_query(struct pipe_context *_pipe,
                  struct pipe_query *query)
 {
    struct rbug_context *rb_pipe = rbug_context(_pipe);
    struct pipe_context *pipe = rb_pipe->pipe;
-   boolean ret;
+   bool ret;
 
    mtx_lock(&rb_pipe->call_mutex);
    ret = pipe->begin_query(pipe, query);
@@ -194,15 +194,15 @@ rbug_end_query(struct pipe_context *_pipe,
    return ret;
 }
 
-static boolean
+static bool
 rbug_get_query_result(struct pipe_context *_pipe,
                       struct pipe_query *query,
-                      boolean wait,
+                      bool wait,
                       union pipe_query_result *result)
 {
    struct rbug_context *rb_pipe = rbug_context(_pipe);
    struct pipe_context *pipe = rb_pipe->pipe;
-   boolean ret;
+   bool ret;
 
    mtx_lock(&rb_pipe->call_mutex);
    ret = pipe->get_query_result(pipe,
@@ -215,7 +215,7 @@ rbug_get_query_result(struct pipe_context *_pipe,
 }
 
 static void
-rbug_set_active_query_state(struct pipe_context *_pipe, boolean enable)
+rbug_set_active_query_state(struct pipe_context *_pipe, bool enable)
 {
    struct rbug_context *rb_pipe = rbug_context(_pipe);
    struct pipe_context *pipe = rb_pipe->pipe;
@@ -1266,7 +1266,7 @@ rbug_context_create(struct pipe_screen *_screen, struct pipe_context *pipe)
 
    rbug_screen_add_to_list(rb_screen, contexts, rb_pipe);
 
-   if (debug_get_bool_option("GALLIUM_RBUG_START_BLOCKED", FALSE)) {
+   if (debug_get_bool_option("GALLIUM_RBUG_START_BLOCKED", false)) {
       rb_pipe->draw_blocked = RBUG_BLOCK_BEFORE;
    }
 

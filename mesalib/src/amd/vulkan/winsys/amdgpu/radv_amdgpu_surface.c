@@ -90,8 +90,10 @@ static int radv_amdgpu_winsys_surface_init(struct radeon_winsys *_ws,
 	struct ac_surf_config config;
 
 	memcpy(&config.info, surf_info, sizeof(config.info));
-	config.is_3d = !!(type == RADEON_SURF_TYPE_3D);
-	config.is_cube = !!(type == RADEON_SURF_TYPE_CUBEMAP);
+	config.is_1d = type == RADEON_SURF_TYPE_1D ||
+		       type == RADEON_SURF_TYPE_1D_ARRAY;
+	config.is_3d = type == RADEON_SURF_TYPE_3D;
+	config.is_cube = type == RADEON_SURF_TYPE_CUBEMAP;
 
 	return ac_compute_surface(ws->addrlib, &ws->info, &config, mode, surf);
 }

@@ -68,7 +68,7 @@ ADDR_HANDLE amdgpu_addr_create(const struct radeon_info *info,
 	ADDR_CREATE_OUTPUT addrCreateOutput = {0};
 	ADDR_REGISTER_VALUE regValue = {0};
 	ADDR_CREATE_FLAGS createFlags = {{0}};
-	ADDR_GET_MAX_ALINGMENTS_OUTPUT addrGetMaxAlignmentsOutput = {0};
+	ADDR_GET_MAX_ALIGNMENTS_OUTPUT addrGetMaxAlignmentsOutput = {0};
 	ADDR_E_RETURNCODE addrRet;
 
 	addrCreateInput.size = sizeof(ADDR_CREATE_INPUT);
@@ -1004,6 +1004,14 @@ gfx9_get_preferred_swizzle_mode(ADDR_HANDLE addrlib,
 	return 0;
 }
 
+static bool gfx9_is_dcc_capable(const struct radeon_info *info, unsigned sw_mode)
+{
+	if (info->chip_class >= GFX10)
+		return sw_mode == ADDR_SW_64KB_Z_X || sw_mode == ADDR_SW_64KB_R_X;
+
+	return sw_mode != ADDR_SW_LINEAR;
+}
+
 static int gfx9_compute_miptree(ADDR_HANDLE addrlib,
 				const struct radeon_info *info,
 				const struct ac_surf_config *config,
@@ -1114,9 +1122,8 @@ static int gfx9_compute_miptree(ADDR_HANDLE addrlib,
 		}
 
 		/* DCC */
-		if (!(surf->flags & RADEON_SURF_DISABLE_DCC) &&
-		    !compressed &&
-		    in->swizzleMode != ADDR_SW_LINEAR) {
+		if (!(surf->flags & RADEON_SURF_DISABLE_DCC) && !compressed &&
+		    gfx9_is_dcc_capable(info, in->swizzleMode)) {
 			ADDR2_COMPUTE_DCCINFO_INPUT din = {0};
 			ADDR2_COMPUTE_DCCINFO_OUTPUT dout = {0};
 			ADDR2_META_MIP_INFO meta_mip_info[RADEON_SURF_MAX_LEVELS] = {};
@@ -1339,8 +1346,9 @@ static int gfx9_compute_miptree(ADDR_HANDLE addrlib,
 			}
 		}
 
-		/* CMASK */
-		if (in->swizzleMode != ADDR_SW_LINEAR) {
+		/* CMASK -- on GFX10 only for FMASK */
+		if (in->swizzleMode != ADDR_SW_LINEAR &&
+		    (info->chip_class <= GFX9 || in->numSamples > 1)) {
 			ADDR2_COMPUTE_CMASK_INFO_INPUT cin = {0};
 			ADDR2_COMPUTE_CMASK_INFO_OUTPUT cout = {0};
 
@@ -1463,6 +1471,8 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 	 * must sample 1D textures as 2D. */
 	if (config->is_3d)
 		AddrSurfInfoIn.resourceType = ADDR_RSRC_TEX_3D;
+	else if (info->chip_class != GFX9 && config->is_1d)
+		AddrSurfInfoIn.resourceType = ADDR_RSRC_TEX_1D;
 	else
 		AddrSurfInfoIn.resourceType = ADDR_RSRC_TEX_2D;
 
@@ -1502,7 +1512,7 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 
 	case RADEON_SURF_MODE_1D:
 	case RADEON_SURF_MODE_2D:
-		if (surf->flags & RADEON_SURF_IMPORTED) {
+		if (surf->flags & (RADEON_SURF_IMPORTED | RADEON_SURF_FORCE_SWIZZLE_MODE)) {
 			AddrSurfInfoIn.swizzleMode = surf->u.gfx9.surf.swizzle_mode;
 			break;
 		}
@@ -1604,7 +1614,7 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 			surf->micro_tile_mode = RADEON_MICRO_MODE_DISPLAY;
 			break;
 
-		/* R = rotated. */
+		/* R = rotated (gfx9), render target (gfx10). */
 		case ADDR_SW_256B_R:
 		case ADDR_SW_4KB_R:
 		case ADDR_SW_64KB_R:
@@ -1614,13 +1624,13 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 		case ADDR_SW_64KB_R_X:
 		case ADDR_SW_VAR_R_X:
 			/* The rotated micro tile mode doesn't work if both CMASK and RB+ are
-			 * used at the same time. This case is not currently expected to occur
-			 * because we don't use rotated. Enforce this restriction on all chips
-			 * to facilitate testing.
+			 * used at the same time. We currently do not use rotated
+			 * in gfx9.
 			 */
-			assert(!"rotate micro tile mode is unsupported");
-			r = ADDR_ERROR;
-			goto error;
+			assert(info->chip_class >= GFX10 ||
+			       !"rotate micro tile mode is unsupported");
+			surf->micro_tile_mode = RADEON_MICRO_MODE_ROTATED;
+			break;
 
 		/* Z = depth. */
 		case ADDR_SW_4KB_Z:

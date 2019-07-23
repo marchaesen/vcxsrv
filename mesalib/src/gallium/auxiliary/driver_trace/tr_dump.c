@@ -57,11 +57,11 @@
 #include "tr_texture.h"
 
 
-static boolean close_stream = FALSE;
+static bool close_stream = false;
 static FILE *stream = NULL;
 static mtx_t call_mutex = _MTX_INITIALIZER_NP;
 static long unsigned call_no = 0;
-static boolean dumping = FALSE;
+static bool dumping = false;
 
 
 static inline void
@@ -87,7 +87,7 @@ trace_dump_writef(const char *format, ...)
    unsigned len;
    va_list ap;
    va_start(ap, format);
-   len = util_vsnprintf(buf, sizeof(buf), format, ap);
+   len = vsnprintf(buf, sizeof(buf), format, ap);
    va_end(ap);
    trace_dump_write(buf, len);
 }
@@ -178,7 +178,7 @@ trace_dump_trace_close(void)
       trace_dump_writes("</trace>\n");
       if (close_stream) {
          fclose(stream);
-         close_stream = FALSE;
+         close_stream = false;
          stream = NULL;
       }
       call_no = 0;
@@ -199,30 +199,30 @@ trace_dump_call_time(int64_t time)
 }
 
 
-boolean
+bool
 trace_dump_trace_begin(void)
 {
    const char *filename;
 
    filename = debug_get_option("GALLIUM_TRACE", NULL);
    if (!filename)
-      return FALSE;
+      return false;
 
    if (!stream) {
 
       if (strcmp(filename, "stderr") == 0) {
-         close_stream = FALSE;
+         close_stream = false;
          stream = stderr;
       }
       else if (strcmp(filename, "stdout") == 0) {
-         close_stream = FALSE;
+         close_stream = false;
          stream = stdout;
       }
       else {
-         close_stream = TRUE;
+         close_stream = true;
          stream = fopen(filename, "wt");
          if (!stream)
-            return FALSE;
+            return false;
       }
 
       trace_dump_writes("<?xml version='1.0' encoding='UTF-8'?>\n");
@@ -236,12 +236,12 @@ trace_dump_trace_begin(void)
       atexit(trace_dump_trace_close);
    }
 
-   return TRUE;
+   return true;
 }
 
-boolean trace_dump_trace_enabled(void)
+bool trace_dump_trace_enabled(void)
 {
-   return stream ? TRUE : FALSE;
+   return stream ? true : false;
 }
 
 /*
@@ -264,15 +264,15 @@ void trace_dump_call_unlock(void)
 
 void trace_dumping_start_locked(void)
 {
-   dumping = TRUE;
+   dumping = true;
 }
 
 void trace_dumping_stop_locked(void)
 {
-   dumping = FALSE;
+   dumping = false;
 }
 
-boolean trace_dumping_enabled_locked(void)
+bool trace_dumping_enabled_locked(void)
 {
    return dumping;
 }
@@ -291,9 +291,9 @@ void trace_dumping_stop(void)
    mtx_unlock(&call_mutex);
 }
 
-boolean trace_dumping_enabled(void)
+bool trace_dumping_enabled(void)
 {
-   boolean ret;
+   bool ret;
    mtx_lock(&call_mutex);
    ret = trace_dumping_enabled_locked();
    mtx_unlock(&call_mutex);

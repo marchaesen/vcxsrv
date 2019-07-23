@@ -88,7 +88,7 @@ int XFree\^(\^void *\fIdata\fP\^);
 Specifies the data that are to be freed.
 .SH DESCRIPTION
 The
-.ZN XFree
+.B XFree
 function is a general-purpose Xlib routine that frees the specified data.
 You must use it to free any objects that were allocated by Xlib,
 unless an alternate function is explicitly specified for the object.

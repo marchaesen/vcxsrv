@@ -24,6 +24,7 @@
 #ifndef V3D_CHIP_H
 #define V3D_CHIP_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 /**
@@ -39,5 +40,10 @@ struct v3d_device_info {
         /* NSLC * QUPS from the core's IDENT registers. */
         int qpu_count;
 };
+
+typedef int (*v3d_ioctl_fun)(int fd, unsigned long request, void *arg);
+
+bool
+v3d_get_device_info(int fd, struct v3d_device_info* devinfo, v3d_ioctl_fun fun);
 
 #endif

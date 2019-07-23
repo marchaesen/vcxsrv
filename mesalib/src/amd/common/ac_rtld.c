@@ -262,6 +262,7 @@ bool ac_rtld_open(struct ac_rtld_binary *binary,
 
 	memset(binary, 0, sizeof(*binary));
 	memcpy(&binary->options, &i.options, sizeof(binary->options));
+	binary->wave_size = i.wave_size;
 	binary->num_parts = i.num_parts;
 	binary->parts = calloc(sizeof(*binary->parts), i.num_parts);
 	if (!binary->parts)
@@ -438,6 +439,25 @@ bool ac_rtld_open(struct ac_rtld_binary *binary,
 
 	binary->rx_size += rx_size;
 
+	if (i.info->chip_class >= GFX10) {
+		/* In gfx10, the SQ fetches up to 3 cache lines of 16 dwords
+		 * ahead of the PC, configurable by SH_MEM_CONFIG and
+		 * S_INST_PREFETCH. This can cause two issues:
+		 *
+		 * (1) Crossing a page boundary to an unmapped page. The logic
+		 *     does not distinguish between a required fetch and a "mere"
+		 *     prefetch and will fault.
+		 *
+		 * (2) Prefetching instructions that will be changed for a
+		 *     different shader.
+		 *
+		 * (2) is not currently an issue because we flush the I$ at IB
+		 * boundaries, but (1) needs to be addressed. Due to buffer
+		 * suballocation, we just play it safe.
+		 */
+		binary->rx_size = align(binary->rx_size + 3 * 64, 64);
+	}
+
 	return true;
 
 #undef report_if
@@ -504,7 +524,8 @@ bool ac_rtld_read_config(struct ac_rtld_binary *binary,
 
 		/* TODO: be precise about scratch use? */
 		struct ac_shader_config c = {};
-		ac_parse_shader_binary_config(config_data, config_nbytes, true, &c);
+		ac_parse_shader_binary_config(config_data, config_nbytes,
+					      binary->wave_size, true, &c);
 
 		config->num_sgprs = MAX2(config->num_sgprs, c.num_sgprs);
 		config->num_vgprs = MAX2(config->num_vgprs, c.num_vgprs);

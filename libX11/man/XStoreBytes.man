@@ -114,24 +114,24 @@ The data can have embedded null characters
 and need not be null-terminated.
 The cut buffer's contents can be retrieved later by
 any client calling
-.ZN XFetchBytes .
+.BR XFetchBytes .
 .LP
-.ZN XStoreBytes
+.B XStoreBytes
 can generate a
-.ZN BadAlloc
+.B BadAlloc
 error.
 .LP
 If an invalid buffer is specified, the call has no effect.
 The data can have embedded null characters
 and need not be null-terminated.
 .LP
-.ZN XStoreBuffer
+.B XStoreBuffer
 can generate a
-.ZN BadAlloc
+.B BadAlloc
 error.
 .LP
 The
-.ZN XFetchBytes
+.B XFetchBytes
 function
 returns the number of bytes in the nbytes_return argument,
 if the buffer contains data.
@@ -139,48 +139,48 @@ Otherwise, the function
 returns NULL and sets nbytes to 0.
 The appropriate amount of storage is allocated and the pointer returned.
 The client must free this storage when finished with it by calling
-.ZN XFree .
+.BR XFree .
 .LP
 The
-.ZN XFetchBuffer
+.B XFetchBuffer
 function returns zero to the nbytes_return argument 
 if there is no data in the buffer or if an invalid
 buffer is specified.
 .LP
-.ZN XFetchBuffer
+.B XFetchBuffer
 can generate a
-.ZN BadValue 
+.B BadValue
 error.
 .LP
 The
-.ZN XRotateBuffers
+.B XRotateBuffers
 function rotates the cut
 buffers, such that buffer 0 becomes buffer n, 
 buffer 1 becomes n + 1 mod 8, and so on.
 This cut buffer numbering is global to the display.
 Note that
-.ZN XRotateBuffers
+.B XRotateBuffers
 generates
-.ZN BadMatch
+.B BadMatch
 errors if any of the eight buffers have not been created.
 .LP
-.ZN XRotateBuffers
+.B XRotateBuffers
 can generate a
-.ZN BadMatch
+.B BadMatch
 error.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadAtom
+.B BadAtom
 A value for an Atom argument does not name a defined Atom.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 Some argument or pair of arguments has the correct type and range but fails
 to match in some other way required by the request.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

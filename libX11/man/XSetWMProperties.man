@@ -105,7 +105,7 @@ Specifies the number of arguments.
 Specifies the application's argument list.
 .IP \fIclass_hints\fP 1i
 Specifies the
-.ZN XClassHint
+.B XClassHint
 structure to be used.
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
@@ -121,54 +121,54 @@ Specifies the window name,
 which should be a null-terminated string.
 .IP \fIwm_hints\fP 1i
 Specifies the
-.ZN XWMHints
+.B XWMHints
 structure to be used.
 .SH DESCRIPTION
 The 
-.ZN XSetWMProperties 
+.B XSetWMProperties
 convenience function provides a single programming interface 
 for setting those essential window properties that are used 
 for communicating with other clients (particularly window and session
 managers).
 .LP
 If the window_name argument is non-NULL, 
-.ZN XSetWMProperties
+.B XSetWMProperties
 calls
-.ZN XSetWMName ,
+.BR XSetWMName ,
 which in turn, sets the WM_NAME property (see section 14.1.4).
 If the icon_name argument is non-NULL,
-.ZN XSetWMProperties
+.B XSetWMProperties
 calls
-.ZN XSetWMIconName ,
+.BR XSetWMIconName ,
 which sets the WM_ICON_NAME property (see section 14.1.5).
 If the argv argument is non-NULL, 
-.ZN XSetWMProperties
+.B XSetWMProperties
 calls
-.ZN XSetCommand ,
+.BR XSetCommand ,
 which sets the WM_COMMAND property (see section 14.2.1).
 Note that an argc of zero is allowed to indicate a zero-length command.
 Note also that the hostname of this machine is stored using
-.ZN XSetWMClientMachine 
+.B XSetWMClientMachine
 (see section 14.2.2).
 .LP
 If the normal_hints argument is non-NULL, 
-.ZN XSetWMProperties
+.B XSetWMProperties
 calls
-.ZN XSetWMNormalHints ,
+.BR XSetWMNormalHints ,
 which sets the WM_NORMAL_HINTS property (see section 14.1.7).
 If the wm_hints argument is non-NULL, 
-.ZN XSetWMProperties
+.B XSetWMProperties
 calls
-.ZN XSetWMHints ,
+.BR XSetWMHints ,
 which sets the WM_HINTS property (see section 14.1.6).
 .LP
 If the class_hints argument is non-NULL, 
-.ZN XSetWMProperties
+.B XSetWMProperties
 calls
-.ZN XSetClassHint ,
+.BR XSetClassHint ,
 which sets the WM_CLASS property (see section 14.1.8).
 If the res_name member in the
-.ZN XClassHint
+.B XClassHint
 structure is set to the NULL pointer and the RESOURCE_NAME environment 
 variable is set, 
 then the value of the environment variable is substituted for res_name.
@@ -179,9 +179,9 @@ then the value of argv[0], stripped of
 any directory prefixes, is substituted for res_name.
 .LP
 The
-.ZN XmbSetWMProperties
+.B XmbSetWMProperties
 and
-.ZN Xutf8SetWMProperties
+.B Xutf8SetWMProperties
 convenience functions provide a simple programming interface 
 for setting those essential window properties that are used 
 for communicating with other clients
@@ -192,9 +192,9 @@ they set the WM_NAME property.
 If the icon_name argument is non-NULL,
 they set the WM_ICON_NAME property.
 The window_name and icon_name arguments are null-terminated strings, for
-.ZN XmbSetWMProperties
+.B XmbSetWMProperties
 in the encoding of the current locale, for
-.ZN Xutf8SetWMProperties
+.B Xutf8SetWMProperties
 in UTF-8 encoding.
 If the arguments can be fully converted to the STRING encoding,
 the properties are created with type ``STRING''; 
@@ -202,38 +202,38 @@ otherwise, the arguments are converted to Compound Text,
 and the properties are created with type ``COMPOUND_TEXT''.
 .LP
 If the normal_hints argument is non-NULL,
-.ZN XmbSetWMProperties
+.B XmbSetWMProperties
 and
-.ZN Xutf8SetWMProperties
+.B Xutf8SetWMProperties
 call
-.ZN XSetWMNormalHints ,
+.BR XSetWMNormalHints ,
 which sets the WM_NORMAL_HINTS property (see section 14.1.7).
 If the wm_hints argument is non-NULL, 
-.ZN XmbSetWMProperties
+.B XmbSetWMProperties
 and
-.ZN Xutf8SetWMProperties
+.B Xutf8SetWMProperties
 call
-.ZN XSetWMHints ,
+.BR XSetWMHints ,
 which sets the WM_HINTS property (see section 14.1.6).
 .LP
 If the argv argument is non-NULL,
-.ZN XmbSetWMProperties
+.B XmbSetWMProperties
 and
-.ZN Xutf8SetWMProperties
+.B Xutf8SetWMProperties
 set the WM_COMMAND property from argv and argc.
 An argc of zero indicates a zero-length command.
 .LP
 The hostname of the machine is stored using 
-.ZN XSetWMClientMachine 
+.B XSetWMClientMachine
 (see section 14.2.2).
 .LP
 If the class_hints argument is non-NULL,
-.ZN XmbSetWMProperties
+.B XmbSetWMProperties
 and
-.ZN Xutf8SetWMProperties
+.B Xutf8SetWMProperties
 set the WM_CLASS property.
 If the res_name member in the 
-.ZN XClassHint
+.B XClassHint
 structure is set to the NULL pointer and the RESOURCE_NAME
 environment variable is set,
 the value of the environment variable is substituted for res_name.
@@ -251,29 +251,29 @@ No encoding conversion is performed for these strings prior to storage
 in the properties.
 .LP
 For clients that need to process the property text in a locale,
-.ZN XmbSetWMProperties
+.B XmbSetWMProperties
 and
-.ZN Xutf8SetWMProperties
+.B Xutf8SetWMProperties
 set the WM_LOCALE_NAME property to be the name of the current locale.
 The name is assumed to be in the Host Portable Character Encoding
 and is converted to STRING for storage in the property.
 .LP
-.ZN XSetWMProperties ,
-.ZN XmbSetWMProperties
+.BR XSetWMProperties ,
+.B XmbSetWMProperties
 and
-.ZN Xutf8SetWMProperties
+.B Xutf8SetWMProperties
 can generate
-.ZN BadAlloc
+.B BadAlloc
 and
-.ZN BadWindow
+.B BadWindow
 errors.
 .LP
 The function
-.ZN Xutf8SetWMProperties
+.B Xutf8SetWMProperties
 is an extension introduced by The XFree86 Project, Inc. in their 4.0.2
 release. Its presence is
 indicated by the macro
-.ZN X_HAVE_UTF8_STRING .
+.BR X_HAVE_UTF8_STRING .
 .SH PROPERTIES
 .TP 1i
 \s-1WM_CLASS\s+1
@@ -290,7 +290,7 @@ application.
 \s-1WM_HINTS\s+1
 Additional hints set by the client for use by the window manager.
 The C type of this property is 
-.ZN XWMHints .
+.BR XWMHints .
 .TP 1i
 \s-1WM_ICON_NAME\s+1
 The name to be used in an icon.
@@ -301,13 +301,13 @@ The name of the application.
 \s-1WM_NORMAL_HINTS\s+1
 Size hints for a window in its normal state.
 The C type of this property is
-.ZN XSizeHints .
+.BR XSizeHints .
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XAllocClassHint(__libmansuffix__),

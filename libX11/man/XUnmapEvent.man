@@ -83,7 +83,7 @@
 XUnmapEvent \- UnmapNotify event structure
 .SH STRUCTURES
 The structure for
-.ZN UnmapNotify
+.B UnmapNotify
 events contains:
 .LP
 .Ds 0
@@ -104,16 +104,16 @@ the structure members are set as follows.
 The type member is set to the event type constant name that uniquely identifies
 it.
 For example, when the X server reports a
-.ZN GraphicsExpose
+.B GraphicsExpose
 event to a client application, it sends an
-.ZN XGraphicsExposeEvent
+.B XGraphicsExposeEvent
 structure with the type member set to
-.ZN GraphicsExpose .
+.BR GraphicsExpose .
 The display member is set to a pointer to the display the event was read on.
 The send_event member is set to
-.ZN True
+.B True
 if the event came from a
-.ZN SendEvent
+.B SendEvent
 protocol request.
 The serial member is set from the serial number reported in the protocol
 but expanded from the 16-bit least-significant bits to a full 32-bit value.
@@ -122,17 +122,17 @@ dispatchers.
 .LP
 The event member is set either to the unmapped window or to its parent,
 depending on whether
-.ZN StructureNotify
+.B StructureNotify
 or
-.ZN SubstructureNotify
+.B SubstructureNotify
 was selected.
 This is the window used by the X server to report the event.
 The window member is set to the window that was unmapped.
 The from_configure member is set to
-.ZN True 
+.B True
 if the event was generated as a result of a resizing of the window's parent when
 the window itself had a win_gravity of
-.ZN UnmapGravity .
+.BR UnmapGravity .
 .SH "SEE ALSO"
 XAnyEvent(__libmansuffix__),
 XButtonEvent(__libmansuffix__),

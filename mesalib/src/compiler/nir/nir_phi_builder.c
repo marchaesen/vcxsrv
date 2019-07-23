@@ -277,7 +277,7 @@ void
 nir_phi_builder_finish(struct nir_phi_builder *pb)
 {
    const unsigned num_blocks = pb->num_blocks;
-   NIR_VLA(nir_block *, preds, num_blocks);
+   nir_block **preds = rzalloc_array(pb, nir_block *, num_blocks);
 
    foreach_list_typed(struct nir_phi_builder_value, val, node, &pb->values) {
       /* We treat the linked list of phi nodes like a worklist.  The list is

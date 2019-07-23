@@ -95,7 +95,7 @@ Specifies the connection to the X server.
 Specifies the window.
 .SH DESCRIPTION
 The
-.ZN XMapWindow
+.B XMapWindow
 function
 maps the window and all of its
 subwindows that have had map requests.
@@ -109,16 +109,16 @@ and will be visible on the screen if it is not obscured by another window.
 This function has no effect if the window is already mapped.
 .LP
 If the override-redirect of the window is
-.ZN False 
+.B False
 and if some other client has selected
-.ZN SubstructureRedirectMask
+.B SubstructureRedirectMask
 on the parent window, then the X server generates a
-.ZN MapRequest
+.B MapRequest
 event, and the
-.ZN XMapWindow
+.B XMapWindow
 function does not map the window.
 Otherwise, the window is mapped, and the X server generates a
-.ZN MapNotify
+.B MapNotify
 event.
 .LP
 If the window becomes viewable and no earlier contents for it are remembered,
@@ -126,10 +126,10 @@ the X server tiles the window with its background.
 If the window's background is undefined,
 the existing screen contents are not
 altered, and the X server generates zero or more 
-.ZN Expose
+.B Expose
 events.
 If backing-store was maintained while the window was unmapped, no 
-.ZN Expose
+.B Expose
 events
 are generated.
 If backing-store will now be maintained, 
@@ -139,71 +139,71 @@ Similar tiling and exposure take place for any newly viewable inferiors.
 .LP
 .IN "XMapWindow"
 If the window is an
-.ZN InputOutput 
+.B InputOutput
 window,
-.ZN XMapWindow
+.B XMapWindow
 generates 
-.ZN Expose 
+.B Expose
 events on each 
-.ZN InputOutput
+.B InputOutput
 window that it causes to be displayed.
 If the client maps and paints the window 
 and if the client begins processing events, 
 the window is painted twice.
 To avoid this,
 first ask for 
-.ZN Expose 
+.B Expose
 events and then map the window,
 so the client processes input events as usual.
 The event list will include 
-.ZN Expose 
+.B Expose
 for each
 window that has appeared on the screen. 
 The client's normal response to
 an 
-.ZN Expose 
+.B Expose
 event should be to repaint the window.
 This method usually leads to simpler programs and to proper interaction
 with window managers.
 .LP
-.ZN XMapWindow
+.B XMapWindow
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .LP
 The
-.ZN XMapRaised
+.B XMapRaised
 function
 essentially is similar to
-.ZN XMapWindow
+.B XMapWindow
 in that it maps the window and all of its
 subwindows that have had map requests.
 However, it also raises the specified window to the top of the stack.
 .LP
-.ZN XMapRaised
+.B XMapRaised
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .LP
 The
-.ZN XMapSubwindows
+.B XMapSubwindows
 .IN "XMapSubwindows"
 function maps all subwindows for a specified window in top-to-bottom stacking 
 order.
 The X server generates
-.ZN Expose
+.B Expose
 events on each newly displayed window.
 This may be much more efficient than mapping many windows
 one at a time because the server needs to perform much of the work
 only once, for all of the windows, rather than for each window.
 .LP
-.ZN XMapSubwindows
+.B XMapSubwindows
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XChangeWindowAttributes(__libmansuffix__),

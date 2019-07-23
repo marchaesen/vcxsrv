@@ -137,6 +137,14 @@ remove_phis_block(nir_block *block, nir_builder *b)
    return progress;
 }
 
+bool
+nir_opt_remove_phis_block(nir_block *block)
+{
+   nir_builder b;
+   nir_builder_init(&b, nir_cf_node_get_function(&block->cf_node));
+   return remove_phis_block(block, &b);
+}
+
 static bool
 nir_opt_remove_phis_impl(nir_function_impl *impl)
 {

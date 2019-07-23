@@ -5774,6 +5774,8 @@ _mesa_sysval_to_semantic(unsigned sysval)
    /* Fragment shader */
    case SYSTEM_VALUE_FRAG_COORD:
       return TGSI_SEMANTIC_POSITION;
+   case SYSTEM_VALUE_POINT_COORD:
+      return TGSI_SEMANTIC_PCOORD;
    case SYSTEM_VALUE_FRONT_FACE:
       return TGSI_SEMANTIC_FACE;
    case SYSTEM_VALUE_SAMPLE_ID:

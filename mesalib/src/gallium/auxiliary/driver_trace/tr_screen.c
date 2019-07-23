@@ -38,7 +38,7 @@
 #include "tr_public.h"
 
 
-static boolean trace = FALSE;
+static bool trace = false;
 
 static const char *
 trace_screen_get_name(struct pipe_screen *_screen)
@@ -220,7 +220,7 @@ trace_screen_get_compute_param(struct pipe_screen *_screen,
 }
 
 
-static boolean
+static bool
 trace_screen_is_format_supported(struct pipe_screen *_screen,
                                  enum pipe_format format,
                                  enum pipe_texture_target target,
@@ -230,7 +230,7 @@ trace_screen_is_format_supported(struct pipe_screen *_screen,
 {
    struct trace_screen *tr_scr = trace_screen(_screen);
    struct pipe_screen *screen = tr_scr->screen;
-   boolean result;
+   bool result;
 
    trace_dump_call_begin("pipe_screen", "is_format_supported");
 
@@ -390,7 +390,7 @@ trace_screen_check_resource_capability(struct pipe_screen *_screen,
    return screen->check_resource_capability(screen, resource, bind);
 }
 
-static boolean
+static bool
 trace_screen_resource_get_handle(struct pipe_screen *_screen,
                                  struct pipe_context *_pipe,
                                 struct pipe_resource *resource,
@@ -532,7 +532,7 @@ trace_screen_fence_get_fd(struct pipe_screen *_screen,
 }
 
 
-static boolean
+static bool
 trace_screen_fence_finish(struct pipe_screen *_screen,
                           struct pipe_context *_ctx,
                           struct pipe_fence_handle *fence,
@@ -637,18 +637,18 @@ trace_screen_destroy(struct pipe_screen *_screen)
    FREE(tr_scr);
 }
 
-boolean
+bool
 trace_enabled(void)
 {
-   static boolean firstrun = TRUE;
+   static bool firstrun = true;
 
    if (!firstrun)
       return trace;
-   firstrun = FALSE;
+   firstrun = false;
 
    if(trace_dump_trace_begin()) {
       trace_dumping_start();
-      trace = TRUE;
+      trace = true;
    }
 
    return trace;

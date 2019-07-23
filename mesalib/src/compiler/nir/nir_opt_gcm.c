@@ -133,18 +133,8 @@ gcm_pin_instructions_block(nir_block *block, struct gcm_state *state)
          break;
 
       case nir_instr_type_tex:
-         switch (nir_instr_as_tex(instr)->op) {
-         case nir_texop_tex:
-         case nir_texop_txb:
-         case nir_texop_lod:
-            /* These two take implicit derivatives so they need to be pinned */
+         if (nir_tex_instr_has_implicit_derivative(nir_instr_as_tex(instr)))
             instr->pass_flags = GCM_INSTR_PINNED;
-            break;
-
-         default:
-            instr->pass_flags = 0;
-            break;
-         }
          break;
 
       case nir_instr_type_load_const:

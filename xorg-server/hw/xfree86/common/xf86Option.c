@@ -213,7 +213,7 @@ LookupBoolOption(XF86OptionPtr optlist, const char *name, int deflt,
     o.name = name;
     o.type = OPTV_BOOLEAN;
     if (ParseOptionValue(-1, optlist, &o, markUsed))
-        deflt = o.value.bool;
+        deflt = o.value.boolean;
     return deflt;
 }
 
@@ -474,7 +474,7 @@ xf86ShowUnusedOptions(int scrnIndex, XF86OptionPtr opt)
 static Bool
 GetBoolValue(OptionInfoPtr p, const char *s)
 {
-    return xf86getBoolValue(&p->value.bool, s);
+    return xf86getBoolValue(&p->value.boolean, s);
 }
 
 static Bool
@@ -678,7 +678,7 @@ ParseOptionValue(int scrnIndex, XF86OptionPtr options, OptionInfoPtr p,
             if (markUsed)
                 xf86MarkOptionUsedByName(options, newn);
             if (GetBoolValue(&opt, s)) {
-                p->value.bool = !opt.value.bool;
+                p->value.boolean = !opt.value.boolean;
                 p->found = TRUE;
             }
             else {
@@ -869,7 +869,7 @@ xf86GetOptValBool(const OptionInfoRec * table, int token, Bool *value)
 
     p = xf86TokenToOptinfo(table, token);
     if (p && p->found) {
-        *value = p->value.bool;
+        *value = p->value.boolean;
         return TRUE;
     }
     else
@@ -883,7 +883,7 @@ xf86ReturnOptValBool(const OptionInfoRec * table, int token, Bool def)
 
     p = xf86TokenToOptinfo(table, token);
     if (p && p->found) {
-        return p->value.bool;
+        return p->value.boolean;
     }
     else
         return def;

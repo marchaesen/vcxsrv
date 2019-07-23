@@ -286,10 +286,18 @@ lower_shuffle(nir_builder *b, nir_intrinsic_instr *intrin,
    }
 }
 
-static nir_ssa_def *
-lower_subgroups_intrin(nir_builder *b, nir_intrinsic_instr *intrin,
-                       const nir_lower_subgroups_options *options)
+static bool
+lower_subgroups_filter(const nir_instr *instr, const void *_options)
 {
+   return instr->type == nir_instr_type_intrinsic;
+}
+
+static nir_ssa_def *
+lower_subgroups_instr(nir_builder *b, nir_instr *instr, void *_options)
+{
+   const nir_lower_subgroups_options *options = _options;
+
+   nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
    switch (intrin->intrinsic) {
    case nir_intrinsic_vote_any:
    case nir_intrinsic_vote_all:
@@ -479,51 +487,12 @@ lower_subgroups_intrin(nir_builder *b, nir_intrinsic_instr *intrin,
    return NULL;
 }
 
-static bool
-lower_subgroups_impl(nir_function_impl *impl,
-                     const nir_lower_subgroups_options *options)
-{
-   nir_builder b;
-   nir_builder_init(&b, impl);
-   bool progress = false;
-
-   nir_foreach_block(block, impl) {
-      nir_foreach_instr_safe(instr, block) {
-         if (instr->type != nir_instr_type_intrinsic)
-            continue;
-
-         nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
-         b.cursor = nir_before_instr(instr);
-
-         nir_ssa_def *lower = lower_subgroups_intrin(&b, intrin, options);
-         if (!lower)
-            continue;
-
-         nir_ssa_def_rewrite_uses(&intrin->dest.ssa, nir_src_for_ssa(lower));
-         nir_instr_remove(instr);
-         progress = true;
-      }
-   }
-
-   return progress;
-}
-
 bool
 nir_lower_subgroups(nir_shader *shader,
                     const nir_lower_subgroups_options *options)
 {
-   bool progress = false;
-
-   nir_foreach_function(function, shader) {
-      if (!function->impl)
-         continue;
-
-      if (lower_subgroups_impl(function->impl, options)) {
-         progress = true;
-         nir_metadata_preserve(function->impl, nir_metadata_block_index |
-                                               nir_metadata_dominance);
-      }
-   }
-
-   return progress;
+   return nir_shader_lower_instructions(shader,
+                                        lower_subgroups_filter,
+                                        lower_subgroups_instr,
+                                        (void *)options);
 }

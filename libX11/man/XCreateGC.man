@@ -119,248 +119,248 @@ GC component mask bits.
 Specifies any values as specified by the valuemask.
 .IP \fIvalues_return\fP 1i
 Returns the GC values in the specified
-.ZN XGCValues 
+.B XGCValues
 structure.
 .SH DESCRIPTION
 The
-.ZN XCreateGC
+.B XCreateGC
 function creates a graphics context and returns a GC.
 The GC can be used with any destination drawable having the same root
 and depth as the specified drawable.
 Use with other drawables results in a
-.ZN BadMatch
+.B BadMatch
 error.
 .LP
-.ZN XCreateGC
+.B XCreateGC
 can generate
-.ZN BadAlloc ,
-.ZN BadDrawable ,
-.ZN BadFont ,
-.ZN BadMatch ,
-.ZN BadPixmap ,
+.BR BadAlloc ,
+.BR BadDrawable ,
+.BR BadFont ,
+.BR BadMatch ,
+.BR BadPixmap ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .LP
 The
-.ZN XCopyGC
+.B XCopyGC
 function copies the specified components from the source GC
 to the destination GC.
 The source and destination GCs must have the same root and depth,
 or a
-.ZN BadMatch
+.B BadMatch
 error results.
 The valuemask specifies which component to copy, as for
-.ZN XCreateGC .
+.BR XCreateGC .
 .LP
-.ZN XCopyGC
+.B XCopyGC
 can generate
-.ZN BadAlloc ,
-.ZN BadGC ,
+.BR BadAlloc ,
+.BR BadGC ,
 and
-.ZN BadMatch
+.B BadMatch
 errors.
 .LP
 The
-.ZN XChangeGC
+.B XChangeGC
 function changes the components specified by valuemask for
 the specified GC.
 The values argument contains the values to be set.
 The values and restrictions are the same as for 
-.ZN XCreateGC .
+.BR XCreateGC .
 Changing the clip-mask overrides any previous 
-.ZN XSetClipRectangles
+.B XSetClipRectangles
 request on the context. 
 Changing the dash-offset or dash-list
 overrides any previous 
-.ZN XSetDashes
+.B XSetDashes
 request on the context.
 The order in which components are verified and altered is server dependent.
 If an error is generated, a subset of the components may have been altered.
 .LP
-.ZN XChangeGC
+.B XChangeGC
 can generate
-.ZN BadAlloc ,
-.ZN BadFont ,
-.ZN BadGC ,
-.ZN BadMatch ,
-.ZN BadPixmap ,
+.BR BadAlloc ,
+.BR BadFont ,
+.BR BadGC ,
+.BR BadMatch ,
+.BR BadPixmap ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .LP
 The
-.ZN XGetGCValues
+.B XGetGCValues
 function returns the components specified by valuemask for the specified GC.
 If the valuemask contains a valid set of GC mask bits
 .Pn ( GCFunction ,
-.ZN GCPlaneMask ,
-.ZN GCForeground ,
-.ZN GCBackground ,
-.ZN GCLineWidth ,
-.ZN GCLineStyle ,
-.ZN GCCapStyle ,
-.ZN GCJoinStyle ,
-.ZN GCFillStyle ,
-.ZN GCFillRule ,
-.ZN GCTile ,
-.ZN GCStipple ,
-.ZN GCTileStipXOrigin ,
-.ZN GCTileStipYOrigin ,
-.ZN GCFont ,
-.ZN GCSubwindowMode ,
-.ZN GCGraphicsExposures ,
-.ZN GCClipXOrigin ,
-.ZN GCCLipYOrigin ,
-.ZN GCDashOffset ,
+.BR GCPlaneMask ,
+.BR GCForeground ,
+.BR GCBackground ,
+.BR GCLineWidth ,
+.BR GCLineStyle ,
+.BR GCCapStyle ,
+.BR GCJoinStyle ,
+.BR GCFillStyle ,
+.BR GCFillRule ,
+.BR GCTile ,
+.BR GCStipple ,
+.BR GCTileStipXOrigin ,
+.BR GCTileStipYOrigin ,
+.BR GCFont ,
+.BR GCSubwindowMode ,
+.BR GCGraphicsExposures ,
+.BR GCClipXOrigin ,
+.BR GCCLipYOrigin ,
+.BR GCDashOffset ,
 or
-.ZN GCArcMode )
+.BR GCArcMode )
 and no error occurs,
-.ZN XGetGCValues
+.B XGetGCValues
 sets the requested components in values_return and returns a nonzero status.
 Otherwise, it returns a zero status.
 Note that the clip-mask and dash-list (represented by the
-.ZN GCClipMask
+.B GCClipMask
 and 
-.ZN GCDashList
+.B GCDashList
 bits, respectively, in the valuemask)
 cannot be requested.
 Also note that an invalid resource ID (with one or more of the three
 most significant bits set to 1) will be returned for
-.ZN GCFont ,
-.ZN GCTile ,
+.BR GCFont ,
+.BR GCTile ,
 and
-.ZN GCStipple
+.B GCStipple
 if the component has never been explicitly set by the client.
 .LP
 The
-.ZN XFreeGC
+.B XFreeGC
 function destroys the specified GC as well as all the associated storage.
 .LP
-.ZN XFreeGC
+.B XFreeGC
 can generate a
-.ZN BadGC 
+.B BadGC
 error.
 .SH STRUCTURES
 The
-.ZN XGCValues
+.B XGCValues
 structure contains:
 .LP
 /\&* GC attribute value mask bits */
 .TS
 lw(.5i) lw(2.5i) lw(.75i).
 \&#define	T{
-.ZN GCFunction
+.B GCFunction
 T}	T{
 (1L<<0)
 T}
 \&#define	T{
-.ZN GCPlaneMask
+.B GCPlaneMask
 T}	T{
 (1L<<1)
 T}
 \&#define	T{
-.ZN GCForeground
+.B GCForeground
 T}	T{
 (1L<<2)
 T}
 \&#define	T{
-.ZN GCBackground
+.B GCBackground
 T}	T{
 (1L<<3)
 T}
 \&#define	T{
-.ZN GCLineWidth
+.B GCLineWidth
 T}	T{
 (1L<<4)
 T}
 \&#define	T{
-.ZN GCLineStyle
+.B GCLineStyle
 T}	T{
 (1L<<5)
 T}
 \&#define	T{
-.ZN GCCapStyle
+.B GCCapStyle
 T}	T{
 (1L<<6)
 T}
 \&#define	T{
-.ZN GCJoinStyle
+.B GCJoinStyle
 T}	T{
 (1L<<7)
 T}
 \&#define	T{
-.ZN GCFillStyle
+.B GCFillStyle
 T}	T{
 (1L<<8)
 T}
 \&#define	T{
-.ZN GCFillRule
+.B GCFillRule
 T}	T{
 (1L<<9)
 T}
 \&#define	T{
-.ZN GCTile
+.B GCTile
 T}	T{
 (1L<<10)
 T}
 \&#define	T{
-.ZN GCStipple
+.B GCStipple
 T}	T{
 (1L<<11)
 T}
 \&#define	T{
-.ZN GCTileStipXOrigin
+.B GCTileStipXOrigin
 T}	T{
 (1L<<12)
 T}
 \&#define	T{
-.ZN GCTileStipYOrigin
+.B GCTileStipYOrigin
 T}	T{
 (1L<<13)
 T}
 \&#define	T{
-.ZN GCFont
+.B GCFont
 T}	T{
 (1L<<14)
 T}
 \&#define	T{
-.ZN GCSubwindowMode
+.B GCSubwindowMode
 T}	T{
 (1L<<15)
 T}
 \&#define	T{
-.ZN GCGraphicsExposures
+.B GCGraphicsExposures
 T}	T{
 (1L<<16)
 T}
 \&#define	T{
-.ZN GCClipXOrigin
+.B GCClipXOrigin
 T}	T{
 (1L<<17)
 T}
 \&#define	T{
-.ZN GCClipYOrigin
+.B GCClipYOrigin
 T}	T{
 (1L<<18)
 T}
 \&#define	T{
-.ZN GCClipMask
+.B GCClipMask
 T}	T{
 (1L<<19)
 T}
 \&#define	T{
-.ZN GCDashOffset
+.B GCDashOffset
 T}	T{
 (1L<<20)
 T}
 \&#define	T{
-.ZN GCDashList
+.B GCDashList
 T}	T{
 (1L<<21)
 T}
 \&#define	T{
-.ZN GCArcMode
+.B GCArcMode
 T}	T{
 (1L<<22)
 T}
@@ -401,7 +401,7 @@ The function attributes of a GC are used when you update a section of
 a drawable (the destination) with bits from somewhere else (the source).  
 The function in a GC defines how the new destination bits are to be
 computed from the source bits and the old destination bits.
-.ZN GXcopy
+.B GXcopy
 is typically the most useful because it will work on a color display,
 but special applications may use other functions,
 particularly in concert with particular planes of a color display.
@@ -423,112 +423,112 @@ Function Name	Value	Operation
 _
 .sp 6p
 T{
-.ZN GXclear
+.B GXclear
 T}	T{
 0x0
 T}	T{
 0
 T}
 T{
-.ZN GXand
+.B GXand
 T}	T{
 0x1
 T}	T{
 src AND dst
 T}
 T{
-.ZN GXandReverse
+.B GXandReverse
 T}	T{
 0x2
 T}	T{
 src AND NOT dst
 T}
 T{
-.ZN GXcopy
+.B GXcopy
 T}	T{
 0x3
 T}	T{
 src
 T}
 T{
-.ZN GXandInverted
+.B GXandInverted
 T}	T{
 0x4
 T}	T{
 (NOT src) AND dst
 T}
 T{
-.ZN GXnoop
+.B GXnoop
 T}	T{
 0x5
 T}	T{
 dst
 T}
 T{
-.ZN GXxor
+.B GXxor
 T}	T{
 0x6
 T}	T{
 src XOR dst
 T}
 T{
-.ZN GXor
+.B GXor
 T}	T{
 0x7
 T}	T{
 src OR dst
 T}
 T{
-.ZN GXnor
+.B GXnor
 T}	T{
 0x8
 T}	T{
 (NOT src) AND (NOT dst)
 T}
 T{
-.ZN GXequiv
+.B GXequiv
 T}	T{
 0x9
 T}	T{
 (NOT src) XOR dst
 T}
 T{
-.ZN GXinvert
+.B GXinvert
 T}	T{
 0xa
 T}	T{
 NOT dst
 T}
 T{
-.ZN GXorReverse
+.B GXorReverse
 T}	T{
 0xb
 T}	T{
 src OR (NOT dst)
 T}
 T{
-.ZN GXcopyInverted
+.B GXcopyInverted
 T}	T{
 0xc
 T}	T{
 NOT src
 T}
 T{
-.ZN GXorInverted
+.B GXorInverted
 T}	T{
 0xd
 T}	T{
 (NOT src) OR dst
 T}
 T{
-.ZN GXnand
+.B GXnand
 T}	T{
 0xe
 T}	T{
 (NOT src) OR (NOT dst)
 T}
 T{
-.ZN GXset
+.B GXset
 T}	T{
 0xf
 T}	T{
@@ -553,7 +553,7 @@ the result is computed bitwise on corresponding bits of the pixels.
 That is, a Boolean operation is performed in each bit plane.  
 The plane_mask restricts the operation to a subset of planes.
 A macro constant
-.ZN AllPlanes
+.B AllPlanes
 can be used to refer to all planes of the screen simultaneously.
 The result is computed by the following:
 .LP
@@ -627,31 +627,31 @@ The line-style defines which sections of a line are drawn:
 .TS
 lw(1.3i) lw(4.5i).
 T{
-.ZN LineSolid
+.B LineSolid
 T}	T{
 The full path of the line is drawn.
 T}
 .sp 6p
 T{
-.ZN LineDoubleDash
+.B LineDoubleDash
 T}	T{
 The full path of the line is drawn, 
 but the even dashes are filled differently 
 from the odd dashes (see fill-style) with
-.ZN CapButt 
+.B CapButt
 style used where even and odd dashes meet.
 T}
 .sp 6p
 T{
-.ZN LineOnOffDash
+.B LineOnOffDash
 T}	T{
 Only the even dashes are drawn,
 and cap-style applies to 
 all internal ends of the individual dashes,
 except 
-.ZN CapNotLast
+.B CapNotLast
 is treated as 
-.ZN CapButt . 
+.BR CapButt .
 T}
 .TE
 .LP
@@ -660,37 +660,37 @@ The cap-style defines how the endpoints of a path are drawn:
 .TS
 lw(1.3i) lw(4.5i).
 T{
-.ZN CapNotLast
+.B CapNotLast
 T}	T{
 This is equivalent to 
-.ZN CapButt  
+.B CapButt
 except that for a line-width of zero the final endpoint is not drawn.
 T}
 .sp 6p
 T{
-.ZN CapButt
+.B CapButt
 T}	T{
 The line is square at the endpoint (perpendicular to the slope of the line)
 with no projection beyond.
 T}
 .sp 6p
 T{
-.ZN CapRound
+.B CapRound
 T}	T{
 The line has a circular arc with the diameter equal to the line-width,
 centered on the endpoint.
 (This is equivalent to 
-.ZN CapButt 
+.B CapButt
 for line-width of zero).
 T}
 .sp 6p
 T{
-.ZN CapProjecting
+.B CapProjecting
 T}	T{
 The line is square at the end, but the path continues beyond the endpoint 
 for a distance equal to half the line-width.
 (This is equivalent to 
-.ZN CapButt 
+.B CapButt
 for line-width of zero).
 T}
 .TE
@@ -699,27 +699,27 @@ The join-style defines how corners are drawn for wide lines:
 .TS
 lw(1.3i) lw(4.5i).
 T{
-.ZN JoinMiter
+.B JoinMiter
 T}	T{
 The outer edges of two lines extend to meet at an angle.
 However, if the angle is less than 11 degrees,
 then a
-.ZN JoinBevel
+.B JoinBevel
 join-style is used instead.
 T}
 .sp 6p
 T{
-.ZN JoinRound
+.B JoinRound
 T}	T{
 The corner is a circular arc with the diameter equal to the line-width, 
 centered on the joinpoint.
 T}
 .sp 6p
 T{
-.ZN JoinBevel
+.B JoinBevel
 T}	T{
 The corner has
-.ZN CapButt 
+.B CapButt
 endpoint styles with the triangular notch filled.
 T}
 .TE
@@ -730,7 +730,7 @@ the semantics depends on the line-width and the cap-style:
 .TS
 lw(1.3i) lw(.5i) lw(4i).
 T{
-.ZN CapNotLast
+.B CapNotLast
 T}	T{
 thin
 T}	T{
@@ -739,7 +739,7 @@ but the desired effect is that nothing is drawn.
 T}
 .sp 6p
 T{
-.ZN CapButt
+.B CapButt
 T}	T{
 thin
 T}	T{
@@ -748,25 +748,25 @@ but the desired effect is that a single pixel is drawn.
 T}
 .sp 6p
 T{
-.ZN CapRound
+.B CapRound
 T}	T{
 thin
 T}	T{
 The results are the same as for
-.ZN CapButt /thin.
+.BR CapButt /thin.
 T}
 .sp 6p
 T{
-.ZN CapProjecting
+.B CapProjecting
 T}	T{
 thin
 T}	T{
 The results are the same as for
-.ZN CapButt /thin.
+.BR CapButt /thin.
 T}
 .sp 6p
 T{
-.ZN CapButt
+.B CapButt
 T}	T{
 wide
 T}	T{
@@ -774,7 +774,7 @@ Nothing is drawn.
 T}
 .sp 6p
 T{
-.ZN CapRound
+.B CapRound
 T}	T{
 wide
 T}	T{
@@ -783,7 +783,7 @@ with the diameter equal to the line-width.
 T}
 .sp 6p
 T{
-.ZN CapProjecting
+.B CapProjecting
 T}	T{
 wide
 T}	T{
@@ -810,16 +810,16 @@ origin of whatever destination drawable is specified in a graphics
 request.
 The tile pixmap must have the same root and depth as the GC,
 or a
-.ZN BadMatch 
+.B BadMatch
 error results.
 The stipple pixmap must have depth one and must have the same root as the
 GC, or a 
-.ZN BadMatch 
+.B BadMatch
 error results.  
 For stipple operations where the fill-style is
-.ZN FillStippled
+.B FillStippled
 but not 
-.ZN FillOpaqueStippled ,
+.BR FillOpaqueStippled ,
 the stipple pattern is tiled in a
 single plane and acts as an additional clip mask to be ANDed with the clip-mask.
 Although some sizes may be faster to use than others,
@@ -828,41 +828,41 @@ any size pixmap can be used for tiling or stippling.
 The fill-style defines the contents of the source for line, text, and
 fill requests.  
 For all text and fill requests (for example,
-.ZN XDrawText , 
-.ZN XDrawText16 ,
-.ZN XFillRectangle , 
-.ZN XFillPolygon , 
+.BR XDrawText ,
+.BR XDrawText16 ,
+.BR XFillRectangle ,
+.BR XFillPolygon ,
 and
-.ZN XFillArc );
+.BR XFillArc );
 for line requests 
 with line-style 
-.ZN LineSolid 
+.B LineSolid
 (for example,
-.ZN XDrawLine ,
-.ZN XDrawSegments , 
-.ZN XDrawRectangle ,
-.ZN XDrawArc );
+.BR XDrawLine ,
+.BR XDrawSegments ,
+.BR XDrawRectangle ,
+.BR XDrawArc );
 and for the even dashes for line requests with line-style 
-.ZN LineOnOffDash 
+.B LineOnOffDash
 or 
-.ZN LineDoubleDash ,
+.BR LineDoubleDash ,
 the following apply:
 .TS
 lw(1.8i) lw(4i).
 T{
-.ZN FillSolid
+.B FillSolid
 T}	T{
 Foreground
 T}
 .sp 6p
 T{
-.ZN FillTiled
+.B FillTiled
 T}	T{
 Tile
 T}
 .sp 6p
 T{
-.ZN FillOpaqueStippled
+.B FillOpaqueStippled
 T}	T{
 A tile with the same width and height as stipple,
 but with background everywhere stipple has a zero
@@ -870,37 +870,37 @@ and with foreground everywhere stipple has a one
 T}
 .sp 6p
 T{
-.ZN FillStippled
+.B FillStippled
 T}	T{
 Foreground masked by stipple
 T}
 .TE
 .LP
 When drawing lines with line-style
-.ZN LineDoubleDash ,
+.BR LineDoubleDash ,
 the odd dashes are controlled by the fill-style in the following manner:
 .TS
 lw(1.8i) lw(4i).
 T{
-.ZN FillSolid
+.B FillSolid
 T}	T{
 Background
 T}
 .sp 6p
 T{
-.ZN FillTiled
+.B FillTiled
 T}	T{
 Same as for even dashes
 T}
 .sp 6p
 T{
-.ZN FillOpaqueStippled
+.B FillOpaqueStippled
 T}	T{
 Same as for even dashes
 T}
 .sp 6p
 T{
-.ZN FillStippled
+.B FillStippled
 T}	T{
 Background masked by stipple
 T}
@@ -925,28 +925,28 @@ of GCs.
 .LP
 The dashes value is actually a simplified form of the
 more general patterns that can be set with 
-.ZN XSetDashes .  
+.BR XSetDashes .
 Specifying a
 value of N is equivalent to specifying the two-element list [N, N] in 
-.ZN XSetDashes . 
+.BR XSetDashes .
 The value must be nonzero,
 or a
-.ZN BadValue
+.B BadValue
 error results.
 .LP
 The clip-mask restricts writes to the destination drawable.  
 If the clip-mask is set to a pixmap,
 it must have depth one and have the same root as the GC,
 or a
-.ZN BadMatch 
+.B BadMatch
 error results.
 If clip-mask is set to
-.ZN None ,
+.BR None ,
 the pixels are always drawn regardless of the clip origin.
 The clip-mask also can be set by calling the
-.ZN XSetClipRectangles
+.B XSetClipRectangles
 or
-.ZN XSetRegion
+.B XSetRegion
 functions.
 Only pixels where the clip-mask has a bit set to 1 are drawn.  
 Pixels are not drawn outside the area covered by the clip-mask 
@@ -957,40 +957,40 @@ The clip-mask origin is interpreted relative to the origin of whatever
 destination drawable is specified in a graphics request.
 .LP
 You can set the subwindow-mode to
-.ZN ClipByChildren
+.B ClipByChildren
 or
-.ZN IncludeInferiors .
+.BR IncludeInferiors .
 For 
-.ZN ClipByChildren , 
+.BR ClipByChildren ,
 both source and destination windows are
 additionally clipped by all viewable 
-.ZN InputOutput
+.B InputOutput
 children.  
 For 
-.ZN IncludeInferiors ,
+.BR IncludeInferiors ,
 neither source nor destination window is clipped by inferiors. 
 This will result in including subwindow contents in the source
 and drawing through subwindow boundaries of the destination.
 The use of 
-.ZN IncludeInferiors 
+.B IncludeInferiors
 on a window of one depth with mapped
 inferiors of differing depth is not illegal, but the semantics are
 undefined by the core protocol.
 .LP
 The fill-rule defines what pixels are inside (drawn) for
 paths given in 
-.ZN XFillPolygon 
+.B XFillPolygon
 requests and can be set to 
-.ZN EvenOddRule 
+.B EvenOddRule
 or
-.ZN WindingRule .
+.BR WindingRule .
 For
-.ZN EvenOddRule ,
+.BR EvenOddRule ,
 a point is inside if
 an infinite ray with the point as origin crosses the path an odd number
 of times.  
 For 
-.ZN WindingRule , 
+.BR WindingRule ,
 a point is inside if an infinite ray with the
 point as origin crosses an unequal number of clockwise and
 counterclockwise directed path segments.
@@ -1003,9 +1003,9 @@ uninteresting because you can simply choose a different ray that is not
 coincident with a segment.
 .LP
 For both 
-.ZN EvenOddRule
+.B EvenOddRule
 and
-.ZN WindingRule ,
+.BR WindingRule ,
 a point is infinitely small, 
 and the path is an infinitely thin line.  
 A pixel is inside if the center point of the pixel is inside
@@ -1018,53 +1018,53 @@ and are inside if and only if the polygon interior is immediately below
 (y increasing direction).
 .LP
 The arc-mode controls filling in the 
-.ZN XFillArcs
+.B XFillArcs
 function and can be set to
-.ZN ArcPieSlice
+.B ArcPieSlice
 or
-.ZN ArcChord .
+.BR ArcChord .
 For
-.ZN ArcPieSlice ,
+.BR ArcPieSlice ,
 the arcs are pie-slice filled.
 For
-.ZN ArcChord ,
+.BR ArcChord ,
 the arcs are chord filled.
 .LP
 The graphics-exposure flag controls 
-.ZN GraphicsExpose 
+.B GraphicsExpose
 event generation
 for 
-.ZN XCopyArea 
+.B XCopyArea
 and 
-.ZN XCopyPlane
+.B XCopyPlane
 requests (and any similar requests defined by extensions).
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadDrawable
+.B BadDrawable
 A value for a Drawable argument does not name a defined Window or Pixmap.
 .TP 1i
-.ZN BadFont
+.B BadFont
 A value for a Font or GContext argument does not name a defined Font.
 .TP 1i
-.ZN BadGC
+.B BadGC
 A value for a GContext argument does not name a defined GContext.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 An
-.ZN InputOnly
+.B InputOnly
 window is used as a Drawable.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 Some argument or pair of arguments has the correct type and range but fails
 to match in some other way required by the request.
 .TP 1i
-.ZN BadPixmap
+.B BadPixmap
 A value for a Pixmap argument does not name a defined Pixmap.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

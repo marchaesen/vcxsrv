@@ -27,6 +27,7 @@
 #include <math.h>
 #include <assert.h>
 #include "half_float.h"
+#include "util/u_half.h"
 #include "rounding.h"
 #include "macros.h"
 
@@ -134,49 +135,7 @@ _mesa_float_to_half(float val)
 float
 _mesa_half_to_float(uint16_t val)
 {
-   /* XXX could also use a 64K-entry lookup table */
-   const int m = val & 0x3ff;
-   const int e = (val >> 10) & 0x1f;
-   const int s = (val >> 15) & 0x1;
-   int flt_m, flt_e, flt_s;
-   fi_type fi;
-   float result;
-
-   /* sign bit */
-   flt_s = s;
-
-   /* handle special cases */
-   if ((e == 0) && (m == 0)) {
-      /* zero */
-      flt_m = 0;
-      flt_e = 0;
-   }
-   else if ((e == 0) && (m != 0)) {
-      /* denorm -- denorm half will fit in non-denorm single */
-      const float half_denorm = 1.0f / 16384.0f; /* 2^-14 */
-      float mantissa = ((float) (m)) / 1024.0f;
-      float sign = s ? -1.0f : 1.0f;
-      return sign * mantissa * half_denorm;
-   }
-   else if ((e == 31) && (m == 0)) {
-      /* infinity */
-      flt_e = 0xff;
-      flt_m = 0;
-   }
-   else if ((e == 31) && (m != 0)) {
-      /* NaN */
-      flt_e = 0xff;
-      flt_m = 1;
-   }
-   else {
-      /* regular */
-      flt_e = e + 112;
-      flt_m = m << 13;
-   }
-
-   fi.i = (flt_s << 31) | (flt_e << 23) | flt_m;
-   result = fi.f;
-   return result;
+   return util_half_to_float(val);
 }
 
 /**

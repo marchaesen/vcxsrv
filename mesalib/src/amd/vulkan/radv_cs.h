@@ -28,6 +28,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <assert.h>
+#include "radv_private.h"
 #include "sid.h"
 
 static inline unsigned radeon_check_space(struct radeon_winsys *ws,
@@ -41,7 +42,7 @@ static inline unsigned radeon_check_space(struct radeon_winsys *ws,
 
 static inline void radeon_set_config_reg_seq(struct radeon_cmdbuf *cs, unsigned reg, unsigned num)
 {
-        assert(reg < SI_CONTEXT_REG_OFFSET);
+        assert(reg >= SI_CONTEXT_REG_OFFSET && reg < SI_CONFIG_REG_END);
         assert(cs->cdw + 2 + num <= cs->max_dw);
         assert(num);
         radeon_emit(cs, PKT3(PKT3_SET_CONFIG_REG, num, 0));
@@ -56,7 +57,7 @@ static inline void radeon_set_config_reg(struct radeon_cmdbuf *cs, unsigned reg,
 
 static inline void radeon_set_context_reg_seq(struct radeon_cmdbuf *cs, unsigned reg, unsigned num)
 {
-        assert(reg >= SI_CONTEXT_REG_OFFSET);
+        assert(reg >= SI_CONTEXT_REG_OFFSET && reg < SI_CONTEXT_REG_END);
         assert(cs->cdw + 2 + num <= cs->max_dw);
         assert(num);
         radeon_emit(cs, PKT3(PKT3_SET_CONTEXT_REG, num, 0));
@@ -74,7 +75,7 @@ static inline void radeon_set_context_reg_idx(struct radeon_cmdbuf *cs,
 					      unsigned reg, unsigned idx,
 					      unsigned value)
 {
-	assert(reg >= SI_CONTEXT_REG_OFFSET);
+	assert(reg >= SI_CONTEXT_REG_OFFSET && reg < SI_CONTEXT_REG_END);
 	assert(cs->cdw + 3 <= cs->max_dw);
 	radeon_emit(cs, PKT3(PKT3_SET_CONTEXT_REG, 1, 0));
 	radeon_emit(cs, (reg - SI_CONTEXT_REG_OFFSET) >> 2 | (idx << 28));
@@ -96,6 +97,24 @@ static inline void radeon_set_sh_reg(struct radeon_cmdbuf *cs, unsigned reg, uns
 	radeon_emit(cs, value);
 }
 
+static inline void radeon_set_sh_reg_idx(const struct radv_physical_device *pdevice,
+					 struct radeon_cmdbuf *cs,
+					 unsigned reg, unsigned idx,
+					 unsigned value)
+{
+	assert(reg >= SI_SH_REG_OFFSET && reg < SI_SH_REG_END);
+	assert(cs->cdw + 3 <= cs->max_dw);
+	assert(idx);
+
+	unsigned opcode = PKT3_SET_SH_REG_INDEX;
+	if (pdevice->rad_info.chip_class < GFX10)
+		opcode = PKT3_SET_SH_REG;
+
+	radeon_emit(cs, PKT3(opcode, 1, 0));
+	radeon_emit(cs, (reg - SI_SH_REG_OFFSET) >> 2 | (idx << 28));
+	radeon_emit(cs, value);
+}
+
 static inline void radeon_set_uconfig_reg_seq(struct radeon_cmdbuf *cs, unsigned reg, unsigned num)
 {
 	assert(reg >= CIK_UCONFIG_REG_OFFSET && reg < CIK_UCONFIG_REG_END);
@@ -111,13 +130,21 @@ static inline void radeon_set_uconfig_reg(struct radeon_cmdbuf *cs, unsigned reg
 	radeon_emit(cs, value);
 }
 
-static inline void radeon_set_uconfig_reg_idx(struct radeon_cmdbuf *cs,
+static inline void radeon_set_uconfig_reg_idx(const struct radv_physical_device *pdevice,
+					      struct radeon_cmdbuf *cs,
 					      unsigned reg, unsigned idx,
 					      unsigned value)
 {
 	assert(reg >= CIK_UCONFIG_REG_OFFSET && reg < CIK_UCONFIG_REG_END);
 	assert(cs->cdw + 3 <= cs->max_dw);
-	radeon_emit(cs, PKT3(PKT3_SET_UCONFIG_REG, 1, 0));
+	assert(idx);
+
+	unsigned opcode = PKT3_SET_UCONFIG_REG_INDEX;
+	if (pdevice->rad_info.chip_class < GFX9 ||
+	    (pdevice->rad_info.chip_class == GFX9 && pdevice->rad_info.me_fw_version < 26))
+		opcode = PKT3_SET_UCONFIG_REG;
+
+	radeon_emit(cs, PKT3(opcode, 1, 0));
 	radeon_emit(cs, (reg - CIK_UCONFIG_REG_OFFSET) >> 2 | (idx << 28));
 	radeon_emit(cs, value);
 }

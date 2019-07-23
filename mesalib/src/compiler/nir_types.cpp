@@ -280,6 +280,12 @@ glsl_type_is_array(const struct glsl_type *type)
 }
 
 bool
+glsl_type_is_unsized_array(const struct glsl_type *type)
+{
+   return type->is_unsized_array();
+}
+
+bool
 glsl_type_is_array_of_arrays(const struct glsl_type *type)
 {
    return type->is_array_of_arrays();

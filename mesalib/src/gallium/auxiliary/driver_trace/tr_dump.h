@@ -47,8 +47,8 @@ struct pipe_box;
  *
  * Opening the trace file and checking if that is opened.
  */
-boolean trace_dump_trace_begin(void);
-boolean trace_dump_trace_enabled(void);
+bool trace_dump_trace_begin(void);
+bool trace_dump_trace_enabled(void);
 void trace_dump_trace_flush(void);
 
 /*
@@ -68,10 +68,10 @@ void trace_dump_call_unlock(void);
  */
 void trace_dumping_start_locked(void);
 void trace_dumping_stop_locked(void);
-boolean trace_dumping_enabled_locked(void);
+bool trace_dumping_enabled_locked(void);
 void trace_dumping_start(void);
 void trace_dumping_stop(void);
-boolean trace_dumping_enabled(void);
+bool trace_dumping_enabled(void);
 
 void trace_dump_call_begin_locked(const char *klass, const char *method);
 void trace_dump_call_end_locked(void);

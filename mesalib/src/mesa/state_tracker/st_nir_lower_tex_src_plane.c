@@ -29,11 +29,13 @@
  * This should run after nir_lower_samplers.
  */
 
+#include "util/u_string.h"
 #include "compiler/nir/nir.h"
+#include "compiler/nir/nir_builder.h"
 #include "st_nir.h"
 
 typedef struct {
-   struct shader_info *info;
+   struct nir_shader *shader;
 
    unsigned lower_2plane;
    unsigned lower_3plane;
@@ -44,6 +46,34 @@ typedef struct {
    unsigned char sampler_map[PIPE_MAX_SAMPLERS][2];
 } lower_tex_src_state;
 
+static nir_variable *
+find_sampler(lower_tex_src_state *state, unsigned samp)
+{
+   /* NOTE: arrays of samplerExternalOES do not appear to be allowed: */
+   nir_foreach_variable(var, &state->shader->uniforms)
+      if (var->data.binding == samp)
+         return var;
+   return NULL;
+}
+
+static void
+add_sampler(lower_tex_src_state *state, unsigned orig_binding,
+            unsigned new_binding, const char *ext)
+{
+   const struct glsl_type *samplerExternalOES =
+      glsl_sampler_type(GLSL_SAMPLER_DIM_EXTERNAL, false, false, GLSL_TYPE_FLOAT);
+   nir_variable *new_sampler, *orig_sampler =
+         find_sampler(state, orig_binding);
+   char *name;
+
+   asprintf(&name, "%s:%s", orig_sampler->name, ext);
+   new_sampler = nir_variable_create(state->shader, nir_var_uniform,
+                             samplerExternalOES, name);
+   free(name);
+
+   new_sampler->data.binding = new_binding;
+}
+
 static void
 assign_extra_samplers(lower_tex_src_state *state, unsigned free_slots)
 {
@@ -52,18 +82,29 @@ assign_extra_samplers(lower_tex_src_state *state, unsigned free_slots)
    while (mask) {
       unsigned extra, y_samp = u_bit_scan(&mask);
 
-      extra = u_bit_scan(&free_slots);
-      state->sampler_map[y_samp][0] = extra;
-
       if (state->lower_3plane & (1 << y_samp)) {
+         /* two additional planes (U and V): */
+         extra = u_bit_scan(&free_slots);
+         state->sampler_map[y_samp][0] = extra;
+
+         add_sampler(state, y_samp, extra, "u");
+
          extra = u_bit_scan(&free_slots);
          state->sampler_map[y_samp][1] = extra;
+
+         add_sampler(state, y_samp, extra, "v");
+      } else {
+         /* single additional UV plane: */
+         extra = u_bit_scan(&free_slots);
+         state->sampler_map[y_samp][0] = extra;
+
+         add_sampler(state, y_samp, extra, "uv");
       }
    }
 }
 
 static void
-lower_tex_src_plane_block(lower_tex_src_state *state, nir_block *block)
+lower_tex_src_plane_block(nir_builder *b, lower_tex_src_state *state, nir_block *block)
 {
    nir_foreach_instr(instr, block) {
       if (instr->type != nir_instr_type_tex)
@@ -88,7 +129,29 @@ lower_tex_src_plane_block(lower_tex_src_state *state, nir_block *block)
          tex->texture_index = tex->sampler_index =
                state->sampler_map[y_samp][plane[0].i32 - 1];
 
-         state->info->textures_used |= 1u << tex->texture_index;
+         state->shader->info.textures_used |= 1u << tex->texture_index;
+
+         /* For drivers using PIPE_CAP_NIR_SAMPLERS_AS_DEREF, we need
+          * to reference the correct sampler nir variable.
+          */
+         int tex_index = nir_tex_instr_src_index(tex, nir_tex_src_texture_deref);
+         int samp_index = nir_tex_instr_src_index(tex, nir_tex_src_sampler_deref);
+         if (tex_index >= 0 && samp_index >= 0) {
+            b->cursor = nir_before_instr(&tex->instr);
+
+            nir_variable* samp = find_sampler(state, plane[0].i32);
+            assert(samp);
+
+            nir_deref_instr *tex_deref_instr = nir_build_deref_var(b, samp);
+            nir_ssa_def *tex_deref = &tex_deref_instr->dest.ssa;
+
+            nir_instr_rewrite_src(&tex->instr,
+                                  &tex->src[tex_index].src,
+                                  nir_src_for_ssa(tex_deref));
+            nir_instr_rewrite_src(&tex->instr,
+                                  &tex->src[samp_index].src,
+                                  nir_src_for_ssa(tex_deref));
+         }
       }
 
       nir_tex_instr_remove_src(tex, plane_index);
@@ -98,8 +161,11 @@ lower_tex_src_plane_block(lower_tex_src_state *state, nir_block *block)
 static void
 lower_tex_src_plane_impl(lower_tex_src_state *state, nir_function_impl *impl)
 {
+   nir_builder b;
+   nir_builder_init(&b, impl);
+
    nir_foreach_block(block, impl) {
-      lower_tex_src_plane_block(state, block);
+      lower_tex_src_plane_block(&b, state, block);
    }
 
    nir_metadata_preserve(impl, nir_metadata_block_index |
@@ -112,7 +178,7 @@ st_nir_lower_tex_src_plane(struct nir_shader *shader, unsigned free_slots,
 {
    lower_tex_src_state state = {0};
 
-   state.info = &shader->info;
+   state.shader = shader;
    state.lower_2plane = lower_2plane;
    state.lower_3plane = lower_3plane;
 

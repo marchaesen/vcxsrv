@@ -671,13 +671,13 @@ typedef enum
 extern const char *
 _mesa_get_format_name(mesa_format format);
 
-extern GLint
+extern int
 _mesa_get_format_bytes(mesa_format format);
 
 extern GLint
 _mesa_get_format_bits(mesa_format format, GLenum pname);
 
-extern GLuint
+extern unsigned int
 _mesa_get_format_max_bits(mesa_format format);
 
 extern enum mesa_format_layout
@@ -690,11 +690,12 @@ extern GLenum
 _mesa_get_format_base_format(uint32_t format);
 
 extern void
-_mesa_get_format_block_size(mesa_format format, GLuint *bw, GLuint *bh);
+_mesa_get_format_block_size(mesa_format format,
+                            unsigned int *bw, unsigned int *bh);
 
 extern void
-_mesa_get_format_block_size_3d(mesa_format format, GLuint *bw,
-                               GLuint *bh, GLuint *bd);
+_mesa_get_format_block_size_3d(mesa_format format, unsigned int *bw,
+                               unsigned int *bh, unsigned int *bd);
 
 extern mesa_array_format
 _mesa_array_format_flip_channels(mesa_array_format format);
@@ -708,22 +709,22 @@ _mesa_format_to_array_format(mesa_format format);
 extern mesa_format
 _mesa_format_from_array_format(uint32_t array_format);
 
-extern GLboolean
+extern bool
 _mesa_is_format_compressed(mesa_format format);
 
-extern GLboolean
+extern bool
 _mesa_is_format_packed_depth_stencil(mesa_format format);
 
-extern GLboolean
+extern bool
 _mesa_is_format_integer_color(mesa_format format);
 
-extern GLboolean
+extern bool
 _mesa_is_format_unsigned(mesa_format format);
 
-extern GLboolean
+extern bool
 _mesa_is_format_signed(mesa_format format);
 
-extern GLboolean
+extern bool
 _mesa_is_format_integer(mesa_format format);
 
 extern bool
@@ -735,19 +736,19 @@ _mesa_is_format_astc_2d(mesa_format format);
 bool
 _mesa_is_format_color_format(mesa_format format);
 
-extern GLenum
-_mesa_get_format_color_encoding(mesa_format format);
+bool
+_mesa_is_format_srgb(mesa_format format);
 
-extern GLuint
-_mesa_format_image_size(mesa_format format, GLsizei width,
-                        GLsizei height, GLsizei depth);
+extern uint32_t
+_mesa_format_image_size(mesa_format format, int width,
+                        int height, int depth);
 
 extern uint64_t
-_mesa_format_image_size64(mesa_format format, GLsizei width,
-                          GLsizei height, GLsizei depth);
+_mesa_format_image_size64(mesa_format format, int width,
+                          int height, int depth);
 
-extern GLint
-_mesa_format_row_stride(mesa_format format, GLsizei width);
+extern int32_t
+_mesa_format_row_stride(mesa_format format, int width);
 
 extern void
 _mesa_uncompressed_format_to_type_and_comps(mesa_format format,
@@ -765,16 +766,16 @@ _mesa_get_linear_format_srgb(mesa_format format);
 extern mesa_format
 _mesa_get_uncompressed_format(mesa_format format);
 
-extern GLuint
+extern unsigned int
 _mesa_format_num_components(mesa_format format);
 
 extern bool
 _mesa_format_has_color_component(mesa_format format, int component);
 
-GLboolean
+bool
 _mesa_format_matches_format_and_type(mesa_format mesa_format,
 				     GLenum format, GLenum type,
-				     GLboolean swapBytes, GLenum *error);
+				     bool swapBytes, GLenum *error);
 
 mesa_format
 _mesa_format_fallback_rgbx_to_rgba(mesa_format format);

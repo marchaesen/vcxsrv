@@ -114,7 +114,7 @@ _mesa_string_buffer_vprintf(struct _mesa_string_buffer *str,
       va_copy(arg_copy, args);
       uint32_t space_left = str->capacity - str->length;
 
-      int32_t len = util_vsnprintf(str->buf + str->length,
+      int32_t len = vsnprintf(str->buf + str->length,
                                    space_left, format, arg_copy);
       va_end(arg_copy);
 

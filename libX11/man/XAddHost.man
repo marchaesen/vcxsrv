@@ -136,9 +136,9 @@ Specifies each host that is to be added or removed.
 .IP \fImode\fP 1i
 Specifies the mode.
 You can pass
-.ZN EnableAccess
+.B EnableAccess
 or
-.ZN DisableAccess .
+.BR DisableAccess .
 .IP \fInhosts_return\fP 1i
 Returns the number of hosts currently in the access control list.
 .IP \fInum_hosts\fP 1i
@@ -147,113 +147,113 @@ Specifies the number of hosts.
 Returns the state of the access control.
 .SH DESCRIPTION
 The
-.ZN XAddHost
+.B XAddHost
 function adds the specified host to the access control list for that display.
 The server must be on the same host as the client issuing the command, or a
-.ZN BadAccess
+.B BadAccess
 error results.
 .LP
-.ZN XAddHost
+.B XAddHost
 can generate
-.ZN BadAccess
+.B BadAccess
 and
-.ZN BadValue
+.B BadValue
 errors.
 .LP
 The
-.ZN XAddHosts
+.B XAddHosts
 function adds each specified host to the access control list for that display.
 The server must be on the same host as the client issuing the command, or a
-.ZN BadAccess
+.B BadAccess
 error results.
 .LP
-.ZN XAddHosts
+.B XAddHosts
 can generate
-.ZN BadAccess
+.B BadAccess
 and
-.ZN BadValue
+.B BadValue
 errors.
 .LP
 The
-.ZN XListHosts
+.B XListHosts
 function returns the current access control list as well as whether the use 
 of the list at connection setup was enabled or disabled.
-.ZN XListHosts
+.B XListHosts
 allows a program to find out what machines can make connections.
 It also returns a pointer to a list of host structures that
 were allocated by the function. 
 When no longer needed,
 this memory should be freed by calling
-.ZN XFree .
+.BR XFree .
 .LP
 The
-.ZN XRemoveHost
+.B XRemoveHost
 function removes the specified host from the access control list 
 for that display.
 The server must be on the same host as the client process, or a
-.ZN BadAccess
+.B BadAccess
 error results.
 If you remove your machine from the access list,
 you can no longer connect to that server,
 and this operation cannot be reversed unless you reset the server.
 .LP
-.ZN XRemoveHost
+.B XRemoveHost
 can generate
-.ZN BadAccess
+.B BadAccess
 and
-.ZN BadValue
+.B BadValue
 errors.
 .LP
 The
-.ZN XRemoveHosts
+.B XRemoveHosts
 function removes each specified host from the access control list for that 
 display.  
 The X server must be on the same host as the client process, or a
-.ZN BadAccess
+.B BadAccess
 error results.
 If you remove your machine from the access list, 
 you can no longer connect to that server,
 and this operation cannot be reversed unless you reset the server.
 .LP
-.ZN XRemoveHosts
+.B XRemoveHosts
 can generate
-.ZN BadAccess
+.B BadAccess
 and
-.ZN BadValue
+.B BadValue
 errors.
 .LP
 The
-.ZN XSetAccessControl
+.B XSetAccessControl
 function either enables or disables the use of the access control list 
 at each connection setup.
 .LP
-.ZN XSetAccessControl
+.B XSetAccessControl
 can generate
-.ZN BadAccess
+.B BadAccess
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .LP
 The
-.ZN XEnableAccessControl
+.B XEnableAccessControl
 function enables the use of the access control list at each connection setup.
 .LP
-.ZN XEnableAccessControl
+.B XEnableAccessControl
 can generate a
-.ZN BadAccess 
+.B BadAccess
 error.
 .LP
 The
-.ZN XDisableAccessControl
+.B XDisableAccessControl
 function disables the use of the access control list at each connection setup.
 .LP
-.ZN XDisableAccessControl
+.B XDisableAccessControl
 can generate a
-.ZN BadAccess 
+.B BadAccess
 error.
 .SH STRUCTURES
 The
-.ZN XHostAddress
+.B XHostAddress
 structure contains:
 .LP
 .Ds 0
@@ -266,18 +266,18 @@ typedef struct {
 .LP
 The family member specifies which protocol address family to use 
 (for example, TCP/IP or DECnet) and can be
-.ZN FamilyInternet ,
-.ZN FamilyInternet6 ,
-.ZN FamilyServerInterpreted ,
-.ZN FamilyDECnet ,
+.BR FamilyInternet ,
+.BR FamilyInternet6 ,
+.BR FamilyServerInterpreted ,
+.BR FamilyDECnet ,
 or
-.ZN FamilyChaos .
+.BR FamilyChaos .
 The length member specifies the length of the address in bytes.
 The address member specifies a pointer to the address.
 .LP
 For the ServerInterpreted family, the length is ignored and the address 
 member is a pointer to a 
-.ZN XServerInterpretedAddress
+.B XServerInterpretedAddress
 structure which contains:
 .LP
 .Ds 0
@@ -295,12 +295,12 @@ should be used when accessing them.  The typelength and valuelength members
 specify the length in byte of the type and value strings.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAccess
+.B BadAccess
 A client attempted
 to modify the access control list from other than the local
 (or otherwise authorized) host.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

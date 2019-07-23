@@ -93,25 +93,25 @@ Specifies the font.
 Specifies the GC.
 .SH DESCRIPTION
 The
-.ZN XSetFont
+.B XSetFont
 function sets the current font in the specified GC.
 .LP
-.ZN XSetFont
+.B XSetFont
 can generate
-.ZN BadAlloc ,
-.ZN BadFont ,
+.BR BadAlloc ,
+.BR BadFont ,
 and
-.ZN BadGC 
+.B BadGC
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadFont
+.B BadFont
 A value for a Font or GContext argument does not name a defined Font.
 .TP 1i
-.ZN BadGC
+.B BadGC
 A value for a GContext argument does not name a defined GContext.
 .SH "SEE ALSO"
 XCreateGC(__libmansuffix__),

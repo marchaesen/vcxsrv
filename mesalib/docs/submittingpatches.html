@@ -85,6 +85,9 @@ noted in the patch comment.  For example:
 <pre>
    Fixes: d7b3707c612 "util/disk_cache: use stat() to check if entry is a directory"
 </pre>
+<li>You can produce those fixes lines by running
+<pre>git config --global alias.fixes "show -s --pretty='format:Fixes: %h (\"%s\")'"</pre>
+once and then using <pre>git fixes &lt;sha1&gt;</pre>
 <li>If there have been several revisions to a patch during the review
 process, they should be noted such as in this example:
 <pre>

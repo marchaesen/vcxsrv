@@ -116,9 +116,9 @@ Specifies the connection to the X server.
 .IP \fIformat\fP 1i
 Specifies the format for the image.
 You can pass
-.ZN XYPixmap
+.B XYPixmap
 or 
-.ZN ZPixmap .
+.BR ZPixmap .
 .IP \fIgc\fP 1i
 Specifies the GC.
 .IP \fIimage\fP 1i
@@ -129,12 +129,12 @@ Specifies the plane mask.
 .IP \fIsrc_x\fP 1i
 Specifies the offset in X from the left edge of the image defined
 by the 
-.ZN XImage 
+.B XImage
 structure.
 .IP \fIsrc_y\fP 1i
 Specifies the offset in Y from the top edge of the image defined
 by the 
-.ZN XImage 
+.B XImage
 structure.
 .IP \fIwidth\fP 1i
 .br
@@ -150,31 +150,31 @@ Specify the x and y coordinates, which are relative to the origin of the drawabl
 and define the upper-left corner of the rectangle.
 .SH DESCRIPTION
 The
-.ZN XPutImage
+.B XPutImage
 function
 combines an image with a rectangle of the specified drawable.
 The section of the image defined by the src_x, src_y, width, and height 
 arguments is drawn on the specified part of the drawable.
 If 
-.ZN XYBitmap 
+.B XYBitmap
 format is used, the depth of the image must be one,
 or a
-.ZN BadMatch 
+.B BadMatch
 error results.
 The foreground pixel in the GC defines the source for the one bits in the image,
 and the background pixel defines the source for the zero bits.
 For 
-.ZN XYPixmap 
+.B XYPixmap
 and 
-.ZN ZPixmap , 
+.BR ZPixmap ,
 the depth of the image must match the depth of the drawable,
 or a
-.ZN BadMatch
+.B BadMatch
 error results.
 .LP
 If the characteristics of the image (for example, byte_order and bitmap_unit)
 differ from what the server requires,
-.ZN XPutImage 
+.B XPutImage
 automatically makes the appropriate
 conversions.
 .LP
@@ -184,49 +184,49 @@ and clip-mask.
 It also uses these GC mode-dependent components:
 foreground and background.
 .LP
-.ZN XPutImage
+.B XPutImage
 can generate
-.ZN BadDrawable ,
-.ZN BadGC ,
-.ZN BadMatch ,
+.BR BadDrawable ,
+.BR BadGC ,
+.BR BadMatch ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .LP
 The
-.ZN XGetImage
+.B XGetImage
 function returns a pointer to an
-.ZN XImage
+.B XImage
 structure.
 This structure provides you with the contents of the specified rectangle of
 the drawable in the format you specify.
 If the format argument is 
-.ZN XYPixmap ,
+.BR XYPixmap ,
 the image contains only the bit planes you passed to the plane_mask argument.
 If the plane_mask argument only requests a subset of the planes of the
 display, the depth of the returned image will be the number of planes
 requested.
 If the format argument is 
-.ZN ZPixmap ,
-.ZN XGetImage
+.BR ZPixmap ,
+.B XGetImage
 returns as zero the bits in all planes not 
 specified in the plane_mask argument.
 The function performs no range checking on the values in plane_mask and ignores
 extraneous bits.
 .LP
-.ZN XGetImage
+.B XGetImage
 returns the depth of the image to the depth member of the
-.ZN XImage
+.B XImage
 structure.
 The depth of the image is as specified when the drawable was created,
 except when getting a subset of the planes in 
-.ZN XYPixmap
+.B XYPixmap
 format, when the depth is given by the number of bits set to 1 in plane_mask.
 .LP
 If the drawable is a pixmap, 
 the given rectangle must be wholly contained within the pixmap, 
 or a
-.ZN BadMatch
+.B BadMatch
 error results.
 If the drawable is a window, 
 the window must be viewable, 
@@ -234,7 +234,7 @@ and it must be the case that if there were no inferiors or overlapping windows,
 the specified rectangle of the window would be fully visible on the screen
 and wholly contained within the outside edges of the window,
 or a
-.ZN BadMatch
+.B BadMatch
 error results.
 Note that the borders of the window can be included and read with
 this request.
@@ -247,46 +247,46 @@ The returned contents of visible regions of inferiors
 of a different depth than the specified window's depth are also undefined.
 The pointer cursor image is not included in the returned contents.
 If a problem occurs,
-.ZN XGetImage
+.B XGetImage
 returns NULL.
 .LP
-.ZN XGetImage
+.B XGetImage
 can generate
-.ZN BadDrawable ,
-.ZN BadMatch ,
+.BR BadDrawable ,
+.BR BadMatch ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .LP
 The 
-.ZN XGetSubImage 
+.B XGetSubImage
 function updates dest_image with the specified subimage in the same manner as 
-.ZN XGetImage . 
+.BR XGetImage .
 If the format argument is 
-.ZN XYPixmap ,
+.BR XYPixmap ,
 the image contains only the bit planes you passed to the plane_mask argument.
 If the format argument is 
-.ZN ZPixmap ,
-.ZN XGetSubImage
+.BR ZPixmap ,
+.B XGetSubImage
 returns as zero the bits in all planes not 
 specified in the plane_mask argument.
 The function performs no range checking on the values in plane_mask and ignores
 extraneous bits.
 As a convenience,
-.ZN XGetSubImage
+.B XGetSubImage
 returns a pointer to the same
-.ZN XImage
+.B XImage
 structure specified by dest_image.
 .LP
 The depth of the destination
-.ZN XImage
+.B XImage
 structure must be the same as that of the drawable.
 If the specified subimage does not fit at the specified location
 on the destination image, the right and bottom edges are clipped.
 If the drawable is a pixmap,
 the given rectangle must be wholly contained within the pixmap,
 or a
-.ZN BadMatch
+.B BadMatch
 error results.
 If the drawable is a window, 
 the window must be viewable, 
@@ -294,7 +294,7 @@ and it must be the case that if there were no inferiors or overlapping windows,
 the specified rectangle of the window would be fully visible on the screen
 and wholly contained within the outside edges of the window,
 or a
-.ZN BadMatch
+.B BadMatch
 error results.
 If the window has backing-store, 
 then the backing-store contents are returned for regions of the window 
@@ -304,35 +304,35 @@ the returned contents of such obscured regions are undefined.
 The returned contents of visible regions of inferiors
 of a different depth than the specified window's depth are also undefined.
 If a problem occurs,
-.ZN XGetSubImage
+.B XGetSubImage
 returns NULL.
 .LP
-.ZN XGetSubImage
+.B XGetSubImage
 can generate
-.ZN BadDrawable ,
-.ZN BadGC ,
-.ZN BadMatch ,
+.BR BadDrawable ,
+.BR BadGC ,
+.BR BadMatch ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadDrawable
+.B BadDrawable
 A value for a Drawable argument does not name a defined Window or Pixmap.
 .TP 1i
-.ZN BadGC
+.B BadGC
 A value for a GContext argument does not name a defined GContext.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 An
-.ZN InputOnly
+.B InputOnly
 window is used as a Drawable.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 Some argument or pair of arguments has the correct type and range but fails
 to match in some other way required by the request.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

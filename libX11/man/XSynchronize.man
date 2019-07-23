@@ -97,20 +97,20 @@ Specifies a Boolean value that indicates whether to enable
 or disable synchronization.
 .SH DESCRIPTION
 The
-.ZN XSynchronize
+.B XSynchronize
 function returns 
 the previous after function.
 If onoff is 
-.ZN True , 
-.ZN XSynchronize
+.BR True ,
+.B XSynchronize
 turns on synchronous behavior.
 If onoff is
-.ZN False ,
-.ZN XSynchronize 
+.BR False ,
+.B XSynchronize
 turns off synchronous behavior.
 .LP
 The specified procedure is called with only a display pointer.
-.ZN XSetAfterFunction
+.B XSetAfterFunction
 returns the previous after function.
 .SH "SEE ALSO"
 XSetErrorHandler(__libmansuffix__)

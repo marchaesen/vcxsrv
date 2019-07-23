@@ -211,20 +211,6 @@ void ac_destroy_llvm_passes(struct ac_compiler_passes *p)
 }
 
 /* This returns false on failure. */
-bool ac_compile_module_to_binary(struct ac_compiler_passes *p, LLVMModuleRef module,
-				 struct ac_shader_binary *binary)
-{
-	p->passmgr.run(*llvm::unwrap(module));
-
-	bool success = ac_elf_read(p->ostream.buffer, p->ostream.written, binary);
-	p->ostream.clear();
-
-	if (!success)
-		fprintf(stderr, "amd: cannot read an ELF shader binary\n");
-	return success;
-}
-
-/* This returns false on failure. */
 bool ac_compile_module_to_elf(struct ac_compiler_passes *p, LLVMModuleRef module,
 			      char **pelf_buffer, size_t *pelf_size)
 {

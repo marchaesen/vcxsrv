@@ -93,45 +93,45 @@ Status XGetClassHint\^(\^Display *\fIdisplay\fP, Window \fIw\fP, XClassHint *\fI
 Specifies the connection to the X server.
 .IP \fIclass_hints\fP 1i
 Specifies the
-.ZN XClassHint
+.B XClassHint
 structure that is to be used.
 .IP \fIclass_hints_return\fP 1i
 Returns the 
-.ZN XClassHint
+.B XClassHint
 structure.
 .IP \fIw\fP 1i
 Specifies the window.
 .SH DESCRIPTION
 The
-.ZN XAllocClassHint
+.B XAllocClassHint
 function allocates and returns a pointer to a
-.ZN XClassHint
+.B XClassHint
 structure.
 Note that the pointer fields in the
-.ZN XClassHint
+.B XClassHint
 structure are initially set to NULL.
 If insufficient memory is available, 
-.ZN XAllocClassHint
+.B XAllocClassHint
 returns NULL.
 To free the memory allocated to this structure,
 use
-.ZN XFree .
+.BR XFree .
 .LP
 The
-.ZN XSetClassHint
+.B XSetClassHint
 function sets the class hint for the specified window.
 If the strings are not in the Host Portable Character Encoding,
 the result is implementation-dependent.
 .LP
-.ZN XSetClassHint
+.B XSetClassHint
 can generate
-.ZN BadAlloc
+.B BadAlloc
 and
-.ZN BadWindow
+.B BadWindow
 errors.
 .LP
 The
-.ZN XGetClassHint
+.B XGetClassHint
 function returns the class hint of the specified window to the members
 of the supplied structure.
 If the data returned by the server is in the Latin Portable Character Encoding,
@@ -141,12 +141,12 @@ It returns a nonzero status on success;
 otherwise, it returns a zero status.
 To free res_name and res_class when finished with the strings,
 use
-.ZN XFree
+.B XFree
 on each individually.
 .LP
-.ZN XGetClassHint
+.B XGetClassHint
 can generate a
-.ZN BadWindow
+.B BadWindow
 error.
 .SH PROPERTIES
 .TP 1i
@@ -155,7 +155,7 @@ Set by application programs to allow window and session
 managers to obtain the application's resources from the resource database.
 .SH STRUCTURES
 The
-.ZN XClassHint
+.B XClassHint
 structure contains:
 .LP
 .IN "XClassHint" "" "@DEF@"
@@ -177,10 +177,10 @@ that should be used when retrieving the application's resources from the
 resource database.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XAllocIconSize(__libmansuffix__),

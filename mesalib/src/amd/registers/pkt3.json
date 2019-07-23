@@ -88,6 +88,36 @@
     {"name": "DATA", "value": 2},
     {"name": "SRC_ADDR_TC_L2", "value": 3}
    ]
+  },
+  "GCR_GL1_RANGE": {
+   "entries": [
+    {"name": "GL1_ALL", "value": 0},
+    {"name": "GL1_RANGE", "value": 2},
+    {"name": "GL1_FIRST_LAST", "value": 3}
+   ]
+  },
+  "GCR_GL2_RANGE": {
+   "entries": [
+    {"name": "GL2_ALL", "value": 0},
+    {"name": "GL2_VOL", "value": 1},
+    {"name": "GL2_RANGE", "value": 2},
+    {"name": "GL2_FIRST_LAST", "value": 3}
+   ]
+  },
+  "GCR_GLI_INV": {
+   "entries": [
+    {"name": "GLI_NOP", "value": 0},
+    {"name": "GLI_ALL", "value": 1},
+    {"name": "GLI_RANGE", "value": 2},
+    {"name": "GLI_FIRST_LAST", "value": 3}
+   ]
+  },
+  "GCR_SEQ": {
+   "entries": [
+    {"name": "SEQ_PARALLEL", "value": 0},
+    {"name": "SEQ_FORWARD", "value": 1},
+    {"name": "SEQ_REVERSE", "value": 2}
+   ]
   }
  },
  "register_mappings": [
@@ -98,7 +128,7 @@
    "type_ref": "COMMAND"
   },
   {
-   "chips": ["gfx9"],
+   "chips": ["gfx9", "gfx10"],
    "map": {"at": 1044, "to": "pkt3"},
    "name": "COMMAND",
    "type_ref": "COMMAND_gfx9"
@@ -110,13 +140,13 @@
    "type_ref": "CONTROL"
   },
   {
-   "chips": ["gfx7", "gfx8", "fiji", "stoney", "gfx9"],
+   "chips": ["gfx7", "gfx8", "fiji", "stoney", "gfx9", "gfx10"],
    "map": {"at": 880, "to": "pkt3"},
    "name": "CONTROL",
    "type_ref": "CONTROL_cik"
   },
   {
-   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9"],
+   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9", "gfx10"],
    "map": {"at": 1040, "to": "pkt3"},
    "name": "CP_DMA_WORD0",
    "type_ref": "CP_DMA_WORD0"
@@ -134,19 +164,19 @@
    "type_ref": "CP_DMA_WORD1_cik"
   },
   {
-   "chips": ["gfx9"],
+   "chips": ["gfx9", "gfx10"],
    "map": {"at": 1041, "to": "pkt3"},
    "name": "CP_DMA_WORD1",
    "type_ref": "CP_DMA_WORD1_gfx9"
   },
   {
-   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9"],
+   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9", "gfx10"],
    "map": {"at": 1042, "to": "pkt3"},
    "name": "CP_DMA_WORD2",
    "type_ref": "CP_DMA_WORD2"
   },
   {
-   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9"],
+   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9", "gfx10"],
    "map": {"at": 1043, "to": "pkt3"},
    "name": "CP_DMA_WORD3",
    "type_ref": "CP_DMA_WORD3"
@@ -164,54 +194,66 @@
    "type_ref": "DMA_DATA_WORD0_cik"
   },
   {
-   "chips": ["gfx9"],
+   "chips": ["gfx9", "gfx10"],
    "map": {"at": 1280, "to": "pkt3"},
    "name": "DMA_DATA_WORD0",
    "type_ref": "DMA_DATA_WORD0_gfx9"
   },
   {
-   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9"],
+   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9", "gfx10"],
    "map": {"at": 882, "to": "pkt3"},
    "name": "DST_ADDR_HI"
   },
   {
-   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9"],
+   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9", "gfx10"],
    "map": {"at": 1284, "to": "pkt3"},
    "name": "DST_ADDR_HI"
   },
   {
-   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9"],
+   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9", "gfx10"],
    "map": {"at": 881, "to": "pkt3"},
    "name": "DST_ADDR_LO"
   },
   {
-   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9"],
+   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9", "gfx10"],
    "map": {"at": 1283, "to": "pkt3"},
    "name": "DST_ADDR_LO"
   },
   {
-   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9"],
+   "chips": ["gfx10"],
+   "map": {"at": 1414, "to": "pkt3"},
+   "name": "GCR_CNTL",
+   "type_ref": "GCR_CNTL"
+  },
+  {
+   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9", "gfx10"],
    "map": {"at": 1009, "to": "pkt3"},
    "name": "IB_BASE_HI"
   },
   {
-   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9"],
+   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9", "gfx10"],
    "map": {"at": 1008, "to": "pkt3"},
    "name": "IB_BASE_LO"
   },
   {
-   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9"],
+   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9", "gfx10"],
    "map": {"at": 1010, "to": "pkt3"},
    "name": "IB_CONTROL",
    "type_ref": "IB_CONTROL"
   },
   {
-   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9"],
+   "chips": ["gfx10"],
+   "map": {"at": 1168, "to": "pkt3"},
+   "name": "RELEASE_MEM_OP",
+   "type_ref": "RELEASE_MEM_OP"
+  },
+  {
+   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9", "gfx10"],
    "map": {"at": 1282, "to": "pkt3"},
    "name": "SRC_ADDR_HI"
   },
   {
-   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9"],
+   "chips": ["gfx6", "gfx7", "gfx8", "fiji", "stoney", "gfx9", "gfx10"],
    "map": {"at": 1281, "to": "pkt3"},
    "name": "SRC_ADDR_LO"
   }
@@ -327,11 +369,46 @@
     {"bits": [31, 31], "name": "CP_SYNC"}
    ]
   },
+  "GCR_CNTL": {
+   "fields": [
+    {"bits": [0, 1], "enum_ref": "GCR_GLI_INV", "name": "GLI_INV"},
+    {"bits": [2, 3], "enum_ref": "GCR_GL1_RANGE", "name": "GL1_RANGE"},
+    {"bits": [4, 4], "name": "GLM_WB"},
+    {"bits": [5, 5], "name": "GLM_INV"},
+    {"bits": [6, 6], "name": "GLK_WB"},
+    {"bits": [7, 7], "name": "GLK_INV"},
+    {"bits": [8, 8], "name": "GLV_INV"},
+    {"bits": [9, 9], "name": "GL1_INV"},
+    {"bits": [10, 10], "name": "GL2_US"},
+    {"bits": [11, 12], "enum_ref": "GCR_GL2_RANGE", "name": "GL2_RANGE"},
+    {"bits": [13, 13], "name": "GL2_DISCARD"},
+    {"bits": [14, 14], "name": "GL2_INV"},
+    {"bits": [15, 15], "name": "GL2_WB"},
+    {"bits": [16, 17], "enum_ref": "GCR_SEQ", "name": "SEQ"},
+    {"bits": [18, 18], "name": "RANGE_IS_PA"}
+   ]
+  },
   "IB_CONTROL": {
    "fields": [
     {"bits": [0, 19], "name": "IB_SIZE"},
     {"bits": [20, 20], "name": "CHAIN"},
     {"bits": [23, 23], "name": "VALID"}
+   ]
+  },
+  "RELEASE_MEM_OP": {
+   "fields": [
+    {"bits": [0, 5], "name": "EVENT_TYPE"},
+    {"bits": [8, 11], "name": "EVENT_INDEX"},
+    {"bits": [12, 12], "name": "GLM_WB"},
+    {"bits": [13, 13], "name": "GLM_INV"},
+    {"bits": [14, 14], "name": "GLV_INV"},
+    {"bits": [15, 15], "name": "GL1_INV"},
+    {"bits": [16, 16], "name": "GL2_US"},
+    {"bits": [17, 18], "enum_ref": "GCR_GL2_RANGE", "name": "GL2_RANGE"},
+    {"bits": [19, 19], "name": "GL2_DISCARD"},
+    {"bits": [20, 20], "name": "GL2_INV"},
+    {"bits": [21, 21], "name": "GL2_WB"},
+    {"bits": [22, 23], "enum_ref": "GCR_SEQ", "name": "SEQ"}
    ]
   }
  }

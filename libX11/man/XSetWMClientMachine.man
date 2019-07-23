@@ -93,25 +93,25 @@ XTextProperty *\fItext_prop_return\fP\^);
 Specifies the connection to the X server.
 .IP \fItext_prop\fP 1i
 Specifies the
-.ZN XTextProperty
+.B XTextProperty
 structure to be used.
 .IP \fItext_prop_return\fP 1i
 Returns the
-.ZN XTextProperty
+.B XTextProperty
 structure.
 .IP \fIw\fP 1i
 Specifies the window.
 .SH DESCRIPTION
 The
-.ZN XSetWMClientMachine
+.B XSetWMClientMachine
 convenience function calls
-.ZN XSetTextProperty
+.B XSetTextProperty
 to set the WM_CLIENT_MACHINE property.
 .LP
 The
-.ZN XGetWMClientMachine
+.B XGetWMClientMachine
 convenience function performs an 
-.ZN XGetTextProperty 
+.B XGetTextProperty
 on the WM_CLIENT_MACHINE property.
 It returns a nonzero status on success;
 otherwise, it returns a zero status.

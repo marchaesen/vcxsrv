@@ -100,16 +100,16 @@ int *\fIinterval_return\fP\^, int *\fIprefer_blanking_return\fP\^, int
 .IP \fIallow_exposures\fP 1i
 Specifies the screen save control values.
 You can pass
-.ZN DontAllowExposures ,
-.ZN AllowExposures ,
+.BR DontAllowExposures ,
+.BR AllowExposures ,
 or
-.ZN DefaultExposures .
+.BR DefaultExposures .
 .IP \fIallow_exposures_return\fP 1i
 Returns the current screen save control value
 .Pn ( DontAllowExposures ,
-.ZN AllowExposures ,
+.BR AllowExposures ,
 or
-.ZN DefaultExposures ).
+.BR DefaultExposures ).
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fIinterval\fP 1i
@@ -119,22 +119,22 @@ Returns the interval between screen saver invocations.
 .IP \fImode\fP 1i
 Specifies the mode that is to be applied.
 You can pass
-.ZN ScreenSaverActive
+.B ScreenSaverActive
 or
-.ZN ScreenSaverReset .
+.BR ScreenSaverReset .
 .IP \fIprefer_blanking\fP 1i
 Specifies how to enable screen blanking.
 You can pass
-.ZN DontPreferBlanking ,
-.ZN PreferBlanking ,
+.BR DontPreferBlanking ,
+.BR PreferBlanking ,
 or
-.ZN DefaultBlanking .
+.BR DefaultBlanking .
 .IP \fIprefer_blanking_return\fP 1i
 Returns the current screen blanking preference
 .Pn ( DontPreferBlanking ,
-.ZN PreferBlanking ,
+.BR PreferBlanking ,
 or
-.ZN DefaultBlanking ).
+.BR DefaultBlanking ).
 .IP \fItimeout\fP 1i
 Specifies the timeout, in seconds, until the screen saver turns on.
 .IP \fItimeout_return\fP 1i
@@ -145,10 +145,10 @@ A timeout of 0 disables the screen saver
 (but an activated screen saver is not deactivated),
 and a timeout of \-1 restores the default.
 Other negative values generate a
-.ZN BadValue
+.B BadValue
 error.
 If the timeout value is nonzero, 
-.ZN XSetScreenSaver
+.B XSetScreenSaver
 enables the screen saver.
 An interval of 0 disables the random-pattern motion.
 Both values are limited to a 16-bit signed integer range by the wire protocol,
@@ -162,7 +162,7 @@ if blanking is preferred and the hardware supports video blanking,
 the screen simply goes blank.  
 Otherwise, if either exposures are allowed or the screen can be regenerated 
 without sending 
-.ZN Expose 
+.B Expose
 events to clients, 
 the screen is tiled with the root window background tile randomly 
 re-origined each interval seconds.
@@ -171,9 +171,9 @@ and the screen saver is not activated.
 The screen saver is deactivated,
 and all screen states are restored at the next
 keyboard or pointer input or at the next call to
-.ZN XForceScreenSaver
+.B XForceScreenSaver
 with mode
-.ZN ScreenSaverReset .  
+.BR ScreenSaverReset .
 .LP
 If the server-dependent screen saver method supports periodic change,
 the interval argument serves as a hint about how long the change period
@@ -183,44 +183,44 @@ periodically, moving an icon image around the screen periodically, or tiling
 the screen with the root window background tile, randomly re-origined
 periodically.
 .LP
-.ZN XSetScreenSaver
+.B XSetScreenSaver
 can generate a
-.ZN BadValue 
+.B BadValue
 error.
 .LP
 If the specified mode is 
-.ZN ScreenSaverActive 
+.B ScreenSaverActive
 and the screen saver currently is deactivated,
-.ZN XForceScreenSaver
+.B XForceScreenSaver
 activates the screen saver even if the screen saver had been disabled
 with a timeout of zero.
 If the specified mode is 
-.ZN ScreenSaverReset 
+.B ScreenSaverReset
 and the screen saver currently is enabled,
-.ZN XForceScreenSaver
+.B XForceScreenSaver
 deactivates the screen saver if it was activated,
 and the activation timer is reset to its initial state 
 (as if device input had been received).
 .LP
-.ZN XForceScreenSaver
+.B XForceScreenSaver
 can generate a
-.ZN BadValue 
+.B BadValue
 error.
 .LP
 The
-.ZN XActivateScreenSaver
+.B XActivateScreenSaver
 function activates the screen saver.
 .LP
 The
-.ZN XResetScreenSaver
+.B XResetScreenSaver
 function resets the screen saver.
 .LP
 The
-.ZN XGetScreenSaver
+.B XGetScreenSaver
 function gets the current screen saver values.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

@@ -106,17 +106,17 @@ Specifies the table of command line arguments to be parsed.
 Specifies the number of entries in the table.
 .SH DESCRIPTION
 The
-.ZN XrmInitialize
+.B XrmInitialize
 function initialize the resource manager.
 It must be called before any other Xrm functions are used.
 .LP
 The
-.ZN XrmParseCommand
+.B XrmParseCommand
 function parses an (argc, argv) pair according to the specified option table,
 loads recognized options into the specified database with type ``String,''
 and modifies the (argc, argv) pair to remove all recognized options.
 If database contains NULL,
-.ZN XrmParseCommand
+.B XrmParseCommand
 creates a new database and returns a pointer to it.
 Otherwise, entries are added to the database specified.
 If a database is created, it is created in the current locale.
@@ -128,7 +128,7 @@ in the order they occur in argv.
 The table entries contain information on the option string,
 the option name, the style of option, 
 and a value to provide if the option kind is 
-.ZN XrmoptionNoArg .
+.BR XrmoptionNoArg .
 The option names are compared byte-for-byte to arguments in argv,
 independent of any locale.
 The resource values given in the table are stored in the resource database
@@ -153,10 +153,10 @@ Host Portable Character Encoding,
 the result is implementation-dependent.
 .SH STRUCTURES
 The
-.ZN XrmValue ,
-.ZN XrmOptionKind ,
+.BR XrmValue ,
+.BR XrmOptionKind ,
 and
-.ZN XrmOptionDescRec
+.B XrmOptionDescRec
 structures contain:
 .LP
 .Ds 0

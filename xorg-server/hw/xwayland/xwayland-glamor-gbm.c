@@ -234,11 +234,12 @@ xwl_glamor_gbm_create_pixmap(ScreenPtr screen,
                                GBM_BO_USE_SCANOUT | GBM_BO_USE_RENDERING);
         }
 
-        if (bo)
+        if (bo) {
             pixmap = xwl_glamor_gbm_create_pixmap_for_bo(screen, bo, depth);
 
-        if (!pixmap)
-            gbm_bo_destroy(bo);
+            if (!pixmap)
+                gbm_bo_destroy(bo);
+        }
     }
 
     if (!pixmap)

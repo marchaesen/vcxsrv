@@ -32,18 +32,15 @@
 #include "common/v3d_device_info.h"
 #include "v3d_compiler.h"
 
+/* We don't do any address packing. */
+#define __gen_user_data void
+#define __gen_address_type uint32_t
+#define __gen_address_offset(reloc) (*reloc)
+#define __gen_emit_reloc(cl, reloc)
+#include "cle/v3d_packet_v41_pack.h"
+
 #define GENERAL_TMU_LOOKUP_PER_QUAD                 (0 << 7)
 #define GENERAL_TMU_LOOKUP_PER_PIXEL                (1 << 7)
-#define GENERAL_TMU_READ_OP_PREFETCH                (0 << 3)
-#define GENERAL_TMU_READ_OP_CACHE_CLEAR             (1 << 3)
-#define GENERAL_TMU_READ_OP_CACHE_FLUSH             (3 << 3)
-#define GENERAL_TMU_READ_OP_CACHE_CLEAN             (3 << 3)
-#define GENERAL_TMU_READ_OP_CACHE_L1T_CLEAR         (4 << 3)
-#define GENERAL_TMU_READ_OP_CACHE_L1T_FLUSH_AGGREGATION (5 << 3)
-#define GENERAL_TMU_READ_OP_ATOMIC_INC              (8 << 3)
-#define GENERAL_TMU_READ_OP_ATOMIC_DEC              (9 << 3)
-#define GENERAL_TMU_READ_OP_ATOMIC_NOT              (10 << 3)
-#define GENERAL_TMU_READ_OP_READ                    (15 << 3)
 #define GENERAL_TMU_LOOKUP_TYPE_8BIT_I              (0 << 0)
 #define GENERAL_TMU_LOOKUP_TYPE_16BIT_I             (1 << 0)
 #define GENERAL_TMU_LOOKUP_TYPE_VEC2                (2 << 0)
@@ -52,19 +49,6 @@
 #define GENERAL_TMU_LOOKUP_TYPE_8BIT_UI             (5 << 0)
 #define GENERAL_TMU_LOOKUP_TYPE_16BIT_UI            (6 << 0)
 #define GENERAL_TMU_LOOKUP_TYPE_32BIT_UI            (7 << 0)
-
-#define GENERAL_TMU_WRITE_OP_ATOMIC_ADD_WRAP         (0 << 3)
-#define GENERAL_TMU_WRITE_OP_ATOMIC_SUB_WRAP         (1 << 3)
-#define GENERAL_TMU_WRITE_OP_ATOMIC_XCHG             (2 << 3)
-#define GENERAL_TMU_WRITE_OP_ATOMIC_CMPXCHG          (3 << 3)
-#define GENERAL_TMU_WRITE_OP_ATOMIC_UMIN             (4 << 3)
-#define GENERAL_TMU_WRITE_OP_ATOMIC_UMAX             (5 << 3)
-#define GENERAL_TMU_WRITE_OP_ATOMIC_SMIN             (6 << 3)
-#define GENERAL_TMU_WRITE_OP_ATOMIC_SMAX             (7 << 3)
-#define GENERAL_TMU_WRITE_OP_ATOMIC_AND              (8 << 3)
-#define GENERAL_TMU_WRITE_OP_ATOMIC_OR               (9 << 3)
-#define GENERAL_TMU_WRITE_OP_ATOMIC_XOR              (10 << 3)
-#define GENERAL_TMU_WRITE_OP_WRITE                   (15 << 3)
 
 #define V3D_TSY_SET_QUORUM          0
 #define V3D_TSY_INC_WAITERS         1
@@ -122,6 +106,27 @@ vir_emit_thrsw(struct v3d_compile *c)
         c->last_thrsw = vir_NOP(c);
         c->last_thrsw->qpu.sig.thrsw = true;
         c->last_thrsw_at_top_level = !c->in_control_flow;
+
+        /* We need to lock the scoreboard before any tlb acess happens. If this
+         * thread switch comes after we have emitted a tlb load, then it means
+         * that we can't lock on the last thread switch any more.
+         */
+        if (c->emitted_tlb_load)
+                c->lock_scoreboard_on_first_thrsw = true;
+}
+
+uint32_t
+v3d_get_op_for_atomic_add(nir_intrinsic_instr *instr, unsigned src)
+{
+        if (nir_src_is_const(instr->src[src])) {
+                int64_t add_val = nir_src_as_int(instr->src[src]);
+                if (add_val == 1)
+                        return V3D_TMU_OP_WRITE_AND_READ_INC;
+                else if (add_val == -1)
+                        return V3D_TMU_OP_WRITE_OR_READ_DEC;
+        }
+
+        return V3D_TMU_OP_WRITE_ADD_READ_PREFETCH;
 }
 
 static uint32_t
@@ -133,41 +138,41 @@ v3d_general_tmu_op(nir_intrinsic_instr *instr)
         case nir_intrinsic_load_uniform:
         case nir_intrinsic_load_shared:
         case nir_intrinsic_load_scratch:
-                return GENERAL_TMU_READ_OP_READ;
         case nir_intrinsic_store_ssbo:
         case nir_intrinsic_store_shared:
         case nir_intrinsic_store_scratch:
-                return GENERAL_TMU_WRITE_OP_WRITE;
+                return V3D_TMU_OP_REGULAR;
         case nir_intrinsic_ssbo_atomic_add:
+                return v3d_get_op_for_atomic_add(instr, 2);
         case nir_intrinsic_shared_atomic_add:
-                return GENERAL_TMU_WRITE_OP_ATOMIC_ADD_WRAP;
+                return v3d_get_op_for_atomic_add(instr, 1);
         case nir_intrinsic_ssbo_atomic_imin:
         case nir_intrinsic_shared_atomic_imin:
-                return GENERAL_TMU_WRITE_OP_ATOMIC_SMIN;
+                return V3D_TMU_OP_WRITE_SMIN;
         case nir_intrinsic_ssbo_atomic_umin:
         case nir_intrinsic_shared_atomic_umin:
-                return GENERAL_TMU_WRITE_OP_ATOMIC_UMIN;
+                return V3D_TMU_OP_WRITE_UMIN_FULL_L1_CLEAR;
         case nir_intrinsic_ssbo_atomic_imax:
         case nir_intrinsic_shared_atomic_imax:
-                return GENERAL_TMU_WRITE_OP_ATOMIC_SMAX;
+                return V3D_TMU_OP_WRITE_SMAX;
         case nir_intrinsic_ssbo_atomic_umax:
         case nir_intrinsic_shared_atomic_umax:
-                return GENERAL_TMU_WRITE_OP_ATOMIC_UMAX;
+                return V3D_TMU_OP_WRITE_UMAX;
         case nir_intrinsic_ssbo_atomic_and:
         case nir_intrinsic_shared_atomic_and:
-                return GENERAL_TMU_WRITE_OP_ATOMIC_AND;
+                return V3D_TMU_OP_WRITE_AND_READ_INC;
         case nir_intrinsic_ssbo_atomic_or:
         case nir_intrinsic_shared_atomic_or:
-                return GENERAL_TMU_WRITE_OP_ATOMIC_OR;
+                return V3D_TMU_OP_WRITE_OR_READ_DEC;
         case nir_intrinsic_ssbo_atomic_xor:
         case nir_intrinsic_shared_atomic_xor:
-                return GENERAL_TMU_WRITE_OP_ATOMIC_XOR;
+                return V3D_TMU_OP_WRITE_XOR_READ_NOT;
         case nir_intrinsic_ssbo_atomic_exchange:
         case nir_intrinsic_shared_atomic_exchange:
-                return GENERAL_TMU_WRITE_OP_ATOMIC_XCHG;
+                return V3D_TMU_OP_WRITE_XCHG_READ_FLUSH;
         case nir_intrinsic_ssbo_atomic_comp_swap:
         case nir_intrinsic_shared_atomic_comp_swap:
-                return GENERAL_TMU_WRITE_OP_ATOMIC_CMPXCHG;
+                return V3D_TMU_OP_WRITE_CMPXCHG_READ_FLUSH;
         default:
                 unreachable("unknown intrinsic op");
         }
@@ -181,11 +186,16 @@ static void
 ntq_emit_tmu_general(struct v3d_compile *c, nir_intrinsic_instr *instr,
                      bool is_shared_or_scratch)
 {
-        /* XXX perf: We should turn add/sub of 1 to inc/dec.  Perhaps NIR
-         * wants to have support for inc/dec?
-         */
-
         uint32_t tmu_op = v3d_general_tmu_op(instr);
+
+        /* If we were able to replace atomic_add for an inc/dec, then we
+         * need/can to do things slightly different, like not loading the
+         * amount to add/sub, as that is implicit.
+         */
+        bool atomic_add_replaced = ((instr->intrinsic == nir_intrinsic_ssbo_atomic_add ||
+                                     instr->intrinsic == nir_intrinsic_shared_atomic_add) &&
+                                    (tmu_op == V3D_TMU_OP_WRITE_AND_READ_INC ||
+                                     tmu_op == V3D_TMU_OP_WRITE_OR_READ_DEC));
         bool is_store = (instr->intrinsic == nir_intrinsic_store_ssbo ||
                          instr->intrinsic == nir_intrinsic_store_scratch ||
                          instr->intrinsic == nir_intrinsic_store_shared);
@@ -198,7 +208,8 @@ ntq_emit_tmu_general(struct v3d_compile *c, nir_intrinsic_instr *instr,
         } else if (instr->intrinsic == nir_intrinsic_load_ssbo ||
                    instr->intrinsic == nir_intrinsic_load_ubo ||
                    instr->intrinsic == nir_intrinsic_load_scratch ||
-                   instr->intrinsic == nir_intrinsic_load_shared) {
+                   instr->intrinsic == nir_intrinsic_load_shared ||
+                   atomic_add_replaced) {
                 offset_src = 0 + has_index;
         } else if (is_store) {
                 offset_src = 1 + has_index;
@@ -214,7 +225,7 @@ ntq_emit_tmu_general(struct v3d_compile *c, nir_intrinsic_instr *instr,
                              vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_TMUD),
                              ntq_get_src(c, instr->src[1 + has_index], 0));
                 tmu_writes++;
-                if (tmu_op == GENERAL_TMU_WRITE_OP_ATOMIC_CMPXCHG) {
+                if (tmu_op == V3D_TMU_OP_WRITE_CMPXCHG_READ_FLUSH) {
                         vir_MOV_dest(c,
                                      vir_reg(QFILE_MAGIC, V3D_QPU_WADDR_TMUD),
                                      ntq_get_src(c, instr->src[2 + has_index],
@@ -272,13 +283,13 @@ ntq_emit_tmu_general(struct v3d_compile *c, nir_intrinsic_instr *instr,
          * reads, which has been fine).
          */
         int num_components;
-        if (tmu_op == GENERAL_TMU_WRITE_OP_ATOMIC_CMPXCHG)
+        if (tmu_op == V3D_TMU_OP_WRITE_CMPXCHG_READ_FLUSH)
                 num_components = 2;
         else
                 num_components = instr->num_components;
 
         uint32_t config = (0xffffff00 |
-                           tmu_op |
+                           tmu_op << 3|
                            GENERAL_TMU_LOOKUP_PER_PIXEL);
         if (num_components == 1) {
                 config |= GENERAL_TMU_LOOKUP_TYPE_32BIT_UI;
@@ -1101,6 +1112,107 @@ ntq_emit_alu(struct v3d_compile *c, nir_alu_instr *instr)
 #define TLB_TYPE_STENCIL_ALPHA     ((2 << 6) | (1 << 4))
 
 static void
+vir_emit_tlb_color_write(struct v3d_compile *c, unsigned rt)
+{
+        if (!(c->fs_key->cbufs & (1 << rt)) || !c->output_color_var[rt])
+                return;
+
+        struct qreg tlb_reg = vir_magic_reg(V3D_QPU_WADDR_TLB);
+        struct qreg tlbu_reg = vir_magic_reg(V3D_QPU_WADDR_TLBU);
+
+        nir_variable *var = c->output_color_var[rt];
+        int num_components = glsl_get_vector_elements(var->type);
+        uint32_t conf = 0xffffff00;
+        struct qinst *inst;
+
+        conf |= c->msaa_per_sample_output ? TLB_SAMPLE_MODE_PER_SAMPLE :
+                                            TLB_SAMPLE_MODE_PER_PIXEL;
+        conf |= (7 - rt) << TLB_RENDER_TARGET_SHIFT;
+
+        if (c->fs_key->swap_color_rb & (1 << rt))
+                num_components = MAX2(num_components, 3);
+        assert(num_components != 0);
+
+        enum glsl_base_type type = glsl_get_base_type(var->type);
+        bool is_int_format = type == GLSL_TYPE_INT || type == GLSL_TYPE_UINT;
+        bool is_32b_tlb_format = is_int_format ||
+                                 (c->fs_key->f32_color_rb & (1 << rt));
+
+        if (is_int_format) {
+                /* The F32 vs I32 distinction was dropped in 4.2. */
+                if (c->devinfo->ver < 42)
+                        conf |= TLB_TYPE_I32_COLOR;
+                else
+                        conf |= TLB_TYPE_F32_COLOR;
+                conf |= ((num_components - 1) << TLB_VEC_SIZE_MINUS_1_SHIFT);
+        } else {
+                if (c->fs_key->f32_color_rb & (1 << rt)) {
+                        conf |= TLB_TYPE_F32_COLOR;
+                        conf |= ((num_components - 1) <<
+                                TLB_VEC_SIZE_MINUS_1_SHIFT);
+                } else {
+                        conf |= TLB_TYPE_F16_COLOR;
+                        conf |= TLB_F16_SWAP_HI_LO;
+                        if (num_components >= 3)
+                                conf |= TLB_VEC_SIZE_4_F16;
+                        else
+                                conf |= TLB_VEC_SIZE_2_F16;
+                }
+        }
+
+        int num_samples = c->msaa_per_sample_output ? V3D_MAX_SAMPLES : 1;
+        for (int i = 0; i < num_samples; i++) {
+                struct qreg *color = c->msaa_per_sample_output ?
+                        &c->sample_colors[(rt * V3D_MAX_SAMPLES + i) * 4] :
+                        &c->outputs[var->data.driver_location * 4];
+
+                struct qreg r = color[0];
+                struct qreg g = color[1];
+                struct qreg b = color[2];
+                struct qreg a = color[3];
+
+                if (c->fs_key->swap_color_rb & (1 << rt))  {
+                        r = color[2];
+                        b = color[0];
+                }
+
+                if (c->fs_key->sample_alpha_to_one)
+                        a = vir_uniform_f(c, 1.0);
+
+                if (is_32b_tlb_format) {
+                        if (i == 0) {
+                                inst = vir_MOV_dest(c, tlbu_reg, r);
+                                inst->uniform =
+                                        vir_get_uniform_index(c,
+                                                              QUNIFORM_CONSTANT,
+                                                              conf);
+                        } else {
+                                inst = vir_MOV_dest(c, tlb_reg, r);
+                        }
+
+                        if (num_components >= 2)
+                                vir_MOV_dest(c, tlb_reg, g);
+                        if (num_components >= 3)
+                                vir_MOV_dest(c, tlb_reg, b);
+                        if (num_components >= 4)
+                                vir_MOV_dest(c, tlb_reg, a);
+                } else {
+                        inst = vir_VFPACK_dest(c, tlb_reg, r, g);
+                        if (conf != ~0 && i == 0) {
+                                inst->dst = tlbu_reg;
+                                inst->uniform =
+                                        vir_get_uniform_index(c,
+                                                              QUNIFORM_CONSTANT,
+                                                              conf);
+                        }
+
+                        if (num_components >= 3)
+                                inst = vir_VFPACK_dest(c, tlb_reg, b, a);
+                }
+        }
+}
+
+static void
 emit_frag_end(struct v3d_compile *c)
 {
         /* XXX
@@ -1125,7 +1237,6 @@ emit_frag_end(struct v3d_compile *c)
                                         vir_FTOC(c, color[3])));
         }
 
-        struct qreg tlb_reg = vir_magic_reg(V3D_QPU_WADDR_TLB);
         struct qreg tlbu_reg = vir_magic_reg(V3D_QPU_WADDR_TLBU);
         if (c->output_position_index != -1) {
                 struct qinst *inst = vir_MOV_dest(c, tlbu_reg,
@@ -1180,100 +1291,8 @@ emit_frag_end(struct v3d_compile *c)
         /* XXX: Performance improvement: Merge Z write and color writes TLB
          * uniform setup
          */
-
-        for (int rt = 0; rt < V3D_MAX_DRAW_BUFFERS; rt++) {
-                if (!(c->fs_key->cbufs & (1 << rt)) || !c->output_color_var[rt])
-                        continue;
-
-                nir_variable *var = c->output_color_var[rt];
-                struct qreg *color = &c->outputs[var->data.driver_location * 4];
-                int num_components = glsl_get_vector_elements(var->type);
-                uint32_t conf = 0xffffff00;
-                struct qinst *inst;
-
-                conf |= TLB_SAMPLE_MODE_PER_PIXEL;
-                conf |= (7 - rt) << TLB_RENDER_TARGET_SHIFT;
-
-                if (c->fs_key->swap_color_rb & (1 << rt))
-                        num_components = MAX2(num_components, 3);
-
-                assert(num_components != 0);
-                switch (glsl_get_base_type(var->type)) {
-                case GLSL_TYPE_UINT:
-                case GLSL_TYPE_INT:
-                        /* The F32 vs I32 distinction was dropped in 4.2. */
-                        if (c->devinfo->ver < 42)
-                                conf |= TLB_TYPE_I32_COLOR;
-                        else
-                                conf |= TLB_TYPE_F32_COLOR;
-                        conf |= ((num_components - 1) <<
-                                 TLB_VEC_SIZE_MINUS_1_SHIFT);
-
-                        inst = vir_MOV_dest(c, tlbu_reg, color[0]);
-                        inst->uniform = vir_get_uniform_index(c,
-                                                              QUNIFORM_CONSTANT,
-                                                              conf);
-
-                        for (int i = 1; i < num_components; i++) {
-                                inst = vir_MOV_dest(c, tlb_reg, color[i]);
-                        }
-                        break;
-
-                default: {
-                        struct qreg r = color[0];
-                        struct qreg g = color[1];
-                        struct qreg b = color[2];
-                        struct qreg a = color[3];
-
-                        if (c->fs_key->f32_color_rb & (1 << rt)) {
-                                conf |= TLB_TYPE_F32_COLOR;
-                                conf |= ((num_components - 1) <<
-                                         TLB_VEC_SIZE_MINUS_1_SHIFT);
-                        } else {
-                                conf |= TLB_TYPE_F16_COLOR;
-                                conf |= TLB_F16_SWAP_HI_LO;
-                                if (num_components >= 3)
-                                        conf |= TLB_VEC_SIZE_4_F16;
-                                else
-                                        conf |= TLB_VEC_SIZE_2_F16;
-                        }
-
-                        if (c->fs_key->swap_color_rb & (1 << rt))  {
-                                r = color[2];
-                                b = color[0];
-                        }
-
-                        if (c->fs_key->sample_alpha_to_one)
-                                a = vir_uniform_f(c, 1.0);
-
-                        if (c->fs_key->f32_color_rb & (1 << rt)) {
-                                inst = vir_MOV_dest(c, tlbu_reg, r);
-                                inst->uniform = vir_get_uniform_index(c,
-                                                                      QUNIFORM_CONSTANT,
-                                                                      conf);
-
-                                if (num_components >= 2)
-                                        vir_MOV_dest(c, tlb_reg, g);
-                                if (num_components >= 3)
-                                        vir_MOV_dest(c, tlb_reg, b);
-                                if (num_components >= 4)
-                                        vir_MOV_dest(c, tlb_reg, a);
-                        } else {
-                                inst = vir_VFPACK_dest(c, tlb_reg, r, g);
-                                if (conf != ~0) {
-                                        inst->dst = tlbu_reg;
-                                        inst->uniform = vir_get_uniform_index(c,
-                                                                              QUNIFORM_CONSTANT,
-                                                                              conf);
-                                }
-
-                                if (num_components >= 3)
-                                        inst = vir_VFPACK_dest(c, tlb_reg, b, a);
-                        }
-                        break;
-                }
-                }
-        }
+        for (int rt = 0; rt < V3D_MAX_DRAW_BUFFERS; rt++)
+                vir_emit_tlb_color_write(c, rt);
 }
 
 static void
@@ -1633,26 +1652,239 @@ ntq_emit_image_size(struct v3d_compile *c, nir_intrinsic_instr *instr)
 }
 
 static void
+vir_emit_tlb_color_read(struct v3d_compile *c, nir_intrinsic_instr *instr)
+{
+        assert(c->s->info.stage == MESA_SHADER_FRAGMENT);
+
+        int rt = nir_src_as_uint(instr->src[0]);
+        assert(rt < V3D_MAX_DRAW_BUFFERS);
+
+        int sample_index = nir_intrinsic_base(instr) ;
+        assert(sample_index < V3D_MAX_SAMPLES);
+
+        int component = nir_intrinsic_component(instr);
+        assert(component < 4);
+
+        /* We need to emit our TLB reads after we have acquired the scoreboard
+         * lock, or the GPU will hang. Usually, we do our scoreboard locking on
+         * the last thread switch to improve parallelism, however, that is only
+         * guaranteed to happen before the tlb color writes.
+         *
+         * To fix that, we make sure we always emit a thread switch before the
+         * first tlb color read. If that happens to be the last thread switch
+         * we emit, then everything is fine, but otherwsie, if any code after
+         * this point needs to emit additional thread switches, then we will
+         * switch the strategy to locking the scoreboard on the first thread
+         * switch instead -- see vir_emit_thrsw().
+         */
+        if (!c->emitted_tlb_load) {
+                if (!c->last_thrsw_at_top_level) {
+                        assert(c->devinfo->ver >= 41);
+                        vir_emit_thrsw(c);
+                }
+
+                c->emitted_tlb_load = true;
+        }
+
+        struct qreg *color_reads_for_sample =
+                &c->color_reads[(rt * V3D_MAX_SAMPLES + sample_index) * 4];
+
+        if (color_reads_for_sample[component].file == QFILE_NULL) {
+                enum pipe_format rt_format = c->fs_key->color_fmt[rt].format;
+                int num_components =
+                        util_format_get_nr_components(rt_format);
+
+                const bool swap_rb = c->fs_key->swap_color_rb & (1 << rt);
+                if (swap_rb)
+                        num_components = MAX2(num_components, 3);
+
+                nir_variable *var = c->output_color_var[rt];
+                enum glsl_base_type type = glsl_get_base_type(var->type);
+
+                bool is_int_format = type == GLSL_TYPE_INT ||
+                                     type == GLSL_TYPE_UINT;
+
+                bool is_32b_tlb_format = is_int_format ||
+                                         (c->fs_key->f32_color_rb & (1 << rt));
+
+                int num_samples = c->fs_key->msaa ? V3D_MAX_SAMPLES : 1;
+
+                uint32_t conf = 0xffffff00;
+                conf |= c->fs_key->msaa ? TLB_SAMPLE_MODE_PER_SAMPLE :
+                                          TLB_SAMPLE_MODE_PER_PIXEL;
+                conf |= (7 - rt) << TLB_RENDER_TARGET_SHIFT;
+
+                if (is_32b_tlb_format) {
+                        /* The F32 vs I32 distinction was dropped in 4.2. */
+                        conf |= (c->devinfo->ver < 42 && is_int_format) ?
+                                TLB_TYPE_I32_COLOR : TLB_TYPE_F32_COLOR;
+
+                        conf |= ((num_components - 1) <<
+                                 TLB_VEC_SIZE_MINUS_1_SHIFT);
+                } else {
+                        conf |= TLB_TYPE_F16_COLOR;
+                        conf |= TLB_F16_SWAP_HI_LO;
+
+                        if (num_components >= 3)
+                                conf |= TLB_VEC_SIZE_4_F16;
+                        else
+                                conf |= TLB_VEC_SIZE_2_F16;
+                }
+
+
+                for (int i = 0; i < num_samples; i++) {
+                        struct qreg r, g, b, a;
+                        if (is_32b_tlb_format) {
+                                r = conf != 0xffffffff && i == 0?
+                                        vir_TLBU_COLOR_READ(c, conf) :
+                                        vir_TLB_COLOR_READ(c);
+                                if (num_components >= 2)
+                                        g = vir_TLB_COLOR_READ(c);
+                                if (num_components >= 3)
+                                        b = vir_TLB_COLOR_READ(c);
+                                if (num_components >= 4)
+                                        a = vir_TLB_COLOR_READ(c);
+                        } else {
+                                struct qreg rg = conf != 0xffffffff && i == 0 ?
+                                        vir_TLBU_COLOR_READ(c, conf) :
+                                        vir_TLB_COLOR_READ(c);
+                                r = vir_FMOV(c, rg);
+                                vir_set_unpack(c->defs[r.index], 0,
+                                               V3D_QPU_UNPACK_L);
+                                g = vir_FMOV(c, rg);
+                                vir_set_unpack(c->defs[g.index], 0,
+                                               V3D_QPU_UNPACK_H);
+
+                                if (num_components > 2) {
+                                    struct qreg ba = vir_TLB_COLOR_READ(c);
+                                    b = vir_FMOV(c, ba);
+                                    vir_set_unpack(c->defs[b.index], 0,
+                                                   V3D_QPU_UNPACK_L);
+                                    a = vir_FMOV(c, ba);
+                                    vir_set_unpack(c->defs[a.index], 0,
+                                                   V3D_QPU_UNPACK_H);
+                                }
+                        }
+
+                        struct qreg *color_reads =
+                                &c->color_reads[(rt * V3D_MAX_SAMPLES + i) * 4];
+
+                        color_reads[0] = swap_rb ? b : r;
+                        if (num_components >= 2)
+                                color_reads[1] = g;
+                        if (num_components >= 3)
+                                color_reads[2] = swap_rb ? r : b;
+                        if (num_components >= 4)
+                                color_reads[3] = a;
+                }
+        }
+
+        assert(color_reads_for_sample[component].file != QFILE_NULL);
+        ntq_store_dest(c, &instr->dest, 0,
+                       vir_MOV(c, color_reads_for_sample[component]));
+}
+
+static void
+ntq_emit_load_uniform(struct v3d_compile *c, nir_intrinsic_instr *instr)
+{
+        if (nir_src_is_const(instr->src[0])) {
+                int offset = (nir_intrinsic_base(instr) +
+                             nir_src_as_uint(instr->src[0]));
+                assert(offset % 4 == 0);
+                /* We need dwords */
+                offset = offset / 4;
+                for (int i = 0; i < instr->num_components; i++) {
+                        ntq_store_dest(c, &instr->dest, i,
+                                       vir_uniform(c, QUNIFORM_UNIFORM,
+                                                   offset + i));
+                }
+        } else {
+               ntq_emit_tmu_general(c, instr, false);
+        }
+}
+
+static void
+ntq_emit_load_input(struct v3d_compile *c, nir_intrinsic_instr *instr)
+{
+        /* XXX: Use ldvpmv (uniform offset) or ldvpmd (non-uniform offset)
+         * and enable PIPE_SHADER_CAP_INDIRECT_INPUT_ADDR.
+         */
+        unsigned offset =
+                nir_intrinsic_base(instr) + nir_src_as_uint(instr->src[0]);
+
+        if (c->s->info.stage != MESA_SHADER_FRAGMENT && c->devinfo->ver >= 40) {
+               /* Emit the LDVPM directly now, rather than at the top
+                * of the shader like we did for V3D 3.x (which needs
+                * vpmsetup when not just taking the next offset).
+                *
+                * Note that delaying like this may introduce stalls,
+                * as LDVPMV takes a minimum of 1 instruction but may
+                * be slower if the VPM unit is busy with another QPU.
+                */
+               int index = 0;
+               if (c->s->info.system_values_read &
+                   (1ull << SYSTEM_VALUE_INSTANCE_ID)) {
+                      index++;
+               }
+               if (c->s->info.system_values_read &
+                   (1ull << SYSTEM_VALUE_VERTEX_ID)) {
+                      index++;
+               }
+               for (int i = 0; i < offset; i++)
+                      index += c->vattr_sizes[i];
+               index += nir_intrinsic_component(instr);
+               for (int i = 0; i < instr->num_components; i++) {
+                      struct qreg vpm_offset = vir_uniform_ui(c, index++);
+                      ntq_store_dest(c, &instr->dest, i,
+                                     vir_LDVPMV_IN(c, vpm_offset));
+                }
+        } else {
+                for (int i = 0; i < instr->num_components; i++) {
+                        int comp = nir_intrinsic_component(instr) + i;
+                        ntq_store_dest(c, &instr->dest, i,
+                                       vir_MOV(c, c->inputs[offset * 4 + comp]));
+                }
+        }
+}
+
+static void
+ntq_emit_per_sample_color_write(struct v3d_compile *c,
+                                nir_intrinsic_instr *instr)
+{
+        assert(instr->intrinsic == nir_intrinsic_store_tlb_sample_color_v3d);
+
+        unsigned rt = nir_src_as_uint(instr->src[1]);
+        assert(rt < V3D_MAX_DRAW_BUFFERS);
+
+        unsigned sample_idx = nir_intrinsic_base(instr);
+        assert(sample_idx < V3D_MAX_SAMPLES);
+
+        unsigned offset = (rt * V3D_MAX_SAMPLES + sample_idx) * 4;
+        for (int i = 0; i < instr->num_components; i++) {
+                c->sample_colors[offset + i] =
+                        vir_MOV(c, ntq_get_src(c, instr->src[0], i));
+        }
+}
+
+static void
+ntq_emit_color_write(struct v3d_compile *c,
+                     nir_intrinsic_instr *instr)
+{
+        unsigned offset = (nir_intrinsic_base(instr) +
+                           nir_src_as_uint(instr->src[1])) * 4 +
+                          nir_intrinsic_component(instr);
+        for (int i = 0; i < instr->num_components; i++) {
+                c->outputs[offset + i] =
+                        vir_MOV(c, ntq_get_src(c, instr->src[0], i));
+        }
+}
+
+static void
 ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
 {
-        unsigned offset;
-
         switch (instr->intrinsic) {
         case nir_intrinsic_load_uniform:
-                if (nir_src_is_const(instr->src[0])) {
-                        int offset = (nir_intrinsic_base(instr) +
-                                      nir_src_as_uint(instr->src[0]));
-                        assert(offset % 4 == 0);
-                        /* We need dwords */
-                        offset = offset / 4;
-                        for (int i = 0; i < instr->num_components; i++) {
-                                ntq_store_dest(c, &instr->dest, i,
-                                               vir_uniform(c, QUNIFORM_UNIFORM,
-                                                           offset + i));
-                        }
-                } else {
-                        ntq_emit_tmu_general(c, instr, false);
-                }
+                ntq_emit_load_uniform(c, instr);
                 break;
 
         case nir_intrinsic_load_ubo:
@@ -1774,65 +2006,25 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
                 ntq_store_dest(c, &instr->dest, 0, vir_MOV(c, c->vid));
                 break;
 
-        case nir_intrinsic_load_input:
-                /* Use ldvpmv (uniform offset) or ldvpmd (non-uniform offset)
-                 * and enable PIPE_SHADER_CAP_INDIRECT_INPUT_ADDR.
-                 */
-                offset = (nir_intrinsic_base(instr) +
-                          nir_src_as_uint(instr->src[0]));
-                if (c->s->info.stage != MESA_SHADER_FRAGMENT &&
-                    c->devinfo->ver >= 40) {
-                        /* Emit the LDVPM directly now, rather than at the top
-                         * of the shader like we did for V3D 3.x (which needs
-                         * vpmsetup when not just taking the next offset).
-                         *
-                         * Note that delaying like this may introduce stalls,
-                         * as LDVPMV takes a minimum of 1 instruction but may
-                         * be slower if the VPM unit is busy with another QPU.
-                         */
-                        int index = 0;
-                        if (c->s->info.system_values_read &
-                            (1ull << SYSTEM_VALUE_INSTANCE_ID)) {
-                                index++;
-                        }
-                        if (c->s->info.system_values_read &
-                            (1ull << SYSTEM_VALUE_VERTEX_ID)) {
-                                index++;
-                        }
-                        for (int i = 0; i < offset; i++)
-                                index += c->vattr_sizes[i];
-                        index += nir_intrinsic_component(instr);
-                        for (int i = 0; i < instr->num_components; i++) {
-                                struct qreg vpm_offset =
-                                        vir_uniform_ui(c, index++);
-                                ntq_store_dest(c, &instr->dest, i,
-                                               vir_LDVPMV_IN(c, vpm_offset));
-                        }
-                } else {
-                        for (int i = 0; i < instr->num_components; i++) {
-                                int comp = nir_intrinsic_component(instr) + i;
-                                ntq_store_dest(c, &instr->dest, i,
-                                               vir_MOV(c, c->inputs[offset * 4 +
-                                                                    comp]));
-                        }
-                }
+        case nir_intrinsic_load_tlb_color_v3d:
+                vir_emit_tlb_color_read(c, instr);
                 break;
 
-        case nir_intrinsic_store_output:
+        case nir_intrinsic_load_input:
+                ntq_emit_load_input(c, instr);
+                break;
+
+        case nir_intrinsic_store_tlb_sample_color_v3d:
+               ntq_emit_per_sample_color_write(c, instr);
+               break;
+
+       case nir_intrinsic_store_output:
                 /* XXX perf: Use stvpmv with uniform non-constant offsets and
                  * stvpmd with non-uniform offsets and enable
                  * PIPE_SHADER_CAP_INDIRECT_OUTPUT_ADDR.
                  */
                 if (c->s->info.stage == MESA_SHADER_FRAGMENT) {
-                        offset = ((nir_intrinsic_base(instr) +
-                                   nir_src_as_uint(instr->src[1])) * 4 +
-                                  nir_intrinsic_component(instr));
-                        for (int i = 0; i < instr->num_components; i++) {
-                                c->outputs[offset + i] =
-                                        vir_MOV(c,
-                                                ntq_get_src(c,
-                                                            instr->src[0], i));
-                        }
+                        ntq_emit_color_write(c, instr);
                 } else {
                         assert(instr->num_components == 1);
 

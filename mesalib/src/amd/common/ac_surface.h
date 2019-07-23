@@ -54,7 +54,7 @@ enum radeon_micro_mode {
     RADEON_MICRO_MODE_DISPLAY = 0,
     RADEON_MICRO_MODE_THIN = 1,
     RADEON_MICRO_MODE_DEPTH = 2,
-    RADEON_MICRO_MODE_ROTATED = 3,
+    RADEON_MICRO_MODE_ROTATED = 3, /* gfx10+: render target */
 };
 
 /* the first 16 bits are reserved for libdrm_radeon, don't use them */
@@ -70,6 +70,7 @@ enum radeon_micro_mode {
 #define RADEON_SURF_OPTIMIZE_FOR_SPACE          (1 << 25)
 #define RADEON_SURF_SHAREABLE                   (1 << 26)
 #define RADEON_SURF_NO_RENDER_TARGET            (1 << 27)
+#define RADEON_SURF_FORCE_SWIZZLE_MODE          (1 << 28)
 
 struct legacy_surf_level {
     uint64_t                    offset;
@@ -252,6 +253,7 @@ struct ac_surf_info {
 
 struct ac_surf_config {
 	struct ac_surf_info info;
+	unsigned is_1d : 1;
 	unsigned is_3d : 1;
 	unsigned is_cube : 1;
 };

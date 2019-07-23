@@ -5,6 +5,11 @@ set -o xtrace
 
 export DEBIAN_FRONTEND=noninteractive
 
+CROSS_ARCHITECTURES="armhf arm64 i386"
+for arch in $CROSS_ARCHITECTURES; do
+    dpkg --add-architecture $arch
+done
+
 apt-get install -y \
       apt-transport-https \
       ca-certificates \
@@ -75,6 +80,22 @@ apt-get install -y \
       gettext \
       make
 
+# Cross-build Mesa deps
+for arch in $CROSS_ARCHITECTURES; do
+    apt-get install -y \
+            libdrm-dev:${arch} \
+            libexpat1-dev:${arch} \
+            libelf-dev:${arch}
+done
+apt-get install -y \
+        dpkg-dev \
+        gcc-aarch64-linux-gnu \
+        g++-aarch64-linux-gnu \
+        gcc-arm-linux-gnueabihf \
+        g++-arm-linux-gnueabihf \
+        gcc-i686-linux-gnu \
+        g++-i686-linux-gnu
+
 # for 64bit windows cross-builds
 apt-get install -y mingw-w64
 
@@ -94,7 +115,7 @@ export         XORGMACROS_VERSION=util-macros-1.19.0
 export            GLPROTO_VERSION=glproto-1.4.17
 export          DRI2PROTO_VERSION=dri2proto-2.8
 export       LIBPCIACCESS_VERSION=libpciaccess-0.13.4
-export             LIBDRM_VERSION=libdrm-2.4.97
+export             LIBDRM_VERSION=libdrm-2.4.99
 export           XCBPROTO_VERSION=xcb-proto-1.13
 export         RANDRPROTO_VERSION=randrproto-1.3.0
 export          LIBXRANDR_VERSION=libXrandr-1.3.0
@@ -185,7 +206,6 @@ apt-get install -y libxml2-utils
 apt-get purge -y \
       automake \
       libtool \
-      make \
       curl \
       unzip \
       wget \

@@ -97,13 +97,13 @@ it defaults to the value of the DISPLAY environment variable.
 .IN "Environment" "DISPLAY"
 .SH DESCRIPTION
 The
-.ZN XOpenDisplay
+.B XOpenDisplay
 function returns a 
-.ZN Display 
+.B Display
 structure that serves as the
 connection to the X server and that contains all the information
 about that X server.
-.ZN XOpenDisplay
+.B XOpenDisplay
 connects your application to the X server through TCP 
 or DECnet communications protocols,
 or through some local inter-process communication protocol.
@@ -111,13 +111,13 @@ or through some local inter-process communication protocol.
 .IN "Protocol" "DECnet"
 If the hostname is a host machine name and a single colon (:)
 separates the hostname and display number,
-.ZN XOpenDisplay
+.B XOpenDisplay
 connects using TCP streams.
 If the hostname is not specified,
 Xlib uses whatever it believes is the fastest transport.
 If the hostname is a host machine name and a double colon (::)
 separates the hostname and display number,
-.ZN XOpenDisplay
+.B XOpenDisplay
 connects using DECnet.
 A single X server can support any or all of these transport mechanisms
 simultaneously.
@@ -126,66 +126,66 @@ mechanisms.
 .LP
 .IN "Display"
 If successful, 
-.ZN XOpenDisplay 
+.B XOpenDisplay
 returns a pointer to a 
-.ZN Display 
+.B Display
 structure,
 which is defined in 
 .hN X11/Xlib.h .
 If 
-.ZN XOpenDisplay 
+.B XOpenDisplay
 does not succeed, it returns NULL.
 After a successful call to
-.ZN XOpenDisplay ,
+.BR XOpenDisplay ,
 all of the screens in the display can be used by the client.
 The screen number specified in the display_name argument is returned 
 by the 
-.ZN DefaultScreen
+.B DefaultScreen
 macro (or the
-.ZN XDefaultScreen
+.B XDefaultScreen
 function).
 You can access elements of the
-.ZN Display
+.B Display
 and
-.ZN Screen
+.B Screen
 structures only by using the information macros or functions.
 For information about using macros and functions to obtain information from 
 the
-.ZN Display 
+.B Display
 structure,
 see section 2.2.1.
 .LP
 The
-.ZN XCloseDisplay
+.B XCloseDisplay
 function closes the connection to the X server for the display specified in the
-.ZN Display
+.B Display
 structure and destroys all windows, resource IDs
 .Pn ( Window ,
-.ZN Font ,
-.ZN Pixmap ,
-.ZN Colormap ,
-.ZN Cursor ,
+.BR Font ,
+.BR Pixmap ,
+.BR Colormap ,
+.BR Cursor ,
 and
-.ZN GContext ),
+.BR GContext ),
 or other resources that the client has created
 on this display, unless the close-down mode of the resource has been changed
 (see
-.ZN XSetCloseDownMode ).
+.BR XSetCloseDownMode ).
 Therefore, these windows, resource IDs, and other resources should never be 
 referenced again or an error will be generated.
 Before exiting, you should call
-.ZN XCloseDisplay
+.B XCloseDisplay
 explicitly so that any pending errors are reported as
-.ZN XCloseDisplay
+.B XCloseDisplay
 performs a final
-.ZN XSync
+.B XSync
 operation.
 .IN "Resource IDs"
 .IN "XCloseDisplay"
 .LP
-.ZN XCloseDisplay
+.B XCloseDisplay
 can generate a
-.ZN BadGC
+.B BadGC
 error.
 .SH "SEE ALSO"
 AllPlanes(__libmansuffix__),

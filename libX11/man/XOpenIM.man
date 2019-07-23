@@ -123,25 +123,25 @@ Specifies the full resource name of the application.
 Specifies the variable length argument list to set or get XIM values.
 .SH DESCRIPTION
 The
-.ZN XOpenIM
+.B XOpenIM
 function opens an input method, 
 matching the current locale and modifiers specification.
 Current locale and modifiers are bound to the input method at opening time.
 The locale associated with an input method cannot be changed dynamically.
 This implies that the strings returned by
-.ZN XmbLookupString
+.B XmbLookupString
 or
-.ZN XwcLookupString ,
+.BR XwcLookupString ,
 for any input context affiliated with a given input method
 will be encoded in the locale current at the time the input method is opened.
 .LP
 The specific input method to which this call will be routed
 is identified on the basis of the current locale. 
-.ZN XOpenIM
+.B XOpenIM
 will identify a default input method corresponding to the
 current locale.
 That default can be modified using 
-.ZN XSetLocaleModifiers
+.B XSetLocaleModifiers
 for the input method modifier.
 .LP
 The db argument is the resource database to be used by the input method
@@ -163,19 +163,19 @@ if res_name or res_class is NULL.
 .LP
 The res_name and res_class arguments are not assumed to exist beyond
 the call to
-.ZN XOpenIM .
+.BR XOpenIM .
 The specified resource database is assumed to exist for the lifetime
 of the input method.
 .LP
-.ZN XOpenIM
+.B XOpenIM
 returns NULL if no input method could be opened.
 .LP
 The
-.ZN XCloseIM
+.B XCloseIM
 function closes the specified input method.
 .LP
 The
-.ZN XSetIMValues
+.B XSetIMValues
 function presents a variable argument list programming interface
 for setting attributes of the specified input method.
 It returns NULL if it succeeds;
@@ -187,7 +187,7 @@ all arguments in the list preceding the failed argument have been set
 correctly.
 .LP
 The
-.ZN XGetIMValues
+.B XGetIMValues
 function presents a variable argument list programming interface
 for querying properties or features of the specified input method.
 This function returns NULL if it succeeds;
@@ -200,39 +200,39 @@ That is, if the XIM value is of type T,
 the argument must be of type T*.
 If T itself is a pointer type,
 then
-.ZN XGetIMValues
+.B XGetIMValues
 allocates memory to store the actual data,
 and the client is responsible for freeing this data by calling
-.ZN XFree
+.B XFree
 with the returned pointer.
 .LP
 The
-.ZN XDisplayOfIM
+.B XDisplayOfIM
 function returns the display associated with the specified input method.
 .LP
 The
-.ZN XLocaleOfIM
+.B XLocaleOfIM
 function returns the locale associated with the specified input method.
 .LP
 The
-.ZN XRegisterIMInstantiateCallback
+.B XRegisterIMInstantiateCallback
 function registers a callback to be invoked whenever a new input method
 becomes available for the specified display that matches the current
 locale and modifiers.
 .LP
 The function returns 
-.ZN True
+.B True
 if it succeeds; otherwise, it returns 
-.ZN False .
+.BR False .
 .LP
 The
-.ZN XUnregisterIMInstantiateCallback
+.B XUnregisterIMInstantiateCallback
 function removes an input method instantiation callback previously
 registered.
 The function returns
-.ZN True
+.B True
 if it succeeds; otherwise, it returns 
-.ZN False .
+.BR False .
 .SH "SEE ALSO"
 XCreateIC(__libmansuffix__),
 XSetICFocus(__libmansuffix__),

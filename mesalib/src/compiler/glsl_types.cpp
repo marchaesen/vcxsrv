@@ -557,7 +557,7 @@ glsl_type::glsl_type(const glsl_type *array, unsigned length,
    char *const n = (char *) ralloc_size(this->mem_ctx, name_length);
 
    if (length == 0)
-      util_snprintf(n, name_length, "%s[]", array->name);
+      snprintf(n, name_length, "%s[]", array->name);
    else {
       /* insert outermost dimensions in the correct spot
        * otherwise the dimension order will be backwards
@@ -565,11 +565,11 @@ glsl_type::glsl_type(const glsl_type *array, unsigned length,
       const char *pos = strchr(array->name, '[');
       if (pos) {
          int idx = pos - array->name;
-         util_snprintf(n, idx+1, "%s", array->name);
-         util_snprintf(n + idx, name_length - idx, "[%u]%s",
+         snprintf(n, idx+1, "%s", array->name);
+         snprintf(n + idx, name_length - idx, "[%u]%s",
                        length, array->name + idx);
       } else {
-         util_snprintf(n, name_length, "%s[%u]", array->name, length);
+         snprintf(n, name_length, "%s[%u]", array->name, length);
       }
    }
 
@@ -635,8 +635,8 @@ glsl_type::get_instance(unsigned base_type, unsigned rows, unsigned columns,
       assert(columns > 1 || !row_major);
 
       char name[128];
-      util_snprintf(name, sizeof(name), "%sx%uB%s", bare_type->name,
-                    explicit_stride, row_major ? "RM" : "");
+      snprintf(name, sizeof(name), "%sx%uB%s", bare_type->name,
+               explicit_stride, row_major ? "RM" : "");
 
       mtx_lock(&glsl_type::hash_mutex);
 
@@ -1000,8 +1000,8 @@ glsl_type::get_array_instance(const glsl_type *base,
     * named 'foo'.
     */
    char key[128];
-   util_snprintf(key, sizeof(key), "%p[%u]x%uB", (void *) base, array_size,
-                 explicit_stride);
+   snprintf(key, sizeof(key), "%p[%u]x%uB", (void *) base, array_size,
+            explicit_stride);
 
    mtx_lock(&glsl_type::hash_mutex);
 

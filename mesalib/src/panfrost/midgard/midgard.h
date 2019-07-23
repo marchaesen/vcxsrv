@@ -1,0 +1,646 @@
+/* Author(s):
+ *   Connor Abbott
+ *   Alyssa Rosenzweig
+ *
+ * Copyright (c) 2013 Connor Abbott (connor@abbott.cx)
+ * Copyright (c) 2018 Alyssa Rosenzweig (alyssa@rosenzweig.io)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
+
+#ifndef __midgard_h__
+#define __midgard_h__
+
+#include <stdint.h>
+#include <stdbool.h>
+#include "panfrost-job.h"
+
+#define MIDGARD_DBG_MSGS		0x0001
+#define MIDGARD_DBG_SHADERS		0x0002
+#define MIDGARD_DBG_SHADERDB            0x0004
+
+extern int midgard_debug;
+
+typedef enum {
+        midgard_word_type_alu,
+        midgard_word_type_load_store,
+        midgard_word_type_texture,
+        midgard_word_type_unknown
+} midgard_word_type;
+
+typedef enum {
+        midgard_alu_vmul,
+        midgard_alu_sadd,
+        midgard_alu_smul,
+        midgard_alu_vadd,
+        midgard_alu_lut
+} midgard_alu;
+
+/*
+ * ALU words
+ */
+
+typedef enum {
+        midgard_alu_op_fadd       = 0x10,
+        midgard_alu_op_fmul       = 0x14,
+
+        midgard_alu_op_fmin       = 0x28,
+        midgard_alu_op_fmax       = 0x2C,
+
+        midgard_alu_op_fmov       = 0x30, /* fmov_rte */
+        midgard_alu_op_fmov_rtz   = 0x31,
+        midgard_alu_op_fmov_rtn   = 0x32,
+        midgard_alu_op_fmov_rtp   = 0x33,
+        midgard_alu_op_froundeven = 0x34,
+        midgard_alu_op_ftrunc     = 0x35,
+        midgard_alu_op_ffloor     = 0x36,
+        midgard_alu_op_fceil      = 0x37,
+        midgard_alu_op_ffma       = 0x38,
+        midgard_alu_op_fdot3      = 0x3C,
+        midgard_alu_op_fdot3r     = 0x3D,
+        midgard_alu_op_fdot4      = 0x3E,
+        midgard_alu_op_freduce    = 0x3F,
+
+        midgard_alu_op_iadd       = 0x40,
+        midgard_alu_op_ishladd    = 0x41,
+        midgard_alu_op_isub       = 0x46,
+        midgard_alu_op_iaddsat    = 0x48,
+        midgard_alu_op_uaddsat    = 0x49,
+        midgard_alu_op_isubsat    = 0x4E,
+        midgard_alu_op_usubsat    = 0x4F,
+
+        midgard_alu_op_imul       = 0x58,
+
+        midgard_alu_op_imin       = 0x60,
+        midgard_alu_op_umin       = 0x61,
+        midgard_alu_op_imax       = 0x62,
+        midgard_alu_op_umax       = 0x63,
+        midgard_alu_op_ihadd      = 0x64,
+        midgard_alu_op_uhadd      = 0x65,
+        midgard_alu_op_irhadd     = 0x66,
+        midgard_alu_op_urhadd     = 0x67,
+        midgard_alu_op_iasr       = 0x68,
+        midgard_alu_op_ilsr       = 0x69,
+        midgard_alu_op_ishl       = 0x6E,
+
+        midgard_alu_op_iand       = 0x70,
+        midgard_alu_op_ior        = 0x71,
+        midgard_alu_op_inand      = 0x72, /* ~(a & b), for inot let a = b */
+        midgard_alu_op_inor       = 0x73, /* ~(a | b) */
+        midgard_alu_op_iandnot    = 0x74, /* (a & ~b), used for not/b2f */
+        midgard_alu_op_iornot     = 0x75, /* (a | ~b) */
+        midgard_alu_op_ixor       = 0x76,
+        midgard_alu_op_inxor      = 0x77, /* ~(a & b) */
+        midgard_alu_op_iclz       = 0x78, /* Number of zeroes on left */
+        midgard_alu_op_ibitcount8 = 0x7A, /* Counts bits in 8-bit increments */
+        midgard_alu_op_imov       = 0x7B,
+        midgard_alu_op_iabsdiff   = 0x7C,
+        midgard_alu_op_uabsdiff   = 0x7D,
+        midgard_alu_op_ichoose    = 0x7E, /* vector, component number - dupe for shuffle() */
+
+        midgard_alu_op_feq        = 0x80,
+        midgard_alu_op_fne        = 0x81,
+        midgard_alu_op_flt        = 0x82,
+        midgard_alu_op_fle        = 0x83,
+        midgard_alu_op_fball_eq   = 0x88,
+        midgard_alu_op_bball_eq   = 0x89,
+        midgard_alu_op_fball_lt   = 0x8A, /* all(lessThan(.., ..)) */
+        midgard_alu_op_fball_lte  = 0x8B, /* all(lessThanEqual(.., ..)) */
+
+        midgard_alu_op_bbany_neq  = 0x90, /* used for bvec4(1) */
+        midgard_alu_op_fbany_neq  = 0x91, /* bvec4(0) also */
+        midgard_alu_op_fbany_lt   = 0x92, /* any(lessThan(.., ..)) */
+        midgard_alu_op_fbany_lte  = 0x93, /* any(lessThanEqual(.., ..)) */
+
+        midgard_alu_op_f2i_rte    = 0x98,
+        midgard_alu_op_f2i_rtz    = 0x99,
+        midgard_alu_op_f2i_rtn    = 0x9A,
+        midgard_alu_op_f2i_rtp    = 0x9B,
+        midgard_alu_op_f2u_rte    = 0x9C,
+        midgard_alu_op_f2u_rtz    = 0x9D,
+        midgard_alu_op_f2u_rtn    = 0x9E,
+        midgard_alu_op_f2u_rtp    = 0x9F,
+
+        midgard_alu_op_ieq        = 0xA0,
+        midgard_alu_op_ine        = 0xA1,
+        midgard_alu_op_ult        = 0xA2,
+        midgard_alu_op_ule        = 0xA3,
+        midgard_alu_op_ilt        = 0xA4,
+        midgard_alu_op_ile        = 0xA5,
+        midgard_alu_op_iball_eq   = 0xA8,
+        midgard_alu_op_iball_neq  = 0xA9,
+        midgard_alu_op_uball_lt   = 0xAA,
+        midgard_alu_op_uball_lte  = 0xAB,
+        midgard_alu_op_iball_lt   = 0xAC,
+        midgard_alu_op_iball_lte  = 0xAD,
+
+        midgard_alu_op_ibany_eq   = 0xB0,
+        midgard_alu_op_ibany_neq  = 0xB1,
+        midgard_alu_op_ubany_lt   = 0xB2,
+        midgard_alu_op_ubany_lte  = 0xB3,
+        midgard_alu_op_ibany_lt   = 0xB4, /* any(lessThan(.., ..)) */
+        midgard_alu_op_ibany_lte  = 0xB5, /* any(lessThanEqual(.., ..)) */
+        midgard_alu_op_i2f_rte    = 0xB8,
+        midgard_alu_op_i2f_rtz    = 0xB9,
+        midgard_alu_op_i2f_rtn    = 0xBA,
+        midgard_alu_op_i2f_rtp    = 0xBB,
+        midgard_alu_op_u2f_rte    = 0xBC,
+        midgard_alu_op_u2f_rtz    = 0xBD,
+        midgard_alu_op_u2f_rtn    = 0xBE,
+        midgard_alu_op_u2f_rtp    = 0xBF,
+
+        midgard_alu_op_icsel_v    = 0xC0, /* condition code r31 */
+        midgard_alu_op_icsel      = 0xC1, /* condition code r31.w */
+        midgard_alu_op_fcsel_v    = 0xC4,
+        midgard_alu_op_fcsel      = 0xC5,
+        midgard_alu_op_fround     = 0xC6,
+
+        midgard_alu_op_fatan_pt2  = 0xE8,
+        midgard_alu_op_fpow_pt1   = 0xEC,
+        midgard_alu_op_fpown_pt1  = 0xED,
+        midgard_alu_op_fpowr_pt1  = 0xEE,
+
+        midgard_alu_op_frcp       = 0xF0,
+        midgard_alu_op_frsqrt     = 0xF2,
+        midgard_alu_op_fsqrt      = 0xF3,
+        midgard_alu_op_fexp2      = 0xF4,
+        midgard_alu_op_flog2      = 0xF5,
+        midgard_alu_op_fsin       = 0xF6,
+        midgard_alu_op_fcos       = 0xF7,
+        midgard_alu_op_fatan2_pt1 = 0xF9,
+} midgard_alu_op;
+
+typedef enum {
+        midgard_outmod_none = 0,
+        midgard_outmod_pos  = 1,
+        /* 0x2 unknown */
+        midgard_outmod_sat  = 3
+} midgard_outmod_float;
+
+typedef enum {
+        midgard_outmod_int_saturate = 0,
+        midgard_outmod_uint_saturate = 1,
+        midgard_outmod_int_wrap = 2,
+        midgard_outmod_int_high = 3, /* Overflowed portion */
+} midgard_outmod_int;
+
+typedef enum {
+        midgard_reg_mode_8 = 0,
+        midgard_reg_mode_16 = 1,
+        midgard_reg_mode_32 = 2,
+        midgard_reg_mode_64 = 3
+} midgard_reg_mode;
+
+typedef enum {
+        midgard_dest_override_lower = 0,
+        midgard_dest_override_upper = 1,
+        midgard_dest_override_none = 2
+} midgard_dest_override;
+
+typedef enum {
+        midgard_int_sign_extend = 0,
+        midgard_int_zero_extend = 1,
+        midgard_int_normal = 2,
+        midgard_int_shift = 3
+} midgard_int_mod;
+
+#define MIDGARD_FLOAT_MOD_ABS (1 << 0)
+#define MIDGARD_FLOAT_MOD_NEG (1 << 1)
+
+typedef struct
+__attribute__((__packed__))
+{
+        /* Either midgard_int_mod or from midgard_float_mod_*, depending on the
+         * type of op */
+        unsigned mod : 2;
+
+        /* replicate lower half if dest = half, or low/high half selection if
+         * dest = full
+         */
+        bool rep_low     : 1;
+        bool rep_high    : 1; /* unused if dest = full */
+        bool half        : 1; /* only matters if dest = full */
+        unsigned swizzle : 8;
+}
+midgard_vector_alu_src;
+
+typedef struct
+__attribute__((__packed__))
+{
+        midgard_alu_op op               :  8;
+        midgard_reg_mode reg_mode   :  2;
+        unsigned src1 : 13;
+        unsigned src2 : 13;
+        midgard_dest_override dest_override : 2;
+        unsigned outmod               : 2;
+        unsigned mask                           : 8;
+}
+midgard_vector_alu;
+
+typedef struct
+__attribute__((__packed__))
+{
+        bool abs           : 1;
+        bool negate        : 1;
+        bool full          : 1; /* 0 = half, 1 = full */
+        unsigned component : 3;
+}
+midgard_scalar_alu_src;
+
+typedef struct
+__attribute__((__packed__))
+{
+        midgard_alu_op op         :  8;
+        unsigned src1             :  6;
+        unsigned src2             : 11;
+        unsigned unknown          :  1;
+        unsigned outmod :  2;
+        bool output_full          :  1;
+        unsigned output_component :  3;
+}
+midgard_scalar_alu;
+
+typedef struct
+__attribute__((__packed__))
+{
+        unsigned src1_reg : 5;
+        unsigned src2_reg : 5;
+        unsigned out_reg  : 5;
+        bool src2_imm     : 1;
+}
+midgard_reg_info;
+
+/* In addition to conditional branches and jumps (unconditional branches),
+ * Midgard implements a bit of fixed function functionality used in fragment
+ * shaders via specially crafted branches. These have special branch opcodes,
+ * which perform a fixed-function operation and/or use the results of a
+ * fixed-function operation as the branch condition.  */
+
+typedef enum {
+        /* Regular branches */
+        midgard_jmp_writeout_op_branch_uncond = 1,
+        midgard_jmp_writeout_op_branch_cond = 2,
+
+        /* In a fragment shader, execute a discard_if instruction, with the
+         * corresponding condition code. Terminates the shader, so generally
+         * set the branch target to out of the shader */
+        midgard_jmp_writeout_op_discard = 4,
+
+        /* Branch if the tilebuffer is not yet ready. At the beginning of a
+         * fragment shader that reads from the tile buffer, for instance via
+         * ARM_shader_framebuffer_fetch or EXT_pixel_local_storage, this branch
+         * operation should be used as a loop. An instruction like
+         * "br.tilebuffer.always -1" does the trick, corresponding to
+         * "while(!is_tilebuffer_ready) */
+        midgard_jmp_writeout_op_tilebuffer_pending = 6,
+
+        /* In a fragment shader, try to write out the value pushed to r0 to the
+         * tilebuffer, subject to unknown state in r1.z and r1.w. If this
+         * succeeds, the shader terminates. If it fails, it branches to the
+         * specified branch target. Generally, this should be used in a loop to
+         * itself, acting as "do { write(r0); } while(!write_successful);" */
+        midgard_jmp_writeout_op_writeout = 7,
+} midgard_jmp_writeout_op;
+
+typedef enum {
+        midgard_condition_write0 = 0,
+
+        /* These condition codes denote a conditional branch on FALSE and on
+         * TRUE respectively */
+        midgard_condition_false = 1,
+        midgard_condition_true = 2,
+
+        /* This condition code always branches. For a pure branch, the
+         * unconditional branch coding should be used instead, but for
+         * fixed-function branch opcodes, this is still useful */
+        midgard_condition_always = 3,
+} midgard_condition;
+
+typedef struct
+__attribute__((__packed__))
+{
+        midgard_jmp_writeout_op op : 3; /* == branch_uncond */
+        unsigned dest_tag : 4; /* tag of branch destination */
+        unsigned unknown : 2;
+        int offset : 7;
+}
+midgard_branch_uncond;
+
+typedef struct
+__attribute__((__packed__))
+{
+        midgard_jmp_writeout_op op : 3; /* == branch_cond */
+        unsigned dest_tag : 4; /* tag of branch destination */
+        int offset : 7;
+        midgard_condition cond : 2;
+}
+midgard_branch_cond;
+
+typedef struct
+__attribute__((__packed__))
+{
+        midgard_jmp_writeout_op op : 3; /* == branch_cond */
+        unsigned dest_tag : 4; /* tag of branch destination */
+        unsigned unknown : 2;
+        signed offset : 23;
+        unsigned cond : 16;
+}
+midgard_branch_extended;
+
+typedef struct
+__attribute__((__packed__))
+{
+        midgard_jmp_writeout_op op : 3; /* == writeout */
+        unsigned unknown : 13;
+}
+midgard_writeout;
+
+/*
+ * Load/store words
+ */
+
+typedef enum {
+        midgard_op_ld_st_noop   = 0x03,
+
+        /* Unclear why this is on the L/S unit, but (with an address of 0,
+         * appropriate swizzle, magic constant 0x24, and xy mask?) moves fp32 cube
+         * map coordinates in r27 to its cube map texture coordinate
+         * destination (e.g r29). 0x4 magic for lding from fp16 instead */
+
+        midgard_op_st_cubemap_coords = 0x0E,
+
+        /* Used in OpenCL. Probably can ld other things as well */
+        midgard_op_ld_global_id = 0x10,
+
+        /* The L/S unit can do perspective division a clock faster than the ALU
+         * if you're lucky. Put the vec4 in r27, and call with 0x24 as the
+         * unknown state; the output will be <x/w, y/w, z/w, 1>. Replace w with
+         * z for the z version */
+        midgard_op_ldst_perspective_division_z = 0x12,
+        midgard_op_ldst_perspective_division_w = 0x13,
+
+        /* val in r27.y, address embedded, outputs result to argument. Invert val for sub. Let val = +-1 for inc/dec. */
+        midgard_op_atomic_add = 0x40,
+        midgard_op_atomic_and = 0x44,
+        midgard_op_atomic_or = 0x48,
+        midgard_op_atomic_xor = 0x4C,
+
+        midgard_op_atomic_imin = 0x50,
+        midgard_op_atomic_umin = 0x54,
+        midgard_op_atomic_imax = 0x58,
+        midgard_op_atomic_umax = 0x5C,
+
+        midgard_op_atomic_xchg = 0x60,
+
+        /* Used for compute shader's __global arguments, __local variables (or
+         * for register spilling) */
+
+        midgard_op_ld_char = 0x81,
+        midgard_op_ld_char2 = 0x84,
+        midgard_op_ld_short = 0x85,
+        midgard_op_ld_char4 = 0x88, /* short2, int, float */
+        midgard_op_ld_short4 = 0x8C, /* int2, float2, long */
+        midgard_op_ld_int4 = 0x90, /* float4, long2 */
+
+        midgard_op_ld_attr_32 = 0x94,
+        midgard_op_ld_attr_16 = 0x95,
+        midgard_op_ld_attr_32u = 0x96,
+        midgard_op_ld_attr_32i = 0x97,
+        midgard_op_ld_vary_32 = 0x98,
+        midgard_op_ld_vary_16 = 0x99,
+        midgard_op_ld_vary_32u = 0x9A,
+        midgard_op_ld_vary_32i = 0x9B,
+        midgard_op_ld_color_buffer_16 = 0x9D,
+
+        midgard_op_ld_uniform_16 = 0xAC,
+        midgard_op_ld_uniform_32i = 0xA8,
+
+        midgard_op_ld_uniform_32 = 0xB0,
+        midgard_op_ld_color_buffer_8 = 0xBA,
+
+        midgard_op_st_char = 0xC0,
+        midgard_op_st_char2 = 0xC4, /* short */
+        midgard_op_st_char4 = 0xC8, /* short2, int, float */
+        midgard_op_st_short4 = 0xCC, /* int2, float2, long */
+        midgard_op_st_int4 = 0xD0, /* float4, long2 */
+
+        midgard_op_st_vary_32 = 0xD4,
+        midgard_op_st_vary_16 = 0xD5,
+        midgard_op_st_vary_32u = 0xD6,
+        midgard_op_st_vary_32i = 0xD7,
+
+        /* Value to st in r27, location r26.w as short2 */
+        midgard_op_st_image_f = 0xD8,
+        midgard_op_st_image_ui = 0xDA,
+        midgard_op_st_image_i = 0xDB,
+} midgard_load_store_op;
+
+typedef enum {
+        midgard_interp_centroid = 1,
+        midgard_interp_default = 2
+} midgard_interpolation;
+
+typedef enum {
+        midgard_varying_mod_none = 0,
+
+        /* Other values unknown */
+
+        /* Take the would-be result and divide all components by its z/w
+         * (perspective division baked in with the load)  */
+        midgard_varying_mod_perspective_z = 2,
+        midgard_varying_mod_perspective_w = 3,
+} midgard_varying_modifier;
+
+typedef struct
+__attribute__((__packed__))
+{
+        unsigned zero0 : 1; /* Always zero */
+
+        midgard_varying_modifier modifier : 2;
+
+        unsigned zero1: 1; /* Always zero */
+
+        /* Varying qualifiers, zero if not a varying */
+        unsigned flat    : 1;
+        unsigned is_varying : 1; /* Always one for varying, but maybe something else? */
+        midgard_interpolation interpolation : 2;
+
+        unsigned zero2 : 2; /* Always zero */
+}
+midgard_varying_parameter;
+
+typedef struct
+__attribute__((__packed__))
+{
+        midgard_load_store_op op : 8;
+        unsigned reg     : 5;
+        unsigned mask    : 4;
+        unsigned swizzle : 8;
+        unsigned unknown : 16;
+
+        unsigned varying_parameters : 10;
+
+        unsigned address : 9;
+}
+midgard_load_store_word;
+
+typedef struct
+__attribute__((__packed__))
+{
+        unsigned type      : 4;
+        unsigned next_type : 4;
+        uint64_t word1     : 60;
+        uint64_t word2     : 60;
+}
+midgard_load_store;
+
+/* 8-bit register selector used in texture ops to select a bias/LOD/gradient
+ * register, shoved into the `bias` field */
+
+typedef struct
+__attribute__((__packed__))
+{
+        /* Combines with component_hi to form 2-bit component select out of
+         * xyzw, as the component for bias/LOD and the starting component of a
+         * gradient vector */
+
+        unsigned component_lo : 1;
+
+        /* Register select between r28/r29 */
+        unsigned select : 1;
+
+        /* For a half-register, selects the upper half */
+        unsigned upper : 1;
+
+        /* Specifies a full-register, clear for a half-register. Mutually
+         * exclusive with upper. */
+        unsigned full : 1;
+
+        /* Higher half of component_lo. Always seen to be set for LOD/bias
+         * and clear for processed gradients, but I'm not sure if that's a
+         * hardware requirement. */
+        unsigned component_hi : 1;
+
+        /* Padding to make this 8-bit */
+        unsigned zero : 3;
+}
+midgard_tex_register_select;
+
+/* Texture pipeline results are in r28-r29 */
+#define REG_TEX_BASE 28
+
+/* Texture opcodes... maybe? */
+#define TEXTURE_OP_NORMAL 0x11          /* texture */
+#define TEXTURE_OP_LOD 0x12             /* textureLod */
+#define TEXTURE_OP_TEXEL_FETCH 0x14     /* texelFetch */
+
+enum mali_sampler_type {
+        MALI_SAMPLER_UNK        = 0x0,
+        MALI_SAMPLER_FLOAT      = 0x1, /* sampler */
+        MALI_SAMPLER_UNSIGNED   = 0x2, /* usampler */
+        MALI_SAMPLER_SIGNED     = 0x3, /* isampler */
+};
+
+typedef struct
+__attribute__((__packed__))
+{
+        unsigned type      : 4;
+        unsigned next_type : 4;
+
+        unsigned op  : 6;
+        unsigned shadow    : 1;
+        unsigned is_gather  : 1;
+
+        /* A little obscure, but last is set for the last texture operation in
+         * a shader. cont appears to just be last's opposite (?). Yeah, I know,
+         * kind of funky.. BiOpen thinks it could do with memory hinting, or
+         * tile locking? */
+
+        unsigned cont  : 1;
+        unsigned last  : 1;
+
+        enum mali_texture_type format : 2;
+        unsigned zero : 2;
+
+        /* Is a register used to specify the
+         * LOD/bias/offset? If set, use the `bias` field as
+         * a register index. If clear, use the `bias` field
+         * as an immediate. */
+        unsigned lod_register : 1;
+
+        /* Is a register used to specify an offset? If set, use the
+         * offset_reg_* fields to encode this, duplicated for each of the
+         * components. If clear, there is implcitly always an immediate offst
+         * specificed in offset_imm_* */
+        unsigned offset_register : 1;
+
+        unsigned in_reg_full  : 1;
+        unsigned in_reg_select : 1;
+        unsigned in_reg_upper  : 1;
+        unsigned in_reg_swizzle : 8;
+
+        unsigned unknown8  : 2;
+
+        unsigned out_full  : 1;
+
+        enum mali_sampler_type sampler_type : 2;
+
+        unsigned out_reg_select : 1;
+        unsigned out_upper : 1;
+
+        unsigned mask : 4;
+
+        unsigned unknown2  : 2;
+
+        unsigned swizzle  : 8;
+        unsigned unknown4  : 8;
+
+        unsigned unknownA  : 4;
+
+        /* In immediate mode, each offset field is an immediate range [0, 7].
+         *
+         * In register mode, offset_x becomes a register full / select / upper
+         * triplet and a vec3 swizzle is splattered across offset_y/offset_z in
+         * a genuinely bizarre way.
+         *
+         * For texel fetches in immediate mode, the range is the full [-8, 7],
+         * but for normal texturing the top bit must be zero and a register
+         * used instead. It's not clear where this limitation is from. */
+
+        signed offset_x : 4;
+        signed offset_y : 4;
+        signed offset_z : 4;
+
+        /* In immediate bias mode, for a normal texture op, this is
+         * texture bias, computed as int(2^8 * frac(biasf)), with
+         * bias_int = floor(bias). For a textureLod, it's that, but
+         * s/bias/lod. For a texel fetch, this is the LOD as-is.
+         *
+         * In register mode, this is a midgard_tex_register_select
+         * structure and bias_int is zero */
+
+        unsigned bias : 8;
+        signed bias_int  : 8;
+
+        unsigned texture_handle : 16;
+        unsigned sampler_handle : 16;
+}
+midgard_texture_word;
+
+#endif

@@ -198,6 +198,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
                       void *dead_ctx)
 {
    switch (instr->intrinsic) {
+   case nir_intrinsic_demote:
    case nir_intrinsic_discard:
    case nir_intrinsic_discard_if:
       assert(shader->info.stage == MESA_SHADER_FRAGMENT);
@@ -237,6 +238,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
 
    case nir_intrinsic_load_draw_id:
    case nir_intrinsic_load_frag_coord:
+   case nir_intrinsic_load_point_coord:
    case nir_intrinsic_load_front_face:
    case nir_intrinsic_load_vertex_id:
    case nir_intrinsic_load_vertex_id_zero_base:
@@ -262,6 +264,14 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
          (1ull << nir_system_value_from_intrinsic(instr->intrinsic));
       break;
 
+   case nir_intrinsic_quad_broadcast:
+   case nir_intrinsic_quad_swap_horizontal:
+   case nir_intrinsic_quad_swap_vertical:
+   case nir_intrinsic_quad_swap_diagonal:
+      if (shader->info.stage == MESA_SHADER_FRAGMENT)
+         shader->info.fs.needs_helper_invocations = true;
+      break;
+
    case nir_intrinsic_end_primitive:
    case nir_intrinsic_end_primitive_with_counter:
       assert(shader->info.stage == MESA_SHADER_GEOMETRY);
@@ -282,6 +292,10 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
 static void
 gather_tex_info(nir_tex_instr *instr, nir_shader *shader)
 {
+   if (shader->info.stage == MESA_SHADER_FRAGMENT &&
+       nir_tex_instr_has_implicit_derivative(instr))
+      shader->info.fs.needs_helper_invocations = true;
+
    switch (instr->op) {
    case nir_texop_tg4:
       shader->info.uses_texture_gather = true;
@@ -298,14 +312,22 @@ gather_alu_info(nir_alu_instr *instr, nir_shader *shader)
    case nir_op_fddx:
    case nir_op_fddy:
       shader->info.uses_fddx_fddy = true;
+      /* Fall through */
+   case nir_op_fddx_fine:
+   case nir_op_fddy_fine:
+   case nir_op_fddx_coarse:
+   case nir_op_fddy_coarse:
+      if (shader->info.stage == MESA_SHADER_FRAGMENT)
+         shader->info.fs.needs_helper_invocations = true;
       break;
    default:
-      shader->info.uses_64bit |= instr->dest.dest.ssa.bit_size == 64;
-      unsigned num_srcs = nir_op_infos[instr->op].num_inputs;
-      for (unsigned i = 0; i < num_srcs; i++) {
-         shader->info.uses_64bit |= nir_src_bit_size(instr->src[i].src) == 64;
-      }
       break;
+   }
+
+   shader->info.uses_64bit |= instr->dest.dest.ssa.bit_size == 64;
+   unsigned num_srcs = nir_op_infos[instr->op].num_inputs;
+   for (unsigned i = 0; i < num_srcs; i++) {
+      shader->info.uses_64bit |= nir_src_bit_size(instr->src[i].src) == 64;
    }
 }
 

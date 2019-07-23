@@ -50,7 +50,7 @@ trace_dump_query_type(unsigned value)
    if (!trace_dumping_enabled_locked())
       return;
 
-   trace_dump_enum(util_str_query_type(value, FALSE));
+   trace_dump_enum(util_str_query_type(value, false));
 }
 
 

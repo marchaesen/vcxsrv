@@ -86,7 +86,7 @@ fallback_required(struct gl_context *ctx, GLenum target,
       return true;
    }
 
-   if (_mesa_get_format_color_encoding(baseImage->TexFormat) == GL_SRGB &&
+   if (_mesa_is_format_srgb(baseImage->TexFormat) &&
        !ctx->Extensions.EXT_texture_sRGB_decode) {
       /* The texture format is sRGB but we can't turn off sRGB->linear
        * texture sample conversion.  So we won't be able to generate the
@@ -227,8 +227,7 @@ _mesa_meta_GenerateMipmap(struct gl_context *ctx, GLenum target,
    if (ctx->Extensions.EXT_texture_sRGB_decode) {
       const struct gl_texture_image *baseImage =
          _mesa_select_tex_image(texObj, target, texObj->BaseLevel);
-      const bool srgb =
-         _mesa_get_format_color_encoding(baseImage->TexFormat) == GL_SRGB;
+      const bool srgb = _mesa_is_format_srgb(baseImage->TexFormat);
 
       _mesa_set_sampler_srgb_decode(ctx, mipmap->samp_obj,
                                     srgb ? GL_DECODE_EXT : GL_SKIP_DECODE_EXT);

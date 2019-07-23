@@ -87,41 +87,41 @@ typedef struct {
 
 .SH DESCRIPTION
 Some extension
-.ZN XGenericEvents
+.B XGenericEvents
 require additional memory to store information.
 For these events, the library returns a
-.ZN XGenericEventCookie
+.B XGenericEventCookie
 with a token ('cookie') unique to this event. The
-.ZN XGenericEventCookie 's
+.BR XGenericEventCookie 's
 data pointer is undefined until
-.ZN XGetEventData
+.B XGetEventData
 is called.
 
 The
-.ZN XGetEventData
+.B XGetEventData
 function retrieves this extra data for the given cookie. No round-trip to
 the server is required. If the cookie is invalid or the
 event is not an event handled by cookie handlers,
-.ZN False
+.B False
 is returned. If
-.ZN XGetEventData
+.B XGetEventData
 returns
-.ZN True ,
+.BR True ,
 the cookie's data pointer points to the memory containing the event
 information. A client must call
-.ZN XFreeEventData
+.B XFreeEventData
 to free this memory.
-.ZN XGetEventData
+.B XGetEventData
 returns
-.ZN False
+.B False
 for multiple calls for the same event cookie.
 
 The
-.ZN XFreeEventData
+.B XFreeEventData
 function frees the data associated with a cookie. A client must call
-.ZN XFreeEventData
+.B XFreeEventData
 for each cookie claimed with
-.ZN XGetEventData .
+.BR XGetEventData .
 
 .SH EXAMPLE CODE
 .Ds 0
@@ -140,16 +140,16 @@ XFreeEventData(display, cookie);
 .SH NOTES
 A cookie is defined as unclaimed if it has been returned to the client
 through
-.ZN XNextEvent
+.B XNextEvent
 but its data has not been retrieved via
-.ZN XGetEventData .
+.BR XGetEventData .
 Subsequent calls to
-.ZN XNextEvent
+.B XNextEvent
 may free memory associated with unclaimed cookies.
 Multi-threaded X clients must ensure that
-.ZN XGetEventData
+.B XGetEventData
 is called before the next call to
-.ZN XNextEvent .
+.BR XNextEvent .
 
 .SH "SEE ALSO"
 XNextEvent(__libmansuffix__),

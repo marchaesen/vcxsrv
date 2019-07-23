@@ -114,7 +114,7 @@ additional mask for a fill operation on the drawable.
 The drawable is modified only where the font character has a bit set to 1.
 For fonts defined with 2-byte matrix indexing
 and used with
-.ZN XDrawString16 ,
+.BR XDrawString16 ,
 each byte is used as a byte2 with a byte1 of zero.
 .LP
 Both functions use these GC components: 
@@ -124,29 +124,29 @@ They also use these GC mode-dependent components:
 foreground, background, tile, stipple, tile-stipple-x-origin, 
 and tile-stipple-y-origin.
 .LP
-.ZN XDrawString
+.B XDrawString
 and
-.ZN XDrawString16
+.B XDrawString16
 can generate
-.ZN BadDrawable ,
-.ZN BadGC ,
+.BR BadDrawable ,
+.BR BadGC ,
 and
-.ZN BadMatch 
+.B BadMatch
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadDrawable
+.B BadDrawable
 A value for a Drawable argument does not name a defined Window or Pixmap.
 .TP 1i
-.ZN BadGC
+.B BadGC
 A value for a GContext argument does not name a defined GContext.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 An
-.ZN InputOnly
+.B InputOnly
 window is used as a Drawable.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 Some argument or pair of arguments has the correct type and range but fails
 to match in some other way required by the request.
 .SH "SEE ALSO"

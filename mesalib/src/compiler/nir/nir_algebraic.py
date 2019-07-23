@@ -1034,6 +1034,13 @@ _algebraic_pass_template = mako.template.Template("""
 #include "nir_search.h"
 #include "nir_search_helpers.h"
 
+/* What follows is NIR algebraic transform code for the following ${len(xforms)}
+ * transforms:
+% for xform in xforms:
+ *    ${xform.search} => ${xform.replace}
+% endfor
+ */
+
 #ifndef NIR_OPT_ALGEBRAIC_STRUCT_DEFS
 #define NIR_OPT_ALGEBRAIC_STRUCT_DEFS
 

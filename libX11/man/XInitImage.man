@@ -119,10 +119,10 @@ Specifies the connection to the X server.
 .IP \fIformat\fP 1i
 Specifies the format for the image.
 You can pass
-.ZN XYBitmap ,
-.ZN XYPixmap ,
+.BR XYBitmap ,
+.BR XYPixmap ,
 or 
-.ZN ZPixmap .
+.BR ZPixmap .
 .IP \fIheight\fP 1i
 Specifies the height of the image, in pixels.
 .IP \fIoffset\fP 1i
@@ -137,7 +137,7 @@ Specifies the width of the new subimage, in pixels.
 Specifies the constant value that is to be added.
 .IP \fIvisual\fP 1i
 Specifies the
-.ZN Visual
+.B Visual
 structure.
 .IP \fIwidth\fP 1i
 Specifies the width of the image, in pixels.
@@ -150,12 +150,12 @@ Specifies the image.
 Specify the x and y coordinates.
 .SH DESCRIPTION
 The
-.ZN XInitImage
+.B XInitImage
 function initializes the internal image manipulation routines of an
 image structure, based on the values of the various structure members.
 All fields other than the manipulation routines must already be initialized.
 If the bytes_per_line member is zero,
-.ZN XInitImage
+.B XInitImage
 will assume the image data is contiguous in memory and set the
 bytes_per_line member to an appropriate value based on the other
 members; otherwise, the value of bytes_per_line is not changed.
@@ -173,18 +173,18 @@ structure is successful.  It returns zero if it detected some error
 or inconsistency in the structure, in which case the image is not changed.
 .LP
 The
-.ZN XCreateImage
+.B XCreateImage
 function allocates the memory needed for an
-.ZN XImage
+.B XImage
 structure for the
 specified display but does not allocate space for the image itself.
 Rather, it initializes the structure byte-order, bit-order, and bitmap-unit
 values from the display and returns a pointer to the 
-.ZN XImage 
+.B XImage
 structure.
 The red, green, and blue mask values are defined for Z format images only
 and are derived from the 
-.ZN Visual 
+.B Visual
 structure passed in.
 Other values also are passed in.
 The offset permits the rapid displaying of the image without requiring each 
@@ -194,12 +194,12 @@ Xlib assumes that the scanlines are contiguous
 in memory and calculates the value of bytes_per_line itself.
 .LP
 Note that when the image is created using
-.ZN XCreateImage ,
-.ZN XGetImage ,
+.BR XCreateImage ,
+.BR XGetImage ,
 or
-.ZN XSubImage ,
+.BR XSubImage ,
 the destroy procedure that the 
-.ZN XDestroyImage
+.B XDestroyImage
 function calls frees both the image structure 
 and the data pointed to by the image structure.
 .LP
@@ -210,7 +210,7 @@ in the image object and are defined in
 .hN X11/Xutil.h .
 .LP
 The
-.ZN XGetPixel
+.B XGetPixel
 function returns the specified pixel from the named image.
 The pixel value is returned in normalized format (that is,
 the least significant byte of the long is the least significant byte
@@ -218,7 +218,7 @@ of the pixel).
 The image must contain the x and y coordinates.
 .LP
 The
-.ZN XPutPixel
+.B XPutPixel
 function overwrites the pixel in the named image with the specified pixel value.
 The input pixel value must be in normalized format
 (that is, the least significant byte of the long is the least significant
@@ -226,10 +226,10 @@ byte of the pixel).
 The image must contain the x and y coordinates.
 .LP
 The
-.ZN XSubImage
+.B XSubImage
 function creates a new image that is a subsection of an existing one.
 It allocates the memory necessary for the new
-.ZN XImage
+.B XImage
 structure
 and returns a pointer to the new image.
 The data is copied from the source image,
@@ -237,15 +237,15 @@ and the image must contain the rectangle defined by x, y, subimage_width,
 and subimage_height.
 .LP
 The
-.ZN XAddPixel
+.B XAddPixel
 function adds a constant value to every pixel in an image.
 It is useful when you have a base pixel value from allocating
 color resources and need to manipulate the image to that form.
 .LP
 The
-.ZN XDestroyImage
+.B XDestroyImage
 function deallocates the memory associated with the
-.ZN XImage
+.B XImage
 structure.
 .SH "SEE ALSO"
 XPutImage(__libmansuffix__)

@@ -54,13 +54,13 @@ _debug_vprintf(const char *format, va_list ap)
 #if defined(PIPE_OS_WINDOWS) || defined(PIPE_SUBSYSTEM_EMBEDDED)
    /* We buffer until we find a newline. */
    size_t len = strlen(buf);
-   int ret = util_vsnprintf(buf + len, sizeof(buf) - len, format, ap);
-   if (ret > (int)(sizeof(buf) - len - 1) || util_strchr(buf + len, '\n')) {
+   int ret = vsnprintf(buf + len, sizeof(buf) - len, format, ap);
+   if (ret > (int)(sizeof(buf) - len - 1) || strchr(buf + len, '\n')) {
       os_log_message(buf);
       buf[0] = '\0';
    }
 #else
-   util_vsnprintf(buf, sizeof(buf), format, ap);
+   vsnprintf(buf, sizeof(buf), format, ap);
    os_log_message(buf);
 #endif
 }
@@ -167,19 +167,19 @@ debug_get_bool_option(const char *name, boolean dfault)
 
    if (str == NULL)
       result = dfault;
-   else if (!util_strcmp(str, "n"))
+   else if (!strcmp(str, "n"))
       result = FALSE;
-   else if (!util_strcmp(str, "no"))
+   else if (!strcmp(str, "no"))
       result = FALSE;
-   else if (!util_strcmp(str, "0"))
+   else if (!strcmp(str, "0"))
       result = FALSE;
-   else if (!util_strcmp(str, "f"))
+   else if (!strcmp(str, "f"))
       result = FALSE;
-   else if (!util_strcmp(str, "F"))
+   else if (!strcmp(str, "F"))
       result = FALSE;
-   else if (!util_strcmp(str, "false"))
+   else if (!strcmp(str, "false"))
       result = FALSE;
-   else if (!util_strcmp(str, "FALSE"))
+   else if (!strcmp(str, "FALSE"))
       result = FALSE;
    else
       result = TRUE;
@@ -227,7 +227,7 @@ str_has_option(const char *str, const char *name)
    }
 
    /* OPTION=all */
-   if (!util_strcmp(str, "all")) {
+   if (!strcmp(str, "all")) {
       return TRUE;
    }
 
@@ -276,7 +276,7 @@ debug_get_flags_option(const char *name,
    str = os_get_option(name);
    if (!str)
       result = dfault;
-   else if (!util_strcmp(str, "help")) {
+   else if (!strcmp(str, "help")) {
       result = dfault;
       _debug_printf("%s: help for %s:\n", __FUNCTION__, name);
       for (; flags->name; ++flags)
@@ -330,7 +330,7 @@ debug_dump_enum(const struct debug_named_value *names,
       ++names;
    }
 
-   util_snprintf(rest, sizeof(rest), "0x%08lx", value);
+   snprintf(rest, sizeof(rest), "0x%08lx", value);
    return rest;
 }
 
@@ -354,7 +354,7 @@ debug_dump_enum_noprefix(const struct debug_named_value *names,
       ++names;
    }
 
-   util_snprintf(rest, sizeof(rest), "0x%08lx", value);
+   snprintf(rest, sizeof(rest), "0x%08lx", value);
    return rest;
 }
 
@@ -371,10 +371,10 @@ debug_dump_flags(const struct debug_named_value *names, unsigned long value)
    while (names->name) {
       if ((names->value & value) == names->value) {
 	 if (!first)
-	    util_strncat(output, "|", sizeof(output) - strlen(output) - 1);
+	    strncat(output, "|", sizeof(output) - strlen(output) - 1);
 	 else
 	    first = 0;
-	 util_strncat(output, names->name, sizeof(output) - strlen(output) - 1);
+	 strncat(output, names->name, sizeof(output) - strlen(output) - 1);
 	 output[sizeof(output) - 1] = '\0';
 	 value &= ~names->value;
       }
@@ -383,12 +383,12 @@ debug_dump_flags(const struct debug_named_value *names, unsigned long value)
 
    if (value) {
       if (!first)
-	 util_strncat(output, "|", sizeof(output) - strlen(output) - 1);
+	 strncat(output, "|", sizeof(output) - strlen(output) - 1);
       else
 	 first = 0;
 
-      util_snprintf(rest, sizeof(rest), "0x%08lx", value);
-      util_strncat(output, rest, sizeof(output) - strlen(output) - 1);
+      snprintf(rest, sizeof(rest), "0x%08lx", value);
+      strncat(output, rest, sizeof(output) - strlen(output) - 1);
       output[sizeof(output) - 1] = '\0';
    }
 

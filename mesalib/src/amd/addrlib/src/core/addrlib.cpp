@@ -223,6 +223,9 @@ ADDR_E_RETURNCODE Lib::Create(
                     case FAMILY_RV:
                         pLib = Gfx9HwlInit(&client);
                         break;
+                    case FAMILY_NV:
+                        pLib = Gfx10HwlInit(&client);
+                        break;
                     default:
                         ADDR_ASSERT_ALWAYS();
                         break;
@@ -384,14 +387,14 @@ Lib* Lib::GetLib(
 ****************************************************************************************************
 */
 ADDR_E_RETURNCODE Lib::GetMaxAlignments(
-    ADDR_GET_MAX_ALINGMENTS_OUTPUT* pOut    ///< [out] output structure
+    ADDR_GET_MAX_ALIGNMENTS_OUTPUT* pOut    ///< [out] output structure
     ) const
 {
     ADDR_E_RETURNCODE returnCode = ADDR_OK;
 
     if (GetFillSizeFieldsFlags() == TRUE)
     {
-        if (pOut->size != sizeof(ADDR_GET_MAX_ALINGMENTS_OUTPUT))
+        if (pOut->size != sizeof(ADDR_GET_MAX_ALIGNMENTS_OUTPUT))
         {
             returnCode = ADDR_PARAMSIZEMISMATCH;
         }
@@ -424,14 +427,14 @@ ADDR_E_RETURNCODE Lib::GetMaxAlignments(
 ****************************************************************************************************
 */
 ADDR_E_RETURNCODE Lib::GetMaxMetaAlignments(
-    ADDR_GET_MAX_ALINGMENTS_OUTPUT* pOut    ///< [out] output structure
+    ADDR_GET_MAX_ALIGNMENTS_OUTPUT* pOut    ///< [out] output structure
     ) const
 {
     ADDR_E_RETURNCODE returnCode = ADDR_OK;
 
     if (GetFillSizeFieldsFlags() == TRUE)
     {
-        if (pOut->size != sizeof(ADDR_GET_MAX_ALINGMENTS_OUTPUT))
+        if (pOut->size != sizeof(ADDR_GET_MAX_ALIGNMENTS_OUTPUT))
         {
             returnCode = ADDR_PARAMSIZEMISMATCH;
         }

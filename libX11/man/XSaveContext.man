@@ -106,39 +106,39 @@ Specifies the connection to the X server.
 Specifies the resource ID with which the data is associated.
 .SH DESCRIPTION
 If an entry with the specified resource ID and type already exists,
-.ZN XSaveContext
+.B XSaveContext
 overrides it with the specified context.
 The
-.ZN XSaveContext
+.B XSaveContext
 function returns a nonzero error code if an error has occurred
 and zero otherwise.
 Possible errors are
-.ZN XCNOMEM
+.B XCNOMEM
 (out of memory).
 .LP
 Because it is a return value,
 the data is a pointer.
 The
-.ZN XFindContext
+.B XFindContext
 function returns a nonzero error code if an error has occurred
 and zero otherwise.
 Possible errors are
-.ZN XCNOENT
+.B XCNOENT
 (context-not-found).
 .LP
 The
-.ZN XDeleteContext
+.B XDeleteContext
 function deletes the entry for the given resource ID 
 and type from the data structure.
 This function returns the same error codes that
-.ZN XFindContext
+.B XFindContext
 returns if called with the same arguments.
-.ZN XDeleteContext
+.B XDeleteContext
 does not free the data whose address was saved.
 .LP
 The
-.ZN XUniqueContext
+.B XUniqueContext
 function creates a unique context type that may be used in subsequent calls to
-.ZN XSaveContext .
+.BR XSaveContext .
 .SH "SEE ALSO"
 \fI\*(xL\fP

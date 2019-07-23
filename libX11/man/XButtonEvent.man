@@ -83,12 +83,12 @@
 XButtonEvent, XKeyEvent, XMotionEvent \- KeyPress, KeyRelease, ButtonPress, ButtonRelease, and MotionNotify event structures
 .SH STRUCTURES
 The structures for
-.ZN KeyPress ,
-.ZN KeyRelease ,
-.ZN ButtonPress ,
-.ZN ButtonRelease ,
+.BR KeyPress ,
+.BR KeyRelease ,
+.BR ButtonPress ,
+.BR ButtonRelease ,
 and
-.ZN MotionNotify
+.B MotionNotify
 events contain:
 .LP
 .Ds 0
@@ -156,16 +156,16 @@ their structure members are set as follows.
 The type member is set to the event type constant name that uniquely identifies
 it.
 For example, when the X server reports a
-.ZN GraphicsExpose
+.B GraphicsExpose
 event to a client application, it sends an
-.ZN XGraphicsExposeEvent
+.B XGraphicsExposeEvent
 structure with the type member set to
-.ZN GraphicsExpose .
+.BR GraphicsExpose .
 The display member is set to a pointer to the display the event was read on.
 The send_event member is set to
-.ZN True
+.B True
 if the event came from a
-.ZN SendEvent
+.B SendEvent
 protocol request.
 The serial member is set from the serial number reported in the protocol
 but expanded from the 16-bit least-significant bits to a full 32-bit value.
@@ -185,14 +185,14 @@ relative to the root window's origin at the time of the event.
 The same_screen member is set to indicate whether the event 
 window is on the same screen
 as the root window and can be either
-.ZN True 
+.B True
 or
-.ZN False .
+.BR False .
 If
-.ZN True ,
+.BR True ,
 the event and root windows are on the same screen.
 If
-.ZN False ,
+.BR False ,
 the event and root windows are not on the same screen.
 .LP
 If the source window is an inferior of the event window, 
@@ -200,7 +200,7 @@ the subwindow member of the structure is set to the child of the event window
 that is the source window or the child of the event window that is
 an ancestor of the source window.
 Otherwise, the X server sets the subwindow member to
-.ZN None .
+.BR None .
 The time member is set to the time when the event was generated 
 and is expressed in milliseconds.
 .LP
@@ -213,51 +213,51 @@ The state member is set to indicate the logical state of the pointer buttons
 and modifier keys just prior to the event,
 which is the bitwise inclusive OR of one or more of the
 button or modifier key masks:
-.ZN Button1Mask ,
-.ZN Button2Mask ,
-.ZN Button3Mask ,
-.ZN Button4Mask ,
-.ZN Button5Mask ,
-.ZN ShiftMask ,
-.ZN LockMask ,
-.ZN ControlMask ,
-.ZN Mod1Mask ,
-.ZN Mod2Mask ,
-.ZN Mod3Mask ,
-.ZN Mod4Mask ,
+.BR Button1Mask ,
+.BR Button2Mask ,
+.BR Button3Mask ,
+.BR Button4Mask ,
+.BR Button5Mask ,
+.BR ShiftMask ,
+.BR LockMask ,
+.BR ControlMask ,
+.BR Mod1Mask ,
+.BR Mod2Mask ,
+.BR Mod3Mask ,
+.BR Mod4Mask ,
 and
-.ZN Mod5Mask .
+.BR Mod5Mask .
 .LP
 Each of these structures also has a member that indicates the detail.
 For the
-.ZN XKeyPressedEvent
+.B XKeyPressedEvent
 and
-.ZN XKeyReleasedEvent
+.B XKeyReleasedEvent
 structures, this member is called a keycode.
 It is set to a number that represents a physical key on the keyboard.
 The keycode is an arbitrary representation for any key on the keyboard
 (see sections 12.7 and 16.1).
 .LP
 For the
-.ZN XButtonPressedEvent
+.B XButtonPressedEvent
 and
-.ZN XButtonReleasedEvent
+.B XButtonReleasedEvent
 structures, this member is called button.
 It represents the pointer button that changed state and can be the
-.ZN Button1 ,
-.ZN Button2 ,
-.ZN Button3 ,
-.ZN Button4 ,
+.BR Button1 ,
+.BR Button2 ,
+.BR Button3 ,
+.BR Button4 ,
 or
-.ZN Button5 
+.B Button5
 value.
 For the
-.ZN XPointerMovedEvent
+.B XPointerMovedEvent
 structure, this member is called is_hint.
 It can be set to 
-.ZN NotifyNormal
+.B NotifyNormal
 or
-.ZN NotifyHint .
+.BR NotifyHint .
 .SH "SEE ALSO"
 XAnyEvent(__libmansuffix__),
 XCreateWindowEvent(__libmansuffix__),

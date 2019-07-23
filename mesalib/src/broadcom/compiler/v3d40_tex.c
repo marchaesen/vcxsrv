@@ -243,6 +243,34 @@ type_size_align_1(const struct glsl_type *type, unsigned *size, unsigned *align)
         *align = 1;
 }
 
+static uint32_t
+v3d40_image_load_store_tmu_op(nir_intrinsic_instr *instr)
+{
+        switch (instr->intrinsic) {
+        case nir_intrinsic_image_deref_load:
+        case nir_intrinsic_image_deref_store:
+                return V3D_TMU_OP_REGULAR;
+        case nir_intrinsic_image_deref_atomic_add:
+                return v3d_get_op_for_atomic_add(instr, 3);
+        case nir_intrinsic_image_deref_atomic_min:
+                return V3D_TMU_OP_WRITE_UMIN_FULL_L1_CLEAR;
+        case nir_intrinsic_image_deref_atomic_max:
+                return V3D_TMU_OP_WRITE_UMAX;
+        case nir_intrinsic_image_deref_atomic_and:
+                return V3D_TMU_OP_WRITE_AND_READ_INC;
+        case nir_intrinsic_image_deref_atomic_or:
+                return V3D_TMU_OP_WRITE_OR_READ_DEC;
+        case nir_intrinsic_image_deref_atomic_xor:
+                return V3D_TMU_OP_WRITE_XOR_READ_NOT;
+        case nir_intrinsic_image_deref_atomic_exchange:
+                return V3D_TMU_OP_WRITE_XCHG_READ_FLUSH;
+        case nir_intrinsic_image_deref_atomic_comp_swap:
+                return V3D_TMU_OP_WRITE_CMPXCHG_READ_FLUSH;
+        default:
+                unreachable("unknown image intrinsic");
+        };
+}
+
 void
 v3d40_vir_emit_image_load_store(struct v3d_compile *c,
                                 nir_intrinsic_instr *instr)
@@ -264,42 +292,15 @@ v3d40_vir_emit_image_load_store(struct v3d_compile *c,
 
         struct V3D41_TMU_CONFIG_PARAMETER_2 p2_unpacked = { 0 };
 
-        /* XXX perf: We should turn add/sub of 1 to inc/dec.  Perhaps NIR
-         * wants to have support for inc/dec?
-         */
-        switch (instr->intrinsic) {
-        case nir_intrinsic_image_deref_load:
-        case nir_intrinsic_image_deref_store:
-                p2_unpacked.op = V3D_TMU_OP_REGULAR;
-                break;
-        case nir_intrinsic_image_deref_atomic_add:
-                p2_unpacked.op = V3D_TMU_OP_WRITE_ADD_READ_PREFETCH;
-                break;
-        case nir_intrinsic_image_deref_atomic_min:
-                p2_unpacked.op = V3D_TMU_OP_WRITE_UMIN_FULL_L1_CLEAR;
-                break;
+        p2_unpacked.op = v3d40_image_load_store_tmu_op(instr);
 
-        case nir_intrinsic_image_deref_atomic_max:
-                p2_unpacked.op = V3D_TMU_OP_WRITE_UMAX;
-                break;
-        case nir_intrinsic_image_deref_atomic_and:
-                p2_unpacked.op = V3D_TMU_OP_WRITE_AND_READ_INC;
-                break;
-        case nir_intrinsic_image_deref_atomic_or:
-                p2_unpacked.op = V3D_TMU_OP_WRITE_OR_READ_DEC;
-                break;
-        case nir_intrinsic_image_deref_atomic_xor:
-                p2_unpacked.op = V3D_TMU_OP_WRITE_XOR_READ_NOT;
-                break;
-        case nir_intrinsic_image_deref_atomic_exchange:
-                p2_unpacked.op = V3D_TMU_OP_WRITE_XCHG_READ_FLUSH;
-                break;
-        case nir_intrinsic_image_deref_atomic_comp_swap:
-                p2_unpacked.op = V3D_TMU_OP_WRITE_CMPXCHG_READ_FLUSH;
-                break;
-        default:
-                unreachable("unknown image intrinsic");
-        };
+        /* If we were able to replace atomic_add for an inc/dec, then we
+         * need/can to do things slightly different, like not loading the
+         * amount to add/sub, as that is implicit.
+         */
+        bool atomic_add_replaced = (instr->intrinsic == nir_intrinsic_image_deref_atomic_add &&
+                                    (p2_unpacked.op == V3D_TMU_OP_WRITE_AND_READ_INC ||
+                                     p2_unpacked.op == V3D_TMU_OP_WRITE_OR_READ_DEC));
 
         bool is_1d = false;
         switch (glsl_get_sampler_dim(sampler_type)) {
@@ -368,7 +369,8 @@ v3d40_vir_emit_image_load_store(struct v3d_compile *c,
                 vir_WRTMUC(c, QUNIFORM_CONSTANT, p2_packed);
 
         /* Emit the data writes for atomics or image store. */
-        if (instr->intrinsic != nir_intrinsic_image_deref_load) {
+        if (instr->intrinsic != nir_intrinsic_image_deref_load &&
+            !atomic_add_replaced) {
                 /* Vector for stores, or first atomic argument */
                 struct qreg src[4];
                 for (int i = 0; i < nir_intrinsic_src_components(instr, 3); i++) {

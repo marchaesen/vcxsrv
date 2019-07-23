@@ -758,36 +758,6 @@ inl(unsigned short port)
     return xf86ReadMmio32Le((void *) ioBase, port);
 }
 
-#elif defined(__arm__) && defined(__GLIBC__)
-
-/* for glibc on ARM, we use the LIBC inx/outx routines */
-/* note that the appropriate setup via "ioperm" needs to be done */
-/*  *before* any inx/outx is done. */
-
-#include <sys/io.h>
-
-static __inline__ void
-xf_outb(unsigned short port, unsigned char val)
-{
-    outb(val, port);
-}
-
-static __inline__ void
-xf_outw(unsigned short port, unsigned short val)
-{
-    outw(val, port);
-}
-
-static __inline__ void
-xf_outl(unsigned short port, unsigned int val)
-{
-    outl(val, port);
-}
-
-#define outb xf_outb
-#define outw xf_outw
-#define outl xf_outl
-
 #elif defined(__nds32__)
 
 /*

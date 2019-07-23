@@ -113,7 +113,7 @@ Specifies the window whose current attributes you want to obtain.
 Return the drawable's dimensions (width and height).
 .IP \fIwindow_attributes_return\fP 1i
 Returns the specified window's attributes in the
-.ZN XWindowAttributes
+.B XWindowAttributes
 structure.
 .IP \fIx_return\fP 1i
 .br
@@ -126,32 +126,32 @@ its parent's origin.
 For pixmaps, these coordinates are always zero.
 .SH DESCRIPTION
 The
-.ZN XGetWindowAttributes
+.B XGetWindowAttributes
 function returns the current attributes for the specified window to an
-.ZN XWindowAttributes
+.B XWindowAttributes
 structure.  It returns a nonzero status on success; otherwise, it returns a
 zero status.
 .LP
-.ZN XGetWindowAttributes
+.B XGetWindowAttributes
 can generate
-.ZN BadDrawable
+.B BadDrawable
 and
-.ZN BadWindow
+.B BadWindow
 errors.
 .LP
 The
-.ZN XGetGeometry
+.B XGetGeometry
 function returns the root window and the current geometry of the drawable.
 The geometry of the drawable includes the x and y coordinates, width and height,
 border width, and depth.
 These are described in the argument list.
 It is legal to pass to this function a window whose class is
-.ZN InputOnly .
+.BR InputOnly .
 It returns a nonzero status on success; otherwise, it returns a
 zero status.
 .SH STRUCTURES
 The
-.ZN XWindowAttributes
+.B XWindowAttributes
 structure contains:
 .LP
 .Ds 0
@@ -188,13 +188,13 @@ The border_width member is set to the window's border width in pixels.
 The depth member is set to the depth of the window 
 (that is, bits per pixel for the object).
 The visual member is a pointer to the screen's associated
-.ZN Visual
+.B Visual
 structure.
 The root member is set to the root window of the screen containing the window.
 The class member is set to the window's class and can be either
-.ZN InputOutput
+.B InputOutput
 or
-.ZN InputOnly .
+.BR InputOnly .
 .LP
 The bit_gravity member is set to the window's bit gravity
 and can be one of the following:
@@ -202,31 +202,31 @@ and can be one of the following:
 .TS
 lw(1.5i) lw(1.5i).
 T{
-.ZN ForgetGravity
+.B ForgetGravity
 T}	T{
-.ZN EastGravity
+.B EastGravity
 T}
 T{
-.ZN NorthWestGravity
+.B NorthWestGravity
 T}	T{
-.ZN SouthWestGravity
+.B SouthWestGravity
 T}
 T{
-.ZN NorthGravity
+.B NorthGravity
 T}	T{
-.ZN SouthGravity
+.B SouthGravity
 T}
 T{
-.ZN NorthEastGravity
+.B NorthEastGravity
 T}	T{
-.ZN SouthEastGravity
+.B SouthEastGravity
 T}
 T{
-.ZN WestGravity
+.B WestGravity
 T}	T{
-.ZN StaticGravity
+.B StaticGravity
 T}
-.ZN CenterGravity
+.B CenterGravity
 .TE
 .LP
 The win_gravity member is set to the window's window gravity
@@ -235,31 +235,31 @@ and can be one of the following:
 .TS
 lw(1.5i) lw(1.5i).
 T{
-.ZN UnmapGravity
+.B UnmapGravity
 T}	T{
-.ZN EastGravity
+.B EastGravity
 T}
 T{
-.ZN NorthWestGravity
+.B NorthWestGravity
 T}	T{
-.ZN SouthWestGravity
+.B SouthWestGravity
 T}
 T{
-.ZN NorthGravity
+.B NorthGravity
 T}	T{
-.ZN SouthGravity
+.B SouthGravity
 T}
 T{
-.ZN NorthEastGravity
+.B NorthEastGravity
 T}	T{
-.ZN SouthEastGravity
+.B SouthEastGravity
 T}
 T{
-.ZN WestGravity
+.B WestGravity
 T}	T{
-.ZN StaticGravity
+.B StaticGravity
 T}
-.ZN CenterGravity
+.B CenterGravity
 .TE
 .LP
 For additional information on gravity,
@@ -268,10 +268,10 @@ see section 3.3.
 The backing_store member is set to indicate how the X server should maintain
 the contents of a window 
 and can be 
-.ZN WhenMapped ,
-.ZN Always ,
+.BR WhenMapped ,
+.BR Always ,
 or
-.ZN NotUseful .
+.BR NotUseful .
 The backing_planes member is set to indicate (with bits set to 1) which bit 
 planes of the window hold dynamic data that must be preserved in backing_stores 
 and during save_unders.
@@ -279,23 +279,23 @@ The backing_pixel member is set to indicate what values to use
 for planes not set in backing_planes.
 .LP
 The save_under member is set to 
-.ZN True
+.B True
 or
-.ZN False .
+.BR False .
 The colormap member is set to the colormap for the specified window and can be
 a colormap ID or 
-.ZN None .
+.BR None .
 The map_installed member is set to indicate whether the colormap is 
 currently installed and can be 
-.ZN True
+.B True
 or
-.ZN False .
+.BR False .
 The map_state member is set to indicate the state of the window and can be
-.ZN IsUnmapped ,
-.ZN IsUnviewable ,
+.BR IsUnmapped ,
+.BR IsUnviewable ,
 or
-.ZN IsViewable .
-.ZN IsUnviewable
+.BR IsViewable .
+.B IsUnviewable
 is used if the window is mapped but some ancestor is unmapped.
 .LP
 The all_event_masks member is set to the bitwise inclusive OR of all event 
@@ -307,11 +307,11 @@ set of events that should not propagate.
 .LP
 The override_redirect member is set to indicate whether this window overrides
 structure control facilities and can be 
-.ZN True
+.B True
 or
-.ZN False .
+.BR False .
 Window manager clients should ignore the window if this member is
-.ZN True .
+.BR True .
 .LP
 The screen member is set to a screen pointer that gives you a back pointer 
 to the correct screen.
@@ -319,10 +319,10 @@ This makes it easier to obtain the screen information without
 having to loop over the root window fields to see which field matches.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadDrawable
+.B BadDrawable
 A value for a Drawable argument does not name a defined Window or Pixmap.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XQueryPointer(__libmansuffix__),

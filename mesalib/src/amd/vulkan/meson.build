@@ -48,6 +48,15 @@ amd_vk_format_table_c = custom_target(
   capture : true,
 )
 
+radv_gfx10_format_table_h = custom_target(
+  'radv_gfx10_format_table.h',
+  input : ['gfx10_format_table.py', 'vk_format_layout.csv', '../registers/gfx10-rsrc.json'],
+  output : 'gfx10_format_table.h',
+  command : [prog_python, '@INPUT@'],
+  capture : true,
+  depend_files : files('../registers/regdb.py')
+)
+
 libradv_files = files(
   'winsys/amdgpu/radv_amdgpu_bo.c',
   'winsys/amdgpu/radv_amdgpu_bo.h',
@@ -138,7 +147,7 @@ endif
 
 libvulkan_radeon = shared_library(
   'vulkan_radeon',
-  [libradv_files, radv_entrypoints, radv_extensions_c, amd_vk_format_table_c, sha1_h, xmlpool_options_h],
+  [libradv_files, radv_entrypoints, radv_extensions_c, amd_vk_format_table_c, sha1_h, xmlpool_options_h, radv_gfx10_format_table_h],
   include_directories : [
     inc_common, inc_amd, inc_amd_common, inc_compiler, inc_util, inc_vulkan_wsi,
   ],

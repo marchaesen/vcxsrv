@@ -83,7 +83,7 @@
 XPropertyEvent \- PropertyNotify event structure
 .SH STRUCTURES
 The structure for
-.ZN PropertyNotify
+.B PropertyNotify
 events contains:
 .LP
 .Ds 0
@@ -105,16 +105,16 @@ the structure members are set as follows.
 The type member is set to the event type constant name that uniquely identifies
 it.
 For example, when the X server reports a
-.ZN GraphicsExpose
+.B GraphicsExpose
 event to a client application, it sends an
-.ZN XGraphicsExposeEvent
+.B XGraphicsExposeEvent
 structure with the type member set to
-.ZN GraphicsExpose .
+.BR GraphicsExpose .
 The display member is set to a pointer to the display the event was read on.
 The send_event member is set to
-.ZN True
+.B True
 if the event came from a
-.ZN SendEvent
+.B SendEvent
 protocol request.
 The serial member is set from the serial number reported in the protocol
 but expanded from the 16-bit least-significant bits to a full 32-bit value.
@@ -128,28 +128,28 @@ property was changed or desired.
 The time member is set to the server time when the property was changed.
 The state member is set to indicate whether the property was changed 
 to a new value or deleted and can be
-.ZN PropertyNewValue
+.B PropertyNewValue
 or
-.ZN PropertyDelete .
+.BR PropertyDelete .
 The state member is set to
-.ZN PropertyNewValue
+.B PropertyNewValue
 when a property of the window is changed using
-.ZN XChangeProperty
+.B XChangeProperty
 or
-.ZN XRotateWindowProperties
+.B XRotateWindowProperties
 (even when adding zero-length data using
-.ZN XChangeProperty )
+.BR XChangeProperty )
 and when replacing all or part of a property with identical data using
-.ZN XChangeProperty
+.B XChangeProperty
 or 
-.ZN XRotateWindowProperties .
+.BR XRotateWindowProperties .
 The state member is set to
-.ZN PropertyDelete
+.B PropertyDelete
 when a property of the window is deleted using
-.ZN XDeleteProperty
+.B XDeleteProperty
 or, if the delete argument is 
-.ZN True ,
-.ZN XGetWindowProperty .
+.BR True ,
+.BR XGetWindowProperty .
 .SH "SEE ALSO"
 XAnyEvent(__libmansuffix__),
 XButtonEvent(__libmansuffix__),

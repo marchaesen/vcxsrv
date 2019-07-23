@@ -91,35 +91,35 @@ Specifies the connection to the X server.
 .IP \fIevent_mode\fP 1i
 Specifies the event mode.
 You can pass 
-.ZN AsyncPointer , 
-.ZN SyncPointer , 
-.ZN AsyncKeyboard , 
-.ZN SyncKeyboard ,
-.ZN ReplayPointer , 
-.ZN ReplayKeyboard ,
-.ZN AsyncBoth ,
+.BR AsyncPointer ,
+.BR SyncPointer ,
+.BR AsyncKeyboard ,
+.BR SyncKeyboard ,
+.BR ReplayPointer ,
+.BR ReplayKeyboard ,
+.BR AsyncBoth ,
 or
-.ZN SyncBoth .
+.BR SyncBoth .
 .IP \fItime\fP 1i
 Specifies the time.
 You can pass either a timestamp or
-.ZN CurrentTime .
+.BR CurrentTime .
 .SH DESCRIPTION
 The
-.ZN XAllowEvents
+.B XAllowEvents
 function releases some queued events if the client has caused a device 
 to freeze.
 It has no effect if the specified time is earlier than the last-grab
 time of the most recent active grab for the client or if the specified time
 is later than the current X server time.
 .LP
-.ZN XAllowEvents
+.B XAllowEvents
 can generate a
-.ZN BadValue 
+.B BadValue
 error.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

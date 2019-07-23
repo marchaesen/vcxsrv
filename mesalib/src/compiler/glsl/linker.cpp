@@ -4204,8 +4204,8 @@ is_top_level_shader_storage_block_member(const char* name,
       return false;
    }
 
-   util_snprintf(full_instanced_name, name_length, "%s.%s",
-                 interface_name, field_name);
+   snprintf(full_instanced_name, name_length, "%s.%s",
+            interface_name, field_name);
 
    /* Check if its top-level shader storage block member of an
     * instanced interface block, or of a unnamed interface block.

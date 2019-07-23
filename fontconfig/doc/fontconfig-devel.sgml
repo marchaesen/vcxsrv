@@ -150,8 +150,8 @@ convenience for the application's rendering mechanism.
     slant          FC_SLANT               Int     Italic, oblique or roman
     weight         FC_WEIGHT              Int     Light, medium, demibold,
                                                   bold or black
-    size           FC_SIZE                Double  Point size
     width          FC_WIDTH               Int     Condensed, normal or expanded
+    size           FC_SIZE                Double  Point size
     aspect         FC_ASPECT              Double  Stretches glyphs horizontally
                                                   before hinting
     pixelsize      FC_PIXEL_SIZE          Double  Pixel size
@@ -160,9 +160,9 @@ convenience for the application's rendering mechanism.
     foundry        FC_FOUNDRY             String  Font foundry name
     antialias      FC_ANTIALIAS           Bool    Whether glyphs can be
                                                   antialiased
+    hintstyle      FC_HINT_STYLE          Int     Automatic hinting style
     hinting        FC_HINTING             Bool    Whether the rasterizer should
                                                   use hinting
-    hintstyle      FC_HINT_STYLE          Int     Automatic hinting style
     verticallayout FC_VERTICAL_LAYOUT     Bool    Use vertical layout
     autohint       FC_AUTOHINT            Bool    Use autohinter instead of
                                                   normal hinter
@@ -176,14 +176,11 @@ convenience for the application's rendering mechanism.
     rasterizer     FC_RASTERIZER          String  Which rasterizer is in use (deprecated)
     outline        FC_OUTLINE             Bool    Whether the glyphs are outlines
     scalable       FC_SCALABLE            Bool    Whether glyphs can be scaled
-    scale          FC_SCALE               Double  Scale factor for point->pixel
-                                                  conversions (deprecated)
-    symbol         FC_SYMBOL              Bool    Whether font uses MS symbol-font encoding
-    color          FC_COLOR               Bool    Whether any glyphs have color
     dpi            FC_DPI                 Double  Target dots per inch
     rgba           FC_RGBA                Int     unknown, rgb, bgr, vrgb,
                                                   vbgr, none - subpixel geometry
-    lcdfilter      FC_LCD_FILTER          Int     Type of LCD filter
+    scale          FC_SCALE               Double  Scale factor for point->pixel
+                                                  conversions (deprecated)
     minspace       FC_MINSPACE            Bool    Eliminate leading from line
                                                   spacing
     charset        FC_CHARSET             CharSet Unicode chars encoded by
@@ -200,15 +197,20 @@ convenience for the application's rendering mechanism.
                                                   of the outline
     decorative     FC_DECORATIVE          Bool    Whether the style is a decorative
                                                   variant
-    fontfeatures   FC_FONT_FEATURES       String  List of extra feature tags in
-                                                  OpenType to be enabled
+    lcdfilter      FC_LCD_FILTER          Int     Type of LCD filter
     namelang       FC_NAMELANG            String  Language name to be used for the
                                                   default value of familylang,
                                                   stylelang and fullnamelang
+    fontfeatures   FC_FONT_FEATURES       String  List of extra feature tags in
+                                                  OpenType to be enabled
     prgname        FC_PRGNAME             String  Name of the running program
     hash           FC_HASH                String  SHA256 hash value of the font data
                                                   with "sha256:" prefix (deprecated)
     postscriptname FC_POSTSCRIPT_NAME     String  Font name in PostScript
+    symbol         FC_SYMBOL              Bool    Whether font uses MS symbol-font encoding
+    color          FC_COLOR               Bool    Whether any glyphs have color
+    fontvariations FC_FONT_VARIATIONS     String  comma-separated string of axes in variable font
+    variable       FC_VARIABLE            Bool    Whether font is Variable Font
     </programlisting>
   </sect2>
 </sect1>
@@ -282,6 +284,7 @@ types.  The 'type' tag indicates which member is valid.
                         const FcCharSet *c;
 			void *f;
 			const FcLangSet *l;
+			const FcRange   *r;
                 } u;
         } FcValue;
     </programlisting>
@@ -299,16 +302,18 @@ types.  The 'type' tag indicates which member is valid.
         FcTypeCharSet   c               FcCharSet *
 	FcTypeFTFace	f		void * (FT_Face)
 	FcTypeLangSet	l		FcLangSet *
+	FcTypeRange	r		FcRange *
     </programlisting>
     </para>
   </sect2>
-  <sect2><title>FcPattern</title>
+  <sect2><title>FcPattern, FcPatternIter</title>
     <para>
-holds a set of names with associated value lists; each name refers to a
+An FcPattern holds a set of names with associated value lists; each name refers to a
 property of a font.  FcPatterns are used as inputs to the matching code as
 well as holding information about specific fonts.  Each property can hold
 one or more values; conventionally all of the same type, although the
-interface doesn't demand that.
+interface doesn't demand that.  An FcPatternIter is used during iteration to
+access properties in FcPattern.
     </para>
   </sect2>
   <sect2><title>FcFontSet</title>

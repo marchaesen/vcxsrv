@@ -125,33 +125,33 @@ Specify the two regions with which you want to perform the computation.
 Specifies the source region to be used.
 .SH DESCRIPTION
 The
-.ZN XIntersectRegion
+.B XIntersectRegion
 function computes the intersection of two regions.
 .LP
 The
-.ZN XUnionRegion
+.B XUnionRegion
 function computes the union of two regions.
 .LP
 The
-.ZN XUnionRectWithRegion
+.B XUnionRectWithRegion
 function updates the destination region from a union of the specified rectangle
 and the specified source region.
 .LP
 The
-.ZN XSubtractRegion
+.B XSubtractRegion
 function subtracts srb from sra and stores the results in dr_return.
 .LP
 The
-.ZN XXorRegion
+.B XXorRegion
 function calculates the difference between the union and intersection
 of two regions.
 .LP
 The
-.ZN XOffsetRegion
+.B XOffsetRegion
 function moves the specified region by a specified amount.
 .LP
 The
-.ZN XShrinkRegion
+.B XShrinkRegion
 function reduces the specified region by a specified amount.
 Positive values shrink the size of the region,
 and negative values expand the region.

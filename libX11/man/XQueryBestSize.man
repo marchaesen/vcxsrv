@@ -99,10 +99,10 @@ unsigned int *\fIwidth_return\fP, unsigned int *\fIheight_return\fP\^);
 .IP \fIclass\fP 1i
 Specifies the class that you are interested in.
 You can pass 
-.ZN TileShape , 
-.ZN CursorShape , 
+.BR TileShape ,
+.BR CursorShape ,
 or 
-.ZN StippleShape .
+.BR StippleShape .
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fIwidth\fP 1i
@@ -120,95 +120,95 @@ Return the width and height of the object best supported
 by the display hardware.
 .SH DESCRIPTION
 The
-.ZN XQueryBestSize
+.B XQueryBestSize
 function returns the best or closest size to the specified size.
 For 
-.ZN CursorShape ,
+.BR CursorShape ,
 this is the largest size that can be fully displayed on the screen specified by
 which_screen.
 For 
-.ZN TileShape ,
+.BR TileShape ,
 this is the size that can be tiled fastest.
 For 
-.ZN StippleShape ,
+.BR StippleShape ,
 this is the size that can be stippled fastest.
 For 
-.ZN CursorShape ,
+.BR CursorShape ,
 the drawable indicates the desired screen.
 For 
-.ZN TileShape 
+.B TileShape
 and 
-.ZN StippleShape ,
+.BR StippleShape ,
 the drawable indicates the screen and possibly the window class and depth.
 An 
-.ZN InputOnly 
+.B InputOnly
 window cannot be used as the drawable for 
-.ZN TileShape
+.B TileShape
 or 
-.ZN StippleShape ,
+.BR StippleShape ,
 or a
-.ZN BadMatch 
+.B BadMatch
 error results.
 .LP
-.ZN XQueryBestSize
+.B XQueryBestSize
 can generate
-.ZN BadDrawable ,
-.ZN BadMatch ,
+.BR BadDrawable ,
+.BR BadMatch ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .LP
 The
-.ZN XQueryBestTile
+.B XQueryBestTile
 function returns the best or closest size, that is, the size that can be
 tiled fastest on the screen specified by which_screen.
 The drawable indicates the screen and possibly the window class and depth.
 If an 
-.ZN InputOnly 
+.B InputOnly
 window is used as the drawable, a 
-.ZN BadMatch 
+.B BadMatch
 error results.
 .LP
-.ZN XQueryBestTile
+.B XQueryBestTile
 can generate
-.ZN BadDrawable
+.B BadDrawable
 and
-.ZN BadMatch 
+.B BadMatch
 errors.
 .LP
 The
-.ZN XQueryBestStipple
+.B XQueryBestStipple
 function returns the best or closest size, that is, the size that can be
 stippled fastest on the screen specified by which_screen.
 The drawable indicates the screen and possibly the window class and depth.
 If an
-.ZN InputOnly
+.B InputOnly
 window is used as the drawable, a
-.ZN BadMatch
+.B BadMatch
 error results.
 .LP
-.ZN XQueryBestStipple
+.B XQueryBestStipple
 can generate
-.ZN BadDrawable
+.B BadDrawable
 and
-.ZN BadMatch 
+.B BadMatch
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 An
-.ZN InputOnly
+.B InputOnly
 window is used as a Drawable.
 .TP 1i
-.ZN BadDrawable
+.B BadDrawable
 A value for a Drawable argument does not name a defined Window or Pixmap.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 The values do not exist for an
-.ZN InputOnly
+.B InputOnly
 window.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

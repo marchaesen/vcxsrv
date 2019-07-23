@@ -92,7 +92,7 @@ Specifies the connection to the X server.
 Specifies the appropriate screen number on the host server.
 .SH DESCRIPTION
 The
-.ZN XcmsDefaultCCC
+.B XcmsDefaultCCC
 function returns the default CCC for the specified screen.
 Its visual is the default visual of the screen.
 Its initial gamut compression and white point

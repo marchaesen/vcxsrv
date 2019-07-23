@@ -52,6 +52,7 @@ struct ac_rtld_options {
 /* Lightweight wrapper around underlying ELF objects. */
 struct ac_rtld_binary {
 	struct ac_rtld_options options;
+	unsigned wave_size;
 
 	/* Required buffer sizes, currently read/executable only. */
 	uint64_t rx_size;
@@ -86,6 +87,7 @@ struct ac_rtld_open_info {
 	const struct radeon_info *info;
 	struct ac_rtld_options options;
 	gl_shader_stage shader_type;
+	unsigned wave_size;
 
 	unsigned num_parts;
 	const char * const *elf_ptrs; /* in-memory ELF objects of each part */

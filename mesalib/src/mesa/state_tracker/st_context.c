@@ -603,7 +603,6 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
 
    st->has_stencil_export =
       screen->get_param(screen, PIPE_CAP_SHADER_STENCIL_EXPORT);
-   st->has_shader_model3 = screen->get_param(screen, PIPE_CAP_SM3);
    st->has_etc1 = screen->is_format_supported(screen, PIPE_FORMAT_ETC1_RGB8,
                                               PIPE_TEXTURE_2D, 0, 0,
                                               PIPE_BIND_SAMPLER_VIEW);
@@ -638,6 +637,8 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
       screen->get_param(screen, PIPE_CAP_INDEP_BLEND_FUNC);
    st->needs_rgb_dst_alpha_override =
       screen->get_param(screen, PIPE_CAP_RGB_OVERRIDE_DST_ALPHA_BLEND);
+   st->has_signed_vertex_buffer_offset =
+      screen->get_param(screen, PIPE_CAP_SIGNED_VERTEX_BUFFER_OFFSET);
 
    st->has_hw_atomics =
       screen->get_shader_param(screen, PIPE_SHADER_FRAGMENT,
@@ -687,7 +688,7 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
     * is not supported
     */
    ctx->Const.ShaderCompilerOptions[MESA_SHADER_VERTEX].EmitNoSat =
-      !st->has_shader_model3;
+      !screen->get_param(screen, PIPE_CAP_VERTEX_SHADER_SATURATE);
 
    if (ctx->Const.GLSLVersion < 400) {
       for (i = 0; i < MESA_SHADER_STAGES; i++)

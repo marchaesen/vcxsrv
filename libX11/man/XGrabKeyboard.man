@@ -96,136 +96,136 @@ Specifies the grab window.
 .IP \fIkeyboard_mode\fP 1i
 Specifies further processing of keyboard events.
 You can pass 
-.ZN GrabModeSync 
+.B GrabModeSync
 or
-.ZN GrabModeAsync .
+.BR GrabModeAsync .
 .IP \fIowner_events\fP 1i
 Specifies a Boolean value that indicates whether the keyboard events 
 are to be reported as usual.
 .IP \fIpointer_mode\fP 1i
 Specifies further processing of pointer events.
 You can pass 
-.ZN GrabModeSync 
+.B GrabModeSync
 or
-.ZN GrabModeAsync .
+.BR GrabModeAsync .
 .IP \fItime\fP 1i
 Specifies the time.
 You can pass either a timestamp or
-.ZN CurrentTime .
+.BR CurrentTime .
 .SH DESCRIPTION
 The
-.ZN XGrabKeyboard
+.B XGrabKeyboard
 function actively grabs control of the keyboard and generates
-.ZN FocusIn
+.B FocusIn
 and
-.ZN FocusOut
+.B FocusOut
 events.
 Further key events are reported only to the
 grabbing client.
-.ZN XGrabKeyboard
+.B XGrabKeyboard
 overrides any active keyboard grab by this client.
 If owner_events is 
-.ZN False , 
+.BR False ,
 all generated key events are reported with
 respect to grab_window.  
 If owner_events is 
-.ZN True  
+.B True
 and if a generated
 key event would normally be reported to this client, it is reported
 normally; otherwise, the event is reported with respect to the
 grab_window.  
 Both 
-.ZN KeyPress 
+.B KeyPress
 and 
-.ZN KeyRelease 
+.B KeyRelease
 events are always reported,
 independent of any event selection made by the client.
 .LP
 If the keyboard_mode argument is 
-.ZN GrabModeAsync ,
+.BR GrabModeAsync ,
 keyboard event processing continues
 as usual. 
 If the keyboard is currently frozen by this client, 
 then processing of keyboard events is resumed.
 If the keyboard_mode  argument is
-.ZN GrabModeSync ,
+.BR GrabModeSync ,
 the state of the keyboard (as seen by client applications) appears to freeze,
 and the X server generates no further keyboard events until the
 grabbing client issues a releasing 
-.ZN XAllowEvents 
+.B XAllowEvents
 call or until the keyboard grab is released.
 Actual keyboard changes are not lost while the keyboard is frozen; 
 they are simply queued in the server for later processing.
 .LP
 If pointer_mode is 
-.ZN GrabModeAsync ,
+.BR GrabModeAsync ,
 pointer event processing is unaffected
 by activation of the grab.  
 If pointer_mode is 
-.ZN GrabModeSync ,
+.BR GrabModeSync ,
 the state of the pointer (as seen by client applications) appears to freeze, 
 and the X server generates no further pointer events 
 until the grabbing client issues a releasing 
-.ZN XAllowEvents 
+.B XAllowEvents
 call or until the keyboard grab is released.
 Actual pointer changes are not lost while the pointer is frozen; 
 they are simply queued in the server for later processing.
 .LP
 If the keyboard is actively grabbed by some other client,
-.ZN XGrabKeyboard
+.B XGrabKeyboard
 fails and returns
-.ZN AlreadyGrabbed .
+.BR AlreadyGrabbed .
 If grab_window is not viewable,
 it fails and returns
-.ZN GrabNotViewable .
+.BR GrabNotViewable .
 If the keyboard is frozen by an active grab of another client,
 it fails and returns
-.ZN GrabFrozen .
+.BR GrabFrozen .
 If the specified time is earlier than the last-keyboard-grab time 
 or later than the current X server time,
 it fails and returns
-.ZN GrabInvalidTime .
+.BR GrabInvalidTime .
 Otherwise, the last-keyboard-grab time is set to the specified time
 .Pn ( CurrentTime 
 is replaced by the current X server time).
 .LP
-.ZN XGrabKeyboard
+.B XGrabKeyboard
 can generate
-.ZN BadValue
+.B BadValue
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XUngrabKeyboard
+.B XUngrabKeyboard
 function
 releases the keyboard and any queued events if this client has it actively grabbed from
 either
-.ZN XGrabKeyboard
+.B XGrabKeyboard
 or
-.ZN XGrabKey .
-.ZN XUngrabKeyboard
+.BR XGrabKey .
+.B XUngrabKeyboard
 does not release the keyboard and any queued events
 if the specified time is earlier than
 the last-keyboard-grab time or is later than the current X server time.
 It also generates
-.ZN FocusIn 
+.B FocusIn
 and 
-.ZN FocusOut 
+.B FocusOut
 events.
 The X server automatically performs an 
-.ZN UngrabKeyboard 
+.B UngrabKeyboard
 request if the event window for an
 active keyboard grab becomes not viewable.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of
 alternatives can generate this error.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XAllowEvents(__libmansuffix__),

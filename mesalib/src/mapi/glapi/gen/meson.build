@@ -82,6 +82,7 @@ api_xml_files = files(
   'ARB_shader_subroutine.xml',
   'ARB_shader_storage_buffer_object.xml',
   'ARB_sparse_buffer.xml',
+  'ARB_spirv_extensions.xml',
   'ARB_sync.xml',
   'ARB_tessellation_shader.xml',
   'ARB_texture_barrier.xml',

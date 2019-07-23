@@ -137,7 +137,7 @@ Specifies the user-specified geometry or NULL.
 .SH DESCRIPTION
 By convention,
 X applications use a standard string to indicate window size and placement.
-.ZN XParseGeometry
+.B XParseGeometry
 makes it easier to conform to this standard because it allows you
 to parse the standard window geometry.
 Specifically, this function lets you parse strings of the form:
@@ -156,7 +156,7 @@ If the string is not in the Host Portable Character Encoding,
 the result is implementation-dependent.
 .LP
 The
-.ZN XParseGeometry
+.B XParseGeometry
 function returns a bitmask that indicates which of the four values (width,
 height, xoffset, and yoffset) were actually found in the string 
 and whether the x and y values are negative. 
@@ -165,47 +165,47 @@ be able to say ``position the window relative to the right or bottom edge.''
 For each value found, the corresponding argument is updated.
 For each value not found, the argument is left unchanged.
 The bits are represented by
-.ZN XValue , 
-.ZN YValue , 
-.ZN WidthValue , 
-.ZN HeightValue ,
-.ZN XNegative , 
+.BR XValue ,
+.BR YValue ,
+.BR WidthValue ,
+.BR HeightValue ,
+.BR XNegative ,
 or
-.ZN YNegative
+.B YNegative
 and are defined in 
 .hN X11/Xutil.h .
 They will be set whenever one of the values is defined 
 or one of the signs is set.
 .LP
 If the function returns either the 
-.ZN XValue 
+.B XValue
 or 
-.ZN YValue 
+.B YValue
 flag,
 you should place the window at the requested position.
 .LP
 The 
-.ZN XWMGeometry 
+.B XWMGeometry
 function combines any geometry information (given in the format used by 
-.ZN XParseGeometry )
+.BR XParseGeometry )
 specified by the user and by the calling program with size hints 
 (usually the ones to be stored in WM_NORMAL_HINTS) and returns the position, 
 size, and gravity
 .Pn ( NorthWestGravity , 
-.ZN NorthEastGravity , 
-.ZN SouthEastGravity ,
+.BR NorthEastGravity ,
+.BR SouthEastGravity ,
 or
-.ZN SouthWestGravity ) 
+.BR SouthWestGravity )
 that describe the window.
 If the base size is not set in the 
-.ZN XSizeHints
+.B XSizeHints
 structure, 
 the minimum size is used if set.
 Otherwise, a base size of zero is assumed.
 If no minimum size is set in the hints structure, 
 the base size is used.
 A mask (in the form returned by 
-.ZN XParseGeometry ) 
+.BR XParseGeometry )
 that describes which values came from the user specification 
 and whether or not the position coordinates are relative
 to the right and bottom edges is returned.

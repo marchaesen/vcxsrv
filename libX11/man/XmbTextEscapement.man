@@ -103,10 +103,10 @@ Specifies the number of characters in the string argument.
 Specifies the character string.
 .SH DESCRIPTION
 The
-.ZN XmbTextEscapement ,
-.ZN XwcTextEscapement
+.BR XmbTextEscapement ,
+.B XwcTextEscapement
 and
-.ZN Xutf8TextEscapement
+.B Xutf8TextEscapement
 functions return the escapement in pixels of the specified string as a value,
 using the fonts loaded for the specified font set.
 The escapement is the distance in pixels in the primary draw
@@ -118,11 +118,11 @@ Regardless of the character rendering order,
 the escapement is always positive.
 .LP
 The function
-.ZN Xutf8TextEscapement
+.B Xutf8TextEscapement
 is an extension introduced by The XFree86 Project, Inc. in their 4.0.2
 release. Its presence is
 indicated by the macro
-.ZN X_HAVE_UTF8_STRING .
+.BR X_HAVE_UTF8_STRING .
 .SH "SEE ALSO"
 XmbTextExtents(__libmansuffix__),
 XmbTextPerCharExtents(__libmansuffix__)

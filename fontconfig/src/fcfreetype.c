@@ -1101,15 +1101,22 @@ FcGetPixelSize (FT_Face face, int i)
 }
 
 static FcBool
-FcStringInPatternElement (FcPattern *pat, const char *elt, FcChar8 *string)
+FcStringInPatternElement (FcPattern *pat, FcObject obj, const FcChar8 *string)
 {
-    int	    e;
-    FcChar8 *old;
-    for (e = 0; FcPatternGetString (pat, elt, e, &old) == FcResultMatch; e++)
-	if (!FcStrCmpIgnoreBlanksAndCase (old, string))
-	{
+    FcPatternIter iter;
+    FcValueListPtr l;
+
+    FcPatternIterStart (pat, &iter);
+    if (!FcPatternFindObjectIter (pat, &iter, obj))
+	return FcFalse;
+    for (l = FcPatternIterGetValues (pat, &iter); l; l = FcValueListNext (l))
+    {
+	FcValue v = FcValueCanonicalize (&l->value);
+	if (v.type != FcTypeString)
+	    break;
+	if (!FcStrCmpIgnoreBlanksAndCase (v.u.s, string))
 	    return FcTrue;
-	}
+    }
     return FcFalse;
 }
 
@@ -1145,6 +1152,23 @@ typedef struct
   unsigned int idx;
 } FcNameMapping;
 
+static FcBool
+_is_english(int platform, int language)
+{
+    FcBool ret = FcFalse;
+
+    switch (platform)
+    {
+    case TT_PLATFORM_MACINTOSH:
+	ret = language == TT_MAC_LANGID_ENGLISH;
+	break;
+    case TT_PLATFORM_MICROSOFT:
+	ret = language == TT_MS_LANGID_ENGLISH_UNITED_STATES;
+	break;
+    }
+    return ret;
+}
+
 static int
 name_mapping_cmp (const void *pa, const void *pb)
 {
@@ -1154,7 +1178,7 @@ name_mapping_cmp (const void *pa, const void *pb)
   if (a->platform_id != b->platform_id) return (int) a->platform_id - (int) b->platform_id;
   if (a->name_id != b->name_id) return (int) a->name_id - (int) b->name_id;
   if (a->encoding_id != b->encoding_id) return (int) a->encoding_id - (int) b->encoding_id;
-  if (a->language_id != b->language_id) return (int) a->language_id - (int) b->language_id;
+  if (a->language_id != b->language_id) return _is_english(a->platform_id, a->language_id) ? -1 : _is_english(b->platform_id, b->language_id) ? 1 : (int) a->language_id - (int) b->language_id;
   if (a->idx != b->idx) return (int) a->idx - (int) b->idx;
 
   return 0;
@@ -1455,10 +1479,10 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	    FT_SfntName sname;
 	    int nameidx;
 	    const FcChar8	*lang;
-	    const char	*elt = 0, *eltlang = 0;
 	    int		*np = 0, *nlangp = 0;
 	    size_t		len;
 	    int nameid, lookupid;
+	    FcObject obj = FC_INVALID_OBJECT, objlang = FC_INVALID_OBJECT;
 
 	    nameid = lookupid = nameid_order[n];
 
@@ -1494,8 +1518,8 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 				sname.name_id, sname.platform_id,
 				sname.encoding_id, sname.language_id);
 
-		    elt = FC_FAMILY;
-		    eltlang = FC_FAMILYLANG;
+		    obj = FC_FAMILY_OBJECT;
+		    objlang = FC_FAMILYLANG_OBJECT;
 		    np = &nfamily;
 		    nlangp = &nfamily_lang;
 		    break;
@@ -1506,8 +1530,8 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 				sname.name_id, sname.platform_id,
 				sname.encoding_id, sname.language_id);
 
-		    elt = FC_FULLNAME;
-		    eltlang = FC_FULLNAMELANG;
+		    obj = FC_FULLNAME_OBJECT;
+		    objlang = FC_FULLNAMELANG_OBJECT;
 		    np = &nfullname;
 		    nlangp = &nfullname_lang;
 		    break;
@@ -1521,8 +1545,8 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 				sname.name_id, sname.platform_id,
 				sname.encoding_id, sname.language_id);
 
-		    elt = FC_STYLE;
-		    eltlang = FC_STYLELANG;
+		    obj = FC_STYLE_OBJECT;
+		    objlang = FC_STYLELANG_OBJECT;
 		    np = &nstyle;
 		    nlangp = &nstyle_lang;
 		    break;
@@ -1538,7 +1562,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 		    }
 		    break;
 		}
-		if (elt)
+		if (obj != FC_INVALID_OBJECT)
 		{
 		    FcChar8		*utf8, *pp;
 
@@ -1562,14 +1586,14 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 			pp--;
 		    *pp = 0;
 
-		    if (FcStringInPatternElement (pat, elt, utf8))
+		    if (FcStringInPatternElement (pat, obj, utf8))
 		    {
 			free (utf8);
 			continue;
 		    }
 
 		    /* add new element */
-		    if (!FcPatternAddString (pat, elt, utf8))
+		    if (!FcPatternObjectAddString (pat, obj, utf8))
 		    {
 			free (utf8);
 			goto bail1;
@@ -1580,11 +1604,11 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 			/* pad lang list with 'und' to line up with elt */
 			while (*nlangp < *np)
 			{
-			    if (!FcPatternAddString (pat, eltlang, (FcChar8 *) "und"))
+			    if (!FcPatternObjectAddString (pat, objlang, (FcChar8 *) "und"))
 				goto bail1;
 			    ++*nlangp;
 			}
-			if (!FcPatternAddString (pat, eltlang, lang))
+			if (!FcPatternObjectAddString (pat, objlang, lang))
 			    goto bail1;
 			++*nlangp;
 		    }
@@ -1606,7 +1630,7 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	    printf ("using FreeType family \"%s\"\n", face->family_name);
 	if (!FcPatternAddString (pat, FC_FAMILY, (FcChar8 *) face->family_name))
 	    goto bail1;
-	if (!FcPatternAddString (pat, FC_STYLELANG, (FcChar8 *) "en"))
+	if (!FcPatternAddString (pat, FC_FAMILYLANG, (FcChar8 *) "en"))
 	    goto bail1;
 	++nfamily;
     }

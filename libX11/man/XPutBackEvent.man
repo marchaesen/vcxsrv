@@ -91,13 +91,13 @@ Specifies the connection to the X server.
 Specifies the event.
 .SH DESCRIPTION
 The
-.ZN XPutBackEvent
+.B XPutBackEvent
 function pushes an event back onto the head of the display's event queue
 by copying the event into the queue.
 This can be useful if you read an event and then decide that you
 would rather deal with it later.
 There is no limit to the number of times in succession that you can call
-.ZN XPutBackEvent .
+.BR XPutBackEvent .
 .SH "SEE ALSO"
 XAnyEvent(__libmansuffix__),
 XIfEvent(__libmansuffix__),

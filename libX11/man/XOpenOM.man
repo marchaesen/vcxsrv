@@ -111,22 +111,22 @@ Specifies the output method.
 Specifies the variable length argument list to set or get XOM values.
 .SH DESCRIPTION
 The
-.ZN XOpenOM
+.B XOpenOM
 function opens an output method
 matching the current locale and modifiers specification.
 The current locale and modifiers are bound to the output method
 when
-.ZN XOpenOM
+.B XOpenOM
 is called.
 The locale associated with an output method cannot be changed.
 .LP
 The specific output method to which this call will be routed
 is identified on the basis of the current locale and modifiers.
-.ZN XOpenOM
+.B XOpenOM
 will identify a default output method corresponding to the
 current locale.
 That default can be modified using 
-.ZN XSetLocaleModifiers
+.B XSetLocaleModifiers
 to set the output method modifier.
 .LP
 The db argument is the resource database to be used by the output method
@@ -148,19 +148,19 @@ if res_name or res_class is NULL.
 .LP
 The res_name and res_class arguments are not assumed to exist beyond
 the call to
-.ZN XOpenOM .
+.BR XOpenOM .
 The specified resource database is assumed to exist for the lifetime
 of the output method.
 .LP
-.ZN XOpenOM
+.B XOpenOM
 returns NULL if no output method could be opened.
 .LP
 The
-.ZN XCloseOM
+.B XCloseOM
 function closes the specified output method.
 .LP
 The
-.ZN XSetOMValues
+.B XSetOMValues
 function presents a variable argument list programming interface
 for setting properties or features of the specified output method.
 This function returns NULL if it succeeds;
@@ -174,7 +174,7 @@ correctly.
 No standard arguments are currently defined by Xlib.
 .LP
 The
-.ZN XGetOMValues
+.B XGetOMValues
 function presents a variable argument list programming interface
 for querying properties or features of the specified output method.
 This function returns NULL if it succeeds;
@@ -182,11 +182,11 @@ otherwise,
 it returns the name of the first argument that could not be obtained.
 .LP
 The
-.ZN XDisplayOfOM
+.B XDisplayOfOM
 function returns the display associated with the specified output method.
 .LP
 The
-.ZN XLocaleOfOM
+.B XLocaleOfOM
 returns the locale associated with the specified output method.
 .SH "SEE ALSO"
 XCreateOC(__libmansuffix__),

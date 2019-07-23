@@ -27,7 +27,6 @@
 #ifndef _ST_API_H_
 #define _ST_API_H_
 
-#include "pipe/p_compiler.h"
 #include "pipe/p_format.h"
 
 /**
@@ -218,19 +217,19 @@ struct st_visual
  */
 struct st_config_options
 {
-   boolean disable_blend_func_extended;
-   boolean disable_glsl_line_continuations;
-   boolean force_glsl_extensions_warn;
+   bool disable_blend_func_extended;
+   bool disable_glsl_line_continuations;
+   bool force_glsl_extensions_warn;
    unsigned force_glsl_version;
-   boolean allow_glsl_extension_directive_midshader;
-   boolean allow_glsl_builtin_const_expression;
-   boolean allow_glsl_relaxed_es;
-   boolean allow_glsl_builtin_variable_redeclaration;
-   boolean allow_higher_compat_version;
-   boolean glsl_zero_init;
-   boolean force_glsl_abs_sqrt;
-   boolean allow_glsl_cross_stage_interpolation_mismatch;
-   boolean allow_glsl_layout_qualifier_on_function_parameters;
+   bool allow_glsl_extension_directive_midshader;
+   bool allow_glsl_builtin_const_expression;
+   bool allow_glsl_relaxed_es;
+   bool allow_glsl_builtin_variable_redeclaration;
+   bool allow_higher_compat_version;
+   bool glsl_zero_init;
+   bool force_glsl_abs_sqrt;
+   bool allow_glsl_cross_stage_interpolation_mismatch;
+   bool allow_glsl_layout_qualifier_on_function_parameters;
    unsigned char config_options_sha1[20];
 };
 
@@ -319,9 +318,9 @@ struct st_framebuffer_iface
     *
     * @att is one of the front buffer attachments.
     */
-   boolean (*flush_front)(struct st_context_iface *stctx,
-                          struct st_framebuffer_iface *stfbi,
-                          enum st_attachment_type statt);
+   bool (*flush_front)(struct st_context_iface *stctx,
+                       struct st_framebuffer_iface *stfbi,
+                       enum st_attachment_type statt);
 
    /**
     * The state tracker asks for the textures it needs.
@@ -340,13 +339,13 @@ struct st_framebuffer_iface
     * the last call might be destroyed.  This behavior might change in the
     * future.
     */
-   boolean (*validate)(struct st_context_iface *stctx,
-                       struct st_framebuffer_iface *stfbi,
-                       const enum st_attachment_type *statts,
-                       unsigned count,
-                       struct pipe_resource **out);
-   boolean (*flush_swapbuffers) (struct st_context_iface *stctx,
-                                 struct st_framebuffer_iface *stfbi);
+   bool (*validate)(struct st_context_iface *stctx,
+                    struct st_framebuffer_iface *stfbi,
+                    const enum st_attachment_type *statts,
+                    unsigned count,
+                    struct pipe_resource **out);
+   bool (*flush_swapbuffers) (struct st_context_iface *stctx,
+                              struct st_framebuffer_iface *stfbi);
 };
 
 /**
@@ -394,10 +393,10 @@ struct st_context_iface
     *
     * This function is optional.
     */
-   boolean (*teximage)(struct st_context_iface *stctxi,
-                       enum st_texture_type target,
-                       int level, enum pipe_format internal_format,
-                       struct pipe_resource *tex, boolean mipmap);
+   bool (*teximage)(struct st_context_iface *stctxi,
+                    enum st_texture_type target,
+                    int level, enum pipe_format internal_format,
+                    struct pipe_resource *tex, bool mipmap);
 
    /**
     * Used to implement glXCopyContext.
@@ -408,8 +407,8 @@ struct st_context_iface
    /**
     * Used to implement wglShareLists.
     */
-   boolean (*share)(struct st_context_iface *stctxi,
-                    struct st_context_iface *stsrci);
+   bool (*share)(struct st_context_iface *stctxi,
+                 struct st_context_iface *stsrci);
 
    /**
     * Start the thread if the API has a worker thread.
@@ -451,9 +450,9 @@ struct st_manager
     *
     * This function is optional.
     */
-   boolean (*get_egl_image)(struct st_manager *smapi,
-                            void *egl_image,
-                            struct st_egl_image *out);
+   bool (*get_egl_image)(struct st_manager *smapi,
+                         void *egl_image,
+                         struct st_egl_image *out);
 
    /**
     * Query an manager param.
@@ -537,10 +536,10 @@ struct st_api
     * The framebuffers might be NULL, or might have different visuals than the
     * context does.
     */
-   boolean (*make_current)(struct st_api *stapi,
-                           struct st_context_iface *stctxi,
-                           struct st_framebuffer_iface *stdrawi,
-                           struct st_framebuffer_iface *streadi);
+   bool (*make_current)(struct st_api *stapi,
+                        struct st_context_iface *stctxi,
+                        struct st_framebuffer_iface *stdrawi,
+                        struct st_framebuffer_iface *streadi);
 
    /**
     * Get the currently bound context in the calling thread.
@@ -558,7 +557,7 @@ struct st_api
 /**
  * Return true if the visual has the specified buffers.
  */
-static inline boolean
+static inline bool
 st_visual_have_buffers(const struct st_visual *visual, unsigned mask)
 {
    return ((visual->buffer_mask & mask) == mask);

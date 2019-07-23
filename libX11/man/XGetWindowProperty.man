@@ -124,7 +124,7 @@ byte-swap operations as necessary.
 If the format is 16-bit or 32-bit,
 you must explicitly cast your data pointer to an (unsigned char *) in the call
 to 
-.ZN XChangeProperty .
+.BR XChangeProperty .
 .IP \fIlong_length\fP 1i
 Specifies the length in 32-bit multiples of the data to be retrieved.
 .IP \fIlong_offset\fP 1i
@@ -134,10 +134,10 @@ where the data is to be retrieved.
 .IP \fImode\fP 1i
 Specifies the mode of the operation.
 You can pass
-.ZN PropModeReplace ,
-.ZN PropModePrepend ,
+.BR PropModeReplace ,
+.BR PropModePrepend ,
 or
-.ZN PropModeAppend .
+.BR PropModeAppend .
 .IP \fInelements\fP 1i
 Specifies the number of elements of the specified data format.
 .IP \fInitems_return\fP 1i
@@ -163,27 +163,27 @@ Specifies the property name.
 Specifies the array of properties that are to be rotated.
 .IP \fIreq_type\fP 1i
 Specifies the atom identifier associated with the property type or
-.ZN AnyPropertyType .
+.BR AnyPropertyType .
 .IP \fItype\fP 1i
 Specifies the type of the property.
 The X server does not interpret the type but simply
 passes it back to an application that later calls 
-.ZN XGetWindowProperty .
+.BR XGetWindowProperty .
 .IP \fIw\fP 1i
 Specifies the window whose property you want to obtain, change, rotate or delete.
 .SH DESCRIPTION
 The
-.ZN XGetWindowProperty
+.B XGetWindowProperty
 function returns the actual type of the property; the actual format of the property;
 the number of 8-bit, 16-bit, or 32-bit items transferred; the number of bytes remaining
 to be read in the property; and a pointer to the data actually returned.
-.ZN XGetWindowProperty
+.B XGetWindowProperty
 sets the return arguments as follows:
 .IP \(bu 5
 If the specified property does not exist for the specified window,
-.ZN XGetWindowProperty 
+.B XGetWindowProperty
 returns 
-.ZN None
+.B None
 to actual_type_return and the value zero to 
 actual_format_return and bytes_after_return.
 The nitems_return argument is empty.
@@ -191,7 +191,7 @@ In this case, the delete argument is ignored.
 .IP \(bu 5
 If the specified property exists 
 but its type does not match the specified type,
-.ZN XGetWindowProperty 
+.B XGetWindowProperty
 returns the actual property type to actual_type_return, 
 the actual property format (never zero) to actual_format_return, 
 and the property length in bytes
@@ -201,9 +201,9 @@ It also ignores the delete argument.
 The nitems_return argument is empty.
 .IP \(bu 5
 If the specified property exists and either you assign 
-.ZN AnyPropertyType 
+.B AnyPropertyType
 to the req_type argument or the specified type matches the actual property type,
-.ZN XGetWindowProperty 
+.B XGetWindowProperty
 returns the actual property type to actual_type_return and the actual
 property format (never zero) to actual_format_return. 
 It also returns a value to bytes_after_return and nitems_return, by 
@@ -223,100 +223,100 @@ The returned value starts at byte index I in the property (indexing
 from zero), and its length in bytes is L.
 If the value for long_offset causes L to be negative,
 a
-.ZN BadValue
+.B BadValue
 error results. 
 The value of bytes_after_return is A, 
 giving the number of trailing unread bytes in the stored property.
 .LP
 If the returned format is 8, the returned data is represented as a
-.ZN char
+.B char
 array.
 If the returned format is 16, the returned data is represented as a
-.ZN short
+.B short
 array and should be cast to that type to obtain the elements.
 If the returned format is 32, the returned data is represented as a
-.ZN long
+.B long
 array and should be cast to that type to obtain the elements.
 .LP
-.ZN XGetWindowProperty
+.B XGetWindowProperty
 always allocates one extra byte in prop_return 
 (even if the property is zero length) 
 and sets it to zero so that simple properties consisting of characters
 do not have to be copied into yet another string before use.
 .LP
 If delete is 
-.ZN True 
+.B True
 and bytes_after_return is zero, 
-.ZN XGetWindowProperty
+.B XGetWindowProperty
 deletes the property 
 from the window and generates a 
-.ZN PropertyNotify 
+.B PropertyNotify
 event on the window.
 .LP
 The function returns
-.ZN Success
+.B Success
 if it executes successfully.
 To free the resulting data,
 use
-.ZN XFree .
+.BR XFree .
 .LP
-.ZN XGetWindowProperty
+.B XGetWindowProperty
 can generate
-.ZN BadAtom ,
-.ZN BadValue ,
+.BR BadAtom ,
+.BR BadValue ,
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XListProperties
+.B XListProperties
 function returns a pointer to an array of atom properties that are defined for 
 the specified window or returns NULL if no properties were found.
 To free the memory allocated by this function, use
-.ZN XFree .
+.BR XFree .
 .LP
-.ZN XListProperties
+.B XListProperties
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .LP
 The
-.ZN XChangeProperty
+.B XChangeProperty
 function alters the property for the specified window and
 causes the X server to generate a
-.ZN PropertyNotify
+.B PropertyNotify
 event on that window.
-.ZN XChangeProperty
+.B XChangeProperty
 performs the following:
 .IP \(bu 5
 If mode is
-.ZN PropModeReplace ,
-.ZN XChangeProperty
+.BR PropModeReplace ,
+.B XChangeProperty
 discards the previous property value and stores the new data.
 .IP \(bu 5
 If mode is
-.ZN PropModePrepend
+.B PropModePrepend
 or
-.ZN PropModeAppend ,
-.ZN XChangeProperty
+.BR PropModeAppend ,
+.B XChangeProperty
 inserts the specified data before the beginning of the existing data
 or onto the end of the existing data, respectively.
 The type and format must match the existing property value,
 or a
-.ZN BadMatch
+.B BadMatch
 error results.
 If the property is undefined, 
 it is treated as defined with the correct type and
 format with zero-length data.
 .LP
 If the specified format is 8, the property data must be a
-.ZN char
+.B char
 array.
 If the specified format is 16, the property data must be a
-.ZN short
+.B short
 array.
 If the specified format is 32, the property data must be a
-.ZN long
+.B long
 array.
 .LP
 The lifetime of a property is not tied to the storing client.
@@ -327,24 +327,24 @@ see section 2.6.
 The maximum size of a property is server dependent and can vary dynamically
 depending on the amount of memory the server has available.
 (If there is insufficient space, a
-.ZN BadAlloc
+.B BadAlloc
 error results.)
 .LP
-.ZN XChangeProperty
+.B XChangeProperty
 can generate
-.ZN BadAlloc ,
-.ZN BadAtom ,
-.ZN BadMatch ,
-.ZN BadValue ,
+.BR BadAlloc ,
+.BR BadAtom ,
+.BR BadMatch ,
+.BR BadValue ,
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XRotateWindowProperties
+.B XRotateWindowProperties
 function allows you to rotate properties on a window and causes
 the X server to generate
-.ZN PropertyNotify
+.B PropertyNotify
 events.
 If the property names in the properties array are viewed as being numbered 
 starting from zero and if there are num_prop property names in the list,
@@ -355,57 +355,57 @@ of property names (right for positive npositions,
 left for negative npositions).
 If npositions mod N is nonzero,
 the X server generates a
-.ZN PropertyNotify
+.B PropertyNotify
 event for each property in the order that they are listed in the array.
 If an atom occurs more than once in the list or no property with that 
 name is defined for the window,
 a 
-.ZN BadMatch 
+.B BadMatch
 error results.
 If a 
-.ZN BadAtom 
+.B BadAtom
 or 
-.ZN BadMatch 
+.B BadMatch
 error results,
 no properties are changed.
 .LP
-.ZN XRotateWindowProperties
+.B XRotateWindowProperties
 can generate
-.ZN BadAtom ,
-.ZN BadMatch ,
+.BR BadAtom ,
+.BR BadMatch ,
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XDeleteProperty
+.B XDeleteProperty
 function deletes the specified property only if the
 property was defined on the specified window
 and causes the X server to generate a
-.ZN PropertyNotify
+.B PropertyNotify
 event on the window unless the property does not exist.
 .LP
-.ZN XDeleteProperty
+.B XDeleteProperty
 can generate
-.ZN BadAtom
+.B BadAtom
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadAtom
+.B BadAtom
 A value for an Atom argument does not name a defined Atom.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of
 alternatives can generate this error.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XFree(__libmansuffix__),

@@ -629,6 +629,34 @@ lower_irem64(nir_builder *b, nir_ssa_def *n, nir_ssa_def *d)
    return nir_bcsel(b, n_is_neg, nir_ineg(b, r), r);
 }
 
+static nir_ssa_def *
+lower_extract(nir_builder *b, nir_op op, nir_ssa_def *x, nir_ssa_def *c)
+{
+   assert(op == nir_op_extract_u8 || op == nir_op_extract_i8 ||
+          op == nir_op_extract_u16 || op == nir_op_extract_i16);
+
+   const int chunk = nir_src_as_uint(nir_src_for_ssa(c));
+   const int chunk_bits =
+      (op == nir_op_extract_u8 || op == nir_op_extract_i8) ? 8 : 16;
+   const int num_chunks_in_32 = 32 / chunk_bits;
+
+   nir_ssa_def *extract32;
+   if (chunk < num_chunks_in_32) {
+      extract32 = nir_build_alu(b, op, nir_unpack_64_2x32_split_x(b, x),
+                                   nir_imm_int(b, chunk),
+                                   NULL, NULL);
+   } else {
+      extract32 = nir_build_alu(b, op, nir_unpack_64_2x32_split_y(b, x),
+                                   nir_imm_int(b, chunk - num_chunks_in_32),
+                                   NULL, NULL);
+   }
+
+   if (op == nir_op_extract_i8 || op == nir_op_extract_i16)
+      return lower_i2i64(b, extract32);
+   else
+      return lower_u2u64(b, extract32);
+}
+
 nir_lower_int64_options
 nir_lower_int64_op_to_options_mask(nir_op opcode)
 {
@@ -685,14 +713,21 @@ nir_lower_int64_op_to_options_mask(nir_op opcode)
    case nir_op_ishr:
    case nir_op_ushr:
       return nir_lower_shift64;
+   case nir_op_extract_u8:
+   case nir_op_extract_i8:
+   case nir_op_extract_u16:
+   case nir_op_extract_i16:
+      return nir_lower_extract64;
    default:
       return 0;
    }
 }
 
 static nir_ssa_def *
-lower_int64_alu_instr(nir_builder *b, nir_alu_instr *alu)
+lower_int64_alu_instr(nir_builder *b, nir_instr *instr, void *_state)
 {
+   nir_alu_instr *alu = nir_instr_as_alu(instr);
+
    nir_ssa_def *src[4];
    for (unsigned i = 0; i < nir_op_infos[alu->op].num_inputs; i++)
       src[i] = nir_ssa_for_alu_src(b, alu, i);
@@ -779,93 +814,71 @@ lower_int64_alu_instr(nir_builder *b, nir_alu_instr *alu)
       return lower_ishr64(b, src[0], src[1]);
    case nir_op_ushr:
       return lower_ushr64(b, src[0], src[1]);
+   case nir_op_extract_u8:
+   case nir_op_extract_i8:
+   case nir_op_extract_u16:
+   case nir_op_extract_i16:
+      return lower_extract(b, alu->op, src[0], src[1]);
    default:
       unreachable("Invalid ALU opcode to lower");
    }
 }
 
 static bool
-lower_int64_impl(nir_function_impl *impl, nir_lower_int64_options options)
+should_lower_int64_alu_instr(const nir_instr *instr, const void *_options)
 {
-   nir_builder b;
-   nir_builder_init(&b, impl);
+   const nir_lower_int64_options options =
+      *(const nir_lower_int64_options *)_options;
 
-   bool progress = false;
-   nir_foreach_block(block, impl) {
-      nir_foreach_instr_safe(instr, block) {
-         if (instr->type != nir_instr_type_alu)
-            continue;
+   if (instr->type != nir_instr_type_alu)
+      return false;
 
-         nir_alu_instr *alu = nir_instr_as_alu(instr);
-         switch (alu->op) {
-         case nir_op_i2b1:
-         case nir_op_i2i32:
-         case nir_op_u2u32:
-            assert(alu->src[0].src.is_ssa);
-            if (alu->src[0].src.ssa->bit_size != 64)
-               continue;
-            break;
-         case nir_op_bcsel:
-            assert(alu->src[1].src.is_ssa);
-            assert(alu->src[2].src.is_ssa);
-            assert(alu->src[1].src.ssa->bit_size ==
-                   alu->src[2].src.ssa->bit_size);
-            if (alu->src[1].src.ssa->bit_size != 64)
-               continue;
-            break;
-         case nir_op_ieq:
-         case nir_op_ine:
-         case nir_op_ult:
-         case nir_op_ilt:
-         case nir_op_uge:
-         case nir_op_ige:
-            assert(alu->src[0].src.is_ssa);
-            assert(alu->src[1].src.is_ssa);
-            assert(alu->src[0].src.ssa->bit_size ==
-                   alu->src[1].src.ssa->bit_size);
-            if (alu->src[0].src.ssa->bit_size != 64)
-               continue;
-            break;
-         default:
-            assert(alu->dest.dest.is_ssa);
-            if (alu->dest.dest.ssa.bit_size != 64)
-               continue;
-            break;
-         }
+   const nir_alu_instr *alu = nir_instr_as_alu(instr);
 
-         if (!(options & nir_lower_int64_op_to_options_mask(alu->op)))
-            continue;
-
-         b.cursor = nir_before_instr(instr);
-
-         nir_ssa_def *lowered = lower_int64_alu_instr(&b, alu);
-         nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa,
-                                  nir_src_for_ssa(lowered));
-         nir_instr_remove(&alu->instr);
-         progress = true;
-      }
+   switch (alu->op) {
+   case nir_op_i2b1:
+   case nir_op_i2i32:
+   case nir_op_u2u32:
+      assert(alu->src[0].src.is_ssa);
+      if (alu->src[0].src.ssa->bit_size != 64)
+         return false;
+      break;
+   case nir_op_bcsel:
+      assert(alu->src[1].src.is_ssa);
+      assert(alu->src[2].src.is_ssa);
+      assert(alu->src[1].src.ssa->bit_size ==
+             alu->src[2].src.ssa->bit_size);
+      if (alu->src[1].src.ssa->bit_size != 64)
+         return false;
+      break;
+   case nir_op_ieq:
+   case nir_op_ine:
+   case nir_op_ult:
+   case nir_op_ilt:
+   case nir_op_uge:
+   case nir_op_ige:
+      assert(alu->src[0].src.is_ssa);
+      assert(alu->src[1].src.is_ssa);
+      assert(alu->src[0].src.ssa->bit_size ==
+             alu->src[1].src.ssa->bit_size);
+      if (alu->src[0].src.ssa->bit_size != 64)
+         return false;
+      break;
+   default:
+      assert(alu->dest.dest.is_ssa);
+      if (alu->dest.dest.ssa.bit_size != 64)
+         return false;
+      break;
    }
 
-   if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_none);
-   } else {
-#ifndef NDEBUG
-      impl->valid_metadata &= ~nir_metadata_not_properly_reset;
-#endif
-   }
-
-   return progress;
+   return (options & nir_lower_int64_op_to_options_mask(alu->op)) != 0;
 }
 
 bool
 nir_lower_int64(nir_shader *shader, nir_lower_int64_options options)
 {
-   bool progress = false;
-
-   nir_foreach_function(function, shader) {
-      if (function->impl)
-         progress |= lower_int64_impl(function->impl, options);
-   }
-
-   return progress;
+   return nir_shader_lower_instructions(shader,
+                                        should_lower_int64_alu_instr,
+                                        lower_int64_alu_instr,
+                                        &options);
 }

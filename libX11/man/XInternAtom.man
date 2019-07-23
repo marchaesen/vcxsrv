@@ -114,16 +114,16 @@ Returns the atom names.
 Specifies a Boolean value that indicates whether the atom must be created.
 .SH DESCRIPTION
 The
-.ZN XInternAtom
+.B XInternAtom
 function returns the atom identifier associated with the specified atom_name
 string.
 If only_if_exists is 
-.ZN False ,
+.BR False ,
 the atom is created if it does not exist.
 Therefore,
-.ZN XInternAtom
+.B XInternAtom
 can return
-.ZN None .
+.BR None .
 If the atom name is not in the Host Portable Character Encoding, 
 the result is implementation-dependent.
 Uppercase and lowercase matter;
@@ -133,19 +133,19 @@ The atom will remain defined even after the client's connection closes.
 It will become undefined only when the last connection to
 the X server closes.
 .LP
-.ZN XInternAtom
+.B XInternAtom
 can generate
-.ZN BadAlloc 
+.B BadAlloc
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .LP
 The
-.ZN XInternAtoms
+.B XInternAtoms
 function returns the atom identifiers associated with the specified names.
 The atoms are stored in the atoms_return array supplied by the caller.
 Calling this function is equivalent to calling
-.ZN XInternAtom
+.B XInternAtom
 for each of the names in turn with the specified value of only_if_exists,
 but this function minimizes the number of round-trip protocol exchanges
 between the client and the X server.
@@ -154,34 +154,34 @@ This function returns a nonzero status if atoms are returned for
 all of the names;
 otherwise, it returns zero.
 .LP
-.ZN XInternAtoms
+.B XInternAtoms
 can generate
-.ZN BadAlloc 
+.B BadAlloc
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .LP
 The
-.ZN XGetAtomName
+.B XGetAtomName
 function returns the name associated with the specified atom.
 If the data returned by the server is in the Latin Portable Character Encoding,
 then the returned string is in the Host Portable Character Encoding.
 Otherwise, the result is implementation-dependent.
 To free the resulting string,
 call
-.ZN XFree .
+.BR XFree .
 .LP
-.ZN XGetAtomName
+.B XGetAtomName
 can generate a
-.ZN BadAtom 
+.B BadAtom
 error.
 .LP
 The
-.ZN XGetAtomNames
+.B XGetAtomNames
 function returns the names associated with the specified atoms.
 The names are stored in the names_return array supplied by the caller.
 Calling this function is equivalent to calling
-.ZN XGetAtomName
+.B XGetAtomName
 for each of the atoms in turn,
 but this function minimizes the number of round-trip protocol exchanges
 between the client and the X server.
@@ -190,19 +190,19 @@ This function returns a nonzero status if names are returned for
 all of the atoms;
 otherwise, it returns zero.
 .LP
-.ZN XGetAtomNames
+.B XGetAtomNames
 can generate a
-.ZN BadAtom 
+.B BadAtom
 error.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadAtom
+.B BadAtom
 A value for an Atom argument does not name a defined Atom.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

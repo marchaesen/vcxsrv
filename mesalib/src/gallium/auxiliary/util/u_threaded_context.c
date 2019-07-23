@@ -309,7 +309,7 @@ threaded_context_unwrap_sync(struct pipe_context *pipe)
       *p = deref(param); \
    }
 
-TC_FUNC1(set_active_query_state, flags, , boolean, , *)
+TC_FUNC1(set_active_query_state, flags, , bool, , *)
 
 TC_FUNC1(set_blend_color, blend_color, const, struct pipe_blend_color, *, )
 TC_FUNC1(set_stencil_ref, stencil_ref, const, struct pipe_stencil_ref, *, )
@@ -371,7 +371,7 @@ tc_call_begin_query(struct pipe_context *pipe, union tc_payload *payload)
    pipe->begin_query(pipe, payload->query);
 }
 
-static boolean
+static bool
 tc_begin_query(struct pipe_context *_pipe, struct pipe_query *query)
 {
    struct threaded_context *tc = threaded_context(_pipe);
@@ -414,9 +414,9 @@ tc_end_query(struct pipe_context *_pipe, struct pipe_query *query)
    return true; /* we don't care about the return value for this call */
 }
 
-static boolean
+static bool
 tc_get_query_result(struct pipe_context *_pipe,
-                    struct pipe_query *query, boolean wait,
+                    struct pipe_query *query, bool wait,
                     union pipe_query_result *result)
 {
    struct threaded_context *tc = threaded_context(_pipe);
@@ -440,7 +440,7 @@ tc_get_query_result(struct pipe_context *_pipe,
 
 struct tc_query_result_resource {
    struct pipe_query *query;
-   boolean wait;
+   bool wait;
    enum pipe_query_value_type result_type;
    int index;
    struct pipe_resource *resource;
@@ -460,7 +460,7 @@ tc_call_get_query_result_resource(struct pipe_context *pipe,
 
 static void
 tc_get_query_result_resource(struct pipe_context *_pipe,
-                             struct pipe_query *query, boolean wait,
+                             struct pipe_query *query, bool wait,
                              enum pipe_query_value_type result_type, int index,
                              struct pipe_resource *resource, unsigned offset)
 {
@@ -492,7 +492,7 @@ tc_call_render_condition(struct pipe_context *pipe, union tc_payload *payload)
 
 static void
 tc_render_condition(struct pipe_context *_pipe,
-                    struct pipe_query *query, boolean condition,
+                    struct pipe_query *query, bool condition,
                     enum pipe_render_cond_flag mode)
 {
    struct threaded_context *tc = threaded_context(_pipe);
@@ -771,7 +771,7 @@ tc_call_set_window_rectangles(struct pipe_context *pipe,
 }
 
 static void
-tc_set_window_rectangles(struct pipe_context *_pipe, boolean include,
+tc_set_window_rectangles(struct pipe_context *_pipe, bool include,
                          unsigned count,
                          const struct pipe_scissor_state *rects)
 {
@@ -1630,8 +1630,11 @@ tc_buffer_subdata(struct pipe_context *_pipe,
    if (!size)
       return;
 
-   usage |= PIPE_TRANSFER_WRITE |
-            PIPE_TRANSFER_DISCARD_RANGE;
+   usage |= PIPE_TRANSFER_WRITE;
+
+   /* PIPE_TRANSFER_MAP_DIRECTLY supresses implicit DISCARD_RANGE. */
+   if (!(usage & PIPE_TRANSFER_MAP_DIRECTLY))
+      usage |= PIPE_TRANSFER_DISCARD_RANGE;
 
    usage = tc_improve_map_buffer_flags(tc, tres, usage, offset, size);
 
@@ -2229,7 +2232,7 @@ tc_call_generate_mipmap(struct pipe_context *pipe, union tc_payload *payload)
    pipe_resource_reference(&p->res, NULL);
 }
 
-static boolean
+static bool
 tc_generate_mipmap(struct pipe_context *_pipe,
                    struct pipe_resource *res,
                    enum pipe_format format,

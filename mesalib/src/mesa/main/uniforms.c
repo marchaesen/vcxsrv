@@ -1007,7 +1007,7 @@ _mesa_GetUniformLocation(GLuint programObj, const GLcharARB *name)
 
    shProg = _mesa_lookup_shader_program_err(ctx, programObj,
 					    "glGetUniformLocation");
-   if (!shProg)
+   if (!shProg || !name)
       return -1;
 
    /* Page 80 (page 94 of the PDF) of the OpenGL 2.1 spec says:

@@ -103,7 +103,7 @@ Specifies the number of directories in the path.
 Returns the number of strings in the font path array.
 .SH DESCRIPTION
 The
-.ZN XSetFontPath
+.B XSetFontPath
 function defines the directory search path for font lookup.
 There is only one search path per X server, not one per client.
 The encoding and interpretation of the strings are implementation-dependent,
@@ -119,28 +119,28 @@ the X server is guaranteed to flush all cached information about fonts
 for which there currently are no explicit resource IDs allocated.
 The meaning of an error from this request is implementation-dependent.
 .LP
-.ZN XSetFontPath
+.B XSetFontPath
 can generate a
-.ZN BadValue 
+.B BadValue
 error.
 .LP
 The
-.ZN XGetFontPath
+.B XGetFontPath
 function allocates and returns an array of strings containing the search path.
 The contents of these strings are implementation-dependent
 and are not intended to be interpreted by client applications.
 When it is no longer needed,
 the data in the font path should be freed by using
-.ZN XFreeFontPath .
+.BR XFreeFontPath .
 .LP
 The
-.ZN XFreeFontPath
+.B XFreeFontPath
 function
 frees the data allocated by
-.ZN XGetFontPath .
+.BR XGetFontPath .
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

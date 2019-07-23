@@ -121,10 +121,10 @@ Specifies the null-terminated pattern string that can contain wildcard
 characters.
 .SH DESCRIPTION
 The
-.ZN XListFonts
+.B XListFonts
 function returns an array of available font names 
 (as controlled by the font search path; see
-.ZN XSetFontPath )
+.BR XSetFontPath )
 that match the string you passed to the pattern argument.
 The pattern string can contain any characters,
 but each asterisk (*) is a wildcard for any number of characters,
@@ -137,26 +137,26 @@ If the data returned by the server is in the Latin Portable Character Encoding,
 then the returned strings are in the Host Portable Character Encoding.
 Otherwise, the result is implementation-dependent.
 If there are no matching font names,
-.ZN XListFonts
+.B XListFonts
 returns NULL.
 The client should call
-.ZN XFreeFontNames
+.B XFreeFontNames
 when finished with the result to free the memory.
 .LP
 The
-.ZN XFreeFontNames
+.B XFreeFontNames
 function frees the array and strings returned by
-.ZN XListFonts 
+.B XListFonts
 or
-.ZN XListFontsWithInfo .
+.BR XListFontsWithInfo .
 .LP
 The
-.ZN XListFontsWithInfo
+.B XListFontsWithInfo
 function returns a list of font names that match the specified pattern and their
 associated font information.
 The list of names is limited to size specified by maxnames.
 The information returned for each font is identical to what
-.ZN XLoadQueryFont
+.B XLoadQueryFont
 would return except that the per-character metrics are not returned.
 The pattern string can contain any characters,
 but each asterisk (*) is a wildcard for any number of characters,
@@ -169,33 +169,33 @@ If the data returned by the server is in the Latin Portable Character Encoding,
 then the returned strings are in the Host Portable Character Encoding.
 Otherwise, the result is implementation-dependent.
 If there are no matching font names,
-.ZN XListFontsWithInfo
+.B XListFontsWithInfo
 returns NULL.
 .LP
 To free only the allocated name array,
 the client should call
-.ZN XFreeFontNames .
+.BR XFreeFontNames .
 To free both the name array and the font information array
 or to free just the font information array,
 the client should call
-.ZN XFreeFontInfo .
+.BR XFreeFontInfo .
 .LP
 The
-.ZN XFreeFontInfo
+.B XFreeFontInfo
 function frees a font structure or an array of font structures
 and optionally an array of font names.
 If NULL is passed for names, no font names are freed.
 If a font structure for an open font (returned by
-.ZN XLoadQueryFont )
+.BR XLoadQueryFont )
 is passed, the structure is freed,
 but the font is not closed; use
-.ZN XUnloadFont
+.B XUnloadFont
 to close the font.
 .LP
 Note that
-.ZN XListFontsWithInfo
+.B XListFontsWithInfo
 is not thread-safe. If other threads make X requests on the same
-.ZN Display ,
+.BR Display ,
 then this function's behavior is undefined.
 .SH "SEE ALSO"
 XLoadFont(__libmansuffix__),

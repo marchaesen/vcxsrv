@@ -115,34 +115,34 @@ Specifies the visual attributes that are to be used in matching the visual
 structures.
 .SH DESCRIPTION
 The
-.ZN XGetVisualInfo
+.B XGetVisualInfo
 function returns a list of visual structures that have attributes 
 equal to the attributes specified by vinfo_template.
 If no visual structures match the template using the specified vinfo_mask,
-.ZN XGetVisualInfo
+.B XGetVisualInfo
 returns a NULL.
 To free the data returned by this function, use
-.ZN XFree .
+.BR XFree .
 .LP
 The
-.ZN XMatchVisualInfo
+.B XMatchVisualInfo
 function returns the visual information for a visual that matches the specified
 depth and class for a screen.
 Because multiple visuals that match the specified depth and class can exist,
 the exact visual chosen is undefined.
 If a visual is found,
-.ZN XMatchVisualInfo
+.B XMatchVisualInfo
 returns nonzero and the information on the visual to vinfo_return.
 Otherwise, when a visual is not found,
-.ZN XMatchVisualInfo
+.B XMatchVisualInfo
 returns zero.
 .LP
 The
-.ZN XVisualIDFromVisual
+.B XVisualIDFromVisual
 function returns the visual ID for the specified visual type.
 .SH STRUCTURES
 The
-.ZN XVisualInfo
+.B XVisualInfo
 structure contains:
 .LP
 .LP
@@ -152,77 +152,77 @@ lw(.5i) lw(2.5i) lw(.8i).
 T{
 \&#define
 T}	T{
-.ZN VisualNoMask
+.B VisualNoMask
 T}	T{
 0x0
 T}
 T{
 \&#define
 T}	T{
-.ZN VisualIDMask
+.B VisualIDMask
 T}	T{
 0x1
 T}
 T{
 \&#define
 T}	T{
-.ZN VisualScreenMask
+.B VisualScreenMask
 T}	T{
 0x2
 T}
 T{
 \&#define
 T}	T{
-.ZN VisualDepthMask
+.B VisualDepthMask
 T}	T{
 0x4
 T}
 T{
 \&#define
 T}	T{
-.ZN VisualClassMask
+.B VisualClassMask
 T}	T{
 0x8
 T}
 T{
 \&#define
 T}	T{
-.ZN VisualRedMaskMask
+.B VisualRedMaskMask
 T}	T{
 0x10
 T}
 T{
 \&#define
 T}	T{
-.ZN VisualGreenMaskMask
+.B VisualGreenMaskMask
 T}	T{
 0x20
 T}
 T{
 \&#define
 T}	T{
-.ZN VisualBlueMaskMask
+.B VisualBlueMaskMask
 T}	T{
 0x40
 T}
 T{
 \&#define
 T}	T{
-.ZN VisualColormapSizeMask
+.B VisualColormapSizeMask
 T}	T{
 0x80
 T}
 T{
 \&#define
 T}	T{
-.ZN VisualBitsPerRGBMask
+.B VisualBitsPerRGBMask
 T}	T{
 0x100
 T}
 T{
 \&#define
 T}	T{
-.ZN VisualAllMask
+.B VisualAllMask
 T}	T{
 0x1FF
 T}

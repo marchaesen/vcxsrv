@@ -61,6 +61,9 @@ _mesa_GetnTexImageARB( GLenum target, GLint level, GLenum format,
 extern void GLAPIENTRY
 _mesa_GetTextureImage(GLuint texture, GLint level, GLenum format,
                       GLenum type, GLsizei bufSize, GLvoid *pixels);
+extern void GLAPIENTRY
+_mesa_GetTextureImageEXT( GLuint texture, GLenum target, GLint level,
+                          GLenum format, GLenum type, GLvoid *pixels);
 
 extern void GLAPIENTRY
 _mesa_GetTextureSubImage(GLuint texture, GLint level,

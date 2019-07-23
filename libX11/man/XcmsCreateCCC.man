@@ -110,7 +110,7 @@ If NULL is specified and a function using this CCC must convert
 a color specification to a device-dependent format and encounters a color
 that lies outside the screen's color gamut, 
 that function will return
-.ZN XcmsFailure .
+.BR XcmsFailure .
 .IP \fIscreen_number\fP 1i
 Specifies the appropriate screen number on the host server.
 .IP \fIvisual\fP 1i
@@ -123,11 +123,11 @@ when the Client White Point differs from the Screen White Point.
 NULL indicates that no white point adjustment is desired.
 .SH DESCRIPTION
 The
-.ZN XcmsCreateCCC
+.B XcmsCreateCCC
 function creates a CCC for the specified display, screen, and visual.
 .LP
 The
-.ZN XcmsFreeCCC
+.B XcmsFreeCCC
 function frees the memory used for the specified CCC.
 Note that default CCCs and those currently associated with colormaps
 are ignored.

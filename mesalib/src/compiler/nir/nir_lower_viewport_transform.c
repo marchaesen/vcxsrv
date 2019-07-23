@@ -56,7 +56,8 @@ nir_lower_viewport_transform(nir_shader *shader)
                continue;
 
             nir_variable *var = nir_intrinsic_get_var(intr, 0);
-            if (var->data.location != VARYING_SLOT_POS)
+            if (var->data.mode != nir_var_shader_out ||
+                var->data.location != VARYING_SLOT_POS)
                continue;
 
             nir_builder b;

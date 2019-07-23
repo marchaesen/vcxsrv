@@ -21,13 +21,13 @@ cat > sdksyms.c << EOF
 #include "picturestr.h"
 
 
-/* fb/Makefile.am -- module */
-/*
+/* fb/Makefile.am */
 #include "fb.h"
 #include "fbrop.h"
 #include "fboverlay.h"
-#include "wfbrename.h"
 #include "fbpict.h"
+/* wfb is still a module
+#include "wfbrename.h"
  */
 
 

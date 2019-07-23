@@ -100,45 +100,45 @@ int IsPrivateKeypadKey\^(\^KeySym \fIkeysym\fP\^);
 Specifies the KeySym that is to be tested.
 .SH DESCRIPTION
 The
-.ZN IsCursorKey
+.B IsCursorKey
 macro returns 
-.ZN True
+.B True
 if the specified KeySym is a cursor key.
 .LP
 The
-.ZN IsFunctionKey
+.B IsFunctionKey
 macro returns 
-.ZN True
+.B True
 if the KeySym is a function key.
 .LP
 The
-.ZN IsKeypadKey
+.B IsKeypadKey
 macro returns
-.ZN True
+.B True
 if the specified KeySym is a keypad key.
 .LP
 The
-.ZN IsMiscFunctionKey
+.B IsMiscFunctionKey
 macro returns
-.ZN True
+.B True
 if the specified KeySym is a miscellaneous function key.
 .LP
 The
-.ZN IsModifierKey
+.B IsModifierKey
 macro returns
-.ZN True
+.B True
 if the specified KeySym is a modifier key.
 .LP
 The
-.ZN IsPFKey
+.B IsPFKey
 macro returns
-.ZN True
+.B True
 if the specified KeySym is a PF key.
 .LP
 The
-.ZN IsPrivateKeypadKey
+.B IsPrivateKeypadKey
 macro returns
-.ZN True
+.B True
 if the specified KeySym is a vendor-private keypad key.
 .SH "SEE ALSO"
 XkbKeyTypesForCoreSymbols(__libmansuffix__),

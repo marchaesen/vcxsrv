@@ -91,14 +91,14 @@ lw(.5i) lw(2i) lw(2.5i).
 T{
 \&#define
 T}	T{
-.ZN XrmEnumAllLevels
+.B XrmEnumAllLevels
 T}	T{
 0
 T}
 T{
 \&#define
 T}	T{
-.ZN XrmEnumOneLevel
+.B XrmEnumOneLevel
 T}	T{
 1
 T}
@@ -122,25 +122,25 @@ Specifies the procedure that is to be called for each matching entry.
 Specifies the user-supplied argument that will be passed to the procedure.
 .SH DESCRIPTION
 The
-.ZN XrmEnumerateDatabase
+.B XrmEnumerateDatabase
 function calls the specified procedure for each resource in the database
 that would match some completion of the given name/class resource prefix.
 The order in which resources are found is implementation-dependent.
 If mode is
-.ZN XrmEnumOneLevel ,
+.BR XrmEnumOneLevel ,
 a resource must match the given name/class prefix with
 just a single name and class appended.  If mode is
-.ZN XrmEnumAllLevels ,
+.BR XrmEnumAllLevels ,
 the resource must match the given name/class prefix with one or more names and
 classes appended.
 If the procedure returns
-.ZN True ,
+.BR True ,
 the enumeration terminates and the function returns
-.ZN True . 
+.BR True .
 If the procedure always returns
-.ZN False ,
+.BR False ,
 all matching resources are enumerated and the function returns
-.ZN False .
+.BR False .
 .LP
 The procedure is called with the following arguments:
 .LP
@@ -157,7 +157,7 @@ The procedure is called with the following arguments:
 .\" End marker code here
 .LP
 The bindings and quarks lists are terminated by
-.ZN NULLQUARK .
+.BR NULLQUARK .
 Note that pointers
 to the database and type are passed, but these values should not be modified.
 .LP

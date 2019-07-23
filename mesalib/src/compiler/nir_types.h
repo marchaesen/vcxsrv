@@ -121,6 +121,7 @@ bool glsl_type_is_vector_or_scalar(const struct glsl_type *type);
 bool glsl_type_is_matrix(const struct glsl_type *type);
 bool glsl_matrix_type_is_row_major(const struct glsl_type *type);
 bool glsl_type_is_array(const struct glsl_type *type);
+bool glsl_type_is_unsized_array(const struct glsl_type *type);
 bool glsl_type_is_array_of_arrays(const struct glsl_type *type);
 bool glsl_type_is_array_or_matrix(const struct glsl_type *type);
 bool glsl_type_is_struct(const struct glsl_type *type);

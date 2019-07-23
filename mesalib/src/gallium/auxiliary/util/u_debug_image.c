@@ -57,7 +57,7 @@ debug_dump_image(const char *prefix,
    unsigned char *rgb8;
    FILE *f;
 
-   util_snprintf(filename, sizeof(filename), "%s.ppm", prefix);
+   snprintf(filename, sizeof(filename), "%s.ppm", prefix);
 
    rgb8 = MALLOC(height * width * 3);
    if (!rgb8) {

@@ -101,35 +101,35 @@ Returns the number of currently installed colormaps.
 Specifies the window that determines the screen.
 .SH DESCRIPTION
 The
-.ZN XInstallColormap
+.B XInstallColormap
 function installs the specified colormap for its associated screen.
 All windows associated with this colormap immediately display with
 true colors.
 You associated the windows with this colormap when you created them by calling
-.ZN XCreateWindow ,
-.ZN XCreateSimpleWindow ,
-.ZN XChangeWindowAttributes ,
+.BR XCreateWindow ,
+.BR XCreateSimpleWindow ,
+.BR XChangeWindowAttributes ,
 or
-.ZN XSetWindowColormap .
+.BR XSetWindowColormap .
 .LP
 If the specified colormap is not already an installed colormap, 
 the X server generates a
-.ZN ColormapNotify
+.B ColormapNotify
 event on each window that has that colormap.
 In addition, for every other colormap that is installed as 
 a result of a call to
-.ZN XInstallColormap ,
+.BR XInstallColormap ,
 the X server generates a
-.ZN ColormapNotify
+.B ColormapNotify
 event on each window that has that colormap.
 .LP
-.ZN XInstallColormap
+.B XInstallColormap
 can generate a
-.ZN BadColor 
+.B BadColor
 error.
 .LP
 The
-.ZN XUninstallColormap
+.B XUninstallColormap
 function removes the specified colormap from the required
 list for its screen.
 As a result,
@@ -140,40 +140,40 @@ except that the required list must remain installed.
 .LP
 If the specified colormap becomes uninstalled, 
 the X server generates a
-.ZN ColormapNotify
+.B ColormapNotify
 event on each window that has that colormap.
 In addition, for every other colormap that is installed or uninstalled as a 
 result of a call to 
-.ZN XUninstallColormap ,
+.BR XUninstallColormap ,
 the X server generates a
-.ZN ColormapNotify
+.B ColormapNotify
 event on each window that has that colormap.
 .LP
-.ZN XUninstallColormap
+.B XUninstallColormap
 can generate a
-.ZN BadColor 
+.B BadColor
 error.
 .LP
 The
-.ZN XListInstalledColormaps
+.B XListInstalledColormaps
 function returns a list of the currently installed colormaps for the screen 
 of the specified window.
 The order of the colormaps in the list is not significant
 and is no explicit indication of the required list.
 When the allocated list is no longer needed,
 free it by using
-.ZN XFree .
+.BR XFree .
 .LP
-.ZN XListInstalledColormaps
+.B XListInstalledColormaps
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadColor
+.B BadColor
 A value for a Colormap argument does not name a defined Colormap.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XChangeWindowAttributes(__libmansuffix__),

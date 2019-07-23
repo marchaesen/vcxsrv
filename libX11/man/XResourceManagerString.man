@@ -93,31 +93,31 @@ Specifies the connection to the X server.
 Specifies the screen.
 .SH DESCRIPTION
 The
-.ZN XResourceManagerString
+.B XResourceManagerString
 function returns the RESOURCE_MANAGER property from the server's root
 window of screen zero, which was returned when the connection was opened using
-.ZN XOpenDisplay .
+.BR XOpenDisplay .
 The property is converted from type STRING to the current locale.
 The conversion is identical to that produced by 
-.ZN XmbTextPropertyToTextList
+.B XmbTextPropertyToTextList
 for a single element STRING property.
 The returned string is owned by Xlib and should not be freed by the client.
 The property value must be in a format that is acceptable to
-.ZN XrmGetStringDatabase .
+.BR XrmGetStringDatabase .
 If no property exists, NULL is returned.
 .LP
 The
-.ZN XScreenResourceString
+.B XScreenResourceString
 function returns the SCREEN_RESOURCES property from the root window of the
 specified screen.
 The property is converted from type STRING to the current locale.
 The conversion is identical to that produced by 
-.ZN XmbTextPropertyToTextList
+.B XmbTextPropertyToTextList
 for a single element STRING property.
 The property value must be in a format that is acceptable to
-.ZN XrmGetStringDatabase .
+.BR XrmGetStringDatabase .
 If no property exists, NULL is returned.
 The caller is responsible for freeing the returned string by using
-.ZN XFree .
+.BR XFree .
 .SH "SEE ALSO"
 \fI\*(xL\fP

@@ -14,9 +14,9 @@ struct winsys_handle;
 extern "C" {
 #endif
 
-boolean u_default_resource_get_handle(struct pipe_screen *screen,
-                                      struct pipe_resource *resource,
-                                      struct winsys_handle *handle);
+bool u_default_resource_get_handle(struct pipe_screen *screen,
+                                   struct pipe_resource *resource,
+                                   struct winsys_handle *handle);
 
 void u_default_buffer_subdata(struct pipe_context *pipe,
                               struct pipe_resource *resource,
@@ -46,9 +46,9 @@ void u_default_transfer_unmap( struct pipe_context *pipe,
  */
 struct u_resource_vtbl {
 
-   boolean (*resource_get_handle)(struct pipe_screen *,
-                                  struct pipe_resource *tex,
-                                  struct winsys_handle *handle);
+   bool (*resource_get_handle)(struct pipe_screen *,
+                               struct pipe_resource *tex,
+                               struct winsys_handle *handle);
 
    void (*resource_destroy)(struct pipe_screen *,
                             struct pipe_resource *pt);
@@ -76,11 +76,11 @@ struct u_resource {
 };
 
 
-boolean u_resource_get_handle_vtbl(struct pipe_screen *screen,
-                                   struct pipe_context *ctx,
-                                   struct pipe_resource *resource,
-                                   struct winsys_handle *handle,
-                                   unsigned usage);
+bool u_resource_get_handle_vtbl(struct pipe_screen *screen,
+                                struct pipe_context *ctx,
+                                struct pipe_resource *resource,
+                                struct winsys_handle *handle,
+                                unsigned usage);
 
 void u_resource_destroy_vtbl(struct pipe_screen *screen,
                              struct pipe_resource *resource);

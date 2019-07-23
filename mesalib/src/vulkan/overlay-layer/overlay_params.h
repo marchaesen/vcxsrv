@@ -50,6 +50,7 @@ extern "C" {
    OVERLAY_PARAM_BOOL(pipeline_raytracing)           \
    OVERLAY_PARAM_BOOL(acquire)                       \
    OVERLAY_PARAM_BOOL(acquire_timing)                \
+   OVERLAY_PARAM_BOOL(present_timing)                \
    OVERLAY_PARAM_BOOL(vertices)                      \
    OVERLAY_PARAM_BOOL(primitives)                    \
    OVERLAY_PARAM_BOOL(vert_invocations)              \

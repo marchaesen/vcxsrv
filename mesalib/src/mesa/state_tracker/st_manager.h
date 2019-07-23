@@ -44,7 +44,7 @@ st_manager_flush_frontbuffer(struct st_context *st);
 void
 st_manager_validate_framebuffers(struct st_context *st);
 
-boolean
+bool
 st_manager_add_color_renderbuffer(struct st_context *st, struct gl_framebuffer *fb,
                                   gl_buffer_index idx);
 

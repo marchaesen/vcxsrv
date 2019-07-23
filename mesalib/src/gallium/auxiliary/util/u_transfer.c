@@ -18,11 +18,15 @@ void u_default_buffer_subdata(struct pipe_context *pipe,
    /* the write flag is implicit by the nature of buffer_subdata */
    usage |= PIPE_TRANSFER_WRITE;
 
-   /* buffer_subdata implicitly discards the rewritten buffer range */
-   if (offset == 0 && size == resource->width0) {
-      usage |= PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE;
-   } else {
-      usage |= PIPE_TRANSFER_DISCARD_RANGE;
+   /* buffer_subdata implicitly discards the rewritten buffer range.
+    * PIPE_TRANSFER_MAP_DIRECTLY supresses that.
+    */
+   if (!(usage & PIPE_TRANSFER_MAP_DIRECTLY)) {
+      if (offset == 0 && size == resource->width0) {
+         usage |= PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE;
+      } else {
+         usage |= PIPE_TRANSFER_DISCARD_RANGE;
+      }
    }
 
    u_box_1d(offset, size, &box);
@@ -81,9 +85,9 @@ void u_default_texture_subdata(struct pipe_context *pipe,
 }
 
 
-boolean u_default_resource_get_handle(UNUSED struct pipe_screen *screen,
-                                      UNUSED struct pipe_resource *resource,
-                                      UNUSED struct winsys_handle *handle)
+bool u_default_resource_get_handle(UNUSED struct pipe_screen *screen,
+                                   UNUSED struct pipe_resource *resource,
+                                   UNUSED struct winsys_handle *handle)
 {
    return FALSE;
 }
@@ -110,11 +114,11 @@ u_resource( struct pipe_resource *res )
    return (struct u_resource *)res;
 }
 
-boolean u_resource_get_handle_vtbl(struct pipe_screen *screen,
-                                   UNUSED struct pipe_context *ctx,
-                                   struct pipe_resource *resource,
-                                   struct winsys_handle *handle,
-                                   UNUSED unsigned usage)
+bool u_resource_get_handle_vtbl(struct pipe_screen *screen,
+                                UNUSED struct pipe_context *ctx,
+                                struct pipe_resource *resource,
+                                struct winsys_handle *handle,
+                                UNUSED unsigned usage)
 {
    struct u_resource *ur = u_resource(resource);
    return ur->vtbl->resource_get_handle(screen, resource, handle);

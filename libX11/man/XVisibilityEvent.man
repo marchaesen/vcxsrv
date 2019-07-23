@@ -83,7 +83,7 @@
 XVisibilityEvent \- VisibilityNotify event structure
 .SH STRUCTURES
 The structure for
-.ZN VisibilityNotify
+.B VisibilityNotify
 events contains:
 .LP
 .Ds 0
@@ -103,16 +103,16 @@ the structure members are set as follows.
 The type member is set to the event type constant name that uniquely identifies
 it.
 For example, when the X server reports a
-.ZN GraphicsExpose
+.B GraphicsExpose
 event to a client application, it sends an
-.ZN XGraphicsExposeEvent
+.B XGraphicsExposeEvent
 structure with the type member set to
-.ZN GraphicsExpose .
+.BR GraphicsExpose .
 The display member is set to a pointer to the display the event was read on.
 The send_event member is set to
-.ZN True
+.B True
 if the event came from a
-.ZN SendEvent
+.B SendEvent
 protocol request.
 The serial member is set from the serial number reported in the protocol
 but expanded from the 16-bit least-significant bits to a full 32-bit value.
@@ -121,36 +121,36 @@ dispatchers.
 .LP
 The window member is set to the window whose visibility state changes.
 The state member is set to the state of the window's visibility and can be
-.ZN VisibilityUnobscured ,
-.ZN VisibilityPartiallyObscured ,
+.BR VisibilityUnobscured ,
+.BR VisibilityPartiallyObscured ,
 or
-.ZN VisibilityFullyObscured .
+.BR VisibilityFullyObscured .
 The X server ignores all of a window's subwindows
 when determining the visibility state of the window and processes 
-.ZN VisibilityNotify
+.B VisibilityNotify
 events according to the following:
 .IP \(bu 5
 When the window changes state from partially obscured, fully obscured,
 or not viewable to viewable and completely unobscured,
 the X server generates the event with the state member of the
-.ZN XVisibilityEvent
+.B XVisibilityEvent
 structure set to
-.ZN VisibilityUnobscured .
+.BR VisibilityUnobscured .
 .IP \(bu 5
 When the window changes state from viewable and completely unobscured or 
 not viewable to viewable and partially obscured,
 the X server generates the event with the state member of the
-.ZN XVisibilityEvent
+.B XVisibilityEvent
 structure set to
-.ZN VisibilityPartiallyObscured .
+.BR VisibilityPartiallyObscured .
 .IP \(bu 5
 When the window changes state from viewable and completely unobscured, 
 viewable and partially obscured, or not viewable to viewable and 
 fully obscured,
 the X server generates the event with the state member of the
-.ZN XVisibilityEvent
+.B XVisibilityEvent
 structure set to
-.ZN VisibilityFullyObscured .
+.BR VisibilityFullyObscured .
 .SH "SEE ALSO"
 XAnyEvent(__libmansuffix__),
 XButtonEvent(__libmansuffix__),

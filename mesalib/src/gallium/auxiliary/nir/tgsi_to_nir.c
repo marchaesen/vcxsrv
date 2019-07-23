@@ -74,6 +74,7 @@ struct ttn_compile {
 
    nir_variable *input_var_face;
    nir_variable *input_var_position;
+   nir_variable *input_var_point;
 
    /**
     * Stack of nir_cursors where instructions should be pushed as we pop
@@ -102,6 +103,7 @@ struct ttn_compile {
    bool cap_scalar;
    bool cap_face_is_sysval;
    bool cap_position_is_sysval;
+   bool cap_point_is_sysval;
    bool cap_packed_uniforms;
    bool cap_samplers_as_deref;
 };
@@ -321,6 +323,14 @@ ttn_emit_declaration(struct ttn_compile *c)
                      var->data.location = VARYING_SLOT_POS;
                   }
                   c->input_var_position = var;
+               } else if (decl->Semantic.Name == TGSI_SEMANTIC_PCOORD) {
+                  if (c->cap_point_is_sysval) {
+                     var->data.mode = nir_var_system_value;
+                     var->data.location = SYSTEM_VALUE_POINT_COORD;
+                  } else {
+                     var->data.location = VARYING_SLOT_PNTC;
+                  }
+                  c->input_var_point = var;
                } else {
                   var->data.location =
                      tgsi_varying_semantic_to_slot(decl->Semantic.Name,
@@ -579,6 +589,11 @@ ttn_src_for_file_and_index(struct ttn_compile *c, unsigned file, unsigned index,
          op = nir_intrinsic_load_frag_coord;
          load = nir_load_frag_coord(b);
          break;
+      case TGSI_SEMANTIC_PCOORD:
+         assert(c->cap_point_is_sysval);
+         op = nir_intrinsic_load_point_coord;
+         load = nir_load_point_coord(b);
+         break;
       default:
          unreachable("bad system value");
       }
@@ -599,6 +614,10 @@ ttn_src_for_file_and_index(struct ttn_compile *c, unsigned file, unsigned index,
           c->scan->input_semantic_name[index] == TGSI_SEMANTIC_POSITION) {
          assert(!c->cap_position_is_sysval && c->input_var_position);
          return nir_src_for_ssa(nir_load_var(&c->build, c->input_var_position));
+      } else if (c->scan->processor == PIPE_SHADER_FRAGMENT &&
+          c->scan->input_semantic_name[index] == TGSI_SEMANTIC_PCOORD) {
+         assert(!c->cap_point_is_sysval && c->input_var_point);
+         return nir_src_for_ssa(nir_load_var(&c->build, c->input_var_point));
       } else {
          /* Indirection on input arrays isn't supported by TTN. */
          assert(!dim);
@@ -1962,6 +1981,7 @@ ttn_read_pipe_caps(struct ttn_compile *c,
    c->cap_samplers_as_deref = screen->get_param(screen, PIPE_CAP_NIR_SAMPLERS_AS_DEREF);
    c->cap_face_is_sysval = screen->get_param(screen, PIPE_CAP_TGSI_FS_FACE_IS_INTEGER_SYSVAL);
    c->cap_position_is_sysval = screen->get_param(screen, PIPE_CAP_TGSI_FS_POSITION_IS_SYSVAL);
+   c->cap_point_is_sysval = screen->get_param(screen, PIPE_CAP_TGSI_FS_POINT_IS_SYSVAL);
 }
 
 /**

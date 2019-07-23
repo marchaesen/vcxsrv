@@ -146,7 +146,7 @@ st_update_framebuffer_state( struct st_context *st )
 
       if (strb) {
          if (strb->is_rtt || (strb->texture &&
-             _mesa_get_format_color_encoding(strb->Base.Format) == GL_SRGB)) {
+             _mesa_is_format_srgb(strb->Base.Format))) {
             /* rendering to a GL texture, may have to update surface */
             st_update_renderbuffer_surface(st, strb);
          }

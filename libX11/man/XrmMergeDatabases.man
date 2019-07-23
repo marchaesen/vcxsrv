@@ -105,22 +105,22 @@ Specifies the resource database file name.
 Specifies whether source entries override target ones.
 .SH DESCRIPTION
 Calling the
-.ZN XrmMergeDatabases
+.B XrmMergeDatabases
 function is equivalent to calling the
-.ZN XrmCombineDatabase
+.B XrmCombineDatabase
 function with an override argument of
-.ZN True .
+.BR True .
 .LP
 The
-.ZN XrmCombineDatabase
+.B XrmCombineDatabase
 function merges the contents of one database into another.
 If the same specifier is used for an entry in both databases,
 the entry in the source_db will replace the entry in the target_db
 if override is
-.ZN True ;
+.BR True ;
 otherwise, the entry in source_db is discarded.
 If target_db contains NULL,
-.ZN XrmCombineDatabase
+.B XrmCombineDatabase
 simply stores source_db in it.
 Otherwise, source_db is destroyed by the merge, but the database pointed
 to by target_db is not destroyed.
@@ -129,20 +129,20 @@ regardless of the locales of the databases.
 The locale of the target database is not modified.
 .LP
 The
-.ZN XrmCombineFileDatabase
+.B XrmCombineFileDatabase
 function merges the contents of a resource file into a database.
 If the same specifier is used for an entry in both the file and
 the database,
 the entry in the file will replace the entry in the database
 if override is
-.ZN True ;
+.BR True ;
 otherwise, the entry in the file is discarded.
 The file is parsed in the current locale.
 If the file cannot be read,
 a zero status is returned;
 otherwise, a nonzero status is returned.
 If target_db contains NULL,
-.ZN XrmCombineFileDatabase
+.B XrmCombineFileDatabase
 creates and returns a new database to it.
 Otherwise, the database pointed to by target_db is not destroyed by the merge.
 The database entries are merged without changing values or types,

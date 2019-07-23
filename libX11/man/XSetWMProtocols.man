@@ -101,46 +101,46 @@ Specifies the list of protocols.
 Returns the list of protocols.
 .SH DESCRIPTION
 The 
-.ZN XSetWMProtocols 
+.B XSetWMProtocols
 function replaces the WM_PROTOCOLS property on the specified window 
 with the list of atoms specified by the protocols argument.
 If the property does not already exist,
-.ZN XSetWMProtocols
+.B XSetWMProtocols
 sets the WM_PROTOCOLS property on the specified window
 to the list of atoms specified by the protocols argument.
 The property is stored with a type of ATOM and a format of 32.
 If it cannot intern the WM_PROTOCOLS atom, 
-.ZN XSetWMProtocols
+.B XSetWMProtocols
 returns a zero status.
 Otherwise, it returns a nonzero status.
 .LP
-.ZN XSetWMProtocols
+.B XSetWMProtocols
 can generate
-.ZN BadAlloc
+.B BadAlloc
 and
-.ZN BadWindow
+.B BadWindow
 errors.
 .LP
 The 
-.ZN XGetWMProtocols 
+.B XGetWMProtocols
 function returns the list of atoms stored in the WM_PROTOCOLS property 
 on the specified window.
 These atoms describe window manager protocols in which the owner 
 of this window is willing to participate.
 If the property exists, is of type ATOM, is of format 32, 
 and the atom WM_PROTOCOLS can be interned, 
-.ZN XGetWMProtocols
+.B XGetWMProtocols
 sets the protocols_return argument to a list of atoms, 
 sets the count_return argument to the number of elements in the list, 
 and returns a nonzero status.
 Otherwise, it sets neither of the return arguments
 and returns a zero status.
 To release the list of atoms, use
-.ZN XFree .
+.BR XFree .
 .LP
-.ZN XGetWMProtocols
+.B XGetWMProtocols
 can generate a
-.ZN BadWindow
+.B BadWindow
 error.
 .SH PROPERTIES
 .TP 1i
@@ -149,10 +149,10 @@ List of atoms that identify the communications protocols between the
 client and window manager in which the client is willing to participate.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XAllocClassHint(__libmansuffix__),

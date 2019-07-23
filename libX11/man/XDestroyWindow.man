@@ -93,57 +93,57 @@ Specifies the connection to the X server.
 Specifies the window.
 .SH DESCRIPTION
 The
-.ZN XDestroyWindow
+.B XDestroyWindow
 function destroys the specified window as well as all of its subwindows and causes
 the X server to generate a
-.ZN DestroyNotify
+.B DestroyNotify
 event for each window.
 The window should never be referenced again.
 If the window specified by the w argument is mapped,
 it is unmapped automatically.
 The ordering of the
-.ZN DestroyNotify
+.B DestroyNotify
 events is such that for any given window being destroyed,
-.ZN DestroyNotify
+.B DestroyNotify
 is generated on any inferiors of the window before being generated on
 the window itself.
 The ordering among siblings and across subhierarchies is not otherwise
 constrained.
 If the window you specified is a root window, no windows are destroyed.
 Destroying a mapped window will generate 
-.ZN Expose 
+.B Expose
 events on other windows that were obscured by the window being destroyed.
 .LP
-.ZN XDestroyWindow
+.B XDestroyWindow
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .LP
 The
-.ZN XDestroySubwindows
+.B XDestroySubwindows
 function destroys all inferior windows of the specified window, 
 in bottom-to-top stacking order.
 It causes the X server to generate a
-.ZN DestroyNotify
+.B DestroyNotify
 event for each window.
 If any mapped
 subwindows were actually destroyed,
-.ZN XDestroySubwindows
+.B XDestroySubwindows
 causes the X server to generate 
-.ZN Expose 
+.B Expose
 events on the specified window.
 This is much more efficient than deleting many windows
 one at a time because much of the work need be performed only once for all
 of the windows, rather than for each window.
 The subwindows should never be referenced again.  
 .LP
-.ZN XDestroySubwindows
+.B XDestroySubwindows
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XChangeWindowAttributes(__libmansuffix__),

@@ -142,7 +142,7 @@ dd_screen_context_create(struct pipe_screen *_screen, void *priv,
                             screen->context_create(screen, priv, flags));
 }
 
-static boolean
+static bool
 dd_screen_is_format_supported(struct pipe_screen *_screen,
                               enum pipe_format format,
                               enum pipe_texture_target target,
@@ -156,7 +156,7 @@ dd_screen_is_format_supported(struct pipe_screen *_screen,
                                       storage_sample_count, tex_usage);
 }
 
-static boolean
+static bool
 dd_screen_can_create_resource(struct pipe_screen *_screen,
                               const struct pipe_resource *templat)
 {
@@ -298,7 +298,7 @@ dd_screen_resource_destroy(struct pipe_screen *_screen,
    screen->resource_destroy(screen, res);
 }
 
-static boolean
+static bool
 dd_screen_resource_get_handle(struct pipe_screen *_screen,
                               struct pipe_context *_pipe,
                               struct pipe_resource *resource,
@@ -347,7 +347,7 @@ dd_screen_fence_reference(struct pipe_screen *_screen,
    screen->fence_reference(screen, pdst, src);
 }
 
-static boolean
+static bool
 dd_screen_fence_finish(struct pipe_screen *_screen,
                        struct pipe_context *_ctx,
                        struct pipe_fence_handle *fence,

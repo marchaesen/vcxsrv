@@ -16,6 +16,7 @@ fi
 
 rm -rf _build
 meson _build --native-file=native.file \
+      ${CROSS} \
       -D buildtype=debug \
       -D build-tests=true \
       -D libunwind=${UNWIND} \

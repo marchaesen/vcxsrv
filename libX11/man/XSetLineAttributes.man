@@ -93,11 +93,11 @@ int XSetDashes\^(\^Display *\fIdisplay\fP\^, GC \fIgc\fP\^, int
 .IP \fIcap_style\fP 1i
 Specifies the line-style and cap-style you want to set for the specified GC.
 You can pass
-.ZN CapNotLast ,
-.ZN CapButt ,
-.ZN CapRound ,
+.BR CapNotLast ,
+.BR CapButt ,
+.BR CapRound ,
 or
-.ZN CapProjecting .
+.BR CapProjecting .
 .IP \fIdash_list\fP 1i
 Specifies the dash-list for the dashed line-style
 you want to set for the specified GC. 
@@ -111,41 +111,41 @@ Specifies the GC.
 .IP \fIjoin_style\fP 1i
 Specifies the line join-style you want to set for the specified GC.
 You can pass
-.ZN JoinMiter ,
-.ZN JoinRound ,
+.BR JoinMiter ,
+.BR JoinRound ,
 or
-.ZN JoinBevel .
+.BR JoinBevel .
 .IP \fIline_style\fP 1i
 Specifies the line-style you want to set for the specified GC.
 You can pass
-.ZN LineSolid ,
-.ZN LineOnOffDash ,
+.BR LineSolid ,
+.BR LineOnOffDash ,
 or
-.ZN LineDoubleDash .
+.BR LineDoubleDash .
 .IP \fIline_width\fP 1i
 Specifies the line-width you want to set for the specified GC.
 .IP \fIn\fP 1i
 Specifies the number of elements in dash_list. 
 .SH DESCRIPTION
 The
-.ZN XSetLineAttributes
+.B XSetLineAttributes
 function sets the line drawing components in the specified GC.
 .LP
-.ZN XSetLineAttributes
+.B XSetLineAttributes
 can generate
-.ZN BadAlloc ,
-.ZN BadGC ,
+.BR BadAlloc ,
+.BR BadGC ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .LP
 The
-.ZN XSetDashes
+.B XSetDashes
 function sets the dash-offset and dash-list attributes for dashed line styles
 in the specified GC.
 There must be at least one element in the specified dash_list,
 or a
-.ZN BadValue
+.B BadValue
 error results. 
 The initial and alternating elements (second, fourth, and so on) 
 of the dash_list are the even dashes, and
@@ -153,7 +153,7 @@ the others are the odd dashes.
 Each element specifies a dash length in pixels.
 All of the elements must be nonzero,
 or a
-.ZN BadValue
+.B BadValue
 error results.
 Specifying an odd-length list is equivalent to specifying the same list
 concatenated with itself to produce an even-length list.
@@ -173,22 +173,22 @@ The major axis is defined as the x axis for lines drawn at an angle of between
 \-45 and +45 degrees or between 135 and 225 degrees from the x axis.
 For all other lines, the major axis is the y axis.
 .LP
-.ZN XSetDashes
+.B XSetDashes
 can generate
-.ZN BadAlloc ,
-.ZN BadGC ,
+.BR BadAlloc ,
+.BR BadGC ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadGC
+.B BadGC
 A value for a GContext argument does not name a defined GContext.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

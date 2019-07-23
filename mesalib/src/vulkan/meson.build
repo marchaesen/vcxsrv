@@ -19,6 +19,7 @@
 # SOFTWARE.
 
 vk_api_xml = files('registry/vk.xml')
+vulkan_icd_symbols = files('vulkan-icd-symbols.txt')
 
 inc_vulkan_wsi = include_directories('wsi')
 

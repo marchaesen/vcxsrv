@@ -104,60 +104,60 @@ Specifies the pixmap.
 Specify the width and height, which define the dimensions of the pixmap.
 .SH DESCRIPTION
 The
-.ZN XCreatePixmap
+.B XCreatePixmap
 function creates a pixmap of the width, height, and depth you specified
 and returns a pixmap ID that identifies it.
 It is valid to pass an 
-.ZN InputOnly
+.B InputOnly
 window to the drawable argument.
 The width and height arguments must be nonzero,
 or a 
-.ZN BadValue
+.B BadValue
 error results.
 The depth argument must be one of the depths supported by the screen
 of the specified drawable,
 or a
-.ZN BadValue
+.B BadValue
 error results.
 .LP
 The server uses the specified drawable to determine on which screen
 to create the pixmap.
 The pixmap can be used only on this screen
 and only with other drawables of the same depth (see
-.ZN XCopyPlane
+.B XCopyPlane
 for an exception to this rule).
 The initial contents of the pixmap are undefined.
 .LP
-.ZN XCreatePixmap
+.B XCreatePixmap
 can generate
-.ZN BadAlloc ,
-.ZN BadDrawable ,
+.BR BadAlloc ,
+.BR BadDrawable ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .LP
 The
-.ZN XFreePixmap
+.B XFreePixmap
 function first deletes the association between the pixmap ID and the pixmap.
 Then, the X server frees the pixmap storage when there are no references to it.
 The pixmap should never be referenced again.
 .LP
-.ZN XFreePixmap
+.B XFreePixmap
 can generate a
-.ZN BadPixmap 
+.B BadPixmap
 error.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadDrawable
+.B BadDrawable
 A value for a Drawable argument does not name a defined Window or Pixmap.
 .TP 1i
-.ZN BadPixmap
+.B BadPixmap
 A value for a Pixmap argument does not name a defined Pixmap.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

@@ -121,121 +121,121 @@ Specifies the event type to be compared.
 Specifies the window whose event you are interested in.
 .SH DESCRIPTION
 The
-.ZN XNextEvent
+.B XNextEvent
 function copies the first event from the event queue into the specified
-.ZN XEvent
+.B XEvent
 structure and then removes it from the queue.
 If the event queue is empty,
-.ZN XNextEvent
+.B XNextEvent
 flushes the output buffer and blocks until an event is received.
 .LP
 The
-.ZN XPeekEvent
+.B XPeekEvent
 function returns the first event from the event queue,
 but it does not remove the event from the queue.
 If the queue is empty,
-.ZN XPeekEvent
+.B XPeekEvent
 flushes the output buffer and blocks until an event is received.
 It then copies the event into the client-supplied
-.ZN XEvent
+.B XEvent
 structure without removing it from the event queue.
 .LP
 The
-.ZN XWindowEvent
+.B XWindowEvent
 function searches the event queue for an event that matches both the specified
 window and event mask.
 When it finds a match,
-.ZN XWindowEvent
+.B XWindowEvent
 removes that event from the queue and copies it into the specified
-.ZN XEvent
+.B XEvent
 structure.
 The other events stored in the queue are not discarded.
 If a matching event is not in the queue,
-.ZN XWindowEvent
+.B XWindowEvent
 flushes the output buffer and blocks until one is received.
 .LP
 The
-.ZN XCheckWindowEvent
+.B XCheckWindowEvent
 function searches the event queue and then the events available 
 on the server connection for the first event that matches the specified window
 and event mask.
 If it finds a match,
-.ZN XCheckWindowEvent
+.B XCheckWindowEvent
 removes that event, copies it into the specified
-.ZN XEvent
+.B XEvent
 structure, and returns
-.ZN True .
+.BR True .
 The other events stored in the queue are not discarded.
 If the event you requested is not available,
-.ZN XCheckWindowEvent
+.B XCheckWindowEvent
 returns
-.ZN False ,
+.BR False ,
 and the output buffer will have been flushed.
 .LP
 The
-.ZN XMaskEvent
+.B XMaskEvent
 function searches the event queue for the events associated with the 
 specified mask.
 When it finds a match,
-.ZN XMaskEvent
+.B XMaskEvent
 removes that event and copies it into the specified
-.ZN XEvent
+.B XEvent
 structure.
 The other events stored in the queue are not discarded.
 If the event you requested is not in the queue,
-.ZN XMaskEvent
+.B XMaskEvent
 flushes the output buffer and blocks until one is received.
 .LP
 The
-.ZN XCheckMaskEvent
+.B XCheckMaskEvent
 function searches the event queue and then any events available on the
 server connection for the first event that matches the specified mask.
 If it finds a match,
-.ZN XCheckMaskEvent
+.B XCheckMaskEvent
 removes that event, copies it into the specified
-.ZN XEvent
+.B XEvent
 structure, and returns
-.ZN True .
+.BR True .
 The other events stored in the queue are not discarded.
 If the event you requested is not available,
-.ZN XCheckMaskEvent
+.B XCheckMaskEvent
 returns
-.ZN False ,
+.BR False ,
 and the output buffer will have been flushed.
 .LP
 The
-.ZN XCheckTypedEvent
+.B XCheckTypedEvent
 function searches the event queue and then any events available  
 on the server connection for the first event that matches the specified type.
 If it finds a match,
-.ZN XCheckTypedEvent
+.B XCheckTypedEvent
 removes that event, copies it into the specified
-.ZN XEvent
+.B XEvent
 structure, and returns
-.ZN True .
+.BR True .
 The other events in the queue are not discarded.
 If the event is not available,
-.ZN XCheckTypedEvent
+.B XCheckTypedEvent
 returns
-.ZN False ,
+.BR False ,
 and the output buffer will have been flushed.
 .LP
 The
-.ZN XCheckTypedWindowEvent
+.B XCheckTypedWindowEvent
 function searches the event queue and then any events available  
 on the server connection for the first event that matches the specified
 type and window.
 If it finds a match,
-.ZN XCheckTypedWindowEvent
+.B XCheckTypedWindowEvent
 removes the event from the queue, copies it into the specified
-.ZN XEvent
+.B XEvent
 structure, and returns
-.ZN True .
+.BR True .
 The other events in the queue are not discarded.
 If the event is not available,
-.ZN XCheckTypedWindowEvent
+.B XCheckTypedWindowEvent
 returns
-.ZN False ,
+.BR False ,
 and the output buffer will have been flushed.
 .SH "SEE ALSO"
 XAnyEvent(__libmansuffix__),

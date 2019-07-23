@@ -49,6 +49,7 @@ CHIPS = [
     Object(name='fiji', disambiguation='GFX8'),
     Object(name='stoney', disambiguation='GFX8'),
     Object(name='gfx9', disambiguation='GFX9'),
+    Object(name='gfx10', disambiguation='GFX10'),
 ]
 
 ######### END HARDCODED CONFIGURATION

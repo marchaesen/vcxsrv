@@ -320,6 +320,43 @@ enum radv_depth_op {
 	DEPTH_RESUMMARIZE,
 };
 
+static VkPipeline *
+radv_get_depth_pipeline(struct radv_cmd_buffer *cmd_buffer,
+			struct radv_image *image, enum radv_depth_op op)
+{
+	struct radv_meta_state *state = &cmd_buffer->device->meta_state;
+	uint32_t samples = image->info.samples;
+	uint32_t samples_log2 = ffs(samples) - 1;
+	VkPipeline *pipeline;
+
+	if (!state->depth_decomp[samples_log2].decompress_pipeline) {
+		VkResult ret;
+
+		ret = create_pipeline(cmd_buffer->device, VK_NULL_HANDLE, samples,
+				      state->depth_decomp[samples_log2].pass,
+				      state->depth_decomp[samples_log2].p_layout,
+				      &state->depth_decomp[samples_log2].decompress_pipeline,
+				      &state->depth_decomp[samples_log2].resummarize_pipeline);
+		if (ret != VK_SUCCESS) {
+			cmd_buffer->record_result = ret;
+			return NULL;
+		}
+       }
+
+	switch (op) {
+	case DEPTH_DECOMPRESS:
+		pipeline = &state->depth_decomp[samples_log2].decompress_pipeline;
+		break;
+	case DEPTH_RESUMMARIZE:
+		pipeline = &state->depth_decomp[samples_log2].resummarize_pipeline;
+		break;
+	default:
+		unreachable("unknown operation");
+	}
+
+	return pipeline;
+}
+
 static void radv_process_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 					     struct radv_image *image,
 					     VkImageSubresourceRange *subresourceRange,
@@ -336,41 +373,20 @@ static void radv_process_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 	uint32_t samples = image->info.samples;
 	uint32_t samples_log2 = ffs(samples) - 1;
 	struct radv_meta_state *meta_state = &cmd_buffer->device->meta_state;
-	VkPipeline pipeline_h;
+	VkPipeline *pipeline;
 
 	if (!radv_image_has_htile(image))
 		return;
-
-	if (!meta_state->depth_decomp[samples_log2].decompress_pipeline) {
-		VkResult ret = create_pipeline(cmd_buffer->device, VK_NULL_HANDLE, samples,
-		                               meta_state->depth_decomp[samples_log2].pass,
-		                               meta_state->depth_decomp[samples_log2].p_layout,
-		                               &meta_state->depth_decomp[samples_log2].decompress_pipeline,
-		                               &meta_state->depth_decomp[samples_log2].resummarize_pipeline);
-		if (ret != VK_SUCCESS) {
-			cmd_buffer->record_result = ret;
-			return;
-		}
-	}
 
 	radv_meta_save(&saved_state, cmd_buffer,
 		       RADV_META_SAVE_GRAPHICS_PIPELINE |
 		       RADV_META_SAVE_SAMPLE_LOCATIONS |
 		       RADV_META_SAVE_PASS);
 
-	switch (op) {
-	case DEPTH_DECOMPRESS:
-		pipeline_h = meta_state->depth_decomp[samples_log2].decompress_pipeline;
-		break;
-	case DEPTH_RESUMMARIZE:
-		pipeline_h = meta_state->depth_decomp[samples_log2].resummarize_pipeline;
-		break;
-	default:
-		unreachable("unknown operation");
-	}
+	pipeline = radv_get_depth_pipeline(cmd_buffer, image, op);
 
-	radv_CmdBindPipeline(cmd_buffer_h, VK_PIPELINE_BIND_POINT_GRAPHICS,
-			     pipeline_h);
+	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
+			     VK_PIPELINE_BIND_POINT_GRAPHICS, *pipeline);
 
 	radv_CmdSetViewport(cmd_buffer_h, 0, 1, &(VkViewport) {
 		.x = 0,

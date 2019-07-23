@@ -364,8 +364,8 @@ debug_flush_might_flush_cb(UNUSED void *key, void *value, void *data)
       const char *reason = (const char *) data;
       char message[80];
 
-      util_snprintf(message, sizeof(message),
-                    "%s referenced mapped buffer detected.", reason);
+      snprintf(message, sizeof(message),
+               "%s referenced mapped buffer detected.", reason);
 
       debug_flush_alert(message, reason, 3, item->bt_depth, TRUE, TRUE, NULL);
       debug_flush_alert(NULL, "Map", 0, fbuf->bt_depth, TRUE, FALSE,

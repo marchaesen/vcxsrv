@@ -191,9 +191,9 @@ debug_symbol_name_dbghelp(const void *addr, char* buf, unsigned size)
       if (GetModuleFileNameA(hModule, buffer, sizeof buffer) == sizeof buffer) {
          return FALSE;
       }
-      util_snprintf(buf, size, "%p at %s+0x%lx",
-                    addr, buffer,
-                    (unsigned long)((uintptr_t)addr - (uintptr_t)hModule));
+      snprintf(buf, size, "%p at %s+0x%lx",
+               addr, buffer,
+               (unsigned long)((uintptr_t)addr - (uintptr_t)hModule));
 
       return TRUE;
    }
@@ -208,9 +208,9 @@ debug_symbol_name_dbghelp(const void *addr, char* buf, unsigned size)
    }
 
    if (Line.FileName) {
-      util_snprintf(buf, size, "%s at %s:%lu", pSymbol->Name, Line.FileName, Line.LineNumber);
+      snprintf(buf, size, "%s at %s:%lu", pSymbol->Name, Line.FileName, Line.LineNumber);
    } else {
-      util_snprintf(buf, size, "%s", pSymbol->Name);
+      snprintf(buf, size, "%s", pSymbol->Name);
    }
 
    return TRUE;
@@ -258,7 +258,7 @@ debug_symbol_name(const void *addr, char* buf, unsigned size)
    }
 #endif /* defined(HAVE_EXECINFO_H) */
 
-   util_snprintf(buf, size, "%p", addr);
+   snprintf(buf, size, "%p", addr);
    buf[size - 1] = 0;
 }
 
@@ -309,7 +309,7 @@ debug_symbol_name_cached(const void *addr)
    {
       char buf[1024];
       debug_symbol_name(addr, buf, sizeof(buf));
-      name = util_strdup(buf);
+      name = strdup(buf);
 
       util_hash_table_set(symbols_hash, (void*)addr, (void*)name);
    }

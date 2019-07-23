@@ -661,6 +661,22 @@ util_copy_constant_buffer(struct pipe_constant_buffer *dst,
 }
 
 static inline void
+util_copy_shader_buffer(struct pipe_shader_buffer *dst,
+                        const struct pipe_shader_buffer *src)
+{
+   if (src) {
+      pipe_resource_reference(&dst->buffer, src->buffer);
+      dst->buffer_offset = src->buffer_offset;
+      dst->buffer_size = src->buffer_size;
+   }
+   else {
+      pipe_resource_reference(&dst->buffer, NULL);
+      dst->buffer_offset = 0;
+      dst->buffer_size = 0;
+   }
+}
+
+static inline void
 util_copy_image_view(struct pipe_image_view *dst,
                      const struct pipe_image_view *src)
 {

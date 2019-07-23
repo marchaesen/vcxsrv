@@ -91,9 +91,9 @@ int XClipBox\^(\^Region \fIr\fP\^, XRectangle *\fIrect_return\fP\^);
 .IP \fIfill_rule\fP 1i
 Specifies the fill-rule you want to set for the specified GC.
 You can pass 
-.ZN EvenOddRule
+.B EvenOddRule
 or
-.ZN WindingRule .
+.BR WindingRule .
 .IP \fIn\fP 1i
 Specifies the number of points in the polygon. 
 .IP \fIpoints\fP 1i
@@ -104,14 +104,14 @@ Specifies the region.
 Returns the smallest enclosing rectangle.
 .SH DESCRIPTION
 The
-.ZN XPolygonRegion
+.B XPolygonRegion
 function returns a region for the polygon defined by the points array.
 For an explanation of fill_rule,
 see
-.ZN XCreateGC .
+.BR XCreateGC .
 .LP
 The
-.ZN XClipBox
+.B XClipBox
 function returns the smallest rectangle enclosing the specified region.
 .SH "SEE ALSO"
 XCreateGC(__libmansuffix__),
