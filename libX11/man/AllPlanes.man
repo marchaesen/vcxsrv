@@ -148,82 +148,82 @@ Specifies the appropriate screen number on the host server.
 Returns the number of depths.
 .SH DESCRIPTION
 The
-.ZN AllPlanes
+.B AllPlanes
 macro returns a value with all bits set to 1 suitable for use in a plane 
 argument to a procedure.
 .LP
 The
-.ZN BlackPixel
+.B BlackPixel
 macro returns the black pixel value for the specified screen.
 .LP
 The
-.ZN WhitePixel
+.B WhitePixel
 macro returns the white pixel value for the specified screen.
 .LP
 The
-.ZN ConnectionNumber
+.B ConnectionNumber
 macro returns a connection number for the specified display.
 .LP
 The
-.ZN DefaultColormap
+.B DefaultColormap
 macro returns the default colormap ID for allocation on the specified screen.
 .LP
 The
-.ZN DefaultDepth
+.B DefaultDepth
 macro returns the depth (number of planes) of the default root window for the
 specified screen.
 .LP
 The
-.ZN XListDepths
+.B XListDepths
 function returns the array of depths 
 that are available on the specified screen.
 If the specified screen_number is valid and sufficient memory for the array
 can be allocated,
-.ZN XListDepths
+.B XListDepths
 sets count_return to the number of available depths.
 Otherwise, it does not set count_return and returns NULL.
 To release the memory allocated for the array of depths, use
-.ZN XFree .
+.BR XFree .
 .LP
 The
-.ZN DefaultGC
+.B DefaultGC
 macro returns the default GC for the root window of the
 specified screen.
 .LP
 The
-.ZN DefaultRootWindow
+.B DefaultRootWindow
 macro returns the root window for the default screen.
 .LP
 The
-.ZN DefaultScreenOfDisplay
+.B DefaultScreenOfDisplay
 macro returns the default screen of the specified display.
 .LP
 The
-.ZN DefaultScreen
+.B DefaultScreen
 macro returns the default screen number referenced in the
-.ZN XOpenDisplay
+.B XOpenDisplay
 routine.
 .LP
 The
-.ZN DefaultVisual
+.B DefaultVisual
 macro returns the default visual type for the specified screen.
 .LP
 The
-.ZN DisplayCells
+.B DisplayCells
 macro returns the number of entries in the default colormap.
 .LP
 The
-.ZN DisplayPlanes
+.B DisplayPlanes
 macro returns the depth of the root window of the specified screen.
 .LP
 The
-.ZN DisplayString
+.B DisplayString
 macro returns the string that was passed to
-.ZN XOpenDisplay
+.B XOpenDisplay
 when the current display was opened.
 .LP
 The
-.ZN XMaxRequestSize
+.B XMaxRequestSize
 function returns the maximum request size (in 4-byte units) supported
 by the server without using an extended-length protocol encoding.
 Single protocol requests to the server can be no larger than this size
@@ -232,81 +232,81 @@ The protocol guarantees the size to be no smaller than 4096 units
 (16384 bytes).
 Xlib automatically breaks data up into multiple protocol requests
 as necessary for the following functions:
-.ZN XDrawPoints ,
-.ZN XDrawRectangles ,
-.ZN XDrawSegments ,
-.ZN XFillArcs ,
-.ZN XFillRectangles ,
+.BR XDrawPoints ,
+.BR XDrawRectangles ,
+.BR XDrawSegments ,
+.BR XFillArcs ,
+.BR XFillRectangles ,
 and 
-.ZN XPutImage .
+.BR XPutImage .
 .LP
 The
-.ZN XExtendedMaxRequestSize
+.B XExtendedMaxRequestSize
 function returns zero if the specified display does not support an
 extended-length protocol encoding; otherwise,
 it returns the maximum request size (in 4-byte units) supported
 by the server using the extended-length encoding.
 The Xlib functions
-.ZN XDrawLines ,
-.ZN XDrawArcs ,
-.ZN XFillPolygon ,
-.ZN XChangeProperty ,
-.ZN XSetClipRectangles ,
+.BR XDrawLines ,
+.BR XDrawArcs ,
+.BR XFillPolygon ,
+.BR XChangeProperty ,
+.BR XSetClipRectangles ,
 and
-.ZN XSetRegion
+.B XSetRegion
 will use the extended-length encoding as necessary, if supported
 by the server.  Use of the extended-length encoding in other Xlib
 functions (for example,
-.ZN XDrawPoints ,
-.ZN XDrawRectangles ,
-.ZN XDrawSegments ,
-.ZN XFillArcs ,
-.ZN XFillRectangles ,
-.ZN XPutImage )
+.BR XDrawPoints ,
+.BR XDrawRectangles ,
+.BR XDrawSegments ,
+.BR XFillArcs ,
+.BR XFillRectangles ,
+.BR XPutImage )
 is permitted but not required; an Xlib implementation may choose to
 split the data across multiple smaller requests instead.
 .LP
 The
-.ZN LastKnownRequestProcessed
+.B LastKnownRequestProcessed
 macro extracts the full serial number of the last request known by Xlib
 to have been processed by the X server.
 .LP
 The
-.ZN NextRequest
+.B NextRequest
 macro extracts the full serial number that is to be used for the next request.
 .LP
 The
-.ZN ProtocolVersion
+.B ProtocolVersion
 macro returns the major version number (11) of the X protocol associated with
 the connected display.
 .LP
 The
-.ZN ProtocolRevision
+.B ProtocolRevision
 macro returns the minor protocol revision number of the X server.
 .LP
 The
-.ZN QLength
+.B QLength
 macro returns the length of the event queue for the connected display.
 .LP
 The
-.ZN RootWindow
+.B RootWindow
 macro returns the root window.
 .LP
 The
-.ZN ScreenCount
+.B ScreenCount
 macro returns the number of available screens.
 .LP
 The
-.ZN ScreenOfDisplay
+.B ScreenOfDisplay
 macro returns a pointer to the screen of the specified display.
 .LP
 The
-.ZN ServerVendor
+.B ServerVendor
 macro returns a pointer to a null-terminated string that provides
 some identification of the owner of the X server implementation.
 .LP
 The
-.ZN VendorRelease
+.B VendorRelease
 macro returns a number related to a vendor's release of the X server.
 .SH "SEE ALSO"
 BlackPixelOfScreen(__libmansuffix__),

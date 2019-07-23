@@ -89,20 +89,20 @@ XFontSetExtents *XExtentsOfFontSet\^(\^XFontSet \fIfont_set\fP\^);
 Specifies the font set.
 .SH DESCRIPTION
 The
-.ZN XExtentsOfFontSet
+.B XExtentsOfFontSet
 function returns an
-.ZN XFontSetExtents
+.B XFontSetExtents
 structure for the fonts used by the Xmb and Xwc layers
 for the given font set.
 .LP
 The 
-.ZN XFontSetExtents
+.B XFontSetExtents
 structure is owned by Xlib and should not be modified
 or freed by the client.
 It will be freed by a call to 
-.ZN XFreeFontSet
+.B XFreeFontSet
 with the associated 
-.ZN XFontSet .
+.BR XFontSet .
 Until freed, its contents will not be modified by Xlib.
 .SH "SEE ALSO"
 XCreateFontSet(__libmansuffix__),

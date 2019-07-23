@@ -113,6 +113,9 @@ radv_get_device_name(enum radeon_family family, char *name, size_t name_len)
 	case CHIP_VEGA20: chip_string = "AMD RADV VEGA20"; break;
 	case CHIP_RAVEN: chip_string = "AMD RADV RAVEN"; break;
 	case CHIP_RAVEN2: chip_string = "AMD RADV RAVEN2"; break;
+	case CHIP_NAVI10: chip_string = "AMD RADV NAVI10"; break;
+	case CHIP_NAVI12: chip_string = "AMD RADV NAVI12"; break;
+	case CHIP_NAVI14: chip_string = "AMD RADV NAVI14"; break;
 	default: chip_string = "AMD RADV unknown"; break;
 	}
 
@@ -215,7 +218,9 @@ radv_handle_env_var_force_family(struct radv_physical_device *device)
 			/* Override family and chip_class. */
 			device->rad_info.family = i;
 
-			if (i >= CHIP_VEGA10)
+			if (i >= CHIP_NAVI10)
+				device->rad_info.chip_class = GFX10;
+			else if (i >= CHIP_VEGA10)
 				device->rad_info.chip_class = GFX9;
 			else if (i >= CHIP_TONGA)
 				device->rad_info.chip_class = GFX8;
@@ -357,6 +362,8 @@ radv_physical_device_init(struct radv_physical_device *device,
 	device->has_scissor_bug = device->rad_info.family == CHIP_VEGA10 ||
 				  device->rad_info.family == CHIP_RAVEN;
 
+	device->has_tc_compat_zrange_bug = device->rad_info.chip_class < GFX10;
+
 	/* Out-of-order primitive rasterization. */
 	device->has_out_of_order_rast = device->rad_info.chip_class >= GFX8 &&
 					device->rad_info.max_se >= 2;
@@ -371,7 +378,8 @@ radv_physical_device_init(struct radv_physical_device *device,
 				       (device->rad_info.chip_class >= GFX8 &&
 				        device->rad_info.me_fw_feature >= 41);
 
-	device->has_dcc_constant_encode = device->rad_info.family == CHIP_RAVEN2;
+	device->has_dcc_constant_encode = device->rad_info.family == CHIP_RAVEN2 ||
+					  device->rad_info.chip_class >= GFX10;
 
 	device->use_shader_ballot = device->instance->perftest_flags & RADV_PERFTEST_SHADER_BALLOT;
 
@@ -467,6 +475,7 @@ static const struct debug_control radv_debug_options[] = {
 	{"nothreadllvm", RADV_DEBUG_NOTHREADLLVM},
 	{"nobinning", RADV_DEBUG_NOBINNING},
 	{"noloadstoreopt", RADV_DEBUG_NO_LOAD_STORE_OPT},
+	{"nongg", RADV_DEBUG_NO_NGG},
 	{NULL, 0}
 };
 
@@ -1330,10 +1339,7 @@ void radv_GetPhysicalDeviceProperties2(
 				(VkPhysicalDeviceDriverPropertiesKHR *) ext;
 
 			driver_props->driverID = VK_DRIVER_ID_MESA_RADV_KHR;
-			memset(driver_props->driverName, 0, VK_MAX_DRIVER_NAME_SIZE_KHR);
-			strcpy(driver_props->driverName, "radv");
-
-			memset(driver_props->driverInfo, 0, VK_MAX_DRIVER_INFO_SIZE_KHR);
+			snprintf(driver_props->driverName, VK_MAX_DRIVER_NAME_SIZE_KHR, "radv");
 			snprintf(driver_props->driverInfo, VK_MAX_DRIVER_INFO_SIZE_KHR,
 				"Mesa " PACKAGE_VERSION MESA_GIT_SHA1
 				" (LLVM " MESA_LLVM_VERSION_STRING ")");
@@ -1890,7 +1896,8 @@ VkResult radv_CreateDevice(
 		}
 	}
 
-	device->pbb_allowed = device->physical_device->rad_info.chip_class >= GFX9 &&
+	/* TODO: Enable binning for GFX10. */
+	device->pbb_allowed = device->physical_device->rad_info.chip_class == GFX9 &&
 			      !(device->instance->debug_flags & RADV_DEBUG_NOBINNING);
 
 	/* Disabled and not implemented for now. */
@@ -2147,36 +2154,44 @@ fill_geom_tess_rings(struct radv_queue *queue,
 		   index stride 64 */
 		desc[0] = esgs_va;
 		desc[1] = S_008F04_BASE_ADDRESS_HI(esgs_va >> 32) |
-			  S_008F04_STRIDE(0) |
 			  S_008F04_SWIZZLE_ENABLE(true);
 		desc[2] = esgs_ring_size;
 		desc[3] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
 			  S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
 			  S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
 			  S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
-			  S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
-			  S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) |
-			  S_008F0C_ELEMENT_SIZE(1) |
 			  S_008F0C_INDEX_STRIDE(3) |
-			  S_008F0C_ADD_TID_ENABLE(true);
+			  S_008F0C_ADD_TID_ENABLE(1);
+
+		if (queue->device->physical_device->rad_info.chip_class >= GFX10) {
+			desc[3] |= S_008F0C_FORMAT(V_008F0C_IMG_FORMAT_32_FLOAT) |
+				   S_008F0C_OOB_SELECT(2) |
+				   S_008F0C_RESOURCE_LEVEL(1);
+		} else {
+			desc[3] |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
+				   S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) |
+				   S_008F0C_ELEMENT_SIZE(1);
+		}
 
 		/* GS entry for ES->GS ring */
 		/* stride 0, num records - size, elsize0,
 		   index stride 0 */
 		desc[4] = esgs_va;
-		desc[5] = S_008F04_BASE_ADDRESS_HI(esgs_va >> 32)|
-			  S_008F04_STRIDE(0) |
-			  S_008F04_SWIZZLE_ENABLE(false);
+		desc[5] = S_008F04_BASE_ADDRESS_HI(esgs_va >> 32);
 		desc[6] = esgs_ring_size;
 		desc[7] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
 			  S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
 			  S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
-			  S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
-			  S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
-			  S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) |
-			  S_008F0C_ELEMENT_SIZE(0) |
-			  S_008F0C_INDEX_STRIDE(0) |
-			  S_008F0C_ADD_TID_ENABLE(false);
+			  S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W);
+
+		if (queue->device->physical_device->rad_info.chip_class >= GFX10) {
+			desc[7] |= S_008F0C_FORMAT(V_008F0C_IMG_FORMAT_32_FLOAT) |
+				   S_008F0C_OOB_SELECT(2) |
+				   S_008F0C_RESOURCE_LEVEL(1);
+		} else {
+			desc[7] |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
+				   S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32);
+		}
 	}
 
 	desc += 8;
@@ -2188,37 +2203,46 @@ fill_geom_tess_rings(struct radv_queue *queue,
 		/* stride 0, num records - size, elsize0,
 		   index stride 0 */
 		desc[0] = gsvs_va;
-		desc[1] = S_008F04_BASE_ADDRESS_HI(gsvs_va >> 32)|
-			  S_008F04_STRIDE(0) |
-			  S_008F04_SWIZZLE_ENABLE(false);
+		desc[1] = S_008F04_BASE_ADDRESS_HI(gsvs_va >> 32);
 		desc[2] = gsvs_ring_size;
 		desc[3] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
 			  S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
 			  S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
-			  S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
-			  S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
-			  S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) |
-			  S_008F0C_ELEMENT_SIZE(0) |
-			  S_008F0C_INDEX_STRIDE(0) |
-			  S_008F0C_ADD_TID_ENABLE(false);
+			  S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W);
+
+		if (queue->device->physical_device->rad_info.chip_class >= GFX10) {
+			desc[3] |= S_008F0C_FORMAT(V_008F0C_IMG_FORMAT_32_FLOAT) |
+				   S_008F0C_OOB_SELECT(2) |
+				   S_008F0C_RESOURCE_LEVEL(1);
+		} else {
+			desc[3] |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
+				   S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32);
+		}
 
 		/* stride gsvs_itemsize, num records 64
 		   elsize 4, index stride 16 */
 		/* shader will patch stride and desc[2] */
 		desc[4] = gsvs_va;
-		desc[5] = S_008F04_BASE_ADDRESS_HI(gsvs_va >> 32)|
-			  S_008F04_STRIDE(0) |
-			  S_008F04_SWIZZLE_ENABLE(true);
+		desc[5] = S_008F04_BASE_ADDRESS_HI(gsvs_va >> 32) |
+			  S_008F04_SWIZZLE_ENABLE(1);
 		desc[6] = 0;
 		desc[7] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
 			  S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
 			  S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
 			  S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
-			  S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
-			  S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) |
-			  S_008F0C_ELEMENT_SIZE(1) |
 			  S_008F0C_INDEX_STRIDE(1) |
 			  S_008F0C_ADD_TID_ENABLE(true);
+
+		if (queue->device->physical_device->rad_info.chip_class >= GFX10) {
+			desc[7] |= S_008F0C_FORMAT(V_008F0C_IMG_FORMAT_32_FLOAT) |
+				   S_008F0C_OOB_SELECT(2) |
+				   S_008F0C_RESOURCE_LEVEL(1);
+		} else {
+			desc[7] |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
+				   S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) |
+				   S_008F0C_ELEMENT_SIZE(1);
+		}
+
 	}
 
 	desc += 8;
@@ -2228,34 +2252,38 @@ fill_geom_tess_rings(struct radv_queue *queue,
 		uint64_t tess_offchip_va = tess_va + tess_offchip_ring_offset;
 
 		desc[0] = tess_va;
-		desc[1] = S_008F04_BASE_ADDRESS_HI(tess_va >> 32) |
-			  S_008F04_STRIDE(0) |
-			  S_008F04_SWIZZLE_ENABLE(false);
+		desc[1] = S_008F04_BASE_ADDRESS_HI(tess_va >> 32);
 		desc[2] = tess_factor_ring_size;
 		desc[3] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
 			  S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
 			  S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
-			  S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
-			  S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
-			  S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) |
-			  S_008F0C_ELEMENT_SIZE(0) |
-			  S_008F0C_INDEX_STRIDE(0) |
-			  S_008F0C_ADD_TID_ENABLE(false);
+			  S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W);
+
+		if (queue->device->physical_device->rad_info.chip_class >= GFX10) {
+			desc[3] |= S_008F0C_FORMAT(V_008F0C_IMG_FORMAT_32_FLOAT) |
+				   S_008F0C_OOB_SELECT(3) |
+				   S_008F0C_RESOURCE_LEVEL(1);
+		} else {
+			desc[3] |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
+				   S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32);
+		}
 
 		desc[4] = tess_offchip_va;
-		desc[5] = S_008F04_BASE_ADDRESS_HI(tess_offchip_va >> 32) |
-			  S_008F04_STRIDE(0) |
-			  S_008F04_SWIZZLE_ENABLE(false);
+		desc[5] = S_008F04_BASE_ADDRESS_HI(tess_offchip_va >> 32);
 		desc[6] = tess_offchip_ring_size;
 		desc[7] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
 			  S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
 			  S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
-			  S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
-			  S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
-			  S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) |
-			  S_008F0C_ELEMENT_SIZE(0) |
-			  S_008F0C_INDEX_STRIDE(0) |
-			  S_008F0C_ADD_TID_ENABLE(false);
+			  S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W);
+
+		if (queue->device->physical_device->rad_info.chip_class >= GFX10) {
+			desc[7] |= S_008F0C_FORMAT(V_008F0C_IMG_FORMAT_32_FLOAT) |
+				   S_008F0C_OOB_SELECT(3) |
+				   S_008F0C_RESOURCE_LEVEL(1);
+		} else {
+			desc[7] |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
+				   S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32);
+		}
 	}
 
 	desc += 8;
@@ -2295,9 +2323,11 @@ radv_get_hs_offchip_param(struct radv_device *device, uint32_t *max_offchip_buff
 	 *
 	 * Follow AMDVLK here.
 	 */
-	if (device->physical_device->rad_info.family == CHIP_VEGA10 ||
-	    device->physical_device->rad_info.chip_class == GFX7 ||
-	    device->physical_device->rad_info.chip_class == GFX6)
+	if (device->physical_device->rad_info.chip_class >= GFX10) {
+		max_offchip_buffers_per_se = 256;
+	} else if (device->physical_device->rad_info.family == CHIP_VEGA10 ||
+		   device->physical_device->rad_info.chip_class == GFX7 ||
+		   device->physical_device->rad_info.chip_class == GFX6)
 		--max_offchip_buffers_per_se;
 
 	max_offchip_buffers = max_offchip_buffers_per_se *
@@ -2321,8 +2351,11 @@ radv_get_hs_offchip_param(struct radv_device *device, uint32_t *max_offchip_buff
 	case GFX7:
 	case GFX8:
 	case GFX9:
-	default:
 		max_offchip_buffers = MIN2(max_offchip_buffers, 508);
+		break;
+	case GFX10:
+		break;
+	default:
 		break;
 	}
 
@@ -2386,7 +2419,11 @@ radv_emit_tess_factor_ring(struct radv_queue *queue, struct radeon_cmdbuf *cs,
 				       S_030938_SIZE(tf_ring_size / 4));
 		radeon_set_uconfig_reg(cs, R_030940_VGT_TF_MEMORY_BASE,
 				       tf_va >> 8);
-		if (queue->device->physical_device->rad_info.chip_class >= GFX9) {
+
+		if (queue->device->physical_device->rad_info.chip_class >= GFX10) {
+			radeon_set_uconfig_reg(cs, R_030984_VGT_TF_MEMORY_BASE_HI_UMD,
+					       S_030984_BASE_HI(tf_va >> 40));
+		} else if (queue->device->physical_device->rad_info.chip_class == GFX9) {
 			radeon_set_uconfig_reg(cs, R_030944_VGT_TF_MEMORY_BASE_HI,
 					       S_030944_BASE_HI(tf_va >> 40));
 		}
@@ -2435,7 +2472,17 @@ radv_emit_global_shader_pointers(struct radv_queue *queue,
 
 	radv_cs_add_buffer(queue->device->ws, cs, descriptor_bo);
 
-	if (queue->device->physical_device->rad_info.chip_class >= GFX9) {
+	if (queue->device->physical_device->rad_info.chip_class >= GFX10) {
+		uint32_t regs[] = {R_00B030_SPI_SHADER_USER_DATA_PS_0,
+				   R_00B130_SPI_SHADER_USER_DATA_VS_0,
+				   R_00B208_SPI_SHADER_USER_DATA_ADDR_LO_GS,
+				   R_00B408_SPI_SHADER_USER_DATA_ADDR_LO_HS};
+
+		for (int i = 0; i < ARRAY_SIZE(regs); ++i) {
+			radv_emit_shader_pointer(queue->device, cs, regs[i],
+						 va, true);
+		}
+	} else if (queue->device->physical_device->rad_info.chip_class == GFX9) {
 		uint32_t regs[] = {R_00B030_SPI_SHADER_USER_DATA_PS_0,
 				   R_00B130_SPI_SHADER_USER_DATA_VS_0,
 				   R_00B208_SPI_SHADER_USER_DATA_ADDR_LO_GS,
@@ -2685,6 +2732,7 @@ radv_get_preamble_cs(struct radv_queue *queue,
 		if (esgs_ring_bo || gsvs_ring_bo || tess_rings_bo)  {
 			radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
 			radeon_emit(cs, EVENT_TYPE(V_028A90_VS_PARTIAL_FLUSH) | EVENT_INDEX(4));
+
 			radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
 			radeon_emit(cs, EVENT_TYPE(V_028A90_VGT_FLUSH) | EVENT_INDEX(0));
 		}
@@ -4224,17 +4272,11 @@ radv_init_dcc_control_reg(struct radv_device *device,
 	unsigned max_uncompressed_block_size = V_028C78_MAX_BLOCK_SIZE_256B;
 	unsigned min_compressed_block_size = V_028C78_MIN_BLOCK_SIZE_32B;
 	unsigned max_compressed_block_size;
+	unsigned independent_128b_blocks;
 	unsigned independent_64b_blocks;
 
 	if (!radv_dcc_enabled(iview->image, iview->base_mip))
 		return 0;
-
-	if (iview->image->info.samples > 1) {
-		if (iview->image->planes[0].surface.bpe == 1)
-			max_uncompressed_block_size = V_028C78_MAX_BLOCK_SIZE_64B;
-		else if (iview->image->planes[0].surface.bpe == 2)
-			max_uncompressed_block_size = V_028C78_MAX_BLOCK_SIZE_128B;
-	}
 
 	if (!device->physical_device->rad_info.has_dedicated_vram) {
 		/* amdvlk: [min-compressed-block-size] should be set to 32 for
@@ -4245,27 +4287,43 @@ radv_init_dcc_control_reg(struct radv_device *device,
 		min_compressed_block_size = V_028C78_MIN_BLOCK_SIZE_64B;
 	}
 
-	if (iview->image->usage & (VK_IMAGE_USAGE_SAMPLED_BIT |
-				   VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-				   VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT)) {
-		/* If this DCC image is potentially going to be used in texture
-		 * fetches, we need some special settings.
-		 */
-		independent_64b_blocks = 1;
-		max_compressed_block_size = V_028C78_MAX_BLOCK_SIZE_64B;
-	} else {
-		/* MAX_UNCOMPRESSED_BLOCK_SIZE must be >=
-		 * MAX_COMPRESSED_BLOCK_SIZE. Set MAX_COMPRESSED_BLOCK_SIZE as
-		 * big as possible for better compression state.
-		 */
+	if (device->physical_device->rad_info.chip_class >= GFX10) {
+		max_compressed_block_size = V_028C78_MAX_BLOCK_SIZE_128B;
 		independent_64b_blocks = 0;
-		max_compressed_block_size = max_uncompressed_block_size;
+		independent_128b_blocks = 1;
+	} else {
+		independent_128b_blocks = 0;
+
+		if (iview->image->info.samples > 1) {
+			if (iview->image->planes[0].surface.bpe == 1)
+				max_uncompressed_block_size = V_028C78_MAX_BLOCK_SIZE_64B;
+			else if (iview->image->planes[0].surface.bpe == 2)
+				max_uncompressed_block_size = V_028C78_MAX_BLOCK_SIZE_128B;
+		}
+
+		if (iview->image->usage & (VK_IMAGE_USAGE_SAMPLED_BIT |
+					   VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+					   VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT)) {
+			/* If this DCC image is potentially going to be used in texture
+			 * fetches, we need some special settings.
+			 */
+			independent_64b_blocks = 1;
+			max_compressed_block_size = V_028C78_MAX_BLOCK_SIZE_64B;
+		} else {
+			/* MAX_UNCOMPRESSED_BLOCK_SIZE must be >=
+			 * MAX_COMPRESSED_BLOCK_SIZE. Set MAX_COMPRESSED_BLOCK_SIZE as
+			 * big as possible for better compression state.
+			 */
+			independent_64b_blocks = 0;
+			max_compressed_block_size = max_uncompressed_block_size;
+		}
 	}
 
 	return S_028C78_MAX_UNCOMPRESSED_BLOCK_SIZE(max_uncompressed_block_size) |
 	       S_028C78_MAX_COMPRESSED_BLOCK_SIZE(max_compressed_block_size) |
 	       S_028C78_MIN_COMPRESSED_BLOCK_SIZE(min_compressed_block_size) |
-	       S_028C78_INDEPENDENT_64B_BLOCKS(independent_64b_blocks);
+	       S_028C78_INDEPENDENT_64B_BLOCKS(independent_64b_blocks) |
+	       S_028C78_INDEPENDENT_128B_BLOCKS(independent_128b_blocks);
 }
 
 static void
@@ -4298,15 +4356,21 @@ radv_initialise_color_surface(struct radv_device *device,
 		else
 			meta = surf->u.gfx9.cmask;
 
-		cb->cb_color_attrib |= S_028C74_COLOR_SW_MODE(surf->u.gfx9.surf.swizzle_mode) |
-			S_028C74_FMASK_SW_MODE(surf->u.gfx9.fmask.swizzle_mode) |
-			S_028C74_RB_ALIGNED(meta.rb_aligned) |
-			S_028C74_PIPE_ALIGNED(meta.pipe_aligned);
+		if (device->physical_device->rad_info.chip_class >= GFX10) {
+			cb->cb_color_attrib3 |=	S_028EE0_COLOR_SW_MODE(surf->u.gfx9.surf.swizzle_mode) |
+				S_028EE0_FMASK_SW_MODE(surf->u.gfx9.fmask.swizzle_mode) |
+				S_028EE0_CMASK_PIPE_ALIGNED(surf->u.gfx9.cmask.pipe_aligned) |
+				S_028EE0_DCC_PIPE_ALIGNED(surf->u.gfx9.dcc.pipe_aligned);
+		} else {
+			cb->cb_color_attrib |= S_028C74_COLOR_SW_MODE(surf->u.gfx9.surf.swizzle_mode) |
+				S_028C74_FMASK_SW_MODE(surf->u.gfx9.fmask.swizzle_mode) |
+				S_028C74_RB_ALIGNED(meta.rb_aligned) |
+				S_028C74_PIPE_ALIGNED(meta.pipe_aligned);
+			cb->cb_mrt_epitch = S_0287A0_EPITCH(surf->u.gfx9.surf.epitch);
+		}
 
 		cb->cb_color_base += surf->u.gfx9.surf_offset >> 8;
 		cb->cb_color_base |= surf->tile_swizzle;
-
-		cb->cb_mrt_epitch = S_0287A0_EPITCH(surf->u.gfx9.surf.epitch);
 	} else {
 		const struct legacy_surf_level *level_info = &surf->u.legacy.level[iview->base_mip];
 		unsigned pitch_tile_max, slice_tile_max, tile_mode_index;
@@ -4351,12 +4415,16 @@ radv_initialise_color_surface(struct radv_device *device,
 	    device->physical_device->rad_info.chip_class <= GFX8)
 		va += plane->surface.u.legacy.level[iview->base_mip].dcc_offset;
 
-	cb->cb_dcc_base = va >> 8;
-	cb->cb_dcc_base |= surf->tile_swizzle;
+	unsigned dcc_tile_swizzle = surf->tile_swizzle;
+	dcc_tile_swizzle &= (surf->dcc_alignment - 1) >> 8;
 
+	cb->cb_dcc_base = va >> 8;
+	cb->cb_dcc_base |= dcc_tile_swizzle;
+
+	/* GFX10 field has the same base shift as the GFX6 field. */
 	uint32_t max_slice = radv_surface_max_layer_count(iview) - 1;
 	cb->cb_color_view = S_028C6C_SLICE_START(iview->base_layer) |
-		S_028C6C_SLICE_MAX(max_slice);
+		S_028C6C_SLICE_MAX_GFX10(max_slice);
 
 	if (iview->image->info.samples > 1) {
 		unsigned log_samples = util_logbase2(iview->image->info.samples);
@@ -4461,9 +4529,18 @@ radv_initialise_color_surface(struct radv_device *device,
 		unsigned width = iview->extent.width / (iview->plane_id ? format_desc->width_divisor : 1);
 		unsigned height = iview->extent.height / (iview->plane_id ? format_desc->height_divisor : 1);
 
-		cb->cb_color_view |= S_028C6C_MIP_LEVEL(iview->base_mip);
-		cb->cb_color_attrib |= S_028C74_MIP0_DEPTH(mip0_depth) |
-			S_028C74_RESOURCE_TYPE(surf->u.gfx9.resource_type);
+		if (device->physical_device->rad_info.chip_class >= GFX10) {
+			cb->cb_color_view |= S_028C6C_MIP_LEVEL_GFX10(iview->base_mip);
+
+			cb->cb_color_attrib3 |= S_028EE0_MIP0_DEPTH(mip0_depth) |
+					        S_028EE0_RESOURCE_TYPE(surf->u.gfx9.resource_type) |
+					        S_028EE0_RESOURCE_LEVEL(1);
+		} else {
+			cb->cb_color_view |= S_028C6C_MIP_LEVEL_GFX9(iview->base_mip);
+			cb->cb_color_attrib |= S_028C74_MIP0_DEPTH(mip0_depth) |
+					       S_028C74_RESOURCE_TYPE(surf->u.gfx9.resource_type);
+		}
+
 		cb->cb_color_attrib2 = S_028C68_MIP0_WIDTH(width - 1) |
 			S_028C68_MIP0_HEIGHT(height - 1) |
 			S_028C68_MAX_MIP(iview->image->info.levels - 1);
@@ -4555,6 +4632,10 @@ radv_initialise_ds_surface(struct radv_device *device,
 	uint32_t max_slice = radv_surface_max_layer_count(iview) - 1;
 	ds->db_depth_view = S_028008_SLICE_START(iview->base_layer) |
 		S_028008_SLICE_MAX(max_slice);
+	if (device->physical_device->rad_info.chip_class >= GFX10) {
+		ds->db_depth_view |= S_028008_SLICE_START_HI(iview->base_layer >> 11) |
+				     S_028008_SLICE_MAX_HI(max_slice >> 11);
+	}
 
 	ds->db_htile_data_base = 0;
 	ds->db_htile_surface = 0;
@@ -4574,10 +4655,12 @@ radv_initialise_ds_surface(struct radv_device *device,
 		ds->db_stencil_info = S_02803C_FORMAT(stencil_format) |
 			S_02803C_SW_MODE(surf->u.gfx9.stencil.swizzle_mode);
 
-		ds->db_z_info2 = S_028068_EPITCH(surf->u.gfx9.surf.epitch);
-		ds->db_stencil_info2 = S_02806C_EPITCH(surf->u.gfx9.stencil.epitch);
-		ds->db_depth_view |= S_028008_MIPID(level);
+		if (device->physical_device->rad_info.chip_class == GFX9) {
+			ds->db_z_info2 = S_028068_EPITCH(surf->u.gfx9.surf.epitch);
+			ds->db_stencil_info2 = S_02806C_EPITCH(surf->u.gfx9.stencil.epitch);
+		}
 
+		ds->db_depth_view |= S_028008_MIPID(level);
 		ds->db_depth_size = S_02801C_X_MAX(iview->image->info.width - 1) |
 			S_02801C_Y_MAX(iview->image->info.height - 1);
 
@@ -4588,9 +4671,15 @@ radv_initialise_ds_surface(struct radv_device *device,
 				unsigned max_zplanes =
 					radv_calc_decompress_on_z_planes(device, iview);
 
-				ds->db_z_info |= S_028038_DECOMPRESS_ON_N_ZPLANES(max_zplanes) |
-						 S_028038_ITERATE_FLUSH(1);
-				ds->db_stencil_info |= S_02803C_ITERATE_FLUSH(1);
+				ds->db_z_info |= S_028038_DECOMPRESS_ON_N_ZPLANES(max_zplanes);
+
+				if (device->physical_device->rad_info.chip_class >= GFX10) {
+					ds->db_z_info |= S_028040_ITERATE_FLUSH(1);
+					ds->db_stencil_info |= S_028044_ITERATE_FLUSH(1);
+				} else {
+					ds->db_z_info |= S_028038_ITERATE_FLUSH(1);
+					ds->db_stencil_info |= S_02803C_ITERATE_FLUSH(1);
+				}
 			}
 
 			if (!surf->has_stencil)
@@ -4600,8 +4689,11 @@ radv_initialise_ds_surface(struct radv_device *device,
 				iview->image->htile_offset;
 			ds->db_htile_data_base = va >> 8;
 			ds->db_htile_surface = S_028ABC_FULL_CACHE(1) |
-				S_028ABC_PIPE_ALIGNED(surf->u.gfx9.htile.pipe_aligned) |
-				S_028ABC_RB_ALIGNED(surf->u.gfx9.htile.rb_aligned);
+				S_028ABC_PIPE_ALIGNED(surf->u.gfx9.htile.pipe_aligned);
+
+			if (device->physical_device->rad_info.chip_class == GFX9) {
+				ds->db_htile_surface |= S_028ABC_RB_ALIGNED(surf->u.gfx9.htile.rb_aligned);
+			}
 		}
 	} else {
 		const struct legacy_surf_level *level_info = &surf->u.legacy.level[level];
@@ -4878,7 +4970,8 @@ radv_init_sampler(struct radv_device *device,
 {
 	uint32_t max_aniso = radv_get_max_anisotropy(device, pCreateInfo);
 	uint32_t max_aniso_ratio = radv_tex_aniso_filter(max_aniso);
-	bool is_vi = (device->physical_device->rad_info.chip_class >= GFX8);
+	bool compat_mode = device->physical_device->rad_info.chip_class == GFX8 ||
+			   device->physical_device->rad_info.chip_class == GFX9;
 	unsigned filter_mode = V_008F30_SQ_IMG_FILTER_MODE_BLEND;
 
 	const struct VkSamplerReductionModeCreateInfoEXT *sampler_reduction =
@@ -4896,7 +4989,7 @@ radv_init_sampler(struct radv_device *device,
 			     S_008F30_ANISO_THRESHOLD(max_aniso_ratio >> 1) |
 			     S_008F30_ANISO_BIAS(max_aniso_ratio) |
 			     S_008F30_DISABLE_CUBE_WRAP(0) |
-			     S_008F30_COMPAT_MODE(is_vi) |
+			     S_008F30_COMPAT_MODE(compat_mode) |
 			     S_008F30_FILTER_MODE(filter_mode));
 	sampler->state[1] = (S_008F34_MIN_LOD(S_FIXED(CLAMP(pCreateInfo->minLod, 0, 15), 8)) |
 			     S_008F34_MAX_LOD(S_FIXED(CLAMP(pCreateInfo->maxLod, 0, 15), 8)) |
@@ -4905,12 +4998,18 @@ radv_init_sampler(struct radv_device *device,
 			     S_008F38_XY_MAG_FILTER(radv_tex_filter(pCreateInfo->magFilter, max_aniso)) |
 			     S_008F38_XY_MIN_FILTER(radv_tex_filter(pCreateInfo->minFilter, max_aniso)) |
 			     S_008F38_MIP_FILTER(radv_tex_mipfilter(pCreateInfo->mipmapMode)) |
-			     S_008F38_MIP_POINT_PRECLAMP(0) |
-			     S_008F38_DISABLE_LSB_CEIL(device->physical_device->rad_info.chip_class <= GFX8) |
-			     S_008F38_FILTER_PREC_FIX(1) |
-			     S_008F38_ANISO_OVERRIDE(is_vi));
+			     S_008F38_MIP_POINT_PRECLAMP(0));
 	sampler->state[3] = (S_008F3C_BORDER_COLOR_PTR(0) |
 			     S_008F3C_BORDER_COLOR_TYPE(radv_tex_bordercolor(pCreateInfo->borderColor)));
+
+	if (device->physical_device->rad_info.chip_class >= GFX10) {
+		sampler->state[2] |= S_008F38_ANISO_OVERRIDE_GFX10(1);
+	} else {
+		sampler->state[2] |=
+			S_008F38_DISABLE_LSB_CEIL(device->physical_device->rad_info.chip_class <= GFX8) |
+			S_008F38_FILTER_PREC_FIX(1) |
+			S_008F38_ANISO_OVERRIDE_GFX6(device->physical_device->rad_info.chip_class >= GFX8);
+	}
 }
 
 VkResult radv_CreateSampler(

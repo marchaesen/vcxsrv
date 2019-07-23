@@ -92,7 +92,7 @@ Specifies an unused argument (required by ANSI C).
 Specifies the variable length argument list.
 .SH DESCRIPTION
 The
-.ZN XVaCreateNestedList
+.B XVaCreateNestedList
 function allocates memory and copies its arguments into
 a single list pointer,
 which may be used as a value for arguments requiring a list value.
@@ -101,7 +101,7 @@ Data passed by reference is not copied;
 the caller must ensure data remains valid for the lifetime
 of the nested list.
 The list should be freed using
-.ZN XFree
+.B XFree
 when it is no longer needed.
 .SH "SEE ALSO"
 \fI\*(xL\fP

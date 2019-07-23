@@ -83,7 +83,7 @@
 XColormapEvent \- ColormapNotify event structure
 .SH STRUCTURES
 The structure for
-.ZN ColormapNotify
+.B ColormapNotify
 events contains:
 .LP
 .Ds 0
@@ -105,16 +105,16 @@ the structure members are set as follows.
 The type member is set to the event type constant name that uniquely identifies
 it.
 For example, when the X server reports a
-.ZN GraphicsExpose
+.B GraphicsExpose
 event to a client application, it sends an
-.ZN XGraphicsExposeEvent
+.B XGraphicsExposeEvent
 structure with the type member set to
-.ZN GraphicsExpose .
+.BR GraphicsExpose .
 The display member is set to a pointer to the display the event was read on.
 The send_event member is set to
-.ZN True
+.B True
 if the event came from a
-.ZN SendEvent
+.B SendEvent
 protocol request.
 The serial member is set from the serial number reported in the protocol
 but expanded from the 16-bit least-significant bits to a full 32-bit value.
@@ -126,26 +126,26 @@ colormap is changed, installed, or uninstalled.
 For a colormap that is changed, installed, or uninstalled,
 the colormap member is set to the colormap associated with the window. 
 For a colormap that is changed by a call to
-.ZN XFreeColormap ,
+.BR XFreeColormap ,
 the colormap member is set to
-.ZN None .
+.BR None .
 The new member is set to indicate whether the colormap 
 for the specified window was changed or installed or uninstalled
 and can be 
-.ZN True
+.B True
 or
-.ZN False .
+.BR False .
 If it is
-.ZN True ,
+.BR True ,
 the colormap was changed.
 If it is
-.ZN False ,
+.BR False ,
 the colormap was installed or uninstalled.
 The state member is always set to indicate whether the colormap is installed or
 uninstalled and can be 
-.ZN ColormapInstalled
+.B ColormapInstalled
 or
-.ZN ColormapUninstalled .
+.BR ColormapUninstalled .
 .SH "SEE ALSO"
 XAnyEvent(__libmansuffix__),
 XButtonEvent(__libmansuffix__),

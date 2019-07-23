@@ -110,45 +110,45 @@ Specifies the window.
 Return the pointer coordinates relative to the specified window.
 .SH DESCRIPTION
 The
-.ZN XQueryPointer
+.B XQueryPointer
 function returns the root window the pointer is logically on and the pointer
 coordinates relative to the root window's origin.
 If
-.ZN XQueryPointer
+.B XQueryPointer
 returns 
-.ZN False , 
+.BR False ,
 the pointer is not on the same screen as the specified window, and
-.ZN XQueryPointer
+.B XQueryPointer
 returns 
-.ZN None
+.B None
 to child_return and zero to win_x_return and win_y_return.
 If 
-.ZN XQueryPointer
+.B XQueryPointer
 returns 
-.ZN True , 
+.BR True ,
 the pointer coordinates returned to win_x_return and win_y_return
 are relative to the origin of the specified window.
 In this case, 
-.ZN XQueryPointer
+.B XQueryPointer
 returns the child that contains the pointer, if any,
 or else
-.ZN None
+.B None
 to child_return.
 .LP
-.ZN XQueryPointer
+.B XQueryPointer
 returns the current logical state of the keyboard buttons 
 and the modifier keys in mask_return.
 It sets mask_return to the bitwise inclusive OR of one or more
 of the button or modifier key bitmasks to match 
 the current state of the mouse buttons and the modifier keys.
 .LP
-.ZN XQueryPointer
+.B XQueryPointer
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XGetWindowAttributes(__libmansuffix__),

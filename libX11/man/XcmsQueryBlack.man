@@ -111,27 +111,27 @@ The value returned in the pixel member is undefined.
 Specifies the target color specification format.
 .SH DESCRIPTION
 The
-.ZN XcmsQueryBlack
+.B XcmsQueryBlack
 function returns the color specification in the specified target format
 for zero-intensity red, green, and blue.
 .LP
 The
-.ZN XcmsQueryBlue
+.B XcmsQueryBlue
 function returns the color specification in the specified target format
 for full-intensity blue while red and green are zero.
 .LP
 The
-.ZN XcmsQueryGreen
+.B XcmsQueryGreen
 function returns the color specification in the specified target format
 for full-intensity green while red and blue are zero.
 .LP
 The
-.ZN XcmsQueryRed
+.B XcmsQueryRed
 function returns the color specification in the specified target format
 for full-intensity red while green and blue are zero.
 .LP
 The
-.ZN XcmsQueryWhite
+.B XcmsQueryWhite
 function returns the color specification in the specified target format
 for full-intensity red, green, and blue.
 .SH "SEE ALSO"

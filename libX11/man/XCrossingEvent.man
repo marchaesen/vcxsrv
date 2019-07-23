@@ -83,9 +83,9 @@
 XCrossingEvent \- EnterNotify and LeaveNotify event structure
 .SH STRUCTURES
 The structure for
-.ZN EnterNotify 
+.B EnterNotify
 and
-.ZN LeaveNotify
+.B LeaveNotify
 events contains:
 .LP
 .Ds 0
@@ -120,16 +120,16 @@ the structure members are set as follows.
 The type member is set to the event type constant name that uniquely identifies
 it.
 For example, when the X server reports a
-.ZN GraphicsExpose
+.B GraphicsExpose
 event to a client application, it sends an
-.ZN XGraphicsExposeEvent
+.B XGraphicsExposeEvent
 structure with the type member set to
-.ZN GraphicsExpose .
+.BR GraphicsExpose .
 The display member is set to a pointer to the display the event was read on.
 The send_event member is set to
-.ZN True
+.B True
 if the event came from a
-.ZN SendEvent
+.B SendEvent
 protocol request.
 The serial member is set from the serial number reported in the protocol
 but expanded from the 16-bit least-significant bits to a full 32-bit value.
@@ -137,9 +137,9 @@ The window member is set to the window that is most useful to toolkit
 dispatchers.
 .LP
 The window member is set to the window on which the
-.ZN EnterNotify
+.B EnterNotify
 or
-.ZN LeaveNotify
+.B LeaveNotify
 event was generated and is referred to as the event window. 
 This is the window used by the X server to report the event, 
 and is relative to the root
@@ -148,17 +148,17 @@ The root member is set to the root window of the screen
 on which the event occurred.
 .LP
 For a
-.ZN LeaveNotify 
+.B LeaveNotify
 event,
 if a child of the event window contains the initial position of the pointer,
 the subwindow component is set to that child.
 Otherwise, the X server sets the subwindow member to
-.ZN None .
+.BR None .
 For an
-.ZN EnterNotify 
+.B EnterNotify
 event, if a child of the event window contains the final pointer position, 
 the subwindow component is set to that child or
-.ZN None .
+.BR None .
 .LP
 The time member is set to the time when the event was generated
 and is expressed in milliseconds.
@@ -175,27 +175,27 @@ root window's origin at the time of the event.
 .LP
 The same_screen member is set to indicate whether the event window is on the same screen
 as the root window and can be either
-.ZN True 
+.B True
 or
-.ZN False .
+.BR False .
 If
-.ZN True ,
+.BR True ,
 the event and root windows are on the same screen.
 If
-.ZN False ,
+.BR False ,
 the event and root windows are not on the same screen.
 .LP
 The focus member is set to indicate whether the event window is the focus window or an
 inferior of the focus window.
 The X server can set this member to either
-.ZN True 
+.B True
 or
-.ZN False .
+.BR False .
 If
-.ZN True ,
+.BR True ,
 the event window is the focus window or an inferior of the focus window.
 If
-.ZN False ,
+.BR False ,
 the event window is not the focus window or an inferior of the focus window.
 .LP
 The state member is set to indicate the state of the pointer buttons and
@@ -203,36 +203,36 @@ modifier keys just prior to the
 event.
 The X server can set this member to the bitwise inclusive OR of one 
 or more of the button or modifier key masks:
-.ZN Button1Mask ,
-.ZN Button2Mask ,
-.ZN Button3Mask ,
-.ZN Button4Mask ,
-.ZN Button5Mask ,
-.ZN ShiftMask ,
-.ZN LockMask ,
-.ZN ControlMask ,
-.ZN Mod1Mask ,
-.ZN Mod2Mask ,
-.ZN Mod3Mask ,
-.ZN Mod4Mask ,
-.ZN Mod5Mask .
+.BR Button1Mask ,
+.BR Button2Mask ,
+.BR Button3Mask ,
+.BR Button4Mask ,
+.BR Button5Mask ,
+.BR ShiftMask ,
+.BR LockMask ,
+.BR ControlMask ,
+.BR Mod1Mask ,
+.BR Mod2Mask ,
+.BR Mod3Mask ,
+.BR Mod4Mask ,
+.BR Mod5Mask .
 .LP
 The mode member is set to indicate whether the events are normal events, 
 pseudo-motion events
 when a grab activates, or pseudo-motion events when a grab deactivates.
 The X server can set this member to 
-.ZN NotifyNormal ,
-.ZN NotifyGrab ,
+.BR NotifyNormal ,
+.BR NotifyGrab ,
 or
-.ZN NotifyUngrab .
+.BR NotifyUngrab .
 .LP
 The detail member is set to indicate the notify detail and can be
-.ZN NotifyAncestor ,
-.ZN NotifyVirtual ,
-.ZN NotifyInferior ,
-.ZN NotifyNonlinear ,
+.BR NotifyAncestor ,
+.BR NotifyVirtual ,
+.BR NotifyInferior ,
+.BR NotifyNonlinear ,
 or
-.ZN NotifyNonlinearVirtual .
+.BR NotifyNonlinearVirtual .
 .SH "SEE ALSO"
 XAnyEvent(__libmansuffix__),
 XButtonEvent(__libmansuffix__),

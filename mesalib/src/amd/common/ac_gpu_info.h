@@ -138,6 +138,7 @@ struct radeon_info {
 	bool                        r600_gb_backend_map_valid;
 	uint32_t                    r600_num_banks;
 	uint32_t                    gb_addr_config;
+	uint32_t                    pa_sc_tile_steering_override; /* CLEAR_STATE also sets this */
 	uint32_t                    num_render_backends;
 	uint32_t                    num_tile_pipes; /* pipe count from PIPE_CONFIG */
 	uint32_t                    pipe_interleave_bytes;
@@ -166,6 +167,10 @@ void ac_get_harvested_configs(struct radeon_info *info,
 			      unsigned raster_config,
 			      unsigned *cik_raster_config_1_p,
 			      unsigned *raster_config_se);
+unsigned ac_get_compute_resource_limits(struct radeon_info *info,
+					unsigned waves_per_threadgroup,
+					unsigned max_waves_per_sh,
+					unsigned threadgroups_per_cu);
 
 static inline unsigned ac_get_max_simd_waves(enum radeon_family family)
 {

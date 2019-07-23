@@ -91,31 +91,31 @@ Specifies the event to filter.
 Specifies the window for which the filter is to be applied.
 .SH DESCRIPTION
 If the window argument is
-.ZN None ,
-.ZN XFilterEvent 
+.BR None ,
+.B XFilterEvent
 applies the filter to the window specified in the
-.ZN XEvent
+.B XEvent
 structure.
 The window argument is provided so that layers above Xlib
 that do event redirection can indicate to which window an event
 has been redirected.
 .LP
 If
-.ZN XFilterEvent
+.B XFilterEvent
 returns
-.ZN True ,
+.BR True ,
 then some input method has filtered the event,
 and the client should discard the event.
 If
-.ZN XFilterEvent
+.B XFilterEvent
 returns
-.ZN False ,
+.BR False ,
 then the client should continue processing the event.
 .LP
 If a grab has occurred in the client and
-.ZN XFilterEvent
+.B XFilterEvent
 returns
-.ZN True ,
+.BR True ,
 the client should ungrab the keyboard.
 .SH "SEE ALSO"
 XNextEvent(__libmansuffix__)

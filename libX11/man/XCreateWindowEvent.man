@@ -83,7 +83,7 @@
 XCreateWindowEvent \- CreateNotify event structure
 .SH STRUCTURES
 The structure for
-.ZN CreateNotify
+.B CreateNotify
 events contains:
 .LP
 .Ds 0
@@ -107,16 +107,16 @@ the structure members are set as follows.
 The type member is set to the event type constant name that uniquely identifies
 it.
 For example, when the X server reports a
-.ZN GraphicsExpose
+.B GraphicsExpose
 event to a client application, it sends an
-.ZN XGraphicsExposeEvent
+.B XGraphicsExposeEvent
 structure with the type member set to
-.ZN GraphicsExpose .
+.BR GraphicsExpose .
 The display member is set to a pointer to the display the event was read on.
 The send_event member is set to
-.ZN True
+.B True
 if the event came from a
-.ZN SendEvent
+.B SendEvent
 protocol request.
 The serial member is set from the serial number reported in the protocol
 but expanded from the 16-bit least-significant bits to a full 32-bit value.
@@ -135,7 +135,7 @@ The override_redirect member is set to the override-redirect attribute of the
 window.
 Window manager clients normally should ignore this window 
 if the override_redirect member is
-.ZN True .
+.BR True .
 .SH "SEE ALSO"
 XAnyEvent(__libmansuffix__),
 XButtonEvent(__libmansuffix__),

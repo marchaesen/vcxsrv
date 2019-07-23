@@ -102,27 +102,27 @@ Specifies the window whose list of children, root, parent, and number of childre
 you want to obtain.
 .SH DESCRIPTION
 The
-.ZN XQueryTree
+.B XQueryTree
 function returns the root ID, the parent window ID, 
 a pointer to the list of children windows
 (NULL when there are no children), 
 and the number of children in the list for the specified window.
 The children are listed in current stacking order, from bottom-most 
 (first) to top-most (last).
-.ZN XQueryTree
+.B XQueryTree
 returns zero if it fails and nonzero if it succeeds.
 To free a non-NULL children list when it is no longer needed, use 
-.ZN XFree .
+.BR XFree .
 .LP
-.ZN XQueryTree
+.B XQueryTree
 can generate a
-.ZN BadWindow
+.B BadWindow
 error.
 .SH BUGS
 This really should return a screen *, not a root window ID.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XFree(__libmansuffix__),

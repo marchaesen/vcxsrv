@@ -123,24 +123,24 @@ XcmsColor *ClientWhitePointOfCCC\^(\^XcmsCCC \fIccc\fP\^);
 Specifies the CCC.
 .SH DESCRIPTION
 The
-.ZN DisplayOfCCC
+.B DisplayOfCCC
 macro returns the display associated with the specified CCC.
 .LP
 The
-.ZN VisualOfCCC
+.B VisualOfCCC
 macro returns the visual associated with the specified CCC.
 .LP
 The
-.ZN ScreenNumberOfCCC
+.B ScreenNumberOfCCC
 macro returns the number of the screen associated with the specified CCC.
 .LP
 The
-.ZN ScreenWhitePointOfCCC
+.B ScreenWhitePointOfCCC
 macro returns the screen white point of the screen associated with
 the specified CCC.
 .LP
 The
-.ZN ClientWhitePointOfCCC
+.B ClientWhitePointOfCCC
 macro returns the client white point of the screen associated with
 the specified CCC.
 .SH "SEE ALSO"

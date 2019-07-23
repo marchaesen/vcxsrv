@@ -64,7 +64,7 @@ struct rbug_shader
    void *replaced_tokens;
 
    enum rbug_shader_type type;
-   boolean disabled;
+   bool disabled;
 };
 
 

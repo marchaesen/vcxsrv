@@ -346,7 +346,7 @@ comparison_pre_block(nir_block *block, struct block_queue *bq, nir_builder *bld)
    return progress;
 }
 
-static bool
+bool
 nir_opt_comparison_pre_impl(nir_function_impl *impl)
 {
    struct block_queue bq;

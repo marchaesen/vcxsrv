@@ -120,16 +120,16 @@ Specifies the character string.
 Xlib generally calls the program's
 supplied error handler whenever an error is received.
 It is not called on
-.ZN BadName
+.B BadName
 errors from
-.ZN OpenFont ,
-.ZN LookupColor ,
+.BR OpenFont ,
+.BR LookupColor ,
 or
-.ZN AllocNamedColor
+.B AllocNamedColor
 protocol requests or on
-.ZN BadFont
+.B BadFont
 errors from a
-.ZN QueryFont
+.B QueryFont
 protocol request.
 These errors generally are reflected back to the program through the
 procedural interface.
@@ -142,7 +142,7 @@ that will generate protocol requests or that will look for input events.
 The previous error handler is returned.
 .LP
 The
-.ZN XGetErrorText
+.B XGetErrorText
 function copies a null-terminated string describing the specified error code
 into the specified buffer.
 The returned text is in the encoding of the current locale.
@@ -151,20 +151,20 @@ because extensions to Xlib may define their own error codes
 and error strings.
 .LP
 The
-.ZN XDisplayName
+.B XDisplayName
 function returns the name of the display that 
-.ZN XOpenDisplay
+.B XOpenDisplay
 would attempt to use.
 If a NULL string is specified,
-.ZN XDisplayName
+.B XDisplayName
 looks in the environment for the display and returns the display name that
-.ZN XOpenDisplay
+.B XOpenDisplay
 would attempt to use.
 This makes it easier to report to the user precisely which display the
 program attempted to open when the initial connection attempt failed.
 .LP
 The
-.ZN XSetIOErrorHandler
+.B XSetIOErrorHandler
 sets the fatal I/O error handler.
 Xlib calls the program's supplied error handler if any sort of system call
 error occurs (for example, the connection to the server was lost).
@@ -176,7 +176,7 @@ the client process exits.
 Note that the previous error handler is returned.
 .LP
 The
-.ZN XGetErrorDatabaseText
+.B XGetErrorDatabaseText
 function returns a null-terminated message
 (or the default message) from the error message
 database.
@@ -202,7 +202,7 @@ For a core protocol request,
 the major request protocol number is used for the message argument.
 For an extension request,
 the extension name (as given by
-.ZN InitExtension )
+.BR InitExtension )
 followed by a period (\.) and the minor request protocol number 
 is used for the message argument.
 If no string is found in the error database,

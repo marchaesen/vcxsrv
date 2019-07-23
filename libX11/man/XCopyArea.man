@@ -125,12 +125,12 @@ Specify the width and height, which are the dimensions
 of both the source and destination rectangles.
 .SH DESCRIPTION
 The
-.ZN XCopyArea
+.B XCopyArea
 function combines the specified rectangle of src with the specified rectangle 
 of dest.
 The drawables must have the same root and depth,
 or a
-.ZN BadMatch
+.B BadMatch
 error results.
 .LP
 If regions of the source rectangle are obscured and have not been
@@ -141,99 +141,99 @@ Instead, the
 following occurs on all corresponding destination regions that are either
 visible or are retained in backing store.  
 If the destination is a window with a background other than 
-.ZN None , 
+.BR None ,
 corresponding regions
 of the destination are tiled with that background
 (with plane-mask of all ones and
-.ZN GXcopy 
+.B GXcopy
 function).
 Regardless of tiling or whether the destination is a window or a pixmap,
 if graphics-exposures is 
-.ZN True ,
+.BR True ,
 then
-.ZN GraphicsExpose
+.B GraphicsExpose
 events for all corresponding destination regions are generated.
 If graphics-exposures is 
-.ZN True 
+.B True
 but no
-.ZN GraphicsExpose
+.B GraphicsExpose
 events are generated, a
-.ZN NoExpose 
+.B NoExpose
 event is generated.
 Note that by default graphics-exposures is
-.ZN True
+.B True
 in new GCs.
 .LP
 This function uses these GC components: function, plane-mask, 
 subwindow-mode, graphics-exposures, clip-x-origin,
 clip-y-origin, and clip-mask.
 .LP
-.ZN XCopyArea
+.B XCopyArea
 can generate
-.ZN BadDrawable ,
-.ZN BadGC ,
+.BR BadDrawable ,
+.BR BadGC ,
 and
-.ZN BadMatch 
+.B BadMatch
 errors.
 .LP
 The
-.ZN XCopyPlane
+.B XCopyPlane
 function uses a single bit plane of the specified source rectangle
 combined with the specified GC to modify the specified rectangle of dest.
 The drawables must have the same root but need not have the same depth.
 If the drawables do not have the same root, a
-.ZN BadMatch
+.B BadMatch
 error results.
 If plane does not have exactly one bit set to 1 and the value of plane
 is not less than %2 sup n%, where \fIn\fP is the depth of src, a
-.ZN BadValue
+.B BadValue
 error results.
 .LP
 Effectively, 
-.ZN XCopyPlane
+.B XCopyPlane
 forms a pixmap of the same depth as the rectangle of dest and with a
 size specified by the source region. 
 It uses the foreground/background pixels in the GC (foreground
 everywhere the bit plane in src contains a bit set to 1,
 background everywhere the bit plane in src contains a bit set to 0)
 and the equivalent of a 
-.ZN CopyArea
+.B CopyArea
 protocol request is performed with all the same exposure semantics.
 This can also be thought of as using the specified region of the source 
 bit plane as a stipple with a fill-style of
-.ZN FillOpaqueStippled
+.B FillOpaqueStippled
 for filling a rectangular area of the destination.
 .LP
 This function uses these GC components: function, plane-mask, foreground,
 background, subwindow-mode, graphics-exposures, clip-x-origin, clip-y-origin,
 and clip-mask.
 .LP
-.ZN XCopyPlane
+.B XCopyPlane
 can generate
-.ZN BadDrawable ,
-.ZN BadGC ,
-.ZN BadMatch ,
+.BR BadDrawable ,
+.BR BadGC ,
+.BR BadMatch ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadDrawable
+.B BadDrawable
 A value for a Drawable argument does not name a defined Window or Pixmap.
 .TP 1i
-.ZN BadGC
+.B BadGC
 A value for a GContext argument does not name a defined GContext.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 An
-.ZN InputOnly
+.B InputOnly
 window is used as a Drawable.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 Some argument or pair of arguments has the correct type and range but fails
 to match in some other way required by the request.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

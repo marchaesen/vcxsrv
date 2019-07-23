@@ -115,7 +115,7 @@ Specifies the connection to the X server.
 Specifies the font.
 .IP \fIfont_ID\fP 1i
 Specifies the font ID or the 
-.ZN GContext
+.B GContext
 ID.
 .IP \fIfont_struct\fP 1i
 Specifies the storage associated with the font.
@@ -128,7 +128,7 @@ which is a null-terminated string.
 Returns the value of the font property.
 .SH DESCRIPTION
 The
-.ZN XLoadFont
+.B XLoadFont
 function loads the specified font and returns its associated font ID.
 If the font name is not in the Host Portable Character Encoding,
 the result is implementation-dependent.
@@ -141,85 +141,85 @@ and the ``*'' character will match any number of characters.
 A structured format for font names is specified in the X Consortium standard 
 \fIX Logical Font Description Conventions\fP.
 If 
-.ZN XLoadFont
+.B XLoadFont
 was unsuccessful at loading the specified font, 
 a 
-.ZN BadName 
+.B BadName
 error results.
 Fonts are not associated with a particular screen 
 and can be stored as a component
 of any GC.
 When the font is no longer needed, call 
-.ZN XUnloadFont .
+.BR XUnloadFont .
 .LP
-.ZN XLoadFont
+.B XLoadFont
 can generate
-.ZN BadAlloc 
+.B BadAlloc
 and
-.ZN BadName 
+.B BadName
 errors.
 .LP
 The
-.ZN XQueryFont
+.B XQueryFont
 function returns a pointer to the
-.ZN XFontStruct
+.B XFontStruct
 structure, which contains information associated with the font.
 You can query a font or the font stored in a GC.
 The font ID stored in the 
-.ZN XFontStruct
+.B XFontStruct
 structure will be the 
-.ZN GContext 
+.B GContext
 ID, and you need to be careful when using this ID in other functions
 (see
-.ZN XGContextFromGC ).
+.BR XGContextFromGC ).
 If the font does not exist,
-.ZN XQueryFont
+.B XQueryFont
 returns NULL.
 To free this data, use
-.ZN XFreeFontInfo .
+.BR XFreeFontInfo .
 .LP
-.ZN XLoadQueryFont
+.B XLoadQueryFont
 can generate a
-.ZN BadAlloc 
+.B BadAlloc
 error.
 .LP
 The
-.ZN XLoadQueryFont
+.B XLoadQueryFont
 function provides the most common way for accessing a font.
-.ZN XLoadQueryFont
+.B XLoadQueryFont
 both opens (loads) the specified font and returns a pointer to the
 appropriate
-.ZN XFontStruct
+.B XFontStruct
 structure.
 If the font name is not in the Host Portable Character Encoding,
 the result is implementation-dependent.
 If the font does not exist,
-.ZN XLoadQueryFont
+.B XLoadQueryFont
 returns NULL.
 .LP
 The
-.ZN XFreeFont
+.B XFreeFont
 function deletes the association between the font resource ID and the specified 
 font and frees the
-.ZN XFontStruct
+.B XFontStruct
 structure.
 The font itself will be freed when no other resource references it.
 The data and the font should not be referenced again.
 .LP
-.ZN XFreeFont
+.B XFreeFont
 can generate a
-.ZN BadFont 
+.B BadFont
 error.
 .LP
 Given the atom for that property,
 the
-.ZN XGetFontProperty
+.B XGetFontProperty
 function returns the value of the specified font property. 
-.ZN XGetFontProperty
+.B XGetFontProperty
 also returns 
-.ZN False
+.B False
 if the property was not defined or 
-.ZN True
+.B True
 if it was defined.
 A set of predefined atoms exists for font properties,
 which can be found in
@@ -230,29 +230,29 @@ Although it is not guaranteed,
 it is likely that the predefined font properties will be present.
 .LP
 The
-.ZN XUnloadFont
+.B XUnloadFont
 function deletes the association between the font resource ID and the specified font.
 The font itself will be freed when no other resource references it.
 The font should not be referenced again.
 .LP
-.ZN XUnloadFont
+.B XUnloadFont
 can generate a
-.ZN BadFont 
+.B BadFont
 error.
 .SH STRUCTURES
 The
-.ZN XFontStruct
+.B XFontStruct
 structure contains all of the information for the font
 and consists of the font-specific information as well as
 a pointer to an array of
-.ZN XCharStruct
+.B XCharStruct
 structures for the
 characters contained in the font.
 The
-.ZN XFontStruct ,
-.ZN XFontProp ,
+.BR XFontStruct ,
+.BR XFontProp ,
 and
-.ZN XCharStruct
+.B XCharStruct
 structures contain:
 .LP
 .IN "XCharStruct" "" "@DEF@"
@@ -317,25 +317,25 @@ Single byte/character fonts have one row defined, and the byte2 range
 specified in the structure defines a range of characters.
 .LP
 The bounding box of a character is defined by the 
-.ZN XCharStruct 
+.B XCharStruct
 of that character.
 When characters are absent from a font,
 the default_char is used.
 When fonts have all characters of the same size,
 only the information in the
-.ZN XFontStruct
+.B XFontStruct
 min and max bounds are used.
 .LP
 The members of the 
-.ZN XFontStruct 
+.B XFontStruct
 have the following semantics:
 .IP \(bu 5
 The direction member can be either 
-.ZN FontLeftToRight 
+.B FontLeftToRight
 or 
-.ZN FontRightToLeft . 
+.BR FontRightToLeft .
 It is just a hint as to whether most 
-.ZN XCharStruct 
+.B XCharStruct
 elements 
 have a positive 
 .Pn ( FontLeftToRight ) 
@@ -372,7 +372,7 @@ inclusive have the same information,
 as given by both min_bounds and max_bounds.
 .IP \(bu 5
 If all_chars_exist is 
-.ZN True ,
+.BR True ,
 all characters in the per_char array have nonzero bounding boxes.
 .IP \(bu 5
 The default_char member specifies the character that will be used when an
@@ -386,7 +386,7 @@ no printing is performed for an undefined or nonexistent character.
 .IP \(bu 5
 The min_bounds and max_bounds members contain the most extreme values of
 each individual 
-.ZN XCharStruct 
+.B XCharStruct
 component over all elements of this array
 (and ignore nonexistent characters).
 The bounding box of the font (the smallest
@@ -426,7 +426,7 @@ For a character origin at [x,y],
 the bounding box of a character (that is, 
 the smallest rectangle that encloses the character's shape)
 described in terms of 
-.ZN XCharStruct 
+.B XCharStruct
 components is a rectangle with its upper-left corner at:
 .LP
 .Ds
@@ -462,13 +462,13 @@ from the origin.
 The width member defines the logical width of the character.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadFont
+.B BadFont
 A value for a Font or GContext argument does not name a defined Font.
 .TP 1i
-.ZN BadName
+.B BadName
 A font or color of the specified name does not exist.
 .SH "SEE ALSO"
 XCreateGC(__libmansuffix__),

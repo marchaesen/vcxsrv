@@ -114,7 +114,7 @@ Returns the exact RGB values.
 .IP \fIncolors\fP 1i
 .\"Specifies the number of color definition structures. 
 Specifies the number of 
-.ZN XColor
+.B XColor
 structures in the color definition array.
 .IP \fIscreen_def_return\fP 1i
 Returns the closest RGB values provided by the hardware.
@@ -123,45 +123,45 @@ Specifies the color name string;
 case is ignored.
 .IP \fIexact_def_return\fP 1i
 Returns the exact color value for later use and sets the
-.ZN DoRed ,
-.ZN DoGreen ,
+.BR DoRed ,
+.BR DoGreen ,
 and
-.ZN DoBlue
+.B DoBlue
 flags.
 .SH DESCRIPTION
 The
-.ZN XQueryColor
+.B XQueryColor
 function returns the current RGB value for the pixel in the
-.ZN XColor
+.B XColor
 structure and sets the
-.ZN DoRed ,
-.ZN DoGreen ,
+.BR DoRed ,
+.BR DoGreen ,
 and
-.ZN DoBlue
+.B DoBlue
 flags.
 The
-.ZN XQueryColors
+.B XQueryColors
 function returns the RGB value for each pixel in each
-.ZN XColor
+.B XColor
 structure and sets the
-.ZN DoRed ,
-.ZN DoGreen ,
+.BR DoRed ,
+.BR DoGreen ,
 and
-.ZN DoBlue
+.B DoBlue
 flags in each structure.
 
 .LP
-.ZN XQueryColor
+.B XQueryColor
 and
-.ZN XQueryColors
+.B XQueryColors
 can generate
-.ZN BadColor
+.B BadColor
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .LP
 The
-.ZN XLookupColor
+.B XLookupColor
 function looks up the string name of a color with respect to the screen
 associated with the specified colormap.
 It returns both the exact color values and
@@ -170,27 +170,27 @@ with respect to the visual type of the specified colormap.
 If the color name is not in the Host Portable Character Encoding, 
 the result is implementation-dependent.
 Use of uppercase or lowercase does not matter.
-.ZN XLookupColor
+.B XLookupColor
 returns nonzero if the name is resolved;
 otherwise, it returns zero.
 .LP
 The
-.ZN XParseColor
+.B XParseColor
 function looks up the string name of a color with respect to the screen
 associated with the specified colormap.
 It returns the exact color value.
 If the color name is not in the Host Portable Character Encoding, 
 the result is implementation-dependent.
 Use of uppercase or lowercase does not matter.
-.ZN XParseColor
+.B XParseColor
 returns nonzero if the name is resolved;
 otherwise, it returns zero.
 .LP
-.ZN XLookupColor
+.B XLookupColor
 and
-.ZN XParseColor
+.B XParseColor
 can generate
-.ZN BadColor 
+.B BadColor
 error.
 .SH "COLOR NAMES"
 An RGB Device specification is identified by
@@ -267,10 +267,10 @@ and an optional exponent field consisting of an ``E'' or ``e''
 followed by an optional plus or minus followed by a string of digits.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadColor
+.B BadColor
 A value for a Colormap argument does not name a defined Colormap.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

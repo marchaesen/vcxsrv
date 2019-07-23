@@ -93,53 +93,53 @@ int *\fIrevert_to_return\fP\^);
 Specifies the connection to the X server.
 .IP \fIfocus\fP 1i
 Specifies the window,
-.ZN PointerRoot ,
+.BR PointerRoot ,
 or
-.ZN None .
+.BR None .
 .IP \fIfocus_return\fP 1i
 Returns the focus window,
-.ZN PointerRoot ,
+.BR PointerRoot ,
 or 
-.ZN None .
+.BR None .
 .IP \fIrevert_to\fP 1i
 Specifies where the input focus reverts to if the window becomes not
 viewable.
 You can pass 
-.ZN RevertToParent , 
-.ZN RevertToPointerRoot , 
+.BR RevertToParent ,
+.BR RevertToPointerRoot ,
 or 
-.ZN RevertToNone .
+.BR RevertToNone .
 .IP \fIrevert_to_return\fP 1i
 Returns the current focus state
 .Pn ( RevertToParent , 
-.ZN RevertToPointerRoot , 
+.BR RevertToPointerRoot ,
 or 
-.ZN RevertToNone ).
+.BR RevertToNone ).
 .IP \fItime\fP 1i
 Specifies the time.
 You can pass either a timestamp or
-.ZN CurrentTime .
+.BR CurrentTime .
 .SH DESCRIPTION
 The
-.ZN XSetInputFocus
+.B XSetInputFocus
 function changes the input focus and the last-focus-change time.
 It has no effect if the specified time is earlier than the current
 last-focus-change time or is later than the current X server time.
 Otherwise, the last-focus-change time is set to the specified time
 .Pn ( CurrentTime 
 is replaced by the current X server time).
-.ZN XSetInputFocus
+.B XSetInputFocus
 causes the X server to generate
-.ZN FocusIn 
+.B FocusIn
 and 
-.ZN FocusOut 
+.B FocusOut
 events.
 .LP
 Depending on the focus argument,
 the following occurs: 
 .IP \(bu 5
 If focus is
-.ZN None ,
+.BR None ,
 all keyboard events are discarded until a new focus window is set,
 and the revert_to argument is ignored.
 .IP \(bu 5
@@ -150,63 +150,63 @@ or one of its inferiors, the event is reported as usual.
 Otherwise, the event is reported relative to the focus window.
 .IP \(bu 5
 If focus is
-.ZN PointerRoot ,
+.BR PointerRoot ,
 the focus window is dynamically taken to be the root window of whatever screen 
 the pointer is on at each keyboard event.  
 In this case, the revert_to argument is ignored.
 .LP
 The specified focus window must be viewable at the time 
-.ZN XSetInputFocus
+.B XSetInputFocus
 is called,
 or a
-.ZN BadMatch
+.B BadMatch
 error results.
 If the focus window later becomes not viewable, 
 the X server
 evaluates the revert_to argument to determine the new focus window as follows: 
 .IP \(bu 5
 If revert_to is
-.ZN RevertToParent ,
+.BR RevertToParent ,
 the focus reverts to the parent (or the closest viewable ancestor), 
 and the new revert_to value is taken to be
-.ZN RevertToNone .  
+.BR RevertToNone .
 .IP \(bu 5
 If revert_to is
-.ZN RevertToPointerRoot 
+.B RevertToPointerRoot
 or 
-.ZN RevertToNone ,
+.BR RevertToNone ,
 the focus reverts to
-.ZN PointerRoot
+.B PointerRoot
 or
-.ZN None ,
+.BR None ,
 respectively.
 When the focus reverts,
 the X server generates
-.ZN FocusIn
+.B FocusIn
 and
-.ZN FocusOut
+.B FocusOut
 events, but the last-focus-change time is not affected.
 .LP
-.ZN XSetInputFocus
+.B XSetInputFocus
 can generate
-.ZN BadMatch ,
-.ZN BadValue ,
+.BR BadMatch ,
+.BR BadValue ,
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XGetInputFocus
+.B XGetInputFocus
 function returns the focus window and the current focus state.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of
 alternatives can generate this error.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XWarpPointer(__libmansuffix__)

@@ -90,67 +90,67 @@ int XKillClient\^(\^Display *\fIdisplay\fP\^, XID \fIresource\fP\^);
 .IP \fIclose_mode\fP 1i
 Specifies the client close-down mode.
 You can pass 
-.ZN DestroyAll , 
-.ZN RetainPermanent , 
+.BR DestroyAll ,
+.BR RetainPermanent ,
 or
-.ZN RetainTemporary . 
+.BR RetainTemporary .
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fIresource\fP 1i
 Specifies any resource associated with the client that you want to destroy or
-.ZN AllTemporary .
+.BR AllTemporary .
 .SH DESCRIPTION
 The
-.ZN XSetCloseDownMode
+.B XSetCloseDownMode
 defines what will happen to the client's resources at connection close.
 A connection starts in
-.ZN DestroyAll
+.B DestroyAll
 mode.
 For information on what happens to the client's resources when the
 close_mode argument is
-.ZN RetainPermanent
+.B RetainPermanent
 or
-.ZN RetainTemporary ,
+.BR RetainTemporary ,
 see section 2.6.
 .LP
-.ZN XSetCloseDownMode
+.B XSetCloseDownMode
 can generate a
-.ZN BadValue 
+.B BadValue
 error.
 .LP
 The
-.ZN XKillClient
+.B XKillClient
 function
 forces a close down of the client
 that created the resource
 if a valid resource is specified.
 If the client has already terminated in
 either 
-.ZN RetainPermanent 
+.B RetainPermanent
 or 
-.ZN RetainTemporary 
+.B RetainTemporary
 mode, all of the client's
 resources are destroyed.
 If 
-.ZN AllTemporary 
+.B AllTemporary
 is specified, the resources of all clients that have terminated in
-.ZN RetainTemporary 
+.B RetainTemporary
 are destroyed (see section 2.5).
 This permits implementation of window manager facilities that aid debugging.
 A client can set its close-down mode to
-.ZN RetainTemporary .
+.BR RetainTemporary .
 If the client then crashes,
 its windows would not be destroyed. 
 The programmer can then inspect the application's window tree 
 and use the window manager to destroy the zombie windows.
 .LP
-.ZN XKillClient
+.B XKillClient
 can generate a
-.ZN BadValue 
+.B BadValue
 error.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

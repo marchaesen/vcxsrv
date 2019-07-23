@@ -51,13 +51,13 @@ dd_get_debug_filename_and_mkdir(char *buf, size_t buflen, bool verbose)
       strcpy(proc_name, "unknown");
    }
 
-   util_snprintf(dir, sizeof(dir), "%s/"DD_DIR, debug_get_option("HOME", "."));
+   snprintf(dir, sizeof(dir), "%s/"DD_DIR, debug_get_option("HOME", "."));
 
    if (mkdir(dir, 0774) && errno != EEXIST)
       fprintf(stderr, "dd: can't create a directory (%i)\n", errno);
 
-   util_snprintf(buf, buflen, "%s/%s_%u_%08u", dir, proc_name, getpid(),
-                 p_atomic_inc_return(&index) - 1);
+   snprintf(buf, buflen, "%s/%s_%u_%08u", dir, proc_name, getpid(),
+            p_atomic_inc_return(&index) - 1);
 
    if (verbose)
       fprintf(stderr, "dd: dumping to file %s\n", buf);
@@ -1086,9 +1086,9 @@ dd_thread_main(void *input)
    const char *process_name = util_get_process_name();
    if (process_name) {
       char threadname[16];
-      util_snprintf(threadname, sizeof(threadname), "%.*s:ddbg",
-                    (int)MIN2(strlen(process_name), sizeof(threadname) - 6),
-                    process_name);
+      snprintf(threadname, sizeof(threadname), "%.*s:ddbg",
+               (int)MIN2(strlen(process_name), sizeof(threadname) - 6),
+               process_name);
       u_thread_setname(threadname);
    }
 
@@ -1397,7 +1397,7 @@ dd_context_blit(struct pipe_context *_pipe, const struct pipe_blit_info *info)
    dd_after_draw(dctx, record);
 }
 
-static boolean
+static bool
 dd_context_generate_mipmap(struct pipe_context *_pipe,
                            struct pipe_resource *res,
                            enum pipe_format format,
@@ -1409,7 +1409,7 @@ dd_context_generate_mipmap(struct pipe_context *_pipe,
    struct dd_context *dctx = dd_context(_pipe);
    struct pipe_context *pipe = dctx->pipe;
    struct dd_draw_record *record = dd_create_record(dctx);
-   boolean result;
+   bool result;
 
    record->call.type = CALL_GENERATE_MIPMAP;
    record->call.info.generate_mipmap.res = NULL;
@@ -1430,7 +1430,7 @@ dd_context_generate_mipmap(struct pipe_context *_pipe,
 static void
 dd_context_get_query_result_resource(struct pipe_context *_pipe,
                                      struct pipe_query *query,
-                                     boolean wait,
+                                     bool wait,
                                      enum pipe_query_value_type result_type,
                                      int index,
                                      struct pipe_resource *resource,

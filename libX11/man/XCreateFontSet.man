@@ -103,10 +103,10 @@ Returns the number of missing charsets.
 Returns the missing charsets.
 .SH DESCRIPTION
 The 
-.ZN XCreateFontSet
+.B XCreateFontSet
 function creates a font set for the specified display.
 The font set is bound to the current locale when 
-.ZN XCreateFontSet
+.B XCreateFontSet
 is called.
 The font set may be used in subsequent calls to obtain font
 and character information and to image text in the locale of the font set.
@@ -132,12 +132,12 @@ If a base font name is not an XLFD name,
 Xlib will attempt to obtain an XLFD name from the font properties
 for the font.
 If this action is successful in obtaining an XLFD name, the
-.ZN XBaseFontNameListOfFontSet
+.B XBaseFontNameListOfFontSet
 function will return this XLFD name instead of the client-supplied name.
 .LP
 Xlib uses the following algorithm to select the fonts
 that will be used to display text with the 
-.ZN XFontSet .
+.BR XFontSet .
 .LP
 For each font charset required by the locale,
 the base font name list is searched for the first appearance of one 
@@ -145,9 +145,9 @@ of the following cases that names a set of fonts that exist at the server:
 .IP \(bu 5
 The first XLFD-conforming base font name that specifies the required
 charset or a superset of the required charset in its 
-.ZN CharSetRegistry
+.B CharSetRegistry
 and 
-.ZN CharSetEncoding
+.B CharSetEncoding
 fields.
 The implementation may use a base font name whose specified charset
 is a superset of the required charset, for example,
@@ -167,9 +167,9 @@ if a JIS Roman font is not available.
 The first XLFD-conforming font name or the first non-XLFD font name
 for which an XLFD font name can be obtained, combined with the
 required charset (replacing the 
-.ZN CharSetRegistry
+.B CharSetRegistry
 and
-.ZN CharSetEncoding
+.B CharSetEncoding
 fields in the XLFD font name).
 As in case 1,
 the implementation may use a charset that is a superset
@@ -220,23 +220,23 @@ For example:
 .De
 .LP
 If 
-.ZN XCreateFontSet
+.B XCreateFontSet
 is unable to create the font set, 
 either because there is insufficient memory or because the current locale
 is not supported,
-.ZN XCreateFontSet
+.B XCreateFontSet
 returns NULL, missing_charset_list_return is set to NULL,
 and missing_charset_count_return
 is set to zero.
 If fonts exist for all of the charsets required by the current locale,
-.ZN XCreateFontSet
+.B XCreateFontSet
 returns a valid
-.ZN XFontSet ,
+.BR XFontSet ,
 missing_charset_list_return is set to NULL,
 and missing_charset_count_return is set to zero.
 .LP
 If no font exists for one or more of the required charsets,
-.ZN XCreateFontSet
+.B XCreateFontSet
 sets missing_charset_list_return to a
 list of one or more null-terminated charset names for which no font exists
 and sets missing_charset_count_return to the number of missing fonts.
@@ -247,23 +247,23 @@ may be able to remap a required charset.
 If no font exists for any of the required charsets
 or if the locale definition in Xlib requires that a font exist
 for a particular charset and a font is not found for that charset, 
-.ZN XCreateFontSet
+.B XCreateFontSet
 returns NULL.
 Otherwise, 
-.ZN XCreateFontSet
+.B XCreateFontSet
 returns a valid 
-.ZN XFontSet
+.B XFontSet
 to font_set.
 .LP
 When an Xmb/wc drawing or measuring function is called with an
-.ZN XFontSet
+.B XFontSet
 that has missing charsets, some characters in the locale will not be
 drawable.
 If def_string_return is non-NULL,
-.ZN XCreateFontSet
+.B XCreateFontSet
 returns a pointer to a string that represents the glyphs
 that are drawn with this 
-.ZN XFontSet
+.B XFontSet
 when the charsets of the available fonts do not include all font glyphs
 required to draw a codepoint.
 The string does not necessarily consist of valid characters 
@@ -271,16 +271,16 @@ in the current locale and is not necessarily drawn with
 the fonts loaded for the font set,
 but the client can draw and measure the default glyphs
 by including this string in a string being drawn or measured with the 
-.ZN XFontSet .
+.BR XFontSet .
 .LP
 If the string returned to def_string_return is the empty string ("\^"),
 no glyphs are drawn, and the escapement is zero.
 The returned string is null-terminated.
 It is owned by Xlib and should not be modified or freed by the client.
 It will be freed by a call to 
-.ZN XFreeFontSet
+.B XFreeFontSet
 with the associated 
-.ZN XFontSet .
+.BR XFontSet .
 Until freed, its contents will not be modified by Xlib.
 .LP
 The client is responsible for constructing an error message from the
@@ -288,23 +288,23 @@ missing charset and default string information and may choose to continue
 operation in the case that some fonts did not exist.
 .LP
 The returned 
-.ZN XFontSet
+.B XFontSet
 and missing charset list should be freed with 
-.ZN XFreeFontSet
+.B XFreeFontSet
 and
-.ZN XFreeStringList ,
+.BR XFreeStringList ,
 respectively.
 The client-supplied base_font_name_list may be freed 
 by the client after calling 
-.ZN XCreateFontSet .
+.BR XCreateFontSet .
 .LP
 The
-.ZN XFreeFontSet
+.B XFreeFontSet
 function frees the specified font set.
 The associated base font name list, font name list, 
-.ZN XFontStruct
+.B XFontStruct
 list, and 
-.ZN XFontSetExtents , 
+.BR XFontSetExtents ,
 if any, are freed.
 .SH "SEE ALSO"
 XExtentsofFontSet(__libmansuffix__),

@@ -130,7 +130,7 @@ u_log_printf(struct u_log_context *ctx, const char *fmt, ...)
    char *str = NULL;
 
    va_start(va, fmt);
-   int ret = util_vasprintf(&str, fmt, va);
+   int ret = vasprintf(&str, fmt, va);
    va_end(va);
 
    if (ret >= 0) {

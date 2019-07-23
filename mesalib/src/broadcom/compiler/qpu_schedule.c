@@ -128,6 +128,9 @@ add_write_dep(struct schedule_state *state,
 static bool
 qpu_inst_is_tlb(const struct v3d_qpu_instr *inst)
 {
+        if (inst->sig.ldtlb || inst->sig.ldtlbu)
+                return true;
+
         if (inst->type != V3D_QPU_INSTR_TYPE_ALU)
                 return false;
 
@@ -379,7 +382,7 @@ calculate_deps(struct schedule_state *state, struct schedule_node *n)
                 add_write_dep(state, &state->last_tmu_config, n);
 
         if (inst->sig.ldtlb | inst->sig.ldtlbu)
-                add_read_dep(state, state->last_tlb, n);
+                add_write_dep(state, &state->last_tlb, n);
 
         if (inst->sig.ldvpm) {
                 add_write_dep(state, &state->last_vpm_read, n);
@@ -437,6 +440,8 @@ struct choose_scoreboard {
         struct dag *dag;
         int tick;
         int last_magic_sfu_write_tick;
+        int last_stallable_sfu_reg;
+        int last_stallable_sfu_tick;
         int last_ldvary_tick;
         int last_uniforms_reset_tick;
         int last_thrsw_tick;
@@ -528,6 +533,38 @@ pixel_scoreboard_too_soon(struct choose_scoreboard *scoreboard,
         return (scoreboard->tick == 0 && qpu_inst_is_tlb(inst));
 }
 
+static bool
+qpu_instruction_uses_rf(const struct v3d_qpu_instr *inst,
+                        uint32_t waddr) {
+
+        if (inst->type != V3D_QPU_INSTR_TYPE_ALU)
+           return false;
+
+        if (v3d_qpu_uses_mux(inst, V3D_QPU_MUX_A) &&
+            inst->raddr_a == waddr)
+              return true;
+
+        if (v3d_qpu_uses_mux(inst, V3D_QPU_MUX_B) &&
+            !inst->sig.small_imm && (inst->raddr_b == waddr))
+              return true;
+
+        return false;
+}
+
+static bool
+mux_read_stalls(struct choose_scoreboard *scoreboard,
+                const struct v3d_qpu_instr *inst)
+{
+        return scoreboard->tick == scoreboard->last_stallable_sfu_tick + 1 &&
+                qpu_instruction_uses_rf(inst,
+                                        scoreboard->last_stallable_sfu_reg);
+}
+
+/* We define a max schedule priority to allow negative priorities as result of
+ * substracting this max when an instruction stalls. So instructions that
+ * stall have lower priority than regular instructions. */
+#define MAX_SCHEDULE_PRIORITY 16
+
 static int
 get_instruction_priority(const struct v3d_qpu_instr *inst)
 {
@@ -546,10 +583,6 @@ get_instruction_priority(const struct v3d_qpu_instr *inst)
                 return next_score;
         next_score++;
 
-        /* XXX perf: We should schedule SFU ALU ops so that the reader is 2
-         * instructions after the producer if possible, not just 1.
-         */
-
         /* Default score for things that aren't otherwise special. */
         baseline_score = next_score;
         next_score++;
@@ -558,6 +591,9 @@ get_instruction_priority(const struct v3d_qpu_instr *inst)
         if (v3d_qpu_writes_tmu(inst))
                 return next_score;
         next_score++;
+
+        /* We should increase the maximum if we assert here */
+        assert(next_score < MAX_SCHEDULE_PRIORITY);
 
         return baseline_score;
 }
@@ -813,6 +849,18 @@ choose_instruction_to_schedule(const struct v3d_device_info *devinfo,
 
                 int prio = get_instruction_priority(inst);
 
+                if (mux_read_stalls(scoreboard, inst)) {
+                        /* Don't merge an instruction that stalls */
+                        if (prev_inst)
+                                continue;
+                        else {
+                                /* Any instruction that don't stall will have
+                                 * higher scheduling priority */
+                                prio -= MAX_SCHEDULE_PRIORITY;
+                                assert(prio < 0);
+                        }
+                }
+
                 /* Found a valid instruction.  If nothing better comes along,
                  * this one works.
                  */
@@ -849,6 +897,16 @@ update_scoreboard_for_magic_waddr(struct choose_scoreboard *scoreboard,
 }
 
 static void
+update_scoreboard_for_sfu_stall_waddr(struct choose_scoreboard *scoreboard,
+                                      const struct v3d_qpu_instr *inst)
+{
+        if (v3d_qpu_instr_is_sfu(inst)) {
+                scoreboard->last_stallable_sfu_reg = inst->alu.add.waddr;
+                scoreboard->last_stallable_sfu_tick = scoreboard->tick;
+        }
+}
+
+static void
 update_scoreboard_for_chosen(struct choose_scoreboard *scoreboard,
                              const struct v3d_qpu_instr *inst)
 {
@@ -861,6 +919,9 @@ update_scoreboard_for_chosen(struct choose_scoreboard *scoreboard,
                 if (inst->alu.add.magic_write) {
                         update_scoreboard_for_magic_waddr(scoreboard,
                                                           inst->alu.add.waddr);
+                } else {
+                        update_scoreboard_for_sfu_stall_waddr(scoreboard,
+                                                              inst);
                 }
         }
 
@@ -959,6 +1020,9 @@ instruction_latency(struct schedule_node *before, struct schedule_node *after)
                                magic_waddr_latency(before_inst->alu.mul.waddr,
                                                    after_inst));
         }
+
+        if (v3d_qpu_instr_is_sfu(before_inst))
+                return 2;
 
         return latency;
 }
@@ -1295,6 +1359,8 @@ schedule_instructions(struct v3d_compile *c,
                                         fprintf(stderr, "\n");
                                 }
                         }
+                        if (mux_read_stalls(scoreboard, inst))
+                                c->qpu_inst_stalled_count++;
                 }
 
                 /* Update the uniform index for the rewritten location --
@@ -1478,6 +1544,7 @@ v3d_qpu_schedule_instructions(struct v3d_compile *c)
         scoreboard.last_magic_sfu_write_tick = -10;
         scoreboard.last_uniforms_reset_tick = -10;
         scoreboard.last_thrsw_tick = -10;
+        scoreboard.last_stallable_sfu_tick = -10;
 
         if (debug) {
                 fprintf(stderr, "Pre-schedule instructions\n");

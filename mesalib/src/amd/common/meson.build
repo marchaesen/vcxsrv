@@ -20,7 +20,8 @@
 
 sid_tables_h = custom_target(
   'sid_tables_h',
-  input : ['sid_tables.py', 'sid.h', '../registers/amdgfxregs.json', '../registers/pkt3.json'],
+  input : ['sid_tables.py', 'sid.h', '../registers/amdgfxregs.json', '../registers/pkt3.json',
+           '../registers/gfx10.json', '../registers/gfx10-rsrc.json'],
   output : 'sid_tables.h',
   command : [prog_python, '@INPUT@'],
   capture : true,
@@ -28,7 +29,8 @@ sid_tables_h = custom_target(
 
 amdgfxregs_h = custom_target(
   'amdgfxregs_h',
-  input : ['../registers/makeregheader.py', '../registers/amdgfxregs.json', '../registers/pkt3.json'],
+  input : ['../registers/makeregheader.py', '../registers/amdgfxregs.json', '../registers/pkt3.json',
+           '../registers/gfx10.json', '../registers/gfx10-rsrc.json'],
   output : 'amdgfxregs.h',
   command : [prog_python, '@INPUT@', '--sort', 'address', '--guard', 'AMDGFXREGS_H'],
   capture : true,

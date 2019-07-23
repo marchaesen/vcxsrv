@@ -33,7 +33,6 @@ public:
 
 	~radv_llvm_per_thread_info()
 	{
-		ac_destroy_llvm_passes(passes);
 		ac_destroy_llvm_compiler(&llvm_info);
 	}
 
@@ -52,9 +51,9 @@ public:
 	}
 
 	bool compile_to_memory_buffer(LLVMModuleRef module,
-				      struct ac_shader_binary *binary)
+				      char **pelf_buffer, size_t *pelf_size)
 	{
-		return ac_compile_module_to_binary(passes, module, binary);
+		return ac_compile_module_to_elf(passes, module, pelf_buffer, pelf_size);
 	}
 
 	bool is_same(enum radeon_family arg_family,
@@ -74,9 +73,9 @@ private:
 /* we have to store a linked list per thread due to the possiblity of multiple gpus being required */
 static thread_local std::list<radv_llvm_per_thread_info> radv_llvm_per_thread_list;
 
-bool radv_compile_to_binary(struct ac_llvm_compiler *info,
-			    LLVMModuleRef module,
-			    struct ac_shader_binary *binary)
+bool radv_compile_to_elf(struct ac_llvm_compiler *info,
+			LLVMModuleRef module,
+			char **pelf_buffer, size_t *pelf_size)
 {
 	radv_llvm_per_thread_info *thread_info = nullptr;
 
@@ -89,12 +88,12 @@ bool radv_compile_to_binary(struct ac_llvm_compiler *info,
 
 	if (!thread_info) {
 		struct ac_compiler_passes *passes = ac_create_llvm_passes(info->tm);
-		bool ret = ac_compile_module_to_binary(passes, module, binary);
+		bool ret = ac_compile_module_to_elf(passes, module, pelf_buffer, pelf_size);
 		ac_destroy_llvm_passes(passes);
 		return ret;
 	}
 
-	return thread_info->compile_to_memory_buffer(module, binary);
+	return thread_info->compile_to_memory_buffer(module, pelf_buffer, pelf_size);
 }
 
 bool radv_init_llvm_compiler(struct ac_llvm_compiler *info,

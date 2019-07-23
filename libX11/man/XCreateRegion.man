@@ -97,11 +97,11 @@ Specifies the GC.
 Specifies the region.
 .SH DESCRIPTION
 The
-.ZN XCreateRegion
+.B XCreateRegion
 function creates a new empty region.
 .LP
 The
-.ZN XSetRegion
+.B XSetRegion
 function sets the clip-mask in the GC to the specified region.
 The region is specified relative to the drawable's origin.
 The resulting GC clip origin is implementation-dependent.
@@ -109,7 +109,7 @@ Once it is set in the GC,
 the region can be destroyed.
 .LP
 The
-.ZN XDestroyRegion
+.B XDestroyRegion
 function deallocates the storage associated with a specified region.
 .SH "SEE ALSO"
 XEmptyRegion(__libmansuffix__),

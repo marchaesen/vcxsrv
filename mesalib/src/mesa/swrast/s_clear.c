@@ -35,6 +35,76 @@
 #include "s_stencil.h"
 
 
+/**
+ * Convert a boolean color mask to a packed color where each channel of
+ * the packed value at dst will be 0 or ~0 depending on the colorMask.
+ */
+static void
+_pack_colormask(mesa_format format, const uint8_t colorMask[4], void *dst)
+{
+   float maskColor[4];
+
+   switch (_mesa_get_format_datatype(format)) {
+   case GL_UNSIGNED_NORMALIZED:
+      /* simple: 1.0 will convert to ~0 in the right bit positions */
+      maskColor[0] = colorMask[0] ? 1.0f : 0.0f;
+      maskColor[1] = colorMask[1] ? 1.0f : 0.0f;
+      maskColor[2] = colorMask[2] ? 1.0f : 0.0f;
+      maskColor[3] = colorMask[3] ? 1.0f : 0.0f;
+      _mesa_pack_float_rgba_row(format, 1,
+                                (const float (*)[4]) maskColor, dst);
+      break;
+   case GL_SIGNED_NORMALIZED:
+   case GL_FLOAT:
+      /* These formats are harder because it's hard to know the floating
+       * point values that will convert to ~0 for each color channel's bits.
+       * This solution just generates a non-zero value for each color channel
+       * then fixes up the non-zero values to be ~0.
+       * Note: we'll need to add special case code if we ever have to deal
+       * with formats with unequal color channel sizes, like R11_G11_B10.
+       * We issue a warning below for channel sizes other than 8,16,32.
+       */
+      {
+         uint32_t bits = _mesa_get_format_max_bits(format); /* bits per chan */
+         uint32_t bytes = _mesa_get_format_bytes(format);
+         uint32_t i;
+
+         /* this should put non-zero values into the channels of dst */
+         maskColor[0] = colorMask[0] ? -1.0f : 0.0f;
+         maskColor[1] = colorMask[1] ? -1.0f : 0.0f;
+         maskColor[2] = colorMask[2] ? -1.0f : 0.0f;
+         maskColor[3] = colorMask[3] ? -1.0f : 0.0f;
+         _mesa_pack_float_rgba_row(format, 1,
+                                   (const float (*)[4]) maskColor, dst);
+
+         /* fix-up the dst channels by converting non-zero values to ~0 */
+         if (bits == 8) {
+            uint8_t *d = (uint8_t *) dst;
+            for (i = 0; i < bytes; i++) {
+               d[i] = d[i] ? 0xff : 0x0;
+            }
+         }
+         else if (bits == 16) {
+            uint16_t *d = (uint16_t *) dst;
+            for (i = 0; i < bytes / 2; i++) {
+               d[i] = d[i] ? 0xffff : 0x0;
+            }
+         }
+         else if (bits == 32) {
+            uint32_t *d = (uint32_t *) dst;
+            for (i = 0; i < bytes / 4; i++) {
+               d[i] = d[i] ? 0xffffffffU : 0x0;
+            }
+         }
+         else {
+            unreachable("unexpected size in _mesa_pack_colormask()");
+         }
+      }
+      break;
+   default:
+      unreachable("unexpected format data type in gen_color_mask()");
+   }
+}
 
 /**
  * Clear an rgba color buffer with masking if needed.
@@ -79,7 +149,7 @@ clear_rgba_buffer(struct gl_context *ctx, struct gl_renderbuffer *rb,
       TYPE pixel, pixelMask;                                            \
       _mesa_pack_float_rgba_row(rb->Format, 1, clearColor, &pixel);     \
       if (doMasking) {                                                  \
-         _mesa_pack_colormask(rb->Format, colorMask, &pixelMask);       \
+         _pack_colormask(rb->Format, colorMask, &pixelMask);            \
          pixel &= pixelMask;                                            \
          pixelMask = ~pixelMask;                                        \
       }                                                                 \
@@ -107,7 +177,7 @@ clear_rgba_buffer(struct gl_context *ctx, struct gl_renderbuffer *rb,
       GLuint k;                                                         \
       _mesa_pack_float_rgba_row(rb->Format, 1, clearColor, pixel);      \
       if (doMasking) {                                                  \
-         _mesa_pack_colormask(rb->Format, colorMask, pixelMask);        \
+         _pack_colormask(rb->Format, colorMask, pixelMask);             \
          for (k = 0; k < N; k++) {                                      \
             pixel[k] &= pixelMask[k];                                   \
             pixelMask[k] = ~pixelMask[k];                               \

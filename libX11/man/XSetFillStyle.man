@@ -94,52 +94,52 @@ Specifies the connection to the X server.
 .IP \fIfill_rule\fP 1i
 Specifies the fill-rule you want to set for the specified GC.
 You can pass 
-.ZN EvenOddRule
+.B EvenOddRule
 or
-.ZN WindingRule .
+.BR WindingRule .
 .IP \fIfill_style\fP 1i
 Specifies the fill-style you want to set for the specified GC.
 You can pass
-.ZN FillSolid ,
-.ZN FillTiled ,
-.ZN FillStippled ,
+.BR FillSolid ,
+.BR FillTiled ,
+.BR FillStippled ,
 or
-.ZN FillOpaqueStippled .
+.BR FillOpaqueStippled .
 .IP \fIgc\fP 1i
 Specifies the GC.
 .SH DESCRIPTION
 The
-.ZN XSetFillStyle
+.B XSetFillStyle
 function sets the fill-style in the specified GC.
 .LP
-.ZN XSetFillStyle
+.B XSetFillStyle
 can generate
-.ZN BadAlloc ,
-.ZN BadGC ,
+.BR BadAlloc ,
+.BR BadGC ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .LP
 The
-.ZN XSetFillRule
+.B XSetFillRule
 function sets the fill-rule in the specified GC.
 .LP
-.ZN XSetFillRule
+.B XSetFillRule
 can generate
-.ZN BadAlloc ,
-.ZN BadGC ,
+.BR BadAlloc ,
+.BR BadGC ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadGC
+.B BadGC
 A value for a GContext argument does not name a defined GContext.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

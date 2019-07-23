@@ -338,6 +338,7 @@ reads_uniform(const struct v3d_device_info *devinfo, uint64_t instruction)
 
         if (qpu.sig.ldunif ||
             qpu.sig.ldunifrf ||
+            qpu.sig.ldtlbu ||
             qpu.sig.wrtmuc) {
                 return true;
         }

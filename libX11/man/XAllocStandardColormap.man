@@ -105,34 +105,34 @@ Returns the number of colormaps.
 Specifies the property name.
 .IP \fIstd_colormap\fP 1i
 Specifies the
-.ZN XStandardColormap
+.B XStandardColormap
 structure to be used.
 .IP \fIstd_colormap_return\fP 1i
 Returns the
-.ZN XStandardColormap
+.B XStandardColormap
 structure.
 .SH DESCRIPTION
 The
-.ZN XAllocStandardColormap
+.B XAllocStandardColormap
 function allocates and returns a pointer to a
-.ZN XStandardColormap
+.B XStandardColormap
 structure.
 Note that all fields in the
-.ZN XStandardColormap
+.B XStandardColormap
 structure are initially set to zero.
 If insufficient memory is available, 
-.ZN XAllocStandardColormap
+.B XAllocStandardColormap
 returns NULL.
 To free the memory allocated to this structure,
 use
-.ZN XFree .
+.BR XFree .
 .LP
 The 
-.ZN XSetRGBColormaps 
+.B XSetRGBColormaps
 function replaces the RGB colormap definition in the specified property 
 on the named window.
 If the property does not already exist,
-.ZN XSetRGBColormaps
+.B XSetRGBColormaps
 sets the RGB colormap definition in the specified property
 on the named window.
 The property is stored with a type of RGB_COLOR_MAP and a format of 32.
@@ -140,7 +140,7 @@ Note that it is the caller's responsibility to honor the ICCCM
 restriction that only RGB_DEFAULT_MAP contain more than one definition.
 .LP
 The
-.ZN XSetRGBColormaps
+.B XSetRGBColormaps
 function usually is only used by window or session managers.
 To create a standard colormap, 
 follow this procedure:
@@ -159,64 +159,64 @@ Create a colormap (unless you are using the default colormap of the screen).
 Determine the color characteristics of the visual.
 .IP \(bu 5
 Allocate cells in the colormap (or create it with
-.ZN AllocAll ).
+.BR AllocAll ).
 .IP \(bu 5
 Call 
-.ZN XStoreColors
+.B XStoreColors
 to store appropriate color values in the colormap.
 .IP \(bu 5
 Fill in the descriptive members in the 
-.ZN XStandardColormap
+.B XStandardColormap
 structure.
 .IP \(bu 5
 Attach the property to the root window.
 .IP \(bu 5
 Use
-.ZN XSetCloseDownMode
+.B XSetCloseDownMode
 to make the resource permanent.
 .RE
 .IP 5. 5
 Ungrab the server.
 .LP
-.ZN XSetRGBColormaps
+.B XSetRGBColormaps
 can generate
-.ZN BadAlloc ,
-.ZN BadAtom ,
+.BR BadAlloc ,
+.BR BadAtom ,
 and
-.ZN BadWindow
+.B BadWindow
 errors.
 .LP
 The 
-.ZN XGetRGBColormaps
+.B XGetRGBColormaps
 function returns the RGB colormap definitions stored 
 in the specified property on the named window.
 If the property exists, is of type RGB_COLOR_MAP, is of format 32, 
 and is long enough to contain a colormap definition,
-.ZN XGetRGBColormaps
+.B XGetRGBColormaps
 allocates and fills in space for the returned colormaps
 and returns a nonzero status.
 If the visualid is not present, 
-.ZN XGetRGBColormaps 
+.B XGetRGBColormaps
 assumes the default visual for the screen on which the window is located; 
 if the killid is not present, 
-.ZN None
+.B None
 is assumed, which indicates that the resources cannot be released.
 Otherwise, 
 none of the fields are set, and 
-.ZN XGetRGBColormaps
+.B XGetRGBColormaps
 returns a zero status.
 Note that it is the caller's responsibility to honor the ICCCM
 restriction that only RGB_DEFAULT_MAP contain more than one definition.
 .LP
-.ZN XGetRGBColormaps
+.B XGetRGBColormaps
 can generate
-.ZN BadAtom
+.B BadAtom
 and
-.ZN BadWindow
+.B BadWindow
 errors.
 .SH STRUCTURES
 The
-.ZN XStandardColormap
+.B XStandardColormap
 structure contains:
 .LP
 /\&* Hints */
@@ -225,7 +225,7 @@ lw(.5i) lw(2i) lw(1i).
 T{
 \&#define
 T}	T{
-.ZN ReleaseByFreeingColormap
+.B ReleaseByFreeingColormap
 T}	T{
 ( (XID) 1L)
 T}
@@ -248,7 +248,7 @@ typedef struct {
 .De
 .LP
 The colormap member is the colormap created by the
-.ZN XCreateColormap
+.B XCreateColormap
 function.
 The red_max, green_max, and blue_max members give the maximum
 red, green, and blue values, respectively.  
@@ -272,7 +272,7 @@ green_mult might be 6, and blue_mult might be 1.
 The base_pixel member gives the base pixel value used to
 compose a full pixel value.  
 Usually, the base_pixel is obtained from a call to the 
-.ZN XAllocColorPlanes
+.B XAllocColorPlanes
 function.  
 Given integer red, green, and blue coefficients in their appropriate 
 ranges, one then can compute a corresponding pixel value by
@@ -283,13 +283,13 @@ using the following expression:
 .De
 .LP
 For 
-.ZN GrayScale
+.B GrayScale
 colormaps, 
 only the colormap, red_max, red_mult, 
 and base_pixel members are defined. 
 The other members are ignored.  
 To compute a 
-.ZN GrayScale 
+.B GrayScale
 pixel value, use the following expression:
 .LP
 .Ds
@@ -309,23 +309,23 @@ colormap was created.
 The killid member gives a resource ID that indicates whether
 the cells held by this standard colormap are to be released 
 by freeing the colormap ID or by calling the
-.ZN XKillClient
+.B XKillClient
 function on the indicated resource.
 (Note that this method is necessary for allocating out of an existing colormap.)
 .LP
 The properties containing the 
-.ZN XStandardColormap 
+.B XStandardColormap
 information have 
 the type RGB_COLOR_MAP.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadAtom
+.B BadAtom
 A value for an Atom argument does not name a defined Atom.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XAllocColor(__libmansuffix__),

@@ -97,15 +97,15 @@ Specifies the grab window.
 .IP \fIkeyboard_mode\fP 1i
 Specifies further processing of keyboard events.
 You can pass 
-.ZN GrabModeSync 
+.B GrabModeSync
 or
-.ZN GrabModeAsync .
+.BR GrabModeAsync .
 .IP \fIkeycode\fP 1i
 Specifies the KeyCode or
-.ZN AnyKey .
+.BR AnyKey .
 .IP \fImodifiers\fP 1i
 Specifies the set of keymasks or
-.ZN AnyModifier .
+.BR AnyModifier .
 The mask is the bitwise inclusive OR of the valid keymask bits.
 .IP \fIowner_events\fP 1i
 Specifies a Boolean value that indicates whether the keyboard events 
@@ -113,21 +113,21 @@ are to be reported as usual.
 .IP \fIpointer_mode\fP 1i
 Specifies further processing of pointer events.
 You can pass 
-.ZN GrabModeSync 
+.B GrabModeSync
 or
-.ZN GrabModeAsync .
+.BR GrabModeAsync .
 .SH DESCRIPTION
 The
-.ZN XGrabKey
+.B XGrabKey
 function establishes a passive grab on the keyboard.
 In the future,
 the keyboard is actively grabbed (as for
-.ZN XGrabKeyboard ),
+.BR XGrabKeyboard ),
 the last-keyboard-grab time is set to the time at which the key was pressed
 (as transmitted in the
-.ZN KeyPress
+.B KeyPress
 event), and the
-.ZN KeyPress
+.B KeyPress
 event is reported if all of the following conditions are true:
 .IP \(bu 5
 The keyboard is not grabbed and the specified key
@@ -142,91 +142,91 @@ A passive grab on the same key combination does not exist
 on any ancestor of grab_window.
 .LP
 The interpretation of the remaining arguments is as for 
-.ZN XGrabKeyboard .
+.BR XGrabKeyboard .
 The active grab is terminated automatically when the logical state of the
 keyboard has the specified key released
 (independent of the logical state of the modifier keys),
 at which point a 
-.ZN KeyRelease
+.B KeyRelease
 event is reported to the grabbing window.
 .LP
 Note that the logical state of a device (as seen by client applications)
 may lag the physical state if device event processing is frozen.
 .LP
 A modifiers argument of 
-.ZN AnyModifier
+.B AnyModifier
 is equivalent to issuing the request for all
 possible modifier combinations (including the combination of no
 modifiers).  
 It is not required that all modifiers specified have
 currently assigned KeyCodes.
 A keycode argument of 
-.ZN AnyKey
+.B AnyKey
 is equivalent to issuing
 the request for all possible KeyCodes.
 Otherwise, the specified keycode must be in
 the range specified by min_keycode and max_keycode in the connection
 setup, 
 or a
-.ZN BadValue
+.B BadValue
 error results.
 .LP
 If some other client has issued a 
-.ZN XGrabKey
+.B XGrabKey
 with the same key combination on the same window, a 
-.ZN BadAccess 
+.B BadAccess
 error results.
 When using
-.ZN AnyModifier
+.B AnyModifier
 or 
-.ZN AnyKey ,
+.BR AnyKey ,
 the request fails completely,
 and a
-.ZN BadAccess 
+.B BadAccess
 error results (no grabs are established) 
 if there is a conflicting grab for any combination.
 .LP
-.ZN XGrabKey
+.B XGrabKey
 can generate
-.ZN BadAccess ,
-.ZN BadValue ,
+.BR BadAccess ,
+.BR BadValue ,
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XUngrabKey
+.B XUngrabKey
 function releases the key combination on the specified window if it was grabbed
 by this client.
 It has no effect on an active grab.
 A modifiers of
-.ZN AnyModifier
+.B AnyModifier
 is equivalent to issuing
 the request for all possible modifier combinations
 (including the combination of no modifiers).
 A keycode argument of
-.ZN AnyKey
+.B AnyKey
 is equivalent to issuing the request for all possible key codes.
 .LP
-.ZN XUngrabKey
+.B XUngrabKey
 can generate
-.ZN BadValue
+.B BadValue
 and
-.ZN BadWindow 
+.B BadWindow
 error.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAccess
+.B BadAccess
 A client attempted
 to grab a key/button combination already grabbed by another client.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of
 alternatives can generate this error.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XAllowEvents(__libmansuffix__),

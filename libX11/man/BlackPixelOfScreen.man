@@ -151,98 +151,98 @@ int WidthMMOfScreen\^(\^Screen *\fIscreen\fP\^);
 .SH ARGUMENTS
 .IP \fIscreen\fP 1i
 Specifies the appropriate 
-.ZN Screen
+.B Screen
 structure.
 .SH DESCRIPTION
 The
-.ZN BlackPixelOfScreen
+.B BlackPixelOfScreen
 macro returns the black pixel value of the specified screen.
 .LP
 The
-.ZN WhitePixelOfScreen
+.B WhitePixelOfScreen
 macro returns the white pixel value of the specified screen.
 .LP
 The
-.ZN CellsOfScreen
+.B CellsOfScreen
 macro returns the number of colormap cells in the default colormap
 of the specified screen.
 .LP
 The
-.ZN DefaultColormapOfScreen
+.B DefaultColormapOfScreen
 macro returns the default colormap of the specified screen.
 .LP
 The
-.ZN DefaultDepthOfScreen
+.B DefaultDepthOfScreen
 macro returns the default depth of the root window of the specified screen.
 .LP
 The
-.ZN DefaultGCOfScreen
+.B DefaultGCOfScreen
 macro returns the default GC of the specified screen,
 which has the same depth as the root window of the screen.
 .LP
 The
-.ZN DefaultVisualOfScreen
+.B DefaultVisualOfScreen
 macro returns the default visual of the specified screen.
 .LP
 The
-.ZN DoesBackingStore
+.B DoesBackingStore
 macro returns 
-.ZN WhenMapped ,
-.ZN NotUseful ,
+.BR WhenMapped ,
+.BR NotUseful ,
 or
-.ZN Always ,
+.BR Always ,
 which indicate whether the screen supports backing stores.
 .LP
 The
-.ZN DoesSaveUnders
+.B DoesSaveUnders
 macro returns a Boolean value indicating whether the
 screen supports save unders.
 .LP
 The
-.ZN DisplayOfScreen
+.B DisplayOfScreen
 macro returns the display of the specified screen.
 .LP
 The
-.ZN XScreenNumberOfScreen
+.B XScreenNumberOfScreen
 function returns the screen index number of the specified screen.
 .LP
 The
-.ZN EventMaskOfScreen
+.B EventMaskOfScreen
 macro returns the root event mask of the root window for the specified screen
 at connection setup.
 .LP
 The
-.ZN HeightOfScreen
+.B HeightOfScreen
 macro returns the height of the specified screen.
 .LP
 The
-.ZN HeightMMOfScreen
+.B HeightMMOfScreen
 macro returns the height of the specified screen in millimeters.
 .LP
 The
-.ZN MaxCmapsOfScreen
+.B MaxCmapsOfScreen
 macro returns the maximum number of installed colormaps supported 
 by the specified screen.
 .LP
 The
-.ZN MinCmapsOfScreen
+.B MinCmapsOfScreen
 macro returns the minimum number of installed colormaps supported 
 by the specified screen.
 .LP
 The
-.ZN PlanesOfScreen
+.B PlanesOfScreen
 macro returns the number of planes in the root window of the specified screen.
 .LP
 The
-.ZN RootWindowOfScreen
+.B RootWindowOfScreen
 macro returns the root window of the specified screen.
 .LP
 The
-.ZN WidthOfScreen
+.B WidthOfScreen
 macro returns the width of the specified screen.
 .LP
 The
-.ZN WidthMMOfScreen
+.B WidthMMOfScreen
 macro returns the width of the specified screen in millimeters.
 .SH "SEE ALSO"
 AllPlanes(__libmansuffix__),

@@ -94,9 +94,9 @@ int XFreeColormap\^(\^Display *\fIdisplay\fP\^, Colormap \fIcolormap\fP\^);
 .IP \fIalloc\fP 1i
 Specifies the colormap entries to be allocated.
 You can pass 
-.ZN AllocNone 
+.B AllocNone
 or 
-.ZN AllocAll .
+.BR AllocAll .
 .IP \fIcolormap\fP 1i
 Specifies the colormap that you want to create, copy, set, or destroy.
 .IP \fIdisplay\fP 1i
@@ -105,13 +105,13 @@ Specifies the connection to the X server.
 Specifies a visual type supported on the screen.
 If the visual type is not one supported by the screen, 
 a
-.ZN BadMatch
+.B BadMatch
 error results.
 .IP \fIw\fP 1i
 Specifies the window on whose screen you want to create a colormap.
 .SH DESCRIPTION
 The
-.ZN XCreateColormap
+.B XCreateColormap
 function creates a colormap of the specified visual type for the screen 
 on which the specified window resides and returns the colormap ID 
 associated with it.
@@ -119,69 +119,69 @@ Note that the specified window is only used to determine the screen.
 .LP
 The initial values of the colormap entries are undefined for the 
 visual classes
-.ZN GrayScale ,
-.ZN PseudoColor ,
+.BR GrayScale ,
+.BR PseudoColor ,
 and
-.ZN DirectColor .
+.BR DirectColor .
 For
-.ZN StaticGray ,
-.ZN StaticColor ,
+.BR StaticGray ,
+.BR StaticColor ,
 and
-.ZN TrueColor ,
+.BR TrueColor ,
 the entries have defined values,
 but those values are specific to the visual and are not defined by X.
 For
-.ZN StaticGray ,
-.ZN StaticColor ,
+.BR StaticGray ,
+.BR StaticColor ,
 and
-.ZN TrueColor ,
+.BR TrueColor ,
 alloc must be
-.ZN AllocNone ,
+.BR AllocNone ,
 or a
-.ZN BadMatch
+.B BadMatch
 error results.
 For the other visual classes,
 if alloc is
-.ZN AllocNone ,
+.BR AllocNone ,
 the colormap initially has no allocated entries,
 and clients can allocate them.
 For information about the visual types,
 see section 3.1.
 .LP
 If alloc is
-.ZN AllocAll ,
+.BR AllocAll ,
 the entire colormap is allocated writable.
 The initial values of all allocated entries are undefined.
 For
-.ZN GrayScale
+.B GrayScale
 and
-.ZN PseudoColor ,
+.BR PseudoColor ,
 the effect is as if an
-.ZN XAllocColorCells
+.B XAllocColorCells
 call returned all pixel values from zero to N \- 1,
 where N is the colormap entries value in the specified visual.
 For
-.ZN DirectColor ,
+.BR DirectColor ,
 the effect is as if an
-.ZN XAllocColorPlanes
+.B XAllocColorPlanes
 call returned a pixel value of zero and red_mask, green_mask, 
 and blue_mask values containing the same bits as the corresponding
 masks in the specified visual.
 However, in all cases,
 none of these entries can be freed by using
-.ZN XFreeColors .
+.BR XFreeColors .
 .LP
-.ZN XCreateColormap
+.B XCreateColormap
 can generate
-.ZN BadAlloc ,
-.ZN BadMatch ,
-.ZN BadValue ,
+.BR BadAlloc ,
+.BR BadMatch ,
+.BR BadValue ,
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XCopyColormapAndFree
+.B XCopyColormapAndFree
 function creates a colormap of the same visual type and for the same screen
 as the specified colormap and returns the new colormap ID.
 It also moves all of the client's existing allocation from the specified
@@ -190,58 +190,58 @@ and their read-only or writable characteristics intact and frees those entries
 in the specified colormap.
 Color values in other entries in the new colormap are undefined.
 If the specified colormap was created by the client with alloc set to
-.ZN AllocAll ,
+.BR AllocAll ,
 the new colormap is also created with 
-.ZN AllocAll ,
+.BR AllocAll ,
 all color values for all entries are copied from the specified colormap,
 and then all entries in the specified colormap are freed.
 If the specified colormap was not created by the client with
-.ZN AllocAll ,
+.BR AllocAll ,
 the allocations to be moved are all those pixels and planes
 that have been allocated by the client using
-.ZN XAllocColor ,
-.ZN XAllocNamedColor ,
-.ZN XAllocColorCells ,
+.BR XAllocColor ,
+.BR XAllocNamedColor ,
+.BR XAllocColorCells ,
 or
-.ZN XAllocColorPlanes
+.B XAllocColorPlanes
 and that have not been freed since they were allocated.
 .LP
-.ZN XCopyColormapAndFree
+.B XCopyColormapAndFree
 can generate
-.ZN BadAlloc
+.B BadAlloc
 and
-.ZN BadColor 
+.B BadColor
 errors.
 .LP
 The
-.ZN XFreeColormap
+.B XFreeColormap
 function deletes the association between the colormap resource ID 
 and the colormap and frees the colormap storage.
 However, this function has no effect on the default colormap for a screen.
 If the specified colormap is an installed map for a screen,
 it is uninstalled (see
-.ZN XUninstallColormap ).
+.BR XUninstallColormap ).
 If the specified colormap is defined as the colormap for a window (by
-.ZN XCreateWindow ,
-.ZN XSetWindowColormap ,
+.BR XCreateWindow ,
+.BR XSetWindowColormap ,
 or
-.ZN XChangeWindowAttributes ),
-.ZN XFreeColormap
+.BR XChangeWindowAttributes ),
+.B XFreeColormap
 changes the colormap associated with the window to
-.ZN None 
+.B None
 and generates a
-.ZN ColormapNotify
+.B ColormapNotify
 event.
 X does not define the colors displayed for a window with a colormap of
-.ZN None .
+.BR None .
 .LP
-.ZN XFreeColormap
+.B XFreeColormap
 can generate a
-.ZN BadColor 
+.B BadColor
 error.
 .SH STRUCTURES
 The
-.ZN XColor
+.B XColor
 structure contains:
 .LP
 .Ds 0
@@ -263,34 +263,34 @@ and white is represented by (65535,65535,65535).
 In some functions,
 the flags member controls which of the red, green, and blue members is used 
 and can be the inclusive OR of zero or more of
-.ZN DoRed ,
-.ZN DoGreen ,
+.BR DoRed ,
+.BR DoGreen ,
 and 
-.ZN DoBlue .
+.BR DoBlue .
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadColor
+.B BadColor
 A value for a Colormap argument does not name a defined Colormap.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 An
-.ZN InputOnly
+.B InputOnly
 window is used as a Drawable.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 Some argument or pair of arguments has the correct type and range but fails
 to match in some other way required by the request.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of
 alternatives can generate this error.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XAllocColor(__libmansuffix__),

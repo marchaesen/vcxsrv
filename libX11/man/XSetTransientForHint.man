@@ -99,26 +99,26 @@ Specifies the window that the WM_TRANSIENT_FOR property is to be set to.
 Returns the WM_TRANSIENT_FOR property of the specified window.
 .SH DESCRIPTION
 The
-.ZN XSetTransientForHint
+.B XSetTransientForHint
 function sets the WM_TRANSIENT_FOR property of the specified window to the 
 specified prop_window.
 .LP
-.ZN XSetTransientForHint
+.B XSetTransientForHint
 can generate
-.ZN BadAlloc
+.B BadAlloc
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XGetTransientForHint
+.B XGetTransientForHint
 function returns the WM_TRANSIENT_FOR property for the specified window.
 It returns a nonzero status on success;
 otherwise, it returns a zero status.
 .LP
-.ZN XGetTransientForHint
+.B XGetTransientForHint
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .SH PROPERTIES
 .TP 1i
@@ -127,10 +127,10 @@ Set by application programs to indicate to the window manager that a transient
 top-level window, such as a dialog box.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XAllocClassHint(__libmansuffix__),

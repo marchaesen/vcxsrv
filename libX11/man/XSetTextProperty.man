@@ -95,39 +95,39 @@ Specifies the connection to the X server.
 Specifies the property name.
 .IP \fItext_prop\fP 1i
 Specifies the
-.ZN XTextProperty
+.B XTextProperty
 structure to be used.
 .IP \fItext_prop_return\fP 1i
 Returns the
-.ZN XTextProperty
+.B XTextProperty
 structure.
 .SH DESCRIPTION
 The
-.ZN XSetTextProperty
+.B XSetTextProperty
 function replaces the existing specified property for the named window 
 with the data, type, format, and number of items determined 
 by the value field, the encoding field, the format field, 
 and the nitems field, respectively, of the specified
-.ZN XTextProperty
+.B XTextProperty
 structure.
 If the property does not already exist,
-.ZN XSetTextProperty
+.B XSetTextProperty
 sets it for the specified window.
 .LP
-.ZN XSetTextProperty
+.B XSetTextProperty
 can generate
-.ZN BadAlloc ,
-.ZN BadAtom ,
-.ZN BadValue ,
+.BR BadAlloc ,
+.BR BadAtom ,
+.BR BadValue ,
 and
-.ZN BadWindow
+.B BadWindow
 errors.
 .LP
 The
-.ZN XGetTextProperty 
+.B XGetTextProperty
 function reads the specified property from the window
 and stores the data in the returned
-.ZN XTextProperty
+.B XTextProperty
 structure.
 It stores the data in the value field,
 the type of the data in the encoding field,
@@ -138,25 +138,25 @@ is stored at the end of the value field of text_prop_return.
 The particular interpretation of the property's encoding 
 and data as text is left to the calling application.
 If the specified property does not exist on the window,
-.ZN XGetTextProperty
+.B XGetTextProperty
 sets the value field to NULL, 
 the encoding field to
-.ZN None , 
+.BR None ,
 the format field to zero, 
 and the nitems field to zero.
 .LP
 If it was able to read and store the data in the
-.ZN XTextProperty
+.B XTextProperty
 structure,
-.ZN XGetTextProperty
+.B XGetTextProperty
 returns a nonzero status; 
 otherwise, it returns a zero status.
 .LP
-.ZN XGetTextProperty
+.B XGetTextProperty
 can generate
-.ZN BadAtom 
+.B BadAtom
 and
-.ZN BadWindow
+.B BadWindow
 errors.
 .SH PROPERTIES
 .TP 1i
@@ -174,19 +174,19 @@ The name to be used in an icon.
 The name of the application.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadAtom
+.B BadAtom
 A value for an Atom argument does not name a defined Atom.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of
 alternatives can generate this error.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XAllocClassHint(__libmansuffix__),

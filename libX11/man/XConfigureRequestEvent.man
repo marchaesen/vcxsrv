@@ -83,7 +83,7 @@
 XConfigureRequestEvent \- ConfigureRequest event structure
 .SH STRUCTURES
 The structure for
-.ZN ConfigureRequest
+.B ConfigureRequest
 events contains:
 .LP
 .Ds 0
@@ -109,16 +109,16 @@ the structure members are set as follows.
 The type member is set to the event type constant name that uniquely identifies
 it.
 For example, when the X server reports a
-.ZN GraphicsExpose
+.B GraphicsExpose
 event to a client application, it sends an
-.ZN XGraphicsExposeEvent
+.B XGraphicsExposeEvent
 structure with the type member set to
-.ZN GraphicsExpose .
+.BR GraphicsExpose .
 The display member is set to a pointer to the display the event was read on.
 The send_event member is set to
-.ZN True
+.B True
 if the event came from a
-.ZN SendEvent
+.B SendEvent
 protocol request.
 The serial member is set from the serial number reported in the protocol
 but expanded from the 16-bit least-significant bits to a full 32-bit value.
@@ -129,15 +129,15 @@ The parent member is set to the parent window.
 The window member is set to the window whose size, position, border width, 
 and/or stacking order is to be reconfigured.
 The value_mask member indicates which components were specified in the
-.ZN ConfigureWindow 
+.B ConfigureWindow
 protocol request.
 The corresponding values are reported as given in the request.
 The remaining values are filled in from the current geometry of the window,
 except in the case of above (sibling) and detail (stack-mode),
 which are reported as
-.ZN None
+.B None
 and
-.ZN Above ,
+.BR Above ,
 respectively, if they are not given in the request.
 .SH "SEE ALSO"
 XAnyEvent(__libmansuffix__),

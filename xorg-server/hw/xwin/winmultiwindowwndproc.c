@@ -1005,7 +1005,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                     }
                 }
             }
-            wmMsg.msg = WM_WM_MAP3;
+            wmMsg.msg = WM_WM_MAP_MANAGED;
         }
         else {                  /* It is an overridden window so make it top of Z stack */
 
@@ -1025,7 +1025,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                                      SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
                 }
             }
-            wmMsg.msg = WM_WM_MAP2;
+            wmMsg.msg = WM_WM_MAP_UNMANAGED;
         }
 
         /* Tell our Window Manager thread to map the window */

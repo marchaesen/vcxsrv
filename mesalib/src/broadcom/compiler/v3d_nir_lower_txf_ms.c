@@ -34,12 +34,10 @@
 
 #define V3D_MAX_SAMPLES 4
 
-static void
-vc4_nir_lower_txf_ms_instr(struct v3d_compile *c, nir_builder *b,
-                           nir_tex_instr *instr)
+static nir_ssa_def *
+v3d_nir_lower_txf_ms_instr(nir_builder *b, nir_instr *in_instr, void *data)
 {
-        if (instr->op != nir_texop_txf_ms)
-                return;
+        nir_tex_instr *instr = nir_instr_as_tex(in_instr);
 
         b->cursor = nir_before_instr(&instr->instr);
 
@@ -66,30 +64,22 @@ vc4_nir_lower_txf_ms_instr(struct v3d_compile *c, nir_builder *b,
         nir_tex_instr_remove_src(instr, sample_index);
         instr->op = nir_texop_txf;
         instr->sampler_dim = GLSL_SAMPLER_DIM_2D;
+
+        return NIR_LOWER_INSTR_PROGRESS;
+}
+
+static bool
+v3d_nir_lower_txf_ms_filter(const nir_instr *instr, const void *data)
+{
+        return (instr->type == nir_instr_type_tex &&
+                nir_instr_as_tex(instr)->op == nir_texop_txf_ms);
 }
 
 void
 v3d_nir_lower_txf_ms(nir_shader *s, struct v3d_compile *c)
 {
-        nir_foreach_function(function, s) {
-                if (!function->impl)
-                        continue;
-
-                nir_builder b;
-                nir_builder_init(&b, function->impl);
-
-                nir_foreach_block(block, function->impl) {
-                        nir_foreach_instr_safe(instr, block) {
-                                if (instr->type != nir_instr_type_tex)
-                                        continue;
-
-                                vc4_nir_lower_txf_ms_instr(c, &b,
-                                                           nir_instr_as_tex(instr));
-                        }
-                }
-
-                nir_metadata_preserve(function->impl,
-                                      nir_metadata_block_index |
-                                      nir_metadata_dominance);
-        }
+        nir_shader_lower_instructions(s,
+                                      v3d_nir_lower_txf_ms_filter,
+                                      v3d_nir_lower_txf_ms_instr,
+                                      NULL);
 }

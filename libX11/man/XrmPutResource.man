@@ -117,11 +117,11 @@ Specifies the type of the resource.
 Specifies the value of the resource, which is specified as a string.
 .SH DESCRIPTION
 If database contains NULL,
-.ZN XrmPutResource
+.B XrmPutResource
 creates a new database and returns a pointer to it.
-.ZN XrmPutResource
+.B XrmPutResource
 is a convenience function that calls
-.ZN XrmStringToBindingQuarkList
+.B XrmStringToBindingQuarkList
 followed by:
 .LP
 .Ds
@@ -133,7 +133,7 @@ the result is implementation-dependent.
 The value is stored in the database without modification.
 .LP
 If database contains NULL,
-.ZN XrmQPutResource
+.B XrmQPutResource
 creates a new database and returns a pointer to it.
 If a resource entry with the identical bindings and quarks already
 exists in the database, the previous type and value are replaced by the new
@@ -141,38 +141,38 @@ specified type and value.
 The value is stored in the database without modification.
 .LP
 If database contains NULL,
-.ZN XrmPutStringResource
+.B XrmPutStringResource
 creates a new database and returns a pointer to it.
-.ZN XrmPutStringResource
+.B XrmPutStringResource
 adds a resource with the specified value to the specified database.
-.ZN XrmPutStringResource
+.B XrmPutStringResource
 is a convenience function that first calls
-.ZN XrmStringToBindingQuarkList
+.B XrmStringToBindingQuarkList
 on the specifier and then calls
-.ZN XrmQPutResource ,
+.BR XrmQPutResource ,
 using a ``String'' representation type.
 If the specifier is not in the Host Portable Character Encoding,
 the result is implementation-dependent.
 The value is stored in the database without modification.
 .LP
 If database contains NULL,
-.ZN XrmQPutStringResource
+.B XrmQPutStringResource
 creates a new database and returns a pointer to it.
-.ZN XrmQPutStringResource
+.B XrmQPutStringResource
 is a convenience routine that constructs an
-.ZN XrmValue
+.B XrmValue
 for the value string (by calling
-.ZN strlen
+.B strlen
 to compute the size) and
 then calls
-.ZN XrmQPutResource ,
+.BR XrmQPutResource ,
 using a ``String'' representation type.
 The value is stored in the database without modification.
 .LP
 If database contains NULL,
-.ZN XrmPutLineResource
+.B XrmPutLineResource
 creates a new database and returns a pointer to it.
-.ZN XrmPutLineResource
+.B XrmPutLineResource
 adds a single resource entry to the specified database.
 The line should be in valid ResourceLine format (see section 15.1)
 terminated by a newline or null character;
@@ -180,7 +180,7 @@ the database that results from using a string
 with incorrect syntax is implementation-dependent.
 The string is parsed in the locale of the database.
 If the
-.ZN ResourceName
+.B ResourceName
 is not in the Host Portable Character Encoding,
 the result is implementation-dependent.
 Note that comment lines are not stored.

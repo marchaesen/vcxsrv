@@ -107,48 +107,48 @@ Specifies the number of rectangles.
 .IP \fIordering\fP 1i
 Specifies the ordering relations on the rectangles.
 You can pass
-.ZN Unsorted ,
-.ZN YSorted ,
-.ZN YXSorted ,
+.BR Unsorted ,
+.BR YSorted ,
+.BR YXSorted ,
 or
-.ZN YXBanded .
+.BR YXBanded .
 .IP \fIpixmap\fP 1i
 Specifies the pixmap or
-.ZN None .
+.BR None .
 .IP \fIrectangles\fP 1i
 Specifies an array of rectangles that define the clip-mask.
 .SH DESCRIPTION
 The
-.ZN XSetClipOrigin
+.B XSetClipOrigin
 function sets the clip origin in the specified GC.
 The clip-mask origin is interpreted relative to the origin of whatever
 destination drawable is specified in the graphics request.
 .LP
-.ZN XSetClipOrigin
+.B XSetClipOrigin
 can generate
-.ZN BadAlloc
+.B BadAlloc
 and
-.ZN BadGC 
+.B BadGC
 errors.
 .LP
 The
-.ZN XSetClipMask
+.B XSetClipMask
 function sets the clip-mask in the specified GC to the specified pixmap.
 If the clip-mask is set to
-.ZN None ,
+.BR None ,
 the pixels are are always drawn (regardless of the clip-origin).
 .LP
-.ZN XSetClipMask
+.B XSetClipMask
 can generate
-.ZN BadAlloc ,
-.ZN BadGC ,
-.ZN BadMatch ,
+.BR BadAlloc ,
+.BR BadGC ,
+.BR BadMatch ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .LP
 The
-.ZN XSetClipRectangles
+.B XSetClipRectangles
 function changes the clip-mask in the specified GC 
 to the specified list of rectangles and sets the clip origin.
 The output is clipped to remain contained within the
@@ -161,60 +161,60 @@ undefined.
 Note that the list of rectangles can be empty, 
 which effectively disables output.
 This is the opposite of passing
-.ZN None
+.B None
 as the clip-mask in
-.ZN XCreateGC ,
-.ZN XChangeGC ,
+.BR XCreateGC ,
+.BR XChangeGC ,
 and
-.ZN XSetClipMask .
+.BR XSetClipMask .
 .LP
 If known by the client, ordering relations on the rectangles can be
 specified with the ordering argument. 
 This may provide faster operation
 by the server. 
 If an incorrect ordering is specified, the X server may generate a
-.ZN BadMatch
+.B BadMatch
 error, but it is not required to do so.
 If no error is generated, the graphics
 results are undefined.
-.ZN Unsorted 
+.B Unsorted
 means the rectangles are in arbitrary order.
-.ZN YSorted 
+.B YSorted
 means that the rectangles are nondecreasing in their Y origin.
-.ZN YXSorted 
+.B YXSorted
 additionally constrains 
-.ZN YSorted 
+.B YSorted
 order in that all
 rectangles with an equal Y origin are nondecreasing in their X
 origin.  
-.ZN YXBanded 
+.B YXBanded
 additionally constrains 
-.ZN YXSorted 
+.B YXSorted
 by requiring that,
 for every possible Y scanline, all rectangles that include that
 scanline have an identical Y origins and Y extents.
 .LP
-.ZN XSetClipRectangles
+.B XSetClipRectangles
 can generate
-.ZN BadAlloc ,
-.ZN BadGC ,
-.ZN BadMatch ,
+.BR BadAlloc ,
+.BR BadGC ,
+.BR BadMatch ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadGC
+.B BadGC
 A value for a GContext argument does not name a defined GContext.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 Some argument or pair of arguments has the correct type and range but fails
 to match in some other way required by the request.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

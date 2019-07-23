@@ -90,7 +90,7 @@ int XWarpPointer\^(\^Display *\fIdisplay\fP\^, Window \fIsrc_w\fP\^, Window
 .SH ARGUMENTS
 .IP \fIdest_w\fP 1i
 Specifies the destination window or
-.ZN None .
+.BR None .
 .IP \fIdest_x\fP 1i
 .br
 .ns
@@ -111,15 +111,15 @@ Specifies the connection to the X server.
 Specify a rectangle in the source window.
 .IP \fIsrc_w\fP 1i
 Specifies the source window or
-.ZN None .
+.BR None .
 .SH DESCRIPTION
 If dest_w is
-.ZN None ,
-.ZN XWarpPointer
+.BR None ,
+.B XWarpPointer
 moves the pointer by the offsets (dest_x, dest_y) relative to the current
 position of the pointer.
 If dest_w is a window,
-.ZN XWarpPointer
+.B XWarpPointer
 moves the pointer to the offsets (dest_x, dest_y) relative to the origin of
 dest_w.
 However, if src_w is a window,
@@ -137,18 +137,18 @@ The pointer should normally be left to the user.
 If you do use this function, however, it generates events just as if the user
 had instantaneously moved the pointer from one position to another.
 Note that you cannot use
-.ZN XWarpPointer
+.B XWarpPointer
 to move the pointer outside the confine_to window of an active pointer grab.
 An attempt to do so will only move the pointer as far as the closest edge of the
 confine_to window. 
 .LP
-.ZN XWarpPointer
+.B XWarpPointer
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XSetInputFocus(__libmansuffix__)

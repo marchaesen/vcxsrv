@@ -95,74 +95,74 @@ int XSetGraphicsExposures\^(\^Display *\fIdisplay\fP\^, GC \fIgc\fP\^, Bool
 .IP \fIarc_mode\fP 1i
 Specifies the arc mode.
 You can pass
-.ZN ArcChord
+.B ArcChord
 or
-.ZN ArcPieSlice .
+.BR ArcPieSlice .
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fIgc\fP 1i
 Specifies the GC.
 .IP \fIgraphics_exposures\fP 1i
 Specifies a Boolean value that indicates whether you want
-.ZN GraphicsExpose
+.B GraphicsExpose
 and
-.ZN NoExpose
+.B NoExpose
 events to be reported when calling
-.ZN XCopyArea
+.B XCopyArea
 and
-.ZN XCopyPlane
+.B XCopyPlane
 with this GC.
 .IP \fIsubwindow_mode\fP 1i
 Specifies the subwindow mode.
 You can pass
-.ZN ClipByChildren
+.B ClipByChildren
 or
-.ZN IncludeInferiors .
+.BR IncludeInferiors .
 .SH DESCRIPTION
 The
-.ZN XSetArcMode
+.B XSetArcMode
 function sets the arc mode in the specified GC.
 .LP
-.ZN XSetArcMode
+.B XSetArcMode
 can generate
-.ZN BadAlloc ,
-.ZN BadGC ,
+.BR BadAlloc ,
+.BR BadGC ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .LP
 The
-.ZN XSetSubwindowMode
+.B XSetSubwindowMode
 function sets the subwindow mode in the specified GC.
 .LP
-.ZN XSetSubwindowMode
+.B XSetSubwindowMode
 can generate
-.ZN BadAlloc ,
-.ZN BadGC ,
+.BR BadAlloc ,
+.BR BadGC ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .LP
 The
-.ZN XSetGraphicsExposures
+.B XSetGraphicsExposures
 function sets the graphics-exposures flag in the specified GC.
 .LP
-.ZN XSetGraphicsExposures
+.B XSetGraphicsExposures
 can generate
-.ZN BadAlloc ,
-.ZN BadGC ,
+.BR BadAlloc ,
+.BR BadGC ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadGC
+.B BadGC
 A value for a GContext argument does not name a defined GContext.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

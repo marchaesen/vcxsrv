@@ -43,7 +43,7 @@ extern "C" {
 #define VK_VERSION_MINOR(version) (((uint32_t)(version) >> 12) & 0x3ff)
 #define VK_VERSION_PATCH(version) ((uint32_t)(version) & 0xfff)
 // Version of this file
-#define VK_HEADER_VERSION 110
+#define VK_HEADER_VERSION 114
 
 
 #define VK_NULL_HANDLE 0
@@ -351,6 +351,10 @@ typedef enum VkStructureType {
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT = 1000102000,
     VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_DEPTH_CLIP_STATE_CREATE_INFO_EXT = 1000102001,
     VK_STRUCTURE_TYPE_HDR_METADATA_EXT = 1000105000,
+    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGELESS_FRAMEBUFFER_FEATURES_KHR = 1000108000,
+    VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO_KHR = 1000108001,
+    VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO_KHR = 1000108002,
+    VK_STRUCTURE_TYPE_RENDER_PASS_ATTACHMENT_BEGIN_INFO_KHR = 1000108003,
     VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2_KHR = 1000109000,
     VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2_KHR = 1000109001,
     VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2_KHR = 1000109002,
@@ -504,6 +508,9 @@ typedef enum VkStructureType {
     VK_STRUCTURE_TYPE_SURFACE_FULL_SCREEN_EXCLUSIVE_WIN32_INFO_EXT = 1000255001,
     VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT = 1000256000,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES_EXT = 1000261000,
+    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DEMOTE_TO_HELPER_INVOCATION_FEATURES_EXT = 1000276000,
+    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_FEATURES_EXT = 1000281000,
+    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_PROPERTIES_EXT = 1000281001,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTER_FEATURES = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTERS_FEATURES,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETER_FEATURES = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES,
     VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
@@ -1706,6 +1713,11 @@ typedef enum VkDescriptorPoolCreateFlagBits {
 } VkDescriptorPoolCreateFlagBits;
 typedef VkFlags VkDescriptorPoolCreateFlags;
 typedef VkFlags VkDescriptorPoolResetFlags;
+
+typedef enum VkFramebufferCreateFlagBits {
+    VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT_KHR = 0x00000001,
+    VK_FRAMEBUFFER_CREATE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+} VkFramebufferCreateFlagBits;
 typedef VkFlags VkFramebufferCreateFlags;
 typedef VkFlags VkRenderPassCreateFlags;
 
@@ -5599,6 +5611,43 @@ VKAPI_ATTR void VKAPI_CALL vkUpdateDescriptorSetWithTemplateKHR(
 #endif
 
 
+#define VK_KHR_imageless_framebuffer 1
+#define VK_KHR_IMAGELESS_FRAMEBUFFER_SPEC_VERSION 1
+#define VK_KHR_IMAGELESS_FRAMEBUFFER_EXTENSION_NAME "VK_KHR_imageless_framebuffer"
+typedef struct VkPhysicalDeviceImagelessFramebufferFeaturesKHR {
+    VkStructureType    sType;
+    void*              pNext;
+    VkBool32           imagelessFramebuffer;
+} VkPhysicalDeviceImagelessFramebufferFeaturesKHR;
+
+typedef struct VkFramebufferAttachmentImageInfoKHR {
+    VkStructureType       sType;
+    const void*           pNext;
+    VkImageCreateFlags    flags;
+    VkImageUsageFlags     usage;
+    uint32_t              width;
+    uint32_t              height;
+    uint32_t              layerCount;
+    uint32_t              viewFormatCount;
+    const VkFormat*       pViewFormats;
+} VkFramebufferAttachmentImageInfoKHR;
+
+typedef struct VkFramebufferAttachmentsCreateInfoKHR {
+    VkStructureType                               sType;
+    const void*                                   pNext;
+    uint32_t                                      attachmentImageInfoCount;
+    const VkFramebufferAttachmentImageInfoKHR*    pAttachmentImageInfos;
+} VkFramebufferAttachmentsCreateInfoKHR;
+
+typedef struct VkRenderPassAttachmentBeginInfoKHR {
+    VkStructureType       sType;
+    const void*           pNext;
+    uint32_t              attachmentCount;
+    const VkImageView*    pAttachments;
+} VkRenderPassAttachmentBeginInfoKHR;
+
+
+
 #define VK_KHR_create_renderpass2 1
 #define VK_KHR_CREATE_RENDERPASS_2_SPEC_VERSION 1
 #define VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME "VK_KHR_create_renderpass2"
@@ -6138,9 +6187,10 @@ typedef enum VkDriverIdKHR {
     VK_DRIVER_ID_ARM_PROPRIETARY_KHR = 9,
     VK_DRIVER_ID_GOOGLE_SWIFTSHADER_KHR = 10,
     VK_DRIVER_ID_GGP_PROPRIETARY_KHR = 11,
+    VK_DRIVER_ID_BROADCOM_PROPRIETARY_KHR = 12,
     VK_DRIVER_ID_BEGIN_RANGE_KHR = VK_DRIVER_ID_AMD_PROPRIETARY_KHR,
-    VK_DRIVER_ID_END_RANGE_KHR = VK_DRIVER_ID_GGP_PROPRIETARY_KHR,
-    VK_DRIVER_ID_RANGE_SIZE_KHR = (VK_DRIVER_ID_GGP_PROPRIETARY_KHR - VK_DRIVER_ID_AMD_PROPRIETARY_KHR + 1),
+    VK_DRIVER_ID_END_RANGE_KHR = VK_DRIVER_ID_BROADCOM_PROPRIETARY_KHR,
+    VK_DRIVER_ID_RANGE_SIZE_KHR = (VK_DRIVER_ID_BROADCOM_PROPRIETARY_KHR - VK_DRIVER_ID_AMD_PROPRIETARY_KHR + 1),
     VK_DRIVER_ID_MAX_ENUM_KHR = 0x7FFFFFFF
 } VkDriverIdKHR;
 typedef struct VkConformanceVersionKHR {
@@ -8542,7 +8592,7 @@ typedef struct VkPipelineRepresentativeFragmentTestStateCreateInfoNV {
 
 
 #define VK_EXT_filter_cubic 1
-#define VK_EXT_FILTER_CUBIC_SPEC_VERSION  1
+#define VK_EXT_FILTER_CUBIC_SPEC_VERSION  2
 #define VK_EXT_FILTER_CUBIC_EXTENSION_NAME "VK_EXT_filter_cubic"
 typedef struct VkPhysicalDeviceImageViewImageFormatInfoEXT {
     VkStructureType    sType;
@@ -9474,6 +9524,37 @@ VKAPI_ATTR void VKAPI_CALL vkResetQueryPoolEXT(
     uint32_t                                    firstQuery,
     uint32_t                                    queryCount);
 #endif
+
+
+#define VK_EXT_shader_demote_to_helper_invocation 1
+#define VK_EXT_SHADER_DEMOTE_TO_HELPER_INVOCATION_SPEC_VERSION 1
+#define VK_EXT_SHADER_DEMOTE_TO_HELPER_INVOCATION_EXTENSION_NAME "VK_EXT_shader_demote_to_helper_invocation"
+typedef struct VkPhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT {
+    VkStructureType    sType;
+    void*              pNext;
+    VkBool32           shaderDemoteToHelperInvocation;
+} VkPhysicalDeviceShaderDemoteToHelperInvocationFeaturesEXT;
+
+
+
+#define VK_EXT_texel_buffer_alignment 1
+#define VK_EXT_TEXEL_BUFFER_ALIGNMENT_SPEC_VERSION 1
+#define VK_EXT_TEXEL_BUFFER_ALIGNMENT_EXTENSION_NAME "VK_EXT_texel_buffer_alignment"
+typedef struct VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT {
+    VkStructureType    sType;
+    void*              pNext;
+    VkBool32           texelBufferAlignment;
+} VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT;
+
+typedef struct VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT {
+    VkStructureType    sType;
+    void*              pNext;
+    VkDeviceSize       storageTexelBufferOffsetAlignmentBytes;
+    VkBool32           storageTexelBufferOffsetSingleTexelAlignment;
+    VkDeviceSize       uniformTexelBufferOffsetAlignmentBytes;
+    VkBool32           uniformTexelBufferOffsetSingleTexelAlignment;
+} VkPhysicalDeviceTexelBufferAlignmentPropertiesEXT;
+
 
 #ifdef __cplusplus
 }

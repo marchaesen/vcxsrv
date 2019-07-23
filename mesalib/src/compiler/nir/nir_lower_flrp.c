@@ -84,7 +84,7 @@ replace_with_single_ffma(struct nir_builder *bld, struct u_vector *dead_flrp,
    nir_instr_as_alu(neg_c->parent_instr)->exact = alu->exact;
 
    nir_ssa_def *const one_minus_c =
-      nir_fadd(bld, nir_imm_float(bld, 1.0f), neg_c);
+      nir_fadd(bld, nir_imm_floatN_t(bld, 1.0f, c->bit_size), neg_c);
    nir_instr_as_alu(one_minus_c->parent_instr)->exact = alu->exact;
 
    nir_ssa_def *const b_times_c = nir_fmul(bld, b, c);
@@ -117,7 +117,7 @@ replace_with_strict(struct nir_builder *bld, struct u_vector *dead_flrp,
    nir_instr_as_alu(neg_c->parent_instr)->exact = alu->exact;
 
    nir_ssa_def *const one_minus_c =
-      nir_fadd(bld, nir_imm_float(bld, 1.0f), neg_c);
+      nir_fadd(bld, nir_imm_floatN_t(bld, 1.0f, c->bit_size), neg_c);
    nir_instr_as_alu(one_minus_c->parent_instr)->exact = alu->exact;
 
    nir_ssa_def *const first_product = nir_fmul(bld, a, one_minus_c);

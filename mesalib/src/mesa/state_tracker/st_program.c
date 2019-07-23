@@ -428,7 +428,7 @@ static nir_shader *
 st_translate_prog_to_nir(struct st_context *st, struct gl_program *prog,
                          gl_shader_stage stage)
 {
-   enum pipe_shader_type p_stage = stage; /* valid for VS/FS */
+   enum pipe_shader_type p_stage = pipe_shader_type_from_mesa(stage);
    const bool is_scalar =
       st->pipe->screen->get_shader_param(st->pipe->screen, p_stage,
                                          PIPE_SHADER_CAP_SCALAR_ISA);

@@ -37,7 +37,11 @@ files_addrlib = files(
   'src/core/coord.h',
   'src/gfx9/gfx9addrlib.cpp',
   'src/gfx9/gfx9addrlib.h',
+  'src/gfx10/gfx10addrlib.cpp',
+  'src/gfx10/gfx10addrlib.h',
+  'src/gfx10/gfx10SwizzlePattern.h',
   'src/amdgpu_asic_addr.h',
+  'src/chip/gfx10/gfx10_gb_reg.h',
   'src/chip/gfx9/gfx9_gb_reg.h',
   'src/chip/r800/si_gb_reg.h',
   'src/r800/ciaddrlib.cpp',
@@ -54,8 +58,9 @@ libamdgpu_addrlib = static_library(
   include_directories : [
     include_directories(
       'inc', 'src', 'src/core', 'src/chip/gfx9', 'src/chip/r800',
+      'src/chip/gfx10',
     ),
     inc_amd_common, inc_common, inc_src,
   ],
-  cpp_args : cpp_vis_args,
+  cpp_args : [cpp_vis_args, '-Wno-unused-variable'],
 )

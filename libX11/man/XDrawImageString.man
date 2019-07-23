@@ -110,9 +110,9 @@ origin of the specified drawable
 and define the origin of the first character.
 .SH DESCRIPTION
 The
-.ZN XDrawImageString16
+.B XDrawImageString16
 function is similar to
-.ZN XDrawImageString 
+.B XDrawImageString
 except that it uses 2-byte or 16-bit characters.
 Both functions also use both the foreground and background pixels 
 of the GC in the destination.
@@ -140,46 +140,46 @@ font-ascent + font-descent
 .LP
 The overall-width, font-ascent, and font-descent
 are as would be returned by 
-.ZN XQueryTextExtents 
+.B XQueryTextExtents
 using gc and string.
 The function and fill-style defined in the GC are ignored for these functions. 
 The effective function is 
-.ZN GXcopy ,
+.BR GXcopy ,
 and the effective fill-style is
-.ZN FillSolid .
+.BR FillSolid .
 .LP
 For fonts defined with 2-byte matrix indexing
 and used with
-.ZN XDrawImageString ,
+.BR XDrawImageString ,
 each byte is used as a byte2 with a byte1 of zero.
 .LP
 Both functions use these GC components: 
 plane-mask, foreground, background, font, subwindow-mode, clip-x-origin, 
 clip-y-origin, and clip-mask.
 .LP
-.ZN XDrawImageString
+.B XDrawImageString
 and
-.ZN XDrawImageString16
+.B XDrawImageString16
 can generate
-.ZN BadDrawable ,
-.ZN BadGC ,
+.BR BadDrawable ,
+.BR BadGC ,
 and
-.ZN BadMatch 
+.B BadMatch
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadDrawable
+.B BadDrawable
 A value for a Drawable argument does not name a defined Window or Pixmap.
 .TP 1i
-.ZN BadGC
+.B BadGC
 A value for a GContext argument does not name a defined GContext.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 An
-.ZN InputOnly
+.B InputOnly
 window is used as a Drawable.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 Some argument or pair of arguments has the correct type and range but fails
 to match in some other way required by the request.
 .SH "SEE ALSO"

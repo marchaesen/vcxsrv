@@ -241,6 +241,7 @@ enum ChipFamily
     ADDR_CHIP_FAMILY_CI,
     ADDR_CHIP_FAMILY_VI,
     ADDR_CHIP_FAMILY_AI,
+    ADDR_CHIP_FAMILY_NAVI,
 };
 
 /**

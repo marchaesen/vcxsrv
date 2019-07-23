@@ -83,7 +83,7 @@
 XCirculateEvent \- CirculateNotify event structure
 .SH STRUCTURES
 The structure for
-.ZN CirculateNotify
+.B CirculateNotify
 events contains:
 .LP
 .Ds 0
@@ -104,16 +104,16 @@ the structure members are set as follows.
 The type member is set to the event type constant name that uniquely identifies
 it.
 For example, when the X server reports a
-.ZN GraphicsExpose
+.B GraphicsExpose
 event to a client application, it sends an
-.ZN XGraphicsExposeEvent
+.B XGraphicsExposeEvent
 structure with the type member set to
-.ZN GraphicsExpose .
+.BR GraphicsExpose .
 The display member is set to a pointer to the display the event was read on.
 The send_event member is set to
-.ZN True
+.B True
 if the event came from a
-.ZN SendEvent
+.B SendEvent
 protocol request.
 The serial member is set from the serial number reported in the protocol
 but expanded from the 16-bit least-significant bits to a full 32-bit value.
@@ -122,21 +122,21 @@ dispatchers.
 .LP
 The event member is set either to the restacked window or to its parent,
 depending on whether
-.ZN StructureNotify
+.B StructureNotify
 or
-.ZN SubstructureNotify
+.B SubstructureNotify
 was selected.
 The window member is set to the window that was restacked.
 The place member is set to the window's position after the restack occurs and
 is either
-.ZN PlaceOnTop
+.B PlaceOnTop
 or
-.ZN PlaceOnBottom .
+.BR PlaceOnBottom .
 If it is
-.ZN PlaceOnTop ,
+.BR PlaceOnTop ,
 the window is now on top of all siblings.
 If it is
-.ZN PlaceOnBottom ,
+.BR PlaceOnBottom ,
 the window is now below all siblings.
 .SH "SEE ALSO"
 XAnyEvent(__libmansuffix__),

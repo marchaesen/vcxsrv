@@ -122,11 +122,11 @@ Specifies the number of strings specified.
 Specifies the manner in which the property is encoded.
 .IP \fItext_prop_return\fP 1i
 Returns the
-.ZN XTextProperty
+.B XTextProperty
 structure.
 .IP \fItext_prop\fP 1i
 Specifies the
-.ZN XTextProperty
+.B XTextProperty
 structure to be used.
 .IP \fIlist_return\fP 1i
 Returns a list of null-terminated character strings.
@@ -136,46 +136,46 @@ Returns the number of strings.
 Specifies the list of strings to be freed.
 .SH DESCRIPTION
 The
-.ZN XmbTextListToTextProperty ,
-.ZN XwcTextListToTextProperty
+.BR XmbTextListToTextProperty ,
+.B XwcTextListToTextProperty
 and
-.ZN Xutf8TextListToTextProperty
+.B Xutf8TextListToTextProperty
 functions set the specified 
-.ZN XTextProperty
+.B XTextProperty
 value to a set of null-separated elements representing the concatenation
 of the specified list of null-terminated text strings. The input text
 strings must be given in the current locale encoding (for
-.ZN XmbTextListToTextProperty
+.B XmbTextListToTextProperty
 and
-.ZN XwcTextListToTextProperty ),
+.BR XwcTextListToTextProperty ),
 or in UTF-8 encoding (for
-.ZN Xutf8TextListToTextProperty ).
+.BR Xutf8TextListToTextProperty ).
 .LP
 The functions set the encoding field of text_prop_return to an
-.ZN Atom 
+.B Atom
 for the specified display 
 naming the encoding determined by the specified style
 and convert the specified text list to this encoding for storage in
 the text_prop_return value field.
 If the style 
-.ZN XStringStyle
+.B XStringStyle
 or 
-.ZN XCompoundTextStyle
+.B XCompoundTextStyle
 is specified,
 this encoding is ``STRING'' or ``COMPOUND_TEXT'', respectively.
 If the style
-.ZN XUTF8StringStyle
+.B XUTF8StringStyle
 is specified,
 this encoding is ``UTF8_STRING''. 
 (This is an extension introduced by The XFree86 Project, Inc. in their 4.0.2
 release. Its presence is indicated by the macro
-.ZN X_HAVE_UTF8_STRING .)
+.BR X_HAVE_UTF8_STRING .)
 If the style 
-.ZN XTextStyle
+.B XTextStyle
 is specified,
 this encoding is the encoding of the current locale.
 If the style 
-.ZN XStdICCTextStyle
+.B XStdICCTextStyle
 is specified,
 this encoding is ``STRING'' if the text is fully convertible to STRING,
 else ``COMPOUND_TEXT''.
@@ -184,46 +184,46 @@ of text_prop_return but is not included in the nitems member.
 .LP
 If insufficient memory is available for the new value string,
 the functions return 
-.ZN XNoMemory .
+.BR XNoMemory .
 If the current locale is not supported,
 the functions return 
-.ZN XLocaleNotSupported .
+.BR XLocaleNotSupported .
 In both of these error cases,
 the functions do not set text_prop_return.
 .LP
 To determine if the functions are guaranteed not to return
-.ZN XLocaleNotSupported ,
+.BR XLocaleNotSupported ,
 use
-.ZN XSupportsLocale .
+.BR XSupportsLocale .
 .LP
 If the supplied text is not fully convertible to the specified encoding,
 the functions return the number of unconvertible characters.
 Each unconvertible character is converted to an implementation-defined and
 encoding-specific default string.
 Otherwise, the functions return 
-.ZN Success .
+.BR Success .
 Note that full convertibility to all styles except 
-.ZN XStringStyle
+.B XStringStyle
 is guaranteed.
 .LP
 To free the storage for the value field, use
-.ZN XFree .
+.BR XFree .
 .LP
 The 
-.ZN XmbTextPropertyToTextList ,
-.ZN XwcTextPropertyToTextList
+.BR XmbTextPropertyToTextList ,
+.B XwcTextPropertyToTextList
 and 
-.ZN Xutf8TextPropertyToTextList
+.B Xutf8TextPropertyToTextList
 functions return a list of text strings representing the
 null-separated elements of the specified
-.ZN XTextProperty
+.B XTextProperty
 structure. The returned strings are encoded using the current locale encoding
 (for
-.ZN XmbTextPropertyToTextList
+.B XmbTextPropertyToTextList
 and
-.ZN XwcTextPropertyToTextList )
+.BR XwcTextPropertyToTextList )
 or in UTF-8 (for
-.ZN Xutf8TextPropertyToTextList ).
+.BR Xutf8TextPropertyToTextList ).
 The data in text_prop must be format 8.
 .LP
 Multiple elements of the property (for example, the strings in a disjoint
@@ -232,25 +232,25 @@ The contents of the property are not required to be null-terminated;
 any terminating null should not be included in text_prop.nitems.
 .LP
 If insufficient memory is available for the list and its elements,
-.ZN XmbTextPropertyToTextList ,
-.ZN XwcTextPropertyToTextList
+.BR XmbTextPropertyToTextList ,
+.B XwcTextPropertyToTextList
 and
-.ZN Xutf8TextPropertyToTextList
+.B Xutf8TextPropertyToTextList
 return 
-.ZN XNoMemory .
+.BR XNoMemory .
 If the current locale is not supported,
 the functions return
-.ZN XLocaleNotSupported .
+.BR XLocaleNotSupported .
 Otherwise, if the encoding field of text_prop is not convertible 
 to the encoding of the current locale,
 the functions return
-.ZN XConverterNotFound .
+.BR XConverterNotFound .
 For supported locales,
 existence of a converter from COMPOUND_TEXT, STRING, UTF8_STRING
 or the encoding of the current locale is guaranteed if
-.ZN XSupportsLocale 
+.B XSupportsLocale
 returns 
-.ZN True
+.B True
 for the current locale (but the actual text
 may contain unconvertible characters).
 Conversion of other encodings is implementation-dependent.
@@ -258,10 +258,10 @@ In all of these error cases,
 the functions do not set any return values.
 .LP
 Otherwise, 
-.ZN XmbTextPropertyToTextList ,
-.ZN XwcTextPropertyToTextList
+.BR XmbTextPropertyToTextList ,
+.B XwcTextPropertyToTextList
 and
-.ZN Xutf8TextPropertyToTextList
+.B Xutf8TextPropertyToTextList
 return the list of null-terminated text strings to list_return
 and the number of text strings to count_return.
 .LP
@@ -272,52 +272,52 @@ Each unconvertible character is converted to a string in the
 current locale that is specific to the current locale.
 To obtain the value of this string, 
 use
-.ZN XDefaultString .
+.BR XDefaultString .
 Otherwise,
-.ZN XmbTextPropertyToTextList ,
-.ZN XwcTextPropertyToTextList
+.BR XmbTextPropertyToTextList ,
+.B XwcTextPropertyToTextList
 and
-.ZN Xutf8TextPropertyToTextList
+.B Xutf8TextPropertyToTextList
 return 
-.ZN Success .
+.BR Success .
 .LP
 To free the storage for the list and its contents returned by
-.ZN XmbTextPropertyToTextList
+.B XmbTextPropertyToTextList
 or
-.ZN Xutf8TextPropertyToTextList ,
+.BR Xutf8TextPropertyToTextList ,
 use
-.ZN XFreeStringList .
+.BR XFreeStringList .
 To free the storage for the list and its contents returned by
-.ZN XwcTextPropertyToTextList ,
+.BR XwcTextPropertyToTextList ,
 use
-.ZN XwcFreeStringList .
+.BR XwcFreeStringList .
 .LP
 The
-.ZN XwcFreeStringList
+.B XwcFreeStringList
 function frees memory allocated by
-.ZN XwcTextPropertyToTextList .
+.BR XwcTextPropertyToTextList .
 .LP
 The
-.ZN XDefaultString
+.B XDefaultString
 function returns the default string used by Xlib for text conversion
 (for example, in 
-.ZN XmbTextPropertyToTextList ).
+.BR XmbTextPropertyToTextList ).
 The default string is the string in the current locale that is output 
 when an unconvertible character is found during text conversion.
 If the string returned by
-.ZN XDefaultString
+.B XDefaultString
 is the empty string ("\^"),
 no character is output in the converted text.
-.ZN XDefaultString
+.B XDefaultString
 does not return NULL.
 .LP
 The string returned by 
-.ZN XDefaultString
+.B XDefaultString
 is independent of the default string for text drawing;
 see 
-.ZN XCreateFontSet
+.B XCreateFontSet
 to obtain the default string for an
-.ZN XFontSet .
+.BR XFontSet .
 .LP
 The behavior when an invalid codepoint is supplied to any Xlib function is
 undefined.
@@ -328,16 +328,16 @@ It may be freed after the current locale is changed.
 Until freed, it will not be modified by Xlib.
 .LP
 The functions
-.ZN Xutf8TextListToTextProperty
+.B Xutf8TextListToTextProperty
 and
-.ZN Xutf8TextPropertyToTextList
+.B Xutf8TextPropertyToTextList
 are extensions introduced by The XFree86 Project, Inc. in their 4.0.2
 release. Their presence is
 indicated by the macro
-.ZN X_HAVE_UTF8_STRING .
+.BR X_HAVE_UTF8_STRING .
 .SH STRUCTURES
 The
-.ZN XTextProperty
+.B XTextProperty
 structure contains:
 .LP
 .Ds 0
@@ -350,7 +350,7 @@ typedef struct {
 .De
 .LP
 The
-.ZN XICCEncodingStyle
+.B XICCEncodingStyle
 structure contains:
 .LP
 .TS
@@ -358,21 +358,21 @@ lw(.5i) lw(2i) lw(2.5i).
 T{
 \&#define
 T}	T{
-.ZN XNoMemory
+.B XNoMemory
 T}	T{
 \-1
 T}
 T{
 \&#define
 T}	T{
-.ZN XLocaleNotSupported
+.B XLocaleNotSupported
 T}	T{
 \-2
 T}
 T{
 \&#define
 T}	T{
-.ZN XConverterNotFound
+.B XConverterNotFound
 T}	T{
 \-3
 T}

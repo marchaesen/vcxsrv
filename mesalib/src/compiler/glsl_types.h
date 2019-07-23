@@ -1245,29 +1245,35 @@ struct glsl_struct_field {
 
    unsigned implicit_sized_array:1;
 #ifdef __cplusplus
+#define DEFAULT_CONSTRUCTORS(_type, _precision, _name)                  \
+   type(_type), name(_name), location(-1), offset(-1), xfb_buffer(0),   \
+   xfb_stride(0), interpolation(0), centroid(0),                        \
+   sample(0), matrix_layout(GLSL_MATRIX_LAYOUT_INHERITED), patch(0),    \
+   precision(_precision), memory_read_only(0),                          \
+   memory_write_only(0), memory_coherent(0), memory_volatile(0),        \
+   memory_restrict(0), image_format(0), explicit_xfb_buffer(0),         \
+   implicit_sized_array(0)
+
+   glsl_struct_field(const struct glsl_type *_type,
+                     int _precision,
+                     const char *_name)
+      : DEFAULT_CONSTRUCTORS(_type, _precision, _name)
+   {
+      /* empty */
+   }
+
    glsl_struct_field(const struct glsl_type *_type, const char *_name)
-      : type(_type), name(_name), location(-1), offset(-1), xfb_buffer(0),
-        xfb_stride(0), interpolation(0), centroid(0),
-        sample(0), matrix_layout(GLSL_MATRIX_LAYOUT_INHERITED), patch(0),
-        precision(GLSL_PRECISION_NONE), memory_read_only(0),
-        memory_write_only(0), memory_coherent(0), memory_volatile(0),
-        memory_restrict(0), image_format(0), explicit_xfb_buffer(0),
-        implicit_sized_array(0)
+      : DEFAULT_CONSTRUCTORS(_type, GLSL_PRECISION_NONE, _name)
    {
       /* empty */
    }
 
    glsl_struct_field()
-      : type(NULL), name(NULL), location(-1), offset(-1), xfb_buffer(0),
-        xfb_stride(0), interpolation(0), centroid(0),
-        sample(0), matrix_layout(0), patch(0),
-        precision(0), memory_read_only(0),
-        memory_write_only(0), memory_coherent(0), memory_volatile(0),
-        memory_restrict(0), image_format(0), explicit_xfb_buffer(0),
-        implicit_sized_array(0)
+      : DEFAULT_CONSTRUCTORS(NULL, GLSL_PRECISION_NONE, NULL)
    {
       /* empty */
    }
+#undef DEFAULT_CONSTRUCTORS
 #endif
 };
 

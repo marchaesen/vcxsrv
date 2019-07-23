@@ -105,14 +105,14 @@ set to indicate which attributes have been set in the structure.
 Specifies the pixel that is to be used for the background.
 .IP \fIbackground_pixmap\fP 1i
 Specifies the background pixmap,
-.ZN ParentRelative ,
+.BR ParentRelative ,
 or
-.ZN None .
+.BR None .
 .IP \fIborder_pixel\fP 1i
 Specifies the entry in the colormap. 
 .IP \fIborder_pixmap\fP 1i
 Specifies the border pixmap or
-.ZN CopyFromParent .
+.BR CopyFromParent .
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fIvaluemask\fP 1i
@@ -128,42 +128,42 @@ Specifies the colormap.
 .SH DESCRIPTION
 Depending on the valuemask,
 the
-.ZN XChangeWindowAttributes
+.B XChangeWindowAttributes
 function uses the window attributes in the
-.ZN XSetWindowAttributes
+.B XSetWindowAttributes
 structure to change the specified window attributes.
 Changing the background does not cause the window contents to be
 changed.
 To repaint the window and its background, use 
-.ZN XClearWindow .
+.BR XClearWindow .
 Setting the border or changing the background such that the
 border tile origin changes causes the border to be repainted.
 Changing the background of a root window to 
-.ZN None 
+.B None
 or 
-.ZN ParentRelative
+.B ParentRelative
 restores the default background pixmap.
 Changing the border of a root window to
-.ZN CopyFromParent
+.B CopyFromParent
 restores the default border pixmap.
 Changing the win-gravity does not affect the current position of the
 window.
 Changing the backing-store of an obscured window to 
-.ZN WhenMapped 
+.B WhenMapped
 or
-.ZN Always , 
+.BR Always ,
 or changing the backing-planes, backing-pixel, or
 save-under of a mapped window may have no immediate effect.
 Changing the colormap of a window (that is, defining a new map, not
 changing the contents of the existing map) generates a 
-.ZN ColormapNotify
+.B ColormapNotify
 event.
 Changing the colormap of a visible window may have no
 immediate effect on the screen because the map may not be installed
 (see
-.ZN XInstallColormap ).
+.BR XInstallColormap ).
 Changing the cursor of a root window to 
-.ZN None 
+.B None
 restores the default
 cursor.
 Whenever possible, you are encouraged to share colormaps.
@@ -173,164 +173,164 @@ Their event masks are maintained separately.
 When an event is generated, 
 it is reported to all interested clients. 
 However, only one client at a time can select for 
-.ZN SubstructureRedirectMask , 
-.ZN ResizeRedirectMask , 
+.BR SubstructureRedirectMask ,
+.BR ResizeRedirectMask ,
 and
-.ZN ButtonPressMask .
+.BR ButtonPressMask .
 If a client attempts to select any of these event masks 
 and some other client has already selected one, 
 a
-.ZN BadAccess
+.B BadAccess
 error results.
 There is only one do-not-propagate-mask for a window, 
 not one per client.
 .LP
-.ZN XChangeWindowAttributes
+.B XChangeWindowAttributes
 can generate
-.ZN BadAccess ,
-.ZN BadColor ,
-.ZN BadCursor ,
-.ZN BadMatch ,
-.ZN BadPixmap ,
-.ZN BadValue ,
+.BR BadAccess ,
+.BR BadColor ,
+.BR BadCursor ,
+.BR BadMatch ,
+.BR BadPixmap ,
+.BR BadValue ,
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XSetWindowBackground
+.B XSetWindowBackground
 function sets the background of the window to the specified pixel value.
 Changing the background does not cause the window contents to be changed.
-.ZN XSetWindowBackground
+.B XSetWindowBackground
 uses a pixmap of undefined size filled with the pixel value you passed.
 If you try to change the background of an 
-.ZN InputOnly
+.B InputOnly
 window, a
-.ZN BadMatch
+.B BadMatch
 error results.
 .LP
-.ZN XSetWindowBackground
+.B XSetWindowBackground
 can generate
-.ZN BadMatch
+.B BadMatch
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XSetWindowBackgroundPixmap
+.B XSetWindowBackgroundPixmap
 function sets the background pixmap of the window to the specified pixmap.
 The background pixmap can immediately be freed if no further explicit
 references to it are to be made.
 If 
-.ZN ParentRelative
+.B ParentRelative
 is specified, 
 the background pixmap of the window's parent is used,
 or on the root window, the default background is restored.
 If you try to change the background of an 
-.ZN InputOnly
+.B InputOnly
 window, a
-.ZN BadMatch
+.B BadMatch
 error results.
 If the background is set to
-.ZN None ,
+.BR None ,
 the window has no defined background.
 .LP
-.ZN XSetWindowBackgroundPixmap
+.B XSetWindowBackgroundPixmap
 can generate
-.ZN BadMatch ,
-.ZN BadPixmap ,
+.BR BadMatch ,
+.BR BadPixmap ,
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP 
 The
-.ZN XSetWindowBorder
+.B XSetWindowBorder
 function sets the border of the window to the pixel value you specify.
 If you attempt to perform this on an
-.ZN InputOnly
+.B InputOnly
 window, a
-.ZN BadMatch
+.B BadMatch
 error results.
 .LP
-.ZN XSetWindowBorder
+.B XSetWindowBorder
 can generate
-.ZN BadMatch
+.B BadMatch
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XSetWindowBorderPixmap
+.B XSetWindowBorderPixmap
 function sets the border pixmap of the window to the pixmap you specify.
 The border pixmap can be freed immediately if no further explicit
 references to it are to be made.
 If you specify
-.ZN CopyFromParent ,
+.BR CopyFromParent ,
 a copy of the parent window's border pixmap is used.
 If you attempt to perform this on an
-.ZN InputOnly
+.B InputOnly
 window, a
-.ZN BadMatch
+.B BadMatch
 error results.
 .LP
-.ZN XSetWindowBorderPixmap
+.B XSetWindowBorderPixmap
 can generate
-.ZN BadMatch ,
-.ZN BadPixmap ,
+.BR BadMatch ,
+.BR BadPixmap ,
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XSetWindowColormap
+.B XSetWindowColormap
 function sets the specified colormap of the specified window.
 The colormap must have the same visual type as the window,
 or a
-.ZN BadMatch
+.B BadMatch
 error results.
 .LP
-.ZN XSetWindowColormap
+.B XSetWindowColormap
 can generate
-.ZN BadColor ,
-.ZN BadMatch ,
+.BR BadColor ,
+.BR BadMatch ,
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAccess
+.B BadAccess
 A client attempted
 to free a color map entry that it did not already allocate.
 .TP 1i
-.ZN BadAccess
+.B BadAccess
 A client attempted
 to store into a read-only color map entry.
 .TP 1i
-.ZN BadColor
+.B BadColor
 A value for a Colormap argument does not name a defined Colormap.
 .TP 1i
-.ZN BadCursor
+.B BadCursor
 A value for a Cursor argument does not name a defined Cursor.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 Some argument or pair of arguments has the correct type and range but fails
 to match in some other way required by the request.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 An
-.ZN InputOnly
+.B InputOnly
 window locks this attribute.
 .TP 1i
-.ZN BadPixmap
+.B BadPixmap
 A value for a Pixmap argument does not name a defined Pixmap.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of
 alternatives can generate this error.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XConfigureWindow(__libmansuffix__),

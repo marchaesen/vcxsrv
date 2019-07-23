@@ -112,19 +112,19 @@ Specify the width and height, which specify the dimensions of the rectangle.
 Specify the x and y coordinates, which specify the upper-left corner of the rectangle.
 .SH DESCRIPTION
 The
-.ZN XDrawRectangle
+.B XDrawRectangle
 and
-.ZN XDrawRectangles
+.B XDrawRectangles
 functions draw the outlines of the specified rectangle or rectangles as
 if a five-point 
-.ZN PolyLine 
+.B PolyLine
 protocol request were specified for each rectangle:
 .IP
 [x,y] [x+width,y] [x+width,y+height] [x,y+height] [x,y]
 .LP 
 For the specified rectangle or rectangles, 
 these functions do not draw a pixel more than once.
-.ZN XDrawRectangles
+.B XDrawRectangles
 draws the rectangles in the order listed in the array.
 If rectangles intersect,
 the intersecting pixels are drawn multiple times.
@@ -137,18 +137,18 @@ They also use these GC mode-dependent components:
 foreground, background, tile, stipple, tile-stipple-x-origin, 
 tile-stipple-y-origin, dash-offset, and dash-list.
 .LP
-.ZN XDrawRectangle
+.B XDrawRectangle
 and
-.ZN XDrawRectangles
+.B XDrawRectangles
 can generate
-.ZN BadDrawable ,
-.ZN BadGC ,
+.BR BadDrawable ,
+.BR BadGC ,
 and
-.ZN BadMatch 
+.B BadMatch
 errors.
 .SH STRUCTURES
 The
-.ZN XRectangle
+.B XRectangle
 structure contains:
 .LP
 .Ds 0
@@ -165,18 +165,18 @@ out of the 16-bit ranges, because the protocol only has 16-bit fields
 for these values.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadDrawable
+.B BadDrawable
 A value for a Drawable argument does not name a defined Window or Pixmap.
 .TP 1i
-.ZN BadGC
+.B BadGC
 A value for a GContext argument does not name a defined GContext.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 An
-.ZN InputOnly
+.B InputOnly
 window is used as a Drawable.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 Some argument or pair of arguments has the correct type and range but fails
 to match in some other way required by the request.
 .SH "SEE ALSO"

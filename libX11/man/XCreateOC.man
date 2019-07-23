@@ -101,14 +101,14 @@ Specifies the output method.
 Specifies the variable length argument list to set or get XOC values.
 .SH DESCRIPTION
 The
-.ZN XCreateOC 
+.B XCreateOC
 function creates an output context within the specified output method.
 .LP
 The base font names argument is mandatory at creation time, and
 the output context will not be created unless it is provided.
 All other output context values can be set later.
 .LP
-.ZN XCreateOC
+.B XCreateOC
 returns NULL if no output context could be created.
 NULL can be returned for any of the following reasons:
 .IP \(bu 5
@@ -121,11 +121,11 @@ An argument name is not recognized.
 The output method encountered an output method implementation-dependent error.
 .LP
 The
-.ZN XDestroyOC
+.B XDestroyOC
 function destroys the specified output context.
 .LP
 The
-.ZN XSetOCValues
+.B XSetOCValues
 function returns NULL if no error occurred; 
 otherwise,
 it returns the name of the first argument that could not be set.
@@ -141,7 +141,7 @@ Each value to be set must be an appropriate datum,
 matching the data type imposed by the semantics of the argument.
 .LP
 The
-.ZN XGetOCValues
+.B XGetOCValues
 function returns NULL if no error occurred; otherwise,
 it returns the name of the first argument that could not be obtained.
 An argument might not be obtained for any of the following reasons:
@@ -154,7 +154,7 @@ Each argument value
 following a name must point to a location where the value is to be stored.
 .LP
 The
-.ZN XOMOfOC
+.B XOMOfOC
 function returns the output method associated with the
 specified output context.
 .SH "SEE ALSO"

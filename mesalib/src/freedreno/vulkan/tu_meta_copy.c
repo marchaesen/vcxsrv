@@ -111,7 +111,7 @@ tu_copy_buffer(struct tu_cmd_buffer *cmdbuf,
 
    /* buffer copy setup */
    tu_cs_emit_pkt7(&cmdbuf->cs, CP_SET_MARKER, 1);
-   tu_cs_emit(&cmdbuf->cs, A2XX_CP_SET_MARKER_0_MODE(RM6_BLIT2DSCALE));
+   tu_cs_emit(&cmdbuf->cs, A6XX_CP_SET_MARKER_0_MODE(RM6_BLIT2DSCALE));
 
    const uint32_t blit_cntl = blit_control(RB6_R8_UNORM) | 0x20000000;
 
@@ -356,7 +356,7 @@ tu_copy_buffer_to_image(struct tu_cmd_buffer *cmdbuf,
 
    /* buffer copy setup */
    tu_cs_emit_pkt7(&cmdbuf->cs, CP_SET_MARKER, 1);
-   tu_cs_emit(&cmdbuf->cs, A2XX_CP_SET_MARKER_0_MODE(RM6_BLIT2DSCALE));
+   tu_cs_emit(&cmdbuf->cs, A6XX_CP_SET_MARKER_0_MODE(RM6_BLIT2DSCALE));
 
    VkFormat format = dst_image->vk_format;
    const enum a6xx_color_fmt rb_fmt = tu6_get_native_format(format)->rb;
@@ -546,7 +546,7 @@ tu_copy_image_to_buffer(struct tu_cmd_buffer *cmdbuf,
 
    /* buffer copy setup */
    tu_cs_emit_pkt7(&cmdbuf->cs, CP_SET_MARKER, 1);
-   tu_cs_emit(&cmdbuf->cs, A2XX_CP_SET_MARKER_0_MODE(RM6_BLIT2DSCALE));
+   tu_cs_emit(&cmdbuf->cs, A6XX_CP_SET_MARKER_0_MODE(RM6_BLIT2DSCALE));
 
    VkFormat format = src_image->vk_format;
    const enum a6xx_color_fmt rb_fmt = tu6_get_native_format(format)->rb;

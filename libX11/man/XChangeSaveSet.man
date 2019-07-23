@@ -92,72 +92,72 @@ int XRemoveFromSaveSet\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^);
 .IP \fIchange_mode\fP 1i
 Specifies the mode.
 You can pass
-.ZN SetModeInsert 
+.B SetModeInsert
 or
-.ZN SetModeDelete .
+.BR SetModeDelete .
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fIw\fP 1i
 Specifies the window that you want to add or delete from the client's save-set.
 .SH DESCRIPTION
 Depending on the specified mode,
-.ZN XChangeSaveSet
+.B XChangeSaveSet
 either inserts or deletes the specified window from the client's save-set. 
 The specified window must have been created by some other client,
 or a
-.ZN BadMatch
+.B BadMatch
 error results.
 .LP
-.ZN XChangeSaveSet
+.B XChangeSaveSet
 can generate
-.ZN BadMatch ,
-.ZN BadValue ,
+.BR BadMatch ,
+.BR BadValue ,
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XAddToSaveSet
+.B XAddToSaveSet
 function adds the specified window to the client's save-set.
 The specified window must have been created by some other client,
 or a
-.ZN BadMatch
+.B BadMatch
 error results.
 .LP
-.ZN XAddToSaveSet
+.B XAddToSaveSet
 can generate
-.ZN BadMatch 
+.B BadMatch
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XRemoveFromSaveSet
+.B XRemoveFromSaveSet
 function removes the specified window from the client's save-set.
 The specified window must have been created by some other client,
 or a
-.ZN BadMatch
+.B BadMatch
 error results.
 .LP
-.ZN XRemoveFromSaveSet
+.B XRemoveFromSaveSet
 can generate
-.ZN BadMatch
+.B BadMatch
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 Some argument or pair of arguments has the correct type and range but fails
 to match in some other way required by the request.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of
 alternatives can generate this error.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XReparentWindow(__libmansuffix__)

@@ -93,7 +93,7 @@ int XClearWindow\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^);
 Specifies the connection to the X server.
 .IP \fIexposures\fP 1i
 Specifies a Boolean value that indicates if
-.ZN Expose
+.B Expose
 events are to be generated.
 .IP \fIw\fP 1i
 Specifies the window.
@@ -111,11 +111,11 @@ Specify the x and y coordinates, which are relative to the origin of the window
 and specify the upper-left corner of the rectangle.
 .SH DESCRIPTION
 The
-.ZN XClearArea
+.B XClearArea
 function paints a rectangular area in the specified window according to the
 specified dimensions with the window's background pixel or pixmap.
 The subwindow-mode effectively is
-.ZN ClipByChildren . 
+.BR ClipByChildren .
 If width is zero, it
 is replaced with the current width of the window minus x.
 If height is
@@ -124,70 +124,70 @@ If the window has a defined background tile,
 the rectangle clipped by any children is filled with this tile.
 If the window has
 background 
-.ZN None , 
+.BR None ,
 the contents of the window are not changed.  
 In either
 case, if exposures is 
-.ZN True , 
+.BR True ,
 one or more 
-.ZN Expose 
+.B Expose
 events are generated for regions of the rectangle that are either visible or are
 being retained in a backing store.
 If you specify a window whose class is
-.ZN InputOnly ,
+.BR InputOnly ,
 a
-.ZN BadMatch
+.B BadMatch
 error results.
 .LP
-.ZN XClearArea
+.B XClearArea
 can generate
-.ZN BadMatch ,
-.ZN BadValue ,
+.BR BadMatch ,
+.BR BadValue ,
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XClearWindow
+.B XClearWindow
 function clears the entire area in the specified window and is
 equivalent to
-.ZN XClearArea
+.B XClearArea
 (display, w, 0, 0, 0, 0, 
-.ZN False ).
+.BR False ).
 If the window has a defined background tile, the rectangle is tiled with a
 plane-mask of all ones and 
-.ZN GXcopy
+.B GXcopy
 function.
 If the window has
 background 
-.ZN None , 
+.BR None ,
 the contents of the window are not changed.  
 If you specify a window whose class is
-.ZN InputOnly ,
+.BR InputOnly ,
 a
-.ZN BadMatch
+.B BadMatch
 error results. 
 .LP
-.ZN XClearWindow
+.B XClearWindow
 can generate
-.ZN BadMatch
+.B BadMatch
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 An
-.ZN InputOnly
+.B InputOnly
 window is used as a Drawable.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of
 alternatives can generate this error.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XCopyArea(__libmansuffix__)

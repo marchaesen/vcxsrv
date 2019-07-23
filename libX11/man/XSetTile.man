@@ -107,65 +107,65 @@ Specifies the fill tile you want to set for the specified GC.
 Specify the x and y coordinates of the tile and stipple origin.
 .SH DESCRIPTION
 The
-.ZN XSetTile
+.B XSetTile
 function sets the fill tile in the specified GC.
 The tile and GC must have the same depth,
 or a
-.ZN BadMatch
+.B BadMatch
 error results.
 .LP
-.ZN XSetTile
+.B XSetTile
 can generate
-.ZN BadAlloc ,
-.ZN BadGC ,
-.ZN BadMatch ,
+.BR BadAlloc ,
+.BR BadGC ,
+.BR BadMatch ,
 and
-.ZN BadPixmap 
+.B BadPixmap
 errors.
 .LP
 The
-.ZN XSetStipple
+.B XSetStipple
 function sets the stipple in the specified GC.
 The stipple must have a depth of one,
 or a
-.ZN BadMatch
+.B BadMatch
 error results.
 .LP
-.ZN XSetStipple
+.B XSetStipple
 can generate
-.ZN BadAlloc ,
-.ZN BadGC ,
-.ZN BadMatch ,
+.BR BadAlloc ,
+.BR BadGC ,
+.BR BadMatch ,
 and
-.ZN BadPixmap 
+.B BadPixmap
 errors.
 .LP
 The
-.ZN XSetTSOrigin
+.B XSetTSOrigin
 function sets the tile/stipple origin in the specified GC.
 When graphics requests call for tiling or stippling,
 the parent's origin will be interpreted relative to whatever destination
 drawable is specified in the graphics request.
 .LP
-.ZN XSetTSOrigin
+.B XSetTSOrigin
 can generate
-.ZN BadAlloc
+.B BadAlloc
 and
-.ZN BadGC 
+.B BadGC
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadGC
+.B BadGC
 A value for a GContext argument does not name a defined GContext.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 Some argument or pair of arguments has the correct type and range but fails
 to match in some other way required by the request.
 .TP 1i
-.ZN BadPixmap
+.B BadPixmap
 A value for a Pixmap argument does not name a defined Pixmap.
 .SH "SEE ALSO"
 XCreateGC(__libmansuffix__),

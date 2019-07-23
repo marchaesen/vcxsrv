@@ -134,7 +134,7 @@ Specifies the number of samples.
 Specifies the Value in which to find the maximum Chroma (MaxC) or minimum Value (MinL).
 .SH DESCRIPTION
 The
-.ZN XcmsTekHVCQueryMaxC
+.B XcmsTekHVCQueryMaxC
 function, given a Hue and Value,
 determines the maximum Chroma in TekHVC color space
 displayable by the screen.
@@ -142,7 +142,7 @@ It returns the maximum Chroma along with the actual Hue
 and Value at which the maximum Chroma was found.
 .LP
 The
-.ZN XcmsTekHVCQueryMaxV
+.B XcmsTekHVCQueryMaxV
 function, given a Hue and Chroma,
 determines the maximum Value in TekHVC color space
 displayable by the screen.
@@ -150,7 +150,7 @@ It returns the maximum Value and the actual Hue and Chroma
 at which the maximum Value was found.
 .LP
 The
-.ZN XcmsTekHVCQueryMaxVC
+.B XcmsTekHVCQueryMaxVC
 function, given a Hue,
 determines the maximum Chroma in TekHVC color space displayable by the screen
 and the Value at which that maximum Chroma is reached.
@@ -159,7 +159,7 @@ the Value at which that maximum Chroma is reached,
 and the actual Hue for which the maximum Chroma was found.
 .LP
 The
-.ZN XcmsTekHVCQueryMaxVSamples
+.B XcmsTekHVCQueryMaxVSamples
 returns nsamples of maximum Value, the Chroma at which that maximum Value
 is reached, and the actual Hue for which the maximum Chroma was found.
 These sample points may then be used to plot the maximum Value/Chroma
@@ -167,7 +167,7 @@ boundary of the screen's color gamut for the specified Hue in TekHVC color
 space.
 .LP
 The
-.ZN XcmsTekHVCQueryMinV
+.B XcmsTekHVCQueryMinV
 function, given a Hue and Chroma,
 determines the minimum Value in TekHVC color space displayable by the screen.
 It returns the minimum Value and the actual Hue and Chroma at which

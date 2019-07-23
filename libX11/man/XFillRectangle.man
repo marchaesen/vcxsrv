@@ -118,9 +118,9 @@ Specifies the GC.
 .IP \fImode\fP 1i
 Specifies the coordinate mode. 
 You can pass
-.ZN CoordModeOrigin
+.B CoordModeOrigin
 or
-.ZN CoordModePrevious .
+.BR CoordModePrevious .
 .IP \fInarcs\fP 1i
 Specifies the number of arcs in the array.
 .IP \fInpoints\fP 1i
@@ -134,10 +134,10 @@ Specifies an array of rectangles.
 .IP \fIshape\fP 1i
 Specifies a shape that helps the server to improve performance.
 You can pass 
-.ZN Complex , 
-.ZN Convex , 
+.BR Complex ,
+.BR Convex ,
 or 
-.ZN Nonconvex .
+.BR Nonconvex .
 .ds Wh 
 .IP \fIwidth\fP 1i
 .br
@@ -153,12 +153,12 @@ Specify the x and y coordinates, which are relative to the origin of the drawabl
 and specify the upper-left corner of the rectangle.
 .SH DESCRIPTION
 The
-.ZN XFillRectangle
+.B XFillRectangle
 and
-.ZN XFillRectangles
+.B XFillRectangles
 functions fill the specified rectangle or rectangles
 as if a four-point 
-.ZN FillPolygon
+.B FillPolygon
 protocol request were specified for each rectangle:
 .LP
 .Ds
@@ -168,12 +168,12 @@ protocol request were specified for each rectangle:
 Each function uses the x and y coordinates,
 width and height dimensions, and GC you specify.
 .LP
-.ZN XFillRectangles
+.B XFillRectangles
 fills the rectangles in the order listed in the array.  
 For any given rectangle,
-.ZN XFillRectangle
+.B XFillRectangle
 and
-.ZN XFillRectangles
+.B XFillRectangles
 do not draw a pixel more than once.  
 If rectangles intersect, the intersecting pixels are
 drawn multiple times.
@@ -185,62 +185,62 @@ They also use these GC mode-dependent components:
 foreground, background, tile, stipple, tile-stipple-x-origin, 
 and tile-stipple-y-origin.
 .LP
-.ZN XFillRectangle
+.B XFillRectangle
 and
-.ZN XFillRectangles
+.B XFillRectangles
 can generate
-.ZN BadDrawable ,
-.ZN BadGC ,
+.BR BadDrawable ,
+.BR BadGC ,
 and
-.ZN BadMatch 
+.B BadMatch
 errors.
 .LP
-.ZN XFillPolygon 
+.B XFillPolygon
 fills the region closed by the specified path.
 The path is closed
 automatically if the last point in the list does not coincide with the
 first point.
-.ZN XFillPolygon
+.B XFillPolygon
 does not draw a pixel of the region more than once.
-.ZN CoordModeOrigin
+.B CoordModeOrigin
 treats all coordinates as relative to the origin,
 and
-.ZN CoordModePrevious
+.B CoordModePrevious
 treats all coordinates after the first as relative to the previous point.
 .LP
 Depending on the specified shape, the following occurs: 
 .IP \(bu 5
 If shape is
-.ZN Complex , 
+.BR Complex ,
 the path may self-intersect. 
 Note that contiguous coincident points in the path are not treated 
 as self-intersection.
 .IP \(bu 5
 If shape is
-.ZN Convex , 
+.BR Convex ,
 for every pair of points inside the polygon,
 the line segment connecting them does not intersect the path.
 If known by the client,
 specifying 
-.ZN Convex 
+.B Convex
 can improve performance.  
 If you specify
-.ZN Convex 
+.B Convex
 for a path that is not convex, 
 the graphics results are undefined.
 .IP \(bu 5
 If shape is
-.ZN Nonconvex , 
+.BR Nonconvex ,
 the path does not self-intersect, but the shape is not
 wholly convex. 
 If known by the client, 
 specifying 
-.ZN Nonconvex 
+.B Nonconvex
 instead of
-.ZN Complex 
+.B Complex
 may improve performance.  
 If you specify
-.ZN Nonconvex 
+.B Nonconvex
 for a self-intersecting path, the graphics results are undefined.
 .LP
 The fill-rule of the GC controls the filling behavior of 
@@ -253,35 +253,35 @@ It also uses these GC mode-dependent components:
 foreground, background, tile, stipple, tile-stipple-x-origin, 
 and tile-stipple-y-origin.
 .LP
-.ZN XFillPolygon
+.B XFillPolygon
 can generate
-.ZN BadDrawable ,
-.ZN BadGC ,
-.ZN BadMatch ,
+.BR BadDrawable ,
+.BR BadGC ,
+.BR BadMatch ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .LP
 For each arc, 
-.ZN XFillArc
+.B XFillArc
 or
-.ZN XFillArcs
+.B XFillArcs
 fills the region closed by the infinitely thin path
 described by the specified arc and, depending on the 
 arc-mode specified in the GC, one or two line segments. 
 For 
-.ZN ArcChord , 
+.BR ArcChord ,
 the single line segment joining the endpoints of the arc is used.  
 For 
-.ZN ArcPieSlice ,
+.BR ArcPieSlice ,
 the two line segments joining the endpoints of the arc with the center
 point are used.  
-.ZN XFillArcs
+.B XFillArcs
 fills the arcs in the order listed in the array.  
 For any given arc,  
-.ZN XFillArc
+.B XFillArc
 and
-.ZN XFillArcs
+.B XFillArcs
 do not draw a pixel more than once.  
 If regions intersect, 
 the intersecting pixels are drawn multiple times.
@@ -293,33 +293,33 @@ They also use these GC mode-dependent components:
 foreground, background, tile, stipple, tile-stipple-x-origin, 
 and tile-stipple-y-origin.
 .LP
-.ZN XFillArc
+.B XFillArc
 and
-.ZN XFillArcs
+.B XFillArcs
 can generate
-.ZN BadDrawable ,
-.ZN BadGC ,
+.BR BadDrawable ,
+.BR BadGC ,
 and
-.ZN BadMatch 
+.B BadMatch
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadDrawable
+.B BadDrawable
 A value for a Drawable argument does not name a defined Window or Pixmap.
 .TP 1i
-.ZN BadGC
+.B BadGC
 A value for a GContext argument does not name a defined GContext.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 An
-.ZN InputOnly
+.B InputOnly
 window is used as a Drawable.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 Some argument or pair of arguments has the correct type and range but fails
 to match in some other way required by the request.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

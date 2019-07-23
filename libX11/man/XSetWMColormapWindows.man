@@ -103,46 +103,46 @@ Returns the number of windows in the list.
 Specifies the window.
 .SH DESCRIPTION
 The 
-.ZN XSetWMColormapWindows 
+.B XSetWMColormapWindows
 function replaces the WM_COLORMAP_WINDOWS property on the specified
 window with the list of windows specified by the colormap_windows argument.
 It the property does not already exist,
-.ZN XSetWMColormapWindows
+.B XSetWMColormapWindows
 sets the WM_COLORMAP_WINDOWS property on the specified
 window to the list of windows specified by the colormap_windows argument.
 The property is stored with a type of WINDOW and a format of 32.
 If it cannot intern the WM_COLORMAP_WINDOWS atom,
-.ZN XSetWMColormapWindows
+.B XSetWMColormapWindows
 returns a zero status.
 Otherwise, it returns a nonzero status.
 .LP
-.ZN XSetWMColormapWindows
+.B XSetWMColormapWindows
 can generate
-.ZN BadAlloc
+.B BadAlloc
 and
-.ZN BadWindow
+.B BadWindow
 errors.
 .LP
 The 
-.ZN XGetWMColormapWindows 
+.B XGetWMColormapWindows
 function returns the list of window identifiers stored 
 in the WM_COLORMAP_WINDOWS property on the specified window.
 These identifiers indicate the colormaps that the window manager
 may need to install for this window.
 If the property exists, is of type WINDOW, is of format 32, 
 and the atom WM_COLORMAP_WINDOWS can be interned, 
-.ZN XGetWMColormapWindows
+.B XGetWMColormapWindows
 sets the windows_return argument to a list of window identifiers, 
 sets the count_return argument to the number of elements in the list, 
 and returns a nonzero status.
 Otherwise, it sets neither of the return arguments
 and returns a zero status.
 To release the list of window identifiers, use
-.ZN XFree . 
+.BR XFree .
 .LP
-.ZN XGetWMColormapWindows
+.B XGetWMColormapWindows
 can generate a
-.ZN BadWindow
+.B BadWindow
 error.
 .SH PROPERTIES
 .TP 1i
@@ -151,10 +151,10 @@ The list of window IDs that may need a different colormap
 from that of their top-level window.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XAllocClassHint(__libmansuffix__),

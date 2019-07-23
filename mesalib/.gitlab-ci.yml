@@ -14,7 +14,7 @@
 # repository's registry will be used there as well.
 variables:
   UPSTREAM_REPO: mesa/mesa
-  DEBIAN_TAG: "2019-05-08"
+  DEBIAN_TAG: "2019-07-11"
   DEBIAN_VERSION: stretch-slim
   DEBIAN_IMAGE: "$CI_REGISTRY_IMAGE/debian/$DEBIAN_VERSION:$DEBIAN_TAG"
 
@@ -225,6 +225,71 @@ meson-vulkan:
     VULKAN_DRIVERS: intel,amd,freedreno
     LLVM_VERSION: "7"
     EXTRA_OPTION: >
+      -D vulkan-overlay-layer=true
+
+.meson-cross:
+  extends: .meson-build
+  variables:
+    UNWIND: "false"
+    DRI_LOADERS: >
+      -D glx=disabled
+      -D gbm=false
+      -D egl=false
+      -D platforms=surfaceless
+      -D osmesa=none
+    GALLIUM_ST: >
+      -D dri3=false
+      -D gallium-vdpau=false
+      -D gallium-xvmc=false
+      -D gallium-omx=disabled
+      -D gallium-va=false
+      -D gallium-xa=false
+      -D gallium-nine=false
+      -D llvm=false
+    CROSS: >
+      --libdir lib
+      --cross /tmp/cross_file.txt
+
+  script:
+    - /usr/share/meson/debcrossgen --arch ${ARCH} -o /tmp/cross_file.txt
+    # Work around a bug in debcrossgen that should be fixed in the next release
+    - sed -i "s|cpu_family = 'i686'|cpu_family = 'x86'|g" /tmp/cross_file.txt
+    - .gitlab-ci/meson-build.sh
+
+meson-armhf:
+  extends: .meson-cross
+  variables:
+    ARCH: armhf
+    VULKAN_DRIVERS: freedreno
+    GALLIUM_DRIVERS: "etnaviv,freedreno,kmsro,lima,nouveau,panfrost,tegra,v3d,vc4"
+    # Disable the tests since we're cross compiling.
+    EXTRA_OPTION: >
+      -D build-tests=false
+      -D I-love-half-baked-turnips=true
+      -D vulkan-overlay-layer=true
+
+meson-arm64:
+  extends: .meson-cross
+  variables:
+    ARCH: arm64
+    VULKAN_DRIVERS: freedreno
+    GALLIUM_DRIVERS: "etnaviv,freedreno,kmsro,lima,nouveau,panfrost,tegra,v3d,vc4"
+    # Disable the tests since we're cross compiling.
+    EXTRA_OPTION: >
+      -D build-tests=false
+      -D I-love-half-baked-turnips=true
+      -D vulkan-overlay-layer=true
+
+meson-i386:
+  extends: .meson-cross
+  variables:
+    ARCH: i386
+    VULKAN_DRIVERS: intel
+    GALLIUM_DRIVERS: "swrast"
+    # Disable i386 tests, because u_format_tests gets precision
+    # failures in dxtn unpacking
+    EXTRA_OPTION: >
+      -D build-tests=false
       -D vulkan-overlay-layer=true
 
 scons-nollvm:

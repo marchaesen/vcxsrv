@@ -35,7 +35,6 @@
 #define SW_WINSYS_H
 
 
-#include "pipe/p_compiler.h" /* for boolean */
 #include "pipe/p_format.h"
 #include "state_tracker/winsys_handle.h"
 
@@ -67,7 +66,7 @@ struct sw_winsys
    void 
    (*destroy)( struct sw_winsys *ws );
 
-   boolean
+   bool
    (*is_displaytarget_format_supported)( struct sw_winsys *ws,
                                          unsigned tex_usage,
                                          enum pipe_format format );
@@ -104,7 +103,7 @@ struct sw_winsys
    /**
     * Used to implement texture_get_handle.
     */
-   boolean
+   bool
    (*displaytarget_get_handle)( struct sw_winsys *ws,
                                 struct sw_displaytarget *dt,
                                 struct winsys_handle *whandle );

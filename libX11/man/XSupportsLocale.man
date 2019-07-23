@@ -92,20 +92,20 @@ char *XSetLocaleModifiers\^(\^char *\fImodifier_list\fP\^);
 Specifies the modifiers.
 .SH DESCRIPTION
 The 
-.ZN XSupportsLocale
+.B XSupportsLocale
 function returns 
-.ZN True
+.B True
 if Xlib functions are capable of operating under the current locale.
 If it returns 
-.ZN False ,
+.BR False ,
 Xlib locale-dependent functions for which the 
-.ZN XLocaleNotSupported 
+.B XLocaleNotSupported
 return status is defined will return 
-.ZN XLocaleNotSupported .
+.BR XLocaleNotSupported .
 Other Xlib locale-dependent routines will operate in the ``C'' locale.
 .LP
 The
-.ZN XSetLocaleModifiers
+.B XSetLocaleModifiers
 function sets the X modifiers for the current locale setting.
 The modifier_list argument is a null-terminated string of the form
 ``{@\^\fIcategory\fP\^=\^\fIvalue\fP\^}'', that is,
@@ -130,7 +130,7 @@ If the function is successful, it returns a pointer to a string.
 The contents of the string are such that a subsequent call with that string
 (in the same locale) will restore the modifiers to the same settings.
 If modifier_list is a NULL pointer,
-.ZN XSetLocaleModifiers
+.B XSetLocaleModifiers
 also returns a pointer to such a string,
 and the current locale modifiers are not changed.
 .LP
@@ -144,7 +144,7 @@ the first successful call to set them.  Whenever the locale is changed, the
 modifiers that are in effect become unspecified until the next successful call
 to set them.
 Clients should always call
-.ZN XSetLocaleModifiers
+.B XSetLocaleModifiers
 with a non-NULL modifier_list after setting the locale
 before they call any locale-dependent Xlib routine.
 .LP

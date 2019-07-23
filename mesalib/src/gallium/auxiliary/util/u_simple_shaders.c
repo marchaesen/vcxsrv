@@ -379,172 +379,61 @@ util_make_fragment_tex_shader(struct pipe_context *pipe,
 
 
 /**
- * Make a simple fragment texture shader which reads an X component from
- * a texture and writes it as depth.
- */
-void *
-util_make_fragment_tex_shader_writedepth(struct pipe_context *pipe,
-                                         enum tgsi_texture_type tex_target,
-                                         enum tgsi_interpolate_mode interp_mode,
-                                         bool load_level_zero,
-                                         bool use_txf)
-{
-   struct ureg_program *ureg;
-   struct ureg_src sampler;
-   struct ureg_src tex;
-   struct ureg_dst out, depth;
-   struct ureg_src imm;
-
-   ureg = ureg_create( PIPE_SHADER_FRAGMENT );
-   if (!ureg)
-      return NULL;
-
-   sampler = ureg_DECL_sampler( ureg, 0 );
-
-   ureg_DECL_sampler_view(ureg, 0, tex_target,
-                          TGSI_RETURN_TYPE_FLOAT,
-                          TGSI_RETURN_TYPE_FLOAT,
-                          TGSI_RETURN_TYPE_FLOAT,
-                          TGSI_RETURN_TYPE_FLOAT);
-
-   tex = ureg_DECL_fs_input( ureg,
-                             TGSI_SEMANTIC_GENERIC, 0,
-                             interp_mode );
-
-   out = ureg_DECL_output( ureg,
-                           TGSI_SEMANTIC_COLOR,
-                           0 );
-
-   depth = ureg_DECL_output( ureg,
-                             TGSI_SEMANTIC_POSITION,
-                             0 );
-
-   imm = ureg_imm4f( ureg, 0, 0, 0, 1 );
-
-   ureg_MOV( ureg, out, imm );
-
-   ureg_load_tex(ureg, ureg_writemask(depth, TGSI_WRITEMASK_Z), tex, sampler,
-                 tex_target, load_level_zero, use_txf);
-   ureg_END( ureg );
-
-   return ureg_create_shader_and_destroy( ureg, pipe );
-}
-
-
-/**
  * Make a simple fragment texture shader which reads the texture unit 0 and 1
  * and writes it as depth and stencil, respectively.
  */
 void *
-util_make_fragment_tex_shader_writedepthstencil(struct pipe_context *pipe,
-                                         enum tgsi_texture_type tex_target,
-                                         enum tgsi_interpolate_mode interp_mode,
-                                         bool load_level_zero,
-                                         bool use_txf)
+util_make_fs_blit_zs(struct pipe_context *pipe, unsigned zs_mask,
+                     enum tgsi_texture_type tex_target,
+                     bool load_level_zero, bool use_txf)
 {
    struct ureg_program *ureg;
-   struct ureg_src depth_sampler, stencil_sampler;
-   struct ureg_src tex;
-   struct ureg_dst out, depth, stencil;
-   struct ureg_src imm;
+   struct ureg_src depth_sampler, stencil_sampler, coord;
+   struct ureg_dst depth, stencil, tmp;
 
-   ureg = ureg_create( PIPE_SHADER_FRAGMENT );
+   ureg = ureg_create(PIPE_SHADER_FRAGMENT);
    if (!ureg)
       return NULL;
 
-   depth_sampler = ureg_DECL_sampler( ureg, 0 );
-   ureg_DECL_sampler_view(ureg, 0, tex_target,
-                          TGSI_RETURN_TYPE_FLOAT,
-                          TGSI_RETURN_TYPE_FLOAT,
-                          TGSI_RETURN_TYPE_FLOAT,
-                          TGSI_RETURN_TYPE_FLOAT);
-   stencil_sampler = ureg_DECL_sampler( ureg, 1 );
-   ureg_DECL_sampler_view(ureg, 0, tex_target,
-                          TGSI_RETURN_TYPE_UINT,
-                          TGSI_RETURN_TYPE_UINT,
-                          TGSI_RETURN_TYPE_UINT,
-                          TGSI_RETURN_TYPE_UINT);
+   coord = ureg_DECL_fs_input(ureg, TGSI_SEMANTIC_GENERIC, 0,
+                              TGSI_INTERPOLATE_LINEAR);
+   tmp = ureg_DECL_temporary(ureg);
 
-   tex = ureg_DECL_fs_input( ureg,
-                             TGSI_SEMANTIC_GENERIC, 0,
-                             interp_mode );
+   if (zs_mask & PIPE_MASK_Z) {
+      depth_sampler = ureg_DECL_sampler(ureg, 0);
+      ureg_DECL_sampler_view(ureg, 0, tex_target,
+                             TGSI_RETURN_TYPE_FLOAT,
+                             TGSI_RETURN_TYPE_FLOAT,
+                             TGSI_RETURN_TYPE_FLOAT,
+                             TGSI_RETURN_TYPE_FLOAT);
 
-   out = ureg_DECL_output( ureg,
-                           TGSI_SEMANTIC_COLOR,
-                           0 );
+      ureg_load_tex(ureg, ureg_writemask(tmp, TGSI_WRITEMASK_X), coord,
+                    depth_sampler, tex_target, load_level_zero, use_txf);
 
-   depth = ureg_DECL_output( ureg,
-                             TGSI_SEMANTIC_POSITION,
-                             0 );
+      depth = ureg_DECL_output(ureg, TGSI_SEMANTIC_POSITION, 0);
+      ureg_MOV(ureg, ureg_writemask(depth, TGSI_WRITEMASK_Z),
+               ureg_scalar(ureg_src(tmp), TGSI_SWIZZLE_X));
+   }
 
-   stencil = ureg_DECL_output( ureg,
-                             TGSI_SEMANTIC_STENCIL,
-                             0 );
+   if (zs_mask & PIPE_MASK_S) {
+      stencil_sampler = ureg_DECL_sampler(ureg, zs_mask & PIPE_MASK_Z ? 1 : 0);
+      ureg_DECL_sampler_view(ureg, 0, tex_target,
+                             TGSI_RETURN_TYPE_UINT,
+                             TGSI_RETURN_TYPE_UINT,
+                             TGSI_RETURN_TYPE_UINT,
+                             TGSI_RETURN_TYPE_UINT);
 
-   imm = ureg_imm4f( ureg, 0, 0, 0, 1 );
+      ureg_load_tex(ureg, ureg_writemask(tmp, TGSI_WRITEMASK_X), coord,
+                    stencil_sampler, tex_target, load_level_zero, use_txf);
 
-   ureg_MOV( ureg, out, imm );
+      stencil = ureg_DECL_output(ureg, TGSI_SEMANTIC_STENCIL, 0);
+      ureg_MOV(ureg, ureg_writemask(stencil, TGSI_WRITEMASK_Y),
+               ureg_scalar(ureg_src(tmp), TGSI_SWIZZLE_X));
+   }
 
-   ureg_load_tex(ureg, ureg_writemask(depth, TGSI_WRITEMASK_Z), tex,
-                 depth_sampler, tex_target, load_level_zero, use_txf);
-   ureg_load_tex(ureg, ureg_writemask(stencil, TGSI_WRITEMASK_Y), tex,
-                 stencil_sampler, tex_target, load_level_zero, use_txf);
-   ureg_END( ureg );
+   ureg_END(ureg);
 
-   return ureg_create_shader_and_destroy( ureg, pipe );
-}
-
-
-/**
- * Make a simple fragment texture shader which reads a texture and writes it
- * as stencil.
- */
-void *
-util_make_fragment_tex_shader_writestencil(struct pipe_context *pipe,
-                                         enum tgsi_texture_type tex_target,
-                                         enum tgsi_interpolate_mode interp_mode,
-                                         bool load_level_zero,
-                                         bool use_txf)
-{
-   struct ureg_program *ureg;
-   struct ureg_src stencil_sampler;
-   struct ureg_src tex;
-   struct ureg_dst out, stencil;
-   struct ureg_src imm;
-
-   ureg = ureg_create( PIPE_SHADER_FRAGMENT );
-   if (!ureg)
-      return NULL;
-
-   stencil_sampler = ureg_DECL_sampler( ureg, 0 );
-
-   ureg_DECL_sampler_view(ureg, 0, tex_target,
-                          TGSI_RETURN_TYPE_UINT,
-                          TGSI_RETURN_TYPE_UINT,
-                          TGSI_RETURN_TYPE_UINT,
-                          TGSI_RETURN_TYPE_UINT);
-
-   tex = ureg_DECL_fs_input( ureg,
-                             TGSI_SEMANTIC_GENERIC, 0,
-                             interp_mode );
-
-   out = ureg_DECL_output( ureg,
-                           TGSI_SEMANTIC_COLOR,
-                           0 );
-
-   stencil = ureg_DECL_output( ureg,
-                             TGSI_SEMANTIC_STENCIL,
-                             0 );
-
-   imm = ureg_imm4f( ureg, 0, 0, 0, 1 );
-
-   ureg_MOV( ureg, out, imm );
-
-   ureg_load_tex(ureg, ureg_writemask(stencil, TGSI_WRITEMASK_Y), tex,
-                 stencil_sampler, tex_target, load_level_zero, use_txf);
-   ureg_END( ureg );
-
-   return ureg_create_shader_and_destroy( ureg, pipe );
+   return ureg_create_shader_and_destroy(ureg, pipe);
 }
 
 
@@ -667,8 +556,8 @@ util_make_fs_blit_msaa_gen(struct pipe_context *pipe,
    assert(tgsi_tex == TGSI_TEXTURE_2D_MSAA ||
           tgsi_tex == TGSI_TEXTURE_2D_ARRAY_MSAA);
 
-   util_snprintf(text, sizeof(text), shader_templ, type, samp_type,
-                 output_semantic, conversion_decl, type, conversion, output_mask);
+   snprintf(text, sizeof(text), shader_templ, type, samp_type,
+            output_semantic, conversion_decl, type, conversion, output_mask);
 
    if (!tgsi_text_translate(text, tokens, ARRAY_SIZE(tokens))) {
       puts(text);
@@ -1006,3 +895,164 @@ util_make_geometry_passthrough_shader(struct pipe_context *pipe,
    return ureg_create_shader_and_destroy(ureg, pipe);
 }
 
+/**
+ * Blit from color to ZS or from ZS to color in a manner that is equivalent
+ * to memcpy.
+ *
+ * Color is either R32_UINT (for Z24S8 / S8Z24) or R32G32_UINT (Z32_S8X24).
+ *
+ * Depth and stencil samplers are used to load depth and stencil,
+ * and they are packed and the result is written to a color output.
+ *   OR
+ * A color sampler is used to load a color value, which is unpacked and
+ * written to depth and stencil shader outputs.
+ */
+void *
+util_make_fs_pack_color_zs(struct pipe_context *pipe,
+                           enum tgsi_texture_type tex_target,
+                           enum pipe_format zs_format,
+                           bool dst_is_color)
+{
+   struct ureg_program *ureg;
+   struct ureg_src depth_sampler, stencil_sampler, color_sampler, coord;
+   struct ureg_dst out, depth, depth_x, stencil, out_depth, out_stencil, color;
+
+   assert(zs_format == PIPE_FORMAT_Z24_UNORM_S8_UINT || /* color is R32_UINT */
+          zs_format == PIPE_FORMAT_S8_UINT_Z24_UNORM || /* color is R32_UINT */
+          zs_format == PIPE_FORMAT_Z32_FLOAT_S8X24_UINT || /* color is R32G32_UINT */
+          zs_format == PIPE_FORMAT_Z24X8_UNORM || /* color is R32_UINT */
+          zs_format == PIPE_FORMAT_X8Z24_UNORM); /* color is R32_UINT */
+
+   bool has_stencil = zs_format != PIPE_FORMAT_Z24X8_UNORM &&
+                      zs_format != PIPE_FORMAT_X8Z24_UNORM;
+   bool is_z24 = zs_format != PIPE_FORMAT_Z32_FLOAT_S8X24_UINT;
+   bool z24_is_high = zs_format == PIPE_FORMAT_S8_UINT_Z24_UNORM ||
+                      zs_format == PIPE_FORMAT_X8Z24_UNORM;
+
+   ureg = ureg_create(PIPE_SHADER_FRAGMENT);
+   if (!ureg)
+      return NULL;
+
+   coord = ureg_DECL_fs_input(ureg, TGSI_SEMANTIC_GENERIC, 0,
+                              TGSI_INTERPOLATE_LINEAR);
+
+   if (dst_is_color) {
+      /* Load depth. */
+      depth_sampler = ureg_DECL_sampler(ureg, 0);
+      ureg_DECL_sampler_view(ureg, 0, tex_target,
+                             TGSI_RETURN_TYPE_FLOAT,
+                             TGSI_RETURN_TYPE_FLOAT,
+                             TGSI_RETURN_TYPE_FLOAT,
+                             TGSI_RETURN_TYPE_FLOAT);
+
+      depth = ureg_DECL_temporary(ureg);
+      depth_x = ureg_writemask(depth, TGSI_WRITEMASK_X);
+      ureg_load_tex(ureg, depth_x, coord, depth_sampler, tex_target, true, true);
+
+      /* Pack to Z24. */
+      if (is_z24) {
+         double imm = 0xffffff;
+         struct ureg_src imm_f64 = ureg_DECL_immediate_f64(ureg, &imm, 2);
+         struct ureg_dst tmp_xy = ureg_writemask(ureg_DECL_temporary(ureg),
+                                                 TGSI_WRITEMASK_XY);
+
+         ureg_F2D(ureg, tmp_xy, ureg_src(depth));
+         ureg_DMUL(ureg, tmp_xy, ureg_src(tmp_xy), imm_f64);
+         ureg_D2U(ureg, depth_x, ureg_src(tmp_xy));
+
+         if (z24_is_high)
+            ureg_SHL(ureg, depth_x, ureg_src(depth), ureg_imm1u(ureg, 8));
+         else
+            ureg_AND(ureg, depth_x, ureg_src(depth), ureg_imm1u(ureg, 0xffffff));
+      }
+
+      if (has_stencil) {
+         /* Load stencil. */
+         stencil_sampler = ureg_DECL_sampler(ureg, 1);
+         ureg_DECL_sampler_view(ureg, 0, tex_target,
+                                TGSI_RETURN_TYPE_UINT,
+                                TGSI_RETURN_TYPE_UINT,
+                                TGSI_RETURN_TYPE_UINT,
+                                TGSI_RETURN_TYPE_UINT);
+
+         stencil = ureg_writemask(ureg_DECL_temporary(ureg), TGSI_WRITEMASK_X);
+         ureg_load_tex(ureg, stencil, coord, stencil_sampler, tex_target,
+                       true, true);
+
+         /* Pack stencil into depth. */
+         if (is_z24) {
+            if (!z24_is_high)
+               ureg_SHL(ureg, stencil, ureg_src(stencil), ureg_imm1u(ureg, 24));
+
+            ureg_OR(ureg, depth_x, ureg_src(depth), ureg_src(stencil));
+         }
+      }
+
+      out = ureg_DECL_output(ureg, TGSI_SEMANTIC_COLOR, 0);
+
+      if (is_z24) {
+         ureg_MOV(ureg, ureg_writemask(out, TGSI_WRITEMASK_X), ureg_src(depth));
+      } else {
+         /* Z32_S8X24 */
+         ureg_MOV(ureg, ureg_writemask(depth, TGSI_WRITEMASK_Y),
+                  ureg_scalar(ureg_src(stencil), TGSI_SWIZZLE_X));
+         ureg_MOV(ureg, ureg_writemask(out, TGSI_WRITEMASK_XY), ureg_src(depth));
+      }
+   } else {
+      color_sampler = ureg_DECL_sampler(ureg, 0);
+      ureg_DECL_sampler_view(ureg, 0, tex_target,
+                             TGSI_RETURN_TYPE_UINT,
+                             TGSI_RETURN_TYPE_UINT,
+                             TGSI_RETURN_TYPE_UINT,
+                             TGSI_RETURN_TYPE_UINT);
+
+      color = ureg_DECL_temporary(ureg);
+      ureg_load_tex(ureg, color, coord, color_sampler, tex_target, true, true);
+
+      depth = ureg_writemask(ureg_DECL_temporary(ureg), TGSI_WRITEMASK_X);
+      stencil = ureg_writemask(ureg_DECL_temporary(ureg), TGSI_WRITEMASK_X);
+
+      if (is_z24) {
+         double imm = 1.0 / 0xffffff;
+         struct ureg_src imm_f64 = ureg_DECL_immediate_f64(ureg, &imm, 2);
+         struct ureg_dst tmp_xy = ureg_writemask(ureg_DECL_temporary(ureg),
+                                                 TGSI_WRITEMASK_XY);
+
+         ureg_UBFE(ureg, depth, ureg_src(color),
+                   ureg_imm1u(ureg, z24_is_high ? 8 : 0),
+                   ureg_imm1u(ureg, 24));
+         ureg_U2D(ureg, tmp_xy, ureg_src(depth));
+         ureg_DMUL(ureg, tmp_xy, ureg_src(tmp_xy), imm_f64);
+         ureg_D2F(ureg, depth, ureg_src(tmp_xy));
+      } else {
+         /* depth = color.x; (Z32_S8X24) */
+         ureg_MOV(ureg, depth, ureg_src(color));
+      }
+
+      out_depth = ureg_DECL_output(ureg, TGSI_SEMANTIC_POSITION, 0);
+      ureg_MOV(ureg, ureg_writemask(out_depth, TGSI_WRITEMASK_Z),
+               ureg_scalar(ureg_src(depth), TGSI_SWIZZLE_X));
+
+      if (has_stencil) {
+         if (is_z24) {
+            ureg_UBFE(ureg, stencil, ureg_src(color),
+                      ureg_imm1u(ureg, z24_is_high ? 0 : 24),
+                      ureg_imm1u(ureg, 8));
+         } else {
+            /* stencil = color.y[0:7]; (Z32_S8X24) */
+            ureg_UBFE(ureg, stencil,
+                      ureg_scalar(ureg_src(color), TGSI_SWIZZLE_Y),
+                      ureg_imm1u(ureg, 0),
+                      ureg_imm1u(ureg, 8));
+         }
+
+         out_stencil = ureg_DECL_output(ureg, TGSI_SEMANTIC_STENCIL, 0);
+         ureg_MOV(ureg, ureg_writemask(out_stencil, TGSI_WRITEMASK_Y),
+                  ureg_scalar(ureg_src(stencil), TGSI_SWIZZLE_X));
+      }
+   }
+
+   ureg_END(ureg);
+
+   return ureg_create_shader_and_destroy(ureg, pipe);
+}

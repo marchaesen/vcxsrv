@@ -97,7 +97,7 @@ Specifies the input method.
 Specifies the variable length argument list to set XIC values.
 .SH DESCRIPTION
 The
-.ZN XCreateIC 
+.B XCreateIC
 function creates a context within the specified input method.
 .LP
 Some of the arguments are mandatory at creation time, and
@@ -106,47 +106,47 @@ The mandatory arguments are the input style and the set of text callbacks
 (if the input style selected requires callbacks).
 All other input context values can be set later.
 .LP
-.ZN XCreateIC
+.B XCreateIC
 returns a NULL value if no input context could be created.
 A NULL value could be returned for any of the following reasons:
 .IP \(bu 5
 A required argument was not set.
 .IP \(bu 5
 A read-only argument was set (for example,
-.ZN XNFilterEvents ).
+.BR XNFilterEvents ).
 .IP \(bu 5
 The argument name is not recognized.
 .IP \(bu 5
 The input method encountered an input method implementation-dependent error.
 .LP
 The
-.ZN XCreateIC
+.B XCreateIC
 can generate
-.ZN BadAtom ,
-.ZN BadColor ,
-.ZN BadPixmap ,
+.BR BadAtom ,
+.BR BadColor ,
+.BR BadPixmap ,
 and
-.ZN BadWindow
+.B BadWindow
 errors.
 .LP
-.ZN XDestroyIC
+.B XDestroyIC
 destroys the specified input context.
 .LP
 The
-.ZN XIMOfIC
+.B XIMOfIC
 function returns the input method associated with the specified input context.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAtom
+.B BadAtom
 A value for an Atom argument does not name a defined Atom.
 .TP 1i
-.ZN BadColor
+.B BadColor
 A value for a Colormap argument does not name a defined Colormap.
 .TP 1i
-.ZN BadPixmap
+.B BadPixmap
 A value for a Pixmap argument does not name a defined Pixmap.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XOpenIM(__libmansuffix__),

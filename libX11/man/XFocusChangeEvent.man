@@ -83,9 +83,9 @@
 XFocusChangeEvent \- FocusIn and FocusOut event structure
 .SH STRUCTURES
 The structure for
-.ZN FocusIn  
+.B FocusIn
 and
-.ZN FocusOut
+.B FocusOut
 events contains:
 .LP
 .Ds 0
@@ -113,16 +113,16 @@ the structure members are set as follows.
 The type member is set to the event type constant name that uniquely identifies
 it.
 For example, when the X server reports a
-.ZN GraphicsExpose
+.B GraphicsExpose
 event to a client application, it sends an
-.ZN XGraphicsExposeEvent
+.B XGraphicsExposeEvent
 structure with the type member set to
-.ZN GraphicsExpose .
+.BR GraphicsExpose .
 The display member is set to a pointer to the display the event was read on.
 The send_event member is set to
-.ZN True
+.B True
 if the event came from a
-.ZN SendEvent
+.B SendEvent
 protocol request.
 The serial member is set from the serial number reported in the protocol
 but expanded from the 16-bit least-significant bits to a full 32-bit value.
@@ -130,9 +130,9 @@ The window member is set to the window that is most useful to toolkit
 dispatchers.
 .LP
 The window member is set to the window on which the
-.ZN FocusIn
+.B FocusIn
 or
-.ZN FocusOut
+.B FocusOut
 event was generated.
 This is the window used by the X server to report the event. 
 The mode member is set to indicate whether the focus events 
@@ -141,38 +141,38 @@ focus events while grabbed,
 focus events
 when a grab activates, or focus events when a grab deactivates.
 The X server can set the mode member to 
-.ZN NotifyNormal ,
-.ZN NotifyWhileGrabbed ,
-.ZN NotifyGrab ,
+.BR NotifyNormal ,
+.BR NotifyWhileGrabbed ,
+.BR NotifyGrab ,
 or
-.ZN NotifyUngrab .
+.BR NotifyUngrab .
 .LP
 All 
-.ZN FocusOut
+.B FocusOut
 events caused by a window unmap are generated after any
-.ZN UnmapNotify
+.B UnmapNotify
 event; however, the X protocol does not constrain the ordering of 
-.ZN FocusOut
+.B FocusOut
 events with respect to
 generated 
-.ZN EnterNotify ,
-.ZN LeaveNotify ,
-.ZN VisibilityNotify ,
+.BR EnterNotify ,
+.BR LeaveNotify ,
+.BR VisibilityNotify ,
 and
-.ZN Expose
+.B Expose
 events.
 .LP
 Depending on the event mode,
 the detail member is set to indicate the notify detail and can be
-.ZN NotifyAncestor ,
-.ZN NotifyVirtual ,
-.ZN NotifyInferior ,
-.ZN NotifyNonlinear ,
-.ZN NotifyNonlinearVirtual ,
-.ZN NotifyPointer ,
-.ZN NotifyPointerRoot ,
+.BR NotifyAncestor ,
+.BR NotifyVirtual ,
+.BR NotifyInferior ,
+.BR NotifyNonlinear ,
+.BR NotifyNonlinearVirtual ,
+.BR NotifyPointer ,
+.BR NotifyPointerRoot ,
 or
-.ZN NotifyDetailNone .
+.BR NotifyDetailNone .
 .SH "SEE ALSO"
 XAnyEvent(__libmansuffix__),
 XButtonEvent(__libmansuffix__),

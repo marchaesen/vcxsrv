@@ -4,8 +4,7 @@ if GLX
 GLXMODS = libglx.la
 endif
 
-module_LTLIBRARIES = libfb.la \
-                     libwfb.la \
+module_LTLIBRARIES = libwfb.la \
                      libshadow.la
 
 extsmoduledir = $(moduledir)/extensions
@@ -16,11 +15,6 @@ AM_CPPFLAGS = @XORG_INCS@ \
            -I$(top_srcdir)/hw/xfree86/loader \
            -I$(top_srcdir)/miext/shadow \
            -I$(top_srcdir)/glx
-
-libfb_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
-libfb_la_LIBADD = $(top_builddir)/fb/libfb.la
-libfb_la_SOURCES = fbmodule.c
-libfb_la_CFLAGS = $(AM_CFLAGS)
 
 libwfb_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 libwfb_la_LIBADD = $(top_builddir)/fb/libwfb.la

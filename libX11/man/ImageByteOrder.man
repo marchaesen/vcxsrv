@@ -109,59 +109,59 @@ Returns the number of pixmap formats that are supported by the display.
 Specifies the appropriate screen number on the host server.
 .SH DESCRIPTION
 The
-.ZN XListPixmapFormats
+.B XListPixmapFormats
 function returns an array of
-.ZN XPixmapFormatValues
+.B XPixmapFormatValues
 structures that describe the types of Z format images supported
 by the specified display.
 If insufficient memory is available,
-.ZN XListPixmapFormats
+.B XListPixmapFormats
 returns NULL.
 To free the allocated storage for the
-.ZN XPixmapFormatValues
+.B XPixmapFormatValues
 structures, use
-.ZN XFree .
+.BR XFree .
 .LP
 The
-.ZN ImageByteOrder
+.B ImageByteOrder
 macro specifies the required byte order for images for each scanline unit in
 XY format (bitmap) or for each pixel value in Z format.
 .LP
 The
-.ZN BitmapBitOrder
+.B BitmapBitOrder
 macro returns 
-.ZN LSBFirst
+.B LSBFirst
 or
-.ZN MSBFirst
+.B MSBFirst
 to indicate whether the leftmost bit in the bitmap as displayed
 on the screen is the least or most significant bit in the unit.
 .LP
 The
-.ZN BitmapPad
+.B BitmapPad
 macro returns the number of bits that each scanline must be padded.
 .LP
 The
-.ZN BitmapUnit
+.B BitmapUnit
 macro returns the size of a bitmap's scanline unit in bits.
 .LP
 The
-.ZN DisplayHeight
+.B DisplayHeight
 macro returns the height of the specified screen in pixels.
 .LP
 The
-.ZN DisplayHeightMM
+.B DisplayHeightMM
 macro returns the height of the specified screen in millimeters.
 .LP
 The
-.ZN DisplayWidth
+.B DisplayWidth
 macro returns the width of the screen in pixels.
 .LP
 The
-.ZN DisplayWidthMM
+.B DisplayWidthMM
 macro returns the width of the specified screen in millimeters.
 .SH STRUCTURES
 The
-.ZN XPixmapFormatValues
+.B XPixmapFormatValues
 structure provides an interface to the pixmap format information
 that is returned at the time of a connection setup.
 It contains:

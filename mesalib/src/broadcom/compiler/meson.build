@@ -37,6 +37,7 @@ libbroadcom_compiler_files = files(
   'v3d_compiler.h',
   'v3d_nir_lower_io.c',
   'v3d_nir_lower_image_load_store.c',
+  'v3d_nir_lower_logic_ops.c',
   'v3d_nir_lower_scratch.c',
   'v3d_nir_lower_txf_ms.c',
 )

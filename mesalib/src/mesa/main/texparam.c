@@ -1884,6 +1884,28 @@ _mesa_GetTextureLevelParameterfv(GLuint texture, GLint level,
 }
 
 void GLAPIENTRY
+_mesa_GetTextureLevelParameterfvEXT(GLuint texture, GLenum target, GLint level,
+                                    GLenum pname, GLfloat *params)
+{
+   struct gl_texture_object *texObj;
+   GLint iparam;
+   GET_CURRENT_CONTEXT(ctx);
+
+   texObj = _mesa_lookup_or_create_texture(ctx, target, texture, false, true,
+                                           "glGetTextureLevelParameterfvEXT");
+   if (!texObj)
+      return;
+
+   if (!valid_tex_level_parameteriv_target(ctx, texObj->Target, true))
+      return;
+
+   get_tex_level_parameteriv(ctx, texObj, texObj->Target, level,
+                             pname, &iparam, true);
+
+   *params = (GLfloat) iparam;
+}
+
+void GLAPIENTRY
 _mesa_GetTextureLevelParameteriv(GLuint texture, GLint level,
                                  GLenum pname, GLint *params)
 {
@@ -1901,6 +1923,26 @@ _mesa_GetTextureLevelParameteriv(GLuint texture, GLint level,
    get_tex_level_parameteriv(ctx, texObj, texObj->Target, level,
                              pname, params, true);
 }
+
+void GLAPIENTRY
+_mesa_GetTextureLevelParameterivEXT(GLuint texture, GLenum target, GLint level,
+                                    GLenum pname, GLint *params)
+{
+   struct gl_texture_object *texObj;
+   GET_CURRENT_CONTEXT(ctx);
+
+   texObj = _mesa_lookup_or_create_texture(ctx, target, texture, false, true,
+                                           "glGetTextureLevelParameterivEXT");
+   if (!texObj)
+      return;
+
+   if (!valid_tex_level_parameteriv_target(ctx, texObj->Target, true))
+      return;
+
+   get_tex_level_parameteriv(ctx, texObj, texObj->Target, level,
+                             pname, params, true);
+}
+
 
 /**
  * This isn't exposed to the rest of the driver because it is a part of the

@@ -118,7 +118,9 @@ void ac_dump_reg(FILE *file, enum chip_class chip_class, unsigned offset,
 {
 	const struct si_reg *reg = NULL;
 
-	if (chip_class >= GFX9)
+	if (chip_class >= GFX10)
+		reg = find_register(gfx10_reg_table, ARRAY_SIZE(gfx10_reg_table), offset);
+	else if (chip_class >= GFX9)
 		reg = find_register(gfx9_reg_table, ARRAY_SIZE(gfx9_reg_table), offset);
 	else if (chip_class >= GFX8)
 		reg = find_register(gfx8_reg_table, ARRAY_SIZE(gfx8_reg_table), offset);
@@ -269,6 +271,8 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
 		ac_dump_reg(f, ib->chip_class, R_0301F8_CP_COHER_BASE, ac_ib_get(ib), ~0);
 		ac_dump_reg(f, ib->chip_class, R_0301E4_CP_COHER_BASE_HI, ac_ib_get(ib), ~0);
 		print_named_value(f, "POLL_INTERVAL", ac_ib_get(ib), 16);
+		if (ib->chip_class >= GFX10)
+			ac_dump_reg(f, ib->chip_class, R_586_GCR_CNTL, ac_ib_get(ib), ~0);
 		break;
 	case PKT3_SURFACE_SYNC:
 		if (ib->chip_class >= GFX7) {
@@ -316,17 +320,21 @@ static void ac_parse_packet3(FILE *f, uint32_t header, struct ac_ib_parser *ib,
 	}
 	case PKT3_RELEASE_MEM: {
 		uint32_t event_dw = ac_ib_get(ib);
-		ac_dump_reg(f, ib->chip_class, R_028A90_VGT_EVENT_INITIATOR, event_dw,
-			    S_028A90_EVENT_TYPE(~0));
-		print_named_value(f, "EVENT_INDEX", (event_dw >> 8) & 0xf, 4);
-		print_named_value(f, "TCL1_VOL_ACTION_ENA", (event_dw >> 12) & 0x1, 1);
-		print_named_value(f, "TC_VOL_ACTION_ENA", (event_dw >> 13) & 0x1, 1);
-		print_named_value(f, "TC_WB_ACTION_ENA", (event_dw >> 15) & 0x1, 1);
-		print_named_value(f, "TCL1_ACTION_ENA", (event_dw >> 16) & 0x1, 1);
-		print_named_value(f, "TC_ACTION_ENA", (event_dw >> 17) & 0x1, 1);
-		print_named_value(f, "TC_NC_ACTION_ENA", (event_dw >> 19) & 0x1, 1);
-		print_named_value(f, "TC_WC_ACTION_ENA", (event_dw >> 20) & 0x1, 1);
-		print_named_value(f, "TC_MD_ACTION_ENA", (event_dw >> 21) & 0x1, 1);
+		if (ib->chip_class >= GFX10) {
+			ac_dump_reg(f, ib->chip_class, R_490_RELEASE_MEM_OP, event_dw, ~0u);
+		} else {
+			ac_dump_reg(f, ib->chip_class, R_028A90_VGT_EVENT_INITIATOR, event_dw,
+				    S_028A90_EVENT_TYPE(~0));
+			print_named_value(f, "EVENT_INDEX", (event_dw >> 8) & 0xf, 4);
+			print_named_value(f, "TCL1_VOL_ACTION_ENA", (event_dw >> 12) & 0x1, 1);
+			print_named_value(f, "TC_VOL_ACTION_ENA", (event_dw >> 13) & 0x1, 1);
+			print_named_value(f, "TC_WB_ACTION_ENA", (event_dw >> 15) & 0x1, 1);
+			print_named_value(f, "TCL1_ACTION_ENA", (event_dw >> 16) & 0x1, 1);
+			print_named_value(f, "TC_ACTION_ENA", (event_dw >> 17) & 0x1, 1);
+			print_named_value(f, "TC_NC_ACTION_ENA", (event_dw >> 19) & 0x1, 1);
+			print_named_value(f, "TC_WC_ACTION_ENA", (event_dw >> 20) & 0x1, 1);
+			print_named_value(f, "TC_MD_ACTION_ENA", (event_dw >> 21) & 0x1, 1);
+		}
 		uint32_t sel_dw = ac_ib_get(ib);
 		print_named_value(f, "DST_SEL", (sel_dw >> 16) & 0x3, 2);
 		print_named_value(f, "INT_SEL", (sel_dw >> 24) & 0x7, 3);
@@ -534,7 +542,7 @@ static void format_ib_output(FILE *f, char *out)
 		if (indent)
 			print_spaces(f, indent);
 
-		char *end = util_strchrnul(out, '\n');
+		char *end = strchrnul(out, '\n');
 		fwrite(out, end - out, 1, f);
 		fputc('\n', f); /* always end with a new line */
 		if (!*end)
@@ -761,12 +769,15 @@ static int compare_wave(const void *p1, const void *p2)
 }
 
 /* Return wave information. "waves" should be a large enough array. */
-unsigned ac_get_wave_info(struct ac_wave_info waves[AC_MAX_WAVES_PER_CHIP])
+unsigned ac_get_wave_info(enum chip_class chip_class,
+			  struct ac_wave_info waves[AC_MAX_WAVES_PER_CHIP])
 {
-	char line[2000];
+	char line[2000], cmd[128];
 	unsigned num_waves = 0;
 
-	FILE *p = popen("umr -O halt_waves -wa", "r");
+	sprintf(cmd, "umr -O halt_waves -wa %s", chip_class >= GFX10 ? "gfx_0.0.0" : "gfx");
+
+	FILE *p = popen(cmd, "r");
 	if (!p)
 		return 0;
 

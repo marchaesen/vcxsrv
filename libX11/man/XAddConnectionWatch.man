@@ -112,25 +112,25 @@ Returns the file descriptors.
 Specifies the procedure to be called.
 .SH DESCRIPTION
 The
-.ZN XAddConnectionWatch
+.B XAddConnectionWatch
 function registers a procedure to be called each time Xlib opens or closes an
 internal connection for the specified display.  The procedure is passed the
 display, the specified client_data, the file descriptor for the connection,
 a Boolean indicating whether the connection is being opened or closed, and a
 pointer to a location for private watch data.  If opening is
-.ZN True ,
+.BR True ,
 the procedure can store a pointer to private data in the location pointed
 to by watch_data;
 when the procedure is later called for this same connection and opening is
-.ZN False ,
+.BR False ,
 the location pointed to by watch_data will hold this same private data pointer.
 .LP
 This function can be called at any time after a display is opened.
 If internal connections already exist, the registered procedure will
 immediately be called for each of them, before
-.ZN XAddConnectionWatch
+.B XAddConnectionWatch
 returns.
-.ZN XAddConnectionWatch
+.B XAddConnectionWatch
 returns a nonzero status if the procedure is successfully registered;
 otherwise, it returns zero.
 .LP
@@ -141,33 +141,33 @@ If Xlib has been initialized for threads, the procedure is called with
 the display locked and the result of a call by the procedure to any
 Xlib function that locks the display is not defined unless the executing
 thread has externally locked the display using
-.ZN XLockDisplay .
+.BR XLockDisplay .
 .LP
 The
-.ZN XRemoveConnectionWatch
+.B XRemoveConnectionWatch
 function removes a previously registered connection watch procedure.
 The client_data must match the client_data used when the procedure
 was initially registered.
 
 .LP
 The
-.ZN XProcessInternalConnection
+.B XProcessInternalConnection
 function processes input available on an internal connection.
 This function should be called for an internal connection only
 after an operating system facility (for example,
-.ZN select
+.B select
 or
-.ZN poll )
+.BR poll )
 has indicated that input is available; otherwise,
 the effect is not defined.
 .LP
 The
-.ZN XInternalConnectionNumbers
+.B XInternalConnectionNumbers
 function returns a list of the file descriptors for all internal
 connections currently open for the specified display.
 When the allocated list is no longer needed,
 free it by using
-.ZN XFree .
+.BR XFree .
 This functions returns a nonzero status if the list is successfully allocated;
 otherwise, it returns zero.
 .SH "SEE ALSO"

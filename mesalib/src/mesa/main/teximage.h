@@ -261,18 +261,32 @@ _mesa_TexImage1D( GLenum target, GLint level, GLint internalformat,
                   GLsizei width, GLint border,
                   GLenum format, GLenum type, const GLvoid *pixels );
 
+extern void GLAPIENTRY
+_mesa_TextureImage1DEXT( GLuint texture, GLenum target, GLint level,
+                         GLint internalformat, GLsizei width, GLint border,
+                         GLenum format, GLenum type, const GLvoid *pixels );
 
 extern void GLAPIENTRY
 _mesa_TexImage2D( GLenum target, GLint level, GLint internalformat,
                   GLsizei width, GLsizei height, GLint border,
                   GLenum format, GLenum type, const GLvoid *pixels );
 
+extern void GLAPIENTRY
+_mesa_TextureImage2DEXT( GLuint texture, GLenum target, GLint level,
+                         GLint internalformat, GLsizei width, GLsizei height,
+                         GLint border, GLenum format, GLenum type,
+                         const GLvoid *pixels );
 
 extern void GLAPIENTRY
 _mesa_TexImage3D( GLenum target, GLint level, GLint internalformat,
                   GLsizei width, GLsizei height, GLsizei depth, GLint border,
                   GLenum format, GLenum type, const GLvoid *pixels );
 
+extern void GLAPIENTRY
+_mesa_TextureImage3DEXT( GLuint texture, GLenum target, GLint level,
+                         GLint internalformat, GLsizei width, GLsizei height,
+                         GLsizei depth, GLint border, GLenum format,
+                         GLenum type, const GLvoid *pixels );
 
 extern void GLAPIENTRY
 _mesa_TexImage3DEXT( GLenum target, GLint level, GLenum internalformat,
@@ -350,6 +364,12 @@ _mesa_TextureSubImage1D(GLuint texture, GLint level, GLint xoffset,
                         GLenum format, GLenum type,
                         const GLvoid *pixels);
 
+extern void GLAPIENTRY
+_mesa_TextureSubImage1DEXT(GLuint texture, GLenum target, GLint level,
+                        GLint xoffset, GLsizei width,
+                        GLenum format, GLenum type,
+                        const GLvoid *pixels);
+
 void GLAPIENTRY
 _mesa_TextureSubImage2DEXT(GLuint texture, GLenum target, GLint level,
                            GLint xoffset, GLint yoffset, GLsizei width,
@@ -382,6 +402,12 @@ _mesa_TextureSubImage3D(GLuint texture, GLint level,
                         GLenum format, GLenum type,
                         const GLvoid *pixels);
 
+extern void GLAPIENTRY
+_mesa_TextureSubImage3DEXT(GLuint texture, GLenum target,
+                        GLint level, GLint xoffset, GLint yoffset,
+                        GLint zoffset, GLsizei width, GLsizei height,
+                        GLsizei depth, GLenum format, GLenum type,
+                        const GLvoid *pixels);
 
 extern void GLAPIENTRY
 _mesa_CopyTexImage1D(GLenum target, GLint level, GLenum internalformat,
@@ -393,6 +419,15 @@ _mesa_CopyTexImage2D( GLenum target, GLint level,
                       GLenum internalformat, GLint x, GLint y,
                       GLsizei width, GLsizei height, GLint border );
 
+extern void GLAPIENTRY
+_mesa_CopyTextureImage1DEXT( GLuint texture, GLenum target, GLint level,
+                             GLenum internalformat, GLint x, GLint y,
+                             GLsizei width, GLint border);
+
+extern void GLAPIENTRY
+_mesa_CopyTextureImage2DEXT( GLuint texture, GLenum target, GLint level,
+                             GLenum internalformat, GLint x, GLint y,
+                             GLsizei width, GLsizei height, GLint border );
 
 extern void GLAPIENTRY
 _mesa_CopyTexImage1D_no_error(GLenum target, GLint level, GLenum internalformat,
@@ -426,16 +461,33 @@ _mesa_CopyTextureSubImage1D(GLuint texture, GLint level,
                             GLint xoffset, GLint x, GLint y, GLsizei width);
 
 extern void GLAPIENTRY
+_mesa_CopyTextureSubImage1DEXT(GLuint texture, GLenum target,
+                               GLint level, GLint xoffset, GLint x, GLint y,
+                               GLsizei width);
+
+extern void GLAPIENTRY
 _mesa_CopyTextureSubImage2D(GLuint texture, GLint level,
                             GLint xoffset, GLint yoffset,
                             GLint x, GLint y,
                             GLsizei width, GLsizei height);
 
 extern void GLAPIENTRY
+_mesa_CopyTextureSubImage2DEXT(GLuint texture, GLenum target, GLint level,
+                               GLint xoffset, GLint yoffset,
+                               GLint x, GLint y,
+                               GLsizei width, GLsizei height);
+
+extern void GLAPIENTRY
 _mesa_CopyTextureSubImage3D(GLuint texture, GLint level,
                             GLint xoffset, GLint yoffset, GLint zoffset,
                             GLint x, GLint y,
                             GLsizei width, GLsizei height);
+
+extern void GLAPIENTRY
+_mesa_CopyTextureSubImage3DEXT(GLuint texture, GLenum target, GLint level,
+                               GLint xoffset, GLint yoffset, GLint zoffset,
+                               GLint x, GLint y,
+                               GLsizei width, GLsizei height);
 
 extern void GLAPIENTRY
 _mesa_CopyTexSubImage1D_no_error(GLenum target, GLint level, GLint xoffset,

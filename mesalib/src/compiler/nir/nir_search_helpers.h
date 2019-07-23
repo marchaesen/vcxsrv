@@ -190,6 +190,30 @@ is_not_fmul(nir_alu_instr *instr, unsigned src,
 }
 
 static inline bool
+is_fsign(nir_alu_instr *instr, unsigned src,
+         UNUSED unsigned num_components, UNUSED const uint8_t *swizzle)
+{
+   nir_alu_instr *src_alu =
+      nir_src_as_alu_instr(instr->src[src].src);
+
+   if (src_alu == NULL)
+      return false;
+
+   if (src_alu->op == nir_op_fneg)
+      src_alu = nir_src_as_alu_instr(src_alu->src[0].src);
+
+   return src_alu->op == nir_op_fsign;
+}
+
+static inline bool
+is_not_const_and_not_fsign(nir_alu_instr *instr, unsigned src,
+                           unsigned num_components, const uint8_t *swizzle)
+{
+   return is_not_const(instr, src, num_components, swizzle) &&
+          !is_fsign(instr, src, num_components, swizzle);
+}
+
+static inline bool
 is_used_once(nir_alu_instr *instr)
 {
    bool zero_if_use = list_empty(&instr->dest.dest.ssa.if_uses);

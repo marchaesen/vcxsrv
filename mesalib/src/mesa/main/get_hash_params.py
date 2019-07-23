@@ -415,6 +415,9 @@ descriptor=[
 # GL_ARB_sampler_objects / GL 3.3 / GLES 3.0
   [ "SAMPLER_BINDING", "LOC_CUSTOM, TYPE_INT, GL_SAMPLER_BINDING, NO_EXTRA" ],
 
+# GL_ARB_spirv_extensions
+  [ "NUM_SPIR_V_EXTENSIONS", "LOC_CUSTOM, TYPE_INT, 0, extra_ARB_spirv_extensions" ],
+
 # GL_ARB_sync
   [ "MAX_SERVER_WAIT_TIMEOUT", "CONTEXT_INT64(Const.MaxServerWaitTimeout), extra_ARB_sync" ],
 

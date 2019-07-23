@@ -98,16 +98,16 @@ typedef struct {
 The type member is set to the event type constant name that uniquely identifies
 it.
 For example, when the X server reports a
-.ZN GraphicsExpose
+.B GraphicsExpose
 event to a client application, it sends an
-.ZN XGraphicsExposeEvent
+.B XGraphicsExposeEvent
 structure with the type member set to
-.ZN GraphicsExpose .
+.BR GraphicsExpose .
 The display member is set to a pointer to the display the event was read on.
 The send_event member is set to
-.ZN True
+.B True
 if the event came from a
-.ZN SendEvent
+.B SendEvent
 protocol request.
 The serial member is set from the serial number reported in the protocol
 but expanded from the 16-bit least-significant bits to a full 32-bit value.
@@ -115,7 +115,7 @@ The window member is set to the window that is most useful to toolkit
 dispatchers.
 .LP
 The
-.ZN XEvent
+.B XEvent
 structure is a union of the individual structures declared for each event type:
 .Ds 0
 typedef union _XEvent {
@@ -156,14 +156,14 @@ typedef union _XEvent {
 .De
 .LP
 An
-.ZN XEvent
+.B XEvent
 structure's first entry always is the type member,
 which is set to the event type.
 The second member always is the serial number of the protocol request
 that generated the event.
 The third member always is send_event,
 which is a
-.ZN Bool
+.B Bool
 that indicates if the event was sent by a different client.
 The fourth member always is a display,
 which is the display that the event was read from.

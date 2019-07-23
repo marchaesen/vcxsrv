@@ -116,6 +116,9 @@ typedef struct _WMInfo {
     xcb_atom_t atmPrivMap;
     xcb_atom_t atmUtf8String;
     xcb_atom_t atmNetWmName;
+    xcb_atom_t atmCurrentDesktop;
+    xcb_atom_t atmNumberDesktops;
+    xcb_atom_t atmDesktopNames;
     xcb_ewmh_connection_t ewmh;
     Bool fCompositeWM;
 } WMInfoRec, *WMInfoPtr;
@@ -222,11 +225,11 @@ MessageName(winWMMessagePtr msg)
     case WM_WM_CHANGE_STATE:
       return "WM_WM_CHANGE_STATE";
       break;
-    case WM_WM_MAP2:
-      return "WM_WM_MAP2";
+    case WM_WM_MAP_UNMANAGED:
+      return "WM_WM_MAP_UNMANAGED";
       break;
-    case WM_WM_MAP3:
-      return "WM_WM_MAP3";
+    case WM_WM_MAP_MANAGED:
+      return "WM_WM_MAP_MANAGED";
       break;
     case WM_WM_HINTS_EVENT:
       return "WM_WM_HINTS_EVENT";
@@ -842,7 +845,7 @@ winMultiWindowWMProc(void *pArg)
             }
             break;
 
-        case WM_WM_MAP2:
+        case WM_WM_MAP_UNMANAGED:
             /* Put a note as to the HWND associated with this Window */
             xcb_change_property(pWMInfo->conn, XCB_PROP_MODE_REPLACE,
                                 pNode->msg.iWindow, pWMInfo->atmPrivMap,
@@ -851,7 +854,7 @@ winMultiWindowWMProc(void *pArg)
 
             break;
 
-        case WM_WM_MAP3:
+        case WM_WM_MAP_MANAGED:
             /* Put a note as to the HWND associated with this Window */
             xcb_change_property(pWMInfo->conn, XCB_PROP_MODE_REPLACE,
                                 pNode->msg.iWindow, pWMInfo->atmPrivMap,
@@ -1461,6 +1464,8 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
     char pszDisplay[512];
     int iReturn;
     xcb_auth_info_t *auth_info;
+    xcb_screen_t *root_screen;
+    xcb_window_t root_window_id;
 
     winDebug("winInitMultiWindowWM - Hello\n");
 
@@ -1530,6 +1535,9 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
     pWMInfo->atmPrivMap = intern_atom(pWMInfo->conn, WINDOWSWM_NATIVE_HWND);
     pWMInfo->atmUtf8String = intern_atom(pWMInfo->conn, "UTF8_STRING");
     pWMInfo->atmNetWmName = intern_atom(pWMInfo->conn, "_NET_WM_NAME");
+    pWMInfo->atmCurrentDesktop = intern_atom(pWMInfo->conn, "_NET_CURRENT_DESKTOP");
+    pWMInfo->atmNumberDesktops = intern_atom(pWMInfo->conn, "_NET_NUMBER_OF_DESKTOPS");
+    pWMInfo->atmDesktopNames = intern_atom(pWMInfo->conn, "__NET_DESKTOP_NAMES");
 
     /* Initialization for the xcb_ewmh and EWMH atoms */
     {
@@ -1564,6 +1572,32 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
         }
     }
 
+    /* Get root window id */
+    root_screen = xcb_aux_get_screen(pWMInfo->conn, pProcArg->dwScreen);
+    root_window_id = root_screen->root;
+
+    /*
+      Set root window properties for describing multiple desktops to describe
+      the one desktop we have
+    */
+    {
+        int data;
+        const char buf[] = "Desktop";
+
+        data = 0;
+        xcb_change_property(pWMInfo->conn, XCB_PROP_MODE_REPLACE, root_window_id,
+                            pWMInfo->atmCurrentDesktop, XCB_ATOM_CARDINAL, 32,
+                            1, &data);
+        data = 1;
+        xcb_change_property(pWMInfo->conn, XCB_PROP_MODE_REPLACE, root_window_id,
+                            pWMInfo->atmNumberDesktops, XCB_ATOM_CARDINAL, 32,
+                            1, &data);
+
+        xcb_change_property(pWMInfo->conn, XCB_PROP_MODE_REPLACE, root_window_id,
+                            pWMInfo->atmDesktopNames, pWMInfo->atmUtf8String, 8,
+                            strlen(buf), (unsigned char *) buf);
+    }
+
     /*
       Set the root window cursor to left_ptr (this controls the cursor an
       application gets over it's windows when it doesn't set one)
@@ -1577,9 +1611,6 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
         uint32_t mask = XCB_CW_CURSOR;
         uint32_t value_list = cursor;
 
-        xcb_screen_t *root_screen = xcb_aux_get_screen(pWMInfo->conn, pProcArg->dwScreen);
-        xcb_window_t window = root_screen->root;
-
         static const uint16_t fgred = 0, fggreen = 0, fgblue = 0;
         static const uint16_t bgred = 0xFFFF, bggreen = 0xFFFF, bgblue = 0xFFFF;
 
@@ -1589,7 +1620,7 @@ winInitMultiWindowWM(WMInfoPtr pWMInfo, WMProcArgPtr pProcArg)
                                 shape, shape + 1,
                                 fgred, fggreen, fgblue, bgred, bggreen, bgblue);
 
-        xcb_change_window_attributes(pWMInfo->conn, window, mask, &value_list);
+        xcb_change_window_attributes(pWMInfo->conn, root_window_id, mask, &value_list);
 
         xcb_free_cursor(pWMInfo->conn, cursor);
         xcb_close_font(pWMInfo->conn, font);

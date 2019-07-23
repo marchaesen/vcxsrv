@@ -104,7 +104,7 @@ Specifies the connection to the X server.
 Specifies the size hints for the window in its normal state.
 .IP \fIhints\fP 1i
 Specifies the
-.ZN XSizeHints
+.B XSizeHints
 structure to be used.
 .IP \fIhints_return\fP 1i
 Returns the size hints for the window in its normal state.
@@ -116,53 +116,53 @@ Returns the hints that were supplied by the user.
 Specifies the window.
 .SH DESCRIPTION
 The
-.ZN XAllocSizeHints
+.B XAllocSizeHints
 function allocates and returns a pointer to a
-.ZN XSizeHints
+.B XSizeHints
 structure.
 Note that all fields in the
-.ZN XSizeHints
+.B XSizeHints
 structure are initially set to zero.
 If insufficient memory is available, 
-.ZN XAllocSizeHints
+.B XAllocSizeHints
 returns NULL.
 To free the memory allocated to this structure,
 use
-.ZN XFree .
+.BR XFree .
 .LP
 The 
-.ZN XSetWMNormalHints 
+.B XSetWMNormalHints
 function replaces the size hints for the WM_NORMAL_HINTS property 
 on the specified window.
 If the property does not already exist,
-.ZN XSetWMNormalHints
+.B XSetWMNormalHints
 sets the size hints for the WM_NORMAL_HINTS property on the specified window.
 The property is stored with a type of WM_SIZE_HINTS and a format of 32.
 .LP
-.ZN XSetWMNormalHints
+.B XSetWMNormalHints
 can generate
-.ZN BadAlloc
+.B BadAlloc
 and
-.ZN BadWindow
+.B BadWindow
 errors.
 .LP
 The 
-.ZN XGetWMNormalHints 
+.B XGetWMNormalHints
 function returns the size hints stored in the WM_NORMAL_HINTS property 
 on the specified window.
 If the property is of type WM_SIZE_HINTS, is of format 32,
 and is long enough to contain either an old (pre-ICCCM) 
 or new size hints structure, 
-.ZN XGetWMNormalHints
+.B XGetWMNormalHints
 sets the various fields of the 
-.ZN XSizeHints
+.B XSizeHints
 structure, sets the supplied_return argument to the list of fields 
 that were supplied by the user (whether or not they contained defined values),
 and returns a nonzero status.
 Otherwise, it returns a zero status.
 .LP
 If 
-.ZN XGetWMNormalHints
+.B XGetWMNormalHints
 returns successfully and a pre-ICCCM size hints property is read, 
 the supplied_return argument will contain the following bits:
 .LP
@@ -179,43 +179,43 @@ the supplied_return argument will also contain the following bits:
 PBaseSize|PWinGravity
 .De
 .LP
-.ZN XGetWMNormalHints
+.B XGetWMNormalHints
 can generate a
 PN BadWindow
 error.
 .LP
 The 
-.ZN XSetWMSizeHints 
+.B XSetWMSizeHints
 function replaces the size hints for the specified property 
 on the named window.
 If the specified property does not already exist,
-.ZN XSetWMSizeHints
+.B XSetWMSizeHints
 sets the size hints for the specified property
 on the named window.
 The property is stored with a type of WM_SIZE_HINTS and a format of 32.
 To set a window's normal size hints, 
 you can use the 
-.ZN XSetWMNormalHints
+.B XSetWMNormalHints
 function.
 .LP
-.ZN XSetWMSizeHints
+.B XSetWMSizeHints
 can generate
-.ZN BadAlloc ,
-.ZN BadAtom ,
+.BR BadAlloc ,
+.BR BadAtom ,
 and
-.ZN BadWindow
+.B BadWindow
 errors.
 .LP
 The 
-.ZN XGetWMSizeHints
+.B XGetWMSizeHints
 function returns the size hints stored in the specified property 
 on the named window.
 If the property is of type WM_SIZE_HINTS, is of format 32, 
 and is long enough to contain either an old (pre-ICCCM) 
 or new size hints structure, 
-.ZN XGetWMSizeHints
+.B XGetWMSizeHints
 sets the various fields of the 
-.ZN XSizeHints
+.B XSizeHints
 structure, sets the supplied_return argument to the
 list of fields that were supplied by the user 
 (whether or not they contained defined values), 
@@ -223,11 +223,11 @@ and returns a nonzero status.
 Otherwise, it returns a zero status.
 To get a window's normal size hints, 
 you can use the 
-.ZN XGetWMNormalHints 
+.B XGetWMNormalHints
 function.
 .LP
 If 
-.ZN XGetWMSizeHints
+.B XGetWMSizeHints
 returns successfully and a pre-ICCCM size hints property is read, 
 the supplied_return argument will contain the following bits:
 .LP
@@ -244,21 +244,21 @@ the supplied_return argument will also contain the following bits:
 PBaseSize|PWinGravity
 .De
 .LP
-.ZN XGetWMSizeHints
+.B XGetWMSizeHints
 can generate
-.ZN BadAtom
+.B BadAtom
 and
-.ZN BadWindow
+.B BadWindow
 errors.
 .SH PROPERTIES
 .TP 1i
 \s-1WM_NORMAL_HINTS\s+1
 Size hints for a window in its normal state.
 The C type of this property is
-.ZN XSizeHints .
+.BR XSizeHints .
 .SH STRUCTURES
 The
-.ZN XSizeHints
+.B XSizeHints
 structure contains:
 .LP
 /\&* Size hints mask bits */
@@ -267,7 +267,7 @@ lw(.5i) lw(1.1i) lw(1.5i) lw(3.1i).
 T{
 \&#define
 T}	T{
-.ZN USPosition
+.B USPosition
 T}	T{
 (1L << 0)
 T}	T{
@@ -276,7 +276,7 @@ T}
 T{
 \&#define
 T}	T{
-.ZN USSize
+.B USSize
 T}	T{
 (1L << 1)
 T}	T{
@@ -285,7 +285,7 @@ T}
 T{
 \&#define
 T}	T{
-.ZN PPosition
+.B PPosition
 T}	T{
 (1L << 2)
 T}	T{
@@ -294,7 +294,7 @@ T}
 T{
 \&#define
 T}	T{
-.ZN PSize
+.B PSize
 T}	T{
 (1L << 3)
 T}	T{
@@ -303,7 +303,7 @@ T}
 T{
 \&#define
 T}	T{
-.ZN PMinSize
+.B PMinSize
 T}	T{
 (1L << 4)
 T}	T{
@@ -312,7 +312,7 @@ T}
 T{
 \&#define
 T}	T{
-.ZN PMaxSize
+.B PMaxSize
 T}	T{
 (1L << 5)
 T}	T{
@@ -321,7 +321,7 @@ T}
 T{
 \&#define
 T}	T{
-.ZN PResizeInc
+.B PResizeInc
 T}	T{
 (1L << 6)
 T}	T{
@@ -330,7 +330,7 @@ T}
 T{
 \&#define
 T}	T{
-.ZN PAspect
+.B PAspect
 T}	T{
 (1L << 7)
 T}	T{
@@ -339,21 +339,21 @@ T}
 T{
 \&#define
 T}	T{
-.ZN PBaseSize
+.B PBaseSize
 T}	T{
 (1L << 8)
 T}
 T{
 \&#define
 T}	T{
-.ZN PWinGravity
+.B PWinGravity
 T}	T{
 (1L << 9)
 T}
 T{
 \&#define
 T}	T{
-.ZN PAllHints
+.B PAllHints
 T}	T{
 (PPosition|PSize|
 .br
@@ -408,17 +408,17 @@ will be placed where the client window would have been placed
 in the absence of a window manager.
 .LP
 Note that use of the
-.ZN PAllHints
+.B PAllHints
 macro is highly discouraged.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadAtom
+.B BadAtom
 A value for an Atom argument does not name a defined Atom.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XAllocClassHint(__libmansuffix__),

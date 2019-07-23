@@ -1830,7 +1830,7 @@ _mesa_unpack_astc_2d_ldr(uint8_t *dst_row,
                          mesa_format format)
 {
    assert(_mesa_is_format_astc_2d(format));
-   bool srgb = _mesa_get_format_color_encoding(format) == GL_SRGB;
+   bool srgb = _mesa_is_format_srgb(format);
 
    unsigned blk_w, blk_h;
    _mesa_get_format_block_size(format, &blk_w, &blk_h);

@@ -185,6 +185,7 @@ st_vdpau_map_surface(struct gl_context *ctx, GLenum target, GLenum access,
                      const void *vdpSurface, GLuint index)
 {
    struct st_context *st = st_context(ctx);
+   struct pipe_screen *screen = st->pipe->screen;
    struct st_texture_object *stObj = st_texture_object(texObj);
    struct st_texture_image *stImage = st_texture_image(texImage);
 
@@ -207,15 +208,26 @@ st_vdpau_map_surface(struct gl_context *ctx, GLenum target, GLenum access,
       }
    }
 
-   if (!res) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "VDPAUMapSurfacesNV");
-      return;
+   /* If the resource is from a different screen, try re-importing it */
+   if (res && res->screen != screen) {
+      struct pipe_resource *new_res = NULL;
+      struct winsys_handle whandle = { .type = WINSYS_HANDLE_TYPE_FD };
+      unsigned usage = PIPE_HANDLE_USAGE_FRAMEBUFFER_WRITE;
+
+      if (screen->get_param(screen, PIPE_CAP_DMABUF) &&
+          res->screen->get_param(res->screen, PIPE_CAP_DMABUF) &&
+          res->screen->resource_get_handle(res->screen, NULL, res, &whandle,
+                                           usage)) {
+         new_res = screen->resource_from_handle(screen, res, &whandle, usage);
+         close(whandle.handle);
+      }
+
+      pipe_resource_reference(&res, NULL);
+      res = new_res;
    }
 
-   /* do we have different screen objects ? */
-   if (res->screen != st->pipe->screen) {
+   if (!res) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "VDPAUMapSurfacesNV");
-      pipe_resource_reference(&res, NULL);
       return;
    }
 

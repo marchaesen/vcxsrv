@@ -58,6 +58,18 @@ is_two_src_comparison(const nir_alu_instr *instr)
 }
 
 static bool
+all_srcs_are_ssa(const nir_alu_instr *instr)
+{
+   for (unsigned i = 0; i < nir_op_infos[instr->op].num_inputs; i++) {
+      if (!instr->src[i].src.is_ssa)
+         return false;
+   }
+
+   return true;
+}
+
+
+static bool
 all_uses_are_bcsel(const nir_alu_instr *instr)
 {
    if (!instr->dest.dest.is_ssa)
@@ -94,6 +106,9 @@ nir_opt_rematerialize_compares_impl(nir_shader *shader, nir_function_impl *impl)
 
          nir_alu_instr *const alu = nir_instr_as_alu(instr);
          if (!is_two_src_comparison(alu))
+            continue;
+
+         if (!all_srcs_are_ssa(alu))
             continue;
 
          if (!all_uses_are_bcsel(alu))

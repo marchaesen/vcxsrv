@@ -104,36 +104,36 @@ Specifies a list of null-terminated character strings.
 Returns a list of null-terminated character strings.
 .IP \fItext_prop\fP 1i
 Specifies the
-.ZN XTextProperty
+.B XTextProperty
 structure to be used.
 .IP \fItext_prop_return\fP 1i
 Returns the
-.ZN XTextProperty
+.B XTextProperty
 structure.
 .SH DESCRIPTION
 The 
-.ZN XStringListToTextProperty 
+.B XStringListToTextProperty
 function sets the specified 
-.ZN XTextProperty
+.B XTextProperty
 to be of type STRING (format 8) with a value representing the
 concatenation of the specified list of null-separated character strings.
 An extra null byte (which is not included in the nitems member) 
 is stored at the end of the value field of text_prop_return.
 The strings are assumed (without verification) to be in the STRING encoding.
 If insufficient memory is available for the new value string, 
-.ZN XStringListToTextProperty
+.B XStringListToTextProperty
 does not set any fields in the
-.ZN XTextProperty
+.B XTextProperty
 structure and returns a zero status.
 Otherwise, it returns a nonzero status.
 To free the storage for the value field, use 
-.ZN XFree .
+.BR XFree .
 .LP
 The 
-.ZN XTextPropertyToStringList 
+.B XTextPropertyToStringList
 function returns a list of strings representing the null-separated elements 
 of the specified
-.ZN XTextProperty
+.B XTextProperty
 structure.
 The data in text_prop must be of type STRING and format 8. 
 Multiple elements of the property 
@@ -141,24 +141,24 @@ Multiple elements of the property
 are separated by NULL (encoding 0).
 The contents of the property are not null-terminated.
 If insufficient memory is available for the list and its elements, 
-.ZN XTextPropertyToStringList
+.B XTextPropertyToStringList
 sets no return values and returns a zero status.
 Otherwise, it returns a nonzero status.
 To free the storage for the list and its contents, use 
-.ZN XFreeStringList .
+.BR XFreeStringList .
 .LP
 The 
-.ZN XFreeStringList 
+.B XFreeStringList
 function releases memory allocated by 
-.ZN XmbTextPropertyToTextList ,
-.ZN Xutf8TextPropertyToTextList
+.BR XmbTextPropertyToTextList ,
+.B Xutf8TextPropertyToTextList
 and
-.ZN XTextPropertyToStringList
+.B XTextPropertyToStringList
 and the missing charset list allocated by 
-.ZN XCreateFontSet .
+.BR XCreateFontSet .
 .SH STRUCTURES
 The
-.ZN XTextProperty
+.B XTextProperty
 structure contains:
 .LP
 .Ds 0

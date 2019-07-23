@@ -32,7 +32,7 @@
 #include "util/u_upload_mgr.h"
 #include "noop_public.h"
 
-DEBUG_GET_ONCE_BOOL_OPTION(noop, "GALLIUM_NOOP", FALSE)
+DEBUG_GET_ONCE_BOOL_OPTION(noop, "GALLIUM_NOOP", false)
 
 void noop_init_state_functions(struct pipe_context *ctx);
 
@@ -59,7 +59,7 @@ static void noop_destroy_query(struct pipe_context *ctx, struct pipe_query *quer
    FREE(query);
 }
 
-static boolean noop_begin_query(struct pipe_context *ctx, struct pipe_query *query)
+static bool noop_begin_query(struct pipe_context *ctx, struct pipe_query *query)
 {
    return true;
 }
@@ -69,19 +69,19 @@ static bool noop_end_query(struct pipe_context *ctx, struct pipe_query *query)
    return true;
 }
 
-static boolean noop_get_query_result(struct pipe_context *ctx,
-                                     struct pipe_query *query,
-                                     boolean wait,
-                                     union pipe_query_result *vresult)
+static bool noop_get_query_result(struct pipe_context *ctx,
+                                  struct pipe_query *query,
+                                  bool wait,
+                                  union pipe_query_result *vresult)
 {
    uint64_t *result = (uint64_t*)vresult;
 
    *result = 0;
-   return TRUE;
+   return true;
 }
 
 static void
-noop_set_active_query_state(struct pipe_context *pipe, boolean enable)
+noop_set_active_query_state(struct pipe_context *pipe, bool enable)
 {
 }
 
@@ -135,11 +135,11 @@ static struct pipe_resource *noop_resource_from_handle(struct pipe_screen *scree
    return noop_resource;
 }
 
-static boolean noop_resource_get_handle(struct pipe_screen *pscreen,
-                                        struct pipe_context *ctx,
-                                        struct pipe_resource *resource,
-                                        struct winsys_handle *handle,
-                                        unsigned usage)
+static bool noop_resource_get_handle(struct pipe_screen *pscreen,
+                                     struct pipe_context *ctx,
+                                     struct pipe_resource *resource,
+                                     struct winsys_handle *handle,
+                                     unsigned usage)
 {
    struct noop_pipe_screen *noop_screen = (struct noop_pipe_screen*)pscreen;
    struct pipe_screen *screen = noop_screen->oscreen;
@@ -296,13 +296,13 @@ static void noop_destroy_context(struct pipe_context *ctx)
    FREE(ctx);
 }
 
-static boolean noop_generate_mipmap(struct pipe_context *ctx,
-                                    struct pipe_resource *resource,
-                                    enum pipe_format format,
-                                    unsigned base_level,
-                                    unsigned last_level,
-                                    unsigned first_layer,
-                                    unsigned last_layer)
+static bool noop_generate_mipmap(struct pipe_context *ctx,
+                                 struct pipe_resource *resource,
+                                 enum pipe_format format,
+                                 unsigned base_level,
+                                 unsigned last_level,
+                                 unsigned first_layer,
+                                 unsigned last_layer)
 {
    return true;
 }
@@ -423,12 +423,12 @@ static int noop_get_compute_param(struct pipe_screen *pscreen,
    return screen->get_compute_param(screen, ir_type, param, ret);
 }
 
-static boolean noop_is_format_supported(struct pipe_screen* pscreen,
-                                        enum pipe_format format,
-                                        enum pipe_texture_target target,
-                                        unsigned sample_count,
-                                        unsigned storage_sample_count,
-                                        unsigned usage)
+static bool noop_is_format_supported(struct pipe_screen* pscreen,
+                                     enum pipe_format format,
+                                     enum pipe_texture_target target,
+                                     unsigned sample_count,
+                                     unsigned storage_sample_count,
+                                     unsigned usage)
 {
    struct pipe_screen *screen = ((struct noop_pipe_screen*)pscreen)->oscreen;
 
@@ -456,10 +456,10 @@ static void noop_fence_reference(struct pipe_screen *screen,
 {
 }
 
-static boolean noop_fence_finish(struct pipe_screen *screen,
-                                 struct pipe_context *ctx,
-                                 struct pipe_fence_handle *fence,
-                                 uint64_t timeout)
+static bool noop_fence_finish(struct pipe_screen *screen,
+                              struct pipe_context *ctx,
+                              struct pipe_fence_handle *fence,
+                              uint64_t timeout)
 {
    return true;
 }

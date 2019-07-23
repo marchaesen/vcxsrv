@@ -75,6 +75,7 @@ LOCAL_LIBS = \
             $(DRI2_LIB) \
 	    $(DRI3_LIB) \
 	    $(GLXVND_LIB) \
+	    $(top_builddir)/fb/libfb.la \
 	    $(top_builddir)/miext/sync/libsync.la \
             $(top_builddir)/mi/libmi.la \
             $(top_builddir)/os/libos.la \

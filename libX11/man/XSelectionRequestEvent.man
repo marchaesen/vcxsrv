@@ -83,7 +83,7 @@
 XSelectionRequestEvent \- SelectionRequest event structure
 .SH STRUCTURES
 The structure for
-.ZN SelectionRequest
+.B SelectionRequest
 events contains:
 .LP
 .Ds 0
@@ -107,16 +107,16 @@ the structure members are set as follows.
 The type member is set to the event type constant name that uniquely identifies
 it.
 For example, when the X server reports a
-.ZN GraphicsExpose
+.B GraphicsExpose
 event to a client application, it sends an
-.ZN XGraphicsExposeEvent
+.B XGraphicsExposeEvent
 structure with the type member set to
-.ZN GraphicsExpose .
+.BR GraphicsExpose .
 The display member is set to a pointer to the display the event was read on.
 The send_event member is set to
-.ZN True
+.B True
 if the event came from a
-.ZN SendEvent
+.B SendEvent
 protocol request.
 The serial member is set from the serial number reported in the protocol
 but expanded from the 16-bit least-significant bits to a full 32-bit value.
@@ -125,7 +125,7 @@ dispatchers.
 .LP
 The owner member is set to the window
 that was specified by the current owner in its
-.ZN XSetSelectionOwner
+.B XSetSelectionOwner
 call.
 The requestor member is set to the window requesting the selection.
 The selection member is set to the atom that names the selection.
@@ -133,11 +133,11 @@ For example, PRIMARY is used to indicate the primary selection.
 The target member is set to the atom that indicates the type
 the selection is desired in.
 The property member can be a property name or 
-.ZN None .
+.BR None .
 The time member is set to the timestamp or 
-.ZN CurrentTime 
+.B CurrentTime
 value from the
-.ZN ConvertSelection
+.B ConvertSelection
 request.
 .SH "SEE ALSO"
 XAnyEvent(__libmansuffix__),

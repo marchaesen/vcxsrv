@@ -62,6 +62,7 @@ struct Gfx9ChipSettings
         // Display engine IP version name
         UINT_32 isDce12             : 1;
         UINT_32 isDcn1              : 1;
+        UINT_32 reserved1           : 30;
 
         // Misc configuration bits
         UINT_32 metaBaseAlignFix    : 1;

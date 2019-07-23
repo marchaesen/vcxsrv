@@ -98,11 +98,11 @@ Specifies the connection to the X server.
 .IP \fIowner\fP 1i
 Specifies the owner of the specified selection atom.
 You can pass a window or
-.ZN None .
+.BR None .
 .IP \fIproperty\fP 1i
 Specifies the property name.
 You also can pass
-.ZN None .
+.BR None .
 .IP \fIrequestor\fP 1i
 Specifies the requestor.
 .IP \fIselection\fP 1i
@@ -112,34 +112,34 @@ Specifies the target atom.
 .IP \fItime\fP 1i
 Specifies the time.
 You can pass either a timestamp or
-.ZN CurrentTime .
+.BR CurrentTime .
 .SH DESCRIPTION
 The
-.ZN XSetSelectionOwner
+.B XSetSelectionOwner
 function changes the owner and last-change time for the specified selection
 and has no effect if the specified time is earlier than the current
 last-change time of the specified selection 
 or is later than the current X server time.
 Otherwise, the last-change time is set to the specified time,
 with
-.ZN CurrentTime
+.B CurrentTime
 replaced by the current server time.
 If the owner window is specified as
-.ZN None ,
+.BR None ,
 then the owner of the selection becomes 
-.ZN None
+.B None
 (that is, no owner).
 Otherwise, the owner of the selection becomes the client executing
 the request.
 .LP 
 If the new owner (whether a client or
-.ZN None )
+.BR None )
 is not
 the same as the current owner of the selection and the current
 owner is not
-.ZN None ,
+.BR None ,
 the current owner is sent a 
-.ZN SelectionClear 
+.B SelectionClear
 event.
 If the client that is the owner of a selection is later
 terminated (that is, its connection is closed)
@@ -147,71 +147,71 @@ or if the owner window it has specified in the request is later
 destroyed,
 the owner of the selection automatically
 reverts to
-.ZN None ,
+.BR None ,
 but the last-change time is not affected.
 The selection atom is uninterpreted by the X server.
-.ZN XGetSelectionOwner
+.B XGetSelectionOwner
 returns the owner window, which is reported in 
-.ZN SelectionRequest
+.B SelectionRequest
 and
-.ZN SelectionClear
+.B SelectionClear
 events.
 Selections are global to the X server.
 .LP
-.ZN XSetSelectionOwner
+.B XSetSelectionOwner
 can generate
-.ZN BadAtom
+.B BadAtom
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XGetSelectionOwner
+.B XGetSelectionOwner
 function
 returns the window ID associated with the window that currently owns the
 specified selection.
 If no selection was specified, the function returns the constant
-.ZN None .
+.BR None .
 If
-.ZN None
+.B None
 is returned,
 there is no owner for the selection.
 .LP
-.ZN XGetSelectionOwner
+.B XGetSelectionOwner
 can generate a
-.ZN BadAtom 
+.B BadAtom
 error.
 .LP
-.ZN XConvertSelection
+.B XConvertSelection
 requests that the specified selection be converted to the specified target
 type:
 .IP \(bu 5
 If the specified selection has an owner, the X server sends a
-.ZN SelectionRequest
+.B SelectionRequest
 event to that owner.
 .IP \(bu 5
 If no owner for the specified
 selection exists, the X server generates a
-.ZN SelectionNotify
+.B SelectionNotify
 event to the
 requestor with property
-.ZN None .
+.BR None .
 .LP
 The arguments are passed on unchanged in either of the events.
 There are two predefined selection atoms: PRIMARY and SECONDARY.
 .LP
-.ZN XConvertSelection
+.B XConvertSelection
 can generate
-.ZN BadAtom
+.B BadAtom
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAtom
+.B BadAtom
 A value for an Atom argument does not name a defined Atom.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 \fI\*(xL\fP

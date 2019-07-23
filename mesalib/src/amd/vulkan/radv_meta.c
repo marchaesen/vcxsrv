@@ -86,7 +86,7 @@ radv_meta_save(struct radv_meta_saved_state *state,
 
 	if (state->flags & RADV_META_SAVE_DESCRIPTORS) {
 		state->old_descriptor_set0 = descriptors_state->sets[0];
-		if (!state->old_descriptor_set0)
+		if (!(descriptors_state->valid & 1) || !state->old_descriptor_set0)
 			state->flags &= ~RADV_META_SAVE_DESCRIPTORS;
 	}
 

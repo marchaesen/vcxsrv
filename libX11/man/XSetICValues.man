@@ -93,14 +93,14 @@ Specifies the input context.
 Specifies the variable length argument list to set or get XIC values.
 .SH DESCRIPTION
 The
-.ZN XSetICValues
+.B XSetICValues
 function returns NULL if no error occurred; 
 otherwise,
 it returns the name of the first argument that could not be set.
 An argument might not be set for any of the following reasons:
 .IP \(bu 5
 The argument is read-only (for example,
-.ZN XNFilterEvents ).
+.BR XNFilterEvents ).
 .IP \(bu 5
 The argument name is not recognized.
 .IP \(bu 5
@@ -110,18 +110,18 @@ Each value to be set must be an appropriate datum,
 matching the data type imposed by the semantics of the argument.
 .LP
 The
-.ZN XSetICValues
+.B XSetICValues
 can generate
-.ZN BadAtom ,
-.ZN BadColor ,
-.ZN BadCursor ,
-.ZN BadPixmap ,
+.BR BadAtom ,
+.BR BadColor ,
+.BR BadCursor ,
+.BR BadPixmap ,
 and
-.ZN BadWindow
+.B BadWindow
 errors.
 .LP
 The
-.ZN XGetICValues
+.B XGetICValues
 function returns NULL if no error occurred; otherwise,
 it returns the name of the first argument that could not be obtained.
 An argument could not be obtained for any of the following reasons:
@@ -136,33 +136,33 @@ That is, if the IC value is of type T,
 the argument must be of type T*.
 If T itself is a pointer type,
 then
-.ZN XGetICValues
+.B XGetICValues
 allocates memory to store the actual data,
 and the client is responsible for freeing this data by calling
-.ZN XFree
+.B XFree
 with the returned pointer.
 The exception to this rule is for an IC value of type
-.ZN XNVaNestedList
+.B XNVaNestedList
 (for preedit and status attributes).
 In this case,  the argument must also be of type
-.ZN XVaNestedList .
+.BR XVaNestedList .
 Then, the rule of changing type T to T* and freeing the allocated data
 applies to each element of the nested list.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAtom
+.B BadAtom
 A value for an Atom argument does not name a defined Atom.
 .TP 1i
-.ZN BadColor
+.B BadColor
 A value for a Colormap argument does not name a defined Colormap.
 .TP 1i
-.ZN BadCursor
+.B BadCursor
 A value for a Cursor argument does not name a defined Cursor.
 .TP 1i
-.ZN BadPixmap
+.B BadPixmap
 A value for a Pixmap argument does not name a defined Pixmap.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XCreateIC(__libmansuffix__),

@@ -62,7 +62,18 @@ enum {
 	RADV_ALPHA_ADJUST_SSCALED = 3,
 };
 
+struct radv_vs_out_key {
+	uint32_t as_es:1;
+	uint32_t as_ls:1;
+	uint32_t as_ngg:1;
+	uint32_t export_prim_id:1;
+	uint32_t export_layer_id:1;
+	uint32_t export_clip_dists:1;
+};
+
 struct radv_vs_variant_key {
+	struct radv_vs_out_key out;
+
 	uint32_t instance_rate_inputs;
 	uint32_t instance_rate_divisors[MAX_VERTEX_ATTRIBS];
 	uint8_t vertex_attribute_formats[MAX_VERTEX_ATTRIBS];
@@ -76,19 +87,11 @@ struct radv_vs_variant_key {
 
 	/* For some formats the channels have to be shuffled. */
 	uint32_t post_shuffle;
-
-	uint32_t as_es:1;
-	uint32_t as_ls:1;
-	uint32_t export_prim_id:1;
-	uint32_t export_layer_id:1;
-	uint32_t export_clip_dists:1;
 };
 
 struct radv_tes_variant_key {
-	uint32_t as_es:1;
-	uint32_t export_prim_id:1;
-	uint32_t export_layer_id:1;
-	uint32_t export_clip_dists:1;
+	struct radv_vs_out_key out;
+
 	uint8_t num_patches;
 	uint8_t tcs_num_outputs;
 };
@@ -115,6 +118,9 @@ struct radv_shader_variant_key {
 		struct radv_fs_variant_key fs;
 		struct radv_tes_variant_key tes;
 		struct radv_tcs_variant_key tcs;
+
+		/* A common prefix of the vs and tes keys. */
+		struct radv_vs_out_key vs_common_out;
 	};
 	bool has_multiview_view_index;
 };
@@ -203,7 +209,6 @@ struct radv_shader_info {
 	struct {
 		bool force_persample;
 		bool needs_sample_positions;
-		bool uses_input_attachments;
 		bool writes_memory;
 		bool writes_z;
 		bool writes_stencil;
@@ -262,12 +267,14 @@ struct radv_shader_variant_info {
 	unsigned num_input_vgprs;
 	unsigned private_mem_vgprs;
 	bool need_indirect_descriptor_sets;
+	bool is_ngg;
 	struct {
 		struct {
 			struct radv_vs_output_info outinfo;
 			struct radv_es_output_info es_info;
 			bool as_es;
 			bool as_ls;
+			bool export_prim_id;
 		} vs;
 		struct {
 			unsigned num_interp;
@@ -276,6 +283,7 @@ struct radv_shader_variant_info {
 			uint32_t float16_shaded_mask;
 			bool can_discard;
 			bool early_fragment_test;
+			bool post_depth_coverage;
 		} fs;
 		struct {
 			unsigned block_size[3];
@@ -302,8 +310,44 @@ struct radv_shader_variant_info {
 			enum gl_tess_spacing spacing;
 			bool ccw;
 			bool point_mode;
+			bool export_prim_id;
 		} tes;
 	};
+};
+
+enum radv_shader_binary_type {
+	RADV_BINARY_TYPE_LEGACY,
+	RADV_BINARY_TYPE_RTLD
+};
+
+struct radv_shader_binary {
+	enum radv_shader_binary_type type;
+	gl_shader_stage stage;
+	bool is_gs_copy_shader;
+
+	struct radv_shader_variant_info variant_info;
+
+	/* Self-referential size so we avoid consistency issues. */
+	uint32_t total_size;
+};
+
+struct radv_shader_binary_legacy {
+	struct radv_shader_binary base;
+	struct ac_shader_config config;
+	unsigned code_size;
+	unsigned llvm_ir_size;
+	unsigned disasm_size;
+	
+	/* data has size of code_size + llvm_ir_size + disasm_size + 2, where
+	 * the +2 is for 0 of the ir strings. */
+	uint8_t data[0];
+};
+
+struct radv_shader_binary_rtld {
+	struct radv_shader_binary base;
+	unsigned elf_size;
+	unsigned llvm_ir_size;
+	uint8_t data[0];
 };
 
 struct radv_shader_variant {
@@ -314,8 +358,6 @@ struct radv_shader_variant {
 	struct ac_shader_config config;
 	uint32_t code_size;
 	struct radv_shader_variant_info info;
-	unsigned rsrc1;
-	unsigned rsrc2;
 
 	/* debug only */
 	uint32_t *spirv;
@@ -360,17 +402,19 @@ radv_destroy_shader_slabs(struct radv_device *device);
 
 struct radv_shader_variant *
 radv_shader_variant_create(struct radv_device *device,
-			   struct radv_shader_module *module,
-			   struct nir_shader *const *shaders,
-			   int shader_count,
-			   struct radv_pipeline_layout *layout,
-			   const struct radv_shader_variant_key *key,
-			   void **code_out,
-			   unsigned *code_size_out);
+			   const struct radv_shader_binary *binary);
+struct radv_shader_variant *
+radv_shader_variant_compile(struct radv_device *device,
+			    struct radv_shader_module *module,
+			    struct nir_shader *const *shaders,
+			    int shader_count,
+			    struct radv_pipeline_layout *layout,
+			    const struct radv_shader_variant_key *key,
+			    struct radv_shader_binary **binary_out);
 
 struct radv_shader_variant *
 radv_create_gs_copy_shader(struct radv_device *device, struct nir_shader *nir,
-			   void **code_out, unsigned *code_size_out,
+			   struct radv_shader_binary **binary_out,
 			   bool multiview);
 
 void
@@ -378,7 +422,8 @@ radv_shader_variant_destroy(struct radv_device *device,
 			    struct radv_shader_variant *variant);
 
 const char *
-radv_get_shader_name(struct radv_shader_variant *var, gl_shader_stage stage);
+radv_get_shader_name(struct radv_shader_variant_info *info,
+		     gl_shader_stage stage);
 
 void
 radv_shader_dump_stats(struct radv_device *device,

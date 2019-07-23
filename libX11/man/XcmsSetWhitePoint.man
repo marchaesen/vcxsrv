@@ -98,19 +98,19 @@ Specifies the new Client White Point.
 Specifies the white point adjustment procedure.
 .SH DESCRIPTION
 The
-.ZN XcmsSetWhitePoint
+.B XcmsSetWhitePoint
 function changes the Client White Point in the specified CCC.
 Note that the pixel member is ignored 
 and that the color specification is left unchanged upon return.
 The format for the new white point must be
-.ZN XcmsCIEXYZFormat ,
-.ZN XcmsCIEuvYFormat ,
-.ZN XcmsCIExyYFormat ,
+.BR XcmsCIEXYZFormat ,
+.BR XcmsCIEuvYFormat ,
+.BR XcmsCIExyYFormat ,
 or
-.ZN XcmsUndefinedFormat .
+.BR XcmsUndefinedFormat .
 If the color argument is NULL, this function sets the format component of the
 Client White Point specification to
-.ZN XcmsUndefinedFormat ,
+.BR XcmsUndefinedFormat ,
 indicating that the Client White Point is assumed to be the same as the
 Screen White Point.
 .LP
@@ -120,7 +120,7 @@ otherwise, it returns zero.
 
 .LP
 The
-.ZN XcmsSetWhiteAdjustProc
+.B XcmsSetWhiteAdjustProc
 function first sets the white point adjustment procedure and client data 
 in the specified CCC with the newly specified procedure and client data
 and then returns the old procedure.

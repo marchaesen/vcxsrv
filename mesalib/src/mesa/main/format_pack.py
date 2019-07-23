@@ -43,8 +43,6 @@ string = """/*
 
 #include <stdint.h>
 
-#include "config.h"
-#include "errors.h"
 #include "format_pack.h"
 #include "format_utils.h"
 #include "macros.h"
@@ -80,7 +78,7 @@ for f in formats:
    %endif
 
 static inline void
-pack_ubyte_${f.short_name()}(const GLubyte src[4], void *dst)
+pack_ubyte_${f.short_name()}(const uint8_t src[4], void *dst)
 {
    %for (i, c) in enumerate(f.channels):
       <% i = f.swizzle.inverse()[i] %>
@@ -141,24 +139,24 @@ pack_ubyte_${f.short_name()}(const GLubyte src[4], void *dst)
 %endfor
 
 static inline void
-pack_ubyte_r9g9b9e5_float(const GLubyte src[4], void *dst)
+pack_ubyte_r9g9b9e5_float(const uint8_t src[4], void *dst)
 {
-   GLuint *d = (GLuint *) dst;
-   GLfloat rgb[3];
-   rgb[0] = _mesa_unorm_to_float(src[RCOMP], 8);
-   rgb[1] = _mesa_unorm_to_float(src[GCOMP], 8);
-   rgb[2] = _mesa_unorm_to_float(src[BCOMP], 8);
+   uint32_t *d = (uint32_t *) dst;
+   float rgb[3];
+   rgb[0] = _mesa_unorm_to_float(src[0], 8);
+   rgb[1] = _mesa_unorm_to_float(src[1], 8);
+   rgb[2] = _mesa_unorm_to_float(src[2], 8);
    *d = float3_to_rgb9e5(rgb);
 }
 
 static inline void
-pack_ubyte_r11g11b10_float(const GLubyte src[4], void *dst)
+pack_ubyte_r11g11b10_float(const uint8_t src[4], void *dst)
 {
-   GLuint *d = (GLuint *) dst;
-   GLfloat rgb[3];
-   rgb[0] = _mesa_unorm_to_float(src[RCOMP], 8);
-   rgb[1] = _mesa_unorm_to_float(src[GCOMP], 8);
-   rgb[2] = _mesa_unorm_to_float(src[BCOMP], 8);
+   uint32_t *d = (uint32_t *) dst;
+   float rgb[3];
+   rgb[0] = _mesa_unorm_to_float(src[0], 8);
+   rgb[1] = _mesa_unorm_to_float(src[1], 8);
+   rgb[2] = _mesa_unorm_to_float(src[2], 8);
    *d = float3_to_r11g11b10f(rgb);
 }
 
@@ -174,7 +172,7 @@ pack_ubyte_r11g11b10_float(const GLubyte src[4], void *dst)
    %endif
 
 static inline void
-pack_uint_${f.short_name()}(const GLuint src[4], void *dst)
+pack_uint_${f.short_name()}(const uint32_t src[4], void *dst)
 {
    %for (i, c) in enumerate(f.channels):
       <% i = f.swizzle.inverse()[i] %>
@@ -227,7 +225,7 @@ pack_uint_${f.short_name()}(const GLuint src[4], void *dst)
    %endif
 
 static inline void
-pack_float_${f.short_name()}(const GLfloat src[4], void *dst)
+pack_float_${f.short_name()}(const float src[4], void *dst)
 {
    %for (i, c) in enumerate(f.channels):
       <% i = f.swizzle.inverse()[i] %>
@@ -282,23 +280,23 @@ pack_float_${f.short_name()}(const GLfloat src[4], void *dst)
 %endfor
 
 static inline void
-pack_float_r9g9b9e5_float(const GLfloat src[4], void *dst)
+pack_float_r9g9b9e5_float(const float src[4], void *dst)
 {
-   GLuint *d = (GLuint *) dst;
+   uint32_t *d = (uint32_t *) dst;
    *d = float3_to_rgb9e5(src);
 }
 
 static inline void
-pack_float_r11g11b10_float(const GLfloat src[4], void *dst)
+pack_float_r11g11b10_float(const float src[4], void *dst)
 {
-   GLuint *d = (GLuint *) dst;
+   uint32_t *d = (uint32_t *) dst;
    *d = float3_to_r11g11b10f(src);
 }
 
 /**
- * Return a function that can pack a GLubyte rgba[4] color.
+ * Return a function that can pack a uint8_t rgba[4] color.
  */
-gl_pack_ubyte_rgba_func
+mesa_pack_ubyte_rgba_func
 _mesa_get_pack_ubyte_rgba_function(mesa_format format)
 {
    switch (format) {
@@ -316,9 +314,9 @@ _mesa_get_pack_ubyte_rgba_function(mesa_format format)
 }
 
 /**
- * Return a function that can pack a GLfloat rgba[4] color.
+ * Return a function that can pack a float rgba[4] color.
  */
-gl_pack_float_rgba_func
+mesa_pack_float_rgba_func
 _mesa_get_pack_float_rgba_function(mesa_format format)
 {
    switch (format) {
@@ -338,14 +336,14 @@ _mesa_get_pack_float_rgba_function(mesa_format format)
 }
 
 /**
- * Pack a row of GLubyte rgba[4] values to the destination.
+ * Pack a row of uint8_t rgba[4] values to the destination.
  */
 void
-_mesa_pack_ubyte_rgba_row(mesa_format format, GLuint n,
-                          const GLubyte src[][4], void *dst)
+_mesa_pack_ubyte_rgba_row(mesa_format format, uint32_t n,
+                          const uint8_t src[][4], void *dst)
 {
-   GLuint i;
-   GLubyte *d = dst;
+   uint32_t i;
+   uint8_t *d = dst;
 
    switch (format) {
 %for f in rgb_formats:
@@ -366,14 +364,14 @@ _mesa_pack_ubyte_rgba_row(mesa_format format, GLuint n,
 }
 
 /**
- * Pack a row of GLuint rgba[4] values to the destination.
+ * Pack a row of uint32_t rgba[4] values to the destination.
  */
 void
-_mesa_pack_uint_rgba_row(mesa_format format, GLuint n,
-                          const GLuint src[][4], void *dst)
+_mesa_pack_uint_rgba_row(mesa_format format, uint32_t n,
+                          const uint32_t src[][4], void *dst)
 {
-   GLuint i;
-   GLubyte *d = dst;
+   uint32_t i;
+   uint8_t *d = dst;
 
    switch (format) {
 %for f in rgb_formats:
@@ -398,14 +396,14 @@ _mesa_pack_uint_rgba_row(mesa_format format, GLuint n,
 }
 
 /**
- * Pack a row of GLfloat rgba[4] values to the destination.
+ * Pack a row of float rgba[4] values to the destination.
  */
 void
-_mesa_pack_float_rgba_row(mesa_format format, GLuint n,
-                          const GLfloat src[][4], void *dst)
+_mesa_pack_float_rgba_row(mesa_format format, uint32_t n,
+                          const float src[][4], void *dst)
 {
-   GLuint i;
-   GLubyte *d = dst;
+   uint32_t i;
+   uint8_t *d = dst;
 
    switch (format) {
 %for f in rgb_formats:
@@ -433,24 +431,24 @@ _mesa_pack_float_rgba_row(mesa_format format, GLuint n,
  * \param dstRowStride  destination image row stride in bytes
  */
 void
-_mesa_pack_ubyte_rgba_rect(mesa_format format, GLuint width, GLuint height,
-                           const GLubyte *src, GLint srcRowStride,
-                           void *dst, GLint dstRowStride)
+_mesa_pack_ubyte_rgba_rect(mesa_format format, uint32_t width, uint32_t height,
+                           const uint8_t *src, int32_t srcRowStride,
+                           void *dst, int32_t dstRowStride)
 {
-   GLubyte *dstUB = dst;
-   GLuint i;
+   uint8_t *dstUB = dst;
+   uint32_t i;
 
-   if (srcRowStride == width * 4 * sizeof(GLubyte) &&
+   if (srcRowStride == width * 4 * sizeof(uint8_t) &&
        dstRowStride == _mesa_format_row_stride(format, width)) {
       /* do whole image at once */
       _mesa_pack_ubyte_rgba_row(format, width * height,
-                                (const GLubyte (*)[4]) src, dst);
+                                (const uint8_t (*)[4]) src, dst);
    }
    else {
       /* row by row */
       for (i = 0; i < height; i++) {
          _mesa_pack_ubyte_rgba_row(format, width,
-                                   (const GLubyte (*)[4]) src, dstUB);
+                                   (const uint8_t (*)[4]) src, dstUB);
          src += srcRowStride;
          dstUB += dstRowStride;
       }
@@ -471,43 +469,43 @@ struct z32f_x24s8
  **/
 
 static void
-pack_float_S8_UINT_Z24_UNORM(const GLfloat *src, void *dst)
+pack_float_S8_UINT_Z24_UNORM(const float *src, void *dst)
 {
    /* don't disturb the stencil values */
-   GLuint *d = ((GLuint *) dst);
-   const GLdouble scale = (GLdouble) 0xffffff;
-   GLuint s = *d & 0xff;
-   GLuint z = (GLuint) (*src * scale);
+   uint32_t *d = ((uint32_t *) dst);
+   const double scale = (double) 0xffffff;
+   uint32_t s = *d & 0xff;
+   uint32_t z = (uint32_t) (*src * scale);
    assert(z <= 0xffffff);
    *d = (z << 8) | s;
 }
 
 static void
-pack_float_Z24_UNORM_S8_UINT(const GLfloat *src, void *dst)
+pack_float_Z24_UNORM_S8_UINT(const float *src, void *dst)
 {
    /* don't disturb the stencil values */
-   GLuint *d = ((GLuint *) dst);
-   const GLdouble scale = (GLdouble) 0xffffff;
-   GLuint s = *d & 0xff000000;
-   GLuint z = (GLuint) (*src * scale);
+   uint32_t *d = ((uint32_t *) dst);
+   const double scale = (double) 0xffffff;
+   uint32_t s = *d & 0xff000000;
+   uint32_t z = (uint32_t) (*src * scale);
    assert(z <= 0xffffff);
    *d = s | z;
 }
 
 static void
-pack_float_Z_UNORM16(const GLfloat *src, void *dst)
+pack_float_Z_UNORM16(const float *src, void *dst)
 {
-   GLushort *d = ((GLushort *) dst);
-   const GLfloat scale = (GLfloat) 0xffff;
-   *d = (GLushort) (*src * scale);
+   uint16_t *d = ((uint16_t *) dst);
+   const float scale = (float) 0xffff;
+   *d = (uint16_t) (*src * scale);
 }
 
 static void
-pack_float_Z_UNORM32(const GLfloat *src, void *dst)
+pack_float_Z_UNORM32(const float *src, void *dst)
 {
-   GLuint *d = ((GLuint *) dst);
-   const GLdouble scale = (GLdouble) 0xffffffff;
-   *d = (GLuint) (*src * scale);
+   uint32_t *d = ((uint32_t *) dst);
+   const double scale = (double) 0xffffffff;
+   *d = (uint32_t) (*src * scale);
 }
 
 /**
@@ -515,13 +513,13 @@ pack_float_Z_UNORM32(const GLfloat *src, void *dst)
  **/
 
 static void
-pack_float_Z_FLOAT32(const GLfloat *src, void *dst)
+pack_float_Z_FLOAT32(const float *src, void *dst)
 {
-   GLfloat *d = (GLfloat *) dst;
+   float *d = (float *) dst;
    *d = *src;
 }
 
-gl_pack_float_z_func
+mesa_pack_float_z_func
 _mesa_get_pack_float_z_func(mesa_format format)
 {
    switch (format) {
@@ -539,9 +537,7 @@ _mesa_get_pack_float_z_func(mesa_format format)
    case MESA_FORMAT_Z32_FLOAT_S8X24_UINT:
       return pack_float_Z_FLOAT32;
    default:
-      _mesa_problem(NULL,
-                    "unexpected format in _mesa_get_pack_float_z_func()");
-      return NULL;
+      unreachable("unexpected format in _mesa_get_pack_float_z_func()");
    }
 }
 
@@ -553,36 +549,36 @@ _mesa_get_pack_float_z_func(mesa_format format)
  **/
 
 static void
-pack_uint_S8_UINT_Z24_UNORM(const GLuint *src, void *dst)
+pack_uint_S8_UINT_Z24_UNORM(const uint32_t *src, void *dst)
 {
    /* don't disturb the stencil values */
-   GLuint *d = ((GLuint *) dst);
-   GLuint s = *d & 0xff;
-   GLuint z = *src & 0xffffff00;
+   uint32_t *d = ((uint32_t *) dst);
+   uint32_t s = *d & 0xff;
+   uint32_t z = *src & 0xffffff00;
    *d = z | s;
 }
 
 static void
-pack_uint_Z24_UNORM_S8_UINT(const GLuint *src, void *dst)
+pack_uint_Z24_UNORM_S8_UINT(const uint32_t *src, void *dst)
 {
    /* don't disturb the stencil values */
-   GLuint *d = ((GLuint *) dst);
-   GLuint s = *d & 0xff000000;
-   GLuint z = *src >> 8;
+   uint32_t *d = ((uint32_t *) dst);
+   uint32_t s = *d & 0xff000000;
+   uint32_t z = *src >> 8;
    *d = s | z;
 }
 
 static void
-pack_uint_Z_UNORM16(const GLuint *src, void *dst)
+pack_uint_Z_UNORM16(const uint32_t *src, void *dst)
 {
-   GLushort *d = ((GLushort *) dst);
+   uint16_t *d = ((uint16_t *) dst);
    *d = *src >> 16;
 }
 
 static void
-pack_uint_Z_UNORM32(const GLuint *src, void *dst)
+pack_uint_Z_UNORM32(const uint32_t *src, void *dst)
 {
-   GLuint *d = ((GLuint *) dst);
+   uint32_t *d = ((uint32_t *) dst);
    *d = *src;
 }
 
@@ -591,16 +587,16 @@ pack_uint_Z_UNORM32(const GLuint *src, void *dst)
  **/
 
 static void
-pack_uint_Z_FLOAT32(const GLuint *src, void *dst)
+pack_uint_Z_FLOAT32(const uint32_t *src, void *dst)
 {
-   GLfloat *d = ((GLfloat *) dst);
-   const GLdouble scale = 1.0 / (GLdouble) 0xffffffff;
-   *d = (GLfloat) (*src * scale);
+   float *d = ((float *) dst);
+   const double scale = 1.0 / (double) 0xffffffff;
+   *d = (float) (*src * scale);
    assert(*d >= 0.0f);
    assert(*d <= 1.0f);
 }
 
-gl_pack_uint_z_func
+mesa_pack_uint_z_func
 _mesa_get_pack_uint_z_func(mesa_format format)
 {
    switch (format) {
@@ -618,8 +614,7 @@ _mesa_get_pack_uint_z_func(mesa_format format)
    case MESA_FORMAT_Z32_FLOAT_S8X24_UINT:
       return pack_uint_Z_FLOAT32;
    default:
-      _mesa_problem(NULL, "unexpected format in _mesa_get_pack_uint_z_func()");
-      return NULL;
+      unreachable("unexpected format in _mesa_get_pack_uint_z_func()");
    }
 }
 
@@ -629,41 +624,41 @@ _mesa_get_pack_uint_z_func(mesa_format format)
  **/
 
 static void
-pack_ubyte_stencil_Z24_S8(const GLubyte *src, void *dst)
+pack_ubyte_stencil_Z24_S8(const uint8_t *src, void *dst)
 {
    /* don't disturb the Z values */
-   GLuint *d = ((GLuint *) dst);
-   GLuint s = *src;
-   GLuint z = *d & 0xffffff00;
+   uint32_t *d = ((uint32_t *) dst);
+   uint32_t s = *src;
+   uint32_t z = *d & 0xffffff00;
    *d = z | s;
 }
 
 static void
-pack_ubyte_stencil_S8_Z24(const GLubyte *src, void *dst)
+pack_ubyte_stencil_S8_Z24(const uint8_t *src, void *dst)
 {
    /* don't disturb the Z values */
-   GLuint *d = ((GLuint *) dst);
-   GLuint s = *src << 24;
-   GLuint z = *d & 0xffffff;
+   uint32_t *d = ((uint32_t *) dst);
+   uint32_t s = *src << 24;
+   uint32_t z = *d & 0xffffff;
    *d = s | z;
 }
 
 static void
-pack_ubyte_stencil_S8(const GLubyte *src, void *dst)
+pack_ubyte_stencil_S8(const uint8_t *src, void *dst)
 {
-   GLubyte *d = (GLubyte *) dst;
+   uint8_t *d = (uint8_t *) dst;
    *d = *src;
 }
 
 static void
-pack_ubyte_stencil_Z32_FLOAT_X24S8(const GLubyte *src, void *dst)
+pack_ubyte_stencil_Z32_FLOAT_X24S8(const uint8_t *src, void *dst)
 {
-   GLfloat *d = ((GLfloat *) dst);
+   float *d = ((float *) dst);
    d[1] = *src;
 }
 
 
-gl_pack_ubyte_stencil_func
+mesa_pack_ubyte_stencil_func
 _mesa_get_pack_ubyte_stencil_func(mesa_format format)
 {
    switch (format) {
@@ -676,29 +671,27 @@ _mesa_get_pack_ubyte_stencil_func(mesa_format format)
    case MESA_FORMAT_Z32_FLOAT_S8X24_UINT:
       return pack_ubyte_stencil_Z32_FLOAT_X24S8;
    default:
-      _mesa_problem(NULL,
-                    "unexpected format in _mesa_pack_ubyte_stencil_func()");
-      return NULL;
+      unreachable("unexpected format in _mesa_pack_ubyte_stencil_func()");
    }
 }
 
 
 
 void
-_mesa_pack_float_z_row(mesa_format format, GLuint n,
-                       const GLfloat *src, void *dst)
+_mesa_pack_float_z_row(mesa_format format, uint32_t n,
+                       const float *src, void *dst)
 {
    switch (format) {
    case MESA_FORMAT_S8_UINT_Z24_UNORM:
    case MESA_FORMAT_X8_UINT_Z24_UNORM:
       {
          /* don't disturb the stencil values */
-         GLuint *d = ((GLuint *) dst);
-         const GLdouble scale = (GLdouble) 0xffffff;
-         GLuint i;
+         uint32_t *d = ((uint32_t *) dst);
+         const double scale = (double) 0xffffff;
+         uint32_t i;
          for (i = 0; i < n; i++) {
-            GLuint s = d[i] & 0xff;
-            GLuint z = (GLuint) (src[i] * scale);
+            uint32_t s = d[i] & 0xff;
+            uint32_t z = (uint32_t) (src[i] * scale);
             assert(z <= 0xffffff);
             d[i] = (z << 8) | s;
          }
@@ -708,12 +701,12 @@ _mesa_pack_float_z_row(mesa_format format, GLuint n,
    case MESA_FORMAT_Z24_UNORM_X8_UINT:
       {
          /* don't disturb the stencil values */
-         GLuint *d = ((GLuint *) dst);
-         const GLdouble scale = (GLdouble) 0xffffff;
-         GLuint i;
+         uint32_t *d = ((uint32_t *) dst);
+         const double scale = (double) 0xffffff;
+         uint32_t i;
          for (i = 0; i < n; i++) {
-            GLuint s = d[i] & 0xff000000;
-            GLuint z = (GLuint) (src[i] * scale);
+            uint32_t s = d[i] & 0xff000000;
+            uint32_t z = (uint32_t) (src[i] * scale);
             assert(z <= 0xffffff);
             d[i] = s | z;
          }
@@ -721,38 +714,38 @@ _mesa_pack_float_z_row(mesa_format format, GLuint n,
       break;
    case MESA_FORMAT_Z_UNORM16:
       {
-         GLushort *d = ((GLushort *) dst);
-         const GLfloat scale = (GLfloat) 0xffff;
-         GLuint i;
+         uint16_t *d = ((uint16_t *) dst);
+         const float scale = (float) 0xffff;
+         uint32_t i;
          for (i = 0; i < n; i++) {
-            d[i] = (GLushort) (src[i] * scale);
+            d[i] = (uint16_t) (src[i] * scale);
          }
       }
       break;
    case MESA_FORMAT_Z_UNORM32:
       {
-         GLuint *d = ((GLuint *) dst);
-         const GLdouble scale = (GLdouble) 0xffffffff;
-         GLuint i;
+         uint32_t *d = ((uint32_t *) dst);
+         const double scale = (double) 0xffffffff;
+         uint32_t i;
          for (i = 0; i < n; i++) {
-            d[i] = (GLuint) (src[i] * scale);
+            d[i] = (uint32_t) (src[i] * scale);
          }
       }
       break;
    case MESA_FORMAT_Z_FLOAT32:
-      memcpy(dst, src, n * sizeof(GLfloat));
+      memcpy(dst, src, n * sizeof(float));
       break;
    case MESA_FORMAT_Z32_FLOAT_S8X24_UINT:
       {
          struct z32f_x24s8 *d = (struct z32f_x24s8 *) dst;
-         GLuint i;
+         uint32_t i;
          for (i = 0; i < n; i++) {
             d[i].z = src[i];
          }
       }
       break;
    default:
-      _mesa_problem(NULL, "unexpected format in _mesa_pack_float_z_row()");
+      unreachable("unexpected format in _mesa_pack_float_z_row()");
    }
 }
 
@@ -761,19 +754,19 @@ _mesa_pack_float_z_row(mesa_format format, GLuint n,
  * The incoming Z values are always in the range [0, 0xffffffff].
  */
 void
-_mesa_pack_uint_z_row(mesa_format format, GLuint n,
-                      const GLuint *src, void *dst)
+_mesa_pack_uint_z_row(mesa_format format, uint32_t n,
+                      const uint32_t *src, void *dst)
 {
    switch (format) {
    case MESA_FORMAT_S8_UINT_Z24_UNORM:
    case MESA_FORMAT_X8_UINT_Z24_UNORM:
       {
          /* don't disturb the stencil values */
-         GLuint *d = ((GLuint *) dst);
-         GLuint i;
+         uint32_t *d = ((uint32_t *) dst);
+         uint32_t i;
          for (i = 0; i < n; i++) {
-            GLuint s = d[i] & 0xff;
-            GLuint z = src[i] & 0xffffff00;
+            uint32_t s = d[i] & 0xff;
+            uint32_t z = src[i] & 0xffffff00;
             d[i] = z | s;
          }
       }
@@ -782,34 +775,34 @@ _mesa_pack_uint_z_row(mesa_format format, GLuint n,
    case MESA_FORMAT_Z24_UNORM_X8_UINT:
       {
          /* don't disturb the stencil values */
-         GLuint *d = ((GLuint *) dst);
-         GLuint i;
+         uint32_t *d = ((uint32_t *) dst);
+         uint32_t i;
          for (i = 0; i < n; i++) {
-            GLuint s = d[i] & 0xff000000;
-            GLuint z = src[i] >> 8;
+            uint32_t s = d[i] & 0xff000000;
+            uint32_t z = src[i] >> 8;
             d[i] = s | z;
          }
       }
       break;
    case MESA_FORMAT_Z_UNORM16:
       {
-         GLushort *d = ((GLushort *) dst);
-         GLuint i;
+         uint16_t *d = ((uint16_t *) dst);
+         uint32_t i;
          for (i = 0; i < n; i++) {
             d[i] = src[i] >> 16;
          }
       }
       break;
    case MESA_FORMAT_Z_UNORM32:
-      memcpy(dst, src, n * sizeof(GLfloat));
+      memcpy(dst, src, n * sizeof(float));
       break;
    case MESA_FORMAT_Z_FLOAT32:
       {
-         GLuint *d = ((GLuint *) dst);
-         const GLdouble scale = 1.0 / (GLdouble) 0xffffffff;
-         GLuint i;
+         uint32_t *d = ((uint32_t *) dst);
+         const double scale = 1.0 / (double) 0xffffffff;
+         uint32_t i;
          for (i = 0; i < n; i++) {
-            d[i] = (GLuint) (src[i] * scale);
+            d[i] = (uint32_t) (src[i] * scale);
             assert(d[i] >= 0.0f);
             assert(d[i] <= 1.0f);
          }
@@ -818,34 +811,34 @@ _mesa_pack_uint_z_row(mesa_format format, GLuint n,
    case MESA_FORMAT_Z32_FLOAT_S8X24_UINT:
       {
          struct z32f_x24s8 *d = (struct z32f_x24s8 *) dst;
-         const GLdouble scale = 1.0 / (GLdouble) 0xffffffff;
-         GLuint i;
+         const double scale = 1.0 / (double) 0xffffffff;
+         uint32_t i;
          for (i = 0; i < n; i++) {
-            d[i].z = (GLfloat) (src[i] * scale);
+            d[i].z = (float) (src[i] * scale);
             assert(d[i].z >= 0.0f);
             assert(d[i].z <= 1.0f);
          }
       }
       break;
    default:
-      _mesa_problem(NULL, "unexpected format in _mesa_pack_uint_z_row()");
+      unreachable("unexpected format in _mesa_pack_uint_z_row()");
    }
 }
 
 
 void
-_mesa_pack_ubyte_stencil_row(mesa_format format, GLuint n,
-                             const GLubyte *src, void *dst)
+_mesa_pack_ubyte_stencil_row(mesa_format format, uint32_t n,
+                             const uint8_t *src, void *dst)
 {
    switch (format) {
    case MESA_FORMAT_S8_UINT_Z24_UNORM:
       {
          /* don't disturb the Z values */
-         GLuint *d = ((GLuint *) dst);
-         GLuint i;
+         uint32_t *d = ((uint32_t *) dst);
+         uint32_t i;
          for (i = 0; i < n; i++) {
-            GLuint s = src[i];
-            GLuint z = d[i] & 0xffffff00;
+            uint32_t s = src[i];
+            uint32_t z = d[i] & 0xffffff00;
             d[i] = z | s;
          }
       }
@@ -853,29 +846,29 @@ _mesa_pack_ubyte_stencil_row(mesa_format format, GLuint n,
    case MESA_FORMAT_Z24_UNORM_S8_UINT:
       {
          /* don't disturb the Z values */
-         GLuint *d = ((GLuint *) dst);
-         GLuint i;
+         uint32_t *d = ((uint32_t *) dst);
+         uint32_t i;
          for (i = 0; i < n; i++) {
-            GLuint s = src[i] << 24;
-            GLuint z = d[i] & 0xffffff;
+            uint32_t s = src[i] << 24;
+            uint32_t z = d[i] & 0xffffff;
             d[i] = s | z;
          }
       }
       break;
    case MESA_FORMAT_S_UINT8:
-      memcpy(dst, src, n * sizeof(GLubyte));
+      memcpy(dst, src, n * sizeof(uint8_t));
       break;
    case MESA_FORMAT_Z32_FLOAT_S8X24_UINT:
       {
          struct z32f_x24s8 *d = (struct z32f_x24s8 *) dst;
-         GLuint i;
+         uint32_t i;
          for (i = 0; i < n; i++) {
             d[i].x24s8 = src[i];
          }
       }
       break;
    default:
-      _mesa_problem(NULL, "unexpected format in _mesa_pack_ubyte_stencil_row()");
+      unreachable("unexpected format in _mesa_pack_ubyte_stencil_row()");
    }
 }
 
@@ -884,117 +877,41 @@ _mesa_pack_ubyte_stencil_row(mesa_format format, GLuint n,
  * Incoming Z/stencil values are always in uint_24_8 format.
  */
 void
-_mesa_pack_uint_24_8_depth_stencil_row(mesa_format format, GLuint n,
-                                       const GLuint *src, void *dst)
+_mesa_pack_uint_24_8_depth_stencil_row(mesa_format format, uint32_t n,
+                                       const uint32_t *src, void *dst)
 {
    switch (format) {
    case MESA_FORMAT_S8_UINT_Z24_UNORM:
-      memcpy(dst, src, n * sizeof(GLuint));
+      memcpy(dst, src, n * sizeof(uint32_t));
       break;
    case MESA_FORMAT_Z24_UNORM_S8_UINT:
       {
-         GLuint *d = ((GLuint *) dst);
-         GLuint i;
+         uint32_t *d = ((uint32_t *) dst);
+         uint32_t i;
          for (i = 0; i < n; i++) {
-            GLuint s = src[i] << 24;
-            GLuint z = src[i] >> 8;
+            uint32_t s = src[i] << 24;
+            uint32_t z = src[i] >> 8;
             d[i] = s | z;
          }
       }
       break;
    case MESA_FORMAT_Z32_FLOAT_S8X24_UINT:
       {
-         const GLdouble scale = 1.0 / (GLdouble) 0xffffff;
+         const double scale = 1.0 / (double) 0xffffff;
          struct z32f_x24s8 *d = (struct z32f_x24s8 *) dst;
-         GLuint i;
+         uint32_t i;
          for (i = 0; i < n; i++) {
-            GLfloat z = (GLfloat) ((src[i] >> 8) * scale);
+            float z = (float) ((src[i] >> 8) * scale);
             d[i].z = z;
             d[i].x24s8 = src[i];
          }
       }
       break;
    default:
-      _mesa_problem(NULL, "bad format %s in _mesa_pack_ubyte_s_row",
-                    _mesa_get_format_name(format));
-      return;
+      unreachable("bad format in _mesa_pack_ubyte_s_row");
    }
 }
 
-
-
-/**
- * Convert a boolean color mask to a packed color where each channel of
- * the packed value at dst will be 0 or ~0 depending on the colorMask.
- */
-void
-_mesa_pack_colormask(mesa_format format, const GLubyte colorMask[4], void *dst)
-{
-   GLfloat maskColor[4];
-
-   switch (_mesa_get_format_datatype(format)) {
-   case GL_UNSIGNED_NORMALIZED:
-      /* simple: 1.0 will convert to ~0 in the right bit positions */
-      maskColor[0] = colorMask[0] ? 1.0f : 0.0f;
-      maskColor[1] = colorMask[1] ? 1.0f : 0.0f;
-      maskColor[2] = colorMask[2] ? 1.0f : 0.0f;
-      maskColor[3] = colorMask[3] ? 1.0f : 0.0f;
-      _mesa_pack_float_rgba_row(format, 1,
-                                (const GLfloat (*)[4]) maskColor, dst);
-      break;
-   case GL_SIGNED_NORMALIZED:
-   case GL_FLOAT:
-      /* These formats are harder because it's hard to know the floating
-       * point values that will convert to ~0 for each color channel's bits.
-       * This solution just generates a non-zero value for each color channel
-       * then fixes up the non-zero values to be ~0.
-       * Note: we'll need to add special case code if we ever have to deal
-       * with formats with unequal color channel sizes, like R11_G11_B10.
-       * We issue a warning below for channel sizes other than 8,16,32.
-       */
-      {
-         GLuint bits = _mesa_get_format_max_bits(format); /* bits per chan */
-         GLuint bytes = _mesa_get_format_bytes(format);
-         GLuint i;
-
-         /* this should put non-zero values into the channels of dst */
-         maskColor[0] = colorMask[0] ? -1.0f : 0.0f;
-         maskColor[1] = colorMask[1] ? -1.0f : 0.0f;
-         maskColor[2] = colorMask[2] ? -1.0f : 0.0f;
-         maskColor[3] = colorMask[3] ? -1.0f : 0.0f;
-         _mesa_pack_float_rgba_row(format, 1,
-                                   (const GLfloat (*)[4]) maskColor, dst);
-
-         /* fix-up the dst channels by converting non-zero values to ~0 */
-         if (bits == 8) {
-            GLubyte *d = (GLubyte *) dst;
-            for (i = 0; i < bytes; i++) {
-               d[i] = d[i] ? 0xff : 0x0;
-            }
-         }
-         else if (bits == 16) {
-            GLushort *d = (GLushort *) dst;
-            for (i = 0; i < bytes / 2; i++) {
-               d[i] = d[i] ? 0xffff : 0x0;
-            }
-         }
-         else if (bits == 32) {
-            GLuint *d = (GLuint *) dst;
-            for (i = 0; i < bytes / 4; i++) {
-               d[i] = d[i] ? 0xffffffffU : 0x0;
-            }
-         }
-         else {
-            _mesa_problem(NULL, "unexpected size in _mesa_pack_colormask()");
-            return;
-         }
-      }
-      break;
-   default:
-      _mesa_problem(NULL, "unexpected format data type in gen_color_mask()");
-      return;
-   }
-}
 """
 
 template = Template(string, future_imports=['division']);

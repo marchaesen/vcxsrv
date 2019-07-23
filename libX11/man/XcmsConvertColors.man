@@ -99,26 +99,26 @@ Pixel members are ignored and remain unchanged upon return.
 Returns an array of Boolean values indicating compression status.
 If a non-NULL pointer is supplied,
 each element of the array is set to
-.ZN True
+.B True
 if the corresponding color was compressed and
-.ZN False
+.B False
 otherwise.
 Pass NULL if the compression status is not useful.
 .IP \fIncolors\fP 1i
 Specifies the number of 
-.ZN XcmsColor
+.B XcmsColor
 structures in the color-specification array.
 .IP \fItarget_format\fP 1i
 Specifies the target color specification format.
 .SH DESCRIPTION
 The
-.ZN XcmsConvertColors
+.B XcmsConvertColors
 function converts the color specifications in the specified array of
-.ZN XcmsColor
+.B XcmsColor
 structures from their current format to a single target format,
 using the specified CCC.
 When the return value is
-.ZN XcmsFailure ,
+.BR XcmsFailure ,
 the contents of the color specification array are left unchanged.
 .LP
 The array may contain a mixture of color specification formats
@@ -126,8 +126,8 @@ The array may contain a mixture of color specification formats
 When the array contains both device-independent and
 device-dependent color specifications and the target_format argument specifies
 a device-dependent format (for example,
-.ZN XcmsRGBiFormat ,
-.ZN XcmsRGBFormat ),
+.BR XcmsRGBiFormat ,
+.BR XcmsRGBFormat ),
 all specifications are converted to CIE XYZ format and then to the target
 device-dependent format.
 .SH "SEE ALSO"

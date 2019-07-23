@@ -222,14 +222,16 @@ nir_imm_zero(nir_builder *build, unsigned num_components, unsigned bit_size)
 }
 
 static inline nir_ssa_def *
+nir_imm_boolN_t(nir_builder *build, bool x, unsigned bit_size)
+{
+   nir_const_value v = nir_const_value_for_bool(x, bit_size);
+   return nir_build_imm(build, 1, bit_size, &v);
+}
+
+static inline nir_ssa_def *
 nir_imm_bool(nir_builder *build, bool x)
 {
-   nir_const_value v;
-
-   memset(&v, 0, sizeof(v));
-   v.b = x;
-
-   return nir_build_imm(build, 1, 1, &v);
+   return nir_imm_boolN_t(build, x, 1);
 }
 
 static inline nir_ssa_def *
@@ -245,147 +247,107 @@ nir_imm_false(nir_builder *build)
 }
 
 static inline nir_ssa_def *
+nir_imm_floatN_t(nir_builder *build, double x, unsigned bit_size)
+{
+   nir_const_value v = nir_const_value_for_float(x, bit_size);
+   return nir_build_imm(build, 1, bit_size, &v);
+}
+
+static inline nir_ssa_def *
 nir_imm_float16(nir_builder *build, float x)
 {
-   nir_const_value v;
-
-   memset(&v, 0, sizeof(v));
-   v.u16 = _mesa_float_to_half(x);
-
-   return nir_build_imm(build, 1, 16, &v);
+   return nir_imm_floatN_t(build, x, 16);
 }
 
 static inline nir_ssa_def *
 nir_imm_float(nir_builder *build, float x)
 {
-   nir_const_value v;
-
-   memset(&v, 0, sizeof(v));
-   v.f32 = x;
-
-   return nir_build_imm(build, 1, 32, &v);
+   return nir_imm_floatN_t(build, x, 32);
 }
 
 static inline nir_ssa_def *
 nir_imm_double(nir_builder *build, double x)
 {
-   nir_const_value v;
-
-   memset(&v, 0, sizeof(v));
-   v.f64 = x;
-
-   return nir_build_imm(build, 1, 64, &v);
-}
-
-static inline nir_ssa_def *
-nir_imm_floatN_t(nir_builder *build, double x, unsigned bit_size)
-{
-   switch (bit_size) {
-   case 16:
-      return nir_imm_float16(build, x);
-   case 32:
-      return nir_imm_float(build, x);
-   case 64:
-      return nir_imm_double(build, x);
-   }
-
-   unreachable("unknown float immediate bit size");
+   return nir_imm_floatN_t(build, x, 64);
 }
 
 static inline nir_ssa_def *
 nir_imm_vec2(nir_builder *build, float x, float y)
 {
-   nir_const_value v[2];
-
-   memset(v, 0, sizeof(v));
-   v[0].f32 = x;
-   v[1].f32 = y;
-
+   nir_const_value v[2] = {
+      nir_const_value_for_float(x, 32),
+      nir_const_value_for_float(y, 32),
+   };
    return nir_build_imm(build, 2, 32, v);
 }
 
 static inline nir_ssa_def *
 nir_imm_vec4(nir_builder *build, float x, float y, float z, float w)
 {
-   nir_const_value v[4];
-
-   memset(v, 0, sizeof(v));
-   v[0].f32 = x;
-   v[1].f32 = y;
-   v[2].f32 = z;
-   v[3].f32 = w;
+   nir_const_value v[4] = {
+      nir_const_value_for_float(x, 32),
+      nir_const_value_for_float(y, 32),
+      nir_const_value_for_float(z, 32),
+      nir_const_value_for_float(w, 32),
+   };
 
    return nir_build_imm(build, 4, 32, v);
 }
 
 static inline nir_ssa_def *
-nir_imm_ivec2(nir_builder *build, int x, int y)
+nir_imm_vec4_16(nir_builder *build, float x, float y, float z, float w)
 {
-   nir_const_value v[2];
+   nir_const_value v[4] = {
+      nir_const_value_for_float(x, 16),
+      nir_const_value_for_float(y, 16),
+      nir_const_value_for_float(z, 16),
+      nir_const_value_for_float(w, 16),
+   };
 
-   memset(v, 0, sizeof(v));
-   v[0].i32 = x;
-   v[1].i32 = y;
-
-   return nir_build_imm(build, 2, 32, v);
-}
-
-static inline nir_ssa_def *
-nir_imm_int(nir_builder *build, int x)
-{
-   nir_const_value v;
-
-   memset(&v, 0, sizeof(v));
-   v.i32 = x;
-
-   return nir_build_imm(build, 1, 32, &v);
-}
-
-static inline nir_ssa_def *
-nir_imm_int64(nir_builder *build, int64_t x)
-{
-   nir_const_value v;
-
-   memset(&v, 0, sizeof(v));
-   v.i64 = x;
-
-   return nir_build_imm(build, 1, 64, &v);
+   return nir_build_imm(build, 4, 16, v);
 }
 
 static inline nir_ssa_def *
 nir_imm_intN_t(nir_builder *build, uint64_t x, unsigned bit_size)
 {
-   nir_const_value v;
-
-   memset(&v, 0, sizeof(v));
-   assert(bit_size <= 64);
-   if (bit_size == 1)
-      v.b = x & 1;
-   else
-      v.i64 = x & (~0ull >> (64 - bit_size));
-
+   nir_const_value v = nir_const_value_for_raw_uint(x, bit_size);
    return nir_build_imm(build, 1, bit_size, &v);
+}
+
+static inline nir_ssa_def *
+nir_imm_int(nir_builder *build, int x)
+{
+   return nir_imm_intN_t(build, x, 32);
+}
+
+static inline nir_ssa_def *
+nir_imm_int64(nir_builder *build, int64_t x)
+{
+   return nir_imm_intN_t(build, x, 64);
+}
+
+static inline nir_ssa_def *
+nir_imm_ivec2(nir_builder *build, int x, int y)
+{
+   nir_const_value v[2] = {
+      nir_const_value_for_int(x, 32),
+      nir_const_value_for_int(y, 32),
+   };
+
+   return nir_build_imm(build, 2, 32, v);
 }
 
 static inline nir_ssa_def *
 nir_imm_ivec4(nir_builder *build, int x, int y, int z, int w)
 {
-   nir_const_value v[4];
-
-   memset(v, 0, sizeof(v));
-   v[0].i32 = x;
-   v[1].i32 = y;
-   v[2].i32 = z;
-   v[3].i32 = w;
+   nir_const_value v[4] = {
+      nir_const_value_for_int(x, 32),
+      nir_const_value_for_int(y, 32),
+      nir_const_value_for_int(z, 32),
+      nir_const_value_for_int(w, 32),
+   };
 
    return nir_build_imm(build, 4, 32, v);
-}
-
-static inline nir_ssa_def *
-nir_imm_boolN_t(nir_builder *build, bool x, unsigned bit_size)
-{
-   /* We use a 0/-1 convention for all booleans regardless of size */
-   return nir_imm_intN_t(build, -(int)x, bit_size);
 }
 
 static inline nir_ssa_def *

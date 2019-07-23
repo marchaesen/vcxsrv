@@ -93,7 +93,7 @@ void XUnlockDisplay\^(\^Display *\fIdisplay\fP\^);
 Specifies the connection to the X server.
 .SH DESCRIPTION
 The
-.ZN XInitThreads
+.B XInitThreads
 function initializes Xlib support for concurrent threads.
 This function must be the first Xlib function a
 multi-threaded program calls, and it must complete
@@ -111,32 +111,32 @@ It is recommended that single-threaded programs not call this function.
 
 .LP
 The
-.ZN XLockDisplay
+.B XLockDisplay
 function locks out all other threads from using the specified display.
 Other threads attempting to use the display will block until
 the display is unlocked by this thread.
 Nested calls to
-.ZN XLockDisplay
+.B XLockDisplay
 work correctly; the display will not actually be unlocked until
-.ZN XUnlockDisplay
+.B XUnlockDisplay
 has been called the same number of times as
-.ZN XLockDisplay .
+.BR XLockDisplay .
 This function has no effect unless Xlib was successfully initialized
 for threads using
-.ZN XInitThreads .
+.BR XInitThreads .
 .LP
 The
-.ZN XUnlockDisplay
+.B XUnlockDisplay
 function allows other threads to use the specified display again.
 Any threads that have blocked on the display are allowed to continue.
 Nested locking works correctly; if
-.ZN XLockDisplay
+.B XLockDisplay
 has been called multiple times by a thread, then
-.ZN XUnlockDisplay
+.B XUnlockDisplay
 must be called an equal number of times before the display is
 actually unlocked.
 This function has no effect unless Xlib was successfully initialized
 for threads using
-.ZN XInitThreads .
+.BR XInitThreads .
 .SH "SEE ALSO"
 \fI\*(xL\fP

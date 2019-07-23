@@ -40,7 +40,7 @@ u_async_debug_message(void *data, unsigned *id, enum pipe_debug_type type,
    char *text;
    int r;
 
-   r = util_vasprintf(&text, fmt, args);
+   r = vasprintf(&text, fmt, args);
    if (r < 0)
       return;
 

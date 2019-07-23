@@ -135,9 +135,8 @@ test_c99_compat_h(const void * restrict a,
 #endif
 
 
-/* Fallback definitions, for build systems other than autoconfig which don't
- * auto-detect these things. */
-#ifdef HAVE_NO_AUTOCONF
+/* Fallback definitions, for scons which doesn't auto-detect these things. */
+#ifdef HAVE_SCONS
 
 #  ifndef _WIN32
 #    define HAVE_PTHREAD
@@ -178,7 +177,7 @@ test_c99_compat_h(const void * restrict a,
 
 #  endif /* __GNUC__ */
 
-#endif /* !HAVE_AUTOCONF */
+#endif /* HAVE_SCONS */
 
 
 #endif /* _C99_COMPAT_H_ */

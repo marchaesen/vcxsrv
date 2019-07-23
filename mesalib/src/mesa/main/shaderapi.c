@@ -649,6 +649,13 @@ check_tes_query(struct gl_context *ctx, const struct gl_shader_program *shProg)
    return false;
 }
 
+/**
+ * Return the length of a string, or 0 if the pointer passed in is NULL
+ */
+static size_t strlen_or_zero(const char *s)
+{
+   return s ? strlen(s) : 0;
+}
 
 /**
  * glGetProgramiv() - get shader program state.
@@ -736,11 +743,23 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
          if (shProg->data->UniformStorage[i].is_shader_storage)
             continue;
 
+         /* From ARB_gl_spirv spec:
+          *
+          *   "If pname is ACTIVE_UNIFORM_MAX_LENGTH, the length of the
+          *    longest active uniform name, including a null terminator, is
+          *    returned. If no active uniforms exist, zero is returned. If no
+          *    name reflection information is available, one is returned."
+          *
+          * We are setting 0 here, as below it will add 1 for the NUL character.
+          */
+         const GLint base_len =
+            strlen_or_zero(shProg->data->UniformStorage[i].name);
+
 	 /* Add one for the terminating NUL character for a non-array, and
 	  * 4 for the "[0]" and the NUL for an array.
 	  */
-         const GLint len = strlen(shProg->data->UniformStorage[i].name) + 1 +
-             ((shProg->data->UniformStorage[i].array_elements != 0) ? 3 : 0);
+         const GLint len = base_len + 1 +
+            ((shProg->data->UniformStorage[i].array_elements != 0) ? 3 : 0);
 
 	 if (len > max_len)
 	    max_len = len;
@@ -752,19 +771,48 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
    case GL_TRANSFORM_FEEDBACK_VARYINGS:
       if (!has_xfb)
          break;
-      *params = shProg->TransformFeedback.NumVarying;
+
+      /* Check first if there are transform feedback varyings specified in the
+       * shader (ARB_enhanced_layouts). If there isn't any, return the number of
+       * varyings specified using the API.
+       */
+      if (shProg->last_vert_prog &&
+          shProg->last_vert_prog->sh.LinkedTransformFeedback->NumVarying > 0)
+         *params =
+            shProg->last_vert_prog->sh.LinkedTransformFeedback->NumVarying;
+      else
+         *params = shProg->TransformFeedback.NumVarying;
       return;
    case GL_TRANSFORM_FEEDBACK_VARYING_MAX_LENGTH: {
       unsigned i;
       GLint max_len = 0;
+      bool in_shader_varyings;
+      int num_varying;
+
       if (!has_xfb)
          break;
 
-      for (i = 0; i < shProg->TransformFeedback.NumVarying; i++) {
-         /* Add one for the terminating NUL character.
+      /* Check first if there are transform feedback varyings specified in the
+       * shader (ARB_enhanced_layouts). If there isn't any, use the ones
+       * specified using the API.
+       */
+      in_shader_varyings = shProg->last_vert_prog &&
+         shProg->last_vert_prog->sh.LinkedTransformFeedback->NumVarying > 0;
+
+      num_varying = in_shader_varyings ?
+         shProg->last_vert_prog->sh.LinkedTransformFeedback->NumVarying :
+         shProg->TransformFeedback.NumVarying;
+
+      for (i = 0; i < num_varying; i++) {
+         const char *name = in_shader_varyings ?
+            shProg->last_vert_prog->sh.LinkedTransformFeedback->Varyings[i].Name
+            : shProg->TransformFeedback.VaryingNames[i];
+
+         /* Add one for the terminating NUL character. We have to use
+          * strlen_or_zero, as for shaders constructed from SPIR-V binaries,
+          * it is possible that no name reflection information is available.
           */
-         const GLint len =
-            strlen(shProg->TransformFeedback.VaryingNames[i]) + 1;
+         const GLint len = strlen_or_zero(name) + 1;
 
          if (len > max_len)
             max_len = len;
@@ -818,9 +866,16 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
          break;
 
       for (i = 0; i < shProg->data->NumUniformBlocks; i++) {
-	 /* Add one for the terminating NUL character.
+	 /* Add one for the terminating NUL character. Name can be NULL, in
+          * that case, from ARB_gl_spirv:
+          *   "If pname is ACTIVE_UNIFORM_BLOCK_MAX_NAME_LENGTH, the length of
+          *    the longest active uniform block name, including the null
+          *    terminator, is returned. If no active uniform blocks exist,
+          *    zero is returned. If no name reflection information is
+          *    available, one is returned."
 	  */
-         const GLint len = strlen(shProg->data->UniformBlocks[i].Name) + 1;
+         const GLint len =
+            strlen_or_zero(shProg->data->UniformBlocks[i].Name) + 1;
 
 	 if (len > max_len)
 	    max_len = len;

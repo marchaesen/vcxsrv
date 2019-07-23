@@ -54,6 +54,10 @@ nir_setup_uniform_remap_tables(struct gl_context *ctx,
    }
    prog->data->UniformDataSlots = data;
 
+   prog->data->UniformDataDefaults =
+         rzalloc_array(prog->data->UniformStorage,
+                       union gl_constant_value, prog->data->NumUniformDataSlots);
+
    unsigned data_pos = 0;
 
    /* Reserve all the explicit locations of the active uniforms. */
@@ -246,7 +250,12 @@ struct nir_link_uniforms_state {
    unsigned shader_samplers_used;
    unsigned shader_shadow_samplers;
 
+   /* per-variable */
    nir_variable *current_var;
+   int offset;
+   bool var_is_in_block;
+   int top_level_array_size;
+   int top_level_array_stride;
 
    struct type_tree_entry *current_type;
 };
@@ -351,6 +360,21 @@ nir_link_uniform(struct gl_context *ctx,
 {
    struct gl_uniform_storage *uniform = NULL;
 
+   if (parent_type == state->current_var->type &&
+       nir_variable_is_in_ssbo(state->current_var)) {
+      /* Type is the top level SSBO member */
+      if (glsl_type_is_array(type) &&
+          (glsl_type_is_array(glsl_get_array_element(type)) ||
+           glsl_type_is_struct_or_ifc(glsl_get_array_element(type)))) {
+         /* Type is a top-level array (array of aggregate types) */
+         state->top_level_array_size = glsl_get_length(type);
+         state->top_level_array_stride = glsl_get_explicit_stride(type);
+      } else {
+         state->top_level_array_size = 1;
+         state->top_level_array_stride = 0;
+      }
+   }
+
    /* gl_uniform_storage can cope with one level of array, so if the type is a
     * composite type or an array where each element occupies more than one
     * location than we need to recursively process it.
@@ -361,16 +385,26 @@ nir_link_uniform(struct gl_context *ctx,
          glsl_type_is_struct_or_ifc(glsl_get_array_element(type))))) {
       int location_count = 0;
       struct type_tree_entry *old_type = state->current_type;
+      unsigned int struct_base_offset = state->offset;
 
       state->current_type = old_type->children;
 
       for (unsigned i = 0; i < glsl_get_length(type); i++) {
          const struct glsl_type *field_type;
 
-         if (glsl_type_is_struct_or_ifc(type))
+         if (glsl_type_is_struct_or_ifc(type)) {
             field_type = glsl_get_struct_field(type, i);
-         else
+            /* Use the offset inside the struct only for variables backed by
+             * a buffer object. For variables not backed by a buffer object,
+             * offset is -1.
+             */
+            if (state->var_is_in_block) {
+               state->offset =
+                  struct_base_offset + glsl_get_struct_field_offset(type, i);
+            }
+         } else {
             field_type = glsl_get_array_element(type);
+         }
 
          int entries = nir_link_uniform(ctx, prog, stage_program, stage,
                                         field_type, type, i, location,
@@ -420,6 +454,9 @@ nir_link_uniform(struct gl_context *ctx,
          uniform->type = type;
          uniform->array_elements = 0;
       }
+      uniform->top_level_array_size = state->top_level_array_size;
+      uniform->top_level_array_stride = state->top_level_array_stride;
+
       uniform->active_shader_mask |= 1 << stage;
 
       if (location >= 0) {
@@ -459,7 +496,7 @@ nir_link_uniform(struct gl_context *ctx,
       uniform->matrix_stride = -1;
       uniform->row_major = false;
 
-      if (nir_variable_is_in_block(state->current_var)) {
+      if (state->var_is_in_block) {
          uniform->array_stride = glsl_type_is_array(type) ?
             glsl_get_explicit_stride(type) : 0;
 
@@ -473,20 +510,39 @@ nir_link_uniform(struct gl_context *ctx,
          }
       }
 
-      if (parent_type)
-         uniform->offset = glsl_get_struct_field_offset(parent_type, index_in_parent);
-      else
-         uniform->offset = 0;
+      uniform->offset = state->var_is_in_block ? state->offset : -1;
+
+      int buffer_block_index = -1;
+      /* If the uniform is inside a uniform block determine its block index by
+       * comparing the bindings, we can not use names.
+       */
+      if (state->var_is_in_block) {
+         struct gl_uniform_block *blocks = nir_variable_is_in_ssbo(state->current_var) ?
+            prog->data->ShaderStorageBlocks : prog->data->UniformBlocks;
+
+         int num_blocks = nir_variable_is_in_ssbo(state->current_var) ?
+            prog->data->NumShaderStorageBlocks : prog->data->NumUniformBlocks;
+
+         for (unsigned i = 0; i < num_blocks; i++) {
+            if (state->current_var->data.binding == blocks[i].Binding) {
+               buffer_block_index = i;
+               break;
+            }
+         }
+         assert(buffer_block_index >= 0);
+
+         /* Compute the next offset. */
+         state->offset += glsl_get_explicit_size(type, true);
+      }
+
+      uniform->block_index = buffer_block_index;
 
       /* @FIXME: the initialization of the following will be done as we
        * implement support for their specific features, like SSBO, atomics,
        * etc.
        */
-      uniform->block_index = -1;
       uniform->builtin = false;
       uniform->atomic_buffer_index = -1;
-      uniform->top_level_array_size = 0;
-      uniform->top_level_array_stride = 0;
       uniform->is_bindless = false;
 
       /* The following are not for features not supported by ARB_gl_spirv */
@@ -599,6 +655,10 @@ gl_nir_link_uniforms(struct gl_context *ctx,
          var->data.location = prog->data->NumUniformStorage;
 
          state.current_var = var;
+         state.offset = 0;
+         state.var_is_in_block = nir_variable_is_in_block(var);
+         state.top_level_array_size = 0;
+         state.top_level_array_stride = 0;
 
          /*
           * From ARB_program_interface spec, issue (16):
@@ -635,8 +695,7 @@ gl_nir_link_uniforms(struct gl_context *ctx,
           * arrays of instance as a single block.
           */
          const struct glsl_type *type = var->type;
-         if (nir_variable_is_in_block(var) &&
-             glsl_type_is_array(type)) {
+         if (state.var_is_in_block && glsl_type_is_array(type)) {
             type = glsl_without_array(type);
          }
 
@@ -646,7 +705,8 @@ gl_nir_link_uniforms(struct gl_context *ctx,
 
          int res = nir_link_uniform(ctx, prog, sh->Program, shader_type, type,
                                     NULL, 0,
-                                    location, &state);
+                                    location,
+                                    &state);
 
          free_type_tree(type_tree);
 

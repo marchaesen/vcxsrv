@@ -96,6 +96,15 @@ extern void GLAPIENTRY
 _mesa_GetTextureLevelParameteriv(GLuint texture, GLint level,
                                  GLenum pname, GLint *params);
 
+extern void GLAPIENTRY
+_mesa_GetTextureLevelParameterfvEXT(GLuint texture, GLenum target,
+                                    GLint level, GLenum pname,
+                                    GLfloat *params);
+
+extern void GLAPIENTRY
+_mesa_GetTextureLevelParameterivEXT(GLuint texture, GLenum target,
+                                    GLint level, GLenum pname,
+                                    GLint *params);
 
 extern void GLAPIENTRY
 _mesa_GetTexParameterfv( GLenum target, GLenum pname, GLfloat *params );

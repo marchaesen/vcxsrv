@@ -83,14 +83,8 @@ enum util_format_layout {
     */
    UTIL_FORMAT_LAYOUT_BPTC = 7,
 
-   /**
-    * ASTC
-    */
    UTIL_FORMAT_LAYOUT_ASTC = 8,
 
-   /**
-    * ATC
-    */
    UTIL_FORMAT_LAYOUT_ATC = 9,
 
    /**
@@ -788,7 +782,6 @@ util_format_is_rgba8_variant(const struct util_format_description *desc)
    return TRUE;
 }
 
-
 /**
  * Return total bits needed for the pixel format per block.
  */
@@ -1263,6 +1256,22 @@ util_format_get_first_non_void_channel(enum pipe_format format)
        return -1;
 
    return i;
+}
+
+/**
+ * Whether this format is any 8-bit UNORM variant. Looser than
+ * util_is_rgba8_variant (also includes alpha textures, for instance).
+ */
+
+static inline bool
+util_format_is_unorm8(const struct util_format_description *desc)
+{
+   int c = util_format_get_first_non_void_channel(desc->format);
+
+   if (c == -1)
+      return false;
+
+   return desc->is_unorm && desc->is_array && desc->channel[c].size == 8;
 }
 
 /*

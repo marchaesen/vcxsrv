@@ -64,6 +64,7 @@ void ac_parse_ib(FILE *f, uint32_t *ib, int num_dw, const int *trace_ids,
 bool ac_vm_fault_occured(enum chip_class chip_class,
 			 uint64_t *old_dmesg_timestamp, uint64_t *out_addr);
 
-unsigned ac_get_wave_info(struct ac_wave_info waves[AC_MAX_WAVES_PER_CHIP]);
+unsigned ac_get_wave_info(enum chip_class chip_class,
+			  struct ac_wave_info waves[AC_MAX_WAVES_PER_CHIP]);
 
 #endif

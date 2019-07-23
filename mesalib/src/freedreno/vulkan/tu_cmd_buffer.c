@@ -729,11 +729,11 @@ tu6_emit_tile_select(struct tu_cmd_buffer *cmd,
                      const struct tu_tile *tile)
 {
    tu_cs_emit_pkt7(cs, CP_SET_MARKER, 1);
-   tu_cs_emit(cs, A2XX_CP_SET_MARKER_0_MODE(0x7));
+   tu_cs_emit(cs, A6XX_CP_SET_MARKER_0_MODE(0x7));
 
    tu6_emit_marker(cmd, cs);
    tu_cs_emit_pkt7(cs, CP_SET_MARKER, 1);
-   tu_cs_emit(cs, A2XX_CP_SET_MARKER_0_MODE(RM6_GMEM) | 0x10);
+   tu_cs_emit(cs, A6XX_CP_SET_MARKER_0_MODE(RM6_GMEM) | 0x10);
    tu6_emit_marker(cmd, cs);
 
    const uint32_t x1 = tile->begin.x;
@@ -814,7 +814,7 @@ tu6_emit_tile_store(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
 
    tu6_emit_marker(cmd, cs);
    tu_cs_emit_pkt7(cs, CP_SET_MARKER, 1);
-   tu_cs_emit(cs, A2XX_CP_SET_MARKER_0_MODE(RM6_RESOLVE) | 0x10);
+   tu_cs_emit(cs, A6XX_CP_SET_MARKER_0_MODE(RM6_RESOLVE) | 0x10);
    tu6_emit_marker(cmd, cs);
 
    tu6_emit_blit_scissor(cmd, cs);

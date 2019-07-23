@@ -796,17 +796,17 @@ struct pipe_blit_info
    unsigned mask; /**< bitmask of PIPE_MASK_R/G/B/A/Z/S */
    unsigned filter; /**< PIPE_TEX_FILTER_* */
 
-   boolean scissor_enable;
+   bool scissor_enable;
    struct pipe_scissor_state scissor;
 
    /* Window rectangles can either be inclusive or exclusive. */
-   boolean window_rectangle_include;
+   bool window_rectangle_include;
    unsigned num_window_rectangles;
    struct pipe_scissor_state window_rectangles[PIPE_MAX_WINDOW_RECTANGLES];
 
-   boolean render_condition_enable; /**< whether the blit should honor the
-                                    current render condition */
-   boolean alpha_blend; /* dst.rgb = src.rgb * src.a + dst.rgb * (1 - src.a) */
+   bool render_condition_enable; /**< whether the blit should honor the
+                                 current render condition */
+   bool alpha_blend; /* dst.rgb = src.rgb * src.a + dst.rgb * (1 - src.a) */
 };
 
 /**

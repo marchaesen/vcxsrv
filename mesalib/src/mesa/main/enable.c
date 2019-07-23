@@ -1246,6 +1246,28 @@ _mesa_set_enablei(struct gl_context *ctx, GLenum cap,
             ctx->Scissor.EnableFlags &= ~(1 << index);
       }
       break;
+   /* EXT_direct_state_access */
+   case GL_TEXTURE_1D:
+   case GL_TEXTURE_2D:
+   case GL_TEXTURE_3D:
+   case GL_TEXTURE_CUBE_MAP:
+   case GL_TEXTURE_GEN_S:
+   case GL_TEXTURE_GEN_T:
+   case GL_TEXTURE_GEN_R:
+   case GL_TEXTURE_GEN_Q:
+   case GL_TEXTURE_RECTANGLE_ARB: {
+      const GLuint curTexUnitSave = ctx->Texture.CurrentUnit;
+      if (index >= MAX2(ctx->Const.MaxCombinedTextureImageUnits,
+                        ctx->Const.MaxTextureCoordUnits)) {
+         _mesa_error(ctx, GL_INVALID_VALUE, "%s(index=%u)",
+                     state ? "glEnablei" : "glDisablei", index);
+         return;
+      }
+      _mesa_ActiveTexture(GL_TEXTURE0 + index);
+      _mesa_set_enable( ctx, cap, state );
+      _mesa_ActiveTexture(GL_TEXTURE0 + curTexUnitSave);
+      break;
+   }
    default:
       goto invalid_enum_error;
    }
@@ -1294,6 +1316,29 @@ _mesa_IsEnabledi( GLenum cap, GLuint index )
          return GL_FALSE;
       }
       return (ctx->Scissor.EnableFlags >> index) & 1;
+   /* EXT_direct_state_access */
+   case GL_TEXTURE_1D:
+   case GL_TEXTURE_2D:
+   case GL_TEXTURE_3D:
+   case GL_TEXTURE_CUBE_MAP:
+   case GL_TEXTURE_GEN_S:
+   case GL_TEXTURE_GEN_T:
+   case GL_TEXTURE_GEN_R:
+   case GL_TEXTURE_GEN_Q:
+   case GL_TEXTURE_RECTANGLE_ARB: {
+      GLboolean state;
+      const GLuint curTexUnitSave = ctx->Texture.CurrentUnit;
+      if (index >= MAX2(ctx->Const.MaxCombinedTextureImageUnits,
+                        ctx->Const.MaxTextureCoordUnits)) {
+         _mesa_error(ctx, GL_INVALID_VALUE, "glIsEnabledIndexed(index=%u)",
+                     index);
+         return GL_FALSE;
+      }
+      _mesa_ActiveTexture(GL_TEXTURE0 + index);
+      state = _mesa_IsEnabled(cap);
+      _mesa_ActiveTexture(GL_TEXTURE0 + curTexUnitSave);
+      return state;
+   }
    default:
       _mesa_error(ctx, GL_INVALID_ENUM, "glIsEnabledIndexed(cap=%s)",
                   _mesa_enum_to_string(cap));

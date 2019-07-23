@@ -79,7 +79,7 @@ PUBLIC void *graw_parse_fragment_shader( struct pipe_context *pipe,
  * If an option has been successfully parsed, argi is updated
  * to point just after the option and return TRUE.
  */
-PUBLIC boolean graw_parse_args(int *argi, int argc, char *argv[]);
+PUBLIC bool graw_parse_args(int *argi, int argc, char *argv[]);
 
 /* Saves surface contents to a file.
  *
@@ -89,8 +89,8 @@ PUBLIC boolean graw_parse_args(int *argi, int argc, char *argv[]);
  *
  * Returns TRUE if the surface has been saved.
  */
-PUBLIC boolean graw_save_surface_to_file(struct pipe_context *pipe,
-                                         struct pipe_surface *surface,
-                                         const char *filename);
+PUBLIC bool graw_save_surface_to_file(struct pipe_context *pipe,
+                                      struct pipe_surface *surface,
+                                      const char *filename);
 
 #endif

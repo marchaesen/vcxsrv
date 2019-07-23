@@ -115,34 +115,34 @@ Return the best width and height that is closest to the specified width
 and height.
 .SH DESCRIPTION
 The
-.ZN XRecolorCursor
+.B XRecolorCursor
 function changes the color of the specified cursor, and
 if the cursor is being displayed on a screen,
 the change is visible immediately.
 The pixel members of the
-.ZN XColor
+.B XColor
 structures are ignored; only the RGB values are used.
 .LP
-.ZN XRecolorCursor
+.B XRecolorCursor
 can generate a
-.ZN BadCursor 
+.B BadCursor
 error.
 .LP
 The
-.ZN XFreeCursor
+.B XFreeCursor
 function deletes the association between the cursor resource ID 
 and the specified cursor.
 The cursor storage is freed when no other resource references it.
 The specified cursor ID should not be referred to again.
 .LP
-.ZN XFreeCursor
+.B XFreeCursor
 can generate a
-.ZN BadCursor 
+.B BadCursor
 error.
 .LP
 Some displays allow larger cursors than other displays.
 The
-.ZN XQueryBestCursor
+.B XQueryBestCursor
 function provides a way to find out what size cursors are actually
 possible on the display.
 .IN "Cursor" "limitations" 
@@ -150,16 +150,16 @@ It returns the largest size that can be displayed.
 Applications should be prepared to use smaller cursors on displays that
 cannot support large ones.
 .LP
-.ZN XQueryBestCursor
+.B XQueryBestCursor
 can generate a
-.ZN BadDrawable 
+.B BadDrawable
 error.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadCursor
+.B BadCursor
 A value for a Cursor argument does not name a defined Cursor.
 .TP 1i
-.ZN BadDrawable
+.B BadDrawable
 A value for a Drawable argument does not name a defined Window or Pixmap.
 .SH "SEE ALSO"
 XCreateColormap(__libmansuffix__),

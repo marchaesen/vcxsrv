@@ -99,44 +99,44 @@ Returns the mapping list.
 Specifies the number of items in the mapping list.
 .SH DESCRIPTION
 The
-.ZN XSetPointerMapping
+.B XSetPointerMapping
 function sets the mapping of the pointer.
 If it succeeds, the X server generates a
-.ZN MappingNotify
+.B MappingNotify
 event, and
-.ZN XSetPointerMapping
+.B XSetPointerMapping
 returns
-.ZN MappingSuccess .
+.BR MappingSuccess .
 Element map[i] defines the logical button number for the physical button
 i+1.
 The length of the list must be the same as
-.ZN XGetPointerMapping
+.B XGetPointerMapping
 would return,
 or a
-.ZN BadValue
+.B BadValue
 error results.
 A zero element disables a button, and elements are not restricted in
 value by the number of physical buttons.
 However, no two elements can have the same nonzero value,
 or a
-.ZN BadValue
+.B BadValue
 error results.
 If any of the buttons to be altered are logically in the down state,
-.ZN XSetPointerMapping
+.B XSetPointerMapping
 returns
-.ZN MappingBusy ,
+.BR MappingBusy ,
 and the mapping is not changed.
 .LP
-.ZN XSetPointerMapping
+.B XSetPointerMapping
 can generate a
-.ZN BadValue 
+.B BadValue
 error.
 .LP
 The
-.ZN XGetPointerMapping
+.B XGetPointerMapping
 function returns the current mapping of the pointer.
 Pointer buttons are numbered starting from one.
-.ZN XGetPointerMapping
+.B XGetPointerMapping
 returns the number of physical buttons actually on the pointer.
 The nominal mapping for a pointer is map[i]=i+1.
 The nmap argument specifies the length of the array where the pointer
@@ -144,7 +144,7 @@ mapping is returned, and only the first nmap elements are returned
 in map_return.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

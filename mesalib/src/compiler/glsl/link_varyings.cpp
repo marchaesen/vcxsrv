@@ -2581,14 +2581,15 @@ assign_varying_locations(struct gl_context *ctx,
                            ctx->Extensions.ARB_enhanced_layouts,
                            producer ? producer->Stage : MESA_SHADER_NONE,
                            consumer ? consumer->Stage : MESA_SHADER_NONE);
+   void *hash_table_ctx = ralloc_context(NULL);
    hash_table *tfeedback_candidates =
-         _mesa_hash_table_create(NULL, _mesa_key_hash_string,
+         _mesa_hash_table_create(hash_table_ctx, _mesa_key_hash_string,
                                  _mesa_key_string_equal);
    hash_table *consumer_inputs =
-         _mesa_hash_table_create(NULL, _mesa_key_hash_string,
+         _mesa_hash_table_create(hash_table_ctx, _mesa_key_hash_string,
                                  _mesa_key_string_equal);
    hash_table *consumer_interface_inputs =
-         _mesa_hash_table_create(NULL, _mesa_key_hash_string,
+         _mesa_hash_table_create(hash_table_ctx, _mesa_key_hash_string,
                                  _mesa_key_string_equal);
    ir_variable *consumer_inputs_with_locations[VARYING_SLOT_TESS_MAX] = {
       NULL,
@@ -2684,6 +2685,7 @@ assign_varying_locations(struct gl_context *ctx,
             linker_error(prog, "output %s is assigned to stream=%d but "
                          "is linked to an input, which requires stream=0",
                          output_var->name, output_var->data.stream);
+            ralloc_free(hash_table_ctx);
             return false;
          }
       }
@@ -2710,7 +2712,7 @@ assign_varying_locations(struct gl_context *ctx,
          = tfeedback_decls[i].find_candidate(prog, tfeedback_candidates);
 
       if (matched_candidate == NULL) {
-         _mesa_hash_table_destroy(tfeedback_candidates, NULL);
+         ralloc_free(hash_table_ctx);
          return false;
       }
 
@@ -2739,9 +2741,6 @@ assign_varying_locations(struct gl_context *ctx,
       }
    }
 
-   _mesa_hash_table_destroy(consumer_inputs, NULL);
-   _mesa_hash_table_destroy(consumer_interface_inputs, NULL);
-
    uint8_t components[MAX_VARYINGS_INCL_PATCH] = {0};
    const unsigned slots_used = matches.assign_locations(
          prog, components, reserved_slots);
@@ -2750,12 +2749,12 @@ assign_varying_locations(struct gl_context *ctx,
    for (unsigned i = 0; i < num_tfeedback_decls; ++i) {
       if (tfeedback_decls[i].is_varying()) {
          if (!tfeedback_decls[i].assign_location(ctx, prog)) {
-            _mesa_hash_table_destroy(tfeedback_candidates, NULL);
+            ralloc_free(hash_table_ctx);
             return false;
          }
       }
    }
-   _mesa_hash_table_destroy(tfeedback_candidates, NULL);
+   ralloc_free(hash_table_ctx);
 
    if (consumer && producer) {
       foreach_in_list(ir_instruction, node, consumer->ir) {

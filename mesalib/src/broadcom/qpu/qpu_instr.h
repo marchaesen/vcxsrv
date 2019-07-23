@@ -447,6 +447,7 @@ bool v3d_qpu_magic_waddr_is_vpm(enum v3d_qpu_waddr waddr) ATTRIBUTE_CONST;
 bool v3d_qpu_magic_waddr_is_tsy(enum v3d_qpu_waddr waddr) ATTRIBUTE_CONST;
 bool v3d_qpu_magic_waddr_loads_unif(enum v3d_qpu_waddr waddr) ATTRIBUTE_CONST;
 bool v3d_qpu_uses_tlb(const struct v3d_qpu_instr *inst) ATTRIBUTE_CONST;
+bool v3d_qpu_instr_is_sfu(const struct v3d_qpu_instr *inst) ATTRIBUTE_CONST;
 bool v3d_qpu_uses_sfu(const struct v3d_qpu_instr *inst) ATTRIBUTE_CONST;
 bool v3d_qpu_writes_tmu(const struct v3d_qpu_instr *inst) ATTRIBUTE_CONST;
 bool v3d_qpu_writes_tmu_not_tmuc(const struct v3d_qpu_instr *inst) ATTRIBUTE_CONST;

@@ -621,6 +621,7 @@ DuplicateModule(ModuleDescPtr mod, ModuleDescPtr parent)
 
 static const char *compiled_in_modules[] = {
     "ddc",
+    "fb",
     "i2c",
     "ramdac",
     "dbe",

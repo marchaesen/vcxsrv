@@ -262,7 +262,7 @@ put_z32_values(struct gl_context *ctx, struct gl_renderbuffer *rb,
       }
    }
    else {
-      gl_pack_uint_z_func packZ = _mesa_get_pack_uint_z_func(rb->Format);
+      mesa_pack_uint_z_func packZ = _mesa_get_pack_uint_z_func(rb->Format);
       const GLint bpp = _mesa_get_format_bytes(rb->Format);
       const GLint rowStride = srb->RowStride;
       for (i = 0; i < count; i++) {
@@ -379,7 +379,7 @@ _swrast_depth_test_span(struct gl_context *ctx, SWspan *span)
       }
       else {
          /* horizontal row */
-         gl_pack_uint_z_func packZ = _mesa_get_pack_uint_z_func(rb->Format);
+         mesa_pack_uint_z_func packZ = _mesa_get_pack_uint_z_func(rb->Format);
          GLubyte *dst = zStart;
          GLuint i;
          for (i = 0; i < count; i++) {

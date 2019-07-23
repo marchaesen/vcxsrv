@@ -107,8 +107,8 @@ typedef struct _winWMMessageRec {
 #define		WM_WM_NAME_EVENT	(WM_USER + 9)
 #define		WM_WM_ICON_EVENT	(WM_USER + 10)
 #define		WM_WM_CHANGE_STATE	(WM_USER + 11)
-#define		WM_WM_MAP2		(WM_USER + 12)
-#define		WM_WM_MAP3		(WM_USER + 13)
+#define		WM_WM_MAP_UNMANAGED	(WM_USER + 12)
+#define		WM_WM_MAP_MANAGED	(WM_USER + 13)
 #define		WM_WM_HINTS_EVENT	(WM_USER + 14)
 
 #define		MwmHintsDecorations	(1L << 1)

@@ -46,6 +46,9 @@ struct live_ssa_defs_state {
    unsigned num_ssa_defs;
    unsigned bitset_words;
 
+   /* Used in propagate_across_edge() */
+   BITSET_WORD *tmp_live;
+
    nir_block_worklist worklist;
 };
 
@@ -121,7 +124,7 @@ static bool
 propagate_across_edge(nir_block *pred, nir_block *succ,
                       struct live_ssa_defs_state *state)
 {
-   NIR_VLA(BITSET_WORD, live, state->bitset_words);
+   BITSET_WORD *live = state->tmp_live;
    memcpy(live, succ->live_in, state->bitset_words * sizeof *live);
 
    nir_foreach_instr(instr, succ) {
@@ -176,6 +179,7 @@ nir_live_ssa_defs_impl(nir_function_impl *impl)
     * blocks to the worklist.
     */
    state.bitset_words = BITSET_WORDS(state.num_ssa_defs);
+   state.tmp_live = rzalloc_array(impl, BITSET_WORD, state.bitset_words);
    nir_foreach_block(block, impl) {
       init_liveness_block(block, &state);
    }
@@ -225,6 +229,7 @@ nir_live_ssa_defs_impl(nir_function_impl *impl)
       }
    }
 
+   ralloc_free(state.tmp_live);
    nir_block_worklist_fini(&state.worklist);
 }
 

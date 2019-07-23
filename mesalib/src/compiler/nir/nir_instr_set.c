@@ -25,6 +25,64 @@
 #include "nir_vla.h"
 #include "util/half_float.h"
 
+static bool
+src_is_ssa(nir_src *src, void *data)
+{
+   (void) data;
+   return src->is_ssa;
+}
+
+static bool
+dest_is_ssa(nir_dest *dest, void *data)
+{
+   (void) data;
+   return dest->is_ssa;
+}
+
+static inline bool
+instr_each_src_and_dest_is_ssa(const nir_instr *instr)
+{
+   if (!nir_foreach_dest((nir_instr *)instr, dest_is_ssa, NULL) ||
+       !nir_foreach_src((nir_instr *)instr, src_is_ssa, NULL))
+      return false;
+
+   return true;
+}
+
+/* This function determines if uses of an instruction can safely be rewritten
+ * to use another identical instruction instead. Note that this function must
+ * be kept in sync with hash_instr() and nir_instrs_equal() -- only
+ * instructions that pass this test will be handed on to those functions, and
+ * conversely they must handle everything that this function returns true for.
+ */
+static bool
+instr_can_rewrite(const nir_instr *instr)
+{
+   /* We only handle SSA. */
+   assert(instr_each_src_and_dest_is_ssa(instr));
+
+   switch (instr->type) {
+   case nir_instr_type_alu:
+   case nir_instr_type_deref:
+   case nir_instr_type_tex:
+   case nir_instr_type_load_const:
+   case nir_instr_type_phi:
+      return true;
+   case nir_instr_type_intrinsic:
+      return nir_intrinsic_can_reorder(nir_instr_as_intrinsic(instr));
+   case nir_instr_type_call:
+   case nir_instr_type_jump:
+   case nir_instr_type_ssa_undef:
+      return false;
+   case nir_instr_type_parallel_copy:
+   default:
+      unreachable("Invalid instruction type");
+   }
+
+   return false;
+}
+
+
 #define HASH(hash, data) _mesa_fnv32_1a_accumulate((hash), (data))
 
 static uint32_t
@@ -302,98 +360,38 @@ get_neg_instr(nir_src s)
 }
 
 bool
-nir_const_value_negative_equal(const nir_const_value *c1,
-                               const nir_const_value *c2,
-                               unsigned components,
-                               nir_alu_type base_type,
-                               unsigned bits)
+nir_const_value_negative_equal(nir_const_value c1,
+                               nir_const_value c2,
+                               nir_alu_type full_type)
 {
-   assert(base_type == nir_alu_type_get_base_type(base_type));
-   assert(base_type != nir_type_invalid);
+   assert(nir_alu_type_get_base_type(full_type) != nir_type_invalid);
+   assert(nir_alu_type_get_type_size(full_type) != 0);
 
-   /* This can occur for 1-bit Boolean values. */
-   if (bits == 1)
-      return false;
+   switch (full_type) {
+   case nir_type_float16:
+      return _mesa_half_to_float(c1.u16) == -_mesa_half_to_float(c2.u16);
 
-   switch (base_type) {
-   case nir_type_float:
-      switch (bits) {
-      case 16:
-         for (unsigned i = 0; i < components; i++) {
-            if (_mesa_half_to_float(c1[i].u16) !=
-                -_mesa_half_to_float(c2[i].u16)) {
-               return false;
-            }
-         }
+   case nir_type_float32:
+      return c1.f32 == -c2.f32;
 
-         return true;
+   case nir_type_float64:
+      return c1.f64 == -c2.f64;
 
-      case 32:
-         for (unsigned i = 0; i < components; i++) {
-            if (c1[i].f32 != -c2[i].f32)
-               return false;
-         }
+   case nir_type_int8:
+   case nir_type_uint8:
+      return c1.i8 == -c2.i8;
 
-         return true;
+   case nir_type_int16:
+   case nir_type_uint16:
+      return c1.i16 == -c2.i16;
 
-      case 64:
-         for (unsigned i = 0; i < components; i++) {
-            if (c1[i].f64 != -c2[i].f64)
-               return false;
-         }
+   case nir_type_int32:
+   case nir_type_uint32:
+      return c1.i32 == -c2.i32;
 
-         return true;
-
-      default:
-         unreachable("unknown bit size");
-      }
-
-      break;
-
-   case nir_type_int:
-   case nir_type_uint:
-      switch (bits) {
-      case 8:
-         for (unsigned i = 0; i < components; i++) {
-            if (c1[i].i8 != -c2[i].i8)
-               return false;
-         }
-
-         return true;
-
-      case 16:
-         for (unsigned i = 0; i < components; i++) {
-            if (c1[i].i16 != -c2[i].i16)
-               return false;
-         }
-
-         return true;
-         break;
-
-      case 32:
-         for (unsigned i = 0; i < components; i++) {
-            if (c1[i].i32 != -c2[i].i32)
-               return false;
-         }
-
-         return true;
-
-      case 64:
-         for (unsigned i = 0; i < components; i++) {
-            if (c1[i].i64 != -c2[i].i64)
-               return false;
-         }
-
-         return true;
-
-      default:
-         unreachable("unknown bit size");
-      }
-
-      break;
-
-   case nir_type_bool:
-      return false;
+   case nir_type_int64:
+   case nir_type_uint64:
+      return c1.i64 == -c2.i64;
 
    default:
       break;
@@ -412,12 +410,31 @@ nir_const_value_negative_equal(const nir_const_value *c1,
  * This function does not detect the general case when \p alu1 and \p alu2 are
  * SSA values that are the negations of each other (e.g., \p alu1 represents
  * (a * b) and \p alu2 represents (-a * b)).
+ *
+ * \warning
+ * It is the responsibility of the caller to ensure that the component counts,
+ * write masks, and base types of the sources being compared are compatible.
  */
 bool
 nir_alu_srcs_negative_equal(const nir_alu_instr *alu1,
                             const nir_alu_instr *alu2,
                             unsigned src1, unsigned src2)
 {
+#ifndef NDEBUG
+   for (unsigned i = 0; i < NIR_MAX_VEC_COMPONENTS; i++) {
+      assert(nir_alu_instr_channel_used(alu1, src1, i) ==
+             nir_alu_instr_channel_used(alu2, src2, i));
+   }
+
+   if (nir_op_infos[alu1->op].input_types[src1] == nir_type_float) {
+      assert(nir_op_infos[alu1->op].input_types[src1] ==
+             nir_op_infos[alu2->op].input_types[src2]);
+   } else {
+      assert(nir_op_infos[alu1->op].input_types[src1] == nir_type_int);
+      assert(nir_op_infos[alu2->op].input_types[src2] == nir_type_int);
+   }
+#endif
+
    if (alu1->src[src1].abs != alu2->src[src2].abs)
       return false;
 
@@ -441,12 +458,21 @@ nir_alu_srcs_negative_equal(const nir_alu_instr *alu1,
       if (const2 == NULL)
          return false;
 
-      /* FINISHME: Apply the swizzle? */
-      return nir_const_value_negative_equal(const1,
-                                            const2,
-                                            nir_ssa_alu_instr_src_components(alu1, src1),
-                                            nir_op_infos[alu1->op].input_types[src1],
-                                            alu1->dest.dest.ssa.bit_size);
+      if (nir_src_bit_size(alu1->src[src1].src) !=
+          nir_src_bit_size(alu2->src[src2].src))
+         return false;
+
+      const nir_alu_type full_type = nir_op_infos[alu1->op].input_types[src1] |
+                                     nir_src_bit_size(alu1->src[src1].src);
+      for (unsigned i = 0; i < NIR_MAX_VEC_COMPONENTS; i++) {
+         if (nir_alu_instr_channel_used(alu1, src1, i) &&
+             !nir_const_value_negative_equal(const1[alu1->src[src1].swizzle[i]],
+                                             const2[alu2->src[src2].swizzle[i]],
+                                             full_type))
+            return false;
+      }
+
+      return true;
    }
 
    uint8_t alu1_swizzle[4] = {0};
@@ -514,9 +540,11 @@ nir_alu_srcs_equal(const nir_alu_instr *alu1, const nir_alu_instr *alu2,
  * the same hash for (ignoring collisions, of course).
  */
 
-static bool
+bool
 nir_instrs_equal(const nir_instr *instr1, const nir_instr *instr2)
 {
+   assert(instr_can_rewrite(instr1) && instr_can_rewrite(instr2));
+
    if (instr1->type != instr2->type)
       return false;
 
@@ -721,64 +749,6 @@ nir_instrs_equal(const nir_instr *instr1, const nir_instr *instr2)
    }
 
    unreachable("All cases in the above switch should return");
-}
-
-static bool
-src_is_ssa(nir_src *src, void *data)
-{
-   (void) data;
-   return src->is_ssa;
-}
-
-static bool
-dest_is_ssa(nir_dest *dest, void *data)
-{
-   (void) data;
-   return dest->is_ssa;
-}
-
-static inline bool
-instr_each_src_and_dest_is_ssa(nir_instr *instr)
-{
-   if (!nir_foreach_dest(instr, dest_is_ssa, NULL) ||
-       !nir_foreach_src(instr, src_is_ssa, NULL))
-      return false;
-
-   return true;
-}
-
-/* This function determines if uses of an instruction can safely be rewritten
- * to use another identical instruction instead. Note that this function must
- * be kept in sync with hash_instr() and nir_instrs_equal() -- only
- * instructions that pass this test will be handed on to those functions, and
- * conversely they must handle everything that this function returns true for.
- */
-
-static bool
-instr_can_rewrite(nir_instr *instr)
-{
-   /* We only handle SSA. */
-   assert(instr_each_src_and_dest_is_ssa(instr));
-
-   switch (instr->type) {
-   case nir_instr_type_alu:
-   case nir_instr_type_deref:
-   case nir_instr_type_tex:
-   case nir_instr_type_load_const:
-   case nir_instr_type_phi:
-      return true;
-   case nir_instr_type_intrinsic:
-      return nir_intrinsic_can_reorder(nir_instr_as_intrinsic(instr));
-   case nir_instr_type_call:
-   case nir_instr_type_jump:
-   case nir_instr_type_ssa_undef:
-      return false;
-   case nir_instr_type_parallel_copy:
-   default:
-      unreachable("Invalid instruction type");
-   }
-
-   return false;
 }
 
 static nir_ssa_def *

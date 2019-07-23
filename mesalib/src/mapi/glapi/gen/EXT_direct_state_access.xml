@@ -116,6 +116,22 @@
        <param name="params" type="float *" />
     </function>
 
+    <function name="GetTextureLevelParameterivEXT">
+       <param name="texture" type="GLuint" />
+       <param name="target" type="GLenum" />
+       <param name="level" type="GLint" />
+       <param name="pname" type="GLenum" />
+       <param name="params" type="GLint *" />
+    </function>
+
+    <function name="GetTextureLevelParameterfvEXT">
+       <param name="texture" type="GLuint" />
+       <param name="target" type="GLenum" />
+       <param name="level" type="GLint" />
+       <param name="pname" type="GLenum" />
+       <param name="params" type="float *" />
+    </function>
+
     <function name="TextureParameteriEXT">
        <param name="texture" type="GLuint" />
        <param name="target" type="GLenum" />
@@ -144,6 +160,56 @@
        <param name="params" type="const float *" />
     </function>
 
+   <function name="TextureImage1DEXT">
+      <param name="texture" type="GLuint" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="internalFormat" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="border" type="GLint" />
+      <param name="format" type="GLenum" />
+      <param name="type" type="GLenum" />
+      <param name="pixels" type="const GLvoid *" />
+   </function>
+
+   <function name="TextureImage2DEXT">
+      <param name="texture" type="GLuint" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="internalFormat" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="border" type="GLint" />
+      <param name="format" type="GLenum" />
+      <param name="type" type="GLenum" />
+      <param name="pixels" type="const GLvoid *" />
+   </function>
+
+   <function name="TextureImage3DEXT">
+      <param name="texture" type="GLuint" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="internalFormat" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="depth" type="GLsizei" />
+      <param name="border" type="GLint" />
+      <param name="format" type="GLenum" />
+      <param name="type" type="GLenum" />
+      <param name="pixels" type="const GLvoid *" />
+   </function>
+
+   <function name="TextureSubImage1DEXT">
+      <param name="texture" type="GLuint" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="format" type="GLenum" />
+      <param name="type" type="GLenum" />
+      <param name="pixels" type="const GLvoid *" />
+   </function>
+
    <function name="TextureSubImage2DEXT">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
@@ -155,6 +221,88 @@
       <param name="format" type="GLenum" />
       <param name="type" type="GLenum" />
       <param name="pixels" type="const GLvoid *" />
+   </function>
+
+   <function name="TextureSubImage3DEXT">
+      <param name="texture" type="GLuint" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="yoffset" type="GLint" />
+      <param name="zoffset" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="depth" type="GLsizei" />
+      <param name="format" type="GLenum" />
+      <param name="type" type="GLenum" />
+      <param name="pixels" type="const GLvoid *" />
+   </function>
+
+   <function name="CopyTextureImage1DEXT">
+      <param name="texture" type="GLuint" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="internalFormat" type="GLenum" />
+      <param name="x" type="GLint" />
+      <param name="y" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="border" type="int" />
+   </function>
+
+   <function name="CopyTextureImage2DEXT">
+      <param name="texture" type="GLuint" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="internalFormat" type="GLenum" />
+      <param name="x" type="GLint" />
+      <param name="y" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="border" type="int" />
+   </function>
+
+   <function name="CopyTextureSubImage1DEXT">
+      <param name="texture" type="GLuint" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="x" type="GLint" />
+      <param name="y" type="GLint" />
+      <param name="width" type="GLsizei" />
+   </function>
+
+   <function name="CopyTextureSubImage2DEXT">
+      <param name="texture" type="GLuint" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="yoffset" type="GLint" />
+      <param name="x" type="GLint" />
+      <param name="y" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+   </function>
+
+   <function name="CopyTextureSubImage3DEXT">
+      <param name="texture" type="GLuint" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="yoffset" type="GLint" />
+      <param name="zoffset" type="GLint" />
+      <param name="x" type="GLint" />
+      <param name="y" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+   </function>
+
+   <function name="GetTextureImageEXT">
+      <param name="texture" type="GLuint" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="format" type="GLenum" />
+      <param name="type" type="GLenum" />
+      <param name="pixels" type="GLvoid *" />
    </function>
 
    <!-- OpenGL 1.2.1 -->

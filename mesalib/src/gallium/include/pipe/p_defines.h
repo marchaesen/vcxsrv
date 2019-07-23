@@ -261,6 +261,8 @@ enum pipe_transfer_usage
     * E.g. the state tracker could have a simpler path which maps textures and
     * does read/modify/write cycles on them directly, and a more complicated
     * path which uses minimal read and write transfers.
+    *
+    * This flag supresses implicit "DISCARD" for buffer_subdata.
     */
    PIPE_TRANSFER_MAP_DIRECTLY = (1 << 2),
 
@@ -696,7 +698,6 @@ enum pipe_cap
    PIPE_CAP_MAX_TEXTURE_CUBE_LEVELS,
    PIPE_CAP_TEXTURE_MIRROR_CLAMP,
    PIPE_CAP_BLEND_EQUATION_SEPARATE,
-   PIPE_CAP_SM3,
    PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS,
    PIPE_CAP_PRIMITIVE_RESTART,
    /** blend enables and write masks per rendertarget */
@@ -797,6 +798,7 @@ enum pipe_cap
    PIPE_CAP_MULTI_DRAW_INDIRECT,
    PIPE_CAP_MULTI_DRAW_INDIRECT_PARAMS,
    PIPE_CAP_TGSI_FS_POSITION_IS_SYSVAL,
+   PIPE_CAP_TGSI_FS_POINT_IS_SYSVAL,
    PIPE_CAP_TGSI_FS_FACE_IS_INTEGER_SYSVAL,
    PIPE_CAP_SHADER_BUFFER_OFFSET_ALIGNMENT,
    PIPE_CAP_INVALIDATE_BUFFER,
@@ -888,6 +890,9 @@ enum pipe_cap
    PIPE_CAP_CS_DERIVED_SYSTEM_VALUES_SUPPORTED,
    PIPE_CAP_ATOMIC_FLOAT_MINMAX,
    PIPE_CAP_TGSI_DIV,
+   PIPE_CAP_FRAGMENT_SHADER_TEXTURE_LOD,
+   PIPE_CAP_FRAGMENT_SHADER_DERIVATIVES,
+   PIPE_CAP_VERTEX_SHADER_SATURATE,
 };
 
 /**
@@ -1050,7 +1055,7 @@ struct pipe_query_data_so_statistics
 struct pipe_query_data_timestamp_disjoint
 {
    uint64_t frequency;
-   boolean  disjoint;
+   bool     disjoint;
 };
 
 /**
@@ -1091,7 +1096,7 @@ union pipe_query_result
    /* PIPE_QUERY_SO_OVERFLOW_PREDICATE */
    /* PIPE_QUERY_SO_OVERFLOW_ANY_PREDICATE */
    /* PIPE_QUERY_GPU_FINISHED */
-   boolean b;
+   bool b;
 
    /* PIPE_QUERY_OCCLUSION_COUNTER */
    /* PIPE_QUERY_TIMESTAMP */

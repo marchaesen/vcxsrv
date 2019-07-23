@@ -99,40 +99,40 @@ Specifies the window.
 Specify the x and y coordinates of the position in the new parent window.
 .SH DESCRIPTION
 If the specified window is mapped,
-.ZN XReparentWindow
+.B XReparentWindow
 automatically performs an
-.ZN UnmapWindow
+.B UnmapWindow
 request on it, removes it from its current position in the hierarchy,
 and inserts it as the child of the specified parent.
 The window is placed in the stacking order on top with respect to
 sibling windows.
 .LP
 After reparenting the specified window,
-.ZN XReparentWindow
+.B XReparentWindow
 causes the X server to generate a
-.ZN ReparentNotify
+.B ReparentNotify
 event.
 The override_redirect member returned in this event is
 set to the window's corresponding attribute.
 Window manager clients usually should ignore this window if this member
 is set to
-.ZN True .
+.BR True .
 Finally, if the specified window was originally mapped,
 the X server automatically performs a
-.ZN MapWindow
+.B MapWindow
 request on it.
 .LP
 The X server performs normal exposure processing on formerly obscured
 windows.
 The X server might not generate 
-.ZN Expose 
+.B Expose
 events for regions from the initial
-.ZN UnmapWindow
+.B UnmapWindow
 request that are immediately obscured by the final
-.ZN MapWindow
+.B MapWindow
 request.
 A
-.ZN BadMatch
+.B BadMatch
 error results if:
 .IP \(bu 5
 The new parent window is not on the same screen as
@@ -142,23 +142,23 @@ The new parent window is the specified window or an inferior of the
 specified window.
 .IP \(bu 5
 The new parent is
-.ZN InputOnly ,
+.BR InputOnly ,
 and the window is not.
 .IP \(bu 5
 The specified window has a
-.ZN ParentRelative
+.B ParentRelative
 background, and the new parent window is not the same depth as the
 specified window.
 .LP
-.ZN XReparentWindow
+.B XReparentWindow
 can generate
-.ZN BadMatch
+.B BadMatch
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XChangeSaveSet(__libmansuffix__)

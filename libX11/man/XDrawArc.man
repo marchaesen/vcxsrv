@@ -134,9 +134,9 @@ and specify the upper-left corner of the bounding rectangle.
 .EQ
 delim %%
 .EN
-.ZN XDrawArc
+.B XDrawArc
 draws a single circular or elliptical arc, and 
-.ZN XDrawArcs
+.B XDrawArcs
 draws multiple circular or elliptical arcs.
 Each arc is specified by a rectangle and two angles.  
 The center of the circle or ellipse is the center of the
@@ -144,9 +144,9 @@ rectangle, and the major and minor axes are specified by the width and height.
 Positive angles indicate counterclockwise motion, 
 and negative angles indicate clockwise motion.  
 If the magnitude of angle2 is greater than 360 degrees, 
-.ZN XDrawArc
+.B XDrawArc
 or 
-.ZN XDrawArcs
+.B XDrawArcs
 truncates it to 360 degrees.
 .LP
 For an arc specified as %[ ~x, ~y, ~width , ~height, ~angle1, ~angle2 ]%, 
@@ -194,15 +194,15 @@ l l.
 .TE
 .LP
 For any given arc, 
-.ZN XDrawArc
+.B XDrawArc
 and
-.ZN XDrawArcs
+.B XDrawArcs
 do not draw a pixel more than once.  
 If two arcs join correctly and if the line-width is greater than zero 
 and the arcs intersect, 
-.ZN XDrawArc
+.B XDrawArc
 and
-.ZN XDrawArcs
+.B XDrawArcs
 do not draw a pixel more than once.
 Otherwise, 
 the intersecting pixels of intersecting arcs are drawn multiple times.
@@ -226,18 +226,18 @@ They also use these GC mode-dependent components:
 foreground, background, tile, stipple, tile-stipple-x-origin, 
 tile-stipple-y-origin, dash-offset, and dash-list.
 .LP
-.ZN XDrawArc
+.B XDrawArc
 and
-.ZN XDrawArcs
+.B XDrawArcs
 can generate
-.ZN BadDrawable ,
-.ZN BadGC ,
+.BR BadDrawable ,
+.BR BadGC ,
 and
-.ZN BadMatch 
+.B BadMatch
 errors.
 .SH STRUCTURES
 The
-.ZN XArc
+.B XArc
 structure contains:
 .LP
 .EX
@@ -255,18 +255,18 @@ out of the 16-bit ranges, because the protocol only has 16-bit fields
 for these values.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadDrawable
+.B BadDrawable
 A value for a Drawable argument does not name a defined Window or Pixmap.
 .TP 1i
-.ZN BadGC
+.B BadGC
 A value for a GContext argument does not name a defined GContext.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 An
-.ZN InputOnly
+.B InputOnly
 window is used as a Drawable.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 Some argument or pair of arguments has the correct type and range but fails
 to match in some other way required by the request.
 .SH "SEE ALSO"

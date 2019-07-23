@@ -1379,6 +1379,7 @@ _get_real_path_from_prefix(FcConfigParse *parse, const FcChar8 *path, const FcCh
     if (parent)
     {
 	retval = FcStrBuildFilename (parent, path, NULL);
+	FcStrFree (parent);
     }
     else
     {
@@ -3620,7 +3621,7 @@ bail0:
 	    FcConfigMessage (0, FcSevereError, "Cannot %s default config file", load ? "load" : "scan");
 	return FcFalse;
     }
-    return FcTrue;
+    return ret;
 }
 
 FcBool

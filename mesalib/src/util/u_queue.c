@@ -257,7 +257,7 @@ util_queue_thread_func(void *input)
 
    if (strlen(queue->name) > 0) {
       char name[16];
-      util_snprintf(name, sizeof(name), "%s%i", queue->name, thread_index);
+      snprintf(name, sizeof(name), "%s%i", queue->name, thread_index);
       u_thread_setname(name);
    }
 
@@ -405,10 +405,10 @@ util_queue_init(struct util_queue *queue,
    memset(queue, 0, sizeof(*queue));
 
    if (process_len) {
-      util_snprintf(queue->name, sizeof(queue->name), "%.*s:%s",
-                    process_len, process_name, name);
+      snprintf(queue->name, sizeof(queue->name), "%.*s:%s",
+               process_len, process_name, name);
    } else {
-      util_snprintf(queue->name, sizeof(queue->name), "%s", name);
+      snprintf(queue->name, sizeof(queue->name), "%s", name);
    }
 
    queue->flags = flags;

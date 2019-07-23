@@ -105,7 +105,7 @@ or parsed from the corresponding string found in a color-name database.
 .IP \fIcolor_in_out\fP 1i
 Specifies the pixel member that indicates the color cell to query.
 The color specification stored for the color cell is returned in this
-.ZN XcmsColor
+.B XcmsColor
 structure.
 .IP \fIcolor_screen_return\fP 1i
 Returns the color that can be reproduced on the screen.
@@ -115,57 +115,57 @@ Specifies the color string.
 Specifies the color format for the returned color
 specifications (color_screen_return and color_exact_return arguments).
 If the format is
-.ZN XcmsUndefinedFormat
+.B XcmsUndefinedFormat
 and the color string contains a
 numerical color specification,
 the specification is returned in the format used in that numerical
 color specification.
 If the format is
-.ZN XcmsUndefinedFormat
+.B XcmsUndefinedFormat
 and the color string contains a color name,
 the specification is returned in the format used 
 to store the color in the database.
 .IP \fIncolors\fP 1i
 Specifies the number of 
-.ZN XcmsColor
+.B XcmsColor
 structures in the color-specification array.
 .SH DESCRIPTION
 The
-.ZN XcmsQueryColor
+.B XcmsQueryColor
 function obtains the RGB value
 for the pixel value in the pixel member of the specified
-.ZN XcmsColor
+.B XcmsColor
 structure and then
 converts the value to the target format as
 specified by the result_format argument.
 If the pixel is not a valid index in the specified colormap, a
-.ZN BadValue
+.B BadValue
 error results.
 The
-.ZN XcmsQueryColors
+.B XcmsQueryColors
 function obtains the RGB values
 for pixel values in the pixel members of
-.ZN XcmsColor
+.B XcmsColor
 structures and then
 converts the values to the target format as
 specified by the result_format argument.
 If a pixel is not a valid index into the specified colormap, a
-.ZN BadValue
+.B BadValue
 error results.
 If more than one pixel is in error,
 the one that gets reported is arbitrary.
 .LP
-.ZN XcmsQueryColor
+.B XcmsQueryColor
 and
-.ZN XcmsQueryColors
+.B XcmsQueryColors
 can generate
-.ZN BadColor
+.B BadColor
 and
-.ZN BadValue
+.B BadValue
 errors.
 .LP
 The
-.ZN XcmsLookupColor
+.B XcmsLookupColor
 function looks up the string name of a color with respect to the screen
 associated with the specified colormap.
 It returns both the exact color values and
@@ -175,23 +175,23 @@ The values are returned in the format specified by result_format.
 If the color name is not in the Host Portable Character Encoding, 
 the result is implementation-dependent.
 Use of uppercase or lowercase does not matter.
-.ZN XcmsLookupColor
+.B XcmsLookupColor
 returns
-.ZN XcmsSuccess
+.B XcmsSuccess
 or
-.ZN XcmsSuccessWithCompression
+.B XcmsSuccessWithCompression
 if the name is resolved; otherwise, it returns
-.ZN XcmsFailure .
+.BR XcmsFailure .
 If
-.ZN XcmsSuccessWithCompression
+.B XcmsSuccessWithCompression
 is returned, the color specification returned in 
 color_screen_return is the result of gamut compression.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadColor
+.B BadColor
 A value for a Colormap argument does not name a defined Colormap.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

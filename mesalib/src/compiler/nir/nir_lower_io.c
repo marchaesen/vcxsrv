@@ -461,8 +461,7 @@ nir_lower_io_block(nir_block *block,
 
       nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
 
-      nir_variable *var = nir_deref_instr_get_variable(deref);
-      nir_variable_mode mode = var->data.mode;
+      nir_variable_mode mode = deref->mode;
 
       if ((state->modes & mode) == 0)
          continue;
@@ -472,6 +471,8 @@ nir_lower_io_block(nir_block *block,
           mode != nir_var_mem_shared &&
           mode != nir_var_uniform)
          continue;
+
+      nir_variable *var = nir_deref_instr_get_variable(deref);
 
       b->cursor = nir_before_instr(instr);
 
@@ -1307,3 +1308,78 @@ nir_build_addr_isub(nir_builder *b, nir_ssa_def *addr0, nir_ssa_def *addr1,
 
    unreachable("Invalid address format");
 }
+
+static bool
+is_input(nir_intrinsic_instr *intrin)
+{
+   return intrin->intrinsic == nir_intrinsic_load_input ||
+          intrin->intrinsic == nir_intrinsic_load_per_vertex_input ||
+          intrin->intrinsic == nir_intrinsic_load_interpolated_input ||
+          intrin->intrinsic == nir_intrinsic_load_fs_input_interp_deltas;
+}
+
+static bool
+is_output(nir_intrinsic_instr *intrin)
+{
+   return intrin->intrinsic == nir_intrinsic_load_output ||
+          intrin->intrinsic == nir_intrinsic_load_per_vertex_output ||
+          intrin->intrinsic == nir_intrinsic_store_output ||
+          intrin->intrinsic == nir_intrinsic_store_per_vertex_output;
+}
+
+
+/**
+ * This pass adds constant offsets to instr->const_index[0] for input/output
+ * intrinsics, and resets the offset source to 0.  Non-constant offsets remain
+ * unchanged - since we don't know what part of a compound variable is
+ * accessed, we allocate storage for the entire thing. For drivers that use
+ * nir_lower_io_to_temporaries() before nir_lower_io(), this guarantees that
+ * the offset source will be 0, so that they don't have to add it in manually.
+ */
+
+static bool
+add_const_offset_to_base_block(nir_block *block, nir_builder *b,
+                               nir_variable_mode mode)
+{
+   bool progress = false;
+   nir_foreach_instr_safe(instr, block) {
+      if (instr->type != nir_instr_type_intrinsic)
+         continue;
+
+      nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+
+      if ((mode == nir_var_shader_in && is_input(intrin)) ||
+          (mode == nir_var_shader_out && is_output(intrin))) {
+         nir_src *offset = nir_get_io_offset_src(intrin);
+
+         if (nir_src_is_const(*offset)) {
+            intrin->const_index[0] += nir_src_as_uint(*offset);
+            b->cursor = nir_before_instr(&intrin->instr);
+            nir_instr_rewrite_src(&intrin->instr, offset,
+                                  nir_src_for_ssa(nir_imm_int(b, 0)));
+            progress = true;
+         }
+      }
+   }
+
+   return progress;
+}
+
+bool
+nir_io_add_const_offset_to_base(nir_shader *nir, nir_variable_mode mode)
+{
+   bool progress = false;
+
+   nir_foreach_function(f, nir) {
+      if (f->impl) {
+         nir_builder b;
+         nir_builder_init(&b, f->impl);
+         nir_foreach_block(block, f->impl) {
+            progress |= add_const_offset_to_base_block(block, &b, mode);
+         }
+      }
+   }
+
+   return progress;
+}
+

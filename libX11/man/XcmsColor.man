@@ -92,7 +92,7 @@
 XcmsColor, XcmsRGB, XcmsRGBi, XcmsCIEXYZ, XcmsCIEuvY, XcmsCIExyY, XcmsCIELab, XcmsCIELuv, XcmsTekHVC, XcmsPad \- Xcms color structure
 .SH STRUCTURES
 The structure for
-.ZN XcmsColor
+.B XcmsColor
 contains:
 .LP
 .EX
@@ -191,7 +191,7 @@ typedef struct {
 .EE
 .SH DESCRIPTION
 The
-.ZN XcmsColor
+.B XcmsColor
 structure contains a union of substructures,
 each supporting color specification encoding for a particular color space.
 .SH "SEE ALSO"

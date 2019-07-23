@@ -140,6 +140,7 @@ EXT(ARB_shading_language_420pack            , ARB_shading_language_420pack      
 EXT(ARB_shading_language_packing            , ARB_shading_language_packing           , GLL, GLC,  x ,  x , 2011)
 EXT(ARB_shadow                              , ARB_shadow                             , GLL,  x ,  x ,  x , 2001)
 EXT(ARB_sparse_buffer                       , ARB_sparse_buffer                      , GLL, GLC,  x ,  x , 2014)
+EXT(ARB_spirv_extensions                    , ARB_spirv_extensions                   ,  x,  GLC,  x ,  x , 2016)
 EXT(ARB_stencil_texturing                   , ARB_stencil_texturing                  , GLL, GLC,  x ,  x , 2012)
 EXT(ARB_sync                                , ARB_sync                               , GLL, GLC,  x ,  x , 2003)
 EXT(ARB_tessellation_shader                 , ARB_tessellation_shader                , GLL, GLC,  x ,  x , 2009)

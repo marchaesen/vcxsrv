@@ -314,7 +314,8 @@ class per_vertex_accumulator
 {
 public:
    per_vertex_accumulator();
-   void add_field(int slot, const glsl_type *type, const char *name);
+   void add_field(int slot, const glsl_type *type, int precision,
+                  const char *name);
    const glsl_type *construct_interface_instance() const;
 
 private:
@@ -332,7 +333,7 @@ per_vertex_accumulator::per_vertex_accumulator()
 
 void
 per_vertex_accumulator::add_field(int slot, const glsl_type *type,
-                                  const char *name)
+                                  int precision, const char *name)
 {
    assert(this->num_fields < ARRAY_SIZE(this->fields));
    this->fields[this->num_fields].type = type;
@@ -344,7 +345,7 @@ per_vertex_accumulator::add_field(int slot, const glsl_type *type,
    this->fields[this->num_fields].centroid = 0;
    this->fields[this->num_fields].sample = 0;
    this->fields[this->num_fields].patch = 0;
-   this->fields[this->num_fields].precision = GLSL_PRECISION_NONE;
+   this->fields[this->num_fields].precision = precision;
    this->fields[this->num_fields].memory_read_only = 0;
    this->fields[this->num_fields].memory_write_only = 0;
    this->fields[this->num_fields].memory_coherent = 0;
@@ -395,35 +396,70 @@ private:
       return symtab->get_type(name);
    }
 
+   ir_variable *add_input(int slot, const glsl_type *type, int precision,
+                          const char *name)
+   {
+      return add_variable(name, type, precision, ir_var_shader_in, slot);
+   }
+
    ir_variable *add_input(int slot, const glsl_type *type, const char *name)
    {
-      return add_variable(name, type, ir_var_shader_in, slot);
+      return add_input(slot, type, GLSL_PRECISION_NONE, name);
+   }
+
+   ir_variable *add_output(int slot, const glsl_type *type, int precision,
+                           const char *name)
+   {
+      return add_variable(name, type, precision, ir_var_shader_out, slot);
    }
 
    ir_variable *add_output(int slot, const glsl_type *type, const char *name)
    {
-      return add_variable(name, type, ir_var_shader_out, slot);
+      return add_output(slot, type, GLSL_PRECISION_NONE, name);
    }
 
-   ir_variable *add_index_output(int slot, int index, const glsl_type *type, const char *name)
+   ir_variable *add_index_output(int slot, int index, const glsl_type *type,
+                                 int precision, const char *name)
    {
-      return add_index_variable(name, type, ir_var_shader_out, slot, index);
+      return add_index_variable(name, type, precision, ir_var_shader_out, slot,
+                                index);
    }
 
+   ir_variable *add_system_value(int slot, const glsl_type *type, int precision,
+                                 const char *name)
+   {
+      return add_variable(name, type, precision, ir_var_system_value, slot);
+   }
    ir_variable *add_system_value(int slot, const glsl_type *type,
                                  const char *name)
    {
-      return add_variable(name, type, ir_var_system_value, slot);
+      return add_system_value(slot, type, GLSL_PRECISION_NONE, name);
    }
 
    ir_variable *add_variable(const char *name, const glsl_type *type,
-                             enum ir_variable_mode mode, int slot);
+                             int precision, enum ir_variable_mode mode,
+                             int slot);
    ir_variable *add_index_variable(const char *name, const glsl_type *type,
-                             enum ir_variable_mode mode, int slot, int index);
-   ir_variable *add_uniform(const glsl_type *type, const char *name);
-   ir_variable *add_const(const char *name, int value);
+                                   int precision, enum ir_variable_mode mode,
+                                   int slot, int index);
+   ir_variable *add_uniform(const glsl_type *type, int precision,
+                            const char *name);
+   ir_variable *add_uniform(const glsl_type *type, const char *name)
+   {
+      return add_uniform(type, GLSL_PRECISION_NONE, name);
+   }
+   ir_variable *add_const(const char *name, int precision, int value);
+   ir_variable *add_const(const char *name, int value)
+   {
+      return add_const(name, GLSL_PRECISION_MEDIUM, value);
+   }
    ir_variable *add_const_ivec3(const char *name, int x, int y, int z);
-   void add_varying(int slot, const glsl_type *type, const char *name);
+   void add_varying(int slot, const glsl_type *type, int precision,
+                    const char *name);
+   void add_varying(int slot, const glsl_type *type, const char *name)
+   {
+      add_varying(slot, type, GLSL_PRECISION_NONE, name);
+   }
 
    exec_list * const instructions;
    struct _mesa_glsl_parse_state * const state;
@@ -469,8 +505,10 @@ builtin_variable_generator::builtin_variable_generator(
 
 ir_variable *
 builtin_variable_generator::add_index_variable(const char *name,
-                                         const glsl_type *type,
-                                         enum ir_variable_mode mode, int slot, int index)
+                                               const glsl_type *type,
+                                               int precision,
+                                               enum ir_variable_mode mode,
+                                               int slot, int index)
 {
    ir_variable *var = new(symtab) ir_variable(type, name, mode);
    var->data.how_declared = ir_var_declared_implicitly;
@@ -499,6 +537,9 @@ builtin_variable_generator::add_index_variable(const char *name,
    var->data.explicit_index = 1;
    var->data.index = index;
 
+   if (state->es_shader)
+      var->data.precision = precision;
+
    /* Once the variable is created an initialized, add it to the symbol table
     * and add the declaration to the IR stream.
     */
@@ -511,6 +552,7 @@ builtin_variable_generator::add_index_variable(const char *name,
 ir_variable *
 builtin_variable_generator::add_variable(const char *name,
                                          const glsl_type *type,
+                                         int precision,
                                          enum ir_variable_mode mode, int slot)
 {
    ir_variable *var = new(symtab) ir_variable(type, name, mode);
@@ -539,6 +581,9 @@ builtin_variable_generator::add_variable(const char *name,
    var->data.explicit_location = (slot >= 0);
    var->data.explicit_index = 0;
 
+   if (state->es_shader)
+      var->data.precision = precision;
+
    /* Once the variable is created an initialized, add it to the symbol table
     * and add the declaration to the IR stream.
     */
@@ -561,9 +606,11 @@ _mesa_glsl_get_builtin_uniform_desc(const char *name)
 
 ir_variable *
 builtin_variable_generator::add_uniform(const glsl_type *type,
+                                        int precision,
                                         const char *name)
 {
-   ir_variable *const uni = add_variable(name, type, ir_var_uniform, -1);
+   ir_variable *const uni =
+      add_variable(name, type, precision, ir_var_uniform, -1);
 
    const struct gl_builtin_uniform_desc* const statevar =
       _mesa_glsl_get_builtin_uniform_desc(name);
@@ -599,10 +646,11 @@ builtin_variable_generator::add_uniform(const glsl_type *type,
 
 
 ir_variable *
-builtin_variable_generator::add_const(const char *name, int value)
+builtin_variable_generator::add_const(const char *name, int precision,
+                                      int value)
 {
    ir_variable *const var = add_variable(name, glsl_type::int_type,
-					 ir_var_auto, -1);
+                                         precision, ir_var_auto, -1);
    var->constant_value = new(var) ir_constant(value);
    var->constant_initializer = new(var) ir_constant(value);
    var->data.has_initializer = true;
@@ -615,6 +663,7 @@ builtin_variable_generator::add_const_ivec3(const char *name, int x, int y,
                                             int z)
 {
    ir_variable *const var = add_variable(name, glsl_type::ivec3_type,
+                                         GLSL_PRECISION_HIGH,
                                          ir_var_auto, -1);
    ir_constant_data data;
    memset(&data, 0, sizeof(data));
@@ -893,8 +942,10 @@ builtin_variable_generator::generate_constants()
 
    if (state->is_version(410, 0) ||
        state->ARB_viewport_array_enable ||
-       state->OES_viewport_array_enable)
-      add_const("gl_MaxViewports", state->Const.MaxViewports);
+       state->OES_viewport_array_enable) {
+      add_const("gl_MaxViewports", GLSL_PRECISION_HIGH,
+                state->Const.MaxViewports);
+   }
 
    if (state->has_tessellation_shader()) {
       add_const("gl_MaxPatchVertices", state->Const.MaxPatchVertices);
@@ -927,7 +978,7 @@ builtin_variable_generator::generate_uniforms()
    if (state->is_version(400, 320) ||
        state->ARB_sample_shading_enable ||
        state->OES_sample_variables_enable)
-      add_uniform(int_t, "gl_NumSamples");
+      add_uniform(int_t, GLSL_PRECISION_LOW, "gl_NumSamples");
    add_uniform(type("gl_DepthRangeParameters"), "gl_DepthRange");
    add_uniform(array(vec4_t, VERT_ATTRIB_MAX), "gl_CurrentAttribVertMESA");
    add_uniform(array(vec4_t, VARYING_SLOT_MAX), "gl_CurrentAttribFragMESA");
@@ -1024,8 +1075,10 @@ builtin_variable_generator::generate_vs_special_vars()
 {
    ir_variable *var;
 
-   if (state->is_version(130, 300) || state->EXT_gpu_shader4_enable)
-      add_system_value(SYSTEM_VALUE_VERTEX_ID, int_t, "gl_VertexID");
+   if (state->is_version(130, 300) || state->EXT_gpu_shader4_enable) {
+      add_system_value(SYSTEM_VALUE_VERTEX_ID, int_t, GLSL_PRECISION_HIGH,
+                       "gl_VertexID");
+   }
    if (state->is_version(460, 0)) {
       add_system_value(SYSTEM_VALUE_BASE_VERTEX, int_t, "gl_BaseVertex");
       add_system_value(SYSTEM_VALUE_BASE_INSTANCE, int_t, "gl_BaseInstance");
@@ -1034,8 +1087,10 @@ builtin_variable_generator::generate_vs_special_vars()
    if (state->ARB_draw_instanced_enable)
       add_system_value(SYSTEM_VALUE_INSTANCE_ID, int_t, "gl_InstanceIDARB");
    if (state->ARB_draw_instanced_enable || state->is_version(140, 300) ||
-       state->EXT_gpu_shader4_enable)
-      add_system_value(SYSTEM_VALUE_INSTANCE_ID, int_t, "gl_InstanceID");
+       state->EXT_gpu_shader4_enable) {
+      add_system_value(SYSTEM_VALUE_INSTANCE_ID, int_t, GLSL_PRECISION_HIGH,
+                       "gl_InstanceID");
+   }
    if (state->ARB_shader_draw_parameters_enable) {
       add_system_value(SYSTEM_VALUE_BASE_VERTEX, int_t, "gl_BaseVertexARB");
       add_system_value(SYSTEM_VALUE_BASE_INSTANCE, int_t, "gl_BaseInstanceARB");
@@ -1075,26 +1130,31 @@ builtin_variable_generator::generate_vs_special_vars()
 void
 builtin_variable_generator::generate_tcs_special_vars()
 {
-   add_system_value(SYSTEM_VALUE_PRIMITIVE_ID, int_t, "gl_PrimitiveID");
-   add_system_value(SYSTEM_VALUE_INVOCATION_ID, int_t, "gl_InvocationID");
-   add_system_value(SYSTEM_VALUE_VERTICES_IN, int_t, "gl_PatchVerticesIn");
+   add_system_value(SYSTEM_VALUE_PRIMITIVE_ID, int_t, GLSL_PRECISION_HIGH,
+                    "gl_PrimitiveID");
+   add_system_value(SYSTEM_VALUE_INVOCATION_ID, int_t, GLSL_PRECISION_HIGH,
+                    "gl_InvocationID");
+   add_system_value(SYSTEM_VALUE_VERTICES_IN, int_t, GLSL_PRECISION_HIGH,
+                    "gl_PatchVerticesIn");
 
    add_output(VARYING_SLOT_TESS_LEVEL_OUTER, array(float_t, 4),
-              "gl_TessLevelOuter")->data.patch = 1;
+              GLSL_PRECISION_HIGH, "gl_TessLevelOuter")->data.patch = 1;
    add_output(VARYING_SLOT_TESS_LEVEL_INNER, array(float_t, 2),
-              "gl_TessLevelInner")->data.patch = 1;
+              GLSL_PRECISION_HIGH, "gl_TessLevelInner")->data.patch = 1;
    /* XXX What to do if multiple are flipped on? */
    int bbox_slot = state->ctx->Const.NoPrimitiveBoundingBoxOutput ? -1 :
       VARYING_SLOT_BOUNDING_BOX0;
    if (state->EXT_primitive_bounding_box_enable)
       add_output(bbox_slot, array(vec4_t, 2), "gl_BoundingBoxEXT")
          ->data.patch = 1;
-   if (state->OES_primitive_bounding_box_enable)
-      add_output(bbox_slot, array(vec4_t, 2), "gl_BoundingBoxOES")
-         ->data.patch = 1;
-   if (state->is_version(0, 320) || state->ARB_ES3_2_compatibility_enable)
-      add_output(bbox_slot, array(vec4_t, 2), "gl_BoundingBox")
-         ->data.patch = 1;
+   if (state->OES_primitive_bounding_box_enable) {
+      add_output(bbox_slot, array(vec4_t, 2), GLSL_PRECISION_HIGH,
+                 "gl_BoundingBoxOES")->data.patch = 1;
+   }
+   if (state->is_version(0, 320) || state->ARB_ES3_2_compatibility_enable) {
+      add_output(bbox_slot, array(vec4_t, 2), GLSL_PRECISION_HIGH,
+                 "gl_BoundingBox")->data.patch = 1;
+   }
 }
 
 
@@ -1106,19 +1166,22 @@ builtin_variable_generator::generate_tes_special_vars()
 {
    ir_variable *var;
 
-   add_system_value(SYSTEM_VALUE_PRIMITIVE_ID, int_t, "gl_PrimitiveID");
-   add_system_value(SYSTEM_VALUE_VERTICES_IN, int_t, "gl_PatchVerticesIn");
-   add_system_value(SYSTEM_VALUE_TESS_COORD, vec3_t, "gl_TessCoord");
+   add_system_value(SYSTEM_VALUE_PRIMITIVE_ID, int_t, GLSL_PRECISION_HIGH,
+                    "gl_PrimitiveID");
+   add_system_value(SYSTEM_VALUE_VERTICES_IN, int_t, GLSL_PRECISION_HIGH,
+                    "gl_PatchVerticesIn");
+   add_system_value(SYSTEM_VALUE_TESS_COORD, vec3_t, GLSL_PRECISION_HIGH,
+                    "gl_TessCoord");
    if (this->state->ctx->Const.GLSLTessLevelsAsInputs) {
       add_input(VARYING_SLOT_TESS_LEVEL_OUTER, array(float_t, 4),
-                "gl_TessLevelOuter")->data.patch = 1;
+                GLSL_PRECISION_HIGH, "gl_TessLevelOuter")->data.patch = 1;
       add_input(VARYING_SLOT_TESS_LEVEL_INNER, array(float_t, 2),
-                "gl_TessLevelInner")->data.patch = 1;
+                GLSL_PRECISION_HIGH, "gl_TessLevelInner")->data.patch = 1;
    } else {
       add_system_value(SYSTEM_VALUE_TESS_LEVEL_OUTER, array(float_t, 4),
-                       "gl_TessLevelOuter");
+                       GLSL_PRECISION_HIGH, "gl_TessLevelOuter");
       add_system_value(SYSTEM_VALUE_TESS_LEVEL_INNER, array(float_t, 2),
-                       "gl_TessLevelInner");
+                       GLSL_PRECISION_HIGH, "gl_TessLevelInner");
    }
    if (state->ARB_shader_viewport_layer_array_enable) {
       var = add_output(VARYING_SLOT_LAYER, int_t, "gl_Layer");
@@ -1137,16 +1200,18 @@ builtin_variable_generator::generate_gs_special_vars()
 {
    ir_variable *var;
 
-   var = add_output(VARYING_SLOT_LAYER, int_t, "gl_Layer");
+   var = add_output(VARYING_SLOT_LAYER, int_t, GLSL_PRECISION_HIGH, "gl_Layer");
    var->data.interpolation = INTERP_MODE_FLAT;
    if (state->is_version(410, 0) || state->ARB_viewport_array_enable ||
        state->OES_viewport_array_enable) {
-      var = add_output(VARYING_SLOT_VIEWPORT, int_t, "gl_ViewportIndex");
+      var = add_output(VARYING_SLOT_VIEWPORT, int_t, GLSL_PRECISION_HIGH,
+                       "gl_ViewportIndex");
       var->data.interpolation = INTERP_MODE_FLAT;
    }
    if (state->is_version(400, 320) || state->ARB_gpu_shader5_enable ||
        state->OES_geometry_shader_enable || state->EXT_geometry_shader_enable) {
-      add_system_value(SYSTEM_VALUE_INVOCATION_ID, int_t, "gl_InvocationID");
+      add_system_value(SYSTEM_VALUE_INVOCATION_ID, int_t, GLSL_PRECISION_HIGH,
+                       "gl_InvocationID");
    }
 
    /* Although gl_PrimitiveID appears in tessellation control and tessellation
@@ -1159,9 +1224,11 @@ builtin_variable_generator::generate_gs_special_vars()
     * the specific case of gl_PrimitiveIDIn.  So we don't need to treat
     * gl_PrimitiveIDIn as an {ARB,EXT}_geometry_shader4-only variable.
     */
-   var = add_input(VARYING_SLOT_PRIMITIVE_ID, int_t, "gl_PrimitiveIDIn");
+   var = add_input(VARYING_SLOT_PRIMITIVE_ID, int_t, GLSL_PRECISION_HIGH,
+                   "gl_PrimitiveIDIn");
    var->data.interpolation = INTERP_MODE_FLAT;
-   var = add_output(VARYING_SLOT_PRIMITIVE_ID, int_t, "gl_PrimitiveID");
+   var = add_output(VARYING_SLOT_PRIMITIVE_ID, int_t, GLSL_PRECISION_HIGH,
+                    "gl_PrimitiveID");
    var->data.interpolation = INTERP_MODE_FLAT;
 }
 
@@ -1174,21 +1241,34 @@ builtin_variable_generator::generate_fs_special_vars()
 {
    ir_variable *var;
 
-   if (this->state->ctx->Const.GLSLFragCoordIsSysVal)
-      add_system_value(SYSTEM_VALUE_FRAG_COORD, vec4_t, "gl_FragCoord");
-   else
-      add_input(VARYING_SLOT_POS, vec4_t, "gl_FragCoord");
+   int frag_coord_precision = (state->is_version(0, 300) ?
+                               GLSL_PRECISION_HIGH :
+                               GLSL_PRECISION_MEDIUM);
+
+   if (this->state->ctx->Const.GLSLFragCoordIsSysVal) {
+      add_system_value(SYSTEM_VALUE_FRAG_COORD, vec4_t, frag_coord_precision,
+                       "gl_FragCoord");
+   } else {
+      add_input(VARYING_SLOT_POS, vec4_t, frag_coord_precision, "gl_FragCoord");
+   }
 
    if (this->state->ctx->Const.GLSLFrontFacingIsSysVal)
       add_system_value(SYSTEM_VALUE_FRONT_FACE, bool_t, "gl_FrontFacing");
    else
       add_input(VARYING_SLOT_FACE, bool_t, "gl_FrontFacing");
 
-   if (state->is_version(120, 100))
-      add_input(VARYING_SLOT_PNTC, vec2_t, "gl_PointCoord");
+   if (state->is_version(120, 100)) {
+      if (this->state->ctx->Const.GLSLPointCoordIsSysVal)
+         add_system_value(SYSTEM_VALUE_POINT_COORD, vec2_t,
+                          GLSL_PRECISION_MEDIUM, "gl_PointCoord");
+      else
+         add_input(VARYING_SLOT_PNTC, vec2_t, GLSL_PRECISION_MEDIUM,
+                   "gl_PointCoord");
+   }
 
    if (state->has_geometry_shader() || state->EXT_gpu_shader4_enable) {
-      var = add_input(VARYING_SLOT_PRIMITIVE_ID, int_t, "gl_PrimitiveID");
+      var = add_input(VARYING_SLOT_PRIMITIVE_ID, int_t, GLSL_PRECISION_HIGH,
+                      "gl_PrimitiveID");
       var->data.interpolation = INTERP_MODE_FLAT;
    }
 
@@ -1197,9 +1277,12 @@ builtin_variable_generator::generate_fs_special_vars()
     * They were removed from GLSL ES 3.00.
     */
    if (compatibility || !state->is_version(420, 300)) {
-      add_output(FRAG_RESULT_COLOR, vec4_t, "gl_FragColor");
+      add_output(FRAG_RESULT_COLOR, vec4_t, GLSL_PRECISION_MEDIUM,
+                 "gl_FragColor");
       add_output(FRAG_RESULT_DATA0,
-                 array(vec4_t, state->Const.MaxDrawBuffers), "gl_FragData");
+                 array(vec4_t, state->Const.MaxDrawBuffers),
+                 GLSL_PRECISION_MEDIUM,
+                 "gl_FragData");
    }
 
    if (state->has_framebuffer_fetch() && !state->is_version(130, 300)) {
@@ -1215,17 +1298,19 @@ builtin_variable_generator::generate_fs_special_vars()
 
    if (state->es_shader && state->language_version == 100 && state->EXT_blend_func_extended_enable) {
       add_index_output(FRAG_RESULT_COLOR, 1, vec4_t,
-                       "gl_SecondaryFragColorEXT");
+                       GLSL_PRECISION_MEDIUM, "gl_SecondaryFragColorEXT");
       add_index_output(FRAG_RESULT_DATA0, 1,
                        array(vec4_t, state->Const.MaxDualSourceDrawBuffers),
-                       "gl_SecondaryFragDataEXT");
+                       GLSL_PRECISION_MEDIUM, "gl_SecondaryFragDataEXT");
    }
 
    /* gl_FragDepth has always been in desktop GLSL, but did not appear in GLSL
     * ES 1.00.
     */
-   if (state->is_version(110, 300))
-      add_output(FRAG_RESULT_DEPTH, float_t, "gl_FragDepth");
+   if (state->is_version(110, 300)) {
+      add_output(FRAG_RESULT_DEPTH, float_t, GLSL_PRECISION_HIGH,
+                 "gl_FragDepth");
+   }
 
    if (state->EXT_frag_depth_enable)
       add_output(FRAG_RESULT_DEPTH, float_t, "gl_FragDepthEXT");
@@ -1247,8 +1332,10 @@ builtin_variable_generator::generate_fs_special_vars()
    if (state->is_version(400, 320) ||
        state->ARB_sample_shading_enable ||
        state->OES_sample_variables_enable) {
-      add_system_value(SYSTEM_VALUE_SAMPLE_ID, int_t, "gl_SampleID");
-      add_system_value(SYSTEM_VALUE_SAMPLE_POS, vec2_t, "gl_SamplePosition");
+      add_system_value(SYSTEM_VALUE_SAMPLE_ID, int_t, GLSL_PRECISION_LOW,
+                       "gl_SampleID");
+      add_system_value(SYSTEM_VALUE_SAMPLE_POS, vec2_t, GLSL_PRECISION_MEDIUM,
+                       "gl_SamplePosition");
       /* From the ARB_sample_shading specification:
        *    "The number of elements in the array is ceil(<s>/32), where
        *    <s> is the maximum number of color samples supported by the
@@ -1256,20 +1343,23 @@ builtin_variable_generator::generate_fs_special_vars()
        * Since no drivers expose more than 32x MSAA, we can simply set
        * the array size to 1 rather than computing it.
        */
-      add_output(FRAG_RESULT_SAMPLE_MASK, array(int_t, 1), "gl_SampleMask");
+      add_output(FRAG_RESULT_SAMPLE_MASK, array(int_t, 1),
+                 GLSL_PRECISION_HIGH, "gl_SampleMask");
    }
 
    if (state->is_version(400, 320) ||
        state->ARB_gpu_shader5_enable ||
        state->OES_sample_variables_enable) {
-      add_system_value(SYSTEM_VALUE_SAMPLE_MASK_IN, array(int_t, 1), "gl_SampleMaskIn");
+      add_system_value(SYSTEM_VALUE_SAMPLE_MASK_IN, array(int_t, 1),
+                       GLSL_PRECISION_HIGH, "gl_SampleMaskIn");
    }
 
    if (state->is_version(430, 320) ||
        state->ARB_fragment_layer_viewport_enable ||
        state->OES_geometry_shader_enable ||
        state->EXT_geometry_shader_enable) {
-      var = add_input(VARYING_SLOT_LAYER, int_t, "gl_Layer");
+      var = add_input(VARYING_SLOT_LAYER, int_t, GLSL_PRECISION_HIGH,
+                      "gl_Layer");
       var->data.interpolation = INTERP_MODE_FLAT;
    }
 
@@ -1315,19 +1405,19 @@ builtin_variable_generator::generate_cs_special_vars()
  */
 void
 builtin_variable_generator::add_varying(int slot, const glsl_type *type,
-                                        const char *name)
+                                        int precision, const char *name)
 {
    switch (state->stage) {
    case MESA_SHADER_TESS_CTRL:
    case MESA_SHADER_TESS_EVAL:
    case MESA_SHADER_GEOMETRY:
-      this->per_vertex_in.add_field(slot, type, name);
+      this->per_vertex_in.add_field(slot, type, precision, name);
       /* FALLTHROUGH */
    case MESA_SHADER_VERTEX:
-      this->per_vertex_out.add_field(slot, type, name);
+      this->per_vertex_out.add_field(slot, type, precision, name);
       break;
    case MESA_SHADER_FRAGMENT:
-      add_input(slot, type, name);
+      add_input(slot, type, precision, name);
       break;
    case MESA_SHADER_COMPUTE:
       /* Compute shaders don't have varyings. */
@@ -1347,7 +1437,7 @@ builtin_variable_generator::generate_varyings()
 {
    /* gl_Position and gl_PointSize are not visible from fragment shaders. */
    if (state->stage != MESA_SHADER_FRAGMENT) {
-      add_varying(VARYING_SLOT_POS, vec4_t, "gl_Position");
+      add_varying(VARYING_SLOT_POS, vec4_t, GLSL_PRECISION_HIGH, "gl_Position");
       if (!state->es_shader ||
           state->stage == MESA_SHADER_VERTEX ||
           (state->stage == MESA_SHADER_GEOMETRY &&
@@ -1357,17 +1447,22 @@ builtin_variable_generator::generate_varyings()
             state->stage == MESA_SHADER_TESS_EVAL) &&
            (state->OES_tessellation_point_size_enable ||
             state->EXT_tessellation_point_size_enable))) {
-         add_varying(VARYING_SLOT_PSIZ, float_t, "gl_PointSize");
+         add_varying(VARYING_SLOT_PSIZ,
+                     float_t,
+                     state->is_version(0, 300) ?
+                     GLSL_PRECISION_HIGH :
+                     GLSL_PRECISION_MEDIUM,
+                     "gl_PointSize");
       }
    }
 
    if (state->has_clip_distance()) {
        add_varying(VARYING_SLOT_CLIP_DIST0, array(float_t, 0),
-                   "gl_ClipDistance");
+                   GLSL_PRECISION_HIGH, "gl_ClipDistance");
    }
    if (state->has_cull_distance()) {
       add_varying(VARYING_SLOT_CULL_DIST0, array(float_t, 0),
-                   "gl_CullDistance");
+                  GLSL_PRECISION_HIGH, "gl_CullDistance");
    }
 
    if (compatibility) {
@@ -1402,19 +1497,19 @@ builtin_variable_generator::generate_varyings()
       const glsl_type *per_vertex_in_type =
          this->per_vertex_in.construct_interface_instance();
       add_variable("gl_in", array(per_vertex_in_type, state->Const.MaxPatchVertices),
-                   ir_var_shader_in, -1);
+                   GLSL_PRECISION_NONE, ir_var_shader_in, -1);
    }
    if (state->stage == MESA_SHADER_GEOMETRY) {
       const glsl_type *per_vertex_in_type =
          this->per_vertex_in.construct_interface_instance();
       add_variable("gl_in", array(per_vertex_in_type, 0),
-                   ir_var_shader_in, -1);
+                   GLSL_PRECISION_NONE, ir_var_shader_in, -1);
    }
    if (state->stage == MESA_SHADER_TESS_CTRL) {
       const glsl_type *per_vertex_out_type =
          this->per_vertex_out.construct_interface_instance();
       add_variable("gl_out", array(per_vertex_out_type, 0),
-                   ir_var_shader_out, -1);
+                   GLSL_PRECISION_NONE, ir_var_shader_out, -1);
    }
    if (state->stage == MESA_SHADER_VERTEX ||
        state->stage == MESA_SHADER_TESS_EVAL ||
@@ -1424,13 +1519,12 @@ builtin_variable_generator::generate_varyings()
       const glsl_struct_field *fields = per_vertex_out_type->fields.structure;
       for (unsigned i = 0; i < per_vertex_out_type->length; i++) {
          ir_variable *var =
-            add_variable(fields[i].name, fields[i].type, ir_var_shader_out,
-                         fields[i].location);
+            add_variable(fields[i].name, fields[i].type, fields[i].precision,
+                         ir_var_shader_out, fields[i].location);
          var->data.interpolation = fields[i].interpolation;
          var->data.centroid = fields[i].centroid;
          var->data.sample = fields[i].sample;
          var->data.patch = fields[i].patch;
-         var->data.precision = fields[i].precision;
          var->init_interface_type(per_vertex_out_type);
       }
    }

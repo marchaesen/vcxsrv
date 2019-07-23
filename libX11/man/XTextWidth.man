@@ -97,9 +97,9 @@ Specifies the font used for the width computation.
 Specifies the character string.
 .SH DESCRIPTION
 The
-.ZN XTextWidth
+.B XTextWidth
 and
-.ZN XTextWidth16
+.B XTextWidth16
 functions return the width of the specified 8-bit or 2-byte character strings.
 .SH "SEE ALSO"
 XLoadFont(__libmansuffix__),

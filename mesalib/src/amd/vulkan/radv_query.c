@@ -1619,6 +1619,7 @@ static void emit_end_query(struct radv_cmd_buffer *cmd_buffer,
 					   cmd_buffer->device->physical_device->rad_info.chip_class,
 					   radv_cmd_buffer_uses_mec(cmd_buffer),
 					   V_028A90_BOTTOM_OF_PIPE_TS, 0,
+					   EOP_DST_SEL_MEM,
 					   EOP_DATA_SEL_VALUE_32BIT,
 					   avail_va, 1,
 					   cmd_buffer->gfx9_eop_bug_va);
@@ -1763,6 +1764,7 @@ void radv_CmdWriteTimestamp(
 						   cmd_buffer->device->physical_device->rad_info.chip_class,
 						   mec,
 						   V_028A90_BOTTOM_OF_PIPE_TS, 0,
+						   EOP_DST_SEL_MEM,
 						   EOP_DATA_SEL_TIMESTAMP,
 						   query_va, 0,
 						   cmd_buffer->gfx9_eop_bug_va);

@@ -61,6 +61,7 @@ xorg_link = [
     xorg_os_support,
     xorg_parser,
     xorg_ramdac,
+    libxserver_fb,
     libxserver_xext_vidmode,
     libxserver_main,
     libxserver_config,

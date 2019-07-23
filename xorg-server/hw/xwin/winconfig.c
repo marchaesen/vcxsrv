@@ -623,7 +623,7 @@ winSetBoolOption(void *optlist, const char *name, int deflt)
     o.name = name;
     o.type = OPTV_BOOLEAN;
     if (ParseOptionValue(-1, optlist, &o))
-        deflt = o.value.bool;
+        deflt = o.value.boolean;
     return deflt;
 }
 
@@ -918,7 +918,7 @@ ParseOptionValue(int scrnIndex, void *options, OptionInfoPtr p)
         }
         if ((s = winFindOptionValue(options, newn)) != NULL) {
             if (GetBoolValue(&opt, s)) {
-                p->value.bool = !opt.value.bool;
+                p->value.boolean = !opt.value.boolean;
                 p->found = TRUE;
             }
             else {
@@ -968,25 +968,25 @@ static Bool
 GetBoolValue(OptionInfoPtr p, const char *s)
 {
     if (*s == 0) {
-        p->value.bool = TRUE;
+        p->value.boolean = TRUE;
     }
     else {
         if (winNameCompare(s, "1") == 0)
-            p->value.bool = TRUE;
+            p->value.boolean = TRUE;
         else if (winNameCompare(s, "on") == 0)
-            p->value.bool = TRUE;
+            p->value.boolean = TRUE;
         else if (winNameCompare(s, "true") == 0)
-            p->value.bool = TRUE;
+            p->value.boolean = TRUE;
         else if (winNameCompare(s, "yes") == 0)
-            p->value.bool = TRUE;
+            p->value.boolean = TRUE;
         else if (winNameCompare(s, "0") == 0)
-            p->value.bool = FALSE;
+            p->value.boolean = FALSE;
         else if (winNameCompare(s, "off") == 0)
-            p->value.bool = FALSE;
+            p->value.boolean = FALSE;
         else if (winNameCompare(s, "false") == 0)
-            p->value.bool = FALSE;
+            p->value.boolean = FALSE;
         else if (winNameCompare(s, "no") == 0)
-            p->value.bool = FALSE;
+            p->value.boolean = FALSE;
     }
     return TRUE;
 }

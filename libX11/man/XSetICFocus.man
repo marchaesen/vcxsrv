@@ -91,18 +91,18 @@ void XUnsetICFocus\^(\^XIC \fIic\fP\^);
 Specifies the input context.
 .SH DESCRIPTION
 The
-.ZN XSetICFocus
+.B XSetICFocus
 function allows a client to notify an input method that the focus window
 attached to the specified input context has received keyboard focus.
 The input method should take action to provide appropriate feedback.
 Complete feedback specification is a matter of user interface policy.
 .LP
 Calling
-.ZN XSetICFocus
+.B XSetICFocus
 does not affect the focus window value.
 .LP
 The
-.ZN XUnsetICFocus
+.B XUnsetICFocus
 function allows a client to notify an input method that the specified input context
 has lost the keyboard focus and that no more input is expected on the focus window
 attached to that input context.
@@ -110,7 +110,7 @@ The input method should take action to provide appropriate feedback.
 Complete feedback specification is a matter of user interface policy.
 .LP
 Calling
-.ZN XUnsetICFocus
+.B XUnsetICFocus
 does not affect the focus window value;
 the client may still receive 
 events from the input method that are directed to the focus window.

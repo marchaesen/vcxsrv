@@ -114,70 +114,70 @@ Specifies the plane mask.
 .\" *** JIM: NEED MORE INFO FOR THIS. ***
 .SH DESCRIPTION
 The
-.ZN XSetState
+.B XSetState
 function sets the foreground, background, plane mask, and function components
 for the specified GC.
 .LP
-.ZN XSetState
+.B XSetState
 can generate
-.ZN BadAlloc ,
-.ZN BadGC ,
+.BR BadAlloc ,
+.BR BadGC ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .LP
-.ZN XSetFunction
+.B XSetFunction
 sets a specified value in the specified GC.
 .LP
-.ZN XSetFunction
+.B XSetFunction
 can generate
-.ZN BadAlloc ,
-.ZN BadGC ,
+.BR BadAlloc ,
+.BR BadGC ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .LP
 The
-.ZN XSetPlaneMask
+.B XSetPlaneMask
 function sets the plane mask in the specified GC.
 .LP
-.ZN XSetPlaneMask
+.B XSetPlaneMask
 can generate
-.ZN BadAlloc 
+.B BadAlloc
 and
-.ZN BadGC 
+.B BadGC
 errors.
 .LP
 The
-.ZN XSetForeground
+.B XSetForeground
 function sets the foreground in the specified GC.
 .LP
-.ZN XSetForeground
+.B XSetForeground
 can generate
-.ZN BadAlloc
+.B BadAlloc
 and
-.ZN BadGC 
+.B BadGC
 errors.
 .LP
 The
-.ZN XSetBackground
+.B XSetBackground
 function sets the background in the specified GC.
 .LP
-.ZN XSetBackground
+.B XSetBackground
 can generate
-.ZN BadAlloc
+.B BadAlloc
 and
-.ZN BadGC 
+.B BadGC
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadGC
+.B BadGC
 A value for a GContext argument does not name a defined GContext.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

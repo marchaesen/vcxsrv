@@ -63,6 +63,8 @@ struct ac_shader_abi {
 	LLVMValueRef ancillary;
 	LLVMValueRef sample_coverage;
 	LLVMValueRef prim_mask;
+	LLVMValueRef color0;
+	LLVMValueRef color1;
 	/* CS */
 	LLVMValueRef local_invocation_ids;
 	LLVMValueRef num_work_groups;

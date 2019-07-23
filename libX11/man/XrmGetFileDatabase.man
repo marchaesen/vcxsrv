@@ -125,7 +125,7 @@ Specifies the resource database.
 Specifies the connection to the X server.
 .SH DESCRIPTION
 The
-.ZN XrmGetFileDatabase
+.B XrmGetFileDatabase
 function opens the specified file,
 creates a new resource database, and loads it with the specifications
 read in from the specified file.
@@ -135,11 +135,11 @@ with incorrect syntax is implementation-dependent.
 The file is parsed in the current locale, 
 and the database is created in the current locale.
 If it cannot open the specified file,
-.ZN XrmGetFileDatabase
+.B XrmGetFileDatabase
 returns NULL.
 .LP
 The
-.ZN XrmPutFileDatabase
+.B XrmPutFileDatabase
 function stores a copy of the specified database in the specified file.
 Text is written to the file as a sequence of entries in valid
 ResourceLine format (see section 15.1).
@@ -151,12 +151,12 @@ The order in which entries are written is implementation-dependent.
 Entries with representation types other than ``String'' are ignored.
 .LP
 The
-.ZN XrmGetStringDatabase
+.B XrmGetStringDatabase
 function creates a new database and stores the resources specified
 in the specified null-terminated string.
-.ZN XrmGetStringDatabase
+.B XrmGetStringDatabase
 is similar to
-.ZN XrmGetFileDatabase
+.B XrmGetFileDatabase
 except that it reads the information out of a string instead of out of a file.
 The string should contain a sequence of entries in valid ResourceLine
 format (see section 15.1) terminated by a null character;
@@ -166,11 +166,11 @@ The string is parsed in the current locale,
 and the database is created in the current locale.
 .LP
 If database is NULL,
-.ZN XrmDestroyDatabase
+.B XrmDestroyDatabase
 returns immediately.
 .LP
 The
-.ZN XrmLocaleOfDatabase
+.B XrmLocaleOfDatabase
 function returns the name of the locale bound to the specified
 database, as a null-terminated string.
 The returned locale name string is owned by Xlib and should not be
@@ -180,12 +180,12 @@ Until the string is freed,
 it will not be modified by Xlib.
 .LP
 The
-.ZN XrmGetDatabase
+.B XrmGetDatabase
 function returns the database associated with the specified display.
 It returns NULL if a database has not yet been set.
 .LP
 The
-.ZN XrmSetDatabase
+.B XrmSetDatabase
 function associates the specified resource database (or NULL)
 with the specified display.
 The database previously associated with the display (if any) is not destroyed.

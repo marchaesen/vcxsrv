@@ -1515,21 +1515,21 @@ blit_copy_pixels(struct gl_context *ctx, GLint srcx, GLint srcy,
    struct gl_pixelstore_attrib pack, unpack;
    GLint readX, readY, readW, readH, drawX, drawY, drawW, drawH;
 
-   if (type == GL_COLOR &&
-       ctx->Pixel.ZoomX == 1.0 &&
+   if (ctx->Pixel.ZoomX == 1.0 &&
        ctx->Pixel.ZoomY == 1.0 &&
-       ctx->_ImageTransferState == 0x0 &&
-       !ctx->Color.BlendEnabled &&
-       !ctx->Color.AlphaEnabled &&
-       (!ctx->Color.ColorLogicOpEnabled || ctx->Color.LogicOp == GL_COPY) &&
-       !ctx->Depth.Test &&
-       !ctx->Fog.Enabled &&
-       !ctx->Stencil.Enabled &&
-       !ctx->FragmentProgram.Enabled &&
-       !ctx->VertexProgram.Enabled &&
-       !ctx->_Shader->CurrentProgram[MESA_SHADER_FRAGMENT] &&
-       !_mesa_ati_fragment_shader_enabled(ctx) &&
-       ctx->DrawBuffer->_NumColorDrawBuffers == 1 &&
+       (type != GL_COLOR ||
+        (ctx->_ImageTransferState == 0x0 &&
+         !ctx->Color.BlendEnabled &&
+         !ctx->Color.AlphaEnabled &&
+         (!ctx->Color.ColorLogicOpEnabled || ctx->Color.LogicOp == GL_COPY) &&
+         !ctx->Depth.Test &&
+         !ctx->Fog.Enabled &&
+         !ctx->Stencil.Enabled &&
+         !ctx->FragmentProgram.Enabled &&
+         !ctx->VertexProgram.Enabled &&
+         !ctx->_Shader->CurrentProgram[MESA_SHADER_FRAGMENT] &&
+         !_mesa_ati_fragment_shader_enabled(ctx) &&
+         ctx->DrawBuffer->_NumColorDrawBuffers == 1)) &&
        !ctx->Query.CondRenderQuery &&
        !ctx->Query.CurrentOcclusionObject) {
       struct st_renderbuffer *rbRead, *rbDraw;
@@ -1562,8 +1562,18 @@ blit_copy_pixels(struct gl_context *ctx, GLint srcx, GLint srcy,
       drawW = readW;
       drawH = readH;
 
-      rbRead = st_get_color_read_renderbuffer(ctx);
-      rbDraw = st_renderbuffer(ctx->DrawBuffer->_ColorDrawBuffers[0]);
+      if (type == GL_COLOR) {
+         rbRead = st_get_color_read_renderbuffer(ctx);
+         rbDraw = st_renderbuffer(ctx->DrawBuffer->_ColorDrawBuffers[0]);
+      } else if (type == GL_DEPTH || type == GL_DEPTH_STENCIL) {
+         rbRead = st_renderbuffer(ctx->ReadBuffer->Attachment[BUFFER_DEPTH].Renderbuffer);
+         rbDraw = st_renderbuffer(ctx->DrawBuffer->Attachment[BUFFER_DEPTH].Renderbuffer);
+      } else if (type == GL_STENCIL) {
+         rbRead = st_renderbuffer(ctx->ReadBuffer->Attachment[BUFFER_STENCIL].Renderbuffer);
+         rbDraw = st_renderbuffer(ctx->DrawBuffer->Attachment[BUFFER_STENCIL].Renderbuffer);
+      } else {
+         return false;
+      }
 
       /* Flip src/dst position depending on the orientation of buffers. */
       if (st_fb_orientation(ctx->ReadBuffer) == Y_0_TOP) {
@@ -1604,8 +1614,16 @@ blit_copy_pixels(struct gl_context *ctx, GLint srcx, GLint srcy,
          blit.dst.box.width = drawW;
          blit.dst.box.height = drawH;
          blit.dst.box.depth = 1;
-         blit.mask = PIPE_MASK_RGBA;
          blit.filter = PIPE_TEX_FILTER_NEAREST;
+
+         if (type == GL_COLOR)
+            blit.mask |= PIPE_MASK_RGBA;
+         if (type == GL_DEPTH)
+            blit.mask |= PIPE_MASK_Z;
+         if (type == GL_STENCIL)
+            blit.mask |= PIPE_MASK_S;
+         if (type == GL_DEPTH_STENCIL)
+            blit.mask |= PIPE_MASK_ZS;
 
          if (ctx->DrawBuffer != ctx->WinSysDrawBuffer)
             st_window_rectangles_to_blit(ctx, &blit);
@@ -1657,6 +1675,9 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
 
    st_validate_state(st, ST_PIPELINE_META);
 
+   if (blit_copy_pixels(ctx, srcx, srcy, width, height, dstx, dsty, type))
+      return;
+
    if (type == GL_DEPTH_STENCIL) {
       /* XXX make this more efficient */
       st_CopyPixels(ctx, srcx, srcy, width, height, dstx, dsty, GL_STENCIL);
@@ -1669,9 +1690,6 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
       copy_stencil_pixels(ctx, srcx, srcy, width, height, dstx, dsty);
       return;
    }
-
-   if (blit_copy_pixels(ctx, srcx, srcy, width, height, dstx, dsty, type))
-      return;
 
    /*
     * The subsequent code implements glCopyPixels by copying the source

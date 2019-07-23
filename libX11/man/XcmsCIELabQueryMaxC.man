@@ -116,35 +116,35 @@ or minimum lightness (MinL).
 Specifies the lightness (L*) at which to find maximum chroma (MaxC).
 .SH DESCRIPTION
 The
-.ZN XcmsCIELabQueryMaxC
+.B XcmsCIELabQueryMaxC
 function, given a hue angle and lightness,
 finds the point of maximum chroma displayable by the screen.
 It returns this point in CIE L*a*b* coordinates.
 .LP
 The
-.ZN XcmsCIELabQueryMaxL
+.B XcmsCIELabQueryMaxL
 function, given a hue angle and chroma,
 finds the point in CIE L*a*b* color space of maximum 
 lightness (L*) displayable by the screen.
 It returns this point in CIE L*a*b* coordinates.
 An 
-.ZN XcmsFailure
+.B XcmsFailure
 return value usually indicates that the given chroma
 is beyond maximum for the given hue angle.
 .LP
 The
-.ZN XcmsCIELabQueryMaxLC
+.B XcmsCIELabQueryMaxLC
 function, given a hue angle,
 finds the point of maximum chroma displayable by the screen.
 It returns this point in CIE L*a*b* coordinates.
 .LP
 The
-.ZN XcmsCIELabQueryMinL
+.B XcmsCIELabQueryMinL
 function, given a hue angle and chroma,
 finds the point of minimum lightness (L*) displayable by the screen.
 It returns this point in CIE L*a*b* coordinates.
 An 
-.ZN XcmsFailure
+.B XcmsFailure
 return value usually indicates that the given chroma
 is beyond maximum for the given hue angle.
 .SH "SEE ALSO"

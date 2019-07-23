@@ -722,8 +722,15 @@ array_stride_decoration_cb(struct vtn_builder *b,
    struct vtn_type *type = val->type;
 
    if (dec->decoration == SpvDecorationArrayStride) {
-      vtn_fail_if(dec->operands[0] == 0, "ArrayStride must be non-zero");
-      type->stride = dec->operands[0];
+      if (vtn_type_contains_block(b, type)) {
+         vtn_warn("The ArrayStride decoration cannot be applied to an array "
+                  "type which contains a structure type decorated Block "
+                  "or BufferBlock");
+         /* Ignore the decoration */
+      } else {
+         vtn_fail_if(dec->operands[0] == 0, "ArrayStride must be non-zero");
+         type->stride = dec->operands[0];
+      }
    }
 }
 
@@ -1383,7 +1390,20 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
 
          val->type->deref = vtn_value(b, w[3], vtn_value_type_type)->type;
 
-         vtn_foreach_decoration(b, val, array_stride_decoration_cb, NULL);
+         /* Only certain storage classes use ArrayStride.  The others (in
+          * particular Workgroup) are expected to be laid out by the driver.
+          */
+         switch (storage_class) {
+         case SpvStorageClassUniform:
+         case SpvStorageClassPushConstant:
+         case SpvStorageClassStorageBuffer:
+         case SpvStorageClassPhysicalStorageBufferEXT:
+            vtn_foreach_decoration(b, val, array_stride_decoration_cb, NULL);
+            break;
+         default:
+            /* Nothing to do. */
+            break;
+         }
 
          if (b->physical_ptrs) {
             switch (storage_class) {
@@ -1398,15 +1418,16 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
             }
          } else if (storage_class == SpvStorageClassWorkgroup &&
                     b->options->lower_workgroup_access_to_offsets) {
-            /* Workgroup is laid out by the implementation. */
+            /* Lay out Workgroup types so it can be lowered to offsets during
+             * SPIR-V to NIR conversion.  When not lowering to offsets, the
+             * stride will be calculated by the driver.
+             */
             uint32_t size, align;
             val->type->deref = vtn_type_layout_std430(b, val->type->deref,
                                                       &size, &align);
             val->type->length = size;
             val->type->align = align;
-
-            /* Override any ArrayStride previously set. */
-            val->type->stride = size;
+            val->type->stride = vtn_align_u32(size, align);
          }
       }
       break;
@@ -3339,13 +3360,13 @@ vtn_handle_barrier(struct vtn_builder *b, SpvOp opcode,
    }
 
    case SpvOpControlBarrier: {
-      SpvScope execution_scope = vtn_constant_uint(b, w[1]);
-      if (execution_scope == SpvScopeWorkgroup)
-         vtn_emit_barrier(b, nir_intrinsic_barrier);
-
       SpvScope memory_scope = vtn_constant_uint(b, w[2]);
       SpvMemorySemanticsMask memory_semantics = vtn_constant_uint(b, w[3]);
       vtn_emit_memory_barrier(b, memory_scope, memory_semantics);
+
+      SpvScope execution_scope = vtn_constant_uint(b, w[1]);
+      if (execution_scope == SpvScopeWorkgroup)
+         vtn_emit_barrier(b, nir_intrinsic_barrier);
       break;
    }
 
@@ -3716,6 +3737,10 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
 
       case SpvCapabilityFragmentShaderPixelInterlockEXT:
          spv_check_supported(fragment_shader_pixel_interlock, cap);
+         break;
+
+      case SpvCapabilityDemoteToHelperInvocationEXT:
+         spv_check_supported(demote_to_helper_invocation, cap);
          break;
 
       default:
@@ -4531,6 +4556,28 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpEndInvocationInterlockEXT:
       vtn_emit_barrier(b, nir_intrinsic_end_invocation_interlock);
       break;
+
+   case SpvOpDemoteToHelperInvocationEXT: {
+      nir_intrinsic_instr *intrin =
+         nir_intrinsic_instr_create(b->shader, nir_intrinsic_demote);
+      nir_builder_instr_insert(&b->nb, &intrin->instr);
+      break;
+   }
+
+   case SpvOpIsHelperInvocationEXT: {
+      nir_intrinsic_instr *intrin =
+         nir_intrinsic_instr_create(b->shader, nir_intrinsic_is_helper_invocation);
+      nir_ssa_dest_init(&intrin->instr, &intrin->dest, 1, 1, NULL);
+      nir_builder_instr_insert(&b->nb, &intrin->instr);
+
+      struct vtn_type *res_type =
+         vtn_value(b, w[1], vtn_value_type_type)->type;
+      struct vtn_ssa_value *val = vtn_create_ssa_value(b, res_type->type);
+      val->def = &intrin->dest.ssa;
+
+      vtn_push_ssa(b, w[2], res_type, val);
+      break;
+   }
 
    default:
       vtn_fail_with_opcode("Unhandled opcode", opcode);

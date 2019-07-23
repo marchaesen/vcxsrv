@@ -997,6 +997,14 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
             };
          }
 
+         nir_variable *src_var = nir_deref_instr_get_variable(src);
+         if (src_var && src_var->data.cannot_coalesce) {
+            /* The source cannot be coaleseced, which means we can't propagate
+             * this copy.
+             */
+            break;
+         }
+
          struct copy_entry *dst_entry =
             get_entry_and_kill_aliases(copies, dst, full_mask);
          value_set_from_value(&dst_entry->src, &value, 0, full_mask);

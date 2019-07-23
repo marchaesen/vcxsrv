@@ -97,61 +97,61 @@ Specifies the connection to the X server.
 Specifies the window.
 .IP \fIwmhints\fP 1i
 Specifies the 
-.ZN XWMHints
+.B XWMHints
 structure to be used.
 .SH DESCRIPTION
 The
-.ZN XAllocWMHints
+.B XAllocWMHints
 function allocates and returns a pointer to a
-.ZN XWMHints
+.B XWMHints
 structure.
 Note that all fields in the
-.ZN XWMHints
+.B XWMHints
 structure are initially set to zero.
 If insufficient memory is available, 
-.ZN XAllocWMHints
+.B XAllocWMHints
 returns NULL.
 To free the memory allocated to this structure,
 use
-.ZN XFree .
+.BR XFree .
 .LP
 The
-.ZN XSetWMHints
+.B XSetWMHints
 function sets the window manager hints that include icon information and location,
 the initial state of the window, and whether the application relies on the
 window manager to get keyboard input.
 .LP
-.ZN XSetWMHints
+.B XSetWMHints
 can generate
-.ZN BadAlloc
+.B BadAlloc
 and
-.ZN BadWindow
+.B BadWindow
 errors.
 .LP
 The
-.ZN XGetWMHints
+.B XGetWMHints
 function reads the window manager hints and 
 returns NULL if no WM_HINTS property was set on the window 
 or returns a pointer to a 
-.ZN XWMHints 
+.B XWMHints
 structure if it succeeds.
 When finished with the data,
 free the space used for it by calling
-.ZN XFree .
+.BR XFree .
 .LP
-.ZN XGetWMHints
+.B XGetWMHints
 can generate a
-.ZN BadWindow
+.B BadWindow
 error.
 .SH PROPERTIES
 .TP 1i
 \s-1WM_HINTS\s+1
 Additional hints set by the client for use by the window manager.
 The C type of this property is 
-.ZN XWMHints .
+.BR XWMHints .
 .SH STRUCTURES
 The
-.ZN XWMHints
+.B XWMHints
 structure contains:
 .LP
 /\&* Window manager hints mask bits */
@@ -160,63 +160,63 @@ lw(.5i) lw(2.5i) lw(2.5i).
 T{
 \&#define
 T}	T{
-.ZN InputHint
+.B InputHint
 T}	T{
 (1L << 0)
 T}
 T{
 \&#define
 T}	T{
-.ZN StateHint
+.B StateHint
 T}	T{
 (1L << 1)
 T}
 T{
 \&#define
 T}	T{
-.ZN IconPixmapHint
+.B IconPixmapHint
 T}	T{
 (1L << 2)
 T}
 T{
 \&#define
 T}	T{
-.ZN IconWindowHint
+.B IconWindowHint
 T}	T{
 (1L << 3)
 T}
 T{
 \&#define
 T}	T{
-.ZN IconPositionHint
+.B IconPositionHint
 T}	T{
 (1L << 4)
 T}
 T{
 \&#define
 T}	T{
-.ZN IconMaskHint
+.B IconMaskHint
 T}	T{
 (1L << 5)
 T}
 T{
 \&#define
 T}	T{
-.ZN WindowGroupHint
+.B WindowGroupHint
 T}	T{
 (1L << 6)
 T}
 T{
 \&#define
 T}	T{
-.ZN XUrgencyHint
+.B XUrgencyHint
 T}	T{
 (1L << 8)
 T}
 T{
 \&#define
 T}	T{
-.ZN AllHints
+.B AllHints
 T}	T{
 (InputHint|StateHint|IconPixmapHint|
 .br
@@ -249,30 +249,30 @@ Applications that expect input but never explicitly set focus to any
 of their subwindows (that is, use the push model of focus management), 
 such as X Version 10 style applications that use real-estate
 driven focus, should set this member to 
-.ZN True .  
+.BR True .
 Similarly, applications
 that set input focus to their subwindows only when it is given to their
 top-level window by a window manager should also set this member to 
-.ZN True .
+.BR True .
 Applications that manage their own input focus by explicitly setting
 focus to one of their subwindows whenever they want keyboard input 
 (that is, use the pull model of focus management) should set this member to 
-.ZN False .
+.BR False .
 Applications that never expect any keyboard input also should set this member
 to 
-.ZN False .
+.BR False .
 .LP
 Pull model window managers should make it possible for push model
 applications to get input by setting input focus to the top-level windows of
 applications whose input member is 
-.ZN True .  
+.BR True .
 Push model window managers should
 make sure that pull model applications do not break them 
 by resetting input focus to 
-.ZN PointerRoot 
+.B PointerRoot
 when it is appropriate (for example, whenever an application whose
 input member is 
-.ZN False 
+.B False
 sets input focus to one of its subwindows).
 .LP
 The definitions for the initial_state flag are:
@@ -281,7 +281,7 @@ lw(.5i) lw(2i) lw(.2i) lw(2.8i).
 T{
 \&#define
 T}	T{
-.ZN WithdrawnState
+.B WithdrawnState
 T}	T{
 0
 T}	T{
@@ -289,7 +289,7 @@ T}
 T{
 \&#define
 T}	T{
-.ZN NormalState
+.B NormalState
 T}	T{
 1
 T}	T{
@@ -298,7 +298,7 @@ T}
 T{
 \&#define
 T}	T{
-.ZN IconicState
+.B IconicState
 T}	T{
 3
 T}	T{
@@ -319,7 +319,7 @@ information that a window manager can iconify all of the windows
 rather than just the one window.
 .LP
 The
-.ZN UrgencyHint
+.B UrgencyHint
 flag, if set in the flags field, indicates that the client deems the window
 contents to be urgent, requiring the timely response of the user.  The
 window manager will make some effort to draw the user's attention to this
@@ -329,10 +329,10 @@ the condition that made the window urgent or merely shutting off the alarm)
 or the window to be withdrawn.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XAllocClassHint(__libmansuffix__),

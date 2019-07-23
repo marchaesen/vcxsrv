@@ -768,7 +768,9 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
 
    state.phi_builder = nir_phi_builder_create(state.impl);
 
-   NIR_VLA(BITSET_WORD, store_blocks, BITSET_WORDS(state.impl->num_blocks));
+   BITSET_WORD *store_blocks =
+      ralloc_array(state.dead_ctx, BITSET_WORD,
+                   BITSET_WORDS(state.impl->num_blocks));
    foreach_list_typed(struct deref_node, node, direct_derefs_link,
                       &state.direct_deref_nodes) {
       if (!node->lower_to_ssa)

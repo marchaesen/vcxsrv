@@ -169,7 +169,7 @@ print('''
   * manually or commit it into version control.
   */
 
-static const struct gl_format_info format_info[MESA_FORMAT_COUNT] =
+static const struct mesa_format_info format_info[MESA_FORMAT_COUNT] =
 {
 ''')
 

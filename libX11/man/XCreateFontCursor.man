@@ -104,12 +104,12 @@ Specifies the connection to the X server.
 Specifies the RGB values for the foreground of the source. 
 .IP \fImask\fP 1i
 Specifies the cursor's source bits to be displayed or
-.ZN None .
+.BR None .
 .IP \fImask_char\fP 1i
 Specifies the glyph character for the mask. 
 .IP \fImask_font\fP 1i
 Specifies the font for the mask glyph or
-.ZN None .
+.BR None .
 .IP \fIshape\fP 1i
 Specifies the shape of the cursor.
 .IP \fIsource\fP 1i
@@ -136,29 +136,29 @@ to use.
 The hotspot comes from the information stored in the cursor font.
 The initial colors of a cursor are a black foreground and a white
 background (see
-.ZN XRecolorCursor ).
+.BR XRecolorCursor ).
 .LP
-.ZN XCreateFontCursor
+.B XCreateFontCursor
 can generate
-.ZN BadAlloc
+.B BadAlloc
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .LP
 The
-.ZN XCreatePixmapCursor
+.B XCreatePixmapCursor
 function creates a cursor and returns the cursor ID associated with it.
 The foreground and background RGB values must be specified using
 foreground_color and background_color,
 even if the X server only has a
-.ZN StaticGray
+.B StaticGray
 or
-.ZN GrayScale
+.B GrayScale
 screen.
 The foreground color is used for the pixels set to 1 in the
 source, and the background color is used for the pixels set to 0.
 Both source and mask, if specified, must have depth one (or a 
-.ZN BadMatch
+.B BadMatch
 error results) but can have any root.
 The mask argument defines the shape of the cursor.
 The pixels set to 1 in the mask define which source pixels are displayed,
@@ -167,11 +167,11 @@ If no mask is given,
 all pixels of the source are displayed.
 The mask, if present, must be the same size as the pixmap defined by the 
 source argument, or a
-.ZN BadMatch
+.B BadMatch
 error results.
 The hotspot must be a point within the source,
 or a
-.ZN BadMatch
+.B BadMatch
 error results.
 .LP
 The components of the cursor can be transformed arbitrarily to meet
@@ -182,27 +182,27 @@ Subsequent drawing in the source or mask pixmap has an undefined effect on the
 cursor.
 The X server might or might not make a copy of the pixmap.
 .LP
-.ZN XCreatePixmapCursor
+.B XCreatePixmapCursor
 can generate
-.ZN BadAlloc
+.B BadAlloc
 and
-.ZN BadPixmap 
+.B BadPixmap
 errors.
 .LP
 The
-.ZN XCreateGlyphCursor
+.B XCreateGlyphCursor
 function is similar to
-.ZN XCreatePixmapCursor
+.B XCreatePixmapCursor
 except that the source and mask bitmaps are obtained from the specified 
 font glyphs.
 The source_char must be a defined glyph in source_font, 
 or a
-.ZN BadValue
+.B BadValue
 error results.
 If mask_font is given, 
 mask_char must be a defined glyph in mask_font,
 or a
-.ZN BadValue
+.B BadValue
 error results.
 The mask_font and character are optional.
 The origins of the source_char and mask_char (if defined) glyphs are
@@ -212,7 +212,7 @@ and there is no restriction on the placement of the hotspot relative to the boun
 boxes. 
 If no mask_char is given, all pixels of the source are displayed.
 You can free the fonts immediately by calling
-.ZN XFreeFont
+.B XFreeFont
 if no further explicit references to them are to be made. 
 .LP
 For 2-byte matrix fonts, 
@@ -220,29 +220,29 @@ the 16-bit value should be formed with the byte1
 member in the most significant byte and the byte2 member in the 
 least significant byte.
 .LP
-.ZN XCreateGlyphCursor
+.B XCreateGlyphCursor
 can generate
-.ZN BadAlloc ,
-.ZN BadFont ,
+.BR BadAlloc ,
+.BR BadFont ,
 and
-.ZN BadValue 
+.B BadValue
 errors.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadFont
+.B BadFont
 A value for a Font or GContext argument does not name a defined Font.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 Some argument or pair of arguments has the correct type and range but fails
 to match in some other way required by the request.
 .TP 1i
-.ZN BadPixmap
+.B BadPixmap
 A value for a Pixmap argument does not name a defined Pixmap.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of

@@ -83,7 +83,7 @@
 XErrorEvent \- X error event structure
 .SH STRUCTURES
 The 
-.ZN XErrorEvent
+.B XErrorEvent
 structure contains:
 .LP
 .Ds 0
@@ -104,7 +104,7 @@ the structure members are set as follows.
 The serial member is the number of requests, starting from one, 
 sent over the network connection since it was opened. 
 It is the number that was the value of 
-.ZN NextRequest 
+.B NextRequest
 immediately before the failing call was made.  
 The request_code member is a protocol request
 of the procedure that failed, as defined in 

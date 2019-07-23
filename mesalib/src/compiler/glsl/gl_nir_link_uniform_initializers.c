@@ -295,4 +295,7 @@ gl_nir_set_uniform_initializers(struct gl_context *ctx,
          }
       }
    }
+   memcpy(prog->data->UniformDataDefaults, prog->data->UniformDataSlots,
+          sizeof(union gl_constant_value) * prog->data->NumUniformDataSlots);
+
 }

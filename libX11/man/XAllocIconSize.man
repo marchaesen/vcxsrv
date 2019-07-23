@@ -104,50 +104,50 @@ Returns the size list.
 Specifies the window.
 .SH DESCRIPTION
 The
-.ZN XAllocIconSize 
+.B XAllocIconSize
 function allocates and returns a pointer to a
-.ZN XIconSize 
+.B XIconSize
 structure.
 Note that all fields in the
-.ZN XIconSize
+.B XIconSize
 structure are initially set to zero.
 If insufficient memory is available, 
-.ZN XAllocIconSize
+.B XAllocIconSize
 returns NULL.
 To free the memory allocated to this structure,
 use
-.ZN XFree .
+.BR XFree .
 .LP
 The
-.ZN XSetIconSizes
+.B XSetIconSizes
 function is used only by window managers to set the supported icon sizes.
 .LP
-.ZN XSetIconSizes
+.B XSetIconSizes
 can generate
-.ZN BadAlloc
+.B BadAlloc
 and
-.ZN BadWindow
+.B BadWindow
 errors.
 .LP
 The
-.ZN XGetIconSizes
+.B XGetIconSizes
 function returns zero if a window manager has not set icon sizes;
 otherwise, it return nonzero.
-.ZN XGetIconSizes
+.B XGetIconSizes
 should be called by an application that
 wants to find out what icon sizes would be most appreciated by the
 window manager under which the application is running.
 The application
 should then use
-.ZN XSetWMHints
+.B XSetWMHints
 to supply the window manager with an icon pixmap or window in one of the
 supported sizes.
 To free the data allocated in size_list_return, use
-.ZN XFree .
+.BR XFree .
 .LP
-.ZN XGetIconSizes
+.B XGetIconSizes
 can generate a
-.ZN BadWindow
+.B BadWindow
 error.
 .SH PROPERTIES
 .TP 1i
@@ -155,10 +155,10 @@ error.
 The window manager may set this property on the root window to
 specify the icon sizes it supports.
 The C type of this property is 
-.ZN XIconSize .
+.BR XIconSize .
 .SH STRUCTURES
 The
-.ZN XIconSize
+.B XIconSize
 structure contains:
 .LP
 .IN "XIconSize" "" "@DEF@"
@@ -174,10 +174,10 @@ The width_inc and height_inc members define an arithmetic progression of
 sizes (minimum to maximum) that represent the supported icon sizes.
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadAlloc
+.B BadAlloc
 The server failed to allocate the requested resource or server memory.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XAllocClassHint(__libmansuffix__),

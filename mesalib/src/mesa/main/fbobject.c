@@ -4282,8 +4282,8 @@ get_framebuffer_attachment_parameter(struct gl_context *ctx,
       }
       else {
          if (ctx->Extensions.EXT_sRGB) {
-            *params =
-               _mesa_get_format_color_encoding(att->Renderbuffer->Format);
+            *params = (_mesa_is_format_srgb(att->Renderbuffer->Format) ?
+                       GL_SRGB : GL_LINEAR);
          }
          else {
             /* According to ARB_framebuffer_sRGB, we should return LINEAR

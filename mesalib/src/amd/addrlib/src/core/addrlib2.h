@@ -104,6 +104,8 @@ enum AddrBlockSet
     AddrBlockSetLinear    = 1 << AddrBlockLinear,
 
     AddrBlockSetMacro   = AddrBlockSetMacro4KB | AddrBlockSetMacro64KB,
+    AddrBlockSet2dGfx10 = AddrBlockSetMicro    | AddrBlockSetMacro,
+    AddrBlockSet3dGfx10 = AddrBlockSetMacro,
 };
 
 enum AddrSwSet
@@ -114,6 +116,8 @@ enum AddrSwSet
     AddrSwSetR = 1 << ADDR_SW_R,
 
     AddrSwSetAll         = AddrSwSetZ | AddrSwSetS | AddrSwSetD | AddrSwSetR,
+    AddrSwSet3dThinGfx10 = AddrSwSetZ | AddrSwSetR,
+    AddrSwSetColorGfx10  = AddrSwSetS | AddrSwSetD | AddrSwSetR,
 };
 
 /**

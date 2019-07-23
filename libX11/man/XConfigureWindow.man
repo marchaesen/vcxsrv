@@ -106,7 +106,7 @@ the values structure.
 This mask is the bitwise inclusive OR of the valid configure window values bits.
 .IP \fIvalues\fP 1i
 Specifies the 
-.ZN XWindowChanges 
+.B XWindowChanges
 structure.
 .IP \fIw\fP 1i
 Specifies the window to be reconfigured, moved, or resized..
@@ -126,41 +126,41 @@ of the window's border or the window itself if it has no border
 or define the new position of the window relative to its parent.
 .SH DESCRIPTION
 The
-.ZN XConfigureWindow
+.B XConfigureWindow
 function uses the values specified in the
-.ZN XWindowChanges
+.B XWindowChanges
 structure to reconfigure a window's size, position, border, and stacking order.
 Values not specified are taken from the existing geometry of the window.
 .LP
 If a sibling is specified without a stack_mode or if the window
 is not actually a sibling,
 a
-.ZN BadMatch
+.B BadMatch
 error results. 
 Note that the computations for
-.ZN BottomIf ,
-.ZN TopIf ,
+.BR BottomIf ,
+.BR TopIf ,
 and
-.ZN Opposite
+.B Opposite
 are performed with respect to the window's final geometry (as controlled by the
 other arguments passed to
-.ZN XConfigureWindow ),
+.BR XConfigureWindow ),
 not its initial geometry.
 Any backing store contents of the window, its
 inferiors, and other newly visible windows are either discarded or
 changed to reflect the current screen contents 
 (depending on the implementation).
 .LP
-.ZN XConfigureWindow
+.B XConfigureWindow
 can generate
-.ZN BadMatch ,
-.ZN BadValue ,
+.BR BadMatch ,
+.BR BadValue ,
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XMoveWindow
+.B XMoveWindow
 function moves the specified window to the specified x and y coordinates,
 but it does not change the window's size, raise the window, or
 change the mapping state of the window.
@@ -169,102 +169,102 @@ depending on if the window is obscured by nonchildren
 and if no backing store exists.
 If the contents of the window are lost, 
 the X server generates
-.ZN Expose 
+.B Expose
 events.
 Moving a mapped window generates
-.ZN Expose 
+.B Expose
 events on any formerly obscured windows. 
 .LP
 If the override-redirect flag of the window is 
-.ZN False 
+.B False
 and some
 other client has selected 
-.ZN SubstructureRedirectMask 
+.B SubstructureRedirectMask
 on the parent, the X server generates a
-.ZN ConfigureRequest 
+.B ConfigureRequest
 event, and no further processing is
 performed.  
 Otherwise, the window is moved.
 .LP
-.ZN XMoveWindow
+.B XMoveWindow
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .LP
 The
-.ZN XResizeWindow
+.B XResizeWindow
 function changes the inside dimensions of the specified window, not including
 its borders.
 This function does not change the window's upper-left coordinate or
 the origin and does not restack the window.
 Changing the size of a mapped window may lose its contents and generate
-.ZN Expose 
+.B Expose
 events.
 If a mapped window is made smaller, 
 changing its size generates
-.ZN Expose 
+.B Expose
 events on windows that the mapped window formerly obscured.
 .LP
 If the override-redirect flag of the window is 
-.ZN False 
+.B False
 and some
 other client has selected 
-.ZN SubstructureRedirectMask 
+.B SubstructureRedirectMask
 on the parent, the X server generates a
-.ZN ConfigureRequest 
+.B ConfigureRequest
 event, and no further processing is performed.  
 If either width or height is zero,
 a
-.ZN BadValue
+.B BadValue
 error results.
 .LP
-.ZN XResizeWindow
+.B XResizeWindow
 can generate
-.ZN BadValue
+.B BadValue
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XMoveResizeWindow
+.B XMoveResizeWindow
 function changes the size and location of the specified window 
 without raising it.
 Moving and resizing a mapped window may generate an
-.ZN Expose 
+.B Expose
 event on the window.
 Depending on the new size and location parameters,
 moving and resizing a window may generate 
-.ZN Expose 
+.B Expose
 events on windows that the window formerly obscured. 
 .LP
 If the override-redirect flag of the window is 
-.ZN False 
+.B False
 and some
 other client has selected 
-.ZN SubstructureRedirectMask 
+.B SubstructureRedirectMask
 on the parent, the X server generates a
-.ZN ConfigureRequest 
+.B ConfigureRequest
 event, and no further processing is performed.  
 Otherwise, the window size and location are changed.
 .LP
-.ZN XMoveResizeWindow
+.B XMoveResizeWindow
 can generate
-.ZN BadValue
+.B BadValue
 and
-.ZN BadWindow 
+.B BadWindow
 errors.
 .LP
 The
-.ZN XSetWindowBorderWidth
+.B XSetWindowBorderWidth
 function sets the specified window's border width to the specified width.
 .LP
-.ZN XSetWindowBorderWidth
+.B XSetWindowBorderWidth
 can generate a
-.ZN BadWindow 
+.B BadWindow
 error.
 .SH STRUCTURES
 The
-.ZN XWindowChanges
+.B XWindowChanges
 structure contains:
 .LP
 .LP
@@ -274,49 +274,49 @@ lw(.5i) lw(2.5i) lw(.8i).
 T{
 \&#define
 T}	T{
-.ZN CWX
+.B CWX
 T}	T{
 (1<<0)
 T}
 T{
 \&#define
 T}	T{
-.ZN CWY
+.B CWY
 T}	T{
 (1<<1)
 T}
 T{
 \&#define
 T}	T{
-.ZN CWWidth
+.B CWWidth
 T}	T{
 (1<<2)
 T}
 T{
 \&#define
 T}	T{
-.ZN CWHeight
+.B CWHeight
 T}	T{
 (1<<3)
 T}
 T{
 \&#define
 T}	T{
-.ZN CWBorderWidth
+.B CWBorderWidth
 T}	T{
 (1<<4)
 T}
 T{
 \&#define
 T}	T{
-.ZN CWSibling
+.B CWSibling
 T}	T{
 (1<<5)
 T}
 T{
 \&#define
 T}	T{
-.ZN CWStackMode
+.B CWStackMode
 T}	T{
 (1<<6)
 T}
@@ -339,7 +339,7 @@ which are relative to the parent's origin
 and indicate the position of the upper-left outer corner of the window.
 The width and height members are used to set the inside size of the window,
 not including the border, and must be nonzero, or a
-.ZN BadValue
+.B BadValue
 error results.
 Attempts to configure a root window have no effect.
 .LP
@@ -347,38 +347,38 @@ The border_width member is used to set the width of the border in pixels.
 Note that setting just the border width leaves the outer-left corner of the window
 in a fixed position but moves the absolute position of the window's origin.
 If you attempt to set the border-width attribute of an
-.ZN InputOnly
+.B InputOnly
 window nonzero, a
-.ZN BadMatch
+.B BadMatch
 error results. 
 .LP
 The sibling member is used to set the sibling window for stacking operations.
 The stack_mode member is used to set how the window is to be restacked 
 and can be set to
-.ZN Above , 
-.ZN Below , 
-.ZN TopIf , 
-.ZN BottomIf ,
+.BR Above ,
+.BR Below ,
+.BR TopIf ,
+.BR BottomIf ,
 or 
-.ZN Opposite .
+.BR Opposite .
 .SH DIAGNOSTICS
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 An
-.ZN InputOnly
+.B InputOnly
 window is used as a Drawable.
 .TP 1i
-.ZN BadMatch
+.B BadMatch
 Some argument or pair of arguments has the correct type and range but fails
 to match in some other way required by the request.
 .TP 1i
-.ZN BadValue
+.B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
 by the argument's type is accepted.  Any argument defined as a set of
 alternatives can generate this error.
 .TP 1i
-.ZN BadWindow
+.B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XChangeWindowAttributes(__libmansuffix__),

@@ -114,32 +114,32 @@ Specify the x and y coordinates, which define the point
 or the coordinates of the upper-left corner of the rectangle.
 .SH DESCRIPTION
 The
-.ZN XEmptyRegion
+.B XEmptyRegion
 function returns
-.ZN True
+.B True
 if the region is empty.
 .LP
 The
-.ZN XEqualRegion
+.B XEqualRegion
 function returns
-.ZN True
+.B True
 if the two regions have the same offset, size, and shape.
 .LP
 The
-.ZN XPointInRegion
+.B XPointInRegion
 function returns 
-.ZN True
+.B True
 if the point (x, y) is contained in the region r.
 .LP
 The
-.ZN XRectInRegion
+.B XRectInRegion
 function returns
-.ZN RectangleIn
+.B RectangleIn
 if the rectangle is entirely in the specified region,
-.ZN RectangleOut
+.B RectangleOut
 if the rectangle is entirely out of the specified region,
 and
-.ZN RectanglePart
+.B RectanglePart
 if the rectangle is partially in the specified region.
 .SH "SEE ALSO"
 XCreateRegion(__libmansuffix__),

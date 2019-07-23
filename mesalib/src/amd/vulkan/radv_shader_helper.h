@@ -33,9 +33,9 @@ bool radv_init_llvm_compiler(struct ac_llvm_compiler *info,
 void radv_destroy_llvm_compiler(struct ac_llvm_compiler *info,
 				bool thread_compiler);
 
-bool radv_compile_to_binary(struct ac_llvm_compiler *info,
-			    LLVMModuleRef module,
-			    struct ac_shader_binary *binary);
+bool radv_compile_to_elf(struct ac_llvm_compiler *info,
+			 LLVMModuleRef module,
+			 char **pelf_buffer, size_t *pelf_size);
 
 #ifdef __cplusplus
 }

@@ -116,10 +116,10 @@ Returns the KeySym computed from the event if this argument is not NULL.
 Returns a value indicating what kind of data is returned.
 .SH DESCRIPTION
 The
-.ZN XmbLookupString ,
-.ZN XwcLookupString
+.BR XmbLookupString ,
+.B XwcLookupString
 and
-.ZN Xutf8LookupString
+.B Xutf8LookupString
 functions return the string from the input method specified
 in the buffer_return argument.
 If no string is returned,
@@ -131,38 +131,38 @@ argument indicates that a KeySym was returned.
 If both a string and a KeySym are returned,
 the KeySym value does not necessarily correspond to the string returned.
 .LP
-.ZN XmbLookupString
+.B XmbLookupString
 and
-.ZN Xutf8LookupString
+.B Xutf8LookupString
 return the length of the string in bytes, and
-.ZN XwcLookupString
+.B XwcLookupString
 returns the length of the string in characters.
 Both
-.ZN XmbLookupString
+.B XmbLookupString
 and
-.ZN XwcLookupString
+.B XwcLookupString
 return text in the encoding of the locale bound to the input method
 of the specified input context, and
-.ZN Xutf8LookupString
+.B Xutf8LookupString
 returns text in UTF-8 encoding.
 .LP
 Each string returned by
-.ZN XmbLookupString
+.B XmbLookupString
 and
-.ZN XwcLookupString
+.B XwcLookupString
 begins in the initial state of the encoding of the locale
 (if the encoding of the locale is state-dependent).
 .LP
 Note: To ensure proper input processing,
 it is essential that the client pass only 
-.ZN KeyPress
+.B KeyPress
 events to
-.ZN XmbLookupString ,
-.ZN XwcLookupString
+.BR XmbLookupString ,
+.B XwcLookupString
 and
-.ZN Xutf8LookupString .
+.BR Xutf8LookupString .
 Their behavior when a client passes a 
-.ZN KeyRelease
+.B KeyRelease
 event is undefined.
 .LP
 Clients should check the status_return argument before
@@ -173,28 +173,28 @@ The possible values returned are:
 .TS
 lw(1.5i) lw(4.3i).
 T{
-.ZN XBufferOverflow
+.B XBufferOverflow
 T}	T{
 The input string to be returned is too large for the supplied buffer_return.
 The required size (for
-.ZN XmbLookupString ,
-.ZN Xutf8LookupString
+.BR XmbLookupString ,
+.B Xutf8LookupString
 in bytes; for
-.ZN XwcLookupString
+.B XwcLookupString
 in characters) is returned as the value of the function,
 and the contents of buffer_return and keysym_return are not modified.
 The client should recall the function with the same event
 and a buffer of adequate size to obtain the string.
 T}
 T{
-.ZN XLookupNone
+.B XLookupNone
 T}	T{
 No consistent input has been composed so far.
 The contents of buffer_return and keysym_return are not modified, 
 and the function returns zero.
 T}
 T{
-.ZN XLookupChars
+.B XLookupChars
 T}	T{
 Some input characters have been composed.
 They are placed in the buffer_return argument, using the encoding
@@ -203,7 +203,7 @@ and the string length is returned as the value of the function.
 The content of the keysym_return argument is not modified.
 T}
 T{
-.ZN XLookupKeySym
+.B XLookupKeySym
 T}	T{
 A KeySym has been returned instead of a string
 and is returned in keysym_return.
@@ -211,36 +211,36 @@ The content of the buffer_return argument is not modified,
 and the function returns zero.
 T}
 T{
-.ZN XLookupBoth
+.B XLookupBoth
 T}	T{
 Both a KeySym and a string are returned;
-.ZN XLookupChars
+.B XLookupChars
 and
-.ZN XLookupKeySym
+.B XLookupKeySym
 occur simultaneously.
 T}
 .TE
 .LP
 It does not make any difference if the input context passed as an argument to
-.ZN XmbLookupString ,
-.ZN XwcLookupString
+.BR XmbLookupString ,
+.B XwcLookupString
 and
-.ZN Xutf8LookupString
+.B Xutf8LookupString
 is the one currently in possession of the focus or not.
 Input may have been composed within an input context before it lost the focus,
 and that input may be returned on subsequent calls to
-.ZN XmbLookupString ,
-.ZN XwcLookupString
+.BR XmbLookupString ,
+.B XwcLookupString
 or
-.ZN Xutf8LookupString
+.B Xutf8LookupString
 even though it does not have any more keyboard focus.
 .LP
 The function
-.ZN Xutf8LookupString
+.B Xutf8LookupString
 is an extension introduced by The XFree86 Project, Inc. in their 4.0.2
 release. Its presence is
 indicated by the macro
-.ZN X_HAVE_UTF8_STRING .
+.BR X_HAVE_UTF8_STRING .
 .SH "SEE ALSO"
 XLookupKeysym(__libmansuffix__),
 Compose(__filemansuffix__)

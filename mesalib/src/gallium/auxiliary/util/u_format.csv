@@ -26,7 +26,8 @@
 ###########################################################################
 
 # This CSV file has the input data for u_format.h's struct
-# util_format_description.
+# util_format_description. It is also used as input for radeonsi's format
+# mapping.
 #
 # Each format entry contains:
 # - name, per enum pipe_format

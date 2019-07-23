@@ -28,47 +28,44 @@
 #include "formats.h"
 
 extern void
-_mesa_unpack_rgba_row(mesa_format format, GLuint n,
-                      const void *src, GLfloat dst[][4]);
+_mesa_unpack_rgba_row(mesa_format format, uint32_t n,
+                      const void *src, float dst[][4]);
 
 extern void
-_mesa_unpack_ubyte_rgba_row(mesa_format format, GLuint n,
-                            const void *src, GLubyte dst[][4]);
+_mesa_unpack_ubyte_rgba_row(mesa_format format, uint32_t n,
+                            const void *src, uint8_t dst[][4]);
 
 void
-_mesa_unpack_uint_rgba_row(mesa_format format, GLuint n,
-                           const void *src, GLuint dst[][4]);
+_mesa_unpack_uint_rgba_row(mesa_format format, uint32_t n,
+                           const void *src, uint32_t dst[][4]);
 
 extern void
 _mesa_unpack_rgba_block(mesa_format format,
-                        const void *src, GLint srcRowStride,
-                        GLfloat dst[][4], GLint dstRowStride,
-                        GLuint x, GLuint y, GLuint width, GLuint height);
+                        const void *src, int32_t srcRowStride,
+                        float dst[][4], int32_t dstRowStride,
+                        uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 
 extern void
-_mesa_unpack_float_z_row(mesa_format format, GLuint n,
-                         const void *src, GLfloat *dst);
+_mesa_unpack_float_z_row(mesa_format format, uint32_t n,
+                         const void *src, float *dst);
 
 
 void
-_mesa_unpack_uint_z_row(mesa_format format, GLuint n,
-                        const void *src, GLuint *dst);
+_mesa_unpack_uint_z_row(mesa_format format, uint32_t n,
+                        const void *src, uint32_t *dst);
 
 void
-_mesa_unpack_ubyte_stencil_row(mesa_format format, GLuint n,
-			       const void *src, GLubyte *dst);
+_mesa_unpack_ubyte_stencil_row(mesa_format format, uint32_t n,
+                               const void *src, uint8_t *dst);
 
 void
-_mesa_unpack_uint_24_8_depth_stencil_row(mesa_format format, GLuint n,
-					 const void *src, GLuint *dst);
+_mesa_unpack_uint_24_8_depth_stencil_row(mesa_format format, uint32_t n,
+                                         const void *src, uint32_t *dst);
 
 void
 _mesa_unpack_float_32_uint_24_8_depth_stencil_row(mesa_format format,
-                                                  GLuint n,
+                                                  uint32_t n,
                                                   const void *src,
-                                                  GLuint *dst);
-void
-_mesa_unpack_depth_stencil_row(mesa_format format, GLuint n,
-                              const void *src, GLenum type,
-                              GLuint *dst);
+                                                  uint32_t *dst);
+
 #endif /* FORMAT_UNPACK_H */
