@@ -26,7 +26,9 @@
 
 /** @file nir_opt_conditional_discard.c
  *
- * Handles optimization of lowering if (cond) discard to discard_if(cond).
+ * Handles optimization of lowering of
+ *  - if (cond) discard to discard_if(cond) and
+ *  - if (cond) demote to demote_if(cond)
  */
 
 static bool
@@ -73,30 +75,37 @@ nir_opt_conditional_discard_block(nir_builder *b, nir_block *block)
    }
 
    /* Get the first instruction in the then block and confirm it is
-    * a discard or a discard_if
+    * a discard or a demote instruction.
     */
    nir_instr *instr = nir_block_first_instr(then_block);
    if (instr->type != nir_instr_type_intrinsic)
       return false;
 
    nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
-   if (intrin->intrinsic != nir_intrinsic_discard &&
-       intrin->intrinsic != nir_intrinsic_discard_if)
-      return false;
-
-   nir_src cond;
-
+   nir_intrinsic_op op = intrin->intrinsic;
+   assert(if_stmt->condition.is_ssa);
+   nir_ssa_def *cond = if_stmt->condition.ssa;
    b->cursor = nir_before_cf_node(prev_node);
-   if (intrin->intrinsic == nir_intrinsic_discard)
-      cond = if_stmt->condition;
-   else
-      cond = nir_src_for_ssa(nir_iand(b,
-                                      nir_ssa_for_src(b, if_stmt->condition, 1),
-                                      nir_ssa_for_src(b, intrin->src[0], 1)));
+
+   switch (intrin->intrinsic) {
+   case nir_intrinsic_discard:
+      op = nir_intrinsic_discard_if;
+      break;
+   case nir_intrinsic_demote:
+      op = nir_intrinsic_demote_if;
+      break;
+   case nir_intrinsic_discard_if:
+   case nir_intrinsic_demote_if:
+      assert(intrin->src[0].is_ssa);
+      cond = nir_iand(b, cond, intrin->src[0].ssa);
+      break;
+   default:
+      return false;
+   }
 
    nir_intrinsic_instr *discard_if =
-      nir_intrinsic_instr_create(b->shader, nir_intrinsic_discard_if);
-   nir_src_copy(&discard_if->src[0], &cond, discard_if);
+      nir_intrinsic_instr_create(b->shader, op);
+   discard_if->src[0] = nir_src_for_ssa(cond);
 
    nir_instr_insert_before_cf(prev_node, &discard_if->instr);
    nir_instr_remove(&intrin->instr);

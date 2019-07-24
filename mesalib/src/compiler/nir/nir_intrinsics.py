@@ -241,8 +241,9 @@ barrier("memory_barrier_shared")
 barrier("begin_invocation_interlock")
 barrier("end_invocation_interlock")
 
-# A conditional discard, with a single boolean source.
+# A conditional discard/demote, with a single boolean source.
 intrinsic("discard_if", src_comp=[1])
+intrinsic("demote_if", src_comp=[1])
 
 # ARB_shader_group_vote intrinsics
 intrinsic("vote_any", src_comp=[1], dest_comp=1, flags=[CAN_ELIMINATE])

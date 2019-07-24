@@ -43,7 +43,7 @@ extern "C" {
 #define VK_VERSION_MINOR(version) (((uint32_t)(version) >> 12) & 0x3ff)
 #define VK_VERSION_PATCH(version) ((uint32_t)(version) & 0xfff)
 // Version of this file
-#define VK_HEADER_VERSION 114
+#define VK_HEADER_VERSION 116
 
 
 #define VK_NULL_HANDLE 0
@@ -327,7 +327,7 @@ typedef enum VkStructureType {
     VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_CONDITIONAL_RENDERING_INFO_EXT = 1000081000,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_CONDITIONAL_RENDERING_FEATURES_EXT = 1000081001,
     VK_STRUCTURE_TYPE_CONDITIONAL_RENDERING_BEGIN_INFO_EXT = 1000081002,
-    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR = 1000082000,
+    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES_KHR = 1000082000,
     VK_STRUCTURE_TYPE_PRESENT_REGIONS_KHR = 1000084000,
     VK_STRUCTURE_TYPE_OBJECT_TABLE_CREATE_INFO_NVX = 1000086000,
     VK_STRUCTURE_TYPE_INDIRECT_COMMANDS_LAYOUT_CREATE_INFO_NVX = 1000086001,
@@ -467,7 +467,7 @@ typedef enum VkStructureType {
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXCLUSIVE_SCISSOR_FEATURES_NV = 1000205002,
     VK_STRUCTURE_TYPE_CHECKPOINT_DATA_NV = 1000206000,
     VK_STRUCTURE_TYPE_QUEUE_FAMILY_CHECKPOINT_PROPERTIES_NV = 1000206001,
-    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_FUNCTIONS2_FEATURES_INTEL = 1000209000,
+    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_INTEGER_FUNCTIONS_2_FEATURES_INTEL = 1000209000,
     VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO_INTEL = 1000210000,
     VK_STRUCTURE_TYPE_INITIALIZE_PERFORMANCE_API_INFO_INTEL = 1000210001,
     VK_STRUCTURE_TYPE_PERFORMANCE_MARKER_INFO_INTEL = 1000210002,
@@ -484,6 +484,8 @@ typedef enum VkStructureType {
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_PROPERTIES_EXT = 1000218001,
     VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_CREATE_INFO_EXT = 1000218002,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES_EXT = 1000221000,
+    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_SIZE_CONTROL_PROPERTIES_EXT = 1000225000,
+    VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_REQUIRED_SUBGROUP_SIZE_CREATE_INFO_EXT = 1000225001,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT = 1000237000,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT = 1000238000,
     VK_STRUCTURE_TYPE_MEMORY_PRIORITY_ALLOCATE_INFO_EXT = 1000238001,
@@ -546,6 +548,7 @@ typedef enum VkStructureType {
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_SEMAPHORE_INFO_KHR = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_SEMAPHORE_INFO,
     VK_STRUCTURE_TYPE_EXTERNAL_SEMAPHORE_PROPERTIES_KHR = VK_STRUCTURE_TYPE_EXTERNAL_SEMAPHORE_PROPERTIES,
     VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO_KHR = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO,
+    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES_KHR,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES_KHR = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_16BIT_STORAGE_FEATURES,
     VK_STRUCTURE_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_CREATE_INFO_KHR = VK_STRUCTURE_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_CREATE_INFO,
     VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES2_EXT = VK_STRUCTURE_TYPE_SURFACE_CAPABILITIES_2_EXT,
@@ -1641,6 +1644,12 @@ typedef enum VkPipelineCreateFlagBits {
     VK_PIPELINE_CREATE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
 } VkPipelineCreateFlagBits;
 typedef VkFlags VkPipelineCreateFlags;
+
+typedef enum VkPipelineShaderStageCreateFlagBits {
+    VK_PIPELINE_SHADER_STAGE_CREATE_ALLOW_VARYING_SUBGROUP_SIZE_BIT_EXT = 0x00000001,
+    VK_PIPELINE_SHADER_STAGE_CREATE_REQUIRE_FULL_SUBGROUPS_BIT_EXT = 0x00000002,
+    VK_PIPELINE_SHADER_STAGE_CREATE_FLAG_BITS_MAX_ENUM = 0x7FFFFFFF
+} VkPipelineShaderStageCreateFlagBits;
 typedef VkFlags VkPipelineShaderStageCreateFlags;
 
 typedef enum VkShaderStageFlagBits {
@@ -5535,12 +5544,14 @@ VKAPI_ATTR void VKAPI_CALL vkCmdPushDescriptorSetWithTemplateKHR(
 #define VK_KHR_shader_float16_int8 1
 #define VK_KHR_SHADER_FLOAT16_INT8_SPEC_VERSION 1
 #define VK_KHR_SHADER_FLOAT16_INT8_EXTENSION_NAME "VK_KHR_shader_float16_int8"
-typedef struct VkPhysicalDeviceFloat16Int8FeaturesKHR {
+typedef struct VkPhysicalDeviceShaderFloat16Int8FeaturesKHR {
     VkStructureType    sType;
     void*              pNext;
     VkBool32           shaderFloat16;
     VkBool32           shaderInt8;
-} VkPhysicalDeviceFloat16Int8FeaturesKHR;
+} VkPhysicalDeviceShaderFloat16Int8FeaturesKHR;
+
+typedef VkPhysicalDeviceShaderFloat16Int8FeaturesKHR VkPhysicalDeviceFloat16Int8FeaturesKHR;
 
 
 
@@ -6212,28 +6223,38 @@ typedef struct VkPhysicalDeviceDriverPropertiesKHR {
 
 
 #define VK_KHR_shader_float_controls 1
-#define VK_KHR_SHADER_FLOAT_CONTROLS_SPEC_VERSION 1
+#define VK_KHR_SHADER_FLOAT_CONTROLS_SPEC_VERSION 2
 #define VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME "VK_KHR_shader_float_controls"
+
+typedef enum VkShaderFloatControlsIndependenceKHR {
+    VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_32_BIT_ONLY_KHR = 0,
+    VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_ALL_KHR = 1,
+    VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_NONE_KHR = 2,
+    VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_BEGIN_RANGE_KHR = VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_32_BIT_ONLY_KHR,
+    VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_END_RANGE_KHR = VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_NONE_KHR,
+    VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_RANGE_SIZE_KHR = (VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_NONE_KHR - VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_32_BIT_ONLY_KHR + 1),
+    VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_MAX_ENUM_KHR = 0x7FFFFFFF
+} VkShaderFloatControlsIndependenceKHR;
 typedef struct VkPhysicalDeviceFloatControlsPropertiesKHR {
-    VkStructureType    sType;
-    void*              pNext;
-    VkBool32           separateDenormSettings;
-    VkBool32           separateRoundingModeSettings;
-    VkBool32           shaderSignedZeroInfNanPreserveFloat16;
-    VkBool32           shaderSignedZeroInfNanPreserveFloat32;
-    VkBool32           shaderSignedZeroInfNanPreserveFloat64;
-    VkBool32           shaderDenormPreserveFloat16;
-    VkBool32           shaderDenormPreserveFloat32;
-    VkBool32           shaderDenormPreserveFloat64;
-    VkBool32           shaderDenormFlushToZeroFloat16;
-    VkBool32           shaderDenormFlushToZeroFloat32;
-    VkBool32           shaderDenormFlushToZeroFloat64;
-    VkBool32           shaderRoundingModeRTEFloat16;
-    VkBool32           shaderRoundingModeRTEFloat32;
-    VkBool32           shaderRoundingModeRTEFloat64;
-    VkBool32           shaderRoundingModeRTZFloat16;
-    VkBool32           shaderRoundingModeRTZFloat32;
-    VkBool32           shaderRoundingModeRTZFloat64;
+    VkStructureType                         sType;
+    void*                                   pNext;
+    VkShaderFloatControlsIndependenceKHR    denormBehaviorIndependence;
+    VkShaderFloatControlsIndependenceKHR    roundingModeIndependence;
+    VkBool32                                shaderSignedZeroInfNanPreserveFloat16;
+    VkBool32                                shaderSignedZeroInfNanPreserveFloat32;
+    VkBool32                                shaderSignedZeroInfNanPreserveFloat64;
+    VkBool32                                shaderDenormPreserveFloat16;
+    VkBool32                                shaderDenormPreserveFloat32;
+    VkBool32                                shaderDenormPreserveFloat64;
+    VkBool32                                shaderDenormFlushToZeroFloat16;
+    VkBool32                                shaderDenormFlushToZeroFloat32;
+    VkBool32                                shaderDenormFlushToZeroFloat64;
+    VkBool32                                shaderRoundingModeRTEFloat16;
+    VkBool32                                shaderRoundingModeRTEFloat32;
+    VkBool32                                shaderRoundingModeRTEFloat64;
+    VkBool32                                shaderRoundingModeRTZFloat16;
+    VkBool32                                shaderRoundingModeRTZFloat32;
+    VkBool32                                shaderRoundingModeRTZFloat64;
 } VkPhysicalDeviceFloatControlsPropertiesKHR;
 
 
@@ -8977,13 +8998,13 @@ VKAPI_ATTR void VKAPI_CALL vkGetQueueCheckpointDataNV(
 
 
 #define VK_INTEL_shader_integer_functions2 1
-#define VK_INTEL_SHADER_INTEGER_FUNCTIONS2_SPEC_VERSION 1
-#define VK_INTEL_SHADER_INTEGER_FUNCTIONS2_EXTENSION_NAME "VK_INTEL_shader_integer_functions2"
-typedef struct VkPhysicalDeviceShaderIntegerFunctions2INTEL {
+#define VK_INTEL_SHADER_INTEGER_FUNCTIONS_2_SPEC_VERSION 1
+#define VK_INTEL_SHADER_INTEGER_FUNCTIONS_2_EXTENSION_NAME "VK_INTEL_shader_integer_functions2"
+typedef struct VkPhysicalDeviceShaderIntegerFunctions2FeaturesINTEL {
     VkStructureType    sType;
     void*              pNext;
     VkBool32           shaderIntegerFunctions2;
-} VkPhysicalDeviceShaderIntegerFunctions2INTEL;
+} VkPhysicalDeviceShaderIntegerFunctions2FeaturesINTEL;
 
 
 
@@ -9223,6 +9244,26 @@ typedef struct VkPhysicalDeviceScalarBlockLayoutFeaturesEXT {
 #define VK_GOOGLE_decorate_string 1
 #define VK_GOOGLE_DECORATE_STRING_SPEC_VERSION 1
 #define VK_GOOGLE_DECORATE_STRING_EXTENSION_NAME "VK_GOOGLE_decorate_string"
+
+
+#define VK_EXT_subgroup_size_control 1
+#define VK_EXT_SUBGROUP_SIZE_CONTROL_SPEC_VERSION 1
+#define VK_EXT_SUBGROUP_SIZE_CONTROL_EXTENSION_NAME "VK_EXT_subgroup_size_control"
+typedef struct VkPhysicalDeviceSubgroupSizeControlPropertiesEXT {
+    VkStructureType       sType;
+    void*                 pNext;
+    uint32_t              minSubgroupSize;
+    uint32_t              maxSubgroupSize;
+    uint32_t              maxComputeWorkgroupSubgroups;
+    VkShaderStageFlags    requiredSubgroupSizeStages;
+} VkPhysicalDeviceSubgroupSizeControlPropertiesEXT;
+
+typedef struct VkPipelineShaderStageRequiredSubgroupSizeCreateInfoEXT {
+    VkStructureType    sType;
+    void*              pNext;
+    uint32_t           requiredSubgroupSize;
+} VkPipelineShaderStageRequiredSubgroupSizeCreateInfoEXT;
+
 
 
 #define VK_EXT_memory_budget 1

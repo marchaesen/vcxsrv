@@ -201,12 +201,13 @@ get_io_offset(nir_builder *b, nir_deref_instr *deref,
    return offset;
 }
 
-static nir_intrinsic_instr *
+static nir_ssa_def *
 lower_load(nir_intrinsic_instr *intrin, struct lower_io_state *state,
            nir_ssa_def *vertex_index, nir_variable *var, nir_ssa_def *offset,
            unsigned component, const struct glsl_type *type)
 {
-   const nir_shader *nir = state->builder.shader;
+   nir_builder *b = &state->builder;
+   const nir_shader *nir = b->shader;
    nir_variable_mode mode = var->data.mode;
    nir_ssa_def *barycentric = NULL;
 
@@ -275,14 +276,21 @@ lower_load(nir_intrinsic_instr *intrin, struct lower_io_state *state,
       load->src[0] = nir_src_for_ssa(offset);
    }
 
-   return load;
+   assert(intrin->dest.is_ssa);
+   nir_ssa_dest_init(&load->instr, &load->dest,
+                     intrin->dest.ssa.num_components,
+                     intrin->dest.ssa.bit_size, NULL);
+   nir_builder_instr_insert(b, &load->instr);
+
+   return &load->dest.ssa;
 }
 
-static nir_intrinsic_instr *
+static void
 lower_store(nir_intrinsic_instr *intrin, struct lower_io_state *state,
             nir_ssa_def *vertex_index, nir_variable *var, nir_ssa_def *offset,
             unsigned component, const struct glsl_type *type)
 {
+   nir_builder *b = &state->builder;
    nir_variable_mode mode = var->data.mode;
 
    nir_intrinsic_op op;
@@ -315,13 +323,14 @@ lower_store(nir_intrinsic_instr *intrin, struct lower_io_state *state,
 
    store->src[vertex_index ? 2 : 1] = nir_src_for_ssa(offset);
 
-   return store;
+   nir_builder_instr_insert(b, &store->instr);
 }
 
-static nir_intrinsic_instr *
+static nir_ssa_def *
 lower_atomic(nir_intrinsic_instr *intrin, struct lower_io_state *state,
              nir_variable *var, nir_ssa_def *offset)
 {
+   nir_builder *b = &state->builder;
    assert(var->data.mode == nir_var_mem_shared);
 
    nir_intrinsic_op op;
@@ -358,14 +367,25 @@ lower_atomic(nir_intrinsic_instr *intrin, struct lower_io_state *state,
       nir_src_copy(&atomic->src[i], &intrin->src[i], atomic);
    }
 
-   return atomic;
+   if (nir_intrinsic_infos[op].has_dest) {
+      assert(intrin->dest.is_ssa);
+      assert(nir_intrinsic_infos[intrin->intrinsic].has_dest);
+      nir_ssa_dest_init(&atomic->instr, &atomic->dest,
+                        intrin->dest.ssa.num_components,
+                        intrin->dest.ssa.bit_size, NULL);
+   }
+
+   nir_builder_instr_insert(b, &atomic->instr);
+
+   return nir_intrinsic_infos[op].has_dest ? &atomic->dest.ssa : NULL;
 }
 
-static nir_intrinsic_instr *
+static nir_ssa_def *
 lower_interpolate_at(nir_intrinsic_instr *intrin, struct lower_io_state *state,
                      nir_variable *var, nir_ssa_def *offset, unsigned component,
                      const struct glsl_type *type)
 {
+   nir_builder *b = &state->builder;
    assert(var->data.mode == nir_var_shader_in);
 
    /* Ignore interpolateAt() for flat variables - flat is flat. */
@@ -399,7 +419,7 @@ lower_interpolate_at(nir_intrinsic_instr *intrin, struct lower_io_state *state,
        intrin->intrinsic == nir_intrinsic_interp_deref_at_offset)
       nir_src_copy(&bary_setup->src[0], &intrin->src[1], bary_setup);
 
-   nir_builder_instr_insert(&state->builder, &bary_setup->instr);
+   nir_builder_instr_insert(b, &bary_setup->instr);
 
    nir_intrinsic_instr *load =
       nir_intrinsic_instr_create(state->builder.shader,
@@ -412,7 +432,13 @@ lower_interpolate_at(nir_intrinsic_instr *intrin, struct lower_io_state *state,
    load->src[0] = nir_src_for_ssa(&bary_setup->dest.ssa);
    load->src[1] = nir_src_for_ssa(offset);
 
-   return load;
+   assert(intrin->dest.is_ssa);
+   nir_ssa_dest_init(&load->instr, &load->dest,
+                     intrin->dest.ssa.num_components,
+                     intrin->dest.ssa.bit_size, NULL);
+   nir_builder_instr_insert(b, &load->instr);
+
+   return &load->dest.ssa;
 }
 
 static bool
@@ -489,7 +515,7 @@ nir_lower_io_block(nir_block *block,
                              state->type_size, &component_offset,
                              bindless_type_size);
 
-      nir_intrinsic_instr *replacement;
+      nir_ssa_def *replacement = NULL;
 
       switch (intrin->intrinsic) {
       case nir_intrinsic_load_deref:
@@ -498,8 +524,8 @@ nir_lower_io_block(nir_block *block,
          break;
 
       case nir_intrinsic_store_deref:
-         replacement = lower_store(intrin, state, vertex_index, var, offset,
-                                   component_offset, deref->type);
+         lower_store(intrin, state, vertex_index, var, offset,
+                     component_offset, deref->type);
          break;
 
       case nir_intrinsic_deref_atomic_add:
@@ -532,19 +558,10 @@ nir_lower_io_block(nir_block *block,
          continue;
       }
 
-      if (nir_intrinsic_infos[intrin->intrinsic].has_dest) {
-         if (intrin->dest.is_ssa) {
-            nir_ssa_dest_init(&replacement->instr, &replacement->dest,
-                              intrin->dest.ssa.num_components,
-                              intrin->dest.ssa.bit_size, NULL);
-            nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
-                                     nir_src_for_ssa(&replacement->dest.ssa));
-         } else {
-            nir_dest_copy(&replacement->dest, &intrin->dest, &intrin->instr);
-         }
+      if (replacement) {
+         nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
+                                  nir_src_for_ssa(replacement));
       }
-
-      nir_instr_insert_before(&intrin->instr, &replacement->instr);
       nir_instr_remove(&intrin->instr);
       progress = true;
    }

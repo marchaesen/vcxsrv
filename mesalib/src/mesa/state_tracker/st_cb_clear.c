@@ -176,8 +176,10 @@ set_vertex_shader(struct st_context *st)
       if (use_nir) {
          st->clear.vs = make_nir_clear_vertex_shader(st, false);
       } else {
-         const uint semantic_names[] = { TGSI_SEMANTIC_POSITION,
-                                         TGSI_SEMANTIC_GENERIC };
+         const enum tgsi_semantic semantic_names[] = {
+            TGSI_SEMANTIC_POSITION,
+            TGSI_SEMANTIC_GENERIC
+         };
          const uint semantic_indexes[] = { 0, 0 };
          st->clear.vs = util_make_vertex_passthrough_shader(st->pipe, 2,
                                                             semantic_names,

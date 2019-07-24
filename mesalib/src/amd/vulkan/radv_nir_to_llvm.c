@@ -852,9 +852,15 @@ declare_vs_input_vgprs(struct radv_shader_context *ctx, struct arg_info *args)
 			}
 		} else {
 			if (ctx->ac.chip_class >= GFX10) {
-				add_arg(args, ARG_VGPR, ctx->ac.i32, NULL); /* user vgpr */
-				add_arg(args, ARG_VGPR, ctx->ac.i32, NULL); /* user vgpr */
-				add_arg(args, ARG_VGPR, ctx->ac.i32, &ctx->abi.instance_id);
+				if (ctx->options->key.vs_common_out.as_ngg) {
+					add_arg(args, ARG_VGPR, ctx->ac.i32, NULL); /* user vgpr */
+					add_arg(args, ARG_VGPR, ctx->ac.i32, NULL); /* user vgpr */
+					add_arg(args, ARG_VGPR, ctx->ac.i32, &ctx->abi.instance_id);
+				} else {
+					add_arg(args, ARG_VGPR, ctx->ac.i32, NULL); /* unused */
+					add_arg(args, ARG_VGPR, ctx->ac.i32, &ctx->vs_prim_id);
+					add_arg(args, ARG_VGPR, ctx->ac.i32, &ctx->abi.instance_id);
+				}
 			} else {
 				add_arg(args, ARG_VGPR, ctx->ac.i32, &ctx->abi.instance_id);
 				add_arg(args, ARG_VGPR, ctx->ac.i32, &ctx->vs_prim_id);
@@ -869,9 +875,6 @@ declare_streamout_sgprs(struct radv_shader_context *ctx, gl_shader_stage stage,
 			struct arg_info *args)
 {
 	int i;
-
-	if (ctx->ac.chip_class >= GFX10)
-		return;
 
 	/* Streamout SGPRs. */
 	if (ctx->shader_info->info.so.num_outputs) {

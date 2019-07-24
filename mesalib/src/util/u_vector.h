@@ -81,7 +81,7 @@ u_vector_finish(struct u_vector *queue)
 }
 
 #ifndef __GNUC__
-#define __builtin_types_compatible_p(x) 1
+#define __builtin_types_compatible_p(t1, t2) 1
 #endif
 
 #define u_vector_foreach(elem, queue)                                  \

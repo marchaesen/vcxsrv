@@ -119,7 +119,8 @@ constant_fold_intrinsic_instr(nir_intrinsic_instr *instr)
 {
    bool progress = false;
 
-   if (instr->intrinsic == nir_intrinsic_discard_if &&
+   if ((instr->intrinsic == nir_intrinsic_demote_if ||
+        instr->intrinsic == nir_intrinsic_discard_if) &&
        nir_src_is_const(instr->src[0])) {
       if (nir_src_as_bool(instr->src[0])) {
          /* This method of getting a nir_shader * from a nir_instr is
@@ -131,9 +132,11 @@ constant_fold_intrinsic_instr(nir_intrinsic_instr *instr)
          nir_function_impl *impl = nir_cf_node_get_function(cf_node);
          nir_shader *shader = impl->function->shader;
 
-         nir_intrinsic_instr *discard =
-            nir_intrinsic_instr_create(shader, nir_intrinsic_discard);
-         nir_instr_insert_before(&instr->instr, &discard->instr);
+         nir_intrinsic_op op = instr->intrinsic == nir_intrinsic_discard_if ?
+                               nir_intrinsic_discard :
+                               nir_intrinsic_demote;
+         nir_intrinsic_instr *new_instr = nir_intrinsic_instr_create(shader, op);
+         nir_instr_insert_before(&instr->instr, &new_instr->instr);
          nir_instr_remove(&instr->instr);
          progress = true;
       } else {

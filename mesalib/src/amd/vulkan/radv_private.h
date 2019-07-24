@@ -1452,6 +1452,11 @@ struct radv_ia_multi_vgt_param_helpers {
 	bool partial_vs_wave;
 };
 
+struct radv_binning_state {
+	uint32_t pa_sc_binner_cntl_0;
+	uint32_t db_dfsm_control;
+};
+
 #define SI_GS_PER_ES 128
 
 struct radv_pipeline {
@@ -1478,6 +1483,7 @@ struct radv_pipeline {
 	union {
 		struct {
 			struct radv_multisample_state ms;
+			struct radv_binning_state binning;
 			uint32_t spi_baryc_cntl;
 			bool prim_restart_enable;
 			unsigned esgs_ring_size;

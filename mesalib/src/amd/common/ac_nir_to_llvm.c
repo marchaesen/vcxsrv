@@ -455,8 +455,10 @@ static LLVMValueRef emit_bitfield_select(struct ac_llvm_context *ctx,
 					 LLVMBuildXor(ctx->builder, insert, base, ""), ""), "");
 }
 
-static LLVMValueRef emit_pack_half_2x16(struct ac_llvm_context *ctx,
-					LLVMValueRef src0)
+static LLVMValueRef emit_pack_2x16(struct ac_llvm_context *ctx,
+				   LLVMValueRef src0,
+				   LLVMValueRef (*pack)(struct ac_llvm_context *ctx,
+							LLVMValueRef args[2]))
 {
 	LLVMValueRef comp[2];
 
@@ -464,8 +466,7 @@ static LLVMValueRef emit_pack_half_2x16(struct ac_llvm_context *ctx,
 	comp[0] = LLVMBuildExtractElement(ctx->builder, src0, ctx->i32_0, "");
 	comp[1] = LLVMBuildExtractElement(ctx->builder, src0, ctx->i32_1, "");
 
-	return LLVMBuildBitCast(ctx->builder, ac_build_cvt_pkrtz_f16(ctx, comp),
-				ctx->i32, "");
+	return LLVMBuildBitCast(ctx->builder, pack(ctx, comp), ctx->i32, "");
 }
 
 static LLVMValueRef emit_unpack_half_2x16(struct ac_llvm_context *ctx,
@@ -526,6 +527,8 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		src_components = 1;
 		break;
 	case nir_op_pack_half_2x16:
+	case nir_op_pack_snorm_2x16:
+	case nir_op_pack_unorm_2x16:
 		src_components = 2;
 		break;
 	case nir_op_unpack_half_2x16:
@@ -935,7 +938,13 @@ static void visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
 		result = emit_imul_high(&ctx->ac, src[0], src[1]);
 		break;
 	case nir_op_pack_half_2x16:
-		result = emit_pack_half_2x16(&ctx->ac, src[0]);
+		result = emit_pack_2x16(&ctx->ac, src[0], ac_build_cvt_pkrtz_f16);
+		break;
+	case nir_op_pack_snorm_2x16:
+		result = emit_pack_2x16(&ctx->ac, src[0], ac_build_cvt_pknorm_i16);
+		break;
+	case nir_op_pack_unorm_2x16:
+		result = emit_pack_2x16(&ctx->ac, src[0], ac_build_cvt_pknorm_u16);
 		break;
 	case nir_op_unpack_half_2x16:
 		result = emit_unpack_half_2x16(&ctx->ac, src[0]);
