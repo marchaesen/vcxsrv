@@ -215,11 +215,11 @@ CheckAuthorization(unsigned int name_length,
                 return (*protocols[i].Check) (data_length, data, client,
                                               reason);
             }
-            *reason = "Protocol not supported by server\n";
+            *reason = "Authorization protocol not supported by server\n";
         }
     }
     else
-        *reason = "No protocol specified\n";
+        *reason = "Authorization required, but no authorization protocol specified\n";
     return (XID) ~0L;
 }
 

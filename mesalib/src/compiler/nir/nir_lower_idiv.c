@@ -45,10 +45,14 @@ convert_instr(nir_builder *bld, nir_alu_instr *alu)
 
    if ((op != nir_op_idiv) &&
        (op != nir_op_udiv) &&
-       (op != nir_op_umod))
+       (op != nir_op_imod) &&
+       (op != nir_op_umod) &&
+       (op != nir_op_irem))
       return false;
 
-   is_signed = (op == nir_op_idiv);
+   is_signed = (op == nir_op_idiv ||
+                op == nir_op_imod ||
+                op == nir_op_irem);
 
    bld->cursor = nir_before_instr(&alu->instr);
 
@@ -104,6 +108,16 @@ convert_instr(nir_builder *bld, nir_alu_instr *alu)
       r = nir_ilt(bld, r, nir_imm_int(bld, 0));
       b = nir_ineg(bld, q);
       q = nir_bcsel(bld, r, b, q);
+
+      if (op == nir_op_imod || op == nir_op_irem) {
+         q = nir_imul(bld, q, denom);
+         q = nir_isub(bld, numer, q);
+         if (op == nir_op_imod) {
+            q = nir_bcsel(bld, nir_ieq(bld, q, nir_imm_int(bld, 0)),
+                          nir_imm_int(bld, 0),
+                          nir_bcsel(bld, r, nir_iadd(bld, q, denom), q));
+         }
+      }
    }
 
    if (op == nir_op_umod) {

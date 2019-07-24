@@ -324,10 +324,12 @@ st_make_passthrough_vertex_shader(struct st_context *st)
                                         MESA_SHADER_VERTEX, 3,
                                         inputs, outputs, NULL, 0);
    } else {
-      const uint semantic_names[] = { TGSI_SEMANTIC_POSITION,
-                                      TGSI_SEMANTIC_COLOR,
-        st->needs_texcoord_semantic ? TGSI_SEMANTIC_TEXCOORD :
-                                      TGSI_SEMANTIC_GENERIC };
+      const enum tgsi_semantic semantic_names[] = {
+         TGSI_SEMANTIC_POSITION,
+         TGSI_SEMANTIC_COLOR,
+         st->needs_texcoord_semantic ? TGSI_SEMANTIC_TEXCOORD :
+                                       TGSI_SEMANTIC_GENERIC
+      };
       const uint semantic_indexes[] = { 0, 0, 0 };
 
       st->passthrough_vs =

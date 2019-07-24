@@ -315,7 +315,7 @@ if with_glx == 'dri'
    endif
 endif
 
-if not (with_dri or with_gallium or with_glx == 'xlib' or with_glx == 'gallium-xlib')
+if not (with_dri or with_gallium or with_glx != 'disabled')
   with_gles1 = false
   with_gles2 = false
   with_opengl = false
@@ -382,9 +382,7 @@ if with_glx != 'disabled'
       error('xlib conflicts with any dri driver')
     endif
   elif with_glx == 'dri'
-    if not with_dri
-      error('dri based GLX requires at least one DRI driver')
-    elif not with_shared_glapi
+    if not with_shared_glapi
       error('dri based GLX requires shared-glapi')
     endif
   endif

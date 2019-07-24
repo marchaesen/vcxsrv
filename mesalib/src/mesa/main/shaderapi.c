@@ -164,6 +164,8 @@ _mesa_free_shader_state(struct gl_context *ctx)
       _mesa_reference_shader_program(ctx,
                                      &ctx->Shader.ReferencedPrograms[i],
                                      NULL);
+      free(ctx->SubroutineIndex[i].IndexPtr);
+      ctx->SubroutineIndex[i].IndexPtr = NULL;
    }
    _mesa_reference_shader_program(ctx, &ctx->Shader.ActiveProgram, NULL);
 

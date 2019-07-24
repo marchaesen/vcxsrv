@@ -199,6 +199,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
 {
    switch (instr->intrinsic) {
    case nir_intrinsic_demote:
+   case nir_intrinsic_demote_if:
    case nir_intrinsic_discard:
    case nir_intrinsic_discard_if:
       assert(shader->info.stage == MESA_SHADER_FRAGMENT);
