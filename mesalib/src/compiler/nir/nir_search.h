@@ -95,6 +95,9 @@ typedef struct {
     */
    bool (*cond)(nir_alu_instr *instr, unsigned src,
                 unsigned num_components, const uint8_t *swizzle);
+
+	/** Swizzle (for replace only) */
+	uint8_t swizzle[NIR_MAX_VEC_COMPONENTS];
 } nir_search_variable;
 
 typedef struct {

@@ -269,6 +269,9 @@ struct vtn_ssa_value {
    struct vtn_ssa_value *transposed;
 
    const struct glsl_type *type;
+
+   /* Access qualifiers */
+   enum gl_access_qualifier access;
 };
 
 enum vtn_base_type {
@@ -417,6 +420,9 @@ struct vtn_access_chain {
     * true if this access chain came from an OpPtrAccessChain.
     */
    bool ptr_as_array;
+
+   /* Access qualifiers */
+   enum gl_access_qualifier access;
 
    /** Struct elements and array offsets.
     *
@@ -655,6 +661,10 @@ vtn_untyped_value(struct vtn_builder *b, uint32_t value_id)
    return &b->values[value_id];
 }
 
+/* Consider not using this function directly and instead use
+ * vtn_push_ssa/vtn_push_value_pointer so that appropriate applying of
+ * decorations is handled by common code.
+ */
 static inline struct vtn_value *
 vtn_push_value(struct vtn_builder *b, uint32_t value_id,
                enum vtn_value_type value_type)
@@ -666,22 +676,8 @@ vtn_push_value(struct vtn_builder *b, uint32_t value_id,
                value_id);
 
    val->value_type = value_type;
-   return &b->values[value_id];
-}
 
-static inline struct vtn_value *
-vtn_push_ssa(struct vtn_builder *b, uint32_t value_id,
-             struct vtn_type *type, struct vtn_ssa_value *ssa)
-{
-   struct vtn_value *val;
-   if (type->base_type == vtn_base_type_pointer) {
-      val = vtn_push_value(b, value_id, vtn_value_type_pointer);
-      val->pointer = vtn_pointer_from_ssa(b, ssa->def, type);
-   } else {
-      val = vtn_push_value(b, value_id, vtn_value_type_ssa);
-      val->ssa = ssa;
-   }
-   return val;
+   return &b->values[value_id];
 }
 
 static inline struct vtn_value *
@@ -734,7 +730,42 @@ vtn_constant_int(struct vtn_builder *b, uint32_t value_id)
    }
 }
 
+static inline enum gl_access_qualifier vtn_value_access(struct vtn_value *value)
+{
+   switch (value->value_type) {
+   case vtn_value_type_invalid:
+   case vtn_value_type_undef:
+   case vtn_value_type_string:
+   case vtn_value_type_decoration_group:
+   case vtn_value_type_constant:
+   case vtn_value_type_function:
+   case vtn_value_type_block:
+   case vtn_value_type_extension:
+      return 0;
+   case vtn_value_type_type:
+      return value->type->access;
+   case vtn_value_type_pointer:
+      return value->pointer->access;
+   case vtn_value_type_ssa:
+      return value->ssa->access;
+   case vtn_value_type_image_pointer:
+      return value->image->image->access;
+   case vtn_value_type_sampled_image:
+      return value->sampled_image->image->access |
+         value->sampled_image->sampler->access;
+   }
+
+   unreachable("invalid type");
+}
+
 struct vtn_ssa_value *vtn_ssa_value(struct vtn_builder *b, uint32_t value_id);
+
+struct vtn_value *vtn_push_value_pointer(struct vtn_builder *b,
+                                         uint32_t value_id,
+                                         struct vtn_pointer *ptr);
+
+struct vtn_value *vtn_push_ssa(struct vtn_builder *b, uint32_t value_id,
+                               struct vtn_type *type, struct vtn_ssa_value *ssa);
 
 struct vtn_ssa_value *vtn_create_ssa_value(struct vtn_builder *b,
                                            const struct glsl_type *type);

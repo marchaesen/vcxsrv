@@ -69,9 +69,13 @@ midgard_promote_uniforms(compiler_context *ctx, unsigned register_pressure)
                 ctx->uniform_cutoff = MAX2(ctx->uniform_cutoff, address + 1);
                 unsigned promoted = SSA_FIXED_REGISTER(uniform_reg);
 
-                /* We do need the move for safety for a non-SSA dest */
+                /* We do need the move for safety for a non-SSA dest, or if
+                 * we're being fed into a special class */
 
-                if (ins->ssa_args.dest >= ctx->func->impl->ssa_alloc) {
+                bool needs_move = ins->ssa_args.dest & IS_REG;
+                needs_move |= mir_special_index(ctx, ins->ssa_args.dest);
+
+                if (needs_move) {
                         midgard_instruction mov = v_mov(promoted, blank_alu_src, ins->ssa_args.dest);
                         mir_insert_instruction_before(ins, mov);
                 } else {

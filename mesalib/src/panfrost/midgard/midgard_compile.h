@@ -41,8 +41,11 @@ struct midgard_screen {
 
         struct ra_regs *regs[9];
 
-        /* Work register classes corresponds to the above register sets */
-        unsigned reg_classes[9][4];
+        /* Work register classes corresponds to the above register sets. 20 per
+         * set for 4 classes per work/ldst/ldst27/texr/texw. TODO: Unify with
+         * compiler.h */
+
+        unsigned reg_classes[9][4 * 5];
 };
 
 /* Define the general compiler entry point */
@@ -77,9 +80,6 @@ typedef struct {
         int uniform_count;
         int uniform_cutoff;
 
-        int attribute_count;
-        int varying_count;
-
         /* Prepended before uniforms, mapping to SYSVAL_ names for the
          * sysval */
 
@@ -89,7 +89,6 @@ typedef struct {
         unsigned varyings[32];
 
         /* Boolean properties of the program */
-        bool can_discard;
         bool writes_point_size;
 
         int first_tag;

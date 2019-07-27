@@ -1501,6 +1501,14 @@ void si_cp_dma_buffer_copy(struct radv_cmd_buffer *cmd_buffer,
 		unsigned dma_flags = 0;
 		unsigned byte_count = MIN2(size, cp_dma_max_byte_count(cmd_buffer));
 
+		if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX10) {
+			/* DMA operations via L2 are coherent and faster.
+			 * TODO: GFX7-GFX9 should also support this but it
+			 * requires tests/benchmarks.
+			 */
+			dma_flags |= CP_DMA_USE_L2;
+		}
+
 		si_cp_dma_prepare(cmd_buffer, byte_count,
 				  size + skipped_size + realign_size,
 				  &dma_flags);
@@ -1544,6 +1552,14 @@ void si_cp_dma_clear_buffer(struct radv_cmd_buffer *cmd_buffer, uint64_t va,
 	while (size) {
 		unsigned byte_count = MIN2(size, cp_dma_max_byte_count(cmd_buffer));
 		unsigned dma_flags = CP_DMA_CLEAR;
+
+		if (cmd_buffer->device->physical_device->rad_info.chip_class >= GFX10) {
+			/* DMA operations via L2 are coherent and faster.
+			 * TODO: GFX7-GFX9 should also support this but it
+			 * requires tests/benchmarks.
+			 */
+			dma_flags |= CP_DMA_USE_L2;
+		}
 
 		si_cp_dma_prepare(cmd_buffer, byte_count, size, &dma_flags);
 

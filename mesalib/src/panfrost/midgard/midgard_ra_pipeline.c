@@ -53,15 +53,37 @@ mir_pipeline_ins(
         if (ins->compact_branch)
                 return false;
 
-        /* Don't allow non-SSA. Pipelining registers is theoretically possible,
-         * but the analysis is much hairier, so don't bother quite yet */
-        if ((dest < 0) || (dest >= ctx->func->impl->ssa_alloc))
+        /* We could be pipelining a register, so we need to make sure that all
+         * of the components read in this bundle are written in this bundle,
+         * and that no components are written before this bundle */
+
+        unsigned node = ins->ssa_args.dest;
+        unsigned read_mask = 0;
+
+        /* Analyze the bundle for a read mask */
+
+        for (unsigned i = 0; i < bundle->instruction_count; ++i) {
+                midgard_instruction *q = bundle->instructions[i];
+                read_mask |= mir_mask_of_read_components(q, node);
+        }
+
+        /* Now analyze for a write mask */
+        for (unsigned i = 0; i < bundle->instruction_count; ++i) {
+                midgard_instruction *q = bundle->instructions[i];
+                if (q->ssa_args.dest != node) continue;
+
+                /* Remove the written mask from the read requirements */
+                read_mask &= ~q->mask;
+        }
+
+        /* Check for leftovers */
+        if (read_mask)
                 return false;
 
-        /* Make sure they're not lying to us. Blend shaders lie. TODO: Fix your
-         * bad code Alyssa */
+        /* Now, check outside the bundle */
+        midgard_instruction *start = bundle->instructions[0];
 
-        if (mir_has_multiple_writes(ctx, dest))
+        if (mir_is_written_before(ctx, start, node))
                 return false;
 
         /* We want to know if we live after this bundle, so check if

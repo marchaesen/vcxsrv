@@ -2505,6 +2505,7 @@ typedef struct nir_shader_compiler_options {
    bool lower_fpow;
    bool lower_fsat;
    bool lower_fsqrt;
+   bool lower_sincos;
    bool lower_fmod;
    /** Lowers ibitfield_extract/ubitfield_extract to ibfe/ubfe. */
    bool lower_bitfield_extract;
@@ -2536,6 +2537,9 @@ typedef struct nir_shader_compiler_options {
    /* lower {slt,sge,seq,sne} to {flt,fge,feq,fne} + b2f: */
    bool lower_scmp;
 
+   /* lower fall_equalN/fany_nequalN (ex:fany_nequal4 to sne+fdot4+fsat) */
+   bool lower_vector_cmp;
+
    /** enables rules to lower idiv by power-of-two: */
    bool lower_idiv;
 
@@ -2547,6 +2551,9 @@ typedef struct nir_shader_compiler_options {
 
    /** enables rules to lower fsign to fsub and flt */
    bool lower_fsign;
+
+   /* lower fdph to fdot4 */
+   bool lower_fdph;
 
    /* Does the native fdot instruction replicate its result for four
     * components?  If so, then opt_algebraic_late will turn all fdotN
@@ -3975,8 +3982,6 @@ uint64_t nir_get_single_slot_attribs_mask(uint64_t attribs, uint64_t dual_slot);
 
 nir_intrinsic_op nir_intrinsic_from_system_value(gl_system_value val);
 gl_system_value nir_system_value_from_intrinsic(nir_intrinsic_op intrin);
-
-bool nir_lower_sincos(nir_shader *shader);
 
 static inline bool
 nir_variable_is_in_ubo(const nir_variable *var)

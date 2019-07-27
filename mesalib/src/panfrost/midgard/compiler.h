@@ -123,7 +123,14 @@ typedef struct midgard_instruction {
         /* Masks in a saneish format. One bit per channel, not packed fancy.
          * Use this instead of the op specific ones, and switch over at emit
          * time */
+
         uint16_t mask;
+
+        /* For ALU ops only: set to true to invert (bitwise NOT) the
+         * destination of an integer-out op. Not imeplemented in hardware but
+         * allows more optimizations */
+
+        bool invert;
 
         union {
                 midgard_load_store_word load_store;
@@ -207,6 +214,9 @@ typedef struct compiler_context {
         /* Current NIR function */
         nir_function *func;
 
+        /* Allocated compiler temporary counter */
+        unsigned temp_alloc;
+
         /* Unordered list of midgard_blocks */
         int block_count;
         struct list_head blocks;
@@ -244,9 +254,6 @@ typedef struct compiler_context {
         /* Mapping of texture register -> SSA index for unaliasing */
         int texture_index[2];
 
-        /* If any path hits a discard instruction */
-        bool can_discard;
-
         /* The number of uniforms allowable for the fast path */
         int uniform_cutoff;
 
@@ -283,10 +290,12 @@ emit_mir_instruction(struct compiler_context *ctx, struct midgard_instruction in
         list_addtail(&(mir_upload_ins(ins))->link, &ctx->current_block->instructions);
 }
 
-static inline void
+static inline struct midgard_instruction *
 mir_insert_instruction_before(struct midgard_instruction *tag, struct midgard_instruction ins)
 {
-        list_addtail(&(mir_upload_ins(ins))->link, &tag->link);
+        struct midgard_instruction *u = mir_upload_ins(ins);
+        list_addtail(&u->link, &tag->link);
+        return u;
 }
 
 static inline void
@@ -345,8 +354,6 @@ mir_next_op(struct midgard_instruction *ins)
         mir_foreach_block(ctx, v_block) \
                 mir_foreach_instr_in_block_safe(v_block, v)
 
-
-
 static inline midgard_instruction *
 mir_last_in_block(struct midgard_block *block)
 {
@@ -370,12 +377,29 @@ mir_is_alu_bundle(midgard_bundle *bundle)
         return IS_ALU(bundle->tag);
 }
 
+/* Registers/SSA are distinguish in the backend by the bottom-most bit */
+
+#define IS_REG (1)
+
+static inline unsigned
+make_compiler_temp(compiler_context *ctx)
+{
+        return (ctx->func->impl->ssa_alloc + ctx->temp_alloc++) << 1;
+}
+
 /* MIR manipulation */
 
 void mir_rewrite_index(compiler_context *ctx, unsigned old, unsigned new);
 void mir_rewrite_index_src(compiler_context *ctx, unsigned old, unsigned new);
 void mir_rewrite_index_dst(compiler_context *ctx, unsigned old, unsigned new);
+void mir_rewrite_index_dst_tag(compiler_context *ctx, unsigned old, unsigned new, unsigned tag);
 void mir_rewrite_index_src_single(midgard_instruction *ins, unsigned old, unsigned new);
+void mir_rewrite_index_src_tag(compiler_context *ctx, unsigned old, unsigned new, unsigned tag);
+bool mir_single_use(compiler_context *ctx, unsigned value);
+bool mir_special_index(compiler_context *ctx, unsigned idx);
+unsigned mir_use_count(compiler_context *ctx, unsigned value);
+bool mir_is_written_before(compiler_context *ctx, midgard_instruction *ins, unsigned node);
+unsigned mir_mask_of_read_components(midgard_instruction *ins, unsigned node);
 
 /* MIR printing */
 
@@ -383,6 +407,10 @@ void mir_print_instruction(midgard_instruction *ins);
 void mir_print_bundle(midgard_bundle *ctx);
 void mir_print_block(midgard_block *block);
 void mir_print_shader(compiler_context *ctx);
+bool mir_nontrivial_raw_mod(midgard_vector_alu_src src, bool is_int);
+bool mir_nontrivial_source2_mod(midgard_instruction *ins);
+bool mir_nontrivial_mod(midgard_vector_alu_src src, bool is_int, unsigned mask);
+bool mir_nontrivial_outmod(midgard_instruction *ins);
 
 /* MIR goodies */
 
@@ -447,6 +475,18 @@ void schedule_program(compiler_context *ctx);
 
 struct ra_graph;
 
+/* Broad types of register classes so we can handle special
+ * registers */
+
+#define NR_REG_CLASSES 5
+
+#define REG_CLASS_WORK          0
+#define REG_CLASS_LDST          1
+#define REG_CLASS_LDST27        2
+#define REG_CLASS_TEXR          3
+#define REG_CLASS_TEXW          4
+
+void mir_lower_special_reads(compiler_context *ctx);
 struct ra_graph* allocate_registers(compiler_context *ctx, bool *spilled);
 void install_registers(compiler_context *ctx, struct ra_graph *g);
 bool mir_is_live_after(compiler_context *ctx, midgard_block *block, midgard_instruction *start, int src);
@@ -481,5 +521,16 @@ nir_undef_to_zero(nir_shader *shader);
 
 void
 nir_clamp_psiz(nir_shader *shader, float min_size, float max_size);
+
+/* Optimizations */
+
+bool midgard_opt_copy_prop(compiler_context *ctx, midgard_block *block);
+bool midgard_opt_combine_projection(compiler_context *ctx, midgard_block *block);
+bool midgard_opt_varying_projection(compiler_context *ctx, midgard_block *block);
+bool midgard_opt_dead_code_eliminate(compiler_context *ctx, midgard_block *block);
+bool midgard_opt_dead_move_eliminate(compiler_context *ctx, midgard_block *block);
+void midgard_opt_post_move_eliminate(compiler_context *ctx, midgard_block *block, struct ra_graph *g);
+
+void midgard_lower_invert(compiler_context *ctx, midgard_block *block);
 
 #endif

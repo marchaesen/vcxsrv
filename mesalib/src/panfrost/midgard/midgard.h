@@ -516,11 +516,8 @@ midgard_load_store;
 typedef struct
 __attribute__((__packed__))
 {
-        /* Combines with component_hi to form 2-bit component select out of
-         * xyzw, as the component for bias/LOD and the starting component of a
-         * gradient vector */
-
-        unsigned component_lo : 1;
+        /* 32-bit register, clear for half-register */
+        unsigned full : 1;
 
         /* Register select between r28/r29 */
         unsigned select : 1;
@@ -528,14 +525,8 @@ __attribute__((__packed__))
         /* For a half-register, selects the upper half */
         unsigned upper : 1;
 
-        /* Specifies a full-register, clear for a half-register. Mutually
-         * exclusive with upper. */
-        unsigned full : 1;
-
-        /* Higher half of component_lo. Always seen to be set for LOD/bias
-         * and clear for processed gradients, but I'm not sure if that's a
-         * hardware requirement. */
-        unsigned component_hi : 1;
+        /* Indexes into the register */
+        unsigned component : 2;
 
         /* Padding to make this 8-bit */
         unsigned zero : 3;

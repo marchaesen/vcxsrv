@@ -29,6 +29,7 @@ from collections import OrderedDict
 import nir_algebraic
 from nir_opcodes import type_sizes
 import itertools
+from math import pi
 
 # Convenience variables
 a = 'a'
@@ -50,11 +51,12 @@ e = 'e'
 # however, be used for backend-requested lowering operations as those need to
 # happen regardless of precision.
 #
-# Variable names are specified as "[#]name[@type][(cond)]" where "#" inicates
-# that the given variable will only match constants and the type indicates that
-# the given variable will only match values from ALU instructions with the
-# given output type, and (cond) specifies an additional condition function
-# (see nir_search_helpers.h).
+# Variable names are specified as "[#]name[@type][(cond)][.swiz]" where:
+# "#" indicates that the given variable will only match constants,
+# type indicates that the given variable will only match values from ALU
+#    instructions with the given output type,
+# (cond) specifies an additional condition function (see nir_search_helpers.h),
+# swiz is a swizzle applied to the variable (only in the <replace> expression)
 #
 # For constants, you have to be careful to make sure that it is the right
 # type because python is unaware of the source and destination types of the
@@ -72,6 +74,12 @@ e = 'e'
 # than nir_replace_instr can handle.  If this special condition is needed with
 # another condition, the two can be separated by a comma (e.g.,
 # "(many-comm-expr,is_used_once)").
+
+# based on https://web.archive.org/web/20180105155939/http://forum.devmaster.net/t/fast-and-accurate-sine-cosine/9648
+def lowered_sincos(c):
+    x = ('fsub', ('fmul', 2.0, ('ffract', ('fadd', ('fmul', 0.5 / pi, a), c))), 1.0)
+    x = ('fmul', ('fsub', x, ('fmul', x, ('fabs', x))), 4.0)
+    return ('ffma', ('ffma', x, ('fabs', x), ('fneg', x)), 0.225, x)
 
 optimizations = [
 
@@ -173,13 +181,18 @@ optimizations = [
    (('~fmul', ('fadd', ('iand', ('ineg', ('b2i32', 'a@bool')), ('fmul', b, c)), '#d'), '#e'),
     ('bcsel', a, ('fmul', ('fadd', ('fmul', b, c), d), e), ('fmul', d, e))),
 
-   (('fdot4', ('vec4', a, b,   c,   1.0), d), ('fdph',  ('vec3', a, b, c), d)),
+   (('fdph', a, b), ('fdot4', ('vec4', 'a.x', 'a.y', 'a.z', 1.0), b), 'options->lower_fdph'),
+
+   (('fdot4', ('vec4', a, b,   c,   1.0), d), ('fdph',  ('vec3', a, b, c), d), '!options->lower_fdph'),
    (('fdot4', ('vec4', a, 0.0, 0.0, 0.0), b), ('fmul', a, b)),
    (('fdot4', ('vec4', a, b,   0.0, 0.0), c), ('fdot2', ('vec2', a, b), c)),
    (('fdot4', ('vec4', a, b,   c,   0.0), d), ('fdot3', ('vec3', a, b, c), d)),
 
    (('fdot3', ('vec3', a, 0.0, 0.0), b), ('fmul', a, b)),
    (('fdot3', ('vec3', a, b,   0.0), c), ('fdot2', ('vec2', a, b), c)),
+
+   (('fdot2', ('vec2', a, 0.0), b), ('fmul', a, b)),
+   (('fdot2', a, 1.0), ('fadd', 'a.x', 'a.y')),
 
    # If x >= 0 and x <= 1: fsat(1 - x) == 1 - fsat(x) trivially
    # If x < 0: 1 - fsat(x) => 1 - 0 => 1 and fsat(1 - x) => fsat(> 1) => 1
@@ -555,6 +568,28 @@ optimizations = [
    (('sge', a, b), ('b2f', ('fge', a, b)), 'options->lower_scmp'),
    (('seq', a, b), ('b2f', ('feq', a, b)), 'options->lower_scmp'),
    (('sne', a, b), ('b2f', ('fne', a, b)), 'options->lower_scmp'),
+   (('seq', ('seq', a, b), 1.0), ('seq', a, b)),
+   (('seq', ('sne', a, b), 1.0), ('sne', a, b)),
+   (('seq', ('slt', a, b), 1.0), ('slt', a, b)),
+   (('seq', ('sge', a, b), 1.0), ('sge', a, b)),
+   (('sne', ('seq', a, b), 0.0), ('seq', a, b)),
+   (('sne', ('sne', a, b), 0.0), ('sne', a, b)),
+   (('sne', ('slt', a, b), 0.0), ('slt', a, b)),
+   (('sne', ('sge', a, b), 0.0), ('sge', a, b)),
+   (('seq', ('seq', a, b), 0.0), ('sne', a, b)),
+   (('seq', ('sne', a, b), 0.0), ('seq', a, b)),
+   (('seq', ('slt', a, b), 0.0), ('sge', a, b)),
+   (('seq', ('sge', a, b), 0.0), ('slt', a, b)),
+   (('sne', ('seq', a, b), 1.0), ('sne', a, b)),
+   (('sne', ('sne', a, b), 1.0), ('seq', a, b)),
+   (('sne', ('slt', a, b), 1.0), ('sge', a, b)),
+   (('sne', ('sge', a, b), 1.0), ('slt', a, b)),
+   (('fall_equal2', a, b), ('fmin', ('seq', 'a.x', 'b.x'), ('seq', 'a.y', 'b.y')), 'options->lower_vector_cmp'),
+   (('fall_equal3', a, b), ('seq', ('fany_nequal3', a, b), 0.0), 'options->lower_vector_cmp'),
+   (('fall_equal4', a, b), ('seq', ('fany_nequal4', a, b), 0.0), 'options->lower_vector_cmp'),
+   (('fany_nequal2', a, b), ('fmax', ('sne', 'a.x', 'b.x'), ('sne', 'a.y', 'b.y')), 'options->lower_vector_cmp'),
+   (('fany_nequal3', a, b), ('fsat', ('fdot3', ('sne', a, b), ('sne', a, b))), 'options->lower_vector_cmp'),
+   (('fany_nequal4', a, b), ('fsat', ('fdot4', ('sne', a, b), ('sne', a, b))), 'options->lower_vector_cmp'),
    (('fne', ('fneg', a), a), ('fne', a, 0.0)),
    (('feq', ('fneg', a), a), ('feq', a, 0.0)),
    # Emulating booleans
@@ -644,6 +679,9 @@ optimizations = [
    (('~frcp', ('fsqrt', a)), ('frsq', a)),
    (('fsqrt', a), ('frcp', ('frsq', a)), 'options->lower_fsqrt'),
    (('~frcp', ('frsq', a)), ('fsqrt', a), '!options->lower_fsqrt'),
+   # Trig
+   (('fsin', a), lowered_sincos(0.5), 'options->lower_sincos'),
+   (('fcos', a), lowered_sincos(0.75), 'options->lower_sincos'),
    # Boolean simplifications
    (('i2b32(is_used_by_if)', a), ('ine32', a, 0)),
    (('i2b1(is_used_by_if)', a), ('ine', a, 0)),

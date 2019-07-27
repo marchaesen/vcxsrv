@@ -55,7 +55,16 @@ with_osmesa = get_option('osmesa')
 with_swr_arches = get_option('swr-arches')
 with_tools = get_option('tools')
 if with_tools.contains('all')
-  with_tools = ['etnaviv', 'freedreno', 'glsl', 'intel', 'nir', 'nouveau', 'xvmc']
+  with_tools = [
+    'drm-shim',
+    'etnaviv',
+    'freedreno',
+    'glsl',
+    'intel',
+    'nir',
+    'nouveau',
+    'xvmc',
+  ]
 endif
 
 dri_drivers_path = get_option('dri-drivers-path')

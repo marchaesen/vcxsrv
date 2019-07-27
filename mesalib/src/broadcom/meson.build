@@ -30,6 +30,10 @@ if with_gallium_v3d
   subdir('qpu')
 endif
 
+if with_tools.contains('drm-shim')
+  subdir('drm-shim')
+endif
+
 per_version_libs = []
 foreach ver : v3d_versions
   per_version_libs += static_library(

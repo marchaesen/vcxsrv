@@ -512,7 +512,7 @@ So we do a quick 'touch test'
     unset LIBGL_DEBUG
     unset LIBGL_ALWAYS_SOFTWARE
     unset GALLIUM_DRIVER
-    export VK_ICD_FILENAMES=`pwd`/src/intel/vulkan/dev_icd.json
+    export VK_ICD_FILENAMES=`pwd`/test/usr/local/share/vulkan/icd.d/intel_icd.x86_64.json
     steam steam://rungameid/570  -vconsole -vulkan
     unset VK_ICD_FILENAMES
 </pre>

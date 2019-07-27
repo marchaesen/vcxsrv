@@ -180,16 +180,3 @@ radeon_icd = custom_target(
   install_dir : with_vulkan_icd_dir,
   install : true,
 )
-
-radv_dev_icd = custom_target(
-  'radv_dev_icd',
-  input : 'radv_icd.py',
-  output : 'dev_icd.json',
-  command : [
-    prog_python, '@INPUT@', '--lib-path', meson.current_build_dir(),
-    '--out', '@OUTPUT@'
-  ],
-  depend_files : files('radv_extensions.py'),
-  build_by_default : true,
-  install : false,
-)

@@ -1457,10 +1457,6 @@ _get_texture_image(struct gl_context *ctx,
    /* EXT/ARB direct_state_access variants don't call _get_texture_image
     * with a NULL texObj */
    bool is_dsa = texObj != NULL;
-   if (!legal_getteximage_target(ctx, target, is_dsa)) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "%s", caller);
-      return;
-   }
 
    if (!is_dsa) {
       texObj = _mesa_get_current_tex_object(ctx, target);
@@ -1489,6 +1485,11 @@ _mesa_GetnTexImageARB(GLenum target, GLint level, GLenum format, GLenum type,
    GET_CURRENT_CONTEXT(ctx);
    static const char *caller = "glGetnTexImageARB";
 
+   if (!legal_getteximage_target(ctx, target, false)) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "%s", caller);
+      return;
+   }
+
    _get_texture_image(ctx, NULL, target, level, format, type,
                       bufSize, pixels, caller);
 }
@@ -1500,6 +1501,11 @@ _mesa_GetTexImage(GLenum target, GLint level, GLenum format, GLenum type,
 {
    GET_CURRENT_CONTEXT(ctx);
    static const char *caller = "glGetTexImage";
+
+   if (!legal_getteximage_target(ctx, target, false)) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "%s", caller);
+      return;
+   }
 
    _get_texture_image(ctx, NULL, target, level, format, type,
                       INT_MAX, pixels, caller);
@@ -1519,6 +1525,11 @@ _mesa_GetTextureImage(GLuint texture, GLint level, GLenum format, GLenum type,
       return;
    }
 
+   if (!legal_getteximage_target(ctx, texObj->Target, true)) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s", caller);
+      return;
+   }
+
    _get_texture_image(ctx, texObj, texObj->Target, level, format, type,
                       bufSize, pixels, caller);
 }
@@ -1535,6 +1546,11 @@ _mesa_GetTextureImageEXT(GLuint texture, GLenum target, GLint level,
                                      false, true, caller);
 
    if (!texObj) {
+      return;
+   }
+
+   if (!legal_getteximage_target(ctx, target, true)) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "%s", caller);
       return;
    }
 

@@ -741,7 +741,8 @@ struct x11_swapchain {
    uint64_t                                     last_present_msc;
    uint32_t                                     stamp;
 
-   bool                                         threaded;
+   bool                                         has_present_queue;
+   bool                                         has_acquire_queue;
    VkResult                                     status;
    xcb_present_complete_mode_t                  last_present_mode;
    struct wsi_queue                             present_queue;
@@ -821,7 +822,7 @@ x11_handle_dri3_present_event(struct x11_swapchain *chain,
       for (unsigned i = 0; i < chain->base.image_count; i++) {
          if (chain->images[i].pixmap == idle->pixmap) {
             chain->images[i].busy = false;
-            if (chain->threaded)
+            if (chain->has_acquire_queue)
                wsi_queue_push(&chain->acquire_queue, i);
             break;
          }
@@ -942,7 +943,7 @@ static VkResult
 x11_acquire_next_image_from_queue(struct x11_swapchain *chain,
                                   uint32_t *image_index_out, uint64_t timeout)
 {
-   assert(chain->threaded);
+   assert(chain->has_acquire_queue);
 
    uint32_t image_index;
    VkResult result = wsi_queue_pull(&chain->acquire_queue,
@@ -1019,7 +1020,6 @@ x11_present_to_x11(struct x11_swapchain *chain, uint32_t image_index,
                          divisor,
                          remainder, 0, NULL);
    xcb_discard_reply(chain->conn, cookie.sequence);
-   image->busy = true;
 
    xcb_flush(chain->conn);
 
@@ -1038,7 +1038,7 @@ x11_acquire_next_image(struct wsi_swapchain *anv_chain,
    if (chain->status < 0)
       return chain->status;
 
-   if (chain->threaded) {
+   if (chain->has_acquire_queue) {
       return x11_acquire_next_image_from_queue(chain, image_index, timeout);
    } else {
       return x11_acquire_next_image_poll_x11(chain, image_index, timeout);
@@ -1056,7 +1056,8 @@ x11_queue_present(struct wsi_swapchain *anv_chain,
    if (chain->status < 0)
       return chain->status;
 
-   if (chain->threaded) {
+   chain->images[image_index].busy = true;
+   if (chain->has_present_queue) {
       wsi_queue_push(&chain->present_queue, image_index);
       return chain->status;
    } else {
@@ -1070,8 +1071,7 @@ x11_manage_fifo_queues(void *state)
    struct x11_swapchain *chain = state;
    VkResult result = VK_SUCCESS;
 
-   assert(chain->base.present_mode == VK_PRESENT_MODE_FIFO_KHR);
-
+   assert(chain->has_present_queue);
    while (chain->status >= 0) {
       /* It should be safe to unconditionally block here.  Later in the loop
        * we blocks until the previous present has landed on-screen.  At that
@@ -1091,29 +1091,45 @@ x11_manage_fifo_queues(void *state)
          return NULL;
       }
 
-      uint64_t target_msc = chain->last_present_msc + 1;
+      if (chain->base.present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
+         result = chain->base.wsi->WaitForFences(chain->base.device, 1,
+                                        &chain->base.fences[image_index],
+                                        true, UINT64_MAX);
+         if (result != VK_SUCCESS) {
+            result = VK_ERROR_OUT_OF_DATE_KHR;
+            goto fail;
+         }
+      }
+
+      uint64_t target_msc = 0;
+      if (chain->has_acquire_queue)
+         target_msc = chain->last_present_msc + 1;
+
       result = x11_present_to_x11(chain, image_index, target_msc);
       if (result < 0)
          goto fail;
 
-      while (chain->last_present_msc < target_msc) {
-         xcb_generic_event_t *event =
-            xcb_wait_for_special_event(chain->conn, chain->special_event);
-         if (!event) {
-            result = VK_ERROR_OUT_OF_DATE_KHR;
-            goto fail;
-         }
+      if (chain->has_acquire_queue) {
+         while (chain->last_present_msc < target_msc) {
+            xcb_generic_event_t *event =
+               xcb_wait_for_special_event(chain->conn, chain->special_event);
+            if (!event) {
+               result = VK_ERROR_OUT_OF_DATE_KHR;
+               goto fail;
+            }
 
-         result = x11_handle_dri3_present_event(chain, (void *)event);
-         free(event);
-         if (result < 0)
-            goto fail;
+            result = x11_handle_dri3_present_event(chain, (void *)event);
+            free(event);
+            if (result < 0)
+               goto fail;
+         }
       }
    }
 
 fail:
    x11_swapchain_result(chain, result);
-   wsi_queue_push(&chain->acquire_queue, UINT32_MAX);
+   if (chain->has_acquire_queue)
+      wsi_queue_push(&chain->acquire_queue, UINT32_MAX);
 
    return NULL;
 }
@@ -1323,12 +1339,14 @@ x11_swapchain_destroy(struct wsi_swapchain *anv_chain,
    struct x11_swapchain *chain = (struct x11_swapchain *)anv_chain;
    xcb_void_cookie_t cookie;
 
-   if (chain->threaded) {
+   if (chain->has_present_queue) {
       chain->status = VK_ERROR_OUT_OF_DATE_KHR;
       /* Push a UINT32_MAX to wake up the manager */
       wsi_queue_push(&chain->present_queue, UINT32_MAX);
       pthread_join(chain->queue_manager, NULL);
-      wsi_queue_destroy(&chain->acquire_queue);
+
+      if (chain->has_acquire_queue)
+         wsi_queue_destroy(&chain->acquire_queue);
       wsi_queue_destroy(&chain->present_queue);
    }
 
@@ -1386,10 +1404,13 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
    struct x11_swapchain *chain;
    xcb_void_cookie_t cookie;
    VkResult result;
+   VkPresentModeKHR present_mode = wsi_swapchain_get_present_mode(wsi_device, pCreateInfo);
 
    assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
 
-   const unsigned num_images = pCreateInfo->minImageCount;
+   unsigned num_images = pCreateInfo->minImageCount;
+   if (present_mode == VK_PRESENT_MODE_MAILBOX_KHR)
+      num_images = MAX2(num_images, 5);
 
    xcb_connection_t *conn = x11_surface_get_connection(icd_surface);
    struct wsi_x11_connection *wsi_conn =
@@ -1421,7 +1442,7 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
    chain->base.get_wsi_image = x11_get_wsi_image;
    chain->base.acquire_next_image = x11_acquire_next_image;
    chain->base.queue_present = x11_queue_present;
-   chain->base.present_mode = wsi_swapchain_get_present_mode(wsi_device, pCreateInfo);
+   chain->base.present_mode = present_mode;
    chain->base.image_count = num_images;
    chain->conn = conn;
    chain->window = window;
@@ -1429,7 +1450,8 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
    chain->extent = pCreateInfo->imageExtent;
    chain->send_sbc = 0;
    chain->last_present_msc = 0;
-   chain->threaded = false;
+   chain->has_acquire_queue = false;
+   chain->has_present_queue = false;
    chain->status = VK_SUCCESS;
    chain->has_dri3_modifiers = wsi_conn->has_dri3_modifiers;
 
@@ -1494,36 +1516,45 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
          goto fail_init_images;
    }
 
-   if (chain->base.present_mode == VK_PRESENT_MODE_FIFO_KHR) {
-      chain->threaded = true;
+   if (chain->base.present_mode == VK_PRESENT_MODE_FIFO_KHR ||
+       chain->base.present_mode == VK_PRESENT_MODE_MAILBOX_KHR) {
+      chain->has_present_queue = true;
 
       /* Initialize our queues.  We make them base.image_count + 1 because we will
        * occasionally use UINT32_MAX to signal the other thread that an error
        * has occurred and we don't want an overflow.
        */
       int ret;
-      ret = wsi_queue_init(&chain->acquire_queue, chain->base.image_count + 1);
-      if (ret) {
-         goto fail_init_images;
-      }
-
       ret = wsi_queue_init(&chain->present_queue, chain->base.image_count + 1);
       if (ret) {
-         wsi_queue_destroy(&chain->acquire_queue);
          goto fail_init_images;
       }
 
-      for (unsigned i = 0; i < chain->base.image_count; i++)
-         wsi_queue_push(&chain->acquire_queue, i);
+      if (chain->base.present_mode == VK_PRESENT_MODE_FIFO_KHR) {
+         chain->has_acquire_queue = true;
+
+         ret = wsi_queue_init(&chain->acquire_queue, chain->base.image_count + 1);
+         if (ret) {
+            wsi_queue_destroy(&chain->present_queue);
+            goto fail_init_images;
+         }
+
+         for (unsigned i = 0; i < chain->base.image_count; i++)
+            wsi_queue_push(&chain->acquire_queue, i);
+      }
 
       ret = pthread_create(&chain->queue_manager, NULL,
                            x11_manage_fifo_queues, chain);
       if (ret) {
          wsi_queue_destroy(&chain->present_queue);
-         wsi_queue_destroy(&chain->acquire_queue);
+         if (chain->has_acquire_queue)
+            wsi_queue_destroy(&chain->acquire_queue);
+
          goto fail_init_images;
       }
    }
+
+   assert(chain->has_present_queue || !chain->has_acquire_queue);
 
    for (int i = 0; i < ARRAY_SIZE(modifiers); i++)
       vk_free(pAllocator, modifiers[i]);

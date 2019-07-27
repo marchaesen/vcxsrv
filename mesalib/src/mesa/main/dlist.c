@@ -759,6 +759,7 @@ _mesa_delete_bitmap_atlas(struct gl_context *ctx, struct gl_bitmap_atlas *atlas)
       ctx->Driver.DeleteTexture(ctx, atlas->texObj);
    }
    free(atlas->glyphs);
+   free(atlas);
 }
 
 

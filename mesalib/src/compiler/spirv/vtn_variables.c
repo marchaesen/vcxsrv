@@ -30,6 +30,52 @@
 #include "nir_deref.h"
 #include <vulkan/vulkan_core.h>
 
+static void ptr_decoration_cb(struct vtn_builder *b,
+                              struct vtn_value *val, int member,
+                              const struct vtn_decoration *dec,
+                              void *void_ptr);
+
+struct vtn_value *
+vtn_push_value_pointer(struct vtn_builder *b, uint32_t value_id,
+                       struct vtn_pointer *ptr)
+{
+   struct vtn_value *val = vtn_push_value(b, value_id, vtn_value_type_pointer);
+   val->pointer = ptr;
+   vtn_foreach_decoration(b, val, ptr_decoration_cb, ptr);
+   return val;
+}
+
+static void
+ssa_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
+                  const struct vtn_decoration *dec, void *void_ssa)
+{
+   struct vtn_ssa_value *ssa = void_ssa;
+
+   switch (dec->decoration) {
+   case SpvDecorationNonUniformEXT:
+      ssa->access |= ACCESS_NON_UNIFORM;
+      break;
+
+   default:
+      break;
+   }
+}
+
+struct vtn_value *
+vtn_push_ssa(struct vtn_builder *b, uint32_t value_id,
+             struct vtn_type *type, struct vtn_ssa_value *ssa)
+{
+   struct vtn_value *val;
+   if (type->base_type == vtn_base_type_pointer) {
+      val = vtn_push_value_pointer(b, value_id, vtn_pointer_from_ssa(b, ssa->def, type));
+   } else {
+      val = vtn_push_value(b, value_id, vtn_value_type_ssa);
+      val->ssa = ssa;
+      vtn_foreach_decoration(b, val, ssa_decoration_cb, val->ssa);
+   }
+   return val;
+}
+
 static struct vtn_access_chain *
 vtn_access_chain_create(struct vtn_builder *b, unsigned length)
 {
@@ -196,7 +242,7 @@ vtn_nir_deref_pointer_dereference(struct vtn_builder *b,
                                   struct vtn_access_chain *deref_chain)
 {
    struct vtn_type *type = base->type;
-   enum gl_access_qualifier access = base->access;
+   enum gl_access_qualifier access = base->access | deref_chain->access;
    unsigned idx = 0;
 
    nir_deref_instr *tail;
@@ -2421,6 +2467,7 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
    case SpvOpInBoundsAccessChain:
    case SpvOpInBoundsPtrAccessChain: {
       struct vtn_access_chain *chain = vtn_access_chain_create(b, count - 4);
+      enum gl_access_qualifier access = 0;
       chain->ptr_as_array = (opcode == SpvOpPtrAccessChain || opcode == SpvOpInBoundsPtrAccessChain);
 
       unsigned idx = 0;
@@ -2432,8 +2479,8 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
          } else {
             chain->link[idx].mode = vtn_access_mode_id;
             chain->link[idx].id = w[i];
-
          }
+         access |= vtn_value_access(link_val);
          idx++;
       }
 
@@ -2460,11 +2507,11 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
                                 val->sampled_image->sampler);
       } else {
          vtn_assert(base_val->value_type == vtn_value_type_pointer);
-         struct vtn_value *val =
-            vtn_push_value(b, w[2], vtn_value_type_pointer);
-         val->pointer = vtn_pointer_dereference(b, base_val->pointer, chain);
-         val->pointer->ptr_type = ptr_type;
-         vtn_foreach_decoration(b, val, ptr_decoration_cb, val->pointer);
+         struct vtn_pointer *ptr =
+            vtn_pointer_dereference(b, base_val->pointer, chain);
+         ptr->ptr_type = ptr_type;
+         ptr->access = access;
+         vtn_push_value_pointer(b, w[2], ptr);
       }
       break;
    }
@@ -2489,7 +2536,7 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
 
       if (glsl_type_is_image(res_type->type) ||
           glsl_type_is_sampler(res_type->type)) {
-         vtn_push_value(b, w[2], vtn_value_type_pointer)->pointer = src;
+         vtn_push_value_pointer(b, w[2], src);
          return;
       }
 
@@ -2601,10 +2648,11 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
                   "scalar type");
 
       /* The pointer will be converted to an SSA value automatically */
-      nir_ssa_def *ptr_ssa = vtn_ssa_value(b, w[3])->def;
+      struct vtn_ssa_value *ptr_ssa = vtn_ssa_value(b, w[3]);
 
       u_val->ssa = vtn_create_ssa_value(b, u_val->type->type);
-      u_val->ssa->def = nir_sloppy_bitcast(&b->nb, ptr_ssa, u_val->type->type);
+      u_val->ssa->def = nir_sloppy_bitcast(&b->nb, ptr_ssa->def, u_val->type->type);
+      u_val->ssa->access |= ptr_ssa->access;
       break;
    }
 
@@ -2624,6 +2672,8 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
       nir_ssa_def *ptr_ssa = nir_sloppy_bitcast(&b->nb, u_val->ssa->def,
                                                 ptr_val->type->type);
       ptr_val->pointer = vtn_pointer_from_ssa(b, ptr_ssa, ptr_val->type);
+      vtn_foreach_decoration(b, ptr_val, ptr_decoration_cb, ptr_val->pointer);
+      ptr_val->pointer->access |= u_val->ssa->access;
       break;
    }
 

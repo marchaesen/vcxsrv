@@ -558,6 +558,13 @@ ra_set_node_class(struct ra_graph *g,
 }
 
 unsigned int
+ra_get_node_class(struct ra_graph *g,
+                  unsigned int n)
+{
+   return g->nodes[n].class;
+}
+
+unsigned int
 ra_add_node(struct ra_graph *g, unsigned int class)
 {
    unsigned int n = g->count;

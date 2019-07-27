@@ -1206,14 +1206,9 @@ print_texture_word(uint32_t *word, unsigned tabs)
                 uint8_t raw = texture->bias;
                 memcpy(&sel, &raw, sizeof(raw));
 
-                unsigned c = (sel.component_hi << 1) | sel.component_lo;
-
                 printf("lod %c ", lod_operand);
                 print_texture_reg(sel.full, sel.select, sel.upper);
-                printf(".%c, ", components[c]);
-
-                if (!sel.component_hi)
-                        printf(" /* gradient? */");
+                printf(".%c, ", components[sel.component]);
 
                 if (texture->bias_int)
                         printf(" /* bias_int = 0x%X */", texture->bias_int);
