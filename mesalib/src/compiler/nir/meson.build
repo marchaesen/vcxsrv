@@ -152,7 +152,6 @@ files_libnir = files(
   'nir_lower_returns.c',
   'nir_lower_scratch.c',
   'nir_lower_subgroups.c',
-  'nir_lower_sincos.c',
   'nir_lower_system_values.c',
   'nir_lower_tex.c',
   'nir_lower_to_source_mods.c',
@@ -270,7 +269,7 @@ if with_tests
       include_directories : [inc_common],
       dependencies : [dep_thread, idep_gtest, idep_nir],
       link_with : libmesa_util,
-    ), 
+    ),
     suite : ['compiler', 'nir'],
   )
 

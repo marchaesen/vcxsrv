@@ -73,7 +73,7 @@ struct mir_op_props alu_opcode_props[256] = {
         [midgard_alu_op_isubsat]	 = {"isubsat", UNITS_MOST},
         [midgard_alu_op_usubsat]	 = {"usubsat", UNITS_MOST},
         [midgard_alu_op_imul]		 = {"imul", UNITS_MUL | OP_COMMUTES},
-        [midgard_alu_op_imov]		 = {"imov", UNITS_MOST | QUIRK_FLIPPED_R24},
+        [midgard_alu_op_imov]		 = {"imov", UNITS_ALL | QUIRK_FLIPPED_R24},
 
         /* For vector comparisons, use ball etc */
         [midgard_alu_op_feq]		 = {"feq", UNITS_MOST | OP_TYPE_CONVERT | OP_COMMUTES},

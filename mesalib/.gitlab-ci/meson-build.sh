@@ -17,6 +17,7 @@ fi
 rm -rf _build
 meson _build --native-file=native.file \
       ${CROSS} \
+      -D libdir=lib \
       -D buildtype=debug \
       -D build-tests=true \
       -D libunwind=${UNWIND} \
@@ -32,3 +33,8 @@ meson configure
 ninja -j4
 LC_ALL=C.UTF-8 ninja test
 DESTDIR=$PWD/../install ninja install
+cd ..
+
+if test -n "$MESON_SHADERDB"; then
+    ./.gitlab-ci/run-shader-db.sh;
+fi

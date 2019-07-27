@@ -57,6 +57,10 @@ apt-get install -y \
       libxdamage-dev \
       libxxf86vm-dev \
       gcc \
+      git \
+      libepoxy-dev \
+      libegl1-mesa-dev \
+      libgbm-dev \
       libclc-dev \
       libxvmc-dev \
       libomxil-bellagio-dev \
@@ -196,6 +200,13 @@ tar -xvf $WAYLAND_PROTOCOLS_VERSION.tar.xz && rm $WAYLAND_PROTOCOLS_VERSION.tar.
 cd $WAYLAND_PROTOCOLS_VERSION; ./configure; make install; cd ..
 rm -rf $WAYLAND_PROTOCOLS_VERSION
 
+pushd /usr/local
+git clone https://gitlab.freedesktop.org/mesa/shader-db.git --depth 1
+rm -rf shader-db/.git
+cd shader-db
+make
+popd
+
 # Use ccache to speed up builds
 apt-get install -y ccache
 
@@ -205,10 +216,10 @@ apt-get install -y libxml2-utils
 # Remove unused packages
 apt-get purge -y \
       automake \
+      git \
       libtool \
       curl \
       unzip \
-      wget \
       gnupg \
       software-properties-common
 apt-get autoremove -y --purge

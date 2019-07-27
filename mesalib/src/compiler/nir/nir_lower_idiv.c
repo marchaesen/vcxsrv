@@ -39,7 +39,7 @@
 static bool
 convert_instr(nir_builder *bld, nir_alu_instr *alu)
 {
-   nir_ssa_def *numer, *denom, *af, *bf, *a, *b, *q, *r;
+   nir_ssa_def *numer, *denom, *af, *bf, *a, *b, *q, *r, *rt;
    nir_op op = alu->op;
    bool is_signed;
 
@@ -97,33 +97,31 @@ convert_instr(nir_builder *bld, nir_alu_instr *alu)
    /* correction: if modulus >= divisor, add 1 */
    r = nir_imul(bld, q, b);
    r = nir_isub(bld, a, r);
-
-   r = nir_uge(bld, r, b);
-   r = nir_b2i32(bld, r);
-
-   q = nir_iadd(bld, q, r);
-   if (is_signed)  {
-      /* fix the sign: */
-      r = nir_ixor(bld, numer, denom);
-      r = nir_ilt(bld, r, nir_imm_int(bld, 0));
-      b = nir_ineg(bld, q);
-      q = nir_bcsel(bld, r, b, q);
-
-      if (op == nir_op_imod || op == nir_op_irem) {
-         q = nir_imul(bld, q, denom);
-         q = nir_isub(bld, numer, q);
-         if (op == nir_op_imod) {
-            q = nir_bcsel(bld, nir_ieq(bld, q, nir_imm_int(bld, 0)),
-                          nir_imm_int(bld, 0),
-                          nir_bcsel(bld, r, nir_iadd(bld, q, denom), q));
-         }
-      }
-   }
+   rt = nir_uge(bld, r, b);
 
    if (op == nir_op_umod) {
-      /* division result in q */
-      r = nir_imul(bld, q, b);
-      q = nir_isub(bld, a, r);
+      q = nir_bcsel(bld, rt, nir_isub(bld, r, b), r);
+   } else {
+      r = nir_b2i32(bld, rt);
+
+      q = nir_iadd(bld, q, r);
+      if (is_signed)  {
+         /* fix the sign: */
+         r = nir_ixor(bld, numer, denom);
+         r = nir_ilt(bld, r, nir_imm_int(bld, 0));
+         b = nir_ineg(bld, q);
+         q = nir_bcsel(bld, r, b, q);
+
+         if (op == nir_op_imod || op == nir_op_irem) {
+            q = nir_imul(bld, q, denom);
+            q = nir_isub(bld, numer, q);
+            if (op == nir_op_imod) {
+               q = nir_bcsel(bld, nir_ieq(bld, q, nir_imm_int(bld, 0)),
+                             nir_imm_int(bld, 0),
+                             nir_bcsel(bld, r, nir_iadd(bld, q, denom), q));
+            }
+         }
+      }
    }
 
    assert(alu->dest.dest.is_ssa);

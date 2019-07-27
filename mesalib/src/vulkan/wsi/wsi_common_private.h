@@ -48,7 +48,7 @@ struct wsi_swapchain {
 
    VkDevice device;
    VkAllocationCallbacks alloc;
-   VkFence fences[3];
+   VkFence* fences;
    VkPresentModeKHR present_mode;
    uint32_t image_count;
 

@@ -14,7 +14,7 @@
 # repository's registry will be used there as well.
 variables:
   UPSTREAM_REPO: mesa/mesa
-  DEBIAN_TAG: "2019-07-11"
+  DEBIAN_TAG: "2019-07-23"
   DEBIAN_VERSION: stretch-slim
   DEBIAN_IMAGE: "$CI_REGISTRY_IMAGE/debian/$DEBIAN_VERSION:$DEBIAN_TAG"
 
@@ -61,8 +61,12 @@ debian:
     paths:
       - ccache
   artifacts:
-    when: on_failure
-    untracked: true
+    when: always
+    paths:
+      - _build/meson-logs/*.txt
+      # scons:
+      - _build/*/config.log
+      - shader-db
   variables:
     CCACHE_COMPILERCHECK: "content"
   # Use ccache transparently, and print stats before/after
@@ -163,6 +167,7 @@ meson-main:
     DRI_DRIVERS: "i915,i965,r100,r200,swrast,nouveau"
     GALLIUM_ST: >
       -D dri3=true
+      -D tools=drm-shim
       -D gallium-extra-hud=true
       -D gallium-vdpau=true
       -D gallium-xvmc=true
@@ -175,6 +180,7 @@ meson-main:
     LLVM_VERSION: "7"
     EXTRA_OPTION: >
       -D tools=all
+    MESON_SHADERDB: "true"
 
 meson-clover:
   extends: .meson-build
@@ -247,7 +253,6 @@ meson-vulkan:
       -D gallium-nine=false
       -D llvm=false
     CROSS: >
-      --libdir lib
       --cross /tmp/cross_file.txt
 
   script:

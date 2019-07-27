@@ -300,32 +300,33 @@ u_transfer_helper_transfer_map(struct pipe_context *pctx,
             unreachable("Unexpected format");
          }
       }
-   } else if (needs_pack(usage) &&
-              util_format_description(prsc->format)->layout == UTIL_FORMAT_LAYOUT_RGTC) {
-      switch (prsc->format) {
-      case PIPE_FORMAT_RGTC1_UNORM:
-      case PIPE_FORMAT_RGTC1_SNORM:
-      case PIPE_FORMAT_LATC1_UNORM:
-      case PIPE_FORMAT_LATC1_SNORM:
-         util_format_rgtc1_unorm_pack_rgba_8unorm(trans->staging,
-                                                  ptrans->stride,
-                                                  trans->ptr,
-                                                  trans->trans->stride,
-                                                  width, height);
-         break;
-      case PIPE_FORMAT_RGTC2_UNORM:
-      case PIPE_FORMAT_RGTC2_SNORM:
-      case PIPE_FORMAT_LATC2_UNORM:
-      case PIPE_FORMAT_LATC2_SNORM:
-         util_format_rgtc2_unorm_pack_rgba_8unorm(trans->staging,
-                                                  ptrans->stride,
-                                                  trans->ptr,
-                                                  trans->trans->stride,
-                                                  width, height);
-         break;
-      default:
-         assert(!"Unexpected format");
-         break;
+   } else if (util_format_description(prsc->format)->layout == UTIL_FORMAT_LAYOUT_RGTC) {
+      if (needs_pack(usage)) {
+         switch (prsc->format) {
+         case PIPE_FORMAT_RGTC1_UNORM:
+         case PIPE_FORMAT_RGTC1_SNORM:
+         case PIPE_FORMAT_LATC1_UNORM:
+         case PIPE_FORMAT_LATC1_SNORM:
+            util_format_rgtc1_unorm_pack_rgba_8unorm(trans->staging,
+                                                     ptrans->stride,
+                                                     trans->ptr,
+                                                     trans->trans->stride,
+                                                     width, height);
+            break;
+         case PIPE_FORMAT_RGTC2_UNORM:
+         case PIPE_FORMAT_RGTC2_SNORM:
+         case PIPE_FORMAT_LATC2_UNORM:
+         case PIPE_FORMAT_LATC2_SNORM:
+            util_format_rgtc2_unorm_pack_rgba_8unorm(trans->staging,
+                                                     ptrans->stride,
+                                                     trans->ptr,
+                                                     trans->trans->stride,
+                                                     width, height);
+            break;
+         default:
+            assert(!"Unexpected format");
+            break;
+         }
       }
    } else {
       unreachable("bleh");

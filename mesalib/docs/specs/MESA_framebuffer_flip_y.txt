@@ -15,6 +15,7 @@ Contributors
     Fritz Koenig, Google
     Kristian Høgsberg, Google
     Chad Versace, Google
+    Heinrich Fink, DAQRI
 
 Status
 
@@ -22,7 +23,7 @@ Status
 
 Version
 
-    Version 1, June 7, 2018
+    Version 2, June 4, 2019
 
 Number
 
@@ -30,7 +31,7 @@ Number
 
 Dependencies
 
-    OpenGL ES 3.1 is required, for FramebufferParameteri.
+    OpenGL ES 3.1 or OpenGL 4.3 is required, for FramebufferParameteri.
 
 Overview
 
@@ -76,6 +77,9 @@ Errors
     default framebuffer is bound to <target> and <pname> is FRAMEBUFFER_FLIP_Y_MESA.
 
 Revision History
+
+    Version 2, June, 2019
+        Added OpenGL 4.3 as alternative requirement
 
     Version 1, June, 2018
         Initial draft (Fritz Koenig)

@@ -411,7 +411,10 @@ _mesa_EndFragmentShaderATI(void)
    if (ctx->Driver.NewATIfs) {
       struct gl_program *prog = ctx->Driver.NewATIfs(ctx,
                                                      ctx->ATIFragmentShader.Current);
-      _mesa_reference_program(ctx, &ctx->ATIFragmentShader.Current->Program, prog);
+      _mesa_reference_program(ctx, &ctx->ATIFragmentShader.Current->Program,
+                                   NULL);
+      /* Don't use _mesa_reference_program(), just take ownership */
+      ctx->ATIFragmentShader.Current->Program = prog;
    }
 
    if (!ctx->Driver.ProgramStringNotify(ctx, GL_FRAGMENT_SHADER_ATI,

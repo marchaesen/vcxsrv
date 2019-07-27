@@ -25,6 +25,11 @@
 #include "util/macros.h"
 #include <string.h>
 
+#define OP_IS_LOAD_VARY_F(op) (\
+                op == midgard_op_ld_vary_16 || \
+                op == midgard_op_ld_vary_32 \
+        )
+
 #define OP_IS_STORE_VARY(op) (\
 		op == midgard_op_st_vary_16 || \
 		op == midgard_op_st_vary_32 || \
@@ -45,6 +50,16 @@
                 OP_IS_STORE_VARY(op) || \
                 op == midgard_op_st_cubemap_coords \
 	)
+
+#define OP_IS_PROJECTION(op) ( \
+                op == midgard_op_ldst_perspective_division_z || \
+                op == midgard_op_ldst_perspective_division_w \
+        )
+
+#define OP_IS_R27_ONLY(op) ( \
+                OP_IS_PROJECTION(op) || \
+                op == midgard_op_st_cubemap_coords \
+        )
 
 #define OP_IS_MOVE(op) ( \
                 op == midgard_alu_op_fmov || \
@@ -162,8 +177,8 @@ quadword_size(int tag)
 #define SSA_UNUSED_1 -2
 
 #define SSA_FIXED_SHIFT 24
-#define SSA_FIXED_REGISTER(reg) ((1 + reg) << SSA_FIXED_SHIFT)
-#define SSA_REG_FROM_FIXED(reg) ((reg >> SSA_FIXED_SHIFT) - 1)
+#define SSA_FIXED_REGISTER(reg) (((1 + (reg)) << SSA_FIXED_SHIFT) | 1)
+#define SSA_REG_FROM_FIXED(reg) ((((reg) & ~1) >> SSA_FIXED_SHIFT) - 1)
 #define SSA_FIXED_MINIMUM SSA_FIXED_REGISTER(0)
 
 /* Swizzle support */
@@ -301,6 +316,21 @@ vector_alu_apply_swizzle(unsigned src, unsigned swizzle)
         s.swizzle = pan_compose_swizzle(s.swizzle, swizzle);
 
         return vector_alu_srco_unsigned(s);
+}
+
+/* Checks for an xyzw.. swizzle, given a mask */
+
+static inline bool
+mir_is_simple_swizzle(unsigned swizzle, unsigned mask)
+{
+        for (unsigned i = 0; i < 16; ++i) {
+                if (!(mask & (1 << i))) continue;
+
+                if (((swizzle >> (2 * i)) & 0x3) != i)
+                        return false;
+        }
+
+        return true;
 }
 
 #endif

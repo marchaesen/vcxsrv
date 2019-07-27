@@ -273,7 +273,6 @@ NIR_FILES = \
 	nir/nir_lower_regs_to_ssa.c \
 	nir/nir_lower_returns.c \
 	nir/nir_lower_scratch.c \
-	nir/nir_lower_sincos.c \
 	nir/nir_lower_subgroups.c \
 	nir/nir_lower_system_values.c \
 	nir/nir_lower_tex.c \

@@ -198,6 +198,7 @@ class Value(object):
    ${'true' if val.is_constant else 'false'},
    ${val.type() or 'nir_type_invalid' },
    ${val.cond if val.cond else 'NULL'},
+   ${val.swizzle()},
 % elif isinstance(val, Expression):
    ${'true' if val.inexact else 'false'},
    ${val.comm_expr_idx}, ${val.comm_exprs},
@@ -284,7 +285,8 @@ class Constant(Value):
 
 _var_name_re = re.compile(r"(?P<const>#)?(?P<name>\w+)"
                           r"(?:@(?P<type>int|uint|bool|float)?(?P<bits>\d+)?)?"
-                          r"(?P<cond>\([^\)]+\))?")
+                          r"(?P<cond>\([^\)]+\))?"
+                          r"(?P<swiz>\.[xyzw]+)?")
 
 class Variable(Value):
    def __init__(self, val, name, varset):
@@ -306,6 +308,7 @@ class Variable(Value):
       self.cond = m.group('cond')
       self.required_type = m.group('type')
       self._bit_size = int(m.group('bits')) if m.group('bits') else None
+      self.swiz = m.group('swiz')
 
       if self.required_type == 'bool':
          if self._bit_size is not None:
@@ -338,6 +341,12 @@ class Variable(Value):
          return False
 
       return self.index == other.index
+
+   def swizzle(self):
+      if self.swiz is not None:
+         swizzles = {'x' : 0, 'y' : 1, 'z' : 2, 'w': 3}
+         return '{' + ', '.join([str(swizzles[c]) for c in self.swiz[1:]]) + '}'
+      return '{0, 1, 2, 3}'
 
 _opcode_re = re.compile(r"(?P<inexact>~)?(?P<opcode>\w+)(?:@(?P<bits>\d+))?"
                         r"(?P<cond>\([^\)]+\))?")

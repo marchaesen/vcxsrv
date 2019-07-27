@@ -2121,9 +2121,14 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	free (foundry_);
 
     if (master)
-      {
-	/* TODO: How to free master?! */
-      }
+    {
+#ifdef HAVE_FT_DONE_MM_VAR
+	if (face->glyph)
+	    FT_Done_MM_Var (face->glyph->library, master);
+#else
+	free (master);
+#endif
+    }
 
     return pat;
 

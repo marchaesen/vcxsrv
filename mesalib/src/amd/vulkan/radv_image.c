@@ -617,6 +617,15 @@ static unsigned gfx9_border_color_swizzle(const enum vk_swizzle swizzle[4])
 	return bc_swizzle;
 }
 
+static bool vi_alpha_is_on_msb(struct radv_device *device, VkFormat format)
+{
+	const struct vk_format_description *desc = vk_format_description(format);
+
+	if (device->physical_device->rad_info.chip_class >= GFX10 && desc->nr_channels == 1)
+		return desc->swizzle[3] == VK_SWIZZLE_X;
+
+	return radv_translate_colorswap(format, false) <= 1;
+}
 /**
  * Build the sampler view descriptor for a texture (GFX10).
  */
@@ -691,11 +700,9 @@ gfx10_make_texture_descriptor(struct radv_device *device,
 	state[7] = 0;
 
 	if (radv_dcc_enabled(image, first_level)) {
-		unsigned swap = radv_translate_colorswap(vk_format, FALSE);
-
 		state[6] |= S_00A018_MAX_UNCOMPRESSED_BLOCK_SIZE(V_028C78_MAX_BLOCK_SIZE_256B) |
 			    S_00A018_MAX_COMPRESSED_BLOCK_SIZE(V_028C78_MAX_BLOCK_SIZE_128B) |
-			    S_00A018_ALPHA_IS_ON_MSB(swap <= 1);
+			    S_00A018_ALPHA_IS_ON_MSB(vi_alpha_is_on_msb(device, vk_format));
 	}
 
 	/* Initialize the sampler view for FMASK. */
@@ -849,9 +856,7 @@ si_make_texture_descriptor(struct radv_device *device,
 		state[5] |= S_008F24_LAST_ARRAY(last_layer);
 	}
 	if (image->dcc_offset) {
-		unsigned swap = radv_translate_colorswap(vk_format, FALSE);
-
-		state[6] = S_008F28_ALPHA_IS_ON_MSB(swap <= 1);
+		state[6] = S_008F28_ALPHA_IS_ON_MSB(vi_alpha_is_on_msb(device, vk_format));
 	} else {
 		/* The last dword is unused by hw. The shader uses it to clear
 		 * bits in the first dword of sampler state.
@@ -1034,7 +1039,8 @@ radv_query_opaque_metadata(struct radv_device *device,
 		for (i = 0; i <= image->info.levels - 1; i++)
 			md->metadata[10+i] = image->planes[0].surface.u.legacy.level[i].offset >> 8;
 		md->size_metadata = (11 + image->info.levels - 1) * 4;
-	}
+	} else
+		md->size_metadata = 10 * 4;
 }
 
 void

@@ -76,6 +76,7 @@ struct ra_graph *ra_alloc_interference_graph(struct ra_regs *regs,
                                              unsigned int count);
 void ra_resize_interference_graph(struct ra_graph *g, unsigned int count);
 void ra_set_node_class(struct ra_graph *g, unsigned int n, unsigned int c);
+unsigned int ra_get_node_class(struct ra_graph *g, unsigned int n);
 unsigned int ra_add_node(struct ra_graph *g, unsigned int c);
 void ra_set_select_reg_callback(struct ra_graph *g,
                                 unsigned int (*callback)(struct ra_graph *g,

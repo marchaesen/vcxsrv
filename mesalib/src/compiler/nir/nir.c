@@ -2162,6 +2162,8 @@ void
 nir_rewrite_image_intrinsic(nir_intrinsic_instr *intrin, nir_ssa_def *src,
                             bool bindless)
 {
+   enum gl_access_qualifier access = nir_intrinsic_access(intrin);
+
    switch (intrin->intrinsic) {
 #define CASE(op) \
    case nir_intrinsic_image_deref_##op: \
@@ -2193,6 +2195,7 @@ nir_rewrite_image_intrinsic(nir_intrinsic_instr *intrin, nir_ssa_def *src,
 
    nir_intrinsic_set_image_dim(intrin, glsl_get_sampler_dim(deref->type));
    nir_intrinsic_set_image_array(intrin, glsl_sampler_type_is_array(deref->type));
+   nir_intrinsic_set_access(intrin, access | var->data.image.access);
    nir_intrinsic_set_format(intrin, var->data.image.format);
 
    nir_instr_rewrite_src(&intrin->instr, &intrin->src[0],

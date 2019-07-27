@@ -175,7 +175,7 @@ feedback_reset_stipple_counter( struct draw_stage *stage )
 static void
 feedback_destroy( struct draw_stage *stage )
 {
-   /* no-op */
+   free(stage);
 }
 
 /**
@@ -247,7 +247,7 @@ select_reset_stipple_counter( struct draw_stage *stage )
 static void
 select_destroy( struct draw_stage *stage )
 {
-   /* no-op */
+   free(stage);
 }
 
 

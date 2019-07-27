@@ -143,16 +143,3 @@ freedreno_icd = custom_target(
   install_dir : with_vulkan_icd_dir,
   install : true,
 )
-
-tu_dev_icd = custom_target(
-  'tu_dev_icd',
-  input : 'tu_icd.py',
-  output : 'dev_icd.json',
-  command : [
-    prog_python, '@INPUT@', '--lib-path', meson.current_build_dir(),
-    '--out', '@OUTPUT@'
-  ],
-  depend_files : files('tu_extensions.py'),
-  build_by_default : true,
-  install : false,
-)
