@@ -46225,7 +46225,7 @@ typedef unsigned int GLhandleARB;
                 <enum name="GL_TEXTURE_2D_STACK_BINDING_MESAX"/>
             </require>
         </extension>
-        <extension name="GL_MESA_framebuffer_flip_y" supported="gles2">
+        <extension name="GL_MESA_framebuffer_flip_y" supported="gl|glcore|gles2">
             <require>
                 <enum name="GL_FRAMEBUFFER_FLIP_Y_MESA"/>
             </require>
