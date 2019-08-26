@@ -1,3 +1,103 @@
+commit e97992671b3870878709a1c01991488965b61b94
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Thu Jul 11 13:49:26 2019 -0400
+
+    xauth 1.1
+
+commit 0932418d9b47e8240160bcbacbdc38b9bc9870d3
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Tue Jun 18 12:03:33 2019 -0400
+
+    process: Close a window where no authority file would exist
+    
+    unlink()ing the old auth file before link()ing the temp to the new is
+    just silly. rename() is atomic and will happily clobber the destination,
+    and the only thing link() can give you here is the ability to fail on
+    filesystems that don't support hardlinks.
+    
+    Fixes: xorg/app/xauth#2
+
+commit 42239054b088dcdfc637880a8edf39b841c5ea51
+Author: Michal Srb <msrb@suse.com>
+Date:   Thu May 31 15:12:36 2018 +0200
+
+    Sort entries from most specific to most generic.
+    
+    There is no point in adding entry or merging lists if a FamilyWild entry would
+    end in front of any entry, or entry without display number would end in front
+    of entry with number.
+    
+    This sorts all entries in order:
+      * FamilyWild without display number
+      * FamilyWild with display number
+      * Other family without display number
+      * Other family with display number
+    
+    The order of the entries in each category is kept.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 06a21f7c3d5eb5dc9a86418e87946cc7ac83e437
+Author: Michal Srb <msrb@suse.com>
+Date:   Thu May 31 15:12:35 2018 +0200
+
+    Merge only entries with equal dpy and protoname.
+    
+    Merging two lists, or adding entry a into list acts unexpectedly if the list
+    contains FamilyWild or entry with an empty display numbers. For example:
+    
+      > xauth list
+      #ffff#6f70656e737573652d74756d626c6577656564#:  MIT-MAGIC-COOKIE-1  1500d80327733252cc42ba469138a259
+    
+      > xauth add test/unix:2 MIT-MAGIC-COOKIE-1 aabbccddeeff00112233445566778899
+      > xauth list
+      test/unix:2  MIT-MAGIC-COOKIE-1  aabbccddeeff00112233445566778899
+    
+    This is because merge_entries compares entries using `match_auth`, which
+    follows the same rules as XauGetBestAuthByAddr. Following these rules is good
+    when filtering the output of `xauth list`, but for merging we should compare
+    for equality. It used to be done that way before commit 1555fff4. That commit
+    changed it to improve the `xauth list` behavior, but did not seem consider the
+    impact on merge.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 673d42c5ffbbb07ad6b9b3d99a9cc78198999dd1
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Nov 21 16:58:33 2018 -0800
+
+    Update configure.ac bug URL for gitlab migration
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit fa5c2797921b2b0c6dcdde5cf1832a90a0a9dfbf
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Nov 16 21:03:57 2018 -0800
+
+    Update README for gitlab migration
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 4a3a9fc5271cd04ab9123e4713d00b161daf0b6a
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat May 5 14:58:15 2018 -0700
+
+    Change fall through comment in process.c to match gcc's requirements
+    
+    Needs to match one of the regexps shown under
+    https://gcc.gnu.org/onlinedocs/gcc-7.3.0/gcc/Warning-Options.html#index-Wimplicit-fallthrough
+    
+    Silences warning from gcc 7.3:
+    process.c: In function ‘dump_entry’:
+    process.c:1007:9: warning: this statement may fall through [-Wimplicit-fallthrough=]
+          if (dpyname) {
+             ^
+    process.c:1012:4: note: here
+        default:
+        ^~~~~~~
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
 commit 536d1003a5c4d5ac24cd3b8afd10492e4e6242df
 Author: Matt Turner <mattst88@gmail.com>
 Date:   Sun Jan 29 13:09:12 2017 -0800

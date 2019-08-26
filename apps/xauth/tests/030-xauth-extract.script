@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# setup the test ennvironment inside this shell
+. setup-sourced
+
+# Execute the test
+xauth add examplehost1/unix:0 . b90b0fd1cf6a0e7a2c74c00000000001
+xauth add examplehost2/unix:0 . b90b0fd1cf6a0e7a2c74c00000000002
+xauth add examplehost3/unix:0 . b90b0fd1cf6a0e7a2c74c00000000003
+
+# Use xauth_silent because otherwise the system dependant pathes are printed
+XAUTHORITY2=$DATADIR/.Xauthority2
+xauth_silent extract $XAUTHORITY2 examplehost2/unix:0
+xauth_silent -f $XAUTHORITY2 list                    
+
+XAUTHORITY3=$DATADIR/.Xauthority3
+xauth_silent extract $XAUTHORITY3 examplehost3/unix:0
+xauth_silent -f $XAUTHORITY3 list                    
+
+rm $XAUTHORITY ; touch $XAUTHORITY
+xauth_silent merge $XAUTHORITY2 $XAUTHORITY3
+xauth list
+
+
+
+

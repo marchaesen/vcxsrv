@@ -890,19 +890,11 @@ auth_finalize(void)
 			 "%s:  unable to write authority file %s\n",
 			 ProgramName, temp_name);
 	    } else {
-		(void) unlink (xauth_filename);
-#if defined(WIN32) || defined(__UNIXOS2__)
-		if (rename(temp_name, xauth_filename) == -1)
-#else
-		/* Attempt to rename() if link() fails, since this may be on a FS that does not support hard links */
-		if (link (temp_name, xauth_filename) == -1 && rename(temp_name, xauth_filename) == -1)
-#endif
-		{
+		if (rename(temp_name, xauth_filename) == -1) {
 		    fprintf (stderr,
-		     "%s:  unable to link authority file %s, use %s\n",
+		     "%s:  unable to rename authority file %s, use %s\n",
 			     ProgramName, xauth_filename, temp_name);
-		} else {
-		    (void) unlink (temp_name);
+                    unlink(temp_name);
 		}
 	    }
 	}
@@ -1008,7 +1000,7 @@ dump_entry(const char *inputfilename, int lineno, Xauth *auth, char *data)
 		fprintf (fp, "%s", dpyname);
 		break;
 	    }
-	    /* else fall through to default */
+	    /* else fall through */
 	  default:
 	    fprintf (fp, "#%04x#", auth->family);
 	    fprintfhex (fp, auth->address_length, auth->address);
@@ -1057,16 +1049,22 @@ extract_entry(const char *inputfilename, int lineno, Xauth *auth, char *data)
 
 
 static int
-eq_auth(Xauth *a, Xauth *b)
+eq_auth_dpy_and_name(Xauth *a, Xauth *b)
 {
     return((a->family == b->family &&
 	    a->address_length == b->address_length &&
 	    a->number_length == b->number_length &&
 	    a->name_length == b->name_length &&
-	    a->data_length == b->data_length &&
 	    memcmp(a->address, b->address, a->address_length) == 0 &&
 	    memcmp(a->number, b->number, a->number_length) == 0 &&
-	    memcmp(a->name, b->name, a->name_length) == 0 &&
+	    memcmp(a->name, b->name, a->name_length) == 0) ? 1 : 0);
+}
+
+static int
+eq_auth(Xauth *a, Xauth *b)
+{
+    return((eq_auth_dpy_and_name(a, b) &&
+	    a->data_length == b->data_length &&
 	    memcmp(a->data, b->data, a->data_length) == 0) ? 1 : 0);
 }
 
@@ -1099,17 +1097,6 @@ match_auth_dpy(register Xauth *a, register Xauth *b)
     
     return 1;
 }
-
-/* return non-zero iff display and authorization type are the same */
-
-static int
-match_auth(register Xauth *a, register Xauth *b)
-{
-    return ((match_auth_dpy(a, b)
-	     && a->name_length == b->name_length
-	     && memcmp(a->name, b->name, a->name_length) == 0) ? 1 : 0);
-}
-
 
 static int
 merge_entries(AuthList **firstp, AuthList *second, int *nnewp, int *nreplp)
@@ -1144,7 +1131,7 @@ merge_entries(AuthList **firstp, AuthList *second, int *nnewp, int *nreplp)
 
 	a = first;
 	for (;;) {
-	    if (match_auth (a->auth, b->auth)) {  /* found a duplicate */
+	    if (eq_auth_dpy_and_name (a->auth, b->auth)) {  /* found a duplicate */
 		AuthList tmp;		/* swap it in for old one */
 		tmp = *a;
 		*a = *b;
@@ -1173,6 +1160,45 @@ merge_entries(AuthList **firstp, AuthList *second, int *nnewp, int *nreplp)
     *nreplp = nrepl;
     return n;
 
+}
+
+static void
+sort_entries(AuthList **firstp)
+{
+    /* Insert sort, in each pass it removes auth records of certain */
+    /* cathegory from the given list and inserts them into the sorted list. */
+
+    AuthList *sorted = NULL, *sorted_tail = NULL;
+    AuthList *prev, *iter, *next;
+
+    #define SORT_OUT(EXPRESSION) { \
+	prev = NULL; \
+	for (iter = *firstp; iter; iter = next) { \
+	    next = iter->next; \
+	    if (EXPRESSION) { \
+		if (prev) \
+		    prev->next = next; \
+		else \
+		    *firstp = next; \
+		if (sorted_tail == NULL) { \
+		    sorted = sorted_tail = iter; \
+		} else { \
+		    sorted_tail->next = iter; \
+		    sorted_tail = iter; \
+		} \
+		iter->next = NULL; \
+	    } else { \
+		prev = iter; \
+	    } \
+	} \
+    }
+
+    SORT_OUT(iter->auth->family != FamilyWild && iter->auth->number_length != 0);
+    SORT_OUT(iter->auth->family != FamilyWild && iter->auth->number_length == 0);
+    SORT_OUT(iter->auth->family == FamilyWild && iter->auth->number_length != 0);
+    SORT_OUT(iter->auth->family == FamilyWild && iter->auth->number_length == 0);
+
+    *firstp = sorted;
 }
 
 static Xauth *
@@ -1513,6 +1539,7 @@ do_merge(const char *inputfilename, int lineno, int argc, const char **argv)
 	  printf ("%d entries read in:  %d new, %d replacement%s\n",
 	  	  nentries, nnew, nrepl, nrepl != 1 ? "s" : "");
 	if (nentries > 0) xauth_modified = True;
+	sort_entries(&xauth_head);
     }
 
     return 0;
@@ -1661,6 +1688,7 @@ do_add(const char *inputfilename, int lineno, int argc, const char **argv)
 	fprintf (stderr, "unable to merge in added record\n");
 	return 1;
     }
+    sort_entries(&xauth_head);
 
     xauth_modified = True;
     return 0;

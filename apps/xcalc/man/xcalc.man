@@ -130,7 +130,7 @@ Computes the tangent, or arctangent when inverted.
 The corresponding action procedure is \fBtangent()\fP.
 .TP 10
 .B DRG
-Changes the DRG mode, as indicated by 'DEG', 'RAD', or 'GRAD' at the bottom of
+Changes the DRG mode, as indicated by 'DEG', 'RAD', or 'GRAD' at the bottom
 of the calculator ``liquid crystal'' display.
 When in 'DEG' mode, numbers in the display are taken as being
 degrees.  In 'RAD' mode, numbers are in radians, and in 'GRAD' mode, numbers
@@ -168,6 +168,26 @@ example "2 y^x 3 =" results in "8", which is 2^3.  For a further example,
 "(1+2+3) y^x (1+2) =" equals "6 y^x 3" which equals "216".
 The corresponding action procedure is \fBpower()\fR.
 .TP 10
+.B not
+Performs a bitwise not.
+The corresponding action procedure is \fBnot()\fP.
+.TP 10
+.B and
+Performs a bitwise and.
+The corresponding action procedure is \fBand()\fP.
+.TP 10
+.B or
+Performs a bitwise or.
+The corresponding action procedure is \fBor()\fP.
+.TP 10
+.B xor
+Performs a bitwise exclusive or.
+The corresponding action procedure is \fBxor()\fP.
+.TP 10
+.B trunc
+Truncates the number in the display to an integer.
+The corresponding action procedure is \fBtrunc()\fP.
+.TP 10
 .B PI
 The constant 'pi'.  (3.1415927....)
 The corresponding action procedure is \fBpi()\fR.
@@ -185,6 +205,30 @@ is \fBleftParen()\fR.
 .B )
 Right parenthesis.  The corresponding action procedure for TI calculators
 is \fBrightParen()\fR.
+.TP 10
+.B base
+Changes the number base, as indicated by 'DEC', 'HEX, or 'OCT' at the bottom
+of the calculator display.
+When in 'DEC' mode, numbers in the display are taken as being decimal
+(base 10).  In 'HEX' mode, numbers are in hexadecimal (base 16), and in 'OCT'
+mode, numbers are in octal (base 8).
+The corresponding action procedure is \fBbase()\fP.
+.TP 10
+.B shl
+Performs an arithmetic bitwise shift left,  For example, entering "1 shl 2"
+should result in "4".
+The corresponding action procedure is \fBshl()\fR.
+.TP 10
+.B shr
+Performs an arithmetic bitwise shift right,  For example, entering "8 shr 1"
+should result in "4".
+The corresponding action procedure is \fBshr()\fR.
+.TP 10
+.B mod
+Performs the modulo operation, which calculates the remainder when dividing
+the first number by the second.  For example, entering "14 mod 8" should
+result in "6".
+The corresponding action procedure is \fBmod()\fR.
 .TP 10
 .B /
 Division.  The corresponding action procedure is \fBdivide()\fR.

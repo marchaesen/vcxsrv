@@ -1,0 +1,22 @@
+> xauth add examplehost1/unix:0 . b90b0fd1cf6a0e7a2c74c00000000001
+  exits with 0
+> xauth add examplehost2/unix:0 . b90b0fd1cf6a0e7a2c74c00000000002
+  exits with 0
+> xauth add examplehost3/unix:0 . b90b0fd1cf6a0e7a2c74c00000000003
+  exits with 0
+> xauth some silent commands which should not be logged...
+  exits with 0
+> xauth some silent commands which should not be logged...
+examplehost2/unix:0  MIT-MAGIC-COOKIE-1  b90b0fd1cf6a0e7a2c74c00000000002
+  exits with 0
+> xauth some silent commands which should not be logged...
+  exits with 0
+> xauth some silent commands which should not be logged...
+examplehost3/unix:0  MIT-MAGIC-COOKIE-1  b90b0fd1cf6a0e7a2c74c00000000003
+  exits with 0
+> xauth some silent commands which should not be logged...
+  exits with 0
+> xauth list
+examplehost2/unix:0  MIT-MAGIC-COOKIE-1  b90b0fd1cf6a0e7a2c74c00000000002
+examplehost3/unix:0  MIT-MAGIC-COOKIE-1  b90b0fd1cf6a0e7a2c74c00000000003
+  exits with 0

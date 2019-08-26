@@ -102,6 +102,21 @@ from the X Consortium.
 #define kROLL  44	/* roll stack */
 #define kNOP   45	/* no operation */
 #define kBKSP  46	/* backspace */
+#define kAND   47	/* bitwise and */
+#define kBASE  48	/* base conversion */
+#define kMOD   49	/* modulus */
+#define kNOT   50	/* bitwise not (ones compliment) */
+#define kOR    51	/* bitwise or */
+#define kSHL   52	/* arithmetic shift left */
+#define kSHR   53	/* arithmetic shift right */
+#define kXOR   54	/* bitwise xor */
+#define kTRUNC 55	/* truncate to integer */
+#define kxA    56	/* 0xa */
+#define kxB    57	/* 0xb */
+#define kxC    58	/* 0xc */
+#define kxD    59	/* 0xd */
+#define kxE    60	/* 0xe */
+#define kxF    61	/* 0xf */
 
 #define XCalc_MEMORY	0	/* memory indicator */
 #define XCalc_INVERSE   1	/* inverse function indicator */
@@ -109,6 +124,9 @@ from the X Consortium.
 #define XCalc_RADIAN	3	/* radian indicator */
 #define XCalc_GRADAM	4	/* grad indicator */
 #define XCalc_PAREN	5	/* parenthesis indicator */
+#define XCalc_HEX	6	/* hexadecimal (base 16) indicator */
+#define XCalc_DEC	7	/* decimal (base 10) indicator */
+#define XCalc_OCT	8	/* octal (base 8) indicator */
 
 /* actions.c */
 extern XtActionsRec Actions[];
@@ -121,6 +139,7 @@ extern void fail_op(void);
 extern int pre_op(int keynum);
 extern void post_op(void);
 
+extern void change_base(void);
 extern void numeric(int keynum);
 extern void bkspf(void);
 extern void decf(void);

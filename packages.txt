@@ -64,9 +64,9 @@ pixman git version
 pthreads-w32 git version
 terminus-font-4.30
 ttf-bitstream-vera-1.10
-xauth-1.0.10
+xauth-1.1
 xbitmaps-1.1.1
-xcalc-1.0.6
+xcalc-1.1
 xcb-util-errors-1.0
 xcb-proto git version
 xclock-1.0.7

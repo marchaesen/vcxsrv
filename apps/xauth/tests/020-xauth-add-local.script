@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# setup the test ennvironment inside this shell
+. setup-sourced
+
+# Execute the test
+xauth add unix:0              . b90b0fd1cf6a0e7a2c74c00000000004
+xauth add 127.0.0.1:1         . b90b0fd1cf6a0e7a2c74c00000000005
+xauth add :2                  . b90b0fd1cf6a0e7a2c74c00000000006
+xauth add :3.5                . b90b0fd1cf6a0e7a2c74c00000000007
+xauth add :4                  . b90b0fd1cf6a0e7a2c74c00000000004
+
+# List the number of entries added
+xauth list | wc -l
+
+# Try to match them and print cookie
+xauth list unix:0        | awk '{print $3}'
+xauth list 127.0.0.1:1   | awk '{print $3}'
+xauth list 127.0.0.1:2   | awk '{print $3}'
+xauth list 127.0.0.1:3.6 | awk '{print $3}'
+xauth list :4            | awk '{print $3}'
+

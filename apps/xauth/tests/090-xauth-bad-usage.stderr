@@ -1,0 +1,8 @@
+../xauth: (argv):1:  key contains odd number of or non-hex characters
+../xauth: (argv):1:  key contains odd number of or non-hex characters
+../xauth: (argv):1:  bad display name "bad4/unxi:0" in "add" command
+../xauth: (argv):1:  bad display name "bad5/unix:" in "add" command
+../xauth: (argv):1:  bad display name "bad6/something/unix:0" in "add" command
+../xauth: (argv):1:  bad display name "bad7/unix" in "add" command
+../xauth: (argv):1:  bad display name "bad8" in "add" command
+../xauth: (argv):1:  bad display name "127.0.0.:0" in "add" command

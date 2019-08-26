@@ -1,0 +1,26 @@
+#
+# This script gets sourced by every test to setup a common environment.
+#
+
+# Force all output to be standard english
+export LANG=C
+
+# Define the name of the authority file, which we use during test.
+export XAUTHORITY=${DATADIR:-/tmp}/.Xauthority
+
+# Start a new authority file
+rm -f $XAUTHORITY ; touch $XAUTHORITY
+
+function xauth()
+{
+  echo "> xauth" "$@"
+  ../xauth "$@"
+  echo "  exits with $?"
+}
+
+function xauth_silent()
+{
+  echo "> xauth" "some silent commands which should not be logged..."
+  ../xauth "$@"
+  echo "  exits with $?"
+}

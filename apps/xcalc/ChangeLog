@@ -1,3 +1,208 @@
+commit df1721c44e0b357f4d8ae80247861b4a6f7a7bbb
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jun 9 13:44:24 2019 -0700
+
+    xcalc 1.1.0
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 74a71638ace07252e85106d87f80a62b1f07280f
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Jun 1 17:33:44 2019 -0700
+
+    Fix -Wsign-compare warning in quit() function
+    
+    Reported by gcc 7.3:
+    actions.c: In function ‘quit’:
+    actions.c:414:60: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+         if (ev->type == ClientMessage && ev->xclient.data.l[0] != wm_delete_window)
+                                                                ^~
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 012115650d15697e1cdc13edf770ac9775b108f4
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Jun 1 17:29:15 2019 -0700
+
+    Fix -Wsign-compare warning in Syntax() function
+    
+    Reported by gcc 7.3:
+    xcalc.c: In function ‘Syntax’:
+    xcalc.c:322:17: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+         for (i=0; i < XtNumber(Options); i++)
+                     ^
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 7a04d51cb90b9a314eea117bc36fedb2bfaab516
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Jun 1 17:24:20 2019 -0700
+
+    Pass -D_CONST_X_STRING to make libXt declare String as const char *
+    
+    Clears up 58 of 62 gcc -Wdiscarded-qualifiers warnings in the xcalc build
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 519e35d2c5649a995d39ee26e39809a3b7ffabc9
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Jun 1 17:16:11 2019 -0700
+
+    Add bitwise ops and base conversion (DEC/OCT/HEX) to man page
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit c4f1bdb16b560d813e6ded83c2d7a4f4d280a90a
+Author: Tim Hentenaar <tim@hentenaar.com>
+Date:   Sat Mar 22 02:47:33 2014 +0100
+
+    Add bitwise ops and base conversion (DEC/OCT/HEX) in TI mode
+    
+    These operations implicitly truncate their parameters, and result to
+    integers:
+    
+    * not
+    * and
+    * or
+    * xor
+    * shl
+    * shr
+    * mod
+    * trunc
+    
+    Base 2 was left out of the base conversion code intentionally as it
+    would require making the UI at least one third wider.
+    
+    Attempts to change base with negative values will simply display
+    "error." Note that with larger numbers, the result may be inaccurate
+    due to rounding.
+    
+    I've also bound the Return key to the equal() action.
+    
+    Signed-off-by: Tim Hentenaar <tim@hentenaar.com>
+
+commit be5114cebfdc29788cf038d349c0ed6cce4bb536
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Feb 17 13:50:58 2019 -0800
+
+    xcalc 1.0.7
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 85c9feb6e10cea1ef017d702151b14717c40b9d5
+Author: Stéphane Aulery <lkppo@free.fr>
+Date:   Sun Jul 7 22:50:30 2013 +0200
+
+    Reduce scope of i (cppcheck --verbose --enable=all)
+    
+    Signed-off-by: Stéphane Aulery <lkppo@free.fr>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit aa3d39389bfc752486a83933574d0365c74d4e29
+Author: Stéphane Aulery <lkppo@free.fr>
+Date:   Sun Jul 7 22:50:29 2013 +0200
+
+    Reduce scope of cell (cppcheck --verbose --enable=all)
+    
+    Signed-off-by: Stéphane Aulery <lkppo@free.fr>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 8d156f428912aecdd493e075b75e735bfbae7dda
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Nov 21 16:59:17 2018 -0800
+
+    Update configure.ac bug URL for gitlab migration
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit b8f4da1126dd44b4adc5f83ba5c7e06a2de75996
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Nov 16 21:11:40 2018 -0800
+
+    Update README for gitlab migration
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 8df4b463f69fc3e7e08ce5de284ed7f318935c1e
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat May 5 12:20:12 2018 -0700
+
+    Reword fall through comments to appease gcc -Wimplicit-fallthrough
+    
+    Gets rid of these warnings:
+    math.c:707:24: warning: this statement may fall through [-Wimplicit-fallthrough=]
+       case kSQR:   flagINV = !flagINV; /* fall through to */
+                    ~~~~~~~~^~~~~~~~~~
+    math.c:708:3: note: here
+       case kSQRT:  if (flagINV) dnum=dnum*dnum;
+       ^~~~
+    math.c:711:24: warning: this statement may fall through [-Wimplicit-fallthrough=]
+       case k10X:   flagINV = !flagINV; /* fall through to */
+                    ~~~~~~~~^~~~~~~~~~
+    math.c:712:3: note: here
+       case kLOG:   if (flagINV) dnum=pow(10.0,dnum);
+       ^~~~
+    math.c:715:24: warning: this statement may fall through [-Wimplicit-fallthrough=]
+       case kEXP:   flagINV = !flagINV; /* fall through to */
+                    ~~~~~~~~^~~~~~~~~~
+    math.c:716:3: note: here
+       case kLN:    if (flagINV) dnum=exp(dnum);
+       ^~~~
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 7a90211e35841758ff11e79a1633494e2055df88
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat May 5 12:15:19 2018 -0700
+
+    Fix misleading indentation in math.c
+    
+    math.c: In function ‘numeric’:
+    math.c:267:3: warning: this ‘if’ clause does not guard... [-Wmisleading-indentat
+    ion]
+       if ((int) strlen(dispstr) >= MAXDISP)
+       ^~
+    math.c:270:5: note: ...this statement, but the latter is misleadingly indented a
+    s if it were guarded by the ‘if’
+         switch (keynum){
+         ^~~~~~
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit d056a3c6843cf5f6c8b392c46bc4f1b637f87d0b
+Author: Mihail Konev <k.mvc@ya.ru>
+Date:   Thu Jan 26 14:00:20 2017 +1000
+
+    autogen: add default patch prefix
+    
+    Signed-off-by: Mihail Konev <k.mvc@ya.ru>
+
+commit f5982d0175359f7db28127cba3a42e08352f295b
+Author: Emil Velikov <emil.l.velikov@gmail.com>
+Date:   Mon Mar 9 12:00:52 2015 +0000
+
+    autogen.sh: use quoted string variables
+    
+    Place quotes around the $srcdir, $ORIGDIR and $0 variables to prevent
+    fall-outs, when they contain space.
+    
+    Signed-off-by: Emil Velikov <emil.l.velikov@gmail.com>
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit 004ce8287f9afab014a44c8bb8ba476ef5930a57
+Author: Peter Hutterer <peter.hutterer@who-t.net>
+Date:   Tue Jan 24 10:32:07 2017 +1000
+
+    autogen.sh: use exec instead of waiting for configure to finish
+    
+    Syncs the invocation of configure with the one from the server.
+    
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Reviewed-by: Emil Velikov <emil.velikov@collabora.com>
+
 commit 0fba659f91bebe1f92f4de2660bf806fd049350b
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Mon Jan 19 21:26:22 2015 -0800
