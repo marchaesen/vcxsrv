@@ -14,6 +14,8 @@ load_makefile $(LIBDIRS:%$(OBJDIR)\=%makefile MAKESERVER=0 DEBUG=$(DEBUG);)
 
 LINKLIBS += $(PTHREADLIB)
 
+INCLUDES += $(MHMAKECONF)\include\xcb
+
 CSRCS =	\
         gethost.c \
         parsedpy.c \

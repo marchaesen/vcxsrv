@@ -34,6 +34,9 @@ in this Software without prior written authorization from The Open Group.
 
 #include "xauth.h"
 
+#ifdef WIN32
+#include "xcb_windefs.h"
+#endif
 
 /*
  * global data
@@ -175,6 +178,17 @@ main(int argc, const char *argv[])
 	    tmp++;
 	}
     }
+    {
+	static WSADATA wsadata;
+
+	if (!wsadata.wVersion)
+	{
+	    __ptw32_processInitialize();
+	    if (WSAStartup(0x0202, &wsadata))
+		exit(1);
+	}
+    }
+
 #endif
     if (auth_initialize (authfilename) != 0) {
 	/* error message printed in auth_initialize */

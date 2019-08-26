@@ -891,6 +891,7 @@ auth_finalize(void)
 			 "%s:  unable to write authority file %s\n",
 			 ProgramName, temp_name);
 	    } else {
+			unlink(xauth_filename);
 		if (rename(temp_name, xauth_filename) == -1) {
 		    fprintf (stderr,
 		     "%s:  unable to rename authority file %s, use %s\n",
