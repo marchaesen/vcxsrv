@@ -1,0 +1,5 @@
+> xauth some silent commands which should not be logged...
+  exits with 0
+> xauth list
+examplehost1/unix:0  MIT-MAGIC-COOKIE-1  b90b0fd1cf6a0e7a2c74c00000000001
+  exits with 0

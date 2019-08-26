@@ -22,7 +22,7 @@
 SUBDIRS = man
 bin_PROGRAMS = xcalc
 
-AM_CFLAGS = $(XCALC_CFLAGS) $(CWARNFLAGS)
+AM_CFLAGS = $(XCALC_CFLAGS) $(CWARNFLAGS) -D_CONST_X_STRING
 xcalc_LDADD = $(XCALC_LIBS) -lm
 
 xcalc_SOURCES =	\
@@ -53,3 +53,4 @@ ChangeLog:
 
 dist-hook: ChangeLog INSTALL
 
+EXTRA_DIST = README.md

@@ -44,7 +44,7 @@ jmp_buf env;
  * functions.  Much of it is shared between the infix and rpn modes.
  */
 
-static int flagINV, flagPAREN, flagM, drgmode;	/* display flags */
+static int flagINV, flagPAREN, flagM, drgmode, numbase;	/* display flags */
 
 static double drg2rad=M_PI/180.0;  /* Conversion factors for trig funcs */
 static double rad2drg=180.0/M_PI;
@@ -95,17 +95,47 @@ strlcpy(char *dst, const char *src, size_t size)
  * is non-zero then an error has occurred.  On some systems (e.g. Ultrix),
  * sscanf will call lower level routines that will set errno.
  */
-
 static void
-parse_double (const char *src, const char *fmt, double *dp)
+parse_double(double *dp)
 {
+    unsigned long n = 0;
     int olderrno = errno;
 
-    (void) sscanf (src, fmt, dp);
+    switch (numbase) {
+    case 8:
+        (void)sscanf(dispstr, "%lo", &n);
+        *dp = (double)n;
+    break;
+    case 16:
+        (void)sscanf(dispstr, "%lX", &n);
+        *dp = (double)n;
+    break;
+    default:
+        (void)sscanf(dispstr, "%lf", dp);
+    }
+
     errno = olderrno;
     return;
 }
 
+/**
+ * Format the given double according to the
+ * selected number base.
+ */
+static void
+format_double(double n)
+{
+    switch (numbase) {
+    case 8:
+        snprintf(dispstr, sizeof(dispstr), "%lo", (long)n);
+    break;
+    case 16:
+        snprintf(dispstr, sizeof(dispstr), "%lX", (long)n);
+    break;
+    default:
+        snprintf(dispstr, sizeof(dispstr), "%.8g", n);
+    }
+}
 
 /*********************************/
 int pre_op(int keynum)
@@ -182,12 +212,13 @@ void post_op(void)
         }
 #endif
 }
+
 /*-------------------------------------------------------------------------*/
 static void
 DrawDisplay(void)
 {
-    if (strlen(dispstr) > 12) {           /* strip out some decimal digits */
-        char *estr = strchr(dispstr,'e'); /* search for exponent part */
+    if (strlen(dispstr) >= MAXDISP) { /* strip out some decimal digits */
+        char *estr = index(dispstr,'e');  /* search for exponent part */
         if (!estr) dispstr[12]='\0';      /* no exp, just trunc. */
         else {
             char tmp[32];
@@ -205,18 +236,41 @@ DrawDisplay(void)
     setflag(XCalc_RADIAN, (drgmode==RAD));
     setflag(XCalc_GRADAM, (drgmode==GRAD));
     setflag(XCalc_PAREN, (flagPAREN));
+    setflag(XCalc_HEX, (numbase==16));
+    setflag(XCalc_DEC, (numbase==10));
+    setflag(XCalc_OCT, (numbase==8));
+}
+
+/*-------------------------------------------------------------------------*/
+void
+change_base(void)
+{
+	parse_double(&dnum);
+
+    if (dnum >= 0) {
+        switch (numbase) {
+        case 8:  numbase = 10;  break;
+        case 10: numbase = 16;  break;
+        case 16: numbase = 8;   break;
+        }
+
+        format_double(dnum);
+    } else strlcpy(dispstr, "error", sizeof(dispstr));
+
+    DrawDisplay();
 }
 
 /*-------------------------------------------------------------------------*/
 void
 numeric(int keynum)
 {
-    char	st[2];
-    int		cell = 0;
+  char st[2];
 
   flagINV=0;
 
   if (rpn && (memop == kSTO || memop == kRCL || memop == kSUM)) {
+      int cell = 0;
+
       switch (keynum) {
 	case kONE:	cell = 1; break;
 	case kTWO:	cell = 2; break;
@@ -239,7 +293,7 @@ numeric(int keynum)
       case kRCL:
 	PushNum(dnum);
 	dnum = mem[cell];
-	snprintf(dispstr, sizeof(dispstr), "%.8g", dnum);
+	format_double(dnum);
 	lift_enabled = 1;
         entered = 1;
 	clrdisp++;
@@ -268,7 +322,9 @@ numeric(int keynum)
   if ((int) strlen(dispstr) >= MAXDISP)
     return;
 
-    switch (keynum){
+  st[0] = '\0';
+  switch (keynum){
+      case kZERO:	st[0] = '0'; break;
       case kONE:	st[0] = '1'; break;
       case kTWO:	st[0] = '2'; break;
       case kTHREE:	st[0] = '3'; break;
@@ -276,10 +332,18 @@ numeric(int keynum)
       case kFIVE:	st[0] = '5'; break;
       case kSIX:	st[0] = '6'; break;
       case kSEVEN:	st[0] = '7'; break;
-      case kEIGHT:	st[0] = '8'; break;
-      case kNINE:	st[0] = '9'; break;
-      case kZERO:	st[0] = '0'; break;
+      case kEIGHT:	if (numbase > 8)  st[0] = '8'; break;
+      case kNINE:	if (numbase > 8)  st[0] = '9'; break;
+      case kxA: 	if (numbase > 10) st[0] = 'A'; break;
+      case kxB: 	if (numbase > 10) st[0] = 'B'; break;
+      case kxC: 	if (numbase > 10) st[0] = 'C'; break;
+      case kxD: 	if (numbase > 10) st[0] = 'D'; break;
+      case kxE: 	if (numbase > 10) st[0] = 'E'; break;
+      case kxF: 	if (numbase > 10) st[0] = 'F'; break;
     }
+
+    if (st[0] == '\0')
+        return;
     st[1] = '\0';
     strcat(dispstr,st);
 
@@ -433,7 +497,7 @@ twoop(int keynum)
   }
 
   if (entered==1)
-    parse_double(dispstr,"%lf",&dnum);
+    parse_double(&dnum);
 
   clrdisp=CLR=1;
   entered=Dpoint=exponent=0;
@@ -451,7 +515,7 @@ twoop(int keynum)
     /* now, if the current op (keynum) is of
        higher priority than the lastop, the current
        op and number are just pushed on top
-       Priorities:  (Y^X) > *,/ > +,- */
+       Priorities:  (Y^X) > *,/ > +,- > >>,<< > & > ^ > ~ */
 
     if (priority(keynum) > priority(lastop)) {
       PushNum(dnum);
@@ -466,10 +530,17 @@ twoop(int keynum)
       case kMUL: acc *= dnum;  break;
       case kDIV: acc /= dnum;  break;
       case kPOW: acc =  pow(acc,dnum);  break;
-	}
+      case kMOD: acc = (long)acc %  (long)dnum;  break;
+      case kAND: acc = (long)acc &  (long)dnum;  break;
+      case kOR:  acc = (long)acc |  (long)dnum;  break;
+      case kXOR: acc = (long)acc ^  (long)dnum;  break;
+      case kSHL: acc = (long)acc << (long)dnum;  break;
+      case kSHR: acc = (long)acc >> (long)dnum;  break;
+      }
+
       PushNum(acc);
       PushOp(keynum);
-      snprintf(dispstr, sizeof(dispstr), "%.8g", acc);
+      format_double(acc);
       DrawDisplay();
       dnum=acc;
     }
@@ -491,7 +562,7 @@ twof(int keynum)
   if (!entered)
     return;
   if (entered==1)
-    parse_double(dispstr, "%lf", &dnum);
+    parse_double(&dnum);
   acc = PopNum();
   switch(keynum) {
   case kADD: acc += dnum;  break;
@@ -499,9 +570,16 @@ twof(int keynum)
   case kMUL: acc *= dnum;  break;
   case kDIV: acc /= dnum;  break;
   case kPOW: acc =  pow(acc,dnum);  break;
-  case kXXY: PushNum(dnum);
+  case kXXY: PushNum(dnum);  break;
+  case kMOD: acc = (long)acc %  (long)dnum;  break;
+  case kAND: acc = (long)acc &  (long)dnum;  break;
+  case kOR:  acc = (long)acc |  (long)dnum;  break;
+  case kXOR: acc = (long)acc ^  (long)dnum;  break;
+  case kSHL: acc = (long)acc << (long)dnum;  break;
+  case kSHR: acc = (long)acc >> (long)dnum;  break;
   }
-  snprintf(dispstr, sizeof(dispstr), "%.8g", acc);
+
+  format_double(acc);
   DrawDisplay();
   clrdisp++;
   Dpoint = exponent = 0;
@@ -521,7 +599,7 @@ entrf(void)
   Dpoint=exponent=0;
 
   if (entered==1)
-    parse_double(dispstr,"%lf",&dnum);
+    parse_double(&dnum);
   entered=2;
   memop = kENTR;
   PushNum(dnum);
@@ -539,7 +617,7 @@ equf(void)
   Dpoint=exponent=0;
 
   if (entered==1)
-    parse_double(dispstr,"%lf",&dnum);
+    parse_double(&dnum);
   entered=2;
 
   PushNum(dnum);
@@ -562,12 +640,24 @@ equf(void)
     case kLPAR:	flagPAREN--;
 		PushNum(acc);
 		break;
+    case kMOD:  acc = (long)acc % (long)dnum;
+		break;
+    case kAND:  acc = (long)acc & (long)dnum;
+		break;
+    case kOR:   acc = (long)acc | (long)dnum;
+		break;
+    case kXOR:  acc = (long)acc ^ (long)dnum;
+		break;
+    case kSHL:  acc = (long)acc << (long)dnum;
+		break;
+    case kSHR:  acc = (long)acc >> (long)dnum;
+		break;
     }
     dnum=acc;
     PushNum(dnum);
   }
 
-  snprintf(dispstr, sizeof(dispstr), "%.8g", dnum);
+  format_double(dnum);
   DrawDisplay();
 }
 
@@ -586,13 +676,13 @@ rollf(void)
   if (!entered)
     return;
   if (entered==1)
-    parse_double(dispstr, "%lf", &dnum);
+    parse_double(&dnum);
   entered = 2;
   lift_enabled = 1;
   RollNum(flagINV);
   flagINV=0;
   clrdisp++;
-  snprintf(dispstr, sizeof(dispstr), "%.8g", dnum);
+  format_double(dnum);
   DrawDisplay();
 }
 
@@ -610,7 +700,7 @@ rparf(void)
   Dpoint=exponent=0;
 
   if (entered==1)
-    parse_double(dispstr,"%lf",&dnum);
+    parse_double(&dnum);
   entered=2;
 
   PushNum(dnum);
@@ -629,6 +719,18 @@ rparf(void)
 		break;
     case kPOW:  acc = pow(acc,dnum);
 		break;
+    case kMOD:  acc = (long)acc % (long)dnum;
+		break;
+    case kAND:  acc = (long)acc & (long)dnum;
+		break;
+    case kOR:   acc = (long)acc | (long)dnum;
+		break;
+    case kXOR:  acc = (long)acc ^ (long)dnum;
+		break;
+    case kSHL:  acc = (long)acc << (long)dnum;
+		break;
+    case kSHR:  acc = (long)acc >> (long)dnum;
+		break;
     }
     dnum=acc;
     PushNum(dnum);
@@ -636,7 +738,7 @@ rparf(void)
   (void) PopNum();
   flagPAREN--;
   entered=2;
-  snprintf(dispstr, sizeof(dispstr), "%.8g", dnum);
+  format_double(dnum);
   DrawDisplay();
 }
 
@@ -645,7 +747,7 @@ drgf(void)
 {
   if (flagINV) {
     if (entered==1)
-      parse_double(dispstr,"%lf",&dnum);
+      parse_double(&dnum);
     switch (drgmode) {
     case DEG:  dnum=dnum*M_PI/180.0;    break;
     case RAD:  dnum=dnum*200.0/M_PI;    break;
@@ -654,7 +756,7 @@ drgf(void)
     entered=2;
     clrdisp=1;
     flagINV=0;
-    snprintf(dispstr, sizeof(dispstr), "%.8g", dnum);
+    format_double(dnum);
   }
 
   flagINV=0;
@@ -685,7 +787,7 @@ memf(int keynum)
 {
     memop = keynum;
     if (entered==1)
-      parse_double(dispstr,"%lf",&dnum);
+      parse_double(&dnum);
     entered = 2;
     clrdisp++;
     lift_enabled = 0;
@@ -698,22 +800,22 @@ oneop(int keynum)
   double dtmp;
 
   if (entered==1)
-    parse_double(dispstr,"%lf",&dnum);
+    parse_double(&dnum);
   entered = 2;
 
   switch (keynum) {  /* do the actual math fn. */
   case kE:     if (rpn && memop != kENTR) PushNum(dnum); dnum=M_E;  break;
   case kPI:    if (rpn && memop != kENTR) PushNum(dnum); dnum=M_PI;  break;
   case kRECIP: dnum=1.0/dnum;  break;
-  case kSQR:   flagINV = !flagINV; /* fall through to */
+  case kSQR:   flagINV = !flagINV; /* fall through */
   case kSQRT:  if (flagINV) dnum=dnum*dnum;
 	       else dnum=sqrt(dnum);
 	       break;
-  case k10X:   flagINV = !flagINV; /* fall through to */
+  case k10X:   flagINV = !flagINV; /* fall through */
   case kLOG:   if (flagINV) dnum=pow(10.0,dnum);
   	       else dnum=log10(dnum);
 	       break;
-  case kEXP:   flagINV = !flagINV; /* fall through to */
+  case kEXP:   flagINV = !flagINV; /* fall through */
   case kLN:    if (flagINV) dnum=exp(dnum);
 	       else dnum=log(dnum);
 	       break;
@@ -741,6 +843,8 @@ oneop(int keynum)
 	       for (j=1,dnum=1.0; j<=i; j++)
 		 dnum*=(float) j;
 	       break;
+  case kNOT:   dnum = ~(long)dnum;  break;
+  case kTRUNC: dnum = trunc(dnum);  break;
   }
 
   if (entered==3) {  /* error */
@@ -753,7 +857,7 @@ oneop(int keynum)
   clrdisp=1;
   flagINV=0;
   lift_enabled = 1;
-  snprintf(dispstr, sizeof(dispstr), "%.8g", dnum);
+  format_double(dnum);
   DrawDisplay();
 }
 
@@ -761,13 +865,12 @@ void
 offf(void)
 {
   /* full reset */
-  int i;
   ResetCalc();
   entered=clrdisp=1;
   lift_enabled = 0;
   dnum=mem[0]=0.0;
   if (rpn)
-      for (i=1; i < XCALC_MEMORY; i++)
+      for (int i=1; i < XCALC_MEMORY; i++)
 	  mem[i]=0.0;
   exponent=Dpoint=0;
   DrawDisplay();
@@ -900,12 +1003,18 @@ priority(int op)
 /*******/
 {
     switch (op) {
-        case kPOW: return(2);
+        case kPOW: return(6);
         case kMUL:
-        case kDIV: return(1);
+        case kDIV:
+        case kMOD: return(5);
         case kADD:
-        case kSUB: return(0);
-        }
+        case kSUB: return(4);
+        case kSHL:
+        case kSHR: return(3);
+        case kAND: return(2);
+        case kXOR: return(1);
+        case kOR:  return(0);
+    }
     return 0;
 }
 
@@ -916,12 +1025,16 @@ ResetCalc(void)
 /********/
 {
     flagM=flagINV=flagPAREN=0;  drgmode=DEG;
+    numbase=(!numbase ? 10 : numbase);
     setflag(XCalc_MEMORY, False);
     setflag(XCalc_INVERSE, False);
     setflag(XCalc_PAREN, False);
     setflag(XCalc_RADIAN, False);
     setflag(XCalc_GRADAM, False);
     setflag(XCalc_DEGREE, True);
+    setflag(XCalc_HEX, False);
+    setflag(XCalc_DEC, True);
+    setflag(XCalc_OCT, False);
     strlcpy(dispstr, "0", sizeof(dispstr));
     draw(dispstr);
     ClearStacks();

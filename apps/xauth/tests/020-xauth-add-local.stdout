@@ -1,0 +1,26 @@
+> xauth add unix:0 . b90b0fd1cf6a0e7a2c74c00000000004
+  exits with 0
+> xauth add 127.0.0.1:1 . b90b0fd1cf6a0e7a2c74c00000000005
+  exits with 0
+> xauth add :2 . b90b0fd1cf6a0e7a2c74c00000000006
+  exits with 0
+> xauth add :3.5 . b90b0fd1cf6a0e7a2c74c00000000007
+  exits with 0
+> xauth add :4 . b90b0fd1cf6a0e7a2c74c00000000004
+  exits with 0
+7
+list
+b90b0fd1cf6a0e7a2c74c00000000004
+0
+list
+b90b0fd1cf6a0e7a2c74c00000000005
+0
+list
+b90b0fd1cf6a0e7a2c74c00000000006
+0
+list
+b90b0fd1cf6a0e7a2c74c00000000007
+0
+list
+b90b0fd1cf6a0e7a2c74c00000000004
+0

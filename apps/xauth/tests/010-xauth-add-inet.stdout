@@ -1,0 +1,34 @@
+> xauth add examplehost1/unix:0 MIT-MAGIC-COOKIE-1 b90b0fd1cf6a0e7a2c74c00000000001
+  exits with 0
+> xauth add examplehost2/unix:0 . b90b0fd1cf6a0e7a2c74c00000000002
+  exits with 0
+> xauth add examplehost3/unix:0 . b90b0fd1cf6a0e7a2c74c00000000003
+  exits with 0
+> xauth list
+examplehost1/unix:0  MIT-MAGIC-COOKIE-1  b90b0fd1cf6a0e7a2c74c00000000001
+examplehost2/unix:0  MIT-MAGIC-COOKIE-1  b90b0fd1cf6a0e7a2c74c00000000002
+examplehost3/unix:0  MIT-MAGIC-COOKIE-1  b90b0fd1cf6a0e7a2c74c00000000003
+  exits with 0
+> xauth nlist
+0100 000c 6578616d706c65686f737431 0001 30 0012 4d49542d4d414749432d434f4f4b49452d31 0010 b90b0fd1cf6a0e7a2c74c00000000001
+0100 000c 6578616d706c65686f737432 0001 30 0012 4d49542d4d414749432d434f4f4b49452d31 0010 b90b0fd1cf6a0e7a2c74c00000000002
+0100 000c 6578616d706c65686f737433 0001 30 0012 4d49542d4d414749432d434f4f4b49452d31 0010 b90b0fd1cf6a0e7a2c74c00000000003
+  exits with 0
+> xauth list examplehost1/unix:0
+examplehost1/unix:0  MIT-MAGIC-COOKIE-1  b90b0fd1cf6a0e7a2c74c00000000001
+  exits with 0
+> xauth nlist examplehost2/unix:0
+0100 000c 6578616d706c65686f737432 0001 30 0012 4d49542d4d414749432d434f4f4b49452d31 0010 b90b0fd1cf6a0e7a2c74c00000000002
+  exits with 0
+> xauth remove examplehost1/unix:0
+  exits with 0
+> xauth list
+examplehost2/unix:0  MIT-MAGIC-COOKIE-1  b90b0fd1cf6a0e7a2c74c00000000002
+examplehost3/unix:0  MIT-MAGIC-COOKIE-1  b90b0fd1cf6a0e7a2c74c00000000003
+  exits with 0
+> xauth remove examplehost2/unix:0
+  exits with 0
+> xauth remove examplehost3/unix:0
+  exits with 0
+> xauth list
+  exits with 0

@@ -1,0 +1,16 @@
+> xauth add bad4/unix:0 . b90b0fd1cf6a0e7a2c74c0000000002
+  exits with 1
+> xauth add bad4/unix:0 . ThisIsNotHex0e7a2c74c00000000011
+  exits with 1
+> xauth add bad4/unxi:0 . b90b0fd1cf6a0e7a2c74c00000000021
+  exits with 1
+> xauth add bad5/unix: . b90b0fd1cf6a0e7a2c74c00000000022
+  exits with 1
+> xauth add bad6/something/unix:0 . b90b0fd1cf6a0e7a2c74c00000000023
+  exits with 1
+> xauth add bad7/unix . b90b0fd1cf6a0e7a2c74c00000000024
+  exits with 1
+> xauth add bad8 . b90b0fd1cf6a0e7a2c74c00000000025
+  exits with 1
+> xauth add 127.0.0.:0 . b90b0fd1cf6a0e7a2c74c00000000026
+  exits with 1

@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# setup the test ennvironment inside this shell
+. setup-sourced
+
+# Execute the test
+CMDFILE=$DATADIR/xauth-cmdfile
+echo add examplehost1/unix:0 . b90b0fd1cf6a0e7a2c74c00000000001 > $CMDFILE
+xauth_silent source $CMDFILE
+xauth list

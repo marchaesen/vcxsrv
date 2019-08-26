@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# setup the test ennvironment inside this shell
+. setup-sourced
+
+# Execute the test
+
+# The following displays are bad:
+xauth add bad4/unix:0           . b90b0fd1cf6a0e7a2c74c0000000002
+xauth add bad4/unix:0           . ThisIsNotHex0e7a2c74c00000000011
+xauth add bad4/unxi:0           . b90b0fd1cf6a0e7a2c74c00000000021
+xauth add bad5/unix:            . b90b0fd1cf6a0e7a2c74c00000000022
+xauth add bad6/something/unix:0 . b90b0fd1cf6a0e7a2c74c00000000023
+xauth add bad7/unix             . b90b0fd1cf6a0e7a2c74c00000000024
+xauth add bad8                  . b90b0fd1cf6a0e7a2c74c00000000025
+xauth add 127.0.0.:0            . b90b0fd1cf6a0e7a2c74c00000000026
+
