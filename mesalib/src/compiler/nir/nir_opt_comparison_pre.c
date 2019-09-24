@@ -107,8 +107,10 @@ push_block(struct block_queue *bq)
 
    if (!u_vector_init(&bi->instructions,
                       sizeof(nir_alu_instr *),
-                      8 * sizeof(nir_alu_instr *)))
+                      8 * sizeof(nir_alu_instr *))) {
+      free(bi);
       return NULL;
+   }
 
    exec_list_push_tail(&bq->blocks, &bi->node);
 

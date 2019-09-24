@@ -25,7 +25,7 @@
 #define _NIR_SERIALIZE_H
 
 #include "nir.h"
-#include "compiler/blob.h"
+#include "util/blob.h"
 
 #ifdef __cplusplus
 extern "C" {

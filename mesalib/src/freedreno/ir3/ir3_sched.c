@@ -59,6 +59,11 @@ struct ir3_sched_ctx {
 	bool error;
 };
 
+static bool is_scheduled(struct ir3_instruction *instr)
+{
+	return !!(instr->flags & IR3_INSTR_MARK);
+}
+
 static bool is_sfu_or_mem(struct ir3_instruction *instr)
 {
 	return is_sfu(instr) || is_mem(instr);
@@ -87,7 +92,31 @@ unuse_each_src(struct ir3_sched_ctx *ctx, struct ir3_instruction *instr)
 	}
 }
 
+static void clear_cache(struct ir3_sched_ctx *ctx, struct ir3_instruction *instr);
 static void use_instr(struct ir3_instruction *instr);
+
+/* transfers a use-count to new instruction, for cases where we
+ * "spill" address or predicate.  Note this might cause the
+ * previous instruction that loaded a0.x/p0.x to become live
+ * again, when we previously thought it was dead.
+ */
+static void
+transfer_use(struct ir3_sched_ctx *ctx, struct ir3_instruction *orig_instr,
+		struct ir3_instruction *new_instr)
+{
+	struct ir3_instruction *src;
+
+	debug_assert(is_scheduled(orig_instr));
+
+	foreach_ssa_src_n(src, n, new_instr) {
+		if (__is_false_dep(new_instr, n))
+			continue;
+		ctx->live_values += dest_regs(src);
+		use_instr(src);
+	}
+
+	clear_cache(ctx, orig_instr);
+}
 
 static void
 use_each_src(struct ir3_instruction *instr)
@@ -270,10 +299,11 @@ distance(struct ir3_block *block, struct ir3_instruction *instr,
 		/* (ab)use block->data to prevent recursion: */
 		block->data = block;
 
-		for (unsigned i = 0; i < block->predecessors_count; i++) {
+		set_foreach(block->predecessors, entry) {
+			struct ir3_block *pred = (struct ir3_block *)entry->key;
 			unsigned n;
 
-			n = distance(block->predecessors[i], instr, min, pred);
+			n = distance(pred, instr, min, pred);
 
 			min = MIN2(min, n);
 		}
@@ -345,11 +375,6 @@ struct ir3_sched_notes {
 	bool addr_conflict, pred_conflict;
 };
 
-static bool is_scheduled(struct ir3_instruction *instr)
-{
-	return !!(instr->flags & IR3_INSTR_MARK);
-}
-
 /* could an instruction be scheduled if specified ssa src was scheduled? */
 static bool
 could_sched(struct ir3_instruction *instr, struct ir3_instruction *src)
@@ -371,6 +396,8 @@ static bool
 check_instr(struct ir3_sched_ctx *ctx, struct ir3_sched_notes *notes,
 		struct ir3_instruction *instr)
 {
+	debug_assert(!is_scheduled(instr));
+
 	/* For instructions that write address register we need to
 	 * make sure there is at least one instruction that uses the
 	 * addr value which is otherwise ready.
@@ -639,6 +666,15 @@ find_eligible_instr(struct ir3_sched_ctx *ctx, struct ir3_sched_notes *notes,
 	return best_instr;
 }
 
+static struct ir3_instruction *
+split_instr(struct ir3_sched_ctx *ctx, struct ir3_instruction *orig_instr)
+{
+	struct ir3_instruction *new_instr = ir3_instr_clone(orig_instr);
+	ir3_insert_by_depth(new_instr, &ctx->depth_list);
+	transfer_use(ctx, orig_instr, new_instr);
+	return new_instr;
+}
+
 /* "spill" the address register by remapping any unscheduled
  * instructions which depend on the current address register
  * to a clone of the instruction which wrote the address reg.
@@ -669,10 +705,11 @@ split_addr(struct ir3_sched_ctx *ctx)
 		 */
 		if (indirect->address == ctx->addr) {
 			if (!new_addr) {
-				new_addr = ir3_instr_clone(ctx->addr);
+				new_addr = split_instr(ctx, ctx->addr);
 				/* original addr is scheduled, but new one isn't: */
 				new_addr->flags &= ~IR3_INSTR_MARK;
 			}
+			indirect->address = NULL;
 			ir3_instr_set_address(indirect, new_addr);
 		}
 	}
@@ -713,7 +750,7 @@ split_pred(struct ir3_sched_ctx *ctx)
 		 */
 		if (ssa(predicated->regs[1]) == ctx->pred) {
 			if (!new_pred) {
-				new_pred = ir3_instr_clone(ctx->pred);
+				new_pred = split_instr(ctx, ctx->pred);
 				/* original pred is scheduled, but new one isn't: */
 				new_pred->flags &= ~IR3_INSTR_MARK;
 			}
@@ -880,8 +917,9 @@ sched_intra_block(struct ir3_sched_ctx *ctx, struct ir3_block *block)
 	list_for_each_entry_safe (struct ir3_instruction, instr, &block->instr_list, node) {
 		unsigned delay = 0;
 
-		for (unsigned i = 0; i < block->predecessors_count; i++) {
-			unsigned d = delay_calc(block->predecessors[i], instr, false, true);
+		set_foreach(block->predecessors, entry) {
+			struct ir3_block *pred = (struct ir3_block *)entry->key;
+			unsigned d = delay_calc(pred, instr, false, true);
 			delay = MAX2(d, delay);
 		}
 

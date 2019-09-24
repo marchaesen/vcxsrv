@@ -38,46 +38,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XFillRectangle __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XFillRectangle, XFillRectangles, XFillPolygon, XFillArc, XFillArcs \- fill rectangles, polygons, or arcs
@@ -85,21 +52,21 @@ XFillRectangle, XFillRectangles, XFillPolygon, XFillArc, XFillArcs \- fill recta
 .HP
 int XFillRectangle\^(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^, GC
 \fIgc\fP\^, int \fIx\fP\^, int \fIy\fP\^, unsigned int \fIwidth\fP\^, unsigned
-int \fIheight\fP\^); 
+int \fIheight\fP\^);
 .HP
 int XFillRectangles\^(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^, GC
-\fIgc\fP\^, XRectangle *\fIrectangles\fP\^, int \fInrectangles\fP\^); 
+\fIgc\fP\^, XRectangle *\fIrectangles\fP\^, int \fInrectangles\fP\^);
 .HP
 int XFillPolygon\^(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^, GC
 \fIgc\fP\^, XPoint *\fIpoints\fP\^, int \fInpoints\fP\^, int \fIshape\fP\^,
 int \fImode\fP\^);
 .HP
-int XFillArc\^(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^, GC \fIgc\fP\^, 
+int XFillArc\^(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^, GC \fIgc\fP\^,
 int \fIx\fP\^, int \fIy\fP\^, unsigned int \fIwidth\fP\^, unsigned int
-\fIheight\fP\^, int \fIangle1\fP\^, int \fIangle2\fP\^); 
+\fIheight\fP\^, int \fIangle1\fP\^, int \fIangle2\fP\^);
 .HP
 int XFillArcs\^(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^, GC \fIgc\fP\^,
-XArc *\fIarcs\fP\^, int \fInarcs\fP\^); 
+XArc *\fIarcs\fP\^, int \fInarcs\fP\^);
 .SH ARGUMENTS
 .IP \fIangle1\fP 1i
 Specifies the start of the arc relative to the three-o'clock position
@@ -110,13 +77,13 @@ arc, in units of degrees * 64.
 .IP \fIarcs\fP 1i
 Specifies an array of arcs.
 .IP \fId\fP 1i
-Specifies the drawable. 
+Specifies the drawable.
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fIgc\fP 1i
 Specifies the GC.
 .IP \fImode\fP 1i
-Specifies the coordinate mode. 
+Specifies the coordinate mode.
 You can pass
 .B CoordModeOrigin
 or
@@ -133,17 +100,17 @@ Specifies an array of points.
 Specifies an array of rectangles.
 .IP \fIshape\fP 1i
 Specifies a shape that helps the server to improve performance.
-You can pass 
+You can pass
 .BR Complex ,
 .BR Convex ,
-or 
+or
 .BR Nonconvex .
-.ds Wh 
+.ds Wh
 .IP \fIwidth\fP 1i
 .br
 .ns
 .IP \fIheight\fP 1i
-Specify the width and height, which are the dimensions of the 
+Specify the width and height, which are the dimensions of the
 rectangle to be filled or the major and minor axes of the arc.
 .IP \fIx\fP 1i
 .br
@@ -157,32 +124,32 @@ The
 and
 .B XFillRectangles
 functions fill the specified rectangle or rectangles
-as if a four-point 
+as if a four-point
 .B FillPolygon
 protocol request were specified for each rectangle:
 .LP
-.Ds
+.EX
 [x,y] [x+width,y] [x+width,y+height] [x,y+height]
-.De
+.EE
 .LP
 Each function uses the x and y coordinates,
 width and height dimensions, and GC you specify.
 .LP
 .B XFillRectangles
-fills the rectangles in the order listed in the array.  
+fills the rectangles in the order listed in the array.
 For any given rectangle,
 .B XFillRectangle
 and
 .B XFillRectangles
-do not draw a pixel more than once.  
+do not draw a pixel more than once.
 If rectangles intersect, the intersecting pixels are
 drawn multiple times.
 .LP
-Both functions use these GC components: 
-function, plane-mask, fill-style, subwindow-mode, 
+Both functions use these GC components:
+function, plane-mask, fill-style, subwindow-mode,
 clip-x-origin, clip-y-origin, and clip-mask.
-They also use these GC mode-dependent components: 
-foreground, background, tile, stipple, tile-stipple-x-origin, 
+They also use these GC mode-dependent components:
+foreground, background, tile, stipple, tile-stipple-x-origin,
 and tile-stipple-y-origin.
 .LP
 .B XFillRectangle
@@ -208,12 +175,12 @@ and
 .B CoordModePrevious
 treats all coordinates after the first as relative to the previous point.
 .LP
-Depending on the specified shape, the following occurs: 
+Depending on the specified shape, the following occurs:
 .IP \(bu 5
 If shape is
 .BR Complex ,
-the path may self-intersect. 
-Note that contiguous coincident points in the path are not treated 
+the path may self-intersect.
+Note that contiguous coincident points in the path are not treated
 as self-intersection.
 .IP \(bu 5
 If shape is
@@ -221,36 +188,36 @@ If shape is
 for every pair of points inside the polygon,
 the line segment connecting them does not intersect the path.
 If known by the client,
-specifying 
+specifying
 .B Convex
-can improve performance.  
+can improve performance.
 If you specify
 .B Convex
-for a path that is not convex, 
+for a path that is not convex,
 the graphics results are undefined.
 .IP \(bu 5
 If shape is
 .BR Nonconvex ,
 the path does not self-intersect, but the shape is not
-wholly convex. 
-If known by the client, 
-specifying 
+wholly convex.
+If known by the client,
+specifying
 .B Nonconvex
 instead of
 .B Complex
-may improve performance.  
+may improve performance.
 If you specify
 .B Nonconvex
 for a self-intersecting path, the graphics results are undefined.
 .LP
-The fill-rule of the GC controls the filling behavior of 
+The fill-rule of the GC controls the filling behavior of
 self-intersecting polygons.
 .LP
-This function uses these GC components: 
-function, plane-mask, fill-style, fill-rule, subwindow-mode, clip-x-origin, 
+This function uses these GC components:
+function, plane-mask, fill-style, fill-rule, subwindow-mode, clip-x-origin,
 clip-y-origin, and clip-mask.
-It also uses these GC mode-dependent components: 
-foreground, background, tile, stipple, tile-stipple-x-origin, 
+It also uses these GC mode-dependent components:
+foreground, background, tile, stipple, tile-stipple-x-origin,
 and tile-stipple-y-origin.
 .LP
 .B XFillPolygon
@@ -262,35 +229,35 @@ and
 .B BadValue
 errors.
 .LP
-For each arc, 
+For each arc,
 .B XFillArc
 or
 .B XFillArcs
 fills the region closed by the infinitely thin path
-described by the specified arc and, depending on the 
-arc-mode specified in the GC, one or two line segments. 
-For 
+described by the specified arc and, depending on the
+arc-mode specified in the GC, one or two line segments.
+For
 .BR ArcChord ,
-the single line segment joining the endpoints of the arc is used.  
-For 
+the single line segment joining the endpoints of the arc is used.
+For
 .BR ArcPieSlice ,
 the two line segments joining the endpoints of the arc with the center
-point are used.  
+point are used.
 .B XFillArcs
-fills the arcs in the order listed in the array.  
-For any given arc,  
+fills the arcs in the order listed in the array.
+For any given arc,
 .B XFillArc
 and
 .B XFillArcs
-do not draw a pixel more than once.  
-If regions intersect, 
+do not draw a pixel more than once.
+If regions intersect,
 the intersecting pixels are drawn multiple times.
 .LP
-Both functions use these GC components: 
-function, plane-mask, fill-style, arc-mode, subwindow-mode, clip-x-origin, 
+Both functions use these GC components:
+function, plane-mask, fill-style, arc-mode, subwindow-mode, clip-x-origin,
 clip-y-origin, and clip-mask.
-They also use these GC mode-dependent components: 
-foreground, background, tile, stipple, tile-stipple-x-origin, 
+They also use these GC mode-dependent components:
+foreground, background, tile, stipple, tile-stipple-x-origin,
 and tile-stipple-y-origin.
 .LP
 .B XFillArc
@@ -322,7 +289,8 @@ to match in some other way required by the request.
 .B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
-by the argument's type is accepted.  Any argument defined as a set of
+by the argument's type is accepted.
+Any argument defined as a set of
 alternatives can generate this error.
 .SH "SEE ALSO"
 XDrawArc(__libmansuffix__),

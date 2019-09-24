@@ -46,8 +46,10 @@ file from the list in
 .PP
 Compose files can use an
 .RB \*q include \*q
-instruction.  This allows local modifications to be made to existing compose
-files without including all of the content directly.  For example, the
+instruction.
+This allows local modifications to be made to existing compose
+files without including all of the content directly.
+For example, the
 system's iso8859-1 compose file can be included with a line like this:
 .RS 4
 .BI "include \*q" %S/iso8859-1/Compose \*q
@@ -74,12 +76,15 @@ by using:
 .RS
 .B "include \*q%L\*q"
 .RE
-and then rewrite only the few rules that you need to change.  New
+and then rewrite only the few rules that you need to change.
+New
 compose rules can be added, and previous ones replaced.
 .SH FILE FORMAT
 .\" Based on grammar description in modules/im/ximcp/imLcPrs.c
 Compose files are plain text files, with a separate line for each compose
-sequence.   Comments begin with \fB#\fP characters.   Each compose sequence
+sequence.
+Comments begin with \fB#\fP characters.
+Each compose sequence
 specifies one or more events and a resulting input sequence, with an optional
 comment at the end of the line:
 .RS
@@ -97,7 +102,8 @@ it must match exactly.
 MODIFIER may be one of Ctrl, Lock, Caps, Shift, Alt or Meta.
 Each modifier may be preceded by a
 .RB \*q "~" \*q
-character to indicate that the modifier must not be present. If
+character to indicate that the modifier must not be present.
+If
 .RB \*q "None" \*q
 is specified, no modifier may be present.
 .PP
@@ -110,18 +116,21 @@ as input when the sequence of events is input:
 Keysyms are specified without the \fBXK_\fP prefix.
 .PP
 Strings may be direct text encoded in the locale for which the compose file is
-to be used, or an escaped octal or hexadecimal character code.   Octal codes
+to be used, or an escaped octal or hexadecimal character code.
+Octal codes
 are specified as \fB\*q\\123\*q\fP and hexadecimal codes as
 \fB\*q\\x3a\*q\fP.
 It is not necessary to specify in the right part of a rule a locale encoded
-string in addition to the keysym name.  If the string is omitted, Xlib
+string in addition to the keysym name.
+If the string is omitted, Xlib
 figures it out from the keysym according to the current locale.
 I.e., if a rule looks like:
 .RS
 \fB<dead_grave> <A> : \*q\\300\*q Agrave\fP
 .RE
 the result of the composition is always the letter with the "\\300"
-code.  But if the rule is:
+code.
+But if the rule is:
 .RS
 \fB<dead_grave> <A> : Agrave\fP
 .RE

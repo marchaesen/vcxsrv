@@ -78,7 +78,7 @@ typedef enum {
         midgard_alu_op_freduce    = 0x3F,
 
         midgard_alu_op_iadd       = 0x40,
-        midgard_alu_op_ishladd    = 0x41,
+        midgard_alu_op_ishladd    = 0x41, /* a + (b<<1) */
         midgard_alu_op_isub       = 0x46,
         midgard_alu_op_iaddsat    = 0x48,
         midgard_alu_op_uaddsat    = 0x49,
@@ -119,12 +119,12 @@ typedef enum {
         midgard_alu_op_flt        = 0x82,
         midgard_alu_op_fle        = 0x83,
         midgard_alu_op_fball_eq   = 0x88,
-        midgard_alu_op_bball_eq   = 0x89,
+        midgard_alu_op_fball_neq  = 0x89,
         midgard_alu_op_fball_lt   = 0x8A, /* all(lessThan(.., ..)) */
         midgard_alu_op_fball_lte  = 0x8B, /* all(lessThanEqual(.., ..)) */
 
-        midgard_alu_op_bbany_neq  = 0x90, /* used for bvec4(1) */
-        midgard_alu_op_fbany_neq  = 0x91, /* bvec4(0) also */
+        midgard_alu_op_fbany_eq   = 0x90,
+        midgard_alu_op_fbany_neq  = 0x91,
         midgard_alu_op_fbany_lt   = 0x92, /* any(lessThan(.., ..)) */
         midgard_alu_op_fbany_lte  = 0x93, /* any(lessThanEqual(.., ..)) */
 
@@ -359,6 +359,19 @@ __attribute__((__packed__))
         unsigned dest_tag : 4; /* tag of branch destination */
         unsigned unknown : 2;
         signed offset : 23;
+
+        /* Extended branches permit inputting up to 4 conditions loaded into
+         * r31 (two in r31.w and two in r31.x). In the most general case, we
+         * specify a function f(A, B, C, D) mapping 4 1-bit conditions to a
+         * single 1-bit branch criteria. Note that the domain of f has 2^(2^4)
+         * elements, each mapping to 1-bit of output, so we can trivially
+         * construct a Godel numbering of f as a (2^4)=16-bit integer. This
+         * 16-bit integer serves as a lookup table to compute f, subject to
+         * some swaps for ordering.
+         *
+         * Interesting, the standard 2-bit condition codes are also a LUT with
+         * the same format (2^1-bit), but it's usually easier to use enums. */
+
         unsigned cond : 16;
 }
 midgard_branch_extended;
@@ -378,15 +391,14 @@ midgard_writeout;
 typedef enum {
         midgard_op_ld_st_noop   = 0x03,
 
-        /* Unclear why this is on the L/S unit, but (with an address of 0,
-         * appropriate swizzle, magic constant 0x24, and xy mask?) moves fp32 cube
-         * map coordinates in r27 to its cube map texture coordinate
-         * destination (e.g r29). 0x4 magic for lding from fp16 instead */
+        /* Unclear why this is on the L/S unit, but moves fp32 cube map
+         * coordinates in r27 to its cube map texture coordinate destination
+         * (e.g r29). */
 
-        midgard_op_st_cubemap_coords = 0x0E,
+        midgard_op_ld_cubemap_coords = 0x0E,
 
-        /* Used in OpenCL. Probably can ld other things as well */
-        midgard_op_ld_global_id = 0x10,
+        /* Loads a global/local/group ID, depending on arguments */
+        midgard_op_ld_compute_id = 0x10,
 
         /* The L/S unit can do perspective division a clock faster than the ALU
          * if you're lucky. Put the vec4 in r27, and call with 0x24 as the
@@ -428,10 +440,20 @@ typedef enum {
         midgard_op_ld_vary_32i = 0x9B,
         midgard_op_ld_color_buffer_16 = 0x9D,
 
-        midgard_op_ld_uniform_16 = 0xAC,
-        midgard_op_ld_uniform_32i = 0xA8,
+        /* The distinction between these ops is the alignment requirement /
+         * accompanying shift. Thus, the offset to ld_ubo_int4 is in 16-byte
+         * units and can load 128-bit. The offset to ld_ubo_short4 is in 8-byte
+         * units; ld_ubo_char4 in 4-byte units. ld_ubo_char/ld_ubo_char2 are
+         * purely theoretical (never seen in the wild) since int8/int16/fp16
+         * UBOs don't really exist. The ops are still listed to maintain
+         * symmetry with generic I/O ops. */
 
-        midgard_op_ld_uniform_32 = 0xB0,
+        midgard_op_ld_ubo_char   = 0xA0, /* theoretical */
+        midgard_op_ld_ubo_char2  = 0xA4, /* theoretical */
+        midgard_op_ld_ubo_char4  = 0xA8,
+        midgard_op_ld_ubo_short4 = 0xAC,
+        midgard_op_ld_ubo_int4   = 0xB0,
+
         midgard_op_ld_color_buffer_8 = 0xBA,
 
         midgard_op_st_char = 0xC0,
@@ -485,6 +507,27 @@ __attribute__((__packed__))
 }
 midgard_varying_parameter;
 
+/* 8-bit register/etc selector for load/store ops */
+typedef struct
+__attribute__((__packed__))
+{
+        /* Indexes into the register */
+        unsigned component : 2;
+
+        /* Register select between r26/r27 */
+        unsigned select : 1;
+
+        unsigned unknown : 2;
+
+        /* Like any good Arm instruction set, load/store arguments can be
+         * implicitly left-shifted... but only the second argument. Zero for no
+         * shifting, up to <<7 possible though. This is useful for indexing.
+         *
+         * For the first argument, it's unknown what these bits mean */
+        unsigned shift : 3;
+}
+midgard_ldst_register_select;
+
 typedef struct
 __attribute__((__packed__))
 {
@@ -492,7 +535,15 @@ __attribute__((__packed__))
         unsigned reg     : 5;
         unsigned mask    : 4;
         unsigned swizzle : 8;
-        unsigned unknown : 16;
+
+        /* Load/store ops can take two additional registers as arguments, but
+         * these are limited to load/store registers with only a few supported
+         * mask/swizzle combinations. The tradeoff is these are much more
+         * compact, requiring 8-bits each rather than 17-bits for a full
+         * reg/mask/swizzle. Usually (?) encoded as
+         * midgard_ldst_register_select. */
+        unsigned arg_1   : 8;
+        unsigned arg_2   : 8;
 
         unsigned varying_parameters : 10;
 
@@ -541,6 +592,16 @@ midgard_tex_register_select;
 #define TEXTURE_OP_LOD 0x12             /* textureLod */
 #define TEXTURE_OP_TEXEL_FETCH 0x14     /* texelFetch */
 
+/* Computes horizontal and vertical derivatives respectively. Use with a float
+ * sampler and a "2D" texture.  Leave texture/sampler IDs as zero; they ought
+ * to be ignored. Only works for fp32 on 64-bit at a time, so derivatives of a
+ * vec4 require 2 texture ops.  For some reason, the blob computes both X and Y
+ * derivatives at the same time and just throws out whichever is unused; it's
+ * not known if this is a quirk of the hardware or just of the blob. */
+
+#define TEXTURE_OP_DFDX 0x0D
+#define TEXTURE_OP_DFDY 0x1D
+
 enum mali_sampler_type {
         MALI_SAMPLER_UNK        = 0x0,
         MALI_SAMPLER_FLOAT      = 0x1, /* sampler */
@@ -567,7 +628,13 @@ __attribute__((__packed__))
         unsigned last  : 1;
 
         enum mali_texture_type format : 2;
-        unsigned zero : 2;
+
+        /* Are sampler_handle/texture_handler respectively set by registers? If
+         * true, the lower 8-bits of the respective field is a register word.
+         * If false, they are an immediate */
+
+        unsigned sampler_register : 1;
+        unsigned texture_register : 1;
 
         /* Is a register used to specify the
          * LOD/bias/offset? If set, use the `bias` field as
@@ -597,7 +664,10 @@ __attribute__((__packed__))
 
         unsigned mask : 4;
 
-        unsigned unknown2  : 2;
+        /* Intriguingly, textures can take an outmod just like textures. Int
+         * outmods are not supported as far as I can tell, so this is only
+         * meaningful for float samplers */
+        midgard_outmod_float outmod  : 2;
 
         unsigned swizzle  : 8;
         unsigned unknown4  : 8;
@@ -629,8 +699,12 @@ __attribute__((__packed__))
         unsigned bias : 8;
         signed bias_int  : 8;
 
-        unsigned texture_handle : 16;
+        /* If sampler/texture_register is set, the bottom 8-bits are
+         * midgard_tex_register_select and the top 8-bits are zero. If they are
+         * clear, they are immediate texture indices */
+
         unsigned sampler_handle : 16;
+        unsigned texture_handle : 16;
 }
 midgard_texture_word;
 

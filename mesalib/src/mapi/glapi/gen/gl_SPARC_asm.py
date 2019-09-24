@@ -77,7 +77,7 @@ class PrintGenericStubs(gl_XML.gl_print_base):
         print('\t add\t%o7, %g2, %g2')
         print('\t.size\t__glapi_sparc_get_pc, .-__glapi_sparc_get_pc')
         print('')
-        print('#ifdef GLX_USE_TLS')
+        print('#ifdef USE_ELF_TLS')
         print('')
         print('\tGLOBL_FN(__glapi_sparc_get_dispatch)')
         print('\tHIDDEN(__glapi_sparc_get_dispatch)')

@@ -59,8 +59,7 @@ radv_pipeline_cache_init(struct radv_pipeline_cache *cache,
 	 * cache. Disable caching when we want to keep shader debug info, since
 	 * we don't get the debug info on cached shaders. */
 	if (cache->hash_table == NULL ||
-	    (device->instance->debug_flags & RADV_DEBUG_NO_CACHE) ||
-	    device->keep_shader_info)
+	    (device->instance->debug_flags & RADV_DEBUG_NO_CACHE))
 		cache->table_size = 0;
 	else
 		memset(cache->hash_table, 0, byte_size);
@@ -241,8 +240,7 @@ radv_is_cache_disabled(struct radv_device *device)
 	/* Pipeline caches can be disabled with RADV_DEBUG=nocache, with
 	 * MESA_GLSL_CACHE_DISABLE=1, and when VK_AMD_shader_info is requested.
 	 */
-	return (device->instance->debug_flags & RADV_DEBUG_NO_CACHE) ||
-	       device->keep_shader_info;
+	return (device->instance->debug_flags & RADV_DEBUG_NO_CACHE);
 }
 
 bool
@@ -308,7 +306,7 @@ radv_create_shader_variants_from_pipeline_cache(struct radv_device *device,
 			memcpy(binary, p, entry->binary_sizes[i]);
 			p += entry->binary_sizes[i];
 
-			entry->variants[i] = radv_shader_variant_create(device, binary);
+			entry->variants[i] = radv_shader_variant_create(device, binary, false);
 			free(binary);
 		} else if (entry->binary_sizes[i]) {
 			p += entry->binary_sizes[i];

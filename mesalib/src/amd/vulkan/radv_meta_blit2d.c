@@ -79,7 +79,7 @@ create_iview(struct radv_cmd_buffer *cmd_buffer,
 					     .baseArrayLayer = surf->layer,
 					     .layerCount = 1
 				     },
-			     });
+			     }, NULL);
 }
 
 static void

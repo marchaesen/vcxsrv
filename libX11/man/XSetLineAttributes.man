@@ -38,46 +38,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XSetLineAttributes __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XSetLineAttributes, XSetDashes \- GC convenience routines
@@ -85,10 +52,10 @@ XSetLineAttributes, XSetDashes \- GC convenience routines
 .HP
 int XSetLineAttributes\^(\^Display *\fIdisplay\fP\^, GC \fIgc\fP\^, unsigned
 int \fIline_width\fP\^, int \fIline_style\fP\^, int \fIcap_style\fP\^, int
-\fIjoin_style\fP\^); 
+\fIjoin_style\fP\^);
 .HP
 int XSetDashes\^(\^Display *\fIdisplay\fP\^, GC \fIgc\fP\^, int
-\fIdash_offset\fP\^, char \fIdash_list\fP[]\^, int \fIn\fP\^); 
+\fIdash_offset\fP\^, char \fIdash_list\fP[]\^, int \fIn\fP\^);
 .SH ARGUMENTS
 .IP \fIcap_style\fP 1i
 Specifies the line-style and cap-style you want to set for the specified GC.
@@ -100,10 +67,10 @@ or
 .BR CapProjecting .
 .IP \fIdash_list\fP 1i
 Specifies the dash-list for the dashed line-style
-you want to set for the specified GC. 
+you want to set for the specified GC.
 .IP \fIdash_offset\fP 1i
 Specifies the phase of the pattern for the dashed line-style you want to set
-for the specified GC. 
+for the specified GC.
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fIgc\fP 1i
@@ -125,7 +92,7 @@ or
 .IP \fIline_width\fP 1i
 Specifies the line-width you want to set for the specified GC.
 .IP \fIn\fP 1i
-Specifies the number of elements in dash_list. 
+Specifies the number of elements in dash_list.
 .SH DESCRIPTION
 The
 .B XSetLineAttributes
@@ -146,8 +113,8 @@ in the specified GC.
 There must be at least one element in the specified dash_list,
 or a
 .B BadValue
-error results. 
-The initial and alternating elements (second, fourth, and so on) 
+error results.
+The initial and alternating elements (second, fourth, and so on)
 of the dash_list are the even dashes, and
 the others are the odd dashes.
 Each element specifies a dash length in pixels.
@@ -191,7 +158,8 @@ A value for a GContext argument does not name a defined GContext.
 .B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
-by the argument's type is accepted.  Any argument defined as a set of
+by the argument's type is accepted.
+Any argument defined as a set of
 alternatives can generate this error.
 .SH "SEE ALSO"
 XCreateGC(__libmansuffix__),

@@ -5,7 +5,7 @@
 #include "util/u_string.h"
 
 #include <stdio.h>
-#if defined(PIPE_SUBSYSTEM_WINDOWS_USER)
+#if defined(PIPE_OS_WINDOWS)
 #  include <winsock2.h>
 #  include <windows.h>
 #  include <ws2tcpip.h>
@@ -22,7 +22,7 @@
 boolean
 u_socket_init(void)
 {
-#if defined(PIPE_SUBSYSTEM_WINDOWS_USER)
+#if defined(PIPE_OS_WINDOWS)
    WORD wVersionRequested;
    WSADATA wsaData;
    int err;
@@ -46,7 +46,7 @@ u_socket_init(void)
 void
 u_socket_stop(void)
 {
-#if defined(PIPE_SUBSYSTEM_WINDOWS_USER)
+#if defined(PIPE_OS_WINDOWS)
    WSACleanup();
 #endif
 }
@@ -60,7 +60,7 @@ u_socket_close(int s)
 #if defined(PIPE_OS_UNIX)
    shutdown(s, SHUT_RDWR);
    close(s);
-#elif defined(PIPE_SUBSYSTEM_WINDOWS_USER)
+#elif defined(PIPE_OS_WINDOWS)
    shutdown(s, SD_BOTH);
    closesocket(s);
 #else
@@ -189,7 +189,7 @@ u_socket_block(int s, boolean block)
       fcntl(s, F_SETFL, old & ~O_NONBLOCK);
    else
       fcntl(s, F_SETFL, old | O_NONBLOCK);
-#elif defined(PIPE_SUBSYSTEM_WINDOWS_USER)
+#elif defined(PIPE_OS_WINDOWS)
    u_long iMode = block ? 0 : 1;
    ioctlsocket(s, FIONBIO, &iMode);
 #else

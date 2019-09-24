@@ -231,7 +231,8 @@ ms_do_pageflip(ScreenPtr screen,
                int ref_crtc_vblank_pipe,
                Bool async,
                ms_pageflip_handler_proc pageflip_handler,
-               ms_pageflip_abort_proc pageflip_abort)
+               ms_pageflip_abort_proc pageflip_abort,
+               const char *log_prefix)
 {
 #ifndef GLAMOR_HAS_GBM
     return FALSE;
@@ -250,7 +251,8 @@ ms_do_pageflip(ScreenPtr screen,
 
     if (!new_front_bo.gbm) {
         xf86DrvMsg(scrn->scrnIndex, X_ERROR,
-                   "Failed to get GBM bo for flip to new front.\n");
+                   "%s: Failed to get GBM BO for flip to new front.\n",
+                   log_prefix);
         return FALSE;
     }
 
@@ -258,7 +260,7 @@ ms_do_pageflip(ScreenPtr screen,
     if (!flipdata) {
         drmmode_bo_destroy(&ms->drmmode, &new_front_bo);
         xf86DrvMsg(scrn->scrnIndex, X_ERROR,
-                   "Failed to allocate flipdata.\n");
+                   "%s: Failed to allocate flipdata.\n", log_prefix);
         return FALSE;
     }
 
@@ -282,8 +284,18 @@ ms_do_pageflip(ScreenPtr screen,
     new_front_bo.width = new_front->drawable.width;
     new_front_bo.height = new_front->drawable.height;
     if (drmmode_bo_import(&ms->drmmode, &new_front_bo,
-                          &ms->drmmode.fb_id))
+                          &ms->drmmode.fb_id)) {
+        if (!ms->drmmode.flip_bo_import_failed) {
+            xf86DrvMsg(scrn->scrnIndex, X_WARNING, "%s: Import BO failed: %s\n",
+                       log_prefix, strerror(errno));
+            ms->drmmode.flip_bo_import_failed = TRUE;
+        }
         goto error_out;
+    } else {
+        if (ms->drmmode.flip_bo_import_failed &&
+            new_front != screen->GetScreenPixmap(screen))
+            ms->drmmode.flip_bo_import_failed = FALSE;
+    }
 
     flags = DRM_MODE_PAGE_FLIP_EVENT;
     if (async)
@@ -307,6 +319,9 @@ ms_do_pageflip(ScreenPtr screen,
         if (!queue_flip_on_crtc(screen, crtc, flipdata,
                                 ref_crtc_vblank_pipe,
                                 flags)) {
+            xf86DrvMsg(scrn->scrnIndex, X_WARNING,
+                       "%s: Queue flip on CRTC %d failed: %s\n",
+                       log_prefix, i, strerror(errno));
             goto error_undo;
         }
     }
@@ -336,8 +351,6 @@ error_undo:
     }
 
 error_out:
-    xf86DrvMsg(scrn->scrnIndex, X_WARNING, "Page flip failed: %s\n",
-               strerror(errno));
     drmmode_bo_destroy(&ms->drmmode, &new_front_bo);
     /* if only the local reference - free the structure,
      * else drop the local reference and return */

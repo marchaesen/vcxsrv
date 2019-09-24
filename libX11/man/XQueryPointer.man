@@ -38,46 +38,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XQueryPointer __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XQueryPointer \- get pointer coordinates
@@ -86,7 +53,7 @@ XQueryPointer \- get pointer coordinates
 Bool XQueryPointer\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, Window
 *\fIroot_return\fP\^, Window *\fIchild_return\fP\^, int
 *\fIroot_x_return\fP\^, int *\fIroot_y_return\fP\^, int *\fIwin_x_return\fP\^,
-int *\fIwin_y_return\fP\^, unsigned int *\fImask_return\fP\^); 
+int *\fIwin_y_return\fP\^, unsigned int *\fImask_return\fP\^);
 .SH ARGUMENTS
 .IP \fIchild_return\fP 1i
 Returns the child window that the pointer is located in, if any.
@@ -115,20 +82,20 @@ function returns the root window the pointer is logically on and the pointer
 coordinates relative to the root window's origin.
 If
 .B XQueryPointer
-returns 
+returns
 .BR False ,
 the pointer is not on the same screen as the specified window, and
 .B XQueryPointer
-returns 
+returns
 .B None
 to child_return and zero to win_x_return and win_y_return.
-If 
+If
 .B XQueryPointer
-returns 
+returns
 .BR True ,
 the pointer coordinates returned to win_x_return and win_y_return
 are relative to the origin of the specified window.
-In this case, 
+In this case,
 .B XQueryPointer
 returns the child that contains the pointer, if any,
 or else
@@ -136,10 +103,10 @@ or else
 to child_return.
 .LP
 .B XQueryPointer
-returns the current logical state of the keyboard buttons 
+returns the current logical state of the keyboard buttons
 and the modifier keys in mask_return.
 It sets mask_return to the bitwise inclusive OR of one or more
-of the button or modifier key bitmasks to match 
+of the button or modifier key bitmasks to match
 the current state of the mouse buttons and the modifier keys.
 .LP
 .B XQueryPointer

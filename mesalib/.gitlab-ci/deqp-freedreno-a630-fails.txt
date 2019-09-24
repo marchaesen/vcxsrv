@@ -1,0 +1,3 @@
+dEQP-GLES2.functional.clipping.triangle_vertex.clip_three.clip_neg_x_neg_z_and_pos_x_pos_z_and_neg_x_neg_y_pos_z
+dEQP-GLES31.functional.stencil_texturing.render.depth24_stencil8_clear
+dEQP-GLES31.functional.stencil_texturing.render.depth24_stencil8_draw

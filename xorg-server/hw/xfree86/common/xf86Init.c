@@ -65,7 +65,6 @@
 #include "xf86_OSlib.h"
 #include "xf86cmap.h"
 #include "xorgVersion.h"
-#include "buildDateTime.h"
 #include "mipointer.h"
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
@@ -73,6 +72,7 @@
 #include "xf86DDC.h"
 #include "xf86Xinput.h"
 #include "xf86InPriv.h"
+#include "xf86Crtc.h"
 #include "picturestr.h"
 #include "randrstr.h"
 #include "glxvndabi.h"
@@ -187,28 +187,6 @@ xf86PrintBanner(void)
         }
     }
 #endif
-#if defined(BUILD_DATE) && (BUILD_DATE > 19000000)
-    {
-        struct tm t;
-        char buf[100];
-
-        memset(&t, 0, sizeof(t));
-        memset(buf, 0, sizeof(buf));
-        t.tm_mday = BUILD_DATE % 100;
-        t.tm_mon = (BUILD_DATE / 100) % 100 - 1;
-        t.tm_year = BUILD_DATE / 10000 - 1900;
-#if defined(BUILD_TIME)
-        t.tm_sec = BUILD_TIME % 100;
-        t.tm_min = (BUILD_TIME / 100) % 100;
-        t.tm_hour = (BUILD_TIME / 10000) % 100;
-        if (strftime(buf, sizeof(buf), "%d %B %Y  %I:%M:%S%p", &t))
-            xf86ErrorFVerb(0, "Build Date: %s\n", buf);
-#else
-        if (strftime(buf, sizeof(buf), "%d %B %Y", &t))
-            xf86ErrorFVerb(0, "Build Date: %s\n", buf);
-#endif
-    }
-#endif
 #if defined(BUILDERSTRING)
     xf86ErrorFVerb(0, "%s \n", BUILDERSTRING);
 #endif
@@ -223,6 +201,19 @@ Bool
 xf86PrivsElevated(void)
 {
     return PrivsElevated();
+}
+
+static void
+xf86AutoConfigOutputDevices(void)
+{
+    int i;
+
+    if (!xf86Info.autoBindGPU)
+        return;
+
+    for (i = 0; i < xf86NumGPUScreens; i++)
+        RRProviderAutoConfigGpuScreen(xf86ScrnToScreen(xf86GPUScreens[i]),
+                                      xf86ScrnToScreen(xf86Screens[0]));
 }
 
 static void
@@ -703,6 +694,8 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
     for (i = 0; i < xf86NumGPUScreens; i++)
         AttachUnboundGPU(xf86Screens[0]->pScreen, xf86GPUScreens[i]->pScreen);
 
+    xf86AutoConfigOutputDevices();
+
     xf86VGAarbiterWrapFunctions();
     if (sigio_blocked)
         input_unlock();
@@ -1178,6 +1171,10 @@ ddxProcessArgument(int argc, char **argv, int i)
     if (!strcmp(argv[i], "-iglx") || !strcmp(argv[i], "+iglx")) {
         xf86Info.iglxFrom = X_CMDLINE;
         return 0;
+    }
+    if (!strcmp(argv[i], "-noautoBindGPU")) {
+        xf86AutoBindGPUDisabled = TRUE;
+        return 1;
     }
 
     /* OS-specific processing */

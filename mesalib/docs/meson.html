@@ -44,7 +44,7 @@ or
 sudo dnf install meson   # Fedora
 </pre>
 
-<p><strong>Mesa requires Meson &gt;= 0.45.0 to build.</strong>
+<p><strong>Mesa requires Meson &gt;= 0.46.0 to build.</strong>
 
 Some older versions of meson do not check that they are too old and will error
 out in odd ways.
@@ -255,6 +255,18 @@ Then configure meson:
 </dd>
 
 <dd><p>
+Meson &lt; 0.49 doesn't support native files, so to specify a custom
+<code>llvm-config</code> you need to modify your <code>$PATH</code> (or
+<code>%PATH%</code> on windows), which will be searched for
+<code>llvm-config</code>, <code>llvm-config<i>$version</i></code>,
+and <code>llvm-config-<i>$version</i></code>:
+</p>
+<pre>
+PATH=/path/to/folder/with/llvm-config:$PATH meson build
+</pre>
+</dd>
+
+<dd><p>
 For selecting llvm-config for cross compiling a
 <a href="https://mesonbuild.com/Cross-compilation.html#defining-the-environment">"cross file"</a>
 should be used. It uses the same format as the native file above:
@@ -274,13 +286,6 @@ should be used. It uses the same format as the native file above:
 
 See the <a href="#cross-compilation">Cross Compilation</a> section for more information.
 </dd>
-
-<dd><p>
-For older versions of meson <code>$PATH</code> (or <code>%PATH%</code> on
-windows) will be searched for llvm-config (and llvm-config$version and
-llvm-config-$version), you can override this environment variable to control
-the search: <code>PATH=/path/with/llvm-config:$PATH meson build</code>.
-</p></dd>
 
 <dt><code>PKG_CONFIG_PATH</code></dt>
 <dd><p>The

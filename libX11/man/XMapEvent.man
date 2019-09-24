@@ -38,46 +38,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XMapEvent __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XMapEvent, XMappingEvent \- MapNotify and MappingNotify event structures
@@ -86,7 +53,7 @@ The structure for
 .B MapNotify
 events contains:
 .LP
-.Ds 0
+.EX
 typedef struct {
         int type;       /\&* MapNotify */
         unsigned long serial;   /\&* # of last request processed by server */
@@ -96,7 +63,7 @@ typedef struct {
         Window window;
         Bool override_redirect; /\&* boolean, is override set... */
 } XMapEvent;
-.De
+.EE
 .LP
 When you receive this event,
 the structure members are set as follows.
@@ -129,7 +96,7 @@ was selected.
 The window member is set to the window that was mapped.
 The override_redirect member is set to the override-redirect attribute
 of the window.
-Window manager clients normally should ignore this window 
+Window manager clients normally should ignore this window
 if the override-redirect attribute is
 .BR True ,
 because these events usually are generated from pop-ups,
@@ -139,7 +106,7 @@ The structure for
 .B MappingNotify
 events is:
 .LP
-.Ds 0
+.EX
 typedef struct {
         int type;       /\&* MappingNotify */
         unsigned long serial;   /\&* # of last request processed by server */
@@ -149,9 +116,9 @@ typedef struct {
         int request;    /\&* one of MappingModifier, MappingKeyboard,
                    MappingPointer */
         int first_keycode;      /\&* first keycode */
-        int count;      /\&* defines range of change w. first_keycode*/
+        int count;      /\&* defines range of change with first_keycode*/
 } XMappingEvent;
-.De
+.EE
 .LP
 When you receive this event,
 the structure members are set as follows.
@@ -188,12 +155,12 @@ If it is
 the keyboard mapping was changed.
 If it is
 .BR MappingPointer ,
-the pointer button mapping was changed. 
-The first_keycode and count members are set only 
+the pointer button mapping was changed.
+The first_keycode and count members are set only
 if the request member was set to
 .BR MappingKeyboard .
-The number in first_keycode represents the first number in the range 
-of the altered mapping, 
+The number in first_keycode represents the first number in the range
+of the altered mapping,
 and count represents the number of keycodes altered.
 .SH "SEE ALSO"
 XAnyEvent(__libmansuffix__),

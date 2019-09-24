@@ -67,13 +67,13 @@
 
 #define cpu_has_mmxext		(_mesa_x86_cpu_features & X86_FEATURE_MMXEXT)
 
-#ifdef __SSE__
+#if defined(__SSE__) || (defined(_M_IX86_FP) && (_M_IX86_FP >= 1)) || defined(_M_X64)
 #define cpu_has_xmm		1
 #else
 #define cpu_has_xmm		(_mesa_x86_cpu_features & X86_FEATURE_XMM)
 #endif
 
-#ifdef __SSE2__
+#if defined(__SSE2__) || (defined(_M_IX86_FP) && (_M_IX86_FP >= 2)) || defined(_M_X64)
 #define cpu_has_xmm2		1
 #else
 #define cpu_has_xmm2		(_mesa_x86_cpu_features & X86_FEATURE_XMM2)

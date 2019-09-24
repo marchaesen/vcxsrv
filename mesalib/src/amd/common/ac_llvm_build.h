@@ -51,6 +51,12 @@ struct ac_llvm_flow;
 struct ac_llvm_compiler;
 enum ac_float_mode;
 
+struct ac_llvm_flow_state {
+	struct ac_llvm_flow *stack;
+	unsigned depth_max;
+	unsigned depth;
+};
+
 struct ac_llvm_context {
 	LLVMContextRef context;
 	LLVMModuleRef module;
@@ -75,6 +81,7 @@ struct ac_llvm_context {
 	LLVMTypeRef v4f32;
 	LLVMTypeRef v8i32;
 	LLVMTypeRef iN_wavemask;
+	LLVMTypeRef iN_ballotmask;
 
 	LLVMValueRef i8_0;
 	LLVMValueRef i8_1;
@@ -93,9 +100,11 @@ struct ac_llvm_context {
 	LLVMValueRef i1true;
 	LLVMValueRef i1false;
 
-	struct ac_llvm_flow *flow;
-	unsigned flow_depth;
-	unsigned flow_depth_max;
+	/* Since ac_nir_translate makes a local copy of ac_llvm_context, there
+	 * are two ac_llvm_contexts. Declare a pointer here, so that the control
+	 * flow stack is shared by both ac_llvm_contexts.
+	 */
+	struct ac_llvm_flow_state *flow;
 
 	unsigned range_md_kind;
 	unsigned invariant_load_md_kind;
@@ -106,7 +115,9 @@ struct ac_llvm_context {
 
 	enum chip_class chip_class;
 	enum radeon_family family;
+
 	unsigned wave_size;
+	unsigned ballot_mask_bits;
 
 	LLVMValueRef lds;
 };
@@ -115,7 +126,8 @@ void
 ac_llvm_context_init(struct ac_llvm_context *ctx,
 		     struct ac_llvm_compiler *compiler,
 		     enum chip_class chip_class, enum radeon_family family,
-		     enum ac_float_mode float_mode, unsigned wave_size);
+		     enum ac_float_mode float_mode, unsigned wave_size,
+		     unsigned ballot_mask_bits);
 
 void
 ac_llvm_context_dispose(struct ac_llvm_context *ctx);
@@ -182,6 +194,13 @@ LLVMValueRef
 ac_build_gather_values(struct ac_llvm_context *ctx,
 		       LLVMValueRef *values,
 		       unsigned value_count);
+
+LLVMValueRef
+ac_extract_components(struct ac_llvm_context *ctx,
+		      LLVMValueRef value,
+		      unsigned start,
+		      unsigned channels);
+
 LLVMValueRef ac_build_expand_to_vec4(struct ac_llvm_context *ctx,
 				     LLVMValueRef value,
 				     unsigned num_channels);
@@ -304,16 +323,6 @@ LLVMValueRef ac_build_buffer_load_format(struct ac_llvm_context *ctx,
 					 unsigned num_channels,
 					 unsigned cache_policy,
 					 bool can_speculate);
-
-/* load_format that handles the stride & element count better if idxen is
- * disabled by LLVM. */
-LLVMValueRef ac_build_buffer_load_format_gfx9_safe(struct ac_llvm_context *ctx,
-                                                  LLVMValueRef rsrc,
-                                                  LLVMValueRef vindex,
-                                                  LLVMValueRef voffset,
-                                                  unsigned num_channels,
-                                                  unsigned cache_policy,
-                                                  bool can_speculate);
 
 LLVMValueRef
 ac_build_tbuffer_load_short(struct ac_llvm_context *ctx,
@@ -508,6 +517,8 @@ enum ac_atomic_op {
 	ac_atomic_and,
 	ac_atomic_or,
 	ac_atomic_xor,
+	ac_atomic_inc_wrap,
+	ac_atomic_dec_wrap,
 };
 
 enum ac_image_dim {

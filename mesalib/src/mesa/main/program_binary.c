@@ -29,12 +29,12 @@
  */
 
 
-#include "compiler/blob.h"
 #include "compiler/glsl/serialize.h"
 #include "main/errors.h"
 #include "main/mtypes.h"
 #include "main/shaderapi.h"
 #include "util/bitscan.h"
+#include "util/blob.h"
 #include "util/crc32.h"
 #include "program_binary.h"
 #include "program/prog_parameter.h"

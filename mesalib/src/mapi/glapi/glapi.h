@@ -86,7 +86,7 @@ typedef void (*_glapi_nop_handler_proc)(const char *name);
 struct _glapi_table;
 
 
-#if defined (GLX_USE_TLS)
+#if defined (USE_ELF_TLS)
 
 _GLAPI_EXPORT extern __thread struct _glapi_table * _glapi_tls_Dispatch
     __attribute__((tls_model("initial-exec")));
@@ -111,10 +111,10 @@ _GLAPI_EXPORT extern void *_glapi_Context;
 #define GET_CURRENT_CONTEXT(C)  struct gl_context *C = (struct gl_context *) \
      (likely(_glapi_Context) ? _glapi_Context : _glapi_get_context())
 
-#endif /* defined (GLX_USE_TLS) */
+#endif /* defined (USE_ELF_TLS) */
 
 
-void
+_GLAPI_EXPORT void
 _glapi_destroy_multithread(void);
 
 

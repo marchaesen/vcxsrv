@@ -97,6 +97,8 @@ enum radeon_family {
     CHIP_VEGA20,
     CHIP_RAVEN,
     CHIP_RAVEN2,
+    CHIP_RENOIR,
+    CHIP_ARCTURUS,
     CHIP_NAVI10,
     CHIP_NAVI12,
     CHIP_NAVI14,

@@ -33,6 +33,7 @@
  * -# Transformation of a point p by a matrix M is: p' = M * p
  */
 
+#include <stddef.h>
 
 #include "c99_math.h"
 #include "main/errors.h"

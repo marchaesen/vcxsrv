@@ -120,10 +120,15 @@ _mesa_check_query(struct gl_context *ctx, struct gl_query_object *q)
 
 
 /**
- * Delete a query object.  Called via ctx->Driver.DeleteQuery().
+ * Delete a query object.  Called via ctx->Driver.DeleteQuery(), if not
+ * overwritten by driver.  In the latter case, called from the driver
+ * after all driver-specific clean-up has been done.
  * Not removed from hash table here.
+ *
+ * \param ctx GL context to wich query object belongs.
+ * \param q query object due to be deleted.
  */
-static void
+void
 _mesa_delete_query(struct gl_context *ctx, struct gl_query_object *q)
 {
    free(q->Label);

@@ -38,78 +38,45 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XCreateImage __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XInitImage, XCreateImage, XGetPixel, XPutPixel, XSubImage, XAddPixel, XDestroyImage \- image utilities
 .SH SYNTAX
 .HP
-Status XInitImage\^(\^XImage *\fIimage\fP\^); 
+Status XInitImage\^(\^XImage *\fIimage\fP\^);
 .HP
 XImage *XCreateImage\^(\^Display *\fIdisplay\fP\^, Visual *\fIvisual\fP\^,
 unsigned int \fIdepth\fP\^, int \fIformat\fP\^, int \fIoffset\fP\^, char
 *\fIdata\fP\^, unsigned int \fIwidth\fP\^, unsigned int \fIheight\fP\^, int
-\fIbitmap_pad\fP\^, int \fIbytes_per_line\fP\^); 
+\fIbitmap_pad\fP\^, int \fIbytes_per_line\fP\^);
 .HP
 unsigned long XGetPixel\^(\^XImage *\fIximage\fP\^, int \fIx\fP\^, int
-\fIy\fP\^); 
+\fIy\fP\^);
 .HP
 int XPutPixel\^(\^XImage *\fIximage\fP\^, int \fIx\fP\^, int \fIy\fP\^,
-unsigned long \fIpixel\fP\^); 
+unsigned long \fIpixel\fP\^);
 .HP
 XImage *XSubImage\^(\^XImage *\fIximage\fP\^, int \fIx\fP\^, int \fIy\fP\^,
-unsigned int \fIsubimage_width\fP\^, unsigned int \fIsubimage_height\fP\^); 
+unsigned int \fIsubimage_width\fP\^, unsigned int \fIsubimage_height\fP\^);
 .HP
-int XAddPixel\^(\^XImage *\fIximage\fP\^, long \fIvalue\fP\^); 
+int XAddPixel\^(\^XImage *\fIximage\fP\^, long \fIvalue\fP\^);
 .HP
-int XDestroyImage\^(\^XImage *\^\fIximage\fP\^); 
+int XDestroyImage\^(\^XImage *\^\fIximage\fP\^);
 .SH ARGUMENTS
 .IP \fIbitmap_pad\fP 1i
 Specifies the quantum of a scanline (8, 16, or 32).
-In other words, the start of one scanline is separated in client memory from 
-the start of the next scanline by an integer multiple of this many bits.  
+In other words, the start of one scanline is separated in client memory from
+the start of the next scanline by an integer multiple of this many bits.
 .IP \fIbytes_per_line\fP 1i
 Specifies the number of bytes in the client image between
-the start of one scanline and the start of the next.  
+the start of one scanline and the start of the next.
 .IP \fIdata\fP 1i
 Specifies the image data.
 .IP \fIdepth\fP 1i
@@ -121,7 +88,7 @@ Specifies the format for the image.
 You can pass
 .BR XYBitmap ,
 .BR XYPixmap ,
-or 
+or
 .BR ZPixmap .
 .IP \fIheight\fP 1i
 Specifies the height of the image, in pixels.
@@ -169,7 +136,8 @@ Image structures created or returned by Xlib do not need to be
 initialized in this fashion.
 .LP
 This function returns a nonzero status if initialization of the
-structure is successful.  It returns zero if it detected some error
+structure is successful.
+It returns zero if it detected some error
 or inconsistency in the structure, in which case the image is not changed.
 .LP
 The
@@ -179,15 +147,15 @@ function allocates the memory needed for an
 structure for the
 specified display but does not allocate space for the image itself.
 Rather, it initializes the structure byte-order, bit-order, and bitmap-unit
-values from the display and returns a pointer to the 
+values from the display and returns a pointer to the
 .B XImage
 structure.
 The red, green, and blue mask values are defined for Z format images only
-and are derived from the 
+and are derived from the
 .B Visual
 structure passed in.
 Other values also are passed in.
-The offset permits the rapid displaying of the image without requiring each 
+The offset permits the rapid displaying of the image without requiring each
 scanline to be shifted into position.
 If you pass a zero value in bytes_per_line,
 Xlib assumes that the scanlines are contiguous
@@ -198,9 +166,9 @@ Note that when the image is created using
 .BR XGetImage ,
 or
 .BR XSubImage ,
-the destroy procedure that the 
+the destroy procedure that the
 .B XDestroyImage
-function calls frees both the image structure 
+function calls frees both the image structure
 and the data pointed to by the image structure.
 .LP
 The basic functions used to get a pixel, set a pixel, create a subimage,

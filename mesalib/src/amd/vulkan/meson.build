@@ -153,12 +153,11 @@ libvulkan_radeon = shared_library(
   ],
   link_with : [
     libamd_common, libamdgpu_addrlib, libvulkan_wsi,
-    libmesa_util, libxmlconfig
   ],
   dependencies : [
     dep_llvm, dep_libdrm_amdgpu, dep_thread, dep_elf, dep_dl, dep_m,
-    dep_valgrind, radv_deps,
-    idep_nir, idep_vulkan_util, idep_amdgfxregs_h,
+    dep_valgrind, radv_deps, idep_aco,
+    idep_mesautil, idep_nir, idep_vulkan_util, idep_amdgfxregs_h, idep_xmlconfig,
   ],
   c_args : [c_vis_args, no_override_init_args, radv_flags],
   cpp_args : [cpp_vis_args, radv_flags],

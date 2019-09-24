@@ -27,6 +27,7 @@
 #define SHADER_ENUMS_H
 
 #include <stdbool.h>
+#include "mesa/main/config.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -594,6 +595,8 @@ typedef enum
    SYSTEM_VALUE_PRIMITIVE_ID,
    SYSTEM_VALUE_TESS_LEVEL_OUTER, /**< TES input */
    SYSTEM_VALUE_TESS_LEVEL_INNER, /**< TES input */
+   SYSTEM_VALUE_TESS_LEVEL_OUTER_DEFAULT, /**< TCS input for passthru TCS */
+   SYSTEM_VALUE_TESS_LEVEL_INNER_DEFAULT, /**< TCS input for passthru TCS */
    /*@}*/
 
    /**
@@ -609,6 +612,7 @@ typedef enum
    SYSTEM_VALUE_LOCAL_GROUP_SIZE,
    SYSTEM_VALUE_GLOBAL_GROUP_SIZE,
    SYSTEM_VALUE_WORK_DIM,
+   SYSTEM_VALUE_USER_DATA_AMD,
    /*@}*/
 
    /** Required for VK_KHR_device_group */
@@ -736,6 +740,9 @@ enum gl_access_qualifier
     * a lack of ACCESS_COHERENT and ACCESS_VOLATILE.
     */
    ACCESS_CAN_REORDER = (1 << 6),
+
+   /** Use as little cache space as possible. */
+   ACCESS_STREAM_CACHE_POLICY = (1 << 7),
 };
 
 /**
@@ -849,6 +856,26 @@ enum gl_derivative_group {
    DERIVATIVE_GROUP_NONE = 0,
    DERIVATIVE_GROUP_QUADS,
    DERIVATIVE_GROUP_LINEAR,
+};
+
+enum float_controls
+{
+   FLOAT_CONTROLS_DEFAULT_FLOAT_CONTROL_MODE        = 0x0000,
+   FLOAT_CONTROLS_DENORM_PRESERVE_FP16              = 0x0001,
+   FLOAT_CONTROLS_DENORM_PRESERVE_FP32              = 0x0002,
+   FLOAT_CONTROLS_DENORM_PRESERVE_FP64              = 0x0004,
+   FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP16         = 0x0008,
+   FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP32         = 0x0010,
+   FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP64         = 0x0020,
+   FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP16 = 0x0040,
+   FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP32 = 0x0080,
+   FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP64 = 0x0100,
+   FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP16            = 0x0200,
+   FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP32            = 0x0400,
+   FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP64            = 0x0800,
+   FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP16            = 0x1000,
+   FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP32            = 0x2000,
+   FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP64            = 0x4000,
 };
 
 #ifdef __cplusplus

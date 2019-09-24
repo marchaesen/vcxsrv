@@ -142,7 +142,6 @@ EXTRA_DIST += \
 	include/xorg-config.h.meson.in \
 	include/xwin-config.h.meson.in \
 	hw/xfree86/loader/symbol-test.c \
-	buildDateTime.sh \
 	composite/meson.build \
 	config/meson.build \
 	damageext/meson.build \

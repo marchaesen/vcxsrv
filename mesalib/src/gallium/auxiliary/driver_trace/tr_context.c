@@ -2034,6 +2034,6 @@ error1:
 void
 trace_context_check(const struct pipe_context *pipe)
 {
-   MAYBE_UNUSED struct trace_context *tr_ctx = (struct trace_context *) pipe;
+   ASSERTED struct trace_context *tr_ctx = (struct trace_context *) pipe;
    assert(tr_ctx->base.destroy == trace_context_destroy);
 }

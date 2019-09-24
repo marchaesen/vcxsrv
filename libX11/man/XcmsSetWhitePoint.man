@@ -38,55 +38,22 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XcmsSetWhitePoint __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XcmsSetWhitePoint, XcmsSetWhiteAdjustProc \- modifying CCC attributes
 .SH SYNTAX
 .HP
-Status XcmsSetWhitePoint\^(\^XcmsCCC \fIccc\fP\^, XcmsColor *\fIcolor\fP\^); 
+Status XcmsSetWhitePoint\^(\^XcmsCCC \fIccc\fP\^, XcmsColor *\fIcolor\fP\^);
 .HP
 XcmsWhiteAdjustProc XcmsSetWhiteAdjustProc\^(\^XcmsCCC \fIccc\fP\^,
-XcmsWhiteAdjustProc \fIwhite_adjust_proc\fP\^, XPointer \fIclient_data\fP\^); 
+XcmsWhiteAdjustProc \fIwhite_adjust_proc\fP\^, XPointer \fIclient_data\fP\^);
 .SH ARGUMENTS
 .IP \fIccc\fP 1i
 Specifies the CCC.
@@ -100,7 +67,7 @@ Specifies the white point adjustment procedure.
 The
 .B XcmsSetWhitePoint
 function changes the Client White Point in the specified CCC.
-Note that the pixel member is ignored 
+Note that the pixel member is ignored
 and that the color specification is left unchanged upon return.
 The format for the new white point must be
 .BR XcmsCIEXYZFormat ,
@@ -121,7 +88,7 @@ otherwise, it returns zero.
 .LP
 The
 .B XcmsSetWhiteAdjustProc
-function first sets the white point adjustment procedure and client data 
+function first sets the white point adjustment procedure and client data
 in the specified CCC with the newly specified procedure and client data
 and then returns the old procedure.
 .SH "SEE ALSO"

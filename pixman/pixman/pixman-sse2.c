@@ -6410,7 +6410,7 @@ sse2_fetch_a8 (pixman_iter_t *iter, const uint32_t *mask)
 
     while (w && (((uintptr_t)dst) & 15))
     {
-        *dst++ = *(src++) << 24;
+        *dst++ = (uint32_t)(*(src++)) << 24;
         w--;
     }
 
@@ -6437,7 +6437,7 @@ sse2_fetch_a8 (pixman_iter_t *iter, const uint32_t *mask)
 
     while (w)
     {
-	*dst++ = *(src++) << 24;
+	*dst++ = (uint32_t)(*(src++)) << 24;
 	w--;
     }
 

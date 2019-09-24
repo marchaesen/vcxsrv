@@ -83,21 +83,21 @@ endif
 
 $(foreach d, $(MESA_BUILD_CLASSIC) $(MESA_BUILD_GALLIUM), $(eval $(d) := true))
 
+# host and target must be the same arch to generate matypes.h
+ifeq ($(TARGET_ARCH),$(HOST_ARCH))
+MESA_ENABLE_ASM := true
+else
+MESA_ENABLE_ASM := false
+endif
+
 ifneq ($(filter true, $(HAVE_GALLIUM_RADEONSI)),)
 MESA_ENABLE_LLVM := true
 endif
 
 define mesa-build-with-llvm
-  $(if $(filter $(MESA_ANDROID_MAJOR_VERSION), 4 5), \
+  $(if $(filter $(MESA_ANDROID_MAJOR_VERSION), 4 5 6 7), \
     $(warning Unsupported LLVM version in Android $(MESA_ANDROID_MAJOR_VERSION)),) \
-  $(if $(filter 6,$(MESA_ANDROID_MAJOR_VERSION)), \
-    $(eval LOCAL_CFLAGS += -DHAVE_LLVM=0x0307 -DMESA_LLVM_VERSION_STRING=\"3.7\")) \
-  $(if $(filter 7,$(MESA_ANDROID_MAJOR_VERSION)), \
-    $(eval LOCAL_CFLAGS += -DHAVE_LLVM=0x0308 -DMESA_LLVM_VERSION_STRING=\"3.8\")) \
-  $(if $(filter 8,$(MESA_ANDROID_MAJOR_VERSION)), \
-    $(eval LOCAL_CFLAGS += -DHAVE_LLVM=0x0309 -DMESA_LLVM_VERSION_STRING=\"3.9\")) \
-  $(if $(filter P,$(MESA_ANDROID_MAJOR_VERSION)), \
-    $(eval LOCAL_CFLAGS += -DHAVE_LLVM=0x0309 -DMESA_LLVM_VERSION_STRING=\"3.9\")) \
+  $(eval LOCAL_CFLAGS += -DLLVM_AVAILABLE -DMESA_LLVM_VERSION_STRING=\"3.9\") \
   $(eval LOCAL_SHARED_LIBRARIES += libLLVM)
 endef
 
@@ -115,7 +115,8 @@ SUBDIRS := \
 	src/broadcom \
 	src/intel \
 	src/mesa/drivers/dri \
-	src/vulkan
+	src/vulkan \
+	src/panfrost \
 
 INC_DIRS := $(call all-named-subdir-makefiles,$(SUBDIRS))
 INC_DIRS += $(call all-named-subdir-makefiles,src/gallium)

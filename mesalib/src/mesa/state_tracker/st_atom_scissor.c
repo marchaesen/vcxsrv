@@ -54,6 +54,9 @@ st_update_scissor( struct st_context *st )
    unsigned i;
    bool changed = false;
 
+   if (!ctx->Scissor.EnableFlags)
+      return;
+
    for (i = 0 ; i < st->state.num_viewports; i++) {
       scissor[i].minx = 0;
       scissor[i].miny = 0;

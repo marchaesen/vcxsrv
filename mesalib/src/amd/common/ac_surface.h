@@ -71,6 +71,8 @@ enum radeon_micro_mode {
 #define RADEON_SURF_SHAREABLE                   (1 << 26)
 #define RADEON_SURF_NO_RENDER_TARGET            (1 << 27)
 #define RADEON_SURF_FORCE_SWIZZLE_MODE          (1 << 28)
+#define RADEON_SURF_NO_FMASK                    (1 << 29)
+#define RADEON_SURF_NO_HTILE                    (1 << 30)
 
 struct legacy_surf_level {
     uint64_t                    offset;
@@ -224,6 +226,15 @@ struct radeon_surf {
     uint32_t                    cmask_size;
     uint32_t                    cmask_slice_size;
     uint32_t                    cmask_alignment;
+
+    /* All buffers combined. */
+    uint64_t                    htile_offset;
+    uint64_t                    fmask_offset;
+    uint64_t                    cmask_offset;
+    uint64_t                    dcc_offset;
+    uint64_t                    display_dcc_offset;
+    uint64_t                    dcc_retile_map_offset;
+    uint64_t                    total_size;
 
     union {
         /* Return values for GFX8 and older.

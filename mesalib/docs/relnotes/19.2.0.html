@@ -29,6 +29,11 @@ Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
 4.5 is <strong>only</strong> available if requested at context creation.
 Compatibility contexts may report a lower version depending on each driver.
 </p>
+<p>
+Mesa 19.2.0 implements the Vulkan 1.1 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+</p>
 
 <h2>SHA256 checksums</h2>
 <pre>
@@ -40,9 +45,21 @@ TBD.
 
 <ul>
 <li>GL_ARB_post_depth_coverage on radeonsi (Navi)</li>
+<li>GL_ARB_seamless_cubemap_per_texture on etnaviv (if GPU supports SEAMLESS_CUBE_MAP)</li>
+<li>GL_EXT_shader_image_load_store on radeonsi (with LLVM >= 10)</li>
+<li>GL_EXT_shader_samples_identical on iris and radeonsi (if using NIR)</li>
+<li>GL_EXT_texture_shadow_lod on i965, iris</li>
 <li>EGL_EXT_platform_device</li>
-<li>VK_EXT_queue_family_foreign for radv</li>
+<li>VK_AMD_buffer_marker on radv</li>
+<li>VK_EXT_index_type_uint8 on radv</li>
+<li>VK_EXT_post_depth_coverage on radv</li>
+<li>VK_EXT_queue_family_foreign on radv</li>
+<li>VK_EXT_sample_locations on radv</li>
 <li>VK_EXT_shader_demote_to_helper_invocation on Intel.</li>
+<li>VK_KHR_depth_stencil_resolve on radv</li>
+<li>VK_KHR_imageless_framebuffer on radv</li>
+<li>VK_KHR_shader_atomic_int64 on radv</li>
+<li>VK_KHR_uniform_buffer_standard_layout on radv</li>
 </ul>
 
 <h2>Bug fixes</h2>

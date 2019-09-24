@@ -264,7 +264,7 @@ xkb_symbols "prog" {
     // i.e. [d, D], [t, T], [n, N], [o, O] generate with AltGr and AltGr+Shift: [dcaron, Dcaron], [tcaron, Tcaron], [ncaron, Ncaron], [oacute, Oacute].
     // Other Czech letters besides alphanumeric keys (like uacute, uring) are generated using AltGr.
 
-    name[group1]="Czech (programming)";
+    name[Group1]="Czech (programming)";
 
     key <AB01> { [ z,	Z ] };
     key <AB02> { [ x,	X ] };
@@ -337,7 +337,7 @@ xkb_symbols "typo" {
     // Contains typographic symbols in third and fourth level. 
     // It is intended to be used in conjuction with other existing layout, e.g. setxkbmap -symbols "pc+cz(basic)+cz(typo)+inet(evdev)"
 
-    name[group1]="Czech (typographic)";
+    name[Group1]="Czech (typographic)";
 
     key <AB01> { [ NoSymbol,	NoSymbol,	degree,	U2300 ] };
     key <AB02> { [ NoSymbol,	NoSymbol,	multiply,	U22C5 ] };
@@ -363,4 +363,35 @@ xkb_symbols "typo" {
     key <AE11> { [ NoSymbol,	NoSymbol,	underscore,	U2212 ] };
     key <SPCE> { [ space,	space,	space,	nobreakspace ] };
     key <TLDE> { [ NoSymbol,	NoSymbol,	singlelowquotemark,	leftsinglequotemark ] };
+};
+
+xkb_symbols "coder" {
+
+    // US layout with Czech chars under AltGr
+    // for touch-typing programmers who need to write Czech occasionally
+    // https://github.com/michalkahle/czech-coder-xkb
+
+    include "us"
+    name[Group1]= "Czech (coder)";
+
+    key <TLDE>{[     grave,  asciitilde,     semicolon, dead_abovering ]};
+    key <AE02>{[         2,          at,        ecaron,     Ecaron ]};
+    key <AE03>{[         3,  numbersign,        scaron,     Scaron ]};
+    key <AE04>{[         4,      dollar,        ccaron,     Ccaron ]};
+    key <AE05>{[         5,     percent,        rcaron,     Rcaron ]};
+    key <AE06>{[         6, asciicircum,        zcaron,     Zcaron ]};
+    key <AE07>{[         7,   ampersand,        yacute,     Yacute ]};
+    key <AE08>{[         8,    asterisk,        aacute,     Aacute ]};
+    key <AE09>{[         9,   parenleft,        iacute,     Iacute ]};
+    key <AE10>{[         0,  parenright,        eacute,     Eacute ]};
+    key <AE12>{[     equal,        plus,    dead_acute, dead_caron ]};
+
+    key <AD03>{[         e,           E,             e,   EuroSign ]};
+    key <AD11>{[ bracketleft, braceleft,        uacute,     Uacute ]};
+
+    key <AC10>{[ semicolon,      colon,          uring,      Uring ]};
+    key <AC11>{[ apostrophe,  quotedbl,        section,   quotedbl ]};
+    key <BKSL>{[ backslash,        bar, dead_diaeresis, apostrophe ]};
+
+    include "level3(ralt_switch)"
 };

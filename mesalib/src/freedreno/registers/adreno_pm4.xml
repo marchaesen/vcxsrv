@@ -15,6 +15,7 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value name="VIZQUERY_START" value="7"/> <!-- on a2xx (??) -->
 	<value name="VIZQUERY_END" value="8"/>
 	<value name="SC_WAIT_WC" value="9"/>
+	<value name="WRITE_PRIMITIVE_COUNTS" value="9" variants="A6XX"/>
 	<value name="RST_PIX_CNT" value="13"/>
 	<value name="RST_VTX_CNT" value="14"/>
 	<value name="TILE_FLUSH" value="15"/>
@@ -41,6 +42,9 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value name="LRZ_FLUSH" value="38" variants="A5XX,A6XX"/>
 	<value name="UNK_2C" value="44" variants="A5XX"/>
 	<value name="UNK_2D" value="45" variants="A5XX"/>
+
+	<!-- a6xx events -->
+	<value name="CACHE_INVALIDATE" value="49" variants="A6XX"/>
 </enum>
 
 <enum name="pc_di_primtype">
@@ -59,7 +63,39 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value name="DI_PT_LINESTRIP_ADJ" value="0xb"/>
 	<value name="DI_PT_TRI_ADJ" value="0xc"/>
 	<value name="DI_PT_TRISTRIP_ADJ" value="0xd"/>
-	<value name="DI_PT_PATCHES" value="0x29"/>
+
+	<value name="DI_PT_PATCHES0" value="0x1f"/>
+	<value name="DI_PT_PATCHES1" value="0x20"/>
+	<value name="DI_PT_PATCHES2" value="0x21"/>
+	<value name="DI_PT_PATCHES3" value="0x22"/>
+	<value name="DI_PT_PATCHES4" value="0x23"/>
+	<value name="DI_PT_PATCHES5" value="0x24"/>
+	<value name="DI_PT_PATCHES6" value="0x25"/>
+	<value name="DI_PT_PATCHES7" value="0x26"/>
+	<value name="DI_PT_PATCHES8" value="0x27"/>
+	<value name="DI_PT_PATCHES9" value="0x28"/>
+	<value name="DI_PT_PATCHES10" value="0x29"/>
+	<value name="DI_PT_PATCHES11" value="0x2a"/>
+	<value name="DI_PT_PATCHES12" value="0x2b"/>
+	<value name="DI_PT_PATCHES13" value="0x2c"/>
+	<value name="DI_PT_PATCHES14" value="0x2d"/>
+	<value name="DI_PT_PATCHES15" value="0x2e"/>
+	<value name="DI_PT_PATCHES16" value="0x2f"/>
+	<value name="DI_PT_PATCHES17" value="0x30"/>
+	<value name="DI_PT_PATCHES18" value="0x31"/>
+	<value name="DI_PT_PATCHES19" value="0x32"/>
+	<value name="DI_PT_PATCHES20" value="0x33"/>
+	<value name="DI_PT_PATCHES21" value="0x34"/>
+	<value name="DI_PT_PATCHES22" value="0x35"/>
+	<value name="DI_PT_PATCHES23" value="0x36"/>
+	<value name="DI_PT_PATCHES24" value="0x37"/>
+	<value name="DI_PT_PATCHES25" value="0x38"/>
+	<value name="DI_PT_PATCHES26" value="0x39"/>
+	<value name="DI_PT_PATCHES27" value="0x3a"/>
+	<value name="DI_PT_PATCHES28" value="0x3b"/>
+	<value name="DI_PT_PATCHES29" value="0x3c"/>
+	<value name="DI_PT_PATCHES30" value="0x3d"/>
+	<value name="DI_PT_PATCHES31" value="0x3e"/>
 </enum>
 
 <enum name="pc_di_src_sel">
@@ -647,9 +683,23 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 	</reg32>
 	<reg32 offset="3" name="3">
 	</reg32>
+
+	<stripe variants="A5XX-">
+		<reg32 offset="4" name="4">
+			<bitfield name="INDX_BASE_LO" low="0" high="31"/>
+		</reg32>
+		<reg32 offset="5" name="5">
+			<bitfield name="INDX_BASE_HI" low="0" high="31"/>
+		</reg32>
+		<reg32 offset="6" name="6">
+			<bitfield name="INDX_SIZE" low="0" high="31"/>
+		</reg32>
+	</stripe>
+
 	<reg32 offset="4" name="4">
 		<bitfield name="INDX_BASE" low="0" high="31"/>
 	</reg32>
+
 	<reg32 offset="5" name="5">
 		<bitfield name="INDX_SIZE" low="0" high="31"/>
 	</reg32>
@@ -1153,6 +1203,16 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 		<!-- the bit to test -->
 		<bitfield name="BIT" low="20" high="24" type="uint"/>
 		<bitfield name="UNK25" pos="25" type="boolean"/>
+	</reg32>
+</domain>
+
+<!-- I *think* this existed at least as far back as a4xx -->
+<domain name="CP_COND_REG_EXEC" width="32">
+	<reg32 offset="0" name="0">
+		<bitfield name="UNK28" pos="28" type="boolean"/>
+	</reg32>
+	<reg32 offset="1" name="1">
+		<bitfield name="DWORDS" low="0" high="31" type="uint"/>
 	</reg32>
 </domain>
 

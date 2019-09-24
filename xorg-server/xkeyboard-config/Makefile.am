@@ -11,5 +11,8 @@ EXTRA_DIST=config.rpath COPYING README \
 
 ACLOCAL_AMFLAGS = -I m4
 
+# we don't care about runtime dependencies during distcheck
+AM_DISTCHECK_CONFIGURE_FLAGS=--disable-runtime-deps
+
 sync-po:
 	rsync -Lrtvz translationproject.org::tp/latest/xkeyboard-config/  po

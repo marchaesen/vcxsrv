@@ -154,7 +154,7 @@ miDoCopy(DrawablePtr pSrcDrawable,
 
     /* Short cut for unmapped or fully clipped windows */
     if (pDstDrawable->type == DRAWABLE_WINDOW &&
-        RegionNil(&((WindowPtr)pDstDrawable)->clipList)) {
+        RegionNil(pGC->pCompositeClip)) {
         return NULL;
     }
 

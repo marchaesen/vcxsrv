@@ -90,8 +90,9 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 	bool last_input_needs_ss = false;
 
 	/* our input state is the OR of all predecessor blocks' state: */
-	for (unsigned i = 0; i < block->predecessors_count; i++) {
-		struct ir3_legalize_block_data *pbd = block->predecessors[i]->data;
+	set_foreach(block->predecessors, entry) {
+		struct ir3_block *predecessor = (struct ir3_block *)entry->key;
+		struct ir3_legalize_block_data *pbd = predecessor->data;
 		struct ir3_legalize_state *pstate = &pbd->state;
 
 		/* Our input (ss)/(sy) state is based on OR'ing the output
@@ -399,6 +400,47 @@ resolve_dest_block(struct ir3_block *block)
 	return block;
 }
 
+static void
+remove_unused_block(struct ir3_block *old_target)
+{
+	list_delinit(&old_target->node);
+
+	/* cleanup dangling predecessors: */
+	for (unsigned i = 0; i < ARRAY_SIZE(old_target->successors); i++) {
+		if (old_target->successors[i]) {
+			struct ir3_block *succ = old_target->successors[i];
+			_mesa_set_remove_key(succ->predecessors, old_target);
+		}
+	}
+}
+
+static void
+retarget_jump(struct ir3_instruction *instr, struct ir3_block *new_target)
+{
+	struct ir3_block *old_target = instr->cat0.target;
+	struct ir3_block *cur_block = instr->block;
+
+	/* update current blocks successors to reflect the retargetting: */
+	if (cur_block->successors[0] == old_target) {
+		cur_block->successors[0] = new_target;
+	} else {
+		debug_assert(cur_block->successors[1] == old_target);
+		cur_block->successors[1] = new_target;
+	}
+
+	/* update new target's predecessors: */
+	_mesa_set_add(new_target->predecessors, cur_block);
+
+	/* and remove old_target's predecessor: */
+	debug_assert(_mesa_set_search(old_target->predecessors, cur_block));
+	_mesa_set_remove_key(old_target->predecessors, cur_block);
+
+	if (old_target->predecessors->entries == 0)
+		remove_unused_block(old_target);
+
+	instr->cat0.target = new_target;
+}
+
 static bool
 resolve_jump(struct ir3_instruction *instr)
 {
@@ -407,8 +449,7 @@ resolve_jump(struct ir3_instruction *instr)
 	struct ir3_instruction *target;
 
 	if (tblock != instr->cat0.target) {
-		list_delinit(&instr->cat0.target->node);
-		instr->cat0.target = tblock;
+		retarget_jump(instr, tblock);
 		return true;
 	}
 
@@ -458,45 +499,38 @@ resolve_jumps(struct ir3 *ir)
 	return false;
 }
 
-/* we want to mark points where divergent flow control re-converges
- * with (jp) flags.  For now, since we don't do any optimization for
- * things that start out as a 'do {} while()', re-convergence points
- * will always be a branch or jump target.  Note that this is overly
- * conservative, since unconditional jump targets are not convergence
- * points, we are just assuming that the other path to reach the jump
- * target was divergent.  If we were clever enough to optimize the
- * jump at end of a loop back to a conditional branch into a single
- * conditional branch, ie. like:
+static void mark_jp(struct ir3_block *block)
+{
+	struct ir3_instruction *target = list_first_entry(&block->instr_list,
+			struct ir3_instruction, node);
+	target->flags |= IR3_INSTR_JP;
+}
+
+/* Mark points where control flow converges or diverges.
  *
- *    add.f r1.w, r0.x, (neg)(r)c2.x   <= loop start
- *    mul.f r1.z, r1.z, r0.x
- *    mul.f r1.y, r1.y, r0.x
- *    mul.f r0.z, r1.x, r0.x
- *    mul.f r0.w, r0.y, r0.x
- *    cmps.f.ge r0.x, (r)c2.y, (r)r1.w
- *    add.s r0.x, (r)r0.x, (r)-1
- *    sel.f32 r0.x, (r)c3.y, (r)r0.x, c3.x
- *    cmps.f.eq p0.x, r0.x, c3.y
- *    mov.f32f32 r0.x, r1.w
- *    mov.f32f32 r0.y, r0.w
- *    mov.f32f32 r1.x, r0.z
- *    (rpt2)nop
- *    br !p0.x, #-13
- *    (jp)mul.f r0.x, c263.y, r1.y
- *
- * Then we'd have to be more clever, as the convergence point is no
- * longer a branch or jump target.
+ * Divergence points could actually be re-convergence points where
+ * "parked" threads are recoverged with threads that took the opposite
+ * path last time around.  Possibly it is easier to think of (jp) as
+ * "the execution mask might have changed".
  */
 static void
-mark_convergence_points(struct ir3 *ir)
+mark_xvergence_points(struct ir3 *ir)
 {
 	list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
-		list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
-			if (is_flow(instr) && instr->cat0.target) {
-				struct ir3_instruction *target =
-					list_first_entry(&instr->cat0.target->instr_list,
-							struct ir3_instruction, node);
-				target->flags |= IR3_INSTR_JP;
+		if (block->predecessors->entries > 1) {
+			/* if a block has more than one possible predecessor, then
+			 * the first instruction is a convergence point.
+			 */
+			mark_jp(block);
+		} else if (block->predecessors->entries == 1) {
+			/* If a block has one predecessor, which has multiple possible
+			 * successors, it is a divergence point.
+			 */
+			set_foreach(block->predecessors, entry) {
+				struct ir3_block *predecessor = (struct ir3_block *)entry->key;
+				if (predecessor->successors[1]) {
+					mark_jp(block);
+				}
 			}
 		}
 	}
@@ -533,7 +567,7 @@ ir3_legalize(struct ir3 *ir, bool *has_ssbo, bool *need_pixlod, int *max_bary)
 		ir3_count_instructions(ir);
 	} while(resolve_jumps(ir));
 
-	mark_convergence_points(ir);
+	mark_xvergence_points(ir);
 
 	ralloc_free(ctx);
 }

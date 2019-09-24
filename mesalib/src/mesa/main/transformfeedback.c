@@ -198,6 +198,27 @@ _mesa_init_transform_feedback_object(struct gl_transform_feedback_object *obj,
    obj->EverBound = GL_FALSE;
 }
 
+/**
+ * Delete a transform feedback object.  Called via
+ * ctx->Driver->DeleteTransformFeedback, if not overwritten by driver.  In
+ * the latter case, called from the driver after all driver-specific clean-up
+ * has been done.
+ *
+ * \param ctx GL context to wich transform feedback object belongs.
+ * \param obj Transform feedback object due to be deleted.
+ */
+void
+_mesa_delete_transform_feedback_object(struct gl_context *ctx,
+                                       struct gl_transform_feedback_object
+                                              *obj)
+{
+   for (unsigned i = 0; i < ARRAY_SIZE(obj->Buffers); i++) {
+      _mesa_reference_buffer_object(ctx, &obj->Buffers[i], NULL);
+   }
+
+   free(obj->Label);
+   free(obj);
+}
 
 /** Default fallback for ctx->Driver.NewTransformFeedback() */
 static struct gl_transform_feedback_object *
@@ -212,22 +233,6 @@ new_transform_feedback_fallback(struct gl_context *ctx, GLuint name)
    _mesa_init_transform_feedback_object(obj, name);
    return obj;
 }
-
-/** Default fallback for ctx->Driver.DeleteTransformFeedback() */
-static void
-delete_transform_feedback_fallback(struct gl_context *ctx,
-                                   struct gl_transform_feedback_object *obj)
-{
-   GLuint i;
-
-   for (i = 0; i < ARRAY_SIZE(obj->Buffers); i++) {
-      _mesa_reference_buffer_object(ctx, &obj->Buffers[i], NULL);
-   }
-
-   free(obj->Label);
-   free(obj);
-}
-
 
 /** Default fallback for ctx->Driver.BeginTransformFeedback() */
 static void
@@ -270,7 +275,7 @@ void
 _mesa_init_transform_feedback_functions(struct dd_function_table *driver)
 {
    driver->NewTransformFeedback = new_transform_feedback_fallback;
-   driver->DeleteTransformFeedback = delete_transform_feedback_fallback;
+   driver->DeleteTransformFeedback = _mesa_delete_transform_feedback_object;
    driver->BeginTransformFeedback = begin_transform_feedback_fallback;
    driver->EndTransformFeedback = end_transform_feedback_fallback;
    driver->PauseTransformFeedback = pause_transform_feedback_fallback;

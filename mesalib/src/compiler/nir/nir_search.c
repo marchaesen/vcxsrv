@@ -549,7 +549,7 @@ construct_value(nir_builder *build,
    }
 }
 
-MAYBE_UNUSED static void dump_value(const nir_search_value *val)
+UNUSED static void dump_value(const nir_search_value *val)
 {
    switch (val->type) {
    case nir_search_value_constant: {

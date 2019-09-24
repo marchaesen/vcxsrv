@@ -39,55 +39,22 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 '\" t
 .TH XCreateWindow __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XCreateWindow, XCreateSimpleWindow, XSetWindowAttributes \- create windows and window attributes structure
 .SH SYNTAX
 .HP
-Window XCreateWindow\^(\^Display *\fIdisplay\fP\^, Window \fIparent\fP\^, int \fIx\fP\^, int \fIy\fP\^, unsigned int \fIwidth\fP\^, unsigned int \fIheight\fP\^, unsigned int \fIborder_width\fP\^, int \fIdepth\fP\^, unsigned int \fIclass\fP\^, Visual *\fIvisual\fP\^, unsigned long \fIvaluemask\fP\^, XSetWindowAttributes *\fIattributes\fP\^); 
+Window XCreateWindow\^(\^Display *\fIdisplay\fP\^, Window \fIparent\fP\^, int \fIx\fP\^, int \fIy\fP\^, unsigned int \fIwidth\fP\^, unsigned int \fIheight\fP\^, unsigned int \fIborder_width\fP\^, int \fIdepth\fP\^, unsigned int \fIclass\fP\^, Visual *\fIvisual\fP\^, unsigned long \fIvaluemask\fP\^, XSetWindowAttributes *\fIattributes\fP\^);
 .HP
-Window XCreateSimpleWindow\^(\^Display *\fIdisplay\fP\^, Window \fIparent\fP\^, int \fIx\fP\^, int \fIy\fP\^, unsigned int \fIwidth\fP\^, unsigned int \fIheight\fP\^, unsigned int \fIborder_width\fP\^, unsigned long \fIborder\fP\^, unsigned long \fIbackground\fP\^); 
+Window XCreateSimpleWindow\^(\^Display *\fIdisplay\fP\^, Window \fIparent\fP\^, int \fIx\fP\^, int \fIy\fP\^, unsigned int \fIwidth\fP\^, unsigned int \fIheight\fP\^, unsigned int \fIborder_width\fP\^, unsigned long \fIborder\fP\^, unsigned long \fIbackground\fP\^);
 .SH ARGUMENTS
 .IP \fIattributes\fP 1i
 Specifies the structure from which the values (as specified by the value mask)
@@ -106,15 +73,15 @@ Specifies the created window's class.
 You can pass
 .BR InputOutput ,
 .BR InputOnly ,
-or 
+or
 .BR CopyFromParent .
-A class of 
+A class of
 .B CopyFromParent
 means the class
 is taken from the parent.
 .IP \fIdepth\fP 1i
 Specifies the window's depth.
-A depth of 
+A depth of
 .B CopyFromParent
 means the depth is taken from the parent.
 .IP \fIdisplay\fP 1i
@@ -129,32 +96,32 @@ If valuemask is zero,
 the attributes are ignored and are not referenced.
 .IP \fIvisual\fP 1i
 Specifies the visual type.
-A visual of 
+A visual of
 .B CopyFromParent
-means the visual type is taken from the 
+means the visual type is taken from the
 parent.
 .IP \fIwidth\fP 1i
 .br
 .ns
 .IP \fIheight\fP 1i
-Specify the width and height, which are the created window's inside dimensions 
+Specify the width and height, which are the created window's inside dimensions
 and do not include the created window's borders.
 .IP \fIx\fP 1i
 .br
 .ns
 .IP \fIy\fP 1i
-Specify the x and y coordinates, which are the top-left outside 
-corner of the window's 
+Specify the x and y coordinates, which are the top-left outside
+corner of the window's
 borders and are relative to the inside of the parent window's borders.
 .SH DESCRIPTION
 The
 .B XCreateWindow
-function creates an unmapped subwindow for a specified parent window, 
-returns the window ID of the created window, 
+function creates an unmapped subwindow for a specified parent window,
+returns the window ID of the created window,
 and causes the X server to generate a
 .B CreateNotify
 event.
-The created window is placed on top in the stacking order 
+The created window is placed on top in the stacking order
 with respect to siblings.
 .LP
 The coordinate system has the X axis horizontal and the Y axis vertical
@@ -163,7 +130,7 @@ Coordinates are integral,
 in terms of pixels,
 and coincide with pixel centers.
 Each window and pixmap has its own coordinate system.
-For a window, 
+For a window,
 the origin is inside the border at the inside, upper-left corner.
 .LP
 The border_width for an
@@ -178,7 +145,7 @@ or a
 .B BadMatch
 error results.
 The depth need not be the same as the parent,
-but the parent must not be a window of class 
+but the parent must not be a window of class
 .BR InputOnly ,
 or a
 .B BadMatch
@@ -200,11 +167,11 @@ The created window is not yet displayed (mapped) on the user's display.
 To display the window, call
 .BR XMapWindow .
 The new window initially uses the same cursor as
-its parent. 
+its parent.
 A new cursor can be defined for the new window by calling
 .BR XDefineCursor .
 .IN "Cursor" "Initial State"
-.IN "XDefineCursor" 
+.IN "XDefineCursor"
 The window will not be visible on the screen unless it and all of its
 ancestors are mapped and it is not obscured by any of its ancestors.
 .LP
@@ -228,7 +195,7 @@ subwindow for a specified parent window, returns the
 window ID of the created window, and causes the X server to generate a
 .B CreateNotify
 event.
-The created window is placed on top in the stacking order with respect to 
+The created window is placed on top in the stacking order with respect to
 siblings.
 Any part of the window that extends outside its parent window is clipped.
 The border_width for an
@@ -238,7 +205,7 @@ window must be zero, or a
 error results.
 .B XCreateSimpleWindow
 inherits its depth, class, and visual from its parent.
-All other window attributes, except background and border, 
+All other window attributes, except background and border,
 have their default values.
 .LP
 .B XCreateSimpleWindow
@@ -365,7 +332,7 @@ T}	T{
 T}
 .TE
 .IN "XSetWindowAttributes" "" "@DEF@"
-.Ds 0
+.EX
 /\&* Values */
 
 typedef struct {
@@ -385,7 +352,7 @@ typedef struct {
         Colormap colormap;      /\&* color map to be associated with window */
         Cursor cursor;          /\&* cursor to be displayed (or None) */
 } XSetWindowAttributes;
-.De
+.EE
 .LP
 For a detailed explanation of the members of this structure,
 see \fI\*(xL\fP\^.
@@ -415,17 +382,18 @@ A value for a Pixmap argument does not name a defined Pixmap.
 .B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
-by the argument's type is accepted.  Any argument defined as a set of
+by the argument's type is accepted.
+Any argument defined as a set of
 alternatives can generate this error.
 .TP 1i
 .B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
 XChangeWindowAttributes(__libmansuffix__),
-XConfigureWindow(__libmansuffix__), 
+XConfigureWindow(__libmansuffix__),
 XDefineCursor(__libmansuffix__),
-XDestroyWindow(__libmansuffix__), 
-XMapWindow(__libmansuffix__), 
+XDestroyWindow(__libmansuffix__),
+XMapWindow(__libmansuffix__),
 XRaiseWindow(__libmansuffix__),
 XUnmapWindow(__libmansuffix__)
 .br

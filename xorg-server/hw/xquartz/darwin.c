@@ -34,7 +34,6 @@
 
 #include <X11/X.h>
 #include <X11/Xproto.h>
-#include "buildDateTime.h"
 #include "os.h"
 #include "servermd.h"
 #include "inputstr.h"
@@ -169,7 +168,6 @@ DarwinPrintBanner(void)
 {
     ErrorF("Xquartz starting:\n");
     ErrorF("X.Org X Server %s\n", XSERVER_VERSION);
-    ErrorF("Build Date: %d\n", BUILD_DATE);
 }
 
 /*

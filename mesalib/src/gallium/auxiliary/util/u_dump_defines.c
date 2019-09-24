@@ -418,6 +418,7 @@ static const char *
 util_query_type_short_names[] = {
    "occlusion_counter",
    "occlusion_predicate",
+   "occlusion_predicate_conservative",
    "timestamp",
    "timestamp_disjoint",
    "time_elapsed",
@@ -425,6 +426,7 @@ util_query_type_short_names[] = {
    "primitives_emitted",
    "so_statistics",
    "so_overflow_predicate",
+   "so_overflow_any_predicate",
    "gpu_finished",
    "pipeline_statistics",
 };

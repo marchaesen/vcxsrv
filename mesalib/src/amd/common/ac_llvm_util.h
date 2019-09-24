@@ -28,6 +28,7 @@
 
 #include <stdbool.h>
 #include <llvm-c/TargetMachine.h>
+#include <llvm/Config/llvm-config.h>
 
 #include "amd_family.h"
 
@@ -152,7 +153,7 @@ ac_has_vec3_support(enum chip_class chip, bool use_format)
 		return false;
 	}
 
-	return HAVE_LLVM >= 0x900;
+	return LLVM_VERSION_MAJOR >= 9;
 }
 
 #ifdef __cplusplus

@@ -97,6 +97,8 @@ compDestroyDamage(DamagePtr pDamage, void *closure)
     CompWindowPtr cw = GetCompWindow(pWin);
 
     cw->damage = 0;
+    cw->damaged = 0;
+    cw->damageRegistered = 0;
 }
 
 static Bool

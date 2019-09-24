@@ -30,12 +30,12 @@
 
 /* definitions needed to include Dtrace probes in a source file */
 
-#if XSERVER_DTRACE
+#ifdef XSERVER_DTRACE
 #include <sys/types.h>
 typedef const char *string;
 typedef const uint8_t *const_uint8_p;
 typedef const double *const_double_p;
-#include "../dix/Xserver-dtrace.h"
+#include "Xserver-dtrace.h"
 #endif
 
 #endif /* XORG_PROBES_H */

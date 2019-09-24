@@ -40,46 +40,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
+.\" It is provided "as is" without express or implied warranty.
 .\"
-.\" 
+.\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 '\" t
 .TH XmbLookupString __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
@@ -88,15 +55,15 @@ XmbLookupString, XwcLookupString, Xutf8LookupString \- obtain composed input fro
 .HP
 int XmbLookupString\^(\^XIC \fIic\fP\^, XKeyPressedEvent *\fIevent\fP, char
 *\fIbuffer_return\fP\^, int \fIbytes_buffer\fP\^, KeySym
-*\fIkeysym_return\fP\^, Status *\fIstatus_return\fP\^); 
+*\fIkeysym_return\fP\^, Status *\fIstatus_return\fP\^);
 .HP
 int XwcLookupString\^(\^XIC \fIic\fP\^, XKeyPressedEvent *\fIevent\fP\^,
 wchar_t *\fIbuffer_return\fP\^, int \fIwchars_buffer\fP\^, KeySym
-*\fIkeysym_return\fP\^, Status *\fIstatus_return\fP\^); 
+*\fIkeysym_return\fP\^, Status *\fIstatus_return\fP\^);
 .HP
 int Xutf8LookupString\^(\^XIC \fIic\fP\^, XKeyPressedEvent *\fIevent\fP, char
 *\fIbuffer_return\fP\^, int \fIbytes_buffer\fP\^, KeySym
-*\fIkeysym_return\fP\^, Status *\fIstatus_return\fP\^); 
+*\fIkeysym_return\fP\^, Status *\fIstatus_return\fP\^);
 .SH ARGUMENTS
 .IP \fIbuffer_return\fP 1i
 Returns a multibyte string or wide character string (if any)
@@ -154,24 +121,24 @@ begins in the initial state of the encoding of the locale
 (if the encoding of the locale is state-dependent).
 .LP
 Note: To ensure proper input processing,
-it is essential that the client pass only 
+it is essential that the client pass only
 .B KeyPress
 events to
 .BR XmbLookupString ,
 .B XwcLookupString
 and
 .BR Xutf8LookupString .
-Their behavior when a client passes a 
+Their behavior when a client passes a
 .B KeyRelease
 event is undefined.
 .LP
 Clients should check the status_return argument before
 using the other returned values.
-These three functions each return a value to status_return 
+These three functions each return a value to status_return
 that indicates what has been returned in the other arguments.
 The possible values returned are:
 .TS
-lw(1.5i) lw(4.3i).
+lw(1.3i) lw(4.3i).
 T{
 .B XBufferOverflow
 T}	T{
@@ -190,7 +157,7 @@ T{
 .B XLookupNone
 T}	T{
 No consistent input has been composed so far.
-The contents of buffer_return and keysym_return are not modified, 
+The contents of buffer_return and keysym_return are not modified,
 and the function returns zero.
 T}
 T{
@@ -237,8 +204,9 @@ even though it does not have any more keyboard focus.
 .LP
 The function
 .B Xutf8LookupString
-is an extension introduced by The XFree86 Project, Inc. in their 4.0.2
-release. Its presence is
+is an extension introduced by The XFree86 Project, Inc., in their 4.0.2
+release.
+Its presence is
 indicated by the macro
 .BR X_HAVE_UTF8_STRING .
 .SH "SEE ALSO"

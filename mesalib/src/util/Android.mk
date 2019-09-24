@@ -50,6 +50,8 @@ LOCAL_SHARED_LIBRARIES := \
 	libexpat
 endif
 
+LOCAL_SHARED_LIBRARIES += liblog
+
 LOCAL_MODULE := libmesa_util
 
 # Generated sources

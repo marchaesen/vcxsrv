@@ -39,46 +39,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 '\" e
 .TH XrmGetResource __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
@@ -89,21 +56,21 @@ XrmGetResource, XrmQGetResource, XrmQGetSearchList, XrmQGetSearchResource \- ret
 .HP
 Bool XrmGetResource\^(\^XrmDatabase \fIdatabase\fP\^, char *\fIstr_name\fP\^,
 char *\fIstr_class\fP\^, char **\fIstr_type_return\fP\^, XrmValue
-*\fIvalue_return\fP\^); 
+*\fIvalue_return\fP\^);
 .HP
 Bool XrmQGetResource\^(\^XrmDatabase \fIdatabase\fP\^, XrmNameList
 \fIquark_name\fP\^, XrmClassList \fIquark_class\fP\^, XrmRepresentation
-*\fIquark_type_return\fP\^, XrmValue *\fIvalue_return\fP\^); 
+*\fIquark_type_return\fP\^, XrmValue *\fIvalue_return\fP\^);
 .HP
 typedef XrmHashTable *XrmSearchList;
 .sp
 Bool XrmQGetSearchList\^(\^XrmDatabase \fIdatabase\fP\^, XrmNameList
 \fInames\fP\^, XrmClassList \fIclasses\fP\^, XrmSearchList
-\fIlist_return\fP\^, int \fIlist_length\fP\^); 
+\fIlist_return\fP\^, int \fIlist_length\fP\^);
 .HP
 Bool XrmQGetSearchResource\^(\^XrmSearchList \fIlist\fP\^, XrmName
-\fIname\fP\^, XrmClass \fIclass\fP\^, XrmRepresentation *\fItype_return\fP\^, 
-XrmValue *\fIvalue_return\fP\^); 
+\fIname\fP\^, XrmClass \fIclass\fP\^, XrmRepresentation *\fItype_return\fP\^,
+XrmValue *\fIvalue_return\fP\^);
 .SH ARGUMENTS
 .IP \fIclass\fP 1i
 Specifies the resource class.
@@ -139,32 +106,32 @@ Returns data representation type.
 .IP \fIvalue_return\fP 1i
 Returns the value in the database.
 .SH DESCRIPTION
-The 
+The
 .B XrmGetResource
-and 
+and
 .B XrmQGetResource
 functions retrieve a resource from the specified database.
 Both take a fully qualified name/class pair, a destination
 resource representation, and the address of a value
-(size/address pair).  
+(size/address pair).
 The value and returned type point into database memory;
 therefore, you must not modify the data.
 .LP
 The database only frees or overwrites entries on
 .BR XrmPutResource ,
 .BR XrmQPutResource ,
-or 
+or
 .BR XrmMergeDatabases .
 A client that is not storing new values into the database or
-is not merging the database should be safe using the address passed 
+is not merging the database should be safe using the address passed
 back at any time until it exits.
 If a resource was found, both
 .B XrmGetResource
 and
 .B XrmQGetResource
-return 
+return
 .BR True ;
-otherwise, they return 
+otherwise, they return
 .BR False .
 .LP
 The
@@ -172,55 +139,55 @@ The
 function takes a list of names and classes
 and returns a list of database levels where a match might occur.
 The returned list is in best-to-worst order and
-uses the same algorithm as 
+uses the same algorithm as
 .B XrmGetResource
 for determining precedence.
 If list_return was large enough for the search list,
 .B XrmQGetSearchList
-returns 
+returns
 .BR True ;
 otherwise, it returns
 .BR False .
 .LP
 The size of the search list that the caller must allocate is
-dependent upon the number of levels and wildcards in the resource specifiers 
+dependent upon the number of levels and wildcards in the resource specifiers
 that are stored in the database.
 The worst case length is %3 sup n%,
 where \fIn\fP is the number of name or class components in names or classes.
 .LP
-When using 
+When using
 .B XrmQGetSearchList
 followed by multiple probes for resources with a common name and class prefix,
-only the common prefix should be specified in the name and class list to 
+only the common prefix should be specified in the name and class list to
 .BR XrmQGetSearchList .
 .LP
 The
 .B XrmQGetSearchResource
-function searches the specified database levels for the resource 
+function searches the specified database levels for the resource
 that is fully identified by the specified name and class.
 The search stops with the first match.
 .B XrmQGetSearchResource
-returns 
+returns
 .B True
 if the resource was found;
 otherwise, it returns
 .BR False .
 .LP
-A call to 
+A call to
 .B XrmQGetSearchList
-with a name and class list containing all but the last component 
-of a resource name followed by a call to 
+with a name and class list containing all but the last component
+of a resource name followed by a call to
 .B XrmQGetSearchResource
-with the last component name and class returns the same database entry as 
+with the last component name and class returns the same database entry as
 .B XrmGetResource
-and 
+and
 .B XrmQGetResource
 with the fully qualified name and class.
 .SH "MATCHING RULES"
 The algorithm for determining which resource database entry
 matches a given query is the heart of the resource manager.
 All queries must fully specify the name and class of the desired resource
-(use of the characters ``*'' and ``?'' are not permitted).
+(use of the characters \*(lq*\*(rq and \*(lq?\*(rq are not permitted).
 The library supports up to 100 components in a full name or class.
 Resources are stored in the database with only partially specified
 names and classes, using pattern matching constructs.
@@ -230,7 +197,7 @@ A period (.) is a tight binding and is used to separate immediately
 adjacent components.
 A question mark (?) is used to match any single component name or class.
 A database entry cannot end in a loose binding;
-the final component (which cannot be the character ``?'') must be specified.
+the final component (which cannot be the character \*(lq?\*(rq) must be specified.
 The lookup algorithm searches the database for the entry that most
 closely matches (is most specific for) the full name and class being queried.
 When more than one database entry matches the full name and class,
@@ -246,14 +213,14 @@ until a rule selects a single entry over all others.
 The rules, in order of precedence, are:
 .IP 1. 5
 An entry that contains a matching component (whether name, class,
-or the character ``?'')
+or the character \*(lq?\*(rq)
 takes precedence over entries that elide the level (that is, entries
 that match the level in a loose binding).
 .IP 2. 5
 An entry with a matching name takes precedence over both
-entries with a matching class and entries that match using the character ``?''.
+entries with a matching class and entries that match using the character \*(lq?\*(rq.
 An entry with a matching class takes precedence over
-entries that match using the character ``?''.
+entries that match using the character \*(lq?\*(rq.
 .IP 3. 5
 An entry preceded by a tight binding takes precedence over entries
 preceded by a loose binding.

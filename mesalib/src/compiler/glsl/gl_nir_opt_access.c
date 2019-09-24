@@ -56,8 +56,10 @@ gather_intrinsic(struct access_state *state, nir_intrinsic_instr *instr)
    switch (instr->intrinsic) {
    case nir_intrinsic_image_deref_store:
    case nir_intrinsic_image_deref_atomic_add:
-   case nir_intrinsic_image_deref_atomic_min:
-   case nir_intrinsic_image_deref_atomic_max:
+   case nir_intrinsic_image_deref_atomic_imin:
+   case nir_intrinsic_image_deref_atomic_umin:
+   case nir_intrinsic_image_deref_atomic_imax:
+   case nir_intrinsic_image_deref_atomic_umax:
    case nir_intrinsic_image_deref_atomic_and:
    case nir_intrinsic_image_deref_atomic_or:
    case nir_intrinsic_image_deref_atomic_xor:
@@ -82,8 +84,10 @@ gather_intrinsic(struct access_state *state, nir_intrinsic_instr *instr)
 
    case nir_intrinsic_bindless_image_store:
    case nir_intrinsic_bindless_image_atomic_add:
-   case nir_intrinsic_bindless_image_atomic_min:
-   case nir_intrinsic_bindless_image_atomic_max:
+   case nir_intrinsic_bindless_image_atomic_imin:
+   case nir_intrinsic_bindless_image_atomic_umin:
+   case nir_intrinsic_bindless_image_atomic_imax:
+   case nir_intrinsic_bindless_image_atomic_umax:
    case nir_intrinsic_bindless_image_atomic_and:
    case nir_intrinsic_bindless_image_atomic_or:
    case nir_intrinsic_bindless_image_atomic_xor:

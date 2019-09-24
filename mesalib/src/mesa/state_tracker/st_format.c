@@ -602,6 +602,47 @@ st_mesa_format_to_pipe_format(const struct st_context *st,
          return PIPE_FORMAT_R8G8B8A8_SRGB;
       return PIPE_FORMAT_ASTC_12x12_SRGB;
 
+   case MESA_FORMAT_RGBA_ASTC_3x3x3:
+      return PIPE_FORMAT_ASTC_3x3x3;
+   case MESA_FORMAT_RGBA_ASTC_4x3x3:
+      return PIPE_FORMAT_ASTC_4x3x3;
+   case MESA_FORMAT_RGBA_ASTC_4x4x3:
+      return PIPE_FORMAT_ASTC_4x4x3;
+   case MESA_FORMAT_RGBA_ASTC_4x4x4:
+      return PIPE_FORMAT_ASTC_4x4x4;
+   case MESA_FORMAT_RGBA_ASTC_5x4x4:
+      return PIPE_FORMAT_ASTC_5x4x4;
+   case MESA_FORMAT_RGBA_ASTC_5x5x4:
+      return PIPE_FORMAT_ASTC_5x5x4;
+   case MESA_FORMAT_RGBA_ASTC_5x5x5:
+      return PIPE_FORMAT_ASTC_5x5x5;
+   case MESA_FORMAT_RGBA_ASTC_6x5x5:
+      return PIPE_FORMAT_ASTC_6x5x5;
+   case MESA_FORMAT_RGBA_ASTC_6x6x5:
+      return PIPE_FORMAT_ASTC_6x6x5;
+   case MESA_FORMAT_RGBA_ASTC_6x6x6:
+      return PIPE_FORMAT_ASTC_6x6x6;
+   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_3x3x3:
+      return PIPE_FORMAT_ASTC_3x3x3_SRGB;
+   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_4x3x3:
+      return PIPE_FORMAT_ASTC_4x3x3_SRGB;
+   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_4x4x3:
+      return PIPE_FORMAT_ASTC_4x4x3_SRGB;
+   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_4x4x4:
+      return PIPE_FORMAT_ASTC_4x4x4_SRGB;
+   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_5x4x4:
+      return PIPE_FORMAT_ASTC_5x4x4_SRGB;
+   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_5x5x4:
+      return PIPE_FORMAT_ASTC_5x5x4_SRGB;
+   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_5x5x5:
+      return PIPE_FORMAT_ASTC_5x5x5_SRGB;
+   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_6x5x5:
+      return PIPE_FORMAT_ASTC_6x5x5_SRGB;
+   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_6x6x5:
+      return PIPE_FORMAT_ASTC_6x6x5_SRGB;
+   case MESA_FORMAT_SRGB8_ALPHA8_ASTC_6x6x6:
+      return PIPE_FORMAT_ASTC_6x6x6_SRGB;
+
    case MESA_FORMAT_ATC_RGB:
       return PIPE_FORMAT_ATC_RGB;
    case MESA_FORMAT_ATC_RGBA_EXPLICIT:
@@ -1094,6 +1135,47 @@ st_pipe_format_to_mesa_format(enum pipe_format format)
       return MESA_FORMAT_SRGB8_ALPHA8_ASTC_12x10;
    case PIPE_FORMAT_ASTC_12x12_SRGB:
       return MESA_FORMAT_SRGB8_ALPHA8_ASTC_12x12;
+
+   case PIPE_FORMAT_ASTC_3x3x3:
+      return MESA_FORMAT_RGBA_ASTC_3x3x3;
+   case PIPE_FORMAT_ASTC_4x3x3:
+      return MESA_FORMAT_RGBA_ASTC_4x3x3;
+   case PIPE_FORMAT_ASTC_4x4x3:
+      return MESA_FORMAT_RGBA_ASTC_4x4x3;
+   case PIPE_FORMAT_ASTC_4x4x4:
+      return MESA_FORMAT_RGBA_ASTC_4x4x4;
+   case PIPE_FORMAT_ASTC_5x4x4:
+      return MESA_FORMAT_RGBA_ASTC_5x4x4;
+   case PIPE_FORMAT_ASTC_5x5x4:
+      return MESA_FORMAT_RGBA_ASTC_5x5x4;
+   case PIPE_FORMAT_ASTC_5x5x5:
+      return MESA_FORMAT_RGBA_ASTC_5x5x5;
+   case PIPE_FORMAT_ASTC_6x5x5:
+      return MESA_FORMAT_RGBA_ASTC_6x5x5;
+   case PIPE_FORMAT_ASTC_6x6x5:
+      return MESA_FORMAT_RGBA_ASTC_6x6x5;
+   case PIPE_FORMAT_ASTC_6x6x6:
+      return MESA_FORMAT_RGBA_ASTC_6x6x6;
+   case PIPE_FORMAT_ASTC_3x3x3_SRGB:
+      return MESA_FORMAT_SRGB8_ALPHA8_ASTC_3x3x3;
+   case PIPE_FORMAT_ASTC_4x3x3_SRGB:
+      return MESA_FORMAT_SRGB8_ALPHA8_ASTC_4x3x3;
+   case PIPE_FORMAT_ASTC_4x4x3_SRGB:
+      return MESA_FORMAT_SRGB8_ALPHA8_ASTC_4x4x3;
+   case PIPE_FORMAT_ASTC_4x4x4_SRGB:
+      return MESA_FORMAT_SRGB8_ALPHA8_ASTC_4x4x4;
+   case PIPE_FORMAT_ASTC_5x4x4_SRGB:
+      return MESA_FORMAT_SRGB8_ALPHA8_ASTC_5x4x4;
+   case PIPE_FORMAT_ASTC_5x5x4_SRGB:
+      return MESA_FORMAT_SRGB8_ALPHA8_ASTC_5x5x4;
+   case PIPE_FORMAT_ASTC_5x5x5_SRGB:
+      return MESA_FORMAT_SRGB8_ALPHA8_ASTC_5x5x5;
+   case PIPE_FORMAT_ASTC_6x5x5_SRGB:
+      return MESA_FORMAT_SRGB8_ALPHA8_ASTC_6x5x5;
+   case PIPE_FORMAT_ASTC_6x6x5_SRGB:
+      return MESA_FORMAT_SRGB8_ALPHA8_ASTC_6x6x5;
+   case PIPE_FORMAT_ASTC_6x6x6_SRGB:
+      return MESA_FORMAT_SRGB8_ALPHA8_ASTC_6x6x6;
 
    case PIPE_FORMAT_ATC_RGB:
       return MESA_FORMAT_ATC_RGB;
@@ -2182,6 +2264,13 @@ st_choose_format(struct st_context *st, GLenum internalFormat,
          internalFormat = GL_RGB10;
       else if (internalFormat == GL_RGBA)
          internalFormat = GL_RGB10_A2;
+   }
+
+   if (type == GL_UNSIGNED_SHORT_5_5_5_1) {
+      if (internalFormat == GL_RGB)
+         internalFormat = GL_RGB5;
+      else if (internalFormat == GL_RGBA)
+         internalFormat = GL_RGB5_A1;
    }
 
    /* search table for internalFormat */

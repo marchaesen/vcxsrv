@@ -700,7 +700,7 @@ make_texture(struct st_context *st,
                               unpack);
       }
       else {
-         bool MAYBE_UNUSED success;
+         ASSERTED bool success;
          success = _mesa_texstore(ctx, 2,           /* dims */
                                   baseInternalFormat, /* baseInternalFormat */
                                   mformat,          /* mesa_format */
@@ -750,7 +750,7 @@ draw_textured_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
    const unsigned fb_width = _mesa_geometric_width(ctx->DrawBuffer);
    const unsigned fb_height = _mesa_geometric_height(ctx->DrawBuffer);
    GLfloat x0, y0, x1, y1;
-   GLsizei MAYBE_UNUSED maxSize;
+   ASSERTED GLsizei maxSize;
    boolean normalized = sv[0]->texture->target == PIPE_TEXTURE_2D;
    unsigned cso_state_mask;
 
@@ -787,8 +787,10 @@ draw_textured_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
                                         ctx->Color._ClampFragmentColor;
       rasterizer.half_pixel_center = 1;
       rasterizer.bottom_edge_rule = 1;
-      rasterizer.depth_clip_near = !ctx->Transform.DepthClampNear;
-      rasterizer.depth_clip_far = !ctx->Transform.DepthClampFar;
+      rasterizer.depth_clip_near = st->clamp_frag_depth_in_shader ||
+                                   !ctx->Transform.DepthClampNear;
+      rasterizer.depth_clip_far = st->clamp_frag_depth_in_shader ||
+                                  !ctx->Transform.DepthClampFar;
       rasterizer.scissor = ctx->Scissor.EnableFlags;
       cso_set_rasterizer(cso, &rasterizer);
    }
@@ -1261,6 +1263,34 @@ setup_sampler_swizzle(struct pipe_sampler_view *sv, GLenum format, GLenum type)
 
 
 /**
+ * Compute the effective raster z position. This performs depth-clamping
+ * if needed.
+ */
+static float
+get_effective_raster_z(struct gl_context *ctx)
+{
+   float z = ctx->Current.RasterPos[2];
+   if (st_context(ctx)->clamp_frag_depth_in_shader) {
+      GLfloat depth_near;
+      GLfloat depth_far;
+      if (ctx->ViewportArray[0].Near < ctx->ViewportArray[0].Far) {
+         depth_near = ctx->ViewportArray[0].Near;
+         depth_far = ctx->ViewportArray[0].Far;
+      } else {
+         depth_near = ctx->ViewportArray[0].Far;
+         depth_far = ctx->ViewportArray[0].Near;
+      }
+
+      if (ctx->Transform.DepthClampNear)
+         z = MAX2(z, depth_near);
+      if (ctx->Transform.DepthClampFar)
+         z = MIN2(z, depth_far);
+   }
+   return z;
+}
+
+
+/**
  * Called via ctx->Driver.DrawPixels()
  */
 static void
@@ -1376,7 +1406,7 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
       num_sampler_view++;
    }
 
-   draw_textured_quad(ctx, x, y, ctx->Current.RasterPos[2],
+   draw_textured_quad(ctx, x, y, get_effective_raster_z(ctx),
                       width, height,
                       ctx->Pixel.ZoomX, ctx->Pixel.ZoomY,
                       sv,
@@ -1851,7 +1881,8 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
    /* OK, the texture 'pt' contains the src image/pixels.  Now draw a
     * textured quad with that texture.
     */
-   draw_textured_quad(ctx, dstx, dsty, ctx->Current.RasterPos[2],
+
+   draw_textured_quad(ctx, dstx, dsty, get_effective_raster_z(ctx),
                       width, height, ctx->Pixel.ZoomX, ctx->Pixel.ZoomY,
                       sv,
                       num_sampler_view,

@@ -40,46 +40,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
+.\" It is provided "as is" without express or implied warranty.
 .\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 '\" t
 .TH XmbTextListToTextProperty __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
@@ -88,27 +55,27 @@ XmbTextListToTextProperty, XwcTextListToTextProperty, Xutf8TextListToTextPropert
 .HP
 int XmbTextListToTextProperty\^(\^Display *\fIdisplay\fP\^, char
 **\fIlist\fP\^, int \fIcount\fP\^, XICCEncodingStyle \fIstyle\fP\^,
-XTextProperty *\fItext_prop_return\fP\^); 
+XTextProperty *\fItext_prop_return\fP\^);
 .HP
 int XwcTextListToTextProperty\^(\^Display *\fIdisplay\fP\^, wchar_t
 **\fIlist\fP\^, int \fIcount\fP\^, XICCEncodingStyle \fIstyle\fP\^,
-XTextProperty *\fItext_prop_return\fP\^); 
+XTextProperty *\fItext_prop_return\fP\^);
 .HP
 int Xutf8TextListToTextProperty\^(\^Display *\fIdisplay\fP\^, char
 **\fIlist\fP\^, int \fIcount\fP\^, XICCEncodingStyle \fIstyle\fP\^,
-XTextProperty *\fItext_prop_return\fP\^); 
+XTextProperty *\fItext_prop_return\fP\^);
 .HP
 int XmbTextPropertyToTextList\^(\^Display *\fIdisplay\fP\^, XTextProperty
-*\fItext_prop\fP\^, char ***\fIlist_return\fP\^, int *\fIcount_return\fP\^); 
+*\fItext_prop\fP\^, char ***\fIlist_return\fP\^, int *\fIcount_return\fP\^);
 .HP
 int XwcTextPropertyToTextList\^(\^Display *\fIdisplay\fP\^, XTextProperty
 *\fItext_prop\fP\^, wchar_t ***\fIlist_return\fP\^, int
-*\fIcount_return\fP\^); 
+*\fIcount_return\fP\^);
 .HP
 int Xutf8TextPropertyToTextList\^(\^Display *\fIdisplay\fP\^, XTextProperty
-*\fItext_prop\fP\^, char ***\fIlist_return\fP\^, int *\fIcount_return\fP\^); 
+*\fItext_prop\fP\^, char ***\fIlist_return\fP\^, int *\fIcount_return\fP\^);
 .HP
-void XwcFreeStringList\^(\^wchar_t **\fIlist\fP\^); 
+void XwcFreeStringList\^(\^wchar_t **\fIlist\fP\^);
 .HP
 char *XDefaultString\^(void)
 .SH ARGUMENTS
@@ -140,10 +107,11 @@ The
 .B XwcTextListToTextProperty
 and
 .B Xutf8TextListToTextProperty
-functions set the specified 
+functions set the specified
 .B XTextProperty
 value to a set of null-separated elements representing the concatenation
-of the specified list of null-terminated text strings. The input text
+of the specified list of null-terminated text strings.
+The input text
 strings must be given in the current locale encoding (for
 .B XmbTextListToTextProperty
 and
@@ -153,40 +121,41 @@ or in UTF-8 encoding (for
 .LP
 The functions set the encoding field of text_prop_return to an
 .B Atom
-for the specified display 
+for the specified display
 naming the encoding determined by the specified style
 and convert the specified text list to this encoding for storage in
 the text_prop_return value field.
-If the style 
+If the style
 .B XStringStyle
-or 
+or
 .B XCompoundTextStyle
 is specified,
-this encoding is ``STRING'' or ``COMPOUND_TEXT'', respectively.
+this encoding is \*(lqSTRING\*(rq or \*(lqCOMPOUND_TEXT\*(rq, respectively.
 If the style
 .B XUTF8StringStyle
 is specified,
-this encoding is ``UTF8_STRING''. 
-(This is an extension introduced by The XFree86 Project, Inc. in their 4.0.2
-release. Its presence is indicated by the macro
+this encoding is \*(lqUTF8_STRING\*(rq.
+(This is an extension introduced by The XFree86 Project, Inc., in their 4.0.2
+release.
+Its presence is indicated by the macro
 .BR X_HAVE_UTF8_STRING .)
-If the style 
+If the style
 .B XTextStyle
 is specified,
 this encoding is the encoding of the current locale.
-If the style 
+If the style
 .B XStdICCTextStyle
 is specified,
-this encoding is ``STRING'' if the text is fully convertible to STRING,
-else ``COMPOUND_TEXT''.
-A final terminating null byte is stored at the end of the value field 
+this encoding is \*(lqSTRING\*(rq if the text is fully convertible to STRING,
+else \*(lqCOMPOUND_TEXT\*(rq.
+A final terminating null byte is stored at the end of the value field
 of text_prop_return but is not included in the nitems member.
 .LP
 If insufficient memory is available for the new value string,
-the functions return 
+the functions return
 .BR XNoMemory .
 If the current locale is not supported,
-the functions return 
+the functions return
 .BR XLocaleNotSupported .
 In both of these error cases,
 the functions do not set text_prop_return.
@@ -200,24 +169,25 @@ If the supplied text is not fully convertible to the specified encoding,
 the functions return the number of unconvertible characters.
 Each unconvertible character is converted to an implementation-defined and
 encoding-specific default string.
-Otherwise, the functions return 
+Otherwise, the functions return
 .BR Success .
-Note that full convertibility to all styles except 
+Note that full convertibility to all styles except
 .B XStringStyle
 is guaranteed.
 .LP
 To free the storage for the value field, use
 .BR XFree .
 .LP
-The 
+The
 .BR XmbTextPropertyToTextList ,
 .B XwcTextPropertyToTextList
-and 
+and
 .B Xutf8TextPropertyToTextList
 functions return a list of text strings representing the
 null-separated elements of the specified
 .B XTextProperty
-structure. The returned strings are encoded using the current locale encoding
+structure.
+The returned strings are encoded using the current locale encoding
 (for
 .B XmbTextPropertyToTextList
 and
@@ -236,12 +206,12 @@ If insufficient memory is available for the list and its elements,
 .B XwcTextPropertyToTextList
 and
 .B Xutf8TextPropertyToTextList
-return 
+return
 .BR XNoMemory .
 If the current locale is not supported,
 the functions return
 .BR XLocaleNotSupported .
-Otherwise, if the encoding field of text_prop is not convertible 
+Otherwise, if the encoding field of text_prop is not convertible
 to the encoding of the current locale,
 the functions return
 .BR XConverterNotFound .
@@ -249,7 +219,7 @@ For supported locales,
 existence of a converter from COMPOUND_TEXT, STRING, UTF8_STRING
 or the encoding of the current locale is guaranteed if
 .B XSupportsLocale
-returns 
+returns
 .B True
 for the current locale (but the actual text
 may contain unconvertible characters).
@@ -257,7 +227,7 @@ Conversion of other encodings is implementation-dependent.
 In all of these error cases,
 the functions do not set any return values.
 .LP
-Otherwise, 
+Otherwise,
 .BR XmbTextPropertyToTextList ,
 .B XwcTextPropertyToTextList
 and
@@ -270,7 +240,7 @@ encoding of the current locale,
 the functions return the number of unconvertible characters.
 Each unconvertible character is converted to a string in the
 current locale that is specific to the current locale.
-To obtain the value of this string, 
+To obtain the value of this string,
 use
 .BR XDefaultString .
 Otherwise,
@@ -278,7 +248,7 @@ Otherwise,
 .B XwcTextPropertyToTextList
 and
 .B Xutf8TextPropertyToTextList
-return 
+return
 .BR Success .
 .LP
 To free the storage for the list and its contents returned by
@@ -300,9 +270,9 @@ function frees memory allocated by
 The
 .B XDefaultString
 function returns the default string used by Xlib for text conversion
-(for example, in 
+(for example, in
 .BR XmbTextPropertyToTextList ).
-The default string is the string in the current locale that is output 
+The default string is the string in the current locale that is output
 when an unconvertible character is found during text conversion.
 If the string returned by
 .B XDefaultString
@@ -311,10 +281,10 @@ no character is output in the converted text.
 .B XDefaultString
 does not return NULL.
 .LP
-The string returned by 
+The string returned by
 .B XDefaultString
 is independent of the default string for text drawing;
-see 
+see
 .B XCreateFontSet
 to obtain the default string for an
 .BR XFontSet .
@@ -331,8 +301,9 @@ The functions
 .B Xutf8TextListToTextProperty
 and
 .B Xutf8TextPropertyToTextList
-are extensions introduced by The XFree86 Project, Inc. in their 4.0.2
-release. Their presence is
+are extensions introduced by The XFree86 Project, Inc., in their 4.0.2
+release.
+Their presence is
 indicated by the macro
 .BR X_HAVE_UTF8_STRING .
 .SH STRUCTURES
@@ -340,14 +311,14 @@ The
 .B XTextProperty
 structure contains:
 .LP
-.Ds 0
+.EX
 typedef struct {
         unsigned char *value;   /\&* property data */
         Atom encoding;  /\&* type of property */
         int format;     /\&* 8, 16, or 32 */
         unsigned long nitems;   /\&* number of items in value */
 } XTextProperty;
-.De
+.EE
 .LP
 The
 .B XICCEncodingStyle
@@ -377,7 +348,7 @@ T}	T{
 \-3
 T}
 .TE
-.Ds 0
+.EX
 typedef enum {
         XStringStyle,           /\&* STRING */
         XCompoundTextStyle,     /\&* COMPOUND_TEXT */
@@ -385,7 +356,7 @@ typedef enum {
         XStdICCTextStyle,       /\&* STRING, else COMPOUND_TEXT */
         XUTF8StringStyle        /\&* UTF8_STRING */
 } XICCEncodingStyle;
-.De
+.EE
 .SH "SEE ALSO"
 XSetTextProperty(__libmansuffix__),
 XStringListToTextProperty(__libmansuffix__)

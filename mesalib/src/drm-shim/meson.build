@@ -24,9 +24,8 @@ drm_shim = static_library(
     'device.c',
     'drm_shim.c',
   ],
-  link_with: libmesa_util,
   include_directories: [inc_common],
-  dependencies: [dep_dl],
+  dependencies: [idep_mesautil, dep_dl],
   c_args : [c_vis_args, '-std=gnu99'],
 )
 dep_drm_shim = declare_dependency(

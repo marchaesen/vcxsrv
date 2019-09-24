@@ -134,31 +134,34 @@ such items should be included at the start or at the end of the menu.
 
 
 .SH Icon Instructions
-When specifying an \fIicon-file\fP in the following commands several different formats are allowed:
+When specifying an \fIicon-specifier\fP in the following commands several different formats are allowed:
+.PP
+.IP \fI"NAME.ICO"\fP 16
+filename of an .ico format file
 .br
-\fB"NAME.ICO"\fP\fI of an .ico format file\fP
+(e.g. "cygwin.ico", "apple.ico", "C:\\icons\\cheese.ico", "/usr/share/icons/moon.ico")
+.IP \fI"NAME.DLL,nnn"\fP 16
+filename of a DLL with an index into it's ICON resources
 .br
-\t \t ("cygwin.ico", "apple.ico")
+(e.g. "c:\\windows\\system32\\shell32.dll,4", the default folder icon,
+      "/usr/bin/cygicons-0.dll,10", the hippo icon)
+.IP \fI",nnn"\fP 16
+index into the XWin executable's internal ICON resources
 .br
-\fB"NAME.DLL,nn"\fP\fI of a .DLL and icon index\fP
-.br
-\t \t ("c:\\windows\\system32\\shell32.dll,4" is the default folder icon)
-.br
-\fB",nnn"\fP\fI index into XWin.EXE internal ICON resources\fP
-.br
-\t \t (",101" is the 1st icon inside \fIXWin.EXE\fP)
+(e.g. ",101" is the 1st icon in \fIXWin\fP)
 .TP 8
 .B ICONDIRECTORY \fIWindows-path-to-icon-directory\fP
-Defines the default directory to search for \ficon-file\fP files.
+Defines the default directory for the file when an \fIicon-specifier\fP doesn't
+contain an absolute path.
 It should be a \fIWindows\fP style path (e.g. C:\\cygwin\\usr\\local\\icons).
 .TP 8
-.B DEFAULTICON \fIicon-file\fP
+.B DEFAULTICON \fIicon-specifier\fP
 Defines a replacement for the standard X icon for applications without
 specified icons.
 .TP 8
 .B ICONS {
 .br
- \fIclass-or-name-of-window\fP \fIicon-file\fP
+ \fIclass-or-name-of-window\fP \fIicon-specifier\fP
 .br
   \fI...\fP
 .br

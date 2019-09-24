@@ -38,46 +38,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XCrossingEvent __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XCrossingEvent \- EnterNotify and LeaveNotify event structure
@@ -88,13 +55,13 @@ and
 .B LeaveNotify
 events contains:
 .LP
-.Ds 0
+.EX
 typedef struct {
         int type;       /\&* EnterNotify or LeaveNotify */
         unsigned long serial;   /\&* # of last request processed by server */
         Bool send_event;        /\&* true if this came from a SendEvent request */
         Display *display;       /\&* Display the event was read from */
-        Window window;  /\&* ``event'' window reported relative to */
+        Window window;  /\&* \*(lqevent\*(rq window reported relative to */
         Window root;    /\&* root window that the event occurred on */
         Window subwindow;       /\&* child window */
         Time time;      /\&* milliseconds */
@@ -103,7 +70,7 @@ typedef struct {
         int mode;       /\&* NotifyNormal, NotifyGrab, NotifyUngrab */
         int detail;
                 /\&*
-                * NotifyAncestor, NotifyVirtual, NotifyInferior, 
+                * NotifyAncestor, NotifyVirtual, NotifyInferior,
                 * NotifyNonlinear,NotifyNonlinearVirtual
                 */
         Bool same_screen;       /\&* same screen flag */
@@ -112,7 +79,7 @@ typedef struct {
 } XCrossingEvent;
 typedef XCrossingEvent XEnterWindowEvent;
 typedef XCrossingEvent XLeaveWindowEvent;
-.De
+.EE
 .LP
 When you receive these events,
 the structure members are set as follows.
@@ -140,10 +107,10 @@ The window member is set to the window on which the
 .B EnterNotify
 or
 .B LeaveNotify
-event was generated and is referred to as the event window. 
-This is the window used by the X server to report the event, 
+event was generated and is referred to as the event window.
+This is the window used by the X server to report the event,
 and is relative to the root
-window on which the event occurred. 
+window on which the event occurred.
 The root member is set to the root window of the screen
 on which the event occurred.
 .LP
@@ -156,19 +123,19 @@ Otherwise, the X server sets the subwindow member to
 .BR None .
 For an
 .B EnterNotify
-event, if a child of the event window contains the final pointer position, 
+event, if a child of the event window contains the final pointer position,
 the subwindow component is set to that child or
 .BR None .
 .LP
 The time member is set to the time when the event was generated
 and is expressed in milliseconds.
-The x and y members are set to the coordinates of the pointer position in 
+The x and y members are set to the coordinates of the pointer position in
 the event window.
 This position is always the pointer's final position,
 not its initial position.
 If the event window is on the same
 screen as the root window, x and y are the pointer coordinates
-relative to the event window's origin. 
+relative to the event window's origin.
 Otherwise, x and y are set to zero.
 The x_root and y_root members are set to the pointer's coordinates relative to the
 root window's origin at the time of the event.
@@ -201,7 +168,7 @@ the event window is not the focus window or an inferior of the focus window.
 The state member is set to indicate the state of the pointer buttons and
 modifier keys just prior to the
 event.
-The X server can set this member to the bitwise inclusive OR of one 
+The X server can set this member to the bitwise inclusive OR of one
 or more of the button or modifier key masks:
 .BR Button1Mask ,
 .BR Button2Mask ,
@@ -217,10 +184,10 @@ or more of the button or modifier key masks:
 .BR Mod4Mask ,
 .BR Mod5Mask .
 .LP
-The mode member is set to indicate whether the events are normal events, 
+The mode member is set to indicate whether the events are normal events,
 pseudo-motion events
 when a grab activates, or pseudo-motion events when a grab deactivates.
-The X server can set this member to 
+The X server can set this member to
 .BR NotifyNormal ,
 .BR NotifyGrab ,
 or

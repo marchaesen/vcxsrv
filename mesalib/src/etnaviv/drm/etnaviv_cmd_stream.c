@@ -150,21 +150,25 @@ static uint32_t bo2idx(struct etna_cmd_stream *stream, struct etna_bo *bo,
 
 	pthread_mutex_lock(&idx_lock);
 
-	if (!bo->current_stream) {
-		idx = append_bo(stream, bo);
-		bo->current_stream = stream;
-		bo->idx = idx;
-	} else if (bo->current_stream == stream) {
+	if (bo->current_stream == stream) {
 		idx = bo->idx;
 	} else {
-		/* slow-path: */
-		for (idx = 0; idx < priv->nr_bos; idx++)
-			if (priv->bos[idx] == bo)
-				break;
-		if (idx == priv->nr_bos) {
-			/* not found */
+		void *val;
+
+		if (!priv->bo_table)
+			priv->bo_table = drmHashCreate();
+
+		if (!drmHashLookup(priv->bo_table, bo->handle, &val)) {
+			/* found */
+			idx = (uint32_t)(uintptr_t)val;
+		} else {
 			idx = append_bo(stream, bo);
+			val = (void *)(uintptr_t)idx;
+			drmHashInsert(priv->bo_table, bo->handle, val);
 		}
+
+		bo->current_stream = stream;
+		bo->idx = idx;
 	}
 	pthread_mutex_unlock(&idx_lock);
 
@@ -217,6 +221,11 @@ static void flush(struct etna_cmd_stream *stream, int in_fence_fd,
 
 		bo->current_stream = NULL;
 		etna_bo_del(bo);
+	}
+
+	if (priv->bo_table) {
+		drmHashDestroy(priv->bo_table);
+		priv->bo_table = NULL;
 	}
 
 	if (out_fence_fd)

@@ -361,6 +361,10 @@ nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint)
    shader->info.num_textures = 0;
    shader->info.num_images = 0;
    nir_foreach_variable(var, &shader->uniforms) {
+      /* Bindless textures and images don't use non-bindless slots. */
+      if (var->data.bindless)
+         continue;
+
       shader->info.num_textures += glsl_type_get_sampler_count(var->type);
       shader->info.num_images += glsl_type_get_image_count(var->type);
    }

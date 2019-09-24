@@ -38,46 +38,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XReadBitmapFile __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XReadBitmapFile, XReadBitmapFileData, XWriteBitmapFile, XCreatePixmapFromBitmapData, XCreateBitmapFromData \- manipulate bitmaps
@@ -86,30 +53,30 @@ XReadBitmapFile, XReadBitmapFileData, XWriteBitmapFile, XCreatePixmapFromBitmapD
 int XReadBitmapFile(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^, char
 *\fIfilename\fP\^, unsigned int *\fIwidth_return\fP, unsigned int
 *\fIheight_return\fP\^, Pixmap *\fIbitmap_return\fP\^, int
-*\fIx_hot_return\fP, int *\fIy_hot_return\fP\^); 
+*\fIx_hot_return\fP, int *\fIy_hot_return\fP\^);
 .HP
 int XReadBitmapFileData(\^char *\fIfilename\fP\^, unsigned int
 *\fIwidth_return\fP, unsigned int *\fIheight_return\fP\^, unsigned char
-*\fIdata_return\fP\^, int *\fIx_hot_return\fP, int *\fIy_hot_return\fP\^); 
+*\fIdata_return\fP\^, int *\fIx_hot_return\fP, int *\fIy_hot_return\fP\^);
 .HP
 int XWriteBitmapFile(\^Display *\fIdisplay\fP\^, char *\fIfilename\fP\^,
 Pixmap \fIbitmap\fP\^, unsigned int \fIwidth\fP, unsigned int \fIheight\fP\^,
-int \fIx_hot\fP, int \fIy_hot\fP\^); 
+int \fIx_hot\fP, int \fIy_hot\fP\^);
 .HP
 Pixmap XCreatePixmapFromBitmapData\^(\^Display *\fIdisplay\fP\^, Drawable
 \fId\fP\^, char *\fIdata\fP\^, unsigned int \fIwidth\fP, unsigned int
 \fIheight\fP\^, unsigned long \fIfg\fP, unsigned long \fIbg\fP\^, unsigned int
-\fIdepth\fP\^); 
+\fIdepth\fP\^);
 .HP
 Pixmap XCreateBitmapFromData(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^,
-char *\fIdata\fP\^, unsigned int \fIwidth\fP, unsigned int \fIheight\fP\^); 
+char *\fIdata\fP\^, unsigned int \fIwidth\fP, unsigned int \fIheight\fP\^);
 .SH ARGUMENTS
 .IP \fIbitmap\fP 1i
 Specifies the bitmap.
 .IP \fIbitmap_return\fP 1i
 Returns the bitmap that is created.
 .IP \fId\fP 1i
-Specifies the drawable that indicates the screen. 
+Specifies the drawable that indicates the screen.
 .IP \fIdata\fP 1i
 Specifies the data in bitmap format.
 .IP \fIdata\fP 1i
@@ -154,29 +121,29 @@ The
 .B XReadBitmapFile
 function reads in a file containing a bitmap.
 The file is parsed in the encoding of the current locale.
-The ability to read other than the standard format 
+The ability to read other than the standard format
 is implementation-dependent.
-If the file cannot be opened, 
+If the file cannot be opened,
 .B XReadBitmapFile
-returns 
+returns
 .BR BitmapOpenFailed .
-If the file can be opened but does not contain valid bitmap data, 
-it returns 
+If the file can be opened but does not contain valid bitmap data,
+it returns
 .BR BitmapFileInvalid .
 If insufficient working storage is allocated,
 it returns
 .BR BitmapNoMemory .
 If the file is readable and valid,
-it returns 
+it returns
 .BR BitmapSuccess .
 .LP
 .B XReadBitmapFile
 returns the bitmap's height and width, as read
 from the file, to width_return and height_return.
-It then creates a pixmap of the appropriate size, 
+It then creates a pixmap of the appropriate size,
 reads the bitmap data from the file into the pixmap,
-and assigns the pixmap to the caller's variable bitmap.  
-The caller must free the bitmap using 
+and assigns the pixmap to the caller's variable bitmap.
+The caller must free the bitmap using
 .B XFreePixmap
 when finished.
 If \fIname\fP_x_hot and \fIname\fP_y_hot exist,
@@ -208,8 +175,8 @@ function writes a bitmap out to a file in the X Version 11 format.
 The name used in the output file is derived from the file name
 by deleting the directory prefix.
 The file is written in the encoding of the current locale.
-If the file cannot be opened for writing, 
-it returns 
+If the file cannot be opened for writing,
+it returns
 .BR BitmapOpenFailed .
 If insufficient memory is allocated,
 .B XWriteBitmapFile
@@ -218,7 +185,7 @@ returns
 otherwise, on no error,
 it returns
 .BR BitmapSuccess .
-If x_hot and y_hot are not \-1, \-1, 
+If x_hot and y_hot are not \-1, \-1,
 .B XWriteBitmapFile
 writes them out as the hotspot coordinates for the bitmap.
 .LP
@@ -255,12 +222,12 @@ a bitmap file that was written out by
 (X version 11 format only) without reading in the bitmap file.
 The following example creates a gray bitmap:
 .LP
-.Ds 0
+.EX
 \&#include "gray.bitmap"
 .sp 6p
 Pixmap bitmap;
 bitmap = XCreateBitmapFromData(display, window, gray_bits, gray_width, gray_height);
-.De
+.EE
 .LP
 If insufficient working storage was allocated,
 .B XCreateBitmapFromData

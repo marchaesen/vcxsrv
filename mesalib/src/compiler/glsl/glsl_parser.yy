@@ -33,6 +33,7 @@
 #include "glsl_parser_extras.h"
 #include "compiler/glsl_types.h"
 #include "main/context.h"
+#include "util/u_string.h"
 
 #ifdef _MSC_VER
 #pragma warning( disable : 4065 ) // switch statement contains 'default' but no 'case' labels
@@ -1344,46 +1345,56 @@ layout_qualifier_id:
                unsigned required_essl;
                /* NV_image_formats */
                bool nv_image_formats;
+               bool ext_qualifiers;
             } map[] = {
-               { "rgba32f", GL_RGBA32F, GLSL_TYPE_FLOAT, 130, 310, false },
-               { "rgba16f", GL_RGBA16F, GLSL_TYPE_FLOAT, 130, 310, false },
-               { "rg32f", GL_RG32F, GLSL_TYPE_FLOAT, 130, 0, true },
-               { "rg16f", GL_RG16F, GLSL_TYPE_FLOAT, 130, 0, true },
-               { "r11f_g11f_b10f", GL_R11F_G11F_B10F, GLSL_TYPE_FLOAT, 130, 0, true },
-               { "r32f", GL_R32F, GLSL_TYPE_FLOAT, 130, 310, false },
-               { "r16f", GL_R16F, GLSL_TYPE_FLOAT, 130, 0, true },
-               { "rgba32ui", GL_RGBA32UI, GLSL_TYPE_UINT, 130, 310, false },
-               { "rgba16ui", GL_RGBA16UI, GLSL_TYPE_UINT, 130, 310, false },
-               { "rgb10_a2ui", GL_RGB10_A2UI, GLSL_TYPE_UINT, 130, 0, true },
-               { "rgba8ui", GL_RGBA8UI, GLSL_TYPE_UINT, 130, 310, false },
-               { "rg32ui", GL_RG32UI, GLSL_TYPE_UINT, 130, 0, true },
-               { "rg16ui", GL_RG16UI, GLSL_TYPE_UINT, 130, 0, true },
-               { "rg8ui", GL_RG8UI, GLSL_TYPE_UINT, 130, 0, true },
-               { "r32ui", GL_R32UI, GLSL_TYPE_UINT, 130, 310, false },
-               { "r16ui", GL_R16UI, GLSL_TYPE_UINT, 130, 0, true },
-               { "r8ui", GL_R8UI, GLSL_TYPE_UINT, 130, 0, true },
-               { "rgba32i", GL_RGBA32I, GLSL_TYPE_INT, 130, 310, false },
-               { "rgba16i", GL_RGBA16I, GLSL_TYPE_INT, 130, 310, false },
-               { "rgba8i", GL_RGBA8I, GLSL_TYPE_INT, 130, 310, false },
-               { "rg32i", GL_RG32I, GLSL_TYPE_INT, 130, 0, true },
-               { "rg16i", GL_RG16I, GLSL_TYPE_INT, 130, 0, true },
-               { "rg8i", GL_RG8I, GLSL_TYPE_INT, 130, 0, true },
-               { "r32i", GL_R32I, GLSL_TYPE_INT, 130, 310, false },
-               { "r16i", GL_R16I, GLSL_TYPE_INT, 130, 0, true },
-               { "r8i", GL_R8I, GLSL_TYPE_INT, 130, 0, true },
-               { "rgba16", GL_RGBA16, GLSL_TYPE_FLOAT, 130, 0, true },
-               { "rgb10_a2", GL_RGB10_A2, GLSL_TYPE_FLOAT, 130, 0, true },
-               { "rgba8", GL_RGBA8, GLSL_TYPE_FLOAT, 130, 310, false },
-               { "rg16", GL_RG16, GLSL_TYPE_FLOAT, 130, 0, true },
-               { "rg8", GL_RG8, GLSL_TYPE_FLOAT, 130, 0, true },
-               { "r16", GL_R16, GLSL_TYPE_FLOAT, 130, 0, true },
-               { "r8", GL_R8, GLSL_TYPE_FLOAT, 130, 0, true },
-               { "rgba16_snorm", GL_RGBA16_SNORM, GLSL_TYPE_FLOAT, 130, 0, true },
-               { "rgba8_snorm", GL_RGBA8_SNORM, GLSL_TYPE_FLOAT, 130, 310, false },
-               { "rg16_snorm", GL_RG16_SNORM, GLSL_TYPE_FLOAT, 130, 0, true },
-               { "rg8_snorm", GL_RG8_SNORM, GLSL_TYPE_FLOAT, 130, 0, true },
-               { "r16_snorm", GL_R16_SNORM, GLSL_TYPE_FLOAT, 130, 0, true },
-               { "r8_snorm", GL_R8_SNORM, GLSL_TYPE_FLOAT, 130, 0, true }
+               { "rgba32f", GL_RGBA32F, GLSL_TYPE_FLOAT, 130, 310, false, false },
+               { "rgba16f", GL_RGBA16F, GLSL_TYPE_FLOAT, 130, 310, false, false },
+               { "rg32f", GL_RG32F, GLSL_TYPE_FLOAT, 130, 0, true, false },
+               { "rg16f", GL_RG16F, GLSL_TYPE_FLOAT, 130, 0, true, false },
+               { "r11f_g11f_b10f", GL_R11F_G11F_B10F, GLSL_TYPE_FLOAT, 130, 0, true, false },
+               { "r32f", GL_R32F, GLSL_TYPE_FLOAT, 130, 310, false, false },
+               { "r16f", GL_R16F, GLSL_TYPE_FLOAT, 130, 0, true, false },
+               { "rgba32ui", GL_RGBA32UI, GLSL_TYPE_UINT, 130, 310, false, false },
+               { "rgba16ui", GL_RGBA16UI, GLSL_TYPE_UINT, 130, 310, false, false },
+               { "rgb10_a2ui", GL_RGB10_A2UI, GLSL_TYPE_UINT, 130, 0, true, false },
+               { "rgba8ui", GL_RGBA8UI, GLSL_TYPE_UINT, 130, 310, false, false },
+               { "rg32ui", GL_RG32UI, GLSL_TYPE_UINT, 130, 0, true, false },
+               { "rg16ui", GL_RG16UI, GLSL_TYPE_UINT, 130, 0, true, false },
+               { "rg8ui", GL_RG8UI, GLSL_TYPE_UINT, 130, 0, true, false },
+               { "r32ui", GL_R32UI, GLSL_TYPE_UINT, 130, 310, false, false },
+               { "r16ui", GL_R16UI, GLSL_TYPE_UINT, 130, 0, true, false },
+               { "r8ui", GL_R8UI, GLSL_TYPE_UINT, 130, 0, true, false },
+               { "rgba32i", GL_RGBA32I, GLSL_TYPE_INT, 130, 310, false, false },
+               { "rgba16i", GL_RGBA16I, GLSL_TYPE_INT, 130, 310, false, false },
+               { "rgba8i", GL_RGBA8I, GLSL_TYPE_INT, 130, 310, false, false },
+               { "rg32i", GL_RG32I, GLSL_TYPE_INT, 130, 0, true, false },
+               { "rg16i", GL_RG16I, GLSL_TYPE_INT, 130, 0, true, false },
+               { "rg8i", GL_RG8I, GLSL_TYPE_INT, 130, 0, true, false },
+               { "r32i", GL_R32I, GLSL_TYPE_INT, 130, 310, false, false },
+               { "r16i", GL_R16I, GLSL_TYPE_INT, 130, 0, true, false },
+               { "r8i", GL_R8I, GLSL_TYPE_INT, 130, 0, true, false },
+               { "rgba16", GL_RGBA16, GLSL_TYPE_FLOAT, 130, 0, true, false },
+               { "rgb10_a2", GL_RGB10_A2, GLSL_TYPE_FLOAT, 130, 0, true, false },
+               { "rgba8", GL_RGBA8, GLSL_TYPE_FLOAT, 130, 310, false, false },
+               { "rg16", GL_RG16, GLSL_TYPE_FLOAT, 130, 0, true, false },
+               { "rg8", GL_RG8, GLSL_TYPE_FLOAT, 130, 0, true, false },
+               { "r16", GL_R16, GLSL_TYPE_FLOAT, 130, 0, true, false },
+               { "r8", GL_R8, GLSL_TYPE_FLOAT, 130, 0, true, false },
+               { "rgba16_snorm", GL_RGBA16_SNORM, GLSL_TYPE_FLOAT, 130, 0, true, false },
+               { "rgba8_snorm", GL_RGBA8_SNORM, GLSL_TYPE_FLOAT, 130, 310, false, false },
+               { "rg16_snorm", GL_RG16_SNORM, GLSL_TYPE_FLOAT, 130, 0, true, false },
+               { "rg8_snorm", GL_RG8_SNORM, GLSL_TYPE_FLOAT, 130, 0, true, false },
+               { "r16_snorm", GL_R16_SNORM, GLSL_TYPE_FLOAT, 130, 0, true, false },
+               { "r8_snorm", GL_R8_SNORM, GLSL_TYPE_FLOAT, 130, 0, true, false },
+
+               /* From GL_EXT_shader_image_load_store: */
+               /* base_type is incorrect but it'll be patched later when we know
+                * the variable type. See ast_to_hir.cpp */
+               { "size1x8", GL_R8I, GLSL_TYPE_VOID, 130, 0, false, true },
+               { "size1x16", GL_R16I, GLSL_TYPE_VOID, 130, 0, false, true },
+               { "size1x32", GL_R32I, GLSL_TYPE_VOID, 130, 0, false, true },
+               { "size2x32", GL_RG32I, GLSL_TYPE_VOID, 130, 0, false, true },
+               { "size4x32", GL_RGBA32I, GLSL_TYPE_VOID, 130, 0, false, true },
             };
 
             for (unsigned i = 0; i < ARRAY_SIZE(map); i++) {
@@ -1392,6 +1403,15 @@ layout_qualifier_id:
                     (state->NV_image_formats_enable &&
                      map[i].nv_image_formats)) &&
                    match_layout_qualifier($1, map[i].name, state) == 0) {
+                  /* Skip ARB_shader_image_load_store qualifiers if not enabled */
+                  if (!map[i].ext_qualifiers && !(state->ARB_shader_image_load_store_enable ||
+                                                  state->is_version(420, 310))) {
+                     continue;
+                  }
+                  /* Skip EXT_shader_image_load_store qualifiers if not enabled */
+                  if (map[i].ext_qualifiers && !state->EXT_shader_image_load_store_enable) {
+                     continue;
+                  }
                   $$.flags.q.explicit_image_format = 1;
                   $$.image_format = map[i].format;
                   $$.image_base_type = map[i].base_type;

@@ -4,6 +4,7 @@
  * Copyright (C) 1999-2007  Brian Paul   All Rights Reserved.
  * Copyright 2015 Philip Taylor <philip@zaynar.co.uk>
  * Copyright 2018 Advanced Micro Devices, Inc.
+ * Copyright (C) 2018-2019 Intel Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -29,6 +30,7 @@
 #include "half_float.h"
 #include "util/u_half.h"
 #include "rounding.h"
+#include "softfloat.h"
 #include "macros.h"
 
 typedef union { float f; int32_t i; uint32_t u; } fi_type;
@@ -126,6 +128,11 @@ _mesa_float_to_half(float val)
    return result;
 }
 
+uint16_t
+_mesa_float_to_float16_rtz(float val)
+{
+    return _mesa_float_to_half_rtz(val);
+}
 
 /**
  * Convert a 2-byte half float to a 4-byte float.
@@ -146,7 +153,7 @@ uint8_t _mesa_half_to_unorm8(uint16_t val)
 {
    const int m = val & 0x3ff;
    const int e = (val >> 10) & 0x1f;
-   MAYBE_UNUSED const int s = (val >> 15) & 0x1;
+   ASSERTED const int s = (val >> 15) & 0x1;
 
    /* v = round_to_nearest(1.mmmmmmmmmm * 2^(e-15) * 255)
     *   = round_to_nearest((1.mmmmmmmmmm * 255) * 2^(e-15))

@@ -271,8 +271,10 @@ lower_intrinsic(nir_intrinsic_instr *instr,
    if (instr->intrinsic == nir_intrinsic_image_deref_load ||
        instr->intrinsic == nir_intrinsic_image_deref_store ||
        instr->intrinsic == nir_intrinsic_image_deref_atomic_add ||
-       instr->intrinsic == nir_intrinsic_image_deref_atomic_min ||
-       instr->intrinsic == nir_intrinsic_image_deref_atomic_max ||
+       instr->intrinsic == nir_intrinsic_image_deref_atomic_imin ||
+       instr->intrinsic == nir_intrinsic_image_deref_atomic_umin ||
+       instr->intrinsic == nir_intrinsic_image_deref_atomic_imax ||
+       instr->intrinsic == nir_intrinsic_image_deref_atomic_umax ||
        instr->intrinsic == nir_intrinsic_image_deref_atomic_and ||
        instr->intrinsic == nir_intrinsic_image_deref_atomic_or ||
        instr->intrinsic == nir_intrinsic_image_deref_atomic_xor ||

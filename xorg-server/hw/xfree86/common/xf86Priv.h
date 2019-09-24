@@ -46,6 +46,7 @@
 extern _X_EXPORT const char *xf86ConfigFile;
 extern _X_EXPORT const char *xf86ConfigDir;
 extern _X_EXPORT Bool xf86AllowMouseOpenFail;
+extern _X_EXPORT Bool xf86AutoBindGPUDisabled;
 
 #ifdef XF86VIDMODE
 extern _X_EXPORT Bool xf86VidModeDisabled;

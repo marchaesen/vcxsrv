@@ -34,7 +34,7 @@ xkb_symbols "basic" {
     key <AD12>  { [udiaeresis, Udiaeresis,    asciitilde,   dead_macron ] };
 
     key <AC01>  { [         a,          A,   acircumflex,   Acircumflex ] };
-    key <AC02>  { [         s,          S,       section,    VoidSymbol ] };
+    key <AC02>  { [         s,          S,        ssharp,    VoidSymbol ] };
     key <AC03>  { [         d,          D,    VoidSymbol,    VoidSymbol ] };
     key <AC04>  { [         f,          F,   ordfeminine,    VoidSymbol ] };
     key <AC05>  { [         g,          G,    VoidSymbol,    VoidSymbol ] };

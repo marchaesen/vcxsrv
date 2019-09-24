@@ -69,6 +69,9 @@ extern void GLAPIENTRY
 _mesa_GetPointerv( GLenum pname, GLvoid **params );
 
 extern void GLAPIENTRY
+_mesa_GetPointerIndexedvEXT( GLenum pname, GLuint index, GLvoid **params );
+
+extern void GLAPIENTRY
 _mesa_GetFloati_v(GLenum target, GLuint index, GLfloat *data);
 
 extern void GLAPIENTRY

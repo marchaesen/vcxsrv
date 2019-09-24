@@ -640,7 +640,7 @@ get_tex_memcpy(struct gl_context *ctx,
 
    if (depth > 1) {
       /* only a single slice is supported at this time */
-      memCopy = FALSE;
+      memCopy = GL_FALSE;
    }
 
    if (memCopy) {
@@ -1560,6 +1560,44 @@ _mesa_GetTextureImageEXT(GLuint texture, GLenum target, GLint level,
 
 
 void GLAPIENTRY
+_mesa_GetMultiTexImageEXT(GLenum texunit, GLenum target, GLint level,
+                          GLenum format, GLenum type, GLvoid *pixels)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   GLsizei width, height, depth;
+   static const char *caller = "glGetMultiTexImageEXT";
+
+   struct gl_texture_object *texObj =
+      _mesa_get_texobj_by_target_and_texunit(ctx, target,
+                                             texunit - GL_TEXTURE0,
+                                             false,
+                                             caller);
+
+   if (!texObj) {
+      return;
+   }
+
+   if (!legal_getteximage_target(ctx, texObj->Target, true)) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s", caller);
+      return;
+   }
+
+   get_texture_image_dims(texObj, texObj->Target, level,
+                          &width, &height, &depth);
+
+   if (getteximage_error_check(ctx, texObj, texObj->Target, level,
+                               width, height, depth,
+                               format, type, INT_MAX, pixels, caller)) {
+      return;
+   }
+
+   get_texture_image(ctx, texObj, texObj->Target, level,
+                     0, 0, 0, width, height, depth,
+                     format, type, pixels, caller);
+}
+
+
+void GLAPIENTRY
 _mesa_GetTextureSubImage(GLuint texture, GLint level,
                          GLint xoffset, GLint yoffset, GLint zoffset,
                          GLsizei width, GLsizei height, GLsizei depth,
@@ -1841,6 +1879,62 @@ _mesa_GetCompressedTexImage(GLenum target, GLint level, GLvoid *pixels)
    }
 
    get_compressed_texture_image(ctx, texObj, target, level,
+                                0, 0, 0, width, height, depth,
+                                pixels, caller);
+}
+
+
+void GLAPIENTRY
+_mesa_GetCompressedTextureImageEXT(GLuint texture, GLenum target, GLint level,
+                                   GLvoid *pixels)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_texture_object*  texObj;
+   GLsizei width, height, depth;
+   static const char *caller = "glGetCompressedTextureImageEXT";
+
+   texObj = _mesa_lookup_or_create_texture(ctx, target, texture,
+                                           false, true, caller);
+
+   get_texture_image_dims(texObj, texObj->Target, level,
+                          &width, &height, &depth);
+
+   if (getcompressedteximage_error_check(ctx, texObj, texObj->Target, level,
+                                         0, 0, 0, width, height, depth,
+                                         INT_MAX, pixels, caller)) {
+      return;
+   }
+
+   get_compressed_texture_image(ctx, texObj, texObj->Target, level,
+                                0, 0, 0, width, height, depth,
+                                pixels, caller);
+}
+
+
+void GLAPIENTRY
+_mesa_GetCompressedMultiTexImageEXT(GLenum texunit, GLenum target, GLint level,
+                                    GLvoid *pixels)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_texture_object*  texObj;
+   GLsizei width, height, depth;
+   static const char *caller = "glGetCompressedMultiTexImageEXT";
+
+   texObj = _mesa_get_texobj_by_target_and_texunit(ctx, target,
+                                                   texunit - GL_TEXTURE0,
+                                                   false,
+                                                   caller);
+
+   get_texture_image_dims(texObj, texObj->Target, level,
+                          &width, &height, &depth);
+
+   if (getcompressedteximage_error_check(ctx, texObj, texObj->Target, level,
+                                         0, 0, 0, width, height, depth,
+                                         INT_MAX, pixels, caller)) {
+      return;
+   }
+
+   get_compressed_texture_image(ctx, texObj, texObj->Target, level,
                                 0, 0, 0, width, height, depth,
                                 pixels, caller);
 }

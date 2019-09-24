@@ -28,25 +28,14 @@
 #ifndef RADV_SHADER_H
 #define RADV_SHADER_H
 
-#include "radv_debug.h"
-#include "radv_private.h"
+#include "ac_binary.h"
+#include "amd_family.h"
+#include "radv_constants.h"
 
 #include "nir/nir.h"
+#include "vulkan/vulkan.h"
 
-/* descriptor index into scratch ring offsets */
-#define RING_SCRATCH 0
-#define RING_ESGS_VS 1
-#define RING_ESGS_GS 2
-#define RING_GSVS_VS 3
-#define RING_GSVS_GS 4
-#define RING_HS_TESS_FACTOR 5
-#define RING_HS_TESS_OFFCHIP 6
-#define RING_PS_SAMPLE_POSITIONS 7
-
-// Match MAX_SETS from radv_descriptor_set.h
-#define RADV_UD_MAX_SETS MAX_SETS
-
-#define RADV_NUM_PHYSICAL_VGPRS 256
+struct radv_device;
 
 struct radv_shader_module {
 	struct nir_shader *nir;
@@ -131,14 +120,18 @@ struct radv_nir_compiler_options {
 	bool unsafe_math;
 	bool supports_spill;
 	bool clamp_shadow_reference;
+	bool robust_buffer_access;
 	bool dump_shader;
 	bool dump_preoptir;
 	bool record_llvm_ir;
 	bool check_ir;
+	bool has_ls_vgpr_init_bug;
+	bool use_ngg_streamout;
 	enum radeon_family family;
 	enum chip_class chip_class;
 	uint32_t tess_offchip_block_dw_size;
 	uint32_t address32_hi;
+	uint8_t wave_size;
 };
 
 enum radv_ud_index {
@@ -176,69 +169,13 @@ struct radv_streamout_info {
 	uint32_t enabled_stream_buffers_mask;
 };
 
-struct radv_shader_info {
-	bool loads_push_constants;
-	bool loads_dynamic_offsets;
-	uint8_t min_push_constant_used;
-	uint8_t max_push_constant_used;
-	bool has_only_32bit_push_constants;
-	bool has_indirect_push_constants;
-	uint8_t num_inline_push_consts;
-	uint8_t base_inline_push_consts;
-	uint32_t desc_set_used_mask;
-	bool needs_multiview_view_index;
-	bool uses_invocation_id;
-	bool uses_prim_id;
-	struct {
-		uint64_t ls_outputs_written;
-		uint8_t input_usage_mask[VERT_ATTRIB_MAX];
-		uint8_t output_usage_mask[VARYING_SLOT_VAR31 + 1];
-		bool has_vertex_buffers; /* needs vertex buffers and base/start */
-		bool needs_draw_id;
-		bool needs_instance_id;
-	} vs;
-	struct {
-		uint8_t output_usage_mask[VARYING_SLOT_VAR31 + 1];
-		uint8_t num_stream_output_components[4];
-		uint8_t output_streams[VARYING_SLOT_VAR31 + 1];
-		uint8_t max_stream;
-	} gs;
-	struct {
-		uint8_t output_usage_mask[VARYING_SLOT_VAR31 + 1];
-	} tes;
-	struct {
-		bool force_persample;
-		bool needs_sample_positions;
-		bool writes_memory;
-		bool writes_z;
-		bool writes_stencil;
-		bool writes_sample_mask;
-		bool has_pcoord;
-		bool prim_id_input;
-		bool layer_input;
-		uint8_t num_input_clips_culls;
-	} ps;
-	struct {
-		bool uses_grid_size;
-		bool uses_block_id[3];
-		bool uses_thread_id[3];
-		bool uses_local_invocation_idx;
-	} cs;
-	struct {
-		uint64_t outputs_written;
-		uint64_t patch_outputs_written;
-	} tcs;
-
-	struct radv_streamout_info so;
-};
-
 struct radv_userdata_info {
 	int8_t sgpr_idx;
 	uint8_t num_sgprs;
 };
 
 struct radv_userdata_locations {
-	struct radv_userdata_info descriptor_sets[RADV_UD_MAX_SETS];
+	struct radv_userdata_info descriptor_sets[MAX_SETS];
 	struct radv_userdata_info shader_data[AC_UD_MAX_UD];
 	uint32_t descriptor_sets_enabled;
 };
@@ -256,12 +193,42 @@ struct radv_vs_output_info {
 };
 
 struct radv_es_output_info {
-	uint32_t esgs_itemsize;
+       uint32_t esgs_itemsize;
 };
 
-struct radv_shader_variant_info {
+struct gfx9_gs_info {
+	uint32_t vgt_gs_onchip_cntl;
+	uint32_t vgt_gs_max_prims_per_subgroup;
+	uint32_t vgt_esgs_ring_itemsize;
+	uint32_t lds_size;
+};
+
+struct gfx10_ngg_info {
+	uint16_t ngg_emit_size; /* in dwords */
+	uint32_t hw_max_esverts;
+	uint32_t max_gsprims;
+	uint32_t max_out_verts;
+	uint32_t prim_amp_factor;
+	uint32_t vgt_esgs_ring_itemsize;
+	uint32_t esgs_ring_size;
+	bool max_vert_out_per_gs_instance;
+};
+
+struct radv_shader_info {
+	bool loads_push_constants;
+	bool loads_dynamic_offsets;
+	uint8_t min_push_constant_used;
+	uint8_t max_push_constant_used;
+	bool has_only_32bit_push_constants;
+	bool has_indirect_push_constants;
+	uint8_t num_inline_push_consts;
+	uint8_t base_inline_push_consts;
+	uint32_t desc_set_used_mask;
+	bool needs_multiview_view_index;
+	bool uses_invocation_id;
+	bool uses_prim_id;
+	uint8_t wave_size;
 	struct radv_userdata_locations user_sgprs_locs;
-	struct radv_shader_info info;
 	unsigned num_user_sgprs;
 	unsigned num_input_sgprs;
 	unsigned num_input_vgprs;
@@ -269,50 +236,81 @@ struct radv_shader_variant_info {
 	bool need_indirect_descriptor_sets;
 	bool is_ngg;
 	struct {
-		struct {
-			struct radv_vs_output_info outinfo;
-			struct radv_es_output_info es_info;
-			bool as_es;
-			bool as_ls;
-			bool export_prim_id;
-		} vs;
-		struct {
-			unsigned num_interp;
-			uint32_t input_mask;
-			uint32_t flat_shaded_mask;
-			uint32_t float16_shaded_mask;
-			bool can_discard;
-			bool early_fragment_test;
-			bool post_depth_coverage;
-		} fs;
-		struct {
-			unsigned block_size[3];
-		} cs;
-		struct {
-			unsigned vertices_in;
-			unsigned vertices_out;
-			unsigned output_prim;
-			unsigned invocations;
-			unsigned gsvs_vertex_size;
-			unsigned max_gsvs_emit_size;
-			unsigned es_type; /* GFX9: VS or TES */
-		} gs;
-		struct {
-			unsigned tcs_vertices_out;
-			uint32_t num_patches;
-			uint32_t lds_size;
-		} tcs;
-		struct {
-			struct radv_vs_output_info outinfo;
-			struct radv_es_output_info es_info;
-			bool as_es;
-			unsigned primitive_mode;
-			enum gl_tess_spacing spacing;
-			bool ccw;
-			bool point_mode;
-			bool export_prim_id;
-		} tes;
-	};
+		uint64_t ls_outputs_written;
+		uint8_t input_usage_mask[VERT_ATTRIB_MAX];
+		uint8_t output_usage_mask[VARYING_SLOT_VAR31 + 1];
+		bool has_vertex_buffers; /* needs vertex buffers and base/start */
+		bool needs_draw_id;
+		bool needs_instance_id;
+		struct radv_vs_output_info outinfo;
+		struct radv_es_output_info es_info;
+		bool as_es;
+		bool as_ls;
+		bool export_prim_id;
+	} vs;
+	struct {
+		uint8_t output_usage_mask[VARYING_SLOT_VAR31 + 1];
+		uint8_t num_stream_output_components[4];
+		uint8_t output_streams[VARYING_SLOT_VAR31 + 1];
+		uint8_t max_stream;
+		bool writes_memory;
+		unsigned gsvs_vertex_size;
+		unsigned max_gsvs_emit_size;
+		unsigned vertices_in;
+		unsigned vertices_out;
+		unsigned output_prim;
+		unsigned invocations;
+		unsigned es_type; /* GFX9: VS or TES */
+	} gs;
+	struct {
+		uint8_t output_usage_mask[VARYING_SLOT_VAR31 + 1];
+		struct radv_vs_output_info outinfo;
+		struct radv_es_output_info es_info;
+		bool as_es;
+		unsigned primitive_mode;
+		enum gl_tess_spacing spacing;
+		bool ccw;
+		bool point_mode;
+		bool export_prim_id;
+	} tes;
+	struct {
+		bool force_persample;
+		bool needs_sample_positions;
+		bool writes_memory;
+		bool writes_z;
+		bool writes_stencil;
+		bool writes_sample_mask;
+		bool has_pcoord;
+		bool prim_id_input;
+		bool layer_input;
+		uint8_t num_input_clips_culls;
+		uint32_t input_mask;
+		uint32_t flat_shaded_mask;
+		uint32_t float16_shaded_mask;
+		uint32_t num_interp;
+		bool can_discard;
+		bool early_fragment_test;
+		bool post_depth_coverage;
+	} ps;
+	struct {
+		bool uses_grid_size;
+		bool uses_block_id[3];
+		bool uses_thread_id[3];
+		bool uses_local_invocation_idx;
+		unsigned block_size[3];
+	} cs;
+	struct {
+		uint64_t outputs_written;
+		uint64_t patch_outputs_written;
+		unsigned tcs_vertices_out;
+		uint32_t num_patches;
+		uint32_t lds_size;
+	} tcs;
+
+	struct radv_streamout_info so;
+
+	struct gfx9_gs_info gs_ring_info;
+	struct gfx10_ngg_info ngg_info;
 };
 
 enum radv_shader_binary_type {
@@ -325,7 +323,7 @@ struct radv_shader_binary {
 	gl_shader_stage stage;
 	bool is_gs_copy_shader;
 
-	struct radv_shader_variant_info variant_info;
+	struct radv_shader_info info;
 
 	/* Self-referential size so we avoid consistency issues. */
 	uint32_t total_size;
@@ -335,6 +333,7 @@ struct radv_shader_binary_legacy {
 	struct radv_shader_binary base;
 	struct ac_shader_config config;
 	unsigned code_size;
+	unsigned exec_size;
 	unsigned llvm_ir_size;
 	unsigned disasm_size;
 	
@@ -357,12 +356,13 @@ struct radv_shader_variant {
 	uint64_t bo_offset;
 	struct ac_shader_config config;
 	uint32_t code_size;
-	struct radv_shader_variant_info info;
+	uint32_t exec_size;
+	struct radv_shader_info info;
 
 	/* debug only */
 	uint32_t *spirv;
 	uint32_t spirv_size;
-	struct nir_shader *nir;
+	char *nir_string;
 	char *disasm_string;
 	char *llvm_ir_string;
 
@@ -391,7 +391,8 @@ radv_shader_compile_to_nir(struct radv_device *device,
 			   gl_shader_stage stage,
 			   const VkSpecializationInfo *spec_info,
 			   const VkPipelineCreateFlags flags,
-			   const struct radv_pipeline_layout *layout);
+			   const struct radv_pipeline_layout *layout,
+			   bool use_aco);
 
 void *
 radv_alloc_shader_memory(struct radv_device *device,
@@ -402,7 +403,8 @@ radv_destroy_shader_slabs(struct radv_device *device);
 
 struct radv_shader_variant *
 radv_shader_variant_create(struct radv_device *device,
-			   const struct radv_shader_binary *binary);
+			   const struct radv_shader_binary *binary,
+			   bool keep_shader_info);
 struct radv_shader_variant *
 radv_shader_variant_compile(struct radv_device *device,
 			    struct radv_shader_module *module,
@@ -410,19 +412,34 @@ radv_shader_variant_compile(struct radv_device *device,
 			    int shader_count,
 			    struct radv_pipeline_layout *layout,
 			    const struct radv_shader_variant_key *key,
+			    struct radv_shader_info *info,
+			    bool keep_shader_info,
+			    bool use_aco,
 			    struct radv_shader_binary **binary_out);
 
 struct radv_shader_variant *
 radv_create_gs_copy_shader(struct radv_device *device, struct nir_shader *nir,
+			   struct radv_shader_info *info,
 			   struct radv_shader_binary **binary_out,
-			   bool multiview);
+			   bool multiview,  bool keep_shader_info);
 
 void
 radv_shader_variant_destroy(struct radv_device *device,
 			    struct radv_shader_variant *variant);
 
+
+unsigned
+radv_get_max_waves(struct radv_device *device,
+                   struct radv_shader_variant *variant,
+                   gl_shader_stage stage);
+
+unsigned
+radv_get_max_workgroup_size(enum chip_class chip_class,
+                            gl_shader_stage stage,
+                            const unsigned *sizes);
+
 const char *
-radv_get_shader_name(struct radv_shader_variant_info *info,
+radv_get_shader_name(struct radv_shader_info *info,
 		     gl_shader_stage stage);
 
 void
@@ -431,48 +448,19 @@ radv_shader_dump_stats(struct radv_device *device,
 		       gl_shader_stage stage,
 		       FILE *file);
 
-static inline bool
+bool
 radv_can_dump_shader(struct radv_device *device,
 		     struct radv_shader_module *module,
-		     bool is_gs_copy_shader)
-{
-	if (!(device->instance->debug_flags & RADV_DEBUG_DUMP_SHADERS))
-		return false;
+		     bool is_gs_copy_shader);
 
-	/* Only dump non-meta shaders, useful for debugging purposes. */
-	return (module && !module->nir) || is_gs_copy_shader;
-}
-
-static inline bool
+bool
 radv_can_dump_shader_stats(struct radv_device *device,
-			   struct radv_shader_module *module)
-{
-	/* Only dump non-meta shader stats. */
-	return device->instance->debug_flags & RADV_DEBUG_DUMP_SHADER_STATS &&
-	       module && !module->nir;
-}
+			   struct radv_shader_module *module);
 
-static inline unsigned shader_io_get_unique_index(gl_varying_slot slot)
-{
-	/* handle patch indices separate */
-	if (slot == VARYING_SLOT_TESS_LEVEL_OUTER)
-		return 0;
-	if (slot == VARYING_SLOT_TESS_LEVEL_INNER)
-		return 1;
-	if (slot >= VARYING_SLOT_PATCH0 && slot <= VARYING_SLOT_TESS_MAX)
-		return 2 + (slot - VARYING_SLOT_PATCH0);
-	if (slot == VARYING_SLOT_POS)
-		return 0;
-	if (slot == VARYING_SLOT_PSIZ)
-		return 1;
-	if (slot == VARYING_SLOT_CLIP_DIST0)
-		return 2;
-	if (slot == VARYING_SLOT_CLIP_DIST1)
-		return 3;
-	/* 3 is reserved for clip dist as well */
-	if (slot >= VARYING_SLOT_VAR0 && slot <= VARYING_SLOT_VAR31)
-		return 4 + (slot - VARYING_SLOT_VAR0);
-	unreachable("illegal slot in get unique index\n");
-}
+unsigned
+shader_io_get_unique_index(gl_varying_slot slot);
+
+void
+radv_lower_fs_io(nir_shader *nir);
 
 #endif

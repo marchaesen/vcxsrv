@@ -292,7 +292,7 @@ const char*
 debug_symbol_name_cached(const void *addr)
 {
    const char* name;
-#ifdef PIPE_SUBSYSTEM_WINDOWS_USER
+#ifdef PIPE_OS_WINDOWS
    static boolean first = TRUE;
 
    if (first) {

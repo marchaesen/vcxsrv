@@ -25,9 +25,9 @@
 #define ST_SHADER_CACHE_H
 
 #include "st_context.h"
-#include "compiler/blob.h"
 #include "main/mtypes.h"
 #include "pipe/p_state.h"
+#include "util/blob.h"
 #include "util/disk_cache.h"
 #include "util/mesa-sha1.h"
 

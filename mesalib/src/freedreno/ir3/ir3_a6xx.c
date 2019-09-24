@@ -276,10 +276,12 @@ emit_intrinsic_atomic_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	case nir_intrinsic_image_deref_atomic_add:
 		atomic = ir3_ATOMIC_ADD_G(b, ibo, 0, src0, 0, src1, 0);
 		break;
-	case nir_intrinsic_image_deref_atomic_min:
+	case nir_intrinsic_image_deref_atomic_imin:
+	case nir_intrinsic_image_deref_atomic_umin:
 		atomic = ir3_ATOMIC_MIN_G(b, ibo, 0, src0, 0, src1, 0);
 		break;
-	case nir_intrinsic_image_deref_atomic_max:
+	case nir_intrinsic_image_deref_atomic_imax:
+	case nir_intrinsic_image_deref_atomic_umax:
 		atomic = ir3_ATOMIC_MAX_G(b, ibo, 0, src0, 0, src1, 0);
 		break;
 	case nir_intrinsic_image_deref_atomic_and:

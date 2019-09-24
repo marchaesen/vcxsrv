@@ -477,8 +477,17 @@ radv_descriptor_set_create(struct radv_device *device,
 			   struct radv_descriptor_set **out_set)
 {
 	struct radv_descriptor_set *set;
+	uint32_t buffer_count = layout->buffer_count;
+	if (variable_count) {
+		unsigned stride = 1;
+		if (layout->binding[layout->binding_count - 1].type == VK_DESCRIPTOR_TYPE_SAMPLER ||
+		    layout->binding[layout->binding_count - 1].type == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT)
+			stride = 0;
+		buffer_count = layout->binding[layout->binding_count - 1].buffer_offset +
+		               *variable_count * stride;
+	}
 	unsigned range_offset = sizeof(struct radv_descriptor_set) +
-		sizeof(struct radeon_winsys_bo *) * layout->buffer_count;
+		sizeof(struct radeon_winsys_bo *) * buffer_count;
 	unsigned mem_size = range_offset +
 		sizeof(struct radv_descriptor_range) * layout->dynamic_offset_count;
 
@@ -787,9 +796,13 @@ VkResult radv_AllocateDescriptorSets(
 		pDescriptorSets[i] = radv_descriptor_set_to_handle(set);
 	}
 
-	if (result != VK_SUCCESS)
+	if (result != VK_SUCCESS) {
 		radv_FreeDescriptorSets(_device, pAllocateInfo->descriptorPool,
 					i, pDescriptorSets);
+		for (i = 0; i < pAllocateInfo->descriptorSetCount; i++) {
+			pDescriptorSets[i] = VK_NULL_HANDLE;
+		}
+	}
 	return result;
 }
 

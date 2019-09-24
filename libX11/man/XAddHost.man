@@ -1,7 +1,7 @@
 .\" Copyright \(co 1985, 1986, 1987, 1988, 1989, 1990, 1991, 1994, 1996 X Consortium
 .\"
 .\" All rights reserved.
-.\" 
+.\"
 .\" Permission is hereby granted, free of charge, to any person obtaining a
 .\" copy of this software and associated documentation files (the
 .\" "Software"), to deal in the Software without restriction, including
@@ -11,7 +11,7 @@
 .\" copyright notice(s) and this permission notice appear in all copies of
 .\" the Software and that both the above copyright notice(s) and this
 .\" permission notice appear in supporting documentation.
-.\" 
+.\"
 .\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
 .\" OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 .\" MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
@@ -21,12 +21,12 @@
 .\" FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
 .\" NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
 .\" WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-.\" 
+.\"
 .\" Except as contained in this notice, the name of a copyright holder
 .\" shall not be used in advertising or otherwise to promote the sale, use
 .\" or other dealings in this Software without prior written authorization
 .\" of the copyright holder.
-.\" 
+.\"
 .\" X Window System is a trademark of The Open Group.
 .\"
 .\" Copyright 2004 Oracle and/or its affiliates. All rights reserved.
@@ -64,54 +64,21 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XAddHost __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XAddHost, XAddHosts, XListHosts, XRemoveHost, XRemoveHosts, XSetAccessControl, XEnableAccessControl, XDisableAccessControl, XHostAddress, XServerInterpretedAddress \- control host access and host control structure
 .SH SYNTAX
 .HP
-int XAddHost\^(\^Display *\fIdisplay\fP, XHostAddress *\fIhost\fP\^); 
+int XAddHost\^(\^Display *\fIdisplay\fP, XHostAddress *\fIhost\fP\^);
 .HP
-int XAddHosts\^(\^Display *\fIdisplay\fP, XHostAddress *\fIhosts\fP, 
+int XAddHosts\^(\^Display *\fIdisplay\fP, XHostAddress *\fIhosts\fP,
 int \fInum_hosts\fP\^);
 .HP
 XHostAddress *XListHosts\^(\^Display *\fIdisplay\fP, int *\fInhosts_return\fP,
@@ -176,19 +143,19 @@ errors.
 .LP
 The
 .B XListHosts
-function returns the current access control list as well as whether the use 
+function returns the current access control list as well as whether the use
 of the list at connection setup was enabled or disabled.
 .B XListHosts
 allows a program to find out what machines can make connections.
 It also returns a pointer to a list of host structures that
-were allocated by the function. 
+were allocated by the function.
 When no longer needed,
 this memory should be freed by calling
 .BR XFree .
 .LP
 The
 .B XRemoveHost
-function removes the specified host from the access control list 
+function removes the specified host from the access control list
 for that display.
 The server must be on the same host as the client process, or a
 .B BadAccess
@@ -206,12 +173,12 @@ errors.
 .LP
 The
 .B XRemoveHosts
-function removes each specified host from the access control list for that 
-display.  
+function removes each specified host from the access control list for that
+display.
 The X server must be on the same host as the client process, or a
 .B BadAccess
 error results.
-If you remove your machine from the access list, 
+If you remove your machine from the access list,
 you can no longer connect to that server,
 and this operation cannot be reversed unless you reset the server.
 .LP
@@ -224,7 +191,7 @@ errors.
 .LP
 The
 .B XSetAccessControl
-function either enables or disables the use of the access control list 
+function either enables or disables the use of the access control list
 at each connection setup.
 .LP
 .B XSetAccessControl
@@ -256,15 +223,15 @@ The
 .B XHostAddress
 structure contains:
 .LP
-.Ds 0
+.EX
 typedef struct {
         int family;     /\&* for example FamilyInternet */
         int length;     /\&* length of address, in bytes */
         char *address;  /\&* pointer to where to find the address */
 } XHostAddress;
-.De
+.EE
 .LP
-The family member specifies which protocol address family to use 
+The family member specifies which protocol address family to use
 (for example, TCP/IP or DECnet) and can be
 .BR FamilyInternet ,
 .BR FamilyInternet6 ,
@@ -275,23 +242,25 @@ or
 The length member specifies the length of the address in bytes.
 The address member specifies a pointer to the address.
 .LP
-For the ServerInterpreted family, the length is ignored and the address 
-member is a pointer to a 
+For the ServerInterpreted family, the length is ignored and the address
+member is a pointer to a
 .B XServerInterpretedAddress
 structure which contains:
 .LP
-.Ds 0
+.EX
 typedef struct {
         int typelength;         /\&* length of type string, in bytes */
         int valuelength;        /\&* length of value string, in bytes */
         char *type;             /\&* pointer to where to find the type string */
         char *value;            /\&* pointer to where to find the address */
 } XServerInterpretedAddress;
-.De
+.EE
 .LP
 The type and value members point to strings representing the type and value of
-the server interpreted entry.  These strings may not be NULL-terminated so care
-should be used when accessing them.  The typelength and valuelength members
+the server interpreted entry.
+These strings may not be NULL-terminated so care
+should be used when accessing them.
+The typelength and valuelength members
 specify the length in byte of the type and value strings.
 .SH DIAGNOSTICS
 .TP 1i
@@ -303,7 +272,8 @@ to modify the access control list from other than the local
 .B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
-by the argument's type is accepted.  Any argument defined as a set of
+by the argument's type is accepted.
+Any argument defined as a set of
 alternatives can generate this error.
 .SH "SEE ALSO"
 XFree(__libmansuffix__)

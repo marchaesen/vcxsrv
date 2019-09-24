@@ -8,10 +8,6 @@
 
 # Comments begin with "#" or "//" and go to the end-of-line
 
-# Paths to commands are **cygwin** based (i.e. /usr/local/bin/xcalc)
-
-# Paths to icons are **WINDOWS** based (i.e. c:\windows\icons)
-
 # Menus are defined as...
 # MENU <name> {
 #	<Menu Text>	EXEC	<command>
@@ -55,15 +51,15 @@
 
 # To define where ICO files live (** Windows path**)
 # ICONDIRECTORY	<windows-path i.e. c:\cygwin\usr\icons>
-# NOTE: If you specify a fully qualified path to an ICON below
-#             (i.e. "c:\xxx" or "d:\xxxx")
+# NOTE: If you specify an absolute path in Windows or Cygwin format to an ICON below
+#             (i.e. "c:\icons\xxx.ico" or "/usr/share/icons/xxx.ico")
 #       this ICONDIRECTORY will not be prepended
 
 # To change the taskbar icon use...
-# TRAYICON       <name-of-windows-ico-file-in-icondirectory>
+# TRAYICON       <icon-specifier>
 
 # To define a replacement for the standard X icon for apps w/o specified icons
-# DEFAULTICON	<name-of-windows-ico-file-in-icondirectory>
+# DEFAULTICON	<icon-specifier>
 
 # To define substitute icons on a per-window basis use...
 # ICONS {

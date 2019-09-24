@@ -217,17 +217,51 @@ for src_t in [tint, tuint, tfloat, tbool]:
       dst_types = [tint, tuint, tfloat, tbool]
 
    for dst_t in dst_types:
-      for bit_size in type_sizes(dst_t):
-          if bit_size == 16 and dst_t == tfloat and src_t == tfloat:
+      for dst_bit_size in type_sizes(dst_t):
+          if dst_bit_size == 16 and dst_t == tfloat and src_t == tfloat:
               rnd_modes = ['_rtne', '_rtz', '']
               for rnd_mode in rnd_modes:
-                  unop_numeric_convert("{0}2{1}{2}{3}".format(src_t[0], dst_t[0],
-                                                              bit_size, rnd_mode),
-                                       dst_t + str(bit_size), src_t, "src0")
+                  if rnd_mode == '_rtne':
+                      conv_expr = """
+                      if (bit_size > 16) {
+                         dst = _mesa_half_to_float(_mesa_float_to_float16_rtne(src0));
+                      } else {
+                         dst = src0;
+                      }
+                      """
+                  elif rnd_mode == '_rtz':
+                      conv_expr = """
+                      if (bit_size > 16) {
+                         dst = _mesa_half_to_float(_mesa_float_to_float16_rtz(src0));
+                      } else {
+                         dst = src0;
+                      }
+                      """
+                  else:
+                      conv_expr = "src0"
+
+                  unop_numeric_convert("{0}2{1}{2}{3}".format(src_t[0],
+                                                              dst_t[0],
+                                                              dst_bit_size,
+                                                              rnd_mode),
+                                       dst_t + str(dst_bit_size),
+                                       src_t, conv_expr)
+          elif dst_bit_size == 32 and dst_t == tfloat and src_t == tfloat:
+              conv_expr = """
+              if (bit_size > 32 && nir_is_rounding_mode_rtz(execution_mode, 32)) {
+                 dst = _mesa_double_to_float_rtz(src0);
+              } else {
+                 dst = src0;
+              }
+              """
+              unop_numeric_convert("{0}2{1}{2}".format(src_t[0], dst_t[0],
+                                                       dst_bit_size),
+                                   dst_t + str(dst_bit_size), src_t, conv_expr)
           else:
               conv_expr = "src0 != 0" if dst_t == tbool else "src0"
-              unop_numeric_convert("{0}2{1}{2}".format(src_t[0], dst_t[0], bit_size),
-                                   dst_t + str(bit_size), src_t, conv_expr)
+              unop_numeric_convert("{0}2{1}{2}".format(src_t[0], dst_t[0],
+                                                       dst_bit_size),
+                                   dst_t + str(dst_bit_size), src_t, conv_expr)
 
 
 # Unary floating-point rounding operations.
@@ -333,13 +367,22 @@ unop_horiz("unpack_64_4x16", 4, tuint16, 1, tuint64,
 unop_horiz("unpack_32_2x16", 2, tuint16, 1, tuint32,
            "dst.x = src0.x; dst.y = src0.x >> 16;")
 
-# Lowered floating point unpacking operations.
+unop_horiz("unpack_half_2x16_flush_to_zero", 2, tfloat32, 1, tuint32, """
+dst.x = unpack_half_1x16_flush_to_zero((uint16_t)(src0.x & 0xffff));
+dst.y = unpack_half_1x16_flush_to_zero((uint16_t)(src0.x << 16));
+""")
 
+# Lowered floating point unpacking operations.
 
 unop_convert("unpack_half_2x16_split_x", tfloat32, tuint32,
              "unpack_half_1x16((uint16_t)(src0 & 0xffff))")
 unop_convert("unpack_half_2x16_split_y", tfloat32, tuint32,
              "unpack_half_1x16((uint16_t)(src0 >> 16))")
+
+unop_convert("unpack_half_2x16_split_x_flush_to_zero", tfloat32, tuint32,
+             "unpack_half_1x16_flush_to_zero((uint16_t)(src0 & 0xffff))")
+unop_convert("unpack_half_2x16_split_y_flush_to_zero", tfloat32, tuint32,
+             "unpack_half_1x16_flush_to_zero((uint16_t)(src0 >> 16))")
 
 unop_convert("unpack_32_2x16_split_x", tuint16, tuint32, "src0")
 unop_convert("unpack_32_2x16_split_y", tuint16, tuint32, "src0 >> 16")
@@ -439,6 +482,8 @@ if (src0.z >= 0 && absZ >= absX && absZ >= absY) dst.x = 4;
 if (src0.z < 0 && absZ >= absX && absZ >= absY) dst.x = 5;
 """)
 
+# Sum of vector components
+unop_reduce("fsum", 1, tfloat, tfloat, "{src}", "{src0} + {src1}", "{src}")
 
 def binop_convert(name, out_type, in_type, alg_props, const_expr):
    opcode(name, 0, out_type, [0, 0], [in_type, in_type],
@@ -480,7 +525,16 @@ def binop_reduce(name, output_size, output_type, src_type, prereduce_expr,
           [4, 4], [src_type, src_type], False, _2src_commutative,
           final(reduce_(reduce_(src0, src1), reduce_(src2, src3))))
 
-binop("fadd", tfloat, _2src_commutative + associative, "src0 + src1")
+binop("fadd", tfloat, _2src_commutative + associative,"""
+if (nir_is_rounding_mode_rtz(execution_mode, bit_size)) {
+   if (bit_size == 64)
+      dst = _mesa_double_add_rtz(src0, src1);
+   else
+      dst = _mesa_double_to_float_rtz((double)src0 + (double)src1);
+} else {
+   dst = src0 + src1;
+}
+""")
 binop("iadd", tint, _2src_commutative + associative, "src0 + src1")
 binop("iadd_sat", tint, _2src_commutative, """
       src1 > 0 ?
@@ -496,10 +550,28 @@ binop("isub_sat", tint, "", """
 """)
 binop("usub_sat", tuint, "", "src0 < src1 ? 0 : src0 - src1")
 
-binop("fsub", tfloat, "", "src0 - src1")
+binop("fsub", tfloat, "", """
+if (nir_is_rounding_mode_rtz(execution_mode, bit_size)) {
+   if (bit_size == 64)
+      dst = _mesa_double_sub_rtz(src0, src1);
+   else
+      dst = _mesa_double_to_float_rtz((double)src0 - (double)src1);
+} else {
+   dst = src0 - src1;
+}
+""")
 binop("isub", tint, "", "src0 - src1")
 
-binop("fmul", tfloat, _2src_commutative + associative, "src0 * src1")
+binop("fmul", tfloat, _2src_commutative + associative, """
+if (nir_is_rounding_mode_rtz(execution_mode, bit_size)) {
+   if (bit_size == 64)
+      dst = _mesa_double_mul_rtz(src0, src1);
+   else
+      dst = _mesa_double_to_float_rtz((double)src0 * (double)src1);
+} else {
+   dst = src0 * src1;
+}
+""")
 # low 32-bits of signed/unsigned integer multiply
 binop("imul", tint, _2src_commutative + associative, "src0 * src1")
 
@@ -720,10 +792,10 @@ opcode("fdph", 1, tfloat, [3, 4], [tfloat, tfloat], False, "",
 opcode("fdph_replicated", 4, tfloat, [3, 4], [tfloat, tfloat], False, "",
        "src0.x * src1.x + src0.y * src1.y + src0.z * src1.z + src1.w")
 
-binop("fmin", tfloat, "", "fminf(src0, src1)")
+binop("fmin", tfloat, "", "fmin(src0, src1)")
 binop("imin", tint, _2src_commutative + associative, "src1 > src0 ? src0 : src1")
 binop("umin", tuint, _2src_commutative + associative, "src1 > src0 ? src0 : src1")
-binop("fmax", tfloat, "", "fmaxf(src0, src1)")
+binop("fmax", tfloat, "", "fmax(src0, src1)")
 binop("imax", tint, _2src_commutative + associative, "src1 > src0 ? src1 : src0")
 binop("umax", tuint, _2src_commutative + associative, "src1 > src0 ? src1 : src0")
 
@@ -822,7 +894,21 @@ def triop_horiz(name, output_size, src1_size, src2_size, src3_size, const_expr):
    [src1_size, src2_size, src3_size],
    [tuint, tuint, tuint], False, "", const_expr)
 
-triop("ffma", tfloat, _2src_commutative, "src0 * src1 + src2")
+triop("ffma", tfloat, _2src_commutative, """
+if (nir_is_rounding_mode_rtz(execution_mode, bit_size)) {
+   if (bit_size == 64)
+      dst = _mesa_double_fma_rtz(src0, src1, src2);
+   else if (bit_size == 32)
+      dst = _mesa_float_fma_rtz(src0, src1, src2);
+   else
+      dst = _mesa_double_to_float_rtz(_mesa_double_fma_rtz(src0, src1, src2));
+} else {
+   if (bit_size == 32)
+      dst = fmaf(src0, src1, src2);
+   else
+      dst = fma(src0, src1, src2);
+}
+""")
 
 triop("flrp", tfloat, "", "src0 * (1 - src2) + src1 * src2")
 

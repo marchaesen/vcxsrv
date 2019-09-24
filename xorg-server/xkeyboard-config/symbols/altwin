@@ -74,6 +74,12 @@ xkb_symbols "menu" {
     key <MENU> { [ Menu ] };
 };
 
+// Menu is mapped to the right Win key.
+partial modifier_keys
+xkb_symbols "menu_win" {
+    key <MENU> { [ Super_R ] };
+};
+
 // Layout for Tux key caps with additional right Alt key
 partial modifier_keys
 xkb_symbols "alt_super_win" {

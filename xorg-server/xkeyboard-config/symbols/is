@@ -89,9 +89,9 @@ xkb_symbols "nodeadkeys" {
 //   Revised the comments in the file
 //
 // * 2013-05-30:
-//   Renamed the old keyboard layout and created a new one that conforms with the later 
-//   model Apple laptop and Aluminium USB/Bluetooth keyboards (A1243/A1255 and later) 
-//   that are used with the more recent versions of OS X. Also replaced some Unicode 
+//   Renamed the old keyboard layout and created a new one that conforms with the later
+//   model Apple laptop and Aluminium USB/Bluetooth keyboards (A1243/A1255 and later)
+//   that are used with the more recent versions of OS X. Also replaced some Unicode
 //   codes with proper symbol names.
 //
 // = NOTES
@@ -132,7 +132,7 @@ xkb_symbols "mac_legacy" {
     key <AE11> { [ odiaeresis, Odiaeresis, oslash,       Ooblique   ] };
     key <AE12> { [ minus,      underscore, endash,       emdash     ] };
 
-    
+
     //-- Row 4 (D) --//
     key <AD01> { [ q,          Q,        paragraph,       VoidSymbol ] };
     key <AD02> { [ w,          W,        U2211,           VoidSymbol ] };
@@ -146,8 +146,8 @@ xkb_symbols "mac_legacy" {
     key <AD10> { [ p,          P,        Greek_pi,        Greek_PI   ] };
     key <AD11> { [ eth,        Eth,      U201e,           U201c      ] };
     key <AD12> { [ apostrophe, question, questiondown,    U00B7      ] };
-    
-    
+
+
     //-- Row 3 (C) --//
     key <AC01> { [ a,          A,                aring,     Aring      ] };
     key <AC02> { [ s,          S,                ssharp,    abovedot   ] };
@@ -161,8 +161,8 @@ xkb_symbols "mac_legacy" {
     key <AC10> { [ ae,         AE,               oe,        OE         ] };
     key <AC11> { [ dead_acute, dead_diaeresis,   U201A,     U2018      ] };
     key <BKSL> { [ plus,       asterisk,         U2022,     plusminus  ] };
-    
-    
+
+
     //-- Row 2  (B) --//
     key <LSGT> { [ less,   greater,   section,          UF8FF          ] };
     key <AB01> { [ z,      Z,         U3A9,             VoidSymbol     ] };
@@ -184,7 +184,7 @@ xkb_symbols "mac" {
     name[Group1]= "Icelandic (Macintosh)";
 
     //-- Row 5 (E) --//
-    key <TLDE> { [ less,       greater,    bar,          UF8FF       ] };
+    key <TLDE> { [ degree,     dead_diaeresis, oslash,       Ooblique    ] };
     key <AE01> { [ 1,          exclam,     exclamdown,   VoidSymbol  ] };
     key <AE02> { [ 2,          quotedbl,   at,           VoidSymbol  ] };
     key <AE03> { [ 3,          numbersign, trademark,    sterling    ] };
@@ -230,7 +230,7 @@ xkb_symbols "mac" {
 
 
     //-- Row 2  (B) --//
-    key <LSGT> { [ degree, dead_diaeresis, oslash,               Ooblique             ] };
+    key <LSGT> { [ less,   greater,   bar,                  UF8FF                ] };
     key <AB01> { [ z,      Z,              Greek_OMEGA,          VoidSymbol           ] };
     key <AB02> { [ x,      X,              asciitilde,           VoidSymbol           ] };
     key <AB03> { [ c,      C,              ccedilla,             Ccedilla             ] };

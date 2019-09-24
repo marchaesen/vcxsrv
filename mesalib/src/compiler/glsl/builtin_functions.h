@@ -26,8 +26,19 @@
 
 struct gl_shader;
 
-extern void
-_mesa_glsl_initialize_builtin_functions();
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+void
+_mesa_glsl_builtin_functions_init_or_ref();
+
+void
+_mesa_glsl_builtin_functions_decref(void);
+
+#ifdef __cplusplus
+
+} /* extern "C" */
 
 extern ir_function_signature *
 _mesa_glsl_find_builtin_function(_mesa_glsl_parse_state *state,
@@ -42,9 +53,6 @@ _mesa_glsl_get_builtin_function_shader(void);
 
 extern ir_function_signature *
 _mesa_get_main_function_signature(glsl_symbol_table *symbols);
-
-extern void
-_mesa_glsl_release_builtin_functions(void);
 
 namespace generate_ir {
 
@@ -70,5 +78,7 @@ ir_function_signature *
 udivmod64(void *mem_ctx, builtin_available_predicate avail);
 
 }
+
+#endif /* __cplusplus */
 
 #endif /* BULITIN_FUNCTIONS_H */

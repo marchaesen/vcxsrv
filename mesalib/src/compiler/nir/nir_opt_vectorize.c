@@ -335,7 +335,7 @@ vec_instr_stack_push(struct util_dynarray *stack, nir_instr *instr)
 static void
 vec_instr_stack_pop(struct util_dynarray *stack, nir_instr *instr)
 {
-   nir_instr *last = util_dynarray_pop(stack, nir_instr *);
+   ASSERTED nir_instr *last = util_dynarray_pop(stack, nir_instr *);
    assert(last == instr);
 }
 

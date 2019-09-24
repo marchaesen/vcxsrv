@@ -124,6 +124,10 @@ _mesa_GetString( GLenum name )
 
    ASSERT_OUTSIDE_BEGIN_END_WITH_RETVAL(ctx, NULL);
 
+   if (ctx->Const.VendorOverride && name == GL_VENDOR) {
+      return (const GLubyte *) ctx->Const.VendorOverride;
+   }
+
    /* this is a required driver function */
    assert(ctx->Driver.GetString);
    {
@@ -327,6 +331,32 @@ invalid_pname:
    return;
 }
 
+
+void GLAPIENTRY
+_mesa_GetPointerIndexedvEXT( GLenum pname, GLuint index, GLvoid **params )
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (!params)
+      return;
+
+   if (MESA_VERBOSE & VERBOSE_API)
+      _mesa_debug(ctx, "%s %s\n", "glGetPointerIndexedvEXT", _mesa_enum_to_string(pname));
+
+   switch (pname) {
+      case GL_TEXTURE_COORD_ARRAY_POINTER:
+         *params = (GLvoid *) ctx->Array.VAO->VertexAttrib[VERT_ATTRIB_TEX(index)].Ptr;
+         break;
+      default:
+         goto invalid_pname;
+   }
+
+   return;
+
+invalid_pname:
+   _mesa_error( ctx, GL_INVALID_ENUM, "glGetPointerIndexedvEXT");
+   return;
+}
 
 /**
  * Returns the current GL error code, or GL_NO_ERROR.

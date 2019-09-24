@@ -18,7 +18,7 @@ variables:
     DEBIAN_VERSION: testing-slim
     DEBIAN_EXEC: 'bash .gitlab-ci/debian-install.sh'
 
-    DEBIAN_TAG: "2019-03-27-2"
+    DEBIAN_TAG: "2019-09-03"
     IMAGE_LOCAL: "$CI_REGISTRY_IMAGE/debian/$DEBIAN_VERSION:$DEBIAN_TAG"
 
 include:

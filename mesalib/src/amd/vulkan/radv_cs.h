@@ -42,7 +42,7 @@ static inline unsigned radeon_check_space(struct radeon_winsys *ws,
 
 static inline void radeon_set_config_reg_seq(struct radeon_cmdbuf *cs, unsigned reg, unsigned num)
 {
-        assert(reg >= SI_CONTEXT_REG_OFFSET && reg < SI_CONFIG_REG_END);
+        assert(reg >= SI_CONFIG_REG_OFFSET && reg < SI_CONFIG_REG_END);
         assert(cs->cdw + 2 + num <= cs->max_dw);
         assert(num);
         radeon_emit(cs, PKT3(PKT3_SET_CONFIG_REG, num, 0));

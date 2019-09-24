@@ -39,46 +39,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 '\" t
 .TH XChangeKeyboardControl __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
@@ -86,18 +53,18 @@ XChangeKeyboardControl, XGetKeyboardControl, XAutoRepeatOn, XAutoRepeatOff, XBel
 .SH SYNTAX
 .HP
 int XChangeKeyboardControl\^(\^Display *\fIdisplay\fP, unsigned long
-\fIvalue_mask\fP\^, XKeyboardControl *\fIvalues\fP\^); 
+\fIvalue_mask\fP\^, XKeyboardControl *\fIvalues\fP\^);
 .HP
 int XGetKeyboardControl\^(\^Display *\fIdisplay\fP, XKeyboardState
-*\fIvalues_return\fP\^); 
+*\fIvalues_return\fP\^);
 .HP
-int XAutoRepeatOn\^(\^Display *\fIdisplay\fP\^); 
+int XAutoRepeatOn\^(\^Display *\fIdisplay\fP\^);
 .HP
-int XAutoRepeatOff\^(\^Display *\fIdisplay\fP\^); 
+int XAutoRepeatOff\^(\^Display *\fIdisplay\fP\^);
 .HP
-int XBell\^(\^Display *\fIdisplay\fP, int \fIpercent\fP\^); 
+int XBell\^(\^Display *\fIdisplay\fP, int \fIpercent\fP\^);
 .HP
-int XQueryKeymap\^(\^Display *\fIdisplay\fP, char \fIkeys_return\fP[32]\^); 
+int XQueryKeymap\^(\^Display *\fIdisplay\fP, char \fIkeys_return\fP[32]\^);
 .SH ARGUMENTS
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
@@ -106,7 +73,7 @@ Returns an array of bytes that identifies which keys are pressed down.
 Each bit represents one key of the keyboard.
 .IP \fIpercent\fP 1i
 Specifies the volume for the bell,
-which can range from \-100 to 100 inclusive. 
+which can range from \-100 to 100 inclusive.
 .IP \fIvalue_mask\fP 1i
 Specifies which controls to change.
 This mask is the bitwise inclusive OR of the valid control mask bits.
@@ -173,11 +140,11 @@ error.
 .LP
 The
 .B XQueryKeymap
-function returns a bit vector for the logical state of the keyboard, 
-where each bit set to 1 indicates that the corresponding key is currently 
+function returns a bit vector for the logical state of the keyboard,
+where each bit set to 1 indicates that the corresponding key is currently
 pressed down.
 The vector is represented as 32 bytes.
-Byte N (from 0) contains the bits for keys 8N to 8N + 7 
+Byte N (from 0) contains the bits for keys 8N to 8N + 7
 with the least significant bit in the byte representing key 8N.
 .LP
 Note that the logical state of a device (as seen by client applications)
@@ -249,7 +216,7 @@ T}	T{
 T}
 .TE
 .IN "XKeyboardControl" "" "@DEF@"
-.Ds 0
+.EX
 /\&* Values */
 
 typedef struct {
@@ -260,20 +227,20 @@ typedef struct {
         int led;
         int led_mode;   /\&* LedModeOn, LedModeOff */
         int key;
-        int auto_repeat_mode;   /\&* AutoRepeatModeOff, AutoRepeatModeOn, 
+        int auto_repeat_mode;   /\&* AutoRepeatModeOff, AutoRepeatModeOn,
                                 AutoRepeatModeDefault */
 } XKeyboardControl;
-.De
+.EE
 .LP
-The key_click_percent member sets the volume for key clicks between 0 (off) 
-and 100 (loud) inclusive, if possible.  
+The key_click_percent member sets the volume for key clicks between 0 (off)
+and 100 (loud) inclusive, if possible.
 A setting of \-1 restores the default.
 Other negative values generate a
 .B BadValue
 error.
 .LP
 The bell_percent sets the base volume for the bell between 0 (off) and 100
-(loud) inclusive, if possible.  
+(loud) inclusive, if possible.
 A setting of \-1 restores the default.
 Other negative values generate a
 .B BadValue
@@ -284,27 +251,27 @@ Other negative values generate a
 .B BadValue
 error.
 The bell_duration member sets the duration of the
-bell specified in milliseconds, if possible.  
+bell specified in milliseconds, if possible.
 A setting of \-1 restores the default.
 Other negative values generate a
 .B BadValue
 error.
 .LP
 If both the led_mode and led members are specified,
-the state of that LED is changed, if possible.  
+the state of that LED is changed, if possible.
 The led_mode member can be set to
 .B LedModeOn
 or
 .BR LedModeOff .
 If only led_mode is specified, the state of
-all LEDs are changed, if possible.  
-At most 32 LEDs numbered from one are supported. 
+all LEDs are changed, if possible.
+At most 32 LEDs numbered from one are supported.
 No standard interpretation of LEDs is defined.
 If led is specified without led_mode, a
 .B BadMatch
-error results. 
+error results.
 .LP
-If both the auto_repeat_mode and key members are specified, 
+If both the auto_repeat_mode and key members are specified,
 the auto_repeat_mode of that key is changed (according to
 .BR AutoRepeatModeOn ,
 .BR AutoRepeatModeOff ,
@@ -341,7 +308,7 @@ The
 .B XKeyboardState
 structure contains:
 .LP
-.Ds 0
+.EX
 typedef struct {
         int key_click_percent;
         int bell_percent;
@@ -350,9 +317,9 @@ typedef struct {
         int global_auto_repeat;
         char auto_repeats[32];
 } XKeyboardState;
-.De
+.EE
 .LP
-For the LEDs, 
+For the LEDs,
 the least significant bit of led_mask corresponds to LED one,
 and each bit set to 1 in led_mask indicates an LED that is lit.
 The global_auto_repeat member can be set to
@@ -360,9 +327,9 @@ The global_auto_repeat member can be set to
 or
 .BR AutoRepeatModeOff .
 The auto_repeats member is a bit vector.
-Each bit set to 1 indicates that auto-repeat is enabled 
+Each bit set to 1 indicates that auto-repeat is enabled
 for the corresponding key.
-The vector is represented as 32 bytes.  
+The vector is represented as 32 bytes.
 Byte N (from 0) contains the bits for keys 8N to 8N + 7
 with the least significant bit in the byte representing key 8N.
 .SH DIAGNOSTICS
@@ -374,7 +341,8 @@ to match in some other way required by the request.
 .B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
-by the argument's type is accepted.  Any argument defined as a set of
+by the argument's type is accepted.
+Any argument defined as a set of
 alternatives can generate this error.
 .SH "SEE ALSO"
 XChangeKeyboardMapping(__libmansuffix__),

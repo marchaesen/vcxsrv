@@ -39,7 +39,8 @@ test(
   'qpu_disasm',
   executable(
     'qpu_disasm', 'tests/qpu_disasm.c',
-    link_with: [libbroadcom_qpu, libmesa_util],
+    link_with: libbroadcom_qpu,
+    dependencies : idep_mesautil,
     include_directories: inc_common
   ),
   suite : ['broadcom'],

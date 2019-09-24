@@ -43,8 +43,8 @@ struct _SyncObject {
     struct _SyncTriggerList *pTriglist; /* list of triggers */
     XID id;                     /* resource ID */
     unsigned char type;         /* SYNC_* */
-    Bool initialized;           /* FALSE if created but not initialized */
     Bool beingDestroyed;        /* in process of going away */
+    Bool initialized;           /* FALSE if created but not initialized */
 };
 
 typedef struct _SyncCounter {

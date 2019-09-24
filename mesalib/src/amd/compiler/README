@@ -1,0 +1,87 @@
+# Unofficial GCN/RDNA ISA reference errata
+
+## v_sad_u32
+
+The Vega ISA reference writes it's behaviour as:
+```
+D.u = abs(S0.i - S1.i) + S2.u.
+```
+This is incorrect. The actual behaviour is what is written in the GCN3 reference
+guide:
+```
+ABS_DIFF (A,B) = (A>B) ? (A-B) : (B-A)
+D.u = ABS_DIFF (S0.u,S1.u) + S2.u
+```
+The instruction doesn't subtract the S0 and S1 and use the absolute value (the
+_signed_ distance), it uses the _unsigned_ distance between the operands. So
+`v_sad_u32(-5, 0, 0)` would return `4294967291` (`-5` interpreted as unsigned),
+not `5`.
+
+## s_bfe_*
+
+Both the Vega and GCN3 ISA references write that these instructions don't write
+SCC. They do.
+
+## v_bcnt_u32_b32
+
+The Vega ISA reference writes it's behaviour as:
+```
+D.u = 0;
+for i in 0 ... 31 do
+D.u += (S0.u[i] == 1 ? 1 : 0);
+endfor.
+```
+This is incorrect. The actual behaviour (and number of operands) is what
+is written in the GCN3 reference guide:
+```
+D.u = CountOneBits(S0.u) + S1.u.
+```
+
+## SMEM stores
+
+The Vega ISA references doesn't say this (or doesn't make it clear), but
+the offset for SMEM stores must be in m0 if IMM == 0.
+
+The RDNA ISA doesn't mention SMEM stores at all, but they seem to be supported
+by the chip and are present in LLVM. AMD devs however highly recommend avoiding
+these instructions.
+
+## SMEM atomics
+
+RDNA ISA: same as the SMEM stores, the ISA pretends they don't exist, but they
+are there in LLVM.
+
+## VMEM stores
+
+All reference guides say (under "Vector Memory Instruction Data Dependencies"):
+> When a VM instruction is issued, the address is immediately read out of VGPRs
+> and sent to the texture cache. Any texture or buffer resources and samplers
+> are also sent immediately. However, write-data is not immediately sent to the
+> texture cache.
+Reading that, one might think that waitcnts need to be added when writing to
+the registers used for a VMEM store's data. Experimentation has shown that this
+does not seem to be the case on GFX8 and GFX9 (GFX6 and GFX7 are untested). It
+also seems unlikely, since NOPs are apparently needed in a subset of these
+situations.
+
+## MIMG opcodes on GFX8/GCN3
+
+The `image_atomic_{swap,cmpswap,add,sub}` opcodes in the GCN3 ISA reference
+guide are incorrect. The Vega ISA reference guide has the correct ones.
+
+## Legacy instructions
+
+Some instructions have a `_LEGACY` variant which implements "DX9 rules", in which
+the zero "wins" in multiplications, ie. `0.0*x` is always `0.0`. The VEGA ISA
+mentions `V_MAC_LEGACY_F32` but this instruction is not really there on VEGA.
+
+# Hardware Bugs
+
+## SMEM corrupts VCCZ on SI/CI
+
+https://github.com/llvm/llvm-project/blob/acb089e12ae48b82c0b05c42326196a030df9b82/llvm/lib/Target/AMDGPU/SIInsertWaits.cpp#L580-L616
+After issuing a SMEM instructions, we need to wait for the SMEM instructions to
+finish and then write to vcc (for example, `s_mov_b64 vcc, vcc`) to correct vccz
+
+Currently, we don't do this.
+

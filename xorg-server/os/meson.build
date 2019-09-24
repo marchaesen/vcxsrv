@@ -91,6 +91,7 @@ libxserver_os = static_library('libxserver_os',
     srcs_os,
     include_directories: inc,
     dependencies: [
+        dtrace_dep,
         common_dep,
         dl_dep,
         sha1_dep,

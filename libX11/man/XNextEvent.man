@@ -38,72 +38,39 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XNextEvent __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XNextEvent, XPeekEvent, XWindowEvent, XCheckWindowEvent, XMaskEvent, XCheckMaskEvent, XCheckTypedEvent, XCheckTypedWindowEvent \- select events by type
 .SH SYNTAX
 .HP
-int XNextEvent\^(\^Display *\fIdisplay\fP\^, XEvent *\fIevent_return\fP\^); 
+int XNextEvent\^(\^Display *\fIdisplay\fP\^, XEvent *\fIevent_return\fP\^);
 .HP
-int XPeekEvent\^(\^Display *\fIdisplay\fP\^, XEvent *\fIevent_return\fP\^); 
+int XPeekEvent\^(\^Display *\fIdisplay\fP\^, XEvent *\fIevent_return\fP\^);
 .HP
 int XWindowEvent\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, long
-\fIevent_mask\fP\^, XEvent *\fIevent_return\fP\^); 
+\fIevent_mask\fP\^, XEvent *\fIevent_return\fP\^);
 .HP
 Bool XCheckWindowEvent\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, long
-\fIevent_mask\fP\^, XEvent *\fIevent_return\fP\^); 
+\fIevent_mask\fP\^, XEvent *\fIevent_return\fP\^);
 .HP
 int XMaskEvent\^(\^Display *\fIdisplay\fP\^, long \fIevent_mask\fP\^, XEvent
-*\fIevent_return\fP\^); 
+*\fIevent_return\fP\^);
 .HP
 Bool XCheckMaskEvent\^(\^Display *\fIdisplay\fP\^, long \fIevent_mask\fP\^,
-XEvent *\fIevent_return\fP\^); 
+XEvent *\fIevent_return\fP\^);
 .HP
 Bool XCheckTypedEvent\^(\^Display *\fIdisplay\fP\^, int \fIevent_type\fP\^,
-XEvent *\fIevent_return\fP\^); 
+XEvent *\fIevent_return\fP\^);
 .HP
 Bool XCheckTypedWindowEvent\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^,
-int \fIevent_type\fP\^, XEvent *\fIevent_return\fP\^); 
+int \fIevent_type\fP\^, XEvent *\fIevent_return\fP\^);
 .SH ARGUMENTS
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
@@ -156,7 +123,7 @@ flushes the output buffer and blocks until one is received.
 .LP
 The
 .B XCheckWindowEvent
-function searches the event queue and then the events available 
+function searches the event queue and then the events available
 on the server connection for the first event that matches the specified window
 and event mask.
 If it finds a match,
@@ -174,7 +141,7 @@ and the output buffer will have been flushed.
 .LP
 The
 .B XMaskEvent
-function searches the event queue for the events associated with the 
+function searches the event queue for the events associated with the
 specified mask.
 When it finds a match,
 .B XMaskEvent
@@ -205,7 +172,7 @@ and the output buffer will have been flushed.
 .LP
 The
 .B XCheckTypedEvent
-function searches the event queue and then any events available  
+function searches the event queue and then any events available
 on the server connection for the first event that matches the specified type.
 If it finds a match,
 .B XCheckTypedEvent
@@ -222,7 +189,7 @@ and the output buffer will have been flushed.
 .LP
 The
 .B XCheckTypedWindowEvent
-function searches the event queue and then any events available  
+function searches the event queue and then any events available
 on the server connection for the first event that matches the specified
 type and window.
 If it finds a match,

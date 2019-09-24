@@ -988,6 +988,87 @@ nir_op_vec(unsigned components)
    }
 }
 
+static inline bool
+nir_is_float_control_signed_zero_inf_nan_preserve(unsigned execution_mode, unsigned bit_size)
+{
+    return (16 == bit_size && execution_mode & FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP16) ||
+        (32 == bit_size && execution_mode & FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP32) ||
+        (64 == bit_size && execution_mode & FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP64);
+}
+
+static inline bool
+nir_is_denorm_flush_to_zero(unsigned execution_mode, unsigned bit_size)
+{
+    return (16 == bit_size && execution_mode & FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP16) ||
+        (32 == bit_size && execution_mode & FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP32) ||
+        (64 == bit_size && execution_mode & FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP64);
+}
+
+static inline bool
+nir_is_denorm_preserve(unsigned execution_mode, unsigned bit_size)
+{
+    return (16 == bit_size && execution_mode & FLOAT_CONTROLS_DENORM_PRESERVE_FP16) ||
+        (32 == bit_size && execution_mode & FLOAT_CONTROLS_DENORM_PRESERVE_FP32) ||
+        (64 == bit_size && execution_mode & FLOAT_CONTROLS_DENORM_PRESERVE_FP64);
+}
+
+static inline bool
+nir_is_rounding_mode_rtne(unsigned execution_mode, unsigned bit_size)
+{
+    return (16 == bit_size && execution_mode & FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP16) ||
+        (32 == bit_size && execution_mode & FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP32) ||
+        (64 == bit_size && execution_mode & FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP64);
+}
+
+static inline bool
+nir_is_rounding_mode_rtz(unsigned execution_mode, unsigned bit_size)
+{
+    return (16 == bit_size && execution_mode & FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP16) ||
+        (32 == bit_size && execution_mode & FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP32) ||
+        (64 == bit_size && execution_mode & FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP64);
+}
+
+static inline bool
+nir_has_any_rounding_mode_rtz(unsigned execution_mode)
+{
+    return (execution_mode & FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP16) ||
+        (execution_mode & FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP32) ||
+        (execution_mode & FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP64);
+}
+
+static inline bool
+nir_has_any_rounding_mode_rtne(unsigned execution_mode)
+{
+    return (execution_mode & FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP16) ||
+        (execution_mode & FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP32) ||
+        (execution_mode & FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP64);
+}
+
+static inline nir_rounding_mode
+nir_get_rounding_mode_from_float_controls(unsigned execution_mode,
+                                          nir_alu_type type)
+{
+   if (nir_alu_type_get_base_type(type) != nir_type_float)
+      return nir_rounding_mode_undef;
+
+   unsigned bit_size = nir_alu_type_get_type_size(type);
+
+   if (nir_is_rounding_mode_rtz(execution_mode, bit_size))
+      return nir_rounding_mode_rtz;
+   if (nir_is_rounding_mode_rtne(execution_mode, bit_size))
+      return nir_rounding_mode_rtne;
+   return nir_rounding_mode_undef;
+}
+
+static inline bool
+nir_has_any_rounding_mode_enabled(unsigned execution_mode)
+{
+   bool result =
+      nir_has_any_rounding_mode_rtne(execution_mode) ||
+      nir_has_any_rounding_mode_rtz(execution_mode);
+   return result;
+}
+
 typedef enum {
    /**
     * Operation where the first two sources are commutative.
@@ -1223,6 +1304,7 @@ nir_deref_instr_get_variable(const nir_deref_instr *instr)
 }
 
 bool nir_deref_instr_has_indirect(nir_deref_instr *instr);
+bool nir_deref_instr_is_known_out_of_bounds(nir_deref_instr *instr);
 bool nir_deref_instr_has_complex_use(nir_deref_instr *instr);
 
 bool nir_deref_instr_remove_if_unused(nir_deref_instr *instr);
@@ -1439,8 +1521,8 @@ typedef enum {
    NIR_INTRINSIC_SWIZZLE_MASK,
 
    /* Separate source/dest access flags for copies */
-   NIR_INTRINSIC_SRC_ACCESS = 21,
-   NIR_INTRINSIC_DST_ACCESS = 22,
+   NIR_INTRINSIC_SRC_ACCESS,
+   NIR_INTRINSIC_DST_ACCESS,
 
    NIR_INTRINSIC_NUM_INDEX_FLAGS,
 
@@ -1826,19 +1908,30 @@ nir_tex_instr_src_type(const nir_tex_instr *instr, unsigned src)
    case nir_tex_src_projector:
    case nir_tex_src_comparator:
    case nir_tex_src_bias:
+   case nir_tex_src_min_lod:
    case nir_tex_src_ddx:
    case nir_tex_src_ddy:
       return nir_type_float;
 
    case nir_tex_src_offset:
    case nir_tex_src_ms_index:
-   case nir_tex_src_texture_offset:
-   case nir_tex_src_sampler_offset:
+   case nir_tex_src_plane:
       return nir_type_int;
 
-   default:
-      unreachable("Invalid texture source type");
+   case nir_tex_src_ms_mcs:
+   case nir_tex_src_texture_deref:
+   case nir_tex_src_sampler_deref:
+   case nir_tex_src_texture_offset:
+   case nir_tex_src_sampler_offset:
+   case nir_tex_src_texture_handle:
+   case nir_tex_src_sampler_handle:
+      return nir_type_uint;
+
+   case nir_num_tex_src_types:
+      unreachable("nir_num_tex_src_types is not a valid source type");
    }
+
+   unreachable("Invalid texture source type");
 }
 
 static inline unsigned
@@ -1899,11 +1992,6 @@ typedef struct {
 
    nir_const_value value[];
 } nir_load_const_instr;
-
-#define nir_const_load_to_arr(arr, l, m) \
-{ \
-   nir_const_value_to_array(arr, l->value, l->def.num_components, m); \
-} while (false);
 
 typedef enum {
    nir_jump_return,
@@ -2494,6 +2582,13 @@ typedef enum {
    nir_lower_fp64_full_software = (1 << 11),
 } nir_lower_doubles_options;
 
+typedef enum {
+   nir_divergence_single_prim_per_subgroup = (1 << 0),
+   nir_divergence_single_patch_per_tcs_subgroup = (1 << 1),
+   nir_divergence_single_patch_per_tes_subgroup = (1 << 2),
+   nir_divergence_view_index_uniform = (1 << 3),
+} nir_divergence_options;
+
 typedef struct nir_shader_compiler_options {
    bool lower_fdiv;
    bool lower_ffma;
@@ -2543,8 +2638,8 @@ typedef struct nir_shader_compiler_options {
    /** enables rules to lower idiv by power-of-two: */
    bool lower_idiv;
 
-   /** enable rules to avoid bit shifts */
-   bool lower_bitshift;
+   /** enable rules to avoid bit ops */
+   bool lower_bitops;
 
    /** enables rules to lower isign to imin+imax */
    bool lower_isign;
@@ -2554,6 +2649,9 @@ typedef struct nir_shader_compiler_options {
 
    /* lower fdph to fdot4 */
    bool lower_fdph;
+
+   /** lower fdot to fmul and fsum/fadd. */
+   bool lower_fdot;
 
    /* Does the native fdot instruction replicate its result for four
     * components?  If so, then opt_algebraic_late will turn all fdotN
@@ -3356,6 +3454,7 @@ void nir_calc_dominance(nir_shader *shader);
 
 nir_block *nir_dominance_lca(nir_block *b1, nir_block *b2);
 bool nir_block_dominates(nir_block *parent, nir_block *child);
+bool nir_block_is_unreachable(nir_block *block);
 
 void nir_dump_dom_tree_impl(nir_function_impl *impl, FILE *fp);
 void nir_dump_dom_tree(nir_shader *shader, FILE *fp);
@@ -3441,6 +3540,12 @@ void nir_assign_io_var_locations(struct exec_list *var_list,
                                  gl_shader_stage stage);
 
 typedef enum {
+   /* If set, this causes all 64-bit IO operations to be lowered on-the-fly
+    * to 32-bit operations.  This is only valid for nir_var_shader_in/out
+    * modes.
+    */
+   nir_lower_io_lower_64bit_to_32 = (1 << 0),
+
    /* If set, this forces all non-flat fragment shader inputs to be
     * interpolated as if with the "sample" qualifier.  This requires
     * nir_shader_compiler_options::use_interpolated_input_intrinsics.
@@ -3453,6 +3558,11 @@ bool nir_lower_io(nir_shader *shader,
                   nir_lower_io_options);
 
 bool nir_io_add_const_offset_to_base(nir_shader *nir, nir_variable_mode mode);
+
+bool
+nir_lower_vars_to_explicit_types(nir_shader *shader,
+                                 nir_variable_mode modes,
+                                 glsl_type_size_align_func type_info);
 
 typedef enum {
    /**
@@ -3569,7 +3679,6 @@ bool nir_remove_dead_variables(nir_shader *shader, nir_variable_mode modes);
 bool nir_lower_constant_initializers(nir_shader *shader,
                                      nir_variable_mode modes);
 
-bool nir_move_load_const(nir_shader *shader);
 bool nir_move_vec_src_uses_to_dest(nir_shader *shader);
 bool nir_lower_vec_to_movs(nir_shader *shader);
 void nir_lower_alpha_test(nir_shader *shader, enum compare_func func,
@@ -3579,7 +3688,7 @@ bool nir_lower_alu(nir_shader *shader);
 bool nir_lower_flrp(nir_shader *shader, unsigned lowering_mask,
                     bool always_precise, bool have_ffma);
 
-bool nir_lower_alu_to_scalar(nir_shader *shader, BITSET_WORD *lower_set);
+bool nir_lower_alu_to_scalar(nir_shader *shader, nir_instr_filter_cb cb, const void *data);
 bool nir_lower_bool_to_float(nir_shader *shader);
 bool nir_lower_bool_to_int32(nir_shader *shader);
 bool nir_lower_int_to_float(nir_shader *shader);
@@ -3872,6 +3981,8 @@ bool nir_lower_doubles(nir_shader *shader, const nir_shader *softfp64,
                        nir_lower_doubles_options options);
 bool nir_lower_pack(nir_shader *shader);
 
+bool nir_lower_point_size(nir_shader *shader, float min, float max);
+
 typedef enum {
    nir_lower_interpolation_at_sample = (1 << 1),
    nir_lower_interpolation_at_offset = (1 << 2),
@@ -3896,6 +4007,8 @@ bool nir_repair_ssa_impl(nir_function_impl *impl);
 bool nir_repair_ssa(nir_shader *shader);
 
 void nir_convert_loop_to_lcssa(nir_loop *loop);
+bool nir_convert_to_lcssa(nir_shader *shader, bool skip_invariants, bool skip_bool_invariants);
+bool* nir_divergence_analysis(nir_shader *shader, nir_divergence_options options);
 
 /* If phi_webs_only is true, only convert SSA values involved in phi nodes to
  * registers.  If false, convert all values (even those not involved in a phi
@@ -3906,6 +4019,8 @@ bool nir_convert_from_ssa(nir_shader *shader, bool phi_webs_only);
 bool nir_lower_phis_to_regs_block(nir_block *block);
 bool nir_lower_ssa_defs_to_regs_block(nir_block *block);
 bool nir_rematerialize_derefs_in_use_blocks_impl(nir_function_impl *impl);
+
+bool nir_lower_samplers(nir_shader *shader);
 
 /* This is here for unit tests. */
 bool nir_opt_comparison_pre_impl(nir_function_impl *impl);
@@ -3950,9 +4065,18 @@ bool nir_opt_large_constants(nir_shader *shader,
 
 bool nir_opt_loop_unroll(nir_shader *shader, nir_variable_mode indirect_mask);
 
-bool nir_opt_move_comparisons(nir_shader *shader);
+typedef enum {
+    nir_move_const_undef = (1 << 0),
+    nir_move_load_ubo    = (1 << 1),
+    nir_move_load_input  = (1 << 2),
+    nir_move_comparisons = (1 << 3),
+} nir_move_options;
 
-bool nir_opt_move_load_ubo(nir_shader *shader);
+bool nir_can_move_instr(nir_instr *instr, nir_move_options options);
+
+bool nir_opt_sink(nir_shader *shader, nir_move_options options);
+
+bool nir_opt_move(nir_shader *shader, nir_move_options options);
 
 bool nir_opt_peephole_select(nir_shader *shader, unsigned limit,
                              bool indirect_load_ok, bool expensive_alu_ok);

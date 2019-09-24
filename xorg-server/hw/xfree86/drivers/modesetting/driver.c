@@ -41,6 +41,7 @@
 #include "compiler.h"
 #include "xf86Pci.h"
 #include "mipointer.h"
+#include "mipointrst.h"
 #include "micmap.h"
 #include <X11/extensions/randr.h>
 #include "fb.h"
@@ -131,6 +132,7 @@ static const OptionInfoRec Options[] = {
     {OPTION_PAGEFLIP, "PageFlip", OPTV_BOOLEAN, {0}, FALSE},
     {OPTION_ZAPHOD_HEADS, "ZaphodHeads", OPTV_STRING, {0}, FALSE},
     {OPTION_DOUBLE_SHADOW, "DoubleShadow", OPTV_BOOLEAN, {0}, FALSE},
+    {OPTION_ATOMIC, "Atomic", OPTV_BOOLEAN, {0}, FALSE},
     {-1, NULL, OPTV_NONE, {0}, FALSE}
 };
 
@@ -1038,8 +1040,12 @@ PreInit(ScrnInfoPtr pScrn, int flags)
 #endif
     }
 
-    ret = drmSetClientCap(ms->fd, DRM_CLIENT_CAP_ATOMIC, 1);
-    ms->atomic_modeset = (ret == 0);
+    if (xf86ReturnOptValBool(ms->drmmode.Options, OPTION_ATOMIC, FALSE)) {
+        ret = drmSetClientCap(ms->fd, DRM_CLIENT_CAP_ATOMIC, 1);
+        ms->atomic_modeset = (ret == 0);
+    } else {
+        ms->atomic_modeset = FALSE;
+    }
 
     ms->kms_has_modifiers = FALSE;
     ret = drmGetCap(ms->fd, DRM_CAP_ADDFB2_MODIFIERS, &value);
@@ -1648,6 +1654,21 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
     xf86SetSilkenMouse(pScreen);
     miDCInitialize(pScreen, xf86GetPointerScreenFuncs());
 
+    /* If pageflip is enabled hook the screen's cursor-sprite (swcursor) funcs.
+     * So that we can disabe page-flipping on fallback to a swcursor. */
+    if (ms->drmmode.pageflip) {
+        miPointerScreenPtr PointPriv =
+            dixLookupPrivate(&pScreen->devPrivates, miPointerScreenKey);
+
+        if (!dixRegisterScreenPrivateKey(&ms->drmmode.spritePrivateKeyRec,
+                                         pScreen, PRIVATE_DEVICE,
+                                         sizeof(msSpritePrivRec)))
+            return FALSE;
+
+        ms->SpriteFuncs = PointPriv->spriteFuncs;
+        PointPriv->spriteFuncs = &drmmode_sprite_funcs;
+    }
+
     /* Need to extend HWcursor support to handle mask interleave */
     if (!ms->drmmode.sw_cursor)
         xf86_cursors_init(pScreen, ms->cursor_width, ms->cursor_height,
@@ -1843,6 +1864,14 @@ CloseScreen(ScreenPtr pScreen)
     drmmode_uevent_fini(pScrn, &ms->drmmode);
 
     drmmode_free_bos(pScrn, &ms->drmmode);
+
+    if (ms->drmmode.pageflip) {
+        miPointerScreenPtr PointPriv =
+            dixLookupPrivate(&pScreen->devPrivates, miPointerScreenKey);
+
+        if (PointPriv->spriteFuncs == &drmmode_sprite_funcs)
+            PointPriv->spriteFuncs = ms->SpriteFuncs;        
+    }
 
     if (pScrn->vtSema) {
         LeaveVT(pScrn);

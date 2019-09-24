@@ -239,6 +239,27 @@ nir_lower_atomics_to_ssbo(nir_shader *shader, unsigned ssbo_offset)
             replaced |= (1 << var->data.binding);
          }
       }
+
+      /* Make sure that shader->info.num_ssbos still reflects the maximum SSBO
+       * index that can be used in the shader.
+       */
+      if (shader->info.num_ssbos > 0) {
+         shader->info.num_ssbos += ssbo_offset;
+      } else {
+         /* We can't use num_abos, because it only represents the number of
+          * active atomic counters, and currently unlike SSBO's they aren't
+          * compacted so num_abos actually isn't a bound on the index passed
+          * to nir_intrinsic_atomic_counter_*. e.g. if we have a single atomic
+          * counter declared like:
+          *
+          * layout(binding=1) atomic_uint counter0;
+          *
+          * then when we lower accesses to it the atomic_counter_* intrinsics
+          * will have 1 as the index but num_abos will still be 1.
+          * */
+         shader->info.num_ssbos = util_last_bit(replaced);
+      }
+      shader->info.num_abos = 0;
    }
 
    return progress;

@@ -39,46 +39,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 '\" t
 .TH XAllocStandardColormap __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
@@ -120,16 +87,16 @@ structure.
 Note that all fields in the
 .B XStandardColormap
 structure are initially set to zero.
-If insufficient memory is available, 
+If insufficient memory is available,
 .B XAllocStandardColormap
 returns NULL.
 To free the memory allocated to this structure,
 use
 .BR XFree .
 .LP
-The 
+The
 .B XSetRGBColormaps
-function replaces the RGB colormap definition in the specified property 
+function replaces the RGB colormap definition in the specified property
 on the named window.
 If the property does not already exist,
 .B XSetRGBColormaps
@@ -142,7 +109,7 @@ restriction that only RGB_DEFAULT_MAP contain more than one definition.
 The
 .B XSetRGBColormaps
 function usually is only used by window or session managers.
-To create a standard colormap, 
+To create a standard colormap,
 follow this procedure:
 .IP 1. 5
 Open a new connection to the same server.
@@ -161,11 +128,11 @@ Determine the color characteristics of the visual.
 Allocate cells in the colormap (or create it with
 .BR AllocAll ).
 .IP \(bu 5
-Call 
+Call
 .B XStoreColors
 to store appropriate color values in the colormap.
 .IP \(bu 5
-Fill in the descriptive members in the 
+Fill in the descriptive members in the
 .B XStandardColormap
 structure.
 .IP \(bu 5
@@ -186,23 +153,23 @@ and
 .B BadWindow
 errors.
 .LP
-The 
+The
 .B XGetRGBColormaps
-function returns the RGB colormap definitions stored 
+function returns the RGB colormap definitions stored
 in the specified property on the named window.
-If the property exists, is of type RGB_COLOR_MAP, is of format 32, 
+If the property exists, is of type RGB_COLOR_MAP, is of format 32,
 and is long enough to contain a colormap definition,
 .B XGetRGBColormaps
 allocates and fills in space for the returned colormaps
 and returns a nonzero status.
-If the visualid is not present, 
+If the visualid is not present,
 .B XGetRGBColormaps
-assumes the default visual for the screen on which the window is located; 
-if the killid is not present, 
+assumes the default visual for the screen on which the window is located;
+if the killid is not present,
 .B None
 is assumed, which indicates that the resources cannot be released.
-Otherwise, 
-none of the fields are set, and 
+Otherwise,
+none of the fields are set, and
 .B XGetRGBColormaps
 returns a zero status.
 Note that it is the caller's responsibility to honor the ICCCM
@@ -232,7 +199,7 @@ T}
 .TE
 /\&* Values */
 .IN "XStandardColormap" "" "@DEF@"
-.Ds 0
+.EX
 typedef struct {
         Colormap colormap;
         unsigned long red_max;
@@ -245,56 +212,56 @@ typedef struct {
         VisualID visualid;
         XID killid;
 } XStandardColormap;
-.De
+.EE
 .LP
 The colormap member is the colormap created by the
 .B XCreateColormap
 function.
 The red_max, green_max, and blue_max members give the maximum
-red, green, and blue values, respectively.  
-Each color coefficient ranges from zero to its max, inclusive.  
+red, green, and blue values, respectively.
+Each color coefficient ranges from zero to its max, inclusive.
 For example,
 a common colormap allocation is 3/3/2 (3 planes for red, 3
-planes for green, and 2 planes for blue).  
-This colormap would have red_max = 7, green_max = 7, 
-and blue_max = 3.  
-An alternate allocation that uses only 216 colors is red_max = 5, 
+planes for green, and 2 planes for blue).
+This colormap would have red_max = 7, green_max = 7,
+and blue_max = 3.
+An alternate allocation that uses only 216 colors is red_max = 5,
 green_max = 5, and blue_max = 5.
 .LP
 The red_mult, green_mult, and blue_mult members give the
-scale factors used to compose a full pixel value. 
+scale factors used to compose a full pixel value.
 (See the discussion of the base_pixel members for further information.)
 For a 3/3/2 allocation, red_mult might be 32,
-green_mult might be 4, and blue_mult might be 1.  
-For a 6-colors-each allocation, red_mult might be 36, 
+green_mult might be 4, and blue_mult might be 1.
+For a 6-colors-each allocation, red_mult might be 36,
 green_mult might be 6, and blue_mult might be 1.
 .LP
 The base_pixel member gives the base pixel value used to
-compose a full pixel value.  
-Usually, the base_pixel is obtained from a call to the 
+compose a full pixel value.
+Usually, the base_pixel is obtained from a call to the
 .B XAllocColorPlanes
-function.  
-Given integer red, green, and blue coefficients in their appropriate 
+function.
+Given integer red, green, and blue coefficients in their appropriate
 ranges, one then can compute a corresponding pixel value by
 using the following expression:
 .LP
-.Ds
+.EX
 (r * red_mult + g * green_mult + b * blue_mult + base_pixel) & 0xFFFFFFFF
-.De
+.EE
 .LP
-For 
+For
 .B GrayScale
-colormaps, 
-only the colormap, red_max, red_mult, 
-and base_pixel members are defined. 
-The other members are ignored.  
-To compute a 
+colormaps,
+only the colormap, red_max, red_mult,
+and base_pixel members are defined.
+The other members are ignored.
+To compute a
 .B GrayScale
 pixel value, use the following expression:
 .LP
-.Ds
+.EX
 (gray * red_mult + base_pixel) & 0xFFFFFFFF
-.De
+.EE
 .LP
 Negative multipliers can be represented by converting the 2's
 complement representation of the multiplier into an unsigned long and
@@ -307,15 +274,15 @@ depending on the size of the integer type used to do the computation,
 The visualid member gives the ID number of the visual from which the
 colormap was created.
 The killid member gives a resource ID that indicates whether
-the cells held by this standard colormap are to be released 
+the cells held by this standard colormap are to be released
 by freeing the colormap ID or by calling the
 .B XKillClient
 function on the indicated resource.
 (Note that this method is necessary for allocating out of an existing colormap.)
 .LP
-The properties containing the 
+The properties containing the
 .B XStandardColormap
-information have 
+information have
 the type RGB_COLOR_MAP.
 .SH DIAGNOSTICS
 .TP 1i

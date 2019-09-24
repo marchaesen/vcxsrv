@@ -97,10 +97,17 @@ pixman_files = files(
   'pixman-utils.c',
 )
 
+# We cannot use 'link_with' or 'link_whole' because meson wont do the right
+# thing for static archives.
+_obs = []
+foreach l : pixman_simd_libs
+  _obs += l.extract_all_objects()
+endforeach
+
 libpixman = library(
   'pixman-1',
   [pixman_files, config_h, version_h],
-  link_with : [pixman_simd_libs],
+  objects: _obs,
   dependencies : [dep_m, dep_threads],
   version : meson.project_version(),
   install : true,

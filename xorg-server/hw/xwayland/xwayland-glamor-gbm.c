@@ -212,9 +212,9 @@ xwl_glamor_gbm_create_pixmap(ScreenPtr screen,
     PixmapPtr pixmap = NULL;
 
     if (width > 0 && height > 0 && depth >= 15 &&
-        (hint == 0 ||
-         hint == CREATE_PIXMAP_USAGE_BACKING_PIXMAP ||
-         hint == CREATE_PIXMAP_USAGE_SHARED)) {
+        (hint == CREATE_PIXMAP_USAGE_BACKING_PIXMAP ||
+         hint == CREATE_PIXMAP_USAGE_SHARED ||
+         (xwl_screen->rootless && hint == 0))) {
         uint32_t format = gbm_format_for_depth(depth);
 
 #ifdef GBM_BO_WITH_MODIFIERS
@@ -788,6 +788,10 @@ xwl_dmabuf_handle_modifier(void *data, struct zwp_linux_dmabuf_v1 *dmabuf,
    struct xwl_screen *xwl_screen = data;
     struct xwl_format *xwl_format = NULL;
     int i;
+
+    if (modifier_hi == (DRM_FORMAT_MOD_INVALID >> 32) &&
+        modifier_lo == (DRM_FORMAT_MOD_INVALID & 0xffffffff))
+        return;
 
     for (i = 0; i < xwl_screen->num_formats; i++) {
         if (xwl_screen->formats[i].format == format) {

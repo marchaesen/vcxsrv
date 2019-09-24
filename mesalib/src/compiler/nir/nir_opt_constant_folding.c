@@ -32,14 +32,8 @@
  * Implements SSA-based constant folding.
  */
 
-struct constant_fold_state {
-   void *mem_ctx;
-   nir_function_impl *impl;
-   bool progress;
-};
-
 static bool
-constant_fold_alu_instr(nir_alu_instr *instr, void *mem_ctx)
+constant_fold_alu_instr(nir_alu_instr *instr, void *mem_ctx, unsigned execution_mode)
 {
    nir_const_value src[NIR_MAX_VEC_COMPONENTS][NIR_MAX_VEC_COMPONENTS];
 
@@ -94,7 +88,7 @@ constant_fold_alu_instr(nir_alu_instr *instr, void *mem_ctx)
    for (unsigned i = 0; i < nir_op_infos[instr->op].num_inputs; ++i)
       srcs[i] = src[i];
    nir_eval_const_opcode(instr->op, dest, instr->dest.dest.ssa.num_components,
-                         bit_size, srcs);
+                         bit_size, srcs, execution_mode);
 
    nir_load_const_instr *new_instr =
       nir_load_const_instr_create(mem_ctx,
@@ -150,14 +144,14 @@ constant_fold_intrinsic_instr(nir_intrinsic_instr *instr)
 }
 
 static bool
-constant_fold_block(nir_block *block, void *mem_ctx)
+constant_fold_block(nir_block *block, void *mem_ctx, unsigned execution_mode)
 {
    bool progress = false;
 
    nir_foreach_instr_safe(instr, block) {
       switch (instr->type) {
       case nir_instr_type_alu:
-         progress |= constant_fold_alu_instr(nir_instr_as_alu(instr), mem_ctx);
+         progress |= constant_fold_alu_instr(nir_instr_as_alu(instr), mem_ctx, execution_mode);
          break;
       case nir_instr_type_intrinsic:
          progress |=
@@ -173,13 +167,13 @@ constant_fold_block(nir_block *block, void *mem_ctx)
 }
 
 static bool
-nir_opt_constant_folding_impl(nir_function_impl *impl)
+nir_opt_constant_folding_impl(nir_function_impl *impl, unsigned execution_mode)
 {
    void *mem_ctx = ralloc_parent(impl);
    bool progress = false;
 
    nir_foreach_block(block, impl) {
-      progress |= constant_fold_block(block, mem_ctx);
+      progress |= constant_fold_block(block, mem_ctx, execution_mode);
    }
 
    if (progress) {
@@ -198,10 +192,11 @@ bool
 nir_opt_constant_folding(nir_shader *shader)
 {
    bool progress = false;
+   unsigned execution_mode = shader->info.float_controls_execution_mode;
 
    nir_foreach_function(function, shader) {
       if (function->impl)
-         progress |= nir_opt_constant_folding_impl(function->impl);
+         progress |= nir_opt_constant_folding_impl(function->impl, execution_mode);
    }
 
    return progress;

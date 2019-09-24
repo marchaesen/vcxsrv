@@ -758,6 +758,11 @@ v3d_nir_lower_vs_early(struct v3d_compile *c)
         NIR_PASS_V(c->s, nir_lower_global_vars_to_local);
         v3d_optimize_nir(c->s);
         NIR_PASS_V(c->s, nir_remove_dead_variables, nir_var_shader_in);
+
+        /* This must go before nir_lower_io */
+        if (c->vs_key->per_vertex_point_size)
+                NIR_PASS_V(c->s, nir_lower_point_size, 1.0f, 0.0f);
+
         NIR_PASS_V(c->s, nir_lower_io, nir_var_shader_in | nir_var_shader_out,
                    type_size_vec4,
                    (nir_lower_io_options)0);
@@ -807,8 +812,7 @@ v3d_nir_lower_fs_early(struct v3d_compile *c)
          * enabling early_fragment_tests even if the user didn't.
          */
         if (!(c->s->info.num_images ||
-              c->s->info.num_ssbos ||
-              c->s->info.num_abos)) {
+              c->s->info.num_ssbos)) {
                 c->s->info.fs.early_fragment_tests = true;
         }
 }

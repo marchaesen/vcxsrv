@@ -36,9 +36,6 @@
 #endif
 
 
-#include "pipe/p_compiler.h"
-
-
 #ifdef __cplusplus
 extern "C" {
 #endif

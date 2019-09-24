@@ -148,6 +148,24 @@ radv_render_pass_compile(struct radv_render_pass *pass)
 				subpass->has_color_resolve = true;
 			}
 		}
+
+		for (uint32_t j = 0; j < subpass->input_count; ++j) {
+			if (subpass->input_attachments[j].attachment == VK_ATTACHMENT_UNUSED)
+				continue;
+
+			for (uint32_t k = 0; k < subpass->color_count; ++k) {
+				if (subpass->color_attachments[k].attachment == subpass->input_attachments[j].attachment) {
+					subpass->input_attachments[j].in_render_loop = true;
+					subpass->color_attachments[k].in_render_loop = true;
+				}
+			}
+
+			if (subpass->depth_stencil_attachment &&
+			    subpass->depth_stencil_attachment->attachment == subpass->input_attachments[j].attachment) {
+				subpass->input_attachments[j].in_render_loop = true;
+				subpass->depth_stencil_attachment->in_render_loop = true;
+			}
+		}
 	}
 }
 

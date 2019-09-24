@@ -407,6 +407,27 @@ trace_screen_resource_get_handle(struct pipe_screen *_screen,
                                       resource, handle, usage);
 }
 
+static bool
+trace_screen_resource_get_param(struct pipe_screen *_screen,
+                                struct pipe_context *_pipe,
+                                struct pipe_resource *resource,
+                                unsigned plane,
+                                unsigned layer,
+                                enum pipe_resource_param param,
+                                unsigned handle_usage,
+                                uint64_t *value)
+{
+   struct trace_screen *tr_screen = trace_screen(_screen);
+   struct trace_context *tr_pipe = _pipe ? trace_context(_pipe) : NULL;
+   struct pipe_screen *screen = tr_screen->screen;
+
+   /* TODO trace call */
+
+   return screen->resource_get_param(screen, tr_pipe ? tr_pipe->pipe : NULL,
+                                     resource, plane, layer, param,
+                                     handle_usage, value);
+}
+
 static void
 trace_screen_resource_get_info(struct pipe_screen *_screen,
                                struct pipe_resource *resource,
@@ -687,6 +708,7 @@ trace_screen_create(struct pipe_screen *screen)
    tr_scr->base.resource_from_handle = trace_screen_resource_from_handle;
    SCR_INIT(check_resource_capability);
    tr_scr->base.resource_get_handle = trace_screen_resource_get_handle;
+   SCR_INIT(resource_get_param);
    SCR_INIT(resource_get_info);
    SCR_INIT(resource_from_memobj);
    SCR_INIT(resource_changed);

@@ -102,24 +102,14 @@ static void fetch_null_texelf( const struct swrast_texture_image *texImage,
 
 
 #define FETCH_FUNCS(NAME)       \
-   {                            \
-      MESA_FORMAT_ ## NAME,     \
+   [MESA_FORMAT_ ## NAME] = {   \
       fetch_texel_1d_ ## NAME,  \
       fetch_texel_2d_ ## NAME,  \
       fetch_texel_3d_ ## NAME,  \
    }
 
-#define FETCH_NULL(NAME)        \
-   {                            \
-      MESA_FORMAT_ ## NAME,     \
-      NULL,                     \
-      NULL,                     \
-      NULL                      \
-   }
-
 #define FETCH_COMPRESSED(NAME)  \
-   {                            \
-      MESA_FORMAT_ ## NAME,     \
+   [MESA_FORMAT_ ## NAME] = {   \
       fetch_compressed,         \
       fetch_compressed,         \
       fetch_compressed          \
@@ -129,20 +119,12 @@ static void fetch_null_texelf( const struct swrast_texture_image *texImage,
  * Table to map MESA_FORMAT_ to texel fetch/store funcs.
  */
 static struct {
-   mesa_format Name;
    FetchTexelFunc Fetch1D;
    FetchTexelFunc Fetch2D;
    FetchTexelFunc Fetch3D;
 }
 texfetch_funcs[] =
 {
-   {
-      MESA_FORMAT_NONE,
-      fetch_null_texelf,
-      fetch_null_texelf,
-      fetch_null_texelf
-   },
-
    /* Packed unorm formats */
    FETCH_FUNCS(A8B8G8R8_UNORM),
    FETCH_FUNCS(X8B8G8R8_UNORM),
@@ -157,12 +139,9 @@ texfetch_funcs[] =
    FETCH_FUNCS(B5G6R5_UNORM),
    FETCH_FUNCS(R5G6B5_UNORM),
    FETCH_FUNCS(B4G4R4A4_UNORM),
-   FETCH_NULL(B4G4R4X4_UNORM),
    FETCH_FUNCS(A4R4G4B4_UNORM),
    FETCH_FUNCS(A1B5G5R5_UNORM),
-   FETCH_NULL(X1B5G5R5_UNORM),
    FETCH_FUNCS(B5G5R5A1_UNORM),
-   FETCH_NULL(B5G5R5X1_UNORM),
    FETCH_FUNCS(A1R5G5B5_UNORM),
    FETCH_FUNCS(L8A8_UNORM),
    FETCH_FUNCS(A8L8_UNORM),
@@ -173,30 +152,20 @@ texfetch_funcs[] =
    FETCH_FUNCS(R16G16_UNORM),
    FETCH_FUNCS(G16R16_UNORM),
    FETCH_FUNCS(B10G10R10A2_UNORM),
-   FETCH_NULL(B10G10R10X2_UNORM),
    FETCH_FUNCS(R10G10B10A2_UNORM),
-   FETCH_NULL(R10G10B10X2_UNORM),
 
    FETCH_FUNCS(S8_UINT_Z24_UNORM),
-   {
-      MESA_FORMAT_X8_UINT_Z24_UNORM,
+   [MESA_FORMAT_X8_UINT_Z24_UNORM] = {
       fetch_texel_1d_S8_UINT_Z24_UNORM,
       fetch_texel_2d_S8_UINT_Z24_UNORM,
       fetch_texel_3d_S8_UINT_Z24_UNORM
    },
    FETCH_FUNCS(Z24_UNORM_S8_UINT),
-   {
-      MESA_FORMAT_Z24_UNORM_X8_UINT,
+   [MESA_FORMAT_Z24_UNORM_X8_UINT] = {
       fetch_texel_1d_Z24_UNORM_S8_UINT,
       fetch_texel_2d_Z24_UNORM_S8_UINT,
       fetch_texel_3d_Z24_UNORM_S8_UINT
    },
-   FETCH_NULL(R3G3B2_UNORM),
-   FETCH_NULL(A4B4G4R4_UNORM),
-   FETCH_NULL(R4G4B4A4_UNORM),
-   FETCH_NULL(R5G5B5A1_UNORM),
-   FETCH_NULL(A2B10G10R10_UNORM),
-   FETCH_NULL(A2R10G10B10_UNORM),
 
    FETCH_FUNCS(YCBCR),
    FETCH_FUNCS(YCBCR_REV),
@@ -216,17 +185,13 @@ texfetch_funcs[] =
    FETCH_FUNCS(RGBX_UNORM16),
    FETCH_FUNCS(Z_UNORM16),
    FETCH_FUNCS(Z_UNORM32),
-   FETCH_NULL(S_UINT8),
 
    /* Packed signed/normalized formats */
    FETCH_FUNCS(A8B8G8R8_SNORM),
    FETCH_FUNCS(X8B8G8R8_SNORM),
    FETCH_FUNCS(R8G8B8A8_SNORM),
-   FETCH_NULL(R8G8B8X8_SNORM),
    FETCH_FUNCS(R16G16_SNORM),
-   FETCH_NULL(G16R16_SNORM),
    FETCH_FUNCS(R8G8_SNORM),
-   FETCH_NULL(G8R8_SNORM),
    FETCH_FUNCS(L8A8_SNORM),
    FETCH_FUNCS(A8L8_SNORM),
 
@@ -242,14 +207,11 @@ texfetch_funcs[] =
    FETCH_FUNCS(LA_SNORM16),
    FETCH_FUNCS(RGB_SNORM16),
    FETCH_FUNCS(RGBA_SNORM16),
-   FETCH_NULL(RGBX_SNORM16),
 
    /* Packed sRGB formats */
    FETCH_FUNCS(A8B8G8R8_SRGB),
    FETCH_FUNCS(B8G8R8A8_SRGB),
    FETCH_FUNCS(A8R8G8B8_SRGB),
-   FETCH_NULL(B8G8R8X8_SRGB),
-   FETCH_NULL(X8R8G8B8_SRGB),
    FETCH_FUNCS(R8G8B8A8_SRGB),
    FETCH_FUNCS(R8G8B8X8_SRGB),
    FETCH_FUNCS(X8B8G8R8_SRGB),
@@ -285,90 +247,21 @@ texfetch_funcs[] =
    FETCH_FUNCS(RGBA_FLOAT32),
    FETCH_FUNCS(RGBX_FLOAT16),
    FETCH_FUNCS(RGBX_FLOAT32),
-   {
-      MESA_FORMAT_Z_FLOAT32,
+   [MESA_FORMAT_Z_FLOAT32] = {
       fetch_texel_1d_R_FLOAT32, /* Reuse the R32F functions. */
       fetch_texel_2d_R_FLOAT32,
       fetch_texel_3d_R_FLOAT32
    },
 
    /* Packed signed/unsigned non-normalized integer formats */
-   FETCH_NULL(A8B8G8R8_UINT),
-   FETCH_NULL(A8R8G8B8_UINT),
-   FETCH_NULL(R8G8B8A8_UINT),
-   FETCH_NULL(B8G8R8A8_UINT),
-   FETCH_NULL(B10G10R10A2_UINT),
-   FETCH_NULL(R10G10B10A2_UINT),
-   FETCH_NULL(A2B10G10R10_UINT),
-   FETCH_NULL(A2R10G10B10_UINT),
-   FETCH_NULL(B5G6R5_UINT),
-   FETCH_NULL(R5G6B5_UINT),
-   FETCH_NULL(B2G3R3_UINT),
-   FETCH_NULL(R3G3B2_UINT),
-   FETCH_NULL(A4B4G4R4_UINT),
-   FETCH_NULL(R4G4B4A4_UINT),
-   FETCH_NULL(B4G4R4A4_UINT),
-   FETCH_NULL(A4R4G4B4_UINT),
-   FETCH_NULL(A1B5G5R5_UINT),
-   FETCH_NULL(B5G5R5A1_UINT),
-   FETCH_NULL(A1R5G5B5_UINT),
-   FETCH_NULL(R5G5B5A1_UINT),
 
    /* Array signed/unsigned non-normalized integer formats */
-   FETCH_NULL(A_UINT8),
-   FETCH_NULL(A_UINT16),
-   FETCH_NULL(A_UINT32),
-   FETCH_NULL(A_SINT8),
-   FETCH_NULL(A_SINT16),
-   FETCH_NULL(A_SINT32),
-   FETCH_NULL(I_UINT8),
-   FETCH_NULL(I_UINT16),
-   FETCH_NULL(I_UINT32),
-   FETCH_NULL(I_SINT8),
-   FETCH_NULL(I_SINT16),
-   FETCH_NULL(I_SINT32),
-   FETCH_NULL(L_UINT8),
-   FETCH_NULL(L_UINT16),
-   FETCH_NULL(L_UINT32),
-   FETCH_NULL(L_SINT8),
-   FETCH_NULL(L_SINT16),
-   FETCH_NULL(L_SINT32),
-   FETCH_NULL(LA_UINT8),
-   FETCH_NULL(LA_UINT16),
-   FETCH_NULL(LA_UINT32),
-   FETCH_NULL(LA_SINT8),
-   FETCH_NULL(LA_SINT16),
-   FETCH_NULL(LA_SINT32),
-   FETCH_NULL(R_UINT8),
-   FETCH_NULL(R_UINT16),
-   FETCH_NULL(R_UINT32),
-   FETCH_NULL(R_SINT8),
-   FETCH_NULL(R_SINT16),
-   FETCH_NULL(R_SINT32),
-   FETCH_NULL(RG_UINT8),
-   FETCH_NULL(RG_UINT16),
-   FETCH_NULL(RG_UINT32),
-   FETCH_NULL(RG_SINT8),
-   FETCH_NULL(RG_SINT16),
-   FETCH_NULL(RG_SINT32),
-   FETCH_NULL(RGB_UINT8),
-   FETCH_NULL(RGB_UINT16),
-   FETCH_NULL(RGB_UINT32),
-   FETCH_NULL(RGB_SINT8),
-   FETCH_NULL(RGB_SINT16),
-   FETCH_NULL(RGB_SINT32),
    FETCH_FUNCS(RGBA_UINT8),
    FETCH_FUNCS(RGBA_UINT16),
    FETCH_FUNCS(RGBA_UINT32),
    FETCH_FUNCS(RGBA_SINT8),
    FETCH_FUNCS(RGBA_SINT16),
    FETCH_FUNCS(RGBA_SINT32),
-   FETCH_NULL(RGBX_UINT8),
-   FETCH_NULL(RGBX_UINT16),
-   FETCH_NULL(RGBX_UINT32),
-   FETCH_NULL(RGBX_SINT8),
-   FETCH_NULL(RGBX_SINT16),
-   FETCH_NULL(RGBX_SINT32),
 
    /* DXT compressed formats */
    FETCH_COMPRESSED(RGB_DXT1),
@@ -414,61 +307,6 @@ texfetch_funcs[] =
    FETCH_COMPRESSED(BPTC_SRGB_ALPHA_UNORM),
    FETCH_COMPRESSED(BPTC_RGB_SIGNED_FLOAT),
    FETCH_COMPRESSED(BPTC_RGB_UNSIGNED_FLOAT),
-
-   /* ASTC compressed formats */
-   FETCH_NULL(RGBA_ASTC_4x4),
-   FETCH_NULL(RGBA_ASTC_5x4),
-   FETCH_NULL(RGBA_ASTC_5x5),
-   FETCH_NULL(RGBA_ASTC_6x5),
-   FETCH_NULL(RGBA_ASTC_6x6),
-   FETCH_NULL(RGBA_ASTC_8x5),
-   FETCH_NULL(RGBA_ASTC_8x6),
-   FETCH_NULL(RGBA_ASTC_8x8),
-   FETCH_NULL(RGBA_ASTC_10x5),
-   FETCH_NULL(RGBA_ASTC_10x6),
-   FETCH_NULL(RGBA_ASTC_10x8),
-   FETCH_NULL(RGBA_ASTC_10x10),
-   FETCH_NULL(RGBA_ASTC_12x10),
-   FETCH_NULL(RGBA_ASTC_12x12),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_4x4),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_5x4),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_5x5),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_6x5),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_6x6),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_8x5),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_8x6),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_8x8),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_10x5),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_10x6),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_10x8),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_10x10),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_12x10),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_12x12),
-
-   FETCH_NULL(RGBA_ASTC_3x3x3),
-   FETCH_NULL(RGBA_ASTC_4x3x3),
-   FETCH_NULL(RGBA_ASTC_4x4x3),
-   FETCH_NULL(RGBA_ASTC_4x4x4),
-   FETCH_NULL(RGBA_ASTC_5x4x4),
-   FETCH_NULL(RGBA_ASTC_5x5x4),
-   FETCH_NULL(RGBA_ASTC_5x5x5),
-   FETCH_NULL(RGBA_ASTC_6x5x5),
-   FETCH_NULL(RGBA_ASTC_6x6x5),
-   FETCH_NULL(RGBA_ASTC_6x6x6),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_3x3x3),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_4x3x3),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_4x4x3),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_4x4x4),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_5x4x4),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_5x5x4),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_5x5x5),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_6x5x5),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_6x6x5),
-   FETCH_NULL(SRGB8_ALPHA8_ASTC_6x6x6),
-
-   FETCH_NULL(ATC_RGB),
-   FETCH_NULL(ATC_RGBA_EXPLICIT),
-   FETCH_NULL(ATC_RGBA_INTERPOLATED)
 };
 
 
@@ -481,34 +319,29 @@ set_fetch_functions(const struct gl_sampler_object *samp,
 {
    mesa_format format = texImage->Base.TexFormat;
 
-#ifdef DEBUG
-   /* check that the table entries are sorted by format name */
-   mesa_format fmt;
-   for (fmt = 0; fmt < MESA_FORMAT_COUNT; fmt++) {
-      assert(texfetch_funcs[fmt].Name == fmt);
-   }
-#endif
-
-   STATIC_ASSERT(ARRAY_SIZE(texfetch_funcs) == MESA_FORMAT_COUNT);
-
    if (samp->sRGBDecode == GL_SKIP_DECODE_EXT)
       format = _mesa_get_srgb_format_linear(format);
 
-   assert(format < MESA_FORMAT_COUNT);
+   texImage->FetchTexel = NULL;
 
-   switch (dims) {
-   case 1:
-      texImage->FetchTexel = texfetch_funcs[format].Fetch1D;
-      break;
-   case 2:
-      texImage->FetchTexel = texfetch_funcs[format].Fetch2D;
-      break;
-   case 3:
-      texImage->FetchTexel = texfetch_funcs[format].Fetch3D;
-      break;
-   default:
-      assert(!"Bad dims in set_fetch_functions()");
+   if (format < ARRAY_SIZE(texfetch_funcs)) {
+      switch (dims) {
+      case 1:
+         texImage->FetchTexel = texfetch_funcs[format].Fetch1D;
+         break;
+      case 2:
+         texImage->FetchTexel = texfetch_funcs[format].Fetch2D;
+         break;
+      case 3:
+         texImage->FetchTexel = texfetch_funcs[format].Fetch3D;
+         break;
+      default:
+         assert(!"Bad dims in set_fetch_functions()");
+      }
    }
+
+   if (!texImage->FetchTexel)
+      texImage->FetchTexel = fetch_null_texelf;
 
    texImage->FetchCompressedTexel = _mesa_get_compressed_fetch_func(format);
 

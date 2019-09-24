@@ -38,60 +38,27 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XSetClipOrigin __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XSetClipOrigin, XSetClipMask, XSetClipRectangles \- GC convenience routines
 .SH SYNTAX
 .HP
 int XSetClipOrigin\^(\^Display *\fIdisplay\fP\^, GC \fIgc\fP\^, int
-\fIclip_x_origin\fP\^, int \fIclip_y_origin\fP\^); 
+\fIclip_x_origin\fP\^, int \fIclip_y_origin\fP\^);
 .HP
 int XSetClipMask\^(\^Display *\fIdisplay\fP\^, GC \fIgc\fP\^, Pixmap
-\fIpixmap\fP\^); 
+\fIpixmap\fP\^);
 .HP
 int XSetClipRectangles\^(\^Display *\fIdisplay\fP\^, GC \fIgc\fP\^, int
 \fIclip_x_origin\fP\^, int \fIclip_y_origin\fP\^, XRectangle
-\fIrectangles\fP[]\^, int \fIn\fP\^, int \fIordering\fP\^); 
+\fIrectangles\fP[]\^, int \fIn\fP\^, int \fIordering\fP\^);
 .SH ARGUMENTS
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
@@ -103,7 +70,7 @@ Specify the x and y coordinates of the clip-mask origin.
 .IP \fIgc\fP 1i
 Specifies the GC.
 .IP \fIn\fP 1i
-Specifies the number of rectangles. 
+Specifies the number of rectangles.
 .IP \fIordering\fP 1i
 Specifies the ordering relations on the rectangles.
 You can pass
@@ -149,16 +116,16 @@ errors.
 .LP
 The
 .B XSetClipRectangles
-function changes the clip-mask in the specified GC 
+function changes the clip-mask in the specified GC
 to the specified list of rectangles and sets the clip origin.
 The output is clipped to remain contained within the
 rectangles.
 The clip-origin is interpreted relative to the origin of
-whatever destination drawable is specified in a graphics request.  
-The rectangle coordinates are interpreted relative to the clip-origin.  
+whatever destination drawable is specified in a graphics request.
+The rectangle coordinates are interpreted relative to the clip-origin.
 The rectangles should be nonintersecting, or the graphics results will be
 undefined.
-Note that the list of rectangles can be empty, 
+Note that the list of rectangles can be empty,
 which effectively disables output.
 This is the opposite of passing
 .B None
@@ -169,9 +136,9 @@ and
 .BR XSetClipMask .
 .LP
 If known by the client, ordering relations on the rectangles can be
-specified with the ordering argument. 
+specified with the ordering argument.
 This may provide faster operation
-by the server. 
+by the server.
 If an incorrect ordering is specified, the X server may generate a
 .B BadMatch
 error, but it is not required to do so.
@@ -182,13 +149,13 @@ means the rectangles are in arbitrary order.
 .B YSorted
 means that the rectangles are nondecreasing in their Y origin.
 .B YXSorted
-additionally constrains 
+additionally constrains
 .B YSorted
 order in that all
 rectangles with an equal Y origin are nondecreasing in their X
-origin.  
+origin.
 .B YXBanded
-additionally constrains 
+additionally constrains
 .B YXSorted
 by requiring that,
 for every possible Y scanline, all rectangles that include that
@@ -217,7 +184,8 @@ to match in some other way required by the request.
 .B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
-by the argument's type is accepted.  Any argument defined as a set of
+by the argument's type is accepted.
+Any argument defined as a set of
 alternatives can generate this error.
 .SH "SEE ALSO"
 XCreateGC(__libmansuffix__),

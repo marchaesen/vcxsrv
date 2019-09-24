@@ -584,9 +584,9 @@ dri_create_buffer(__DRIscreen * sPriv,
     /* add software renderbuffers */
     _swrast_add_soft_renderbuffers(fb,
                                    GL_FALSE, /* color */
-                                   visual->haveDepthBuffer,
-                                   visual->haveStencilBuffer,
-                                   visual->haveAccumBuffer,
+                                   visual->depthBits > 0,
+                                   visual->stencilBits > 0,
+                                   visual->accumRedBits > 0,
                                    GL_FALSE, /* alpha */
                                    GL_FALSE /* aux bufs */);
 

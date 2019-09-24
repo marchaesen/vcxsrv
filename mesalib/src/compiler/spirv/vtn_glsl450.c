@@ -387,7 +387,8 @@ build_atan2(nir_builder *b, nir_ssa_def *y, nir_ssa_def *x)
 
 static nir_op
 vtn_nir_alu_op_for_spirv_glsl_opcode(struct vtn_builder *b,
-                                     enum GLSLstd450 opcode)
+                                     enum GLSLstd450 opcode,
+                                     unsigned execution_mode)
 {
    switch (opcode) {
    case GLSLstd450Round:         return nir_op_fround_even;
@@ -433,7 +434,11 @@ vtn_nir_alu_op_for_spirv_glsl_opcode(struct vtn_builder *b,
    case GLSLstd450UnpackUnorm4x8:   return nir_op_unpack_unorm_4x8;
    case GLSLstd450UnpackSnorm2x16:  return nir_op_unpack_snorm_2x16;
    case GLSLstd450UnpackUnorm2x16:  return nir_op_unpack_unorm_2x16;
-   case GLSLstd450UnpackHalf2x16:   return nir_op_unpack_half_2x16;
+   case GLSLstd450UnpackHalf2x16:
+      if (execution_mode & FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP16)
+         return nir_op_unpack_half_2x16_flush_to_zero;
+      else
+         return nir_op_unpack_half_2x16;
    case GLSLstd450UnpackDouble2x32: return nir_op_unpack_64_2x32;
 
    default:
@@ -678,12 +683,15 @@ handle_glsl450_alu(struct vtn_builder *b, enum GLSLstd450 entrypoint,
       return;
    }
 
-   default:
+   default: {
+      unsigned execution_mode =
+         b->shader->info.float_controls_execution_mode;
       val->ssa->def =
          nir_build_alu(&b->nb,
-                       vtn_nir_alu_op_for_spirv_glsl_opcode(b, entrypoint),
+                       vtn_nir_alu_op_for_spirv_glsl_opcode(b, entrypoint, execution_mode),
                        src[0], src[1], src[2], NULL);
       return;
+   }
    }
 }
 

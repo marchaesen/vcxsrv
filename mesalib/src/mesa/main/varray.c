@@ -1674,6 +1674,32 @@ _mesa_TexCoordPointerEXT(GLint size, GLenum type, GLsizei stride,
 
 
 void GLAPIENTRY
+_mesa_MultiTexCoordPointerEXT(GLenum texunit, GLint size, GLenum type,
+                              GLsizei stride, const GLvoid *ptr)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   const GLint sizeMin = 1;
+   const GLuint unit = texunit - GL_TEXTURE0;
+
+   GLenum format = GL_RGBA;
+   const GLbitfield legalTypes = (SHORT_BIT | INT_BIT |
+                                  HALF_BIT | FLOAT_BIT | DOUBLE_BIT |
+                                  UNSIGNED_INT_2_10_10_10_REV_BIT |
+                                  INT_2_10_10_10_REV_BIT);
+
+   if (!validate_array_and_format(ctx, "glMultiTexCoordPointerEXT",
+                                  VERT_ATTRIB_TEX(unit), legalTypes,
+                                  sizeMin, 4, size, type, stride,
+                                  GL_FALSE, GL_FALSE, GL_FALSE, format, ptr,
+                                  ctx->Array.VAO))
+      return;
+
+   update_array(ctx, VERT_ATTRIB_TEX(unit), format, 4, size, type,
+                stride, GL_FALSE, GL_FALSE, GL_FALSE, ptr);
+}
+
+
+void GLAPIENTRY
 _mesa_EdgeFlagPointerEXT(GLsizei stride, GLsizei count, const GLboolean *ptr)
 {
    (void) count;

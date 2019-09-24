@@ -1986,6 +1986,10 @@ nir_intrinsic_from_system_value(gl_system_value val)
       return nir_intrinsic_load_tess_level_outer;
    case SYSTEM_VALUE_TESS_LEVEL_INNER:
       return nir_intrinsic_load_tess_level_inner;
+   case SYSTEM_VALUE_TESS_LEVEL_OUTER_DEFAULT:
+      return nir_intrinsic_load_tess_level_outer_default;
+   case SYSTEM_VALUE_TESS_LEVEL_INNER_DEFAULT:
+      return nir_intrinsic_load_tess_level_inner_default;
    case SYSTEM_VALUE_VERTICES_IN:
       return nir_intrinsic_load_patch_vertices_in;
    case SYSTEM_VALUE_HELPER_INVOCATION:
@@ -2022,6 +2026,8 @@ nir_intrinsic_from_system_value(gl_system_value val)
       return nir_intrinsic_load_global_invocation_index;
    case SYSTEM_VALUE_WORK_DIM:
       return nir_intrinsic_load_work_dim;
+   case SYSTEM_VALUE_USER_DATA_AMD:
+      return nir_intrinsic_load_user_data_amd;
    default:
       unreachable("system value does not directly correspond to intrinsic");
    }
@@ -2077,6 +2083,10 @@ nir_system_value_from_intrinsic(nir_intrinsic_op intrin)
       return SYSTEM_VALUE_TESS_LEVEL_OUTER;
    case nir_intrinsic_load_tess_level_inner:
       return SYSTEM_VALUE_TESS_LEVEL_INNER;
+   case nir_intrinsic_load_tess_level_outer_default:
+      return SYSTEM_VALUE_TESS_LEVEL_OUTER_DEFAULT;
+   case nir_intrinsic_load_tess_level_inner_default:
+      return SYSTEM_VALUE_TESS_LEVEL_INNER_DEFAULT;
    case nir_intrinsic_load_patch_vertices_in:
       return SYSTEM_VALUE_VERTICES_IN;
    case nir_intrinsic_load_helper_invocation:
@@ -2109,6 +2119,8 @@ nir_system_value_from_intrinsic(nir_intrinsic_op intrin)
       return SYSTEM_VALUE_LOCAL_GROUP_SIZE;
    case nir_intrinsic_load_global_invocation_id:
       return SYSTEM_VALUE_GLOBAL_INVOCATION_ID;
+   case nir_intrinsic_load_user_data_amd:
+      return SYSTEM_VALUE_USER_DATA_AMD;
    default:
       unreachable("intrinsic doesn't produce a system value");
    }
@@ -2173,8 +2185,10 @@ nir_rewrite_image_intrinsic(nir_intrinsic_instr *intrin, nir_ssa_def *src,
    CASE(load)
    CASE(store)
    CASE(atomic_add)
-   CASE(atomic_min)
-   CASE(atomic_max)
+   CASE(atomic_imin)
+   CASE(atomic_umin)
+   CASE(atomic_imax)
+   CASE(atomic_umax)
    CASE(atomic_and)
    CASE(atomic_or)
    CASE(atomic_xor)

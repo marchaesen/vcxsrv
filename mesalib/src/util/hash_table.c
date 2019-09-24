@@ -667,7 +667,12 @@ _mesa_hash_table_u64_clear(struct hash_table_u64 *ht,
          struct hash_entry entry;
 
          /* Create a fake entry for the delete function. */
-         entry.hash = table->key_hash_function(table->deleted_key);
+         if (sizeof(void *) == 8) {
+            entry.hash = table->key_hash_function(table->deleted_key);
+         } else {
+            struct hash_key_u64 _key = { .value = (uintptr_t)table->deleted_key };
+            entry.hash = table->key_hash_function(&_key);
+         }
          entry.key = table->deleted_key;
          entry.data = ht->deleted_key_data;
 
@@ -682,7 +687,12 @@ _mesa_hash_table_u64_clear(struct hash_table_u64 *ht,
          struct hash_entry entry;
 
          /* Create a fake entry for the delete function. */
-         entry.hash = table->key_hash_function(uint_key(FREED_KEY_VALUE));
+         if (sizeof(void *) == 8) {
+            entry.hash = table->key_hash_function(uint_key(FREED_KEY_VALUE));
+         } else {
+            struct hash_key_u64 _key = { .value = (uintptr_t)FREED_KEY_VALUE };
+            entry.hash = table->key_hash_function(&_key);
+         }
          entry.key = uint_key(FREED_KEY_VALUE);
          entry.data = ht->freed_key_data;
 

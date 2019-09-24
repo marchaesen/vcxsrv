@@ -38,58 +38,25 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XSendEvent __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XSendEvent, XDisplayMotionBufferSize, XGetMotionEvents, XTimeCoord \- send events and pointer motion history structure
 .SH SYNTAX
 .HP
 Status XSendEvent\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, Bool
-\fIpropagate\fP\^, long \fIevent_mask\fP\^, XEvent *\fIevent_send\fP\^); 
+\fIpropagate\fP\^, long \fIevent_mask\fP\^, XEvent *\fIevent_send\fP\^);
 .HP
-unsigned long XDisplayMotionBufferSize\^(\^Display *\fIdisplay\fP\^); 
+unsigned long XDisplayMotionBufferSize\^(\^Display *\fIdisplay\fP\^);
 .HP
 XTimeCoord *XGetMotionEvents\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^,
-Time \fIstart\fP\^, Time \fIstop\fP\^, int *\fInevents_return\fP\^); 
+Time \fIstart\fP\^, Time \fIstop\fP\^, int *\fInevents_return\fP\^);
 .SH ARGUMENTS
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
@@ -117,8 +84,8 @@ Specifies the window the window the event is to be sent to.
 .SH DESCRIPTION
 The
 .B XSendEvent
-function identifies the destination window, 
-determines which clients should receive the specified events, 
+function identifies the destination window,
+determines which clients should receive the specified events,
 and ignores any active grabs.
 This function requires you to pass an event mask.
 For a discussion of the valid event mask names,
@@ -131,8 +98,8 @@ the destination window is the window that contains the pointer.
 .IP \(bu 5
 If w is
 .B InputFocus
-and if the focus window contains the pointer, 
-the destination window is the window that contains the pointer; 
+and if the focus window contains the pointer,
+the destination window is the window that contains the pointer;
 otherwise, the destination window is the focus window.
 .LP
 To determine which clients should receive the specified events,
@@ -144,20 +111,20 @@ the event is sent to the client that created the destination window.
 If that client no longer exists,
 no event is sent.
 .IP \(bu 5
-If propagate is 
+If propagate is
 .BR False ,
 the event is sent to every client selecting on destination any of the event
 types in the event_mask argument.
 .IP \(bu 5
-If propagate is 
+If propagate is
 .B True
 and no clients have selected on destination any of
 the event types in event-mask, the destination is replaced with the
 closest ancestor of destination for which some client has selected a
 type in event-mask and for which no intervening window has that type in its
-do-not-propagate-mask. 
+do-not-propagate-mask.
 If no such window exists or if the window is
-an ancestor of the focus window and 
+an ancestor of the focus window and
 .B InputFocus
 was originally specified
 as the destination, the event is not sent to any clients.
@@ -167,10 +134,10 @@ destination any of the types specified in event_mask.
 The event in the
 .B XEvent
 structure must be one of the core events or one of the events
-defined by an extension (or a 
+defined by an extension (or a
 .B BadValue
-error results) so that the X server can correctly byte-swap 
-the contents as necessary.  
+error results) so that the X server can correctly byte-swap
+the contents as necessary.
 The contents of the event are
 otherwise unaltered and unchecked by the X server except to force send_event to
 .B True
@@ -203,9 +170,9 @@ function returns all events in the motion history buffer that fall between the
 specified start and stop times, inclusive, and that have coordinates
 that lie within the specified window (including its borders) at its present
 placement.
-If the server does not support motion history, 
+If the server does not support motion history,
 if the start time is later than the stop time,
-or if the start time is in the future, 
+or if the start time is in the future,
 no events are returned;
 .B XGetMotionEvents
 returns NULL.
@@ -220,14 +187,14 @@ The
 .B XTimeCoord
 structure contains:
 .LP
-.Ds 0
+.EX
 typedef struct {
         Time time;
         short x, y;
 } XTimeCoord;
-.De
+.EE
 .LP
-The time member is set to the time, in milliseconds. 
+The time member is set to the time, in milliseconds.
 The x and y members are set to the coordinates of the pointer and
 are reported relative to the origin
 of the specified window.
@@ -236,7 +203,8 @@ of the specified window.
 .B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
-by the argument's type is accepted.  Any argument defined as a set of
+by the argument's type is accepted.
+Any argument defined as a set of
 alternatives can generate this error.
 .TP 1i
 .B BadWindow

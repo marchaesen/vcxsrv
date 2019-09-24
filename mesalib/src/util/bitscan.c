@@ -60,7 +60,7 @@ ffs(int i)
 #endif
 
 #ifdef HAVE___BUILTIN_FFSLL
-#elif defined(_MSC_VER) && (_M_AMD64 || _M_ARM || _M_IA64)
+#elif defined(_MSC_VER) && (_M_AMD64 || _M_ARM64 || _M_IA64)
 #else
 int
 ffsll(long long int val)

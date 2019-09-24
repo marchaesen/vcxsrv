@@ -597,6 +597,8 @@ XineramaConfineCursorToWindow(DeviceIntPtr pDev,
 
     int x, y, off_x, off_y, i;
 
+    assert(!noPanoramiXExtension);
+
     if (!XineramaSetWindowPntrs(pDev, pWin))
         return;
 

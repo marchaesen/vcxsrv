@@ -1,0 +1,22 @@
+# Note: skips lists for CI are just a list of lines that, when
+# non-zero-length and not starting with '#', will regex match to
+# delete lines from the test list.  Be careful.
+
+# Skip the perf/stress tests to keep runtime manageable
+dEQP-GLES[0-9]*.performance
+dEQP-GLES[0-9]*.stress
+
+# These are really slow on tiling architectures (including llvmpipe).
+dEQP-GLES[0-9]*.functional.flush_finish
+
+# Unstable test results
+dEQP-GLES3.functional.fragment_out.random.*
+dEQP-GLES3.functional.transform_feedback.*
+dEQP-GLES31.functional.primitive_bounding_box.*
+dEQP-GLES31.functional.layout_binding.ssbo.fragment_binding_array
+
+# Seen a couple flakes on this one.  Note that valgrind complains about
+# some things in deqp reference renderer on this one.  Not sure if that
+# is a real problem or perhaps valgrind gets confused about unitialized
+# z24 channel in z24s8??  Let's just skip this one for now:
+dEQP-GLES3.functional.fbo.msaa.2_samples.stencil_index8

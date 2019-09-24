@@ -131,6 +131,10 @@ TESTS += test-d1f48f11
 endif
 endif
 
+check_PROGRAMS += test-bz1744377
+test_bz1744377_LDADD = $(top_builddir)/src/libfontconfig.la
+TESTS += test-bz1744377
+
 EXTRA_DIST=run-test.sh run-test-conf.sh $(LOG_COMPILER) $(TESTDATA) out.expected-long-family-names out.expected-no-long-family-names
 
 CLEANFILES=out out1 out2 fonts.conf out.expected

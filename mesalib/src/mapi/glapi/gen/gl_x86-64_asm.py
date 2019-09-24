@@ -143,7 +143,7 @@ class PrintGenericStubs(gl_XML.gl_print_base):
         print('')
         print('\t.text')
         print('')
-        print('#ifdef GLX_USE_TLS')
+        print('#ifdef USE_ELF_TLS')
         print('')
         print('_x86_64_get_dispatch:')
         print('\tmovq\t_glapi_tls_Dispatch@GOTTPOFF(%rip), %rax')
@@ -227,7 +227,7 @@ class PrintGenericStubs(gl_XML.gl_print_base):
         if not f.is_static_entry_point(f.name):
             print('\tHIDDEN(GL_PREFIX(%s))' % (name))
         print('GL_PREFIX(%s):' % (name))
-        print('#if defined(GLX_USE_TLS)')
+        print('#if defined(USE_ELF_TLS)')
         print('\tcall\t_x86_64_get_dispatch@PLT')
         print('\tmovq\t%u(%%rax), %%r11' % (f.offset * 8))
         print('\tjmp\t*%r11')
@@ -258,7 +258,7 @@ class PrintGenericStubs(gl_XML.gl_print_base):
 
         print('\tmovq\t%u(%%rax), %%r11' % (f.offset * 8))
         print('\tjmp\t*%r11')
-        print('#endif /* defined(GLX_USE_TLS) */')
+        print('#endif /* defined(USE_ELF_TLS) */')
 
         print('\t.size\tGL_PREFIX(%s), .-GL_PREFIX(%s)' % (name, name))
         print('')

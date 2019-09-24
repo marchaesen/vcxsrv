@@ -37,7 +37,7 @@
 static struct pandecode_mapped_memory mmaps;
 
 struct pandecode_mapped_memory *
-pandecode_find_mapped_gpu_mem_containing(mali_ptr addr)
+pandecode_find_mapped_gpu_mem_containing(uint64_t addr)
 {
         list_for_each_entry(struct pandecode_mapped_memory, pos, &mmaps.node, node) {
                 if (addr >= pos->gpu_va && addr < pos->gpu_va + pos->length)
@@ -47,9 +47,39 @@ pandecode_find_mapped_gpu_mem_containing(mali_ptr addr)
         return NULL;
 }
 
-void
-pandecode_inject_mmap(mali_ptr gpu_va, void *cpu, unsigned sz, const char *name)
+static void
+pandecode_add_name(struct pandecode_mapped_memory *mem, uint64_t gpu_va, const char *name)
 {
+        if (!name) {
+                /* If we don't have a name, assign one */
+
+                snprintf(mem->name, ARRAY_SIZE(mem->name) - 1,
+                         "memory_%" PRIx64, gpu_va);
+        } else {
+                assert((strlen(name) + 1) < ARRAY_SIZE(mem->name));
+                memcpy(mem->name, name, strlen(name) + 1);
+        }
+}
+
+void
+pandecode_inject_mmap(uint64_t gpu_va, void *cpu, unsigned sz, const char *name)
+{
+        /* First, search if we already mapped this and are just updating an address */
+
+        list_for_each_entry(struct pandecode_mapped_memory, pos, &mmaps.node, node) {
+                if (pos->gpu_va == gpu_va) {
+                        /* TODO: Resizing weirdness. Only applies to tracing
+                         * the legacy driver, not for native traces */
+
+                        pos->length = sz;
+                        pos->addr = cpu;
+                        pandecode_add_name(pos, gpu_va, name);
+
+                        return;
+                }
+        }
+
+        /* Otherwise, add a fresh mapping */
         struct pandecode_mapped_memory *mapped_mem = NULL;
 
         mapped_mem = malloc(sizeof(*mapped_mem));
@@ -58,22 +88,13 @@ pandecode_inject_mmap(mali_ptr gpu_va, void *cpu, unsigned sz, const char *name)
         mapped_mem->gpu_va = gpu_va;
         mapped_mem->length = sz;
         mapped_mem->addr = cpu;
-
-        if (!name) {
-                /* If we don't have a name, assign one */
-
-                snprintf(mapped_mem->name, ARRAY_SIZE(mapped_mem->name) - 1,
-                         "memory_%" PRIx64, gpu_va);
-        } else {
-                assert(strlen(name) < ARRAY_SIZE(mapped_mem->name));
-                memcpy(mapped_mem->name, name, strlen(name));
-        }
+        pandecode_add_name(mapped_mem, gpu_va, name);
 
         list_add(&mapped_mem->node, &mmaps.node);
 }
 
 char *
-pointer_as_memory_reference(mali_ptr ptr)
+pointer_as_memory_reference(uint64_t ptr)
 {
         struct pandecode_mapped_memory *mapped;
         char *out = malloc(128);
@@ -89,7 +110,7 @@ pointer_as_memory_reference(mali_ptr ptr)
 
         /* Just use the raw address if other options are exhausted */
 
-        snprintf(out, 128, MALI_PTR_FMT, ptr);
+        snprintf(out, 128, "0x%" PRIx64, ptr);
         return out;
 
 }

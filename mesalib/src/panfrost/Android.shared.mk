@@ -29,15 +29,20 @@
 include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES := \
-	$(shared_SOURCES)
+	$(shared_FILES)
 
 LOCAL_C_INCLUDES := \
+	$(MESA_TOP)/src/gallium/auxiliary/ \
+	$(MESA_TOP)/src/gallium/include/ \
 
 LOCAL_STATIC_LIBRARIES := \
 
 LOCAL_MODULE := libpanfrost_shared
 
 LOCAL_GENERATED_SOURCES := \
+
+LOCAL_EXPORT_C_INCLUDE_DIRS := \
+	$(MESA_TOP)/src/panfrost/shared/ \
 
 include $(MESA_COMMON_MK)
 include $(BUILD_STATIC_LIBRARY)

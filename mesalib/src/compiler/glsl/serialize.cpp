@@ -1015,6 +1015,8 @@ write_shader_parameters(struct blob *metadata,
       blob_write_uint32(metadata, param->DataType);
       blob_write_bytes(metadata, param->StateIndexes,
                        sizeof(param->StateIndexes));
+      blob_write_uint32(metadata, param->UniformStorageIndex);
+      blob_write_uint32(metadata, param->MainUniformStorageIndex);
 
       i++;
    }
@@ -1045,6 +1047,10 @@ read_shader_parameters(struct blob_reader *metadata,
 
       _mesa_add_parameter(params, type, name, size, data_type,
                           NULL, state_indexes, padded);
+
+      gl_program_parameter *param = &params->Parameters[i];
+      param->UniformStorageIndex = blob_read_uint32(metadata);
+      param->MainUniformStorageIndex = blob_read_uint32(metadata);
 
       i++;
    }

@@ -757,6 +757,8 @@ winUseMsg(void)
     ErrorF("-[no]hostintitle\n"
            "\tIn multiwindow mode, add remote host names to window titles.\n");
 
+    ErrorF("-icon icon_specifier\n" "\tSet screen window icon in windowed mode.\n");
+
     ErrorF("-ignoreinput\n" "\tIgnore keyboard and mouse input.\n");
 
 #ifdef XWIN_XF86CONFIG

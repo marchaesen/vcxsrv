@@ -38,69 +38,36 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XIntersectRegion __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XIntersectRegion, XUnionRegion, XUnionRectWithRegion, XSubtractRegion, XXorRegion, XOffsetRegion, XShrinkRegion \- region arithmetic
 .SH SYNTAX
 .HP
 int XIntersectRegion\^(\^Region \fIsra\fP\^, Region \fIsrb\fP\^, Region
-\fIdr_return\fP\^); 
+\fIdr_return\fP\^);
 .HP
 int XUnionRegion\^(\^Region \fIsra\fP\^, Region \fIsrb\fP\^, Region
-\fIdr_return\fP\^); 
+\fIdr_return\fP\^);
 .HP
 int XUnionRectWithRegion\^(\^XRectangle *\fIrectangle\fP\^, Region
-\fIsrc_region\fP\^, Region \fIdest_region_return\fP\^); 
+\fIsrc_region\fP\^, Region \fIdest_region_return\fP\^);
 .HP
 int XSubtractRegion\^(\^Region \fIsra\fP\^, Region \fIsrb\fP\^, Region
-\fIdr_return\fP\^); 
+\fIdr_return\fP\^);
 .HP
 int XXorRegion\^(\^Region \fIsra\fP\^, Region \fIsrb\fP\^, Region
-\fIdr_return\fP\^); 
+\fIdr_return\fP\^);
 .HP
-int XOffsetRegion\^(\^Region \fIr\fP\^, int \fIdx\fP\^, int \fIdy\fP\^); 
+int XOffsetRegion\^(\^Region \fIr\fP\^, int \fIdx\fP\^, int \fIdy\fP\^);
 .HP
-int XShrinkRegion\^(\^Region \fIr\fP\^, int \fIdx\fP\^, int \fIdy\fP\^); 
+int XShrinkRegion\^(\^Region \fIr\fP\^, int \fIdx\fP\^, int \fIdy\fP\^);
 .SH ARGUMENTS
 .IP \fIdest_region_return\fP 1i
 Returns the destination region.

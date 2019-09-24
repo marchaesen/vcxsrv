@@ -38,53 +38,20 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XcmsAllocColor __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XcmsAllocColor, XcmsAllocNamedColor \- allocate colors
 .SH SYNTAX
 .HP
 Status XcmsAllocColor\^(\^Display *\fIdisplay\fP\^, Colormap \fIcolormap\fP\^,
-XcmsColor *\fIcolor_in_out\fP\^, XcmsColorFormat \fIresult_format\fP\^); 
+XcmsColor *\fIcolor_in_out\fP\^, XcmsColorFormat \fIresult_format\fP\^);
 .HP
 Status XcmsAllocNamedColor\^(\^Display *\fIdisplay\fP\^, Colormap
 \fIcolormap\fP\^, char *\fIcolor_string\fP\^, XcmsColor
@@ -98,10 +65,10 @@ Specifies the colormap.
 Returns the color specification parsed from the color string
 or parsed from the corresponding string found in a color-name database.
 .IP \fIcolor_in_out\fP 1i
-Specifies the color to allocate and returns the pixel and color 
+Specifies the color to allocate and returns the pixel and color
 that is actually used in the colormap.
 .IP \fIcolor_screen_return\fP 1i
-Returns the pixel value of the color cell and color specification 
+Returns the pixel value of the color cell and color specification
 that actually is stored for that cell.
 .ds St \
 .IP \fIcolor_string\fP 1i
@@ -116,7 +83,7 @@ function is similar to
 except the color can be specified in any format.
 The
 .B XcmsAllocColor
-function ultimately calls 
+function ultimately calls
 .B XAllocColor
 to allocate a read-only color cell (colormap entry) with the specified color.
 .B XcmsAllocColor
@@ -127,14 +94,14 @@ to an RGB value and then passes this to
 returns the pixel value of the color cell and the color specification
 actually allocated.
 This returned color specification is the result of converting the RGB value
-returned by 
+returned by
 .B XAllocColor
 into the format specified with the result_format argument.
-If there is no interest in a returned color specification, 
+If there is no interest in a returned color specification,
 unnecessary computation can be bypassed if result_format is set to
 .BR XcmsRGBFormat .
 The corresponding colormap cell is read-only.
-If this routine returns 
+If this routine returns
 .BR XcmsFailure ,
 the color_in_out color specification is left unchanged.
 .LP
@@ -160,7 +127,7 @@ structure (see
 converted
 to an RGB value, and finally passed to
 .BR XAllocColor .
-If the color name is not in the Host Portable Character Encoding, 
+If the color name is not in the Host Portable Character Encoding,
 the result is implementation-dependent.
 Use of uppercase or lowercase does not matter.
 .LP

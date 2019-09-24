@@ -48,6 +48,9 @@ _mesa_init_queryobj(struct gl_context *ctx);
 extern void
 _mesa_free_queryobj_data(struct gl_context *ctx);
 
+extern void
+_mesa_delete_query(struct gl_context *ctx, struct gl_query_object *q);
+
 void GLAPIENTRY
 _mesa_GenQueries(GLsizei n, GLuint *ids);
 void GLAPIENTRY

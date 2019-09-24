@@ -574,10 +574,8 @@ xorgGlxMakeCurrent(ClientPtr client, GLXContextTag tag, XID drawId, XID readId,
     /* Look up old context. If we have one, it must be in a usable state. */
     if (tag != 0) {
         prevglxc = glxServer.getContextTagPrivate(client, tag);
-        if (!prevglxc)
-            return __glXError(GLXBadContextTag);
 
-        if (prevglxc->renderMode != GL_RENDER) {
+        if (prevglxc && prevglxc->renderMode != GL_RENDER) {
             /* Oops.  Not in render mode render. */
             client->errorValue = prevglxc->id;
             return __glXError(GLXBadContextState);

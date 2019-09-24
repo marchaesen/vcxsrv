@@ -404,6 +404,10 @@ typedef struct {
 
     /* Did the user explicitly set this screen? */
     Bool fExplicitScreen;
+
+    /* Icons for screen window */
+    HICON hIcon;
+    HICON hIconSm;
 } winScreenInfo, *winScreenInfoPtr;
 
 /*

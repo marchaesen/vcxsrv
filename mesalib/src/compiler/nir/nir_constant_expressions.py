@@ -63,10 +63,33 @@ template = """\
 #include <math.h>
 #include "util/rounding.h" /* for _mesa_roundeven */
 #include "util/half_float.h"
+#include "util/double.h"
+#include "util/softfloat.h"
 #include "util/bigmath.h"
 #include "nir_constant_expressions.h"
 
 #define MAX_UINT_FOR_SIZE(bits) (UINT64_MAX >> (64 - (bits)))
+
+/**
+ * \brief Checks if the provided value is a denorm and flushes it to zero.
+ */
+static void
+constant_denorm_flush_to_zero(nir_const_value *value, unsigned bit_size)
+{
+    switch(bit_size) {
+    case 64:
+        if (0 == (value->u64 & 0x7ff0000000000000))
+            value->u64 &= 0x8000000000000000;
+        break;
+    case 32:
+        if (0 == (value->u32 & 0x7f800000))
+            value->u32 &= 0x80000000;
+        break;
+    case 16:
+        if (0 == (value->u16 & 0x7c00))
+            value->u16 &= 0x8000;
+    }
+}
 
 /**
  * Evaluate one component of packSnorm4x8.
@@ -235,6 +258,17 @@ pack_half_1x16(float x)
  * Evaluate one component of unpackHalf2x16.
  */
 static float
+unpack_half_1x16_flush_to_zero(uint16_t u)
+{
+   if (0 == (u & 0x7c00))
+      u &= 0x8000;
+   return _mesa_half_to_float(u);
+}
+
+/**
+ * Evaluate one component of unpackHalf2x16.
+ */
+static float
 unpack_half_1x16(uint16_t u)
 {
    return _mesa_half_to_float(u);
@@ -262,7 +296,7 @@ struct ${type}${width}_vec {
 % endfor
 % endfor
 
-<%def name="evaluate_op(op, bit_size)">
+<%def name="evaluate_op(op, bit_size, execution_mode)">
    <%
    output_type = type_add_size(op.output_type, bit_size)
    input_types = [type_add_size(type_, bit_size) for type_ in op.input_types]
@@ -341,9 +375,25 @@ struct ${type}${width}_vec {
             ## Sanitize the C value to a proper NIR 0/-1 bool
             _dst_val[_i].${get_const_field(output_type)} = -(int)dst;
          % elif output_type == "float16":
-            _dst_val[_i].u16 = _mesa_float_to_half(dst);
+            if (nir_is_rounding_mode_rtz(execution_mode, 16)) {
+               _dst_val[_i].u16 = _mesa_float_to_float16_rtz(dst);
+            } else {
+               _dst_val[_i].u16 = _mesa_float_to_float16_rtne(dst);
+            }
          % else:
             _dst_val[_i].${get_const_field(output_type)} = dst;
+         % endif
+
+         % if op.name != "fquantize2f16" and type_base_type(output_type) == "float":
+            % if type_has_size(output_type):
+               if (nir_is_denorm_flush_to_zero(execution_mode, ${type_size(output_type)})) {
+                  constant_denorm_flush_to_zero(&_dst_val[_i], ${type_size(output_type)});
+               }
+            % else:
+               if (nir_is_denorm_flush_to_zero(execution_mode, ${bit_size})) {
+                  constant_denorm_flush_to_zero(&_dst_val[i], bit_size);
+               }
+            %endif
          % endif
       }
    % else:
@@ -373,9 +423,25 @@ struct ${type}${width}_vec {
             ## Sanitize the C value to a proper NIR 0/-1 bool
             _dst_val[${k}].${get_const_field(output_type)} = -(int)dst.${"xyzw"[k]};
          % elif output_type == "float16":
-            _dst_val[${k}].u16 = _mesa_float_to_half(dst.${"xyzw"[k]});
+            if (nir_is_rounding_mode_rtz(execution_mode, 16)) {
+               _dst_val[${k}].u16 = _mesa_float_to_float16_rtz(dst.${"xyzw"[k]});
+            } else {
+               _dst_val[${k}].u16 = _mesa_float_to_float16_rtne(dst.${"xyzw"[k]});
+            }
          % else:
             _dst_val[${k}].${get_const_field(output_type)} = dst.${"xyzw"[k]};
+         % endif
+
+         % if op.name != "fquantize2f16" and type_base_type(output_type) == "float":
+            % if type_has_size(output_type):
+               if (nir_is_denorm_flush_to_zero(execution_mode, ${type_size(output_type)})) {
+                  constant_denorm_flush_to_zero(&_dst_val[${k}], ${type_size(output_type)});
+               }
+            % else:
+               if (nir_is_denorm_flush_to_zero(execution_mode, ${bit_size})) {
+                  constant_denorm_flush_to_zero(&_dst_val[${k}], bit_size);
+               }
+            % endif
          % endif
       % endfor
    % endif
@@ -384,15 +450,16 @@ struct ${type}${width}_vec {
 % for name, op in sorted(opcodes.items()):
 static void
 evaluate_${name}(nir_const_value *_dst_val,
-                 MAYBE_UNUSED unsigned num_components,
+                 UNUSED unsigned num_components,
                  ${"UNUSED" if op_bit_sizes(op) is None else ""} unsigned bit_size,
-                 MAYBE_UNUSED nir_const_value **_src)
+                 UNUSED nir_const_value **_src,
+                 UNUSED unsigned execution_mode)
 {
    % if op_bit_sizes(op) is not None:
       switch (bit_size) {
       % for bit_size in op_bit_sizes(op):
       case ${bit_size}: {
-         ${evaluate_op(op, bit_size)}
+         ${evaluate_op(op, bit_size, execution_mode)}
          break;
       }
       % endfor
@@ -401,7 +468,7 @@ evaluate_${name}(nir_const_value *_dst_val,
          unreachable("unknown bit width");
       }
    % else:
-      ${evaluate_op(op, 0)}
+      ${evaluate_op(op, 0, execution_mode)}
    % endif
 }
 % endfor
@@ -409,12 +476,13 @@ evaluate_${name}(nir_const_value *_dst_val,
 void
 nir_eval_const_opcode(nir_op op, nir_const_value *dest,
                       unsigned num_components, unsigned bit_width,
-                      nir_const_value **src)
+                      nir_const_value **src,
+                      unsigned float_controls_execution_mode)
 {
    switch (op) {
 % for name in sorted(opcodes.keys()):
    case nir_op_${name}:
-      evaluate_${name}(dest, num_components, bit_width, src);
+      evaluate_${name}(dest, num_components, bit_width, src, float_controls_execution_mode);
       return;
 % endfor
    default:
@@ -425,6 +493,8 @@ nir_eval_const_opcode(nir_op op, nir_const_value *dest,
 from mako.template import Template
 
 print(Template(template).render(opcodes=opcodes, type_sizes=type_sizes,
+                                type_base_type=type_base_type,
+                                type_size=type_size,
                                 type_has_size=type_has_size,
                                 type_add_size=type_add_size,
                                 op_bit_sizes=op_bit_sizes,

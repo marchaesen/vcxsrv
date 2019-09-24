@@ -39,46 +39,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 '\" t
 .TH XCreateGC __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
@@ -86,23 +53,23 @@ XCreateGC, XCopyGC, XChangeGC, XGetGCValues, XFreeGC, XGContextFromGC, XGCValues
 .SH SYNTAX
 .HP
 GC XCreateGC\^(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^, unsigned long
-\fIvaluemask\fP\^, XGCValues *\^\fIvalues\fP\^); 
+\fIvaluemask\fP\^, XGCValues *\^\fIvalues\fP\^);
 .HP
 int XCopyGC\^(\^Display *\fIdisplay\fP\^, GC \fIsrc\fP\^,
-unsigned long \fIvaluemask\fP\^, GC \fIdest\fP\^); 
+unsigned long \fIvaluemask\fP\^, GC \fIdest\fP\^);
 .HP
 int XChangeGC\^(\^Display *\fIdisplay\fP\^, GC \fIgc\fP\^, unsigned long
-\fIvaluemask\fP\^, XGCValues *\^\fIvalues\fP\^); 
+\fIvaluemask\fP\^, XGCValues *\^\fIvalues\fP\^);
 .HP
 Status XGetGCValues\^(\^Display *\fIdisplay\fP\^, GC \fIgc\fP\^, unsigned long
-\fIvaluemask\fP\^, XGCValues *\fIvalues_return\fP\^); 
+\fIvaluemask\fP\^, XGCValues *\fIvalues_return\fP\^);
 .HP
-int XFreeGC\^(\^Display *\fIdisplay\fP\^, GC \fIgc\fP\^); 
+int XFreeGC\^(\^Display *\fIdisplay\fP\^, GC \fIgc\fP\^);
 .HP
-GContext XGContextFromGC\^(\^GC \fIgc\fP\^); 
+GContext XGContextFromGC\^(\^GC \fIgc\fP\^);
 .SH ARGUMENTS
 .IP \fId\fP 1i
-Specifies the drawable. 
+Specifies the drawable.
 .IP \fIdest\fP 1i
 Specifies the destination GC.
 .IP \fIdisplay\fP 1i
@@ -112,7 +79,7 @@ Specifies the GC.
 .IP \fIsrc\fP 1i
 Specifies the components of the source GC.
 .IP \fIvaluemask\fP 1i
-Specifies which components in the GC are to be set, copied, changed, or returned. 
+Specifies which components in the GC are to be set, copied, changed, or returned.
 This argument is the bitwise inclusive OR of zero or more of the valid
 GC component mask bits.
 .IP \fIvalues\fP 1i
@@ -166,13 +133,13 @@ The
 function changes the components specified by valuemask for
 the specified GC.
 The values argument contains the values to be set.
-The values and restrictions are the same as for 
+The values and restrictions are the same as for
 .BR XCreateGC .
-Changing the clip-mask overrides any previous 
+Changing the clip-mask overrides any previous
 .B XSetClipRectangles
-request on the context. 
+request on the context.
 Changing the dash-offset or dash-list
-overrides any previous 
+overrides any previous
 .B XSetDashes
 request on the context.
 The order in which components are verified and altered is server dependent.
@@ -221,7 +188,7 @@ sets the requested components in values_return and returns a nonzero status.
 Otherwise, it returns a zero status.
 Note that the clip-mask and dash-list (represented by the
 .B GCClipMask
-and 
+and
 .B GCDashList
 bits, respectively, in the valuemask)
 cannot be requested.
@@ -367,7 +334,7 @@ T}
 .TE
 .IN "XGCValues" "" "@DEF@"
 .LP
-.Ds 0
+.EX
 /\&* Values */
 
 typedef struct {
@@ -395,20 +362,20 @@ typedef struct {
         int dash_offset;        /\&* patterned/dashed line information */
         char dashes;
 } XGCValues;
-.De
+.EE
 .LP
 The function attributes of a GC are used when you update a section of
-a drawable (the destination) with bits from somewhere else (the source).  
+a drawable (the destination) with bits from somewhere else (the source).
 The function in a GC defines how the new destination bits are to be
 computed from the source bits and the old destination bits.
 .B GXcopy
 is typically the most useful because it will work on a color display,
 but special applications may use other functions,
 particularly in concert with particular planes of a color display.
-The 16 GC functions, defined in 
+The 16 GC functions, defined in
 .hN X11/X.h ,
 are:
-.\" are listed in Table 5-1 along with the 
+.\" are listed in Table 5-1 along with the
 .\"the associated hexadecimal code
 .\" and operation.
 .\".CP T 1
@@ -548,18 +515,18 @@ will be the least significant bit of the word.
 As planes are added to the display hardware, they will occupy more
 significant bits in the plane mask.
 .LP
-In graphics operations, given a source and destination pixel, 
+In graphics operations, given a source and destination pixel,
 the result is computed bitwise on corresponding bits of the pixels.
-That is, a Boolean operation is performed in each bit plane.  
+That is, a Boolean operation is performed in each bit plane.
 The plane_mask restricts the operation to a subset of planes.
 A macro constant
 .B AllPlanes
 can be used to refer to all planes of the screen simultaneously.
 The result is computed by the following:
 .LP
-.Ds 
+.EX
 ((src FUNC dst) AND plane-mask) OR (dst AND (NOT plane-mask))
-.De
+.EE
 .LP
 Range checking is not performed on the values for foreground,
 background, or plane_mask.
@@ -573,10 +540,10 @@ Unless otherwise specified by the join-style or cap-style,
 the bounding box of a wide line with endpoints [x1, y1], [x2, y2] and
 width w is a rectangle with vertices at the following real coordinates:
 .LP
-.Ds
+.EX
 [x1-(w*sn/2), y1+(w*cs/2)], [x1+(w*sn/2), y1-(w*cs/2)],
 [x2-(w*sn/2), y2+(w*cs/2)], [x2+(w*sn/2), y2-(w*cs/2)]
-.De
+.EE
 .LP
 Here sn is the sine of the angle of the line,
 and cs is the cosine of the angle of the line.
@@ -587,28 +554,28 @@ If the center of the pixel is exactly on the bounding box,
 it is part of the line if and only if the interior is immediately to its right
 (x increasing direction).
 Pixels with centers on a horizontal edge are a special case and are part of
-the line if and only if the interior or the boundary is immediately below 
+the line if and only if the interior or the boundary is immediately below
 (y increasing direction) and the interior or the boundary is immediately
 to the right (x increasing direction).
 .LP
 Thin lines (zero line-width) are one-pixel-wide lines drawn using an
 unspecified, device-dependent algorithm.
-There are only two constraints on this algorithm. 
+There are only two constraints on this algorithm.
 .IP 1. 5
 If a line is drawn unclipped from [x1,y1] to [x2,y2] and
 if another line is drawn unclipped from [x1+dx,y1+dy] to [x2+dx,y2+dy],
-a point [x,y] is touched by drawing the first line 
+a point [x,y] is touched by drawing the first line
 if and only if the point [x+dx,y+dy] is touched by drawing the second line.
 .IP 2. 5
 The effective set of points comprising a line cannot be affected by clipping.
-That is, a point is touched in a clipped line if and only if the point 
+That is, a point is touched in a clipped line if and only if the point
 lies inside the clipping region and the point would be touched
 by the line when drawn unclipped.
 .LP
-A wide line drawn from [x1,y1] to [x2,y2] always draws the same pixels 
-as a wide line drawn from [x2,y2] to [x1,y1], not counting cap-style 
+A wide line drawn from [x1,y1] to [x2,y2] always draws the same pixels
+as a wide line drawn from [x2,y2] to [x1,y1], not counting cap-style
 and join-style.
-It is recommended that this property be true for thin lines, 
+It is recommended that this property be true for thin lines,
 but this is not required.
 A line-width of zero may differ from a line-width of one in which pixels are
 drawn.
@@ -616,7 +583,7 @@ This permits the use of many manufacturers' line drawing hardware,
 which may run many times faster than the more precisely specified
 wide lines.
 .LP
-In general, 
+In general,
 drawing a thin line will be faster than drawing a wide line of width one.
 However, because of their different drawing algorithms,
 thin lines may not mix well aesthetically with wide lines.
@@ -625,7 +592,7 @@ a client should always use a line-width of one rather than a line-width of zero.
 .LP
 The line-style defines which sections of a line are drawn:
 .TS
-lw(1.3i) lw(4.5i).
+lw(1.0i) lw(4.5i).
 T{
 .B LineSolid
 T}	T{
@@ -635,8 +602,8 @@ T}
 T{
 .B LineDoubleDash
 T}	T{
-The full path of the line is drawn, 
-but the even dashes are filled differently 
+The full path of the line is drawn,
+but the even dashes are filled differently
 from the odd dashes (see fill-style) with
 .B CapButt
 style used where even and odd dashes meet.
@@ -646,11 +613,11 @@ T{
 .B LineOnOffDash
 T}	T{
 Only the even dashes are drawn,
-and cap-style applies to 
+and cap-style applies to
 all internal ends of the individual dashes,
-except 
+except
 .B CapNotLast
-is treated as 
+is treated as
 .BR CapButt .
 T}
 .TE
@@ -658,11 +625,11 @@ T}
 The cap-style defines how the endpoints of a path are drawn:
 .IN "Graphics context" "path"
 .TS
-lw(1.3i) lw(4.5i).
+lw(1.0i) lw(4.5i).
 T{
 .B CapNotLast
 T}	T{
-This is equivalent to 
+This is equivalent to
 .B CapButt
 except that for a line-width of zero the final endpoint is not drawn.
 T}
@@ -679,7 +646,7 @@ T{
 T}	T{
 The line has a circular arc with the diameter equal to the line-width,
 centered on the endpoint.
-(This is equivalent to 
+(This is equivalent to
 .B CapButt
 for line-width of zero).
 T}
@@ -687,9 +654,9 @@ T}
 T{
 .B CapProjecting
 T}	T{
-The line is square at the end, but the path continues beyond the endpoint 
+The line is square at the end, but the path continues beyond the endpoint
 for a distance equal to half the line-width.
-(This is equivalent to 
+(This is equivalent to
 .B CapButt
 for line-width of zero).
 T}
@@ -697,7 +664,7 @@ T}
 .LP
 The join-style defines how corners are drawn for wide lines:
 .TS
-lw(1.3i) lw(4.5i).
+lw(1.0i) lw(4.5i).
 T{
 .B JoinMiter
 T}	T{
@@ -711,7 +678,7 @@ T}
 T{
 .B JoinRound
 T}	T{
-The corner is a circular arc with the diameter equal to the line-width, 
+The corner is a circular arc with the diameter equal to the line-width,
 centered on the joinpoint.
 T}
 .sp 6p
@@ -724,17 +691,17 @@ endpoint styles with the triangular notch filled.
 T}
 .TE
 .LP
-For a line with coincident endpoints (x1=x2, y1=y2), 
-when the cap-style is applied to both endpoints, 
+For a line with coincident endpoints (x1=x2, y1=y2),
+when the cap-style is applied to both endpoints,
 the semantics depends on the line-width and the cap-style:
 .TS
-lw(1.3i) lw(.5i) lw(4i).
+lw(1.0i) lw(.5i) lw(4i).
 T{
 .B CapNotLast
 T}	T{
 thin
 T}	T{
-The results are device dependent, 
+The results are device dependent,
 but the desired effect is that nothing is drawn.
 T}
 .sp 6p
@@ -743,7 +710,7 @@ T{
 T}	T{
 thin
 T}	T{
-The results are device dependent, 
+The results are device dependent,
 but the desired effect is that a single pixel is drawn.
 T}
 .sp 6p
@@ -792,8 +759,8 @@ endpoint, and with the sides equal to the line-width.
 T}
 .TE
 .LP
-For a line with coincident endpoints (x1=x2, y1=y2), 
-when the join-style is applied at one or both endpoints, 
+For a line with coincident endpoints (x1=x2, y1=y2),
+when the join-style is applied at one or both endpoints,
 the effect is as if the line was removed from the overall path.
 However, if the total path consists of or is reduced to a single point joined
 with itself, the effect is the same as when the cap-style is applied at both
@@ -813,12 +780,12 @@ or a
 .B BadMatch
 error results.
 The stipple pixmap must have depth one and must have the same root as the
-GC, or a 
+GC, or a
 .B BadMatch
-error results.  
+error results.
 For stipple operations where the fill-style is
 .B FillStippled
-but not 
+but not
 .BR FillOpaqueStippled ,
 the stipple pattern is tiled in a
 single plane and acts as an additional clip mask to be ANDed with the clip-mask.
@@ -826,7 +793,7 @@ Although some sizes may be faster to use than others,
 any size pixmap can be used for tiling or stippling.
 .LP
 The fill-style defines the contents of the source for line, text, and
-fill requests.  
+fill requests.
 For all text and fill requests (for example,
 .BR XDrawText ,
 .BR XDrawText16 ,
@@ -834,21 +801,21 @@ For all text and fill requests (for example,
 .BR XFillPolygon ,
 and
 .BR XFillArc );
-for line requests 
-with line-style 
+for line requests
+with line-style
 .B LineSolid
 (for example,
 .BR XDrawLine ,
 .BR XDrawSegments ,
 .BR XDrawRectangle ,
 .BR XDrawArc );
-and for the even dashes for line requests with line-style 
+and for the even dashes for line requests with line-style
 .B LineOnOffDash
-or 
+or
 .BR LineDoubleDash ,
 the following apply:
 .TS
-lw(1.8i) lw(4i).
+lw(1.5i) lw(4i).
 T{
 .B FillSolid
 T}	T{
@@ -880,7 +847,7 @@ When drawing lines with line-style
 .BR LineDoubleDash ,
 the odd dashes are controlled by the fill-style in the following manner:
 .TS
-lw(1.8i) lw(4i).
+lw(1.5i) lw(4i).
 T{
 .B FillSolid
 T}	T{
@@ -915,7 +882,7 @@ a destination and as a tile or stipple,
 the results are undefined.
 .LP
 For optimum performance,
-you should draw as much as possible with the same GC 
+you should draw as much as possible with the same GC
 (without changing its components).
 The costs of changing GC components relative to using different GCs
 depend on the display hardware and the server implementation.
@@ -924,17 +891,17 @@ cached in display hardware and that such hardware can only cache a small number
 of GCs.
 .LP
 The dashes value is actually a simplified form of the
-more general patterns that can be set with 
+more general patterns that can be set with
 .BR XSetDashes .
 Specifying a
-value of N is equivalent to specifying the two-element list [N, N] in 
+value of N is equivalent to specifying the two-element list [N, N] in
 .BR XSetDashes .
 The value must be nonzero,
 or a
 .B BadValue
 error results.
 .LP
-The clip-mask restricts writes to the destination drawable.  
+The clip-mask restricts writes to the destination drawable.
 If the clip-mask is set to a pixmap,
 it must have depth one and have the same root as the GC,
 or a
@@ -948,8 +915,8 @@ The clip-mask also can be set by calling the
 or
 .B XSetRegion
 functions.
-Only pixels where the clip-mask has a bit set to 1 are drawn.  
-Pixels are not drawn outside the area covered by the clip-mask 
+Only pixels where the clip-mask has a bit set to 1 are drawn.
+Pixels are not drawn outside the area covered by the clip-mask
 or where the clip-mask has a bit set to 0.
 The clip-mask affects all graphics requests.
 The clip-mask does not clip sources.
@@ -960,27 +927,27 @@ You can set the subwindow-mode to
 .B ClipByChildren
 or
 .BR IncludeInferiors .
-For 
+For
 .BR ClipByChildren ,
 both source and destination windows are
-additionally clipped by all viewable 
+additionally clipped by all viewable
 .B InputOutput
-children.  
-For 
+children.
+For
 .BR IncludeInferiors ,
-neither source nor destination window is clipped by inferiors. 
+neither source nor destination window is clipped by inferiors.
 This will result in including subwindow contents in the source
 and drawing through subwindow boundaries of the destination.
-The use of 
+The use of
 .B IncludeInferiors
 on a window of one depth with mapped
 inferiors of differing depth is not illegal, but the semantics are
 undefined by the core protocol.
 .LP
 The fill-rule defines what pixels are inside (drawn) for
-paths given in 
+paths given in
 .B XFillPolygon
-requests and can be set to 
+requests and can be set to
 .B EvenOddRule
 or
 .BR WindingRule .
@@ -988,8 +955,8 @@ For
 .BR EvenOddRule ,
 a point is inside if
 an infinite ray with the point as origin crosses the path an odd number
-of times.  
-For 
+of times.
+For
 .BR WindingRule ,
 a point is inside if an infinite ray with the
 point as origin crosses an unequal number of clockwise and
@@ -1002,22 +969,22 @@ The case where a directed line segment is coincident with the ray is
 uninteresting because you can simply choose a different ray that is not
 coincident with a segment.
 .LP
-For both 
+For both
 .B EvenOddRule
 and
 .BR WindingRule ,
-a point is infinitely small, 
-and the path is an infinitely thin line.  
+a point is infinitely small,
+and the path is an infinitely thin line.
 A pixel is inside if the center point of the pixel is inside
-and the center point is not on the boundary.  
+and the center point is not on the boundary.
 If the center point is on the boundary,
 the pixel is inside if and only if the polygon interior is immediately to
-its right (x increasing direction).  
-Pixels with centers on a horizontal edge are a special case 
-and are inside if and only if the polygon interior is immediately below 
+its right (x increasing direction).
+Pixels with centers on a horizontal edge are a special case
+and are inside if and only if the polygon interior is immediately below
 (y increasing direction).
 .LP
-The arc-mode controls filling in the 
+The arc-mode controls filling in the
 .B XFillArcs
 function and can be set to
 .B ArcPieSlice
@@ -1030,12 +997,12 @@ For
 .BR ArcChord ,
 the arcs are chord filled.
 .LP
-The graphics-exposure flag controls 
+The graphics-exposure flag controls
 .B GraphicsExpose
 event generation
-for 
+for
 .B XCopyArea
-and 
+and
 .B XCopyPlane
 requests (and any similar requests defined by extensions).
 .SH DIAGNOSTICS
@@ -1067,7 +1034,8 @@ A value for a Pixmap argument does not name a defined Pixmap.
 .B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
-by the argument's type is accepted.  Any argument defined as a set of
+by the argument's type is accepted.
+Any argument defined as a set of
 alternatives can generate this error.
 .SH "SEE ALSO"
 AllPlanes(__libmansuffix__),

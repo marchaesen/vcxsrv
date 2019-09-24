@@ -34,20 +34,6 @@
 #include "nir_builder.h"
 #include "nir_deref.h"
 
-static bool
-deref_has_indirect(nir_deref_instr *deref)
-{
-   while (deref->deref_type != nir_deref_type_var) {
-      if (deref->deref_type == nir_deref_type_array &&
-          nir_src_as_const_value(deref->arr.index) == NULL)
-         return true;
-
-      deref = nir_deref_instr_parent(deref);
-   }
-
-   return false;
-}
-
 static void
 lower_load_store(nir_builder *b,
                  nir_intrinsic_instr *intrin,
@@ -128,7 +114,7 @@ nir_lower_vars_to_scratch(nir_shader *shader,
             if (!(deref->mode & modes))
                continue;
 
-            if (!deref_has_indirect(nir_src_as_deref(intrin->src[0])))
+            if (!nir_deref_instr_has_indirect(nir_src_as_deref(intrin->src[0])))
                continue;
 
             nir_variable *var = nir_deref_instr_get_variable(deref);

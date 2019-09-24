@@ -53,8 +53,8 @@ if dep_v3dv3.found()
       'v3d.c',
       '../../gallium/drivers/v3d/v3d_simulator_wrapper.cpp',
     ],
-    dependencies: [dep_dl, dep_drm_shim, dep_v3dv3],
-    link_with: [libmesa_util, per_version_libs],
+    dependencies: [idep_mesautil, dep_dl, dep_drm_shim, dep_v3dv3],
+    link_with: per_version_libs,
     include_directories : [inc_common, inc_broadcom, inc_gallium_v3d],
     c_args : [c_vis_args, no_override_init_args, '-std=gnu99', v3dv3_c_args],
     cpp_args : [v3dv3_c_args]

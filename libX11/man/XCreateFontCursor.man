@@ -38,46 +38,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XCreateFontCursor __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XCreateFontCursor, XCreatePixmapCursor, XCreateGlyphCursor \- create cursors
@@ -85,7 +52,7 @@ XCreateFontCursor, XCreatePixmapCursor, XCreateGlyphCursor \- create cursors
 \&#include <X11/cursorfont.h>
 .HP
 Cursor XCreateFontCursor\^(\^Display *\fIdisplay\fP\^, unsigned int
-\fIshape\fP\^); 
+\fIshape\fP\^);
 .HP
 Cursor XCreatePixmapCursor\^(\^Display *\fIdisplay\fP\^, Pixmap
 \fIsource\fP\^, Pixmap \fImask\fP\^, XColor *\fIforeground_color\fP\^, XColor
@@ -94,19 +61,19 @@ Cursor XCreatePixmapCursor\^(\^Display *\fIdisplay\fP\^, Pixmap
 Cursor XCreateGlyphCursor\^(\^Display *\fIdisplay\fP\^, Font
 \fIsource_font\fP\^, Font \fImask_font\fP\^, unsigned int \fIsource_char\fP\^,
 unsigned int \fImask_char\fP\^, XColor *\fIforeground_color\fP\^, XColor
-*\fIbackground_color\fP\^); 
+*\fIbackground_color\fP\^);
 .SH ARGUMENTS
 .IP \fIbackground_color\fP 1i
 Specifies the RGB values for the background of the source.
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fIforeground_color\fP 1i
-Specifies the RGB values for the foreground of the source. 
+Specifies the RGB values for the foreground of the source.
 .IP \fImask\fP 1i
 Specifies the cursor's source bits to be displayed or
 .BR None .
 .IP \fImask_char\fP 1i
-Specifies the glyph character for the mask. 
+Specifies the glyph character for the mask.
 .IP \fImask_font\fP 1i
 Specifies the font for the mask glyph or
 .BR None .
@@ -123,7 +90,7 @@ Specifies the font for the source glyph.
 .br
 .ns
 .IP \fIy\fP 1i
-Specify the x and y coordinates, which indicate the 
+Specify the x and y coordinates, which indicate the
 hotspot relative to the source's origin.
 .SH DESCRIPTION
 X provides a set of standard cursor shapes in a special font named
@@ -157,15 +124,15 @@ or
 screen.
 The foreground color is used for the pixels set to 1 in the
 source, and the background color is used for the pixels set to 0.
-Both source and mask, if specified, must have depth one (or a 
+Both source and mask, if specified, must have depth one (or a
 .B BadMatch
 error results) but can have any root.
 The mask argument defines the shape of the cursor.
 The pixels set to 1 in the mask define which source pixels are displayed,
 and the pixels set to 0 define which pixels are ignored.
-If no mask is given, 
+If no mask is given,
 all pixels of the source are displayed.
-The mask, if present, must be the same size as the pixmap defined by the 
+The mask, if present, must be the same size as the pixmap defined by the
 source argument, or a
 .B BadMatch
 error results.
@@ -193,31 +160,31 @@ The
 .B XCreateGlyphCursor
 function is similar to
 .B XCreatePixmapCursor
-except that the source and mask bitmaps are obtained from the specified 
+except that the source and mask bitmaps are obtained from the specified
 font glyphs.
-The source_char must be a defined glyph in source_font, 
+The source_char must be a defined glyph in source_font,
 or a
 .B BadValue
 error results.
-If mask_font is given, 
+If mask_font is given,
 mask_char must be a defined glyph in mask_font,
 or a
 .B BadValue
 error results.
 The mask_font and character are optional.
 The origins of the source_char and mask_char (if defined) glyphs are
-positioned coincidently and define the hotspot. 
-The source_char and mask_char need not have the same bounding box metrics, 
+positioned coincidently and define the hotspot.
+The source_char and mask_char need not have the same bounding box metrics,
 and there is no restriction on the placement of the hotspot relative to the bounding
-boxes. 
+boxes.
 If no mask_char is given, all pixels of the source are displayed.
 You can free the fonts immediately by calling
 .B XFreeFont
-if no further explicit references to them are to be made. 
+if no further explicit references to them are to be made.
 .LP
-For 2-byte matrix fonts, 
+For 2-byte matrix fonts,
 the 16-bit value should be formed with the byte1
-member in the most significant byte and the byte2 member in the 
+member in the most significant byte and the byte2 member in the
 least significant byte.
 .LP
 .B XCreateGlyphCursor
@@ -245,7 +212,8 @@ A value for a Pixmap argument does not name a defined Pixmap.
 .B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
-by the argument's type is accepted.  Any argument defined as a set of
+by the argument's type is accepted.
+Any argument defined as a set of
 alternatives can generate this error.
 .SH "SEE ALSO"
 XDefineCursor(__libmansuffix__),

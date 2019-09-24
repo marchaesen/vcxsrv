@@ -42,7 +42,7 @@
  * to keep track of and update phis along the way which gets tricky and
  * doesn't add much value over converting to regs.
  *
- * The loop may have a continue instruction at the end of the loop which does
+ * The loop may have a jump instruction at the end of the loop which does
  * nothing.  Once we're out of SSA, we can safely delete it so we don't have
  * to deal with it later.
  */
@@ -67,7 +67,7 @@ loop_prepare_for_unroll(nir_loop *loop)
 
    nir_lower_phis_to_regs_block(block_after_loop);
 
-   /* Remove continue if its the last instruction in the loop */
+   /* Remove jump if it's the last instruction in the loop */
    nir_instr *last_instr = nir_block_last_instr(nir_loop_last_block(loop));
    if (last_instr && last_instr->type == nir_instr_type_jump) {
       nir_instr_remove(last_instr);
@@ -491,7 +491,7 @@ complex_unroll_single_terminator(nir_loop *loop)
    unsigned num_times_to_clone = loop->info->max_trip_count + 1;
 
    nir_cf_list lp_body;
-   MAYBE_UNUSED nir_cf_node *unroll_loc =
+   UNUSED nir_cf_node *unroll_loc =
       complex_unroll_loop_body(loop, terminator, &lp_header, &lp_body,
                                remap_table, num_times_to_clone);
 
@@ -560,31 +560,7 @@ wrapper_unroll(nir_loop *loop)
            nir_after_block(nir_if_last_else_block(terminator->nif));
       }
    } else {
-      nir_block *blk_after_loop =
-         nir_cursor_current_block(nir_after_cf_node(&loop->cf_node));
-
-      /* There may still be some single src phis following the loop that
-       * have not yet been cleaned up by another pass. Tidy those up
-       * before unrolling the loop.
-       */
-      nir_foreach_instr_safe(instr, blk_after_loop) {
-         if (instr->type != nir_instr_type_phi)
-            break;
-
-         nir_phi_instr *phi = nir_instr_as_phi(instr);
-         assert(exec_list_length(&phi->srcs) == 1);
-
-         nir_phi_src *phi_src =
-            exec_node_data(nir_phi_src, exec_list_get_head(&phi->srcs), node);
-
-         nir_ssa_def_rewrite_uses(&phi->dest.ssa, phi_src->src);
-         nir_instr_remove(instr);
-      }
-
-      /* Remove break at end of the loop */
-      nir_block *last_loop_blk = nir_loop_last_block(loop);
-      nir_instr *break_instr = nir_block_last_instr(last_loop_blk);
-      nir_instr_remove(break_instr);
+      loop_prepare_for_unroll(loop);
    }
 
    /* Pluck out the loop body. */

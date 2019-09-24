@@ -258,8 +258,10 @@ qpu_validate_inst(struct v3d_qpu_validate_state *state, struct qinst *qinst)
                         fail_instr(state, "RF write after THREND");
                 }
 
-                if (v3d_qpu_sig_writes_address(devinfo, &inst->sig))
+                if (v3d_qpu_sig_writes_address(devinfo, &inst->sig) &&
+                    !inst->sig_magic) {
                         fail_instr(state, "RF write after THREND");
+                }
 
                 /* GFXH-1625: No TMUWT in the last instruction */
                 if (state->last_thrsw_ip - state->ip == 2 &&

@@ -38,46 +38,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XParseGeometry __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XParseGeometry, XWMGeometry \- parse window geometry
@@ -85,13 +52,13 @@ XParseGeometry, XWMGeometry \- parse window geometry
 .HP
 int XParseGeometry\^(\^char *\fIparsestring\fP\^, int *\fIx_return\fP\^, int
 *\fIy_return\fP\^, unsigned int *\fIwidth_return\fP\^, unsigned int
-*\fIheight_return\fP\^); 
+*\fIheight_return\fP\^);
 .HP
 int XWMGeometry\^(\^Display *\fIdisplay\fP\^, int \fIscreen\fP\^, char
 *\fIuser_geom\fP\^, char *\fIdef_geom\fP\^, unsigned int \fIbwidth\fP\^,
 XSizeHints *\fIhints\fP\^, int *\fIx_return\fP, int *\fIy_return\fP\^, int
 *\fIwidth_return\fP\^, int *\fIheight_return\fP\^, int
-*\fIgravity_return\fP\^); 
+*\fIgravity_return\fP\^);
 .SH ARGUMENTS
 .IP \fIposition\fP 1i
 .br
@@ -143,14 +110,14 @@ to parse the standard window geometry.
 Specifically, this function lets you parse strings of the form:
 .LP
 .\" Start marker code here
-.Ds
-[=][<\fIwidth\fP>{xX}<\fIheight\fP>][{+-}<\fIxoffset\fP>{+-}<\fIyoffset\fP>] 
-.De
+.EX
+[=][<\fIwidth\fP>{xX}<\fIheight\fP>][{+-}<\fIxoffset\fP>{+-}<\fIyoffset\fP>]
+.EE
 .\" End marker code here
 .LP
 The fields map into the arguments associated with this function.
 (Items enclosed in <\^> are integers, items in [\^] are optional, and
-items enclosed in {\^} indicate ``choose one of.''
+items enclosed in {\^} indicate \*(lqchoose one of.\*(rq
 Note that the brackets should not appear in the actual string.)
 If the string is not in the Host Portable Character Encoding,
 the result is implementation-dependent.
@@ -158,10 +125,10 @@ the result is implementation-dependent.
 The
 .B XParseGeometry
 function returns a bitmask that indicates which of the four values (width,
-height, xoffset, and yoffset) were actually found in the string 
-and whether the x and y values are negative. 
+height, xoffset, and yoffset) were actually found in the string
+and whether the x and y values are negative.
 By convention, \-0 is not equal to +0, because the user needs to
-be able to say ``position the window relative to the right or bottom edge.''
+be able to say \*(lqposition the window relative to the right or bottom edge.\*(rq
 For each value found, the corresponding argument is updated.
 For each value not found, the argument is left unchanged.
 The bits are represented by
@@ -172,49 +139,49 @@ The bits are represented by
 .BR XNegative ,
 or
 .B YNegative
-and are defined in 
+and are defined in
 .hN X11/Xutil.h .
-They will be set whenever one of the values is defined 
+They will be set whenever one of the values is defined
 or one of the signs is set.
 .LP
-If the function returns either the 
+If the function returns either the
 .B XValue
-or 
+or
 .B YValue
 flag,
 you should place the window at the requested position.
 .LP
-The 
+The
 .B XWMGeometry
-function combines any geometry information (given in the format used by 
+function combines any geometry information (given in the format used by
 .BR XParseGeometry )
-specified by the user and by the calling program with size hints 
-(usually the ones to be stored in WM_NORMAL_HINTS) and returns the position, 
+specified by the user and by the calling program with size hints
+(usually the ones to be stored in WM_NORMAL_HINTS) and returns the position,
 size, and gravity
-.Pn ( NorthWestGravity , 
+.Pn ( NorthWestGravity ,
 .BR NorthEastGravity ,
 .BR SouthEastGravity ,
 or
 .BR SouthWestGravity )
 that describe the window.
-If the base size is not set in the 
+If the base size is not set in the
 .B XSizeHints
-structure, 
+structure,
 the minimum size is used if set.
 Otherwise, a base size of zero is assumed.
-If no minimum size is set in the hints structure, 
+If no minimum size is set in the hints structure,
 the base size is used.
-A mask (in the form returned by 
+A mask (in the form returned by
 .BR XParseGeometry )
-that describes which values came from the user specification 
+that describes which values came from the user specification
 and whether or not the position coordinates are relative
 to the right and bottom edges is returned.
-Note that these coordinates will have already been accounted for 
+Note that these coordinates will have already been accounted for
 in the x_return and y_return values.
 .LP
-Note that invalid geometry specifications can cause a width or height 
+Note that invalid geometry specifications can cause a width or height
 of zero to be returned.
-The caller may pass the address of the hints win_gravity field 
+The caller may pass the address of the hints win_gravity field
 as gravity_return to update the hints directly.
 .SH "SEE ALSO"
 XSetWMProperties(__libmansuffix__)

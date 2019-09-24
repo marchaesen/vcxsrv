@@ -85,7 +85,7 @@ debug_serial(void *p, unsigned *pserial)
 {
    unsigned serial;
    boolean found = TRUE;
-#ifdef PIPE_SUBSYSTEM_WINDOWS_USER
+#ifdef PIPE_OS_WINDOWS
    static boolean first = TRUE;
 
    if (first) {

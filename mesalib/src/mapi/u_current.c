@@ -97,7 +97,7 @@ extern void (*__glapi_noop_table[])(void);
  * between TLS enabled loaders and non-TLS DRI drivers.
  */
 /*@{*/
-#if defined(GLX_USE_TLS)
+#if defined(USE_ELF_TLS)
 
 __thread struct _glapi_table *u_current_table
     __attribute__((tls_model("initial-exec")))
@@ -116,21 +116,21 @@ tss_t u_current_table_tsd;
 static tss_t u_current_context_tsd;
 static int ThreadSafe;
 
-#endif /* defined(GLX_USE_TLS) */
+#endif /* defined(USE_ELF_TLS) */
 /*@}*/
 
 
 void
 u_current_destroy(void)
 {
-#if !defined(GLX_USE_TLS)
+#if !defined(USE_ELF_TLS)
    tss_delete(u_current_table_tsd);
    tss_delete(u_current_context_tsd);
 #endif
 }
 
 
-#if !defined(GLX_USE_TLS)
+#if !defined(USE_ELF_TLS)
 
 static void
 u_current_init_tsd(void)
@@ -230,7 +230,7 @@ u_current_set_context(const void *ptr)
 {
    u_current_init();
 
-#if defined(GLX_USE_TLS)
+#if defined(USE_ELF_TLS)
    u_current_context = (void *) ptr;
 #else
    tss_set(u_current_context_tsd, (void *) ptr);
@@ -246,7 +246,7 @@ u_current_set_context(const void *ptr)
 void *
 u_current_get_context_internal(void)
 {
-#if defined(GLX_USE_TLS)
+#if defined(USE_ELF_TLS)
    return u_current_context;
 #else
    return ThreadSafe ? tss_get(u_current_context_tsd) : u_current_context;
@@ -268,7 +268,7 @@ u_current_set_table(const struct _glapi_table *tbl)
    if (!tbl)
       tbl = (const struct _glapi_table *) table_noop_array;
 
-#if defined(GLX_USE_TLS)
+#if defined(USE_ELF_TLS)
    u_current_table = (struct _glapi_table *) tbl;
 #else
    tss_set(u_current_table_tsd, (void *) tbl);
@@ -282,7 +282,7 @@ u_current_set_table(const struct _glapi_table *tbl)
 struct _glapi_table *
 u_current_get_table_internal(void)
 {
-#if defined(GLX_USE_TLS)
+#if defined(USE_ELF_TLS)
    return u_current_table;
 #else
    if (ThreadSafe)

@@ -233,7 +233,7 @@ lower_buffer_access::is_dereferenced_thing_row_major(const ir_rvalue *deref)
              * layouts at HIR generation time, but we don't do that for shared
              * variables, which are always column-major
              */
-            MAYBE_UNUSED ir_variable *var = deref->variable_referenced();
+            ASSERTED ir_variable *var = deref->variable_referenced();
             assert((var->is_in_buffer_block() && !matrix) ||
                    var->data.mode == ir_var_shader_shared);
             return false;

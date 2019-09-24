@@ -39,46 +39,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
+.\" It is provided "as is" without express or implied warranty.
 .\"
-.\" 
+.\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XmbDrawImageString __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XmbDrawImageString, XwcDrawImageString, Xutf8DrawImageString \- draw image text using a single font set
@@ -86,18 +53,18 @@ XmbDrawImageString, XwcDrawImageString, Xutf8DrawImageString \- draw image text 
 .HP
 void XmbDrawImageString\^(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^,
 XFontSet \fIfont_set\fP\^, GC \fIgc\fP\^, int \fIx\fP\^, int \fIy\fP\^, char
-*\fIstring\fP\^, int \fInum_bytes\fP\^); 
+*\fIstring\fP\^, int \fInum_bytes\fP\^);
 .HP
 void XwcDrawImageString\^(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^,
 XFontSet \fIfont_set\fP\^, GC \fIgc\fP\^, int \fIx\fP\^, int \fIy\fP\^,
-wchar_t *\fIstring\fP\^, int \fInum_wchars\fP\^); 
+wchar_t *\fIstring\fP\^, int \fInum_wchars\fP\^);
 .HP
 void Xutf8DrawImageString\^(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^,
 XFontSet \fIfont_set\fP\^, GC \fIgc\fP\^, int \fIx\fP\^, int \fIy\fP\^, char
-*\fIstring\fP\^, int \fInum_bytes\fP\^); 
+*\fIstring\fP\^, int \fInum_bytes\fP\^);
 .SH ARGUMENTS
 .IP \fId\fP 1i
-Specifies the drawable. 
+Specifies the drawable.
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fIfont_set\fP 1i
@@ -126,22 +93,23 @@ in the GC and then paint the text with the foreground pixel.
 The filled rectangle is the rectangle returned to overall_logical_return by
 .BR XmbTextExtents ,
 .B XwcTextExtents
-or 
+or
 .B Xutf8TextExtents
-for the same text and 
+for the same text and
 .BR XFontSet .
 .LP
-When the 
+When the
 .B XFontSet
-has missing charsets, each unavailable character is drawn 
-with the default string returned by 
+has missing charsets, each unavailable character is drawn
+with the default string returned by
 .BR XCreateFontSet .
 The behavior for an invalid codepoint is undefined.
 .LP
 The function
 .B Xutf8TextExtents
-is an extension introduced by The XFree86 Project, Inc. in their 4.0.2
-release. Its presence is
+is an extension introduced by The XFree86 Project, Inc., in their 4.0.2
+release.
+Its presence is
 indicated by the macro
 .BR X_HAVE_UTF8_STRING .
 .SH "SEE ALSO"

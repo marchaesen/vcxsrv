@@ -530,8 +530,11 @@ ir3_create_array_store(struct ir3_context *ctx, struct ir3_array *arr, int n,
 
 	/* if not relative store, don't create an extra mov, since that
 	 * ends up being difficult for cp to remove.
+	 *
+	 * Also, don't skip the mov if the src is meta (like fanout/split),
+	 * since that creates a situation that RA can't really handle properly.
 	 */
-	if (!address) {
+	if (!address && !is_meta(src)) {
 		dst = src->regs[0];
 
 		src->barrier_class |= IR3_BARRIER_ARRAY_W;

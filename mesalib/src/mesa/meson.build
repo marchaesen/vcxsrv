@@ -600,6 +600,8 @@ files_libmesa_gallium = files(
   'state_tracker/st_shader_cache.h',
   'state_tracker/st_texture.c',
   'state_tracker/st_texture.h',
+  'state_tracker/st_tgsi_lower_depth_clamp.c',
+  'state_tracker/st_tgsi_lower_depth_clamp.h',
   'state_tracker/st_tgsi_lower_yuv.c',
   'state_tracker/st_tgsi_lower_yuv.h',
   'state_tracker/st_util.h',

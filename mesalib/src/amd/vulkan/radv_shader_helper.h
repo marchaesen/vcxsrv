@@ -29,7 +29,8 @@ extern "C" {
 bool radv_init_llvm_compiler(struct ac_llvm_compiler *info,
 			     bool thread_compiler,
 			     enum radeon_family family,
-			     enum ac_target_machine_options tm_options);
+			     enum ac_target_machine_options tm_options,
+			     unsigned wave_size);
 void radv_destroy_llvm_compiler(struct ac_llvm_compiler *info,
 				bool thread_compiler);
 

@@ -27,6 +27,7 @@
  */
 
 #include <stdio.h>
+#include <stddef.h>
 
 #include "main/glheader.h"
 #include "main/imports.h"

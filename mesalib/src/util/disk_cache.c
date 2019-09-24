@@ -369,13 +369,17 @@ disk_cache_create(const char *gpu_name, const char *driver_id,
 
    cache->max_size = max_size;
 
-   /* 1 thread was chosen because we don't really care about getting things
-    * to disk quickly just that it's not blocking other tasks.
+   /* 4 threads were chosen below because just about all modern CPUs currently
+    * available that run Mesa have *at least* 4 cores. For these CPUs allowing
+    * more threads can result in the queue being processed faster, thus
+    * avoiding excessive memory use due to a backlog of cache entrys building
+    * up in the queue. Since we set the UTIL_QUEUE_INIT_USE_MINIMUM_PRIORITY
+    * flag this should have little negative impact on low core systems.
     *
     * The queue will resize automatically when it's full, so adding new jobs
     * doesn't stall.
     */
-   util_queue_init(&cache->cache_queue, "disk$", 32, 1,
+   util_queue_init(&cache->cache_queue, "disk$", 32, 4,
                    UTIL_QUEUE_INIT_RESIZE_IF_FULL |
                    UTIL_QUEUE_INIT_USE_MINIMUM_PRIORITY |
                    UTIL_QUEUE_INIT_SET_FULL_THREAD_AFFINITY);
@@ -1033,7 +1037,7 @@ disk_cache_put(struct disk_cache *cache, const cache_key key,
    if (dc_job) {
       util_queue_fence_init(&dc_job->fence);
       util_queue_add_job(&cache->cache_queue, dc_job, &dc_job->fence,
-                         cache_put, destroy_put_job);
+                         cache_put, destroy_put_job, dc_job->size);
    }
 }
 

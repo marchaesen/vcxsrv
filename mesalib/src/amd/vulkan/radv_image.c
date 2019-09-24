@@ -454,7 +454,8 @@ si_set_mutable_tex_desc_fields(struct radv_device *device,
 			       unsigned plane_id,
 			       unsigned base_level, unsigned first_level,
 			       unsigned block_width, bool is_stencil,
-			       bool is_storage_image, uint32_t *state)
+			       bool is_storage_image, bool disable_compression,
+			       uint32_t *state)
 {
 	struct radv_image_plane *plane = &image->planes[plane_id];
 	uint64_t gpu_address = image->bo ? radv_buffer_get_va(image->bo) + image->offset : 0;
@@ -479,21 +480,23 @@ si_set_mutable_tex_desc_fields(struct radv_device *device,
 	if (chip_class >= GFX8) {
 		state[6] &= C_008F28_COMPRESSION_EN;
 		state[7] = 0;
-		if (!is_storage_image && radv_dcc_enabled(image, first_level)) {
+		if (!disable_compression && radv_dcc_enabled(image, first_level)) {
 			meta_va = gpu_address + image->dcc_offset;
 			if (chip_class <= GFX8)
 				meta_va += base_level_info->dcc_offset;
-		} else if (!is_storage_image &&
+
+			unsigned dcc_tile_swizzle = plane->surface.tile_swizzle << 8;
+			dcc_tile_swizzle &= plane->surface.dcc_alignment - 1;
+			meta_va |= dcc_tile_swizzle;
+		} else if (!disable_compression &&
 			   radv_image_is_tc_compat_htile(image)) {
 			meta_va = gpu_address + image->htile_offset;
 		}
 
 		if (meta_va) {
 			state[6] |= S_008F28_COMPRESSION_EN(1);
-			if (chip_class <= GFX9) {
+			if (chip_class <= GFX9)
 				state[7] = meta_va >> 8;
-				state[7] |= plane->surface.tile_swizzle;
-			}
 		}
 	}
 
@@ -713,7 +716,7 @@ gfx10_make_texture_descriptor(struct radv_device *device,
 
 		assert(image->plane_count == 1);
 
-		va = gpu_address + image->offset + image->fmask.offset;
+		va = gpu_address + image->offset + image->fmask_offset;
 
 		switch (image->info.samples) {
 		case 2:
@@ -877,7 +880,7 @@ si_make_texture_descriptor(struct radv_device *device,
 
 		assert(image->plane_count == 1);
 
-		va = gpu_address + image->offset + image->fmask.offset;
+		va = gpu_address + image->offset + image->fmask_offset;
 
 		if (device->physical_device->rad_info.chip_class == GFX9) {
 			fmask_format = V_008F14_IMG_DATA_FORMAT_FMASK;
@@ -913,7 +916,7 @@ si_make_texture_descriptor(struct radv_device *device,
 		}
 
 		fmask_state[0] = va >> 8;
-		fmask_state[0] |= image->fmask.tile_swizzle;
+		fmask_state[0] |= image->planes[0].surface.fmask_tile_swizzle;
 		fmask_state[1] = S_008F14_BASE_ADDRESS_HI(va >> 40) |
 			S_008F14_DATA_FORMAT(fmask_format) |
 			S_008F14_NUM_FORMAT(num_format);
@@ -937,20 +940,20 @@ si_make_texture_descriptor(struct radv_device *device,
 					  S_008F24_META_RB_ALIGNED(image->planes[0].surface.u.gfx9.cmask.rb_aligned);
 
 			if (radv_image_is_tc_compat_cmask(image)) {
-				va = gpu_address + image->offset + image->cmask.offset;
+				va = gpu_address + image->offset + image->cmask_offset;
 
 				fmask_state[5] |= S_008F24_META_DATA_ADDRESS(va >> 40);
 				fmask_state[6] |= S_008F28_COMPRESSION_EN(1);
 				fmask_state[7] |= va >> 8;
 			}
 		} else {
-			fmask_state[3] |= S_008F1C_TILING_INDEX(image->fmask.tile_mode_index);
+			fmask_state[3] |= S_008F1C_TILING_INDEX(image->planes[0].surface.u.legacy.fmask.tiling_index);
 			fmask_state[4] |= S_008F20_DEPTH(depth - 1) |
-				S_008F20_PITCH(image->fmask.pitch_in_pixels - 1);
+				S_008F20_PITCH(image->planes[0].surface.u.legacy.fmask.pitch_in_pixels - 1);
 			fmask_state[5] |= S_008F24_LAST_ARRAY(last_layer);
 
 			if (radv_image_is_tc_compat_cmask(image)) {
-				va = gpu_address + image->offset + image->cmask.offset;
+				va = gpu_address + image->offset + image->cmask_offset;
 
 				fmask_state[6] |= S_008F28_COMPRESSION_EN(1);
 				fmask_state[7] |= va >> 8;
@@ -1024,7 +1027,7 @@ radv_query_opaque_metadata(struct radv_device *device,
 				     desc, NULL);
 
 	si_set_mutable_tex_desc_fields(device, image, &image->planes[0].surface.u.legacy.level[0], 0, 0, 0,
-				       image->planes[0].surface.blk_w, false, false, desc);
+				       image->planes[0].surface.blk_w, false, false, false, desc);
 
 	/* Clear the base address and set the relative DCC offset. */
 	desc[0] = 0;
@@ -1099,82 +1102,38 @@ radv_image_override_offset_stride(struct radv_device *device,
 	}
 }
 
-/* The number of samples can be specified independently of the texture. */
-static void
-radv_image_get_fmask_info(struct radv_device *device,
-			  struct radv_image *image,
-			  unsigned nr_samples,
-			  struct radv_fmask_info *out)
-{
-	if (device->physical_device->rad_info.chip_class >= GFX9) {
-		out->alignment = image->planes[0].surface.fmask_alignment;
-		out->size = image->planes[0].surface.fmask_size;
-		out->tile_swizzle = image->planes[0].surface.fmask_tile_swizzle;
-		return;
-	}
-
-	out->slice_tile_max = image->planes[0].surface.u.legacy.fmask.slice_tile_max;
-	out->tile_mode_index = image->planes[0].surface.u.legacy.fmask.tiling_index;
-	out->pitch_in_pixels = image->planes[0].surface.u.legacy.fmask.pitch_in_pixels;
-	out->slice_size = image->planes[0].surface.u.legacy.fmask.slice_size;
-	out->bank_height = image->planes[0].surface.u.legacy.fmask.bankh;
-	out->tile_swizzle = image->planes[0].surface.fmask_tile_swizzle;
-	out->alignment = image->planes[0].surface.fmask_alignment;
-	out->size = image->planes[0].surface.fmask_size;
-
-	assert(!out->tile_swizzle || !image->shareable);
-}
-
 static void
 radv_image_alloc_fmask(struct radv_device *device,
 		       struct radv_image *image)
 {
-	radv_image_get_fmask_info(device, image, image->info.samples, &image->fmask);
+	unsigned fmask_alignment = image->planes[0].surface.fmask_alignment;
 
-	image->fmask.offset = align64(image->size, image->fmask.alignment);
-	image->size = image->fmask.offset + image->fmask.size;
-	image->alignment = MAX2(image->alignment, image->fmask.alignment);
-}
-
-static void
-radv_image_get_cmask_info(struct radv_device *device,
-			  struct radv_image *image,
-			  struct radv_cmask_info *out)
-{
-	assert(image->plane_count == 1);
-
-	if (device->physical_device->rad_info.chip_class >= GFX9) {
-		out->alignment = image->planes[0].surface.cmask_alignment;
-		out->size = image->planes[0].surface.cmask_size;
-		return;
-	}
-
-	out->slice_tile_max = image->planes[0].surface.u.legacy.cmask_slice_tile_max;
-	out->alignment = image->planes[0].surface.cmask_alignment;
-	out->slice_size = image->planes[0].surface.cmask_slice_size;
-	out->size = image->planes[0].surface.cmask_size;
+	image->fmask_offset = align64(image->size, fmask_alignment);
+	image->size = image->fmask_offset + image->planes[0].surface.fmask_size;
+	image->alignment = MAX2(image->alignment, fmask_alignment);
 }
 
 static void
 radv_image_alloc_cmask(struct radv_device *device,
 		       struct radv_image *image)
 {
+	unsigned cmask_alignment = image->planes[0].surface.cmask_alignment;
+	unsigned cmask_size = image->planes[0].surface.cmask_size;
 	uint32_t clear_value_size = 0;
-	radv_image_get_cmask_info(device, image, &image->cmask);
 
-	if (!image->cmask.size)
+	if (!cmask_size)
 		return;
 
-	assert(image->cmask.alignment);
+	assert(cmask_alignment);
 
-	image->cmask.offset = align64(image->size, image->cmask.alignment);
+	image->cmask_offset = align64(image->size, cmask_alignment);
 	/* + 8 for storing the clear values */
 	if (!image->clear_value_offset) {
-		image->clear_value_offset = image->cmask.offset + image->cmask.size;
+		image->clear_value_offset = image->cmask_offset + cmask_size;
 		clear_value_size = 8;
 	}
-	image->size = image->cmask.offset + image->cmask.size + clear_value_size;
-	image->alignment = MAX2(image->alignment, image->cmask.alignment);
+	image->size = image->cmask_offset + cmask_size + clear_value_size;
+	image->alignment = MAX2(image->alignment, cmask_alignment);
 }
 
 static void
@@ -1198,15 +1157,15 @@ radv_image_alloc_htile(struct radv_device *device, struct radv_image *image)
 
 	/* + 8 for storing the clear values */
 	image->clear_value_offset = image->htile_offset + image->planes[0].surface.htile_size;
-	image->size = image->clear_value_offset + 8;
+	image->size = image->clear_value_offset + image->info.levels * 8;
 	if (radv_image_is_tc_compat_htile(image) &&
-	    device->physical_device->has_tc_compat_zrange_bug) {
+	    device->physical_device->rad_info.has_tc_compat_zrange_bug) {
 		/* Metadata for the TC-compatible HTILE hardware bug which
 		 * have to be fixed by updating ZRANGE_PRECISION when doing
 		 * fast depth clears to 0.0f.
 		 */
 		image->tc_compat_zrange_offset = image->size;
-		image->size = image->tc_compat_zrange_offset + 4;
+		image->size = image->tc_compat_zrange_offset + image->info.levels * 4;
 	}
 	image->alignment = align64(image->alignment, image->planes[0].surface.htile_alignment);
 }
@@ -1442,8 +1401,8 @@ radv_image_view_make_descriptor(struct radv_image_view *iview,
 				struct radv_device *device,
 				VkFormat vk_format,
 				const VkComponentMapping *components,
-				bool is_storage_image, unsigned plane_id,
-				unsigned descriptor_plane_id)
+				bool is_storage_image, bool disable_compression,
+				unsigned plane_id, unsigned descriptor_plane_id)
 {
 	struct radv_image *image = iview->image;
 	struct radv_image_plane *plane = &image->planes[plane_id];
@@ -1490,7 +1449,9 @@ radv_image_view_make_descriptor(struct radv_image_view *iview,
 				       plane_id,
 				       iview->base_mip,
 				       iview->base_mip,
-				       blk_w, is_stencil, is_storage_image, descriptor->plane_descriptors[descriptor_plane_id]);
+				       blk_w, is_stencil, is_storage_image,
+				       is_storage_image || disable_compression,
+				       descriptor->plane_descriptors[descriptor_plane_id]);
 }
 
 static unsigned
@@ -1530,7 +1491,8 @@ radv_get_aspect_format(struct radv_image *image, VkImageAspectFlags mask)
 void
 radv_image_view_init(struct radv_image_view *iview,
 		     struct radv_device *device,
-		     const VkImageViewCreateInfo* pCreateInfo)
+		     const VkImageViewCreateInfo* pCreateInfo,
+		     const struct radv_image_view_extra_create_info* extra_create_info)
 {
 	RADV_FROM_HANDLE(radv_image, image, pCreateInfo->image);
 	const VkImageSubresourceRange *range = &pCreateInfo->subresourceRange;
@@ -1630,15 +1592,23 @@ radv_image_view_init(struct radv_image_view *iview,
 	iview->base_mip = range->baseMipLevel;
 	iview->level_count = radv_get_levelCount(image, range);
 
+	bool disable_compression = extra_create_info ? extra_create_info->disable_compression: false;
 	for (unsigned i = 0; i < (iview->multiple_planes ? vk_format_get_plane_count(image->vk_format) : 1); ++i) {
 		VkFormat format = vk_format_get_plane_format(iview->vk_format, i);
-		radv_image_view_make_descriptor(iview, device, format, &pCreateInfo->components, false, iview->plane_id + i, i);
-		radv_image_view_make_descriptor(iview, device, format, &pCreateInfo->components, true, iview->plane_id + i, i);
+		radv_image_view_make_descriptor(iview, device, format,
+						&pCreateInfo->components,
+						false, disable_compression,
+						iview->plane_id + i, i);
+		radv_image_view_make_descriptor(iview, device,
+						format, &pCreateInfo->components,
+						true, disable_compression,
+						iview->plane_id + i, i);
 	}
 }
 
 bool radv_layout_has_htile(const struct radv_image *image,
                            VkImageLayout layout,
+			   bool in_render_loop,
                            unsigned queue_mask)
 {
 	if (radv_image_is_tc_compat_htile(image))
@@ -1652,6 +1622,7 @@ bool radv_layout_has_htile(const struct radv_image *image,
 
 bool radv_layout_is_htile_compressed(const struct radv_image *image,
                                      VkImageLayout layout,
+				     bool in_render_loop,
                                      unsigned queue_mask)
 {
 	if (radv_image_is_tc_compat_htile(image))
@@ -1665,13 +1636,16 @@ bool radv_layout_is_htile_compressed(const struct radv_image *image,
 
 bool radv_layout_can_fast_clear(const struct radv_image *image,
 			        VkImageLayout layout,
+				bool in_render_loop,
 			        unsigned queue_mask)
 {
 	return layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 }
 
-bool radv_layout_dcc_compressed(const struct radv_image *image,
+bool radv_layout_dcc_compressed(const struct radv_device *device,
+				const struct radv_image *image,
 			        VkImageLayout layout,
+				bool in_render_loop,
 			        unsigned queue_mask)
 {
 	/* Don't compress compute transfer dst, as image stores are not supported. */
@@ -1804,7 +1778,7 @@ radv_CreateImageView(VkDevice _device,
 	if (view == NULL)
 		return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-	radv_image_view_init(view, device, pCreateInfo);
+	radv_image_view_init(view, device, pCreateInfo, NULL);
 
 	*pView = radv_image_view_to_handle(view);
 

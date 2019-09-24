@@ -16,7 +16,7 @@ os_c_args = []
 
 if get_option('pciaccess')
     srcs_xorg_os_support += 'bus/Pci.c'
-    if host_machine.system() != 'linux' and host_machine.system() != 'solaris'
+    if host_machine.system() != 'linux'
         srcs_xorg_os_support += 'bus/bsd_pci.c'
     endif
     if host_machine.cpu() == 'sparc'
@@ -60,7 +60,7 @@ if host_machine.system() == 'linux'
         srcs_xorg_os_support += 'shared/pm_noop.c'
     endif
 
-elif host_machine.system() == 'solaris'
+elif host_machine.system() == 'sunos'
     srcs_xorg_os_support += [
         'solaris/sun_apm.c',
         'solaris/sun_bell.c',

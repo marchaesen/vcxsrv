@@ -120,6 +120,7 @@ api_xml_files = files(
   'EXT_packed_depth_stencil.xml',
   'EXT_provoking_vertex.xml',
   'EXT_separate_shader_objects.xml',
+  'EXT_shader_image_load_store.xml',
   'EXT_texture_array.xml',
   'EXT_texture_integer.xml',
   'EXT_transform_feedback.xml',

@@ -36,9 +36,6 @@
 #endif
 
 
-#include "pipe/p_compiler.h"
-
-
 
 /**
  * Add two size_t values with integer overflow check.

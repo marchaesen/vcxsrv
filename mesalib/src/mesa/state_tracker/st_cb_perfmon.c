@@ -344,7 +344,7 @@ static void
 st_InitPerfMonitorGroups(struct gl_context *ctx)
 {
    struct st_context *st = st_context(ctx);
-   struct gl_perf_monitor_state *perfmon = &st->ctx->PerfMonitor;
+   struct gl_perf_monitor_state *perfmon = &ctx->PerfMonitor;
    struct pipe_screen *screen = st->pipe->screen;
    struct gl_perf_monitor_group *groups = NULL;
    struct st_perf_monitor_group *stgroups = NULL;

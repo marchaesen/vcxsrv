@@ -32,8 +32,13 @@
  * registers */
 
 static void
-mir_print_source(int source)
+mir_print_index(int source)
 {
+        if (source == ~0) {
+                printf("_");
+                return;
+        }
+
         if (source >= SSA_FIXED_MINIMUM) {
                 /* Specific register */
                 int reg = SSA_REG_FROM_FIXED(source);
@@ -48,6 +53,42 @@ mir_print_source(int source)
         }
 }
 
+static const char components[16] = "xyzwefghijklmnop";
+
+static void
+mir_print_mask(unsigned mask)
+{
+        printf(".");
+
+        for (unsigned i = 0; i < 16; ++i) {
+                if (mask & (1 << i))
+                        putchar(components[i]);
+        }
+}
+
+static const char *
+mir_get_unit(unsigned unit)
+{
+        switch (unit) {
+        case ALU_ENAB_VEC_MUL:
+                return "vmul";
+        case ALU_ENAB_SCAL_ADD:
+                return "sadd";
+        case ALU_ENAB_VEC_ADD:
+                return "vadd";
+        case ALU_ENAB_SCAL_MUL:
+                return "smul";
+        case ALU_ENAB_VEC_LUT:
+                return "lut";
+        case ALU_ENAB_BR_COMPACT:
+                return "br";
+        case ALU_ENAB_BRANCH:
+                return "brx";
+        default:
+                return "???";
+        }
+}
+
 void
 mir_print_instruction(midgard_instruction *ins)
 {
@@ -58,8 +99,15 @@ mir_print_instruction(midgard_instruction *ins)
                 midgard_alu_op op = ins->alu.op;
                 const char *name = alu_opcode_props[op].name;
 
+                const char *branch_target_names[] = {
+                        "goto", "break", "continue", "discard"
+                };
+
+                if (ins->compact_branch && !ins->prepacked_branch)
+                        name = branch_target_names[ins->branch.target_type];
+
                 if (ins->unit)
-                        printf("%d.", ins->unit);
+                        printf("%s.", mir_get_unit(ins->unit));
 
                 printf("%s", name ? name : "??");
                 break;
@@ -83,20 +131,40 @@ mir_print_instruction(midgard_instruction *ins)
                 assert(0);
         }
 
-        ssa_args *args = &ins->ssa_args;
+        if (ins->invert || (ins->compact_branch && !ins->prepacked_branch && ins->branch.invert_conditional))
+                printf(".not");
 
-        printf(" %d, ", args->dest);
+        printf(" ");
+        mir_print_index(ins->dest);
 
-        mir_print_source(args->src0);
+        if (ins->mask != 0xF)
+                mir_print_mask(ins->mask);
+
         printf(", ");
 
-        if (args->inline_constant)
+        mir_print_index(ins->src[0]);
+        printf(", ");
+
+        if (ins->has_inline_constant)
                 printf("#%d", ins->inline_constant);
         else
-                mir_print_source(args->src1);
+                mir_print_index(ins->src[1]);
 
-        if (ins->has_constants)
-                printf(" <%f, %f, %f, %f>", ins->constants[0], ins->constants[1], ins->constants[2], ins->constants[3]);
+        printf(", ");
+        mir_print_index(ins->src[2]);
+
+        if (ins->has_constants) {
+                uint32_t *uc = ins->constants;
+                float *fc = (float *) uc;
+
+                if (midgard_is_integer_op(ins->alu.op))
+                        printf(" <0x%X, 0x%X, 0x%X, 0x%x>", uc[0], uc[1], uc[2], uc[3]);
+                else
+                        printf(" <%f, %f, %f, %f>", fc[0], fc[1], fc[2], fc[3]);
+        }
+
+        if (ins->no_spill)
+                printf(" /* no spill */");
 
         printf("\n");
 }
@@ -106,10 +174,19 @@ mir_print_instruction(midgard_instruction *ins)
 void
 mir_print_block(midgard_block *block)
 {
-        printf("%p: {\n", block);
+        printf("block%u: {\n", block->source_id);
 
-        mir_foreach_instr_in_block(block, ins) {
-                mir_print_instruction(ins);
+        if (block->is_scheduled) {
+                mir_foreach_bundle_in_block(block, bundle) {
+                        for (unsigned i = 0; i < bundle->instruction_count; ++i)
+                                mir_print_instruction(bundle->instructions[i]);
+
+                        printf("\n");
+                }
+        } else {
+                mir_foreach_instr_in_block(block, ins) {
+                        mir_print_instruction(ins);
+                }
         }
 
         printf("}");
@@ -117,10 +194,15 @@ mir_print_block(midgard_block *block)
         if (block->nr_successors) {
                 printf(" -> ");
                 for (unsigned i = 0; i < block->nr_successors; ++i) {
-                        printf("%p%s", block->successors[i],
+                        printf("block%u%s", block->successors[i]->source_id,
                                         (i + 1) != block->nr_successors ? ", " : "");
                 }
         }
+
+        printf(" from { ");
+        mir_foreach_predecessor(block, pred)
+                printf("block%u ", pred->source_id);
+        printf("}");
 
         printf("\n\n");
 }
@@ -131,17 +213,4 @@ mir_print_shader(compiler_context *ctx)
         mir_foreach_block(ctx, block) {
                 mir_print_block(block);
         }
-}
-
-void
-mir_print_bundle(midgard_bundle *bundle)
-{
-        printf("[\n");
-
-        for (unsigned i = 0; i < bundle->instruction_count; ++i) {
-                midgard_instruction *ins = bundle->instructions[i];
-                mir_print_instruction(ins);
-        }
-
-        printf("]\n");
 }

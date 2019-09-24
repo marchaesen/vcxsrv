@@ -132,6 +132,7 @@ xf86InfoRec xf86Info = {
 #else
     .autoAddGPU = FALSE,
 #endif
+    .autoBindGPU = TRUE,
 };
 
 const char *xf86ConfigFile = NULL;
@@ -190,6 +191,7 @@ rgb xf86Weight = { 0, 0, 0 };
 Gamma xf86Gamma = { 0.0, 0.0, 0.0 };
 
 Bool xf86AllowMouseOpenFail = FALSE;
+Bool xf86AutoBindGPUDisabled = FALSE;
 
 #ifdef XF86VIDMODE
 Bool xf86VidModeDisabled = FALSE;

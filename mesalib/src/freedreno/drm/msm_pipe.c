@@ -167,6 +167,7 @@ static void msm_pipe_destroy(struct fd_pipe *pipe)
 {
 	struct msm_pipe *msm_pipe = to_msm_pipe(pipe);
 	close_submitqueue(pipe, msm_pipe->queue_id);
+	msm_pipe_sp_ringpool_init(msm_pipe);
 	free(msm_pipe);
 }
 
@@ -243,6 +244,8 @@ struct fd_pipe * msm_pipe_new(struct fd_device *dev,
 
 	if (open_submitqueue(pipe, prio))
 		goto fail;
+
+	msm_pipe_sp_ringpool_init(msm_pipe);
 
 	return pipe;
 fail:

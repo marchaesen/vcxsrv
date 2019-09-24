@@ -38,46 +38,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XrmPutResource __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XrmPutResource, XrmQPutResource, XrmPutStringResource, XrmQPutStringResource, XrmPutLineResource \- store database resources
@@ -86,20 +53,20 @@ XrmPutResource, XrmQPutResource, XrmPutStringResource, XrmQPutStringResource, Xr
 #include <X11/Xresource.h>
 .HP
 void XrmPutResource\^(\^XrmDatabase *\fIdatabase\fP\^, char
-*\fIspecifier\fP\^, char *\fItype\fP\^, XrmValue *\fIvalue\fP\^); 
+*\fIspecifier\fP\^, char *\fItype\fP\^, XrmValue *\fIvalue\fP\^);
 .HP
 void XrmQPutResource\^(\^XrmDatabase *\fIdatabase\fP\^, XrmBindingList
 \fIbindings\fP\^, XrmQuarkList \fIquarks\fP\^, XrmRepresentation \fItype\fP\^,
-XrmValue *\fIvalue\fP\^); 
+XrmValue *\fIvalue\fP\^);
 .HP
 void XrmPutStringResource\^(\^XrmDatabase *\fIdatabase\fP\^, char
-*\fIspecifier\fP\^, char *\fIvalue\fP\^); 
+*\fIspecifier\fP\^, char *\fIvalue\fP\^);
 .HP
 void XrmQPutStringResource\^(\^XrmDatabase *\fIdatabase\fP\^, XrmBindingList
-\fIbindings\fP\^, XrmQuarkList \fIquarks\fP\^, char *\fIvalue\fP\^); 
+\fIbindings\fP\^, XrmQuarkList \fIquarks\fP\^, char *\fIvalue\fP\^);
 .HP
 void XrmPutLineResource\^(\^XrmDatabase *\fIdatabase\fP\^, char
-*\fIline\fP\^); 
+*\fIline\fP\^);
 .SH ARGUMENTS
 .IP \fIbindings\fP 1i
 Specifies a list of bindings.
@@ -124,9 +91,9 @@ is a convenience function that calls
 .B XrmStringToBindingQuarkList
 followed by:
 .LP
-.Ds
+.EX
 XrmQPutResource(database, bindings, quarks, XrmStringToQuark(type), value)
-.De
+.EE
 .LP
 If the specifier and type are not in the Host Portable Character Encoding,
 the result is implementation-dependent.
@@ -150,7 +117,7 @@ is a convenience function that first calls
 .B XrmStringToBindingQuarkList
 on the specifier and then calls
 .BR XrmQPutResource ,
-using a ``String'' representation type.
+using a \*(lqString\*(rq representation type.
 If the specifier is not in the Host Portable Character Encoding,
 the result is implementation-dependent.
 The value is stored in the database without modification.
@@ -166,7 +133,7 @@ for the value string (by calling
 to compute the size) and
 then calls
 .BR XrmQPutResource ,
-using a ``String'' representation type.
+using a \*(lqString\*(rq representation type.
 The value is stored in the database without modification.
 .LP
 If database contains NULL,

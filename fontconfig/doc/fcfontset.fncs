@@ -97,7 +97,7 @@ of the output is designed to be of help to users and developers, and may
 change at any time.
 @@
 
-@RET@		
+@RET@		FcFontSet *
 @FUNC@		FcFontSetSort
 @TYPE1@         FcConfig *			@ARG1@		config
 @TYPE2@		FcFontSet **			@ARG2@		sets
@@ -128,7 +128,7 @@ modify these patterns.  Instead, they should be passed, along with
 The FcFontSet returned by FcFontSetSort is destroyed by calling FcFontSetDestroy.
 @@
 
-@RET@		
+@RET@		void
 @FUNC@		FcFontSetSortDestroy
 @TYPE1@		FcFontSet *			@ARG1@		set
 @PURPOSE@	DEPRECATED destroy a font set

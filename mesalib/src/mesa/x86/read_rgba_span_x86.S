@@ -29,6 +29,12 @@
  *
  * \author Ian Romanick <idr@us.ibm.com>
  */
+/* Control flow enforcement support */
+#ifdef HAVE_CET_H
+#include <cet.h>
+#else
+#define _CET_ENDBR
+#endif
 
 	.file	"read_rgba_span_x86.S"
 #if !defined(__MINGW32__) && !defined(__APPLE__) /* this one cries for assyntax.h */
@@ -80,6 +86,7 @@
 .hidden _generic_read_RGBA_span_BGRA8888_REV_MMX
 	.type	_generic_read_RGBA_span_BGRA8888_REV_MMX, @function
 _generic_read_RGBA_span_BGRA8888_REV_MMX:
+	_CET_ENDBR
 	pushl	%ebx
 
 #ifdef USE_INNER_EMMS
@@ -175,6 +182,7 @@ _generic_read_RGBA_span_BGRA8888_REV_MMX:
 .hidden _generic_read_RGBA_span_BGRA8888_REV_SSE
 	.type	_generic_read_RGBA_span_BGRA8888_REV_SSE, @function
 _generic_read_RGBA_span_BGRA8888_REV_SSE:
+	_CET_ENDBR
 	pushl	%esi
 	pushl	%ebx
 	pushl	%ebp
@@ -338,6 +346,7 @@ _generic_read_RGBA_span_BGRA8888_REV_SSE:
 .hidden _generic_read_RGBA_span_BGRA8888_REV_SSE2
 	.type	_generic_read_RGBA_span_BGRA8888_REV_SSE2, @function
 _generic_read_RGBA_span_BGRA8888_REV_SSE2:
+	_CET_ENDBR
 	pushl	%esi
 	pushl	%ebx
 
@@ -498,7 +507,7 @@ _generic_read_RGBA_span_BGRA8888_REV_SSE2:
 	.type	_generic_read_RGBA_span_RGB565_MMX, @function
 
 _generic_read_RGBA_span_RGB565_MMX:
-
+	_CET_ENDBR
 #ifdef USE_INNER_EMMS
 	emms
 #endif

@@ -36,6 +36,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <sys/param.h>
 #ifdef MAJOR_IN_MKDEV
 #include <sys/mkdev.h>
@@ -184,7 +185,7 @@ static char *loader_get_dri_config_driver(int fd)
 
    driParseOptionInfo(&defaultInitOptions, __driConfigOptionsLoader);
    driParseConfigFiles(&userInitOptions, &defaultInitOptions, 0,
-                       "loader", kernel_driver);
+                       "loader", kernel_driver, NULL, 0);
    if (driCheckOption(&userInitOptions, "dri_driver", DRI_STRING)) {
       char *opt = driQueryOptionstr(&userInitOptions, "dri_driver");
       /* not an empty string */
@@ -205,7 +206,8 @@ static char *loader_get_dri_config_device_id(void)
    char *prime = NULL;
 
    driParseOptionInfo(&defaultInitOptions, __driConfigOptionsLoader);
-   driParseConfigFiles(&userInitOptions, &defaultInitOptions, 0, "loader", NULL);
+   driParseConfigFiles(&userInitOptions, &defaultInitOptions, 0,
+                       "loader", NULL, NULL, 0);
    if (driCheckOption(&userInitOptions, "device_id", DRI_STRING))
       prime = strdup(driQueryOptionstr(&userInitOptions, "device_id"));
    driDestroyOptionCache(&userInitOptions);
@@ -457,6 +459,15 @@ loader_get_driver_for_fd(int fd)
       return driver;
 #endif
 
+   driver = loader_get_kernel_driver_name(fd);
+   bool is_amdgpu = driver && strcmp(driver, "amdgpu") == 0;
+   free(driver);
+
+   if (is_amdgpu) {
+      driver = strdup("radeonsi");
+      goto out;
+   }
+
    if (!loader_get_pci_id_for_fd(fd, &vendor_id, &chip_id)) {
       driver = loader_get_kernel_driver_name(fd);
       if (driver)
@@ -552,7 +563,7 @@ loader_open_driver(const char *driver_name,
          next = end;
 
       len = next - p;
-#if GLX_USE_TLS
+#if USE_ELF_TLS
       snprintf(path, sizeof(path), "%.*s/tls/%s_dri.so", len, p, driver_name);
       driver = dlopen(path, RTLD_NOW | RTLD_GLOBAL);
 #endif

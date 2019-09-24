@@ -239,6 +239,20 @@ nir_block_dominates(nir_block *parent, nir_block *child)
           child->dom_post_index <= parent->dom_post_index;
 }
 
+bool
+nir_block_is_unreachable(nir_block *block)
+{
+   assert(nir_cf_node_get_function(&block->cf_node)->valid_metadata &
+          nir_metadata_dominance);
+   assert(nir_cf_node_get_function(&block->cf_node)->valid_metadata &
+          nir_metadata_block_index);
+
+   /* Unreachable blocks have no dominator.  The only reachable block with no
+    * dominator is the start block which has index 0.
+    */
+   return block->index > 0 && block->imm_dom == NULL;
+}
+
 void
 nir_dump_dom_tree_impl(nir_function_impl *impl, FILE *fp)
 {

@@ -133,6 +133,38 @@ invalid_enum_error:
 }
 
 
+/* Helper for GL_EXT_direct_state_access following functions:
+ *   - EnableClientStateIndexedEXT
+ *   - EnableClientStateiEXT
+ *   - DisableClientStateIndexedEXT
+ *   - DisableClientStateiEXT
+ */
+static void
+client_state_i(struct gl_context *ctx, GLenum cap, GLuint index, GLboolean state)
+{
+   int saved_active;
+
+   if (cap != GL_TEXTURE_COORD_ARRAY) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "gl%sClientStateiEXT(cap=%s)",
+         state ? "Enable" : "Disable",
+         _mesa_enum_to_string(cap));
+      return;
+   }
+
+   if (index >= ctx->Const.MaxTextureCoordUnits) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "gl%sClientStateiEXT(index=%d)",
+         state ? "Enable" : "Disable",
+         index);
+      return;
+   }
+
+   saved_active = ctx->Array.ActiveTexture;
+   _mesa_ClientActiveTexture(GL_TEXTURE0 + index);
+   client_state(ctx, cap, state);
+   _mesa_ClientActiveTexture(GL_TEXTURE0 + saved_active);
+}
+
+
 /**
  * Enable GL capability.
  * \param cap  state to enable/disable.
@@ -145,6 +177,14 @@ _mesa_EnableClientState( GLenum cap )
 {
    GET_CURRENT_CONTEXT(ctx);
    client_state( ctx, cap, GL_TRUE );
+}
+
+
+void GLAPIENTRY
+_mesa_EnableClientStateiEXT( GLenum cap, GLuint index )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   client_state_i(ctx, cap, index, GL_TRUE);
 }
 
 
@@ -162,6 +202,12 @@ _mesa_DisableClientState( GLenum cap )
    client_state( ctx, cap, GL_FALSE );
 }
 
+void GLAPIENTRY
+_mesa_DisableClientStateiEXT( GLenum cap, GLuint index )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   client_state_i(ctx, cap, index, GL_FALSE);
+}
 
 #define CHECK_EXTENSION(EXTNAME)					\
    if (!ctx->Extensions.EXTNAME) {					\
@@ -201,7 +247,7 @@ static GLboolean
 enable_texture(struct gl_context *ctx, GLboolean state, GLbitfield texBit)
 {
    struct gl_fixedfunc_texture_unit *texUnit =
-      _mesa_get_current_fixedfunc_tex_unit(ctx);
+      _mesa_get_fixedfunc_tex_unit(ctx, ctx->Texture.CurrentUnit);
    if (!texUnit)
       return GL_FALSE;
 
@@ -1355,7 +1401,7 @@ static GLboolean
 is_texture_enabled(struct gl_context *ctx, GLbitfield bit)
 {
    const struct gl_fixedfunc_texture_unit *const texUnit =
-      _mesa_get_current_fixedfunc_tex_unit(ctx);
+      _mesa_get_fixedfunc_tex_unit(ctx, ctx->Texture.CurrentUnit);
 
    if (!texUnit)
       return GL_FALSE;

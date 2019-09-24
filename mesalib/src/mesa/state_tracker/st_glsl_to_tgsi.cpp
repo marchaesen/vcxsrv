@@ -3938,6 +3938,21 @@ glsl_to_tgsi_visitor::visit_image_intrinsic(ir_call *ir)
       case ir_intrinsic_image_atomic_comp_swap:
          opcode = TGSI_OPCODE_ATOMCAS;
          break;
+      case ir_intrinsic_image_atomic_inc_wrap: {
+         /* There's a bit of disagreement between GLSL and the hardware. The
+          * hardware wants to wrap after the given wrap value, while GLSL
+          * wants to wrap at the value. Subtract 1 to make up the difference.
+          */
+         st_src_reg wrap = get_temp(glsl_type::uint_type);
+         emit_asm(ir, TGSI_OPCODE_ADD, st_dst_reg(wrap),
+                  arg1, st_src_reg_for_int(-1));
+         arg1 = wrap;
+         opcode = TGSI_OPCODE_ATOMINC_WRAP;
+         break;
+      }
+      case ir_intrinsic_image_atomic_dec_wrap:
+         opcode = TGSI_OPCODE_ATOMDEC_WRAP;
+         break;
       default:
          assert(!"Unexpected intrinsic");
          return;
@@ -4063,6 +4078,8 @@ glsl_to_tgsi_visitor::visit(ir_call *ir)
    case ir_intrinsic_image_atomic_comp_swap:
    case ir_intrinsic_image_size:
    case ir_intrinsic_image_samples:
+   case ir_intrinsic_image_atomic_inc_wrap:
+   case ir_intrinsic_image_atomic_dec_wrap:
       visit_image_intrinsic(ir);
       return;
 
@@ -6241,6 +6258,8 @@ compile_tgsi_instruction(struct st_translate *t,
    case TGSI_OPCODE_ATOMIMAX:
    case TGSI_OPCODE_ATOMFADD:
    case TGSI_OPCODE_IMG2HND:
+   case TGSI_OPCODE_ATOMINC_WRAP:
+   case TGSI_OPCODE_ATOMDEC_WRAP:
       for (i = num_src - 1; i >= 0; i--)
          src[i + 1] = src[i];
       num_src++;

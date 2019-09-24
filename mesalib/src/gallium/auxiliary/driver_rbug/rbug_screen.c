@@ -215,6 +215,28 @@ rbug_screen_resource_get_handle(struct pipe_screen *_screen,
                                       resource, handle, usage);
 }
 
+static bool
+rbug_screen_resource_get_param(struct pipe_screen *_screen,
+                               struct pipe_context *_pipe,
+                               struct pipe_resource *_resource,
+                               unsigned plane,
+                               unsigned layer,
+                               enum pipe_resource_param param,
+                               unsigned handle_usage,
+                               uint64_t *value)
+{
+   struct rbug_screen *rb_screen = rbug_screen(_screen);
+   struct rbug_context *rb_pipe = rbug_context(_pipe);
+   struct rbug_resource *rb_resource = rbug_resource(_resource);
+   struct pipe_screen *screen = rb_screen->screen;
+   struct pipe_resource *resource = rb_resource->resource;
+
+   return screen->resource_get_param(screen, rb_pipe ? rb_pipe->pipe : NULL,
+                                     resource, plane, layer, param,
+                                     handle_usage, value);
+}
+
+
 static void
 rbug_screen_resource_get_info(struct pipe_screen *_screen,
                               struct pipe_resource *_resource,
@@ -333,6 +355,7 @@ rbug_screen_create(struct pipe_screen *screen)
    rb_screen->base.resource_from_handle = rbug_screen_resource_from_handle;
    SCR_INIT(check_resource_capability);
    rb_screen->base.resource_get_handle = rbug_screen_resource_get_handle;
+   SCR_INIT(resource_get_param);
    SCR_INIT(resource_get_info);
    SCR_INIT(resource_changed);
    rb_screen->base.resource_destroy = rbug_screen_resource_destroy;

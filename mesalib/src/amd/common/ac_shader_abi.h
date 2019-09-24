@@ -58,6 +58,8 @@ struct ac_shader_abi {
 	LLVMValueRef tes_patch_id;
 	LLVMValueRef gs_prim_id;
 	LLVMValueRef gs_invocation_id;
+
+	/* PS */
 	LLVMValueRef frag_pos[4];
 	LLVMValueRef front_face;
 	LLVMValueRef ancillary;
@@ -65,6 +67,14 @@ struct ac_shader_abi {
 	LLVMValueRef prim_mask;
 	LLVMValueRef color0;
 	LLVMValueRef color1;
+	LLVMValueRef user_data;
+	LLVMValueRef persp_sample;
+	LLVMValueRef persp_center;
+	LLVMValueRef persp_centroid;
+	LLVMValueRef linear_sample;
+	LLVMValueRef linear_center;
+	LLVMValueRef linear_centroid;
+
 	/* CS */
 	LLVMValueRef local_invocation_ids;
 	LLVMValueRef num_work_groups;
@@ -138,7 +148,8 @@ struct ac_shader_abi {
 	LLVMValueRef (*load_patch_vertices_in)(struct ac_shader_abi *abi);
 
 	LLVMValueRef (*load_tess_level)(struct ac_shader_abi *abi,
-					unsigned varying_id);
+					unsigned varying_id,
+					bool load_default_state);
 
 
 	LLVMValueRef (*load_ubo)(struct ac_shader_abi *abi, LLVMValueRef index);
@@ -185,10 +196,6 @@ struct ac_shader_abi {
 				      unsigned desc_set,
 				      unsigned binding);
 
-	LLVMValueRef (*lookup_interp_param)(struct ac_shader_abi *abi,
-					    enum glsl_interp_mode interp,
-					    unsigned location);
-
 	LLVMValueRef (*load_sample_position)(struct ac_shader_abi *abi,
 					     LLVMValueRef sample_id);
 
@@ -198,14 +205,15 @@ struct ac_shader_abi {
 
 	LLVMValueRef (*load_base_vertex)(struct ac_shader_abi *abi);
 
+	LLVMValueRef (*emit_fbfetch)(struct ac_shader_abi *abi);
+
 	/* Whether to clamp the shadow reference value to [0,1]on GFX8. Radeonsi currently
 	 * uses it due to promoting D16 to D32, but radv needs it off. */
 	bool clamp_shadow_reference;
+	bool interp_at_sample_force_center;
 
-	/* Whether to workaround GFX9 ignoring the stride for the buffer size if IDXEN=0
-	* and LLVM optimizes an indexed load with constant index to IDXEN=0. */
-	bool gfx9_stride_size_workaround;
-	bool gfx9_stride_size_workaround_for_atomic;
+	/* Whether bounds checks are required */
+	bool robust_buffer_access;
 };
 
 #endif /* AC_SHADER_ABI_H */

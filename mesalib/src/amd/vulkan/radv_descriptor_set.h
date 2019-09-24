@@ -24,9 +24,9 @@
 #ifndef RADV_DESCRIPTOR_SET_H
 #define RADV_DESCRIPTOR_SET_H
 
-#include <vulkan/vulkan.h>
+#include "radv_constants.h"
 
-#define MAX_SETS         32
+#include <vulkan/vulkan.h>
 
 struct radv_descriptor_set_binding_layout {
    VkDescriptorType type;

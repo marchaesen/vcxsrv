@@ -1640,7 +1640,7 @@ _mesa_exec_DrawElementsIndirect(GLenum mode, GLenum type, const GLvoid *indirect
 
          /* Convert offset to pointer */
          void *offset = (void *)
-            ((cmd->firstIndex * _mesa_sizeof_type(type)) & 0xffffffffUL);
+            (uintptr_t)((cmd->firstIndex * _mesa_sizeof_type(type)) & 0xffffffffUL);
 
          _mesa_exec_DrawElementsInstancedBaseVertexBaseInstance(mode, cmd->count,
                                                                 type, offset,
@@ -1699,7 +1699,7 @@ _mesa_exec_MultiDrawArraysIndirect(GLenum mode, const GLvoid *indirect,
                                            "glMultiDrawArraysIndirect"))
          return;
 
-      const ubyte *ptr = (const ubyte *) indirect;
+      const uint8_t *ptr = (const uint8_t *) indirect;
       for (unsigned i = 0; i < primcount; i++) {
          DrawArraysIndirectCommand *cmd = (DrawArraysIndirectCommand *) ptr;
          _mesa_exec_DrawArraysInstancedBaseInstance(mode, cmd->first,
@@ -1781,7 +1781,7 @@ _mesa_exec_MultiDrawElementsIndirect(GLenum mode, GLenum type,
                                            "glMultiDrawArraysIndirect"))
          return;
 
-      const ubyte *ptr = (const ubyte *) indirect;
+      const uint8_t *ptr = (const uint8_t *) indirect;
       for (unsigned i = 0; i < primcount; i++) {
          _mesa_exec_DrawElementsIndirect(mode, type, ptr);
 

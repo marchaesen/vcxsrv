@@ -34,6 +34,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include "dumb_bo.h"
+#include "inputstr.h"
 #include "xf86str.h"
 #include "X11/Xatom.h"
 #include "micmap.h"
@@ -1008,6 +1009,10 @@ drmmode_create_bo(drmmode_ptr drmmode, drmmode_bo *bo,
 
 #ifdef GLAMOR_HAS_GBM
     if (drmmode->glamor) {
+#ifdef GBM_BO_WITH_MODIFIERS
+        uint32_t num_modifiers;
+        uint64_t *modifiers = NULL;
+#endif
         uint32_t format;
 
         if (drmmode->scrn->depth == 30)
@@ -1016,9 +1021,6 @@ drmmode_create_bo(drmmode_ptr drmmode, drmmode_bo *bo,
             format = GBM_FORMAT_ARGB8888;
 
 #ifdef GBM_BO_WITH_MODIFIERS
-        uint32_t num_modifiers;
-        uint64_t *modifiers = NULL;
-
         num_modifiers = get_modifiers_set(drmmode->scrn, format, &modifiers,
                                           FALSE, TRUE);
         if (num_modifiers > 0 &&
@@ -3001,8 +3003,14 @@ drmmode_output_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode, drmModeResPtr mode_r
                                 "DPMS");
     }
 
-    if (dynamic)
+    if (dynamic) {
         output->randr_output = RROutputCreate(xf86ScrnToScreen(pScrn), output->name, strlen(output->name), output);
+        if (output->randr_output) {
+            drmmode_output_create_resources(output);
+            RRPostPendingProperties(output->randr_output);
+        }
+    }
+
     return 1;
 
  out_free_encoders:
@@ -3910,3 +3918,102 @@ drmmode_get_default_bpp(ScrnInfoPtr pScrn, drmmode_ptr drmmode, int *depth,
     drmModeFreeResources(mode_res);
     return;
 }
+
+/*
+ * We hook the screen's cursor-sprite (swcursor) functions to see if a swcursor
+ * is active. When a swcursor is active we disabe page-flipping.
+ */
+
+static void drmmode_sprite_do_set_cursor(msSpritePrivPtr sprite_priv,
+                                         ScrnInfoPtr scrn, int x, int y)
+{
+    modesettingPtr ms = modesettingPTR(scrn);
+    CursorPtr cursor = sprite_priv->cursor;
+    Bool sprite_visible = sprite_priv->sprite_visible;
+
+    if (cursor) {
+        x -= cursor->bits->xhot;
+        y -= cursor->bits->yhot;
+
+        sprite_priv->sprite_visible =
+            x < scrn->virtualX && y < scrn->virtualY &&
+            (x + cursor->bits->width > 0) &&
+            (y + cursor->bits->height > 0);
+    } else {
+        sprite_priv->sprite_visible = FALSE;
+    }
+
+    ms->drmmode.sprites_visible += sprite_priv->sprite_visible - sprite_visible;
+}
+
+static void drmmode_sprite_set_cursor(DeviceIntPtr pDev, ScreenPtr pScreen,
+                                      CursorPtr pCursor, int x, int y)
+{
+    ScrnInfoPtr scrn = xf86ScreenToScrn(pScreen);
+    modesettingPtr ms = modesettingPTR(scrn);
+    msSpritePrivPtr sprite_priv = msGetSpritePriv(pDev, ms, pScreen);
+
+    sprite_priv->cursor = pCursor;
+    drmmode_sprite_do_set_cursor(sprite_priv, scrn, x, y);
+
+    ms->SpriteFuncs->SetCursor(pDev, pScreen, pCursor, x, y);
+}
+
+static void drmmode_sprite_move_cursor(DeviceIntPtr pDev, ScreenPtr pScreen,
+                                       int x, int y)
+{
+    ScrnInfoPtr scrn = xf86ScreenToScrn(pScreen);
+    modesettingPtr ms = modesettingPTR(scrn);
+    msSpritePrivPtr sprite_priv = msGetSpritePriv(pDev, ms, pScreen);
+
+    drmmode_sprite_do_set_cursor(sprite_priv, scrn, x, y);
+
+    ms->SpriteFuncs->MoveCursor(pDev, pScreen, x, y);
+}
+
+static Bool drmmode_sprite_realize_realize_cursor(DeviceIntPtr pDev,
+                                                  ScreenPtr pScreen,
+                                                  CursorPtr pCursor)
+{
+    ScrnInfoPtr scrn = xf86ScreenToScrn(pScreen);
+    modesettingPtr ms = modesettingPTR(scrn);
+
+    return ms->SpriteFuncs->RealizeCursor(pDev, pScreen, pCursor);
+}
+
+static Bool drmmode_sprite_realize_unrealize_cursor(DeviceIntPtr pDev,
+                                                    ScreenPtr pScreen,
+                                                    CursorPtr pCursor)
+{
+    ScrnInfoPtr scrn = xf86ScreenToScrn(pScreen);
+    modesettingPtr ms = modesettingPTR(scrn);
+
+    return ms->SpriteFuncs->UnrealizeCursor(pDev, pScreen, pCursor);
+}
+
+static Bool drmmode_sprite_device_cursor_initialize(DeviceIntPtr pDev,
+                                                    ScreenPtr pScreen)
+{
+    ScrnInfoPtr scrn = xf86ScreenToScrn(pScreen);
+    modesettingPtr ms = modesettingPTR(scrn);
+
+    return ms->SpriteFuncs->DeviceCursorInitialize(pDev, pScreen);
+}
+
+static void drmmode_sprite_device_cursor_cleanup(DeviceIntPtr pDev,
+                                                 ScreenPtr pScreen)
+{
+    ScrnInfoPtr scrn = xf86ScreenToScrn(pScreen);
+    modesettingPtr ms = modesettingPTR(scrn);
+
+    ms->SpriteFuncs->DeviceCursorCleanup(pDev, pScreen);
+}
+
+miPointerSpriteFuncRec drmmode_sprite_funcs = {
+    .RealizeCursor = drmmode_sprite_realize_realize_cursor,
+    .UnrealizeCursor = drmmode_sprite_realize_unrealize_cursor,
+    .SetCursor = drmmode_sprite_set_cursor,
+    .MoveCursor = drmmode_sprite_move_cursor,
+    .DeviceCursorInitialize = drmmode_sprite_device_cursor_initialize,
+    .DeviceCursorCleanup = drmmode_sprite_device_cursor_cleanup,
+};

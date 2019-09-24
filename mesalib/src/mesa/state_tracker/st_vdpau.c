@@ -191,7 +191,7 @@ st_vdpau_map_surface(struct gl_context *ctx, GLenum target, GLenum access,
 
    struct pipe_resource *res;
    mesa_format texFormat;
-   uint layer_override = 0;
+   int layer_override = -1;
 
    if (output) {
       res = st_vdpau_output_surface_dma_buf(ctx, vdpSurface);
@@ -248,7 +248,7 @@ st_vdpau_map_surface(struct gl_context *ctx, GLenum target, GLenum access,
    pipe_resource_reference(&stImage->pt, res);
 
    stObj->surface_format = res->format;
-   stObj->level_override = 0;
+   stObj->level_override = -1;
    stObj->layer_override = layer_override;
 
    _mesa_dirty_texobj(ctx, texObj);
@@ -269,8 +269,8 @@ st_vdpau_unmap_surface(struct gl_context *ctx, GLenum target, GLenum access,
    st_texture_release_all_sampler_views(st, stObj);
    pipe_resource_reference(&stImage->pt, NULL);
 
-   stObj->level_override = 0;
-   stObj->layer_override = 0;
+   stObj->level_override = -1;
+   stObj->layer_override = -1;
 
    _mesa_dirty_texobj(ctx, texObj);
 

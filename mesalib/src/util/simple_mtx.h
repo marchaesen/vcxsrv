@@ -61,7 +61,7 @@ typedef struct {
 #define _SIMPLE_MTX_INITIALIZER_NP { 0 }
 
 static inline void
-simple_mtx_init(simple_mtx_t *mtx, MAYBE_UNUSED int type)
+simple_mtx_init(simple_mtx_t *mtx, ASSERTED int type)
 {
    assert(type == mtx_plain);
 

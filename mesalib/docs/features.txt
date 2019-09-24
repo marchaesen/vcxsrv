@@ -157,7 +157,7 @@ GL 4.2, GLSL 4.20 -- all DONE: i965/gen7+, nvc0, r600, radeonsi, virgl
   GL_ARB_texture_storage                                DONE (all drivers)
   GL_ARB_transform_feedback_instanced                   DONE (freedreno, i965, nv50, llvmpipe, softpipe, swr)
   GL_ARB_base_instance                                  DONE (freedreno, i965, nv50, llvmpipe, softpipe, swr)
-  GL_ARB_shader_image_load_store                        DONE (freedreno/a5xx+, i965, softpipe)
+  GL_ARB_shader_image_load_store                        DONE (freedreno/a5xx+, i965, llvmpipe, softpipe)
   GL_ARB_conservative_depth                             DONE (all drivers that support GLSL 1.30)
   GL_ARB_shading_language_420pack                       DONE (all drivers that support GLSL 1.30)
   GL_ARB_shading_language_packing                       DONE (all drivers)
@@ -170,18 +170,18 @@ GL 4.3, GLSL 4.30 -- all DONE: i965/gen8+, nvc0, r600, radeonsi, virgl
   GL_ARB_arrays_of_arrays                               DONE (all drivers that support GLSL 1.30)
   GL_ARB_ES3_compatibility                              DONE (all drivers that support GLSL 3.30)
   GL_ARB_clear_buffer_object                            DONE (all drivers)
-  GL_ARB_compute_shader                                 DONE (freedreno/a5xx+, i965, softpipe)
+  GL_ARB_compute_shader                                 DONE (freedreno/a5xx+, i965, llvmpipe, softpipe)
   GL_ARB_copy_image                                     DONE (i965, nv50, softpipe, llvmpipe, swr)
   GL_KHR_debug                                          DONE (all drivers)
   GL_ARB_explicit_uniform_location                      DONE (all drivers that support GLSL)
-  GL_ARB_fragment_layer_viewport                        DONE (i965, nv50, llvmpipe, softpipe)
-  GL_ARB_framebuffer_no_attachments                     DONE (freedreno, i965, softpipe)
+  GL_ARB_fragment_layer_viewport                        DONE (i965, nv50, llvmpipe, softpipe, swr)
+  GL_ARB_framebuffer_no_attachments                     DONE (freedreno, i965, llvmpipe, softpipe)
   GL_ARB_internalformat_query2                          DONE (all drivers)
   GL_ARB_invalidate_subdata                             DONE (all drivers)
   GL_ARB_multi_draw_indirect                            DONE (freedreno, i965, llvmpipe, softpipe, swr)
   GL_ARB_program_interface_query                        DONE (all drivers)
   GL_ARB_robust_buffer_access_behavior                  DONE (i965)
-  GL_ARB_shader_image_size                              DONE (freedreno/a5xx+, i965, softpipe)
+  GL_ARB_shader_image_size                              DONE (freedreno/a5xx+, i965, llvmpipe, softpipe)
   GL_ARB_shader_storage_buffer_object                   DONE (freedreno/a5xx+, i965, llvmpipe, softpipe)
   GL_ARB_stencil_texturing                              DONE (freedreno, i965/hsw+, nv50, llvmpipe, softpipe, swr)
   GL_ARB_texture_buffer_range                           DONE (freedreno, nv50, i965, softpipe, llvmpipe, swr)
@@ -215,7 +215,7 @@ GL 4.5, GLSL 4.50 -- all DONE: nvc0, radeonsi, r600
   GL_ARB_clip_control                                   DONE (freedreno, i965, nv50, llvmpipe, softpipe, swr)
   GL_ARB_conditional_render_inverted                    DONE (freedreno, i965, nv50, llvmpipe, softpipe, swr, virgl)
   GL_ARB_cull_distance                                  DONE (i965, nv50, llvmpipe, softpipe, swr, virgl)
-  GL_ARB_derivative_control                             DONE (i965, nv50, virgl)
+  GL_ARB_derivative_control                             DONE (i965, nv50, softpipe, virgl)
   GL_ARB_direct_state_access                            DONE (all drivers)
   GL_ARB_get_texture_sub_image                          DONE (all drivers)
   GL_ARB_shader_texture_image_samples                   DONE (i965, nv50, virgl)
@@ -226,14 +226,14 @@ GL 4.5, GLSL 4.50 -- all DONE: nvc0, radeonsi, r600
 
 GL 4.6, GLSL 4.60
 
-  GL_ARB_gl_spirv                                       in progress (Nicolai Hähnle, Ian Romanick)
+  GL_ARB_gl_spirv                                       DONE (i965/gen7+)
   GL_ARB_indirect_parameters                            DONE (i965/gen7+, nvc0, radeonsi, virgl)
   GL_ARB_pipeline_statistics_query                      DONE (i965, nvc0, r600, radeonsi, llvmpipe, softpipe, swr)
   GL_ARB_polygon_offset_clamp                           DONE (freedreno, i965, nv50, nvc0, r600, radeonsi, llvmpipe, swr, virgl)
   GL_ARB_shader_atomic_counter_ops                      DONE (freedreno/a5xx+, i965/gen7+, nvc0, r600, radeonsi, llvmpipe, softpipe, virgl)
   GL_ARB_shader_draw_parameters                         DONE (i965, nvc0, radeonsi)
   GL_ARB_shader_group_vote                              DONE (i965, nvc0, radeonsi)
-  GL_ARB_spirv_extensions                               in progress (Nicolai Hähnle, Ian Romanick)
+  GL_ARB_spirv_extensions                               DONE (i965/gen7+)
   GL_ARB_texture_filter_anisotropic                     DONE (freedreno, i965, nv50, nvc0, r600, radeonsi, softpipe (*), llvmpipe (*))
   GL_ARB_transform_feedback_overflow_query              DONE (i965/gen6+, nvc0, radeonsi, llvmpipe, softpipe, virgl)
   GL_KHR_no_error                                       DONE (all drivers)
@@ -244,14 +244,14 @@ These are the extensions cherry-picked to make GLES 3.1
 GLES3.1, GLSL ES 3.1 -- all DONE: i965/hsw+, nvc0, r600, radeonsi, virgl
 
   GL_ARB_arrays_of_arrays                               DONE (all drivers that support GLSL 1.30)
-  GL_ARB_compute_shader                                 DONE (freedreno/a5xx+, i965/gen7+, softpipe)
+  GL_ARB_compute_shader                                 DONE (freedreno/a5xx+, i965/gen7+, llvmpipe, softpipe)
   GL_ARB_draw_indirect                                  DONE (freedreno, i965/gen7+, llvmpipe, softpipe, swr)
   GL_ARB_explicit_uniform_location                      DONE (all drivers that support GLSL)
-  GL_ARB_framebuffer_no_attachments                     DONE (freedreno, i965/gen7+, softpipe)
+  GL_ARB_framebuffer_no_attachments                     DONE (freedreno, i965/gen7+, llvmpipe, softpipe)
   GL_ARB_program_interface_query                        DONE (all drivers)
   GL_ARB_shader_atomic_counters                         DONE (freedreno/a5xx+, i965/gen7+, llvmpipe, softpipe)
-  GL_ARB_shader_image_load_store                        DONE (freedreno/a5xx+, i965/gen7+, softpipe)
-  GL_ARB_shader_image_size                              DONE (freedreno/a5xx+, i965/gen7+, softpipe)
+  GL_ARB_shader_image_load_store                        DONE (freedreno/a5xx+, i965/gen7+, llvmpipe, softpipe)
+  GL_ARB_shader_image_size                              DONE (freedreno/a5xx+, i965/gen7+, llvmpipe, softpipe)
   GL_ARB_shader_storage_buffer_object                   DONE (freedreno/a5xx+, i965/gen7+, llvmpipe, softpipe)
   GL_ARB_shading_language_packing                       DONE (all drivers)
   GL_ARB_separate_shader_objects                        DONE (all drivers)
@@ -416,7 +416,7 @@ Vulkan 1.0 -- all DONE: anv, radv
 
 Vulkan 1.1 -- all DONE: anv, radv
 
-  VK_KHR_16bit_storage                                  in progress (Alejandro)
+  VK_KHR_16bit_storage                                  DONE (anv/gen8+, radv)
   VK_KHR_bind_memory2                                   DONE (anv, radv)
   VK_KHR_dedicated_allocation                           DONE (anv, radv)
   VK_KHR_descriptor_update_template                     DONE (anv, radv)
@@ -435,18 +435,21 @@ Vulkan 1.1 -- all DONE: anv, radv
   VK_KHR_maintenance3                                   DONE (anv, radv)
   VK_KHR_multiview                                      DONE (anv, radv)
   VK_KHR_relaxed_block_layout                           DONE (anv, radv)
-  VK_KHR_sampler_ycbcr_conversion                       DONE (anv)
+  VK_KHR_sampler_ycbcr_conversion                       DONE (anv, radv)
   VK_KHR_shader_draw_parameters                         DONE (anv, radv)
   VK_KHR_storage_buffer_storage_class                   DONE (anv, radv)
   VK_KHR_variable_pointers                              DONE (anv, radv)
 
 Khronos extensions that are not part of any Vulkan version:
-  VK_KHR_8bit_storage                                   DONE (anv, radv)
+
+  VK_KHR_8bit_storage                                   DONE (anv/gen8+, radv)
   VK_KHR_android_surface                                not started
   VK_KHR_create_renderpass2                             DONE (anv, radv)
+  VK_KHR_depth_stencil_resolve                          DONE (anv, radv)
   VK_KHR_display                                        DONE (anv, radv)
-  VK_KHR_display_swapchain                              DONE (anv, radv)
-  VK_KHR_draw_indirect_count                            DONE (radv)
+  VK_KHR_display_swapchain                              not started
+  VK_KHR_draw_indirect_count                            DONE (anv, radv)
+  VK_KHR_driver_properties                              DONE (anv, radv)
   VK_KHR_external_fence_fd                              DONE (anv, radv)
   VK_KHR_external_fence_win32                           not started
   VK_KHR_external_memory_fd                             DONE (anv, radv)
@@ -456,13 +459,23 @@ Khronos extensions that are not part of any Vulkan version:
   VK_KHR_get_display_properties2                        DONE (anv, radv)
   VK_KHR_get_surface_capabilities2                      DONE (anv, radv)
   VK_KHR_image_format_list                              DONE (anv, radv)
+  VK_KHR_imageless_framebuffer                          DONE (anv, radv)
   VK_KHR_incremental_present                            DONE (anv, radv)
   VK_KHR_mir_surface                                    not started
+  VK_KHR_pipeline_executable_properties                 DONE (anv, radv)
   VK_KHR_push_descriptor                                DONE (anv, radv)
   VK_KHR_sampler_mirror_clamp_to_edge                   DONE (anv, radv)
+  VK_KHR_shader_atomic_int64                            DONE (anv, radv)
+  VK_KHR_shader_float16_int8                            DONE (anv/gen8+, radv)
+  VK_KHR_shader_float_controls                          DONE (anv/gen8+)
+  VK_KHR_shader_subgroup_extended_types                 not started
   VK_KHR_shared_presentable_image                       not started
   VK_KHR_surface                                        DONE (anv, radv)
+  VK_KHR_surface_protected_capabilities                 DONE (anv, radv)
   VK_KHR_swapchain                                      DONE (anv, radv)
+  VK_KHR_swapchain_mutable_format                       not started
+  VK_KHR_uniform_buffer_standard_layout                 DONE (anv, radv)
+  VK_KHR_vulkan_memory_model                            not started
   VK_KHR_wayland_surface                                DONE (anv, radv)
   VK_KHR_win32_keyed_mutex                              not started
   VK_KHR_win32_surface                                  not started

@@ -45,7 +45,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include "c99_math.h"
-#include "util/rounding.h" /* for _mesa_roundeven */
 #include "imports.h"
 #include "context.h"
 #include "version.h"

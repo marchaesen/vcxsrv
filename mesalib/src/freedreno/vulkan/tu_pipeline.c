@@ -523,9 +523,11 @@ tu6_emit_vpc(struct tu_cs *cs,
       ir3_find_output_regid(vs, VARYING_SLOT_POS);
    const uint32_t pointsize_regid =
       ir3_find_output_regid(vs, VARYING_SLOT_PSIZ);
-   uint32_t pointsize_loc = 0xff;
-   if (position_regid != regid(63, 0))
+   uint32_t pointsize_loc = 0xff, position_loc = 0xff;
+   if (position_regid != regid(63, 0)) {
+      position_loc = linkage.max_loc;
       ir3_link_add(&linkage, position_regid, 0xf, linkage.max_loc);
+   }
    if (pointsize_regid != regid(63, 0)) {
       pointsize_loc = linkage.max_loc;
       ir3_link_add(&linkage, pointsize_regid, 0x1, linkage.max_loc);
@@ -559,7 +561,7 @@ tu6_emit_vpc(struct tu_cs *cs,
                      0xff00ff00);
 
    tu_cs_emit_pkt4(cs, REG_A6XX_VPC_PACK, 1);
-   tu_cs_emit(cs, A6XX_VPC_PACK_NUMNONPOSVAR(fs->total_in) |
+   tu_cs_emit(cs, A6XX_VPC_PACK_POSITIONLOC(position_loc) |
                      A6XX_VPC_PACK_PSIZELOC(pointsize_loc) |
                      A6XX_VPC_PACK_STRIDE_IN_VPC(linkage.max_loc));
 

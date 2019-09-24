@@ -20,13 +20,18 @@
 # SOFTWARE.
 
 libpanfrost_bifrost_files = files(
+  'bifrost_compile.c',
+  'bifrost_opts.c',
+  'bifrost_sched.c',
+  'bifrost_print.c',
   'disassemble.c',
 )
 
 libpanfrost_bifrost = static_library(
   'panfrost_bifrost',
   [libpanfrost_bifrost_files],
-  include_directories : [inc_common],
+  include_directories : [inc_common, inc_include, inc_src],
+  dependencies: [idep_nir],
   c_args : [c_vis_args, no_override_init_args],
   cpp_args : [cpp_vis_args],
   build_by_default : false,

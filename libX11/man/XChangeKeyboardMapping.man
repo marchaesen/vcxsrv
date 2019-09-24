@@ -38,75 +38,42 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XChangeKeyboardMapping __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XChangeKeyboardMapping, XGetKeyboardMapping, XDisplayKeycodes, XSetModifierMapping, XGetModifierMapping, XNewModifiermap, XInsertModifiermapEntry, XDeleteModifiermapEntry, XFreeModifiermap, XModifierKeymap \- manipulate keyboard encoding and keyboard encoding structure
 .SH SYNTAX
 .HP
 int XChangeKeyboardMapping(\^Display *\fIdisplay\fP, int \fIfirst_keycode\fP,
-int \fIkeysyms_per_keycode\fP, KeySym *\fIkeysyms\fP, int \fInum_codes\fP\^); 
+int \fIkeysyms_per_keycode\fP, KeySym *\fIkeysyms\fP, int \fInum_codes\fP\^);
 .HP
 KeySym *XGetKeyboardMapping(\^Display *\fIdisplay\fP, KeyCode
 \fIfirst_keycode\fP, int \fIkeycode_count\fP, int
-*\fIkeysyms_per_keycode_return\fP\^); 
+*\fIkeysyms_per_keycode_return\fP\^);
 .HP
 int XDisplayKeycodes\^(\^Display *\fIdisplay\fP\^, int
-*\fImin_keycodes_return\fP\^, int *\fImax_keycodes_return\fP\^); 
+*\fImin_keycodes_return\fP\^, int *\fImax_keycodes_return\fP\^);
 .HP
 int XSetModifierMapping(\^Display *\fIdisplay\fP, XModifierKeymap
-*\fImodmap\fP\^); 
+*\fImodmap\fP\^);
 .HP
-XModifierKeymap *XGetModifierMapping(\^Display *\fIdisplay\fP\^); 
+XModifierKeymap *XGetModifierMapping(\^Display *\fIdisplay\fP\^);
 .HP
-XModifierKeymap *XNewModifiermap(\^int \fImax_keys_per_mod\fP\^); 
+XModifierKeymap *XNewModifiermap(\^int \fImax_keys_per_mod\fP\^);
 .HP
 XModifierKeymap *XInsertModifiermapEntry\^(\^XModifierKeymap *\fImodmap\fP,
-KeyCode \fIkeycode_entry\fP, int \fImodifier\fP\^); 
+KeyCode \fIkeycode_entry\fP, int \fImodifier\fP\^);
 .HP
 XModifierKeymap *XDeleteModifiermapEntry\^(\^XModifierKeymap *\fImodmap\fP,
-KeyCode \fIkeycode_entry\fP, int \fImodifier\fP\^); 
+KeyCode \fIkeycode_entry\fP, int \fImodifier\fP\^);
 .HP
-int XFreeModifiermap(\^XModifierKeymap *\fImodmap\fP\^); 
+int XFreeModifiermap(\^XModifierKeymap *\fImodmap\fP\^);
 .SH ARGUMENTS
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
@@ -115,7 +82,7 @@ Specifies the first KeyCode that is to be changed or returned.
 .IP \fIkeycode_count\fP 1i
 Specifies the number of KeyCodes that are to be returned.
 .IP \fIkeycode_entry\fP 1i
-Specifies the KeyCode. 
+Specifies the KeyCode.
 .IP \fIkeysyms\fP 1i
 Specifies an array of KeySyms.
 .IP \fIkeysyms_per_keycode\fP 1i
@@ -132,7 +99,7 @@ Returns the minimum number of KeyCodes.
 .IP \fImodifier\fP 1i
 Specifies the modifier.
 .IP \fImodmap\fP 1i
-Specifies the 
+Specifies the
 .B XModifierKeymap
 structure.
 .IP \fInum_codes\fP 1i
@@ -142,53 +109,53 @@ The
 .B XChangeKeyboardMapping
 function defines the symbols for the specified number of KeyCodes
 starting with first_keycode.
-The symbols for KeyCodes outside this range remain unchanged.  
+The symbols for KeyCodes outside this range remain unchanged.
 The number of elements in keysyms must be:
 .LP
-.Ds
+.EX
 num_codes * keysyms_per_keycode
-.De
+.EE
 .LP
-The specified first_keycode must be greater than or equal to min_keycode 
+The specified first_keycode must be greater than or equal to min_keycode
 returned by
 .BR XDisplayKeycodes ,
-or a 
+or a
 .B BadValue
 error results.
-In addition, the following expression must be less than or equal to 
+In addition, the following expression must be less than or equal to
 max_keycode as returned by
 .BR XDisplayKeycodes ,
 or a
 .B BadValue
 error results:
 .LP
-.Ds
+.EX
 first_keycode + num_codes \- 1
-.De
+.EE
 .LP
 KeySym number N, counting from zero, for KeyCode K has the following index
-in keysyms, counting from zero: 
+in keysyms, counting from zero:
 .LP
-.Ds 
+.EX
 (K \- first_keycode) * keysyms_per_keycode + N
-.De
+.EE
 .LP
 The specified keysyms_per_keycode can be chosen arbitrarily by the client
-to be large enough to hold all desired symbols. 
-A special KeySym value of 
+to be large enough to hold all desired symbols.
+A special KeySym value of
 .B NoSymbol
-should be used to fill in unused elements 
-for individual KeyCodes.  
-It is legal for 
+should be used to fill in unused elements
+for individual KeyCodes.
+It is legal for
 .B NoSymbol
 to appear in nontrailing positions
 of the effective list for a KeyCode.
 .B XChangeKeyboardMapping
-generates a 
+generates a
 .B MappingNotify
 event.
 .LP
-There is no requirement that the X server interpret this mapping. 
+There is no requirement that the X server interpret this mapping.
 It is merely stored for reading and writing by clients.
 .LP
 .B XChangeKeyboardMapping
@@ -202,42 +169,42 @@ The
 .B XGetKeyboardMapping
 function returns the symbols for the specified number of KeyCodes
 starting with first_keycode.
-The value specified in first_keycode must be greater than 
+The value specified in first_keycode must be greater than
 or equal to min_keycode as returned by
 .BR XDisplayKeycodes ,
 or a
 .B BadValue
 error results.
-In addition, the following expression must be less than or equal 
+In addition, the following expression must be less than or equal
 to max_keycode as returned by
 .BR XDisplayKeycodes :
 .LP
-.Ds 
+.EX
 first_keycode + keycode_count \- 1
-.De
+.EE
 .LP
-If this is not the case, a 
+If this is not the case, a
 .B BadValue
-error results. 
+error results.
 The number of elements in the KeySyms list is:
 .LP
-.Ds 
+.EX
 keycode_count * keysyms_per_keycode_return
-.De
+.EE
 .LP
 KeySym number N, counting from zero, for KeyCode K has the following index
-in the list, counting from zero: 
-.Ds
+in the list, counting from zero:
+.EX
 (K \- first_code) * keysyms_per_code_return + N
-.De
+.EE
 .LP
-The X server arbitrarily chooses the keysyms_per_keycode_return value 
-to be large enough to report all requested symbols. 
-A special KeySym value of 
+The X server arbitrarily chooses the keysyms_per_keycode_return value
+to be large enough to report all requested symbols.
+A special KeySym value of
 .B NoSymbol
 is used to fill in unused elements for
 individual KeyCodes.
-To free the storage returned by 
+To free the storage returned by
 .BR XGetKeyboardMapping ,
 use
 .BR XFree .
@@ -257,7 +224,7 @@ Not all KeyCodes in this range are required to have corresponding keys.
 .LP
 The
 .B XSetModifierMapping
-function specifies the KeyCodes of the keys (if any) that are to be used 
+function specifies the KeyCodes of the keys (if any) that are to be used
 as modifiers.
 If it succeeds,
 the X server generates a
@@ -273,10 +240,10 @@ structure, a
 .B BadLength
 error results.
 .LP
-The modifiermap member of the 
+The modifiermap member of the
 .B XModifierKeymap
-structure contains 8 sets of max_keypermod KeyCodes, 
-one for each modifier in the order 
+structure contains 8 sets of max_keypermod KeyCodes,
+one for each modifier in the order
 .BR Shift ,
 .BR Lock ,
 .BR Control ,
@@ -284,30 +251,30 @@ one for each modifier in the order
 .BR Mod2 ,
 .BR Mod3 ,
 .BR Mod4 ,
-and 
+and
 .BR Mod5 .
-Only nonzero KeyCodes have meaning in each set, 
+Only nonzero KeyCodes have meaning in each set,
 and zero KeyCodes are ignored.
-In addition, all of the nonzero KeyCodes must be in the range specified by 
-min_keycode and max_keycode in the 
+In addition, all of the nonzero KeyCodes must be in the range specified by
+min_keycode and max_keycode in the
 .B Display
 structure,
-or a 
+or a
 .B BadValue
 error results.
 .LP
-An X server can impose restrictions on how modifiers can be changed, 
+An X server can impose restrictions on how modifiers can be changed,
 for example,
 if certain keys do not generate up transitions in hardware,
 if auto-repeat cannot be disabled on certain keys,
-or if multiple modifier keys are not supported.  
-If some such restriction is violated, 
+or if multiple modifier keys are not supported.
+If some such restriction is violated,
 the status reply is
 .BR MappingFailed ,
 and none of the modifiers are changed.
 If the new KeyCodes specified for a modifier differ from those
 currently defined and any (current or new) keys for that modifier are
-in the logically down state, 
+in the logically down state,
 .B XSetModifierMapping
 returns
 .BR MappingBusy ,
@@ -316,7 +283,7 @@ and none of the modifiers is changed.
 .B XSetModifierMapping
 can generate
 .B BadAlloc
-and 
+and
 .B BadValue
 errors.
 .LP
@@ -327,7 +294,7 @@ function returns a pointer to a newly created
 structure that contains the keys being used as modifiers.
 The structure should be freed after use by calling
 .BR XFreeModifiermap .
-If only zero values appear in the set for any modifier, 
+If only zero values appear in the set for any modifier,
 that modifier is disabled.
 .LP
 The
@@ -360,12 +327,12 @@ The
 .B XModifierKeymap
 structure contains:
 .LP
-.Ds 0
+.EX
 typedef struct {
         int max_keypermod;      /\&* This server's max number of keys per modifier */
         KeyCode *modifiermap;   /\&* An 8 by max_keypermod array of the modifiers */
 } XModifierKeymap;
-.De
+.EE
 .SH DIAGNOSTICS
 .TP 1i
 .B BadAlloc
@@ -374,11 +341,12 @@ The server failed to allocate the requested resource or server memory.
 .B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
-by the argument's type is accepted.  Any argument defined as a set of
+by the argument's type is accepted.
+Any argument defined as a set of
 alternatives can generate this error.
 .SH "SEE ALSO"
 XFree(__libmansuffix__),
 XkbGetMap(__libmansuffix__),
-XSetPointerMapping(__libmansuffix__) 
+XSetPointerMapping(__libmansuffix__)
 .br
 \fI\*(xL\fP

@@ -714,7 +714,7 @@ descriptor=[
   [ "FOG_INDEX", "CONTEXT_FLOAT(Fog.Index), NO_EXTRA" ],
   [ "GREEN_BIAS", "CONTEXT_FLOAT(Pixel.GreenBias), NO_EXTRA" ],
   [ "GREEN_SCALE", "CONTEXT_FLOAT(Pixel.GreenScale), NO_EXTRA" ],
-  [ "INDEX_BITS", "BUFFER_INT(Visual.indexBits), extra_new_buffers" ],
+  [ "INDEX_BITS", "CONST(0), NO_EXTRA" ],
   [ "INDEX_CLEAR_VALUE", "CONTEXT_INT(Color.ClearIndex), NO_EXTRA" ],
   [ "INDEX_MODE", "CONST(0) , NO_EXTRA" ],
   [ "INDEX_OFFSET", "CONTEXT_INT(Pixel.IndexOffset), NO_EXTRA" ],

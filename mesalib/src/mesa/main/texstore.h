@@ -60,8 +60,8 @@ struct gl_texture_image;
  */
 #define TEXSTORE_PARAMS \
 	struct gl_context *ctx, GLuint dims, \
-        MAYBE_UNUSED GLenum baseInternalFormat, \
-        MAYBE_UNUSED mesa_format dstFormat, \
+        UNUSED GLenum baseInternalFormat, \
+        UNUSED mesa_format dstFormat, \
         GLint dstRowStride, \
         GLubyte **dstSlices, \
 	GLint srcWidth, GLint srcHeight, GLint srcDepth, \

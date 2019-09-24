@@ -79,7 +79,9 @@ libglapi_static = static_library(
   build_by_default : false,
 )
 
-if with_any_opengl and not with_shared_glapi and with_tests
+# TODO: this test doesn't compile on windows with mingw or msvc due to
+# undefined symbols from libglapi_static, but that should be fixable.
+if with_any_opengl and not with_shared_glapi and with_tests and not with_platform_windows
   test(
     'glapi_static_check_table',
     executable(

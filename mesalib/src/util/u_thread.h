@@ -31,9 +31,17 @@
 #include <stdbool.h>
 
 #include "c11/threads.h"
+#include "detect_os.h"
 
 #ifdef HAVE_PTHREAD
 #include <signal.h>
+#ifdef PTHREAD_SETAFFINITY_IN_NP_HEADER
+#include <pthread_np.h>
+#endif
+#endif
+
+#ifdef __FreeBSD__
+#define cpu_set_t cpuset_t
 #endif
 
 static inline thrd_t u_thread_create(int (*routine)(void *), void *param)
@@ -61,11 +69,17 @@ static inline thrd_t u_thread_create(int (*routine)(void *), void *param)
 static inline void u_thread_setname( const char *name )
 {
 #if defined(HAVE_PTHREAD)
-#  if defined(__GNU_LIBRARY__) && defined(__GLIBC__) && defined(__GLIBC_MINOR__) && \
-      (__GLIBC__ >= 3 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 12)) && \
-      defined(__linux__)
+#if DETECT_OS_LINUX || DETECT_OS_CYGWIN
    pthread_setname_np(pthread_self(), name);
-#  endif
+#elif DETECT_OS_FREEBSD || DETECT_OS_OPENBSD
+   pthread_set_name_np(pthread_self(), name);
+#elif DETECT_OS_NETBSD
+   pthread_setname_np(pthread_self(), "%s", (void *)name);
+#elif DETECT_OS_APPLE
+   pthread_setname_np(name);
+#else
+#error Not sure how to call pthread_setname_np
+#endif
 #endif
    (void)name;
 }
@@ -150,10 +164,7 @@ u_thread_get_time_nano(thrd_t thread)
 static inline bool u_thread_is_self(thrd_t thread)
 {
 #if defined(HAVE_PTHREAD)
-#  if defined(__GNU_LIBRARY__) && defined(__GLIBC__) && defined(__GLIBC_MINOR__) && \
-      (__GLIBC__ >= 3 || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 12))
    return pthread_equal(pthread_self(), thread);
-#  endif
 #endif
    return false;
 }

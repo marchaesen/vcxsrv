@@ -57,7 +57,7 @@ dd_get_debug_filename_and_mkdir(char *buf, size_t buflen, bool verbose)
       fprintf(stderr, "dd: can't create a directory (%i)\n", errno);
 
    snprintf(buf, buflen, "%s/%s_%u_%08u", dir, proc_name, getpid(),
-            p_atomic_inc_return(&index) - 1);
+            (unsigned int)p_atomic_inc_return(&index) - 1);
 
    if (verbose)
       fprintf(stderr, "dd: dumping to file %s\n", buf);

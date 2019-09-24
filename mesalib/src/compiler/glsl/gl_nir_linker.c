@@ -253,3 +253,19 @@ nir_build_program_resource_list(struct gl_context *ctx,
 
    _mesa_set_destroy(resource_set, NULL);
 }
+
+bool
+gl_nir_link(struct gl_context *ctx, struct gl_shader_program *prog,
+            const struct gl_nir_linker_options *options)
+{
+   if (!gl_nir_link_uniform_blocks(ctx, prog))
+      return false;
+
+   if (!gl_nir_link_uniforms(ctx, prog, options->fill_parameters))
+      return false;
+
+   gl_nir_link_assign_atomic_counter_resources(ctx, prog);
+   gl_nir_link_assign_xfb_resources(ctx, prog);
+
+   return true;
+}

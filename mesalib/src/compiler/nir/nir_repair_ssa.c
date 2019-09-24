@@ -71,7 +71,8 @@ repair_ssa_def(nir_ssa_def *def, void *void_state)
 
    bool is_valid = true;
    nir_foreach_use(src, def) {
-      if (!nir_block_dominates(def->parent_instr->block, get_src_block(src))) {
+      if (nir_block_is_unreachable(get_src_block(src)) ||
+          !nir_block_dominates(def->parent_instr->block, get_src_block(src))) {
          is_valid = false;
          break;
       }
@@ -80,7 +81,8 @@ repair_ssa_def(nir_ssa_def *def, void *void_state)
    nir_foreach_if_use(src, def) {
       nir_block *block_before_if =
          nir_cf_node_as_block(nir_cf_node_prev(&src->parent_if->cf_node));
-      if (!nir_block_dominates(def->parent_instr->block, block_before_if)) {
+      if (nir_block_is_unreachable(block_before_if) ||
+          !nir_block_dominates(def->parent_instr->block, block_before_if)) {
          is_valid = false;
          break;
       }
@@ -101,19 +103,57 @@ repair_ssa_def(nir_ssa_def *def, void *void_state)
 
    nir_foreach_use_safe(src, def) {
       nir_block *src_block = get_src_block(src);
-      if (!nir_block_dominates(def->parent_instr->block, src_block)) {
-         nir_instr_rewrite_src(src->parent_instr, src, nir_src_for_ssa(
-            nir_phi_builder_value_get_block_def(val, src_block)));
+      if (src_block == def->parent_instr->block) {
+         assert(nir_phi_builder_value_get_block_def(val, src_block) == def);
+         continue;
       }
+
+      nir_ssa_def *block_def =
+         nir_phi_builder_value_get_block_def(val, src_block);
+      if (block_def == def)
+         continue;
+
+      /* If def was a deref and the use we're looking at is a deref that
+       * isn't a cast, we need to wrap it in a cast so we don't loose any
+       * deref information.
+       */
+      if (def->parent_instr->type == nir_instr_type_deref &&
+          src->parent_instr->type == nir_instr_type_deref &&
+          nir_instr_as_deref(src->parent_instr)->deref_type != nir_deref_type_cast) {
+         nir_deref_instr *cast =
+            nir_deref_instr_create(state->impl->function->shader,
+                                   nir_deref_type_cast);
+
+         nir_deref_instr *deref = nir_instr_as_deref(def->parent_instr);
+         cast->mode = deref->mode;
+         cast->type = deref->type;
+         cast->parent = nir_src_for_ssa(block_def);
+         cast->cast.ptr_stride = nir_deref_instr_ptr_as_array_stride(deref);
+
+         nir_ssa_dest_init(&cast->instr, &cast->dest,
+                           def->num_components, def->bit_size, NULL);
+         nir_instr_insert(nir_before_instr(src->parent_instr),
+                          &cast->instr);
+         block_def = &cast->dest.ssa;
+      }
+
+      nir_instr_rewrite_src(src->parent_instr, src, nir_src_for_ssa(block_def));
    }
 
    nir_foreach_if_use_safe(src, def) {
       nir_block *block_before_if =
          nir_cf_node_as_block(nir_cf_node_prev(&src->parent_if->cf_node));
-      if (!nir_block_dominates(def->parent_instr->block, block_before_if)) {
-         nir_if_rewrite_condition(src->parent_if, nir_src_for_ssa(
-            nir_phi_builder_value_get_block_def(val, block_before_if)));
+      if (block_before_if == def->parent_instr->block) {
+         assert(nir_phi_builder_value_get_block_def(val, block_before_if) == def);
+         continue;
       }
+
+      nir_ssa_def *block_def =
+         nir_phi_builder_value_get_block_def(val, block_before_if);
+      if (block_def == def)
+         continue;
+
+      nir_if_rewrite_condition(src->parent_if, nir_src_for_ssa(block_def));
    }
 
    return true;

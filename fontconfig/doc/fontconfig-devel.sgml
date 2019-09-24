@@ -211,6 +211,7 @@ convenience for the application's rendering mechanism.
     color          FC_COLOR               Bool    Whether any glyphs have color
     fontvariations FC_FONT_VARIATIONS     String  comma-separated string of axes in variable font
     variable       FC_VARIABLE            Bool    Whether font is Variable Font
+    fonthashint    FC_FONT_HAS_HINT       Bool    Whether font has hinting
     </programlisting>
   </sect2>
 </sect1>

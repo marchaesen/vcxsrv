@@ -3526,7 +3526,7 @@ _FcConfigParse (FcConfig	*config,
     int		    len;
     FcStrBuf	    sbuf;
     char            buf[BUFSIZ];
-    FcBool	    ret = FcFalse;
+    FcBool	    ret = FcFalse, complain_again = complain;
 
 #ifdef _WIN32
     if (!pGetSystemWindowsDirectory)
@@ -3605,7 +3605,7 @@ _FcConfigParse (FcConfig	*config,
     close (fd);
 
     ret = FcConfigParseAndLoadFromMemoryInternal (config, filename, FcStrBufDoneStatic (&sbuf), complain, load);
-    complain = FcFalse; /* no need to reclaim here */
+    complain_again = FcFalse; /* no need to reclaim here */
 bail1:
     FcStrBufDestroy (&sbuf);
 bail0:
@@ -3613,7 +3613,9 @@ bail0:
 	FcStrFree (filename);
     if (realfilename)
 	FcStrFree (realfilename);
-    if (!ret && complain)
+    if (!complain)
+	return FcTrue;
+    if (!ret && complain_again)
     {
 	if (name)
 	    FcConfigMessage (0, FcSevereError, "Cannot %s config file \"%s\"", load ? "load" : "scan", name);

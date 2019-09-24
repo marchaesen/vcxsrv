@@ -47,8 +47,7 @@
         )
 
 #define OP_IS_STORE(op) (\
-                OP_IS_STORE_VARY(op) || \
-                op == midgard_op_st_cubemap_coords \
+                OP_IS_STORE_R26(op) \
 	)
 
 #define OP_IS_PROJECTION(op) ( \
@@ -56,9 +55,9 @@
                 op == midgard_op_ldst_perspective_division_w \
         )
 
-#define OP_IS_R27_ONLY(op) ( \
+#define OP_IS_VEC4_ONLY(op) ( \
                 OP_IS_PROJECTION(op) || \
-                op == midgard_op_st_cubemap_coords \
+                op == midgard_op_ld_cubemap_coords \
         )
 
 #define OP_IS_MOVE(op) ( \
@@ -67,16 +66,27 @@
         )
 
 #define OP_IS_UBO_READ(op) ( \
-                op == midgard_op_ld_uniform_32  || \
-                op == midgard_op_ld_uniform_16  || \
-                op == midgard_op_ld_uniform_32i \
+                op == midgard_op_ld_ubo_char  || \
+                op == midgard_op_ld_ubo_char2  || \
+                op == midgard_op_ld_ubo_char4  || \
+                op == midgard_op_ld_ubo_short4  || \
+                op == midgard_op_ld_ubo_int4 \
+        )
+
+#define OP_IS_CSEL_V(op) ( \
+                op == midgard_alu_op_icsel_v || \
+                op == midgard_alu_op_fcsel_v \
         )
 
 #define OP_IS_CSEL(op) ( \
+                OP_IS_CSEL_V(op) || \
                 op == midgard_alu_op_icsel || \
-                op == midgard_alu_op_icsel_v || \
-                op == midgard_alu_op_fcsel_v || \
                 op == midgard_alu_op_fcsel \
+        )
+
+#define OP_IS_DERIVATIVE(op) ( \
+                op == TEXTURE_OP_DFDX || \
+                op == TEXTURE_OP_DFDY \
         )
 
 /* ALU control words are single bit fields with a lot of space */
@@ -165,17 +175,13 @@ quadword_size(int tag)
 
 #define REGISTER_UNUSED 24
 #define REGISTER_CONSTANT 26
-#define REGISTER_VARYING_BASE 26
-#define REGISTER_OFFSET 27
+#define REGISTER_LDST_BASE 26
 #define REGISTER_TEXTURE_BASE 28
 #define REGISTER_SELECT 31
 
-/* SSA helper aliases to mimic the registers. UNUSED_0 encoded as an inline
- * constant. UNUSED_1 encoded as REGISTER_UNUSED */
+/* SSA helper aliases to mimic the registers. */
 
-#define SSA_UNUSED_0 0
-#define SSA_UNUSED_1 -2
-
+#define SSA_UNUSED ~0
 #define SSA_FIXED_SHIFT 24
 #define SSA_FIXED_REGISTER(reg) (((1 + (reg)) << SSA_FIXED_SHIFT) | 1)
 #define SSA_REG_FROM_FIXED(reg) ((((reg) & ~1) >> SSA_FIXED_SHIFT) - 1)
@@ -196,6 +202,9 @@ quadword_size(int tag)
 #define SWIZZLE_XYZW SWIZZLE(COMPONENT_X, COMPONENT_Y, COMPONENT_Z, COMPONENT_W)
 #define SWIZZLE_XYXZ SWIZZLE(COMPONENT_X, COMPONENT_Y, COMPONENT_X, COMPONENT_Z)
 #define SWIZZLE_XYZZ SWIZZLE(COMPONENT_X, COMPONENT_Y, COMPONENT_Z, COMPONENT_Z)
+#define SWIZZLE_XXXY SWIZZLE(COMPONENT_X, COMPONENT_X, COMPONENT_X, COMPONENT_Y)
+#define SWIZZLE_ZZZW SWIZZLE(COMPONENT_Z, COMPONENT_Z, COMPONENT_Z, COMPONENT_W)
+#define SWIZZLE_ZWWW SWIZZLE(COMPONENT_Z, COMPONENT_W, COMPONENT_W, COMPONENT_W)
 #define SWIZZLE_WWWW SWIZZLE(COMPONENT_W, COMPONENT_W, COMPONENT_W, COMPONENT_W)
 
 static inline unsigned
@@ -331,6 +340,61 @@ mir_is_simple_swizzle(unsigned swizzle, unsigned mask)
         }
 
         return true;
+}
+
+/* Packs a load/store argument */
+
+static inline uint8_t
+midgard_ldst_reg(unsigned reg, unsigned component)
+{
+        assert((reg == REGISTER_LDST_BASE) || (reg == REGISTER_LDST_BASE + 1));
+
+        midgard_ldst_register_select sel = {
+                .component = component,
+                .select = reg - 26
+        };
+
+        uint8_t packed;
+        memcpy(&packed, &sel, sizeof(packed));
+
+        return packed;
+}
+
+/* Unpacks a load/store argument */
+
+static inline midgard_ldst_register_select
+midgard_ldst_select(uint8_t u)
+{
+        midgard_ldst_register_select sel;
+        memcpy(&sel, &u, sizeof(u));
+        return sel;
+}
+
+static inline uint8_t
+midgard_ldst_pack(midgard_ldst_register_select sel)
+{
+        uint8_t packed;
+        memcpy(&packed, &sel, sizeof(packed));
+        return packed;
+}
+
+/* Gets a swizzle like yyyy and returns y */
+
+static inline unsigned
+swizzle_to_component(unsigned swizzle)
+{
+        unsigned c = swizzle & 3;
+        assert(((swizzle >> 2) & 3) == c);
+        assert(((swizzle >> 4) & 3) == c);
+        assert(((swizzle >> 6) & 3) == c);
+        return  c;
+}
+
+
+static inline unsigned
+component_to_swizzle(unsigned c)
+{
+        return SWIZZLE(c, c, c, c);
 }
 
 #endif

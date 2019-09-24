@@ -52,6 +52,7 @@ MESA_GEN_NIR_H := $(addprefix $(call local-generated-sources-dir)/, \
 nir_builder_opcodes_gen := $(LOCAL_PATH)/nir/nir_builder_opcodes_h.py
 nir_builder_opcodes_deps := \
 	$(LOCAL_PATH)/nir/nir_opcodes.py \
+	$(LOCAL_PATH)/nir/nir_intrinsics.py \
 	$(LOCAL_PATH)/nir/nir_builder_opcodes_h.py
 
 $(intermediates)/nir/nir_builder_opcodes.h: $(nir_builder_opcodes_deps)

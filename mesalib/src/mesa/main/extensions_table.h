@@ -204,6 +204,7 @@ EXT(ATI_texture_env_combine3                , ATI_texture_env_combine3          
 EXT(ATI_texture_float                       , ARB_texture_float                      , GLL, GLC,  x ,  x , 2002)
 EXT(ATI_texture_mirror_once                 , ATI_texture_mirror_once                , GLL, GLC,  x ,  x , 2006)
 
+EXT(EXT_EGL_sync                            , dummy_true                             , GLL, GLC,  x ,  x , 2019)
 EXT(EXT_abgr                                , dummy_true                             , GLL, GLC,  x ,  x , 1995)
 EXT(EXT_base_instance                       , ARB_base_instance                      ,  x ,  x ,  x ,  30, 2014)
 EXT(EXT_bgra                                , dummy_true                             , GLL,  x ,  x ,  x , 1995)
@@ -274,6 +275,7 @@ EXT(EXT_separate_specular_color             , dummy_true                        
 EXT(EXT_shader_framebuffer_fetch            , EXT_shader_framebuffer_fetch           , GLL, GLC,  x , ES2, 2013)
 EXT(EXT_shader_framebuffer_fetch_non_coherent, EXT_shader_framebuffer_fetch_non_coherent, GLL, GLC,  x, ES2, 2018)
 EXT(EXT_shader_image_load_formatted         , EXT_shader_image_load_formatted        , GLL, GLC,  x ,  x , 2014)
+EXT(EXT_shader_image_load_store             , EXT_shader_image_load_store            , GLL, GLC,  x ,  x , 2010)
 EXT(EXT_shader_implicit_conversions         , dummy_true                             ,  x ,  x ,  x ,  31, 2013)
 EXT(EXT_shader_integer_mix                  , EXT_shader_integer_mix                 , GLL, GLC,  x ,  30, 2013)
 EXT(EXT_shader_io_blocks                    , dummy_true                             ,  x ,  x ,  x ,  31, 2014)
@@ -315,6 +317,7 @@ EXT(EXT_texture_rg                          , ARB_texture_rg                    
 EXT(EXT_texture_sRGB                        , EXT_texture_sRGB                       , GLL, GLC,  x ,  x , 2004)
 EXT(EXT_texture_sRGB_R8                     , EXT_texture_sRGB_R8                    , GLL ,GLC,  x ,  30, 2018)
 EXT(EXT_texture_sRGB_decode                 , EXT_texture_sRGB_decode                , GLL, GLC,  x ,  30, 2006)
+EXT(EXT_texture_shadow_lod                  , EXT_texture_shadow_lod                 , GLL, GLC,  x ,  30, 2018)
 EXT(EXT_texture_shared_exponent             , EXT_texture_shared_exponent            , GLL, GLC,  x ,  x , 2004)
 EXT(EXT_texture_snorm                       , EXT_texture_snorm                      , GLL, GLC,  x ,  x , 2009)
 EXT(EXT_texture_swizzle                     , EXT_texture_swizzle                    , GLL, GLC,  x ,  x , 2008)

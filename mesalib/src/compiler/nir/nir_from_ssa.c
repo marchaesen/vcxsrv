@@ -827,7 +827,7 @@ nir_convert_from_ssa(nir_shader *shader, bool phi_webs_only)
 
 static void
 place_phi_read(nir_shader *shader, nir_register *reg,
-               nir_ssa_def *def, nir_block *block)
+               nir_ssa_def *def, nir_block *block, unsigned depth)
 {
    if (block != def->parent_instr->block) {
       /* Try to go up the single-successor tree */
@@ -840,14 +840,24 @@ place_phi_read(nir_shader *shader, nir_register *reg,
          }
       }
 
-      if (all_single_successors) {
+      if (all_single_successors && depth < 32) {
          /* All predecessors of this block have exactly one successor and it
           * is this block so they must eventually lead here without
           * intersecting each other.  Place the reads in the predecessors
           * instead of this block.
+          *
+          * We only let this function recurse 32 times because it can recurse
+          * indefinitely in the presence of infinite loops.  Because we're
+          * crawling a single-successor chain, it doesn't matter where we
+          * place it so it's ok to stop at an arbitrary distance.
+          *
+          * TODO: One day, we could detect back edges and avoid the recursion
+          * that way.
           */
-         set_foreach(block->predecessors, entry)
-            place_phi_read(shader, reg, def, (nir_block *)entry->key);
+         set_foreach(block->predecessors, entry) {
+            place_phi_read(shader, reg, def, (nir_block *)entry->key,
+                           depth + 1);
+         }
          return;
       }
    }
@@ -902,7 +912,7 @@ nir_lower_phis_to_regs_block(nir_block *block)
 
       nir_foreach_phi_src(src, phi) {
          assert(src->src.is_ssa);
-         place_phi_read(shader, reg, src->src.ssa, src->pred);
+         place_phi_read(shader, reg, src->src.ssa, src->pred, 0);
       }
 
       nir_instr_remove(&phi->instr);

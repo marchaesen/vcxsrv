@@ -85,6 +85,7 @@ void etna_bo_cache_cleanup(struct etna_bo_cache *cache, time_t time)
 			if (time && ((time - bo->free_time) <= 1))
 				break;
 
+			VG_BO_OBTAIN(bo);
 			list_del(&bo->list);
 			_etna_bo_del(bo);
 		}
@@ -169,6 +170,7 @@ struct etna_bo *etna_bo_cache_alloc(struct etna_bo_cache *cache, uint32_t *size,
 		*size = bucket->size;
 		bo = find_in_bucket(bucket, flags);
 		if (bo) {
+			VG_BO_OBTAIN(bo);
 			p_atomic_set(&bo->refcnt, 1);
 			etna_device_ref(bo->dev);
 			return bo;
@@ -189,6 +191,7 @@ int etna_bo_cache_free(struct etna_bo_cache *cache, struct etna_bo *bo)
 		clock_gettime(CLOCK_MONOTONIC, &time);
 
 		bo->free_time = time.tv_sec;
+		VG_BO_RELEASE(bo);
 		list_addtail(&bo->list, &bucket->list);
 		etna_bo_cache_cleanup(cache, time.tv_sec);
 

@@ -395,12 +395,6 @@
         </variant>
         <variant>
           <configItem>
-            <name>norman</name>
-            <description>English (Norman)</description>
-          </configItem>
-        </variant>
-        <variant>
-          <configItem>
             <name>carpalx</name>
             <description>English (Carpalx)</description>
           </configItem>
@@ -796,6 +790,12 @@
           <configItem>
             <name>typo</name>
             <description>Czech (typographic)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>coder</name>
+            <description>Czech (coder)</description>
           </configItem>
         </variant>
       </variantList>

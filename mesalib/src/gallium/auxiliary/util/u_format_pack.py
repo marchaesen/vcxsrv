@@ -64,11 +64,17 @@ def print_channels(format, func):
     if format.nr_channels() <= 1:
         func(format.le_channels, format.le_swizzles)
     else:
-        print('#ifdef PIPE_ARCH_BIG_ENDIAN')
-        func(format.be_channels, format.be_swizzles)
-        print('#else')
-        func(format.le_channels, format.le_swizzles)
-        print('#endif')
+        if (format.le_channels == format.be_channels and
+            [c.shift for c in format.le_channels] ==
+            [c.shift for c in format.be_channels] and
+            format.le_swizzles == format.be_swizzles):
+            func(format.le_channels, format.le_swizzles)
+        else:
+            print('#ifdef PIPE_ARCH_BIG_ENDIAN')
+            func(format.be_channels, format.be_swizzles)
+            print('#else')
+            func(format.le_channels, format.le_swizzles)
+            print('#endif')
 
 def generate_format_type(format):
     '''Generate a structure that describes the format.'''
@@ -79,18 +85,18 @@ def generate_format_type(format):
         for channel in channels:
             if channel.type == VOID:
                 if channel.size:
-                    print('      unsigned %s:%u;' % (channel.name, channel.size))
+                    print('   unsigned %s:%u;' % (channel.name, channel.size))
             elif channel.type == UNSIGNED:
-                print('      unsigned %s:%u;' % (channel.name, channel.size))
+                print('   unsigned %s:%u;' % (channel.name, channel.size))
             elif channel.type in (SIGNED, FIXED):
-                print('      int %s:%u;' % (channel.name, channel.size))
+                print('   int %s:%u;' % (channel.name, channel.size))
             elif channel.type == FLOAT:
                 if channel.size == 64:
-                    print('      double %s;' % (channel.name))
+                    print('   double %s;' % (channel.name))
                 elif channel.size == 32:
-                    print('      float %s;' % (channel.name))
+                    print('   float %s;' % (channel.name))
                 else:
-                    print('      unsigned %s:%u;' % (channel.name, channel.size))
+                    print('   unsigned %s:%u;' % (channel.name, channel.size))
             else:
                 assert 0
 
@@ -99,39 +105,33 @@ def generate_format_type(format):
             assert channel.size % 8 == 0 and is_pot(channel.size)
             if channel.type == VOID:
                 if channel.size:
-                    print('      uint%u_t %s;' % (channel.size, channel.name))
+                    print('   uint%u_t %s;' % (channel.size, channel.name))
             elif channel.type == UNSIGNED:
-                print('      uint%u_t %s;' % (channel.size, channel.name))
+                print('   uint%u_t %s;' % (channel.size, channel.name))
             elif channel.type in (SIGNED, FIXED):
-                print('      int%u_t %s;' % (channel.size, channel.name))
+                print('   int%u_t %s;' % (channel.size, channel.name))
             elif channel.type == FLOAT:
                 if channel.size == 64:
-                    print('      double %s;' % (channel.name))
+                    print('   double %s;' % (channel.name))
                 elif channel.size == 32:
-                    print('      float %s;' % (channel.name))
+                    print('   float %s;' % (channel.name))
                 elif channel.size == 16:
-                    print('      uint16_t %s;' % (channel.name))
+                    print('   uint16_t %s;' % (channel.name))
                 else:
                     assert 0
             else:
                 assert 0
-
-    print('union util_format_%s {' % format.short_name())
-    
-    if format.block_size() in (8, 16, 32, 64):
-        print('   uint%u_t value;' % (format.block_size(),))
 
     use_bitfields = False
     for channel in format.le_channels:
         if channel.size % 8 or not is_pot(channel.size):
             use_bitfields = True
 
-    print('   struct {')
+    print('struct util_format_%s {' % format.short_name())
     if use_bitfields:
         print_channels(format, generate_bitfields)
     else:
         print_channels(format, generate_full_fields)
-    print('   } chan;')
     print('};')
     print()
 
@@ -451,8 +451,6 @@ def generate_unpack_kernel(format, dst_channel, dst_native_type):
     
     assert format.layout == PLAIN
 
-    src_native_type = native_type(format)
-
     def unpack_from_bitmask(channels, swizzles):
         depth = format.block_size()
         print('         uint%u_t value = *(const uint%u_t *)src;' % (depth, depth)) 
@@ -501,7 +499,7 @@ def generate_unpack_kernel(format, dst_channel, dst_native_type):
                 if src_colorspace == SRGB and i == 3:
                     # Alpha channel is linear
                     src_colorspace = RGB
-                value = src_channel.name 
+                value = src_channel.name
                 value = conversion_expr(src_channel, 
                                         dst_channel, dst_native_type, 
                                         value,
@@ -516,8 +514,8 @@ def generate_unpack_kernel(format, dst_channel, dst_native_type):
                 assert False
             print('         dst[%u] = %s; /* %s */' % (i, value, 'rgba'[i]))
         
-    def unpack_from_union(channels, swizzles):
-        print('         union util_format_%s pixel;' % format.short_name())
+    def unpack_from_struct(channels, swizzles):
+        print('         struct util_format_%s pixel;' % format.short_name())
         print('         memcpy(&pixel, src, sizeof pixel);')
     
         for i in range(4):
@@ -528,7 +526,7 @@ def generate_unpack_kernel(format, dst_channel, dst_native_type):
                 if src_colorspace == SRGB and i == 3:
                     # Alpha channel is linear
                     src_colorspace = RGB
-                value = 'pixel.chan.%s' % src_channel.name 
+                value = 'pixel.%s' % src_channel.name
                 value = conversion_expr(src_channel, 
                                         dst_channel, dst_native_type, 
                                         value,
@@ -546,7 +544,7 @@ def generate_unpack_kernel(format, dst_channel, dst_native_type):
     if format.is_bitmask():
         print_channels(format, unpack_from_bitmask)
     else:
-        print_channels(format, unpack_from_union)
+        print_channels(format, unpack_from_struct)
 
 
 def generate_pack_kernel(format, src_channel, src_native_type):
@@ -592,10 +590,10 @@ def generate_pack_kernel(format, src_channel, src_native_type):
                 
         print('         *(uint%u_t *)dst = value;' % depth) 
 
-    def pack_into_union(channels, swizzles):
+    def pack_into_struct(channels, swizzles):
         inv_swizzle = inv_swizzles(swizzles)
 
-        print('         union util_format_%s pixel;' % format.short_name())
+        print('         struct util_format_%s pixel;' % format.short_name())
     
         for i in range(4):
             dst_channel = channels[i]
@@ -611,14 +609,14 @@ def generate_pack_kernel(format, src_channel, src_native_type):
                                     dst_channel, dst_native_type, 
                                     value, 
                                     dst_colorspace = dst_colorspace)
-            print('         pixel.chan.%s = %s;' % (dst_channel.name, value))
+            print('         pixel.%s = %s;' % (dst_channel.name, value))
     
         print('         memcpy(dst, &pixel, sizeof pixel);')
     
     if format.is_bitmask():
         print_channels(format, pack_into_bitmask)
     else:
-        print_channels(format, pack_into_union)
+        print_channels(format, pack_into_struct)
 
 
 def generate_format_unpack(format, dst_channel, dst_native_type, dst_suffix):
@@ -714,7 +712,7 @@ def generate(formats):
     for format in formats:
         if not is_format_hand_written(format):
             
-            if is_format_supported(format):
+            if is_format_supported(format) and not format.is_bitmask():
                 generate_format_type(format)
 
             if format.is_pure_unsigned():

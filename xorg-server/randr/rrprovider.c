@@ -485,3 +485,25 @@ RRDeliverProviderEvent(ClientPtr client, WindowPtr pWin, RRProviderPtr provider)
 
     WriteEventsToClient(client, 1, (xEvent *) &pe);
 }
+
+void
+RRProviderAutoConfigGpuScreen(ScreenPtr pScreen, ScreenPtr masterScreen)
+{
+    rrScrPrivPtr pScrPriv = rrGetScrPriv(pScreen);
+    rrScrPrivPtr masterPriv = rrGetScrPriv(masterScreen);
+    RRProviderPtr provider = pScrPriv->provider;
+    RRProviderPtr master_provider = masterPriv->provider;
+
+    if (!provider || !master_provider)
+        return;
+
+    if ((provider->capabilities & RR_Capability_SinkOutput) &&
+        (master_provider->capabilities & RR_Capability_SourceOutput)) {
+        pScrPriv->rrProviderSetOutputSource(pScreen, provider, master_provider);
+        RRInitPrimeSyncProps(pScreen);
+    }
+
+    if ((provider->capabilities & RR_Capability_SourceOffload) &&
+        (master_provider->capabilities & RR_Capability_SinkOffload))
+        pScrPriv->rrProviderSetOffloadSink(pScreen, provider, master_provider);
+}

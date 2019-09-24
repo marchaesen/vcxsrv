@@ -39,56 +39,23 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
+.\" It is provided "as is" without express or implied warranty.
 .\"
-.\" 
+.\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XmbResetIC __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XmbResetIC, XwcResetIC, Xutf8ResetIC \- reset the state of an input context
 .SH SYNTAX
 .HP
-char *XmbResetIC\^(\^XIC \fIic\fP\^); 
+char *XmbResetIC\^(\^XIC \fIic\fP\^);
 .HP
-wchar_t *XwcResetIC\^(\^XIC \fIic\fP\^); 
+wchar_t *XwcResetIC\^(\^XIC \fIic\fP\^);
 .HP
-char *Xutf8ResetIC\^(\^XIC \fIic\fP\^); 
+char *Xutf8ResetIC\^(\^XIC \fIic\fP\^);
 .SH ARGUMENTS
 .IP \fIic\fP 1i
 Specifies the input context.
@@ -110,7 +77,7 @@ the current input context state is preserved.
 In both cases, any input pending on that context is deleted.
 The input method is required to clear the preedit area, if any,
 and update the status accordingly.
-Calling 
+Calling
 .BR XmbResetIC ,
 .B XwcResetIC
 or
@@ -128,8 +95,8 @@ The return value of
 is its current preedit string as an UTF-8 string.
 If there is any preedit text drawn or visible to the user,
 then these procedures must return a non-NULL string.
-If there is no visible preedit text, 
-then it is input method implementation-dependent 
+If there is no visible preedit text,
+then it is input method implementation-dependent
 whether these procedures return a non-NULL string or NULL.
 .LP
 The client should free the returned string by calling
@@ -137,8 +104,9 @@ The client should free the returned string by calling
 .LP
 The function
 .B Xutf8ResetIC
-is an extension introduced by The XFree86 Project, Inc. in their 4.0.2
-release. Its presence is
+is an extension introduced by The XFree86 Project, Inc., in their 4.0.2
+release.
+Its presence is
 indicated by the macro
 .BR X_HAVE_UTF8_STRING .
 .SH "SEE ALSO"

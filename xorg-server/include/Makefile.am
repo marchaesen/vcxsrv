@@ -84,3 +84,13 @@ EXTRA_DIST = 	\
 	xwayland-config.h.meson.in \
 	xwin-config.h.meson.in \
 	xsha1.h
+
+if XSERVER_DTRACE
+# Generate dtrace header file for C sources to include
+BUILT_SOURCES = Xserver-dtrace.h
+
+Xserver-dtrace.h: $(srcdir)/Xserver.d
+	$(AM_V_GEN)$(DTRACE) -C -h -o $@ -s $(srcdir)/Xserver.d
+endif
+
+CLEANFILES = Xserver-dtrace.h

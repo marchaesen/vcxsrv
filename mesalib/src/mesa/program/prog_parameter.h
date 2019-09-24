@@ -91,8 +91,16 @@ typedef union gl_constant_value
 struct gl_program_parameter
 {
    const char *Name;        /**< Null-terminated string */
-   gl_register_file Type:16;  /**< PROGRAM_CONSTANT or STATE_VAR */
+   gl_register_file Type:5;  /**< PROGRAM_CONSTANT or STATE_VAR */
+
+   /**
+    * We need to keep track of whether the param is padded for use in the
+    * shader cache.
+    */
+   bool Padded:1;
+
    GLenum16 DataType;         /**< GL_FLOAT, GL_FLOAT_VEC2, etc */
+
    /**
     * Number of components (1..4), or more.
     * If the number of components is greater than 4,
@@ -106,10 +114,15 @@ struct gl_program_parameter
    gl_state_index16 StateIndexes[STATE_LENGTH];
 
    /**
-    * We need to keep track of whether the param is padded for use in the
-    * shader cache.
+    * Index of this parameter's uniform storage.
     */
-   bool Padded;
+   uint32_t UniformStorageIndex;
+
+   /**
+    * Index of the first uniform storage that is associated with the same
+    * variable as this parameter.
+    */
+   uint32_t MainUniformStorageIndex;
 };
 
 
