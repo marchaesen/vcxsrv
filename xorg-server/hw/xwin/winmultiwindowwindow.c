@@ -691,6 +691,9 @@ winUpdateWindowsWindow(WindowPtr pWin)
         /* Display the window without activating it */
         if (pWin->drawable.class != InputOnly)
             ShowWindow(pWinPriv->hWnd, SW_SHOWNOACTIVATE);
+
+        /* Send first paint message */
+        UpdateWindow(pWinPriv->hWnd); // IZI 2019
     }
     else if (hWnd != NULL) {
         if (pWinPriv->fWglUsed) {
