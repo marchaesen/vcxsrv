@@ -263,6 +263,25 @@ struct pipe_screen {
                                unsigned usage);
 
    /**
+    * Get info for the given pipe resource without the need to get a
+    * winsys_handle.
+    *
+    * The context parameter can optionally be used to flush the resource and
+    * the context to make sure the resource is coherent with whatever user
+    * will use it. Some drivers may also use the context to convert
+    * the resource into a format compatible for sharing. The context parameter
+    * is allowed to be NULL.
+    */
+   bool (*resource_get_param)(struct pipe_screen *screen,
+                              struct pipe_context *context,
+                              struct pipe_resource *resource,
+                              unsigned plane,
+                              unsigned layer,
+                              enum pipe_resource_param param,
+                              unsigned handle_usage,
+                              uint64_t *value);
+
+   /**
     * Get stride and offset for the given pipe resource without the need to get
     * a winsys_handle.
     */
@@ -464,6 +483,23 @@ struct pipe_screen {
    bool (*is_parallel_shader_compilation_finished)(struct pipe_screen *screen,
                                                    void *shader,
                                                    unsigned shader_type);
+
+   /**
+    * Set the damage region (called when KHR_partial_update() is invoked).
+    * This function is passed an array of rectangles encoding the damage area.
+    * rects are using the bottom-left origin convention.
+    * nrects = 0 means 'reset the damage region'. What 'reset' implies is HW
+    * specific. For tile-based renderers, the damage extent is typically set
+    * to cover the whole resource with no damage rect (or a 0-size damage
+    * rect). This way, the existing resource content is reloaded into the
+    * local tile buffer for every tile thus making partial tile update
+    * possible. For HW operating in immediate mode, this reset operation is
+    * likely to be a NOOP.
+    */
+   void (*set_damage_region)(struct pipe_screen *screen,
+                             struct pipe_resource *resource,
+                             unsigned int nrects,
+                             const struct pipe_box *rects);
 };
 
 

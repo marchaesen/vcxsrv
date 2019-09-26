@@ -96,11 +96,7 @@ typedef void (*_glapi_warning_func)(void *ctx, const char *str, ...);
 #define MAX_EXTENSION_FUNCS 300
 
 
-/**
- ** Define the GET_CURRENT_CONTEXT() macro.
- ** \param C local variable which will hold the current context.
- **/
-#if defined (GLX_USE_TLS)
+#if defined (USE_ELF_TLS)
 
 _GLAPI_EXPORT extern __thread struct _glapi_table * _glapi_tls_Dispatch
   ;
@@ -131,7 +127,7 @@ SERVEXTERN void *_glapi_Context;
 #define GET_CURRENT_CONTEXT(C)  struct gl_context *C = (struct gl_context *) \
      (likely(_glapi_Context) ? _glapi_Context : _glapi_get_context())
 
-#endif /* defined (GLX_USE_TLS) */
+#endif /* defined (USE_ELF_TLS) */
 
 
 /**

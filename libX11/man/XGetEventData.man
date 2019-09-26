@@ -23,39 +23,6 @@
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XGetEventData __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XGetEventData, XFreeEventData, XGenericEventCookie \- retrieve and free additional event data through cookies.
@@ -72,7 +39,7 @@ Specifies the connection to the X server.
 Specifies the cookie to free or retrieve the data for.
 
 .SH STRUCTURES
-.Ds 0
+.EX
 typedef struct {
         int type;
         unsigned long serial;
@@ -83,7 +50,7 @@ typedef struct {
         unsigned int cookie;
         void *data;
 } XGenericEventCookie;
-.De
+.EE
 
 .SH DESCRIPTION
 Some extension
@@ -91,7 +58,8 @@ Some extension
 require additional memory to store information.
 For these events, the library returns a
 .B XGenericEventCookie
-with a token ('cookie') unique to this event. The
+with a token ('cookie') unique to this event.
+The
 .BR XGenericEventCookie 's
 data pointer is undefined until
 .B XGetEventData
@@ -99,16 +67,20 @@ is called.
 
 The
 .B XGetEventData
-function retrieves this extra data for the given cookie. No round-trip to
-the server is required. If the cookie is invalid or the
+function retrieves this extra data for the given cookie.
+No round-trip to
+the server is required.
+If the cookie is invalid or the
 event is not an event handled by cookie handlers,
 .B False
-is returned. If
+is returned.
+If
 .B XGetEventData
 returns
 .BR True ,
 the cookie's data pointer points to the memory containing the event
-information. A client must call
+information.
+A client must call
 .B XFreeEventData
 to free this memory.
 .B XGetEventData
@@ -118,13 +90,14 @@ for multiple calls for the same event cookie.
 
 The
 .B XFreeEventData
-function frees the data associated with a cookie. A client must call
+function frees the data associated with a cookie.
+A client must call
 .B XFreeEventData
 for each cookie claimed with
 .BR XGetEventData .
 
 .SH EXAMPLE CODE
-.Ds 0
+.EX
 XEvent event;
 XGenericEventCookie *cookie = &ev;
 
@@ -135,7 +108,7 @@ if (XGetEventData(display, cookie)) {
     handle_event(&event);
 }
 XFreeEventData(display, cookie);
-.De
+.EE
 
 .SH NOTES
 A cookie is defined as unclaimed if it has been returned to the client

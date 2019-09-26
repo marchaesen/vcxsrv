@@ -271,6 +271,7 @@ bool ac_rtld_open(struct ac_rtld_binary *binary,
 	uint64_t pasted_text_size = 0;
 	uint64_t rx_align = 1;
 	uint64_t rx_size = 0;
+	uint64_t exec_size = 0;
 
 #define report_if(cond) \
 	do { \
@@ -370,6 +371,8 @@ bool ac_rtld_open(struct ac_rtld_binary *binary,
 
 					if (!strcmp(s->name, ".text"))
 						s->is_pasted_text = true;
+
+					exec_size += shdr->sh_size;
 				}
 
 				if (s->is_pasted_text) {
@@ -438,6 +441,7 @@ bool ac_rtld_open(struct ac_rtld_binary *binary,
 	}
 
 	binary->rx_size += rx_size;
+	binary->exec_size = exec_size;
 
 	if (i.info->chip_class >= GFX10) {
 		/* In gfx10, the SQ fetches up to 3 cache lines of 16 dwords

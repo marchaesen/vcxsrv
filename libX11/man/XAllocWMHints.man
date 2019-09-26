@@ -39,53 +39,20 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
-.ds xL Xlib \- C Language X Interface, \fRO'Reilly and Associates, Sebastopol, 1991. 
+.ds xL Xlib \- C Language X Interface, \fRO'Reilly and Associates, Sebastopol, 1991.
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 '\" t
 .TH XAllocWMHints __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XAllocWMHints, XSetWMHints, XGetWMHints, XWMHints \- allocate window manager hints structure and set or read a window's WM_HINTS property
 .SH SYNTAX
 .HP
-XWMHints *XAllocWMHints\^(void\^); 
+XWMHints *XAllocWMHints\^(void\^);
 .HP
 int XSetWMHints\^(\^Display *\fIdisplay\fP, Window \fIw\fP, XWMHints *\fIwmhints\fP\^);
 .HP
@@ -96,7 +63,7 @@ Specifies the connection to the X server.
 .IP \fIw\fP 1i
 Specifies the window.
 .IP \fIwmhints\fP 1i
-Specifies the 
+Specifies the
 .B XWMHints
 structure to be used.
 .SH DESCRIPTION
@@ -108,7 +75,7 @@ structure.
 Note that all fields in the
 .B XWMHints
 structure are initially set to zero.
-If insufficient memory is available, 
+If insufficient memory is available,
 .B XAllocWMHints
 returns NULL.
 To free the memory allocated to this structure,
@@ -130,9 +97,9 @@ errors.
 .LP
 The
 .B XGetWMHints
-function reads the window manager hints and 
-returns NULL if no WM_HINTS property was set on the window 
-or returns a pointer to a 
+function reads the window manager hints and
+returns NULL if no WM_HINTS property was set on the window
+or returns a pointer to a
 .B XWMHints
 structure if it succeeds.
 When finished with the data,
@@ -147,7 +114,7 @@ error.
 .TP 1i
 \s-1WM_HINTS\s+1
 Additional hints set by the client for use by the window manager.
-The C type of this property is 
+The C type of this property is
 .BR XWMHints .
 .SH STRUCTURES
 The
@@ -156,7 +123,7 @@ structure contains:
 .LP
 /\&* Window manager hints mask bits */
 .TS
-lw(.5i) lw(2.5i) lw(2.5i).
+lw(.4i) lw(1.8i) lw(2.5i).
 T{
 \&#define
 T}	T{
@@ -218,15 +185,23 @@ T{
 T}	T{
 .B AllHints
 T}	T{
-(InputHint|StateHint|IconPixmapHint|
+(InputHint|
 .br
-IconWindowHint|IconPositionHint|
+ StateHint|
 .br
-IconMaskHint|WindowGroupHint)
+ IconPixmapHint|
+.br
+ IconWindowHint|
+.br
+ IconPositionHint|
+.br
+ IconMaskHint|
+.br
+ WindowGroupHint)
 T}
 .TE
 .IN "XWMHints" "" "@DEF@"
-.Ds 0
+.EX
 /\&* Values */
 
 typedef struct {
@@ -241,43 +216,43 @@ typedef struct {
         XID window_group;       /\&* id of related window group */
         /\&* this structure may be extended in the future */
 } XWMHints;
-.De
+.EE
 .LP
 The input member is used to communicate to the window manager the input focus
 model used by the application.
-Applications that expect input but never explicitly set focus to any 
-of their subwindows (that is, use the push model of focus management), 
+Applications that expect input but never explicitly set focus to any
+of their subwindows (that is, use the push model of focus management),
 such as X Version 10 style applications that use real-estate
-driven focus, should set this member to 
+driven focus, should set this member to
 .BR True .
 Similarly, applications
 that set input focus to their subwindows only when it is given to their
-top-level window by a window manager should also set this member to 
+top-level window by a window manager should also set this member to
 .BR True .
 Applications that manage their own input focus by explicitly setting
-focus to one of their subwindows whenever they want keyboard input 
-(that is, use the pull model of focus management) should set this member to 
+focus to one of their subwindows whenever they want keyboard input
+(that is, use the pull model of focus management) should set this member to
 .BR False .
 Applications that never expect any keyboard input also should set this member
-to 
+to
 .BR False .
 .LP
 Pull model window managers should make it possible for push model
 applications to get input by setting input focus to the top-level windows of
-applications whose input member is 
+applications whose input member is
 .BR True .
 Push model window managers should
-make sure that pull model applications do not break them 
-by resetting input focus to 
+make sure that pull model applications do not break them
+by resetting input focus to
 .B PointerRoot
 when it is appropriate (for example, whenever an application whose
-input member is 
+input member is
 .B False
 sets input focus to one of its subwindows).
 .LP
 The definitions for the initial_state flag are:
 .TS
-lw(.5i) lw(2i) lw(.2i) lw(2.8i).
+lw(.3i) lw(1.5i) lw(.1i) lw(3.9i).
 T{
 \&#define
 T}	T{
@@ -306,14 +281,14 @@ T}	T{
 T}
 .TE
 The icon_mask specifies which pixels of the icon_pixmap should be used as the
-icon.  
+icon.
 This allows for nonrectangular icons.
 Both icon_pixmap and icon_mask must be bitmaps.
 The icon_window lets an application provide a window for use as an icon
 for window managers that support such use.
 The window_group lets you specify that this window belongs to a group
 of other windows.
-For example, if a single application manipulates multiple 
+For example, if a single application manipulates multiple
 top-level windows, this allows you to provide enough
 information that a window manager can iconify all of the windows
 rather than just the one window.
@@ -321,9 +296,11 @@ rather than just the one window.
 The
 .B UrgencyHint
 flag, if set in the flags field, indicates that the client deems the window
-contents to be urgent, requiring the timely response of the user.  The
+contents to be urgent, requiring the timely response of the user.
+The
 window manager will make some effort to draw the user's attention to this
-window while this flag is set.  The client must provide some means by which the
+window while this flag is set.
+The client must provide some means by which the
 user can cause the urgency flag to be cleared (either mitigating
 the condition that made the window urgent or merely shutting off the alarm)
 or the window to be withdrawn.

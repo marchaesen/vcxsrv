@@ -31,13 +31,14 @@
 #include <stdarg.h>
 
 
-#if defined(PIPE_SUBSYSTEM_WINDOWS_USER)
+#if DETECT_OS_WINDOWS
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN      // Exclude rarely-used stuff from Windows headers
 #endif
 #include <windows.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #else
 
@@ -47,13 +48,17 @@
 #endif
 
 
-#if defined(PIPE_OS_LINUX) || defined(PIPE_OS_CYGWIN) || defined(PIPE_OS_SOLARIS) || defined(PIPE_OS_HURD)
+#if DETECT_OS_ANDROID
+#  define LOG_TAG "MESA"
 #  include <unistd.h>
-#elif defined(PIPE_OS_APPLE) || defined(PIPE_OS_BSD)
+#  include <log/log.h>
+#elif DETECT_OS_LINUX || DETECT_OS_CYGWIN || DETECT_OS_SOLARIS || DETECT_OS_HURD
+#  include <unistd.h>
+#elif DETECT_OS_APPLE || DETECT_OS_BSD
 #  include <sys/sysctl.h>
-#elif defined(PIPE_OS_HAIKU)
+#elif DETECT_OS_HAIKU
 #  include <kernel/OS.h>
-#elif defined(PIPE_OS_WINDOWS)
+#elif DETECT_OS_WINDOWS
 #  include <windows.h>
 #else
 #error unexpected platform in os_sysinfo.c
@@ -88,7 +93,7 @@ os_log_message(const char *message)
          fout = stderr;
    }
 
-#if defined(PIPE_SUBSYSTEM_WINDOWS_USER)
+#if DETECT_OS_WINDOWS
    OutputDebugStringA(message);
    if(GetConsoleWindow() && !IsDebuggerPresent()) {
       fflush(stdout);
@@ -99,21 +104,24 @@ os_log_message(const char *message)
       fputs(message, fout);
       fflush(fout);
    }
-#else /* !PIPE_SUBSYSTEM_WINDOWS */
+#else /* !DETECT_OS_WINDOWS */
    fflush(stdout);
    fputs(message, fout);
    fflush(fout);
+#  if DETECT_OS_ANDROID
+   LOG_PRI(ANDROID_LOG_ERROR, LOG_TAG, "%s", message);
+#  endif
 #endif
 }
 
 
-#if !defined(PIPE_SUBSYSTEM_EMBEDDED)
+#if !defined(EMBEDDED_DEVICE)
 const char *
 os_get_option(const char *name)
 {
    return getenv(name);
 }
-#endif /* !PIPE_SUBSYSTEM_EMBEDDED */
+#endif /* !EMBEDDED_DEVICE */
 
 
 /**
@@ -124,7 +132,7 @@ os_get_option(const char *name)
 bool
 os_get_total_physical_memory(uint64_t *size)
 {
-#if defined(PIPE_OS_LINUX) || defined(PIPE_OS_CYGWIN) || defined(PIPE_OS_SOLARIS) || defined(PIPE_OS_HURD)
+#if DETECT_OS_LINUX || DETECT_OS_CYGWIN || DETECT_OS_SOLARIS || DETECT_OS_HURD
    const long phys_pages = sysconf(_SC_PHYS_PAGES);
    const long page_size = sysconf(_SC_PAGE_SIZE);
 
@@ -133,25 +141,25 @@ os_get_total_physical_memory(uint64_t *size)
 
    *size = (uint64_t)phys_pages * (uint64_t)page_size;
    return true;
-#elif defined(PIPE_OS_APPLE) || defined(PIPE_OS_BSD)
+#elif DETECT_OS_APPLE || DETECT_OS_BSD
    size_t len = sizeof(*size);
    int mib[2];
 
    mib[0] = CTL_HW;
-#if defined(PIPE_OS_APPLE)
+#if DETECT_OS_APPLE
    mib[1] = HW_MEMSIZE;
-#elif defined(PIPE_OS_NETBSD) || defined(PIPE_OS_OPENBSD)
+#elif DETECT_OS_NETBSD || DETECT_OS_OPENBSD
    mib[1] = HW_PHYSMEM64;
-#elif defined(PIPE_OS_FREEBSD)
+#elif DETECT_OS_FREEBSD
    mib[1] = HW_REALMEM;
-#elif defined(PIPE_OS_DRAGONFLY)
+#elif DETECT_OS_DRAGONFLY
    mib[1] = HW_PHYSMEM;
 #else
 #error Unsupported *BSD
 #endif
 
    return (sysctl(mib, 2, size, &len, NULL, 0) == 0);
-#elif defined(PIPE_OS_HAIKU)
+#elif DETECT_OS_HAIKU
    system_info info;
    status_t ret;
 
@@ -161,7 +169,7 @@ os_get_total_physical_memory(uint64_t *size)
 
    *size = (uint64_t)info.max_pages * (uint64_t)B_PAGE_SIZE;
    return true;
-#elif defined(PIPE_OS_WINDOWS)
+#elif DETECT_OS_WINDOWS
    MEMORYSTATUSEX status;
    BOOL ret;
 

@@ -82,8 +82,6 @@ typedef union { GLfloat f; GLint i; GLuint u; } fi_type;
 
 
 
-#if defined(_MSC_VER)
-#endif
 /*@}*/
 
 

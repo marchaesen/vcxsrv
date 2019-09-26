@@ -1,0 +1,45 @@
+# vim: set expandtab shiftwidth=2 tabstop=8 textwidth=0:
+
+variables:
+  ARCH_PKGS: 'xorg-util-macros autoconf automake make gettext pkg-config gcc grep m4'
+  BUILDDIR: '_build'
+  INSTDIR: '$HOME/_inst'
+  CONFIGURE_ARGS: ''
+  MAKE_EXTRA_ARG: ''
+
+# We use arch because the image updates frequently and we're not stuck
+# forever in the update phase
+.default_setup:
+  image: archlinux/base
+  before_script:
+    - pacman -S --refresh
+    - pacman -S --sysupgrade --noconfirm
+    - pacman -S --noconfirm $ARCH_PKGS
+
+.default_build:
+  extends: .default_setup
+  script:
+   - rm -rf "$BUILDDIR"
+   - mkdir -p "$BUILDDIR"
+   - mkdir -p "$INSTDIR"
+   - autoreconf -ivf
+   - pushd "$BUILDDIR"
+   - ../configure --prefix="$PWD/../$INSTDIR" --disable-silent-rules --disable-runtime-deps "$CONFIGURE_ARGS"
+   - make
+   - if test x"$MAKE_EXTRA_COMMAND" != "x"; then make $MAKE_EXTRA_COMMAND; fi
+
+make:
+  extends: .default_build
+  stage: build
+
+make_check:
+  extends: .default_build
+  stage: build
+  variables:
+      MAKE_EXTRA_COMMAND: "check"
+
+make_distcheck:
+  extends: .default_build
+  stage: build
+  variables:
+      MAKE_EXTRA_COMMAND: "distcheck"

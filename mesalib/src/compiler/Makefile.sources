@@ -1,6 +1,4 @@
 LIBCOMPILER_FILES = \
-	blob.c \
-	blob.h \
 	builtin_type_macros.h \
 	glsl_types.cpp \
 	glsl_types.h \
@@ -272,6 +270,7 @@ NIR_FILES = \
 	nir/nir_lower_phis_to_scalar.c \
 	nir/nir_lower_regs_to_ssa.c \
 	nir/nir_lower_returns.c \
+	nir/nir_lower_samplers.c \
 	nir/nir_lower_scratch.c \
 	nir/nir_lower_subgroups.c \
 	nir/nir_lower_system_values.c \
@@ -286,7 +285,6 @@ NIR_FILES = \
 	nir/nir_lower_wpos_center.c \
 	nir/nir_lower_wpos_ytransform.c \
 	nir/nir_metadata.c \
-	nir/nir_move_load_const.c \
 	nir/nir_move_vec_src_uses_to_dest.c \
 	nir/nir_normalize_cubemap_coords.c \
 	nir/nir_opt_combine_stores.c \
@@ -306,12 +304,12 @@ NIR_FILES = \
 	nir/nir_opt_intrinsics.c \
 	nir/nir_opt_loop_unroll.c \
 	nir/nir_opt_large_constants.c \
-	nir/nir_opt_move_comparisons.c \
-	nir/nir_opt_move_load_ubo.c \
+	nir/nir_opt_move.c \
 	nir/nir_opt_peephole_select.c \
 	nir/nir_opt_rematerialize_compares.c \
 	nir/nir_opt_remove_phis.c \
 	nir/nir_opt_shrink_load.c \
+	nir/nir_opt_sink.c \
 	nir/nir_opt_trivial_continues.c \
 	nir/nir_opt_undef.c \
 	nir/nir_opt_vectorize.c \
@@ -319,6 +317,8 @@ NIR_FILES = \
 	nir/nir_phi_builder.h \
 	nir/nir_print.c \
 	nir/nir_propagate_invariant.c \
+	nir/nir_range_analysis.c \
+	nir/nir_range_analysis.h \
 	nir/nir_remove_dead_variables.c \
 	nir/nir_repair_ssa.c \
 	nir/nir_search.c \

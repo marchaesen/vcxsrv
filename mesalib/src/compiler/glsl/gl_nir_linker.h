@@ -31,8 +31,17 @@ extern "C" {
 struct gl_context;
 struct gl_shader_program;
 
+struct gl_nir_linker_options {
+   bool fill_parameters;
+};
+
+bool gl_nir_link(struct gl_context *ctx,
+                 struct gl_shader_program *prog,
+                 const struct gl_nir_linker_options *options);
+
 bool gl_nir_link_uniforms(struct gl_context *ctx,
-                          struct gl_shader_program *prog);
+                          struct gl_shader_program *prog,
+                          bool fill_parameters);
 
 void gl_nir_set_uniform_initializers(struct gl_context *ctx,
                                      struct gl_shader_program *prog);

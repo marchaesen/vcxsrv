@@ -33,7 +33,7 @@
 #define DEFINE_CASE(name) case MALI_## name: return "MALI_" #name
 char *pandecode_format(enum mali_format format)
 {
-        static char unk_format_str[5];
+        static char unk_format_str[10];
 
         switch (format) {
                 DEFINE_CASE(RGB565);
@@ -118,7 +118,7 @@ char *pandecode_format(enum mali_format format)
                 DEFINE_CASE(RGBA8_2);
                 DEFINE_CASE(RGB10_A2_2);
         default:
-                snprintf(unk_format_str, sizeof(unk_format_str), "0x%02x", format);
+                snprintf(unk_format_str, sizeof(unk_format_str), "MALI_0x%02x", format);
                 return unk_format_str;
         }
 }

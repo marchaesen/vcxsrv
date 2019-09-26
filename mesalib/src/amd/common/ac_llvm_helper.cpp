@@ -23,12 +23,6 @@
  *
  */
 
-/* based on Marek's patch to lp_bld_misc.cpp */
-
-// Workaround http://llvm.org/PR23628
-#pragma push_macro("DEBUG")
-#undef DEBUG
-
 #include <cstring>
 
 #include "ac_binary.h"

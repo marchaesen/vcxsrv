@@ -102,6 +102,9 @@ struct util_format_block
    /** Block height in pixels */
    unsigned height;
 
+   /** Block depth in pixels */
+   unsigned depth;
+
    /** Block size in bits */
    unsigned bits;
 };
@@ -570,7 +573,7 @@ util_format_is_depth_and_stencil(enum pipe_format format)
 /**
  * For depth-stencil formats, return the equivalent depth-only format.
  */
-static inline boolean
+static inline enum pipe_format
 util_format_get_depth_only(enum pipe_format format)
 {
    switch (format) {
@@ -842,6 +845,19 @@ util_format_get_blockheight(enum pipe_format format)
    return desc->block.height;
 }
 
+static inline uint
+util_format_get_blockdepth(enum pipe_format format)
+{
+   const struct util_format_description *desc = util_format_description(format);
+
+   assert(desc);
+   if (!desc) {
+      return 1;
+   }
+
+   return desc->block.depth;
+}
+
 static inline unsigned
 util_format_get_nblocksx(enum pipe_format format,
                          unsigned x)
@@ -859,10 +875,19 @@ util_format_get_nblocksy(enum pipe_format format,
 }
 
 static inline unsigned
+util_format_get_nblocksz(enum pipe_format format,
+                         unsigned z)
+{
+   unsigned blockdepth = util_format_get_blockdepth(format);
+   return (z + blockdepth - 1) / blockdepth;
+}
+
+static inline unsigned
 util_format_get_nblocks(enum pipe_format format,
                         unsigned width,
                         unsigned height)
 {
+   assert(util_format_get_blockdepth(format) == 1);
    return util_format_get_nblocksx(format, width) * util_format_get_nblocksy(format, height);
 }
 
@@ -870,7 +895,7 @@ static inline size_t
 util_format_get_stride(enum pipe_format format,
                        unsigned width)
 {
-   return util_format_get_nblocksx(format, width) * util_format_get_blocksize(format);
+   return (size_t)util_format_get_nblocksx(format, width) * util_format_get_blocksize(format);
 }
 
 static inline size_t
@@ -971,6 +996,12 @@ util_format_srgb(enum pipe_format format)
       return PIPE_FORMAT_B5G6R5_SRGB;
    case PIPE_FORMAT_BPTC_RGBA_UNORM:
       return PIPE_FORMAT_BPTC_SRGBA;
+   case PIPE_FORMAT_ETC2_RGB8:
+      return PIPE_FORMAT_ETC2_SRGB8;
+   case PIPE_FORMAT_ETC2_RGB8A1:
+      return PIPE_FORMAT_ETC2_SRGB8A1;
+   case PIPE_FORMAT_ETC2_RGBA8:
+      return PIPE_FORMAT_ETC2_SRGBA8;
    case PIPE_FORMAT_ASTC_4x4:
       return PIPE_FORMAT_ASTC_4x4_SRGB;
    case PIPE_FORMAT_ASTC_5x4:
@@ -1049,6 +1080,12 @@ util_format_linear(enum pipe_format format)
       return PIPE_FORMAT_B5G6R5_UNORM;
    case PIPE_FORMAT_BPTC_SRGBA:
       return PIPE_FORMAT_BPTC_RGBA_UNORM;
+   case PIPE_FORMAT_ETC2_SRGB8:
+      return PIPE_FORMAT_ETC2_RGB8;
+   case PIPE_FORMAT_ETC2_SRGB8A1:
+      return PIPE_FORMAT_ETC2_RGB8A1;
+   case PIPE_FORMAT_ETC2_SRGBA8:
+      return PIPE_FORMAT_ETC2_RGBA8;
    case PIPE_FORMAT_ASTC_4x4_SRGB:
       return PIPE_FORMAT_ASTC_4x4;
    case PIPE_FORMAT_ASTC_5x4_SRGB:

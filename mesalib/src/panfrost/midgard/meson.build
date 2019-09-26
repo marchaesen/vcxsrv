@@ -24,6 +24,7 @@ libpanfrost_midgard_files = files(
   'mir.c',
   'midgard_print.c',
   'midgard_schedule.c',
+  'midgard_derivatives.c',
   'midgard_emit.c',
   'midgard_ra.c',
   'midgard_ra_pipeline.c',
@@ -33,8 +34,8 @@ libpanfrost_midgard_files = files(
   'midgard_opt_copy_prop.c',
   'midgard_opt_dce.c',
   'midgard_opt_invert.c',
+  'midgard_opt_float.c',
   'midgard_opt_perspective.c',
-  'cppwrap.cpp',
   'disassemble.c',
 )
 

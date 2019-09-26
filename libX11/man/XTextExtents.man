@@ -38,46 +38,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XTextExtents __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XTextExtents, XTextExtents16, XQueryTextExtents, XQueryTextExtents16 \- compute or query text extents
@@ -86,12 +53,12 @@ XTextExtents, XTextExtents16, XQueryTextExtents, XQueryTextExtents16 \- compute 
 int XTextExtents\^(\^XFontStruct *\fIfont_struct\fP\^, char *\fIstring\fP\^,
 int \fInchars\fP\^, int *\fIdirection_return\fP\^, int
 *\fIfont_ascent_return\fP, int *\fIfont_descent_return\fP\^, XCharStruct
-*\fIoverall_return\fP\^); 
+*\fIoverall_return\fP\^);
 .HP
 int XTextExtents16\^(\^XFontStruct *\fIfont_struct\fP\^, XChar2b
 *\fIstring\fP\^, int \fInchars\fP\^, int *\fIdirection_return\fP\^, int
 *\fIfont_ascent_return\fP, int *\fIfont_descent_return\fP\^, XCharStruct
-*\fIoverall_return\fP\^); 
+*\fIoverall_return\fP\^);
 .HP
 int XQueryTextExtents\^(\^Display *\fIdisplay\fP\^, XID \fIfont_ID\fP\^, char
 *\fIstring\fP\^, int \fInchars\fP\^, int *\fIdirection_return\fP\^, int
@@ -101,7 +68,7 @@ int XQueryTextExtents\^(\^Display *\fIdisplay\fP\^, XID \fIfont_ID\fP\^, char
 int XQueryTextExtents16\^(\^Display *\fIdisplay\fP\^, XID \fIfont_ID\fP\^,
 XChar2b *\fIstring\fP\^, int \fInchars\fP\^, int *\fIdirection_return\fP\^,
 int *\fIfont_ascent_return\fP, int *\fIfont_descent_return\fP\^, XCharStruct
-*\fIoverall_return\fP\^); 
+*\fIoverall_return\fP\^);
 .SH ARGUMENTS
 .IP \fIdirection_return\fP 1i
 Returns the value of the direction hint
@@ -111,7 +78,7 @@ or
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fIfont_ID\fP 1i
-Specifies either the font ID or the 
+Specifies either the font ID or the
 .B GContext
 ID that contains the font.
 .IP \fIfont_ascent_return\fP 1i
@@ -119,7 +86,7 @@ Returns the font ascent.
 .IP \fIfont_descent_return\fP 1i
 Returns the font descent.
 .IP \fIfont_struct\fP 1i
-Specifies the 
+Specifies the
 .B XFontStruct
 structure.
 .IP \fInchars\fP 1i
@@ -135,7 +102,7 @@ The
 .B XTextExtents
 and
 .B XTextExtents16
-functions 
+functions
 perform the size computation locally and, thereby,
 avoid the round-trip overhead of
 .B XQueryTextExtents
@@ -151,7 +118,7 @@ The descent member is set to the maximum of the descent metrics.
 The width member is set to the sum of the character-width metrics of all
 characters in the string.
 For each character in the string,
-let W be the sum of the character-width metrics of all characters preceding 
+let W be the sum of the character-width metrics of all characters preceding
 it in the string.
 Let L be the left-side-bearing metric of the character plus W.
 Let R be the right-side-bearing metric of the character plus W.
@@ -159,9 +126,9 @@ The lbearing member is set to the minimum L of all characters in the string.
 The rbearing member is set to the maximum R.
 .LP
 For fonts defined with linear indexing rather than 2-byte matrix indexing,
-each 
+each
 .B XChar2b
-structure is interpreted as a 16-bit number with byte1 as the 
+structure is interpreted as a 16-bit number with byte1 as the
 most significant byte.
 If the font has no defined default character,
 undefined characters in the string are taken to have all zero metrics.
@@ -176,16 +143,16 @@ specified GC.
 These functions query the X server and, therefore, suffer the round-trip
 overhead that is avoided by
 .B XTextExtents
-and 
+and
 .BR XTextExtents16 .
 Both functions return a
 .B XCharStruct
 structure, whose members are set to the values as follows.
 .LP
-The ascent member is set to the maximum of the ascent metrics 
+The ascent member is set to the maximum of the ascent metrics
 of all characters in the string.
 The descent member is set to the maximum of the descent metrics.
-The width member is set to the sum of the character-width metrics 
+The width member is set to the sum of the character-width metrics
 of all characters in the string.
 For each character in the string,
 let W be the sum of the character-width metrics of all characters preceding
@@ -196,9 +163,9 @@ The lbearing member is set to the minimum L of all characters in the string.
 The rbearing member is set to the maximum R.
 .LP
 For fonts defined with linear indexing rather than 2-byte matrix indexing,
-each 
+each
 .B XChar2b
-structure is interpreted as a 16-bit number with byte1 as the 
+structure is interpreted as a 16-bit number with byte1 as the
 most significant byte.
 If the font has no defined default character,
 undefined characters in the string are taken to have all zero metrics.

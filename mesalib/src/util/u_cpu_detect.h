@@ -36,7 +36,6 @@
 #define _UTIL_CPU_DETECT_H
 
 
-#include "pipe/p_compiler.h"
 #include "pipe/p_config.h"
 
 

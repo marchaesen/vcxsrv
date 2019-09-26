@@ -38,46 +38,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XCreateFontSet __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XCreateFontSet, XFreeFontSet \- create and free an international text drawing font set
@@ -87,7 +54,7 @@ XFontSet XCreateFontSet\^(\^Display *\fIdisplay\fP\^, char
 *\fIbase_font_name_list\fP\^, char ***\fImissing_charset_list_return\fP\^, int
 *\fImissing_charset_count_return\fP\^, char **\fIdef_string_return\fP\^);
 .HP
-void XFreeFontSet\^(\^Display *\fIdisplay\fP\^, XFontSet \fIfont_set\fP\^); 
+void XFreeFontSet\^(\^Display *\fIdisplay\fP\^, XFontSet \fIfont_set\fP\^);
 .SH ARGUMENTS
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
@@ -102,10 +69,10 @@ Returns the number of missing charsets.
 .IP \fImissing_charset_list_return\fP 1i
 Returns the missing charsets.
 .SH DESCRIPTION
-The 
+The
 .B XCreateFontSet
 function creates a font set for the specified display.
-The font set is bound to the current locale when 
+The font set is bound to the current locale when
 .B XCreateFontSet
 is called.
 The font set may be used in subsequent calls to obtain font
@@ -115,7 +82,7 @@ The base_font_name_list argument is a list of base font names
 that Xlib uses to load the fonts needed for the locale.
 The base font names are a comma-separated list.
 The string is null-terminated
-and is assumed to be in the Host Portable Character Encoding; 
+and is assumed to be in the Host Portable Character Encoding;
 otherwise, the result is implementation-dependent.
 White space immediately on either side of a separating comma is ignored.
 .LP
@@ -136,17 +103,17 @@ If this action is successful in obtaining an XLFD name, the
 function will return this XLFD name instead of the client-supplied name.
 .LP
 Xlib uses the following algorithm to select the fonts
-that will be used to display text with the 
+that will be used to display text with the
 .BR XFontSet .
 .LP
 For each font charset required by the locale,
-the base font name list is searched for the first appearance of one 
+the base font name list is searched for the first appearance of one
 of the following cases that names a set of fonts that exist at the server:
 .IP \(bu 5
 The first XLFD-conforming base font name that specifies the required
-charset or a superset of the required charset in its 
+charset or a superset of the required charset in its
 .B CharSetRegistry
-and 
+and
 .B CharSetEncoding
 fields.
 The implementation may use a base font name whose specified charset
@@ -156,17 +123,17 @@ an ISO8859-1 font for an ASCII charset.
 The first set of one or more XLFD-conforming base font names
 that specify one or more charsets that can be remapped to support the
 required charset.
-The Xlib implementation may recognize various mappings 
+The Xlib implementation may recognize various mappings
 from a required charset to one or more other charsets
 and use the fonts for those charsets.
-For example, JIS Roman is ASCII with tilde and backslash replaced 
+For example, JIS Roman is ASCII with tilde and backslash replaced
 by yen and overbar;
 Xlib may load an ISO8859-1 font to support this character set
 if a JIS Roman font is not available.
 .IP \(bu 5
 The first XLFD-conforming font name or the first non-XLFD font name
 for which an XLFD font name can be obtained, combined with the
-required charset (replacing the 
+required charset (replacing the
 .B CharSetRegistry
 and
 .B CharSetEncoding
@@ -180,48 +147,48 @@ manner to one or more fonts that support imaging text in the charset.
 .LP
 For example, assume that a locale required the charsets:
 .LP
-.Ds 0
+.EX
 ISO8859-1
 JISX0208.1983
 JISX0201.1976
 GB2312-1980.0
-.De
+.EE
 .LP
 The user could supply a base_font_name_list that explicitly specifies the
 charsets, ensuring that specific fonts are used if they exist.
 For example:
 .LP
-.Ds 0
+.EX
 "-JIS-Fixed-Medium-R-Normal--26-180-100-100-C-240-JISX0208.1983-0,\\
 -JIS-Fixed-Medium-R-Normal--26-180-100-100-C-120-JISX0201.1976-0,\\
 -GB-Fixed-Medium-R-Normal--26-180-100-100-C-240-GB2312-1980.0,\\
 -Adobe-Courier-Bold-R-Normal--25-180-75-75-M-150-ISO8859-1"
-.De
+.EE
 .LP
 Alternatively, the user could supply a base_font_name_list
 that omits the charsets,
 letting Xlib select font charsets required for the locale.
 For example:
 .LP
-.Ds 0
+.EX
 "-JIS-Fixed-Medium-R-Normal--26-180-100-100-C-240,\\
 -JIS-Fixed-Medium-R-Normal--26-180-100-100-C-120,\\
 -GB-Fixed-Medium-R-Normal--26-180-100-100-C-240,\\
 -Adobe-Courier-Bold-R-Normal--25-180-100-100-M-150"
-.De
+.EE
 .LP
 Alternatively, the user could simply supply a single base font name
 that allows Xlib to select from all available fonts
 that meet certain minimum XLFD property requirements.
 For example:
 .LP
-.Ds 0
+.EX
 "-*-*-*-R-Normal--*-180-100-100-*-*"
-.De
+.EE
 .LP
-If 
+If
 .B XCreateFontSet
-is unable to create the font set, 
+is unable to create the font set,
 either because there is insufficient memory or because the current locale
 is not supported,
 .B XCreateFontSet
@@ -246,12 +213,12 @@ may be able to remap a required charset.
 .LP
 If no font exists for any of the required charsets
 or if the locale definition in Xlib requires that a font exist
-for a particular charset and a font is not found for that charset, 
+for a particular charset and a font is not found for that charset,
 .B XCreateFontSet
 returns NULL.
-Otherwise, 
+Otherwise,
 .B XCreateFontSet
-returns a valid 
+returns a valid
 .B XFontSet
 to font_set.
 .LP
@@ -262,24 +229,24 @@ drawable.
 If def_string_return is non-NULL,
 .B XCreateFontSet
 returns a pointer to a string that represents the glyphs
-that are drawn with this 
+that are drawn with this
 .B XFontSet
 when the charsets of the available fonts do not include all font glyphs
 required to draw a codepoint.
-The string does not necessarily consist of valid characters 
+The string does not necessarily consist of valid characters
 in the current locale and is not necessarily drawn with
 the fonts loaded for the font set,
 but the client can draw and measure the default glyphs
-by including this string in a string being drawn or measured with the 
+by including this string in a string being drawn or measured with the
 .BR XFontSet .
 .LP
 If the string returned to def_string_return is the empty string ("\^"),
 no glyphs are drawn, and the escapement is zero.
 The returned string is null-terminated.
 It is owned by Xlib and should not be modified or freed by the client.
-It will be freed by a call to 
+It will be freed by a call to
 .B XFreeFontSet
-with the associated 
+with the associated
 .BR XFontSet .
 Until freed, its contents will not be modified by Xlib.
 .LP
@@ -287,23 +254,23 @@ The client is responsible for constructing an error message from the
 missing charset and default string information and may choose to continue
 operation in the case that some fonts did not exist.
 .LP
-The returned 
+The returned
 .B XFontSet
-and missing charset list should be freed with 
+and missing charset list should be freed with
 .B XFreeFontSet
 and
 .BR XFreeStringList ,
 respectively.
-The client-supplied base_font_name_list may be freed 
-by the client after calling 
+The client-supplied base_font_name_list may be freed
+by the client after calling
 .BR XCreateFontSet .
 .LP
 The
 .B XFreeFontSet
 function frees the specified font set.
-The associated base font name list, font name list, 
+The associated base font name list, font name list,
 .B XFontStruct
-list, and 
+list, and
 .BR XFontSetExtents ,
 if any, are freed.
 .SH "SEE ALSO"

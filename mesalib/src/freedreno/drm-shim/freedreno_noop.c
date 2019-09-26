@@ -84,14 +84,15 @@ msm_ioctl_gem_info(int fd, unsigned long request, void *arg)
 	switch (args->info) {
 	case MSM_INFO_GET_OFFSET:
 		args->value = drm_shim_bo_get_mmap_offset(shim_fd, bo);
-		return 0;
+		break;
 	case MSM_INFO_GET_IOVA:
 		args->value = msm_bo(bo)->offset;
-		return 0;
+		break;
 	case MSM_INFO_SET_NAME:
-		return 0;
+		break;
 	default:
 		fprintf(stderr, "Unknown DRM_IOCTL_MSM_GEM_INFO %d\n", args->info);
+		drm_shim_bo_put(bo);
 		return -1;
 	}
 

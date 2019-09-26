@@ -215,13 +215,15 @@ print_block(struct ir3_block *block, int lvl)
 {
 	tab(lvl); printf("block%u {\n", block_id(block));
 
-	if (block->predecessors_count > 0) {
+	if (block->predecessors->entries > 0) {
+		unsigned i = 0;
 		tab(lvl+1);
 		printf("pred: ");
-		for (unsigned i = 0; i < block->predecessors_count; i++) {
-			if (i)
+		set_foreach(block->predecessors, entry) {
+			struct ir3_block *pred = (struct ir3_block *)entry->key;
+			if (i++)
 				printf(", ");
-			printf("block%u", block_id(block->predecessors[i]));
+			printf("block%u", block_id(pred));
 		}
 		printf("\n");
 	}

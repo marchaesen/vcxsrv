@@ -38,6 +38,7 @@
 #include <xf86drm.h>
 #include "drm-uapi/drm_fourcc.h"
 #include "util/hash_table.h"
+#include "util/xmlconfig.h"
 
 #include "vk_util.h"
 #include "wsi_common_private.h"
@@ -522,6 +523,9 @@ x11_surface_get_capabilities(VkIcdSurfaceBase *icd_surface,
    caps->minImageCount = 3;
    /* There is no real maximum */
    caps->maxImageCount = 0;
+
+   if (wsi_device->x11.override_minImageCount)
+      caps->minImageCount = wsi_device->x11.override_minImageCount;
 
    caps->supportedTransforms = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
    caps->currentTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
@@ -1409,7 +1413,9 @@ x11_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
    assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
 
    unsigned num_images = pCreateInfo->minImageCount;
-   if (present_mode == VK_PRESENT_MODE_MAILBOX_KHR)
+   if (wsi_device->x11.strict_imageCount)
+      num_images = pCreateInfo->minImageCount;
+   else if (present_mode == VK_PRESENT_MODE_MAILBOX_KHR)
       num_images = MAX2(num_images, 5);
 
    xcb_connection_t *conn = x11_surface_get_connection(icd_surface);
@@ -1589,7 +1595,8 @@ fail_alloc:
 
 VkResult
 wsi_x11_init_wsi(struct wsi_device *wsi_device,
-                 const VkAllocationCallbacks *alloc)
+                 const VkAllocationCallbacks *alloc,
+                 const struct driOptionCache *dri_options)
 {
    struct wsi_x11 *wsi;
    VkResult result;
@@ -1618,6 +1625,17 @@ wsi_x11_init_wsi(struct wsi_device *wsi_device,
    if (!wsi->connections) {
       result = VK_ERROR_OUT_OF_HOST_MEMORY;
       goto fail_mutex;
+   }
+
+   if (dri_options) {
+      if (driCheckOption(dri_options, "vk_x11_override_min_image_count", DRI_INT)) {
+         wsi_device->x11.override_minImageCount =
+            driQueryOptioni(dri_options, "vk_x11_override_min_image_count");
+      }
+      if (driCheckOption(dri_options, "vk_x11_strict_image_count", DRI_BOOL)) {
+         wsi_device->x11.strict_imageCount =
+            driQueryOptionb(dri_options, "vk_x11_strict_image_count");
+      }
    }
 
    wsi->base.get_support = x11_surface_get_support;

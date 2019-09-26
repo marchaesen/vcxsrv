@@ -245,10 +245,10 @@ handle_printf(struct vtn_builder *b, enum OpenCLstd_Entrypoints opcode,
 }
 
 bool
-vtn_handle_opencl_instruction(struct vtn_builder *b, uint32_t ext_opcode,
+vtn_handle_opencl_instruction(struct vtn_builder *b, SpvOp ext_opcode,
                               const uint32_t *w, unsigned count)
 {
-   switch (ext_opcode) {
+   switch ((enum OpenCLstd_Entrypoints)ext_opcode) {
    case OpenCLstd_Fabs:
    case OpenCLstd_SAbs:
    case OpenCLstd_UAbs:

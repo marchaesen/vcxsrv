@@ -302,13 +302,16 @@ LC_ALL=C
 export LC_ALL
 ${CPP:-cpp} "$@" sdksyms.c > /dev/null || exit $?
 ${CPP:-cpp} "$@" sdksyms.c | ${AWK:-awk} -v topdir=$topdir '
+function basename(file) {
+    sub(".*/", "", file)
+    return file
+}
 BEGIN {
     sdk = 0;
     print("/*");
     print(" * These symbols are referenced to ensure they");
     print(" * will be available in the X Server binary.");
     print(" */");
-    printf("/* topdir=%s */\n", topdir);
     print("_X_HIDDEN void *xorg_symbols[] = {");
 
     printf("sdksyms.c:") > "sdksyms.dep";
@@ -337,7 +340,7 @@ BEGIN {
 	# remove quotes
 	gsub(/"/, "", $3);
 	line = $2;
-	header = $3;
+	header = basename($3);
 	if (! headers[$3]) {
 	    printf(" \\\n  %s", $3) >> "sdksyms.dep";
 	    headers[$3] = 1;

@@ -166,8 +166,8 @@ extern __thread struct _glapi_table *_glapi_tls_Dispatch
 </blockquote>
 
 <p>Use of this path is controlled by the preprocessor define
-<code>GLX_USE_TLS</code>.  Any platform capable of using TLS should use this as
-the default dispatch method.</p>
+<code>USE_ELF_TLS</code>.  Any platform capable of using ELF TLS should use this
+as the default dispatch method.</p>
 
 <h3>3.3. Assembly Language Dispatch Stubs</h3>
 
@@ -204,7 +204,7 @@ terribly relevant.</p>
 few preprocessor defines.</p>
 
 <ul>
-<li>If <code>GLX_USE_TLS</code> is defined, method #3 is used.</li>
+<li>If <code>USE_ELF_TLS</code> is defined, method #3 is used.</li>
 <li>If <code>HAVE_PTHREAD</code> is defined, method #2 is used.</li>
 <li>If none of the preceding are defined, method #1 is used.</li>
 </ul>

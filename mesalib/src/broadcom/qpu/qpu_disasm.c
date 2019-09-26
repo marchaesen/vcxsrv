@@ -64,7 +64,7 @@ v3d_qpu_disasm_raddr(struct disasm_state *disasm,
         } else if (mux == V3D_QPU_MUX_B) {
                 if (instr->sig.small_imm) {
                         uint32_t val;
-                        MAYBE_UNUSED bool ok =
+                        ASSERTED bool ok =
                                 v3d_qpu_small_imm_unpack(disasm->devinfo,
                                                          instr->raddr_b,
                                                          &val);

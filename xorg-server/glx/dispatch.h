@@ -63,7 +63,7 @@
     } while(0)
 
 /* total number of offsets below */
-#define _gloffset_COUNT 1467
+#define _gloffset_COUNT 1534
 
 #define _gloffset_NewList 0
 #define _gloffset_EndList 1
@@ -473,7 +473,7 @@
 #define _gloffset_MultiTexCoord4iv 405
 #define _gloffset_MultiTexCoord4s 406
 #define _gloffset_MultiTexCoord4sv 407
-#define driDispatchRemapTable_size 1059
+#define driDispatchRemapTable_size 1126
 SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 
 #define CompressedTexImage1D_remap_index 0
@@ -1524,17 +1524,84 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define CopyTextureSubImage1DEXT_remap_index 1045
 #define CopyTextureSubImage2DEXT_remap_index 1046
 #define CopyTextureSubImage3DEXT_remap_index 1047
-#define CompressedTextureSubImage2DEXT_remap_index 1048
-#define MapNamedBufferEXT_remap_index 1049
-#define GetTextureParameterivEXT_remap_index 1050
-#define GetTextureParameterfvEXT_remap_index 1051
-#define TextureParameteriEXT_remap_index 1052
-#define TextureParameterivEXT_remap_index 1053
-#define TextureParameterfEXT_remap_index 1054
-#define TextureParameterfvEXT_remap_index 1055
-#define GetTextureImageEXT_remap_index 1056
-#define GetTextureLevelParameterivEXT_remap_index 1057
-#define GetTextureLevelParameterfvEXT_remap_index 1058
+#define MapNamedBufferEXT_remap_index 1048
+#define GetTextureParameterivEXT_remap_index 1049
+#define GetTextureParameterfvEXT_remap_index 1050
+#define TextureParameteriEXT_remap_index 1051
+#define TextureParameterivEXT_remap_index 1052
+#define TextureParameterfEXT_remap_index 1053
+#define TextureParameterfvEXT_remap_index 1054
+#define GetTextureImageEXT_remap_index 1055
+#define GetTextureLevelParameterivEXT_remap_index 1056
+#define GetTextureLevelParameterfvEXT_remap_index 1057
+#define GetNamedBufferSubDataEXT_remap_index 1058
+#define GetNamedBufferPointervEXT_remap_index 1059
+#define GetNamedBufferParameterivEXT_remap_index 1060
+#define FlushMappedNamedBufferRangeEXT_remap_index 1061
+#define FramebufferDrawBufferEXT_remap_index 1062
+#define FramebufferDrawBuffersEXT_remap_index 1063
+#define FramebufferReadBufferEXT_remap_index 1064
+#define GetFramebufferParameterivEXT_remap_index 1065
+#define CheckNamedFramebufferStatusEXT_remap_index 1066
+#define NamedFramebufferTexture1DEXT_remap_index 1067
+#define NamedFramebufferTexture2DEXT_remap_index 1068
+#define NamedFramebufferTexture3DEXT_remap_index 1069
+#define NamedFramebufferRenderbufferEXT_remap_index 1070
+#define GetNamedFramebufferAttachmentParameterivEXT_remap_index 1071
+#define EnableClientStateiEXT_remap_index 1072
+#define DisableClientStateiEXT_remap_index 1073
+#define GetPointerIndexedvEXT_remap_index 1074
+#define MultiTexEnviEXT_remap_index 1075
+#define MultiTexEnvivEXT_remap_index 1076
+#define MultiTexEnvfEXT_remap_index 1077
+#define MultiTexEnvfvEXT_remap_index 1078
+#define GetMultiTexEnvivEXT_remap_index 1079
+#define GetMultiTexEnvfvEXT_remap_index 1080
+#define MultiTexParameteriEXT_remap_index 1081
+#define MultiTexParameterivEXT_remap_index 1082
+#define MultiTexParameterfEXT_remap_index 1083
+#define MultiTexParameterfvEXT_remap_index 1084
+#define GetMultiTexImageEXT_remap_index 1085
+#define MultiTexImage1DEXT_remap_index 1086
+#define MultiTexImage2DEXT_remap_index 1087
+#define MultiTexImage3DEXT_remap_index 1088
+#define MultiTexSubImage1DEXT_remap_index 1089
+#define MultiTexSubImage2DEXT_remap_index 1090
+#define MultiTexSubImage3DEXT_remap_index 1091
+#define GetMultiTexParameterivEXT_remap_index 1092
+#define GetMultiTexParameterfvEXT_remap_index 1093
+#define CopyMultiTexImage1DEXT_remap_index 1094
+#define CopyMultiTexImage2DEXT_remap_index 1095
+#define CopyMultiTexSubImage1DEXT_remap_index 1096
+#define CopyMultiTexSubImage2DEXT_remap_index 1097
+#define CopyMultiTexSubImage3DEXT_remap_index 1098
+#define MultiTexGendEXT_remap_index 1099
+#define MultiTexGendvEXT_remap_index 1100
+#define MultiTexGenfEXT_remap_index 1101
+#define MultiTexGenfvEXT_remap_index 1102
+#define MultiTexGeniEXT_remap_index 1103
+#define MultiTexGenivEXT_remap_index 1104
+#define GetMultiTexGendvEXT_remap_index 1105
+#define GetMultiTexGenfvEXT_remap_index 1106
+#define GetMultiTexGenivEXT_remap_index 1107
+#define MultiTexCoordPointerEXT_remap_index 1108
+#define BindImageTextureEXT_remap_index 1109
+#define CompressedTextureImage1DEXT_remap_index 1110
+#define CompressedTextureImage2DEXT_remap_index 1111
+#define CompressedTextureImage3DEXT_remap_index 1112
+#define CompressedTextureSubImage1DEXT_remap_index 1113
+#define CompressedTextureSubImage2DEXT_remap_index 1114
+#define CompressedTextureSubImage3DEXT_remap_index 1115
+#define GetCompressedTextureImageEXT_remap_index 1116
+#define CompressedMultiTexImage1DEXT_remap_index 1117
+#define CompressedMultiTexImage2DEXT_remap_index 1118
+#define CompressedMultiTexImage3DEXT_remap_index 1119
+#define CompressedMultiTexSubImage1DEXT_remap_index 1120
+#define CompressedMultiTexSubImage2DEXT_remap_index 1121
+#define CompressedMultiTexSubImage3DEXT_remap_index 1122
+#define GetCompressedMultiTexImageEXT_remap_index 1123
+#define GetMultiTexLevelParameterivEXT_remap_index 1124
+#define GetMultiTexLevelParameterfvEXT_remap_index 1125
 
 #define _gloffset_CompressedTexImage1D driDispatchRemapTable[CompressedTexImage1D_remap_index]
 #define _gloffset_CompressedTexImage2D driDispatchRemapTable[CompressedTexImage2D_remap_index]
@@ -2584,7 +2651,6 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define _gloffset_CopyTextureSubImage1DEXT driDispatchRemapTable[CopyTextureSubImage1DEXT_remap_index]
 #define _gloffset_CopyTextureSubImage2DEXT driDispatchRemapTable[CopyTextureSubImage2DEXT_remap_index]
 #define _gloffset_CopyTextureSubImage3DEXT driDispatchRemapTable[CopyTextureSubImage3DEXT_remap_index]
-#define _gloffset_CompressedTextureSubImage2DEXT driDispatchRemapTable[CompressedTextureSubImage2DEXT_remap_index]
 #define _gloffset_MapNamedBufferEXT driDispatchRemapTable[MapNamedBufferEXT_remap_index]
 #define _gloffset_GetTextureParameterivEXT driDispatchRemapTable[GetTextureParameterivEXT_remap_index]
 #define _gloffset_GetTextureParameterfvEXT driDispatchRemapTable[GetTextureParameterfvEXT_remap_index]
@@ -2595,6 +2661,74 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define _gloffset_GetTextureImageEXT driDispatchRemapTable[GetTextureImageEXT_remap_index]
 #define _gloffset_GetTextureLevelParameterivEXT driDispatchRemapTable[GetTextureLevelParameterivEXT_remap_index]
 #define _gloffset_GetTextureLevelParameterfvEXT driDispatchRemapTable[GetTextureLevelParameterfvEXT_remap_index]
+#define _gloffset_GetNamedBufferSubDataEXT driDispatchRemapTable[GetNamedBufferSubDataEXT_remap_index]
+#define _gloffset_GetNamedBufferPointervEXT driDispatchRemapTable[GetNamedBufferPointervEXT_remap_index]
+#define _gloffset_GetNamedBufferParameterivEXT driDispatchRemapTable[GetNamedBufferParameterivEXT_remap_index]
+#define _gloffset_FlushMappedNamedBufferRangeEXT driDispatchRemapTable[FlushMappedNamedBufferRangeEXT_remap_index]
+#define _gloffset_FramebufferDrawBufferEXT driDispatchRemapTable[FramebufferDrawBufferEXT_remap_index]
+#define _gloffset_FramebufferDrawBuffersEXT driDispatchRemapTable[FramebufferDrawBuffersEXT_remap_index]
+#define _gloffset_FramebufferReadBufferEXT driDispatchRemapTable[FramebufferReadBufferEXT_remap_index]
+#define _gloffset_GetFramebufferParameterivEXT driDispatchRemapTable[GetFramebufferParameterivEXT_remap_index]
+#define _gloffset_CheckNamedFramebufferStatusEXT driDispatchRemapTable[CheckNamedFramebufferStatusEXT_remap_index]
+#define _gloffset_NamedFramebufferTexture1DEXT driDispatchRemapTable[NamedFramebufferTexture1DEXT_remap_index]
+#define _gloffset_NamedFramebufferTexture2DEXT driDispatchRemapTable[NamedFramebufferTexture2DEXT_remap_index]
+#define _gloffset_NamedFramebufferTexture3DEXT driDispatchRemapTable[NamedFramebufferTexture3DEXT_remap_index]
+#define _gloffset_NamedFramebufferRenderbufferEXT driDispatchRemapTable[NamedFramebufferRenderbufferEXT_remap_index]
+#define _gloffset_GetNamedFramebufferAttachmentParameterivEXT driDispatchRemapTable[GetNamedFramebufferAttachmentParameterivEXT_remap_index]
+#define _gloffset_EnableClientStateiEXT driDispatchRemapTable[EnableClientStateiEXT_remap_index]
+#define _gloffset_DisableClientStateiEXT driDispatchRemapTable[DisableClientStateiEXT_remap_index]
+#define _gloffset_GetPointerIndexedvEXT driDispatchRemapTable[GetPointerIndexedvEXT_remap_index]
+#define _gloffset_MultiTexEnviEXT driDispatchRemapTable[MultiTexEnviEXT_remap_index]
+#define _gloffset_MultiTexEnvivEXT driDispatchRemapTable[MultiTexEnvivEXT_remap_index]
+#define _gloffset_MultiTexEnvfEXT driDispatchRemapTable[MultiTexEnvfEXT_remap_index]
+#define _gloffset_MultiTexEnvfvEXT driDispatchRemapTable[MultiTexEnvfvEXT_remap_index]
+#define _gloffset_GetMultiTexEnvivEXT driDispatchRemapTable[GetMultiTexEnvivEXT_remap_index]
+#define _gloffset_GetMultiTexEnvfvEXT driDispatchRemapTable[GetMultiTexEnvfvEXT_remap_index]
+#define _gloffset_MultiTexParameteriEXT driDispatchRemapTable[MultiTexParameteriEXT_remap_index]
+#define _gloffset_MultiTexParameterivEXT driDispatchRemapTable[MultiTexParameterivEXT_remap_index]
+#define _gloffset_MultiTexParameterfEXT driDispatchRemapTable[MultiTexParameterfEXT_remap_index]
+#define _gloffset_MultiTexParameterfvEXT driDispatchRemapTable[MultiTexParameterfvEXT_remap_index]
+#define _gloffset_GetMultiTexImageEXT driDispatchRemapTable[GetMultiTexImageEXT_remap_index]
+#define _gloffset_MultiTexImage1DEXT driDispatchRemapTable[MultiTexImage1DEXT_remap_index]
+#define _gloffset_MultiTexImage2DEXT driDispatchRemapTable[MultiTexImage2DEXT_remap_index]
+#define _gloffset_MultiTexImage3DEXT driDispatchRemapTable[MultiTexImage3DEXT_remap_index]
+#define _gloffset_MultiTexSubImage1DEXT driDispatchRemapTable[MultiTexSubImage1DEXT_remap_index]
+#define _gloffset_MultiTexSubImage2DEXT driDispatchRemapTable[MultiTexSubImage2DEXT_remap_index]
+#define _gloffset_MultiTexSubImage3DEXT driDispatchRemapTable[MultiTexSubImage3DEXT_remap_index]
+#define _gloffset_GetMultiTexParameterivEXT driDispatchRemapTable[GetMultiTexParameterivEXT_remap_index]
+#define _gloffset_GetMultiTexParameterfvEXT driDispatchRemapTable[GetMultiTexParameterfvEXT_remap_index]
+#define _gloffset_CopyMultiTexImage1DEXT driDispatchRemapTable[CopyMultiTexImage1DEXT_remap_index]
+#define _gloffset_CopyMultiTexImage2DEXT driDispatchRemapTable[CopyMultiTexImage2DEXT_remap_index]
+#define _gloffset_CopyMultiTexSubImage1DEXT driDispatchRemapTable[CopyMultiTexSubImage1DEXT_remap_index]
+#define _gloffset_CopyMultiTexSubImage2DEXT driDispatchRemapTable[CopyMultiTexSubImage2DEXT_remap_index]
+#define _gloffset_CopyMultiTexSubImage3DEXT driDispatchRemapTable[CopyMultiTexSubImage3DEXT_remap_index]
+#define _gloffset_MultiTexGendEXT driDispatchRemapTable[MultiTexGendEXT_remap_index]
+#define _gloffset_MultiTexGendvEXT driDispatchRemapTable[MultiTexGendvEXT_remap_index]
+#define _gloffset_MultiTexGenfEXT driDispatchRemapTable[MultiTexGenfEXT_remap_index]
+#define _gloffset_MultiTexGenfvEXT driDispatchRemapTable[MultiTexGenfvEXT_remap_index]
+#define _gloffset_MultiTexGeniEXT driDispatchRemapTable[MultiTexGeniEXT_remap_index]
+#define _gloffset_MultiTexGenivEXT driDispatchRemapTable[MultiTexGenivEXT_remap_index]
+#define _gloffset_GetMultiTexGendvEXT driDispatchRemapTable[GetMultiTexGendvEXT_remap_index]
+#define _gloffset_GetMultiTexGenfvEXT driDispatchRemapTable[GetMultiTexGenfvEXT_remap_index]
+#define _gloffset_GetMultiTexGenivEXT driDispatchRemapTable[GetMultiTexGenivEXT_remap_index]
+#define _gloffset_MultiTexCoordPointerEXT driDispatchRemapTable[MultiTexCoordPointerEXT_remap_index]
+#define _gloffset_BindImageTextureEXT driDispatchRemapTable[BindImageTextureEXT_remap_index]
+#define _gloffset_CompressedTextureImage1DEXT driDispatchRemapTable[CompressedTextureImage1DEXT_remap_index]
+#define _gloffset_CompressedTextureImage2DEXT driDispatchRemapTable[CompressedTextureImage2DEXT_remap_index]
+#define _gloffset_CompressedTextureImage3DEXT driDispatchRemapTable[CompressedTextureImage3DEXT_remap_index]
+#define _gloffset_CompressedTextureSubImage1DEXT driDispatchRemapTable[CompressedTextureSubImage1DEXT_remap_index]
+#define _gloffset_CompressedTextureSubImage2DEXT driDispatchRemapTable[CompressedTextureSubImage2DEXT_remap_index]
+#define _gloffset_CompressedTextureSubImage3DEXT driDispatchRemapTable[CompressedTextureSubImage3DEXT_remap_index]
+#define _gloffset_GetCompressedTextureImageEXT driDispatchRemapTable[GetCompressedTextureImageEXT_remap_index]
+#define _gloffset_CompressedMultiTexImage1DEXT driDispatchRemapTable[CompressedMultiTexImage1DEXT_remap_index]
+#define _gloffset_CompressedMultiTexImage2DEXT driDispatchRemapTable[CompressedMultiTexImage2DEXT_remap_index]
+#define _gloffset_CompressedMultiTexImage3DEXT driDispatchRemapTable[CompressedMultiTexImage3DEXT_remap_index]
+#define _gloffset_CompressedMultiTexSubImage1DEXT driDispatchRemapTable[CompressedMultiTexSubImage1DEXT_remap_index]
+#define _gloffset_CompressedMultiTexSubImage2DEXT driDispatchRemapTable[CompressedMultiTexSubImage2DEXT_remap_index]
+#define _gloffset_CompressedMultiTexSubImage3DEXT driDispatchRemapTable[CompressedMultiTexSubImage3DEXT_remap_index]
+#define _gloffset_GetCompressedMultiTexImageEXT driDispatchRemapTable[GetCompressedMultiTexImageEXT_remap_index]
+#define _gloffset_GetMultiTexLevelParameterivEXT driDispatchRemapTable[GetMultiTexLevelParameterivEXT_remap_index]
+#define _gloffset_GetMultiTexLevelParameterfvEXT driDispatchRemapTable[GetMultiTexLevelParameterfvEXT_remap_index]
 
 typedef void (GLAPIENTRYP _glptr_NewList)(GLuint, GLenum);
 #define CALL_NewList(disp, parameters) \
@@ -18612,17 +18746,6 @@ static INLINE void SET_CopyTextureSubImage3DEXT(struct _glapi_table *disp, void 
    SET_by_offset(disp, _gloffset_CopyTextureSubImage3DEXT, fn);
 }
 
-typedef void (GLAPIENTRYP _glptr_CompressedTextureSubImage2DEXT)(GLuint, GLenum, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLsizei, const GLvoid *);
-#define CALL_CompressedTextureSubImage2DEXT(disp, parameters) \
-    (* GET_CompressedTextureSubImage2DEXT(disp)) parameters
-static INLINE _glptr_CompressedTextureSubImage2DEXT GET_CompressedTextureSubImage2DEXT(struct _glapi_table *disp) {
-   return (_glptr_CompressedTextureSubImage2DEXT) (GET_by_offset(disp, _gloffset_CompressedTextureSubImage2DEXT));
-}
-
-static INLINE void SET_CompressedTextureSubImage2DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLsizei, const GLvoid *)) {
-   SET_by_offset(disp, _gloffset_CompressedTextureSubImage2DEXT, fn);
-}
-
 typedef GLvoid * (GLAPIENTRYP _glptr_MapNamedBufferEXT)(GLuint, GLenum);
 #define CALL_MapNamedBufferEXT(disp, parameters) \
     (* GET_MapNamedBufferEXT(disp)) parameters
@@ -18731,6 +18854,754 @@ static INLINE _glptr_GetTextureLevelParameterfvEXT GET_GetTextureLevelParameterf
 
 static INLINE void SET_GetTextureLevelParameterfvEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLenum, float *)) {
    SET_by_offset(disp, _gloffset_GetTextureLevelParameterfvEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetNamedBufferSubDataEXT)(GLuint, GLintptr, GLsizeiptr, GLvoid *);
+#define CALL_GetNamedBufferSubDataEXT(disp, parameters) \
+    (* GET_GetNamedBufferSubDataEXT(disp)) parameters
+static INLINE _glptr_GetNamedBufferSubDataEXT GET_GetNamedBufferSubDataEXT(struct _glapi_table *disp) {
+   return (_glptr_GetNamedBufferSubDataEXT) (GET_by_offset(disp, _gloffset_GetNamedBufferSubDataEXT));
+}
+
+static INLINE void SET_GetNamedBufferSubDataEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLintptr, GLsizeiptr, GLvoid *)) {
+   SET_by_offset(disp, _gloffset_GetNamedBufferSubDataEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetNamedBufferPointervEXT)(GLuint, GLenum, GLvoid **);
+#define CALL_GetNamedBufferPointervEXT(disp, parameters) \
+    (* GET_GetNamedBufferPointervEXT(disp)) parameters
+static INLINE _glptr_GetNamedBufferPointervEXT GET_GetNamedBufferPointervEXT(struct _glapi_table *disp) {
+   return (_glptr_GetNamedBufferPointervEXT) (GET_by_offset(disp, _gloffset_GetNamedBufferPointervEXT));
+}
+
+static INLINE void SET_GetNamedBufferPointervEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLvoid **)) {
+   SET_by_offset(disp, _gloffset_GetNamedBufferPointervEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetNamedBufferParameterivEXT)(GLuint, GLenum, GLint *);
+#define CALL_GetNamedBufferParameterivEXT(disp, parameters) \
+    (* GET_GetNamedBufferParameterivEXT(disp)) parameters
+static INLINE _glptr_GetNamedBufferParameterivEXT GET_GetNamedBufferParameterivEXT(struct _glapi_table *disp) {
+   return (_glptr_GetNamedBufferParameterivEXT) (GET_by_offset(disp, _gloffset_GetNamedBufferParameterivEXT));
+}
+
+static INLINE void SET_GetNamedBufferParameterivEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint *)) {
+   SET_by_offset(disp, _gloffset_GetNamedBufferParameterivEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_FlushMappedNamedBufferRangeEXT)(GLuint, GLintptr, GLsizeiptr);
+#define CALL_FlushMappedNamedBufferRangeEXT(disp, parameters) \
+    (* GET_FlushMappedNamedBufferRangeEXT(disp)) parameters
+static INLINE _glptr_FlushMappedNamedBufferRangeEXT GET_FlushMappedNamedBufferRangeEXT(struct _glapi_table *disp) {
+   return (_glptr_FlushMappedNamedBufferRangeEXT) (GET_by_offset(disp, _gloffset_FlushMappedNamedBufferRangeEXT));
+}
+
+static INLINE void SET_FlushMappedNamedBufferRangeEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLintptr, GLsizeiptr)) {
+   SET_by_offset(disp, _gloffset_FlushMappedNamedBufferRangeEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_FramebufferDrawBufferEXT)(GLuint, GLenum);
+#define CALL_FramebufferDrawBufferEXT(disp, parameters) \
+    (* GET_FramebufferDrawBufferEXT(disp)) parameters
+static INLINE _glptr_FramebufferDrawBufferEXT GET_FramebufferDrawBufferEXT(struct _glapi_table *disp) {
+   return (_glptr_FramebufferDrawBufferEXT) (GET_by_offset(disp, _gloffset_FramebufferDrawBufferEXT));
+}
+
+static INLINE void SET_FramebufferDrawBufferEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum)) {
+   SET_by_offset(disp, _gloffset_FramebufferDrawBufferEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_FramebufferDrawBuffersEXT)(GLuint, GLsizei, const GLenum *);
+#define CALL_FramebufferDrawBuffersEXT(disp, parameters) \
+    (* GET_FramebufferDrawBuffersEXT(disp)) parameters
+static INLINE _glptr_FramebufferDrawBuffersEXT GET_FramebufferDrawBuffersEXT(struct _glapi_table *disp) {
+   return (_glptr_FramebufferDrawBuffersEXT) (GET_by_offset(disp, _gloffset_FramebufferDrawBuffersEXT));
+}
+
+static INLINE void SET_FramebufferDrawBuffersEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLsizei, const GLenum *)) {
+   SET_by_offset(disp, _gloffset_FramebufferDrawBuffersEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_FramebufferReadBufferEXT)(GLuint, GLenum);
+#define CALL_FramebufferReadBufferEXT(disp, parameters) \
+    (* GET_FramebufferReadBufferEXT(disp)) parameters
+static INLINE _glptr_FramebufferReadBufferEXT GET_FramebufferReadBufferEXT(struct _glapi_table *disp) {
+   return (_glptr_FramebufferReadBufferEXT) (GET_by_offset(disp, _gloffset_FramebufferReadBufferEXT));
+}
+
+static INLINE void SET_FramebufferReadBufferEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum)) {
+   SET_by_offset(disp, _gloffset_FramebufferReadBufferEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetFramebufferParameterivEXT)(GLuint, GLenum, GLint *);
+#define CALL_GetFramebufferParameterivEXT(disp, parameters) \
+    (* GET_GetFramebufferParameterivEXT(disp)) parameters
+static INLINE _glptr_GetFramebufferParameterivEXT GET_GetFramebufferParameterivEXT(struct _glapi_table *disp) {
+   return (_glptr_GetFramebufferParameterivEXT) (GET_by_offset(disp, _gloffset_GetFramebufferParameterivEXT));
+}
+
+static INLINE void SET_GetFramebufferParameterivEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint *)) {
+   SET_by_offset(disp, _gloffset_GetFramebufferParameterivEXT, fn);
+}
+
+typedef GLenum (GLAPIENTRYP _glptr_CheckNamedFramebufferStatusEXT)(GLuint, GLenum);
+#define CALL_CheckNamedFramebufferStatusEXT(disp, parameters) \
+    (* GET_CheckNamedFramebufferStatusEXT(disp)) parameters
+static INLINE _glptr_CheckNamedFramebufferStatusEXT GET_CheckNamedFramebufferStatusEXT(struct _glapi_table *disp) {
+   return (_glptr_CheckNamedFramebufferStatusEXT) (GET_by_offset(disp, _gloffset_CheckNamedFramebufferStatusEXT));
+}
+
+static INLINE void SET_CheckNamedFramebufferStatusEXT(struct _glapi_table *disp, GLenum (GLAPIENTRYP fn)(GLuint, GLenum)) {
+   SET_by_offset(disp, _gloffset_CheckNamedFramebufferStatusEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_NamedFramebufferTexture1DEXT)(GLuint, GLenum, GLenum, GLuint, GLint);
+#define CALL_NamedFramebufferTexture1DEXT(disp, parameters) \
+    (* GET_NamedFramebufferTexture1DEXT(disp)) parameters
+static INLINE _glptr_NamedFramebufferTexture1DEXT GET_NamedFramebufferTexture1DEXT(struct _glapi_table *disp) {
+   return (_glptr_NamedFramebufferTexture1DEXT) (GET_by_offset(disp, _gloffset_NamedFramebufferTexture1DEXT));
+}
+
+static INLINE void SET_NamedFramebufferTexture1DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLenum, GLuint, GLint)) {
+   SET_by_offset(disp, _gloffset_NamedFramebufferTexture1DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_NamedFramebufferTexture2DEXT)(GLuint, GLenum, GLenum, GLuint, GLint);
+#define CALL_NamedFramebufferTexture2DEXT(disp, parameters) \
+    (* GET_NamedFramebufferTexture2DEXT(disp)) parameters
+static INLINE _glptr_NamedFramebufferTexture2DEXT GET_NamedFramebufferTexture2DEXT(struct _glapi_table *disp) {
+   return (_glptr_NamedFramebufferTexture2DEXT) (GET_by_offset(disp, _gloffset_NamedFramebufferTexture2DEXT));
+}
+
+static INLINE void SET_NamedFramebufferTexture2DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLenum, GLuint, GLint)) {
+   SET_by_offset(disp, _gloffset_NamedFramebufferTexture2DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_NamedFramebufferTexture3DEXT)(GLuint, GLenum, GLenum, GLuint, GLint, GLint);
+#define CALL_NamedFramebufferTexture3DEXT(disp, parameters) \
+    (* GET_NamedFramebufferTexture3DEXT(disp)) parameters
+static INLINE _glptr_NamedFramebufferTexture3DEXT GET_NamedFramebufferTexture3DEXT(struct _glapi_table *disp) {
+   return (_glptr_NamedFramebufferTexture3DEXT) (GET_by_offset(disp, _gloffset_NamedFramebufferTexture3DEXT));
+}
+
+static INLINE void SET_NamedFramebufferTexture3DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLenum, GLuint, GLint, GLint)) {
+   SET_by_offset(disp, _gloffset_NamedFramebufferTexture3DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_NamedFramebufferRenderbufferEXT)(GLuint, GLenum, GLenum, GLuint);
+#define CALL_NamedFramebufferRenderbufferEXT(disp, parameters) \
+    (* GET_NamedFramebufferRenderbufferEXT(disp)) parameters
+static INLINE _glptr_NamedFramebufferRenderbufferEXT GET_NamedFramebufferRenderbufferEXT(struct _glapi_table *disp) {
+   return (_glptr_NamedFramebufferRenderbufferEXT) (GET_by_offset(disp, _gloffset_NamedFramebufferRenderbufferEXT));
+}
+
+static INLINE void SET_NamedFramebufferRenderbufferEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLenum, GLuint)) {
+   SET_by_offset(disp, _gloffset_NamedFramebufferRenderbufferEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetNamedFramebufferAttachmentParameterivEXT)(GLuint, GLenum, GLenum, GLint *);
+#define CALL_GetNamedFramebufferAttachmentParameterivEXT(disp, parameters) \
+    (* GET_GetNamedFramebufferAttachmentParameterivEXT(disp)) parameters
+static INLINE _glptr_GetNamedFramebufferAttachmentParameterivEXT GET_GetNamedFramebufferAttachmentParameterivEXT(struct _glapi_table *disp) {
+   return (_glptr_GetNamedFramebufferAttachmentParameterivEXT) (GET_by_offset(disp, _gloffset_GetNamedFramebufferAttachmentParameterivEXT));
+}
+
+static INLINE void SET_GetNamedFramebufferAttachmentParameterivEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLenum, GLint *)) {
+   SET_by_offset(disp, _gloffset_GetNamedFramebufferAttachmentParameterivEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_EnableClientStateiEXT)(GLenum, GLuint);
+#define CALL_EnableClientStateiEXT(disp, parameters) \
+    (* GET_EnableClientStateiEXT(disp)) parameters
+static INLINE _glptr_EnableClientStateiEXT GET_EnableClientStateiEXT(struct _glapi_table *disp) {
+   return (_glptr_EnableClientStateiEXT) (GET_by_offset(disp, _gloffset_EnableClientStateiEXT));
+}
+
+static INLINE void SET_EnableClientStateiEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLuint)) {
+   SET_by_offset(disp, _gloffset_EnableClientStateiEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_DisableClientStateiEXT)(GLenum, GLuint);
+#define CALL_DisableClientStateiEXT(disp, parameters) \
+    (* GET_DisableClientStateiEXT(disp)) parameters
+static INLINE _glptr_DisableClientStateiEXT GET_DisableClientStateiEXT(struct _glapi_table *disp) {
+   return (_glptr_DisableClientStateiEXT) (GET_by_offset(disp, _gloffset_DisableClientStateiEXT));
+}
+
+static INLINE void SET_DisableClientStateiEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLuint)) {
+   SET_by_offset(disp, _gloffset_DisableClientStateiEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetPointerIndexedvEXT)(GLenum, GLuint, GLvoid**);
+#define CALL_GetPointerIndexedvEXT(disp, parameters) \
+    (* GET_GetPointerIndexedvEXT(disp)) parameters
+static INLINE _glptr_GetPointerIndexedvEXT GET_GetPointerIndexedvEXT(struct _glapi_table *disp) {
+   return (_glptr_GetPointerIndexedvEXT) (GET_by_offset(disp, _gloffset_GetPointerIndexedvEXT));
+}
+
+static INLINE void SET_GetPointerIndexedvEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLuint, GLvoid**)) {
+   SET_by_offset(disp, _gloffset_GetPointerIndexedvEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexEnviEXT)(GLenum, GLenum, GLenum, GLint);
+#define CALL_MultiTexEnviEXT(disp, parameters) \
+    (* GET_MultiTexEnviEXT(disp)) parameters
+static INLINE _glptr_MultiTexEnviEXT GET_MultiTexEnviEXT(struct _glapi_table *disp) {
+   return (_glptr_MultiTexEnviEXT) (GET_by_offset(disp, _gloffset_MultiTexEnviEXT));
+}
+
+static INLINE void SET_MultiTexEnviEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLenum, GLint)) {
+   SET_by_offset(disp, _gloffset_MultiTexEnviEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexEnvivEXT)(GLenum, GLenum, GLenum, const GLint *);
+#define CALL_MultiTexEnvivEXT(disp, parameters) \
+    (* GET_MultiTexEnvivEXT(disp)) parameters
+static INLINE _glptr_MultiTexEnvivEXT GET_MultiTexEnvivEXT(struct _glapi_table *disp) {
+   return (_glptr_MultiTexEnvivEXT) (GET_by_offset(disp, _gloffset_MultiTexEnvivEXT));
+}
+
+static INLINE void SET_MultiTexEnvivEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLenum, const GLint *)) {
+   SET_by_offset(disp, _gloffset_MultiTexEnvivEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexEnvfEXT)(GLenum, GLenum, GLenum, GLfloat);
+#define CALL_MultiTexEnvfEXT(disp, parameters) \
+    (* GET_MultiTexEnvfEXT(disp)) parameters
+static INLINE _glptr_MultiTexEnvfEXT GET_MultiTexEnvfEXT(struct _glapi_table *disp) {
+   return (_glptr_MultiTexEnvfEXT) (GET_by_offset(disp, _gloffset_MultiTexEnvfEXT));
+}
+
+static INLINE void SET_MultiTexEnvfEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLenum, GLfloat)) {
+   SET_by_offset(disp, _gloffset_MultiTexEnvfEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexEnvfvEXT)(GLenum, GLenum, GLenum, const GLfloat *);
+#define CALL_MultiTexEnvfvEXT(disp, parameters) \
+    (* GET_MultiTexEnvfvEXT(disp)) parameters
+static INLINE _glptr_MultiTexEnvfvEXT GET_MultiTexEnvfvEXT(struct _glapi_table *disp) {
+   return (_glptr_MultiTexEnvfvEXT) (GET_by_offset(disp, _gloffset_MultiTexEnvfvEXT));
+}
+
+static INLINE void SET_MultiTexEnvfvEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLenum, const GLfloat *)) {
+   SET_by_offset(disp, _gloffset_MultiTexEnvfvEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetMultiTexEnvivEXT)(GLenum, GLenum, GLenum, GLint *);
+#define CALL_GetMultiTexEnvivEXT(disp, parameters) \
+    (* GET_GetMultiTexEnvivEXT(disp)) parameters
+static INLINE _glptr_GetMultiTexEnvivEXT GET_GetMultiTexEnvivEXT(struct _glapi_table *disp) {
+   return (_glptr_GetMultiTexEnvivEXT) (GET_by_offset(disp, _gloffset_GetMultiTexEnvivEXT));
+}
+
+static INLINE void SET_GetMultiTexEnvivEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLenum, GLint *)) {
+   SET_by_offset(disp, _gloffset_GetMultiTexEnvivEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetMultiTexEnvfvEXT)(GLenum, GLenum, GLenum, GLfloat *);
+#define CALL_GetMultiTexEnvfvEXT(disp, parameters) \
+    (* GET_GetMultiTexEnvfvEXT(disp)) parameters
+static INLINE _glptr_GetMultiTexEnvfvEXT GET_GetMultiTexEnvfvEXT(struct _glapi_table *disp) {
+   return (_glptr_GetMultiTexEnvfvEXT) (GET_by_offset(disp, _gloffset_GetMultiTexEnvfvEXT));
+}
+
+static INLINE void SET_GetMultiTexEnvfvEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLenum, GLfloat *)) {
+   SET_by_offset(disp, _gloffset_GetMultiTexEnvfvEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexParameteriEXT)(GLenum, GLenum, GLenum, GLint);
+#define CALL_MultiTexParameteriEXT(disp, parameters) \
+    (* GET_MultiTexParameteriEXT(disp)) parameters
+static INLINE _glptr_MultiTexParameteriEXT GET_MultiTexParameteriEXT(struct _glapi_table *disp) {
+   return (_glptr_MultiTexParameteriEXT) (GET_by_offset(disp, _gloffset_MultiTexParameteriEXT));
+}
+
+static INLINE void SET_MultiTexParameteriEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLenum, GLint)) {
+   SET_by_offset(disp, _gloffset_MultiTexParameteriEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexParameterivEXT)(GLenum, GLenum, GLenum, const GLint*);
+#define CALL_MultiTexParameterivEXT(disp, parameters) \
+    (* GET_MultiTexParameterivEXT(disp)) parameters
+static INLINE _glptr_MultiTexParameterivEXT GET_MultiTexParameterivEXT(struct _glapi_table *disp) {
+   return (_glptr_MultiTexParameterivEXT) (GET_by_offset(disp, _gloffset_MultiTexParameterivEXT));
+}
+
+static INLINE void SET_MultiTexParameterivEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLenum, const GLint*)) {
+   SET_by_offset(disp, _gloffset_MultiTexParameterivEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexParameterfEXT)(GLenum, GLenum, GLenum, GLfloat);
+#define CALL_MultiTexParameterfEXT(disp, parameters) \
+    (* GET_MultiTexParameterfEXT(disp)) parameters
+static INLINE _glptr_MultiTexParameterfEXT GET_MultiTexParameterfEXT(struct _glapi_table *disp) {
+   return (_glptr_MultiTexParameterfEXT) (GET_by_offset(disp, _gloffset_MultiTexParameterfEXT));
+}
+
+static INLINE void SET_MultiTexParameterfEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLenum, GLfloat)) {
+   SET_by_offset(disp, _gloffset_MultiTexParameterfEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexParameterfvEXT)(GLenum, GLenum, GLenum, const GLfloat*);
+#define CALL_MultiTexParameterfvEXT(disp, parameters) \
+    (* GET_MultiTexParameterfvEXT(disp)) parameters
+static INLINE _glptr_MultiTexParameterfvEXT GET_MultiTexParameterfvEXT(struct _glapi_table *disp) {
+   return (_glptr_MultiTexParameterfvEXT) (GET_by_offset(disp, _gloffset_MultiTexParameterfvEXT));
+}
+
+static INLINE void SET_MultiTexParameterfvEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLenum, const GLfloat*)) {
+   SET_by_offset(disp, _gloffset_MultiTexParameterfvEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetMultiTexImageEXT)(GLenum, GLenum, GLint, GLenum, GLenum, GLvoid*);
+#define CALL_GetMultiTexImageEXT(disp, parameters) \
+    (* GET_GetMultiTexImageEXT(disp)) parameters
+static INLINE _glptr_GetMultiTexImageEXT GET_GetMultiTexImageEXT(struct _glapi_table *disp) {
+   return (_glptr_GetMultiTexImageEXT) (GET_by_offset(disp, _gloffset_GetMultiTexImageEXT));
+}
+
+static INLINE void SET_GetMultiTexImageEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLint, GLenum, GLenum, GLvoid*)) {
+   SET_by_offset(disp, _gloffset_GetMultiTexImageEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexImage1DEXT)(GLenum, GLenum, GLint, GLint, GLsizei, GLint, GLenum, GLenum, const GLvoid*);
+#define CALL_MultiTexImage1DEXT(disp, parameters) \
+    (* GET_MultiTexImage1DEXT(disp)) parameters
+static INLINE _glptr_MultiTexImage1DEXT GET_MultiTexImage1DEXT(struct _glapi_table *disp) {
+   return (_glptr_MultiTexImage1DEXT) (GET_by_offset(disp, _gloffset_MultiTexImage1DEXT));
+}
+
+static INLINE void SET_MultiTexImage1DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLint, GLint, GLsizei, GLint, GLenum, GLenum, const GLvoid*)) {
+   SET_by_offset(disp, _gloffset_MultiTexImage1DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexImage2DEXT)(GLenum, GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, const GLvoid*);
+#define CALL_MultiTexImage2DEXT(disp, parameters) \
+    (* GET_MultiTexImage2DEXT(disp)) parameters
+static INLINE _glptr_MultiTexImage2DEXT GET_MultiTexImage2DEXT(struct _glapi_table *disp) {
+   return (_glptr_MultiTexImage2DEXT) (GET_by_offset(disp, _gloffset_MultiTexImage2DEXT));
+}
+
+static INLINE void SET_MultiTexImage2DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLint, GLint, GLsizei, GLsizei, GLint, GLenum, GLenum, const GLvoid*)) {
+   SET_by_offset(disp, _gloffset_MultiTexImage2DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexImage3DEXT)(GLenum, GLenum, GLint, GLint, GLsizei, GLsizei, GLsizei, GLint, GLenum, GLenum, const GLvoid*);
+#define CALL_MultiTexImage3DEXT(disp, parameters) \
+    (* GET_MultiTexImage3DEXT(disp)) parameters
+static INLINE _glptr_MultiTexImage3DEXT GET_MultiTexImage3DEXT(struct _glapi_table *disp) {
+   return (_glptr_MultiTexImage3DEXT) (GET_by_offset(disp, _gloffset_MultiTexImage3DEXT));
+}
+
+static INLINE void SET_MultiTexImage3DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLint, GLint, GLsizei, GLsizei, GLsizei, GLint, GLenum, GLenum, const GLvoid*)) {
+   SET_by_offset(disp, _gloffset_MultiTexImage3DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexSubImage1DEXT)(GLenum, GLenum, GLint, GLint, GLsizei, GLenum, GLenum, const GLvoid*);
+#define CALL_MultiTexSubImage1DEXT(disp, parameters) \
+    (* GET_MultiTexSubImage1DEXT(disp)) parameters
+static INLINE _glptr_MultiTexSubImage1DEXT GET_MultiTexSubImage1DEXT(struct _glapi_table *disp) {
+   return (_glptr_MultiTexSubImage1DEXT) (GET_by_offset(disp, _gloffset_MultiTexSubImage1DEXT));
+}
+
+static INLINE void SET_MultiTexSubImage1DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLint, GLint, GLsizei, GLenum, GLenum, const GLvoid*)) {
+   SET_by_offset(disp, _gloffset_MultiTexSubImage1DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexSubImage2DEXT)(GLenum, GLenum, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, const GLvoid*);
+#define CALL_MultiTexSubImage2DEXT(disp, parameters) \
+    (* GET_MultiTexSubImage2DEXT(disp)) parameters
+static INLINE _glptr_MultiTexSubImage2DEXT GET_MultiTexSubImage2DEXT(struct _glapi_table *disp) {
+   return (_glptr_MultiTexSubImage2DEXT) (GET_by_offset(disp, _gloffset_MultiTexSubImage2DEXT));
+}
+
+static INLINE void SET_MultiTexSubImage2DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, const GLvoid*)) {
+   SET_by_offset(disp, _gloffset_MultiTexSubImage2DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexSubImage3DEXT)(GLenum, GLenum, GLint, GLint, GLint, GLint, GLsizei, GLsizei, GLsizei, GLenum, GLenum, const GLvoid*);
+#define CALL_MultiTexSubImage3DEXT(disp, parameters) \
+    (* GET_MultiTexSubImage3DEXT(disp)) parameters
+static INLINE _glptr_MultiTexSubImage3DEXT GET_MultiTexSubImage3DEXT(struct _glapi_table *disp) {
+   return (_glptr_MultiTexSubImage3DEXT) (GET_by_offset(disp, _gloffset_MultiTexSubImage3DEXT));
+}
+
+static INLINE void SET_MultiTexSubImage3DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLint, GLint, GLint, GLint, GLsizei, GLsizei, GLsizei, GLenum, GLenum, const GLvoid*)) {
+   SET_by_offset(disp, _gloffset_MultiTexSubImage3DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetMultiTexParameterivEXT)(GLenum, GLenum, GLenum, GLint*);
+#define CALL_GetMultiTexParameterivEXT(disp, parameters) \
+    (* GET_GetMultiTexParameterivEXT(disp)) parameters
+static INLINE _glptr_GetMultiTexParameterivEXT GET_GetMultiTexParameterivEXT(struct _glapi_table *disp) {
+   return (_glptr_GetMultiTexParameterivEXT) (GET_by_offset(disp, _gloffset_GetMultiTexParameterivEXT));
+}
+
+static INLINE void SET_GetMultiTexParameterivEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLenum, GLint*)) {
+   SET_by_offset(disp, _gloffset_GetMultiTexParameterivEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetMultiTexParameterfvEXT)(GLenum, GLenum, GLenum, GLfloat*);
+#define CALL_GetMultiTexParameterfvEXT(disp, parameters) \
+    (* GET_GetMultiTexParameterfvEXT(disp)) parameters
+static INLINE _glptr_GetMultiTexParameterfvEXT GET_GetMultiTexParameterfvEXT(struct _glapi_table *disp) {
+   return (_glptr_GetMultiTexParameterfvEXT) (GET_by_offset(disp, _gloffset_GetMultiTexParameterfvEXT));
+}
+
+static INLINE void SET_GetMultiTexParameterfvEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLenum, GLfloat*)) {
+   SET_by_offset(disp, _gloffset_GetMultiTexParameterfvEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CopyMultiTexImage1DEXT)(GLenum, GLenum, GLint, GLenum, GLint, GLint, GLsizei, GLint);
+#define CALL_CopyMultiTexImage1DEXT(disp, parameters) \
+    (* GET_CopyMultiTexImage1DEXT(disp)) parameters
+static INLINE _glptr_CopyMultiTexImage1DEXT GET_CopyMultiTexImage1DEXT(struct _glapi_table *disp) {
+   return (_glptr_CopyMultiTexImage1DEXT) (GET_by_offset(disp, _gloffset_CopyMultiTexImage1DEXT));
+}
+
+static INLINE void SET_CopyMultiTexImage1DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLint, GLenum, GLint, GLint, GLsizei, GLint)) {
+   SET_by_offset(disp, _gloffset_CopyMultiTexImage1DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CopyMultiTexImage2DEXT)(GLenum, GLenum, GLint, GLenum, GLint, GLint, GLsizei, GLsizei, GLint);
+#define CALL_CopyMultiTexImage2DEXT(disp, parameters) \
+    (* GET_CopyMultiTexImage2DEXT(disp)) parameters
+static INLINE _glptr_CopyMultiTexImage2DEXT GET_CopyMultiTexImage2DEXT(struct _glapi_table *disp) {
+   return (_glptr_CopyMultiTexImage2DEXT) (GET_by_offset(disp, _gloffset_CopyMultiTexImage2DEXT));
+}
+
+static INLINE void SET_CopyMultiTexImage2DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLint, GLenum, GLint, GLint, GLsizei, GLsizei, GLint)) {
+   SET_by_offset(disp, _gloffset_CopyMultiTexImage2DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CopyMultiTexSubImage1DEXT)(GLenum, GLenum, GLint, GLint, GLint, GLint, GLsizei);
+#define CALL_CopyMultiTexSubImage1DEXT(disp, parameters) \
+    (* GET_CopyMultiTexSubImage1DEXT(disp)) parameters
+static INLINE _glptr_CopyMultiTexSubImage1DEXT GET_CopyMultiTexSubImage1DEXT(struct _glapi_table *disp) {
+   return (_glptr_CopyMultiTexSubImage1DEXT) (GET_by_offset(disp, _gloffset_CopyMultiTexSubImage1DEXT));
+}
+
+static INLINE void SET_CopyMultiTexSubImage1DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLint, GLint, GLint, GLint, GLsizei)) {
+   SET_by_offset(disp, _gloffset_CopyMultiTexSubImage1DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CopyMultiTexSubImage2DEXT)(GLenum, GLenum, GLint, GLint, GLint, GLint, GLint, GLsizei, GLsizei);
+#define CALL_CopyMultiTexSubImage2DEXT(disp, parameters) \
+    (* GET_CopyMultiTexSubImage2DEXT(disp)) parameters
+static INLINE _glptr_CopyMultiTexSubImage2DEXT GET_CopyMultiTexSubImage2DEXT(struct _glapi_table *disp) {
+   return (_glptr_CopyMultiTexSubImage2DEXT) (GET_by_offset(disp, _gloffset_CopyMultiTexSubImage2DEXT));
+}
+
+static INLINE void SET_CopyMultiTexSubImage2DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLint, GLint, GLint, GLint, GLint, GLsizei, GLsizei)) {
+   SET_by_offset(disp, _gloffset_CopyMultiTexSubImage2DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CopyMultiTexSubImage3DEXT)(GLenum, GLenum, GLint, GLint, GLint, GLint, GLint, GLint, GLsizei, GLsizei);
+#define CALL_CopyMultiTexSubImage3DEXT(disp, parameters) \
+    (* GET_CopyMultiTexSubImage3DEXT(disp)) parameters
+static INLINE _glptr_CopyMultiTexSubImage3DEXT GET_CopyMultiTexSubImage3DEXT(struct _glapi_table *disp) {
+   return (_glptr_CopyMultiTexSubImage3DEXT) (GET_by_offset(disp, _gloffset_CopyMultiTexSubImage3DEXT));
+}
+
+static INLINE void SET_CopyMultiTexSubImage3DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLint, GLint, GLint, GLint, GLint, GLint, GLsizei, GLsizei)) {
+   SET_by_offset(disp, _gloffset_CopyMultiTexSubImage3DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexGendEXT)(GLenum, GLenum, GLenum, GLdouble);
+#define CALL_MultiTexGendEXT(disp, parameters) \
+    (* GET_MultiTexGendEXT(disp)) parameters
+static INLINE _glptr_MultiTexGendEXT GET_MultiTexGendEXT(struct _glapi_table *disp) {
+   return (_glptr_MultiTexGendEXT) (GET_by_offset(disp, _gloffset_MultiTexGendEXT));
+}
+
+static INLINE void SET_MultiTexGendEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLenum, GLdouble)) {
+   SET_by_offset(disp, _gloffset_MultiTexGendEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexGendvEXT)(GLenum, GLenum, GLenum, const GLdouble*);
+#define CALL_MultiTexGendvEXT(disp, parameters) \
+    (* GET_MultiTexGendvEXT(disp)) parameters
+static INLINE _glptr_MultiTexGendvEXT GET_MultiTexGendvEXT(struct _glapi_table *disp) {
+   return (_glptr_MultiTexGendvEXT) (GET_by_offset(disp, _gloffset_MultiTexGendvEXT));
+}
+
+static INLINE void SET_MultiTexGendvEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLenum, const GLdouble*)) {
+   SET_by_offset(disp, _gloffset_MultiTexGendvEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexGenfEXT)(GLenum, GLenum, GLenum, GLfloat);
+#define CALL_MultiTexGenfEXT(disp, parameters) \
+    (* GET_MultiTexGenfEXT(disp)) parameters
+static INLINE _glptr_MultiTexGenfEXT GET_MultiTexGenfEXT(struct _glapi_table *disp) {
+   return (_glptr_MultiTexGenfEXT) (GET_by_offset(disp, _gloffset_MultiTexGenfEXT));
+}
+
+static INLINE void SET_MultiTexGenfEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLenum, GLfloat)) {
+   SET_by_offset(disp, _gloffset_MultiTexGenfEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexGenfvEXT)(GLenum, GLenum, GLenum, const GLfloat *);
+#define CALL_MultiTexGenfvEXT(disp, parameters) \
+    (* GET_MultiTexGenfvEXT(disp)) parameters
+static INLINE _glptr_MultiTexGenfvEXT GET_MultiTexGenfvEXT(struct _glapi_table *disp) {
+   return (_glptr_MultiTexGenfvEXT) (GET_by_offset(disp, _gloffset_MultiTexGenfvEXT));
+}
+
+static INLINE void SET_MultiTexGenfvEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLenum, const GLfloat *)) {
+   SET_by_offset(disp, _gloffset_MultiTexGenfvEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexGeniEXT)(GLenum, GLenum, GLenum, GLint);
+#define CALL_MultiTexGeniEXT(disp, parameters) \
+    (* GET_MultiTexGeniEXT(disp)) parameters
+static INLINE _glptr_MultiTexGeniEXT GET_MultiTexGeniEXT(struct _glapi_table *disp) {
+   return (_glptr_MultiTexGeniEXT) (GET_by_offset(disp, _gloffset_MultiTexGeniEXT));
+}
+
+static INLINE void SET_MultiTexGeniEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLenum, GLint)) {
+   SET_by_offset(disp, _gloffset_MultiTexGeniEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexGenivEXT)(GLenum, GLenum, GLenum, const GLint *);
+#define CALL_MultiTexGenivEXT(disp, parameters) \
+    (* GET_MultiTexGenivEXT(disp)) parameters
+static INLINE _glptr_MultiTexGenivEXT GET_MultiTexGenivEXT(struct _glapi_table *disp) {
+   return (_glptr_MultiTexGenivEXT) (GET_by_offset(disp, _gloffset_MultiTexGenivEXT));
+}
+
+static INLINE void SET_MultiTexGenivEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLenum, const GLint *)) {
+   SET_by_offset(disp, _gloffset_MultiTexGenivEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetMultiTexGendvEXT)(GLenum, GLenum, GLenum, GLdouble *);
+#define CALL_GetMultiTexGendvEXT(disp, parameters) \
+    (* GET_GetMultiTexGendvEXT(disp)) parameters
+static INLINE _glptr_GetMultiTexGendvEXT GET_GetMultiTexGendvEXT(struct _glapi_table *disp) {
+   return (_glptr_GetMultiTexGendvEXT) (GET_by_offset(disp, _gloffset_GetMultiTexGendvEXT));
+}
+
+static INLINE void SET_GetMultiTexGendvEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLenum, GLdouble *)) {
+   SET_by_offset(disp, _gloffset_GetMultiTexGendvEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetMultiTexGenfvEXT)(GLenum, GLenum, GLenum, GLfloat *);
+#define CALL_GetMultiTexGenfvEXT(disp, parameters) \
+    (* GET_GetMultiTexGenfvEXT(disp)) parameters
+static INLINE _glptr_GetMultiTexGenfvEXT GET_GetMultiTexGenfvEXT(struct _glapi_table *disp) {
+   return (_glptr_GetMultiTexGenfvEXT) (GET_by_offset(disp, _gloffset_GetMultiTexGenfvEXT));
+}
+
+static INLINE void SET_GetMultiTexGenfvEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLenum, GLfloat *)) {
+   SET_by_offset(disp, _gloffset_GetMultiTexGenfvEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetMultiTexGenivEXT)(GLenum, GLenum, GLenum, GLint *);
+#define CALL_GetMultiTexGenivEXT(disp, parameters) \
+    (* GET_GetMultiTexGenivEXT(disp)) parameters
+static INLINE _glptr_GetMultiTexGenivEXT GET_GetMultiTexGenivEXT(struct _glapi_table *disp) {
+   return (_glptr_GetMultiTexGenivEXT) (GET_by_offset(disp, _gloffset_GetMultiTexGenivEXT));
+}
+
+static INLINE void SET_GetMultiTexGenivEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLenum, GLint *)) {
+   SET_by_offset(disp, _gloffset_GetMultiTexGenivEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_MultiTexCoordPointerEXT)(GLenum, GLint, GLenum, GLsizei, const GLvoid *);
+#define CALL_MultiTexCoordPointerEXT(disp, parameters) \
+    (* GET_MultiTexCoordPointerEXT(disp)) parameters
+static INLINE _glptr_MultiTexCoordPointerEXT GET_MultiTexCoordPointerEXT(struct _glapi_table *disp) {
+   return (_glptr_MultiTexCoordPointerEXT) (GET_by_offset(disp, _gloffset_MultiTexCoordPointerEXT));
+}
+
+static INLINE void SET_MultiTexCoordPointerEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLint, GLenum, GLsizei, const GLvoid *)) {
+   SET_by_offset(disp, _gloffset_MultiTexCoordPointerEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_BindImageTextureEXT)(GLuint, GLuint, GLint, GLboolean, GLint, GLenum, GLint);
+#define CALL_BindImageTextureEXT(disp, parameters) \
+    (* GET_BindImageTextureEXT(disp)) parameters
+static INLINE _glptr_BindImageTextureEXT GET_BindImageTextureEXT(struct _glapi_table *disp) {
+   return (_glptr_BindImageTextureEXT) (GET_by_offset(disp, _gloffset_BindImageTextureEXT));
+}
+
+static INLINE void SET_BindImageTextureEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLuint, GLint, GLboolean, GLint, GLenum, GLint)) {
+   SET_by_offset(disp, _gloffset_BindImageTextureEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CompressedTextureImage1DEXT)(GLuint, GLenum, GLint, GLenum, GLsizei, GLsizei, GLsizei, const GLvoid *);
+#define CALL_CompressedTextureImage1DEXT(disp, parameters) \
+    (* GET_CompressedTextureImage1DEXT(disp)) parameters
+static INLINE _glptr_CompressedTextureImage1DEXT GET_CompressedTextureImage1DEXT(struct _glapi_table *disp) {
+   return (_glptr_CompressedTextureImage1DEXT) (GET_by_offset(disp, _gloffset_CompressedTextureImage1DEXT));
+}
+
+static INLINE void SET_CompressedTextureImage1DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLenum, GLsizei, GLsizei, GLsizei, const GLvoid *)) {
+   SET_by_offset(disp, _gloffset_CompressedTextureImage1DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CompressedTextureImage2DEXT)(GLuint, GLenum, GLint, GLenum, GLsizei, GLsizei, GLsizei, GLsizei, const GLvoid *);
+#define CALL_CompressedTextureImage2DEXT(disp, parameters) \
+    (* GET_CompressedTextureImage2DEXT(disp)) parameters
+static INLINE _glptr_CompressedTextureImage2DEXT GET_CompressedTextureImage2DEXT(struct _glapi_table *disp) {
+   return (_glptr_CompressedTextureImage2DEXT) (GET_by_offset(disp, _gloffset_CompressedTextureImage2DEXT));
+}
+
+static INLINE void SET_CompressedTextureImage2DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLenum, GLsizei, GLsizei, GLsizei, GLsizei, const GLvoid *)) {
+   SET_by_offset(disp, _gloffset_CompressedTextureImage2DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CompressedTextureImage3DEXT)(GLuint, GLenum, GLint, GLenum, GLsizei, GLsizei, GLsizei, GLsizei, GLsizei, const GLvoid *);
+#define CALL_CompressedTextureImage3DEXT(disp, parameters) \
+    (* GET_CompressedTextureImage3DEXT(disp)) parameters
+static INLINE _glptr_CompressedTextureImage3DEXT GET_CompressedTextureImage3DEXT(struct _glapi_table *disp) {
+   return (_glptr_CompressedTextureImage3DEXT) (GET_by_offset(disp, _gloffset_CompressedTextureImage3DEXT));
+}
+
+static INLINE void SET_CompressedTextureImage3DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLenum, GLsizei, GLsizei, GLsizei, GLsizei, GLsizei, const GLvoid *)) {
+   SET_by_offset(disp, _gloffset_CompressedTextureImage3DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CompressedTextureSubImage1DEXT)(GLuint, GLenum, GLint, GLint, GLsizei, GLenum, GLsizei, const GLvoid *);
+#define CALL_CompressedTextureSubImage1DEXT(disp, parameters) \
+    (* GET_CompressedTextureSubImage1DEXT(disp)) parameters
+static INLINE _glptr_CompressedTextureSubImage1DEXT GET_CompressedTextureSubImage1DEXT(struct _glapi_table *disp) {
+   return (_glptr_CompressedTextureSubImage1DEXT) (GET_by_offset(disp, _gloffset_CompressedTextureSubImage1DEXT));
+}
+
+static INLINE void SET_CompressedTextureSubImage1DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLint, GLsizei, GLenum, GLsizei, const GLvoid *)) {
+   SET_by_offset(disp, _gloffset_CompressedTextureSubImage1DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CompressedTextureSubImage2DEXT)(GLuint, GLenum, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLsizei, const GLvoid *);
+#define CALL_CompressedTextureSubImage2DEXT(disp, parameters) \
+    (* GET_CompressedTextureSubImage2DEXT(disp)) parameters
+static INLINE _glptr_CompressedTextureSubImage2DEXT GET_CompressedTextureSubImage2DEXT(struct _glapi_table *disp) {
+   return (_glptr_CompressedTextureSubImage2DEXT) (GET_by_offset(disp, _gloffset_CompressedTextureSubImage2DEXT));
+}
+
+static INLINE void SET_CompressedTextureSubImage2DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLsizei, const GLvoid *)) {
+   SET_by_offset(disp, _gloffset_CompressedTextureSubImage2DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CompressedTextureSubImage3DEXT)(GLuint, GLenum, GLint, GLint, GLint, GLint, GLsizei, GLsizei, GLsizei, GLenum, GLsizei, const GLvoid *);
+#define CALL_CompressedTextureSubImage3DEXT(disp, parameters) \
+    (* GET_CompressedTextureSubImage3DEXT(disp)) parameters
+static INLINE _glptr_CompressedTextureSubImage3DEXT GET_CompressedTextureSubImage3DEXT(struct _glapi_table *disp) {
+   return (_glptr_CompressedTextureSubImage3DEXT) (GET_by_offset(disp, _gloffset_CompressedTextureSubImage3DEXT));
+}
+
+static INLINE void SET_CompressedTextureSubImage3DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLint, GLint, GLint, GLsizei, GLsizei, GLsizei, GLenum, GLsizei, const GLvoid *)) {
+   SET_by_offset(disp, _gloffset_CompressedTextureSubImage3DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetCompressedTextureImageEXT)(GLuint, GLenum, GLint, GLvoid *);
+#define CALL_GetCompressedTextureImageEXT(disp, parameters) \
+    (* GET_GetCompressedTextureImageEXT(disp)) parameters
+static INLINE _glptr_GetCompressedTextureImageEXT GET_GetCompressedTextureImageEXT(struct _glapi_table *disp) {
+   return (_glptr_GetCompressedTextureImageEXT) (GET_by_offset(disp, _gloffset_GetCompressedTextureImageEXT));
+}
+
+static INLINE void SET_GetCompressedTextureImageEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLvoid *)) {
+   SET_by_offset(disp, _gloffset_GetCompressedTextureImageEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CompressedMultiTexImage1DEXT)(GLenum, GLenum, GLint, GLenum, GLsizei, GLsizei, GLsizei, const GLvoid *);
+#define CALL_CompressedMultiTexImage1DEXT(disp, parameters) \
+    (* GET_CompressedMultiTexImage1DEXT(disp)) parameters
+static INLINE _glptr_CompressedMultiTexImage1DEXT GET_CompressedMultiTexImage1DEXT(struct _glapi_table *disp) {
+   return (_glptr_CompressedMultiTexImage1DEXT) (GET_by_offset(disp, _gloffset_CompressedMultiTexImage1DEXT));
+}
+
+static INLINE void SET_CompressedMultiTexImage1DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLint, GLenum, GLsizei, GLsizei, GLsizei, const GLvoid *)) {
+   SET_by_offset(disp, _gloffset_CompressedMultiTexImage1DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CompressedMultiTexImage2DEXT)(GLenum, GLenum, GLint, GLenum, GLsizei, GLsizei, GLsizei, GLsizei, const GLvoid *);
+#define CALL_CompressedMultiTexImage2DEXT(disp, parameters) \
+    (* GET_CompressedMultiTexImage2DEXT(disp)) parameters
+static INLINE _glptr_CompressedMultiTexImage2DEXT GET_CompressedMultiTexImage2DEXT(struct _glapi_table *disp) {
+   return (_glptr_CompressedMultiTexImage2DEXT) (GET_by_offset(disp, _gloffset_CompressedMultiTexImage2DEXT));
+}
+
+static INLINE void SET_CompressedMultiTexImage2DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLint, GLenum, GLsizei, GLsizei, GLsizei, GLsizei, const GLvoid *)) {
+   SET_by_offset(disp, _gloffset_CompressedMultiTexImage2DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CompressedMultiTexImage3DEXT)(GLenum, GLenum, GLint, GLenum, GLsizei, GLsizei, GLsizei, GLsizei, GLsizei, const GLvoid *);
+#define CALL_CompressedMultiTexImage3DEXT(disp, parameters) \
+    (* GET_CompressedMultiTexImage3DEXT(disp)) parameters
+static INLINE _glptr_CompressedMultiTexImage3DEXT GET_CompressedMultiTexImage3DEXT(struct _glapi_table *disp) {
+   return (_glptr_CompressedMultiTexImage3DEXT) (GET_by_offset(disp, _gloffset_CompressedMultiTexImage3DEXT));
+}
+
+static INLINE void SET_CompressedMultiTexImage3DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLint, GLenum, GLsizei, GLsizei, GLsizei, GLsizei, GLsizei, const GLvoid *)) {
+   SET_by_offset(disp, _gloffset_CompressedMultiTexImage3DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CompressedMultiTexSubImage1DEXT)(GLenum, GLenum, GLint, GLint, GLsizei, GLenum, GLsizei, const GLvoid *);
+#define CALL_CompressedMultiTexSubImage1DEXT(disp, parameters) \
+    (* GET_CompressedMultiTexSubImage1DEXT(disp)) parameters
+static INLINE _glptr_CompressedMultiTexSubImage1DEXT GET_CompressedMultiTexSubImage1DEXT(struct _glapi_table *disp) {
+   return (_glptr_CompressedMultiTexSubImage1DEXT) (GET_by_offset(disp, _gloffset_CompressedMultiTexSubImage1DEXT));
+}
+
+static INLINE void SET_CompressedMultiTexSubImage1DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLint, GLint, GLsizei, GLenum, GLsizei, const GLvoid *)) {
+   SET_by_offset(disp, _gloffset_CompressedMultiTexSubImage1DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CompressedMultiTexSubImage2DEXT)(GLenum, GLenum, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLsizei, const GLvoid *);
+#define CALL_CompressedMultiTexSubImage2DEXT(disp, parameters) \
+    (* GET_CompressedMultiTexSubImage2DEXT(disp)) parameters
+static INLINE _glptr_CompressedMultiTexSubImage2DEXT GET_CompressedMultiTexSubImage2DEXT(struct _glapi_table *disp) {
+   return (_glptr_CompressedMultiTexSubImage2DEXT) (GET_by_offset(disp, _gloffset_CompressedMultiTexSubImage2DEXT));
+}
+
+static INLINE void SET_CompressedMultiTexSubImage2DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLint, GLint, GLint, GLsizei, GLsizei, GLenum, GLsizei, const GLvoid *)) {
+   SET_by_offset(disp, _gloffset_CompressedMultiTexSubImage2DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CompressedMultiTexSubImage3DEXT)(GLenum, GLenum, GLint, GLint, GLint, GLint, GLsizei, GLsizei, GLsizei, GLenum, GLsizei, const GLvoid *);
+#define CALL_CompressedMultiTexSubImage3DEXT(disp, parameters) \
+    (* GET_CompressedMultiTexSubImage3DEXT(disp)) parameters
+static INLINE _glptr_CompressedMultiTexSubImage3DEXT GET_CompressedMultiTexSubImage3DEXT(struct _glapi_table *disp) {
+   return (_glptr_CompressedMultiTexSubImage3DEXT) (GET_by_offset(disp, _gloffset_CompressedMultiTexSubImage3DEXT));
+}
+
+static INLINE void SET_CompressedMultiTexSubImage3DEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLint, GLint, GLint, GLint, GLsizei, GLsizei, GLsizei, GLenum, GLsizei, const GLvoid *)) {
+   SET_by_offset(disp, _gloffset_CompressedMultiTexSubImage3DEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetCompressedMultiTexImageEXT)(GLenum, GLenum, GLint, GLvoid *);
+#define CALL_GetCompressedMultiTexImageEXT(disp, parameters) \
+    (* GET_GetCompressedMultiTexImageEXT(disp)) parameters
+static INLINE _glptr_GetCompressedMultiTexImageEXT GET_GetCompressedMultiTexImageEXT(struct _glapi_table *disp) {
+   return (_glptr_GetCompressedMultiTexImageEXT) (GET_by_offset(disp, _gloffset_GetCompressedMultiTexImageEXT));
+}
+
+static INLINE void SET_GetCompressedMultiTexImageEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLint, GLvoid *)) {
+   SET_by_offset(disp, _gloffset_GetCompressedMultiTexImageEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetMultiTexLevelParameterivEXT)(GLenum, GLenum, GLint, GLenum, GLint*);
+#define CALL_GetMultiTexLevelParameterivEXT(disp, parameters) \
+    (* GET_GetMultiTexLevelParameterivEXT(disp)) parameters
+static INLINE _glptr_GetMultiTexLevelParameterivEXT GET_GetMultiTexLevelParameterivEXT(struct _glapi_table *disp) {
+   return (_glptr_GetMultiTexLevelParameterivEXT) (GET_by_offset(disp, _gloffset_GetMultiTexLevelParameterivEXT));
+}
+
+static INLINE void SET_GetMultiTexLevelParameterivEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLint, GLenum, GLint*)) {
+   SET_by_offset(disp, _gloffset_GetMultiTexLevelParameterivEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetMultiTexLevelParameterfvEXT)(GLenum, GLenum, GLint, GLenum, GLfloat*);
+#define CALL_GetMultiTexLevelParameterfvEXT(disp, parameters) \
+    (* GET_GetMultiTexLevelParameterfvEXT(disp)) parameters
+static INLINE _glptr_GetMultiTexLevelParameterfvEXT GET_GetMultiTexLevelParameterfvEXT(struct _glapi_table *disp) {
+   return (_glptr_GetMultiTexLevelParameterfvEXT) (GET_by_offset(disp, _gloffset_GetMultiTexLevelParameterfvEXT));
+}
+
+static INLINE void SET_GetMultiTexLevelParameterfvEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLenum, GLint, GLenum, GLfloat*)) {
+   SET_by_offset(disp, _gloffset_GetMultiTexLevelParameterfvEXT, fn);
 }
 
 

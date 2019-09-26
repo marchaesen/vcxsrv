@@ -58,6 +58,14 @@ endforeach
 
 add_global_arguments(common_wflags, language : ['c', 'objc'])
 
+libdrm_req = '>= 2.4.89'
+libselinux_req = '>= 2.0.86'
+xext_req = '>= 1.0.99.4'
+wayland_req = '>= 1.3.0'
+wayland_protocols_req = '>= 1.18'
+gbm_req = '>= 10.2'
+xf86dgaproto_req = '>= 2.0.99.1'
+
 xproto_dep = dependency('xproto', version: '>= 7.0.31')
 randrproto_dep = dependency('randrproto', version: '>= 1.6.0')
 renderproto_dep = dependency('renderproto', version: '>= 0.11')
@@ -80,7 +88,7 @@ xf86driproto_dep = dependency('xf86driproto', version: '>= 2.1.0', required: get
 dri2proto_dep = dependency('dri2proto', version: '>= 2.8', required: get_option('dri2') == 'true')
 dri3proto_dep = dependency('dri3proto', version: '>= 1.2', required: get_option('dri3') == 'true')
 xineramaproto_dep = dependency('xineramaproto')
-xf86bigfontproto_dep = dependency('xf86bigfontproto', version: '>= 1.2.0')
+xf86bigfontproto_dep = dependency('xf86bigfontproto', version: '>= 1.2.0', required: get_option('xf86bigfont'))
 xf86vidmodeproto_dep = dependency('xf86vidmodeproto', version: '>= 2.2.99.1')
 applewmproto_dep = dependency('applewmproto', version: '>= 1.4', required: false)
 xshmfence_dep = dependency('xshmfence', version: '>= 1.1', required: false)
@@ -167,6 +175,11 @@ else
     build_systemd_logind = get_option('systemd_logind') == 'true'
 endif
 
+with_dtrace = get_option('dtrace')
+if with_dtrace
+    dtrace = find_program('dtrace', required: true)
+endif
+
 build_xorg = false
 if (host_machine.system() != 'darwin' and
     host_machine.system() != 'windows')
@@ -184,13 +197,17 @@ if (host_machine.system() != 'darwin' and
     host_machine.system() != 'windows')
     if get_option('xwayland') != 'false'
         xwayland_required = get_option('xwayland') == 'true'
+        build_glamor = glamor_option == 'true' or glamor_option == 'auto'
 
         xwayland_dep = [
-            dependency('wayland-client', version: '>= 1.3.0', required: xwayland_required),
-            dependency('wayland-protocols', version: '>= 1.10', required: xwayland_required),
-            dependency('libdrm', version: '>= 2.4.89', required: xwayland_required),
-            dependency('epoxy', required: xwayland_required),
+            dependency('wayland-client', version: wayland_req, required: xwayland_required),
+            dependency('wayland-protocols', version: wayland_protocols_req, required: xwayland_required),
         ]
+
+        if build_glamor
+            xwayland_dep += dependency('libdrm', version: libdrm_req, required: xwayland_required)
+            xwayland_dep += dependency('epoxy', required: xwayland_required)
+        endif
 
         build_xwayland = true
         # check for all the deps being found, to handle 'auto' mode.
@@ -209,7 +226,7 @@ if (host_machine.system() != 'darwin' and
         xnest_required = get_option('xnest') == 'true'
 
         xnest_dep = [
-            dependency('xext', version: '>= 1.0.99.4', required: xnest_required),
+            dependency('xext', version: xext_req, required: xnest_required),
             dependency('x11', required: xnest_required),
             dependency('xau', required: xnest_required),
         ]
@@ -301,13 +318,13 @@ module_dir = join_paths(get_option('libdir'), get_option('module_dir'))
 if glamor_option == 'auto'
     build_glamor = build_xorg or build_xwayland
 else
-    build_glamor = get_option('glamor') == 'true'
+    build_glamor = glamor_option == 'true'
 endif
 
 gbm_dep = dependency('', required: false)
 epoxy_dep = dependency('', required: false)
 if build_glamor
-    gbm_dep = dependency('gbm', version: '>= 10.2', required: false)
+    gbm_dep = dependency('gbm', version: gbm_req, required: false)
     epoxy_dep = dependency('epoxy', required: false)
 endif
 
@@ -345,7 +362,7 @@ if build_glx
     build_hashtable = true
 endif
 
-libdrm_dep = dependency('libdrm', version: '>= 2.4.89', required: false)
+libdrm_dep = dependency('libdrm', version: libdrm_req, required: false)
 
 if get_option('dri1') == 'auto'
     build_dri1 = xf86driproto_dep.found() and libdrm_dep.found()
@@ -430,12 +447,12 @@ endif
 build_dga = false
 xf86dgaproto_dep = dependency('', required: false)
 if get_option('dga') == 'auto'
-    xf86dgaproto_dep = dependency('xf86dgaproto', version: '>= 2.0.99.1', required: false)
+    xf86dgaproto_dep = dependency('xf86dgaproto', version: xf86dgaproto_req, required: false)
     if xf86dgaproto_dep.found()
         build_dga = true
     endif
 elif get_option('dga') == 'true'
-    xf86dgaproto_dep = dependency('xf86dgaproto', version: '>= 2.0.99.1', required: true)
+    xf86dgaproto_dep = dependency('xf86dgaproto', version: xf86dgaproto_req, required: true)
     build_dga = true
 endif
 
@@ -526,7 +543,7 @@ inc = include_directories(
 
 build_xselinux = false
 if get_option('xselinux') != 'false'
-    dep_selinux = dependency('libselinux', version: '>= 2.0.86',
+    dep_selinux = dependency('libselinux', version: libselinux_req,
 			     required: get_option('xselinux') == 'true')
     dep_audit = dependency('audit', required: get_option('xselinux') == 'true')
     if get_option('xselinux') == 'true'
@@ -583,12 +600,6 @@ manpage_config.set('modulepath', module_dir)
 # manpage_config.set('suid_wrapper_dir', join_paths(get_option('prefix'), libexecdir))
 manpage_config.set('suid_wrapper_dir', join_paths(get_option('prefix'), 'libexec'))
 manpage_config.set('default_font_path', default_font_path)
-
-# generate header containing date & time build was configued
-build_date_time = configure_file(
-    output: 'buildDateTime.h',
-    command: ['sh', join_paths(meson.current_source_dir(), 'buildDateTime.sh'), '@OUTPUT@'],
-)
 
 # Include must come first, as it sets up dix-config.h
 subdir('include')

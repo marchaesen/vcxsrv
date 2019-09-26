@@ -427,8 +427,11 @@ get_array_deref_info(nir_deref_instr *deref,
    if (!(deref->mode & modes))
       return NULL;
 
-   return get_array_var_info(nir_deref_instr_get_variable(deref),
-                             var_info_map);
+   nir_variable *var = nir_deref_instr_get_variable(deref);
+   if (var == NULL)
+      return NULL;
+
+   return get_array_var_info(var, var_info_map);
 }
 
 static void

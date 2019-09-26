@@ -2706,7 +2706,9 @@ is_varying_var(ir_variable *var, gl_shader_stage target)
    case MESA_SHADER_VERTEX:
       return var->data.mode == ir_var_shader_out;
    case MESA_SHADER_FRAGMENT:
-      return var->data.mode == ir_var_shader_in;
+      return var->data.mode == ir_var_shader_in ||
+             (var->data.mode == ir_var_system_value &&
+              var->data.location == SYSTEM_VALUE_FRAG_COORD);
    default:
       return var->data.mode == ir_var_shader_out || var->data.mode == ir_var_shader_in;
    }
@@ -3486,7 +3488,8 @@ apply_image_qualifier_to_variable(const struct ast_type_qualifier *qual,
       }
    } else {
       if (var->data.mode == ir_var_uniform) {
-         if (state->es_shader) {
+         if (state->es_shader ||
+             !(state->is_version(420, 310) || state->ARB_shader_image_load_store_enable)) {
             _mesa_glsl_error(loc, state, "all image uniforms must have a "
                              "format layout qualifier");
          } else if (!qual->flags.q.write_only) {
@@ -4923,6 +4926,41 @@ ast_declarator_list::hir(exec_list *instructions,
    assert(!this->invariant);
    assert(!this->precise);
 
+   /* GL_EXT_shader_image_load_store base type uses GLSL_TYPE_VOID as a special value to
+    * indicate that it needs to be updated later (see glsl_parser.yy).
+    * This is done here, based on the layout qualifier and the type of the image var
+    */
+   if (this->type->qualifier.flags.q.explicit_image_format &&
+         this->type->specifier->type->is_image() &&
+         this->type->qualifier.image_base_type == GLSL_TYPE_VOID) {
+      /*     "The ARB_shader_image_load_store says:
+       *     If both extensions are enabled in the shading language, the "size*" layout
+       *     qualifiers are treated as format qualifiers, and are mapped to equivalent
+       *     format qualifiers in the table below, according to the type of image
+       *     variable.
+       *                     image*    iimage*   uimage*
+       *                     --------  --------  --------
+       *       size1x8       n/a       r8i       r8ui
+       *       size1x16      r16f      r16i      r16ui
+       *       size1x32      r32f      r32i      r32ui
+       *       size2x32      rg32f     rg32i     rg32ui
+       *       size4x32      rgba32f   rgba32i   rgba32ui"
+       */
+      if (strncmp(this->type->specifier->type_name, "image", strlen("image")) == 0) {
+         this->type->qualifier.image_format = GL_R8 +
+                                         this->type->qualifier.image_format - GL_R8I;
+         this->type->qualifier.image_base_type = GLSL_TYPE_FLOAT;
+      } else if (strncmp(this->type->specifier->type_name, "uimage", strlen("uimage")) == 0) {
+         this->type->qualifier.image_format = GL_R8UI +
+                                         this->type->qualifier.image_format - GL_R8I;
+         this->type->qualifier.image_base_type = GLSL_TYPE_UINT;
+      } else if (strncmp(this->type->specifier->type_name, "iimage", strlen("iimage")) == 0) {
+         this->type->qualifier.image_base_type = GLSL_TYPE_INT;
+      } else {
+         assert(false);
+      }
+   }
+
    /* The type specifier may contain a structure definition.  Process that
     * before any of the variable declarations.
     */
@@ -5977,6 +6015,19 @@ ast_function::hir(exec_list *instructions,
                        name);
    }
 
+   /* Get the precision for the return type */
+   unsigned return_precision;
+
+   if (state->es_shader) {
+      YYLTYPE loc = this->get_location();
+      return_precision =
+         select_gles_precision(this->return_type->qualifier.precision,
+                               return_type,
+                               state,
+                               &loc);
+   } else {
+      return_precision = GLSL_PRECISION_NONE;
+   }
 
    /* Create an ir_function if one doesn't already exist. */
    f = state->symbols->get_function(name);
@@ -6005,7 +6056,6 @@ ast_function::hir(exec_list *instructions,
     */
    if (state->es_shader) {
       /* Local shader has no exact candidates; check the built-ins. */
-      _mesa_glsl_initialize_builtin_functions();
       if (state->language_version >= 300 &&
           _mesa_glsl_has_builtin_function(state, name)) {
          YYLTYPE loc = this->get_location();
@@ -6046,6 +6096,13 @@ ast_function::hir(exec_list *instructions,
 
             _mesa_glsl_error(&loc, state, "function `%s' return type doesn't "
                              "match prototype", name);
+         }
+
+         if (sig->return_precision != return_precision) {
+            YYLTYPE loc = this->get_location();
+
+            _mesa_glsl_error(&loc, state, "function `%s' return type precision "
+                             "doesn't match prototype", name);
          }
 
          if (sig->is_defined) {
@@ -6092,6 +6149,7 @@ ast_function::hir(exec_list *instructions,
     */
    if (sig == NULL) {
       sig = new(ctx) ir_function_signature(return_type);
+      sig->return_precision = return_precision;
       f->add_signature(sig);
    }
 

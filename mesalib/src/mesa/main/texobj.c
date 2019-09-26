@@ -219,6 +219,42 @@ _mesa_get_current_tex_object(struct gl_context *ctx, GLenum target)
 
 
 /**
+ * Get the texture object for given target and texunit
+ * Proxy targets are accepted only allowProxyTarget is true.
+ * Return NULL if any error (and record the error).
+ */
+struct gl_texture_object *
+_mesa_get_texobj_by_target_and_texunit(struct gl_context *ctx, GLenum target,
+                                       GLuint texunit, bool allowProxyTarget,
+                                       const char* caller)
+{
+   struct gl_texture_unit *texUnit;
+   int targetIndex;
+
+   if (_mesa_is_proxy_texture(target) && allowProxyTarget) {
+      return _mesa_get_current_tex_object(ctx, target);
+   }
+
+   if (texunit >= ctx->Const.MaxCombinedTextureImageUnits) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(texunit=%d)", caller, texunit);
+      return NULL;
+   }
+
+   texUnit = _mesa_get_tex_unit(ctx, texunit);
+
+   targetIndex = _mesa_tex_target_to_index(ctx, target);
+   if (targetIndex < 0 || targetIndex == TEXTURE_BUFFER_INDEX) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "%s(target)", caller);
+      return NULL;
+   }
+   assert(targetIndex < NUM_TEXTURE_TARGETS);
+
+   return texUnit->CurrentTex[targetIndex];
+}
+
+
+/**
  * Allocate and initialize a new texture object.  But don't put it into the
  * texture object hash table.
  *

@@ -1387,6 +1387,8 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<reg32 offset="0x2357" name="A225_GRAS_UCP5W"/>
 	<reg32 offset="0x2360" name="A225_GRAS_UCP_ENABLED"/>
 	<reg32 offset="0x2380" name="PA_SU_POLY_OFFSET_FRONT_SCALE"/>
+	<reg32 offset="0x2381" name="PA_SU_POLY_OFFSET_FRONT_OFFSET"/>
+	<reg32 offset="0x2382" name="PA_SU_POLY_OFFSET_BACK_SCALE"/>
 	<reg32 offset="0x2383" name="PA_SU_POLY_OFFSET_BACK_OFFSET"/>
 	<reg32 offset="0x4000" name="SQ_CONSTANT_0"/>
 	<reg32 offset="0x4800" name="SQ_FETCH_0"/>
@@ -1559,11 +1561,11 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 		<value name="SQ_TEX_BORDER_COLOR_ACBCRY_BLACK" value="3"/>
 	</enum>
 	<enum name="sq_tex_sign">
-		<value name="SQ_TEX_SIGN_UNISIGNED" value="0"/>
+		<value name="SQ_TEX_SIGN_UNSIGNED" value="0"/>
 		<value name="SQ_TEX_SIGN_SIGNED" value="1"/>
 		<!-- biased: 2*color-1 (range -1,1 when sampling) -->
-		<value name="SQ_TEX_SIGN_UNISIGNED_BIASED" value="2"/>
-		<!-- gamma: sRGB to linear? -->
+		<value name="SQ_TEX_SIGN_UNSIGNED_BIASED" value="2"/>
+		<!-- gamma: sRGB to linear - doesn't seem to work on adreno? -->
 		<value name="SQ_TEX_SIGN_GAMMA" value="3"/>
 	</enum>
 	<enum name="sq_tex_endian">
@@ -1596,7 +1598,7 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 		<bitfield name="CLAMP_Y" low="13" high="15" type="sq_tex_clamp"/>"
 		<bitfield name="CLAMP_Z" low="16" high="18" type="sq_tex_clamp"/>"
 		<bitfield name="PITCH" low="22" high="30" shr="5" type="uint"/>
-		<bitfield name="TILED" pos="1" type="boolean"/>
+		<bitfield name="TILED" pos="31" type="boolean"/>
 	</reg32>
 	<reg32 offset="1" name="1">
 		<bitfield name="FORMAT" low="0" high="5" type="a2xx_sq_surfaceformat"/>

@@ -1120,6 +1120,9 @@ dri3_cpp_for_format(uint32_t format) {
    case  __DRI_IMAGE_FORMAT_SARGB8:
    case  __DRI_IMAGE_FORMAT_SABGR8:
       return 4;
+   case __DRI_IMAGE_FORMAT_XBGR16161616F:
+   case __DRI_IMAGE_FORMAT_ABGR16161616F:
+      return 8;
    case  __DRI_IMAGE_FORMAT_NONE:
    default:
       return 0;
@@ -1157,27 +1160,29 @@ dri3_linear_format_for_format(struct loader_dri3_drawable *draw, uint32_t format
 }
 
 /* the DRIimage createImage function takes __DRI_IMAGE_FORMAT codes, while
- * the createImageFromFds call takes __DRI_IMAGE_FOURCC codes. To avoid
+ * the createImageFromFds call takes DRM_FORMAT codes. To avoid
  * complete confusion, just deal in __DRI_IMAGE_FORMAT codes for now and
- * translate to __DRI_IMAGE_FOURCC codes in the call to createImageFromFds
+ * translate to DRM_FORMAT codes in the call to createImageFromFds
  */
 static int
 image_format_to_fourcc(int format)
 {
 
-   /* Convert from __DRI_IMAGE_FORMAT to __DRI_IMAGE_FOURCC (sigh) */
+   /* Convert from __DRI_IMAGE_FORMAT to DRM_FORMAT (sigh) */
    switch (format) {
    case __DRI_IMAGE_FORMAT_SARGB8: return __DRI_IMAGE_FOURCC_SARGB8888;
    case __DRI_IMAGE_FORMAT_SABGR8: return __DRI_IMAGE_FOURCC_SABGR8888;
-   case __DRI_IMAGE_FORMAT_RGB565: return __DRI_IMAGE_FOURCC_RGB565;
-   case __DRI_IMAGE_FORMAT_XRGB8888: return __DRI_IMAGE_FOURCC_XRGB8888;
-   case __DRI_IMAGE_FORMAT_ARGB8888: return __DRI_IMAGE_FOURCC_ARGB8888;
-   case __DRI_IMAGE_FORMAT_ABGR8888: return __DRI_IMAGE_FOURCC_ABGR8888;
-   case __DRI_IMAGE_FORMAT_XBGR8888: return __DRI_IMAGE_FOURCC_XBGR8888;
-   case __DRI_IMAGE_FORMAT_XRGB2101010: return __DRI_IMAGE_FOURCC_XRGB2101010;
-   case __DRI_IMAGE_FORMAT_ARGB2101010: return __DRI_IMAGE_FOURCC_ARGB2101010;
-   case __DRI_IMAGE_FORMAT_XBGR2101010: return __DRI_IMAGE_FOURCC_XBGR2101010;
-   case __DRI_IMAGE_FORMAT_ABGR2101010: return __DRI_IMAGE_FOURCC_ABGR2101010;
+   case __DRI_IMAGE_FORMAT_RGB565: return DRM_FORMAT_RGB565;
+   case __DRI_IMAGE_FORMAT_XRGB8888: return DRM_FORMAT_XRGB8888;
+   case __DRI_IMAGE_FORMAT_ARGB8888: return DRM_FORMAT_ARGB8888;
+   case __DRI_IMAGE_FORMAT_ABGR8888: return DRM_FORMAT_ABGR8888;
+   case __DRI_IMAGE_FORMAT_XBGR8888: return DRM_FORMAT_XBGR8888;
+   case __DRI_IMAGE_FORMAT_XRGB2101010: return DRM_FORMAT_XRGB2101010;
+   case __DRI_IMAGE_FORMAT_ARGB2101010: return DRM_FORMAT_ARGB2101010;
+   case __DRI_IMAGE_FORMAT_XBGR2101010: return DRM_FORMAT_XBGR2101010;
+   case __DRI_IMAGE_FORMAT_ABGR2101010: return DRM_FORMAT_ABGR2101010;
+   case __DRI_IMAGE_FORMAT_XBGR16161616F: return DRM_FORMAT_XBGR16161616F;
+   case __DRI_IMAGE_FORMAT_ABGR16161616F: return DRM_FORMAT_ABGR16161616F;
    }
    return 0;
 }

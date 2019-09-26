@@ -50,6 +50,9 @@ option('vendor_name', type: 'string', value: 'The X.Org Foundation')
 option('vendor_name_short', type: 'string', value: 'X.Org')
 option('vendor_web', type: 'string', value: 'http://wiki.x.org')
 
+option('dtrace', type: 'boolean', value: false,
+       description: 'Enable dtrace hooks')
+
 option('listen_tcp', type: 'boolean', value: false,
        description: 'Listen on TCP by default')
 option('listen_unix', type: 'boolean', value: true,

@@ -38,46 +38,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XcmsCIELuvQueryMaxC __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XcmsCIELuvQueryMaxC, XcmsCIELuvQueryMaxL, XcmsCIELuvQueryMaxLC, XcmsCIELuvQueryMinL \- obtain the CIE L*u*v* coordinates
@@ -90,7 +57,7 @@ Status XcmsCIELuvQueryMaxL\^(\^XcmsCCC \fIccc\fP\^, XcmsFloat
 \fIhue_angle\fP\^, XcmsFloat \fIchroma\fP\^, XcmsColor *\fIcolor_return\fP\^);
 .HP
 Status XcmsCIELuvQueryMaxLC\^(\^XcmsCCC \fIccc\fP\^, XcmsFloat
-\fIhue_angle\fP\^, XcmsColor *\fIcolor_return\fP\^); 
+\fIhue_angle\fP\^, XcmsColor *\fIcolor_return\fP\^);
 .HP
 Status XcmsCIELuvQueryMinL\^(\^XcmsCCC \fIccc\fP\^, XcmsFloat
 \fIhue_angle\fP\^, XcmsFloat \fIchroma\fP\^, XcmsColor *\fIcolor_return\fP\^);
@@ -129,10 +96,10 @@ It returns this point in CIE L*u*v* coordinates.
 The
 .B XcmsCIELuvQueryMaxL
 function, given a hue angle and chroma,
-finds the point in CIE L*u*v* color space of maximum 
+finds the point in CIE L*u*v* color space of maximum
 lightness (L*) displayable by the screen.
 It returns this point in CIE L*u*v* coordinates.
-An 
+An
 .B XcmsFailure
 return value usually indicates that the given chroma
 is beyond maximum for the given hue angle.
@@ -148,7 +115,7 @@ The
 function, given a hue angle and chroma,
 finds the point of minimum lightness (L*) displayable by the screen.
 It returns this point in CIE L*u*v* coordinates.
-An 
+An
 .B XcmsFailure
 return value usually indicates that the given chroma
 is beyond maximum for the given hue angle.

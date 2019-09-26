@@ -1000,7 +1000,7 @@
     {"name": "EXACT", "value": 0},
     {"name": "11BIT_FORMAT", "value": 1},
     {"name": "10BIT_FORMAT", "value": 3},
-    {"name": "8BIT_FORMAT", "value": 7},
+    {"name": "8BIT_FORMAT", "value": 6},
     {"name": "6BIT_FORMAT", "value": 11},
     {"name": "5BIT_FORMAT", "value": 13},
     {"name": "4BIT_FORMAT", "value": 15}

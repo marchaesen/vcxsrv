@@ -653,7 +653,7 @@ print_deref_link(const nir_deref_instr *instr, bool whole_chain, print_state *st
    case nir_deref_type_array:
    case nir_deref_type_ptr_as_array: {
       if (nir_src_is_const(instr->arr.index)) {
-         fprintf(fp, "[%"PRIx64"]", nir_src_as_int(instr->arr.index));
+         fprintf(fp, "[%"PRId64"]", nir_src_as_int(instr->arr.index));
       } else {
          fprintf(fp, "[");
          print_src(&instr->arr.index, state);

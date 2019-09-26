@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <llvm/Config/llvm-config.h>
 #include <amdgpu_drm.h>
 #include <assert.h>
 #include "radv_amdgpu_cs.h"
@@ -46,7 +47,7 @@ do_winsys_init(struct radv_amdgpu_winsys *ws, int fd)
 		return false;
 
 	/* LLVM 9.0 is required for GFX10. */
-	if (ws->info.chip_class == GFX10 && HAVE_LLVM < 0x0900) {
+	if (ws->info.chip_class == GFX10 && LLVM_VERSION_MAJOR < 9) {
 		fprintf(stderr, "radv: Navi family support requires LLVM 9 or higher\n");
 		return false;
 	}

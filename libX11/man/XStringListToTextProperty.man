@@ -39,58 +39,25 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
+.\" It is provided "as is" without express or implied warranty.
 .\"
-.\" 
+.\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XStringListToTextProperty __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XStringListToTextProperty, XTextPropertyToStringList, XFreeStringList, XTextProperty \- convert string lists and text property structure
 .SH SYNTAX
 .HP
 Status XStringListToTextProperty\^(\^char **\fIlist\fP\^, int \fIcount\fP\^,
-XTextProperty *\fItext_prop_return\fP\^); 
+XTextProperty *\fItext_prop_return\fP\^);
 .HP
 Status XTextPropertyToStringList\^(\^XTextProperty *\fItext_prop\fP\^, char
-***\fIlist_return\fP\^, int *\fIcount_return\fP\^); 
+***\fIlist_return\fP\^, int *\fIcount_return\fP\^);
 .HP
-void XFreeStringList\^(\^char **\fIlist\fP\^); 
+void XFreeStringList\^(\^char **\fIlist\fP\^);
 .SH ARGUMENTS
 .IP \fIcount\fP 1i
 Specifies the number of strings.
@@ -111,64 +78,64 @@ Returns the
 .B XTextProperty
 structure.
 .SH DESCRIPTION
-The 
+The
 .B XStringListToTextProperty
-function sets the specified 
+function sets the specified
 .B XTextProperty
 to be of type STRING (format 8) with a value representing the
 concatenation of the specified list of null-separated character strings.
-An extra null byte (which is not included in the nitems member) 
+An extra null byte (which is not included in the nitems member)
 is stored at the end of the value field of text_prop_return.
 The strings are assumed (without verification) to be in the STRING encoding.
-If insufficient memory is available for the new value string, 
+If insufficient memory is available for the new value string,
 .B XStringListToTextProperty
 does not set any fields in the
 .B XTextProperty
 structure and returns a zero status.
 Otherwise, it returns a nonzero status.
-To free the storage for the value field, use 
+To free the storage for the value field, use
 .BR XFree .
 .LP
-The 
+The
 .B XTextPropertyToStringList
-function returns a list of strings representing the null-separated elements 
+function returns a list of strings representing the null-separated elements
 of the specified
 .B XTextProperty
 structure.
-The data in text_prop must be of type STRING and format 8. 
-Multiple elements of the property 
-(for example, the strings in a disjoint text selection) 
+The data in text_prop must be of type STRING and format 8.
+Multiple elements of the property
+(for example, the strings in a disjoint text selection)
 are separated by NULL (encoding 0).
 The contents of the property are not null-terminated.
-If insufficient memory is available for the list and its elements, 
+If insufficient memory is available for the list and its elements,
 .B XTextPropertyToStringList
 sets no return values and returns a zero status.
 Otherwise, it returns a nonzero status.
-To free the storage for the list and its contents, use 
+To free the storage for the list and its contents, use
 .BR XFreeStringList .
 .LP
-The 
+The
 .B XFreeStringList
-function releases memory allocated by 
+function releases memory allocated by
 .BR XmbTextPropertyToTextList ,
 .B Xutf8TextPropertyToTextList
 and
 .B XTextPropertyToStringList
-and the missing charset list allocated by 
+and the missing charset list allocated by
 .BR XCreateFontSet .
 .SH STRUCTURES
 The
 .B XTextProperty
 structure contains:
 .LP
-.Ds 0
+.EX
 typedef struct {
         unsigned char *value;   /\&* property data */
         Atom encoding;  /\&* type of property */
         int format;     /\&* 8, 16, or 32 */
         unsigned long nitems;   /\&* number of items in value */
 } XTextProperty;
-.De
+.EE
 .SH "SEE ALSO"
 XAllocClassHint(__libmansuffix__),
 XAllocIconSize(__libmansuffix__),

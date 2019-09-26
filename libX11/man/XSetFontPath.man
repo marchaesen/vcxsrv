@@ -38,56 +38,23 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XSetFontPath __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XSetFontPath, XGetFontPath, XFreeFontPath \- set, get, or free the font search path
 .SH SYNTAX
 int XSetFontPath\^(\^Display *\fIdisplay\fP\^, char **\fIdirectories\fP\^, int
-\fIndirs\fP\^); 
+\fIndirs\fP\^);
 .HP
 char **XGetFontPath\^(\^Display *\fIdisplay\fP\^, int *\fInpaths_return\fP\^);
 .HP
-int XFreeFontPath\^(\^char **\fIlist\fP\^); 
+int XFreeFontPath\^(\^char **\fIlist\fP\^);
 .SH ARGUMENTS
 .IP \fIdirectories\fP 1i
 Specifies the directory path used to look for a font.
@@ -107,7 +74,7 @@ The
 function defines the directory search path for font lookup.
 There is only one search path per X server, not one per client.
 The encoding and interpretation of the strings are implementation-dependent,
-but typically they specify directories or font servers to be searched 
+but typically they specify directories or font servers to be searched
 in the order listed.
 An X server is permitted to cache font information internally;
 for example, it might cache an entire font from a file and not
@@ -115,7 +82,7 @@ check on subsequent opens of that font to see if the underlying
 font file has changed.
 However,
 when the font path is changed,
-the X server is guaranteed to flush all cached information about fonts 
+the X server is guaranteed to flush all cached information about fonts
 for which there currently are no explicit resource IDs allocated.
 The meaning of an error from this request is implementation-dependent.
 .LP
@@ -143,7 +110,8 @@ frees the data allocated by
 .B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
-by the argument's type is accepted.  Any argument defined as a set of
+by the argument's type is accepted.
+Any argument defined as a set of
 alternatives can generate this error.
 .SH "SEE ALSO"
 XListFont(__libmansuffix__),

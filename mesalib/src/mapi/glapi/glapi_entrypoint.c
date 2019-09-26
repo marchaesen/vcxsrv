@@ -38,7 +38,7 @@
 
 #ifdef USE_X86_ASM
 
-#if defined( GLX_USE_TLS )
+#if defined( USE_ELF_TLS )
 extern       GLubyte gl_dispatch_functions_start[];
 extern       GLubyte gl_dispatch_functions_end[];
 #else
@@ -68,7 +68,7 @@ get_entrypoint_address(unsigned int functionOffset)
 static void
 init_glapi_relocs( void )
 {
-#if defined(GLX_USE_TLS) && !defined(GLX_X86_READONLY_TEXT)
+#if defined(USE_ELF_TLS) && !defined(GLX_X86_READONLY_TEXT)
     extern unsigned long _x86_get_dispatch(void);
     char run_time_patch[] = {
        0x65, 0xa1, 0, 0, 0, 0 /* movl %gs:0,%eax */
@@ -121,7 +121,7 @@ fill_in_entrypoint_offset(_glapi_proc entrypoint, unsigned int offset)
 {
    GLubyte * const code = (GLubyte *) entrypoint;
 
-#if defined(GLX_USE_TLS)
+#if defined(USE_ELF_TLS)
    *((unsigned int *)(code +  8)) = 4 * offset;
 #else
    *((unsigned int *)(code + 11)) = 4 * offset;
@@ -137,9 +137,9 @@ extern void __glapi_sparc_icache_flush(unsigned int *);
 static void
 init_glapi_relocs( void )
 {
-#if defined(HAVE_PTHREAD) || defined(GLX_USE_TLS)
+#if defined(HAVE_PTHREAD) || defined(USE_ELF_TLS)
     static const unsigned int template[] = {
-#ifdef GLX_USE_TLS
+#ifdef USE_ELF_TLS
 	0x05000000, /* sethi %hi(_glapi_tls_Dispatch), %g2 */
 	0x8730e00a, /* srl %g3, 10, %g3 */
 	0x8410a000, /* or %g2, %lo(_glapi_tls_Dispatch), %g2 */
@@ -190,7 +190,7 @@ init_glapi_relocs( void )
 	0x81e80000, /*             -->  restore  */
 #endif
     };
-#ifdef GLX_USE_TLS
+#ifdef USE_ELF_TLS
     extern unsigned int __glapi_sparc_tls_stub;
     extern unsigned long __glapi_sparc_get_dispatch(void);
     unsigned int *code = &__glapi_sparc_tls_stub;
@@ -203,7 +203,7 @@ init_glapi_relocs( void )
     int idx;
 #endif
 
-#ifdef GLX_USE_TLS
+#ifdef USE_ELF_TLS
     code[0] = template[0] | (dispatch >> 10);
     code[1] = template[1];
     __glapi_sparc_icache_flush(&code[0]);
@@ -267,14 +267,14 @@ init_glapi_relocs( void )
 _glapi_proc
 generate_entrypoint(GLuint functionOffset)
 {
-#if defined(HAVE_PTHREAD) || defined(GLX_USE_TLS)
+#if defined(HAVE_PTHREAD) || defined(USE_ELF_TLS)
    static const unsigned int template[] = {
       0x07000000, /* sethi %hi(0), %g3 */
       0x8210000f, /* mov  %o7, %g1 */
       0x40000000, /* call */
       0x9e100001, /* mov  %g1, %o7 */
    };
-#ifdef GLX_USE_TLS
+#ifdef USE_ELF_TLS
    extern unsigned int __glapi_sparc_tls_stub;
    unsigned long call_dest = (unsigned long ) &__glapi_sparc_tls_stub;
 #else
@@ -338,7 +338,7 @@ fill_in_entrypoint_offset(_glapi_proc entrypoint, GLuint offset)
 void
 init_glapi_relocs_once( void )
 {
-#if defined(HAVE_PTHREAD) || defined(GLX_USE_TLS)
+#if defined(HAVE_PTHREAD) || defined(USE_ELF_TLS)
    static once_flag flag = ONCE_FLAG_INIT;
    call_once(&flag, init_glapi_relocs);
 #endif

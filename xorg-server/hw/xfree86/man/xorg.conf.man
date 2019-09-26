@@ -663,6 +663,12 @@ Enabled by default.
 If this option is disabled, then no GPU devices will be added from the udev
 backend. Enabled by default. (May need to be disabled to setup Xinerama).
 .TP 7
+.BI "Option \*qAutoBindGPU\*q  \*q" boolean \*q
+If enabled then secondary GPUs will be automatically set up as output-sinks and
+offload-sources. Making e.g. laptop outputs connected only to the secondary
+GPU directly available for use without needing to run
+"xrandr --setprovideroutputsource". Enabled by default.
+.TP 7
 .BI "Option \*qLog\*q \*q" string \*q
 This option controls whether the log is flushed and/or synced to disk after
 each message.

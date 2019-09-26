@@ -47,7 +47,7 @@ ALIGNTEXT4
 GLOBL GLNAME(_mesa_sse_transform_points2_general)
 HIDDEN (_mesa_sse_transform_points2_general)
 GLNAME( _mesa_sse_transform_points2_general ):
-
+    _CET_ENDBR
 #define FRAME_OFFSET 8
     PUSH_L    ( ESI )
     PUSH_L    ( EDI )
@@ -108,7 +108,7 @@ ALIGNTEXT4
 GLOBL GLNAME(_mesa_sse_transform_points2_identity)
 HIDDEN(_mesa_sse_transform_points2_identity)
 GLNAME( _mesa_sse_transform_points2_identity ):
-
+    _CET_ENDBR
 #define FRAME_OFFSET 8
     PUSH_L    ( ESI )
     PUSH_L    ( EDI )
@@ -161,7 +161,7 @@ ALIGNTEXT4
 GLOBL GLNAME(_mesa_sse_transform_points2_3d_no_rot)
 HIDDEN(_mesa_sse_transform_points2_3d_no_rot)
 GLNAME(_mesa_sse_transform_points2_3d_no_rot):
-
+    _CET_ENDBR
 #define FRAME_OFFSET 8
     PUSH_L( ESI )
     PUSH_L( EDI )
@@ -222,7 +222,7 @@ ALIGNTEXT4
 GLOBL GLNAME(_mesa_sse_transform_points2_perspective)
 HIDDEN(_mesa_sse_transform_points2_perspective)
 GLNAME(_mesa_sse_transform_points2_perspective):
-
+    _CET_ENDBR
 #define FRAME_OFFSET 8
     PUSH_L   ( ESI )
     PUSH_L   ( EDI )
@@ -281,7 +281,7 @@ ALIGNTEXT4
 GLOBL GLNAME(_mesa_sse_transform_points2_2d)
 HIDDEN(_mesa_sse_transform_points2_2d)
 GLNAME(_mesa_sse_transform_points2_2d):
-
+    _CET_ENDBR
 #define FRAME_OFFSET 8
     PUSH_L( ESI )
     PUSH_L( EDI )
@@ -344,7 +344,7 @@ ALIGNTEXT4
 GLOBL GLNAME(_mesa_sse_transform_points2_2d_no_rot)
 HIDDEN(_mesa_sse_transform_points2_2d_no_rot)
 GLNAME(_mesa_sse_transform_points2_2d_no_rot):
-
+	_CET_ENDBR
 #define FRAME_OFFSET 8
 	PUSH_L( ESI )
 	PUSH_L( EDI )
@@ -401,7 +401,7 @@ ALIGNTEXT4
 GLOBL GLNAME(_mesa_sse_transform_points2_3d)
 HIDDEN(_mesa_sse_transform_points2_3d)
 GLNAME(_mesa_sse_transform_points2_3d):
-
+	_CET_ENDBR
 #define FRAME_OFFSET 8
 	PUSH_L( ESI )
 	PUSH_L( EDI )

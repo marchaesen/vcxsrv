@@ -43,9 +43,16 @@
  * Return texgen state for given coordinate
  */
 static struct gl_texgen *
-get_texgen(struct gl_context *ctx, struct gl_fixedfunc_texture_unit *texUnit,
-           GLenum coord)
+get_texgen(struct gl_context *ctx, GLuint texunitIndex, GLenum coord, const char* caller)
 {
+   struct gl_fixedfunc_texture_unit* texUnit;
+   if (texunitIndex >= ctx->Const.MaxTextureCoordUnits) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unit=%d)", caller, texunitIndex);
+      return NULL;
+   }
+
+   texUnit = _mesa_get_fixedfunc_tex_unit(ctx, texunitIndex);
+
    if (ctx->API == API_OPENGLES) {
       return (coord == GL_TEXTURE_GEN_STR_OES)
          ? &texUnit->GenS : NULL;
@@ -66,30 +73,17 @@ get_texgen(struct gl_context *ctx, struct gl_fixedfunc_texture_unit *texUnit,
 }
 
 
-void GLAPIENTRY
-_mesa_TexGenfv( GLenum coord, GLenum pname, const GLfloat *params )
+/* Helper for glTexGenfv and glMultiTexGenfvEXT functions */
+static void
+texgenfv( GLuint texunitIndex, GLenum coord, GLenum pname,
+          const GLfloat *params, const char* caller )
 {
-   struct gl_fixedfunc_texture_unit *texUnit;
    struct gl_texgen *texgen;
    GET_CURRENT_CONTEXT(ctx);
 
-   if (MESA_VERBOSE&(VERBOSE_API|VERBOSE_TEXTURE))
-      _mesa_debug(ctx, "glTexGen %s %s %.1f(%s)...\n",
-                  _mesa_enum_to_string(coord),
-                  _mesa_enum_to_string(pname),
-                  *params,
-		  _mesa_enum_to_string((GLenum) (GLint) *params));
-
-   if (ctx->Texture.CurrentUnit >= ctx->Const.MaxTextureCoordUnits) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glTexGen(current unit)");
-      return;
-   }
-
-   texUnit = _mesa_get_current_fixedfunc_tex_unit(ctx);
-
-   texgen = get_texgen(ctx, texUnit, coord);
+   texgen = get_texgen(ctx, texunitIndex, coord, caller);
    if (!texgen) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glTexGen(coord)");
+      _mesa_error(ctx, GL_INVALID_ENUM, "%s(coord)", caller);
       return;
    }
 
@@ -183,8 +177,152 @@ _mesa_TexGenfv( GLenum coord, GLenum pname, const GLfloat *params )
 }
 
 
+/* Helper for glGetTexGendv / glGetMultiTexGendvEXT */
+static void
+gettexgendv( GLuint texunitIndex, GLenum coord, GLenum pname,
+             GLdouble *params, const char* caller)
+{
+   struct gl_texgen *texgen;
+   GET_CURRENT_CONTEXT(ctx);
+
+   texgen = get_texgen(ctx, texunitIndex, coord, caller);
+   if (!texgen) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "%s(coord)", caller);
+      return;
+   }
+
+   switch (pname) {
+   case GL_TEXTURE_GEN_MODE:
+      params[0] = ENUM_TO_DOUBLE(texgen->Mode);
+      break;
+   case GL_OBJECT_PLANE:
+      COPY_4V(params, texgen->ObjectPlane);
+      break;
+   case GL_EYE_PLANE:
+      COPY_4V(params, texgen->EyePlane);
+      break;
+   default:
+      _mesa_error( ctx, GL_INVALID_ENUM, "%s(pname)", caller );
+   }
+}
+
+
+/* Helper for glGetTexGenfv / glGetMultiTexGenfvEXT */
+static void
+gettexgenfv( GLenum texunitIndex, GLenum coord, GLenum pname,
+             GLfloat *params, const char* caller )
+{
+   struct gl_texgen *texgen;
+   GET_CURRENT_CONTEXT(ctx);
+
+   texgen = get_texgen(ctx, texunitIndex, coord, caller);
+   if (!texgen) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "%s(coord)", caller);
+      return;
+   }
+
+   switch (pname) {
+   case GL_TEXTURE_GEN_MODE:
+      params[0] = ENUM_TO_FLOAT(texgen->Mode);
+      break;
+   case GL_OBJECT_PLANE:
+      if (ctx->API != API_OPENGL_COMPAT) {
+         _mesa_error( ctx, GL_INVALID_ENUM, "%s(param)", caller );
+         return;
+      }
+      COPY_4V(params, texgen->ObjectPlane);
+      break;
+   case GL_EYE_PLANE:
+      if (ctx->API != API_OPENGL_COMPAT) {
+         _mesa_error( ctx, GL_INVALID_ENUM, "%s(param)", caller );
+         return;
+      }
+      COPY_4V(params, texgen->EyePlane);
+      break;
+   default:
+      _mesa_error( ctx, GL_INVALID_ENUM, "%s(pname)", caller );
+   }
+}
+
+
+/* Helper for glGetTexGeniv / glGetMultiTexGenivEXT */
+static void
+gettexgeniv( GLenum texunitIndex, GLenum coord, GLenum pname,
+             GLint *params, const char* caller)
+{
+   struct gl_texgen *texgen;
+   GET_CURRENT_CONTEXT(ctx);
+
+   texgen = get_texgen(ctx, texunitIndex, coord, caller);
+   if (!texgen) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "%s(coord)", caller);
+      return;
+   }
+
+   switch (pname) {
+   case GL_TEXTURE_GEN_MODE:
+      params[0] = texgen->Mode;
+      break;
+   case GL_OBJECT_PLANE:
+      if (ctx->API != API_OPENGL_COMPAT) {
+         _mesa_error( ctx, GL_INVALID_ENUM, "%s(param)" , caller);
+         return;
+      }
+      params[0] = (GLint) texgen->ObjectPlane[0];
+      params[1] = (GLint) texgen->ObjectPlane[1];
+      params[2] = (GLint) texgen->ObjectPlane[2];
+      params[3] = (GLint) texgen->ObjectPlane[3];
+      break;
+   case GL_EYE_PLANE:
+      if (ctx->API != API_OPENGL_COMPAT) {
+         _mesa_error( ctx, GL_INVALID_ENUM, "%s(param)" , caller);
+         return;
+      }
+      params[0] = (GLint) texgen->EyePlane[0];
+      params[1] = (GLint) texgen->EyePlane[1];
+      params[2] = (GLint) texgen->EyePlane[2];
+      params[3] = (GLint) texgen->EyePlane[3];
+      break;
+   default:
+      _mesa_error( ctx, GL_INVALID_ENUM, "%s(pname)" , caller);
+   }
+}
+
+
+void GLAPIENTRY
+_mesa_TexGenfv( GLenum coord, GLenum pname, const GLfloat *params )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   texgenfv(ctx->Texture.CurrentUnit, coord, pname, params, "glTexGenfv");
+}
+
+
+void GLAPIENTRY
+_mesa_MultiTexGenfvEXT( GLenum texunit, GLenum coord, GLenum pname, const GLfloat *params )
+{
+   texgenfv(texunit - GL_TEXTURE0, coord, pname, params, "glMultiTexGenfvEXT");
+}
+
+
 void GLAPIENTRY
 _mesa_TexGeniv(GLenum coord, GLenum pname, const GLint *params )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   GLfloat p[4];
+   p[0] = (GLfloat) params[0];
+   if (pname == GL_TEXTURE_GEN_MODE) {
+      p[1] = p[2] = p[3] = 0.0F;
+   }
+   else {
+      p[1] = (GLfloat) params[1];
+      p[2] = (GLfloat) params[2];
+      p[3] = (GLfloat) params[3];
+   }
+   texgenfv(ctx->Texture.CurrentUnit, coord, pname, p, "glTexGeniv");
+}
+
+void GLAPIENTRY
+_mesa_MultiTexGenivEXT(GLenum texunit, GLenum coord, GLenum pname, const GLint *params )
 {
    GLfloat p[4];
    p[0] = (GLfloat) params[0];
@@ -196,19 +334,29 @@ _mesa_TexGeniv(GLenum coord, GLenum pname, const GLint *params )
       p[2] = (GLfloat) params[2];
       p[3] = (GLfloat) params[3];
    }
-   _mesa_TexGenfv(coord, pname, p);
+   texgenfv(texunit - GL_TEXTURE0, coord, pname, p, "glMultiTexGenivEXT");
 }
 
 
 void GLAPIENTRY
 _mesa_TexGend(GLenum coord, GLenum pname, GLdouble param )
 {
+   GET_CURRENT_CONTEXT(ctx);
    GLfloat p[4];
    p[0] = (GLfloat) param;
    p[1] = p[2] = p[3] = 0.0F;
-   _mesa_TexGenfv( coord, pname, p );
+   texgenfv(ctx->Texture.CurrentUnit, coord, pname, p, "glTexGend");
 }
 
+
+void GLAPIENTRY
+_mesa_MultiTexGendEXT(GLenum texunit, GLenum coord, GLenum pname, GLdouble param )
+{
+   GLfloat p[4];
+   p[0] = (GLfloat) param;
+   p[1] = p[2] = p[3] = 0.0F;
+   texgenfv(texunit - GL_TEXTURE0, coord, pname, p, "glMultiTexGendEXT");
+}
 
 void GLAPIENTRY
 _es_GetTexGenfv(GLenum coord, GLenum pname, GLfloat *params)
@@ -250,6 +398,7 @@ _es_TexGenfv(GLenum coord, GLenum pname, const GLfloat *params)
 void GLAPIENTRY
 _mesa_TexGendv(GLenum coord, GLenum pname, const GLdouble *params )
 {
+   GET_CURRENT_CONTEXT(ctx);
    GLfloat p[4];
    p[0] = (GLfloat) params[0];
    if (pname == GL_TEXTURE_GEN_MODE) {
@@ -260,17 +409,45 @@ _mesa_TexGendv(GLenum coord, GLenum pname, const GLdouble *params )
       p[2] = (GLfloat) params[2];
       p[3] = (GLfloat) params[3];
    }
-   _mesa_TexGenfv( coord, pname, p );
+   texgenfv(ctx->Texture.CurrentUnit, coord, pname, p, "glTexGendv");
+}
+
+
+void GLAPIENTRY
+_mesa_MultiTexGendvEXT(GLenum texunit, GLenum coord, GLenum pname, const GLdouble *params )
+{
+   GLfloat p[4];
+   p[0] = (GLfloat) params[0];
+   if (pname == GL_TEXTURE_GEN_MODE) {
+      p[1] = p[2] = p[3] = 0.0F;
+   }
+   else {
+      p[1] = (GLfloat) params[1];
+      p[2] = (GLfloat) params[2];
+      p[3] = (GLfloat) params[3];
+   }
+   texgenfv(texunit - GL_TEXTURE0, coord, pname, p, "glMultiTexGendvEXT");
 }
 
 
 void GLAPIENTRY
 _mesa_TexGenf( GLenum coord, GLenum pname, GLfloat param )
 {
+   GET_CURRENT_CONTEXT(ctx);
    GLfloat p[4];
    p[0] = param;
    p[1] = p[2] = p[3] = 0.0F;
-   _mesa_TexGenfv(coord, pname, p);
+   texgenfv(ctx->Texture.CurrentUnit, coord, pname, p, "glTexGenf");
+}
+
+
+void GLAPIENTRY
+_mesa_MultiTexGenfEXT( GLenum texunit, GLenum coord, GLenum pname, GLfloat param )
+{
+   GLfloat p[4];
+   p[0] = param;
+   p[1] = p[2] = p[3] = 0.0F;
+   texgenfv(texunit - GL_TEXTURE0, coord, pname, p, "glMultiTexGenfEXT");
 }
 
 
@@ -284,134 +461,56 @@ _mesa_TexGeni( GLenum coord, GLenum pname, GLint param )
 }
 
 
+void GLAPIENTRY
+_mesa_MultiTexGeniEXT( GLenum texunit, GLenum coord, GLenum pname, GLint param )
+{
+   GLint p[4];
+   p[0] = param;
+   p[1] = p[2] = p[3] = 0;
+   _mesa_MultiTexGenivEXT( texunit, coord, pname, p );
+}
+
 
 void GLAPIENTRY
 _mesa_GetTexGendv( GLenum coord, GLenum pname, GLdouble *params )
 {
-   struct gl_fixedfunc_texture_unit *texUnit;
-   struct gl_texgen *texgen;
    GET_CURRENT_CONTEXT(ctx);
-
-   if (ctx->Texture.CurrentUnit >= ctx->Const.MaxTextureCoordUnits) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glGetTexGendv(current unit)");
-      return;
-   }
-
-   texUnit = _mesa_get_current_fixedfunc_tex_unit(ctx);
-
-   texgen = get_texgen(ctx, texUnit, coord);
-   if (!texgen) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glGetTexGendv(coord)");
-      return;
-   }
-
-   switch (pname) {
-   case GL_TEXTURE_GEN_MODE:
-      params[0] = ENUM_TO_DOUBLE(texgen->Mode);
-      break;
-   case GL_OBJECT_PLANE:
-      COPY_4V(params, texgen->ObjectPlane);
-      break;
-   case GL_EYE_PLANE:
-      COPY_4V(params, texgen->EyePlane);
-      break;
-   default:
-      _mesa_error( ctx, GL_INVALID_ENUM, "glGetTexGendv(pname)" );
-   }
+   gettexgendv(ctx->Texture.CurrentUnit, coord, pname, params, "glGetTexGendv");
 }
 
+
+void GLAPIENTRY
+_mesa_GetMultiTexGendvEXT( GLenum texunit, GLenum coord, GLenum pname, GLdouble *params )
+{
+   gettexgendv(texunit - GL_TEXTURE0, coord, pname, params, "glGetMultiTexGendvEXT");
+}
 
 
 void GLAPIENTRY
 _mesa_GetTexGenfv( GLenum coord, GLenum pname, GLfloat *params )
 {
-   struct gl_fixedfunc_texture_unit *texUnit;
-   struct gl_texgen *texgen;
    GET_CURRENT_CONTEXT(ctx);
-
-   if (ctx->Texture.CurrentUnit >= ctx->Const.MaxTextureCoordUnits) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glGetTexGenfv(current unit)");
-      return;
-   }
-
-   texUnit = _mesa_get_current_fixedfunc_tex_unit(ctx);
-
-   texgen = get_texgen(ctx, texUnit, coord);
-   if (!texgen) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glGetTexGenfv(coord)");
-      return;
-   }
-
-   switch (pname) {
-   case GL_TEXTURE_GEN_MODE:
-      params[0] = ENUM_TO_FLOAT(texgen->Mode);
-      break;
-   case GL_OBJECT_PLANE:
-      if (ctx->API != API_OPENGL_COMPAT) {
-         _mesa_error( ctx, GL_INVALID_ENUM, "glGetTexGenfv(param)" );
-         return;
-      }
-      COPY_4V(params, texgen->ObjectPlane);
-      break;
-   case GL_EYE_PLANE:
-      if (ctx->API != API_OPENGL_COMPAT) {
-         _mesa_error( ctx, GL_INVALID_ENUM, "glGetTexGenfv(param)" );
-         return;
-      }
-      COPY_4V(params, texgen->EyePlane);
-      break;
-   default:
-      _mesa_error( ctx, GL_INVALID_ENUM, "glGetTexGenfv(pname)" );
-   }
+   gettexgenfv(ctx->Texture.CurrentUnit, coord, pname, params, "glGetTexGenfv");
 }
 
+
+void GLAPIENTRY
+_mesa_GetMultiTexGenfvEXT( GLenum texunit, GLenum coord, GLenum pname, GLfloat *params )
+{
+   gettexgenfv(texunit - GL_TEXTURE0, coord, pname, params, "glGetMultiTexGenfvEXT");
+}
 
 
 void GLAPIENTRY
 _mesa_GetTexGeniv( GLenum coord, GLenum pname, GLint *params )
 {
-   struct gl_fixedfunc_texture_unit *texUnit;
-   struct gl_texgen *texgen;
    GET_CURRENT_CONTEXT(ctx);
+   gettexgeniv(ctx->Texture.CurrentUnit, coord, pname, params, "glGetTexGeniv");
+}
 
-   if (ctx->Texture.CurrentUnit >= ctx->Const.MaxTextureCoordUnits) {
-      _mesa_error(ctx, GL_INVALID_OPERATION, "glGetTexGeniv(current unit)");
-      return;
-   }
 
-   texUnit = _mesa_get_current_fixedfunc_tex_unit(ctx);
-
-   texgen = get_texgen(ctx, texUnit, coord);
-   if (!texgen) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glGetTexGeniv(coord)");
-      return;
-   }
-
-   switch (pname) {
-   case GL_TEXTURE_GEN_MODE:
-      params[0] = texgen->Mode;
-      break;
-   case GL_OBJECT_PLANE:
-      if (ctx->API != API_OPENGL_COMPAT) {
-         _mesa_error( ctx, GL_INVALID_ENUM, "glGetTexGeniv(param)" );
-         return;
-      }
-      params[0] = (GLint) texgen->ObjectPlane[0];
-      params[1] = (GLint) texgen->ObjectPlane[1];
-      params[2] = (GLint) texgen->ObjectPlane[2];
-      params[3] = (GLint) texgen->ObjectPlane[3];
-      break;
-   case GL_EYE_PLANE:
-      if (ctx->API != API_OPENGL_COMPAT) {
-         _mesa_error( ctx, GL_INVALID_ENUM, "glGetTexGeniv(param)" );
-         return;
-      }
-      params[0] = (GLint) texgen->EyePlane[0];
-      params[1] = (GLint) texgen->EyePlane[1];
-      params[2] = (GLint) texgen->EyePlane[2];
-      params[3] = (GLint) texgen->EyePlane[3];
-      break;
-   default:
-      _mesa_error( ctx, GL_INVALID_ENUM, "glGetTexGeniv(pname)" );
-   }
+void GLAPIENTRY
+_mesa_GetMultiTexGenivEXT( GLenum texunit, GLenum coord, GLenum pname, GLint *params )
+{
+   gettexgeniv(texunit - GL_TEXTURE0, coord, pname, params, "glGetTexGenivEXT");
 }

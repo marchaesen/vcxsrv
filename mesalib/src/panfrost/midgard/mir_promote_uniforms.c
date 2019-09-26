@@ -25,6 +25,7 @@
  */
 
 #include "compiler.h"
+#include "util/u_math.h"
 
 /* This pass promotes reads from uniforms from load/store ops to uniform
  * registers if it is beneficial to do so. Normally, this saves both
@@ -35,34 +36,45 @@
  * program so we allow that many registers through at minimum, to prevent
  * spilling. If we spill anyway, I mean, it's a lose-lose at that point. */
 
-void
-midgard_promote_uniforms(compiler_context *ctx, unsigned register_pressure)
+static unsigned
+mir_ubo_offset(midgard_instruction *ins)
 {
-        /* For our purposes, pressure is capped at the number of vec4 work
-         * registers, not live values which would consider spills */
-        register_pressure = MAX2(register_pressure, 16);
+        assert(ins->type == TAG_LOAD_STORE_4);
+        assert(OP_IS_UBO_READ(ins->load_store.op));
 
+        /* Grab the offset as the hw understands it */
+        unsigned lo = ins->load_store.varying_parameters >> 7;
+        unsigned hi = ins->load_store.address;
+        unsigned raw = ((hi << 3) | lo);
+
+        /* Account for the op's shift */
+        unsigned shift = mir_ubo_shift(ins->load_store.op);
+        return (raw << shift);
+}
+
+void
+midgard_promote_uniforms(compiler_context *ctx, unsigned promoted_count)
+{
         mir_foreach_instr_global_safe(ctx, ins) {
                 if (ins->type != TAG_LOAD_STORE_4) continue;
                 if (!OP_IS_UBO_READ(ins->load_store.op)) continue;
 
-                unsigned lo = ins->load_store.varying_parameters >> 7;
-                unsigned hi = ins->load_store.address;
+                /* Get the offset. TODO: can we promote unaligned access? */
+                unsigned off = mir_ubo_offset(ins);
+                if (off & 0xF) continue;
 
-                /* TODO: Combine fields logically */
-                unsigned address = (hi << 3) | lo;
+                unsigned address = off / 16;
 
                 /* Check this is UBO 0 */
-                if (ins->load_store.unknown & 0xF) continue;
+                if (ins->load_store.arg_1) continue;
 
                 /* Check we're accessing directly */
-                if (ins->load_store.unknown != 0x1E00) continue;
+                if (ins->load_store.arg_2 != 0x1E) continue;
 
                 /* Check if it's a promotable range */
                 unsigned uniform_reg = 23 - address;
 
-                if (address > 16) continue;
-                if (register_pressure > uniform_reg) continue;
+                if (address >= promoted_count) continue;
 
                 /* It is, great! Let's promote */
 
@@ -72,14 +84,29 @@ midgard_promote_uniforms(compiler_context *ctx, unsigned register_pressure)
                 /* We do need the move for safety for a non-SSA dest, or if
                  * we're being fed into a special class */
 
-                bool needs_move = ins->ssa_args.dest & IS_REG;
-                needs_move |= mir_special_index(ctx, ins->ssa_args.dest);
+                bool needs_move = ins->dest & IS_REG;
+                needs_move |= mir_special_index(ctx, ins->dest);
+
+                /* Ensure this is a contiguous X-bound mask. It should be since
+                 * we haven't done RA and per-component masked UBO reads don't
+                 * make much sense. */
+
+                assert(((ins->mask + 1) & ins->mask) == 0);
+
+                /* Check the component count from the mask so we can setup a
+                 * swizzle appropriately when promoting. The idea is to ensure
+                 * the component count is preserved so RA can be smarter if we
+                 * need to spill */
+
+                unsigned nr_components = util_bitcount(ins->mask);
 
                 if (needs_move) {
-                        midgard_instruction mov = v_mov(promoted, blank_alu_src, ins->ssa_args.dest);
-                        mir_insert_instruction_before(ins, mov);
+                        midgard_instruction mov = v_mov(promoted, blank_alu_src, ins->dest);
+                        mov.mask = ins->mask;
+                        mir_insert_instruction_before(ctx, ins, mov);
                 } else {
-                        mir_rewrite_index_src(ctx, ins->ssa_args.dest, promoted);
+                        mir_rewrite_index_src_swizzle(ctx, ins->dest,
+                                        promoted, swizzle_of(nr_components));
                 }
 
                 mir_remove_instruction(ins);

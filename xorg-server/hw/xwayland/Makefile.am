@@ -21,13 +21,15 @@ Xwayland_SOURCES =				\
 	$(top_srcdir)/Xi/stubs.c		\
 	$(top_srcdir)/mi/miinitext.c
 
+if GLAMOR
 if GLX
 Xwayland_SOURCES += 				\
 	xwayland-glx.c
 Xwayland_CFLAGS +=				\
 	-I$(top_srcdir)/glx
 GLXVND_LIB = $(top_builddir)/glx/libglxvnd.la
-endif
+endif #GLX
+endif # GLAMOR
 
 Xwayland_LDADD =				\
 	$(glamor_lib)				\

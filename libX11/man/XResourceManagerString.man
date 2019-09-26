@@ -38,54 +38,21 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XResourceManagerString __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XResourceManagerString, XScreenResourceString \- obtain server resource properties
 .SH SYNTAX
 .HP
-char *XResourceManagerString\^(\^Display *\fIdisplay\fP\^); 
+char *XResourceManagerString\^(\^Display *\fIdisplay\fP\^);
 .HP
-char *XScreenResourceString\^(\^Screen *\fIscreen\fP\^); 
+char *XScreenResourceString\^(\^Screen *\fIscreen\fP\^);
 .SH ARGUMENTS
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
@@ -98,7 +65,7 @@ function returns the RESOURCE_MANAGER property from the server's root
 window of screen zero, which was returned when the connection was opened using
 .BR XOpenDisplay .
 The property is converted from type STRING to the current locale.
-The conversion is identical to that produced by 
+The conversion is identical to that produced by
 .B XmbTextPropertyToTextList
 for a single element STRING property.
 The returned string is owned by Xlib and should not be freed by the client.
@@ -111,7 +78,7 @@ The
 function returns the SCREEN_RESOURCES property from the root window of the
 specified screen.
 The property is converted from type STRING to the current locale.
-The conversion is identical to that produced by 
+The conversion is identical to that produced by
 .B XmbTextPropertyToTextList
 for a single element STRING property.
 The property value must be in a format that is acceptable to

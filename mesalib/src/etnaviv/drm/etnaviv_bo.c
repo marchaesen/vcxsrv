@@ -44,16 +44,18 @@ static void set_name(struct etna_bo *bo, uint32_t name)
 /* Called under etna_drm_table_lock */
 void _etna_bo_del(struct etna_bo *bo)
 {
+	VG_BO_FREE(bo);
+
 	if (bo->map)
 		os_munmap(bo->map, bo->size);
-
-	if (bo->name)
-		_mesa_hash_table_remove_key(bo->dev->name_table, &bo->name);
 
 	if (bo->handle) {
 		struct drm_gem_close req = {
 			.handle = bo->handle,
 		};
+
+		if (bo->name)
+			_mesa_hash_table_remove_key(bo->dev->name_table, &bo->name);
 
 		_mesa_hash_table_remove_key(bo->dev->handle_table, &bo->handle);
 		drmIoctl(bo->dev->fd, DRM_IOCTL_GEM_CLOSE, &req);
@@ -132,6 +134,8 @@ struct etna_bo *etna_bo_new(struct etna_device *dev, uint32_t size,
 	bo->reuse = 1;
 	pthread_mutex_unlock(&etna_drm_table_lock);
 
+	VG_BO_ALLOC(bo);
+
 	return bo;
 }
 
@@ -188,8 +192,10 @@ struct etna_bo *etna_bo_from_name(struct etna_device *dev,
 		goto out_unlock;
 
 	bo = bo_from_handle(dev, req.size, req.handle, 0);
-	if (bo)
+	if (bo) {
 		set_name(bo, name);
+		VG_BO_ALLOC(bo);
+	}
 
 out_unlock:
 	pthread_mutex_unlock(&etna_drm_table_lock);
@@ -229,6 +235,8 @@ struct etna_bo *etna_bo_from_dmabuf(struct etna_device *dev, int fd)
 
 	bo = bo_from_handle(dev, size, handle, 0);
 
+	VG_BO_ALLOC(bo);
+
 out_unlock:
 	pthread_mutex_unlock(&etna_drm_table_lock);
 
@@ -238,10 +246,10 @@ out_unlock:
 /* destroy a buffer object */
 void etna_bo_del(struct etna_bo *bo)
 {
-	struct etna_device *dev = bo->dev;
-
 	if (!bo)
 		return;
+
+	struct etna_device *dev = bo->dev;
 
 	if (!p_atomic_dec_zero(&bo->refcnt))
 		return;

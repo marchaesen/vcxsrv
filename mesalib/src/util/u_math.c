@@ -73,11 +73,11 @@ init_log2_table(void)
 void
 util_init_math(void)
 {
-   static boolean initialized = FALSE;
+   static bool initialized = false;
    if (!initialized) {
       init_pow2_table();
       init_log2_table();
-      initialized = TRUE;
+      initialized = true;
    }
 }
 

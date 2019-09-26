@@ -38,46 +38,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XDrawImageString __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XDrawImageString, XDrawImageString16 \- draw image text
@@ -85,14 +52,14 @@ XDrawImageString, XDrawImageString16 \- draw image text
 .HP
 int XDrawImageString\^(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^, GC
 \fIgc\fP\^, int \fIx\fP\^, int \fIy\fP\^, char *\fIstring\fP\^, int
-\fIlength\fP\^); 
+\fIlength\fP\^);
 .HP
 int XDrawImageString16\^(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^, GC
 \fIgc\fP\^, int \fIx\fP\^, int \fIy\fP\^, XChar2b *\fIstring\fP\^, int
-\fIlength\fP\^); 
+\fIlength\fP\^);
 .SH ARGUMENTS
 .IP \fId\fP 1i
-Specifies the drawable. 
+Specifies the drawable.
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fIgc\fP 1i
@@ -105,8 +72,8 @@ Specifies the character string.
 .br
 .ns
 .IP \fIy\fP 1i
-Specify the x and y coordinates, which are relative to the 
-origin of the specified drawable 
+Specify the x and y coordinates, which are relative to the
+origin of the specified drawable
 and define the origin of the first character.
 .SH DESCRIPTION
 The
@@ -114,7 +81,7 @@ The
 function is similar to
 .B XDrawImageString
 except that it uses 2-byte or 16-bit characters.
-Both functions also use both the foreground and background pixels 
+Both functions also use both the foreground and background pixels
 of the GC in the destination.
 .LP
 The effect is first to fill a
@@ -122,28 +89,28 @@ destination rectangle with the background pixel defined in the GC and then
 to paint the text with the foreground pixel.
 The upper-left corner of the filled rectangle is at:
 .LP
-.Ds
+.EX
 [x, y \- font-ascent]
-.De
+.EE
 .LP
 The width is:
 .LP
-.Ds
+.EX
 overall-width
-.De
+.EE
 .LP
 The height is:
 .LP
-.Ds
+.EX
 font-ascent + font-descent
-.De
+.EE
 .LP
 The overall-width, font-ascent, and font-descent
-are as would be returned by 
+are as would be returned by
 .B XQueryTextExtents
 using gc and string.
-The function and fill-style defined in the GC are ignored for these functions. 
-The effective function is 
+The function and fill-style defined in the GC are ignored for these functions.
+The effective function is
 .BR GXcopy ,
 and the effective fill-style is
 .BR FillSolid .
@@ -153,8 +120,8 @@ and used with
 .BR XDrawImageString ,
 each byte is used as a byte2 with a byte1 of zero.
 .LP
-Both functions use these GC components: 
-plane-mask, foreground, background, font, subwindow-mode, clip-x-origin, 
+Both functions use these GC components:
+plane-mask, foreground, background, font, subwindow-mode, clip-x-origin,
 clip-y-origin, and clip-mask.
 .LP
 .B XDrawImageString

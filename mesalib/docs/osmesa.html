@@ -51,7 +51,7 @@ There are several examples of OSMesa in the mesa/demos repository.
 Configure and build Mesa with something like:
 
 <pre>
-meson builddir -Dosmesa=gallium -Dgallium-drivers=swrast -Ddri-drivers= -Dvulkan-drivers= -Dprefix=$PWD/builddir/install
+meson builddir -Dosmesa=gallium -Dgallium-drivers=swrast -Ddri-drivers=[] -Dvulkan-drivers=[] -Dprefix=$PWD/builddir/install
 ninja -C builddir install
 </pre>
 

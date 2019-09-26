@@ -175,8 +175,8 @@ validate_ordering(YYLTYPE *loc,
 }
 
 static bool
-validate_point_mode(MAYBE_UNUSED const ast_type_qualifier &qualifier,
-                    MAYBE_UNUSED const ast_type_qualifier &new_qualifier)
+validate_point_mode(ASSERTED const ast_type_qualifier &qualifier,
+                    ASSERTED const ast_type_qualifier &new_qualifier)
 {
    /* Point mode can only be true if the flag is set. */
    assert (!qualifier.flags.q.point_mode || !new_qualifier.flags.q.point_mode

@@ -38,56 +38,23 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XStoreColors __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XStoreColors, XStoreColor, XStoreNamedColor \- set colors
 .SH SYNTAX
 .HP
 int XStoreColors\^(\^Display *\fIdisplay\fP\^, Colormap \fIcolormap\fP\^,
-XColor \fIcolor\fP\^[\^]\^, int \fIncolors\fP\^); 
+XColor \fIcolor\fP\^[\^]\^, int \fIncolors\fP\^);
 .HP
 int XStoreColor\^(\^Display *\fIdisplay\fP\^, Colormap \fIcolormap\fP\^,
-XColor *\fIcolor\fP\^); 
+XColor *\fIcolor\fP\^);
 .HP
 int XStoreNamedColor\^(\^Display *\fIdisplay\fP\^, Colormap \fIcolormap\fP\^,
 char *\^\fIcolor\fP\^, unsigned long \fIpixel\fP\^, int \fIflags\fP\^);
@@ -103,12 +70,12 @@ Specifies the connection to the X server.
 .IP \fIflags\fP 1i
 Specifies which red, green, and blue components are set.
 .IP \fIncolors\fP 1i
-.\"Specifies the number of color definition structures. 
-Specifies the number of 
+.\"Specifies the number of color definition structures.
+Specifies the number of
 .B XColor
 structures in the color definition array.
 .IP \fIpixel\fP 1i
-Specifies the entry in the colormap. 
+Specifies the entry in the colormap.
 .SH DESCRIPTION
 The
 .B XStoreColors
@@ -116,7 +83,7 @@ function changes the colormap entries of the pixel values
 specified in the pixel members of the
 .B XColor
 structures.
-You specify which color components are to be changed by setting 
+You specify which color components are to be changed by setting
 .BR DoRed ,
 .BR DoGreen ,
 and/or
@@ -127,7 +94,7 @@ structures.
 If the colormap is an installed map for its screen, the
 changes are visible immediately.
 .B XStoreColors
-changes the specified pixels if they are allocated writable in the colormap 
+changes the specified pixels if they are allocated writable in the colormap
 by any client, even if one or more pixels generates an error.
 If a specified pixel is not a valid index into the colormap, a
 .B BadValue
@@ -135,7 +102,7 @@ error results.
 If a specified pixel either is unallocated or is allocated read-only, a
 .B BadAccess
 error results.
-If more than one pixel is in error, 
+If more than one pixel is in error,
 the one that gets reported is arbitrary.
 .LP
 .B XStoreColors
@@ -171,14 +138,14 @@ and/or
 in the flags member of the
 .B XColor
 structure.
-If the colormap is an installed map for its screen, 
+If the colormap is an installed map for its screen,
 the changes are visible immediately.
 .LP
 .B XStoreColor
 can generate
 .BR BadAccess ,
 .BR BadColor ,
-and 
+and
 .B BadValue
 errors.
 .LP
@@ -187,15 +154,15 @@ The
 function looks up the named color with respect to the screen associated with
 the colormap and stores the result in the specified colormap.
 The pixel argument determines the entry in the colormap.
-The flags argument determines which of the red, green, and blue components 
-are set. 
+The flags argument determines which of the red, green, and blue components
+are set.
 You can set this member to the
-bitwise inclusive OR of the bits 
+bitwise inclusive OR of the bits
 .BR DoRed ,
 .BR DoGreen ,
-and 
+and
 .BR DoBlue .
-If the color name is not in the Host Portable Character Encoding, 
+If the color name is not in the Host Portable Character Encoding,
 the result is implementation-dependent.
 Use of uppercase or lowercase does not matter.
 If the specified pixel is not a valid index into the colormap, a
@@ -232,7 +199,8 @@ A font or color of the specified name does not exist.
 .B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
-by the argument's type is accepted.  Any argument defined as a set of
+by the argument's type is accepted.
+Any argument defined as a set of
 alternatives can generate this error.
 .SH "SEE ALSO"
 XAllocColor(__libmansuffix__),

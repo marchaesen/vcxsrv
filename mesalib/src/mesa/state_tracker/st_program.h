@@ -53,6 +53,10 @@ struct st_external_sampler_key
 {
    GLuint lower_nv12;             /**< bitmask of 2 plane YUV samplers */
    GLuint lower_iyuv;             /**< bitmask of 3 plane YUV samplers */
+   GLuint lower_xy_uxvx;          /**< bitmask of 2 plane YUV samplers */
+   GLuint lower_yx_xuxv;          /**< bitmask of 2 plane YUV samplers */
+   GLuint lower_ayuv;
+   GLuint lower_xyuv;
 };
 
 static inline struct st_external_sampler_key
@@ -70,12 +74,26 @@ st_get_external_sampler_key(struct st_context *st, struct gl_program *prog)
 
       switch (st_get_view_format(stObj)) {
       case PIPE_FORMAT_NV12:
+      case PIPE_FORMAT_P016:
          key.lower_nv12 |= (1 << unit);
          break;
       case PIPE_FORMAT_IYUV:
          key.lower_iyuv |= (1 << unit);
          break;
+      case PIPE_FORMAT_YUYV:
+         key.lower_yx_xuxv |= (1 << unit);
+         break;
+      case PIPE_FORMAT_UYVY:
+         key.lower_xy_uxvx |= (1 << unit);
+         break;
+      case PIPE_FORMAT_AYUV:
+         key.lower_ayuv |= (1 << unit);
+         break;
+      case PIPE_FORMAT_XYUV:
+         key.lower_xyuv |= (1 << unit);
+         break;
       default:
+         printf("unhandled %u\n", st_get_view_format(stObj));
          break;
       }
    }
@@ -104,6 +122,9 @@ struct st_fp_variant_key
 
    /** needed for ATI_fragment_shader */
    GLuint fog:2;
+
+   /** for ARB_depth_clamp */
+   GLuint lower_depth_clamp:1;
 
    /** needed for ATI_fragment_shader */
    char texture_targets[MAX_NUM_FRAGMENT_REGISTERS_ATI];
@@ -161,10 +182,14 @@ struct st_fragment_program
 struct st_vp_variant_key
 {
    struct st_context *st;          /**< variants are per-context */
-   boolean passthrough_edgeflags;
+   bool passthrough_edgeflags;
 
    /** for ARB_color_buffer_float */
-   boolean clamp_color;
+   bool clamp_color;
+
+   /** both for ARB_depth_clamp */
+   bool lower_depth_clamp;
+   bool clip_negative_one_to_one;
 };
 
 
@@ -244,6 +269,11 @@ struct st_basic_variant_key
 
    /** For compat profile */
    bool clamp_color;
+
+   /** both for ARB_depth_clamp */
+   bool lower_depth_clamp;
+   bool clip_negative_one_to_one;
+
 };
 
 

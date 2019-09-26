@@ -26,7 +26,7 @@ XSetEventQueueOwner \- set event queue owner on a shared Xlib/XCB connection
 .HP
  #include <X11/Xlib-xcb.h>
 .HP
-void XSetEventQueueOwner(Display *\fIdpy\fP, enum XEventQueueOwner \fIowner\fP); 
+void XSetEventQueueOwner(Display *\fIdpy\fP, enum XEventQueueOwner \fIowner\fP);
 .SH ARGUMENTS
 .IP \fIdpy\fP 1i
 Specifies the connection to the X server.
@@ -35,19 +35,25 @@ Specifies the event queue ownership:
 .RS
 .TP
 \fIXlibOwnsEventQueue\fP (default)
-Xlib owns the event queue.  Use the Xlib event-handling functions.  Do not
+Xlib owns the event queue.
+Use the Xlib event-handling functions.
+Do not
 call the XCB event-handling functions.
 .TP
 \fIXCBOwnsEventQueue\fP
-XCB owns the event queue.  Use the XCB event-handling functions.  Do not call
+XCB owns the event queue.
+Use the XCB event-handling functions.
+Do not call
 the Xlib event-handling functions.
 .RE
 .SH DESCRIPTION
 While a client using Xlib/XCB can issue requests and handle their replies or
 errors with either Xlib or XCB, only one can own and handle the event queue.
 By default, Xlib must own the event queue, for compatibility with legacy Xlib
-clients.  Clients can call \fIXSetEventQueueOwner\fP immediately after
-\fIXOpenDisplay\fP to let XCB own the event queue instead.  Clients may not
+clients.
+Clients can call \fIXSetEventQueueOwner\fP immediately after
+\fIXOpenDisplay\fP to let XCB own the event queue instead.
+Clients may not
 call \fIXSetEventQueueOwner\fP at any other time, as this will potentially
 lose responses.
 .SH "SEE ALSO"

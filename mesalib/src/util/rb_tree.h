@@ -127,7 +127,7 @@ rb_tree_insert(struct rb_tree *T, struct rb_node *node,
     bool left = false;
     while (x != NULL) {
         y = x;
-        left = cmp(node, x) < 0;
+        left = cmp(x, node) < 0;
         if (left)
             x = x->left;
         else
@@ -167,9 +167,9 @@ rb_tree_search(struct rb_tree *T, const void *key,
     while (x != NULL) {
         int c = cmp(x, key);
         if (c < 0)
-            x = x->right;
-        else if (c > 0)
             x = x->left;
+        else if (c > 0)
+            x = x->right;
         else
             return x;
     }
@@ -205,9 +205,9 @@ rb_tree_search_sloppy(struct rb_tree *T, const void *key,
         y = x;
         int c = cmp(x, key);
         if (c < 0)
-            x = x->right;
-        else if (c > 0)
             x = x->left;
+        else if (c > 0)
+            x = x->right;
         else
             return x;
     }

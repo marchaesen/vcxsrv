@@ -41,16 +41,12 @@
 
 #define INIT_SIZE 0x1000
 
-static pthread_mutex_t idx_lock = PTHREAD_MUTEX_INITIALIZER;
-
 
 struct msm_submit {
 	struct fd_submit base;
 
 	DECLARE_ARRAY(struct drm_msm_gem_submit_bo, submit_bos);
 	DECLARE_ARRAY(struct fd_bo *, bos);
-
-	unsigned seqno;
 
 	/* maps fd_bo to idx in bos table: */
 	struct hash_table *bo_table;
@@ -146,10 +142,15 @@ append_bo(struct msm_submit *submit, struct fd_bo *bo, uint32_t flags)
 {
 	struct msm_bo *msm_bo = to_msm_bo(bo);
 	uint32_t idx;
-	pthread_mutex_lock(&idx_lock);
-	if (likely(msm_bo->current_submit_seqno == submit->seqno)) {
-		idx = msm_bo->idx;
-	} else {
+
+	/* NOTE: it is legal to use the same bo on different threads for
+	 * different submits.  But it is not legal to use the same submit
+	 * from given threads.
+	 */
+	idx = READ_ONCE(msm_bo->idx);
+
+	if (unlikely((idx >= submit->nr_submit_bos) ||
+			(submit->submit_bos[idx].handle != bo->handle))) {
 		uint32_t hash = _mesa_hash_pointer(bo);
 		struct hash_entry *entry;
 
@@ -170,14 +171,14 @@ append_bo(struct msm_submit *submit, struct fd_bo *bo, uint32_t flags)
 			_mesa_hash_table_insert_pre_hashed(submit->bo_table, hash, bo,
 					(void *)(uintptr_t)idx);
 		}
-		msm_bo->current_submit_seqno = submit->seqno;
 		msm_bo->idx = idx;
 	}
-	pthread_mutex_unlock(&idx_lock);
+
 	if (flags & FD_RELOC_READ)
 		submit->submit_bos[idx].flags |= MSM_SUBMIT_BO_READ;
 	if (flags & FD_RELOC_WRITE)
 		submit->submit_bos[idx].flags |= MSM_SUBMIT_BO_WRITE;
+
 	return idx;
 }
 
@@ -455,9 +456,7 @@ msm_submit_new(struct fd_pipe *pipe)
 {
 	struct msm_submit *msm_submit = calloc(1, sizeof(*msm_submit));
 	struct fd_submit *submit;
-	static unsigned submit_cnt = 0;
 
-	msm_submit->seqno = ++submit_cnt;
 	msm_submit->bo_table = _mesa_hash_table_create(NULL,
 			_mesa_hash_pointer, _mesa_key_pointer_equal);
 	msm_submit->ring_set = _mesa_set_create(NULL,

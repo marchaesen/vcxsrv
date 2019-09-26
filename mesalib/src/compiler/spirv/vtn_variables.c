@@ -97,9 +97,7 @@ vtn_mode_uses_ssa_offset(struct vtn_builder *b,
    return ((mode == vtn_variable_mode_ubo ||
             mode == vtn_variable_mode_ssbo) &&
            b->options->lower_ubo_ssbo_access_to_offsets) ||
-          mode == vtn_variable_mode_push_constant ||
-          (mode == vtn_variable_mode_workgroup &&
-           b->options->lower_workgroup_access_to_offsets);
+          mode == vtn_variable_mode_push_constant;
 }
 
 static bool
@@ -109,9 +107,7 @@ vtn_pointer_is_external_block(struct vtn_builder *b,
    return ptr->mode == vtn_variable_mode_ssbo ||
           ptr->mode == vtn_variable_mode_ubo ||
           ptr->mode == vtn_variable_mode_phys_ssbo ||
-          ptr->mode == vtn_variable_mode_push_constant ||
-          (ptr->mode == vtn_variable_mode_workgroup &&
-           b->options->lower_workgroup_access_to_offsets);
+          ptr->mode == vtn_variable_mode_push_constant;
 }
 
 static nir_ssa_def *
@@ -1411,9 +1407,12 @@ vtn_get_builtin_location(struct vtn_builder *b,
       break;
    case SpvBuiltInBaseVertex:
       /* OpenGL gl_BaseVertex (SYSTEM_VALUE_BASE_VERTEX) is not the same
-       * semantic as SPIR-V BaseVertex (SYSTEM_VALUE_FIRST_VERTEX).
+       * semantic as Vulkan BaseVertex (SYSTEM_VALUE_FIRST_VERTEX).
        */
-      *location = SYSTEM_VALUE_FIRST_VERTEX;
+      if (b->options->environment == NIR_SPIRV_OPENGL)
+         *location = SYSTEM_VALUE_BASE_VERTEX;
+      else
+         *location = SYSTEM_VALUE_FIRST_VERTEX;
       set_mode_system_value(b, mode);
       break;
    case SpvBuiltInBaseInstance:
@@ -1749,9 +1748,7 @@ var_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
           */
          vtn_assert(vtn_var->mode == vtn_variable_mode_ubo ||
                     vtn_var->mode == vtn_variable_mode_ssbo ||
-                    vtn_var->mode == vtn_variable_mode_push_constant ||
-                    (vtn_var->mode == vtn_variable_mode_workgroup &&
-                     b->options->lower_workgroup_access_to_offsets));
+                    vtn_var->mode == vtn_variable_mode_push_constant);
       }
    }
 }
@@ -2208,19 +2205,15 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
       break;
 
    case vtn_variable_mode_workgroup:
-      if (b->options->lower_workgroup_access_to_offsets) {
-         var->shared_location = -1;
-      } else {
-         /* Create the variable normally */
-         var->var = rzalloc(b->shader, nir_variable);
-         var->var->name = ralloc_strdup(var->var, val->name);
-         /* Workgroup variables don't have any explicit layout but some
-          * layouts may have leaked through due to type deduplication in the
-          * SPIR-V.
-          */
-         var->var->type = var->type->type;
-         var->var->data.mode = nir_var_mem_shared;
-      }
+      /* Create the variable normally */
+      var->var = rzalloc(b->shader, nir_variable);
+      var->var->name = ralloc_strdup(var->var, val->name);
+      /* Workgroup variables don't have any explicit layout but some
+       * layouts may have leaked through due to type deduplication in the
+       * SPIR-V.
+       */
+      var->var->type = var->type->type;
+      var->var->data.mode = nir_var_mem_shared;
       break;
 
    case vtn_variable_mode_input:
@@ -2510,7 +2503,7 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
          struct vtn_pointer *ptr =
             vtn_pointer_dereference(b, base_val->pointer, chain);
          ptr->ptr_type = ptr_type;
-         ptr->access = access;
+         ptr->access |= access;
          vtn_push_value_pointer(b, w[2], ptr);
       }
       break;

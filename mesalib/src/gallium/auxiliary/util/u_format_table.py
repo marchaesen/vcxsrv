@@ -130,7 +130,7 @@ def write_format_table(formats):
         print("   %s," % (format.name,))
         print("   \"%s\"," % (format.name,))
         print("   \"%s\"," % (format.short_name(),))
-        print("   {%u, %u, %u},\t/* block */" % (format.block_width, format.block_height, format.block_size()))
+        print("   {%u, %u, %u, %u},\t/* block */" % (format.block_width, format.block_height, format.block_depth, format.block_size()))
         print("   %s," % (layout_map(format.layout),))
         print("   %u,\t/* nr_channels */" % (format.nr_channels(),))
         print("   %s,\t/* is_array */" % (bool_map(format.is_array()),))

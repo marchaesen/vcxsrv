@@ -31,8 +31,9 @@
  * \author Ian Romanick <idr@us.ibm.com>
  */
 
-#include <string.h>
+#include "dix-config.h"
 #include "extension_string.h"
+#include "opaque.h"
 
 #define SET_BIT(m,b)    (m[ (b) / 8 ] |=  (1U << ((b) % 8)))
 #define CLR_BIT(m,b)    (m[ (b) / 8 ] &= ~(1U << ((b) % 8)))
@@ -85,7 +86,7 @@ static const struct extension_info known_glx_extensions[] = {
     { GLX(EXT_create_context_es2_profile), VER(0,0), N, },
     { GLX(EXT_fbconfig_packed_float),   VER(0,0), N, },
     { GLX(EXT_framebuffer_sRGB),        VER(0,0), N, },
-    { GLX(EXT_import_context),          VER(0,0), Y, },
+    { GLX(EXT_import_context),          VER(0,0), N, },
     { GLX(EXT_libglvnd),                VER(0,0), N, },
     { GLX(EXT_no_config_context),       VER(0,0), N, },
     { GLX(EXT_stereo_tree),             VER(0,0), N, },
@@ -177,4 +178,7 @@ __glXInitExtensionEnableBits(unsigned char *enable_bits)
             SET_BIT(enable_bits, known_glx_extensions[i].bit);
         }
     }
+
+    if (enableIndirectGLX)
+        __glXEnableExtension(enable_bits, "GLX_EXT_import_context");
 }

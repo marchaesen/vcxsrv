@@ -182,6 +182,8 @@ is_resource_instruction(unsigned opcode)
    case TGSI_OPCODE_ATOMIMIN:
    case TGSI_OPCODE_ATOMIMAX:
    case TGSI_OPCODE_ATOMFADD:
+   case TGSI_OPCODE_ATOMINC_WRAP:
+   case TGSI_OPCODE_ATOMDEC_WRAP:
    case TGSI_OPCODE_IMG2HND:
       return true;
    default:

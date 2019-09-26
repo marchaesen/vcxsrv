@@ -27,7 +27,7 @@ env.Append(CPPPATH = [
     '#/src/mapi',
     '#/src/mesa',
     Dir('.'), # src/mapi/glapi build path
-    Dir('..'), # src/mapi build path
+    Dir('gen'), # src/mapi/glapi/gen build path
 ])
 
 glapi_sources = [

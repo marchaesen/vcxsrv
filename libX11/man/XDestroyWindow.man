@@ -38,54 +38,21 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XDestroyWindow __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XDestroyWindow, XDestroySubwindows \- destroy windows
 .SH SYNTAX
 .HP
-int XDestroyWindow\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^); 
+int XDestroyWindow\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^);
 .HP
-int XDestroySubwindows\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^); 
+int XDestroySubwindows\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^);
 .SH ARGUMENTS
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
@@ -110,7 +77,7 @@ the window itself.
 The ordering among siblings and across subhierarchies is not otherwise
 constrained.
 If the window you specified is a root window, no windows are destroyed.
-Destroying a mapped window will generate 
+Destroying a mapped window will generate
 .B Expose
 events on other windows that were obscured by the window being destroyed.
 .LP
@@ -121,7 +88,7 @@ error.
 .LP
 The
 .B XDestroySubwindows
-function destroys all inferior windows of the specified window, 
+function destroys all inferior windows of the specified window,
 in bottom-to-top stacking order.
 It causes the X server to generate a
 .B DestroyNotify
@@ -129,13 +96,13 @@ event for each window.
 If any mapped
 subwindows were actually destroyed,
 .B XDestroySubwindows
-causes the X server to generate 
+causes the X server to generate
 .B Expose
 events on the specified window.
 This is much more efficient than deleting many windows
 one at a time because much of the work need be performed only once for all
 of the windows, rather than for each window.
-The subwindows should never be referenced again.  
+The subwindows should never be referenced again.
 .LP
 .B XDestroySubwindows
 can generate a

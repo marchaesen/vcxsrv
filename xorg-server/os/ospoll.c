@@ -40,6 +40,7 @@
 
 #if !HAVE_OSPOLL && defined(HAVE_PORT_CREATE)
 #include <port.h>
+#include <poll.h>
 #define PORT            1
 #define HAVE_OSPOLL     1
 #endif
@@ -78,7 +79,6 @@ struct ospoll {
 #endif
 
 #if EPOLL || PORT
-#include <sys/epoll.h>
 
 /* epoll-based implementation */
 struct ospollfd {
@@ -468,10 +468,10 @@ epoll_mod(struct ospoll *ospoll, struct ospollfd *osfd)
 {
     int events = 0;
     if (osfd->xevents & X_NOTIFY_READ)
-        events |= EPOLLIN;
+        events |= POLLIN;
     if (osfd->xevents & X_NOTIFY_WRITE)
-        events |= EPOLLOUT;
-    port_associate(ospool->epoll_fd, PORT_SOURCE_FD, osfd->fd, events, osfd);
+        events |= POLLOUT;
+    port_associate(ospoll->epoll_fd, PORT_SOURCE_FD, osfd->fd, events, osfd);
 }
 #endif
 
@@ -601,9 +601,14 @@ ospoll_wait(struct ospoll *ospoll, int timeout)
 #define MAX_EVENTS      256
     port_event_t events[MAX_EVENTS];
     uint_t nget = 1;
+    timespec_t port_timeout = {
+        .tv_sec = timeout / 1000,
+        .tv_nsec = (timeout % 1000) * 1000000
+    };
 
     nready = 0;
-    if (port_getn(ospoll->epoll_fd, events, MAX_EVENTS, &nget, &timeout) == 0) {
+    if (port_getn(ospoll->epoll_fd, events, MAX_EVENTS, &nget, &port_timeout)
+        == 0) {
         nready = nget;
     }
     for (int i = 0; i < nready; i++) {
@@ -612,17 +617,18 @@ ospoll_wait(struct ospoll *ospoll, int timeout)
         uint32_t revents = ev->portev_events;
         int xevents = 0;
 
-        if (revents & EPOLLIN)
+        if (revents & POLLIN)
             xevents |= X_NOTIFY_READ;
-        if (revents & EPOLLOUT)
+        if (revents & POLLOUT)
             xevents |= X_NOTIFY_WRITE;
-        if (revents & (~(EPOLLIN|EPOLLOUT)))
+        if (revents & (~(POLLIN|POLLOUT)))
             xevents |= X_NOTIFY_ERROR;
 
         if (osfd->callback)
             osfd->callback(osfd->fd, xevents, osfd->data);
 
-        if (osfd->trigger == ospoll_trigger_level && !osfd->deleted) {
+        if (osfd->trigger == ospoll_trigger_level &&
+            !xorg_list_is_empty(&osfd->deleted)) {
             epoll_mod(ospoll, osfd);
         }
     }

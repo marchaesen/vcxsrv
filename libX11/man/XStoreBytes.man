@@ -38,66 +38,33 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XStoreBytes __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XStoreBytes, XStoreBuffer, XFetchBytes, XFetchBuffer, XRotateBuffers \- manipulate cut and paste buffers
 .SH SYNTAX
 .HP
 int XStoreBytes\^(\^Display *\fIdisplay\fP\^, char *\fIbytes\fP\^, int
-\^\fInbytes\fP\^); 
+\^\fInbytes\fP\^);
 .HP
 int XStoreBuffer\^(\^Display *\fIdisplay\fP\^, char *\fIbytes\fP\^, int
-\^\fInbytes\fP\^, int \fIbuffer\fP\^); 
+\^\fInbytes\fP\^, int \fIbuffer\fP\^);
 .HP
-char *XFetchBytes\^(\^Display *\fIdisplay\fP\^, int *\fInbytes_return\fP\^); 
+char *XFetchBytes\^(\^Display *\fIdisplay\fP\^, int *\fInbytes_return\fP\^);
 .HP
 char *XFetchBuffer\^(\^Display *\fIdisplay\fP\^, int *\fInbytes_return\fP\^,
-int \fIbuffer\fP\^); 
+int \fIbuffer\fP\^);
 .HP
-int XRotateBuffers\^(\^Display *\fIdisplay\fP\^, int \fIrotate\fP\^); 
+int XRotateBuffers\^(\^Display *\fIdisplay\fP\^, int \fIrotate\fP\^);
 .SH ARGUMENTS
 .IP \fIbuffer\fP 1i
-Specifies the buffer in which you want to store the bytes 
+Specifies the buffer in which you want to store the bytes
 or from which you want the stored data returned.
 .IP \fIbytes\fP 1i
 Specifies the bytes, which are not necessarily ASCII or null-terminated.
@@ -143,7 +110,7 @@ The client must free this storage when finished with it by calling
 .LP
 The
 .B XFetchBuffer
-function returns zero to the nbytes_return argument 
+function returns zero to the nbytes_return argument
 if there is no data in the buffer or if an invalid
 buffer is specified.
 .LP
@@ -155,7 +122,7 @@ error.
 The
 .B XRotateBuffers
 function rotates the cut
-buffers, such that buffer 0 becomes buffer n, 
+buffers, such that buffer 0 becomes buffer n,
 buffer 1 becomes n + 1 mod 8, and so on.
 This cut buffer numbering is global to the display.
 Note that
@@ -183,7 +150,8 @@ to match in some other way required by the request.
 .B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
-by the argument's type is accepted.  Any argument defined as a set of
+by the argument's type is accepted.
+Any argument defined as a set of
 alternatives can generate this error.
 .SH "SEE ALSO"
 XFree(__libmansuffix__)

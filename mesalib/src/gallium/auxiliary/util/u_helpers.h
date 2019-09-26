@@ -46,6 +46,11 @@ void util_set_vertex_buffers_count(struct pipe_vertex_buffer *dst,
                                    const struct pipe_vertex_buffer *src,
                                    unsigned start_slot, unsigned count);
 
+void util_set_shader_buffers_mask(struct pipe_shader_buffer *dst,
+                                  uint32_t *enabled_buffers,
+                                  const struct pipe_shader_buffer *src,
+                                  unsigned start_slot, unsigned count);
+
 bool util_upload_index_buffer(struct pipe_context *pipe,
                               const struct pipe_draw_info *info,
                               struct pipe_resource **out_buffer,

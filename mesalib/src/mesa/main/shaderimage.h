@@ -93,6 +93,11 @@ _mesa_BindImageTexture(GLuint unit, GLuint texture, GLint level,
                        GLenum format);
 
 void GLAPIENTRY
+_mesa_BindImageTextureEXT(GLuint unit, GLuint texture, GLint level,
+                          GLboolean layered, GLint layer, GLenum access,
+                          GLint format);
+
+void GLAPIENTRY
 _mesa_BindImageTextures_no_error(GLuint first, GLsizei count,
                                  const GLuint *textures);
 

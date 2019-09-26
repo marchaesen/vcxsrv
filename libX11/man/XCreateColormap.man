@@ -38,46 +38,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XCreateColormap __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XCreateColormap, XCopyColormapAndFree, XFreeColormap, XColor \- create, copy, or destroy colormaps and color structure
@@ -87,15 +54,15 @@ Colormap XCreateColormap\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^,
 Visual *\fIvisual\fP\^, int \fIalloc\fP\^);
 .HP
 Colormap XCopyColormapAndFree\^(\^Display *\fIdisplay\fP\^, Colormap
-\fIcolormap\fP\^); 
+\fIcolormap\fP\^);
 .HP
-int XFreeColormap\^(\^Display *\fIdisplay\fP\^, Colormap \fIcolormap\fP\^); 
+int XFreeColormap\^(\^Display *\fIdisplay\fP\^, Colormap \fIcolormap\fP\^);
 .SH ARGUMENTS
 .IP \fIalloc\fP 1i
 Specifies the colormap entries to be allocated.
-You can pass 
+You can pass
 .B AllocNone
-or 
+or
 .BR AllocAll .
 .IP \fIcolormap\fP 1i
 Specifies the colormap that you want to create, copy, set, or destroy.
@@ -103,7 +70,7 @@ Specifies the colormap that you want to create, copy, set, or destroy.
 Specifies the connection to the X server.
 .IP \fIvisual\fP 1i
 Specifies a visual type supported on the screen.
-If the visual type is not one supported by the screen, 
+If the visual type is not one supported by the screen,
 a
 .B BadMatch
 error results.
@@ -112,12 +79,12 @@ Specifies the window on whose screen you want to create a colormap.
 .SH DESCRIPTION
 The
 .B XCreateColormap
-function creates a colormap of the specified visual type for the screen 
-on which the specified window resides and returns the colormap ID 
+function creates a colormap of the specified visual type for the screen
+on which the specified window resides and returns the colormap ID
 associated with it.
 Note that the specified window is only used to determine the screen.
 .LP
-The initial values of the colormap entries are undefined for the 
+The initial values of the colormap entries are undefined for the
 visual classes
 .BR GrayScale ,
 .BR PseudoColor ,
@@ -164,7 +131,7 @@ For
 .BR DirectColor ,
 the effect is as if an
 .B XAllocColorPlanes
-call returned a pixel value of zero and red_mask, green_mask, 
+call returned a pixel value of zero and red_mask, green_mask,
 and blue_mask values containing the same bits as the corresponding
 masks in the specified visual.
 However, in all cases,
@@ -185,13 +152,13 @@ The
 function creates a colormap of the same visual type and for the same screen
 as the specified colormap and returns the new colormap ID.
 It also moves all of the client's existing allocation from the specified
-colormap to the new colormap with their color values intact 
-and their read-only or writable characteristics intact and frees those entries 
+colormap to the new colormap with their color values intact
+and their read-only or writable characteristics intact and frees those entries
 in the specified colormap.
 Color values in other entries in the new colormap are undefined.
 If the specified colormap was created by the client with alloc set to
 .BR AllocAll ,
-the new colormap is also created with 
+the new colormap is also created with
 .BR AllocAll ,
 all color values for all entries are copied from the specified colormap,
 and then all entries in the specified colormap are freed.
@@ -215,7 +182,7 @@ errors.
 .LP
 The
 .B XFreeColormap
-function deletes the association between the colormap resource ID 
+function deletes the association between the colormap resource ID
 and the colormap and frees the colormap storage.
 However, this function has no effect on the default colormap for a screen.
 If the specified colormap is an installed map for a screen,
@@ -244,28 +211,28 @@ The
 .B XColor
 structure contains:
 .LP
-.Ds 0
+.EX
 typedef struct {
         unsigned long pixel;    /\&* pixel value */
         unsigned short red, green, blue;        /\&* rgb values */
-        char flags;     /\&* DoRed, DoGreen, DoBlue */  
+        char flags;     /\&* DoRed, DoGreen, DoBlue */
         char pad;
 } XColor;
-.De
+.EE
 .LP
 The red, green, and blue values are always in the range 0 to 65535
 inclusive, independent of the number of bits actually used in the
 display hardware.
 The server scales these values down to the range used by the hardware.
-Black is represented by (0,0,0), 
+Black is represented by (0,0,0),
 and white is represented by (65535,65535,65535).
 .IN "Color"
 In some functions,
-the flags member controls which of the red, green, and blue members is used 
+the flags member controls which of the red, green, and blue members is used
 and can be the inclusive OR of zero or more of
 .BR DoRed ,
 .BR DoGreen ,
-and 
+and
 .BR DoBlue .
 .SH DIAGNOSTICS
 .TP 1i
@@ -287,7 +254,8 @@ to match in some other way required by the request.
 .B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
-by the argument's type is accepted.  Any argument defined as a set of
+by the argument's type is accepted.
+Any argument defined as a set of
 alternatives can generate this error.
 .TP 1i
 .B BadWindow

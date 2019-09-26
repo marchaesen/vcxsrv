@@ -340,6 +340,27 @@ struct blitter_context *util_blitter_create(struct pipe_context *pipe)
    return &ctx->base;
 }
 
+void *util_blitter_get_noop_blend_state(struct blitter_context *blitter)
+{
+   struct blitter_context_priv *ctx = (struct blitter_context_priv*)blitter;
+
+   return ctx->blend[0][0];
+}
+
+void *util_blitter_get_noop_dsa_state(struct blitter_context *blitter)
+{
+   struct blitter_context_priv *ctx = (struct blitter_context_priv*)blitter;
+
+   return ctx->dsa_keep_depth_stencil;
+}
+
+void *util_blitter_get_discard_rasterizer_state(struct blitter_context *blitter)
+{
+   struct blitter_context_priv *ctx = (struct blitter_context_priv*)blitter;
+
+   return ctx->rs_discard_state;
+}
+
 static void bind_vs_pos_only(struct blitter_context_priv *ctx,
                              unsigned num_so_channels)
 {
@@ -579,7 +600,7 @@ void util_blitter_unset_running_flag(struct blitter_context *blitter)
    blitter->pipe->set_active_query_state(blitter->pipe, true);
 }
 
-static void blitter_check_saved_vertex_states(MAYBE_UNUSED struct blitter_context_priv *ctx)
+static void blitter_check_saved_vertex_states(ASSERTED struct blitter_context_priv *ctx)
 {
    assert(ctx->base.saved_vs != INVALID_PTR);
    assert(!ctx->has_geometry_shader || ctx->base.saved_gs != INVALID_PTR);
@@ -645,7 +666,7 @@ void util_blitter_restore_vertex_states(struct blitter_context *blitter)
    ctx->base.saved_rs_state = INVALID_PTR;
 }
 
-static void blitter_check_saved_fragment_states(MAYBE_UNUSED struct blitter_context_priv *ctx)
+static void blitter_check_saved_fragment_states(ASSERTED struct blitter_context_priv *ctx)
 {
    assert(ctx->base.saved_fs != INVALID_PTR);
    assert(ctx->base.saved_dsa_state != INVALID_PTR);
@@ -691,7 +712,7 @@ void util_blitter_restore_fragment_states(struct blitter_context *blitter)
    }
 }
 
-static void blitter_check_saved_fb_state(MAYBE_UNUSED struct blitter_context_priv *ctx)
+static void blitter_check_saved_fb_state(ASSERTED struct blitter_context_priv *ctx)
 {
    assert(ctx->base.saved_fb_state.nr_cbufs != (ubyte) ~0);
 }
@@ -727,7 +748,7 @@ void util_blitter_restore_fb_state(struct blitter_context *blitter)
    util_unreference_framebuffer_state(&ctx->base.saved_fb_state);
 }
 
-static void blitter_check_saved_textures(MAYBE_UNUSED struct blitter_context_priv *ctx)
+static void blitter_check_saved_textures(ASSERTED struct blitter_context_priv *ctx)
 {
    assert(ctx->base.saved_num_sampler_states != ~0u);
    assert(ctx->base.saved_num_sampler_views != ~0u);

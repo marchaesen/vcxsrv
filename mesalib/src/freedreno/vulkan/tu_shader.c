@@ -38,7 +38,6 @@ tu_spirv_to_nir(struct ir3_compiler *compiler,
 {
    /* TODO these are made-up */
    const struct spirv_to_nir_options spirv_options = {
-      .lower_workgroup_access_to_offsets = true,
       .lower_ubo_ssbo_access_to_offsets = true,
       .caps = { false },
    };

@@ -38,59 +38,26 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XGrabButton __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XGrabButton, XUngrabButton \- grab pointer buttons
 .SH SYNTAX
-.HP 
+.HP
 int XGrabButton\^(\^Display *\fIdisplay\fP\^, unsigned int \fIbutton\fP\^,
 unsigned int \fImodifiers\fP\^, Window \fIgrab_window\fP\^, Bool
 \fIowner_events\fP\^, unsigned int \fIevent_mask\fP\^, int
 \fIpointer_mode\fP\^, \fIkeyboard_mode\fP\^, Window \fIconfine_to\fP\^, Cursor
-\fIcursor\fP\^); 
+\fIcursor\fP\^);
 .HP
 int XUngrabButton\^(\^Display *\fIdisplay\fP\^, unsigned int \fIbutton\fP\^,
-unsigned int \fImodifiers\fP\^, Window \fIgrab_window\fP\^); 
+unsigned int \fImodifiers\fP\^, Window \fIgrab_window\fP\^);
 .SH ARGUMENTS
 .IP \fIbutton\fP 1i
 Specifies the pointer button that is to be grabbed or released or
@@ -110,7 +77,7 @@ The mask is the bitwise inclusive OR of the valid pointer event mask bits.
 Specifies the grab window.
 .IP \fIkeyboard_mode\fP 1i
 Specifies further processing of keyboard events.
-You can pass 
+You can pass
 .B GrabModeSync
 or
 .BR GrabModeAsync .
@@ -119,12 +86,12 @@ Specifies the set of keymasks or
 .BR AnyModifier .
 The mask is the bitwise inclusive OR of the valid keymask bits.
 .IP \fIowner_events\fP 1i
-Specifies a Boolean value that indicates whether the pointer 
-events are to be reported as usual or reported with respect to the grab window 
+Specifies a Boolean value that indicates whether the pointer
+events are to be reported as usual or reported with respect to the grab window
 if selected by the event mask.
 .IP \fIpointer_mode\fP 1i
 Specifies further processing of pointer events.
-You can pass 
+You can pass
 .B GrabModeSync
 or
 .BR GrabModeAsync .
@@ -158,7 +125,7 @@ The interpretation of the remaining arguments is as for
 The active grab is terminated automatically when the logical state of the
 pointer has all buttons released
 (independent of the state of the logical modifier keys),
-at which point a 
+at which point a
 .B ButtonRelease
 event is reported to the grabbing window.
 .LP
@@ -167,27 +134,27 @@ may lag the physical state if device event processing is frozen.
 .LP
 This request overrides all previous grabs by the same client on the same
 button/key combinations on the same window.
-A modifiers of 
+A modifiers of
 .B AnyModifier
 is equivalent to issuing the grab request for all
-possible modifier combinations (including the combination of no modifiers).  
-It is not required that all modifiers specified have currently assigned 
+possible modifier combinations (including the combination of no modifiers).
+It is not required that all modifiers specified have currently assigned
 KeyCodes.
-A button of 
+A button of
 .B AnyButton
 is equivalent to
 issuing the request for all possible buttons.
 Otherwise, it is not required that the specified button currently be assigned
 to a physical button.
 .LP
-If some other client has already issued a 
+If some other client has already issued a
 .B XGrabButton
 with the same button/key combination on the same window, a
 .B BadAccess
 error results.
-When using 
+When using
 .B AnyModifier
-or 
+or
 .BR AnyButton ,
 the request fails completely,
 and a
@@ -209,13 +176,13 @@ The
 .B XUngrabButton
 function releases the passive button/key combination on the specified window if
 it was grabbed by this client.
-A modifiers of 
+A modifiers of
 .B AnyModifier
 is
-equivalent to issuing 
-the ungrab request for all possible modifier combinations, including 
+equivalent to issuing
+the ungrab request for all possible modifier combinations, including
 the combination of no modifiers.
-A button of 
+A button of
 .B AnyButton
 is equivalent to issuing the
 request for all possible buttons.
@@ -236,7 +203,8 @@ A value for a Cursor argument does not name a defined Cursor.
 .B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
-by the argument's type is accepted.  Any argument defined as a set of
+by the argument's type is accepted.
+Any argument defined as a set of
 alternatives can generate this error.
 .TP 1i
 .B BadWindow

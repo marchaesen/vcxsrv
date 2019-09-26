@@ -503,9 +503,8 @@ radv_dump_shader(struct radv_pipeline *pipeline,
 		radv_print_spirv(shader->spirv, shader->spirv_size, f);
 	}
 
-	if (shader->nir) {
-		fprintf(f, "NIR:\n");
-		nir_print_shader(shader->nir, f);
+	if (shader->nir_string) {
+		fprintf(f, "NIR:\n%s\n", shader->nir_string);
 	}
 
 	fprintf(f, "LLVM IR:\n%s\n", shader->llvm_ir_string);

@@ -62,7 +62,6 @@
 #include "mach_startupServer.h"
 
 #include "console_redirect.h"
-#include "buildDateTime.h"
 
 /* From darwinEvents.c ... but don't want to pull in all the server cruft */
 void
@@ -100,7 +99,7 @@ asm (".desc ___crashreporter_info__, 0x10");
 #endif
 
 static const char *__crashreporter_info__base =
-    "X.Org X Server " XSERVER_VERSION " Build Date: " STRINGIZE(BUILD_DATE);
+    "X.Org X Server " XSERVER_VERSION ";
 
 char *bundle_id_prefix = NULL;
 static char *server_bootstrap_name = NULL;

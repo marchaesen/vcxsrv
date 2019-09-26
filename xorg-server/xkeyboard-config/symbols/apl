@@ -481,7 +481,8 @@ xkb_symbols "dyalog_box" {
 
 }; 
 
-xkb_symbols hidden "dyalog_codes" {
+partial hidden
+xkb_symbols "dyalog_codes" {
 
 //	Layout of private use area for this. In the style of the Unicode book
 //

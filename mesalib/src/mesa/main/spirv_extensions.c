@@ -103,8 +103,11 @@ _mesa_fill_supported_spirv_extensions(struct spirv_supported_extensions *ext,
 
    ext->supported[SPV_KHR_shader_draw_parameters] = cap->draw_parameters;
    ext->supported[SPV_KHR_multiview] = cap->multiview;
+   ext->supported[SPV_KHR_storage_buffer_storage_class] = true;
    ext->supported[SPV_KHR_variable_pointers] = cap->variable_pointers;
    ext->supported[SPV_AMD_gcn_shader] = cap->amd_gcn_shader;
+   ext->supported[SPV_KHR_shader_ballot] = cap->subgroup_ballot;
+   ext->supported[SPV_KHR_subgroup_vote] = cap->subgroup_vote;
 
    for (unsigned i = 0; i < SPV_EXTENSIONS_COUNT; i++) {
       if (ext->supported[i])

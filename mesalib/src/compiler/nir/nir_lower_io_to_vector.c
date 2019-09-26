@@ -34,6 +34,35 @@
  * when all is said and done.
  */
 
+/* FRAG_RESULT_MAX+1 instead of just FRAG_RESULT_MAX because of how this pass
+ * handles dual source blending */
+#define MAX_SLOTS MAX2(VARYING_SLOT_TESS_MAX, FRAG_RESULT_MAX+1)
+
+static unsigned
+get_slot(const nir_variable *var)
+{
+   /* This handling of dual-source blending might not be correct when more than
+    * one render target is supported, but it seems no driver supports more than
+    * one. */
+   return var->data.location + var->data.index;
+}
+
+static const struct glsl_type *
+get_per_vertex_type(const nir_shader *shader, const nir_variable *var,
+                    unsigned *num_vertices)
+{
+   if (nir_is_per_vertex_io(var, shader->info.stage)) {
+      assert(glsl_type_is_array(var->type));
+      if (num_vertices)
+         *num_vertices = glsl_get_length(var->type);
+      return glsl_get_array_element(var->type);
+   } else {
+      if (num_vertices)
+         *num_vertices = 0;
+      return var->type;
+   }
+}
+
 static const struct glsl_type *
 resize_array_vec_type(const struct glsl_type *type, unsigned num_components)
 {
@@ -48,47 +77,48 @@ resize_array_vec_type(const struct glsl_type *type, unsigned num_components)
 }
 
 static bool
-variable_can_rewrite(const nir_variable *var)
+variables_can_merge(const nir_shader *shader,
+                    const nir_variable *a, const nir_variable *b,
+                    bool same_array_structure)
 {
-   /* Only touch user defined varyings as these are the only ones we split */
-   if (var->data.location < VARYING_SLOT_VAR0)
+   if (a->data.compact || b->data.compact)
       return false;
 
-   /* Skip complex types we don't split in the first place */
-   if (!glsl_type_is_vector_or_scalar(glsl_without_array(var->type)))
-      return false;
-
-   /* TODO: add 64/16bit support ? */
-   if (glsl_get_bit_size(glsl_without_array(var->type)) != 32)
-      return false;
-
-   return true;
-}
-
-static bool
-variables_can_merge(nir_shader *shader,
-                    const nir_variable *a, const nir_variable *b)
-{
    const struct glsl_type *a_type_tail = a->type;
    const struct glsl_type *b_type_tail = b->type;
 
+   if (nir_is_per_vertex_io(a, shader->info.stage) !=
+       nir_is_per_vertex_io(b, shader->info.stage))
+      return false;
+
    /* They must have the same array structure */
-   while (glsl_type_is_array(a_type_tail)) {
-      if (!glsl_type_is_array(b_type_tail))
-         return false;
+   if (same_array_structure) {
+      while (glsl_type_is_array(a_type_tail)) {
+         if (!glsl_type_is_array(b_type_tail))
+            return false;
 
-      if (glsl_get_length(a_type_tail) != glsl_get_length(b_type_tail))
-         return false;
+         if (glsl_get_length(a_type_tail) != glsl_get_length(b_type_tail))
+            return false;
 
-      a_type_tail = glsl_get_array_element(a_type_tail);
-      b_type_tail = glsl_get_array_element(b_type_tail);
+         a_type_tail = glsl_get_array_element(a_type_tail);
+         b_type_tail = glsl_get_array_element(b_type_tail);
+      }
+      if (glsl_type_is_array(b_type_tail))
+         return false;
+   } else {
+      a_type_tail = glsl_without_array(a_type_tail);
+      b_type_tail = glsl_without_array(b_type_tail);
    }
 
    if (!glsl_type_is_vector_or_scalar(a_type_tail) ||
        !glsl_type_is_vector_or_scalar(b_type_tail))
       return false;
 
-   if (glsl_get_base_type(a->type) != glsl_get_base_type(b->type))
+   if (glsl_get_base_type(a_type_tail) != glsl_get_base_type(b_type_tail))
+      return false;
+
+   /* TODO: add 64/16bit support ? */
+   if (glsl_get_bit_size(a_type_tail) != 32)
       return false;
 
    assert(a->data.mode == b->data.mode);
@@ -97,31 +127,84 @@ variables_can_merge(nir_shader *shader,
        a->data.interpolation != b->data.interpolation)
       return false;
 
+   if (shader->info.stage == MESA_SHADER_FRAGMENT &&
+       a->data.mode == nir_var_shader_out &&
+       a->data.index != b->data.index)
+      return false;
+
    return true;
+}
+
+static const struct glsl_type *
+get_flat_type(const nir_shader *shader, nir_variable *old_vars[MAX_SLOTS][4],
+              unsigned *loc, nir_variable **first_var, unsigned *num_vertices)
+{
+   unsigned todo = 1;
+   unsigned slots = 0;
+   unsigned num_vars = 0;
+   enum glsl_base_type base;
+   *num_vertices = 0;
+   *first_var = NULL;
+
+   while (todo) {
+      assert(*loc < MAX_SLOTS);
+      for (unsigned frac = 0; frac < 4; frac++) {
+         nir_variable *var = old_vars[*loc][frac];
+         if (!var)
+            continue;
+         if ((*first_var &&
+              !variables_can_merge(shader, var, *first_var, false)) ||
+             var->data.compact) {
+            (*loc)++;
+            return NULL;
+         }
+
+         if (!*first_var) {
+            if (!glsl_type_is_vector_or_scalar(glsl_without_array(var->type))) {
+               (*loc)++;
+               return NULL;
+            }
+            *first_var = var;
+            base = glsl_get_base_type(
+               glsl_without_array(get_per_vertex_type(shader, var, NULL)));
+         }
+
+         bool vs_in = shader->info.stage == MESA_SHADER_VERTEX &&
+                      var->data.mode == nir_var_shader_in;
+         unsigned var_slots = glsl_count_attribute_slots(
+            get_per_vertex_type(shader, var, num_vertices), vs_in);
+         todo = MAX2(todo, var_slots);
+         num_vars++;
+      }
+      todo--;
+      slots++;
+      (*loc)++;
+   }
+
+   if (num_vars <= 1)
+      return NULL;
+
+   return glsl_array_type(glsl_vector_type(base, 4), slots, 0);
 }
 
 static bool
 create_new_io_vars(nir_shader *shader, struct exec_list *io_list,
-                   nir_variable *old_vars[MAX_VARYINGS_INCL_PATCH][4],
-                   nir_variable *new_vars[MAX_VARYINGS_INCL_PATCH][4])
+                   nir_variable *new_vars[MAX_SLOTS][4],
+                   bool flat_vars[MAX_SLOTS])
 {
    if (exec_list_is_empty(io_list))
       return false;
 
+   nir_variable *old_vars[MAX_SLOTS][4] = {{0}};
+
    nir_foreach_variable(var, io_list) {
-      if (variable_can_rewrite(var)) {
-         unsigned loc = var->data.location - VARYING_SLOT_VAR0;
-         unsigned frac = var->data.location_frac;
-         old_vars[loc][frac] = var;
-      }
+      unsigned frac = var->data.location_frac;
+      old_vars[get_slot(var)][frac] = var;
    }
 
    bool merged_any_vars = false;
 
-   /* We don't handle combining vars of different type e.g. different array
-    * lengths.
-    */
-   for (unsigned loc = 0; loc < MAX_VARYINGS_INCL_PATCH; loc++) {
+   for (unsigned loc = 0; loc < MAX_SLOTS; loc++) {
       unsigned frac = 0;
       while (frac < 4) {
          nir_variable *first_var = old_vars[loc][frac];
@@ -139,7 +222,7 @@ create_new_io_vars(nir_shader *shader, struct exec_list *io_list,
                break;
 
             if (var != first_var) {
-               if (!variables_can_merge(shader, first_var, var))
+               if (!variables_can_merge(shader, first_var, var, true))
                   break;
 
                found_merge = true;
@@ -147,6 +230,11 @@ create_new_io_vars(nir_shader *shader, struct exec_list *io_list,
 
             const unsigned num_components =
                glsl_get_components(glsl_without_array(var->type));
+            if (!num_components) {
+               assert(frac == 0);
+               frac++;
+               break; /* The type was a struct. */
+            }
 
             /* We had better not have any overlapping vars */
             for (unsigned i = 1; i < num_components; i++)
@@ -165,9 +253,42 @@ create_new_io_vars(nir_shader *shader, struct exec_list *io_list,
          var->type = resize_array_vec_type(var->type, frac - first);
 
          nir_shader_add_variable(shader, var);
-         for (unsigned i = first; i < frac; i++)
+         for (unsigned i = first; i < frac; i++) {
             new_vars[loc][i] = var;
+            old_vars[loc][i] = NULL;
+         }
+
+         old_vars[loc][first] = var;
       }
+   }
+
+   /* "flat" mode: tries to ensure there is at most one variable per slot by
+    * merging variables into vec4s
+    */
+   for (unsigned loc = 0; loc < MAX_SLOTS;) {
+      nir_variable *first_var;
+      unsigned num_vertices;
+      unsigned new_loc = loc;
+      const struct glsl_type *flat_type =
+         get_flat_type(shader, old_vars, &new_loc, &first_var, &num_vertices);
+      if (flat_type) {
+         merged_any_vars = true;
+
+         nir_variable *var = nir_variable_clone(first_var, shader);
+         var->data.location_frac = 0;
+         if (num_vertices)
+            var->type = glsl_array_type(flat_type, num_vertices, 0);
+         else
+            var->type = flat_type;
+
+         nir_shader_add_variable(shader, var);
+         for (unsigned i = 0; i < glsl_get_length(flat_type); i++) {
+            for (unsigned j = 0; j < 4; j++)
+               new_vars[loc + i][j] = var;
+            flat_vars[loc + i] = true;
+         }
+      }
+      loc = new_loc;
    }
 
    return merged_any_vars;
@@ -186,6 +307,45 @@ build_array_deref_of_new_var(nir_builder *b, nir_variable *new_var,
    return nir_build_deref_follower(b, parent, leader);
 }
 
+static nir_ssa_def *
+build_array_index(nir_builder *b, nir_deref_instr *deref, nir_ssa_def *base,
+                  bool vs_in)
+{
+   switch (deref->deref_type) {
+   case nir_deref_type_var:
+      return base;
+   case nir_deref_type_array: {
+      nir_ssa_def *index = nir_i2i(b, deref->arr.index.ssa,
+                                   deref->dest.ssa.bit_size);
+      return nir_iadd(
+         b, build_array_index(b, nir_deref_instr_parent(deref), base, vs_in),
+         nir_imul_imm(b, index, glsl_count_attribute_slots(deref->type, vs_in)));
+   }
+   default:
+      unreachable("Invalid deref instruction type");
+   }
+}
+
+static nir_deref_instr *
+build_array_deref_of_new_var_flat(nir_shader *shader,
+                                  nir_builder *b, nir_variable *new_var,
+                                  nir_deref_instr *leader, unsigned base)
+{
+   nir_deref_instr *deref = nir_build_deref_var(b, new_var);
+
+   if (nir_is_per_vertex_io(new_var, shader->info.stage)) {
+      assert(leader->deref_type == nir_deref_type_array);
+      nir_ssa_def *index = leader->arr.index.ssa;
+      leader = nir_deref_instr_parent(leader);
+      deref = nir_build_deref_array(b, deref, index);
+   }
+
+   bool vs_in = shader->info.stage == MESA_SHADER_VERTEX &&
+                new_var->data.mode == nir_var_shader_in;
+   return nir_build_deref_array(
+      b, deref, build_array_index(b, leader, nir_imm_int(b, base), vs_in));
+}
+
 static bool
 nir_lower_io_to_vector_impl(nir_function_impl *impl, nir_variable_mode modes)
 {
@@ -197,10 +357,10 @@ nir_lower_io_to_vector_impl(nir_function_impl *impl, nir_variable_mode modes)
    nir_metadata_require(impl, nir_metadata_dominance);
 
    nir_shader *shader = impl->function->shader;
-   nir_variable *old_inputs[MAX_VARYINGS_INCL_PATCH][4] = {{0}};
-   nir_variable *new_inputs[MAX_VARYINGS_INCL_PATCH][4] = {{0}};
-   nir_variable *old_outputs[MAX_VARYINGS_INCL_PATCH][4] = {{0}};
-   nir_variable *new_outputs[MAX_VARYINGS_INCL_PATCH][4] = {{0}};
+   nir_variable *new_inputs[MAX_SLOTS][4] = {{0}};
+   nir_variable *new_outputs[MAX_SLOTS][4] = {{0}};
+   bool flat_inputs[MAX_SLOTS] = {0};
+   bool flat_outputs[MAX_SLOTS] = {0};
 
    if (modes & nir_var_shader_in) {
       /* Vertex shaders support overlapping inputs.  We don't do those */
@@ -210,21 +370,16 @@ nir_lower_io_to_vector_impl(nir_function_impl *impl, nir_variable_mode modes)
        * so we don't bother doing extra non-work.
        */
       if (!create_new_io_vars(shader, &shader->inputs,
-                              old_inputs, new_inputs))
+                              new_inputs, flat_inputs))
          modes &= ~nir_var_shader_in;
    }
 
    if (modes & nir_var_shader_out) {
-      /* Fragment shader outputs are always vec4.  You shouldn't have
-       * scalarized them and it doesn't make sense to vectorize them.
-       */
-      assert(b.shader->info.stage != MESA_SHADER_FRAGMENT);
-
       /* If we don't actually merge any variables, remove that bit from modes
        * so we don't bother doing extra non-work.
        */
       if (!create_new_io_vars(shader, &shader->outputs,
-                              old_outputs, new_outputs))
+                              new_outputs, flat_outputs))
          modes &= ~nir_var_shader_out;
    }
 
@@ -256,21 +411,21 @@ nir_lower_io_to_vector_impl(nir_function_impl *impl, nir_variable_mode modes)
                break;
 
             if (old_deref->mode == nir_var_shader_out)
-               assert(b.shader->info.stage == MESA_SHADER_TESS_CTRL);
+               assert(b.shader->info.stage == MESA_SHADER_TESS_CTRL ||
+                      b.shader->info.stage == MESA_SHADER_FRAGMENT);
 
             nir_variable *old_var = nir_deref_instr_get_variable(old_deref);
-            if (old_var->data.location < VARYING_SLOT_VAR0)
-               break;
 
-            const unsigned loc = old_var->data.location - VARYING_SLOT_VAR0;
+            const unsigned loc = get_slot(old_var);
             const unsigned old_frac = old_var->data.location_frac;
             nir_variable *new_var = old_deref->mode == nir_var_shader_in ?
                                     new_inputs[loc][old_frac] :
                                     new_outputs[loc][old_frac];
+            bool flat = old_deref->mode == nir_var_shader_in ?
+                        flat_inputs[loc] : flat_outputs[loc];
             if (!new_var)
                break;
 
-            assert(new_var->data.location == VARYING_SLOT_VAR0 + loc);
             const unsigned new_frac = new_var->data.location_frac;
 
             nir_component_mask_t vec4_comp_mask =
@@ -281,9 +436,15 @@ nir_lower_io_to_vector_impl(nir_function_impl *impl, nir_variable_mode modes)
             /* Rewrite the load to use the new variable and only select a
              * portion of the result.
              */
-            nir_deref_instr *new_deref =
-               build_array_deref_of_new_var(&b, new_var, old_deref);
-            assert(glsl_type_is_vector(new_deref->type));
+            nir_deref_instr *new_deref;
+            if (flat) {
+               new_deref = build_array_deref_of_new_var_flat(
+                  shader, &b, new_var, old_deref, loc - get_slot(new_var));
+            } else {
+               assert(get_slot(new_var) == loc);
+               new_deref = build_array_deref_of_new_var(&b, new_var, old_deref);
+               assert(glsl_type_is_vector(new_deref->type));
+            }
             nir_instr_rewrite_src(&intrin->instr, &intrin->src[0],
                                   nir_src_for_ssa(&new_deref->dest.ssa));
 
@@ -309,24 +470,28 @@ nir_lower_io_to_vector_impl(nir_function_impl *impl, nir_variable_mode modes)
                break;
 
             nir_variable *old_var = nir_deref_instr_get_variable(old_deref);
-            if (old_var->data.location < VARYING_SLOT_VAR0)
-               break;
 
-            const unsigned loc = old_var->data.location - VARYING_SLOT_VAR0;
+            const unsigned loc = get_slot(old_var);
             const unsigned old_frac = old_var->data.location_frac;
             nir_variable *new_var = new_outputs[loc][old_frac];
+            bool flat = flat_outputs[loc];
             if (!new_var)
                break;
 
-            assert(new_var->data.location == VARYING_SLOT_VAR0 + loc);
             const unsigned new_frac = new_var->data.location_frac;
 
             b.cursor = nir_before_instr(&intrin->instr);
 
             /* Rewrite the store to be a masked store to the new variable */
-            nir_deref_instr *new_deref =
-               build_array_deref_of_new_var(&b, new_var, old_deref);
-            assert(glsl_type_is_vector(new_deref->type));
+            nir_deref_instr *new_deref;
+            if (flat) {
+               new_deref = build_array_deref_of_new_var_flat(
+                  shader, &b, new_var, old_deref, loc - get_slot(new_var));
+            } else {
+               assert(get_slot(new_var) == loc);
+               new_deref = build_array_deref_of_new_var(&b, new_var, old_deref);
+               assert(glsl_type_is_vector(new_deref->type));
+            }
             nir_instr_rewrite_src(&intrin->instr, &intrin->src[0],
                                   nir_src_for_ssa(&new_deref->dest.ssa));
 

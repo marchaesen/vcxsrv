@@ -778,7 +778,7 @@ st_discard_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
    struct st_context *st = st_context(ctx);
    struct pipe_resource *prsc;
 
-   if (!att->Renderbuffer)
+   if (!att->Renderbuffer || !att->Complete)
       return;
 
    prsc = st_renderbuffer(att->Renderbuffer)->surface->texture;

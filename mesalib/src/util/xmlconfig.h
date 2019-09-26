@@ -32,6 +32,7 @@
 
 #include "util/mesa-sha1.h"
 #include "util/ralloc.h"
+#include <stdint.h>
 #include <string.h>
 
 #define STRING_CONF_MAXLEN 25
@@ -102,11 +103,12 @@ void driParseOptionInfo (driOptionCache *info,
 			 const char *configOptions);
 /** \brief Initialize option cache from info and parse configuration files
  *
- * To be called in <driver>CreateContext. screenNum, driverName and
- * kernelDriverName select device sections. */
+ * To be called in <driver>CreateContext. screenNum, driverName,
+ * kernelDriverName and engineName select device sections. */
 void driParseConfigFiles (driOptionCache *cache, const driOptionCache *info,
 			  int screenNum, const char *driverName,
-			  const char *kernelDriverName);
+			  const char *kernelDriverName,
+			  const char *engineName, uint32_t engineVersion);
 /** \brief Destroy option info
  *
  * To be called in <driver>DestroyScreen */

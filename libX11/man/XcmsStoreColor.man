@@ -38,57 +38,24 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XcmsStoreColor __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XcmsStoreColor, XcmsStoreColors \- set colors
 .SH SYNTAX
 .HP
 Status XcmsStoreColor\^(\^Display *\fIdisplay\fP\^, Colormap \fIcolormap\fP\^,
-XcmsColor *\fIcolor\fP\^); 
+XcmsColor *\fIcolor\fP\^);
 .HP
 Status XcmsStoreColors\^(\^Display *\fIdisplay\fP\^, Colormap
 \fIcolormap\fP\^, XcmsColor \fIcolors\fP\^[\^]\^, int \fIncolors\fP\^, Bool
-\fIcompression_flags_return\fP\^[\^]\^); 
+\fIcompression_flags_return\fP\^[\^]\^);
 .SH ARGUMENTS
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
@@ -115,7 +82,7 @@ if the corresponding color was compressed and
 otherwise.
 Pass NULL if the compression status is not useful.
 .IP \fIncolors\fP 1i
-Specifies the number of 
+Specifies the number of
 .B XcmsColor
 structures in the color-specification array.
 .SH DESCRIPTION
@@ -126,8 +93,8 @@ function converts the color specified in the
 structure into RGB values.
 It then uses this RGB specification in an
 .B XColor
-structure, whose three flags 
-.Pn ( DoRed , 
+structure, whose three flags
+.Pn ( DoRed ,
 .BR DoGreen ,
 and
 .BR DoBlue )
@@ -144,14 +111,14 @@ error results.
 If the color cell is unallocated or is allocated read-only, a
 .B BadAccess
 error results.
-If the colormap is an installed map for its screen, 
+If the colormap is an installed map for its screen,
 the changes are visible immediately.
 .LP
-Note that 
+Note that
 .B XStoreColor
 has no return value; therefore, an
 .B XcmsSuccess
-return value from this function indicates that the conversion 
+return value from this function indicates that the conversion
 to RGB succeeded and the call to
 .B XStoreColor
 was made.
@@ -175,8 +142,8 @@ function converts the colors specified in the array of
 .B XcmsColor
 structures into RGB values and then uses these RGB specifications in
 .B XColor
-structures, whose three flags 
-.Pn ( DoRed , 
+structures, whose three flags
+.Pn ( DoRed ,
 .BR DoGreen ,
 and
 .BR DoBlue )
@@ -195,14 +162,14 @@ If a color cell is unallocated or is allocated read-only, a
 error results.
 If more than one pixel is in error,
 the one that gets reported is arbitrary.
-If the colormap is an installed map for its screen, 
+If the colormap is an installed map for its screen,
 the changes are visible immediately.
 .LP
-Note that 
+Note that
 .B XStoreColors
 has no return value; therefore, an
 .B XcmsSuccess
-return value from this function indicates that conversions 
+return value from this function indicates that conversions
 to RGB succeeded and the call to
 .B XStoreColors
 was made.
@@ -236,7 +203,8 @@ A value for a Colormap argument does not name a defined Colormap.
 .B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
-by the argument's type is accepted.  Any argument defined as a set of
+by the argument's type is accepted.
+Any argument defined as a set of
 alternatives can generate this error.
 .SH "SEE ALSO"
 XcmsAllocColor(__libmansuffix__),

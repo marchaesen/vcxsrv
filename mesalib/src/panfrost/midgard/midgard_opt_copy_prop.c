@@ -34,8 +34,8 @@ midgard_opt_copy_prop(compiler_context *ctx, midgard_block *block)
                 if (ins->type != TAG_ALU_4) continue;
                 if (!OP_IS_MOVE(ins->alu.op)) continue;
 
-                unsigned from = ins->ssa_args.src1;
-                unsigned to = ins->ssa_args.dest;
+                unsigned from = ins->src[1];
+                unsigned to = ins->dest;
 
                 /* We only work on pure SSA */
 
@@ -45,15 +45,50 @@ midgard_opt_copy_prop(compiler_context *ctx, midgard_block *block)
                 if (from & IS_REG) continue;
 
                 /* Constant propagation is not handled here, either */
-                if (ins->ssa_args.inline_constant) continue;
+                if (ins->has_inline_constant) continue;
                 if (ins->has_constants) continue;
 
                 /* Modifier propagation is not handled here */
-                if (mir_nontrivial_source2_mod(ins)) continue;
+                if (mir_nontrivial_source2_mod_simple(ins)) continue;
                 if (mir_nontrivial_outmod(ins)) continue;
 
-                /* We're clear -- rewrite */
-                mir_rewrite_index_src(ctx, to, from);
+                /* Shortened arguments (bias for textures, extra load/store
+                 * arguments, etc.) do not get a swizzle, only a start
+                 * component and even that is restricted. Fragment writeout
+                 * doesn't even get that much */
+
+                bool skip = false;
+
+                mir_foreach_instr_global(ctx, q) {
+                        bool is_tex = q->type == TAG_TEXTURE_4;
+                        bool is_ldst = q->type == TAG_LOAD_STORE_4;
+                        bool is_writeout = q->compact_branch && q->writeout;
+
+                        if (!(is_tex || is_ldst || is_writeout)) continue;
+
+                        /* For textures, we get one real swizzle. For stores,
+                         * we also get one. For loads, we get none. */
+
+                        unsigned start =
+                                is_tex ? 1 :
+                                OP_IS_STORE(q->load_store.op) ? 1 : 0;
+
+                        mir_foreach_src(q, s) {
+                                if ((s >= start) && q->src[s] == to) {
+                                        skip = true;
+                                        break;
+                                }
+                        }
+                }
+
+                if (skip)
+                        continue;
+
+                /* We're clear -- rewrite, composing the swizzle */
+                midgard_vector_alu_src src2 =
+                        vector_alu_from_unsigned(ins->alu.src2);
+
+                mir_rewrite_index_src_swizzle(ctx, to, from, src2.swizzle);
                 mir_remove_instruction(ins);
                 progress |= true;
         }

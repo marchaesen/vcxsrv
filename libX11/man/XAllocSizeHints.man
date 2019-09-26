@@ -39,46 +39,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
-.ds xL Xlib \- C Language X Interface, \fRO'Reilly and Associates, 
+.ds xL Xlib \- C Language X Interface, \fRO'Reilly and Associates,
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 '\" t
 .TH XAllocSizeHints __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
@@ -123,16 +90,16 @@ structure.
 Note that all fields in the
 .B XSizeHints
 structure are initially set to zero.
-If insufficient memory is available, 
+If insufficient memory is available,
 .B XAllocSizeHints
 returns NULL.
 To free the memory allocated to this structure,
 use
 .BR XFree .
 .LP
-The 
+The
 .B XSetWMNormalHints
-function replaces the size hints for the WM_NORMAL_HINTS property 
+function replaces the size hints for the WM_NORMAL_HINTS property
 on the specified window.
 If the property does not already exist,
 .B XSetWMNormalHints
@@ -146,55 +113,55 @@ and
 .B BadWindow
 errors.
 .LP
-The 
+The
 .B XGetWMNormalHints
-function returns the size hints stored in the WM_NORMAL_HINTS property 
+function returns the size hints stored in the WM_NORMAL_HINTS property
 on the specified window.
 If the property is of type WM_SIZE_HINTS, is of format 32,
-and is long enough to contain either an old (pre-ICCCM) 
-or new size hints structure, 
+and is long enough to contain either an old (pre-ICCCM)
+or new size hints structure,
 .B XGetWMNormalHints
-sets the various fields of the 
+sets the various fields of the
 .B XSizeHints
-structure, sets the supplied_return argument to the list of fields 
+structure, sets the supplied_return argument to the list of fields
 that were supplied by the user (whether or not they contained defined values),
 and returns a nonzero status.
 Otherwise, it returns a zero status.
 .LP
-If 
+If
 .B XGetWMNormalHints
-returns successfully and a pre-ICCCM size hints property is read, 
+returns successfully and a pre-ICCCM size hints property is read,
 the supplied_return argument will contain the following bits:
 .LP
-.Ds
+.EX
 (USPosition|USSize|PPosition|PSize|PMinSize|
  PMaxSize|PResizeInc|PAspect)
-.De
+.EE
 .LP
-If the property is large enough to contain the base size 
-and window gravity fields as well, 
+If the property is large enough to contain the base size
+and window gravity fields as well,
 the supplied_return argument will also contain the following bits:
 .LP
-.Ds
+.EX
 PBaseSize|PWinGravity
-.De
+.EE
 .LP
 .B XGetWMNormalHints
 can generate a
 PN BadWindow
 error.
 .LP
-The 
+The
 .B XSetWMSizeHints
-function replaces the size hints for the specified property 
+function replaces the size hints for the specified property
 on the named window.
 If the specified property does not already exist,
 .B XSetWMSizeHints
 sets the size hints for the specified property
 on the named window.
 The property is stored with a type of WM_SIZE_HINTS and a format of 32.
-To set a window's normal size hints, 
-you can use the 
+To set a window's normal size hints,
+you can use the
 .B XSetWMNormalHints
 function.
 .LP
@@ -206,43 +173,43 @@ and
 .B BadWindow
 errors.
 .LP
-The 
+The
 .B XGetWMSizeHints
-function returns the size hints stored in the specified property 
+function returns the size hints stored in the specified property
 on the named window.
-If the property is of type WM_SIZE_HINTS, is of format 32, 
-and is long enough to contain either an old (pre-ICCCM) 
-or new size hints structure, 
+If the property is of type WM_SIZE_HINTS, is of format 32,
+and is long enough to contain either an old (pre-ICCCM)
+or new size hints structure,
 .B XGetWMSizeHints
-sets the various fields of the 
+sets the various fields of the
 .B XSizeHints
 structure, sets the supplied_return argument to the
-list of fields that were supplied by the user 
-(whether or not they contained defined values), 
+list of fields that were supplied by the user
+(whether or not they contained defined values),
 and returns a nonzero status.
 Otherwise, it returns a zero status.
-To get a window's normal size hints, 
-you can use the 
+To get a window's normal size hints,
+you can use the
 .B XGetWMNormalHints
 function.
 .LP
-If 
+If
 .B XGetWMSizeHints
-returns successfully and a pre-ICCCM size hints property is read, 
+returns successfully and a pre-ICCCM size hints property is read,
 the supplied_return argument will contain the following bits:
 .LP
-.Ds
+.EX
 (USPosition|USSize|PPosition|PSize|PMinSize|
  PMaxSize|PResizeInc|PAspect)
-.De
+.EE
 .LP
-If the property is large enough to contain the base size 
-and window gravity fields as well, 
+If the property is large enough to contain the base size
+and window gravity fields as well,
 the supplied_return argument will also contain the following bits:
 .LP
-.Ds
+.EX
 PBaseSize|PWinGravity
-.De
+.EE
 .LP
 .B XGetWMSizeHints
 can generate
@@ -261,9 +228,10 @@ The
 .B XSizeHints
 structure contains:
 .LP
+.na
 /\&* Size hints mask bits */
 .TS
-lw(.5i) lw(1.1i) lw(1.5i) lw(3.1i).
+lw(.4i) lw(1.0i) lw(1.1i) lw(2.8i).
 T{
 \&#define
 T}	T{
@@ -355,16 +323,23 @@ T{
 T}	T{
 .B PAllHints
 T}	T{
-(PPosition|PSize|
+(PPosition|
 .br
-PMinSize|PMaxSize|
+ PSize|
 .br
-PResizeInc|PAspect)
+ PMinSize|
+.br
+ PMaxSize|
+.br
+ PResizeInc|
+.br
+ PAspect)
 T}	T{
 T}
 .TE
+.ad
 .IN "XSizeHints" "" "@DEF@"
-.Ds 0
+.EX
 /\&* Values */
 
 typedef struct {
@@ -382,7 +357,7 @@ typedef struct {
         int win_gravity;
         /\&* this structure may be extended in the future */
 } XSizeHints;
-.De
+.EE
 .LP
 The x, y, width, and height members are now obsolete
 and are left solely for compatibility reasons.
@@ -392,19 +367,19 @@ The max_width and max_height members specify the maximum window size.
 The width_inc and height_inc members define an arithmetic progression of
 sizes (minimum to maximum) into which the window prefers to be resized.
 The min_aspect and max_aspect members are expressed
-as ratios of x and y, 
+as ratios of x and y,
 and they allow an application to specify the range of aspect
 ratios it prefers.
 The base_width and base_height members define the desired size of the window.
-The window manager will interpret the position of the window 
-and its border width to position the point of the outer rectangle 
+The window manager will interpret the position of the window
+and its border width to position the point of the outer rectangle
 of the overall window specified by the win_gravity member.
 The outer rectangle of the window includes any borders or decorations
 supplied by the window manager.
 In other words,
 if the window manager decides to place the window where the client asked,
-the position on the parent window's border named by the win_gravity 
-will be placed where the client window would have been placed 
+the position on the parent window's border named by the win_gravity
+will be placed where the client window would have been placed
 in the absence of a window manager.
 .LP
 Note that use of the

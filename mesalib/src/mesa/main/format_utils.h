@@ -87,7 +87,7 @@ _mesa_float_to_unorm(float x, unsigned dst_bits)
    else if (x > 1.0f)
       return MAX_UINT(dst_bits);
    else
-      return _mesa_lroundevenf(x * MAX_UINT(dst_bits));
+      return _mesa_i64roundevenf(x * MAX_UINT(dst_bits));
 }
 
 static inline unsigned

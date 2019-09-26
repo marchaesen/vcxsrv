@@ -390,17 +390,10 @@ loop_unroll_visitor::visit_leave(ir_loop *ir)
       return visit_continue;
    }
 
-   if (ls->limiting_terminator != NULL) {
-      /* If the limiting terminator has an iteration count of zero, then we've
-       * proven that the loop cannot run, so delete it.
-       */
-      int iterations = ls->limiting_terminator->iterations;
-      if (iterations == 0) {
-         ir->remove();
-         this->progress = true;
-         return visit_continue;
-      }
-   }
+   /* Limiting terminator may have iteration count of zero,
+    * this is a valid case because the loop may break during
+    * the first iteration.
+    */
 
    /* Remove the conditional break statements associated with all terminators
     * that are associated with a fixed iteration count, except for the one

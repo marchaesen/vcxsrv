@@ -384,8 +384,8 @@ compute_version(const struct gl_extensions *extensions,
                          extensions->NV_texture_barrier);
    const bool ver_4_6 = (ver_4_5 &&
                          consts->GLSLVersion >= 460 &&
-                         /* extensions->ARB_gl_spirv */ 0 &&
-                         /* extensions->ARB_spirv_extensions */ 0 &&
+                         extensions->ARB_gl_spirv &&
+                         extensions->ARB_spirv_extensions &&
                          extensions->ARB_indirect_parameters &&
                          extensions->ARB_pipeline_statistics_query &&
                          extensions->ARB_polygon_offset_clamp &&

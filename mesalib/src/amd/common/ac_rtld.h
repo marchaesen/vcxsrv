@@ -57,6 +57,9 @@ struct ac_rtld_binary {
 	/* Required buffer sizes, currently read/executable only. */
 	uint64_t rx_size;
 
+	/* Size of executable code, for reporting purposes. */
+	uint64_t exec_size;
+
 	uint64_t rx_end_markers;
 
 	unsigned num_parts;

@@ -313,6 +313,350 @@
       <param name="texture" type="GLuint" />
    </function>
 
+  <function name="EnableClientStateIndexedEXT" alias="EnableClientStateiEXT">
+      <param name="array" type="GLenum" />
+      <param name="index" type="GLuint" />
+   </function>
+
+  <function name="DisableClientStateIndexedEXT" alias="DisableClientStateiEXT">
+      <param name="array" type="GLenum" />
+      <param name="index" type="GLuint" />
+   </function>
+
+   <function name="GetFloatIndexedvEXT" alias="GetFloati_v">
+      <param name="target" type="GLenum" />
+      <param name="index" type="GLuint" />
+      <param name="params" type="GLfloat*" />
+   </function>
+
+   <function name="GetDoubleIndexedvEXT" alias="GetDoublei_v">
+      <param name="target" type="GLenum" />
+      <param name="index" type="GLuint" />
+      <param name="params" type="GLdouble*" />
+   </function>
+
+   <function name="GetPointerIndexedvEXT">
+      <param name="target" type="GLenum" />
+      <param name="index" type="GLuint" />
+      <param name="params" type="GLvoid**" />
+   </function>
+
+   <function name="MultiTexEnviEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="GLint" />
+   </function>
+
+   <function name="MultiTexEnvivEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="const GLint *" />
+   </function>
+
+   <function name="MultiTexEnvfEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="GLfloat" />
+   </function>
+
+   <function name="MultiTexEnvfvEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="const GLfloat *" />
+   </function>
+
+   <function name="GetMultiTexEnvivEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="GLint *" />
+   </function>
+
+   <function name="GetMultiTexEnvfvEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="GLfloat *" />
+   </function>
+
+   <function name="MultiTexParameteriEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="GLint" />
+   </function>
+
+   <function name="MultiTexParameterivEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="const GLint*" />
+   </function>
+
+   <function name="MultiTexParameterfEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="GLfloat" />
+   </function>
+
+   <function name="MultiTexParameterfvEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="const GLfloat*" />
+   </function>
+
+   <function name="GetMultiTexParameterivEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="params" type="GLint*" />
+   </function>
+
+   <function name="GetMultiTexParameterfvEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="params" type="GLfloat*" />
+   </function>
+
+   <function name="GetMultiTexImageEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="format" type="GLenum" />
+      <param name="type" type="GLenum" />
+      <param name="pixels" type="GLvoid*" />
+   </function>
+
+   <function name="GetMultiTexLevelParameterivEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="pname" type="GLenum" />
+      <param name="params" type="GLint*" />
+   </function>
+
+   <function name="GetMultiTexLevelParameterfvEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="pname" type="GLenum" />
+      <param name="params" type="GLfloat*" />
+   </function>
+
+   <function name="MultiTexImage1DEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="internalformat" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="border" type="GLint" />
+      <param name="format" type="GLenum" />
+      <param name="type" type="GLenum" />
+      <param name="pixels" type="const GLvoid*" />
+   </function>
+
+   <function name="MultiTexImage2DEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="internalformat" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="border" type="GLint" />
+      <param name="format" type="GLenum" />
+      <param name="type" type="GLenum" />
+      <param name="pixels" type="const GLvoid*" />
+   </function>
+
+   <function name="MultiTexImage3DEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="internalformat" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="depth" type="GLsizei" />
+      <param name="border" type="GLint" />
+      <param name="format" type="GLenum" />
+      <param name="type" type="GLenum" />
+      <param name="pixels" type="const GLvoid*" />
+   </function>
+
+   <function name="MultiTexSubImage1DEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="format" type="GLenum" />
+      <param name="type" type="GLenum" />
+      <param name="pixels" type="const GLvoid*" />
+   </function>
+
+   <function name="MultiTexSubImage2DEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="yoffset" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="format" type="GLenum" />
+      <param name="type" type="GLenum" />
+      <param name="pixels" type="const GLvoid*" />
+   </function>
+
+   <function name="MultiTexSubImage3DEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="yoffset" type="GLint" />
+      <param name="zoffset" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="depth" type="GLsizei" />
+      <param name="format" type="GLenum" />
+      <param name="type" type="GLenum" />
+      <param name="pixels" type="const GLvoid*" />
+   </function>
+
+   <function name="CopyMultiTexImage1DEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="internalformat" type="GLenum" />
+      <param name="x" type="GLint" />
+      <param name="y" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="border" type="GLint" />
+   </function>
+
+   <function name="CopyMultiTexImage2DEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="internalformat" type="GLenum" />
+      <param name="x" type="GLint" />
+      <param name="y" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="border" type="GLint" />
+   </function>
+
+   <function name="CopyMultiTexSubImage1DEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="x" type="GLint" />
+      <param name="y" type="GLint" />
+      <param name="width" type="GLsizei" />
+   </function>
+
+   <function name="CopyMultiTexSubImage2DEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="yoffset" type="GLint" />
+      <param name="x" type="GLint" />
+      <param name="y" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+   </function>
+
+   <function name="CopyMultiTexSubImage3DEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="yoffset" type="GLint" />
+      <param name="zoffset" type="GLint" />
+      <param name="x" type="GLint" />
+      <param name="y" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+   </function>
+
+   <function name="MultiTexGendEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="coord" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="GLdouble" />
+   </function>
+
+   <function name="MultiTexGendvEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="coord" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="const GLdouble*" />
+   </function>
+
+   <function name="MultiTexGenfEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="coord" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="GLfloat" />
+   </function>
+
+   <function name="MultiTexGenfvEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="coord" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="const GLfloat *" />
+   </function>
+
+   <function name="MultiTexGeniEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="coord" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="GLint" />
+   </function>
+
+   <function name="MultiTexGenivEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="coord" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="const GLint *" />
+   </function>
+
+   <function name="GetMultiTexGendvEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="coord" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="GLdouble *" />
+   </function>
+
+   <function name="GetMultiTexGenfvEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="coord" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="GLfloat *" />
+   </function>
+
+   <function name="GetMultiTexGenivEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="coord" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="GLint *" />
+   </function>
+
+   <function name="MultiTexCoordPointerEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="size" type="GLint" />
+      <param name="type" type="GLenum" />
+      <param name="stride" type="GLsizei" />
+      <param name="pointer" type="const GLvoid *" />
+   </function>
+
    <!-- OpenGL 1.3 -->
 
    <function name="MatrixLoadTransposefEXT" offset="assign">
@@ -335,6 +679,53 @@
       <param name="m" type="const GLdouble *" />
     </function>
 
+   <function name="CompressedTextureImage1DEXT">
+      <param name="texture" type="GLuint" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="internalFormat" type="GLenum" />
+      <param name="width" type="GLsizei" />
+      <param name="border" type="GLsizei" />
+      <param name="imageSize" type="GLsizei" />
+      <param name="data" type="const GLvoid *" />
+   </function>
+
+   <function name="CompressedTextureImage2DEXT">
+      <param name="texture" type="GLuint" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="internalFormat" type="GLenum" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="border" type="GLsizei" />
+      <param name="imageSize" type="GLsizei" />
+      <param name="data" type="const GLvoid *" />
+   </function>
+
+   <function name="CompressedTextureImage3DEXT">
+      <param name="texture" type="GLuint" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="internalFormat" type="GLenum" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="depth" type="GLsizei" />
+      <param name="border" type="GLsizei" />
+      <param name="imageSize" type="GLsizei" />
+      <param name="data" type="const GLvoid *" />
+   </function>
+
+   <function name="CompressedTextureSubImage1DEXT">
+      <param name="texture" type="GLuint" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="format" type="GLenum" />
+      <param name="imageSize" type="GLsizei" />
+      <param name="data" type="const GLvoid *" />
+   </function>
+
    <function name="CompressedTextureSubImage2DEXT">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
@@ -346,6 +737,110 @@
       <param name="format" type="GLenum" />
       <param name="imageSize" type="GLsizei" />
       <param name="data" type="const GLvoid *" />
+   </function>
+
+   <function name="CompressedTextureSubImage3DEXT">
+      <param name="texture" type="GLuint" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="yoffset" type="GLint" />
+      <param name="zoffset" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="depth" type="GLsizei" />
+      <param name="format" type="GLenum" />
+      <param name="imageSize" type="GLsizei" />
+      <param name="data" type="const GLvoid *" />
+   </function>
+
+   <function name="GetCompressedTextureImageEXT">
+      <param name="texture" type="GLuint" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="img" type="GLvoid *" />
+   </function>
+
+   <function name="CompressedMultiTexImage1DEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="internalFormat" type="GLenum" />
+      <param name="width" type="GLsizei" />
+      <param name="border" type="GLsizei" />
+      <param name="imageSize" type="GLsizei" />
+      <param name="data" type="const GLvoid *" />
+   </function>
+
+   <function name="CompressedMultiTexImage2DEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="internalFormat" type="GLenum" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="border" type="GLsizei" />
+      <param name="imageSize" type="GLsizei" />
+      <param name="data" type="const GLvoid *" />
+   </function>
+
+   <function name="CompressedMultiTexImage3DEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="internalFormat" type="GLenum" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="depth" type="GLsizei" />
+      <param name="border" type="GLsizei" />
+      <param name="imageSize" type="GLsizei" />
+      <param name="data" type="const GLvoid *" />
+   </function>
+
+   <function name="CompressedMultiTexSubImage1DEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="format" type="GLenum" />
+      <param name="imageSize" type="GLsizei" />
+      <param name="data" type="const GLvoid *" />
+   </function>
+
+   <function name="CompressedMultiTexSubImage2DEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="yoffset" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="format" type="GLenum" />
+      <param name="imageSize" type="GLsizei" />
+      <param name="data" type="const GLvoid *" />
+   </function>
+
+   <function name="CompressedMultiTexSubImage3DEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="xoffset" type="GLint" />
+      <param name="yoffset" type="GLint" />
+      <param name="zoffset" type="GLint" />
+      <param name="width" type="GLsizei" />
+      <param name="height" type="GLsizei" />
+      <param name="depth" type="GLsizei" />
+      <param name="format" type="GLenum" />
+      <param name="imageSize" type="GLsizei" />
+      <param name="data" type="const GLvoid *" />
+   </function>
+
+   <function name="GetCompressedMultiTexImageEXT">
+      <param name="texunit" type="GLenum" />
+      <param name="target" type="GLenum" />
+      <param name="level" type="GLint" />
+      <param name="img" type="GLvoid *" />
    </function>
 
    <!-- OpenGL 1.5 -->
@@ -375,6 +870,31 @@
       <param name="buffer" type="GLuint" />
    </function>
 
+   <function name="GetNamedBufferSubDataEXT">
+      <param name="buffer" type="GLuint" />
+      <param name="offset" type="GLintptr" />
+      <param name="size" type="GLsizeiptr" />
+      <param name="data" type="GLvoid *" />
+   </function>
+
+   <function name="GetNamedBufferPointervEXT">
+      <param name="buffer" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="params" type="GLvoid **" />
+   </function>
+
+   <function name="GetNamedBufferParameterivEXT">
+      <param name="buffer" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="params" type="GLint *" />
+   </function>
+
+   <function name="FlushMappedNamedBufferRangeEXT">
+      <param name="buffer" type="GLuint" />
+      <param name="offset" type="GLintptr" />
+      <param name="length" type="GLsizeiptr" />
+   </function>
+
    <!-- OpenGL 3.0 -->
 
    <function name="MapNamedBufferRangeEXT">
@@ -385,5 +905,87 @@
       <param name="access" type="GLbitfield" />
    </function>
 
+   <function name="FramebufferDrawBufferEXT">
+      <param name="framebuffer" type="GLuint" />
+      <param name="mode" type="GLenum" />
+   </function>
+
+   <function name="FramebufferDrawBuffersEXT">
+      <param name="framebuffer" type="GLuint" />
+      <param name="n" type="GLsizei" />
+      <param name="bufs" type="const GLenum *" />
+   </function>
+
+   <function name="FramebufferReadBufferEXT">
+      <param name="framebuffer" type="GLuint" />
+      <param name="mode" type="GLenum" />
+   </function>
+
+   <function name="GetFramebufferParameterivEXT">
+      <param name="framebuffer" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="GLint *" />
+   </function>
+
+   <function name="CheckNamedFramebufferStatusEXT">
+      <return type="GLenum" />
+      <param name="framebuffer" type="GLuint" />
+      <param name="target" type="GLenum" />
+   </function>
+
+   <function name="NamedFramebufferTexture1DEXT">
+      <param name="framebuffer" type="GLuint" />
+      <param name="attachment" type="GLenum" />
+      <param name="textarget" type="GLenum" />
+      <param name="texture" type="GLuint" />
+      <param name="level" type="GLint" />
+   </function>
+
+   <function name="NamedFramebufferTexture2DEXT">
+      <param name="framebuffer" type="GLuint" />
+      <param name="attachment" type="GLenum" />
+      <param name="textarget" type="GLenum" />
+      <param name="texture" type="GLuint" />
+      <param name="level" type="GLint" />
+   </function>
+
+   <function name="NamedFramebufferTexture3DEXT">
+      <param name="framebuffer" type="GLuint" />
+      <param name="attachment" type="GLenum" />
+      <param name="textarget" type="GLenum" />
+      <param name="texture" type="GLuint" />
+      <param name="level" type="GLint" />
+      <param name="zoffset" type="GLint" />
+   </function>
+
+   <function name="NamedFramebufferRenderbufferEXT">
+      <param name="framebuffer" type="GLuint" />
+      <param name="attachment" type="GLenum" />
+      <param name="renderbuffertarget" type="GLenum" />
+      <param name="renderbuffer" type="GLuint" />
+   </function>
+
+   <function name="GetNamedFramebufferAttachmentParameterivEXT">
+      <param name="framebuffer" type="GLuint" />
+      <param name="attachment" type="GLenum" />
+      <param name="pname" type="GLenum" />
+      <param name="params" type="GLint *" />
+   </function>
+
+   <function name="EnableClientStateiEXT">
+      <param name="array" type="GLenum" />
+      <param name="index" type="GLuint" />
+   </function>
+
+   <function name="DisableClientStateiEXT">
+      <param name="array" type="GLenum" />
+      <param name="index" type="GLuint" />
+   </function>
+
+   <function name="GetPointeri_vEXT" alias="GetPointerIndexedvEXT">
+      <param name="target" type="GLenum" />
+      <param name="index" type="GLuint" />
+      <param name="params" type="GLvoid**" />
+   </function>
 </category>
 </OpenGLAPI>

@@ -99,6 +99,9 @@ device_added(struct udev_device *udev_device)
     const char *syspath;
     const char *tags_prop;
     const char *key, *value, *tmp;
+#ifdef CONFIG_UDEV_KMS
+    const char *subsys = NULL;
+#endif
     InputOption *input_options;
     InputAttributes attrs = { };
     DeviceIntPtr dev = NULL;
@@ -120,7 +123,9 @@ device_added(struct udev_device *udev_device)
     devnum = udev_device_get_devnum(udev_device);
 
 #ifdef CONFIG_UDEV_KMS
-    if (!strcmp(udev_device_get_subsystem(udev_device), "drm")) {
+    subsys = udev_device_get_subsystem(udev_device);
+
+    if (subsys && !strcmp(subsys, "drm")) {
         const char *sysname = udev_device_get_sysname(udev_device);
 
         if (strncmp(sysname, "card", 4) != 0)
@@ -316,7 +321,9 @@ device_removed(struct udev_device *device)
     const char *syspath = udev_device_get_syspath(device);
 
 #ifdef CONFIG_UDEV_KMS
-    if (!strcmp(udev_device_get_subsystem(device), "drm")) {
+    const char *subsys = udev_device_get_subsystem(device);
+
+    if (subsys && !strcmp(subsys, "drm")) {
         const char *sysname = udev_device_get_sysname(device);
         const char *path = udev_device_get_devnode(device);
         dev_t devnum = udev_device_get_devnum(device);
@@ -361,7 +368,9 @@ socket_handler(int fd, int ready, void *data)
             device_added(udev_device);
         } else if (!strcmp(action, "change")) {
             /* ignore change for the drm devices */
-            if (strcmp(udev_device_get_subsystem(udev_device), "drm")) {
+            const char *subsys = udev_device_get_subsystem(udev_device);
+
+            if (subsys && strcmp(subsys, "drm")) {
                 device_removed(udev_device);
                 device_added(udev_device);
             }
@@ -517,10 +526,11 @@ config_udev_odev_probe(config_odev_probe_proc_ptr probe_callback)
         const char *path = udev_device_get_devnode(udev_device);
         const char *sysname = udev_device_get_sysname(udev_device);
         dev_t devnum = udev_device_get_devnum(udev_device);
+        const char *subsys = udev_device_get_subsystem(udev_device);
 
-        if (!path || !syspath)
+        if (!path || !syspath || !subsys)
             goto no_probe;
-        else if (strcmp(udev_device_get_subsystem(udev_device), "drm") != 0)
+        else if (strcmp(subsys, "drm") != 0)
             goto no_probe;
         else if (strncmp(sysname, "card", 4) != 0)
             goto no_probe;

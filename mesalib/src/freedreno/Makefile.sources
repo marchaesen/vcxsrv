@@ -48,4 +48,5 @@ ir3_SOURCES := \
 	ir3/ir3_sun.c
 
 ir3_GENERATED_FILES := \
-	ir3/ir3_nir_trig.c
+	ir3/ir3_nir_trig.c \
+	ir3/ir3_nir_imul.c

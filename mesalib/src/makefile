@@ -38,6 +38,7 @@ INCLUDELIBFILES += mapi\$(OBJDIR)\libmapi.lib
 INCLUDELIBFILES += mesa\drivers\dri\swrast\$(OBJDIR)\libswrast_dri.lib
 INCLUDELIBFILES += mesa\drivers\dri\common\$(OBJDIR)\libdricommon.lib
 INCLUDELIBFILES += $(MHMAKECONF)\expat\lib\$(OBJDIR)\libexpat.lib
+INCLUDELIBFILES += $(MHMAKECONF)\libregex\$(OBJDIR)\libregex.lib
 
 INCLUDESERVLIBFILES =  $(MHMAKECONF)\xorg-server\$(SERVOBJDIR)\vcxsrv.lib
 

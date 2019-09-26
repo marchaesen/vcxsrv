@@ -5211,7 +5211,8 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       linker_optimisation_loop(ctx, prog->_LinkedShaders[i]->ir, i);
 
       /* Call opts after lowering const arrays to copy propagate things. */
-      if (lower_const_arrays_to_uniforms(prog->_LinkedShaders[i]->ir, i))
+      if (ctx->Const.GLSLLowerConstArrays &&
+          lower_const_arrays_to_uniforms(prog->_LinkedShaders[i]->ir, i))
          linker_optimisation_loop(ctx, prog->_LinkedShaders[i]->ir, i);
 
       propagate_invariance(prog->_LinkedShaders[i]->ir);

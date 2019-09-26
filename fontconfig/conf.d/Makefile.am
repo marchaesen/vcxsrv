@@ -57,6 +57,7 @@ config_DATA = $(DOC_FILES)
 templatedir = $(TEMPLATEDIR)
 template_DATA =				\
 	05-reset-dirs-sample.conf	\
+	09-autohint-if-no-hinting.conf	\
 	10-autohint.conf		\
 	10-hinting-full.conf		\
 	10-hinting-medium.conf		\

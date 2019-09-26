@@ -38,46 +38,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .de EX
 .sp
 .nf
@@ -95,21 +62,21 @@ XrmGetFileDatabase, XrmPutFileDatabase, XrmGetStringDatabase, XrmLocaleOfDatabas
 .HP
 #include <X11/Xresource.h>
 .HP
-XrmDatabase XrmGetFileDatabase\^(\^char *\fIfilename\fP\^); 
+XrmDatabase XrmGetFileDatabase\^(\^char *\fIfilename\fP\^);
 .HP
 void XrmPutFileDatabase\^(\^XrmDatabase \fIdatabase\fP\^, char
-*\fIstored_db\fP\^); 
+*\fIstored_db\fP\^);
 .HP
 XrmDatabase XrmGetStringDatabase\^(\^char *\fIdata\fP\^);
 .HP
-char *XrmLocaleOfDatabase\^(\^XrmDatabase \fIdatabase\fP\^); 
+char *XrmLocaleOfDatabase\^(\^XrmDatabase \fIdatabase\fP\^);
 .HP
-XrmDatabase XrmGetDatabase\^(\^Display *\fIdisplay\fP\^); 
+XrmDatabase XrmGetDatabase\^(\^Display *\fIdisplay\fP\^);
 .HP
 void XrmSetDatabase\^(\^Display *\fIdisplay\fP\^, XrmDatabase
-\fIdatabase\fP\^); 
+\fIdatabase\fP\^);
 .HP
-void XrmDestroyDatabase\^(\^XrmDatabase \fIdatabase\fP\^); 
+void XrmDestroyDatabase\^(\^XrmDatabase \fIdatabase\fP\^);
 .SH ARGUMENTS
 .IP \fIfilename\fP 1i
 Specifies the resource database file name.
@@ -132,7 +99,7 @@ read in from the specified file.
 The specified file should contain a sequence of entries in valid ResourceLine
 format (see section 15.1); the database that results from reading a file
 with incorrect syntax is implementation-dependent.
-The file is parsed in the current locale, 
+The file is parsed in the current locale,
 and the database is created in the current locale.
 If it cannot open the specified file,
 .B XrmGetFileDatabase
@@ -148,7 +115,7 @@ Entries containing resource names that are not in the Host Portable Character
 Encoding or containing values that are not in the encoding of the database
 locale, are written in an implementation-dependent manner.
 The order in which entries are written is implementation-dependent.
-Entries with representation types other than ``String'' are ignored.
+Entries with representation types other than \*(lqString\*(rq are ignored.
 .LP
 The
 .B XrmGetStringDatabase
@@ -162,7 +129,7 @@ The string should contain a sequence of entries in valid ResourceLine
 format (see section 15.1) terminated by a null character;
 the database that results from using a string
 with incorrect syntax is implementation-dependent.
-The string is parsed in the current locale, 
+The string is parsed in the current locale,
 and the database is created in the current locale.
 .LP
 If database is NULL,
@@ -220,41 +187,42 @@ Quotes ("\&.\&.\&.") are used around literal characters.
 .LP
 IncludeFile lines are interpreted by replacing the line with the
 contents of the specified file.
-The word ``include'' must be in lowercase.
+The word \*(lqinclude\*(rq must be in lowercase.
 The file name is interpreted relative to the directory of the file in
 which the line occurs (for example, if the file name contains no
 directory or contains a relative directory specification).
 .LP
 If a ResourceName contains a contiguous sequence of two or more Binding
-characters, the sequence will be replaced with single ``\&.'' character
-if the sequence contains only ``\&.'' characters;
-otherwise, the sequence will be replaced with a single ``*'' character.
+characters, the sequence will be replaced with single \*(lq\&.\*(rq character
+if the sequence contains only \*(lq\&.\*(rq characters;
+otherwise, the sequence will be replaced with a single \*(lq*\*(rq character.
 .LP
 A resource database never contains more than one entry for a given
-ResourceName.  If a resource file contains multiple lines with the
+ResourceName.
+If a resource file contains multiple lines with the
 same ResourceName, the last line in the file is used.
 .LP
 Any white space characters before or after the name or colon in a ResourceSpec
 are ignored.
 To allow a Value to begin with white space,
-the two-character sequence ``\^\\\^\fIspace\fP'' (backslash followed by space)
+the two-character sequence \*(lq\^\\\^\fIspace\fP\*(rq (backslash followed by space)
 is recognized and replaced by a space character,
-and the two-character sequence ``\^\\\^\fItab\fP''
+and the two-character sequence \*(lq\^\\\^\fItab\fP\*(rq
 (backslash followed by horizontal tab)
 is recognized and replaced by a horizontal tab character.
 To allow a Value to contain embedded newline characters,
-the two-character sequence ``\^\\\^n'' is recognized and replaced by a
+the two-character sequence \*(lq\^\\\^n\*(rq is recognized and replaced by a
 newline character.
 To allow a Value to be broken across multiple lines in a text file,
-the two-character sequence ``\^\\\^\fInewline\fP''
+the two-character sequence \*(lq\^\\\^\fInewline\fP\*(rq
 (backslash followed by newline) is
 recognized and removed from the value.
 To allow a Value to contain arbitrary character codes,
-the four-character sequence ``\^\\\^\fInnn\fP'',
-where each \fIn\fP is a digit character in the range of ``0''\^\-``7'',
+the four-character sequence \*(lq\^\\\^\fInnn\fP\*(rq,
+where each \fIn\fP is a digit character in the range of \*(lq0\*(rq\^\-\*(lq7\*(rq,
 is recognized and replaced with a single byte that contains
 the octal value specified by the sequence.
-Finally, the two-character sequence ``\^\\\\'' is recognized
+Finally, the two-character sequence \*(lq\^\\\\\*(rq is recognized
 and replaced with a single backslash.
 .SH "SEE ALSO"
 XrmGetResource(__libmansuffix__),

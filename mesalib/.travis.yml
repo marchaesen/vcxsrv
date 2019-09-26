@@ -9,8 +9,22 @@ env:
   global:
     - PKG_CONFIG_PATH=""
 
+matrix:
+  include:
+    - env:
+      - BUILD=meson
+    - env:
+      - BUILD=scons
+
 before_install:
-  - HOMEBREW_NO_AUTO_UPDATE=1 brew install python3 ninja expat gettext
+  - HOMEBREW_NO_AUTO_UPDATE=1 brew install expat gettext
+  - if test "x$BUILD" = xmeson; then
+      HOMEBREW_NO_AUTO_UPDATE=1 brew install python3 ninja;
+    fi
+  - if test "x$BUILD" = xscons; then
+      HOMEBREW_NO_AUTO_UPDATE=1 brew install python2 scons;
+    fi
+
   # Set PATH for homebrew pip3 installs
   - PATH="$HOME/Library/Python/3.6/bin:${PATH}"
   # Set PKG_CONFIG_PATH for keg-only expat
@@ -28,13 +42,21 @@ before_install:
   - PKG_CONFIG_PATH="/opt/X11/share/pkgconfig:/opt/X11/lib/pkgconfig:${PKG_CONFIG_PATH}"
 
 install:
-  - pip3 install --user meson
-  - pip3 install --user mako
+  - if test "x$BUILD" = xmeson; then
+      pip3 install --user meson;
+      pip3 install --user mako;
+    fi
+  - if test "x$BUILD" = xscons; then
+      pip2 install --user mako;
+    fi
 
 script:
-  - meson _build
-      -Dbuild-tests=true
-      -Dplatforms=x11
-      -Dgallium-drivers=swrast
-  - ninja -C _build
-  - ninja -C _build test
+  - if test "x$BUILD" = xmeson; then
+      meson _build -Dbuild-tests=true;
+      ninja -C _build || travis_terminate 1;
+      ninja -C _build test || travis_terminate 1;
+    fi
+  - if test "x$BUILD" = xscons; then
+      scons || travis_terminate 1;
+      scons check || travis_terminate 1;
+    fi

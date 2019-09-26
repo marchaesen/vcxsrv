@@ -1,0 +1,119 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 19.1.5 Release Notes / August 23, 2019</h1>
+
+<p>
+Mesa 19.1.5 is a bug fix release which fixes bugs found since the 19.1.4 release.
+</p>
+<p>
+Mesa 19.1.5 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+
+<h2>SHA256 checksums</h2>
+<pre>
+7b54e14e35c7251b171b4cf9d84cbc1d760eafe00132117db193454999cd6eb4  mesa-19.1.5.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=109630">Bug 109630</a> - vkQuake flickering geometry under Intel</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=110395">Bug 110395</a> - Shadows are flickering in SuperTuxKart</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=111113">Bug 111113</a> - ANGLE BlitFramebufferTest.MultisampleDepthClear/ES3_OpenGL fails on Intel Ubuntu19.04</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=111267">Bug 111267</a> - [CM246] Flickering with multiple draw calls within the same graphics pipeline if a compute pipeline is present</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Bas Nieuwenhuizen (4):</p>
+<ul>
+  <li>radv: Do non-uniform lowering before bool lowering.</li>
+  <li>ac/nir: Use correct cast for readfirstlane and ptrs.</li>
+  <li>radv: Avoid binning RAVEN hangs.</li>
+  <li>radv: Avoid VEGA/RAVEN scissor bug in binning.</li>
+</ul>
+
+<p>Danylo Piliaiev (1):</p>
+<ul>
+  <li>i965: Emit a dummy MEDIA_VFE_STATE before switching from GPGPU to 3D</li>
+</ul>
+
+<p>Eric Engestrom (1):</p>
+<ul>
+  <li>util: fix mem leak of program path</li>
+</ul>
+
+<p>Erik Faye-Lund (2):</p>
+<ul>
+  <li>gallium/dump: add missing query-type to short-list</li>
+  <li>gallium/dump: add missing query-type to short-list</li>
+</ul>
+
+<p>Greg V (2):</p>
+<ul>
+  <li>anv: remove unused Linux-specific include</li>
+  <li>intel/perf: use MAJOR_IN_SYSMACROS/MAJOR_IN_MKDEV</li>
+</ul>
+
+<p>Jason Ekstrand (1):</p>
+<ul>
+  <li>anv: Emit a dummy MEDIA_VFE_STATE before switching from GPGPU to 3D</li>
+</ul>
+
+<p>Juan A. Suarez Romero (3):</p>
+<ul>
+  <li>docs: add sha256 checksums for 19.1.4</li>
+  <li>cherry-ignore: panfrost: Make ctx-&gt;job useful</li>
+  <li>Update version to 19.1.5</li>
+</ul>
+
+<p>Marek Olšák (2):</p>
+<ul>
+  <li>radeonsi: disable SDMA image copies on dGPUs to fix corruption in games</li>
+  <li>radeonsi: fix an assertion failure: assert(!res-&gt;b.is_shared)</li>
+</ul>
+
+<p>Matt Turner (1):</p>
+<ul>
+  <li>meson: Test for program_invocation_name</li>
+</ul>
+
+<p>Sergii Romantsov (1):</p>
+<ul>
+  <li>i965/clear: clear_value better precision</li>
+</ul>
+
+
+</div>
+</body>
+</html>

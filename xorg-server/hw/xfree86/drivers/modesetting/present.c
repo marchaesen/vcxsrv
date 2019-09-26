@@ -209,13 +209,17 @@ ms_present_flip_abort(modesettingPtr ms, void *data)
 
 /*
  * Test to see if page flipping is possible on the target crtc
+ *
+ * We ignore sw-cursors when *disabling* flipping, we may very well be
+ * returning to scanning out the normal framebuffer *because* we just
+ * switched to sw-cursor mode and check_flip just failed because of that.
  */
 static Bool
-ms_present_check_flip(RRCrtcPtr crtc,
-                      WindowPtr window,
-                      PixmapPtr pixmap,
-                      Bool sync_flip,
-                      PresentFlipReason *reason)
+ms_present_check_unflip(RRCrtcPtr crtc,
+                        WindowPtr window,
+                        PixmapPtr pixmap,
+                        Bool sync_flip,
+                        PresentFlipReason *reason)
 {
     ScreenPtr screen = window->drawable.pScreen;
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
@@ -282,6 +286,23 @@ ms_present_check_flip(RRCrtcPtr crtc,
     return TRUE;
 }
 
+static Bool
+ms_present_check_flip(RRCrtcPtr crtc,
+                      WindowPtr window,
+                      PixmapPtr pixmap,
+                      Bool sync_flip,
+                      PresentFlipReason *reason)
+{
+    ScreenPtr screen = window->drawable.pScreen;
+    ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
+    modesettingPtr ms = modesettingPTR(scrn);
+
+    if (ms->drmmode.sprites_visible > 0)
+        return FALSE;
+
+    return ms_present_check_unflip(crtc, window, pixmap, sync_flip, reason);
+}
+
 /*
  * Queue a flip on 'crtc' to 'pixmap' at 'target_msc'. If 'sync_flip' is true,
  * then wait for vblank. Otherwise, flip immediately
@@ -315,10 +336,9 @@ ms_present_flip(RRCrtcPtr crtc,
     event->unflip = FALSE;
 
     ret = ms_do_pageflip(screen, pixmap, event, drmmode_crtc->vblank_pipe, !sync_flip,
-                         ms_present_flip_handler, ms_present_flip_abort);
-    if (!ret)
-        xf86DrvMsg(scrn->scrnIndex, X_ERROR, "present flip failed\n");
-    else
+                         ms_present_flip_handler, ms_present_flip_abort,
+                         "Present-flip");
+    if (ret)
         ms->drmmode.present_flipping = TRUE;
 
     return ret;
@@ -344,9 +364,10 @@ ms_present_unflip(ScreenPtr screen, uint64_t event_id)
     event->event_id = event_id;
     event->unflip = TRUE;
 
-    if (ms_present_check_flip(NULL, screen->root, pixmap, TRUE, NULL) &&
+    if (ms_present_check_unflip(NULL, screen->root, pixmap, TRUE, NULL) &&
         ms_do_pageflip(screen, pixmap, event, -1, FALSE,
-                       ms_present_flip_handler, ms_present_flip_abort)) {
+                       ms_present_flip_handler, ms_present_flip_abort,
+                       "Present-unflip")) {
         return;
     }
 

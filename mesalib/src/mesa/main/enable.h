@@ -65,7 +65,13 @@ extern void GLAPIENTRY
 _mesa_EnableClientState( GLenum cap );
 
 extern void GLAPIENTRY
+_mesa_EnableClientStateiEXT( GLenum cap, GLuint index );
+
+extern void GLAPIENTRY
 _mesa_DisableClientState( GLenum cap );
+
+extern void GLAPIENTRY
+_mesa_DisableClientStateiEXT( GLenum cap, GLuint index );
 
 extern void
 _mesa_set_multisample(struct gl_context *ctx, GLboolean state);

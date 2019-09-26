@@ -142,7 +142,9 @@ _mesa_TexCoordPointer_no_error(GLint size, GLenum type, GLsizei stride,
 extern void GLAPIENTRY
 _mesa_TexCoordPointer(GLint size, GLenum type, GLsizei stride,
                       const GLvoid *ptr);
-
+extern void GLAPIENTRY
+_mesa_MultiTexCoordPointerEXT(GLenum texunit, GLint size, GLenum type,
+                              GLsizei stride, const GLvoid *ptr);
 
 extern void GLAPIENTRY
 _mesa_EdgeFlagPointer_no_error(GLsizei stride, const GLvoid *ptr);

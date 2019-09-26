@@ -140,6 +140,7 @@ convenience for the applications' rendering mechanism.
                           familylang, stylelang, and fullnamelang
   prgname         String  String  Name of the running program
   postscriptname  String  Font family name in PostScript
+  fonthashint     Bool    Whether the font has hinting
     </programlisting>
   </refsect2>
   <refsect2>

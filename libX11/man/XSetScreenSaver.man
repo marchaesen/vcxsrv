@@ -38,46 +38,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XSetScreenSaver __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XSetScreenSaver, XForceScreenSaver, XActivateScreenSaver, XResetScreenSaver, XGetScreenSaver \- manipulate the screen saver
@@ -85,17 +52,17 @@ XSetScreenSaver, XForceScreenSaver, XActivateScreenSaver, XResetScreenSaver, XGe
 .HP
 int XSetScreenSaver\^(\^Display *\fIdisplay\fP\^, int \fItimeout\fP\^,
 int \fIinterval\fP\^, int \fIprefer_blanking\fP\^, int
-\fIallow_exposures\fP\^); 
+\fIallow_exposures\fP\^);
 .HP
-int XForceScreenSaver\^(\^Display *\fIdisplay\fP\^, int \fImode\fP\^); 
+int XForceScreenSaver\^(\^Display *\fIdisplay\fP\^, int \fImode\fP\^);
 .HP
-int XActivateScreenSaver\^(\^Display *\fIdisplay\fP\^); 
+int XActivateScreenSaver\^(\^Display *\fIdisplay\fP\^);
 .HP
-int XResetScreenSaver\^(\^Display *\fIdisplay\fP\^); 
+int XResetScreenSaver\^(\^Display *\fIdisplay\fP\^);
 .HP
 int XGetScreenSaver\^(\^Display *\fIdisplay\fP\^, int *\fItimeout_return\fP\^,
 int *\fIinterval_return\fP\^, int *\fIprefer_blanking_return\fP\^, int
-*\fIallow_exposures_return\fP\^); 
+*\fIallow_exposures_return\fP\^);
 .SH ARGUMENTS
 .IP \fIallow_exposures\fP 1i
 Specifies the screen save control values.
@@ -140,90 +107,12 @@ Specifies the timeout, in seconds, until the screen saver turns on.
 .IP \fItimeout_return\fP 1i
 Returns the timeout, in seconds, until the screen saver turns on.
 .SH DESCRIPTION
-Timeout and interval are specified in seconds. 
-A timeout of 0 disables the screen saver 
+Timeout and interval are specified in seconds.
+A timeout of 0 disables the screen saver
 (but an activated screen saver is not deactivated),
 and a timeout of \-1 restores the default.
 Other negative values generate a
 .B BadValue
 error.
-If the timeout value is nonzero, 
+If the timeout value is nonzero,
 .B XSetScreenSaver
-enables the screen saver.
-An interval of 0 disables the random-pattern motion.
-Both values are limited to a 16-bit signed integer range by the wire protocol,
-despite the C prototype.
-If no input from devices (keyboard, mouse, and so on) is generated 
-for the specified number of timeout seconds once the screen saver is enabled,
-the screen saver is activated.
-.LP
-For each screen, 
-if blanking is preferred and the hardware supports video blanking, 
-the screen simply goes blank.  
-Otherwise, if either exposures are allowed or the screen can be regenerated 
-without sending 
-.B Expose
-events to clients, 
-the screen is tiled with the root window background tile randomly 
-re-origined each interval seconds.
-Otherwise, the screens' state do not change, 
-and the screen saver is not activated.
-The screen saver is deactivated,
-and all screen states are restored at the next
-keyboard or pointer input or at the next call to
-.B XForceScreenSaver
-with mode
-.BR ScreenSaverReset .
-.LP
-If the server-dependent screen saver method supports periodic change,
-the interval argument serves as a hint about how long the change period
-should be, and zero hints that no periodic change should be made.
-Examples of ways to change the screen include scrambling the colormap
-periodically, moving an icon image around the screen periodically, or tiling
-the screen with the root window background tile, randomly re-origined
-periodically.
-.LP
-.B XSetScreenSaver
-can generate a
-.B BadValue
-error.
-.LP
-If the specified mode is 
-.B ScreenSaverActive
-and the screen saver currently is deactivated,
-.B XForceScreenSaver
-activates the screen saver even if the screen saver had been disabled
-with a timeout of zero.
-If the specified mode is 
-.B ScreenSaverReset
-and the screen saver currently is enabled,
-.B XForceScreenSaver
-deactivates the screen saver if it was activated,
-and the activation timer is reset to its initial state 
-(as if device input had been received).
-.LP
-.B XForceScreenSaver
-can generate a
-.B BadValue
-error.
-.LP
-The
-.B XActivateScreenSaver
-function activates the screen saver.
-.LP
-The
-.B XResetScreenSaver
-function resets the screen saver.
-.LP
-The
-.B XGetScreenSaver
-function gets the current screen saver values.
-.SH DIAGNOSTICS
-.TP 1i
-.B BadValue
-Some numeric value falls outside the range of values accepted by the request.
-Unless a specific range is specified for an argument, the full range defined
-by the argument's type is accepted.  Any argument defined as a set of
-alternatives can generate this error.
-.SH "SEE ALSO"
-\fI\*(xL\fP

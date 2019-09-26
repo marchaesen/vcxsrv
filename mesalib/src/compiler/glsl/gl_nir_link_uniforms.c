@@ -249,6 +249,7 @@ struct nir_link_uniforms_state {
    unsigned num_shader_uniform_components;
    unsigned shader_samplers_used;
    unsigned shader_shadow_samplers;
+   struct gl_program_parameter_list *params;
 
    /* per-variable */
    nir_variable *current_var;
@@ -256,6 +257,7 @@ struct nir_link_uniforms_state {
    bool var_is_in_block;
    int top_level_array_size;
    int top_level_array_stride;
+   int main_uniform_storage_index;
 
    struct type_tree_entry *current_type;
 };
@@ -342,6 +344,59 @@ get_next_index(struct nir_link_uniforms_state *state,
    return index;
 }
 
+static void
+add_parameter(struct gl_uniform_storage *uniform,
+              struct gl_context *ctx,
+              struct gl_shader_program *prog,
+              const struct glsl_type *type,
+              struct nir_link_uniforms_state *state)
+{
+   if (!state->params || uniform->is_shader_storage || glsl_contains_opaque(type))
+      return;
+
+   unsigned num_params = glsl_get_aoa_size(type);
+   num_params = MAX2(num_params, 1);
+   num_params *= glsl_get_matrix_columns(glsl_without_array(type));
+
+   bool is_dual_slot = glsl_type_is_dual_slot(glsl_without_array(type));
+   if (is_dual_slot)
+      num_params *= 2;
+
+   struct gl_program_parameter_list *params = state->params;
+   int base_index = params->NumParameters;
+   _mesa_reserve_parameter_storage(params, num_params);
+
+   if (ctx->Const.PackedDriverUniformStorage) {
+      for (unsigned i = 0; i < num_params; i++) {
+         unsigned dmul = glsl_type_is_64bit(glsl_without_array(type)) ? 2 : 1;
+         unsigned comps = glsl_get_vector_elements(glsl_without_array(type)) * dmul;
+         if (is_dual_slot) {
+            if (i & 0x1)
+               comps -= 4;
+            else
+               comps = 4;
+         }
+
+         _mesa_add_parameter(params, PROGRAM_UNIFORM, NULL, comps,
+                             glsl_get_gl_type(type), NULL, NULL, false);
+      }
+   } else {
+      for (unsigned i = 0; i < num_params; i++) {
+         _mesa_add_parameter(params, PROGRAM_UNIFORM, NULL, 4,
+                             glsl_get_gl_type(type), NULL, NULL, true);
+      }
+   }
+
+   /* Each Parameter will hold the index to the backing uniform storage.
+    * This avoids relying on names to match parameters and uniform
+    * storages.
+    */
+   for (unsigned i = 0; i < num_params; i++) {
+      struct gl_program_parameter *param = &params->Parameters[base_index + i];
+      param->UniformStorageIndex = uniform - prog->data->UniformStorage;
+      param->MainUniformStorageIndex = state->main_uniform_storage_index;
+   }
+}
 
 /**
  * Creates the neccessary entries in UniformStorage for the uniform. Returns
@@ -434,6 +489,9 @@ nir_link_uniform(struct gl_context *ctx,
          linker_error(prog, "Out of memory during linking.\n");
          return -1;
       }
+
+      if (state->main_uniform_storage_index == -1)
+         state->main_uniform_storage_index = prog->data->NumUniformStorage;
 
       uniform = &prog->data->UniformStorage[prog->data->NumUniformStorage];
       prog->data->NumUniformStorage++;
@@ -603,8 +661,12 @@ nir_link_uniform(struct gl_context *ctx,
       state->num_shader_uniform_components += values;
       state->num_values += values;
 
-      if (state->max_uniform_location < uniform->remap_location + entries)
+      if (uniform->remap_location != UNMAPPED_UNIFORM_LOC &&
+          state->max_uniform_location < uniform->remap_location + entries)
          state->max_uniform_location = uniform->remap_location + entries;
+
+      if (!state->var_is_in_block)
+         add_parameter(uniform, ctx, prog, type, state);
 
       return MAX2(uniform->array_elements, 1);
    }
@@ -612,7 +674,8 @@ nir_link_uniform(struct gl_context *ctx,
 
 bool
 gl_nir_link_uniforms(struct gl_context *ctx,
-                     struct gl_shader_program *prog)
+                     struct gl_shader_program *prog,
+                     bool fill_parameters)
 {
    /* First free up any previous UniformStorage items */
    ralloc_free(prog->data->UniformStorage);
@@ -635,6 +698,7 @@ gl_nir_link_uniforms(struct gl_context *ctx,
       state.num_shader_uniform_components = 0;
       state.shader_samplers_used = 0;
       state.shader_shadow_samplers = 0;
+      state.params = fill_parameters ? sh->Program->Parameters : NULL;
 
       nir_foreach_variable(var, &nir->uniforms) {
          struct gl_uniform_storage *uniform = NULL;
@@ -646,6 +710,9 @@ gl_nir_link_uniforms(struct gl_context *ctx,
          uniform = find_and_update_previous_uniform_storage(prog, var, shader_type);
          if (uniform) {
             var->data.location = uniform - prog->data->UniformStorage;
+
+            if (!state.var_is_in_block)
+               add_parameter(uniform, ctx, prog, var->type, &state);
 
             continue;
          }
@@ -659,6 +726,7 @@ gl_nir_link_uniforms(struct gl_context *ctx,
          state.var_is_in_block = nir_variable_is_in_block(var);
          state.top_level_array_size = 0;
          state.top_level_array_stride = 0;
+         state.main_uniform_storage_index = -1;
 
          /*
           * From ARB_program_interface spec, issue (16):

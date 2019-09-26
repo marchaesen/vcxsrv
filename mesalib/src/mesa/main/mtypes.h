@@ -159,19 +159,14 @@ _mesa_varying_slot_in_fs(gl_varying_slot slot)
  */
 struct gl_config
 {
-   GLboolean rgbMode;
    GLboolean floatMode;
    GLuint doubleBufferMode;
    GLuint stereoMode;
 
-   GLboolean haveAccumBuffer;
-   GLboolean haveDepthBuffer;
-   GLboolean haveStencilBuffer;
-
    GLint redBits, greenBits, blueBits, alphaBits;	/* bits per comp */
    GLuint redMask, greenMask, blueMask, alphaMask;
+   GLint redShift, greenShift, blueShift, alphaShift;
    GLint rgbBits;		/* total bits for rgb */
-   GLint indexBits;		/* total bits for colorindex */
 
    GLint accumRedBits, accumGreenBits, accumBlueBits, accumAlphaBits;
    GLint depthBits;
@@ -3928,6 +3923,11 @@ struct gl_constants
    bool GLSLOptimizeConservatively;
 
    /**
+    * Whether to call lower_const_arrays_to_uniforms() during linking.
+    */
+   bool GLSLLowerConstArrays;
+
+   /**
     * True if gl_TessLevelInner/Outer[] in the TES should be inputs
     * (otherwise, they're system values).
     */
@@ -4135,6 +4135,8 @@ struct gl_constants
 
    /** GL_ARB_spirv_extensions */
    struct spirv_supported_extensions *SpirVExtensions;
+
+   char *VendorOverride;
 };
 
 
@@ -4289,6 +4291,7 @@ struct gl_extensions
    GLboolean EXT_semaphore;
    GLboolean EXT_semaphore_fd;
    GLboolean EXT_shader_image_load_formatted;
+   GLboolean EXT_shader_image_load_store;
    GLboolean EXT_shader_integer_mix;
    GLboolean EXT_shader_samples_identical;
    GLboolean EXT_sRGB;
@@ -4302,6 +4305,7 @@ struct gl_extensions
    GLboolean EXT_texture_filter_anisotropic;
    GLboolean EXT_texture_integer;
    GLboolean EXT_texture_mirror_clamp;
+   GLboolean EXT_texture_shadow_lod;
    GLboolean EXT_texture_shared_exponent;
    GLboolean EXT_texture_snorm;
    GLboolean EXT_texture_sRGB;
@@ -5170,6 +5174,8 @@ struct gl_context
    struct hash_table_u64 *ResidentTextureHandles;
    struct hash_table_u64 *ResidentImageHandles;
    /*@}*/
+
+   bool shader_builtin_ref;
 };
 
 /**

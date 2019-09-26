@@ -37,8 +37,6 @@
 
 #include <stdlib.h>
 
-#include "pipe/p_compiler.h"
-
 
 #define os_malloc(_size)  malloc(_size)
 #define os_calloc(_count, _size )  calloc(_count, _size )
@@ -62,7 +60,7 @@ os_malloc_aligned(size_t size, size_t alignment)
 
 #define os_free_aligned(_ptr) free(_ptr)
 
-#elif defined(PIPE_OS_WINDOWS)
+#elif DETECT_OS_WINDOWS
 
 #include <malloc.h>
 

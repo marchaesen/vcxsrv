@@ -380,8 +380,6 @@ st_visual_to_context_mode(const struct st_visual *visual,
       mode->stereoMode = GL_TRUE;
 
    if (visual->color_format != PIPE_FORMAT_NONE) {
-      mode->rgbMode = GL_TRUE;
-
       mode->redBits =
          util_format_get_component_bits(visual->color_format,
                UTIL_FORMAT_COLORSPACE_RGB, 0);
@@ -407,14 +405,9 @@ st_visual_to_context_mode(const struct st_visual *visual,
       mode->stencilBits =
          util_format_get_component_bits(visual->depth_stencil_format,
                UTIL_FORMAT_COLORSPACE_ZS, 1);
-
-      mode->haveDepthBuffer = mode->depthBits > 0;
-      mode->haveStencilBuffer = mode->stencilBits > 0;
    }
 
    if (visual->accum_format != PIPE_FORMAT_NONE) {
-      mode->haveAccumBuffer = GL_TRUE;
-
       mode->accumRedBits =
          util_format_get_component_bits(visual->accum_format,
                UTIL_FORMAT_COLORSPACE_RGB, 0);

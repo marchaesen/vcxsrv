@@ -652,7 +652,7 @@ v3d_spec_load(const struct v3d_device_info *devinfo)
         void *buf;
         uint8_t *text_data = NULL;
         uint32_t text_offset = 0, text_length = 0;
-        MAYBE_UNUSED uint32_t total_length;
+        ASSERTED uint32_t total_length;
 
         for (int i = 0; i < ARRAY_SIZE(genxml_files_table); i++) {
                 if (i != 0) {

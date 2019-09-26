@@ -59,6 +59,7 @@ struct spirv_supported_capabilities {
    bool physical_storage_buffer_address;
    bool post_depth_coverage;
    bool runtime_descriptor_array;
+   bool float_controls;
    bool shader_viewport_index_layer;
    bool stencil_export;
    bool storage_8bit;
@@ -153,10 +154,20 @@ typedef struct shader_info {
    /** Was this shader linked with any transform feedback varyings? */
    bool has_transform_feedback_varyings;
 
+   /* SPV_KHR_float_controls: execution mode for floating point ops */
+   unsigned float_controls_execution_mode;
+
    union {
       struct {
          /* Which inputs are doubles */
          uint64_t double_inputs;
+
+         /* For AMD-specific driver-internal shaders. It replaces vertex
+          * buffer loads with code generating VS inputs from scalar registers.
+          *
+          * Valid values: SI_VS_BLIT_SGPRS_POS_*
+          */
+         unsigned blit_sgprs_amd;
 
          /* True if the shader writes position in window space coordinates pre-transform */
          bool window_space_position;
@@ -254,6 +265,7 @@ typedef struct shader_info {
          unsigned local_size[3];
 
          bool local_size_variable;
+         char user_data_components_amd;
 
          /**
           * Size of shared variables accessed by the compute shader.

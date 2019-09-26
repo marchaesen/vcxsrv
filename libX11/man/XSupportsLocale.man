@@ -39,78 +39,45 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XSupportsLocale __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XSupportsLocale, XSetLocaleModifiers \- determine locale support and configure locale modifiers
 .SH SYNTAX
 .HP
-Bool XSupportsLocale\^(void); 
+Bool XSupportsLocale\^(void);
 .HP
-char *XSetLocaleModifiers\^(\^char *\fImodifier_list\fP\^); 
+char *XSetLocaleModifiers\^(\^char *\fImodifier_list\fP\^);
 .SH ARGUMENTS
 .IP \fImodifier_list\fP 1i
 Specifies the modifiers.
 .SH DESCRIPTION
-The 
+The
 .B XSupportsLocale
-function returns 
+function returns
 .B True
 if Xlib functions are capable of operating under the current locale.
-If it returns 
+If it returns
 .BR False ,
-Xlib locale-dependent functions for which the 
+Xlib locale-dependent functions for which the
 .B XLocaleNotSupported
-return status is defined will return 
+return status is defined will return
 .BR XLocaleNotSupported .
-Other Xlib locale-dependent routines will operate in the ``C'' locale.
+Other Xlib locale-dependent routines will operate in the \*(lqC\*(rq locale.
 .LP
 The
 .B XSetLocaleModifiers
 function sets the X modifiers for the current locale setting.
 The modifier_list argument is a null-terminated string of the form
-``{@\^\fIcategory\fP\^=\^\fIvalue\fP\^}'', that is,
-having zero or more concatenated ``@\^\fIcategory\fP\^=\^\fIvalue\fP\^''
-entries, where \fIcategory\fP is a category name 
+\*(lq{@\^\fIcategory\fP\^=\^\fIvalue\fP\^}\*(rq, that is,
+having zero or more concatenated \*(lq@\^\fIcategory\fP\^=\^\fIvalue\fP\^\*(rq
+entries, where \fIcategory\fP is a category name
 and \fIvalue\fP is the (possibly empty) setting for that category.
 The values are encoded in the current locale.
 Category names are restricted to the POSIX Portable Filename Character Set.
@@ -140,7 +107,8 @@ current modifiers are changed.
 .LP
 At program startup,
 the modifiers that are in effect are unspecified until
-the first successful call to set them.  Whenever the locale is changed, the
+the first successful call to set them.
+Whenever the locale is changed, the
 modifiers that are in effect become unspecified until the next successful call
 to set them.
 Clients should always call
@@ -148,7 +116,7 @@ Clients should always call
 with a non-NULL modifier_list after setting the locale
 before they call any locale-dependent Xlib routine.
 .LP
-The only standard modifier category currently defined is ``im'',
+The only standard modifier category currently defined is \*(lqim\*(rq,
 which identifies the desired input method.
 The values for input method are not standardized.
 A single locale may use multiple input methods,

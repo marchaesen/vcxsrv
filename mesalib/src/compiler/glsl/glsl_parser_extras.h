@@ -337,7 +337,9 @@ struct _mesa_glsl_parse_state {
 
    bool has_shader_image_load_store() const
    {
-      return ARB_shader_image_load_store_enable || is_version(420, 310);
+      return ARB_shader_image_load_store_enable ||
+             EXT_shader_image_load_store_enable ||
+             is_version(420, 310);
    }
 
    bool has_bindless() const
@@ -836,6 +838,8 @@ struct _mesa_glsl_parse_state {
    bool EXT_shader_framebuffer_fetch_non_coherent_warn;
    bool EXT_shader_image_load_formatted_enable;
    bool EXT_shader_image_load_formatted_warn;
+   bool EXT_shader_image_load_store_enable;
+   bool EXT_shader_image_load_store_warn;
    bool EXT_shader_implicit_conversions_enable;
    bool EXT_shader_implicit_conversions_warn;
    bool EXT_shader_integer_mix_enable;
@@ -856,6 +860,8 @@ struct _mesa_glsl_parse_state {
    bool EXT_texture_cube_map_array_warn;
    bool EXT_texture_query_lod_enable;
    bool EXT_texture_query_lod_warn;
+   bool EXT_texture_shadow_lod_enable;
+   bool EXT_texture_shadow_lod_warn;
    bool INTEL_conservative_rasterization_enable;
    bool INTEL_conservative_rasterization_warn;
    bool INTEL_shader_atomic_float_minmax_enable;
@@ -1017,11 +1023,6 @@ extern int glcpp_preprocess(void *ctx, const char **shader, char **info_log,
                             glcpp_extension_iterator extensions,
                             struct _mesa_glsl_parse_state *state,
                             struct gl_context *gl_ctx);
-
-extern void _mesa_init_shader_compiler_types(void);
-extern void _mesa_destroy_shader_compiler_types(void);
-extern void _mesa_destroy_shader_compiler(void);
-extern void _mesa_destroy_shader_compiler_caches(void);
 
 extern void
 _mesa_glsl_copy_symbols_from_table(struct exec_list *shader_ir,

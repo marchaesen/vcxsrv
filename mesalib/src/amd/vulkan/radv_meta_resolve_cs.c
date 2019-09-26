@@ -863,7 +863,7 @@ void radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer,
 							     .baseArrayLayer = src_base_layer + layer,
 							     .layerCount = 1,
 						     },
-					     });
+					     }, NULL);
 
 			struct radv_image_view dest_iview;
 			radv_image_view_init(&dest_iview, cmd_buffer->device,
@@ -879,7 +879,7 @@ void radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer,
 							     .baseArrayLayer = dest_base_layer + layer,
 							     .layerCount = 1,
 						     },
-					     });
+					     }, NULL);
 
 			emit_resolve(cmd_buffer,
 				     &src_iview,
@@ -921,8 +921,8 @@ radv_cmd_buffer_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer)
 		if (dst_att.attachment == VK_ATTACHMENT_UNUSED)
 			continue;
 
-		struct radv_image_view *src_iview = fb->attachments[src_att.attachment].attachment;
-		struct radv_image_view *dst_iview = fb->attachments[dst_att.attachment].attachment;
+		struct radv_image_view *src_iview = cmd_buffer->state.attachments[src_att.attachment].iview;
+		struct radv_image_view *dst_iview = cmd_buffer->state.attachments[dst_att.attachment].iview;
 
 		VkImageResolve region = {
 			.extent = (VkExtent3D){ fb->width, fb->height, 0 },
@@ -989,9 +989,9 @@ radv_depth_stencil_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer,
 	struct radv_subpass_attachment dest_att = *subpass->ds_resolve_attachment;
 
 	struct radv_image_view *src_iview =
-		cmd_buffer->state.framebuffer->attachments[src_att.attachment].attachment;
+		cmd_buffer->state.attachments[src_att.attachment].iview;
 	struct radv_image_view *dst_iview =
-		cmd_buffer->state.framebuffer->attachments[dest_att.attachment].attachment;
+		cmd_buffer->state.attachments[dest_att.attachment].iview;
 
 	struct radv_image *src_image = src_iview->image;
 	struct radv_image *dst_image = dst_iview->image;
@@ -1011,7 +1011,7 @@ radv_depth_stencil_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer,
 						.baseArrayLayer = src_iview->base_layer + layer,
 						.layerCount = 1,
 					},
-				     });
+				     }, NULL);
 
 		struct radv_image_view tdst_iview;
 		radv_image_view_init(&tdst_iview, cmd_buffer->device,
@@ -1027,7 +1027,7 @@ radv_depth_stencil_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer,
 						.baseArrayLayer = dst_iview->base_layer + layer,
 						.layerCount = 1,
 					},
-				     });
+				     }, NULL);
 
 		emit_depth_stencil_resolve(cmd_buffer, &tsrc_iview, &tdst_iview,
 					   &(VkOffset2D) { 0, 0 },

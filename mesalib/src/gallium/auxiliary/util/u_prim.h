@@ -283,6 +283,69 @@ u_reduced_prims_for_vertices(enum pipe_prim_type primitive, int vertices)
    }
 }
 
+static inline enum pipe_prim_type
+u_base_prim_type(enum pipe_prim_type prim_type)
+{
+   switch(prim_type) {
+      case PIPE_PRIM_POINTS:
+         return PIPE_PRIM_POINTS;
+      case PIPE_PRIM_LINES:
+      case PIPE_PRIM_LINE_LOOP:
+      case PIPE_PRIM_LINE_STRIP:
+      case PIPE_PRIM_LINES_ADJACENCY:
+      case PIPE_PRIM_LINE_STRIP_ADJACENCY:
+         return PIPE_PRIM_LINES;
+      case PIPE_PRIM_TRIANGLES:
+      case PIPE_PRIM_TRIANGLE_STRIP:
+      case PIPE_PRIM_TRIANGLE_FAN:
+      case PIPE_PRIM_TRIANGLES_ADJACENCY:
+      case PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY:
+         return PIPE_PRIM_TRIANGLES;
+      case PIPE_PRIM_QUADS:
+      case PIPE_PRIM_QUAD_STRIP:
+         return PIPE_PRIM_QUADS;
+      default:
+         return prim_type;
+   }
+}
+
+static inline unsigned
+u_vertices_for_prims(enum pipe_prim_type prim_type, int count)
+{
+   if (count <= 0)
+      return 0;
+
+   /* We can only figure out the number of vertices from a number of primitives
+    * if we are using basic primitives (so no loops, strips, fans, etc).
+    */
+   assert(prim_type == u_base_prim_type(prim_type) &&
+          prim_type != PIPE_PRIM_PATCHES && prim_type != PIPE_PRIM_POLYGON);
+
+   const struct u_prim_vertex_count *info = u_prim_vertex_count(prim_type);
+   assert(info);
+
+   return info->min + (count - 1) * info->incr;
+}
+
+/**
+ * Returns the number of stream out outputs for a given number of vertices and
+ * primitive type.
+ */
+
+static inline unsigned
+u_stream_outputs_for_vertices(enum pipe_prim_type primitive, unsigned nr)
+{
+   /* Extraneous vertices don't contribute to stream outputs */
+   u_trim_pipe_prim(primitive, &nr);
+
+   /* Consider how many primitives are actually generated */
+   unsigned prims = u_decomposed_prims_for_vertices(primitive, nr);
+
+   /* One output per vertex after decomposition */
+   enum pipe_prim_type base = u_base_prim_type(primitive);
+   return u_vertices_for_prims(base, prims);
+}
+
 const char *u_prim_name(enum pipe_prim_type pipe_prim);
 
 

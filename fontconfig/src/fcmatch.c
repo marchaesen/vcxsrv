@@ -342,6 +342,7 @@ typedef enum _FcMatcherPriority {
     PRI1(SLANT),
     PRI1(WEIGHT),
     PRI1(WIDTH),
+    PRI1(FONT_HAS_HINT),
     PRI1(DECORATIVE),
     PRI1(ANTIALIAS),
     PRI1(RASTERIZER),

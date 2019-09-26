@@ -49,6 +49,9 @@ static void ac_init_llvm_target()
 	/* For inline assembly. */
 	LLVMInitializeAMDGPUAsmParser();
 
+	/* For ACO disassembly. */
+	LLVMInitializeAMDGPUDisassembler();
+
 	/* Workaround for bug in llvm 4.0 that causes image intrinsics
 	 * to disappear.
 	 * https://reviews.llvm.org/D26348
@@ -59,7 +62,15 @@ static void ac_init_llvm_target()
 	 * This option tells the backend to fall-back to SelectionDAG and print
 	 * a diagnostic message if global isel fails.
 	 */
-	const char *argv[] = { "mesa", "-simplifycfg-sink-common=false", "-global-isel-abort=2" };
+	const char *argv[] = {
+		"mesa",
+		"-simplifycfg-sink-common=false",
+		"-global-isel-abort=2",
+#if LLVM_VERSION_MAJOR >= 10
+		/* Atomic optimizations require LLVM 10.0 for gfx10 support. */
+		"-amdgpu-atomic-optimizations=true",
+#endif
+	};
 	LLVMParseCommandLineOptions(ARRAY_SIZE(argv), argv, NULL);
 }
 
@@ -132,7 +143,10 @@ const char *ac_get_llvm_processor_name(enum radeon_family family)
 	case CHIP_VEGA20:
 		return "gfx906";
 	case CHIP_RAVEN2:
-		return HAVE_LLVM >= 0x0800 ? "gfx909" : "gfx902";
+	case CHIP_RENOIR:
+		return "gfx909";
+	case CHIP_ARCTURUS:
+		return "gfx908";
 	case CHIP_NAVI10:
 		return "gfx1010";
 	case CHIP_NAVI12:
@@ -155,8 +169,7 @@ static LLVMTargetMachineRef ac_create_target_machine(enum radeon_family family,
 	LLVMTargetRef target = ac_get_llvm_target(triple);
 
 	snprintf(features, sizeof(features),
-		 "+DumpCode,-fp32-denormals,+fp64-denormals%s%s%s%s%s%s%s",
-		 HAVE_LLVM >= 0x0800 ? "" : ",+vgpr-spilling",
+		 "+DumpCode,-fp32-denormals,+fp64-denormals%s%s%s%s%s%s",
 		 family >= CHIP_NAVI10 && !(tm_options & AC_TM_WAVE32) ?
 			 ",+wavefrontsize64,-wavefrontsize32" : "",
 		 tm_options & AC_TM_SISCHED ? ",+si-scheduler" : "",

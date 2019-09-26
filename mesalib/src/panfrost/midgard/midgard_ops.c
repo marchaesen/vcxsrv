@@ -34,8 +34,8 @@
 struct mir_op_props alu_opcode_props[256] = {
         [midgard_alu_op_fadd]		 = {"fadd", UNITS_ADD | OP_COMMUTES},
         [midgard_alu_op_fmul]		 = {"fmul", UNITS_MUL | UNIT_VLUT | OP_COMMUTES},
-        [midgard_alu_op_fmin]		 = {"fmin", UNITS_MUL | UNITS_ADD | OP_COMMUTES},
-        [midgard_alu_op_fmax]		 = {"fmax", UNITS_MUL | UNITS_ADD | OP_COMMUTES},
+        [midgard_alu_op_fmin]		 = {"fmin", UNITS_MOST | OP_COMMUTES},
+        [midgard_alu_op_fmax]		 = {"fmax", UNITS_MOST | OP_COMMUTES},
         [midgard_alu_op_imin]		 = {"imin", UNITS_MOST | OP_COMMUTES},
         [midgard_alu_op_imax]		 = {"imax", UNITS_MOST | OP_COMMUTES},
         [midgard_alu_op_umin]		 = {"umin", UNITS_MOST | OP_COMMUTES},
@@ -54,6 +54,9 @@ struct mir_op_props alu_opcode_props[256] = {
         [midgard_alu_op_ftrunc]          = {"ftrunc", UNITS_ADD},
         [midgard_alu_op_ffloor]		 = {"ffloor", UNITS_ADD},
         [midgard_alu_op_fceil]		 = {"fceil", UNITS_ADD},
+
+        /* Multiplies the X/Y components of the first arg and adds the second
+         * arg. Like other LUTs, it must be scalarized. */
         [midgard_alu_op_ffma]		 = {"ffma", UNIT_VLUT},
 
         /* Though they output a scalar, they need to run on a vector unit
@@ -64,6 +67,7 @@ struct mir_op_props alu_opcode_props[256] = {
 
         /* Incredibly, iadd can run on vmul, etc */
         [midgard_alu_op_iadd]		 = {"iadd", UNITS_MOST | OP_COMMUTES},
+        [midgard_alu_op_ishladd]         = {"ishladd", UNITS_MUL},
         [midgard_alu_op_iaddsat]	 = {"iaddsat", UNITS_ADD | OP_COMMUTES},
         [midgard_alu_op_uaddsat]	 = {"uaddsat", UNITS_ADD | OP_COMMUTES},
         [midgard_alu_op_iabsdiff]	 = {"iabsdiff", UNITS_ADD},
@@ -87,10 +91,11 @@ struct mir_op_props alu_opcode_props[256] = {
         [midgard_alu_op_ult]		 = {"ult", UNITS_MOST},
         [midgard_alu_op_ule]		 = {"ule", UNITS_MOST},
 
-        [midgard_alu_op_icsel]		 = {"icsel", UNITS_ADD},
-        [midgard_alu_op_icsel_v]         = {"icsel_v", UNITS_ADD}, /* Acts as bitselect() */
-        [midgard_alu_op_fcsel_v]	 = {"fcsel_v", UNITS_ADD},
-        [midgard_alu_op_fcsel]		 = {"fcsel", UNITS_ADD | UNIT_SMUL},
+        /* csel must run in the second pipeline stage (r31 written in first) */
+        [midgard_alu_op_icsel]		 = {"icsel", UNIT_VADD | UNIT_SMUL},
+        [midgard_alu_op_icsel_v]         = {"icsel_v", UNIT_VADD | UNIT_SMUL}, /* Acts as bitselect() */
+        [midgard_alu_op_fcsel_v]	 = {"fcsel_v", UNIT_VADD | UNIT_SMUL},
+        [midgard_alu_op_fcsel]		 = {"fcsel", UNIT_VADD | UNIT_SMUL},
 
         [midgard_alu_op_frcp]		 = {"frcp", UNIT_VLUT},
         [midgard_alu_op_frsqrt]		 = {"frsqrt", UNIT_VLUT},
@@ -121,7 +126,6 @@ struct mir_op_props alu_opcode_props[256] = {
         [midgard_alu_op_fsin]		 = {"fsin", UNIT_VLUT},
         [midgard_alu_op_fcos]		 = {"fcos", UNIT_VLUT},
 
-        /* XXX: Test case where it's right on smul but not sadd */
         [midgard_alu_op_iand]		 = {"iand", UNITS_MOST | OP_COMMUTES},
         [midgard_alu_op_iandnot]         = {"iandnot", UNITS_MOST},
 
@@ -137,36 +141,40 @@ struct mir_op_props alu_opcode_props[256] = {
         [midgard_alu_op_iasr]		 = {"iasr", UNITS_ADD},
         [midgard_alu_op_ilsr]		 = {"ilsr", UNITS_ADD},
 
-        [midgard_alu_op_fball_eq]	 = {"fball_eq",  UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES},
-        [midgard_alu_op_fbany_neq]	 = {"fbany_neq", UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES},
+        [midgard_alu_op_fball_eq]	 = {"fball_eq",  UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES | OP_TYPE_CONVERT},
+        [midgard_alu_op_fball_neq]	 = {"fball_neq", UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES | OP_TYPE_CONVERT},
+        [midgard_alu_op_fball_lt]	 = {"fball_lt",  UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES | OP_TYPE_CONVERT},
+        [midgard_alu_op_fball_lte]	 = {"fball_lte", UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES | OP_TYPE_CONVERT},
+
+        [midgard_alu_op_fbany_eq]	 = {"fbany_eq",  UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES | OP_TYPE_CONVERT},
+        [midgard_alu_op_fbany_neq]	 = {"fbany_neq", UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES | OP_TYPE_CONVERT},
+        [midgard_alu_op_fbany_lt]	 = {"fbany_lt",  UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES | OP_TYPE_CONVERT},
+        [midgard_alu_op_fbany_lte]	 = {"fbany_lte", UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES | OP_TYPE_CONVERT},
+
         [midgard_alu_op_iball_eq]	 = {"iball_eq",  UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES},
         [midgard_alu_op_iball_neq]	 = {"iball_neq", UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES},
+        [midgard_alu_op_iball_lt]	 = {"iball_lt",  UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES},
+        [midgard_alu_op_iball_lte]	 = {"iball_lte", UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES},
+        [midgard_alu_op_uball_lt]	 = {"uball_lt",  UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES},
+        [midgard_alu_op_uball_lte]	 = {"uball_lte", UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES},
+
         [midgard_alu_op_ibany_eq]	 = {"ibany_eq",  UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES},
         [midgard_alu_op_ibany_neq]	 = {"ibany_neq", UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES},
+        [midgard_alu_op_ibany_lt]	 = {"ibany_lt",  UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES},
+        [midgard_alu_op_ibany_lte]	 = {"ibany_lte", UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES},
+        [midgard_alu_op_ubany_lt]	 = {"ubany_lt",  UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES},
+        [midgard_alu_op_ubany_lte]	 = {"ubany_lte", UNITS_VECTOR | OP_CHANNEL_COUNT(4) | OP_COMMUTES},
 
-        /* These instructions are not yet emitted by the compiler, so
-         * don't speculate about units yet */
-        [midgard_alu_op_ishladd]        = {"ishladd", 0},
+        [midgard_alu_op_fatan2_pt1]     = {"fatan2_pt1", UNIT_VLUT},
+        [midgard_alu_op_fatan_pt2]      = {"fatan_pt2", UNIT_VLUT},
 
-        [midgard_alu_op_uball_lt]       = {"uball_lt", 0},
-        [midgard_alu_op_uball_lte]      = {"uball_lte", 0},
-        [midgard_alu_op_iball_lt]       = {"iball_lt", 0},
-        [midgard_alu_op_iball_lte]      = {"iball_lte", 0},
-        [midgard_alu_op_ubany_lt]       = {"ubany_lt", 0},
-        [midgard_alu_op_ubany_lte]      = {"ubany_lte", 0},
-        [midgard_alu_op_ibany_lt]       = {"ibany_lt", 0},
-        [midgard_alu_op_ibany_lte]      = {"ibany_lte", 0},
-
+        /* Haven't seen in a while */
         [midgard_alu_op_freduce]        = {"freduce", 0},
-        [midgard_alu_op_bball_eq]       = {"bball_eq", 0 | OP_CHANNEL_COUNT(4) | OP_COMMUTES},
-        [midgard_alu_op_bbany_neq]      = {"bball_eq", 0 | OP_CHANNEL_COUNT(4) | OP_COMMUTES},
-        [midgard_alu_op_fatan2_pt1]     = {"fatan2_pt1", 0},
-        [midgard_alu_op_fatan_pt2]      = {"fatan_pt2", 0},
 };
 
 const char *load_store_opcode_names[256] = {
-        [midgard_op_st_cubemap_coords] = "st_cubemap_coords",
-        [midgard_op_ld_global_id] = "ld_global_id",
+        [midgard_op_ld_cubemap_coords] = "ld_cubemap_coords",
+        [midgard_op_ld_compute_id] = "ld_compute_id",
         [midgard_op_ldst_perspective_division_z] = "ldst_perspective_division_z",
         [midgard_op_ldst_perspective_division_w] = "ldst_perspective_division_w",
 
@@ -197,12 +205,14 @@ const char *load_store_opcode_names[256] = {
         [midgard_op_ld_vary_32i] = "ld_vary_32i",
         [midgard_op_ld_vary_32u] = "ld_vary_32u",
 
+        [midgard_op_ld_color_buffer_8] = "ld_color_buffer_8",
         [midgard_op_ld_color_buffer_16] = "ld_color_buffer_16",
 
-        [midgard_op_ld_uniform_16] = "ld_uniform_16",
-        [midgard_op_ld_uniform_32] = "ld_uniform_32",
-        [midgard_op_ld_uniform_32i] = "ld_uniform_32i",
-        [midgard_op_ld_color_buffer_8] = "ld_color_buffer_8",
+        [midgard_op_ld_ubo_char] = "ld_ubo_char",
+        [midgard_op_ld_ubo_char2] = "ld_ubo_char2",
+        [midgard_op_ld_ubo_char4] = "ld_ubo_char4",
+        [midgard_op_ld_ubo_short4] = "ld_ubo_short4",
+        [midgard_op_ld_ubo_int4] = "ld_ubo_int4",
 
         [midgard_op_st_char] = "st_char",
         [midgard_op_st_char2] = "st_char2",

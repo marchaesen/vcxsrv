@@ -72,18 +72,12 @@ winCreateBoundingWindowFullScreen(ScreenPtr pScreen)
     wc.cbClsExtra = 0;
     wc.cbWndExtra = WND_EXTRABYTES;
     wc.hInstance = g_hInstance;
-    wc.hIcon =
-        (HICON) LoadImage(g_hInstance, MAKEINTRESOURCE(IDI_XWIN), IMAGE_ICON,
-                          GetSystemMetrics(SM_CXICON),
-                          GetSystemMetrics(SM_CYICON), 0);
+    wc.hIcon = pScreenInfo->hIcon;
     wc.hCursor = 0;
     wc.hbrBackground = NULL;
     wc.lpszMenuName = NULL;
     wc.lpszClassName = WINDOW_CLASS;
-    wc.hIconSm =
-        (HICON) LoadImage(g_hInstance, MAKEINTRESOURCE(IDI_XWIN), IMAGE_ICON,
-                          GetSystemMetrics(SM_CXSMICON),
-                          GetSystemMetrics(SM_CYSMICON), LR_DEFAULTSIZE);
+    wc.hIconSm = pScreenInfo->hIconSm;
     RegisterClassEx(&wc);
 
     /* Set display and screen-specific tooltip text */
@@ -183,18 +177,12 @@ winCreateBoundingWindowWindowed(ScreenPtr pScreen)
     wc.cbClsExtra = 0;
     wc.cbWndExtra = WND_EXTRABYTES;
     wc.hInstance = g_hInstance;
-    wc.hIcon =
-        (HICON) LoadImage(g_hInstance, MAKEINTRESOURCE(IDI_XWIN), IMAGE_ICON,
-                          GetSystemMetrics(SM_CXICON),
-                          GetSystemMetrics(SM_CYICON), 0);
+    wc.hIcon = pScreenInfo->hIcon;
     wc.hCursor = 0;
     wc.hbrBackground = NULL;
     wc.lpszMenuName = NULL;
     wc.lpszClassName = WINDOW_CLASS;
-    wc.hIconSm =
-        (HICON) LoadImage(g_hInstance, MAKEINTRESOURCE(IDI_XWIN), IMAGE_ICON,
-                          GetSystemMetrics(SM_CXSMICON),
-                          GetSystemMetrics(SM_CYSMICON), LR_DEFAULTSIZE);
+    wc.hIconSm = pScreenInfo->hIconSm;
     RegisterClassEx(&wc);
 
     /* Get size of work area */

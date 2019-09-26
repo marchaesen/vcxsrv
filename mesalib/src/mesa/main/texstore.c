@@ -538,7 +538,7 @@ _mesa_texstore_z32f_x24s8(TEXSTORE_PARAMS)
    GLint img, row;
    const GLint srcRowStride
       = _mesa_image_row_stride(srcPacking, srcWidth, srcFormat, srcType)
-      / sizeof(uint64_t);
+         / sizeof(int32_t);
 
    assert(dstFormat == MESA_FORMAT_Z32_FLOAT_S8X24_UINT);
    assert(srcFormat == GL_DEPTH_STENCIL ||
@@ -551,8 +551,8 @@ _mesa_texstore_z32f_x24s8(TEXSTORE_PARAMS)
    /* In case we only upload depth we need to preserve the stencil */
    for (img = 0; img < srcDepth; img++) {
       uint64_t *dstRow = (uint64_t *) dstSlices[img];
-      const uint64_t *src
-         = (const uint64_t *) _mesa_image_address(dims, srcPacking, srcAddr,
+      const int32_t *src
+         = (const int32_t *) _mesa_image_address(dims, srcPacking, srcAddr,
                srcWidth, srcHeight,
                srcFormat, srcType,
                img, 0, 0);

@@ -90,5 +90,13 @@ _mesa_NamedFramebufferReadBuffer_no_error(GLuint framebuffer, GLenum src);
 extern void GLAPIENTRY
 _mesa_NamedFramebufferReadBuffer(GLuint framebuffer, GLenum src);
 
+extern void GLAPIENTRY
+_mesa_FramebufferDrawBufferEXT(GLuint framebuffer, GLenum buf);
 
+extern void GLAPIENTRY
+_mesa_FramebufferReadBufferEXT(GLuint framebuffer, GLenum buf);
+
+extern void GLAPIENTRY
+_mesa_FramebufferDrawBuffersEXT(GLuint framebuffer, GLsizei n,
+                                const GLenum *bufs);
 #endif

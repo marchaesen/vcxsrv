@@ -975,7 +975,7 @@ BOOL_32 EgBasedLib::SanityCheckMacroTiled(
     ) const
 {
     BOOL_32 valid       = TRUE;
-    MAYBE_UNUSED UINT_32 numPipes = HwlGetPipes(pTileInfo);
+    ASSERTED UINT_32 numPipes = HwlGetPipes(pTileInfo);
 
     switch (pTileInfo->banks)
     {
@@ -4095,7 +4095,7 @@ UINT_64 EgBasedLib::HwlGetSizeAdjustmentMicroTiled(
     ) const
 {
     UINT_64 logicalSliceSize;
-    MAYBE_UNUSED UINT_64 physicalSliceSize;
+    ASSERTED UINT_64 physicalSliceSize;
 
     UINT_32 pitch   = *pPitch;
     UINT_32 height  = *pHeight;

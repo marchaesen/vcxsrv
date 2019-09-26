@@ -1042,6 +1042,9 @@ RRProviderLookup(XID id, RRProviderPtr *provider_p);
 extern _X_EXPORT void
 RRDeliverProviderEvent(ClientPtr client, WindowPtr pWin, RRProviderPtr provider);
 
+extern _X_EXPORT void
+RRProviderAutoConfigGpuScreen(ScreenPtr pScreen, ScreenPtr masterScreen);
+
 /* rrproviderproperty.c */
 
 extern _X_EXPORT void

@@ -74,6 +74,41 @@ gather_ubo_ranges(nir_shader *nir, nir_intrinsic_instr *instr,
 		state->range[block].end = r.end;
 }
 
+/* For indirect offset, it is common to see a pattern of multiple
+ * loads with the same base, but different constant offset, ie:
+ *
+ *    vec1 32 ssa_33 = iadd ssa_base, const_offset
+ *    vec4 32 ssa_34 = intrinsic load_uniform (ssa_33) (base=N, 0, 0)
+ *
+ * Detect this, and peel out the const_offset part, to end up with:
+ *
+ *    vec4 32 ssa_34 = intrinsic load_uniform (ssa_base) (base=N+const_offset, 0, 0)
+ *
+ * This gives the other opt passes something much easier to work
+ * with (ie. not requiring value range tracking)
+ */
+static void
+handle_partial_const(nir_ssa_def **srcp, unsigned *offp)
+{
+	if ((*srcp)->parent_instr->type != nir_instr_type_alu)
+		return;
+
+	nir_alu_instr *alu = nir_instr_as_alu((*srcp)->parent_instr);
+	if (alu->op != nir_op_iadd)
+		return;
+
+	if (!(alu->src[0].src.is_ssa && alu->src[1].src.is_ssa))
+		return;
+
+	if (nir_src_is_const(alu->src[0].src)) {
+		*offp += nir_src_as_uint(alu->src[0].src);
+		*srcp = alu->src[1].src.ssa;
+	} else if (nir_src_is_const(alu->src[1].src)) {
+		*srcp = alu->src[0].src.ssa;
+		*offp += nir_src_as_uint(alu->src[1].src);
+	}
+}
+
 static void
 lower_ubo_load_to_uniform(nir_intrinsic_instr *instr, nir_builder *b,
 						  struct ir3_ubo_analysis_state *state)
@@ -107,21 +142,34 @@ lower_ubo_load_to_uniform(nir_intrinsic_instr *instr, nir_builder *b,
 	b->cursor = nir_before_instr(&instr->instr);
 
 	nir_ssa_def *ubo_offset = nir_ssa_for_src(b, instr->src[1], 1);
+	unsigned const_offset = 0;
+
+	handle_partial_const(&ubo_offset, &const_offset);
+
+	/* UBO offset is in bytes, but uniform offset is in units of
+	 * dwords, so we need to divide by 4 (right-shift by 2).  And
+	 * also the same for the constant part of the offset:
+	 */
 	nir_ssa_def *new_offset = ir3_nir_try_propagate_bit_shift(b, ubo_offset, -2);
-	if (new_offset)
-		ubo_offset = new_offset;
-	else
-		ubo_offset = nir_ushr(b, ubo_offset, nir_imm_int(b, 2));
+	nir_ssa_def *uniform_offset = NULL;
+	if (new_offset) {
+		uniform_offset = new_offset;
+	} else {
+		uniform_offset = nir_ushr(b, ubo_offset, nir_imm_int(b, 2));
+	}
+
+	debug_assert(!(const_offset & 0x3));
+	const_offset >>= 2;
 
 	const int range_offset =
 		(state->range[block].offset - state->range[block].start) / 4;
-	nir_ssa_def *uniform_offset =
-		nir_iadd(b, ubo_offset, nir_imm_int(b, range_offset));
+	const_offset += range_offset;
 
 	nir_intrinsic_instr *uniform =
 		nir_intrinsic_instr_create(b->shader, nir_intrinsic_load_uniform);
 	uniform->num_components = instr->num_components;
 	uniform->src[0] = nir_src_for_ssa(uniform_offset);
+	nir_intrinsic_set_base(uniform, const_offset);
 	nir_ssa_dest_init(&uniform->instr, &uniform->dest,
 					  uniform->num_components, instr->dest.ssa.bit_size,
 					  instr->dest.ssa.name);

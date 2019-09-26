@@ -660,7 +660,7 @@ void radv_CmdBlitImage(
 							     .baseArrayLayer = dest_array_slice,
 							     .layerCount = 1
 						     },
-					     });
+					     }, NULL);
 			radv_image_view_init(&src_iview, cmd_buffer->device,
 					     &(VkImageViewCreateInfo) {
 						.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -674,7 +674,7 @@ void radv_CmdBlitImage(
 							.baseArrayLayer = src_array_slice,
 							.layerCount = 1
 						},
-					});
+					}, NULL);
 			meta_emit_blit(cmd_buffer,
 				       src_image, &src_iview, srcImageLayout,
 				       src_offset_0, src_offset_1,

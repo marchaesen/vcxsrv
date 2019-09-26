@@ -222,13 +222,7 @@ nir_opt_large_constants(nir_shader *shader,
             break;
 
          case nir_intrinsic_copy_deref:
-            /* We always assume the src and therefore the dst are not
-             * constants here. Copy and constant propagation passes should
-             * have taken care of this in most cases anyway.
-             */
-            dst_deref = nir_src_as_deref(intrin->src[0]);
-            src_deref = nir_src_as_deref(intrin->src[1]);
-            src_is_const = false;
+            assert(!"Lowering of copy_deref with large constants is prohibited");
             break;
 
          default:
@@ -318,7 +312,7 @@ nir_opt_large_constants(nir_shader *shader,
    shader->constant_data = rzalloc_size(shader, shader->constant_data_size);
    for (int i = 0; i < num_locals; i++) {
       struct var_info *info = &var_infos[i];
-      if (!info->duplicate) {
+      if (!info->duplicate && info->is_constant) {
          memcpy((char *)shader->constant_data + info->var->data.location,
                 info->constant_data, info->constant_data_size);
       }
@@ -366,24 +360,7 @@ nir_opt_large_constants(nir_shader *shader,
             }
             break;
          }
-
-         case nir_intrinsic_copy_deref: {
-            nir_deref_instr *deref = nir_src_as_deref(intrin->src[1]);
-            if (deref->mode != nir_var_function_temp)
-               continue;
-
-            nir_variable *var = nir_deref_instr_get_variable(deref);
-            struct var_info *info = &var_infos[var->data.index];
-            if (info->is_constant) {
-               b.cursor = nir_after_instr(&intrin->instr);
-               nir_ssa_def *val = build_constant_load(&b, deref, size_align);
-               nir_store_deref(&b, nir_src_as_deref(intrin->src[0]), val, ~0);
-               nir_instr_remove(&intrin->instr);
-               nir_deref_instr_remove_if_unused(deref);
-            }
-            break;
-         }
-
+         case nir_intrinsic_copy_deref:
          default:
             continue;
          }

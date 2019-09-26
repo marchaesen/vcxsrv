@@ -21,6 +21,9 @@
  * IN THE SOFTWARE.
  */
 
+#ifndef MESA_V3D_PACKET_HELPERS_H
+#define MESA_V3D_PACKET_HELPERS_H
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -214,3 +217,4 @@ __gen_unpack_f187(const uint8_t *restrict cl, uint32_t start, uint32_t end)
    return uif(bits << 16);
 }
 
+#endif

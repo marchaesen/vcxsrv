@@ -357,22 +357,85 @@ radv_get_depth_pipeline(struct radv_cmd_buffer *cmd_buffer,
 	return pipeline;
 }
 
+static void
+radv_process_depth_image_layer(struct radv_cmd_buffer *cmd_buffer,
+			       struct radv_image *image,
+			       const VkImageSubresourceRange *range,
+			       int level, int layer)
+{
+	struct radv_device *device = cmd_buffer->device;
+	struct radv_meta_state *state = &device->meta_state;
+	uint32_t samples_log2 = ffs(image->info.samples) - 1;
+	struct radv_image_view iview;
+	uint32_t width, height;
+
+	width = radv_minify(image->info.width, range->baseMipLevel + level);
+	height = radv_minify(image->info.height, range->baseMipLevel + level);
+
+	radv_image_view_init(&iview, device,
+			     &(VkImageViewCreateInfo) {
+					.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+					.image = radv_image_to_handle(image),
+					.viewType = radv_meta_get_view_type(image),
+					.format = image->vk_format,
+					.subresourceRange = {
+						.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+						.baseMipLevel = range->baseMipLevel + level,
+						.levelCount = 1,
+						.baseArrayLayer = range->baseArrayLayer + layer,
+						.layerCount = 1,
+					},
+			     }, NULL);
+
+
+	VkFramebuffer fb_h;
+	radv_CreateFramebuffer(radv_device_to_handle(device),
+			       &(VkFramebufferCreateInfo) {
+					.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+					.attachmentCount = 1,
+						.pAttachments = (VkImageView[]) {
+							radv_image_view_to_handle(&iview)
+					},
+					.width = width,
+					.height = height,
+					.layers = 1
+			       }, &cmd_buffer->pool->alloc, &fb_h);
+
+	radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
+				&(VkRenderPassBeginInfo) {
+					.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+					.renderPass = state->depth_decomp[samples_log2].pass,
+					.framebuffer = fb_h,
+					.renderArea = {
+						.offset = {
+							0,
+							0,
+						},
+						.extent = {
+							width,
+							height,
+						}
+					},
+					.clearValueCount = 0,
+					.pClearValues = NULL,
+				},
+				VK_SUBPASS_CONTENTS_INLINE);
+
+	radv_CmdDraw(radv_cmd_buffer_to_handle(cmd_buffer), 3, 1, 0, 0);
+	radv_CmdEndRenderPass(radv_cmd_buffer_to_handle(cmd_buffer));
+
+	radv_DestroyFramebuffer(radv_device_to_handle(device), fb_h,
+				&cmd_buffer->pool->alloc);
+}
+
 static void radv_process_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 					     struct radv_image *image,
-					     VkImageSubresourceRange *subresourceRange,
+					     const VkImageSubresourceRange *subresourceRange,
 					     struct radv_sample_locations_state *sample_locs,
 					     enum radv_depth_op op)
 {
 	struct radv_meta_saved_state saved_state;
-	VkDevice device_h = radv_device_to_handle(cmd_buffer->device);
 	VkCommandBuffer cmd_buffer_h = radv_cmd_buffer_to_handle(cmd_buffer);
-	uint32_t width = radv_minify(image->info.width,
-				     subresourceRange->baseMipLevel);
-	uint32_t height = radv_minify(image->info.height,
-				     subresourceRange->baseMipLevel);
-	uint32_t samples = image->info.samples;
-	uint32_t samples_log2 = ffs(samples) - 1;
-	struct radv_meta_state *meta_state = &cmd_buffer->device->meta_state;
 	VkPipeline *pipeline;
 
 	if (!radv_image_has_htile(image))
@@ -387,20 +450,6 @@ static void radv_process_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 
 	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
 			     VK_PIPELINE_BIND_POINT_GRAPHICS, *pipeline);
-
-	radv_CmdSetViewport(cmd_buffer_h, 0, 1, &(VkViewport) {
-		.x = 0,
-		.y = 0,
-		.width = width,
-		.height = height,
-		.minDepth = 0.0f,
-		.maxDepth = 1.0f
-	});
-
-	radv_CmdSetScissor(cmd_buffer_h, 0, 1, &(VkRect2D) {
-		.offset = { 0, 0 },
-		.extent = { width, height },
-	});
 
 	if (sample_locs) {
 		assert(image->flags & VK_IMAGE_CREATE_SAMPLE_LOCATIONS_COMPATIBLE_DEPTH_BIT_EXT);
@@ -417,72 +466,42 @@ static void radv_process_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 		});
 	}
 
-	for (uint32_t layer = 0; layer < radv_get_layerCount(image, subresourceRange); layer++) {
-		struct radv_image_view iview;
+	for (uint32_t l = 0; l < radv_get_levelCount(image, subresourceRange); ++l) {
+		uint32_t width =
+			radv_minify(image->info.width,
+				    subresourceRange->baseMipLevel + l);
+		uint32_t height =
+			radv_minify(image->info.height,
+				    subresourceRange->baseMipLevel + l);
 
-		radv_image_view_init(&iview, cmd_buffer->device,
-				     &(VkImageViewCreateInfo) {
-					     .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-					     .image = radv_image_to_handle(image),
-					     .viewType = radv_meta_get_view_type(image),
-					     .format = image->vk_format,
-					     .subresourceRange = {
-						     .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
-						     .baseMipLevel = subresourceRange->baseMipLevel,
-						     .levelCount = 1,
-						     .baseArrayLayer = subresourceRange->baseArrayLayer + layer,
-						     .layerCount = 1,
-					     },
-				     });
+		radv_CmdSetViewport(cmd_buffer_h, 0, 1,
+				    &(VkViewport) {
+					.x = 0,
+					.y = 0,
+					.width = width,
+					.height = height,
+					.minDepth = 0.0f,
+					.maxDepth = 1.0f
+				    });
 
+		radv_CmdSetScissor(cmd_buffer_h, 0, 1,
+				   &(VkRect2D) {
+					.offset = { 0, 0 },
+					.extent = { width, height },
+				   });
 
-		VkFramebuffer fb_h;
-		radv_CreateFramebuffer(device_h,
-				       &(VkFramebufferCreateInfo) {
-					       .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-					       .attachmentCount = 1,
-						       .pAttachments = (VkImageView[]) {
-						       radv_image_view_to_handle(&iview)
-					       },
-					       .width = width,
-						.height = height,
-					       .layers = 1
-				       },
-				       &cmd_buffer->pool->alloc,
-				       &fb_h);
-
-		radv_CmdBeginRenderPass(cmd_buffer_h,
-					      &(VkRenderPassBeginInfo) {
-						      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-							      .renderPass = meta_state->depth_decomp[samples_log2].pass,
-							      .framebuffer = fb_h,
-							      .renderArea = {
-							      .offset = {
-								      0,
-								      0,
-							      },
-							      .extent = {
-								      width,
-								      height,
-							      }
-						       },
-						       .clearValueCount = 0,
-						       .pClearValues = NULL,
-					   },
-					   VK_SUBPASS_CONTENTS_INLINE);
-
-		radv_CmdDraw(cmd_buffer_h, 3, 1, 0, 0);
-		radv_CmdEndRenderPass(cmd_buffer_h);
-
-		radv_DestroyFramebuffer(device_h, fb_h,
-					&cmd_buffer->pool->alloc);
+		for (uint32_t s = 0; s < radv_get_layerCount(image, subresourceRange); s++) {
+			radv_process_depth_image_layer(cmd_buffer, image,
+						       subresourceRange, l, s);
+		}
 	}
+
 	radv_meta_restore(&saved_state, cmd_buffer);
 }
 
 void radv_decompress_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 					 struct radv_image *image,
-					 VkImageSubresourceRange *subresourceRange,
+					 const VkImageSubresourceRange *subresourceRange,
 					 struct radv_sample_locations_state *sample_locs)
 {
 	assert(cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL);
@@ -492,7 +511,7 @@ void radv_decompress_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 
 void radv_resummarize_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 					 struct radv_image *image,
-					 VkImageSubresourceRange *subresourceRange,
+					 const VkImageSubresourceRange *subresourceRange,
 					 struct radv_sample_locations_state *sample_locs)
 {
 	assert(cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL);

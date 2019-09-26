@@ -101,7 +101,7 @@ wsi_device_init(struct wsi_device *wsi,
 #undef WSI_GET_CB
 
 #ifdef VK_USE_PLATFORM_XCB_KHR
-   result = wsi_x11_init_wsi(wsi, alloc);
+   result = wsi_x11_init_wsi(wsi, alloc, dri_options);
    if (result != VK_SUCCESS)
       goto fail;
 #endif

@@ -38,63 +38,30 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XFontsOfFontSet __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XFontsOfFontSet, XBaseFontNameListOfFontSet, XLocaleOfFontSet, XContextDependentDrawing, XContextualDrawing, XDirectionalDependentDrawing \- obtain fontset information
 .SH SYNTAX
 .HP
 int XFontsOfFontSet\^(\^XFontSet \fIfont_set\fP\^, XFontStruct
-***\fIfont_struct_list_return\fP\^, char ***\fIfont_name_list_return\fP\^); 
+***\fIfont_struct_list_return\fP\^, char ***\fIfont_name_list_return\fP\^);
 .HP
-char *XBaseFontNameListOfFontSet\^(\^XFontSet \fIfont_set\fP\^); 
+char *XBaseFontNameListOfFontSet\^(\^XFontSet \fIfont_set\fP\^);
 .HP
-char *XLocaleOfFontSet\^(\^XFontSet \fIfont_set\fP\^); 
+char *XLocaleOfFontSet\^(\^XFontSet \fIfont_set\fP\^);
 .HP
-Bool XContextDependentDrawing\^(\^XFontSet \fIfont_set\fP\^); 
+Bool XContextDependentDrawing\^(\^XFontSet \fIfont_set\fP\^);
 .HP
-Bool XContextualDrawing\^(\^XFontSet \fIfont_set\fP\^); 
+Bool XContextualDrawing\^(\^XFontSet \fIfont_set\fP\^);
 .HP
-Bool XDirectionalDependentDrawing\^(\^XFontSet \fIfont_set\fP\^); 
+Bool XDirectionalDependentDrawing\^(\^XFontSet \fIfont_set\fP\^);
 .SH ARGUMENTS
 .IP \fIfont_set\fP 1i
 Specifies the font set.
@@ -105,7 +72,7 @@ Returns the list of font structs.
 .SH DESCRIPTION
 The
 .B XFontsOfFontSet
-function returns a list of one or more 
+function returns a list of one or more
 .B XFontStructs
 and font names for the fonts used by the Xmb and Xwc layers
 for the given font set.
@@ -121,30 +88,30 @@ structures and font names is returned as the value of the function.
 .LP
 Because it is not guaranteed that a given character will be imaged using a
 single font glyph,
-there is no provision for mapping a character or default string 
-to the font properties, font ID, or direction hint for the font 
+there is no provision for mapping a character or default string
+to the font properties, font ID, or direction hint for the font
 for the character.
-The client may access the 
+The client may access the
 .B XFontStruct
 list to obtain these values for all the fonts currently in use.
 .LP
 Xlib does not guarantee that fonts are loaded from the server
-at the creation of an 
+at the creation of an
 .BR XFontSet .
-Xlib may choose to cache font data, loading it only as needed to draw text 
+Xlib may choose to cache font data, loading it only as needed to draw text
 or compute text dimensions.
-Therefore, existence of the per_char metrics in the 
+Therefore, existence of the per_char metrics in the
 .B XFontStruct
 structures in the
 .B XFontStructSet
 is undefined.
-Also, note that all properties in the 
+Also, note that all properties in the
 .B XFontStruct
 structures are in the STRING encoding.
 .LP
-The 
+The
 .B XFontStruct
-and font name lists are owned by Xlib 
+and font name lists are owned by Xlib
 and should not be modified or freed by the client.
 They will be freed by a call to
 .B XFreeFontSet
@@ -155,7 +122,7 @@ Until freed, their contents will not be modified by Xlib.
 The
 .B XBaseFontNameListOfFontSet
 function returns the original base font name list supplied
-by the client when the 
+by the client when the
 .B XFontSet
 was created.
 A null-terminated string containing a list of
@@ -163,7 +130,7 @@ comma-separated font names is returned
 as the value of the function.
 White space may appear immediately on either side of separating commas.
 .LP
-If 
+If
 .B XCreateFontSet
 obtained an XLFD name from the font properties for the font specified
 by a non-XLFD base name, the
@@ -172,9 +139,9 @@ function will return the XLFD name instead of the non-XLFD base name.
 .LP
 The base font name list is owned by Xlib and should not be modified or
 freed by the client.
-It will be freed by a call to 
+It will be freed by a call to
 .B XFreeFontSet
-with the associated 
+with the associated
 .BR XFontSet .
 Until freed, its contents will not be modified by Xlib.
 .LP
@@ -189,7 +156,7 @@ The returned locale name string is owned by Xlib
 and should not be modified or freed by the client.
 It may be freed by a call to
 .B XFreeFontSet
-with the associated 
+with the associated
 .BR XFontSet .
 Until freed, it will not be modified by Xlib.
 .LP

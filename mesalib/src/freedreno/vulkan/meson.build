@@ -95,7 +95,6 @@ libvulkan_freedreno = shared_library(
   ],
   link_with : [
     libvulkan_wsi,
-    libmesa_util,
     libfreedreno_drm, # required by ir3_shader_get_variant, which we don't use
     libfreedreno_ir3,
   ],
@@ -110,6 +109,7 @@ libvulkan_freedreno = shared_library(
     idep_nir,
     tu_deps,
     idep_vulkan_util,
+    idep_mesautil,
   ],
   c_args : [c_vis_args, no_override_init_args, tu_flags],
   link_args : [ld_args_bsymbolic, ld_args_gc_sections],

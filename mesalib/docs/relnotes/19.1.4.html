@@ -1,0 +1,227 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 19.1.4 Release Notes / August 7, 2019</h1>
+
+<p>
+Mesa 19.1.4 is a bug fix release which fixes bugs found since the 19.1.3 release.
+</p>
+<p>
+Mesa 19.1.4 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+
+<h2>SHA256 checksums</h2>
+<pre>
+a6d268a7d9edcfd92b6da80f2e34e6e0a7baaa442efbeba2fc66c404943c6bfb  mesa-19.1.4.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=109203">Bug 109203</a> - [cfl dxvk] GPU Crash Launching Monopoly Plus (Iris Plus 655 / Wine + DXVK)</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=109524">Bug 109524</a> - &quot;Invalid glsl version in shading_language_version()&quot; when trying to run directX games using wine</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=110309">Bug 110309</a> - [icl][bisected] regression on piglit arb_gpu_shader_int 64.execution.fs-ishl-then-* tests</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=110663">Bug 110663</a> - threads_posix.h:96: undefined reference to `pthread_once'</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=110955">Bug 110955</a> - Mesa 18.2.8 implementation error: Invalid GLSL version in shading_language_version()</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=111010">Bug 111010</a> - Cemu Shader Cache Corruption Displaying Solid Color After commit 11e16ca7ce0</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=111071">Bug 111071</a> - SPIR-V shader processing fails with message about &quot;extra dangling SSA sources&quot;</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=111075">Bug 111075</a> - Processing of SPIR-V shader causes device hang, sometimes leading to system reboot</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=111097">Bug 111097</a> - Can not detect VK_ERROR_OUT_OF_DATE_KHR or VK_SUBOPTIMAL_KHR when window resizing</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Andres Rodriguez (1):</p>
+<ul>
+  <li>radv: fix queries with WAIT_BIT returning VK_NOT_READY</li>
+</ul>
+
+<p>Andrii Simiklit (2):</p>
+<ul>
+  <li>intel/compiler: don't use a keyword struct for a class fs_reg</li>
+  <li>meson: add a warning for meson &lt; 0.46.0</li>
+</ul>
+
+<p>Arcady Goldmints-Orlov (1):</p>
+<ul>
+  <li>anv: report HOST_ALLOCATION as supported for images</li>
+</ul>
+
+<p>Bas Nieuwenhuizen (3):</p>
+<ul>
+  <li>radv: Set correct metadata size for GFX9+.</li>
+  <li>radv: Take variable descriptor counts into account for buffer entries.</li>
+  <li>radv: Fix descriptor set allocation failure.</li>
+</ul>
+
+<p>Boyuan Zhang (4):</p>
+<ul>
+  <li>radeon/uvd: fix poc for hevc encode</li>
+  <li>radeon/vcn: fix poc for hevc encode</li>
+  <li>radeon/uvd: enable rate control for hevc encoding</li>
+  <li>radeon/vcn: enable rate control for hevc encoding</li>
+</ul>
+
+<p>Caio Marcelo de Oliveira Filho (1):</p>
+<ul>
+  <li>anv: Remove special allocation for anv_push_constants</li>
+</ul>
+
+<p>Connor Abbott (1):</p>
+<ul>
+  <li>nir: Allow qualifiers on copy_deref and image instructions</li>
+</ul>
+
+<p>Daniel Schürmann (1):</p>
+<ul>
+  <li>spirv: Fix order of barriers in SpvOpControlBarrier</li>
+</ul>
+
+<p>Dave Airlie (1):</p>
+<ul>
+  <li>st/nir: fix arb fragment stage conversion</li>
+</ul>
+
+<p>Dylan Baker (1):</p>
+<ul>
+  <li>meson: allow building all glx without any drivers</li>
+</ul>
+
+<p>Emil Velikov (1):</p>
+<ul>
+  <li>egl/drm: ensure the backing gbm is set before using it</li>
+</ul>
+
+<p>Eric Anholt (1):</p>
+<ul>
+  <li>freedreno: Fix data races with allocating/freeing struct ir3.</li>
+</ul>
+
+<p>Eric Engestrom (5):</p>
+<ul>
+  <li>nir: don't return void</li>
+  <li>util: fix no-op macro (bad number of arguments)</li>
+  <li>gallium+mesa: fix tgsi_semantic array type</li>
+  <li>scons+meson: suppress spammy build warning on MacOS</li>
+  <li>nir: remove explicit nir_intrinsic_index_flag values</li>
+</ul>
+
+<p>Francisco Jerez (1):</p>
+<ul>
+  <li>intel/ir: Fix CFG corruption in opt_predicated_break().</li>
+</ul>
+
+<p>Ilia Mirkin (4):</p>
+<ul>
+  <li>gallium/vl: fix compute tgsi shaders to not process undefined components</li>
+  <li>nv50,nvc0: update sampler/view bind functions to accept NULL array</li>
+  <li>nvc0: allow a non-user buffer to be bound at position 0</li>
+  <li>nv50/ir: handle insn not being there for definition of CVT arg</li>
+</ul>
+
+<p>Jason Ekstrand (6):</p>
+<ul>
+  <li>intel/fs: Stop stack allocating large arrays</li>
+  <li>anv: Disable transform feedback on gen7</li>
+  <li>isl/formats: R8G8B8_UNORM_SRGB isn't supported on HSW</li>
+  <li>anv: Don't claim support for 24 and 48-bit formats on IVB</li>
+  <li>intel/fs: Use ALIGN16 instructions for all derivatives on gen &lt;= 7</li>
+  <li>intel/fs: Implement quad_swap_horizontal with a swizzle on gen7</li>
+</ul>
+
+<p>Juan A. Suarez Romero (2):</p>
+<ul>
+  <li>docs: add sha256 checksums for 19.1.3</li>
+  <li>Update version to 19.1.4</li>
+</ul>
+
+<p>Kenneth Graunke (4):</p>
+<ul>
+  <li>mesa: Fix ReadBuffers with pbuffers</li>
+  <li>egl: Quiet warning about front buffer rendering for pixmaps/pbuffers</li>
+  <li>egl: Make the 565 pbuffer-only config single buffered.</li>
+  <li>egl: Only expose 565 pbuffer configs if X can export them as DRI3 images</li>
+</ul>
+
+<p>Lionel Landwerlin (5):</p>
+<ul>
+  <li>anv: fix use of comma operator</li>
+  <li>nir: add access to image_deref intrinsics</li>
+  <li>spirv: wrap push ssa/pointer values</li>
+  <li>spirv: propagate access qualifiers through ssa &amp; pointer</li>
+  <li>spirv: don't discard access set by vtn_pointer_dereference</li>
+</ul>
+
+<p>Mark Menzynski (1):</p>
+<ul>
+  <li>nvc0/ir: Fix assert accessing null pointer</li>
+</ul>
+
+<p>Nataraj Deshpande (1):</p>
+<ul>
+  <li>egl/android: Update color_buffers querying for buffer age</li>
+</ul>
+
+<p>Nicolas Dufresne (1):</p>
+<ul>
+  <li>egl: Also query modifiers when exporting DMABuf</li>
+</ul>
+
+<p>Rhys Perry (1):</p>
+<ul>
+  <li>ac/nir: fix txf_ms with an offset</li>
+</ul>
+
+<p>Samuel Pitoiset (1):</p>
+<ul>
+  <li>radv: fix crash in vkCmdClearAttachments with unused attachment</li>
+</ul>
+
+<p>Tapani Pälli (1):</p>
+<ul>
+  <li>mesa: add glsl_type ref to one_time_init and decref to atexit</li>
+</ul>
+
+<p>Yevhenii Kolesnikov (1):</p>
+<ul>
+  <li>main: Fix memleaks in mesa_use_program</li>
+</ul>
+
+
+</div>
+</body>
+</html>

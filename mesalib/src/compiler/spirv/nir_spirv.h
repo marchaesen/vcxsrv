@@ -59,14 +59,6 @@ enum nir_spirv_execution_environment {
 struct spirv_to_nir_options {
    enum nir_spirv_execution_environment environment;
 
-   /* Whether or not to lower all workgroup variable access to offsets
-    * up-front.  This means you will _shared intrinsics instead of _var
-    * for workgroup data access.
-    *
-    * This is currently required for full variable pointers support.
-    */
-   bool lower_workgroup_access_to_offsets;
-
    /* Whether or not to lower all UBO/SSBO access to offsets up-front. */
    bool lower_ubo_ssbo_access_to_offsets;
 

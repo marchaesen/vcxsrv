@@ -44,7 +44,7 @@ ALIGNTEXT16
 GLOBL GLNAME( _mesa_sse_transform_points4_general )
 HIDDEN(_mesa_sse_transform_points4_general)
 GLNAME( _mesa_sse_transform_points4_general ):
-
+	_CET_ENDBR
 	PUSH_L( ESI )
 	PUSH_L( EDI )
 
@@ -116,7 +116,7 @@ ALIGNTEXT4
 GLOBL GLNAME( _mesa_sse_transform_points4_3d )
 HIDDEN(_mesa_sse_transform_points4_3d)
 GLNAME( _mesa_sse_transform_points4_3d ):
-
+	_CET_ENDBR
 	PUSH_L( ESI )
 	PUSH_L( EDI )
 
@@ -188,7 +188,7 @@ ALIGNTEXT16
 GLOBL GLNAME( _mesa_sse_transform_points4_identity )
 HIDDEN(_mesa_sse_transform_points4_identity)
 GLNAME( _mesa_sse_transform_points4_identity ):
-
+	_CET_ENDBR
 	PUSH_L( ESI )
 	PUSH_L( EDI )
 

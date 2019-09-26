@@ -42,9 +42,11 @@ LOCAL_GENERATED_SOURCES := \
 	$(MESA_GEN_GLSL_H) \
 	$(MESA_GEN_NIR_H)
 
+ifeq ($(strip $(MESA_ENABLE_ASM)),true)
 ifeq ($(TARGET_ARCH),x86)
 	LOCAL_SRC_FILES += $(X86_FILES)
 endif # x86
+endif # MESA_ENABLE_ASM
 
 ifeq ($(ARCH_X86_HAVE_SSE4_1),true)
 LOCAL_WHOLE_STATIC_LIBRARIES := \

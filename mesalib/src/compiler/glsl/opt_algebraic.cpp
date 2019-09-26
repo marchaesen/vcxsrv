@@ -507,6 +507,18 @@ ir_algebraic_visitor::handle_expression(ir_expression *ir)
       if (is_vec_zero(op_const[1]))
 	 return ir->operands[0];
 
+      /* Replace (x + (-x)) with constant 0 */
+      for (int i = 0; i < 2; i++) {
+         if (op_expr[i]) {
+            if (op_expr[i]->operation == ir_unop_neg) {
+               ir_rvalue *other = ir->operands[(i + 1) % 2];
+               if (other && op_expr[i]->operands[0]->equals(other)) {
+                  return ir_constant::zero(ir, ir->type);
+               }
+            }
+         }
+      }
+
       /* Reassociate addition of constants so that we can do constant
        * folding.
        */

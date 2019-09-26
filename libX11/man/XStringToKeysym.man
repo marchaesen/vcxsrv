@@ -38,62 +38,29 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XStringToKeysym __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XStringToKeysym, XKeysymToString, XKeycodeToKeysym, XKeysymToKeycode, XConvertCase \- convert keysyms
 .SH SYNTAX
 .HP
-KeySym XStringToKeysym\^(\^char *\fIstring\fP\^); 
+KeySym XStringToKeysym\^(\^char *\fIstring\fP\^);
 .HP
-char *XKeysymToString\^(\^KeySym \fIkeysym\fP\^); 
+char *XKeysymToString\^(\^KeySym \fIkeysym\fP\^);
 .HP
 KeySym XKeycodeToKeysym\^(\^Display *\fIdisplay\fP\^, KeyCode \fIkeycode\fP\^,
-int \fIindex\fP\^); 
+int \fIindex\fP\^);
 .HP
 KeyCode XKeysymToKeycode\^(\^Display *\fIdisplay\fP\^, KeySym \fIkeysym\fP\^);
 .HP
 void XConvertCase(\^KeySym \fIkeysym\fP\^, KeySym *\fIlower_return\fP\^,
-KeySym *\fIupper_return\fP\^); 
+KeySym *\fIupper_return\fP\^);
 .SH ARGUMENTS
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
@@ -115,7 +82,7 @@ Standard KeySym names are obtained from
 by removing the XK_ prefix from each name.
 KeySyms that are not part of the Xlib standard also may be obtained
 with this function.
-The set of KeySyms that are available in this manner 
+The set of KeySyms that are available in this manner
 and the mechanisms by which Xlib obtains them is implementation-dependent.
 .LP
 If the KeySym name is not in the Host Portable Character Encoding,
@@ -141,7 +108,8 @@ If no symbol is defined,
 returns
 .BR NoSymbol .
 .B XKeycodeToKeysym
-predates the XKB extension. If you want to lookup a KeySym while
+predates the XKB extension.
+If you want to lookup a KeySym while
 using XKB you have to use
 .BR XkbKeycodeToKeysym .
 .LP

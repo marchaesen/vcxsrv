@@ -29,6 +29,7 @@
 
 #include "nir.h"
 #include "util/bitscan.h"
+#include "nir_range_analysis.h"
 #include <math.h>
 
 static inline bool
@@ -322,6 +323,54 @@ static inline bool
 no_unsigned_wrap(nir_alu_instr *instr)
 {
    return instr->no_unsigned_wrap;
+}
+
+static inline bool
+is_integral(nir_alu_instr *instr, unsigned src,
+            UNUSED unsigned num_components, UNUSED const uint8_t *swizzle)
+{
+   const struct ssa_result_range r = nir_analyze_range(instr, src);
+
+   return r.is_integral;
+}
+
+#define RELATION(r)                                                     \
+static inline bool                                                      \
+is_ ## r (nir_alu_instr *instr, unsigned src,                           \
+          UNUSED unsigned num_components, UNUSED const uint8_t *swizzle) \
+{                                                                       \
+   const struct ssa_result_range v = nir_analyze_range(instr, src);     \
+   return v.range == r;                                                 \
+}
+
+RELATION(lt_zero)
+RELATION(le_zero)
+RELATION(gt_zero)
+RELATION(ge_zero)
+RELATION(ne_zero)
+
+static inline bool
+is_not_negative(nir_alu_instr *instr, unsigned src,
+                UNUSED unsigned num_components, UNUSED const uint8_t *swizzle)
+{
+   const struct ssa_result_range v = nir_analyze_range(instr, src);
+   return v.range == ge_zero || v.range == gt_zero || v.range == eq_zero;
+}
+
+static inline bool
+is_not_positive(nir_alu_instr *instr, unsigned src,
+                UNUSED unsigned num_components, UNUSED const uint8_t *swizzle)
+{
+   const struct ssa_result_range v = nir_analyze_range(instr, src);
+   return v.range == le_zero || v.range == lt_zero || v.range == eq_zero;
+}
+
+static inline bool
+is_not_zero(nir_alu_instr *instr, unsigned src,
+            UNUSED unsigned num_components, UNUSED const uint8_t *swizzle)
+{
+   const struct ssa_result_range v = nir_analyze_range(instr, src);
+   return v.range == lt_zero || v.range == gt_zero || v.range == ne_zero;
 }
 
 #endif /* _NIR_SEARCH_ */

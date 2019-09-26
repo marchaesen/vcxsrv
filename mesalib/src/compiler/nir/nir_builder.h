@@ -807,9 +807,9 @@ nir_ssa_for_src(nir_builder *build, nir_src src, int num_components)
 static inline nir_ssa_def *
 nir_ssa_for_alu_src(nir_builder *build, nir_alu_instr *instr, unsigned srcn)
 {
-   static uint8_t trivial_swizzle[NIR_MAX_VEC_COMPONENTS];
-   for (int i = 0; i < NIR_MAX_VEC_COMPONENTS; ++i)
-      trivial_swizzle[i] = i;
+   static uint8_t trivial_swizzle[] = { 0, 1, 2, 3 };
+   STATIC_ASSERT(ARRAY_SIZE(trivial_swizzle) == NIR_MAX_VEC_COMPONENTS);
+
    nir_alu_src *src = &instr->src[srcn];
    unsigned num_components = nir_ssa_alu_instr_src_components(instr, srcn);
 
@@ -1166,6 +1166,18 @@ nir_b2f(nir_builder *build, nir_ssa_def *b, uint32_t bit_size)
    };
 }
 
+static inline nir_ssa_def *
+nir_b2i(nir_builder *build, nir_ssa_def *b, uint32_t bit_size)
+{
+   switch (bit_size) {
+   case 64: return nir_b2i64(build, b);
+   case 32: return nir_b2i32(build, b);
+   case 16: return nir_b2i16(build, b);
+   case 8:  return nir_b2i8(build, b);
+   default:
+      unreachable("Invalid bit-size");
+   };
+}
 static inline nir_ssa_def *
 nir_load_barycentric(nir_builder *build, nir_intrinsic_op op,
                      unsigned interp_mode)

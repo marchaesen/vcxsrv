@@ -333,7 +333,7 @@ static bool
 reads_uniform(const struct v3d_device_info *devinfo, uint64_t instruction)
 {
         struct v3d_qpu_instr qpu;
-        MAYBE_UNUSED bool ok = v3d_qpu_instr_unpack(devinfo, instruction, &qpu);
+        ASSERTED bool ok = v3d_qpu_instr_unpack(devinfo, instruction, &qpu);
         assert(ok);
 
         if (qpu.sig.ldunif ||

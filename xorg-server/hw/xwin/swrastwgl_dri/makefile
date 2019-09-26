@@ -1,6 +1,6 @@
 SHAREDLIB = swrastwgl_dri
 
-INCLUDES += $(OBJDIR) ..\..\.. .. ..\glx $(MHMAKECONF)\gl\include
+INCLUDES += $(OBJDIR) ..\..\.. .. ..\glx $(MHMAKECONF)\gl\include $(MHMAKECONF)\mesalib\include
 DEFINES += INSERVER HAVE_XWIN_CONFIG_H PTW32_STATIC_LIB
 
 $(OBJDIR)\swrastwgl_dri.dll : ..\..\..\$(SERVOBJDIR)\vcxsrv.exe

@@ -1,0 +1,132 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>Mesa Release Notes</title>
+  <link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+  <h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 19.1.6 Release Notes / September 3, 2019</h1>
+
+<p>
+Mesa 19.1.6 is a bug fix release which fixes bugs found since the 19.1.5 release.
+</p>
+<p>
+Mesa 19.1.6 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5.  OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+
+<h2>SHA256 checksums</h2>
+<pre>
+2a369b7b48545c6486e7e44913ad022daca097c8bd937bf30dcf3f17a94d3496  mesa-19.1.6.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+<p>None</p>
+
+
+<h2>Bug fixes</h2>
+
+<ul>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=104395">Bug 104395</a> - [CTS] GTF-GL46.gtf32.GL3Tests.packed_pixels.packed_pixels tests fail on 32bit Mesa</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=111213">Bug 111213</a> - VA-API nouveau SIGSEGV and asserts</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=111241">Bug 111241</a> - Shadertoy shader causing hang</li>
+
+<li><a href="https://bugs.freedesktop.org/show_bug.cgi?id=111411">Bug 111411</a> - SPIR-V shader leads to GPU hang, sometimes making machine unstable</li>
+
+</ul>
+
+
+<h2>Changes</h2>
+
+<p>Andres Rodriguez (1):</p>
+<ul>
+  <li>radv: additional query fixes</li>
+</ul>
+
+<p>Daniel Schürmann (1):</p>
+<ul>
+  <li>nir/lcssa: handle deref instructions properly</li>
+</ul>
+
+<p>Danylo Piliaiev (1):</p>
+<ul>
+  <li>nir/loop_unroll: Prepare loop for unrolling in wrapper_unroll</li>
+</ul>
+
+<p>Ian Romanick (2):</p>
+<ul>
+  <li>nir/algrbraic: Don't optimize open-coded bitfield reverse when lowering is enabled</li>
+  <li>intel/compiler: Request bitfield_reverse lowering on pre-Gen7 hardware</li>
+</ul>
+
+<p>Ilia Mirkin (1):</p>
+<ul>
+  <li>gallium/vl: use compute preference for all multimedia, not just blit</li>
+</ul>
+
+<p>Jonas Ådahl (1):</p>
+<ul>
+  <li>wayland/egl: Ensure correct buffer size when allocating</li>
+</ul>
+
+<p>Juan A. Suarez Romero (6):</p>
+<ul>
+  <li>docs: add sha256 checksums for 19.1.5</li>
+  <li>cherry-ignore: add explicit 19.2 only nominations</li>
+  <li>cherry-ignore: iris: Replace devinfo-&gt;gen with GEN_GEN</li>
+  <li>cherry-ignore: iris: Update fast clear colors on Gen9 with direct immediate writes.</li>
+  <li>cherry-ignore: iris: Avoid unnecessary resolves on transfer maps</li>
+  <li>Update version to 19.1.6</li>
+</ul>
+
+<p>Kenneth Graunke (6):</p>
+<ul>
+  <li>iris: Fix broken aux.possible/sampler_usages bitmask handling</li>
+  <li>iris: Drop copy format hacks from copy region based transfer path.</li>
+  <li>iris: Fix large timeout handling in rel2abs()</li>
+  <li>util: Add a _mesa_i64roundevenf() helper.</li>
+  <li>mesa: Fix _mesa_float_to_unorm() on 32-bit systems.</li>
+  <li>intel/compiler: Fix src0/desc setter ordering</li>
+</ul>
+
+<p>Marek Olšák (1):</p>
+<ul>
+  <li>radeonsi: fix scratch buffer WAVESIZE setting leading to corruption</li>
+</ul>
+
+<p>Paulo Zanoni (1):</p>
+<ul>
+  <li>intel/fs: grab fail_msg from v32 instead of v16 when v32-&gt;run_cs fails</li>
+</ul>
+
+<p>Pierre-Eric Pelloux-Prayer (1):</p>
+<ul>
+  <li>glsl: replace 'x + (-x)' with constant 0</li>
+</ul>
+
+<p>Tapani Pälli (1):</p>
+<ul>
+  <li>egl: reset blob cache set/get functions on terminate</li>
+</ul>
+
+
+</div>
+</body>
+</html>

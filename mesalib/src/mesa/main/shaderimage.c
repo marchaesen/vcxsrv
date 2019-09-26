@@ -541,7 +541,7 @@ _mesa_is_image_unit_valid(struct gl_context *ctx, struct gl_image_unit *u)
 static GLboolean
 validate_bind_image_texture(struct gl_context *ctx, GLuint unit,
                             GLuint texture, GLint level, GLint layer,
-                            GLenum access, GLenum format)
+                            GLenum access, GLenum format, bool check_level_layer)
 {
    assert(ctx->Const.MaxImageUnits <= MAX_IMAGE_UNITS);
 
@@ -550,14 +550,19 @@ validate_bind_image_texture(struct gl_context *ctx, GLuint unit,
       return GL_FALSE;
    }
 
-   if (level < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glBindImageTexture(level)");
-      return GL_FALSE;
-   }
+   if (check_level_layer) {
+      /* EXT_shader_image_load_store doesn't throw an error if level or
+       * layer is negative.
+       */
+      if (level < 0) {
+         _mesa_error(ctx, GL_INVALID_VALUE, "glBindImageTexture(level)");
+         return GL_FALSE;
+      }
 
-   if (layer < 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glBindImageTexture(layer)");
-      return GL_FALSE;
+         if (layer < 0) {
+            _mesa_error(ctx, GL_INVALID_VALUE, "glBindImageTexture(layer)");
+            return GL_FALSE;
+      }
    }
 
    if (access != GL_READ_ONLY &&
@@ -637,7 +642,7 @@ _mesa_BindImageTexture(GLuint unit, GLuint texture, GLint level,
    GET_CURRENT_CONTEXT(ctx);
 
    if (!validate_bind_image_texture(ctx, unit, texture, level, layer, access,
-                                    format))
+                                    format, true))
       return;
 
    if (texture) {
@@ -667,6 +672,31 @@ _mesa_BindImageTexture(GLuint unit, GLuint texture, GLint level,
    }
 
    bind_image_texture(ctx, texObj, unit, level, layered, layer, access, format);
+}
+
+void GLAPIENTRY
+_mesa_BindImageTextureEXT(GLuint index, GLuint texture, GLint level,
+                          GLboolean layered, GLint layer, GLenum access,
+                          GLint format)
+{
+   struct gl_texture_object *texObj = NULL;
+
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (!validate_bind_image_texture(ctx, index, texture, level, layer, access,
+                                    format, false))
+      return;
+
+   if (texture) {
+      texObj = _mesa_lookup_texture(ctx, texture);
+
+      if (!texObj) {
+         _mesa_error(ctx, GL_INVALID_VALUE, "glBindImageTextureEXT(texture)");
+         return;
+      }
+   }
+
+   bind_image_texture(ctx, texObj, index, level, layered, layer, access, format);
 }
 
 static ALWAYS_INLINE void

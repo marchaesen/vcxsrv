@@ -39,63 +39,30 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
+.\" It is provided "as is" without express or implied warranty.
 .\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XOpenOM __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XOpenOM, XCloseOM, XSetOMValues, XGetOMValues, XDisplayOfOM, XLocaleOfOM \- open output methods
 .SH SYNTAX
 .HP
 XOM XOpenOM\^(\^Display *\fIdisplay\fP\^, XrmDatabase \fIdb\fP\^, char
-*\fIres_name\fP\^, char *\fIres_class\fP\^); 
+*\fIres_name\fP\^, char *\fIres_class\fP\^);
 .HP
-Status XCloseOM\^(\^XOM \fIom\fP\^); 
+Status XCloseOM\^(\^XOM \fIom\fP\^);
 .HP
-char *XSetOMValues\^(\^XOM \fIom\fP\^); 
+char *XSetOMValues\^(\^XOM \fIom\fP\^);
 .HP
-char *XGetOMValues\^(\^XOM \fIom\fP\^); 
+char *XGetOMValues\^(\^XOM \fIom\fP\^);
 .HP
-Display *XDisplayOfOM\^(\^XOM \fIom\fP\^); 
+Display *XDisplayOfOM\^(\^XOM \fIom\fP\^);
 .HP
-char *XLocaleOfOM\^(\^XOM \fIom\fP\^); 
+char *XLocaleOfOM\^(\^XOM \fIom\fP\^);
 .SH ARGUMENTS
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
@@ -125,7 +92,7 @@ is identified on the basis of the current locale and modifiers.
 .B XOpenOM
 will identify a default output method corresponding to the
 current locale.
-That default can be modified using 
+That default can be modified using
 .B XSetLocaleModifiers
 to set the output method modifier.
 .LP
@@ -136,8 +103,8 @@ up values that can be set as OC values in an output context.
 If db is NULL,
 no database is passed to the output method.
 .LP
-The res_name and res_class arguments specify the resource name 
-and class of the application. 
+The res_name and res_class arguments specify the resource name
+and class of the application.
 They are intended to be used as prefixes by the output method
 when looking up resources that are common to all output contexts
 that may be created for this output method.

@@ -38,46 +38,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XrmInitialize __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XrmInitialize, XrmParseCommand, XrmValue, XrmOptionKind, XrmOptionDescRec \- initialize the Resource Manager, Resource Manager structures, and parse the command line
@@ -89,7 +56,7 @@ void XrmInitialize\^(void\^);
 .HP
 void XrmParseCommand\^(\^XrmDatabase *\fIdatabase\fP\^, XrmOptionDescList
 \fItable\fP\^, int \fItable_count\fP\^, char *\fIname\fP\^, int
-*\fIargc_in_out\fP\^, char **\fIargv_in_out\fP\^); 
+*\fIargc_in_out\fP\^, char **\fIargv_in_out\fP\^);
 .SH ARGUMENTS
 .IP \fIargc_in_out\fP 1i
 Specifies the number of arguments and returns the number of remaining arguments.
@@ -113,7 +80,7 @@ It must be called before any other Xrm functions are used.
 The
 .B XrmParseCommand
 function parses an (argc, argv) pair according to the specified option table,
-loads recognized options into the specified database with type ``String,''
+loads recognized options into the specified database with type \*(lqString,\*(rq
 and modifies the (argc, argv) pair to remove all recognized options.
 If database contains NULL,
 .B XrmParseCommand
@@ -126,15 +93,15 @@ Recognized options in the table are removed from argv,
 and entries are added to the specified resource database
 in the order they occur in argv.
 The table entries contain information on the option string,
-the option name, the style of option, 
-and a value to provide if the option kind is 
+the option name, the style of option,
+and a value to provide if the option kind is
 .BR XrmoptionNoArg .
 The option names are compared byte-for-byte to arguments in argv,
 independent of any locale.
 The resource values given in the table are stored in the resource database
 without modification.
 All resource database entries are created
-using a ``String'' representation type.
+using a \*(lqString\*(rq representation type.
 The argc argument specifies the number of arguments in argv
 and is set on return to the remaining number of arguments that were not parsed.
 The name argument should be the name of your application
@@ -159,14 +126,14 @@ and
 .B XrmOptionDescRec
 structures contain:
 .LP
-.Ds 0
+.EX
 typedef struct {
         unsigned int size;
         XPointer addr;
 } XrmValue, *XrmValuePtr;
-.De
+.EE
 .LP
-.Ds 0
+.EX
 typedef enum {
         XrmoptionNoArg, /\&* Value is specified in XrmOptionDescRec.value */
         XrmoptionIsArg, /\&* Value is the option string itself */
@@ -178,17 +145,17 @@ typedef enum {
         XrmoptionSkipNArgs      /\&* Ignore this option and the next
                 \ \ \ XrmOptionDescRec.value arguments in argv */
 } XrmOptionKind;
-.De
+.EE
 .LP
-.Ds 0
+.EX
 typedef struct {
         char *option;   /\&* Option specification string in argv                    */
         char *specifier;        /\&* Binding and resource name (sans application name)    */
         XrmOptionKind argKind;  /\&* Which style of option it is            */
-        XPointer value; /\&* Value to provide if XrmoptionNoArg or 
+        XPointer value; /\&* Value to provide if XrmoptionNoArg or
                 \ \ \ XrmoptionSkipNArgs   */
 } XrmOptionDescRec, *XrmOptionDescList;
-.De
+.EE
 .SH "SEE ALSO"
 XrmGetResource(__libmansuffix__),
 XrmMergeDatabases(__libmansuffix__),

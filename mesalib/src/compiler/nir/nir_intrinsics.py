@@ -368,8 +368,10 @@ def image(name, src_comp=[], **kwargs):
 image("load", src_comp=[4, 1], dest_comp=0, flags=[CAN_ELIMINATE])
 image("store", src_comp=[4, 1, 0])
 image("atomic_add",  src_comp=[4, 1, 1], dest_comp=1)
-image("atomic_min",  src_comp=[4, 1, 1], dest_comp=1)
-image("atomic_max",  src_comp=[4, 1, 1], dest_comp=1)
+image("atomic_imin",  src_comp=[4, 1, 1], dest_comp=1)
+image("atomic_umin",  src_comp=[4, 1, 1], dest_comp=1)
+image("atomic_imax",  src_comp=[4, 1, 1], dest_comp=1)
+image("atomic_umax",  src_comp=[4, 1, 1], dest_comp=1)
 image("atomic_and",  src_comp=[4, 1, 1], dest_comp=1)
 image("atomic_or",   src_comp=[4, 1, 1], dest_comp=1)
 image("atomic_xor",  src_comp=[4, 1, 1], dest_comp=1)
@@ -378,6 +380,8 @@ image("atomic_comp_swap", src_comp=[4, 1, 1, 1], dest_comp=1)
 image("atomic_fadd",  src_comp=[1, 4, 1, 1], dest_comp=1)
 image("size",    dest_comp=0, flags=[CAN_ELIMINATE, CAN_REORDER])
 image("samples", dest_comp=1, flags=[CAN_ELIMINATE, CAN_REORDER])
+image("atomic_inc_wrap",  src_comp=[4, 1, 1], dest_comp=1)
+image("atomic_dec_wrap",  src_comp=[4, 1, 1], dest_comp=1)
 
 # Intel-specific query for loading from the brw_image_param struct passed
 # into the shader as a uniform.  The variable is a deref to the image
@@ -557,6 +561,8 @@ system_value("invocation_id", 1)
 system_value("tess_coord", 3)
 system_value("tess_level_outer", 4)
 system_value("tess_level_inner", 2)
+system_value("tess_level_outer_default", 4)
+system_value("tess_level_inner_default", 2)
 system_value("patch_vertices_in", 1)
 system_value("local_invocation_id", 3)
 system_value("local_invocation_index", 1)
@@ -611,6 +617,9 @@ system_value("blend_const_color_aaaa8888_unorm", 1)
 # doesn't handle these in the main shader part like normal varyings.
 system_value("color0", 4)
 system_value("color1", 4)
+
+# System value for internal compute shaders in radeonsi.
+system_value("user_data_amd", 4)
 
 # Barycentric coordinate intrinsics.
 #

@@ -31,7 +31,7 @@ cc.compiles('''
 ''',
     name: 'CLOCK_MONOTONIC'))
 
-#conf_data.set('XSERVER_DTRACE', '1') # XXX
+conf_data.set('XSERVER_DTRACE', with_dtrace)
 
 if host_machine.endian() == 'little'
     conf_data.set('X_BYTE_ORDER', 'X_LITTLE_ENDIAN')
@@ -94,7 +94,7 @@ conf_data.set('NEED_DBUS', build_systemd_logind or build_hal)
 conf_data.set('CONFIG_WSCONS', host_machine.system() == 'openbsd')
 
 conf_data.set('HAVE_XSHMFENCE', xshmfence_dep.found())
-conf_data.set('WITH_LIBDRM', libdrm_dep.found())
+conf_data.set('WITH_LIBDRM', libdrm_required)
 conf_data.set('GLAMOR_HAS_EGL_QUERY_DMABUF',
               epoxy_dep.found() and epoxy_dep.version().version_compare('>= 1.4.4'))
 conf_data.set('GLXEXT', build_glx)
@@ -124,7 +124,6 @@ conf_data.set('HAVE_LINUX_AGPGART_H', cc.has_header('linux/agpgart.h'))
 conf_data.set('HAVE_STDLIB_H', cc.has_header('stdlib.h'))
 conf_data.set('HAVE_STRING_H', cc.has_header('string.h'))
 conf_data.set('HAVE_STRINGS_H', cc.has_header('strings.h'))
-conf_data.set('HAVE_STROPTS_H', cc.has_header('stropts.h'))
 conf_data.set('HAVE_SYS_AGPGART_H', cc.has_header('sys/agpgart.h'))
 conf_data.set('HAVE_SYS_AGPIO_H', cc.has_header('sys/agpio.h'))
 conf_data.set('HAVE_SYS_UTSNAME_H', cc.has_header('sys/utsname.h'))
@@ -358,6 +357,9 @@ xorg_data.set('XSERVER_LIBPCIACCESS', get_option('pciaccess'))
 xorg_data.set_quoted('PCI_TXT_IDS_PATH', '')
 xorg_data.set('XSERVER_PLATFORM_BUS', build_udev)
 xorg_data.set('WSCONS_SUPPORT', host_machine.system() == 'netbsd' or host_machine.system() == 'openbsd')
+xorg_data.set('HAVE_STROPTS_H', cc.has_header('stropts.h'))
+xorg_data.set('HAVE_SYS_KD_H', cc.has_header('sys/kd.h'))
+xorg_data.set('HAVE_SYS_VT_H', cc.has_header('sys/vt.h'))
 
 if host_machine.system() == 'freebsd' or host_machine.system() == 'dragonflybsd'
     if host_machine.cpu_family() == 'x86' or host_machine.cpu_family() == 'x86_64'
@@ -401,6 +403,17 @@ xwayland_data.set('XWL_HAS_EGLSTREAM', build_eglstream)
 configure_file(output : 'xwayland-config.h',
                input : 'xwayland-config.h.meson.in',
                configuration : xwayland_data)
+
+dtrace_hdr = []
+dtrace_tmpl = files('Xserver.d')
+if with_dtrace
+    dtrace_header = generator(dtrace,
+        output: '@BASENAME@-dtrace.h',
+        arguments: ['-h', '-s', '@INPUT@', '-o', '@OUTPUT@']
+    )
+
+    dtrace_hdr += dtrace_header.process(dtrace_tmpl)
+endif
 
 if build_xorg
     install_data(

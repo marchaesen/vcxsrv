@@ -128,10 +128,6 @@ typedef int GLclampx;
 #define GL_HALF_FLOAT_OES                                       0x8D61
 #endif
 
-#ifndef GL_MESA_framebuffer_flip_y
-#define GL_FRAMEBUFFER_FLIP_Y_MESA                              0x8BBB
-#endif
-
 /* There is no formal spec for the following extension. */
 #ifndef GL_ATI_texture_compression_3dc
 #define GL_ATI_texture_compression_3dc                          1

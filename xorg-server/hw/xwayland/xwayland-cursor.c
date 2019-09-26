@@ -66,7 +66,8 @@ xwl_realize_cursor(DeviceIntPtr device, ScreenPtr screen, CursorPtr cursor)
     PixmapPtr pixmap;
 
     pixmap = xwl_shm_create_pixmap(screen, cursor->bits->width,
-                                   cursor->bits->height, 32, 0);
+                                   cursor->bits->height, 32,
+                                   CREATE_PIXMAP_USAGE_BACKING_PIXMAP);
     dixSetPrivate(&cursor->devPrivates, &xwl_cursor_private_key, pixmap);
 
     return TRUE;

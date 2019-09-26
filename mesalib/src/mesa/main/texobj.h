@@ -59,6 +59,12 @@ extern struct gl_texture_object *
 _mesa_get_current_tex_object(struct gl_context *ctx, GLenum target);
 
 extern struct gl_texture_object *
+_mesa_get_texobj_by_target_and_texunit(struct gl_context *ctx, GLenum target,
+                                       GLuint texunit,
+                                       bool allowProxyTargets,
+                                       const char* caller);
+
+extern struct gl_texture_object *
 _mesa_new_texture_object( struct gl_context *ctx, GLuint name, GLenum target );
 
 extern void

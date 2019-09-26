@@ -38,46 +38,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XAllocClassHint __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XAllocClassHint, XSetClassHint, XGetClassHint, XClassHint \- allocate class hints structure and set or read a window's WM_CLASS property
@@ -96,7 +63,7 @@ Specifies the
 .B XClassHint
 structure that is to be used.
 .IP \fIclass_hints_return\fP 1i
-Returns the 
+Returns the
 .B XClassHint
 structure.
 .IP \fIw\fP 1i
@@ -110,7 +77,7 @@ structure.
 Note that the pointer fields in the
 .B XClassHint
 structure are initially set to NULL.
-If insufficient memory is available, 
+If insufficient memory is available,
 .B XAllocClassHint
 returns NULL.
 To free the memory allocated to this structure,
@@ -159,21 +126,21 @@ The
 structure contains:
 .LP
 .IN "XClassHint" "" "@DEF@"
-.Ds 0
+.EX
 typedef struct {
         char *res_name;
         char *res_class;
 } XClassHint;
 .LP
-The res_name member contains the application name, 
-and the res_class member contains the application class. 
+The res_name member contains the application name,
+and the res_class member contains the application class.
 Note that the name set in this property may differ from the name set as WM_NAME.
 That is, WM_NAME specifies what should be displayed in the title bar and,
 therefore, can contain temporal information (for example, the name of
 a file currently in an editor's buffer).
-On the other hand, 
+On the other hand,
 the name specified as part of WM_CLASS is the formal name of the application
-that should be used when retrieving the application's resources from the 
+that should be used when retrieving the application's resources from the
 resource database.
 .SH DIAGNOSTICS
 .TP 1i
@@ -183,6 +150,7 @@ The server failed to allocate the requested resource or server memory.
 .B BadWindow
 A value for a Window argument does not name a defined Window.
 .SH "SEE ALSO"
+.na
 XAllocIconSize(__libmansuffix__),
 XAllocSizeHints(__libmansuffix__),
 XAllocWMHints(__libmansuffix__),

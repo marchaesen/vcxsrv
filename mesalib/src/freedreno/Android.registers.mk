@@ -46,13 +46,44 @@ $(intermediates)/dummy.c:
 LOCAL_GENERATED_SOURCES += $(addprefix $(intermediates)/registers/, \
 	a2xx.xml.h a3xx.xml.h a4xx.xml.h a5xx.xml.h a6xx.xml.h adreno_common.xml.h adreno_pm4.xml.h)
 
-$(intermediates)/registers/%.xml.h: $(LOCAL_PATH)/registers/%.xml $(LOCAL_PATH)/registers/gen_header.py
+$(intermediates)/registers/a2xx.xml.h: $(LOCAL_PATH)/registers/a2xx.xml $(MESA_TOP)/src/freedreno/registers/gen_header.py
 	@mkdir -p $(dir $@)
 	@echo "Gen Header: $(PRIVATE_MODULE) <= $(notdir $(@))"
-	$(hide) $(MESA_PYTHON2) $(LOCAL_PATH)/registers/gen_header.py $< > $@
+	$(hide) $(MESA_PYTHON2) $(MESA_TOP)/src/freedreno/registers/gen_header.py $< > $@
+
+$(intermediates)/registers/a3xx.xml.h: $(LOCAL_PATH)/registers/a3xx.xml $(MESA_TOP)/src/freedreno/registers/gen_header.py
+	@mkdir -p $(dir $@)
+	@echo "Gen Header: $(PRIVATE_MODULE) <= $(notdir $(@))"
+	$(hide) $(MESA_PYTHON2) $(MESA_TOP)/src/freedreno/registers/gen_header.py $< > $@
+
+$(intermediates)/registers/a4xx.xml.h: $(LOCAL_PATH)/registers/a4xx.xml $(MESA_TOP)/src/freedreno/registers/gen_header.py
+	@mkdir -p $(dir $@)
+	@echo "Gen Header: $(PRIVATE_MODULE) <= $(notdir $(@))"
+	$(hide) $(MESA_PYTHON2) $(MESA_TOP)/src/freedreno/registers/gen_header.py $< > $@
+
+$(intermediates)/registers/a5xx.xml.h: $(LOCAL_PATH)/registers/a5xx.xml $(MESA_TOP)/src/freedreno/registers/gen_header.py
+	@mkdir -p $(dir $@)
+	@echo "Gen Header: $(PRIVATE_MODULE) <= $(notdir $(@))"
+	$(hide) $(MESA_PYTHON2) $(MESA_TOP)/src/freedreno/registers/gen_header.py $< > $@
+
+$(intermediates)/registers/a6xx.xml.h: $(LOCAL_PATH)/registers/a6xx.xml $(MESA_TOP)/src/freedreno/registers/gen_header.py
+	@mkdir -p $(dir $@)
+	@echo "Gen Header: $(PRIVATE_MODULE) <= $(notdir $(@))"
+	$(hide) $(MESA_PYTHON2) $(MESA_TOP)/src/freedreno/registers/gen_header.py $< > $@
+
+$(intermediates)/registers/adreno_common.xml.h: $(LOCAL_PATH)/registers/adreno_common.xml $(MESA_TOP)/src/freedreno/registers/gen_header.py
+	@mkdir -p $(dir $@)
+	@echo "Gen Header: $(PRIVATE_MODULE) <= $(notdir $(@))"
+	$(hide) $(MESA_PYTHON2) $(MESA_TOP)/src/freedreno/registers/gen_header.py $< > $@
+
+$(intermediates)/registers/adreno_pm4.xml.h: $(LOCAL_PATH)/registers/adreno_pm4.xml $(MESA_TOP)/src/freedreno/registers/gen_header.py
+	@mkdir -p $(dir $@)
+	@echo "Gen Header: $(PRIVATE_MODULE) <= $(notdir $(@))"
+	$(hide) $(MESA_PYTHON2) $(MESA_TOP)/src/freedreno/registers/gen_header.py $< > $@
+
 
 LOCAL_EXPORT_C_INCLUDE_DIRS := \
-	$(intermediates)
+	$(intermediates)/registers/
 
 include $(MESA_COMMON_MK)
 include $(BUILD_STATIC_LIBRARY)

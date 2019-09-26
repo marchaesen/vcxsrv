@@ -48,7 +48,7 @@ LOCAL_SRC_FILES += \
 $(call mesa-build-with-llvm)
 endif
 
-LOCAL_CPPFLAGS += -std=c++11
+LOCAL_CPPFLAGS += -std=c++14
 
 # We need libmesa_nir to get NIR's generated include directories.
 LOCAL_MODULE := libmesa_gallium

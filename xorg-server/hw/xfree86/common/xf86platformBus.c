@@ -49,6 +49,7 @@
 #include "Pci.h"
 #include "xf86platformBus.h"
 #include "xf86Config.h"
+#include "xf86Crtc.h"
 
 #include "randrstr.h"
 int platformSlotClaimed;
@@ -665,6 +666,9 @@ xf86platformAddDevice(int index)
    }
    /* attach unbound to 0 protocol screen */
    AttachUnboundGPU(xf86Screens[0]->pScreen, xf86GPUScreens[i]->pScreen);
+   if (xf86Info.autoBindGPU)
+       RRProviderAutoConfigGpuScreen(xf86ScrnToScreen(xf86GPUScreens[i]),
+                                     xf86ScrnToScreen(xf86Screens[0]));
 
    RRResourcesChanged(xf86Screens[0]->pScreen);
    RRTellChanged(xf86Screens[0]->pScreen);

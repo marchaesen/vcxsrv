@@ -48,7 +48,7 @@ ALIGNTEXT16
 GLOBL GLNAME(_mesa_sse_transform_rescale_normals_no_rot)
 HIDDEN(_mesa_sse_transform_rescale_normals_no_rot)
 GLNAME(_mesa_sse_transform_rescale_normals_no_rot):
-
+	_CET_ENDBR
 #define FRAME_OFFSET 8
 	PUSH_L  ( ESI )
 	PUSH_L  ( EDI )
@@ -110,7 +110,7 @@ ALIGNTEXT16
 GLOBL GLNAME(_mesa_sse_transform_rescale_normals)
 HIDDEN(_mesa_sse_transform_rescale_normals)
 GLNAME(_mesa_sse_transform_rescale_normals):
-
+	_CET_ENDBR
 #define FRAME_OFFSET 8
 	PUSH_L  ( ESI )
 	PUSH_L  ( EDI )
@@ -203,7 +203,7 @@ ALIGNTEXT16
 GLOBL GLNAME(_mesa_sse_transform_normals_no_rot)
 HIDDEN(_mesa_sse_transform_normals_no_rot)
 GLNAME(_mesa_sse_transform_normals_no_rot):
-
+	_CET_ENDBR
 #define FRAME_OFFSET 8
 	PUSH_L  ( ESI )
 	PUSH_L  ( EDI )

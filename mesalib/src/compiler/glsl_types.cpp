@@ -486,7 +486,6 @@ void
 glsl_type_singleton_decref()
 {
    mtx_lock(&glsl_type::hash_mutex);
-
    assert(glsl_type_users > 0);
 
    /* Do not release glsl_types if they are still used. */
@@ -639,6 +638,7 @@ glsl_type::get_instance(unsigned base_type, unsigned rows, unsigned columns,
                explicit_stride, row_major ? "RM" : "");
 
       mtx_lock(&glsl_type::hash_mutex);
+      assert(glsl_type_users > 0);
 
       if (explicit_matrix_types == NULL) {
          explicit_matrix_types =
@@ -1004,6 +1004,7 @@ glsl_type::get_array_instance(const glsl_type *base,
             explicit_stride);
 
    mtx_lock(&glsl_type::hash_mutex);
+   assert(glsl_type_users > 0);
 
    if (array_types == NULL) {
       array_types = _mesa_hash_table_create(NULL, _mesa_key_hash_string,
@@ -1204,6 +1205,7 @@ glsl_type::get_struct_instance(const glsl_struct_field *fields,
    const glsl_type key(fields, num_fields, name, packed);
 
    mtx_lock(&glsl_type::hash_mutex);
+   assert(glsl_type_users > 0);
 
    if (struct_types == NULL) {
       struct_types = _mesa_hash_table_create(NULL, record_key_hash,
@@ -1239,6 +1241,7 @@ glsl_type::get_interface_instance(const glsl_struct_field *fields,
    const glsl_type key(fields, num_fields, packing, row_major, block_name);
 
    mtx_lock(&glsl_type::hash_mutex);
+   assert(glsl_type_users > 0);
 
    if (interface_types == NULL) {
       interface_types = _mesa_hash_table_create(NULL, record_key_hash,
@@ -1269,6 +1272,7 @@ glsl_type::get_subroutine_instance(const char *subroutine_name)
    const glsl_type key(subroutine_name);
 
    mtx_lock(&glsl_type::hash_mutex);
+   assert(glsl_type_users > 0);
 
    if (subroutine_types == NULL) {
       subroutine_types = _mesa_hash_table_create(NULL, record_key_hash,
@@ -1322,6 +1326,7 @@ glsl_type::get_function_instance(const glsl_type *return_type,
    const glsl_type key(return_type, params, num_params);
 
    mtx_lock(&glsl_type::hash_mutex);
+   assert(glsl_type_users > 0);
 
    if (function_types == NULL) {
       function_types = _mesa_hash_table_create(NULL, function_key_hash,
@@ -2362,6 +2367,67 @@ glsl_type::get_explicit_interface_type(bool supports_std430) const
    } else {
       assert(packing == GLSL_INTERFACE_PACKING_STD430);
       return this->get_explicit_std430_type(this->interface_row_major);
+   }
+}
+
+/* This differs from get_explicit_std430_type() in that it:
+ * - can size arrays slightly smaller ("stride * (len - 1) + elem_size" instead
+ *   of "stride * len")
+ * - consumes a glsl_type_size_align_func which allows 8 and 16-bit values to be
+ *   packed more tightly
+ * - overrides any struct field offsets but get_explicit_std430_type() tries to
+ *   respect any existing ones
+ */
+const glsl_type *
+glsl_type::get_explicit_type_for_size_align(glsl_type_size_align_func type_info,
+                                            unsigned *size, unsigned *alignment) const
+{
+   if (this->is_scalar() || this->is_vector()) {
+      type_info(this, size, alignment);
+      return this;
+   } else if (this->is_array()) {
+      unsigned elem_size, elem_align;
+      const struct glsl_type *explicit_element =
+         this->fields.array->get_explicit_type_for_size_align(type_info, &elem_size, &elem_align);
+
+      unsigned stride = align(elem_size, elem_align);
+
+      *size = stride * (this->length - 1) + elem_size;
+      *alignment = elem_align;
+      return glsl_type::get_array_instance(explicit_element, this->length, stride);
+   } else if (this->is_struct()) {
+      struct glsl_struct_field *fields = (struct glsl_struct_field *)
+         malloc(sizeof(struct glsl_struct_field) * this->length);
+
+      *size = 0;
+      *alignment = 0;
+      for (unsigned i = 0; i < this->length; i++) {
+         fields[i] = this->fields.structure[i];
+         assert(fields[i].matrix_layout != GLSL_MATRIX_LAYOUT_ROW_MAJOR);
+
+         unsigned field_size, field_align;
+         fields[i].type =
+            fields[i].type->get_explicit_type_for_size_align(type_info, &field_size, &field_align);
+         fields[i].offset = align(*size, field_align);
+
+         *size = fields[i].offset + field_size;
+         *alignment = MAX2(*alignment, field_align);
+      }
+
+      const glsl_type *type = glsl_type::get_struct_instance(fields, this->length, this->name, false);
+      free(fields);
+      return type;
+   } else if (this->is_matrix()) {
+      unsigned col_size, col_align;
+      type_info(this->column_type(), &col_size, &col_align);
+      unsigned stride = align(col_size, col_align);
+
+      *size = this->matrix_columns * stride;
+      *alignment = col_align;
+      return glsl_type::get_instance(this->base_type, this->vector_elements,
+                                     this->matrix_columns, stride, false);
+   } else {
+      unreachable("Unhandled type.");
    }
 }
 

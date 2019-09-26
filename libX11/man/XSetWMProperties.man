@@ -39,46 +39,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
+.\" It is provided "as is" without express or implied warranty.
 .\"
-.\" 
+.\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XSetWMProperties __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XSetWMProperties, XmbSetWMProperties, Xutf8SetWMProperties \- set standard window properties
@@ -87,17 +54,17 @@ XSetWMProperties, XmbSetWMProperties, Xutf8SetWMProperties \- set standard windo
 void XSetWMProperties\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^,
 XTextProperty *\fIwindow_name\fP\^, XTextProperty *\fIicon_name\fP\^, char
 **\fIargv\fP\^, int \fIargc\fP\^, XSizeHints *\fInormal_hints\fP\^, XWMHints
-*\fIwm_hints\fP\^, XClassHint *\fIclass_hints\fP\^); 
+*\fIwm_hints\fP\^, XClassHint *\fIclass_hints\fP\^);
 .HP
 void XmbSetWMProperties\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, char
 *\fIwindow_name\fP\^, char *\fIicon_name\fP\^, char *\fIargv\fP\^[], int
 \fIargc\fP\^, XSizeHints *\fInormal_hints\fP\^, XWMHints *\fIwm_hints\fP\^,
-XClassHint *\fIclass_hints\fP\^); 
+XClassHint *\fIclass_hints\fP\^);
 .HP
 void Xutf8SetWMProperties\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, char
 *\fIwindow_name\fP\^, char *\fIicon_name\fP\^, char *\fIargv\fP\^[], int
 \fIargc\fP\^, XSizeHints *\fInormal_hints\fP\^, XWMHints *\fIwm_hints\fP\^,
-XClassHint *\fIclass_hints\fP\^); 
+XClassHint *\fIclass_hints\fP\^);
 .SH ARGUMENTS
 .IP \fIargc\fP 1i
 Specifies the number of arguments.
@@ -124,14 +91,14 @@ Specifies the
 .B XWMHints
 structure to be used.
 .SH DESCRIPTION
-The 
+The
 .B XSetWMProperties
-convenience function provides a single programming interface 
-for setting those essential window properties that are used 
+convenience function provides a single programming interface
+for setting those essential window properties that are used
 for communicating with other clients (particularly window and session
 managers).
 .LP
-If the window_name argument is non-NULL, 
+If the window_name argument is non-NULL,
 .B XSetWMProperties
 calls
 .BR XSetWMName ,
@@ -141,7 +108,7 @@ If the icon_name argument is non-NULL,
 calls
 .BR XSetWMIconName ,
 which sets the WM_ICON_NAME property (see section 14.1.5).
-If the argv argument is non-NULL, 
+If the argv argument is non-NULL,
 .B XSetWMProperties
 calls
 .BR XSetCommand ,
@@ -151,30 +118,30 @@ Note also that the hostname of this machine is stored using
 .B XSetWMClientMachine
 (see section 14.2.2).
 .LP
-If the normal_hints argument is non-NULL, 
+If the normal_hints argument is non-NULL,
 .B XSetWMProperties
 calls
 .BR XSetWMNormalHints ,
 which sets the WM_NORMAL_HINTS property (see section 14.1.7).
-If the wm_hints argument is non-NULL, 
+If the wm_hints argument is non-NULL,
 .B XSetWMProperties
 calls
 .BR XSetWMHints ,
 which sets the WM_HINTS property (see section 14.1.6).
 .LP
-If the class_hints argument is non-NULL, 
+If the class_hints argument is non-NULL,
 .B XSetWMProperties
 calls
 .BR XSetClassHint ,
 which sets the WM_CLASS property (see section 14.1.8).
 If the res_name member in the
 .B XClassHint
-structure is set to the NULL pointer and the RESOURCE_NAME environment 
-variable is set, 
+structure is set to the NULL pointer and the RESOURCE_NAME environment
+variable is set,
 then the value of the environment variable is substituted for res_name.
-If the res_name member is NULL, 
-the environment variable is not set, 
-and argv and argv[0] are set, 
+If the res_name member is NULL,
+the environment variable is not set,
+and argv and argv[0] are set,
 then the value of argv[0], stripped of
 any directory prefixes, is substituted for res_name.
 .LP
@@ -182,8 +149,8 @@ The
 .B XmbSetWMProperties
 and
 .B Xutf8SetWMProperties
-convenience functions provide a simple programming interface 
-for setting those essential window properties that are used 
+convenience functions provide a simple programming interface
+for setting those essential window properties that are used
 for communicating with other clients
 (particularly window and session managers).
 .LP
@@ -197,9 +164,9 @@ in the encoding of the current locale, for
 .B Xutf8SetWMProperties
 in UTF-8 encoding.
 If the arguments can be fully converted to the STRING encoding,
-the properties are created with type ``STRING''; 
-otherwise, the arguments are converted to Compound Text, 
-and the properties are created with type ``COMPOUND_TEXT''.
+the properties are created with type \*(lqSTRING\*(rq;
+otherwise, the arguments are converted to Compound Text,
+and the properties are created with type \*(lqCOMPOUND_TEXT\*(rq.
 .LP
 If the normal_hints argument is non-NULL,
 .B XmbSetWMProperties
@@ -208,7 +175,7 @@ and
 call
 .BR XSetWMNormalHints ,
 which sets the WM_NORMAL_HINTS property (see section 14.1.7).
-If the wm_hints argument is non-NULL, 
+If the wm_hints argument is non-NULL,
 .B XmbSetWMProperties
 and
 .B Xutf8SetWMProperties
@@ -223,7 +190,7 @@ and
 set the WM_COMMAND property from argv and argc.
 An argc of zero indicates a zero-length command.
 .LP
-The hostname of the machine is stored using 
+The hostname of the machine is stored using
 .B XSetWMClientMachine
 (see section 14.2.2).
 .LP
@@ -232,7 +199,7 @@ If the class_hints argument is non-NULL,
 and
 .B Xutf8SetWMProperties
 set the WM_CLASS property.
-If the res_name member in the 
+If the res_name member in the
 .B XClassHint
 structure is set to the NULL pointer and the RESOURCE_NAME
 environment variable is set,
@@ -270,8 +237,9 @@ errors.
 .LP
 The function
 .B Xutf8SetWMProperties
-is an extension introduced by The XFree86 Project, Inc. in their 4.0.2
-release. Its presence is
+is an extension introduced by The XFree86 Project, Inc., in their 4.0.2
+release.
+Its presence is
 indicated by the macro
 .BR X_HAVE_UTF8_STRING .
 .SH PROPERTIES
@@ -289,7 +257,7 @@ application.
 .TP 1i
 \s-1WM_HINTS\s+1
 Additional hints set by the client for use by the window manager.
-The C type of this property is 
+The C type of this property is
 .BR XWMHints .
 .TP 1i
 \s-1WM_ICON_NAME\s+1

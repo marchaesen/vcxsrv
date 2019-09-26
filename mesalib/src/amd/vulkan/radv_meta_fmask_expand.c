@@ -139,7 +139,7 @@ radv_expand_fmask_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 						     .baseArrayLayer = subresourceRange->baseArrayLayer + l,
 						     .layerCount = 1,
 					     },
-				     });
+				     }, NULL);
 
 		radv_meta_push_descriptor_set(cmd_buffer,
 					      VK_PIPELINE_BIND_POINT_COMPUTE,

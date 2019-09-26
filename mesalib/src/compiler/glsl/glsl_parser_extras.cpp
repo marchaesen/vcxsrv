@@ -598,7 +598,7 @@ struct _mesa_glsl_extension {
 
 /** Checks if the context supports a user-facing extension */
 #define EXT(name_str, driver_cap, ...) \
-static MAYBE_UNUSED bool \
+static UNUSED bool \
 has_##name_str(const struct gl_context *ctx, gl_api api, uint8_t version) \
 { \
    return ctx->Extensions.driver_cap && (version >= \
@@ -725,6 +725,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(EXT_shader_framebuffer_fetch),
    EXT(EXT_shader_framebuffer_fetch_non_coherent),
    EXT(EXT_shader_image_load_formatted),
+   EXT(EXT_shader_image_load_store),
    EXT(EXT_shader_implicit_conversions),
    EXT(EXT_shader_integer_mix),
    EXT_AEP(EXT_shader_io_blocks),
@@ -735,6 +736,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT_AEP(EXT_texture_buffer),
    EXT_AEP(EXT_texture_cube_map_array),
    EXT(EXT_texture_query_lod),
+   EXT(EXT_texture_shadow_lod),
    EXT(INTEL_conservative_rasterization),
    EXT(INTEL_shader_atomic_float_minmax),
    EXT(MESA_shader_integer_functions),
@@ -2323,50 +2325,4 @@ do_common_optimization(exec_list *ir, bool linked,
 #undef OPT
 
    return progress;
-}
-
-extern "C" {
-
-/**
- * To be called at GL context ctor.
- */
-void
-_mesa_init_shader_compiler_types(void)
-{
-   glsl_type_singleton_init_or_ref();
-}
-
-/**
- * To be called at GL context dtor.
- */
-void
-_mesa_destroy_shader_compiler_types(void)
-{
-   glsl_type_singleton_decref();
-}
-
-/**
- * To be called at GL teardown time, this frees compiler datastructures.
- *
- * After calling this, any previously compiled shaders and shader
- * programs would be invalid.  So this should happen at approximately
- * program exit.
- */
-void
-_mesa_destroy_shader_compiler(void)
-{
-   _mesa_destroy_shader_compiler_caches();
-}
-
-/**
- * Releases compiler caches to trade off performance for memory.
- *
- * Intended to be used with glReleaseShaderCompiler().
- */
-void
-_mesa_destroy_shader_compiler_caches(void)
-{
-   _mesa_glsl_release_builtin_functions();
-}
-
 }

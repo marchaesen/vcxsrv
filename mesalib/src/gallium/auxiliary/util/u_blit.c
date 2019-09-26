@@ -384,7 +384,7 @@ util_blit_pixels(struct blit_state *ctx,
                  struct pipe_surface *dst,
                  int dstX0, int dstY0,
                  int dstX1, int dstY1,
-                 MAYBE_UNUSED float z,
+                 ASSERTED float z,
                  enum pipe_tex_filter filter,
                  uint writemask)
 {

@@ -308,9 +308,10 @@ output_handle_done(void *data, struct wl_output *wl_output)
 
     xwl_output->wl_output_done = TRUE;
     /* Apply the changes from wl_output only if both "done" events are received,
-     * or if xdg-output is not supported.
+     * if xdg-output is not supported or if xdg-output version is high enough.
      */
-    if (xwl_output->xdg_output_done || !xwl_output->xdg_output)
+    if (xwl_output->xdg_output_done || !xwl_output->xdg_output ||
+        zxdg_output_v1_get_version(xwl_output->xdg_output) >= 3)
         apply_output_change(xwl_output);
 }
 
@@ -352,14 +353,29 @@ xdg_output_handle_done(void *data, struct zxdg_output_v1 *xdg_output)
     struct xwl_output *xwl_output = data;
 
     xwl_output->xdg_output_done = TRUE;
-    if (xwl_output->wl_output_done)
+    if (xwl_output->wl_output_done &&
+        zxdg_output_v1_get_version(xdg_output) < 3)
         apply_output_change(xwl_output);
+}
+
+static void
+xdg_output_handle_name(void *data, struct zxdg_output_v1 *xdg_output,
+                       const char *name)
+{
+}
+
+static void
+xdg_output_handle_description(void *data, struct zxdg_output_v1 *xdg_output,
+                              const char *description)
+{
 }
 
 static const struct zxdg_output_v1_listener xdg_output_listener = {
     xdg_output_handle_logical_position,
     xdg_output_handle_logical_size,
     xdg_output_handle_done,
+    xdg_output_handle_name,
+    xdg_output_handle_description,
 };
 
 struct xwl_output *

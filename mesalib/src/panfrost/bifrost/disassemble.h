@@ -25,4 +25,5 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdint.h>
 void disassemble_bifrost(uint8_t *code, size_t size, bool verbose);

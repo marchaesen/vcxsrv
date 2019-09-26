@@ -38,78 +38,45 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH AllPlanes __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 AllPlanes, BlackPixel, WhitePixel, ConnectionNumber, DefaultColormap, DefaultDepth, XListDepths, DefaultGC, DefaultRootWindow, DefaultScreenOfDisplay, DefaultScreen, DefaultVisual, DisplayCells, DisplayPlanes, DisplayString, XMaxRequestSize, XExtendedMaxRequestSize, LastKnownRequestProcessed, NextRequest, ProtocolVersion, ProtocolRevision, QLength, RootWindow, ScreenCount, ScreenOfDisplay, ServerVendor, VendorRelease \- Display macros and functions
 .SH SYNTAX
-unsigned long AllPlanes; 
+unsigned long AllPlanes;
 .HP
 unsigned long BlackPixel\^(\^Display *\fIdisplay\fP\^, int \^\fIscreen_number\fP\^);
 .HP
-unsigned long WhitePixel\^(\^Display *\fIdisplay\fP\^, int \^\fIscreen_number\fP\^); 
+unsigned long WhitePixel\^(\^Display *\fIdisplay\fP\^, int \^\fIscreen_number\fP\^);
 .HP
-int ConnectionNumber\^(\^Display *\fIdisplay\fP\^); 
+int ConnectionNumber\^(\^Display *\fIdisplay\fP\^);
 .HP
 Colormap DefaultColormap\^(\^Display *\fIdisplay\fP\^,
-\^int \fIscreen_number\fP\^); 
+\^int \fIscreen_number\fP\^);
 .HP
-int DefaultDepth\^(\^Display *\fIdisplay\fP\^, \^int \fIscreen_number\fP\^); 
+int DefaultDepth\^(\^Display *\fIdisplay\fP\^, \^int \fIscreen_number\fP\^);
 .HP
 int *XListDepths\^(\^Display *\fIdisplay\fP, int \fIscreen_number\fP, int
-\fIcount_return\fP\^); 
+\fIcount_return\fP\^);
 .HP
-GC DefaultGC\^(\^Display *\fIdisplay\fP\^, \^int \fIscreen_number\fP\^); 
+GC DefaultGC\^(\^Display *\fIdisplay\fP\^, \^int \fIscreen_number\fP\^);
 .HP
-Window DefaultRootWindow\^(\^Display *\fIdisplay\fP\^); 
+Window DefaultRootWindow\^(\^Display *\fIdisplay\fP\^);
 .HP
-Screen *DefaultScreenOfDisplay\^(\^Display *\fIdisplay\fP\^); 
+Screen *DefaultScreenOfDisplay\^(\^Display *\fIdisplay\fP\^);
 .HP
-int DefaultScreen\^(\^Display *\fIdisplay\fP\^); 
+int DefaultScreen\^(\^Display *\fIdisplay\fP\^);
 .HP
 Visual *DefaultVisual\^(\^Display *\fIdisplay\fP\^, \^int
-\fIscreen_number\fP\^); 
+\fIscreen_number\fP\^);
 .HP
-int DisplayCells\^(\^Display *\fIdisplay\fP\^, \^int \fIscreen_number\fP\^); 
+int DisplayCells\^(\^Display *\fIdisplay\fP\^, \^int \fIscreen_number\fP\^);
 .HP
 int DisplayPlanes\^(\^Display *\fIdisplay\fP\^, \^int \fIscreen_number\fP\^);
 .HP
@@ -119,22 +86,22 @@ long XMaxRequestSize(\^Display *\fIdisplay\fP\^)
 .HP
 long XExtendedMaxRequestSize(\^Display *\fIdisplay\fP\^)
 .HP
-unsigned long LastKnownRequestProcessed\^(\^Display *\fIdisplay\fP\^); 
+unsigned long LastKnownRequestProcessed\^(\^Display *\fIdisplay\fP\^);
 .HP
-unsigned long NextRequest\^(\^Display *\fIdisplay\fP\^); 
+unsigned long NextRequest\^(\^Display *\fIdisplay\fP\^);
 .HP
-int ProtocolVersion\^(\^Display *\fIdisplay\fP\^); 
+int ProtocolVersion\^(\^Display *\fIdisplay\fP\^);
 .HP
-int ProtocolRevision\^(\^Display *\fIdisplay\fP\^); 
+int ProtocolRevision\^(\^Display *\fIdisplay\fP\^);
 .HP
-int QLength\^(\^Display *\fIdisplay\fP\^); 
+int QLength\^(\^Display *\fIdisplay\fP\^);
 .HP
-Window RootWindow\^(\^Display *\fIdisplay\fP\^, \^int \fIscreen_number\fP\^); 
+Window RootWindow\^(\^Display *\fIdisplay\fP\^, \^int \fIscreen_number\fP\^);
 .HP
-int ScreenCount\^(\^Display *\fIdisplay\fP\^); 
+int ScreenCount\^(\^Display *\fIdisplay\fP\^);
 .HP
 Screen *ScreenOfDisplay\^(\^Display *\fIdisplay\fP, int
-\fIscreen_number\fP\^); 
+\fIscreen_number\fP\^);
 .HP
 char *ServerVendor\^(\^Display *\fIdisplay\fP\^)
 .HP
@@ -149,7 +116,7 @@ Returns the number of depths.
 .SH DESCRIPTION
 The
 .B AllPlanes
-macro returns a value with all bits set to 1 suitable for use in a plane 
+macro returns a value with all bits set to 1 suitable for use in a plane
 argument to a procedure.
 .LP
 The
@@ -175,7 +142,7 @@ specified screen.
 .LP
 The
 .B XListDepths
-function returns the array of depths 
+function returns the array of depths
 that are available on the specified screen.
 If the specified screen_number is valid and sufficient memory for the array
 can be allocated,
@@ -237,7 +204,7 @@ as necessary for the following functions:
 .BR XDrawSegments ,
 .BR XFillArcs ,
 .BR XFillRectangles ,
-and 
+and
 .BR XPutImage .
 .LP
 The
@@ -255,7 +222,8 @@ The Xlib functions
 and
 .B XSetRegion
 will use the extended-length encoding as necessary, if supported
-by the server.  Use of the extended-length encoding in other Xlib
+by the server.
+Use of the extended-length encoding in other Xlib
 functions (for example,
 .BR XDrawPoints ,
 .BR XDrawRectangles ,

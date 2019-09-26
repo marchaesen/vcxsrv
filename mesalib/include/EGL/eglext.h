@@ -33,12 +33,12 @@ extern "C" {
 ** used to make the header, and the header can be found at
 **   http://www.khronos.org/registry/egl
 **
-** Khronos $Git commit SHA1: 9ed2ec4c67 $ on $Git commit date: 2019-01-09 17:54:35 -0800 $
+** Khronos $Git commit SHA1: cb927ca98d $ on $Git commit date: 2019-08-08 01:05:38 -0700 $
 */
 
 #include <EGL/eglplatform.h>
 
-#define EGL_EGLEXT_VERSION 20190124
+#define EGL_EGLEXT_VERSION 20190808
 
 /* Generated C header for:
  * API: egl
@@ -461,6 +461,10 @@ typedef EGLint (EGLAPIENTRYP PFNEGLWAITSYNCKHRPROC) (EGLDisplay dpy, EGLSyncKHR 
 EGLAPI EGLint EGLAPIENTRY eglWaitSyncKHR (EGLDisplay dpy, EGLSyncKHR sync, EGLint flags);
 #endif
 #endif /* EGL_KHR_wait_sync */
+
+#ifndef EGL_ANDROID_GLES_layers
+#define EGL_ANDROID_GLES_layers 1
+#endif /* EGL_ANDROID_GLES_layers */
 
 #ifndef EGL_ANDROID_blob_cache
 #define EGL_ANDROID_blob_cache 1
@@ -1129,6 +1133,11 @@ EGLAPI EGLBoolean EGLAPIENTRY eglPostSubBufferNV (EGLDisplay dpy, EGLSurface sur
 #endif
 #endif /* EGL_NV_post_sub_buffer */
 
+#ifndef EGL_NV_quadruple_buffer
+#define EGL_NV_quadruple_buffer 1
+#define EGL_QUADRUPLE_BUFFER_NV           0x3231
+#endif /* EGL_NV_quadruple_buffer */
+
 #ifndef EGL_NV_robustness_video_memory_purge
 #define EGL_NV_robustness_video_memory_purge 1
 #define EGL_GENERATE_RESET_ON_VIDEO_MEMORY_PURGE_NV 0x334C
@@ -1169,6 +1178,12 @@ EGLAPI EGLBoolean EGLAPIENTRY eglStreamConsumerGLTextureExternalAttribsNV (EGLDi
 #define EGL_NV_stream_cross_system 1
 #define EGL_STREAM_CROSS_SYSTEM_NV        0x334F
 #endif /* EGL_NV_stream_cross_system */
+
+#ifndef EGL_NV_stream_dma
+#define EGL_NV_stream_dma 1
+#define EGL_STREAM_DMA_NV                 0x3371
+#define EGL_STREAM_DMA_SERVER_NV          0x3372
+#endif /* EGL_NV_stream_dma */
 
 #ifndef EGL_NV_stream_fifo_next
 #define EGL_NV_stream_fifo_next 1
@@ -1220,6 +1235,21 @@ EGLAPI EGLBoolean EGLAPIENTRY eglSetStreamMetadataNV (EGLDisplay dpy, EGLStreamK
 EGLAPI EGLBoolean EGLAPIENTRY eglQueryStreamMetadataNV (EGLDisplay dpy, EGLStreamKHR stream, EGLenum name, EGLint n, EGLint offset, EGLint size, void *data);
 #endif
 #endif /* EGL_NV_stream_metadata */
+
+#ifndef EGL_NV_stream_origin
+#define EGL_NV_stream_origin 1
+#define EGL_STREAM_FRAME_ORIGIN_X_NV      0x3366
+#define EGL_STREAM_FRAME_ORIGIN_Y_NV      0x3367
+#define EGL_STREAM_FRAME_MAJOR_AXIS_NV    0x3368
+#define EGL_CONSUMER_AUTO_ORIENTATION_NV  0x3369
+#define EGL_PRODUCER_AUTO_ORIENTATION_NV  0x336A
+#define EGL_LEFT_NV                       0x336B
+#define EGL_RIGHT_NV                      0x336C
+#define EGL_TOP_NV                        0x336D
+#define EGL_BOTTOM_NV                     0x336E
+#define EGL_X_AXIS_NV                     0x336F
+#define EGL_Y_AXIS_NV                     0x3370
+#endif /* EGL_NV_stream_origin */
 
 #ifndef EGL_NV_stream_remote
 #define EGL_NV_stream_remote 1
@@ -1316,6 +1346,11 @@ EGLAPI EGLuint64NV EGLAPIENTRY eglGetSystemTimeNV (void);
 #endif
 #endif /* KHRONOS_SUPPORT_INT64 */
 #endif /* EGL_NV_system_time */
+
+#ifndef EGL_NV_triple_buffer
+#define EGL_NV_triple_buffer 1
+#define EGL_TRIPLE_BUFFER_NV              0x3230
+#endif /* EGL_NV_triple_buffer */
 
 #ifndef EGL_TIZEN_image_native_buffer
 #define EGL_TIZEN_image_native_buffer 1

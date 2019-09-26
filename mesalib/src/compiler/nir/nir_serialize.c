@@ -684,7 +684,7 @@ write_phi(write_ctx *ctx, const nir_phi_instr *phi)
    nir_foreach_phi_src(src, phi) {
       assert(src->src.is_ssa);
       size_t blob_offset = blob_reserve_intptr(ctx->blob);
-      MAYBE_UNUSED size_t blob_offset2 = blob_reserve_intptr(ctx->blob);
+      ASSERTED size_t blob_offset2 = blob_reserve_intptr(ctx->blob);
       assert(blob_offset + sizeof(uintptr_t) == blob_offset2);
       write_phi_fixup fixup = {
          .blob_offset = blob_offset,

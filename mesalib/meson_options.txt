@@ -24,6 +24,7 @@ option(
   value : ['auto'],
   choices : [
     '', 'auto', 'x11', 'wayland', 'drm', 'surfaceless', 'haiku', 'android',
+    'windows',
   ],
   description : 'window systems to support. If this is set to `auto`, all platforms applicable will be enabled.'
 )
@@ -143,6 +144,12 @@ option(
   description : 'build gallium "clover" OpenCL state tracker.',
 )
 option(
+  'opencl-spirv',
+  type : 'boolean',
+  value : false,
+  description : 'build gallium "clover" OpenCL state tracker with SPIR-V binary support.',
+)
+option(
   'd3d-drivers-path',
   type : 'string',
   value : '',
@@ -176,9 +183,10 @@ option(
 )
 option(
   'shared-glapi',
-  type : 'boolean',
-  value : true,
-  description : 'Whether to build a shared or static glapi'
+  type : 'combo',
+  value : 'auto',
+  choices : ['auto', 'true', 'false'],
+  description : 'Whether to build a shared or static glapi. Defaults to false on Windows, true elsewhere'
 )
 option(
   'gles1',

@@ -29,6 +29,11 @@ struct winsys_handle
     */
    unsigned layer;
    /**
+    * Input for texture_get_handle, allows to export of a specific plane of a
+    * texture.
+    */
+   unsigned plane;
+   /**
     * Input to texture_from_handle.
     * Output for texture_get_handle.
     */

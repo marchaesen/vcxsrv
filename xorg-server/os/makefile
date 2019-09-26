@@ -8,6 +8,8 @@ XDMCP=1
 NEED_STRLCAT=1
 NEED_STRNDUP=1
 
+INCLUDES+=../dix
+
 SECURERPC_SRCS = rpcauth.c
 XDMCP_SRCS = xdmcp.c
 XORG_SRCS = log.c

@@ -879,11 +879,12 @@ struct pipe_grid_info
 };
 
 /**
- * Structure used as a header for serialized LLVM programs.
+ * Structure used as a header for serialized compute programs.
  */
-struct pipe_llvm_program_header
+struct pipe_binary_program_header
 {
    uint32_t num_bytes; /**< Number of bytes in the LLVM bytecode program. */
+   char blob[];
 };
 
 struct pipe_compute_state

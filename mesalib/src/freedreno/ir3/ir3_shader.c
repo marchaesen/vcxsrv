@@ -24,6 +24,7 @@
  *    Rob Clark <robclark@freedesktop.org>
  */
 
+#include "util/u_atomic.h"
 #include "util/u_string.h"
 #include "util/u_memory.h"
 #include "util/u_format.h"
@@ -177,9 +178,14 @@ assemble_variant(struct ir3_shader_variant *v)
 	v->ir = NULL;
 }
 
+/*
+ * For creating normal shader variants, 'nonbinning' is NULL.  For
+ * creating binning pass shader, it is link to corresponding normal
+ * (non-binning) variant.
+ */
 static struct ir3_shader_variant *
 create_variant(struct ir3_shader *shader, struct ir3_shader_key *key,
-		bool binning_pass)
+		struct ir3_shader_variant *nonbinning)
 {
 	struct ir3_shader_variant *v = CALLOC_STRUCT(ir3_shader_variant);
 	int ret;
@@ -189,7 +195,8 @@ create_variant(struct ir3_shader *shader, struct ir3_shader_key *key,
 
 	v->id = ++shader->variant_count;
 	v->shader = shader;
-	v->binning_pass = binning_pass;
+	v->binning_pass = !!nonbinning;
+	v->nonbinning = nonbinning;
 	v->key = *key;
 	v->type = shader->type;
 
@@ -225,7 +232,7 @@ shader_variant(struct ir3_shader *shader, struct ir3_shader_key *key,
 			return v;
 
 	/* compile new variant if it doesn't exist already: */
-	v = create_variant(shader, key, false);
+	v = create_variant(shader, key, NULL);
 	if (v) {
 		v->next = shader->variants;
 		shader->variants = v;
@@ -239,16 +246,19 @@ struct ir3_shader_variant *
 ir3_shader_get_variant(struct ir3_shader *shader, struct ir3_shader_key *key,
 		bool binning_pass, bool *created)
 {
+	mtx_lock(&shader->variants_lock);
 	struct ir3_shader_variant *v =
 			shader_variant(shader, key, created);
 
 	if (v && binning_pass) {
 		if (!v->binning) {
-			v->binning = create_variant(shader, key, true);
+			v->binning = create_variant(shader, key, v);
 			*created = true;
 		}
+		mtx_unlock(&shader->variants_lock);
 		return v->binning;
 	}
+	mtx_unlock(&shader->variants_lock);
 
 	return v;
 }
@@ -264,6 +274,7 @@ ir3_shader_destroy(struct ir3_shader *shader)
 	}
 	free(shader->const_state.immediates);
 	ralloc_free(shader->nir);
+	mtx_destroy(&shader->variants_lock);
 	free(shader);
 }
 
@@ -272,8 +283,9 @@ ir3_shader_from_nir(struct ir3_compiler *compiler, nir_shader *nir)
 {
 	struct ir3_shader *shader = CALLOC_STRUCT(ir3_shader);
 
+	mtx_init(&shader->variants_lock, mtx_plain);
 	shader->compiler = compiler;
-	shader->id = ++shader->compiler->shader_count;
+	shader->id = p_atomic_inc_return(&shader->compiler->shader_count);
 	shader->type = nir->info.stage;
 
 	NIR_PASS_V(nir, nir_lower_io, nir_var_all, ir3_glsl_type_size,

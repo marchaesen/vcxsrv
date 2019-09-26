@@ -48,7 +48,7 @@ void * ir3_alloc(struct ir3 *shader, int sz)
 struct ir3 * ir3_create(struct ir3_compiler *compiler,
 		gl_shader_stage type, unsigned nin, unsigned nout)
 {
-	struct ir3 *shader = rzalloc(compiler, struct ir3);
+	struct ir3 *shader = rzalloc(NULL, struct ir3);
 
 	shader->compiler = compiler;
 	shader->type = type;
@@ -1041,6 +1041,10 @@ ir3_instr_set_address(struct ir3_instruction *instr,
 {
 	if (instr->address != addr) {
 		struct ir3 *ir = instr->block->shader;
+
+		debug_assert(!instr->address);
+		debug_assert(instr->block == addr->block);
+
 		instr->address = addr;
 		array_insert(ir, ir->indirects, instr);
 	}
@@ -1067,11 +1071,12 @@ ir3_count_instructions(struct ir3 *ir)
 {
 	unsigned cnt = 0;
 	list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
+		block->start_ip = cnt;
+		block->end_ip = cnt;
 		list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
 			instr->ip = cnt++;
+			block->end_ip = instr->ip;
 		}
-		block->start_ip = list_first_entry(&block->instr_list, struct ir3_instruction, node)->ip;
-		block->end_ip = list_last_entry(&block->instr_list, struct ir3_instruction, node)->ip;
 	}
 	return cnt;
 }

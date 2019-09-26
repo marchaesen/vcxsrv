@@ -33,9 +33,6 @@ libglx_la_SOURCES = glxmodule.c
 
 libshadow_la_LDFLAGS = -module -avoid-version $(LD_NO_UNDEFINED_FLAG)
 libshadow_la_LIBADD = $(top_builddir)/miext/shadow/libshadow.la
-if NO_UNDEFINED
-libshadow_la_LIBADD += libfb.la
-endif
 libshadow_la_SOURCES = shmodule.c
 
 libdixmods_la_SOURCES = $(top_srcdir)/mi/miinitext.c

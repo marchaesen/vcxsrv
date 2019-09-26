@@ -35,6 +35,7 @@
 #include "context.h"
 #include "enums.h"
 #include "fbobject.h"
+#include "hash.h"
 #include "mtypes.h"
 #include "util/bitscan.h"
 #include "util/u_math.h"
@@ -377,6 +378,25 @@ _mesa_NamedFramebufferDrawBuffer_no_error(GLuint framebuffer, GLenum buf)
 
 
 void GLAPIENTRY
+_mesa_FramebufferDrawBufferEXT(GLuint framebuffer, GLenum buf)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_framebuffer *fb;
+
+   if (framebuffer) {
+      fb = _mesa_lookup_framebuffer_dsa(ctx, framebuffer,
+                                        "glFramebufferDrawBufferEXT");
+      if (!fb)
+         return;
+   }
+   else
+      fb = ctx->WinSysDrawBuffer;
+
+   draw_buffer_error(ctx, fb, buf, "glFramebufferDrawBufferEXT");
+}
+
+
+void GLAPIENTRY
 _mesa_NamedFramebufferDrawBuffer(GLuint framebuffer, GLenum buf)
 {
    GET_CURRENT_CONTEXT(ctx);
@@ -649,6 +669,24 @@ _mesa_DrawBuffers(GLsizei n, const GLenum *buffers)
    draw_buffers_error(ctx, ctx->DrawBuffer, n, buffers, "glDrawBuffers");
 }
 
+void GLAPIENTRY
+_mesa_FramebufferDrawBuffersEXT(GLuint framebuffer, GLsizei n,
+                                const GLenum *bufs)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_framebuffer *fb;
+
+   if (framebuffer) {
+      fb = _mesa_lookup_framebuffer_dsa(ctx, framebuffer,
+                                        "glFramebufferDrawBuffersEXT");
+      if (!fb)
+         return;
+   }
+   else
+      fb = ctx->WinSysDrawBuffer;
+
+   draw_buffers_error(ctx, fb, n, bufs, "glFramebufferDrawBuffersEXT");
+}
 
 void GLAPIENTRY
 _mesa_NamedFramebufferDrawBuffers_no_error(GLuint framebuffer, GLsizei n,
@@ -956,6 +994,25 @@ _mesa_NamedFramebufferReadBuffer_no_error(GLuint framebuffer, GLenum src)
    }
 
    read_buffer_no_error(ctx, fb, src, "glNamedFramebufferReadBuffer");
+}
+
+
+void GLAPIENTRY
+_mesa_FramebufferReadBufferEXT(GLuint framebuffer, GLenum buf)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_framebuffer *fb;
+
+   if (framebuffer) {
+      fb = _mesa_lookup_framebuffer_dsa(ctx, framebuffer,
+                                        "glFramebufferReadBufferEXT");
+      if (!fb)
+         return;
+   }
+   else
+      fb = ctx->WinSysDrawBuffer;
+
+   read_buffer_err(ctx, fb, buf, "glFramebufferReadBufferEXT");
 }
 
 

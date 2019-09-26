@@ -39,46 +39,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 '\" e
 .TH XAllocColor __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
@@ -106,7 +73,7 @@ unsigned long *\fIgmask_return\fP\^, unsigned long *\fIbmask_return\fP\^);
 int XFreeColors\^(\^Display *\fIdisplay\fP, Colormap \fIcolormap\fP\^, unsigned
 long \fIpixels\fP\^[\^], int \fInpixels\fP\^, unsigned long \fIplanes\fP\^);
 .IP \fIcolor_name\fP 1i
-Specifies the color name string (for example, red) whose color 
+Specifies the color name string (for example, red) whose color
 definition structure you want returned.
 .IP \fIcolormap\fP 1i
 Specifies the colormap.
@@ -117,13 +84,13 @@ Specifies the connection to the X server.
 .IP \fIexact_def_return\fP 1i
 Returns the exact RGB values.
 .IP \fIncolors\fP 1i
-Specifies the number of pixel values that are to be returned in the 
-pixels_return array. 
+Specifies the number of pixel values that are to be returned in the
+pixels_return array.
 .IP \fInpixels\fP 1i
-Specifies the number of pixels. 
+Specifies the number of pixels.
 .IP \fInplanes\fP 1i
-Specifies the number of plane masks that are to be returned in the plane masks 
-array. 
+Specifies the number of plane masks that are to be returned in the plane masks
+array.
 .IP \fInreds\fP 1i
 .br
 .ns
@@ -134,11 +101,11 @@ array.
 .br
 .ns
 Specify the number of red, green, and blue planes.
-The value you pass must be nonnegative. 
+The value you pass must be nonnegative.
 .IP \fIpixels\fP 1i
-Specifies an array of pixel values. 
+Specifies an array of pixel values.
 .IP \fIpixels_return\fP 1i
-Returns an array of pixel values. 
+Returns an array of pixel values.
 .IP \fIplane_mask_return\fP 1i
 Returns an array of plane masks.
 .\" *** JIM: NEED MORE INFO FOR THIS. ***
@@ -194,7 +161,7 @@ It returns both the exact database definition and
 the closest color supported by the screen.
 The allocated color cell is read-only.
 The pixel value is returned in screen_def_return.
-If the color name is not in the Host Portable Character Encoding, 
+If the color name is not in the Host Portable Character Encoding,
 the result is implementation-dependent.
 Use of uppercase or lowercase does not matter.
 If screen_def_return and exact_def_return
@@ -219,7 +186,7 @@ The number of colors must be positive and the number of planes nonnegative,
 or a
 .B BadValue
 error results.
-If ncolors and nplanes are requested, 
+If ncolors and nplanes are requested,
 then ncolors pixels
 and nplane plane masks are returned.
 No mask will have any bits set to 1 in common with
@@ -228,23 +195,23 @@ By ORing together each pixel with zero or more masks,
 ncolors * %2 sup nplanes% distinct pixels can be produced.
 All of these are
 allocated writable by the request.
-For 
+For
 .B GrayScale
-or 
+or
 .BR PseudoColor ,
-each mask has exactly one bit set to 1. 
-For 
+each mask has exactly one bit set to 1.
+For
 .BR DirectColor ,
 each has exactly three bits set to 1.
-If contig is 
+If contig is
 .B True
 and if all masks are ORed
-together, a single contiguous set of bits set to 1 will be formed for 
+together, a single contiguous set of bits set to 1 will be formed for
 .B GrayScale
-or 
+or
 .B PseudoColor
 and three contiguous sets of bits set to 1 (one within each
-pixel subfield) for 
+pixel subfield) for
 .BR DirectColor .
 The RGB values of the allocated
 entries are undefined.
@@ -261,41 +228,41 @@ errors.
 .EQ
 delim %%
 .EN
-The specified ncolors must be positive; 
+The specified ncolors must be positive;
 and nreds, ngreens, and nblues must be nonnegative,
 or a
 .B BadValue
 error results.
-If ncolors colors, nreds reds, ngreens greens, and nblues blues are requested, 
-ncolors pixels are returned; and the masks have nreds, ngreens, and 
+If ncolors colors, nreds reds, ngreens greens, and nblues blues are requested,
+ncolors pixels are returned; and the masks have nreds, ngreens, and
 nblues bits set to 1, respectively.
-If contig is 
+If contig is
 .BR True ,
 each mask will have
 a contiguous set of bits set to 1.
 No mask will have any bits set to 1 in common with
 any other mask or with any of the pixels.
-For 
+For
 .BR DirectColor ,
 each mask
 will lie within the corresponding pixel subfield.
 By ORing together
-subsets of masks with each pixel value, 
-ncolors * %2 sup (nreds+ngreens+nblues)% distinct pixel values can be produced. 
+subsets of masks with each pixel value,
+ncolors * %2 sup (nreds+ngreens+nblues)% distinct pixel values can be produced.
 All of these are allocated by the request.
 However, in the
-colormap, there are only ncolors * %2 sup nreds% independent red entries, 
-ncolors * %2 sup ngreens% independent green entries, 
-and ncolors * %2 sup nblues% independent blue entries. 
-This is true even for 
+colormap, there are only ncolors * %2 sup nreds% independent red entries,
+ncolors * %2 sup ngreens% independent green entries,
+and ncolors * %2 sup nblues% independent blue entries.
+This is true even for
 .BR PseudoColor .
 When the colormap entry of a pixel
-value is changed (using 
+value is changed (using
 .BR XStoreColors ,
 .BR XStoreColor ,
-or 
+or
 .BR XStoreNamedColor ),
-the pixel is decomposed according to the masks, 
+the pixel is decomposed according to the masks,
 and the corresponding independent entries are updated.
 .B XAllocColorPlanes
 returns nonzero if it succeeded or zero if it failed.
@@ -312,11 +279,11 @@ The
 function frees the cells represented by pixels whose values are in the
 pixels array.
 The planes argument should not have any bits set to 1 in common with any of the
-pixels. 
+pixels.
 The set of all pixels is produced by ORing together subsets of
 the planes argument with the pixels.
 The request frees all of these pixels that
-were allocated by the client (using 
+were allocated by the client (using
 .IN XAllocColor
 .IN XAllocNamedColor
 .IN XAllocColorCells
@@ -324,10 +291,10 @@ were allocated by the client (using
 .BR XAllocColor ,
 .BR XAllocNamedColor ,
 .BR XAllocColorCells ,
-and 
+and
 .BR XAllocColorPlanes ).
 Note that freeing an
-individual pixel obtained from 
+individual pixel obtained from
 .B XAllocColorPlanes
 may not actually allow
 it to be reused until all of its related pixels are also freed.
@@ -337,8 +304,8 @@ and if a client allocates the same read-only entry multiple times,
 it must free the entry that many times before the entry is actually freed.
 .LP
 All specified pixels that are allocated by the client in the colormap are
-freed, even if one or more pixels produce an error. 
-If a specified pixel is not a valid index into the colormap, a 
+freed, even if one or more pixels produce an error.
+If a specified pixel is not a valid index into the colormap, a
 .B BadValue
 error results.
 If a specified pixel is not allocated by the
@@ -349,8 +316,8 @@ to
 .BR XCreateColormap ),
 a
 .B BadAccess
-error results. 
-If more than one pixel is in error, 
+error results.
+If more than one pixel is in error,
 the one that gets reported is arbitrary.
 .LP
 .B XFreeColors
@@ -376,11 +343,12 @@ A value for a Colormap argument does not name a defined Colormap.
 .B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
-by the argument's type is accepted.  Any argument defined as a set of
+by the argument's type is accepted.
+Any argument defined as a set of
 alternatives can generate this error.
 .SH "SEE ALSO"
-XCreateColormap(__libmansuffix__), 
+XCreateColormap(__libmansuffix__),
 XQueryColor(__libmansuffix__),
-XStoreColors(__libmansuffix__) 
+XStoreColors(__libmansuffix__)
 .br
 \fI\*(xL\fP

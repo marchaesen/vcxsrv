@@ -1086,65 +1086,6 @@ translate_image_format(struct vtn_builder *b, SpvImageFormat format)
    }
 }
 
-static struct vtn_type *
-vtn_type_layout_std430(struct vtn_builder *b, struct vtn_type *type,
-                       uint32_t *size_out, uint32_t *align_out)
-{
-   switch (type->base_type) {
-   case vtn_base_type_scalar: {
-      uint32_t comp_size = glsl_type_is_boolean(type->type)
-         ? 4 : glsl_get_bit_size(type->type) / 8;
-      *size_out = comp_size;
-      *align_out = comp_size;
-      return type;
-   }
-
-   case vtn_base_type_vector: {
-      uint32_t comp_size = glsl_type_is_boolean(type->type)
-         ? 4 : glsl_get_bit_size(type->type) / 8;
-      unsigned align_comps = type->length == 3 ? 4 : type->length;
-      *size_out = comp_size * type->length,
-      *align_out = comp_size * align_comps;
-      return type;
-   }
-
-   case vtn_base_type_matrix:
-   case vtn_base_type_array: {
-      /* We're going to add an array stride */
-      type = vtn_type_copy(b, type);
-      uint32_t elem_size, elem_align;
-      type->array_element = vtn_type_layout_std430(b, type->array_element,
-                                                   &elem_size, &elem_align);
-      type->stride = vtn_align_u32(elem_size, elem_align);
-      *size_out = type->stride * type->length;
-      *align_out = elem_align;
-      return type;
-   }
-
-   case vtn_base_type_struct: {
-      /* We're going to add member offsets */
-      type = vtn_type_copy(b, type);
-      uint32_t offset = 0;
-      uint32_t align = 0;
-      for (unsigned i = 0; i < type->length; i++) {
-         uint32_t mem_size, mem_align;
-         type->members[i] = vtn_type_layout_std430(b, type->members[i],
-                                                   &mem_size, &mem_align);
-         offset = vtn_align_u32(offset, mem_align);
-         type->offsets[i] = offset;
-         offset += mem_size;
-         align = MAX2(align, mem_align);
-      }
-      *size_out = offset;
-      *align_out = align;
-      return type;
-   }
-
-   default:
-      unreachable("Invalid SPIR-V type for std430");
-   }
-}
-
 static void
 vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
                 const uint32_t *w, unsigned count)
@@ -1416,18 +1357,6 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
             default:
                break;
             }
-         } else if (storage_class == SpvStorageClassWorkgroup &&
-                    b->options->lower_workgroup_access_to_offsets) {
-            /* Lay out Workgroup types so it can be lowered to offsets during
-             * SPIR-V to NIR conversion.  When not lowering to offsets, the
-             * stride will be calculated by the driver.
-             */
-            uint32_t size, align;
-            val->type->deref = vtn_type_layout_std430(b, val->type->deref,
-                                                      &size, &align);
-            val->type->length = size;
-            val->type->align = align;
-            val->type->stride = vtn_align_u32(size, align);
          }
       }
       break;
@@ -1967,7 +1896,9 @@ vtn_handle_constant(struct vtn_builder *b, SpvOp opcode,
          nir_const_value *srcs[3] = {
             src[0], src[1], src[2],
          };
-         nir_eval_const_opcode(op, val->constant->values, num_components, bit_size, srcs);
+         nir_eval_const_opcode(op, val->constant->values,
+                               num_components, bit_size, srcs,
+                               b->shader->info.float_controls_execution_mode);
          break;
       } /* default */
       }
@@ -2549,10 +2480,10 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
    OP(AtomicIDecrement,          atomic_add)
    OP(AtomicIAdd,                atomic_add)
    OP(AtomicISub,                atomic_add)
-   OP(AtomicSMin,                atomic_min)
-   OP(AtomicUMin,                atomic_min)
-   OP(AtomicSMax,                atomic_max)
-   OP(AtomicUMax,                atomic_max)
+   OP(AtomicSMin,                atomic_imin)
+   OP(AtomicUMin,                atomic_umin)
+   OP(AtomicSMax,                atomic_imax)
+   OP(AtomicUMax,                atomic_umax)
    OP(AtomicAnd,                 atomic_and)
    OP(AtomicOr,                  atomic_or)
    OP(AtomicXor,                 atomic_xor)
@@ -2697,33 +2628,6 @@ get_uniform_nir_atomic_op(struct vtn_builder *b, SpvOp opcode)
 }
 
 static nir_intrinsic_op
-get_shared_nir_atomic_op(struct vtn_builder *b, SpvOp opcode)
-{
-   switch (opcode) {
-   case SpvOpAtomicLoad:         return nir_intrinsic_load_shared;
-   case SpvOpAtomicStore:        return nir_intrinsic_store_shared;
-#define OP(S, N) case SpvOp##S: return nir_intrinsic_shared_##N;
-   OP(AtomicExchange,            atomic_exchange)
-   OP(AtomicCompareExchange,     atomic_comp_swap)
-   OP(AtomicCompareExchangeWeak, atomic_comp_swap)
-   OP(AtomicIIncrement,          atomic_add)
-   OP(AtomicIDecrement,          atomic_add)
-   OP(AtomicIAdd,                atomic_add)
-   OP(AtomicISub,                atomic_add)
-   OP(AtomicSMin,                atomic_imin)
-   OP(AtomicUMin,                atomic_umin)
-   OP(AtomicSMax,                atomic_imax)
-   OP(AtomicUMax,                atomic_umax)
-   OP(AtomicAnd,                 atomic_and)
-   OP(AtomicOr,                  atomic_or)
-   OP(AtomicXor,                 atomic_xor)
-#undef OP
-   default:
-      vtn_fail_with_opcode("Invalid shared atomic", opcode);
-   }
-}
-
-static nir_intrinsic_op
 get_deref_nir_atomic_op(struct vtn_builder *b, SpvOp opcode)
 {
    switch (opcode) {
@@ -2842,15 +2746,9 @@ vtn_handle_atomics(struct vtn_builder *b, SpvOp opcode,
       nir_ssa_def *offset, *index;
       offset = vtn_pointer_to_offset(b, ptr, &index);
 
-      nir_intrinsic_op op;
-      if (ptr->mode == vtn_variable_mode_ssbo) {
-         op = get_ssbo_nir_atomic_op(b, opcode);
-      } else {
-         vtn_assert(ptr->mode == vtn_variable_mode_workgroup &&
-                    b->options->lower_workgroup_access_to_offsets);
-         op = get_shared_nir_atomic_op(b, opcode);
-      }
+      assert(ptr->mode == vtn_variable_mode_ssbo);
 
+      nir_intrinsic_op op  = get_ssbo_nir_atomic_op(b, opcode);
       atomic = nir_intrinsic_instr_create(b->nb.shader, op);
 
       int src = 0;
@@ -3677,6 +3575,8 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          spv_check_supported(storage_16bit, cap);
          break;
 
+      case SpvCapabilityShaderLayer:
+      case SpvCapabilityShaderViewportIndex:
       case SpvCapabilityShaderViewportIndexLayerEXT:
          spv_check_supported(shader_viewport_index_layer, cap);
          break;
@@ -3717,6 +3617,14 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
 
       case SpvCapabilitySampleMaskPostDepthCoverage:
          spv_check_supported(post_depth_coverage, cap);
+         break;
+
+      case SpvCapabilityDenormFlushToZero:
+      case SpvCapabilityDenormPreserve:
+      case SpvCapabilitySignedZeroInfNanPreserve:
+      case SpvCapabilityRoundingModeRTE:
+      case SpvCapabilityRoundingModeRTZ:
+         spv_check_supported(float_controls, cap);
          break;
 
       case SpvCapabilityPhysicalStorageBufferAddressesEXT:
@@ -4020,11 +3928,76 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
       b->shader->info.fs.sample_interlock_unordered = true;
       break;
 
+   case SpvExecutionModeDenormPreserve:
+   case SpvExecutionModeDenormFlushToZero:
+   case SpvExecutionModeSignedZeroInfNanPreserve:
+   case SpvExecutionModeRoundingModeRTE:
+   case SpvExecutionModeRoundingModeRTZ:
+      /* Already handled in vtn_handle_rounding_mode_in_execution_mode() */
+      break;
+
    default:
       vtn_fail("Unhandled execution mode: %s (%u)",
                spirv_executionmode_to_string(mode->exec_mode),
                mode->exec_mode);
    }
+}
+
+static void
+vtn_handle_rounding_mode_in_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
+                                           const struct vtn_decoration *mode, void *data)
+{
+   vtn_assert(b->entry_point == entry_point);
+
+   unsigned execution_mode = 0;
+
+   switch(mode->exec_mode) {
+   case SpvExecutionModeDenormPreserve:
+      switch (mode->operands[0]) {
+      case 16: execution_mode = FLOAT_CONTROLS_DENORM_PRESERVE_FP16; break;
+      case 32: execution_mode = FLOAT_CONTROLS_DENORM_PRESERVE_FP32; break;
+      case 64: execution_mode = FLOAT_CONTROLS_DENORM_PRESERVE_FP64; break;
+      default: vtn_fail("Floating point type not supported");
+      }
+      break;
+   case SpvExecutionModeDenormFlushToZero:
+      switch (mode->operands[0]) {
+      case 16: execution_mode = FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP16; break;
+      case 32: execution_mode = FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP32; break;
+      case 64: execution_mode = FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP64; break;
+      default: vtn_fail("Floating point type not supported");
+      }
+       break;
+   case SpvExecutionModeSignedZeroInfNanPreserve:
+      switch (mode->operands[0]) {
+      case 16: execution_mode = FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP16; break;
+      case 32: execution_mode = FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP32; break;
+      case 64: execution_mode = FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP64; break;
+      default: vtn_fail("Floating point type not supported");
+      }
+      break;
+   case SpvExecutionModeRoundingModeRTE:
+      switch (mode->operands[0]) {
+      case 16: execution_mode = FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP16; break;
+      case 32: execution_mode = FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP32; break;
+      case 64: execution_mode = FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP64; break;
+      default: vtn_fail("Floating point type not supported");
+      }
+      break;
+   case SpvExecutionModeRoundingModeRTZ:
+      switch (mode->operands[0]) {
+      case 16: execution_mode = FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP16; break;
+      case 32: execution_mode = FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP32; break;
+      case 64: execution_mode = FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP64; break;
+      default: vtn_fail("Floating point type not supported");
+      }
+      break;
+
+   default:
+      break;
+   }
+
+   b->shader->info.float_controls_execution_mode |= execution_mode;
 }
 
 static bool
@@ -4752,6 +4725,13 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
 
    /* Set shader info defaults */
    b->shader->info.gs.invocations = 1;
+
+   /* Parse rounding mode execution modes. This has to happen earlier than
+    * other changes in the execution modes since they can affect, for example,
+    * the result of the floating point constants.
+    */
+   vtn_foreach_execution_mode(b, b->entry_point,
+                              vtn_handle_rounding_mode_in_execution_mode, NULL);
 
    b->specializations = spec;
    b->num_specializations = num_spec;

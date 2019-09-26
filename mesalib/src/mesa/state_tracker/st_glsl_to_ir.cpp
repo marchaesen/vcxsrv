@@ -59,6 +59,12 @@ st_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
 
    assert(prog->data->LinkStatus);
 
+   /* Skip the GLSL steps when using SPIR-V. */
+   if (prog->data->spirv) {
+      assert(use_nir);
+      return st_link_nir(ctx, prog);
+   }
+
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       if (prog->_LinkedShaders[i] == NULL)
          continue;

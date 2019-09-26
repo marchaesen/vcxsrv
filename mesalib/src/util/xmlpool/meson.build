@@ -36,5 +36,7 @@ xmlpool_options_h = custom_target(
   depend_files : _langs_po_files,
 )
 
-i18n = import('i18n')
-i18n.gettext('xmlpool', install : false)
+if host_machine.system() != 'windows'
+  i18n = import('i18n')
+  i18n.gettext('xmlpool', install : false)
+endif

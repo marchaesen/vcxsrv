@@ -1312,6 +1312,11 @@ ChipFamily Gfx9Lib::HwlConvertChipFamily(
                 m_settings.applyAliasFix = 1;
             }
 
+            if (ASICREV_IS_RENOIR(uChipRevision))
+            {
+                m_settings.isRaven = 1;
+            }
+
             m_settings.isDcn1 = m_settings.isRaven;
 
             m_settings.metaBaseAlignFix = 1;
@@ -2483,7 +2488,7 @@ ADDR_E_RETURNCODE Gfx9Lib::HwlComputeBlock256Equation(
     // Post validation
     if (ret == ADDR_OK)
     {
-        MAYBE_UNUSED Dim2d microBlockDim = Block256_2d[elementBytesLog2];
+        ASSERTED Dim2d microBlockDim = Block256_2d[elementBytesLog2];
         ADDR_ASSERT((2u << GetMaxValidChannelIndex(pEquation->addr, 8, 0)) ==
                     (microBlockDim.w * (1 << elementBytesLog2)));
         ADDR_ASSERT((2u << GetMaxValidChannelIndex(pEquation->addr, 8, 1)) == microBlockDim.h);
@@ -3843,7 +3848,7 @@ ADDR_E_RETURNCODE Gfx9Lib::ComputeStereoInfo(
             const UINT_32        numBankBits       = GetBankXorBits(blkSizeLog2);
             const UINT_32        bppLog2           = Log2(pIn->bpp >> 3);
             const UINT_32        maxYCoordBlock256 = Log2(Block256_2d[bppLog2].h) - 1;
-            MAYBE_UNUSED const ADDR_EQUATION *pEqToCheck = &m_equationTable[eqIndex];
+            ASSERTED const ADDR_EQUATION *pEqToCheck = &m_equationTable[eqIndex];
 
             ADDR_ASSERT(maxYCoordBlock256 ==
                         GetMaxValidChannelIndex(&pEqToCheck->addr[0], GetBlockSizeLog2(ADDR_SW_256B), 1));

@@ -262,6 +262,16 @@
     <value name="packed complete patches" value="2"/>
   </enum>
 
+  <enum name="Primitve counters" prefix="V3D_PRIM_COUNTS">
+    <value name="tf_words_buffer0" value="0"/>
+    <value name="tf_words_buffer1" value="1"/>
+    <value name="tf_words_buffer2" value="2"/>
+    <value name="tf_words_buffer3" value="3"/>
+    <value name="written" value="4"/>
+    <value name="tf_written" value="5"/>
+    <value name="tf_overflow" value="6"/>
+  </enum>
+
   <packet code="0" name="Halt"/>
   <packet code="1" name="NOP"/>
   <packet code="4" name="Flush"/>

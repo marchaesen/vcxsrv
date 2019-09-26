@@ -38,46 +38,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XGetWindowProperty __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XGetWindowProperty, XListProperties, XChangeProperty, XRotateWindowProperties, XDeleteProperty \- obtain and change window properties
@@ -87,27 +54,27 @@ int XGetWindowProperty\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, Atom
 \fIproperty\fP\^, long \fIlong_offset\fP\^, long \fIlong_length\fP\^, Bool
 \fIdelete\fP\^, Atom \fIreq_type\fP\^, Atom *\fIactual_type_return\fP\^, int
 *\fIactual_format_return\fP\^, unsigned long *\fInitems_return\fP\^, unsigned
-long *\fIbytes_after_return\fP\^, unsigned char **\fIprop_return\fP\^); 
+long *\fIbytes_after_return\fP\^, unsigned char **\fIprop_return\fP\^);
 .HP
 Atom *XListProperties\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, int
-*\fInum_prop_return\fP\^); 
+*\fInum_prop_return\fP\^);
 .HP
 int XChangeProperty\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, Atom
 \fIproperty\fP\^, Atom \fItype\fP\^, int \fIformat\fP\^, int \fImode\fP\^,
-unsigned char *\fIdata\fP\^, int \fInelements\fP\^); 
+unsigned char *\fIdata\fP\^, int \fInelements\fP\^);
 .HP
 int XRotateWindowProperties\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^,
-Atom \fIproperties\fP\^[]\^, int \fInum_prop\fP\^, int \fInpositions\fP\^); 
+Atom \fIproperties\fP\^[]\^, int \fInum_prop\fP\^, int \fInpositions\fP\^);
 .HP
 int XDeleteProperty\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^, Atom
-\fIproperty\fP\^); 
+\fIproperty\fP\^);
 .SH ARGUMENTS
 .IP \fIactual_format_return\fP 1i
 Returns the actual format of the property.
 .IP \fIactual_type_return\fP 1i
 Returns the atom identifier  that defines the actual type of the property.
 .IP \fIbytes_after_return\fP 1i
-Returns the number of bytes remaining to be read in the property if 
+Returns the number of bytes remaining to be read in the property if
 a partial read was performed.
 .IP \fIdata\fP 1i
 Specifies the property data.
@@ -123,12 +90,12 @@ This information allows the X server to correctly perform
 byte-swap operations as necessary.
 If the format is 16-bit or 32-bit,
 you must explicitly cast your data pointer to an (unsigned char *) in the call
-to 
+to
 .BR XChangeProperty .
 .IP \fIlong_length\fP 1i
 Specifies the length in 32-bit multiples of the data to be retrieved.
 .IP \fIlong_offset\fP 1i
-Specifies the offset in the specified property (in 32-bit quantities) 
+Specifies the offset in the specified property (in 32-bit quantities)
 where the data is to be retrieved.
 .\" Changed name of this file to prop_mode.a on 1/13/87
 .IP \fImode\fP 1i
@@ -141,7 +108,7 @@ or
 .IP \fInelements\fP 1i
 Specifies the number of elements of the specified data format.
 .IP \fInitems_return\fP 1i
-Returns the actual number of 8-bit, 16-bit, or 32-bit items 
+Returns the actual number of 8-bit, 16-bit, or 32-bit items
 stored in the prop_return data.
 .IP \fInum_prop\fP 1i
 Specifies the length of the properties array.
@@ -152,9 +119,11 @@ Specifies the rotation amount.
 .IP \fIprop_return\fP 1i
 Returns the data in the specified format.
 If the returned format is 8, the returned data is represented as a
-char array. If the returned format is 16, the returned data is
+char array.
+If the returned format is 16, the returned data is
 represented as a array of short int type and should be cast to that
-type to obtain the elements. If the returned format is 32, the
+type to obtain the elements.
+If the returned format is 32, the
 property data will be stored as an array of longs (which in a 64-bit
 application will be 64-bit values that are padded in the upper 4 bytes).
 .IP \fIproperty\fP 1i
@@ -167,7 +136,7 @@ Specifies the atom identifier associated with the property type or
 .IP \fItype\fP 1i
 Specifies the type of the property.
 The X server does not interpret the type but simply
-passes it back to an application that later calls 
+passes it back to an application that later calls
 .BR XGetWindowProperty .
 .IP \fIw\fP 1i
 Specifies the window whose property you want to obtain, change, rotate or delete.
@@ -182,31 +151,31 @@ sets the return arguments as follows:
 .IP \(bu 5
 If the specified property does not exist for the specified window,
 .B XGetWindowProperty
-returns 
+returns
 .B None
-to actual_type_return and the value zero to 
+to actual_type_return and the value zero to
 actual_format_return and bytes_after_return.
 The nitems_return argument is empty.
 In this case, the delete argument is ignored.
 .IP \(bu 5
-If the specified property exists 
+If the specified property exists
 but its type does not match the specified type,
 .B XGetWindowProperty
-returns the actual property type to actual_type_return, 
-the actual property format (never zero) to actual_format_return, 
+returns the actual property type to actual_type_return,
+the actual property format (never zero) to actual_format_return,
 and the property length in bytes
-(even if the actual_format_return is 16 or 32) 
+(even if the actual_format_return is 16 or 32)
 to bytes_after_return.
 It also ignores the delete argument.
 The nitems_return argument is empty.
 .IP \(bu 5
-If the specified property exists and either you assign 
+If the specified property exists and either you assign
 .B AnyPropertyType
 to the req_type argument or the specified type matches the actual property type,
 .B XGetWindowProperty
 returns the actual property type to actual_type_return and the actual
-property format (never zero) to actual_format_return. 
-It also returns a value to bytes_after_return and nitems_return, by 
+property format (never zero) to actual_format_return.
+It also returns a value to bytes_after_return and nitems_return, by
 defining the following
 values:
 .IP
@@ -224,8 +193,8 @@ from zero), and its length in bytes is L.
 If the value for long_offset causes L to be negative,
 a
 .B BadValue
-error results. 
-The value of bytes_after_return is A, 
+error results.
+The value of bytes_after_return is A,
 giving the number of trailing unread bytes in the stored property.
 .LP
 If the returned format is 8, the returned data is represented as a
@@ -239,17 +208,17 @@ If the returned format is 32, the returned data is represented as a
 array and should be cast to that type to obtain the elements.
 .LP
 .B XGetWindowProperty
-always allocates one extra byte in prop_return 
-(even if the property is zero length) 
+always allocates one extra byte in prop_return
+(even if the property is zero length)
 and sets it to zero so that simple properties consisting of characters
 do not have to be copied into yet another string before use.
 .LP
-If delete is 
+If delete is
 .B True
-and bytes_after_return is zero, 
+and bytes_after_return is zero,
 .B XGetWindowProperty
-deletes the property 
-from the window and generates a 
+deletes the property
+from the window and generates a
 .B PropertyNotify
 event on the window.
 .LP
@@ -270,7 +239,7 @@ errors.
 .LP
 The
 .B XListProperties
-function returns a pointer to an array of atom properties that are defined for 
+function returns a pointer to an array of atom properties that are defined for
 the specified window or returns NULL if no properties were found.
 To free the memory allocated by this function, use
 .BR XFree .
@@ -305,7 +274,7 @@ The type and format must match the existing property value,
 or a
 .B BadMatch
 error results.
-If the property is undefined, 
+If the property is undefined,
 it is treated as defined with the correct type and
 format with zero-length data.
 .LP
@@ -323,7 +292,7 @@ The lifetime of a property is not tied to the storing client.
 Properties remain until explicitly deleted, until the window is destroyed,
 or until the server resets.
 For a discussion of what happens when the connection to the X server is closed,
-see section 2.6. 
+see section 2.6.
 The maximum size of a property is server dependent and can vary dynamically
 depending on the amount of memory the server has available.
 (If there is insufficient space, a
@@ -346,25 +315,25 @@ function allows you to rotate properties on a window and causes
 the X server to generate
 .B PropertyNotify
 events.
-If the property names in the properties array are viewed as being numbered 
+If the property names in the properties array are viewed as being numbered
 starting from zero and if there are num_prop property names in the list,
-then the value associated with property name I becomes the value associated 
+then the value associated with property name I becomes the value associated
 with property name (I + npositions) mod N for all I from zero to N \- 1.
 The effect is to rotate the states by npositions places around the virtual ring
-of property names (right for positive npositions, 
+of property names (right for positive npositions,
 left for negative npositions).
 If npositions mod N is nonzero,
 the X server generates a
 .B PropertyNotify
 event for each property in the order that they are listed in the array.
-If an atom occurs more than once in the list or no property with that 
+If an atom occurs more than once in the list or no property with that
 name is defined for the window,
-a 
+a
 .B BadMatch
 error results.
-If a 
+If a
 .B BadAtom
-or 
+or
 .B BadMatch
 error results,
 no properties are changed.
@@ -402,7 +371,8 @@ A value for an Atom argument does not name a defined Atom.
 .B BadValue
 Some numeric value falls outside the range of values accepted by the request.
 Unless a specific range is specified for an argument, the full range defined
-by the argument's type is accepted.  Any argument defined as a set of
+by the argument's type is accepted.
+Any argument defined as a set of
 alternatives can generate this error.
 .TP 1i
 .B BadWindow

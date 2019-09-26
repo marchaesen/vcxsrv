@@ -237,6 +237,16 @@ st_invalidate_state(struct gl_context *ctx)
    if (new_state & _NEW_CURRENT_ATTRIB && st_vp_uses_current_values(ctx))
       st->dirty |= ST_NEW_VERTEX_ARRAYS;
 
+   if (st->clamp_frag_depth_in_shader && (new_state & _NEW_VIEWPORT)) {
+      if (ctx->GeometryProgram._Current)
+         st->dirty |= ST_NEW_GS_CONSTANTS;
+      else if (ctx->TessEvalProgram._Current)
+         st->dirty |= ST_NEW_TES_CONSTANTS;
+      else
+         st->dirty |= ST_NEW_VS_CONSTANTS;
+      st->dirty |= ST_NEW_FS_CONSTANTS;
+   }
+
    /* Update the vertex shader if ctx->Light._ClampVertexColor was changed. */
    if (st->clamp_vert_color_in_shader && (new_state & _NEW_LIGHT)) {
       st->dirty |= ST_NEW_VS_STATE;
@@ -511,7 +521,17 @@ st_init_driver_flags(struct st_context *st)
    f->NewClipControl = ST_NEW_VIEWPORT | ST_NEW_RASTERIZER;
    f->NewClipPlane = ST_NEW_CLIP_STATE;
    f->NewClipPlaneEnable = ST_NEW_RASTERIZER;
-   f->NewDepthClamp = ST_NEW_RASTERIZER;
+
+   if (st->clamp_frag_depth_in_shader) {
+      f->NewClipControl |= ST_NEW_VS_STATE | ST_NEW_GS_STATE |
+                           ST_NEW_TES_STATE;
+
+      f->NewDepthClamp = ST_NEW_FS_STATE | ST_NEW_VS_STATE |
+                         ST_NEW_GS_STATE | ST_NEW_TES_STATE;
+   } else {
+      f->NewDepthClamp = ST_NEW_RASTERIZER;
+   }
+
    f->NewLineState = ST_NEW_RASTERIZER;
    f->NewPolygonState = ST_NEW_RASTERIZER;
    f->NewPolygonStipple = ST_NEW_POLY_STIPPLE;
@@ -679,6 +699,9 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
       }
    }
 
+   if (screen->get_param(screen, PIPE_CAP_DEPTH_CLIP_DISABLE) == 2)
+      st->clamp_frag_depth_in_shader = true;
+
    /* called after _mesa_create_context/_mesa_init_point, fix default user
     * settable max point size up
     */
@@ -698,19 +721,23 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
    /* Set which shader types can be compiled at link time. */
    st->shader_has_one_variant[MESA_SHADER_VERTEX] =
          st->has_shareable_shaders &&
+         !st->clamp_frag_depth_in_shader &&
          !st->clamp_vert_color_in_shader;
 
    st->shader_has_one_variant[MESA_SHADER_FRAGMENT] =
          st->has_shareable_shaders &&
          !st->clamp_frag_color_in_shader &&
+         !st->clamp_frag_depth_in_shader &&
          !st->force_persample_in_shader;
 
    st->shader_has_one_variant[MESA_SHADER_TESS_CTRL] = st->has_shareable_shaders;
    st->shader_has_one_variant[MESA_SHADER_TESS_EVAL] =
          st->has_shareable_shaders &&
+         !st->clamp_frag_depth_in_shader &&
          !st->clamp_vert_color_in_shader;
    st->shader_has_one_variant[MESA_SHADER_GEOMETRY] =
          st->has_shareable_shaders &&
+         !st->clamp_frag_depth_in_shader &&
          !st->clamp_vert_color_in_shader;
    st->shader_has_one_variant[MESA_SHADER_COMPUTE] = st->has_shareable_shaders;
 
@@ -1008,11 +1035,6 @@ st_destroy_context(struct st_context *st)
     * afterwards. */
    st_destroy_context_priv(st, true);
    st = NULL;
-
-   /* This must be called after st_destroy_context_priv() to avoid a race
-    * condition between any shader compiler threads and context destruction.
-    */
-   _mesa_destroy_shader_compiler_types();
 
    free(ctx);
 

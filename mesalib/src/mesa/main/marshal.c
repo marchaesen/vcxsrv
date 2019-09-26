@@ -130,7 +130,7 @@ _mesa_unmarshal_ShaderSource(struct gl_context *ctx,
    }
    CALL_ShaderSource(ctx->CurrentServerDispatch,
                      (cmd->shader, cmd->count, string, cmd_length));
-   free(string);
+   free((void *)string);
 }
 
 

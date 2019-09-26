@@ -26,6 +26,7 @@
 #include "midgard_ops.h"
 #include "util/register_allocate.h"
 #include "util/u_math.h"
+#include "util/u_memory.h"
 
 /* For work registers, we can subdivide in various ways. So we create
  * classes for the various sizes and conflict accordingly, keeping in
@@ -48,7 +49,7 @@
 /* We have overlapping register classes for special registers, handled via
  * shadows */
 
-#define SHADOW_R27 17
+#define SHADOW_R0  17
 #define SHADOW_R28 18
 #define SHADOW_R29 19
 
@@ -138,12 +139,14 @@ default_phys_reg(int reg)
  * register corresponds to */
 
 static struct phys_reg
-index_to_reg(compiler_context *ctx, struct ra_graph *g, int reg)
+index_to_reg(compiler_context *ctx, struct ra_graph *g, unsigned reg)
 {
         /* Check for special cases */
-        if (reg >= SSA_FIXED_MINIMUM)
+        if (reg == ~0)
+                return default_phys_reg(REGISTER_UNUSED);
+        else if (reg >= SSA_FIXED_MINIMUM)
                 return default_phys_reg(SSA_REG_FROM_FIXED(reg));
-        else if ((reg < 0) || !g)
+        else if (!g)
                 return default_phys_reg(REGISTER_UNUSED);
 
         /* Special cases aside, we pick the underlying register */
@@ -155,8 +158,10 @@ index_to_reg(compiler_context *ctx, struct ra_graph *g, int reg)
 
         /* Apply shadow registers */
 
-        if (phys >= SHADOW_R27 && phys <= SHADOW_R29)
-                phys += 27 - SHADOW_R27;
+        if (phys >= SHADOW_R28 && phys <= SHADOW_R29)
+                phys += 28 - SHADOW_R28;
+        else if (phys == SHADOW_R0)
+                phys = 0;
 
         struct phys_reg r = {
                 .reg = phys,
@@ -178,12 +183,12 @@ index_to_reg(compiler_context *ctx, struct ra_graph *g, int reg)
  * special register allocation */
 
 static void
-add_shadow_conflicts (struct ra_regs *regs, unsigned base, unsigned shadow)
+add_shadow_conflicts (struct ra_regs *regs, unsigned base, unsigned shadow, unsigned shadow_count)
 {
         for (unsigned a = 0; a < WORK_STRIDE; ++a) {
                 unsigned reg_a = (WORK_STRIDE * base) + a;
 
-                for (unsigned b = 0; b < WORK_STRIDE; ++b) {
+                for (unsigned b = 0; b < shadow_count; ++b) {
                         unsigned reg_b = (WORK_STRIDE * shadow) + b;
 
                         ra_add_reg_conflict(regs, reg_a, reg_b);
@@ -200,7 +205,7 @@ create_register_set(unsigned work_count, unsigned *classes)
         /* First, initialize the RA */
         struct ra_regs *regs = ra_alloc_reg_set(NULL, virtual_count, true);
 
-        for (unsigned c = 0; c < NR_REG_CLASSES; ++c) {
+        for (unsigned c = 0; c < (NR_REG_CLASSES - 1); ++c) {
                 int work_vec4 = ra_alloc_reg_class(regs);
                 int work_vec3 = ra_alloc_reg_class(regs);
                 int work_vec2 = ra_alloc_reg_class(regs);
@@ -213,13 +218,10 @@ create_register_set(unsigned work_count, unsigned *classes)
 
                 /* Special register classes have other register counts */
                 unsigned count =
-                        (c == REG_CLASS_WORK)   ? work_count :
-                        (c == REG_CLASS_LDST27) ? 1 : 2;
+                        (c == REG_CLASS_WORK)   ? work_count : 2;
 
-                /* We arbitraily pick r17 (RA unused) as the shadow for r27 */
                 unsigned first_reg =
                         (c == REG_CLASS_LDST)   ? 26 :
-                        (c == REG_CLASS_LDST27) ? SHADOW_R27 :
                         (c == REG_CLASS_TEXR)   ? 28 :
                         (c == REG_CLASS_TEXW)   ? SHADOW_R28 :
                         0;
@@ -254,11 +256,18 @@ create_register_set(unsigned work_count, unsigned *classes)
                 }
         }
 
+        int fragc = ra_alloc_reg_class(regs);
+
+        classes[4*REG_CLASS_FRAGC + 0] = fragc;
+        classes[4*REG_CLASS_FRAGC + 1] = fragc;
+        classes[4*REG_CLASS_FRAGC + 2] = fragc;
+        classes[4*REG_CLASS_FRAGC + 3] = fragc;
+        ra_class_add_reg(regs, fragc, WORK_STRIDE * SHADOW_R0);
 
         /* We have duplicate classes */
-        add_shadow_conflicts(regs, 27, SHADOW_R27);
-        add_shadow_conflicts(regs, 28, SHADOW_R28);
-        add_shadow_conflicts(regs, 29, SHADOW_R29);
+        add_shadow_conflicts(regs,  0, SHADOW_R0,  1);
+        add_shadow_conflicts(regs, 28, SHADOW_R28, WORK_STRIDE);
+        add_shadow_conflicts(regs, 29, SHADOW_R29, WORK_STRIDE);
 
         /* We're done setting up */
         ra_set_finalize(regs, NULL);
@@ -305,7 +314,7 @@ static void
 set_class(unsigned *classes, unsigned node, unsigned class)
 {
         /* Check that we're even a node */
-        if ((node < 0) || (node >= SSA_FIXED_MINIMUM))
+        if (node >= SSA_FIXED_MINIMUM)
                 return;
 
         /* First 4 are work, next 4 are load/store.. */
@@ -315,17 +324,8 @@ set_class(unsigned *classes, unsigned node, unsigned class)
         if (class == current_class)
                 return;
 
-
-        if ((current_class == REG_CLASS_LDST27) && (class == REG_CLASS_LDST))
-                return;
-
-        /* If we're changing, we must not have already assigned a special class
-         */
-
-        bool compat = current_class == REG_CLASS_WORK;
-        compat |= (current_class == REG_CLASS_LDST) && (class == REG_CLASS_LDST27);
-
-        assert(compat);
+        /* If we're changing, we haven't assigned a special class */
+        assert(current_class == REG_CLASS_WORK);
 
         classes[node] &= 0x3;
         classes[node] |= (class << 2);
@@ -334,7 +334,7 @@ set_class(unsigned *classes, unsigned node, unsigned class)
 static void
 force_vec4(unsigned *classes, unsigned node)
 {
-        if ((node < 0) || (node >= SSA_FIXED_MINIMUM))
+        if (node >= SSA_FIXED_MINIMUM)
                 return;
 
         /* Force vec4 = 3 */
@@ -348,21 +348,20 @@ static bool
 check_read_class(unsigned *classes, unsigned tag, unsigned node)
 {
         /* Non-nodes are implicitly ok */
-        if ((node < 0) || (node >= SSA_FIXED_MINIMUM))
+        if (node >= SSA_FIXED_MINIMUM)
                 return true;
 
         unsigned current_class = classes[node] >> 2;
 
         switch (current_class) {
         case REG_CLASS_LDST:
-        case REG_CLASS_LDST27:
                 return (tag == TAG_LOAD_STORE_4);
         case REG_CLASS_TEXR:
                 return (tag == TAG_TEXTURE_4);
         case REG_CLASS_TEXW:
                 return (tag != TAG_LOAD_STORE_4);
         case REG_CLASS_WORK:
-                return (tag == TAG_ALU_4);
+                return IS_ALU(tag);
         default:
                 unreachable("Invalid class");
         }
@@ -372,7 +371,7 @@ static bool
 check_write_class(unsigned *classes, unsigned tag, unsigned node)
 {
         /* Non-nodes are implicitly ok */
-        if ((node < 0) || (node >= SSA_FIXED_MINIMUM))
+        if (node >= SSA_FIXED_MINIMUM)
                 return true;
 
         unsigned current_class = classes[node] >> 2;
@@ -383,9 +382,8 @@ check_write_class(unsigned *classes, unsigned tag, unsigned node)
         case REG_CLASS_TEXW:
                 return (tag == TAG_TEXTURE_4);
         case REG_CLASS_LDST:
-        case REG_CLASS_LDST27:
         case REG_CLASS_WORK:
-                return (tag == TAG_ALU_4) || (tag == TAG_LOAD_STORE_4);
+                return IS_ALU(tag) || (tag == TAG_LOAD_STORE_4);
         default:
                 unreachable("Invalid class");
         }
@@ -398,7 +396,7 @@ check_write_class(unsigned *classes, unsigned tag, unsigned node)
 static void
 mark_node_class (unsigned *bitfield, unsigned node)
 {
-        if ((node >= 0) && (node < SSA_FIXED_MINIMUM))
+        if (node < SSA_FIXED_MINIMUM)
                 BITSET_SET(bitfield, node);
 }
 
@@ -407,10 +405,12 @@ mir_lower_special_reads(compiler_context *ctx)
 {
         size_t sz = BITSET_WORDS(ctx->temp_count) * sizeof(BITSET_WORD);
 
-        /* Bitfields for the various types of registers we could have */
+        /* Bitfields for the various types of registers we could have. aluw can
+         * be written by either ALU or load/store */
 
         unsigned *alur = calloc(sz, 1);
         unsigned *aluw = calloc(sz, 1);
+        unsigned *brar = calloc(sz, 1);
         unsigned *ldst = calloc(sz, 1);
         unsigned *texr = calloc(sz, 1);
         unsigned *texw = calloc(sz, 1);
@@ -418,25 +418,30 @@ mir_lower_special_reads(compiler_context *ctx)
         /* Pass #1 is analysis, a linear scan to fill out the bitfields */
 
         mir_foreach_instr_global(ctx, ins) {
-                if (ins->compact_branch) continue;
-
                 switch (ins->type) {
                 case TAG_ALU_4:
-                        mark_node_class(aluw, ins->ssa_args.dest);
-                        mark_node_class(alur, ins->ssa_args.src0);
+                        mark_node_class(aluw, ins->dest);
+                        mark_node_class(alur, ins->src[0]);
+                        mark_node_class(alur, ins->src[1]);
+                        mark_node_class(alur, ins->src[2]);
 
-                        if (!ins->ssa_args.inline_constant)
-                                mark_node_class(alur, ins->ssa_args.src1);
+                        if (ins->compact_branch && ins->writeout)
+                                mark_node_class(brar, ins->src[0]);
 
                         break;
+
                 case TAG_LOAD_STORE_4:
-                        mark_node_class(ldst, ins->ssa_args.src0);
-                        mark_node_class(ldst, ins->ssa_args.src1);
+                        mark_node_class(aluw, ins->dest);
+                        mark_node_class(ldst, ins->src[0]);
+                        mark_node_class(ldst, ins->src[1]);
+                        mark_node_class(ldst, ins->src[2]);
                         break;
+
                 case TAG_TEXTURE_4:
-                        mark_node_class(texr, ins->ssa_args.src0);
-                        mark_node_class(texr, ins->ssa_args.src1);
-                        mark_node_class(texw, ins->ssa_args.dest);
+                        mark_node_class(texr, ins->src[0]);
+                        mark_node_class(texr, ins->src[1]);
+                        mark_node_class(texr, ins->src[2]);
+                        mark_node_class(texw, ins->dest);
                         break;
                 }
         }
@@ -454,6 +459,7 @@ mir_lower_special_reads(compiler_context *ctx)
         for (unsigned i = 0; i < ctx->temp_count; ++i) {
                 bool is_alur = BITSET_TEST(alur, i);
                 bool is_aluw = BITSET_TEST(aluw, i);
+                bool is_brar = BITSET_TEST(brar, i);
                 bool is_ldst = BITSET_TEST(ldst, i);
                 bool is_texr = BITSET_TEST(texr, i);
                 bool is_texw = BITSET_TEST(texw, i);
@@ -467,8 +473,9 @@ mir_lower_special_reads(compiler_context *ctx)
                 bool collision =
                         (is_alur && (is_ldst || is_texr)) ||
                         (is_ldst && (is_alur || is_texr || is_texw)) ||
-                        (is_texr && (is_alur || is_ldst)) ||
-                        (is_texw && (is_aluw || is_ldst));
+                        (is_texr && (is_alur || is_ldst || is_texw)) ||
+                        (is_texw && (is_aluw || is_ldst || is_texr)) ||
+                        (is_brar && is_texw);
         
                 if (!collision)
                         continue;
@@ -476,8 +483,8 @@ mir_lower_special_reads(compiler_context *ctx)
                 /* Use the index as-is as the work copy. Emit copies for
                  * special uses */
 
-                unsigned classes[] = { TAG_LOAD_STORE_4, TAG_TEXTURE_4, TAG_TEXTURE_4 };
-                bool collisions[] = { is_ldst, is_texr, is_texw && is_aluw };
+                unsigned classes[] = { TAG_LOAD_STORE_4, TAG_TEXTURE_4, TAG_TEXTURE_4, TAG_ALU_4};
+                bool collisions[] = { is_ldst, is_texr, is_texw && is_aluw, is_brar };
 
                 for (unsigned j = 0; j < ARRAY_SIZE(collisions); ++j) {
                         if (!collisions[j]) continue;
@@ -495,38 +502,204 @@ mir_lower_special_reads(compiler_context *ctx)
                                 v_mov(idx, blank_alu_src, i) :
                                 v_mov(i, blank_alu_src, idx);
 
-                        /* Insert move after each write */
+                        /* Insert move before each read/write, depending on the
+                         * hazard we're trying to account for */
+
                         mir_foreach_instr_global_safe(ctx, pre_use) {
-                                if (pre_use->compact_branch) continue;
-                                if (pre_use->ssa_args.dest != i)
+                                if (pre_use->type != classes[j])
                                         continue;
 
-                                /* If the hazard is writing, we need to
-                                 * specific insert moves for the contentious
-                                 * class. If the hazard is reading, we insert
-                                 * moves whenever it is written */
+                                if (hazard_write) {
+                                        if (pre_use->dest != i)
+                                                continue;
+                                } else {
+                                        if (!mir_has_arg(pre_use, i))
+                                                continue;
+                                }
 
-                                if (hazard_write && pre_use->type != classes[j])
-                                        continue;
-
-                                midgard_instruction *use = mir_next_op(pre_use);
-                                assert(use);
-                                mir_insert_instruction_before(use, m);
+                                if (hazard_write) {
+                                        midgard_instruction *use = mir_next_op(pre_use);
+                                        assert(use);
+                                        mir_insert_instruction_before(ctx, use, m);
+                                        mir_rewrite_index_dst_single(pre_use, i, idx);
+                                } else {
+                                        idx = spill_idx++;
+                                        m = v_mov(i, blank_alu_src, idx);
+                                        m.mask = mir_mask_of_read_components(pre_use, i);
+                                        mir_insert_instruction_before(ctx, pre_use, m);
+                                        mir_rewrite_index_src_single(pre_use, i, idx);
+                                }
                         }
-
-                        /* Rewrite to use */
-                        if (hazard_write)
-                                mir_rewrite_index_dst_tag(ctx, i, idx, classes[j]);
-                        else
-                                mir_rewrite_index_src_tag(ctx, i, idx, classes[j]);
                 }
         }
 
         free(alur);
         free(aluw);
+        free(brar);
         free(ldst);
         free(texr);
         free(texw);
+}
+
+/* Routines for liveness analysis */
+
+static void
+liveness_gen(uint8_t *live, unsigned node, unsigned max, unsigned mask)
+{
+        if (node >= max)
+                return;
+
+        live[node] |= mask;
+}
+
+static void
+liveness_kill(uint8_t *live, unsigned node, unsigned max, unsigned mask)
+{
+        if (node >= max)
+                return;
+
+        live[node] &= ~mask;
+}
+
+/* Updates live_in for a single instruction */
+
+static void
+liveness_ins_update(uint8_t *live, midgard_instruction *ins, unsigned max)
+{
+        /* live_in[s] = GEN[s] + (live_out[s] - KILL[s]) */
+
+        liveness_kill(live, ins->dest, max, ins->mask);
+
+        mir_foreach_src(ins, src) {
+                unsigned node = ins->src[src];
+                unsigned mask = mir_mask_of_read_components(ins, node);
+
+                liveness_gen(live, node, max, mask);
+        }
+}
+
+/* live_out[s] = sum { p in succ[s] } ( live_in[p] ) */
+
+static void
+liveness_block_live_out(compiler_context *ctx, midgard_block *blk)
+{
+        mir_foreach_successor(blk, succ) {
+                for (unsigned i = 0; i < ctx->temp_count; ++i)
+                        blk->live_out[i] |= succ->live_in[i];
+        }
+}
+
+/* Liveness analysis is a backwards-may dataflow analysis pass. Within a block,
+ * we compute live_out from live_in. The intrablock pass is linear-time. It
+ * returns whether progress was made. */
+
+static bool
+liveness_block_update(compiler_context *ctx, midgard_block *blk)
+{
+        bool progress = false;
+
+        liveness_block_live_out(ctx, blk);
+
+        uint8_t *live = mem_dup(blk->live_out, ctx->temp_count);
+
+        mir_foreach_instr_in_block_rev(blk, ins)
+                liveness_ins_update(live, ins, ctx->temp_count);
+
+        /* To figure out progress, diff live_in */
+
+        for (unsigned i = 0; (i < ctx->temp_count) && !progress; ++i)
+                progress |= (blk->live_in[i] != live[i]);
+
+        free(blk->live_in);
+        blk->live_in = live;
+
+        return progress;
+}
+
+/* Globally, liveness analysis uses a fixed-point algorithm based on a
+ * worklist. We initialize a work list with the exit block. We iterate the work
+ * list to compute live_in from live_out for each block on the work list,
+ * adding the predecessors of the block to the work list if we made progress.
+ */
+
+static void
+mir_compute_liveness(
+                compiler_context *ctx,
+                struct ra_graph *g)
+{
+        /* List of midgard_block */
+        struct set *work_list;
+
+        work_list = _mesa_set_create(ctx,
+                        _mesa_hash_pointer,
+                        _mesa_key_pointer_equal);
+
+        /* Allocate */
+
+        mir_foreach_block(ctx, block) {
+                block->live_in = calloc(ctx->temp_count, 1);
+                block->live_out = calloc(ctx->temp_count, 1);
+        }
+
+        /* Initialize the work list with the exit block */
+        struct set_entry *cur;
+
+        midgard_block *exit = mir_exit_block(ctx);
+        cur = _mesa_set_add(work_list, exit);
+
+        /* Iterate the work list */
+
+        do {
+                /* Pop off a block */
+                midgard_block *blk = (struct midgard_block *) cur->key;
+                _mesa_set_remove(work_list, cur);
+
+                /* Update its liveness information */
+                bool progress = liveness_block_update(ctx, blk);
+
+                /* If we made progress, we need to process the predecessors */
+
+                if (progress || (blk == exit)) {
+                        mir_foreach_predecessor(blk, pred)
+                                _mesa_set_add(work_list, pred);
+                }
+        } while((cur = _mesa_set_next_entry(work_list, NULL)) != NULL);
+
+        /* Now that every block has live_in/live_out computed, we can determine
+         * interference by walking each block linearly. Take live_out at the
+         * end of each block and walk the block backwards. */
+
+        mir_foreach_block(ctx, blk) {
+                uint8_t *live = calloc(ctx->temp_count, 1);
+
+                mir_foreach_successor(blk, succ) {
+                        for (unsigned i = 0; i < ctx->temp_count; ++i)
+                                live[i] |= succ->live_in[i];
+                }
+
+                mir_foreach_instr_in_block_rev(blk, ins) {
+                        /* Mark all registers live after the instruction as
+                         * interfering with the destination */
+
+                        unsigned dest = ins->dest;
+
+                        if (dest < ctx->temp_count) {
+                                for (unsigned i = 0; i < ctx->temp_count; ++i)
+                                        if (live[i])
+                                                ra_add_node_interference(g, dest, i);
+                        }
+
+                        /* Update live_in */
+                        liveness_ins_update(live, ins, ctx->temp_count);
+                }
+
+                free(live);
+        }
+
+        mir_foreach_block(ctx, blk) {
+                free(blk->live_in);
+                free(blk->live_out);
+        }
 }
 
 /* This routine performs the actual register allocation. It should be succeeded
@@ -561,9 +734,7 @@ allocate_registers(compiler_context *ctx, bool *spilled)
         unsigned *found_class = calloc(sizeof(unsigned), ctx->temp_count);
 
         mir_foreach_instr_global(ctx, ins) {
-                if (ins->compact_branch) continue;
-                if (ins->ssa_args.dest < 0) continue;
-                if (ins->ssa_args.dest >= SSA_FIXED_MINIMUM) continue;
+                if (ins->dest >= SSA_FIXED_MINIMUM) continue;
 
                 /* 0 for x, 1 for xy, 2 for xyz, 3 for xyzw */
                 int class = util_logbase2(ins->mask);
@@ -571,7 +742,7 @@ allocate_registers(compiler_context *ctx, bool *spilled)
                 /* Use the largest class if there's ambiguity, this
                  * handles partial writes */
 
-                int dest = ins->ssa_args.dest;
+                int dest = ins->dest;
                 found_class[dest] = MAX2(found_class[dest], class);
         }
 
@@ -583,38 +754,41 @@ allocate_registers(compiler_context *ctx, bool *spilled)
          * nodes (TODO) */
 
         mir_foreach_instr_global(ctx, ins) {
-                if (ins->compact_branch) continue;
-
                 /* Check if this operation imposes any classes */
 
                 if (ins->type == TAG_LOAD_STORE_4) {
-                        bool force_r27 = OP_IS_R27_ONLY(ins->load_store.op);
-                        unsigned class = force_r27 ? REG_CLASS_LDST27 : REG_CLASS_LDST;
+                        bool force_vec4_only = OP_IS_VEC4_ONLY(ins->load_store.op);
 
-                        set_class(found_class, ins->ssa_args.src0, class);
-                        set_class(found_class, ins->ssa_args.src1, class);
+                        set_class(found_class, ins->src[0], REG_CLASS_LDST);
+                        set_class(found_class, ins->src[1], REG_CLASS_LDST);
+                        set_class(found_class, ins->src[2], REG_CLASS_LDST);
 
-                        if (force_r27) {
-                                force_vec4(found_class, ins->ssa_args.dest);
-                                force_vec4(found_class, ins->ssa_args.src0);
-                                force_vec4(found_class, ins->ssa_args.src1);
+                        if (force_vec4_only) {
+                                force_vec4(found_class, ins->dest);
+                                force_vec4(found_class, ins->src[0]);
+                                force_vec4(found_class, ins->src[1]);
+                                force_vec4(found_class, ins->src[2]);
                         }
                 } else if (ins->type == TAG_TEXTURE_4) {
-                        set_class(found_class, ins->ssa_args.dest, REG_CLASS_TEXW);
-                        set_class(found_class, ins->ssa_args.src0, REG_CLASS_TEXR);
-                        set_class(found_class, ins->ssa_args.src1, REG_CLASS_TEXR);
+                        set_class(found_class, ins->dest, REG_CLASS_TEXW);
+                        set_class(found_class, ins->src[0], REG_CLASS_TEXR);
+                        set_class(found_class, ins->src[1], REG_CLASS_TEXR);
+                        set_class(found_class, ins->src[2], REG_CLASS_TEXR);
                 }
         }
 
         /* Check that the semantics of the class are respected */
         mir_foreach_instr_global(ctx, ins) {
-                if (ins->compact_branch) continue;
+                assert(check_write_class(found_class, ins->type, ins->dest));
+                assert(check_read_class(found_class, ins->type, ins->src[0]));
+                assert(check_read_class(found_class, ins->type, ins->src[1]));
+                assert(check_read_class(found_class, ins->type, ins->src[2]));
+        }
 
-                assert(check_write_class(found_class, ins->type, ins->ssa_args.dest));
-                assert(check_read_class(found_class, ins->type, ins->ssa_args.src0));
-
-                if (!ins->ssa_args.inline_constant)
-                        assert(check_read_class(found_class, ins->type, ins->ssa_args.src1));
+        /* Mark writeout to r0 */
+        mir_foreach_instr_global(ctx, ins) {
+                if (ins->compact_branch && ins->writeout)
+                        set_class(found_class, ins->src[0], REG_CLASS_FRAGC);
         }
 
         for (unsigned i = 0; i < ctx->temp_count; ++i) {
@@ -622,85 +796,7 @@ allocate_registers(compiler_context *ctx, bool *spilled)
                 ra_set_node_class(g, i, classes[class]);
         }
 
-        /* Determine liveness */
-
-        int *live_start = malloc(nodes * sizeof(int));
-        int *live_end = malloc(nodes * sizeof(int));
-
-        /* Initialize as non-existent */
-
-        for (int i = 0; i < nodes; ++i) {
-                live_start[i] = live_end[i] = -1;
-        }
-
-        int d = 0;
-
-        mir_foreach_block(ctx, block) {
-                mir_foreach_instr_in_block(block, ins) {
-                        if (ins->compact_branch) continue;
-
-                        if (ins->ssa_args.dest < SSA_FIXED_MINIMUM) {
-                                /* If this destination is not yet live, it is
-                                 * now since we just wrote it */
-
-                                int dest = ins->ssa_args.dest;
-
-                                if (dest >= 0 && live_start[dest] == -1)
-                                        live_start[dest] = d;
-                        }
-
-                        /* Since we just used a source, the source might be
-                         * dead now. Scan the rest of the block for
-                         * invocations, and if there are none, the source dies
-                         * */
-
-                        int sources[2] = {
-                                ins->ssa_args.src0, ins->ssa_args.src1
-                        };
-
-                        for (int src = 0; src < 2; ++src) {
-                                int s = sources[src];
-
-                                if (ins->ssa_args.inline_constant && src == 1)
-                                        continue;
-
-                                if (s < 0) continue;
-
-                                if (s >= SSA_FIXED_MINIMUM) continue;
-
-                                if (!mir_is_live_after(ctx, block, ins, s)) {
-                                        live_end[s] = d;
-                                }
-                        }
-
-                        ++d;
-                }
-        }
-
-        /* If a node still hasn't been killed, kill it now */
-
-        for (int i = 0; i < nodes; ++i) {
-                /* live_start == -1 most likely indicates a pinned output */
-
-                if (live_end[i] == -1)
-                        live_end[i] = d;
-        }
-
-        /* Setup interference between nodes that are live at the same time */
-
-        for (int i = 0; i < nodes; ++i) {
-                for (int j = i + 1; j < nodes; ++j) {
-                        bool j_overlaps_i = live_start[j] < live_end[i];
-                        bool i_overlaps_j = live_end[j] < live_start[i];
-
-                        if (i_overlaps_j || j_overlaps_i)
-                                ra_add_node_interference(g, i, j);
-                }
-        }
-
-        /* Cleanup */
-        free(live_start);
-        free(live_end);
+        mir_compute_liveness(ctx, g);
 
         if (!ra_allocate(g)) {
                 *spilled = true;
@@ -724,14 +820,17 @@ install_registers_instr(
         struct ra_graph *g,
         midgard_instruction *ins)
 {
-        ssa_args args = ins->ssa_args;
-
         switch (ins->type) {
-        case TAG_ALU_4: {
-                int adjusted_src = args.inline_constant ? -1 : args.src1;
-                struct phys_reg src1 = index_to_reg(ctx, g, args.src0);
-                struct phys_reg src2 = index_to_reg(ctx, g, adjusted_src);
-                struct phys_reg dest = index_to_reg(ctx, g, args.dest);
+        case TAG_ALU_4:
+        case TAG_ALU_8:
+        case TAG_ALU_12:
+        case TAG_ALU_16: {
+                 if (ins->compact_branch)
+                         return;
+
+                struct phys_reg src1 = index_to_reg(ctx, g, ins->src[0]);
+                struct phys_reg src2 = index_to_reg(ctx, g, ins->src[1]);
+                struct phys_reg dest = index_to_reg(ctx, g, ins->dest);
 
                 unsigned uncomposed_mask = ins->mask;
                 ins->mask = compose_writemask(uncomposed_mask, dest);
@@ -747,9 +846,9 @@ install_registers_instr(
 
                 ins->registers.src1_reg = src1.reg;
 
-                ins->registers.src2_imm = args.inline_constant;
+                ins->registers.src2_imm = ins->has_inline_constant;
 
-                if (args.inline_constant) {
+                if (ins->has_inline_constant) {
                         /* Encode inline 16-bit constant. See disassembler for
                          * where the algorithm is from */
 
@@ -775,30 +874,33 @@ install_registers_instr(
         }
 
         case TAG_LOAD_STORE_4: {
-                bool fixed = args.src0 >= SSA_FIXED_MINIMUM;
+                /* Which physical register we read off depends on
+                 * whether we are loading or storing -- think about the
+                 * logical dataflow */
 
-                if (OP_IS_STORE_R26(ins->load_store.op) && fixed) {
-                        ins->load_store.reg = SSA_REG_FROM_FIXED(args.src0);
-                } else if (OP_IS_STORE_VARY(ins->load_store.op)) {
-                        struct phys_reg src = index_to_reg(ctx, g, args.src0);
+                bool encodes_src = OP_IS_STORE(ins->load_store.op);
+
+                if (encodes_src) {
+                        struct phys_reg src = index_to_reg(ctx, g, ins->src[0]);
                         assert(src.reg == 26 || src.reg == 27);
 
                         ins->load_store.reg = src.reg - 26;
 
-                        /* TODO: swizzle/mask */
-                } else {
-                        /* Which physical register we read off depends on
-                         * whether we are loading or storing -- think about the
-                         * logical dataflow */
+                        unsigned shift = __builtin_ctz(src.mask);
+                        unsigned adjusted_mask = src.mask >> shift;
+                        assert(((adjusted_mask + 1) & adjusted_mask) == 0);
 
-                        bool encodes_src =
-                                OP_IS_STORE(ins->load_store.op) &&
-                                ins->load_store.op != midgard_op_st_cubemap_coords;
+                        unsigned new_swizzle = 0;
+                        for (unsigned q = 0; q < 4; ++q) {
+                                unsigned c = (ins->load_store.swizzle >> (2*q)) & 3;
+                                new_swizzle |= (c + shift) << (2*q);
+                        }
 
-                        unsigned r = encodes_src ?
-                                     args.src0 : args.dest;
-
-                        struct phys_reg src = index_to_reg(ctx, g, r);
+                        ins->load_store.swizzle = compose_swizzle(
+                                                          new_swizzle, src.mask,
+                                                          default_phys_reg(0), src);
+               } else {
+                        struct phys_reg src = index_to_reg(ctx, g, ins->dest);
 
                         ins->load_store.reg = src.reg;
 
@@ -810,14 +912,34 @@ install_registers_instr(
                                             ins->mask, src);
                 }
 
+                /* We also follow up by actual arguments */
+
+                int src2 =
+                        encodes_src ? ins->src[1] : ins->src[0];
+
+                int src3 =
+                        encodes_src ? ins->src[2] : ins->src[1];
+
+                if (src2 >= 0) {
+                        struct phys_reg src = index_to_reg(ctx, g, src2);
+                        unsigned component = __builtin_ctz(src.mask);
+                        ins->load_store.arg_1 |= midgard_ldst_reg(src.reg, component);
+                }
+
+                if (src3 >= 0) {
+                        struct phys_reg src = index_to_reg(ctx, g, src3);
+                        unsigned component = __builtin_ctz(src.mask);
+                        ins->load_store.arg_2 |= midgard_ldst_reg(src.reg, component);
+                }
+ 
                 break;
         }
 
         case TAG_TEXTURE_4: {
                 /* Grab RA results */
-                struct phys_reg dest = index_to_reg(ctx, g, args.dest);
-                struct phys_reg coord = index_to_reg(ctx, g, args.src0);
-                struct phys_reg lod = index_to_reg(ctx, g, args.src1);
+                struct phys_reg dest = index_to_reg(ctx, g, ins->dest);
+                struct phys_reg coord = index_to_reg(ctx, g, ins->src[0]);
+                struct phys_reg lod = index_to_reg(ctx, g, ins->src[1]);
 
                 assert(dest.reg == 28 || dest.reg == 29);
                 assert(coord.reg == 28 || coord.reg == 29);
@@ -833,11 +955,13 @@ install_registers_instr(
                 ins->texture.out_full = 1;
                 ins->texture.out_upper = 0;
                 ins->texture.out_reg_select = dest.reg - 28;
-                ins->texture.swizzle = dest.swizzle;
-                ins->texture.mask = dest.mask;
+                ins->texture.swizzle =
+                        compose_swizzle(ins->texture.swizzle, dest.mask, dest, dest);
+                ins->mask =
+                        compose_writemask(ins->mask, dest);
 
                 /* If there is a register LOD/bias, use it */
-                if (args.src1 > -1) {
+                if (ins->src[1] != ~0) {
                         midgard_tex_register_select sel = {
                                 .select = lod.reg,
                                 .full = 1,
@@ -860,11 +984,6 @@ install_registers_instr(
 void
 install_registers(compiler_context *ctx, struct ra_graph *g)
 {
-        mir_foreach_block(ctx, block) {
-                mir_foreach_instr_in_block(block, ins) {
-                        if (ins->compact_branch) continue;
-                        install_registers_instr(ctx, g, ins);
-                }
-        }
-
+        mir_foreach_instr_global(ctx, ins)
+                install_registers_instr(ctx, g, ins);
 }

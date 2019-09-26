@@ -46,15 +46,15 @@
 #endif
 
 #if defined(USE_X86_ASM) && defined(__GNUC__)
-#   ifdef GLX_USE_TLS
+#   ifdef USE_ELF_TLS
 #      include "entry_x86_tls.h"
 #   else                 
 #      include "entry_x86_tsd.h"
 #   endif
-#elif defined(USE_X86_64_ASM) && defined(__GNUC__) && defined(GLX_USE_TLS)
+#elif defined(USE_X86_64_ASM) && defined(__GNUC__) && defined(USE_ELF_TLS)
 #   include "entry_x86-64_tls.h"
 #elif defined(USE_PPC64LE_ASM) && defined(__GNUC__) && defined(PIPE_ARCH_LITTLE_ENDIAN)
-#   ifdef GLX_USE_TLS
+#   ifdef USE_ELF_TLS
 #      include "entry_ppc64le_tls.h"
 #   else
 #      include "entry_ppc64le_tsd.h"

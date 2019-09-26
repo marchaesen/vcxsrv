@@ -1771,6 +1771,16 @@ to upconvert to 32b float internally?
 	TODO now there seem to be two buffers of VSC data (both referenced by
 	CP_SET_BIN_DATA packet.  Not sure what this new DATA2 one is, but seems
 	to have the larger pitch.
+
+	The "DATA2" buffer is probably actually the main visibility stream; it
+	is at least the larger of the two.
+
+	For VSC_DATA_PITCH, 0x20 actually seems to be sufficient (although blob
+	uses something somewhat larger) for many cases, although required value
+	can ramp up somewhat higher.  Values less than 0x20 trigger GPU hangs
+	even with small amount of geometry (so possibly 0x20 is minimum
+	alignment or something like that).  So far I can't seem to find any-
+	thing that needs values larger than 0x20
 	 -->
 	<reg32 offset="0x0c30" name="VSC_PIPE_DATA2_ADDRESS_LO"/>
 	<reg32 offset="0x0c31" name="VSC_PIPE_DATA2_ADDRESS_HI"/>
@@ -1781,10 +1791,25 @@ to upconvert to 32b float internally?
 	<reg32 offset="0x0c36" name="VSC_PIPE_DATA_PITCH"/>
 	<reg32 offset="0x0c37" name="VSC_PIPE_DATA_ARRAY_PITCH" shr="4" type="uint"/>
 
-	<!--
-	note, also a range starting at 0x0c58, one or the other probably
-	corresponds to the new "VSC_XXX" thing, whatever it is..
-	 -->
+	<array offset="0x0c38" name="VSC_STATE" stride="1" length="32">
+		<doc>
+			Seems to be a bitmap of which tiles mapped to the VSC
+			pipe contain geometry.
+
+			I suppose we can connect a maximum of 32 tiles to a
+			single VSC pipe.
+		</doc>
+		<reg32 offset="0x0" name="REG"/>
+	</array>
+
+	<array offset="0x0c58" name="VSC_SIZE2" stride="1" length="32">
+		<doc>
+			Has the size of data written to corresponding VSC_DATA2
+			buffer.
+		</doc>
+		<reg32 offset="0x0" name="REG"/>
+	</array>
+
 	<array offset="0x0c78" name="VSC_SIZE" stride="1" length="32">
 		<doc>
 			Has the size of data written to corresponding VSC pipe, ie.
@@ -2369,6 +2394,10 @@ to upconvert to 32b float internally?
 		<bitfield name="B_OFF" low="14" high="22" shr="2" type="uint"/>
 		<bitfield name="B_EN" pos="23" type="boolean"/>
 	</reg32>
+
+	<reg32 offset="0x9218" name="VPC_SO_STREAM_COUNTS_LO"/>
+	<reg32 offset="0x9219" name="VPC_SO_STREAM_COUNTS_HI"/>
+
 	<array offset="0x921a" name="VPC_SO" stride="7" length="4">
 		<reg32 offset="0" name="BUFFER_BASE_LO"/>
 		<reg32 offset="1" name="BUFFER_BASE_HI"/>
@@ -2394,7 +2423,7 @@ to upconvert to 32b float internally?
 			hw streamout (rather than stg instructions in shader)
 		</doc>
 		<bitfield name="STRIDE_IN_VPC" low="0" high="7" type="uint"/>
-		<bitfield name="NUMNONPOSVAR" low="8" high="15" type="uint"/>
+		<bitfield name="POSITIONLOC" low="8" high="15" type="uint"/>
 		<!--
 		This seems to be the OUTLOC for the psize output.  It could possibly
 		be the max-OUTLOC position, but it is only set when VS writes psize
@@ -2405,14 +2434,10 @@ to upconvert to 32b float internally?
 
 	<reg32 offset="0x9303" name="VPC_PACK_3">
 		<doc>
-		  domain shader version
-
-			num of varyings plus four for gl_Position (plus one if gl_PointSize)
-			plus # of transform-feedback (streamout) varyings if using the
-			hw streamout (rather than stg instructions in shader)
+			domain shader version of VPC_PACK
 		</doc>
 		<bitfield name="STRIDE_IN_VPC" low="0" high="7" type="uint"/>
-		<bitfield name="NUMNONPOSVAR" low="8" high="15" type="uint"/>
+		<bitfield name="POSITIONLOC" low="8" high="15" type="uint"/>
 		<!--
 		This seems to be the OUTLOC for the psize output.  It could possibly
 		be the max-OUTLOC position, but it is only set when VS writes psize
@@ -2453,10 +2478,16 @@ to upconvert to 32b float internally?
 	  <value value="0x3" name="TESS_FRACTIONAL_EVEN"/>
 	</enum>
 
+	<enum name="a6xx_tess_output">
+	  <value value="0x0" name="TESS_POINTS"/>
+	  <value value="0x1" name="TESS_LINES"/>
+	  <value value="0x2" name="TESS_CW_TRIS"/>
+	  <value value="0x3" name="TESS_CCW_TRIS"/>
+	</enum>
+
 	<reg32 offset="0x9802" name="PC_TESS_CNTL">
 	  <bitfield name="SPACING" low="0" high="1" type="a6xx_tess_spacing"/>
-	  <bitfield name="CCW" pos="2" type="boolean"/>
-	  <bitfield name="PRIMITIVES" pos="3" type="boolean"/>
+	  <bitfield name="OUTPUT" low="2" high="3" type="a6xx_tess_output"/>
 	</reg32>
 
 	<!-- probably: -->

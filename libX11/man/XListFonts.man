@@ -38,62 +38,29 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 .TH XListFonts __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
 XListFonts, XFreeFontNames, XListFontsWithInfo, XFreeFontInfo \- obtain or free font names and information
 .SH SYNTAX
 .HP
 char **XListFonts\^(\^Display *\^\fIdisplay\fP\^, char *\^\fIpattern\fP\^, int
-\fImaxnames\fP\^, int *\^\fIactual_count_return\fP\^); 
+\fImaxnames\fP\^, int *\^\fIactual_count_return\fP\^);
 .HP
-int XFreeFontNames\^(\^char *\fIlist\fP\^[\^]\^); 
+int XFreeFontNames\^(\^char *\fIlist\fP\^[\^]\^);
 .HP
 char **XListFontsWithInfo\^(\^Display *\fIdisplay\fP\^, char *\fIpattern\fP\^,
 int \fImaxnames\fP\^, int *\fIcount_return\fP\^, XFontStruct
-**\fIinfo_return\fP\^); 
+**\fIinfo_return\fP\^);
 .HP
 int XFreeFontInfo(\^char **\fInames\fP\^, XFontStruct *\fIfree_info\fP, int
-\fIactual_count\fP\^); 
+\fIactual_count\fP\^);
 .SH ARGUMENTS
 .IP \fIactual_count\fP 1i
 Specifies the actual number of font names.
@@ -117,12 +84,12 @@ Specifies the maximum number of names to be returned.
 Specifies the list of font names.
 
 .IP \fIpattern\fP 1i
-Specifies the null-terminated pattern string that can contain wildcard 
+Specifies the null-terminated pattern string that can contain wildcard
 characters.
 .SH DESCRIPTION
 The
 .B XListFonts
-function returns an array of available font names 
+function returns an array of available font names
 (as controlled by the font search path; see
 .BR XSetFontPath )
 that match the string you passed to the pattern argument.
@@ -194,7 +161,8 @@ to close the font.
 .LP
 Note that
 .B XListFontsWithInfo
-is not thread-safe. If other threads make X requests on the same
+is not thread-safe.
+If other threads make X requests on the same
 .BR Display ,
 then this function's behavior is undefined.
 .SH "SEE ALSO"

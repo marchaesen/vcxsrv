@@ -355,11 +355,22 @@ opt_dead_cf_impl(nir_function_impl *impl)
 
    if (progress) {
       nir_metadata_preserve(impl, nir_metadata_none);
-    } else {
+
+      /* The CF manipulation code called by this pass is smart enough to keep
+       * from breaking any SSA use/def chains by replacing any uses of removed
+       * instructions with SSA undefs.  However, it's not quite smart enough
+       * to always preserve the dominance properties.  In particular, if you
+       * remove the one break from a loop, stuff in the loop may still be used
+       * outside the loop even though there's no path between the two.  We can
+       * easily fix these issues by calling nir_repair_ssa which will ensure
+       * that the dominance properties hold.
+       */
+      nir_repair_ssa_impl(impl);
+   } else {
 #ifndef NDEBUG
       impl->valid_metadata &= ~nir_metadata_not_properly_reset;
 #endif
-    }
+   }
 
    return progress;
 }

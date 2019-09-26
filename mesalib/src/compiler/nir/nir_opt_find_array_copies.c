@@ -25,152 +25,216 @@
 #include "nir_builder.h"
 #include "nir_deref.h"
 
-static bool
-index_ssa_def_cb(nir_ssa_def *def, void *state)
-{
-   unsigned *index = (unsigned *) state;
-   def->index = (*index)++;
+struct match_node {
+   /* Note: these fields are only valid for leaf nodes */
 
-   return true;
-}
-
-static nir_deref_instr *
-get_deref_for_load_src(nir_src src, unsigned first_valid_load)
-{
-   nir_intrinsic_instr *load = nir_src_as_intrinsic(src);
-   if (load == NULL || load->intrinsic != nir_intrinsic_load_deref)
-      return NULL;
-
-   if (load->dest.ssa.index < first_valid_load)
-      return NULL;
-
-   return nir_src_as_deref(load->src[0]);
-}
-
-struct match_state {
-   /* Index into the array of the last copy or -1 for no ongoing copy. */
    unsigned next_array_idx;
-
-   /* Length of the array we're copying */
-   unsigned array_len;
-
-   /* Index into the deref path to the array we think is being copied */
-   int src_deref_array_idx;
-   int dst_deref_array_idx;
-
-   /* Deref paths of the first load/store pair or copy */
+   int src_wildcard_idx;
    nir_deref_path first_src_path;
-   nir_deref_path first_dst_path;
+
+   /* The index of the first read of the source path that's part of the copy
+    * we're matching. If the last write to the source path is after this, we
+    * would get a different result from reading it at the end and we can't
+    * emit the copy.
+    */
+   unsigned first_src_read;
+
+   /* The last time there was a write to this node. */
+   unsigned last_overwritten;
+
+   /* The last time there was a write to this node which successfully advanced
+    * next_array_idx. This helps us catch any intervening aliased writes.
+    */
+   unsigned last_successful_write;
+
+   unsigned num_children;
+   struct match_node *children[];
 };
 
-static void
-match_state_init(struct match_state *state)
-{
-   state->next_array_idx = 0;
-   state->array_len = 0;
-   state->src_deref_array_idx = -1;
-   state->dst_deref_array_idx = -1;
-}
+struct match_state {
+   /* Map from nir_variable * -> match_node */
+   struct hash_table *table;
 
-static void
-match_state_finish(struct match_state *state)
+   unsigned cur_instr;
+
+   nir_builder builder;
+
+   void *dead_ctx;
+};
+
+static struct match_node *
+create_match_node(const struct glsl_type *type, struct match_state *state)
 {
-   if (state->next_array_idx > 0) {
-      nir_deref_path_finish(&state->first_src_path);
-      nir_deref_path_finish(&state->first_dst_path);
+   unsigned num_children = 0;
+   if (glsl_type_is_array_or_matrix(type)) {
+      /* One for wildcards */
+      num_children = glsl_get_length(type) + 1;
+   } else if (glsl_type_is_struct_or_ifc(type)) {
+      num_children = glsl_get_length(type);
    }
+
+   struct match_node *node = rzalloc_size(state->dead_ctx,
+                                          sizeof(struct match_node) +
+                                          num_children * sizeof(struct match_node *));
+   node->num_children = num_children;
+   node->src_wildcard_idx = -1;
+   node->first_src_read = UINT32_MAX;
+   return node;
 }
 
-static void
-match_state_reset(struct match_state *state)
+static struct match_node *
+node_for_deref(nir_deref_instr *instr, struct match_node *parent,
+               struct match_state *state)
 {
-   match_state_finish(state);
-   match_state_init(state);
-}
-
-static bool
-try_match_deref(nir_deref_path *base_path, int *path_array_idx,
-                nir_deref_instr *deref, int arr_idx, void *mem_ctx)
-{
-   nir_deref_path deref_path;
-   nir_deref_path_init(&deref_path, deref, mem_ctx);
-
-   bool found = false;
-   for (int i = 0; ; i++) {
-      nir_deref_instr *b = base_path->path[i];
-      nir_deref_instr *d = deref_path.path[i];
-      /* They have to be the same length */
-      if ((b == NULL) != (d == NULL))
-         goto fail;
-
-      if (b == NULL)
-         break;
-
-      /* This can happen if one is a deref_array and the other a wildcard */
-      if (b->deref_type != d->deref_type)
-         goto fail;
-
-      switch (b->deref_type) {
-      case nir_deref_type_var:
-         if (b->var != d->var)
-            goto fail;
-         continue;
-
-      case nir_deref_type_array:
-         assert(b->arr.index.is_ssa && d->arr.index.is_ssa);
-         const bool const_b_idx = nir_src_is_const(b->arr.index);
-         const bool const_d_idx = nir_src_is_const(d->arr.index);
-         const unsigned b_idx = const_b_idx ? nir_src_as_uint(b->arr.index) : 0;
-         const unsigned d_idx = const_d_idx ? nir_src_as_uint(d->arr.index) : 0;
-
-         /* If we don't have an index into the path yet or if this entry in
-          * the path is at the array index, see if this is a candidate.  We're
-          * looking for an index which is zero in the base deref and arr_idx
-          * in the search deref.
-          */
-         if ((*path_array_idx < 0 || *path_array_idx == i) &&
-             const_b_idx && b_idx == 0 &&
-             const_d_idx && d_idx == arr_idx) {
-            *path_array_idx = i;
-            continue;
-         }
-
-         /* We're at the array index but not a candidate */
-         if (*path_array_idx == i)
-            goto fail;
-
-         /* If we're not the path array index, we must match exactly.  We
-          * could probably just compare SSA values and trust in copy
-          * propagation but doing it ourselves means this pass can run a bit
-          * earlier.
-          */
-         if (b->arr.index.ssa == d->arr.index.ssa ||
-             (const_b_idx && const_d_idx && b_idx == d_idx))
-            continue;
-
-         goto fail;
-
-      case nir_deref_type_array_wildcard:
-         continue;
-
-      case nir_deref_type_struct:
-         if (b->strct.index != d->strct.index)
-            goto fail;
-         continue;
-
-      default:
-         unreachable("Invalid deref type in a path");
+   unsigned idx;
+   switch (instr->deref_type) {
+   case nir_deref_type_var: {
+      struct hash_entry *entry = _mesa_hash_table_search(state->table, instr->var);
+      if (entry) {
+         return entry->data;
+      } else {
+         struct match_node *node = create_match_node(instr->type, state);
+         _mesa_hash_table_insert(state->table, instr->var, node);
+         return node;
       }
    }
 
-   /* If we got here without failing, we've matched.  However, it isn't an
-    * array match unless we found an altered array index.
-    */
-   found = *path_array_idx > 0;
+   case nir_deref_type_array_wildcard:
+      idx = parent->num_children - 1;
+      break;
 
-fail:
-   nir_deref_path_finish(&deref_path);
-   return found;
+   case nir_deref_type_array:
+      if (nir_src_is_const(instr->arr.index)) {
+         idx = nir_src_as_uint(instr->arr.index);
+         assert(idx < parent->num_children - 1);
+      } else {
+         idx = parent->num_children - 1;
+      }
+      break;
+
+   case nir_deref_type_struct:
+      idx = instr->strct.index;
+      break;
+
+   default:
+      unreachable("bad deref type");
+   }
+
+   assert(idx < parent->num_children);
+   if (parent->children[idx]) {
+      return parent->children[idx];
+   } else {
+      struct match_node *node = create_match_node(instr->type, state);
+      parent->children[idx] = node;
+      return node;
+   }
+}
+
+static struct match_node *
+node_for_wildcard(const struct glsl_type *type, struct match_node *parent,
+                  struct match_state *state)
+{
+   assert(glsl_type_is_array_or_matrix(type));
+   unsigned idx = glsl_get_length(type);
+
+   if (parent->children[idx]) {
+      return parent->children[idx];
+   } else {
+      struct match_node *node =
+         create_match_node(glsl_get_array_element(type), state);
+      parent->children[idx] = node;
+      return node;
+   }
+}
+
+static struct match_node *
+node_for_path(nir_deref_path *path, struct match_state *state)
+{
+   struct match_node *node = NULL;
+   for (nir_deref_instr **instr = path->path; *instr; instr++)
+      node = node_for_deref(*instr, node, state);
+
+   return node;
+}
+
+static struct match_node *
+node_for_path_with_wildcard(nir_deref_path *path, unsigned wildcard_idx,
+                            struct match_state *state)
+{
+   struct match_node *node = NULL;
+   unsigned idx = 0;
+   for (nir_deref_instr **instr = path->path; *instr; instr++, idx++) {
+      if (idx == wildcard_idx)
+         node = node_for_wildcard((*(instr - 1))->type, node, state);
+      else
+         node = node_for_deref(*instr, node, state);
+   }
+
+   return node;
+}
+
+typedef void (*match_cb)(struct match_node *, struct match_state *);
+
+static void
+_foreach_aliasing(nir_deref_instr **deref, match_cb cb,
+                  struct match_node *node, struct match_state *state)
+{
+   if (*deref == NULL) {
+      cb(node, state);
+      return;
+   }
+
+   switch ((*deref)->deref_type) {
+   case nir_deref_type_struct: {
+      struct match_node *child = node->children[(*deref)->strct.index];
+      if (child)
+         _foreach_aliasing(deref + 1, cb, child, state);
+      return;
+   }
+
+   case nir_deref_type_array:
+   case nir_deref_type_array_wildcard: {
+      if ((*deref)->deref_type == nir_deref_type_array_wildcard ||
+          !nir_src_is_const((*deref)->arr.index)) {
+         /* This access may touch any index, so we have to visit all of
+          * them.
+          */
+         for (unsigned i = 0; i < node->num_children; i++) {
+            if (node->children[i])
+               _foreach_aliasing(deref + 1, cb, node->children[i], state);
+         }
+      } else {
+         /* Visit the wildcard entry if any */
+         if (node->children[node->num_children - 1]) {
+            _foreach_aliasing(deref + 1, cb,
+                              node->children[node->num_children - 1], state);
+         }
+
+         unsigned index = nir_src_as_uint((*deref)->arr.index);
+         /* Check that the index is in-bounds */
+         if (index < node->num_children - 1 && node->children[index])
+            _foreach_aliasing(deref + 1, cb, node->children[index], state);
+      }
+      return;
+   }
+
+   default:
+      unreachable("bad deref type");
+   }
+}
+
+/* Given a deref path, find all the leaf deref nodes that alias it. */
+
+static void
+foreach_aliasing_node(nir_deref_path *path,
+                      match_cb cb,
+                      struct match_state *state)
+{
+   assert(path->path[0]->deref_type == nir_deref_type_var);
+   struct hash_entry *entry = _mesa_hash_table_search(state->table,
+                                                      path->path[0]->var);
+   if (entry)
+      _foreach_aliasing(&path->path[1], cb, entry->data, state);
 }
 
 static nir_deref_instr *
@@ -188,27 +252,245 @@ build_wildcard_deref(nir_builder *b, nir_deref_path *path,
    return tail;
 }
 
+static void
+clobber(struct match_node *node, struct match_state *state)
+{
+   node->last_overwritten = state->cur_instr;
+}
+
+static bool
+try_match_deref(nir_deref_path *base_path, int *path_array_idx,
+                nir_deref_path *deref_path, int arr_idx,
+                nir_deref_instr *dst)
+{
+   for (int i = 0; ; i++) {
+      nir_deref_instr *b = base_path->path[i];
+      nir_deref_instr *d = deref_path->path[i];
+      /* They have to be the same length */
+      if ((b == NULL) != (d == NULL))
+         return false;
+
+      if (b == NULL)
+         break;
+
+      /* This can happen if one is a deref_array and the other a wildcard */
+      if (b->deref_type != d->deref_type)
+         return false;;
+
+      switch (b->deref_type) {
+      case nir_deref_type_var:
+         if (b->var != d->var)
+            return false;
+         continue;
+
+      case nir_deref_type_array:
+         assert(b->arr.index.is_ssa && d->arr.index.is_ssa);
+         const bool const_b_idx = nir_src_is_const(b->arr.index);
+         const bool const_d_idx = nir_src_is_const(d->arr.index);
+         const unsigned b_idx = const_b_idx ? nir_src_as_uint(b->arr.index) : 0;
+         const unsigned d_idx = const_d_idx ? nir_src_as_uint(d->arr.index) : 0;
+
+         /* If we don't have an index into the path yet or if this entry in
+          * the path is at the array index, see if this is a candidate.  We're
+          * looking for an index which is zero in the base deref and arr_idx
+          * in the search deref and has a matching array size.
+          */
+         if ((*path_array_idx < 0 || *path_array_idx == i) &&
+             const_b_idx && b_idx == 0 &&
+             const_d_idx && d_idx == arr_idx &&
+             glsl_get_length(nir_deref_instr_parent(b)->type) ==
+             glsl_get_length(nir_deref_instr_parent(dst)->type)) {
+            *path_array_idx = i;
+            continue;
+         }
+
+         /* We're at the array index but not a candidate */
+         if (*path_array_idx == i)
+            return false;
+
+         /* If we're not the path array index, we must match exactly.  We
+          * could probably just compare SSA values and trust in copy
+          * propagation but doing it ourselves means this pass can run a bit
+          * earlier.
+          */
+         if (b->arr.index.ssa == d->arr.index.ssa ||
+             (const_b_idx && const_d_idx && b_idx == d_idx))
+            continue;
+
+         return false;
+
+      case nir_deref_type_array_wildcard:
+         continue;
+
+      case nir_deref_type_struct:
+         if (b->strct.index != d->strct.index)
+            return false;
+         continue;
+
+      default:
+         unreachable("Invalid deref type in a path");
+      }
+   }
+
+   /* If we got here without failing, we've matched.  However, it isn't an
+    * array match unless we found an altered array index.
+    */
+   return *path_array_idx > 0;
+}
+
+static void
+handle_read(nir_deref_instr *src, struct match_state *state)
+{
+   /* We only need to create an entry for sources that might be used to form
+    * an array copy. Hence no indirects or indexing into a vector.
+    */
+   if (nir_deref_instr_has_indirect(src) ||
+       nir_deref_instr_is_known_out_of_bounds(src) ||
+       (src->deref_type == nir_deref_type_array &&
+        glsl_type_is_vector(nir_src_as_deref(src->parent)->type)))
+      return;
+
+   nir_deref_path src_path;
+   nir_deref_path_init(&src_path, src, state->dead_ctx);
+
+   /* Create a node for this source if it doesn't exist. The point of this is
+    * to know which nodes aliasing a given store we actually need to care
+    * about, to avoid creating an excessive amount of nodes.
+    */
+   node_for_path(&src_path, state);
+}
+
+/* The core implementation, which is used for both copies and writes. Return
+ * true if a copy is created.
+ */
+static bool
+handle_write(nir_deref_instr *dst, nir_deref_instr *src,
+             unsigned write_index, unsigned read_index,
+             struct match_state *state)
+{
+   nir_builder *b = &state->builder;
+
+   nir_deref_path dst_path;
+   nir_deref_path_init(&dst_path, dst, state->dead_ctx);
+
+   unsigned idx = 0;
+   for (nir_deref_instr **instr = dst_path.path; *instr; instr++, idx++) {
+      if ((*instr)->deref_type != nir_deref_type_array)
+         continue;
+
+      /* Get the entry where the index is replaced by a wildcard, so that we
+       * hopefully can keep matching an array copy.
+       */
+      struct match_node *dst_node =
+         node_for_path_with_wildcard(&dst_path, idx, state);
+
+      if (!src)
+         goto reset;
+
+      if (nir_src_as_uint((*instr)->arr.index) != dst_node->next_array_idx)
+         goto reset;
+
+      if (dst_node->next_array_idx == 0) {
+         /* At this point there may be multiple source indices which are zero,
+          * so we can't pin down the actual source index. Just store it and
+          * move on.
+          */
+         nir_deref_path_init(&dst_node->first_src_path, src, state->dead_ctx);
+      } else {
+         nir_deref_path src_path;
+         nir_deref_path_init(&src_path, src, state->dead_ctx);
+         bool result = try_match_deref(&dst_node->first_src_path,
+                                       &dst_node->src_wildcard_idx,
+                                       &src_path, dst_node->next_array_idx,
+                                       *instr);
+         nir_deref_path_finish(&src_path);
+         if (!result)
+            goto reset;
+      }
+
+      /* Check if an aliasing write clobbered the array after the last normal
+       * write. For example, with a sequence like this:
+       *
+       * dst[0][*] = src[0][*];
+       * dst[0][0] = 0; // invalidates the array copy dst[*][*] = src[*][*]
+       * dst[1][*] = src[1][*];
+       *
+       * Note that the second write wouldn't reset the entry for dst[*][*]
+       * by itself, but it'll be caught by this check when processing the
+       * third copy.
+       */
+      if (dst_node->last_successful_write < dst_node->last_overwritten)
+         goto reset;
+
+      dst_node->last_successful_write = write_index;
+
+      /* In this case we've successfully processed an array element. Check if
+       * this is the last, so that we can emit an array copy.
+       */
+      dst_node->next_array_idx++;
+      dst_node->first_src_read = MIN2(dst_node->first_src_read, read_index);
+      if (dst_node->next_array_idx > 1 &&
+          dst_node->next_array_idx == glsl_get_length((*(instr - 1))->type)) {
+         /* Make sure that nothing was overwritten. */
+         struct match_node *src_node =
+            node_for_path_with_wildcard(&dst_node->first_src_path,
+                                        dst_node->src_wildcard_idx,
+                                        state);
+
+         if (src_node->last_overwritten <= dst_node->first_src_read) {
+            nir_copy_deref(b, build_wildcard_deref(b, &dst_path, idx),
+                              build_wildcard_deref(b, &dst_node->first_src_path,
+                                                   dst_node->src_wildcard_idx));
+            foreach_aliasing_node(&dst_path, clobber, state);
+            return true;
+         }
+      } else {
+         continue;
+      }
+
+reset:
+      dst_node->next_array_idx = 0;
+      dst_node->src_wildcard_idx = -1;
+      dst_node->last_successful_write = 0;
+      dst_node->first_src_read = UINT32_MAX;
+   }
+
+   /* Mark everything aliasing dst_path as clobbered. This needs to happen
+    * last since in the loop above we need to know what last clobbered
+    * dst_node and this overwrites that.
+    */
+   foreach_aliasing_node(&dst_path, clobber, state);
+
+   return false;
+}
+
 static bool
 opt_find_array_copies_block(nir_builder *b, nir_block *block,
-                            unsigned *num_ssa_defs, void *mem_ctx)
+                            struct match_state *state)
 {
    bool progress = false;
 
-   struct match_state s;
-   match_state_init(&s);
+   unsigned next_index = 0;
 
-   nir_variable *dst_var = NULL;
-   unsigned prev_dst_var_last_write = *num_ssa_defs;
-   unsigned dst_var_last_write = *num_ssa_defs;
+   _mesa_hash_table_clear(state->table, NULL);
 
    nir_foreach_instr(instr, block) {
-      /* Index the SSA defs before we do anything else. */
-      nir_foreach_ssa_def(instr, index_ssa_def_cb, num_ssa_defs);
-
       if (instr->type != nir_instr_type_intrinsic)
          continue;
 
+      /* Index the instructions before we do anything else. */
+      instr->index = next_index++;
+
+      /* Save the index of this instruction */
+      state->cur_instr = instr->index;
+
       nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+
+      if (intrin->intrinsic == nir_intrinsic_load_deref) {
+         handle_read(nir_src_as_deref(intrin->src[0]), state);
+         continue;
+      }
+
       if (intrin->intrinsic != nir_intrinsic_copy_deref &&
           intrin->intrinsic != nir_intrinsic_store_deref)
          continue;
@@ -222,127 +504,63 @@ opt_find_array_copies_block(nir_builder *b, nir_block *block,
       if (dst_deref->mode != nir_var_function_temp)
          continue;
 
-      /* We keep track of the SSA indices where the two last-written
-       * variables are written.  The prev_dst_var_last_write tells us when
-       * the last store_deref to something other than dst happened.  If the
-       * SSA def index from a load is greater than or equal to this number
-       * then we know it happened afterwards and no writes to anything other
-       * than dst occur between the load and the current instruction.
+      /* If there are any known out-of-bounds writes, then we can just skip
+       * this write as it's undefined and won't contribute to building up an
+       * array copy anyways.
        */
-      if (nir_deref_instr_get_variable(dst_deref) != dst_var) {
-         prev_dst_var_last_write = dst_var_last_write;
-         dst_var = nir_deref_instr_get_variable(dst_deref);
-      }
-      dst_var_last_write = *num_ssa_defs;
-
-      /* If it's a full variable store or copy, reset.  This will trigger
-       * eventually because we'll fail to match an array element.  However,
-       * it's a cheap early-exit.
-       */
-      if (dst_deref->deref_type == nir_deref_type_var)
-         goto reset;
+      if (nir_deref_instr_is_known_out_of_bounds(dst_deref))
+         continue;
 
       nir_deref_instr *src_deref;
+      unsigned load_index = 0;
       if (intrin->intrinsic == nir_intrinsic_copy_deref) {
          src_deref = nir_src_as_deref(intrin->src[1]);
+         load_index = intrin->instr.index;
       } else {
          assert(intrin->intrinsic == nir_intrinsic_store_deref);
-         src_deref = get_deref_for_load_src(intrin->src[1],
-                                            prev_dst_var_last_write);
+         nir_intrinsic_instr *load = nir_src_as_intrinsic(intrin->src[1]);
+         if (load == NULL || load->intrinsic != nir_intrinsic_load_deref) {
+            src_deref = NULL;
+         } else {
+            src_deref = nir_src_as_deref(load->src[0]);
+            load_index = load->instr.index;
+         }
 
-         /* We can only handle full writes */
          if (nir_intrinsic_write_mask(intrin) !=
-             (1 << glsl_get_components(dst_deref->type)) - 1)
-            goto reset;
+             (1 << glsl_get_components(dst_deref->type)) - 1) {
+            src_deref = NULL;
+         }
       }
-
-      /* If we didn't find a valid src, then we have an unknown store and it
-       * could mess things up.
-       */
-      if (src_deref == NULL)
-         goto reset;
 
       /* The source must be either local or something that's guaranteed to be
        * read-only.
        */
       const nir_variable_mode read_only_modes =
          nir_var_shader_in | nir_var_uniform | nir_var_system_value;
-      if (!(src_deref->mode & (nir_var_function_temp | read_only_modes)))
-         goto reset;
+      if (src_deref &&
+          !(src_deref->mode & (nir_var_function_temp | read_only_modes))) {
+         src_deref = NULL;
+      }
 
-      /* If we don't yet have an active copy, then make this instruction the
-       * active copy.
+      /* There must be no indirects in the source or destination and no known
+       * out-of-bounds accesses in the source, and the copy must be fully
+       * qualified, or else we can't build up the array copy. We handled
+       * out-of-bounds accesses to the dest above. The types must match, since
+       * copy_deref currently can't bitcast mismatched deref types.
        */
-      if (s.next_array_idx == 0) {
-         /* We can't combine a copy if there is any chance the source and
-          * destination will end up aliasing.  Just bail if they're the same
-          * variable.
-          */
-         if (nir_deref_instr_get_variable(src_deref) == dst_var)
-            goto reset;
-
-         /* The load/store pair is enough to guarantee the same bit size and
-          * number of components but a copy_var requires the actual types to
-          * match.
-          */
-         if (dst_deref->type != src_deref->type)
-            continue;
-
-         /* The first time we see a store, we don't know which array in the
-          * deref path is the one being copied so we just record the paths
-          * as-is and continue.  On the next iteration, it will try to match
-          * based on which array index changed.
-          */
-         nir_deref_path_init(&s.first_dst_path, dst_deref, mem_ctx);
-         nir_deref_path_init(&s.first_src_path, src_deref, mem_ctx);
-         s.next_array_idx = 1;
-         continue;
+      if (src_deref &&
+          (nir_deref_instr_has_indirect(src_deref) ||
+           nir_deref_instr_is_known_out_of_bounds(src_deref) ||
+           nir_deref_instr_has_indirect(dst_deref) ||
+           !glsl_type_is_vector_or_scalar(src_deref->type) ||
+           glsl_get_bare_type(src_deref->type) !=
+           glsl_get_bare_type(dst_deref->type))) {
+         src_deref = NULL;
       }
 
-      if (!try_match_deref(&s.first_dst_path, &s.dst_deref_array_idx,
-                           dst_deref, s.next_array_idx, mem_ctx) ||
-          !try_match_deref(&s.first_src_path, &s.src_deref_array_idx,
-                           src_deref, s.next_array_idx, mem_ctx))
-         goto reset;
-
-      if (s.next_array_idx == 1) {
-         /* This is our first non-trivial match.  We now have indices into
-          * the search paths so we can do a couple more checks.
-          */
-         assert(s.dst_deref_array_idx > 0 && s.src_deref_array_idx > 0);
-         const struct glsl_type *dst_arr_type =
-            s.first_dst_path.path[s.dst_deref_array_idx - 1]->type;
-         const struct glsl_type *src_arr_type =
-            s.first_src_path.path[s.src_deref_array_idx - 1]->type;
-
-         assert(glsl_type_is_array(dst_arr_type) ||
-                glsl_type_is_matrix(dst_arr_type));
-         assert(glsl_type_is_array(src_arr_type) ||
-                glsl_type_is_matrix(src_arr_type));
-
-         /* They must be the same length */
-         s.array_len = glsl_get_length(dst_arr_type);
-         if (s.array_len != glsl_get_length(src_arr_type))
-            goto reset;
-      }
-
-      s.next_array_idx++;
-
-      if (s.next_array_idx == s.array_len) {
-         /* Hooray, We found a copy! */
-         b->cursor = nir_after_instr(instr);
-         nir_copy_deref(b, build_wildcard_deref(b, &s.first_dst_path,
-                                                s.dst_deref_array_idx),
-                           build_wildcard_deref(b, &s.first_src_path,
-                                                s.src_deref_array_idx));
-         match_state_reset(&s);
-         progress = true;
-      }
-
-      continue;
-
-   reset:
-      match_state_reset(&s);
+      state->builder.cursor = nir_after_instr(instr);
+      progress |= handle_write(dst_deref, src_deref, instr->index,
+                               load_index, state);
    }
 
    return progress;
@@ -356,21 +574,17 @@ opt_find_array_copies_impl(nir_function_impl *impl)
 
    bool progress = false;
 
-   void *mem_ctx = ralloc_context(NULL);
-
-   /* We re-index the SSA defs as we go; it makes it easier to handle
-    * resetting the state machine.
-    */
-   unsigned num_ssa_defs = 0;
+   struct match_state s;
+   s.dead_ctx = ralloc_context(NULL);
+   s.table = _mesa_pointer_hash_table_create(s.dead_ctx);
+   nir_builder_init(&s.builder, impl);
 
    nir_foreach_block(block, impl) {
-      if (opt_find_array_copies_block(&b, block, &num_ssa_defs, mem_ctx))
+      if (opt_find_array_copies_block(&b, block, &s))
          progress = true;
    }
 
-   impl->ssa_alloc = num_ssa_defs;
-
-   ralloc_free(mem_ctx);
+   ralloc_free(s.dead_ctx);
 
    if (progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |
@@ -389,8 +603,7 @@ opt_find_array_copies_impl(nir_function_impl *impl)
  * generated by spirv_to_nir for a OpLoad of a large composite followed by
  * OpStore.
  *
- * TODO: Use a hash table approach to support out-of-order and interleaved
- * copies.
+ * TODO: Support out-of-order copies.
  */
 bool
 nir_opt_find_array_copies(nir_shader *shader)

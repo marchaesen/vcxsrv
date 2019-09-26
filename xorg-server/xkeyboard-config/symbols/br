@@ -19,7 +19,7 @@ xkb_symbols "abnt2" {
 
     key <AD01> { [            q,              Q,         slash,           slash ] };
     key <AD02> { [            w,              W,      question,        question ] };
-    key <AD03> { [            e,              E,      EuroSign,        EuroSign ] };
+    key <AD03> { [            e,              E,        degree,          degree ] };
     key <AD04> { [            r,              R,    registered,      registered ] };
     key <AD11> { [   dead_acute,     dead_grave,         acute,           grave ] };
     key <AD12> { [  bracketleft,      braceleft,   ordfeminine,     dead_macron ] };

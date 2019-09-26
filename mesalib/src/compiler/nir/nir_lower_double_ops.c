@@ -26,6 +26,8 @@
 #include "nir_builder.h"
 #include "c99_math.h"
 
+#include <float.h>
+
 /*
  * Lowers some unsupported double operations, using only:
  *
@@ -289,9 +291,20 @@ lower_sqrt_rsq(nir_builder *b, nir_ssa_def *src, bool sqrt)
        * 0 -> 0 and
        * +inf -> +inf
        */
-      res = nir_bcsel(b, nir_ior(b, nir_feq(b, src, nir_imm_double(b, 0.0)),
+      const bool preserve_denorms =
+         b->shader->info.float_controls_execution_mode &
+         FLOAT_CONTROLS_DENORM_PRESERVE_FP64;
+      nir_ssa_def *src_flushed = src;
+      if (!preserve_denorms) {
+         src_flushed = nir_bcsel(b,
+                                 nir_flt(b, nir_fabs(b, src),
+                                         nir_imm_double(b, DBL_MIN)),
+                                 nir_imm_double(b, 0.0),
+                                 src);
+      }
+      res = nir_bcsel(b, nir_ior(b, nir_feq(b, src_flushed, nir_imm_double(b, 0.0)),
                                  nir_feq(b, src, nir_imm_double(b, INFINITY))),
-                                 src, res);
+                                 src_flushed, res);
    } else {
       res = fix_inv_result(b, res, src, new_exp);
    }

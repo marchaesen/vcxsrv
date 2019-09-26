@@ -1,5 +1,6 @@
 /*
  * Copyright © 2016 Intel Corporation
+ * Copyright © 2019 Valve Corporation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -24,15 +25,15 @@
 #include "nir.h"
 
 /**
- * \file nir_opt_move_comparisons.c
+ * \file nir_opt_move.c
  *
- * This pass moves ALU comparison operations just before their first use.
+ * This pass can move various operations just before their first use inside the
+ * same basic block. Usually this is to reduce register usage. It's probably
+ * not a good idea to use this in an optimization loop.
  *
- * It only moves instructions within a single basic block; cross-block
- * movement is left to global code motion.
- *
- * Many GPUs generate condition codes for comparisons, and use predication
- * for conditional selects and control flow.  In a sequence such as:
+ * Moving comparisons is useful because many GPUs generate condition codes
+ * for comparisons, and use predication for conditional selects and control
+ * flow.  In a sequence such as:
  *
  *     vec1 32 ssa_1 = flt a b
  *     <some other operations>
@@ -51,17 +52,14 @@
  */
 
 static bool
-move_comparison_source(nir_src *src, nir_block *block, nir_instr *before)
+move_source(nir_src *src, nir_block *block, nir_instr *before, nir_move_options options)
 {
    if (!src->is_ssa)
       return false;
 
    nir_instr *src_instr = src->ssa->parent_instr;
 
-   if (src_instr->block == block &&
-       src_instr->type == nir_instr_type_alu &&
-       nir_alu_instr_is_comparison(nir_instr_as_alu(src_instr))) {
-
+   if (src_instr->block == block && nir_can_move_instr(src_instr, options)) {
       exec_node_remove(&src_instr->node);
 
       if (before)
@@ -71,24 +69,28 @@ move_comparison_source(nir_src *src, nir_block *block, nir_instr *before)
 
       return true;
    }
-
    return false;
 }
 
+struct source_cb_data {
+   bool *progress;
+   nir_move_options options;
+};
+
 static bool
-move_comparison_source_cb(nir_src *src, void *data)
+move_source_cb(nir_src *src, void *data_ptr)
 {
-   bool *progress = data;
+   struct source_cb_data data = *(struct source_cb_data*)data_ptr;
 
    nir_instr *instr = src->parent_instr;
-   if (move_comparison_source(src, instr->block, instr))
-      *progress = true;
+   if (move_source(src, instr->block, instr, data.options))
+      *data.progress = true;
 
    return true; /* nir_foreach_src should keep going */
 }
 
 static bool
-move_comparisons(nir_block *block)
+move(nir_block *block, nir_move_options options)
 {
    bool progress = false;
 
@@ -106,7 +108,7 @@ move_comparisons(nir_block *block)
     */
    nir_if *iff = nir_block_get_following_if(block);
    if (iff) {
-      progress |= move_comparison_source(&iff->condition, block, NULL);
+      progress |= move_source(&iff->condition, block, NULL, options);
    }
 
    nir_foreach_instr_reverse(instr, block) {
@@ -118,20 +120,23 @@ move_comparisons(nir_block *block)
        * substantially more complicated and wouldn't gain us anything since
        * the phi can't use a flag value anyway.
        */
+
       if (instr->type == nir_instr_type_phi) {
          /* We're going backwards so everything else is a phi too */
          break;
       } else if (instr->type == nir_instr_type_alu) {
          /* Walk ALU instruction sources backwards so that bcsel's boolean
-          * condition is processed last.
+          * condition is processed last for when comparisons are being moved.
           */
          nir_alu_instr *alu = nir_instr_as_alu(instr);
          for (int i = nir_op_infos[alu->op].num_inputs - 1; i >= 0; i--) {
-            progress |= move_comparison_source(&alu->src[i].src,
-                                               block, instr);
+            progress |= move_source(&alu->src[i].src, block, instr, options);
          }
       } else {
-         nir_foreach_src(instr, move_comparison_source_cb, &progress);
+         struct source_cb_data data;
+         data.progress = &progress;
+         data.options = options;
+         nir_foreach_src(instr, move_source_cb, &data);
       }
    }
 
@@ -139,7 +144,7 @@ move_comparisons(nir_block *block)
 }
 
 bool
-nir_opt_move_comparisons(nir_shader *shader)
+nir_opt_move(nir_shader *shader, nir_move_options options)
 {
    bool progress = false;
 
@@ -148,7 +153,7 @@ nir_opt_move_comparisons(nir_shader *shader)
          continue;
 
       nir_foreach_block(block, func->impl) {
-         if (move_comparisons(block)) {
+         if (move(block, options)) {
             nir_metadata_preserve(func->impl, nir_metadata_block_index |
                                               nir_metadata_dominance |
                                               nir_metadata_live_ssa_defs);

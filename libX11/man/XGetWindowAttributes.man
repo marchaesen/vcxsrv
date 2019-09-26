@@ -39,46 +39,13 @@
 .\" to this documentation without specific, written prior permission.
 .\" Digital and Tektronix makes no representations about the suitability
 .\" of this documentation for any purpose.
-.\" It is provided ``as is'' without express or implied warranty.
-.\" 
+.\" It is provided "as is" without express or implied warranty.
+.\"
 .\"
 .ds xT X Toolkit Intrinsics \- C Language Interface
 .ds xW Athena X Widgets \- C Language X Toolkit Interface
 .ds xL Xlib \- C Language X Interface
 .ds xC Inter-Client Communication Conventions Manual
-.na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.\".ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.de hN
-.ie t <\fB\\$1\fR>\\$2
-.el <\fI\\$1\fP>\\$2
-..
-.ny0
 '\" t
 .TH XGetWindowAttributes __libmansuffix__ __xorgversion__ "XLIB FUNCTIONS"
 .SH NAME
@@ -86,24 +53,24 @@ XGetWindowAttributes, XGetGeometry, XWindowAttributes \- get current window attr
 .SH SYNTAX
 .HP
 Status XGetWindowAttributes\^(\^Display *\fIdisplay\fP\^, Window \fIw\fP\^,
-XWindowAttributes *\fIwindow_attributes_return\fP\^); 
+XWindowAttributes *\fIwindow_attributes_return\fP\^);
 .HP
 Status XGetGeometry\^(\^Display *\fIdisplay\fP\^, Drawable \fId\fP\^, Window
 *\fIroot_return\fP\^, int *\fIx_return\fP\^, int *\fIy_return\fP\^, unsigned
 int *\fIwidth_return\fP\^, unsigned int *\fIheight_return\fP\^, unsigned int
-*\fIborder_width_return\fP\^, unsigned int *\fIdepth_return\fP\^); 
+*\fIborder_width_return\fP\^, unsigned int *\fIdepth_return\fP\^);
 .SH ARGUMENTS
 .IP \fIborder_width_return\fP 1i
-Returns the border width in pixels. 
+Returns the border width in pixels.
 .IP \fId\fP 1i
-Specifies the drawable, which can be a window or a pixmap. 
+Specifies the drawable, which can be a window or a pixmap.
 .IP \fIdepth_return\fP 1i
 Returns the depth of the drawable (bits per pixel for the object).
 .IP \fIdisplay\fP 1i
 Specifies the connection to the X server.
 .IP \fIroot_return\fP 1i
 Returns the root window.
-.ds Wi 
+.ds Wi
 .IP \fIw\fP 1i
 Specifies the window whose current attributes you want to obtain.
 .IP \fIwidth_return\fP 1i
@@ -120,7 +87,7 @@ structure.
 .ns
 .IP \fIy_return\fP 1i
 Return the x and y coordinates that define the location of the drawable.
-For a window, 
+For a window,
 these coordinates specify the upper-left outer corner relative to
 its parent's origin.
 For pixmaps, these coordinates are always zero.
@@ -129,7 +96,8 @@ The
 .B XGetWindowAttributes
 function returns the current attributes for the specified window to an
 .B XWindowAttributes
-structure.  It returns a nonzero status on success; otherwise, it returns a
+structure.
+It returns a nonzero status on success; otherwise, it returns a
 zero status.
 .LP
 .B XGetWindowAttributes
@@ -154,7 +122,7 @@ The
 .B XWindowAttributes
 structure contains:
 .LP
-.Ds 0
+.EX
 typedef struct {
         int x, y;       /\&* location of window */
         int width, height;      /\&* width and height of window */
@@ -178,14 +146,14 @@ typedef struct {
         Bool override_redirect; /\&* boolean value for override-redirect */
         Screen *screen; /\&* back pointer to correct screen */
 } XWindowAttributes;
-.De
+.EE
 .LP
 The x and y members are set to the upper-left outer
 corner relative to the parent window's origin.
-The width and height members are set to the inside size of the window, 
+The width and height members are set to the inside size of the window,
 not including the border.
 The border_width member is set to the window's border width in pixels.
-The depth member is set to the depth of the window 
+The depth member is set to the depth of the window
 (that is, bits per pixel for the object).
 The visual member is a pointer to the screen's associated
 .B Visual
@@ -266,27 +234,27 @@ For additional information on gravity,
 see section 3.3.
 .LP
 The backing_store member is set to indicate how the X server should maintain
-the contents of a window 
-and can be 
+the contents of a window
+and can be
 .BR WhenMapped ,
 .BR Always ,
 or
 .BR NotUseful .
-The backing_planes member is set to indicate (with bits set to 1) which bit 
-planes of the window hold dynamic data that must be preserved in backing_stores 
+The backing_planes member is set to indicate (with bits set to 1) which bit
+planes of the window hold dynamic data that must be preserved in backing_stores
 and during save_unders.
-The backing_pixel member is set to indicate what values to use 
+The backing_pixel member is set to indicate what values to use
 for planes not set in backing_planes.
 .LP
-The save_under member is set to 
+The save_under member is set to
 .B True
 or
 .BR False .
 The colormap member is set to the colormap for the specified window and can be
-a colormap ID or 
+a colormap ID or
 .BR None .
-The map_installed member is set to indicate whether the colormap is 
-currently installed and can be 
+The map_installed member is set to indicate whether the colormap is
+currently installed and can be
 .B True
 or
 .BR False .
@@ -298,22 +266,22 @@ or
 .B IsUnviewable
 is used if the window is mapped but some ancestor is unmapped.
 .LP
-The all_event_masks member is set to the bitwise inclusive OR of all event 
+The all_event_masks member is set to the bitwise inclusive OR of all event
 masks selected on the window by all clients.
-The your_event_mask member is set to the bitwise inclusive OR of all event 
+The your_event_mask member is set to the bitwise inclusive OR of all event
 masks selected by the querying client.
-The do_not_propagate_mask member is set to the bitwise inclusive OR of the 
+The do_not_propagate_mask member is set to the bitwise inclusive OR of the
 set of events that should not propagate.
 .LP
 The override_redirect member is set to indicate whether this window overrides
-structure control facilities and can be 
+structure control facilities and can be
 .B True
 or
 .BR False .
 Window manager clients should ignore the window if this member is
 .BR True .
 .LP
-The screen member is set to a screen pointer that gives you a back pointer 
+The screen member is set to a screen pointer that gives you a back pointer
 to the correct screen.
 This makes it easier to obtain the screen information without
 having to loop over the root window fields to see which field matches.

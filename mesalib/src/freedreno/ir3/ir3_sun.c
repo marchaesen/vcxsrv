@@ -38,7 +38,7 @@
  * is computed in multiple paths into a block, I think we should only have to
  * consider the worst-case.
  *
- * [1] https://pdfs.semanticscholar.org/ae53/6010b214612c2571f483354c264b0b39c545.pdf
+ * [1] https://www.cs.princeton.edu/~appel/papers/sun.pdf
  */
 
 static unsigned

@@ -30,6 +30,7 @@
 #include <errno.h>
 #include <string.h>
 #include <pthread.h>
+#include <poll.h>
 
 #include "drm-uapi/drm_fourcc.h"
 
@@ -40,6 +41,7 @@
 #include "linux-dmabuf-unstable-v1-client-protocol.h"
 
 #include <util/hash_table.h>
+#include <util/timespec.h>
 #include <util/u_vector.h>
 
 #define typed_memcpy(dest, src, count) ({ \
@@ -754,27 +756,23 @@ wsi_wl_swapchain_acquire_next_image(struct wsi_swapchain *wsi_chain,
                                     uint32_t *image_index)
 {
    struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
+   struct timespec start_time, end_time;
+   struct timespec rel_timeout;
+   int wl_fd = wl_display_get_fd(chain->display->wl_display);
 
-#ifdef DEBUG
-   /*
-    * TODO: We need to implement this
-    */
-   if (info->timeout != 0 && info->timeout != UINT64_MAX)
-   {
-      fprintf(stderr, "timeout not supported; ignoring");
-   }
-#endif
+   timespec_from_nsec(&rel_timeout, info->timeout);
 
-   int ret = wl_display_dispatch_queue_pending(chain->display->wl_display,
-                                               chain->display->queue);
-   /* XXX: I'm not sure if out-of-date is the right error here.  If
-    * wl_display_dispatch_queue_pending fails it most likely means we got
-    * kicked by the server so this seems more-or-less correct.
-    */
-   if (ret < 0)
-      return VK_ERROR_OUT_OF_DATE_KHR;
+   clock_gettime(CLOCK_MONOTONIC, &start_time);
+   timespec_add(&end_time, &rel_timeout, &start_time);
 
    while (1) {
+      /* Try to dispatch potential events. */
+      int ret = wl_display_dispatch_queue_pending(chain->display->wl_display,
+                                                  chain->display->queue);
+      if (ret < 0)
+         return VK_ERROR_OUT_OF_DATE_KHR;
+
+      /* Try to find a free image. */
       for (uint32_t i = 0; i < chain->base.image_count; i++) {
          if (!chain->images[i].busy) {
             /* We found a non-busy image */
@@ -784,16 +782,44 @@ wsi_wl_swapchain_acquire_next_image(struct wsi_swapchain *wsi_chain,
          }
       }
 
-      /* We now have to do a blocking dispatch, because all our images
-       * are in use and we cannot return one until the server does. However,
-       * if the client has requested non-blocking ANI, then we tell it up front
-       * that we have nothing to return.
-       */
-      if (info->timeout == 0)
+      /* Check for timeout. */
+      struct timespec current_time;
+      clock_gettime(CLOCK_MONOTONIC, &current_time);
+      if (timespec_after(&current_time, &end_time))
          return VK_NOT_READY;
 
-      int ret = wl_display_roundtrip_queue(chain->display->wl_display,
-                                           chain->display->queue);
+      /* Try to read events from the server. */
+      ret = wl_display_prepare_read_queue(chain->display->wl_display,
+                                          chain->display->queue);
+      if (ret < 0) {
+         /* Another thread might have read events for our queue already. Go
+          * back to dispatch them.
+          */
+         if (errno == EAGAIN)
+            continue;
+         return VK_ERROR_OUT_OF_DATE_KHR;
+      }
+
+      struct pollfd pollfd = {
+         .fd = wl_fd,
+         .events = POLLIN
+      };
+      timespec_sub(&rel_timeout, &end_time, &current_time);
+      ret = ppoll(&pollfd, 1, &rel_timeout, NULL);
+      if (ret <= 0) {
+         int lerrno = errno;
+         wl_display_cancel_read(chain->display->wl_display);
+         if (ret < 0) {
+            /* If ppoll() was interrupted, try again. */
+            if (lerrno == EINTR || lerrno == EAGAIN)
+               continue;
+            return VK_ERROR_OUT_OF_DATE_KHR;
+         }
+         assert(ret == 0);
+         continue;
+      }
+
+      ret = wl_display_read_events(chain->display->wl_display);
       if (ret < 0)
          return VK_ERROR_OUT_OF_DATE_KHR;
    }

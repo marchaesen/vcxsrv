@@ -2297,9 +2297,15 @@ AM_CONDITIONAL(XEPHYR, [test "x$KDRIVE" = xyes && test "x$XEPHYR" = xyes])
 
 dnl Xwayland DDX
 
-XWAYLANDMODULES="wayland-client >= 1.3.0 wayland-protocols >= 1.10 $LIBDRM epoxy"
+XWAYLANDMODULES="wayland-client >= 1.3.0 wayland-protocols >= 1.18"
 if test "x$XF86VIDMODE" = xyes; then
 	XWAYLANDMODULES="$XWAYLANDMODULES $VIDMODEPROTO"
+fi
+if test "x$DRM" = xyes; then
+	XWAYLANDMODULES="$XWAYLANDMODULES $LIBDRM"
+fi
+if test "x$GLAMOR" = xyes; then
+	XWAYLANDMODULES="$XWAYLANDMODULES epoxy"
 fi
 PKG_CHECK_MODULES(XWAYLANDMODULES, [$XWAYLANDMODULES], [have_xwayland=yes], [have_xwayland=no])
 AC_MSG_CHECKING([whether to build Xwayland DDX])
@@ -2383,16 +2389,6 @@ AC_DEFINE_DIR(PROJECTROOT, prefix, [Overall prefix])
 AC_DEFINE_DIR(SYSCONFDIR, sysconfdir, [sysconfdir])
 
 AC_SUBST([RELEASE_DATE])
-DATE_FMT="%Y%m%d"
-TIME_FMT="1%H%M%S"
-BUILD_DATE="`date "+$DATE_FMT"`"
-BUILD_TIME="`date "+$TIME_FMT"`"
-if test "x$SOURCE_DATE_EPOCH" != "x"; then
-	BUILD_DATE="`date -u -d "@$SOURCE_DATE_EPOCH" "+$DATE_FMT" 2>/dev/null || date -u -r "$SOURCE_DATE_EPOCH" "+$DATE_FMT" 2>/dev/null || date -u "+$DATE_FMT"`"
-	BUILD_TIME="`date -u -d "@$SOURCE_DATE_EPOCH" "+$TIME_FMT" 2>/dev/null || date -u -r "$SOURCE_DATE_EPOCH" "+$TIME_FMT" 2>/dev/null || date -u "+$TIME_FMT"`"
-fi
-AC_SUBST([BUILD_DATE])
-AC_SUBST([BUILD_TIME])
 
 DIX_CFLAGS="-DHAVE_DIX_CONFIG_H $XSERVER_CFLAGS"
 
@@ -2413,7 +2409,6 @@ if test "x$CONFIG_HAL" = xno && test "x$CONFIG_UDEV" = xno; then
 fi
 
 AC_CONFIG_FILES([
-buildDateTime.h
 Makefile
 glx/Makefile
 include/Makefile

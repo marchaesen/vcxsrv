@@ -642,6 +642,7 @@ typedef enum {
     FLAG_DRI2,
     FLAG_USE_SIGIO,
     FLAG_AUTO_ADD_GPU,
+    FLAG_AUTO_BIND_GPU,
     FLAG_MAX_CLIENTS,
     FLAG_IGLX,
     FLAG_DEBUG,
@@ -695,6 +696,8 @@ static OptionInfoRec FlagOptions[] = {
     {FLAG_USE_SIGIO, "UseSIGIO", OPTV_BOOLEAN,
      {0}, FALSE},
     {FLAG_AUTO_ADD_GPU, "AutoAddGPU", OPTV_BOOLEAN,
+     {0}, FALSE},
+    {FLAG_AUTO_BIND_GPU, "AutoBindGPU", OPTV_BOOLEAN,
      {0}, FALSE},
     {FLAG_MAX_CLIENTS, "MaxClients", OPTV_INTEGER,
      {0}, FALSE },
@@ -775,6 +778,22 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
     }
     xf86Msg(from, "%sutomatically adding GPU devices\n",
             xf86Info.autoAddGPU ? "A" : "Not a");
+
+    if (xf86AutoBindGPUDisabled) {
+        xf86Info.autoBindGPU = FALSE;
+        from = X_CMDLINE;
+    }
+    else if (xf86IsOptionSet(FlagOptions, FLAG_AUTO_BIND_GPU)) {
+        xf86GetOptValBool(FlagOptions, FLAG_AUTO_BIND_GPU,
+                          &xf86Info.autoBindGPU);
+        from = X_CONFIG;
+    }
+    else {
+        from = X_DEFAULT;
+    }
+    xf86Msg(from, "%sutomatically binding GPU devices\n",
+            xf86Info.autoBindGPU ? "A" : "Not a");
+
     /*
      * Set things up based on the config file information.  Some of these
      * settings may be overridden later when the command line options are

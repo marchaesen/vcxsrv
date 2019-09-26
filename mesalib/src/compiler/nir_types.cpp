@@ -645,9 +645,14 @@ glsl_get_natural_size_align_bytes(const struct glsl_type *type,
       break;
 
    case GLSL_TYPE_SAMPLER:
+   case GLSL_TYPE_IMAGE:
+      /* Bindless samplers and images. */
+      *size = 8;
+      *align = 8;
+      break;
+
    case GLSL_TYPE_ATOMIC_UINT:
    case GLSL_TYPE_SUBROUTINE:
-   case GLSL_TYPE_IMAGE:
    case GLSL_TYPE_VOID:
    case GLSL_TYPE_ERROR:
    case GLSL_TYPE_INTERFACE:
@@ -672,6 +677,12 @@ bool
 glsl_contains_atomic(const struct glsl_type *type)
 {
    return type->contains_atomic();
+}
+
+bool
+glsl_contains_opaque(const struct glsl_type *type)
+{
+   return type->contains_opaque();
 }
 
 int
@@ -745,4 +756,12 @@ glsl_type_is_leaf(const struct glsl_type *type)
    } else {
       return true;
    }
+}
+
+const struct glsl_type *
+glsl_get_explicit_type_for_size_align(const struct glsl_type *type,
+                                      glsl_type_size_align_func type_info,
+                                      unsigned *size, unsigned *align)
+{
+   return type->get_explicit_type_for_size_align(type_info, size, align);
 }

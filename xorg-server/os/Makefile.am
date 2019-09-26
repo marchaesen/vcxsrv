@@ -58,8 +58,8 @@ EXTRA_DIST = $(SECURERPC_SRCS) $(XDMCP_SRCS)
 
 if SPECIAL_DTRACE_OBJECTS
 # Generate dtrace object code for probes in libos & libdix
-dtrace.o: $(top_srcdir)/dix/Xserver.d libos.la
-	$(AM_V_GEN)$(DTRACE) -G -C -o $@ -s $(top_srcdir)/dix/Xserver.d .libs/*.o ../dix/.libs/*.o
+dtrace.o: $(top_srcdir)/include/Xserver.d libos.la
+	$(AM_V_GEN)$(DTRACE) -G -C -o $@ -s $(top_srcdir)/include/Xserver.d .libs/*.o ../dix/.libs/*.o
 
 noinst_PROGRAMS = os.O
 

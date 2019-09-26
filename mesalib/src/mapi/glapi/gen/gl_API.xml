@@ -12971,6 +12971,9 @@
 <xi:include href="EXT_direct_state_access.xml"
             xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
+<xi:include href="EXT_shader_image_load_store.xml"
+            xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
 <category name="GL_EXT_texture_sRGB_decode" number="402">
     <enum name="TEXTURE_SRGB_DECODE_EXT"              value="0x8A48"/>
     <enum name="DECODE_EXT"                           value="0x8A49"/>

@@ -427,7 +427,7 @@ get_texture_format_swizzle(const struct st_context *st,
  *
  * \param stObj  the st texture object,
  */
-MAYBE_UNUSED static boolean
+ASSERTED static boolean
 check_sampler_swizzle(const struct st_context *st,
                       const struct st_texture_object *stObj,
                       const struct pipe_sampler_view *sv,
@@ -495,6 +495,19 @@ get_sampler_view_format(struct st_context *st,
    case PIPE_FORMAT_IYUV:
       format = PIPE_FORMAT_R8_UNORM;
       break;
+   case PIPE_FORMAT_P016:
+      format = PIPE_FORMAT_R16_UNORM;
+      break;
+   case PIPE_FORMAT_YUYV:
+   case PIPE_FORMAT_UYVY:
+      format = PIPE_FORMAT_R8G8_UNORM;
+      break;
+   case PIPE_FORMAT_AYUV:
+      format = PIPE_FORMAT_RGBA8888_UNORM;
+      break;
+   case PIPE_FORMAT_XYUV:
+      format = PIPE_FORMAT_RGBX8888_UNORM;
+      break;
    default:
       break;
    }
@@ -514,13 +527,13 @@ st_create_texture_sampler_view_from_stobj(struct st_context *st,
 
    templ.format = format;
 
-   if (stObj->level_override) {
+   if (stObj->level_override >= 0) {
       templ.u.tex.first_level = templ.u.tex.last_level = stObj->level_override;
    } else {
       templ.u.tex.first_level = stObj->base.MinLevel + stObj->base.BaseLevel;
       templ.u.tex.last_level = last_level(stObj);
    }
-   if (stObj->layer_override) {
+   if (stObj->layer_override >= 0) {
       templ.u.tex.first_layer = templ.u.tex.last_layer = stObj->layer_override;
    } else {
       templ.u.tex.first_layer = stObj->base.MinLayer;
@@ -565,12 +578,12 @@ st_get_texture_sampler_view_from_stobj(struct st_context *st,
       assert(!check_sampler_swizzle(st, stObj, view, glsl130_or_later));
       assert(get_sampler_view_format(st, stObj, srgb_skip_decode) == view->format);
       assert(gl_target_to_pipe(stObj->base.Target) == view->target);
-      assert(stObj->level_override ||
+      assert(stObj->level_override >= 0 ||
              stObj->base.MinLevel + stObj->base.BaseLevel == view->u.tex.first_level);
-      assert(stObj->level_override || last_level(stObj) == view->u.tex.last_level);
-      assert(stObj->layer_override || stObj->base.MinLayer == view->u.tex.first_layer);
-      assert(stObj->layer_override || last_layer(stObj) == view->u.tex.last_layer);
-      assert(!stObj->layer_override ||
+      assert(stObj->level_override >= 0 || last_level(stObj) == view->u.tex.last_level);
+      assert(stObj->layer_override >= 0 || stObj->base.MinLayer == view->u.tex.first_layer);
+      assert(stObj->layer_override >= 0 || last_layer(stObj) == view->u.tex.last_layer);
+      assert(stObj->layer_override < 0 ||
              (stObj->layer_override == view->u.tex.first_layer &&
               stObj->layer_override == view->u.tex.last_layer));
       return view;
@@ -616,8 +629,8 @@ st_get_buffer_sampler_view_from_stobj(struct st_context *st,
                                               stObj->base._BufferObjectFormat)
              == view->format);
          assert(view->target == PIPE_BUFFER);
-         unsigned base = stObj->base.BufferOffset;
-         MAYBE_UNUSED unsigned size = MIN2(buf->width0 - base,
+         ASSERTED unsigned base = stObj->base.BufferOffset;
+         ASSERTED unsigned size = MIN2(buf->width0 - base,
                            (unsigned) stObj->base.BufferSize);
          assert(view->u.buf.offset == base);
          assert(view->u.buf.size == size);
