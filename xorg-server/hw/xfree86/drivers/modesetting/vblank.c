@@ -307,7 +307,7 @@ ms_kernel_msc_to_crtc_msc(xf86CrtcPtr crtc, uint64_t sequence, Bool is64bit)
      * but update the 32-bit tracking variables with reliable ground truth.
      *
      * With 64-Bit api in use, the only !is64bit input is from pageflip events,
-     * and any pageflip event is usually preceeded by some is64bit input from
+     * and any pageflip event is usually preceded by some is64bit input from
      * swap scheduling, so this should provide reliable mapping for pageflip
      * events based on true 64-bit input as baseline as well.
      */

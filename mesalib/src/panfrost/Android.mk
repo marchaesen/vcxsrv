@@ -25,4 +25,8 @@
 LOCAL_PATH := $(call my-dir)
 
 include $(LOCAL_PATH)/Makefile.sources
+include $(LOCAL_PATH)/Android.bifrost.mk
+include $(LOCAL_PATH)/Android.encoder.mk
+include $(LOCAL_PATH)/Android.midgard.mk
 include $(LOCAL_PATH)/Android.shared.mk
+include $(LOCAL_PATH)/Android.pandecode.mk

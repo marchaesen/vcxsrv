@@ -60,8 +60,6 @@ MESA_FORMAT_B8G8R8A8_UNORM                , packed, 1, 1, 1, un8 , un8 , un8 , u
 MESA_FORMAT_B8G8R8X8_UNORM                , packed, 1, 1, 1, un8 , un8 , un8 , x8  , zyx1, rgb
 MESA_FORMAT_A8R8G8B8_UNORM                , packed, 1, 1, 1, un8 , un8 , un8 , un8 , yzwx, rgb
 MESA_FORMAT_X8R8G8B8_UNORM                , packed, 1, 1, 1, x8  , un8 , un8 , un8 , yzw1, rgb
-MESA_FORMAT_L16A16_UNORM                  , packed, 1, 1, 1, un16, un16,     ,     , xxxy, rgb
-MESA_FORMAT_A16L16_UNORM                  , packed, 1, 1, 1, un16, un16,     ,     , yyyx, rgb
 MESA_FORMAT_B5G6R5_UNORM                  , packed, 1, 1, 1, un5 , un6 , un5 ,     , zyx1, rgb
 MESA_FORMAT_R5G6B5_UNORM                  , packed, 1, 1, 1, un5 , un6 , un5 ,     , xyz1, rgb
 MESA_FORMAT_B4G4R4A4_UNORM                , packed, 1, 1, 1, un4 , un4 , un4 , un4 , zyxw, rgb
@@ -72,15 +70,9 @@ MESA_FORMAT_X1B5G5R5_UNORM                , packed, 1, 1, 1, x1  , un5 , un5 , u
 MESA_FORMAT_B5G5R5A1_UNORM                , packed, 1, 1, 1, un5 , un5 , un5 , un1 , zyxw, rgb
 MESA_FORMAT_B5G5R5X1_UNORM                , packed, 1, 1, 1, un5 , un5 , un5 , x1  , zyx1, rgb
 MESA_FORMAT_A1R5G5B5_UNORM                , packed, 1, 1, 1, un1 , un5 , un5 , un5 , yzwx, rgb
-MESA_FORMAT_L8A8_UNORM                    , packed, 1, 1, 1, un8 , un8 ,     ,     , xxxy, rgb
-MESA_FORMAT_A8L8_UNORM                    , packed, 1, 1, 1, un8 , un8 ,     ,     , yyyx, rgb
-MESA_FORMAT_R8G8_UNORM                    , packed, 1, 1, 1, un8 , un8 ,     ,     , xy01, rgb
-MESA_FORMAT_G8R8_UNORM                    , packed, 1, 1, 1, un8 , un8 ,     ,     , yx01, rgb
 MESA_FORMAT_L4A4_UNORM                    , packed, 1, 1, 1, un4 , un4 ,     ,     , xxxy, rgb
 
 MESA_FORMAT_B2G3R3_UNORM                  , packed, 1, 1, 1, un2 , un3 , un3 ,     , zyx1, rgb
-MESA_FORMAT_R16G16_UNORM                  , packed, 1, 1, 1, un16, un16,     ,     , xy01, rgb
-MESA_FORMAT_G16R16_UNORM                  , packed, 1, 1, 1, un16, un16,     ,     , yx01, rgb
 MESA_FORMAT_B10G10R10A2_UNORM             , packed, 1, 1, 1, un10, un10, un10, un2 , zyxw, rgb
 MESA_FORMAT_B10G10R10X2_UNORM             , packed, 1, 1, 1, un10, un10, un10, x2  , zyx1, rgb
 MESA_FORMAT_R10G10B10A2_UNORM             , packed, 1, 1, 1, un10, un10, un10, un2 , xyzw, rgb
@@ -106,10 +98,14 @@ MESA_FORMAT_A_UNORM8                      , array , 1, 1, 1, un8 ,     ,     ,  
 MESA_FORMAT_A_UNORM16                     , array , 1, 1, 1, un16,     ,     ,     , 000x, rgb
 MESA_FORMAT_L_UNORM8                      , array , 1, 1, 1, un8 ,     ,     ,     , xxx1, rgb
 MESA_FORMAT_L_UNORM16                     , array , 1, 1, 1, un16,     ,     ,     , xxx1, rgb
+MESA_FORMAT_LA_UNORM8                     , array , 1, 1, 1, un8 , un8 ,     ,     , xxxy, rgb
+MESA_FORMAT_LA_UNORM16                    , array , 1, 1, 1, un16, un16,     ,     , xxxy, rgb
 MESA_FORMAT_I_UNORM8                      , array , 1, 1, 1, un8 ,     ,     ,     , xxxx, rgb
 MESA_FORMAT_I_UNORM16                     , array , 1, 1, 1, un16,     ,     ,     , xxxx, rgb
 MESA_FORMAT_R_UNORM8                      , array , 1, 1, 1, un8 ,     ,     ,     , x001, rgb
 MESA_FORMAT_R_UNORM16                     , array , 1, 1, 1, un16,     ,     ,     , x001, rgb
+MESA_FORMAT_RG_UNORM8                     , array , 1, 1, 1, un8 , un8 ,     ,     , xy01, rgb
+MESA_FORMAT_RG_UNORM16                    , array , 1, 1, 1, un16, un16,     ,     , xy01, rgb
 MESA_FORMAT_BGR_UNORM8                    , array , 1, 1, 1, un8 , un8 , un8 ,     , zyx1, rgb
 MESA_FORMAT_RGB_UNORM8                    , array , 1, 1, 1, un8 , un8 , un8 ,     , xyz1, rgb
 MESA_FORMAT_RGBA_UNORM16                  , array , 1, 1, 1, un16, un16, un16, un16, xyzw, rgb
@@ -124,12 +120,6 @@ MESA_FORMAT_A8B8G8R8_SNORM                , packed, 1, 1, 1, sn8 , sn8 , sn8 , s
 MESA_FORMAT_X8B8G8R8_SNORM                , packed, 1, 1, 1, x8  , sn8 , sn8 , sn8 , wzy1, rgb
 MESA_FORMAT_R8G8B8A8_SNORM                , packed, 1, 1, 1, sn8 , sn8 , sn8 , sn8 , xyzw, rgb
 MESA_FORMAT_R8G8B8X8_SNORM                , packed, 1, 1, 1, sn8 , sn8 , sn8 , x8  , xyz1, rgb
-MESA_FORMAT_R16G16_SNORM                  , packed, 1, 1, 1, sn16, sn16,     ,     , xy01, rgb
-MESA_FORMAT_G16R16_SNORM                  , packed, 1, 1, 1, sn16, sn16,     ,     , yx01, rgb
-MESA_FORMAT_R8G8_SNORM                    , packed, 1, 1, 1, sn8 , sn8 ,     ,     , xy01, rgb
-MESA_FORMAT_G8R8_SNORM                    , packed, 1, 1, 1, sn8 , sn8 ,     ,     , yx01, rgb
-MESA_FORMAT_L8A8_SNORM                    , packed, 1, 1, 1, sn8 , sn8 ,     ,     , xxxy, rgb
-MESA_FORMAT_A8L8_SNORM                    , packed, 1, 1, 1, sn8 , sn8 ,     ,     , yyyx, rgb
 
 # Array signed/normalized formats
 MESA_FORMAT_A_SNORM8                      , array , 1, 1, 1, sn8 ,     ,     ,     , 000x, rgb
@@ -140,7 +130,10 @@ MESA_FORMAT_I_SNORM8                      , array , 1, 1, 1, sn8 ,     ,     ,  
 MESA_FORMAT_I_SNORM16                     , array , 1, 1, 1, sn16,     ,     ,     , xxxx, rgb
 MESA_FORMAT_R_SNORM8                      , array , 1, 1, 1, sn8 ,     ,     ,     , x001, rgb
 MESA_FORMAT_R_SNORM16                     , array , 1, 1, 1, sn16,     ,     ,     , x001, rgb
+MESA_FORMAT_LA_SNORM8                     , array , 1, 1, 1, sn8 , sn8 ,     ,     , xxxy, rgb
 MESA_FORMAT_LA_SNORM16                    , array , 1, 1, 1, sn16, sn16,     ,     , xxxy, rgb
+MESA_FORMAT_RG_SNORM8                     , array , 1, 1, 1, sn8 , sn8 ,     ,     , xy01, rgb
+MESA_FORMAT_RG_SNORM16                    , array , 1, 1, 1, sn16, sn16,     ,     , xy01, rgb
 MESA_FORMAT_RGB_SNORM16                   , array , 1, 1, 1, sn16, sn16, sn16,     , xyz1, rgb
 MESA_FORMAT_RGBA_SNORM16                  , array , 1, 1, 1, sn16, sn16, sn16, sn16, xyzw, rgb
 MESA_FORMAT_RGBX_SNORM16                  , array , 1, 1, 1, sn16, sn16, sn16, x16 , xyz1, rgb
@@ -154,12 +147,11 @@ MESA_FORMAT_X8R8G8B8_SRGB                 , packed, 1, 1, 1, x8  , un8 , un8 , u
 MESA_FORMAT_R8G8B8A8_SRGB                 , packed, 1, 1, 1, un8 , un8 , un8 , un8 , xyzw, srgb
 MESA_FORMAT_R8G8B8X8_SRGB                 , packed, 1, 1, 1, un8 , un8 , un8 , x8  , xyz1, srgb
 MESA_FORMAT_X8B8G8R8_SRGB                 , packed, 1, 1, 1, x8  , un8 , un8 , un8 , wzy1, srgb
-MESA_FORMAT_L8A8_SRGB                     , packed, 1, 1, 1, un8 , un8 ,     ,     , xxxy, srgb
-MESA_FORMAT_A8L8_SRGB                     , packed, 1, 1, 1, un8 , un8 ,     ,     , yyyx, srgb
 
 # Array sRGB formats
 MESA_FORMAT_R_SRGB8                       , array , 1, 1, 1, un8 ,     ,     ,     , x001, srgb
 MESA_FORMAT_L_SRGB8                       , array , 1, 1, 1, un8 ,     ,     ,     , xxx1, srgb
+MESA_FORMAT_LA_SRGB8                      , array , 1, 1, 1, un8 , un8 ,     ,     , xxxy, srgb
 MESA_FORMAT_BGR_SRGB8                     , array , 1, 1, 1, un8 , un8 , un8 ,     , zyx1, srgb
 
 # Packed float formats

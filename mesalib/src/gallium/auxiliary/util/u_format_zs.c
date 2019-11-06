@@ -45,7 +45,7 @@ static inline uint32_t
 z16_unorm_to_z32_unorm(uint16_t z)
 {
    /* z * 0xffffffff / 0xffff */
-   return (z << 16) | z;
+   return ((uint32_t)z << 16) | z;
 }
 
 static inline uint32_t
@@ -439,7 +439,7 @@ util_format_z24_unorm_s8_uint_pack_s_8uint(uint8_t *dst_row, unsigned dst_stride
       for(x = 0; x < width; ++x) {
          uint32_t value = util_le32_to_cpu(*dst);
          value &= 0x00ffffff;
-         value |= *src++ << 24;
+         value |= (uint32_t)*src++ << 24;
          *dst++ = util_cpu_to_le32(value);
       }
       dst_row += dst_stride/sizeof(*dst_row);
@@ -459,7 +459,7 @@ util_format_z24_unorm_s8_uint_pack_separate(uint8_t *dst_row, unsigned dst_strid
       const uint8_t *s_src = s_src_row;
       uint32_t *dst = (uint32_t *)dst_row;
       for (x = 0; x < width; ++x) {
-         *dst++ = (*z_src++ & 0x00ffffff) | (*s_src++ << 24);
+         *dst++ = (*z_src++ & 0x00ffffff) | ((uint32_t)*s_src++ << 24);
       }
       dst_row += dst_stride / sizeof(*dst_row);
       z_src_row += z_src_stride / sizeof(*z_src_row);

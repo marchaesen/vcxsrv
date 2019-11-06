@@ -25,6 +25,8 @@
 #include "nir_control_flow.h"
 #include "util/u_dynarray.h"
 
+#define MAX_OBJECT_IDS (1 << 30)
+
 typedef struct {
    size_t blob_offset;
    nir_ssa_def *src;
@@ -40,7 +42,7 @@ typedef struct {
    struct hash_table *remap_table;
 
    /* the next index to assign to a NIR in-memory object */
-   uintptr_t next_idx;
+   uint32_t next_idx;
 
    /* Array of write_phi_fixup structs representing phi sources that need to
     * be resolved in the second pass.
@@ -54,10 +56,10 @@ typedef struct {
    struct blob_reader *blob;
 
    /* the next index to assign to a NIR in-memory object */
-   uintptr_t next_idx;
+   uint32_t next_idx;
 
    /* The length of the index -> object table */
-   uintptr_t idx_table_len;
+   uint32_t idx_table_len;
 
    /* map from index to deserialized pointer */
    void **idx_table;
@@ -70,22 +72,23 @@ typedef struct {
 static void
 write_add_object(write_ctx *ctx, const void *obj)
 {
-   uintptr_t index = ctx->next_idx++;
-   _mesa_hash_table_insert(ctx->remap_table, obj, (void *) index);
+   uint32_t index = ctx->next_idx++;
+   assert(index != MAX_OBJECT_IDS);
+   _mesa_hash_table_insert(ctx->remap_table, obj, (void *)(uintptr_t) index);
 }
 
-static uintptr_t
+static uint32_t
 write_lookup_object(write_ctx *ctx, const void *obj)
 {
    struct hash_entry *entry = _mesa_hash_table_search(ctx->remap_table, obj);
    assert(entry);
-   return (uintptr_t) entry->data;
+   return (uint32_t)(uintptr_t) entry->data;
 }
 
 static void
 write_object(write_ctx *ctx, const void *obj)
 {
-   blob_write_intptr(ctx->blob, write_lookup_object(ctx, obj));
+   blob_write_uint32(ctx->blob, write_lookup_object(ctx, obj));
 }
 
 static void
@@ -96,7 +99,7 @@ read_add_object(read_ctx *ctx, void *obj)
 }
 
 static void *
-read_lookup_object(read_ctx *ctx, uintptr_t idx)
+read_lookup_object(read_ctx *ctx, uint32_t idx)
 {
    assert(idx < ctx->idx_table_len);
    return ctx->idx_table[idx];
@@ -105,7 +108,7 @@ read_lookup_object(read_ctx *ctx, uintptr_t idx)
 static void *
 read_object(read_ctx *ctx)
 {
-   return read_lookup_object(ctx, blob_read_intptr(ctx->blob));
+   return read_lookup_object(ctx, blob_read_uint32(ctx->blob));
 }
 
 static void
@@ -131,28 +134,49 @@ read_constant(read_ctx *ctx, nir_variable *nvar)
    return c;
 }
 
+union packed_var {
+   uint32_t u32;
+   struct {
+      unsigned has_name:1;
+      unsigned has_constant_initializer:1;
+      unsigned has_interface_type:1;
+      unsigned num_state_slots:13;
+      unsigned num_members:16;
+   } u;
+};
+
 static void
 write_variable(write_ctx *ctx, const nir_variable *var)
 {
    write_add_object(ctx, var);
    encode_type_to_blob(ctx->blob, var->type);
-   blob_write_uint32(ctx->blob, !!(var->name));
+
+   assert(var->num_state_slots < (1 << 13));
+   assert(var->num_members < (1 << 16));
+
+   STATIC_ASSERT(sizeof(union packed_var) == 4);
+   union packed_var flags;
+   flags.u32 = 0;
+
+   flags.u.has_name = !!(var->name);
+   flags.u.has_constant_initializer = !!(var->constant_initializer);
+   flags.u.has_interface_type = !!(var->interface_type);
+   flags.u.num_state_slots = var->num_state_slots;
+   flags.u.num_members = var->num_members;
+
+   blob_write_uint32(ctx->blob, flags.u32);
+
    if (var->name)
       blob_write_string(ctx->blob, var->name);
    blob_write_bytes(ctx->blob, (uint8_t *) &var->data, sizeof(var->data));
-   blob_write_uint32(ctx->blob, var->num_state_slots);
    for (unsigned i = 0; i < var->num_state_slots; i++) {
-      for (unsigned j = 0; j < STATE_LENGTH; j++)
-         blob_write_uint32(ctx->blob, var->state_slots[i].tokens[j]);
-      blob_write_uint32(ctx->blob, var->state_slots[i].swizzle);
+      blob_write_bytes(ctx->blob, &var->state_slots[i],
+                       sizeof(var->state_slots[i]));
    }
-   blob_write_uint32(ctx->blob, !!(var->constant_initializer));
    if (var->constant_initializer)
       write_constant(ctx, var->constant_initializer);
-   blob_write_uint32(ctx->blob, !!(var->interface_type));
    if (var->interface_type)
       encode_type_to_blob(ctx->blob, var->interface_type);
-   blob_write_uint32(ctx->blob, var->num_members);
    if (var->num_members > 0) {
       blob_write_bytes(ctx->blob, (uint8_t *) var->members,
                        var->num_members * sizeof(*var->members));
@@ -166,35 +190,35 @@ read_variable(read_ctx *ctx)
    read_add_object(ctx, var);
 
    var->type = decode_type_from_blob(ctx->blob);
-   bool has_name = blob_read_uint32(ctx->blob);
-   if (has_name) {
+
+   union packed_var flags;
+   flags.u32 = blob_read_uint32(ctx->blob);
+
+   if (flags.u.has_name) {
       const char *name = blob_read_string(ctx->blob);
       var->name = ralloc_strdup(var, name);
    } else {
       var->name = NULL;
    }
    blob_copy_bytes(ctx->blob, (uint8_t *) &var->data, sizeof(var->data));
-   var->num_state_slots = blob_read_uint32(ctx->blob);
+   var->num_state_slots = flags.u.num_state_slots;
    if (var->num_state_slots != 0) {
       var->state_slots = ralloc_array(var, nir_state_slot,
                                       var->num_state_slots);
       for (unsigned i = 0; i < var->num_state_slots; i++) {
-         for (unsigned j = 0; j < STATE_LENGTH; j++)
-            var->state_slots[i].tokens[j] = blob_read_uint32(ctx->blob);
-         var->state_slots[i].swizzle = blob_read_uint32(ctx->blob);
+         blob_copy_bytes(ctx->blob, &var->state_slots[i],
+                         sizeof(var->state_slots[i]));
       }
    }
-   bool has_const_initializer = blob_read_uint32(ctx->blob);
-   if (has_const_initializer)
+   if (flags.u.has_constant_initializer)
       var->constant_initializer = read_constant(ctx, var);
    else
       var->constant_initializer = NULL;
-   bool has_interface_type = blob_read_uint32(ctx->blob);
-   if (has_interface_type)
+   if (flags.u.has_interface_type)
       var->interface_type = decode_type_from_blob(ctx->blob);
    else
       var->interface_type = NULL;
-   var->num_members = blob_read_uint32(ctx->blob);
+   var->num_members = flags.u.num_members;
    if (var->num_members > 0) {
       var->members = ralloc_array(var, struct nir_variable_data,
                                   var->num_members);
@@ -291,14 +315,14 @@ write_src(write_ctx *ctx, const nir_src *src)
     * address space would've been exhausted allocating the remap table!
     */
    if (src->is_ssa) {
-      uintptr_t idx = write_lookup_object(ctx, src->ssa) << 2;
+      uint32_t idx = write_lookup_object(ctx, src->ssa) << 2;
       idx |= 1;
-      blob_write_intptr(ctx->blob, idx);
+      blob_write_uint32(ctx->blob, idx);
    } else {
-      uintptr_t idx = write_lookup_object(ctx, src->reg.reg) << 2;
+      uint32_t idx = write_lookup_object(ctx, src->reg.reg) << 2;
       if (src->reg.indirect)
          idx |= 2;
-      blob_write_intptr(ctx->blob, idx);
+      blob_write_uint32(ctx->blob, idx);
       blob_write_uint32(ctx->blob, src->reg.base_offset);
       if (src->reg.indirect) {
          write_src(ctx, src->reg.indirect);
@@ -309,8 +333,8 @@ write_src(write_ctx *ctx, const nir_src *src)
 static void
 read_src(read_ctx *ctx, nir_src *src, void *mem_ctx)
 {
-   uintptr_t val = blob_read_intptr(ctx->blob);
-   uintptr_t idx = val >> 2;
+   uint32_t val = blob_read_uint32(ctx->blob);
+   uint32_t idx = val >> 2;
    src->is_ssa = val & 0x1;
    if (src->is_ssa) {
       src->ssa = read_lookup_object(ctx, idx);
@@ -344,7 +368,7 @@ write_dest(write_ctx *ctx, const nir_dest *dst)
       if (dst->ssa.name)
          blob_write_string(ctx->blob, dst->ssa.name);
    } else {
-      blob_write_intptr(ctx->blob, write_lookup_object(ctx, dst->reg.reg));
+      blob_write_uint32(ctx->blob, write_lookup_object(ctx, dst->reg.reg));
       blob_write_uint32(ctx->blob, dst->reg.base_offset);
       if (dst->reg.indirect)
          write_src(ctx, dst->reg.indirect);
@@ -673,7 +697,7 @@ static void
 write_phi(write_ctx *ctx, const nir_phi_instr *phi)
 {
    /* Phi nodes are special, since they may reference SSA definitions and
-    * basic blocks that don't exist yet. We leave two empty uintptr_t's here,
+    * basic blocks that don't exist yet. We leave two empty uint32_t's here,
     * and then store enough information so that a later fixup pass can fill
     * them in correctly.
     */
@@ -683,9 +707,9 @@ write_phi(write_ctx *ctx, const nir_phi_instr *phi)
 
    nir_foreach_phi_src(src, phi) {
       assert(src->src.is_ssa);
-      size_t blob_offset = blob_reserve_intptr(ctx->blob);
-      ASSERTED size_t blob_offset2 = blob_reserve_intptr(ctx->blob);
-      assert(blob_offset + sizeof(uintptr_t) == blob_offset2);
+      size_t blob_offset = blob_reserve_uint32(ctx->blob);
+      ASSERTED size_t blob_offset2 = blob_reserve_uint32(ctx->blob);
+      assert(blob_offset + sizeof(uint32_t) == blob_offset2);
       write_phi_fixup fixup = {
          .blob_offset = blob_offset,
          .src = src->src.ssa,
@@ -699,7 +723,7 @@ static void
 write_fixup_phis(write_ctx *ctx)
 {
    util_dynarray_foreach(&ctx->phi_fixups, write_phi_fixup, fixup) {
-      uintptr_t *blob_ptr = (uintptr_t *)(ctx->blob->data + fixup->blob_offset);
+      uint32_t *blob_ptr = (uint32_t *)(ctx->blob->data + fixup->blob_offset);
       blob_ptr[0] = write_lookup_object(ctx, fixup->src);
       blob_ptr[1] = write_lookup_object(ctx, fixup->block);
    }
@@ -730,8 +754,8 @@ read_phi(read_ctx *ctx, nir_block *blk)
       nir_phi_src *src = ralloc(phi, nir_phi_src);
 
       src->src.is_ssa = true;
-      src->src.ssa = (nir_ssa_def *) blob_read_intptr(ctx->blob);
-      src->pred = (nir_block *) blob_read_intptr(ctx->blob);
+      src->src.ssa = (nir_ssa_def *)(uintptr_t) blob_read_uint32(ctx->blob);
+      src->pred = (nir_block *)(uintptr_t) blob_read_uint32(ctx->blob);
 
       /* Since we're not letting nir_insert_instr handle use/def stuff for us,
        * we have to set the parent_instr manually.  It doesn't really matter
@@ -762,7 +786,7 @@ read_fixup_phis(read_ctx *ctx)
 
       list_addtail(&src->src.use_link, &src->src.ssa->uses);
    }
-   assert(list_empty(&ctx->phi_srcs));
+   assert(list_is_empty(&ctx->phi_srcs));
 }
 
 static void
@@ -782,7 +806,7 @@ read_jump(read_ctx *ctx)
 static void
 write_call(write_ctx *ctx, const nir_call_instr *call)
 {
-   blob_write_intptr(ctx->blob, write_lookup_object(ctx, call->callee));
+   blob_write_uint32(ctx->blob, write_lookup_object(ctx, call->callee));
 
    for (unsigned i = 0; i < call->num_params; i++)
       write_src(ctx, &call->params[i]);
@@ -1090,8 +1114,20 @@ read_function(read_ctx *ctx)
 }
 
 void
-nir_serialize(struct blob *blob, const nir_shader *nir)
+nir_serialize(struct blob *blob, const nir_shader *nir, bool strip)
 {
+   nir_shader *stripped = NULL;
+
+   if (strip) {
+      /* Drop unnecessary information (like variable names), so the serialized
+       * NIR is smaller, and also to let us detect more isomorphic shaders
+       * when hashing, increasing cache hits.
+       */
+      stripped = nir_shader_clone(NULL, nir);
+      nir_strip(stripped);
+      nir = stripped;
+   }
+
    write_ctx ctx;
    ctx.remap_table = _mesa_pointer_hash_table_create(NULL);
    ctx.next_idx = 0;
@@ -1099,7 +1135,7 @@ nir_serialize(struct blob *blob, const nir_shader *nir)
    ctx.nir = nir;
    util_dynarray_init(&ctx.phi_fixups, NULL);
 
-   size_t idx_size_offset = blob_reserve_intptr(blob);
+   size_t idx_size_offset = blob_reserve_uint32(blob);
 
    struct shader_info info = nir->info;
    uint32_t strings = 0;
@@ -1141,10 +1177,13 @@ nir_serialize(struct blob *blob, const nir_shader *nir)
    if (nir->constant_data_size > 0)
       blob_write_bytes(blob, nir->constant_data, nir->constant_data_size);
 
-   *(uintptr_t *)(blob->data + idx_size_offset) = ctx.next_idx;
+   *(uint32_t *)(blob->data + idx_size_offset) = ctx.next_idx;
 
    _mesa_hash_table_destroy(ctx.remap_table, NULL);
    util_dynarray_fini(&ctx.phi_fixups);
+
+   if (strip)
+      ralloc_free(stripped);
 }
 
 nir_shader *
@@ -1155,7 +1194,7 @@ nir_deserialize(void *mem_ctx,
    read_ctx ctx;
    ctx.blob = blob;
    list_inithead(&ctx.phi_srcs);
-   ctx.idx_table_len = blob_read_intptr(blob);
+   ctx.idx_table_len = blob_read_uint32(blob);
    ctx.idx_table = calloc(ctx.idx_table_len, sizeof(uintptr_t));
    ctx.next_idx = 0;
 
@@ -1213,7 +1252,7 @@ nir_shader_serialize_deserialize(nir_shader *shader)
 
    struct blob writer;
    blob_init(&writer);
-   nir_serialize(&writer, shader);
+   nir_serialize(&writer, shader, false);
 
    /* Delete all of dest's ralloc children but leave dest alone */
    void *dead_ctx = ralloc_context(NULL);

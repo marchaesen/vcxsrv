@@ -29,6 +29,7 @@
 #include "registers/a6xx.xml.h"
 
 #include "util/format_r11g11b10f.h"
+#include "util/format_rgb9e5.h"
 #include "util/format_srgb.h"
 #include "util/u_half.h"
 #include "vk_format.h"
@@ -86,7 +87,7 @@ TU_FORMAT_TABLE(tu6_format_table0) = {
    TU6_xTC(R4G4B4A4_UNORM_PACK16,      4_4_4_4_UNORM,     R4G4B4A4_UNORM,     XYZW), /* 2 */
    TU6_xTC(B4G4R4A4_UNORM_PACK16,      4_4_4_4_UNORM,     R4G4B4A4_UNORM,     ZYXW), /* 3 */
    TU6_xTC(R5G6B5_UNORM_PACK16,        5_6_5_UNORM,       R5G6B5_UNORM,       WXYZ), /* 4 */
-   TU6_xTC(B5G6R5_UNORM_PACK16,        5_6_5_UNORM,       R5G6B5_UNORM,       WXYZ), /* 5 */
+   TU6_xTC(B5G6R5_UNORM_PACK16,        5_6_5_UNORM,       R5G6B5_UNORM,       WZYX), /* 5 */
    TU6_xxx(R5G5B5A1_UNORM_PACK16,      1_5_5_5_UNORM,     A1R5G5B5_UNORM,     XYZW), /* 6 */
    TU6_xxx(B5G5R5A1_UNORM_PACK16,      1_5_5_5_UNORM,     A1R5G5B5_UNORM,     XYZW), /* 7 */
    TU6_xTC(A1R5G5B5_UNORM_PACK16,      5_5_5_1_UNORM,     R5G5B5A1_UNORM,     WXYZ), /* 8 */
@@ -178,8 +179,8 @@ TU_FORMAT_TABLE(tu6_format_table0) = {
    /* 32-bit RG */
    TU6_VTC(R16G16_UNORM,               16_16_UNORM,       R16G16_UNORM,       WZYX), /* 77 */
    TU6_VTC(R16G16_SNORM,               16_16_SNORM,       R16G16_SNORM,       WZYX), /* 78 */
-   TU6_VTx(R16G16_USCALED,             16_16_UINT,        R16G16_UINT,        WZYX), /* 79 */
-   TU6_VTx(R16G16_SSCALED,             16_16_SINT,        R16G16_SINT,        WZYX), /* 80 */
+   TU6_Vxx(R16G16_USCALED,             16_16_UINT,        R16G16_UINT,        WZYX), /* 79 */
+   TU6_Vxx(R16G16_SSCALED,             16_16_SINT,        R16G16_SINT,        WZYX), /* 80 */
    TU6_VTC(R16G16_UINT,                16_16_UINT,        R16G16_UINT,        WZYX), /* 81 */
    TU6_VTC(R16G16_SINT,                16_16_SINT,        R16G16_SINT,        WZYX), /* 82 */
    TU6_VTC(R16G16_SFLOAT,              16_16_FLOAT,       R16G16_FLOAT,       WZYX), /* 83 */
@@ -196,8 +197,8 @@ TU_FORMAT_TABLE(tu6_format_table0) = {
    /* 64-bit RGBA */
    TU6_VTC(R16G16B16A16_UNORM,         16_16_16_16_UNORM, R16G16B16A16_UNORM, WZYX), /* 91 */
    TU6_VTC(R16G16B16A16_SNORM,         16_16_16_16_SNORM, R16G16B16A16_SNORM, WZYX), /* 92 */
-   TU6_VTx(R16G16B16A16_USCALED,       16_16_16_16_UINT,  R16G16B16A16_UINT,  WZYX), /* 93 */
-   TU6_VTx(R16G16B16A16_SSCALED,       16_16_16_16_SINT,  R16G16B16A16_SINT,  WZYX), /* 94 */
+   TU6_Vxx(R16G16B16A16_USCALED,       16_16_16_16_UINT,  R16G16B16A16_UINT,  WZYX), /* 93 */
+   TU6_Vxx(R16G16B16A16_SSCALED,       16_16_16_16_SINT,  R16G16B16A16_SINT,  WZYX), /* 94 */
    TU6_VTC(R16G16B16A16_UINT,          16_16_16_16_UINT,  R16G16B16A16_UINT,  WZYX), /* 95 */
    TU6_VTC(R16G16B16A16_SINT,          16_16_16_16_SINT,  R16G16B16A16_SINT,  WZYX), /* 96 */
    TU6_VTC(R16G16B16A16_SFLOAT,        16_16_16_16_FLOAT, R16G16B16A16_FLOAT, WZYX), /* 97 */
@@ -213,9 +214,9 @@ TU_FORMAT_TABLE(tu6_format_table0) = {
    TU6_VTC(R32G32_SFLOAT,              32_32_FLOAT,       R32G32_FLOAT,       WZYX), /* 103 */
 
    /* 96-bit RGB */
-   TU6_VTx(R32G32B32_UINT,             32_32_32_UINT,     R32G32B32_UINT,     WZYX), /* 104 */
-   TU6_VTx(R32G32B32_SINT,             32_32_32_SINT,     R32G32B32_SINT,     WZYX), /* 105 */
-   TU6_VTx(R32G32B32_SFLOAT,           32_32_32_FLOAT,    R32G32B32_FLOAT,    WZYX), /* 106 */
+   TU6_Vxx(R32G32B32_UINT,             32_32_32_UINT,     R32G32B32_UINT,     WZYX), /* 104 */
+   TU6_Vxx(R32G32B32_SINT,             32_32_32_SINT,     R32G32B32_SINT,     WZYX), /* 105 */
+   TU6_Vxx(R32G32B32_SFLOAT,           32_32_32_FLOAT,    R32G32B32_FLOAT,    WZYX), /* 106 */
 
    /* 128-bit RGBA */
    TU6_VTC(R32G32B32A32_UINT,          32_32_32_32_UINT,  R32G32B32A32_UINT,  WZYX), /* 107 */
@@ -250,10 +251,10 @@ TU_FORMAT_TABLE(tu6_format_table0) = {
    TU6_xTC(D16_UNORM,                  16_UNORM,          R16_UNORM,          WZYX), /* 124 */
    TU6_xTC(X8_D24_UNORM_PACK32,        X8Z24_UNORM,       X8Z24_UNORM,        WZYX), /* 125 */
    TU6_xTC(D32_SFLOAT,                 32_FLOAT,          R32_FLOAT,          WZYX), /* 126 */
-   TU6_xTC(S8_UINT,                    8_UINT,            R8_UNORM,           WZYX), /* 127 */
+   TU6_xTC(S8_UINT,                    8_UINT,            R8_UINT,            WZYX), /* 127 */
    TU6_xxx(D16_UNORM_S8_UINT,          X8Z16_UNORM,       X8Z16_UNORM,        WZYX), /* 128 */
    TU6_xTC(D24_UNORM_S8_UINT,          X8Z24_UNORM,       X8Z24_UNORM,        WZYX), /* 129 */
-   TU6_xTC(D32_SFLOAT_S8_UINT,         32_FLOAT,          R32_FLOAT,          WZYX), /* 130 */
+   TU6_xxx(D32_SFLOAT_S8_UINT,         x,                 x,                  WZYX), /* 130 */
 
    /* compressed */
    TU6_xTx(BC1_RGB_UNORM_BLOCK,        DXT1,              DXT1,               WZYX), /* 131 */
@@ -337,6 +338,11 @@ tu6_rb_fmt_to_ifmt(enum a6xx_color_fmt fmt)
    case RB6_R8G8B8A8_UNORM:
    case RB6_R8G8B8_UNORM:
    case RB6_R8G8B8A8_SNORM:
+   case RB6_R4G4B4A4_UNORM:
+   case RB6_R5G5B5A1_UNORM:
+   case RB6_R5G6B5_UNORM:
+   case RB6_X8Z24_UNORM:
+   case RB6_Z24_UNORM_S8_UINT:
       return R2D_UNORM8;
 
    case RB6_R32_UINT:
@@ -353,6 +359,7 @@ tu6_rb_fmt_to_ifmt(enum a6xx_color_fmt fmt)
    case RB6_R16G16_SINT:
    case RB6_R16G16B16A16_UINT:
    case RB6_R16G16B16A16_SINT:
+   case RB6_R10G10B10A2_UINT:
       return R2D_INT16;
 
    case RB6_R8_UINT:
@@ -377,20 +384,29 @@ tu6_rb_fmt_to_ifmt(enum a6xx_color_fmt fmt)
    case RB6_R16_FLOAT:
    case RB6_R16G16_FLOAT:
    case RB6_R16G16B16A16_FLOAT:
+   case RB6_R11G11B10_FLOAT:
+   case RB6_R10G10B10A2_UNORM:
       return R2D_FLOAT16;
 
-   case RB6_R4G4B4A4_UNORM:
-   case RB6_R5G5B5A1_UNORM:
-   case RB6_R5G6B5_UNORM:
-   case RB6_R10G10B10A2_UNORM:
-   case RB6_R10G10B10A2_UINT:
-   case RB6_R11G11B10_FLOAT:
-   case RB6_X8Z24_UNORM:
-      // ???
-      return 0;
    default:
       unreachable("bad format");
       return 0;
+   }
+}
+
+enum a6xx_depth_format
+tu6_pipe2depth(VkFormat format)
+{
+   switch (format) {
+   case VK_FORMAT_D16_UNORM:
+      return DEPTH6_16;
+   case VK_FORMAT_X8_D24_UNORM_PACK32:
+   case VK_FORMAT_D24_UNORM_S8_UINT:
+      return DEPTH6_24_8;
+   case VK_FORMAT_D32_SFLOAT:
+      return DEPTH6_32;
+   default:
+      return ~0;
    }
 }
 
@@ -564,10 +580,22 @@ tu_get_clear_component_value(const VkClearValue *val, int comp, bool color)
  *
  * Return the number of uint32_t's used.
  */
-int
+void
 tu_pack_clear_value(const VkClearValue *val, VkFormat format, uint32_t buf[4])
 {
    const struct vk_format_description *desc = vk_format_description(format);
+
+   switch (format) {
+   case VK_FORMAT_B10G11R11_UFLOAT_PACK32:
+      buf[0] = float3_to_r11g11b10f(val->color.float32);
+      return;
+   case VK_FORMAT_E5B9G9R9_UFLOAT_PACK32:
+      buf[0] = float3_to_rgb9e5(val->color.float32);
+      return;
+   default:
+      break;
+   }
+
    assert(desc && desc->layout == VK_FORMAT_LAYOUT_PLAIN);
 
    /* S8_UINT is special and has no depth */
@@ -580,7 +608,8 @@ tu_pack_clear_value(const VkClearValue *val, VkFormat format, uint32_t buf[4])
       const struct vk_format_channel_description *ch =
          tu_get_format_channel_description(desc, comp);
       if (!ch) {
-         assert(format == VK_FORMAT_S8_UINT && comp == 0);
+         assert((format == VK_FORMAT_S8_UINT && comp == 0) ||
+                (format == VK_FORMAT_X8_D24_UNORM_PACK32 && comp == 1));
          continue;
       }
 
@@ -600,8 +629,6 @@ tu_pack_clear_value(const VkClearValue *val, VkFormat format, uint32_t buf[4])
       buf[buf_offset] |= tu_pack_clear_component_value(v, ch) << bit_shift;
       bit_shift += ch->size;
    }
-
-   return buf_offset + 1;
 }
 
 static void
@@ -614,31 +641,36 @@ tu_physical_device_get_format_properties(
    const struct vk_format_description *desc = vk_format_description(format);
    const struct tu_native_format *native_fmt = tu6_get_native_format(format);
    if (!desc || !native_fmt) {
-      out_properties->linearTilingFeatures = linear;
-      out_properties->optimalTilingFeatures = tiled;
-      out_properties->bufferFeatures = buffer;
-      return;
+      goto end;
    }
 
-   linear |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
-   tiled |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
    buffer |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
-
-   if (native_fmt->tex >= 0) {
-      linear |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
-      tiled |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
-      buffer |= VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT;
-   }
-
-   if (native_fmt->rb >= 0) {
-      linear |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
-      tiled |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
-   }
-
    if (native_fmt->vtx >= 0) {
       buffer |= VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT;
    }
 
+   if (native_fmt->tex >= 0 || native_fmt->rb >= 0) {
+      linear |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
+      tiled |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
+   }
+
+   if (native_fmt->tex >= 0) {
+      linear |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+      tiled |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+      buffer |= VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT;
+   }
+
+   if (native_fmt->rb >= 0) {
+      linear |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_BLIT_SRC_BIT | VK_FORMAT_FEATURE_BLIT_DST_BIT;
+      tiled |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_BLIT_SRC_BIT | VK_FORMAT_FEATURE_BLIT_DST_BIT;
+   }
+
+   if (tu6_pipe2depth(format) != (enum a6xx_depth_format)~0) {
+      linear |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+      tiled |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+   }
+
+end:
    out_properties->linearTilingFeatures = linear;
    out_properties->optimalTilingFeatures = tiled;
    out_properties->bufferFeatures = buffer;

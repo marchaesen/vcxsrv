@@ -85,6 +85,20 @@ def get_rgbx_to_rgba_map(formats):
 
         yield rgbx_name, rgba_name
 
+def get_intensity_to_red_map(formats):
+    names = set(fmt.name for fmt in formats)
+
+    for fmt in formats:
+        if str(fmt.swizzle) != 'xxxx':
+            continue
+
+        i_name = fmt.name
+        r_name = i_name.replace("_I_", "_R_")
+
+        assert r_name in names
+
+        yield i_name, r_name
+
 TEMPLATE = Template(COPYRIGHT + """
 #include "formats.h"
 #include "util/macros.h"
@@ -129,6 +143,23 @@ _mesa_get_linear_format_srgb(mesa_format format)
 }
 
 /**
+ * For an intensity format, return the corresponding red format.  For other
+ * formats, return the format as-is.
+ */
+mesa_format
+_mesa_get_intensity_format_red(mesa_format format)
+{
+   switch (format) {
+%for i, r in intensity_to_red_map:
+   case ${i}:
+      return ${r};
+%endfor
+   default:
+      return format;
+   }
+}
+
+/**
  * If the format has an alpha channel, and there exists a non-alpha
  * variant of the format with an identical bit layout, then return
  * the non-alpha format. Otherwise return the original format.
@@ -164,6 +195,7 @@ def main():
     template_env = {
         'unorm_to_srgb_map': list(get_unorm_to_srgb_map(formats)),
         'rgbx_to_rgba_map': list(get_rgbx_to_rgba_map(formats)),
+        'intensity_to_red_map': list(get_intensity_to_red_map(formats)),
     }
 
     with open(pargs.out, 'w') as f:

@@ -63,6 +63,7 @@ public:
    virtual void visit(ir_call *);
    virtual void visit(ir_return *);
    virtual void visit(ir_discard *);
+   virtual void visit(ir_demote *);
    virtual void visit(ir_if *);
    virtual void visit(ir_loop *);
    virtual void visit(ir_loop_jump *);

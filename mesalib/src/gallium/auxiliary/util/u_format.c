@@ -39,6 +39,7 @@
 #include "util/u_math.h"
 
 #include "pipe/p_defines.h"
+#include "pipe/p_screen.h"
 
 
 boolean
@@ -955,8 +956,6 @@ util_format_snorm8_to_sint8(enum pipe_format format)
       return PIPE_FORMAT_R8G8B8X8_SINT;
    case PIPE_FORMAT_R8A8_SNORM:
       return PIPE_FORMAT_R8A8_SINT;
-   case PIPE_FORMAT_A8L8_SNORM:
-      return PIPE_FORMAT_A8L8_SINT;
    case PIPE_FORMAT_G8R8_SNORM:
       return PIPE_FORMAT_G8R8_SINT;
    case PIPE_FORMAT_A8B8G8R8_SNORM:
@@ -967,4 +966,26 @@ util_format_snorm8_to_sint8(enum pipe_format format)
    default:
       return format;
    }
+}
+
+bool
+util_format_planar_is_supported(struct pipe_screen *screen,
+                                enum pipe_format format,
+                                enum pipe_texture_target target,
+                                unsigned sample_count,
+                                unsigned storage_sample_count,
+                                unsigned bind)
+{
+   unsigned num_planes = util_format_get_num_planes(format);
+   assert(num_planes >= 2);
+
+   for (unsigned i = 0; i < num_planes; i++) {
+      if (!screen->is_format_supported(screen,
+                                       util_format_get_plane_format(format, i),
+                                       target, sample_count,
+                                       storage_sample_count, bind))
+         return false;
+   }
+
+   return true;
 }

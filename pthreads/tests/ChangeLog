@@ -1,3 +1,11 @@
+2018-08-19  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* threestage.c: Delete.
+	* rwlock7.c: Delete.
+	* rwlock8.c: Delete.
+	* rwlock7_1.c: Delete.
+	* rwlock8_1.c: Delete.
+
 2018-08-10  Ross Johnson <ross dot johnson at homemail dot com dot au>
 
 	* Makefile (clean): remove *.idb files.

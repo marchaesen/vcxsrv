@@ -66,6 +66,15 @@ mir_print_mask(unsigned mask)
         }
 }
 
+static void
+mir_print_swizzle(unsigned *swizzle)
+{
+        printf(".");
+
+        for (unsigned i = 0; i < 16; ++i)
+                putchar(components[swizzle[i]]);
+}
+
 static const char *
 mir_get_unit(unsigned unit)
 {
@@ -115,7 +124,7 @@ mir_print_instruction(midgard_instruction *ins)
 
         case TAG_LOAD_STORE_4: {
                 midgard_load_store_op op = ins->load_store.op;
-                const char *name = load_store_opcode_names[op];
+                const char *name = load_store_opcode_props[op].name;
 
                 assert(name);
                 printf("%s", name);
@@ -143,15 +152,19 @@ mir_print_instruction(midgard_instruction *ins)
         printf(", ");
 
         mir_print_index(ins->src[0]);
+        mir_print_swizzle(ins->swizzle[0]);
         printf(", ");
 
         if (ins->has_inline_constant)
                 printf("#%d", ins->inline_constant);
-        else
+        else {
                 mir_print_index(ins->src[1]);
+                mir_print_swizzle(ins->swizzle[1]);
+        }
 
         printf(", ");
         mir_print_index(ins->src[2]);
+        mir_print_swizzle(ins->swizzle[2]);
 
         if (ins->has_constants) {
                 uint32_t *uc = ins->constants;

@@ -772,7 +772,7 @@ try_enable_glamor(ScrnInfoPtr pScrn)
             xf86DrvMsg(pScrn->scrnIndex, X_INFO, "glamor initialized\n");
             ms->drmmode.glamor = TRUE;
         } else {
-            xf86DrvMsg(pScrn->scrnIndex, X_ERROR,
+            xf86DrvMsg(pScrn->scrnIndex, X_INFO,
                        "glamor initialization failed\n");
         }
     } else {

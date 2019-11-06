@@ -72,8 +72,6 @@ option('hal', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'Enable HAL integration')
 option('systemd_logind', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'Enable systemd-logind integration')
-option('vbe', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
-       description: 'Xorg VBE module')
 option('vgahw', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'Xorg VGA access module')
 option('dpms', type: 'boolean', value: true,
@@ -106,6 +104,8 @@ option('mitshm', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto
        description: 'SHM extension')
 option('agp', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'AGP support')
+option('sha1', type: 'combo', choices: ['libc', 'CommonCrypto', 'CryptoAPI', 'libmd', 'libsha1', 'libnettle', 'libgcrypt', 'libcrypto', 'auto'], value: 'auto',
+       description: 'SHA1 implementation')
 
 option('dri1', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto', description: 'Build DRI1 extension (default: auto)')
 option('dri2', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto', description: 'Build DRI2 extension (default: auto)')

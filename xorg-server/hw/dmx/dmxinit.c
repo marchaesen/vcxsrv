@@ -569,11 +569,10 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
             year += 2000;
 
         dmxLog(dmxInfo, "Generation:         %lu\n", dmxGeneration);
-        dmxLog(dmxInfo, "DMX version:        %d.%d.%02d%02d%02d (%s)\n",
-               major, minor, year, month, day, VENDOR_STRING);
+        dmxLog(dmxInfo, "DMX version:        %d.%d.%02d%02d%02d\n",
+               major, minor, year, month, day);
 
         SetVendorRelease(VENDOR_RELEASE);
-        SetVendorString(VENDOR_STRING);
 
         dmxLog(dmxInfo, "MAXSCREENS:         %d\n", MAXSCREENS);
 

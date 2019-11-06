@@ -12,7 +12,6 @@ Normal Haiku Op*enGL layout:
   * headers/os/opengl/GLView.h
   * headers/os/opengl/GLRenderer.h
   * headers/os/opengl/GL/gl.h
-  * headers/os/opengl/GL/gl_mangle.h
   * headers/os/opengl/GL/glext.h
   * headers/os/opengl/GL/osmesa.h (needed?)
 

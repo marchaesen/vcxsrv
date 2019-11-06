@@ -31,6 +31,10 @@
 #include "util/u_dynarray.h"
 #include "compiler/shader_enums.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct ac_rtld_part;
 struct ac_shader_config;
 struct radeon_info;
@@ -133,5 +137,9 @@ struct ac_rtld_upload_info {
 };
 
 bool ac_rtld_upload(struct ac_rtld_upload_info *u);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* AC_RTLD_H */

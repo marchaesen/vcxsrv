@@ -321,9 +321,8 @@ VGAarbiterSourceValidate(DrawablePtr pDrawable,
 
     SCREEN_PROLOG(SourceValidate);
     VGAGet(pScreen);
-    if (pScreen->SourceValidate)
-        (*pScreen->SourceValidate) (pDrawable, x, y, width, height,
-                                    subWindowMode);
+    (*pScreen->SourceValidate) (pDrawable, x, y, width, height,
+                                subWindowMode);
     VGAPut();
     SCREEN_EPILOG(SourceValidate, VGAarbiterSourceValidate);
 }

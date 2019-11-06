@@ -59,6 +59,28 @@ SOFTWARE.
 #include "os.h"
 #include <X11/extensions/XI2.h>
 
+#define DEFAULT_KEYBOARD_CLICK 	0
+#define DEFAULT_BELL		50
+#define DEFAULT_BELL_PITCH	400
+#define DEFAULT_BELL_DURATION	100
+#define DEFAULT_AUTOREPEAT	TRUE
+#define DEFAULT_AUTOREPEATS	{\
+        0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,\
+        0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,\
+        0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,\
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+
+#define DEFAULT_LEDS		0x0     /* all off */
+#define DEFAULT_LEDS_MASK	0xffffffff      /* 32 */
+#define DEFAULT_INT_RESOLUTION		1000
+#define DEFAULT_INT_MIN_VALUE		0
+#define DEFAULT_INT_MAX_VALUE		100
+#define DEFAULT_INT_DISPLAYED		0
+
+#define DEFAULT_PTR_NUMERATOR	2
+#define DEFAULT_PTR_DENOMINATOR	1
+#define DEFAULT_PTR_THRESHOLD	4
+
 #define DEVICE_INIT	0
 #define DEVICE_ON	1
 #define DEVICE_OFF	2

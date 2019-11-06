@@ -190,7 +190,7 @@ get_tcs_num_patches(struct radv_shader_context *ctx)
 
 	/* GFX6 bug workaround - limit LS-HS threadgroups to only one wave. */
 	if (ctx->options->chip_class == GFX6) {
-		unsigned one_wave = ctx->options->wave_size / MAX2(num_tcs_input_cp, num_tcs_output_cp);
+		unsigned one_wave = 64 / MAX2(num_tcs_input_cp, num_tcs_output_cp);
 		num_patches = MIN2(num_patches, one_wave);
 	}
 	return num_patches;
@@ -3175,6 +3175,17 @@ static void build_export_prim(struct radv_shader_context *ctx,
 	ac_build_export(&ctx->ac, &args);
 }
 
+static struct radv_stream_output *
+radv_get_stream_output_by_loc(struct radv_streamout_info *so, unsigned location)
+{
+	for (unsigned i = 0; i < so->num_outputs; ++i) {
+		if (so->outputs[i].location == location)
+			return &so->outputs[i];
+	}
+
+	return NULL;
+}
+
 static void build_streamout_vertex(struct radv_shader_context *ctx,
 				   LLVMValueRef *so_buffer, LLVMValueRef *wg_offset_dw,
 				   unsigned stream, LLVMValueRef offset_vtx,
@@ -3195,23 +3206,79 @@ static void build_streamout_vertex(struct radv_shader_context *ctx,
 		offset[buffer] = LLVMBuildShl(builder, tmp, LLVMConstInt(ctx->ac.i32, 2, false), "");
 	}
 
-	for (unsigned i = 0; i < so->num_outputs; ++i) {
-		struct radv_stream_output *output =
-			&ctx->shader_info->so.outputs[i];
+	if (ctx->stage == MESA_SHADER_GEOMETRY) {
+		struct radv_shader_output_values outputs[AC_LLVM_MAX_OUTPUTS];
+		unsigned noutput = 0;
+		unsigned out_idx = 0;
 
-		if (stream != output->stream)
-			continue;
+		for (unsigned i = 0; i < AC_LLVM_MAX_OUTPUTS; ++i) {
+			unsigned output_usage_mask =
+				ctx->shader_info->gs.output_usage_mask[i];
+			uint8_t output_stream =
+				output_stream = ctx->shader_info->gs.output_streams[i];
 
-		unsigned loc = output->location;
-		struct radv_shader_output_values out = {};
+			if (!(ctx->output_mask & (1ull << i)) ||
+			    output_stream != stream)
+				continue;
 
-		for (unsigned comp = 0; comp < 4; comp++) {
-			tmp = ac_build_gep0(&ctx->ac, vertexptr,
-					    LLVMConstInt(ctx->ac.i32, 4 * loc + comp, false));
-			out.values[comp] = LLVMBuildLoad(builder, tmp, "");
+			outputs[noutput].slot_name = i;
+			outputs[noutput].slot_index = i == VARYING_SLOT_CLIP_DIST1;
+			outputs[noutput].usage_mask = output_usage_mask;
+
+			int length = util_last_bit(output_usage_mask);
+
+			for (unsigned j = 0; j < length; j++, out_idx++) {
+				if (!(output_usage_mask & (1 << j)))
+					continue;
+
+				tmp = ac_build_gep0(&ctx->ac, vertexptr,
+						    LLVMConstInt(ctx->ac.i32, out_idx, false));
+				outputs[noutput].values[j] = LLVMBuildLoad(builder, tmp, "");
+			}
+
+			for (unsigned j = length; j < 4; j++)
+				outputs[noutput].values[j] = LLVMGetUndef(ctx->ac.f32);
+
+			noutput++;
 		}
 
-		radv_emit_stream_output(ctx, so_buffer, offset, output, &out);
+		for (unsigned i = 0; i < noutput; i++) {
+			struct radv_stream_output *output =
+				radv_get_stream_output_by_loc(so, outputs[i].slot_name);
+
+			if (!output ||
+			    output->stream != stream)
+				continue;
+
+			struct radv_shader_output_values out = {};
+
+			for (unsigned j = 0; j < 4; j++) {
+				out.values[j] = outputs[i].values[j];
+			}
+
+			radv_emit_stream_output(ctx, so_buffer, offset, output, &out);
+		}
+	} else {
+		for (unsigned i = 0; i < so->num_outputs; ++i) {
+			struct radv_stream_output *output =
+				&ctx->shader_info->so.outputs[i];
+
+			if (stream != output->stream)
+				continue;
+
+			struct radv_shader_output_values out = {};
+
+			for (unsigned comp = 0; comp < 4; comp++) {
+				if (!(output->component_mask & (1 << comp)))
+					continue;
+
+				tmp = ac_build_gep0(&ctx->ac, vertexptr,
+						    LLVMConstInt(ctx->ac.i32, 4 * i + comp, false));
+				out.values[comp] = LLVMBuildLoad(builder, tmp, "");
+			}
+
+			radv_emit_stream_output(ctx, so_buffer, offset, output, &out);
+		}
 	}
 }
 
@@ -3576,6 +3643,7 @@ static LLVMValueRef ngg_nogs_vertex_ptr(struct radv_shader_context *ctx,
 static void
 handle_ngg_outputs_post_1(struct radv_shader_context *ctx)
 {
+	struct radv_streamout_info *so = &ctx->shader_info->so;
 	LLVMBuilderRef builder = ctx->ac.builder;
 	LLVMValueRef vertex_ptr = NULL;
 	LLVMValueRef tmp, tmp2;
@@ -3588,15 +3656,20 @@ handle_ngg_outputs_post_1(struct radv_shader_context *ctx)
 
 	vertex_ptr = ngg_nogs_vertex_ptr(ctx, get_thread_id_in_tg(ctx));
 
-	for (unsigned i = 0; i < AC_LLVM_MAX_OUTPUTS; ++i) {
-		if (!(ctx->output_mask & (1ull << i)))
-			continue;
+	for (unsigned i = 0; i < so->num_outputs; ++i) {
+		struct radv_stream_output *output =
+			&ctx->shader_info->so.outputs[i];
 
-		for (unsigned j = 0; j < 4; j++) {
+		unsigned loc = output->location;
+
+		for (unsigned comp = 0; comp < 4; comp++) {
+			if (!(output->component_mask & (1 << comp)))
+				continue;
+
 			tmp = ac_build_gep0(&ctx->ac, vertex_ptr,
-					    LLVMConstInt(ctx->ac.i32, 4 * i + j, false));
+					    LLVMConstInt(ctx->ac.i32, 4 * i + comp, false));
 			tmp2 = LLVMBuildLoad(builder,
-					     ctx->abi.outputs[4 * i + j], "");
+					     ctx->abi.outputs[4 * loc + comp], "");
 			tmp2 = ac_to_integer(&ctx->ac, tmp2);
 			LLVMBuildStore(builder, tmp2, tmp);
 		}
@@ -3629,7 +3702,11 @@ handle_ngg_outputs_post_2(struct radv_shader_context *ctx)
 	LLVMValueRef num_vertices_val;
 
 	if (ctx->stage == MESA_SHADER_VERTEX) {
-		num_vertices_val = LLVMConstInt(ctx->ac.i32, 1, false);
+		LLVMValueRef outprim_val =
+			LLVMConstInt(ctx->ac.i32,
+				     ctx->options->key.vs.outprim, false);
+		num_vertices_val = LLVMBuildAdd(builder, outprim_val,
+						ctx->ac.i32_1, "");
 		num_vertices = 3; /* TODO: optimize for points & lines */
 	} else {
 		assert(ctx->stage == MESA_SHADER_TESS_EVAL);
@@ -4692,12 +4769,16 @@ LLVMModuleRef ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm,
 	ctx.options = options;
 	ctx.shader_info = shader_info;
 
-	enum ac_float_mode float_mode =
-		options->unsafe_math ? AC_FLOAT_MODE_UNSAFE_FP_MATH :
-				       AC_FLOAT_MODE_DEFAULT;
+	enum ac_float_mode float_mode = AC_FLOAT_MODE_DEFAULT;
+
+	if (shader_info->float_controls_mode & FLOAT_CONTROLS_DENORM_FLUSH_TO_ZERO_FP32) {
+		float_mode = AC_FLOAT_MODE_DENORM_FLUSH_TO_ZERO;
+	} else if (options->unsafe_math) {
+		float_mode = AC_FLOAT_MODE_UNSAFE_FP_MATH;
+	}
 
 	ac_llvm_context_init(&ctx.ac, ac_llvm, options->chip_class,
-			     options->family, float_mode, options->wave_size, 64);
+			     options->family, float_mode, shader_info->wave_size, 64);
 	ctx.context = ctx.ac.context;
 
 	for (i = 0; i < MAX_SETS; i++)
@@ -4741,11 +4822,9 @@ LLVMModuleRef ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm,
 	    shaders[shader_count - 1]->info.stage == MESA_SHADER_TESS_CTRL)
 		ac_nir_fixup_ls_hs_input_vgprs(&ctx);
 
-	if (shaders[shader_count - 1]->info.stage != MESA_SHADER_GEOMETRY &&
-	    (ctx.options->key.vs_common_out.as_ngg &&
-	     !ctx.options->key.vs_common_out.as_es)) {
-		/* Unconditionally declare scratch space base for streamout and
-		 * vertex compaction. Whether space is actually allocated is
+	if (is_ngg) {
+		/* Declare scratch space base for streamout and vertex
+		 * compaction. Whether space is actually allocated is
 		 * determined during linking / PM4 creation.
 		 *
 		 * Add an extra dword per vertex to ensure an odd stride, which
@@ -4986,7 +5065,7 @@ static void ac_compile_llvm_module(struct ac_llvm_compiler *ac_llvm,
 		fprintf(stderr, "\n");
 	}
 
-	if (options->record_llvm_ir) {
+	if (options->record_ir) {
 		char *llvm_ir = LLVMPrintModuleToString(llvm_module);
 		llvm_ir_string = strdup(llvm_ir);
 		LLVMDisposeMessage(llvm_ir);
@@ -5046,7 +5125,6 @@ radv_compile_nir_shader(struct ac_llvm_compiler *ac_llvm,
 			shader_info->gs.es_type = nir[0]->info.stage;
 		}
 	}
-	shader_info->wave_size = options->wave_size;
 }
 
 static void

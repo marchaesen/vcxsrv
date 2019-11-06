@@ -46,17 +46,22 @@ lower_non_uniform_tex_access(nir_builder *b, nir_tex_instr *tex)
 
    /* We can have at most one texture and one sampler handle */
    nir_ssa_def *handles[2];
+   nir_deref_instr *parent_derefs[2];
+   int texture_deref_handle = -1;
+   int sampler_deref_handle = -1;
    unsigned handle_count = 0;
    for (unsigned i = 0; i < tex->num_srcs; i++) {
       switch (tex->src[i].src_type) {
       case nir_tex_src_texture_offset:
       case nir_tex_src_texture_handle:
+      case nir_tex_src_texture_deref:
          if (!tex->texture_non_uniform)
             continue;
          break;
 
       case nir_tex_src_sampler_offset:
       case nir_tex_src_sampler_handle:
+      case nir_tex_src_sampler_deref:
          if (!tex->sampler_non_uniform)
             continue;
          break;
@@ -65,10 +70,33 @@ lower_non_uniform_tex_access(nir_builder *b, nir_tex_instr *tex)
          continue;
       }
 
-      assert(tex->src[i].src.is_ssa);
-      assert(tex->src[i].src.ssa->num_components == 1);
       assert(handle_count < 2);
-      handles[handle_count++] = tex->src[i].src.ssa;
+      assert(tex->src[i].src.is_ssa);
+      nir_ssa_def *handle = tex->src[i].src.ssa;
+      if (handle->parent_instr->type == nir_instr_type_deref) {
+         nir_deref_instr *deref = nir_instr_as_deref(handle->parent_instr);
+         nir_deref_instr *parent = nir_deref_instr_parent(deref);
+         if (deref->deref_type == nir_deref_type_var)
+            continue;
+
+         assert(parent->deref_type == nir_deref_type_var);
+         assert(deref->deref_type == nir_deref_type_array);
+
+         /* If it's constant, it's automatically uniform; don't bother. */
+         if (nir_src_is_const(deref->arr.index))
+            continue;
+
+         handle = deref->arr.index.ssa;
+
+         parent_derefs[handle_count] = parent;
+         if (tex->src[i].src_type == nir_tex_src_texture_deref)
+            texture_deref_handle = handle_count;
+         else
+            sampler_deref_handle = handle_count;
+      }
+      assert(handle->num_components == 1);
+
+      handles[handle_count++] = handle;
    }
 
    if (handle_count == 0)
@@ -79,13 +107,29 @@ lower_non_uniform_tex_access(nir_builder *b, nir_tex_instr *tex)
    nir_push_loop(b);
 
    nir_ssa_def *all_equal_first = nir_imm_true(b);
+   nir_ssa_def *first[2];
    for (unsigned i = 0; i < handle_count; i++) {
-      nir_ssa_def *equal_first =
-         nir_ieq(b, read_first_invocation(b, handles[i]), handles[i]);
+      first[i] = read_first_invocation(b, handles[i]);
+      nir_ssa_def *equal_first = nir_ieq(b, first[i], handles[i]);
       all_equal_first = nir_iand(b, all_equal_first, equal_first);
    }
 
    nir_push_if(b, all_equal_first);
+
+   /* Replicate the derefs. */
+   if (texture_deref_handle >= 0) {
+      int src_idx = nir_tex_instr_src_index(tex, nir_tex_src_texture_deref);
+      nir_deref_instr *deref = parent_derefs[texture_deref_handle];
+      deref = nir_build_deref_array(b, deref, first[texture_deref_handle]);
+      tex->src[src_idx].src = nir_src_for_ssa(&deref->dest.ssa);
+   }
+
+   if (sampler_deref_handle >= 0) {
+      int src_idx = nir_tex_instr_src_index(tex, nir_tex_src_sampler_deref);
+      nir_deref_instr *deref = parent_derefs[sampler_deref_handle];
+      deref = nir_build_deref_array(b, deref, first[sampler_deref_handle]);
+      tex->src[src_idx].src = nir_src_for_ssa(&deref->dest.ssa);
+   }
 
    nir_builder_instr_insert(b, &tex->instr);
    nir_jump(b, nir_jump_break);
@@ -100,19 +144,39 @@ lower_non_uniform_access_intrin(nir_builder *b, nir_intrinsic_instr *intrin,
    if (!(nir_intrinsic_access(intrin) & ACCESS_NON_UNIFORM))
       return false;
 
+   assert(intrin->src[handle_src].is_ssa);
+   nir_ssa_def *handle = intrin->src[handle_src].ssa;
+   nir_deref_instr *parent_deref = NULL;
+   if (handle->parent_instr->type == nir_instr_type_deref) {
+      nir_deref_instr *deref = nir_instr_as_deref(handle->parent_instr);
+      parent_deref = nir_deref_instr_parent(deref);
+      if (deref->deref_type == nir_deref_type_var)
+         return false;
+
+      assert(parent_deref->deref_type == nir_deref_type_var);
+      assert(deref->deref_type == nir_deref_type_array);
+
+      handle = deref->arr.index.ssa;
+   }
+
    /* If it's constant, it's automatically uniform; don't bother. */
-   if (nir_src_is_const(intrin->src[handle_src]))
+   if (handle->parent_instr->type == nir_instr_type_load_const)
       return false;
 
    b->cursor = nir_instr_remove(&intrin->instr);
 
    nir_push_loop(b);
 
-   assert(intrin->src[handle_src].is_ssa);
-   assert(intrin->src[handle_src].ssa->num_components == 1);
-   nir_ssa_def *handle = intrin->src[handle_src].ssa;
+   assert(handle->num_components == 1);
 
-   nir_push_if(b, nir_ieq(b, read_first_invocation(b, handle), handle));
+   nir_ssa_def *first = read_first_invocation(b, handle);
+   nir_push_if(b, nir_ieq(b, first, handle));
+
+   /* Replicate the deref. */
+   if (parent_deref) {
+      nir_deref_instr *deref = nir_build_deref_array(b, parent_deref, first);
+      intrin->src[handle_src] = nir_src_for_ssa(&deref->dest.ssa);
+   }
 
    nir_builder_instr_insert(b, &intrin->instr);
    nir_jump(b, nir_jump_break);
@@ -206,6 +270,20 @@ nir_lower_non_uniform_access_impl(nir_function_impl *impl,
             case nir_intrinsic_bindless_image_atomic_fadd:
             case nir_intrinsic_bindless_image_size:
             case nir_intrinsic_bindless_image_samples:
+            case nir_intrinsic_image_deref_load:
+            case nir_intrinsic_image_deref_store:
+            case nir_intrinsic_image_deref_atomic_add:
+            case nir_intrinsic_image_deref_atomic_umin:
+            case nir_intrinsic_image_deref_atomic_imin:
+            case nir_intrinsic_image_deref_atomic_umax:
+            case nir_intrinsic_image_deref_atomic_imax:
+            case nir_intrinsic_image_deref_atomic_and:
+            case nir_intrinsic_image_deref_atomic_or:
+            case nir_intrinsic_image_deref_atomic_xor:
+            case nir_intrinsic_image_deref_atomic_exchange:
+            case nir_intrinsic_image_deref_atomic_comp_swap:
+            case nir_intrinsic_image_deref_size:
+            case nir_intrinsic_image_deref_samples:
                if ((types & nir_lower_non_uniform_image_access) &&
                    lower_non_uniform_access_intrin(&b, intrin, 0))
                   progress = true;

@@ -788,14 +788,15 @@ sched_block(struct ir3_sched_ctx *ctx, struct ir3_block *block)
 	 * occupied), and move remaining to depth sorted list:
 	 */
 	list_for_each_entry_safe (struct ir3_instruction, instr, &unscheduled_list, node) {
-		if (instr->opc == OPC_META_INPUT) {
+		if ((instr->opc == OPC_META_INPUT) ||
+				(instr->opc == OPC_META_TEX_PREFETCH)) {
 			schedule(ctx, instr);
 		} else {
 			ir3_insert_by_depth(instr, &ctx->depth_list);
 		}
 	}
 
-	while (!list_empty(&ctx->depth_list)) {
+	while (!list_is_empty(&ctx->depth_list)) {
 		struct ir3_sched_notes notes = {0};
 		struct ir3_instruction *instr;
 

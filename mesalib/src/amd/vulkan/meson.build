@@ -67,6 +67,7 @@ libradv_files = files(
   'winsys/amdgpu/radv_amdgpu_winsys.c',
   'winsys/amdgpu/radv_amdgpu_winsys.h',
   'winsys/amdgpu/radv_amdgpu_winsys_public.h',
+  'radv_android.c',
   'radv_cmd_buffer.c',
   'radv_cs.h',
   'radv_debug.c',
@@ -139,20 +140,20 @@ if with_xlib_lease
 endif
 
 if with_platform_android
+  radv_deps += dep_android
   radv_flags += [
     '-DVK_USE_PLATFORM_ANDROID_KHR'
   ]
-  libradv_files += files('radv_android.c')
 endif
 
 libvulkan_radeon = shared_library(
   'vulkan_radeon',
-  [libradv_files, radv_entrypoints, radv_extensions_c, amd_vk_format_table_c, sha1_h, xmlpool_options_h, radv_gfx10_format_table_h],
+  [libradv_files, radv_entrypoints, radv_extensions_c, amd_vk_format_table_c, sha1_h, radv_gfx10_format_table_h],
   include_directories : [
-    inc_common, inc_amd, inc_amd_common, inc_compiler, inc_util, inc_vulkan_wsi,
+    inc_common, inc_amd, inc_amd_common, inc_amd_common_llvm, inc_compiler, inc_util, inc_vulkan_wsi,
   ],
   link_with : [
-    libamd_common, libamdgpu_addrlib, libvulkan_wsi,
+    libamd_common, libamd_common_llvm, libamdgpu_addrlib, libvulkan_wsi,
   ],
   dependencies : [
     dep_llvm, dep_libdrm_amdgpu, dep_thread, dep_elf, dep_dl, dep_m,
@@ -164,6 +165,19 @@ libvulkan_radeon = shared_library(
   link_args : [ld_args_bsymbolic, ld_args_gc_sections],
   install : true,
 )
+
+if with_symbols_check
+  test(
+    'radv symbols check',
+    symbols_check,
+    args : [
+      '--lib', libvulkan_radeon,
+      '--symbols-file', vulkan_icd_symbols,
+      symbols_check_args,
+    ],
+    suite : ['amd'],
+  )
+endif
 
 radeon_icd = custom_target(
   'radeon_icd',

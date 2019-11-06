@@ -158,11 +158,9 @@ miDoCopy(DrawablePtr pSrcDrawable,
         return NULL;
     }
 
-    if (pSrcDrawable->pScreen->SourceValidate) {
-        (*pSrcDrawable->pScreen->SourceValidate) (pSrcDrawable, xIn, yIn,
-                                                  widthSrc, heightSrc,
-                                                  pGC->subWindowMode);
-    }
+    (*pSrcDrawable->pScreen->SourceValidate) (pSrcDrawable, xIn, yIn,
+                                              widthSrc, heightSrc,
+                                              pGC->subWindowMode);
 
     /* Compute source clip region */
     if (pSrcDrawable->type == DRAWABLE_PIXMAP) {

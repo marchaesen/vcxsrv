@@ -139,7 +139,7 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
 
 %token ATTRIBUTE CONST_TOK
 %token <type> BASIC_TYPE_TOK
-%token BREAK BUFFER CONTINUE DO ELSE FOR IF DISCARD RETURN SWITCH CASE DEFAULT
+%token BREAK BUFFER CONTINUE DO ELSE FOR IF DEMOTE DISCARD RETURN SWITCH CASE DEFAULT
 %token CENTROID IN_TOK OUT_TOK INOUT_TOK UNIFORM VARYING SAMPLE
 %token NOPERSPECTIVE FLAT SMOOTH
 %token IMAGE1DSHADOW IMAGE2DSHADOW IMAGE1DARRAYSHADOW IMAGE2DARRAYSHADOW
@@ -256,6 +256,7 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
 %type <node> declaration
 %type <node> declaration_statement
 %type <node> jump_statement
+%type <node> demote_statement
 %type <node> interface_block
 %type <interface_block> basic_interface_block
 %type <struct_specifier> struct_specifier
@@ -2510,6 +2511,7 @@ simple_statement:
    | switch_statement
    | iteration_statement
    | jump_statement
+   | demote_statement
    ;
 
 compound_statement:
@@ -2804,6 +2806,15 @@ jump_statement:
    {
       void *ctx = state->linalloc;
       $$ = new(ctx) ast_jump_statement(ast_jump_statement::ast_discard, NULL);
+      $$->set_location(@1);
+   }
+   ;
+
+demote_statement:
+   DEMOTE ';'
+   {
+      void *ctx = state->linalloc;
+      $$ = new(ctx) ast_demote_statement();
       $$->set_location(@1);
    }
    ;

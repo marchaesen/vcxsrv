@@ -25,7 +25,7 @@ inc_glapi = include_directories('.')
 static_glapi_files = []
 static_glapi_args = []
 
-if ['apple', 'windows'].contains(with_dri_platform)
+if with_dri and ['apple', 'windows'].contains(with_dri_platform)
   static_glapi_files += [glapi_gentable_c, glapitable_h]
 endif
 
@@ -46,8 +46,19 @@ if with_shared_glapi
     '-DMAPI_ABI_HEADER="@0@"'.format(glapi_mapi_tmp_h.full_path()),
     gcc_lto_quirk,
   ]
+  if with_platform_windows
+    static_glapi_args += ['-D_GDI32_', '-DBUILD_GL32']
+  endif
 else
   static_glapi_args += '-DMAPI_MODE_UTIL'
+  if with_platform_windows
+    static_glapi_args += ['-D_GDI32_', '-DBUILD_GL32', '-DKHRONOS_DLL_EXPORTS']
+    if with_shared_glapi
+      static_glapi_args += '-D_GLAPI_DLL_EXPORTS'
+    else
+      static_glapi_args += '-D_GLAPI_NO_EXPORTS'
+    endif
+  endif
   static_glapi_files += files(
     'glapi_dispatch.c',
     'glapi_entrypoint.c',

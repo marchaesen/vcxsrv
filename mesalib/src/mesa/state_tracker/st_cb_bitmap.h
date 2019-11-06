@@ -35,7 +35,7 @@
 struct dd_function_table;
 struct st_context;
 struct gl_program;
-struct st_fragment_program;
+struct st_common_program;
 
 extern void
 st_init_bitmap_functions(struct dd_function_table *functions);

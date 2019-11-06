@@ -32,7 +32,7 @@
 #ifndef U_PWR8_H_
 #define U_PWR8_H_
 
-#if defined(_ARCH_PWR8) && defined(PIPE_ARCH_LITTLE_ENDIAN)
+#if defined(_ARCH_PWR8) && UTIL_ARCH_LITTLE_ENDIAN
 
 #define VECTOR_ALIGN_16 __attribute__ ((__aligned__ (16)))
 
@@ -53,7 +53,7 @@ vec_set_epi32 (int i3, int i2, int i1, int i0)
 {
    __m128i_union vdst;
 
-#ifdef PIPE_ARCH_LITTLE_ENDIAN
+#if UTIL_ARCH_LITTLE_ENDIAN
    vdst.i[0] = i0;
    vdst.i[1] = i1;
    vdst.i[2] = i2;
@@ -78,7 +78,7 @@ static inline __m128i
 vec_unpacklo_epi32 (__m128i even, __m128i odd)
 {
    static const __m128i perm_mask =
-#ifdef PIPE_ARCH_LITTLE_ENDIAN
+#if UTIL_ARCH_LITTLE_ENDIAN
       { 0,  1,  2,  3, 16, 17, 18, 19,  4,  5,  6,  7, 20, 21, 22, 23};
 #else
       {24, 25, 26, 27,  8,  9, 10, 11, 28, 29, 30, 31, 12, 13, 14, 15};
@@ -91,7 +91,7 @@ static inline __m128i
 vec_unpackhi_epi32 (__m128i even, __m128i odd)
 {
    static const __m128i perm_mask =
-#ifdef PIPE_ARCH_LITTLE_ENDIAN
+#if UTIL_ARCH_LITTLE_ENDIAN
       { 8,  9, 10, 11, 24, 25, 26, 27, 12, 13, 14, 15, 28, 29, 30, 31};
 #else
       {16, 17, 18, 19,  0,  1,  2,  3, 20, 21, 22, 23,  4,  5,  6,  7};
@@ -104,7 +104,7 @@ static inline __m128i
 vec_unpacklo_epi64 (__m128i even, __m128i odd)
 {
    static const __m128i perm_mask =
-#ifdef PIPE_ARCH_LITTLE_ENDIAN
+#if UTIL_ARCH_LITTLE_ENDIAN
       { 0,  1,  2,  3,  4,  5,  6,  7, 16, 17, 18, 19, 20, 21, 22, 23};
 #else
       {24, 25, 26, 27, 28, 29, 30, 31,  8,  9, 10, 11, 12, 13, 14, 15};
@@ -117,7 +117,7 @@ static inline __m128i
 vec_unpackhi_epi64 (__m128i even, __m128i odd)
 {
    static const __m128i perm_mask =
-#ifdef PIPE_ARCH_LITTLE_ENDIAN
+#if UTIL_ARCH_LITTLE_ENDIAN
       { 8,  9, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29, 30, 31};
 #else
       {16, 17, 18, 19, 20, 21, 22, 23,  0,  1,  2,  3,  4,  5,  6,  7};
@@ -236,7 +236,7 @@ vec_loadu_si128 (const uint32_t* src)
 {
    __m128i_union vsrc;
 
-#ifdef PIPE_ARCH_LITTLE_ENDIAN
+#if UTIL_ARCH_LITTLE_ENDIAN
 
    vsrc.m128ui = *((vector unsigned int *) src);
 
@@ -280,7 +280,7 @@ vec_movemask_epi8 (__m128i vsrc)
 
    vtemp.m128i = vec_vgbbd(vsrc);
 
-#ifdef PIPE_ARCH_LITTLE_ENDIAN
+#if UTIL_ARCH_LITTLE_ENDIAN
    result = vtemp.ub[15] << 8 | vtemp.ub[7];
 #else
    result = vtemp.ub[0] << 8 | vtemp.ub[8];
@@ -292,7 +292,7 @@ vec_movemask_epi8 (__m128i vsrc)
 static inline __m128i
 vec_packs_epi16 (__m128i a, __m128i b)
 {
-#ifdef PIPE_ARCH_LITTLE_ENDIAN
+#if UTIL_ARCH_LITTLE_ENDIAN
    return (__m128i) vec_packs ((vector signed short) a,
                                (vector signed short) b);
 #else
@@ -304,13 +304,13 @@ vec_packs_epi16 (__m128i a, __m128i b)
 static inline __m128i
 vec_packs_epi32 (__m128i a, __m128i b)
 {
-#ifdef PIPE_ARCH_LITTLE_ENDIAN
+#if UTIL_ARCH_LITTLE_ENDIAN
    return (__m128i) vec_packs ((vector signed int) a, (vector signed int) b);
 #else
    return (__m128i) vec_packs ((vector signed int) b, (vector signed int) a);
 #endif
 }
 
-#endif /* _ARCH_PWR8 && PIPE_ARCH_LITTLE_ENDIAN */
+#endif /* _ARCH_PWR8 && UTIL_ARCH_LITTLE_ENDIAN */
 
 #endif /* U_PWR8_H_ */

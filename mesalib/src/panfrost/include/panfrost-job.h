@@ -31,14 +31,6 @@
 #include <stdint.h>
 #include <panfrost-misc.h>
 
-#define MALI_SHORT_PTR_BITS (sizeof(u64)*8)
-
-#define MALI_FBD_HIERARCHY_WEIGHTS 8
-
-#define MALI_PAYLOAD_SIZE 256
-
-typedef u32 mali_jd_core_req;
-
 enum mali_job_type {
         JOB_NOT_STARTED	= 0,
         JOB_TYPE_NULL = 1,
@@ -70,7 +62,6 @@ enum mali_draw_mode {
 
 /* Applies to tiler_gl_enables */
 
-
 #define MALI_OCCLUSION_QUERY    (1 << 3)
 #define MALI_OCCLUSION_PRECISE  (1 << 4)
 
@@ -78,19 +69,11 @@ enum mali_draw_mode {
  * In OpenGL, this would corresponds to glFrontFace(GL_CW). Mesa and the blob
  * disagree about how to do viewport flipping, so the blob actually sets this
  * for GL_CW but then has a negative viewport stride */
+
 #define MALI_FRONT_CCW_TOP      (1 << 5)
 
 #define MALI_CULL_FACE_FRONT    (1 << 6)
 #define MALI_CULL_FACE_BACK     (1 << 7)
-
-/* TODO: Might this actually be a finer bitfield? */
-#define MALI_DEPTH_STENCIL_ENABLE 0x6400
-
-#define DS_ENABLE(field) \
-	(field == MALI_DEPTH_STENCIL_ENABLE) \
-	? "MALI_DEPTH_STENCIL_ENABLE" \
-	: (field == 0) ? "0" \
-	: "0 /* XXX: Unknown, check hexdump */"
 
 /* Used in stencil and depth tests */
 
@@ -131,7 +114,7 @@ enum mali_alt_func {
 #define MALI_GET_DEPTH_FUNC(flags) ((flags >> 8) & 0x7)
 #define MALI_DEPTH_FUNC_MASK	   MALI_DEPTH_FUNC(0x7)
 
-#define MALI_DEPTH_TEST		(1 << 11)
+#define MALI_DEPTH_WRITEMASK    (1 << 11)
 
 /* Next flags to unknown2_4 */
 #define MALI_STENCIL_TEST      	(1 << 0)
@@ -1092,8 +1075,7 @@ struct mali_vertex_tiler_postfix {
         u64 sampler_descriptor;
 
         u64 uniforms;
-        u8 flags : 4;
-        u64 _shader_upper : MALI_SHORT_PTR_BITS - 4; /* struct shader_meta */
+        u64 shader;
         u64 attributes; /* struct attribute_buffer[] */
         u64 attribute_meta; /* attribute_meta[] */
         u64 varyings; /* struct attr */
@@ -1383,9 +1365,10 @@ struct mali_payload_fragment {
 /* Flags apply to format. With just MSAA_A and MSAA_B, the framebuffer is
  * configured for 4x. With MSAA_8, it is configured for 8x. */
 
-#define MALI_FRAMEBUFFER_MSAA_8 (1 << 3)
-#define MALI_FRAMEBUFFER_MSAA_A (1 << 4)
-#define MALI_FRAMEBUFFER_MSAA_B (1 << 23)
+#define MALI_SFBD_FORMAT_MSAA_8 (1 << 3)
+#define MALI_SFBD_FORMAT_MSAA_A (1 << 4)
+#define MALI_SFBD_FORMAT_MSAA_B (1 << 4)
+#define MALI_SFBD_FORMAT_SRGB 	(1 << 5)
 
 /* Fast/slow based on whether all three buffers are cleared at once */
 
@@ -1435,6 +1418,32 @@ struct midgard_tiler_descriptor {
         u32 weights[8];
 };
 
+enum mali_block_format {
+        MALI_BLOCK_TILED   = 0x0,
+        MALI_BLOCK_UNKNOWN = 0x1,
+        MALI_BLOCK_LINEAR  = 0x2,
+        MALI_BLOCK_AFBC    = 0x3,
+};
+
+struct mali_sfbd_format {
+        /* 0x1 */
+        unsigned unk1 : 6;
+
+        /* mali_channel_swizzle */
+        unsigned swizzle : 12;
+
+        /* MALI_POSITIVE */
+        unsigned nr_channels : 2;
+
+        /* 0x4 */
+        unsigned unk2 : 6;
+
+        enum mali_block_format block : 2;
+
+        /* 0xb */
+        unsigned unk3 : 4;
+};
+
 struct mali_single_framebuffer {
         u32 unknown1;
         u32 unknown2;
@@ -1442,10 +1451,7 @@ struct mali_single_framebuffer {
         u64 zero1;
         u64 zero0;
 
-        /* Exact format is ironically not known, since EGL is finnicky with the
-         * blob. MSAA, colourspace, etc are configured here. */
-
-        u32 format;
+        struct mali_sfbd_format format;
 
         u32 clear_flags;
         u32 zero2;
@@ -1456,7 +1462,10 @@ struct mali_single_framebuffer {
         u16 width;
         u16 height;
 
-        u32 zero3[8];
+        u32 zero3[4];
+        mali_ptr checksum;
+        u32 checksum_stride;
+        u32 zero5;
 
         /* By default, the framebuffer is upside down from OpenGL's
          * perspective. Set framebuffer to the end and negate the stride to
@@ -1474,10 +1483,14 @@ struct mali_single_framebuffer {
          * disabled. */
 
         mali_ptr depth_buffer; // not SAME_VA
-        u64 depth_buffer_enable;
+        u32 depth_stride_zero : 4;
+        u32 depth_stride : 28;
+        u32 zero7;
 
         mali_ptr stencil_buffer; // not SAME_VA
-        u64 stencil_buffer_enable;
+        u32 stencil_stride_zero : 4;
+        u32 stencil_stride : 28;
+        u32 zero8;
 
         u32 clear_color_1; // RGBA8888 from glClear, actually used by hardware
         u32 clear_color_2; // always equal, but unclear function?
@@ -1512,13 +1525,6 @@ struct mali_compute_fbd {
 #define MALI_MFBD_FORMAT_MSAA 	  (1 << 1)
 #define MALI_MFBD_FORMAT_SRGB 	  (1 << 2)
 
-enum mali_mfbd_block_format {
-        MALI_MFBD_BLOCK_TILED   = 0x0,
-        MALI_MFBD_BLOCK_UNKNOWN = 0x1,
-        MALI_MFBD_BLOCK_LINEAR  = 0x2,
-        MALI_MFBD_BLOCK_AFBC    = 0x3,
-};
-
 struct mali_rt_format {
         unsigned unk1 : 32;
         unsigned unk2 : 3;
@@ -1526,7 +1532,7 @@ struct mali_rt_format {
         unsigned nr_channels : 2; /* MALI_POSITIVE */
 
         unsigned unk3 : 5;
-        enum mali_mfbd_block_format block : 2;
+        enum mali_block_format block : 2;
         unsigned flags : 4;
 
         unsigned swizzle : 12;

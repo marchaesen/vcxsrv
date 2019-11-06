@@ -1108,7 +1108,7 @@ _swrast_choose_triangle( struct gl_context *ctx )
 #if CHAN_BITS != 8
                   USE(general_triangle);
 #else
-                  if (format == MESA_FORMAT_A8B8G8R8_UNORM && !_mesa_little_endian()) {
+                  if (format == MESA_FORMAT_A8B8G8R8_UNORM && !UTIL_ARCH_LITTLE_ENDIAN) {
                      /* We only handle RGBA8888 correctly on little endian
                       * in the optimized code above.
                       */

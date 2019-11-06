@@ -172,7 +172,7 @@ util_compute_fast_udiv_info(uint64_t D, unsigned num_bits, unsigned UINT_BITS)
 static inline int64_t
 sign_extend(int64_t x, unsigned SINT_BITS)
 {
-   return (x << (64 - SINT_BITS)) >> (64 - SINT_BITS);
+   return (int64_t)((uint64_t)x << (64 - SINT_BITS)) >> (64 - SINT_BITS);
 }
 
 struct util_fast_sdiv_info

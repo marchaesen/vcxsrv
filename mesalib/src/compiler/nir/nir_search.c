@@ -39,6 +39,7 @@ struct match_state {
    uint8_t comm_op_direction;
    unsigned variables_seen;
    nir_alu_src variables[NIR_SEARCH_MAX_VARIABLES];
+   struct hash_table *range_ht;
 };
 
 static bool
@@ -297,7 +298,8 @@ match_value(const nir_search_value *value, nir_alu_instr *instr, unsigned src,
              instr->src[src].src.ssa->parent_instr->type != nir_instr_type_load_const)
             return false;
 
-         if (var->cond && !var->cond(instr, src, num_components, new_swizzle))
+         if (var->cond && !var->cond(state->range_ht, instr,
+                                     src, num_components, new_swizzle))
             return false;
 
          if (var->type != nir_type_invalid &&
@@ -472,7 +474,7 @@ construct_value(nir_builder *build,
        * expression we are replacing has any exact values, the entire
        * replacement should be exact.
        */
-      alu->exact = state->has_exact_alu;
+      alu->exact = state->has_exact_alu || expr->exact;
 
       for (unsigned i = 0; i < nir_op_infos[op].num_inputs; i++) {
          /* If the source is an explicitly sized source, then we need to reset
@@ -556,16 +558,16 @@ UNUSED static void dump_value(const nir_search_value *val)
       const nir_search_constant *sconst = nir_search_value_as_constant(val);
       switch (sconst->type) {
       case nir_type_float:
-         printf("%f", sconst->data.d);
+         fprintf(stderr, "%f", sconst->data.d);
          break;
       case nir_type_int:
-         printf("%"PRId64, sconst->data.i);
+         fprintf(stderr, "%"PRId64, sconst->data.i);
          break;
       case nir_type_uint:
-         printf("0x%"PRIx64, sconst->data.u);
+         fprintf(stderr, "0x%"PRIx64, sconst->data.u);
          break;
       case nir_type_bool:
-         printf("%s", sconst->data.u != 0 ? "True" : "False");
+         fprintf(stderr, "%s", sconst->data.u != 0 ? "True" : "False");
          break;
       default:
          unreachable("bad const type");
@@ -576,19 +578,19 @@ UNUSED static void dump_value(const nir_search_value *val)
    case nir_search_value_variable: {
       const nir_search_variable *var = nir_search_value_as_variable(val);
       if (var->is_constant)
-         printf("#");
-      printf("%c", var->variable + 'a');
+         fprintf(stderr, "#");
+      fprintf(stderr, "%c", var->variable + 'a');
       break;
    }
 
    case nir_search_value_expression: {
       const nir_search_expression *expr = nir_search_value_as_expression(val);
-      printf("(");
+      fprintf(stderr, "(");
       if (expr->inexact)
-         printf("~");
+         fprintf(stderr, "~");
       switch (expr->opcode) {
 #define CASE(n) \
-      case nir_search_op_##n: printf(#n); break;
+      case nir_search_op_##n: fprintf(stderr, #n); break;
       CASE(f2b)
       CASE(b2f)
       CASE(b2i)
@@ -598,7 +600,7 @@ UNUSED static void dump_value(const nir_search_value *val)
       CASE(i2f)
 #undef CASE
       default:
-         printf("%s", nir_op_infos[expr->opcode].name);
+         fprintf(stderr, "%s", nir_op_infos[expr->opcode].name);
       }
 
       unsigned num_srcs = 1;
@@ -606,21 +608,22 @@ UNUSED static void dump_value(const nir_search_value *val)
          num_srcs = nir_op_infos[expr->opcode].num_inputs;
 
       for (unsigned i = 0; i < num_srcs; i++) {
-         printf(" ");
+         fprintf(stderr, " ");
          dump_value(expr->srcs[i]);
       }
 
-      printf(")");
+      fprintf(stderr, ")");
       break;
    }
    }
 
    if (val->bit_size > 0)
-      printf("@%d", val->bit_size);
+      fprintf(stderr, "@%d", val->bit_size);
 }
 
 nir_ssa_def *
 nir_replace_instr(nir_builder *build, nir_alu_instr *instr,
+                  struct hash_table *range_ht,
                   const nir_search_expression *search,
                   const nir_search_value *replace)
 {
@@ -634,6 +637,7 @@ nir_replace_instr(nir_builder *build, nir_alu_instr *instr,
    struct match_state state;
    state.inexact_match = false;
    state.has_exact_alu = false;
+   state.range_ht = range_ht;
 
    STATIC_ASSERT(sizeof(state.comm_op_direction) * 8 >= NIR_SEARCH_MAX_COMM_OPS);
 
@@ -659,11 +663,11 @@ nir_replace_instr(nir_builder *build, nir_alu_instr *instr,
       return NULL;
 
 #if 0
-   printf("matched: ");
+   fprintf(stderr, "matched: ");
    dump_value(&search->value);
-   printf(" -> ");
+   fprintf(stderr, " -> ");
    dump_value(replace);
-   printf(" ssa_%d\n", instr->dest.dest.ssa.index);
+   fprintf(stderr, " ssa_%d\n", instr->dest.dest.ssa.index);
 #endif
 
    build->cursor = nir_before_instr(&instr->instr);
@@ -673,9 +677,8 @@ nir_replace_instr(nir_builder *build, nir_alu_instr *instr,
                                      instr->dest.dest.ssa.bit_size,
                                      &state, &instr->instr);
 
-   /* Inserting a mov may be unnecessary.  However, it's much easier to
-    * simply let copy propagation clean this up than to try to go through
-    * and rewrite swizzles ourselves.
+   /* Note that NIR builder will elide the MOV if it's a no-op, which may
+    * allow more work to be done in a single pass through algebraic.
     */
    nir_ssa_def *ssa_val =
       nir_mov_alu(build, val, instr->dest.dest.ssa.num_components);
@@ -688,4 +691,130 @@ nir_replace_instr(nir_builder *build, nir_alu_instr *instr,
    nir_instr_remove(&instr->instr);
 
    return ssa_val;
+}
+
+static void
+nir_algebraic_automaton(nir_block *block, uint16_t *states,
+                        const struct per_op_table *pass_op_table)
+{
+   nir_foreach_instr(instr, block) {
+      switch (instr->type) {
+      case nir_instr_type_alu: {
+         nir_alu_instr *alu = nir_instr_as_alu(instr);
+         nir_op op = alu->op;
+         uint16_t search_op = nir_search_op_for_nir_op(op);
+         const struct per_op_table *tbl = &pass_op_table[search_op];
+         if (tbl->num_filtered_states == 0)
+            continue;
+
+         /* Calculate the index into the transition table. Note the index
+          * calculated must match the iteration order of Python's
+          * itertools.product(), which was used to emit the transition
+          * table.
+          */
+         uint16_t index = 0;
+         for (unsigned i = 0; i < nir_op_infos[op].num_inputs; i++) {
+            index *= tbl->num_filtered_states;
+            index += tbl->filter[states[alu->src[i].src.ssa->index]];
+         }
+         states[alu->dest.dest.ssa.index] = tbl->table[index];
+         break;
+      }
+
+      case nir_instr_type_load_const: {
+         nir_load_const_instr *load_const = nir_instr_as_load_const(instr);
+         states[load_const->def.index] = CONST_STATE;
+         break;
+      }
+
+      default:
+         break;
+      }
+   }
+}
+
+static bool
+nir_algebraic_block(nir_builder *build, nir_block *block,
+                    struct hash_table *range_ht,
+                    const bool *condition_flags,
+                    const struct transform **transforms,
+                    const uint16_t *transform_counts,
+                    const uint16_t *states)
+{
+   bool progress = false;
+   const unsigned execution_mode = build->shader->info.float_controls_execution_mode;
+
+   nir_foreach_instr_reverse_safe(instr, block) {
+      if (instr->type != nir_instr_type_alu)
+         continue;
+
+      nir_alu_instr *alu = nir_instr_as_alu(instr);
+      if (!alu->dest.dest.is_ssa)
+         continue;
+
+      unsigned bit_size = alu->dest.dest.ssa.bit_size;
+      const bool ignore_inexact =
+         nir_is_float_control_signed_zero_inf_nan_preserve(execution_mode, bit_size) ||
+         nir_is_denorm_flush_to_zero(execution_mode, bit_size);
+
+      int xform_idx = states[alu->dest.dest.ssa.index];
+      for (uint16_t i = 0; i < transform_counts[xform_idx]; i++) {
+         const struct transform *xform = &transforms[xform_idx][i];
+         if (condition_flags[xform->condition_offset] &&
+             !(xform->search->inexact && ignore_inexact) &&
+             nir_replace_instr(build, alu, range_ht,
+                               xform->search, xform->replace)) {
+            _mesa_hash_table_clear(range_ht, NULL);
+            progress = true;
+            break;
+         }
+      }
+   }
+
+   return progress;
+}
+
+bool
+nir_algebraic_impl(nir_function_impl *impl,
+                   const bool *condition_flags,
+                   const struct transform **transforms,
+                   const uint16_t *transform_counts,
+                   const struct per_op_table *pass_op_table)
+{
+   bool progress = false;
+
+   nir_builder build;
+   nir_builder_init(&build, impl);
+
+   /* Note: it's important here that we're allocating a zeroed array, since
+    * state 0 is the default state, which means we don't have to visit
+    * anything other than constants and ALU instructions.
+    */
+   uint16_t *states = calloc(impl->ssa_alloc, sizeof(*states));
+
+   struct hash_table *range_ht = _mesa_pointer_hash_table_create(NULL);
+
+   nir_foreach_block(block, impl) {
+      nir_algebraic_automaton(block, states, pass_op_table);
+   }
+
+   nir_foreach_block_reverse(block, impl) {
+      progress |= nir_algebraic_block(&build, block, range_ht, condition_flags,
+                                      transforms, transform_counts,
+                                      states);
+   }
+
+   ralloc_free(range_ht);
+   free(states);
+
+   if (progress) {
+      nir_metadata_preserve(impl, nir_metadata_block_index |
+                                  nir_metadata_dominance);
+    } else {
+#ifndef NDEBUG
+      impl->valid_metadata &= ~nir_metadata_not_properly_reset;
+#endif
+    }
+
+   return progress;
 }

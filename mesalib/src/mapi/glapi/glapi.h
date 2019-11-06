@@ -69,16 +69,6 @@ extern "C" {
 #endif /* _GLAPI_NO_EXPORTS */
 
 
-/* Is this needed?  It is incomplete anyway. */
-#ifdef USE_MGL_NAMESPACE
-#define _glapi_set_dispatch _mglapi_set_dispatch
-#define _glapi_get_dispatch _mglapi_get_dispatch
-#define _glapi_set_context _mglapi_set_context
-#define _glapi_get_context _mglapi_get_context
-#define _glapi_Dispatch _mglapi_Dispatch
-#define _glapi_Context _mglapi_Context
-#endif
-
 typedef void (*_glapi_proc)(void);
 
 typedef void (*_glapi_nop_handler_proc)(const char *name);

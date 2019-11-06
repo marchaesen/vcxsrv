@@ -763,7 +763,7 @@ loader_dri3_copy_sub_buffer(struct loader_dri3_drawable *draw,
 
    if (flush)
       flags |= __DRI2_FLUSH_CONTEXT;
-   loader_dri3_flush(draw, flags, __DRI2_THROTTLE_SWAPBUFFER);
+   loader_dri3_flush(draw, flags, __DRI2_THROTTLE_COPYSUBBUFFER);
 
    back = dri3_find_back_alloc(draw);
    if (!back)
@@ -817,7 +817,7 @@ loader_dri3_copy_drawable(struct loader_dri3_drawable *draw,
                           xcb_drawable_t dest,
                           xcb_drawable_t src)
 {
-   loader_dri3_flush(draw, __DRI2_FLUSH_DRAWABLE, 0);
+   loader_dri3_flush(draw, __DRI2_FLUSH_DRAWABLE, __DRI2_THROTTLE_COPYSUBBUFFER);
 
    dri3_fence_reset(draw->conn, dri3_fake_front_buffer(draw));
    dri3_copy_area(draw->conn,
@@ -1841,7 +1841,9 @@ dri3_get_buffer(__DRIdrawable *driDrawable,
          if (!loader_dri3_blit_image(draw,
                                      new_buffer->image,
                                      buffer->image,
-                                     0, 0, draw->width, draw->height,
+                                     0, 0,
+                                     MIN2(buffer->width, new_buffer->width),
+                                     MIN2(buffer->height, new_buffer->height),
                                      0, 0, 0) &&
              !buffer->linear_buffer) {
             dri3_fence_reset(draw->conn, new_buffer);

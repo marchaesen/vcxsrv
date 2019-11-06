@@ -38,7 +38,7 @@ extern "C" {
 #define GL_APIENTRYP GL_APIENTRY*
 #endif
 
-/* Generated on date 20190611 */
+/* Generated on date 20190911 */
 
 /* Generated C header for:
  * API: gles2
@@ -196,6 +196,22 @@ GL_APICALL void GL_APIENTRY glGetnUniformivKHR (GLuint program, GLint location, 
 GL_APICALL void GL_APIENTRY glGetnUniformuivKHR (GLuint program, GLint location, GLsizei bufSize, GLuint *params);
 #endif
 #endif /* GL_KHR_robustness */
+
+#ifndef GL_KHR_shader_subgroup
+#define GL_KHR_shader_subgroup 1
+#define GL_SUBGROUP_SIZE_KHR              0x9532
+#define GL_SUBGROUP_SUPPORTED_STAGES_KHR  0x9533
+#define GL_SUBGROUP_SUPPORTED_FEATURES_KHR 0x9534
+#define GL_SUBGROUP_QUAD_ALL_STAGES_KHR   0x9535
+#define GL_SUBGROUP_FEATURE_BASIC_BIT_KHR 0x00000001
+#define GL_SUBGROUP_FEATURE_VOTE_BIT_KHR  0x00000002
+#define GL_SUBGROUP_FEATURE_ARITHMETIC_BIT_KHR 0x00000004
+#define GL_SUBGROUP_FEATURE_BALLOT_BIT_KHR 0x00000008
+#define GL_SUBGROUP_FEATURE_SHUFFLE_BIT_KHR 0x00000010
+#define GL_SUBGROUP_FEATURE_SHUFFLE_RELATIVE_BIT_KHR 0x00000020
+#define GL_SUBGROUP_FEATURE_CLUSTERED_BIT_KHR 0x00000040
+#define GL_SUBGROUP_FEATURE_QUAD_BIT_KHR  0x00000080
+#endif /* GL_KHR_shader_subgroup */
 
 #ifndef GL_KHR_texture_compression_astc_hdr
 #define GL_KHR_texture_compression_astc_hdr 1
@@ -2439,6 +2455,12 @@ GL_APICALL void GL_APIENTRY glGetPerfQueryInfoINTEL (GLuint queryId, GLuint quer
 #ifndef GL_MESA_framebuffer_flip_y
 #define GL_MESA_framebuffer_flip_y 1
 #define GL_FRAMEBUFFER_FLIP_Y_MESA        0x8BBB
+typedef void (GL_APIENTRYP PFNGLFRAMEBUFFERPARAMETERIMESAPROC) (GLenum target, GLenum pname, GLint param);
+typedef void (GL_APIENTRYP PFNGLGETFRAMEBUFFERPARAMETERIVMESAPROC) (GLenum target, GLenum pname, GLint *params);
+#ifdef GL_GLEXT_PROTOTYPES
+GL_APICALL void GL_APIENTRY glFramebufferParameteriMESA (GLenum target, GLenum pname, GLint param);
+GL_APICALL void GL_APIENTRY glGetFramebufferParameterivMESA (GLenum target, GLenum pname, GLint *params);
+#endif
 #endif /* GL_MESA_framebuffer_flip_y */
 
 #ifndef GL_MESA_program_binary_formats
@@ -3491,6 +3513,11 @@ GL_APICALL void GL_APIENTRY glScissorExclusiveArrayvNV (GLuint first, GLsizei co
 #ifndef GL_NV_shader_noperspective_interpolation
 #define GL_NV_shader_noperspective_interpolation 1
 #endif /* GL_NV_shader_noperspective_interpolation */
+
+#ifndef GL_NV_shader_subgroup_partitioned
+#define GL_NV_shader_subgroup_partitioned 1
+#define GL_SUBGROUP_FEATURE_PARTITIONED_BIT_NV 0x00000100
+#endif /* GL_NV_shader_subgroup_partitioned */
 
 #ifndef GL_NV_shader_texture_footprint
 #define GL_NV_shader_texture_footprint 1

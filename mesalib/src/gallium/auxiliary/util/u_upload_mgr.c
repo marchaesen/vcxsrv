@@ -202,7 +202,7 @@ u_upload_alloc_buffer(struct u_upload_mgr *upload, unsigned min_size)
    buffer.format = PIPE_FORMAT_R8_UNORM; /* want TYPELESS or similar */
    buffer.bind = upload->bind;
    buffer.usage = upload->usage;
-   buffer.flags = upload->flags;
+   buffer.flags = upload->flags | PIPE_RESOURCE_FLAG_SINGLE_THREAD_USE;
    buffer.width0 = size;
    buffer.height0 = 1;
    buffer.depth0 = 1;

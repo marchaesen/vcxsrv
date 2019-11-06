@@ -200,7 +200,7 @@ class Value(object):
    ${val.cond if val.cond else 'NULL'},
    ${val.swizzle()},
 % elif isinstance(val, Expression):
-   ${'true' if val.inexact else 'false'},
+   ${'true' if val.inexact else 'false'}, ${'true' if val.exact else 'false'},
    ${val.comm_expr_idx}, ${val.comm_exprs},
    ${val.c_opcode()},
    { ${', '.join(src.c_value_ptr(cache) for src in val.sources)} },
@@ -301,8 +301,8 @@ class Variable(Value):
       # constant.  If we want to support names that have numeric or
       # punctuation characters, we can me the first assertion more flexible.
       assert self.var_name.isalpha()
-      assert self.var_name is not 'True'
-      assert self.var_name is not 'False'
+      assert self.var_name != 'True'
+      assert self.var_name != 'False'
 
       self.is_constant = m.group('const') is not None
       self.cond = m.group('cond')
@@ -348,7 +348,7 @@ class Variable(Value):
          return '{' + ', '.join([str(swizzles[c]) for c in self.swiz[1:]]) + '}'
       return '{0, 1, 2, 3}'
 
-_opcode_re = re.compile(r"(?P<inexact>~)?(?P<opcode>\w+)(?:@(?P<bits>\d+))?"
+_opcode_re = re.compile(r"(?P<inexact>~)?(?P<exact>!)?(?P<opcode>\w+)(?:@(?P<bits>\d+))?"
                         r"(?P<cond>\([^\)]+\))?")
 
 class Expression(Value):
@@ -362,7 +362,11 @@ class Expression(Value):
       self.opcode = m.group('opcode')
       self._bit_size = int(m.group('bits')) if m.group('bits') else None
       self.inexact = m.group('inexact') is not None
+      self.exact = m.group('exact') is not None
       self.cond = m.group('cond')
+
+      assert not self.inexact or not self.exact, \
+            'Expression cannot be both exact and inexact.'
 
       # "many-comm-expr" isn't really a condition.  It's notification to the
       # generator that this pattern is known to have too many commutative
@@ -1050,30 +1054,6 @@ _algebraic_pass_template = mako.template.Template("""
 % endfor
  */
 
-#ifndef NIR_OPT_ALGEBRAIC_STRUCT_DEFS
-#define NIR_OPT_ALGEBRAIC_STRUCT_DEFS
-
-struct transform {
-   const nir_search_expression *search;
-   const nir_search_value *replace;
-   unsigned condition_offset;
-};
-
-struct per_op_table {
-   const uint16_t *filter;
-   unsigned num_filtered_states;
-   const uint16_t *table;
-};
-
-/* Note: these must match the start states created in
- * TreeAutomaton._build_table()
- */
-
-/* WILDCARD_STATE = 0 is set by zeroing the state array */
-static const uint16_t CONST_STATE = 1;
-
-#endif
-
 <% cache = {} %>
 % for xform in xforms:
    ${xform.search.render(cache)}
@@ -1114,124 +1094,25 @@ static const struct per_op_table ${pass_name}_table[nir_num_search_ops] = {
 % endfor
 };
 
-static void
-${pass_name}_pre_block(nir_block *block, uint16_t *states)
-{
-   nir_foreach_instr(instr, block) {
-      switch (instr->type) {
-      case nir_instr_type_alu: {
-         nir_alu_instr *alu = nir_instr_as_alu(instr);
-         nir_op op = alu->op;
-         uint16_t search_op = nir_search_op_for_nir_op(op);
-         const struct per_op_table *tbl = &${pass_name}_table[search_op];
-         if (tbl->num_filtered_states == 0)
-            continue;
-
-         /* Calculate the index into the transition table. Note the index
-          * calculated must match the iteration order of Python's
-          * itertools.product(), which was used to emit the transition
-          * table.
-          */
-         uint16_t index = 0;
-         for (unsigned i = 0; i < nir_op_infos[op].num_inputs; i++) {
-            index *= tbl->num_filtered_states;
-            index += tbl->filter[states[alu->src[i].src.ssa->index]];
-         }
-         states[alu->dest.dest.ssa.index] = tbl->table[index];
-         break;
-      }
-
-      case nir_instr_type_load_const: {
-         nir_load_const_instr *load_const = nir_instr_as_load_const(instr);
-         states[load_const->def.index] = CONST_STATE;
-         break;
-      }
-
-      default:
-         break;
-      }
-   }
-}
-
-static bool
-${pass_name}_block(nir_builder *build, nir_block *block,
-                   const uint16_t *states, const bool *condition_flags)
-{
-   bool progress = false;
-   const unsigned execution_mode = build->shader->info.float_controls_execution_mode;
-
-   nir_foreach_instr_reverse_safe(instr, block) {
-      if (instr->type != nir_instr_type_alu)
-         continue;
-
-      nir_alu_instr *alu = nir_instr_as_alu(instr);
-      if (!alu->dest.dest.is_ssa)
-         continue;
-
-      unsigned bit_size = alu->dest.dest.ssa.bit_size;
-      const bool ignore_inexact =
-         nir_is_float_control_signed_zero_inf_nan_preserve(execution_mode, bit_size) ||
-         nir_is_denorm_flush_to_zero(execution_mode, bit_size);
-
-      switch (states[alu->dest.dest.ssa.index]) {
+const struct transform *${pass_name}_transforms[] = {
 % for i in range(len(automaton.state_patterns)):
-      case ${i}:
-         % if automaton.state_patterns[i]:
-         for (unsigned i = 0; i < ARRAY_SIZE(${pass_name}_state${i}_xforms); i++) {
-            const struct transform *xform = &${pass_name}_state${i}_xforms[i];
-            if (condition_flags[xform->condition_offset] &&
-                !(xform->search->inexact && ignore_inexact) &&
-                nir_replace_instr(build, alu, xform->search, xform->replace)) {
-               progress = true;
-               break;
-            }
-         }
-         % endif
-         break;
+   % if automaton.state_patterns[i]:
+   ${pass_name}_state${i}_xforms,
+   % else:
+   NULL,
+   % endif
 % endfor
-      default: assert(0);
-      }
-   }
+};
 
-   return progress;
-}
-
-static bool
-${pass_name}_impl(nir_function_impl *impl, const bool *condition_flags)
-{
-   bool progress = false;
-
-   nir_builder build;
-   nir_builder_init(&build, impl);
-
-   /* Note: it's important here that we're allocating a zeroed array, since
-    * state 0 is the default state, which means we don't have to visit
-    * anything other than constants and ALU instructions.
-    */
-   uint16_t *states = calloc(impl->ssa_alloc, sizeof(*states));
-
-   nir_foreach_block(block, impl) {
-      ${pass_name}_pre_block(block, states);
-   }
-
-   nir_foreach_block_reverse(block, impl) {
-      progress |= ${pass_name}_block(&build, block, states, condition_flags);
-   }
-
-   free(states);
-
-   if (progress) {
-      nir_metadata_preserve(impl, nir_metadata_block_index |
-                                  nir_metadata_dominance);
-    } else {
-#ifndef NDEBUG
-      impl->valid_metadata &= ~nir_metadata_not_properly_reset;
-#endif
-    }
-
-   return progress;
-}
-
+const uint16_t ${pass_name}_transform_counts[] = {
+% for i in range(len(automaton.state_patterns)):
+   % if automaton.state_patterns[i]:
+   (uint16_t)ARRAY_SIZE(${pass_name}_state${i}_xforms),
+   % else:
+   0,
+   % endif
+% endfor
+};
 
 bool
 ${pass_name}(nir_shader *shader)
@@ -1248,8 +1129,12 @@ ${pass_name}(nir_shader *shader)
    % endfor
 
    nir_foreach_function(function, shader) {
-      if (function->impl)
-         progress |= ${pass_name}_impl(function->impl, condition_flags);
+      if (function->impl) {
+         progress |= nir_algebraic_impl(function->impl, condition_flags,
+                                        ${pass_name}_transforms,
+                                        ${pass_name}_transform_counts,
+                                        ${pass_name}_table);
+      }
    }
 
    return progress;

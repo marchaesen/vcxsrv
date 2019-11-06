@@ -240,7 +240,7 @@ unsigned
 ht_generic_hash(void *cdata, const void *ptr, int numBits)
 {
     HtGenericHashSetupPtr setup = cdata;
-    return one_at_a_time_hash(ptr, setup->keySize) & ~((~0) << numBits);
+    return one_at_a_time_hash(ptr, setup->keySize) & ~((~0U) << numBits);
 }
 
 int

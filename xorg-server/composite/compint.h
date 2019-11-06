@@ -168,8 +168,6 @@ typedef struct _CompScreen {
     Window overlayWid;
     CompOverlayClientPtr pOverlayClients;
 
-    GetImageProcPtr GetImage;
-    GetSpansProcPtr GetSpans;
     SourceValidateProcPtr SourceValidate;
 } CompScreenRec, *CompScreenPtr;
 

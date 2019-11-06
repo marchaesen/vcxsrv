@@ -368,7 +368,7 @@ static struct queue_data *new_queue_data(VkQueue queue,
    data->flags = family_props->queueFlags;
    data->timestamp_mask = (1ull << family_props->timestampValidBits) - 1;
    data->family_index = family_index;
-   LIST_INITHEAD(&data->running_command_buffer);
+   list_inithead(&data->running_command_buffer);
    map_object(HKEY(data->queue), data);
 
    /* Fence synchronizing access to queries on that queue. */
@@ -493,7 +493,7 @@ static void destroy_swapchain_data(struct swapchain_data *data)
 struct overlay_draw *get_overlay_draw(struct swapchain_data *data)
 {
    struct device_data *device_data = data->device;
-   struct overlay_draw *draw = list_empty(&data->draws) ?
+   struct overlay_draw *draw = list_is_empty(&data->draws) ?
       NULL : list_first_entry(&data->draws, struct overlay_draw, link);
 
    VkSemaphoreCreateInfo sem_info = {};
@@ -2137,7 +2137,7 @@ static VkResult overlay_QueueSubmit(
              !cmd_buffer_data->timestamp_query_pool)
             continue;
 
-         if (list_empty(&cmd_buffer_data->link)) {
+         if (list_is_empty(&cmd_buffer_data->link)) {
             list_addtail(&cmd_buffer_data->link,
                          &queue_data->running_command_buffer);
          } else {

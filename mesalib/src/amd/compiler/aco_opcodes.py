@@ -27,6 +27,7 @@
 # Class that represents all the information we have about the opcode
 # NOTE: this must be kept in sync with aco_op_info
 
+import sys
 from enum import Enum
 
 class Format(Enum):
@@ -211,6 +212,8 @@ opcode("p_reduce", format=Format.PSEUDO_REDUCTION)
 opcode("p_inclusive_scan", format=Format.PSEUDO_REDUCTION)
 # e.g. subgroupExclusiveMin()
 opcode("p_exclusive_scan", format=Format.PSEUDO_REDUCTION)
+# simulates proper bpermute behavior on GFX10 wave64
+opcode("p_wave64_bpermute", format=Format.PSEUDO_REDUCTION)
 
 opcode("p_branch", format=Format.PSEUDO_BRANCH)
 opcode("p_cbranch", format=Format.PSEUDO_BRANCH)
@@ -235,6 +238,7 @@ opcode("p_discard_if")
 opcode("p_load_helper")
 opcode("p_demote_to_helper")
 opcode("p_is_helper")
+opcode("p_exit_early_if")
 
 opcode("p_fs_buffer_store_smem", format=Format.SMEM)
 
@@ -294,7 +298,7 @@ SOP2 = {
    (  -1,   -1,   -1, 0x33, 0x33, "s_pack_lh_b32_b16"),
    (  -1,   -1,   -1, 0x34, 0x34, "s_pack_hh_b32_b16"),
    (  -1,   -1,   -1, 0x2c, 0x35, "s_mul_hi_u32"),
-   (  -1,   -1,   -1, 0x2c, 0x35, "s_mul_hi_i32"),
+   (  -1,   -1,   -1, 0x2d, 0x36, "s_mul_hi_i32"),
 }
 for (gfx6, gfx7, gfx8, gfx9, gfx10, name) in SOP2:
     opcode(name, gfx9, gfx10, Format.SOP2)
@@ -954,7 +958,7 @@ VOP3 = {
    (0x12c, 0x12c, 0x1f0, 0x1f0,    -1, "v_cvt_pkaccum_u8_f32", True, False),
    (   -1,    -1,    -1, 0x1f1, 0x373, "v_mad_u32_u16", False, False),
    (   -1,    -1,    -1, 0x1f2, 0x375, "v_mad_i32_i16", False, False),
-   (   -1,    -1,    -1, 0x1f2, 0x345, "v_xad_u32", False, False),
+   (   -1,    -1,    -1, 0x1f3, 0x345, "v_xad_u32", False, False),
    (   -1,    -1,    -1, 0x1f4, 0x351, "v_min3_f16", True, True),
    (   -1,    -1,    -1, 0x1f5, 0x352, "v_min3_i16", False, False),
    (   -1,    -1,    -1, 0x1f6, 0x353, "v_min3_u16", False, False),
@@ -1006,7 +1010,7 @@ VOP3 = {
    (   -1,    -1,    -1,    -1, 0x378, "v_permlanex16_b32", False, False),
    (   -1,    -1,    -1,    -1, 0x30f, "v_add_co_u32_e64", False, False),
    (   -1,    -1,    -1,    -1, 0x310, "v_sub_co_u32_e64", False, False),
-   (   -1,    -1,    -1,    -1, 0x311, "v_subrev_co_u32_e64", False, False),
+   (   -1,    -1,    -1,    -1, 0x319, "v_subrev_co_u32_e64", False, False),
 # TODO: many 16bit instructions moved from VOP2 to VOP3 on GFX10
 }
 for (gfx6, gfx7, gfx8, gfx9, gfx10, name, in_mod, out_mod) in VOP3:
@@ -1550,3 +1554,27 @@ SCRATCH = {
 }
 for (gfx8, gfx10, name) in SCRATCH:
     opcode(name, gfx8, gfx10, Format.SCRATCH)
+
+# check for duplicate opcode numbers
+for ver in ['gfx9', 'gfx10']:
+    op_to_name = {}
+    for op in opcodes.values():
+        if op.format in [Format.PSEUDO, Format.PSEUDO_BRANCH, Format.PSEUDO_BARRIER, Format.PSEUDO_REDUCTION]:
+            continue
+
+        num = getattr(op, 'opcode_' + ver)
+        if num == -1:
+            continue
+
+        key = (op.format, num)
+
+        if key in op_to_name:
+            # exceptions
+            names = set([op_to_name[key], op.name])
+            if ver in ['gfx8', 'gfx9'] and names == set(['v_mul_lo_i32', 'v_mul_lo_u32']):
+                continue
+
+            print('%s and %s share the same opcode number (%s)' % (op_to_name[key], op.name, ver))
+            sys.exit(1)
+        else:
+            op_to_name[key] = op.name

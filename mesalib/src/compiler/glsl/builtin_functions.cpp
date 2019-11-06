@@ -819,6 +819,25 @@ shader_atomic_float_minmax(const _mesa_glsl_parse_state *state)
 {
    return state->INTEL_shader_atomic_float_minmax_enable;
 }
+
+static bool
+demote_to_helper_invocation(const _mesa_glsl_parse_state *state)
+{
+   return state->EXT_demote_to_helper_invocation_enable;
+}
+
+static bool
+is_nir(const _mesa_glsl_parse_state *state)
+{
+   return state->ctx->Const.ShaderCompilerOptions[state->stage].NirOptions;
+}
+
+static bool
+is_not_nir(const _mesa_glsl_parse_state *state)
+{
+   return !is_nir(state);
+}
+
 /** @} */
 
 /******************************************************************************/
@@ -949,6 +968,8 @@ private:
    B1(acos)
    B1(atan2)
    B1(atan)
+   B1(atan2_op)
+   B1(atan_op)
    B1(sinh)
    B1(cosh)
    B1(tanh)
@@ -1181,6 +1202,9 @@ private:
                                           enum ir_intrinsic_id id);
    ir_function_signature *_vote(const char *intrinsic_name,
                                 builtin_available_predicate avail);
+
+   ir_function_signature *_helper_invocation_intrinsic();
+   ir_function_signature *_helper_invocation();
 
 #undef B0
 #undef B1
@@ -1491,6 +1515,8 @@ builtin_builder::create_intrinsics()
                 _read_first_invocation_intrinsic(glsl_type::uvec4_type),
                 NULL);
 
+   add_function("__intrinsic_helper_invocation",
+                _helper_invocation_intrinsic(), NULL);
 }
 
 /**
@@ -1717,6 +1743,14 @@ builtin_builder::create_builtins()
                 _atan2(glsl_type::vec2_type),
                 _atan2(glsl_type::vec3_type),
                 _atan2(glsl_type::vec4_type),
+                _atan_op(glsl_type::float_type),
+                _atan_op(glsl_type::vec2_type),
+                _atan_op(glsl_type::vec3_type),
+                _atan_op(glsl_type::vec4_type),
+                _atan2_op(glsl_type::float_type),
+                _atan2_op(glsl_type::vec2_type),
+                _atan2_op(glsl_type::vec3_type),
+                _atan2_op(glsl_type::vec4_type),
                 NULL);
 
    F(sinh)
@@ -2098,6 +2132,8 @@ builtin_builder::create_builtins()
                 _textureSize(texture_multisample_array, glsl_type::ivec3_type, glsl_type::sampler2DMSArray_type),
                 _textureSize(texture_multisample_array, glsl_type::ivec3_type, glsl_type::isampler2DMSArray_type),
                 _textureSize(texture_multisample_array, glsl_type::ivec3_type, glsl_type::usampler2DMSArray_type),
+
+                _textureSize(texture_external_es3, glsl_type::ivec2_type, glsl_type::samplerExternalOES_type),
                 NULL);
 
    add_function("textureSize1D",
@@ -4230,6 +4266,8 @@ builtin_builder::create_builtins()
                 _vote("__intrinsic_vote_eq", v460_desktop),
                 NULL);
 
+   add_function("helperInvocationEXT", _helper_invocation(), NULL);
+
    add_function("__builtin_idiv64",
                 generate_ir::idiv64(mem_ctx, integer_functions_supported),
                 NULL);
@@ -4714,7 +4752,7 @@ builtin_builder::_atan2(const glsl_type *type)
    const unsigned n = type->vector_elements;
    ir_variable *y = in_var(type, "y");
    ir_variable *x = in_var(type, "x");
-   MAKE_SIG(type, always_available, 2, y, x);
+   MAKE_SIG(type, is_not_nir, 2, y, x);
 
    /* If we're on the left half-plane rotate the coordinates π/2 clock-wise
     * for the y=0 discontinuity to end up aligned with the vertical
@@ -4851,7 +4889,7 @@ ir_function_signature *
 builtin_builder::_atan(const glsl_type *type)
 {
    ir_variable *y_over_x = in_var(type, "y_over_x");
-   MAKE_SIG(type, always_available, 1, y_over_x);
+   MAKE_SIG(type, is_not_nir, 1, y_over_x);
 
    ir_variable *tmp = body.make_temp(type, "tmp");
    do_atan(body, type, tmp, y_over_x);
@@ -4954,6 +4992,7 @@ UNOP(exp,         ir_unop_exp,  always_available)
 UNOP(log,         ir_unop_log,  always_available)
 UNOP(exp2,        ir_unop_exp2, always_available)
 UNOP(log2,        ir_unop_log2, always_available)
+UNOP(atan_op,     ir_unop_atan, is_nir)
 UNOPA(sqrt,        ir_unop_sqrt)
 UNOPA(inversesqrt, ir_unop_rsq)
 
@@ -5151,6 +5190,12 @@ builtin_builder::_isinf(builtin_available_predicate avail, const glsl_type *type
    body.emit(ret(equal(abs(x), imm(type, infinities))));
 
    return sig;
+}
+
+ir_function_signature *
+builtin_builder::_atan2_op(const glsl_type *x_type)
+{
+   return binop(is_nir, ir_binop_atan2, x_type, x_type, x_type);
 }
 
 ir_function_signature *
@@ -7271,6 +7316,28 @@ builtin_builder::_vote(const char *intrinsic_name,
    body.emit(call(shader->symbols->get_function(intrinsic_name),
                   retval, sig->parameters));
    body.emit(ret(retval));
+   return sig;
+}
+
+ir_function_signature *
+builtin_builder::_helper_invocation_intrinsic()
+{
+   MAKE_INTRINSIC(glsl_type::bool_type, ir_intrinsic_helper_invocation,
+                  demote_to_helper_invocation, 0);
+   return sig;
+}
+
+ir_function_signature *
+builtin_builder::_helper_invocation()
+{
+   MAKE_SIG(glsl_type::bool_type, demote_to_helper_invocation, 0);
+
+   ir_variable *retval = body.make_temp(glsl_type::bool_type, "retval");
+
+   body.emit(call(shader->symbols->get_function("__intrinsic_helper_invocation"),
+                  retval, sig->parameters));
+   body.emit(ret(retval));
+
    return sig;
 }
 

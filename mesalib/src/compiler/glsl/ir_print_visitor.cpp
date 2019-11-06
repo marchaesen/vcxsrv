@@ -565,6 +565,13 @@ ir_print_visitor::visit(ir_discard *ir)
 
 
 void
+ir_print_visitor::visit(ir_demote *ir)
+{
+   fprintf(f, "(demote)");
+}
+
+
+void
 ir_print_visitor::visit(ir_if *ir)
 {
    fprintf(f, "(if ");

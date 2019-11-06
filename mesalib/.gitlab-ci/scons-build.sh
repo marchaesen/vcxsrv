@@ -8,5 +8,5 @@ if test -n "$LLVM_VERSION"; then
 fi
 
 rm -rf build
-scons $SCONS_TARGET
-eval $SCONS_CHECK_COMMAND
+scons $SCONS_TARGET force_scons=on
+eval $SCONS_CHECK_COMMAND 

@@ -514,7 +514,7 @@ complex_unroll_single_terminator(nir_loop *loop)
 static bool
 wrapper_unroll(nir_loop *loop)
 {
-   if (!list_empty(&loop->info->loop_terminator_list)) {
+   if (!list_is_empty(&loop->info->loop_terminator_list)) {
 
       /* Unrolling a loop with a large number of exits can result in a
        * large inrease in register pressure. For now we just skip

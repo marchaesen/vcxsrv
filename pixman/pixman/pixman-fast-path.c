@@ -908,7 +908,7 @@ fast_composite_add_n_8_8 (pixman_implementation_t *imp,
 #define CREATE_BITMASK(n) (0x80000000 >> (n))
 #define UPDATE_BITMASK(n) ((n) >> 1)
 #else
-#define CREATE_BITMASK(n) (1 << (n))
+#define CREATE_BITMASK(n) (1U << (n))
 #define UPDATE_BITMASK(n) ((n) << 1)
 #endif
 
@@ -3086,7 +3086,7 @@ convert_x8r8g8b8 (const uint8_t *row, int x)
 static force_inline uint32_t
 convert_a8 (const uint8_t *row, int x)
 {
-    return *(row + x) << 24;
+    return (uint32_t) *(row + x) << 24;
 }
 
 static force_inline uint32_t

@@ -22,6 +22,7 @@
  *
  */
 
+#include <array>
 #include <unordered_map>
 #include "aco_ir.h"
 #include "nir.h"
@@ -29,6 +30,7 @@
 #include "vulkan/radv_descriptor_set.h"
 #include "sid.h"
 #include "ac_exp_param.h"
+#include "ac_shader_util.h"
 
 #include "util/u_math.h"
 
@@ -77,6 +79,7 @@ struct isel_context {
    std::unique_ptr<Temp[]> allocated;
    std::unordered_map<unsigned, std::array<Temp,4>> allocated_vec;
    Stage stage; /* Stage */
+   bool has_gfx10_wave64_bpermute = false;
    struct {
       bool has_branch;
       uint16_t loop_nest_depth = 0;
@@ -94,8 +97,6 @@ struct isel_context {
 
    /* scratch */
    bool scratch_enabled = false;
-   Temp private_segment_buffer = Temp(0, s2); /* also the part of the scratch descriptor on compute */
-   Temp scratch_offset = Temp(0, s1);
 
    /* inputs common for merged stages */
    Temp merged_wave_info = Temp(0, s1);
@@ -200,8 +201,6 @@ void init_context(isel_context *ctx, nir_shader *shader)
                   case nir_op_fmax3:
                   case nir_op_fmin3:
                   case nir_op_fmed3:
-                  case nir_op_fmod:
-                  case nir_op_frem:
                   case nir_op_fneg:
                   case nir_op_fabs:
                   case nir_op_fsat:
@@ -365,7 +364,6 @@ void init_context(isel_context *ctx, nir_shader *shader)
                   case nir_intrinsic_read_first_invocation:
                   case nir_intrinsic_read_invocation:
                   case nir_intrinsic_first_invocation:
-                  case nir_intrinsic_vulkan_resource_index:
                      type = RegType::sgpr;
                      break;
                   case nir_intrinsic_ballot:
@@ -467,6 +465,7 @@ void init_context(isel_context *ctx, nir_shader *shader)
                   case nir_intrinsic_load_ubo:
                   case nir_intrinsic_load_ssbo:
                   case nir_intrinsic_load_global:
+                  case nir_intrinsic_vulkan_resource_index:
                      type = ctx->divergent_vals[intrinsic->dest.ssa.index] ? RegType::vgpr : RegType::sgpr;
                      break;
                   /* due to copy propagation, the swizzled imov is removed if num dest components == 1 */
@@ -837,7 +836,11 @@ declare_vs_input_vgprs(isel_context *ctx, struct arg_info *args)
 {
    unsigned vgpr_idx = 0;
    add_arg(args, v1, &ctx->vertex_id, vgpr_idx++);
-/* if (!ctx->is_gs_copy_shader) */ {
+   if (ctx->options->chip_class >= GFX10) {
+      add_arg(args, v1, NULL, vgpr_idx++); /* unused */
+      add_arg(args, v1, &ctx->vs_prim_id, vgpr_idx++);
+      add_arg(args, v1, &ctx->instance_id, vgpr_idx++);
+   } else {
       if (ctx->options->key.vs.out.as_ls) {
          add_arg(args, v1, &ctx->rel_auto_id, vgpr_idx++);
          add_arg(args, v1, &ctx->instance_id, vgpr_idx++);
@@ -883,11 +886,12 @@ static bool needs_view_index_sgpr(isel_context *ctx)
    case tess_eval_vs:
       return ctx->program->info->needs_multiview_view_index && ctx->options->key.has_multiview_view_index;
    case vertex_ls:
-   case vertex_tess_control_ls:
-   case vertex_geometry_es:
+   case vertex_es:
+   case vertex_tess_control_hs:
+   case vertex_geometry_gs:
    case tess_control_hs:
    case tess_eval_es:
-   case tess_eval_geometry_es:
+   case tess_eval_geometry_gs:
    case geometry_gs:
       return ctx->program->info->needs_multiview_view_index;
    default:
@@ -923,7 +927,7 @@ void add_startpgm(struct isel_context *ctx)
 
    /* this needs to be in sgprs 0 and 1 */
    if (ctx->options->supports_spill || user_sgpr_info.need_ring_offsets || ctx->scratch_enabled) {
-      add_arg(&args, s2, &ctx->private_segment_buffer, 0);
+      add_arg(&args, s2, &ctx->program->private_segment_buffer, 0);
       set_loc_shader_ptr(ctx, AC_UD_SCRATCH_RING_OFFSETS, &user_sgpr_info.user_sgpr_idx);
    }
 
@@ -955,8 +959,8 @@ void add_startpgm(struct isel_context *ctx)
       else
          declare_streamout_sgprs(ctx, &args, &idx);
 
-      if (ctx->scratch_enabled)
-         add_arg(&args, s1, &ctx->scratch_offset, idx++);
+      if (ctx->options->supports_spill || ctx->scratch_enabled)
+         add_arg(&args, s1, &ctx->program->scratch_offset, idx++);
 
       declare_vs_input_vgprs(ctx, &args);
       break;
@@ -967,8 +971,8 @@ void add_startpgm(struct isel_context *ctx)
       assert(user_sgpr_info.user_sgpr_idx == user_sgpr_info.num_sgpr);
       add_arg(&args, s1, &ctx->prim_mask, user_sgpr_info.user_sgpr_idx);
 
-      if (ctx->scratch_enabled)
-         add_arg(&args, s1, &ctx->scratch_offset, user_sgpr_info.user_sgpr_idx + 1);
+      if (ctx->options->supports_spill || ctx->scratch_enabled)
+         add_arg(&args, s1, &ctx->program->scratch_offset, user_sgpr_info.user_sgpr_idx + 1);
 
       ctx->program->config->spi_ps_input_addr = 0;
       ctx->program->config->spi_ps_input_ena = 0;
@@ -1033,8 +1037,8 @@ void add_startpgm(struct isel_context *ctx)
 
       if (ctx->program->info->cs.uses_local_invocation_idx)
          add_arg(&args, s1, &ctx->tg_size, idx++);
-      if (ctx->scratch_enabled)
-         add_arg(&args, s1, &ctx->scratch_offset, idx++);
+      if (ctx->options->supports_spill || ctx->scratch_enabled)
+         add_arg(&args, s1, &ctx->program->scratch_offset, idx++);
 
       add_arg(&args, v1, &ctx->local_invocation_ids[0], vgpr_idx++);
       add_arg(&args, v1, &ctx->local_invocation_ids[1], vgpr_idx++);
@@ -1049,6 +1053,12 @@ void add_startpgm(struct isel_context *ctx)
    ctx->program->info->num_input_sgprs = args.num_sgprs_used;
    ctx->program->info->num_user_sgprs = user_sgpr_info.num_sgpr;
    ctx->program->info->num_input_vgprs = args.num_vgprs_used;
+
+   if (ctx->stage == fragment_fs) {
+      /* Verify that we have a correct assumption about input VGPR count */
+      ASSERTED unsigned input_vgpr_cnt = ac_get_fs_input_vgpr_cnt(ctx->program->config, nullptr, nullptr);
+      assert(input_vgpr_cnt == ctx->program->info->num_input_vgprs);
+   }
 
    aco_ptr<Pseudo_instruction> startpgm{create_instruction<Pseudo_instruction>(aco_opcode::p_startpgm, Format::PSEUDO, 0, args.count + 1)};
    for (unsigned i = 0; i < args.count; i++) {
@@ -1181,10 +1191,8 @@ setup_variables(isel_context *ctx, nir_shader *nir)
       break;
    }
    case MESA_SHADER_COMPUTE: {
-      unsigned lds_allocation_size_unit = 4 * 64;
-      if (ctx->program->chip_class >= GFX7)
-         lds_allocation_size_unit = 4 * 128;
-      ctx->program->config->lds_size = (nir->info.cs.shared_size + lds_allocation_size_unit - 1) / lds_allocation_size_unit;
+      ctx->program->config->lds_size = (nir->info.cs.shared_size + ctx->program->lds_alloc_granule - 1) /
+                                       ctx->program->lds_alloc_granule;
       break;
    }
    case MESA_SHADER_VERTEX: {
@@ -1242,9 +1250,30 @@ setup_isel_context(Program* program,
    program->info = info;
    program->chip_class = options->chip_class;
    program->family = options->family;
-   program->sgpr_limit = options->chip_class >= GFX8 ? 102 : 104;
-   if (options->family == CHIP_TONGA || options->family == CHIP_ICELAND)
-      program->sgpr_limit = 94; /* workaround hardware bug */
+   program->wave_size = info->wave_size;
+
+   program->lds_alloc_granule = options->chip_class >= GFX7 ? 512 : 256;
+   program->lds_limit = options->chip_class >= GFX7 ? 65536 : 32768;
+   program->vgpr_limit = 256;
+
+   if (options->chip_class >= GFX10) {
+      program->physical_sgprs = 2560; /* doesn't matter as long as it's at least 128 * 20 */
+      program->sgpr_alloc_granule = 127;
+      program->sgpr_limit = 106;
+   } else if (program->chip_class >= GFX8) {
+      program->physical_sgprs = 800;
+      program->sgpr_alloc_granule = 15;
+      program->sgpr_limit = 102;
+   } else {
+      program->physical_sgprs = 512;
+      program->sgpr_alloc_granule = 7;
+      if (options->family == CHIP_TONGA || options->family == CHIP_ICELAND)
+         program->sgpr_limit = 94; /* workaround hardware bug */
+      else
+         program->sgpr_limit = 104;
+   }
+   /* TODO: we don't have to allocate VCC if we don't need it */
+   program->needs_vcc = true;
 
    for (unsigned i = 0; i < MAX_SETS; ++i)
       program->info->user_sgprs_locs.descriptor_sets[i].sgpr_idx = -1;
@@ -1307,9 +1336,6 @@ setup_isel_context(Program* program,
          nir_lower_pack(nir);
 
       /* lower ALU operations */
-      nir_opt_idiv_const(nir, 32);
-      nir_lower_idiv(nir); // TODO: use the LLVM path once !1239 is merged
-
       // TODO: implement logic64 in aco, it's more effective for sgprs
       nir_lower_int64(nir, (nir_lower_int64_options) (nir_lower_imul64 |
                                                       nir_lower_imul_high64 |
@@ -1317,24 +1343,42 @@ setup_isel_context(Program* program,
                                                       nir_lower_divmod64 |
                                                       nir_lower_logic64 |
                                                       nir_lower_minmax64 |
-                                                      nir_lower_iabs64 |
-                                                      nir_lower_ineg64));
+                                                      nir_lower_iabs64));
+
+      nir_opt_idiv_const(nir, 32);
+      nir_lower_idiv(nir, nir_lower_idiv_precise);
 
       /* optimize the lowered ALU operations */
-      nir_copy_prop(nir);
-      nir_opt_constant_folding(nir);
-      nir_opt_algebraic(nir);
-      nir_opt_algebraic_late(nir);
-      nir_opt_constant_folding(nir);
+      bool more_algebraic = true;
+      while (more_algebraic) {
+         more_algebraic = false;
+         NIR_PASS_V(nir, nir_copy_prop);
+         NIR_PASS_V(nir, nir_opt_dce);
+         NIR_PASS_V(nir, nir_opt_constant_folding);
+         NIR_PASS(more_algebraic, nir, nir_opt_algebraic);
+      }
+
+      /* Do late algebraic optimization to turn add(a, neg(b)) back into
+      * subs, then the mandatory cleanup after algebraic.  Note that it may
+      * produce fnegs, and if so then we need to keep running to squash
+      * fneg(fneg(a)).
+      */
+      bool more_late_algebraic = true;
+      while (more_late_algebraic) {
+         more_late_algebraic = false;
+         NIR_PASS(more_late_algebraic, nir, nir_opt_algebraic_late);
+         NIR_PASS_V(nir, nir_opt_constant_folding);
+         NIR_PASS_V(nir, nir_copy_prop);
+         NIR_PASS_V(nir, nir_opt_dce);
+         NIR_PASS_V(nir, nir_opt_cse);
+      }
 
       /* cleanup passes */
       nir_lower_load_const_to_scalar(nir);
-      nir_opt_cse(nir);
-      nir_opt_dce(nir);
       nir_opt_shrink_load(nir);
       nir_move_options move_opts = (nir_move_options)(
          nir_move_const_undef | nir_move_load_ubo | nir_move_load_input | nir_move_comparisons);
-      //nir_opt_sink(nir, move_opts); // TODO: enable this once !1664 is merged
+      nir_opt_sink(nir, move_opts);
       nir_opt_move(nir, move_opts);
       nir_convert_to_lcssa(nir, true, false);
       nir_lower_phis_to_scalar(nir);
@@ -1352,9 +1396,8 @@ setup_isel_context(Program* program,
    for (unsigned i = 0; i < shader_count; i++)
       scratch_size = std::max(scratch_size, shaders[i]->scratch_size);
    ctx.scratch_enabled = scratch_size > 0;
-   ctx.program->config->scratch_bytes_per_wave = align(scratch_size * ctx.options->wave_size, 1024);
+   ctx.program->config->scratch_bytes_per_wave = align(scratch_size * ctx.program->wave_size, 1024);
    ctx.program->config->float_mode = V_00B028_FP_64_DENORMS;
-   ctx.program->info->wave_size = ctx.options->wave_size;
 
    ctx.block = ctx.program->create_and_insert_block();
    ctx.block->loop_nest_depth = 0;

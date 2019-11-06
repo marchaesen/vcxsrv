@@ -40,6 +40,7 @@
 #include <epoxy/gl.h>
 #ifdef GLAMOR_HAS_GBM
 #define MESA_EGL_NO_X11_HEADERS
+#define EGL_NO_X11
 #include <epoxy/egl.h>
 #endif
 

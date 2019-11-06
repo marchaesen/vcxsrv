@@ -1104,6 +1104,7 @@ void radv_GetPhysicalDeviceFormatProperties2(
 
 static VkResult radv_get_image_format_properties(struct radv_physical_device *physical_device,
 						 const VkPhysicalDeviceImageFormatInfo2 *info,
+						 VkFormat format,
 						 VkImageFormatProperties *pImageFormatProperties)
 
 {
@@ -1113,10 +1114,10 @@ static VkResult radv_get_image_format_properties(struct radv_physical_device *ph
 	uint32_t maxMipLevels;
 	uint32_t maxArraySize;
 	VkSampleCountFlags sampleCounts = VK_SAMPLE_COUNT_1_BIT;
-	const struct vk_format_description *desc = vk_format_description(info->format);
+	const struct vk_format_description *desc = vk_format_description(format);
 	enum chip_class chip_class = physical_device->rad_info.chip_class;
 
-	radv_physical_device_get_format_properties(physical_device, info->format,
+	radv_physical_device_get_format_properties(physical_device, format,
 						   &format_props);
 	if (info->tiling == VK_IMAGE_TILING_LINEAR) {
 		format_feature_flags = format_props.linearTilingFeatures;
@@ -1129,7 +1130,7 @@ static VkResult radv_get_image_format_properties(struct radv_physical_device *ph
 	if (format_feature_flags == 0)
 		goto unsupported;
 
-	if (info->type != VK_IMAGE_TYPE_2D && vk_format_is_depth_or_stencil(info->format))
+	if (info->type != VK_IMAGE_TYPE_2D && vk_format_is_depth_or_stencil(format))
 		goto unsupported;
 
 	switch (info->type) {
@@ -1179,9 +1180,9 @@ static VkResult radv_get_image_format_properties(struct radv_physical_device *ph
 	}
 
 	if (info->tiling == VK_IMAGE_TILING_LINEAR &&
-	    (info->format == VK_FORMAT_R32G32B32_SFLOAT ||
-	     info->format == VK_FORMAT_R32G32B32_SINT ||
-	     info->format == VK_FORMAT_R32G32B32_UINT)) {
+	    (format == VK_FORMAT_R32G32B32_SFLOAT ||
+	     format == VK_FORMAT_R32G32B32_SINT ||
+	     format == VK_FORMAT_R32G32B32_UINT)) {
 		/* R32G32B32 is a weird format and the driver currently only
 		 * supports the barely minimum.
 		 * TODO: Implement more if we really need to.
@@ -1196,8 +1197,8 @@ static VkResult radv_get_image_format_properties(struct radv_physical_device *ph
 	/* We can't create 3d compressed 128bpp images that can be rendered to on GFX9 */
 	if (physical_device->rad_info.chip_class >= GFX9 &&
 	    info->type == VK_IMAGE_TYPE_3D &&
-	    vk_format_get_blocksizebits(info->format) == 128 &&
-	    vk_format_is_compressed(info->format) &&
+	    vk_format_get_blocksizebits(format) == 128 &&
+	    vk_format_is_compressed(format) &&
 	    (info->flags & VK_IMAGE_CREATE_BLOCK_TEXEL_VIEW_COMPATIBLE_BIT) &&
 	    ((info->flags & VK_IMAGE_CREATE_EXTENDED_USAGE_BIT) ||
 	     (info->usage & VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT))) {
@@ -1293,18 +1294,24 @@ VkResult radv_GetPhysicalDeviceImageFormatProperties(
 		.flags = createFlags,
 	};
 
-	return radv_get_image_format_properties(physical_device, &info,
+	return radv_get_image_format_properties(physical_device, &info, format,
 						pImageFormatProperties);
 }
 
 static void
-get_external_image_format_properties(const VkPhysicalDeviceImageFormatInfo2 *pImageFormatInfo,
+get_external_image_format_properties(struct radv_physical_device *physical_device,
+				     const VkPhysicalDeviceImageFormatInfo2 *pImageFormatInfo,
 				     VkExternalMemoryHandleTypeFlagBits handleType,
-				     VkExternalMemoryProperties *external_properties)
+				     VkExternalMemoryProperties *external_properties,
+				     VkImageFormatProperties *format_properties)
 {
 	VkExternalMemoryFeatureFlagBits flags = 0;
 	VkExternalMemoryHandleTypeFlags export_flags = 0;
 	VkExternalMemoryHandleTypeFlags compat_flags = 0;
+
+	if (pImageFormatInfo->flags & VK_IMAGE_CREATE_SPARSE_BINDING_BIT)
+		return;
+
 	switch (handleType) {
 	case VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT:
 	case VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT:
@@ -1317,6 +1324,24 @@ get_external_image_format_properties(const VkPhysicalDeviceImageFormatInfo2 *pIm
 		default:
 			break;
 		}
+		break;
+	case VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID:
+		if (!physical_device->supported_extensions.ANDROID_external_memory_android_hardware_buffer)
+			break;
+
+		if (!radv_android_gralloc_supports_format(pImageFormatInfo->format,
+		                                          pImageFormatInfo->usage))
+			break;
+
+		if (pImageFormatInfo->type != VK_IMAGE_TYPE_2D)
+			break;
+
+		format_properties->maxMipLevels = MIN2(1, format_properties->maxMipLevels);
+		format_properties->maxArrayLayers = MIN2(1, format_properties->maxArrayLayers);
+		format_properties->sampleCounts &= VK_SAMPLE_COUNT_1_BIT;
+
+		flags = VK_EXTERNAL_MEMORY_FEATURE_DEDICATED_ONLY_BIT|VK_EXTERNAL_MEMORY_FEATURE_EXPORTABLE_BIT|VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT;
+		compat_flags = VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID;
 		break;
 	case VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT:
 		flags = VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT;
@@ -1341,10 +1366,12 @@ VkResult radv_GetPhysicalDeviceImageFormatProperties2(
 	RADV_FROM_HANDLE(radv_physical_device, physical_device, physicalDevice);
 	const VkPhysicalDeviceExternalImageFormatInfo *external_info = NULL;
 	VkExternalImageFormatProperties *external_props = NULL;
+	struct VkAndroidHardwareBufferUsageANDROID *android_usage = NULL;
 	VkSamplerYcbcrConversionImageFormatProperties *ycbcr_props = NULL;
 	VkResult result;
+	VkFormat format = radv_select_android_external_format(base_info->pNext, base_info->format);
 
-	result = radv_get_image_format_properties(physical_device, base_info,
+	result = radv_get_image_format_properties(physical_device, base_info, format,
 						&base_props->imageFormatProperties);
 	if (result != VK_SUCCESS)
 		return result;
@@ -1369,9 +1396,21 @@ VkResult radv_GetPhysicalDeviceImageFormatProperties2(
 		case VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_IMAGE_FORMAT_PROPERTIES:
 			ycbcr_props = (void *) s;
 			break;
+		case VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_USAGE_ANDROID:
+			android_usage = (void *) s;
+			break;
 		default:
 			break;
 		}
+	}
+
+	bool ahb_supported = physical_device->supported_extensions.ANDROID_external_memory_android_hardware_buffer;
+	if (android_usage && ahb_supported) {
+#if RADV_SUPPORT_ANDROID_HARDWARE_BUFFER
+		android_usage->androidHardwareBufferUsage =
+			radv_ahb_usage_from_vk_usage(base_info->flags,
+			                             base_info->usage);
+#endif
 	}
 
 	/* From the Vulkan 1.0.97 spec:
@@ -1381,14 +1420,10 @@ VkResult radv_GetPhysicalDeviceImageFormatProperties2(
 	 *    present and VkExternalImageFormatProperties will be ignored.
 	 */
 	if (external_info && external_info->handleType != 0) {
-		switch (external_info->handleType) {
-		case VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT:
-		case VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT:
-		case VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT:
-			get_external_image_format_properties(base_info, external_info->handleType,
-			                                     &external_props->externalMemoryProperties);
-			break;
-		default:
+		get_external_image_format_properties(physical_device, base_info, external_info->handleType,
+		                                     &external_props->externalMemoryProperties,
+		                                     &base_props->imageFormatProperties);
+		if (!external_props->externalMemoryProperties.externalMemoryFeatures) {
 			/* From the Vulkan 1.0.97 spec:
 			 *
 			 *    If handleType is not compatible with the [parameters] specified
@@ -1404,7 +1439,7 @@ VkResult radv_GetPhysicalDeviceImageFormatProperties2(
 	}
 
 	if (ycbcr_props) {
-		ycbcr_props->combinedImageSamplerDescriptorCount = vk_format_get_plane_count(base_info->format);
+		ycbcr_props->combinedImageSamplerDescriptorCount = vk_format_get_plane_count(format);
 	}
 
 	return VK_SUCCESS;

@@ -166,9 +166,9 @@ xwl_seat_set_cursor(struct xwl_seat *xwl_seat)
                           xwl_seat->x_cursor->bits->yhot);
     wl_surface_attach(xwl_cursor->surface,
                       xwl_shm_pixmap_get_wl_buffer(pixmap), 0, 0);
-    wl_surface_damage(xwl_cursor->surface, 0, 0,
-                      xwl_seat->x_cursor->bits->width,
-                      xwl_seat->x_cursor->bits->height);
+    xwl_surface_damage(xwl_seat->xwl_screen, xwl_cursor->surface, 0, 0,
+                       xwl_seat->x_cursor->bits->width,
+                       xwl_seat->x_cursor->bits->height);
 
     xwl_cursor->frame_cb = wl_surface_frame(xwl_cursor->surface);
     wl_callback_add_listener(xwl_cursor->frame_cb, &frame_listener, xwl_cursor);
@@ -218,9 +218,9 @@ xwl_tablet_tool_set_cursor(struct xwl_tablet_tool *xwl_tablet_tool)
                                   xwl_seat->x_cursor->bits->yhot);
     wl_surface_attach(xwl_cursor->surface,
                       xwl_shm_pixmap_get_wl_buffer(pixmap), 0, 0);
-    wl_surface_damage(xwl_cursor->surface, 0, 0,
-                      xwl_seat->x_cursor->bits->width,
-                      xwl_seat->x_cursor->bits->height);
+    xwl_surface_damage(xwl_seat->xwl_screen, xwl_cursor->surface, 0, 0,
+                       xwl_seat->x_cursor->bits->width,
+                       xwl_seat->x_cursor->bits->height);
 
     xwl_cursor->frame_cb = wl_surface_frame(xwl_cursor->surface);
     wl_callback_add_listener(xwl_cursor->frame_cb, &frame_listener, xwl_cursor);

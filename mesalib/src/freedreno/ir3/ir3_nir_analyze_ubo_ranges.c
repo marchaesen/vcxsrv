@@ -84,16 +84,41 @@ gather_ubo_ranges(nir_shader *nir, nir_intrinsic_instr *instr,
  *
  *    vec4 32 ssa_34 = intrinsic load_uniform (ssa_base) (base=N+const_offset, 0, 0)
  *
+ * Or similarly:
+ *
+ *    vec1 32 ssa_33 = imad24_ir3 a, b, const_offset
+ *    vec4 32 ssa_34 = intrinsic load_uniform (ssa_33) (base=N, 0, 0)
+ *
+ * Can be converted to:
+ *
+ *    vec1 32 ssa_base = imul24 a, b
+ *    vec4 32 ssa_34 = intrinsic load_uniform (ssa_base) (base=N+const_offset, 0, 0)
+ *
  * This gives the other opt passes something much easier to work
  * with (ie. not requiring value range tracking)
  */
 static void
-handle_partial_const(nir_ssa_def **srcp, unsigned *offp)
+handle_partial_const(nir_builder *b, nir_ssa_def **srcp, unsigned *offp)
 {
 	if ((*srcp)->parent_instr->type != nir_instr_type_alu)
 		return;
 
 	nir_alu_instr *alu = nir_instr_as_alu((*srcp)->parent_instr);
+
+	if (alu->op == nir_op_imad24_ir3) {
+		/* This case is slightly more complicated as we need to
+		 * replace the imad24_ir3 with an imul24:
+		 */
+		if (!nir_src_is_const(alu->src[2].src))
+			return;
+
+		*offp += nir_src_as_uint(alu->src[2].src);
+		*srcp = nir_imul24(b, nir_ssa_for_alu_src(b, alu, 0),
+				nir_ssa_for_alu_src(b, alu, 1));
+
+		return;
+	}
+
 	if (alu->op != nir_op_iadd)
 		return;
 
@@ -144,7 +169,7 @@ lower_ubo_load_to_uniform(nir_intrinsic_instr *instr, nir_builder *b,
 	nir_ssa_def *ubo_offset = nir_ssa_for_src(b, instr->src[1], 1);
 	unsigned const_offset = 0;
 
-	handle_partial_const(&ubo_offset, &const_offset);
+	handle_partial_const(b, &ubo_offset, &const_offset);
 
 	/* UBO offset is in bytes, but uniform offset is in units of
 	 * dwords, so we need to divide by 4 (right-shift by 2).  And

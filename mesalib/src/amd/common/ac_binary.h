@@ -35,6 +35,7 @@ extern "C" {
 struct ac_shader_config {
 	unsigned num_sgprs;
 	unsigned num_vgprs;
+	unsigned num_shared_vgprs; /* GFX10: number of VGPRs shared between half-waves */
 	unsigned spilled_sgprs;
 	unsigned spilled_vgprs;
 	unsigned lds_size; /* in HW allocation units; i.e 256 bytes on SI, 512 bytes on CI+ */
@@ -44,6 +45,7 @@ struct ac_shader_config {
 	unsigned scratch_bytes_per_wave;
 	unsigned rsrc1;
 	unsigned rsrc2;
+	unsigned rsrc3;
 };
 
 void ac_parse_shader_binary_config(const char *data, size_t nbytes,

@@ -130,6 +130,13 @@ miSaveScreen(ScreenPtr pScreen, int on)
     return TRUE;
 }
 
+void
+miSourceValidate(DrawablePtr pDrawable, int x, int y, int w, int h,
+                 unsigned int subWindowMode)
+{
+}
+
+
 /* With the introduction of pixmap privates, the "screen pixmap" can no
  * longer be created in miScreenInit, since all the modules that could
  * possibly ask for pixmap private space have not been initialized at
@@ -251,7 +258,7 @@ miScreenInit(ScreenPtr pScreen, void *pbits,  /* pointer to screen bits */
     /* QueryBestSize */
     pScreen->SaveScreen = miSaveScreen;
     /* GetImage, GetSpans */
-    pScreen->SourceValidate = (SourceValidateProcPtr) 0;
+    pScreen->SourceValidate = miSourceValidate;
     /* CreateWindow, DestroyWindow, PositionWindow, ChangeWindowAttributes */
     /* RealizeWindow, UnrealizeWindow */
     pScreen->ValidateTree = miValidateTree;

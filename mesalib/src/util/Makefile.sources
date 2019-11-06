@@ -62,6 +62,8 @@ MESA_UTIL_FILES := \
 	slab.h \
 	softfloat.c \
 	softfloat.h \
+	sparse_array.c \
+	sparse_array.h \
 	string_buffer.c \
 	string_buffer.h \
 	strndup.h \

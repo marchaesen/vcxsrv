@@ -270,6 +270,7 @@ v3d_spill_reg(struct v3d_compile *c, int spill_temp)
                                 vir_emit_thrsw(c);
                                 vir_TMUWT(c);
                                 c->spills++;
+                                c->tmu_dirty_rcl = true;
                         }
                 }
 

@@ -2729,7 +2729,8 @@ RecordAClientStateChange(CallbackListPtr *pcbl, void *nulldata,
     case ClientStateRetained:  /* client disconnected */
 
         /* RecordDisableContext modifies contents of ppAllContexts. */
-        numContextsCopy = numContexts;
+        if (!(numContextsCopy = numContexts))
+            break;
         ppAllContextsCopy = xallocarray(numContextsCopy,
                                         sizeof(RecordContextPtr));
         assert(ppAllContextsCopy);

@@ -3333,8 +3333,8 @@ sse2_fill (pixman_implementation_t *imp,
 
     if (bpp == 8)
     {
-	uint8_t b;
-	uint16_t w;
+	uint32_t b;
+	uint32_t w;
 
 	stride = stride * (int) sizeof (uint32_t) / 1;
 	byte_line = (uint8_t *)(((uint8_t *)bits) + stride * y + x);

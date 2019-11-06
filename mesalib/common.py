@@ -17,6 +17,9 @@ import SCons.Script.SConscript
 host_platform = _platform.system().lower()
 if host_platform.startswith('cygwin'):
     host_platform = 'cygwin'
+# MSYS2 default platform selection.
+if host_platform.startswith('mingw'):
+    host_platform = 'windows'
 
 # Search sys.argv[] for a "platform=foo" argument since we don't have
 # an 'env' variable at this point.
@@ -49,9 +52,18 @@ if 'PROCESSOR_ARCHITECTURE' in os.environ:
 else:
     host_machine = _platform.machine()
 host_machine = _machine_map.get(host_machine, 'generic')
+# MSYS2 default machine selection.
+if _platform.system().lower().startswith('mingw') and 'MSYSTEM' in os.environ:
+    if os.environ['MSYSTEM'] == 'MINGW32':
+        host_machine = 'x86'
+    if os.environ['MSYSTEM'] == 'MINGW64':
+        host_machine = 'x86_64'
 
 default_machine = host_machine
 default_toolchain = 'default'
+# MSYS2 default toolchain selection.
+if _platform.system().lower().startswith('mingw'):
+    default_toolchain = 'mingw'
 
 if target_platform == 'windows' and host_platform != 'windows':
     default_machine = 'x86'
@@ -100,6 +112,7 @@ def AddOptions(opts):
     opts.Add(BoolOption('asan', 'enable Address Sanitizer', 'no'))
     opts.Add('toolchain', 'compiler toolchain', default_toolchain)
     opts.Add(BoolOption('llvm', 'use LLVM', default_llvm))
+    opts.Add(BoolOption('force_scons', 'Force enable scons on deprecated platforms', 'false'))
     opts.Add(BoolOption('openmp', 'EXPERIMENTAL: compile with openmp (swrast)',
                         'no'))
     opts.Add(BoolOption('debug', 'DEPRECATED: debug build', 'yes'))

@@ -1,0 +1,36 @@
+# A meson.build file for binary wrapping the LLVM used in the appvyeor CI
+project('llvm', ['cpp'])
+
+cpp = meson.get_compiler('cpp')
+
+_deps = []
+_search = join_paths(meson.current_source_dir(), 'lib')
+foreach d : ['LLVMAnalysis', 'LLVMAsmParser', 'LLVMAsmPrinter',
+             'LLVMBinaryFormat', 'LLVMBitReader', 'LLVMBitWriter',
+             'LLVMCodeGen', 'LLVMCore', 'LLVMCoroutines', 'LLVMCoverage',
+             'LLVMDebugInfoCodeView', 'LLVMDebugInfoDWARF',
+             'LLVMDebugInfoMSF', 'LLVMDebugInfoPDB', 'LLVMDemangle',
+             'LLVMDlltoolDriver', 'LLVMExecutionEngine', 'LLVMGlobalISel',
+             'LLVMInstCombine', 'LLVMInstrumentation', 'LLVMInterpreter',
+             'LLVMipo', 'LLVMIRReader', 'LLVMLibDriver', 'LLVMLineEditor',
+             'LLVMLinker', 'LLVMLTO', 'LLVMMCDisassembler', 'LLVMMCJIT',
+             'LLVMMC', 'LLVMMCParser', 'LLVMMIRParser', 'LLVMObjCARCOpts',
+             'LLVMObject', 'LLVMObjectYAML', 'LLVMOption', 'LLVMOrcJIT',
+             'LLVMPasses', 'LLVMProfileData', 'LLVMRuntimeDyld',
+             'LLVMScalarOpts', 'LLVMSelectionDAG', 'LLVMSupport',
+             'LLVMSymbolize', 'LLVMTableGen', 'LLVMTarget',
+             'LLVMTransformUtils', 'LLVMVectorize', 'LLVMX86AsmParser',
+             'LLVMX86AsmPrinter', 'LLVMX86CodeGen', 'LLVMX86Desc',
+             'LLVMX86Disassembler', 'LLVMX86Info', 'LLVMX86Utils',
+             'LLVMXRay']
+  _deps += cpp.find_library(d, dirs : _search)
+endforeach
+
+dep_llvm = declare_dependency(
+  include_directories : include_directories('include'),
+  dependencies : _deps,
+  version : '5.0.1',
+)
+
+has_rtti = false
+irbuilder_h = files('include/llvm/IR/IRBuilder.h')

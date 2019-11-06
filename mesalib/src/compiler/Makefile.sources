@@ -35,7 +35,6 @@ LIBGLSL_FILES = \
 	glsl/gl_nir_link_xfb.c \
 	glsl/gl_nir_linker.c \
 	glsl/gl_nir_linker.h \
-	glsl/gl_nir_opt_access.c \
 	glsl/gl_nir.h \
 	glsl/glsl_parser_extras.cpp \
 	glsl/glsl_parser_extras.h \
@@ -215,6 +214,7 @@ NIR_FILES = \
 	nir/nir_control_flow_private.h \
 	nir/nir_deref.c \
 	nir/nir_deref.h \
+	nir/nir_divergence_analysis.c \
 	nir/nir_dominance.c \
 	nir/nir_format_convert.h \
 	nir/nir_from_ssa.c \
@@ -232,6 +232,7 @@ NIR_FILES = \
 	nir/nir_lower_alpha_test.c \
 	nir/nir_lower_alu.c \
 	nir/nir_lower_alu_to_scalar.c \
+	nir/nir_lower_amul.c \
 	nir/nir_lower_array_deref_of_vec.c \
 	nir/nir_lower_atomics_to_ssbo.c \
 	nir/nir_lower_bitmap.c \
@@ -245,6 +246,7 @@ NIR_FILES = \
 	nir/nir_lower_double_ops.c \
 	nir/nir_lower_drawpixels.c \
 	nir/nir_lower_fb_read.c \
+	nir/nir_lower_flatshade.c \
 	nir/nir_lower_flrp.c \
 	nir/nir_lower_fragcoord_wtrans.c \
 	nir/nir_lower_frexp.c \
@@ -268,6 +270,8 @@ NIR_FILES = \
 	nir/nir_lower_passthrough_edgeflags.c \
 	nir/nir_lower_patch_vertices.c \
 	nir/nir_lower_phis_to_scalar.c \
+	nir/nir_lower_point_size.c \
+	nir/nir_lower_point_size_mov.c \
 	nir/nir_lower_regs_to_ssa.c \
 	nir/nir_lower_returns.c \
 	nir/nir_lower_samplers.c \
@@ -287,6 +291,7 @@ NIR_FILES = \
 	nir/nir_metadata.c \
 	nir/nir_move_vec_src_uses_to_dest.c \
 	nir/nir_normalize_cubemap_coords.c \
+	nir/nir_opt_access.c \
 	nir/nir_opt_combine_stores.c \
 	nir/nir_opt_comparison_pre.c \
 	nir/nir_opt_conditional_discard.c \

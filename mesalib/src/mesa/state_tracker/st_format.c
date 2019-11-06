@@ -71,6 +71,8 @@ st_mesa_format_to_pipe_format(const struct st_context *st,
    switch (mesaFormat) {
    case MESA_FORMAT_A8B8G8R8_UNORM:
       return PIPE_FORMAT_ABGR8888_UNORM;
+   case MESA_FORMAT_RGB_UNORM8:
+      return PIPE_FORMAT_R8G8B8_UNORM;
    case MESA_FORMAT_R8G8B8A8_UNORM:
       return PIPE_FORMAT_RGBA8888_UNORM;
    case MESA_FORMAT_B8G8R8A8_UNORM:
@@ -105,14 +107,6 @@ st_mesa_format_to_pipe_format(const struct st_context *st,
       return PIPE_FORMAT_R10G10B10X2_UNORM;
    case MESA_FORMAT_L4A4_UNORM:
       return PIPE_FORMAT_L4A4_UNORM;
-   case MESA_FORMAT_L8A8_UNORM:
-      return PIPE_FORMAT_LA88_UNORM;
-   case MESA_FORMAT_A8L8_UNORM:
-      return PIPE_FORMAT_AL88_UNORM;
-   case MESA_FORMAT_L16A16_UNORM:
-      return PIPE_FORMAT_LA1616_UNORM;
-   case MESA_FORMAT_A16L16_UNORM:
-      return PIPE_FORMAT_AL1616_UNORM;
    case MESA_FORMAT_A_UNORM8:
       return PIPE_FORMAT_A8_UNORM;
    case MESA_FORMAT_A_UNORM16:
@@ -121,6 +115,10 @@ st_mesa_format_to_pipe_format(const struct st_context *st,
       return PIPE_FORMAT_L8_UNORM;
    case MESA_FORMAT_L_UNORM16:
       return PIPE_FORMAT_L16_UNORM;
+   case MESA_FORMAT_LA_UNORM8:
+      return PIPE_FORMAT_L8A8_UNORM;
+   case MESA_FORMAT_LA_UNORM16:
+      return PIPE_FORMAT_L16A16_UNORM;
    case MESA_FORMAT_I_UNORM8:
       return PIPE_FORMAT_I8_UNORM;
    case MESA_FORMAT_I_UNORM16:
@@ -163,12 +161,10 @@ st_mesa_format_to_pipe_format(const struct st_context *st,
       return PIPE_FORMAT_DXT3_SRGBA;
    case MESA_FORMAT_SRGBA_DXT5:
       return PIPE_FORMAT_DXT5_SRGBA;
-   case MESA_FORMAT_L8A8_SRGB:
-      return PIPE_FORMAT_LA88_SRGB;
-   case MESA_FORMAT_A8L8_SRGB:
-      return PIPE_FORMAT_AL88_SRGB;
    case MESA_FORMAT_L_SRGB8:
       return PIPE_FORMAT_L8_SRGB;
+   case MESA_FORMAT_LA_SRGB8:
+      return PIPE_FORMAT_L8A8_SRGB;
    case MESA_FORMAT_R_SRGB8:
       return PIPE_FORMAT_R8_SRGB;
    case MESA_FORMAT_BGR_SRGB8:
@@ -218,14 +214,10 @@ st_mesa_format_to_pipe_format(const struct st_context *st,
       return PIPE_FORMAT_R8_UNORM;
    case MESA_FORMAT_R_UNORM16:
       return PIPE_FORMAT_R16_UNORM;
-   case MESA_FORMAT_R8G8_UNORM:
-      return PIPE_FORMAT_RG88_UNORM;
-   case MESA_FORMAT_G8R8_UNORM:
-      return PIPE_FORMAT_GR88_UNORM;
-   case MESA_FORMAT_R16G16_UNORM:
-      return PIPE_FORMAT_RG1616_UNORM;
-   case MESA_FORMAT_G16R16_UNORM:
-      return PIPE_FORMAT_GR1616_UNORM;
+   case MESA_FORMAT_RG_UNORM8:
+      return PIPE_FORMAT_R8G8_UNORM;
+   case MESA_FORMAT_RG_UNORM16:
+      return PIPE_FORMAT_R16G16_UNORM;
    case MESA_FORMAT_RGBA_UNORM16:
       return PIPE_FORMAT_R16G16B16A16_UNORM;
 
@@ -372,10 +364,8 @@ st_mesa_format_to_pipe_format(const struct st_context *st,
    /* signed normalized formats */
    case MESA_FORMAT_R_SNORM8:
       return PIPE_FORMAT_R8_SNORM;
-   case MESA_FORMAT_R8G8_SNORM:
-      return PIPE_FORMAT_RG88_SNORM;
-   case MESA_FORMAT_G8R8_SNORM:
-      return PIPE_FORMAT_GR88_SNORM;
+   case MESA_FORMAT_RG_SNORM8:
+      return PIPE_FORMAT_R8G8_SNORM;
    case MESA_FORMAT_R8G8B8A8_SNORM:
       return PIPE_FORMAT_RGBA8888_SNORM;
    case MESA_FORMAT_A8B8G8R8_SNORM:
@@ -385,19 +375,15 @@ st_mesa_format_to_pipe_format(const struct st_context *st,
       return PIPE_FORMAT_A8_SNORM;
    case MESA_FORMAT_L_SNORM8:
       return PIPE_FORMAT_L8_SNORM;
-   case MESA_FORMAT_L8A8_SNORM:
-      return PIPE_FORMAT_LA88_SNORM;
-   case MESA_FORMAT_A8L8_SNORM:
-      return PIPE_FORMAT_AL88_SNORM;
+   case MESA_FORMAT_LA_SNORM8:
+      return PIPE_FORMAT_L8A8_SNORM;
    case MESA_FORMAT_I_SNORM8:
       return PIPE_FORMAT_I8_SNORM;
 
    case MESA_FORMAT_R_SNORM16:
       return PIPE_FORMAT_R16_SNORM;
-   case MESA_FORMAT_R16G16_SNORM:
-      return PIPE_FORMAT_RG1616_SNORM;
-   case MESA_FORMAT_G16R16_SNORM:
-      return PIPE_FORMAT_GR1616_SNORM;
+   case MESA_FORMAT_RG_SNORM16:
+      return PIPE_FORMAT_R16G16_SNORM;
    case MESA_FORMAT_RGBA_SNORM16:
       return PIPE_FORMAT_R16G16B16A16_SNORM;
 
@@ -651,6 +637,10 @@ st_mesa_format_to_pipe_format(const struct st_context *st,
       return PIPE_FORMAT_ATC_RGBA_INTERPOLATED;
 
    default:
+      if (0) {
+         debug_printf("%s(mesa_format=%s) -> NONE\n",
+                      __func__, _mesa_get_format_name(mesaFormat));
+      }
       return PIPE_FORMAT_NONE;
    }
 }
@@ -667,6 +657,8 @@ st_pipe_format_to_mesa_format(enum pipe_format format)
       return MESA_FORMAT_A8B8G8R8_UNORM;
    case PIPE_FORMAT_RGBA8888_UNORM:
       return MESA_FORMAT_R8G8B8A8_UNORM;
+   case PIPE_FORMAT_R8G8B8_UNORM:
+      return MESA_FORMAT_RGB_UNORM8;
    case PIPE_FORMAT_BGRA8888_UNORM:
       return MESA_FORMAT_B8G8R8A8_UNORM;
    case PIPE_FORMAT_ARGB8888_UNORM:
@@ -699,14 +691,10 @@ st_pipe_format_to_mesa_format(enum pipe_format format)
       return MESA_FORMAT_R10G10B10X2_UNORM;
    case PIPE_FORMAT_L4A4_UNORM:
       return MESA_FORMAT_L4A4_UNORM;
-   case PIPE_FORMAT_LA88_UNORM:
-      return MESA_FORMAT_L8A8_UNORM;
-   case PIPE_FORMAT_AL88_UNORM:
-      return MESA_FORMAT_A8L8_UNORM;
-   case PIPE_FORMAT_LA1616_UNORM:
-      return MESA_FORMAT_L16A16_UNORM;
-   case PIPE_FORMAT_AL1616_UNORM:
-      return MESA_FORMAT_A16L16_UNORM;
+   case PIPE_FORMAT_L8A8_UNORM:
+      return MESA_FORMAT_LA_UNORM8;
+   case PIPE_FORMAT_L16A16_UNORM:
+      return MESA_FORMAT_LA_UNORM16;
    case PIPE_FORMAT_A8_UNORM:
       return MESA_FORMAT_A_UNORM8;
    case PIPE_FORMAT_A16_UNORM:
@@ -763,12 +751,10 @@ st_pipe_format_to_mesa_format(enum pipe_format format)
       return MESA_FORMAT_SRGBA_DXT3;
    case PIPE_FORMAT_DXT5_SRGBA:
       return MESA_FORMAT_SRGBA_DXT5;
-   case PIPE_FORMAT_LA88_SRGB:
-      return MESA_FORMAT_L8A8_SRGB;
-   case PIPE_FORMAT_AL88_SRGB:
-      return MESA_FORMAT_A8L8_SRGB;
    case PIPE_FORMAT_L8_SRGB:
       return MESA_FORMAT_L_SRGB8;
+   case PIPE_FORMAT_L8A8_SRGB:
+      return MESA_FORMAT_LA_SRGB8;
    case PIPE_FORMAT_R8_SRGB:
       return MESA_FORMAT_R_SRGB8;
    case PIPE_FORMAT_R8G8B8_SRGB:
@@ -818,14 +804,10 @@ st_pipe_format_to_mesa_format(enum pipe_format format)
       return MESA_FORMAT_R_UNORM8;
    case PIPE_FORMAT_R16_UNORM:
       return MESA_FORMAT_R_UNORM16;
-   case PIPE_FORMAT_RG88_UNORM:
-      return MESA_FORMAT_R8G8_UNORM;
-   case PIPE_FORMAT_GR88_UNORM:
-      return MESA_FORMAT_G8R8_UNORM;
-   case PIPE_FORMAT_RG1616_UNORM:
-      return MESA_FORMAT_R16G16_UNORM;
-   case PIPE_FORMAT_GR1616_UNORM:
-      return MESA_FORMAT_G16R16_UNORM;
+   case PIPE_FORMAT_R8G8_UNORM:
+      return MESA_FORMAT_RG_UNORM8;
+   case PIPE_FORMAT_R16G16_UNORM:
+      return MESA_FORMAT_RG_UNORM16;
 
    case PIPE_FORMAT_A8_UINT:
       return MESA_FORMAT_A_UINT8;
@@ -967,10 +949,8 @@ st_pipe_format_to_mesa_format(enum pipe_format format)
    /* signed normalized formats */
    case PIPE_FORMAT_R8_SNORM:
       return MESA_FORMAT_R_SNORM8;
-   case PIPE_FORMAT_RG88_SNORM:
-      return MESA_FORMAT_R8G8_SNORM;
-   case PIPE_FORMAT_GR88_SNORM:
-      return MESA_FORMAT_G8R8_SNORM;
+   case PIPE_FORMAT_R8G8_SNORM:
+      return MESA_FORMAT_RG_SNORM8;
    case PIPE_FORMAT_RGBA8888_SNORM:
       return MESA_FORMAT_R8G8B8A8_SNORM;
    case PIPE_FORMAT_ABGR8888_SNORM:
@@ -980,19 +960,15 @@ st_pipe_format_to_mesa_format(enum pipe_format format)
       return MESA_FORMAT_A_SNORM8;
    case PIPE_FORMAT_L8_SNORM:
       return MESA_FORMAT_L_SNORM8;
-   case PIPE_FORMAT_LA88_SNORM:
-      return MESA_FORMAT_L8A8_SNORM;
-   case PIPE_FORMAT_AL88_SNORM:
-      return MESA_FORMAT_A8L8_SNORM;
+   case PIPE_FORMAT_L8A8_SNORM:
+      return MESA_FORMAT_LA_SNORM8;
    case PIPE_FORMAT_I8_SNORM:
       return MESA_FORMAT_I_SNORM8;
 
    case PIPE_FORMAT_R16_SNORM:
       return MESA_FORMAT_R_SNORM16;
-   case PIPE_FORMAT_RG1616_SNORM:
-      return MESA_FORMAT_R16G16_SNORM;
-   case PIPE_FORMAT_GR1616_SNORM:
-      return MESA_FORMAT_G16R16_SNORM;
+   case PIPE_FORMAT_R16G16_SNORM:
+      return MESA_FORMAT_RG_SNORM16;
    case PIPE_FORMAT_R16G16B16A16_SNORM:
       return MESA_FORMAT_RGBA_SNORM16;
 

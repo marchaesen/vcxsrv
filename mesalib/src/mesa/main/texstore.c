@@ -280,8 +280,6 @@ _mesa_texstore_z16(TEXSTORE_PARAMS)
 static GLboolean
 _mesa_texstore_ycbcr(TEXSTORE_PARAMS)
 {
-   const GLboolean littleEndian = _mesa_little_endian();
-
    (void) ctx; (void) dims; (void) baseInternalFormat;
 
    assert((dstFormat == MESA_FORMAT_YCBCR) ||
@@ -305,7 +303,7 @@ _mesa_texstore_ycbcr(TEXSTORE_PARAMS)
    if (srcPacking->SwapBytes ^
        (srcType == GL_UNSIGNED_SHORT_8_8_REV_MESA) ^
        (dstFormat == MESA_FORMAT_YCBCR_REV) ^
-       !littleEndian) {
+       !UTIL_ARCH_LITTLE_ENDIAN) {
       GLint img, row;
       for (img = 0; img < srcDepth; img++) {
          GLubyte *dstRow = dstSlices[img];

@@ -109,12 +109,13 @@ remove_phis_block(nir_block *block, nir_builder *b)
       if (!srcs_same)
          continue;
 
-      /* We must have found at least one definition, since there must be at
-       * least one forward edge.
-       */
-      assert(def != NULL);
+      if (!def) {
+         /* In this case, the phi had no sources. So turn it into an undef. */
 
-      if (mov) {
+         b->cursor = nir_after_phis(block);
+         def = nir_ssa_undef(b, phi->dest.ssa.num_components,
+                             phi->dest.ssa.bit_size);
+      } else if (mov) {
          /* If the sources were all movs from the same source with the same
           * swizzle, then we can't just pick a random move because it may not
           * dominate the phi node. Instead, we need to emit our own move after

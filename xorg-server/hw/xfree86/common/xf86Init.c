@@ -51,7 +51,6 @@
 #include "servermd.h"
 #include "windowstr.h"
 #include "scrnintstr.h"
-#include "site.h"
 #include "mi.h"
 #include "dbus-core.h"
 #include "systemd-logind.h"

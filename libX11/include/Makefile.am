@@ -12,6 +12,11 @@ x11include_HEADERS=\
 	X11/ImUtil.h \
 	X11/Xlib-xcb.h
 
+x11extincludedir=${x11includedir}/extensions
+x11extinclude_HEADERS = \
+	X11/extensions/XKBgeom.h
+
+
 nodist_x11include_HEADERS=\
 	X11/XlibConf.h
 

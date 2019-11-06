@@ -183,7 +183,7 @@ main(void)
     char *sysroot = NULL, systempl[512] = "/tmp/fc107-XXXXXX";
     FcChar8 *d = NULL, *dd = NULL;
     FcCache *c = NULL;
-    const FcChar8 *doc = ""
+    const FcChar8 *doc = (const FcChar8 *) ""
 	"<fontconfig>\n"
 	"  <dir>%s</dir>\n"
 	"</fontconfig>\n"
@@ -208,16 +208,16 @@ main(void)
     retval++;
     fprintf (stderr, "D: Creating %s\n", basedir);
     mkdir_p (basedir);
-    len = strlen (doc) + strlen (basedir) + 1;
+    len = strlen ((const char *) doc) + strlen (basedir) + 1;
     dd = malloc (len);
-    snprintf (dd, len, doc, basedir);
+    snprintf ((char *) dd, len, (char *) doc, basedir);
     if (!FcConfigParseAndLoadFromMemory (cfg, dd, FcFalse))
     {
 	fprintf (stderr, "%s: Unable to load a config\n", basedir);
 	goto bail;
     }
     sleep (1);
-    c = FcDirCacheRead (basedir, FcFalse, cfg);
+    c = FcDirCacheRead ((const FcChar8 *) basedir, FcFalse, cfg);
     FcDirCacheUnload (c);
     sleep (1);
     retval++;
@@ -230,22 +230,22 @@ main(void)
     fprintf (stderr, "D: Creating %s\n", sysroot);
     mkdir_p (sysroot);
     retval++;
-    d = FcStrBuildFilename (sysroot, basedir, NULL);
+    d = FcStrBuildFilename ((const FcChar8 *) sysroot, basedir, NULL);
     fprintf (stderr, "D: Creating %s\n", d);
-    mkdir_p (d);
+    mkdir_p ((const char *) d);
     free (d);
     retval++;
     free (dd);
-    len = strlen (doc) + strlen (basedir) + 1;
+    len = strlen ((const char *) doc) + strlen (basedir) + 1;
     dd = malloc (len);
-    snprintf (dd, len, doc, basedir);
+    snprintf ((char *) dd, len, (char *) doc, basedir);
     if (!FcConfigParseAndLoadFromMemory (cfg, dd, FcFalse))
     {
 	fprintf (stderr, "%s: Unable to load a config\n", basedir);
 	goto bail;
     }
     sleep (1);
-    c = FcDirCacheRead (basedir, FcFalse, cfg);
+    c = FcDirCacheRead ((const FcChar8 *) basedir, FcFalse, cfg);
     FcDirCacheUnload (c);
     sleep (1);
     retval++;

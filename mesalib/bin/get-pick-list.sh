@@ -143,7 +143,7 @@ do
 	esac
 
 	printf "[ %8s ] " "$tag"
-	git --no-pager show --no-patch --oneline $sha
+	git --no-pager show --no-patch --pretty=oneline $sha
 done
 
 rm -f already_picked

@@ -188,7 +188,7 @@ st_update_tes_constants(struct st_context *st)
 void
 st_update_cs_constants(struct st_context *st)
 {
-   struct st_compute_program *cp = st->cp;
+   struct st_common_program *cp = st->cp;
 
    if (cp)
       st_upload_constants(st, &cp->Base);

@@ -1213,6 +1213,16 @@ public:
 };
 
 
+class ast_demote_statement : public ast_node {
+public:
+   ast_demote_statement(void) {}
+   virtual void print(void) const;
+
+   virtual ir_rvalue *hir(exec_list *instructions,
+                          struct _mesa_glsl_parse_state *state);
+};
+
+
 class ast_function_definition : public ast_node {
 public:
    ast_function_definition() : prototype(NULL), body(NULL)

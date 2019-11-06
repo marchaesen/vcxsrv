@@ -139,6 +139,14 @@ remove_dead_write_vars_local(void *mem_ctx, nir_block *block)
          break;
       }
 
+      case nir_intrinsic_scoped_memory_barrier: {
+         if (nir_intrinsic_memory_semantics(intrin) & NIR_MEMORY_RELEASE) {
+            clear_unused_for_modes(&unused_writes,
+                                   nir_intrinsic_memory_modes(intrin));
+         }
+         break;
+      }
+
       case nir_intrinsic_emit_vertex:
       case nir_intrinsic_emit_vertex_with_counter: {
          clear_unused_for_modes(&unused_writes, nir_var_shader_out);

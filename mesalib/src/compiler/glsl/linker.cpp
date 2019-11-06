@@ -5214,8 +5214,6 @@ link_shaders(struct gl_context *ctx, struct gl_shader_program *prog)
       if (ctx->Const.GLSLLowerConstArrays &&
           lower_const_arrays_to_uniforms(prog->_LinkedShaders[i]->ir, i))
          linker_optimisation_loop(ctx, prog->_LinkedShaders[i]->ir, i);
-
-      propagate_invariance(prog->_LinkedShaders[i]->ir);
    }
 
    /* Validation for special cases where we allow sampler array indexing

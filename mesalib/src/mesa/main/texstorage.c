@@ -738,29 +738,20 @@ _mesa_TextureStorage3D(GLuint texture, GLsizei levels, GLenum internalformat,
 }
 
 
-/*
- * Note: we don't support GL_EXT_direct_state_access and the spec says
- * we don't need the following functions.  However, glew checks for the
- * presence of all six functions and will say that GL_ARB_texture_storage
- * is not supported if these functions are missing.
- */
-
-
 void GLAPIENTRY
 _mesa_TextureStorage1DEXT(GLuint texture, GLenum target, GLsizei levels,
                           GLenum internalformat,
                           GLsizei width)
 {
    GET_CURRENT_CONTEXT(ctx);
-
-   (void) texture;
-   (void) target;
-   (void) levels;
-   (void) internalformat;
-   (void) width;
-
-   _mesa_error(ctx, GL_INVALID_OPERATION,
-               "glTextureStorage1DEXT not supported");
+   /* 'texture' must always be initialized, even if the call to 
+    * glTextureStorage1DEXT will generate an error.
+    */
+   if (!_mesa_lookup_or_create_texture(ctx, target, texture, false, true,
+                                       "glTextureStorage1DEXT"))
+      return;
+   texturestorage_error(1, texture, levels, internalformat, width, 1, 1,
+                        "glTextureStorage1DEXT");
 }
 
 
@@ -770,16 +761,14 @@ _mesa_TextureStorage2DEXT(GLuint texture, GLenum target, GLsizei levels,
                           GLsizei width, GLsizei height)
 {
    GET_CURRENT_CONTEXT(ctx);
-
-   (void) texture;
-   (void) target;
-   (void) levels;
-   (void) internalformat;
-   (void) width;
-   (void) height;
-
-   _mesa_error(ctx, GL_INVALID_OPERATION,
-               "glTextureStorage2DEXT not supported");
+   /* 'texture' must always be initialized, even if the call to 
+    * glTextureStorage2DEXT will generate an error.
+    */
+   if (!_mesa_lookup_or_create_texture(ctx, target, texture, false, true,
+                                       "glTextureStorage2DEXT"))
+      return;
+   texturestorage_error(2, texture, levels, internalformat, width, height, 1,
+                        "glTextureStorage2DEXT");
 }
 
 
@@ -789,17 +778,14 @@ _mesa_TextureStorage3DEXT(GLuint texture, GLenum target, GLsizei levels,
                           GLsizei width, GLsizei height, GLsizei depth)
 {
    GET_CURRENT_CONTEXT(ctx);
-
-   (void) texture;
-   (void) target;
-   (void) levels;
-   (void) internalformat;
-   (void) width;
-   (void) height;
-   (void) depth;
-
-   _mesa_error(ctx, GL_INVALID_OPERATION,
-               "glTextureStorage3DEXT not supported");
+   /* 'texture' must always be initialized, even if the call to 
+    * glTextureStorage3DEXT will generate an error.
+    */
+   if (!_mesa_lookup_or_create_texture(ctx, target, texture, false, true,
+                                       "glTextureStorage3DEXT"))
+      return;
+   texturestorage_error(3, texture, levels, internalformat, width, height, depth,
+                        "glTextureStorage3DEXT");
 }
 
 

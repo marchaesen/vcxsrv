@@ -73,6 +73,8 @@ autotools-build-and-test:
         - ../autogen.sh --prefix=/usr
         - make -j$(nproc) distcheck
         - PIGLIT_DIR=/root/piglit XTEST_DIR=/root/xts make -j$(nproc) check
+        - cd ..
+        - .gitlab-ci/manpages-check
 
 meson-build-and-test:
     extends: .common-build-and-test
@@ -83,3 +85,4 @@ meson-build-and-test:
         - meson -Dprefix=/usr -Dxephyr=true build/
         - ninja -C build/ install
         - ninja -C build/ test
+        - .gitlab-ci/manpages-check

@@ -147,6 +147,7 @@ public:
    unsigned dead_mask:4; /**< Used in dead code elimination */
    unsigned buffer_access:3; /**< bitmask of TGSI_MEMORY_x bits */
    unsigned read_only:1;
+   unsigned gather_component:2; /* 0, 1, 2, 3 */
 
    const struct tgsi_opcode_info *info;
 

@@ -263,7 +263,6 @@ xnestOpenScreen(ScreenPtr pScreen, int argc, char *argv[])
     pScreen->SaveScreen = xnestSaveScreen;
     pScreen->GetImage = xnestGetImage;
     pScreen->GetSpans = xnestGetSpans;
-    pScreen->SourceValidate = NULL;
 
     /* Window Procedures */
 

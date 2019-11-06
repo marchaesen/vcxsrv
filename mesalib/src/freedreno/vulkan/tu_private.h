@@ -40,11 +40,10 @@
 #include <valgrind.h>
 #define VG(x) x
 #else
-#define VG(x)
+#define VG(x) ((void)0)
 #endif
 
 #include "c11/threads.h"
-#include "compiler/shader_enums.h"
 #include "main/macros.h"
 #include "util/list.h"
 #include "util/macros.h"
@@ -102,6 +101,9 @@ typedef uint32_t xcb_window_t;
  * for certain buffer operations.
  */
 #define TU_BUFFER_OPS_CS_THRESHOLD 4096
+
+#define A6XX_TEX_CONST_DWORDS 16
+#define A6XX_TEX_SAMP_DWORDS 4
 
 enum tu_mem_heap
 {
@@ -210,6 +212,8 @@ tu_clear_mask(uint32_t *inout_mask, uint32_t clear_mask)
       STATIC_ASSERT(sizeof(*src) == sizeof(*dest));                          \
       memcpy((dest), (src), (count) * sizeof(*(src)));                       \
    })
+
+#define COND(bool, val) ((bool) ? (val) : 0)
 
 /* Whenever we generate an error, pass it through this function. Useful for
  * debugging, where we can break on it. Only call at error site, not when
@@ -581,6 +585,8 @@ struct tu_descriptor_set
    uint64_t va;
    uint32_t *mapped_ptr;
    struct tu_descriptor_range *dynamic_descriptors;
+
+   struct tu_bo *descriptors[0];
 };
 
 struct tu_push_descriptor_set
@@ -598,7 +604,7 @@ struct tu_descriptor_pool_entry
 
 struct tu_descriptor_pool
 {
-   uint8_t *mapped_ptr;
+   struct tu_bo bo;
    uint64_t current_offset;
    uint64_t size;
 
@@ -773,7 +779,7 @@ struct tu_descriptor_state
    uint32_t valid;
    struct tu_push_descriptor_set push_set;
    bool push_dirty;
-   uint32_t dynamic_buffers[4 * MAX_DYNAMIC_BUFFERS];
+   uint64_t dynamic_buffers[MAX_DYNAMIC_BUFFERS];
 };
 
 struct tu_tile
@@ -811,6 +817,7 @@ enum tu_cmd_dirty_bits
 {
    TU_CMD_DIRTY_PIPELINE = 1 << 0,
    TU_CMD_DIRTY_VERTEX_BUFFERS = 1 << 1,
+   TU_CMD_DIRTY_DESCRIPTOR_SETS = 1 << 2,
 
    TU_CMD_DIRTY_DYNAMIC_LINE_WIDTH = 1 << 16,
    TU_CMD_DIRTY_DYNAMIC_STENCIL_COMPARE_MASK = 1 << 17,
@@ -915,7 +922,7 @@ struct tu_cmd_buffer
    struct tu_vertex_binding vertex_bindings[MAX_VBS];
    uint32_t queue_family_index;
 
-   uint8_t push_constants[MAX_PUSH_CONSTANTS_SIZE];
+   uint32_t push_constants[MAX_PUSH_CONSTANTS_SIZE / 4];
    VkShaderStageFlags push_constant_stages;
    struct tu_descriptor_set meta_push_descriptors;
 
@@ -928,6 +935,7 @@ struct tu_cmd_buffer
    struct tu_bo_list bo_list;
    struct tu_cs cs;
    struct tu_cs draw_cs;
+   struct tu_cs draw_state;
    struct tu_cs tile_cs;
 
    uint16_t marker_reg;
@@ -950,6 +958,13 @@ tu_get_memory_fd(struct tu_device *device,
                  struct tu_device_memory *memory,
                  int *pFD);
 
+static inline struct tu_descriptor_state *
+tu_get_descriptors_state(struct tu_cmd_buffer *cmd_buffer,
+                         VkPipelineBindPoint bind_point)
+{
+   return &cmd_buffer->descriptors[bind_point];
+}
+
 /*
  * Takes x,y,z as exact numbers of invocations, instead of blocks.
  *
@@ -965,7 +980,7 @@ tu_unaligned_dispatch(struct tu_cmd_buffer *cmd_buffer,
 
 struct tu_event
 {
-   uint64_t *map;
+   struct tu_bo bo;
 };
 
 struct tu_shader_module;
@@ -1016,9 +1031,22 @@ struct tu_shader_compile_options
    bool include_binning_pass;
 };
 
+struct tu_descriptor_map
+{
+   /* TODO: avoid fixed size array/justify the size */
+   unsigned num;
+   int set[64];
+   int binding[64];
+};
+
 struct tu_shader
 {
    struct ir3_shader ir3_shader;
+
+   struct tu_descriptor_map texture_map;
+   struct tu_descriptor_map sampler_map;
+   struct tu_descriptor_map ubo_map;
+   struct tu_descriptor_map ssbo_map;
 
    /* This may be true for vertex shaders.  When true, variants[1] is the
     * binning variant and binning_binary is non-NULL.
@@ -1054,6 +1082,20 @@ tu_shader_compile(struct tu_device *dev,
                   const struct tu_shader_compile_options *options,
                   const VkAllocationCallbacks *alloc);
 
+struct tu_program_descriptor_linkage
+{
+   struct ir3_ubo_analysis_state ubo_state;
+   struct ir3_const_state const_state;
+
+   uint32_t constlen;
+
+   struct tu_descriptor_map texture_map;
+   struct tu_descriptor_map sampler_map;
+   struct tu_descriptor_map ubo_map;
+   struct tu_descriptor_map ssbo_map;
+   struct ir3_ibo_mapping image_mapping;
+};
+
 struct tu_pipeline
 {
    struct tu_cs cs;
@@ -1070,6 +1112,8 @@ struct tu_pipeline
       struct tu_bo binary_bo;
       struct tu_cs_entry state_ib;
       struct tu_cs_entry binning_state_ib;
+
+      struct tu_program_descriptor_linkage link[MESA_SHADER_STAGES];
    } program;
 
    struct
@@ -1180,11 +1224,12 @@ struct tu_native_format
 const struct tu_native_format *
 tu6_get_native_format(VkFormat format);
 
-int
+void
 tu_pack_clear_value(const VkClearValue *val,
                     VkFormat format,
                     uint32_t buf[4]);
 enum a6xx_2d_ifmt tu6_rb_fmt_to_ifmt(enum a6xx_color_fmt fmt);
+enum a6xx_depth_format tu6_pipe2depth(VkFormat format);
 
 struct tu_image_level
 {
@@ -1207,6 +1252,8 @@ struct tu_image
    VkExtent3D extent;
    uint32_t level_count;
    uint32_t layer_count;
+   VkSampleCountFlagBits samples;
+
 
    VkDeviceSize size;
    uint32_t alignment;
@@ -1215,6 +1262,7 @@ struct tu_image
    VkDeviceSize layer_size;
    struct tu_image_level levels[15];
    unsigned tile_mode;
+   unsigned cpp;
 
    unsigned queue_family_mask;
    bool exclusive;
@@ -1224,7 +1272,7 @@ struct tu_image
    VkDeviceMemory owned_memory;
 
    /* Set when bound */
-   const struct tu_bo *bo;
+   struct tu_bo *bo;
    VkDeviceSize bo_offset;
 };
 
@@ -1251,6 +1299,11 @@ tu_get_levelCount(const struct tu_image *image,
              : range->levelCount;
 }
 
+enum a6xx_tile_mode
+tu6_get_image_tile_mode(struct tu_image *image, int level);
+enum a3xx_msaa_samples
+tu_msaa_samples(uint32_t samples);
+
 struct tu_image_view
 {
    struct tu_image *image; /**< VkImageViewCreateInfo::image */
@@ -1264,16 +1317,19 @@ struct tu_image_view
    uint32_t level_count;
    VkExtent3D extent; /**< Extent of VkImageViewCreateInfo::baseMipLevel. */
 
-   uint32_t descriptor[16];
+   uint32_t descriptor[A6XX_TEX_CONST_DWORDS];
 
    /* Descriptor for use as a storage image as opposed to a sampled image.
     * This has a few differences for cube maps (e.g. type).
     */
-   uint32_t storage_descriptor[16];
+   uint32_t storage_descriptor[A6XX_TEX_CONST_DWORDS];
 };
 
 struct tu_sampler
 {
+   uint32_t state[A6XX_TEX_SAMP_DWORDS];
+
+   bool needs_border;
 };
 
 struct tu_image_create_info

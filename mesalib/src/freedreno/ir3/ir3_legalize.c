@@ -88,6 +88,7 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 	struct ir3_legalize_state prev_state = bd->state;
 	struct ir3_legalize_state *state = &bd->state;
 	bool last_input_needs_ss = false;
+	bool has_tex_prefetch = false;
 
 	/* our input state is the OR of all predecessor blocks' state: */
 	set_foreach(block->predecessors, entry) {
@@ -118,7 +119,10 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 
 		n->flags &= ~(IR3_INSTR_SS | IR3_INSTR_SY);
 
-		if (is_meta(n))
+		/* _meta::tex_prefetch instructions removed later in
+		 * collect_tex_prefetches()
+		 */
+		if (is_meta(n) && (n->opc != OPC_META_TEX_PREFETCH))
 			continue;
 
 		if (is_input(n)) {
@@ -196,10 +200,10 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 		}
 
 		/* need to be able to set (ss) on first instruction: */
-		if (list_empty(&block->instr_list) && (opc_cat(n->opc) >= 5))
+		if (list_is_empty(&block->instr_list) && (opc_cat(n->opc) >= 5))
 			ir3_NOP(block);
 
-		if (is_nop(n) && !list_empty(&block->instr_list)) {
+		if (is_nop(n) && !list_is_empty(&block->instr_list)) {
 			struct ir3_instruction *last = list_last_entry(&block->instr_list,
 					struct ir3_instruction, node);
 			if (is_nop(last) && (last->repeat < 5)) {
@@ -237,9 +241,11 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 		if (is_sfu(n))
 			regmask_set(&state->needs_ss, n->regs[0]);
 
-		if (is_tex(n)) {
+		if (is_tex(n) || (n->opc == OPC_META_TEX_PREFETCH)) {
 			regmask_set(&state->needs_sy, n->regs[0]);
 			ctx->need_pixlod = true;
+			if (n->opc == OPC_META_TEX_PREFETCH)
+				has_tex_prefetch = true;
 		} else if (n->opc == OPC_RESINFO) {
 			regmask_set(&state->needs_ss, n->regs[0]);
 			ir3_NOP(block)->flags |= IR3_INSTR_SS;
@@ -248,7 +254,7 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 			/* seems like ldlv needs (ss) bit instead??  which is odd but
 			 * makes a bunch of flat-varying tests start working on a4xx.
 			 */
-			if ((n->opc == OPC_LDLV) || (n->opc == OPC_LDL))
+			if ((n->opc == OPC_LDLV) || (n->opc == OPC_LDL) || (n->opc == OPC_LDLW))
 				regmask_set(&state->needs_ss, n->regs[0]);
 			else
 				regmask_set(&state->needs_sy, n->regs[0]);
@@ -316,6 +322,22 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 		last_input->regs[0]->flags |= IR3_REG_EI;
 		if (last_input_needs_ss)
 			last_input->flags |= IR3_INSTR_SS;
+	} else if (has_tex_prefetch) {
+		/* texture prefetch, but *no* inputs.. we need to insert a
+		 * dummy bary.f at the top of the shader to unblock varying
+		 * storage:
+		 */
+		struct ir3_instruction *baryf;
+
+		/* (ss)bary.f (ei)r63.x, 0, r0.x */
+		baryf = ir3_instr_create(block, OPC_BARY_F);
+		ir3_reg_create(baryf, regid(63, 0), 0)->flags |= IR3_REG_EI;
+		ir3_reg_create(baryf, 0, IR3_REG_IMMED)->iim_val = 0;
+		ir3_reg_create(baryf, regid(0, 0), 0);
+
+		/* insert the dummy bary.f at head: */
+		list_delinit(&baryf->node);
+		list_add(&baryf->node, &block->instr_list);
 	}
 
 	if (last_rel)
@@ -388,7 +410,7 @@ resolve_dest_block(struct ir3_block *block)
 	 *   (2) (block-is-empty || only-instr-is-jump)
 	 */
 	if (block->successors[1] == NULL) {
-		if (list_empty(&block->instr_list)) {
+		if (list_is_empty(&block->instr_list)) {
 			return block->successors[0];
 		} else if (list_length(&block->instr_list) == 1) {
 			struct ir3_instruction *instr = list_first_entry(

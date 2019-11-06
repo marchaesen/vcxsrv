@@ -167,7 +167,7 @@ u_socket_listen_on_port(uint16_t portnum)
       return -1;
    }
 
-   listen(s, 0);
+   listen(s, 1);
 
    return s;
 #else

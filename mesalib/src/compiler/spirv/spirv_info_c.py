@@ -43,7 +43,7 @@ def collect_data(spirv, kind):
             seen.add(x["value"])
             values.append(x["enumerant"])
 
-    return (kind, values)
+    return (kind, values, operands["category"])
 
 def collect_opcodes(spirv):
     seen = set()
@@ -59,7 +59,7 @@ def collect_opcodes(spirv):
         values.append(name[2:])
         seen.add(opcode)
 
-    return ("Op", values)
+    return ("Op", values, None)
 
 def parse_args():
     p = argparse.ArgumentParser()
@@ -72,8 +72,25 @@ TEMPLATE  = Template("""\
 
 """ + COPYRIGHT + """\
 #include "spirv_info.h"
-% for kind,values in info:
+% for kind,values,category in info:
 
+% if category == "BitEnum":
+const char *
+spirv_${kind.lower()}_to_string(Spv${kind}Mask v)
+{
+   switch (v) {
+    % for name in values:
+    %if name != "None":
+   case Spv${kind}${name}Mask: return "Spv${kind}${name}";
+    % else:
+   case Spv${kind}MaskNone: return "Spv${kind}${name}";
+    % endif
+    % endfor
+   }
+
+   return "unknown";
+}
+% else:
 const char *
 spirv_${kind.lower()}_to_string(Spv${kind} v)
 {
@@ -86,6 +103,7 @@ spirv_${kind.lower()}_to_string(Spv${kind} v)
 
    return "unknown";
 }
+% endif
 % endfor
 """)
 
@@ -103,7 +121,9 @@ if __name__ == "__main__":
         collect_data(spirv_info, "ExecutionMode"),
         collect_data(spirv_info, "ExecutionModel"),
         collect_data(spirv_info, "ImageFormat"),
+        collect_data(spirv_info, "MemoryModel"),
         collect_data(spirv_info, "StorageClass"),
+        collect_data(spirv_info, "ImageOperands"),
         collect_opcodes(spirv_info),
     ]
 

@@ -268,8 +268,16 @@ struct ir3_instruction {
 			int off;              /* component/offset */
 		} fo;
 		struct {
-			struct ir3_block *block;
-		} inout;
+			unsigned samp, tex;
+			unsigned input_offset;
+		} prefetch;
+		struct {
+			/* for sysvals, identifies the sysval type.  Mostly so we can
+			 * identify the special cases where a sysval should not be DCE'd
+			 * (currently, just pre-fs texture fetch)
+			 */
+			gl_system_value sysval;
+		} input;
 	};
 
 	/* transient values used during various algorithms: */
@@ -638,13 +646,19 @@ static inline bool is_same_type_mov(struct ir3_instruction *instr)
 	case OPC_MOV:
 		if (instr->cat1.src_type != instr->cat1.dst_type)
 			return false;
+		/* If the type of dest reg and src reg are different,
+		 * it shouldn't be considered as same type mov
+		 */
+		if (!is_same_type_reg(instr->regs[0], instr->regs[1]))
+			return false;
 		break;
 	case OPC_ABSNEG_F:
 	case OPC_ABSNEG_S:
 		if (instr->flags & IR3_INSTR_SAT)
 			return false;
 		/* If the type of dest reg and src reg are different,
-		 * it shouldn't be considered as same type mov */
+		 * it shouldn't be considered as same type mov
+		 */
 		if (!is_same_type_reg(instr->regs[0], instr->regs[1]))
 			return false;
 		break;
@@ -852,8 +866,8 @@ static inline bool ir3_cat2_int(opc_t opc)
 	case OPC_MAX_S:
 	case OPC_CMPV_U:
 	case OPC_CMPV_S:
-	case OPC_MUL_U:
-	case OPC_MUL_S:
+	case OPC_MUL_U24:
+	case OPC_MUL_S24:
 	case OPC_MULL_U:
 	case OPC_CLZ_S:
 	case OPC_ABSNEG_S:
@@ -945,8 +959,8 @@ static inline unsigned ir3_cat2_absneg(opc_t opc)
 	case OPC_MAX_S:
 	case OPC_CMPV_U:
 	case OPC_CMPV_S:
-	case OPC_MUL_U:
-	case OPC_MUL_S:
+	case OPC_MUL_U24:
+	case OPC_MUL_S24:
 	case OPC_MULL_U:
 	case OPC_CLZ_S:
 		return 0;
@@ -1058,13 +1072,13 @@ void ir3_print(struct ir3 *ir);
 void ir3_print_instr(struct ir3_instruction *instr);
 
 /* depth calculation: */
+struct ir3_shader_variant;
 int ir3_delayslots(struct ir3_instruction *assigner,
 		struct ir3_instruction *consumer, unsigned n);
 void ir3_insert_by_depth(struct ir3_instruction *instr, struct list_head *list);
-void ir3_depth(struct ir3 *ir);
+void ir3_depth(struct ir3 *ir, struct ir3_shader_variant *so);
 
 /* copy-propagate: */
-struct ir3_shader_variant;
 void ir3_cp(struct ir3 *ir, struct ir3_shader_variant *so);
 
 /* group neighbors and insert mov's to resolve conflicts: */
@@ -1081,7 +1095,7 @@ void ir3_a6xx_fixup_atomic_dests(struct ir3 *ir, struct ir3_shader_variant *so);
 
 /* register assignment: */
 struct ir3_ra_reg_set * ir3_ra_alloc_reg_set(struct ir3_compiler *compiler);
-int ir3_ra(struct ir3_shader_variant *v);
+int ir3_ra(struct ir3_shader_variant *v, struct ir3_instruction **precolor, unsigned nprecolor);
 
 /* legalize: */
 void ir3_legalize(struct ir3 *ir, bool *has_ssbo, bool *need_pixlod, int *max_bary);
@@ -1293,6 +1307,8 @@ INSTR0(BR)
 INSTR0(JUMP)
 INSTR1(KILL)
 INSTR0(END)
+INSTR0(CHSH)
+INSTR0(CHMASK)
 
 /* cat2 instructions, most 2 src but some 1 src: */
 INSTR2(ADD_F)
@@ -1325,8 +1341,8 @@ INSTR1(NOT_B)
 INSTR2(XOR_B)
 INSTR2(CMPV_U)
 INSTR2(CMPV_S)
-INSTR2(MUL_U)
-INSTR2(MUL_S)
+INSTR2(MUL_U24)
+INSTR2(MUL_S24)
 INSTR2(MULL_U)
 INSTR1(BFREV_B)
 INSTR1(CLZ_S)
@@ -1405,10 +1421,12 @@ ir3_SAM(struct ir3_block *block, opc_t opc, type_t type,
 
 /* cat6 instructions: */
 INSTR2(LDLV)
-INSTR2(LDG)
-INSTR2(LDL)
+INSTR3(LDG)
+INSTR3(LDL)
+INSTR3(LDLW)
 INSTR3(STG)
 INSTR3(STL)
+INSTR3(STLW)
 INSTR1(RESINFO)
 INSTR1(RESFMT)
 INSTR2(ATOMIC_ADD)
@@ -1456,6 +1474,9 @@ INSTR4F(G, ATOMIC_XOR)
 /* cat7 instructions: */
 INSTR0(BAR)
 INSTR0(FENCE)
+
+/* meta instructions: */
+INSTR0(META_TEX_PREFETCH);
 
 /* ************************************************************************* */
 /* split this out or find some helper to use.. like main/bitset.h.. */

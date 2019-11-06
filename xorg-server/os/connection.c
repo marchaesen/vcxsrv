@@ -647,10 +647,10 @@ AllocNewConnection(XtransConnInfo trans_conn, int fd, CARD32 conn_time)
 
 /*****************
  * EstablishNewConnections
- *    If anyone is waiting on listened sockets, accept them.
- *    Updates AllClients and AllSockets.
+ *    If anyone is waiting on listened sockets, accept them. Drop pending
+ *    connections if they've stuck around for more than one minute.
  *****************/
-
+#define TimeOutValue 60 * MILLI_PER_SECOND
 static void
 EstablishNewConnections(int curconn, int ready, void *data)
 {

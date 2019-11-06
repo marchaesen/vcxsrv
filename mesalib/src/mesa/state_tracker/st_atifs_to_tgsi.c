@@ -541,7 +541,7 @@ void
 st_init_atifs_prog(struct gl_context *ctx, struct gl_program *prog)
 {
    /* we know this is st_fragment_program, because of st_new_ati_fs() */
-   struct st_fragment_program *stfp = (struct st_fragment_program *) prog;
+   struct st_common_program *stfp = (struct st_common_program *) prog;
    struct ati_fragment_shader *atifs = stfp->ati_fs;
 
    unsigned pass, i, r, optype, arg;

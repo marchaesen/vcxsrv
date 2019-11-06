@@ -32,8 +32,10 @@
 #define SMEM_WINDOW_SIZE (350 - ctx.num_waves * 35)
 #define VMEM_WINDOW_SIZE (1024 - ctx.num_waves * 64)
 #define POS_EXP_WINDOW_SIZE 512
-#define SMEM_MAX_MOVES (80 - ctx.num_waves * 8)
-#define VMEM_MAX_MOVES (128 - ctx.num_waves * 4)
+#define SMEM_MAX_MOVES (64 - ctx.num_waves * 4)
+#define VMEM_MAX_MOVES (128 - ctx.num_waves * 8)
+/* creating clauses decreases def-use distances, so make it less aggressive the lower num_waves is */
+#define VMEM_CLAUSE_MAX_GRAB_DIST ((ctx.num_waves - 1) * 8)
 #define POS_EXP_MAX_MOVES 512
 
 namespace aco {
@@ -41,6 +43,11 @@ namespace aco {
 struct sched_ctx {
    std::vector<bool> depends_on;
    std::vector<bool> RAR_dependencies;
+   /* For downwards VMEM scheduling, same as RAR_dependencies but excludes the
+    * instructions in the clause, since new instructions in the clause are not
+    * moved past any other instructions in the clause. */
+   std::vector<bool> new_RAR_dependencies;
+
    RegisterDemand max_registers;
    int16_t num_waves;
    int16_t last_SMEM_stall;
@@ -110,6 +117,10 @@ bool can_move_instr(aco_ptr<Instruction>& instr, Instruction* current, int movin
    if (instr->format == Format::EXP)
       return false;
 
+   /* don't move s_memtime/s_memrealtime */
+   if (instr->opcode == aco_opcode::s_memtime || instr->opcode == aco_opcode::s_memrealtime)
+      return false;
+
    /* handle barriers */
 
    /* TODO: instead of stopping, maybe try to move the barriers and any
@@ -161,11 +172,11 @@ bool can_move_instr(aco_ptr<Instruction>& instr, Instruction* current, int movin
    }
 }
 
-bool can_reorder(Instruction* candidate, bool allow_smem)
+bool can_reorder(Instruction* candidate)
 {
    switch (candidate->format) {
    case Format::SMEM:
-      return allow_smem || static_cast<SMEM_instruction*>(candidate)->can_reorder;
+      return static_cast<SMEM_instruction*>(candidate)->can_reorder;
    case Format::MUBUF:
       return static_cast<MUBUF_instruction*>(candidate)->can_reorder;
    case Format::MIMG:
@@ -189,7 +200,11 @@ void schedule_SMEM(sched_ctx& ctx, Block* block,
    int window_size = SMEM_WINDOW_SIZE;
    int max_moves = SMEM_MAX_MOVES;
    int16_t k = 0;
-   bool can_reorder_cur = can_reorder(current, false);
+   bool can_reorder_cur = can_reorder(current);
+
+   /* don't move s_memtime/s_memrealtime */
+   if (current->opcode == aco_opcode::s_memtime || current->opcode == aco_opcode::s_memrealtime)
+      return;
 
    /* create the initial set of values which current depends on */
    std::fill(ctx.depends_on.begin(), ctx.depends_on.end(), false);
@@ -209,6 +224,7 @@ void schedule_SMEM(sched_ctx& ctx, Block* block,
    for (int candidate_idx = idx - 1; k < max_moves && candidate_idx > (int) idx - window_size; candidate_idx--) {
       assert(candidate_idx >= 0);
       aco_ptr<Instruction>& candidate = block->instructions[candidate_idx];
+      bool can_reorder_candidate = can_reorder(candidate.get());
 
       /* break if we'd make the previous SMEM instruction stall */
       bool can_stall_prev_smem = idx <= ctx.last_SMEM_dep_idx && candidate_idx < ctx.last_SMEM_dep_idx;
@@ -216,11 +232,15 @@ void schedule_SMEM(sched_ctx& ctx, Block* block,
          break;
 
       /* break when encountering another MEM instruction, logical_start or barriers */
-      if (!can_reorder(candidate.get(), false) && !can_reorder_cur)
+      if (!can_reorder_candidate && !can_reorder_cur)
          break;
       if (candidate->opcode == aco_opcode::p_logical_start)
          break;
+      if (candidate->opcode == aco_opcode::p_exit_early_if)
+         break;
       if (!can_move_instr(candidate, current, moving_interaction))
+         break;
+      if (candidate->isVMEM())
          break;
       register_pressure.update(register_demand[candidate_idx]);
 
@@ -247,6 +267,7 @@ void schedule_SMEM(sched_ctx& ctx, Block* block,
             if (op.isTemp())
                ctx.depends_on[op.tempId()] = true;
          }
+         can_reorder_cur &= can_reorder_candidate;
          continue;
       }
 
@@ -263,10 +284,11 @@ void schedule_SMEM(sched_ctx& ctx, Block* block,
             if (op.isTemp())
                ctx.depends_on[op.tempId()] = true;
          }
+         can_reorder_cur &= can_reorder_candidate;
          continue;
       }
 
-      /* check if register pressure is low enough: the diff is negative if register pressure is decreased */
+      /* check if register pressure is low enough: the diff is negative if register pressure is increased */
       const RegisterDemand candidate_diff = getLiveChanges(candidate);
       const RegisterDemand tempDemand = getTempRegisters(candidate);
       if (RegisterDemand(register_pressure - candidate_diff).exceeds(ctx.max_registers))
@@ -306,12 +328,14 @@ void schedule_SMEM(sched_ctx& ctx, Block* block,
    insert_idx = idx + 1;
    moving_interaction = barrier_none;
    moving_spill = false;
+   can_reorder_cur = true;
 
    bool found_dependency = false;
    /* second, check if we have instructions after current to move up */
    for (int candidate_idx = idx + 1; k < max_moves && candidate_idx < (int) idx + window_size; candidate_idx++) {
       assert(candidate_idx < (int) block->instructions.size());
       aco_ptr<Instruction>& candidate = block->instructions[candidate_idx];
+      bool can_reorder_candidate = can_reorder(candidate.get());
 
       if (candidate->opcode == aco_opcode::p_logical_end)
          break;
@@ -326,6 +350,9 @@ void schedule_SMEM(sched_ctx& ctx, Block* block,
       /* check if candidate depends on current */
       bool is_dependency = std::any_of(candidate->operands.begin(), candidate->operands.end(),
                                        [&ctx](const Operand& op) { return op.isTemp() && ctx.depends_on[op.tempId()];});
+      /* no need to steal from following VMEM instructions */
+      if (is_dependency && candidate->isVMEM())
+         break;
       if (moving_spill && is_spill_reload(candidate))
          is_dependency = true;
       if ((moving_interaction & barrier_shared) && candidate->format == Format::DS)
@@ -349,7 +376,7 @@ void schedule_SMEM(sched_ctx& ctx, Block* block,
          }
       }
 
-      if (!can_reorder(candidate.get(), false) && !can_reorder_cur)
+      if (!can_reorder_candidate && !can_reorder_cur)
          break;
 
       if (!found_dependency) {
@@ -360,8 +387,10 @@ void schedule_SMEM(sched_ctx& ctx, Block* block,
       /* update register pressure */
       register_pressure.update(register_demand[candidate_idx - 1]);
 
-      if (is_dependency)
+      if (is_dependency) {
+         can_reorder_cur &= can_reorder_candidate;
          continue;
+      }
       assert(insert_idx != idx);
 
       // TODO: correctly calculate register pressure for this case
@@ -372,6 +401,8 @@ void schedule_SMEM(sched_ctx& ctx, Block* block,
             register_pressure_unknown = true;
       }
       if (register_pressure_unknown) {
+         if (candidate->isVMEM())
+            break;
          for (const Definition& def : candidate->definitions) {
             if (def.isTemp())
                ctx.RAR_dependencies[def.tempId()] = true;
@@ -380,6 +411,7 @@ void schedule_SMEM(sched_ctx& ctx, Block* block,
             if (op.isTemp())
                ctx.RAR_dependencies[op.tempId()] = true;
          }
+         can_reorder_cur &= can_reorder_candidate;
          continue;
       }
 
@@ -418,32 +450,46 @@ void schedule_VMEM(sched_ctx& ctx, Block* block,
    assert(idx != 0);
    int window_size = VMEM_WINDOW_SIZE;
    int max_moves = VMEM_MAX_MOVES;
+   int clause_max_grab_dist = VMEM_CLAUSE_MAX_GRAB_DIST;
    int16_t k = 0;
-   bool can_reorder_cur = can_reorder(current, false);
+   /* initially true as we don't pull other VMEM instructions
+    * through the current instruction */
+   bool can_reorder_vmem = true;
+   bool can_reorder_smem = true;
 
    /* create the initial set of values which current depends on */
    std::fill(ctx.depends_on.begin(), ctx.depends_on.end(), false);
+   std::fill(ctx.RAR_dependencies.begin(), ctx.RAR_dependencies.end(), false);
+   std::fill(ctx.new_RAR_dependencies.begin(), ctx.new_RAR_dependencies.end(), false);
    for (const Operand& op : current->operands) {
-      if (op.isTemp())
+      if (op.isTemp()) {
          ctx.depends_on[op.tempId()] = true;
+         if (op.isFirstKill())
+            ctx.RAR_dependencies[op.tempId()] = true;
+      }
    }
 
    /* maintain how many registers remain free when moving instructions */
-   RegisterDemand register_pressure = register_demand[idx];
+   RegisterDemand register_pressure_indep = register_demand[idx];
+   RegisterDemand register_pressure_clause = register_demand[idx];
 
    /* first, check if we have instructions before current to move down */
-   int insert_idx = idx + 1;
+   int indep_insert_idx = idx + 1;
+   int clause_insert_idx = idx;
    int moving_interaction = barrier_none;
    bool moving_spill = false;
 
    for (int candidate_idx = idx - 1; k < max_moves && candidate_idx > (int) idx - window_size; candidate_idx--) {
       assert(candidate_idx >= 0);
       aco_ptr<Instruction>& candidate = block->instructions[candidate_idx];
+      bool can_reorder_candidate = can_reorder(candidate.get());
 
       /* break when encountering another VMEM instruction, logical_start or barriers */
-      if (!can_reorder(candidate.get(), true) && !can_reorder_cur)
+      if (!can_reorder_smem && candidate->format == Format::SMEM && !can_reorder_candidate)
          break;
       if (candidate->opcode == aco_opcode::p_logical_start)
+         break;
+      if (candidate->opcode == aco_opcode::p_exit_early_if)
          break;
       if (!can_move_instr(candidate, current, moving_interaction))
          break;
@@ -452,10 +498,20 @@ void schedule_VMEM(sched_ctx& ctx, Block* block,
       bool can_stall_prev_smem = idx <= ctx.last_SMEM_dep_idx && candidate_idx < ctx.last_SMEM_dep_idx;
       if (can_stall_prev_smem && ctx.last_SMEM_stall >= 0)
          break;
-      register_pressure.update(register_demand[candidate_idx]);
+      register_pressure_indep.update(register_demand[candidate_idx]);
+
+      bool part_of_clause = false;
+      if (candidate->isVMEM()) {
+         bool same_resource = candidate->operands[1].tempId() == current->operands[1].tempId();
+         bool can_reorder = can_reorder_vmem || can_reorder_candidate;
+         int grab_dist = clause_insert_idx - candidate_idx;
+         /* We can't easily tell how much this will decrease the def-to-use
+          * distances, so just use how far it will be moved as a heuristic. */
+         part_of_clause = can_reorder && same_resource && grab_dist < clause_max_grab_dist;
+      }
 
       /* if current depends on candidate, add additional dependencies and continue */
-      bool can_move_down = true;
+      bool can_move_down = !candidate->isVMEM() || part_of_clause;
       bool writes_exec = false;
       for (const Definition& def : candidate->definitions) {
          if (def.isTemp() && ctx.depends_on[def.tempId()])
@@ -474,29 +530,59 @@ void schedule_VMEM(sched_ctx& ctx, Block* block,
       moving_spill |= is_spill_reload(candidate);
       if (!can_move_down) {
          for (const Operand& op : candidate->operands) {
-            if (op.isTemp())
+            if (op.isTemp()) {
                ctx.depends_on[op.tempId()] = true;
+               if (op.isFirstKill()) {
+                  ctx.RAR_dependencies[op.tempId()] = true;
+                  ctx.new_RAR_dependencies[op.tempId()] = true;
+               }
+            }
          }
+         register_pressure_clause.update(register_demand[candidate_idx]);
+         can_reorder_smem &= candidate->format != Format::SMEM || can_reorder_candidate;
+         can_reorder_vmem &= !candidate->isVMEM() || can_reorder_candidate;
          continue;
       }
 
+      if (part_of_clause) {
+         for (const Operand& op : candidate->operands) {
+            if (op.isTemp()) {
+               ctx.depends_on[op.tempId()] = true;
+               if (op.isFirstKill())
+                  ctx.RAR_dependencies[op.tempId()] = true;
+            }
+         }
+      }
+
       bool register_pressure_unknown = false;
+      std::vector<bool>& RAR_deps = part_of_clause ? ctx.new_RAR_dependencies : ctx.RAR_dependencies;
       /* check if one of candidate's operands is killed by depending instruction */
       for (const Operand& op : candidate->operands) {
-         if (op.isTemp() && ctx.depends_on[op.tempId()]) {
+         if (op.isTemp() && RAR_deps[op.tempId()]) {
             // FIXME: account for difference in register pressure
             register_pressure_unknown = true;
          }
       }
       if (register_pressure_unknown) {
          for (const Operand& op : candidate->operands) {
-            if (op.isTemp())
+            if (op.isTemp()) {
                ctx.depends_on[op.tempId()] = true;
+               if (op.isFirstKill()) {
+                  ctx.RAR_dependencies[op.tempId()] = true;
+                  ctx.new_RAR_dependencies[op.tempId()] = true;
+               }
+            }
          }
+         register_pressure_clause.update(register_demand[candidate_idx]);
+         can_reorder_smem &= candidate->format != Format::SMEM || can_reorder_candidate;
+         can_reorder_vmem &= !candidate->isVMEM() || can_reorder_candidate;
          continue;
       }
 
-      /* check if register pressure is low enough: the diff is negative if register pressure is decreased */
+      int insert_idx = part_of_clause ? clause_insert_idx : indep_insert_idx;
+      RegisterDemand register_pressure = part_of_clause ? register_pressure_clause : register_pressure_indep;
+
+      /* check if register pressure is low enough: the diff is negative if register pressure is increased */
       const RegisterDemand candidate_diff = getLiveChanges(candidate);
       const RegisterDemand temp = getTempRegisters(candidate);;
       if (RegisterDemand(register_pressure - candidate_diff).exceeds(ctx.max_registers))
@@ -516,8 +602,12 @@ void schedule_VMEM(sched_ctx& ctx, Block* block,
          register_demand[i] -= candidate_diff;
       }
       register_demand[insert_idx - 1] = new_demand;
-      register_pressure -=  candidate_diff;
-      insert_idx--;
+      register_pressure_clause -= candidate_diff;
+      clause_insert_idx--;
+      if (!part_of_clause) {
+         register_pressure_indep -= candidate_diff;
+         indep_insert_idx--;
+      }
       k++;
       if (candidate_idx < ctx.last_SMEM_dep_idx)
          ctx.last_SMEM_stall++;
@@ -532,15 +622,20 @@ void schedule_VMEM(sched_ctx& ctx, Block* block,
    }
 
    /* find the first instruction depending on current or find another VMEM */
-   insert_idx = idx;
+   RegisterDemand register_pressure;
+   int insert_idx = idx;
    moving_interaction = barrier_none;
    moving_spill = false;
+   // TODO: differentiate between loads and stores (load-load can always reorder)
+   can_reorder_vmem = true;
+   can_reorder_smem = true;
 
    bool found_dependency = false;
    /* second, check if we have instructions after current to move up */
    for (int candidate_idx = idx + 1; k < max_moves && candidate_idx < (int) idx + window_size; candidate_idx++) {
       assert(candidate_idx < (int) block->instructions.size());
       aco_ptr<Instruction>& candidate = block->instructions[candidate_idx];
+      bool can_reorder_candidate = can_reorder(candidate.get());
 
       if (candidate->opcode == aco_opcode::p_logical_end)
          break;
@@ -553,7 +648,11 @@ void schedule_VMEM(sched_ctx& ctx, Block* block,
          break;
 
       /* check if candidate depends on current */
-      bool is_dependency = !can_reorder(candidate.get(), true) && !can_reorder_cur;
+      bool is_dependency = false;
+      if (candidate->format == Format::SMEM)
+         is_dependency = !can_reorder_smem && !can_reorder_candidate;
+      if (candidate->isVMEM())
+         is_dependency = !can_reorder_vmem && !can_reorder_candidate;
       for (const Operand& op : candidate->operands) {
          if (op.isTemp() && ctx.depends_on[op.tempId()]) {
             is_dependency = true;
@@ -575,12 +674,23 @@ void schedule_VMEM(sched_ctx& ctx, Block* block,
             if (op.isTemp())
                ctx.RAR_dependencies[op.tempId()] = true;
          }
+         /* update flag whether we can reorder other memory instructions */
+         can_reorder_smem &= candidate->format != Format::SMEM || can_reorder_candidate;
+         can_reorder_vmem &= !candidate->isVMEM() || can_reorder_candidate;
+
          if (!found_dependency) {
             insert_idx = candidate_idx;
             found_dependency = true;
             /* init register pressure */
             register_pressure = register_demand[insert_idx - 1];
             continue;
+         }
+
+      } else if (candidate->isVMEM()) {
+         /* don't move up dependencies of other VMEM instructions */
+         for (const Definition& def : candidate->definitions) {
+            if (def.isTemp())
+               ctx.depends_on[def.tempId()] = true;
          }
       }
 
@@ -594,18 +704,20 @@ void schedule_VMEM(sched_ctx& ctx, Block* block,
       bool register_pressure_unknown = false;
       /* check if candidate uses/kills an operand which is used by a dependency */
       for (const Operand& op : candidate->operands) {
-         if (op.isTemp() && ctx.RAR_dependencies[op.tempId()])
+         if (op.isTemp() && op.isFirstKill() && ctx.RAR_dependencies[op.tempId()])
             register_pressure_unknown = true;
       }
       if (register_pressure_unknown) {
          for (const Definition& def : candidate->definitions) {
             if (def.isTemp())
-               ctx.RAR_dependencies[def.tempId()] = true;
+               ctx.depends_on[def.tempId()] = true;
          }
          for (const Operand& op : candidate->operands) {
             if (op.isTemp())
                ctx.RAR_dependencies[op.tempId()] = true;
          }
+         can_reorder_smem &= candidate->format != Format::SMEM || can_reorder_candidate;
+         can_reorder_vmem &= !candidate->isVMEM() || can_reorder_candidate;
          continue;
       }
 
@@ -645,9 +757,13 @@ void schedule_position_export(sched_ctx& ctx, Block* block,
 
    /* create the initial set of values which current depends on */
    std::fill(ctx.depends_on.begin(), ctx.depends_on.end(), false);
-   for (unsigned i = 0; i < current->operands.size(); i++) {
-      if (current->operands[i].isTemp())
-         ctx.depends_on[current->operands[i].tempId()] = true;
+   std::fill(ctx.RAR_dependencies.begin(), ctx.RAR_dependencies.end(), false);
+   for (const Operand& op : current->operands) {
+      if (op.isTemp()) {
+         ctx.depends_on[op.tempId()] = true;
+         if (op.isFirstKill())
+            ctx.RAR_dependencies[op.tempId()] = true;
+      }
    }
 
    /* maintain how many registers remain free when moving instructions */
@@ -664,6 +780,8 @@ void schedule_position_export(sched_ctx& ctx, Block* block,
 
       /* break when encountering logical_start or barriers */
       if (candidate->opcode == aco_opcode::p_logical_start)
+         break;
+      if (candidate->opcode == aco_opcode::p_exit_early_if)
          break;
       if (candidate->isVMEM() || candidate->format == Format::SMEM)
          break;
@@ -691,30 +809,36 @@ void schedule_position_export(sched_ctx& ctx, Block* block,
       moving_interaction |= get_barrier_interaction(candidate.get());
       moving_spill |= is_spill_reload(candidate);
       if (!can_move_down) {
-         for (unsigned i = 0; i < candidate->operands.size(); i++) {
-            if (candidate->operands[i].isTemp())
-               ctx.depends_on[candidate->operands[i].tempId()] = true;
+         for (const Operand& op : candidate->operands) {
+            if (op.isTemp()) {
+               ctx.depends_on[op.tempId()] = true;
+               if (op.isFirstKill())
+                  ctx.RAR_dependencies[op.tempId()] = true;
+            }
          }
          continue;
       }
 
       bool register_pressure_unknown = false;
       /* check if one of candidate's operands is killed by depending instruction */
-      for (unsigned i = 0; i < candidate->operands.size(); i++) {
-         if (candidate->operands[i].isTemp() && ctx.depends_on[candidate->operands[i].tempId()]) {
+      for (const Operand& op : candidate->operands) {
+         if (op.isTemp() && ctx.RAR_dependencies[op.tempId()]) {
             // FIXME: account for difference in register pressure
             register_pressure_unknown = true;
          }
       }
       if (register_pressure_unknown) {
-         for (unsigned i = 0; i < candidate->operands.size(); i++) {
-            if (candidate->operands[i].isTemp())
-               ctx.depends_on[candidate->operands[i].tempId()] = true;
+         for (const Operand& op : candidate->operands) {
+            if (op.isTemp()) {
+               ctx.depends_on[op.tempId()] = true;
+               if (op.isFirstKill())
+                  ctx.RAR_dependencies[op.tempId()] = true;
+            }
          }
          continue;
       }
 
-      /* check if register pressure is low enough: the diff is negative if register pressure is decreased */
+      /* check if register pressure is low enough: the diff is negative if register pressure is increased */
       const RegisterDemand candidate_diff = getLiveChanges(candidate);
       const RegisterDemand temp = getTempRegisters(candidate);;
       if (RegisterDemand(register_pressure - candidate_diff).exceeds(ctx.max_registers))
@@ -785,16 +909,23 @@ void schedule_program(Program *program, live& live_vars)
    sched_ctx ctx;
    ctx.depends_on.resize(program->peekAllocationId());
    ctx.RAR_dependencies.resize(program->peekAllocationId());
+   ctx.new_RAR_dependencies.resize(program->peekAllocationId());
    /* Allowing the scheduler to reduce the number of waves to as low as 5
     * improves performance of Thrones of Britannia significantly and doesn't
     * seem to hurt anything else. */
-   //TODO: maybe use some sort of heuristic instead
-   //TODO: this also increases window-size/max-moves? did I realize that at the time?
-   ctx.num_waves = std::min<uint16_t>(program->num_waves, 5);
-   assert(ctx.num_waves);
-   uint16_t total_sgpr_regs = program->chip_class >= GFX8 ? 800 : 512;
-   uint16_t max_addressible_sgpr = program->sgpr_limit;
-   ctx.max_registers = { int16_t(((256 / ctx.num_waves) & ~3) - 2), std::min<int16_t>(((total_sgpr_regs / ctx.num_waves) & ~7) - 2, max_addressible_sgpr)};
+   if (program->num_waves <= 5)
+      ctx.num_waves = program->num_waves;
+   else if (program->max_reg_demand.vgpr >= 32)
+      ctx.num_waves = 5;
+   else if (program->max_reg_demand.vgpr >= 28)
+      ctx.num_waves = 6;
+   else if (program->max_reg_demand.vgpr >= 24)
+      ctx.num_waves = 7;
+   else
+      ctx.num_waves = 8;
+
+   assert(ctx.num_waves > 0 && ctx.num_waves <= program->num_waves);
+   ctx.max_registers = { int16_t(((256 / ctx.num_waves) & ~3) - 2), int16_t(get_addr_sgpr_from_waves(program, ctx.num_waves))};
 
    for (Block& block : program->blocks)
       schedule_block(ctx, program, &block, live_vars);

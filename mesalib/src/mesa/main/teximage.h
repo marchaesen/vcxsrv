@@ -788,6 +788,14 @@ extern void GLAPIENTRY
 _mesa_TextureBuffer(GLuint texture, GLenum internalFormat, GLuint buffer);
 
 extern void GLAPIENTRY
+_mesa_TextureBufferEXT(GLuint texture, GLenum target, GLenum internalFormat,
+                       GLuint buffer);
+
+extern void GLAPIENTRY
+_mesa_MultiTexBufferEXT(GLenum texunit, GLenum target, GLenum internalFormat,
+                        GLuint buffer);
+
+extern void GLAPIENTRY
 _mesa_TextureBufferRange(GLuint texture, GLenum internalFormat, GLuint buffer,
                          GLintptr offset, GLsizeiptr size);
 

@@ -449,6 +449,28 @@ vk_format_is_int(VkFormat format)
 }
 
 static inline bool
+vk_format_is_uint(VkFormat format)
+{
+   const struct vk_format_description *desc = vk_format_description(format);
+   int channel = vk_format_get_first_non_void_channel(format);
+
+   return channel >= 0 &&
+          desc->channel[channel].pure_integer &&
+          desc->channel[channel].type != VK_FORMAT_TYPE_SIGNED;
+}
+
+static inline bool
+vk_format_is_sint(VkFormat format)
+{
+   const struct vk_format_description *desc = vk_format_description(format);
+   int channel = vk_format_get_first_non_void_channel(format);
+
+   return channel >= 0 &&
+          desc->channel[channel].pure_integer &&
+          desc->channel[channel].type == VK_FORMAT_TYPE_SIGNED;
+}
+
+static inline bool
 vk_format_is_srgb(VkFormat format)
 {
    const struct vk_format_description *desc = vk_format_description(format);

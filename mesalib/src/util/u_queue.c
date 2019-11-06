@@ -67,7 +67,7 @@ atexit_handler(void)
 static void
 global_init(void)
 {
-   LIST_INITHEAD(&queue_list);
+   list_inithead(&queue_list);
    atexit(atexit_handler);
 }
 
@@ -77,7 +77,7 @@ add_to_atexit_list(struct util_queue *queue)
    call_once(&atexit_once_flag, global_init);
 
    mtx_lock(&exit_mutex);
-   LIST_ADD(&queue->head, &queue_list);
+   list_add(&queue->head, &queue_list);
    mtx_unlock(&exit_mutex);
 }
 
@@ -89,7 +89,7 @@ remove_from_atexit_list(struct util_queue *queue)
    mtx_lock(&exit_mutex);
    LIST_FOR_EACH_ENTRY_SAFE(iter, tmp, &queue_list, head) {
       if (iter == queue) {
-         LIST_DEL(&iter->head);
+         list_del(&iter->head);
          break;
       }
    }
@@ -647,6 +647,13 @@ util_queue_finish(struct util_queue *queue)
     * wait for it exclusively.
     */
    mtx_lock(&queue->finish_lock);
+
+   /* The number of threads can be changed to 0, e.g. by the atexit handler. */
+   if (!queue->num_threads) {
+      mtx_unlock(&queue->finish_lock);
+      return;
+   }
+
    fences = malloc(queue->num_threads * sizeof(*fences));
    util_barrier_init(&barrier, queue->num_threads);
 

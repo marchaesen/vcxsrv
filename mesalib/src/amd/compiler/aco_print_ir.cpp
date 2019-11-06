@@ -2,6 +2,7 @@
 #include "aco_builder.h"
 
 #include "sid.h"
+#include "ac_shader_util.h"
 
 namespace aco {
 
@@ -205,6 +206,8 @@ static void print_instr_format_specific(struct Instruction *instr, FILE *output)
       SMEM_instruction* smem = static_cast<SMEM_instruction*>(instr);
       if (smem->glc)
          fprintf(output, " glc");
+      if (smem->dlc)
+         fprintf(output, " dlc");
       if (smem->nv)
          fprintf(output, " nv");
       print_barrier_reorder(smem->can_reorder, smem->barrier, output);
@@ -235,6 +238,8 @@ static void print_instr_format_specific(struct Instruction *instr, FILE *output)
          fprintf(output, " idxen");
       if (mubuf->glc)
          fprintf(output, " glc");
+      if (mubuf->dlc)
+         fprintf(output, " dlc");
       if (mubuf->slc)
          fprintf(output, " slc");
       if (mubuf->tfe)
@@ -257,10 +262,38 @@ static void print_instr_format_specific(struct Instruction *instr, FILE *output)
                  mimg->dmask & 0x2 ? "y" : "",
                  mimg->dmask & 0x4 ? "z" : "",
                  mimg->dmask & 0x8 ? "w" : "");
+      switch (mimg->dim) {
+      case ac_image_1d:
+         fprintf(output, " 1d");
+         break;
+      case ac_image_2d:
+         fprintf(output, " 2d");
+         break;
+      case ac_image_3d:
+         fprintf(output, " 3d");
+         break;
+      case ac_image_cube:
+         fprintf(output, " cube");
+         break;
+      case ac_image_1darray:
+         fprintf(output, " 1darray");
+         break;
+      case ac_image_2darray:
+         fprintf(output, " 2darray");
+         break;
+      case ac_image_2dmsaa:
+         fprintf(output, " 2dmsaa");
+         break;
+      case ac_image_2darraymsaa:
+         fprintf(output, " 2darraymsaa");
+         break;
+      }
       if (mimg->unrm)
          fprintf(output, " unrm");
       if (mimg->glc)
          fprintf(output, " glc");
+      if (mimg->dlc)
+         fprintf(output, " dlc");
       if (mimg->slc)
          fprintf(output, " slc");
       if (mimg->tfe)
@@ -330,6 +363,8 @@ static void print_instr_format_specific(struct Instruction *instr, FILE *output)
          fprintf(output, " offset:%u", flat->offset);
       if (flat->glc)
          fprintf(output, " glc");
+      if (flat->dlc)
+         fprintf(output, " dlc");
       if (flat->slc)
          fprintf(output, " slc");
       if (flat->lds)
@@ -377,6 +412,8 @@ static void print_instr_format_specific(struct Instruction *instr, FILE *output)
          fprintf(output, " idxen");
       if (mtbuf->glc)
          fprintf(output, " glc");
+      if (mtbuf->dlc)
+         fprintf(output, " dlc");
       if (mtbuf->slc)
          fprintf(output, " slc");
       if (mtbuf->tfe)
@@ -528,6 +565,8 @@ static void print_block_kind(uint16_t kind, FILE *output)
       fprintf(output, "discard_if, ");
    if (kind & block_kind_needs_lowering)
       fprintf(output, "needs_lowering, ");
+   if (kind & block_kind_uses_demote)
+      fprintf(output, "uses_demote, ");
 }
 
 void aco_print_block(const struct Block* block, FILE *output)

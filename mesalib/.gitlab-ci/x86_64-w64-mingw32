@@ -1,0 +1,20 @@
+[binaries]
+c = ['ccache', 'x86_64-w64-mingw32-gcc']
+cpp = ['ccache', 'x86_64-w64-mingw32-g++']
+ar = 'x86_64-w64-mingw32-ar'
+strip = 'x86_64-w64-mingw32-strip'
+pkgconfig = '/usr/local/bin/x86_64-w64-mingw32-pkg-config'
+windres = 'x86_64-w64-mingw32-windres'
+exe_wrapper = ['wine64']
+
+[properties]
+needs_exe_wrapper = True
+sys_root = '/usr/x86_64-w64-mingw32/'
+
+[host_machine]
+system = 'windows'
+cpu_family = 'x86_64'
+cpu = 'x86_64'
+endian = 'little'
+
+; vim: ft=dosini

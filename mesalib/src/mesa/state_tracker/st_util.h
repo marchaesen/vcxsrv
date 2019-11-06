@@ -71,7 +71,7 @@ st_invalidate_readpix_cache(struct st_context *st)
 static inline GLuint
 st_fb_orientation(const struct gl_framebuffer *fb)
 {
-   if (fb && _mesa_is_winsys_fbo(fb)) {
+   if (fb && fb->FlipY) {
       /* Drawing into a window (on-screen buffer).
        *
        * Negate Y scale to flip image vertically.
@@ -101,6 +101,39 @@ st_user_clip_planes_enabled(struct gl_context *ctx)
           ctx->Transform.ClipPlanesEnabled;
 }
 
+static inline bool
+st_point_size_per_vertex(struct gl_context *ctx)
+{
+   const struct gl_program *vertProg = ctx->VertexProgram._Current;
+   if (vertProg) {
+      if (vertProg->Id == 0) {
+         if (vertProg->info.outputs_written &
+             BITFIELD64_BIT(VARYING_SLOT_PSIZ)) {
+            /* generated program which emits point size */
+            return true;
+         }
+      }
+      else if (ctx->API != API_OPENGLES2) {
+         /* PointSizeEnabled is always set in ES2 contexts */
+         return ctx->VertexProgram.PointSizeEnabled;
+      }
+      else {
+         /* ST_NEW_TESSEVAL_PROGRAM | ST_NEW_GEOMETRY_PROGRAM */
+         /* We have to check the last bound stage and see if it writes psize */
+         struct gl_program *last = NULL;
+         if (ctx->GeometryProgram._Current)
+            last = ctx->GeometryProgram._Current;
+         else if (ctx->TessEvalProgram._Current)
+            last = ctx->TessEvalProgram._Current;
+         else if (ctx->VertexProgram._Current)
+            last = ctx->VertexProgram._Current;
+         if (last)
+            return !!(last->info.outputs_written &
+                      BITFIELD64_BIT(VARYING_SLOT_PSIZ));
+      }
+   }
+   return false;
+}
 
 /** clear-alloc a struct-sized object, with casting */
 #define ST_CALLOC_STRUCT(T)   (struct T *) calloc(1, sizeof(struct T))

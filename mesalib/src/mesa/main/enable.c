@@ -58,12 +58,13 @@ update_derived_primitive_restart_state(struct gl_context *ctx)
  * Helper to enable/disable VAO client-side state.
  */
 static void
-vao_state(struct gl_context *ctx, gl_vert_attrib attr, GLboolean state)
+vao_state(struct gl_context *ctx, struct gl_vertex_array_object* vao,
+          gl_vert_attrib attr, GLboolean state)
 {
    if (state)
-      _mesa_enable_vertex_array_attrib(ctx, ctx->Array.VAO, attr);
+      _mesa_enable_vertex_array_attrib(ctx, vao, attr);
    else
-      _mesa_disable_vertex_array_attrib(ctx, ctx->Array.VAO, attr);
+      _mesa_disable_vertex_array_attrib(ctx, vao, attr);
 }
 
 
@@ -71,38 +72,39 @@ vao_state(struct gl_context *ctx, gl_vert_attrib attr, GLboolean state)
  * Helper to enable/disable client-side state.
  */
 static void
-client_state(struct gl_context *ctx, GLenum cap, GLboolean state)
+client_state(struct gl_context *ctx, struct gl_vertex_array_object* vao,
+             GLenum cap, GLboolean state)
 {
    switch (cap) {
       case GL_VERTEX_ARRAY:
-         vao_state(ctx, VERT_ATTRIB_POS, state);
+         vao_state(ctx, vao, VERT_ATTRIB_POS, state);
          break;
       case GL_NORMAL_ARRAY:
-         vao_state(ctx, VERT_ATTRIB_NORMAL, state);
+         vao_state(ctx, vao, VERT_ATTRIB_NORMAL, state);
          break;
       case GL_COLOR_ARRAY:
-         vao_state(ctx, VERT_ATTRIB_COLOR0, state);
+         vao_state(ctx, vao, VERT_ATTRIB_COLOR0, state);
          break;
       case GL_INDEX_ARRAY:
-         vao_state(ctx, VERT_ATTRIB_COLOR_INDEX, state);
+         vao_state(ctx, vao, VERT_ATTRIB_COLOR_INDEX, state);
          break;
       case GL_TEXTURE_COORD_ARRAY:
-         vao_state(ctx, VERT_ATTRIB_TEX(ctx->Array.ActiveTexture), state);
+         vao_state(ctx, vao, VERT_ATTRIB_TEX(ctx->Array.ActiveTexture), state);
          break;
       case GL_EDGE_FLAG_ARRAY:
-         vao_state(ctx, VERT_ATTRIB_EDGEFLAG, state);
+         vao_state(ctx, vao, VERT_ATTRIB_EDGEFLAG, state);
          break;
       case GL_FOG_COORDINATE_ARRAY_EXT:
-         vao_state(ctx, VERT_ATTRIB_FOG, state);
+         vao_state(ctx, vao, VERT_ATTRIB_FOG, state);
          break;
       case GL_SECONDARY_COLOR_ARRAY_EXT:
-         vao_state(ctx, VERT_ATTRIB_COLOR1, state);
+         vao_state(ctx, vao, VERT_ATTRIB_COLOR1, state);
          break;
 
       case GL_POINT_SIZE_ARRAY_OES:
          FLUSH_VERTICES(ctx, _NEW_PROGRAM);
          ctx->VertexProgram.PointSizeEnabled = state;
-         vao_state(ctx, VERT_ATTRIB_POINT_SIZE, state);
+         vao_state(ctx, vao, VERT_ATTRIB_POINT_SIZE, state);
          break;
 
       /* GL_NV_primitive_restart */
@@ -140,7 +142,8 @@ invalid_enum_error:
  *   - DisableClientStateiEXT
  */
 static void
-client_state_i(struct gl_context *ctx, GLenum cap, GLuint index, GLboolean state)
+client_state_i(struct gl_context *ctx, struct gl_vertex_array_object* vao,
+               GLenum cap, GLuint index, GLboolean state)
 {
    int saved_active;
 
@@ -160,7 +163,7 @@ client_state_i(struct gl_context *ctx, GLenum cap, GLuint index, GLboolean state
 
    saved_active = ctx->Array.ActiveTexture;
    _mesa_ClientActiveTexture(GL_TEXTURE0 + index);
-   client_state(ctx, cap, state);
+   client_state(ctx, vao, cap, state);
    _mesa_ClientActiveTexture(GL_TEXTURE0 + saved_active);
 }
 
@@ -176,7 +179,38 @@ void GLAPIENTRY
 _mesa_EnableClientState( GLenum cap )
 {
    GET_CURRENT_CONTEXT(ctx);
-   client_state( ctx, cap, GL_TRUE );
+   client_state( ctx, ctx->Array.VAO, cap, GL_TRUE );
+}
+
+
+void GLAPIENTRY
+_mesa_EnableVertexArrayEXT( GLuint vaobj, GLenum cap )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_vertex_array_object* vao = _mesa_lookup_vao_err(ctx, vaobj,
+                                                             true,
+                                                             "glEnableVertexArrayEXT");
+   if (!vao)
+      return;
+
+   /* The EXT_direct_state_access spec says:
+    *    "Additionally EnableVertexArrayEXT and DisableVertexArrayEXT accept
+    *    the tokens TEXTURE0 through TEXTUREn where n is less than the
+    *    implementation-dependent limit of MAX_TEXTURE_COORDS.  For these
+    *    GL_TEXTUREi tokens, EnableVertexArrayEXT and DisableVertexArrayEXT
+    *    act identically to EnableVertexArrayEXT(vaobj, TEXTURE_COORD_ARRAY)
+    *    or DisableVertexArrayEXT(vaobj, TEXTURE_COORD_ARRAY) respectively
+    *    as if the active client texture is set to texture coordinate set i
+    *    based on the token TEXTUREi indicated by array."
+    */
+   if (GL_TEXTURE0 <= cap && cap < GL_TEXTURE0 + ctx->Const.MaxTextureCoordUnits) {
+      GLuint saved_active = ctx->Array.ActiveTexture;
+      _mesa_ClientActiveTexture(cap);
+      client_state(ctx, vao, GL_TEXTURE_COORD_ARRAY, GL_TRUE);
+      _mesa_ClientActiveTexture(GL_TEXTURE0 + saved_active);
+   } else {
+      client_state(ctx, vao, cap, GL_TRUE);
+   }
 }
 
 
@@ -184,7 +218,7 @@ void GLAPIENTRY
 _mesa_EnableClientStateiEXT( GLenum cap, GLuint index )
 {
    GET_CURRENT_CONTEXT(ctx);
-   client_state_i(ctx, cap, index, GL_TRUE);
+   client_state_i(ctx, ctx->Array.VAO, cap, index, GL_TRUE);
 }
 
 
@@ -199,14 +233,44 @@ void GLAPIENTRY
 _mesa_DisableClientState( GLenum cap )
 {
    GET_CURRENT_CONTEXT(ctx);
-   client_state( ctx, cap, GL_FALSE );
+   client_state( ctx, ctx->Array.VAO, cap, GL_FALSE );
+}
+
+void GLAPIENTRY
+_mesa_DisableVertexArrayEXT( GLuint vaobj, GLenum cap )
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_vertex_array_object* vao = _mesa_lookup_vao_err(ctx, vaobj,
+                                                             true,
+                                                             "glDisableVertexArrayEXT");
+   if (!vao)
+      return;
+
+   /* The EXT_direct_state_access spec says:
+    *    "Additionally EnableVertexArrayEXT and DisableVertexArrayEXT accept
+    *    the tokens TEXTURE0 through TEXTUREn where n is less than the
+    *    implementation-dependent limit of MAX_TEXTURE_COORDS.  For these
+    *    GL_TEXTUREi tokens, EnableVertexArrayEXT and DisableVertexArrayEXT
+    *    act identically to EnableVertexArrayEXT(vaobj, TEXTURE_COORD_ARRAY)
+    *    or DisableVertexArrayEXT(vaobj, TEXTURE_COORD_ARRAY) respectively
+    *    as if the active client texture is set to texture coordinate set i
+    *    based on the token TEXTUREi indicated by array."
+    */
+   if (GL_TEXTURE0 <= cap && cap < GL_TEXTURE0 + ctx->Const.MaxTextureCoordUnits) {
+      GLuint saved_active = ctx->Array.ActiveTexture;
+      _mesa_ClientActiveTexture(cap);
+      client_state(ctx, vao, GL_TEXTURE_COORD_ARRAY, GL_FALSE);
+      _mesa_ClientActiveTexture(GL_TEXTURE0 + saved_active);
+   } else {
+      client_state(ctx, vao, cap, GL_FALSE);
+   }
 }
 
 void GLAPIENTRY
 _mesa_DisableClientStateiEXT( GLenum cap, GLuint index )
 {
    GET_CURRENT_CONTEXT(ctx);
-   client_state_i(ctx, cap, index, GL_FALSE);
+   client_state_i(ctx, ctx->Array.VAO, cap, index, GL_FALSE);
 }
 
 #define CHECK_EXTENSION(EXTNAME)					\
@@ -847,7 +911,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
       case GL_TEXTURE_COORD_ARRAY:
          if (ctx->API != API_OPENGL_COMPAT && ctx->API != API_OPENGLES)
             goto invalid_enum_error;
-         client_state( ctx, cap, state );
+         client_state( ctx, ctx->Array.VAO, cap, state );
          return;
       case GL_INDEX_ARRAY:
       case GL_EDGE_FLAG_ARRAY:
@@ -855,12 +919,12 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
       case GL_SECONDARY_COLOR_ARRAY_EXT:
          if (ctx->API != API_OPENGL_COMPAT)
             goto invalid_enum_error;
-         client_state( ctx, cap, state );
+         client_state( ctx, ctx->Array.VAO, cap, state );
          return;
       case GL_POINT_SIZE_ARRAY_OES:
          if (ctx->API != API_OPENGLES)
             goto invalid_enum_error;
-         client_state( ctx, cap, state );
+         client_state( ctx, ctx->Array.VAO, cap, state );
          return;
 
       /* GL_ARB_texture_cube_map */

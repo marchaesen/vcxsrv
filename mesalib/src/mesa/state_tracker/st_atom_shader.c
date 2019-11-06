@@ -38,6 +38,7 @@
 #include "main/imports.h"
 #include "main/mtypes.h"
 #include "main/framebuffer.h"
+#include "main/state.h"
 #include "main/texobj.h"
 #include "main/texstate.h"
 #include "program/program.h"
@@ -52,6 +53,7 @@
 #include "st_atom.h"
 #include "st_program.h"
 #include "st_texture.h"
+#include "st_util.h"
 
 
 static unsigned
@@ -96,10 +98,10 @@ get_texture_target(struct gl_context *ctx, const unsigned unit)
 void
 st_update_fp( struct st_context *st )
 {
-   struct st_fragment_program *stfp;
+   struct st_common_program *stfp;
 
    assert(st->ctx->FragmentProgram._Current);
-   stfp = st_fragment_program(st->ctx->FragmentProgram._Current);
+   stfp = st_common_program(st->ctx->FragmentProgram._Current);
    assert(stfp->Base.Target == GL_FRAGMENT_PROGRAM_ARB);
 
    void *shader;
@@ -107,10 +109,10 @@ st_update_fp( struct st_context *st )
    if (st->shader_has_one_variant[MESA_SHADER_FRAGMENT] &&
        !stfp->ati_fs && /* ATI_fragment_shader always has multiple variants */
        !stfp->Base.ExternalSamplersUsed && /* external samplers need variants */
-       stfp->variants &&
-       !stfp->variants->key.drawpixels &&
-       !stfp->variants->key.bitmap) {
-      shader = stfp->variants->driver_shader;
+       stfp->fp_variants &&
+       !stfp->fp_variants->key.drawpixels &&
+       !stfp->fp_variants->key.bitmap) {
+      shader = stfp->fp_variants->driver_shader;
    } else {
       struct st_fp_variant_key key;
 
@@ -118,6 +120,18 @@ st_update_fp( struct st_context *st )
       memset(&key, 0, sizeof(key));
 
       key.st = st->has_shareable_shaders ? NULL : st;
+
+      key.lower_flatshade = st->lower_flatshade &&
+                            st->ctx->Light.ShadeModel == GL_FLAT;
+
+      /* _NEW_COLOR */
+      key.lower_alpha_func = COMPARE_FUNC_NEVER;
+      if (st->lower_alpha_test && _mesa_is_alpha_test_enabled(st->ctx))
+         key.lower_alpha_func = st->ctx->Color.AlphaFunc;
+
+      /* _NEW_LIGHT | _NEW_PROGRAM */
+      key.lower_two_sided_color = st->lower_two_sided_color &&
+         _mesa_vertex_program_two_side_enabled(st->ctx);
 
       /* _NEW_FRAG_CLAMP */
       key.clamp_color = st->clamp_frag_color_in_shader &&
@@ -149,7 +163,7 @@ st_update_fp( struct st_context *st )
       shader = st_get_fp_variant(st, stfp, &key)->driver_shader;
    }
 
-   st_reference_fragprog(st, &st->fp, stfp);
+   st_reference_prog(st, &st->fp, stfp);
 
    cso_set_fragment_shader_handle(st->cso_context, shader);
 }
@@ -176,7 +190,7 @@ st_update_vp( struct st_context *st )
        stvp->variants->key.passthrough_edgeflags == st->vertdata_edgeflags) {
       st->vp_variant = stvp->variants;
    } else {
-      struct st_vp_variant_key key;
+      struct st_common_variant_key key;
 
       memset(&key, 0, sizeof(key));
 
@@ -208,6 +222,14 @@ st_update_vp( struct st_context *st )
          key.clip_negative_one_to_one =
                st->ctx->Transform.ClipDepthMode == GL_NEGATIVE_ONE_TO_ONE;
 
+      /* _NEW_POINT */
+      key.lower_point_size = st->lower_point_size &&
+                             !st_point_size_per_vertex(st->ctx);
+
+      /* _NEW_TRANSFORM */
+      if (st->lower_ucp && st_user_clip_planes_enabled(st->ctx))
+         key.lower_ucp = st->ctx->Transform.ClipPlanesEnabled;
+
       st->vp_variant = st_get_vp_variant(st, stvp, &key);
    }
 
@@ -235,7 +257,7 @@ st_update_common_program(struct st_context *st, struct gl_program *prog,
    if (st->shader_has_one_variant[prog->info.stage] && stp->variants)
       return stp->variants->driver_shader;
 
-   struct st_basic_variant_key key;
+   struct st_common_variant_key key;
 
    /* use memset, not an initializer to be sure all memory is zeroed */
    memset(&key, 0, sizeof(key));
@@ -264,7 +286,7 @@ st_update_common_program(struct st_context *st, struct gl_program *prog,
 
    }
 
-   return st_get_basic_variant(st, pipe_shader, stp, &key)->driver_shader;
+   return st_get_common_variant(st, stp, &key)->driver_shader;
 }
 
 
@@ -299,29 +321,10 @@ st_update_tep(struct st_context *st)
 
 
 void
-st_update_cp( struct st_context *st )
+st_update_cp(struct st_context *st)
 {
-   struct st_compute_program *stcp;
-
-   if (!st->ctx->ComputeProgram._Current) {
-      cso_set_compute_shader_handle(st->cso_context, NULL);
-      st_reference_compprog(st, &st->cp, NULL);
-      return;
-   }
-
-   stcp = st_compute_program(st->ctx->ComputeProgram._Current);
-   assert(stcp->Base.Target == GL_COMPUTE_PROGRAM_NV);
-
-   void *shader;
-
-   if (st->shader_has_one_variant[MESA_SHADER_COMPUTE] && stcp->variants) {
-      shader = stcp->variants->driver_shader;
-   } else {
-      shader = st_get_cp_variant(st, &stcp->tgsi,
-                                 &stcp->variants)->driver_shader;
-   }
-
-   st_reference_compprog(st, &st->cp, stcp);
-
+   void *shader = st_update_common_program(st,
+                                           st->ctx->ComputeProgram._Current,
+                                           PIPE_SHADER_COMPUTE, &st->cp);
    cso_set_compute_shader_handle(st->cso_context, shader);
 }

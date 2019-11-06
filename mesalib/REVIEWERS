@@ -1,30 +1,11 @@
 Overview:
 
 	This file is similar in syntax (or more precisly a subset) of what is
-	used by the MAINTAINERS file in the linux kernel.  Some fields do not
-	apply, for example, in all cases, send patches to:
-
-		mesa-dev@lists.freedesktop.org
-
-	and in all cases the patchwork instance is:
-
-		https://patchwork.freedesktop.org/project/mesa/
-
+	used by the MAINTAINERS file in the linux kernel.
 	The purpose is not exactly the same the MAINTAINERS file in the linux
 	kernel, as there are not official/formal maintainers of different
 	subsystems in mesa, but is meant to give an idea of who to CC for
-	various patches for review, and to allow the use of
-	scripts/get_reviewer.pl as git --cc-cmd.
-
-Usage:
-
-	When sending patches:
-
-		git send-email --cc-cmd ./scripts/get_reviewer.pl ...
-
-	Or to configure as default:
-
-		git config sendemail.cccmd ./scripts/get_reviewer.pl
+	various patches for review.
 
 Descriptions of section entries:
 
@@ -36,14 +17,6 @@ Descriptions of section entries:
 	   F:	drivers/net/*	all files in drivers/net, but not below
 	   F:	*/net/*		all files in "any top level directory"/net
 	   One pattern per line.  Multiple F: lines acceptable.
-	N: Files and directories with regex patterns.
-	   N:	[^a-z]tegra	all files whose path contains the word tegra
-	   One pattern per line.  Multiple N: lines acceptable.
-	   scripts/get_maintainer.pl has different behavior for files that
-	   match F: pattern and matches of N: patterns.  By default,
-	   get_maintainer will not look at git log history when an F: pattern
-	   match occurs.  When an N: match occurs, git log history is used
-	   to also notify the people that have git commit signatures.
 
 Maintainers List (try to look for most precise areas first)
 
@@ -135,3 +108,13 @@ VULKAN
 R: Eric Engestrom <eric@engestrom.ch>
 F: src/vulkan/
 F: include/vulkan/
+
+VMWARE DRIVER
+R: Brian Paul <brianp@vmware.com>
+R: Charmaine Lee <charmainel@vmware.com>
+F: src/gallium/drivers/svga/
+
+VMWARE WINSYS CODE
+R: Thomas Hellstrom <thellstrom@vmware.com>
+R: Deepak Rawat <drawat@vmware.com>
+F: src/gallium/winsys/svga/

@@ -31,6 +31,7 @@
 #include "aco_builder.h"
 #include "util/u_math.h"
 #include "sid.h"
+#include "vulkan/radv_shader.h"
 
 
 namespace aco {
@@ -40,7 +41,7 @@ struct lower_context {
    std::vector<aco_ptr<Instruction>> instructions;
 };
 
-void emit_dpp_op(lower_context *ctx, PhysReg dst, PhysReg src0, PhysReg src1, PhysReg vtmp, PhysReg wrtmp,
+void emit_dpp_op(lower_context *ctx, PhysReg dst, PhysReg src0, PhysReg src1, PhysReg vtmp,
                  aco_opcode op, Format format, bool clobber_vcc, unsigned dpp_ctrl,
                  unsigned row_mask, unsigned bank_mask, bool bound_ctrl_zero, unsigned size,
                  Operand *identity=NULL) /* for VOP3 with sparse writes */
@@ -85,6 +86,22 @@ void emit_dpp_op(lower_context *ctx, PhysReg dst, PhysReg src0, PhysReg src1, Ph
    }
 }
 
+void emit_op(lower_context *ctx, PhysReg dst, PhysReg src0, PhysReg src1,
+             aco_opcode op, Format format, bool clobber_vcc, unsigned size)
+{
+   aco_ptr<Instruction> instr;
+   if (format == Format::VOP3)
+      instr.reset(create_instruction<VOP3A_instruction>(op, format, 2, clobber_vcc ? 2 : 1));
+   else
+      instr.reset(create_instruction<VOP2_instruction>(op, format, 2, clobber_vcc ? 2 : 1));
+   instr->operands[0] = Operand(src0, src0.reg >= 256 ? v1 : s1);
+   instr->operands[1] = Operand(src1, v1);
+   instr->definitions[0] = Definition(dst, v1);
+   if (clobber_vcc)
+      instr->definitions[1] = Definition(vcc, s2);
+   ctx->instructions.emplace_back(std::move(instr));
+}
+
 uint32_t get_reduction_identity(ReduceOp op, unsigned idx)
 {
    switch (op) {
@@ -127,8 +144,11 @@ uint32_t get_reduction_identity(ReduceOp op, unsigned idx)
       return 0xff800000u; /* negative infinity */
    case fmax64:
       return idx ? 0xfff00000u : 0u; /* negative infinity */
+   default:
+      unreachable("Invalid reduction operation");
+      break;
    }
-   unreachable("Invalid reduction operation");
+   return 0;
 }
 
 aco_opcode get_reduction_opcode(lower_context *ctx, ReduceOp op, bool *clobber_vcc, Format *format)
@@ -191,8 +211,10 @@ aco_opcode get_reduction_opcode(lower_context *ctx, ReduceOp op, bool *clobber_v
    case ixor64:
       assert(false);
       break;
+   default:
+      unreachable("Invalid reduction operation");
+      break;
    }
-   unreachable("Invalid reduction operation");
    return aco_opcode::v_min_u32;
 }
 
@@ -225,8 +247,6 @@ void emit_reduction(lower_context *ctx, aco_opcode op, ReduceOp reduce_op, unsig
 
    Builder bld(ctx->program, &ctx->instructions);
 
-   PhysReg wrtmp{0}; /* should never be needed */
-
    Format format;
    bool should_clobber_vcc;
    aco_opcode reduce_opcode = get_reduction_opcode(ctx, reduce_op, &should_clobber_vcc, &format);
@@ -236,12 +256,12 @@ void emit_reduction(lower_context *ctx, aco_opcode op, ReduceOp reduce_op, unsig
    Operand vcndmask_identity[2] = {identity[0], identity[1]};
 
    /* First, copy the source to tmp and set inactive lanes to the identity */
-   // note: this clobbers SCC!
    bld.sop1(aco_opcode::s_or_saveexec_b64, Definition(stmp, s2), Definition(scc, s1), Definition(exec, s2), Operand(UINT64_MAX), Operand(exec, s2));
 
    for (unsigned i = 0; i < src.size(); i++) {
-      /* p_exclusive_scan needs it to be a sgpr or inline constant for the v_writelane_b32 */
-      if (identity[i].isLiteral() && op == aco_opcode::p_exclusive_scan) {
+      /* p_exclusive_scan needs it to be a sgpr or inline constant for the v_writelane_b32
+       * except on GFX10, where v_writelane_b32 can take a literal. */
+      if (identity[i].isLiteral() && op == aco_opcode::p_exclusive_scan && ctx->program->chip_class < GFX10) {
          bld.sop1(aco_opcode::s_mov_b32, Definition(PhysReg{sitmp+i}, s1), identity[i]);
          identity[i] = Operand(PhysReg{sitmp+i}, s1);
 
@@ -264,16 +284,16 @@ void emit_reduction(lower_context *ctx, aco_opcode op, ReduceOp reduce_op, unsig
    switch (op) {
    case aco_opcode::p_reduce:
       if (cluster_size == 1) break;
-      emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, wrtmp, reduce_opcode, format, should_clobber_vcc,
+      emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, reduce_opcode, format, should_clobber_vcc,
                   dpp_quad_perm(1, 0, 3, 2), 0xf, 0xf, false, src.size());
       if (cluster_size == 2) break;
-      emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, wrtmp, reduce_opcode, format, should_clobber_vcc,
+      emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, reduce_opcode, format, should_clobber_vcc,
                   dpp_quad_perm(2, 3, 0, 1), 0xf, 0xf, false, src.size());
       if (cluster_size == 4) break;
-      emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, wrtmp, reduce_opcode, format, should_clobber_vcc,
+      emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, reduce_opcode, format, should_clobber_vcc,
                   dpp_row_half_mirror, 0xf, 0xf, false, src.size());
       if (cluster_size == 8) break;
-      emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, wrtmp, reduce_opcode, format, should_clobber_vcc,
+      emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, reduce_opcode, format, should_clobber_vcc,
                   dpp_row_mirror, 0xf, 0xf, false, src.size());
       if (cluster_size == 16) break;
       if (cluster_size == 32) {
@@ -283,20 +303,57 @@ void emit_reduction(lower_context *ctx, aco_opcode op, ReduceOp reduce_op, unsig
          exec_restored = true;
          emit_vopn(ctx, dst.physReg(), vtmp, tmp, src.regClass(), reduce_opcode, format, should_clobber_vcc);
          dst_written = true;
+      } else if (ctx->program->chip_class >= GFX10) {
+         assert(cluster_size == 64);
+         /* GFX10+ doesn't support row_bcast15 and row_bcast31 */
+         for (unsigned i = 0; i < src.size(); i++)
+            bld.vop3(aco_opcode::v_permlanex16_b32, Definition(PhysReg{vtmp+i}, v1), Operand(PhysReg{tmp+i}, v1), Operand(0u), Operand(0u));
+         emit_op(ctx, tmp, tmp, vtmp, reduce_opcode, format, should_clobber_vcc, src.size());
+
+         for (unsigned i = 0; i < src.size(); i++)
+            bld.vop3(aco_opcode::v_readlane_b32, Definition(PhysReg{sitmp+i}, s1), Operand(PhysReg{tmp+i}, v1), Operand(31u));
+         emit_op(ctx, tmp, sitmp, tmp, reduce_opcode, format, should_clobber_vcc, src.size());
       } else {
          assert(cluster_size == 64);
-         emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, wrtmp, reduce_opcode, format, should_clobber_vcc,
+         emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, reduce_opcode, format, should_clobber_vcc,
                      dpp_row_bcast15, 0xa, 0xf, false, src.size());
-         emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, wrtmp, reduce_opcode, format, should_clobber_vcc,
+         emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, reduce_opcode, format, should_clobber_vcc,
                      dpp_row_bcast31, 0xc, 0xf, false, src.size());
       }
       break;
    case aco_opcode::p_exclusive_scan:
-      emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, wrtmp, aco_opcode::v_mov_b32, Format::VOP1, false,
-                  dpp_wf_sr1, 0xf, 0xf, true, src.size());
+      if (ctx->program->chip_class >= GFX10) { /* gfx10 doesn't support wf_sr1, so emulate it */
+         /* shift rows right */
+         for (unsigned i = 0; i < src.size(); i++) {
+            bld.vop1_dpp(aco_opcode::v_mov_b32, Definition(PhysReg{vtmp+i}, v1), Operand(PhysReg{tmp+i}, s1), dpp_row_sr(1), 0xf, 0xf, true);
+         }
+
+         /* fill in the gaps in rows 1 and 3 */
+         bld.sop1(aco_opcode::s_mov_b32, Definition(exec_lo, s1), Operand(0x10000u));
+         bld.sop1(aco_opcode::s_mov_b32, Definition(exec_hi, s1), Operand(0x10000u));
+         for (unsigned i = 0; i < src.size(); i++) {
+            Instruction *perm = bld.vop3(aco_opcode::v_permlanex16_b32,
+                                         Definition(PhysReg{vtmp+i}, v1),
+                                         Operand(PhysReg{tmp+i}, v1),
+                                         Operand(0xffffffffu), Operand(0xffffffffu)).instr;
+            static_cast<VOP3A_instruction*>(perm)->opsel[0] = true; /* FI (Fetch Inactive) */
+         }
+         bld.sop1(aco_opcode::s_mov_b64, Definition(exec, s2), Operand(UINT64_MAX));
+
+         /* fill in the gap in row 2 */
+         for (unsigned i = 0; i < src.size(); i++) {
+            bld.vop3(aco_opcode::v_readlane_b32, Definition(PhysReg{sitmp+i}, s1), Operand(PhysReg{tmp+i}, v1), Operand(31u));
+            bld.vop3(aco_opcode::v_writelane_b32, Definition(PhysReg{vtmp+i}, v1), Operand(PhysReg{sitmp+i}, s1), Operand(32u));
+         }
+         std::swap(tmp, vtmp);
+      } else {
+         emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, aco_opcode::v_mov_b32, Format::VOP1, false,
+                     dpp_wf_sr1, 0xf, 0xf, true, src.size());
+      }
       for (unsigned i = 0; i < src.size(); i++) {
          if (!identity[i].isConstant() || identity[i].constantValue()) { /* bound_ctrl should take case of this overwise */
-            assert((identity[i].isConstant() && !identity[i].isLiteral()) || identity[i].physReg() == PhysReg{sitmp+i});
+            if (ctx->program->chip_class < GFX10)
+               assert((identity[i].isConstant() && !identity[i].isLiteral()) || identity[i].physReg() == PhysReg{sitmp+i});
             bld.vop3(aco_opcode::v_writelane_b32, Definition(PhysReg{tmp+i}, v1),
                      identity[i], Operand(0u));
          }
@@ -304,18 +361,37 @@ void emit_reduction(lower_context *ctx, aco_opcode op, ReduceOp reduce_op, unsig
       /* fall through */
    case aco_opcode::p_inclusive_scan:
       assert(cluster_size == 64);
-      emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, wrtmp, reduce_opcode, format, should_clobber_vcc,
+      emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, reduce_opcode, format, should_clobber_vcc,
                   dpp_row_sr(1), 0xf, 0xf, false, src.size(), identity);
-      emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, wrtmp, reduce_opcode, format, should_clobber_vcc,
+      emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, reduce_opcode, format, should_clobber_vcc,
                   dpp_row_sr(2), 0xf, 0xf, false, src.size(), identity);
-      emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, wrtmp, reduce_opcode, format, should_clobber_vcc,
+      emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, reduce_opcode, format, should_clobber_vcc,
                   dpp_row_sr(4), 0xf, 0xf, false, src.size(), identity);
-      emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, wrtmp, reduce_opcode, format, should_clobber_vcc,
+      emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, reduce_opcode, format, should_clobber_vcc,
                   dpp_row_sr(8), 0xf, 0xf, false, src.size(), identity);
-      emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, wrtmp, reduce_opcode, format, should_clobber_vcc,
-                  dpp_row_bcast15, 0xa, 0xf, false, src.size(), identity);
-      emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, wrtmp, reduce_opcode, format, should_clobber_vcc,
-                  dpp_row_bcast31, 0xc, 0xf, false, src.size(), identity);
+      if (ctx->program->chip_class >= GFX10) {
+         bld.sop1(aco_opcode::s_mov_b32, Definition(exec_lo, s1), Operand(0xffff0000u));
+         bld.sop1(aco_opcode::s_mov_b32, Definition(exec_hi, s1), Operand(0xffff0000u));
+         for (unsigned i = 0; i < src.size(); i++) {
+            Instruction *perm = bld.vop3(aco_opcode::v_permlanex16_b32,
+                                         Definition(PhysReg{vtmp+i}, v1),
+                                         Operand(PhysReg{tmp+i}, v1),
+                                         Operand(0xffffffffu), Operand(0xffffffffu)).instr;
+            static_cast<VOP3A_instruction*>(perm)->opsel[0] = true; /* FI (Fetch Inactive) */
+         }
+         emit_op(ctx, tmp, tmp, vtmp, reduce_opcode, format, should_clobber_vcc, src.size());
+
+         bld.sop1(aco_opcode::s_mov_b32, Definition(exec_lo, s1), Operand(0u));
+         bld.sop1(aco_opcode::s_mov_b32, Definition(exec_hi, s1), Operand(0xffffffffu));
+         for (unsigned i = 0; i < src.size(); i++)
+            bld.vop3(aco_opcode::v_readlane_b32, Definition(PhysReg{sitmp+i}, s1), Operand(PhysReg{tmp+i}, v1), Operand(31u));
+         emit_op(ctx, tmp, sitmp, tmp, reduce_opcode, format, should_clobber_vcc, src.size());
+      } else {
+         emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, reduce_opcode, format, should_clobber_vcc,
+                     dpp_row_bcast15, 0xa, 0xf, false, src.size(), identity);
+         emit_dpp_op(ctx, tmp, tmp, tmp, vtmp, reduce_opcode, format, should_clobber_vcc,
+                     dpp_row_bcast31, 0xc, 0xf, false, src.size(), identity);
+      }
       break;
    default:
       unreachable("Invalid reduction mode");
@@ -606,15 +682,15 @@ void lower_to_hw_instr(Program* program)
                handle_operands(copy_operations, &ctx, program->chip_class, pi);
                break;
             }
-            case aco_opcode::p_discard_if:
+            case aco_opcode::p_exit_early_if:
             {
-               bool early_exit = false;
-               if (block->instructions[j + 1]->opcode != aco_opcode::p_logical_end ||
-                   block->instructions[j + 2]->opcode != aco_opcode::s_endpgm) {
-                  early_exit = true;
+               /* don't bother with an early exit at the end of the program */
+               if (block->instructions[j + 1]->opcode == aco_opcode::p_logical_end &&
+                   block->instructions[j + 2]->opcode == aco_opcode::s_endpgm) {
+                  break;
                }
 
-               if (early_exit && !discard_block) {
+               if (!discard_block) {
                   discard_block = program->create_and_insert_block();
                   block = &program->blocks[i];
 
@@ -628,26 +704,13 @@ void lower_to_hw_instr(Program* program)
                   bld.reset(&ctx.instructions);
                }
 
-               // TODO: optimize uniform conditions
-               Definition branch_cond = instr->definitions.back();
-               Operand discard_cond = instr->operands.back();
-               aco_ptr<Instruction> sop2;
-               /* backwards, to finally branch on the global exec mask */
-               for (int i = instr->operands.size() - 2; i >= 0; i--) {
-                  bld.sop2(aco_opcode::s_andn2_b64,
-                           instr->definitions[i], /* new mask */
-                           branch_cond, /* scc */
-                           instr->operands[i], /* old mask */
-                           discard_cond);
-               }
+               //TODO: exec can be zero here with block_kind_discard
 
-               if (early_exit) {
-                  bld.sopp(aco_opcode::s_cbranch_scc0, bld.scc(branch_cond.getTemp()), discard_block->index);
+               assert(instr->operands[0].physReg() == scc);
+               bld.sopp(aco_opcode::s_cbranch_scc0, instr->operands[0], discard_block->index);
 
-                  discard_block->linear_preds.push_back(block->index);
-                  block->linear_succs.push_back(discard_block->index);
-               }
-
+               discard_block->linear_preds.push_back(block->index);
+               block->linear_succs.push_back(discard_block->index);
                break;
             }
             case aco_opcode::p_spill:
@@ -747,12 +810,71 @@ void lower_to_hw_instr(Program* program)
 
          } else if (instr->format == Format::PSEUDO_REDUCTION) {
             Pseudo_reduction_instruction* reduce = static_cast<Pseudo_reduction_instruction*>(instr.get());
-            emit_reduction(&ctx, reduce->opcode, reduce->reduce_op, reduce->cluster_size,
-                           reduce->operands[1].physReg(), // tmp
-                           reduce->definitions[1].physReg(), // stmp
-                           reduce->operands[2].physReg(), // vtmp
-                           reduce->definitions[2].physReg(), // sitmp
-                           reduce->operands[0], reduce->definitions[0]);
+            if (reduce->reduce_op == gfx10_wave64_bpermute) {
+               /* Only makes sense on GFX10 wave64 */
+               assert(program->chip_class >= GFX10);
+               assert(program->info->wave_size == 64);
+               assert(instr->definitions[0].regClass() == v1); /* Destination */
+               assert(instr->definitions[1].regClass() == s2); /* Temp EXEC */
+               assert(instr->definitions[1].physReg() != vcc);
+               assert(instr->definitions[2].physReg() == scc); /* SCC clobber */
+               assert(instr->operands[0].physReg() == vcc); /* Compare */
+               assert(instr->operands[1].regClass() == v2.as_linear()); /* Temp VGPR pair */
+               assert(instr->operands[2].regClass() == v1); /* Indices x4 */
+               assert(instr->operands[3].regClass() == v1); /* Input data */
+
+               PhysReg shared_vgpr_reg_lo = PhysReg(align(program->config->num_vgprs, 4) + 256);
+               PhysReg shared_vgpr_reg_hi = PhysReg(shared_vgpr_reg_lo + 1);
+               Operand compare = instr->operands[0];
+               Operand tmp1(instr->operands[1].physReg(), v1);
+               Operand tmp2(PhysReg(instr->operands[1].physReg() + 1), v1);
+               Operand index_x4 = instr->operands[2];
+               Operand input_data = instr->operands[3];
+               Definition shared_vgpr_lo(shared_vgpr_reg_lo, v1);
+               Definition shared_vgpr_hi(shared_vgpr_reg_hi, v1);
+               Definition def_temp1(tmp1.physReg(), v1);
+               Definition def_temp2(tmp2.physReg(), v1);
+
+               /* Save EXEC and clear it */
+               bld.sop1(aco_opcode::s_and_saveexec_b64, instr->definitions[1], instr->definitions[2],
+                        Definition(exec, s2), Operand(0u), Operand(exec, s2));
+
+               /* Set EXEC to enable HI lanes only */
+               bld.sop1(aco_opcode::s_mov_b32, Definition(exec_hi, s1), Operand((uint32_t)-1));
+               /* HI: Copy data from high lanes 32-63 to shared vgpr */
+               bld.vop1(aco_opcode::v_mov_b32, shared_vgpr_hi, input_data);
+
+               /* Invert EXEC to enable LO lanes only */
+               bld.sop1(aco_opcode::s_not_b64, Definition(exec, s2), Operand(exec, s2));
+               /* LO: Copy data from low lanes 0-31 to shared vgpr */
+               bld.vop1(aco_opcode::v_mov_b32, shared_vgpr_lo, input_data);
+               /* LO: Copy shared vgpr (high lanes' data) to output vgpr */
+               bld.vop1(aco_opcode::v_mov_b32, def_temp1, Operand(shared_vgpr_reg_hi, v1));
+
+               /* Invert EXEC to enable HI lanes only */
+               bld.sop1(aco_opcode::s_not_b64, Definition(exec, s2), Operand(exec, s2));
+               /* HI: Copy shared vgpr (low lanes' data) to output vgpr */
+               bld.vop1(aco_opcode::v_mov_b32, def_temp1, Operand(shared_vgpr_reg_lo, v1));
+
+               /* Enable exec mask for all lanes */
+               bld.sop1(aco_opcode::s_mov_b64, Definition(exec, s2), Operand((uint32_t)-1));
+               /* Permute the original input */
+               bld.ds(aco_opcode::ds_bpermute_b32, def_temp2, index_x4, input_data);
+               /* Permute the swapped input */
+               bld.ds(aco_opcode::ds_bpermute_b32, def_temp1, index_x4, tmp1);
+
+               /* Restore saved EXEC */
+               bld.sop1(aco_opcode::s_mov_b64, Definition(exec, s2), Operand(instr->definitions[1].physReg(), s2));
+               /* Choose whether to use the original or swapped */
+               bld.vop2(aco_opcode::v_cndmask_b32, instr->definitions[0], tmp1, tmp2, compare);
+            } else {
+               emit_reduction(&ctx, reduce->opcode, reduce->reduce_op, reduce->cluster_size,
+                              reduce->operands[1].physReg(), // tmp
+                              reduce->definitions[1].physReg(), // stmp
+                              reduce->operands[2].physReg(), // vtmp
+                              reduce->definitions[2].physReg(), // sitmp
+                              reduce->operands[0], reduce->definitions[0]);
+            }
          } else {
             ctx.instructions.emplace_back(std::move(instr));
          }

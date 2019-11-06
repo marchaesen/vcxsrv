@@ -22,10 +22,10 @@ inc_dri_common = include_directories('.')
 
 libdricommon = static_library(
   'dricommon',
-  ['utils.c', 'utils.h', 'dri_util.c', 'dri_util.h', xmlpool_options_h],
+  files('utils.c', 'utils.h', 'dri_util.c', 'dri_util.h'),
   include_directories : [inc_common, inc_util],
   c_args : c_vis_args,
-  dependencies : dep_libdrm,
+  dependencies : [dep_libdrm, idep_xmlconfig_headers],
   build_by_default : false,
 )
 

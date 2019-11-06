@@ -602,6 +602,17 @@ _mesa_fetch_state(struct gl_context *ctx, const gl_state_index16 state[],
                       ctx->Color.BlendEnabled, ctx->Color._AdvancedBlendMode);
          return;
 
+      case STATE_ALPHA_REF:
+         value[0] = ctx->Color.AlphaRefUnclamped;
+         return;
+
+      case STATE_CLIP_INTERNAL:
+         {
+            const GLuint plane = (GLuint) state[2];
+            COPY_4V(value, ctx->Transform._ClipUserPlane[plane]);
+         }
+         return;
+
       /* XXX: make sure new tokens added here are also handled in the 
        * _mesa_program_state_flags() switch, below.
        */
@@ -712,6 +723,12 @@ _mesa_program_state_flags(const gl_state_index16 state[STATE_LENGTH])
 
       case STATE_ADVANCED_BLENDING_MODE:
          return _NEW_COLOR;
+
+      case STATE_ALPHA_REF:
+         return _NEW_COLOR;
+
+      case STATE_CLIP_INTERNAL:
+         return _NEW_TRANSFORM | _NEW_PROJECTION;
 
       default:
          /* unknown state indexes are silently ignored and
@@ -918,6 +935,12 @@ append_token(char *dst, gl_state_index k)
       break;
    case STATE_ADVANCED_BLENDING_MODE:
       append(dst, "AdvancedBlendingMode");
+      break;
+   case STATE_ALPHA_REF:
+      append(dst, "alphaRef");
+      break;
+   case STATE_CLIP_INTERNAL:
+      append(dst, "clipInternal");
       break;
    default:
       /* probably STATE_INTERNAL_DRIVER+i (driver private state) */

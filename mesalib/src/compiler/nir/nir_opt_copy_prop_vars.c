@@ -171,6 +171,11 @@ gather_vars_written(struct copy_prop_var_state *state,
                               nir_var_mem_shared;
             break;
 
+         case nir_intrinsic_scoped_memory_barrier:
+            if (nir_intrinsic_memory_semantics(intrin) & NIR_MEMORY_ACQUIRE)
+               written->modes |= nir_intrinsic_memory_modes(intrin);
+            break;
+
          case nir_intrinsic_emit_vertex:
          case nir_intrinsic_emit_vertex_with_counter:
             written->modes = nir_var_shader_out;
@@ -800,6 +805,13 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
          apply_barrier_for_modes(copies, nir_var_shader_out |
                                          nir_var_mem_ssbo |
                                          nir_var_mem_shared);
+         break;
+
+      case nir_intrinsic_scoped_memory_barrier:
+         if (debug) dump_instr(instr);
+
+         if (nir_intrinsic_memory_semantics(intrin) & NIR_MEMORY_ACQUIRE)
+            apply_barrier_for_modes(copies, nir_intrinsic_memory_modes(intrin));
          break;
 
       case nir_intrinsic_emit_vertex:

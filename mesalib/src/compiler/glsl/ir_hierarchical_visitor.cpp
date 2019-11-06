@@ -305,6 +305,24 @@ ir_hierarchical_visitor::visit_leave(ir_discard *ir)
 }
 
 ir_visitor_status
+ir_hierarchical_visitor::visit_enter(ir_demote *ir)
+{
+   if (this->callback_enter != NULL)
+      this->callback_enter(ir, this->data_enter);
+
+   return visit_continue;
+}
+
+ir_visitor_status
+ir_hierarchical_visitor::visit_leave(ir_demote *ir)
+{
+   if (this->callback_leave != NULL)
+      this->callback_leave(ir, this->data_leave);
+
+   return visit_continue;
+}
+
+ir_visitor_status
 ir_hierarchical_visitor::visit_enter(ir_if *ir)
 {
    if (this->callback_enter != NULL)

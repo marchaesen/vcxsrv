@@ -84,7 +84,7 @@ static struct combined_store *
 alloc_combined_store(struct combine_stores_state *state)
 {
    struct combined_store *result;
-   if (list_empty(&state->freelist)) {
+   if (list_is_empty(&state->freelist)) {
       result = linear_zalloc_child(state->lin_ctx, sizeof(*result));
    } else {
       result = list_first_entry(&state->freelist,
@@ -314,6 +314,13 @@ combine_stores_block(struct combine_stores_state *state, nir_block *block)
          combine_stores_with_modes(state, nir_var_shader_out |
                                               nir_var_mem_ssbo |
                                               nir_var_mem_shared);
+         break;
+
+      case nir_intrinsic_scoped_memory_barrier:
+         if (nir_intrinsic_memory_semantics(intrin) & NIR_MEMORY_RELEASE) {
+            combine_stores_with_modes(state,
+                                      nir_intrinsic_memory_modes(intrin));
+         }
          break;
 
       case nir_intrinsic_emit_vertex:

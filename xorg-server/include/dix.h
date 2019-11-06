@@ -148,6 +148,7 @@ typedef struct _TimeStamp {
 } TimeStamp;
 
 /* dispatch.c */
+extern _X_EXPORT ClientPtr GetCurrentClient(void);
 
 extern _X_EXPORT void SetInputCheck(HWEventQueuePtr /*c0 */ ,
                                     HWEventQueuePtr /*c1 */ );
@@ -302,9 +303,6 @@ InitAtoms(void);
 
 extern _X_EXPORT void
 SetVendorRelease(int release);
-
-extern _X_EXPORT void
-SetVendorString(const char *string);
 
 int
 dix_main(int argc, char *argv[], char *envp[]);

@@ -54,11 +54,11 @@ mir_pipeline_ins(
         unsigned node = ins->dest;
         unsigned read_mask = 0;
 
-        /* Analyze the bundle for a read mask */
+        /* Analyze the bundle for a per-byte read mask */
 
         for (unsigned i = 0; i < bundle->instruction_count; ++i) {
                 midgard_instruction *q = bundle->instructions[i];
-                read_mask |= mir_mask_of_read_components(q, node);
+                read_mask |= mir_bytemask_of_read_components(q, node);
 
                 /* The fragment colour can't be pipelined (well, it is
                  * pipelined in r0, but this is a delicate dance with
@@ -74,7 +74,7 @@ mir_pipeline_ins(
                 if (q->dest != node) continue;
 
                 /* Remove the written mask from the read requirements */
-                read_mask &= ~q->mask;
+                read_mask &= ~mir_bytemask(q);
         }
 
         /* Check for leftovers */
@@ -106,6 +106,8 @@ mir_pipeline_ins(
 void
 mir_create_pipeline_registers(compiler_context *ctx)
 {
+        mir_invalidate_liveness(ctx);
+
         mir_foreach_block(ctx, block) {
                 mir_foreach_bundle_in_block(block, bundle) {
                         if (!mir_is_alu_bundle(bundle)) continue;

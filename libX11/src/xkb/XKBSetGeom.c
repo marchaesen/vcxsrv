@@ -33,7 +33,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include "Xlibint.h"
 #include "XKBlibint.h"
-#include <X11/extensions/XKBgeom.h>
+#include "X11/extensions/XKBgeom.h"
 #include <X11/extensions/XKBproto.h>
 
 #ifndef MINSHORT

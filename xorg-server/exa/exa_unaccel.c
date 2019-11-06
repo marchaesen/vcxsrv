@@ -459,11 +459,9 @@ ExaSrcValidate(DrawablePtr pDrawable,
     RegionUnion(dst, dst, &reg);
     RegionUninit(&reg);
 
-    if (pExaScr->SavedSourceValidate) {
-        swap(pExaScr, pScreen, SourceValidate);
-        pScreen->SourceValidate(pDrawable, x, y, width, height, subWindowMode);
-        swap(pExaScr, pScreen, SourceValidate);
-    }
+    swap(pExaScr, pScreen, SourceValidate);
+    pScreen->SourceValidate(pDrawable, x, y, width, height, subWindowMode);
+    swap(pExaScr, pScreen, SourceValidate);
 }
 
 static Bool

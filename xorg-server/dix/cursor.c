@@ -494,6 +494,7 @@ CreateRootCursor(char *unused1, unsigned int unused2)
     FontPtr cursorfont;
     int err;
     XID fontID;
+    const char defaultCursorFont[] = "cursor";
 
     fontID = FakeClientID(0);
     err = OpenFont(serverClient, fontID, FontLoadAll | FontOpenSync,

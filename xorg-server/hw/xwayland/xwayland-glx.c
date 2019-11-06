@@ -33,6 +33,7 @@
 #include <xwayland-config.h>
 #include "xwayland.h"
 #define MESA_EGL_NO_X11_HEADERS
+#define EGL_NO_X11
 // #include <EGL/egl.h>
 #include <epoxy/egl.h>
 #include "glxserver.h"

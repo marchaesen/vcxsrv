@@ -212,8 +212,8 @@ deref_has_indirect(nir_builder *b, nir_variable *var, nir_deref_path *path)
  * indirect indexing.
  */
 static void
-create_indirects_mask(nir_shader *shader, uint64_t *indirects,
-                      uint64_t *patch_indirects, nir_variable_mode mode)
+create_indirects_mask(nir_shader *shader,
+                      BITSET_WORD *indirects, nir_variable_mode mode)
 {
    nir_foreach_function(function, shader) {
       if (function->impl) {
@@ -244,14 +244,9 @@ create_indirects_mask(nir_shader *shader, uint64_t *indirects,
                nir_deref_path path;
                nir_deref_path_init(&path, deref, NULL);
 
-               uint64_t loc_mask = ((uint64_t)1) << var->data.location;
-               if (var->data.patch) {
-                  if (deref_has_indirect(&b, var, &path))
-                     patch_indirects[var->data.location_frac] |= loc_mask;
-               } else {
-                  if (deref_has_indirect(&b, var, &path))
-                     indirects[var->data.location_frac] |= loc_mask;
-               }
+               int loc = var->data.location * 4 + var->data.location_frac;
+               if (deref_has_indirect(&b, var, &path))
+                  BITSET_SET(indirects, loc);
 
                nir_deref_path_finish(&path);
             }
@@ -262,7 +257,7 @@ create_indirects_mask(nir_shader *shader, uint64_t *indirects,
 
 static void
 lower_io_arrays_to_elements(nir_shader *shader, nir_variable_mode mask,
-                            uint64_t *indirects, uint64_t *patch_indirects,
+                            BITSET_WORD *indirects,
                             struct hash_table *varyings,
                             bool after_cross_stage_opts)
 {
@@ -296,14 +291,9 @@ lower_io_arrays_to_elements(nir_shader *shader, nir_variable_mode mask,
                   continue;
 
                /* Skip indirects */
-               uint64_t loc_mask = ((uint64_t)1) << var->data.location;
-               if (var->data.patch) {
-                  if (patch_indirects[var->data.location_frac] & loc_mask)
-                     continue;
-               } else {
-                  if (indirects[var->data.location_frac] & loc_mask)
-                     continue;
-               }
+               int loc = var->data.location * 4 + var->data.location_frac;
+               if (BITSET_TEST(indirects, loc))
+                  continue;
 
                nir_variable_mode mode = var->data.mode;
 
@@ -359,14 +349,14 @@ nir_lower_io_arrays_to_elements_no_indirects(nir_shader *shader,
    struct hash_table *split_inputs = _mesa_pointer_hash_table_create(NULL);
    struct hash_table *split_outputs = _mesa_pointer_hash_table_create(NULL);
 
-   uint64_t indirects[4] = {0}, patch_indirects[4] = {0};
+   BITSET_DECLARE(indirects, 4 * VARYING_SLOT_TESS_MAX) = {0};
 
-   lower_io_arrays_to_elements(shader, nir_var_shader_out, indirects,
-                               patch_indirects, split_outputs, true);
+   lower_io_arrays_to_elements(shader, nir_var_shader_out,
+                               indirects, split_outputs, true);
 
    if (!outputs_only) {
-      lower_io_arrays_to_elements(shader, nir_var_shader_in, indirects,
-                                  patch_indirects, split_inputs, true);
+      lower_io_arrays_to_elements(shader, nir_var_shader_in,
+                                  indirects, split_inputs, true);
 
       /* Remove old input from the shaders inputs list */
       hash_table_foreach(split_inputs, entry) {
@@ -397,17 +387,16 @@ nir_lower_io_arrays_to_elements(nir_shader *producer, nir_shader *consumer)
    struct hash_table *split_inputs = _mesa_pointer_hash_table_create(NULL);
    struct hash_table *split_outputs = _mesa_pointer_hash_table_create(NULL);
 
-   uint64_t indirects[4] = {0}, patch_indirects[4] = {0};
-   create_indirects_mask(producer, indirects, patch_indirects,
-                         nir_var_shader_out);
-   create_indirects_mask(consumer, indirects, patch_indirects,
-                         nir_var_shader_in);
+   BITSET_DECLARE(indirects, 4 * VARYING_SLOT_TESS_MAX) = {0};
 
-   lower_io_arrays_to_elements(producer, nir_var_shader_out, indirects,
-                               patch_indirects, split_outputs, false);
+   create_indirects_mask(producer, indirects, nir_var_shader_out);
+   create_indirects_mask(consumer, indirects, nir_var_shader_in);
 
-   lower_io_arrays_to_elements(consumer, nir_var_shader_in, indirects,
-                               patch_indirects, split_inputs, false);
+   lower_io_arrays_to_elements(producer, nir_var_shader_out,
+                               indirects, split_outputs, false);
+
+   lower_io_arrays_to_elements(consumer, nir_var_shader_in,
+                               indirects, split_inputs, false);
 
    /* Remove old input from the shaders inputs list */
    hash_table_foreach(split_inputs, entry) {

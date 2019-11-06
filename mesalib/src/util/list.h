@@ -77,11 +77,11 @@ static inline void list_addtail(struct list_head *item, struct list_head *list)
     list->prev = item;
 }
 
-static inline bool list_empty(const struct list_head *list);
+static inline bool list_is_empty(const struct list_head *list);
 
 static inline void list_replace(struct list_head *from, struct list_head *to)
 {
-    if (list_empty(from)) {
+    if (list_is_empty(from)) {
         list_inithead(to);
     } else {
         to->prev = from->prev;
@@ -106,7 +106,7 @@ static inline void list_delinit(struct list_head *item)
     item->prev = item;
 }
 
-static inline bool list_empty(const struct list_head *list)
+static inline bool list_is_empty(const struct list_head *list)
 {
    return list->next == list;
 }
@@ -130,7 +130,7 @@ static inline unsigned list_length(const struct list_head *list)
 
 static inline void list_splice(struct list_head *src, struct list_head *dst)
 {
-   if (list_empty(src))
+   if (list_is_empty(src))
       return;
 
    src->next->prev = dst;
@@ -141,7 +141,7 @@ static inline void list_splice(struct list_head *src, struct list_head *dst)
 
 static inline void list_splicetail(struct list_head *src, struct list_head *dst)
 {
-   if (list_empty(src))
+   if (list_is_empty(src))
       return;
 
    src->prev->next = dst;
@@ -158,18 +158,8 @@ static inline void list_validate(const struct list_head *list)
       assert(node->next->prev == node && node->prev->next == node);
 }
 
-#define LIST_INITHEAD(__item) list_inithead(__item)
-#define LIST_ADD(__item, __list) list_add(__item, __list)
-#define LIST_ADDTAIL(__item, __list) list_addtail(__item, __list)
-#define LIST_REPLACE(__from, __to) list_replace(__from, __to)
-#define LIST_DEL(__item) list_del(__item)
-#define LIST_DELINIT(__item) list_delinit(__item)
-
 #define LIST_ENTRY(__type, __item, __field)   \
     ((__type *)(((char *)(__item)) - offsetof(__type, __field)))
-
-#define LIST_IS_EMPTY(__list)                   \
-    ((__list)->next == (__list))
 
 /**
  * Cast from a pointer to a member of a struct back to the containing struct.

@@ -202,6 +202,9 @@ struct _XDisplay
 	unsigned long last_request_read_upper32bit;
 	unsigned long request_upper32bit;
 #endif
+
+	/* avoid recursion on requests sequence number synchronization */
+	Bool req_seq_syncing; /* requests syncing is in-progress */
 };
 
 #define XAllocIDs(dpy,ids,n) (*(dpy)->idlist_alloc)(dpy,ids,n)

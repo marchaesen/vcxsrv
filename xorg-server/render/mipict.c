@@ -294,10 +294,8 @@ SourceValidateOnePicture(PicturePtr pPicture)
 
     pScreen = pDrawable->pScreen;
 
-    if (pScreen->SourceValidate) {
-        pScreen->SourceValidate(pDrawable, 0, 0, pDrawable->width,
-                                pDrawable->height, pPicture->subWindowMode);
-    }
+    pScreen->SourceValidate(pDrawable, 0, 0, pDrawable->width,
+                            pDrawable->height, pPicture->subWindowMode);
 }
 
 void

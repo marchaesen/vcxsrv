@@ -231,7 +231,7 @@ int main(int argc, char *argv[])
     }
 
 #ifdef WITH_LIBDRM
-    /* Detect if we need root rights, except when overriden by the config */
+    /* Detect if we need root rights, except when overridden by the config */
     if (needs_root_rights == -1) {
         for (i = 0; i < 16; i++) {
             snprintf(buf, sizeof(buf), DRM_DEV_NAME, DRM_DIR_NAME, i);

@@ -36,33 +36,30 @@ ADDRLIB_FILES = \
 	addrlib/src/r800/siaddrlib.cpp \
 	addrlib/src/r800/siaddrlib.h
 
-AMD_COMPILER_FILES = \
+AMD_COMMON_FILES = \
 	common/ac_binary.c \
 	common/ac_binary.h \
 	common/ac_exp_param.h \
-	common/ac_llvm_build.c \
-	common/ac_llvm_build.h \
-	common/ac_llvm_cull.c \
-	common/ac_llvm_cull.h \
-	common/ac_llvm_helper.cpp \
-	common/ac_llvm_util.c \
-	common/ac_llvm_util.h \
-	common/ac_rtld.c \
-	common/ac_rtld.h \
-	common/ac_shader_abi.h \
-	common/ac_shader_util.c \
-	common/ac_shader_util.h
-
-
-AMD_NIR_FILES = \
-	common/ac_nir_to_llvm.c \
-	common/ac_nir_to_llvm.h
-
-AMD_COMMON_FILES = \
 	common/ac_gpu_info.c \
 	common/ac_gpu_info.h \
 	common/ac_surface.c \
-	common/ac_surface.h
+	common/ac_surface.h \
+	common/ac_rtld.c \
+	common/ac_rtld.h \
+	common/ac_shader_util.c \
+	common/ac_shader_util.h
+
+AMD_COMMON_LLVM_FILES = \
+	llvm/ac_llvm_build.c \
+	llvm/ac_llvm_build.h \
+	llvm/ac_llvm_cull.c \
+	llvm/ac_llvm_cull.h \
+	llvm/ac_llvm_helper.cpp \
+	llvm/ac_llvm_util.c \
+	llvm/ac_llvm_util.h \
+	llvm/ac_shader_abi.h \
+	llvm/ac_nir_to_llvm.c \
+	llvm/ac_nir_to_llvm.h
 
 AMD_DEBUG_FILES = \
 	common/ac_debug.c \
@@ -71,3 +68,36 @@ AMD_DEBUG_FILES = \
 AMD_GENERATED_FILES = \
 	common/amdgfxregs.h \
 	common/sid_tables.h
+
+ACO_FILES = \
+	compiler/aco_dead_code_analysis.cpp \
+	compiler/aco_dominance.cpp \
+	compiler/aco_instruction_selection.cpp \
+	compiler/aco_instruction_selection_setup.cpp \
+	compiler/aco_interface.cpp \
+	compiler/aco_interface.h \
+	compiler/aco_ir.h \
+	compiler/aco_assembler.cpp \
+	compiler/aco_insert_exec_mask.cpp \
+	compiler/aco_insert_NOPs.cpp \
+	compiler/aco_insert_waitcnt.cpp \
+	compiler/aco_reduce_assign.cpp \
+	compiler/aco_register_allocation.cpp \
+	compiler/aco_live_var_analysis.cpp \
+	compiler/aco_lower_bool_phis.cpp \
+	compiler/aco_lower_to_cssa.cpp \
+	compiler/aco_lower_to_hw_instr.cpp \
+	compiler/aco_optimizer.cpp \
+	compiler/aco_opt_value_numbering.cpp \
+	compiler/aco_print_asm.cpp \
+	compiler/aco_print_ir.cpp \
+	compiler/aco_scheduler.cpp \
+	compiler/aco_ssa_elimination.cpp \
+	compiler/aco_spill.cpp \
+	compiler/aco_util.h \
+	compiler/aco_validate.cpp
+
+ACO_GENERATED_FILES = \
+	compiler/aco_builder.h \
+	compiler/aco_opcodes.cpp \
+	compiler/aco_opcodes.h

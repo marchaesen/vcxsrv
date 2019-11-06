@@ -307,6 +307,8 @@ See the <a href="xlibdriver.html">Xlib software driver page</a> for details.
    <dd>disable instruction compaction</dd>
    <dt><code>nodualobj</code></dt>
    <dd>suppress generation of dual-object geometry shader code</dd>
+   <dt><code>nofc</code></dt>
+   <dd>disable fast clears</dd>
    <dt><code>norbc</code></dt>
    <dd>disable single sampled render buffer compression</dd>
    <dt><code>optimizer</code></dt>
@@ -539,6 +541,111 @@ Mesa EGL supports different sets of environment variables.  See the
    <dd>write a GPU command stream trace file (VC4 simulator only)</dd>
 </dl>
 </dd>
+</dl>
+
+
+<h3>RADV driver environment variables</h3>
+<dl>
+<dt><code>RADV_DEBUG</code></dt>
+<dd>a comma-separated list of named flags, which do various things:
+<dl>
+   <dt><code>allbos</code></dt>
+   <dd>force all allocated buffers to be referenced in submissions</dd>
+   <dt><code>allentrypoints</code></dt>
+   <dd>enable all device/instance entrypoints</dd>
+   <dt><code>checkir</code></dt>
+   <dd>validate the LLVM IR before LLVM compiles the shader</dd>
+   <dt><code>errors</code></dt>
+   <dd>display more info about errors</dd>
+   <dt><code>info</code></dt>
+   <dd>show GPU-related information</dd>
+   <dt><code>metashaders</code></dt>
+   <dd>dump internal meta shaders</dd>
+   <dt><code>nobinning</code></dt>
+   <dd>disable primitive binning</dd>
+   <dt><code>nocache</code></dt>
+   <dd>disable shaders cache</dd>
+   <dt><code>nocompute</code></dt>
+   <dd>disable compute queue</dd>
+   <dt><code>nodcc</code></dt>
+   <dd>disable Delta Color Compression (DCC) on images</dd>
+   <dt><code>nodynamicbounds</code></dt>
+   <dd>do not check OOB access for dynamic descriptors</dd>
+   <dt><code>nofastclears</code></dt>
+   <dd>disable fast color/depthstencil clears</dd>
+   <dt><code>nohiz</code></dt>
+   <dd>disable HIZ for depthstencil images</dd>
+   <dt><code>noibs</code></dt>
+   <dd>disable directly recording command buffers in GPU-visible memory</dd>
+   <dt><code>noloadstoreopt</code></dt>
+   <dd>disable LLVM SILoadStoreOptimizer pass</dd>
+   <dt><code>nomemorycache</code></dt>
+   <dd>disable memory shaders cache</dd>
+   <dt><code>nongg</code></dt>
+   <dd>disable NGG for GFX10+</dd>
+   <dt><code>nooutoforder</code></dt>
+   <dd>disable out-of-order rasterization</dd>
+   <dt><code>noshaderballot</code></dt>
+   <dd>disable shader ballot</dd>
+   <dt><code>nosisched</code></dt>
+   <dd>disable LLVM sisched experimental scheduler</dd>
+   <dt><code>nothreadllvm</code></dt>
+   <dd>disable LLVM threaded compilation</dd>
+   <dt><code>preoptir</code></dt>
+   <dd>dump LLVM IR before any optimizations</dd>
+   <dt><code>shaders</code></dt>
+   <dd>dump shaders</dd>
+   <dt><code>shaderstats</code></dt>
+   <dd>dump shader statistics</dd>
+   <dt><code>spirv</code></dt>
+   <dd>dump SPIR-V</dd>
+   <dt><code>startup</code></dt>
+   <dd>display info at startup</dd>
+   <dt><code>syncshaders</code></dt>
+   <dd>synchronize shaders after all draws/dispatches</dd>
+   <dt><code>unsafemath</code></dt>
+   <dd>enable unsafe math operations</dd>
+   <dt><code>vmfaults</code></dt>
+   <dd>check for VM memory faults via dmesg</dd>
+   <dt><code>zerovram</code></dt>
+   <dd>initialize all memory allocated in VRAM as zero</dd>
+</dl>
+</dd>
+<dt><code>RADV_FORCE_FAMILY</code></dt>
+<dd>force the driver to use a specific family eg. gfx900 (developers only)</dd>
+<dt><code>RADV_PERFTEST</code></dt>
+<dd>a comma-separated list of named flags, which do various things:
+<dl>
+   <dt><code>aco</code></dt>
+   <dd>enable ACO experimental compiler</dd>
+   <dt><code>bolist</code></dt>
+   <dd>enable the global BO list</dd>
+   <dt><code>cswave32</code></dt>
+   <dd>enable wave32 for compute shaders (GFX10+)</dd>
+   <dt><code>dccmsaa</code></dt>
+   <dd>enable DCC for MSAA images</dd>
+   <dt><code>dfsm</code></dt>
+   <dd>enable dfsm</dd>
+   <dt><code>gewave32</code></dt>
+   <dd>enable wave32 for vertex/tess/geometry shaders (GFX10+)</dd>
+   <dt><code>localbos</code></dt>
+   <dd>enable local BOs</dd>
+   <dt><code>nobatchchain</code></dt>
+   <dd>disable chained submissions</dd>
+   <dt><code>pswave32</code></dt>
+   <dd>enable wave32 for pixel shaders (GFX10+)</dd>
+   <dt><code>shader_ballot</code></dt>
+   <dd>enable shader ballot</dd>
+   <dt><code>sisched</code></dt>
+   <dd>enable LLVM sisched experimental scheduler</dd>
+   <dt><code>tccompatcmask</code></dt>
+   <dd>enable TC-compat cmask for MSAA images</dd>
+</dl>
+</dd>
+<dt><code>RADV_SECURE_COMPILE_THREADS</code></dt>
+<dd>maximum number of secure compile threads (up to 32)</dd>
+<dt><code>RADV_TRACE_FILE</code></dt>
+<dd>generate cmdbuffer tracefiles when a GPU hang is detected</dd>
 </dl>
 
 

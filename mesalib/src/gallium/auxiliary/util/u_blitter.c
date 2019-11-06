@@ -334,8 +334,10 @@ struct blitter_context *util_blitter_create(struct pipe_context *pipe)
       pipe->screen->get_param(pipe->screen, PIPE_CAP_TGSI_VS_LAYER_VIEWPORT);
 
    /* set invariant vertex coordinates */
-   for (i = 0; i < 4; i++)
+   for (i = 0; i < 4; i++) {
+      ctx->vertices[i][0][2] = 0; /*v.z*/
       ctx->vertices[i][0][3] = 1; /*v.w*/
+   }
 
    return &ctx->base;
 }
@@ -791,8 +793,6 @@ static void blitter_set_rectangle(struct blitter_context_priv *ctx,
                                   int x1, int y1, int x2, int y2,
                                   float depth)
 {
-   int i;
-
    /* set vertex positions */
    ctx->vertices[0][0][0] = (float)x1 / ctx->dst_width * 2.0f - 1.0f; /*v0.x*/
    ctx->vertices[0][0][1] = (float)y1 / ctx->dst_height * 2.0f - 1.0f; /*v0.y*/
@@ -806,17 +806,14 @@ static void blitter_set_rectangle(struct blitter_context_priv *ctx,
    ctx->vertices[3][0][0] = (float)x1 / ctx->dst_width * 2.0f - 1.0f; /*v3.x*/
    ctx->vertices[3][0][1] = (float)y2 / ctx->dst_height * 2.0f - 1.0f; /*v3.y*/
 
-   for (i = 0; i < 4; i++)
-      ctx->vertices[i][0][2] = depth; /*z*/
-
    /* viewport */
    struct pipe_viewport_state viewport;
    viewport.scale[0] = 0.5f * ctx->dst_width;
    viewport.scale[1] = 0.5f * ctx->dst_height;
-   viewport.scale[2] = 1.0f;
+   viewport.scale[2] = 0.0f;
    viewport.translate[0] = 0.5f * ctx->dst_width;
    viewport.translate[1] = 0.5f * ctx->dst_height;
-   viewport.translate[2] = 0.0f;
+   viewport.translate[2] = depth;
    ctx->base.pipe->set_viewport_states(ctx->base.pipe, 0, 1, &viewport);
 }
 

@@ -208,6 +208,9 @@ ntq_emit_tmu_general(struct v3d_compile *c, nir_intrinsic_instr *instr,
                         instr->intrinsic == nir_intrinsic_load_scratch ||
                         instr->intrinsic == nir_intrinsic_load_shared);
 
+        if (!is_load)
+                c->tmu_dirty_rcl = true;
+
         bool has_index = !is_shared_or_scratch;
 
         int offset_src;
@@ -426,7 +429,7 @@ ntq_store_dest(struct v3d_compile *c, nir_dest *dest, int chan,
                struct qreg result)
 {
         struct qinst *last_inst = NULL;
-        if (!list_empty(&c->cur_block->instructions))
+        if (!list_is_empty(&c->cur_block->instructions))
                 last_inst = (struct qinst *)c->cur_block->instructions.prev;
 
         assert((result.file == QFILE_TEMP &&
@@ -2668,6 +2671,7 @@ const nir_shader_compiler_options v3d_nir_options = {
         .lower_mul_high = true,
         .lower_wpos_pntc = true,
         .lower_rotate = true,
+        .lower_to_scalar = true,
 };
 
 /**

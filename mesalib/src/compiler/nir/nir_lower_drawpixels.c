@@ -35,7 +35,7 @@ typedef struct {
    const nir_lower_drawpixels_options *options;
    nir_shader   *shader;
    nir_builder   b;
-   nir_variable *texcoord, *scale, *bias, *tex, *pixelmap;
+   nir_variable *texcoord, *texcoord_const, *scale, *bias, *tex, *pixelmap;
 } lower_drawpixels_state;
 
 static nir_ssa_def *
@@ -104,11 +104,12 @@ get_bias(lower_drawpixels_state *state)
 static nir_ssa_def *
 get_texcoord_const(lower_drawpixels_state *state)
 {
-   if (state->bias == NULL) {
-      state->bias = create_uniform(state->shader, "gl_MultiTexCoord0",
+   if (state->texcoord_const == NULL) {
+      state->texcoord_const = create_uniform(state->shader,
+                                   "gl_MultiTexCoord0",
                                    state->options->texcoord_state_tokens);
    }
-   return nir_load_var(&state->b, state->bias);
+   return nir_load_var(&state->b, state->texcoord_const);
 }
 
 static void
@@ -239,7 +240,9 @@ lower_drawpixels_block(lower_drawpixels_state *state, nir_block *block)
    nir_foreach_instr_safe(instr, block) {
       if (instr->type == nir_instr_type_intrinsic) {
          nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
-         if (intr->intrinsic == nir_intrinsic_load_deref) {
+
+         switch (intr->intrinsic) {
+         case nir_intrinsic_load_deref: {
             nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
             nir_variable *var = nir_deref_instr_get_variable(deref);
 
@@ -252,6 +255,29 @@ lower_drawpixels_block(lower_drawpixels_state *state, nir_block *block)
                assert(deref->deref_type == nir_deref_type_var);
                lower_texcoord(state, intr);
             }
+            break;
+         }
+
+         case nir_intrinsic_load_color0:
+            lower_color(state, intr);
+            break;
+
+         case nir_intrinsic_load_interpolated_input:
+         case nir_intrinsic_load_input: {
+            /* The intrinsic doesn't carry the variable. We need to find it
+             * manually.
+             */
+            nir_foreach_variable(var, &state->b.shader->inputs) {
+               if ((var->data.driver_location == nir_intrinsic_base(intr)) &&
+                   (nir_intrinsic_component(intr) >= var->data.location_frac  &&
+                    nir_intrinsic_component(intr) <
+                     (var->data.location_frac + glsl_get_components(var->type))))
+                  lower_texcoord(state, intr);
+            }
+            break;
+         }
+         default:
+            break;
          }
       }
    }

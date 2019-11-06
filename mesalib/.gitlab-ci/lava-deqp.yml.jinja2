@@ -1,0 +1,61 @@
+job_name: mesa-deqp-{{ gpu_version }}
+device_type: {{ lava_device_type }}
+timeouts:
+  job:
+    minutes: 40
+  action:
+   minutes: 10
+  actions:
+    power-off:
+      seconds: 30
+priority: 75
+visibility: public
+actions:
+- deploy:
+    timeout:
+      minutes: 10
+    to: tftp
+    kernel:
+      url: {{ base_artifacts_url }}/{{ kernel_image_name }}
+      {{ kernel_image_type }}
+    ramdisk:
+      url: {{ base_artifacts_url }}/lava-rootfs-{{ arch }}.cpio.gz
+      compression: gz
+    dtb:
+      url: {{ base_artifacts_url }}/{{ device_type }}.dtb
+    os: oe
+- boot:
+    timeout:
+      minutes: 5
+    method: {{ boot_method }}
+    commands: ramdisk
+    prompts:
+      - '#' 
+- test:
+    timeout:
+      minutes: 60
+    definitions:
+    - repository:
+        metadata:
+          format: Lava-Test Test Definition 1.0
+          name: deqp
+          description: "Mesa dEQP test plan"
+          os:
+          - oe
+          scope:
+          - functional
+        run:
+          steps:
+          - mount -t proc none /proc
+          - mount -t sysfs none /sys 
+          - mount -t devtmpfs none /dev
+          - mkdir -p /dev/pts
+          - mount -t devpts devpts /dev/pts
+          - echo 3 > /proc/sys/kernel/printk
+          - sh /deqp/lava-deqp-runner.sh {{ gpu_version }}
+          - cat /proc/loadavg
+        parse:
+          pattern: '(?P<test_case_id>\S*):\s+(?P<result>(pass|fail))'
+      from: inline
+      name: deqp
+      path: inline/mesa-deqp.yaml

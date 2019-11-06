@@ -2993,6 +2993,7 @@ meta_decompress_cleanup(struct gl_context *ctx,
    }
 
    _mesa_reference_sampler_object(ctx, &decompress->samp_obj, NULL);
+   _mesa_meta_blit_shader_table_cleanup(ctx, &decompress->shaders);
 
    memset(decompress, 0, sizeof(*decompress));
 }

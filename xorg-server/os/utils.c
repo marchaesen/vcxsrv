@@ -526,8 +526,6 @@ UseMsg(void)
     ErrorF
         ("-deferglyphs [none|all|16] defer loading of [no|all|16-bit] glyphs\n");
     ErrorF("-f #                   bell base (0-100)\n");
-    ErrorF("-fc string             cursor font\n");
-    ErrorF("-fn string             default font name\n");
     ErrorF("-fp string             default font path\n");
     ErrorF("-help                  prints message with these options\n");
     ErrorF("+iglx                  Allow creating indirect GLX contexts\n");
@@ -562,7 +560,6 @@ UseMsg(void)
     ErrorF("-seat string           seat to run on\n");
     ErrorF("-t #                   default pointer threshold (pixels/t)\n");
     ErrorF("-terminate             terminate at server reset\n");
-    ErrorF("-to #                  connection time out\n");
     ErrorF("-tst                   disable testing extensions\n");
     ErrorF("ttyxx                  server started from init on /dev/ttyxx\n");
     ErrorF("v                      video blanking for screen-saver\n");
@@ -775,18 +772,6 @@ ProcessCommandLine(int argc, char *argv[])
             else
                 UseMsg();
         }
-        else if (strcmp(argv[i], "-fc") == 0) {
-            if (++i < argc)
-                defaultCursorFont = argv[i];
-            else
-                UseMsg();
-        }
-        else if (strcmp(argv[i], "-fn") == 0) {
-            if (++i < argc)
-                defaultTextFont = argv[i];
-            else
-                UseMsg();
-        }
         else if (strcmp(argv[i], "-fp") == 0) {
             if (++i < argc) {
                 defaultFontPath = argv[i];
@@ -929,12 +914,6 @@ ProcessCommandLine(int argc, char *argv[])
         }
         else if (strcmp(argv[i], "-terminate") == 0) {
             dispatchExceptionAtReset = DE_TERMINATE;
-        }
-        else if (strcmp(argv[i], "-to") == 0) {
-            if (++i < argc)
-                TimeOutValue = ((CARD32) atoi(argv[i])) * MILLI_PER_SECOND;
-            else
-                UseMsg();
         }
         else if (strcmp(argv[i], "-tst") == 0) {
             noTestExtensions = TRUE;

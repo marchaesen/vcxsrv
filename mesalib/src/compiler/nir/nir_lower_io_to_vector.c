@@ -319,7 +319,7 @@ build_array_index(nir_builder *b, nir_deref_instr *deref, nir_ssa_def *base,
                                    deref->dest.ssa.bit_size);
       return nir_iadd(
          b, build_array_index(b, nir_deref_instr_parent(deref), base, vs_in),
-         nir_imul_imm(b, index, glsl_count_attribute_slots(deref->type, vs_in)));
+         nir_amul_imm(b, index, glsl_count_attribute_slots(deref->type, vs_in)));
    }
    default:
       unreachable("Invalid deref instruction type");

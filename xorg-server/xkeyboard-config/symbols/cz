@@ -108,6 +108,74 @@ xkb_symbols "qwerty_bksl" {
     key <BKSL>  { [ backslash,        bar,        slash,     NoSymbol ] };
 };
 
+partial alphanumeric_keys
+xkb_symbols "qwerty-mac" {
+
+    // This layout corresponds to the Apple's Czech - QWERTY.
+    // 2018 by Jakub Jirutka <jakub@jirutka.cz>
+
+    include "latin"
+    name[Group1]= "Czech (QWERTY, Macintosh)";
+
+    key <TLDE>  { [      less,    greater, lessthanequal, greaterthanequal]};
+    key <AE01>  { [      plus,          1,        grave,      notsign ] };
+    key <AE02>  { [    ecaron,          2,           at, enfilledcircbullet]};
+    key <AE03>  { [    scaron,          3,   numbersign,     notequal ] };
+    key <AE04>  { [    ccaron,          4,       dollar,     sterling ] };
+    key <AE05>  { [    rcaron,          5,   asciitilde,        U25CA ] };
+    key <AE06>  { [    zcaron,          6,  asciicircum,       dagger ] };
+    key <AE07>  { [    yacute,          7,    ampersand,    paragraph ] };
+    key <AE08>  { [    aacute,          8,     asterisk,     division ] };
+    key <AE09>  { [    iacute,          9,    braceleft, guillemotleft] };
+    key <AE10>  { [    eacute,          0,   braceright, guillemotright]};
+    key <AE11>  { [     equal,    percent, dead_abovering, dead_cedilla]};
+    key <AE12>  { [dead_acute, dead_caron, dead_circumflex, dead_macron]};
+
+    key <AD01>  { [         q,          Q,     NoSymbol,     NoSymbol ] };
+    key <AD02>  { [         w,          W,    eabovedot,    Eabovedot ] };
+    key <AD03>  { [         e,          E,      eogonek,      Eogonek ] };
+    key <AD04>  { [         r,          R,     EuroSign,   registered ] };
+    key <AD05>  { [         t,          T,     NoSymbol,    trademark ] };
+    key <AD06>  { [         y,          Y,     NoSymbol,     NoSymbol ] };
+    key <AD07>  { [         u,          U,     NoSymbol,     NoSymbol ] };
+    key <AD08>  { [         i,          I,     NoSymbol,     NoSymbol ] };
+    key <AD09>  { [         o,          O,     NoSymbol,     NoSymbol ] };
+    key <AD10>  { [         p,          P,     NoSymbol,     NoSymbol ] };
+
+    key <AD11>  { [    uacute,      slash,  bracketleft,         less ] };
+    key <AD12>  { [parenright,  parenleft, bracketright,      greater ] };
+
+    key <AC01>  { [         a,          A,      aogonek,     Aogonekl ] };
+    key <AC02>  { [         s,          S,       ssharp,        U2211 ] };
+    key <AC03>  { [         d,          D, partialderivate,     U2206 ] };
+    key <AC04>  { [         f,          F,     NoSymbol,     NoSymbol ] };
+    key <AC05>  { [         g,          G,     NoSymbol,     NoSymbol ] };
+    key <AC06>  { [         h,          H, leftsinglequotemark, leftdoublequotemark]};
+    key <AC07>  { [         j,          J, rightsinglequotemark, rightdoublequotemark]};
+    key <AC08>  { [         k,          K,     NoSymbol,     NoSymbol ] };
+    key <AC09>  { [         l,          L,      lstroke,      Lstroke ] };
+
+    key <AC10>  { [     uring,   quotedbl,    semicolon,     ellipsis ] };
+    key <AC11>  { [   section,     exclam,   apostrophe,   dead_tilde ] };
+    key <BKSL>  { [dead_diaeresis, grave, dead_diaeresis, dead_doubleacute]};
+
+    key <LSGT>  { [ backslash,        bar,     NoSymbol,     NoSymbol ] };
+    key <AB01>  { [         z,          Z,    zabovedot,    Zabovedot ] };
+    key <AB02>  { [         x,          X,     NoSymbol,     NoSymbol ] };
+    key <AB03>  { [         c,          C,     NoSymbol,    copyright ] };
+    key <AB04>  { [         v,          V,     NoSymbol,   squareroot ] };
+    key <AB05>  { [         b,          B,     NoSymbol,     NoSymbol ] };
+    key <AB06>  { [         n,          N, singlelowquotemark, doublelowquotemark]};
+    key <AB07>  { [         m,          M,     NoSymbol,     NoSymbol ] };
+    key <AB08>  { [     comma,   question,         less, lessthanequal] };
+    key <AB09>  { [    period,      colon,      greater, greaterthanequal]};
+    key <AB10>  { [     minus, underscore,       endash,       emdash ] };
+
+    key <SPCE>  { [     space,      space, nobreakspace, nobreakspace ] };
+
+    include "level3(ralt_switch)"
+};
+
 partial alphanumeric_keys alternate_group
 xkb_symbols "ucw" {
 
@@ -394,4 +462,22 @@ xkb_symbols "coder" {
     key <BKSL>{[ backslash,        bar, dead_diaeresis, apostrophe ]};
 
     include "level3(ralt_switch)"
+};
+
+xkb_symbols "prog_typo" {
+    // cz-prog-typo 1.0 2019-06-17 by Viktor Grešák <vgresak@gmail.com> and Tomáš Hudec <Tommy.Hudec@gmail.com>
+    //
+    // Programmer + Typographic keyboard. Based on the US layout with accented Czech letters and dead keys.
+    // Using AltGr and a key from the 1st row generates original level 2 US key as level 3 except TLDE and AE12.
+    // Using AltGr+Shift on accented letters generates its uppercase variant.
+    // Using AltGr or AltGr+Shift on letters which have accent in Czech but are not on the 1st row directly accessible generate accented letters, 
+    // i.e. [d, D], [t, T], [n, N], [o, O] generate with AltGr and AltGr+Shift: [dcaron, Dcaron], [tcaron, Tcaron], [ncaron, Ncaron], [oacute, Oacute].
+    // Other Czech letters besides alphanumeric keys (like uacute, uring) are generated using AltGr.
+    //
+    // Contains typographic symbols in third and fourth level. 
+
+    name[Group1]="Czech (programming, typographic)";
+
+    include "cz(prog)"
+    include "cz(typo)"
 };

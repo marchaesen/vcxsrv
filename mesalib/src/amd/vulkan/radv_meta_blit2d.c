@@ -408,7 +408,7 @@ radv_meta_blit2d(struct radv_cmd_buffer *cmd_buffer,
 		 unsigned num_rects,
 		 struct radv_meta_blit2d_rect *rects)
 {
-	bool use_3d = cmd_buffer->device->physical_device->rad_info.chip_class == GFX9 &&
+	bool use_3d = cmd_buffer->device->physical_device->rad_info.chip_class >= GFX9 &&
 		(src_img && src_img->image->type == VK_IMAGE_TYPE_3D);
 	enum blit2d_src_type src_type = src_buf ? BLIT2D_SRC_TYPE_BUFFER :
 		use_3d ? BLIT2D_SRC_TYPE_IMAGE_3D : BLIT2D_SRC_TYPE_IMAGE;
@@ -698,7 +698,7 @@ radv_device_finish_meta_blit2d_state(struct radv_device *device)
 				       state->blit2d_stencil_only_rp[j], &state->alloc);
 	}
 
-	for (unsigned log2_samples = 0; log2_samples < 1 + MAX_SAMPLES_LOG2; ++log2_samples) {
+	for (unsigned log2_samples = 0; log2_samples < MAX_SAMPLES_LOG2; ++log2_samples) {
 		for (unsigned src = 0; src < BLIT2D_NUM_SRC_TYPES; src++) {
 			radv_DestroyPipelineLayout(radv_device_to_handle(device),
 						   state->blit2d[log2_samples].p_layouts[src],
@@ -1308,9 +1308,9 @@ VkResult
 radv_device_init_meta_blit2d_state(struct radv_device *device, bool on_demand)
 {
 	VkResult result;
-	bool create_3d = device->physical_device->rad_info.chip_class == GFX9;
+	bool create_3d = device->physical_device->rad_info.chip_class >= GFX9;
 
-	for (unsigned log2_samples = 0; log2_samples < 1 + MAX_SAMPLES_LOG2; log2_samples++) {
+	for (unsigned log2_samples = 0; log2_samples < MAX_SAMPLES_LOG2; log2_samples++) {
 		for (unsigned src = 0; src < BLIT2D_NUM_SRC_TYPES; src++) {
 			if (src == BLIT2D_SRC_TYPE_IMAGE_3D && !create_3d)
 				continue;

@@ -37,6 +37,16 @@
 
 #include "compiler.h"
 
+static bool
+is_swizzle_0(unsigned *swizzle)
+{
+        for (unsigned c = 0; c < MIR_VEC_COMPONENTS; ++c)
+                if (swizzle[c])
+                        return false;
+
+        return true;
+}
+
 bool
 midgard_opt_combine_projection(compiler_context *ctx, midgard_block *block)
 {
@@ -51,14 +61,8 @@ midgard_opt_combine_projection(compiler_context *ctx, midgard_block *block)
 
                 /* Check the swizzles */
                 
-                midgard_vector_alu_src src1 =
-                        vector_alu_from_unsigned(ins->alu.src1);
-
-                midgard_vector_alu_src src2 =
-                        vector_alu_from_unsigned(ins->alu.src2);
-
-                if (!mir_is_simple_swizzle(src1.swizzle, ins->mask)) continue;
-                if (src2.swizzle != SWIZZLE_XXXX) continue;
+                if (!mir_is_simple_swizzle(ins->swizzle[0], ins->mask)) continue;
+                if (!is_swizzle_0(ins->swizzle[1])) continue;
 
                 /* Awesome, we're the right form. Now check where src2 is from */
                 unsigned frcp = ins->src[1];
@@ -74,10 +78,7 @@ midgard_opt_combine_projection(compiler_context *ctx, midgard_block *block)
                 mir_foreach_instr_in_block_safe(block, sub) {
                         if (sub->dest != frcp) continue;
 
-                        midgard_vector_alu_src s =
-                                vector_alu_from_unsigned(sub->alu.src1);
-
-                        frcp_component = s.swizzle & 3;
+                        frcp_component = sub->swizzle[0][0];
                         frcp_from = sub->src[0];
 
                         frcp_found =
@@ -116,11 +117,11 @@ midgard_opt_combine_projection(compiler_context *ctx, midgard_block *block)
                         .mask = ins->mask,
                         .dest = to,
                         .src = { frcp_from, ~0, ~0 },
+                        .swizzle = SWIZZLE_IDENTITY_4,
                         .load_store = {
                                 .op = frcp_component == COMPONENT_W ?
                                         midgard_op_ldst_perspective_division_w : 
                                         midgard_op_ldst_perspective_division_z,
-                                .swizzle = SWIZZLE_XYZW,
                                 .arg_1 = 0x20
                         }
                 };

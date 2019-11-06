@@ -145,37 +145,6 @@ radv_dump_debug_registers(struct radv_device *device, FILE *f)
 	fprintf(f, "\n");
 }
 
-static const char *
-radv_get_descriptor_name(enum VkDescriptorType type)
-{
-	switch (type) {
-	case VK_DESCRIPTOR_TYPE_SAMPLER:
-		return "SAMPLER";
-	case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-		return "COMBINED_IMAGE_SAMPLER";
-	case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-		return "SAMPLED_IMAGE";
-	case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-		return "STORAGE_IMAGE";
-	case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
-		return "UNIFORM_TEXEL_BUFFER";
-	case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-		return "STORAGE_TEXEL_BUFFER";
-	case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-		return "UNIFORM_BUFFER";
-	case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-		return "STORAGE_BUFFER";
-	case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-		return "UNIFORM_BUFFER_DYNAMIC";
-	case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-		return "STORAGE_BUFFER_DYNAMIC";
-	case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
-		return "INPUT_ATTACHMENT";
-	default:
-		return "UNKNOWN";
-	}
-}
-
 static void
 radv_dump_buffer_descriptor(enum chip_class chip_class, const uint32_t *desc,
 			    FILE *f)
@@ -224,9 +193,10 @@ radv_dump_combined_image_sampler_descriptor(enum chip_class chip_class,
 }
 
 static void
-radv_dump_descriptor_set(enum chip_class chip_class,
+radv_dump_descriptor_set(struct radv_device *device,
 			 struct radv_descriptor_set *set, unsigned id, FILE *f)
 {
+	enum chip_class chip_class = device->physical_device->rad_info.chip_class;
 	const struct radv_descriptor_set_layout *layout;
 	int i;
 
@@ -234,51 +204,9 @@ radv_dump_descriptor_set(enum chip_class chip_class,
 		return;
 	layout = set->layout;
 
-	fprintf(f, "** descriptor set (%d) **\n", id);
-	fprintf(f, "va: 0x%"PRIx64"\n", set->va);
-	fprintf(f, "size: %d\n", set->size);
-	fprintf(f, "mapped_ptr:\n");
-
-	for (i = 0; i < set->size / 4; i++) {
-		fprintf(f, "\t[0x%x] = 0x%08x\n", i, set->mapped_ptr[i]);
-	}
-	fprintf(f, "\n");
-
-	fprintf(f, "\t*** layout ***\n");
-	fprintf(f, "\tbinding_count: %d\n", layout->binding_count);
-	fprintf(f, "\tsize: %d\n", layout->size);
-	fprintf(f, "\tshader_stages: %x\n", layout->shader_stages);
-	fprintf(f, "\tdynamic_shader_stages: %x\n",
-		layout->dynamic_shader_stages);
-	fprintf(f, "\tbuffer_count: %d\n", layout->buffer_count);
-	fprintf(f, "\tdynamic_offset_count: %d\n",
-		layout->dynamic_offset_count);
-	fprintf(f, "\n");
-
 	for (i = 0; i < set->layout->binding_count; i++) {
 		uint32_t *desc =
 			set->mapped_ptr + layout->binding[i].offset / 4;
-
-		fprintf(f, "\t\t**** binding layout (%d) ****\n", i);
-		fprintf(f, "\t\ttype: %s\n",
-			radv_get_descriptor_name(layout->binding[i].type));
-		fprintf(f, "\t\tarray_size: %d\n",
-			layout->binding[i].array_size);
-		fprintf(f, "\t\toffset: %d\n",
-			layout->binding[i].offset);
-		fprintf(f, "\t\tbuffer_offset: %d\n",
-			layout->binding[i].buffer_offset);
-		fprintf(f, "\t\tdynamic_offset_offset: %d\n",
-			layout->binding[i].dynamic_offset_offset);
-		fprintf(f, "\t\tdynamic_offset_count: %d\n",
-			layout->binding[i].dynamic_offset_count);
-		fprintf(f, "\t\tsize: %d\n",
-			layout->binding[i].size);
-		fprintf(f, "\t\timmutable_samplers_offset: %d\n",
-			layout->binding[i].immutable_samplers_offset);
-		fprintf(f, "\t\timmutable_samplers_equal: %d\n",
-			layout->binding[i].immutable_samplers_equal);
-		fprintf(f, "\n");
 
 		switch (layout->binding[i].type) {
 		case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
@@ -312,19 +240,17 @@ radv_dump_descriptor_set(enum chip_class chip_class,
 }
 
 static void
-radv_dump_descriptors(struct radv_pipeline *pipeline, FILE *f)
+radv_dump_descriptors(struct radv_device *device, FILE *f)
 {
-	struct radv_device *device = pipeline->device;
-	enum chip_class chip_class = device->physical_device->rad_info.chip_class;
 	uint64_t *ptr = (uint64_t *)device->trace_id_ptr;
 	int i;
 
-	fprintf(f, "List of descriptors:\n");
+	fprintf(f, "Descriptors:\n");
 	for (i = 0; i < MAX_SETS; i++) {
 		struct radv_descriptor_set *set =
-			(struct radv_descriptor_set *)ptr[i + 3];
+			*(struct radv_descriptor_set **)(ptr + i + 3);
 
-		radv_dump_descriptor_set(chip_class, set, i, f);
+		radv_dump_descriptor_set(device, set, i, f);
 	}
 }
 
@@ -507,7 +433,7 @@ radv_dump_shader(struct radv_pipeline *pipeline,
 		fprintf(f, "NIR:\n%s\n", shader->nir_string);
 	}
 
-	fprintf(f, "LLVM IR:\n%s\n", shader->llvm_ir_string);
+	fprintf(f, "LLVM IR:\n%s\n", shader->ir_string);
 	fprintf(f, "DISASM:\n%s\n", shader->disasm_string);
 
 	radv_shader_dump_stats(pipeline->device, shader, stage, f);
@@ -531,11 +457,11 @@ radv_dump_pipeline_state(struct radv_pipeline *pipeline,
 {
 	radv_dump_shaders(pipeline, active_stages, f);
 	radv_dump_annotated_shaders(pipeline, active_stages, f);
-	radv_dump_descriptors(pipeline, f);
 }
 
 static void
-radv_dump_graphics_state(struct radv_pipeline *graphics_pipeline,
+radv_dump_graphics_state(struct radv_device *device,
+			 struct radv_pipeline *graphics_pipeline,
 			 struct radv_pipeline *compute_pipeline, FILE *f)
 {
 	VkShaderStageFlagBits active_stages;
@@ -549,10 +475,13 @@ radv_dump_graphics_state(struct radv_pipeline *graphics_pipeline,
 		active_stages = VK_SHADER_STAGE_COMPUTE_BIT;
 		radv_dump_pipeline_state(compute_pipeline, active_stages, f);
 	}
+
+	radv_dump_descriptors(device, f);
 }
 
 static void
-radv_dump_compute_state(struct radv_pipeline *compute_pipeline, FILE *f)
+radv_dump_compute_state(struct radv_device *device,
+			struct radv_pipeline *compute_pipeline, FILE *f)
 {
 	VkShaderStageFlagBits active_stages = VK_SHADER_STAGE_COMPUTE_BIT;
 
@@ -560,6 +489,7 @@ radv_dump_compute_state(struct radv_pipeline *compute_pipeline, FILE *f)
 		return;
 
 	radv_dump_pipeline_state(compute_pipeline, active_stages, f);
+	radv_dump_descriptors(device, f);
 }
 
 static struct radv_pipeline *
@@ -567,7 +497,7 @@ radv_get_saved_graphics_pipeline(struct radv_device *device)
 {
 	uint64_t *ptr = (uint64_t *)device->trace_id_ptr;
 
-	return (struct radv_pipeline *)ptr[1];
+	return *(struct radv_pipeline **)(ptr + 1);
 }
 
 static struct radv_pipeline *
@@ -575,7 +505,7 @@ radv_get_saved_compute_pipeline(struct radv_device *device)
 {
 	uint64_t *ptr = (uint64_t *)device->trace_id_ptr;
 
-	return (struct radv_pipeline *)ptr[2];
+	return *(struct radv_pipeline **)(ptr + 2);
 }
 
 static void
@@ -677,6 +607,8 @@ radv_check_gpu_hangs(struct radv_queue *queue, struct radeon_cmdbuf *cs)
 	graphics_pipeline = radv_get_saved_graphics_pipeline(device);
 	compute_pipeline = radv_get_saved_compute_pipeline(device);
 
+	radv_dump_trace(queue->device, cs);
+
 	fprintf(stderr, "GPU hang report:\n\n");
 	radv_dump_device_name(device, stderr);
 
@@ -692,23 +624,26 @@ radv_check_gpu_hangs(struct radv_queue *queue, struct radeon_cmdbuf *cs)
 
 	switch (ring) {
 	case RING_GFX:
-		radv_dump_graphics_state(graphics_pipeline, compute_pipeline,
+		fprintf(stderr, "RING_GFX:\n");
+		radv_dump_graphics_state(queue->device,
+					 graphics_pipeline, compute_pipeline,
 					 stderr);
 		break;
 	case RING_COMPUTE:
-		radv_dump_compute_state(compute_pipeline, stderr);
+		fprintf(stderr, "RING_COMPUTE:\n");
+		radv_dump_compute_state(queue->device,
+					compute_pipeline, stderr);
 		break;
 	default:
 		assert(0);
 		break;
 	}
 
-	radv_dump_trace(queue->device, cs);
 	abort();
 }
 
 void
-radv_print_spirv(uint32_t *data, uint32_t size, FILE *fp)
+radv_print_spirv(const char *data, uint32_t size, FILE *fp)
 {
 	char path[] = "/tmp/fileXXXXXX";
 	char line[2048], command[128];

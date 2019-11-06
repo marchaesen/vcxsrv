@@ -127,7 +127,6 @@ int ProcInitialConnection();
 #include "xace.h"
 #include "inputstr.h"
 #include "xkbsrv.h"
-#include "site.h"
 #include "client.h"
 
 #ifdef XSERVER_DTRACE
@@ -148,6 +147,7 @@ xConnSetupPrefix connSetupPrefix;
 PaddingInfo PixmapWidthPaddingInfo[33];
 
 static ClientPtr grabClient;
+static ClientPtr currentClient; /* Client for the request currently being dispatched */
 
 #define GrabNone 0
 #define GrabActive 1
@@ -175,6 +175,23 @@ volatile char isItTimeToYield;
 
 #define SAME_SCREENS(a, b) (\
     (a.pScreen == b.pScreen))
+
+ClientPtr
+GetCurrentClient(void)
+{
+    if (in_input_thread()) {
+        static Bool warned;
+
+        if (!warned) {
+            ErrorF("[dix] Error GetCurrentClient called from input-thread\n");
+            warned = TRUE;
+        }
+
+        return NULL;
+    }
+
+    return currentClient;
+}
 
 void
 SetInputCheck(HWEventQueuePtr c0, HWEventQueuePtr c1)
@@ -474,9 +491,12 @@ Dispatch(void)
                     result = BadLength;
                 else {
                     result = XaceHookDispatch(client, client->majorOp);
-                    if (result == Success)
+                    if (result == Success) {
+                        currentClient = client;
                         result =
                             (*client->requestVector[client->majorOp]) (client);
+                        currentClient = NULL;
+                    }
                 }
                 if (!SmartScheduleSignalEnable)
                     SmartScheduleTime = GetTimeInMillis();
@@ -515,18 +535,11 @@ Dispatch(void)
 }
 
 static int VendorRelease = VENDOR_RELEASE;
-static const char *VendorString = VENDOR_NAME;
 
 void
 SetVendorRelease(int release)
 {
     VendorRelease = release;
-}
-
-void
-SetVendorString(const char *vendor)
-{
-    VendorString = vendor;
 }
 
 Bool
@@ -540,6 +553,7 @@ CreateConnectionBlock(void)
     unsigned long vid;
     int i, j, k, lenofblock, sizesofar = 0;
     char *pBuf;
+    const char VendorString[] = VENDOR_NAME;
 
     memset(&setup, 0, sizeof(xConnSetup));
     /* Leave off the ridBase and ridMask, these must be sent with
@@ -2196,8 +2210,11 @@ DoGetImage(ClientPtr client, int format, Drawable drawable,
         return BadAlloc;
     WriteReplyToClient(client, sizeof(xGetImageReply), &xgi);
 
-    if (pDraw->type == DRAWABLE_WINDOW)
+    if (pDraw->type == DRAWABLE_WINDOW) {
         pVisibleRegion = &((WindowPtr) pDraw)->borderClip;
+        pDraw->pScreen->SourceValidate(pDraw, x, y, width, height,
+                                       IncludeInferiors);
+    }
 
     if (linesPerBuf == 0) {
         /* nothing to do */

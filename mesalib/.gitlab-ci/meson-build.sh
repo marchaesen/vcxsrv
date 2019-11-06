@@ -3,18 +3,21 @@
 set -e
 set -o xtrace
 
+CROSS_FILE=/cross_file-"$CROSS".txt
+
 # We need to control the version of llvm-config we're using, so we'll
-# generate a native file to do so. This requires meson >=0.49
+# tweak the cross file or generate a native file to do so.
 if test -n "$LLVM_VERSION"; then
     LLVM_CONFIG="llvm-config-${LLVM_VERSION}"
     echo -e "[binaries]\nllvm-config = '`which $LLVM_CONFIG`'" > native.file
+    if [ -n "$CROSS" ]; then
+        sed -i -e '/\[binaries\]/a\' -e "llvm-config = '`which $LLVM_CONFIG`'" $CROSS_FILE
+    fi
     $LLVM_CONFIG --version
 else
     rm -f native.file
     touch native.file
 fi
-
-CROSS_FILE=/cross_file-"$CROSS".txt
 
 # cross-xfail-$CROSS, if it exists, contains a list of tests that are expected
 # to fail for the $CROSS configuration, one per line. you can then mark those
@@ -39,6 +42,7 @@ fi
 
 rm -rf _build
 meson _build --native-file=native.file \
+      --wrap-mode=nofallback \
       ${CROSS+--cross "$CROSS_FILE"} \
       -D prefix=`pwd`/install \
       -D libdir=lib \

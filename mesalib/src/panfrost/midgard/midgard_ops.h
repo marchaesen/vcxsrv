@@ -24,7 +24,9 @@
 /* Forward declare */
 
 extern struct mir_op_props alu_opcode_props[256];
-extern const char *load_store_opcode_names[256];
+extern struct mir_ldst_op_props load_store_opcode_props[256];
+
+#define OP_IS_STORE(op) (load_store_opcode_props[op].props & LDST_STORE)
 
 /* Is this opcode that of an integer (regardless of signedness)? Instruction
  * names authoritatively determine types */

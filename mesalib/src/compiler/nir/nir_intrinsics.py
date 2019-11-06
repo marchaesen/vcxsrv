@@ -124,6 +124,14 @@ DESC_TYPE = "NIR_INTRINSIC_DESC_TYPE"
 TYPE = "NIR_INTRINSIC_TYPE"
 # The swizzle mask for quad_swizzle_amd & masked_swizzle_amd
 SWIZZLE_MASK = "NIR_INTRINSIC_SWIZZLE_MASK"
+# Driver location of attribute
+DRIVER_LOCATION = "NIR_INTRINSIC_DRIVER_LOCATION"
+# Ordering and visibility of a memory operation
+MEMORY_SEMANTICS = "NIR_INTRINSIC_MEMORY_SEMANTICS"
+# Modes affected by a memory operation
+MEMORY_MODES = "NIR_INTRINSIC_MEMORY_MODES"
+# Scope of a memory operation
+MEMORY_SCOPE = "NIR_INTRINSIC_MEMORY_SCOPE"
 
 #
 # Possible flags:
@@ -203,6 +211,12 @@ intrinsic("is_helper_invocation", dest_comp=1, flags=[CAN_ELIMINATE])
 # Memory barrier with semantics analogous to the memoryBarrier() GLSL
 # intrinsic.
 barrier("memory_barrier")
+
+# Memory barrier with explicit scope.  Follows the semantics of SPIR-V
+# OpMemoryBarrier, used to implement Vulkan Memory Model.  Storage that the
+# barrierr applies is represented using NIR variable modes.
+intrinsic("scoped_memory_barrier",
+          indices=[MEMORY_SEMANTICS, MEMORY_MODES, MEMORY_SCOPE])
 
 # Shader clock intrinsic with semantics analogous to the clock2x32ARB()
 # GLSL intrinsic.
@@ -771,6 +785,20 @@ intrinsic("ssbo_atomic_or_ir3",         src_comp=[1, 1, 1, 1],    dest_comp=1)
 intrinsic("ssbo_atomic_xor_ir3",        src_comp=[1, 1, 1, 1],    dest_comp=1)
 intrinsic("ssbo_atomic_exchange_ir3",   src_comp=[1, 1, 1, 1],    dest_comp=1)
 intrinsic("ssbo_atomic_comp_swap_ir3",  src_comp=[1, 1, 1, 1, 1], dest_comp=1)
+
+# System values for freedreno geometry shaders.
+system_value("vs_primitive_stride_ir3", 1)
+system_value("vs_vertex_stride_ir3", 1)
+system_value("gs_header_ir3", 1)
+system_value("primitive_location_ir3", 1, indices=[DRIVER_LOCATION])
+
+# IR3-specific load/store intrinsics. These access a buffer used to pass data
+# between geometry stages - perhaps it's explicit access to the vertex cache.
+
+# src[] = { value, offset }.
+store("shared_ir3", 2, [BASE, WRMASK, ALIGN_MUL, ALIGN_OFFSET])
+# src[] = { offset }.
+load("shared_ir3", 1, [BASE, ALIGN_MUL, ALIGN_OFFSET], [CAN_ELIMINATE])
 
 # Intrinsics used by the Midgard/Bifrost blend pipeline. These are defined
 # within a blend shader to read/write the raw value from the tile buffer,

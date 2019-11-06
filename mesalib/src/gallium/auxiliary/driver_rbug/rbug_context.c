@@ -114,10 +114,15 @@ rbug_draw_block_locked(struct rbug_context *rb_pipe, int flag)
 }
 
 static void
-rbug_draw_vbo(struct pipe_context *_pipe, const struct pipe_draw_info *info)
+rbug_draw_vbo(struct pipe_context *_pipe, const struct pipe_draw_info *_info)
 {
    struct rbug_context *rb_pipe = rbug_context(_pipe);
    struct pipe_context *pipe = rb_pipe->pipe;
+   struct pipe_draw_info info;
+
+   info = *_info;
+   if(_info->index_size && !_info->has_user_indices)
+       info.index.resource = rbug_resource_unwrap(_info->index.resource);
 
    mtx_lock(&rb_pipe->draw_mutex);
    rbug_draw_block_locked(rb_pipe, RBUG_BLOCK_BEFORE);
@@ -127,7 +132,7 @@ rbug_draw_vbo(struct pipe_context *_pipe, const struct pipe_draw_info *info)
    if (!(rb_pipe->curr.shader[PIPE_SHADER_FRAGMENT] && rb_pipe->curr.shader[PIPE_SHADER_FRAGMENT]->disabled) &&
        !(rb_pipe->curr.shader[PIPE_SHADER_GEOMETRY] && rb_pipe->curr.shader[PIPE_SHADER_GEOMETRY]->disabled) &&
        !(rb_pipe->curr.shader[PIPE_SHADER_VERTEX] && rb_pipe->curr.shader[PIPE_SHADER_VERTEX]->disabled))
-      pipe->draw_vbo(pipe, info);
+      pipe->draw_vbo(pipe, &info);
    mtx_unlock(&rb_pipe->call_mutex);
 
    rbug_draw_block_locked(rb_pipe, RBUG_BLOCK_AFTER);
@@ -999,6 +1004,31 @@ rbug_flush(struct pipe_context *_pipe,
    mtx_unlock(&rb_pipe->call_mutex);
 }
 
+static void
+rbug_create_fence_fd(struct pipe_context *_pipe,
+                     struct pipe_fence_handle **fence, int fd,
+                     enum pipe_fd_type type)
+{
+   struct rbug_context *rb_pipe = rbug_context(_pipe);
+   struct pipe_context *pipe = rb_pipe->pipe;
+
+   mtx_lock(&rb_pipe->call_mutex);
+   pipe->create_fence_fd(pipe, fence, fd, type);
+   mtx_unlock(&rb_pipe->call_mutex);
+}
+
+static void
+rbug_fence_server_sync(struct pipe_context *_pipe,
+                       struct pipe_fence_handle *fence)
+{
+   struct rbug_context *rb_pipe = rbug_context(_pipe);
+   struct pipe_context *pipe = rb_pipe->pipe;
+
+   mtx_lock(&rb_pipe->call_mutex);
+   pipe->fence_server_sync(pipe, fence);
+   mtx_unlock(&rb_pipe->call_mutex);
+}
+
 static struct pipe_sampler_view *
 rbug_context_create_sampler_view(struct pipe_context *_pipe,
                                  struct pipe_resource *_resource,
@@ -1173,6 +1203,17 @@ rbug_context_texture_subdata(struct pipe_context *_context,
    mtx_unlock(&rb_pipe->call_mutex);
 }
 
+static void
+rbug_context_texture_barrier(struct pipe_context *_context, unsigned flags)
+{
+   struct rbug_context *rb_pipe = rbug_context(_context);
+   struct pipe_context *context = rb_pipe->pipe;
+
+   mtx_lock(&rb_pipe->call_mutex);
+   context->texture_barrier(context,
+                            flags);
+   mtx_unlock(&rb_pipe->call_mutex);
+}
 
 struct pipe_context *
 rbug_context_create(struct pipe_screen *_screen, struct pipe_context *pipe)
@@ -1247,11 +1288,12 @@ rbug_context_create(struct pipe_screen *_screen, struct pipe_context *pipe)
    rb_pipe->base.set_stream_output_targets = rbug_set_stream_output_targets;
    rb_pipe->base.resource_copy_region = rbug_resource_copy_region;
    rb_pipe->base.blit = rbug_blit;
-   rb_pipe->base.flush_resource = rbug_flush_resource;
    rb_pipe->base.clear = rbug_clear;
    rb_pipe->base.clear_render_target = rbug_clear_render_target;
    rb_pipe->base.clear_depth_stencil = rbug_clear_depth_stencil;
    rb_pipe->base.flush = rbug_flush;
+   rb_pipe->base.create_fence_fd = rbug_create_fence_fd;
+   rb_pipe->base.fence_server_sync = rbug_fence_server_sync;
    rb_pipe->base.create_sampler_view = rbug_context_create_sampler_view;
    rb_pipe->base.sampler_view_destroy = rbug_context_sampler_view_destroy;
    rb_pipe->base.create_surface = rbug_context_create_surface;
@@ -1261,6 +1303,8 @@ rbug_context_create(struct pipe_screen *_screen, struct pipe_context *pipe)
    rb_pipe->base.transfer_flush_region = rbug_context_transfer_flush_region;
    rb_pipe->base.buffer_subdata = rbug_context_buffer_subdata;
    rb_pipe->base.texture_subdata = rbug_context_texture_subdata;
+   rb_pipe->base.texture_barrier = rbug_context_texture_barrier;
+   rb_pipe->base.flush_resource = rbug_flush_resource;
 
    rb_pipe->pipe = pipe;
 

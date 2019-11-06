@@ -20,6 +20,8 @@
 # DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
 # TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 # PERFORMANCE OF THIS SOFTWARE.
+set -e
+
 case "$OSTYPE" in
     msys ) MyPWD=`pwd -W` ;;  # On Msys/MinGW, returns a MS Windows style path.
     *    ) MyPWD=`pwd`    ;;  # On any other platforms, returns a Unix style path.
@@ -82,7 +84,7 @@ export FONTCONFIG_FILE
 dotest "Basic check"
 prep
 cp $FONT1 $FONT2 $FONTDIR
-if [ -n ${SOURCE_DATE_EPOCH:-} ]; then
+if [ -n ${SOURCE_DATE_EPOCH:-} ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
     touch -m -t "`date -d \"@${SOURCE_DATE_EPOCH}\" +%y%m%d%H%M.%S`" $FONTDIR
 fi
 check
@@ -90,7 +92,7 @@ check
 dotest "With a subdir"
 prep
 cp $FONT1 $FONT2 $FONTDIR
-if [ -n ${SOURCE_DATE_EPOCH:-} ]; then
+if [ -n ${SOURCE_DATE_EPOCH:-} ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
     touch -m -t "`date -d \"@${SOURCE_DATE_EPOCH}\" +%y%m%d%H%M.%S`" $FONTDIR
 fi
 $FCCACHE $FONTDIR
@@ -100,7 +102,7 @@ dotest "Subdir with a cache file"
 prep
 mkdir $FONTDIR/a
 cp $FONT1 $FONT2 $FONTDIR/a
-if [ -n ${SOURCE_DATE_EPOCH:-} ]; then
+if [ -n ${SOURCE_DATE_EPOCH:-} ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
     touch -m -t "`date -d \"@${SOURCE_DATE_EPOCH}\" +%y%m%d%H%M.%S`" $FONTDIR/a
 fi
 $FCCACHE $FONTDIR/a
@@ -113,11 +115,11 @@ mkdir $FONTDIR/a/a
 mkdir $FONTDIR/b
 mkdir $FONTDIR/b/a
 cp $FONT1 $FONTDIR/a
-if [ -n ${SOURCE_DATE_EPOCH:-} ]; then
+if [ -n ${SOURCE_DATE_EPOCH:-} ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
     touch -m -t "`date -d \"@${SOURCE_DATE_EPOCH}\" +%y%m%d%H%M.%S`" $FONTDIR/a
 fi
 cp $FONT2 $FONTDIR/b/a
-if [ -n ${SOURCE_DATE_EPOCH:-} ]; then
+if [ -n ${SOURCE_DATE_EPOCH:-} ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
     touch -m -t "`date -d \"@${SOURCE_DATE_EPOCH}\" +%y%m%d%H%M.%S`" $FONTDIR/b/a
 fi
 check
@@ -156,7 +158,7 @@ if [ x"$BWRAP" != "x" -a "x$EXEEXT" = "x" ]; then
 dotest "Basic functionality with the bind-mounted cache dir"
 prep
 cp $FONT1 $FONT2 $FONTDIR
-if [ -n ${SOURCE_DATE_EPOCH:-} ]; then
+if [ -n ${SOURCE_DATE_EPOCH:-} ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
     touch -m -t "`date -d \"@${SOURCE_DATE_EPOCH}\" +%y%m%d%H%M.%S`" $FONTDIR
 fi
 $FCCACHE $FONTDIR
@@ -198,7 +200,7 @@ rm -rf $TESTTMPDIR out1 out2 xxx flist1 flist2 bind-fonts.conf
 dotest "Different directory content between host and sandbox"
 prep
 cp $FONT1 $FONTDIR
-if [ -n ${SOURCE_DATE_EPOCH:-} ]; then
+if [ -n ${SOURCE_DATE_EPOCH:-} ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
     touch -m -t "`date -d \"@${SOURCE_DATE_EPOCH}\" +%y%m%d%H%M.%S`" $FONTDIR
 fi
 $FCCACHE $FONTDIR
@@ -208,7 +210,7 @@ stat -c '%n %s %y %z' `cat out1` > stat1
 TESTTMPDIR=`mktemp -d /tmp/fontconfig.XXXXXXXX`
 TESTTMP2DIR=`mktemp -d /tmp/fontconfig.XXXXXXXX`
 cp $FONT2 $TESTTMP2DIR
-if [ -n ${SOURCE_DATE_EPOCH:-} ]; then
+if [ -n ${SOURCE_DATE_EPOCH:-} ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
     touch -m -t "`date -d \"@${SOURCE_DATE_EPOCH}\" +%y%m%d%H%M.%S`" $TESTTMP2DIR
 fi
 sed "s!@FONTDIR@!$TESTTMPDIR/fonts</dir><dir salt="'"'"salt-to-make-different"'"'">$FONTDIR!
@@ -251,7 +253,7 @@ dotest "Check consistency of MD5 in cache name"
 prep
 mkdir -p $FONTDIR/sub
 cp $FONT1 $FONTDIR/sub
-if [ -n ${SOURCE_DATE_EPOCH:-} ]; then
+if [ -n ${SOURCE_DATE_EPOCH:-} ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
     touch -m -t "`date -d \"@${SOURCE_DATE_EPOCH}\" +%y%m%d%H%M.%S`" $FONTDIR/sub
 fi
 $FCCACHE $FONTDIR
@@ -278,7 +280,7 @@ rm -rf $TESTTMPDIR out1 out2 bind-fonts.conf
 dotest "Fallback to uuid"
 prep
 cp $FONT1 $FONTDIR
-if [ -n ${SOURCE_DATE_EPOCH:-} ]; then
+if [ -n ${SOURCE_DATE_EPOCH:-} ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
     touch -m -t "`date -d \"@${SOURCE_DATE_EPOCH}\" +%y%m%d%H%M.%S`" $FONTDIR
 fi
 touch -d @`stat -c %Y $FONTDIR` $FONTDIR
@@ -321,7 +323,7 @@ mkdir -p $MyPWD/sysroot/$FONTDIR
 mkdir -p $MyPWD/sysroot/$CACHEDIR
 mkdir -p $MyPWD/sysroot/$MyPWD
 cp $FONT1 $MyPWD/sysroot/$FONTDIR
-if [ -n ${SOURCE_DATE_EPOCH:-} ]; then
+if [ -n ${SOURCE_DATE_EPOCH:-} ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
     touch -m -t "`date -d \"@${SOURCE_DATE_EPOCH}\" +%y%m%d%H%M.%S`" $MyPWD/sysroot/$FONTDIR
 fi
 cp $MyPWD/fonts.conf $MyPWD/sysroot/$MyPWD/fonts.conf
@@ -340,6 +342,85 @@ fi
 
 rm -rf $MyPWD/sysroot
 
+dotest "read newer caches when multiple places are allowed to store"
+prep
+cp $FONT1 $FONT2 $FONTDIR
+if [ -n ${SOURCE_DATE_EPOCH:-} ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
+    touch -m -t "`date -d \"@${SOURCE_DATE_EPOCH}\" +%y%m%d%H%M.%S`" $FONTDIR
+fi
+MYCACHEBASEDIR=`mktemp -d /tmp/fontconfig.XXXXXXXX`
+MYCACHEDIR=$MYCACHEBASEDIR/cache.dir
+MYOWNCACHEDIR=$MYCACHEBASEDIR/owncache.dir
+MYCONFIG=`mktemp /tmp/fontconfig.XXXXXXXX`
+
+mkdir -p $MYCACHEDIR
+mkdir -p $MYOWNCACHEDIR
+
+sed "s!@FONTDIR@!$FONTDIR!
+s!@REMAPDIR@!!
+s!@CACHEDIR@!$MYCACHEDIR!" < $TESTDIR/fonts.conf.in > my-fonts.conf
+
+FONTCONFIG_FILE=$MyPWD/my-fonts.conf $FCCACHE $FONTDIR
+
+sleep 1
+cat<<EOF>$MYCONFIG
+<fontconfig>
+  <match target="scan">
+    <test name="file"><string>$FONTDIR/4x6.pcf</string></test>
+    <edit name="pixelsize"><int>8</int></edit>
+  </match>
+</fontconfig>
+EOF
+sed "s!@FONTDIR@!$FONTDIR!
+s!@REMAPDIR@!<include ignore_missing=\"yes\">$MYCONFIG</include>!
+s!@CACHEDIR@!$MYOWNCACHEDIR!" < $TESTDIR/fonts.conf.in > my-fonts.conf
+
+if [ -n ${SOURCE_DATE_EPOCH:-} ]; then
+  old_epoch=${SOURCE_DATE_EPOCH}
+  SOURCE_DATE_EPOCH=`expr $SOURCE_DATE_EPOCH + 1`
+fi
+FONTCONFIG_FILE=$MyPWD/my-fonts.conf $FCCACHE -f $FONTDIR
+if [ -n ${SOURCE_DATE_EPOCH:-} ]; then
+  SOURCE_DATE_EPOCH=${old_epoch}
+fi
+
+sed "s!@FONTDIR@!$FONTDIR!
+s!@REMAPDIR@!<include ignore_missing=\"yes\">$MYCONFIG</include>!
+s!@CACHEDIR@!$MYCACHEDIR</cachedir><cachedir>$MYOWNCACHEDIR!" < $TESTDIR/fonts.conf.in > my-fonts.conf
+
+FONTCONFIG_FILE=$MyPWD/my-fonts.conf $FCLIST - family pixelsize | sort > my-out
+echo "=" >> my-out
+FONTCONFIG_FILE=$MyPWD/my-fonts.conf $FCLIST - family pixelsize | sort >> my-out
+echo "=" >> my-out
+FONTCONFIG_FILE=$MyPWD/my-fonts.conf $FCLIST - family pixelsize | sort >> my-out
+tr -d '\015' <my-out >my-out.tmp; mv my-out.tmp my-out
+sed -e 's/pixelsize=6/pixelsize=8/g' $BUILDTESTDIR/$EXPECTED > my-out.expected
+
+if cmp my-out my-out.expected > /dev/null ; then : ; else
+    echo "*** Test failed: $TEST"
+    echo "*** output is in 'my-out', expected output in 'my-out.expected'"
+    echo "Actual Result"
+    cat my-out
+    echo "Expected Result"
+    cat my-out.expected
+    exit 1
+fi
+
+rm -rf $MYCACHEBASEDIR $MYCONFIG my-fonts.conf my-out my-out.expected
+
 fi # if [ "x$EXEEXT" = "x" ]
+
+if [ -x $BUILDTESTDIR/test-crbug1004254 ]; then
+    dotest "MT-safe global config"
+    prep
+    curl -s -o $FONTDIR/noto.zip https://noto-website-2.storage.googleapis.com/pkgs/NotoSans-hinted.zip
+    (cd $FONTDIR; unzip noto.zip)
+    if [ -n ${SOURCE_DATE_EPOCH:-} ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
+	touch -m -t "`date -d \"@${SOURCE_DATE_EPOCH}\" +%y%m%d%H%M.%S`" $FONTDIR
+    fi
+    $BUILDTESTDIR/test-crbug1004254
+else
+    echo "No test-crbug1004254: skipped"
+fi
 
 rm -rf $FONTDIR $CACHEFILE $CACHEDIR $BASEDIR $FONTCONFIG_FILE out

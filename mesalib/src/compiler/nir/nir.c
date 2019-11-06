@@ -1416,7 +1416,7 @@ nir_instr_rewrite_dest(nir_instr *instr, nir_dest *dest, nir_dest new_dest)
 {
    if (dest->is_ssa) {
       /* We can only overwrite an SSA destination if it has no uses. */
-      assert(list_empty(&dest->ssa.uses) && list_empty(&dest->ssa.if_uses));
+      assert(list_is_empty(&dest->ssa.uses) && list_is_empty(&dest->ssa.if_uses));
    } else {
       list_del(&dest->reg.def_link);
       if (dest->reg.indirect)
@@ -1547,7 +1547,7 @@ nir_ssa_def_components_read(const nir_ssa_def *def)
       }
    }
 
-   if (!list_empty(&def->if_uses))
+   if (!list_is_empty(&def->if_uses))
       read_mask |= 1;
 
    return read_mask;
@@ -1888,7 +1888,7 @@ nir_function_impl_lower_instructions(nir_function_impl *impl,
          list_for_each_entry_safe(nir_src, use_src, &old_if_uses, use_link)
             nir_if_rewrite_condition(use_src->parent_if, new_src);
 
-         if (list_empty(&old_def->uses) && list_empty(&old_def->if_uses)) {
+         if (list_is_empty(&old_def->uses) && list_is_empty(&old_def->if_uses)) {
             iter = nir_instr_remove(instr);
          } else {
             iter = nir_after_instr(instr);

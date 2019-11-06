@@ -975,7 +975,7 @@ hostx_screen_init(KdScreenInfo *screen,
      * -screen option (WxH+X or WxH+X+Y). Otherwise, accept the
      * position set by WM.
      * The trick here is putting this code after xcb_map_window() call,
-     * so these values won't be overriden by WM. */
+     * so these values won't be overridden by WM. */
     if (scrpriv->win_explicit_position)
     {
         uint32_t mask = XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y;

@@ -180,7 +180,6 @@ EXTRA_DIST += \
 	hw/xfree86/parser/meson.build \
 	hw/xfree86/ramdac/meson.build \
 	hw/xfree86/shadowfb/meson.build \
-	hw/xfree86/vbe/meson.build \
 	hw/xfree86/vgahw/meson.build \
 	hw/xfree86/x86emu/meson.build \
 	hw/xfree86/xkb/meson.build \

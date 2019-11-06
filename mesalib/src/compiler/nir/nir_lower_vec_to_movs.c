@@ -140,7 +140,7 @@ try_coalesce(nir_alu_instr *vec, unsigned start_idx)
          return 0;
    }
 
-   if (!list_empty(&vec->src[start_idx].src.ssa->if_uses))
+   if (!list_is_empty(&vec->src[start_idx].src.ssa->if_uses))
       return 0;
 
    if (vec->src[start_idx].src.ssa->parent_instr->type != nir_instr_type_alu)

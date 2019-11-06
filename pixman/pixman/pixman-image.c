@@ -960,7 +960,7 @@ _pixman_image_get_solid (pixman_implementation_t *imp,
 	else if (image->bits.format == PIXMAN_x8r8g8b8)
 	    result = image->bits.bits[0] | 0xff000000;
 	else if (image->bits.format == PIXMAN_a8)
-	    result = (*(uint8_t *)image->bits.bits) << 24;
+	    result = (uint32_t)(*(uint8_t *)image->bits.bits) << 24;
 	else
 	    goto otherwise;
     }

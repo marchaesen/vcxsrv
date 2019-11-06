@@ -115,10 +115,15 @@ void setup_reduce_temp(Program* program)
          }
 
          /* same as before, except for the vector temporary instead of the reduce temporary */
+         unsigned cluster_size = static_cast<Pseudo_reduction_instruction *>(instr)->cluster_size;
          bool need_vtmp = op == imul32 || op == fadd64 || op == fmul64 ||
                           op == fmin64 || op == fmax64;
 
-         need_vtmp |= static_cast<Pseudo_reduction_instruction *>(instr)->cluster_size == 32;
+         if (program->chip_class >= GFX10 && cluster_size == 64 && op != gfx10_wave64_bpermute)
+            need_vtmp = true;
+
+         need_vtmp |= cluster_size == 32;
+
          vtmp_in_loop |= need_vtmp && block.loop_nest_depth > 0;
          if (need_vtmp && (int)last_top_level_block_idx != vtmp_inserted_at) {
             vtmp = {program->allocateId(), vtmp.regClass()};
@@ -144,12 +149,14 @@ void setup_reduce_temp(Program* program)
          instr->definitions[1] = bld.def(s2);
 
          /* scalar identity temporary */
-         if (instr->opcode == aco_opcode::p_exclusive_scan &&
-             (op == imin32 || op == imin64 ||
-              op == imax32 || op == imax64 ||
-              op == fmin32 || op == fmin64 ||
-              op == fmax32 || op == fmax64 ||
-              op == fmul64)) {
+         bool need_sitmp = program->chip_class >= GFX10 && cluster_size == 64;
+         if (instr->opcode == aco_opcode::p_exclusive_scan) {
+            need_sitmp |=
+               (op == imin32 || op == imin64 || op == imax32 || op == imax64 ||
+                op == fmin32 || op == fmin64 || op == fmax32 || op == fmax64 ||
+                op == fmul64);
+         }
+         if (need_sitmp) {
             instr->definitions[2] = bld.def(RegClass(RegType::sgpr, instr->operands[0].size()));
          }
 

@@ -218,10 +218,12 @@ void _XSeqSyncFunction(
     xGetInputFocusReply rep;
     _X_UNUSED register xReq *req;
 
-    if ((X_DPY_GET_REQUEST(dpy) - X_DPY_GET_LAST_REQUEST_READ(dpy)) >= (65535 - BUFSIZE/SIZEOF(xReq))) {
+    if ((X_DPY_GET_REQUEST(dpy) - X_DPY_GET_LAST_REQUEST_READ(dpy)) >= (65535 - BUFSIZE/SIZEOF(xReq)) && !dpy->req_seq_syncing) {
+	dpy->req_seq_syncing = True;
 	GetEmptyReq(GetInputFocus, req);
 	(void) _XReply (dpy, (xReply *)&rep, 0, xTrue);
 	sync_while_locked(dpy);
+	dpy->req_seq_syncing = False;
     } else if (sync_hazard(dpy))
 	_XSetPrivSyncFunction(dpy);
 }

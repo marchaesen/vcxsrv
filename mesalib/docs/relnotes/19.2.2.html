@@ -1,0 +1,147 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<title>Mesa Release Notes</title>
+<link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+<h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 19.2.2 Release Notes / 2019-10-23</h1>
+
+<p>
+    Mesa 19.2.2 is a bug fix release which fixes bugs found since the 19.2.1 release.
+</p>
+<p>
+Mesa 19.2.2 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5. OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+<p>
+Mesa 19.2.2 implements the Vulkan 1.1 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+</p>
+
+<h2>SHA256 checksum</h2>
+<pre>
+    7e4f0e2678bfcf3b94f533078b514f37943378a4a8604e477c888ec8a2904394  mesa-19.2.2.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+
+<ul>
+    <li>None</li>
+</ul>
+
+<h2>Bug fixes</h2>
+
+<ul>
+    <li>Vulkan version of &quot;Middle-earth: Shadow of Mordor&quot; has graphics glitches on RADV driver (part 2)</li>
+    <li>Vulkan version of &quot;Middle-earth: Shadow of Mordor&quot; has graphics glitches on RADV driver</li>
+    <li>[amdgpu][Navi][llvm] Minimap problem in Nier Automata</li>
+    <li>Black ground in Dirt 4</li>
+    <li>Superbibles examples crashing Mesa drivers (radeonsi) and causing gpu reset</li>
+    <li>[CTS] dEQP-VK.graphicsfuzz.write-red-in-loop-nest crashes</li>
+    <li>mesa and libglvnd install the same headers</li>
+    <li>Regression: Doom (2016) crashes on Mesa 19.2 and above and Radeon 380 with Vulkan (worked on Mesa 19.1)</li>
+    <li>Rocket League displays corruption when the game starts</li>
+</ul>
+
+<h2>Changes</h2>
+
+<ul>
+    <p>Alan Coopersmith (6):</p>
+    <li>      c99_compat.h: Don&#x27;t try to use &#x27;restrict&#x27; in C++ code</li>
+    <li>      util: Make Solaris implemention of p_atomic_add work with gcc</li>
+    <li>      util: Workaround lack of flock on Solaris</li>
+    <li>      util: Solaris has linux-style pthread_setname_np</li>
+    <li>      meson: recognize &quot;sunos&quot; as the system name for Solaris</li>
+    <li>      intel/common: include unistd.h for ioctl() prototype on Solaris</li>
+    <p></p>
+    <p>Alejandro Piñeiro (1):</p>
+    <li>      v3d: take into account prim_counts_offset</li>
+    <p></p>
+    <p>Bas Nieuwenhuizen (3):</p>
+    <li>      radv: Disallow sparse shared images.</li>
+    <li>      nir/dead_cf: Remove dead control flow after infinite loops.</li>
+    <li>      radv: Fix single stage constant flush with merged shaders.</li>
+    <p></p>
+    <p>Clément Guérin (1):</p>
+    <li>      radeonsi: enable zerovram for Rocket League</li>
+    <p></p>
+    <p>Connor Abbott (2):</p>
+    <li>      nir/sink: Rewrite loop handling logic</li>
+    <li>      nir/sink: Don&#x27;t sink load_ubo to outside of its defining loop</li>
+    <p></p>
+    <p>Dylan Baker (1):</p>
+    <li>      docs: Add SHA256 sum for 19.2.1</li>
+    <p></p>
+    <p>Eric Engestrom (7):</p>
+    <li>      GL: drop symbols mangling support</li>
+    <li>      meson: rename `glvnd_missing_pc_files` to `not glvnd_has_headers_and_pc_files`</li>
+    <li>      meson: move a couple of include installs around</li>
+    <li>      meson: split headers one per line</li>
+    <li>      meson: split Mesa headers as a separate installation</li>
+    <li>      meson: skip installation of GLVND-provided headers</li>
+    <li>      util/u_atomic: fix return type of p_atomic_{inc,dec}_return() and p_atomic_{cmp,}xchg()</li>
+    <p></p>
+    <p>Ian Romanick (2):</p>
+    <li>      nir/search: Fix possible NULL dereference in is_fsign</li>
+    <li>      intel/vec4: Don&#x27;t try both sources as immediates for DPH</li>
+    <p></p>
+    <p>James Xiong (1):</p>
+    <li>      iris: finish aux import on get_param</li>
+    <p></p>
+    <p>Kenneth Graunke (2):</p>
+    <li>      iris: Properly unreference extra VBOs for draw parameters</li>
+    <li>      iris: Implement the Gen &lt; 9 tessellation quads workaround</li>
+    <p></p>
+    <p>Lepton Wu (1):</p>
+    <li>      egl/android: Remove our own reference to buffers.</li>
+    <p></p>
+    <p>Lionel Landwerlin (3):</p>
+    <li>      etnaviv: remove variable from global namespace</li>
+    <li>      anv: fix vkUpdateDescriptorSets with inline uniform blocks</li>
+    <li>      anv: fix memory leak on device destroy</li>
+    <p></p>
+    <p>Lucas Stach (3):</p>
+    <li>      etnaviv: fix vertex buffer state emission for single stream GPUs</li>
+    <li>      rbug: fix transmitted texture sizes</li>
+    <li>      rbug: unwrap index buffer resource</li>
+    <p></p>
+    <p>Pierre-Eric Pelloux-Prayer (1):</p>
+    <li>      mesa: fix invalid target error handling for teximage</li>
+    <p></p>
+    <p>Roland Scheidegger (1):</p>
+    <li>      gallivm: Fix saturated signed psub/padd intrinsics on llvm 8</li>
+    <p></p>
+    <p>Samuel Pitoiset (6):</p>
+    <li>      drirc: enable vk_x11_override_min_image_count for DOOM</li>
+    <li>      radv: bump minTexelBufferOffsetAlignment to 4</li>
+    <li>      radv: fix DCC fast clear code for intensity formats</li>
+    <li>      Revert &quot;radv: do not emit PKT3_CONTEXT_CONTROL with AMDGPU 3.6.0+&quot;</li>
+    <li>      radv: fix DCC fast clear code for intensity formats (correctly)</li>
+    <li>      radv: fix updating bound fast ds clear values with different aspects</li>
+    <p></p>
+    <p>Timothy Arceri (1):</p>
+    <li>      glsl: fix crash compiling bindless samplers inside unnamed UBOs</li>
+    <p></p>
+    <p></p>
+</ul>
+
+</div>
+</body>
+</html>

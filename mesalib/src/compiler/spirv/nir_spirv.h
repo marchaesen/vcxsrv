@@ -67,6 +67,11 @@ struct spirv_to_nir_options {
     */
    bool frag_coord_is_sysval;
 
+   /* Whether to generate only scoped_memory_barrier intrinsics instead of the
+    * set of memory barrier intrinsics based on GLSL.
+    */
+   bool use_scoped_memory_barrier;
+
    struct spirv_supported_capabilities caps;
 
    /* Address format for various kinds of pointers. */

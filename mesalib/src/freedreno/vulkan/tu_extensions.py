@@ -60,6 +60,7 @@ EXTENSIONS = [
     Extension('VK_KHR_maintenance1',                      1, True),
     Extension('VK_KHR_maintenance2',                      1, True),
     Extension('VK_KHR_maintenance3',                      1, True),
+    Extension('VK_KHR_sampler_mirror_clamp_to_edge',      1, True),
     Extension('VK_KHR_surface',                          25, 'TU_HAS_SURFACE'),
     Extension('VK_KHR_swapchain',                        68, 'TU_HAS_SURFACE'),
     Extension('VK_KHR_wayland_surface',                   6, 'VK_USE_PLATFORM_WAYLAND_KHR'),

@@ -324,6 +324,7 @@ swrastGetImage(__DRIdrawable * draw,
     ScreenPtr pScreen = pDraw->pScreen;
     __GLXcontext *cx = lastGLContext;
 
+    pScreen->SourceValidate(pDraw, x, y, w, h, IncludeInferiors);
     pScreen->GetImage(pDraw, x, y, w, h, ZPixmap, ~0L, data);
     if (cx != lastGLContext) {
         lastGLContext = cx;

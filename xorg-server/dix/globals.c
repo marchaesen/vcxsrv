@@ -55,7 +55,6 @@ SOFTWARE.
 #include "scrnintstr.h"
 #include "input.h"
 #include "dixfont.h"
-#include "site.h"
 #include "dixstruct.h"
 #include "os.h"
 
@@ -93,18 +92,17 @@ CARD32 ScreenSaverInterval;
 int ScreenSaverBlanking;
 int ScreenSaverAllowExposures;
 
-CARD32 defaultScreenSaverTime = DEFAULT_SCREEN_SAVER_TIME;
-CARD32 defaultScreenSaverInterval = DEFAULT_SCREEN_SAVER_INTERVAL;
-int defaultScreenSaverBlanking = DEFAULT_SCREEN_SAVER_BLANKING;
-int defaultScreenSaverAllowExposures = DEFAULT_SCREEN_SAVER_EXPOSURES;
+/* default time of 10 minutes */
+CARD32 defaultScreenSaverTime = (10 * (60 * 1000));
+CARD32 defaultScreenSaverInterval = (10 * (60 * 1000));
+int defaultScreenSaverBlanking = PreferBlanking;
+int defaultScreenSaverAllowExposures = AllowExposures;
 
 #ifdef SCREENSAVER
 Bool screenSaverSuspended = FALSE;
 #endif
 
 const char *defaultFontPath = COMPILEDDEFAULTFONTPATH;
-const char *defaultTextFont = COMPILEDDEFAULTFONT;
-const char *defaultCursorFont = COMPILEDCURSORFONT;
 FontPtr defaultFont;            /* not declared in dix.h to avoid including font.h in
                                    every compilation of dix code */
 CursorPtr rootCursor;
@@ -120,5 +118,3 @@ const char *display;
 int displayfd = -1;
 Bool explicit_display = FALSE;
 char *ConnectionInfo;
-
-CARD32 TimeOutValue = DEFAULT_TIMEOUT * MILLI_PER_SECOND;

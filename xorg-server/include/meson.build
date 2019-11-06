@@ -229,7 +229,7 @@ conf_data.set('XV', build_xv)
 conf_data.set('XvExtension', build_xv)
 conf_data.set('XvMCExtension', build_xvmc)
 
-conf_data.set('HAVE_SHA1_IN_LIBNETTLE', '1') # XXX
+conf_data.set('HAVE_SHA1_IN_' + sha1.to_upper(), '1', description: 'Use @0@ SHA1 functions'.format(sha1))
 
 conf_data.set('HAVE_APM', build_apm or build_acpi)
 conf_data.set('HAVE_ACPI', build_acpi)
@@ -470,7 +470,6 @@ if build_xorg
             'scrnintstr.h',
             'selection.h',
             'servermd.h',
-            'site.h',
             'validate.h',
             'displaymode.h',
             'window.h',

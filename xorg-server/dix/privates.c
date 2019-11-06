@@ -447,7 +447,8 @@ _dixInitPrivates(PrivatePtr *privates, void *addr, DevPrivateType type)
     if (global_keys[type].offset == 0)
         addr = 0;
     *privates = addr;
-    memset(addr, '\0', global_keys[type].offset);
+    if (addr)
+        memset(addr, '\0', global_keys[type].offset);
 }
 
 /*
@@ -683,7 +684,8 @@ _dixInitScreenPrivates(ScreenPtr pScreen, PrivatePtr *privates, void *addr, DevP
     if (privates_size == 0)
         addr = 0;
     *privates = addr;
-    memset(addr, '\0', privates_size);
+    if (addr)
+        memset(addr, '\0', privates_size);
 }
 
 void *

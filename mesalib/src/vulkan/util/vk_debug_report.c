@@ -99,7 +99,7 @@ vk_debug_report(struct vk_debug_report_instance *instance,
                 const char *pMessage)
 {
    /* Allow NULL for convinience, return if no callbacks registered. */
-   if (!instance || list_empty(&instance->callbacks))
+   if (!instance || list_is_empty(&instance->callbacks))
       return;
 
    pthread_mutex_lock(&instance->callbacks_mutex);

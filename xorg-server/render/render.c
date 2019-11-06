@@ -1492,6 +1492,11 @@ ProcRenderCreateCursor(ClientPtr client)
         return BadAlloc;
     }
 
+    /* what kind of maniac creates a cursor from a window picture though */
+    if (pSrc->pDrawable->type == DRAWABLE_WINDOW)
+        pScreen->SourceValidate(pSrc->pDrawable, 0, 0, width, height,
+                                IncludeInferiors);
+
     if (pSrc->format == PICT_a8r8g8b8) {
         (*pScreen->GetImage) (pSrc->pDrawable,
                               0, 0, width, height, ZPixmap,

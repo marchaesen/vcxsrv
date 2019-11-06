@@ -138,18 +138,28 @@ nir_lower_two_sided_color_block(nir_block *block,
 
       nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
 
-      if (intr->intrinsic != nir_intrinsic_load_input)
-         continue;
-
       int idx;
-      for (idx = 0; idx < state->colors_count; idx++) {
-         unsigned drvloc =
-            state->colors[idx].front->data.driver_location;
-         if (nir_intrinsic_base(intr) == drvloc) {
-            assert(nir_src_is_const(intr->src[0]));
-            break;
+      if (intr->intrinsic == nir_intrinsic_load_input) {
+         for (idx = 0; idx < state->colors_count; idx++) {
+            unsigned drvloc =
+               state->colors[idx].front->data.driver_location;
+            if (nir_intrinsic_base(intr) == drvloc) {
+               assert(nir_src_is_const(intr->src[0]));
+               break;
+            }
          }
-      }
+      } else if (intr->intrinsic == nir_intrinsic_load_deref) {
+         nir_variable *var = nir_intrinsic_get_var(intr, 0);
+         if (var->data.mode != nir_var_shader_in)
+            continue;
+
+         for (idx = 0; idx < state->colors_count; idx++) {
+            unsigned loc = state->colors[idx].front->data.location;
+            if (var->data.location == loc)
+               break;
+         }
+      } else
+         continue;
 
       if (idx == state->colors_count)
          continue;
@@ -162,8 +172,14 @@ nir_lower_two_sided_color_block(nir_block *block,
        * 32-bit value by default.
        */
       nir_ssa_def *face = nir_load_front_face(b, 1);
-      nir_ssa_def *front = load_input(b, state->colors[idx].front);
-      nir_ssa_def *back  = load_input(b, state->colors[idx].back);
+      nir_ssa_def *front, *back;
+      if (intr->intrinsic == nir_intrinsic_load_deref) {
+         front = nir_load_var(b, state->colors[idx].front);
+         back  = nir_load_var(b, state->colors[idx].back);
+      } else {
+         front = load_input(b, state->colors[idx].front);
+         back  = load_input(b, state->colors[idx].back);
+      }
       nir_ssa_def *color = nir_bcsel(b, face, front, back);
 
       assert(intr->dest.is_ssa);

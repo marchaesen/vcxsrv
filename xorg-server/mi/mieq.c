@@ -126,11 +126,13 @@ mieqGrowQueue(EventQueuePtr eventQueue, size_t new_nevents)
 
     /* First copy the existing events */
     first_hunk = eventQueue->nevents - eventQueue->head;
-    memcpy(new_events,
-           &eventQueue->events[eventQueue->head],
-           first_hunk * sizeof(EventRec));
-    memcpy(&new_events[first_hunk],
-           eventQueue->events, eventQueue->head * sizeof(EventRec));
+    if (eventQueue->events) {
+        memcpy(new_events,
+               &eventQueue->events[eventQueue->head],
+               first_hunk * sizeof(EventRec));
+        memcpy(&new_events[first_hunk],
+               eventQueue->events, eventQueue->head * sizeof(EventRec));
+    }
 
     /* Initialize the new portion */
     for (i = eventQueue->nevents; i < new_nevents; i++) {

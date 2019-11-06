@@ -655,6 +655,9 @@ ProcShmGetImage(ClientPtr client)
         visual = wVisual(((WindowPtr) pDraw));
         if (pDraw->type == DRAWABLE_WINDOW)
             pVisibleRegion = &((WindowPtr) pDraw)->borderClip;
+        pDraw->pScreen->SourceValidate(pDraw, stuff->x, stuff->y,
+                                       stuff->width, stuff->height,
+                                       IncludeInferiors);
     }
     else {
         if (stuff->x < 0 ||
@@ -862,6 +865,12 @@ ProcPanoramiXShmGetImage(ClientPtr client)
             free(drawables);
             return rc;
         }
+    }
+    FOR_NSCREENS_FORWARD(i) {
+        drawables[i]->pScreen->SourceValidate(drawables[i], 0, 0,
+                                              drawables[i]->width,
+                                              drawables[i]->height,
+                                              IncludeInferiors);
     }
 
     xgi = (xShmGetImageReply) {

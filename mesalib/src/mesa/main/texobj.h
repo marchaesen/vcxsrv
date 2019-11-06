@@ -124,14 +124,28 @@ static inline GLboolean
 _mesa_is_texture_complete(const struct gl_texture_object *texObj,
                           const struct gl_sampler_object *sampler)
 {
+   struct gl_texture_image *img = texObj->Image[0][texObj->BaseLevel];
+   bool isMultisample = img && img->NumSamples >= 2;
+
    /*
     * According to ARB_stencil_texturing, NEAREST_MIPMAP_NEAREST would
     * be forbidden, however it is allowed per GL 4.5 rules, allow it
     * even without GL 4.5 since it was a spec mistake.
     */
-   if ((texObj->_IsIntegerFormat ||
+   /* Section 8.17 (texture completeness) of the OpenGL 4.6 core profile spec:
+    *
+    *  "The texture is not multisample; either the magnification filter is not
+    *  NEAREST, or the minification filter is neither NEAREST nor NEAREST_-
+    *  MIPMAP_NEAREST; and any of
+    *  – The internal format of the texture is integer.
+    *  – The internal format is STENCIL_INDEX.
+    *  – The internal format is DEPTH_STENCIL, and the value of DEPTH_-
+    *    STENCIL_TEXTURE_MODE for the texture is STENCIL_INDEX.""
+    */
+   if (!isMultisample &&
+       (texObj->_IsIntegerFormat ||
         (texObj->StencilSampling &&
-         texObj->Image[0][texObj->BaseLevel]->_BaseFormat == GL_DEPTH_STENCIL)) &&
+         img->_BaseFormat == GL_DEPTH_STENCIL)) &&
        (sampler->MagFilter != GL_NEAREST ||
         (sampler->MinFilter != GL_NEAREST &&
          sampler->MinFilter != GL_NEAREST_MIPMAP_NEAREST))) {
@@ -139,7 +153,12 @@ _mesa_is_texture_complete(const struct gl_texture_object *texObj,
       return GL_FALSE;
    }
 
-   if (_mesa_is_mipmap_filter(sampler))
+   /* Section 8.17 (texture completeness) of the OpenGL 4.6 core profile spec:
+    *
+    *  "The minification filter requires a mipmap (is neither NEAREST nor LINEAR),
+    *  the texture is not multisample, and the texture is not mipmap complete.""
+    */
+   if (!isMultisample &&_mesa_is_mipmap_filter(sampler))
       return texObj->_MipmapComplete;
    else
       return texObj->_BaseComplete;

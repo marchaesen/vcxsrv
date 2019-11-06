@@ -225,7 +225,7 @@ get_image_offset(struct ir3_context *ctx, const nir_variable *var,
 			(1 << var->data.driver_location));
 
 	/* offset = coords.x * bytes_per_pixel: */
-	offset = ir3_MUL_S(b, coords[0], 0, create_uniform(b, cb + 0), 0);
+	offset = ir3_MUL_S24(b, coords[0], 0, create_uniform(b, cb + 0), 0);
 	if (ncoords > 1) {
 		/* offset += coords.y * y_pitch: */
 		offset = ir3_MAD_S24(b, create_uniform(b, cb + 1), 0,

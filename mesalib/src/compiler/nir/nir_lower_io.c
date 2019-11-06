@@ -206,7 +206,7 @@ get_io_offset(nir_builder *b, nir_deref_instr *deref,
          unsigned size = type_size((*p)->type, bts);
 
          nir_ssa_def *mul =
-            nir_imul_imm(b, nir_ssa_for_src(b, (*p)->arr.index, 1), size);
+            nir_amul_imm(b, nir_ssa_for_src(b, (*p)->arr.index, 1), size);
 
          offset = nir_iadd(b, offset, mul);
       } else if ((*p)->deref_type == nir_deref_type_struct) {
@@ -1094,7 +1094,7 @@ nir_explicit_io_address_from_deref(nir_builder *b, nir_deref_instr *deref,
       nir_ssa_def *index = nir_ssa_for_src(b, deref->arr.index, 1);
       index = nir_i2i(b, index, base_addr->bit_size);
       return build_addr_iadd(b, base_addr, addr_format,
-                                nir_imul_imm(b, index, stride));
+                                nir_amul_imm(b, index, stride));
    }
 
    case nir_deref_type_ptr_as_array: {
@@ -1102,7 +1102,7 @@ nir_explicit_io_address_from_deref(nir_builder *b, nir_deref_instr *deref,
       index = nir_i2i(b, index, base_addr->bit_size);
       unsigned stride = nir_deref_instr_ptr_as_array_stride(deref);
       return build_addr_iadd(b, base_addr, addr_format,
-                                nir_imul_imm(b, index, stride));
+                                nir_amul_imm(b, index, stride));
    }
 
    case nir_deref_type_array_wildcard:
@@ -1191,8 +1191,8 @@ lower_explicit_io_deref(nir_builder *b, nir_deref_instr *deref,
     * one deref which could break our list walking since we walk the list
     * backwards.
     */
-   assert(list_empty(&deref->dest.ssa.if_uses));
-   if (list_empty(&deref->dest.ssa.uses)) {
+   assert(list_is_empty(&deref->dest.ssa.if_uses));
+   if (list_is_empty(&deref->dest.ssa.uses)) {
       nir_instr_remove(&deref->instr);
       return;
    }

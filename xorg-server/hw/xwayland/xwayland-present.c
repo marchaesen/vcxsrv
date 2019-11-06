@@ -500,9 +500,9 @@ xwl_present_flip(WindowPtr present_window,
     xwl_present_window->frame_timer_firing = FALSE;
     xwl_present_reset_timer(xwl_present_window);
 
-    wl_surface_damage(xwl_window->surface, 0, 0,
-                      damage_box->x2 - damage_box->x1,
-                      damage_box->y2 - damage_box->y1);
+    xwl_surface_damage(xwl_window->xwl_screen, xwl_window->surface, 0, 0,
+                       damage_box->x2 - damage_box->x1,
+                       damage_box->y2 - damage_box->y1);
 
     wl_surface_commit(xwl_window->surface);
 

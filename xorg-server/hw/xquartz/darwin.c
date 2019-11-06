@@ -41,7 +41,6 @@
 #include "mipointer.h"          // mi software cursor
 #include "micmap.h"             // mi colormap code
 #include "fb.h"                 // fb framebuffer code
-#include "site.h"
 #include "globals.h"
 #include "dix.h"
 #include "xkbsrv.h"

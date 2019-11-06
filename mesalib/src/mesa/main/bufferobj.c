@@ -3091,6 +3091,30 @@ _mesa_CopyBufferSubData(GLenum readTarget, GLenum writeTarget,
 }
 
 void GLAPIENTRY
+_mesa_NamedCopyBufferSubDataEXT(GLuint readBuffer, GLuint writeBuffer,
+                                GLintptr readOffset, GLintptr writeOffset,
+                                GLsizeiptr size)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_buffer_object *src, *dst;
+
+   src = _mesa_lookup_bufferobj(ctx, readBuffer);
+   if (!_mesa_handle_bind_buffer_gen(ctx, readBuffer,
+                                     &src,
+                                     "glNamedCopyBufferSubDataEXT"))
+      return;
+
+   dst = _mesa_lookup_bufferobj(ctx, writeBuffer);
+   if (!_mesa_handle_bind_buffer_gen(ctx, writeBuffer,
+                                     &dst,
+                                     "glNamedCopyBufferSubDataEXT"))
+      return;
+
+   copy_buffer_sub_data(ctx, src, dst, readOffset, writeOffset, size,
+                        "glNamedCopyBufferSubDataEXT");
+}
+
+void GLAPIENTRY
 _mesa_CopyNamedBufferSubData_no_error(GLuint readBuffer, GLuint writeBuffer,
                                       GLintptr readOffset,
                                       GLintptr writeOffset, GLsizeiptr size)

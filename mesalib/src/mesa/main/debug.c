@@ -625,8 +625,7 @@ _mesa_print_texture(struct gl_context *ctx, struct gl_texture_image *img)
          case MESA_FORMAT_I_UNORM8:
             c = 1;
             break;
-         case MESA_FORMAT_L8A8_UNORM:
-         case MESA_FORMAT_A8L8_UNORM:
+         case MESA_FORMAT_LA_UNORM8:
             c = 2;
             break;
          case MESA_FORMAT_BGR_UNORM8:

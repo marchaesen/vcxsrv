@@ -50,7 +50,7 @@ struct draw_context;
 struct draw_stage;
 struct gen_mipmap_state;
 struct st_context;
-struct st_fragment_program;
+struct st_common_program;
 struct st_perf_monitor_group;
 struct u_upload_mgr;
 
@@ -147,6 +147,22 @@ struct st_context
    boolean needs_rgb_dst_alpha_override;
    boolean can_bind_const_buffer_as_vertex;
    boolean has_signed_vertex_buffer_offset;
+   boolean lower_flatshade;
+   boolean lower_alpha_test;
+   boolean lower_point_size;
+   boolean lower_two_sided_color;
+   boolean lower_ucp;
+
+   /* There are consequences for drivers wanting to call st_finalize_nir
+    * twice, once before shader caching and once after lowering for shader
+    * variants. If shader variants use lowering passes that are not ready
+    * for that, things can blow up.
+    *
+    * If this is true, st_finalize_nir and pipe_screen::finalize_nir will be
+    * called before the result is stored in the shader cache. If lowering for
+    * shader variants is invoked, the functions will be called again.
+    */
+   boolean allow_st_finalize_nir_twice;
 
    /**
     * If a shader can be created when we get its source.
@@ -229,11 +245,11 @@ struct st_context
    unsigned active_queries;
 
    struct st_vertex_program *vp;    /**< Currently bound vertex program */
-   struct st_fragment_program *fp;  /**< Currently bound fragment program */
+   struct st_common_program *fp;  /**< Currently bound fragment program */
    struct st_common_program *gp;  /**< Currently bound geometry program */
    struct st_common_program *tcp; /**< Currently bound tess control program */
    struct st_common_program *tep; /**< Currently bound tess eval program */
-   struct st_compute_program *cp;   /**< Currently bound compute program */
+   struct st_common_program *cp;   /**< Currently bound compute program */
 
    struct st_vp_variant *vp_variant;
 
@@ -337,12 +353,12 @@ struct st_context
 
    struct {
       struct st_zombie_sampler_view_node list;
-      mtx_t mutex;
+      simple_mtx_t mutex;
    } zombie_sampler_views;
 
    struct {
       struct st_zombie_shader_node list;
-      mtx_t mutex;
+      simple_mtx_t mutex;
    } zombie_shaders;
 
 };

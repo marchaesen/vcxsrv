@@ -498,7 +498,7 @@ validate_deref_instr(nir_deref_instr *instr, validate_state *state)
     * conditions expect well-formed Booleans.  If you want to compare with
     * NULL, an explicit comparison operation should be used.
     */
-   validate_assert(state, list_empty(&instr->dest.ssa.if_uses));
+   validate_assert(state, list_is_empty(&instr->dest.ssa.if_uses));
 
    /* Only certain modes can be used as sources for phi instructions. */
    nir_foreach_use(use, &instr->dest.ssa) {

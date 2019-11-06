@@ -31,6 +31,7 @@
 #ifndef MESA_CONFIG_H_INCLUDED
 #define MESA_CONFIG_H_INCLUDED
 
+#include "compiler/shader_enums.h"
 
 /**
  * \name OpenGL implementation limits
@@ -221,12 +222,6 @@
 #define MAX_VERTEX_GENERIC_ATTRIBS 16
 /* 6 is for vertex, hull, domain, geometry, fragment, and compute shader. */
 #define MAX_COMBINED_TEXTURE_IMAGE_UNITS (MAX_TEXTURE_IMAGE_UNITS * 6)
-/*@}*/
-
-
-/** For GL_ARB_draw_buffers */
-/*@{*/
-#define MAX_DRAW_BUFFERS 8
 /*@}*/
 
 

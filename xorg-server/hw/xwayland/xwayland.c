@@ -165,10 +165,17 @@ ddxProcessArgument(int argc, char *argv[], int i)
     return 0;
 }
 
+static DevPrivateKeyRec xwl_client_private_key;
 static DevPrivateKeyRec xwl_window_private_key;
 static DevPrivateKeyRec xwl_screen_private_key;
 static DevPrivateKeyRec xwl_pixmap_private_key;
 static DevPrivateKeyRec xwl_damage_private_key;
+
+struct xwl_client *
+xwl_client_get(ClientPtr client)
+{
+    return dixLookupPrivate(&client->devPrivates, &xwl_client_private_key);
+}
 
 static struct xwl_window *
 xwl_window_get(WindowPtr window)
@@ -180,6 +187,40 @@ struct xwl_screen *
 xwl_screen_get(ScreenPtr screen)
 {
     return dixLookupPrivate(&screen->devPrivates, &xwl_screen_private_key);
+}
+
+static Bool
+xwl_screen_has_viewport_support(struct xwl_screen *xwl_screen)
+{
+    return wl_compositor_get_version(xwl_screen->compositor) >=
+                            WL_SURFACE_DAMAGE_BUFFER_SINCE_VERSION &&
+           xwl_screen->viewporter != NULL;
+}
+
+Bool
+xwl_screen_has_resolution_change_emulation(struct xwl_screen *xwl_screen)
+{
+    /* Resolution change emulation is only supported in rootless mode and
+     * it requires viewport support.
+     */
+    return xwl_screen->rootless && xwl_screen_has_viewport_support(xwl_screen);
+}
+
+/* Return the output @ 0x0, falling back to the first output in the list */
+struct xwl_output *
+xwl_screen_get_first_output(struct xwl_screen *xwl_screen)
+{
+    struct xwl_output *xwl_output;
+
+    xorg_list_for_each_entry(xwl_output, &xwl_screen->output_list, link) {
+        if (xwl_output->x == 0 && xwl_output->y == 0)
+            return xwl_output;
+    }
+
+    if (xorg_list_is_empty(&xwl_screen->output_list))
+        return NULL;
+
+    return xorg_list_first_entry(&xwl_screen->output_list, struct xwl_output, link);
 }
 
 static void
@@ -518,6 +559,188 @@ xwl_pixmap_get(PixmapPtr pixmap)
     return dixLookupPrivate(&pixmap->devPrivates, &xwl_pixmap_private_key);
 }
 
+Bool
+xwl_window_has_viewport_enabled(struct xwl_window *xwl_window)
+{
+    return (xwl_window->viewport != NULL);
+}
+
+static void
+xwl_window_disable_viewport(struct xwl_window *xwl_window)
+{
+    assert (xwl_window->viewport);
+
+    DebugF("XWAYLAND: disabling viewport\n");
+    wp_viewport_destroy(xwl_window->viewport);
+    xwl_window->viewport = NULL;
+}
+
+static void
+xwl_window_enable_viewport(struct xwl_window *xwl_window,
+                           struct xwl_output *xwl_output,
+                           struct xwl_emulated_mode *emulated_mode)
+{
+    /* If necessary disable old viewport to apply new settings */
+    if (xwl_window_has_viewport_enabled(xwl_window))
+        xwl_window_disable_viewport(xwl_window);
+
+    DebugF("XWAYLAND: enabling viewport %dx%d -> %dx%d\n",
+           emulated_mode->width, emulated_mode->height,
+           xwl_output->width, xwl_output->height);
+
+    xwl_window->viewport =
+        wp_viewporter_get_viewport(xwl_window->xwl_screen->viewporter,
+                                   xwl_window->surface);
+
+    wp_viewport_set_source(xwl_window->viewport,
+                           wl_fixed_from_int(0),
+                           wl_fixed_from_int(0),
+                           wl_fixed_from_int(emulated_mode->width),
+                           wl_fixed_from_int(emulated_mode->height));
+    wp_viewport_set_destination(xwl_window->viewport,
+                                xwl_output->width,
+                                xwl_output->height);
+
+    xwl_window->scale_x = (float)emulated_mode->width  / xwl_output->width;
+    xwl_window->scale_y = (float)emulated_mode->height / xwl_output->height;
+}
+
+static Bool
+xwl_screen_client_is_window_manager(struct xwl_screen *xwl_screen,
+                                    ClientPtr client)
+{
+    WindowPtr root = xwl_screen->screen->root;
+    OtherClients *others;
+
+    for (others = wOtherClients(root); others; others = others->next) {
+        if (SameClient(others, client)) {
+            if (others->mask & (SubstructureRedirectMask | ResizeRedirectMask))
+                return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+static ClientPtr
+xwl_window_get_owner(struct xwl_window *xwl_window)
+{
+    WindowPtr window = xwl_window->window;
+    ClientPtr client = wClient(window);
+
+    /* If the toplevel window is owned by the window-manager, then the
+     * actual client toplevel window has been reparented to a window-manager
+     * decoration window. In that case return the client of the
+     * first *and only* child of the toplevel (decoration) window.
+     */
+    if (xwl_screen_client_is_window_manager(xwl_window->xwl_screen, client)) {
+        if (window->firstChild && window->firstChild == window->lastChild)
+            return wClient(window->firstChild);
+        else
+            return NULL; /* Should never happen, skip resolution emulation */
+    }
+
+    return client;
+}
+
+static Bool
+xwl_window_should_enable_viewport(struct xwl_window *xwl_window,
+                                  struct xwl_output **xwl_output_ret,
+                                  struct xwl_emulated_mode **emulated_mode_ret)
+{
+    struct xwl_screen *xwl_screen = xwl_window->xwl_screen;
+    struct xwl_emulated_mode *emulated_mode;
+    struct xwl_output *xwl_output;
+    ClientPtr owner;
+
+    if (!xwl_screen_has_resolution_change_emulation(xwl_screen))
+        return FALSE;
+
+    owner = xwl_window_get_owner(xwl_window);
+    if (!owner)
+        return FALSE;
+
+    /* 1. Test if the window matches the emulated mode on one of the outputs
+     * This path gets hit by most games / libs (e.g. SDL, SFML, OGRE)
+     */
+    xorg_list_for_each_entry(xwl_output, &xwl_screen->output_list, link) {
+        emulated_mode = xwl_output_get_emulated_mode_for_client(xwl_output, owner);
+        if (!emulated_mode)
+            continue;
+
+        if (xwl_window->x == xwl_output->x &&
+            xwl_window->y == xwl_output->y &&
+            xwl_window->width  == emulated_mode->width &&
+            xwl_window->height == emulated_mode->height) {
+
+            *emulated_mode_ret = emulated_mode;
+            *xwl_output_ret = xwl_output;
+            return TRUE;
+        }
+    }
+
+    /* 2. Test if the window uses override-redirect + vidmode
+     * and matches (fully covers) the entire screen.
+     * This path gets hit by: allegro4, ClanLib-1.0.
+     */
+    xwl_output = xwl_screen_get_first_output(xwl_screen);
+    emulated_mode = xwl_output_get_emulated_mode_for_client(xwl_output, owner);
+    if (xwl_output && xwl_window->window->overrideRedirect &&
+        emulated_mode && emulated_mode->from_vidmode &&
+        xwl_window->x == 0 && xwl_window->y == 0 &&
+        xwl_window->width  == xwl_screen->width &&
+        xwl_window->height == xwl_screen->height) {
+
+        *emulated_mode_ret = emulated_mode;
+        *xwl_output_ret = xwl_output;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+static void
+xwl_window_check_resolution_change_emulation(struct xwl_window *xwl_window)
+{
+    struct xwl_emulated_mode *emulated_mode;
+    struct xwl_output *xwl_output;
+
+    if (xwl_window_should_enable_viewport(xwl_window, &xwl_output, &emulated_mode))
+        xwl_window_enable_viewport(xwl_window, xwl_output, emulated_mode);
+    else if (xwl_window_has_viewport_enabled(xwl_window))
+        xwl_window_disable_viewport(xwl_window);
+}
+
+void
+xwl_screen_check_resolution_change_emulation(struct xwl_screen *xwl_screen)
+{
+    struct xwl_window *xwl_window;
+
+    xorg_list_for_each_entry(xwl_window, &xwl_screen->window_list, link_window)
+        xwl_window_check_resolution_change_emulation(xwl_window);
+}
+
+/* This checks if the passed in Window is a toplevel client window, note this
+ * returns false for window-manager decoration windows and returns true for
+ * the actual client top-level window even if it has been reparented to
+ * a window-manager decoration window.
+ */
+Bool
+xwl_window_is_toplevel(WindowPtr window)
+{
+    struct xwl_screen *xwl_screen = xwl_screen_get(window->drawable.pScreen);
+
+    if (xwl_screen_client_is_window_manager(xwl_screen, wClient(window)))
+        return FALSE;
+
+    /* CSD and override-redirect toplevel windows */
+    if (window_get_damage(window))
+        return TRUE;
+
+    /* Normal toplevel client windows, reparented to decoration window */
+    return (window->parent && window_get_damage(window->parent));
+}
+
 static void
 xwl_window_init_allow_commits(struct xwl_window *xwl_window)
 {
@@ -588,6 +811,8 @@ ensure_surface_for_window(WindowPtr window)
 
     xwl_window->xwl_screen = xwl_screen;
     xwl_window->window = window;
+    xwl_window->width = window->drawable.width;
+    xwl_window->height = window->drawable.height;
     xwl_window->surface = wl_compositor_create_surface(xwl_screen->compositor);
     if (xwl_window->surface == NULL) {
         ErrorF("wl_display_create_surface failed\n");
@@ -629,6 +854,7 @@ ensure_surface_for_window(WindowPtr window)
 
     dixSetPrivate(&window->devPrivates, &xwl_window_private_key, xwl_window);
     xorg_list_init(&xwl_window->link_damage);
+    xorg_list_add(&xwl_window->link_window, &xwl_screen->window_list);
 
     xwl_window_init_allow_commits(xwl_window);
 
@@ -675,6 +901,8 @@ xwl_realize_window(WindowPtr window)
         if (!register_damage(window))
             return FALSE;
     }
+
+    xwl_output_set_window_randr_emu_props(xwl_screen, window);
 
     return ensure_surface_for_window(window);
 }
@@ -723,8 +951,12 @@ xwl_unrealize_window(WindowPtr window)
     if (!xwl_window)
         return ret;
 
+    if (xwl_window_has_viewport_enabled(xwl_window))
+        xwl_window_disable_viewport(xwl_window);
+
     wl_surface_destroy(xwl_window->surface);
     xorg_list_del(&xwl_window->link_damage);
+    xorg_list_del(&xwl_window->link_window);
     unregister_damage(window);
 
     if (xwl_window->frame_callback)
@@ -754,6 +986,33 @@ xwl_set_window_pixmap(WindowPtr window,
         return;
 
     ensure_surface_for_window(window);
+}
+
+static void
+xwl_resize_window(WindowPtr window,
+                  int x, int y,
+                  unsigned int width, unsigned int height,
+                  WindowPtr sib)
+{
+    ScreenPtr screen = window->drawable.pScreen;
+    struct xwl_screen *xwl_screen;
+    struct xwl_window *xwl_window;
+
+    xwl_screen = xwl_screen_get(screen);
+    xwl_window = xwl_window_get(window);
+
+    screen->ResizeWindow = xwl_screen->ResizeWindow;
+    (*screen->ResizeWindow) (window, x, y, width, height, sib);
+    xwl_screen->ResizeWindow = screen->ResizeWindow;
+    screen->ResizeWindow = xwl_resize_window;
+
+    if (xwl_window) {
+        xwl_window->x = x;
+        xwl_window->y = y;
+        xwl_window->width = width;
+        xwl_window->height = height;
+        xwl_window_check_resolution_change_emulation(xwl_window);
+    }
 }
 
 static void
@@ -796,6 +1055,16 @@ xwl_destroy_window(WindowPtr window)
     return ret;
 }
 
+void xwl_surface_damage(struct xwl_screen *xwl_screen,
+                        struct wl_surface *surface,
+                        int32_t x, int32_t y, int32_t width, int32_t height)
+{
+    if (wl_surface_get_version(surface) >= WL_SURFACE_DAMAGE_BUFFER_SINCE_VERSION)
+        wl_surface_damage_buffer(surface, x, y, width, height);
+    else
+        wl_surface_damage(surface, x, y, width, height);
+}
+
 static void
 xwl_window_post_damage(struct xwl_window *xwl_window)
 {
@@ -832,13 +1101,15 @@ xwl_window_post_damage(struct xwl_window *xwl_window)
      */
     if (RegionNumRects(region) > 256) {
         box = RegionExtents(region);
-        wl_surface_damage(xwl_window->surface, box->x1, box->y1,
-                          box->x2 - box->x1, box->y2 - box->y1);
+        xwl_surface_damage(xwl_screen, xwl_window->surface, box->x1, box->y1,
+                           box->x2 - box->x1, box->y2 - box->y1);
     } else {
         box = RegionRects(region);
-        for (i = 0; i < RegionNumRects(region); i++, box++)
-            wl_surface_damage(xwl_window->surface, box->x1, box->y1,
-                              box->x2 - box->x1, box->y2 - box->y1);
+        for (i = 0; i < RegionNumRects(region); i++, box++) {
+            xwl_surface_damage(xwl_screen, xwl_window->surface,
+                               box->x1, box->y1,
+                               box->x2 - box->x1, box->y2 - box->y1);
+        }
     }
 
     xwl_window->frame_callback = wl_surface_frame(xwl_window->surface);
@@ -881,8 +1152,13 @@ registry_global(void *data, struct wl_registry *registry, uint32_t id,
     struct xwl_screen *xwl_screen = data;
 
     if (strcmp(interface, "wl_compositor") == 0) {
+        uint32_t request_version = 1;
+
+        if (version >= WL_SURFACE_DAMAGE_BUFFER_SINCE_VERSION)
+            request_version = WL_SURFACE_DAMAGE_BUFFER_SINCE_VERSION;
+
         xwl_screen->compositor =
-            wl_registry_bind(registry, id, &wl_compositor_interface, 1);
+            wl_registry_bind(registry, id, &wl_compositor_interface, request_version);
     }
     else if (strcmp(interface, "wl_shm") == 0) {
         xwl_screen->shm = wl_registry_bind(registry, id, &wl_shm_interface, 1);
@@ -901,6 +1177,9 @@ registry_global(void *data, struct wl_registry *registry, uint32_t id,
         xwl_screen->xdg_output_manager =
             wl_registry_bind(registry, id, &zxdg_output_manager_v1_interface, version);
         xwl_screen_init_xdg_output(xwl_screen);
+    }
+    else if (strcmp(interface, "wp_viewporter") == 0) {
+        xwl_screen->viewporter = wl_registry_bind(registry, id, &wp_viewporter_interface, 1);
     }
 #ifdef XWL_HAS_GLAMOR
     else if (xwl_screen->glamor) {
@@ -1084,6 +1363,13 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
         return FALSE;
     if (!dixRegisterPrivateKey(&xwl_damage_private_key, PRIVATE_WINDOW, 0))
         return FALSE;
+    /* There are no easy to use new / delete client hooks, we could use a
+     * ClientStateCallback, but it is easier to let the dix code manage the
+     * memory for us. This will zero fill the initial xwl_client data.
+     */
+    if (!dixRegisterPrivateKey(&xwl_client_private_key, PRIVATE_CLIENT,
+                               sizeof(struct xwl_client)))
+        return FALSE;
 
     dixSetPrivate(&pScreen->devPrivates, &xwl_screen_private_key, xwl_screen);
     xwl_screen->screen = pScreen;
@@ -1123,6 +1409,7 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     xorg_list_init(&xwl_screen->output_list);
     xorg_list_init(&xwl_screen->seat_list);
     xorg_list_init(&xwl_screen->damage_window_list);
+    xorg_list_init(&xwl_screen->window_list);
     xwl_screen->depth = 24;
 
     xwl_screen->display = wl_display_connect(NULL);
@@ -1218,6 +1505,9 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
 
     xwl_screen->CloseScreen = pScreen->CloseScreen;
     pScreen->CloseScreen = xwl_close_screen;
+
+    xwl_screen->ResizeWindow = pScreen->ResizeWindow;
+    pScreen->ResizeWindow = xwl_resize_window;
 
     if (xwl_screen->rootless) {
         xwl_screen->SetWindowPixmap = pScreen->SetWindowPixmap;

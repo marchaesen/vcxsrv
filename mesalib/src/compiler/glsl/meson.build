@@ -85,7 +85,6 @@ files_libglsl = files(
   'gl_nir_link_xfb.c',
   'gl_nir_linker.c',
   'gl_nir_linker.h',
-  'gl_nir_opt_access.c',
   'gl_nir.h',
   'glsl_parser_extras.cpp',
   'glsl_parser_extras.h',
@@ -229,7 +228,7 @@ libglsl = static_library(
   c_args : [c_vis_args, c_msvc_compat_args, no_override_init_args],
   cpp_args : [cpp_vis_args, cpp_msvc_compat_args],
   link_with : libglcpp,
-  include_directories : [inc_common, inc_compiler, inc_nir],
+  include_directories : [inc_common, inc_compiler],
   dependencies : idep_nir,
   build_by_default : false,
 )
@@ -241,7 +240,7 @@ libglsl_standalone = static_library(
   cpp_args : [cpp_vis_args, cpp_msvc_compat_args],
   include_directories : [inc_common],
   link_with : [libglsl, libglsl_util],
-  dependencies : idep_mesautil,
+  dependencies : [idep_mesautil, idep_getopt],
   build_by_default : false,
 )
 
@@ -250,7 +249,7 @@ glsl_compiler = executable(
   'main.cpp',
   c_args : [c_vis_args, c_msvc_compat_args, no_override_init_args],
   cpp_args : [cpp_vis_args, cpp_msvc_compat_args],
-  dependencies : [dep_clock, dep_thread],
+  dependencies : [dep_clock, dep_thread, idep_getopt],
   include_directories : [inc_common],
   link_with : [libglsl_standalone],
   build_by_default : with_tools.contains('glsl'),
@@ -264,7 +263,7 @@ glsl_test = executable(
   c_args : [c_vis_args, c_msvc_compat_args, no_override_init_args],
   cpp_args : [cpp_vis_args, cpp_msvc_compat_args],
   include_directories : [inc_common],
-  dependencies : [dep_clock, dep_thread],
+  dependencies : [dep_clock, dep_thread, idep_getopt],
   link_with : [libglsl, libglsl_standalone, libglsl_util],
   build_by_default : with_tools.contains('glsl'),
   install : with_tools.contains('glsl'),

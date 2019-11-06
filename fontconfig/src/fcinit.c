@@ -229,7 +229,8 @@ FcInitReinitialize (void)
 FcBool
 FcInitBringUptoDate (void)
 {
-    FcConfig	*config = FcConfigGetCurrent ();
+    FcConfig	*config = FcConfigReference (NULL);
+    FcBool	ret = FcTrue;
     time_t	now;
 
     if (!config)
@@ -238,19 +239,23 @@ FcInitBringUptoDate (void)
      * rescanInterval == 0 disables automatic up to date
      */
     if (config->rescanInterval == 0)
-	return FcTrue;
+	goto bail;
     /*
      * Check no more often than rescanInterval seconds
      */
     now = time (0);
     if (config->rescanTime + config->rescanInterval - now > 0)
-	return FcTrue;
+	goto bail;
     /*
      * If up to date, don't reload configuration
      */
     if (FcConfigUptoDate (0))
-	return FcTrue;
-    return FcInitReinitialize ();
+	goto bail;
+    ret = FcInitReinitialize ();
+bail:
+    FcConfigDestroy (config);
+
+    return ret;
 }
 
 #define __fcinit__

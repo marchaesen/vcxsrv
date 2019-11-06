@@ -71,7 +71,7 @@ static void check_program_state( struct st_context *st )
    struct st_common_program *old_tcp = st->tcp;
    struct st_common_program *old_tep = st->tep;
    struct st_common_program *old_gp = st->gp;
-   struct st_fragment_program *old_fp = st->fp;
+   struct st_common_program *old_fp = st->fp;
 
    struct gl_program *new_vp = ctx->VertexProgram._Current;
    struct gl_program *new_tcp = ctx->TessCtrlProgram._Current;
@@ -116,7 +116,7 @@ static void check_program_state( struct st_context *st )
       if (old_fp)
          dirty |= old_fp->affected_states;
       if (new_fp)
-         dirty |= st_fragment_program(new_fp)->affected_states;
+         dirty |= st_common_program(new_fp)->affected_states;
    }
 
    /* Find out the number of viewports. This determines how many scissors
@@ -219,14 +219,14 @@ void st_validate_state( struct st_context *st, enum st_pipeline pipeline )
       break;
 
    case ST_PIPELINE_COMPUTE: {
-      struct st_compute_program *old_cp = st->cp;
+      struct st_common_program *old_cp = st->cp;
       struct gl_program *new_cp = ctx->ComputeProgram._Current;
 
       if (new_cp != &old_cp->Base) {
          if (old_cp)
             st->dirty |= old_cp->affected_states;
          assert(new_cp);
-         st->dirty |= st_compute_program(new_cp)->affected_states;
+         st->dirty |= st_common_program(new_cp)->affected_states;
       }
 
       st->compute_shader_may_be_dirty = false;

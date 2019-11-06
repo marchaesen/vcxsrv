@@ -99,7 +99,7 @@ asm (".desc ___crashreporter_info__, 0x10");
 #endif
 
 static const char *__crashreporter_info__base =
-    "X.Org X Server " XSERVER_VERSION ";
+    "X.Org X Server " XSERVER_VERSION;
 
 char *bundle_id_prefix = NULL;
 static char *server_bootstrap_name = NULL;

@@ -88,7 +88,6 @@ OR PERFORMANCE OF THIS SOFTWARE.
 #include <errno.h>
 
 #include "input.h"
-#include "site.h"
 #include "opaque.h"
 
 #ifdef WIN32
@@ -106,6 +105,14 @@ OR PERFORMANCE OF THIS SOFTWARE.
 
 #ifdef DDXOSVERRORF
 void (*OsVendorVErrorFProc) (const char *, va_list args) = NULL;
+#endif
+
+/* Default logging parameters. */
+#ifndef DEFAULT_LOG_VERBOSITY
+#define DEFAULT_LOG_VERBOSITY		0
+#endif
+#ifndef DEFAULT_LOG_FILE_VERBOSITY
+#define DEFAULT_LOG_FILE_VERBOSITY	3
 #endif
 
 static FILE *logFile = NULL;

@@ -53,7 +53,7 @@
 #   endif
 #elif defined(USE_X86_64_ASM) && defined(__GNUC__) && defined(USE_ELF_TLS)
 #   include "entry_x86-64_tls.h"
-#elif defined(USE_PPC64LE_ASM) && defined(__GNUC__) && defined(PIPE_ARCH_LITTLE_ENDIAN)
+#elif defined(USE_PPC64LE_ASM) && defined(__GNUC__) && UTIL_ARCH_LITTLE_ENDIAN
 #   ifdef USE_ELF_TLS
 #      include "entry_ppc64le_tls.h"
 #   else

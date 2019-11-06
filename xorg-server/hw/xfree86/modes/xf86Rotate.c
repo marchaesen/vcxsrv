@@ -28,7 +28,7 @@
 #include <stddef.h>
 #include <string.h>
 #include <stdio.h>
-
+#include "mi.h"
 #include "xf86.h"
 #include "xf86DDC.h"
 #include "windowstr.h"
@@ -191,7 +191,7 @@ xf86RotateRedisplay(ScreenPtr pScreen)
          * leaves the software cursor in place
          */
         SourceValidate = pScreen->SourceValidate;
-        pScreen->SourceValidate = NULL;
+        pScreen->SourceValidate = miSourceValidate;
 
         for (c = 0; c < xf86_config->num_crtc; c++) {
             xf86CrtcPtr crtc = xf86_config->crtc[c];

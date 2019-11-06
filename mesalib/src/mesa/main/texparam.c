@@ -1395,12 +1395,76 @@ _mesa_TextureParameterIiv(GLuint texture, GLenum pname, const GLint *params)
 }
 
 void GLAPIENTRY
+_mesa_TextureParameterIivEXT(GLuint texture, GLenum target, GLenum pname,
+                             const GLint *params)
+{
+   struct gl_texture_object *texObj;
+   GET_CURRENT_CONTEXT(ctx);
+
+   texObj = _mesa_lookup_or_create_texture(ctx, target, texture, false, true,
+                                           "glTextureParameterIivEXT");
+   if (!texObj)
+      return;
+
+   _mesa_texture_parameterIiv(ctx, texObj, pname, params, true);
+}
+
+void GLAPIENTRY
+_mesa_MultiTexParameterIivEXT(GLenum texunit, GLenum target, GLenum pname,
+                              const GLint *params)
+{
+   struct gl_texture_object *texObj;
+   GET_CURRENT_CONTEXT(ctx);
+
+   texObj = _mesa_get_texobj_by_target_and_texunit(ctx, target,
+                                                   texunit - GL_TEXTURE0,
+                                                   true,
+                                                   "glMultiTexParameterIivEXT");
+   if (!texObj)
+      return;
+
+   _mesa_texture_parameterIiv(ctx, texObj, pname, params, true);
+}
+
+void GLAPIENTRY
 _mesa_TextureParameterIuiv(GLuint texture, GLenum pname, const GLuint *params)
 {
    struct gl_texture_object *texObj;
    GET_CURRENT_CONTEXT(ctx);
 
    texObj = get_texobj_by_name(ctx, texture, "glTextureParameterIuiv");
+   if (!texObj)
+      return;
+
+   _mesa_texture_parameterIuiv(ctx, texObj, pname, params, true);
+}
+
+void GLAPIENTRY
+_mesa_TextureParameterIuivEXT(GLuint texture, GLenum target, GLenum pname,
+                              const GLuint *params)
+{
+   struct gl_texture_object *texObj;
+   GET_CURRENT_CONTEXT(ctx);
+
+   texObj = _mesa_lookup_or_create_texture(ctx, target, texture, false, true,
+                                           "glTextureParameterIuivEXT");
+   if (!texObj)
+      return;
+
+   _mesa_texture_parameterIuiv(ctx, texObj, pname, params, true);
+}
+
+void GLAPIENTRY
+_mesa_MultiTexParameterIuivEXT(GLenum texunit, GLenum target, GLenum pname,
+                               const GLuint *params)
+{
+   struct gl_texture_object *texObj;
+   GET_CURRENT_CONTEXT(ctx);
+
+   texObj = _mesa_get_texobj_by_target_and_texunit(ctx, target,
+                                                   texunit - GL_TEXTURE0,
+                                                   true,
+                                                   "glMultiTexParameterIuivEXT");
    if (!texObj)
       return;
 
@@ -2739,6 +2803,37 @@ _mesa_GetTextureParameterIiv(GLuint texture, GLenum pname, GLint *params)
    get_tex_parameterIiv(ctx, texObj, pname, params, true);
 }
 
+void GLAPIENTRY
+_mesa_GetTextureParameterIivEXT(GLuint texture, GLenum target, GLenum pname, GLint *params)
+{
+   struct gl_texture_object *texObj;
+   GET_CURRENT_CONTEXT(ctx);
+
+   texObj = _mesa_lookup_or_create_texture(ctx, target, texture, false, true,
+                                           "glGetTextureParameterIivEXT");
+   if (!texObj)
+      return;
+
+
+   get_tex_parameterIiv(ctx, texObj, pname, params, true);
+}
+
+void GLAPIENTRY
+_mesa_GetMultiTexParameterIivEXT(GLenum texunit, GLenum target, GLenum pname,
+                                 GLint *params)
+{
+   struct gl_texture_object *texObj;
+   GET_CURRENT_CONTEXT(ctx);
+
+   texObj = _mesa_get_texobj_by_target_and_texunit(ctx, target,
+                                                   texunit - GL_TEXTURE0,
+                                                   true,
+                                                   "glGetMultiTexParameterIiv");
+   if (!texObj)
+      return;
+
+   get_tex_parameterIiv(ctx, texObj, pname, params, true);
+}
 
 void GLAPIENTRY
 _mesa_GetTextureParameterIuiv(GLuint texture, GLenum pname, GLuint *params)
@@ -2747,6 +2842,38 @@ _mesa_GetTextureParameterIuiv(GLuint texture, GLenum pname, GLuint *params)
    GET_CURRENT_CONTEXT(ctx);
 
    texObj = get_texobj_by_name(ctx, texture, "glGetTextureParameterIuiv");
+   if (!texObj)
+      return;
+
+   get_tex_parameterIiv(ctx, texObj, pname, (GLint *) params, true);
+}
+
+void GLAPIENTRY
+_mesa_GetTextureParameterIuivEXT(GLuint texture, GLenum target, GLenum pname,
+                                 GLuint *params)
+{
+   struct gl_texture_object *texObj;
+   GET_CURRENT_CONTEXT(ctx);
+
+   texObj = _mesa_lookup_or_create_texture(ctx, target, texture, false, true,
+                                           "glGetTextureParameterIuvEXT");
+   if (!texObj)
+      return;
+
+   get_tex_parameterIiv(ctx, texObj, pname, (GLint *) params, true);
+}
+
+void GLAPIENTRY
+_mesa_GetMultiTexParameterIuivEXT(GLenum texunit, GLenum target, GLenum pname,
+                               GLuint *params)
+{
+   struct gl_texture_object *texObj;
+   GET_CURRENT_CONTEXT(ctx);
+
+   texObj = _mesa_get_texobj_by_target_and_texunit(ctx, target,
+                                                   texunit - GL_TEXTURE0,
+                                                   true,
+                                                   "glGetMultiTexParameterIuiv");
    if (!texObj)
       return;
 

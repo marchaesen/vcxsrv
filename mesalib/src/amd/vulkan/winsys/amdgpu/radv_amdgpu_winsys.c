@@ -190,7 +190,7 @@ radv_amdgpu_winsys_create(int fd, uint64_t debug_flags, uint64_t perftest_flags)
 	ws->use_local_bos = perftest_flags & RADV_PERFTEST_LOCAL_BOS;
 	ws->zero_all_vram_allocs = debug_flags & RADV_DEBUG_ZERO_VRAM;
 	ws->batchchain = !(perftest_flags & RADV_PERFTEST_NO_BATCHCHAIN);
-	LIST_INITHEAD(&ws->global_bo_list);
+	list_inithead(&ws->global_bo_list);
 	pthread_mutex_init(&ws->global_bo_list_lock, NULL);
 	ws->base.query_info = radv_amdgpu_winsys_query_info;
 	ws->base.query_value = radv_amdgpu_winsys_query_value;

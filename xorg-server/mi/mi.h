@@ -360,6 +360,10 @@ extern _X_EXPORT void miPushPixels(GCPtr /*pGC */ ,
 
 /* miscrinit.c */
 
+extern _X_EXPORT void
+miSourceValidate(DrawablePtr pDrawable, int x, int y, int w, int h,
+                 unsigned int subWindowMode);
+
 extern _X_EXPORT Bool miModifyPixmapHeader(PixmapPtr pPixmap,
                                            int width,
                                            int height,

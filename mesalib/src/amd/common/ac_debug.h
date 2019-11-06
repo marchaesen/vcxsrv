@@ -36,6 +36,10 @@
 
 #define AC_MAX_WAVES_PER_CHIP (64 * 40)
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct ac_wave_info {
 	unsigned se; /* shader engine */
 	unsigned sh; /* shader array */
@@ -66,5 +70,9 @@ bool ac_vm_fault_occured(enum chip_class chip_class,
 
 unsigned ac_get_wave_info(enum chip_class chip_class,
 			  struct ac_wave_info waves[AC_MAX_WAVES_PER_CHIP]);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -1079,7 +1079,7 @@ nir_assign_io_var_locations(struct exec_list *var_list, unsigned *size,
          if (last_slot_location > location) {
             unsigned num_unallocated_slots = last_slot_location - location;
             unsigned first_unallocated_slot = var_size - num_unallocated_slots;
-            for (unsigned i = first_unallocated_slot; i < num_unallocated_slots; i++) {
+            for (unsigned i = first_unallocated_slot; i < var_size; i++) {
                assigned_locations[var->data.location + i] = location;
                location++;
             }

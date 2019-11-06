@@ -102,6 +102,12 @@ ir_discard::clone(void *mem_ctx, struct hash_table *ht) const
    return new(mem_ctx) ir_discard(new_condition);
 }
 
+ir_demote *
+ir_demote::clone(void *mem_ctx, struct hash_table *ht) const
+{
+   return new(mem_ctx) ir_demote();
+}
+
 ir_loop_jump *
 ir_loop_jump::clone(void *mem_ctx, struct hash_table *ht) const
 {

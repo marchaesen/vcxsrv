@@ -124,7 +124,7 @@ nir_instr_worklist_length(nir_instr_worklist *wl)
 }
 
 static inline bool
-nir_instr_worklist_empty(nir_instr_worklist *wl)
+nir_instr_worklist_is_empty(nir_instr_worklist *wl)
 {
    return nir_instr_worklist_length(wl) == 0;
 }

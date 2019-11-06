@@ -80,7 +80,7 @@ def print_channels(format, func):
     if format.nr_channels() <= 1:
         func(format.le_channels, format.le_swizzles)
     else:
-        print('#ifdef PIPE_ARCH_BIG_ENDIAN')
+        print('#if UTIL_ARCH_BIG_ENDIAN')
         func(format.be_channels, format.be_swizzles)
         print('#else')
         func(format.le_channels, format.le_swizzles)

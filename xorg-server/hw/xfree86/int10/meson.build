@@ -1,4 +1,6 @@
 srcs_xorg_int10 = [
+    'vbe.c',
+    'vbeModes.c',
     'helper_exec.c',
     'helper_mem.c',
     'xf86int10.c',
@@ -58,3 +60,5 @@ xorg_int10 = shared_module('int10',
 )
 
 install_data('xf86int10.h', install_dir: xorgsdkdir)
+install_data('vbe.h', install_dir: xorgsdkdir)
+install_data('vbeModes.h', install_dir: xorgsdkdir)

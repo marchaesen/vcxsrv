@@ -49,8 +49,11 @@ tu_format_table_c = custom_target(
 )
 
 libtu_files = files(
+  'tu_blit.c',
+  'tu_blit.h',
   'tu_cmd_buffer.c',
   'tu_cs.c',
+  'tu_cs.h',
   'tu_device.c',
   'tu_descriptor_set.c',
   'tu_descriptor_set.h',
@@ -116,14 +119,14 @@ libvulkan_freedreno = shared_library(
   install : true,
 )
 
-if with_tests and prog_nm.found()
+if with_symbols_check
   test(
     'tu symbols check',
     symbols_check,
     args : [
       '--lib', libvulkan_freedreno,
       '--symbols-file', vulkan_icd_symbols,
-      '--nm', prog_nm.path(),
+      symbols_check_args,
     ],
     suite : ['freedreno'],
   )

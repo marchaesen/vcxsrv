@@ -10,7 +10,6 @@ xorg_inc = include_directories(
     'os-support/bus',
     'parser',
     'ramdac',
-    'vbe',
     'vgahw',
 )
 
@@ -128,9 +127,6 @@ if int10 != 'false'
     subdir('int10')
 endif
 subdir('shadowfb')
-if build_vbe
-    subdir('vbe')
-endif
 if build_vgahw
     subdir('vgahw')
 endif

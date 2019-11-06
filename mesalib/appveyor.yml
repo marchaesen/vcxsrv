@@ -38,6 +38,7 @@ cache:
 - '%LOCALAPPDATA%\pip\Cache -> appveyor.yml'
 - win_flex_bison-2.5.15.zip
 - llvm-5.0.1-msvc2017-mtd.7z
+- subprojects\packagecache -> subprojects\*.wrap
 
 os: Visual Studio 2017
 
@@ -49,41 +50,21 @@ init:
 environment:
   WINFLEXBISON_VERSION: 2.5.15
   LLVM_ARCHIVE: llvm-5.0.1-msvc2017-mtd.7z
+  matrix:
+  - compiler: msvc
+    buildsystem: scons
+  - compiler: msvc
+    buildsystem: meson
+    path: C:\Python37-x64;C:\Python37-x64\Scripts;%path%
 
 install:
-# Check git config
-- git config core.autocrlf
-# Check pip
-- python --version
-- python -m pip --version
-# Install Mako
-- python -m pip install Mako==1.0.7
-# Install pywin32 extensions, needed by SCons
-- python -m pip install pypiwin32
-# Install python wheels, necessary to install SCons via pip
-- python -m pip install wheel
-# Install SCons
-- python -m pip install scons==3.0.1
-- scons --version
-# Install flex/bison
-- set WINFLEXBISON_ARCHIVE=win_flex_bison-%WINFLEXBISON_VERSION%.zip
-- if not exist "%WINFLEXBISON_ARCHIVE%" appveyor DownloadFile "https://github.com/lexxmark/winflexbison/releases/download/v%WINFLEXBISON_VERSION%/%WINFLEXBISON_ARCHIVE%"
-- 7z x -y -owinflexbison\ "%WINFLEXBISON_ARCHIVE%" > nul
-- set Path=%CD%\winflexbison;%Path%
-- win_flex --version
-- win_bison --version
-# Download and extract LLVM
-- if not exist "%LLVM_ARCHIVE%" appveyor DownloadFile "https://people.freedesktop.org/~jrfonseca/llvm/%LLVM_ARCHIVE%"
-- 7z x -y "%LLVM_ARCHIVE%" > nul
-- mkdir llvm\bin
-- set LLVM=%CD%\llvm
+- cmd: .appveyor\appveyor_msvc.bat install
 
 build_script:
-- scons -j%NUMBER_OF_PROCESSORS% MSVC_VERSION=14.1 llvm=1
+- cmd: .appveyor\appveyor_msvc.bat build_script
 
-after_build:
-- scons -j%NUMBER_OF_PROCESSORS% MSVC_VERSION=14.1 llvm=1 check
-
+test_script:
+- cmd: .appveyor\appveyor_msvc.bat test_script
 
 # It's possible to setup notification here, as described in
 # http://www.appveyor.com/docs/notifications#appveyor-yml-configuration , but

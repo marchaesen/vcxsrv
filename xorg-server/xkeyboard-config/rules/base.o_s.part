@@ -66,6 +66,8 @@
   lv3:lwin_switch	=	+level3(lwin_switch)
   lv3:rwin_switch	=	+level3(rwin_switch)
   lv3:enter_switch	=	+level3(enter_switch)
+  lv3:4_switch_isolated	=	+level3(4_switch_isolated)
+  lv3:9_switch_isolated	=	+level3(9_switch_isolated)
   caps:capslock		=	+capslock(capslock)
   caps:numlock		=	+capslock(numlock)
   caps:shiftlock	=	+capslock(shiftlock)

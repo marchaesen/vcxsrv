@@ -1076,6 +1076,14 @@ void radv_update_descriptor_sets(
 		src_ptr += src_binding_layout->offset / 4;
 		dst_ptr += dst_binding_layout->offset / 4;
 
+		if (src_binding_layout->type == VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK_EXT) {
+			src_ptr += copyset->srcArrayElement / 4;
+			dst_ptr += copyset->dstArrayElement / 4;
+
+			memcpy(dst_ptr, src_ptr, copyset->descriptorCount);
+			continue;
+		}
+
 		src_ptr += src_binding_layout->size * copyset->srcArrayElement / 4;
 		dst_ptr += dst_binding_layout->size * copyset->dstArrayElement / 4;
 

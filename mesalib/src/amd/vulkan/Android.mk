@@ -67,6 +67,7 @@ $(call mesa-build-with-llvm)
 LOCAL_C_INCLUDES := $(RADV_COMMON_INCLUDES)
 
 LOCAL_STATIC_LIBRARIES := \
+	libmesa_aco \
 	libmesa_amd_common \
 	libmesa_nir \
 	libmesa_util \
@@ -167,7 +168,8 @@ LOCAL_WHOLE_STATIC_LIBRARIES := \
 	libmesa_amdgpu_addrlib \
 	libmesa_amd_common \
 	libmesa_radv_common \
-	libmesa_vulkan_util
+	libmesa_vulkan_util \
+	libmesa_aco
 
 LOCAL_SHARED_LIBRARIES += $(RADV_SHARED_LIBRARIES) libz libsync liblog
 

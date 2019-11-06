@@ -243,7 +243,6 @@ _XrmInternalStringToQuark(
     register XrmQuark q;
     register Entry entry;
     register int idx, rehash;
-    register int i;
     register char *s1, *s2;
     char *new;
 
@@ -258,10 +257,11 @@ _XrmInternalStringToQuark(
 		goto nomatch;
 	    q = (entry >> QUARKSHIFT) & QUARKMASK;
 	}
-	for (i = len, s1 = (char *)name, s2 = NAME(q); --i >= 0; ) {
-	    if (*s1++ != *s2++)
+	s2 = NAME(q);
+	if(memcmp((char *)name, s2, len) != 0) {
 		goto nomatch;
 	}
+	s2 += len;
 	if (*s2) {
 nomatch:    if (!rehash)
 		rehash = REHASHVAL(sig);
@@ -319,9 +319,9 @@ nomatch:    if (!rehash)
 #endif
 	if (!name)
 	    goto fail;
-	for (i = len, s1 = (char *)name; --i >= 0; )
-	    *s1++ = *s2++;
-	*s1++ = '\0';
+	s1 = (char*)name;
+	memcpy(s1, s2, len);
+	s1[len] = '\0';
 #ifdef PERMQ
 	CLEARPERM(q);
     }

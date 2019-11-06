@@ -346,6 +346,11 @@ _mesa_CopyBufferSubData(GLenum readTarget, GLenum writeTarget,
                         GLsizeiptr size);
 
 void GLAPIENTRY
+_mesa_NamedCopyBufferSubDataEXT(GLuint readBuffer, GLuint writeBuffer,
+                                GLintptr readOffset, GLintptr writeOffset,
+                                GLsizeiptr size);
+
+void GLAPIENTRY
 _mesa_CopyNamedBufferSubData_no_error(GLuint readBuffer, GLuint writeBuffer,
                                       GLintptr readOffset,
                                       GLintptr writeOffset, GLsizeiptr size);

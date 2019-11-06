@@ -498,6 +498,26 @@ static void noop_query_memory_info(struct pipe_screen *pscreen,
    screen->query_memory_info(screen, info);
 }
 
+static struct disk_cache *noop_get_disk_shader_cache(struct pipe_screen *pscreen)
+{
+   struct pipe_screen *screen = ((struct noop_pipe_screen*)pscreen)->oscreen;
+
+   return screen->get_disk_shader_cache(screen);
+}
+
+static const void *noop_get_compiler_options(struct pipe_screen *pscreen,
+                                             enum pipe_shader_ir ir,
+                                             enum pipe_shader_type shader)
+{
+   struct pipe_screen *screen = ((struct noop_pipe_screen*)pscreen)->oscreen;
+
+   return screen->get_compiler_options(screen, ir, shader);
+}
+
+static void noop_finalize_nir(struct pipe_screen *pscreen, void *nir, bool optimize)
+{
+}
+
 struct pipe_screen *noop_screen_create(struct pipe_screen *oscreen)
 {
    struct noop_pipe_screen *noop_screen;
@@ -535,6 +555,9 @@ struct pipe_screen *noop_screen_create(struct pipe_screen *oscreen)
    screen->fence_reference = noop_fence_reference;
    screen->fence_finish = noop_fence_finish;
    screen->query_memory_info = noop_query_memory_info;
+   screen->get_disk_shader_cache = noop_get_disk_shader_cache;
+   screen->get_compiler_options = noop_get_compiler_options;
+   screen->finalize_nir = noop_finalize_nir;
 
    return screen;
 }

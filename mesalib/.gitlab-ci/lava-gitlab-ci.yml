@@ -1,0 +1,201 @@
+variables:
+    LAVA_DEBIAN_VERSION: testing-slim
+    LAVA_IMAGE_TAG: "lava-2019-10-23-1"
+
+include:
+  - project: 'wayland/ci-templates'
+    ref: 1f7f57c64ff4ebbf7292e3b7a13600518b8cb24c
+    file: '/templates/debian.yml'
+
+# When to automatically run the CI
+.lava-ci-run-policy:
+  only:
+    - branches@mesa/mesa
+    - merge_requests
+    - /^lava-ci([-/].*)?$/
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+
+# Build Docker image with deqp, the rootfs and the build deps for Mesa
+.lava-container:
+  extends:
+    - .debian@container-ifnot-exists
+    - .container
+    - .lava-ci-run-policy
+  variables:
+    DEBIAN_TAG: '${DEBIAN_ARCH}-${LAVA_IMAGE_TAG}'
+    DEBIAN_EXEC: 'DEBIAN_ARCH=${DEBIAN_ARCH}
+                  GCC_ARCH=${GCC_ARCH}
+                  KERNEL_ARCH=${KERNEL_ARCH}
+                  VOLT_ARCH=${VOLT_ARCH}
+                  DEFCONFIG=${DEFCONFIG}
+                  DEVICE_TREES="${DEVICE_TREES}"
+                  KERNEL_IMAGE_NAME=${KERNEL_IMAGE_NAME}
+                  bash .gitlab-ci/lava-debian-install.sh'
+    DEBIAN_VERSION: ${LAVA_DEBIAN_VERSION}
+
+lava-container:armhf:
+  extends: .lava-container
+  variables:
+    DEBIAN_ARCH: "armhf"
+    GCC_ARCH: "arm-linux-gnueabihf"
+    KERNEL_ARCH: "arm"
+    VOLT_ARCH: "armhf"
+    DEFCONFIG: "arch/arm/configs/multi_v7_defconfig"
+    DEVICE_TREES: "arch/arm/boot/dts/rk3288-veyron-jaq.dtb arch/arm/boot/dts/sun8i-h3-libretech-all-h3-cc.dtb"
+    KERNEL_IMAGE_NAME: "zImage"
+
+lava-container:arm64:
+  extends: .lava-container
+  variables:
+    DEBIAN_ARCH: "arm64"
+    GCC_ARCH: "aarch64-linux-gnu"
+    KERNEL_ARCH: "arm64"
+    VOLT_ARCH: "aarch64"
+    DEFCONFIG: "arch/arm64/configs/defconfig"
+    DEVICE_TREES: "arch/arm64/boot/dts/rockchip/rk3399-gru-kevin.dtb arch/arm64/boot/dts/amlogic/meson-gxl-s905x-libretech-cc.dtb"
+    KERNEL_IMAGE_NAME: "Image"
+
+.lava-build:
+  image: $CI_REGISTRY_IMAGE/debian/$LAVA_DEBIAN_VERSION:$DEBIAN_ARCH-$LAVA_IMAGE_TAG
+  extends:
+    - .build-linux
+    - .lava-ci-run-policy
+  script:
+    # Build Mesa
+    - mkdir -p results mesa-build
+    - mkdir -p ccache
+    - /usr/share/meson/debcrossgen --arch ${DEBIAN_ARCH} -o /tmp/cross_file.txt
+    - meson . mesa-build
+        --cross-file /tmp/cross_file.txt
+        --libdir /artifacts/rootfs/mesa/lib/
+        --buildtype debugoptimized
+        -D gallium-drivers=kmsro,panfrost,lima
+        -D dri-drivers=
+        -D prefix=/artifacts/rootfs/mesa
+        -D glx=disabled
+        -D gbm=false
+        -D egl=true
+        -D platforms=surfaceless
+        -D osmesa=none
+        -D dri3=false
+        -D gallium-vdpau=false
+        -D gallium-xvmc=false
+        -D gallium-omx=disabled
+        -D gallium-va=false
+        -D gallium-xa=false
+        -D gallium-nine=false
+        -D llvm=false
+    - ninja -C mesa-build -j4
+    - ninja -C mesa-build install
+    - find /artifacts/rootfs/mesa/lib -name \*.so -exec ${GCC_ARCH}-strip {} \;
+
+    - du -sh /artifacts/rootfs/mesa/*
+    - rm -rf /artifacts/rootfs/mesa/include
+
+    # Pack rootfs
+    - cp .gitlab-ci/lava-deqp-runner.sh /artifacts/rootfs/deqp/.
+    - cp .gitlab-ci/deqp-*-fails.txt /artifacts/rootfs/deqp/.
+    - cp .gitlab-ci/deqp-*-skips.txt /artifacts/rootfs/deqp/.
+    - du -sh /artifacts/rootfs/deqp/*
+    - find /artifacts/rootfs/ -type f -printf "%s\t%p\n" | sort -n
+    - pushd /artifacts/rootfs/ ; find -H  |  cpio -H newc -v -o | gzip -c - > $CI_PROJECT_DIR/results/lava-rootfs-${DEBIAN_ARCH}.cpio.gz; popd
+
+    # Copy kernel and DT
+    - cp /artifacts/${KERNEL_IMAGE_NAME} /artifacts/*.dtb $CI_PROJECT_DIR/results/.
+
+    # Generate LAVA job
+    - cd $CI_PROJECT_DIR
+    - .gitlab-ci/generate_lava.py
+        --template .gitlab-ci/lava-deqp.yml.jinja2
+        --arch ${DEBIAN_ARCH}
+        --base-artifacts-url $CI_PROJECT_URL/-/jobs/$CI_JOB_ID/artifacts/raw/results
+        --device-types ${DEVICE_TYPES}
+        --kernel-image-name ${KERNEL_IMAGE_NAME}
+  artifacts:
+    when: always
+    paths:
+      - results/
+
+lava-build:armhf:
+  extends: .lava-build
+  needs: ["lava-container:armhf"]
+  variables:
+    DEBIAN_ARCH: "armhf"
+    GCC_ARCH: "arm-linux-gnueabihf"
+    DEVICE_TYPES: "rk3288-veyron-jaq sun8i-h3-libretech-all-h3-cc"
+    KERNEL_IMAGE_NAME: "zImage"
+
+lava-build:arm64:
+  extends: .lava-build
+  needs: ["lava-container:arm64"]
+  variables:
+    DEBIAN_ARCH: "arm64"
+    GCC_ARCH: "aarch64-linux-gnu"
+    DEVICE_TYPES: "rk3399-gru-kevin meson-gxl-s905x-libretech-cc"
+    KERNEL_IMAGE_NAME: "Image"
+
+.lava-test:
+  extends:
+    - .test
+    - .lava-ci-run-policy
+  script:
+    - lava_job_id=`lavacli jobs submit $CI_PROJECT_DIR/results/lava-deqp-$DEVICE_TYPE.yml`
+    - echo $lava_job_id
+    - lavacli jobs logs $lava_job_id | grep -a -v "{'case':" | tee results/lava-deqp-$lava_job_id.log
+    - lavacli jobs show $lava_job_id
+    - result=`lavacli results $lava_job_id 0_deqp deqp | head -1`
+    - echo $result
+    - '[[ "$result" == "pass" ]]'
+  artifacts:
+    when: always
+    paths:
+      - results/
+
+.lava-test:armhf:
+  image: $CI_REGISTRY_IMAGE/debian/$LAVA_DEBIAN_VERSION:armhf-$LAVA_IMAGE_TAG
+  extends: .lava-test
+  needs:
+    - lava-container:armhf
+    - lava-build:armhf
+  dependencies:
+    - lava-build:armhf
+
+.lava-test:arm64:
+  image: $CI_REGISTRY_IMAGE/debian/$LAVA_DEBIAN_VERSION:arm64-$LAVA_IMAGE_TAG
+  extends: .lava-test
+  needs:
+    - lava-container:arm64
+    - lava-build:arm64
+  dependencies:
+    - lava-build:arm64
+
+panfrost-t760-test:armhf:
+  extends: .lava-test:armhf
+  variables:
+    DEVICE_TYPE: rk3288-veyron-jaq
+  tags:
+    - lava-rk3288-veyron-jaq
+
+panfrost-t860-test:arm64:
+  extends: .lava-test:arm64
+  variables:
+    DEVICE_TYPE: rk3399-gru-kevin
+  tags:
+    - lava-rk3399-gru-kevin
+
+.lima-test:armhf:
+  extends: .lava-test:armhf
+  variables:
+    DEVICE_TYPE: sun8i-h3-libretech-all-h3-cc
+  tags:
+    - lava-sun8i-h3-libretech-all-h3-cc
+
+.lima-test:arm64:
+  extends: .lava-test:arm64
+  variables:
+    DEVICE_TYPE: meson-gxl-s905x-libretech-cc
+  tags:
+    - lava-meson-gxl-s905x-libretech-cc

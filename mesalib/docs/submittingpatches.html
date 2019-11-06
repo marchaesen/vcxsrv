@@ -75,11 +75,15 @@ if needed.  For example:
     platform.
 </pre>
 <li>A "Signed-off-by:" line is not required, but not discouraged either.
-<li>If a patch addresses a bugzilla issue, that should be noted in the
-patch comment.  For example:
+<li>If a patch addresses an issue in gitlab, use the Closes: tag
+For example:
 <pre>
-   Bugzilla: https://bugs.freedesktop.org/show_bug.cgi?id=89689
+    Closes: https://gitlab.freedesktop.org/mesa/mesa/issues/1
 </pre>
+<p>Prefer the full url to just <pre>Closes: #1</pre>, since the url makes it
+easier to get to the bug page from <pre>git log</pre></p>
+<b>Do not use the Fixes: tag for this!</b> Mesa already uses Fixes for something else.
+
 <li>If a patch addresses a issue introduced with earlier commit, that should be
 noted in the patch comment.  For example:
 <pre>
@@ -118,19 +122,6 @@ that should be documented with:
 <li>If sending later revision of a patch, add all the tags - ack, r-b,
 Cc: mesa-stable and/or other. This provides reviewers with quick feedback if the
 patch has already been reviewed.
-<li>In order for your patch to reach the prospective reviewer easier/faster,
-use the script scripts/get_reviewer.pl to get a list of individuals and include
-them in the CC list.
-<p>
-Please use common sense and do <strong>not</strong> blindly add everyone.
-</p>
-<pre>
-    $ scripts/get_reviewer.pl --help # to get the help screen
-    $ scripts/get_reviewer.pl -f src/egl/drivers/dri2/platform_android.c
-    Rob Herring &lt;robh@kernel.org&gt; (reviewer:ANDROID EGL SUPPORT,added_lines:188/700=27%,removed_lines:58/283=20%)
-    Tomasz Figa &lt;tfiga@chromium.org&gt; (reviewer:ANDROID EGL SUPPORT,authored:12/41=29%,added_lines:308/700=44%,removed_lines:115/283=41%)
-    Emil Velikov &lt;emil.l.velikov@gmail.com&gt; (authored:13/41=32%,removed_lines:76/283=27%)
-</pre>
 </ul>
 
 
@@ -488,11 +479,6 @@ commits before sending.
 <pre>
     git send-email --subject-prefix="PATCH v4" HEAD~8
     git send-email -v4 @~8 # shorter version, inherited from git format-patch
-</pre>
-<li> Configure git to use the get_reviewer.pl script interactively. Thus you
-can avoid adding the world to the CC list.
-<pre>
-    git config sendemail.cccmd "./scripts/get_reviewer.pl -i"
 </pre>
 </ul>
 

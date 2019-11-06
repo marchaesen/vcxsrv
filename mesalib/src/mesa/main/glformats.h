@@ -147,6 +147,9 @@ _mesa_base_tex_format(const struct gl_context *ctx, GLint internalFormat );
 extern uint32_t
 _mesa_format_from_format_and_type(GLenum format, GLenum type);
 
+bool
+_mesa_swap_bytes_in_type_enum(GLenum *type);
+
 extern uint32_t
 _mesa_tex_format_from_format_and_type(const struct gl_context *ctx,
                                       GLenum gl_format, GLenum type);

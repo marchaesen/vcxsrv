@@ -780,4 +780,5 @@ radv_nir_shader_info_pass(const struct nir_shader *nir,
 		es_info->esgs_itemsize = (max_output_written + 1) * 16;
 	}
 
+	info->float_controls_mode = nir->info.float_controls_execution_mode;
 }

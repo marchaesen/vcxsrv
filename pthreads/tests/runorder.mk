@@ -113,7 +113,7 @@ once3.pass: once2.pass
 once4.pass: once3.pass
 priority1.pass: join1.pass
 priority2.pass: priority1.pass barrier3.pass
-reinit1.pass: rwlock7.pass
+reinit1.pass: rwlock6.pass
 reuse1.pass: create3.pass
 reuse2.pass: reuse1.pass
 robust1.pass: mutex8r.pass
@@ -127,13 +127,11 @@ rwlock3.pass: rwlock2.pass join2.pass
 rwlock4.pass: rwlock3.pass
 rwlock5.pass: rwlock4.pass
 rwlock6.pass: rwlock5.pass
-rwlock7.pass: rwlock6.pass
-rwlock8.pass: rwlock7.pass
 rwlock2_t.pass: rwlock2.pass
-rwlock3_t.pass: rwlock2_t.pass
-rwlock4_t.pass: rwlock3_t.pass
-rwlock5_t.pass: rwlock4_t.pass
-rwlock6_t.pass: rwlock5_t.pass
+rwlock3_t.pass: rwlock3.pass rwlock2_t.pass
+rwlock4_t.pass: rwlock4.pass rwlock3_t.pass
+rwlock5_t.pass: rwlock5.pass rwlock4_t.pass
+rwlock6_t.pass: rwlock6.pass rwlock5_t.pass
 rwlock6_t2.pass: rwlock6_t.pass
 self1.pass: sizes.pass
 self2.pass: self1.pass equal1.pass create1.pass

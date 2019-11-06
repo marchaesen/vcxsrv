@@ -696,8 +696,8 @@ hud_stop_queries(struct hud_context *hud, struct pipe_context *pipe)
              */
             if (gr->current_value <
                 LIST_ENTRY(struct hud_graph, next, head)->current_value) {
-               LIST_DEL(&gr->head);
-               LIST_ADD(&gr->head, &next->head);
+               list_del(&gr->head);
+               list_add(&gr->head, &next->head);
             }
          }
       }
@@ -898,7 +898,7 @@ hud_pane_create(struct hud_context *hud,
    pane->sort_items = sort_items;
    pane->initial_max_value = max_value;
    hud_pane_set_max_value(pane, max_value);
-   LIST_INITHEAD(&pane->graph_list);
+   list_inithead(&pane->graph_list);
    return pane;
 }
 
@@ -946,7 +946,7 @@ hud_pane_add_graph(struct hud_pane *pane, struct hud_graph *gr)
    gr->color[1] = colors[color][1];
    gr->color[2] = colors[color][2];
    gr->pane = pane;
-   LIST_ADDTAIL(&gr->head, &pane->graph_list);
+   list_addtail(&gr->head, &pane->graph_list);
    pane->num_graphs++;
    pane->next_color++;
 }
@@ -1431,7 +1431,7 @@ hud_parse_env_var(struct hud_context *hud, struct pipe_screen *screen,
          env += num;
 
          strip_hyphens(s);
-         if (added && !LIST_IS_EMPTY(&pane->graph_list)) {
+         if (added && !list_is_empty(&pane->graph_list)) {
             struct hud_graph *graph;
             graph = LIST_ENTRY(struct hud_graph, pane->graph_list.prev, head);
             strncpy(graph->name, s, sizeof(graph->name)-1);
@@ -1458,7 +1458,7 @@ hud_parse_env_var(struct hud_context *hud, struct pipe_screen *screen,
          height = 100;
 
          if (pane && pane->num_graphs) {
-            LIST_ADDTAIL(&pane->head, &hud->pane_list);
+            list_addtail(&pane->head, &hud->pane_list);
             pane = NULL;
          }
          break;
@@ -1471,7 +1471,7 @@ hud_parse_env_var(struct hud_context *hud, struct pipe_screen *screen,
          height = 100;
 
          if (pane && pane->num_graphs) {
-            LIST_ADDTAIL(&pane->head, &hud->pane_list);
+            list_addtail(&pane->head, &hud->pane_list);
             pane = NULL;
          }
 
@@ -1494,7 +1494,7 @@ hud_parse_env_var(struct hud_context *hud, struct pipe_screen *screen,
 
    if (pane) {
       if (pane->num_graphs) {
-         LIST_ADDTAIL(&pane->head, &hud->pane_list);
+         list_addtail(&pane->head, &hud->pane_list);
       }
       else {
          FREE(pane);
@@ -1752,10 +1752,10 @@ hud_unset_record_context(struct hud_context *hud)
 
    LIST_FOR_EACH_ENTRY_SAFE(pane, pane_tmp, &hud->pane_list, head) {
       LIST_FOR_EACH_ENTRY_SAFE(graph, graph_tmp, &pane->graph_list, head) {
-         LIST_DEL(&graph->head);
+         list_del(&graph->head);
          hud_graph_destroy(graph, pipe);
       }
-      LIST_DEL(&pane->head);
+      list_del(&pane->head);
       FREE(pane);
    }
 
@@ -1885,7 +1885,7 @@ hud_create(struct cso_context *cso, struct hud_context *share)
    hud->constbuf.buffer_size = sizeof(hud->constants);
    hud->constbuf.user_buffer = &hud->constants;
 
-   LIST_INITHEAD(&hud->pane_list);
+   list_inithead(&hud->pane_list);
 
    /* setup sig handler once for all hud contexts */
 #ifdef PIPE_OS_UNIX
