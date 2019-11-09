@@ -210,7 +210,7 @@ xwl_shm_create_pixmap(ScreenPtr screen,
     if (!pixmap)
         return NULL;
 
-    xwl_pixmap = malloc(sizeof *xwl_pixmap);
+    xwl_pixmap = calloc(1, sizeof(*xwl_pixmap));
     if (xwl_pixmap == NULL)
         goto err_destroy_pixmap;
 

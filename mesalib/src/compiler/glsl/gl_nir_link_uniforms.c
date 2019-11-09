@@ -163,7 +163,7 @@ find_and_update_previous_uniform_storage(struct gl_shader_program *prog,
    if (nir_variable_is_in_block(var)) {
       struct gl_uniform_storage *uniform = NULL;
 
-      unsigned num_blks = nir_variable_is_in_ubo(var) ?
+      ASSERTED unsigned num_blks = nir_variable_is_in_ubo(var) ?
          prog->data->NumUniformBlocks :
          prog->data->NumShaderStorageBlocks;
 

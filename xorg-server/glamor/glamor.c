@@ -129,6 +129,23 @@ glamor_set_pixmap_texture(PixmapPtr pixmap, unsigned int tex)
     return TRUE;
 }
 
+_X_EXPORT void
+glamor_clear_pixmap(PixmapPtr pixmap)
+{
+    ScreenPtr screen = pixmap->drawable.pScreen;
+    glamor_screen_private *glamor_priv;
+    glamor_pixmap_private *pixmap_priv;
+    const struct glamor_format *pixmap_format;
+
+    glamor_priv = glamor_get_screen_private(screen);
+    pixmap_priv = glamor_get_pixmap_private(pixmap);
+    pixmap_format = glamor_format_for_pixmap(pixmap);
+
+    assert(pixmap_priv->fbo != NULL);
+
+    glamor_pixmap_clear_fbo(glamor_priv, pixmap_priv->fbo, pixmap_format);
+}
+
 uint32_t
 glamor_get_pixmap_texture(PixmapPtr pixmap)
 {
@@ -781,6 +798,9 @@ glamor_init(ScreenPtr screen, unsigned int flags)
         epoxy_has_gl_extension("GL_NV_pack_subimage");
     glamor_priv->has_dual_blend =
         epoxy_has_gl_extension("GL_ARB_blend_func_extended");
+    glamor_priv->has_clear_texture =
+        epoxy_gl_version() >= 44 ||
+        epoxy_has_gl_extension("GL_ARB_clear_texture");
 
     glamor_priv->can_copyplane = (gl_version >= 30);
 

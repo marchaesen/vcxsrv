@@ -47,6 +47,7 @@ struct ir3_info {
 	uint32_t gpu_id;
 	uint16_t sizedwords;
 	uint16_t instrs_count;   /* expanded to account for rpt's */
+	uint16_t nops_count;     /* # of nop instructions, including nopN */
 	/* NOTE: max_reg, etc, does not include registers not touched
 	 * by the shader (ie. vertex fetched via VFD_DECODE but not
 	 * touched by shader)
@@ -290,7 +291,7 @@ struct ir3_instruction {
 		 * it could make sense to duplicate the instruction at various
 		 * points where the result is needed to reduce register footprint.
 		 */
-		unsigned depth;
+		int depth;
 		/* When we get to the RA stage, we no longer need depth, but
 		 * we do need instruction's position/name:
 		 */
@@ -614,7 +615,7 @@ static inline bool is_flow(struct ir3_instruction *instr)
 
 static inline bool is_kill(struct ir3_instruction *instr)
 {
-	return instr->opc == OPC_KILL;
+	return instr->opc == OPC_KILL || instr->opc == OPC_CONDEND;
 }
 
 static inline bool is_nop(struct ir3_instruction *instr)
@@ -774,10 +775,6 @@ static inline bool is_bool(struct ir3_instruction *instr)
 
 static inline bool is_meta(struct ir3_instruction *instr)
 {
-	/* TODO how should we count PHI (and maybe fan-in/out) which
-	 * might actually contribute some instructions to the final
-	 * result?
-	 */
 	return (opc_cat(instr->opc) == -1);
 }
 
@@ -1103,6 +1100,26 @@ void ir3_legalize(struct ir3 *ir, bool *has_ssbo, bool *need_pixlod, int *max_ba
 /* ************************************************************************* */
 /* instruction helpers */
 
+/* creates SSA src of correct type (ie. half vs full precision) */
+static inline struct ir3_register * __ssa_src(struct ir3_instruction *instr,
+		struct ir3_instruction *src, unsigned flags)
+{
+	struct ir3_register *reg;
+	if (src->regs[0]->flags & IR3_REG_HALF)
+		flags |= IR3_REG_HALF;
+	reg = ir3_reg_create(instr, 0, IR3_REG_SSA | flags);
+	reg->instr = src;
+	reg->wrmask = src->regs[0]->wrmask;
+	return reg;
+}
+
+static inline struct ir3_register * __ssa_dst(struct ir3_instruction *instr)
+{
+	struct ir3_register *reg = ir3_reg_create(instr, 0, 0);
+	reg->flags |= IR3_REG_SSA;
+	return reg;
+}
+
 static inline struct ir3_instruction *
 create_immed_typed(struct ir3_block *block, uint32_t val, type_t type)
 {
@@ -1112,7 +1129,7 @@ create_immed_typed(struct ir3_block *block, uint32_t val, type_t type)
 	mov = ir3_instr_create(block, OPC_MOV);
 	mov->cat1.src_type = type;
 	mov->cat1.dst_type = type;
-	ir3_reg_create(mov, 0, flags);
+	__ssa_dst(mov)->flags |= flags;
 	ir3_reg_create(mov, 0, IR3_REG_IMMED)->uim_val = val;
 
 	return mov;
@@ -1133,7 +1150,7 @@ create_uniform_typed(struct ir3_block *block, unsigned n, type_t type)
 	mov = ir3_instr_create(block, OPC_MOV);
 	mov->cat1.src_type = type;
 	mov->cat1.dst_type = type;
-	ir3_reg_create(mov, 0, flags);
+	__ssa_dst(mov)->flags |= flags;
 	ir3_reg_create(mov, n, IR3_REG_CONST | flags);
 
 	return mov;
@@ -1154,7 +1171,7 @@ create_uniform_indirect(struct ir3_block *block, int n,
 	mov = ir3_instr_create(block, OPC_MOV);
 	mov->cat1.src_type = TYPE_U32;
 	mov->cat1.dst_type = TYPE_U32;
-	ir3_reg_create(mov, 0, 0);
+	__ssa_dst(mov);
 	ir3_reg_create(mov, 0, IR3_REG_CONST | IR3_REG_RELATIV)->array.offset = n;
 
 	ir3_instr_set_address(mov, address);
@@ -1162,24 +1179,11 @@ create_uniform_indirect(struct ir3_block *block, int n,
 	return mov;
 }
 
-/* creates SSA src of correct type (ie. half vs full precision) */
-static inline struct ir3_register * __ssa_src(struct ir3_instruction *instr,
-		struct ir3_instruction *src, unsigned flags)
-{
-	struct ir3_register *reg;
-	if (src->regs[0]->flags & IR3_REG_HALF)
-		flags |= IR3_REG_HALF;
-	reg = ir3_reg_create(instr, 0, IR3_REG_SSA | flags);
-	reg->instr = src;
-	reg->wrmask = src->regs[0]->wrmask;
-	return reg;
-}
-
 static inline struct ir3_instruction *
 ir3_MOV(struct ir3_block *block, struct ir3_instruction *src, type_t type)
 {
 	struct ir3_instruction *instr = ir3_instr_create(block, OPC_MOV);
-	ir3_reg_create(instr, 0, 0);   /* dst */
+	__ssa_dst(instr);
 	if (src->regs[0]->flags & IR3_REG_ARRAY) {
 		struct ir3_register *src_reg = __ssa_src(instr, src, IR3_REG_ARRAY);
 		src_reg->array = src->regs[0]->array;
@@ -1202,7 +1206,7 @@ ir3_COV(struct ir3_block *block, struct ir3_instruction *src,
 
 	debug_assert((src->regs[0]->flags & IR3_REG_HALF) == src_flags);
 
-	ir3_reg_create(instr, 0, dst_flags);   /* dst */
+	__ssa_dst(instr)->flags |= dst_flags;
 	__ssa_src(instr, src, 0);
 	instr->cat1.src_type = src_type;
 	instr->cat1.dst_type = dst_type;
@@ -1237,7 +1241,7 @@ ir3_##name(struct ir3_block *block,                                      \
 {                                                                        \
 	struct ir3_instruction *instr =                                      \
 		ir3_instr_create(block, opc);                                    \
-	ir3_reg_create(instr, 0, 0);   /* dst */                             \
+	__ssa_dst(instr);                                                    \
 	__ssa_src(instr, a, aflags);                                         \
 	instr->flags |= flag;                                                \
 	return instr;                                                        \
@@ -1253,7 +1257,7 @@ ir3_##name(struct ir3_block *block,                                      \
 {                                                                        \
 	struct ir3_instruction *instr =                                      \
 		ir3_instr_create(block, opc);                                    \
-	ir3_reg_create(instr, 0, 0);   /* dst */                             \
+	__ssa_dst(instr);                                                    \
 	__ssa_src(instr, a, aflags);                                         \
 	__ssa_src(instr, b, bflags);                                         \
 	instr->flags |= flag;                                                \
@@ -1271,7 +1275,7 @@ ir3_##name(struct ir3_block *block,                                      \
 {                                                                        \
 	struct ir3_instruction *instr =                                      \
 		ir3_instr_create2(block, opc, 4);                                \
-	ir3_reg_create(instr, 0, 0);   /* dst */                             \
+	__ssa_dst(instr);                                                    \
 	__ssa_src(instr, a, aflags);                                         \
 	__ssa_src(instr, b, bflags);                                         \
 	__ssa_src(instr, c, cflags);                                         \
@@ -1291,7 +1295,7 @@ ir3_##name(struct ir3_block *block,                                      \
 {                                                                        \
 	struct ir3_instruction *instr =                                      \
 		ir3_instr_create2(block, opc, 5);                                \
-	ir3_reg_create(instr, 0, 0);   /* dst */                             \
+	__ssa_dst(instr);                                                    \
 	__ssa_src(instr, a, aflags);                                         \
 	__ssa_src(instr, b, bflags);                                         \
 	__ssa_src(instr, c, cflags);                                         \
@@ -1309,6 +1313,8 @@ INSTR1(KILL)
 INSTR0(END)
 INSTR0(CHSH)
 INSTR0(CHMASK)
+INSTR1(CONDEND)
+INSTR0(ENDPATCH)
 
 /* cat2 instructions, most 2 src but some 1 src: */
 INSTR2(ADD_F)
@@ -1398,21 +1404,16 @@ ir3_SAM(struct ir3_block *block, opc_t opc, type_t type,
 		struct ir3_instruction *src0, struct ir3_instruction *src1)
 {
 	struct ir3_instruction *sam;
-	struct ir3_register *reg;
 
 	sam = ir3_instr_create(block, opc);
 	sam->flags |= flags | IR3_INSTR_S2EN;
-	ir3_reg_create(sam, 0, 0)->wrmask = wrmask;
+	__ssa_dst(sam)->wrmask = wrmask;
 	__ssa_src(sam, samp_tex, IR3_REG_HALF);
 	if (src0) {
-		reg = ir3_reg_create(sam, 0, IR3_REG_SSA);
-		reg->wrmask = (1 << (src0->regs_count - 1)) - 1;
-		reg->instr = src0;
+		__ssa_src(sam, src0, 0)->wrmask = (1 << (src0->regs_count - 1)) - 1;
 	}
 	if (src1) {
-		reg = ir3_reg_create(sam, 0, IR3_REG_SSA);
-		reg->instr = src1;
-		reg->wrmask = (1 << (src1->regs_count - 1)) - 1;
+		__ssa_src(sam, src1, 0)->wrmask =(1 << (src1->regs_count - 1)) - 1;
 	}
 	sam->cat5.type  = type;
 
@@ -1470,6 +1471,8 @@ INSTR4F(G, ATOMIC_AND)
 INSTR4F(G, ATOMIC_OR)
 INSTR4F(G, ATOMIC_XOR)
 #endif
+
+INSTR4F(G, STG)
 
 /* cat7 instructions: */
 INSTR0(BAR)

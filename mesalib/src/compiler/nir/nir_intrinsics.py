@@ -792,6 +792,20 @@ system_value("vs_vertex_stride_ir3", 1)
 system_value("gs_header_ir3", 1)
 system_value("primitive_location_ir3", 1, indices=[DRIVER_LOCATION])
 
+# System values for freedreno tessellation shaders.
+system_value("hs_patch_stride_ir3", 1)
+system_value("tess_factor_base_ir3", 2)
+system_value("tess_param_base_ir3", 2)
+system_value("tcs_header_ir3", 1)
+
+# IR3-specific intrinsics for tessellation control shaders.  cond_end_ir3 end
+# the shader when src0 is false and is used to narrow down the TCS shader to
+# just thread 0 before writing out tessellation levels.
+intrinsic("cond_end_ir3", src_comp=[1])
+# end_patch_ir3 is used just before thread 0 exist the TCS and presumably
+# signals the TE that the patch is complete and can be tessellated.
+intrinsic("end_patch_ir3")
+
 # IR3-specific load/store intrinsics. These access a buffer used to pass data
 # between geometry stages - perhaps it's explicit access to the vertex cache.
 
@@ -799,6 +813,17 @@ system_value("primitive_location_ir3", 1, indices=[DRIVER_LOCATION])
 store("shared_ir3", 2, [BASE, WRMASK, ALIGN_MUL, ALIGN_OFFSET])
 # src[] = { offset }.
 load("shared_ir3", 1, [BASE, ALIGN_MUL, ALIGN_OFFSET], [CAN_ELIMINATE])
+
+# IR3-specific load/store global intrinsics. They take a 64-bit base address
+# and a 32-bit offset.  The hardware will add the base and the offset, which
+# saves us from doing 64-bit math on the base address.
+
+# src[] = { value, address(vec2 of hi+lo uint32_t), offset }.
+# const_index[] = { write_mask, align_mul, align_offset }
+intrinsic("store_global_ir3", [0, 2, 1], indices=[WRMASK, ACCESS, ALIGN_MUL, ALIGN_OFFSET])
+# src[] = { address(vec2 of hi+lo uint32_t), offset }.
+# const_index[] = { access, align_mul, align_offset }
+intrinsic("load_global_ir3", [2, 1], dest_comp=0, indices=[ACCESS, ALIGN_MUL, ALIGN_OFFSET], flags=[CAN_ELIMINATE])
 
 # Intrinsics used by the Midgard/Bifrost blend pipeline. These are defined
 # within a blend shader to read/write the raw value from the tile buffer,

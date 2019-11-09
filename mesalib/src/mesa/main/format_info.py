@@ -182,7 +182,7 @@ bf_map = {
 }
 
 for fmat in formats:
-   print('   {')
+   print('   [{0}] = {{'.format(fmat.name))
    print('      .Name = {0},'.format(fmat.name))
    print('      .StrName = "{0}",'.format(fmat.name))
    print('      .Layout = {0},'.format('MESA_FORMAT_LAYOUT_' + fmat.layout.upper()))

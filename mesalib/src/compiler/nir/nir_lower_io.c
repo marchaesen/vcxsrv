@@ -1432,7 +1432,8 @@ nir_lower_vars_to_explicit_types(nir_shader *shader,
     * - compact shader inputs/outputs
     * - interface types
     */
-   nir_variable_mode supported = nir_var_mem_shared | nir_var_shader_temp | nir_var_function_temp;
+   ASSERTED nir_variable_mode supported = nir_var_mem_shared |
+      nir_var_shader_temp | nir_var_function_temp;
    assert(!(modes & ~supported) && "unsupported");
 
    bool progress = false;

@@ -5152,7 +5152,8 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
    }
 
    /* Set shader info defaults */
-   b->shader->info.gs.invocations = 1;
+   if (stage == MESA_SHADER_GEOMETRY)
+      b->shader->info.gs.invocations = 1;
 
    /* Parse rounding mode execution modes. This has to happen earlier than
     * other changes in the execution modes since they can affect, for example,

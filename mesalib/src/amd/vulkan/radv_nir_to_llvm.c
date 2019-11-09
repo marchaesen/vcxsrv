@@ -3137,6 +3137,7 @@ static void build_sendmsg_gs_alloc_req(struct radv_shader_context *ctx,
 struct ngg_prim {
 	unsigned num_vertices;
 	LLVMValueRef isnull;
+	LLVMValueRef swap;
 	LLVMValueRef index[3];
 	LLVMValueRef edgeflag[3];
 };
@@ -3146,19 +3147,52 @@ static void build_export_prim(struct radv_shader_context *ctx,
 {
 	LLVMBuilderRef builder = ctx->ac.builder;
 	struct ac_export_args args;
+	LLVMValueRef vertices[3];
+	LLVMValueRef odd, even;
 	LLVMValueRef tmp;
 
 	tmp = LLVMBuildZExt(builder, prim->isnull, ctx->ac.i32, "");
 	args.out[0] = LLVMBuildShl(builder, tmp, LLVMConstInt(ctx->ac.i32, 31, false), "");
 
 	for (unsigned i = 0; i < prim->num_vertices; ++i) {
-		tmp = LLVMBuildShl(builder, prim->index[i],
-				   LLVMConstInt(ctx->ac.i32, 10 * i, false), "");
-		args.out[0] = LLVMBuildOr(builder, args.out[0], tmp, "");
-		tmp = LLVMBuildZExt(builder, prim->edgeflag[i], ctx->ac.i32, "");
-		tmp = LLVMBuildShl(builder, tmp,
-				   LLVMConstInt(ctx->ac.i32, 10 * i + 9, false), "");
-		args.out[0] = LLVMBuildOr(builder, args.out[0], tmp, "");
+               tmp = LLVMBuildZExt(builder, prim->edgeflag[i], ctx->ac.i32, "");
+               tmp = LLVMBuildShl(builder, tmp,
+                                  LLVMConstInt(ctx->ac.i32, 9, false), "");
+               vertices[i] = LLVMBuildOr(builder, prim->index[i], tmp, "");
+	}
+
+	switch (prim->num_vertices) {
+	case 1:
+		args.out[0] = LLVMBuildOr(builder, args.out[0], vertices[0], "");
+		break;
+	case 2:
+		tmp = LLVMBuildShl(builder, vertices[1],
+				   LLVMConstInt(ctx->ac.i32, 10, false), "");
+		tmp = LLVMBuildOr(builder, args.out[0], tmp, "");
+		args.out[0] = LLVMBuildOr(builder, tmp, vertices[0], "");
+		break;
+	case 3:
+		/* Swap vertices if needed to follow drawing order. */
+		tmp = LLVMBuildShl(builder, vertices[2],
+				   LLVMConstInt(ctx->ac.i32, 20, false), "");
+		even = LLVMBuildOr(builder, args.out[0], tmp, "");
+		tmp = LLVMBuildShl(builder, vertices[1],
+				   LLVMConstInt(ctx->ac.i32, 10, false), "");
+		even = LLVMBuildOr(builder, even, tmp, "");
+		even = LLVMBuildOr(builder, even, vertices[0], "");
+
+		tmp = LLVMBuildShl(builder, vertices[1],
+				   LLVMConstInt(ctx->ac.i32, 20, false), "");
+		odd = LLVMBuildOr(builder, args.out[0], tmp, "");
+		tmp = LLVMBuildShl(builder, vertices[2],
+				   LLVMConstInt(ctx->ac.i32, 10, false), "");
+		odd = LLVMBuildOr(builder, odd, tmp, "");
+		odd = LLVMBuildOr(builder, odd, vertices[0], "");
+
+		args.out[0] = LLVMBuildSelect(builder, prim->swap, odd, even, "");
+		break;
+	default:
+		unreachable("invalid number of vertices");
 	}
 
 	args.out[0] = LLVMBuildBitCast(builder, args.out[0], ctx->ac.f32, "");
@@ -3784,6 +3818,7 @@ handle_ngg_outputs_post_2(struct radv_shader_context *ctx)
 
 		prim.num_vertices = num_vertices;
 		prim.isnull = ctx->ac.i1false;
+		prim.swap = ctx->ac.i1false;
 		memcpy(prim.index, vtxindex, sizeof(vtxindex[0]) * 3);
 
 		for (unsigned i = 0; i < num_vertices; ++i) {
@@ -4092,6 +4127,9 @@ static void gfx10_ngg_gs_emit_epilogue_2(struct radv_shader_context *ctx)
 		tmp = LLVMBuildLoad(builder, tmp, "");
 		prim.isnull = LLVMBuildICmp(builder, LLVMIntEQ, tmp,
 					    LLVMConstInt(ctx->ac.i8, 0, false), "");
+		prim.swap = LLVMBuildICmp(builder, LLVMIntEQ,
+					  LLVMBuildAnd(builder, tid, LLVMConstInt(ctx->ac.i32, 1, false), ""),
+					  LLVMConstInt(ctx->ac.i32, 1, false), "");
 
 		for (unsigned i = 0; i < verts_per_prim; ++i) {
 			prim.index[i] = LLVMBuildSub(builder, vertlive_scan.result_exclusive,

@@ -40,8 +40,6 @@
 
 #include "pan_encoder.h"
 
-int pandecode_jc(mali_ptr jc_gpu_va, bool bifrost);
-
 static void pandecode_swizzle(unsigned swizzle, enum mali_format format);
 
 #define MEMORY_PROP(obj, p) {\
@@ -1830,7 +1828,7 @@ static unsigned shader_id = 0;
 
 static struct midgard_disasm_stats
 pandecode_shader_disassemble(mali_ptr shader_ptr, int shader_no, int type,
-                             bool is_bifrost)
+                             bool is_bifrost, unsigned gpu_id)
 {
         struct pandecode_mapped_memory *mem = pandecode_find_mapped_gpu_mem_containing(shader_ptr);
         uint8_t *PANDECODE_PTR_VAR(code, mem, shader_ptr);
@@ -1862,7 +1860,9 @@ pandecode_shader_disassemble(mali_ptr shader_ptr, int shader_no, int type,
                 stats.quadword_count = 0;
                 stats.helper_invocations = false;
         } else {
-                stats = disassemble_midgard(code, sz);
+                stats = disassemble_midgard(code, sz, gpu_id,
+                                type == JOB_TYPE_TILER ?
+                                MESA_SHADER_FRAGMENT : MESA_SHADER_VERTEX);
         }
 
         /* Print shader-db stats */
@@ -2070,10 +2070,10 @@ pandecode_shader_prop(const char *name, unsigned claim, signed truth, bool fuzzy
 
 static void
 pandecode_blend_shader_disassemble(mali_ptr shader, int job_no, int job_type,
-                                   bool is_bifrost)
+                                   bool is_bifrost, unsigned gpu_id)
 {
         struct midgard_disasm_stats stats =
-                pandecode_shader_disassemble(shader, job_no, job_type, is_bifrost);
+                pandecode_shader_disassemble(shader, job_no, job_type, is_bifrost, gpu_id);
 
         bool has_texture = (stats.texture_count > 0);
         bool has_sampler = (stats.sampler_count > 0);
@@ -2096,7 +2096,7 @@ static void
 pandecode_vertex_tiler_postfix_pre(
                 const struct mali_vertex_tiler_postfix *p,
                 int job_no, enum mali_job_type job_type,
-                char *suffix, bool is_bifrost)
+                char *suffix, bool is_bifrost, unsigned gpu_id)
 {
         struct pandecode_mapped_memory *attr_mem;
 
@@ -2143,7 +2143,7 @@ pandecode_vertex_tiler_postfix_pre(
                 };
 
                 if (s->shader & ~0xF)
-                        info = pandecode_shader_disassemble(s->shader & ~0xF, job_no, job_type, is_bifrost);
+                        info = pandecode_shader_disassemble(s->shader & ~0xF, job_no, job_type, is_bifrost, gpu_id);
 
                 pandecode_log("struct mali_shader_meta shader_meta_%"PRIx64"_%d%s = {\n", p->shader, job_no, suffix);
                 pandecode_indent++;
@@ -2272,7 +2272,7 @@ pandecode_vertex_tiler_postfix_pre(
                         union midgard_blend blend = s->blend;
                         mali_ptr shader = pandecode_midgard_blend(&blend, s->unknown2_3 & MALI_HAS_BLEND_SHADER);
                         if (shader & ~0xF)
-                                pandecode_blend_shader_disassemble(shader, job_no, job_type, false);
+                                pandecode_blend_shader_disassemble(shader, job_no, job_type, false, gpu_id);
                 }
 
                 pandecode_indent--;
@@ -2293,7 +2293,7 @@ pandecode_vertex_tiler_postfix_pre(
                                         shader = pandecode_midgard_blend_mrt(blend_base, job_no, i);
 
                                 if (shader & ~0xF)
-                                        pandecode_blend_shader_disassemble(shader, job_no, job_type, false);
+                                        pandecode_blend_shader_disassemble(shader, job_no, job_type, false, gpu_id);
 
                         }
                 }
@@ -2622,11 +2622,11 @@ pandecode_tiler_only_bfr(const struct bifrost_tiler_only *t, int job_no)
 static int
 pandecode_vertex_job_bfr(const struct mali_job_descriptor_header *h,
                                 const struct pandecode_mapped_memory *mem,
-                                mali_ptr payload, int job_no)
+                                mali_ptr payload, int job_no, unsigned gpu_id)
 {
         struct bifrost_payload_vertex *PANDECODE_PTR_VAR(v, mem, payload);
 
-        pandecode_vertex_tiler_postfix_pre(&v->postfix, job_no, h->job_type, "", true);
+        pandecode_vertex_tiler_postfix_pre(&v->postfix, job_no, h->job_type, "", true, gpu_id);
 
         pandecode_log("struct bifrost_payload_vertex payload_%d = {\n", job_no);
         pandecode_indent++;
@@ -2648,11 +2648,11 @@ pandecode_vertex_job_bfr(const struct mali_job_descriptor_header *h,
 static int
 pandecode_tiler_job_bfr(const struct mali_job_descriptor_header *h,
                                const struct pandecode_mapped_memory *mem,
-                               mali_ptr payload, int job_no)
+                               mali_ptr payload, int job_no, unsigned gpu_id)
 {
         struct bifrost_payload_tiler *PANDECODE_PTR_VAR(t, mem, payload);
 
-        pandecode_vertex_tiler_postfix_pre(&t->postfix, job_no, h->job_type, "", true);
+        pandecode_vertex_tiler_postfix_pre(&t->postfix, job_no, h->job_type, "", true, gpu_id);
         pandecode_tiler_meta(t->tiler.tiler_meta, job_no);
 
         pandecode_log("struct bifrost_payload_tiler payload_%d = {\n", job_no);
@@ -2675,11 +2675,11 @@ pandecode_tiler_job_bfr(const struct mali_job_descriptor_header *h,
 static int
 pandecode_vertex_or_tiler_job_mdg(const struct mali_job_descriptor_header *h,
                 const struct pandecode_mapped_memory *mem,
-                mali_ptr payload, int job_no)
+                mali_ptr payload, int job_no, unsigned gpu_id)
 {
         struct midgard_payload_vertex_tiler *PANDECODE_PTR_VAR(v, mem, payload);
 
-        pandecode_vertex_tiler_postfix_pre(&v->postfix, job_no, h->job_type, "", false);
+        pandecode_vertex_tiler_postfix_pre(&v->postfix, job_no, h->job_type, "", false, gpu_id);
 
         pandecode_log("struct midgard_payload_vertex_tiler payload_%d = {\n", job_no);
         pandecode_indent++;
@@ -2815,7 +2815,7 @@ pandecode_fragment_job(const struct pandecode_mapped_memory *mem,
 static int job_descriptor_number = 0;
 
 int
-pandecode_jc(mali_ptr jc_gpu_va, bool bifrost)
+pandecode_jc(mali_ptr jc_gpu_va, bool bifrost, unsigned gpu_id)
 {
         struct mali_job_descriptor_header *h;
 
@@ -2912,11 +2912,11 @@ pandecode_jc(mali_ptr jc_gpu_va, bool bifrost)
                 case JOB_TYPE_COMPUTE:
                         if (bifrost) {
                                 if (h->job_type == JOB_TYPE_TILER)
-                                        pandecode_tiler_job_bfr(h, mem, payload_ptr, job_no);
+                                        pandecode_tiler_job_bfr(h, mem, payload_ptr, job_no, gpu_id);
                                 else
-                                        pandecode_vertex_job_bfr(h, mem, payload_ptr, job_no);
+                                        pandecode_vertex_job_bfr(h, mem, payload_ptr, job_no, gpu_id);
                         } else
-                                pandecode_vertex_or_tiler_job_mdg(h, mem, payload_ptr, job_no);
+                                pandecode_vertex_or_tiler_job_mdg(h, mem, payload_ptr, job_no, gpu_id);
 
                         break;
 

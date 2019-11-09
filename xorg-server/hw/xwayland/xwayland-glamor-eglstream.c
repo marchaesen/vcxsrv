@@ -910,7 +910,7 @@ xwl_glamor_init_eglstream(struct xwl_screen *xwl_screen)
     if (!dixRegisterPrivateKey(&xwl_eglstream_private_key, PRIVATE_SCREEN, 0))
         return;
 
-    xwl_eglstream = calloc(sizeof(*xwl_eglstream), 1);
+    xwl_eglstream = calloc(1, sizeof(*xwl_eglstream));
     if (!xwl_eglstream) {
         ErrorF("Failed to allocate memory required to init EGLStream support\n");
         return;

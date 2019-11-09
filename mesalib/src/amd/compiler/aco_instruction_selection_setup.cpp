@@ -1263,14 +1263,14 @@ setup_isel_context(Program* program,
    } else if (program->chip_class >= GFX8) {
       program->physical_sgprs = 800;
       program->sgpr_alloc_granule = 15;
-      program->sgpr_limit = 102;
-   } else {
-      program->physical_sgprs = 512;
-      program->sgpr_alloc_granule = 7;
       if (options->family == CHIP_TONGA || options->family == CHIP_ICELAND)
          program->sgpr_limit = 94; /* workaround hardware bug */
       else
-         program->sgpr_limit = 104;
+         program->sgpr_limit = 102;
+   } else {
+      program->physical_sgprs = 512;
+      program->sgpr_alloc_granule = 7;
+      program->sgpr_limit = 104;
    }
    /* TODO: we don't have to allocate VCC if we don't need it */
    program->needs_vcc = true;
@@ -1337,13 +1337,7 @@ setup_isel_context(Program* program,
 
       /* lower ALU operations */
       // TODO: implement logic64 in aco, it's more effective for sgprs
-      nir_lower_int64(nir, (nir_lower_int64_options) (nir_lower_imul64 |
-                                                      nir_lower_imul_high64 |
-                                                      nir_lower_imul_2x32_64 |
-                                                      nir_lower_divmod64 |
-                                                      nir_lower_logic64 |
-                                                      nir_lower_minmax64 |
-                                                      nir_lower_iabs64));
+      nir_lower_int64(nir, nir->options->lower_int64_options);
 
       nir_opt_idiv_const(nir, 32);
       nir_lower_idiv(nir, nir_lower_idiv_precise);

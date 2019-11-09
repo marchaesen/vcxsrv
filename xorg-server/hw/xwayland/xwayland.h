@@ -86,31 +86,31 @@ struct xwl_egl_backend {
      * this to setup any required wraps around X server callbacks like
      * CreatePixmap.
      */
-     Bool (*init_screen)(struct xwl_screen *xwl_screen);
+    Bool (*init_screen)(struct xwl_screen *xwl_screen);
 
-     /* Called by Xwayland to retrieve a pointer to a valid wl_buffer for
-      * the given window/pixmap combo so that damage to the pixmap may be
-      * displayed on-screen. Backends should use this to create a new
-      * wl_buffer for a currently buffer-less pixmap, or simply return the
-      * pixmap they've prepared beforehand.
-      */
-     struct wl_buffer *(*get_wl_buffer_for_pixmap)(PixmapPtr pixmap,
-                                                   Bool *created);
+    /* Called by Xwayland to retrieve a pointer to a valid wl_buffer for
+     * the given window/pixmap combo so that damage to the pixmap may be
+     * displayed on-screen. Backends should use this to create a new
+     * wl_buffer for a currently buffer-less pixmap, or simply return the
+     * pixmap they've prepared beforehand.
+     */
+    struct wl_buffer *(*get_wl_buffer_for_pixmap)(PixmapPtr pixmap,
+                                                  Bool *created);
 
-     /* Called by Xwayland to perform any pre-wl_surface damage routines
-      * that are required by the backend. If your backend is poorly
-      * designed and lacks the ability to render directly to a surface,
-      * you should implement blitting from the glamor pixmap to the wayland
-      * pixmap here. Otherwise, this callback is optional.
-      */
-     void (*post_damage)(struct xwl_window *xwl_window,
-                         PixmapPtr pixmap, RegionPtr region);
+    /* Called by Xwayland to perform any pre-wl_surface damage routines
+     * that are required by the backend. If your backend is poorly
+     * designed and lacks the ability to render directly to a surface,
+     * you should implement blitting from the glamor pixmap to the wayland
+     * pixmap here. Otherwise, this callback is optional.
+     */
+    void (*post_damage)(struct xwl_window *xwl_window,
+                        PixmapPtr pixmap, RegionPtr region);
 
-     /* Called by Xwayland to confirm with the egl backend that the given
-      * pixmap is completely setup and ready for display on-screen. This
-      * callback is optional.
-      */
-     Bool (*allow_commits)(struct xwl_window *xwl_window);
+    /* Called by Xwayland to confirm with the egl backend that the given
+     * pixmap is completely setup and ready for display on-screen. This
+     * callback is optional.
+     */
+    Bool (*allow_commits)(struct xwl_window *xwl_window);
 };
 
 struct xwl_screen {

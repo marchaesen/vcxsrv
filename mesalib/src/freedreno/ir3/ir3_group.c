@@ -61,10 +61,10 @@ static void arr_insert_mov_in(void *arr, int idx, struct ir3_instruction *instr)
 
 	in = ir3_instr_create(instr->block, OPC_META_INPUT);
 	in->input.sysval = instr->input.sysval;
-	ir3_reg_create(in, instr->regs[0]->num, 0);
+	__ssa_dst(in);
 
 	/* create src reg for meta:in and fixup to now be a mov: */
-	ir3_reg_create(instr, 0, IR3_REG_SSA)->instr = in;
+	__ssa_src(instr, in, 0);
 	instr->opc = OPC_MOV;
 	instr->cat1.src_type = TYPE_F32;
 	instr->cat1.dst_type = TYPE_F32;
@@ -209,7 +209,7 @@ pad_and_group_input(struct ir3_instruction **input, unsigned n)
 			block = instr->block;
 		} else if (block) {
 			instr = ir3_NOP(block);
-			ir3_reg_create(instr, 0, IR3_REG_SSA);    /* dummy dst */
+			__ssa_dst(instr);          /* dummy dst */
 			input[i] = instr;
 			mask |= (1 << i);
 		}

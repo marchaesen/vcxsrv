@@ -292,6 +292,8 @@ typedef struct compiler_context {
 
         /* Bitmask of valid metadata */
         unsigned metadata;
+
+        unsigned gpu_id;
 } compiler_context;
 
 /* Per-block live_in/live_out */

@@ -1823,9 +1823,10 @@ cursor_next_instr(nir_cursor cursor)
    unreachable("Inavlid cursor option");
 }
 
-static bool
+ASSERTED static bool
 dest_is_ssa(nir_dest *dest, void *_state)
 {
+   (void) _state;
    return dest->is_ssa;
 }
 

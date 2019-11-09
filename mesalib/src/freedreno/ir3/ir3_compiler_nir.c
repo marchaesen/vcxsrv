@@ -51,9 +51,8 @@ create_indirect_load(struct ir3_context *ctx, unsigned arrsz, int n,
 	mov = ir3_instr_create(block, OPC_MOV);
 	mov->cat1.src_type = TYPE_U32;
 	mov->cat1.dst_type = TYPE_U32;
-	ir3_reg_create(mov, 0, 0);
-	src = ir3_reg_create(mov, 0, IR3_REG_SSA | IR3_REG_RELATIV);
-	src->instr = collect;
+	__ssa_dst(mov);
+	src = __ssa_src(mov, collect, IR3_REG_RELATIV);
 	src->size  = arrsz;
 	src->array.offset = n;
 
@@ -69,9 +68,7 @@ create_input_compmask(struct ir3_context *ctx, unsigned n, unsigned compmask)
 
 	in = ir3_instr_create(ctx->in_block, OPC_META_INPUT);
 	in->input.sysval = ~0;
-	ir3_reg_create(in, n, 0);
-
-	in->regs[0]->wrmask = compmask;
+	__ssa_dst(in)->wrmask = compmask;
 
 	return in;
 }
@@ -1363,6 +1360,21 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	case nir_intrinsic_load_vs_vertex_stride_ir3:
 		dst[0] = create_uniform(b, primitive_param + 1);
 		break;
+	case nir_intrinsic_load_hs_patch_stride_ir3:
+		dst[0] = create_uniform(b, primitive_param + 2);
+		break;
+	case nir_intrinsic_load_patch_vertices_in:
+		dst[0] = create_uniform(b, primitive_param + 3);
+		break;
+	case nir_intrinsic_load_tess_param_base_ir3:
+		dst[0] = create_uniform(b, primitive_param + 4);
+		dst[1] = create_uniform(b, primitive_param + 5);
+		break;
+	case nir_intrinsic_load_tess_factor_base_ir3:
+		dst[0] = create_uniform(b, primitive_param + 6);
+		dst[1] = create_uniform(b, primitive_param + 7);
+		break;
+
 	case nir_intrinsic_load_primitive_location_ir3:
 		idx = nir_intrinsic_driver_location(intr);
 		dst[0] = create_uniform(b, primitive_map + idx);
@@ -1371,10 +1383,83 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	case nir_intrinsic_load_gs_header_ir3:
 		dst[0] = ctx->gs_header;
 		break;
+	case nir_intrinsic_load_tcs_header_ir3:
+		dst[0] = ctx->tcs_header;
+		break;
 
 	case nir_intrinsic_load_primitive_id:
 		dst[0] = ctx->primitive_id;
 		break;
+
+	case nir_intrinsic_load_tess_coord:
+		if (!ctx->tess_coord) {
+			ctx->tess_coord = create_input_compmask(ctx, 0, 0x3);
+			add_sysval_input_compmask(ctx, SYSTEM_VALUE_TESS_COORD,
+									  0x3, ctx->tess_coord);
+		}
+		ir3_split_dest(b, dst, ctx->tess_coord, 0, 2);
+
+		/* Unused, but ir3_put_dst() below wants to free something */
+		dst[2] = create_immed(b, 0);
+		break;
+
+	case nir_intrinsic_end_patch_ir3:
+		assert(ctx->so->type == MESA_SHADER_TESS_CTRL);
+		struct ir3_instruction *end = ir3_ENDPATCH(b);
+		array_insert(b, b->keeps, end);
+
+		end->barrier_class = IR3_BARRIER_EVERYTHING;
+		end->barrier_conflict = IR3_BARRIER_EVERYTHING;
+		break;
+
+	case nir_intrinsic_store_global_ir3: {
+		struct ir3_instruction *value, *addr, *offset;
+
+		addr = ir3_create_collect(ctx, (struct ir3_instruction*[]){
+				ir3_get_src(ctx, &intr->src[1])[0],
+				ir3_get_src(ctx, &intr->src[1])[1]
+		}, 2);
+
+		offset = ir3_get_src(ctx, &intr->src[2])[0];
+
+		value = ir3_create_collect(ctx, ir3_get_src(ctx, &intr->src[0]),
+								   intr->num_components);
+
+		struct ir3_instruction *stg =
+			ir3_STG_G(ctx->block, addr, 0, value, 0,
+					  create_immed(ctx->block, intr->num_components), 0, offset, 0);
+		stg->cat6.type = TYPE_U32;
+		stg->cat6.iim_val = 1;
+
+		array_insert(b, b->keeps, stg);
+
+		stg->barrier_class = IR3_BARRIER_BUFFER_W;
+		stg->barrier_conflict = IR3_BARRIER_BUFFER_R | IR3_BARRIER_BUFFER_W;
+		break;
+	}
+
+	case nir_intrinsic_load_global_ir3: {
+		struct ir3_instruction *addr, *offset;
+
+		addr = ir3_create_collect(ctx, (struct ir3_instruction*[]){
+				ir3_get_src(ctx, &intr->src[0])[0],
+				ir3_get_src(ctx, &intr->src[0])[1]
+		}, 2);
+
+		offset = ir3_get_src(ctx, &intr->src[1])[0];
+
+		struct ir3_instruction *load =
+			ir3_LDG(b, addr, 0, create_immed(ctx->block, intr->num_components),
+					0, offset, 0);
+		load->cat6.type = TYPE_U32;
+		load->regs[0]->wrmask = MASK(intr->num_components);
+
+		load->barrier_class = IR3_BARRIER_BUFFER_R;
+		load->barrier_conflict = IR3_BARRIER_BUFFER_W;
+
+		ir3_split_dest(b, dst, load, 0, intr->num_components);
+		break;
+	}
 
 	case nir_intrinsic_load_ubo:
 		emit_intrinsic_load_ubo(ctx, intr, dst);
@@ -1674,6 +1759,7 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 
 		/* condition always goes in predicate register: */
 		cond->regs[0]->num = regid(REG_P0, 0);
+		cond->regs[0]->flags &= ~IR3_REG_SSA;
 
 		kill = ir3_KILL(b, cond, 0);
 		array_insert(ctx->ir, ctx->ir->predicates, kill);
@@ -1683,6 +1769,30 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 
 		break;
 	}
+
+	case nir_intrinsic_cond_end_ir3: {
+		struct ir3_instruction *cond, *kill;
+
+		src = ir3_get_src(ctx, &intr->src[0]);
+		cond = ir3_b2n(b, src[0]);
+
+		/* NOTE: only cmps.*.* can write p0.x: */
+		cond = ir3_CMPS_S(b, cond, 0, create_immed(b, 0), 0);
+		cond->cat2.condition = IR3_COND_NE;
+
+		/* condition always goes in predicate register: */
+		cond->regs[0]->num = regid(REG_P0, 0);
+
+		kill = ir3_CONDEND(b, cond, 0);
+
+		kill->barrier_class = IR3_BARRIER_EVERYTHING;
+		kill->barrier_conflict = IR3_BARRIER_EVERYTHING;
+
+		array_insert(ctx->ir, ctx->ir->predicates, kill);
+		array_insert(b, b->keeps, kill);
+		break;
+	}
+
 	case nir_intrinsic_load_shared_ir3:
 		emit_intrinsic_load_shared_ir3(ctx, intr, dst);
 		break;
@@ -2079,7 +2189,7 @@ emit_tex(struct ir3_context *ctx, nir_tex_instr *tex)
 		compile_assert(ctx, tex->src[idx].src.is_ssa);
 
 		sam = ir3_META_TEX_PREFETCH(b);
-		ir3_reg_create(sam, 0, 0)->wrmask = MASK(ncomp);   /* dst */
+		__ssa_dst(sam)->wrmask = MASK(ncomp);   /* dst */
 		sam->prefetch.input_offset =
 				ir3_nir_coord_offset(tex->src[idx].src.ssa);
 		sam->prefetch.tex  = tex->texture_index;
@@ -2438,6 +2548,7 @@ emit_stream_out(struct ir3_context *ctx)
 	/* setup 'if (vtxcnt < maxvtxcnt)' condition: */
 	cond = ir3_CMPS_S(ctx->block, vtxcnt, 0, maxvtxcnt, 0);
 	cond->regs[0]->num = regid(REG_P0, 0);
+	cond->regs[0]->flags &= ~IR3_REG_SSA;
 	cond->cat2.condition = IR3_COND_LT;
 
 	/* condition goes on previous block to the conditional,
@@ -2531,7 +2642,9 @@ emit_function(struct ir3_context *ctx, nir_function_impl *impl)
 	 * be read by the HS.  Then it resets execution mask (chmask) and chains
 	 * to the next shader (chsh).
 	 */
-	if (ctx->so->type == MESA_SHADER_VERTEX && ctx->so->key.has_gs) {
+	if ((ctx->so->type == MESA_SHADER_VERTEX &&
+				(ctx->so->key.has_gs || ctx->so->key.tessellation)) ||
+			(ctx->so->type == MESA_SHADER_TESS_EVAL && ctx->so->key.has_gs)) {
 		struct ir3_instruction *chmask =
 			ir3_CHMASK(ctx->block);
 		chmask->barrier_class = IR3_BARRIER_EVERYTHING;
@@ -2769,6 +2882,7 @@ setup_output(struct ir3_context *ctx, nir_variable *out)
 					gl_frag_result_name(slot));
 		}
 	} else if (ctx->so->type == MESA_SHADER_VERTEX ||
+			ctx->so->type == MESA_SHADER_TESS_EVAL ||
 			ctx->so->type == MESA_SHADER_GEOMETRY) {
 		switch (slot) {
 		case VARYING_SLOT_POS:
@@ -2800,6 +2914,9 @@ setup_output(struct ir3_context *ctx, nir_variable *out)
 					_mesa_shader_stage_to_string(ctx->so->type),
 					gl_varying_slot_name(slot));
 		}
+	} else if (ctx->so->type == MESA_SHADER_TESS_CTRL) {
+		/* output lowered to buffer writes. */
+		return;
 	} else {
 		ir3_context_error(ctx, "unknown shader type: %d\n", ctx->so->type);
 	}
@@ -2844,6 +2961,8 @@ max_drvloc(struct exec_list *vars)
 
 static const unsigned max_sysvals[] = {
 	[MESA_SHADER_VERTEX]  = 16,
+	[MESA_SHADER_TESS_CTRL] = 16,
+	[MESA_SHADER_TESS_EVAL] = 16,
 	[MESA_SHADER_GEOMETRY] = 16,
 	[MESA_SHADER_FRAGMENT] = 24,  // TODO
 	[MESA_SHADER_COMPUTE] = 16, // TODO how many do we actually need?
@@ -2862,7 +2981,8 @@ emit_instructions(struct ir3_context *ctx)
 	/* we need to leave room for sysvals:
 	 */
 	ninputs += max_sysvals[ctx->so->type];
-	if (ctx->so->type == MESA_SHADER_VERTEX)
+	if (ctx->so->type == MESA_SHADER_VERTEX ||
+			ctx->so->type == MESA_SHADER_TESS_EVAL)
 		noutputs += 8; /* gs or tess header + primitive_id */
 
 	ctx->ir = ir3_create(ctx->compiler, ctx->so->type, ninputs, noutputs);
@@ -2874,12 +2994,38 @@ emit_instructions(struct ir3_context *ctx)
 
 	ninputs -= max_sysvals[ctx->so->type];
 
-	if (ctx->so->key.has_gs) {
-		if (ctx->so->type == MESA_SHADER_VERTEX ||
-			ctx->so->type == MESA_SHADER_GEOMETRY) {
+	/* Tesselation shaders always need primitive ID for indexing the
+	 * BO. Geometry shaders don't always need it but when they do it has be
+	 * delivered and unclobbered in the VS. To make things easy, we always
+	 * make room for it in VS/DS.
+	 */
+	bool has_tess = ctx->so->key.tessellation != IR3_TESS_NONE;
+	bool has_gs = ctx->so->key.has_gs;
+	switch (ctx->so->type) {
+	case MESA_SHADER_VERTEX:
+		if (has_tess) {
+			ctx->tcs_header = create_input(ctx, 0);
+			ctx->primitive_id = create_input(ctx, 0);
+		} else if (has_gs) {
 			ctx->gs_header = create_input(ctx, 0);
 			ctx->primitive_id = create_input(ctx, 0);
 		}
+		break;
+	case MESA_SHADER_TESS_CTRL:
+		ctx->tcs_header = create_input(ctx, 0);
+		ctx->primitive_id = create_input(ctx, 0);
+		break;
+	case MESA_SHADER_TESS_EVAL:
+		if (has_gs)
+			ctx->gs_header = create_input(ctx, 0);
+		ctx->primitive_id = create_input(ctx, 0);
+		break;
+	case MESA_SHADER_GEOMETRY:
+		ctx->gs_header = create_input(ctx, 0);
+		ctx->primitive_id = create_input(ctx, 0);
+		break;
+	default:
+		break;
 	}
 
 	/* for fragment shader, the vcoord input register is used as the
@@ -2918,15 +3064,19 @@ emit_instructions(struct ir3_context *ctx)
 		add_sysval_input(ctx, SYSTEM_VALUE_PRIMITIVE_ID, ctx->primitive_id);
 	if (ctx->gs_header)
 		add_sysval_input(ctx, SYSTEM_VALUE_GS_HEADER_IR3, ctx->gs_header);
+	if (ctx->tcs_header)
+		add_sysval_input(ctx, SYSTEM_VALUE_TCS_HEADER_IR3, ctx->tcs_header);
 
 	/* Setup outputs: */
 	nir_foreach_variable(var, &ctx->s->outputs) {
 		setup_output(ctx, var);
 	}
 
-	/* Set up the gs header as an output for the vertex shader so it won't
-	 * clobber it for the tess ctrl shader. */
-	if (ctx->so->type == MESA_SHADER_VERTEX) {
+	/* Set up the shared system values as outputs for the vertex and tess eval
+	 * shaders so they don't clobber them for the next shader in the pipeline.
+	 */
+	if (ctx->so->type == MESA_SHADER_VERTEX ||
+			(has_gs && ctx->so->type == MESA_SHADER_TESS_EVAL)) {
 		struct ir3_shader_variant *so = ctx->so;
 		if (ctx->primitive_id) {
 			unsigned n = so->outputs_count++;
@@ -2946,6 +3096,14 @@ emit_instructions(struct ir3_context *ctx)
 			compile_assert(ctx, n * 4 < ctx->ir->noutputs);
 		}
 
+		if (ctx->tcs_header) {
+			unsigned n = so->outputs_count++;
+			so->outputs[n].slot = VARYING_SLOT_TCS_HEADER_IR3;
+			so->outputs[n].regid = regid(n, 0);
+			ctx->ir->outputs[n * 4] = ctx->tcs_header;
+
+			compile_assert(ctx, n * 4 < ctx->ir->noutputs);
+		}
 	}
 
 	/* Find # of samplers: */
@@ -3173,8 +3331,8 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
 	 * need to make sure not to remove any inputs that are used by
 	 * the nonbinning VS.
 	 */
-	if (ctx->compiler->gpu_id >= 600 && so->binning_pass) {
-		debug_assert(so->type == MESA_SHADER_VERTEX);
+	if (ctx->compiler->gpu_id >= 600 && so->binning_pass &&
+			so->type == MESA_SHADER_VERTEX) {
 		for (int i = 0; i < ir->ninputs; i++) {
 			struct ir3_instruction *in = ir->inputs[i];
 
@@ -3276,13 +3434,23 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
 		}
 
 		ret = ir3_ra(so, ir->inputs, ir->ninputs);
-	} else if (ctx->gs_header) {
-		/* We need to have these values in the same registers between VS and GS
-		 * since the VS chains to GS and doesn't get the sysvals redelivered.
+	} else if (ctx->tcs_header) {
+		/* We need to have these values in the same registers between VS and TCS
+		 * since the VS chains to TCS and doesn't get the sysvals redelivered.
 		 */
 
-		ctx->gs_header->regs[0]->num = 0;
-		ctx->primitive_id->regs[0]->num = 1;
+		ctx->tcs_header->regs[0]->num = regid(0, 0);
+		ctx->primitive_id->regs[0]->num = regid(0, 1);
+		struct ir3_instruction *precolor[] = { ctx->tcs_header, ctx->primitive_id };
+		ret = ir3_ra(so, precolor, ARRAY_SIZE(precolor));
+	} else if (ctx->gs_header) {
+		/* We need to have these values in the same registers between producer
+		 * (VS or DS) and GS since the producer chains to GS and doesn't get
+		 * the sysvals redelivered.
+		 */
+
+		ctx->gs_header->regs[0]->num = regid(0, 0);
+		ctx->primitive_id->regs[0]->num = regid(0, 1);
 		struct ir3_instruction *precolor[] = { ctx->gs_header, ctx->primitive_id };
 		ret = ir3_ra(so, precolor, ARRAY_SIZE(precolor));
 	} else if (so->num_sampler_prefetch) {

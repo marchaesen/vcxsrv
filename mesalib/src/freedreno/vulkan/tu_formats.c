@@ -249,11 +249,11 @@ TU_FORMAT_TABLE(tu6_format_table0) = {
 
    /* depth/stencil */
    TU6_xTC(D16_UNORM,                  16_UNORM,          R16_UNORM,          WZYX), /* 124 */
-   TU6_xTC(X8_D24_UNORM_PACK32,        X8Z24_UNORM,       X8Z24_UNORM,        WZYX), /* 125 */
+   TU6_xTC(X8_D24_UNORM_PACK32,        Z24_UNORM_S8_UINT, Z24_UNORM_S8_UINT, WZYX), /* 125 */
    TU6_xTC(D32_SFLOAT,                 32_FLOAT,          R32_FLOAT,          WZYX), /* 126 */
    TU6_xTC(S8_UINT,                    8_UINT,            R8_UINT,            WZYX), /* 127 */
    TU6_xxx(D16_UNORM_S8_UINT,          X8Z16_UNORM,       X8Z16_UNORM,        WZYX), /* 128 */
-   TU6_xTC(D24_UNORM_S8_UINT,          X8Z24_UNORM,       X8Z24_UNORM,        WZYX), /* 129 */
+   TU6_xTC(D24_UNORM_S8_UINT,          Z24_UNORM_S8_UINT, Z24_UNORM_S8_UINT, WZYX), /* 129 */
    TU6_xxx(D32_SFLOAT_S8_UINT,         x,                 x,                  WZYX), /* 130 */
 
    /* compressed */
@@ -341,8 +341,8 @@ tu6_rb_fmt_to_ifmt(enum a6xx_color_fmt fmt)
    case RB6_R4G4B4A4_UNORM:
    case RB6_R5G5B5A1_UNORM:
    case RB6_R5G6B5_UNORM:
-   case RB6_X8Z24_UNORM:
    case RB6_Z24_UNORM_S8_UINT:
+   case RB6_Z24_UNORM_S8_UINT_AS_R8G8B8A8:
       return R2D_UNORM8;
 
    case RB6_R32_UINT:

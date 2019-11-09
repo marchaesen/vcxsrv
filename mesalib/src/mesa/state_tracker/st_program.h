@@ -93,7 +93,8 @@ st_get_external_sampler_key(struct st_context *st, struct gl_program *prog)
          key.lower_xyuv |= (1 << unit);
          break;
       default:
-         printf("unhandled %u\n", st_get_view_format(stObj));
+         printf("mesa: st_get_external_sampler_key: unhandled pipe format %u\n",
+               st_get_view_format(stObj));
          break;
       }
    }
