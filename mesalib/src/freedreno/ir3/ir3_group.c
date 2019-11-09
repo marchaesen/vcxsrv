@@ -60,7 +60,7 @@ static void arr_insert_mov_in(void *arr, int idx, struct ir3_instruction *instr)
 	debug_assert(instr->regs_count == 1);
 
 	in = ir3_instr_create(instr->block, OPC_META_INPUT);
-	in->inout.block = instr->block;
+	in->input.sysval = instr->input.sysval;
 	ir3_reg_create(in, instr->regs[0]->num, 0);
 
 	/* create src reg for meta:in and fixup to now be a mov: */

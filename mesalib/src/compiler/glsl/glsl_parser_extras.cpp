@@ -713,6 +713,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(AMD_vertex_shader_viewport_index),
    EXT(ANDROID_extension_pack_es31a),
    EXT(EXT_blend_func_extended),
+   EXT(EXT_demote_to_helper_invocation),
    EXT(EXT_frag_depth),
    EXT(EXT_draw_buffers),
    EXT(EXT_clip_cull_distance),
@@ -1508,6 +1509,13 @@ ast_jump_statement::ast_jump_statement(int mode, ast_expression *return_value)
 
    if (mode == ast_return)
       opt_return_value = return_value;
+}
+
+
+void
+ast_demote_statement::print(void) const
+{
+   printf("demote; ");
 }
 
 

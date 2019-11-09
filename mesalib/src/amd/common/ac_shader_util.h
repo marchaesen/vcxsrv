@@ -28,7 +28,23 @@
 #include <stdint.h>
 
 #include "amd_family.h"
-#include "ac_llvm_build.h"
+#include "ac_binary.h"
+#include "compiler/nir/nir.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+enum ac_image_dim {
+	ac_image_1d,
+	ac_image_2d,
+	ac_image_3d,
+	ac_image_cube, // includes cube arrays
+	ac_image_1darray,
+	ac_image_2darray,
+	ac_image_2dmsaa,
+	ac_image_2darraymsaa,
+};
 
 unsigned
 ac_get_spi_shader_z_format(bool writes_z, bool writes_stencil,
@@ -40,9 +56,25 @@ ac_get_cb_shader_mask(unsigned spi_shader_col_format);
 uint32_t
 ac_vgt_gs_mode(unsigned gs_max_vert_out, enum chip_class chip_class);
 
-void
-ac_export_mrt_z(struct ac_llvm_context *ctx, LLVMValueRef depth,
-		LLVMValueRef stencil, LLVMValueRef samplemask,
-		struct ac_export_args *args);
+unsigned
+ac_get_tbuffer_format(enum chip_class chip_class,
+		      unsigned dfmt, unsigned nfmt);
+
+enum ac_image_dim
+ac_get_sampler_dim(enum chip_class chip_class, enum glsl_sampler_dim dim,
+		   bool is_array);
+
+enum ac_image_dim
+ac_get_image_dim(enum chip_class chip_class, enum glsl_sampler_dim sdim,
+		 bool is_array);
+
+unsigned
+ac_get_fs_input_vgpr_cnt(const struct ac_shader_config *config,
+			 signed char *face_vgpr_index,
+			 signed char *ancillary_vgpr_index);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

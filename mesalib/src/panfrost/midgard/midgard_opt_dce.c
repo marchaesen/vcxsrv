@@ -23,24 +23,75 @@
  */
 
 #include "compiler.h"
+#include "util/u_memory.h"
+#include "midgard_ops.h"
 
-/* Basic dead code elimination on the MIR itself */
+/* SIMD-aware dead code elimination. Perform liveness analysis step-by-step,
+ * removing dead components. If an instruction ends up with a zero mask, the
+ * instruction in total is dead and should be removed. */
+
+static bool
+can_cull_mask(compiler_context *ctx, midgard_instruction *ins)
+{
+        if (ins->dest >= ctx->temp_count)
+                return false;
+
+        if (ins->type == TAG_LOAD_STORE_4)
+                if (load_store_opcode_props[ins->load_store.op].props & LDST_SPECIAL_MASK)
+                        return false;
+
+        return true;
+}
+
+static bool
+can_dce(midgard_instruction *ins)
+{
+        if (ins->mask)
+                return false;
+
+        if (ins->compact_branch)
+                return false;
+
+        if (ins->type == TAG_LOAD_STORE_4)
+                if (load_store_opcode_props[ins->load_store.op].props & LDST_SIDE_FX)
+                        return false;
+
+        return true;
+}
 
 bool
 midgard_opt_dead_code_eliminate(compiler_context *ctx, midgard_block *block)
 {
         bool progress = false;
 
-        mir_foreach_instr_in_block_safe(block, ins) {
-                if (ins->type != TAG_ALU_4) continue;
-                if (ins->compact_branch) continue;
+        mir_invalidate_liveness(ctx);
+        mir_compute_liveness(ctx);
 
-                if (ins->dest >= SSA_FIXED_MINIMUM) continue;
-                if (mir_is_live_after(ctx, block, ins, ins->dest)) continue;
+        uint16_t *live = mem_dup(block->live_out, ctx->temp_count * sizeof(uint16_t));
 
-                mir_remove_instruction(ins);
-                progress = true;
+        mir_foreach_instr_in_block_rev(block, ins) {
+                if (can_cull_mask(ctx, ins)) {
+                        midgard_reg_mode mode = mir_typesize(ins);
+                        unsigned oldmask = ins->mask;
+
+                        unsigned rounded = mir_round_bytemask_down(live[ins->dest], mode);
+                        unsigned cmask = mir_from_bytemask(rounded, mode);
+
+                        ins->mask &= cmask;
+                        progress |= (ins->mask != oldmask);
+                }
+
+                mir_liveness_ins_update(live, ins, ctx->temp_count);
         }
+
+        mir_foreach_instr_in_block_safe(block, ins) {
+                if (can_dce(ins)) {
+                        mir_remove_instruction(ins);
+                        progress = true;
+                }
+        }
+
+        free(live);
 
         return progress;
 }

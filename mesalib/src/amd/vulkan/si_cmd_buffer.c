@@ -162,12 +162,9 @@ si_emit_graphics(struct radv_physical_device *physical_device,
 	bool has_clear_state = physical_device->rad_info.has_clear_state;
 	int i;
 
-	/* Since amdgpu version 3.6.0, CONTEXT_CONTROL is emitted by the kernel */
-	if (physical_device->rad_info.drm_minor < 6) {
-		radeon_emit(cs, PKT3(PKT3_CONTEXT_CONTROL, 1, 0));
-		radeon_emit(cs, CONTEXT_CONTROL_LOAD_ENABLE(1));
-		radeon_emit(cs, CONTEXT_CONTROL_SHADOW_ENABLE(1));
-	}
+	radeon_emit(cs, PKT3(PKT3_CONTEXT_CONTROL, 1, 0));
+	radeon_emit(cs, CONTEXT_CONTROL_LOAD_ENABLE(1));
+	radeon_emit(cs, CONTEXT_CONTROL_SHADOW_ENABLE(1));
 
 	if (has_clear_state) {
 		radeon_emit(cs, PKT3(PKT3_CLEAR_STATE, 0, 0));
@@ -886,15 +883,19 @@ gfx10_cs_emit_cache_flush(struct radeon_cmdbuf *cs,
 		gcr_cntl |= S_586_GL1_INV(1) | S_586_GLV_INV(1);
 	if (flush_bits & RADV_CMD_FLAG_INV_L2) {
 		/* Writeback and invalidate everything in L2. */
-		gcr_cntl |= S_586_GL2_INV(1) | S_586_GLM_INV(1);
+		gcr_cntl |= S_586_GL2_INV(1) | S_586_GL2_WB(1) |
+		            S_586_GLM_INV(1) | S_586_GLM_WB(1);
 	} else if (flush_bits & RADV_CMD_FLAG_WB_L2) {
-		/* Writeback but do not invalidate. */
-		gcr_cntl |= S_586_GL2_WB(1);
+		/* Writeback but do not invalidate.
+		 * GLM doesn't support WB alone. If WB is set, INV must be set too.
+		 */
+		gcr_cntl |= S_586_GL2_WB(1) |
+		            S_586_GLM_WB(1) | S_586_GLM_INV(1);
 	}
 
 	/* TODO: Implement this new flag for GFX9+.
-	if (flush_bits & RADV_CMD_FLAG_INV_L2_METADATA)
-		gcr_cntl |= S_586_GLM_INV(1);
+	else if (flush_bits & RADV_CMD_FLAG_INV_L2_METADATA)
+		gcr_cntl |= S_586_GLM_INV(1) | S_586_GLM_WB(1);
 	*/
 
 	if (flush_bits & (RADV_CMD_FLAG_FLUSH_AND_INV_CB | RADV_CMD_FLAG_FLUSH_AND_INV_DB)) {

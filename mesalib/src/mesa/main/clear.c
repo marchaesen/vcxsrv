@@ -350,6 +350,12 @@ clear_bufferiv(struct gl_context *ctx, GLenum buffer, GLint drawbuffer,
       _mesa_update_state( ctx );
    }
 
+   if (!no_error && ctx->DrawBuffer->_Status != GL_FRAMEBUFFER_COMPLETE_EXT) {
+      _mesa_error(ctx, GL_INVALID_FRAMEBUFFER_OPERATION_EXT,
+                  "glClearBufferiv(incomplete framebuffer)");
+      return;
+   }
+
    switch (buffer) {
    case GL_STENCIL:
       /* Page 264 (page 280 of the PDF) of the OpenGL 3.0 spec says:
@@ -684,6 +690,12 @@ clear_bufferfi(struct gl_context *ctx, GLenum buffer, GLint drawbuffer,
       if (drawbuffer != 0) {
          _mesa_error(ctx, GL_INVALID_VALUE, "glClearBufferfi(drawbuffer=%d)",
                      drawbuffer);
+         return;
+      }
+
+      if (ctx->DrawBuffer->_Status != GL_FRAMEBUFFER_COMPLETE_EXT) {
+         _mesa_error(ctx, GL_INVALID_FRAMEBUFFER_OPERATION_EXT,
+                     "glClearBufferfi(incomplete framebuffer)");
          return;
       }
    }

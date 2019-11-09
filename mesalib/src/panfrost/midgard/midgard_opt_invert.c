@@ -41,6 +41,7 @@ midgard_lower_invert(compiler_context *ctx, midgard_block *block)
                         .type = TAG_ALU_4,
                         .mask = ins->mask,
                         .src = { temp, ~0, ~0 },
+                        .swizzle = SWIZZLE_IDENTITY,
                         .dest = ins->dest,
                         .has_inline_constant = true,
                         .alu = {
@@ -48,9 +49,7 @@ midgard_lower_invert(compiler_context *ctx, midgard_block *block)
                                 /* TODO: i16 */
                                 .reg_mode = midgard_reg_mode_32,
                                 .dest_override = midgard_dest_override_none,
-                                .outmod = midgard_outmod_int_wrap,
-                                .src1 = vector_alu_srco_unsigned(blank_alu_src),
-                                .src2 = vector_alu_srco_unsigned(zero_alu_src)
+                                .outmod = midgard_outmod_int_wrap
                         },
                 };
 
@@ -256,16 +255,9 @@ midgard_opt_fuse_src_invert(compiler_context *ctx, midgard_block *block)
                 if (both) {
                         ins->alu.op = mir_demorgan_op(ins->alu.op);
                 } else if (right || (left && !ins->has_inline_constant)) {
-                        if (left) {
-                                /* Commute */
-                                unsigned temp = ins->src[0];
-                                ins->src[0] = ins->src[1];
-                                ins->src[1] = temp;
-
-                                temp = ins->alu.src1;
-                                ins->alu.src1 = ins->alu.src2;
-                                ins->alu.src2 = temp;
-                        }
+                        /* Commute arguments */
+                        if (left)
+                                mir_flip(ins);
 
                         ins->alu.op = mir_notright_op(ins->alu.op);
                 } else if (left && ins->has_inline_constant) {
@@ -278,6 +270,31 @@ midgard_opt_fuse_src_invert(compiler_context *ctx, midgard_block *block)
                         ins->alu.op = mir_demorgan_op(ins->alu.op);
                         ins->inline_constant = ~ins->inline_constant;
                 }
+        }
+
+        return progress;
+}
+
+/* Optimizes a .not away when used as the source of a conditional select:
+ *
+ * csel(a, b, c)  = { b if a, c if !a }
+ * csel(!a, b, c) = { b if !a, c if !(!a) } = { c if a, b if !a } = csel(a, c, b)
+ * csel(!a, b, c) = csel(a, c, b)
+ */
+
+bool
+midgard_opt_csel_invert(compiler_context *ctx, midgard_block *block)
+{
+        bool progress = false;
+
+        mir_foreach_instr_in_block_safe(block, ins) {
+                if (ins->type != TAG_ALU_4) continue;
+                if (!OP_IS_CSEL(ins->alu.op)) continue;
+                if (!mir_single_use(ctx, ins->src[2])) continue;
+                if (!mir_strip_inverted(ctx, ins->src[2])) continue;
+
+                mir_flip(ins);
+                progress |= true;
         }
 
         return progress;

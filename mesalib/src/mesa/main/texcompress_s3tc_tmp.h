@@ -59,7 +59,7 @@ static void dxt135_decode_imageblock ( const GLubyte *img_block_src,
    const GLushort color0 = img_block_src[0] | (img_block_src[1] << 8);
    const GLushort color1 = img_block_src[2] | (img_block_src[3] << 8);
    const GLuint bits = img_block_src[4] | (img_block_src[5] << 8) |
-      (img_block_src[6] << 16) | (img_block_src[7] << 24);
+      (img_block_src[6] << 16) | ((GLuint)img_block_src[7] << 24);
    /* What about big/little endian? */
    GLubyte bit_pos = 2 * (j * 4 + i) ;
    GLubyte code = (GLubyte) ((bits >> bit_pos) & 3);
@@ -430,7 +430,7 @@ static void storedxtencodedblock( GLubyte *blkaddr, GLubyte srccolors[4][4][4], 
             }
          }
          testerror += pixerrorbest;
-         bits |= enc << (2 * (j * 4 + i));
+         bits |= (uint32_t)enc << (2 * (j * 4 + i));
       }
    }
    /* some hw might disagree but actually decoding should always use 4-color encoding
@@ -470,7 +470,7 @@ static void storedxtencodedblock( GLubyte *blkaddr, GLubyte srccolors[4][4][4], 
                }
             }
             testerror2 += pixerrorbest;
-            bits2 |= enc << (2 * (j * 4 + i));
+            bits2 |= (uint32_t)enc << (2 * (j * 4 + i));
          }
       }
    } else {

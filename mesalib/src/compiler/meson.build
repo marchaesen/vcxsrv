@@ -19,7 +19,6 @@
 # SOFTWARE.
 
 inc_compiler = include_directories('.')
-inc_nir = include_directories('nir')
 inc_glsl = include_directories('glsl')
 inc_spirv = include_directories('spirv')
 
@@ -62,7 +61,7 @@ spirv2nir = executable(
   'spirv2nir',
   files('spirv/spirv2nir.c'),
   dependencies : [dep_m, idep_nir, idep_mesautil],
-  include_directories : [inc_common, inc_nir, include_directories('spirv')],
+  include_directories : [inc_common, include_directories('spirv')],
   c_args : [c_vis_args, c_msvc_compat_args, no_override_init_args],
   build_by_default : with_tools.contains('nir'),
   install : with_tools.contains('nir'),

@@ -85,8 +85,9 @@ supported_buffer_bitmask(const struct gl_context *ctx,
    return mask;
 }
 
-static GLenum
-back_to_front_if_single_buffered(const struct gl_context *ctx, GLenum buffer)
+GLenum
+_mesa_back_to_front_if_single_buffered(const struct gl_framebuffer *fb,
+                                       GLenum buffer)
 {
    /* If the front buffer is the only buffer, GL_BACK and all other flags
     * that include BACK select the front buffer for drawing. There are
@@ -110,7 +111,7 @@ back_to_front_if_single_buffered(const struct gl_context *ctx, GLenum buffer)
     *    but they are front buffers from the Mesa point of view,
     *    because they are always single buffered.
     */
-   if (!ctx->DrawBuffer->Visual.doubleBufferMode) {
+   if (!fb->Visual.doubleBufferMode) {
       switch (buffer) {
       case GL_BACK:
          buffer = GL_FRONT;
@@ -135,7 +136,7 @@ back_to_front_if_single_buffered(const struct gl_context *ctx, GLenum buffer)
 static GLbitfield
 draw_buffer_enum_to_bitmask(const struct gl_context *ctx, GLenum buffer)
 {
-   buffer = back_to_front_if_single_buffered(ctx, buffer);
+   buffer = _mesa_back_to_front_if_single_buffered(ctx->DrawBuffer, buffer);
 
    switch (buffer) {
       case GL_NONE:
@@ -200,7 +201,7 @@ draw_buffer_enum_to_bitmask(const struct gl_context *ctx, GLenum buffer)
 static gl_buffer_index
 read_buffer_enum_to_index(const struct gl_context *ctx, GLenum buffer)
 {
-   buffer = back_to_front_if_single_buffered(ctx, buffer);
+   buffer = _mesa_back_to_front_if_single_buffered(ctx->ReadBuffer, buffer);
 
    switch (buffer) {
       case GL_FRONT:

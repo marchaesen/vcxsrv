@@ -42,6 +42,7 @@ struct ssa_result_range {
 };
 
 extern struct ssa_result_range
-nir_analyze_range(const nir_alu_instr *instr, unsigned src);
+nir_analyze_range(struct hash_table *range_ht,
+                  const nir_alu_instr *instr, unsigned src);
 
 #endif /* _NIR_RANGE_ANALYSIS_H_ */

@@ -793,8 +793,10 @@ static CARD32
 xRenderColorToCard32(xRenderColor c)
 {
     return
-        (c.alpha >> 8 << 24) |
-        (c.red >> 8 << 16) | (c.green & 0xff00) | (c.blue >> 8);
+        ((unsigned)c.alpha >> 8 << 24) |
+        ((unsigned)c.red >> 8 << 16) |
+        ((unsigned)c.green & 0xff00) |
+        ((unsigned)c.blue >> 8);
 }
 
 static void

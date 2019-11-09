@@ -67,7 +67,6 @@
     ((month)     *       100) + \
     ((day)       *         1)
 #define VENDOR_RELEASE  DMX_VENDOR_RELEASE(1,2,2007,4,24)
-#define VENDOR_STRING   "DMX Project"
 
 /* Enable the DMX extension */
 #define DMXEXT

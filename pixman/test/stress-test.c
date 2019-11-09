@@ -521,7 +521,7 @@ set_general_properties (pixman_image_t *image, pixman_bool_t allow_alpha_map)
 	if (image->type == BITS && prng_rand_n (8) != 0)
 	{
 	    uint32_t width, height;
-	    int x, y;
+	    uint32_t x, y;
 	    int i;
 
 	    /* Also add a couple of clip rectangles inside the image

@@ -99,14 +99,14 @@ midgard_emit_derivatives(compiler_context *ctx, nir_alu_instr *instr)
                 .texture = {
                         .op = mir_derivative_op(instr->op),
                         .format = MALI_TEX_2D,
-                        .swizzle = SWIZZLE_XYXX,
-                        .in_reg_swizzle = SWIZZLE_XYXX,
-
                         .in_reg_full = 1,
                         .out_full = 1,
                         .sampler_type = MALI_SAMPLER_FLOAT,
                 }
         };
+
+        ins.swizzle[0][2] = ins.swizzle[0][3] = COMPONENT_X;
+        ins.swizzle[1][2] = ins.swizzle[1][3] = COMPONENT_X;
 
         if (!instr->dest.dest.is_ssa)
                 ins.mask &= instr->dest.write_mask;
@@ -142,10 +142,11 @@ midgard_lower_derivatives(compiler_context *ctx, midgard_block *block)
                 dup.mask &= 0b1100;
 
                 /* Fixup swizzles */
-                assert(ins->texture.swizzle == SWIZZLE_XYXX);
-                assert(ins->texture.in_reg_swizzle == SWIZZLE_XYXX);
-                dup.texture.swizzle = SWIZZLE_XXXY;
-                dup.texture.in_reg_swizzle = SWIZZLE_ZWWW;
+                dup.swizzle[0][0] = dup.swizzle[0][1] = dup.swizzle[0][2] = COMPONENT_X;
+                dup.swizzle[0][3] = COMPONENT_Y;
+
+                dup.swizzle[1][0] = COMPONENT_Z;
+                dup.swizzle[1][1] = dup.swizzle[1][2] = dup.swizzle[1][3] = COMPONENT_W;
 
                 /* Insert the new instruction */
                 mir_insert_instruction_before(ctx, mir_next_op(ins), dup);

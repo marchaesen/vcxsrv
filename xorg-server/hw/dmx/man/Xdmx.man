@@ -472,7 +472,7 @@ is the dimension of each display in the wall (e.g., 1280x1024).
 The first geometry following
 .B display
 is the geometry of the screen window on the backend server.  The second
-geometry, which is always preceeded by a slash, is the geometry of the
+geometry, which is always preceded by a slash, is the geometry of the
 root window.  By default, the root window has the same geometry as the
 screen window.
 .PP

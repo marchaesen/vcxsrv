@@ -50,6 +50,7 @@ class Extension:
 # the those extension strings, then tests dEQP-VK.api.info.instance.extensions
 # and dEQP-VK.api.info.device fail due to the duplicated strings.
 EXTENSIONS = [
+    Extension('VK_ANDROID_external_memory_android_hardware_buffer', 3, 'RADV_SUPPORT_ANDROID_HARDWARE_BUFFER  && device->rad_info.has_syncobj_wait_for_submit'),
     Extension('VK_ANDROID_native_buffer',                 5, 'ANDROID && device->rad_info.has_syncobj_wait_for_submit'),
     Extension('VK_KHR_16bit_storage',                     1, '!device->use_aco'),
     Extension('VK_KHR_bind_memory2',                      1, True),
@@ -86,12 +87,16 @@ EXTENSIONS = [
     Extension('VK_KHR_sampler_mirror_clamp_to_edge',      1, True),
     Extension('VK_KHR_sampler_ycbcr_conversion',          1, True),
     Extension('VK_KHR_shader_atomic_int64',               1, 'LLVM_VERSION_MAJOR >= 9'),
+    Extension('VK_KHR_shader_clock',                      1, True),
     Extension('VK_KHR_shader_draw_parameters',            1, True),
+    Extension('VK_KHR_shader_float_controls',             1, '!device->use_aco'),
     Extension('VK_KHR_shader_float16_int8',               1, '!device->use_aco'),
+    Extension('VK_KHR_spirv_1_4',                         1, True),
     Extension('VK_KHR_storage_buffer_storage_class',      1, True),
     Extension('VK_KHR_surface',                          25, 'RADV_HAS_SURFACE'),
     Extension('VK_KHR_surface_protected_capabilities',    1, 'RADV_HAS_SURFACE'),
     Extension('VK_KHR_swapchain',                        68, 'RADV_HAS_SURFACE'),
+    Extension('VK_KHR_timeline_semaphore',                2, 'device->rad_info.has_syncobj_wait_for_submit'),
     Extension('VK_KHR_uniform_buffer_standard_layout',    1, True),
     Extension('VK_KHR_variable_pointers',                 1, True),
     Extension('VK_KHR_wayland_surface',                   6, 'VK_USE_PLATFORM_WAYLAND_KHR'),
@@ -133,6 +138,8 @@ EXTENSIONS = [
     Extension('VK_EXT_shader_stencil_export',             1, True),
     Extension('VK_EXT_shader_subgroup_ballot',            1, True),
     Extension('VK_EXT_shader_subgroup_vote',              1, True),
+    Extension('VK_EXT_subgroup_size_control',             2, '!device->use_aco'),
+    Extension('VK_EXT_texel_buffer_alignment',            1, True),
     Extension('VK_EXT_transform_feedback',                1, True),
     Extension('VK_EXT_vertex_attribute_divisor',          3, True),
     Extension('VK_EXT_ycbcr_image_arrays',                1, True),

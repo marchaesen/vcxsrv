@@ -99,6 +99,9 @@ extern enum ir3_shader_debug ir3_shader_debug;
 static inline bool
 shader_debug_enabled(gl_shader_stage type)
 {
+	if (ir3_shader_debug & IR3_DBG_DISASM)
+		return true;
+
 	switch (type) {
 	case MESA_SHADER_VERTEX:      return !!(ir3_shader_debug & IR3_DBG_SHADER_VS);
 	case MESA_SHADER_TESS_CTRL:   return !!(ir3_shader_debug & IR3_DBG_SHADER_TCS);

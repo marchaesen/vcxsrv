@@ -172,60 +172,82 @@ struct mir_op_props alu_opcode_props[256] = {
         [midgard_alu_op_freduce]        = {"freduce", 0},
 };
 
-const char *load_store_opcode_names[256] = {
-        [midgard_op_ld_cubemap_coords] = "ld_cubemap_coords",
-        [midgard_op_ld_compute_id] = "ld_compute_id",
-        [midgard_op_ldst_perspective_division_z] = "ldst_perspective_division_z",
-        [midgard_op_ldst_perspective_division_w] = "ldst_perspective_division_w",
+/* Define shorthands */
 
-        [midgard_op_atomic_add] = "atomic_add",
-        [midgard_op_atomic_and] = "atomic_and",
-        [midgard_op_atomic_or] = "atomic_or",
-        [midgard_op_atomic_xor] = "atomic_xor",
-        [midgard_op_atomic_imin] = "atomic_imin",
-        [midgard_op_atomic_umin] = "atomic_umin",
-        [midgard_op_atomic_imax] = "atomic_imax",
-        [midgard_op_atomic_umax] = "atomic_umax",
-        [midgard_op_atomic_xchg] = "atomic_xchg",
+#define M8  midgard_reg_mode_8
+#define M16 midgard_reg_mode_16
+#define M32 midgard_reg_mode_32
+#define M64 midgard_reg_mode_64
 
-        [midgard_op_ld_char] = "ld_char",
-        [midgard_op_ld_char2] = "ld_char2",
-        [midgard_op_ld_short] = "ld_short",
-        [midgard_op_ld_char4] = "ld_char4",
-        [midgard_op_ld_short4] = "ld_short4",
-        [midgard_op_ld_int4] = "ld_int4",
+struct mir_ldst_op_props load_store_opcode_props[256] = {
+        [midgard_op_ld_cubemap_coords] = {"ld_cubemap_coords", M32},
+        [midgard_op_ld_compute_id] = {"ld_compute_id", M32},
+        [midgard_op_ldst_perspective_division_z] = {"ldst_perspective_division_z", M32},
+        [midgard_op_ldst_perspective_division_w] = {"ldst_perspective_division_w", M32},
 
-        [midgard_op_ld_attr_32] = "ld_attr_32",
-        [midgard_op_ld_attr_16] = "ld_attr_16",
-        [midgard_op_ld_attr_32i] = "ld_attr_32i",
-        [midgard_op_ld_attr_32u] = "ld_attr_32u",
+        [midgard_op_atomic_add]  = {"atomic_add",  M32 | LDST_SIDE_FX},
+        [midgard_op_atomic_and]  = {"atomic_and",  M32 | LDST_SIDE_FX},
+        [midgard_op_atomic_or]   = {"atomic_or",   M32 | LDST_SIDE_FX},
+        [midgard_op_atomic_xor]  = {"atomic_xor",  M32 | LDST_SIDE_FX},
+        [midgard_op_atomic_imin] = {"atomic_imin", M32 | LDST_SIDE_FX},
+        [midgard_op_atomic_umin] = {"atomic_umin", M32 | LDST_SIDE_FX},
+        [midgard_op_atomic_imax] = {"atomic_imax", M32 | LDST_SIDE_FX},
+        [midgard_op_atomic_umax] = {"atomic_umax", M32 | LDST_SIDE_FX},
+        [midgard_op_atomic_xchg] = {"atomic_xchg", M32 | LDST_SIDE_FX},
 
-        [midgard_op_ld_vary_32] = "ld_vary_32",
-        [midgard_op_ld_vary_16] = "ld_vary_16",
-        [midgard_op_ld_vary_32i] = "ld_vary_32i",
-        [midgard_op_ld_vary_32u] = "ld_vary_32u",
+        [midgard_op_atomic_add64]  = {"atomic_add64",  M64 | LDST_SIDE_FX},
+        [midgard_op_atomic_and64]  = {"atomic_and64",  M64 | LDST_SIDE_FX},
+        [midgard_op_atomic_or64]   = {"atomic_or64",   M64 | LDST_SIDE_FX},
+        [midgard_op_atomic_xor64]  = {"atomic_xor64",  M64 | LDST_SIDE_FX},
+        [midgard_op_atomic_imin64] = {"atomic_imin64", M64 | LDST_SIDE_FX},
+        [midgard_op_atomic_umin64] = {"atomic_umin64", M64 | LDST_SIDE_FX},
+        [midgard_op_atomic_imax64] = {"atomic_imax64", M64 | LDST_SIDE_FX},
+        [midgard_op_atomic_umax64] = {"atomic_umax64", M64 | LDST_SIDE_FX},
+        [midgard_op_atomic_xchg64] = {"atomic_xchg64", M64 | LDST_SIDE_FX},
 
-        [midgard_op_ld_color_buffer_8] = "ld_color_buffer_8",
-        [midgard_op_ld_color_buffer_16] = "ld_color_buffer_16",
+        [midgard_op_ld_char]   = {"ld_char",   M32},
+        [midgard_op_ld_char2]  = {"ld_char2",  M16},
+        [midgard_op_ld_short]  = {"ld_short",  M32},
+        [midgard_op_ld_char4]  = {"ld_char4",  M32},
+        [midgard_op_ld_short4] = {"ld_short4", M32},
+        [midgard_op_ld_int4]   = {"ld_int4",   M32},
 
-        [midgard_op_ld_ubo_char] = "ld_ubo_char",
-        [midgard_op_ld_ubo_char2] = "ld_ubo_char2",
-        [midgard_op_ld_ubo_char4] = "ld_ubo_char4",
-        [midgard_op_ld_ubo_short4] = "ld_ubo_short4",
-        [midgard_op_ld_ubo_int4] = "ld_ubo_int4",
+        [midgard_op_ld_attr_32]  = {"ld_attr_32",  M32},
+        [midgard_op_ld_attr_32i] = {"ld_attr_32i", M32},
+        [midgard_op_ld_attr_32u] = {"ld_attr_32u", M32},
+        [midgard_op_ld_attr_16]  = {"ld_attr_16",  M32},
 
-        [midgard_op_st_char] = "st_char",
-        [midgard_op_st_char2] = "st_char2",
-        [midgard_op_st_char4] = "st_char4",
-        [midgard_op_st_short4] = "st_short4",
-        [midgard_op_st_int4] = "st_int4",
+        [midgard_op_ld_vary_32]  = {"ld_vary_32",  M32},
+        [midgard_op_ld_vary_16]  = {"ld_vary_16",  M32},
+        [midgard_op_ld_vary_32i] = {"ld_vary_32i", M32},
+        [midgard_op_ld_vary_32u] = {"ld_vary_32u", M32},
 
-        [midgard_op_st_vary_32] = "st_vary_32",
-        [midgard_op_st_vary_16] = "st_vary_16",
-        [midgard_op_st_vary_32i] = "st_vary_32i",
-        [midgard_op_st_vary_32u] = "st_vary_32u",
+        [midgard_op_ld_color_buffer_8]  = {"ld_color_buffer_8",  M8 | LDST_SPECIAL_MASK},
+        [midgard_op_ld_color_buffer_16] = {"ld_color_buffer_16", 0},
 
-        [midgard_op_st_image_f] = "st_image_f",
-        [midgard_op_st_image_ui] = "st_image_ui",
-        [midgard_op_st_image_i] = "st_image_i",
+        [midgard_op_ld_ubo_char]   = {"ld_ubo_char",   M32},
+        [midgard_op_ld_ubo_char2]  = {"ld_ubo_char2",  M16},
+        [midgard_op_ld_ubo_char4]  = {"ld_ubo_char4",  M32},
+        [midgard_op_ld_ubo_short4] = {"ld_ubo_short4", M32},
+        [midgard_op_ld_ubo_int4]   = {"ld_ubo_int4",   M32},
+
+        [midgard_op_st_char]   = {"st_char",   M32 | LDST_STORE},
+        [midgard_op_st_char2]  = {"st_char2",  M16 | LDST_STORE},
+        [midgard_op_st_char4]  = {"st_char4",  M32 | LDST_STORE},
+        [midgard_op_st_short4] = {"st_short4", M32 | LDST_STORE},
+        [midgard_op_st_int4]   = {"st_int4",   M32 | LDST_STORE},
+
+        [midgard_op_st_vary_32]  = {"st_vary_32",  M32 | LDST_STORE},
+        [midgard_op_st_vary_32i] = {"st_vary_32i", M32 | LDST_STORE},
+        [midgard_op_st_vary_32u] = {"st_vary_32u", M32 | LDST_STORE},
+        [midgard_op_st_vary_16]  = {"st_vary_16",  M16 | LDST_STORE},
+
+        [midgard_op_st_image_f]  = {"st_image_f",  M32 | LDST_STORE},
+        [midgard_op_st_image_ui] = {"st_image_ui", M32 | LDST_STORE},
+        [midgard_op_st_image_i]  = {"st_image_i",  M32 | LDST_STORE},
 };
+
+#undef M8
+#undef M16
+#undef M32
+#undef M64

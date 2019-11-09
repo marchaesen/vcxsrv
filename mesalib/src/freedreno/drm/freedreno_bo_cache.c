@@ -88,7 +88,7 @@ fd_bo_cache_cleanup(struct fd_bo_cache *cache, time_t time)
 		struct fd_bo_bucket *bucket = &cache->cache_bucket[i];
 		struct fd_bo *bo;
 
-		while (!LIST_IS_EMPTY(&bucket->list)) {
+		while (!list_is_empty(&bucket->list)) {
 			bo = LIST_ENTRY(struct fd_bo, bucket->list.next, list);
 
 			/* keep things in cache for at least 1 second: */
@@ -141,7 +141,7 @@ static struct fd_bo *find_in_bucket(struct fd_bo_bucket *bucket, uint32_t flags)
 	 * (MRU, since likely to be in GPU cache), rather than head (LRU)..
 	 */
 	pthread_mutex_lock(&table_lock);
-	if (!LIST_IS_EMPTY(&bucket->list)) {
+	if (!list_is_empty(&bucket->list)) {
 		bo = LIST_ENTRY(struct fd_bo, bucket->list.next, list);
 		/* TODO check for compatible flags? */
 		if (is_idle(bo)) {

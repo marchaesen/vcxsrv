@@ -176,6 +176,10 @@ static const struct mesa_format_info format_info[MESA_FORMAT_COUNT] =
 def format_channel_bits(fmat, tuple_list):
    return ['.%s = %s' % (field, str(get_channel_bits(fmat, name))) for (field, name) in tuple_list]
 
+bf_map = {
+   "GL_DEPTH_COMPONENT" : "MESA_ARRAY_FORMAT_BASE_FORMAT_DEPTH",
+   "GL_STENCIL_INDEX" : "MESA_ARRAY_FORMAT_BASE_FORMAT_STENCIL",
+}
 
 for fmat in formats:
    print('   {')
@@ -200,6 +204,7 @@ for fmat in formats:
       chan = fmat.array_element()
       norm = chan.norm or chan.type == parser.FLOAT
       print('      .ArrayFormat = MESA_ARRAY_FORMAT({0}),'.format(', '.join([
+         bf_map.get(get_gl_base_format(fmat), "MESA_ARRAY_FORMAT_BASE_FORMAT_RGBA_VARIANTS"),
          str(chan.size // 8),
          str(int(chan.sign)),
          str(int(chan.type == parser.FLOAT)),

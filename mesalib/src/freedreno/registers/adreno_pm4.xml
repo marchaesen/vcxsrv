@@ -16,6 +16,8 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value name="VIZQUERY_END" value="8"/>
 	<value name="SC_WAIT_WC" value="9"/>
 	<value name="WRITE_PRIMITIVE_COUNTS" value="9" variants="A6XX"/>
+	<value name="START_PRIMITIVE_CTRS" value="11" variants="A6XX"/>
+	<value name="STOP_PRIMITIVE_CTRS" value="12" variants="A6XX"/>
 	<value name="RST_PIX_CNT" value="13"/>
 	<value name="RST_VTX_CNT" value="14"/>
 	<value name="TILE_FLUSH" value="15"/>
@@ -643,6 +645,7 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 	<bitfield name="VIS_CULL" low="8" high="9" type="pc_di_vis_cull_mode"/>
 	<bitfield name="INDEX_SIZE" low="10" high="11" type="a4xx_index_size"/>
 	<bitfield name="PATCH_TYPE" low="12" high="13" type="a6xx_patch_type"/>
+	<bitfield name="GS_ENABLE" pos="16" type="boolean"/>
 	<bitfield name="TESS_ENABLE" pos="17" type="boolean"/>
 </bitset>
 

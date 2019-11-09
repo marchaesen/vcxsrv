@@ -229,12 +229,17 @@ _mesa_lookup_vao(struct gl_context *ctx, GLuint id)
 /**
  * Looks up the array object for the given ID.
  *
- * Unlike _mesa_lookup_vao, this function generates a GL_INVALID_OPERATION
+ * While _mesa_lookup_vao doesn't generate an error if the object does not
+ * exist, this function comes in two variants.
+ * If is_ext_dsa is false, this function generates a GL_INVALID_OPERATION
  * error if the array object does not exist. It also returns the default
  * array object when ctx is a compatibility profile context and id is zero.
+ * If is_ext_dsa is true, 0 is not a valid name. If the name exists but
+ * the object has never been bound, it is initialized.
  */
 struct gl_vertex_array_object *
-_mesa_lookup_vao_err(struct gl_context *ctx, GLuint id, const char *caller)
+_mesa_lookup_vao_err(struct gl_context *ctx, GLuint id,
+                     bool is_ext_dsa, const char *caller)
 {
    /* The ARB_direct_state_access specification says:
     *
@@ -243,10 +248,11 @@ _mesa_lookup_vao_err(struct gl_context *ctx, GLuint id, const char *caller)
     *     the name of the vertex array object."
     */
    if (id == 0) {
-      if (ctx->API == API_OPENGL_CORE) {
+      if (is_ext_dsa || ctx->API == API_OPENGL_CORE) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "%s(zero is not valid vaobj name in a core profile "
-                     "context)", caller);
+                     "%s(zero is not valid vaobj name%s)",
+                     caller,
+                     is_ext_dsa ? "" : " in a core profile context");
          return NULL;
       }
 
@@ -267,11 +273,22 @@ _mesa_lookup_vao_err(struct gl_context *ctx, GLuint id, const char *caller)
           *     [compatibility profile: zero or] the name of an existing
           *     vertex array object."
           */
-         if (!vao || !vao->EverBound) {
+         if (!vao || (!is_ext_dsa && !vao->EverBound)) {
             _mesa_error(ctx, GL_INVALID_OPERATION,
                         "%s(non-existent vaobj=%u)", caller, id);
             return NULL;
          }
+
+         /* The EXT_direct_state_access specification says:
+         *
+         *    "If the vertex array object named by the vaobj parameter has not
+         *     been previously bound but has been generated (without subsequent
+         *     deletion) by GenVertexArrays, the GL first creates a new state
+         *     vector in the same manner as when BindVertexArray creates a new
+         *     vertex array object."
+         */
+         if (vao && is_ext_dsa && !vao->EverBound)
+            vao->EverBound = true;
 
          _mesa_reference_vao(ctx, &ctx->Array.LastLookedUpVAO, vao);
       }
@@ -1273,7 +1290,7 @@ vertex_array_element_buffer(struct gl_context *ctx, GLuint vaobj, GLuint buffer,
        *     VertexArrayElementBuffer if <vaobj> is not [compatibility profile:
        *     zero or] the name of an existing vertex array object."
        */
-      vao =_mesa_lookup_vao_err(ctx, vaobj, "glVertexArrayElementBuffer");
+      vao =_mesa_lookup_vao_err(ctx, vaobj, false, "glVertexArrayElementBuffer");
       if (!vao)
          return;
    } else {
@@ -1333,7 +1350,7 @@ _mesa_GetVertexArrayiv(GLuint vaobj, GLenum pname, GLint *param)
     *    [compatibility profile: zero or] the name of an existing
     *    vertex array object."
     */
-   vao =_mesa_lookup_vao_err(ctx, vaobj, "glGetVertexArrayiv");
+   vao = _mesa_lookup_vao_err(ctx, vaobj, false, "glGetVertexArrayiv");
    if (!vao)
       return;
 

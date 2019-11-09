@@ -42,14 +42,12 @@ component_from_mask(unsigned mask)
 
 static unsigned
 vector_to_scalar_source(unsigned u, bool is_int, bool is_full,
-                unsigned masked_component)
+                unsigned component)
 {
         midgard_vector_alu_src v;
         memcpy(&v, &u, sizeof(v));
 
         /* TODO: Integers */
-
-        unsigned component = (v.swizzle >> (2*masked_component)) & 3;
 
         midgard_scalar_alu_src s = { 0 };
 
@@ -68,10 +66,8 @@ vector_to_scalar_source(unsigned u, bool is_int, bool is_full,
 
         if (s.full)
                 s.component = component << 1;
-        else {
-                bool upper = false; /* TODO */
-                s.component = component + (upper << 2);
-        }
+        else
+                s.component = component;
 
         if (is_int) {
                 /* TODO */
@@ -98,8 +94,8 @@ vector_to_scalar_alu(midgard_vector_alu v, midgard_instruction *ins)
         /* The output component is from the mask */
         midgard_scalar_alu s = {
                 .op = v.op,
-                .src1 = vector_to_scalar_source(v.src1, is_int, is_full, comp),
-                .src2 = !is_inline_constant ? vector_to_scalar_source(v.src2, is_int, is_full, comp) : 0,
+                .src1 = vector_to_scalar_source(v.src1, is_int, is_full, ins->swizzle[0][comp]),
+                .src2 = !is_inline_constant ? vector_to_scalar_source(v.src2, is_int, is_full, ins->swizzle[1][comp]) : 0,
                 .unknown = 0,
                 .outmod = v.outmod,
                 .output_full = is_full,
@@ -127,6 +123,97 @@ vector_to_scalar_alu(midgard_vector_alu v, midgard_instruction *ins)
         }
 
         return s;
+}
+
+static void
+mir_pack_swizzle_alu(midgard_instruction *ins)
+{
+        midgard_vector_alu_src src[] = {
+                vector_alu_from_unsigned(ins->alu.src1),
+                vector_alu_from_unsigned(ins->alu.src2)
+        };
+
+        for (unsigned i = 0; i < 2; ++i) {
+                unsigned packed = 0;
+
+                /* For 32-bit, swizzle packing is stupid-simple. For 16-bit,
+                 * the strategy is to check whether the nibble we're on is
+                 * upper or lower. We need all components to be on the same
+                 * "side"; that much is enforced by the ISA and should have
+                 * been lowered. TODO: 8-bit/64-bit packing. TODO: vec8 */
+
+                unsigned first = ins->mask ? ffs(ins->mask) - 1 : 0;
+                bool upper = ins->swizzle[i][first] > 3;
+
+                if (upper && ins->mask)
+                        assert(mir_srcsize(ins, i) <= midgard_reg_mode_16);
+
+                for (unsigned c = 0; c < 4; ++c) {
+                        unsigned v = ins->swizzle[i][c];
+
+                        bool t_upper = v > 3;
+
+                        /* Ensure we're doing something sane */
+
+                        if (ins->mask & (1 << c)) {
+                                assert(t_upper == upper);
+                                assert(v <= 7);
+                        }
+
+                        /* Use the non upper part */
+                        v &= 0x3;
+
+                        packed |= v << (2 * c);
+                }
+
+                src[i].swizzle = packed;
+                src[i].rep_high = upper;
+        }
+
+        ins->alu.src1 = vector_alu_srco_unsigned(src[0]);
+
+        if (!ins->has_inline_constant)
+                ins->alu.src2 = vector_alu_srco_unsigned(src[1]);
+}
+
+static void
+mir_pack_swizzle_ldst(midgard_instruction *ins)
+{
+        /* TODO: non-32-bit, non-vec4 */
+        for (unsigned c = 0; c < 4; ++c) {
+                unsigned v = ins->swizzle[0][c];
+
+                /* Check vec4 */
+                assert(v <= 3);
+
+                ins->load_store.swizzle |= v << (2 * c);
+        }
+
+        /* TODO: arg_1/2 */
+}
+
+static void
+mir_pack_swizzle_tex(midgard_instruction *ins)
+{
+        for (unsigned i = 0; i < 2; ++i) {
+                unsigned packed = 0;
+
+                for (unsigned c = 0; c < 4; ++c) {
+                        unsigned v = ins->swizzle[i][c];
+
+                        /* Check vec4 */
+                        assert(v <= 3);
+
+                        packed |= v << (2 * c);
+                }
+
+                if (i == 0)
+                        ins->texture.swizzle = packed;
+                else
+                        ins->texture.in_reg_swizzle = packed;
+        }
+
+        /* TODO: bias component */
 }
 
 static void
@@ -168,6 +255,7 @@ emit_alu_bundle(compiler_context *ctx,
                         else
                                 ins->alu.mask = ins->mask;
 
+                        mir_pack_swizzle_alu(ins);
                         size = sizeof(midgard_vector_alu);
                         source = &ins->alu;
                 } else if (ins->unit == ALU_ENAB_BR_COMPACT) {
@@ -226,6 +314,8 @@ emit_binary_bundle(compiler_context *ctx,
                 for (unsigned i = 0; i < bundle->instruction_count; ++i) {
                         bundle->instructions[i]->load_store.mask =
                                 bundle->instructions[i]->mask;
+
+                        mir_pack_swizzle_ldst(bundle->instructions[i]);
                 }
 
                 memcpy(&current64, &bundle->instructions[0]->load_store, sizeof(current64));
@@ -256,6 +346,7 @@ emit_binary_bundle(compiler_context *ctx,
                 ins->texture.type = bundle->tag;
                 ins->texture.next_type = next_tag;
                 ins->texture.mask = ins->mask;
+                mir_pack_swizzle_tex(ins);
 
                 ctx->texture_op_count--;
 

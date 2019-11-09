@@ -697,6 +697,10 @@ LoadModule(const char *module, void *options, const XF86ModReqInfo *modreq,
         m = (char *) module;
     }
 
+    /* Backward compatibility, vbe and int10 are merged into int10 now */
+    if (!strcmp(m, "vbe"))
+        m = name = "int10";
+
     for (cim = compiled_in_modules; *cim; cim++)
         if (!strcmp(m, *cim)) {
             LogMessageVerb(X_INFO, 3, "Module \"%s\" already built-in\n", m);

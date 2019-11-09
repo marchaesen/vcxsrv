@@ -1,11 +1,8 @@
 #ifndef _PCI_ID_DRIVER_MAP_H_
 #define _PCI_ID_DRIVER_MAP_H_
 
+#include <stdbool.h>
 #include <stddef.h>
-
-#ifndef ARRAY_SIZE
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
-#endif
 
 #ifndef __IS_LOADER
 #  error "Only include from loader.c"
@@ -19,25 +16,7 @@ static const int i915_chip_ids[] = {
 
 static const int i965_chip_ids[] = {
 #define CHIPSET(chip, family, name) chip,
-#define IRIS 0 /* all i965 devices */
 #include "pci_ids/i965_pci_ids.h"
-#undef IRIS
-#undef CHIPSET
-};
-
-static const int iris_chip_ids_1[] = {
-#define CHIPSET(chip, family, name) chip,
-#define IRIS 1 /* iris devices to try before i965 */
-#include "pci_ids/i965_pci_ids.h"
-#undef IRIS
-#undef CHIPSET
-};
-
-static const int iris_chip_ids_2[] = {
-#define CHIPSET(chip, family, name) chip,
-#define IRIS 2 /* iris devices to try after i965 */
-#include "pci_ids/i965_pci_ids.h"
-#undef IRIS
 #undef CHIPSET
 };
 
@@ -65,12 +44,6 @@ static const int r600_chip_ids[] = {
 #undef CHIPSET
 };
 
-static const int radeonsi_chip_ids[] = {
-#define CHIPSET(chip, family) chip,
-#include "pci_ids/radeonsi_pci_ids.h"
-#undef CHIPSET
-};
-
 static const int virtio_gpu_chip_ids[] = {
 #define CHIPSET(chip, name, family) chip,
 #include "pci_ids/virtio_gpu_pci_ids.h"
@@ -83,29 +56,27 @@ static const int vmwgfx_chip_ids[] = {
 #undef CHIPSET
 };
 
-int is_nouveau_vieux(int fd);
+bool is_nouveau_vieux(int fd);
 
 static const struct {
    int vendor_id;
    const char *driver;
    const int *chip_ids;
    int num_chips_ids;
-   int (*predicate)(int fd);
+   bool (*predicate)(int fd);
 } driver_map[] = {
    { 0x8086, "i915", i915_chip_ids, ARRAY_SIZE(i915_chip_ids) },
-   { 0x8086, "iris", iris_chip_ids_1, ARRAY_SIZE(iris_chip_ids_1) },
    { 0x8086, "i965", i965_chip_ids, ARRAY_SIZE(i965_chip_ids) },
-   { 0x8086, "iris", iris_chip_ids_2, ARRAY_SIZE(iris_chip_ids_2) },
+   { 0x8086, "iris", NULL, -1 },
    { 0x1002, "radeon", r100_chip_ids, ARRAY_SIZE(r100_chip_ids) },
    { 0x1002, "r200", r200_chip_ids, ARRAY_SIZE(r200_chip_ids) },
    { 0x1002, "r300", r300_chip_ids, ARRAY_SIZE(r300_chip_ids) },
    { 0x1002, "r600", r600_chip_ids, ARRAY_SIZE(r600_chip_ids) },
-   { 0x1002, "radeonsi", radeonsi_chip_ids, ARRAY_SIZE(radeonsi_chip_ids) },
+   { 0x1002, "radeonsi", NULL, -1 },
    { 0x10de, "nouveau_vieux", NULL, -1, is_nouveau_vieux },
    { 0x10de, "nouveau", NULL, -1, },
    { 0x1af4, "virtio_gpu", virtio_gpu_chip_ids, ARRAY_SIZE(virtio_gpu_chip_ids) },
    { 0x15ad, "vmwgfx", vmwgfx_chip_ids, ARRAY_SIZE(vmwgfx_chip_ids) },
-   { 0x0000, NULL, NULL, 0 },
 };
 
 #endif /* _PCI_ID_DRIVER_MAP_H_ */

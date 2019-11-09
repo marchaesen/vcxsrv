@@ -27,12 +27,14 @@
  */
 
 #include <algorithm>
+#include <array>
 #include <map>
 #include <unordered_map>
 #include <functional>
 
 #include "aco_ir.h"
 #include "sid.h"
+#include "util/u_math.h"
 
 namespace aco {
 namespace {
@@ -666,7 +668,8 @@ PhysReg get_reg(ra_ctx& ctx,
 
    /* try using more registers */
    uint16_t max_addressible_sgpr = ctx.program->sgpr_limit;
-   if (rc.type() == RegType::vgpr && ctx.program->max_reg_demand.vgpr < 256) {
+   uint16_t max_addressible_vgpr = ctx.program->vgpr_limit;
+   if (rc.type() == RegType::vgpr && ctx.program->max_reg_demand.vgpr < max_addressible_vgpr) {
       update_vgpr_sgpr_demand(ctx.program, RegisterDemand(ctx.program->max_reg_demand.vgpr + 1, ctx.program->max_reg_demand.sgpr));
       return get_reg(ctx, reg_file, rc, parallelcopies, instr);
    } else if (rc.type() == RegType::sgpr && ctx.program->max_reg_demand.sgpr < max_addressible_sgpr) {
@@ -1269,6 +1272,29 @@ void register_allocation(Program *program, std::vector<std::set<Temp>> live_out_
 
             /* process parallelcopy */
             for (std::pair<Operand, Definition> pc : parallelcopy) {
+               /* see if it's a copy from a different phi */
+               //TODO: prefer moving some previous phis over live-ins
+               //TODO: somehow prevent phis fixed before the RA from being updated (shouldn't be a problem in practice since they can only be fixed to exec)
+               Instruction *prev_phi = NULL;
+               std::vector<aco_ptr<Instruction>>::iterator phi_it;
+               for (phi_it = instructions.begin(); phi_it != instructions.end(); ++phi_it) {
+                  if ((*phi_it)->definitions[0].tempId() == pc.first.tempId())
+                     prev_phi = phi_it->get();
+               }
+               phi_it = it;
+               while (!prev_phi && is_phi(*++phi_it)) {
+                  if ((*phi_it)->definitions[0].tempId() == pc.first.tempId())
+                     prev_phi = phi_it->get();
+               }
+               if (prev_phi) {
+                  /* if so, just update that phi's register */
+                  prev_phi->definitions[0].setFixed(pc.second.physReg());
+                  ctx.assignments[prev_phi->definitions[0].tempId()] = {pc.second.physReg(), pc.second.regClass()};
+                  for (unsigned reg = pc.second.physReg(); reg < pc.second.physReg() + pc.second.size(); reg++)
+                     register_file[reg] = prev_phi->definitions[0].tempId();
+                  continue;
+               }
+
                /* rename */
                std::map<unsigned, Temp>::iterator orig_it = ctx.orig_names.find(pc.first.tempId());
                Temp orig = pc.first.getTemp();
@@ -1278,20 +1304,6 @@ void register_allocation(Program *program, std::vector<std::set<Temp>> live_out_
                   ctx.orig_names[pc.second.tempId()] = orig;
                renames[block.index][orig.id()] = pc.second.getTemp();
                renames[block.index][pc.second.tempId()] = pc.second.getTemp();
-
-               /* see if it's a copy from a previous phi */
-               //TODO: prefer moving some previous phis over live-ins
-               //TODO: somehow prevent phis fixed before the RA from being updated (shouldn't be a problem in practice since they can only be fixed to exec)
-               Instruction *prev_phi = NULL;
-               for (auto it2 = instructions.begin(); it2 != instructions.end(); ++it2) {
-                  if ((*it2)->definitions[0].tempId() == pc.first.tempId())
-                     prev_phi = it2->get();
-               }
-               if (prev_phi) {
-                  /* if so, just update that phi */
-                  prev_phi->definitions[0] = pc.second;
-                  continue;
-               }
 
                /* otherwise, this is a live-in and we need to create a new phi
                 * to move it in this block's predecessors */
@@ -1913,12 +1925,11 @@ void register_allocation(Program *program, std::vector<std::set<Temp>> live_out_
    }
 
    /* num_gpr = rnd_up(max_used_gpr + 1) */
-   program->config->num_vgprs = (ctx.max_used_vgpr + 1 + 3) & ~3;
-   if (program->family == CHIP_TONGA || program->family == CHIP_ICELAND) {
-      assert(ctx.max_used_sgpr <= 93);
-      ctx.max_used_sgpr = 93; /* workaround hardware bug */
-   }
-   program->config->num_sgprs = (ctx.max_used_sgpr + 1 + 2 + 7) & ~7; /* + 2 sgprs for vcc */
+   program->config->num_vgprs = align(ctx.max_used_vgpr + 1, 4);
+   if (program->family == CHIP_TONGA || program->family == CHIP_ICELAND) /* workaround hardware bug */
+      program->config->num_sgprs = get_sgpr_alloc(program, program->sgpr_limit);
+   else
+      program->config->num_sgprs = align(ctx.max_used_sgpr + 1 + get_extra_sgprs(program), 8);
 }
 
 }

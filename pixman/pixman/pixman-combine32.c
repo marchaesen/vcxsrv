@@ -568,7 +568,7 @@ combine_multiply_ca (pixman_implementation_t *imp,
 	    uint8_t isa = ~sa;						\
 	    uint8_t da = ALPHA_8 (d);					\
 	    uint8_t ida = ~da;						\
-	    int32_t ra, rr, rg, rb;					\
+	    uint32_t ra, rr, rg, rb;					\
 	    								\
 	    ra = da * 0xff + sa * 0xff - sa * da;			\
 	    rr = isa * RED_8 (d) + ida * RED_8 (s);			\
@@ -609,7 +609,7 @@ combine_multiply_ca (pixman_implementation_t *imp,
 	    uint32_t d = *(dest + i);					\
 	    uint8_t da = ALPHA_8 (d);					\
 	    uint8_t ida = ~da;						\
-	    int32_t ra, rr, rg, rb;					\
+	    uint32_t ra, rr, rg, rb;					\
 	    uint8_t ira, iga, iba;					\
 	    								\
 	    combine_mask_ca (&s, &m);					\

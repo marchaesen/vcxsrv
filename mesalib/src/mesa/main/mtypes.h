@@ -4130,6 +4130,9 @@ struct gl_constants
    /** Is the drivers uniform storage packed or padded to 16 bytes. */
    bool PackedDriverUniformStorage;
 
+   /** Wether or not glBitmap uses red textures rather than alpha */
+   bool BitmapUsesRed;
+
    /** GL_ARB_gl_spirv */
    struct spirv_supported_capabilities SpirVCapabilities;
 
@@ -4271,6 +4274,7 @@ struct gl_extensions
    GLboolean EXT_blend_equation_separate;
    GLboolean EXT_blend_func_separate;
    GLboolean EXT_blend_minmax;
+   GLboolean EXT_demote_to_helper_invocation;
    GLboolean EXT_depth_bounds_test;
    GLboolean EXT_disjoint_timer_query;
    GLboolean EXT_draw_buffers2;

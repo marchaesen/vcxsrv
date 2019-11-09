@@ -41,6 +41,7 @@
 #include "st_context.h"
 #include "st_glsl_types.h"
 #include "st_program.h"
+#include "st_shader_cache.h"
 
 #include "compiler/nir/nir.h"
 #include "compiler/glsl_types.h"
@@ -82,18 +83,20 @@ st_nir_fixup_varying_slots(struct st_context *st, struct exec_list *var_list)
  * (This isn't the case with, for ex, FS inputs, which only need to agree
  * on varying-slot w/ the VS outputs)
  */
-static void
-st_nir_assign_vs_in_locations(nir_shader *nir)
+void
+st_nir_assign_vs_in_locations(struct nir_shader *nir)
 {
+   if (nir->info.stage != MESA_SHADER_VERTEX)
+      return;
+
+   bool removed_inputs = false;
+
    nir->num_inputs = util_bitcount64(nir->info.inputs_read);
    nir_foreach_variable_safe(var, &nir->inputs) {
       /* NIR already assigns dual-slot inputs to two locations so all we have
        * to do is compact everything down.
        */
-      if (var->data.location == VERT_ATTRIB_EDGEFLAG) {
-         /* bit of a hack, mirroring st_translate_vertex_program */
-         var->data.driver_location = nir->num_inputs++;
-      } else if (nir->info.inputs_read & BITFIELD64_BIT(var->data.location)) {
+      if (nir->info.inputs_read & BITFIELD64_BIT(var->data.location)) {
          var->data.driver_location =
             util_bitcount64(nir->info.inputs_read &
                               BITFIELD64_MASK(var->data.location));
@@ -106,8 +109,13 @@ st_nir_assign_vs_in_locations(nir_shader *nir)
          exec_node_remove(&var->node);
          var->data.mode = nir_var_shader_temp;
          exec_list_push_tail(&nir->globals, &var->node);
+         removed_inputs = true;
       }
    }
+
+   /* Re-lower global vars, to deal with any dead VS inputs. */
+   if (removed_inputs)
+      NIR_PASS_V(nir, nir_lower_global_vars_to_local);
 }
 
 static int
@@ -233,13 +241,9 @@ st_nir_assign_uniform_locations(struct gl_context *ctx,
 }
 
 void
-st_nir_opts(nir_shader *nir, bool scalar)
+st_nir_opts(nir_shader *nir)
 {
    bool progress;
-   unsigned lower_flrp =
-      (nir->options->lower_flrp16 ? 16 : 0) |
-      (nir->options->lower_flrp32 ? 32 : 0) |
-      (nir->options->lower_flrp64 ? 64 : 0);
 
    do {
       progress = false;
@@ -259,7 +263,7 @@ st_nir_opts(nir_shader *nir, bool scalar)
       NIR_PASS(progress, nir, nir_opt_copy_prop_vars);
       NIR_PASS(progress, nir, nir_opt_dead_write_vars);
 
-      if (scalar) {
+      if (nir->options->lower_to_scalar) {
          NIR_PASS_V(nir, nir_lower_alu_to_scalar, NULL, NULL);
          NIR_PASS_V(nir, nir_lower_phis_to_scalar);
       }
@@ -282,26 +286,31 @@ st_nir_opts(nir_shader *nir, bool scalar)
       NIR_PASS(progress, nir, nir_opt_algebraic);
       NIR_PASS(progress, nir, nir_opt_constant_folding);
 
-      if (lower_flrp != 0) {
-         bool lower_flrp_progress = false;
+      if (!nir->info.flrp_lowered) {
+         unsigned lower_flrp =
+            (nir->options->lower_flrp16 ? 16 : 0) |
+            (nir->options->lower_flrp32 ? 32 : 0) |
+            (nir->options->lower_flrp64 ? 64 : 0);
 
-         NIR_PASS(lower_flrp_progress, nir, nir_lower_flrp,
-                  lower_flrp,
-                  false /* always_precise */,
-                  nir->options->lower_ffma);
-         if (lower_flrp_progress) {
-            NIR_PASS(progress, nir,
-                     nir_opt_constant_folding);
-            progress = true;
+         if (lower_flrp) {
+            bool lower_flrp_progress = false;
+
+            NIR_PASS(lower_flrp_progress, nir, nir_lower_flrp,
+                     lower_flrp,
+                     false /* always_precise */,
+                     nir->options->lower_ffma);
+            if (lower_flrp_progress) {
+               NIR_PASS(progress, nir,
+                        nir_opt_constant_folding);
+               progress = true;
+            }
          }
 
          /* Nothing should rematerialize any flrps, so we only need to do this
           * lowering once.
           */
-         lower_flrp = 0;
+         nir->info.flrp_lowered = true;
       }
-
-      NIR_PASS(progress, nir, gl_nir_opt_access);
 
       NIR_PASS(progress, nir, nir_opt_undef);
       NIR_PASS(progress, nir, nir_opt_conditional_discard);
@@ -332,14 +341,10 @@ st_nir_preprocess(struct st_context *st, struct gl_program *prog,
                   struct gl_shader_program *shader_program,
                   gl_shader_stage stage)
 {
+   struct pipe_screen *screen = st->pipe->screen;
    const nir_shader_compiler_options *options =
       st->ctx->Const.ShaderCompilerOptions[prog->info.stage].NirOptions;
-   enum pipe_shader_type type = pipe_shader_type_from_mesa(stage);
-   struct pipe_screen *screen = st->pipe->screen;
-   bool is_scalar = screen->get_shader_param(screen, type, PIPE_SHADER_CAP_SCALAR_ISA);
    assert(options);
-   bool lower_64bit =
-      options->lower_int64_options || options->lower_doubles_options;
    nir_shader *nir = prog->nir;
 
    /* Set the next shader stage hint for VS and TES. */
@@ -373,7 +378,8 @@ st_nir_preprocess(struct st_context *st, struct gl_program *prog,
       NIR_PASS_V(nir, nir_lower_io_to_temporaries,
                  nir_shader_get_entrypoint(nir),
                  true, true);
-   } else if (nir->info.stage == MESA_SHADER_FRAGMENT) {
+   } else if (nir->info.stage == MESA_SHADER_FRAGMENT ||
+              !screen->get_param(screen, PIPE_CAP_TGSI_CAN_READ_OUTPUTS)) {
       NIR_PASS_V(nir, nir_lower_io_to_temporaries,
                  nir_shader_get_entrypoint(nir),
                  true, false);
@@ -383,13 +389,12 @@ st_nir_preprocess(struct st_context *st, struct gl_program *prog,
    NIR_PASS_V(nir, nir_split_var_copies);
    NIR_PASS_V(nir, nir_lower_var_copies);
 
-   if (is_scalar) {
+   if (options->lower_to_scalar) {
      NIR_PASS_V(nir, nir_lower_alu_to_scalar, NULL, NULL);
    }
 
    /* before buffers and vars_to_ssa */
    NIR_PASS_V(nir, gl_nir_lower_bindless_images);
-   st_nir_opts(nir, is_scalar);
 
    /* TODO: Change GLSL to not lower shared memory. */
    if (prog->nir->info.stage == MESA_SHADER_COMPUTE &&
@@ -403,21 +408,6 @@ st_nir_preprocess(struct st_context *st, struct gl_program *prog,
    NIR_PASS_V(nir, gl_nir_lower_buffers, shader_program);
    /* Do a round of constant folding to clean up address calculations */
    NIR_PASS_V(nir, nir_opt_constant_folding);
-
-   if (lower_64bit) {
-      bool lowered_64bit_ops = false;
-      if (options->lower_doubles_options) {
-         NIR_PASS(lowered_64bit_ops, nir, nir_lower_doubles,
-                  st->ctx->SoftFP64, options->lower_doubles_options);
-      }
-      if (options->lower_int64_options) {
-         NIR_PASS(lowered_64bit_ops, nir, nir_lower_int64,
-                  options->lower_int64_options);
-      }
-
-      if (lowered_64bit_ops)
-         st_nir_opts(nir, is_scalar);
-   }
 }
 
 /* Second third of converting glsl_to_nir. This creates uniforms, gathers
@@ -486,8 +476,33 @@ st_glsl_to_nir_post_opts(struct st_context *st, struct gl_program *prog,
    NIR_PASS_V(nir, gl_nir_lower_atomics, shader_program, true);
    NIR_PASS_V(nir, nir_opt_intrinsics);
 
+   /* Lower 64-bit ops. */
+   if (nir->options->lower_int64_options ||
+       nir->options->lower_doubles_options) {
+      bool lowered_64bit_ops = false;
+      if (nir->options->lower_doubles_options) {
+         NIR_PASS(lowered_64bit_ops, nir, nir_lower_doubles,
+                  st->ctx->SoftFP64, nir->options->lower_doubles_options);
+      }
+      if (nir->options->lower_int64_options) {
+         NIR_PASS(lowered_64bit_ops, nir, nir_lower_int64,
+                  nir->options->lower_int64_options);
+      }
+
+      if (lowered_64bit_ops)
+         st_nir_opts(nir);
+   }
+
    nir_variable_mode mask = nir_var_function_temp;
    nir_remove_dead_variables(nir, mask);
+
+   NIR_PASS_V(nir, nir_lower_atomics_to_ssbo,
+              st->ctx->Const.Program[nir->info.stage].MaxAtomicBuffers);
+
+   st_finalize_nir_before_variants(nir);
+
+   if (st->allow_st_finalize_nir_twice)
+      st_finalize_nir(st, prog, shader_program, nir, true);
 
    if (st->ctx->_Shader->Flags & GLSL_DUMP) {
       _mesa_log("\n");
@@ -506,35 +521,23 @@ set_st_program(struct gl_program *prog,
 {
    struct st_vertex_program *stvp;
    struct st_common_program *stp;
-   struct st_fragment_program *stfp;
-   struct st_compute_program *stcp;
 
    switch (prog->info.stage) {
    case MESA_SHADER_VERTEX:
       stvp = (struct st_vertex_program *)prog;
       stvp->shader_program = shader_program;
-      stvp->tgsi.type = PIPE_SHADER_IR_NIR;
-      stvp->tgsi.ir.nir = nir;
+      stvp->state.type = PIPE_SHADER_IR_NIR;
+      stvp->state.ir.nir = nir;
       break;
    case MESA_SHADER_GEOMETRY:
    case MESA_SHADER_TESS_CTRL:
    case MESA_SHADER_TESS_EVAL:
+   case MESA_SHADER_COMPUTE:
+   case MESA_SHADER_FRAGMENT:
       stp = (struct st_common_program *)prog;
       stp->shader_program = shader_program;
-      stp->tgsi.type = PIPE_SHADER_IR_NIR;
-      stp->tgsi.ir.nir = nir;
-      break;
-   case MESA_SHADER_FRAGMENT:
-      stfp = (struct st_fragment_program *)prog;
-      stfp->shader_program = shader_program;
-      stfp->tgsi.type = PIPE_SHADER_IR_NIR;
-      stfp->tgsi.ir.nir = nir;
-      break;
-   case MESA_SHADER_COMPUTE:
-      stcp = (struct st_compute_program *)prog;
-      stcp->shader_program = shader_program;
-      stcp->tgsi.ir_type = PIPE_SHADER_IR_NIR;
-      stcp->tgsi.prog = nir;
+      stp->state.type = PIPE_SHADER_IR_NIR;
+      stp->state.ir.nir = nir;
       break;
    default:
       unreachable("unknown shader stage");
@@ -564,20 +567,20 @@ st_nir_vectorize_io(nir_shader *producer, nir_shader *consumer)
 }
 
 static void
-st_nir_link_shaders(nir_shader **producer, nir_shader **consumer, bool scalar)
+st_nir_link_shaders(nir_shader **producer, nir_shader **consumer)
 {
-   if (scalar) {
+   if ((*producer)->options->lower_to_scalar) {
       NIR_PASS_V(*producer, nir_lower_io_to_scalar_early, nir_var_shader_out);
       NIR_PASS_V(*consumer, nir_lower_io_to_scalar_early, nir_var_shader_in);
    }
 
    nir_lower_io_arrays_to_elements(*producer, *consumer);
 
-   st_nir_opts(*producer, scalar);
-   st_nir_opts(*consumer, scalar);
+   st_nir_opts(*producer);
+   st_nir_opts(*consumer);
 
    if (nir_link_opt_varyings(*producer, *consumer))
-      st_nir_opts(*consumer, scalar);
+      st_nir_opts(*consumer);
 
    NIR_PASS_V(*producer, nir_remove_dead_variables, nir_var_shader_out);
    NIR_PASS_V(*consumer, nir_remove_dead_variables, nir_var_shader_in);
@@ -586,8 +589,8 @@ st_nir_link_shaders(nir_shader **producer, nir_shader **consumer, bool scalar)
       NIR_PASS_V(*producer, nir_lower_global_vars_to_local);
       NIR_PASS_V(*consumer, nir_lower_global_vars_to_local);
 
-      st_nir_opts(*producer, scalar);
-      st_nir_opts(*consumer, scalar);
+      st_nir_opts(*producer);
+      st_nir_opts(*consumer);
 
       /* Optimizations can cause varyings to become unused.
        * nir_compact_varyings() depends on all dead varyings being removed so
@@ -660,8 +663,7 @@ st_link_nir(struct gl_context *ctx,
             struct gl_shader_program *shader_program)
 {
    struct st_context *st = st_context(ctx);
-   struct pipe_screen *screen = st->pipe->screen;
-   bool is_scalar[MESA_SHADER_STAGES];
+   unsigned num_linked_shaders = 0;
 
    unsigned last_stage = 0;
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
@@ -669,20 +671,16 @@ st_link_nir(struct gl_context *ctx,
       if (shader == NULL)
          continue;
 
-      /* Determine scalar property of each shader stage */
-      enum pipe_shader_type type = pipe_shader_type_from_mesa(shader->Stage);
-      is_scalar[i] = screen->get_shader_param(screen, type,
-                                              PIPE_SHADER_CAP_SCALAR_ISA);
+      num_linked_shaders++;
 
+      const nir_shader_compiler_options *options =
+         st->ctx->Const.ShaderCompilerOptions[shader->Stage].NirOptions;
       struct gl_program *prog = shader->Program;
       _mesa_copy_linked_program_data(shader_program, shader);
 
       assert(!prog->nir);
 
       if (shader_program->data->spirv) {
-         const nir_shader_compiler_options *options =
-            st->ctx->Const.ShaderCompilerOptions[shader->Stage].NirOptions;
-
          prog->Parameters = _mesa_new_parameter_list();
          /* Parameters will be filled during NIR linking. */
 
@@ -694,10 +692,6 @@ st_link_nir(struct gl_context *ctx,
          prog->Parameters = _mesa_new_parameter_list();
          _mesa_generate_parameters_list_for_uniforms(ctx, shader_program, shader,
                                                      prog->Parameters);
-
-         /* Remove reads from output registers. */
-         if (!screen->get_param(screen, PIPE_CAP_TGSI_CAN_READ_OUTPUTS))
-            lower_output_reads(shader->Stage, shader->ir);
 
          if (ctx->_Shader->Flags & GLSL_DUMP) {
             _mesa_log("\n");
@@ -711,10 +705,6 @@ st_link_nir(struct gl_context *ctx,
          prog->ExternalSamplersUsed = gl_external_samplers(prog);
          _mesa_update_shader_textures_used(shader_program, prog);
 
-         const nir_shader_compiler_options *options =
-            st->ctx->Const.ShaderCompilerOptions[prog->info.stage].NirOptions;
-         assert(options);
-
          prog->nir = glsl_to_nir(st->ctx, shader_program, shader->Stage, options);
          set_st_program(prog, shader_program, prog->nir);
          st_nir_preprocess(st, prog, shader_program, shader->Stage);
@@ -722,7 +712,7 @@ st_link_nir(struct gl_context *ctx,
 
       last_stage = i;
 
-      if (is_scalar[i]) {
+      if (options->lower_to_scalar) {
          NIR_PASS_V(shader->Program->nir, nir_lower_load_const_to_scalar);
       }
    }
@@ -764,8 +754,7 @@ st_link_nir(struct gl_context *ctx,
          continue;
 
       st_nir_link_shaders(&shader->Program->nir,
-                          &shader_program->_LinkedShaders[next]->Program->nir,
-                          is_scalar[i]);
+                          &shader_program->_LinkedShaders[next]->Program->nir);
       next = i;
    }
 
@@ -776,6 +765,12 @@ st_link_nir(struct gl_context *ctx,
          continue;
 
       nir_shader *nir = shader->Program->nir;
+
+      /* Linked shaders are optimized in st_nir_link_shaders. Separate shaders
+       * and shaders with a fixed-func VS or FS are optimized here.
+       */
+      if (num_linked_shaders == 1)
+         st_nir_opts(nir);
 
       NIR_PASS_V(nir, st_nir_lower_wpos_ytransform, shader->Program,
                  st->pipe->screen);
@@ -821,17 +816,29 @@ st_link_nir(struct gl_context *ctx,
       if (shader == NULL)
          continue;
 
-      st_glsl_to_nir_post_opts(st, shader->Program, shader_program);
+      struct gl_program *prog = shader->Program;
+      st_glsl_to_nir_post_opts(st, prog, shader_program);
 
-      assert(shader->Program);
+      /* Initialize st_vertex_program members. */
+      if (i == MESA_SHADER_VERTEX)
+         st_prepare_vertex_program(st_vertex_program(prog));
+
+      /* Get pipe_stream_output_info. */
+      if (i == MESA_SHADER_VERTEX ||
+          i == MESA_SHADER_TESS_EVAL ||
+          i == MESA_SHADER_GEOMETRY)
+         st_translate_stream_output_info(prog);
+
+      st_store_ir_in_disk_cache(st, prog, true);
+
       if (!ctx->Driver.ProgramStringNotify(ctx,
                                            _mesa_shader_stage_to_program(i),
-                                           shader->Program)) {
+                                           prog)) {
          _mesa_reference_program(ctx, &shader->Program, NULL);
          return false;
       }
 
-      nir_sweep(shader->Program->nir);
+      nir_sweep(prog->nir);
 
       /* The GLSL IR won't be needed anymore. */
       ralloc_free(shader->ir);
@@ -845,11 +852,6 @@ void
 st_nir_assign_varying_locations(struct st_context *st, nir_shader *nir)
 {
    if (nir->info.stage == MESA_SHADER_VERTEX) {
-      /* Needs special handling so drvloc matches the vbo state: */
-      st_nir_assign_vs_in_locations(nir);
-      /* Re-lower global vars, to deal with any dead VS inputs. */
-      NIR_PASS_V(nir, nir_lower_global_vars_to_local);
-
       nir_assign_io_var_locations(&nir->outputs,
                                   &nir->num_outputs,
                                   nir->info.stage);
@@ -902,28 +904,15 @@ st_nir_lower_samplers(struct pipe_screen *screen, nir_shader *nir,
  */
 void
 st_finalize_nir(struct st_context *st, struct gl_program *prog,
-                struct gl_shader_program *shader_program, nir_shader *nir)
+                struct gl_shader_program *shader_program,
+                nir_shader *nir, bool finalize_by_driver)
 {
    struct pipe_screen *screen = st->pipe->screen;
-   const nir_shader_compiler_options *options =
-      st->ctx->Const.ShaderCompilerOptions[prog->info.stage].NirOptions;
 
    NIR_PASS_V(nir, nir_split_var_copies);
    NIR_PASS_V(nir, nir_lower_var_copies);
-   if (options->lower_all_io_to_temps ||
-       options->lower_all_io_to_elements ||
-       nir->info.stage == MESA_SHADER_VERTEX ||
-       nir->info.stage == MESA_SHADER_GEOMETRY) {
-      NIR_PASS_V(nir, nir_lower_io_arrays_to_elements_no_indirects, false);
-   } else if (nir->info.stage == MESA_SHADER_FRAGMENT) {
-      NIR_PASS_V(nir, nir_lower_io_arrays_to_elements_no_indirects, true);
-   }
 
    st_nir_assign_varying_locations(st, nir);
-
-   NIR_PASS_V(nir, nir_lower_atomics_to_ssbo,
-         st->ctx->Const.Program[nir->info.stage].MaxAtomicBuffers);
-
    st_nir_assign_uniform_locations(st->ctx, prog,
                                    &nir->uniforms);
 
@@ -940,6 +929,9 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog,
    }
 
    st_nir_lower_samplers(screen, nir, shader_program, prog);
+
+   if (finalize_by_driver && screen->finalize_nir)
+      screen->finalize_nir(screen, nir, false);
 }
 
 } /* extern "C" */

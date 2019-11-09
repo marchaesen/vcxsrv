@@ -45,7 +45,7 @@ enter more displays.
 If there is more than one configuration, the configuration name button
 will bring up a selection menu.
 .PP
-In the right-hand pannel, the left mouse button will move the
+In the right-hand panel, the left mouse button will move the
 highlighted display at "tool resolution"; the middle mouse button will
 move the highlighted display by a single pixel (at "wall resolution");
 and the right mouse button will bring up a menu allowing the highlighted

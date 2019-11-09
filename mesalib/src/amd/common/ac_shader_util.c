@@ -25,7 +25,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "ac_nir_to_llvm.h"
 #include "ac_shader_util.h"
 #include "sid.h"
 
@@ -109,71 +108,153 @@ ac_vgt_gs_mode(unsigned gs_max_vert_out, enum chip_class chip_class)
 	       S_028A40_ONCHIP(chip_class >= GFX9 ? 1 : 0);
 }
 
-void
-ac_export_mrt_z(struct ac_llvm_context *ctx, LLVMValueRef depth,
-		LLVMValueRef stencil, LLVMValueRef samplemask,
-		struct ac_export_args *args)
+/// Translate a (dfmt, nfmt) pair into a chip-appropriate combined format
+/// value for LLVM8+ tbuffer intrinsics.
+unsigned
+ac_get_tbuffer_format(enum chip_class chip_class,
+		      unsigned dfmt, unsigned nfmt)
 {
-	unsigned mask = 0;
-	unsigned format = ac_get_spi_shader_z_format(depth != NULL,
-						     stencil != NULL,
-						     samplemask != NULL);
-
-	assert(depth || stencil || samplemask);
-
-	memset(args, 0, sizeof(*args));
-
-	args->valid_mask = 1; /* whether the EXEC mask is valid */
-	args->done = 1; /* DONE bit */
-
-	/* Specify the target we are exporting */
-	args->target = V_008DFC_SQ_EXP_MRTZ;
-
-	args->compr = 0; /* COMP flag */
-	args->out[0] = LLVMGetUndef(ctx->f32); /* R, depth */
-	args->out[1] = LLVMGetUndef(ctx->f32); /* G, stencil test val[0:7], stencil op val[8:15] */
-	args->out[2] = LLVMGetUndef(ctx->f32); /* B, sample mask */
-	args->out[3] = LLVMGetUndef(ctx->f32); /* A, alpha to mask */
-
-	if (format == V_028710_SPI_SHADER_UINT16_ABGR) {
-		assert(!depth);
-		args->compr = 1; /* COMPR flag */
-
-		if (stencil) {
-			/* Stencil should be in X[23:16]. */
-			stencil = ac_to_integer(ctx, stencil);
-			stencil = LLVMBuildShl(ctx->builder, stencil,
-					       LLVMConstInt(ctx->i32, 16, 0), "");
-			args->out[0] = ac_to_float(ctx, stencil);
-			mask |= 0x3;
+	if (chip_class >= GFX10) {
+		unsigned format;
+		switch (dfmt) {
+		default: unreachable("bad dfmt");
+		case V_008F0C_BUF_DATA_FORMAT_INVALID: format = V_008F0C_IMG_FORMAT_INVALID; break;
+		case V_008F0C_BUF_DATA_FORMAT_8: format = V_008F0C_IMG_FORMAT_8_UINT; break;
+		case V_008F0C_BUF_DATA_FORMAT_8_8: format = V_008F0C_IMG_FORMAT_8_8_UINT; break;
+		case V_008F0C_BUF_DATA_FORMAT_8_8_8_8: format = V_008F0C_IMG_FORMAT_8_8_8_8_UINT; break;
+		case V_008F0C_BUF_DATA_FORMAT_16: format = V_008F0C_IMG_FORMAT_16_UINT; break;
+		case V_008F0C_BUF_DATA_FORMAT_16_16: format = V_008F0C_IMG_FORMAT_16_16_UINT; break;
+		case V_008F0C_BUF_DATA_FORMAT_16_16_16_16: format = V_008F0C_IMG_FORMAT_16_16_16_16_UINT; break;
+		case V_008F0C_BUF_DATA_FORMAT_32: format = V_008F0C_IMG_FORMAT_32_UINT; break;
+		case V_008F0C_BUF_DATA_FORMAT_32_32: format = V_008F0C_IMG_FORMAT_32_32_UINT; break;
+		case V_008F0C_BUF_DATA_FORMAT_32_32_32: format = V_008F0C_IMG_FORMAT_32_32_32_UINT; break;
+		case V_008F0C_BUF_DATA_FORMAT_32_32_32_32: format = V_008F0C_IMG_FORMAT_32_32_32_32_UINT; break;
+		case V_008F0C_BUF_DATA_FORMAT_2_10_10_10: format = V_008F0C_IMG_FORMAT_2_10_10_10_UINT; break;
 		}
-		if (samplemask) {
-			/* SampleMask should be in Y[15:0]. */
-			args->out[1] = samplemask;
-			mask |= 0xc;
+
+		// Use the regularity properties of the combined format enum.
+		//
+		// Note: float is incompatible with 8-bit data formats,
+		//       [us]{norm,scaled} are incomparible with 32-bit data formats.
+		//       [us]scaled are not writable.
+		switch (nfmt) {
+		case V_008F0C_BUF_NUM_FORMAT_UNORM: format -= 4; break;
+		case V_008F0C_BUF_NUM_FORMAT_SNORM: format -= 3; break;
+		case V_008F0C_BUF_NUM_FORMAT_USCALED: format -= 2; break;
+		case V_008F0C_BUF_NUM_FORMAT_SSCALED: format -= 1; break;
+		default: unreachable("bad nfmt");
+		case V_008F0C_BUF_NUM_FORMAT_UINT: break;
+		case V_008F0C_BUF_NUM_FORMAT_SINT: format += 1; break;
+		case V_008F0C_BUF_NUM_FORMAT_FLOAT: format += 2; break;
 		}
+
+		return format;
 	} else {
-		if (depth) {
-			args->out[0] = depth;
-			mask |= 0x1;
-		}
-		if (stencil) {
-			args->out[1] = stencil;
-			mask |= 0x2;
-		}
-		if (samplemask) {
-			args->out[2] = samplemask;
-			mask |= 0x4;
-		}
+		return dfmt | (nfmt << 4);
+	}
+}
+
+enum ac_image_dim
+ac_get_sampler_dim(enum chip_class chip_class, enum glsl_sampler_dim dim,
+		   bool is_array)
+{
+	switch (dim) {
+	case GLSL_SAMPLER_DIM_1D:
+		if (chip_class == GFX9)
+			return is_array ? ac_image_2darray : ac_image_2d;
+		return is_array ? ac_image_1darray : ac_image_1d;
+	case GLSL_SAMPLER_DIM_2D:
+	case GLSL_SAMPLER_DIM_RECT:
+	case GLSL_SAMPLER_DIM_EXTERNAL:
+		return is_array ? ac_image_2darray : ac_image_2d;
+	case GLSL_SAMPLER_DIM_3D:
+		return ac_image_3d;
+	case GLSL_SAMPLER_DIM_CUBE:
+		return ac_image_cube;
+	case GLSL_SAMPLER_DIM_MS:
+		return is_array ? ac_image_2darraymsaa : ac_image_2dmsaa;
+	case GLSL_SAMPLER_DIM_SUBPASS:
+		return ac_image_2darray;
+	case GLSL_SAMPLER_DIM_SUBPASS_MS:
+		return ac_image_2darraymsaa;
+	default:
+		unreachable("bad sampler dim");
+	}
+}
+
+enum ac_image_dim
+ac_get_image_dim(enum chip_class chip_class, enum glsl_sampler_dim sdim,
+		 bool is_array)
+{
+	enum ac_image_dim dim = ac_get_sampler_dim(chip_class, sdim, is_array);
+
+	/* Match the resource type set in the descriptor. */
+	if (dim == ac_image_cube ||
+	    (chip_class <= GFX8 && dim == ac_image_3d))
+		dim = ac_image_2darray;
+	else if (sdim == GLSL_SAMPLER_DIM_2D && !is_array && chip_class == GFX9) {
+		/* When a single layer of a 3D texture is bound, the shader
+		 * will refer to a 2D target, but the descriptor has a 3D type.
+		 * Since the HW ignores BASE_ARRAY in this case, we need to
+		 * send 3 coordinates. This doesn't hurt when the underlying
+		 * texture is non-3D.
+		 */
+		dim = ac_image_3d;
 	}
 
-	/* GFX6 (except OLAND and HAINAN) has a bug that it only looks
-	 * at the X writemask component. */
-	if (ctx->chip_class == GFX6 &&
-	    ctx->family != CHIP_OLAND &&
-	    ctx->family != CHIP_HAINAN)
-		mask |= 0x1;
+	return dim;
+}
 
-	/* Specify which components to enable */
-	args->enabled_channels = mask;
+unsigned
+ac_get_fs_input_vgpr_cnt(const struct ac_shader_config *config,
+			 signed char *face_vgpr_index_ptr,
+			 signed char *ancillary_vgpr_index_ptr)
+{
+	unsigned num_input_vgprs = 0;
+	signed char face_vgpr_index = -1;
+	signed char ancillary_vgpr_index = -1;
+
+	if (G_0286CC_PERSP_SAMPLE_ENA(config->spi_ps_input_addr))
+		num_input_vgprs += 2;
+	if (G_0286CC_PERSP_CENTER_ENA(config->spi_ps_input_addr))
+		num_input_vgprs += 2;
+	if (G_0286CC_PERSP_CENTROID_ENA(config->spi_ps_input_addr))
+		num_input_vgprs += 2;
+	if (G_0286CC_PERSP_PULL_MODEL_ENA(config->spi_ps_input_addr))
+		num_input_vgprs += 3;
+	if (G_0286CC_LINEAR_SAMPLE_ENA(config->spi_ps_input_addr))
+		num_input_vgprs += 2;
+	if (G_0286CC_LINEAR_CENTER_ENA(config->spi_ps_input_addr))
+		num_input_vgprs += 2;
+	if (G_0286CC_LINEAR_CENTROID_ENA(config->spi_ps_input_addr))
+		num_input_vgprs += 2;
+	if (G_0286CC_LINE_STIPPLE_TEX_ENA(config->spi_ps_input_addr))
+		num_input_vgprs += 1;
+	if (G_0286CC_POS_X_FLOAT_ENA(config->spi_ps_input_addr))
+		num_input_vgprs += 1;
+	if (G_0286CC_POS_Y_FLOAT_ENA(config->spi_ps_input_addr))
+		num_input_vgprs += 1;
+	if (G_0286CC_POS_Z_FLOAT_ENA(config->spi_ps_input_addr))
+		num_input_vgprs += 1;
+	if (G_0286CC_POS_W_FLOAT_ENA(config->spi_ps_input_addr))
+		num_input_vgprs += 1;
+	if (G_0286CC_FRONT_FACE_ENA(config->spi_ps_input_addr)) {
+		face_vgpr_index = num_input_vgprs;
+		num_input_vgprs += 1;
+	}
+	if (G_0286CC_ANCILLARY_ENA(config->spi_ps_input_addr)) {
+		ancillary_vgpr_index = num_input_vgprs;
+		num_input_vgprs += 1;
+	}
+	if (G_0286CC_SAMPLE_COVERAGE_ENA(config->spi_ps_input_addr))
+		num_input_vgprs += 1;
+	if (G_0286CC_POS_FIXED_PT_ENA(config->spi_ps_input_addr))
+		num_input_vgprs += 1;
+
+	if (face_vgpr_index_ptr)
+		*face_vgpr_index_ptr = face_vgpr_index;
+	if (ancillary_vgpr_index_ptr)
+		*ancillary_vgpr_index_ptr = ancillary_vgpr_index;
+
+	return num_input_vgprs;
 }

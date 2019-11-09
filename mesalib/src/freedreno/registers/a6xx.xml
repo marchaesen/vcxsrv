@@ -30,6 +30,7 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value value="0x32" name="RB6_R8G8B8A8_SNORM"/>
 	<value value="0x33" name="RB6_R8G8B8A8_UINT"/>
 	<value value="0x34" name="RB6_R8G8B8A8_SINT"/>
+	<value value="0x36" name="RB6_R10G10B10A2_FLOAT16"/>  <!-- float16 for 2d blit? -->
 	<value value="0x37" name="RB6_R10G10B10A2_UNORM"/>  <!-- GL_RGB10_A2 -->
 	<value value="0x3a" name="RB6_R10G10B10A2_UINT"/>   <!-- GL_RGB10_A2UI -->
 	<value value="0x42" name="RB6_R11G11B10_FLOAT"/>    <!-- GL_R11F_G11F_B10F -->
@@ -944,7 +945,7 @@ blending?  The one exception is that 16b unorm and 32b float use the
 same value... maybe 16b unorm is uncommon enough that it was just easier
 to upconvert to 32b float internally?
 
- 8b unorm:  10
+ 8b unorm:  10 (sometimes 0, is the high bit part of something else?)
 16b unorm:   4
 
 32b int:     7
@@ -961,6 +962,7 @@ to upconvert to 32b float internally?
 	<value value="0x5"  name="R2D_INT8"/>
 	<value value="0x4"  name="R2D_FLOAT32"/>
 	<value value="0x3"  name="R2D_FLOAT16"/>
+	<value value="0x1"  name="R2D_UNORM8_SRGB"/>
 </enum>
 
 <domain name="A6XX" width="32">
@@ -1370,6 +1372,38 @@ to upconvert to 32b float internally?
 	<reg32 offset="0x050A" name="RBBM_PERFCTR_RBBM_SEL_3"/>
 	<reg32 offset="0x050B" name="RBBM_PERFCTR_GPU_BUSY_MASKED"/>
 	<reg32 offset="0x0533" name="RBBM_ISDB_CNT"/>
+
+	<!---
+	    This block of registers aren't tied to perf counters. They
+	    count various geometry stats, for example number of
+	    vertices in, number of primnitives assembled etc.
+	-->
+
+	<reg32 offset="0x0540" name="RBBM_PRIMCTR_0_LO"/>
+	<reg32 offset="0x0541" name="RBBM_PRIMCTR_0_HI"/>
+	<reg32 offset="0x0542" name="RBBM_PRIMCTR_1_LO"/>
+	<reg32 offset="0x0543" name="RBBM_PRIMCTR_1_HI"/>
+	<reg32 offset="0x0544" name="RBBM_PRIMCTR_2_LO"/>
+	<reg32 offset="0x0545" name="RBBM_PRIMCTR_2_HI"/>
+	<reg32 offset="0x0546" name="RBBM_PRIMCTR_3_LO"/>
+	<reg32 offset="0x0547" name="RBBM_PRIMCTR_3_HI"/>
+	<reg32 offset="0x0548" name="RBBM_PRIMCTR_4_LO"/>
+	<reg32 offset="0x0549" name="RBBM_PRIMCTR_4_HI"/>
+	<reg32 offset="0x054a" name="RBBM_PRIMCTR_5_LO"/>
+	<reg32 offset="0x054b" name="RBBM_PRIMCTR_5_HI"/>
+	<reg32 offset="0x054c" name="RBBM_PRIMCTR_6_LO"/>
+	<reg32 offset="0x054d" name="RBBM_PRIMCTR_6_HI"/>
+	<reg32 offset="0x054e" name="RBBM_PRIMCTR_7_LO"/>
+	<reg32 offset="0x054f" name="RBBM_PRIMCTR_7_HI"/>
+	<!-- PRIMCTR_8 appears to count number of primitives coming out of GS -->
+	<reg32 offset="0x0550" name="RBBM_PRIMCTR_8_LO"/>
+	<reg32 offset="0x0551" name="RBBM_PRIMCTR_8_HI"/>
+	<reg32 offset="0x0552" name="RBBM_PRIMCTR_9_LO"/>
+	<reg32 offset="0x0553" name="RBBM_PRIMCTR_9_HI"/>
+	<reg32 offset="0x0554" name="RBBM_PRIMCTR_10_LO"/>
+	<reg32 offset="0x0555" name="RBBM_PRIMCTR_10_HI"/>
+	
+
 	<reg32 offset="0xF400" name="RBBM_SECVID_TRUST_CNTL"/>
 	<reg32 offset="0xF800" name="RBBM_SECVID_TSB_TRUSTED_BASE_LO"/>
 	<reg32 offset="0xF801" name="RBBM_SECVID_TSB_TRUSTED_BASE_HI"/>
@@ -1823,9 +1857,18 @@ to upconvert to 32b float internally?
 
 	<reg32 offset="0x8000" name="GRAS_UNKNOWN_8000"/>
 	<reg32 offset="0x8001" name="GRAS_UNKNOWN_8001"/>
+	<reg32 offset="0x8003" name="GRAS_UNKNOWN_8003"/>
 
-	<!-- always 0x0 ? -->
-	<reg32 offset="0x8004" name="GRAS_UNKNOWN_8004"/>
+	<enum name="a6xx_layer_type">
+	  <value value="0x0" name="MULTISAMPLE_ARRAY"/>
+	  <value value="0x1" name="ARRAY"/> <!-- 2d array and 3d -->
+	  <value value="0x2" name="CUBEMAP"/>
+	</enum>
+
+	<reg32 offset="0x8004" name="GRAS_LAYER_CNTL">
+		<bitfield name="LAYERED" pos="0" type="boolean"/>
+		<bitfield name="TYPE" low="1" high="2" type="a6xx_layer_type"/>
+	</reg32>
 
 	<reg32 offset="0x8005" name="GRAS_CNTL">
 		<!-- see also RB_RENDER_CONTROL0 -->
@@ -1888,6 +1931,10 @@ to upconvert to 32b float internally?
 
 	<!-- always 0x0 ? -->
 	<reg32 offset="0x809b" name="GRAS_UNKNOWN_809B"/>
+
+	<reg32 offset="0x809c" name="GRAS_UNKNOWN_809C">
+		<bitfield name="GS_WRITES_LAYER" pos="0" type="boolean"/>
+	</reg32>
 
 	<reg32 offset="0x80a0" name="GRAS_UNKNOWN_80A0"/>
 
@@ -1954,19 +2001,20 @@ to upconvert to 32b float internally?
 	  <value value="0x1" name="ROTATE_90"/>
 	  <value value="0x2" name="ROTATE_180"/>
 	  <value value="0x3" name="ROTATE_270"/>
+	  <value value="0x4" name="ROTATE_HFLIP"/>
+	  <value value="0x5" name="ROTATE_VFLIP"/>
 	</enum>
 
 	<bitset name="a6xx_2d_blit_cntl" inline="yes">
 		<bitfield name="ROTATE" low="0" high="1" type="a6xx_rotation"/>
 		<bitfield name="HORIZONTAL_FLIP" low="2" high="2" type="boolean"/>
-		<bitfield name="SOLID_COLOR" low="4" high="4" type="boolean"/>
+		<bitfield name="SOLID_COLOR" pos="7" type="boolean"/>
 		<bitfield name="COLOR_FORMAT" low="8" high="15" type="a6xx_color_fmt"/>
 		<bitfield name="SCISSOR" pos="16" type="boolean"/>
-		<!-- double check these:
-		<bitfield name="FLAGS" pos="18" type="boolean"/>
-		<bitfield name="TILE_MODE" low="20" high="21" type="a6xx_tile_mode"/>
-		<bitfield name="COLOR_SWAP" low="22" high="23" type="a3xx_color_swap"/>
-		-->
+		<!-- required when blitting D24S8/D24X8 -->
+		<bitfield name="D24S8" pos="19" type="boolean"/>
+		<!-- some sort of channel mask, disabled channels are set to zero ? -->
+		<bitfield name="MASK" low="20" high="23"/>
 		<bitfield name="IFMT" low="24" high="28" type="a6xx_2d_ifmt"/>
 	</bitset>
 
@@ -2325,13 +2373,20 @@ to upconvert to 32b float internally?
 	<reg32 offset="0x8c00" name="RB_2D_BLIT_CNTL" type="a6xx_2d_blit_cntl"/>
 	<reg32 offset="0x8c01" name="RB_UNKNOWN_8C01"/>
 
-	<reg32 offset="0x8c17" name="RB_2D_DST_INFO">
+	<bitset name="a6xx_2d_surf_info" inline="yes">
 		<bitfield name="COLOR_FORMAT" low="0" high="7" type="a6xx_color_fmt"/>
 		<bitfield name="TILE_MODE" low="8" high="9" type="a6xx_tile_mode"/>
 		<bitfield name="COLOR_SWAP" low="10" high="11" type="a3xx_color_swap"/>
 		<!-- b12 seems to be set when UBWC "FLAGS" buffer enabled -->
 		<bitfield name="FLAGS" pos="12" type="boolean"/>
-	</reg32>
+		<bitfield name="SRGB" pos="13" type="boolean"/>
+		<!-- the rest is only for src -->
+		<bitfield name="SAMPLES" low="14" high="15" type="a3xx_msaa_samples"/>
+		<bitfield name="FILTER" pos="16" type="boolean"/>
+		<bitfield name="SAMPLES_AVERAGE" pos="18" type="boolean"/>
+	</bitset>
+
+	<reg32 offset="0x8c17" name="RB_2D_DST_INFO" type="a6xx_2d_surf_info"/>
 	<reg32 offset="0x8c18" name="RB_2D_DST_LO"/>
 	<reg32 offset="0x8c19" name="RB_2D_DST_HI"/>
 	<reg32 offset="0x8c1a" name="RB_2D_DST_SIZE">
@@ -2358,10 +2413,17 @@ to upconvert to 32b float internally?
 
 	<reg32 offset="0x8e07" name="RB_CCU_CNTL"/>  <!-- always 7c400004 or 10000000 -->
 
+	<reg32 offset="0x9100" name="VPC_UNKNOWN_9100"/>
+
 	<!-- always 0x00ffff00 ? */ -->
 	<reg32 offset="0x9101" name="VPC_UNKNOWN_9101"/>
+	<reg32 offset="0x9101" name="VPC_UNKNOWN_9102"/>
 
 	<reg32 offset="0x9104" name="VPC_GS_SIV_CNTL"/>
+
+	<reg32 offset="0x9105" name="VPC_UNKNOWN_9105">
+		<bitfield name="LAYERLOC" low="0" high="7" type="uint"/>
+	</reg32>
 
 	<reg32 offset="0x9107" name="VPC_UNKNOWN_9107"/>
 	<reg32 offset="0x9108" name="VPC_UNKNOWN_9108"/>
@@ -2417,6 +2479,22 @@ to upconvert to 32b float internally?
 	<reg32 offset="0x9300" name="VPC_UNKNOWN_9300"/>
 
 	<reg32 offset="0x9301" name="VPC_PACK">
+		<doc>
+			num of varyings plus four for gl_Position (plus one if gl_PointSize)
+			plus # of transform-feedback (streamout) varyings if using the
+			hw streamout (rather than stg instructions in shader)
+		</doc>
+		<bitfield name="STRIDE_IN_VPC" low="0" high="7" type="uint"/>
+		<bitfield name="POSITIONLOC" low="8" high="15" type="uint"/>
+		<!--
+		This seems to be the OUTLOC for the psize output.  It could possibly
+		be the max-OUTLOC position, but it is only set when VS writes psize
+		(and blob always puts psize at highest OUTLOC)
+		 -->
+		<bitfield name="PSIZELOC" low="16" high="23" type="uint"/>
+	</reg32>
+
+	<reg32 offset="0x9302" name="VPC_PACK_GS">
 		<doc>
 			num of varyings plus four for gl_Position (plus one if gl_PointSize)
 			plus # of transform-feedback (streamout) varyings if using the
@@ -2520,6 +2598,16 @@ to upconvert to 32b float internally?
 		<bitfield name="PSIZE" pos="8" type="boolean"/>
 	</reg32>
 
+	<reg32 offset="0x9b02" name="PC_PRIMITIVE_CNTL_2">
+		<doc>
+		  geometry shader
+		</doc>
+		<bitfield name="STRIDE_IN_VPC" low="0" high="6" type="uint"/>
+		<bitfield name="PSIZE" pos="8" type="boolean"/>
+		<bitfield name="LAYER" pos="9" type="boolean"/>
+		<bitfield name="PRIMITIVE_ID" pos="11" type="boolean"/>
+	</reg32>
+
 	<reg32 offset="0x9b03" name="PC_PRIMITIVE_CNTL_3">
 		<doc>
 		        hull shader?
@@ -2542,8 +2630,22 @@ to upconvert to 32b float internally?
 		<bitfield name="PSIZE" pos="8" type="boolean"/>
 	</reg32>
 
-	<!-- always 0x0 ? -->
-	<reg32 offset="0x9b06" name="PC_UNKNOWN_9B06"/>
+	<reg32 offset="0x9b05" name="PC_PRIMITIVE_CNTL_5">
+		<doc>
+		  geometry shader
+		</doc>
+		<bitfield name="GS_VERTICES_OUT" low="0" high="7" type="uint"/>
+		<bitfield name="GS_INVOCATIONS" low="10" high="14" type="uint"/>
+		<bitfield name="GS_OUTPUT" low="16" high="17" type="a6xx_tess_output"/>
+	</reg32>
+
+	<reg32 offset="0x9b06" name="PC_PRIMITIVE_CNTL_6">
+		<doc>
+		  size in vec4s of per-primitive storage for gs
+		</doc>
+		<bitfield name="STRIDE_IN_VPC" low="0" high="8" type="uint"/>
+	</reg32>
+
 	<reg32 offset="0x9b07" name="PC_UNKNOWN_9B07"/>
 
 	<reg32 offset="0x9e08" name="PC_TESSFACTOR_ADDR_LO"/>
@@ -2572,6 +2674,7 @@ to upconvert to 32b float internally?
 	<reg32 offset="0xa004" name="VFD_CONTROL_4">
 	</reg32>
 	<reg32 offset="0xa005" name="VFD_CONTROL_5">
+		<bitfield name="REGID_GSHEADER" low="0" high="7" type="a3xx_regid"/>
 	</reg32>
 	<reg32 offset="0xa006" name="VFD_CONTROL_6">
 	</reg32>
@@ -2663,6 +2766,8 @@ to upconvert to 32b float internally?
 		<bitfield name="BRANCHSTACK" low="14" high="19" type="uint"/>
 		<bitfield name="THREADSIZE" pos="20" type="a3xx_threadsize"/>
 		<bitfield name="VARYING" pos="22" type="boolean"/>
+		<!-- set when dFdxFine/dFdyFine is used -->
+		<bitfield name="DIFF_FINE" pos="23" type="boolean"/>
 		<bitfield name="PIXLODENABLE" pos="26" type="boolean"/>
 		<bitfield name="MERGEDREGS" pos="31" type="boolean"/>
 	</bitset>
@@ -2726,6 +2831,31 @@ to upconvert to 32b float internally?
 
 	<reg32 offset="0xa870" name="SP_GS_CTRL_REG0" type="a6xx_sp_xs_ctrl_reg0"/>
 	<reg32 offset="0xa871" name="SP_GS_UNKNOWN_A871"/>
+
+	<reg32 offset="0xa873" name="SP_PRIMITIVE_CNTL_GS">
+		<!-- # of VS outputs including pos/psize -->
+		<bitfield name="GSOUT" low="0" high="4" type="uint"/>
+		<bitfield name="FLAGS_REGID" low="6" high="13" type="a3xx_regid"/>
+	</reg32>
+
+	<array offset="0xa874" name="SP_GS_OUT" stride="1" length="16">
+		<reg32 offset="0x0" name="REG">
+			<bitfield name="A_REGID" low="0" high="7" type="a3xx_regid"/>
+			<bitfield name="A_COMPMASK" low="8" high="11" type="hex"/>
+			<bitfield name="B_REGID" low="16" high="23" type="a3xx_regid"/>
+			<bitfield name="B_COMPMASK" low="24" high="27" type="hex"/>
+		</reg32>
+	</array>
+
+	<array offset="0xa884" name="SP_GS_VPC_DST" stride="1" length="8">
+		<reg32 offset="0x0" name="REG">
+			<bitfield name="OUTLOC0" low="0" high="7" type="uint"/>
+			<bitfield name="OUTLOC1" low="8" high="15" type="uint"/>
+			<bitfield name="OUTLOC2" low="16" high="23" type="uint"/>
+			<bitfield name="OUTLOC3" low="24" high="31" type="uint"/>
+		</reg32>
+	</array>
+
 	<reg32 offset="0xa88d" name="SP_GS_OBJ_START_LO"/>
 	<reg32 offset="0xa88e" name="SP_GS_OBJ_START_HI"/>
 	<reg32 offset="0xa893" name="SP_GS_TEX_COUNT" type="uint"/>
@@ -2750,6 +2880,14 @@ to upconvert to 32b float internally?
 	<reg32 offset="0xa8af" name="SP_GS_TEX_CONST_HI"/>
 
 	<reg32 offset="0xa980" name="SP_FS_CTRL_REG0" type="a6xx_sp_xs_ctrl_reg0"/>
+	<reg32 offset="0xa981" name="SP_UNKNOWN_A981">
+		<bitfield name="FACE0" pos="0" type="boolean"/>
+		<bitfield name="FACE1" pos="1" type="boolean"/>
+		<bitfield name="FACE2" pos="2" type="boolean"/>
+		<bitfield name="FACE3" pos="3" type="boolean"/>
+		<bitfield name="FACE4" pos="4" type="boolean"/>
+		<bitfield name="FACE5" pos="5" type="boolean"/>
+	</reg32>
 	<reg32 offset="0xa982" name="SP_UNKNOWN_A982"/>
 	<reg32 offset="0xa983" name="SP_FS_OBJ_START_LO"/>
 	<reg32 offset="0xa984" name="SP_FS_OBJ_START_HI"/>
@@ -2796,7 +2934,28 @@ to upconvert to 32b float internally?
 		</reg32>
 	</array>
 
-	<reg32 offset="0xa99e" name="SP_UNKNOWN_A99E"/>
+	<reg32 offset="0xa99e" name="SP_FS_PREFETCH_CNTL">
+		<!-- unknown bits 0x7fc0 always set -->
+		<bitfield name="COUNT" low="0" high="2" type="uint"/>
+		<!-- b3 set if no other use of varyings in the shader itself.. maybe alternative to dummy bary.f? -->
+		<bitfield name="UNK3" pos="3" type="boolean"/>
+		<bitfield name="UNK4" low="4" high="11" type="a3xx_regid"/>
+	</reg32>
+	<array offset="0xa99f" name="SP_FS_PREFETCH" stride="1" length="4">
+		<reg32 offset="0" name="CMD">
+			<bitfield name="SRC" low="0" high="6" type="uint"/>
+			<bitfield name="SAMP_ID" low="7" high="10" type="uint"/>
+			<bitfield name="TEX_ID" low="11" high="15" type="uint"/>
+			<bitfield name="DST" low="16" high="21" type="a3xx_regid"/>
+			<bitfield name="WRMASK" low="22" high="25" type="hex"/>
+			<bitfield name="HALF" pos="26" type="boolean"/>
+			<!--
+			CMD seems always 0x4??  3d, textureProj, textureLod seem to
+			skip pre-fetch.. TODO test texelFetch
+			 -->
+			<bitfield name="CMD" low="27" high="31"/>
+		</reg32>
+	</array>
 
 	<reg32 offset="0xa9a7" name="SP_FS_TEX_COUNT" type="uint"/>
 
@@ -2856,14 +3015,19 @@ to upconvert to 32b float internally?
 	<reg32 offset="0xab20" name="SP_IBO_COUNT" type="uint"/>
 
 	<!--
-	I believe this describes the src format, but haven't seen traces with
-	src_format != dst_format
+	not really src, COLOR_FORMAT/SRGB seem to be related to ifmt which is for dst
 	 -->
 	<reg32 offset="0xacc0" name="SP_2D_SRC_FORMAT">
 		<bitfield name="NORM" pos="0" type="boolean"/>
 		<bitfield name="SINT" pos="1" type="boolean"/>
 		<bitfield name="UINT" pos="2" type="boolean"/>
+		<!-- looks like HW only cares about the base type of this format,
+		     which matches the ifmt? -->
 		<bitfield name="COLOR_FORMAT" low="3" high="10" type="a6xx_color_fmt"/>
+		<!-- set when ifmt is R2D_UNORM8_SRGB -->
+		<bitfield name="SRGB" pos="11" type="boolean"/>
+		<!-- some sort of channel mask, not sure what it is for -->
+		<bitfield name="MASK" low="12" high="15"/>
 	</reg32>
 
 	<!-- always 0x0 -->
@@ -2902,15 +3066,7 @@ to upconvert to 32b float internally?
 	badly named or the functionality moved in a6xx.  But downstream kernel
 	calls this "a6xx_sp_ps_tp_2d_cluster"
 	 -->
-	<reg32 offset="0xb4c0" name="SP_PS_2D_SRC_INFO">
-		<bitfield name="COLOR_FORMAT" low="0" high="7" type="a6xx_color_fmt"/>
-		<bitfield name="TILE_MODE" low="8" high="9" type="a6xx_tile_mode"/>
-		<bitfield name="COLOR_SWAP" low="10" high="11" type="a3xx_color_swap"/>
-		<!-- b12 seems to be set when UBWC "FLAGS" buffer enabled -->
-		<bitfield name="FLAGS" pos="12" type="boolean"/>
-		<bitfield name="SAMPLES" low="14" high="15" type="a3xx_msaa_samples"/>
-		<bitfield name="FILTER" pos="16" type="boolean"/>
-	</reg32>
+	<reg32 offset="0xb4c0" name="SP_PS_2D_SRC_INFO" type="a6xx_2d_surf_info"/>
 	<reg32 offset="0xb4c1" name="SP_PS_2D_SRC_SIZE">
 		<bitfield name="WIDTH" low="0" high="14" type="uint"/>
 		<bitfield name="HEIGHT" low="15" high="29" type="uint"/>

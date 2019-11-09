@@ -235,7 +235,7 @@ static int TRANS(SocketINETClose) (XtransConnInfo ciptr);
 #else
 # define SOCKLEN_T socklen_t
 #endif
-#elif defined(SVR4) || defined(__SVR4) || defined(__SCO__)
+#elif defined(SVR4) || defined(__SVR4)
 # define SOCKLEN_T size_t
 #else
 # define SOCKLEN_T int
@@ -1005,7 +1005,7 @@ TRANS(SocketUNIXCreateListener) (XtransConnInfo ciptr, const char *port,
 	return TRANS_CREATE_LISTENER_FAILED;
     }
 
-#if (defined(BSD44SOCKETS) || defined(__UNIXWARE__))
+#if defined(BSD44SOCKETS)
     sockname.sun_len = strlen(sockname.sun_path);
 #endif
 
@@ -1083,7 +1083,7 @@ TRANS(SocketUNIXResetListener) (XtransConnInfo ciptr)
     if (!abstract && (
 	stat (unsock->sun_path, &statb) == -1 ||
         ((statb.st_mode & S_IFMT) !=
-#if defined(NCR) || defined(SCO325) || !defined(S_IFSOCK)
+#if !defined(S_IFSOCK)
 	  		S_IFIFO
 #else
 			S_IFSOCK
@@ -1883,7 +1883,7 @@ TRANS(SocketUNIXConnect) (XtransConnInfo ciptr,
 	return TRANS_CONNECT_FAILED;
     }
 
-#if (defined(BSD44SOCKETS) || defined(__UNIXWARE__))
+#if defined(BSD44SOCKETS)
     sockname.sun_len = strlen (sockname.sun_path);
 #endif
 

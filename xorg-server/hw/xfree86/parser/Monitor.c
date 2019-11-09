@@ -381,7 +381,7 @@ xf86parseVerboseMode(void)
             Error(UNEXPECTED_EOF_MSG);
             break;
         default:
-            Error("Unexepcted token in verbose \"Mode\" entry\n");
+            Error("Unexpected token in verbose \"Mode\" entry\n");
         }
     }
     if (!had_dotclock)

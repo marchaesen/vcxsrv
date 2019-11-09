@@ -486,6 +486,11 @@ dispatch_pointer_motion_event(struct xwl_seat *xwl_seat)
             int dx = xwl_seat->focus_window->window->drawable.x;
             int dy = xwl_seat->focus_window->window->drawable.y;
 
+            if (xwl_window_has_viewport_enabled(xwl_seat->focus_window)) {
+                sx *= xwl_seat->focus_window->scale_x;
+                sy *= xwl_seat->focus_window->scale_y;
+            }
+
             x = dx + sx;
             y = dy + sy;
         } else {

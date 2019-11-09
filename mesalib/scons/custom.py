@@ -262,8 +262,12 @@ def parse_source_list(env, filename, names=None):
     sym_table = parser.parse(src.abspath)
 
     if names:
-        if isinstance(names, basestring):
-            names = [names]
+        if sys.version_info[0] >= 3:
+            if isinstance(names, str):
+                names = [names]
+        else:
+            if isinstance(names, basestring):
+                names = [names]
 
         symbols = names
     else:

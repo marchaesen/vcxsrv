@@ -352,7 +352,7 @@ tc_call_destroy_query(struct pipe_context *pipe, union tc_payload *payload)
    struct threaded_query *tq = threaded_query(payload->query);
 
    if (tq->head_unflushed.next)
-      LIST_DEL(&tq->head_unflushed);
+      list_del(&tq->head_unflushed);
 
    pipe->destroy_query(pipe, payload->query);
 }
@@ -393,7 +393,7 @@ tc_call_end_query(struct pipe_context *pipe, union tc_payload *payload)
    struct threaded_query *tq = threaded_query(p->query);
 
    if (!tq->head_unflushed.next)
-      LIST_ADD(&tq->head_unflushed, &p->tc->unflushed_queries);
+      list_add(&tq->head_unflushed, &p->tc->unflushed_queries);
 
    pipe->end_query(pipe, p->query);
 }
@@ -432,7 +432,7 @@ tc_get_query_result(struct pipe_context *_pipe,
       tq->flushed = true;
       if (tq->head_unflushed.next) {
          /* This is safe because it can only happen after we sync'd. */
-         LIST_DEL(&tq->head_unflushed);
+         list_del(&tq->head_unflushed);
       }
    }
    return success;
@@ -879,7 +879,8 @@ tc_set_shader_images(struct pipe_context *_pipe,
             struct threaded_resource *tres =
                threaded_resource(images[i].resource);
 
-            util_range_add(&tres->valid_buffer_range, images[i].u.buf.offset,
+            util_range_add(&tres->b, &tres->valid_buffer_range,
+                           images[i].u.buf.offset,
                            images[i].u.buf.offset + images[i].u.buf.size);
          }
       }
@@ -945,7 +946,8 @@ tc_set_shader_buffers(struct pipe_context *_pipe,
          if (src->buffer) {
             struct threaded_resource *tres = threaded_resource(src->buffer);
 
-            util_range_add(&tres->valid_buffer_range, src->buffer_offset,
+            util_range_add(&tres->b, &tres->valid_buffer_range,
+                           src->buffer_offset,
                            src->buffer_offset + src->buffer_size);
          }
       }
@@ -1135,7 +1137,7 @@ tc_create_stream_output_target(struct pipe_context *_pipe,
    struct pipe_stream_output_target *view;
 
    tc_sync(threaded_context(_pipe));
-   util_range_add(&tres->valid_buffer_range, buffer_offset,
+   util_range_add(&tres->b, &tres->valid_buffer_range, buffer_offset,
                   buffer_offset + buffer_size);
 
    view = pipe->create_stream_output_target(pipe, res, buffer_offset,
@@ -1538,7 +1540,8 @@ tc_buffer_do_flush_region(struct threaded_context *tc,
                               ttrans->staging, 0, &src_box);
    }
 
-   util_range_add(tres->base_valid_buffer_range, box->x, box->x + box->width);
+   util_range_add(&tres->b, tres->base_valid_buffer_range,
+                  box->x, box->x + box->width);
 }
 
 static void
@@ -1658,7 +1661,7 @@ tc_buffer_subdata(struct pipe_context *_pipe,
       return;
    }
 
-   util_range_add(&tres->valid_buffer_range, offset, offset + size);
+   util_range_add(&tres->b, &tres->valid_buffer_range, offset, offset + size);
 
    /* The upload is small. Enqueue it. */
    struct tc_buffer_subdata *p =
@@ -1962,7 +1965,7 @@ tc_flush_queries(struct threaded_context *tc)
 {
    struct threaded_query *tq, *tmp;
    LIST_FOR_EACH_ENTRY_SAFE(tq, tmp, &tc->unflushed_queries, head_unflushed) {
-      LIST_DEL(&tq->head_unflushed);
+      list_del(&tq->head_unflushed);
 
       /* Memory release semantics: due to a possible race with
        * tc_get_query_result, we must ensure that the linked list changes
@@ -2185,7 +2188,8 @@ tc_resource_copy_region(struct pipe_context *_pipe,
    p->src_box = *src_box;
 
    if (dst->target == PIPE_BUFFER)
-      util_range_add(&tdst->valid_buffer_range, dstx, dstx + src_box->width);
+      util_range_add(&tdst->b, &tdst->valid_buffer_range,
+                     dstx, dstx + src_box->width);
 }
 
 static void
@@ -2401,7 +2405,7 @@ tc_clear_buffer(struct pipe_context *_pipe, struct pipe_resource *res,
    memcpy(p->clear_value, clear_value, clear_value_size);
    p->clear_value_size = clear_value_size;
 
-   util_range_add(&tres->valid_buffer_range, offset, offset + size);
+   util_range_add(&tres->b, &tres->valid_buffer_range, offset, offset + size);
 }
 
 struct tc_clear_texture {
@@ -2623,7 +2627,7 @@ threaded_context_create(struct pipe_context *pipe,
       util_queue_fence_init(&tc->batch_slots[i].fence);
    }
 
-   LIST_INITHEAD(&tc->unflushed_queries);
+   list_inithead(&tc->unflushed_queries);
 
    slab_create_child(&tc->pool_transfers, parent_transfer_pool);
 

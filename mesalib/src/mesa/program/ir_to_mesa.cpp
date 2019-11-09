@@ -252,6 +252,7 @@ public:
    virtual void visit(ir_call *);
    virtual void visit(ir_return *);
    virtual void visit(ir_discard *);
+   virtual void visit(ir_demote *);
    virtual void visit(ir_texture *);
    virtual void visit(ir_if *);
    virtual void visit(ir_emit_vertex *);
@@ -1411,6 +1412,8 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
    case ir_unop_unpack_sampler_2x32:
    case ir_unop_pack_image_2x32:
    case ir_unop_unpack_image_2x32:
+   case ir_unop_atan:
+   case ir_binop_atan2:
       assert(!"not supported");
       break;
 
@@ -2199,6 +2202,12 @@ ir_to_mesa_visitor::visit(ir_discard *ir)
    ir->condition->accept(this);
    this->result.negate = ~this->result.negate;
    emit(ir, OPCODE_KIL, undef_dst, this->result);
+}
+
+void
+ir_to_mesa_visitor::visit(ir_demote *ir)
+{
+   assert(!"demote statement unsupported");
 }
 
 void

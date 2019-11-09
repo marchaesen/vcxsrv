@@ -246,6 +246,7 @@ public:
    bool has_tex_txf_lz;
    bool precise;
    bool need_uarl;
+   bool tg4_component_in_swizzle;
 
    variable_storage *find_variable_storage(ir_variable *var);
 
@@ -284,6 +285,7 @@ public:
    virtual void visit(ir_call *);
    virtual void visit(ir_return *);
    virtual void visit(ir_discard *);
+   virtual void visit(ir_demote *);
    virtual void visit(ir_texture *);
    virtual void visit(ir_if *);
    virtual void visit(ir_emit_vertex *);
@@ -2387,6 +2389,8 @@ glsl_to_tgsi_visitor::visit_expression(ir_expression* ir, st_src_reg *op)
    case ir_binop_carry:
    case ir_binop_borrow:
    case ir_unop_ssbo_unsized_array_length:
+   case ir_unop_atan:
+   case ir_binop_atan2:
       /* This operation is not supported, or should have already been handled.
        */
       assert(!"Invalid ir opcode in glsl_to_tgsi_visitor::visit()");
@@ -4106,6 +4110,10 @@ glsl_to_tgsi_visitor::visit(ir_call *ir)
       visit_generic_intrinsic(ir, TGSI_OPCODE_READ_INVOC);
       return;
 
+   case ir_intrinsic_helper_invocation:
+      visit_generic_intrinsic(ir, TGSI_OPCODE_READ_HELPER);
+      return;
+
    case ir_intrinsic_invalid:
    case ir_intrinsic_generic_load:
    case ir_intrinsic_generic_store:
@@ -4560,7 +4568,20 @@ glsl_to_tgsi_visitor::visit(ir_texture *ir)
       if (is_cube_array && ir->shadow_comparator) {
          inst = emit_asm(ir, opcode, result_dst, coord, cube_sc);
       } else {
-         inst = emit_asm(ir, opcode, result_dst, coord, component);
+         if (this->tg4_component_in_swizzle) {
+            inst = emit_asm(ir, opcode, result_dst, coord);
+            int idx = 0;
+            foreach_in_list(immediate_storage, entry, &this->immediates) {
+               if (component.index == idx) {
+                  gl_constant_value value = entry->values[component.swizzle];
+                  inst->gather_component = value.i;
+                  break;
+               }
+               idx++;
+            }
+         } else {
+            inst = emit_asm(ir, opcode, result_dst, coord, component);
+         }
       }
    } else
       inst = emit_asm(ir, opcode, result_dst, coord);
@@ -4624,6 +4645,12 @@ glsl_to_tgsi_visitor::visit(ir_discard *ir)
       /* unconditional kil */
       emit_asm(ir, TGSI_OPCODE_KILL);
    }
+}
+
+void
+glsl_to_tgsi_visitor::visit(ir_demote *ir)
+{
+   emit_asm(ir, TGSI_OPCODE_DEMOTE);
 }
 
 void
@@ -4706,6 +4733,7 @@ glsl_to_tgsi_visitor::glsl_to_tgsi_visitor()
    prog = NULL;
    precise = 0;
    need_uarl = false;
+   tg4_component_in_swizzle = false;
    shader_program = NULL;
    shader = NULL;
    options = NULL;
@@ -5763,6 +5791,7 @@ struct st_translate {
 
    enum pipe_shader_type procType;  /**< PIPE_SHADER_VERTEX/FRAGMENT */
    bool need_uarl;
+   bool tg4_component_in_swizzle;
 };
 
 /** Map Mesa's SYSTEM_VALUE_x to TGSI_SEMANTIC_x */
@@ -6220,6 +6249,8 @@ compile_tgsi_instruction(struct st_translate *t,
    case TGSI_OPCODE_SAMP2HND:
       if (inst->resource.file == PROGRAM_SAMPLER) {
          src[num_src] = t->samplers[inst->resource.index];
+         if (t->tg4_component_in_swizzle && inst->op == TGSI_OPCODE_TG4)
+            src[num_src].SwizzleX = inst->gather_component;
       } else {
          /* Bindless samplers. */
          src[num_src] = translate_src(t, &inst->resource);
@@ -6684,6 +6715,7 @@ st_translate_program(
 
    t->procType = procType;
    t->need_uarl = !screen->get_param(screen, PIPE_CAP_TGSI_ANY_REG_AS_ADDRESS);
+   t->tg4_component_in_swizzle = screen->get_param(screen, PIPE_CAP_TGSI_TG4_COMPONENT_IN_SWIZZLE);
    t->inputMapping = inputMapping;
    t->outputMapping = outputMapping;
    t->ureg = ureg;
@@ -7137,6 +7169,7 @@ get_mesa_program_tgsi(struct gl_context *ctx,
                                           PIPE_CAP_TGSI_TEX_TXF_LZ);
    v->need_uarl = !pscreen->get_param(pscreen, PIPE_CAP_TGSI_ANY_REG_AS_ADDRESS);
 
+   v->tg4_component_in_swizzle = pscreen->get_param(pscreen, PIPE_CAP_TGSI_TG4_COMPONENT_IN_SWIZZLE);
    v->variables = _mesa_hash_table_create(v->mem_ctx, _mesa_hash_pointer,
                                           _mesa_key_pointer_equal);
    skip_merge_registers =
@@ -7276,9 +7309,7 @@ get_mesa_program_tgsi(struct gl_context *ctx,
    }
 
    struct st_vertex_program *stvp;
-   struct st_fragment_program *stfp;
    struct st_common_program *stp;
-   struct st_compute_program *stcp;
 
    switch (shader->Stage) {
    case MESA_SHADER_VERTEX:
@@ -7286,18 +7317,12 @@ get_mesa_program_tgsi(struct gl_context *ctx,
       stvp->glsl_to_tgsi = v;
       break;
    case MESA_SHADER_FRAGMENT:
-      stfp = (struct st_fragment_program *)prog;
-      stfp->glsl_to_tgsi = v;
-      break;
    case MESA_SHADER_TESS_CTRL:
    case MESA_SHADER_TESS_EVAL:
    case MESA_SHADER_GEOMETRY:
+   case MESA_SHADER_COMPUTE:
       stp = st_common_program(prog);
       stp->glsl_to_tgsi = v;
-      break;
-   case MESA_SHADER_COMPUTE:
-      stcp = (struct st_compute_program *)prog;
-      stcp->glsl_to_tgsi = v;
       break;
    default:
       assert(!"should not be reached");
@@ -7424,35 +7449,3 @@ st_link_tgsi(struct gl_context *ctx, struct gl_shader_program *prog)
 
    return GL_TRUE;
 }
-
-extern "C" {
-
-void
-st_translate_stream_output_info(struct gl_transform_feedback_info *info,
-                                const ubyte outputMapping[],
-                                struct pipe_stream_output_info *so)
-{
-   unsigned i;
-
-   if (!info) {
-      so->num_outputs = 0;
-      return;
-   }
-
-   for (i = 0; i < info->NumOutputs; i++) {
-      so->output[i].register_index =
-         outputMapping[info->Outputs[i].OutputRegister];
-      so->output[i].start_component = info->Outputs[i].ComponentOffset;
-      so->output[i].num_components = info->Outputs[i].NumComponents;
-      so->output[i].output_buffer = info->Outputs[i].OutputBuffer;
-      so->output[i].dst_offset = info->Outputs[i].DstOffset;
-      so->output[i].stream = info->Outputs[i].StreamId;
-   }
-
-   for (i = 0; i < PIPE_MAX_SO_BUFFERS; i++) {
-      so->stride[i] = info->Buffers[i].Stride;
-   }
-   so->num_outputs = info->NumOutputs;
-}
-
-} /* extern "C" */

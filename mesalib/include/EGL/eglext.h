@@ -1362,6 +1362,17 @@ EGLAPI EGLuint64NV EGLAPIENTRY eglGetSystemTimeNV (void);
 #define EGL_NATIVE_SURFACE_TIZEN          0x32A1
 #endif /* EGL_TIZEN_image_native_surface */
 
+#ifndef EGL_EXT_image_flush_external
+#define EGL_EXT_image_flush_external 1
+#define EGL_IMAGE_EXTERNAL_FLUSH_EXT 0x32A2
+typedef EGLBoolean (EGLAPIENTRYP PFNEGLIMAGEFLUSHEXTERNALEXTPROC) (EGLDisplay dpy, EGLImageKHR image, const EGLAttrib *attrib_list);
+typedef EGLBoolean (EGLAPIENTRYP PFNEGLIMAGEINVALIDATEEXTERNALEXTPROC) (EGLDisplay dpy, EGLImageKHR image, const EGLAttrib *attrib_list);
+#ifdef EGL_EGLEXT_PROTOTYPES
+EGLAPI EGLBoolean EGLAPIENTRY eglImageFlushExternalEXT (EGLDisplay dpy, EGLImageKHR image, const EGLAttrib *attrib_list);
+EGLAPI EGLBoolean EGLAPIENTRY eglImageInvalidateExternalEXT (EGLDisplay dpy, EGLImageKHR image, const EGLAttrib *attrib_list);
+#endif
+#endif /* EGL_EXT_image_flush_external */
+
 #include <EGL/eglmesaext.h>
 #include <EGL/eglextchromium.h>
 

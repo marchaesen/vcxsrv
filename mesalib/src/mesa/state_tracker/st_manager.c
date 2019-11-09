@@ -67,7 +67,7 @@ struct hash_table;
 struct st_manager_private
 {
    struct hash_table *stfbi_ht; /* framebuffer iface objects hash table */
-   mtx_t st_mutex;
+   simple_mtx_t st_mutex;
 };
 
 
@@ -550,9 +550,9 @@ st_framebuffer_iface_lookup(struct st_manager *smapi,
    assert(smPriv);
    assert(smPriv->stfbi_ht);
 
-   mtx_lock(&smPriv->st_mutex);
+   simple_mtx_lock(&smPriv->st_mutex);
    entry = _mesa_hash_table_search(smPriv->stfbi_ht, stfbi);
-   mtx_unlock(&smPriv->st_mutex);
+   simple_mtx_unlock(&smPriv->st_mutex);
 
    return entry != NULL;
 }
@@ -569,9 +569,9 @@ st_framebuffer_iface_insert(struct st_manager *smapi,
    assert(smPriv);
    assert(smPriv->stfbi_ht);
 
-   mtx_lock(&smPriv->st_mutex);
+   simple_mtx_lock(&smPriv->st_mutex);
    entry = _mesa_hash_table_insert(smPriv->stfbi_ht, stfbi, stfbi);
-   mtx_unlock(&smPriv->st_mutex);
+   simple_mtx_unlock(&smPriv->st_mutex);
 
    return entry != NULL;
 }
@@ -588,7 +588,7 @@ st_framebuffer_iface_remove(struct st_manager *smapi,
    if (!smPriv || !smPriv->stfbi_ht)
       return;
 
-   mtx_lock(&smPriv->st_mutex);
+   simple_mtx_lock(&smPriv->st_mutex);
    entry = _mesa_hash_table_search(smPriv->stfbi_ht, stfbi);
    if (!entry)
       goto unlock;
@@ -596,7 +596,7 @@ st_framebuffer_iface_remove(struct st_manager *smapi,
    _mesa_hash_table_remove(smPriv->stfbi_ht, entry);
 
 unlock:
-   mtx_unlock(&smPriv->st_mutex);
+   simple_mtx_unlock(&smPriv->st_mutex);
 }
 
 
@@ -640,7 +640,7 @@ st_framebuffers_purge(struct st_context *st)
        * deleted.
        */
       if (!st_framebuffer_iface_lookup(smapi, stfbi)) {
-         LIST_DEL(&stfb->head);
+         list_del(&stfb->head);
          st_framebuffer_reference(&stfb, NULL);
       }
    }
@@ -841,7 +841,7 @@ st_manager_destroy(struct st_manager *smapi)
 
    if (smPriv && smPriv->stfbi_ht) {
       _mesa_hash_table_destroy(smPriv->stfbi_ht, NULL);
-      mtx_destroy(&smPriv->st_mutex);
+      simple_mtx_destroy(&smPriv->st_mutex);
       free(smPriv);
       smapi->st_manager_private = NULL;
    }
@@ -891,7 +891,7 @@ st_api_create_context(struct st_api *stapi, struct st_manager *smapi,
       struct st_manager_private *smPriv;
 
       smPriv = CALLOC_STRUCT(st_manager_private);
-      mtx_init(&smPriv->st_mutex, mtx_plain);
+      simple_mtx_init(&smPriv->st_mutex, mtx_plain);
       smPriv->stfbi_ht = _mesa_hash_table_create(NULL,
                                                  st_framebuffer_iface_hash,
                                                  st_framebuffer_iface_equal);
@@ -1036,7 +1036,7 @@ st_framebuffer_reuse_or_create(struct st_context *st,
          }
 
          /* add to the context's winsys buffers list */
-         LIST_ADD(&cur->head, &st->winsys_buffers);
+         list_add(&cur->head, &st->winsys_buffers);
 
          st_framebuffer_reference(&stfb, cur);
       }

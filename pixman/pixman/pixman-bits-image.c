@@ -191,8 +191,8 @@ bits_image_fetch_pixel_bilinear_float (bits_image_t   *image,
     *ret = bilinear_interpolation_float (tl, tr, bl, br, distx, disty);
 }
 
-static force_inline void accum_32(int *satot, int *srtot,
-				  int *sgtot, int *sbtot,
+static force_inline void accum_32(unsigned int *satot, unsigned int *srtot,
+				  unsigned int *sgtot, unsigned int *sbtot,
 				  const void *p, pixman_fixed_t f)
 {
     uint32_t pixel = *(uint32_t *)p;
@@ -203,8 +203,9 @@ static force_inline void accum_32(int *satot, int *srtot,
     *satot += (int)ALPHA_8 (pixel) * f;
 }
 
-static force_inline void reduce_32(int satot, int srtot,
-				   int sgtot, int sbtot, void *p)
+static force_inline void reduce_32(unsigned int satot, unsigned int srtot,
+				   unsigned int sgtot, unsigned int sbtot,
+                                   void *p)
 {
     uint32_t *ret = p;
 
@@ -221,8 +222,8 @@ static force_inline void reduce_32(int satot, int srtot,
     *ret = ((satot << 24) | (srtot << 16) | (sgtot <<  8) | (sbtot));
 }
 
-static force_inline void accum_float(int *satot, int *srtot,
-				     int *sgtot, int *sbtot,
+static force_inline void accum_float(unsigned int *satot, unsigned int *srtot,
+				     unsigned int *sgtot, unsigned int *sbtot,
 				     const void *p, pixman_fixed_t f)
 {
     const argb_t *pixel = p;
@@ -233,8 +234,8 @@ static force_inline void accum_float(int *satot, int *srtot,
     *sbtot += pixel->b * f;
 }
 
-static force_inline void reduce_float(int satot, int srtot,
-				      int sgtot, int sbtot,
+static force_inline void reduce_float(unsigned int satot, unsigned int srtot,
+				      unsigned int sgtot, unsigned int sbtot,
 				      void *p)
 {
     argb_t *ret = p;
@@ -245,12 +246,13 @@ static force_inline void reduce_float(int satot, int srtot,
     ret->b = CLIP (sbtot / 65536.f, 0.f, 1.f);
 }
 
-typedef void (* accumulate_pixel_t) (int *satot, int *srtot,
-				     int *sgtot, int *sbtot,
+typedef void (* accumulate_pixel_t) (unsigned int *satot, unsigned int *srtot,
+				     unsigned int *sgtot, unsigned int *sbtot,
 				     const void *pixel, pixman_fixed_t f);
 
-typedef void (* reduce_pixel_t) (int satot, int srtot,
-				 int sgtot, int sbtot, void *out);
+typedef void (* reduce_pixel_t) (unsigned int satot, unsigned int srtot,
+				 unsigned int sgtot, unsigned int sbtot,
+                                 void *out);
 
 static force_inline void
 bits_image_fetch_pixel_convolution (bits_image_t   *image,
@@ -270,7 +272,7 @@ bits_image_fetch_pixel_convolution (bits_image_t   *image,
     pixman_repeat_t repeat_mode = image->common.repeat;
     int width = image->width;
     int height = image->height;
-    int srtot, sgtot, sbtot, satot;
+    unsigned int srtot, sgtot, sbtot, satot;
 
     params += 2;
 
@@ -339,7 +341,7 @@ bits_image_fetch_pixel_separable_convolution (bits_image_t  *image,
     int x_off = ((cwidth << 16) - pixman_fixed_1) >> 1;
     int y_off = ((cheight << 16) - pixman_fixed_1) >> 1;
     pixman_fixed_t *y_params;
-    int srtot, sgtot, sbtot, satot;
+    unsigned int srtot, sgtot, sbtot, satot;
     int32_t x1, x2, y1, y2;
     int32_t px, py;
     int i, j;
@@ -672,8 +674,8 @@ __bits_image_fetch_general (pixman_iter_t  *iter,
 	{
 	    if (w != 0)
 	    {
-		x0 = ((pixman_fixed_48_16_t)x << 16) / w;
-		y0 = ((pixman_fixed_48_16_t)y << 16) / w;
+		x0 = ((uint64_t)x << 16) / w;
+		y0 = ((uint64_t)y << 16) / w;
 	    }
 	    else
 	    {

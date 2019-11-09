@@ -816,6 +816,8 @@ struct _mesa_glsl_parse_state {
    bool EXT_blend_func_extended_warn;
    bool EXT_clip_cull_distance_enable;
    bool EXT_clip_cull_distance_warn;
+   bool EXT_demote_to_helper_invocation_enable;
+   bool EXT_demote_to_helper_invocation_warn;
    bool EXT_draw_buffers_enable;
    bool EXT_draw_buffers_warn;
    bool EXT_frag_depth_enable;

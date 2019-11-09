@@ -98,7 +98,6 @@ libbsd_dep = dependency('libbsd', required: false)
 xkbcomp_dep = dependency('xkbcomp', required: false)
 xkbfile_dep = dependency('xkbfile')
 xfont2_dep = dependency('xfont2', version: '>= 2.0')
-nettle_dep = dependency('nettle')
 
 dbus_required = get_option('systemd_logind') == 'true'
 dbus_dep = dependency('dbus-1', version: '>= 1.0', required: dbus_required)
@@ -343,8 +342,95 @@ else
     build_eglstream = false
 endif
 
-# XXX: Add more sha1 options, because Linux is about choice
-sha1_dep = nettle_dep
+# Lots of sha1 options, because Linux is about choice :)
+
+# The idea behind the ordering here is that we should first prefer system
+# builtin providers, and then smaller implementations of over larger ones.
+test_sha1 = [
+    'libc',          # libmd API is in libc on some BSDs
+    'CommonCrypto',  # darwin API
+    'CryptoAPI',     # windows API
+    'libmd',         # other BSDs & Solaris
+    'libsha1',       # "a tiny library providing a SHA1 implementation, created for facilitating X server compilation on embedded devices where larger libraries containing SHA1 implementations are not needed"
+    'libnettle',
+    'libgcrypt',     # in debian base system
+    'libcrypto',
+]
+
+if get_option('sha1') != 'auto'
+    test_sha1 = [get_option('sha1')]
+endif
+
+sha1_found = false
+foreach t : test_sha1
+    if t == 'libc'
+        if cc.has_function('SHA1Init')
+            sha1_found = true
+            sha1_dep = dependency('', required: false)
+        endif
+    elif t == 'CommonCrypto'
+        if cc.has_function('CC_SHA1_Init')
+            sha1_found = true
+            sha1_dep = dependency('', required: false)
+        endif
+    elif t == 'CryptoAPI'
+        if cc.has_header('wincrypt.h')
+            sha1_found = true
+            sha1_dep = dependency('', required: false)
+        endif
+    elif t == 'libmd'
+        md_dep = cc.find_library('md', required: false)
+        if md_dep.found()
+            sha1_found = true
+            sha1_dep = md_dep
+        endif
+    elif t == 'libsha1'
+        libsha1_dep = dependency('libsha1', required: false)
+        if libsha1_dep.found()
+            sha1_found = true
+            sha1_dep = libsha1_dep
+        endif
+    elif t == 'libnettle'
+        nettle_dep = dependency('nettle', required: false)
+        if nettle_dep.found()
+            sha1_found = true
+            sha1_dep = nettle_dep
+        endif
+    elif t == 'libgcrypt'
+        gcrypt_dep = dependency('libgcrypt', required: false)
+        if gcrypt_dep.found()
+            sha1_found = true
+            sha1_dep = gcrypt_dep
+        endif
+    elif t == 'libcrypto'
+        # we don't need all of OpenSSL, just libcrypto
+        libcrypto_dep = cc.find_library('crypto', required: false)
+        openssl_dep = dependency('openssl', required: false)
+        if libcrypto_dep.found() or openssl_dep.found()
+            sha1_found = true
+            if libcrypto_dep.found()
+               sha1_dep = libcrypto_dep
+            else
+               sha1_dep = openssl_dep
+            endif
+        endif
+    endif
+
+    if sha1_found
+        sha1 = t
+        break
+    endif
+endforeach
+
+if sha1_found
+    message('Using @0@ SHA1 functions'.format(sha1))
+else
+    if get_option('sha1') != 'auto'
+        error('@0@ SHA1 requested, but not found'.format(get_option('sha1')))
+    else
+        error('No suitable SHA1 implementation found')
+    endif
+endif
 
 xdmcp_dep = dependency('', required : false)
 if get_option('xdmcp')
@@ -393,17 +479,6 @@ if not libdrm_dep.found() and libdrm_required
 endif
 
 build_modesetting = libdrm_dep.found()
-
-build_vbe = false
-if get_option('vbe') == 'auto'
-    if (host_machine.system() != 'darwin' and
-        host_machine.system() != 'windows' and
-        host_machine.system() != 'cygwin')
-        build_vbe = true
-    endif
-else
-    build_vbe = get_option('vbe') == 'true'
-endif
 
 build_vgahw = false
 if get_option('vgahw') == 'auto'

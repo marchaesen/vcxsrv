@@ -114,6 +114,7 @@ files_libnir = files(
   'nir_lower_alu.c',
   'nir_lower_alu_to_scalar.c',
   'nir_lower_alpha_test.c',
+  'nir_lower_amul.c',
   'nir_lower_array_deref_of_vec.c',
   'nir_lower_atomics_to_ssbo.c',
   'nir_lower_bitmap.c',
@@ -126,6 +127,7 @@ files_libnir = files(
   'nir_lower_double_ops.c',
   'nir_lower_drawpixels.c',
   'nir_lower_fb_read.c',
+  'nir_lower_flatshade.c',
   'nir_lower_flrp.c',
   'nir_lower_fragcoord_wtrans.c',
   'nir_lower_frexp.c',
@@ -150,6 +152,7 @@ files_libnir = files(
   'nir_lower_patch_vertices.c',
   'nir_lower_phis_to_scalar.c',
   'nir_lower_point_size.c',
+  'nir_lower_point_size_mov.c',
   'nir_lower_regs_to_ssa.c',
   'nir_lower_returns.c',
   'nir_lower_samplers.c',
@@ -170,6 +173,7 @@ files_libnir = files(
   'nir_metadata.c',
   'nir_move_vec_src_uses_to_dest.c',
   'nir_normalize_cubemap_coords.c',
+  'nir_opt_access.c',
   'nir_opt_combine_stores.c',
   'nir_opt_comparison_pre.c',
   'nir_opt_conditional_discard.c',
@@ -238,7 +242,7 @@ files_libnir = files(
   '../spirv/vtn_variables.c',
 )
 
-libnir = static_library(
+_libnir = static_library(
   'nir',
   [files_libnir, spirv_info_c, nir_opt_algebraic_c, nir_opcodes_c,
    nir_opcodes_h, nir_constant_expressions_c, nir_builder_opcodes_h,
@@ -258,7 +262,7 @@ idep_nir_headers = declare_dependency(
 # Also link with nir
 idep_nir = declare_dependency(
   dependencies : idep_nir_headers,
-  link_with : libnir,
+  link_with : _libnir,
 )
 
 nir_algebraic_py = files('nir_algebraic.py')

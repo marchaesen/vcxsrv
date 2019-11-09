@@ -76,6 +76,9 @@ struct radv_vs_variant_key {
 
 	/* For some formats the channels have to be shuffled. */
 	uint32_t post_shuffle;
+
+	/* Output primitive type. */
+	uint8_t outprim;
 };
 
 struct radv_tes_variant_key {
@@ -101,12 +104,17 @@ struct radv_fs_variant_key {
 	uint32_t is_int10;
 };
 
+struct radv_cs_variant_key {
+	uint8_t subgroup_size;
+};
+
 struct radv_shader_variant_key {
 	union {
 		struct radv_vs_variant_key vs;
 		struct radv_fs_variant_key fs;
 		struct radv_tes_variant_key tes;
 		struct radv_tcs_variant_key tcs;
+		struct radv_cs_variant_key cs;
 
 		/* A common prefix of the vs and tes keys. */
 		struct radv_vs_out_key vs_common_out;
@@ -123,7 +131,7 @@ struct radv_nir_compiler_options {
 	bool robust_buffer_access;
 	bool dump_shader;
 	bool dump_preoptir;
-	bool record_llvm_ir;
+	bool record_ir;
 	bool check_ir;
 	bool has_ls_vgpr_init_bug;
 	bool use_ngg_streamout;
@@ -131,7 +139,6 @@ struct radv_nir_compiler_options {
 	enum chip_class chip_class;
 	uint32_t tess_offchip_block_dw_size;
 	uint32_t address32_hi;
-	uint8_t wave_size;
 };
 
 enum radv_ud_index {
@@ -311,6 +318,8 @@ struct radv_shader_info {
 
 	struct gfx9_gs_info gs_ring_info;
 	struct gfx10_ngg_info ngg_info;
+
+	unsigned float_controls_mode;
 };
 
 enum radv_shader_binary_type {
@@ -334,10 +343,10 @@ struct radv_shader_binary_legacy {
 	struct ac_shader_config config;
 	unsigned code_size;
 	unsigned exec_size;
-	unsigned llvm_ir_size;
+	unsigned ir_size;
 	unsigned disasm_size;
 	
-	/* data has size of code_size + llvm_ir_size + disasm_size + 2, where
+	/* data has size of code_size + ir_size + disasm_size + 2, where
 	 * the +2 is for 0 of the ir strings. */
 	uint8_t data[0];
 };
@@ -360,11 +369,12 @@ struct radv_shader_variant {
 	struct radv_shader_info info;
 
 	/* debug only */
-	uint32_t *spirv;
+	bool aco_used;
+	char *spirv;
 	uint32_t spirv_size;
 	char *nir_string;
 	char *disasm_string;
-	char *llvm_ir_string;
+	char *ir_string;
 
 	struct list_head slab_list;
 };
@@ -400,6 +410,16 @@ radv_alloc_shader_memory(struct radv_device *device,
 
 void
 radv_destroy_shader_slabs(struct radv_device *device);
+
+void
+radv_create_shaders(struct radv_pipeline *pipeline,
+		    struct radv_device *device,
+		    struct radv_pipeline_cache *cache,
+		    const struct radv_pipeline_key *key,
+		    const VkPipelineShaderStageCreateInfo **pStages,
+		    const VkPipelineCreateFlags flags,
+		    VkPipelineCreationFeedbackEXT *pipeline_feedback,
+		    VkPipelineCreationFeedbackEXT **stage_feedbacks);
 
 struct radv_shader_variant *
 radv_shader_variant_create(struct radv_device *device,

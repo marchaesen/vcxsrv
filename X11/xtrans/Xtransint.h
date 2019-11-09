@@ -98,7 +98,7 @@ from The Open Group.
  * to avoid a race condition. JKJ (6/5/97)
  */
 
-# if defined(_POSIX_SOURCE) || defined(USG) || defined(SVR4) || defined(__SVR4) || defined(__SCO__)
+# if defined(_POSIX_SOURCE) || defined(SVR4) || defined(__SVR4)
 #  ifndef NEED_UTSNAME
 #   define NEED_UTSNAME
 #  endif

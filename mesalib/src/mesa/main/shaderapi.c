@@ -833,8 +833,10 @@ get_programiv(struct gl_context *ctx, GLuint program, GLenum pname,
       }
       return;
    case GL_GEOMETRY_SHADER_INVOCATIONS:
-      if (!has_gs || !ctx->Extensions.ARB_gpu_shader5)
+      if (!has_gs ||
+          (_mesa_is_desktop_gl(ctx) && !ctx->Extensions.ARB_gpu_shader5)) {
          break;
+      }
       if (check_gs_query(ctx, shProg)) {
          *params = shProg->_LinkedShaders[MESA_SHADER_GEOMETRY]->
             Program->info.gs.invocations;

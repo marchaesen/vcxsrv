@@ -1090,37 +1090,19 @@ ra_block_alloc(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 }
 
 static int
-ra_alloc(struct ir3_ra_ctx *ctx)
+ra_alloc(struct ir3_ra_ctx *ctx, struct ir3_instruction **precolor, unsigned nprecolor)
 {
-	/* Pre-assign VS inputs on a6xx+ binning pass shader, to align
-	 * with draw pass VS, so binning and draw pass can both use the
-	 * same VBO state.
-	 *
-	 * Note that VS inputs are expected to be full precision.
-	 */
-	bool pre_assign_inputs = (ctx->ir->compiler->gpu_id >= 600) &&
-			(ctx->ir->type == MESA_SHADER_VERTEX) &&
-			ctx->v->binning_pass;
-
-	if (pre_assign_inputs) {
-		for (unsigned i = 0; i < ctx->ir->ninputs; i++) {
-			struct ir3_instruction *instr = ctx->ir->inputs[i];
-
-			if (!instr)
-				continue;
+	unsigned num_precolor = 0;
+	for (unsigned i = 0; i < nprecolor; i++) {
+		if (precolor[i] && !(precolor[i]->flags & IR3_INSTR_UNUSED)) {
+			struct ir3_instruction *instr = precolor[i];
+			struct ir3_ra_instr_data *id = &ctx->instrd[instr->ip];
 
 			debug_assert(!(instr->regs[0]->flags & (IR3_REG_HALF | IR3_REG_HIGH)));
-
-			struct ir3_ra_instr_data *id = &ctx->instrd[instr->ip];
 
 			/* only consider the first component: */
 			if (id->off > 0)
 				continue;
-
-			unsigned name = ra_name(ctx, id);
-
-			unsigned n = i / 4;
-			unsigned c = i % 4;
 
 			/* 'base' is in scalar (class 0) but we need to map that
 			 * the conflicting register of the appropriate class (ie.
@@ -1139,10 +1121,11 @@ ra_alloc(struct ir3_ra_ctx *ctx)
 			 *       R3         |        D2
 			 *           .. and so on..
 			 */
-			unsigned reg = ctx->set->gpr_to_ra_reg[id->cls]
-					[ctx->v->nonbinning->inputs[n].regid + c];
-
+			unsigned regid = instr->regs[0]->num;
+			unsigned reg = ctx->set->gpr_to_ra_reg[id->cls][regid];
+			unsigned name = ra_name(ctx, id);
 			ra_set_node_reg(ctx->g, name, reg);
+			num_precolor = MAX2(regid, num_precolor);
 		}
 	}
 
@@ -1174,31 +1157,30 @@ retry:
 		}
 
 		/* also need to not conflict with any pre-assigned inputs: */
-		if (pre_assign_inputs) {
-			for (unsigned i = 0; i < ctx->ir->ninputs; i++) {
-				struct ir3_instruction *instr = ctx->ir->inputs[i];
+		for (unsigned i = 0; i < nprecolor; i++) {
+			struct ir3_instruction *instr = precolor[i];
 
-				if (!instr)
-					continue;
+			if (!instr)
+				continue;
 
-				struct ir3_ra_instr_data *id = &ctx->instrd[instr->ip];
+			struct ir3_ra_instr_data *id = &ctx->instrd[instr->ip];
 
-				/* only consider the first component: */
-				if (id->off > 0)
-					continue;
+			/* only consider the first component: */
+			if (id->off > 0)
+				continue;
 
-				unsigned name = ra_name(ctx, id);
+			unsigned name = ra_name(ctx, id);
+			unsigned regid = instr->regs[0]->num;
 
-				/* Check if array intersects with liverange AND register
-				 * range of the input:
-				 */
-				if (intersects(arr->start_ip, arr->end_ip,
-						ctx->def[name], ctx->use[name]) &&
+			/* Check if array intersects with liverange AND register
+			 * range of the input:
+			 */
+			if (intersects(arr->start_ip, arr->end_ip,
+							ctx->def[name], ctx->use[name]) &&
 					intersects(base, base + arr->length,
-						i, i + class_sizes[id->cls])) {
-					base = MAX2(base, i + class_sizes[id->cls]);
-					goto retry;
-				}
+							regid, regid + class_sizes[id->cls])) {
+				base = MAX2(base, regid + class_sizes[id->cls]);
+				goto retry;
 			}
 		}
 
@@ -1224,7 +1206,7 @@ retry:
 	return 0;
 }
 
-int ir3_ra(struct ir3_shader_variant *v)
+int ir3_ra(struct ir3_shader_variant *v, struct ir3_instruction **precolor, unsigned nprecolor)
 {
 	struct ir3_ra_ctx ctx = {
 			.v = v,
@@ -1235,7 +1217,7 @@ int ir3_ra(struct ir3_shader_variant *v)
 
 	ra_init(&ctx);
 	ra_add_interference(&ctx);
-	ret = ra_alloc(&ctx);
+	ret = ra_alloc(&ctx, precolor, nprecolor);
 	ra_destroy(&ctx);
 
 	return ret;

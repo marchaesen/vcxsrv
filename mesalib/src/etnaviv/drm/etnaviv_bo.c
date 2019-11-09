@@ -46,6 +46,9 @@ void _etna_bo_del(struct etna_bo *bo)
 {
 	VG_BO_FREE(bo);
 
+	if (bo->va)
+		util_vma_heap_free(&bo->dev->address_space, bo->va, bo->size);
+
 	if (bo->map)
 		os_munmap(bo->map, bo->size);
 
@@ -105,6 +108,9 @@ static struct etna_bo *bo_from_handle(struct etna_device *dev,
 	list_inithead(&bo->list);
 	/* add ourselves to the handle table: */
 	_mesa_hash_table_insert(dev->handle_table, &bo->handle, bo);
+
+	if (dev->use_softpin)
+		bo->va = util_vma_heap_alloc(&dev->address_space, bo->size, 4096);
 
 	return bo;
 }
@@ -317,6 +323,11 @@ int etna_bo_dmabuf(struct etna_bo *bo)
 uint32_t etna_bo_size(struct etna_bo *bo)
 {
 	return bo->size;
+}
+
+uint32_t etna_bo_gpu_va(struct etna_bo *bo)
+{
+	return bo->va;
 }
 
 void *etna_bo_map(struct etna_bo *bo)

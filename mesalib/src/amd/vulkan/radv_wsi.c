@@ -231,19 +231,39 @@ VkResult radv_AcquireNextImage2KHR(
 	RADV_FROM_HANDLE(radv_device, device, _device);
 	struct radv_physical_device *pdevice = device->physical_device;
 	RADV_FROM_HANDLE(radv_fence, fence, pAcquireInfo->fence);
+	RADV_FROM_HANDLE(radv_semaphore, semaphore, pAcquireInfo->semaphore);
 
 	VkResult result = wsi_common_acquire_next_image2(&pdevice->wsi_device,
 							 _device,
                                                          pAcquireInfo,
 							 pImageIndex);
 
-	if (fence && (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR)) {
-		if (fence->fence)
-			device->ws->signal_fence(fence->fence);
-		if (fence->temp_syncobj) {
-			device->ws->signal_syncobj(device->ws, fence->temp_syncobj);
-		} else if (fence->syncobj) {
-			device->ws->signal_syncobj(device->ws, fence->syncobj);
+	if (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) {
+		if (fence) {
+			if (fence->fence)
+				device->ws->signal_fence(fence->fence);
+			if (fence->temp_syncobj) {
+				device->ws->signal_syncobj(device->ws, fence->temp_syncobj);
+			} else if (fence->syncobj) {
+				device->ws->signal_syncobj(device->ws, fence->syncobj);
+			}
+		}
+		if (semaphore) {
+			struct radv_semaphore_part *part =
+				semaphore->temporary.kind != RADV_SEMAPHORE_NONE ?
+					&semaphore->temporary : &semaphore->permanent;
+
+			switch (part->kind) {
+			case RADV_SEMAPHORE_NONE:
+			case RADV_SEMAPHORE_WINSYS:
+				/* Do not need to do anything. */
+				break;
+			case RADV_SEMAPHORE_TIMELINE:
+				unreachable("WSI only allows binary semaphores.");
+			case RADV_SEMAPHORE_SYNCOBJ:
+				device->ws->signal_syncobj(device->ws, part->syncobj);
+				break;
+			}
 		}
 	}
 	return result;

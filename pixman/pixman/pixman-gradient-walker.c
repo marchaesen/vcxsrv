@@ -213,10 +213,10 @@ pixman_gradient_walker_pixel_32 (pixman_gradient_walker_t *walker,
     f.g = f.a * (walker->g_s * y + walker->g_b);
     f.b = f.a * (walker->b_s * y + walker->b_b);
 
-    return (((uint8_t)(f.a + .5f) << 24) & 0xff000000) |
-           (((uint8_t)(f.r + .5f) << 16) & 0x00ff0000) |
-           (((uint8_t)(f.g + .5f) <<  8) & 0x0000ff00) |
-           (((uint8_t)(f.b + .5f) >>  0) & 0x000000ff);
+    return (((uint32_t)(f.a + .5f) << 24) & 0xff000000) |
+           (((uint32_t)(f.r + .5f) << 16) & 0x00ff0000) |
+           (((uint32_t)(f.g + .5f) <<  8) & 0x0000ff00) |
+           (((uint32_t)(f.b + .5f) >>  0) & 0x000000ff);
 }
 
 void

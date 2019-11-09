@@ -285,18 +285,6 @@ _mesa_logbase2(GLuint n)
 }
 
 
-/**
- * Return 1 if this is a little endian machine, 0 if big endian.
- */
-static inline GLboolean
-_mesa_little_endian(void)
-{
-   const GLuint ui = 1; /* intentionally not static */
-   return *((const GLubyte *) &ui);
-}
-
-
-
 /**********************************************************************
  * Functions
  */
@@ -321,7 +309,7 @@ extern int
 _mesa_vsnprintf(char *str, size_t size, const char *fmt, va_list arg);
 
 
-#if defined(_WIN32) && !defined(strtok_r)
+#if defined(_WIN32) && !defined(HAVE_STRTOK_R)
 #define strtok_r strtok_s
 #endif
 

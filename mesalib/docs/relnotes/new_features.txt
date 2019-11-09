@@ -1,0 +1,1 @@
+VK_KHR_separate_depth_stencil_layouts on Intel.

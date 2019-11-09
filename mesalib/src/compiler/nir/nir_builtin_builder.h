@@ -24,7 +24,12 @@
 #ifndef NIR_BUILTIN_BUILDER_H
 #define NIR_BUILTIN_BUILDER_H
 
+#include "util/u_math.h"
 #include "nir/nir_builder.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * Functions are sorted alphabetically with removed type and "fast" prefix.
@@ -41,6 +46,8 @@ nir_ssa_def* nir_rotate(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y);
 nir_ssa_def* nir_smoothstep(nir_builder *b, nir_ssa_def *edge0,
                             nir_ssa_def *edge1, nir_ssa_def *x);
 nir_ssa_def* nir_upsample(nir_builder *b, nir_ssa_def *hi, nir_ssa_def *lo);
+nir_ssa_def* nir_atan(nir_builder *b, nir_ssa_def *y_over_x);
+nir_ssa_def* nir_atan2(nir_builder *b, nir_ssa_def *y, nir_ssa_def *x);
 
 static inline nir_ssa_def *
 nir_nan_check2(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y, nir_ssa_def *res)
@@ -208,5 +215,9 @@ nir_select(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y, nir_ssa_def *s)
    }
    return nir_bcsel(b, nir_ieq(b, s, nir_imm_intN_t(b, 0, s->bit_size)), x, y);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* NIR_BUILTIN_BUILDER_H */

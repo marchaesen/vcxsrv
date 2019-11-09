@@ -1,3 +1,8 @@
+2019-11-03  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+	* NOTICE: Remove third party code acknowledgments because files have been
+	removed from distro.
+
 2018-08-19  Ross Johnson <ross dot johnson at homemail dot com dot au>
 
 	* context.h (__PTW32_PROCPTR): Added missing '__' prefix for v3.

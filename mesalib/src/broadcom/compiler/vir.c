@@ -710,6 +710,7 @@ v3d_set_prog_data(struct v3d_compile *c,
         prog_data->threads = c->threads;
         prog_data->single_seg = !c->last_thrsw;
         prog_data->spill_size = c->spill_size;
+        prog_data->tmu_dirty_rcl = c->tmu_dirty_rcl;
 
         v3d_set_prog_data_uniforms(c, prog_data);
 
@@ -748,9 +749,9 @@ v3d_nir_lower_vs_early(struct v3d_compile *c)
         NIR_PASS_V(c->s, nir_lower_io_to_scalar_early,
                    nir_var_shader_in | nir_var_shader_out);
         uint64_t used_outputs[4] = {0};
-        for (int i = 0; i < c->vs_key->num_fs_inputs; i++) {
-                int slot = v3d_slot_get_slot(c->vs_key->fs_inputs[i]);
-                int comp = v3d_slot_get_component(c->vs_key->fs_inputs[i]);
+        for (int i = 0; i < c->vs_key->num_used_outputs; i++) {
+                int slot = v3d_slot_get_slot(c->vs_key->used_outputs[i]);
+                int comp = v3d_slot_get_component(c->vs_key->used_outputs[i]);
                 used_outputs[comp] |= 1ull << slot;
         }
         NIR_PASS_V(c->s, nir_remove_unused_io_vars,
@@ -825,7 +826,7 @@ v3d_nir_lower_vs_late(struct v3d_compile *c)
 
         if (c->key->ucp_enables) {
                 NIR_PASS_V(c->s, nir_lower_clip_vs, c->key->ucp_enables,
-                           false);
+                           false, false, NULL);
                 NIR_PASS_V(c->s, nir_lower_io_to_scalar,
                            nir_var_shader_out);
         }
@@ -846,11 +847,12 @@ v3d_nir_lower_fs_late(struct v3d_compile *c)
         if (c->fs_key->alpha_test) {
                 NIR_PASS_V(c->s, nir_lower_alpha_test,
                            c->fs_key->alpha_test_func,
-                           false);
+                           false, NULL);
         }
 
         if (c->key->ucp_enables)
-                NIR_PASS_V(c->s, nir_lower_clip_fs, c->key->ucp_enables);
+                NIR_PASS_V(c->s, nir_lower_clip_fs, c->key->ucp_enables,
+                           false);
 
         /* Note: FS input scalarizing must happen after
          * nir_lower_two_sided_color, which only handles a vec4 at a time.
@@ -936,9 +938,25 @@ uint64_t *v3d_compile(const struct v3d_compiler *compiler,
         NIR_PASS_V(c->s, v3d_nir_lower_io, c);
         NIR_PASS_V(c->s, v3d_nir_lower_txf_ms, c);
         NIR_PASS_V(c->s, v3d_nir_lower_image_load_store);
-        NIR_PASS_V(c->s, nir_lower_idiv);
+        NIR_PASS_V(c->s, nir_lower_idiv, nir_lower_idiv_fast);
 
         v3d_optimize_nir(c->s);
+
+        /* Do late algebraic optimization to turn add(a, neg(b)) back into
+         * subs, then the mandatory cleanup after algebraic.  Note that it may
+         * produce fnegs, and if so then we need to keep running to squash
+         * fneg(fneg(a)).
+         */
+        bool more_late_algebraic = true;
+        while (more_late_algebraic) {
+                more_late_algebraic = false;
+                NIR_PASS(more_late_algebraic, c->s, nir_opt_algebraic_late);
+                NIR_PASS_V(c->s, nir_opt_constant_folding);
+                NIR_PASS_V(c->s, nir_copy_prop);
+                NIR_PASS_V(c->s, nir_opt_dce);
+                NIR_PASS_V(c->s, nir_opt_cse);
+        }
+
         NIR_PASS_V(c->s, nir_lower_bool_to_int32);
         NIR_PASS_V(c->s, nir_convert_from_ssa, true);
 
@@ -1016,7 +1034,7 @@ vir_compile_destroy(struct v3d_compile *c)
         c->cursor.link = NULL;
 
         vir_for_each_block(block, c) {
-                while (!list_empty(&block->instructions)) {
+                while (!list_is_empty(&block->instructions)) {
                         struct qinst *qinst =
                                 list_first_entry(&block->instructions,
                                                  struct qinst, link);

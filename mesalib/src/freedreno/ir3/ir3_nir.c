@@ -56,6 +56,8 @@ static const nir_shader_compiler_options options = {
 		.lower_bitfield_extract_to_shifts = true,
 		.use_interpolated_input_intrinsics = true,
 		.lower_rotate = true,
+		.lower_to_scalar = true,
+		.has_imul24 = true,
 };
 
 /* we don't want to lower vertex_id to _zero_based on newer gpus: */
@@ -82,6 +84,8 @@ static const nir_shader_compiler_options options_a6xx = {
 		.use_interpolated_input_intrinsics = true,
 		.lower_rotate = true,
 		.vectorize_io = true,
+		.lower_to_scalar = true,
+		.has_imul24 = true,
 };
 
 const nir_shader_compiler_options *
@@ -99,7 +103,8 @@ ir3_key_lowers_nir(const struct ir3_shader_key *key)
 	return key->fsaturate_s | key->fsaturate_t | key->fsaturate_r |
 			key->vsaturate_s | key->vsaturate_t | key->vsaturate_r |
 			key->ucp_enables | key->color_two_side |
-			key->fclamp_color | key->vclamp_color;
+			key->fclamp_color | key->vclamp_color |
+			key->has_gs;
 }
 
 #define OPT(nir, pass, ...) ({                             \
@@ -184,6 +189,19 @@ ir3_optimize_nir(struct ir3_shader *shader, nir_shader *s,
 			.lower_tg4_offsets = true,
 	};
 
+	if (key && key->has_gs) {
+		switch (shader->type) {
+		case MESA_SHADER_VERTEX:
+			NIR_PASS_V(s, ir3_nir_lower_vs_to_explicit_io, shader);
+			break;
+		case MESA_SHADER_GEOMETRY:
+			NIR_PASS_V(s, ir3_nir_lower_gs, shader);
+			break;
+		default:
+			break;
+		}
+	}
+
 	if (key) {
 		switch (shader->type) {
 		case MESA_SHADER_FRAGMENT:
@@ -221,11 +239,11 @@ ir3_optimize_nir(struct ir3_shader *shader, nir_shader *s,
 
 	if (key) {
 		if (s->info.stage == MESA_SHADER_VERTEX) {
-			OPT_V(s, nir_lower_clip_vs, key->ucp_enables, false);
+			OPT_V(s, nir_lower_clip_vs, key->ucp_enables, false, false, NULL);
 			if (key->vclamp_color)
 				OPT_V(s, nir_lower_clamp_color_outputs);
 		} else if (s->info.stage == MESA_SHADER_FRAGMENT) {
-			OPT_V(s, nir_lower_clip_fs, key->ucp_enables);
+			OPT_V(s, nir_lower_clip_fs, key->ucp_enables, false);
 			if (key->fclamp_color)
 				OPT_V(s, nir_lower_clamp_color_outputs);
 		}
@@ -259,9 +277,23 @@ ir3_optimize_nir(struct ir3_shader *shader, nir_shader *s,
 	 * NOTE that UBO analysis pass should only be done once, before variants
 	 */
 	const bool ubo_progress = !key && OPT(s, ir3_nir_analyze_ubo_ranges, shader);
-	const bool idiv_progress = OPT(s, nir_lower_idiv);
+	const bool idiv_progress = OPT(s, nir_lower_idiv, nir_lower_idiv_fast);
 	if (ubo_progress || idiv_progress)
 		ir3_optimize_loop(s);
+
+	/* Do late algebraic optimization to turn add(a, neg(b)) back into
+	* subs, then the mandatory cleanup after algebraic.  Note that it may
+	* produce fnegs, and if so then we need to keep running to squash
+	* fneg(fneg(a)).
+	*/
+	bool more_late_algebraic = true;
+	while (more_late_algebraic) {
+		more_late_algebraic = OPT(s, nir_opt_algebraic_late);
+		OPT_V(s, nir_opt_constant_folding);
+		OPT_V(s, nir_copy_prop);
+		OPT_V(s, nir_opt_dce);
+		OPT_V(s, nir_opt_cse);
+	}
 
 	OPT_V(s, nir_remove_dead_variables, nir_var_function_temp);
 
@@ -413,6 +445,20 @@ ir3_setup_const_state(struct ir3_shader *shader, nir_shader *nir)
 			shader->stream_output.num_outputs > 0) {
 		const_state->offsets.tfbo = constoff;
 		constoff += align(IR3_MAX_SO_BUFFERS * ptrsz, 4) / 4;
+	}
+
+	switch (shader->type) {
+	case MESA_SHADER_VERTEX:
+		const_state->offsets.primitive_param = constoff;
+		constoff += 1;
+		break;
+	case MESA_SHADER_GEOMETRY:
+		const_state->offsets.primitive_param = constoff;
+		const_state->offsets.primitive_map = constoff + 1;
+		constoff += 1 + DIV_ROUND_UP(nir->num_inputs, 4);
+		break;
+	default:
+		break;
 	}
 
 	const_state->offsets.immediate = constoff;

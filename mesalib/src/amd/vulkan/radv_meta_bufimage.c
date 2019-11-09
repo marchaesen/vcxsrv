@@ -135,7 +135,7 @@ radv_device_init_meta_itob_state(struct radv_device *device)
 	struct radv_shader_module cs_3d = { .nir = NULL };
 
 	cs.nir = build_nir_itob_compute_shader(device, false);
-	if (device->physical_device->rad_info.chip_class == GFX9)
+	if (device->physical_device->rad_info.chip_class >= GFX9)
 		cs_3d.nir = build_nir_itob_compute_shader(device, true);
 
 	/*
@@ -211,7 +211,7 @@ radv_device_init_meta_itob_state(struct radv_device *device)
 	if (result != VK_SUCCESS)
 		goto fail;
 
-	if (device->physical_device->rad_info.chip_class == GFX9) {
+	if (device->physical_device->rad_info.chip_class >= GFX9) {
 		VkPipelineShaderStageCreateInfo pipeline_shader_stage_3d = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 			.stage = VK_SHADER_STAGE_COMPUTE_BIT,
@@ -256,7 +256,7 @@ radv_device_finish_meta_itob_state(struct radv_device *device)
 					&state->alloc);
 	radv_DestroyPipeline(radv_device_to_handle(device),
 			     state->itob.pipeline, &state->alloc);
-	if (device->physical_device->rad_info.chip_class == GFX9)
+	if (device->physical_device->rad_info.chip_class >= GFX9)
 		radv_DestroyPipeline(radv_device_to_handle(device),
 				     state->itob.pipeline_3d, &state->alloc);
 }
@@ -361,7 +361,7 @@ radv_device_init_meta_btoi_state(struct radv_device *device)
 	struct radv_shader_module cs = { .nir = NULL };
 	struct radv_shader_module cs_3d = { .nir = NULL };
 	cs.nir = build_nir_btoi_compute_shader(device, false);
-	if (device->physical_device->rad_info.chip_class == GFX9)
+	if (device->physical_device->rad_info.chip_class >= GFX9)
 		cs_3d.nir = build_nir_btoi_compute_shader(device, true);
 	/*
 	 * two descriptors one for the image being sampled
@@ -436,7 +436,7 @@ radv_device_init_meta_btoi_state(struct radv_device *device)
 	if (result != VK_SUCCESS)
 		goto fail;
 
-	if (device->physical_device->rad_info.chip_class == GFX9) {
+	if (device->physical_device->rad_info.chip_class >= GFX9) {
 		VkPipelineShaderStageCreateInfo pipeline_shader_stage_3d = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 			.stage = VK_SHADER_STAGE_COMPUTE_BIT,
@@ -785,7 +785,7 @@ radv_device_init_meta_itoi_state(struct radv_device *device)
 	struct radv_shader_module cs = { .nir = NULL };
 	struct radv_shader_module cs_3d = { .nir = NULL };
 	cs.nir = build_nir_itoi_compute_shader(device, false);
-	if (device->physical_device->rad_info.chip_class == GFX9)
+	if (device->physical_device->rad_info.chip_class >= GFX9)
 		cs_3d.nir = build_nir_itoi_compute_shader(device, true);
 	/*
 	 * two descriptors one for the image being sampled
@@ -860,7 +860,7 @@ radv_device_init_meta_itoi_state(struct radv_device *device)
 	if (result != VK_SUCCESS)
 		goto fail;
 
-	if (device->physical_device->rad_info.chip_class == GFX9) {
+	if (device->physical_device->rad_info.chip_class >= GFX9) {
 		VkPipelineShaderStageCreateInfo pipeline_shader_stage_3d = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 .stage = VK_SHADER_STAGE_COMPUTE_BIT,
@@ -904,7 +904,7 @@ radv_device_finish_meta_itoi_state(struct radv_device *device)
 					&state->alloc);
 	radv_DestroyPipeline(radv_device_to_handle(device),
 			     state->itoi.pipeline, &state->alloc);
-	if (device->physical_device->rad_info.chip_class == GFX9)
+	if (device->physical_device->rad_info.chip_class >= GFX9)
 		radv_DestroyPipeline(radv_device_to_handle(device),
 				     state->itoi.pipeline_3d, &state->alloc);
 }
@@ -1191,7 +1191,7 @@ radv_device_init_meta_cleari_state(struct radv_device *device)
 	struct radv_shader_module cs = { .nir = NULL };
 	struct radv_shader_module cs_3d = { .nir = NULL };
 	cs.nir = build_nir_cleari_compute_shader(device, false);
-	if (device->physical_device->rad_info.chip_class == GFX9)
+	if (device->physical_device->rad_info.chip_class >= GFX9)
 		cs_3d.nir = build_nir_cleari_compute_shader(device, true);
 
 	/*
@@ -1261,7 +1261,7 @@ radv_device_init_meta_cleari_state(struct radv_device *device)
 		goto fail;
 
 
-	if (device->physical_device->rad_info.chip_class == GFX9) {
+	if (device->physical_device->rad_info.chip_class >= GFX9) {
 		/* compute shader */
 		VkPipelineShaderStageCreateInfo pipeline_shader_stage_3d = {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -1706,7 +1706,7 @@ radv_meta_image_to_buffer(struct radv_cmd_buffer *cmd_buffer,
 	create_bview(cmd_buffer, dst->buffer, dst->offset, dst->format, &dst_view);
 	itob_bind_descriptors(cmd_buffer, &src_view, &dst_view);
 
-	if (device->physical_device->rad_info.chip_class == GFX9 &&
+	if (device->physical_device->rad_info.chip_class >= GFX9 &&
 	    src->image->type == VK_IMAGE_TYPE_3D)
 		pipeline = cmd_buffer->device->meta_state.itob.pipeline_3d;
 
@@ -1875,7 +1875,7 @@ radv_meta_buffer_to_image_cs(struct radv_cmd_buffer *cmd_buffer,
 	create_iview(cmd_buffer, dst, &dst_view);
 	btoi_bind_descriptors(cmd_buffer, &src_view, &dst_view);
 
-	if (device->physical_device->rad_info.chip_class == GFX9 &&
+	if (device->physical_device->rad_info.chip_class >= GFX9 &&
 	    dst->image->type == VK_IMAGE_TYPE_3D)
 		pipeline = cmd_buffer->device->meta_state.btoi.pipeline_3d;
 	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
@@ -2060,7 +2060,7 @@ radv_meta_image_to_image_cs(struct radv_cmd_buffer *cmd_buffer,
 
 	itoi_bind_descriptors(cmd_buffer, &src_view, &dst_view);
 
-	if (device->physical_device->rad_info.chip_class == GFX9 &&
+	if (device->physical_device->rad_info.chip_class >= GFX9 &&
 	    (src->image->type == VK_IMAGE_TYPE_3D || dst->image->type == VK_IMAGE_TYPE_3D))
 		pipeline = cmd_buffer->device->meta_state.itoi.pipeline_3d;
 	radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer),
@@ -2201,7 +2201,7 @@ radv_meta_clear_image_cs(struct radv_cmd_buffer *cmd_buffer,
 	create_iview(cmd_buffer, dst, &dst_iview);
 	cleari_bind_descriptors(cmd_buffer, &dst_iview);
 
-	if (device->physical_device->rad_info.chip_class == GFX9 &&
+	if (device->physical_device->rad_info.chip_class >= GFX9 &&
 	    dst->image->type == VK_IMAGE_TYPE_3D)
 		pipeline = cmd_buffer->device->meta_state.cleari.pipeline_3d;
 

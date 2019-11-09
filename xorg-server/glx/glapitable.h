@@ -1578,6 +1578,55 @@ struct _glapi_table
    void (GLAPIENTRYP GetCompressedMultiTexImageEXT)(GLenum texunit, GLenum target, GLint level, GLvoid * img); /* 1531 */
    void (GLAPIENTRYP GetMultiTexLevelParameterivEXT)(GLenum texunit, GLenum target, GLint level, GLenum pname, GLint* params); /* 1532 */
    void (GLAPIENTRYP GetMultiTexLevelParameterfvEXT)(GLenum texunit, GLenum target, GLint level, GLenum pname, GLfloat* params); /* 1533 */
+   void (GLAPIENTRYP FramebufferParameteriMESA)(GLenum target, GLenum pname, GLint param); /* 1534 */
+   void (GLAPIENTRYP GetFramebufferParameterivMESA)(GLenum target, GLenum pname, GLint * params); /* 1535 */
+   void (GLAPIENTRYP NamedRenderbufferStorageEXT)(GLuint renderbuffer, GLenum internalformat, GLsizei width, GLsizei height); /* 1536 */
+   void (GLAPIENTRYP GetNamedRenderbufferParameterivEXT)(GLuint renderbuffer, GLenum pname, GLint * params); /* 1537 */
+   void (GLAPIENTRYP ClientAttribDefaultEXT)(GLbitfield mask); /* 1538 */
+   void (GLAPIENTRYP PushClientAttribDefaultEXT)(GLbitfield mask); /* 1539 */
+   void (GLAPIENTRYP NamedProgramStringEXT)(GLuint program, GLenum target, GLenum format, GLsizei len, const GLvoid* string); /* 1540 */
+   void (GLAPIENTRYP GetNamedProgramStringEXT)(GLuint program, GLenum target, GLenum pname, GLvoid* string); /* 1541 */
+   void (GLAPIENTRYP NamedProgramLocalParameter4fEXT)(GLuint program, GLenum target, GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w); /* 1542 */
+   void (GLAPIENTRYP NamedProgramLocalParameter4fvEXT)(GLuint program, GLenum target, GLuint index, const GLfloat* params); /* 1543 */
+   void (GLAPIENTRYP GetNamedProgramLocalParameterfvEXT)(GLuint program, GLenum target, GLuint index, GLfloat* params); /* 1544 */
+   void (GLAPIENTRYP NamedProgramLocalParameter4dEXT)(GLuint program, GLenum target, GLuint index, GLdouble x, GLdouble y, GLdouble z, GLdouble w); /* 1545 */
+   void (GLAPIENTRYP NamedProgramLocalParameter4dvEXT)(GLuint program, GLenum target, GLuint index, const GLdouble* params); /* 1546 */
+   void (GLAPIENTRYP GetNamedProgramLocalParameterdvEXT)(GLuint program, GLenum target, GLuint index, GLdouble* params); /* 1547 */
+   void (GLAPIENTRYP GetNamedProgramivEXT)(GLuint program, GLenum target, GLenum pname, GLint* params); /* 1548 */
+   void (GLAPIENTRYP TextureBufferEXT)(GLuint texture, GLenum target, GLenum internalformat, GLuint buffer); /* 1549 */
+   void (GLAPIENTRYP MultiTexBufferEXT)(GLenum texunit, GLenum target, GLenum internalformat, GLuint buffer); /* 1550 */
+   void (GLAPIENTRYP TextureParameterIivEXT)(GLuint texture, GLenum target, GLenum pname, const GLint* params); /* 1551 */
+   void (GLAPIENTRYP TextureParameterIuivEXT)(GLuint texture, GLenum target, GLenum pname, const GLuint* params); /* 1552 */
+   void (GLAPIENTRYP GetTextureParameterIivEXT)(GLuint texture, GLenum target, GLenum pname, GLint* params); /* 1553 */
+   void (GLAPIENTRYP GetTextureParameterIuivEXT)(GLuint texture, GLenum target, GLenum pname, GLuint* params); /* 1554 */
+   void (GLAPIENTRYP MultiTexParameterIivEXT)(GLenum texunit, GLenum target, GLenum pname, const GLint* params); /* 1555 */
+   void (GLAPIENTRYP MultiTexParameterIuivEXT)(GLenum texunit, GLenum target, GLenum pname, const GLuint* params); /* 1556 */
+   void (GLAPIENTRYP GetMultiTexParameterIivEXT)(GLenum texunit, GLenum target, GLenum pname, GLint* params); /* 1557 */
+   void (GLAPIENTRYP GetMultiTexParameterIuivEXT)(GLenum texunit, GLenum target, GLenum pname, GLuint* params); /* 1558 */
+   void (GLAPIENTRYP NamedProgramLocalParameters4fvEXT)(GLuint program, GLenum target, GLuint index, GLsizei count, const GLfloat* params); /* 1559 */
+   void (GLAPIENTRYP GenerateTextureMipmapEXT)(GLuint texture, GLenum target); /* 1560 */
+   void (GLAPIENTRYP GenerateMultiTexMipmapEXT)(GLenum texunit, GLenum target); /* 1561 */
+   void (GLAPIENTRYP NamedRenderbufferStorageMultisampleEXT)(GLuint renderbuffer, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height); /* 1562 */
+   void (GLAPIENTRYP NamedCopyBufferSubDataEXT)(GLuint readBuffer, GLuint writeBuffer, GLintptr readOffset, GLintptr writeOffset, GLsizeiptr size); /* 1563 */
+   void (GLAPIENTRYP VertexArrayVertexOffsetEXT)(GLuint vaobj, GLuint buffer, GLint size, GLenum type, GLsizei stride, GLintptr offset); /* 1564 */
+   void (GLAPIENTRYP VertexArrayColorOffsetEXT)(GLuint vaobj, GLuint buffer, GLint size, GLenum type, GLsizei stride, GLintptr offset); /* 1565 */
+   void (GLAPIENTRYP VertexArrayEdgeFlagOffsetEXT)(GLuint vaobj, GLuint buffer, GLsizei stride, GLintptr offset); /* 1566 */
+   void (GLAPIENTRYP VertexArrayIndexOffsetEXT)(GLuint vaobj, GLuint buffer, GLenum type, GLsizei stride, GLintptr offset); /* 1567 */
+   void (GLAPIENTRYP VertexArrayNormalOffsetEXT)(GLuint vaobj, GLuint buffer, GLenum type, GLsizei stride, GLintptr offset); /* 1568 */
+   void (GLAPIENTRYP VertexArrayTexCoordOffsetEXT)(GLuint vaobj, GLuint buffer, GLint size, GLenum type, GLsizei stride, GLintptr offset); /* 1569 */
+   void (GLAPIENTRYP VertexArrayMultiTexCoordOffsetEXT)(GLuint vaobj, GLuint buffer, GLenum texunit, GLint size, GLenum type, GLsizei stride, GLintptr offset); /* 1570 */
+   void (GLAPIENTRYP VertexArrayFogCoordOffsetEXT)(GLuint vaobj, GLuint buffer, GLenum type, GLsizei stride, GLintptr offset); /* 1571 */
+   void (GLAPIENTRYP VertexArraySecondaryColorOffsetEXT)(GLuint vaobj, GLuint buffer, GLint size, GLenum type, GLsizei stride, GLintptr offset); /* 1572 */
+   void (GLAPIENTRYP VertexArrayVertexAttribOffsetEXT)(GLuint vaobj, GLuint buffer, GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, GLintptr offset); /* 1573 */
+   void (GLAPIENTRYP VertexArrayVertexAttribIOffsetEXT)(GLuint vaobj, GLuint buffer, GLuint index, GLint size, GLenum type, GLsizei stride, GLintptr offset); /* 1574 */
+   void (GLAPIENTRYP EnableVertexArrayEXT)(GLuint vaobj, GLenum array); /* 1575 */
+   void (GLAPIENTRYP DisableVertexArrayEXT)(GLuint vaobj, GLenum array); /* 1576 */
+   void (GLAPIENTRYP EnableVertexArrayAttribEXT)(GLuint vaobj, GLuint index); /* 1577 */
+   void (GLAPIENTRYP DisableVertexArrayAttribEXT)(GLuint vaobj, GLuint index); /* 1578 */
+   void (GLAPIENTRYP GetVertexArrayIntegervEXT)(GLuint vaobj, GLenum pname, GLint* param); /* 1579 */
+   void (GLAPIENTRYP GetVertexArrayPointervEXT)(GLuint vaobj, GLenum pname, GLvoid** param); /* 1580 */
+   void (GLAPIENTRYP GetVertexArrayIntegeri_vEXT)(GLuint vaobj, GLuint index, GLenum pname, GLint* param); /* 1581 */
+   void (GLAPIENTRYP GetVertexArrayPointeri_vEXT)(GLuint vaobj, GLuint index, GLenum pname, GLvoid** param); /* 1582 */
 };
 
 #ifdef __cplusplus

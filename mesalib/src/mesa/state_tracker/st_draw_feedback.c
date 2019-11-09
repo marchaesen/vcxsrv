@@ -108,7 +108,6 @@ st_feedback_draw_vbo(struct gl_context *ctx,
    struct draw_context *draw = st_get_draw_context(st);
    const struct st_vertex_program *vp;
    struct st_vp_variant *vp_variant;
-   const struct pipe_shader_state *vs;
    struct pipe_vertex_buffer vbuffers[PIPE_MAX_SHADER_INPUTS];
    unsigned num_vbuffers = 0;
    struct pipe_vertex_element velements[PIPE_MAX_ATTRIBS];
@@ -139,10 +138,13 @@ st_feedback_draw_vbo(struct gl_context *ctx,
    /* must get these after state validation! */
    vp = st->vp;
    vp_variant = st->vp_variant;
-   vs = &vp_variant->tgsi;
+
+   struct pipe_shader_state state = {0};
+   state.type = PIPE_SHADER_IR_TGSI;
+   state.tokens = vp_variant->tokens;
 
    if (!vp_variant->draw_shader) {
-      vp_variant->draw_shader = draw_create_vertex_shader(draw, vs);
+      vp_variant->draw_shader = draw_create_vertex_shader(draw, &state);
    }
 
    /*

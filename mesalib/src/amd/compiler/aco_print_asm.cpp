@@ -1,4 +1,4 @@
-
+#include <array>
 #include <iomanip>
 #include "aco_ir.h"
 #include "llvm-c/Disassembler.h"
@@ -9,7 +9,7 @@
 namespace aco {
 
 void print_asm(Program *program, std::vector<uint32_t>& binary,
-               unsigned exec_size, enum radeon_family family, std::ostream& out)
+               unsigned exec_size, std::ostream& out)
 {
    std::vector<bool> referenced_blocks(program->blocks.size());
    referenced_blocks[0] = true;
@@ -30,9 +30,15 @@ void print_asm(Program *program, std::vector<uint32_t>& binary,
       symbols.emplace_back(block.offset * 4, llvm::StringRef(block_names[block_names.size() - 1].data()), 0);
    }
 
-   LLVMDisasmContextRef disasm = LLVMCreateDisasmCPU("amdgcn-mesa-mesa3d",
-                                                     ac_get_llvm_processor_name(family),
-                                                     &symbols, 0, NULL, NULL);
+   const char *features = "";
+   if (program->chip_class >= GFX10 && program->wave_size == 64) {
+      features = "+wavefrontsize64";
+   }
+
+   LLVMDisasmContextRef disasm = LLVMCreateDisasmCPUFeatures("amdgcn-mesa-mesa3d",
+                                                             ac_get_llvm_processor_name(program->family),
+                                                             features,
+                                                             &symbols, 0, NULL, NULL);
 
    char outline[1024];
    size_t pos = 0;

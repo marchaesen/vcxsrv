@@ -671,7 +671,7 @@ InitClientResources(ClientPtr client)
 }
 
 int
-HashResourceID(XID id, int numBits)
+HashResourceID(XID id, unsigned int numBits)
 {
     static XID mask;
 
@@ -679,7 +679,7 @@ HashResourceID(XID id, int numBits)
         mask = RESOURCE_ID_MASK;
     id &= mask;
     if (numBits < 9)
-        return (id ^ (id >> numBits) ^ (id >> (numBits<<1))) & ~((~0) << numBits);
+        return (id ^ (id >> numBits) ^ (id >> (numBits<<1))) & ~((~0U) << numBits);
     return (id ^ (id >> numBits)) & ~((~0) << numBits);
 }
 

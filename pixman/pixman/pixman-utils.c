@@ -206,7 +206,7 @@ pixman_contract_from_float (uint32_t     *dst,
 
     for (i = 0; i < width; ++i)
     {
-	uint8_t a, r, g, b;
+	uint32_t a, r, g, b;
 
 	a = float_to_unorm (src[i].a, 8);
 	r = float_to_unorm (src[i].r, 8);

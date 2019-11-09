@@ -78,6 +78,10 @@ _mesa_readbuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
 extern void
 _mesa_update_draw_buffers(struct gl_context *ctx);
 
+extern GLenum
+_mesa_back_to_front_if_single_buffered(const struct gl_framebuffer *fb,
+                                       GLenum buffer);
+
 void GLAPIENTRY
 _mesa_ReadBuffer_no_error(GLenum mode);
 

@@ -720,11 +720,23 @@ libmesa_classic = static_library(
   build_by_default : false,
 )
 
+_mesa_gallium_args = []
+if with_platform_windows
+  _mesa_gallium_args += [
+    '-D_GDI32_',    # prevent gl* being declared __declspec(dllimport) in MS headers
+    '-DBUILD_GL32'  # declare gl* as __declspec(dllexport) in Mesa headers
+  ]
+  if not with_shared_glapi
+    # prevent _glapi_* from being declared __declspec(dllimport)
+    _mesa_gallium_args += '-D_GLAPI_NO_EXPORTS'
+  endif
+endif
+
 libmesa_gallium = static_library(
   'mesa_gallium',
   [files_libmesa_common, files_libmesa_gallium],
-  c_args : [c_vis_args, c_msvc_compat_args],
-  cpp_args : [cpp_vis_args, cpp_msvc_compat_args],
+  c_args : [c_vis_args, c_msvc_compat_args, _mesa_gallium_args],
+  cpp_args : [cpp_vis_args, cpp_msvc_compat_args, _mesa_gallium_args],
   include_directories : [inc_common, inc_libmesa_asm, include_directories('main')],
   link_with : [libglsl, libmesa_sse41],
   dependencies : [idep_nir_headers, dep_vdpau],

@@ -69,7 +69,7 @@ static inline thrd_t u_thread_create(int (*routine)(void *), void *param)
 static inline void u_thread_setname( const char *name )
 {
 #if defined(HAVE_PTHREAD)
-#if DETECT_OS_LINUX || DETECT_OS_CYGWIN
+#if DETECT_OS_LINUX || DETECT_OS_CYGWIN || DETECT_OS_SOLARIS
    pthread_setname_np(pthread_self(), name);
 #elif DETECT_OS_FREEBSD || DETECT_OS_OPENBSD
    pthread_set_name_np(pthread_self(), name);

@@ -853,7 +853,7 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 
 	/* Compute FMASK. */
 	if (config->info.samples >= 2 && AddrSurfInfoIn.flags.color &&
-	    !(surf->flags & RADEON_SURF_NO_FMASK)) {
+	    info->has_graphics && !(surf->flags & RADEON_SURF_NO_FMASK)) {
 		ADDR_COMPUTE_FMASK_INFO_INPUT fin = {0};
 		ADDR_COMPUTE_FMASK_INFO_OUTPUT fout = {0};
 		ADDR_TILEINFO fmask_tile_info = {};
@@ -1301,7 +1301,8 @@ static int gfx9_compute_miptree(ADDR_HANDLE addrlib,
 		}
 
 		/* FMASK */
-		if (in->numSamples > 1 && !(surf->flags & RADEON_SURF_NO_FMASK)) {
+		if (in->numSamples > 1 && info->has_graphics &&
+		    !(surf->flags & RADEON_SURF_NO_FMASK)) {
 			ADDR2_COMPUTE_FMASK_INFO_INPUT fin = {0};
 			ADDR2_COMPUTE_FMASK_INFO_OUTPUT fout = {0};
 

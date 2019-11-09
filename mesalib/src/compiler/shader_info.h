@@ -60,6 +60,7 @@ struct spirv_supported_capabilities {
    bool post_depth_coverage;
    bool runtime_descriptor_array;
    bool float_controls;
+   bool shader_clock;
    bool shader_viewport_index_layer;
    bool stencil_export;
    bool storage_8bit;
@@ -74,6 +75,8 @@ struct spirv_supported_capabilities {
    bool tessellation;
    bool transform_feedback;
    bool variable_pointers;
+   bool vk_memory_model;
+   bool vk_memory_model_device_scope;
    bool float16;
    bool amd_gcn_shader;
    bool amd_shader_ballot;
@@ -104,6 +107,8 @@ typedef struct shader_info {
    unsigned num_ssbos;
    /* Number of images used by this shader */
    unsigned num_images;
+   /* Index of the last MSAA image. */
+   int last_msaa_image;
 
    /* Which inputs are actually read */
    uint64_t inputs_read;
@@ -148,11 +153,17 @@ typedef struct shader_info {
    /* The size of the gl_CullDistance[] array, if declared. */
    unsigned cull_distance_array_size;
 
+   /* Whether the first UBO is the default uniform buffer, i.e. uniforms. */
+   bool first_ubo_is_default_ubo;
+
    /* Whether or not separate shader objects were used */
    bool separate_shader;
 
    /** Was this shader linked with any transform feedback varyings? */
    bool has_transform_feedback_varyings;
+
+   /* Whether flrp has been lowered. */
+   bool flrp_lowered;
 
    /* SPV_KHR_float_controls: execution mode for floating point ops */
    unsigned float_controls_execution_mode;

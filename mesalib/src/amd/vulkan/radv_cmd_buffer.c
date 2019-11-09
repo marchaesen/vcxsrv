@@ -556,8 +556,9 @@ radv_save_pipeline(struct radv_cmd_buffer *cmd_buffer,
 		assert(!"invalid ring type");
 	}
 
-	data[0] = (uintptr_t)pipeline;
-	data[1] = (uintptr_t)pipeline >> 32;
+	uint64_t pipeline_address = (uintptr_t)pipeline;
+	data[0] = pipeline_address;
+	data[1] = pipeline_address >> 32;
 
 	radv_emit_write_data_packet(cmd_buffer, va, 2, data);
 }
@@ -999,6 +1000,9 @@ radv_emit_rbplus_state(struct radv_cmd_buffer *cmd_buffer)
 	unsigned sx_ps_downconvert = 0;
 	unsigned sx_blend_opt_epsilon = 0;
 	unsigned sx_blend_opt_control = 0;
+
+	if (!cmd_buffer->state.attachments || !subpass)
+		return;
 
 	for (unsigned i = 0; i < subpass->color_count; ++i) {
 		if (subpass->color_attachments[i].attachment == VK_ATTACHMENT_UNUSED) {
@@ -1552,9 +1556,19 @@ radv_update_bound_fast_clear_ds(struct radv_cmd_buffer *cmd_buffer,
 	if (cmd_buffer->state.attachments[att_idx].iview->image != image)
 		return;
 
-	radeon_set_context_reg_seq(cs, R_028028_DB_STENCIL_CLEAR, 2);
-	radeon_emit(cs, ds_clear_value.stencil);
-	radeon_emit(cs, fui(ds_clear_value.depth));
+	if (aspects == (VK_IMAGE_ASPECT_DEPTH_BIT |
+			VK_IMAGE_ASPECT_STENCIL_BIT)) {
+		radeon_set_context_reg_seq(cs, R_028028_DB_STENCIL_CLEAR, 2);
+		radeon_emit(cs, ds_clear_value.stencil);
+		radeon_emit(cs, fui(ds_clear_value.depth));
+	} else if (aspects == VK_IMAGE_ASPECT_DEPTH_BIT) {
+		radeon_set_context_reg_seq(cs, R_02802C_DB_DEPTH_CLEAR, 1);
+		radeon_emit(cs, fui(ds_clear_value.depth));
+	} else {
+		assert(aspects == VK_IMAGE_ASPECT_STENCIL_BIT);
+		radeon_set_context_reg_seq(cs, R_028028_DB_STENCIL_CLEAR, 1);
+		radeon_emit(cs, ds_clear_value.stencil);
+	}
 
 	/* Update the ZRANGE_PRECISION value for the TC-compat bug. This is
 	 * only needed when clearing Z to 0.0.
@@ -2312,14 +2326,15 @@ radv_flush_constants(struct radv_cmd_buffer *cmd_buffer,
 		return;
 
 	radv_foreach_stage(stage, stages) {
-		if (!pipeline->shaders[stage])
+		shader = radv_get_shader(pipeline, stage);
+		if (!shader)
 			continue;
 
-		need_push_constants |= pipeline->shaders[stage]->info.loads_push_constants;
-		need_push_constants |= pipeline->shaders[stage]->info.loads_dynamic_offsets;
+		need_push_constants |= shader->info.loads_push_constants;
+		need_push_constants |= shader->info.loads_dynamic_offsets;
 
-		uint8_t base = pipeline->shaders[stage]->info.base_inline_push_consts;
-		uint8_t count = pipeline->shaders[stage]->info.num_inline_push_consts;
+		uint8_t base = shader->info.base_inline_push_consts;
+		uint8_t count = shader->info.num_inline_push_consts;
 
 		radv_emit_inline_push_consts(cmd_buffer, pipeline, stage,
 					     AC_UD_INLINE_PUSH_CONSTANTS,
@@ -2371,7 +2386,6 @@ radv_flush_vertex_descriptors(struct radv_cmd_buffer *cmd_buffer,
 	    (cmd_buffer->state.dirty & RADV_CMD_DIRTY_VERTEX_BUFFER)) &&
 	    cmd_buffer->state.pipeline->num_vertex_bindings &&
 	    radv_get_shader(cmd_buffer->state.pipeline, MESA_SHADER_VERTEX)->info.vs.has_vertex_buffers) {
-		struct radv_vertex_elements_info *velems = &cmd_buffer->state.pipeline->vertex_elements;
 		unsigned vb_offset;
 		void *vb_ptr;
 		uint32_t i = 0;
@@ -2388,6 +2402,7 @@ radv_flush_vertex_descriptors(struct radv_cmd_buffer *cmd_buffer,
 			uint32_t offset;
 			struct radv_buffer *buffer = cmd_buffer->vertex_bindings[i].buffer;
 			uint32_t stride = cmd_buffer->state.pipeline->binding_stride[i];
+			unsigned num_records;
 
 			if (!buffer)
 				continue;
@@ -2396,12 +2411,14 @@ radv_flush_vertex_descriptors(struct radv_cmd_buffer *cmd_buffer,
 
 			offset = cmd_buffer->vertex_bindings[i].offset;
 			va += offset + buffer->offset;
+
+			num_records = buffer->size - offset;
+			if (cmd_buffer->device->physical_device->rad_info.chip_class != GFX8 && stride)
+				num_records /= stride;
+
 			desc[0] = va;
 			desc[1] = S_008F04_BASE_ADDRESS_HI(va >> 32) | S_008F04_STRIDE(stride);
-			if (cmd_buffer->device->physical_device->rad_info.chip_class <= GFX7 && stride)
-				desc[2] = (buffer->size - offset - velems->format_size[i]) / stride + 1;
-			else
-				desc[2] = buffer->size - offset;
+			desc[2] = num_records;
 			desc[3] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) |
 				  S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
 				  S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
@@ -3163,7 +3180,7 @@ VkResult radv_AllocateCommandBuffers(
 
 	for (i = 0; i < pAllocateInfo->commandBufferCount; i++) {
 
-		if (!list_empty(&pool->free_cmd_buffers)) {
+		if (!list_is_empty(&pool->free_cmd_buffers)) {
 			struct radv_cmd_buffer *cmd_buffer = list_first_entry(&pool->free_cmd_buffers, struct radv_cmd_buffer, pool_link);
 
 			list_del(&cmd_buffer->pool_link);
@@ -4833,6 +4850,11 @@ radv_emit_dispatch_packets(struct radv_cmd_buffer *cmd_buffer,
 
 	ASSERTED unsigned cdw_max = radeon_check_space(ws, cs, 25);
 
+	if (compute_shader->info.wave_size == 32) {
+		assert(cmd_buffer->device->physical_device->rad_info.chip_class >= GFX10);
+		dispatch_initiator |= S_00B800_CS_W32_EN(1);
+	}
+
 	if (info->indirect) {
 		uint64_t va = radv_buffer_get_va(info->indirect->bo);
 
@@ -6094,6 +6116,8 @@ gfx10_emit_streamout_end(struct radv_cmd_buffer *cmd_buffer,
 						   EOP_DST_SEL_TC_L2,
 						   EOP_DATA_SEL_GDS,
 						   va, EOP_DATA_GDS(i, 1), 0);
+
+			radv_cs_add_buffer(cmd_buffer->device->ws, cs, buffer->bo);
 		}
 	}
 

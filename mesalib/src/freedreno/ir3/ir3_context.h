@@ -76,6 +76,10 @@ struct ir3_context {
 	/* For fragment shaders: */
 	struct ir3_instruction *samp_id, *samp_mask_in;
 
+	/* For geometry shaders: */
+	struct ir3_instruction *primitive_id;
+	struct ir3_instruction *gs_header;
+
 	/* Compute shader inputs: */
 	struct ir3_instruction *local_invocation_id, *work_group_id;
 

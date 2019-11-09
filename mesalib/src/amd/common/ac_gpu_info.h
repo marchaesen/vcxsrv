@@ -53,11 +53,12 @@ struct radeon_info {
 	enum chip_class             chip_class;
 	uint32_t                    family_id;
 	uint32_t                    chip_external_rev;
+	uint32_t                    clock_crystal_freq;
+
+	/* Features. */
 	bool                        has_graphics; /* false if the chip is compute-only */
 	uint32_t                    num_compute_rings;
 	uint32_t                    num_sdma_rings;
-	uint32_t                    clock_crystal_freq;
-	uint32_t                    tcc_cache_line_size;
 	bool                        has_clear_state;
 	bool                        has_distributed_tess;
 	bool                        has_dcc_constant_encode;
@@ -66,9 +67,12 @@ struct radeon_info {
 	bool                        has_load_ctx_reg_pkt;
 	bool                        has_out_of_order_rast;
 	bool                        cpdma_prefetch_writes_memory;
-	uint32_t                    pbb_max_alloc_count;
-	uint32_t                    num_sdp_interfaces;
+	bool                        has_gfx9_scissor_bug;
+	bool                        has_tc_compat_zrange_bug;
+	bool                        has_msaa_sample_loc_bug;
+	bool                        has_ls_vgpr_init_bug;
 
+	/* Display features. */
 	/* There are 2 display DCC codepaths, because display expects unaligned DCC. */
 	/* Disable RB and pipe alignment to skip the retile blit. (1 RB chips only) */
 	bool                        use_display_dcc_unaligned;
@@ -88,6 +92,10 @@ struct radeon_info {
 	uint32_t                    address32_hi;
 	bool                        has_dedicated_vram;
 	bool                        r600_has_virtual_memory;
+	uint32_t                    num_sdp_interfaces;
+	uint32_t                    num_tcc_blocks;
+	uint32_t                    tcc_cache_line_size;
+	bool			    tcc_harvested;
 
 	/* CP info. */
 	bool                        gfx_ib_pad_with_type2;
@@ -138,7 +146,6 @@ struct radeon_info {
 	uint32_t                    max_shader_clock;
 	uint32_t                    num_good_compute_units;
 	uint32_t                    num_good_cu_per_sh;
-	uint32_t                    num_tcc_blocks;
 	uint32_t                    max_se; /* shader engines */
 	uint32_t                    max_sh_per_se; /* shader arrays per shader engine */
 	uint32_t                    max_wave64_per_simd;
@@ -158,16 +165,11 @@ struct radeon_info {
 	uint32_t                    pipe_interleave_bytes;
 	uint32_t                    enabled_rb_mask; /* GCN harvest config */
 	uint64_t                    max_alignment; /* from addrlib */
+	uint32_t                    pbb_max_alloc_count;
 
 	/* Tile modes. */
 	uint32_t                    si_tile_mode_array[32];
 	uint32_t                    cik_macrotile_mode_array[16];
-
-	/* Hardware bugs. */
-	bool                        has_gfx9_scissor_bug;
-	bool                        has_tc_compat_zrange_bug;
-	bool                        has_msaa_sample_loc_bug;
-	bool                        has_ls_vgpr_init_bug;
 };
 
 bool ac_query_gpu_info(int fd, void *dev_p,

@@ -73,7 +73,8 @@ dot_d(ir_constant *op0, ir_constant *op1)
 static float
 bitcast_u2f(unsigned int u)
 {
-   assert(sizeof(float) == sizeof(unsigned int));
+   static_assert(sizeof(float) == sizeof(unsigned int),
+                 "float and unsigned int size mismatch");
    float f;
    memcpy(&f, &u, sizeof(f));
    return f;
@@ -82,7 +83,8 @@ bitcast_u2f(unsigned int u)
 static unsigned int
 bitcast_f2u(float f)
 {
-   assert(sizeof(float) == sizeof(unsigned int));
+   static_assert(sizeof(float) == sizeof(unsigned int),
+                 "float and unsigned int size mismatch");
    unsigned int u;
    memcpy(&u, &f, sizeof(f));
    return u;
@@ -91,7 +93,8 @@ bitcast_f2u(float f)
 static double
 bitcast_u642d(uint64_t u)
 {
-   assert(sizeof(double) == sizeof(uint64_t));
+   static_assert(sizeof(double) == sizeof(uint64_t),
+                 "double and uint64_t size mismatch");
    double d;
    memcpy(&d, &u, sizeof(d));
    return d;
@@ -100,25 +103,28 @@ bitcast_u642d(uint64_t u)
 static double
 bitcast_i642d(int64_t i)
 {
-   assert(sizeof(double) == sizeof(int64_t));
+   static_assert(sizeof(double) == sizeof(int64_t),
+                 "double and int64_t size mismatch");
    double d;
    memcpy(&d, &i, sizeof(d));
    return d;
 }
 
-static double
+static uint64_t
 bitcast_d2u64(double d)
 {
-   assert(sizeof(double) == sizeof(uint64_t));
+   static_assert(sizeof(double) == sizeof(uint64_t),
+                 "double and uint64_t size mismatch");
    uint64_t u;
    memcpy(&u, &d, sizeof(d));
    return u;
 }
 
-static double
+static int64_t
 bitcast_d2i64(double d)
 {
-   assert(sizeof(double) == sizeof(int64_t));
+   static_assert(sizeof(double) == sizeof(int64_t),
+                 "double and int64_t size mismatch");
    int64_t i;
    memcpy(&i, &d, sizeof(d));
    return i;

@@ -1,3 +1,59 @@
+bifrost_FILES := \
+        bifrost/bifrost_compile.c \
+        bifrost/bifrost_compile.h \
+        bifrost/bifrost.h \
+        bifrost/bifrost_ops.h \
+        bifrost/bifrost_opts.c \
+        bifrost/bifrost_opts.h \
+        bifrost/bifrost_print.c \
+        bifrost/bifrost_print.h \
+        bifrost/bifrost_sched.c \
+        bifrost/bifrost_sched.h \
+        bifrost/cmdline.c \
+        bifrost/compiler_defines.h \
+        bifrost/disassemble.c \
+        bifrost/disassemble.h
+
+encoder_FILES := \
+        encoder/pan_encoder.h \
+        encoder/pan_invocation.c \
+        encoder/pan_tiler.c
+
+midgard_FILES := \
+        midgard/compiler.h \
+        midgard/disassemble.c \
+        midgard/disassemble.h \
+        midgard/helpers.h \
+        midgard/midgard_compile.c \
+        midgard/midgard_compile.h \
+        midgard/midgard_derivatives.c \
+        midgard/midgard_emit.c \
+        midgard/midgard.h \
+        midgard/midgard_liveness.c \
+        midgard/midgard_nir.h \
+        midgard/midgard_ops.c \
+        midgard/midgard_ops.h \
+        midgard/midgard_opt_copy_prop.c \
+        midgard/midgard_opt_dce.c \
+        midgard/midgard_opt_float.c \
+        midgard/midgard_opt_invert.c \
+        midgard/midgard_opt_perspective.c \
+        midgard/midgard-parse.h \
+        midgard/midgard_print.c \
+        midgard/midgard_ra.c \
+        midgard/midgard_ra_pipeline.c \
+        midgard/midgard_schedule.c \
+        midgard/mir.c \
+        midgard/mir_promote_uniforms.c
+
 shared_FILES := \
         shared/pan_tiling.c \
         shared/pan_tiling.h
+
+pandecode_FILES := \
+        pandecode/common.c \
+        pandecode/decode.c \
+        pandecode/decode.h \
+        pandecode/pan_pretty_print.c \
+        pandecode/pan_pretty_print.h \
+        pandecode/public.h

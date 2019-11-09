@@ -270,7 +270,6 @@ extern _X_EXPORT RESTYPE TypeMask;
     of bits by either masking numBits lower bits of the ID or by
     providing at most MAXHASHSIZE hashes.
 */
-extern _X_EXPORT int HashResourceID(XID id,
-                                    int numBits);
+extern _X_EXPORT int HashResourceID(XID id, unsigned int numBits);
 
 #endif /* RESOURCE_H */

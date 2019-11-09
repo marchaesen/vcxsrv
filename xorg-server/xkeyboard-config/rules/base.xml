@@ -1655,6 +1655,12 @@
             <description>Albanian (Plisi)</description>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>veqilharxhi</name>
+            <description>Albanian (Veqilharxhi)</description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
@@ -2882,6 +2888,12 @@
           <configItem>
             <name>qwerty_bksl</name>
             <description>Czech (QWERTY, extended backslash)</description>
+          </configItem>
+        </variant>
+        <variant>
+          <configItem>
+            <name>qwerty-mac</name>
+            <description>Czech (QWERTY, Macintosh)</description>
           </configItem>
         </variant>
         <variant>
@@ -6250,7 +6262,7 @@
       <configItem>
         <name>id</name>
         <shortDescription>id</shortDescription>
-        <description>Indonesian (Jawi)</description>
+        <description>Indonesian (Arab Melayu, phonetic)</description>
         <languageList>
           <iso639Id>ind</iso639Id>
           <iso639Id>msa</iso639Id>
@@ -6261,7 +6273,14 @@
           <iso639Id>mfa</iso639Id>
         </languageList>
       </configItem>
-      <variantList></variantList>
+      <variantList>
+       <variant>
+         <configItem>
+          <name>phoneticx</name>
+            <description>Indonesian (Arab Melayu, ext. phonetic)</description>
+         </configItem>
+       </variant>
+      </variantList>
     </layout>
     <layout>
       <configItem>
@@ -6728,6 +6747,19 @@
         <configItem>
           <name>grp_led:scroll</name>
           <description>Scroll Lock</description>
+        </configItem>
+      </option>
+    </group>
+    <group allowMultipleSelection="true">
+      <!-- Using LEDs to indicate modifiers -->
+      <configItem>
+        <name>mod_led</name>
+        <description>Use keyboard LED to indicate modifiers</description>
+      </configItem>
+      <option>
+        <configItem>
+          <name>mod_led:compose</name>
+          <description>Compose</description>
         </configItem>
       </option>
     </group>

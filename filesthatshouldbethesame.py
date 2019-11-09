@@ -89,8 +89,6 @@ xcb-util-errors/src/xcb_errors.h                  include/xcb/xcb_errors.h
 mesalib/include/gl/glext.h                        gl/glext.h
 mesalib/include/gl/glx.h                          gl/glx.h
 mesalib/include/gl/glxext.h                       gl/glxext.h
-mesalib/include/gl/glx_mangle.h                   gl/glx_mangle.h
-mesalib/include/gl/gl_mangle.h                    gl/gl_mangle.h
 mesalib/include/gl/internal/dri_interface.h       gl/internal/dri_interface.h
 
 mesalib/include/c99_compat.h                      include/c99_compat.h

@@ -30,9 +30,8 @@ LOCAL_MODULE := libmesa_amd_common
 
 LOCAL_SRC_FILES := \
 	$(AMD_COMMON_FILES) \
-	$(AMD_COMPILER_FILES) \
-	$(AMD_DEBUG_FILES) \
-	$(AMD_NIR_FILES)
+	$(AMD_COMMON_LLVM_FILES) \
+	$(AMD_DEBUG_FILES)
 
 LOCAL_CFLAGS += -DFORCE_BUILD_AMDGPU   # instructs LLVM to declare LLVMInitializeAMDGPU* functions
 
@@ -72,6 +71,7 @@ LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/include \
 	$(MESA_TOP)/src \
 	$(MESA_TOP)/src/amd/common \
+	$(MESA_TOP)/src/amd/llvm \
 	$(MESA_TOP)/src/compiler \
 	$(call generated-sources-dir-for,STATIC_LIBRARIES,libmesa_nir,,)/nir \
 	$(MESA_TOP)/src/gallium/include \
@@ -81,6 +81,7 @@ LOCAL_C_INCLUDES := \
 
 LOCAL_EXPORT_C_INCLUDE_DIRS := \
 	$(LOCAL_PATH)/common \
+	$(LOCAL_PATH)/llvm \
 	$(intermediates)/common
 
 LOCAL_SHARED_LIBRARIES := \

@@ -171,7 +171,7 @@ test_composite (int      testnum,
 	    int i = prng_rand_n (2);
 	    int j = prng_rand_n (3);
 	    int bitnum = prng_rand_n (32);
-	    transform.matrix[i][j] ^= 1 << bitnum;
+	    transform.matrix[i][j] ^= 1U << bitnum;
 	    if (prng_rand_n (2))
 		break;
 	}

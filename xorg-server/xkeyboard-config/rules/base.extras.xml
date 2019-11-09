@@ -798,6 +798,12 @@
             <description>Czech (coder)</description>
           </configItem>
         </variant>
+        <variant>
+          <configItem>
+            <name>prog_typo</name>
+            <description>Czech (programming, typographic)</description>
+          </configItem>
+        </variant>
       </variantList>
     </layout>
     <layout>
@@ -1236,6 +1242,26 @@
     </layout>
   </layoutList>
   <optionList>
+    <group allowMultipleSelection="true">
+      <!-- The key combination used to choose the 3rd (and 4th, together with Shift)
+           level of symbols -->
+      <configItem>
+        <name>lv3</name>
+        <description>Key to choose the 3rd level</description>
+      </configItem>
+      <option>
+        <configItem>
+          <name>lv3:4_switch_isolated</name>
+          <description>Number key 4 when pressed in isolation</description>
+        </configItem>
+      </option>
+      <option>
+        <configItem>
+          <name>lv3:9_switch_isolated</name>
+          <description>Number key 9 when pressed in isolation</description>
+        </configItem>
+      </option>
+    </group>
       <group allowMultipleSelection="true">
           <!-- Tweaking the position of the "(" and ")" keys -->
           <configItem>

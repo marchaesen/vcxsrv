@@ -5,7 +5,7 @@ set -o xtrace
 
 export DEBIAN_FRONTEND=noninteractive
 
-CROSS_ARCHITECTURES="armhf arm64 i386"
+CROSS_ARCHITECTURES="i386"
 for arch in $CROSS_ARCHITECTURES; do
     dpkg --add-architecture $arch
 done
@@ -58,11 +58,18 @@ apt-get install -y --no-remove \
       libx11-xcb-dev \
       libelf-dev \
       libunwind-dev \
-      libglvnd-dev \
+      autoconf \
+      automake \
+      autotools-dev \
+      libtool \
+      libxext-dev \
+      libx11-dev \
+      x11proto-gl-dev \
       libgtk-3-dev \
       libpng-dev \
       libgbm-dev \
       libgles2-mesa-dev \
+      libvulkan-dev \
       python-mako \
       python3-mako \
       bison \
@@ -82,7 +89,22 @@ for arch in $CROSS_ARCHITECTURES; do
 done
 
 # for 64bit windows cross-builds
-apt-get install -y --no-remove mingw-w64
+apt-get install -y --no-remove \
+    mingw-w64 \
+    libz-mingw-w64-dev \
+    wine \
+    wine32 \
+    wine64
+
+# Debian's pkg-config wrapers for mingw are broken, and there's no sign that
+# they're going to be fixed, so we'll just have to fix it ourselves
+# https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=930492
+cat >/usr/local/bin/x86_64-w64-mingw32-pkg-config <<EOF
+#!/bin/sh
+
+PKG_CONFIG_LIBDIR=/usr/x86_64-w64-mingw32/lib/pkgconfig pkg-config \$@
+EOF
+chmod +x /usr/local/bin/x86_64-w64-mingw32-pkg-config
 
 # for the vulkan overlay layer
 wget https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-linux-Release.zip
@@ -100,7 +122,7 @@ export         XORGMACROS_VERSION=util-macros-1.19.0
 export            GLPROTO_VERSION=glproto-1.4.17
 export          DRI2PROTO_VERSION=dri2proto-2.8
 export       LIBPCIACCESS_VERSION=libpciaccess-0.13.4
-export             LIBDRM_VERSION=libdrm-2.4.99
+export             LIBDRM_VERSION=libdrm-2.4.100
 export           XCBPROTO_VERSION=xcb-proto-1.13
 export         RANDRPROTO_VERSION=randrproto-1.5.0
 export          LIBXRANDR_VERSION=libXrandr-1.5.0
@@ -181,6 +203,17 @@ tar -xvf $WAYLAND_PROTOCOLS_VERSION.tar.xz && rm $WAYLAND_PROTOCOLS_VERSION.tar.
 cd $WAYLAND_PROTOCOLS_VERSION; ./configure; make install; cd ..
 rm -rf $WAYLAND_PROTOCOLS_VERSION
 
+
+# The version of libglvnd-dev in debian is too old
+# Check this page to see when this local compilation can be dropped in favour of the package:
+# https://packages.debian.org/libglvnd-dev
+GLVND_VERSION=1.2.0
+wget https://gitlab.freedesktop.org/glvnd/libglvnd/-/archive/v$GLVND_VERSION/libglvnd-v$GLVND_VERSION.tar.gz
+tar -xvf libglvnd-v$GLVND_VERSION.tar.gz && rm libglvnd-v$GLVND_VERSION.tar.gz
+pushd libglvnd-v$GLVND_VERSION; ./autogen.sh; ./configure; make install; popd
+rm -rf libglvnd-v$GLVND_VERSION
+
+
 pushd /usr/local
 git clone https://gitlab.freedesktop.org/mesa/shader-db.git --depth 1
 rm -rf shader-db/.git
@@ -199,9 +232,13 @@ apt-get install -y --no-remove libxml2-utils
 for arch in $CROSS_ARCHITECTURES; do
   cross_file="/cross_file-$arch.txt"
   /usr/share/meson/debcrossgen --arch "$arch" -o "$cross_file"
-  # Work around a bug in debcrossgen that should be fixed in the next release
+  # Explicitly set ccache path for cross compilers
+  sed -i "s|/usr/bin/\([^-]*\)-linux-gnu\([^-]*\)-g|/usr/lib/ccache/\\1-linux-gnu\\2-g|g" "$cross_file"
   if [ "$arch" = "i386" ]; then
+    # Work around a bug in debcrossgen that should be fixed in the next release
     sed -i "s|cpu_family = 'i686'|cpu_family = 'x86'|g" "$cross_file"
+    # Don't need wrapper for i386 executables
+    sed -i -e '/\[properties\]/a\' -e "needs_exe_wrapper = False" "$cross_file"
   fi
 done
 
@@ -259,6 +296,11 @@ apt-get purge -y \
       unzip \
       cmake \
       git \
+      autoconf \
+      automake \
+      autotools-dev \
+      libtool \
+      x11proto-gl-dev \
       libgles2-mesa-dev \
       libgbm-dev
 

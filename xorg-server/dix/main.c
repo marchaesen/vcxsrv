@@ -100,7 +100,6 @@ Equipment Corporation.
 #include "opaque.h"
 #include "servermd.h"
 #include "hotplug.h"
-#include "site.h"
 #include "dixfont.h"
 #include "extnsionst.h"
 #include "privates.h"
@@ -272,13 +271,12 @@ dix_main(int argc, char *argv[], char *envp[])
             ErrorF("[dix] failed to set default font path '%s'",
                    defaultFontPath);
         }
-        if (!SetDefaultFont(defaultTextFont)) {
-            FatalError("could not open default font '%s'", defaultTextFont);
+        if (!SetDefaultFont("fixed")) {
+            FatalError("could not open default font");
         }
 
         if (!(rootCursor = CreateRootCursor(NULL, 0))) {
-            FatalError("could not open default cursor font '%s'",
-                       defaultCursorFont);
+            FatalError("could not open default cursor font");
         }
 
 #ifdef PANORAMIX

@@ -115,10 +115,8 @@ public:
 
    Program *program;
    bool use_iterator;
-   union {
-   bool forwards; //when use_iterator == true
-   bool start; //when use_iterator == false
-   };
+   bool start; // only when use_iterator == false
+
    std::vector<aco_ptr<Instruction>> *instructions;
    std::vector<aco_ptr<Instruction>>::iterator it;
 
@@ -148,13 +146,19 @@ public:
       instructions = instrs;
    }
 
+   void reset(std::vector<aco_ptr<Instruction>> *instrs, std::vector<aco_ptr<Instruction>>::iterator instr_it) {
+      use_iterator = true;
+      start = false;
+      instructions = instrs;
+      it = instr_it;
+   }
+
    Result insert(aco_ptr<Instruction> instr) {
       Instruction *instr_ptr = instr.get();
       if (instructions) {
          if (use_iterator) {
             it = instructions->emplace(it, std::move(instr));
-            if (forwards)
-               it = std::next(it);
+            it = std::next(it);
          } else if (!start) {
             instructions->emplace_back(std::move(instr));
          } else {
@@ -168,8 +172,7 @@ public:
       if (instructions) {
          if (use_iterator) {
             it = instructions->emplace(it, aco_ptr<Instruction>(instr));
-            if (forwards)
-               it = std::next(it);
+            it = std::next(it);
          } else if (!start) {
             instructions->emplace_back(aco_ptr<Instruction>(instr));
          } else {
@@ -287,6 +290,8 @@ public:
 
       if (!carry_in.op.isUndefined())
          return vop2(aco_opcode::v_addc_co_u32, Definition(dst), hint_vcc(def(s2)), a, b, carry_in);
+      else if (program->chip_class >= GFX10 && carry_out)
+         return vop3(aco_opcode::v_add_co_u32_e64, Definition(dst), def(s2), a, b);
       else if (program->chip_class < GFX9 || carry_out)
          return vop2(aco_opcode::v_add_co_u32, Definition(dst), hint_vcc(def(s2)), a, b);
       else
@@ -314,10 +319,22 @@ public:
       } else {
          op = reverse ? aco_opcode::v_subrev_u32 : aco_opcode::v_sub_u32;
       }
+      bool vop3 = false;
+      if (program->chip_class >= GFX10 && op == aco_opcode::v_subrev_co_u32) {
+        vop3 = true;
+        op = aco_opcode::v_subrev_co_u32_e64;
+      } else if (program->chip_class >= GFX10 && op == aco_opcode::v_sub_co_u32) {
+        vop3 = true;
+        op = aco_opcode::v_sub_co_u32_e64;
+      }
 
       int num_ops = borrow.op.isUndefined() ? 2 : 3;
       int num_defs = carry_out ? 2 : 1;
-      aco_ptr<Instruction> sub{create_instruction<VOP2_instruction>(op, Format::VOP2, num_ops, num_defs)};
+      aco_ptr<Instruction> sub;
+      if (vop3)
+        sub.reset(create_instruction<VOP3A_instruction>(op, Format::VOP3B, num_ops, num_defs));
+      else
+        sub.reset(create_instruction<VOP2_instruction>(op, Format::VOP2, num_ops, num_defs));
       sub->operands[0] = a.op;
       sub->operands[1] = b.op;
       if (!borrow.op.isUndefined())
@@ -344,7 +361,7 @@ formats = [("pseudo", [Format.PSEUDO], 'Pseudo_instruction', list(itertools.prod
            ("exp", [Format.EXP], 'Export_instruction', [(0, 4)]),
            ("branch", [Format.PSEUDO_BRANCH], 'Pseudo_branch_instruction', itertools.product([0], [0, 1])),
            ("barrier", [Format.PSEUDO_BARRIER], 'Pseudo_barrier_instruction', [(0, 0)]),
-           ("reduction", [Format.PSEUDO_REDUCTION], 'Pseudo_reduction_instruction', [(3, 2)]),
+           ("reduction", [Format.PSEUDO_REDUCTION], 'Pseudo_reduction_instruction', [(3, 2), (3, 4)]),
            ("vop1", [Format.VOP1], 'VOP1_instruction', [(1, 1), (2, 2)]),
            ("vop2", [Format.VOP2], 'VOP2_instruction', itertools.product([1, 2], [2, 3])),
            ("vopc", [Format.VOPC], 'VOPC_instruction', itertools.product([1, 2], [2])),

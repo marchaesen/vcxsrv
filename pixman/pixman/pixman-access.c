@@ -68,14 +68,14 @@
 
 #ifdef WORDS_BIGENDIAN
 #define FETCH_24(img,l,o)                                              \
-    ((READ (img, (((uint8_t *)(l)) + ((o) * 3) + 0)) << 16)    |       \
-     (READ (img, (((uint8_t *)(l)) + ((o) * 3) + 1)) << 8)     |       \
-     (READ (img, (((uint8_t *)(l)) + ((o) * 3) + 2)) << 0))
+    ((uint32_t)(READ (img, (((uint8_t *)(l)) + ((o) * 3) + 0)) << 16)    |       \
+     (uint32_t)(READ (img, (((uint8_t *)(l)) + ((o) * 3) + 1)) << 8)     |       \
+     (uint32_t)(READ (img, (((uint8_t *)(l)) + ((o) * 3) + 2)) << 0))
 #else
 #define FETCH_24(img,l,o)						\
-    ((READ (img, (((uint8_t *)(l)) + ((o) * 3) + 0)) << 0)	|	\
-     (READ (img, (((uint8_t *)(l)) + ((o) * 3) + 1)) << 8)	|	\
-     (READ (img, (((uint8_t *)(l)) + ((o) * 3) + 2)) << 16))
+    ((uint32_t)(READ (img, (((uint8_t *)(l)) + ((o) * 3) + 0)) << 0)	|	\
+     (uint32_t)(READ (img, (((uint8_t *)(l)) + ((o) * 3) + 1)) << 8)	|	\
+     (uint32_t)(READ (img, (((uint8_t *)(l)) + ((o) * 3) + 2)) << 16))
 #endif
 
 /* Store macros */
@@ -87,7 +87,7 @@
 	uint32_t  *__d = ((uint32_t *)(l)) + ((o) >> 5);		\
 	uint32_t __m, __v;						\
 									\
-	__m = 1 << (0x1f - ((o) & 0x1f));				\
+	__m = 1U << (0x1f - ((o) & 0x1f));				\
 	__v = (v)? __m : 0;						\
 									\
 	WRITE((img), __d, (READ((img), __d) & ~__m) | __v);		\
@@ -100,7 +100,7 @@
 	uint32_t  *__d = ((uint32_t *)(l)) + ((o) >> 5);		\
 	uint32_t __m, __v;						\
 									\
-	__m = 1 << ((o) & 0x1f);					\
+	__m = 1U << ((o) & 0x1f);					\
 	__v = (v)? __m : 0;						\
 									\
 	WRITE((img), __d, (READ((img), __d) & ~__m) | __v);		\
@@ -1091,7 +1091,7 @@ store_scanline_a2r10g10b10_float (bits_image_t *  image,
 
     for (i = 0; i < width; ++i)
     {
-	uint16_t a, r, g, b;
+	uint32_t a, r, g, b;
 
 	a = pixman_float_to_unorm (values[i].a, 2);
 	r = pixman_float_to_unorm (values[i].r, 10);
@@ -1117,7 +1117,7 @@ store_scanline_x2r10g10b10_float (bits_image_t *  image,
 
     for (i = 0; i < width; ++i)
     {
-	uint16_t r, g, b;
+	uint32_t r, g, b;
 
 	r = pixman_float_to_unorm (values[i].r, 10);
 	g = pixman_float_to_unorm (values[i].g, 10);
@@ -1142,7 +1142,7 @@ store_scanline_a2b10g10r10_float (bits_image_t *  image,
 
     for (i = 0; i < width; ++i)
     {
-	uint16_t a, r, g, b;
+	uint32_t a, r, g, b;
 
 	a = pixman_float_to_unorm (values[i].a, 2);
 	r = pixman_float_to_unorm (values[i].r, 10);
@@ -1168,7 +1168,7 @@ store_scanline_x2b10g10r10_float (bits_image_t *  image,
 
     for (i = 0; i < width; ++i)
     {
-	uint16_t r, g, b;
+	uint32_t r, g, b;
 
 	r = pixman_float_to_unorm (values[i].r, 10);
 	g = pixman_float_to_unorm (values[i].g, 10);
@@ -1193,7 +1193,7 @@ store_scanline_a8r8g8b8_sRGB_float (bits_image_t *  image,
 
     for (i = 0; i < width; ++i)
     {
-	uint8_t a, r, g, b;
+	uint32_t a, r, g, b;
 
 	a = pixman_float_to_unorm (values[i].a, 8);
 	r = to_srgb (values[i].r);
@@ -1266,7 +1266,7 @@ fetch_scanline_a8r8g8b8_32_sRGB (bits_image_t   *image,
     
     while (pixel < end)
     {
-	uint8_t a, r, g, b;
+	uint32_t a, r, g, b;
 
 	tmp = READ (image, pixel++);
 
@@ -1290,7 +1290,7 @@ fetch_pixel_a8r8g8b8_32_sRGB (bits_image_t *image,
 {
     uint32_t *bits = image->bits + line * image->rowstride;
     uint32_t tmp = READ (image, bits + offset);
-    uint8_t a, r, g, b;
+    uint32_t a, r, g, b;
 
     a = (tmp >> 24) & 0xff;
     r = (tmp >> 16) & 0xff;
@@ -1319,7 +1319,7 @@ store_scanline_a8r8g8b8_32_sRGB (bits_image_t   *image,
     
     for (i = 0; i < width; ++i)
     {
-	uint8_t a, r, g, b;
+	uint32_t a, r, g, b;
 
 	tmp = values[i];
 

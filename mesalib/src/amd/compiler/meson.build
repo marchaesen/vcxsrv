@@ -69,6 +69,7 @@ libaco_files = files(
   'aco_register_allocation.cpp',
   'aco_live_var_analysis.cpp',
   'aco_lower_bool_phis.cpp',
+  'aco_lower_to_cssa.cpp',
   'aco_lower_to_hw_instr.cpp',
   'aco_optimizer.cpp',
   'aco_opt_value_numbering.cpp',
@@ -85,7 +86,10 @@ _libaco = static_library(
   'aco',
   [libaco_files, aco_opcodes_c, aco_opcodes_h, aco_builder_h],
   include_directories : [
-   inc_common, inc_compiler, inc_mesa, inc_mapi, inc_amd, inc_amd_common,
+   inc_common, inc_compiler, inc_mesa, inc_mapi, inc_amd, inc_amd_common, inc_amd_common_llvm,
+  ],
+  link_with : [
+    libamd_common
   ],
   dependencies : [
     dep_llvm, dep_thread, dep_elf, dep_libdrm_amdgpu, dep_valgrind,

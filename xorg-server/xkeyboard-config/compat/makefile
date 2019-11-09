@@ -9,7 +9,7 @@ DESTDIR=$(MHMAKECONF)\xorg-server\xkbdata\$(THISDIR)
 dist_xkbdata_compat_DATA = \
 accessx basic caps complete \
 iso9995 \
-japan ledcaps \
+japan ledcaps ledcompose \
 lednum ledscroll level5 \
 misc mousekeys \
 olpc pc pc98 xfree86 \

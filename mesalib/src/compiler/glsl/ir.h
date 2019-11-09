@@ -74,6 +74,7 @@ enum ir_node_type {
    ir_type_loop_jump,
    ir_type_return,
    ir_type_discard,
+   ir_type_demote,
    ir_type_emit_vertex,
    ir_type_end_primitive,
    ir_type_barrier,
@@ -904,7 +905,7 @@ public:
        *
        * For array types, this represents the binding point for the first element.
        */
-      int16_t binding;
+      uint16_t binding;
 
       /**
        * Storage location of the base of this variable
@@ -1136,6 +1137,8 @@ enum ir_intrinsic_id {
    ir_intrinsic_ballot,
    ir_intrinsic_read_invocation,
    ir_intrinsic_read_first_invocation,
+
+   ir_intrinsic_helper_invocation,
 
    ir_intrinsic_shared_load,
    ir_intrinsic_shared_store = MAKE_INTRINSIC_FOR_TYPE(store, shared),
@@ -1802,6 +1805,28 @@ public:
    ir_rvalue *condition;
 };
 /*@}*/
+
+
+/**
+ * IR instruction representing demote statements from
+ * GL_EXT_demote_to_helper_invocation.
+ */
+class ir_demote : public ir_instruction {
+public:
+   ir_demote()
+      : ir_instruction(ir_type_demote)
+   {
+   }
+
+   virtual ir_demote *clone(void *mem_ctx, struct hash_table *ht) const;
+
+   virtual void accept(ir_visitor *v)
+   {
+      v->visit(this);
+   }
+
+   virtual ir_visitor_status accept(ir_hierarchical_visitor *);
+};
 
 
 /**

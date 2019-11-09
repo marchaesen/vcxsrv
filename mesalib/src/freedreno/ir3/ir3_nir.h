@@ -40,6 +40,12 @@ bool ir3_nir_lower_io_offsets(nir_shader *shader);
 bool ir3_nir_lower_load_barycentric_at_sample(nir_shader *shader);
 bool ir3_nir_lower_load_barycentric_at_offset(nir_shader *shader);
 bool ir3_nir_move_varying_inputs(nir_shader *shader);
+int ir3_nir_coord_offset(nir_ssa_def *ssa);
+bool ir3_nir_lower_tex_prefetch(nir_shader *shader);
+
+
+void ir3_nir_lower_vs_to_explicit_io(nir_shader *shader, struct ir3_shader *s);
+void ir3_nir_lower_gs(nir_shader *shader, struct ir3_shader *s);
 
 const nir_shader_compiler_options * ir3_get_compiler_options(struct ir3_compiler *compiler);
 bool ir3_key_lowers_nir(const struct ir3_shader_key *key);

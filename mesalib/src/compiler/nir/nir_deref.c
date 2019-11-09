@@ -92,7 +92,7 @@ nir_deref_instr_remove_if_unused(nir_deref_instr *instr)
    for (nir_deref_instr *d = instr; d; d = nir_deref_instr_parent(d)) {
       /* If anyone is using this deref, leave it alone */
       assert(d->dest.is_ssa);
-      if (!list_empty(&d->dest.ssa.uses))
+      if (!list_is_empty(&d->dest.ssa.uses))
          break;
 
       nir_instr_remove(&d->instr);
@@ -297,7 +297,7 @@ nir_build_deref_offset(nir_builder *b, nir_deref_instr *deref,
       if ((*p)->deref_type == nir_deref_type_array) {
          nir_ssa_def *index = nir_ssa_for_src(b, (*p)->arr.index, 1);
          int stride = type_get_array_stride((*p)->type, size_align);
-         offset = nir_iadd(b, offset, nir_imul_imm(b, index, stride));
+         offset = nir_iadd(b, offset, nir_amul_imm(b, index, stride));
       } else if ((*p)->deref_type == nir_deref_type_struct) {
          /* p starts at path[1], so this is safe */
          nir_deref_instr *parent = *(p - 1);
@@ -855,7 +855,7 @@ opt_deref_cast(nir_builder *b, nir_deref_instr *cast)
    }
 
    /* If uses would be a bit crazy */
-   assert(list_empty(&cast->dest.ssa.if_uses));
+   assert(list_is_empty(&cast->dest.ssa.if_uses));
 
    nir_deref_instr_remove_if_unused(cast);
    return progress;

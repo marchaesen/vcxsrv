@@ -108,3 +108,51 @@ xkb_symbols "plisi" {
 
 };
 
+// EXTRAS:
+
+// Veqilharxhi layout (https://arberisht.wordpress.com/2019/09/13/an-xkb-layout-for-the-veqilharxhi-alphabet/)
+// by Arbër Boriçi (illyriensis@protonmail.com)
+// 2019-09-12
+
+
+default  partial alphanumeric_keys
+xkb_symbols "veqilharxhi" {
+
+    include "us"
+
+    name[Group1]="Albanian (Veqilharxhi)";
+
+    // QWERTYUIOP
+    key <AD01>	{ [ U105B0, U10589 ] }; // 𐖰, 𐖉
+    key <AD02>	{ [ U1059F, U10578, w, W ] }; // 𐖟, 𐕸, w, W
+    key <AD03>	{ [ U1059E, U10577 ] }; // 𐖞, 𐕷
+    key <AD04>	{ [ U105B1, U1058A, U105B2, U1058B ] }; // 𐖱, 𐖊, 𐖲, 𐖋
+    key <AD05>	{ [ U105B5, U1058E, U105B6, U1058F ] }; // 𐖵, 𐖎, 𐖶, 𐖏
+    key <AD06>	{ [ U105BB, U10594 ] }; // 𐖻, 𐖔
+    key <AD07>	{ [ U105B7, U10590 ] }; // 𐖷, 𐖐
+    key <AD08>	{ [ U105A5, U1057E ] }; // 𐖥, 𐕾
+    key <AD09>	{ [ U105AE, U10587 ] }; // 𐖮, 𐖇
+    key <AD10>	{ [ U105AF, U10588 ] }; // 𐖯, 𐖈
+
+    // ASDFGHJKL
+    key <AC01>	{ [ U10597, U10570 ] }; // 𐖗, 𐕰
+    key <AC02>	{ [ U105B3, U1058C, U105B4, U1058D ] }; // 𐖳, 𐖌, 𐖴, 𐖍
+    key <AC03>	{ [ U1059C, U10575, U1059D, U10576 ] }; // 𐖜, 𐕵, 𐖝, 𐕶
+    key <AC04>	{ [ U105A0, U10579 ] }; // 𐖠, 𐕹
+    key <AC05>	{ [ U105A1, U1057A, U105A2, U1057B ] }; // 𐖡, 𐕺, 𐖢, 𐕻
+    key <AC06>	{ [ U105A3, U1057C ] }; // 𐖣, 𐕼
+    key <AC07>	{ [ U105A7, U10580 ] }; // 𐖧, 𐖀
+    key <AC08>	{ [ U105A8, U10581 ] }; // 𐖨, 𐖁
+    key <AC09>	{ [ U105A9, U10582, U105AA, U10583 ] }; // 𐖩, 𐖂, 𐖪, 𐖃
+
+    // ZXCVBNM
+    key <AB01>	{ [ U105BC, U10595, U105BD, U10596 ] }; // 𐖼, 𐖕, 𐖽, 𐖖
+    key <AB02>	{ [ U105B9, U10592, U105BA, U10593 ] }; // 𐖹, 𐖒, 𐖺, 𐖓
+    key <AB03>	{ [ U1059A, U10573, U1059B, U10574 ] }; // 𐖚, 𐕳, 𐖛, 𐕴
+    key <AB04>	{ [ U105B8, U10591 ] }; // 𐖸, 𐖑
+    key <AB05>	{ [ U10598, U10571 ] }; // 𐖘, 𐕱
+    key <AB06>	{ [ U105AC, U10585, U105AD, U10586 ] }; // 𐖬, 𐖅, 𐖭, 𐖆
+    key <AB07>	{ [ U105AB, U10584 ] }; // 𐖫, 𐖄
+
+    include "level3(ralt_switch)"
+};

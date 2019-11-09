@@ -244,7 +244,7 @@ struct radeon_winsys {
 	struct radeon_winsys_bo *(*buffer_from_fd)(struct radeon_winsys *ws,
 						   int fd,
 						   unsigned priority,
-						   unsigned *stride, unsigned *offset);
+						   uint64_t *alloc_size);
 
 	bool (*buffer_get_fd)(struct radeon_winsys *ws,
 			      struct radeon_winsys_bo *bo,

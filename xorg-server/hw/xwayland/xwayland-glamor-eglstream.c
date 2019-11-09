@@ -33,6 +33,7 @@
 #include "wayland-eglstream-controller-client-protocol.h"
 
 #define MESA_EGL_NO_X11_HEADERS
+#define EGL_NO_X11
 #include <glamor_egl.h>
 #include <glamor.h>
 #include <glamor_transform.h>

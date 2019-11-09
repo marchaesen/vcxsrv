@@ -334,6 +334,13 @@ dead_cf_list(struct exec_list *list, bool *list_ends_in_jump)
          bool dummy;
          progress |= dead_cf_list(&loop->body, &dummy);
 
+         nir_block *next = nir_cf_node_as_block(nir_cf_node_next(cur));
+         if (next->predecessors->entries == 0 &&
+             (!exec_list_is_empty(&next->instr_list) ||
+             !exec_node_is_tail_sentinel(next->cf_node.node.next))) {
+            remove_after_cf_node(cur);
+            return true;
+         }
          break;
       }
 

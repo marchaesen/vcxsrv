@@ -20,6 +20,7 @@
 # to get the full list of options. See scons manpage for more info.
 #
 
+from __future__ import print_function
 import os
 import os.path
 import sys
@@ -65,6 +66,26 @@ else:
 
 
 Help(opts.GenerateHelpText(env))
+
+
+#######################################################################
+# Print a deprecation warning for using scons on non-windows
+
+if common.host_platform != 'windows' and env['platform'] != 'windows':
+    if env['force_scons']:
+        print("WARNING: Scons is deprecated for non-windows platforms (including cygwin) "
+              "please use meson instead.", file=sys.stderr)
+    else:
+        print("ERROR: Scons is deprecated for non-windows platforms (including cygwin) "
+              "please use meson instead. If you really need to use scons you "
+              "can add `force_scons=1` to the scons command line.", file=sys.stderr)
+        sys.exit(1)
+else:
+    print("WARNING: Scons support is in the process of being deprecated on "
+          "on windows platforms (including mingw). If you haven't already "
+          "please try using meson for windows builds. Be sure to report any "
+          "issues you run into", file=sys.stderr)
+
 
 #######################################################################
 # Environment setup

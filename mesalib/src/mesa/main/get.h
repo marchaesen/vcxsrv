@@ -93,4 +93,10 @@ _mesa_GetError( void );
 extern GLenum GLAPIENTRY
 _mesa_GetGraphicsResetStatusARB( void );
 
+struct gl_vertex_array_object;
+
+extern void
+_get_vao_pointerv(GLenum pname, struct gl_vertex_array_object* vao,
+                  GLvoid **params, const char* callerstr);
+
 #endif

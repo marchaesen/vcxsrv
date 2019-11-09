@@ -23,7 +23,6 @@
   <li><a href="#prereq-dri">For DRI and hardware acceleration</a>
   </ul>
 <li><a href="#meson">Building with meson</a>
-<li><a href="#autoconf">Building with autoconf (Linux/Unix/X11)</a>
 <li><a href="#scons">Building with SCons (Windows/Linux)</a>
 <li><a href="#android">Building with AOSP (Android)</a>
 <li><a href="#libs">Library Information</a>
@@ -38,16 +37,14 @@
 <h4>Build system</h4>
 
 <ul>
-<li><a href="https://mesonbuild.com">meson</a> is required when building on *nix platforms.
-<li>Autoconf was removed in 19.1.0, use meson instead
-<li><a href="http://www.scons.org/">SCons</a> is required for building on
-Windows and optional for Linux (it's an alternative to meson.)
+<li><a href="https://mesonbuild.com">meson</a> is required when building on *nix platforms and is supported on windows.
+<li><a href="http://www.scons.org/">SCons</a> is an alternative for building on
+Windows and Linux.
 </li>
-<li>Android Build system when building as native Android component. Autoconf
+<li>Android Build system when building as native Android component. Meson
 is used when when building ARC.
 </li>
 </ul>
-
 
 <h4>Compiler</h4>
 <p>
@@ -63,12 +60,6 @@ willing to maintain support for other compiler get in touch.
 
 
 <h4>Third party/extra tools.</h4>
-<p>
-<strong>Note</strong>: These should not be required, when building from a release tarball. If
-you think you've spotted a bug let developers know by filing a
-<a href="bugs.html">bug report</a>.
-</p>
-
 
 <ul>
 <li><a href="https://www.python.org/">Python</a> - Python is required.
@@ -114,9 +105,11 @@ the packaging tool used by your distro.
 
 <h2 id="meson">2. Building with meson</h2>
 
+<p><string>Meson &6t;= 0.46.0 is required</string></p>
+
 <p>
 Meson is the latest build system in mesa, it is currently able to build for
-*nix systems like Linux and BSD, and will be able to build for windows as well.
+*nix systems like Linux and BSD, macOS, Haiku, and Windows.
 </p>
 
 <p>
@@ -127,20 +120,34 @@ The general approach is:
   ninja -C builddir/
   sudo ninja -C builddir/ install
 </pre>
+
+<p>On windows you can also use the visual studio backend</p>
+<pre>
+  meson builddir --backend=vs
+  cd builddir
+  msbuild mesa.sln /m
+</pre>
+
 <p>
 Please read the <a href="meson.html">detailed meson instructions</a>
 for more information
 </p>
 
-<h2 id="autoconf">3. Building with autoconf (Linux/Unix/X11)</h2>
+<p>On windows you can also use the visual studio backend</p>
+<pre>
+  meson builddir --backend=vs
+  cd builddir
+  msbuild mesa.sln /m
+</pre>
 
 <p>
-  Autoconf support was removed in Mesa 19.1.0. Please use meson instead.
+Please read the <a href="meson.html">detailed meson instructions</a>
+for more information
 </p>
 
 
 
-<h2 id="scons">4. Building with SCons (Windows/Linux)</h2>
+<h2 id="scons">3. Building with SCons (Windows/Linux)</h2>
 
 <p>
 To build Mesa with SCons on Linux or Windows do
@@ -176,7 +183,7 @@ Additional information is available in <a href="README.WIN32">README.WIN32</a>.
 
 
 
-<h2 id="android">5. Building with AOSP (Android)</h2>
+<h2 id="android">4. Building with AOSP (Android)</h2>
 
 <p>
 Currently one can build Mesa for Android as part of the AOSP project, yet
@@ -195,7 +202,7 @@ Android-x86 and/or other resources.
 </p>
 
 
-<h2 id="libs">6. Library Information</h2>
+<h2 id="libs">5. Library Information</h2>
 
 <p>
 When compilation has finished, look in the top-level <code>lib/</code>
@@ -232,7 +239,7 @@ versions of libGL and device drivers.
 </p>
 
 
-<h2 id="pkg-config">7. Building OpenGL programs with pkg-config</h2>
+<h2 id="pkg-config">6. Building OpenGL programs with pkg-config</h2>
 
 <p>
 Running <code>ninja install</code> will install package configuration files

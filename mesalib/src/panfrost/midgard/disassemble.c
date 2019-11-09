@@ -26,6 +26,7 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <assert.h>
 #include <inttypes.h>
 #include <ctype.h>
@@ -40,6 +41,7 @@
 
 #define DEFINE_CASE(define, str) case define: { printf(str); break; }
 
+static unsigned *midg_tags;
 static bool is_instruction_int = false;
 
 /* Stats */
@@ -90,8 +92,8 @@ print_alu_opcode(midgard_alu_op op)
 static void
 print_ld_st_opcode(midgard_load_store_op op)
 {
-        if (load_store_opcode_names[op])
-                printf("%s", load_store_opcode_names[op]);
+        if (load_store_opcode_props[op].name)
+                printf("%s", load_store_opcode_props[op].name);
         else
                 printf("ldst_op_%02X", op);
 }
@@ -401,7 +403,7 @@ update_dest(unsigned reg)
         }
 }
 
-static unsigned
+static void
 print_dest(unsigned reg, midgard_reg_mode mode, midgard_dest_override override)
 {
         /* Depending on the mode and override, we determine the type of
@@ -415,8 +417,6 @@ print_dest(unsigned reg, midgard_reg_mode mode, midgard_dest_override override)
 
         update_dest(reg);
         print_reg(reg, bits);
-
-        return bits;
 }
 
 static void
@@ -424,20 +424,11 @@ print_mask_vec16(uint8_t mask, midgard_dest_override override)
 {
         printf(".");
 
-        if (override == midgard_dest_override_none) {
-                for (unsigned i = 0; i < 8; i++) {
-                        if (mask & (1 << i))
-                                printf("%c%c",
-                                       components[i*2 + 0],
-                                       components[i*2 + 1]);
-                }
-        } else {
-                bool upper = (override == midgard_dest_override_upper);
-
-                for (unsigned i = 0; i < 8; i++) {
-                        if (mask & (1 << i))
-                                printf("%c", components[i + (upper ? 8 : 0)]);
-                }
+        for (unsigned i = 0; i < 8; i++) {
+                if (mask & (1 << i))
+                        printf("%c%c",
+                               components[i*2 + 0],
+                               components[i*2 + 1]);
         }
 }
 
@@ -456,24 +447,18 @@ print_mask(uint8_t mask, unsigned bits, midgard_dest_override override)
                 return;
         }
 
-        if (bits < 16) {
-                /* Shouldn't happen but with junk / out-of-spec shaders it
-                 * would cause an infinite loop */
-
-                printf("/* XXX: bits = %u */", bits);
-                return;
-        }
-
         /* Skip 'complete' masks */
 
-        if (bits >= 32 && mask == 0xFF) return;
+        if (override == midgard_dest_override_none) {
+                if (bits >= 32 && mask == 0xFF) return;
 
-        if (bits == 16) {
-                if (mask == 0x0F)
-                        return;
-                else if (mask == 0xF0) {
-                        printf("'");
-                        return;
+                if (bits == 16) {
+                        if (mask == 0x0F)
+                                return;
+                        else if (mask == 0xF0) {
+                                printf("'");
+                                return;
+                        }
                 }
         }
 
@@ -482,6 +467,17 @@ print_mask(uint8_t mask, unsigned bits, midgard_dest_override override)
         unsigned skip = (bits / 16);
         bool uppercase = bits > 32;
         bool tripped = false;
+
+        /* To apply an upper destination override, we "shift" the alphabet.
+         * E.g. with an upper override on 32-bit, instead of xyzw, print efgh.
+         * For upper 16-bit, instead of xyzwefgh, print ijklmnop */
+
+        const char *alphabet = components;
+
+        if (override == midgard_dest_override_upper) {
+                unsigned components = 128 / bits;
+                alphabet += components;
+        }
 
         for (unsigned i = 0; i < 8; i += skip) {
                 bool a = (mask & (1 << i)) != 0;
@@ -492,7 +488,7 @@ print_mask(uint8_t mask, unsigned bits, midgard_dest_override override)
                 }
 
                 if (a) {
-                        char c = components[i / skip];
+                        char c = alphabet[i / skip];
 
                         if (uppercase)
                                 c = toupper(c);
@@ -554,20 +550,7 @@ print_vector_field(const char *name, uint16_t *words, uint16_t reg_word,
         uint8_t mask = alu_field->mask;
 
         /* First, print the destination */
-        unsigned dest_size =
-                print_dest(reg_info->out_reg, mode, alu_field->dest_override);
-
-        /* Apply the destination override to the mask */
-
-        if (mode == midgard_reg_mode_32 || mode == midgard_reg_mode_64) {
-                if (override == midgard_dest_override_lower)
-                        mask &= 0x0F;
-                else if (override == midgard_dest_override_upper)
-                        mask &= 0xF0;
-        } else if (mode == midgard_reg_mode_16
-                   && override == midgard_dest_override_lower) {
-                /* stub */
-        }
+        print_dest(reg_info->out_reg, mode, alu_field->dest_override);
 
         if (override != midgard_dest_override_none) {
                 bool modeable = (mode != midgard_reg_mode_8);
@@ -577,7 +560,7 @@ print_vector_field(const char *name, uint16_t *words, uint16_t reg_word,
                         printf("/* do%u */ ", override);
         }
 
-        print_mask(mask, dest_size, override);
+        print_mask(mask, bits_for_mode(mode), override);
 
         printf(", ");
 
@@ -789,7 +772,7 @@ print_compact_branch_writeout_field(uint16_t word)
 }
 
 static void
-print_extended_branch_writeout_field(uint8_t *words)
+print_extended_branch_writeout_field(uint8_t *words, unsigned next)
 {
         midgard_branch_extended br;
         memcpy((char *) &br, (char *) words, sizeof(br));
@@ -822,6 +805,18 @@ print_extended_branch_writeout_field(uint8_t *words)
         printf("%d -> ", br.offset);
         print_tag_short(br.dest_tag);
         printf("\n");
+
+        unsigned I = next + br.offset * 4;
+
+        if (midg_tags[I] && midg_tags[I] != br.dest_tag) {
+                printf("\t/* XXX TAG ERROR: jumping to ");
+                print_tag_short(br.dest_tag);
+                printf(" but tagged ");
+                print_tag_short(midg_tags[I]);
+                printf(" */\n");
+        }
+
+        midg_tags[I] = br.dest_tag;
 
         midg_stats.instruction_count++;
 }
@@ -863,7 +858,7 @@ float_bitcast(uint32_t integer)
 
 static void
 print_alu_word(uint32_t *words, unsigned num_quad_words,
-               unsigned tabs)
+               unsigned tabs, unsigned next)
 {
         uint32_t control_word = words[0];
         uint16_t *beginning_ptr = (uint16_t *)(words + 1);
@@ -927,7 +922,7 @@ print_alu_word(uint32_t *words, unsigned num_quad_words,
         }
 
         if ((control_word >> 27) & 1) {
-                print_extended_branch_writeout_field((uint8_t *) word_ptr);
+                print_extended_branch_writeout_field((uint8_t *) word_ptr, next);
                 word_ptr += 3;
                 num_words += 3;
         }
@@ -1472,6 +1467,8 @@ disassemble_midgard(uint8_t *code, size_t size)
 
         unsigned i = 0;
 
+        midg_tags = calloc(sizeof(midg_tags[0]), num_words);
+
         /* Stats for shader-db */
         memset(&midg_stats, 0, sizeof(midg_stats));
         midg_ever_written = 0;
@@ -1481,14 +1478,24 @@ disassemble_midgard(uint8_t *code, size_t size)
                 unsigned next_tag = (words[i] >> 4) & 0xF;
                 unsigned num_quad_words = midgard_word_size[tag];
 
+                if (midg_tags[i] && midg_tags[i] != tag) {
+                        printf("\t/* XXX: TAG ERROR branch, got ");
+                        print_tag_short(tag);
+                        printf(" expected ");
+                        print_tag_short(midg_tags[i]);
+                        printf(" */\n");
+                }
+
+                midg_tags[i] = tag;
+
                 /* Check the tag */
                 if (last_next_tag > 1) {
                         if (last_next_tag != tag) {
-                                printf("/* TAG ERROR got ");
+                                printf("\t/* XXX: TAG ERROR sequence, got ");
                                 print_tag_short(tag);
                                 printf(" expected ");
                                 print_tag_short(last_next_tag);
-                                printf(" */ ");
+                                printf(" */\n");
                         }
                 } else {
                         /* TODO: Check ALU case */
@@ -1506,7 +1513,7 @@ disassemble_midgard(uint8_t *code, size_t size)
                         break;
 
                 case midgard_word_type_alu:
-                        print_alu_word(&words[i], num_quad_words, tabs);
+                        print_alu_word(&words[i], num_quad_words, tabs, i + 4*num_quad_words);
 
                         /* Reset word static analysis state */
                         is_embedded_constant_half = false;

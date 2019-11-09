@@ -2303,6 +2303,11 @@ FcParseCacheDir (FcConfigParse *parse)
 	data = prefix;
 	goto bail;
     }
+    if (data[0] == 0)
+    {
+	FcConfigMessage (parse, FcSevereWarning, "empty cache directory name ignored");
+	return;
+    }
     if (prefix)
     {
 	size_t plen = strlen ((const char *)prefix);
@@ -2538,7 +2543,7 @@ FcParseInclude (FcConfigParse *parse)
         FcChar8 *filename;
 	static FcBool warn_conf = FcFalse, warn_confd = FcFalse;
 
-        filename = FcConfigFilename(s);
+        filename = FcConfigGetFilename(parse->config, s);
 	if (deprecated == FcTrue &&
 	    filename != NULL &&
 	    userdir != NULL &&
@@ -3529,7 +3534,9 @@ _FcConfigParse (FcConfig	*config,
     FcStrBuf	    sbuf;
     char            buf[BUFSIZ];
     FcBool	    ret = FcFalse, complain_again = complain;
+    FcStrBuf	    reason;
 
+    FcStrBufInit (&reason, NULL, 0);
 #ifdef _WIN32
     if (!pGetSystemWindowsDirectory)
     {
@@ -3546,12 +3553,20 @@ _FcConfigParse (FcConfig	*config,
     }
 #endif
 
-    filename = FcConfigFilename (name);
+    filename = FcConfigGetFilename (config, name);
     if (!filename)
+    {
+	FcStrBufString (&reason, (FcChar8 *)"No such file: ");
+	FcStrBufString (&reason, name ? name : (FcChar8 *)"(null)");
 	goto bail0;
+    }
     realfilename = FcConfigRealFilename (config, name);
     if (!realfilename)
+    {
+	FcStrBufString (&reason, (FcChar8 *)"No such realfile: ");
+	FcStrBufString (&reason, name ? name : (FcChar8 *)"(null)");
 	goto bail0;
+    }
     if (FcStrSetMember (config->availConfigFiles, realfilename))
     {
         FcStrFree (filename);
@@ -3579,7 +3594,11 @@ _FcConfigParse (FcConfig	*config,
 
     fd = FcOpen ((char *) realfilename, O_RDONLY);
     if (fd == -1)
+    {
+	FcStrBufString (&reason, (FcChar8 *)"Unable to open ");
+	FcStrBufString (&reason, realfilename);
 	goto bail1;
+    }
 
     do {
 	len = read (fd, buf, BUFSIZ);
@@ -3620,11 +3639,13 @@ bail0:
     if (!ret && complain_again)
     {
 	if (name)
-	    FcConfigMessage (0, FcSevereError, "Cannot %s config file \"%s\"", load ? "load" : "scan", name);
+	    FcConfigMessage (0, FcSevereError, "Cannot %s config file \"%s\": %s", load ? "load" : "scan", name, FcStrBufDoneStatic (&reason));
 	else
-	    FcConfigMessage (0, FcSevereError, "Cannot %s default config file", load ? "load" : "scan");
+	    FcConfigMessage (0, FcSevereError, "Cannot %s default config file: %s", load ? "load" : "scan", FcStrBufDoneStatic (&reason));
+	FcStrBufDestroy (&reason);
 	return FcFalse;
     }
+    FcStrBufDestroy (&reason);
     return ret;
 }
 

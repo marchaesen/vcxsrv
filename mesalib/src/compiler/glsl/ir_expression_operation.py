@@ -512,6 +512,7 @@ ir_expression_operation = [
    # Trigonometric operations.
    operation("sin", 1, source_types=(float_type,), c_expression="sinf({src0})"),
    operation("cos", 1, source_types=(float_type,), c_expression="cosf({src0})"),
+   operation("atan", 1, source_types=(float_type,), c_expression="atan({src0})"),
 
    # Partial derivatives.
    operation("dFdx", 1, source_types=(float_type,), c_expression="0.0f"),
@@ -663,6 +664,8 @@ ir_expression_operation = [
    # operand0 is the fs input
    # operand1 is the sample ID
    operation("interpolate_at_sample", 2),
+
+   operation("atan2", 2, source_types=(float_type,), c_expression="atan2({src0}, {src1})"),
 
    # Fused floating-point multiply-add, part of ARB_gpu_shader5.
    operation("fma", 3, source_types=real_types, c_expression="{src0} * {src1} + {src2}"),

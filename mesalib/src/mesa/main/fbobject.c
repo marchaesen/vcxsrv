@@ -326,22 +326,24 @@ get_fb0_attachment(struct gl_context *ctx, struct gl_framebuffer *fb,
 {
    assert(_mesa_is_winsys_fbo(fb));
 
+   attachment = _mesa_back_to_front_if_single_buffered(fb, attachment);
+
    if (_mesa_is_gles3(ctx)) {
-      assert(attachment == GL_BACK ||
-             attachment == GL_DEPTH ||
-             attachment == GL_STENCIL);
       switch (attachment) {
       case GL_BACK:
          /* Since there is no stereo rendering in ES 3.0, only return the
           * LEFT bits.
           */
-         if (ctx->DrawBuffer->Visual.doubleBufferMode)
-            return &fb->Attachment[BUFFER_BACK_LEFT];
+         return &fb->Attachment[BUFFER_BACK_LEFT];
+      case GL_FRONT:
+         /* We might get this if back_to_front triggers above */
          return &fb->Attachment[BUFFER_FRONT_LEFT];
       case GL_DEPTH:
          return &fb->Attachment[BUFFER_DEPTH];
       case GL_STENCIL:
          return &fb->Attachment[BUFFER_STENCIL];
+      default:
+         unreachable("invalid attachment");
       }
    }
 
@@ -1625,18 +1627,46 @@ invalid_pname_enum:
    _mesa_error(ctx, GL_INVALID_ENUM, "%s(pname=0x%x)", func, pname);
 }
 
+static bool
+validate_framebuffer_parameter_extensions(GLenum pname, const char *func)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (!ctx->Extensions.ARB_framebuffer_no_attachments &&
+       !ctx->Extensions.ARB_sample_locations &&
+       !ctx->Extensions.MESA_framebuffer_flip_y) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s not supported "
+                  "(none of ARB_framebuffer_no_attachments,"
+                  " ARB_sample_locations, or"
+                  " MESA_framebuffer_flip_y extensions are available)",
+                  func);
+      return false;
+   }
+
+   /*
+    * If only the MESA_framebuffer_flip_y extension is enabled
+    * pname can only be GL_FRAMEBUFFER_FLIP_Y_MESA
+    */
+   if (ctx->Extensions.MESA_framebuffer_flip_y &&
+       pname != GL_FRAMEBUFFER_FLIP_Y_MESA &&
+       !(ctx->Extensions.ARB_framebuffer_no_attachments ||
+         ctx->Extensions.ARB_sample_locations)) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "%s(pname=0x%x)", func, pname);
+      return false;
+   }
+
+   return true;
+}
+
 void GLAPIENTRY
 _mesa_FramebufferParameteri(GLenum target, GLenum pname, GLint param)
 {
    GET_CURRENT_CONTEXT(ctx);
    struct gl_framebuffer *fb;
 
-   if (!ctx->Extensions.ARB_framebuffer_no_attachments &&
-       !ctx->Extensions.ARB_sample_locations) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glFramebufferParameteriv not supported "
-                  "(neither ARB_framebuffer_no_attachments nor ARB_sample_locations"
-                  " is available)");
+   if (!validate_framebuffer_parameter_extensions(pname,
+       "glFramebufferParameteri")) {
       return;
    }
 
@@ -1648,6 +1678,12 @@ _mesa_FramebufferParameteri(GLenum target, GLenum pname, GLint param)
    }
 
    framebuffer_parameteri(ctx, fb, pname, param, "glFramebufferParameteri");
+}
+
+void GLAPIENTRY
+_mesa_FramebufferParameteriMESA(GLenum target, GLenum pname, GLint param)
+{
+   _mesa_FramebufferParameteri(target, pname, param);
 }
 
 static bool
@@ -1779,12 +1815,8 @@ _mesa_GetFramebufferParameteriv(GLenum target, GLenum pname, GLint *params)
    GET_CURRENT_CONTEXT(ctx);
    struct gl_framebuffer *fb;
 
-   if (!ctx->Extensions.ARB_framebuffer_no_attachments &&
-       !ctx->Extensions.ARB_sample_locations) {
-      _mesa_error(ctx, GL_INVALID_OPERATION,
-                  "glGetFramebufferParameteriv not supported "
-                  "(neither ARB_framebuffer_no_attachments nor ARB_sample_locations"
-                  " is available)");
+   if (!validate_framebuffer_parameter_extensions(pname,
+       "glGetFramebufferParameteriv")) {
       return;
    }
 
@@ -1799,6 +1831,11 @@ _mesa_GetFramebufferParameteriv(GLenum target, GLenum pname, GLint *params)
                                "glGetFramebufferParameteriv");
 }
 
+void GLAPIENTRY
+_mesa_GetFramebufferParameterivMESA(GLenum target, GLenum pname, GLint *params)
+{
+   _mesa_GetFramebufferParameteriv(target, pname, params);
+}
 
 /**
  * Remove the specified renderbuffer or texture from any attachment point in
@@ -2671,6 +2708,22 @@ _mesa_NamedRenderbufferStorage(GLuint renderbuffer, GLenum internalformat,
 }
 
 void GLAPIENTRY
+_mesa_NamedRenderbufferStorageEXT(GLuint renderbuffer, GLenum internalformat,
+                                  GLsizei width, GLsizei height)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_renderbuffer *rb = _mesa_lookup_renderbuffer(ctx, renderbuffer);
+   if (!rb || rb == &DummyRenderbuffer) {
+      _mesa_HashLockMutex(ctx->Shared->RenderBuffers);
+      rb = allocate_renderbuffer_locked(ctx, renderbuffer, "glNamedRenderbufferStorageEXT");
+      _mesa_HashUnlockMutex(ctx->Shared->RenderBuffers);
+   }
+   renderbuffer_storage(ctx, rb, internalformat, width, height, NO_SAMPLES,
+                        0, "glNamedRenderbufferStorageEXT");
+}
+
+
+void GLAPIENTRY
 _mesa_NamedRenderbufferStorageMultisample(GLuint renderbuffer, GLsizei samples,
                                           GLenum internalformat,
                                           GLsizei width, GLsizei height)
@@ -2678,6 +2731,25 @@ _mesa_NamedRenderbufferStorageMultisample(GLuint renderbuffer, GLsizei samples,
    renderbuffer_storage_named(renderbuffer, internalformat, width, height,
                               samples, samples,
                               "glNamedRenderbufferStorageMultisample");
+}
+
+
+void GLAPIENTRY
+_mesa_NamedRenderbufferStorageMultisampleEXT(GLuint renderbuffer, GLsizei samples,
+                                             GLenum internalformat,
+                                             GLsizei width, GLsizei height)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_renderbuffer *rb = _mesa_lookup_renderbuffer(ctx, renderbuffer);
+   if (!rb || rb == &DummyRenderbuffer) {
+      _mesa_HashLockMutex(ctx->Shared->RenderBuffers);
+      rb = allocate_renderbuffer_locked(ctx, renderbuffer,
+                                        "glNamedRenderbufferStorageMultisampleEXT");
+      _mesa_HashUnlockMutex(ctx->Shared->RenderBuffers);
+   }
+   renderbuffer_storage(ctx, rb, internalformat, width, height,
+                        samples, samples,
+                        "glNamedRenderbufferStorageMultisample");
 }
 
 
@@ -2777,6 +2849,24 @@ _mesa_GetNamedRenderbufferParameteriv(GLuint renderbuffer, GLenum pname,
 
    get_render_buffer_parameteriv(ctx, rb, pname, params,
                                  "glGetNamedRenderbufferParameteriv");
+}
+
+
+void GLAPIENTRY
+_mesa_GetNamedRenderbufferParameterivEXT(GLuint renderbuffer, GLenum pname,
+                                         GLint *params)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   struct gl_renderbuffer *rb = _mesa_lookup_renderbuffer(ctx, renderbuffer);
+   if (!rb || rb == &DummyRenderbuffer) {
+      _mesa_HashLockMutex(ctx->Shared->RenderBuffers);
+      rb = allocate_renderbuffer_locked(ctx, renderbuffer, "glGetNamedRenderbufferParameterivEXT");
+      _mesa_HashUnlockMutex(ctx->Shared->RenderBuffers);
+   }
+
+   get_render_buffer_parameteriv(ctx, rb, pname, params,
+                                 "glGetNamedRenderbufferParameterivEXT");
 }
 
 

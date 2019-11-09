@@ -228,10 +228,8 @@ RootlessSourceValidate(DrawablePtr pDrawable, int x, int y, int w, int h,
 
         RootlessStartDrawing(pWin);
     }
-    if (pDrawable->pScreen->SourceValidate) {
-        pDrawable->pScreen->SourceValidate(pDrawable, x, y, w, h,
-                                           subWindowMode);
-    }
+    pDrawable->pScreen->SourceValidate(pDrawable, x, y, w, h,
+                                       subWindowMode);
     SCREEN_WRAP(pDrawable->pScreen, SourceValidate);
 }
 

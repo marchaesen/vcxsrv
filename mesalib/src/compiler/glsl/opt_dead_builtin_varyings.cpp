@@ -539,7 +539,8 @@ do_dead_builtin_varyings(struct gl_context *ctx,
                          tfeedback_decl *tfeedback_decls)
 {
    /* Lower the gl_FragData array to separate variables. */
-   if (consumer && consumer->Stage == MESA_SHADER_FRAGMENT) {
+   if (consumer && consumer->Stage == MESA_SHADER_FRAGMENT &&
+       !ctx->Const.ShaderCompilerOptions[MESA_SHADER_FRAGMENT].NirOptions) {
       lower_fragdata_array(consumer);
    }
 

@@ -59,6 +59,40 @@ flush_vertices_for_program_constants(struct gl_context *ctx, GLenum target)
    ctx->NewDriverState |= new_driver_state;
 }
 
+static struct gl_program*
+lookup_or_create_program(GLuint id, GLenum target, const char* caller)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_program* newProg;
+
+   if (id == 0) {
+      /* Bind a default program */
+      if (target == GL_VERTEX_PROGRAM_ARB)
+         newProg = ctx->Shared->DefaultVertexProgram;
+      else
+         newProg = ctx->Shared->DefaultFragmentProgram;
+   }
+   else {
+      /* Bind a user program */
+      newProg = _mesa_lookup_program(ctx, id);
+      if (!newProg || newProg == &_mesa_DummyProgram) {
+         /* allocate a new program now */
+         newProg = ctx->Driver.NewProgram(ctx, target, id, true);
+         if (!newProg) {
+            _mesa_error(ctx, GL_OUT_OF_MEMORY, "%s", caller);
+            return NULL;
+         }
+         _mesa_HashInsert(ctx->Shared->Programs, id, newProg);
+      }
+      else if (newProg->Target != target) {
+         _mesa_error(ctx, GL_INVALID_OPERATION,
+                     "%s(target mismatch)", caller);
+         return NULL;
+      }
+   }
+   return newProg;
+}
+
 /**
  * Bind a program (make it current)
  * \note Called from the GL API dispatcher by both glBindProgramNV
@@ -88,32 +122,9 @@ _mesa_BindProgramARB(GLenum target, GLuint id)
     * NOTE: binding to a non-existant program is not an error.
     * That's supposed to be caught in glBegin.
     */
-   if (id == 0) {
-      /* Bind a default program */
-      newProg = NULL;
-      if (target == GL_VERTEX_PROGRAM_ARB)
-         newProg = ctx->Shared->DefaultVertexProgram;
-      else
-         newProg = ctx->Shared->DefaultFragmentProgram;
-   }
-   else {
-      /* Bind a user program */
-      newProg = _mesa_lookup_program(ctx, id);
-      if (!newProg || newProg == &_mesa_DummyProgram) {
-         /* allocate a new program now */
-         newProg = ctx->Driver.NewProgram(ctx, target, id, true);
-         if (!newProg) {
-            _mesa_error(ctx, GL_OUT_OF_MEMORY, "glBindProgramARB");
-            return;
-         }
-         _mesa_HashInsert(ctx->Shared->Programs, id, newProg);
-      }
-      else if (newProg->Target != target) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                     "glBindProgramARB(target mismatch)");
-         return;
-      }
-   }
+   newProg = lookup_or_create_program(id, target, "glBindProgram");
+   if (!newProg)
+      return;
 
    /** All error checking is complete now **/
 
@@ -259,27 +270,35 @@ _mesa_IsProgramARB(GLuint id)
       return GL_FALSE;
 }
 
-static GLboolean
-get_local_param_pointer(struct gl_context *ctx, const char *func,
-			GLenum target, GLuint index, GLfloat **param)
+static struct gl_program*
+get_current_program(struct gl_context* ctx, GLenum target, const char* caller)
 {
-   struct gl_program *prog;
-   GLuint maxParams;
-
    if (target == GL_VERTEX_PROGRAM_ARB
        && ctx->Extensions.ARB_vertex_program) {
-      prog = ctx->VertexProgram.Current;
-      maxParams = ctx->Const.Program[MESA_SHADER_VERTEX].MaxLocalParams;
+      return ctx->VertexProgram.Current;
    }
    else if (target == GL_FRAGMENT_PROGRAM_ARB
             && ctx->Extensions.ARB_fragment_program) {
-      prog = ctx->FragmentProgram.Current;
-      maxParams = ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxLocalParams;
+      return ctx->FragmentProgram.Current;
    }
    else {
       _mesa_error(ctx, GL_INVALID_ENUM,
-                  "%s(target)", func);
-      return GL_FALSE;
+                  "%s(target)", caller);
+      return NULL;
+   }
+}
+
+static GLboolean
+get_local_param_pointer(struct gl_context *ctx, const char *func,
+                        struct gl_program* prog, GLenum target,
+                        GLuint index, GLfloat **param)
+{
+   GLuint maxParams;
+
+   if (target == GL_VERTEX_PROGRAM_ARB) {
+      maxParams = ctx->Const.Program[MESA_SHADER_VERTEX].MaxLocalParams;
+   } else {
+      maxParams = ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxLocalParams;
    }
 
    if (index >= maxParams) {
@@ -326,11 +345,10 @@ get_env_param_pointer(struct gl_context *ctx, const char *func,
    }
 }
 
-void GLAPIENTRY
-_mesa_ProgramStringARB(GLenum target, GLenum format, GLsizei len,
+static void
+set_program_string(struct gl_program *prog, GLenum target, GLenum format, GLsizei len,
                        const GLvoid *string)
 {
-   struct gl_program *prog;
    bool failed;
    GET_CURRENT_CONTEXT(ctx);
 
@@ -363,12 +381,10 @@ _mesa_ProgramStringARB(GLenum target, GLenum format, GLsizei len,
 #endif /* ENABLE_SHADER_CACHE */
 
    if (target == GL_VERTEX_PROGRAM_ARB && ctx->Extensions.ARB_vertex_program) {
-      prog = ctx->VertexProgram.Current;
       _mesa_parse_arb_vertex_program(ctx, target, string, len, prog);
    }
    else if (target == GL_FRAGMENT_PROGRAM_ARB
             && ctx->Extensions.ARB_fragment_program) {
-      prog = ctx->FragmentProgram.Current;
       _mesa_parse_arb_fragment_program(ctx, target, string, len, prog);
    }
    else {
@@ -430,6 +446,36 @@ _mesa_ProgramStringARB(GLenum target, GLenum format, GLsizei len,
       }
       ralloc_free(filename);
    }
+}
+
+void GLAPIENTRY
+_mesa_ProgramStringARB(GLenum target, GLenum format, GLsizei len,
+                       const GLvoid *string)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   if (target == GL_VERTEX_PROGRAM_ARB && ctx->Extensions.ARB_vertex_program) {
+      set_program_string(ctx->VertexProgram.Current, target, format, len, string);
+   }
+   else if (target == GL_FRAGMENT_PROGRAM_ARB
+            && ctx->Extensions.ARB_fragment_program) {
+      set_program_string(ctx->FragmentProgram.Current, target, format, len, string);
+   }
+   else {
+      _mesa_error(ctx, GL_INVALID_ENUM, "glProgramStringARB(target)");
+      return;
+   }
+}
+
+void GLAPIENTRY
+_mesa_NamedProgramStringEXT(GLuint program, GLenum target, GLenum format, GLsizei len,
+                            const GLvoid *string)
+{
+   struct gl_program* prog = lookup_or_create_program(program, target, "glNamedProgramStringEXT");
+
+   if (!prog) {
+      return;
+   }
+   set_program_string(prog, target, format, len, string);
 }
 
 
@@ -576,11 +622,40 @@ _mesa_ProgramLocalParameter4fARB(GLenum target, GLuint index,
 {
    GET_CURRENT_CONTEXT(ctx);
    GLfloat *param;
+   struct gl_program* prog = get_current_program(ctx, target, "glProgramLocalParameterARB");
+   if (!prog) {
+      return;
+   }
 
    flush_vertices_for_program_constants(ctx, target);
 
    if (get_local_param_pointer(ctx, "glProgramLocalParameterARB",
-			       target, index, &param)) {
+			       prog, target, index, &param)) {
+      assert(index < MAX_PROGRAM_LOCAL_PARAMS);
+      ASSIGN_4V(param, x, y, z, w);
+   }
+}
+
+void GLAPIENTRY
+_mesa_NamedProgramLocalParameter4fEXT(GLuint program, GLenum target, GLuint index,
+                                      GLfloat x, GLfloat y, GLfloat z, GLfloat w)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   GLfloat *param;
+   struct gl_program* prog = lookup_or_create_program(program, target,
+                                                      "glNamedProgramLocalParameter4fEXT");
+
+   if (!prog) {
+      return;
+   }
+
+   if ((target == GL_VERTEX_PROGRAM_ARB && prog == ctx->VertexProgram.Current) ||
+       (target == GL_FRAGMENT_PROGRAM_ARB && prog == ctx->FragmentProgram.Current)) {
+      flush_vertices_for_program_constants(ctx, target);
+   }
+
+   if (get_local_param_pointer(ctx, "glNamedProgramLocalParameter4fEXT",
+                prog, target, index, &param)) {
       assert(index < MAX_PROGRAM_LOCAL_PARAMS);
       ASSIGN_4V(param, x, y, z, w);
    }
@@ -597,32 +672,72 @@ _mesa_ProgramLocalParameter4fvARB(GLenum target, GLuint index,
 
 
 void GLAPIENTRY
-_mesa_ProgramLocalParameters4fvEXT(GLenum target, GLuint index, GLsizei count,
-				   const GLfloat *params)
+_mesa_NamedProgramLocalParameter4fvEXT(GLuint program, GLenum target, GLuint index,
+                                  const GLfloat *params)
+{
+   _mesa_NamedProgramLocalParameter4fEXT(program, target, index, params[0],
+                                         params[1], params[2], params[3]);
+}
+
+
+static void
+program_local_parameters4fv(struct gl_program* prog, GLuint index, GLsizei count,
+                            const GLfloat *params, const char* caller)
 {
    GET_CURRENT_CONTEXT(ctx);
    GLfloat *dest;
-
-   flush_vertices_for_program_constants(ctx, target);
+   flush_vertices_for_program_constants(ctx, prog->Target);
 
    if (count <= 0) {
-      _mesa_error(ctx, GL_INVALID_VALUE, "glProgramLocalParameters4fv(count)");
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(count)", caller);
    }
 
-   if (get_local_param_pointer(ctx, "glProgramLocalParameters4fvEXT",
-                               target, index, &dest)) {
-      GLuint maxParams = target == GL_FRAGMENT_PROGRAM_ARB ?
+   if (get_local_param_pointer(ctx, caller,
+                               prog, prog->Target, index, &dest)) {
+      GLuint maxParams = prog->Target == GL_FRAGMENT_PROGRAM_ARB ?
          ctx->Const.Program[MESA_SHADER_FRAGMENT].MaxLocalParams :
          ctx->Const.Program[MESA_SHADER_VERTEX].MaxLocalParams;
 
       if ((index + count) > maxParams) {
          _mesa_error(ctx, GL_INVALID_VALUE,
-                     "glProgramLocalParameters4fvEXT(index + count)");
+                     "%s(index + count)",
+                     caller);
          return;
       }
 
       memcpy(dest, params, count * 4 * sizeof(GLfloat));
    }
+}
+
+
+void GLAPIENTRY
+_mesa_ProgramLocalParameters4fvEXT(GLenum target, GLuint index, GLsizei count,
+				   const GLfloat *params)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_program* prog = get_current_program(ctx, target,
+                                                 "glProgramLocalParameters4fv");
+   if (!prog) {
+      return;
+   }
+
+   program_local_parameters4fv(prog, index, count, params,
+                               "glProgramLocalParameters4fv");
+}
+
+void GLAPIENTRY
+_mesa_NamedProgramLocalParameters4fvEXT(GLuint program, GLenum target, GLuint index,
+                                        GLsizei count, const GLfloat *params)
+{
+   struct gl_program* prog =
+      lookup_or_create_program(program, target,
+                               "glNamedProgramLocalParameters4fvEXT");
+   if (!prog) {
+      return;
+   }
+
+   program_local_parameters4fv(prog, index, count, params,
+                               "glNamedProgramLocalParameters4fvEXT");
 }
 
 
@@ -637,6 +752,16 @@ _mesa_ProgramLocalParameter4dARB(GLenum target, GLuint index,
 
 
 void GLAPIENTRY
+_mesa_NamedProgramLocalParameter4dEXT(GLuint program, GLenum target, GLuint index,
+                                      GLdouble x, GLdouble y,
+                                      GLdouble z, GLdouble w)
+{
+   _mesa_NamedProgramLocalParameter4fEXT(program, target, index, (GLfloat) x, (GLfloat) y,
+                                         (GLfloat) z, (GLfloat) w);
+}
+
+
+void GLAPIENTRY
 _mesa_ProgramLocalParameter4dvARB(GLenum target, GLuint index,
                                   const GLdouble *params)
 {
@@ -647,14 +772,47 @@ _mesa_ProgramLocalParameter4dvARB(GLenum target, GLuint index,
 
 
 void GLAPIENTRY
+_mesa_NamedProgramLocalParameter4dvEXT(GLuint program, GLenum target, GLuint index,
+                                       const GLdouble *params)
+{
+   _mesa_NamedProgramLocalParameter4fEXT(program, target, index,
+                                         (GLfloat) params[0], (GLfloat) params[1],
+                                         (GLfloat) params[2], (GLfloat) params[3]);
+}
+
+
+void GLAPIENTRY
 _mesa_GetProgramLocalParameterfvARB(GLenum target, GLuint index,
                                     GLfloat *params)
 {
    GLfloat *param;
    GET_CURRENT_CONTEXT(ctx);
+   struct gl_program* prog = get_current_program(ctx, target, "glGetProgramLocalParameterfvARB");
+   if (!prog) {
+      return;
+   }
 
    if (get_local_param_pointer(ctx, "glProgramLocalParameters4fvEXT",
-				target, index, &param)) {
+				prog, target, index, &param)) {
+      COPY_4V(params, param);
+   }
+}
+
+
+void GLAPIENTRY
+_mesa_GetNamedProgramLocalParameterfvEXT(GLuint program, GLenum target, GLuint index,
+                                         GLfloat *params)
+{
+   GLfloat *param;
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_program* prog = lookup_or_create_program(program, target,
+                                                      "glGetNamedProgramLocalParameterfvEXT");
+   if (!prog) {
+      return;
+   }
+
+   if (get_local_param_pointer(ctx, "glGetNamedProgramLocalParameterfvEXT",
+            prog, target, index, &param)) {
       COPY_4V(params, param);
    }
 }
@@ -666,34 +824,50 @@ _mesa_GetProgramLocalParameterdvARB(GLenum target, GLuint index,
 {
    GLfloat *param;
    GET_CURRENT_CONTEXT(ctx);
+   struct gl_program* prog = get_current_program(ctx, target, "glGetProgramLocalParameterdvARB");
+   if (!prog) {
+      return;
+   }
 
    if (get_local_param_pointer(ctx, "glProgramLocalParameters4fvEXT",
-				target, index, &param)) {
+				prog, target, index, &param)) {
       COPY_4V(params, param);
    }
 }
 
 
 void GLAPIENTRY
-_mesa_GetProgramivARB(GLenum target, GLenum pname, GLint *params)
+_mesa_GetNamedProgramLocalParameterdvEXT(GLuint program, GLenum target, GLuint index,
+                                         GLdouble *params)
+{
+   GLfloat *param;
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_program* prog = lookup_or_create_program(program, target,
+                                                      "glGetNamedProgramLocalParameterdvEXT");
+   if (!prog) {
+      return;
+   }
+
+   if (get_local_param_pointer(ctx, "glGetNamedProgramLocalParameterdvEXT",
+            prog, target, index, &param)) {
+      COPY_4V(params, param);
+   }
+}
+
+
+static void
+get_program_iv(struct gl_program *prog, GLenum target, GLenum pname,
+               GLint *params)
 {
    const struct gl_program_constants *limits;
-   struct gl_program *prog;
+
    GET_CURRENT_CONTEXT(ctx);
 
-   if (target == GL_VERTEX_PROGRAM_ARB
-       && ctx->Extensions.ARB_vertex_program) {
-      prog = ctx->VertexProgram.Current;
+   if (target == GL_VERTEX_PROGRAM_ARB) {
       limits = &ctx->Const.Program[MESA_SHADER_VERTEX];
    }
-   else if (target == GL_FRAGMENT_PROGRAM_ARB
-            && ctx->Extensions.ARB_fragment_program) {
-      prog = ctx->FragmentProgram.Current;
-      limits = &ctx->Const.Program[MESA_SHADER_FRAGMENT];
-   }
    else {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glGetProgramivARB(target)");
-      return;
+      limits = &ctx->Const.Program[MESA_SHADER_FRAGMENT];
    }
 
    assert(prog);
@@ -857,6 +1031,35 @@ _mesa_GetProgramivARB(GLenum target, GLenum pname, GLint *params)
 
 
 void GLAPIENTRY
+_mesa_GetProgramivARB(GLenum target, GLenum pname, GLint *params)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_program* prog = get_current_program(ctx, target,
+                                                 "glGetProgramivARB");
+   if (!prog) {
+      return;
+   }
+   get_program_iv(prog, target, pname, params);
+}
+
+void GLAPIENTRY
+_mesa_GetNamedProgramivEXT(GLuint program, GLenum target, GLenum pname,
+                           GLint *params)
+{
+   struct gl_program* prog;
+   if (pname == GL_PROGRAM_BINDING_ARB) {
+      return _mesa_GetProgramivARB(target, pname, params);
+   }
+   prog = lookup_or_create_program(program, target,
+                                                      "glGetNamedProgramivEXT");
+   if (!prog) {
+      return;
+   }
+   get_program_iv(prog, target, pname, params);
+}
+
+
+void GLAPIENTRY
 _mesa_GetProgramStringARB(GLenum target, GLenum pname, GLvoid *string)
 {
    const struct gl_program *prog;
@@ -878,6 +1081,28 @@ _mesa_GetProgramStringARB(GLenum target, GLenum pname, GLvoid *string)
 
    if (pname != GL_PROGRAM_STRING_ARB) {
       _mesa_error(ctx, GL_INVALID_ENUM, "glGetProgramStringARB(pname)");
+      return;
+   }
+
+   if (prog->String)
+      memcpy(dst, prog->String, strlen((char *) prog->String));
+   else
+      *dst = '\0';
+}
+
+
+void GLAPIENTRY
+_mesa_GetNamedProgramStringEXT(GLuint program, GLenum target,
+                               GLenum pname, GLvoid *string) {
+   char *dst = (char *) string;
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_program* prog = lookup_or_create_program(program, target,
+                                                      "glGetNamedProgramStringEXT");
+   if (!prog)
+      return;
+
+   if (pname != GL_PROGRAM_STRING_ARB) {
+      _mesa_error(ctx, GL_INVALID_ENUM, "glGetNamedProgramStringEXT(pname)");
       return;
    }
 

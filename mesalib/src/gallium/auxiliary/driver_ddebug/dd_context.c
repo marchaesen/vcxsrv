@@ -623,7 +623,7 @@ dd_context_destroy(struct pipe_context *_pipe)
    mtx_destroy(&dctx->mutex);
    cnd_destroy(&dctx->cond);
 
-   assert(list_empty(&dctx->records));
+   assert(list_is_empty(&dctx->records));
 
    if (pipe->set_log_context) {
       pipe->set_log_context(pipe, NULL);

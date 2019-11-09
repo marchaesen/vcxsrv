@@ -1620,7 +1620,7 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 		<bitfield name="SWIZ_Y" low="4" high="6" type="sq_tex_swiz"/>
 		<bitfield name="SWIZ_Z" low="7" high="9" type="sq_tex_swiz"/>
 		<bitfield name="SWIZ_W" low="10" high="12" type="sq_tex_swiz"/>
-		<bitfield name="EXP_ADJUST" low="13" high="18" type="uint"/>
+		<bitfield name="EXP_ADJUST" low="13" high="18" type="int"/>
 		<bitfield name="XY_MAG_FILTER" low="19" high="20" type="sq_tex_filter"/>
 		<bitfield name="XY_MIN_FILTER" low="21" high="22" type="sq_tex_filter"/>
 		<bitfield name="MIP_FILTER" low="23" high="24" type="sq_tex_filter"/>

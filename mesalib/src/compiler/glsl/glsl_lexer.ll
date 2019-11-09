@@ -356,6 +356,7 @@ for		return FOR;
 if		return IF;
 discard		return DISCARD;
 return		return RETURN;
+demote		KEYWORD_WITH_ALT(0, 0, 0, 0, yyextra->EXT_demote_to_helper_invocation_enable, DEMOTE);
 
 bvec2		{ yylval->type = glsl_type::bvec2_type; return BASIC_TYPE_TOK; }
 bvec3		{ yylval->type = glsl_type::bvec3_type; return BASIC_TYPE_TOK; }

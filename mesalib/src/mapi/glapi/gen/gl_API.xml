@@ -10932,12 +10932,12 @@
 
     <enum name="FRAMEBUFFER_PROGRAMMABLE_SAMPLE_LOCATIONS_ARB" value="0x9342">
         <size name="FramebufferParameteri"/>
-        <size name="GetFramebufferParameteri"/>
+        <size name="GetFramebufferParameteriv"/>
     </enum>
 
     <enum name="FRAMEBUFFER_SAMPLE_LOCATION_PIXEL_GRID_ARB"    value="0x9343">
         <size name="FramebufferParameteri"/>
-        <size name="GetFramebufferParameteri"/>
+        <size name="GetFramebufferParameteriv"/>
     </enum>
 
     <function name="FramebufferSampleLocationsfvARB" no_error="true">
@@ -10984,12 +10984,12 @@
 
     <enum name="FRAMEBUFFER_PROGRAMMABLE_SAMPLE_LOCATIONS_NV" value="0x9342" alias="FRAMEBUFFER_PROGRAMMABLE_SAMPLE_LOCATIONS_ARB">
         <size name="FramebufferParameteri"/>
-        <size name="GetFramebufferParameteri"/>
+        <size name="GetFramebufferParameteriv"/>
     </enum>
 
     <enum name="FRAMEBUFFER_SAMPLE_LOCATION_PIXEL_GRID_NV"    value="0x9343" alias="FRAMEBUFFER_SAMPLE_LOCATION_PIXEL_GRID_ARB">
         <size name="FramebufferParameteri"/>
-        <size name="GetFramebufferParameteri"/>
+        <size name="GetFramebufferParameteriv"/>
     </enum>
 
     <function name="FramebufferSampleLocationsfvNV" no_error="true" es2="3.1" alias="FramebufferSampleLocationsfvARB">

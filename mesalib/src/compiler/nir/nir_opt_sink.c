@@ -76,23 +76,48 @@ get_innermost_loop(nir_cf_node *node)
    return NULL;
 }
 
-/* return last block not after use_block with def_loop as it's innermost loop */
-static nir_block *
-adjust_block_for_loops(nir_block *use_block, nir_loop *def_loop)
+static bool
+loop_contains_block(nir_loop *loop, nir_block *block)
 {
-   nir_loop *use_loop = NULL;
+   nir_block *before = nir_cf_node_as_block(nir_cf_node_prev(&loop->cf_node));
+   nir_block *after = nir_cf_node_as_block(nir_cf_node_next(&loop->cf_node));
 
-   for (nir_cf_node *node = &use_block->cf_node; node != NULL; node = node->parent) {
-      if (def_loop && node == &def_loop->cf_node)
-         break;
-      if (node->type == nir_cf_node_loop)
-         use_loop = nir_cf_node_as_loop(node);
+   return block->index > before->index && block->index < after->index;
+}
+
+/* Given the LCA of all uses and the definition, find a block on the path
+ * between them in the dominance tree that is outside of as many loops as
+ * possible. If "sink_out_of_loops" is false, then we disallow sinking the
+ * definition outside of the loop it's defined in (if any).
+ */
+
+static nir_block *
+adjust_block_for_loops(nir_block *use_block, nir_block *def_block,
+                       bool sink_out_of_loops)
+{
+   nir_loop *def_loop = NULL;
+   if (!sink_out_of_loops)
+      def_loop = get_innermost_loop(&def_block->cf_node);
+
+   for (nir_block *cur_block = use_block; cur_block != def_block->imm_dom;
+        cur_block = cur_block->imm_dom) {
+      if (!sink_out_of_loops && def_loop &&
+          !loop_contains_block(def_loop, use_block)) {
+         use_block = cur_block;
+         continue;
+      }
+
+      nir_cf_node *next = nir_cf_node_next(&cur_block->cf_node);
+      if (next && next->type == nir_cf_node_loop) {
+         nir_loop *following_loop = nir_cf_node_as_loop(next);
+         if (loop_contains_block(following_loop, use_block)) {
+             use_block = cur_block;
+             continue;
+         }
+      }
    }
-   if (use_loop) {
-      return nir_block_cf_tree_prev(nir_loop_first_block(use_loop));
-   } else {
-      return use_block;
-   }
+
+   return use_block;
 }
 
 /* iterate a ssa def's use's and try to find a more optimal block to
@@ -102,13 +127,9 @@ adjust_block_for_loops(nir_block *use_block, nir_loop *def_loop)
  * the uses
  */
 static nir_block *
-get_preferred_block(nir_ssa_def *def, bool sink_into_loops)
+get_preferred_block(nir_ssa_def *def, bool sink_into_loops, bool sink_out_of_loops)
 {
    nir_block *lca = NULL;
-
-   nir_loop *def_loop = NULL;
-   if (!sink_into_loops)
-      def_loop = get_innermost_loop(&def->parent_instr->block->cf_node);
 
    nir_foreach_use(use, def) {
       nir_instr *instr = use->parent_instr;
@@ -131,18 +152,6 @@ get_preferred_block(nir_ssa_def *def, bool sink_into_loops)
          use_block = phi_lca;
       }
 
-      /* If we're moving a load_ubo or load_interpolated_input, we don't want to
-       * sink it down into loops, which may result in accessing memory or shared
-       * functions multiple times.  Sink it just above the start of the loop
-       * where it's used.  For load_consts, undefs, and comparisons, we expect
-       * the driver to be able to emit them as simple ALU ops, so sinking as far
-       * in as we can go is probably worth it for register pressure.
-       */
-      if (!sink_into_loops) {
-         use_block = adjust_block_for_loops(use_block, def_loop);
-         assert(nir_block_dominates(def->parent_instr->block, use_block));
-      }
-
       lca = nir_dominance_lca(lca, use_block);
    }
 
@@ -150,13 +159,27 @@ get_preferred_block(nir_ssa_def *def, bool sink_into_loops)
       nir_block *use_block =
          nir_cf_node_as_block(nir_cf_node_prev(&use->parent_if->cf_node));
 
-      if (!sink_into_loops) {
-         use_block = adjust_block_for_loops(use_block, def_loop);
-         assert(nir_block_dominates(def->parent_instr->block, use_block));
-      }
-
       lca = nir_dominance_lca(lca, use_block);
    }
+
+   /* If we're moving a load_ubo or load_interpolated_input, we don't want to
+    * sink it down into loops, which may result in accessing memory or shared
+    * functions multiple times.  Sink it just above the start of the loop
+    * where it's used.  For load_consts, undefs, and comparisons, we expect
+    * the driver to be able to emit them as simple ALU ops, so sinking as far
+    * in as we can go is probably worth it for register pressure.
+    */
+   if (!sink_into_loops) {
+      lca = adjust_block_for_loops(lca, def->parent_instr->block,
+                                   sink_out_of_loops);
+      assert(nir_block_dominates(def->parent_instr->block, lca));
+   } else {
+      /* sink_into_loops = true and sink_out_of_loops = false isn't
+       * implemented yet because it's not used.
+       */
+      assert(sink_out_of_loops);
+   }
+
 
    return lca;
 }
@@ -199,8 +222,17 @@ nir_opt_sink(nir_shader *shader, nir_move_options options)
                continue;
 
             nir_ssa_def *def = nir_instr_ssa_def(instr);
+
+            bool sink_into_loops = instr->type != nir_instr_type_intrinsic;
+            /* Don't sink load_ubo out of loops because that can make its
+             * resource divergent and break code like that which is generated
+             * by nir_lower_non_uniform_access.
+             */
+            bool sink_out_of_loops =
+               instr->type != nir_instr_type_intrinsic ||
+               nir_instr_as_intrinsic(instr)->intrinsic != nir_intrinsic_load_ubo;
             nir_block *use_block =
-                  get_preferred_block(def, instr->type != nir_instr_type_intrinsic);
+                  get_preferred_block(def, sink_into_loops, sink_out_of_loops);
 
             if (!use_block || use_block == instr->block)
                continue;

@@ -38,6 +38,7 @@
 #include "tgsi/tgsi_strings.h"
 #include "tgsi/tgsi_text.h"
 #include "cso_cache/cso_context.h"
+#include "state_tracker/winsys_handle.h"
 #include <stdio.h>
 
 #define TOLERANCE 0.01
@@ -858,6 +859,162 @@ test_compute_clear_image(struct pipe_context *ctx)
    util_report_result(pass);
 }
 
+#define NV12_WIDTH   2560
+#define NV12_HEIGHT  1440
+
+static bool
+nv12_validate_resource_fields(struct pipe_resource *tex)
+{
+   return tex->format == util_format_get_plane_format(PIPE_FORMAT_NV12, 0) &&
+         tex->width0 == NV12_WIDTH &&
+         tex->height0 == NV12_HEIGHT &&
+         tex->last_level == 0 &&
+         tex->usage == PIPE_USAGE_DEFAULT &&
+         tex->next &&
+         tex->next->format == util_format_get_plane_format(PIPE_FORMAT_NV12, 1) &&
+         tex->next->width0 == tex->width0 / 2 &&
+         tex->next->height0 == tex->height0 / 2 &&
+         tex->next->usage == tex->usage;
+}
+
+/* This test enforces the behavior of NV12 allocation and exports. */
+static void
+test_nv12(struct pipe_screen *screen)
+{
+   struct pipe_resource *tex = util_create_texture2d(screen, NV12_WIDTH, NV12_HEIGHT,
+                                                     PIPE_FORMAT_NV12, 1);
+
+   if (!tex) {
+      printf("resource_create failed\n");
+      util_report_result(false);
+      return;
+   }
+
+   if (!nv12_validate_resource_fields(tex)) {
+      printf("incorrect pipe_resource fields\n");
+      util_report_result(false);
+      return;
+   }
+
+   /* resource_get_param */
+   if (screen->resource_get_param) {
+      struct {
+         uint64_t handle, dmabuf, offset, stride, planes;
+      } handle[3];
+
+      /* Export */
+      for (unsigned i = 0; i < 3; i++) {
+         struct pipe_resource *res = i == 2 ? tex->next : tex;
+         unsigned plane = i == 2 ? 0 : i;
+
+         if (!screen->resource_get_param(screen, NULL, res, plane, 0,
+                                         PIPE_RESOURCE_PARAM_HANDLE_TYPE_KMS,
+                                         0, &handle[i].handle)) {
+            printf("resource_get_param failed\n");
+            util_report_result(false);
+            goto cleanup;
+         }
+
+         if (!screen->resource_get_param(screen, NULL, res, plane, 0,
+                                         PIPE_RESOURCE_PARAM_HANDLE_TYPE_FD,
+                                         0, &handle[i].dmabuf)) {
+            printf("resource_get_param failed\n");
+            util_report_result(false);
+            goto cleanup;
+         }
+
+         if (!screen->resource_get_param(screen, NULL, res, plane, 0,
+                                         PIPE_RESOURCE_PARAM_OFFSET,
+                                         0, &handle[i].offset)) {
+            printf("resource_get_param failed\n");
+            util_report_result(false);
+            goto cleanup;
+         }
+
+         if (!screen->resource_get_param(screen, NULL, res, plane, 0,
+                                         PIPE_RESOURCE_PARAM_STRIDE,
+                                         0, &handle[i].stride)) {
+            printf("resource_get_param failed\n");
+            util_report_result(false);
+            goto cleanup;
+         }
+
+         if (!screen->resource_get_param(screen, NULL, res, plane, 0,
+                                         PIPE_RESOURCE_PARAM_NPLANES,
+                                         0, &handle[i].planes)) {
+            printf("resource_get_param failed\n");
+            util_report_result(false);
+            goto cleanup;
+         }
+      }
+
+      /* Validate export.  */
+      bool get_param_pass = /* Sanity checking */
+                            handle[0].handle && handle[1].handle && handle[2].handle &&
+                            handle[0].dmabuf && handle[1].dmabuf && handle[2].dmabuf &&
+                            handle[0].stride && handle[1].stride && handle[2].stride &&
+                            handle[0].planes == 2 &&
+                            handle[1].planes == 2 &&
+                            handle[2].planes == 2 &&
+                            /* Different planes */
+                            handle[0].handle == handle[1].handle &&
+                            handle[0].offset != handle[1].offset &&
+                            /* Same planes. */
+                            handle[1].handle == handle[2].handle &&
+                            handle[1].stride == handle[2].stride &&
+                            handle[1].offset == handle[2].offset;
+
+      if (!get_param_pass) {
+         printf("resource_get_param returned incorrect values\n");
+         util_report_result(false);
+         goto cleanup;
+      }
+   }
+
+   /* resource_get_handle */
+   struct winsys_handle handle[4] = {{0}};
+
+   /* Export */
+   for (unsigned i = 0; i < 4; i++) {
+      handle[i].type = i < 2 ? WINSYS_HANDLE_TYPE_KMS : WINSYS_HANDLE_TYPE_FD;
+      handle[i].plane = i % 2;
+
+      if (!screen->resource_get_handle(screen, NULL, tex, &handle[i], 0)) {
+         printf("resource_get_handle failed\n");
+         util_report_result(false);
+         goto cleanup;
+      }
+   }
+
+   /* Validate export. */
+   bool get_handle_pass = /* Sanity checking */
+                          handle[0].handle && handle[1].handle &&
+                          handle[0].stride && handle[1].stride &&
+                          handle[2].handle && handle[3].handle &&
+                          handle[2].stride && handle[3].stride &&
+                          /* KMS - different planes */
+                          handle[0].handle == handle[1].handle &&
+                          handle[0].offset != handle[1].offset &&
+                          /* DMABUF - different planes */
+                          handle[2].offset != handle[3].offset &&
+                          /* KMS and DMABUF equivalence */
+                          handle[0].offset == handle[2].offset &&
+                          handle[1].offset == handle[3].offset &&
+                          handle[0].stride == handle[2].stride &&
+                          handle[1].stride == handle[3].stride;
+
+   if (!get_handle_pass) {
+      printf("resource_get_handle returned incorrect values\n");
+      util_report_result(false);
+      goto cleanup;
+   }
+
+   util_report_result(true);
+
+cleanup:
+   pipe_resource_reference(&tex, NULL);
+}
+
 /**
  * Run all tests. This should be run with a clean context after
  * context_create.
@@ -883,6 +1040,8 @@ util_run_tests(struct pipe_screen *screen)
    ctx = screen->context_create(screen, NULL, PIPE_CONTEXT_COMPUTE_ONLY);
    test_compute_clear_image(ctx);
    ctx->destroy(ctx);
+
+   test_nv12(screen);
 
    puts("Done. Exiting..");
    exit(0);

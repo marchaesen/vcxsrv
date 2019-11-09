@@ -96,19 +96,18 @@ ir3_context_init(struct ir3_compiler *compiler,
 		NIR_PASS_V(ctx->s, nir_opt_constant_folding);
 	}
 
+	/* Enable the texture pre-fetch feature only a4xx onwards.  But
+	 * only enable it on generations that have been tested:
+	 */
+	if ((so->type == MESA_SHADER_FRAGMENT) && (compiler->gpu_id >= 600))
+		NIR_PASS_V(ctx->s, ir3_nir_lower_tex_prefetch);
+
 	NIR_PASS_V(ctx->s, nir_convert_from_ssa, true);
 
-	if (ir3_shader_debug & IR3_DBG_DISASM) {
-		DBG("dump nir%dv%d: type=%d, k={cts=%u,hp=%u}",
-			so->shader->id, so->id, so->type,
-			so->key.color_two_side, so->key.half_precision);
-		nir_print_shader(ctx->s, stdout);
-	}
-
 	if (shader_debug_enabled(so->type)) {
-		fprintf(stderr, "NIR (final form) for %s shader:\n",
-			_mesa_shader_stage_to_string(so->type));
-		nir_print_shader(ctx->s, stderr);
+		fprintf(stdout, "NIR (final form) for %s shader %s:\n",
+			ir3_shader_stage(so), so->shader->nir->info.name);
+		nir_print_shader(ctx->s, stdout);
 	}
 
 	ir3_ibo_mapping_init(&so->image_mapping, ctx->s->info.num_textures);
@@ -240,6 +239,12 @@ ir3_put_dst(struct ir3_context *ctx, nir_dest *dst)
 	ctx->last_dst_n = 0;
 }
 
+static unsigned
+dest_flags(struct ir3_instruction *instr)
+{
+	return instr->regs[0]->flags & (IR3_REG_HALF | IR3_REG_HIGH);
+}
+
 struct ir3_instruction *
 ir3_create_collect(struct ir3_context *ctx, struct ir3_instruction *const *arr,
 		unsigned arrsz)
@@ -250,7 +255,7 @@ ir3_create_collect(struct ir3_context *ctx, struct ir3_instruction *const *arr,
 	if (arrsz == 0)
 		return NULL;
 
-	unsigned flags = arr[0]->regs[0]->flags & IR3_REG_HALF;
+	unsigned flags = dest_flags(arr[0]);
 
 	collect = ir3_instr_create2(block, OPC_META_FI, 1 + arrsz);
 	ir3_reg_create(collect, 0, flags);     /* dst */
@@ -286,7 +291,7 @@ ir3_create_collect(struct ir3_context *ctx, struct ir3_instruction *const *arr,
 			elem = ir3_MOV(block, elem, type);
 		}
 
-		compile_assert(ctx, (elem->regs[0]->flags & IR3_REG_HALF) == flags);
+		compile_assert(ctx, dest_flags(elem) == flags);
 		ir3_reg_create(collect, 0, IR3_REG_SSA | flags)->instr = elem;
 	}
 
@@ -309,7 +314,7 @@ ir3_split_dest(struct ir3_block *block, struct ir3_instruction **dst,
 		return;
 	}
 
-	unsigned flags = src->regs[0]->flags & (IR3_REG_HALF | IR3_REG_HIGH);
+	unsigned flags = dest_flags(src);
 
 	for (int i = 0, j = 0; i < n; i++) {
 		struct ir3_instruction *split = ir3_instr_create(block, OPC_META_FO);

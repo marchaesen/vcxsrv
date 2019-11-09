@@ -33,6 +33,8 @@
 #define HIDDEN
 #endif
 
+#define X86_ENTRY_SIZE 32
+
 __asm__(".text");
 
 __asm__("x86_current_tls:\n\t"
@@ -56,9 +58,13 @@ __asm__(".balign 16\n"
    ".balign 16\n"                \
    func ":"
 
-#define STUB_ASM_CODE(slot)      \
-   "call x86_current_tls\n\t"    \
-   "movl %gs:(%eax), %eax\n\t"   \
+#define STUB_ASM_CODE(slot)                                 \
+   "call 1f\n"                                              \
+   "1:\n\t"                                                 \
+   "popl %eax\n\t"                                          \
+   "addl $_GLOBAL_OFFSET_TABLE_+[.-1b], %eax\n\t"           \
+   "movl " ENTRY_CURRENT_TABLE "@GOTNTPOFF(%eax), %eax\n\t" \
+   "movl %gs:(%eax), %eax\n\t"                              \
    "jmp *(4 * " slot ")(%eax)"
 
 #define MAPI_TMP_STUB_ASM_GCC
@@ -80,27 +86,25 @@ x86_current_tls();
 extern char x86_entry_start[] HIDDEN;
 extern char x86_entry_end[] HIDDEN;
 
+static inline mapi_func
+entry_generate_or_patch(int, char *, size_t);
+
 void
 entry_patch_public(void)
 {
 #ifndef GLX_X86_READONLY_TEXT
-   char patch[8] = {
-      0x65, 0xa1, 0x00, 0x00, 0x00, 0x00, /* movl %gs:0x0, %eax */
-      0x90, 0x90                          /* nop's */
-   };
    char *entry;
-
-   *((unsigned long *) (patch + 2)) = x86_current_tls();
-
-   for (entry = x86_entry_start; entry < x86_entry_end; entry += 16)
-      memcpy(entry, patch, sizeof(patch));
+   int slot = 0;
+   for (entry = x86_entry_start; entry < x86_entry_end;
+        entry += X86_ENTRY_SIZE, ++slot)
+      entry_generate_or_patch(slot, entry, X86_ENTRY_SIZE);
 #endif
 }
 
 mapi_func
 entry_get_public(int slot)
 {
-   return (mapi_func) (x86_entry_start + slot * 16);
+   return (mapi_func) (x86_entry_start + slot * X86_ENTRY_SIZE);
 }
 
 void
@@ -110,19 +114,21 @@ entry_patch(mapi_func entry, int slot)
    *((unsigned long *) (code + 8)) = slot * sizeof(mapi_func);
 }
 
-mapi_func
-entry_generate(int slot)
+static inline mapi_func
+entry_generate_or_patch(int slot, char *code, size_t size)
 {
    const char code_templ[16] = {
       0x65, 0xa1, 0x00, 0x00, 0x00, 0x00, /* movl %gs:0x0, %eax */
       0xff, 0xa0, 0x34, 0x12, 0x00, 0x00, /* jmp *0x1234(%eax) */
       0x90, 0x90, 0x90, 0x90              /* nop's */
    };
-   char *code;
    mapi_func entry;
 
-   code = u_execmem_alloc(sizeof(code_templ));
-   if (!code)
+   if (code == NULL) {
+      size = sizeof(code_templ);
+      code = u_execmem_alloc(size);
+   }
+   if (!code || size < sizeof(code_templ))
       return NULL;
 
    memcpy(code, code_templ, sizeof(code_templ));
@@ -132,6 +138,12 @@ entry_generate(int slot)
    entry_patch(entry, slot);
 
    return entry;
+}
+
+mapi_func
+entry_generate(int slot)
+{
+   return entry_generate_or_patch(slot, NULL, 0);
 }
 
 #endif /* MAPI_MODE_BRIDGE */

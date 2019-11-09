@@ -42,6 +42,11 @@ test_pthread_LDADD = $(top_builddir)/src/libfontconfig.la
 # We don't enable this test by default because it will require config and fonts
 # to meaningfully test anything, and we are not installed yet.
 #TESTS += test-pthread
+
+check_PROGRAMS += test-crbug1004254
+test_crbug1004254_LDADD = $(top_builddir)/src/libfontconfig.la
+# Disabling this for the same reason as above but trying to run in run-test.sh.
+#TESTS += test-crbug1004254
 endif
 check_PROGRAMS += test-bz89617
 test_bz89617_CFLAGS = \
@@ -135,8 +140,22 @@ check_PROGRAMS += test-bz1744377
 test_bz1744377_LDADD = $(top_builddir)/src/libfontconfig.la
 TESTS += test-bz1744377
 
+check_PROGRAMS += test-issue180
+test_issue180_LDADD = $(top_builddir)/src/libfontconfig.la
+TESTS += test-issue180
+
 EXTRA_DIST=run-test.sh run-test-conf.sh $(LOG_COMPILER) $(TESTDATA) out.expected-long-family-names out.expected-no-long-family-names
 
-CLEANFILES=out out1 out2 fonts.conf out.expected
+CLEANFILES =		\
+	fonts.conf	\
+	out		\
+	out1		\
+	out2		\
+	out.expected	\
+	run*.log	\
+	run*.trs	\
+	test*.log	\
+	test*.trs	\
+	$(NULL)
 
 -include $(top_srcdir)/git.mk

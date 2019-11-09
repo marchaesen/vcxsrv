@@ -1582,7 +1582,7 @@ static bool radv_amdgpu_wait_syncobj(struct radeon_winsys *_ws, const uint32_t *
 					 &tmp);
 	if (ret == 0) {
 		return true;
-	} else if (ret == -1 && errno == ETIME) {
+	} else if (ret == -ETIME) {
 		return false;
 	} else {
 		fprintf(stderr, "amdgpu: radv_amdgpu_wait_syncobj failed!\nerrno: %d\n", errno);

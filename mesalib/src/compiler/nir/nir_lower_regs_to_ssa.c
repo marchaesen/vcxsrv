@@ -300,9 +300,9 @@ nir_lower_regs_to_ssa_impl(nir_function_impl *impl)
 
    nir_foreach_register_safe(reg, &impl->registers) {
       if (state.values[reg->index]) {
-         assert(list_empty(&reg->uses));
-         assert(list_empty(&reg->if_uses));
-         assert(list_empty(&reg->defs));
+         assert(list_is_empty(&reg->uses));
+         assert(list_is_empty(&reg->if_uses));
+         assert(list_is_empty(&reg->defs));
          exec_node_remove(&reg->node);
       }
    }

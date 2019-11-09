@@ -393,6 +393,40 @@ typedef enum
    OPCODE_UNIFORM_MATRIX34D,
    OPCODE_UNIFORM_MATRIX43D,
 
+   /* GL_ARB_gpu_shader_int64 */
+   OPCODE_UNIFORM_1I64,
+   OPCODE_UNIFORM_2I64,
+   OPCODE_UNIFORM_3I64,
+   OPCODE_UNIFORM_4I64,
+   OPCODE_UNIFORM_1I64V,
+   OPCODE_UNIFORM_2I64V,
+   OPCODE_UNIFORM_3I64V,
+   OPCODE_UNIFORM_4I64V,
+   OPCODE_UNIFORM_1UI64,
+   OPCODE_UNIFORM_2UI64,
+   OPCODE_UNIFORM_3UI64,
+   OPCODE_UNIFORM_4UI64,
+   OPCODE_UNIFORM_1UI64V,
+   OPCODE_UNIFORM_2UI64V,
+   OPCODE_UNIFORM_3UI64V,
+   OPCODE_UNIFORM_4UI64V,
+   OPCODE_PROGRAM_UNIFORM_1I64,
+   OPCODE_PROGRAM_UNIFORM_2I64,
+   OPCODE_PROGRAM_UNIFORM_3I64,
+   OPCODE_PROGRAM_UNIFORM_4I64,
+   OPCODE_PROGRAM_UNIFORM_1I64V,
+   OPCODE_PROGRAM_UNIFORM_2I64V,
+   OPCODE_PROGRAM_UNIFORM_3I64V,
+   OPCODE_PROGRAM_UNIFORM_4I64V,
+   OPCODE_PROGRAM_UNIFORM_1UI64,
+   OPCODE_PROGRAM_UNIFORM_2UI64,
+   OPCODE_PROGRAM_UNIFORM_3UI64,
+   OPCODE_PROGRAM_UNIFORM_4UI64,
+   OPCODE_PROGRAM_UNIFORM_1UI64V,
+   OPCODE_PROGRAM_UNIFORM_2UI64V,
+   OPCODE_PROGRAM_UNIFORM_3UI64V,
+   OPCODE_PROGRAM_UNIFORM_4UI64V,
+
    /* OpenGL 4.0 / GL_ARB_tessellation_shader */
    OPCODE_PATCH_PARAMETER_I,
    OPCODE_PATCH_PARAMETER_FV_INNER,
@@ -570,6 +604,8 @@ typedef enum
    OPCODE_MATRIX_POP,
    OPCODE_TEXTUREPARAMETER_F,
    OPCODE_TEXTUREPARAMETER_I,
+   OPCODE_TEXTUREPARAMETER_II,
+   OPCODE_TEXTUREPARAMETER_IUI,
    OPCODE_TEXTURE_IMAGE1D,
    OPCODE_TEXTURE_IMAGE2D,
    OPCODE_TEXTURE_IMAGE3D,
@@ -584,6 +620,8 @@ typedef enum
    OPCODE_BIND_MULTITEXTURE,
    OPCODE_MULTITEXPARAMETER_F,
    OPCODE_MULTITEXPARAMETER_I,
+   OPCODE_MULTITEXPARAMETER_II,
+   OPCODE_MULTITEXPARAMETER_IUI,
    OPCODE_MULTITEX_IMAGE1D,
    OPCODE_MULTITEX_IMAGE2D,
    OPCODE_MULTITEX_IMAGE3D,
@@ -608,6 +646,8 @@ typedef enum
    OPCODE_COMPRESSED_MULTITEX_SUB_IMAGE_1D,
    OPCODE_COMPRESSED_MULTITEX_SUB_IMAGE_2D,
    OPCODE_COMPRESSED_MULTITEX_SUB_IMAGE_3D,
+   OPCODE_NAMED_PROGRAM_STRING,
+   OPCODE_NAMED_PROGRAM_LOCAL_PARAMETER,
 
    /* The following three are meta instructions */
    OPCODE_ERROR,                /* raise compiled-in error */
@@ -719,6 +759,11 @@ union float64_pair
    GLuint uint32[2];
 };
 
+union int64_pair
+{
+   GLint64 int64;
+   GLint int32[2];
+};
 
 #define ASSIGN_DOUBLE_TO_NODES(n, idx, value)                              \
    do {                                                                    \
@@ -728,6 +773,21 @@ union float64_pair
       n[idx+1].ui = tmp.uint32[1];                                         \
    } while (0)
 
+#define ASSIGN_UINT64_TO_NODES(n, idx, value)                              \
+   do {                                                                    \
+      union uint64_pair tmp;                                               \
+      tmp.uint64 = value;                                                  \
+      n[idx].ui = tmp.uint32[0];                                           \
+      n[idx+1].ui = tmp.uint32[1];                                         \
+   } while (0)
+
+#define ASSIGN_INT64_TO_NODES(n, idx, value)                               \
+   do {                                                                    \
+      union int64_pair tmp;                                                \
+      tmp.int64 = value;                                                   \
+      n[idx].i = tmp.int32[0];                                             \
+      n[idx+1].i = tmp.int32[1];                                           \
+   } while (0)
 
 /**
  * How many nodes to allocate at a time.  Note that bulk vertex data
@@ -941,9 +1001,14 @@ build_bitmap_atlas(struct gl_context *ctx, struct gl_bitmap_atlas *atlas,
       goto out_of_memory;
    }
 
-   _mesa_init_teximage_fields(ctx, atlas->texImage,
-                              atlas->texWidth, atlas->texHeight, 1, 0,
-                              GL_ALPHA, MESA_FORMAT_A_UNORM8);
+   if (ctx->Const.BitmapUsesRed)
+      _mesa_init_teximage_fields(ctx, atlas->texImage,
+                                 atlas->texWidth, atlas->texHeight, 1, 0,
+                                 GL_RED, MESA_FORMAT_R_UNORM8);
+   else
+      _mesa_init_teximage_fields(ctx, atlas->texImage,
+                                 atlas->texWidth, atlas->texHeight, 1, 0,
+                                 GL_ALPHA, MESA_FORMAT_A_UNORM8);
 
    /* alloc image storage */
    if (!ctx->Driver.AllocTextureImageBuffer(ctx, atlas->texImage)) {
@@ -1172,6 +1237,14 @@ _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist)
          case OPCODE_UNIFORM_2UIV:
          case OPCODE_UNIFORM_3UIV:
          case OPCODE_UNIFORM_4UIV:
+         case OPCODE_UNIFORM_1I64V:
+         case OPCODE_UNIFORM_2I64V:
+         case OPCODE_UNIFORM_3I64V:
+         case OPCODE_UNIFORM_4I64V:
+         case OPCODE_UNIFORM_1UI64V:
+         case OPCODE_UNIFORM_2UI64V:
+         case OPCODE_UNIFORM_3UI64V:
+         case OPCODE_UNIFORM_4UI64V:
             free(get_pointer(&n[3]));
             break;
          case OPCODE_UNIFORM_MATRIX22:
@@ -1210,6 +1283,14 @@ _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist)
          case OPCODE_PROGRAM_UNIFORM_2UIV:
          case OPCODE_PROGRAM_UNIFORM_3UIV:
          case OPCODE_PROGRAM_UNIFORM_4UIV:
+         case OPCODE_PROGRAM_UNIFORM_1I64V:
+         case OPCODE_PROGRAM_UNIFORM_2I64V:
+         case OPCODE_PROGRAM_UNIFORM_3I64V:
+         case OPCODE_PROGRAM_UNIFORM_4I64V:
+         case OPCODE_PROGRAM_UNIFORM_1UI64V:
+         case OPCODE_PROGRAM_UNIFORM_2UI64V:
+         case OPCODE_PROGRAM_UNIFORM_3UI64V:
+         case OPCODE_PROGRAM_UNIFORM_4UI64V:
             free(get_pointer(&n[4]));
             break;
          case OPCODE_PROGRAM_UNIFORM_MATRIX22F:
@@ -1284,7 +1365,9 @@ _mesa_delete_list(struct gl_context *ctx, struct gl_display_list *dlist)
          case OPCODE_COMPRESSED_MULTITEX_IMAGE_3D:
             free(get_pointer(&n[10]));
             break;
-
+         case OPCODE_NAMED_PROGRAM_STRING:
+            free(get_pointer(&n[5]));
+            break;
          case OPCODE_CONTINUE:
             n = (Node *) get_pointer(&n[1]);
             free(block);
@@ -7830,6 +7913,592 @@ save_UniformMatrix4x3dv(GLint location, GLsizei count, GLboolean transpose,
    }
 }
 
+static void GLAPIENTRY
+save_Uniform1i64ARB(GLint location, GLint64 x)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_UNIFORM_1I64, 3);
+   if (n) {
+      n[1].i = location;
+      ASSIGN_INT64_TO_NODES(n, 2, x);
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_Uniform1i64ARB(ctx->Exec, (location, x));
+   }
+}
+
+static void GLAPIENTRY
+save_Uniform2i64ARB(GLint location, GLint64 x, GLint64 y)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_UNIFORM_2I64, 5);
+   if (n) {
+      n[1].i = location;
+      ASSIGN_INT64_TO_NODES(n, 2, x);
+      ASSIGN_INT64_TO_NODES(n, 4, y);
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_Uniform2i64ARB(ctx->Exec, (location, x, y));
+   }
+}
+
+static void GLAPIENTRY
+save_Uniform3i64ARB(GLint location, GLint64 x, GLint64 y, GLint64 z)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_UNIFORM_3I64, 7);
+   if (n) {
+      n[1].i = location;
+      ASSIGN_INT64_TO_NODES(n, 2, x);
+      ASSIGN_INT64_TO_NODES(n, 4, y);
+      ASSIGN_INT64_TO_NODES(n, 6, z);
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_Uniform3i64ARB(ctx->Exec, (location, x, y, z));
+   }
+}
+
+static void GLAPIENTRY
+save_Uniform4i64ARB(GLint location, GLint64 x, GLint64 y, GLint64 z, GLint64 w)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_UNIFORM_4I64, 9);
+   if (n) {
+      n[1].i = location;
+      ASSIGN_INT64_TO_NODES(n, 2, x);
+      ASSIGN_INT64_TO_NODES(n, 4, y);
+      ASSIGN_INT64_TO_NODES(n, 6, z);
+      ASSIGN_INT64_TO_NODES(n, 8, w);
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_Uniform4i64ARB(ctx->Exec, (location, x, y, z, w));
+   }
+}
+
+static void GLAPIENTRY
+save_Uniform1i64vARB(GLint location, GLsizei count, const GLint64 *v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_UNIFORM_1I64V, 2 + POINTER_DWORDS);
+   if (n) {
+     n[1].i = location;
+     n[2].i = count;
+     save_pointer(&n[3], memdup(v, count * 1 * sizeof(GLint64)));
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_Uniform1i64vARB(ctx->Exec, (location, count, v));
+   }
+}
+
+static void GLAPIENTRY
+save_Uniform2i64vARB(GLint location, GLsizei count, const GLint64 *v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_UNIFORM_2I64V, 2 + POINTER_DWORDS);
+   if (n) {
+     n[1].i = location;
+     n[2].i = count;
+     save_pointer(&n[3], memdup(v, count * 2 * sizeof(GLint64)));
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_Uniform2i64vARB(ctx->Exec, (location, count, v));
+   }
+}
+
+static void GLAPIENTRY
+save_Uniform3i64vARB(GLint location, GLsizei count, const GLint64 *v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_UNIFORM_3I64V, 2 + POINTER_DWORDS);
+   if (n) {
+     n[1].i = location;
+     n[2].i = count;
+     save_pointer(&n[3], memdup(v, count * 3 * sizeof(GLint64)));
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_Uniform3i64vARB(ctx->Exec, (location, count, v));
+   }
+}
+
+static void GLAPIENTRY
+save_Uniform4i64vARB(GLint location, GLsizei count, const GLint64 *v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_UNIFORM_4I64V, 2 + POINTER_DWORDS);
+   if (n) {
+     n[1].i = location;
+     n[2].i = count;
+     save_pointer(&n[3], memdup(v, count * 4 * sizeof(GLint64)));
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_Uniform4i64vARB(ctx->Exec, (location, count, v));
+   }
+}
+
+static void GLAPIENTRY
+save_Uniform1ui64ARB(GLint location, GLuint64 x)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_UNIFORM_1UI64, 3);
+   if (n) {
+      n[1].i = location;
+      ASSIGN_UINT64_TO_NODES(n, 2, x);
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_Uniform1ui64ARB(ctx->Exec, (location, x));
+   }
+}
+
+static void GLAPIENTRY
+save_Uniform2ui64ARB(GLint location, GLuint64 x, GLuint64 y)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_UNIFORM_2UI64, 5);
+   if (n) {
+      n[1].i = location;
+      ASSIGN_UINT64_TO_NODES(n, 2, x);
+      ASSIGN_UINT64_TO_NODES(n, 4, y);
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_Uniform2ui64ARB(ctx->Exec, (location, x, y));
+   }
+}
+
+static void GLAPIENTRY
+save_Uniform3ui64ARB(GLint location, GLuint64 x, GLuint64 y, GLuint64 z)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_UNIFORM_3UI64, 7);
+   if (n) {
+      n[1].i = location;
+      ASSIGN_UINT64_TO_NODES(n, 2, x);
+      ASSIGN_UINT64_TO_NODES(n, 4, y);
+      ASSIGN_UINT64_TO_NODES(n, 6, z);
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_Uniform3ui64ARB(ctx->Exec, (location, x, y, z));
+   }
+}
+
+static void GLAPIENTRY
+save_Uniform4ui64ARB(GLint location, GLuint64 x, GLuint64 y, GLuint64 z, GLuint64 w)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_UNIFORM_4UI64, 9);
+   if (n) {
+      n[1].i = location;
+      ASSIGN_UINT64_TO_NODES(n, 2, x);
+      ASSIGN_UINT64_TO_NODES(n, 4, y);
+      ASSIGN_UINT64_TO_NODES(n, 6, z);
+      ASSIGN_UINT64_TO_NODES(n, 8, w);
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_Uniform4ui64ARB(ctx->Exec, (location, x, y, z, w));
+   }
+}
+
+static void GLAPIENTRY
+save_Uniform1ui64vARB(GLint location, GLsizei count, const GLuint64 *v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_UNIFORM_1UI64V, 2 + POINTER_DWORDS);
+   if (n) {
+     n[1].i = location;
+     n[2].i = count;
+     save_pointer(&n[3], memdup(v, count * 1 * sizeof(GLuint64)));
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_Uniform1ui64vARB(ctx->Exec, (location, count, v));
+   }
+}
+
+static void GLAPIENTRY
+save_Uniform2ui64vARB(GLint location, GLsizei count, const GLuint64 *v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_UNIFORM_2UI64V, 2 + POINTER_DWORDS);
+   if (n) {
+     n[1].i = location;
+     n[2].i = count;
+     save_pointer(&n[3], memdup(v, count * 2 * sizeof(GLuint64)));
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_Uniform2ui64vARB(ctx->Exec, (location, count, v));
+   }
+}
+
+static void GLAPIENTRY
+save_Uniform3ui64vARB(GLint location, GLsizei count, const GLuint64 *v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_UNIFORM_3UI64V, 2 + POINTER_DWORDS);
+   if (n) {
+     n[1].i = location;
+     n[2].i = count;
+     save_pointer(&n[3], memdup(v, count * 3 * sizeof(GLuint64)));
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_Uniform3ui64vARB(ctx->Exec, (location, count, v));
+   }
+}
+
+static void GLAPIENTRY
+save_Uniform4ui64vARB(GLint location, GLsizei count, const GLuint64 *v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_UNIFORM_4UI64V, 2 + POINTER_DWORDS);
+   if (n) {
+     n[1].i = location;
+     n[2].i = count;
+     save_pointer(&n[3], memdup(v, count * 4 * sizeof(GLuint64)));
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_Uniform4ui64vARB(ctx->Exec, (location, count, v));
+   }
+}
+
+static void GLAPIENTRY
+save_ProgramUniform1i64ARB(GLuint program, GLint location, GLint64 x)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_PROGRAM_UNIFORM_1I64, 4);
+   if (n) {
+      n[1].ui = program;
+      n[2].i = location;
+      ASSIGN_INT64_TO_NODES(n, 3, x);
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_ProgramUniform1i64ARB(ctx->Exec, (program, location, x));
+   }
+}
+
+static void GLAPIENTRY
+save_ProgramUniform2i64ARB(GLuint program, GLint location, GLint64 x,
+                           GLint64 y)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_PROGRAM_UNIFORM_2I64, 6);
+   if (n) {
+      n[1].ui = program;
+      n[2].i = location;
+      ASSIGN_INT64_TO_NODES(n, 3, x);
+      ASSIGN_INT64_TO_NODES(n, 5, y);
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_ProgramUniform2i64ARB(ctx->Exec, (program, location, x, y));
+   }
+}
+
+static void GLAPIENTRY
+save_ProgramUniform3i64ARB(GLuint program, GLint location, GLint64 x,
+                           GLint64 y, GLint64 z)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_PROGRAM_UNIFORM_3I64, 8);
+   if (n) {
+      n[1].ui = program;
+      n[2].i = location;
+      ASSIGN_INT64_TO_NODES(n, 3, x);
+      ASSIGN_INT64_TO_NODES(n, 5, y);
+      ASSIGN_INT64_TO_NODES(n, 7, z);
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_ProgramUniform3i64ARB(ctx->Exec, (program, location, x, y, z));
+   }
+}
+
+static void GLAPIENTRY
+save_ProgramUniform4i64ARB(GLuint program, GLint location, GLint64 x,
+                           GLint64 y, GLint64 z, GLint64 w)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_PROGRAM_UNIFORM_4I64, 10);
+   if (n) {
+      n[1].ui = program;
+      n[2].i = location;
+      ASSIGN_INT64_TO_NODES(n, 3, x);
+      ASSIGN_INT64_TO_NODES(n, 5, y);
+      ASSIGN_INT64_TO_NODES(n, 7, z);
+      ASSIGN_INT64_TO_NODES(n, 9, w);
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_ProgramUniform4i64ARB(ctx->Exec, (program, location, x, y, z, w));
+   }
+}
+
+static void GLAPIENTRY
+save_ProgramUniform1i64vARB(GLuint program, GLint location, GLsizei count,
+                            const GLint64 *v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_PROGRAM_UNIFORM_1I64V, 3 + POINTER_DWORDS);
+   if (n) {
+      n[1].ui = program;
+      n[2].i = location;
+      n[3].i = count;
+      save_pointer(&n[4], memdup(v, count * 1 * sizeof(GLint64)));
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_ProgramUniform1i64vARB(ctx->Exec, (program, location, count, v));
+   }
+}
+
+static void GLAPIENTRY
+save_ProgramUniform2i64vARB(GLuint program, GLint location, GLsizei count,
+                            const GLint64 *v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_PROGRAM_UNIFORM_2I64V, 3 + POINTER_DWORDS);
+   if (n) {
+      n[1].ui = program;
+      n[2].i = location;
+      n[3].i = count;
+      save_pointer(&n[4], memdup(v, count * 1 * sizeof(GLint64)));
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_ProgramUniform2i64vARB(ctx->Exec, (program, location, count, v));
+   }
+}
+
+static void GLAPIENTRY
+save_ProgramUniform3i64vARB(GLuint program, GLint location, GLsizei count,
+                            const GLint64 *v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_PROGRAM_UNIFORM_3I64V, 3 + POINTER_DWORDS);
+   if (n) {
+      n[1].ui = program;
+      n[2].i = location;
+      n[3].i = count;
+      save_pointer(&n[4], memdup(v, count * 1 * sizeof(GLint64)));
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_ProgramUniform3i64vARB(ctx->Exec, (program, location, count, v));
+   }
+}
+
+static void GLAPIENTRY
+save_ProgramUniform4i64vARB(GLuint program, GLint location, GLsizei count,
+                            const GLint64 *v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_PROGRAM_UNIFORM_4I64V, 3 + POINTER_DWORDS);
+   if (n) {
+      n[1].ui = program;
+      n[2].i = location;
+      n[3].i = count;
+      save_pointer(&n[4], memdup(v, count * 1 * sizeof(GLint64)));
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_ProgramUniform4i64vARB(ctx->Exec, (program, location, count, v));
+   }
+}
+
+static void GLAPIENTRY
+save_ProgramUniform1ui64ARB(GLuint program, GLint location, GLuint64 x)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_PROGRAM_UNIFORM_1UI64, 4);
+   if (n) {
+      n[1].ui = program;
+      n[2].i = location;
+      ASSIGN_UINT64_TO_NODES(n, 3, x);
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_ProgramUniform1ui64ARB(ctx->Exec, (program, location, x));
+   }
+}
+
+static void GLAPIENTRY
+save_ProgramUniform2ui64ARB(GLuint program, GLint location, GLuint64 x,
+                            GLuint64 y)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_PROGRAM_UNIFORM_2UI64, 6);
+   if (n) {
+      n[1].ui = program;
+      n[2].i = location;
+      ASSIGN_UINT64_TO_NODES(n, 3, x);
+      ASSIGN_UINT64_TO_NODES(n, 5, y);
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_ProgramUniform2ui64ARB(ctx->Exec, (program, location, x, y));
+   }
+}
+
+static void GLAPIENTRY
+save_ProgramUniform3ui64ARB(GLuint program, GLint location, GLuint64 x,
+                            GLuint64 y, GLuint64 z)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_PROGRAM_UNIFORM_3UI64, 8);
+   if (n) {
+      n[1].ui = program;
+      n[2].i = location;
+      ASSIGN_UINT64_TO_NODES(n, 3, x);
+      ASSIGN_UINT64_TO_NODES(n, 5, y);
+      ASSIGN_UINT64_TO_NODES(n, 7, z);
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_ProgramUniform3ui64ARB(ctx->Exec, (program, location, x, y, z));
+   }
+}
+
+static void GLAPIENTRY
+save_ProgramUniform4ui64ARB(GLuint program, GLint location, GLuint64 x,
+                            GLuint64 y, GLuint64 z, GLuint64 w)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_PROGRAM_UNIFORM_4UI64, 10);
+   if (n) {
+      n[1].ui = program;
+      n[2].i = location;
+      ASSIGN_UINT64_TO_NODES(n, 3, x);
+      ASSIGN_UINT64_TO_NODES(n, 5, y);
+      ASSIGN_UINT64_TO_NODES(n, 7, z);
+      ASSIGN_UINT64_TO_NODES(n, 9, w);
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_ProgramUniform4i64ARB(ctx->Exec, (program, location, x, y, z, w));
+   }
+}
+
+static void GLAPIENTRY
+save_ProgramUniform1ui64vARB(GLuint program, GLint location, GLsizei count,
+                             const GLuint64 *v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_PROGRAM_UNIFORM_1UI64V,
+                         3 + POINTER_DWORDS);
+   if (n) {
+      n[1].ui = program;
+      n[2].i = location;
+      n[3].i = count;
+      save_pointer(&n[4], memdup(v, count * 1 * sizeof(GLuint64)));
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_ProgramUniform1ui64vARB(ctx->Exec, (program, location, count, v));
+   }
+}
+
+static void GLAPIENTRY
+save_ProgramUniform2ui64vARB(GLuint program, GLint location, GLsizei count,
+                            const GLuint64 *v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_PROGRAM_UNIFORM_2UI64V,
+                         3 + POINTER_DWORDS);
+   if (n) {
+      n[1].ui = program;
+      n[2].i = location;
+      n[3].i = count;
+      save_pointer(&n[4], memdup(v, count * 1 * sizeof(GLuint64)));
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_ProgramUniform2ui64vARB(ctx->Exec, (program, location, count, v));
+   }
+}
+
+static void GLAPIENTRY
+save_ProgramUniform3ui64vARB(GLuint program, GLint location, GLsizei count,
+                             const GLuint64 *v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_PROGRAM_UNIFORM_3UI64V,
+                         3 + POINTER_DWORDS);
+   if (n) {
+      n[1].ui = program;
+      n[2].i = location;
+      n[3].i = count;
+      save_pointer(&n[4], memdup(v, count * 1 * sizeof(GLuint64)));
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_ProgramUniform3ui64vARB(ctx->Exec, (program, location, count, v));
+   }
+}
+
+static void GLAPIENTRY
+save_ProgramUniform4ui64vARB(GLuint program, GLint location, GLsizei count,
+                             const GLuint64 *v)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_PROGRAM_UNIFORM_4UI64V,
+                         3 + POINTER_DWORDS);
+   if (n) {
+      n[1].ui = program;
+      n[2].i = location;
+      n[3].i = count;
+      save_pointer(&n[4], memdup(v, count * 1 * sizeof(GLuint64)));
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_ProgramUniform4ui64vARB(ctx->Exec, (program, location, count, v));
+   }
+}
+
 
 static void GLAPIENTRY
 save_UseProgramStages(GLuint pipeline, GLbitfield stages, GLuint program)
@@ -9608,6 +10277,49 @@ save_TextureParameteriEXT(GLuint texture, GLenum target, GLenum pname, GLint par
 }
 
 static void GLAPIENTRY
+save_TextureParameterIivEXT(GLuint texture, GLenum target, GLenum pname, const GLint* params)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_TEXTUREPARAMETER_II, 7);
+   if (n) {
+      n[1].ui = texture;
+      n[2].e = target;
+      n[3].e = pname;
+      n[4].i = params[0];
+      n[5].i = params[1];
+      n[6].i = params[2];
+      n[7].i = params[3];
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_TextureParameterIivEXT(ctx->Exec, (texture, target, pname, params));
+   }
+}
+
+static void GLAPIENTRY
+save_TextureParameterIuivEXT(GLuint texture, GLenum target, GLenum pname, const GLuint* params)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_TEXTUREPARAMETER_IUI, 7);
+   if (n) {
+      n[1].ui = texture;
+      n[2].e = target;
+      n[3].e = pname;
+      n[4].ui = params[0];
+      n[5].ui = params[1];
+      n[6].ui = params[2];
+      n[7].ui = params[3];
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_TextureParameterIuivEXT(ctx->Exec, (texture, target, pname, params));
+   }
+}
+
+
+static void GLAPIENTRY
 save_TextureImage1DEXT(GLuint texture, GLenum target,
                        GLint level, GLint components,
                        GLsizei width, GLint border,
@@ -10025,6 +10737,48 @@ save_MultiTexParameterivEXT(GLenum texunit, GLenum target, GLenum pname, const G
    }
    if (ctx->ExecuteFlag) {
       CALL_MultiTexParameterivEXT(ctx->Exec, (texunit, target, pname, params));
+   }
+}
+
+static void GLAPIENTRY
+save_MultiTexParameterIivEXT(GLenum texunit, GLenum target, GLenum pname, const GLint *params)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_MULTITEXPARAMETER_II, 7);
+   if (n) {
+      n[1].e = texunit;
+      n[2].e = target;
+      n[3].e = pname;
+      n[4].i = params[0];
+      n[5].i = params[1];
+      n[6].i = params[2];
+      n[7].i = params[3];
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_MultiTexParameterIivEXT(ctx->Exec, (texunit, target, pname, params));
+   }
+}
+
+static void GLAPIENTRY
+save_MultiTexParameterIuivEXT(GLenum texunit, GLenum target, GLenum pname, const GLuint *params)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_MULTITEXPARAMETER_IUI, 7);
+   if (n) {
+      n[1].e = texunit;
+      n[2].e = target;
+      n[3].e = pname;
+      n[4].ui = params[0];
+      n[5].ui = params[1];
+      n[6].ui = params[2];
+      n[7].ui = params[3];
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_MultiTexParameterIuivEXT(ctx->Exec, (texunit, target, pname, params));
    }
 }
 
@@ -10897,6 +11651,87 @@ save_CompressedMultiTexSubImage3DEXT(GLenum texunit, GLenum target, GLint level,
                                             zoffset, width, height, depth, format,
                                             imageSize, data));
    }
+}
+
+
+static void GLAPIENTRY
+save_NamedProgramStringEXT(GLuint program, GLenum target, GLenum format, GLsizei len,
+                           const GLvoid * string)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+
+   n = alloc_instruction(ctx, OPCODE_NAMED_PROGRAM_STRING, 4 + POINTER_DWORDS);
+   if (n) {
+      GLubyte *programCopy = malloc(len);
+      if (!programCopy) {
+         _mesa_error(ctx, GL_OUT_OF_MEMORY, "glNamedProgramStringEXT");
+         return;
+      }
+      memcpy(programCopy, string, len);
+      n[1].ui = program;
+      n[2].e = target;
+      n[3].e = format;
+      n[4].i = len;
+      save_pointer(&n[5], programCopy);
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_NamedProgramStringEXT(ctx->Exec, (program, target, format, len, string));
+   }
+}
+
+
+static void GLAPIENTRY
+save_NamedProgramLocalParameter4fEXT(GLuint program, GLenum target, GLuint index,
+                                     GLfloat x, GLfloat y, GLfloat z, GLfloat w)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   Node *n;
+   ASSERT_OUTSIDE_SAVE_BEGIN_END_AND_FLUSH(ctx);
+   n = alloc_instruction(ctx, OPCODE_NAMED_PROGRAM_LOCAL_PARAMETER, 7);
+   if (n) {
+      n[1].ui = program;
+      n[2].e = target;
+      n[3].ui = index;
+      n[4].f = x;
+      n[5].f = y;
+      n[6].f = z;
+      n[7].f = w;
+   }
+   if (ctx->ExecuteFlag) {
+      CALL_NamedProgramLocalParameter4fEXT(ctx->Exec, (program, target, index, x, y, z, w));
+   }
+}
+
+
+static void GLAPIENTRY
+save_NamedProgramLocalParameter4fvEXT(GLuint program, GLenum target, GLuint index,
+                                      const GLfloat *params)
+{
+   save_NamedProgramLocalParameter4fEXT(program, target, index, params[0],
+                                        params[1], params[2], params[3]);
+}
+
+
+static void GLAPIENTRY
+save_NamedProgramLocalParameter4dEXT(GLuint program, GLenum target, GLuint index,
+                                    GLdouble x, GLdouble y,
+                                    GLdouble z, GLdouble w)
+{
+      save_NamedProgramLocalParameter4fEXT(program, target, index, (GLfloat) x,
+                                           (GLfloat) y, (GLfloat) z, (GLfloat) w);
+}
+
+
+static void GLAPIENTRY
+save_NamedProgramLocalParameter4dvEXT(GLuint program, GLenum target, GLuint index,
+                                      const GLdouble *params)
+{
+   save_NamedProgramLocalParameter4fEXT(program, target, index, (GLfloat) params[0],
+                                        (GLfloat) params[1], (GLfloat) params[2],
+                                        (GLfloat) params[3]);
 }
 
 
@@ -11920,6 +12755,294 @@ execute_list(struct gl_context *ctx, GLuint list)
                                     (n[1].i, n[2].i, n[3].b, get_pointer(&n[4])));
             break;
 
+         case OPCODE_UNIFORM_1I64: {
+            union int64_pair x;
+
+            x.int32[0] = n[2].i;
+            x.int32[1] = n[3].i;
+
+            CALL_Uniform1i64ARB(ctx->Exec, (n[1].i, x.int64));
+            break;
+         }
+         case OPCODE_UNIFORM_2I64: {
+            union int64_pair x;
+            union int64_pair y;
+
+            x.int32[0] = n[2].i;
+            x.int32[1] = n[3].i;
+            y.int32[0] = n[4].i;
+            y.int32[1] = n[5].i;
+
+            CALL_Uniform2i64ARB(ctx->Exec, (n[1].i, x.int64, y.int64));
+            break;
+         }
+         case OPCODE_UNIFORM_3I64: {
+            union int64_pair x;
+            union int64_pair y;
+            union int64_pair z;
+
+            x.int32[0] = n[2].i;
+            x.int32[1] = n[3].i;
+            y.int32[0] = n[4].i;
+            y.int32[1] = n[5].i;
+            z.int32[0] = n[6].i;
+            z.int32[1] = n[7].i;
+
+
+            CALL_Uniform3i64ARB(ctx->Exec, (n[1].i, x.int64, y.int64, z.int64));
+            break;
+         }
+         case OPCODE_UNIFORM_4I64: {
+            union int64_pair x;
+            union int64_pair y;
+            union int64_pair z;
+            union int64_pair w;
+
+            x.int32[0] = n[2].i;
+            x.int32[1] = n[3].i;
+            y.int32[0] = n[4].i;
+            y.int32[1] = n[5].i;
+            z.int32[0] = n[6].i;
+            z.int32[1] = n[7].i;
+            w.int32[0] = n[8].i;
+            w.int32[1] = n[9].i;
+
+            CALL_Uniform4i64ARB(ctx->Exec, (n[1].i, x.int64, y.int64, z.int64, w.int64));
+            break;
+         }
+         case OPCODE_UNIFORM_1I64V:
+            CALL_Uniform1i64vARB(ctx->Exec, (n[1].i, n[2].i, get_pointer(&n[3])));
+            break;
+         case OPCODE_UNIFORM_2I64V:
+            CALL_Uniform2i64vARB(ctx->Exec, (n[1].i, n[2].i, get_pointer(&n[3])));
+            break;
+         case OPCODE_UNIFORM_3I64V:
+            CALL_Uniform3i64vARB(ctx->Exec, (n[1].i, n[2].i, get_pointer(&n[3])));
+            break;
+         case OPCODE_UNIFORM_4I64V:
+            CALL_Uniform4i64vARB(ctx->Exec, (n[1].i, n[2].i, get_pointer(&n[3])));
+            break;
+         case OPCODE_UNIFORM_1UI64: {
+            union uint64_pair x;
+
+            x.uint32[0] = n[2].ui;
+            x.uint32[1] = n[3].ui;
+
+            CALL_Uniform1ui64ARB(ctx->Exec, (n[1].i, x.uint64));
+            break;
+         }
+         case OPCODE_UNIFORM_2UI64: {
+            union uint64_pair x;
+            union uint64_pair y;
+
+            x.uint32[0] = n[2].ui;
+            x.uint32[1] = n[3].ui;
+            y.uint32[0] = n[4].ui;
+            y.uint32[1] = n[5].ui;
+
+            CALL_Uniform2ui64ARB(ctx->Exec, (n[1].i, x.uint64, y.uint64));
+            break;
+         }
+         case OPCODE_UNIFORM_3UI64: {
+            union uint64_pair x;
+            union uint64_pair y;
+            union uint64_pair z;
+
+            x.uint32[0] = n[2].ui;
+            x.uint32[1] = n[3].ui;
+            y.uint32[0] = n[4].ui;
+            y.uint32[1] = n[5].ui;
+            z.uint32[0] = n[6].ui;
+            z.uint32[1] = n[7].ui;
+
+
+            CALL_Uniform3ui64ARB(ctx->Exec, (n[1].i, x.uint64, y.uint64,
+                                 z.uint64));
+            break;
+         }
+         case OPCODE_UNIFORM_4UI64: {
+            union uint64_pair x;
+            union uint64_pair y;
+            union uint64_pair z;
+            union uint64_pair w;
+
+            x.uint32[0] = n[2].ui;
+            x.uint32[1] = n[3].ui;
+            y.uint32[0] = n[4].ui;
+            y.uint32[1] = n[5].ui;
+            z.uint32[0] = n[6].ui;
+            z.uint32[1] = n[7].ui;
+            w.uint32[0] = n[8].ui;
+            w.uint32[1] = n[9].ui;
+
+            CALL_Uniform4ui64ARB(ctx->Exec, (n[1].i, x.uint64, y.uint64,
+                                 z.uint64, w.uint64));
+            break;
+         }
+         case OPCODE_UNIFORM_1UI64V:
+            CALL_Uniform1ui64vARB(ctx->Exec, (n[1].i, n[2].i,
+                                  get_pointer(&n[3])));
+            break;
+         case OPCODE_UNIFORM_2UI64V:
+            CALL_Uniform2ui64vARB(ctx->Exec, (n[1].i, n[2].i,
+                                  get_pointer(&n[3])));
+            break;
+         case OPCODE_UNIFORM_3UI64V:
+            CALL_Uniform3ui64vARB(ctx->Exec, (n[1].i, n[2].i,
+                                  get_pointer(&n[3])));
+            break;
+         case OPCODE_UNIFORM_4UI64V:
+            CALL_Uniform4ui64vARB(ctx->Exec, (n[1].i, n[2].i,
+                                  get_pointer(&n[3])));
+            break;
+
+         case OPCODE_PROGRAM_UNIFORM_1I64: {
+            union int64_pair x;
+
+            x.int32[0] = n[3].i;
+            x.int32[1] = n[4].i;
+
+            CALL_ProgramUniform1i64ARB(ctx->Exec, (n[1].ui, n[2].i, x.int64));
+            break;
+         }
+         case OPCODE_PROGRAM_UNIFORM_2I64: {
+            union int64_pair x;
+            union int64_pair y;
+
+            x.int32[0] = n[3].i;
+            x.int32[1] = n[4].i;
+            y.int32[0] = n[5].i;
+            y.int32[1] = n[6].i;
+
+            CALL_ProgramUniform2i64ARB(ctx->Exec, (n[1].ui, n[2].i, x.int64,
+                                       y.int64));
+            break;
+         }
+         case OPCODE_PROGRAM_UNIFORM_3I64: {
+            union int64_pair x;
+            union int64_pair y;
+            union int64_pair z;
+
+            x.int32[0] = n[3].i;
+            x.int32[1] = n[4].i;
+            y.int32[0] = n[5].i;
+            y.int32[1] = n[6].i;
+            z.int32[0] = n[7].i;
+            z.int32[1] = n[8].i;
+
+            CALL_ProgramUniform3i64ARB(ctx->Exec, (n[1].ui, n[2].i, x.int64,
+                                       y.int64, z.int64));
+            break;
+         }
+         case OPCODE_PROGRAM_UNIFORM_4I64: {
+            union int64_pair x;
+            union int64_pair y;
+            union int64_pair z;
+            union int64_pair w;
+
+            x.int32[0] = n[3].i;
+            x.int32[1] = n[4].i;
+            y.int32[0] = n[5].i;
+            y.int32[1] = n[6].i;
+            z.int32[0] = n[7].i;
+            z.int32[1] = n[8].i;
+            w.int32[0] = n[9].i;
+            w.int32[1] = n[10].i;
+
+            CALL_ProgramUniform4i64ARB(ctx->Exec, (n[1].ui, n[2].i, x.int64,
+                                       y.int64, z.int64, w.int64));
+            break;
+         }
+         case OPCODE_PROGRAM_UNIFORM_1I64V:
+            CALL_ProgramUniform1i64vARB(ctx->Exec, (n[1].ui, n[2].i, n[3].i,
+                                        get_pointer(&n[4])));
+            break;
+         case OPCODE_PROGRAM_UNIFORM_2I64V:
+            CALL_ProgramUniform2i64vARB(ctx->Exec, (n[1].ui, n[2].i, n[3].i,
+                                        get_pointer(&n[4])));
+            break;
+         case OPCODE_PROGRAM_UNIFORM_3I64V:
+            CALL_ProgramUniform3i64vARB(ctx->Exec, (n[1].ui, n[2].i, n[3].i,
+                                        get_pointer(&n[4])));
+            break;
+         case OPCODE_PROGRAM_UNIFORM_4I64V:
+            CALL_ProgramUniform4i64vARB(ctx->Exec, (n[1].ui, n[2].i, n[3].i,
+                                        get_pointer(&n[4])));
+            break;
+         case OPCODE_PROGRAM_UNIFORM_1UI64: {
+            union uint64_pair x;
+
+            x.uint32[0] = n[3].ui;
+            x.uint32[1] = n[4].ui;
+
+            CALL_ProgramUniform1i64ARB(ctx->Exec, (n[1].ui, n[2].i, x.uint64));
+            break;
+         }
+         case OPCODE_PROGRAM_UNIFORM_2UI64: {
+            union uint64_pair x;
+            union uint64_pair y;
+
+            x.uint32[0] = n[3].ui;
+            x.uint32[1] = n[4].ui;
+            y.uint32[0] = n[5].ui;
+            y.uint32[1] = n[6].ui;
+
+            CALL_ProgramUniform2ui64ARB(ctx->Exec, (n[1].ui, n[2].i, x.uint64,
+                                        y.uint64));
+            break;
+         }
+         case OPCODE_PROGRAM_UNIFORM_3UI64: {
+            union uint64_pair x;
+            union uint64_pair y;
+            union uint64_pair z;
+
+            x.uint32[0] = n[3].ui;
+            x.uint32[1] = n[4].ui;
+            y.uint32[0] = n[5].ui;
+            y.uint32[1] = n[6].ui;
+            z.uint32[0] = n[7].ui;
+            z.uint32[1] = n[8].ui;
+
+            CALL_ProgramUniform3ui64ARB(ctx->Exec, (n[1].ui, n[2].i, x.uint64,
+                                        y.uint64, z.uint64));
+            break;
+         }
+         case OPCODE_PROGRAM_UNIFORM_4UI64: {
+            union uint64_pair x;
+            union uint64_pair y;
+            union uint64_pair z;
+            union uint64_pair w;
+
+            x.uint32[0] = n[3].ui;
+            x.uint32[1] = n[4].ui;
+            y.uint32[0] = n[5].ui;
+            y.uint32[1] = n[6].ui;
+            z.uint32[0] = n[7].ui;
+            z.uint32[1] = n[8].ui;
+            w.uint32[0] = n[9].ui;
+            w.uint32[1] = n[10].ui;
+
+            CALL_ProgramUniform4ui64ARB(ctx->Exec, (n[1].ui, n[2].i, x.uint64,
+                                        y.uint64, z.uint64, w.uint64));
+            break;
+         }
+         case OPCODE_PROGRAM_UNIFORM_1UI64V:
+            CALL_ProgramUniform1ui64vARB(ctx->Exec, (n[1].ui, n[2].i, n[3].i,
+                                         get_pointer(&n[4])));
+            break;
+         case OPCODE_PROGRAM_UNIFORM_2UI64V:
+            CALL_ProgramUniform2ui64vARB(ctx->Exec, (n[1].ui, n[2].i, n[3].i,
+                                         get_pointer(&n[4])));
+            break;
+         case OPCODE_PROGRAM_UNIFORM_3UI64V:
+            CALL_ProgramUniform3ui64vARB(ctx->Exec, (n[1].ui, n[2].i, n[3].i,
+                                         get_pointer(&n[4])));
+            break;
+         case OPCODE_PROGRAM_UNIFORM_4UI64V:
+            CALL_ProgramUniform4ui64vARB(ctx->Exec, (n[1].ui, n[2].i, n[3].i,
+                                         get_pointer(&n[4])));
+            break;
+
          case OPCODE_USE_PROGRAM_STAGES:
             CALL_UseProgramStages(ctx->Exec, (n[1].ui, n[2].ui, n[3].ui));
             break;
@@ -12485,6 +13608,26 @@ execute_list(struct gl_context *ctx, GLuint list)
                CALL_TextureParameterivEXT(ctx->Exec, (n[1].ui, n[2].e, n[3].e, params));
             }
             break;
+         case OPCODE_TEXTUREPARAMETER_II:
+            {
+               GLint params[4];
+               params[0] = n[4].i;
+               params[1] = n[5].i;
+               params[2] = n[6].i;
+               params[3] = n[7].i;
+               CALL_TextureParameterIivEXT(ctx->Exec, (n[1].ui, n[2].e, n[3].e, params));
+            }
+            break;
+         case OPCODE_TEXTUREPARAMETER_IUI:
+            {
+               GLuint params[4];
+               params[0] = n[4].ui;
+               params[1] = n[5].ui;
+               params[2] = n[6].ui;
+               params[3] = n[7].ui;
+               CALL_TextureParameterIuivEXT(ctx->Exec, (n[1].ui, n[2].e, n[3].e, params));
+            }
+            break;
          case OPCODE_TEXTURE_IMAGE1D:
             {
                const struct gl_pixelstore_attrib save = ctx->Unpack;
@@ -12616,6 +13759,26 @@ execute_list(struct gl_context *ctx, GLuint list)
                params[2] = n[6].i;
                params[3] = n[7].i;
                CALL_MultiTexParameterivEXT(ctx->Exec, (n[1].e, n[2].e, n[3].e, params));
+            }
+            break;
+         case OPCODE_MULTITEXPARAMETER_II:
+            {
+               GLint params[4];
+               params[0] = n[4].i;
+               params[1] = n[5].i;
+               params[2] = n[6].i;
+               params[3] = n[7].i;
+               CALL_MultiTexParameterIivEXT(ctx->Exec, (n[1].e, n[2].e, n[3].e, params));
+            }
+            break;
+         case OPCODE_MULTITEXPARAMETER_IUI:
+            {
+               GLuint params[4];
+               params[0] = n[4].ui;
+               params[1] = n[5].ui;
+               params[2] = n[6].ui;
+               params[3] = n[7].ui;
+               CALL_MultiTexParameterIuivEXT(ctx->Exec, (n[1].e, n[2].e, n[3].e, params));
             }
             break;
          case OPCODE_MULTITEX_IMAGE1D:
@@ -12809,6 +13972,16 @@ execute_list(struct gl_context *ctx, GLuint list)
                                                  n[5].i, n[6].i, n[7].i, n[8].i,
                                                  n[9].i, n[10].e, n[11].i,
                                                  get_pointer(&n[12])));
+            break;
+         case OPCODE_NAMED_PROGRAM_STRING:
+            CALL_NamedProgramStringEXT(ctx->Exec,
+                                  (n[1].ui, n[2].e, n[3].e, n[4].i,
+                                   get_pointer(&n[5])));
+            break;
+         case OPCODE_NAMED_PROGRAM_LOCAL_PARAMETER:
+            CALL_NamedProgramLocalParameter4fEXT(ctx->Exec,
+                                            (n[1].ui, n[2].e, n[3].ui, n[4].f,
+                                             n[5].f, n[6].f, n[7].f));
             break;
 
          case OPCODE_CONTINUE:
@@ -13648,6 +14821,41 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
    SET_UniformMatrix3x4dv(table, save_UniformMatrix3x4dv);
    SET_UniformMatrix4x3dv(table, save_UniformMatrix4x3dv);
 
+   /* GL_ARB_gpu_shader_int64 */
+   SET_Uniform1i64ARB(table, save_Uniform1i64ARB);
+   SET_Uniform2i64ARB(table, save_Uniform2i64ARB);
+   SET_Uniform3i64ARB(table, save_Uniform3i64ARB);
+   SET_Uniform4i64ARB(table, save_Uniform4i64ARB);
+   SET_Uniform1i64vARB(table, save_Uniform1i64vARB);
+   SET_Uniform2i64vARB(table, save_Uniform2i64vARB);
+   SET_Uniform3i64vARB(table, save_Uniform3i64vARB);
+   SET_Uniform4i64vARB(table, save_Uniform4i64vARB);
+   SET_Uniform1ui64ARB(table, save_Uniform1ui64ARB);
+   SET_Uniform2ui64ARB(table, save_Uniform2ui64ARB);
+   SET_Uniform3ui64ARB(table, save_Uniform3ui64ARB);
+   SET_Uniform4ui64ARB(table, save_Uniform4ui64ARB);
+   SET_Uniform1ui64vARB(table, save_Uniform1ui64vARB);
+   SET_Uniform2ui64vARB(table, save_Uniform2ui64vARB);
+   SET_Uniform3ui64vARB(table, save_Uniform3ui64vARB);
+   SET_Uniform4ui64vARB(table, save_Uniform4ui64vARB);
+
+   SET_ProgramUniform1i64ARB(table, save_ProgramUniform1i64ARB);
+   SET_ProgramUniform2i64ARB(table, save_ProgramUniform2i64ARB);
+   SET_ProgramUniform3i64ARB(table, save_ProgramUniform3i64ARB);
+   SET_ProgramUniform4i64ARB(table, save_ProgramUniform4i64ARB);
+   SET_ProgramUniform1i64vARB(table, save_ProgramUniform1i64vARB);
+   SET_ProgramUniform2i64vARB(table, save_ProgramUniform2i64vARB);
+   SET_ProgramUniform3i64vARB(table, save_ProgramUniform3i64vARB);
+   SET_ProgramUniform4i64vARB(table, save_ProgramUniform4i64vARB);
+   SET_ProgramUniform1ui64ARB(table, save_ProgramUniform1ui64ARB);
+   SET_ProgramUniform2ui64ARB(table, save_ProgramUniform2ui64ARB);
+   SET_ProgramUniform3ui64ARB(table, save_ProgramUniform3ui64ARB);
+   SET_ProgramUniform4ui64ARB(table, save_ProgramUniform4ui64ARB);
+   SET_ProgramUniform1ui64vARB(table, save_ProgramUniform1ui64vARB);
+   SET_ProgramUniform2ui64vARB(table, save_ProgramUniform2ui64vARB);
+   SET_ProgramUniform3ui64vARB(table, save_ProgramUniform3ui64vARB);
+   SET_ProgramUniform4ui64vARB(table, save_ProgramUniform4ui64vARB);
+
    /* These are: */
    SET_BeginTransformFeedback(table, save_BeginTransformFeedback);
    SET_EndTransformFeedback(table, save_EndTransformFeedback);
@@ -13806,6 +15014,8 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
    SET_TextureParameterivEXT(table, save_TextureParameterivEXT);
    SET_TextureParameterfEXT(table, save_TextureParameterfEXT);
    SET_TextureParameterfvEXT(table, save_TextureParameterfvEXT);
+   SET_TextureParameterIivEXT(table, save_TextureParameterIivEXT);
+   SET_TextureParameterIuivEXT(table, save_TextureParameterIuivEXT);
    SET_TextureImage1DEXT(table, save_TextureImage1DEXT);
    SET_TextureImage2DEXT(table, save_TextureImage2DEXT);
    SET_TextureImage3DEXT(table, save_TextureImage3DEXT);
@@ -13820,6 +15030,8 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
    SET_BindMultiTextureEXT(table, save_BindMultiTextureEXT);
    SET_MultiTexParameteriEXT(table, save_MultiTexParameteriEXT);
    SET_MultiTexParameterivEXT(table, save_MultiTexParameterivEXT);
+   SET_MultiTexParameterIivEXT(table, save_MultiTexParameterIivEXT);
+   SET_MultiTexParameterIuivEXT(table, save_MultiTexParameterIuivEXT);
    SET_MultiTexParameterfEXT(table, save_MultiTexParameterfEXT);
    SET_MultiTexParameterfvEXT(table, save_MultiTexParameterfvEXT);
    SET_MultiTexImage1DEXT(table, save_MultiTexImage1DEXT);
@@ -13849,6 +15061,11 @@ _mesa_initialize_save_table(const struct gl_context *ctx)
    SET_CompressedMultiTexSubImage1DEXT(table, save_CompressedMultiTexSubImage1DEXT);
    SET_CompressedMultiTexSubImage2DEXT(table, save_CompressedMultiTexSubImage2DEXT);
    SET_CompressedMultiTexSubImage3DEXT(table, save_CompressedMultiTexSubImage3DEXT);
+   SET_NamedProgramStringEXT(table, save_NamedProgramStringEXT);
+   SET_NamedProgramLocalParameter4dEXT(table, save_NamedProgramLocalParameter4dEXT);
+   SET_NamedProgramLocalParameter4dvEXT(table, save_NamedProgramLocalParameter4dvEXT);
+   SET_NamedProgramLocalParameter4fEXT(table, save_NamedProgramLocalParameter4fEXT);
+   SET_NamedProgramLocalParameter4fvEXT(table, save_NamedProgramLocalParameter4fvEXT);
 }
 
 

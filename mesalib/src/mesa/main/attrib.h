@@ -43,6 +43,12 @@ _mesa_PushClientAttrib( GLbitfield mask );
 extern void GLAPIENTRY
 _mesa_PopClientAttrib( void );
 
+extern void GLAPIENTRY
+_mesa_ClientAttribDefaultEXT( GLbitfield mask );
+
+extern void GLAPIENTRY
+_mesa_PushClientAttribDefaultEXT( GLbitfield mask );
+
 extern void 
 _mesa_init_attrib( struct gl_context *ctx );
 

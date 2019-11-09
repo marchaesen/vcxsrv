@@ -24,6 +24,7 @@
 
 #include "aco_ir.h"
 
+#include <array>
 #include <map>
 
 namespace aco {
@@ -103,7 +104,9 @@ void validate(Program* program, FILE * output)
             unsigned num_literals = 0;
             for (unsigned i = 0; i < instr->operands.size(); i++)
             {
-               if (instr->operands[i].isLiteral()) {
+               if (instr->operands[i].isLiteral() && instr->isVOP3() && program->chip_class >= GFX10) {
+                  num_literals++;
+               } else if (instr->operands[i].isLiteral()) {
                   check(instr->format == Format::SOP1 ||
                         instr->format == Format::SOP2 ||
                         instr->format == Format::SOPC ||

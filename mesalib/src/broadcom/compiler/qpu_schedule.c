@@ -1299,7 +1299,7 @@ schedule_instructions(struct v3d_compile *c,
         const struct v3d_device_info *devinfo = c->devinfo;
         uint32_t time = 0;
 
-        while (!list_empty(&scoreboard->dag->heads)) {
+        while (!list_is_empty(&scoreboard->dag->heads)) {
                 struct schedule_node *chosen =
                         choose_instruction_to_schedule(devinfo,
                                                        scoreboard,
@@ -1439,7 +1439,7 @@ qpu_schedule_instructions_block(struct v3d_compile *c,
         list_inithead(&setup_list);
 
         /* Wrap each instruction in a scheduler structure. */
-        while (!list_empty(&block->instructions)) {
+        while (!list_is_empty(&block->instructions)) {
                 struct qinst *qinst = (struct qinst *)block->instructions.next;
                 struct schedule_node *n =
                         rzalloc(mem_ctx, struct schedule_node);

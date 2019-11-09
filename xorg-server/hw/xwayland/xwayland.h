@@ -48,6 +48,7 @@
 #include "xwayland-keyboard-grab-unstable-v1-client-protocol.h"
 #include "xdg-output-unstable-v1-client-protocol.h"
 #include "linux-dmabuf-unstable-v1-client-protocol.h"
+#include "viewporter-client-protocol.h"
 
 struct xwl_format {
     uint32_t format;
@@ -131,10 +132,12 @@ struct xwl_screen {
     DestroyWindowProcPtr DestroyWindow;
     XYToWindowProcPtr XYToWindow;
     SetWindowPixmapProcPtr SetWindowPixmap;
+    ResizeWindowProcPtr ResizeWindow;
 
     struct xorg_list output_list;
     struct xorg_list seat_list;
     struct xorg_list damage_window_list;
+    struct xorg_list window_list;
 
     int wayland_fd;
     struct wl_display *display;
@@ -148,6 +151,7 @@ struct xwl_screen {
     struct zwp_pointer_constraints_v1 *pointer_constraints;
     struct zwp_xwayland_keyboard_grab_manager_v1 *wp_grab;
     struct zxdg_output_manager_v1 *xdg_output_manager;
+    struct wp_viewporter *viewporter;
     uint32_t serial;
 
 #define XWL_FORMAT_ARGB8888 (1 << 0)
@@ -174,9 +178,13 @@ struct xwl_screen {
 struct xwl_window {
     struct xwl_screen *xwl_screen;
     struct wl_surface *surface;
+    struct wp_viewport *viewport;
+    int32_t x, y, width, height;
+    float scale_x, scale_y;
     struct wl_shell_surface *shell_surface;
     WindowPtr window;
     struct xorg_list link_damage;
+    struct xorg_list link_window;
     struct wl_callback *frame_callback;
     Bool allow_commits;
 #ifdef GLAMOR_HAS_GBM
@@ -375,11 +383,38 @@ struct xwl_output {
     Bool xdg_output_done;
 };
 
+/* Per client per output emulated randr/vidmode resolution info. */
+struct xwl_emulated_mode {
+    uint32_t server_output_id;
+    int32_t width;
+    int32_t height;
+    Bool from_vidmode;
+};
+
+/* Apps which use randr/vidmode to change the mode when going fullscreen,
+ * usually change the mode of only a single monitor, so this should be plenty.
+ */
+#define XWL_CLIENT_MAX_EMULATED_MODES 16
+
+struct xwl_client {
+    struct xwl_emulated_mode emulated_modes[XWL_CLIENT_MAX_EMULATED_MODES];
+};
+
+struct xwl_client *xwl_client_get(ClientPtr client);
+
 void xwl_sync_events (struct xwl_screen *xwl_screen);
+void xwl_surface_damage(struct xwl_screen *xwl_screen,
+                        struct wl_surface *surface,
+                        int32_t x, int32_t y, int32_t width, int32_t height);
 
 Bool xwl_screen_init_cursor(struct xwl_screen *xwl_screen);
 
 struct xwl_screen *xwl_screen_get(ScreenPtr screen);
+Bool xwl_screen_has_resolution_change_emulation(struct xwl_screen *xwl_screen);
+struct xwl_output *xwl_screen_get_first_output(struct xwl_screen *xwl_screen);
+void xwl_screen_check_resolution_change_emulation(struct xwl_screen *xwl_screen);
+Bool xwl_window_has_viewport_enabled(struct xwl_window *xwl_window);
+Bool xwl_window_is_toplevel(WindowPtr window);
 
 void xwl_tablet_tool_set_cursor(struct xwl_tablet_tool *tool);
 void xwl_seat_set_cursor(struct xwl_seat *xwl_seat);
@@ -409,6 +444,17 @@ struct xwl_output *xwl_output_create(struct xwl_screen *xwl_screen,
 void xwl_output_destroy(struct xwl_output *xwl_output);
 
 void xwl_output_remove(struct xwl_output *xwl_output);
+
+struct xwl_emulated_mode *xwl_output_get_emulated_mode_for_client(
+                            struct xwl_output *xwl_output, ClientPtr client);
+
+RRModePtr xwl_output_find_mode(struct xwl_output *xwl_output,
+                               int32_t width, int32_t height);
+void xwl_output_set_emulated_mode(struct xwl_output *xwl_output,
+                                  ClientPtr client, RRModePtr mode,
+                                  Bool from_vidmode);
+void xwl_output_set_window_randr_emu_props(struct xwl_screen *xwl_screen,
+                                           WindowPtr window);
 
 RRModePtr xwayland_cvt(int HDisplay, int VDisplay,
                        float VRefresh, Bool Reduced, Bool Interlaced);

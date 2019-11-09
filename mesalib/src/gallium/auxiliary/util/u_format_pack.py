@@ -70,7 +70,7 @@ def print_channels(format, func):
             format.le_swizzles == format.be_swizzles):
             func(format.le_channels, format.le_swizzles)
         else:
-            print('#ifdef PIPE_ARCH_BIG_ENDIAN')
+            print('#if UTIL_ARCH_BIG_ENDIAN')
             func(format.be_channels, format.be_swizzles)
             print('#else')
             func(format.le_channels, format.le_swizzles)
@@ -579,7 +579,7 @@ def generate_pack_kernel(format, src_channel, src_native_type):
                     if shift + dst_channel.size < depth:
                         value = '(%s) & 0x%x' % (value, (1 << dst_channel.size) - 1)
                     if shift:
-                        value = '(%s) << %u' % (value, shift)
+                        value = '(uint32_t)(%s) << %u' % (value, shift)
                     if dst_channel.type == SIGNED:
                         # Cast to unsigned
                         value = '(uint%u_t)(%s) ' % (depth, value)
@@ -694,7 +694,7 @@ def generate_format_fetch(format, dst_channel, dst_native_type, dst_suffix):
 
 
 def is_format_hand_written(format):
-    return format.layout in ('s3tc', 'rgtc', 'etc', 'bptc', 'astc', 'atc', 'subsampled', 'other') or format.colorspace == ZS
+    return format.layout != PLAIN or format.colorspace == ZS
 
 
 def generate(formats):

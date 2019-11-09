@@ -356,13 +356,13 @@ PIPE_FORMAT_R10G10B10X2_USCALED     , plain, 1, 1, 1, u10 , u10 , u10  , x2 , xy
 # A.k.a. D3DDECLTYPE_DEC3N
 PIPE_FORMAT_R10G10B10X2_SNORM       , plain, 1, 1, 1, sn10, sn10, sn10 , x2 , xyz1, rgb, x2  , sn10, sn10, sn10, wzy1
 
-PIPE_FORMAT_YV12                    , other, 1, 1, 1, x8  , x8  , x8  , x8  , xyzw, yuv
-PIPE_FORMAT_YV16                    , other, 1, 1, 1, x8  , x8  , x8  , x8  , xyzw, yuv
-PIPE_FORMAT_IYUV                    , other, 1, 1, 1, x8  , x8  , x8  , x8  , xyzw, yuv
-PIPE_FORMAT_NV12                    , other, 1, 1, 1, x8  , x8  , x8  , x8  , xyzw, yuv
-PIPE_FORMAT_NV21                    , other, 1, 1, 1, x8  , x8  , x8  , x8  , xyzw, yuv
+PIPE_FORMAT_YV12                  , planar3, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
+PIPE_FORMAT_YV16                  , planar3, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
+PIPE_FORMAT_IYUV                  , planar3, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
+PIPE_FORMAT_NV12                  , planar2, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
+PIPE_FORMAT_NV21                  , planar2, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
 
-PIPE_FORMAT_P016                    , other, 1, 1, 1, x16 , x16 ,     ,     , xyzw, yuv
+PIPE_FORMAT_P016                  , planar2, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
 
 # Usually used to implement IA44 and AI44 formats in video decoding
 PIPE_FORMAT_A4R4_UNORM              , plain, 1, 1, 1, un4 , un4 ,     ,     , y00x, rgb, un4, un4 ,     ,     , x00y
@@ -468,12 +468,6 @@ PIPE_FORMAT_R32A32_SINT             , plain, 1, 1, 1, sp32 , sp32 ,     ,     , 
 PIPE_FORMAT_R10G10B10A2_UINT        , plain, 1, 1, 1, up10 , up10 , up10, up2 , xyzw, rgb, up2 , up10, up10, up10, wzyx
 
 PIPE_FORMAT_B5G6R5_SRGB             , plain, 1, 1, 1, un5 , un6 , un5 ,     , zyx1, srgb, un5 , un6 , un5 ,     , xyz1
-
-PIPE_FORMAT_A8L8_UNORM              , plain, 1, 1, 1, un8 , un8 , , , yyyx, rgb
-PIPE_FORMAT_A8L8_SNORM              , plain, 1, 1, 1, sn8 , sn8 , , , yyyx, rgb
-PIPE_FORMAT_A8L8_SINT               , plain, 1, 1, 1, sp8 , sp8 , , , yyyx, rgb
-PIPE_FORMAT_A8L8_SRGB               , plain, 1, 1, 1, un8 , un8 , , , yyyx, srgb
-PIPE_FORMAT_A16L16_UNORM            , plain, 1, 1, 1, un16, un16, , , yyyx, rgb
 
 PIPE_FORMAT_G8R8_UNORM              , plain, 1, 1, 1, un8 , un8 , , , yx01, rgb
 PIPE_FORMAT_G8R8_SNORM              , plain, 1, 1, 1, sn8 , sn8 , , , yx01, rgb

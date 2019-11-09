@@ -2067,10 +2067,10 @@ pixel_checker_init (pixel_checker_t *checker, pixman_format_code_t format)
 	break;
     }
 
-    checker->am = ((1 << PIXMAN_FORMAT_A (format)) - 1) << checker->as;
-    checker->rm = ((1 << PIXMAN_FORMAT_R (format)) - 1) << checker->rs;
-    checker->gm = ((1 << PIXMAN_FORMAT_G (format)) - 1) << checker->gs;
-    checker->bm = ((1 << PIXMAN_FORMAT_B (format)) - 1) << checker->bs;
+    checker->am = ((1U << PIXMAN_FORMAT_A (format)) - 1) << checker->as;
+    checker->rm = ((1U << PIXMAN_FORMAT_R (format)) - 1) << checker->rs;
+    checker->gm = ((1U << PIXMAN_FORMAT_G (format)) - 1) << checker->gs;
+    checker->bm = ((1U << PIXMAN_FORMAT_B (format)) - 1) << checker->bs;
 
     checker->aw = PIXMAN_FORMAT_A (format);
     checker->rw = PIXMAN_FORMAT_R (format);

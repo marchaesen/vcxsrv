@@ -23,8 +23,7 @@
  */
 
 #include <map>
-#include <unordered_set>
-
+#include <unordered_map>
 #include "aco_ir.h"
 
 /*
@@ -82,6 +81,17 @@ struct InstrPred {
          return false;
       if (a->operands.size() != b->operands.size() || a->definitions.size() != b->definitions.size())
          return false; /* possible with pseudo-instructions */
+      /* We can't value number v_readlane_b32 across control flow or discards
+       * because of the possibility of live-range splits.
+       * We can't value number permutes for the same reason as
+       * v_readlane_b32 and because discards affect the result */
+      if (a->opcode == aco_opcode::v_readfirstlane_b32 || a->opcode == aco_opcode::v_readlane_b32 ||
+          a->opcode == aco_opcode::ds_bpermute_b32 || a->opcode == aco_opcode::ds_permute_b32 ||
+          a->opcode == aco_opcode::ds_swizzle_b32 || a->format == Format::PSEUDO_REDUCTION ||
+          a->opcode == aco_opcode::p_phi || a->opcode == aco_opcode::p_linear_phi) {
+         if (a->pass_flags != b->pass_flags)
+            return false;
+      }
       for (unsigned i = 0; i < a->operands.size(); i++) {
          if (a->operands[i].isConstant()) {
             if (!b->operands[i].isConstant())
@@ -172,13 +182,18 @@ struct InstrPred {
                return false;
             return true;
          }
-         case Format::PSEUDO_REDUCTION:
-            return false;
+         case Format::PSEUDO_REDUCTION: {
+            Pseudo_reduction_instruction *aR = static_cast<Pseudo_reduction_instruction*>(a);
+            Pseudo_reduction_instruction *bR = static_cast<Pseudo_reduction_instruction*>(b);
+            return aR->reduce_op == bR->reduce_op && aR->cluster_size == bR->cluster_size;
+         }
          case Format::MTBUF: {
             /* this is fine since they are only used for vertex input fetches */
             MTBUF_instruction* aM = static_cast<MTBUF_instruction *>(a);
             MTBUF_instruction* bM = static_cast<MTBUF_instruction *>(b);
-            return aM->dfmt == bM->dfmt &&
+            return aM->can_reorder == bM->can_reorder &&
+                   aM->barrier == bM->barrier &&
+                   aM->dfmt == bM->dfmt &&
                    aM->nfmt == bM->nfmt &&
                    aM->offset == bM->offset &&
                    aM->offen == bM->offen &&
@@ -193,12 +208,22 @@ struct InstrPred {
          case Format::FLAT:
          case Format::GLOBAL:
          case Format::SCRATCH:
-         case Format::DS:
             return false;
+         case Format::DS: {
+            /* we already handle potential issue with permute/swizzle above */
+            DS_instruction* aD = static_cast<DS_instruction *>(a);
+            DS_instruction* bD = static_cast<DS_instruction *>(b);
+            if (a->opcode != aco_opcode::ds_bpermute_b32 &&
+                a->opcode != aco_opcode::ds_permute_b32 &&
+                a->opcode != aco_opcode::ds_swizzle_b32)
+               return false;
+            return aD->gds == bD->gds && aD->offset0 == bD->offset0 && aD->offset1 == bD->offset1;
+         }
          case Format::MIMG: {
             MIMG_instruction* aM = static_cast<MIMG_instruction*>(a);
             MIMG_instruction* bM = static_cast<MIMG_instruction*>(b);
             return aM->can_reorder && bM->can_reorder &&
+                   aM->barrier == bM->barrier &&
                    aM->dmask == bM->dmask &&
                    aM->unrm == bM->unrm &&
                    aM->glc == bM->glc &&
@@ -217,46 +242,42 @@ struct InstrPred {
    }
 };
 
+using expr_set = std::unordered_map<Instruction*, uint32_t, InstrHash, InstrPred>;
 
-typedef std::unordered_set<Instruction*, InstrHash, InstrPred> expr_set;
+struct vn_ctx {
+   Program* program;
+   expr_set expr_values;
+   std::map<uint32_t, Temp> renames;
+   uint32_t exec_id = 0;
 
-void process_block(Block& block,
-                   expr_set& expr_values,
-                   std::map<uint32_t, Temp>& renames)
+   vn_ctx(Program* program) : program(program) {}
+};
+
+bool dominates(vn_ctx& ctx, uint32_t parent, uint32_t child)
 {
-   bool run = false;
-   std::vector<aco_ptr<Instruction>>::iterator it = block.instructions.begin();
+   while (parent < child)
+      child = ctx.program->blocks[child].logical_idom;
+
+   return parent == child;
+}
+
+void process_block(vn_ctx& ctx, Block& block)
+{
    std::vector<aco_ptr<Instruction>> new_instructions;
    new_instructions.reserve(block.instructions.size());
-   expr_set phi_values;
 
-   while (it != block.instructions.end()) {
-      aco_ptr<Instruction>& instr = *it;
+   for (aco_ptr<Instruction>& instr : block.instructions) {
       /* first, rename operands */
       for (Operand& op : instr->operands) {
          if (!op.isTemp())
             continue;
-         auto it = renames.find(op.tempId());
-         if (it != renames.end())
+         auto it = ctx.renames.find(op.tempId());
+         if (it != ctx.renames.end())
             op.setTemp(it->second);
       }
 
-      if (instr->definitions.empty() || !run) {
-         if (instr->opcode == aco_opcode::p_logical_start)
-            run = true;
-         else if (instr->opcode == aco_opcode::p_logical_end)
-            run = false;
-         else if (instr->opcode == aco_opcode::p_phi || instr->opcode == aco_opcode::p_linear_phi) {
-            std::pair<expr_set::iterator, bool> res = phi_values.emplace(instr.get());
-            if (!res.second) {
-               Instruction* orig_phi = *(res.first);
-               renames.emplace(instr->definitions[0].tempId(), orig_phi->definitions[0].getTemp()).second;
-               ++it;
-               continue;
-            }
-         }
+      if (instr->definitions.empty()) {
          new_instructions.emplace_back(std::move(instr));
-         ++it;
          continue;
       }
 
@@ -264,26 +285,37 @@ void process_block(Block& block,
       if ((instr->opcode == aco_opcode::s_mov_b32 || instr->opcode == aco_opcode::s_mov_b64 || instr->opcode == aco_opcode::v_mov_b32) &&
           !instr->definitions[0].isFixed() && instr->operands[0].isTemp() && instr->operands[0].regClass() == instr->definitions[0].regClass() &&
           !instr->isDPP() && !((int)instr->format & (int)Format::SDWA)) {
-         renames[instr->definitions[0].tempId()] = instr->operands[0].getTemp();
+         ctx.renames[instr->definitions[0].tempId()] = instr->operands[0].getTemp();
       }
 
-      std::pair<expr_set::iterator, bool> res = expr_values.emplace(instr.get());
+      if (instr->opcode == aco_opcode::p_discard_if ||
+          instr->opcode == aco_opcode::p_demote_to_helper)
+         ctx.exec_id++;
+
+      instr->pass_flags = ctx.exec_id;
+      std::pair<expr_set::iterator, bool> res = ctx.expr_values.emplace(instr.get(), block.index);
 
       /* if there was already an expression with the same value number */
       if (!res.second) {
-         Instruction* orig_instr = *(res.first);
+         Instruction* orig_instr = res.first->first;
          assert(instr->definitions.size() == orig_instr->definitions.size());
-         for (unsigned i = 0; i < instr->definitions.size(); i++) {
-            assert(instr->definitions[i].regClass() == orig_instr->definitions[i].regClass());
-            renames.emplace(instr->definitions[i].tempId(), orig_instr->definitions[i].getTemp()).second;
+         /* check if the original instruction dominates the current one */
+         if (dominates(ctx, res.first->second, block.index)) {
+            for (unsigned i = 0; i < instr->definitions.size(); i++) {
+               assert(instr->definitions[i].regClass() == orig_instr->definitions[i].regClass());
+               ctx.renames[instr->definitions[i].tempId()] = orig_instr->definitions[i].getTemp();
+            }
+         } else {
+            ctx.expr_values.erase(res.first);
+            ctx.expr_values.emplace(instr.get(), block.index);
+            new_instructions.emplace_back(std::move(instr));
          }
       } else {
          new_instructions.emplace_back(std::move(instr));
       }
-      ++it;
    }
 
-   block.instructions.swap(new_instructions);
+   block.instructions = std::move(new_instructions);
 }
 
 void rename_phi_operands(Block& block, std::map<uint32_t, Temp>& renames)
@@ -306,22 +338,22 @@ void rename_phi_operands(Block& block, std::map<uint32_t, Temp>& renames)
 
 void value_numbering(Program* program)
 {
-   std::vector<expr_set> expr_values(program->blocks.size());
-   std::map<uint32_t, Temp> renames;
+   vn_ctx ctx(program);
 
    for (Block& block : program->blocks) {
-      if (block.logical_idom != -1) {
-         /* initialize expr_values from idom */
-         expr_values[block.index] = expr_values[block.logical_idom];
-         process_block(block, expr_values[block.index], renames);
-      } else {
-         expr_set empty;
-         process_block(block, empty, renames);
-      }
+      if (block.logical_idom != -1)
+         process_block(ctx, block);
+      else
+         rename_phi_operands(block, ctx.renames);
+
+      ctx.exec_id++;
    }
 
-   for (Block& block : program->blocks)
-      rename_phi_operands(block, renames);
+   /* rename loop header phi operands */
+   for (Block& block : program->blocks) {
+      if (block.kind & block_kind_loop_header)
+         rename_phi_operands(block, ctx.renames);
+   }
 }
 
 }

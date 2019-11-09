@@ -209,3 +209,21 @@ xkb_symbols "lsgt_switch_latch" {
   };
   include "level3(modifier_mapping)"
 };
+
+// Number key 4 chooses third shift level when pressed in isolation.
+partial modifier_keys
+xkb_symbols "4_switch_isolated" {
+  override key <AE04> {
+    symbols[Group1] = [ ISO_Level3_Shift ]
+  };
+  include "level3(modifier_mapping)"
+};
+
+// Number key 9 chooses third shift level when pressed in isolation.
+partial modifier_keys
+xkb_symbols "9_switch_isolated" {
+  override key <AE09> {
+    symbols[Group1] = [ ISO_Level3_Shift ]
+  };
+  include "level3(modifier_mapping)"
+};

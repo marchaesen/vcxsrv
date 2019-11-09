@@ -221,6 +221,7 @@ struct wait_ctx {
    uint8_t vs_cnt = 0;
    bool pending_flat_lgkm = false;
    bool pending_flat_vm = false;
+   bool pending_s_buffer_store = false; /* GFX10 workaround */
 
    wait_imm barrier_imm[barrier_count];
 
@@ -244,6 +245,7 @@ struct wait_ctx {
       vs_cnt = std::max(vs_cnt, other->vs_cnt);
       pending_flat_lgkm |= other->pending_flat_lgkm;
       pending_flat_vm |= other->pending_flat_vm;
+      pending_s_buffer_store |= other->pending_s_buffer_store;
 
       for (std::pair<PhysReg,wait_entry> entry : other->gpr_map)
       {
@@ -323,6 +325,27 @@ wait_imm kill(Instruction* instr, wait_ctx& ctx)
    if (ctx.exp_cnt || ctx.vm_cnt || ctx.lgkm_cnt)
       imm.combine(check_instr(instr, ctx));
 
+   if (ctx.chip_class >= GFX10) {
+      /* Seems to be required on GFX10 to achieve correct behaviour.
+       * It shouldn't cost anything anyways since we're about to do s_endpgm.
+       */
+      if (ctx.lgkm_cnt && instr->opcode == aco_opcode::s_dcache_wb)
+         imm.lgkm = 0;
+
+      /* GFX10: A store followed by a load at the same address causes a problem because
+       * the load doesn't load the correct values unless we wait for the store first.
+       * This is NOT mitigated by an s_nop.
+       *
+       * TODO: Refine this when we have proper alias analysis.
+       */
+      SMEM_instruction *smem = static_cast<SMEM_instruction *>(instr);
+      if (ctx.pending_s_buffer_store &&
+          !smem->definitions.empty() &&
+          !smem->can_reorder && smem->barrier == barrier_buffer) {
+         imm.lgkm = 0;
+      }
+   }
+
    if (instr->format == Format::PSEUDO_BARRIER) {
       unsigned* bsize = ctx.program->info->cs.block_size;
       unsigned workgroup_size = bsize[0] * bsize[1] * bsize[2];
@@ -378,7 +401,7 @@ wait_imm kill(Instruction* instr, wait_ctx& ctx)
             bar.vs = wait_imm::unset_counter;
       }
 
-      /* remove all vgprs with higher counter from map */
+      /* remove all gprs with higher counter from map */
       std::map<PhysReg,wait_entry>::iterator it = ctx.gpr_map.begin();
       while (it != ctx.gpr_map.end())
       {
@@ -399,8 +422,10 @@ wait_imm kill(Instruction* instr, wait_ctx& ctx)
 
    if (imm.vm == 0)
       ctx.pending_flat_vm = false;
-   if (imm.lgkm == 0)
+   if (imm.lgkm == 0) {
       ctx.pending_flat_lgkm = false;
+      ctx.pending_s_buffer_store = false;
+   }
 
    return imm;
 }
@@ -568,10 +593,16 @@ void gen(Instruction* instr, wait_ctx& ctx)
       break;
    }
    case Format::SMEM: {
+      SMEM_instruction *smem = static_cast<SMEM_instruction*>(instr);
       update_counters(ctx, event_smem, static_cast<SMEM_instruction*>(instr)->barrier);
 
       if (!instr->definitions.empty())
          insert_wait_entry(ctx, instr->definitions[0], event_smem);
+      else if (ctx.chip_class >= GFX10 &&
+               !smem->can_reorder &&
+               smem->barrier == barrier_buffer)
+         ctx.pending_s_buffer_store = true;
+
       break;
    }
    case Format::DS: {
@@ -616,7 +647,8 @@ void emit_waitcnt(wait_ctx& ctx, std::vector<aco_ptr<Instruction>>& instructions
 {
    if (imm.vs != wait_imm::unset_counter) {
       assert(ctx.chip_class >= GFX10);
-      SOPK_instruction* waitcnt_vs = create_instruction<SOPK_instruction>(aco_opcode::s_waitcnt_vscnt, Format::SOPK, 0, 0);
+      SOPK_instruction* waitcnt_vs = create_instruction<SOPK_instruction>(aco_opcode::s_waitcnt_vscnt, Format::SOPK, 0, 1);
+      waitcnt_vs->definitions[0] = Definition(sgpr_null, s1);
       waitcnt_vs->imm = imm.vs;
       instructions.emplace_back(waitcnt_vs);
       imm.vs = wait_imm::unset_counter;
@@ -648,7 +680,7 @@ void handle_block(Program *program, Block& block, wait_ctx& ctx)
    /* check if this block is at the end of a loop */
    for (unsigned succ_idx : block.linear_succs) {
       /* eliminate any remaining counters */
-      if (succ_idx <= block.index && (ctx.vm_cnt || ctx.exp_cnt || ctx.lgkm_cnt || ctx.vs_cnt) && !ctx.gpr_map.empty()) {
+      if (succ_idx <= block.index && (ctx.vm_cnt || ctx.exp_cnt || ctx.lgkm_cnt || ctx.vs_cnt)) {
          // TODO: we could do better if we only wait if the regs between the block and other predecessors differ
 
          aco_ptr<Instruction> branch = std::move(new_instructions.back());

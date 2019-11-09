@@ -412,6 +412,14 @@ dd_screen_memobj_destroy(struct pipe_screen *_screen,
  */
 
 static void
+dd_screen_finalize_nir(struct pipe_screen *_screen, void *nir, bool optimize)
+{
+   struct pipe_screen *screen = dd_screen(_screen)->screen;
+
+   screen->finalize_nir(screen, nir, optimize);
+}
+
+static void
 dd_screen_destroy(struct pipe_screen *_screen)
 {
    struct dd_screen *dscreen = dd_screen(_screen);
@@ -597,6 +605,7 @@ ddebug_screen_create(struct pipe_screen *screen)
    SCR_INIT(get_compiler_options);
    SCR_INIT(get_driver_uuid);
    SCR_INIT(get_device_uuid);
+   SCR_INIT(finalize_nir);
 
 #undef SCR_INIT
 

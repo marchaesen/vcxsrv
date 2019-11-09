@@ -375,7 +375,7 @@ FcPublic FcBool
 FcDirCacheClean (const FcChar8 *cache_dir, FcBool verbose);
 
 FcPublic void
-FcCacheCreateTagFile (const FcConfig *config);
+FcCacheCreateTagFile (FcConfig *config);
 
 FcPublic FcBool
 FcDirCacheCreateUUID (FcChar8  *dir,
@@ -392,6 +392,10 @@ FcConfigHome (void);
 
 FcPublic FcBool
 FcConfigEnableHome (FcBool enable);
+
+FcPublic FcChar8 *
+FcConfigGetFilename (FcConfig      *config,
+		     const FcChar8 *url);
 
 FcPublic FcChar8 *
 FcConfigFilename (const FcChar8 *url);
@@ -433,7 +437,7 @@ FcPublic FcBlanks *
 FcConfigGetBlanks (FcConfig *config);
 
 FcPublic FcStrList *
-FcConfigGetCacheDirs (const FcConfig	*config);
+FcConfigGetCacheDirs (FcConfig	*config);
 
 FcPublic int
 FcConfigGetRescanInterval (FcConfig *config);

@@ -644,6 +644,14 @@ trace_screen_get_timestamp(struct pipe_screen *_screen)
 }
 
 static void
+trace_screen_finalize_nir(struct pipe_screen *_screen, void *nir, bool optimize)
+{
+   struct pipe_screen *screen = trace_screen(_screen)->screen;
+
+   screen->finalize_nir(screen, nir, optimize);
+}
+
+static void
 trace_screen_destroy(struct pipe_screen *_screen)
 {
    struct trace_screen *tr_scr = trace_screen(_screen);
@@ -722,6 +730,7 @@ trace_screen_create(struct pipe_screen *screen)
    tr_scr->base.get_timestamp = trace_screen_get_timestamp;
    SCR_INIT(get_driver_uuid);
    SCR_INIT(get_device_uuid);
+   SCR_INIT(finalize_nir);
 
    tr_scr->screen = screen;
 

@@ -174,6 +174,41 @@
     <value name="int" value="3" min_ver="42"/> <!-- clamp to integer RT's range -->
   </enum>
 
+  <!---
+    CL cache flush commands are not fully documented and subject to a
+    number of hardware issues that make them unreliable. Specifically:
+
+    * The L2T flush command has a 'deferred' bit to ensure the command
+      doesn't execute until all other commands in the CL have completed,
+      which is required to achieve the expected behavior. This bit comes
+      right after the mode field.
+
+    * GFXH-1895: Overlapping write combiner flush requests from different
+      sources are not safe. If two flush requests from different sources
+      overlap, the TMU may send the done signal for the first flush back to
+      the wrong source.
+
+    * GFXH-1888: It is possible for a regular access to sneak past a
+      pending L2T flush. If an L2T flush is requested via L2TCACTL while a
+      CLE-requested flush is in progress, it is possible for a regular
+      access to sneak through in the gap between the CLE flush and the
+      L2TCACTL flush.
+
+    * GFXH-1897: Writing 0 to L2TCACTL clobbers in-progress flush status.
+      Writing 0 to TMUWCF (bit 8) clears the TMUWCF bit, even if a write
+      combiner flush is still in progress. Similarly, writing 0 to L2TFLS
+      (bit 0) clears the L2TFLS bit, even if an L2T flush is still in
+      progress. Writing 0 to L2TFLM (bits 1..2) overwrites the flush mode,
+      even if a flush is not being requested (ie 0 is being written to
+      L2TFLS). If the last flush has not yet made it through the L2T
+      arbiter, this will change the mode of that flush.
+
+    GFXH-1888 and GFXH-1897 are problematic when we don't wait for L2T
+    flushes requested via LATCACTL to complete immediately.
+
+    Because of this, the driver will do all of its flushing via the kernel
+    using L2TCACTL instead of using the CL commands.
+  -->
   <enum name="L2T Flush Mode" prefix="L2T_FLUSH_MODE">
     <!-- invalidates all cache lines -->
     <value name="flush" value="0"/>

@@ -245,6 +245,11 @@ buffer_usage(GLenum target, GLboolean immutable,
       }
    }
    else {
+      /* These are often read by the CPU, so enable CPU caches. */
+      if (target == GL_PIXEL_PACK_BUFFER ||
+          target == GL_PIXEL_UNPACK_BUFFER)
+         return PIPE_USAGE_STAGING;
+
       /* BufferData */
       switch (usage) {
       case GL_DYNAMIC_DRAW:
@@ -252,14 +257,7 @@ buffer_usage(GLenum target, GLboolean immutable,
          return PIPE_USAGE_DYNAMIC;
       case GL_STREAM_DRAW:
       case GL_STREAM_COPY:
-         /* XXX: Remove this test and fall-through when we have PBO unpacking
-          * acceleration. Right now, PBO unpacking is done by the CPU, so we
-          * have to make sure CPU reads are fast.
-          */
-         if (target != GL_PIXEL_UNPACK_BUFFER_ARB) {
-            return PIPE_USAGE_STREAM;
-         }
-         /* fall through */
+         return PIPE_USAGE_STREAM;
       case GL_STATIC_READ:
       case GL_DYNAMIC_READ:
       case GL_STREAM_READ:

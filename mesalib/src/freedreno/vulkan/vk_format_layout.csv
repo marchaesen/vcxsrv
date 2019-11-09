@@ -158,31 +158,31 @@ VK_FORMAT_EAC_R11_UNORM_BLOCK        , etc,   4, 4, x64,      ,     ,     , x001
 VK_FORMAT_EAC_R11_SNORM_BLOCK        , etc,   4, 4, x64,      ,     ,     , x001, rgb
 VK_FORMAT_EAC_R11G11_UNORM_BLOCK     , etc,   4, 4, x128,     ,     ,     , xy01, rgb
 VK_FORMAT_EAC_R11G11_SNORM_BLOCK     , etc,   4, 4, x128,     ,     ,     , xy01, rgb
-VK_FORMAT_ASTC_4x4_UNORM_BLOCK,
-VK_FORMAT_ASTC_4x4_SRGB_BLOCK,
-VK_FORMAT_ASTC_5x4_UNORM_BLOCK,
-VK_FORMAT_ASTC_5x4_SRGB_BLOCK,
-VK_FORMAT_ASTC_5x5_UNORM_BLOCK,
-VK_FORMAT_ASTC_5x5_SRGB_BLOCK,
-VK_FORMAT_ASTC_6x5_UNORM_BLOCK,
-VK_FORMAT_ASTC_6x5_SRGB_BLOCK,
-VK_FORMAT_ASTC_6x6_UNORM_BLOCK,
-VK_FORMAT_ASTC_6x6_SRGB_BLOCK,
-VK_FORMAT_ASTC_8x5_UNORM_BLOCK,
-VK_FORMAT_ASTC_8x5_SRGB_BLOCK,
-VK_FORMAT_ASTC_8x6_UNORM_BLOCK,
-VK_FORMAT_ASTC_8x6_SRGB_BLOCK,
-VK_FORMAT_ASTC_8x8_UNORM_BLOCK,
-VK_FORMAT_ASTC_8x8_SRGB_BLOCK,
-VK_FORMAT_ASTC_10x5_UNORM_BLOCK,
-VK_FORMAT_ASTC_10x5_SRGB_BLOCK,
-VK_FORMAT_ASTC_10x6_UNORM_BLOCK,
-VK_FORMAT_ASTC_10x6_SRGB_BLOCK,
-VK_FORMAT_ASTC_10x8_UNORM_BLOCK,
-VK_FORMAT_ASTC_10x8_SRGB_BLOCK,
-VK_FORMAT_ASTC_10x10_UNORM_BLOCK,
-VK_FORMAT_ASTC_10x10_SRGB_BLOCK,
-VK_FORMAT_ASTC_12x10_UNORM_BLOCK,
-VK_FORMAT_ASTC_12x10_SRGB_BLOCK,
-VK_FORMAT_ASTC_12x12_UNORM_BLOCK,
-VK_FORMAT_ASTC_12x12_SRGB_BLOCK,
+VK_FORMAT_ASTC_4x4_UNORM_BLOCK       , astc,  4, 4, x128,     ,     ,     , xyzw, rgb
+VK_FORMAT_ASTC_5x4_UNORM_BLOCK       , astc,  5, 4, x128,     ,     ,     , xyzw, rgb
+VK_FORMAT_ASTC_5x5_UNORM_BLOCK       , astc,  5, 5, x128,     ,     ,     , xyzw, rgb
+VK_FORMAT_ASTC_6x5_UNORM_BLOCK       , astc,  6, 5, x128,     ,     ,     , xyzw, rgb
+VK_FORMAT_ASTC_6x6_UNORM_BLOCK       , astc,  6, 6, x128,     ,     ,     , xyzw, rgb
+VK_FORMAT_ASTC_8x5_UNORM_BLOCK       , astc,  8, 5, x128,     ,     ,     , xyzw, rgb
+VK_FORMAT_ASTC_8x6_UNORM_BLOCK       , astc,  8, 6, x128,     ,     ,     , xyzw, rgb
+VK_FORMAT_ASTC_8x8_UNORM_BLOCK       , astc,  8, 8, x128,     ,     ,     , xyzw, rgb
+VK_FORMAT_ASTC_10x5_UNORM_BLOCK      , astc, 10, 5, x128,     ,     ,     , xyzw, rgb
+VK_FORMAT_ASTC_10x6_UNORM_BLOCK      , astc, 10, 6, x128,     ,     ,     , xyzw, rgb
+VK_FORMAT_ASTC_10x8_UNORM_BLOCK      , astc, 10, 8, x128,     ,     ,     , xyzw, rgb
+VK_FORMAT_ASTC_10x10_UNORM_BLOCK     , astc, 10,10, x128,     ,     ,     , xyzw, rgb
+VK_FORMAT_ASTC_12x10_UNORM_BLOCK     , astc, 12,10, x128,     ,     ,     , xyzw, rgb
+VK_FORMAT_ASTC_12x12_UNORM_BLOCK     , astc, 12,12, x128,     ,     ,     , xyzw, rgb
+VK_FORMAT_ASTC_4x4_SRGB_BLOCK        , astc,  4, 4, x128,     ,     ,     , xyzw, srgb
+VK_FORMAT_ASTC_5x4_SRGB_BLOCK        , astc,  5, 4, x128,     ,     ,     , xyzw, srgb
+VK_FORMAT_ASTC_5x5_SRGB_BLOCK        , astc,  5, 5, x128,     ,     ,     , xyzw, srgb
+VK_FORMAT_ASTC_6x5_SRGB_BLOCK        , astc,  6, 5, x128,     ,     ,     , xyzw, srgb
+VK_FORMAT_ASTC_6x6_SRGB_BLOCK        , astc,  6, 6, x128,     ,     ,     , xyzw, srgb
+VK_FORMAT_ASTC_8x5_SRGB_BLOCK        , astc,  8, 5, x128,     ,     ,     , xyzw, srgb
+VK_FORMAT_ASTC_8x6_SRGB_BLOCK        , astc,  8, 6, x128,     ,     ,     , xyzw, srgb
+VK_FORMAT_ASTC_8x8_SRGB_BLOCK        , astc,  8, 8, x128,     ,     ,     , xyzw, srgb
+VK_FORMAT_ASTC_10x5_SRGB_BLOCK       , astc, 10, 5, x128,     ,     ,     , xyzw, srgb
+VK_FORMAT_ASTC_10x6_SRGB_BLOCK       , astc, 10, 6, x128,     ,     ,     , xyzw, srgb
+VK_FORMAT_ASTC_10x8_SRGB_BLOCK       , astc, 10, 8, x128,     ,     ,     , xyzw, srgb
+VK_FORMAT_ASTC_10x10_SRGB_BLOCK      , astc, 10,10, x128,     ,     ,     , xyzw, srgb
+VK_FORMAT_ASTC_12x10_SRGB_BLOCK      , astc, 12,10, x128,     ,     ,     , xyzw, srgb
+VK_FORMAT_ASTC_12x12_SRGB_BLOCK      , astc, 12,12, x128,     ,     ,     , xyzw, srgb

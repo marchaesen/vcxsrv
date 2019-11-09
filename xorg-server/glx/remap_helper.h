@@ -5271,2522 +5271,2720 @@ static const char _mesa_function_pool[] =
    "iip\0"
    "glGetFloati_v\0"
    "glGetFloatIndexedvEXT\0"
+   "glGetFloati_vEXT\0"
    "glGetFloati_vOES\0"
    "\0"
-   /* _mesa_function_pool[39841]: GetDoublei_v (will be remapped) */
+   /* _mesa_function_pool[39858]: GetDoublei_v (will be remapped) */
    "iip\0"
    "glGetDoublei_v\0"
    "glGetDoubleIndexedvEXT\0"
+   "glGetDoublei_vEXT\0"
    "\0"
-   /* _mesa_function_pool[39884]: FragmentColorMaterialSGIX (dynamic) */
+   /* _mesa_function_pool[39919]: FragmentColorMaterialSGIX (dynamic) */
    "ii\0"
    "glFragmentColorMaterialSGIX\0"
    "\0"
-   /* _mesa_function_pool[39916]: FragmentLightfSGIX (dynamic) */
+   /* _mesa_function_pool[39951]: FragmentLightfSGIX (dynamic) */
    "iif\0"
    "glFragmentLightfSGIX\0"
    "\0"
-   /* _mesa_function_pool[39942]: FragmentLightfvSGIX (dynamic) */
+   /* _mesa_function_pool[39977]: FragmentLightfvSGIX (dynamic) */
    "iip\0"
    "glFragmentLightfvSGIX\0"
    "\0"
-   /* _mesa_function_pool[39969]: FragmentLightiSGIX (dynamic) */
+   /* _mesa_function_pool[40004]: FragmentLightiSGIX (dynamic) */
    "iii\0"
    "glFragmentLightiSGIX\0"
    "\0"
-   /* _mesa_function_pool[39995]: FragmentLightivSGIX (dynamic) */
+   /* _mesa_function_pool[40030]: FragmentLightivSGIX (dynamic) */
    "iip\0"
    "glFragmentLightivSGIX\0"
    "\0"
-   /* _mesa_function_pool[40022]: FragmentLightModelfSGIX (dynamic) */
+   /* _mesa_function_pool[40057]: FragmentLightModelfSGIX (dynamic) */
    "if\0"
    "glFragmentLightModelfSGIX\0"
    "\0"
-   /* _mesa_function_pool[40052]: FragmentLightModelfvSGIX (dynamic) */
+   /* _mesa_function_pool[40087]: FragmentLightModelfvSGIX (dynamic) */
    "ip\0"
    "glFragmentLightModelfvSGIX\0"
    "\0"
-   /* _mesa_function_pool[40083]: FragmentLightModeliSGIX (dynamic) */
+   /* _mesa_function_pool[40118]: FragmentLightModeliSGIX (dynamic) */
    "ii\0"
    "glFragmentLightModeliSGIX\0"
    "\0"
-   /* _mesa_function_pool[40113]: FragmentLightModelivSGIX (dynamic) */
+   /* _mesa_function_pool[40148]: FragmentLightModelivSGIX (dynamic) */
    "ip\0"
    "glFragmentLightModelivSGIX\0"
    "\0"
-   /* _mesa_function_pool[40144]: FragmentMaterialfSGIX (dynamic) */
+   /* _mesa_function_pool[40179]: FragmentMaterialfSGIX (dynamic) */
    "iif\0"
    "glFragmentMaterialfSGIX\0"
    "\0"
-   /* _mesa_function_pool[40173]: FragmentMaterialfvSGIX (dynamic) */
+   /* _mesa_function_pool[40208]: FragmentMaterialfvSGIX (dynamic) */
    "iip\0"
    "glFragmentMaterialfvSGIX\0"
    "\0"
-   /* _mesa_function_pool[40203]: FragmentMaterialiSGIX (dynamic) */
+   /* _mesa_function_pool[40238]: FragmentMaterialiSGIX (dynamic) */
    "iii\0"
    "glFragmentMaterialiSGIX\0"
    "\0"
-   /* _mesa_function_pool[40232]: FragmentMaterialivSGIX (dynamic) */
+   /* _mesa_function_pool[40267]: FragmentMaterialivSGIX (dynamic) */
    "iip\0"
    "glFragmentMaterialivSGIX\0"
    "\0"
-   /* _mesa_function_pool[40262]: GetFragmentLightfvSGIX (dynamic) */
+   /* _mesa_function_pool[40297]: GetFragmentLightfvSGIX (dynamic) */
    "iip\0"
    "glGetFragmentLightfvSGIX\0"
    "\0"
-   /* _mesa_function_pool[40292]: GetFragmentLightivSGIX (dynamic) */
+   /* _mesa_function_pool[40327]: GetFragmentLightivSGIX (dynamic) */
    "iip\0"
    "glGetFragmentLightivSGIX\0"
    "\0"
-   /* _mesa_function_pool[40322]: GetFragmentMaterialfvSGIX (dynamic) */
+   /* _mesa_function_pool[40357]: GetFragmentMaterialfvSGIX (dynamic) */
    "iip\0"
    "glGetFragmentMaterialfvSGIX\0"
    "\0"
-   /* _mesa_function_pool[40355]: GetFragmentMaterialivSGIX (dynamic) */
+   /* _mesa_function_pool[40390]: GetFragmentMaterialivSGIX (dynamic) */
    "iip\0"
    "glGetFragmentMaterialivSGIX\0"
    "\0"
-   /* _mesa_function_pool[40388]: LightEnviSGIX (dynamic) */
+   /* _mesa_function_pool[40423]: LightEnviSGIX (dynamic) */
    "ii\0"
    "glLightEnviSGIX\0"
    "\0"
-   /* _mesa_function_pool[40408]: ApplyTextureEXT (dynamic) */
+   /* _mesa_function_pool[40443]: ApplyTextureEXT (dynamic) */
    "i\0"
    "glApplyTextureEXT\0"
    "\0"
-   /* _mesa_function_pool[40429]: TextureLightEXT (dynamic) */
+   /* _mesa_function_pool[40464]: TextureLightEXT (dynamic) */
    "i\0"
    "glTextureLightEXT\0"
    "\0"
-   /* _mesa_function_pool[40450]: TextureMaterialEXT (dynamic) */
+   /* _mesa_function_pool[40485]: TextureMaterialEXT (dynamic) */
    "ii\0"
    "glTextureMaterialEXT\0"
    "\0"
-   /* _mesa_function_pool[40475]: AsyncMarkerSGIX (dynamic) */
+   /* _mesa_function_pool[40510]: AsyncMarkerSGIX (dynamic) */
    "i\0"
    "glAsyncMarkerSGIX\0"
    "\0"
-   /* _mesa_function_pool[40496]: FinishAsyncSGIX (dynamic) */
+   /* _mesa_function_pool[40531]: FinishAsyncSGIX (dynamic) */
    "p\0"
    "glFinishAsyncSGIX\0"
    "\0"
-   /* _mesa_function_pool[40517]: PollAsyncSGIX (dynamic) */
+   /* _mesa_function_pool[40552]: PollAsyncSGIX (dynamic) */
    "p\0"
    "glPollAsyncSGIX\0"
    "\0"
-   /* _mesa_function_pool[40536]: GenAsyncMarkersSGIX (dynamic) */
+   /* _mesa_function_pool[40571]: GenAsyncMarkersSGIX (dynamic) */
    "i\0"
    "glGenAsyncMarkersSGIX\0"
    "\0"
-   /* _mesa_function_pool[40561]: DeleteAsyncMarkersSGIX (dynamic) */
+   /* _mesa_function_pool[40596]: DeleteAsyncMarkersSGIX (dynamic) */
    "ii\0"
    "glDeleteAsyncMarkersSGIX\0"
    "\0"
-   /* _mesa_function_pool[40590]: IsAsyncMarkerSGIX (dynamic) */
+   /* _mesa_function_pool[40625]: IsAsyncMarkerSGIX (dynamic) */
    "i\0"
    "glIsAsyncMarkerSGIX\0"
    "\0"
-   /* _mesa_function_pool[40613]: VertexPointervINTEL (dynamic) */
+   /* _mesa_function_pool[40648]: VertexPointervINTEL (dynamic) */
    "iip\0"
    "glVertexPointervINTEL\0"
    "\0"
-   /* _mesa_function_pool[40640]: NormalPointervINTEL (dynamic) */
+   /* _mesa_function_pool[40675]: NormalPointervINTEL (dynamic) */
    "ip\0"
    "glNormalPointervINTEL\0"
    "\0"
-   /* _mesa_function_pool[40666]: ColorPointervINTEL (dynamic) */
+   /* _mesa_function_pool[40701]: ColorPointervINTEL (dynamic) */
    "iip\0"
    "glColorPointervINTEL\0"
    "\0"
-   /* _mesa_function_pool[40692]: TexCoordPointervINTEL (dynamic) */
+   /* _mesa_function_pool[40727]: TexCoordPointervINTEL (dynamic) */
    "iip\0"
    "glTexCoordPointervINTEL\0"
    "\0"
-   /* _mesa_function_pool[40721]: PixelTransformParameteriEXT (dynamic) */
+   /* _mesa_function_pool[40756]: PixelTransformParameteriEXT (dynamic) */
    "iii\0"
    "glPixelTransformParameteriEXT\0"
    "\0"
-   /* _mesa_function_pool[40756]: PixelTransformParameterfEXT (dynamic) */
+   /* _mesa_function_pool[40791]: PixelTransformParameterfEXT (dynamic) */
    "iif\0"
    "glPixelTransformParameterfEXT\0"
    "\0"
-   /* _mesa_function_pool[40791]: PixelTransformParameterivEXT (dynamic) */
+   /* _mesa_function_pool[40826]: PixelTransformParameterivEXT (dynamic) */
    "iip\0"
    "glPixelTransformParameterivEXT\0"
    "\0"
-   /* _mesa_function_pool[40827]: PixelTransformParameterfvEXT (dynamic) */
+   /* _mesa_function_pool[40862]: PixelTransformParameterfvEXT (dynamic) */
    "iip\0"
    "glPixelTransformParameterfvEXT\0"
    "\0"
-   /* _mesa_function_pool[40863]: TextureNormalEXT (dynamic) */
+   /* _mesa_function_pool[40898]: TextureNormalEXT (dynamic) */
    "i\0"
    "glTextureNormalEXT\0"
    "\0"
-   /* _mesa_function_pool[40885]: Tangent3bEXT (dynamic) */
+   /* _mesa_function_pool[40920]: Tangent3bEXT (dynamic) */
    "iii\0"
    "glTangent3bEXT\0"
    "\0"
-   /* _mesa_function_pool[40905]: Tangent3bvEXT (dynamic) */
+   /* _mesa_function_pool[40940]: Tangent3bvEXT (dynamic) */
    "p\0"
    "glTangent3bvEXT\0"
    "\0"
-   /* _mesa_function_pool[40924]: Tangent3dEXT (dynamic) */
+   /* _mesa_function_pool[40959]: Tangent3dEXT (dynamic) */
    "ddd\0"
    "glTangent3dEXT\0"
    "\0"
-   /* _mesa_function_pool[40944]: Tangent3dvEXT (dynamic) */
+   /* _mesa_function_pool[40979]: Tangent3dvEXT (dynamic) */
    "p\0"
    "glTangent3dvEXT\0"
    "\0"
-   /* _mesa_function_pool[40963]: Tangent3fEXT (dynamic) */
+   /* _mesa_function_pool[40998]: Tangent3fEXT (dynamic) */
    "fff\0"
    "glTangent3fEXT\0"
    "\0"
-   /* _mesa_function_pool[40983]: Tangent3fvEXT (dynamic) */
+   /* _mesa_function_pool[41018]: Tangent3fvEXT (dynamic) */
    "p\0"
    "glTangent3fvEXT\0"
    "\0"
-   /* _mesa_function_pool[41002]: Tangent3iEXT (dynamic) */
+   /* _mesa_function_pool[41037]: Tangent3iEXT (dynamic) */
    "iii\0"
    "glTangent3iEXT\0"
    "\0"
-   /* _mesa_function_pool[41022]: Tangent3ivEXT (dynamic) */
+   /* _mesa_function_pool[41057]: Tangent3ivEXT (dynamic) */
    "p\0"
    "glTangent3ivEXT\0"
    "\0"
-   /* _mesa_function_pool[41041]: Tangent3sEXT (dynamic) */
+   /* _mesa_function_pool[41076]: Tangent3sEXT (dynamic) */
    "iii\0"
    "glTangent3sEXT\0"
    "\0"
-   /* _mesa_function_pool[41061]: Tangent3svEXT (dynamic) */
+   /* _mesa_function_pool[41096]: Tangent3svEXT (dynamic) */
    "p\0"
    "glTangent3svEXT\0"
    "\0"
-   /* _mesa_function_pool[41080]: Binormal3bEXT (dynamic) */
+   /* _mesa_function_pool[41115]: Binormal3bEXT (dynamic) */
    "iii\0"
    "glBinormal3bEXT\0"
    "\0"
-   /* _mesa_function_pool[41101]: Binormal3bvEXT (dynamic) */
+   /* _mesa_function_pool[41136]: Binormal3bvEXT (dynamic) */
    "p\0"
    "glBinormal3bvEXT\0"
    "\0"
-   /* _mesa_function_pool[41121]: Binormal3dEXT (dynamic) */
+   /* _mesa_function_pool[41156]: Binormal3dEXT (dynamic) */
    "ddd\0"
    "glBinormal3dEXT\0"
    "\0"
-   /* _mesa_function_pool[41142]: Binormal3dvEXT (dynamic) */
+   /* _mesa_function_pool[41177]: Binormal3dvEXT (dynamic) */
    "p\0"
    "glBinormal3dvEXT\0"
    "\0"
-   /* _mesa_function_pool[41162]: Binormal3fEXT (dynamic) */
+   /* _mesa_function_pool[41197]: Binormal3fEXT (dynamic) */
    "fff\0"
    "glBinormal3fEXT\0"
    "\0"
-   /* _mesa_function_pool[41183]: Binormal3fvEXT (dynamic) */
+   /* _mesa_function_pool[41218]: Binormal3fvEXT (dynamic) */
    "p\0"
    "glBinormal3fvEXT\0"
    "\0"
-   /* _mesa_function_pool[41203]: Binormal3iEXT (dynamic) */
+   /* _mesa_function_pool[41238]: Binormal3iEXT (dynamic) */
    "iii\0"
    "glBinormal3iEXT\0"
    "\0"
-   /* _mesa_function_pool[41224]: Binormal3ivEXT (dynamic) */
+   /* _mesa_function_pool[41259]: Binormal3ivEXT (dynamic) */
    "p\0"
    "glBinormal3ivEXT\0"
    "\0"
-   /* _mesa_function_pool[41244]: Binormal3sEXT (dynamic) */
+   /* _mesa_function_pool[41279]: Binormal3sEXT (dynamic) */
    "iii\0"
    "glBinormal3sEXT\0"
    "\0"
-   /* _mesa_function_pool[41265]: Binormal3svEXT (dynamic) */
+   /* _mesa_function_pool[41300]: Binormal3svEXT (dynamic) */
    "p\0"
    "glBinormal3svEXT\0"
    "\0"
-   /* _mesa_function_pool[41285]: TangentPointerEXT (dynamic) */
+   /* _mesa_function_pool[41320]: TangentPointerEXT (dynamic) */
    "iip\0"
    "glTangentPointerEXT\0"
    "\0"
-   /* _mesa_function_pool[41310]: BinormalPointerEXT (dynamic) */
+   /* _mesa_function_pool[41345]: BinormalPointerEXT (dynamic) */
    "iip\0"
    "glBinormalPointerEXT\0"
    "\0"
-   /* _mesa_function_pool[41336]: PixelTexGenSGIX (dynamic) */
+   /* _mesa_function_pool[41371]: PixelTexGenSGIX (dynamic) */
    "i\0"
    "glPixelTexGenSGIX\0"
    "\0"
-   /* _mesa_function_pool[41357]: FinishTextureSUNX (dynamic) */
+   /* _mesa_function_pool[41392]: FinishTextureSUNX (dynamic) */
    "\0"
    "glFinishTextureSUNX\0"
    "\0"
-   /* _mesa_function_pool[41379]: GlobalAlphaFactorbSUN (dynamic) */
+   /* _mesa_function_pool[41414]: GlobalAlphaFactorbSUN (dynamic) */
    "i\0"
    "glGlobalAlphaFactorbSUN\0"
    "\0"
-   /* _mesa_function_pool[41406]: GlobalAlphaFactorsSUN (dynamic) */
+   /* _mesa_function_pool[41441]: GlobalAlphaFactorsSUN (dynamic) */
    "i\0"
    "glGlobalAlphaFactorsSUN\0"
    "\0"
-   /* _mesa_function_pool[41433]: GlobalAlphaFactoriSUN (dynamic) */
+   /* _mesa_function_pool[41468]: GlobalAlphaFactoriSUN (dynamic) */
    "i\0"
    "glGlobalAlphaFactoriSUN\0"
    "\0"
-   /* _mesa_function_pool[41460]: GlobalAlphaFactorfSUN (dynamic) */
+   /* _mesa_function_pool[41495]: GlobalAlphaFactorfSUN (dynamic) */
    "f\0"
    "glGlobalAlphaFactorfSUN\0"
    "\0"
-   /* _mesa_function_pool[41487]: GlobalAlphaFactordSUN (dynamic) */
+   /* _mesa_function_pool[41522]: GlobalAlphaFactordSUN (dynamic) */
    "d\0"
    "glGlobalAlphaFactordSUN\0"
    "\0"
-   /* _mesa_function_pool[41514]: GlobalAlphaFactorubSUN (dynamic) */
+   /* _mesa_function_pool[41549]: GlobalAlphaFactorubSUN (dynamic) */
    "i\0"
    "glGlobalAlphaFactorubSUN\0"
    "\0"
-   /* _mesa_function_pool[41542]: GlobalAlphaFactorusSUN (dynamic) */
+   /* _mesa_function_pool[41577]: GlobalAlphaFactorusSUN (dynamic) */
    "i\0"
    "glGlobalAlphaFactorusSUN\0"
    "\0"
-   /* _mesa_function_pool[41570]: GlobalAlphaFactoruiSUN (dynamic) */
+   /* _mesa_function_pool[41605]: GlobalAlphaFactoruiSUN (dynamic) */
    "i\0"
    "glGlobalAlphaFactoruiSUN\0"
    "\0"
-   /* _mesa_function_pool[41598]: ReplacementCodeuiSUN (dynamic) */
+   /* _mesa_function_pool[41633]: ReplacementCodeuiSUN (dynamic) */
    "i\0"
    "glReplacementCodeuiSUN\0"
    "\0"
-   /* _mesa_function_pool[41624]: ReplacementCodeusSUN (dynamic) */
+   /* _mesa_function_pool[41659]: ReplacementCodeusSUN (dynamic) */
    "i\0"
    "glReplacementCodeusSUN\0"
    "\0"
-   /* _mesa_function_pool[41650]: ReplacementCodeubSUN (dynamic) */
+   /* _mesa_function_pool[41685]: ReplacementCodeubSUN (dynamic) */
    "i\0"
    "glReplacementCodeubSUN\0"
    "\0"
-   /* _mesa_function_pool[41676]: ReplacementCodeuivSUN (dynamic) */
+   /* _mesa_function_pool[41711]: ReplacementCodeuivSUN (dynamic) */
    "p\0"
    "glReplacementCodeuivSUN\0"
    "\0"
-   /* _mesa_function_pool[41703]: ReplacementCodeusvSUN (dynamic) */
+   /* _mesa_function_pool[41738]: ReplacementCodeusvSUN (dynamic) */
    "p\0"
    "glReplacementCodeusvSUN\0"
    "\0"
-   /* _mesa_function_pool[41730]: ReplacementCodeubvSUN (dynamic) */
+   /* _mesa_function_pool[41765]: ReplacementCodeubvSUN (dynamic) */
    "p\0"
    "glReplacementCodeubvSUN\0"
    "\0"
-   /* _mesa_function_pool[41757]: ReplacementCodePointerSUN (dynamic) */
+   /* _mesa_function_pool[41792]: ReplacementCodePointerSUN (dynamic) */
    "iip\0"
    "glReplacementCodePointerSUN\0"
    "\0"
-   /* _mesa_function_pool[41790]: Color4ubVertex2fSUN (dynamic) */
+   /* _mesa_function_pool[41825]: Color4ubVertex2fSUN (dynamic) */
    "iiiiff\0"
    "glColor4ubVertex2fSUN\0"
    "\0"
-   /* _mesa_function_pool[41820]: Color4ubVertex2fvSUN (dynamic) */
+   /* _mesa_function_pool[41855]: Color4ubVertex2fvSUN (dynamic) */
    "pp\0"
    "glColor4ubVertex2fvSUN\0"
    "\0"
-   /* _mesa_function_pool[41847]: Color4ubVertex3fSUN (dynamic) */
+   /* _mesa_function_pool[41882]: Color4ubVertex3fSUN (dynamic) */
    "iiiifff\0"
    "glColor4ubVertex3fSUN\0"
    "\0"
-   /* _mesa_function_pool[41878]: Color4ubVertex3fvSUN (dynamic) */
+   /* _mesa_function_pool[41913]: Color4ubVertex3fvSUN (dynamic) */
    "pp\0"
    "glColor4ubVertex3fvSUN\0"
    "\0"
-   /* _mesa_function_pool[41905]: Color3fVertex3fSUN (dynamic) */
+   /* _mesa_function_pool[41940]: Color3fVertex3fSUN (dynamic) */
    "ffffff\0"
    "glColor3fVertex3fSUN\0"
    "\0"
-   /* _mesa_function_pool[41934]: Color3fVertex3fvSUN (dynamic) */
+   /* _mesa_function_pool[41969]: Color3fVertex3fvSUN (dynamic) */
    "pp\0"
    "glColor3fVertex3fvSUN\0"
    "\0"
-   /* _mesa_function_pool[41960]: Normal3fVertex3fSUN (dynamic) */
+   /* _mesa_function_pool[41995]: Normal3fVertex3fSUN (dynamic) */
    "ffffff\0"
    "glNormal3fVertex3fSUN\0"
    "\0"
-   /* _mesa_function_pool[41990]: Normal3fVertex3fvSUN (dynamic) */
+   /* _mesa_function_pool[42025]: Normal3fVertex3fvSUN (dynamic) */
    "pp\0"
    "glNormal3fVertex3fvSUN\0"
    "\0"
-   /* _mesa_function_pool[42017]: Color4fNormal3fVertex3fSUN (dynamic) */
+   /* _mesa_function_pool[42052]: Color4fNormal3fVertex3fSUN (dynamic) */
    "ffffffffff\0"
    "glColor4fNormal3fVertex3fSUN\0"
    "\0"
-   /* _mesa_function_pool[42058]: Color4fNormal3fVertex3fvSUN (dynamic) */
+   /* _mesa_function_pool[42093]: Color4fNormal3fVertex3fvSUN (dynamic) */
    "ppp\0"
    "glColor4fNormal3fVertex3fvSUN\0"
    "\0"
-   /* _mesa_function_pool[42093]: TexCoord2fVertex3fSUN (dynamic) */
+   /* _mesa_function_pool[42128]: TexCoord2fVertex3fSUN (dynamic) */
    "fffff\0"
    "glTexCoord2fVertex3fSUN\0"
    "\0"
-   /* _mesa_function_pool[42124]: TexCoord2fVertex3fvSUN (dynamic) */
+   /* _mesa_function_pool[42159]: TexCoord2fVertex3fvSUN (dynamic) */
    "pp\0"
    "glTexCoord2fVertex3fvSUN\0"
    "\0"
-   /* _mesa_function_pool[42153]: TexCoord4fVertex4fSUN (dynamic) */
+   /* _mesa_function_pool[42188]: TexCoord4fVertex4fSUN (dynamic) */
    "ffffffff\0"
    "glTexCoord4fVertex4fSUN\0"
    "\0"
-   /* _mesa_function_pool[42187]: TexCoord4fVertex4fvSUN (dynamic) */
+   /* _mesa_function_pool[42222]: TexCoord4fVertex4fvSUN (dynamic) */
    "pp\0"
    "glTexCoord4fVertex4fvSUN\0"
    "\0"
-   /* _mesa_function_pool[42216]: TexCoord2fColor4ubVertex3fSUN (dynamic) */
+   /* _mesa_function_pool[42251]: TexCoord2fColor4ubVertex3fSUN (dynamic) */
    "ffiiiifff\0"
    "glTexCoord2fColor4ubVertex3fSUN\0"
    "\0"
-   /* _mesa_function_pool[42259]: TexCoord2fColor4ubVertex3fvSUN (dynamic) */
+   /* _mesa_function_pool[42294]: TexCoord2fColor4ubVertex3fvSUN (dynamic) */
    "ppp\0"
    "glTexCoord2fColor4ubVertex3fvSUN\0"
    "\0"
-   /* _mesa_function_pool[42297]: TexCoord2fColor3fVertex3fSUN (dynamic) */
+   /* _mesa_function_pool[42332]: TexCoord2fColor3fVertex3fSUN (dynamic) */
    "ffffffff\0"
    "glTexCoord2fColor3fVertex3fSUN\0"
    "\0"
-   /* _mesa_function_pool[42338]: TexCoord2fColor3fVertex3fvSUN (dynamic) */
+   /* _mesa_function_pool[42373]: TexCoord2fColor3fVertex3fvSUN (dynamic) */
    "ppp\0"
    "glTexCoord2fColor3fVertex3fvSUN\0"
    "\0"
-   /* _mesa_function_pool[42375]: TexCoord2fNormal3fVertex3fSUN (dynamic) */
+   /* _mesa_function_pool[42410]: TexCoord2fNormal3fVertex3fSUN (dynamic) */
    "ffffffff\0"
    "glTexCoord2fNormal3fVertex3fSUN\0"
    "\0"
-   /* _mesa_function_pool[42417]: TexCoord2fNormal3fVertex3fvSUN (dynamic) */
+   /* _mesa_function_pool[42452]: TexCoord2fNormal3fVertex3fvSUN (dynamic) */
    "ppp\0"
    "glTexCoord2fNormal3fVertex3fvSUN\0"
    "\0"
-   /* _mesa_function_pool[42455]: TexCoord2fColor4fNormal3fVertex3fSUN (dynamic) */
+   /* _mesa_function_pool[42490]: TexCoord2fColor4fNormal3fVertex3fSUN (dynamic) */
    "ffffffffffff\0"
    "glTexCoord2fColor4fNormal3fVertex3fSUN\0"
    "\0"
-   /* _mesa_function_pool[42508]: TexCoord2fColor4fNormal3fVertex3fvSUN (dynamic) */
+   /* _mesa_function_pool[42543]: TexCoord2fColor4fNormal3fVertex3fvSUN (dynamic) */
    "pppp\0"
    "glTexCoord2fColor4fNormal3fVertex3fvSUN\0"
    "\0"
-   /* _mesa_function_pool[42554]: TexCoord4fColor4fNormal3fVertex4fSUN (dynamic) */
+   /* _mesa_function_pool[42589]: TexCoord4fColor4fNormal3fVertex4fSUN (dynamic) */
    "fffffffffffffff\0"
    "glTexCoord4fColor4fNormal3fVertex4fSUN\0"
    "\0"
-   /* _mesa_function_pool[42610]: TexCoord4fColor4fNormal3fVertex4fvSUN (dynamic) */
+   /* _mesa_function_pool[42645]: TexCoord4fColor4fNormal3fVertex4fvSUN (dynamic) */
    "pppp\0"
    "glTexCoord4fColor4fNormal3fVertex4fvSUN\0"
    "\0"
-   /* _mesa_function_pool[42656]: ReplacementCodeuiVertex3fSUN (dynamic) */
+   /* _mesa_function_pool[42691]: ReplacementCodeuiVertex3fSUN (dynamic) */
    "ifff\0"
    "glReplacementCodeuiVertex3fSUN\0"
    "\0"
-   /* _mesa_function_pool[42693]: ReplacementCodeuiVertex3fvSUN (dynamic) */
+   /* _mesa_function_pool[42728]: ReplacementCodeuiVertex3fvSUN (dynamic) */
    "pp\0"
    "glReplacementCodeuiVertex3fvSUN\0"
    "\0"
-   /* _mesa_function_pool[42729]: ReplacementCodeuiColor4ubVertex3fSUN (dynamic) */
+   /* _mesa_function_pool[42764]: ReplacementCodeuiColor4ubVertex3fSUN (dynamic) */
    "iiiiifff\0"
    "glReplacementCodeuiColor4ubVertex3fSUN\0"
    "\0"
-   /* _mesa_function_pool[42778]: ReplacementCodeuiColor4ubVertex3fvSUN (dynamic) */
+   /* _mesa_function_pool[42813]: ReplacementCodeuiColor4ubVertex3fvSUN (dynamic) */
    "ppp\0"
    "glReplacementCodeuiColor4ubVertex3fvSUN\0"
    "\0"
-   /* _mesa_function_pool[42823]: ReplacementCodeuiColor3fVertex3fSUN (dynamic) */
+   /* _mesa_function_pool[42858]: ReplacementCodeuiColor3fVertex3fSUN (dynamic) */
    "iffffff\0"
    "glReplacementCodeuiColor3fVertex3fSUN\0"
    "\0"
-   /* _mesa_function_pool[42870]: ReplacementCodeuiColor3fVertex3fvSUN (dynamic) */
+   /* _mesa_function_pool[42905]: ReplacementCodeuiColor3fVertex3fvSUN (dynamic) */
    "ppp\0"
    "glReplacementCodeuiColor3fVertex3fvSUN\0"
    "\0"
-   /* _mesa_function_pool[42914]: ReplacementCodeuiNormal3fVertex3fSUN (dynamic) */
+   /* _mesa_function_pool[42949]: ReplacementCodeuiNormal3fVertex3fSUN (dynamic) */
    "iffffff\0"
    "glReplacementCodeuiNormal3fVertex3fSUN\0"
    "\0"
-   /* _mesa_function_pool[42962]: ReplacementCodeuiNormal3fVertex3fvSUN (dynamic) */
+   /* _mesa_function_pool[42997]: ReplacementCodeuiNormal3fVertex3fvSUN (dynamic) */
    "ppp\0"
    "glReplacementCodeuiNormal3fVertex3fvSUN\0"
    "\0"
-   /* _mesa_function_pool[43007]: ReplacementCodeuiColor4fNormal3fVertex3fSUN (dynamic) */
+   /* _mesa_function_pool[43042]: ReplacementCodeuiColor4fNormal3fVertex3fSUN (dynamic) */
    "iffffffffff\0"
    "glReplacementCodeuiColor4fNormal3fVertex3fSUN\0"
    "\0"
-   /* _mesa_function_pool[43066]: ReplacementCodeuiColor4fNormal3fVertex3fvSUN (dynamic) */
+   /* _mesa_function_pool[43101]: ReplacementCodeuiColor4fNormal3fVertex3fvSUN (dynamic) */
    "pppp\0"
    "glReplacementCodeuiColor4fNormal3fVertex3fvSUN\0"
    "\0"
-   /* _mesa_function_pool[43119]: ReplacementCodeuiTexCoord2fVertex3fSUN (dynamic) */
+   /* _mesa_function_pool[43154]: ReplacementCodeuiTexCoord2fVertex3fSUN (dynamic) */
    "ifffff\0"
    "glReplacementCodeuiTexCoord2fVertex3fSUN\0"
    "\0"
-   /* _mesa_function_pool[43168]: ReplacementCodeuiTexCoord2fVertex3fvSUN (dynamic) */
+   /* _mesa_function_pool[43203]: ReplacementCodeuiTexCoord2fVertex3fvSUN (dynamic) */
    "ppp\0"
    "glReplacementCodeuiTexCoord2fVertex3fvSUN\0"
    "\0"
-   /* _mesa_function_pool[43215]: ReplacementCodeuiTexCoord2fNormal3fVertex3fSUN (dynamic) */
+   /* _mesa_function_pool[43250]: ReplacementCodeuiTexCoord2fNormal3fVertex3fSUN (dynamic) */
    "iffffffff\0"
    "glReplacementCodeuiTexCoord2fNormal3fVertex3fSUN\0"
    "\0"
-   /* _mesa_function_pool[43275]: ReplacementCodeuiTexCoord2fNormal3fVertex3fvSUN (dynamic) */
+   /* _mesa_function_pool[43310]: ReplacementCodeuiTexCoord2fNormal3fVertex3fvSUN (dynamic) */
    "pppp\0"
    "glReplacementCodeuiTexCoord2fNormal3fVertex3fvSUN\0"
    "\0"
-   /* _mesa_function_pool[43331]: ReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fSUN (dynamic) */
+   /* _mesa_function_pool[43366]: ReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fSUN (dynamic) */
    "iffffffffffff\0"
    "glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fSUN\0"
    "\0"
-   /* _mesa_function_pool[43402]: ReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fvSUN (dynamic) */
+   /* _mesa_function_pool[43437]: ReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fvSUN (dynamic) */
    "ppppp\0"
    "glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fvSUN\0"
    "\0"
-   /* _mesa_function_pool[43466]: FramebufferSampleLocationsfvARB (will be remapped) */
+   /* _mesa_function_pool[43501]: FramebufferSampleLocationsfvARB (will be remapped) */
    "iiip\0"
    "glFramebufferSampleLocationsfvARB\0"
    "glFramebufferSampleLocationsfvNV\0"
    "\0"
-   /* _mesa_function_pool[43539]: NamedFramebufferSampleLocationsfvARB (will be remapped) */
+   /* _mesa_function_pool[43574]: NamedFramebufferSampleLocationsfvARB (will be remapped) */
    "iiip\0"
    "glNamedFramebufferSampleLocationsfvARB\0"
    "glNamedFramebufferSampleLocationsfvNV\0"
    "\0"
-   /* _mesa_function_pool[43622]: EvaluateDepthValuesARB (will be remapped) */
+   /* _mesa_function_pool[43657]: EvaluateDepthValuesARB (will be remapped) */
    "\0"
    "glEvaluateDepthValuesARB\0"
    "glResolveDepthValuesNV\0"
    "\0"
-   /* _mesa_function_pool[43672]: VertexWeightfEXT (dynamic) */
+   /* _mesa_function_pool[43707]: VertexWeightfEXT (dynamic) */
    "f\0"
    "glVertexWeightfEXT\0"
    "\0"
-   /* _mesa_function_pool[43694]: VertexWeightfvEXT (dynamic) */
+   /* _mesa_function_pool[43729]: VertexWeightfvEXT (dynamic) */
    "p\0"
    "glVertexWeightfvEXT\0"
    "\0"
-   /* _mesa_function_pool[43717]: VertexWeightPointerEXT (dynamic) */
+   /* _mesa_function_pool[43752]: VertexWeightPointerEXT (dynamic) */
    "iiip\0"
    "glVertexWeightPointerEXT\0"
    "\0"
-   /* _mesa_function_pool[43748]: FlushVertexArrayRangeNV (dynamic) */
+   /* _mesa_function_pool[43783]: FlushVertexArrayRangeNV (dynamic) */
    "\0"
    "glFlushVertexArrayRangeNV\0"
    "\0"
-   /* _mesa_function_pool[43776]: VertexArrayRangeNV (dynamic) */
+   /* _mesa_function_pool[43811]: VertexArrayRangeNV (dynamic) */
    "ip\0"
    "glVertexArrayRangeNV\0"
    "\0"
-   /* _mesa_function_pool[43801]: CombinerParameterfvNV (dynamic) */
+   /* _mesa_function_pool[43836]: CombinerParameterfvNV (dynamic) */
    "ip\0"
    "glCombinerParameterfvNV\0"
    "\0"
-   /* _mesa_function_pool[43829]: CombinerParameterfNV (dynamic) */
+   /* _mesa_function_pool[43864]: CombinerParameterfNV (dynamic) */
    "if\0"
    "glCombinerParameterfNV\0"
    "\0"
-   /* _mesa_function_pool[43856]: CombinerParameterivNV (dynamic) */
+   /* _mesa_function_pool[43891]: CombinerParameterivNV (dynamic) */
    "ip\0"
    "glCombinerParameterivNV\0"
    "\0"
-   /* _mesa_function_pool[43884]: CombinerParameteriNV (dynamic) */
+   /* _mesa_function_pool[43919]: CombinerParameteriNV (dynamic) */
    "ii\0"
    "glCombinerParameteriNV\0"
    "\0"
-   /* _mesa_function_pool[43911]: CombinerInputNV (dynamic) */
+   /* _mesa_function_pool[43946]: CombinerInputNV (dynamic) */
    "iiiiii\0"
    "glCombinerInputNV\0"
    "\0"
-   /* _mesa_function_pool[43937]: CombinerOutputNV (dynamic) */
+   /* _mesa_function_pool[43972]: CombinerOutputNV (dynamic) */
    "iiiiiiiiii\0"
    "glCombinerOutputNV\0"
    "\0"
-   /* _mesa_function_pool[43968]: FinalCombinerInputNV (dynamic) */
+   /* _mesa_function_pool[44003]: FinalCombinerInputNV (dynamic) */
    "iiii\0"
    "glFinalCombinerInputNV\0"
    "\0"
-   /* _mesa_function_pool[43997]: GetCombinerInputParameterfvNV (dynamic) */
+   /* _mesa_function_pool[44032]: GetCombinerInputParameterfvNV (dynamic) */
    "iiiip\0"
    "glGetCombinerInputParameterfvNV\0"
    "\0"
-   /* _mesa_function_pool[44036]: GetCombinerInputParameterivNV (dynamic) */
+   /* _mesa_function_pool[44071]: GetCombinerInputParameterivNV (dynamic) */
    "iiiip\0"
    "glGetCombinerInputParameterivNV\0"
    "\0"
-   /* _mesa_function_pool[44075]: GetCombinerOutputParameterfvNV (dynamic) */
+   /* _mesa_function_pool[44110]: GetCombinerOutputParameterfvNV (dynamic) */
    "iiip\0"
    "glGetCombinerOutputParameterfvNV\0"
    "\0"
-   /* _mesa_function_pool[44114]: GetCombinerOutputParameterivNV (dynamic) */
+   /* _mesa_function_pool[44149]: GetCombinerOutputParameterivNV (dynamic) */
    "iiip\0"
    "glGetCombinerOutputParameterivNV\0"
    "\0"
-   /* _mesa_function_pool[44153]: GetFinalCombinerInputParameterfvNV (dynamic) */
+   /* _mesa_function_pool[44188]: GetFinalCombinerInputParameterfvNV (dynamic) */
    "iip\0"
    "glGetFinalCombinerInputParameterfvNV\0"
    "\0"
-   /* _mesa_function_pool[44195]: GetFinalCombinerInputParameterivNV (dynamic) */
+   /* _mesa_function_pool[44230]: GetFinalCombinerInputParameterivNV (dynamic) */
    "iip\0"
    "glGetFinalCombinerInputParameterivNV\0"
    "\0"
-   /* _mesa_function_pool[44237]: ResizeBuffersMESA (will be remapped) */
+   /* _mesa_function_pool[44272]: ResizeBuffersMESA (will be remapped) */
    "\0"
    "glResizeBuffersMESA\0"
    "\0"
-   /* _mesa_function_pool[44259]: WindowPos4dMESA (will be remapped) */
+   /* _mesa_function_pool[44294]: WindowPos4dMESA (will be remapped) */
    "dddd\0"
    "glWindowPos4dMESA\0"
    "\0"
-   /* _mesa_function_pool[44283]: WindowPos4dvMESA (will be remapped) */
+   /* _mesa_function_pool[44318]: WindowPos4dvMESA (will be remapped) */
    "p\0"
    "glWindowPos4dvMESA\0"
    "\0"
-   /* _mesa_function_pool[44305]: WindowPos4fMESA (will be remapped) */
+   /* _mesa_function_pool[44340]: WindowPos4fMESA (will be remapped) */
    "ffff\0"
    "glWindowPos4fMESA\0"
    "\0"
-   /* _mesa_function_pool[44329]: WindowPos4fvMESA (will be remapped) */
+   /* _mesa_function_pool[44364]: WindowPos4fvMESA (will be remapped) */
    "p\0"
    "glWindowPos4fvMESA\0"
    "\0"
-   /* _mesa_function_pool[44351]: WindowPos4iMESA (will be remapped) */
+   /* _mesa_function_pool[44386]: WindowPos4iMESA (will be remapped) */
    "iiii\0"
    "glWindowPos4iMESA\0"
    "\0"
-   /* _mesa_function_pool[44375]: WindowPos4ivMESA (will be remapped) */
+   /* _mesa_function_pool[44410]: WindowPos4ivMESA (will be remapped) */
    "p\0"
    "glWindowPos4ivMESA\0"
    "\0"
-   /* _mesa_function_pool[44397]: WindowPos4sMESA (will be remapped) */
+   /* _mesa_function_pool[44432]: WindowPos4sMESA (will be remapped) */
    "iiii\0"
    "glWindowPos4sMESA\0"
    "\0"
-   /* _mesa_function_pool[44421]: WindowPos4svMESA (will be remapped) */
+   /* _mesa_function_pool[44456]: WindowPos4svMESA (will be remapped) */
    "p\0"
    "glWindowPos4svMESA\0"
    "\0"
-   /* _mesa_function_pool[44443]: MultiModeDrawArraysIBM (will be remapped) */
+   /* _mesa_function_pool[44478]: MultiModeDrawArraysIBM (will be remapped) */
    "pppii\0"
    "glMultiModeDrawArraysIBM\0"
    "\0"
-   /* _mesa_function_pool[44475]: MultiModeDrawElementsIBM (will be remapped) */
+   /* _mesa_function_pool[44510]: MultiModeDrawElementsIBM (will be remapped) */
    "ppipii\0"
    "glMultiModeDrawElementsIBM\0"
    "\0"
-   /* _mesa_function_pool[44510]: ColorPointerListIBM (dynamic) */
+   /* _mesa_function_pool[44545]: ColorPointerListIBM (dynamic) */
    "iiipi\0"
    "glColorPointerListIBM\0"
    "\0"
-   /* _mesa_function_pool[44539]: SecondaryColorPointerListIBM (dynamic) */
+   /* _mesa_function_pool[44574]: SecondaryColorPointerListIBM (dynamic) */
    "iiipi\0"
    "glSecondaryColorPointerListIBM\0"
    "\0"
-   /* _mesa_function_pool[44577]: EdgeFlagPointerListIBM (dynamic) */
+   /* _mesa_function_pool[44612]: EdgeFlagPointerListIBM (dynamic) */
    "ipi\0"
    "glEdgeFlagPointerListIBM\0"
    "\0"
-   /* _mesa_function_pool[44607]: FogCoordPointerListIBM (dynamic) */
+   /* _mesa_function_pool[44642]: FogCoordPointerListIBM (dynamic) */
    "iipi\0"
    "glFogCoordPointerListIBM\0"
    "\0"
-   /* _mesa_function_pool[44638]: IndexPointerListIBM (dynamic) */
+   /* _mesa_function_pool[44673]: IndexPointerListIBM (dynamic) */
    "iipi\0"
    "glIndexPointerListIBM\0"
    "\0"
-   /* _mesa_function_pool[44666]: NormalPointerListIBM (dynamic) */
+   /* _mesa_function_pool[44701]: NormalPointerListIBM (dynamic) */
    "iipi\0"
    "glNormalPointerListIBM\0"
    "\0"
-   /* _mesa_function_pool[44695]: TexCoordPointerListIBM (dynamic) */
+   /* _mesa_function_pool[44730]: TexCoordPointerListIBM (dynamic) */
    "iiipi\0"
    "glTexCoordPointerListIBM\0"
    "\0"
-   /* _mesa_function_pool[44727]: VertexPointerListIBM (dynamic) */
+   /* _mesa_function_pool[44762]: VertexPointerListIBM (dynamic) */
    "iiipi\0"
    "glVertexPointerListIBM\0"
    "\0"
-   /* _mesa_function_pool[44757]: TbufferMask3DFX (dynamic) */
+   /* _mesa_function_pool[44792]: TbufferMask3DFX (dynamic) */
    "i\0"
    "glTbufferMask3DFX\0"
    "\0"
-   /* _mesa_function_pool[44778]: TextureColorMaskSGIS (dynamic) */
+   /* _mesa_function_pool[44813]: TextureColorMaskSGIS (dynamic) */
    "iiii\0"
    "glTextureColorMaskSGIS\0"
    "\0"
-   /* _mesa_function_pool[44807]: DeleteFencesNV (dynamic) */
+   /* _mesa_function_pool[44842]: DeleteFencesNV (dynamic) */
    "ip\0"
    "glDeleteFencesNV\0"
    "\0"
-   /* _mesa_function_pool[44828]: GenFencesNV (dynamic) */
+   /* _mesa_function_pool[44863]: GenFencesNV (dynamic) */
    "ip\0"
    "glGenFencesNV\0"
    "\0"
-   /* _mesa_function_pool[44846]: IsFenceNV (dynamic) */
+   /* _mesa_function_pool[44881]: IsFenceNV (dynamic) */
    "i\0"
    "glIsFenceNV\0"
    "\0"
-   /* _mesa_function_pool[44861]: TestFenceNV (dynamic) */
+   /* _mesa_function_pool[44896]: TestFenceNV (dynamic) */
    "i\0"
    "glTestFenceNV\0"
    "\0"
-   /* _mesa_function_pool[44878]: GetFenceivNV (dynamic) */
+   /* _mesa_function_pool[44913]: GetFenceivNV (dynamic) */
    "iip\0"
    "glGetFenceivNV\0"
    "\0"
-   /* _mesa_function_pool[44898]: FinishFenceNV (dynamic) */
+   /* _mesa_function_pool[44933]: FinishFenceNV (dynamic) */
    "i\0"
    "glFinishFenceNV\0"
    "\0"
-   /* _mesa_function_pool[44917]: SetFenceNV (dynamic) */
+   /* _mesa_function_pool[44952]: SetFenceNV (dynamic) */
    "ii\0"
    "glSetFenceNV\0"
    "\0"
-   /* _mesa_function_pool[44934]: MapControlPointsNV (dynamic) */
+   /* _mesa_function_pool[44969]: MapControlPointsNV (dynamic) */
    "iiiiiiiip\0"
    "glMapControlPointsNV\0"
    "\0"
-   /* _mesa_function_pool[44966]: MapParameterivNV (dynamic) */
+   /* _mesa_function_pool[45001]: MapParameterivNV (dynamic) */
    "iip\0"
    "glMapParameterivNV\0"
    "\0"
-   /* _mesa_function_pool[44990]: MapParameterfvNV (dynamic) */
+   /* _mesa_function_pool[45025]: MapParameterfvNV (dynamic) */
    "iip\0"
    "glMapParameterfvNV\0"
    "\0"
-   /* _mesa_function_pool[45014]: GetMapControlPointsNV (dynamic) */
+   /* _mesa_function_pool[45049]: GetMapControlPointsNV (dynamic) */
    "iiiiiip\0"
    "glGetMapControlPointsNV\0"
    "\0"
-   /* _mesa_function_pool[45047]: GetMapParameterivNV (dynamic) */
+   /* _mesa_function_pool[45082]: GetMapParameterivNV (dynamic) */
    "iip\0"
    "glGetMapParameterivNV\0"
    "\0"
-   /* _mesa_function_pool[45074]: GetMapParameterfvNV (dynamic) */
+   /* _mesa_function_pool[45109]: GetMapParameterfvNV (dynamic) */
    "iip\0"
    "glGetMapParameterfvNV\0"
    "\0"
-   /* _mesa_function_pool[45101]: GetMapAttribParameterivNV (dynamic) */
+   /* _mesa_function_pool[45136]: GetMapAttribParameterivNV (dynamic) */
    "iiip\0"
    "glGetMapAttribParameterivNV\0"
    "\0"
-   /* _mesa_function_pool[45135]: GetMapAttribParameterfvNV (dynamic) */
+   /* _mesa_function_pool[45170]: GetMapAttribParameterfvNV (dynamic) */
    "iiip\0"
    "glGetMapAttribParameterfvNV\0"
    "\0"
-   /* _mesa_function_pool[45169]: EvalMapsNV (dynamic) */
+   /* _mesa_function_pool[45204]: EvalMapsNV (dynamic) */
    "ii\0"
    "glEvalMapsNV\0"
    "\0"
-   /* _mesa_function_pool[45186]: CombinerStageParameterfvNV (dynamic) */
+   /* _mesa_function_pool[45221]: CombinerStageParameterfvNV (dynamic) */
    "iip\0"
    "glCombinerStageParameterfvNV\0"
    "\0"
-   /* _mesa_function_pool[45220]: GetCombinerStageParameterfvNV (dynamic) */
+   /* _mesa_function_pool[45255]: GetCombinerStageParameterfvNV (dynamic) */
    "iip\0"
    "glGetCombinerStageParameterfvNV\0"
    "\0"
-   /* _mesa_function_pool[45257]: AreProgramsResidentNV (will be remapped) */
+   /* _mesa_function_pool[45292]: AreProgramsResidentNV (will be remapped) */
    "ipp\0"
    "glAreProgramsResidentNV\0"
    "\0"
-   /* _mesa_function_pool[45286]: ExecuteProgramNV (will be remapped) */
+   /* _mesa_function_pool[45321]: ExecuteProgramNV (will be remapped) */
    "iip\0"
    "glExecuteProgramNV\0"
    "\0"
-   /* _mesa_function_pool[45310]: GetProgramParameterdvNV (will be remapped) */
+   /* _mesa_function_pool[45345]: GetProgramParameterdvNV (will be remapped) */
    "iiip\0"
    "glGetProgramParameterdvNV\0"
    "\0"
-   /* _mesa_function_pool[45342]: GetProgramParameterfvNV (will be remapped) */
+   /* _mesa_function_pool[45377]: GetProgramParameterfvNV (will be remapped) */
    "iiip\0"
    "glGetProgramParameterfvNV\0"
    "\0"
-   /* _mesa_function_pool[45374]: GetProgramivNV (will be remapped) */
+   /* _mesa_function_pool[45409]: GetProgramivNV (will be remapped) */
    "iip\0"
    "glGetProgramivNV\0"
    "\0"
-   /* _mesa_function_pool[45396]: GetProgramStringNV (will be remapped) */
+   /* _mesa_function_pool[45431]: GetProgramStringNV (will be remapped) */
    "iip\0"
    "glGetProgramStringNV\0"
    "\0"
-   /* _mesa_function_pool[45422]: GetTrackMatrixivNV (will be remapped) */
+   /* _mesa_function_pool[45457]: GetTrackMatrixivNV (will be remapped) */
    "iiip\0"
    "glGetTrackMatrixivNV\0"
    "\0"
-   /* _mesa_function_pool[45449]: GetVertexAttribdvNV (will be remapped) */
+   /* _mesa_function_pool[45484]: GetVertexAttribdvNV (will be remapped) */
    "iip\0"
    "glGetVertexAttribdvNV\0"
    "\0"
-   /* _mesa_function_pool[45476]: GetVertexAttribfvNV (will be remapped) */
+   /* _mesa_function_pool[45511]: GetVertexAttribfvNV (will be remapped) */
    "iip\0"
    "glGetVertexAttribfvNV\0"
    "\0"
-   /* _mesa_function_pool[45503]: GetVertexAttribivNV (will be remapped) */
+   /* _mesa_function_pool[45538]: GetVertexAttribivNV (will be remapped) */
    "iip\0"
    "glGetVertexAttribivNV\0"
    "\0"
-   /* _mesa_function_pool[45530]: LoadProgramNV (will be remapped) */
+   /* _mesa_function_pool[45565]: LoadProgramNV (will be remapped) */
    "iiip\0"
    "glLoadProgramNV\0"
    "\0"
-   /* _mesa_function_pool[45552]: ProgramParameters4dvNV (will be remapped) */
+   /* _mesa_function_pool[45587]: ProgramParameters4dvNV (will be remapped) */
    "iiip\0"
    "glProgramParameters4dvNV\0"
    "\0"
-   /* _mesa_function_pool[45583]: ProgramParameters4fvNV (will be remapped) */
+   /* _mesa_function_pool[45618]: ProgramParameters4fvNV (will be remapped) */
    "iiip\0"
    "glProgramParameters4fvNV\0"
    "\0"
-   /* _mesa_function_pool[45614]: RequestResidentProgramsNV (will be remapped) */
+   /* _mesa_function_pool[45649]: RequestResidentProgramsNV (will be remapped) */
    "ip\0"
    "glRequestResidentProgramsNV\0"
    "\0"
-   /* _mesa_function_pool[45646]: TrackMatrixNV (will be remapped) */
+   /* _mesa_function_pool[45681]: TrackMatrixNV (will be remapped) */
    "iiii\0"
    "glTrackMatrixNV\0"
    "\0"
-   /* _mesa_function_pool[45668]: VertexAttribPointerNV (will be remapped) */
+   /* _mesa_function_pool[45703]: VertexAttribPointerNV (will be remapped) */
    "iiiip\0"
    "glVertexAttribPointerNV\0"
    "\0"
-   /* _mesa_function_pool[45699]: VertexAttrib1sNV (will be remapped) */
+   /* _mesa_function_pool[45734]: VertexAttrib1sNV (will be remapped) */
    "ii\0"
    "glVertexAttrib1sNV\0"
    "\0"
-   /* _mesa_function_pool[45722]: VertexAttrib1svNV (will be remapped) */
+   /* _mesa_function_pool[45757]: VertexAttrib1svNV (will be remapped) */
    "ip\0"
    "glVertexAttrib1svNV\0"
    "\0"
-   /* _mesa_function_pool[45746]: VertexAttrib2sNV (will be remapped) */
+   /* _mesa_function_pool[45781]: VertexAttrib2sNV (will be remapped) */
    "iii\0"
    "glVertexAttrib2sNV\0"
    "\0"
-   /* _mesa_function_pool[45770]: VertexAttrib2svNV (will be remapped) */
+   /* _mesa_function_pool[45805]: VertexAttrib2svNV (will be remapped) */
    "ip\0"
    "glVertexAttrib2svNV\0"
    "\0"
-   /* _mesa_function_pool[45794]: VertexAttrib3sNV (will be remapped) */
+   /* _mesa_function_pool[45829]: VertexAttrib3sNV (will be remapped) */
    "iiii\0"
    "glVertexAttrib3sNV\0"
    "\0"
-   /* _mesa_function_pool[45819]: VertexAttrib3svNV (will be remapped) */
+   /* _mesa_function_pool[45854]: VertexAttrib3svNV (will be remapped) */
    "ip\0"
    "glVertexAttrib3svNV\0"
    "\0"
-   /* _mesa_function_pool[45843]: VertexAttrib4sNV (will be remapped) */
+   /* _mesa_function_pool[45878]: VertexAttrib4sNV (will be remapped) */
    "iiiii\0"
    "glVertexAttrib4sNV\0"
    "\0"
-   /* _mesa_function_pool[45869]: VertexAttrib4svNV (will be remapped) */
+   /* _mesa_function_pool[45904]: VertexAttrib4svNV (will be remapped) */
    "ip\0"
    "glVertexAttrib4svNV\0"
    "\0"
-   /* _mesa_function_pool[45893]: VertexAttrib1fNV (will be remapped) */
+   /* _mesa_function_pool[45928]: VertexAttrib1fNV (will be remapped) */
    "if\0"
    "glVertexAttrib1fNV\0"
    "\0"
-   /* _mesa_function_pool[45916]: VertexAttrib1fvNV (will be remapped) */
+   /* _mesa_function_pool[45951]: VertexAttrib1fvNV (will be remapped) */
    "ip\0"
    "glVertexAttrib1fvNV\0"
    "\0"
-   /* _mesa_function_pool[45940]: VertexAttrib2fNV (will be remapped) */
+   /* _mesa_function_pool[45975]: VertexAttrib2fNV (will be remapped) */
    "iff\0"
    "glVertexAttrib2fNV\0"
    "\0"
-   /* _mesa_function_pool[45964]: VertexAttrib2fvNV (will be remapped) */
+   /* _mesa_function_pool[45999]: VertexAttrib2fvNV (will be remapped) */
    "ip\0"
    "glVertexAttrib2fvNV\0"
    "\0"
-   /* _mesa_function_pool[45988]: VertexAttrib3fNV (will be remapped) */
+   /* _mesa_function_pool[46023]: VertexAttrib3fNV (will be remapped) */
    "ifff\0"
    "glVertexAttrib3fNV\0"
    "\0"
-   /* _mesa_function_pool[46013]: VertexAttrib3fvNV (will be remapped) */
+   /* _mesa_function_pool[46048]: VertexAttrib3fvNV (will be remapped) */
    "ip\0"
    "glVertexAttrib3fvNV\0"
    "\0"
-   /* _mesa_function_pool[46037]: VertexAttrib4fNV (will be remapped) */
+   /* _mesa_function_pool[46072]: VertexAttrib4fNV (will be remapped) */
    "iffff\0"
    "glVertexAttrib4fNV\0"
    "\0"
-   /* _mesa_function_pool[46063]: VertexAttrib4fvNV (will be remapped) */
+   /* _mesa_function_pool[46098]: VertexAttrib4fvNV (will be remapped) */
    "ip\0"
    "glVertexAttrib4fvNV\0"
    "\0"
-   /* _mesa_function_pool[46087]: VertexAttrib1dNV (will be remapped) */
+   /* _mesa_function_pool[46122]: VertexAttrib1dNV (will be remapped) */
    "id\0"
    "glVertexAttrib1dNV\0"
    "\0"
-   /* _mesa_function_pool[46110]: VertexAttrib1dvNV (will be remapped) */
+   /* _mesa_function_pool[46145]: VertexAttrib1dvNV (will be remapped) */
    "ip\0"
    "glVertexAttrib1dvNV\0"
    "\0"
-   /* _mesa_function_pool[46134]: VertexAttrib2dNV (will be remapped) */
+   /* _mesa_function_pool[46169]: VertexAttrib2dNV (will be remapped) */
    "idd\0"
    "glVertexAttrib2dNV\0"
    "\0"
-   /* _mesa_function_pool[46158]: VertexAttrib2dvNV (will be remapped) */
+   /* _mesa_function_pool[46193]: VertexAttrib2dvNV (will be remapped) */
    "ip\0"
    "glVertexAttrib2dvNV\0"
    "\0"
-   /* _mesa_function_pool[46182]: VertexAttrib3dNV (will be remapped) */
+   /* _mesa_function_pool[46217]: VertexAttrib3dNV (will be remapped) */
    "iddd\0"
    "glVertexAttrib3dNV\0"
    "\0"
-   /* _mesa_function_pool[46207]: VertexAttrib3dvNV (will be remapped) */
+   /* _mesa_function_pool[46242]: VertexAttrib3dvNV (will be remapped) */
    "ip\0"
    "glVertexAttrib3dvNV\0"
    "\0"
-   /* _mesa_function_pool[46231]: VertexAttrib4dNV (will be remapped) */
+   /* _mesa_function_pool[46266]: VertexAttrib4dNV (will be remapped) */
    "idddd\0"
    "glVertexAttrib4dNV\0"
    "\0"
-   /* _mesa_function_pool[46257]: VertexAttrib4dvNV (will be remapped) */
+   /* _mesa_function_pool[46292]: VertexAttrib4dvNV (will be remapped) */
    "ip\0"
    "glVertexAttrib4dvNV\0"
    "\0"
-   /* _mesa_function_pool[46281]: VertexAttrib4ubNV (will be remapped) */
+   /* _mesa_function_pool[46316]: VertexAttrib4ubNV (will be remapped) */
    "iiiii\0"
    "glVertexAttrib4ubNV\0"
    "\0"
-   /* _mesa_function_pool[46308]: VertexAttrib4ubvNV (will be remapped) */
+   /* _mesa_function_pool[46343]: VertexAttrib4ubvNV (will be remapped) */
    "ip\0"
    "glVertexAttrib4ubvNV\0"
    "\0"
-   /* _mesa_function_pool[46333]: VertexAttribs1svNV (will be remapped) */
+   /* _mesa_function_pool[46368]: VertexAttribs1svNV (will be remapped) */
    "iip\0"
    "glVertexAttribs1svNV\0"
    "\0"
-   /* _mesa_function_pool[46359]: VertexAttribs2svNV (will be remapped) */
+   /* _mesa_function_pool[46394]: VertexAttribs2svNV (will be remapped) */
    "iip\0"
    "glVertexAttribs2svNV\0"
    "\0"
-   /* _mesa_function_pool[46385]: VertexAttribs3svNV (will be remapped) */
+   /* _mesa_function_pool[46420]: VertexAttribs3svNV (will be remapped) */
    "iip\0"
    "glVertexAttribs3svNV\0"
    "\0"
-   /* _mesa_function_pool[46411]: VertexAttribs4svNV (will be remapped) */
+   /* _mesa_function_pool[46446]: VertexAttribs4svNV (will be remapped) */
    "iip\0"
    "glVertexAttribs4svNV\0"
    "\0"
-   /* _mesa_function_pool[46437]: VertexAttribs1fvNV (will be remapped) */
+   /* _mesa_function_pool[46472]: VertexAttribs1fvNV (will be remapped) */
    "iip\0"
    "glVertexAttribs1fvNV\0"
    "\0"
-   /* _mesa_function_pool[46463]: VertexAttribs2fvNV (will be remapped) */
+   /* _mesa_function_pool[46498]: VertexAttribs2fvNV (will be remapped) */
    "iip\0"
    "glVertexAttribs2fvNV\0"
    "\0"
-   /* _mesa_function_pool[46489]: VertexAttribs3fvNV (will be remapped) */
+   /* _mesa_function_pool[46524]: VertexAttribs3fvNV (will be remapped) */
    "iip\0"
    "glVertexAttribs3fvNV\0"
    "\0"
-   /* _mesa_function_pool[46515]: VertexAttribs4fvNV (will be remapped) */
+   /* _mesa_function_pool[46550]: VertexAttribs4fvNV (will be remapped) */
    "iip\0"
    "glVertexAttribs4fvNV\0"
    "\0"
-   /* _mesa_function_pool[46541]: VertexAttribs1dvNV (will be remapped) */
+   /* _mesa_function_pool[46576]: VertexAttribs1dvNV (will be remapped) */
    "iip\0"
    "glVertexAttribs1dvNV\0"
    "\0"
-   /* _mesa_function_pool[46567]: VertexAttribs2dvNV (will be remapped) */
+   /* _mesa_function_pool[46602]: VertexAttribs2dvNV (will be remapped) */
    "iip\0"
    "glVertexAttribs2dvNV\0"
    "\0"
-   /* _mesa_function_pool[46593]: VertexAttribs3dvNV (will be remapped) */
+   /* _mesa_function_pool[46628]: VertexAttribs3dvNV (will be remapped) */
    "iip\0"
    "glVertexAttribs3dvNV\0"
    "\0"
-   /* _mesa_function_pool[46619]: VertexAttribs4dvNV (will be remapped) */
+   /* _mesa_function_pool[46654]: VertexAttribs4dvNV (will be remapped) */
    "iip\0"
    "glVertexAttribs4dvNV\0"
    "\0"
-   /* _mesa_function_pool[46645]: VertexAttribs4ubvNV (will be remapped) */
+   /* _mesa_function_pool[46680]: VertexAttribs4ubvNV (will be remapped) */
    "iip\0"
    "glVertexAttribs4ubvNV\0"
    "\0"
-   /* _mesa_function_pool[46672]: TexBumpParameterfvATI (will be remapped) */
+   /* _mesa_function_pool[46707]: TexBumpParameterfvATI (will be remapped) */
    "ip\0"
    "glTexBumpParameterfvATI\0"
    "\0"
-   /* _mesa_function_pool[46700]: TexBumpParameterivATI (will be remapped) */
+   /* _mesa_function_pool[46735]: TexBumpParameterivATI (will be remapped) */
    "ip\0"
    "glTexBumpParameterivATI\0"
    "\0"
-   /* _mesa_function_pool[46728]: GetTexBumpParameterfvATI (will be remapped) */
+   /* _mesa_function_pool[46763]: GetTexBumpParameterfvATI (will be remapped) */
    "ip\0"
    "glGetTexBumpParameterfvATI\0"
    "\0"
-   /* _mesa_function_pool[46759]: GetTexBumpParameterivATI (will be remapped) */
+   /* _mesa_function_pool[46794]: GetTexBumpParameterivATI (will be remapped) */
    "ip\0"
    "glGetTexBumpParameterivATI\0"
    "\0"
-   /* _mesa_function_pool[46790]: GenFragmentShadersATI (will be remapped) */
+   /* _mesa_function_pool[46825]: GenFragmentShadersATI (will be remapped) */
    "i\0"
    "glGenFragmentShadersATI\0"
    "\0"
-   /* _mesa_function_pool[46817]: BindFragmentShaderATI (will be remapped) */
+   /* _mesa_function_pool[46852]: BindFragmentShaderATI (will be remapped) */
    "i\0"
    "glBindFragmentShaderATI\0"
    "\0"
-   /* _mesa_function_pool[46844]: DeleteFragmentShaderATI (will be remapped) */
+   /* _mesa_function_pool[46879]: DeleteFragmentShaderATI (will be remapped) */
    "i\0"
    "glDeleteFragmentShaderATI\0"
    "\0"
-   /* _mesa_function_pool[46873]: BeginFragmentShaderATI (will be remapped) */
+   /* _mesa_function_pool[46908]: BeginFragmentShaderATI (will be remapped) */
    "\0"
    "glBeginFragmentShaderATI\0"
    "\0"
-   /* _mesa_function_pool[46900]: EndFragmentShaderATI (will be remapped) */
+   /* _mesa_function_pool[46935]: EndFragmentShaderATI (will be remapped) */
    "\0"
    "glEndFragmentShaderATI\0"
    "\0"
-   /* _mesa_function_pool[46925]: PassTexCoordATI (will be remapped) */
+   /* _mesa_function_pool[46960]: PassTexCoordATI (will be remapped) */
    "iii\0"
    "glPassTexCoordATI\0"
    "\0"
-   /* _mesa_function_pool[46948]: SampleMapATI (will be remapped) */
+   /* _mesa_function_pool[46983]: SampleMapATI (will be remapped) */
    "iii\0"
    "glSampleMapATI\0"
    "\0"
-   /* _mesa_function_pool[46968]: ColorFragmentOp1ATI (will be remapped) */
+   /* _mesa_function_pool[47003]: ColorFragmentOp1ATI (will be remapped) */
    "iiiiiii\0"
    "glColorFragmentOp1ATI\0"
    "\0"
-   /* _mesa_function_pool[46999]: ColorFragmentOp2ATI (will be remapped) */
+   /* _mesa_function_pool[47034]: ColorFragmentOp2ATI (will be remapped) */
    "iiiiiiiiii\0"
    "glColorFragmentOp2ATI\0"
    "\0"
-   /* _mesa_function_pool[47033]: ColorFragmentOp3ATI (will be remapped) */
+   /* _mesa_function_pool[47068]: ColorFragmentOp3ATI (will be remapped) */
    "iiiiiiiiiiiii\0"
    "glColorFragmentOp3ATI\0"
    "\0"
-   /* _mesa_function_pool[47070]: AlphaFragmentOp1ATI (will be remapped) */
+   /* _mesa_function_pool[47105]: AlphaFragmentOp1ATI (will be remapped) */
    "iiiiii\0"
    "glAlphaFragmentOp1ATI\0"
    "\0"
-   /* _mesa_function_pool[47100]: AlphaFragmentOp2ATI (will be remapped) */
+   /* _mesa_function_pool[47135]: AlphaFragmentOp2ATI (will be remapped) */
    "iiiiiiiii\0"
    "glAlphaFragmentOp2ATI\0"
    "\0"
-   /* _mesa_function_pool[47133]: AlphaFragmentOp3ATI (will be remapped) */
+   /* _mesa_function_pool[47168]: AlphaFragmentOp3ATI (will be remapped) */
    "iiiiiiiiiiii\0"
    "glAlphaFragmentOp3ATI\0"
    "\0"
-   /* _mesa_function_pool[47169]: SetFragmentShaderConstantATI (will be remapped) */
+   /* _mesa_function_pool[47204]: SetFragmentShaderConstantATI (will be remapped) */
    "ip\0"
    "glSetFragmentShaderConstantATI\0"
    "\0"
-   /* _mesa_function_pool[47204]: DrawMeshArraysSUN (dynamic) */
+   /* _mesa_function_pool[47239]: DrawMeshArraysSUN (dynamic) */
    "iiii\0"
    "glDrawMeshArraysSUN\0"
    "\0"
-   /* _mesa_function_pool[47230]: ActiveStencilFaceEXT (will be remapped) */
+   /* _mesa_function_pool[47265]: ActiveStencilFaceEXT (will be remapped) */
    "i\0"
    "glActiveStencilFaceEXT\0"
    "\0"
-   /* _mesa_function_pool[47256]: ObjectPurgeableAPPLE (will be remapped) */
+   /* _mesa_function_pool[47291]: ObjectPurgeableAPPLE (will be remapped) */
    "iii\0"
    "glObjectPurgeableAPPLE\0"
    "\0"
-   /* _mesa_function_pool[47284]: ObjectUnpurgeableAPPLE (will be remapped) */
+   /* _mesa_function_pool[47319]: ObjectUnpurgeableAPPLE (will be remapped) */
    "iii\0"
    "glObjectUnpurgeableAPPLE\0"
    "\0"
-   /* _mesa_function_pool[47314]: GetObjectParameterivAPPLE (will be remapped) */
+   /* _mesa_function_pool[47349]: GetObjectParameterivAPPLE (will be remapped) */
    "iiip\0"
    "glGetObjectParameterivAPPLE\0"
    "\0"
-   /* _mesa_function_pool[47348]: BindVertexArrayAPPLE (dynamic) */
+   /* _mesa_function_pool[47383]: BindVertexArrayAPPLE (dynamic) */
    "i\0"
    "glBindVertexArrayAPPLE\0"
    "\0"
-   /* _mesa_function_pool[47374]: DeleteVertexArraysAPPLE (dynamic) */
+   /* _mesa_function_pool[47409]: DeleteVertexArraysAPPLE (dynamic) */
    "ip\0"
    "glDeleteVertexArraysAPPLE\0"
    "\0"
-   /* _mesa_function_pool[47404]: GenVertexArraysAPPLE (dynamic) */
+   /* _mesa_function_pool[47439]: GenVertexArraysAPPLE (dynamic) */
    "ip\0"
    "glGenVertexArraysAPPLE\0"
    "\0"
-   /* _mesa_function_pool[47431]: IsVertexArrayAPPLE (dynamic) */
+   /* _mesa_function_pool[47466]: IsVertexArrayAPPLE (dynamic) */
    "i\0"
    "glIsVertexArrayAPPLE\0"
    "\0"
-   /* _mesa_function_pool[47455]: ProgramNamedParameter4fNV (will be remapped) */
+   /* _mesa_function_pool[47490]: ProgramNamedParameter4fNV (will be remapped) */
    "iipffff\0"
    "glProgramNamedParameter4fNV\0"
    "\0"
-   /* _mesa_function_pool[47492]: ProgramNamedParameter4dNV (will be remapped) */
+   /* _mesa_function_pool[47527]: ProgramNamedParameter4dNV (will be remapped) */
    "iipdddd\0"
    "glProgramNamedParameter4dNV\0"
    "\0"
-   /* _mesa_function_pool[47529]: ProgramNamedParameter4fvNV (will be remapped) */
+   /* _mesa_function_pool[47564]: ProgramNamedParameter4fvNV (will be remapped) */
    "iipp\0"
    "glProgramNamedParameter4fvNV\0"
    "\0"
-   /* _mesa_function_pool[47564]: ProgramNamedParameter4dvNV (will be remapped) */
+   /* _mesa_function_pool[47599]: ProgramNamedParameter4dvNV (will be remapped) */
    "iipp\0"
    "glProgramNamedParameter4dvNV\0"
    "\0"
-   /* _mesa_function_pool[47599]: GetProgramNamedParameterfvNV (will be remapped) */
+   /* _mesa_function_pool[47634]: GetProgramNamedParameterfvNV (will be remapped) */
    "iipp\0"
    "glGetProgramNamedParameterfvNV\0"
    "\0"
-   /* _mesa_function_pool[47636]: GetProgramNamedParameterdvNV (will be remapped) */
+   /* _mesa_function_pool[47671]: GetProgramNamedParameterdvNV (will be remapped) */
    "iipp\0"
    "glGetProgramNamedParameterdvNV\0"
    "\0"
-   /* _mesa_function_pool[47673]: DepthBoundsEXT (will be remapped) */
+   /* _mesa_function_pool[47708]: DepthBoundsEXT (will be remapped) */
    "dd\0"
    "glDepthBoundsEXT\0"
    "\0"
-   /* _mesa_function_pool[47694]: BindRenderbufferEXT (will be remapped) */
+   /* _mesa_function_pool[47729]: BindRenderbufferEXT (will be remapped) */
    "ii\0"
    "glBindRenderbufferEXT\0"
    "\0"
-   /* _mesa_function_pool[47720]: BindFramebufferEXT (will be remapped) */
+   /* _mesa_function_pool[47755]: BindFramebufferEXT (will be remapped) */
    "ii\0"
    "glBindFramebufferEXT\0"
    "\0"
-   /* _mesa_function_pool[47745]: StringMarkerGREMEDY (will be remapped) */
+   /* _mesa_function_pool[47780]: StringMarkerGREMEDY (will be remapped) */
    "ip\0"
    "glStringMarkerGREMEDY\0"
    "\0"
-   /* _mesa_function_pool[47771]: ProvokingVertex (will be remapped) */
+   /* _mesa_function_pool[47806]: ProvokingVertex (will be remapped) */
    "i\0"
    "glProvokingVertexEXT\0"
    "glProvokingVertex\0"
    "\0"
-   /* _mesa_function_pool[47813]: ColorMaski (will be remapped) */
+   /* _mesa_function_pool[47848]: ColorMaski (will be remapped) */
    "iiiii\0"
    "glColorMaskIndexedEXT\0"
    "glColorMaski\0"
    "glColorMaskiEXT\0"
    "glColorMaskiOES\0"
    "\0"
-   /* _mesa_function_pool[47887]: GetBooleani_v (will be remapped) */
+   /* _mesa_function_pool[47922]: GetBooleani_v (will be remapped) */
    "iip\0"
    "glGetBooleanIndexedvEXT\0"
    "glGetBooleani_v\0"
    "\0"
-   /* _mesa_function_pool[47932]: GetIntegeri_v (will be remapped) */
+   /* _mesa_function_pool[47967]: GetIntegeri_v (will be remapped) */
    "iip\0"
    "glGetIntegerIndexedvEXT\0"
    "glGetIntegeri_v\0"
    "\0"
-   /* _mesa_function_pool[47977]: Enablei (will be remapped) */
+   /* _mesa_function_pool[48012]: Enablei (will be remapped) */
    "ii\0"
    "glEnableIndexedEXT\0"
    "glEnablei\0"
    "glEnableiEXT\0"
    "glEnableiOES\0"
    "\0"
-   /* _mesa_function_pool[48036]: Disablei (will be remapped) */
+   /* _mesa_function_pool[48071]: Disablei (will be remapped) */
    "ii\0"
    "glDisableIndexedEXT\0"
    "glDisablei\0"
    "glDisableiEXT\0"
    "glDisableiOES\0"
    "\0"
-   /* _mesa_function_pool[48099]: IsEnabledi (will be remapped) */
+   /* _mesa_function_pool[48134]: IsEnabledi (will be remapped) */
    "ii\0"
    "glIsEnabledIndexedEXT\0"
    "glIsEnabledi\0"
    "glIsEnablediEXT\0"
    "glIsEnablediOES\0"
    "\0"
-   /* _mesa_function_pool[48170]: BufferParameteriAPPLE (will be remapped) */
+   /* _mesa_function_pool[48205]: BufferParameteriAPPLE (will be remapped) */
    "iii\0"
    "glBufferParameteriAPPLE\0"
    "\0"
-   /* _mesa_function_pool[48199]: FlushMappedBufferRangeAPPLE (will be remapped) */
+   /* _mesa_function_pool[48234]: FlushMappedBufferRangeAPPLE (will be remapped) */
    "iii\0"
    "glFlushMappedBufferRangeAPPLE\0"
    "\0"
-   /* _mesa_function_pool[48234]: GetPerfMonitorGroupsAMD (will be remapped) */
+   /* _mesa_function_pool[48269]: GetPerfMonitorGroupsAMD (will be remapped) */
    "pip\0"
    "glGetPerfMonitorGroupsAMD\0"
    "\0"
-   /* _mesa_function_pool[48265]: GetPerfMonitorCountersAMD (will be remapped) */
+   /* _mesa_function_pool[48300]: GetPerfMonitorCountersAMD (will be remapped) */
    "ippip\0"
    "glGetPerfMonitorCountersAMD\0"
    "\0"
-   /* _mesa_function_pool[48300]: GetPerfMonitorGroupStringAMD (will be remapped) */
+   /* _mesa_function_pool[48335]: GetPerfMonitorGroupStringAMD (will be remapped) */
    "iipp\0"
    "glGetPerfMonitorGroupStringAMD\0"
    "\0"
-   /* _mesa_function_pool[48337]: GetPerfMonitorCounterStringAMD (will be remapped) */
+   /* _mesa_function_pool[48372]: GetPerfMonitorCounterStringAMD (will be remapped) */
    "iiipp\0"
    "glGetPerfMonitorCounterStringAMD\0"
    "\0"
-   /* _mesa_function_pool[48377]: GetPerfMonitorCounterInfoAMD (will be remapped) */
+   /* _mesa_function_pool[48412]: GetPerfMonitorCounterInfoAMD (will be remapped) */
    "iiip\0"
    "glGetPerfMonitorCounterInfoAMD\0"
    "\0"
-   /* _mesa_function_pool[48414]: GenPerfMonitorsAMD (will be remapped) */
+   /* _mesa_function_pool[48449]: GenPerfMonitorsAMD (will be remapped) */
    "ip\0"
    "glGenPerfMonitorsAMD\0"
    "\0"
-   /* _mesa_function_pool[48439]: DeletePerfMonitorsAMD (will be remapped) */
+   /* _mesa_function_pool[48474]: DeletePerfMonitorsAMD (will be remapped) */
    "ip\0"
    "glDeletePerfMonitorsAMD\0"
    "\0"
-   /* _mesa_function_pool[48467]: SelectPerfMonitorCountersAMD (will be remapped) */
+   /* _mesa_function_pool[48502]: SelectPerfMonitorCountersAMD (will be remapped) */
    "iiiip\0"
    "glSelectPerfMonitorCountersAMD\0"
    "\0"
-   /* _mesa_function_pool[48505]: BeginPerfMonitorAMD (will be remapped) */
+   /* _mesa_function_pool[48540]: BeginPerfMonitorAMD (will be remapped) */
    "i\0"
    "glBeginPerfMonitorAMD\0"
    "\0"
-   /* _mesa_function_pool[48530]: EndPerfMonitorAMD (will be remapped) */
+   /* _mesa_function_pool[48565]: EndPerfMonitorAMD (will be remapped) */
    "i\0"
    "glEndPerfMonitorAMD\0"
    "\0"
-   /* _mesa_function_pool[48553]: GetPerfMonitorCounterDataAMD (will be remapped) */
+   /* _mesa_function_pool[48588]: GetPerfMonitorCounterDataAMD (will be remapped) */
    "iiipp\0"
    "glGetPerfMonitorCounterDataAMD\0"
    "\0"
-   /* _mesa_function_pool[48591]: TextureRangeAPPLE (dynamic) */
+   /* _mesa_function_pool[48626]: TextureRangeAPPLE (dynamic) */
    "iip\0"
    "glTextureRangeAPPLE\0"
    "\0"
-   /* _mesa_function_pool[48616]: GetTexParameterPointervAPPLE (dynamic) */
+   /* _mesa_function_pool[48651]: GetTexParameterPointervAPPLE (dynamic) */
    "iip\0"
    "glGetTexParameterPointervAPPLE\0"
    "\0"
-   /* _mesa_function_pool[48652]: UseShaderProgramEXT (will be remapped) */
+   /* _mesa_function_pool[48687]: UseShaderProgramEXT (will be remapped) */
    "ii\0"
    "glUseShaderProgramEXT\0"
    "\0"
-   /* _mesa_function_pool[48678]: ActiveProgramEXT (will be remapped) */
+   /* _mesa_function_pool[48713]: ActiveProgramEXT (will be remapped) */
    "i\0"
    "glActiveProgramEXT\0"
    "\0"
-   /* _mesa_function_pool[48700]: CreateShaderProgramEXT (will be remapped) */
+   /* _mesa_function_pool[48735]: CreateShaderProgramEXT (will be remapped) */
    "ip\0"
    "glCreateShaderProgramEXT\0"
    "\0"
-   /* _mesa_function_pool[48729]: MatrixLoadfEXT (will be remapped) */
+   /* _mesa_function_pool[48764]: MatrixLoadfEXT (will be remapped) */
    "ip\0"
    "glMatrixLoadfEXT\0"
    "\0"
-   /* _mesa_function_pool[48750]: MatrixLoaddEXT (will be remapped) */
+   /* _mesa_function_pool[48785]: MatrixLoaddEXT (will be remapped) */
    "ip\0"
    "glMatrixLoaddEXT\0"
    "\0"
-   /* _mesa_function_pool[48771]: MatrixMultfEXT (will be remapped) */
+   /* _mesa_function_pool[48806]: MatrixMultfEXT (will be remapped) */
    "ip\0"
    "glMatrixMultfEXT\0"
    "\0"
-   /* _mesa_function_pool[48792]: MatrixMultdEXT (will be remapped) */
+   /* _mesa_function_pool[48827]: MatrixMultdEXT (will be remapped) */
    "ip\0"
    "glMatrixMultdEXT\0"
    "\0"
-   /* _mesa_function_pool[48813]: MatrixLoadIdentityEXT (will be remapped) */
+   /* _mesa_function_pool[48848]: MatrixLoadIdentityEXT (will be remapped) */
    "i\0"
    "glMatrixLoadIdentityEXT\0"
    "\0"
-   /* _mesa_function_pool[48840]: MatrixRotatefEXT (will be remapped) */
+   /* _mesa_function_pool[48875]: MatrixRotatefEXT (will be remapped) */
    "iffff\0"
    "glMatrixRotatefEXT\0"
    "\0"
-   /* _mesa_function_pool[48866]: MatrixRotatedEXT (will be remapped) */
+   /* _mesa_function_pool[48901]: MatrixRotatedEXT (will be remapped) */
    "idddd\0"
    "glMatrixRotatedEXT\0"
    "\0"
-   /* _mesa_function_pool[48892]: MatrixScalefEXT (will be remapped) */
+   /* _mesa_function_pool[48927]: MatrixScalefEXT (will be remapped) */
    "ifff\0"
    "glMatrixScalefEXT\0"
    "\0"
-   /* _mesa_function_pool[48916]: MatrixScaledEXT (will be remapped) */
+   /* _mesa_function_pool[48951]: MatrixScaledEXT (will be remapped) */
    "iddd\0"
    "glMatrixScaledEXT\0"
    "\0"
-   /* _mesa_function_pool[48940]: MatrixTranslatefEXT (will be remapped) */
+   /* _mesa_function_pool[48975]: MatrixTranslatefEXT (will be remapped) */
    "ifff\0"
    "glMatrixTranslatefEXT\0"
    "\0"
-   /* _mesa_function_pool[48968]: MatrixTranslatedEXT (will be remapped) */
+   /* _mesa_function_pool[49003]: MatrixTranslatedEXT (will be remapped) */
    "iddd\0"
    "glMatrixTranslatedEXT\0"
    "\0"
-   /* _mesa_function_pool[48996]: MatrixOrthoEXT (will be remapped) */
+   /* _mesa_function_pool[49031]: MatrixOrthoEXT (will be remapped) */
    "idddddd\0"
    "glMatrixOrthoEXT\0"
    "\0"
-   /* _mesa_function_pool[49022]: MatrixFrustumEXT (will be remapped) */
+   /* _mesa_function_pool[49057]: MatrixFrustumEXT (will be remapped) */
    "idddddd\0"
    "glMatrixFrustumEXT\0"
    "\0"
-   /* _mesa_function_pool[49050]: MatrixPushEXT (will be remapped) */
+   /* _mesa_function_pool[49085]: MatrixPushEXT (will be remapped) */
    "i\0"
    "glMatrixPushEXT\0"
    "\0"
-   /* _mesa_function_pool[49069]: MatrixPopEXT (will be remapped) */
+   /* _mesa_function_pool[49104]: MatrixPopEXT (will be remapped) */
    "i\0"
    "glMatrixPopEXT\0"
    "\0"
-   /* _mesa_function_pool[49087]: GetTextureParameterivEXT (will be remapped) */
+   /* _mesa_function_pool[49122]: ClientAttribDefaultEXT (will be remapped) */
+   "i\0"
+   "glClientAttribDefaultEXT\0"
+   "\0"
+   /* _mesa_function_pool[49150]: PushClientAttribDefaultEXT (will be remapped) */
+   "i\0"
+   "glPushClientAttribDefaultEXT\0"
+   "\0"
+   /* _mesa_function_pool[49182]: GetTextureParameterivEXT (will be remapped) */
    "iiip\0"
    "glGetTextureParameterivEXT\0"
    "\0"
-   /* _mesa_function_pool[49120]: GetTextureParameterfvEXT (will be remapped) */
+   /* _mesa_function_pool[49215]: GetTextureParameterfvEXT (will be remapped) */
    "iiip\0"
    "glGetTextureParameterfvEXT\0"
    "\0"
-   /* _mesa_function_pool[49153]: GetTextureLevelParameterivEXT (will be remapped) */
+   /* _mesa_function_pool[49248]: GetTextureLevelParameterivEXT (will be remapped) */
    "iiiip\0"
    "glGetTextureLevelParameterivEXT\0"
    "\0"
-   /* _mesa_function_pool[49192]: GetTextureLevelParameterfvEXT (will be remapped) */
+   /* _mesa_function_pool[49287]: GetTextureLevelParameterfvEXT (will be remapped) */
    "iiiip\0"
    "glGetTextureLevelParameterfvEXT\0"
    "\0"
-   /* _mesa_function_pool[49231]: TextureParameteriEXT (will be remapped) */
+   /* _mesa_function_pool[49326]: TextureParameteriEXT (will be remapped) */
    "iiii\0"
    "glTextureParameteriEXT\0"
    "\0"
-   /* _mesa_function_pool[49260]: TextureParameterivEXT (will be remapped) */
+   /* _mesa_function_pool[49355]: TextureParameterivEXT (will be remapped) */
    "iiip\0"
    "glTextureParameterivEXT\0"
    "\0"
-   /* _mesa_function_pool[49290]: TextureParameterfEXT (will be remapped) */
+   /* _mesa_function_pool[49385]: TextureParameterfEXT (will be remapped) */
    "iiif\0"
    "glTextureParameterfEXT\0"
    "\0"
-   /* _mesa_function_pool[49319]: TextureParameterfvEXT (will be remapped) */
+   /* _mesa_function_pool[49414]: TextureParameterfvEXT (will be remapped) */
    "iiip\0"
    "glTextureParameterfvEXT\0"
    "\0"
-   /* _mesa_function_pool[49349]: TextureImage1DEXT (will be remapped) */
+   /* _mesa_function_pool[49444]: TextureImage1DEXT (will be remapped) */
    "iiiiiiiip\0"
    "glTextureImage1DEXT\0"
    "\0"
-   /* _mesa_function_pool[49380]: TextureImage2DEXT (will be remapped) */
+   /* _mesa_function_pool[49475]: TextureImage2DEXT (will be remapped) */
    "iiiiiiiiip\0"
    "glTextureImage2DEXT\0"
    "\0"
-   /* _mesa_function_pool[49412]: TextureImage3DEXT (will be remapped) */
+   /* _mesa_function_pool[49507]: TextureImage3DEXT (will be remapped) */
    "iiiiiiiiiip\0"
    "glTextureImage3DEXT\0"
    "\0"
-   /* _mesa_function_pool[49445]: TextureSubImage1DEXT (will be remapped) */
+   /* _mesa_function_pool[49540]: TextureSubImage1DEXT (will be remapped) */
    "iiiiiiip\0"
    "glTextureSubImage1DEXT\0"
    "\0"
-   /* _mesa_function_pool[49478]: TextureSubImage2DEXT (will be remapped) */
+   /* _mesa_function_pool[49573]: TextureSubImage2DEXT (will be remapped) */
    "iiiiiiiiip\0"
    "glTextureSubImage2DEXT\0"
    "\0"
-   /* _mesa_function_pool[49513]: TextureSubImage3DEXT (will be remapped) */
+   /* _mesa_function_pool[49608]: TextureSubImage3DEXT (will be remapped) */
    "iiiiiiiiiiip\0"
    "glTextureSubImage3DEXT\0"
    "\0"
-   /* _mesa_function_pool[49550]: CopyTextureImage1DEXT (will be remapped) */
+   /* _mesa_function_pool[49645]: CopyTextureImage1DEXT (will be remapped) */
    "iiiiiiii\0"
    "glCopyTextureImage1DEXT\0"
    "\0"
-   /* _mesa_function_pool[49584]: CopyTextureImage2DEXT (will be remapped) */
+   /* _mesa_function_pool[49679]: CopyTextureImage2DEXT (will be remapped) */
    "iiiiiiiii\0"
    "glCopyTextureImage2DEXT\0"
    "\0"
-   /* _mesa_function_pool[49619]: CopyTextureSubImage1DEXT (will be remapped) */
+   /* _mesa_function_pool[49714]: CopyTextureSubImage1DEXT (will be remapped) */
    "iiiiiii\0"
    "glCopyTextureSubImage1DEXT\0"
    "\0"
-   /* _mesa_function_pool[49655]: CopyTextureSubImage2DEXT (will be remapped) */
+   /* _mesa_function_pool[49750]: CopyTextureSubImage2DEXT (will be remapped) */
    "iiiiiiiii\0"
    "glCopyTextureSubImage2DEXT\0"
    "\0"
-   /* _mesa_function_pool[49693]: CopyTextureSubImage3DEXT (will be remapped) */
+   /* _mesa_function_pool[49788]: CopyTextureSubImage3DEXT (will be remapped) */
    "iiiiiiiiii\0"
    "glCopyTextureSubImage3DEXT\0"
    "\0"
-   /* _mesa_function_pool[49732]: GetTextureImageEXT (will be remapped) */
+   /* _mesa_function_pool[49827]: GetTextureImageEXT (will be remapped) */
    "iiiiip\0"
    "glGetTextureImageEXT\0"
    "\0"
-   /* _mesa_function_pool[49761]: BindMultiTextureEXT (will be remapped) */
+   /* _mesa_function_pool[49856]: BindMultiTextureEXT (will be remapped) */
    "iii\0"
    "glBindMultiTextureEXT\0"
    "\0"
-   /* _mesa_function_pool[49788]: EnableClientStateiEXT (will be remapped) */
+   /* _mesa_function_pool[49883]: EnableClientStateiEXT (will be remapped) */
    "ii\0"
    "glEnableClientStateIndexedEXT\0"
    "glEnableClientStateiEXT\0"
    "\0"
-   /* _mesa_function_pool[49846]: DisableClientStateiEXT (will be remapped) */
+   /* _mesa_function_pool[49941]: DisableClientStateiEXT (will be remapped) */
    "ii\0"
    "glDisableClientStateIndexedEXT\0"
    "glDisableClientStateiEXT\0"
    "\0"
-   /* _mesa_function_pool[49906]: GetPointerIndexedvEXT (will be remapped) */
+   /* _mesa_function_pool[50001]: GetPointerIndexedvEXT (will be remapped) */
    "iip\0"
    "glGetPointerIndexedvEXT\0"
    "glGetPointeri_vEXT\0"
    "\0"
-   /* _mesa_function_pool[49954]: MultiTexEnviEXT (will be remapped) */
+   /* _mesa_function_pool[50049]: MultiTexEnviEXT (will be remapped) */
    "iiii\0"
    "glMultiTexEnviEXT\0"
    "\0"
-   /* _mesa_function_pool[49978]: MultiTexEnvivEXT (will be remapped) */
+   /* _mesa_function_pool[50073]: MultiTexEnvivEXT (will be remapped) */
    "iiip\0"
    "glMultiTexEnvivEXT\0"
    "\0"
-   /* _mesa_function_pool[50003]: MultiTexEnvfEXT (will be remapped) */
+   /* _mesa_function_pool[50098]: MultiTexEnvfEXT (will be remapped) */
    "iiif\0"
    "glMultiTexEnvfEXT\0"
    "\0"
-   /* _mesa_function_pool[50027]: MultiTexEnvfvEXT (will be remapped) */
+   /* _mesa_function_pool[50122]: MultiTexEnvfvEXT (will be remapped) */
    "iiip\0"
    "glMultiTexEnvfvEXT\0"
    "\0"
-   /* _mesa_function_pool[50052]: GetMultiTexEnvivEXT (will be remapped) */
+   /* _mesa_function_pool[50147]: GetMultiTexEnvivEXT (will be remapped) */
    "iiip\0"
    "glGetMultiTexEnvivEXT\0"
    "\0"
-   /* _mesa_function_pool[50080]: GetMultiTexEnvfvEXT (will be remapped) */
+   /* _mesa_function_pool[50175]: GetMultiTexEnvfvEXT (will be remapped) */
    "iiip\0"
    "glGetMultiTexEnvfvEXT\0"
    "\0"
-   /* _mesa_function_pool[50108]: MultiTexParameteriEXT (will be remapped) */
+   /* _mesa_function_pool[50203]: MultiTexParameteriEXT (will be remapped) */
    "iiii\0"
    "glMultiTexParameteriEXT\0"
    "\0"
-   /* _mesa_function_pool[50138]: MultiTexParameterivEXT (will be remapped) */
+   /* _mesa_function_pool[50233]: MultiTexParameterivEXT (will be remapped) */
    "iiip\0"
    "glMultiTexParameterivEXT\0"
    "\0"
-   /* _mesa_function_pool[50169]: MultiTexParameterfEXT (will be remapped) */
+   /* _mesa_function_pool[50264]: MultiTexParameterfEXT (will be remapped) */
    "iiif\0"
    "glMultiTexParameterfEXT\0"
    "\0"
-   /* _mesa_function_pool[50199]: MultiTexParameterfvEXT (will be remapped) */
+   /* _mesa_function_pool[50294]: MultiTexParameterfvEXT (will be remapped) */
    "iiip\0"
    "glMultiTexParameterfvEXT\0"
    "\0"
-   /* _mesa_function_pool[50230]: GetMultiTexParameterivEXT (will be remapped) */
+   /* _mesa_function_pool[50325]: GetMultiTexParameterivEXT (will be remapped) */
    "iiip\0"
    "glGetMultiTexParameterivEXT\0"
    "\0"
-   /* _mesa_function_pool[50264]: GetMultiTexParameterfvEXT (will be remapped) */
+   /* _mesa_function_pool[50359]: GetMultiTexParameterfvEXT (will be remapped) */
    "iiip\0"
    "glGetMultiTexParameterfvEXT\0"
    "\0"
-   /* _mesa_function_pool[50298]: GetMultiTexImageEXT (will be remapped) */
+   /* _mesa_function_pool[50393]: GetMultiTexImageEXT (will be remapped) */
    "iiiiip\0"
    "glGetMultiTexImageEXT\0"
    "\0"
-   /* _mesa_function_pool[50328]: GetMultiTexLevelParameterivEXT (will be remapped) */
+   /* _mesa_function_pool[50423]: GetMultiTexLevelParameterivEXT (will be remapped) */
    "iiiip\0"
    "glGetMultiTexLevelParameterivEXT\0"
    "\0"
-   /* _mesa_function_pool[50368]: GetMultiTexLevelParameterfvEXT (will be remapped) */
+   /* _mesa_function_pool[50463]: GetMultiTexLevelParameterfvEXT (will be remapped) */
    "iiiip\0"
    "glGetMultiTexLevelParameterfvEXT\0"
    "\0"
-   /* _mesa_function_pool[50408]: MultiTexImage1DEXT (will be remapped) */
+   /* _mesa_function_pool[50503]: MultiTexImage1DEXT (will be remapped) */
    "iiiiiiiip\0"
    "glMultiTexImage1DEXT\0"
    "\0"
-   /* _mesa_function_pool[50440]: MultiTexImage2DEXT (will be remapped) */
+   /* _mesa_function_pool[50535]: MultiTexImage2DEXT (will be remapped) */
    "iiiiiiiiip\0"
    "glMultiTexImage2DEXT\0"
    "\0"
-   /* _mesa_function_pool[50473]: MultiTexImage3DEXT (will be remapped) */
+   /* _mesa_function_pool[50568]: MultiTexImage3DEXT (will be remapped) */
    "iiiiiiiiiip\0"
    "glMultiTexImage3DEXT\0"
    "\0"
-   /* _mesa_function_pool[50507]: MultiTexSubImage1DEXT (will be remapped) */
+   /* _mesa_function_pool[50602]: MultiTexSubImage1DEXT (will be remapped) */
    "iiiiiiip\0"
    "glMultiTexSubImage1DEXT\0"
    "\0"
-   /* _mesa_function_pool[50541]: MultiTexSubImage2DEXT (will be remapped) */
+   /* _mesa_function_pool[50636]: MultiTexSubImage2DEXT (will be remapped) */
    "iiiiiiiiip\0"
    "glMultiTexSubImage2DEXT\0"
    "\0"
-   /* _mesa_function_pool[50577]: MultiTexSubImage3DEXT (will be remapped) */
+   /* _mesa_function_pool[50672]: MultiTexSubImage3DEXT (will be remapped) */
    "iiiiiiiiiiip\0"
    "glMultiTexSubImage3DEXT\0"
    "\0"
-   /* _mesa_function_pool[50615]: CopyMultiTexImage1DEXT (will be remapped) */
+   /* _mesa_function_pool[50710]: CopyMultiTexImage1DEXT (will be remapped) */
    "iiiiiiii\0"
    "glCopyMultiTexImage1DEXT\0"
    "\0"
-   /* _mesa_function_pool[50650]: CopyMultiTexImage2DEXT (will be remapped) */
+   /* _mesa_function_pool[50745]: CopyMultiTexImage2DEXT (will be remapped) */
    "iiiiiiiii\0"
    "glCopyMultiTexImage2DEXT\0"
    "\0"
-   /* _mesa_function_pool[50686]: CopyMultiTexSubImage1DEXT (will be remapped) */
+   /* _mesa_function_pool[50781]: CopyMultiTexSubImage1DEXT (will be remapped) */
    "iiiiiii\0"
    "glCopyMultiTexSubImage1DEXT\0"
    "\0"
-   /* _mesa_function_pool[50723]: CopyMultiTexSubImage2DEXT (will be remapped) */
+   /* _mesa_function_pool[50818]: CopyMultiTexSubImage2DEXT (will be remapped) */
    "iiiiiiiii\0"
    "glCopyMultiTexSubImage2DEXT\0"
    "\0"
-   /* _mesa_function_pool[50762]: CopyMultiTexSubImage3DEXT (will be remapped) */
+   /* _mesa_function_pool[50857]: CopyMultiTexSubImage3DEXT (will be remapped) */
    "iiiiiiiiii\0"
    "glCopyMultiTexSubImage3DEXT\0"
    "\0"
-   /* _mesa_function_pool[50802]: MultiTexGendEXT (will be remapped) */
+   /* _mesa_function_pool[50897]: MultiTexGendEXT (will be remapped) */
    "iiid\0"
    "glMultiTexGendEXT\0"
    "\0"
-   /* _mesa_function_pool[50826]: MultiTexGendvEXT (will be remapped) */
+   /* _mesa_function_pool[50921]: MultiTexGendvEXT (will be remapped) */
    "iiip\0"
    "glMultiTexGendvEXT\0"
    "\0"
-   /* _mesa_function_pool[50851]: MultiTexGenfEXT (will be remapped) */
+   /* _mesa_function_pool[50946]: MultiTexGenfEXT (will be remapped) */
    "iiif\0"
    "glMultiTexGenfEXT\0"
    "\0"
-   /* _mesa_function_pool[50875]: MultiTexGenfvEXT (will be remapped) */
+   /* _mesa_function_pool[50970]: MultiTexGenfvEXT (will be remapped) */
    "iiip\0"
    "glMultiTexGenfvEXT\0"
    "\0"
-   /* _mesa_function_pool[50900]: MultiTexGeniEXT (will be remapped) */
+   /* _mesa_function_pool[50995]: MultiTexGeniEXT (will be remapped) */
    "iiii\0"
    "glMultiTexGeniEXT\0"
    "\0"
-   /* _mesa_function_pool[50924]: MultiTexGenivEXT (will be remapped) */
+   /* _mesa_function_pool[51019]: MultiTexGenivEXT (will be remapped) */
    "iiip\0"
    "glMultiTexGenivEXT\0"
    "\0"
-   /* _mesa_function_pool[50949]: GetMultiTexGendvEXT (will be remapped) */
+   /* _mesa_function_pool[51044]: GetMultiTexGendvEXT (will be remapped) */
    "iiip\0"
    "glGetMultiTexGendvEXT\0"
    "\0"
-   /* _mesa_function_pool[50977]: GetMultiTexGenfvEXT (will be remapped) */
+   /* _mesa_function_pool[51072]: GetMultiTexGenfvEXT (will be remapped) */
    "iiip\0"
    "glGetMultiTexGenfvEXT\0"
    "\0"
-   /* _mesa_function_pool[51005]: GetMultiTexGenivEXT (will be remapped) */
+   /* _mesa_function_pool[51100]: GetMultiTexGenivEXT (will be remapped) */
    "iiip\0"
    "glGetMultiTexGenivEXT\0"
    "\0"
-   /* _mesa_function_pool[51033]: MultiTexCoordPointerEXT (will be remapped) */
+   /* _mesa_function_pool[51128]: MultiTexCoordPointerEXT (will be remapped) */
    "iiiip\0"
    "glMultiTexCoordPointerEXT\0"
    "\0"
-   /* _mesa_function_pool[51066]: MatrixLoadTransposefEXT (will be remapped) */
+   /* _mesa_function_pool[51161]: MatrixLoadTransposefEXT (will be remapped) */
    "ip\0"
    "glMatrixLoadTransposefEXT\0"
    "\0"
-   /* _mesa_function_pool[51096]: MatrixLoadTransposedEXT (will be remapped) */
+   /* _mesa_function_pool[51191]: MatrixLoadTransposedEXT (will be remapped) */
    "ip\0"
    "glMatrixLoadTransposedEXT\0"
    "\0"
-   /* _mesa_function_pool[51126]: MatrixMultTransposefEXT (will be remapped) */
+   /* _mesa_function_pool[51221]: MatrixMultTransposefEXT (will be remapped) */
    "ip\0"
    "glMatrixMultTransposefEXT\0"
    "\0"
-   /* _mesa_function_pool[51156]: MatrixMultTransposedEXT (will be remapped) */
+   /* _mesa_function_pool[51251]: MatrixMultTransposedEXT (will be remapped) */
    "ip\0"
    "glMatrixMultTransposedEXT\0"
    "\0"
-   /* _mesa_function_pool[51186]: CompressedTextureImage1DEXT (will be remapped) */
+   /* _mesa_function_pool[51281]: CompressedTextureImage1DEXT (will be remapped) */
    "iiiiiiip\0"
    "glCompressedTextureImage1DEXT\0"
    "\0"
-   /* _mesa_function_pool[51226]: CompressedTextureImage2DEXT (will be remapped) */
+   /* _mesa_function_pool[51321]: CompressedTextureImage2DEXT (will be remapped) */
    "iiiiiiiip\0"
    "glCompressedTextureImage2DEXT\0"
    "\0"
-   /* _mesa_function_pool[51267]: CompressedTextureImage3DEXT (will be remapped) */
+   /* _mesa_function_pool[51362]: CompressedTextureImage3DEXT (will be remapped) */
    "iiiiiiiiip\0"
    "glCompressedTextureImage3DEXT\0"
    "\0"
-   /* _mesa_function_pool[51309]: CompressedTextureSubImage1DEXT (will be remapped) */
+   /* _mesa_function_pool[51404]: CompressedTextureSubImage1DEXT (will be remapped) */
    "iiiiiiip\0"
    "glCompressedTextureSubImage1DEXT\0"
    "\0"
-   /* _mesa_function_pool[51352]: CompressedTextureSubImage2DEXT (will be remapped) */
+   /* _mesa_function_pool[51447]: CompressedTextureSubImage2DEXT (will be remapped) */
    "iiiiiiiiip\0"
    "glCompressedTextureSubImage2DEXT\0"
    "\0"
-   /* _mesa_function_pool[51397]: CompressedTextureSubImage3DEXT (will be remapped) */
+   /* _mesa_function_pool[51492]: CompressedTextureSubImage3DEXT (will be remapped) */
    "iiiiiiiiiiip\0"
    "glCompressedTextureSubImage3DEXT\0"
    "\0"
-   /* _mesa_function_pool[51444]: GetCompressedTextureImageEXT (will be remapped) */
+   /* _mesa_function_pool[51539]: GetCompressedTextureImageEXT (will be remapped) */
    "iiip\0"
    "glGetCompressedTextureImageEXT\0"
    "\0"
-   /* _mesa_function_pool[51481]: CompressedMultiTexImage1DEXT (will be remapped) */
+   /* _mesa_function_pool[51576]: CompressedMultiTexImage1DEXT (will be remapped) */
    "iiiiiiip\0"
    "glCompressedMultiTexImage1DEXT\0"
    "\0"
-   /* _mesa_function_pool[51522]: CompressedMultiTexImage2DEXT (will be remapped) */
+   /* _mesa_function_pool[51617]: CompressedMultiTexImage2DEXT (will be remapped) */
    "iiiiiiiip\0"
    "glCompressedMultiTexImage2DEXT\0"
    "\0"
-   /* _mesa_function_pool[51564]: CompressedMultiTexImage3DEXT (will be remapped) */
+   /* _mesa_function_pool[51659]: CompressedMultiTexImage3DEXT (will be remapped) */
    "iiiiiiiiip\0"
    "glCompressedMultiTexImage3DEXT\0"
    "\0"
-   /* _mesa_function_pool[51607]: CompressedMultiTexSubImage1DEXT (will be remapped) */
+   /* _mesa_function_pool[51702]: CompressedMultiTexSubImage1DEXT (will be remapped) */
    "iiiiiiip\0"
    "glCompressedMultiTexSubImage1DEXT\0"
    "\0"
-   /* _mesa_function_pool[51651]: CompressedMultiTexSubImage2DEXT (will be remapped) */
+   /* _mesa_function_pool[51746]: CompressedMultiTexSubImage2DEXT (will be remapped) */
    "iiiiiiiiip\0"
    "glCompressedMultiTexSubImage2DEXT\0"
    "\0"
-   /* _mesa_function_pool[51697]: CompressedMultiTexSubImage3DEXT (will be remapped) */
+   /* _mesa_function_pool[51792]: CompressedMultiTexSubImage3DEXT (will be remapped) */
    "iiiiiiiiiiip\0"
    "glCompressedMultiTexSubImage3DEXT\0"
    "\0"
-   /* _mesa_function_pool[51745]: GetCompressedMultiTexImageEXT (will be remapped) */
+   /* _mesa_function_pool[51840]: GetCompressedMultiTexImageEXT (will be remapped) */
    "iiip\0"
    "glGetCompressedMultiTexImageEXT\0"
    "\0"
-   /* _mesa_function_pool[51783]: NamedBufferDataEXT (will be remapped) */
+   /* _mesa_function_pool[51878]: NamedBufferDataEXT (will be remapped) */
    "iipi\0"
    "glNamedBufferDataEXT\0"
    "\0"
-   /* _mesa_function_pool[51810]: NamedBufferSubDataEXT (will be remapped) */
+   /* _mesa_function_pool[51905]: NamedBufferSubDataEXT (will be remapped) */
    "iiip\0"
    "glNamedBufferSubDataEXT\0"
    "\0"
-   /* _mesa_function_pool[51840]: MapNamedBufferEXT (will be remapped) */
+   /* _mesa_function_pool[51935]: MapNamedBufferEXT (will be remapped) */
    "ii\0"
    "glMapNamedBufferEXT\0"
    "\0"
-   /* _mesa_function_pool[51864]: GetNamedBufferSubDataEXT (will be remapped) */
+   /* _mesa_function_pool[51959]: GetNamedBufferSubDataEXT (will be remapped) */
    "iiip\0"
    "glGetNamedBufferSubDataEXT\0"
    "\0"
-   /* _mesa_function_pool[51897]: GetNamedBufferPointervEXT (will be remapped) */
+   /* _mesa_function_pool[51992]: GetNamedBufferPointervEXT (will be remapped) */
    "iip\0"
    "glGetNamedBufferPointervEXT\0"
    "\0"
-   /* _mesa_function_pool[51930]: GetNamedBufferParameterivEXT (will be remapped) */
+   /* _mesa_function_pool[52025]: GetNamedBufferParameterivEXT (will be remapped) */
    "iip\0"
    "glGetNamedBufferParameterivEXT\0"
    "\0"
-   /* _mesa_function_pool[51966]: FlushMappedNamedBufferRangeEXT (will be remapped) */
+   /* _mesa_function_pool[52061]: FlushMappedNamedBufferRangeEXT (will be remapped) */
    "iii\0"
    "glFlushMappedNamedBufferRangeEXT\0"
    "\0"
-   /* _mesa_function_pool[52004]: MapNamedBufferRangeEXT (will be remapped) */
+   /* _mesa_function_pool[52099]: MapNamedBufferRangeEXT (will be remapped) */
    "iiii\0"
    "glMapNamedBufferRangeEXT\0"
    "\0"
-   /* _mesa_function_pool[52035]: FramebufferDrawBufferEXT (will be remapped) */
+   /* _mesa_function_pool[52130]: FramebufferDrawBufferEXT (will be remapped) */
    "ii\0"
    "glFramebufferDrawBufferEXT\0"
    "\0"
-   /* _mesa_function_pool[52066]: FramebufferDrawBuffersEXT (will be remapped) */
+   /* _mesa_function_pool[52161]: FramebufferDrawBuffersEXT (will be remapped) */
    "iip\0"
    "glFramebufferDrawBuffersEXT\0"
    "\0"
-   /* _mesa_function_pool[52099]: FramebufferReadBufferEXT (will be remapped) */
+   /* _mesa_function_pool[52194]: FramebufferReadBufferEXT (will be remapped) */
    "ii\0"
    "glFramebufferReadBufferEXT\0"
    "\0"
-   /* _mesa_function_pool[52130]: GetFramebufferParameterivEXT (will be remapped) */
+   /* _mesa_function_pool[52225]: GetFramebufferParameterivEXT (will be remapped) */
    "iip\0"
    "glGetFramebufferParameterivEXT\0"
    "\0"
-   /* _mesa_function_pool[52166]: CheckNamedFramebufferStatusEXT (will be remapped) */
+   /* _mesa_function_pool[52261]: CheckNamedFramebufferStatusEXT (will be remapped) */
    "ii\0"
    "glCheckNamedFramebufferStatusEXT\0"
    "\0"
-   /* _mesa_function_pool[52203]: NamedFramebufferTexture1DEXT (will be remapped) */
+   /* _mesa_function_pool[52298]: NamedFramebufferTexture1DEXT (will be remapped) */
    "iiiii\0"
    "glNamedFramebufferTexture1DEXT\0"
    "\0"
-   /* _mesa_function_pool[52241]: NamedFramebufferTexture2DEXT (will be remapped) */
+   /* _mesa_function_pool[52336]: NamedFramebufferTexture2DEXT (will be remapped) */
    "iiiii\0"
    "glNamedFramebufferTexture2DEXT\0"
    "\0"
-   /* _mesa_function_pool[52279]: NamedFramebufferTexture3DEXT (will be remapped) */
+   /* _mesa_function_pool[52374]: NamedFramebufferTexture3DEXT (will be remapped) */
    "iiiiii\0"
    "glNamedFramebufferTexture3DEXT\0"
    "\0"
-   /* _mesa_function_pool[52318]: NamedFramebufferRenderbufferEXT (will be remapped) */
+   /* _mesa_function_pool[52413]: NamedFramebufferRenderbufferEXT (will be remapped) */
    "iiii\0"
    "glNamedFramebufferRenderbufferEXT\0"
    "\0"
-   /* _mesa_function_pool[52358]: GetNamedFramebufferAttachmentParameterivEXT (will be remapped) */
+   /* _mesa_function_pool[52453]: GetNamedFramebufferAttachmentParameterivEXT (will be remapped) */
    "iiip\0"
    "glGetNamedFramebufferAttachmentParameterivEXT\0"
    "\0"
-   /* _mesa_function_pool[52410]: BindImageTextureEXT (will be remapped) */
+   /* _mesa_function_pool[52505]: NamedRenderbufferStorageEXT (will be remapped) */
+   "iiii\0"
+   "glNamedRenderbufferStorageEXT\0"
+   "\0"
+   /* _mesa_function_pool[52541]: GetNamedRenderbufferParameterivEXT (will be remapped) */
+   "iip\0"
+   "glGetNamedRenderbufferParameterivEXT\0"
+   "\0"
+   /* _mesa_function_pool[52583]: GenerateTextureMipmapEXT (will be remapped) */
+   "ii\0"
+   "glGenerateTextureMipmapEXT\0"
+   "\0"
+   /* _mesa_function_pool[52614]: GenerateMultiTexMipmapEXT (will be remapped) */
+   "ii\0"
+   "glGenerateMultiTexMipmapEXT\0"
+   "\0"
+   /* _mesa_function_pool[52646]: NamedRenderbufferStorageMultisampleEXT (will be remapped) */
+   "iiiii\0"
+   "glNamedRenderbufferStorageMultisampleEXT\0"
+   "\0"
+   /* _mesa_function_pool[52694]: NamedCopyBufferSubDataEXT (will be remapped) */
+   "iiiii\0"
+   "glNamedCopyBufferSubDataEXT\0"
+   "\0"
+   /* _mesa_function_pool[52729]: VertexArrayVertexOffsetEXT (will be remapped) */
+   "iiiiii\0"
+   "glVertexArrayVertexOffsetEXT\0"
+   "\0"
+   /* _mesa_function_pool[52766]: VertexArrayColorOffsetEXT (will be remapped) */
+   "iiiiii\0"
+   "glVertexArrayColorOffsetEXT\0"
+   "\0"
+   /* _mesa_function_pool[52802]: VertexArrayEdgeFlagOffsetEXT (will be remapped) */
+   "iiii\0"
+   "glVertexArrayEdgeFlagOffsetEXT\0"
+   "\0"
+   /* _mesa_function_pool[52839]: VertexArrayIndexOffsetEXT (will be remapped) */
+   "iiiii\0"
+   "glVertexArrayIndexOffsetEXT\0"
+   "\0"
+   /* _mesa_function_pool[52874]: VertexArrayNormalOffsetEXT (will be remapped) */
+   "iiiii\0"
+   "glVertexArrayNormalOffsetEXT\0"
+   "\0"
+   /* _mesa_function_pool[52910]: VertexArrayTexCoordOffsetEXT (will be remapped) */
+   "iiiiii\0"
+   "glVertexArrayTexCoordOffsetEXT\0"
+   "\0"
+   /* _mesa_function_pool[52949]: VertexArrayMultiTexCoordOffsetEXT (will be remapped) */
+   "iiiiiii\0"
+   "glVertexArrayMultiTexCoordOffsetEXT\0"
+   "\0"
+   /* _mesa_function_pool[52994]: VertexArrayFogCoordOffsetEXT (will be remapped) */
+   "iiiii\0"
+   "glVertexArrayFogCoordOffsetEXT\0"
+   "\0"
+   /* _mesa_function_pool[53032]: VertexArraySecondaryColorOffsetEXT (will be remapped) */
+   "iiiiii\0"
+   "glVertexArraySecondaryColorOffsetEXT\0"
+   "\0"
+   /* _mesa_function_pool[53077]: VertexArrayVertexAttribOffsetEXT (will be remapped) */
+   "iiiiiiii\0"
+   "glVertexArrayVertexAttribOffsetEXT\0"
+   "\0"
+   /* _mesa_function_pool[53122]: VertexArrayVertexAttribIOffsetEXT (will be remapped) */
+   "iiiiiii\0"
+   "glVertexArrayVertexAttribIOffsetEXT\0"
+   "\0"
+   /* _mesa_function_pool[53167]: EnableVertexArrayEXT (will be remapped) */
+   "ii\0"
+   "glEnableVertexArrayEXT\0"
+   "\0"
+   /* _mesa_function_pool[53194]: DisableVertexArrayEXT (will be remapped) */
+   "ii\0"
+   "glDisableVertexArrayEXT\0"
+   "\0"
+   /* _mesa_function_pool[53222]: EnableVertexArrayAttribEXT (will be remapped) */
+   "ii\0"
+   "glEnableVertexArrayAttribEXT\0"
+   "\0"
+   /* _mesa_function_pool[53255]: DisableVertexArrayAttribEXT (will be remapped) */
+   "ii\0"
+   "glDisableVertexArrayAttribEXT\0"
+   "\0"
+   /* _mesa_function_pool[53289]: GetVertexArrayIntegervEXT (will be remapped) */
+   "iip\0"
+   "glGetVertexArrayIntegervEXT\0"
+   "\0"
+   /* _mesa_function_pool[53322]: GetVertexArrayPointervEXT (will be remapped) */
+   "iip\0"
+   "glGetVertexArrayPointervEXT\0"
+   "\0"
+   /* _mesa_function_pool[53355]: GetVertexArrayIntegeri_vEXT (will be remapped) */
+   "iiip\0"
+   "glGetVertexArrayIntegeri_vEXT\0"
+   "\0"
+   /* _mesa_function_pool[53391]: GetVertexArrayPointeri_vEXT (will be remapped) */
+   "iiip\0"
+   "glGetVertexArrayPointeri_vEXT\0"
+   "\0"
+   /* _mesa_function_pool[53427]: NamedProgramStringEXT (will be remapped) */
+   "iiiip\0"
+   "glNamedProgramStringEXT\0"
+   "\0"
+   /* _mesa_function_pool[53458]: GetNamedProgramStringEXT (will be remapped) */
+   "iiip\0"
+   "glGetNamedProgramStringEXT\0"
+   "\0"
+   /* _mesa_function_pool[53491]: NamedProgramLocalParameter4fEXT (will be remapped) */
+   "iiiffff\0"
+   "glNamedProgramLocalParameter4fEXT\0"
+   "\0"
+   /* _mesa_function_pool[53534]: NamedProgramLocalParameter4fvEXT (will be remapped) */
+   "iiip\0"
+   "glNamedProgramLocalParameter4fvEXT\0"
+   "\0"
+   /* _mesa_function_pool[53575]: GetNamedProgramLocalParameterfvEXT (will be remapped) */
+   "iiip\0"
+   "glGetNamedProgramLocalParameterfvEXT\0"
+   "\0"
+   /* _mesa_function_pool[53618]: NamedProgramLocalParameter4dEXT (will be remapped) */
+   "iiidddd\0"
+   "glNamedProgramLocalParameter4dEXT\0"
+   "\0"
+   /* _mesa_function_pool[53661]: NamedProgramLocalParameter4dvEXT (will be remapped) */
+   "iiip\0"
+   "glNamedProgramLocalParameter4dvEXT\0"
+   "\0"
+   /* _mesa_function_pool[53702]: GetNamedProgramLocalParameterdvEXT (will be remapped) */
+   "iiip\0"
+   "glGetNamedProgramLocalParameterdvEXT\0"
+   "\0"
+   /* _mesa_function_pool[53745]: GetNamedProgramivEXT (will be remapped) */
+   "iiip\0"
+   "glGetNamedProgramivEXT\0"
+   "\0"
+   /* _mesa_function_pool[53774]: TextureBufferEXT (will be remapped) */
+   "iiii\0"
+   "glTextureBufferEXT\0"
+   "\0"
+   /* _mesa_function_pool[53799]: MultiTexBufferEXT (will be remapped) */
+   "iiii\0"
+   "glMultiTexBufferEXT\0"
+   "\0"
+   /* _mesa_function_pool[53825]: TextureParameterIivEXT (will be remapped) */
+   "iiip\0"
+   "glTextureParameterIivEXT\0"
+   "\0"
+   /* _mesa_function_pool[53856]: TextureParameterIuivEXT (will be remapped) */
+   "iiip\0"
+   "glTextureParameterIuivEXT\0"
+   "\0"
+   /* _mesa_function_pool[53888]: GetTextureParameterIivEXT (will be remapped) */
+   "iiip\0"
+   "glGetTextureParameterIivEXT\0"
+   "\0"
+   /* _mesa_function_pool[53922]: GetTextureParameterIuivEXT (will be remapped) */
+   "iiip\0"
+   "glGetTextureParameterIuivEXT\0"
+   "\0"
+   /* _mesa_function_pool[53957]: MultiTexParameterIivEXT (will be remapped) */
+   "iiip\0"
+   "glMultiTexParameterIivEXT\0"
+   "\0"
+   /* _mesa_function_pool[53989]: MultiTexParameterIuivEXT (will be remapped) */
+   "iiip\0"
+   "glMultiTexParameterIuivEXT\0"
+   "\0"
+   /* _mesa_function_pool[54022]: GetMultiTexParameterIivEXT (will be remapped) */
+   "iiip\0"
+   "glGetMultiTexParameterIivEXT\0"
+   "\0"
+   /* _mesa_function_pool[54057]: GetMultiTexParameterIuivEXT (will be remapped) */
+   "iiip\0"
+   "glGetMultiTexParameterIuivEXT\0"
+   "\0"
+   /* _mesa_function_pool[54093]: NamedProgramLocalParameters4fvEXT (will be remapped) */
+   "iiiip\0"
+   "glNamedProgramLocalParameters4fvEXT\0"
+   "\0"
+   /* _mesa_function_pool[54136]: BindImageTextureEXT (will be remapped) */
    "iiiiiii\0"
    "glBindImageTextureEXT\0"
    "\0"
-   /* _mesa_function_pool[52441]: SubpixelPrecisionBiasNV (will be remapped) */
+   /* _mesa_function_pool[54167]: SubpixelPrecisionBiasNV (will be remapped) */
    "ii\0"
    "glSubpixelPrecisionBiasNV\0"
    "\0"
-   /* _mesa_function_pool[52471]: ConservativeRasterParameterfNV (will be remapped) */
+   /* _mesa_function_pool[54197]: ConservativeRasterParameterfNV (will be remapped) */
    "if\0"
    "glConservativeRasterParameterfNV\0"
    "\0"
-   /* _mesa_function_pool[52508]: ConservativeRasterParameteriNV (will be remapped) */
+   /* _mesa_function_pool[54234]: ConservativeRasterParameteriNV (will be remapped) */
    "ii\0"
    "glConservativeRasterParameteriNV\0"
    "\0"
-   /* _mesa_function_pool[52545]: GetFirstPerfQueryIdINTEL (will be remapped) */
+   /* _mesa_function_pool[54271]: GetFirstPerfQueryIdINTEL (will be remapped) */
    "p\0"
    "glGetFirstPerfQueryIdINTEL\0"
    "\0"
-   /* _mesa_function_pool[52575]: GetNextPerfQueryIdINTEL (will be remapped) */
+   /* _mesa_function_pool[54301]: GetNextPerfQueryIdINTEL (will be remapped) */
    "ip\0"
    "glGetNextPerfQueryIdINTEL\0"
    "\0"
-   /* _mesa_function_pool[52605]: GetPerfQueryIdByNameINTEL (will be remapped) */
+   /* _mesa_function_pool[54331]: GetPerfQueryIdByNameINTEL (will be remapped) */
    "pp\0"
    "glGetPerfQueryIdByNameINTEL\0"
    "\0"
-   /* _mesa_function_pool[52637]: GetPerfQueryInfoINTEL (will be remapped) */
+   /* _mesa_function_pool[54363]: GetPerfQueryInfoINTEL (will be remapped) */
    "iippppp\0"
    "glGetPerfQueryInfoINTEL\0"
    "\0"
-   /* _mesa_function_pool[52670]: GetPerfCounterInfoINTEL (will be remapped) */
+   /* _mesa_function_pool[54396]: GetPerfCounterInfoINTEL (will be remapped) */
    "iiipipppppp\0"
    "glGetPerfCounterInfoINTEL\0"
    "\0"
-   /* _mesa_function_pool[52709]: CreatePerfQueryINTEL (will be remapped) */
+   /* _mesa_function_pool[54435]: CreatePerfQueryINTEL (will be remapped) */
    "ip\0"
    "glCreatePerfQueryINTEL\0"
    "\0"
-   /* _mesa_function_pool[52736]: DeletePerfQueryINTEL (will be remapped) */
+   /* _mesa_function_pool[54462]: DeletePerfQueryINTEL (will be remapped) */
    "i\0"
    "glDeletePerfQueryINTEL\0"
    "\0"
-   /* _mesa_function_pool[52762]: BeginPerfQueryINTEL (will be remapped) */
+   /* _mesa_function_pool[54488]: BeginPerfQueryINTEL (will be remapped) */
    "i\0"
    "glBeginPerfQueryINTEL\0"
    "\0"
-   /* _mesa_function_pool[52787]: EndPerfQueryINTEL (will be remapped) */
+   /* _mesa_function_pool[54513]: EndPerfQueryINTEL (will be remapped) */
    "i\0"
    "glEndPerfQueryINTEL\0"
    "\0"
-   /* _mesa_function_pool[52810]: GetPerfQueryDataINTEL (will be remapped) */
+   /* _mesa_function_pool[54536]: GetPerfQueryDataINTEL (will be remapped) */
    "iiipp\0"
    "glGetPerfQueryDataINTEL\0"
    "\0"
-   /* _mesa_function_pool[52841]: PolygonOffsetClampEXT (will be remapped) */
+   /* _mesa_function_pool[54567]: PolygonOffsetClampEXT (will be remapped) */
    "fff\0"
    "glPolygonOffsetClampEXT\0"
    "glPolygonOffsetClamp\0"
    "\0"
-   /* _mesa_function_pool[52891]: WindowRectanglesEXT (will be remapped) */
+   /* _mesa_function_pool[54617]: WindowRectanglesEXT (will be remapped) */
    "iip\0"
    "glWindowRectanglesEXT\0"
    "\0"
-   /* _mesa_function_pool[52918]: FramebufferFetchBarrierEXT (will be remapped) */
+   /* _mesa_function_pool[54644]: FramebufferFetchBarrierEXT (will be remapped) */
    "\0"
    "glFramebufferFetchBarrierEXT\0"
    "\0"
-   /* _mesa_function_pool[52949]: RenderbufferStorageMultisampleAdvancedAMD (will be remapped) */
+   /* _mesa_function_pool[54675]: RenderbufferStorageMultisampleAdvancedAMD (will be remapped) */
    "iiiiii\0"
    "glRenderbufferStorageMultisampleAdvancedAMD\0"
    "\0"
-   /* _mesa_function_pool[53001]: NamedRenderbufferStorageMultisampleAdvancedAMD (will be remapped) */
+   /* _mesa_function_pool[54727]: NamedRenderbufferStorageMultisampleAdvancedAMD (will be remapped) */
    "iiiiii\0"
    "glNamedRenderbufferStorageMultisampleAdvancedAMD\0"
    "\0"
-   /* _mesa_function_pool[53058]: StencilFuncSeparateATI (will be remapped) */
+   /* _mesa_function_pool[54784]: StencilFuncSeparateATI (will be remapped) */
    "iiii\0"
    "glStencilFuncSeparateATI\0"
    "\0"
-   /* _mesa_function_pool[53089]: ProgramEnvParameters4fvEXT (will be remapped) */
+   /* _mesa_function_pool[54815]: ProgramEnvParameters4fvEXT (will be remapped) */
    "iiip\0"
    "glProgramEnvParameters4fvEXT\0"
    "\0"
-   /* _mesa_function_pool[53124]: ProgramLocalParameters4fvEXT (will be remapped) */
+   /* _mesa_function_pool[54850]: ProgramLocalParameters4fvEXT (will be remapped) */
    "iiip\0"
    "glProgramLocalParameters4fvEXT\0"
    "\0"
-   /* _mesa_function_pool[53161]: IglooInterfaceSGIX (dynamic) */
+   /* _mesa_function_pool[54887]: IglooInterfaceSGIX (dynamic) */
    "ip\0"
    "glIglooInterfaceSGIX\0"
    "\0"
-   /* _mesa_function_pool[53186]: DeformationMap3dSGIX (dynamic) */
+   /* _mesa_function_pool[54912]: DeformationMap3dSGIX (dynamic) */
    "iddiiddiiddiip\0"
    "glDeformationMap3dSGIX\0"
    "\0"
-   /* _mesa_function_pool[53225]: DeformationMap3fSGIX (dynamic) */
+   /* _mesa_function_pool[54951]: DeformationMap3fSGIX (dynamic) */
    "iffiiffiiffiip\0"
    "glDeformationMap3fSGIX\0"
    "\0"
-   /* _mesa_function_pool[53264]: DeformSGIX (dynamic) */
+   /* _mesa_function_pool[54990]: DeformSGIX (dynamic) */
    "i\0"
    "glDeformSGIX\0"
    "\0"
-   /* _mesa_function_pool[53280]: LoadIdentityDeformationMapSGIX (dynamic) */
+   /* _mesa_function_pool[55006]: LoadIdentityDeformationMapSGIX (dynamic) */
    "i\0"
    "glLoadIdentityDeformationMapSGIX\0"
    "\0"
-   /* _mesa_function_pool[53316]: EGLImageTargetTexture2DOES (will be remapped) */
+   /* _mesa_function_pool[55042]: EGLImageTargetTexture2DOES (will be remapped) */
    "ip\0"
    "glEGLImageTargetTexture2DOES\0"
    "\0"
-   /* _mesa_function_pool[53349]: EGLImageTargetRenderbufferStorageOES (will be remapped) */
+   /* _mesa_function_pool[55075]: EGLImageTargetRenderbufferStorageOES (will be remapped) */
    "ip\0"
    "glEGLImageTargetRenderbufferStorageOES\0"
    "\0"
-   /* _mesa_function_pool[53392]: ClearColorIiEXT (will be remapped) */
+   /* _mesa_function_pool[55118]: ClearColorIiEXT (will be remapped) */
    "iiii\0"
    "glClearColorIiEXT\0"
    "\0"
-   /* _mesa_function_pool[53416]: ClearColorIuiEXT (will be remapped) */
+   /* _mesa_function_pool[55142]: ClearColorIuiEXT (will be remapped) */
    "iiii\0"
    "glClearColorIuiEXT\0"
    "\0"
-   /* _mesa_function_pool[53441]: TexParameterIiv (will be remapped) */
+   /* _mesa_function_pool[55167]: TexParameterIiv (will be remapped) */
    "iip\0"
    "glTexParameterIivEXT\0"
    "glTexParameterIiv\0"
    "glTexParameterIivOES\0"
    "\0"
-   /* _mesa_function_pool[53506]: TexParameterIuiv (will be remapped) */
+   /* _mesa_function_pool[55232]: TexParameterIuiv (will be remapped) */
    "iip\0"
    "glTexParameterIuivEXT\0"
    "glTexParameterIuiv\0"
    "glTexParameterIuivOES\0"
    "\0"
-   /* _mesa_function_pool[53574]: GetTexParameterIiv (will be remapped) */
+   /* _mesa_function_pool[55300]: GetTexParameterIiv (will be remapped) */
    "iip\0"
    "glGetTexParameterIivEXT\0"
    "glGetTexParameterIiv\0"
    "glGetTexParameterIivOES\0"
    "\0"
-   /* _mesa_function_pool[53648]: GetTexParameterIuiv (will be remapped) */
+   /* _mesa_function_pool[55374]: GetTexParameterIuiv (will be remapped) */
    "iip\0"
    "glGetTexParameterIuivEXT\0"
    "glGetTexParameterIuiv\0"
    "glGetTexParameterIuivOES\0"
    "\0"
-   /* _mesa_function_pool[53725]: VertexAttribI1iEXT (will be remapped) */
+   /* _mesa_function_pool[55451]: VertexAttribI1iEXT (will be remapped) */
    "ii\0"
    "glVertexAttribI1iEXT\0"
    "glVertexAttribI1i\0"
    "\0"
-   /* _mesa_function_pool[53768]: VertexAttribI2iEXT (will be remapped) */
+   /* _mesa_function_pool[55494]: VertexAttribI2iEXT (will be remapped) */
    "iii\0"
    "glVertexAttribI2iEXT\0"
    "glVertexAttribI2i\0"
    "\0"
-   /* _mesa_function_pool[53812]: VertexAttribI3iEXT (will be remapped) */
+   /* _mesa_function_pool[55538]: VertexAttribI3iEXT (will be remapped) */
    "iiii\0"
    "glVertexAttribI3iEXT\0"
    "glVertexAttribI3i\0"
    "\0"
-   /* _mesa_function_pool[53857]: VertexAttribI4iEXT (will be remapped) */
+   /* _mesa_function_pool[55583]: VertexAttribI4iEXT (will be remapped) */
    "iiiii\0"
    "glVertexAttribI4iEXT\0"
    "glVertexAttribI4i\0"
    "\0"
-   /* _mesa_function_pool[53903]: VertexAttribI1uiEXT (will be remapped) */
+   /* _mesa_function_pool[55629]: VertexAttribI1uiEXT (will be remapped) */
    "ii\0"
    "glVertexAttribI1uiEXT\0"
    "glVertexAttribI1ui\0"
    "\0"
-   /* _mesa_function_pool[53948]: VertexAttribI2uiEXT (will be remapped) */
+   /* _mesa_function_pool[55674]: VertexAttribI2uiEXT (will be remapped) */
    "iii\0"
    "glVertexAttribI2uiEXT\0"
    "glVertexAttribI2ui\0"
    "\0"
-   /* _mesa_function_pool[53994]: VertexAttribI3uiEXT (will be remapped) */
+   /* _mesa_function_pool[55720]: VertexAttribI3uiEXT (will be remapped) */
    "iiii\0"
    "glVertexAttribI3uiEXT\0"
    "glVertexAttribI3ui\0"
    "\0"
-   /* _mesa_function_pool[54041]: VertexAttribI4uiEXT (will be remapped) */
+   /* _mesa_function_pool[55767]: VertexAttribI4uiEXT (will be remapped) */
    "iiiii\0"
    "glVertexAttribI4uiEXT\0"
    "glVertexAttribI4ui\0"
    "\0"
-   /* _mesa_function_pool[54089]: VertexAttribI1iv (will be remapped) */
+   /* _mesa_function_pool[55815]: VertexAttribI1iv (will be remapped) */
    "ip\0"
    "glVertexAttribI1ivEXT\0"
    "glVertexAttribI1iv\0"
    "\0"
-   /* _mesa_function_pool[54134]: VertexAttribI2ivEXT (will be remapped) */
+   /* _mesa_function_pool[55860]: VertexAttribI2ivEXT (will be remapped) */
    "ip\0"
    "glVertexAttribI2ivEXT\0"
    "glVertexAttribI2iv\0"
    "\0"
-   /* _mesa_function_pool[54179]: VertexAttribI3ivEXT (will be remapped) */
+   /* _mesa_function_pool[55905]: VertexAttribI3ivEXT (will be remapped) */
    "ip\0"
    "glVertexAttribI3ivEXT\0"
    "glVertexAttribI3iv\0"
    "\0"
-   /* _mesa_function_pool[54224]: VertexAttribI4ivEXT (will be remapped) */
+   /* _mesa_function_pool[55950]: VertexAttribI4ivEXT (will be remapped) */
    "ip\0"
    "glVertexAttribI4ivEXT\0"
    "glVertexAttribI4iv\0"
    "\0"
-   /* _mesa_function_pool[54269]: VertexAttribI1uiv (will be remapped) */
+   /* _mesa_function_pool[55995]: VertexAttribI1uiv (will be remapped) */
    "ip\0"
    "glVertexAttribI1uivEXT\0"
    "glVertexAttribI1uiv\0"
    "\0"
-   /* _mesa_function_pool[54316]: VertexAttribI2uivEXT (will be remapped) */
+   /* _mesa_function_pool[56042]: VertexAttribI2uivEXT (will be remapped) */
    "ip\0"
    "glVertexAttribI2uivEXT\0"
    "glVertexAttribI2uiv\0"
    "\0"
-   /* _mesa_function_pool[54363]: VertexAttribI3uivEXT (will be remapped) */
+   /* _mesa_function_pool[56089]: VertexAttribI3uivEXT (will be remapped) */
    "ip\0"
    "glVertexAttribI3uivEXT\0"
    "glVertexAttribI3uiv\0"
    "\0"
-   /* _mesa_function_pool[54410]: VertexAttribI4uivEXT (will be remapped) */
+   /* _mesa_function_pool[56136]: VertexAttribI4uivEXT (will be remapped) */
    "ip\0"
    "glVertexAttribI4uivEXT\0"
    "glVertexAttribI4uiv\0"
    "\0"
-   /* _mesa_function_pool[54457]: VertexAttribI4bv (will be remapped) */
+   /* _mesa_function_pool[56183]: VertexAttribI4bv (will be remapped) */
    "ip\0"
    "glVertexAttribI4bvEXT\0"
    "glVertexAttribI4bv\0"
    "\0"
-   /* _mesa_function_pool[54502]: VertexAttribI4sv (will be remapped) */
+   /* _mesa_function_pool[56228]: VertexAttribI4sv (will be remapped) */
    "ip\0"
    "glVertexAttribI4svEXT\0"
    "glVertexAttribI4sv\0"
    "\0"
-   /* _mesa_function_pool[54547]: VertexAttribI4ubv (will be remapped) */
+   /* _mesa_function_pool[56273]: VertexAttribI4ubv (will be remapped) */
    "ip\0"
    "glVertexAttribI4ubvEXT\0"
    "glVertexAttribI4ubv\0"
    "\0"
-   /* _mesa_function_pool[54594]: VertexAttribI4usv (will be remapped) */
+   /* _mesa_function_pool[56320]: VertexAttribI4usv (will be remapped) */
    "ip\0"
    "glVertexAttribI4usvEXT\0"
    "glVertexAttribI4usv\0"
    "\0"
-   /* _mesa_function_pool[54641]: VertexAttribIPointer (will be remapped) */
+   /* _mesa_function_pool[56367]: VertexAttribIPointer (will be remapped) */
    "iiiip\0"
    "glVertexAttribIPointerEXT\0"
    "glVertexAttribIPointer\0"
    "\0"
-   /* _mesa_function_pool[54697]: GetVertexAttribIiv (will be remapped) */
+   /* _mesa_function_pool[56423]: GetVertexAttribIiv (will be remapped) */
    "iip\0"
    "glGetVertexAttribIivEXT\0"
    "glGetVertexAttribIiv\0"
    "\0"
-   /* _mesa_function_pool[54747]: GetVertexAttribIuiv (will be remapped) */
+   /* _mesa_function_pool[56473]: GetVertexAttribIuiv (will be remapped) */
    "iip\0"
    "glGetVertexAttribIuivEXT\0"
    "glGetVertexAttribIuiv\0"
    "\0"
-   /* _mesa_function_pool[54799]: Uniform1ui (will be remapped) */
+   /* _mesa_function_pool[56525]: Uniform1ui (will be remapped) */
    "ii\0"
    "glUniform1uiEXT\0"
    "glUniform1ui\0"
    "\0"
-   /* _mesa_function_pool[54832]: Uniform2ui (will be remapped) */
+   /* _mesa_function_pool[56558]: Uniform2ui (will be remapped) */
    "iii\0"
    "glUniform2uiEXT\0"
    "glUniform2ui\0"
    "\0"
-   /* _mesa_function_pool[54866]: Uniform3ui (will be remapped) */
+   /* _mesa_function_pool[56592]: Uniform3ui (will be remapped) */
    "iiii\0"
    "glUniform3uiEXT\0"
    "glUniform3ui\0"
    "\0"
-   /* _mesa_function_pool[54901]: Uniform4ui (will be remapped) */
+   /* _mesa_function_pool[56627]: Uniform4ui (will be remapped) */
    "iiiii\0"
    "glUniform4uiEXT\0"
    "glUniform4ui\0"
    "\0"
-   /* _mesa_function_pool[54937]: Uniform1uiv (will be remapped) */
+   /* _mesa_function_pool[56663]: Uniform1uiv (will be remapped) */
    "iip\0"
    "glUniform1uivEXT\0"
    "glUniform1uiv\0"
    "\0"
-   /* _mesa_function_pool[54973]: Uniform2uiv (will be remapped) */
+   /* _mesa_function_pool[56699]: Uniform2uiv (will be remapped) */
    "iip\0"
    "glUniform2uivEXT\0"
    "glUniform2uiv\0"
    "\0"
-   /* _mesa_function_pool[55009]: Uniform3uiv (will be remapped) */
+   /* _mesa_function_pool[56735]: Uniform3uiv (will be remapped) */
    "iip\0"
    "glUniform3uivEXT\0"
    "glUniform3uiv\0"
    "\0"
-   /* _mesa_function_pool[55045]: Uniform4uiv (will be remapped) */
+   /* _mesa_function_pool[56771]: Uniform4uiv (will be remapped) */
    "iip\0"
    "glUniform4uivEXT\0"
    "glUniform4uiv\0"
    "\0"
-   /* _mesa_function_pool[55081]: GetUniformuiv (will be remapped) */
+   /* _mesa_function_pool[56807]: GetUniformuiv (will be remapped) */
    "iip\0"
    "glGetUniformuivEXT\0"
    "glGetUniformuiv\0"
    "\0"
-   /* _mesa_function_pool[55121]: BindFragDataLocation (will be remapped) */
+   /* _mesa_function_pool[56847]: BindFragDataLocation (will be remapped) */
    "iip\0"
    "glBindFragDataLocationEXT\0"
    "glBindFragDataLocation\0"
    "\0"
-   /* _mesa_function_pool[55175]: GetFragDataLocation (will be remapped) */
+   /* _mesa_function_pool[56901]: GetFragDataLocation (will be remapped) */
    "ip\0"
    "glGetFragDataLocationEXT\0"
    "glGetFragDataLocation\0"
    "\0"
-   /* _mesa_function_pool[55226]: ClearBufferiv (will be remapped) */
+   /* _mesa_function_pool[56952]: ClearBufferiv (will be remapped) */
    "iip\0"
    "glClearBufferiv\0"
    "\0"
-   /* _mesa_function_pool[55247]: ClearBufferuiv (will be remapped) */
+   /* _mesa_function_pool[56973]: ClearBufferuiv (will be remapped) */
    "iip\0"
    "glClearBufferuiv\0"
    "\0"
-   /* _mesa_function_pool[55269]: ClearBufferfv (will be remapped) */
+   /* _mesa_function_pool[56995]: ClearBufferfv (will be remapped) */
    "iip\0"
    "glClearBufferfv\0"
    "\0"
-   /* _mesa_function_pool[55290]: ClearBufferfi (will be remapped) */
+   /* _mesa_function_pool[57016]: ClearBufferfi (will be remapped) */
    "iifi\0"
    "glClearBufferfi\0"
    "\0"
-   /* _mesa_function_pool[55312]: GetStringi (will be remapped) */
+   /* _mesa_function_pool[57038]: GetStringi (will be remapped) */
    "ii\0"
    "glGetStringi\0"
    "\0"
-   /* _mesa_function_pool[55329]: BeginTransformFeedback (will be remapped) */
+   /* _mesa_function_pool[57055]: BeginTransformFeedback (will be remapped) */
    "i\0"
    "glBeginTransformFeedback\0"
    "glBeginTransformFeedbackEXT\0"
    "\0"
-   /* _mesa_function_pool[55385]: EndTransformFeedback (will be remapped) */
+   /* _mesa_function_pool[57111]: EndTransformFeedback (will be remapped) */
    "\0"
    "glEndTransformFeedback\0"
    "glEndTransformFeedbackEXT\0"
    "\0"
-   /* _mesa_function_pool[55436]: BindBufferRange (will be remapped) */
+   /* _mesa_function_pool[57162]: BindBufferRange (will be remapped) */
    "iiiii\0"
    "glBindBufferRange\0"
    "glBindBufferRangeEXT\0"
    "\0"
-   /* _mesa_function_pool[55482]: BindBufferBase (will be remapped) */
+   /* _mesa_function_pool[57208]: BindBufferBase (will be remapped) */
    "iii\0"
    "glBindBufferBase\0"
    "glBindBufferBaseEXT\0"
    "\0"
-   /* _mesa_function_pool[55524]: TransformFeedbackVaryings (will be remapped) */
+   /* _mesa_function_pool[57250]: TransformFeedbackVaryings (will be remapped) */
    "iipi\0"
    "glTransformFeedbackVaryings\0"
    "glTransformFeedbackVaryingsEXT\0"
    "\0"
-   /* _mesa_function_pool[55589]: GetTransformFeedbackVarying (will be remapped) */
+   /* _mesa_function_pool[57315]: GetTransformFeedbackVarying (will be remapped) */
    "iiipppp\0"
    "glGetTransformFeedbackVarying\0"
    "glGetTransformFeedbackVaryingEXT\0"
    "\0"
-   /* _mesa_function_pool[55661]: BeginConditionalRender (will be remapped) */
+   /* _mesa_function_pool[57387]: BeginConditionalRender (will be remapped) */
    "ii\0"
    "glBeginConditionalRender\0"
    "glBeginConditionalRenderNV\0"
    "\0"
-   /* _mesa_function_pool[55717]: EndConditionalRender (will be remapped) */
+   /* _mesa_function_pool[57443]: EndConditionalRender (will be remapped) */
    "\0"
    "glEndConditionalRender\0"
    "glEndConditionalRenderNV\0"
    "\0"
-   /* _mesa_function_pool[55767]: PrimitiveRestartIndex (will be remapped) */
+   /* _mesa_function_pool[57493]: PrimitiveRestartIndex (will be remapped) */
    "i\0"
    "glPrimitiveRestartIndex\0"
    "glPrimitiveRestartIndexNV\0"
    "\0"
-   /* _mesa_function_pool[55820]: GetInteger64i_v (will be remapped) */
+   /* _mesa_function_pool[57546]: GetInteger64i_v (will be remapped) */
    "iip\0"
    "glGetInteger64i_v\0"
    "\0"
-   /* _mesa_function_pool[55843]: GetBufferParameteri64v (will be remapped) */
+   /* _mesa_function_pool[57569]: GetBufferParameteri64v (will be remapped) */
    "iip\0"
    "glGetBufferParameteri64v\0"
    "\0"
-   /* _mesa_function_pool[55873]: FramebufferTexture (will be remapped) */
+   /* _mesa_function_pool[57599]: FramebufferTexture (will be remapped) */
    "iiii\0"
    "glFramebufferTexture\0"
    "glFramebufferTextureEXT\0"
    "glFramebufferTextureOES\0"
    "\0"
-   /* _mesa_function_pool[55948]: PrimitiveRestartNV (will be remapped) */
+   /* _mesa_function_pool[57674]: PrimitiveRestartNV (will be remapped) */
    "\0"
    "glPrimitiveRestartNV\0"
    "\0"
-   /* _mesa_function_pool[55971]: BindBufferOffsetEXT (will be remapped) */
+   /* _mesa_function_pool[57697]: BindBufferOffsetEXT (will be remapped) */
    "iiii\0"
    "glBindBufferOffsetEXT\0"
    "\0"
-   /* _mesa_function_pool[55999]: BindTransformFeedback (will be remapped) */
+   /* _mesa_function_pool[57725]: BindTransformFeedback (will be remapped) */
    "ii\0"
    "glBindTransformFeedback\0"
    "\0"
-   /* _mesa_function_pool[56027]: DeleteTransformFeedbacks (will be remapped) */
+   /* _mesa_function_pool[57753]: DeleteTransformFeedbacks (will be remapped) */
    "ip\0"
    "glDeleteTransformFeedbacks\0"
    "\0"
-   /* _mesa_function_pool[56058]: GenTransformFeedbacks (will be remapped) */
+   /* _mesa_function_pool[57784]: GenTransformFeedbacks (will be remapped) */
    "ip\0"
    "glGenTransformFeedbacks\0"
    "\0"
-   /* _mesa_function_pool[56086]: IsTransformFeedback (will be remapped) */
+   /* _mesa_function_pool[57812]: IsTransformFeedback (will be remapped) */
    "i\0"
    "glIsTransformFeedback\0"
    "\0"
-   /* _mesa_function_pool[56111]: PauseTransformFeedback (will be remapped) */
+   /* _mesa_function_pool[57837]: PauseTransformFeedback (will be remapped) */
    "\0"
    "glPauseTransformFeedback\0"
    "\0"
-   /* _mesa_function_pool[56138]: ResumeTransformFeedback (will be remapped) */
+   /* _mesa_function_pool[57864]: ResumeTransformFeedback (will be remapped) */
    "\0"
    "glResumeTransformFeedback\0"
    "\0"
-   /* _mesa_function_pool[56166]: DrawTransformFeedback (will be remapped) */
+   /* _mesa_function_pool[57892]: DrawTransformFeedback (will be remapped) */
    "ii\0"
    "glDrawTransformFeedback\0"
    "\0"
-   /* _mesa_function_pool[56194]: VDPAUInitNV (will be remapped) */
+   /* _mesa_function_pool[57920]: VDPAUInitNV (will be remapped) */
    "pp\0"
    "glVDPAUInitNV\0"
    "\0"
-   /* _mesa_function_pool[56212]: VDPAUFiniNV (will be remapped) */
+   /* _mesa_function_pool[57938]: VDPAUFiniNV (will be remapped) */
    "\0"
    "glVDPAUFiniNV\0"
    "\0"
-   /* _mesa_function_pool[56228]: VDPAURegisterVideoSurfaceNV (will be remapped) */
+   /* _mesa_function_pool[57954]: VDPAURegisterVideoSurfaceNV (will be remapped) */
    "piip\0"
    "glVDPAURegisterVideoSurfaceNV\0"
    "\0"
-   /* _mesa_function_pool[56264]: VDPAURegisterOutputSurfaceNV (will be remapped) */
+   /* _mesa_function_pool[57990]: VDPAURegisterOutputSurfaceNV (will be remapped) */
    "piip\0"
    "glVDPAURegisterOutputSurfaceNV\0"
    "\0"
-   /* _mesa_function_pool[56301]: VDPAUIsSurfaceNV (will be remapped) */
+   /* _mesa_function_pool[58027]: VDPAUIsSurfaceNV (will be remapped) */
    "i\0"
    "glVDPAUIsSurfaceNV\0"
    "\0"
-   /* _mesa_function_pool[56323]: VDPAUUnregisterSurfaceNV (will be remapped) */
+   /* _mesa_function_pool[58049]: VDPAUUnregisterSurfaceNV (will be remapped) */
    "i\0"
    "glVDPAUUnregisterSurfaceNV\0"
    "\0"
-   /* _mesa_function_pool[56353]: VDPAUGetSurfaceivNV (will be remapped) */
+   /* _mesa_function_pool[58079]: VDPAUGetSurfaceivNV (will be remapped) */
    "iiipp\0"
    "glVDPAUGetSurfaceivNV\0"
    "\0"
-   /* _mesa_function_pool[56382]: VDPAUSurfaceAccessNV (will be remapped) */
+   /* _mesa_function_pool[58108]: VDPAUSurfaceAccessNV (will be remapped) */
    "ii\0"
    "glVDPAUSurfaceAccessNV\0"
    "\0"
-   /* _mesa_function_pool[56409]: VDPAUMapSurfacesNV (will be remapped) */
+   /* _mesa_function_pool[58135]: VDPAUMapSurfacesNV (will be remapped) */
    "ip\0"
    "glVDPAUMapSurfacesNV\0"
    "\0"
-   /* _mesa_function_pool[56434]: VDPAUUnmapSurfacesNV (will be remapped) */
+   /* _mesa_function_pool[58160]: VDPAUUnmapSurfacesNV (will be remapped) */
    "ip\0"
    "glVDPAUUnmapSurfacesNV\0"
    "\0"
-   /* _mesa_function_pool[56461]: GetUnsignedBytevEXT (will be remapped) */
+   /* _mesa_function_pool[58187]: GetUnsignedBytevEXT (will be remapped) */
    "ip\0"
    "glGetUnsignedBytevEXT\0"
    "\0"
-   /* _mesa_function_pool[56487]: GetUnsignedBytei_vEXT (will be remapped) */
+   /* _mesa_function_pool[58213]: GetUnsignedBytei_vEXT (will be remapped) */
    "iip\0"
    "glGetUnsignedBytei_vEXT\0"
    "\0"
-   /* _mesa_function_pool[56516]: DeleteMemoryObjectsEXT (will be remapped) */
+   /* _mesa_function_pool[58242]: DeleteMemoryObjectsEXT (will be remapped) */
    "ip\0"
    "glDeleteMemoryObjectsEXT\0"
    "\0"
-   /* _mesa_function_pool[56545]: IsMemoryObjectEXT (will be remapped) */
+   /* _mesa_function_pool[58271]: IsMemoryObjectEXT (will be remapped) */
    "i\0"
    "glIsMemoryObjectEXT\0"
    "\0"
-   /* _mesa_function_pool[56568]: CreateMemoryObjectsEXT (will be remapped) */
+   /* _mesa_function_pool[58294]: CreateMemoryObjectsEXT (will be remapped) */
    "ip\0"
    "glCreateMemoryObjectsEXT\0"
    "\0"
-   /* _mesa_function_pool[56597]: MemoryObjectParameterivEXT (will be remapped) */
+   /* _mesa_function_pool[58323]: MemoryObjectParameterivEXT (will be remapped) */
    "iip\0"
    "glMemoryObjectParameterivEXT\0"
    "\0"
-   /* _mesa_function_pool[56631]: GetMemoryObjectParameterivEXT (will be remapped) */
+   /* _mesa_function_pool[58357]: GetMemoryObjectParameterivEXT (will be remapped) */
    "iip\0"
    "glGetMemoryObjectParameterivEXT\0"
    "\0"
-   /* _mesa_function_pool[56668]: TexStorageMem2DEXT (will be remapped) */
+   /* _mesa_function_pool[58394]: TexStorageMem2DEXT (will be remapped) */
    "iiiiiii\0"
    "glTexStorageMem2DEXT\0"
    "\0"
-   /* _mesa_function_pool[56698]: TexStorageMem2DMultisampleEXT (will be remapped) */
+   /* _mesa_function_pool[58424]: TexStorageMem2DMultisampleEXT (will be remapped) */
    "iiiiiiii\0"
    "glTexStorageMem2DMultisampleEXT\0"
    "\0"
-   /* _mesa_function_pool[56740]: TexStorageMem3DEXT (will be remapped) */
+   /* _mesa_function_pool[58466]: TexStorageMem3DEXT (will be remapped) */
    "iiiiiiii\0"
    "glTexStorageMem3DEXT\0"
    "\0"
-   /* _mesa_function_pool[56771]: TexStorageMem3DMultisampleEXT (will be remapped) */
+   /* _mesa_function_pool[58497]: TexStorageMem3DMultisampleEXT (will be remapped) */
    "iiiiiiiii\0"
    "glTexStorageMem3DMultisampleEXT\0"
    "\0"
-   /* _mesa_function_pool[56814]: BufferStorageMemEXT (will be remapped) */
+   /* _mesa_function_pool[58540]: BufferStorageMemEXT (will be remapped) */
    "iiii\0"
    "glBufferStorageMemEXT\0"
    "\0"
-   /* _mesa_function_pool[56842]: TextureStorageMem2DEXT (will be remapped) */
+   /* _mesa_function_pool[58568]: TextureStorageMem2DEXT (will be remapped) */
    "iiiiiii\0"
    "glTextureStorageMem2DEXT\0"
    "\0"
-   /* _mesa_function_pool[56876]: TextureStorageMem2DMultisampleEXT (will be remapped) */
+   /* _mesa_function_pool[58602]: TextureStorageMem2DMultisampleEXT (will be remapped) */
    "iiiiiiii\0"
    "glTextureStorageMem2DMultisampleEXT\0"
    "\0"
-   /* _mesa_function_pool[56922]: TextureStorageMem3DEXT (will be remapped) */
+   /* _mesa_function_pool[58648]: TextureStorageMem3DEXT (will be remapped) */
    "iiiiiiii\0"
    "glTextureStorageMem3DEXT\0"
    "\0"
-   /* _mesa_function_pool[56957]: TextureStorageMem3DMultisampleEXT (will be remapped) */
+   /* _mesa_function_pool[58683]: TextureStorageMem3DMultisampleEXT (will be remapped) */
    "iiiiiiiii\0"
    "glTextureStorageMem3DMultisampleEXT\0"
    "\0"
-   /* _mesa_function_pool[57004]: NamedBufferStorageMemEXT (will be remapped) */
+   /* _mesa_function_pool[58730]: NamedBufferStorageMemEXT (will be remapped) */
    "iiii\0"
    "glNamedBufferStorageMemEXT\0"
    "\0"
-   /* _mesa_function_pool[57037]: TexStorageMem1DEXT (will be remapped) */
+   /* _mesa_function_pool[58763]: TexStorageMem1DEXT (will be remapped) */
    "iiiiii\0"
    "glTexStorageMem1DEXT\0"
    "\0"
-   /* _mesa_function_pool[57066]: TextureStorageMem1DEXT (will be remapped) */
+   /* _mesa_function_pool[58792]: TextureStorageMem1DEXT (will be remapped) */
    "iiiiii\0"
    "glTextureStorageMem1DEXT\0"
    "\0"
-   /* _mesa_function_pool[57099]: GenSemaphoresEXT (will be remapped) */
+   /* _mesa_function_pool[58825]: GenSemaphoresEXT (will be remapped) */
    "ip\0"
    "glGenSemaphoresEXT\0"
    "\0"
-   /* _mesa_function_pool[57122]: DeleteSemaphoresEXT (will be remapped) */
+   /* _mesa_function_pool[58848]: DeleteSemaphoresEXT (will be remapped) */
    "ip\0"
    "glDeleteSemaphoresEXT\0"
    "\0"
-   /* _mesa_function_pool[57148]: IsSemaphoreEXT (will be remapped) */
+   /* _mesa_function_pool[58874]: IsSemaphoreEXT (will be remapped) */
    "i\0"
    "glIsSemaphoreEXT\0"
    "\0"
-   /* _mesa_function_pool[57168]: SemaphoreParameterui64vEXT (will be remapped) */
+   /* _mesa_function_pool[58894]: SemaphoreParameterui64vEXT (will be remapped) */
    "iip\0"
    "glSemaphoreParameterui64vEXT\0"
    "\0"
-   /* _mesa_function_pool[57202]: GetSemaphoreParameterui64vEXT (will be remapped) */
+   /* _mesa_function_pool[58928]: GetSemaphoreParameterui64vEXT (will be remapped) */
    "iip\0"
    "glGetSemaphoreParameterui64vEXT\0"
    "\0"
-   /* _mesa_function_pool[57239]: WaitSemaphoreEXT (will be remapped) */
+   /* _mesa_function_pool[58965]: WaitSemaphoreEXT (will be remapped) */
    "iipipp\0"
    "glWaitSemaphoreEXT\0"
    "\0"
-   /* _mesa_function_pool[57266]: SignalSemaphoreEXT (will be remapped) */
+   /* _mesa_function_pool[58992]: SignalSemaphoreEXT (will be remapped) */
    "iipipp\0"
    "glSignalSemaphoreEXT\0"
    "\0"
-   /* _mesa_function_pool[57295]: ImportMemoryFdEXT (will be remapped) */
+   /* _mesa_function_pool[59021]: ImportMemoryFdEXT (will be remapped) */
    "iiii\0"
    "glImportMemoryFdEXT\0"
    "\0"
-   /* _mesa_function_pool[57321]: ImportSemaphoreFdEXT (will be remapped) */
+   /* _mesa_function_pool[59047]: ImportSemaphoreFdEXT (will be remapped) */
    "iii\0"
    "glImportSemaphoreFdEXT\0"
    "\0"
-   /* _mesa_function_pool[57349]: MemoryBarrierByRegion (will be remapped) */
+   /* _mesa_function_pool[59075]: MemoryBarrierByRegion (will be remapped) */
    "i\0"
    "glMemoryBarrierByRegion\0"
    "\0"
-   /* _mesa_function_pool[57376]: AlphaFuncx (will be remapped) */
+   /* _mesa_function_pool[59102]: AlphaFuncx (will be remapped) */
    "ii\0"
    "glAlphaFuncxOES\0"
    "glAlphaFuncx\0"
    "\0"
-   /* _mesa_function_pool[57409]: ClearColorx (will be remapped) */
+   /* _mesa_function_pool[59135]: ClearColorx (will be remapped) */
    "iiii\0"
    "glClearColorxOES\0"
    "glClearColorx\0"
    "\0"
-   /* _mesa_function_pool[57446]: ClearDepthx (will be remapped) */
+   /* _mesa_function_pool[59172]: ClearDepthx (will be remapped) */
    "i\0"
    "glClearDepthxOES\0"
    "glClearDepthx\0"
    "\0"
-   /* _mesa_function_pool[57480]: Color4x (will be remapped) */
+   /* _mesa_function_pool[59206]: Color4x (will be remapped) */
    "iiii\0"
    "glColor4xOES\0"
    "glColor4x\0"
    "\0"
-   /* _mesa_function_pool[57509]: DepthRangex (will be remapped) */
+   /* _mesa_function_pool[59235]: DepthRangex (will be remapped) */
    "ii\0"
    "glDepthRangexOES\0"
    "glDepthRangex\0"
    "\0"
-   /* _mesa_function_pool[57544]: Fogx (will be remapped) */
+   /* _mesa_function_pool[59270]: Fogx (will be remapped) */
    "ii\0"
    "glFogxOES\0"
    "glFogx\0"
    "\0"
-   /* _mesa_function_pool[57565]: Fogxv (will be remapped) */
+   /* _mesa_function_pool[59291]: Fogxv (will be remapped) */
    "ip\0"
    "glFogxvOES\0"
    "glFogxv\0"
    "\0"
-   /* _mesa_function_pool[57588]: Frustumx (will be remapped) */
+   /* _mesa_function_pool[59314]: Frustumx (will be remapped) */
    "iiiiii\0"
    "glFrustumxOES\0"
    "glFrustumx\0"
    "\0"
-   /* _mesa_function_pool[57621]: LightModelx (will be remapped) */
+   /* _mesa_function_pool[59347]: LightModelx (will be remapped) */
    "ii\0"
    "glLightModelxOES\0"
    "glLightModelx\0"
    "\0"
-   /* _mesa_function_pool[57656]: LightModelxv (will be remapped) */
+   /* _mesa_function_pool[59382]: LightModelxv (will be remapped) */
    "ip\0"
    "glLightModelxvOES\0"
    "glLightModelxv\0"
    "\0"
-   /* _mesa_function_pool[57693]: Lightx (will be remapped) */
+   /* _mesa_function_pool[59419]: Lightx (will be remapped) */
    "iii\0"
    "glLightxOES\0"
    "glLightx\0"
    "\0"
-   /* _mesa_function_pool[57719]: Lightxv (will be remapped) */
+   /* _mesa_function_pool[59445]: Lightxv (will be remapped) */
    "iip\0"
    "glLightxvOES\0"
    "glLightxv\0"
    "\0"
-   /* _mesa_function_pool[57747]: LineWidthx (will be remapped) */
+   /* _mesa_function_pool[59473]: LineWidthx (will be remapped) */
    "i\0"
    "glLineWidthxOES\0"
    "glLineWidthx\0"
    "\0"
-   /* _mesa_function_pool[57779]: LoadMatrixx (will be remapped) */
+   /* _mesa_function_pool[59505]: LoadMatrixx (will be remapped) */
    "p\0"
    "glLoadMatrixxOES\0"
    "glLoadMatrixx\0"
    "\0"
-   /* _mesa_function_pool[57813]: Materialx (will be remapped) */
+   /* _mesa_function_pool[59539]: Materialx (will be remapped) */
    "iii\0"
    "glMaterialxOES\0"
    "glMaterialx\0"
    "\0"
-   /* _mesa_function_pool[57845]: Materialxv (will be remapped) */
+   /* _mesa_function_pool[59571]: Materialxv (will be remapped) */
    "iip\0"
    "glMaterialxvOES\0"
    "glMaterialxv\0"
    "\0"
-   /* _mesa_function_pool[57879]: MultMatrixx (will be remapped) */
+   /* _mesa_function_pool[59605]: MultMatrixx (will be remapped) */
    "p\0"
    "glMultMatrixxOES\0"
    "glMultMatrixx\0"
    "\0"
-   /* _mesa_function_pool[57913]: MultiTexCoord4x (will be remapped) */
+   /* _mesa_function_pool[59639]: MultiTexCoord4x (will be remapped) */
    "iiiii\0"
    "glMultiTexCoord4xOES\0"
    "glMultiTexCoord4x\0"
    "\0"
-   /* _mesa_function_pool[57959]: Normal3x (will be remapped) */
+   /* _mesa_function_pool[59685]: Normal3x (will be remapped) */
    "iii\0"
    "glNormal3xOES\0"
    "glNormal3x\0"
    "\0"
-   /* _mesa_function_pool[57989]: Orthox (will be remapped) */
+   /* _mesa_function_pool[59715]: Orthox (will be remapped) */
    "iiiiii\0"
    "glOrthoxOES\0"
    "glOrthox\0"
    "\0"
-   /* _mesa_function_pool[58018]: PointSizex (will be remapped) */
+   /* _mesa_function_pool[59744]: PointSizex (will be remapped) */
    "i\0"
    "glPointSizexOES\0"
    "glPointSizex\0"
    "\0"
-   /* _mesa_function_pool[58050]: PolygonOffsetx (will be remapped) */
+   /* _mesa_function_pool[59776]: PolygonOffsetx (will be remapped) */
    "ii\0"
    "glPolygonOffsetxOES\0"
    "glPolygonOffsetx\0"
    "\0"
-   /* _mesa_function_pool[58091]: Rotatex (will be remapped) */
+   /* _mesa_function_pool[59817]: Rotatex (will be remapped) */
    "iiii\0"
    "glRotatexOES\0"
    "glRotatex\0"
    "\0"
-   /* _mesa_function_pool[58120]: SampleCoveragex (will be remapped) */
+   /* _mesa_function_pool[59846]: SampleCoveragex (will be remapped) */
    "ii\0"
    "glSampleCoveragexOES\0"
    "glSampleCoveragex\0"
    "\0"
-   /* _mesa_function_pool[58163]: Scalex (will be remapped) */
+   /* _mesa_function_pool[59889]: Scalex (will be remapped) */
    "iii\0"
    "glScalexOES\0"
    "glScalex\0"
    "\0"
-   /* _mesa_function_pool[58189]: TexEnvx (will be remapped) */
+   /* _mesa_function_pool[59915]: TexEnvx (will be remapped) */
    "iii\0"
    "glTexEnvxOES\0"
    "glTexEnvx\0"
    "\0"
-   /* _mesa_function_pool[58217]: TexEnvxv (will be remapped) */
+   /* _mesa_function_pool[59943]: TexEnvxv (will be remapped) */
    "iip\0"
    "glTexEnvxvOES\0"
    "glTexEnvxv\0"
    "\0"
-   /* _mesa_function_pool[58247]: TexParameterx (will be remapped) */
+   /* _mesa_function_pool[59973]: TexParameterx (will be remapped) */
    "iii\0"
    "glTexParameterxOES\0"
    "glTexParameterx\0"
    "\0"
-   /* _mesa_function_pool[58287]: Translatex (will be remapped) */
+   /* _mesa_function_pool[60013]: Translatex (will be remapped) */
    "iii\0"
    "glTranslatexOES\0"
    "glTranslatex\0"
    "\0"
-   /* _mesa_function_pool[58321]: ClipPlanex (will be remapped) */
+   /* _mesa_function_pool[60047]: ClipPlanex (will be remapped) */
    "ip\0"
    "glClipPlanexOES\0"
    "glClipPlanex\0"
    "\0"
-   /* _mesa_function_pool[58354]: GetClipPlanex (will be remapped) */
+   /* _mesa_function_pool[60080]: GetClipPlanex (will be remapped) */
    "ip\0"
    "glGetClipPlanexOES\0"
    "glGetClipPlanex\0"
    "\0"
-   /* _mesa_function_pool[58393]: GetFixedv (will be remapped) */
+   /* _mesa_function_pool[60119]: GetFixedv (will be remapped) */
    "ip\0"
    "glGetFixedvOES\0"
    "glGetFixedv\0"
    "\0"
-   /* _mesa_function_pool[58424]: GetLightxv (will be remapped) */
+   /* _mesa_function_pool[60150]: GetLightxv (will be remapped) */
    "iip\0"
    "glGetLightxvOES\0"
    "glGetLightxv\0"
    "\0"
-   /* _mesa_function_pool[58458]: GetMaterialxv (will be remapped) */
+   /* _mesa_function_pool[60184]: GetMaterialxv (will be remapped) */
    "iip\0"
    "glGetMaterialxvOES\0"
    "glGetMaterialxv\0"
    "\0"
-   /* _mesa_function_pool[58498]: GetTexEnvxv (will be remapped) */
+   /* _mesa_function_pool[60224]: GetTexEnvxv (will be remapped) */
    "iip\0"
    "glGetTexEnvxvOES\0"
    "glGetTexEnvxv\0"
    "\0"
-   /* _mesa_function_pool[58534]: GetTexParameterxv (will be remapped) */
+   /* _mesa_function_pool[60260]: GetTexParameterxv (will be remapped) */
    "iip\0"
    "glGetTexParameterxvOES\0"
    "glGetTexParameterxv\0"
    "\0"
-   /* _mesa_function_pool[58582]: PointParameterx (will be remapped) */
+   /* _mesa_function_pool[60308]: PointParameterx (will be remapped) */
    "ii\0"
    "glPointParameterxOES\0"
    "glPointParameterx\0"
    "\0"
-   /* _mesa_function_pool[58625]: PointParameterxv (will be remapped) */
+   /* _mesa_function_pool[60351]: PointParameterxv (will be remapped) */
    "ip\0"
    "glPointParameterxvOES\0"
    "glPointParameterxv\0"
    "\0"
-   /* _mesa_function_pool[58670]: TexParameterxv (will be remapped) */
+   /* _mesa_function_pool[60396]: TexParameterxv (will be remapped) */
    "iip\0"
    "glTexParameterxvOES\0"
    "glTexParameterxv\0"
    "\0"
-   /* _mesa_function_pool[58712]: GetTexGenxvOES (will be remapped) */
+   /* _mesa_function_pool[60438]: GetTexGenxvOES (will be remapped) */
    "iip\0"
    "glGetTexGenxvOES\0"
    "\0"
-   /* _mesa_function_pool[58734]: TexGenxOES (will be remapped) */
+   /* _mesa_function_pool[60460]: TexGenxOES (will be remapped) */
    "iii\0"
    "glTexGenxOES\0"
    "\0"
-   /* _mesa_function_pool[58752]: TexGenxvOES (will be remapped) */
+   /* _mesa_function_pool[60478]: TexGenxvOES (will be remapped) */
    "iip\0"
    "glTexGenxvOES\0"
    "\0"
-   /* _mesa_function_pool[58771]: ClipPlanef (will be remapped) */
+   /* _mesa_function_pool[60497]: ClipPlanef (will be remapped) */
    "ip\0"
    "glClipPlanefOES\0"
    "glClipPlanef\0"
    "\0"
-   /* _mesa_function_pool[58804]: GetClipPlanef (will be remapped) */
+   /* _mesa_function_pool[60530]: GetClipPlanef (will be remapped) */
    "ip\0"
    "glGetClipPlanefOES\0"
    "glGetClipPlanef\0"
    "\0"
-   /* _mesa_function_pool[58843]: Frustumf (will be remapped) */
+   /* _mesa_function_pool[60569]: Frustumf (will be remapped) */
    "ffffff\0"
    "glFrustumfOES\0"
    "glFrustumf\0"
    "\0"
-   /* _mesa_function_pool[58876]: Orthof (will be remapped) */
+   /* _mesa_function_pool[60602]: Orthof (will be remapped) */
    "ffffff\0"
    "glOrthofOES\0"
    "glOrthof\0"
    "\0"
-   /* _mesa_function_pool[58905]: DrawTexiOES (will be remapped) */
+   /* _mesa_function_pool[60631]: DrawTexiOES (will be remapped) */
    "iiiii\0"
    "glDrawTexiOES\0"
    "\0"
-   /* _mesa_function_pool[58926]: DrawTexivOES (will be remapped) */
+   /* _mesa_function_pool[60652]: DrawTexivOES (will be remapped) */
    "p\0"
    "glDrawTexivOES\0"
    "\0"
-   /* _mesa_function_pool[58944]: DrawTexfOES (will be remapped) */
+   /* _mesa_function_pool[60670]: DrawTexfOES (will be remapped) */
    "fffff\0"
    "glDrawTexfOES\0"
    "\0"
-   /* _mesa_function_pool[58965]: DrawTexfvOES (will be remapped) */
+   /* _mesa_function_pool[60691]: DrawTexfvOES (will be remapped) */
    "p\0"
    "glDrawTexfvOES\0"
    "\0"
-   /* _mesa_function_pool[58983]: DrawTexsOES (will be remapped) */
+   /* _mesa_function_pool[60709]: DrawTexsOES (will be remapped) */
    "iiiii\0"
    "glDrawTexsOES\0"
    "\0"
-   /* _mesa_function_pool[59004]: DrawTexsvOES (will be remapped) */
+   /* _mesa_function_pool[60730]: DrawTexsvOES (will be remapped) */
    "p\0"
    "glDrawTexsvOES\0"
    "\0"
-   /* _mesa_function_pool[59022]: DrawTexxOES (will be remapped) */
+   /* _mesa_function_pool[60748]: DrawTexxOES (will be remapped) */
    "iiiii\0"
    "glDrawTexxOES\0"
    "\0"
-   /* _mesa_function_pool[59043]: DrawTexxvOES (will be remapped) */
+   /* _mesa_function_pool[60769]: DrawTexxvOES (will be remapped) */
    "p\0"
    "glDrawTexxvOES\0"
    "\0"
-   /* _mesa_function_pool[59061]: LoadPaletteFromModelViewMatrixOES (dynamic) */
+   /* _mesa_function_pool[60787]: LoadPaletteFromModelViewMatrixOES (dynamic) */
    "\0"
    "glLoadPaletteFromModelViewMatrixOES\0"
    "\0"
-   /* _mesa_function_pool[59099]: PointSizePointerOES (will be remapped) */
+   /* _mesa_function_pool[60825]: PointSizePointerOES (will be remapped) */
    "iip\0"
    "glPointSizePointerOES\0"
    "\0"
-   /* _mesa_function_pool[59126]: QueryMatrixxOES (will be remapped) */
+   /* _mesa_function_pool[60852]: QueryMatrixxOES (will be remapped) */
    "pp\0"
    "glQueryMatrixxOES\0"
    "\0"
-   /* _mesa_function_pool[59148]: DiscardFramebufferEXT (will be remapped) */
+   /* _mesa_function_pool[60874]: DiscardFramebufferEXT (will be remapped) */
    "iip\0"
    "glDiscardFramebufferEXT\0"
    "\0"
-   /* _mesa_function_pool[59177]: FramebufferTexture2DMultisampleEXT (will be remapped) */
+   /* _mesa_function_pool[60903]: FramebufferTexture2DMultisampleEXT (will be remapped) */
    "iiiiii\0"
    "glFramebufferTexture2DMultisampleEXT\0"
    "\0"
-   /* _mesa_function_pool[59222]: DepthRangeArrayfvOES (will be remapped) */
+   /* _mesa_function_pool[60948]: DepthRangeArrayfvOES (will be remapped) */
    "iip\0"
    "glDepthRangeArrayfvOES\0"
    "\0"
-   /* _mesa_function_pool[59250]: DepthRangeIndexedfOES (will be remapped) */
+   /* _mesa_function_pool[60976]: DepthRangeIndexedfOES (will be remapped) */
    "iff\0"
    "glDepthRangeIndexedfOES\0"
+   "\0"
+   /* _mesa_function_pool[61005]: FramebufferParameteriMESA (will be remapped) */
+   "iii\0"
+   "glFramebufferParameteriMESA\0"
+   "\0"
+   /* _mesa_function_pool[61038]: GetFramebufferParameterivMESA (will be remapped) */
+   "iip\0"
+   "glGetFramebufferParameterivMESA\0"
    "\0"
    ;
 
@@ -7954,58 +8152,58 @@ static const struct gl_function_pool_remap MESA_remap_table_functions[] = {
    { 17532, UniformMatrix3x4fv_remap_index },
    { 17505, UniformMatrix4x2fv_remap_index },
    { 17559, UniformMatrix4x3fv_remap_index },
-   { 55661, BeginConditionalRender_remap_index },
-   { 55329, BeginTransformFeedback_remap_index },
-   { 55482, BindBufferBase_remap_index },
-   { 55436, BindBufferRange_remap_index },
-   { 55121, BindFragDataLocation_remap_index },
+   { 57387, BeginConditionalRender_remap_index },
+   { 57055, BeginTransformFeedback_remap_index },
+   { 57208, BindBufferBase_remap_index },
+   { 57162, BindBufferRange_remap_index },
+   { 56847, BindFragDataLocation_remap_index },
    { 18971, ClampColor_remap_index },
-   { 55290, ClearBufferfi_remap_index },
-   { 55269, ClearBufferfv_remap_index },
-   { 55226, ClearBufferiv_remap_index },
-   { 55247, ClearBufferuiv_remap_index },
-   { 47813, ColorMaski_remap_index },
-   { 48036, Disablei_remap_index },
-   { 47977, Enablei_remap_index },
-   { 55717, EndConditionalRender_remap_index },
-   { 55385, EndTransformFeedback_remap_index },
-   { 47887, GetBooleani_v_remap_index },
-   { 55175, GetFragDataLocation_remap_index },
-   { 47932, GetIntegeri_v_remap_index },
-   { 55312, GetStringi_remap_index },
-   { 53574, GetTexParameterIiv_remap_index },
-   { 53648, GetTexParameterIuiv_remap_index },
-   { 55589, GetTransformFeedbackVarying_remap_index },
-   { 55081, GetUniformuiv_remap_index },
-   { 54697, GetVertexAttribIiv_remap_index },
-   { 54747, GetVertexAttribIuiv_remap_index },
-   { 48099, IsEnabledi_remap_index },
-   { 53441, TexParameterIiv_remap_index },
-   { 53506, TexParameterIuiv_remap_index },
-   { 55524, TransformFeedbackVaryings_remap_index },
-   { 54799, Uniform1ui_remap_index },
-   { 54937, Uniform1uiv_remap_index },
-   { 54832, Uniform2ui_remap_index },
-   { 54973, Uniform2uiv_remap_index },
-   { 54866, Uniform3ui_remap_index },
-   { 55009, Uniform3uiv_remap_index },
-   { 54901, Uniform4ui_remap_index },
-   { 55045, Uniform4uiv_remap_index },
-   { 54089, VertexAttribI1iv_remap_index },
-   { 54269, VertexAttribI1uiv_remap_index },
-   { 54457, VertexAttribI4bv_remap_index },
-   { 54502, VertexAttribI4sv_remap_index },
-   { 54547, VertexAttribI4ubv_remap_index },
-   { 54594, VertexAttribI4usv_remap_index },
-   { 54641, VertexAttribIPointer_remap_index },
-   { 55767, PrimitiveRestartIndex_remap_index },
+   { 57016, ClearBufferfi_remap_index },
+   { 56995, ClearBufferfv_remap_index },
+   { 56952, ClearBufferiv_remap_index },
+   { 56973, ClearBufferuiv_remap_index },
+   { 47848, ColorMaski_remap_index },
+   { 48071, Disablei_remap_index },
+   { 48012, Enablei_remap_index },
+   { 57443, EndConditionalRender_remap_index },
+   { 57111, EndTransformFeedback_remap_index },
+   { 47922, GetBooleani_v_remap_index },
+   { 56901, GetFragDataLocation_remap_index },
+   { 47967, GetIntegeri_v_remap_index },
+   { 57038, GetStringi_remap_index },
+   { 55300, GetTexParameterIiv_remap_index },
+   { 55374, GetTexParameterIuiv_remap_index },
+   { 57315, GetTransformFeedbackVarying_remap_index },
+   { 56807, GetUniformuiv_remap_index },
+   { 56423, GetVertexAttribIiv_remap_index },
+   { 56473, GetVertexAttribIuiv_remap_index },
+   { 48134, IsEnabledi_remap_index },
+   { 55167, TexParameterIiv_remap_index },
+   { 55232, TexParameterIuiv_remap_index },
+   { 57250, TransformFeedbackVaryings_remap_index },
+   { 56525, Uniform1ui_remap_index },
+   { 56663, Uniform1uiv_remap_index },
+   { 56558, Uniform2ui_remap_index },
+   { 56699, Uniform2uiv_remap_index },
+   { 56592, Uniform3ui_remap_index },
+   { 56735, Uniform3uiv_remap_index },
+   { 56627, Uniform4ui_remap_index },
+   { 56771, Uniform4uiv_remap_index },
+   { 55815, VertexAttribI1iv_remap_index },
+   { 55995, VertexAttribI1uiv_remap_index },
+   { 56183, VertexAttribI4bv_remap_index },
+   { 56228, VertexAttribI4sv_remap_index },
+   { 56273, VertexAttribI4ubv_remap_index },
+   { 56320, VertexAttribI4usv_remap_index },
+   { 56367, VertexAttribIPointer_remap_index },
+   { 57493, PrimitiveRestartIndex_remap_index },
    { 20750, TexBuffer_remap_index },
-   { 55873, FramebufferTexture_remap_index },
-   { 55843, GetBufferParameteri64v_remap_index },
-   { 55820, GetInteger64i_v_remap_index },
+   { 57599, FramebufferTexture_remap_index },
+   { 57569, GetBufferParameteri64v_remap_index },
+   { 57546, GetInteger64i_v_remap_index },
    { 20598, VertexAttribDivisor_remap_index },
    { 22298, MinSampleShading_remap_index },
-   { 57349, MemoryBarrierByRegion_remap_index },
+   { 59075, MemoryBarrierByRegion_remap_index },
    { 18003, BindProgramARB_remap_index },
    { 18040, DeleteProgramsARB_remap_index },
    { 18083, GenProgramsARB_remap_index },
@@ -8090,7 +8288,7 @@ static const struct gl_function_pool_remap MESA_remap_table_functions[] = {
    { 21481, DrawElementsInstancedBaseVertex_remap_index },
    { 21305, DrawRangeElementsBaseVertex_remap_index },
    { 21410, MultiDrawElementsBaseVertex_remap_index },
-   { 47771, ProvokingVertex_remap_index },
+   { 47806, ProvokingVertex_remap_index },
    { 21783, GetMultisamplefv_remap_index },
    { 21807, SampleMaski_remap_index },
    { 21718, TexImage2DMultisample_remap_index },
@@ -8186,13 +8384,13 @@ static const struct gl_function_pool_remap MESA_remap_table_functions[] = {
    { 24177, UniformSubroutinesuiv_remap_index },
    { 24327, PatchParameterfv_remap_index },
    { 24263, PatchParameteri_remap_index },
-   { 55999, BindTransformFeedback_remap_index },
-   { 56027, DeleteTransformFeedbacks_remap_index },
-   { 56166, DrawTransformFeedback_remap_index },
-   { 56058, GenTransformFeedbacks_remap_index },
-   { 56086, IsTransformFeedback_remap_index },
-   { 56111, PauseTransformFeedback_remap_index },
-   { 56138, ResumeTransformFeedback_remap_index },
+   { 57725, BindTransformFeedback_remap_index },
+   { 57753, DeleteTransformFeedbacks_remap_index },
+   { 57892, DrawTransformFeedback_remap_index },
+   { 57784, GenTransformFeedbacks_remap_index },
+   { 57812, IsTransformFeedback_remap_index },
+   { 57837, PauseTransformFeedback_remap_index },
+   { 57864, ResumeTransformFeedback_remap_index },
    { 24964, BeginQueryIndexed_remap_index },
    { 24929, DrawTransformFeedbackStream_remap_index },
    { 24989, EndQueryIndexed_remap_index },
@@ -8217,7 +8415,7 @@ static const struct gl_function_pool_remap MESA_remap_table_functions[] = {
    { 28198, VertexAttribLPointer_remap_index },
    { 39734, DepthRangeArrayv_remap_index },
    { 39758, DepthRangeIndexed_remap_index },
-   { 39841, GetDoublei_v_remap_index },
+   { 39858, GetDoublei_v_remap_index },
    { 39783, GetFloati_v_remap_index },
    { 39607, ScissorArrayv_remap_index },
    { 39647, ScissorIndexed_remap_index },
@@ -8453,9 +8651,9 @@ static const struct gl_function_pool_remap MESA_remap_table_functions[] = {
    { 36388, Uniform4i64vARB_remap_index },
    { 36548, Uniform4ui64ARB_remap_index },
    { 36716, Uniform4ui64vARB_remap_index },
-   { 43622, EvaluateDepthValuesARB_remap_index },
-   { 43466, FramebufferSampleLocationsfvARB_remap_index },
-   { 43539, NamedFramebufferSampleLocationsfvARB_remap_index },
+   { 43657, EvaluateDepthValuesARB_remap_index },
+   { 43501, FramebufferSampleLocationsfvARB_remap_index },
+   { 43574, NamedFramebufferSampleLocationsfvARB_remap_index },
    { 37850, SpecializeShaderARB_remap_index },
    { 31193, InvalidateBufferData_remap_index },
    { 31162, InvalidateBufferSubData_remap_index },
@@ -8463,16 +8661,16 @@ static const struct gl_function_pool_remap MESA_remap_table_functions[] = {
    { 31219, InvalidateSubFramebuffer_remap_index },
    { 31137, InvalidateTexImage_remap_index },
    { 31103, InvalidateTexSubImage_remap_index },
-   { 58944, DrawTexfOES_remap_index },
-   { 58965, DrawTexfvOES_remap_index },
-   { 58905, DrawTexiOES_remap_index },
-   { 58926, DrawTexivOES_remap_index },
-   { 58983, DrawTexsOES_remap_index },
-   { 59004, DrawTexsvOES_remap_index },
-   { 59022, DrawTexxOES_remap_index },
-   { 59043, DrawTexxvOES_remap_index },
-   { 59099, PointSizePointerOES_remap_index },
-   { 59126, QueryMatrixxOES_remap_index },
+   { 60670, DrawTexfOES_remap_index },
+   { 60691, DrawTexfvOES_remap_index },
+   { 60631, DrawTexiOES_remap_index },
+   { 60652, DrawTexivOES_remap_index },
+   { 60709, DrawTexsOES_remap_index },
+   { 60730, DrawTexsvOES_remap_index },
+   { 60748, DrawTexxOES_remap_index },
+   { 60769, DrawTexxvOES_remap_index },
+   { 60825, PointSizePointerOES_remap_index },
+   { 60852, QueryMatrixxOES_remap_index },
    { 38325, SampleMaskSGIS_remap_index },
    { 38362, SamplePatternSGIS_remap_index },
    { 38404, ColorPointerEXT_remap_index },
@@ -8481,7 +8679,7 @@ static const struct gl_function_pool_remap MESA_remap_table_functions[] = {
    { 38479, NormalPointerEXT_remap_index },
    { 38504, TexCoordPointerEXT_remap_index },
    { 38532, VertexPointerEXT_remap_index },
-   { 59148, DiscardFramebufferEXT_remap_index },
+   { 60874, DiscardFramebufferEXT_remap_index },
    { 25083, ActiveShaderProgram_remap_index },
    { 25188, BindProgramPipeline_remap_index },
    { 25134, CreateShaderProgramv_remap_index },
@@ -8544,7 +8742,7 @@ static const struct gl_function_pool_remap MESA_remap_table_functions[] = {
    { 39400, UnlockArraysEXT_remap_index },
    { 25037, UseProgramStages_remap_index },
    { 27202, ValidateProgramPipeline_remap_index },
-   { 59177, FramebufferTexture2DMultisampleEXT_remap_index },
+   { 60903, FramebufferTexture2DMultisampleEXT_remap_index },
    { 28748, DebugMessageCallback_remap_index },
    { 28591, DebugMessageControl_remap_index },
    { 28671, DebugMessageInsert_remap_index },
@@ -8560,364 +8758,413 @@ static const struct gl_function_pool_remap MESA_remap_table_functions[] = {
    { 10776, MultiDrawElementsEXT_remap_index },
    { 10563, FogCoordfEXT_remap_index },
    { 10593, FogCoordfvEXT_remap_index },
-   { 44237, ResizeBuffersMESA_remap_index },
-   { 44259, WindowPos4dMESA_remap_index },
-   { 44283, WindowPos4dvMESA_remap_index },
-   { 44305, WindowPos4fMESA_remap_index },
-   { 44329, WindowPos4fvMESA_remap_index },
-   { 44351, WindowPos4iMESA_remap_index },
-   { 44375, WindowPos4ivMESA_remap_index },
-   { 44397, WindowPos4sMESA_remap_index },
-   { 44421, WindowPos4svMESA_remap_index },
-   { 44443, MultiModeDrawArraysIBM_remap_index },
-   { 44475, MultiModeDrawElementsIBM_remap_index },
-   { 45257, AreProgramsResidentNV_remap_index },
-   { 45286, ExecuteProgramNV_remap_index },
-   { 45310, GetProgramParameterdvNV_remap_index },
-   { 45342, GetProgramParameterfvNV_remap_index },
-   { 45396, GetProgramStringNV_remap_index },
-   { 45374, GetProgramivNV_remap_index },
-   { 45422, GetTrackMatrixivNV_remap_index },
-   { 45449, GetVertexAttribdvNV_remap_index },
-   { 45476, GetVertexAttribfvNV_remap_index },
-   { 45503, GetVertexAttribivNV_remap_index },
-   { 45530, LoadProgramNV_remap_index },
-   { 45552, ProgramParameters4dvNV_remap_index },
-   { 45583, ProgramParameters4fvNV_remap_index },
-   { 45614, RequestResidentProgramsNV_remap_index },
-   { 45646, TrackMatrixNV_remap_index },
-   { 46087, VertexAttrib1dNV_remap_index },
-   { 46110, VertexAttrib1dvNV_remap_index },
-   { 45893, VertexAttrib1fNV_remap_index },
-   { 45916, VertexAttrib1fvNV_remap_index },
-   { 45699, VertexAttrib1sNV_remap_index },
-   { 45722, VertexAttrib1svNV_remap_index },
-   { 46134, VertexAttrib2dNV_remap_index },
-   { 46158, VertexAttrib2dvNV_remap_index },
-   { 45940, VertexAttrib2fNV_remap_index },
-   { 45964, VertexAttrib2fvNV_remap_index },
-   { 45746, VertexAttrib2sNV_remap_index },
-   { 45770, VertexAttrib2svNV_remap_index },
-   { 46182, VertexAttrib3dNV_remap_index },
-   { 46207, VertexAttrib3dvNV_remap_index },
-   { 45988, VertexAttrib3fNV_remap_index },
-   { 46013, VertexAttrib3fvNV_remap_index },
-   { 45794, VertexAttrib3sNV_remap_index },
-   { 45819, VertexAttrib3svNV_remap_index },
-   { 46231, VertexAttrib4dNV_remap_index },
-   { 46257, VertexAttrib4dvNV_remap_index },
-   { 46037, VertexAttrib4fNV_remap_index },
-   { 46063, VertexAttrib4fvNV_remap_index },
-   { 45843, VertexAttrib4sNV_remap_index },
-   { 45869, VertexAttrib4svNV_remap_index },
-   { 46281, VertexAttrib4ubNV_remap_index },
-   { 46308, VertexAttrib4ubvNV_remap_index },
-   { 45668, VertexAttribPointerNV_remap_index },
-   { 46541, VertexAttribs1dvNV_remap_index },
-   { 46437, VertexAttribs1fvNV_remap_index },
-   { 46333, VertexAttribs1svNV_remap_index },
-   { 46567, VertexAttribs2dvNV_remap_index },
-   { 46463, VertexAttribs2fvNV_remap_index },
-   { 46359, VertexAttribs2svNV_remap_index },
-   { 46593, VertexAttribs3dvNV_remap_index },
-   { 46489, VertexAttribs3fvNV_remap_index },
-   { 46385, VertexAttribs3svNV_remap_index },
-   { 46619, VertexAttribs4dvNV_remap_index },
-   { 46515, VertexAttribs4fvNV_remap_index },
-   { 46411, VertexAttribs4svNV_remap_index },
-   { 46645, VertexAttribs4ubvNV_remap_index },
-   { 46728, GetTexBumpParameterfvATI_remap_index },
-   { 46759, GetTexBumpParameterivATI_remap_index },
-   { 46672, TexBumpParameterfvATI_remap_index },
-   { 46700, TexBumpParameterivATI_remap_index },
-   { 47070, AlphaFragmentOp1ATI_remap_index },
-   { 47100, AlphaFragmentOp2ATI_remap_index },
-   { 47133, AlphaFragmentOp3ATI_remap_index },
-   { 46873, BeginFragmentShaderATI_remap_index },
-   { 46817, BindFragmentShaderATI_remap_index },
-   { 46968, ColorFragmentOp1ATI_remap_index },
-   { 46999, ColorFragmentOp2ATI_remap_index },
-   { 47033, ColorFragmentOp3ATI_remap_index },
-   { 46844, DeleteFragmentShaderATI_remap_index },
-   { 46900, EndFragmentShaderATI_remap_index },
-   { 46790, GenFragmentShadersATI_remap_index },
-   { 46925, PassTexCoordATI_remap_index },
-   { 46948, SampleMapATI_remap_index },
-   { 47169, SetFragmentShaderConstantATI_remap_index },
-   { 59222, DepthRangeArrayfvOES_remap_index },
-   { 59250, DepthRangeIndexedfOES_remap_index },
-   { 47230, ActiveStencilFaceEXT_remap_index },
-   { 47636, GetProgramNamedParameterdvNV_remap_index },
-   { 47599, GetProgramNamedParameterfvNV_remap_index },
-   { 47492, ProgramNamedParameter4dNV_remap_index },
-   { 47564, ProgramNamedParameter4dvNV_remap_index },
-   { 47455, ProgramNamedParameter4fNV_remap_index },
-   { 47529, ProgramNamedParameter4fvNV_remap_index },
-   { 55948, PrimitiveRestartNV_remap_index },
-   { 58712, GetTexGenxvOES_remap_index },
-   { 58734, TexGenxOES_remap_index },
-   { 58752, TexGenxvOES_remap_index },
-   { 47673, DepthBoundsEXT_remap_index },
-   { 47720, BindFramebufferEXT_remap_index },
-   { 47694, BindRenderbufferEXT_remap_index },
-   { 47745, StringMarkerGREMEDY_remap_index },
-   { 48170, BufferParameteriAPPLE_remap_index },
-   { 48199, FlushMappedBufferRangeAPPLE_remap_index },
-   { 53725, VertexAttribI1iEXT_remap_index },
-   { 53903, VertexAttribI1uiEXT_remap_index },
-   { 53768, VertexAttribI2iEXT_remap_index },
-   { 54134, VertexAttribI2ivEXT_remap_index },
-   { 53948, VertexAttribI2uiEXT_remap_index },
-   { 54316, VertexAttribI2uivEXT_remap_index },
-   { 53812, VertexAttribI3iEXT_remap_index },
-   { 54179, VertexAttribI3ivEXT_remap_index },
-   { 53994, VertexAttribI3uiEXT_remap_index },
-   { 54363, VertexAttribI3uivEXT_remap_index },
-   { 53857, VertexAttribI4iEXT_remap_index },
-   { 54224, VertexAttribI4ivEXT_remap_index },
-   { 54041, VertexAttribI4uiEXT_remap_index },
-   { 54410, VertexAttribI4uivEXT_remap_index },
-   { 53392, ClearColorIiEXT_remap_index },
-   { 53416, ClearColorIuiEXT_remap_index },
-   { 55971, BindBufferOffsetEXT_remap_index },
-   { 48505, BeginPerfMonitorAMD_remap_index },
-   { 48439, DeletePerfMonitorsAMD_remap_index },
-   { 48530, EndPerfMonitorAMD_remap_index },
-   { 48414, GenPerfMonitorsAMD_remap_index },
-   { 48553, GetPerfMonitorCounterDataAMD_remap_index },
-   { 48377, GetPerfMonitorCounterInfoAMD_remap_index },
-   { 48337, GetPerfMonitorCounterStringAMD_remap_index },
-   { 48265, GetPerfMonitorCountersAMD_remap_index },
-   { 48300, GetPerfMonitorGroupStringAMD_remap_index },
-   { 48234, GetPerfMonitorGroupsAMD_remap_index },
-   { 48467, SelectPerfMonitorCountersAMD_remap_index },
-   { 47314, GetObjectParameterivAPPLE_remap_index },
-   { 47256, ObjectPurgeableAPPLE_remap_index },
-   { 47284, ObjectUnpurgeableAPPLE_remap_index },
-   { 48678, ActiveProgramEXT_remap_index },
-   { 48700, CreateShaderProgramEXT_remap_index },
-   { 48652, UseShaderProgramEXT_remap_index },
+   { 44272, ResizeBuffersMESA_remap_index },
+   { 44294, WindowPos4dMESA_remap_index },
+   { 44318, WindowPos4dvMESA_remap_index },
+   { 44340, WindowPos4fMESA_remap_index },
+   { 44364, WindowPos4fvMESA_remap_index },
+   { 44386, WindowPos4iMESA_remap_index },
+   { 44410, WindowPos4ivMESA_remap_index },
+   { 44432, WindowPos4sMESA_remap_index },
+   { 44456, WindowPos4svMESA_remap_index },
+   { 44478, MultiModeDrawArraysIBM_remap_index },
+   { 44510, MultiModeDrawElementsIBM_remap_index },
+   { 45292, AreProgramsResidentNV_remap_index },
+   { 45321, ExecuteProgramNV_remap_index },
+   { 45345, GetProgramParameterdvNV_remap_index },
+   { 45377, GetProgramParameterfvNV_remap_index },
+   { 45431, GetProgramStringNV_remap_index },
+   { 45409, GetProgramivNV_remap_index },
+   { 45457, GetTrackMatrixivNV_remap_index },
+   { 45484, GetVertexAttribdvNV_remap_index },
+   { 45511, GetVertexAttribfvNV_remap_index },
+   { 45538, GetVertexAttribivNV_remap_index },
+   { 45565, LoadProgramNV_remap_index },
+   { 45587, ProgramParameters4dvNV_remap_index },
+   { 45618, ProgramParameters4fvNV_remap_index },
+   { 45649, RequestResidentProgramsNV_remap_index },
+   { 45681, TrackMatrixNV_remap_index },
+   { 46122, VertexAttrib1dNV_remap_index },
+   { 46145, VertexAttrib1dvNV_remap_index },
+   { 45928, VertexAttrib1fNV_remap_index },
+   { 45951, VertexAttrib1fvNV_remap_index },
+   { 45734, VertexAttrib1sNV_remap_index },
+   { 45757, VertexAttrib1svNV_remap_index },
+   { 46169, VertexAttrib2dNV_remap_index },
+   { 46193, VertexAttrib2dvNV_remap_index },
+   { 45975, VertexAttrib2fNV_remap_index },
+   { 45999, VertexAttrib2fvNV_remap_index },
+   { 45781, VertexAttrib2sNV_remap_index },
+   { 45805, VertexAttrib2svNV_remap_index },
+   { 46217, VertexAttrib3dNV_remap_index },
+   { 46242, VertexAttrib3dvNV_remap_index },
+   { 46023, VertexAttrib3fNV_remap_index },
+   { 46048, VertexAttrib3fvNV_remap_index },
+   { 45829, VertexAttrib3sNV_remap_index },
+   { 45854, VertexAttrib3svNV_remap_index },
+   { 46266, VertexAttrib4dNV_remap_index },
+   { 46292, VertexAttrib4dvNV_remap_index },
+   { 46072, VertexAttrib4fNV_remap_index },
+   { 46098, VertexAttrib4fvNV_remap_index },
+   { 45878, VertexAttrib4sNV_remap_index },
+   { 45904, VertexAttrib4svNV_remap_index },
+   { 46316, VertexAttrib4ubNV_remap_index },
+   { 46343, VertexAttrib4ubvNV_remap_index },
+   { 45703, VertexAttribPointerNV_remap_index },
+   { 46576, VertexAttribs1dvNV_remap_index },
+   { 46472, VertexAttribs1fvNV_remap_index },
+   { 46368, VertexAttribs1svNV_remap_index },
+   { 46602, VertexAttribs2dvNV_remap_index },
+   { 46498, VertexAttribs2fvNV_remap_index },
+   { 46394, VertexAttribs2svNV_remap_index },
+   { 46628, VertexAttribs3dvNV_remap_index },
+   { 46524, VertexAttribs3fvNV_remap_index },
+   { 46420, VertexAttribs3svNV_remap_index },
+   { 46654, VertexAttribs4dvNV_remap_index },
+   { 46550, VertexAttribs4fvNV_remap_index },
+   { 46446, VertexAttribs4svNV_remap_index },
+   { 46680, VertexAttribs4ubvNV_remap_index },
+   { 46763, GetTexBumpParameterfvATI_remap_index },
+   { 46794, GetTexBumpParameterivATI_remap_index },
+   { 46707, TexBumpParameterfvATI_remap_index },
+   { 46735, TexBumpParameterivATI_remap_index },
+   { 47105, AlphaFragmentOp1ATI_remap_index },
+   { 47135, AlphaFragmentOp2ATI_remap_index },
+   { 47168, AlphaFragmentOp3ATI_remap_index },
+   { 46908, BeginFragmentShaderATI_remap_index },
+   { 46852, BindFragmentShaderATI_remap_index },
+   { 47003, ColorFragmentOp1ATI_remap_index },
+   { 47034, ColorFragmentOp2ATI_remap_index },
+   { 47068, ColorFragmentOp3ATI_remap_index },
+   { 46879, DeleteFragmentShaderATI_remap_index },
+   { 46935, EndFragmentShaderATI_remap_index },
+   { 46825, GenFragmentShadersATI_remap_index },
+   { 46960, PassTexCoordATI_remap_index },
+   { 46983, SampleMapATI_remap_index },
+   { 47204, SetFragmentShaderConstantATI_remap_index },
+   { 60948, DepthRangeArrayfvOES_remap_index },
+   { 60976, DepthRangeIndexedfOES_remap_index },
+   { 47265, ActiveStencilFaceEXT_remap_index },
+   { 47671, GetProgramNamedParameterdvNV_remap_index },
+   { 47634, GetProgramNamedParameterfvNV_remap_index },
+   { 47527, ProgramNamedParameter4dNV_remap_index },
+   { 47599, ProgramNamedParameter4dvNV_remap_index },
+   { 47490, ProgramNamedParameter4fNV_remap_index },
+   { 47564, ProgramNamedParameter4fvNV_remap_index },
+   { 57674, PrimitiveRestartNV_remap_index },
+   { 60438, GetTexGenxvOES_remap_index },
+   { 60460, TexGenxOES_remap_index },
+   { 60478, TexGenxvOES_remap_index },
+   { 47708, DepthBoundsEXT_remap_index },
+   { 47755, BindFramebufferEXT_remap_index },
+   { 47729, BindRenderbufferEXT_remap_index },
+   { 47780, StringMarkerGREMEDY_remap_index },
+   { 48205, BufferParameteriAPPLE_remap_index },
+   { 48234, FlushMappedBufferRangeAPPLE_remap_index },
+   { 55451, VertexAttribI1iEXT_remap_index },
+   { 55629, VertexAttribI1uiEXT_remap_index },
+   { 55494, VertexAttribI2iEXT_remap_index },
+   { 55860, VertexAttribI2ivEXT_remap_index },
+   { 55674, VertexAttribI2uiEXT_remap_index },
+   { 56042, VertexAttribI2uivEXT_remap_index },
+   { 55538, VertexAttribI3iEXT_remap_index },
+   { 55905, VertexAttribI3ivEXT_remap_index },
+   { 55720, VertexAttribI3uiEXT_remap_index },
+   { 56089, VertexAttribI3uivEXT_remap_index },
+   { 55583, VertexAttribI4iEXT_remap_index },
+   { 55950, VertexAttribI4ivEXT_remap_index },
+   { 55767, VertexAttribI4uiEXT_remap_index },
+   { 56136, VertexAttribI4uivEXT_remap_index },
+   { 55118, ClearColorIiEXT_remap_index },
+   { 55142, ClearColorIuiEXT_remap_index },
+   { 57697, BindBufferOffsetEXT_remap_index },
+   { 48540, BeginPerfMonitorAMD_remap_index },
+   { 48474, DeletePerfMonitorsAMD_remap_index },
+   { 48565, EndPerfMonitorAMD_remap_index },
+   { 48449, GenPerfMonitorsAMD_remap_index },
+   { 48588, GetPerfMonitorCounterDataAMD_remap_index },
+   { 48412, GetPerfMonitorCounterInfoAMD_remap_index },
+   { 48372, GetPerfMonitorCounterStringAMD_remap_index },
+   { 48300, GetPerfMonitorCountersAMD_remap_index },
+   { 48335, GetPerfMonitorGroupStringAMD_remap_index },
+   { 48269, GetPerfMonitorGroupsAMD_remap_index },
+   { 48502, SelectPerfMonitorCountersAMD_remap_index },
+   { 47349, GetObjectParameterivAPPLE_remap_index },
+   { 47291, ObjectPurgeableAPPLE_remap_index },
+   { 47319, ObjectUnpurgeableAPPLE_remap_index },
+   { 48713, ActiveProgramEXT_remap_index },
+   { 48735, CreateShaderProgramEXT_remap_index },
+   { 48687, UseShaderProgramEXT_remap_index },
    { 35861, TextureBarrierNV_remap_index },
-   { 56212, VDPAUFiniNV_remap_index },
-   { 56353, VDPAUGetSurfaceivNV_remap_index },
-   { 56194, VDPAUInitNV_remap_index },
-   { 56301, VDPAUIsSurfaceNV_remap_index },
-   { 56409, VDPAUMapSurfacesNV_remap_index },
-   { 56264, VDPAURegisterOutputSurfaceNV_remap_index },
-   { 56228, VDPAURegisterVideoSurfaceNV_remap_index },
-   { 56382, VDPAUSurfaceAccessNV_remap_index },
-   { 56434, VDPAUUnmapSurfacesNV_remap_index },
-   { 56323, VDPAUUnregisterSurfaceNV_remap_index },
-   { 52762, BeginPerfQueryINTEL_remap_index },
-   { 52709, CreatePerfQueryINTEL_remap_index },
-   { 52736, DeletePerfQueryINTEL_remap_index },
-   { 52787, EndPerfQueryINTEL_remap_index },
-   { 52545, GetFirstPerfQueryIdINTEL_remap_index },
-   { 52575, GetNextPerfQueryIdINTEL_remap_index },
-   { 52670, GetPerfCounterInfoINTEL_remap_index },
-   { 52810, GetPerfQueryDataINTEL_remap_index },
-   { 52605, GetPerfQueryIdByNameINTEL_remap_index },
-   { 52637, GetPerfQueryInfoINTEL_remap_index },
-   { 52841, PolygonOffsetClampEXT_remap_index },
-   { 52441, SubpixelPrecisionBiasNV_remap_index },
-   { 52471, ConservativeRasterParameterfNV_remap_index },
-   { 52508, ConservativeRasterParameteriNV_remap_index },
-   { 52891, WindowRectanglesEXT_remap_index },
-   { 56814, BufferStorageMemEXT_remap_index },
-   { 56568, CreateMemoryObjectsEXT_remap_index },
-   { 56516, DeleteMemoryObjectsEXT_remap_index },
-   { 57122, DeleteSemaphoresEXT_remap_index },
-   { 57099, GenSemaphoresEXT_remap_index },
-   { 56631, GetMemoryObjectParameterivEXT_remap_index },
-   { 57202, GetSemaphoreParameterui64vEXT_remap_index },
-   { 56487, GetUnsignedBytei_vEXT_remap_index },
-   { 56461, GetUnsignedBytevEXT_remap_index },
-   { 56545, IsMemoryObjectEXT_remap_index },
-   { 57148, IsSemaphoreEXT_remap_index },
-   { 56597, MemoryObjectParameterivEXT_remap_index },
-   { 57004, NamedBufferStorageMemEXT_remap_index },
-   { 57168, SemaphoreParameterui64vEXT_remap_index },
-   { 57266, SignalSemaphoreEXT_remap_index },
-   { 57037, TexStorageMem1DEXT_remap_index },
-   { 56668, TexStorageMem2DEXT_remap_index },
-   { 56698, TexStorageMem2DMultisampleEXT_remap_index },
-   { 56740, TexStorageMem3DEXT_remap_index },
-   { 56771, TexStorageMem3DMultisampleEXT_remap_index },
-   { 57066, TextureStorageMem1DEXT_remap_index },
-   { 56842, TextureStorageMem2DEXT_remap_index },
-   { 56876, TextureStorageMem2DMultisampleEXT_remap_index },
-   { 56922, TextureStorageMem3DEXT_remap_index },
-   { 56957, TextureStorageMem3DMultisampleEXT_remap_index },
-   { 57239, WaitSemaphoreEXT_remap_index },
-   { 57295, ImportMemoryFdEXT_remap_index },
-   { 57321, ImportSemaphoreFdEXT_remap_index },
-   { 52918, FramebufferFetchBarrierEXT_remap_index },
-   { 53001, NamedRenderbufferStorageMultisampleAdvancedAMD_remap_index },
-   { 52949, RenderbufferStorageMultisampleAdvancedAMD_remap_index },
-   { 53058, StencilFuncSeparateATI_remap_index },
-   { 53089, ProgramEnvParameters4fvEXT_remap_index },
-   { 53124, ProgramLocalParameters4fvEXT_remap_index },
-   { 53349, EGLImageTargetRenderbufferStorageOES_remap_index },
-   { 53316, EGLImageTargetTexture2DOES_remap_index },
-   { 57376, AlphaFuncx_remap_index },
-   { 57409, ClearColorx_remap_index },
-   { 57446, ClearDepthx_remap_index },
-   { 57480, Color4x_remap_index },
-   { 57509, DepthRangex_remap_index },
-   { 57544, Fogx_remap_index },
-   { 57565, Fogxv_remap_index },
-   { 58843, Frustumf_remap_index },
-   { 57588, Frustumx_remap_index },
-   { 57621, LightModelx_remap_index },
-   { 57656, LightModelxv_remap_index },
-   { 57693, Lightx_remap_index },
-   { 57719, Lightxv_remap_index },
-   { 57747, LineWidthx_remap_index },
-   { 57779, LoadMatrixx_remap_index },
-   { 57813, Materialx_remap_index },
-   { 57845, Materialxv_remap_index },
-   { 57879, MultMatrixx_remap_index },
-   { 57913, MultiTexCoord4x_remap_index },
-   { 57959, Normal3x_remap_index },
-   { 58876, Orthof_remap_index },
-   { 57989, Orthox_remap_index },
-   { 58018, PointSizex_remap_index },
-   { 58050, PolygonOffsetx_remap_index },
-   { 58091, Rotatex_remap_index },
-   { 58120, SampleCoveragex_remap_index },
-   { 58163, Scalex_remap_index },
-   { 58189, TexEnvx_remap_index },
-   { 58217, TexEnvxv_remap_index },
-   { 58247, TexParameterx_remap_index },
-   { 58287, Translatex_remap_index },
-   { 58771, ClipPlanef_remap_index },
-   { 58321, ClipPlanex_remap_index },
-   { 58804, GetClipPlanef_remap_index },
-   { 58354, GetClipPlanex_remap_index },
-   { 58393, GetFixedv_remap_index },
-   { 58424, GetLightxv_remap_index },
-   { 58458, GetMaterialxv_remap_index },
-   { 58498, GetTexEnvxv_remap_index },
-   { 58534, GetTexParameterxv_remap_index },
-   { 58582, PointParameterx_remap_index },
-   { 58625, PointParameterxv_remap_index },
-   { 58670, TexParameterxv_remap_index },
+   { 57938, VDPAUFiniNV_remap_index },
+   { 58079, VDPAUGetSurfaceivNV_remap_index },
+   { 57920, VDPAUInitNV_remap_index },
+   { 58027, VDPAUIsSurfaceNV_remap_index },
+   { 58135, VDPAUMapSurfacesNV_remap_index },
+   { 57990, VDPAURegisterOutputSurfaceNV_remap_index },
+   { 57954, VDPAURegisterVideoSurfaceNV_remap_index },
+   { 58108, VDPAUSurfaceAccessNV_remap_index },
+   { 58160, VDPAUUnmapSurfacesNV_remap_index },
+   { 58049, VDPAUUnregisterSurfaceNV_remap_index },
+   { 54488, BeginPerfQueryINTEL_remap_index },
+   { 54435, CreatePerfQueryINTEL_remap_index },
+   { 54462, DeletePerfQueryINTEL_remap_index },
+   { 54513, EndPerfQueryINTEL_remap_index },
+   { 54271, GetFirstPerfQueryIdINTEL_remap_index },
+   { 54301, GetNextPerfQueryIdINTEL_remap_index },
+   { 54396, GetPerfCounterInfoINTEL_remap_index },
+   { 54536, GetPerfQueryDataINTEL_remap_index },
+   { 54331, GetPerfQueryIdByNameINTEL_remap_index },
+   { 54363, GetPerfQueryInfoINTEL_remap_index },
+   { 54567, PolygonOffsetClampEXT_remap_index },
+   { 54167, SubpixelPrecisionBiasNV_remap_index },
+   { 54197, ConservativeRasterParameterfNV_remap_index },
+   { 54234, ConservativeRasterParameteriNV_remap_index },
+   { 54617, WindowRectanglesEXT_remap_index },
+   { 58540, BufferStorageMemEXT_remap_index },
+   { 58294, CreateMemoryObjectsEXT_remap_index },
+   { 58242, DeleteMemoryObjectsEXT_remap_index },
+   { 58848, DeleteSemaphoresEXT_remap_index },
+   { 58825, GenSemaphoresEXT_remap_index },
+   { 58357, GetMemoryObjectParameterivEXT_remap_index },
+   { 58928, GetSemaphoreParameterui64vEXT_remap_index },
+   { 58213, GetUnsignedBytei_vEXT_remap_index },
+   { 58187, GetUnsignedBytevEXT_remap_index },
+   { 58271, IsMemoryObjectEXT_remap_index },
+   { 58874, IsSemaphoreEXT_remap_index },
+   { 58323, MemoryObjectParameterivEXT_remap_index },
+   { 58730, NamedBufferStorageMemEXT_remap_index },
+   { 58894, SemaphoreParameterui64vEXT_remap_index },
+   { 58992, SignalSemaphoreEXT_remap_index },
+   { 58763, TexStorageMem1DEXT_remap_index },
+   { 58394, TexStorageMem2DEXT_remap_index },
+   { 58424, TexStorageMem2DMultisampleEXT_remap_index },
+   { 58466, TexStorageMem3DEXT_remap_index },
+   { 58497, TexStorageMem3DMultisampleEXT_remap_index },
+   { 58792, TextureStorageMem1DEXT_remap_index },
+   { 58568, TextureStorageMem2DEXT_remap_index },
+   { 58602, TextureStorageMem2DMultisampleEXT_remap_index },
+   { 58648, TextureStorageMem3DEXT_remap_index },
+   { 58683, TextureStorageMem3DMultisampleEXT_remap_index },
+   { 58965, WaitSemaphoreEXT_remap_index },
+   { 59021, ImportMemoryFdEXT_remap_index },
+   { 59047, ImportSemaphoreFdEXT_remap_index },
+   { 54644, FramebufferFetchBarrierEXT_remap_index },
+   { 54727, NamedRenderbufferStorageMultisampleAdvancedAMD_remap_index },
+   { 54675, RenderbufferStorageMultisampleAdvancedAMD_remap_index },
+   { 54784, StencilFuncSeparateATI_remap_index },
+   { 54815, ProgramEnvParameters4fvEXT_remap_index },
+   { 54850, ProgramLocalParameters4fvEXT_remap_index },
+   { 55075, EGLImageTargetRenderbufferStorageOES_remap_index },
+   { 55042, EGLImageTargetTexture2DOES_remap_index },
+   { 59102, AlphaFuncx_remap_index },
+   { 59135, ClearColorx_remap_index },
+   { 59172, ClearDepthx_remap_index },
+   { 59206, Color4x_remap_index },
+   { 59235, DepthRangex_remap_index },
+   { 59270, Fogx_remap_index },
+   { 59291, Fogxv_remap_index },
+   { 60569, Frustumf_remap_index },
+   { 59314, Frustumx_remap_index },
+   { 59347, LightModelx_remap_index },
+   { 59382, LightModelxv_remap_index },
+   { 59419, Lightx_remap_index },
+   { 59445, Lightxv_remap_index },
+   { 59473, LineWidthx_remap_index },
+   { 59505, LoadMatrixx_remap_index },
+   { 59539, Materialx_remap_index },
+   { 59571, Materialxv_remap_index },
+   { 59605, MultMatrixx_remap_index },
+   { 59639, MultiTexCoord4x_remap_index },
+   { 59685, Normal3x_remap_index },
+   { 60602, Orthof_remap_index },
+   { 59715, Orthox_remap_index },
+   { 59744, PointSizex_remap_index },
+   { 59776, PolygonOffsetx_remap_index },
+   { 59817, Rotatex_remap_index },
+   { 59846, SampleCoveragex_remap_index },
+   { 59889, Scalex_remap_index },
+   { 59915, TexEnvx_remap_index },
+   { 59943, TexEnvxv_remap_index },
+   { 59973, TexParameterx_remap_index },
+   { 60013, Translatex_remap_index },
+   { 60497, ClipPlanef_remap_index },
+   { 60047, ClipPlanex_remap_index },
+   { 60530, GetClipPlanef_remap_index },
+   { 60080, GetClipPlanex_remap_index },
+   { 60119, GetFixedv_remap_index },
+   { 60150, GetLightxv_remap_index },
+   { 60184, GetMaterialxv_remap_index },
+   { 60224, GetTexEnvxv_remap_index },
+   { 60260, GetTexParameterxv_remap_index },
+   { 60308, PointParameterx_remap_index },
+   { 60351, PointParameterxv_remap_index },
+   { 60396, TexParameterxv_remap_index },
    { 36079, BlendBarrier_remap_index },
    { 35968, PrimitiveBoundingBox_remap_index },
    { 37787, MaxShaderCompilerThreadsKHR_remap_index },
-   { 48729, MatrixLoadfEXT_remap_index },
-   { 48750, MatrixLoaddEXT_remap_index },
-   { 48771, MatrixMultfEXT_remap_index },
-   { 48792, MatrixMultdEXT_remap_index },
-   { 48813, MatrixLoadIdentityEXT_remap_index },
-   { 48840, MatrixRotatefEXT_remap_index },
-   { 48866, MatrixRotatedEXT_remap_index },
-   { 48892, MatrixScalefEXT_remap_index },
-   { 48916, MatrixScaledEXT_remap_index },
-   { 48940, MatrixTranslatefEXT_remap_index },
-   { 48968, MatrixTranslatedEXT_remap_index },
-   { 48996, MatrixOrthoEXT_remap_index },
-   { 49022, MatrixFrustumEXT_remap_index },
-   { 49050, MatrixPushEXT_remap_index },
-   { 49069, MatrixPopEXT_remap_index },
-   { 51066, MatrixLoadTransposefEXT_remap_index },
-   { 51096, MatrixLoadTransposedEXT_remap_index },
-   { 51126, MatrixMultTransposefEXT_remap_index },
-   { 51156, MatrixMultTransposedEXT_remap_index },
-   { 49761, BindMultiTextureEXT_remap_index },
-   { 51783, NamedBufferDataEXT_remap_index },
-   { 51810, NamedBufferSubDataEXT_remap_index },
+   { 48764, MatrixLoadfEXT_remap_index },
+   { 48785, MatrixLoaddEXT_remap_index },
+   { 48806, MatrixMultfEXT_remap_index },
+   { 48827, MatrixMultdEXT_remap_index },
+   { 48848, MatrixLoadIdentityEXT_remap_index },
+   { 48875, MatrixRotatefEXT_remap_index },
+   { 48901, MatrixRotatedEXT_remap_index },
+   { 48927, MatrixScalefEXT_remap_index },
+   { 48951, MatrixScaledEXT_remap_index },
+   { 48975, MatrixTranslatefEXT_remap_index },
+   { 49003, MatrixTranslatedEXT_remap_index },
+   { 49031, MatrixOrthoEXT_remap_index },
+   { 49057, MatrixFrustumEXT_remap_index },
+   { 49085, MatrixPushEXT_remap_index },
+   { 49104, MatrixPopEXT_remap_index },
+   { 51161, MatrixLoadTransposefEXT_remap_index },
+   { 51191, MatrixLoadTransposedEXT_remap_index },
+   { 51221, MatrixMultTransposefEXT_remap_index },
+   { 51251, MatrixMultTransposedEXT_remap_index },
+   { 49856, BindMultiTextureEXT_remap_index },
+   { 51878, NamedBufferDataEXT_remap_index },
+   { 51905, NamedBufferSubDataEXT_remap_index },
    { 31757, NamedBufferStorageEXT_remap_index },
-   { 52004, MapNamedBufferRangeEXT_remap_index },
-   { 49349, TextureImage1DEXT_remap_index },
-   { 49380, TextureImage2DEXT_remap_index },
-   { 49412, TextureImage3DEXT_remap_index },
-   { 49445, TextureSubImage1DEXT_remap_index },
-   { 49478, TextureSubImage2DEXT_remap_index },
-   { 49513, TextureSubImage3DEXT_remap_index },
-   { 49550, CopyTextureImage1DEXT_remap_index },
-   { 49584, CopyTextureImage2DEXT_remap_index },
-   { 49619, CopyTextureSubImage1DEXT_remap_index },
-   { 49655, CopyTextureSubImage2DEXT_remap_index },
-   { 49693, CopyTextureSubImage3DEXT_remap_index },
-   { 51840, MapNamedBufferEXT_remap_index },
-   { 49087, GetTextureParameterivEXT_remap_index },
-   { 49120, GetTextureParameterfvEXT_remap_index },
-   { 49231, TextureParameteriEXT_remap_index },
-   { 49260, TextureParameterivEXT_remap_index },
-   { 49290, TextureParameterfEXT_remap_index },
-   { 49319, TextureParameterfvEXT_remap_index },
-   { 49732, GetTextureImageEXT_remap_index },
-   { 49153, GetTextureLevelParameterivEXT_remap_index },
-   { 49192, GetTextureLevelParameterfvEXT_remap_index },
-   { 51864, GetNamedBufferSubDataEXT_remap_index },
-   { 51897, GetNamedBufferPointervEXT_remap_index },
-   { 51930, GetNamedBufferParameterivEXT_remap_index },
-   { 51966, FlushMappedNamedBufferRangeEXT_remap_index },
-   { 52035, FramebufferDrawBufferEXT_remap_index },
-   { 52066, FramebufferDrawBuffersEXT_remap_index },
-   { 52099, FramebufferReadBufferEXT_remap_index },
-   { 52130, GetFramebufferParameterivEXT_remap_index },
-   { 52166, CheckNamedFramebufferStatusEXT_remap_index },
-   { 52203, NamedFramebufferTexture1DEXT_remap_index },
-   { 52241, NamedFramebufferTexture2DEXT_remap_index },
-   { 52279, NamedFramebufferTexture3DEXT_remap_index },
-   { 52318, NamedFramebufferRenderbufferEXT_remap_index },
-   { 52358, GetNamedFramebufferAttachmentParameterivEXT_remap_index },
-   { 49788, EnableClientStateiEXT_remap_index },
-   { 49846, DisableClientStateiEXT_remap_index },
-   { 49906, GetPointerIndexedvEXT_remap_index },
-   { 49954, MultiTexEnviEXT_remap_index },
-   { 49978, MultiTexEnvivEXT_remap_index },
-   { 50003, MultiTexEnvfEXT_remap_index },
-   { 50027, MultiTexEnvfvEXT_remap_index },
-   { 50052, GetMultiTexEnvivEXT_remap_index },
-   { 50080, GetMultiTexEnvfvEXT_remap_index },
-   { 50108, MultiTexParameteriEXT_remap_index },
-   { 50138, MultiTexParameterivEXT_remap_index },
-   { 50169, MultiTexParameterfEXT_remap_index },
-   { 50199, MultiTexParameterfvEXT_remap_index },
-   { 50298, GetMultiTexImageEXT_remap_index },
-   { 50408, MultiTexImage1DEXT_remap_index },
-   { 50440, MultiTexImage2DEXT_remap_index },
-   { 50473, MultiTexImage3DEXT_remap_index },
-   { 50507, MultiTexSubImage1DEXT_remap_index },
-   { 50541, MultiTexSubImage2DEXT_remap_index },
-   { 50577, MultiTexSubImage3DEXT_remap_index },
-   { 50230, GetMultiTexParameterivEXT_remap_index },
-   { 50264, GetMultiTexParameterfvEXT_remap_index },
-   { 50615, CopyMultiTexImage1DEXT_remap_index },
-   { 50650, CopyMultiTexImage2DEXT_remap_index },
-   { 50686, CopyMultiTexSubImage1DEXT_remap_index },
-   { 50723, CopyMultiTexSubImage2DEXT_remap_index },
-   { 50762, CopyMultiTexSubImage3DEXT_remap_index },
-   { 50802, MultiTexGendEXT_remap_index },
-   { 50826, MultiTexGendvEXT_remap_index },
-   { 50851, MultiTexGenfEXT_remap_index },
-   { 50875, MultiTexGenfvEXT_remap_index },
-   { 50900, MultiTexGeniEXT_remap_index },
-   { 50924, MultiTexGenivEXT_remap_index },
-   { 50949, GetMultiTexGendvEXT_remap_index },
-   { 50977, GetMultiTexGenfvEXT_remap_index },
-   { 51005, GetMultiTexGenivEXT_remap_index },
-   { 51033, MultiTexCoordPointerEXT_remap_index },
-   { 52410, BindImageTextureEXT_remap_index },
-   { 51186, CompressedTextureImage1DEXT_remap_index },
-   { 51226, CompressedTextureImage2DEXT_remap_index },
-   { 51267, CompressedTextureImage3DEXT_remap_index },
-   { 51309, CompressedTextureSubImage1DEXT_remap_index },
-   { 51352, CompressedTextureSubImage2DEXT_remap_index },
-   { 51397, CompressedTextureSubImage3DEXT_remap_index },
-   { 51444, GetCompressedTextureImageEXT_remap_index },
-   { 51481, CompressedMultiTexImage1DEXT_remap_index },
-   { 51522, CompressedMultiTexImage2DEXT_remap_index },
-   { 51564, CompressedMultiTexImage3DEXT_remap_index },
-   { 51607, CompressedMultiTexSubImage1DEXT_remap_index },
-   { 51651, CompressedMultiTexSubImage2DEXT_remap_index },
-   { 51697, CompressedMultiTexSubImage3DEXT_remap_index },
-   { 51745, GetCompressedMultiTexImageEXT_remap_index },
-   { 50328, GetMultiTexLevelParameterivEXT_remap_index },
-   { 50368, GetMultiTexLevelParameterfvEXT_remap_index },
+   { 52099, MapNamedBufferRangeEXT_remap_index },
+   { 49444, TextureImage1DEXT_remap_index },
+   { 49475, TextureImage2DEXT_remap_index },
+   { 49507, TextureImage3DEXT_remap_index },
+   { 49540, TextureSubImage1DEXT_remap_index },
+   { 49573, TextureSubImage2DEXT_remap_index },
+   { 49608, TextureSubImage3DEXT_remap_index },
+   { 49645, CopyTextureImage1DEXT_remap_index },
+   { 49679, CopyTextureImage2DEXT_remap_index },
+   { 49714, CopyTextureSubImage1DEXT_remap_index },
+   { 49750, CopyTextureSubImage2DEXT_remap_index },
+   { 49788, CopyTextureSubImage3DEXT_remap_index },
+   { 51935, MapNamedBufferEXT_remap_index },
+   { 49182, GetTextureParameterivEXT_remap_index },
+   { 49215, GetTextureParameterfvEXT_remap_index },
+   { 49326, TextureParameteriEXT_remap_index },
+   { 49355, TextureParameterivEXT_remap_index },
+   { 49385, TextureParameterfEXT_remap_index },
+   { 49414, TextureParameterfvEXT_remap_index },
+   { 49827, GetTextureImageEXT_remap_index },
+   { 49248, GetTextureLevelParameterivEXT_remap_index },
+   { 49287, GetTextureLevelParameterfvEXT_remap_index },
+   { 51959, GetNamedBufferSubDataEXT_remap_index },
+   { 51992, GetNamedBufferPointervEXT_remap_index },
+   { 52025, GetNamedBufferParameterivEXT_remap_index },
+   { 52061, FlushMappedNamedBufferRangeEXT_remap_index },
+   { 52130, FramebufferDrawBufferEXT_remap_index },
+   { 52161, FramebufferDrawBuffersEXT_remap_index },
+   { 52194, FramebufferReadBufferEXT_remap_index },
+   { 52225, GetFramebufferParameterivEXT_remap_index },
+   { 52261, CheckNamedFramebufferStatusEXT_remap_index },
+   { 52298, NamedFramebufferTexture1DEXT_remap_index },
+   { 52336, NamedFramebufferTexture2DEXT_remap_index },
+   { 52374, NamedFramebufferTexture3DEXT_remap_index },
+   { 52413, NamedFramebufferRenderbufferEXT_remap_index },
+   { 52453, GetNamedFramebufferAttachmentParameterivEXT_remap_index },
+   { 49883, EnableClientStateiEXT_remap_index },
+   { 49941, DisableClientStateiEXT_remap_index },
+   { 50001, GetPointerIndexedvEXT_remap_index },
+   { 50049, MultiTexEnviEXT_remap_index },
+   { 50073, MultiTexEnvivEXT_remap_index },
+   { 50098, MultiTexEnvfEXT_remap_index },
+   { 50122, MultiTexEnvfvEXT_remap_index },
+   { 50147, GetMultiTexEnvivEXT_remap_index },
+   { 50175, GetMultiTexEnvfvEXT_remap_index },
+   { 50203, MultiTexParameteriEXT_remap_index },
+   { 50233, MultiTexParameterivEXT_remap_index },
+   { 50264, MultiTexParameterfEXT_remap_index },
+   { 50294, MultiTexParameterfvEXT_remap_index },
+   { 50393, GetMultiTexImageEXT_remap_index },
+   { 50503, MultiTexImage1DEXT_remap_index },
+   { 50535, MultiTexImage2DEXT_remap_index },
+   { 50568, MultiTexImage3DEXT_remap_index },
+   { 50602, MultiTexSubImage1DEXT_remap_index },
+   { 50636, MultiTexSubImage2DEXT_remap_index },
+   { 50672, MultiTexSubImage3DEXT_remap_index },
+   { 50325, GetMultiTexParameterivEXT_remap_index },
+   { 50359, GetMultiTexParameterfvEXT_remap_index },
+   { 50710, CopyMultiTexImage1DEXT_remap_index },
+   { 50745, CopyMultiTexImage2DEXT_remap_index },
+   { 50781, CopyMultiTexSubImage1DEXT_remap_index },
+   { 50818, CopyMultiTexSubImage2DEXT_remap_index },
+   { 50857, CopyMultiTexSubImage3DEXT_remap_index },
+   { 50897, MultiTexGendEXT_remap_index },
+   { 50921, MultiTexGendvEXT_remap_index },
+   { 50946, MultiTexGenfEXT_remap_index },
+   { 50970, MultiTexGenfvEXT_remap_index },
+   { 50995, MultiTexGeniEXT_remap_index },
+   { 51019, MultiTexGenivEXT_remap_index },
+   { 51044, GetMultiTexGendvEXT_remap_index },
+   { 51072, GetMultiTexGenfvEXT_remap_index },
+   { 51100, GetMultiTexGenivEXT_remap_index },
+   { 51128, MultiTexCoordPointerEXT_remap_index },
+   { 54136, BindImageTextureEXT_remap_index },
+   { 51281, CompressedTextureImage1DEXT_remap_index },
+   { 51321, CompressedTextureImage2DEXT_remap_index },
+   { 51362, CompressedTextureImage3DEXT_remap_index },
+   { 51404, CompressedTextureSubImage1DEXT_remap_index },
+   { 51447, CompressedTextureSubImage2DEXT_remap_index },
+   { 51492, CompressedTextureSubImage3DEXT_remap_index },
+   { 51539, GetCompressedTextureImageEXT_remap_index },
+   { 51576, CompressedMultiTexImage1DEXT_remap_index },
+   { 51617, CompressedMultiTexImage2DEXT_remap_index },
+   { 51659, CompressedMultiTexImage3DEXT_remap_index },
+   { 51702, CompressedMultiTexSubImage1DEXT_remap_index },
+   { 51746, CompressedMultiTexSubImage2DEXT_remap_index },
+   { 51792, CompressedMultiTexSubImage3DEXT_remap_index },
+   { 51840, GetCompressedMultiTexImageEXT_remap_index },
+   { 50423, GetMultiTexLevelParameterivEXT_remap_index },
+   { 50463, GetMultiTexLevelParameterfvEXT_remap_index },
+   { 61005, FramebufferParameteriMESA_remap_index },
+   { 61038, GetFramebufferParameterivMESA_remap_index },
+   { 52505, NamedRenderbufferStorageEXT_remap_index },
+   { 52541, GetNamedRenderbufferParameterivEXT_remap_index },
+   { 49122, ClientAttribDefaultEXT_remap_index },
+   { 49150, PushClientAttribDefaultEXT_remap_index },
+   { 53427, NamedProgramStringEXT_remap_index },
+   { 53458, GetNamedProgramStringEXT_remap_index },
+   { 53491, NamedProgramLocalParameter4fEXT_remap_index },
+   { 53534, NamedProgramLocalParameter4fvEXT_remap_index },
+   { 53575, GetNamedProgramLocalParameterfvEXT_remap_index },
+   { 53618, NamedProgramLocalParameter4dEXT_remap_index },
+   { 53661, NamedProgramLocalParameter4dvEXT_remap_index },
+   { 53702, GetNamedProgramLocalParameterdvEXT_remap_index },
+   { 53745, GetNamedProgramivEXT_remap_index },
+   { 53774, TextureBufferEXT_remap_index },
+   { 53799, MultiTexBufferEXT_remap_index },
+   { 53825, TextureParameterIivEXT_remap_index },
+   { 53856, TextureParameterIuivEXT_remap_index },
+   { 53888, GetTextureParameterIivEXT_remap_index },
+   { 53922, GetTextureParameterIuivEXT_remap_index },
+   { 53957, MultiTexParameterIivEXT_remap_index },
+   { 53989, MultiTexParameterIuivEXT_remap_index },
+   { 54022, GetMultiTexParameterIivEXT_remap_index },
+   { 54057, GetMultiTexParameterIuivEXT_remap_index },
+   { 54093, NamedProgramLocalParameters4fvEXT_remap_index },
+   { 52583, GenerateTextureMipmapEXT_remap_index },
+   { 52614, GenerateMultiTexMipmapEXT_remap_index },
+   { 52646, NamedRenderbufferStorageMultisampleEXT_remap_index },
+   { 52694, NamedCopyBufferSubDataEXT_remap_index },
+   { 52729, VertexArrayVertexOffsetEXT_remap_index },
+   { 52766, VertexArrayColorOffsetEXT_remap_index },
+   { 52802, VertexArrayEdgeFlagOffsetEXT_remap_index },
+   { 52839, VertexArrayIndexOffsetEXT_remap_index },
+   { 52874, VertexArrayNormalOffsetEXT_remap_index },
+   { 52910, VertexArrayTexCoordOffsetEXT_remap_index },
+   { 52949, VertexArrayMultiTexCoordOffsetEXT_remap_index },
+   { 52994, VertexArrayFogCoordOffsetEXT_remap_index },
+   { 53032, VertexArraySecondaryColorOffsetEXT_remap_index },
+   { 53077, VertexArrayVertexAttribOffsetEXT_remap_index },
+   { 53122, VertexArrayVertexAttribIOffsetEXT_remap_index },
+   { 53167, EnableVertexArrayEXT_remap_index },
+   { 53194, DisableVertexArrayEXT_remap_index },
+   { 53222, EnableVertexArrayAttribEXT_remap_index },
+   { 53255, DisableVertexArrayAttribEXT_remap_index },
+   { 53289, GetVertexArrayIntegervEXT_remap_index },
+   { 53322, GetVertexArrayPointervEXT_remap_index },
+   { 53355, GetVertexArrayIntegeri_vEXT_remap_index },
+   { 53391, GetVertexArrayPointeri_vEXT_remap_index },
    {    -1, -1 }
 };
 

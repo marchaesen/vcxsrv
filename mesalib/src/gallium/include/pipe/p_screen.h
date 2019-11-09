@@ -500,6 +500,17 @@ struct pipe_screen {
                              struct pipe_resource *resource,
                              unsigned int nrects,
                              const struct pipe_box *rects);
+
+   /**
+    * Run driver-specific NIR lowering and optimization passes.
+    *
+    * State trackers should call this before passing shaders to drivers,
+    * and ideally also before shader caching.
+    *
+    * \param optimize  Whether the input shader hasn't been optimized and
+    *                  should be.
+    */
+   void (*finalize_nir)(struct pipe_screen *screen, void *nir, bool optimize);
 };
 
 

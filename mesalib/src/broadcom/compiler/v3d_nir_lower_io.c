@@ -45,7 +45,7 @@ struct v3d_nir_lower_io_state {
         int psiz_vpm_offset;
         int varyings_vpm_offset;
 
-        BITSET_WORD varyings_stored[BITSET_WORDS(V3D_MAX_FS_INPUTS)];
+        BITSET_WORD varyings_stored[BITSET_WORDS(V3D_MAX_ANY_STAGE_INPUTS)];
 
         nir_ssa_def *pos[4];
 };
@@ -91,8 +91,8 @@ v3d_varying_slot_vpm_offset(struct v3d_compile *c, nir_variable *var, int chan)
 {
         int component = var->data.location_frac + chan;
 
-        for (int i = 0; i < c->vs_key->num_fs_inputs; i++) {
-                struct v3d_varying_slot slot = c->vs_key->fs_inputs[i];
+        for (int i = 0; i < c->vs_key->num_used_outputs; i++) {
+                struct v3d_varying_slot slot = c->vs_key->used_outputs[i];
 
                 if (v3d_slot_get_slot(slot) == var->data.location &&
                     v3d_slot_get_component(slot) == component) {
@@ -255,7 +255,7 @@ v3d_nir_setup_vpm_layout(struct v3d_compile *c,
 
         state->varyings_vpm_offset = vpm_offset;
 
-        c->vpm_output_size = vpm_offset + c->vs_key->num_fs_inputs;
+        c->vpm_output_size = vpm_offset + c->vs_key->num_used_outputs;
 }
 
 static void
@@ -306,7 +306,7 @@ v3d_nir_emit_ff_vpm_outputs(struct v3d_compile *c, nir_builder *b,
          * This should be undefined behavior, but glsl-routing seems to rely
          * on it.
          */
-        for (int i = 0; i < c->vs_key->num_fs_inputs; i++) {
+        for (int i = 0; i < c->vs_key->num_used_outputs; i++) {
                 if (!BITSET_TEST(state->varyings_stored, i)) {
                         v3d_nir_store_output(b, state->varyings_vpm_offset + i,
                                              nir_imm_int(b, 0));

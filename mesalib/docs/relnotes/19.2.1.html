@@ -1,0 +1,159 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<title>Mesa Release Notes</title>
+<link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+<h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 19.2.1 Release Notes / 2019-10-09</h1>
+
+<p>
+    Mesa 19.2.1 is a bug fix release which fixes bugs found since the 19.2.0 release.
+</p>
+<p>
+Mesa 19.2.1 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5. OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+<p>
+Mesa 19.2.1 implements the Vulkan 1.1 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+</p>
+
+<h2>SHA256 checksum</h2>
+<pre>
+    4cc53ca1a8d12c6ff0e5ea44a5213c05c88447ab50d7e28bb350cd29199f01e9  mesa-19.2.1.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+
+<ul>
+    <li>None</li>
+</ul>
+
+<h2>Bug fixes</h2>
+
+<ul>
+    <li>meson.build:1447:6: ERROR: Problem encountered: libdrm required for gallium video statetrackers when using x11</li>
+    <li>Mesa doesn't build with current Scons version (3.1.0)</li>
+    <li>libXvMC-1.0.12  breaks mesa build</li>
+    <li>Meson can't find 32-bit libXvMCW in non-standard path</li>
+    <li>Mesa installs gl.pc and egl.pc even with libglvnd >= 1.2.0</li>
+</ul>
+
+<h2>Changes</h2>
+
+<ul>
+    <p>Andreas Gottschling (1):</p>
+    <li>      drisw: Fix shared memory leak on drawable resize</li>
+    <p></p>
+    <p>Andres Gomez (1):</p>
+    <li>      egl: Remove the 565 pbuffer-only EGL config under X11.</li>
+    <p></p>
+    <p>Andrii Simiklit (1):</p>
+    <li>      glsl: disallow incompatible matrices multiplication</li>
+    <p></p>
+    <p>Bas Nieuwenhuizen (1):</p>
+    <li>      radv: Fix condition for skipping the continue CS.</li>
+    <p></p>
+    <p>Connor Abbott (1):</p>
+    <li>      nir/opt_large_constants: Handle store writemasks</li>
+    <p></p>
+    <p>Danylo Piliaiev (1):</p>
+    <li>      st/nine: Ignore D3DSIO_RET if it is the last instruction in a shader</li>
+    <p></p>
+    <p>Dylan Baker (9):</p>
+    <li>      meson: fix logic for generating .pc files with old glvnd</li>
+    <li>      meson: Try finding libxvmcw via pkg-config before using find_library</li>
+    <li>      meson: Link xvmc with libxv</li>
+    <li>      meson: gallium media state trackers require libdrm with x11</li>
+    <li>      .cherry-ignore: Update for 19.2.1 cycle</li>
+    <li>      meson: Only error building gallium video without libdrm when the platform is drm</li>
+    <li>      scripts: Add a gen_release_notes.py script</li>
+    <li>      release: Add an update_release_calendar.py script</li>
+    <li>      bin: delete unused releasing scripts</li>
+    <p></p>
+    <p>Eric Engestrom (3):</p>
+    <li>      radv: fix s/load/store/ copy-paste typo</li>
+    <li>      meson: drop -Wno-foo bug workaround for Meson < 0.46</li>
+    <li>      meson: add missing idep_nir_headers in iris_gen_libs</li>
+    <p></p>
+    <p>Erik Faye-Lund (1):</p>
+    <li>      glsl: correct bitcast-helpers</li>
+    <p></p>
+    <p>Ian Romanick (1):</p>
+    <li>      nir/range-analysis: Bail if the types don't match</li>
+    <p></p>
+    <p>Jason Ekstrand (1):</p>
+    <li>      intel/fs: Fix fs_inst::flags_read for ANY/ALL predicates</li>
+    <p></p>
+    <p>Ken Mays (1):</p>
+    <li>      haiku: fix Mesa build</li>
+    <p></p>
+    <p>Kenneth Graunke (2):</p>
+    <li>      iris: Disable CCS_E for 32-bit floating point textures.</li>
+    <li>      iris: Fix iris_rebind_buffer() for VBOs with non-zero offsets.</li>
+    <p></p>
+    <p>Lionel Landwerlin (6):</p>
+    <li>      anv: gem-stubs: return a valid fd got anv_gem_userptr()</li>
+    <li>      intel: use proper label for Comet Lake skus</li>
+    <li>      mesa: don't forget to clear _Layer field on texture unit</li>
+    <li>      intel: fix topology query</li>
+    <li>      intel: fix subslice computation from topology data</li>
+    <li>      intel/isl: Set null surface format to R32_UINT</li>
+    <p></p>
+    <p>Marek Olšák (7):</p>
+    <li>      gallium/vl: don't set PIPE_HANDLE_USAGE_EXPLICIT_FLUSH</li>
+    <li>      gallium: extend resource_get_param to be as capable as resource_get_handle</li>
+    <li>      radeonsi/gfx10: fix L2 cache rinse programming</li>
+    <li>      ac: fix incorrect vram_size reported by the kernel</li>
+    <li>      ac: fix num_good_cu_per_sh for harvested chips</li>
+    <li>      ac: add radeon_info::tcc_harvested</li>
+    <li>      radeonsi/gfx10: fix corruption for chips with harvested TCCs</li>
+    <p></p>
+    <p>Mauro Rossi (1):</p>
+    <li>      android: compiler/nir: build nir_divergence_analysis.c</li>
+    <p></p>
+    <p>Michel Dänzer (1):</p>
+    <li>      radeonsi: fix VAAPI segfault due to various bugs</li>
+    <p></p>
+    <p>Michel Zou (1):</p>
+    <li>      scons: add py3 support</li>
+    <p></p>
+    <p>Prodea Alexandru-Liviu (1):</p>
+    <li>      scons/MSYS2-MinGW-W64: Fix build options defaults</li>
+    <p></p>
+    <p>Rhys Perry (1):</p>
+    <li>      nir/opt_remove_phis: handle phis with no sources</li>
+    <p></p>
+    <p>Stephen Barber (1):</p>
+    <li>      nouveau: add idep_nir_headers as dep for libnouveau</li>
+    <p></p>
+    <p>Tapani Pälli (2):</p>
+    <li>      iris: disable aux on first get_param if not created with aux</li>
+    <li>      anv/android: fix images created with external format support</li>
+    <p></p>
+    <p>pal1000 (2):</p>
+    <li>      scons: Fix MSYS2 Mingw-w64 build.</li>
+    <li>      scons/windows: Support build with LLVM 9.</li>
+    <p></p>
+    <p></p>
+</ul>
+
+</div>
+</body>
+</html>

@@ -409,16 +409,26 @@ typedef enum {
 
         /* val in r27.y, address embedded, outputs result to argument. Invert val for sub. Let val = +-1 for inc/dec. */
         midgard_op_atomic_add = 0x40,
+        midgard_op_atomic_add64 = 0x41,
+
         midgard_op_atomic_and = 0x44,
+        midgard_op_atomic_and64 = 0x45,
         midgard_op_atomic_or = 0x48,
+        midgard_op_atomic_or64 = 0x49,
         midgard_op_atomic_xor = 0x4C,
+        midgard_op_atomic_xor64 = 0x4D,
 
         midgard_op_atomic_imin = 0x50,
+        midgard_op_atomic_imin64 = 0x51,
         midgard_op_atomic_umin = 0x54,
+        midgard_op_atomic_umin64 = 0x55,
         midgard_op_atomic_imax = 0x58,
+        midgard_op_atomic_imax64 = 0x59,
         midgard_op_atomic_umax = 0x5C,
+        midgard_op_atomic_umax64 = 0x5D,
 
         midgard_op_atomic_xchg = 0x60,
+        midgard_op_atomic_xchg64 = 0x61,
 
         /* Used for compute shader's __global arguments, __local variables (or
          * for register spilling) */

@@ -115,6 +115,8 @@ try_lower_input_load(nir_function_impl *impl, nir_intrinsic_instr *load,
       tex->src[3].src = load->src[2];
    }
 
+   tex->texture_non_uniform = nir_intrinsic_access(load) & ACCESS_NON_UNIFORM;
+
    nir_ssa_dest_init(&tex->instr, &tex->dest, 4, 32, NULL);
    nir_builder_instr_insert(&b, &tex->instr);
 

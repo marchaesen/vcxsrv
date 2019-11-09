@@ -39,6 +39,11 @@ lower_impl(nir_function_impl *impl)
                              glsl_vec4_type(), "edgeflag_in");
    in->data.location = VERT_ATTRIB_EDGEFLAG;
 
+   /* The edge flag is the last input in st/mesa. */
+   assert(shader->num_inputs == util_bitcount64(shader->info.inputs_read));
+   in->data.driver_location = shader->num_inputs++;
+   shader->info.inputs_read |= BITFIELD64_BIT(VERT_ATTRIB_EDGEFLAG);
+
    out = nir_variable_create(shader, nir_var_shader_out,
                              glsl_vec4_type(), "edgeflag_out");
    out->data.location = VARYING_SLOT_EDGE;

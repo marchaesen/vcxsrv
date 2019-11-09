@@ -49,6 +49,7 @@ SUBDIRS += winsys/etnaviv/drm drivers/etnaviv drivers/renderonly
 SUBDIRS += state_trackers/dri
 SUBDIRS += winsys/iris/drm drivers/iris
 SUBDIRS += winsys/lima/drm drivers/lima
+SUBDIRS += winsys/panfrost/drm drivers/panfrost
 
 # sort to eliminate any duplicates
 INC_DIRS := $(call all-named-subdir-makefiles,$(sort $(SUBDIRS)))

@@ -1105,6 +1105,10 @@ PanoramiXCopyArea(ClientPtr client)
                                    DixGetAttrAccess);
             if (rc != Success)
                 return rc;
+            drawables[j]->pScreen->SourceValidate(drawables[j], 0, 0,
+                                                  drawables[j]->width,
+                                                  drawables[j]->height,
+                                                  IncludeInferiors);
         }
 
         pitch = PixmapBytePad(width, drawables[0]->depth);
@@ -2006,6 +2010,12 @@ PanoramiXGetImage(ClientPtr client)
                                DixGetAttrAccess);
         if (rc != Success)
             return rc;
+    }
+    FOR_NSCREENS_FORWARD(i) {
+        drawables[i]->pScreen->SourceValidate(drawables[i], 0, 0,
+                                              drawables[i]->width,
+                                              drawables[i]->height,
+                                              IncludeInferiors);
     }
 
     xgi = (xGetImageReply) {

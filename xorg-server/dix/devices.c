@@ -59,7 +59,6 @@ SOFTWARE.
 #include "cursorstr.h"
 #include "dixstruct.h"
 #include "ptrveloc.h"
-#include "site.h"
 #include "xkbsrv.h"
 #include "privates.h"
 #include "xace.h"
@@ -2658,7 +2657,7 @@ GetPairedDevice(DeviceIntPtr dev)
     if (!IsMaster(dev) && !IsFloating(dev))
         dev = GetMaster(dev, MASTER_ATTACHED);
 
-    return dev->spriteInfo->paired;
+    return dev->spriteInfo? dev->spriteInfo->paired: NULL;
 }
 
 /**

@@ -27,6 +27,7 @@
 #include "util/u_math.h"
 
 #include "ir3.h"
+#include "ir3_shader.h"
 
 /*
  * Instruction Depth:
@@ -171,7 +172,7 @@ remove_unused_by_block(struct ir3_block *block)
 {
 	bool progress = false;
 	list_for_each_entry_safe (struct ir3_instruction, instr, &block->instr_list, node) {
-		if (instr->opc == OPC_END)
+		if (instr->opc == OPC_END || instr->opc == OPC_CHSH || instr->opc == OPC_CHMASK)
 			continue;
 		if (instr->flags & IR3_INSTR_UNUSED) {
 			if (instr->opc == OPC_META_FO) {
@@ -209,7 +210,7 @@ remove_unused_by_block(struct ir3_block *block)
 }
 
 static bool
-compute_depth_and_remove_unused(struct ir3 *ir)
+compute_depth_and_remove_unused(struct ir3 *ir, struct ir3_shader_variant *so)
 {
 	unsigned i;
 	bool progress = false;
@@ -221,6 +222,13 @@ compute_depth_and_remove_unused(struct ir3 *ir)
 	 */
 	list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
 		list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
+			/* special case, if pre-fs texture fetch used, we cannot
+			 * eliminate the barycentric i/j input
+			 */
+			if (so->num_sampler_prefetch &&
+					(instr->opc == OPC_META_INPUT) &&
+					(instr->input.sysval == SYSTEM_VALUE_BARYCENTRIC_PIXEL))
+				continue;
 			instr->flags |= IR3_INSTR_UNUSED;
 		}
 	}
@@ -263,10 +271,10 @@ compute_depth_and_remove_unused(struct ir3 *ir)
 }
 
 void
-ir3_depth(struct ir3 *ir)
+ir3_depth(struct ir3 *ir, struct ir3_shader_variant *so)
 {
 	bool progress;
 	do {
-		progress = compute_depth_and_remove_unused(ir);
+		progress = compute_depth_and_remove_unused(ir, so);
 	} while (progress);
 }

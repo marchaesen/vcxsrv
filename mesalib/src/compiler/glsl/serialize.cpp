@@ -568,23 +568,48 @@ enum uniform_remap_type
 {
    remap_type_inactive_explicit_location,
    remap_type_null_ptr,
-   remap_type_uniform_offset
+   remap_type_uniform_offset,
+   remap_type_uniform_offsets_equal,
 };
 
 static void
-write_uniform_remap_table_entry(struct blob *metadata,
-                                gl_uniform_storage *uniform_storage,
-                                gl_uniform_storage *entry)
+write_uniform_remap_table(struct blob *metadata,
+                          unsigned num_entries,
+                          gl_uniform_storage *uniform_storage,
+                          gl_uniform_storage **remap_table)
 {
-   if (entry == INACTIVE_UNIFORM_EXPLICIT_LOCATION) {
-      blob_write_uint32(metadata, remap_type_inactive_explicit_location);
-   } else if (entry == NULL) {
-      blob_write_uint32(metadata, remap_type_null_ptr);
-   } else {
-      blob_write_uint32(metadata, remap_type_uniform_offset);
+   blob_write_uint32(metadata, num_entries);
 
+   for (unsigned i = 0; i < num_entries; i++) {
+      gl_uniform_storage *entry = remap_table[i];
       uint32_t offset = entry - uniform_storage;
-      blob_write_uint32(metadata, offset);
+
+      if (entry == INACTIVE_UNIFORM_EXPLICIT_LOCATION) {
+         blob_write_uint32(metadata, remap_type_inactive_explicit_location);
+      } else if (entry == NULL) {
+         blob_write_uint32(metadata, remap_type_null_ptr);
+      } else if (i+1 < num_entries && entry == remap_table[i+1]) {
+         blob_write_uint32(metadata, remap_type_uniform_offsets_equal);
+
+         /* If many offsets are equal, write only one offset and the number
+          * of consecutive entries being equal.
+          */
+         unsigned count = 1;
+         for (unsigned j = i + 1; j < num_entries; j++) {
+            if (entry != remap_table[j])
+               break;
+
+            count++;
+         }
+
+         blob_write_uint32(metadata, offset);
+         blob_write_uint32(metadata, count);
+         i += count - 1;
+      } else {
+         blob_write_uint32(metadata, remap_type_uniform_offset);
+
+         blob_write_uint32(metadata, offset);
+      }
    }
 }
 
@@ -592,80 +617,74 @@ static void
 write_uniform_remap_tables(struct blob *metadata,
                            struct gl_shader_program *prog)
 {
-   blob_write_uint32(metadata, prog->NumUniformRemapTable);
-
-   for (unsigned i = 0; i < prog->NumUniformRemapTable; i++) {
-      write_uniform_remap_table_entry(metadata, prog->data->UniformStorage,
-                                      prog->UniformRemapTable[i]);
-   }
+   write_uniform_remap_table(metadata, prog->NumUniformRemapTable,
+                             prog->data->UniformStorage,
+                             prog->UniformRemapTable);
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_linked_shader *sh = prog->_LinkedShaders[i];
       if (sh) {
-         struct gl_program *glprog = sh->Program;
-         blob_write_uint32(metadata, glprog->sh.NumSubroutineUniformRemapTable);
-
-         for (unsigned j = 0; j < glprog->sh.NumSubroutineUniformRemapTable; j++) {
-            write_uniform_remap_table_entry(metadata,
-                                            prog->data->UniformStorage,
-                                            glprog->sh.SubroutineUniformRemapTable[j]);
-         }
+         write_uniform_remap_table(metadata,
+                                   sh->Program->sh.NumSubroutineUniformRemapTable,
+                                   prog->data->UniformStorage,
+                                   sh->Program->sh.SubroutineUniformRemapTable);
       }
    }
 }
 
-static void
-read_uniform_remap_table_entry(struct blob_reader *metadata,
-                               gl_uniform_storage *uniform_storage,
-                               gl_uniform_storage **entry,
-                               enum uniform_remap_type type)
+static struct gl_uniform_storage **
+read_uniform_remap_table(struct blob_reader *metadata,
+                         struct gl_shader_program *prog,
+                         unsigned *num_entries,
+                         gl_uniform_storage *uniform_storage)
 {
-   if (type == remap_type_inactive_explicit_location) {
-      *entry = INACTIVE_UNIFORM_EXPLICIT_LOCATION;
-   } else if (type == remap_type_null_ptr) {
-      *entry = NULL;
-   } else {
-      uint32_t uni_offset = blob_read_uint32(metadata);
-      *entry = uniform_storage + uni_offset;
+   unsigned num = blob_read_uint32(metadata);
+   *num_entries = num;
+
+   struct gl_uniform_storage **remap_table =
+      rzalloc_array(prog, struct gl_uniform_storage *, num);
+
+   for (unsigned i = 0; i < num; i++) {
+      enum uniform_remap_type type =
+         (enum uniform_remap_type) blob_read_uint32(metadata);
+
+      if (type == remap_type_inactive_explicit_location) {
+         remap_table[i] = INACTIVE_UNIFORM_EXPLICIT_LOCATION;
+      } else if (type == remap_type_null_ptr) {
+         remap_table[i] = NULL;
+      } else if (type == remap_type_uniform_offsets_equal) {
+         uint32_t uni_offset = blob_read_uint32(metadata);
+         uint32_t count = blob_read_uint32(metadata);
+         struct gl_uniform_storage *entry = uniform_storage + uni_offset;
+
+         for (unsigned j = 0; j < count; j++)
+            remap_table[i+j] = entry;
+         i += count - 1;
+      } else {
+         uint32_t uni_offset = blob_read_uint32(metadata);
+         remap_table[i] = uniform_storage + uni_offset;
+      }
    }
+   return remap_table;
 }
 
 static void
 read_uniform_remap_tables(struct blob_reader *metadata,
                           struct gl_shader_program *prog)
 {
-   prog->NumUniformRemapTable = blob_read_uint32(metadata);
-
-   prog->UniformRemapTable = rzalloc_array(prog, struct gl_uniform_storage *,
-                                           prog->NumUniformRemapTable);
-
-   for (unsigned i = 0; i < prog->NumUniformRemapTable; i++) {
-      enum uniform_remap_type type =
-         (enum uniform_remap_type) blob_read_uint32(metadata);
-
-      read_uniform_remap_table_entry(metadata, prog->data->UniformStorage,
-                                     &prog->UniformRemapTable[i], type);
-   }
+   prog->UniformRemapTable =
+      read_uniform_remap_table(metadata, prog, &prog->NumUniformRemapTable,
+                               prog->data->UniformStorage);
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
       struct gl_linked_shader *sh = prog->_LinkedShaders[i];
       if (sh) {
          struct gl_program *glprog = sh->Program;
-         glprog->sh.NumSubroutineUniformRemapTable = blob_read_uint32(metadata);
 
          glprog->sh.SubroutineUniformRemapTable =
-            rzalloc_array(glprog, struct gl_uniform_storage *,
-                          glprog->sh.NumSubroutineUniformRemapTable);
-
-         for (unsigned j = 0; j < glprog->sh.NumSubroutineUniformRemapTable; j++) {
-            enum uniform_remap_type type =
-               (enum uniform_remap_type) blob_read_uint32(metadata);
-
-            read_uniform_remap_table_entry(metadata,
-                                           prog->data->UniformStorage,
-                                           &glprog->sh.SubroutineUniformRemapTable[j],
-                                           type);
-         }
+            read_uniform_remap_table(metadata, prog,
+                                     &glprog->sh.NumSubroutineUniformRemapTable,
+                                     prog->data->UniformStorage);
       }
    }
 }

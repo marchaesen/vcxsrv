@@ -410,4 +410,7 @@ v3d40_vir_emit_image_load_store(struct v3d_compile *c,
 
         if (nir_intrinsic_dest_components(instr) == 0)
                 vir_TMUWT(c);
+
+        if (instr->intrinsic != nir_intrinsic_image_deref_load)
+                c->tmu_dirty_rcl = true;
 }

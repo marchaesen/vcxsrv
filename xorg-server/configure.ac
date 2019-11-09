@@ -571,7 +571,6 @@ AC_ARG_ENABLE(config-hal,     AS_HELP_STRING([--disable-config-hal], [Build HAL 
 AC_ARG_ENABLE(config-wscons,  AS_HELP_STRING([--enable-config-wscons], [Build wscons config support (default: auto)]), [CONFIG_WSCONS=$enableval], [CONFIG_WSCONS=auto])
 AC_ARG_ENABLE(xfree86-utils,     AS_HELP_STRING([--enable-xfree86-utils], [Build xfree86 DDX utilities (default: enabled)]), [XF86UTILS=$enableval], [XF86UTILS=yes])
 AC_ARG_ENABLE(vgahw,          AS_HELP_STRING([--enable-vgahw], [Build Xorg with vga access (default: enabled)]), [VGAHW=$enableval], [VGAHW=yes])
-AC_ARG_ENABLE(vbe,            AS_HELP_STRING([--enable-vbe], [Build Xorg with VBE module (default: enabled)]), [VBE=$enableval], [VBE=yes])
 AC_ARG_ENABLE(int10-module,     AS_HELP_STRING([--enable-int10-module], [Build Xorg with int10 module (default: enabled)]), [INT10MODULE=$enableval], [INT10MODULE=yes])
 AC_ARG_ENABLE(windowsdri,     AS_HELP_STRING([--enable-windowsdri], [Build XWin with WindowsDRI extension (default: auto)]), [WINDOWSDRI=$enableval], [WINDOWSDRI=auto])
 AC_ARG_ENABLE(libdrm,         AS_HELP_STRING([--enable-libdrm], [Build Xorg with libdrm support (default: enabled)]), [DRM=$enableval],[DRM=yes])
@@ -662,7 +661,6 @@ case $host_os in
 		INT10MODULE=no
 		PCI=no
 		VGAHW=no
-		VBE=no
 		XF86UTILS=no
 		XF86VIDMODE=no
 		XSELINUX=no
@@ -672,7 +670,6 @@ case $host_os in
 		PCI=no
 		INT10MODULE=no
 		VGAHW=no
-		VBE=no
 		DRM=no
 		DRI2=no
 		DRI3=no
@@ -763,7 +760,7 @@ LIBDRI="dri >= 7.8.0"
 LIBDRM="libdrm >= 2.4.89"
 LIBEGL="egl"
 LIBGBM="gbm >= 10.2.0"
-LIBGL="gl >= 7.1.0"
+LIBGL="gl >= 1.2"
 LIBXEXT="xext >= 1.0.99.4"
 LIBXFONT="xfont2 >= 2.0.0"
 LIBXI="xi >= 1.2.99.1"
@@ -1118,7 +1115,7 @@ case "$DRI2,$HAVE_DRI2PROTO" in
 	yes,yes | auto,yes)
 		AC_DEFINE(DRI2, 1, [Build DRI2 extension])
 		DRI2=yes
-		LIBGL="gl >= 9.2.0"
+		LIBGL="gl >= 1.2"
 		SDK_REQUIRED_MODULES="$SDK_REQUIRED_MODULES $DRI2PROTO"
 		;;
 esac
@@ -1240,7 +1237,7 @@ esac
 
 AM_CONDITIONAL(DRI3, test "x$DRI3" = xyes)
 
-if test "x$DRI" = xyes || test "x$DRI2" = xyes || test "x$DRI3" = xyes || test "x$CONFIG_UDEV_KMS" = xyes; then
+if test "x$DRI" = xyes || test "x$DRI2" = xyes || test "x$DRI3" = xyes || test "x$CONFIG_UDEV_KMS" = xyes || test "x$XORG" = xyes; then
 	if test "x$DRM" = xyes; then
 		AC_DEFINE(WITH_LIBDRM, 1, [Building with libdrm support])
 		PKG_CHECK_MODULES([LIBDRM], $LIBDRM)
@@ -1348,7 +1345,6 @@ XI_INC='-I$(top_srcdir)/Xi'
 
 AM_CONDITIONAL(XF86UTILS, test "x$XF86UTILS" = xyes)
 AM_CONDITIONAL(VGAHW, test "x$VGAHW" = xyes)
-AM_CONDITIONAL(VBE, test "x$VBE" = xyes)
 AM_CONDITIONAL(INT10MODULE, test "x$INT10MODULE" = xyes)
 
 AC_DEFINE(SHAPE, 1, [Support SHAPE extension])
@@ -2473,7 +2469,6 @@ hw/xfree86/os-support/stub/Makefile
 hw/xfree86/parser/Makefile
 hw/xfree86/ramdac/Makefile
 hw/xfree86/shadowfb/Makefile
-hw/xfree86/vbe/Makefile
 hw/xfree86/vgahw/Makefile
 hw/xfree86/x86emu/Makefile
 hw/xfree86/xkb/Makefile

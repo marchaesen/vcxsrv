@@ -262,7 +262,7 @@ static void radv_amdgpu_winsys_bo_destroy(struct radeon_winsys_bo *_bo)
 	} else {
 		if (bo->ws->debug_all_bos) {
 			pthread_mutex_lock(&bo->ws->global_bo_list_lock);
-			LIST_DEL(&bo->global_list_item);
+			list_del(&bo->global_list_item);
 			bo->ws->num_buffers--;
 			pthread_mutex_unlock(&bo->ws->global_bo_list_lock);
 		}
@@ -291,7 +291,7 @@ static void radv_amdgpu_add_buffer_to_global_list(struct radv_amdgpu_winsys_bo *
 
 	if (bo->ws->debug_all_bos) {
 		pthread_mutex_lock(&ws->global_bo_list_lock);
-		LIST_ADDTAIL(&bo->global_list_item, &ws->global_bo_list);
+		list_addtail(&bo->global_list_item, &ws->global_bo_list);
 		ws->num_buffers++;
 		pthread_mutex_unlock(&ws->global_bo_list_lock);
 	}
@@ -534,8 +534,7 @@ error:
 static struct radeon_winsys_bo *
 radv_amdgpu_winsys_bo_from_fd(struct radeon_winsys *_ws,
 			      int fd, unsigned priority,
-			      unsigned *stride,
-			      unsigned *offset)
+			      uint64_t *alloc_size)
 {
 	struct radv_amdgpu_winsys *ws = radv_amdgpu_winsys(_ws);
 	struct radv_amdgpu_winsys_bo *bo;
@@ -557,6 +556,10 @@ radv_amdgpu_winsys_bo_from_fd(struct radeon_winsys *_ws,
 	r = amdgpu_bo_query_info(result.buf_handle, &info);
 	if (r)
 		goto error_query;
+
+	if (alloc_size) {
+		*alloc_size = info.alloc_size;
+	}
 
 	r = amdgpu_va_range_alloc(ws->dev, amdgpu_gpu_va_range_general,
 				  result.alloc_size, 1 << 20, 0, &va, &va_handle,

@@ -32,7 +32,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <stdio.h>
 #include "Xlibint.h"
 #include "XKBlibint.h"
-#include <X11/extensions/XKBgeom.h>
+#include "X11/extensions/XKBgeom.h"
 #include <X11/extensions/XKBproto.h>
 #include "XKBlibint.h"
 

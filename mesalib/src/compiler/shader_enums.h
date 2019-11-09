@@ -27,7 +27,9 @@
 #define SHADER_ENUMS_H
 
 #include <stdbool.h>
-#include "mesa/main/config.h"
+
+/* Project-wide (GL and Vulkan) maximum. */
+#define MAX_DRAW_BUFFERS 8
 
 #ifdef __cplusplus
 extern "C" {
@@ -638,6 +640,13 @@ typedef enum
    SYSTEM_VALUE_BARYCENTRIC_SAMPLE,
    SYSTEM_VALUE_BARYCENTRIC_CENTROID,
    SYSTEM_VALUE_BARYCENTRIC_SIZE,
+
+   /**
+    * IR3 specific geometry shader system value that packs invocation id,
+    * thread id and vertex id.  Having this as a nir level system value lets
+    * us do the unpacking in nir.
+    */
+   SYSTEM_VALUE_GS_HEADER_IR3,
 
    SYSTEM_VALUE_MAX             /**< Number of values */
 } gl_system_value;

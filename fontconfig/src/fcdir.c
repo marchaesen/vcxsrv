@@ -167,7 +167,16 @@ FcFileScan (FcFontSet	    *set,
 	    const FcChar8   *file,
 	    FcBool	    force FC_UNUSED)
 {
-    return FcFileScanConfig (set, dirs, file, FcConfigGetCurrent ());
+    FcConfig *config;
+    FcBool ret;
+
+    config = FcConfigReference (NULL);
+    if (!config)
+	return FcFalse;
+    ret = FcFileScanConfig (set, dirs, file, config);
+    FcConfigDestroy (config);
+
+    return ret;
 }
 
 /*
@@ -271,10 +280,19 @@ FcDirScan (FcFontSet	    *set,
 	   const FcChar8    *dir,
 	   FcBool	    force FC_UNUSED)
 {
+    FcConfig *config;
+    FcBool ret;
+
     if (cache || !force)
 	return FcFalse;
 
-    return FcDirScanConfig (set, dirs, dir, force, FcConfigGetCurrent ());
+    config = FcConfigReference (NULL);
+    if (!config)
+	return FcFalse;
+    ret = FcDirScanConfig (set, dirs, dir, force, config);
+    FcConfigDestroy (config);
+
+    return ret;
 }
 
 /*
@@ -353,12 +371,16 @@ FcDirCacheRescan (const FcChar8 *dir, FcConfig *config)
     FcCache *new = NULL;
     struct stat dir_stat;
     FcStrSet *dirs;
-    const FcChar8 *sysroot = FcConfigGetSysRoot (config);
+    const FcChar8 *sysroot;
     FcChar8 *d = NULL;
 #ifndef _WIN32
     int fd = -1;
 #endif
 
+    config = FcConfigReference (config);
+    if (!config)
+	return NULL;
+    sysroot = FcConfigGetSysRoot (config);
     cache = FcDirCacheLoad (dir, config, NULL);
     if (!cache)
 	goto bail;
@@ -401,6 +423,7 @@ bail1:
 bail:
     if (d)
 	FcStrFree (d);
+    FcConfigDestroy (config);
 
     return new;
 }
@@ -413,6 +436,7 @@ FcDirCacheRead (const FcChar8 *dir, FcBool force, FcConfig *config)
 {
     FcCache		*cache = NULL;
 
+    config = FcConfigReference (config);
     /* Try to use existing cache file */
     if (!force)
 	cache = FcDirCacheLoad (dir, config, NULL);
@@ -420,6 +444,7 @@ FcDirCacheRead (const FcChar8 *dir, FcBool force, FcConfig *config)
     /* Not using existing cache file, construct new cache */
     if (!cache)
 	cache = FcDirCacheScan (dir, config);
+    FcConfigDestroy (config);
 
     return cache;
 }

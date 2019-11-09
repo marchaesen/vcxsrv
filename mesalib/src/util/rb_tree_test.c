@@ -93,9 +93,51 @@ validate_tree_order(struct rb_tree *tree, unsigned expected_count)
     assert(count == expected_count);
 
     prev = NULL;
+    max_val = -1;
+    count = 0;
+    rb_tree_foreach_safe(struct rb_test_node, n, tree, node) {
+        /* Everything should be in increasing order */
+        assert(n->key >= max_val);
+        if (n->key > max_val) {
+            max_val = n->key;
+        } else {
+            /* Things should be stable, i.e., given equal keys, they should
+             * show up in the list in order of insertion.  We insert them
+             * in the order they are in in the array.
+             */
+            assert(prev == NULL || prev < n);
+        }
+
+        prev = n;
+        count++;
+    }
+    assert(count == expected_count);
+
+    prev = NULL;
     int min_val = INT_MAX;
     count = 0;
     rb_tree_foreach_rev(struct rb_test_node, n, tree, node) {
+        /* Everything should be in increasing order */
+        assert(n->key <= min_val);
+        if (n->key < min_val) {
+            min_val = n->key;
+        } else {
+            /* Things should be stable, i.e., given equal keys, they should
+             * show up in the list in order of insertion.  We insert them
+             * in the order they are in in the array.
+             */
+            assert(prev == NULL || prev > n);
+        }
+
+        prev = n;
+        count++;
+    }
+    assert(count == expected_count);
+
+    prev = NULL;
+    min_val = INT_MAX;
+    count = 0;
+    rb_tree_foreach_rev_safe(struct rb_test_node, n, tree, node) {
         /* Everything should be in increasing order */
         assert(n->key <= min_val);
         if (n->key < min_val) {

@@ -96,7 +96,7 @@
  * - http://cellperformance.beyond3d.com/articles/2006/05/demystifying-the-restrict-keyword.html
  */
 #ifndef restrict
-#  if (__STDC_VERSION__ >= 199901L)
+#  if (__STDC_VERSION__ >= 199901L) && !defined(__cplusplus)
      /* C99 */
 #  elif defined(__GNUC__)
 #    define restrict __restrict__

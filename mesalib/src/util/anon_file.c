@@ -27,7 +27,7 @@
  * Based on weston shared/os-compatibility.c
  */
 
-#ifndef WIN32
+#ifndef _WIN32
 #include "anon_file.h"
 
 #include <unistd.h>

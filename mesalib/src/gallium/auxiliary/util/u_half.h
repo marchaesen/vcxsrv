@@ -123,7 +123,7 @@ util_half_to_float(uint16_t f16)
       f32.ui |= 0xff << 23;
 
    /* Sign */
-   f32.ui |= (f16 & 0x8000) << 16;
+   f32.ui |= (uint32_t)(f16 & 0x8000) << 16;
 
    return f32.f;
 }

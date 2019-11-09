@@ -35,7 +35,7 @@
 * Description:  This file includes subroutines which are related to
 *				programmed I/O and memory access. Included in this module
 *				are default functions with limited usefulness. For real
-*				uses these functions will most likely be overriden by the
+*				uses these functions will most likely be overridden by the
 *				user library.
 *
 ****************************************************************************/

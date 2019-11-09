@@ -69,7 +69,7 @@ build_pattern (json_object *obj)
 	}
 	else if (json_object_get_type (iter.val) == json_type_string)
 	{
-	    const FcConstant *c = FcNameGetConstant (json_object_get_string (iter.val));
+		const FcConstant *c = FcNameGetConstant ((const FcChar8 *) json_object_get_string (iter.val));
 	    FcBool b;
 
 	    if (c)
@@ -95,7 +95,7 @@ build_pattern (json_object *obj)
 	    else
 	    {
 		v.type = FcTypeString;
-		v.u.s = json_object_get_string (iter.val);
+		v.u.s = (const FcChar8 *) json_object_get_string (iter.val);
 	    }
 	}
 	else if (json_object_get_type (iter.val) == json_type_null)
@@ -445,7 +445,7 @@ load_config (FcConfig *config, char *file)
     fread (buf, (size_t)len, sizeof (char), fp);
     buf[len] = 0;
 
-    ret = FcConfigParseAndLoadFromMemory (config, buf, FcTrue);
+    ret = FcConfigParseAndLoadFromMemory (config, (const FcChar8 *) buf, FcTrue);
 bail1:
     fclose (fp);
     if (buf)
