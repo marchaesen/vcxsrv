@@ -117,6 +117,9 @@ blob_finish(struct blob *blob)
       free(blob->data);
 }
 
+void
+blob_finish_get_buffer(struct blob *blob, void **buffer, size_t *size);
+
 /**
  * Add some unstructured, fixed-size data to a blob.
  *

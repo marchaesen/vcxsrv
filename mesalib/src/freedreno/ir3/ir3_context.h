@@ -80,6 +80,11 @@ struct ir3_context {
 	struct ir3_instruction *primitive_id;
 	struct ir3_instruction *gs_header;
 
+	/* For tessellation shaders: */
+	struct ir3_instruction *patch_vertices_in;
+	struct ir3_instruction *tcs_header;
+	struct ir3_instruction *tess_coord;
+
 	/* Compute shader inputs: */
 	struct ir3_instruction *local_invocation_id, *work_group_id;
 

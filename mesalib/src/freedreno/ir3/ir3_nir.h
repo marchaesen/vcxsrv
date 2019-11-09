@@ -44,7 +44,10 @@ int ir3_nir_coord_offset(nir_ssa_def *ssa);
 bool ir3_nir_lower_tex_prefetch(nir_shader *shader);
 
 
-void ir3_nir_lower_vs_to_explicit_io(nir_shader *shader, struct ir3_shader *s);
+void ir3_nir_lower_to_explicit_io(nir_shader *shader,
+		struct ir3_shader *s, unsigned topology);
+void ir3_nir_lower_tess_ctrl(nir_shader *shader, struct ir3_shader *s, unsigned topology);
+void ir3_nir_lower_tess_eval(nir_shader *shader, unsigned topology);
 void ir3_nir_lower_gs(nir_shader *shader, struct ir3_shader *s);
 
 const nir_shader_compiler_options * ir3_get_compiler_options(struct ir3_compiler *compiler);

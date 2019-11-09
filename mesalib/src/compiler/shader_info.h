@@ -90,25 +90,25 @@ typedef struct shader_info {
    const char *label;
 
    /** The shader stage, such as MESA_SHADER_VERTEX. */
-   gl_shader_stage stage;
+   gl_shader_stage stage:8;
 
    /** The shader stage in a non SSO linked program that follows this stage,
      * such as MESA_SHADER_FRAGMENT.
      */
-   gl_shader_stage next_stage;
+   gl_shader_stage next_stage:8;
 
    /* Number of textures used by this shader */
-   unsigned num_textures;
+   uint8_t num_textures;
    /* Number of uniform buffers used by this shader */
-   unsigned num_ubos;
+   uint8_t num_ubos;
    /* Number of atomic buffers used by this shader */
-   unsigned num_abos;
+   uint8_t num_abos;
    /* Number of shader storage buffers used by this shader */
-   unsigned num_ssbos;
+   uint8_t num_ssbos;
    /* Number of images used by this shader */
-   unsigned num_images;
+   uint8_t num_images;
    /* Index of the last MSAA image. */
-   int last_msaa_image;
+   int8_t last_msaa_image;
 
    /* Which inputs are actually read */
    uint64_t inputs_read;
@@ -126,47 +126,47 @@ typedef struct shader_info {
    /* Which patch outputs are read */
    uint32_t patch_outputs_read;
 
-   /* Whether or not this shader ever uses textureGather() */
-   bool uses_texture_gather;
-
    /** Bitfield of which textures are used */
    uint32_t textures_used;
 
    /** Bitfield of which textures are used by texelFetch() */
    uint32_t textures_used_by_txf;
 
+   /* SPV_KHR_float_controls: execution mode for floating point ops */
+   uint16_t float_controls_execution_mode;
+
+   /* The size of the gl_ClipDistance[] array, if declared. */
+   uint8_t clip_distance_array_size:4;
+
+   /* The size of the gl_CullDistance[] array, if declared. */
+   uint8_t cull_distance_array_size:4;
+
+   /* Whether or not this shader ever uses textureGather() */
+   bool uses_texture_gather:1;
+
    /**
     * True if this shader uses the fddx/fddy opcodes.
     *
     * Note that this does not include the "fine" and "coarse" variants.
     */
-   bool uses_fddx_fddy;
+   bool uses_fddx_fddy:1;
 
    /**
     * True if this shader uses 64-bit ALU operations
     */
-   bool uses_64bit;
-
-   /* The size of the gl_ClipDistance[] array, if declared. */
-   unsigned clip_distance_array_size;
-
-   /* The size of the gl_CullDistance[] array, if declared. */
-   unsigned cull_distance_array_size;
+   bool uses_64bit:1;
 
    /* Whether the first UBO is the default uniform buffer, i.e. uniforms. */
-   bool first_ubo_is_default_ubo;
+   bool first_ubo_is_default_ubo:1;
 
    /* Whether or not separate shader objects were used */
-   bool separate_shader;
+   bool separate_shader:1;
 
    /** Was this shader linked with any transform feedback varyings? */
-   bool has_transform_feedback_varyings;
+   bool has_transform_feedback_varyings:1;
 
    /* Whether flrp has been lowered. */
-   bool flrp_lowered;
-
-   /* SPV_KHR_float_controls: execution mode for floating point ops */
-   unsigned float_controls_execution_mode;
+   bool flrp_lowered:1;
 
    union {
       struct {
@@ -178,37 +178,37 @@ typedef struct shader_info {
           *
           * Valid values: SI_VS_BLIT_SGPRS_POS_*
           */
-         unsigned blit_sgprs_amd;
+         uint8_t blit_sgprs_amd:4;
 
          /* True if the shader writes position in window space coordinates pre-transform */
-         bool window_space_position;
+         bool window_space_position:1;
       } vs;
 
       struct {
-         /** The number of vertices recieves per input primitive */
-         unsigned vertices_in;
-
          /** The output primitive type (GL enum value) */
-         unsigned output_primitive;
+         uint16_t output_primitive;
 
          /** The input primitive type (GL enum value) */
-         unsigned input_primitive;
+         uint16_t input_primitive;
 
          /** The maximum number of vertices the geometry shader might write. */
-         unsigned vertices_out;
+         uint16_t vertices_out;
 
          /** 1 .. MAX_GEOMETRY_SHADER_INVOCATIONS */
-         unsigned invocations;
+         uint8_t invocations;
+
+         /** The number of vertices recieves per input primitive (max. 6) */
+         uint8_t vertices_in:3;
 
          /** Whether or not this shader uses EndPrimitive */
-         bool uses_end_primitive;
+         bool uses_end_primitive:1;
 
          /** Whether or not this shader uses non-zero streams */
-         bool uses_streams;
+         bool uses_streams:1;
       } gs;
 
       struct {
-         bool uses_discard;
+         bool uses_discard:1;
 
          /**
           * True if this fragment shader requires helper invocations.  This
@@ -216,38 +216,38 @@ typedef struct shader_info {
           * instructions which do implicit derivatives, and the use of quad
           * subgroup operations.
           */
-         bool needs_helper_invocations;
+         bool needs_helper_invocations:1;
 
          /**
           * Whether any inputs are declared with the "sample" qualifier.
           */
-         bool uses_sample_qualifier;
+         bool uses_sample_qualifier:1;
 
          /**
           * Whether early fragment tests are enabled as defined by
           * ARB_shader_image_load_store.
           */
-         bool early_fragment_tests;
+         bool early_fragment_tests:1;
 
          /**
           * Defined by INTEL_conservative_rasterization.
           */
-         bool inner_coverage;
+         bool inner_coverage:1;
 
-         bool post_depth_coverage;
+         bool post_depth_coverage:1;
 
          /**
           * \name ARB_fragment_coord_conventions
           * @{
           */
-         bool pixel_center_integer;
-         bool origin_upper_left;
+         bool pixel_center_integer:1;
+         bool origin_upper_left:1;
          /*@}*/
 
-         bool pixel_interlock_ordered;
-         bool pixel_interlock_unordered;
-         bool sample_interlock_ordered;
-         bool sample_interlock_unordered;
+         bool pixel_interlock_ordered:1;
+         bool pixel_interlock_unordered:1;
+         bool sample_interlock_ordered:1;
+         bool sample_interlock_unordered:1;
 
          /**
           * Flags whether NIR's base types on the FS color outputs should be
@@ -266,23 +266,28 @@ typedef struct shader_info {
           * fixups are necessary to handle effectively untyped data being
           * output from the FS.
           */
-         bool untyped_color_outputs;
+         bool untyped_color_outputs:1;
 
          /** gl_FragDepth layout for ARB_conservative_depth. */
-         enum gl_frag_depth_layout depth_layout;
+         enum gl_frag_depth_layout depth_layout:3;
       } fs;
 
       struct {
-         unsigned local_size[3];
+         uint16_t local_size[3];
 
-         bool local_size_variable;
-         char user_data_components_amd;
+         bool local_size_variable:1;
+         uint8_t user_data_components_amd:3;
+
+         /*
+          * Arrangement of invocations used to calculate derivatives in a compute
+          * shader.  From NV_compute_shader_derivatives.
+          */
+         enum gl_derivative_group derivative_group:2;
 
          /**
           * Size of shared variables accessed by the compute shader.
           */
          unsigned shared_size;
-
 
          /**
           * pointer size is:
@@ -291,24 +296,19 @@ typedef struct shader_info {
           *   AddressingModelPhysical64: 64
           */
          unsigned ptr_size;
-
-         /*
-          * Arrangement of invocations used to calculate derivatives in a compute
-          * shader.  From NV_compute_shader_derivatives.
-          */
-         enum gl_derivative_group derivative_group;
       } cs;
 
       /* Applies to both TCS and TES. */
       struct {
-         /** The number of vertices in the TCS output patch. */
-         unsigned tcs_vertices_out;
+         uint16_t primitive_mode; /* GL_TRIANGLES, GL_QUADS or GL_ISOLINES */
 
-         uint32_t primitive_mode; /* GL_TRIANGLES, GL_QUADS or GL_ISOLINES */
-         enum gl_tess_spacing spacing;
+         /** The number of vertices in the TCS output patch. */
+         uint8_t tcs_vertices_out;
+         enum gl_tess_spacing spacing:2;
+
          /** Is the vertex order counterclockwise? */
-         bool ccw;
-         bool point_mode;
+         bool ccw:1;
+         bool point_mode:1;
       } tess;
    };
 } shader_info;

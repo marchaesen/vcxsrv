@@ -65,8 +65,8 @@ blit_image_info(const struct tu_blit_surf *img, bool src, bool stencil_read)
    enum a3xx_color_swap swap = img->tiled ? WZYX : fmt->swap;
    if (rb == RB6_R10G10B10A2_UNORM && src)
       rb = RB6_R10G10B10A2_FLOAT16;
-   if (rb == RB6_X8Z24_UNORM)
-      rb = RB6_Z24_UNORM_S8_UINT;
+   if (rb == RB6_Z24_UNORM_S8_UINT)
+      rb = RB6_Z24_UNORM_S8_UINT_AS_R8G8B8A8;
 
    if (stencil_read)
       swap = XYZW;
@@ -85,8 +85,8 @@ emit_blit_step(struct tu_cmd_buffer *cmdbuf, const struct tu_blit *blt)
    tu_cs_reserve_space(cmdbuf->device, cs, 52);
 
    enum a6xx_color_fmt fmt = tu6_get_native_format(blt->dst.fmt)->rb;
-   if (fmt == RB6_X8Z24_UNORM)
-      fmt = RB6_Z24_UNORM_S8_UINT;
+   if (fmt == RB6_Z24_UNORM_S8_UINT)
+      fmt = RB6_Z24_UNORM_S8_UINT_AS_R8G8B8A8;
 
    enum a6xx_2d_ifmt ifmt = tu6_rb_fmt_to_ifmt(fmt);
 
@@ -97,7 +97,7 @@ emit_blit_step(struct tu_cmd_buffer *cmdbuf, const struct tu_blit *blt)
 
    uint32_t blit_cntl = A6XX_RB_2D_BLIT_CNTL_ROTATE(blt->rotation) |
                         A6XX_RB_2D_BLIT_CNTL_COLOR_FORMAT(fmt) | /* not required? */
-                        COND(fmt == RB6_Z24_UNORM_S8_UINT, A6XX_RB_2D_BLIT_CNTL_D24S8) |
+                        COND(fmt == RB6_Z24_UNORM_S8_UINT_AS_R8G8B8A8, A6XX_RB_2D_BLIT_CNTL_D24S8) |
                         A6XX_RB_2D_BLIT_CNTL_MASK(0xf) |
                         A6XX_RB_2D_BLIT_CNTL_IFMT(ifmt);
 

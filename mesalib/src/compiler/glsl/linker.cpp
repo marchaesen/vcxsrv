@@ -587,11 +587,10 @@ static void
 analyze_clip_cull_usage(struct gl_shader_program *prog,
                         struct gl_linked_shader *shader,
                         struct gl_context *ctx,
-                        GLuint *clip_distance_array_size,
-                        GLuint *cull_distance_array_size)
+                        struct shader_info *info)
 {
-   *clip_distance_array_size = 0;
-   *cull_distance_array_size = 0;
+   info->clip_distance_array_size = 0;
+   info->cull_distance_array_size = 0;
 
    if (prog->data->Version >= (prog->IsES ? 300 : 130)) {
       /* From section 7.1 (Vertex Shader Special Variables) of the
@@ -643,13 +642,13 @@ analyze_clip_cull_usage(struct gl_shader_program *prog,
          ir_variable *clip_distance_var =
                 shader->symbols->get_variable("gl_ClipDistance");
          assert(clip_distance_var);
-         *clip_distance_array_size = clip_distance_var->type->length;
+         info->clip_distance_array_size = clip_distance_var->type->length;
       }
       if (gl_CullDistance.found) {
          ir_variable *cull_distance_var =
                 shader->symbols->get_variable("gl_CullDistance");
          assert(cull_distance_var);
-         *cull_distance_array_size = cull_distance_var->type->length;
+         info->cull_distance_array_size = cull_distance_var->type->length;
       }
       /* From the ARB_cull_distance spec:
        *
@@ -658,7 +657,7 @@ analyze_clip_cull_usage(struct gl_shader_program *prog,
        * gl_CullDistance arrays to be larger than
        * gl_MaxCombinedClipAndCullDistances.
        */
-      if ((*clip_distance_array_size + *cull_distance_array_size) >
+      if ((uint32_t)(info->clip_distance_array_size + info->cull_distance_array_size) >
           ctx->Const.MaxClipPlanes) {
           linker_error(prog, "%s shader: the combined size of "
                        "'gl_ClipDistance' and 'gl_CullDistance' size cannot "
@@ -729,9 +728,7 @@ validate_vertex_shader_executable(struct gl_shader_program *prog,
       }
    }
 
-   analyze_clip_cull_usage(prog, shader, ctx,
-                           &shader->Program->info.clip_distance_array_size,
-                           &shader->Program->info.cull_distance_array_size);
+   analyze_clip_cull_usage(prog, shader, ctx, &shader->Program->info);
 }
 
 static void
@@ -742,9 +739,7 @@ validate_tess_eval_shader_executable(struct gl_shader_program *prog,
    if (shader == NULL)
       return;
 
-   analyze_clip_cull_usage(prog, shader, ctx,
-                           &shader->Program->info.clip_distance_array_size,
-                           &shader->Program->info.cull_distance_array_size);
+   analyze_clip_cull_usage(prog, shader, ctx, &shader->Program->info);
 }
 
 
@@ -791,9 +786,7 @@ validate_geometry_shader_executable(struct gl_shader_program *prog,
       vertices_per_prim(shader->Program->info.gs.input_primitive);
    prog->Geom.VerticesIn = num_vertices;
 
-   analyze_clip_cull_usage(prog, shader, ctx,
-                           &shader->Program->info.clip_distance_array_size,
-                           &shader->Program->info.cull_distance_array_size);
+   analyze_clip_cull_usage(prog, shader, ctx, &shader->Program->info);
 }
 
 /**

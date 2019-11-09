@@ -53,8 +53,8 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value value="0x82" name="RB6_R32G32B32A32_FLOAT"/>
 	<value value="0x83" name="RB6_R32G32B32A32_UINT"/>
 	<value value="0x84" name="RB6_R32G32B32A32_SINT"/>
-	<value value="0x91" name="RB6_Z24_UNORM_S8_UINT"/>
-	<value value="0xa0" name="RB6_X8Z24_UNORM"/>
+	<value value="0x91" name="RB6_Z24_UNORM_S8_UINT_AS_R8G8B8A8"/>
+	<value value="0xa0" name="RB6_Z24_UNORM_S8_UINT"/>
 </enum>
 
 <!-- these might be same as a5xx -->
@@ -963,6 +963,7 @@ to upconvert to 32b float internally?
 	<value value="0x4"  name="R2D_FLOAT32"/>
 	<value value="0x3"  name="R2D_FLOAT16"/>
 	<value value="0x1"  name="R2D_UNORM8_SRGB"/>
+	<value value="0x0"  name="R2D_RAW"/>
 </enum>
 
 <domain name="A6XX" width="32">
@@ -1379,30 +1380,28 @@ to upconvert to 32b float internally?
 	    vertices in, number of primnitives assembled etc.
 	-->
 
-	<reg32 offset="0x0540" name="RBBM_PRIMCTR_0_LO"/>
+	<reg32 offset="0x0540" name="RBBM_PRIMCTR_0_LO"/>  <!-- vs vertices in -->
 	<reg32 offset="0x0541" name="RBBM_PRIMCTR_0_HI"/>
-	<reg32 offset="0x0542" name="RBBM_PRIMCTR_1_LO"/>
+	<reg32 offset="0x0542" name="RBBM_PRIMCTR_1_LO"/>  <!-- vs primitives out -->
 	<reg32 offset="0x0543" name="RBBM_PRIMCTR_1_HI"/>
-	<reg32 offset="0x0544" name="RBBM_PRIMCTR_2_LO"/>
+	<reg32 offset="0x0544" name="RBBM_PRIMCTR_2_LO"/>  <!-- hs vertices in -->
 	<reg32 offset="0x0545" name="RBBM_PRIMCTR_2_HI"/>
-	<reg32 offset="0x0546" name="RBBM_PRIMCTR_3_LO"/>
+	<reg32 offset="0x0546" name="RBBM_PRIMCTR_3_LO"/>  <!-- hs patches out -->
 	<reg32 offset="0x0547" name="RBBM_PRIMCTR_3_HI"/>
-	<reg32 offset="0x0548" name="RBBM_PRIMCTR_4_LO"/>
+	<reg32 offset="0x0548" name="RBBM_PRIMCTR_4_LO"/>  <!-- dss vertices in -->
 	<reg32 offset="0x0549" name="RBBM_PRIMCTR_4_HI"/>
-	<reg32 offset="0x054a" name="RBBM_PRIMCTR_5_LO"/>
+	<reg32 offset="0x054a" name="RBBM_PRIMCTR_5_LO"/>  <!-- ds primitives out -->
 	<reg32 offset="0x054b" name="RBBM_PRIMCTR_5_HI"/>
-	<reg32 offset="0x054c" name="RBBM_PRIMCTR_6_LO"/>
+	<reg32 offset="0x054c" name="RBBM_PRIMCTR_6_LO"/>  <!-- gs primitives in -->
 	<reg32 offset="0x054d" name="RBBM_PRIMCTR_6_HI"/>
-	<reg32 offset="0x054e" name="RBBM_PRIMCTR_7_LO"/>
+	<reg32 offset="0x054e" name="RBBM_PRIMCTR_7_LO"/>  <!-- gs primitives out -->
 	<reg32 offset="0x054f" name="RBBM_PRIMCTR_7_HI"/>
-	<!-- PRIMCTR_8 appears to count number of primitives coming out of GS -->
-	<reg32 offset="0x0550" name="RBBM_PRIMCTR_8_LO"/>
+	<reg32 offset="0x0550" name="RBBM_PRIMCTR_8_LO"/>  <!-- gs primitives out -->
 	<reg32 offset="0x0551" name="RBBM_PRIMCTR_8_HI"/>
-	<reg32 offset="0x0552" name="RBBM_PRIMCTR_9_LO"/>
+	<reg32 offset="0x0552" name="RBBM_PRIMCTR_9_LO"/>  <!-- raster primitives in -->
 	<reg32 offset="0x0553" name="RBBM_PRIMCTR_9_HI"/>
 	<reg32 offset="0x0554" name="RBBM_PRIMCTR_10_LO"/>
 	<reg32 offset="0x0555" name="RBBM_PRIMCTR_10_HI"/>
-	
 
 	<reg32 offset="0xF400" name="RBBM_SECVID_TRUST_CNTL"/>
 	<reg32 offset="0xF800" name="RBBM_SECVID_TSB_TRUSTED_BASE_LO"/>
@@ -1857,12 +1856,14 @@ to upconvert to 32b float internally?
 
 	<reg32 offset="0x8000" name="GRAS_UNKNOWN_8000"/>
 	<reg32 offset="0x8001" name="GRAS_UNKNOWN_8001"/>
+	<reg32 offset="0x8002" name="GRAS_UNKNOWN_8002"/>
 	<reg32 offset="0x8003" name="GRAS_UNKNOWN_8003"/>
 
 	<enum name="a6xx_layer_type">
-	  <value value="0x0" name="MULTISAMPLE_ARRAY"/>
-	  <value value="0x1" name="ARRAY"/> <!-- 2d array and 3d -->
-	  <value value="0x2" name="CUBEMAP"/>
+	  <value value="0x0" name="LAYER_MULTISAMPLE_ARRAY"/>
+	  <value value="0x1" name="LAYER_3D"/>
+	  <value value="0x2" name="LAYER_CUBEMAP"/>
+	  <value value="0x3" name="LAYER_2D_ARRAY"/>
 	</enum>
 
 	<reg32 offset="0x8004" name="GRAS_LAYER_CNTL">
@@ -1935,6 +1936,8 @@ to upconvert to 32b float internally?
 	<reg32 offset="0x809c" name="GRAS_UNKNOWN_809C">
 		<bitfield name="GS_WRITES_LAYER" pos="0" type="boolean"/>
 	</reg32>
+
+	<reg32 offset="0x809d" name="GRAS_UNKNOWN_809D"/>
 
 	<reg32 offset="0x80a0" name="GRAS_UNKNOWN_80A0"/>
 
@@ -2011,6 +2014,9 @@ to upconvert to 32b float internally?
 		<bitfield name="SOLID_COLOR" pos="7" type="boolean"/>
 		<bitfield name="COLOR_FORMAT" low="8" high="15" type="a6xx_color_fmt"/>
 		<bitfield name="SCISSOR" pos="16" type="boolean"/>
+
+		<bitfield name="UNK" low="17" high="18" type="uint"/>
+
 		<!-- required when blitting D24S8/D24X8 -->
 		<bitfield name="D24S8" pos="19" type="boolean"/>
 		<!-- some sort of channel mask, disabled channels are set to zero ? -->
@@ -2417,7 +2423,8 @@ to upconvert to 32b float internally?
 
 	<!-- always 0x00ffff00 ? */ -->
 	<reg32 offset="0x9101" name="VPC_UNKNOWN_9101"/>
-	<reg32 offset="0x9101" name="VPC_UNKNOWN_9102"/>
+	<reg32 offset="0x9102" name="VPC_UNKNOWN_9102"/>
+	<reg32 offset="0x9103" name="VPC_UNKNOWN_9103"/>
 
 	<reg32 offset="0x9104" name="VPC_GS_SIV_CNTL"/>
 
@@ -2425,6 +2432,7 @@ to upconvert to 32b float internally?
 		<bitfield name="LAYERLOC" low="0" high="7" type="uint"/>
 	</reg32>
 
+	<reg32 offset="0x9106" name="VPC_UNKNOWN_9106"/>
 	<reg32 offset="0x9107" name="VPC_UNKNOWN_9107"/>
 	<reg32 offset="0x9108" name="VPC_UNKNOWN_9108"/>
 
@@ -2717,34 +2725,6 @@ to upconvert to 32b float internally?
 	<!-- always 0x1 ? -->
 	<reg32 offset="0xa0f8" name="SP_UNKNOWN_A0F8"/>
 
-	<reg32 offset="0xa802" name="SP_PRIMITIVE_CNTL">
-		<!-- # of VS outputs including pos/psize -->
-		<bitfield name="VSOUT" low="0" high="4" type="uint"/>
-	</reg32>
-	<array offset="0xa803" name="SP_VS_OUT" stride="1" length="16">
-		<reg32 offset="0x0" name="REG">
-			<bitfield name="A_REGID" low="0" high="7" type="a3xx_regid"/>
-			<bitfield name="A_COMPMASK" low="8" high="11" type="hex"/>
-			<bitfield name="B_REGID" low="16" high="23" type="a3xx_regid"/>
-			<bitfield name="B_COMPMASK" low="24" high="27" type="hex"/>
-		</reg32>
-	</array>
-	<!--
-	Starting with a5xx, position/psize outputs from shader end up in the
-	SP_VS_OUT map, with highest OUTLOCn position.  (Generally they are
-	the last entries too, except when gl_PointCoord is used, blob inserts
-	an extra varying after, but with a lower OUTLOC position.  If present,
-	psize is last, preceded by position.
-	 -->
-	<array offset="0xa813" name="SP_VS_VPC_DST" stride="1" length="8">
-		<reg32 offset="0x0" name="REG">
-			<bitfield name="OUTLOC0" low="0" high="7" type="uint"/>
-			<bitfield name="OUTLOC1" low="8" high="15" type="uint"/>
-			<bitfield name="OUTLOC2" low="16" high="23" type="uint"/>
-			<bitfield name="OUTLOC3" low="24" high="31" type="uint"/>
-		</reg32>
-	</array>
-
 	<bitset name="a6xx_sp_xs_ctrl_reg0" inline="yes">
 		<!--
 		When b31 set we just see FULLREGFOOTPRINT set.  The pattern of
@@ -2784,6 +2764,34 @@ to upconvert to 32b float internally?
 	</bitset>
 
 	<reg32 offset="0xa800" name="SP_VS_CTRL_REG0" type="a6xx_sp_xs_ctrl_reg0"/>
+	<reg32 offset="0xa802" name="SP_PRIMITIVE_CNTL">
+		<!-- # of VS outputs including pos/psize -->
+		<bitfield name="VSOUT" low="0" high="4" type="uint"/>
+	</reg32>
+	<array offset="0xa803" name="SP_VS_OUT" stride="1" length="16">
+		<reg32 offset="0x0" name="REG">
+			<bitfield name="A_REGID" low="0" high="7" type="a3xx_regid"/>
+			<bitfield name="A_COMPMASK" low="8" high="11" type="hex"/>
+			<bitfield name="B_REGID" low="16" high="23" type="a3xx_regid"/>
+			<bitfield name="B_COMPMASK" low="24" high="27" type="hex"/>
+		</reg32>
+	</array>
+	<!--
+	Starting with a5xx, position/psize outputs from shader end up in the
+	SP_VS_OUT map, with highest OUTLOCn position.  (Generally they are
+	the last entries too, except when gl_PointCoord is used, blob inserts
+	an extra varying after, but with a lower OUTLOC position.  If present,
+	psize is last, preceded by position.
+	 -->
+	<array offset="0xa813" name="SP_VS_VPC_DST" stride="1" length="8">
+		<reg32 offset="0x0" name="REG">
+			<bitfield name="OUTLOC0" low="0" high="7" type="uint"/>
+			<bitfield name="OUTLOC1" low="8" high="15" type="uint"/>
+			<bitfield name="OUTLOC2" low="16" high="23" type="uint"/>
+			<bitfield name="OUTLOC3" low="24" high="31" type="uint"/>
+		</reg32>
+	</array>
+
 	<reg32 offset="0xa81b" name="SP_UNKNOWN_A81B"/>
 	<reg32 offset="0xa81c" name="SP_VS_OBJ_START_LO"/>
 	<reg32 offset="0xa81d" name="SP_VS_OBJ_START_HI"/>

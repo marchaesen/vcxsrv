@@ -31,7 +31,39 @@
 
 #define PTRID(x) ((unsigned long)(x))
 
-static void print_instr_name(struct ir3_instruction *instr)
+/* ansi escape sequences: */
+#define RESET	"\x1b[0m"
+#define RED		"\x1b[0;31m"
+#define GREEN	"\x1b[0;32m"
+#define BLUE	"\x1b[0;34m"
+#define MAGENTA	"\x1b[0;35m"
+
+/* syntax coloring, mostly to make it easier to see different sorts of
+ * srcs (immediate, constant, ssa, array, ...)
+ */
+#define SYN_REG(x)		RED x RESET
+#define SYN_IMMED(x)	GREEN x RESET
+#define SYN_CONST(x)	GREEN x RESET
+#define SYN_SSA(x)		BLUE x RESET
+#define SYN_ARRAY(x)	MAGENTA x RESET
+
+static const char *
+type_name(type_t type)
+{
+	static const char *type_names[] = {
+			[TYPE_F16] = "f16",
+			[TYPE_F32] = "f32",
+			[TYPE_U16] = "u16",
+			[TYPE_U32] = "u32",
+			[TYPE_S16] = "s16",
+			[TYPE_S32] = "s32",
+			[TYPE_U8]  = "u8",
+			[TYPE_S8]  = "s8",
+	};
+	return type_names[type];
+}
+
+static void print_instr_name(struct ir3_instruction *instr, bool flags)
 {
 	if (!instr)
 		return;
@@ -40,13 +72,25 @@ static void print_instr_name(struct ir3_instruction *instr)
 #endif
 	printf("%04u:", instr->name);
 	printf("%04u:", instr->ip);
-	printf("%03u:", instr->depth);
-	printf("%03u: ", instr->sun);
+	printf("%03d:", instr->depth);
 
-	if (instr->flags & IR3_INSTR_SY)
-		printf("(sy)");
-	if (instr->flags & IR3_INSTR_SS)
-		printf("(ss)");
+	if (flags) {
+		printf("\t");
+		if (instr->flags & IR3_INSTR_SY)
+			printf("(sy)");
+		if (instr->flags & IR3_INSTR_SS)
+			printf("(ss)");
+		if (instr->flags & IR3_INSTR_JP)
+			printf("(jp)");
+		if (instr->repeat)
+			printf("(rpt%d)", instr->repeat);
+		if (instr->nop)
+			printf("(nop%d)", instr->nop);
+		if (instr->flags & IR3_INSTR_UL)
+			printf("(ul)");
+	} else {
+		printf(" ");
+	}
 
 	if (is_meta(instr)) {
 		switch (instr->opc) {
@@ -59,21 +103,12 @@ static void print_instr_name(struct ir3_instruction *instr)
 		default: printf("_meta:%d", instr->opc);    break;
 		}
 	} else if (instr->opc == OPC_MOV) {
-		static const char *type[] = {
-				[TYPE_F16] = "f16",
-				[TYPE_F32] = "f32",
-				[TYPE_U16] = "u16",
-				[TYPE_U32] = "u32",
-				[TYPE_S16] = "s16",
-				[TYPE_S32] = "s32",
-				[TYPE_U8]  = "u8",
-				[TYPE_S8]  = "s8",
-		};
 		if (instr->cat1.src_type == instr->cat1.dst_type)
 			printf("mov");
 		else
 			printf("cov");
-		printf(".%s%s", type[instr->cat1.src_type], type[instr->cat1.dst_type]);
+		printf(".%s%s", type_name(instr->cat1.src_type),
+				type_name(instr->cat1.dst_type));
 	} else {
 		printf("%s", ir3_instr_name(instr));
 		if (instr->flags & IR3_INSTR_3D)
@@ -101,43 +136,44 @@ static void print_reg_name(struct ir3_register *reg)
 	else if (reg->flags & (IR3_REG_FABS | IR3_REG_SABS))
 		printf("(abs)");
 
+	if (reg->flags & IR3_REG_HIGH)
+		printf("H");
+	if (reg->flags & IR3_REG_HALF)
+		printf("h");
+
 	if (reg->flags & IR3_REG_IMMED) {
-		printf("imm[%f,%d,0x%x]", reg->fim_val, reg->iim_val, reg->iim_val);
+		printf(SYN_IMMED("imm[%f,%d,0x%x]"), reg->fim_val, reg->iim_val, reg->iim_val);
 	} else if (reg->flags & IR3_REG_ARRAY) {
-		printf("arr[id=%u, offset=%d, size=%u", reg->array.id,
+		printf(SYN_ARRAY("arr[id=%u, offset=%d, size=%u"), reg->array.id,
 				reg->array.offset, reg->size);
 		/* for ARRAY we could have null src, for example first write
 		 * instruction..
 		 */
 		if (reg->instr) {
-			printf(", _[");
-			print_instr_name(reg->instr);
-			printf("]");
+			printf(SYN_ARRAY(", "));
+			printf(SYN_SSA("_["));
+			print_instr_name(reg->instr, false);
+			printf(SYN_SSA("]"));
 		}
-		printf("]");
+		printf(SYN_ARRAY("]"));
 	} else if (reg->flags & IR3_REG_SSA) {
-		if (reg->flags & IR3_REG_HIGH)
-			printf("H");
-		printf("_[");
-		print_instr_name(reg->instr);
-		printf("]");
+		printf(SYN_SSA("_["));
+		print_instr_name(reg->instr, false);
+		printf(SYN_SSA("]"));
 	} else if (reg->flags & IR3_REG_RELATIV) {
-		if (reg->flags & IR3_REG_HALF)
-			printf("h");
 		if (reg->flags & IR3_REG_CONST)
-			printf("c<a0.x + %d>", reg->array.offset);
+			printf(SYN_CONST("c<a0.x + %d>"), reg->array.offset);
 		else
-			printf("\x1b[0;31mr<a0.x + %d>\x1b[0m (%u)", reg->array.offset, reg->size);
+			printf(SYN_REG("r<a0.x + %d>")" (%u)", reg->array.offset, reg->size);
 	} else {
-		if (reg->flags & IR3_REG_HIGH)
-			printf("H");
-		if (reg->flags & IR3_REG_HALF)
-			printf("h");
 		if (reg->flags & IR3_REG_CONST)
-			printf("c%u.%c", reg_num(reg), "xyzw"[reg_comp(reg)]);
+			printf(SYN_CONST("c%u.%c"), reg_num(reg), "xyzw"[reg_comp(reg)]);
 		else
-			printf("\x1b[0;31mr%u.%c\x1b[0m", reg_num(reg), "xyzw"[reg_comp(reg)]);
+			printf(SYN_REG("r%u.%c"), reg_num(reg), "xyzw"[reg_comp(reg)]);
 	}
+
+	if (reg->wrmask > 0x1)
+		printf(" (wrmask=0x%x)", reg->wrmask);
 }
 
 static void
@@ -154,31 +190,50 @@ print_instr(struct ir3_instruction *instr, int lvl)
 
 	tab(lvl);
 
-	print_instr_name(instr);
+	print_instr_name(instr, true);
+
+	if (is_tex(instr)) {
+		printf(" (%s)(", type_name(instr->cat5.type));
+		for (i = 0; i < 4; i++)
+			if (instr->regs[0]->wrmask & (1 << i))
+				printf("%c", "xyzw"[i]);
+		printf(")");
+	} else if (instr->regs_count > 0) {
+		printf(" ");
+	}
+
 	for (i = 0; i < instr->regs_count; i++) {
 		struct ir3_register *reg = instr->regs[i];
-		printf(i ? ", " : " ");
+
+		/* skip the samp/tex src if it has been lowered to immed: */
+		if ((i == 1) && is_tex(instr) && !(instr->flags & IR3_INSTR_S2EN))
+			continue;
+
+		printf(i ? ", " : "");
 		print_reg_name(reg);
 	}
+
+	if (is_tex(instr) && !(instr->flags & IR3_INSTR_S2EN))
+		printf(", s#%d, t#%d", instr->cat5.samp, instr->cat5.tex);
 
 	if (instr->address) {
 		printf(", address=_");
 		printf("[");
-		print_instr_name(instr->address);
+		print_instr_name(instr->address, false);
 		printf("]");
 	}
 
 	if (instr->cp.left) {
 		printf(", left=_");
 		printf("[");
-		print_instr_name(instr->cp.left);
+		print_instr_name(instr->cp.left, false);
 		printf("]");
 	}
 
 	if (instr->cp.right) {
 		printf(", right=_");
 		printf("[");
-		print_instr_name(instr->cp.right);
+		print_instr_name(instr->cp.right, false);
 		printf("]");
 	}
 
@@ -203,7 +258,7 @@ print_instr(struct ir3_instruction *instr, int lvl)
 			if (i > 0)
 				printf(", ");
 			printf("_[");
-			print_instr_name(instr->deps[i]);
+			print_instr_name(instr->deps[i], false);
 			printf("]");
 		}
 	}
@@ -248,7 +303,7 @@ print_block(struct ir3_block *block, int lvl)
 		/* leading into if/else: */
 		tab(lvl+1);
 		printf("/* succs: if _[");
-		print_instr_name(block->condition);
+		print_instr_name(block->condition, false);
 		printf("] block%u; else block%u; */\n",
 				block_id(block->successors[0]),
 				block_id(block->successors[1]));

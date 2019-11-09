@@ -388,6 +388,8 @@ writes_gpr(struct ir3_instruction *instr)
 {
 	if (is_store(instr))
 		return false;
+	if (instr->regs_count == 0)
+		return false;
 	/* is dest a normal temp register: */
 	struct ir3_register *reg = instr->regs[0];
 	if (reg->flags & (IR3_REG_CONST | IR3_REG_IMMED))
@@ -586,9 +588,6 @@ ra_block_name_instructions(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 
 		ctx->instr_cnt++;
 
-		if (instr->regs_count == 0)
-			continue;
-
 		if (!writes_gpr(instr))
 			continue;
 
@@ -705,9 +704,6 @@ ra_block_compute_live_ranges(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 	list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
 		struct ir3_instruction *src;
 		struct ir3_register *reg;
-
-		if (instr->regs_count == 0)
-			continue;
 
 		/* There are a couple special cases to deal with here:
 		 *
@@ -903,7 +899,6 @@ ra_add_interference(struct ir3_ra_ctx *ctx)
 
 	if (ir3_shader_debug & IR3_DBG_OPTMSGS) {
 		debug_printf("AFTER LIVEIN/OUT:\n");
-		ir3_print(ir);
 		list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
 			struct ir3_ra_block_data *bd = block->data;
 			debug_printf("block%u:\n", block_id(block));
@@ -1069,9 +1064,6 @@ ra_block_alloc(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 	list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
 		struct ir3_register *reg;
 
-		if (instr->regs_count == 0)
-			continue;
-
 		if (writes_gpr(instr)) {
 			reg_assign(ctx, instr->regs[0], instr);
 			if (instr->regs[0]->flags & IR3_REG_HALF)
@@ -1089,8 +1081,12 @@ ra_block_alloc(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 	}
 }
 
-static int
-ra_alloc(struct ir3_ra_ctx *ctx, struct ir3_instruction **precolor, unsigned nprecolor)
+/* handle pre-colored registers.  This includes "arrays" (which could be of
+ * length 1, used for phi webs lowered to registers in nir), as well as
+ * special shader input values that need to be pinned to certain registers.
+ */
+static void
+ra_precolor(struct ir3_ra_ctx *ctx, struct ir3_instruction **precolor, unsigned nprecolor)
 {
 	unsigned num_precolor = 0;
 	for (unsigned i = 0; i < nprecolor; i++) {
@@ -1195,7 +1191,11 @@ retry:
 			ra_set_node_reg(ctx->g, name, reg);
 		}
 	}
+}
 
+static int
+ra_alloc(struct ir3_ra_ctx *ctx)
+{
 	if (!ra_allocate(ctx->g))
 		return -1;
 
@@ -1217,7 +1217,8 @@ int ir3_ra(struct ir3_shader_variant *v, struct ir3_instruction **precolor, unsi
 
 	ra_init(&ctx);
 	ra_add_interference(&ctx);
-	ret = ra_alloc(&ctx, precolor, nprecolor);
+	ra_precolor(&ctx, precolor, nprecolor);
+	ret = ra_alloc(&ctx);
 	ra_destroy(&ctx);
 
 	return ret;

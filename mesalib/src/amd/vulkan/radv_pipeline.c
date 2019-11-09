@@ -2347,8 +2347,6 @@ radv_fill_shader_keys(struct radv_device *device,
 		 * issues still:
 		 *   * GS primitives in pipeline statistic queries do not get
 		 *     updates. See dEQP-VK.query_pool.statistics_query.geometry_shader_primitives
-		 *   * General issues with the last primitive missing/corrupt:
-		 *     https://bugs.freedesktop.org/show_bug.cgi?id=111248
 		 *
 		 * Furthermore, XGL/AMDVLK also disables this as of 9b632ef.
 		 */

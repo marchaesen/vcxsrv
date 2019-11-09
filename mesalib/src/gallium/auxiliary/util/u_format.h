@@ -92,6 +92,8 @@ enum util_format_layout {
    UTIL_FORMAT_LAYOUT_PLANAR2,
    UTIL_FORMAT_LAYOUT_PLANAR3,
 
+   UTIL_FORMAT_LAYOUT_FXT1 = 10,
+
    /**
     * Everything else that doesn't fit in any of the above layouts.
     */

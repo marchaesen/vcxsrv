@@ -136,6 +136,9 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 			last_input_needs_ss = false;
 		}
 
+		if (last_n && opc_cat(last_n->opc) == 0 && opc_op(last_n->opc) == 13)
+			n->flags |= IR3_INSTR_SS;
+
 		/* NOTE: consider dst register too.. it could happen that
 		 * texture sample instruction (for example) writes some
 		 * components which are unused.  A subsequent instruction

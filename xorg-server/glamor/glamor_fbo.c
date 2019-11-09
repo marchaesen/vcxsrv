@@ -241,6 +241,24 @@ glamor_create_fbo_array(glamor_screen_private *glamor_priv,
     return NULL;
 }
 
+void
+glamor_pixmap_clear_fbo(glamor_screen_private *glamor_priv, glamor_pixmap_fbo *fbo,
+                        const struct glamor_format *pixmap_format)
+{
+    glamor_make_current(glamor_priv);
+
+    assert(fbo->fb != 0 && fbo->tex != 0);
+
+    if (glamor_priv->has_clear_texture) {
+        glClearTexImage(fbo->tex, 0, pixmap_format->format, pixmap_format->type, NULL);
+    }
+    else {
+        glDrawBuffer(GL_COLOR_ATTACHMENT0); /* assumes fbo->fb was attached as GL_COLOR_ATTACHMENT0 */
+        glClearColor(0.0, 0.0, 0.0, 0.0);
+        glClear(GL_COLOR_BUFFER_BIT);
+    }
+}
+
 glamor_pixmap_fbo *
 glamor_pixmap_detach_fbo(glamor_pixmap_private *pixmap_priv)
 {

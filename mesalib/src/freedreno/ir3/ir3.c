@@ -154,6 +154,9 @@ static int emit_cat0(struct ir3_instruction *instr, void *ptr,
 	cat0->sync     = !!(instr->flags & IR3_INSTR_SY);
 	cat0->opc_cat  = 0;
 
+	if (instr->opc == OPC_CONDEND || instr->opc == OPC_ENDPATCH)
+		cat0->dummy4 = 16;
+
 	return 0;
 }
 
@@ -801,16 +804,24 @@ static int emit_cat6(struct ir3_instruction *instr, void *ptr,
 
 		cat6->src_off = true;
 
-		cat6a->src1 = reg(src1, info, instr->repeat, IR3_REG_IMMED);
-		cat6a->src1_im = !!(src1->flags & IR3_REG_IMMED);
+		if (instr->opc == OPC_LDG) {
+			/* For LDG src1 can not be immediate, so src1_imm is redundant and
+			 * instead used to signal whether (when true) 'off' is a 32 bit
+			 * register or an immediate offset.
+			 */
+			cat6a->src1 = reg(src1, info, instr->repeat, 0);
+			cat6a->src1_im = !(src3->flags & IR3_REG_IMMED);
+			cat6a->off = reg(src3, info, instr->repeat, IR3_REG_IMMED);
+		} else {
+			cat6a->src1 = reg(src1, info, instr->repeat, IR3_REG_IMMED);
+			cat6a->src1_im = !!(src1->flags & IR3_REG_IMMED);
+			cat6a->off = reg(src3, info, instr->repeat, IR3_REG_IMMED);
+			iassert(src3->flags & IR3_REG_IMMED);
+		}
 
 		/* Num components */
 		cat6a->src2 = reg(src2, info, instr->repeat, IR3_REG_IMMED);
 		cat6a->src2_im = true;
-
-		/* Offset */
-		iassert(src3->flags & IR3_REG_IMMED);
-		cat6a->off = reg(src3, info, instr->repeat, IR3_REG_IMMED);
 	} else {
 		instr_cat6b_t *cat6b = ptr;
 
@@ -827,9 +838,20 @@ static int emit_cat6(struct ir3_instruction *instr, void *ptr,
 	if (instr->cat6.dst_offset || (instr->opc == OPC_STG) ||
 			(instr->opc == OPC_STL) || (instr->opc == OPC_STLW)) {
 		instr_cat6c_t *cat6c = ptr;
+		struct ir3_register *src3 = instr->regs[4];
 		cat6->dst_off = true;
 		cat6c->dst = reg(dst, info, instr->repeat, IR3_REG_R | IR3_REG_HALF);
-		cat6c->off = instr->cat6.dst_offset;
+
+		if (instr->flags & IR3_INSTR_G) {
+			cat6c->off = reg(src3, info, instr->repeat, IR3_REG_R | IR3_REG_HALF);
+			if (src3->flags & IR3_REG_IMMED) {
+				/* Immediate offsets are in bytes... */
+				cat6->g = false;
+				cat6c->off *= 4;
+			}
+		} else {
+			cat6c->off = instr->cat6.dst_offset;
+		}
 	} else {
 		instr_cat6d_t *cat6d = ptr;
 		cat6->dst_off = false;
@@ -900,6 +922,9 @@ void * ir3_assemble(struct ir3 *shader, struct ir3_info *info,
 			if (ret)
 				goto fail;
 			info->instrs_count += 1 + instr->repeat + instr->nop;
+			info->nops_count += instr->nop;
+			if (instr->opc == OPC_NOP)
+				info->nops_count += 1 + instr->repeat;
 			dwords += 2;
 
 			if (instr->flags & IR3_INSTR_SS)

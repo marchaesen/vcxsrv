@@ -317,6 +317,7 @@ void emit_instruction(asm_context& ctx, std::vector<uint32_t>& out, Instruction*
 
       uint32_t img_format = ac_get_tbuffer_format(ctx.chip_class, mtbuf->dfmt, mtbuf->nfmt);
       uint32_t encoding = (0b111010 << 26);
+      assert(img_format <= 0x7F);
       assert(!mtbuf->dlc || ctx.chip_class >= GFX10);
       encoding |= (mtbuf->dlc ? 1 : 0) << 15; /* DLC bit replaces one bit of the OPCODE on GFX10 */
       encoding |= (mtbuf->glc ? 1 : 0) << 14;

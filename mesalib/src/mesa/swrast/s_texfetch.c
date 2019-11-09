@@ -250,7 +250,6 @@ texfetch_funcs[] =
    /* Packed signed/unsigned non-normalized integer formats */
 
    /* Array signed/unsigned non-normalized integer formats */
-   FETCH_FUNCS(RGBA_UINT8),
    FETCH_FUNCS(RGBA_UINT16),
    FETCH_FUNCS(RGBA_UINT32),
    FETCH_FUNCS(RGBA_SINT8),

@@ -51,6 +51,9 @@ typedef enum {
 	OPC_CHSH            = _OPC(0, 10),
 	OPC_FLOW_REV        = _OPC(0, 11),
 
+	OPC_CONDEND         = _OPC(0, 13),
+	OPC_ENDPATCH        = _OPC(0, 15),
+
 	/* category 1: */
 	OPC_MOV             = _OPC(1, 0),
 
@@ -133,7 +136,14 @@ typedef enum {
 	OPC_SIN             = _OPC(4, 4),
 	OPC_COS             = _OPC(4, 5),
 	OPC_SQRT            = _OPC(4, 6),
-	// 7-63 - invalid
+	/* NOTE that these are 8+opc from their highp equivs, so it's possible
+	 * that the high order bit in the opc field has been repurposed for
+	 * half-precision use?  But note that other ops (rcp/lsin/cos/sqrt)
+	 * still use the same opc as highp
+	 */
+	OPC_HRSQ            = _OPC(4, 9),
+	OPC_HLOG2           = _OPC(4, 10),
+	OPC_HEXP2           = _OPC(4, 11),
 
 	/* category 5: */
 	OPC_ISAM            = _OPC(5, 0),
@@ -284,6 +294,8 @@ typedef union PACKED {
 	uint32_t dummy12   : 12;
 	uint32_t dummy13   : 13;
 	uint32_t dummy8    : 8;
+	int32_t  idummy13  : 13;
+	int32_t  idummy8   : 8;
 } reg_t;
 
 /* special registers: */

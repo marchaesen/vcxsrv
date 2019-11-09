@@ -252,7 +252,6 @@ MESA_FORMAT_RGB_SINT8                     , array , 1, 1, 1, s8  , s8  , s8  ,  
 MESA_FORMAT_RGB_SINT16                    , array , 1, 1, 1, s16 , s16 , s16 ,     , xyz1, rgb
 MESA_FORMAT_RGB_SINT32                    , array , 1, 1, 1, s32 , s32 , s32 ,     , xyz1, rgb
 
-MESA_FORMAT_RGBA_UINT8                    , array , 1, 1, 1, u8  , u8  , u8  , u8  , xyzw, rgb
 MESA_FORMAT_RGBA_UINT16                   , array , 1, 1, 1, u16 , u16 , u16 , u16 , xyzw, rgb
 MESA_FORMAT_RGBA_UINT32                   , array , 1, 1, 1, u32 , u32 , u32 , u32 , xyzw, rgb
 MESA_FORMAT_RGBA_SINT8                    , array , 1, 1, 1, s8  , s8  , s8  , s8  , xyzw, rgb

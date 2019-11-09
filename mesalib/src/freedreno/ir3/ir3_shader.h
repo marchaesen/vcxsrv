@@ -249,6 +249,17 @@ struct ir3_shader_key {
 			unsigned rasterflat : 1;
 			unsigned fclamp_color : 1;
 
+			/* Indicates that this is a tessellation pipeline which requires a
+			 * whole different kind of vertex shader.  In case of
+			 * tessellation, this field also tells us which kind of output
+			 * topology the TES uses, which the TCS needs to know.
+			 */
+#define IR3_TESS_NONE		0
+#define IR3_TESS_TRIANGLES	1
+#define IR3_TESS_QUADS		2
+#define IR3_TESS_ISOLINES	3
+			unsigned tessellation : 2;
+
 			unsigned has_gs : 1;
 		};
 		uint32_t global;
@@ -348,6 +359,7 @@ ir3_normalize_key(struct ir3_shader_key *key, gl_shader_stage type)
 			key->vastc_srgb = 0;
 			key->vsamples = 0;
 			key->has_gs = false; /* FS doesn't care */
+			key->tessellation = IR3_TESS_NONE;
 		}
 		break;
 	case MESA_SHADER_VERTEX:
@@ -362,6 +374,27 @@ ir3_normalize_key(struct ir3_shader_key *key, gl_shader_stage type)
 			key->fastc_srgb = 0;
 			key->fsamples = 0;
 		}
+
+		/* VS and GS only care about whether or not we're tessellating. */
+		key->tessellation = !!key->tessellation;
+		break;
+	case MESA_SHADER_TESS_CTRL:
+	case MESA_SHADER_TESS_EVAL:
+		key->color_two_side = false;
+		key->half_precision = false;
+		key->rasterflat = false;
+		if (key->has_per_samp) {
+			key->fsaturate_s = 0;
+			key->fsaturate_t = 0;
+			key->fsaturate_r = 0;
+			key->fastc_srgb = 0;
+			key->fsamples = 0;
+			key->vsaturate_s = 0;
+			key->vsaturate_t = 0;
+			key->vsaturate_r = 0;
+			key->vastc_srgb = 0;
+			key->vsamples = 0;
+ 		}
 		break;
 	default:
 		/* TODO */
@@ -738,6 +771,7 @@ ir3_find_output_regid(const struct ir3_shader_variant *so, unsigned slot)
 
 #define VARYING_SLOT_GS_HEADER_IR3			(VARYING_SLOT_MAX + 0)
 #define VARYING_SLOT_GS_VERTEX_FLAGS_IR3	(VARYING_SLOT_MAX + 1)
+#define VARYING_SLOT_TCS_HEADER_IR3			(VARYING_SLOT_MAX + 2)
 
 
 static inline uint32_t

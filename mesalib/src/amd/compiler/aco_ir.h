@@ -614,6 +614,8 @@ struct Instruction {
    {
       return format == Format::FLAT || format == Format::GLOBAL;
    }
+
+   constexpr bool usesModifiers() const noexcept;
 };
 
 struct SOPK_instruction : public Instruction {
@@ -875,6 +877,20 @@ T* create_instruction(aco_opcode opcode, Format format, uint32_t num_operands, u
    inst->definitions = aco::span<Definition>((Definition*)inst->operands.end(), num_definitions);
 
    return inst;
+}
+
+constexpr bool Instruction::usesModifiers() const noexcept
+{
+   if (isDPP() || isSDWA())
+      return true;
+   if (!isVOP3())
+      return false;
+   const VOP3A_instruction *vop3 = static_cast<const VOP3A_instruction*>(this);
+   for (unsigned i = 0; i < operands.size(); i++) {
+      if (vop3->abs[i] || vop3->opsel[i] || vop3->neg[i])
+         return true;
+   }
+   return vop3->opsel[3] || vop3->clamp || vop3->omod;
 }
 
 constexpr bool is_phi(Instruction* instr)

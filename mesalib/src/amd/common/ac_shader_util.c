@@ -114,6 +114,11 @@ unsigned
 ac_get_tbuffer_format(enum chip_class chip_class,
 		      unsigned dfmt, unsigned nfmt)
 {
+	// Some games try to access vertex buffers without a valid format.
+	// This is a game bug, but we should still handle it gracefully.
+	if (dfmt == V_008F0C_IMG_FORMAT_INVALID)
+		return V_008F0C_IMG_FORMAT_INVALID;
+
 	if (chip_class >= GFX10) {
 		unsigned format;
 		switch (dfmt) {

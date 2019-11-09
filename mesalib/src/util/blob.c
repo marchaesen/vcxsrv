@@ -125,6 +125,17 @@ blob_init_fixed(struct blob *blob, void *data, size_t size)
    blob->out_of_memory = false;
 }
 
+void
+blob_finish_get_buffer(struct blob *blob, void **buffer, size_t *size)
+{
+   *buffer = blob->data;
+   *size = blob->size;
+   blob->data = NULL;
+
+   /* Trim the buffer. */
+   *buffer = realloc(*buffer, *size);
+}
+
 bool
 blob_overwrite_bytes(struct blob *blob,
                      size_t offset,
