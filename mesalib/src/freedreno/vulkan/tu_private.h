@@ -419,6 +419,7 @@ struct tu_meta_state
 
 struct tu_fence
 {
+   struct wsi_fence *fence_wsi;
    bool signaled;
    int fd;
 };
@@ -1228,6 +1229,13 @@ void
 tu_pack_clear_value(const VkClearValue *val,
                     VkFormat format,
                     uint32_t buf[4]);
+
+void
+tu_2d_clear_color(const VkClearColorValue *val, VkFormat format, uint32_t buf[4]);
+
+void
+tu_2d_clear_zs(const VkClearDepthStencilValue *val, VkFormat format, uint32_t buf[4]);
+
 enum a6xx_2d_ifmt tu6_rb_fmt_to_ifmt(enum a6xx_color_fmt fmt);
 enum a6xx_depth_format tu6_pipe2depth(VkFormat format);
 
@@ -1263,6 +1271,8 @@ struct tu_image
    struct tu_image_level levels[15];
    unsigned tile_mode;
    unsigned cpp;
+   struct tu_image_level ubwc_levels[15];
+   uint32_t ubwc_size;
 
    unsigned queue_family_mask;
    bool exclusive;
@@ -1299,6 +1309,46 @@ tu_get_levelCount(const struct tu_image *image,
              : range->levelCount;
 }
 
+static inline VkDeviceSize
+tu_layer_size(struct tu_image *image, int level)
+{
+   if (image->type == VK_IMAGE_TYPE_3D)
+      return image->levels[level].size;
+   return image->layer_size;
+}
+
+static inline uint32_t
+tu_image_stride(struct tu_image *image, int level)
+{
+   return image->levels[level].pitch * image->cpp;
+}
+
+static inline uint64_t
+tu_image_base(struct tu_image *image, int level, int layer)
+{
+   return image->bo->iova + image->bo_offset + image->levels[level].offset +
+          layer * tu_layer_size(image, level);
+}
+
+static inline VkDeviceSize
+tu_image_ubwc_size(struct tu_image *image, int level)
+{
+   return image->ubwc_size;
+}
+
+static inline uint32_t
+tu_image_ubwc_pitch(struct tu_image *image, int level)
+{
+   return image->ubwc_levels[level].pitch;
+}
+
+static inline uint64_t
+tu_image_ubwc_base(struct tu_image *image, int level, int layer)
+{
+   return image->bo->iova + image->bo_offset + image->ubwc_levels[level].offset +
+          layer * tu_image_ubwc_size(image, level);
+}
+
 enum a6xx_tile_mode
 tu6_get_image_tile_mode(struct tu_image *image, int level);
 enum a3xx_msaa_samples
@@ -1332,18 +1382,12 @@ struct tu_sampler
    bool needs_border;
 };
 
-struct tu_image_create_info
-{
-   const VkImageCreateInfo *vk_info;
-   bool scanout;
-   bool no_metadata_planes;
-};
-
 VkResult
 tu_image_create(VkDevice _device,
-                const struct tu_image_create_info *info,
+                const VkImageCreateInfo *pCreateInfo,
                 const VkAllocationCallbacks *alloc,
-                VkImage *pImage);
+                VkImage *pImage,
+                uint64_t modifier);
 
 VkResult
 tu_image_from_gralloc(VkDevice device_h,

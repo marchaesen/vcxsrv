@@ -1,3 +1,4 @@
+! option	=	symbols
   altwin:menu		=	+altwin(menu)
   altwin:menu_win	=	+altwin(menu_win)
   altwin:meta_alt	=	+altwin(meta_alt)

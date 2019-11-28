@@ -200,7 +200,7 @@ tu_blit_buffer(struct tu_buffer *buffer,
                const VkBufferImageCopy *info)
 {
    if (info->imageSubresource.aspectMask == VK_IMAGE_ASPECT_STENCIL_BIT)
-      format = VK_FORMAT_R8_UINT;
+      format = VK_FORMAT_R8_UNORM;
 
    unsigned pitch = (info->bufferRowLength ?: info->imageExtent.width) *
                         vk_format_get_blocksize(format);
@@ -233,7 +233,8 @@ tu_copy_buffer_to_image(struct tu_cmd_buffer *cmdbuf,
       .dst = tu_blit_surf_ext(dst_image, info->imageSubresource, info->imageOffset, info->imageExtent),
       .src = tu_blit_buffer(src_buffer, dst_image->vk_format, info),
       .layers = MAX2(info->imageExtent.depth, info->imageSubresource.layerCount),
-   }, true);
+      .type = TU_BLIT_COPY,
+   });
 }
 
 static void
@@ -246,7 +247,8 @@ tu_copy_image_to_buffer(struct tu_cmd_buffer *cmdbuf,
       .dst = tu_blit_buffer(dst_buffer, src_image->vk_format, info),
       .src = tu_blit_surf_ext(src_image, info->imageSubresource, info->imageOffset, info->imageExtent),
       .layers = MAX2(info->imageExtent.depth, info->imageSubresource.layerCount),
-   }, true);
+      .type = TU_BLIT_COPY,
+   });
 }
 
 static void
@@ -267,7 +269,8 @@ tu_copy_image_to_image(struct tu_cmd_buffer *cmdbuf,
       .dst = tu_blit_surf_ext(dst_image, info->dstSubresource, info->dstOffset, info->extent),
       .src = tu_blit_surf_ext(src_image, info->srcSubresource, info->srcOffset, info->extent),
       .layers = info->extent.depth,
-   }, true);
+      .type = TU_BLIT_COPY,
+   });
 }
 
 void

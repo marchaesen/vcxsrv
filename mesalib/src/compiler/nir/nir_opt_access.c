@@ -158,12 +158,12 @@ process_variable(struct access_state *state, nir_variable *var)
       return false;
 
    /* Ignore variables we've already marked */
-   if (var->data.image.access & ACCESS_CAN_REORDER)
+   if (var->data.access & ACCESS_CAN_REORDER)
       return false;
 
-   if (!(var->data.image.access & ACCESS_NON_WRITEABLE) &&
+   if (!(var->data.access & ACCESS_NON_WRITEABLE) &&
        !_mesa_set_search(state->vars_written, var)) {
-      var->data.image.access |= ACCESS_NON_WRITEABLE;
+      var->data.access |= ACCESS_NON_WRITEABLE;
       return true;
    }
 
@@ -246,7 +246,7 @@ process_intrinsic(struct access_state *state, nir_intrinsic_instr *instr)
 
       /* Check if we were able to mark the whole variable non-writeable */
       if (!(nir_intrinsic_access(instr) & ACCESS_NON_WRITEABLE) &&
-          var->data.image.access & ACCESS_NON_WRITEABLE) {
+          var->data.access & ACCESS_NON_WRITEABLE) {
          progress = true;
          nir_intrinsic_set_access(instr,
                                   nir_intrinsic_access(instr) |

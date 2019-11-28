@@ -326,12 +326,12 @@ NIR_FILES = \
 	nir/nir_range_analysis.h \
 	nir/nir_remove_dead_variables.c \
 	nir/nir_repair_ssa.c \
+	nir/nir_schedule.c \
 	nir/nir_search.c \
 	nir/nir_search.h \
 	nir/nir_search_helpers.h \
 	nir/nir_serialize.c \
 	nir/nir_serialize.h \
-	nir/nir_strip.c \
 	nir/nir_split_per_member_structs.c \
 	nir/nir_split_var_copies.c \
 	nir/nir_split_vars.c \

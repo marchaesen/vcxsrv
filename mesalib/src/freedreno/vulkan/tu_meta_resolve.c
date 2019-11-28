@@ -43,7 +43,7 @@ tu_resolve_image(struct tu_cmd_buffer *cmdbuf,
       .dst = tu_blit_surf_ext(dst_image, info->dstSubresource, info->dstOffset, info->extent),
       .src = tu_blit_surf_ext(src_image, info->srcSubresource, info->srcOffset, info->extent),
       .layers = MAX2(info->extent.depth, info->dstSubresource.layerCount)
-   }, false);
+   });
 }
 
 void

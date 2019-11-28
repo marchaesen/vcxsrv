@@ -313,8 +313,3 @@ default xkb_keycodes "evdev" {
 	// For Brazilian ABNT2
 	alias <KPPT> = <I129>;
 };
-
-// PC98
-xkb_keycodes "pc98" {
-    include "evdev(evdev)"
-};

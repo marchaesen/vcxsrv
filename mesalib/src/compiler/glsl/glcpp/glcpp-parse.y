@@ -30,6 +30,17 @@
 
 #include "glcpp.h"
 #include "main/mtypes.h"
+#include "util/strndup.h"
+
+const char *
+_mesa_lookup_shader_include(struct gl_context *ctx, char *path,
+                            bool error_check);
+
+size_t
+_mesa_get_shader_include_cursor(struct gl_shared_state *shared);
+
+void
+_mesa_set_shader_include_cursor(struct gl_shared_state *shared, size_t cursor);
 
 static void
 yyerror(YYLTYPE *locp, glcpp_parser_t *parser, const char *error);
@@ -149,6 +160,14 @@ glcpp_parser_lex(YYSTYPE *yylval, YYLTYPE *yylloc, glcpp_parser_t *parser);
 static void
 glcpp_parser_lex_from(glcpp_parser_t *parser, token_list_t *list);
 
+struct define_include {
+   glcpp_parser_t *parser;
+   YYLTYPE *loc;
+};
+
+static void
+glcpp_parser_copy_defines(const void *key, void *data, void *closure);
+
 static void
 add_builtin_define(glcpp_parser_t *parser, const char *name, int value);
 
@@ -174,11 +193,11 @@ add_builtin_define(glcpp_parser_t *parser, const char *name, int value);
         /* We use HASH_TOKEN, DEFINE_TOKEN and VERSION_TOKEN (as opposed to
          * HASH, DEFINE, and VERSION) to avoid conflicts with other symbols,
          * (such as the <HASH> and <DEFINE> start conditions in the lexer). */
-%token DEFINED ELIF_EXPANDED HASH_TOKEN DEFINE_TOKEN FUNC_IDENTIFIER OBJ_IDENTIFIER ELIF ELSE ENDIF ERROR_TOKEN IF IFDEF IFNDEF LINE PRAGMA UNDEF VERSION_TOKEN GARBAGE IDENTIFIER IF_EXPANDED INTEGER INTEGER_STRING LINE_EXPANDED NEWLINE OTHER PLACEHOLDER SPACE PLUS_PLUS MINUS_MINUS
+%token DEFINED ELIF_EXPANDED HASH_TOKEN DEFINE_TOKEN FUNC_IDENTIFIER OBJ_IDENTIFIER ELIF ELSE ENDIF ERROR_TOKEN IF IFDEF IFNDEF LINE PRAGMA UNDEF VERSION_TOKEN GARBAGE IDENTIFIER IF_EXPANDED INTEGER INTEGER_STRING LINE_EXPANDED NEWLINE OTHER PLACEHOLDER SPACE PLUS_PLUS MINUS_MINUS PATH INCLUDE
 %token PASTE
 %type <ival> INTEGER operator SPACE integer_constant version_constant
 %type <expression_value> expression
-%type <str> IDENTIFIER FUNC_IDENTIFIER OBJ_IDENTIFIER INTEGER_STRING OTHER ERROR_TOKEN PRAGMA
+%type <str> IDENTIFIER FUNC_IDENTIFIER OBJ_IDENTIFIER INTEGER_STRING OTHER ERROR_TOKEN PRAGMA PATH INCLUDE
 %type <string_list> identifier_list
 %type <token> preprocessing_token
 %type <token_list> pp_tokens replacement_list text_line
@@ -236,6 +255,13 @@ expanded_line:
 		parser->new_source_number = $3;
 		_mesa_string_buffer_printf(parser->output,
 					   "#line %" PRIiMAX " %" PRIiMAX "\n",
+					    $2, $3);
+	}
+|	LINE_EXPANDED integer_constant PATH NEWLINE {
+		parser->has_new_line_number = 1;
+		parser->new_line_number = $2;
+		_mesa_string_buffer_printf(parser->output,
+					   "#line %" PRIiMAX " %s\n",
 					    $2, $3);
 	}
 ;
@@ -322,6 +348,80 @@ control_line_success:
 		if (entry) {
 			_mesa_hash_table_remove (parser->defines, entry);
 		}
+	}
+|	HASH_TOKEN INCLUDE NEWLINE {
+		size_t include_cursor = _mesa_get_shader_include_cursor(parser->gl_ctx->Shared);
+
+		/* Remove leading and trailing "" or <> */
+		char *start = strchr($2, '"');
+		if (!start) {
+			_mesa_set_shader_include_cursor(parser->gl_ctx->Shared, 0);
+			start = strchr($2, '<');
+		}
+		char *path = strndup(start + 1, strlen(start + 1) - 1);
+
+		const char *shader =
+			_mesa_lookup_shader_include(parser->gl_ctx, path, false);
+		free(path);
+
+		if (!shader)
+			glcpp_error(&@1, parser, "%s not found", $2);
+		else {
+			/* Create a temporary parser with the same settings */
+			glcpp_parser_t *tmp_parser =
+				glcpp_parser_create(parser->gl_ctx, parser->extensions, parser->state);
+			tmp_parser->version_set = true;
+			tmp_parser->version = parser->version;
+
+			/* Set the shader source and run the lexer */
+			glcpp_lex_set_source_string(tmp_parser, shader);
+
+			/* Copy any existing define macros to the temporary
+			 * shade include parser.
+			 */
+			struct define_include di;
+			di.parser = tmp_parser;
+			di.loc = &@1;
+
+			hash_table_call_foreach(parser->defines,
+						glcpp_parser_copy_defines,
+						&di);
+
+			/* Print out '#include' to the glsl parser. We do this
+			 * so that it can do the error checking require to
+			 * make sure the ARB_shading_language_include
+			 * extension is enabled.
+			 */
+			_mesa_string_buffer_printf(parser->output, "#include\n");
+
+			/* Parse the include string before adding to the
+			 * preprocessor output.
+			 */
+			glcpp_parser_parse(tmp_parser);
+			_mesa_string_buffer_printf(parser->info_log, "%s",
+						   tmp_parser->info_log->buf);
+			_mesa_string_buffer_printf(parser->output, "%s",
+						   tmp_parser->output->buf);
+
+			/* Copy any new define macros to the parent parser
+			 * and steal the memory of our temp parser so we don't
+			 * free these new defines before they are no longer
+			 * needed.
+			 */
+			di.parser = parser;
+			di.loc = &@1;
+			ralloc_steal(parser, tmp_parser);
+
+			hash_table_call_foreach(tmp_parser->defines,
+						glcpp_parser_copy_defines,
+						&di);
+
+			/* Destroy tmp parser memory we no longer need */
+			glcpp_lex_destroy(tmp_parser->scanner);
+			_mesa_hash_table_destroy(tmp_parser->defines, NULL);
+		}
+
+		_mesa_set_shader_include_cursor(parser->gl_ctx->Shared, include_cursor);
 	}
 |	HASH_TOKEN IF pp_tokens NEWLINE {
 		/* Be careful to only evaluate the 'if' expression if
@@ -704,6 +804,10 @@ preprocessing_token:
 	}
 |	INTEGER_STRING {
 		$$ = _token_create_str (parser, INTEGER_STRING, $1);
+		$$->location = yylloc;
+	}
+|	PATH {
+		$$ = _token_create_str (parser, PATH, $1);
 		$$->location = yylloc;
 	}
 |	operator {
@@ -1357,8 +1461,8 @@ add_builtin_define(glcpp_parser_t *parser, const char *name, int value)
 #define INITIAL_PP_OUTPUT_BUF_SIZE 4048
 
 glcpp_parser_t *
-glcpp_parser_create(const struct gl_extensions *extension_list,
-                    glcpp_extension_iterator extensions, void *state, gl_api api)
+glcpp_parser_create(struct gl_context *gl_ctx,
+                    glcpp_extension_iterator extensions, void *state)
 {
    glcpp_parser_t *parser;
 
@@ -1392,10 +1496,11 @@ glcpp_parser_create(const struct gl_extensions *extension_list,
                                                  INITIAL_PP_OUTPUT_BUF_SIZE);
    parser->error = 0;
 
+   parser->gl_ctx = gl_ctx;
    parser->extensions = extensions;
-   parser->extension_list = extension_list;
+   parser->extension_list = &gl_ctx->Extensions;
    parser->state = state;
-   parser->api = api;
+   parser->api = gl_ctx->API;
    parser->version = 0;
    parser->version_set = false;
 
@@ -2408,4 +2513,30 @@ glcpp_parser_resolve_implicit_version(glcpp_parser_t *parser)
 
    _glcpp_parser_handle_version_declaration(parser, language_version,
                                             NULL, false);
+}
+
+static void
+glcpp_parser_copy_defines(const void *key, void *data, void *closure)
+{
+   struct define_include *di = (struct define_include *) closure;
+   macro_t *macro = (macro_t *) data;
+
+   /* If we hit an error on a previous pass, just return */
+   if (di->parser->error)
+      return;
+
+   const char *identifier =  macro->identifier;
+   struct hash_entry *entry = _mesa_hash_table_search(di->parser->defines,
+                                                      identifier);
+
+   macro_t *previous = entry ? entry->data : NULL;
+   if (previous) {
+      if (_macro_equal(macro, previous)) {
+         return;
+      }
+      glcpp_error(di->loc, di->parser, "Redefinition of macro %s\n",
+                  identifier);
+   }
+
+   _mesa_hash_table_insert(di->parser->defines, identifier, macro);
 }

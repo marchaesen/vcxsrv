@@ -45,7 +45,7 @@
 #include "pipe/p_shader_tokens.h"
 #include "util/u_inlines.h"
 
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 #include "util/u_memory.h"
 #include "util/u_pstipple.h"
 #include "util/u_sampler.h"

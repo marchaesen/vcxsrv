@@ -520,17 +520,17 @@ nir_visitor::visit(ir_variable *ir)
       unreachable("not reached");
    }
 
-   unsigned image_access = 0;
+   unsigned mem_access = 0;
    if (ir->data.memory_read_only)
-      image_access |= ACCESS_NON_WRITEABLE;
+      mem_access |= ACCESS_NON_WRITEABLE;
    if (ir->data.memory_write_only)
-      image_access |= ACCESS_NON_READABLE;
+      mem_access |= ACCESS_NON_READABLE;
    if (ir->data.memory_coherent)
-      image_access |= ACCESS_COHERENT;
+      mem_access |= ACCESS_COHERENT;
    if (ir->data.memory_volatile)
-      image_access |= ACCESS_VOLATILE;
+      mem_access |= ACCESS_VOLATILE;
    if (ir->data.memory_restrict)
-      image_access |= ACCESS_RESTRICT;
+      mem_access |= ACCESS_RESTRICT;
 
    /* For UBO and SSBO variables, we need explicit types */
    if (var->data.mode & (nir_var_mem_ubo | nir_var_mem_ssbo)) {
@@ -553,15 +553,15 @@ nir_visitor::visit(ir_variable *ir)
 
             var->type = field->type;
             if (field->memory_read_only)
-               image_access |= ACCESS_NON_WRITEABLE;
+               mem_access |= ACCESS_NON_WRITEABLE;
             if (field->memory_write_only)
-               image_access |= ACCESS_NON_READABLE;
+               mem_access |= ACCESS_NON_READABLE;
             if (field->memory_coherent)
-               image_access |= ACCESS_COHERENT;
+               mem_access |= ACCESS_COHERENT;
             if (field->memory_volatile)
-               image_access |= ACCESS_VOLATILE;
+               mem_access |= ACCESS_VOLATILE;
             if (field->memory_restrict)
-               image_access |= ACCESS_RESTRICT;
+               mem_access |= ACCESS_RESTRICT;
 
             found = true;
             break;
@@ -599,11 +599,11 @@ nir_visitor::visit(ir_variable *ir)
    var->data.explicit_binding = ir->data.explicit_binding;
    var->data.bindless = ir->data.bindless;
    var->data.offset = ir->data.offset;
+   var->data.access = (gl_access_qualifier)mem_access;
 
    if (var->type->without_array()->is_image()) {
-      var->data.image.access = (gl_access_qualifier)image_access;
       var->data.image.format = ir->data.image_format;
-   } else {
+   } else if (var->data.mode == nir_var_shader_out) {
       var->data.xfb.buffer = ir->data.xfb_buffer;
       var->data.xfb.stride = ir->data.xfb_stride;
    }
@@ -862,7 +862,7 @@ deref_get_qualifier(nir_deref_instr *deref)
    nir_deref_path path;
    nir_deref_path_init(&path, deref, NULL);
 
-   unsigned qualifiers = path.path[0]->var->data.image.access;
+   unsigned qualifiers = path.path[0]->var->data.access;
 
    const glsl_type *parent_type = path.path[0]->type;
    for (nir_deref_instr **cur_ptr = &path.path[1]; *cur_ptr; cur_ptr++) {

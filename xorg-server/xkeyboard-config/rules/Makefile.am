@@ -1,4 +1,4 @@
-SUBDIRS = bin compat
+SUBDIRS = compat
 
 if CREATE_RULES_SYMLINK
 #  extra_rules_file = $(xkb_rules_symlink)
@@ -22,191 +22,108 @@ endif
 
 if USE_COMPAT_RULES
 
-base_parts = base.hdr.part base.lists.part \
-base.lists.base.part \
-compat/base.lists.part \
-HDR base.m_k.part \
-HDR base.l1_k.part \
-HDR base.l_k.part \
-HDR base.o_k.part \
-HDR base.ml_g.part \
-HDR base.m_g.part \
-HDR compat/base.mlv_s.part   base.mlv_s.part \
-HDR compat/base.ml_s.part    base.ml_s.part  \
-HDR compat/base.ml1_s.part   base.ml1_s.part \
-HDR compat/base.ml1v1_s.part \
-HDR compat/base.ml2_s.part    base.ml2_s.part  \
-HDR compat/base.ml3_s.part    base.ml3_s.part  \
-HDR compat/base.ml4_s.part    base.ml4_s.part  \
-HDR compat/base.ml2v2_s.part  \
-HDR compat/base.ml3v3_s.part  \
-HDR compat/base.ml4v4_s.part  \
-HDR base.m_s.part \
-HDR base.ml_s1.part \
-HDR compat/base.lv_c.part   \
-HDR compat/base.l1v1_c.part \
-HDR compat/base.l2v2_c.part \
-HDR compat/base.l3v3_c.part \
-HDR compat/base.l4v4_c.part \
-HDR base.ml_c.part \
-HDR base.ml1_c.part \
-HDR base.m_t.part \
-HDR base.lo_s.part \
-HDR base.l1o_s.part \
-HDR base.l2o_s.part \
-HDR base.l3o_s.part \
-HDR base.l4o_s.part \
-HDR compat/base.o_s.part     base.o_s.part \
-HDR base.o_c.part \
-HDR base.o_t.part
-
-evdev_parts = base.hdr.part base.lists.part \
-evdev.lists.part \
-compat/base.lists.part \
-HDR evdev.m_k.part \
-HDR base.l1_k.part \
-HDR base.l_k.part \
-HDR base.o_k.part \
-HDR base.ml_g.part \
-HDR base.m_g.part \
-HDR compat/base.mlv_s.part   base.mlv_s.part \
-HDR compat/base.ml_s.part    base.ml_s.part  \
-HDR compat/base.ml1_s.part   base.ml1_s.part \
-HDR compat/base.ml1v1_s.part \
-HDR compat/base.ml2_s.part    base.ml2_s.part  \
-HDR compat/base.ml3_s.part    base.ml3_s.part  \
-HDR compat/base.ml4_s.part    base.ml4_s.part  \
-HDR compat/base.ml2v2_s.part  \
-HDR compat/base.ml3v3_s.part  \
-HDR compat/base.ml4v4_s.part  \
-HDR evdev.m_s.part \
-HDR \
-HDR compat/base.lv_c.part   \
-HDR compat/base.l1v1_c.part \
-HDR compat/base.l2v2_c.part \
-HDR compat/base.l3v3_c.part \
-HDR compat/base.l4v4_c.part \
-HDR base.ml_c.part \
-HDR base.ml1_c.part \
-HDR base.m_t.part \
-HDR base.lo_s.part \
-HDR base.l1o_s.part \
-HDR base.l2o_s.part \
-HDR base.l3o_s.part \
-HDR base.l4o_s.part \
-HDR compat/base.o_s.part     base.o_s.part \
-HDR base.o_c.part \
-HDR base.o_t.part
+parts = \
+	base.hdr.part base.lists.part \
+	RULESET.lists.base.part \
+	compat/base.lists.part \
+	RULESET.m_k.part \
+	base.l1_k.part \
+	base.l_k.part \
+	base.o_k.part \
+	base.ml_g.part \
+	base.m_g.part \
+	compat/base.mlv_s.part   base.mlv_s.part \
+	compat/base.ml_s.part    base.ml_s.part  \
+	compat/base.ml1_s.part   base.ml1_s.part \
+	compat/base.ml1v1_s.part \
+	compat/base.ml2_s.part    base.ml2_s.part  \
+	compat/base.ml3_s.part    base.ml3_s.part  \
+	compat/base.ml4_s.part    base.ml4_s.part  \
+	compat/base.ml2v2_s.part  \
+	compat/base.ml3v3_s.part  \
+	compat/base.ml4v4_s.part  \
+	RULESET.m_s.part \
+	RULESET.ml_s1.part \
+	compat/base.lv_c.part   \
+	compat/base.l1v1_c.part \
+	compat/base.l2v2_c.part \
+	compat/base.l3v3_c.part \
+	compat/base.l4v4_c.part \
+	base.ml_c.part \
+	base.ml1_c.part \
+	base.m_t.part \
+	base.lo_s.part \
+	base.l1o_s.part \
+	base.l2o_s.part \
+	base.l3o_s.part \
+	base.l4o_s.part \
+	compat/base.o_s.part     base.o_s.part \
+	base.o_c.part \
+	base.o_t.part
 
 else
 
-base_parts = base.hdr.part base.lists.part \
-base.lists.base.part \
-HDR base.m_k.part \
-HDR base.l1_k.part \
-HDR base.l_k.part \
-HDR \
-HDR base.ml_g.part \
-HDR base.m_g.part \
-HDR base.mlv_s.part \
-HDR base.ml_s.part  \
-HDR base.ml1_s.part \
-HDR \
-HDR base.ml2_s.part  \
-HDR base.ml3_s.part  \
-HDR base.ml4_s.part  \
-HDR \
-HDR \
-HDR \
-HDR base.m_s.part \
-HDR base.ml_s1.part \
-HDR \
-HDR \
-HDR \
-HDR \
-HDR \
-HDR base.ml_c.part \
-HDR base.ml1_c.part \
-HDR base.m_t.part \
-HDR \
-HDR base.l1o_s.part \
-HDR base.l2o_s.part \
-HDR base.l3o_s.part \
-HDR base.l4o_s.part \
-HDR base.o_s.part \
-HDR base.o_c.part \
-HDR base.o_t.part
-
-evdev_parts = base.hdr.part base.lists.part \
-evdev.lists.part \
-HDR evdev.m_k.part \
-HDR base.l1_k.part \
-HDR base.l_k.part  \
-HDR \
-HDR base.ml_g.part \
-HDR base.m_g.part \
-HDR base.mlv_s.part \
-HDR base.ml_s.part  \
-HDR base.ml1_s.part \
-HDR \
-HDR base.ml2_s.part  \
-HDR base.ml3_s.part  \
-HDR base.ml4_s.part  \
-HDR \
-HDR \
-HDR \
-HDR evdev.m_s.part \
-HDR \
-HDR \
-HDR \
-HDR \
-HDR \
-HDR \
-HDR base.ml_c.part \
-HDR base.ml1_c.part \
-HDR base.m_t.part \
-HDR \
-HDR base.l1o_s.part \
-HDR base.l2o_s.part \
-HDR base.l3o_s.part \
-HDR base.l4o_s.part \
-HDR base.o_s.part \
-HDR base.o_c.part \
-HDR base.o_t.part
+parts = \
+	base.hdr.part base.lists.part \
+	RULESET.lists.base.part \
+	RULESET.m_k.part \
+	base.l1_k.part \
+	base.l_k.part \
+	base.ml_g.part \
+	base.m_g.part \
+	base.mlv_s.part \
+	base.ml_s.part  \
+	base.ml1_s.part \
+	base.ml2_s.part  \
+	base.ml3_s.part  \
+	base.ml4_s.part  \
+	RULESET.m_s.part \
+	RULESET.ml_s1.part \
+	base.ml_c.part \
+	base.ml1_c.part \
+	base.m_t.part \
+	base.l1o_s.part \
+	base.l2o_s.part \
+	base.l3o_s.part \
+	base.l4o_s.part \
+	base.o_s.part \
+	base.o_c.part \
+	base.o_t.part
 
 endif
 
-all_parts_dist = HDR base.hdr.part \
-base.lists.part \
-base.lists.base.part \
-evdev.lists.part \
-base.m_k.part \
-base.l1_k.part \
-base.l_k.part \
-base.o_k.part \
-base.ml_g.part \
-base.m_g.part \
-base.mlv_s.part \
-base.ml_s.part \
-base.ml1_s.part \
-base.ml2_s.part \
-base.ml3_s.part \
-base.ml4_s.part \
-base.m_s.part \
-base.ml_s1.part \
-base.ml_c.part \
-base.ml1_c.part \
-base.m_t.part \
-base.lo_s.part \
-base.l1o_s.part \
-base.l2o_s.part \
-base.l3o_s.part \
-base.l4o_s.part \
-base.o_s.part \
-base.o_c.part \
-base.o_t.part \
-evdev.m_k.part \
-evdev.m_s.part
+all_parts_dist = base.hdr.part \
+	base.lists.part \
+	base.lists.base.part \
+	evdev.lists.base.part \
+	base.m_k.part \
+	base.l1_k.part \
+	base.l_k.part \
+	base.o_k.part \
+	base.ml_g.part \
+	base.m_g.part \
+	base.mlv_s.part \
+	base.ml_s.part \
+	base.ml1_s.part \
+	base.ml2_s.part \
+	base.ml3_s.part \
+	base.ml4_s.part \
+	base.m_s.part \
+	base.ml_s1.part \
+	evdev.ml_s1.part \
+	base.ml_c.part \
+	base.ml1_c.part \
+	base.m_t.part \
+	base.lo_s.part \
+	base.l1o_s.part \
+	base.l2o_s.part \
+	base.l3o_s.part \
+	base.l4o_s.part \
+	base.o_s.part \
+	base.o_c.part \
+	base.o_t.part \
+	evdev.m_k.part \
+	evdev.m_s.part
 
 rules_files = base evdev xfree98
 
@@ -217,13 +134,15 @@ SUFFIXES = .xml .lst
 .xml.lst:
 	perl $(srcdir)/xml2lst.pl < $< > $@
 
-base: $(base_parts)
-	HDR="$(srcdir)/HDR" $(srcdir)/merge.sh $@ $(base_parts)
+base_parts=$(subst RULESET,base,$(parts))
+base: $(base_parts) merge.py
+	$(srcdir)/merge.py $@ $(srcdir) $(builddir) $(base_parts)
 
-evdev: $(evdev_parts)
-	HDR="$(srcdir)/HDR" $(srcdir)/merge.sh $@ $(evdev_parts)
+evdev_parts=$(subst RULESET,evdev,$(parts))
+evdev: $(evdev_sources) merge.py
+	$(srcdir)/merge.py $@ $(srcdir) $(builddir) $(evdev_parts)
 
-dist_files = xkb.dtd xkb.its README
+dist_files = xkb.dtd README
 
 rules_DATA = $(rules_files) $(lst_files) $(dist_files)
 
@@ -237,7 +156,7 @@ $(srcdir)/evdev.extras.xml: base.extras.xml
 
 EXTRA_DIST= $(xml_DATA) xfree98 \
             $(all_parts_dist) \
-            xml2lst.pl merge.sh $(dist_files)
+            xml2lst.pl merge.py xkb.its $(dist_files)
 
 CLEANFILES = base base.lst evdev evdev.lst
 

@@ -283,9 +283,27 @@ mir_srcsize(midgard_instruction *ins, unsigned i)
         return mode;
 }
 
+midgard_reg_mode
+mir_mode_for_destsize(unsigned size)
+{
+        switch (size) {
+        case 8:
+                return midgard_reg_mode_8;
+        case 16:
+                return midgard_reg_mode_16;
+        case 32:
+                return midgard_reg_mode_32;
+        case 64:
+                return midgard_reg_mode_64;
+        default:
+                unreachable("Unknown destination size");
+        }
+}
+
+
 /* Converts per-component mask to a byte mask */
 
-static uint16_t
+uint16_t
 mir_to_bytemask(midgard_reg_mode mode, unsigned mask)
 {
         switch (mode) {
@@ -376,10 +394,10 @@ mir_round_bytemask_down(uint16_t mask, midgard_reg_mode mode)
 
         for (unsigned c = 0; c < channels; ++c) {
                 /* Get bytes in component */
-                unsigned submask = (mask >> c * channels) & maxmask;
+                unsigned submask = (mask >> (c * bytes)) & maxmask;
 
                 if (submask != maxmask)
-                        mask &= ~(maxmask << (c * channels));
+                        mask &= ~(maxmask << (c * bytes));
         }
 
         return mask;
@@ -458,25 +476,6 @@ mir_bytemask_of_read_components(midgard_instruction *ins, unsigned node)
         }
 
         return mask;
-}
-
-unsigned
-mir_ubo_shift(midgard_load_store_op op)
-{
-        switch (op) {
-        case midgard_op_ld_ubo_char:
-                return 0;
-        case midgard_op_ld_ubo_char2:
-                return 1;
-        case midgard_op_ld_ubo_char4:
-                return 2;
-        case midgard_op_ld_ubo_short4:
-                return 3;
-        case midgard_op_ld_ubo_int4:
-                return 4;
-        default:
-                unreachable("Invalid op");
-        }
 }
 
 /* Register allocation occurs after instruction scheduling, which is fine until

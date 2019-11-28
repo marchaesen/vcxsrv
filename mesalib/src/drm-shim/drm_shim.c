@@ -219,6 +219,7 @@ PUBLIC FILE *fopen(const char *path, const char *mode)
          pipe(fds);
          write(fds[1], file_overrides[i].contents,
                strlen(file_overrides[i].contents));
+         close(fds[1]);
          return fdopen(fds[0], "r");
       }
    }

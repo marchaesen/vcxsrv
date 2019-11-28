@@ -274,9 +274,12 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
 
       unsigned idx = 0;
       if (func_type->return_type->base_type != vtn_base_type_void) {
+         nir_address_format addr_format =
+            vtn_mode_to_address_format(b, vtn_variable_mode_function);
          /* The return value is a regular pointer */
          func->params[idx++] = (nir_parameter) {
-            .num_components = 1, .bit_size = 32,
+            .num_components = nir_address_format_num_components(addr_format),
+            .bit_size = nir_address_format_bit_size(addr_format),
          };
       }
 
@@ -315,7 +318,6 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
             vtn_push_value(b, w[2], vtn_value_type_sampled_image);
 
          val->sampled_image = ralloc(b, struct vtn_sampled_image);
-         val->sampled_image->type = type;
 
          struct vtn_type *sampler_type = rzalloc(b, struct vtn_type);
          sampler_type->base_type = vtn_base_type_sampler;

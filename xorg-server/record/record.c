@@ -2362,9 +2362,9 @@ RecordDisableContext(RecordContextPtr pContext)
     if (!pContext->pRecordingClient->clientGone) {
         RecordAProtocolElement(pContext, NULL, XRecordEndOfData, NULL, 0, 0, 0);
         RecordFlushReplyBuffer(pContext, NULL, 0, NULL, 0);
-        /* Re-enable request processing on this connection. */
-        AttendClient(pContext->pRecordingClient);
     }
+    /* Re-enable request processing on this connection. */
+    AttendClient(pContext->pRecordingClient);
 
     for (pRCAP = pContext->pListOfRCAP; pRCAP; pRCAP = pRCAP->pNextRCAP) {
         RecordUninstallHooks(pRCAP, 0);

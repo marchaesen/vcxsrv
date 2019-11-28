@@ -346,7 +346,7 @@ get_atomic_dest_mov(struct ir3_instruction *atomic)
 
 	/* extract back out the 'dummy' which serves as stand-in for dest: */
 	struct ir3_instruction *src = ssa(atomic->regs[3]);
-	debug_assert(src->opc == OPC_META_FI);
+	debug_assert(src->opc == OPC_META_COLLECT);
 	struct ir3_instruction *dummy = ssa(src->regs[1]);
 
 	struct ir3_instruction *mov = ir3_MOV(atomic->block, dummy, TYPE_U32);
@@ -408,12 +408,10 @@ ir3_a6xx_fixup_atomic_dests(struct ir3 *ir, struct ir3_shader_variant *so)
 		}
 
 		/* we also need to fixup shader outputs: */
-		for (unsigned i = 0; i < ir->noutputs; i++) {
-			if (!ir->outputs[i])
-				continue;
-			if (is_atomic(ir->outputs[i]->opc) && (ir->outputs[i]->flags & IR3_INSTR_G))
-				ir->outputs[i] = get_atomic_dest_mov(ir->outputs[i]);
-		}
+		struct ir3_instruction *out;
+		foreach_output_n(out, n, ir)
+			if (is_atomic(out->opc) && (out->flags & IR3_INSTR_G))
+				ir->outputs[n] = get_atomic_dest_mov(out);
 	}
 
 }

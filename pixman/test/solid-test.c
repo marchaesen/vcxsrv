@@ -26,6 +26,7 @@
 
 #include "utils.h"
 #include <stdlib.h>
+#include <stdint.h>
 #include <stdio.h>
 
 #define WIDTH 32

@@ -68,6 +68,45 @@ xkb_symbols "basic" {
     include "level3(ralt_switch)"
 };
 
+partial alphanumeric_keys alternate_group
+xkb_symbols "acc" {
+
+    // This layout is usually used as the second group, it contains
+    // accented characters only, no 'latin' set.
+    // 2017 by Pavol Babinčák <scroolik@gmail.com>
+
+    // Based on cz(ucw). Slovak letter frequency is used if a letter can be
+    // used with multiple diacritic symbols. Other accented letters of Slovak
+    // and Czech language end up on surrounding unused keys.
+
+    name[Group1] = "Slovak (ACC layout, only accented letters)";
+
+    key <AB01> { [zcaron,      Zcaron      ] };
+    key <AB03> { [ccaron,      Ccaron      ] };
+    key <AB06> { [ncaron,      Ncaron      ] };
+
+    key <AC01> { [aacute,      Aacute      ] };
+    key <AC02> { [scaron,      Scaron      ] };
+    key <AC03> { [dcaron,      Dcaron      ] };
+    key <AC04> { [ecaron,      Ecaron      ] };
+    key <AC05> { [rcaron,      Rcaron      ] };
+    key <AC06> { [uring,       Uring       ] };
+    key <AC08> { [oacute,      Oacute      ] };
+    key <AC09> { [lcaron,      Lcaron      ] };
+
+    key <AD01> { [adiaeresis,  Adiaeresis  ] };
+    key <AD03> { [eacute,      Eacute      ] };
+    key <AD04> { [racute,      Racute      ] };
+    key <AD05> { [tcaron,      Tcaron      ] };
+    key <AD06> { [yacute,      Yacute      ] };
+    key <AD07> { [uacute,      Uacute      ] };
+    key <AD08> { [iacute,      Iacute      ] };
+    key <AD09> { [ocircumflex, Ocircumflex ] };
+    key <AD10> { [lacute,      Lacute      ] };
+
+    key <AE12> { [dead_acute,  dead_caron  ] };
+};
+
 xkb_symbols "bksl" {
 
     // Use <BKSL> instead of <LSGT> (useful for keyboards without <LSGT> key).

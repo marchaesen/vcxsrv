@@ -1095,7 +1095,7 @@ void st_init_extensions(struct pipe_screen *screen,
    if (api == API_OPENGLES2 && ESSLVersion >= 320)
       extensions->ARB_gpu_shader5 = GL_TRUE;
 
-   if (GLSLVersion >= 400)
+   if (GLSLVersion >= 400 && !options->disable_arb_gpu_shader5)
       extensions->ARB_gpu_shader5 = GL_TRUE;
    if (GLSLVersion >= 410)
       extensions->ARB_shader_precision = GL_TRUE;

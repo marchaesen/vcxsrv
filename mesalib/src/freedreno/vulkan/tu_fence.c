@@ -86,6 +86,7 @@ tu_fence_init(struct tu_fence *fence, bool signaled)
 {
    fence->signaled = signaled;
    fence->fd = -1;
+   fence->fence_wsi = NULL;
 }
 
 void
@@ -93,6 +94,8 @@ tu_fence_finish(struct tu_fence *fence)
 {
    if (fence->fd >= 0)
       close(fence->fd);
+   if (fence->fence_wsi)
+      fence->fence_wsi->destroy(fence->fence_wsi);
 }
 
 /**
@@ -349,6 +352,15 @@ tu_WaitForFences(VkDevice _device,
    if (fds != stack_fds)
       vk_free(&device->alloc, fds);
 
+   for (uint32_t i = 0; i < fenceCount; ++i) {
+      TU_FROM_HANDLE(tu_fence, fence, pFences[i]);
+      if (fence->fence_wsi) {
+         VkResult result = fence->fence_wsi->wait(fence->fence_wsi, timeout);
+         if (result != VK_SUCCESS)
+            return result;
+      }
+   }
+
    return result;
 }
 
@@ -375,6 +387,15 @@ tu_GetFenceStatus(VkDevice _device, VkFence _fence)
          tu_fence_set_state(fence, TU_FENCE_STATE_SIGNALED, -1);
       else if (err && errno != ETIME)
          return VK_ERROR_OUT_OF_HOST_MEMORY;
+   }
+   if (fence->fence_wsi) {
+      VkResult result = fence->fence_wsi->wait(fence->fence_wsi, 0);
+
+      if (result != VK_SUCCESS) {
+         if (result == VK_TIMEOUT)
+            return VK_NOT_READY;
+         return result;
+      }
    }
 
    return fence->signaled ? VK_SUCCESS : VK_NOT_READY;

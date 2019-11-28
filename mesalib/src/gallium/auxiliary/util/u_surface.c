@@ -36,7 +36,7 @@
 #include "pipe/p_screen.h"
 #include "pipe/p_state.h"
 
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 #include "util/u_inlines.h"
 #include "util/u_rect.h"
 #include "util/u_surface.h"
@@ -54,59 +54,6 @@ u_surface_default_template(struct pipe_surface *surf,
    memset(surf, 0, sizeof(*surf));
 
    surf->format = texture->format;
-}
-
-
-/**
- * Copy 2D rect from one place to another.
- * Position and sizes are in pixels.
- * src_stride may be negative to do vertical flip of pixels from source.
- */
-void
-util_copy_rect(ubyte * dst,
-               enum pipe_format format,
-               unsigned dst_stride,
-               unsigned dst_x,
-               unsigned dst_y,
-               unsigned width,
-               unsigned height,
-               const ubyte * src,
-               int src_stride,
-               unsigned src_x,
-               unsigned src_y)
-{
-   unsigned i;
-   int src_stride_pos = src_stride < 0 ? -src_stride : src_stride;
-   int blocksize = util_format_get_blocksize(format);
-   int blockwidth = util_format_get_blockwidth(format);
-   int blockheight = util_format_get_blockheight(format);
-
-   assert(blocksize > 0);
-   assert(blockwidth > 0);
-   assert(blockheight > 0);
-
-   dst_x /= blockwidth;
-   dst_y /= blockheight;
-   width = (width + blockwidth - 1)/blockwidth;
-   height = (height + blockheight - 1)/blockheight;
-   src_x /= blockwidth;
-   src_y /= blockheight;
-
-   dst += dst_x * blocksize;
-   src += src_x * blocksize;
-   dst += dst_y * dst_stride;
-   src += src_y * src_stride_pos;
-   width *= blocksize;
-
-   if (width == dst_stride && width == (unsigned)src_stride)
-      memcpy(dst, src, height * width);
-   else {
-      for (i = 0; i < height; i++) {
-         memcpy(dst, src, width);
-         dst += dst_stride;
-         src += src_stride;
-      }
-   }
 }
 
 

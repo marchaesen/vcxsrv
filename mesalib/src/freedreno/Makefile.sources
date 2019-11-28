@@ -52,3 +52,10 @@ ir3_SOURCES := \
 ir3_GENERATED_FILES := \
 	ir3/ir3_nir_trig.c \
 	ir3/ir3_nir_imul.c
+
+perfcntrs_SOURCES := \
+	perfcntrs/fd2_perfcntr.c \
+	perfcntrs/fd5_perfcntr.c \
+	perfcntrs/fd6_perfcntr.c \
+	perfcntrs/freedreno_perfcntr.c \
+	perfcntrs/freedreno_perfcntr.h

@@ -1,4 +1,4 @@
-# Copyright © 2017-2018 Intel Corporation
+# Copyright © 2017-2019 Intel Corporation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -365,4 +365,11 @@ option(
   max : 28,
   value : 25,
   description : 'Android Platform SDK version. Default: Nougat version.'
+)
+option(
+  'zstd',
+  type : 'combo',
+  choices : ['auto', 'true', 'false'],
+  value : 'auto',
+  description : 'Use ZSTD instead of ZLIB in some cases.'
 )

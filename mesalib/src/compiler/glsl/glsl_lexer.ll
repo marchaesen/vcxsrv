@@ -45,7 +45,8 @@ static int classify_identifier(struct _mesa_glsl_parse_state *, const char *,
       yylloc->last_column = yycolumn + 1;			\
    } while(0);
 
-#define YY_USER_INIT yylineno = 0; yycolumn = 0; yylloc->source = 0;
+#define YY_USER_INIT yylineno = 0; yycolumn = 0; yylloc->source = 0; \
+   yylloc->path = NULL;
 
 /* A macro for handling reserved words and keywords across language versions.
  *
@@ -226,6 +227,7 @@ INT		({DEC_INT}|{HEX_INT}|{OCT_INT})
 SPC		[ \t]*
 SPCP		[ \t]+
 HASH		^{SPC}#{SPC}
+PATH		["][./ _A-Za-z0-9]*["]
 %%
 
 [ \r\t]+		;
@@ -234,6 +236,14 @@ HASH		^{SPC}#{SPC}
 ^[ \t]*#[ \t]*$			;
 ^[ \t]*#[ \t]*version		{ BEGIN PP; return VERSION_TOK; }
 ^[ \t]*#[ \t]*extension		{ BEGIN PP; return EXTENSION; }
+{HASH}include {
+                                  if (!yyextra->ARB_shading_language_include_enable) {
+                                     struct _mesa_glsl_parse_state *state = yyextra;
+                                     _mesa_glsl_error(yylloc, state,
+                                                      "ARB_shading_language_include required "
+                                                      "to use #include");
+                                   }
+}
 {HASH}line{SPCP}{INT}{SPCP}{INT}{SPC}$ {
 				   /* Eat characters until the first digit is
 				    * encountered
@@ -257,7 +267,50 @@ HASH		^{SPC}#{SPC}
                                       yylineno--;
 
 				   yylloc->source = strtol(ptr, NULL, 0);
+                                   yylloc->path = NULL;
 				}
+{HASH}line{SPCP}{INT}{SPCP}{PATH}{SPC}$ {
+                                   if (!yyextra->ARB_shading_language_include_enable) {
+                                      struct _mesa_glsl_parse_state *state = yyextra;
+                                      _mesa_glsl_error(yylloc, state,
+                                                       "ARB_shading_language_include required "
+                                                       "to use #line <line> \"<path>\"");
+                                   }
+
+                                   /* Eat characters until the first digit is
+                                    * encountered
+                                    */
+                                   char *ptr = yytext;
+                                   while (!isdigit(*ptr))
+                                      ptr++;
+
+                                   /* Subtract one from the line number because
+                                    * yylineno is zero-based instead of
+                                    * one-based.
+                                    */
+                                   yylineno = strtol(ptr, &ptr, 0) - 1;
+
+                                   /* From GLSL 3.30 and GLSL ES on, after processing the
+                                    * line directive (including its new-line), the implementation
+                                    * will behave as if it is compiling at the line number passed
+                                    * as argument. It was line number + 1 in older specifications.
+                                    */
+                                   if (yyextra->is_version(330, 100))
+                                      yylineno--;
+
+                                   while (isspace(*ptr))
+                                      ptr++;
+
+                                   /* Skip over leading " */
+                                   ptr++;
+
+                                   char *end = strrchr(ptr, '"');
+                                   int path_len = (end - ptr) + 1;
+                                   void *mem_ctx = yyextra->linalloc;
+                                   yylloc->path = (char *) linear_alloc_child(mem_ctx, path_len);
+                                   memcpy(yylloc->path, ptr, path_len);
+                                   yylloc->path[path_len - 1] = '\0';
+                                }
 {HASH}line{SPCP}{INT}{SPC}$	{
 				   /* Eat characters until the first digit is
 				    * encountered

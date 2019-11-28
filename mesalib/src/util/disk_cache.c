@@ -40,6 +40,10 @@
 #include <inttypes.h>
 #include "zlib.h"
 
+#ifdef HAVE_ZSTD
+#include "zstd.h"
+#endif
+
 #include "util/crc32.h"
 #include "util/debug.h"
 #include "util/rand_xor.h"
@@ -74,6 +78,9 @@
  *   compatible but effort should be taken to limit disruption where possible.
  */
 #define CACHE_VERSION 1
+
+/* 3 is the recomended level, with 22 as the absolute maximum */
+#define ZSTD_COMPRESSION_LEVEL 3
 
 struct disk_cache {
    /* The path to the cache directory. */
@@ -738,6 +745,23 @@ static size_t
 deflate_and_write_to_disk(const void *in_data, size_t in_data_size, int dest,
                           const char *filename)
 {
+#ifdef HAVE_ZSTD
+   /* from the zstd docs (https://facebook.github.io/zstd/zstd_manual.html):
+    * compression runs faster if `dstCapacity` >= `ZSTD_compressBound(srcSize)`.
+    */
+   size_t out_size = ZSTD_compressBound(in_data_size);
+   void * out = malloc(out_size);
+
+   size_t ret = ZSTD_compress(out, out_size, in_data, in_data_size,
+                              ZSTD_COMPRESSION_LEVEL);
+   if (ZSTD_isError(ret)) {
+      free(out);
+      return 0;
+   }
+   write_all(dest, out, ret);
+   free(out);
+   return ret;
+#else
    unsigned char *out;
 
    /* allocate deflate state */
@@ -798,6 +822,7 @@ deflate_and_write_to_disk(const void *in_data, size_t in_data_size, int dest,
    (void)deflateEnd(&strm);
    free(out);
    return compressed_size;
+# endif
 }
 
 static struct disk_cache_put_job *
@@ -1059,6 +1084,10 @@ static bool
 inflate_cache_data(uint8_t *in_data, size_t in_data_size,
                    uint8_t *out_data, size_t out_data_size)
 {
+#ifdef HAVE_ZSTD
+   size_t ret = ZSTD_decompress(out_data, out_data_size, in_data, in_data_size);
+   return !ZSTD_isError(ret);
+#else
    z_stream strm;
 
    /* allocate inflate state */
@@ -1089,6 +1118,7 @@ inflate_cache_data(uint8_t *in_data, size_t in_data_size,
    /* clean up and return */
    (void)inflateEnd(&strm);
    return true;
+#endif
 }
 
 void *

@@ -399,6 +399,8 @@ extern _X_EXPORT Bool
                                                struct gbm_bo *bo,
                                                Bool used_modifiers);
 
+extern _X_EXPORT const char *glamor_egl_get_driver_name(ScreenPtr screen);
+
 #endif
 
 extern _X_EXPORT void glamor_egl_screen_init(ScreenPtr screen,

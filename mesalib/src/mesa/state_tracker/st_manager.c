@@ -55,7 +55,7 @@
 
 #include "pipe/p_context.h"
 #include "pipe/p_screen.h"
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 #include "util/u_helpers.h"
 #include "util/u_pointer.h"
 #include "util/u_inlines.h"

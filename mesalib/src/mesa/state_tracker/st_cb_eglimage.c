@@ -29,7 +29,7 @@
 #include "main/texobj.h"
 #include "main/teximage.h"
 #include "util/u_inlines.h"
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 #include "st_cb_eglimage.h"
 #include "st_cb_fbo.h"
 #include "st_context.h"

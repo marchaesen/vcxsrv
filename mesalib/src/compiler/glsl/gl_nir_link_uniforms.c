@@ -643,7 +643,7 @@ nir_link_uniform(struct gl_context *ctx,
 
          /* Set image access qualifiers */
          enum gl_access_qualifier image_access =
-            state->current_var->data.image.access;
+            state->current_var->data.access;
          const GLenum access =
             (image_access & ACCESS_NON_WRITEABLE) ?
             ((image_access & ACCESS_NON_READABLE) ? GL_NONE :

@@ -60,17 +60,15 @@ st_new_program(struct gl_context *ctx, GLenum target, GLuint id,
 {
    switch (target) {
    case GL_VERTEX_PROGRAM_ARB: {
-      struct st_vertex_program *prog = rzalloc(NULL,
-                                               struct st_vertex_program);
-      return _mesa_init_gl_program(&prog->Base, target, id, is_arb_asm);
+      struct st_vertex_program *prog = rzalloc(NULL, struct st_vertex_program);
+      return _mesa_init_gl_program(&prog->Base.Base, target, id, is_arb_asm);
    }
    case GL_TESS_CONTROL_PROGRAM_NV:
    case GL_TESS_EVALUATION_PROGRAM_NV:
    case GL_GEOMETRY_PROGRAM_NV:
    case GL_FRAGMENT_PROGRAM_ARB:
    case GL_COMPUTE_PROGRAM_NV: {
-      struct st_common_program *prog = rzalloc(NULL,
-                                               struct st_common_program);
+      struct st_program *prog = rzalloc(NULL, struct st_program);
       return _mesa_init_gl_program(&prog->Base, target, id, is_arb_asm);
    }
    default:
@@ -87,42 +85,16 @@ static void
 st_delete_program(struct gl_context *ctx, struct gl_program *prog)
 {
    struct st_context *st = st_context(ctx);
+   struct st_program *stp = st_program(prog);
 
-   switch( prog->Target ) {
-   case GL_VERTEX_PROGRAM_ARB:
-      {
-         struct st_vertex_program *stvp = (struct st_vertex_program *) prog;
-         st_release_vp_variants( st, stvp );
-         
-         if (stvp->glsl_to_tgsi)
-            free_glsl_to_tgsi_visitor(stvp->glsl_to_tgsi);
-      }
-      break;
-   case GL_TESS_CONTROL_PROGRAM_NV:
-   case GL_TESS_EVALUATION_PROGRAM_NV:
-   case GL_GEOMETRY_PROGRAM_NV:
-   case GL_FRAGMENT_PROGRAM_ARB:
-   case GL_COMPUTE_PROGRAM_NV:
-      {
-         struct st_common_program *p = st_common_program(prog);
+   st_release_variants(st, stp);
 
-         if (prog->Target == GL_FRAGMENT_PROGRAM_ARB)
-            st_release_fp_variants(st, p);
-         else
-            st_release_common_variants(st, p);
-         
-         if (p->glsl_to_tgsi)
-            free_glsl_to_tgsi_visitor(p->glsl_to_tgsi);
-      }
-      break;
-   default:
-      assert(0); /* problem */
-   }
+   if (stp->glsl_to_tgsi)
+      free_glsl_to_tgsi_visitor(stp->glsl_to_tgsi);
 
    /* delete base class */
    _mesa_delete_program( ctx, prog );
 }
-
 
 /**
  * Called via ctx->Driver.ProgramStringNotify()
@@ -135,55 +107,33 @@ st_program_string_notify( struct gl_context *ctx,
                                            struct gl_program *prog )
 {
    struct st_context *st = st_context(ctx);
-   gl_shader_stage stage = _mesa_program_enum_to_shader_stage(target);
+   struct st_program *stp = (struct st_program *) prog;
+
+   /* GLSL-to-NIR should not end up here. */
+   assert(!stp->shader_program);
+
+   st_release_variants(st, stp);
 
    if (target == GL_FRAGMENT_PROGRAM_ARB ||
        target == GL_FRAGMENT_SHADER_ATI) {
-      struct st_common_program *stfp = (struct st_common_program *) prog;
-
       if (target == GL_FRAGMENT_SHADER_ATI) {
-         assert(stfp->ati_fs);
-         assert(stfp->ati_fs->Program == prog);
+         assert(stp->ati_fs);
+         assert(stp->ati_fs->Program == prog);
 
          st_init_atifs_prog(ctx, prog);
       }
 
-      st_release_fp_variants(st, stfp);
-      if (!stfp->shader_program && /* not GLSL->NIR */
-          !st_translate_fragment_program(st, stfp))
+      if (!st_translate_fragment_program(st, stp))
          return false;
-
-      if (st->fp == stfp)
-	 st->dirty |= stfp->affected_states;
    } else if (target == GL_VERTEX_PROGRAM_ARB) {
-      struct st_vertex_program *stvp = (struct st_vertex_program *) prog;
-
-      st_release_vp_variants(st, stvp);
-      if (!stvp->shader_program && /* not GLSL->NIR */
-          !st_translate_vertex_program(st, stvp))
+      if (!st_translate_vertex_program(st, stp))
          return false;
-
-      if (st->vp == stvp)
-	 st->dirty |= ST_NEW_VERTEX_PROGRAM(st, stvp);
    } else {
-      struct st_common_program *stcp = st_common_program(prog);
-
-      st_release_common_variants(st, stcp);
-      if (!stcp->shader_program && /* not GLSL->NIR */
-          !st_translate_common_program(st, stcp))
+      if (!st_translate_common_program(st, stp))
          return false;
-
-      if ((prog->info.stage == MESA_SHADER_TESS_CTRL && st->tcp == stcp) ||
-          (prog->info.stage == MESA_SHADER_TESS_EVAL && st->tep == stcp) ||
-          (prog->info.stage == MESA_SHADER_GEOMETRY && st->gp == stcp) ||
-          (prog->info.stage == MESA_SHADER_COMPUTE && st->cp == stcp))
-	 st->dirty |= stcp->affected_states;
    }
 
-   if (ST_DEBUG & DEBUG_PRECOMPILE ||
-       st->shader_has_one_variant[stage])
-      st_precompile_shader_variant(st, prog);
-
+   st_finalize_program(st, prog);
    return GL_TRUE;
 }
 
@@ -196,7 +146,7 @@ st_new_ati_fs(struct gl_context *ctx, struct ati_fragment_shader *curProg)
 {
    struct gl_program *prog = ctx->Driver.NewProgram(ctx, GL_FRAGMENT_PROGRAM_ARB,
          curProg->Id, true);
-   struct st_common_program *stfp = (struct st_common_program *)prog;
+   struct st_program *stfp = (struct st_program *)prog;
    stfp->ati_fs = curProg;
    return prog;
 }
@@ -226,23 +176,8 @@ st_get_shader_program_completion_status(struct gl_context *ctx,
       if (!linked || !linked->Program)
          continue;
 
-      switch (i) {
-      case MESA_SHADER_VERTEX:
-         if (st_vertex_program(linked->Program)->variants)
-            sh = st_vertex_program(linked->Program)->variants->driver_shader;
-         break;
-      case MESA_SHADER_FRAGMENT:
-         if (st_common_program(linked->Program)->fp_variants)
-            sh = st_common_program(linked->Program)->fp_variants->driver_shader;
-         break;
-      case MESA_SHADER_TESS_CTRL:
-      case MESA_SHADER_TESS_EVAL:
-      case MESA_SHADER_GEOMETRY:
-      case MESA_SHADER_COMPUTE:
-         if (st_common_program(linked->Program)->variants)
-            sh = st_common_program(linked->Program)->variants->driver_shader;
-         break;
-      }
+      if (st_program(linked->Program)->variants)
+         sh = st_program(linked->Program)->variants->driver_shader;
 
       unsigned type = pipe_shader_type_from_mesa(i);
 

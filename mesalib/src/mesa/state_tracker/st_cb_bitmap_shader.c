@@ -29,7 +29,6 @@
 #include "st_cb_bitmap.h"
 #include "tgsi/tgsi_transform.h"
 #include "tgsi/tgsi_scan.h"
-#include "tgsi/tgsi_dump.h"
 #include "util/u_debug.h"
 
 struct tgsi_bitmap_transform {

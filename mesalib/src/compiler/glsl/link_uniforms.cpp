@@ -1505,6 +1505,22 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
          uniform_size.process(var);
       }
 
+      if (uniform_size.num_shader_samplers >
+          ctx->Const.Program[i].MaxTextureImageUnits) {
+         linker_error(prog, "Too many %s shader texture samplers\n",
+                      _mesa_shader_stage_to_string(i));
+         continue;
+      }
+
+      if (uniform_size.num_shader_images >
+          ctx->Const.Program[i].MaxImageUniforms) {
+         linker_error(prog, "Too many %s shader image uniforms (%u > %u)\n",
+                      _mesa_shader_stage_to_string(i),
+                      sh->Program->info.num_images,
+                      ctx->Const.Program[i].MaxImageUniforms);
+         continue;
+      }
+
       sh->Program->info.num_textures = uniform_size.num_shader_samplers;
       sh->Program->info.num_images = uniform_size.num_shader_images;
       sh->num_uniform_components = uniform_size.num_shader_uniform_components;
@@ -1514,6 +1530,11 @@ link_assign_uniform_locations(struct gl_shader_program *prog,
          sh->num_combined_uniform_components +=
             sh->Program->sh.UniformBlocks[i]->UniformBufferSize / 4;
       }
+   }
+
+   if (prog->data->LinkStatus == LINKING_FAILURE) {
+      delete hiddenUniforms;
+      return;
    }
 
    prog->data->NumUniformStorage = uniform_size.num_active_uniforms;

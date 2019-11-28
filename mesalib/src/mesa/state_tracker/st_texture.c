@@ -37,7 +37,7 @@
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"
 #include "util/u_inlines.h"
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 #include "util/u_rect.h"
 #include "util/u_math.h"
 #include "util/u_memory.h"
@@ -416,7 +416,7 @@ st_create_color_map_texture(struct gl_context *ctx)
    /* find an RGBA texture format */
    format = st_choose_format(st, GL_RGBA, GL_NONE, GL_NONE,
                              PIPE_TEXTURE_2D, 0, 0, PIPE_BIND_SAMPLER_VIEW,
-                             FALSE);
+                             false, false);
 
    /* create texture for color map/table */
    pt = st_texture_create(st, PIPE_TEXTURE_2D, format, 0,

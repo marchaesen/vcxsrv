@@ -317,6 +317,8 @@ extern void GLAPIENTRY
 _mesa_VertexAttribDivisor_no_error(GLuint index, GLuint divisor);
 extern void GLAPIENTRY
 _mesa_VertexAttribDivisor(GLuint index, GLuint divisor);
+extern void GLAPIENTRY
+_mesa_VertexArrayVertexAttribDivisorEXT(GLuint vaobj, GLuint index, GLuint divisor);
 
 static inline unsigned
 _mesa_primitive_restart_index(const struct gl_context *ctx,
@@ -353,6 +355,10 @@ extern void GLAPIENTRY
 _mesa_VertexArrayVertexBuffer(GLuint vaobj, GLuint bindingIndex, GLuint buffer,
                               GLintptr offset, GLsizei stride);
 
+extern void GLAPIENTRY
+_mesa_VertexArrayBindVertexBufferEXT(GLuint vaobj, GLuint bindingIndex, GLuint buffer,
+                                     GLintptr offset, GLsizei stride);
+
 void GLAPIENTRY
 _mesa_BindVertexBuffers_no_error(GLuint first, GLsizei count,
                                  const GLuint *buffers, const GLintptr *offsets,
@@ -383,6 +389,11 @@ _mesa_VertexArrayAttribFormat(GLuint vaobj, GLuint attribIndex, GLint size,
                               GLuint relativeOffset);
 
 extern void GLAPIENTRY
+_mesa_VertexArrayVertexAttribFormatEXT(GLuint vaobj, GLuint attribIndex, GLint size,
+                                       GLenum type, GLboolean normalized,
+                                       GLuint relativeOffset);
+
+extern void GLAPIENTRY
 _mesa_VertexAttribIFormat(GLuint attribIndex, GLint size, GLenum type,
                           GLuint relativeOffset);
 
@@ -392,6 +403,11 @@ _mesa_VertexArrayAttribIFormat(GLuint vaobj, GLuint attribIndex,
                                GLuint relativeOffset);
 
 extern void GLAPIENTRY
+_mesa_VertexArrayVertexAttribIFormatEXT(GLuint vaobj, GLuint attribIndex,
+                                        GLint size, GLenum type,
+                                        GLuint relativeOffset);
+
+extern void GLAPIENTRY
 _mesa_VertexAttribLFormat(GLuint attribIndex, GLint size, GLenum type,
                           GLuint relativeOffset);
 
@@ -399,6 +415,11 @@ extern void GLAPIENTRY
 _mesa_VertexArrayAttribLFormat(GLuint vaobj, GLuint attribIndex,
                                GLint size, GLenum type,
                                GLuint relativeOffset);
+
+extern void GLAPIENTRY
+_mesa_VertexArrayVertexAttribLFormatEXT(GLuint vaobj, GLuint attribIndex,
+                                        GLint size, GLenum type,
+                                        GLuint relativeOffset);
 
 void GLAPIENTRY
 _mesa_VertexAttribBinding_no_error(GLuint attribIndex, GLuint bindingIndex);
@@ -414,6 +435,10 @@ extern void GLAPIENTRY
 _mesa_VertexArrayAttribBinding(GLuint vaobj, GLuint attribIndex,
                                GLuint bindingIndex);
 
+extern void GLAPIENTRY
+_mesa_VertexArrayVertexAttribBindingEXT(GLuint vaobj, GLuint attribIndex,
+                                        GLuint bindingIndex);
+
 void GLAPIENTRY
 _mesa_VertexBindingDivisor_no_error(GLuint bindingIndex, GLuint divisor);
 
@@ -427,6 +452,10 @@ _mesa_VertexArrayBindingDivisor_no_error(GLuint vaobj, GLuint bindingIndex,
 extern void GLAPIENTRY
 _mesa_VertexArrayBindingDivisor(GLuint vaobj, GLuint bindingIndex,
                                 GLuint divisor);
+
+extern void GLAPIENTRY
+_mesa_VertexArrayVertexBindingDivisorEXT(GLuint vaobj, GLuint bindingIndex,
+                                         GLuint divisor);
 
 
 extern void
@@ -492,6 +521,10 @@ _mesa_VertexArrayVertexAttribOffsetEXT(GLuint vaobj, GLuint buffer, GLuint index
 
 extern void GLAPIENTRY
 _mesa_VertexArrayVertexAttribIOffsetEXT(GLuint vaobj, GLuint buffer, GLuint index, GLint size,
+                                        GLenum type, GLsizei stride, GLintptr offset);
+
+extern void GLAPIENTRY
+_mesa_VertexArrayVertexAttribLOffsetEXT(GLuint vaobj, GLuint buffer, GLuint index, GLint size,
                                         GLenum type, GLsizei stride, GLintptr offset);
 
 extern void GLAPIENTRY

@@ -47,7 +47,8 @@ endif
 
 libglcpp = static_library(
   'glcpp',
-  [glcpp_lex, glcpp_parse, files('glcpp.h', 'pp.c')],
+  [glcpp_lex, glcpp_parse, files('glcpp.h', 'pp.c',
+                                 'pp_standalone_scaffolding.c')],
   dependencies : idep_mesautil,
   include_directories : [inc_common],
   c_args : [c_vis_args, no_override_init_args, c_msvc_compat_args, _extra_args],

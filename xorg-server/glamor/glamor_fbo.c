@@ -253,7 +253,8 @@ glamor_pixmap_clear_fbo(glamor_screen_private *glamor_priv, glamor_pixmap_fbo *f
         glClearTexImage(fbo->tex, 0, pixmap_format->format, pixmap_format->type, NULL);
     }
     else {
-        glDrawBuffer(GL_COLOR_ATTACHMENT0); /* assumes fbo->fb was attached as GL_COLOR_ATTACHMENT0 */
+        glamor_set_destination_pixmap_fbo(glamor_priv, fbo, 0, 0, fbo->width, fbo->height);
+
         glClearColor(0.0, 0.0, 0.0, 0.0);
         glClear(GL_COLOR_BUFFER_BIT);
     }

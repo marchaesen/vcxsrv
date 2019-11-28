@@ -8059,7 +8059,8 @@
 <!-- ARB extension number 74 is a WGL extension. -->
 <!-- ARB extension number 75 is a GLX extension. -->
 
-<!-- 76. GL_ARB_shading_language_include -->
+<xi:include href="ARB_shading_language_include.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
 <!-- 77. GL_ARB_texture_compression_bptc -->
 
 <xi:include href="ARB_blend_func_extended.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>

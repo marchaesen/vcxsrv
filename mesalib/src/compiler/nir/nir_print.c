@@ -458,7 +458,7 @@ print_var_decl(nir_variable *var, print_state *state)
            cent, samp, patch, inv, get_variable_mode_str(var->data.mode, false),
            glsl_interp_mode_name(var->data.interpolation));
 
-   enum gl_access_qualifier access = var->data.image.access;
+   enum gl_access_qualifier access = var->data.access;
    const char *const coher = (access & ACCESS_COHERENT) ? "coherent " : "";
    const char *const volat = (access & ACCESS_VOLATILE) ? "volatile " : "";
    const char *const restr = (access & ACCESS_RESTRICT) ? "restrict " : "";
@@ -467,52 +467,54 @@ print_var_decl(nir_variable *var, print_state *state)
    const char *const reorder = (access & ACCESS_CAN_REORDER) ? "reorderable " : "";
    fprintf(fp, "%s%s%s%s%s%s", coher, volat, restr, ronly, wonly, reorder);
 
+   if (glsl_get_base_type(glsl_without_array(var->type)) == GLSL_TYPE_IMAGE) {
 #define FORMAT_CASE(x) case x: fprintf(fp, #x " "); break
-   switch (var->data.image.format) {
-   FORMAT_CASE(GL_RGBA32F);
-   FORMAT_CASE(GL_RGBA32UI);
-   FORMAT_CASE(GL_RGBA32I);
-   FORMAT_CASE(GL_R32F);
-   FORMAT_CASE(GL_R32UI);
-   FORMAT_CASE(GL_R32I);
-   FORMAT_CASE(GL_RG32F);
-   FORMAT_CASE(GL_RG32UI);
-   FORMAT_CASE(GL_RG32I);
-   FORMAT_CASE(GL_R8);
-   FORMAT_CASE(GL_RG8);
-   FORMAT_CASE(GL_RGBA8);
-   FORMAT_CASE(GL_R8_SNORM);
-   FORMAT_CASE(GL_RG8_SNORM);
-   FORMAT_CASE(GL_RGBA8_SNORM);
-   FORMAT_CASE(GL_R16);
-   FORMAT_CASE(GL_RG16);
-   FORMAT_CASE(GL_RGBA16);
-   FORMAT_CASE(GL_R16_SNORM);
-   FORMAT_CASE(GL_RG16_SNORM);
-   FORMAT_CASE(GL_RGBA16_SNORM);
-   FORMAT_CASE(GL_R16F);
-   FORMAT_CASE(GL_RG16F);
-   FORMAT_CASE(GL_RGBA16F);
-   FORMAT_CASE(GL_R8UI);
-   FORMAT_CASE(GL_R8I);
-   FORMAT_CASE(GL_RG8UI);
-   FORMAT_CASE(GL_RG8I);
-   FORMAT_CASE(GL_RGBA8UI);
-   FORMAT_CASE(GL_RGBA8I);
-   FORMAT_CASE(GL_R16UI);
-   FORMAT_CASE(GL_R16I);
-   FORMAT_CASE(GL_RG16UI);
-   FORMAT_CASE(GL_RG16I);
-   FORMAT_CASE(GL_RGBA16UI);
-   FORMAT_CASE(GL_RGBA16I);
-   FORMAT_CASE(GL_R11F_G11F_B10F);
-   FORMAT_CASE(GL_RGB9_E5);
-   FORMAT_CASE(GL_RGB10_A2);
-   FORMAT_CASE(GL_RGB10_A2UI);
-   default: /* Including the normal GL_NONE */
-      break;
-   }
+      switch (var->data.image.format) {
+      FORMAT_CASE(GL_RGBA32F);
+      FORMAT_CASE(GL_RGBA32UI);
+      FORMAT_CASE(GL_RGBA32I);
+      FORMAT_CASE(GL_R32F);
+      FORMAT_CASE(GL_R32UI);
+      FORMAT_CASE(GL_R32I);
+      FORMAT_CASE(GL_RG32F);
+      FORMAT_CASE(GL_RG32UI);
+      FORMAT_CASE(GL_RG32I);
+      FORMAT_CASE(GL_R8);
+      FORMAT_CASE(GL_RG8);
+      FORMAT_CASE(GL_RGBA8);
+      FORMAT_CASE(GL_R8_SNORM);
+      FORMAT_CASE(GL_RG8_SNORM);
+      FORMAT_CASE(GL_RGBA8_SNORM);
+      FORMAT_CASE(GL_R16);
+      FORMAT_CASE(GL_RG16);
+      FORMAT_CASE(GL_RGBA16);
+      FORMAT_CASE(GL_R16_SNORM);
+      FORMAT_CASE(GL_RG16_SNORM);
+      FORMAT_CASE(GL_RGBA16_SNORM);
+      FORMAT_CASE(GL_R16F);
+      FORMAT_CASE(GL_RG16F);
+      FORMAT_CASE(GL_RGBA16F);
+      FORMAT_CASE(GL_R8UI);
+      FORMAT_CASE(GL_R8I);
+      FORMAT_CASE(GL_RG8UI);
+      FORMAT_CASE(GL_RG8I);
+      FORMAT_CASE(GL_RGBA8UI);
+      FORMAT_CASE(GL_RGBA8I);
+      FORMAT_CASE(GL_R16UI);
+      FORMAT_CASE(GL_R16I);
+      FORMAT_CASE(GL_RG16UI);
+      FORMAT_CASE(GL_RG16I);
+      FORMAT_CASE(GL_RGBA16UI);
+      FORMAT_CASE(GL_RGBA16I);
+      FORMAT_CASE(GL_R11F_G11F_B10F);
+      FORMAT_CASE(GL_RGB9_E5);
+      FORMAT_CASE(GL_RGB10_A2);
+      FORMAT_CASE(GL_RGB10_A2UI);
+      default: /* Including the normal GL_NONE */
+         break;
+      }
 #undef FORMAT_CASE
+   }
 
    fprintf(fp, "%s %s", glsl_get_type_name(var->type),
            get_var_name(var, state));

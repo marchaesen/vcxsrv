@@ -278,6 +278,11 @@ _mesa_ClearNamedBufferData(GLuint buffer, GLenum internalformat,
                            const GLvoid *data);
 
 void GLAPIENTRY
+_mesa_ClearNamedBufferDataEXT(GLuint buffer, GLenum internalformat,
+                              GLenum format, GLenum type,
+                              const GLvoid *data);
+
+void GLAPIENTRY
 _mesa_ClearBufferSubData_no_error(GLenum target, GLenum internalformat,
                                   GLintptr offset, GLsizeiptr size,
                                   GLenum format, GLenum type,
@@ -300,6 +305,12 @@ _mesa_ClearNamedBufferSubData(GLuint buffer, GLenum internalformat,
                               GLintptr offset, GLsizeiptr size,
                               GLenum format, GLenum type,
                               const GLvoid *data);
+
+void GLAPIENTRY
+_mesa_ClearNamedBufferSubDataEXT(GLuint buffer, GLenum internalformat,
+                                 GLintptr offset, GLsizeiptr size,
+                                 GLenum format, GLenum type,
+                                 const GLvoid *data);
 
 GLboolean GLAPIENTRY
 _mesa_UnmapBuffer_no_error(GLenum target);
@@ -444,6 +455,10 @@ _mesa_BufferPageCommitmentARB(GLenum target, GLintptr offset, GLsizeiptr size,
 
 void GLAPIENTRY
 _mesa_NamedBufferPageCommitmentARB(GLuint buffer, GLintptr offset,
+                                   GLsizeiptr size, GLboolean commit);
+
+void GLAPIENTRY
+_mesa_NamedBufferPageCommitmentEXT(GLuint buffer, GLintptr offset,
                                    GLsizeiptr size, GLboolean commit);
 
 #endif

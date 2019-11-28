@@ -30,7 +30,7 @@
  * appropriately.
  */
 
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 #include "compiler/nir/nir_builder.h"
 #include "compiler/nir/nir_format_convert.h"
 #include "v3d_compiler.h"

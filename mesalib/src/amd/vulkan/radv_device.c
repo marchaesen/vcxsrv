@@ -129,6 +129,42 @@ radv_get_vram_size(struct radv_physical_device *device)
 	return device->rad_info.vram_size - radv_get_visible_vram_size(device);
 }
 
+static bool
+radv_is_mem_type_vram(enum radv_mem_type type)
+{
+	return type == RADV_MEM_TYPE_VRAM ||
+	       type == RADV_MEM_TYPE_VRAM_UNCACHED;
+}
+
+static bool
+radv_is_mem_type_vram_visible(enum radv_mem_type type)
+{
+	return type == RADV_MEM_TYPE_VRAM_CPU_ACCESS ||
+	       type == RADV_MEM_TYPE_VRAM_CPU_ACCESS_UNCACHED;
+}
+static bool
+radv_is_mem_type_gtt_wc(enum radv_mem_type type)
+{
+	return type == RADV_MEM_TYPE_GTT_WRITE_COMBINE ||
+	       type == RADV_MEM_TYPE_GTT_WRITE_COMBINE_VRAM_UNCACHED;
+}
+
+static bool
+radv_is_mem_type_gtt_cached(enum radv_mem_type type)
+{
+	return type == RADV_MEM_TYPE_GTT_CACHED ||
+	       type == RADV_MEM_TYPE_GTT_CACHED_VRAM_UNCACHED;
+}
+
+static bool
+radv_is_mem_type_uncached(enum radv_mem_type type)
+{
+	return type == RADV_MEM_TYPE_VRAM_UNCACHED ||
+	       type == RADV_MEM_TYPE_VRAM_CPU_ACCESS_UNCACHED ||
+	       type == RADV_MEM_TYPE_GTT_WRITE_COMBINE_VRAM_UNCACHED ||
+	       type == RADV_MEM_TYPE_GTT_CACHED_VRAM_UNCACHED;
+}
+
 static void
 radv_physical_device_init_mem_types(struct radv_physical_device *device)
 {
@@ -209,6 +245,46 @@ radv_physical_device_init_mem_types(struct radv_physical_device *device)
 		};
 	}
 	device->memory_properties.memoryTypeCount = type_count;
+
+	if (device->rad_info.has_l2_uncached) {
+		for (int i = 0; i < device->memory_properties.memoryTypeCount; i++) {
+			VkMemoryType mem_type = device->memory_properties.memoryTypes[i];
+
+			if ((mem_type.propertyFlags & (VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
+						       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)) ||
+			    mem_type.propertyFlags == VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
+				enum radv_mem_type mem_type_id;
+
+				switch (device->mem_type_indices[i]) {
+				case RADV_MEM_TYPE_VRAM:
+					mem_type_id = RADV_MEM_TYPE_VRAM_UNCACHED;
+					break;
+				case RADV_MEM_TYPE_VRAM_CPU_ACCESS:
+					mem_type_id = RADV_MEM_TYPE_VRAM_CPU_ACCESS_UNCACHED;
+					break;
+				case RADV_MEM_TYPE_GTT_WRITE_COMBINE:
+					mem_type_id = RADV_MEM_TYPE_GTT_WRITE_COMBINE_VRAM_UNCACHED;
+					break;
+				case RADV_MEM_TYPE_GTT_CACHED:
+					mem_type_id = RADV_MEM_TYPE_GTT_CACHED_VRAM_UNCACHED;
+					break;
+				default:
+					unreachable("invalid memory type");
+				}
+
+				VkMemoryPropertyFlags property_flags = mem_type.propertyFlags |
+					VK_MEMORY_PROPERTY_DEVICE_COHERENT_BIT_AMD |
+					VK_MEMORY_PROPERTY_DEVICE_UNCACHED_BIT_AMD;
+
+				device->mem_type_indices[type_count] = mem_type_id;
+				device->memory_properties.memoryTypes[type_count++] = (VkMemoryType) {
+					.propertyFlags = property_flags,
+					.heapIndex = mem_type.heapIndex,
+				};
+			}
+		}
+		device->memory_properties.memoryTypeCount = type_count;
+	}
 }
 
 static void
@@ -341,8 +417,7 @@ radv_physical_device_init(struct radv_physical_device *device,
 	/* These flags affect shader compilation. */
 	uint64_t shader_env_flags =
 		(device->instance->perftest_flags & RADV_PERFTEST_SISCHED ? 0x1 : 0) |
-		(device->instance->debug_flags & RADV_DEBUG_UNSAFE_MATH ? 0x2 : 0) |
-		(device->use_aco ? 0x4 : 0);
+		(device->use_aco ? 0x2 : 0);
 
 	/* The gpu id is already embedded in the uuid so we just pass "radv"
 	 * when creating the cache.
@@ -364,8 +439,7 @@ radv_physical_device_init(struct radv_physical_device *device,
 	device->dcc_msaa_allowed =
 		(device->instance->perftest_flags & RADV_PERFTEST_DCC_MSAA);
 
-	device->use_shader_ballot = device->rad_info.chip_class >= GFX8 &&
-				    (device->use_aco || device->instance->perftest_flags & RADV_PERFTEST_SHADER_BALLOT);
+	device->use_shader_ballot = device->use_aco || (device->instance->perftest_flags & RADV_PERFTEST_SHADER_BALLOT);
 
 	device->use_ngg = device->rad_info.chip_class >= GFX10 &&
 			  device->rad_info.family != CHIP_NAVI14 &&
@@ -468,7 +542,6 @@ static const struct debug_control radv_debug_options[] = {
 	{"shaderstats", RADV_DEBUG_DUMP_SHADER_STATS},
 	{"nohiz", RADV_DEBUG_NO_HIZ},
 	{"nocompute", RADV_DEBUG_NO_COMPUTE_QUEUE},
-	{"unsafemath", RADV_DEBUG_UNSAFE_MATH},
 	{"allbos", RADV_DEBUG_ALL_BOS},
 	{"noibs", RADV_DEBUG_NO_IBS},
 	{"spirv", RADV_DEBUG_DUMP_SPIRV},
@@ -985,6 +1058,14 @@ void radv_GetPhysicalDeviceFeatures2(
 			features->bufferDeviceAddressMultiDevice = false;
 			break;
 		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR: {
+			VkPhysicalDeviceBufferDeviceAddressFeaturesKHR *features =
+				(VkPhysicalDeviceBufferDeviceAddressFeaturesKHR *)ext;
+			features->bufferDeviceAddress = true;
+			features->bufferDeviceAddressCaptureReplay = false;
+			features->bufferDeviceAddressMultiDevice = false;
+			break;
+		}
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_CLIP_ENABLE_FEATURES_EXT: {
 			VkPhysicalDeviceDepthClipEnableFeaturesEXT *features =
 				(VkPhysicalDeviceDepthClipEnableFeaturesEXT *)ext;
@@ -1097,11 +1178,41 @@ void radv_GetPhysicalDeviceFeatures2(
 			features->computeFullSubgroups = true;
 			break;
 		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COHERENT_MEMORY_FEATURES_AMD: {
+			VkPhysicalDeviceCoherentMemoryFeaturesAMD *features =
+				(VkPhysicalDeviceCoherentMemoryFeaturesAMD *)ext;
+			features->deviceCoherentMemory = pdevice->rad_info.has_l2_uncached;
+			break;
+		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SUBGROUP_EXTENDED_TYPES_FEATURES_KHR: {
+			VkPhysicalDeviceShaderSubgroupExtendedTypesFeaturesKHR *features =
+				(VkPhysicalDeviceShaderSubgroupExtendedTypesFeaturesKHR *)ext;
+			features->shaderSubgroupExtendedTypes = true;
+			break;
+		}
 		default:
 			break;
 		}
 	}
 	return radv_GetPhysicalDeviceFeatures(physicalDevice, &pFeatures->features);
+}
+
+static size_t
+radv_max_descriptor_set_size()
+{
+	/* make sure that the entire descriptor set is addressable with a signed
+	 * 32-bit int. So the sum of all limits scaled by descriptor size has to
+	 * be at most 2 GiB. the combined image & samples object count as one of
+	 * both. This limit is for the pipeline layout, not for the set layout, but
+	 * there is no set limit, so we just set a pipeline limit. I don't think
+	 * any app is going to hit this soon. */
+	return ((1ull << 31) - 16 * MAX_DYNAMIC_BUFFERS
+	                     - MAX_INLINE_UNIFORM_BLOCK_SIZE * MAX_INLINE_UNIFORM_BLOCK_COUNT) /
+	          (32 /* uniform buffer, 32 due to potential space wasted on alignment */ +
+	           32 /* storage buffer, 32 due to potential space wasted on alignment */ +
+	           32 /* sampler, largest when combined with image */ +
+	           64 /* sampled image */ +
+	           64 /* storage image */);
 }
 
 void radv_GetPhysicalDeviceProperties(
@@ -1111,18 +1222,7 @@ void radv_GetPhysicalDeviceProperties(
 	RADV_FROM_HANDLE(radv_physical_device, pdevice, physicalDevice);
 	VkSampleCountFlags sample_counts = 0xf;
 
-	/* make sure that the entire descriptor set is addressable with a signed
-	 * 32-bit int. So the sum of all limits scaled by descriptor size has to
-	 * be at most 2 GiB. the combined image & samples object count as one of
-	 * both. This limit is for the pipeline layout, not for the set layout, but
-	 * there is no set limit, so we just set a pipeline limit. I don't think
-	 * any app is going to hit this soon. */
-	size_t max_descriptor_set_size = ((1ull << 31) - 16 * MAX_DYNAMIC_BUFFERS) /
-	          (32 /* uniform buffer, 32 due to potential space wasted on alignment */ +
-	           32 /* storage buffer, 32 due to potential space wasted on alignment */ +
-	           32 /* sampler, largest when combined with image */ +
-	           64 /* sampled image */ +
-	           64 /* storage image */);
+	size_t max_descriptor_set_size = radv_max_descriptor_set_size();
 
 	VkPhysicalDeviceLimits limits = {
 		.maxImageDimension1D                      = (1 << 14),
@@ -1300,17 +1400,18 @@ void radv_GetPhysicalDeviceProperties2(
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES: {
 			VkPhysicalDeviceSubgroupProperties *properties =
 			    (VkPhysicalDeviceSubgroupProperties*)ext;
-			properties->subgroupSize = 64;
+			properties->subgroupSize = RADV_SUBGROUP_SIZE;
 			properties->supportedStages = VK_SHADER_STAGE_ALL;
 			properties->supportedOperations =
 							VK_SUBGROUP_FEATURE_BASIC_BIT |
-							VK_SUBGROUP_FEATURE_BALLOT_BIT |
-							VK_SUBGROUP_FEATURE_QUAD_BIT |
-							VK_SUBGROUP_FEATURE_VOTE_BIT;
-			if (pdevice->rad_info.chip_class >= GFX8) {
-				properties->supportedOperations |=
+							VK_SUBGROUP_FEATURE_VOTE_BIT |
 							VK_SUBGROUP_FEATURE_ARITHMETIC_BIT |
+							VK_SUBGROUP_FEATURE_BALLOT_BIT |
 							VK_SUBGROUP_FEATURE_CLUSTERED_BIT |
+							VK_SUBGROUP_FEATURE_QUAD_BIT;
+			if (pdevice->rad_info.chip_class == GFX8 ||
+			    pdevice->rad_info.chip_class == GFX9) {
+				properties->supportedOperations |=
 							VK_SUBGROUP_FEATURE_SHUFFLE_BIT |
 							VK_SUBGROUP_FEATURE_SHUFFLE_RELATIVE_BIT;
 			}
@@ -1320,11 +1421,8 @@ void radv_GetPhysicalDeviceProperties2(
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MAINTENANCE_3_PROPERTIES: {
 			VkPhysicalDeviceMaintenance3Properties *properties =
 			    (VkPhysicalDeviceMaintenance3Properties*)ext;
-			/* Make sure everything is addressable by a signed 32-bit int, and
-			 * our largest descriptors are 96 bytes. */
-			properties->maxPerSetDescriptors = (1ull << 31) / 96;
-			/* Our buffer size fields allow only this much */
-			properties->maxMemoryAllocationSize = 0xFFFFFFFFull;
+			properties->maxPerSetDescriptors = RADV_MAX_PER_SET_DESCRIPTORS;
+			properties->maxMemoryAllocationSize = RADV_MAX_MEMORY_ALLOCATION_SIZE;
 			break;
 		}
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_FILTER_MINMAX_PROPERTIES_EXT: {
@@ -1401,13 +1499,7 @@ void radv_GetPhysicalDeviceProperties2(
 			properties->robustBufferAccessUpdateAfterBind = false;
 			properties->quadDivergentImplicitLod = false;
 
-			size_t max_descriptor_set_size = ((1ull << 31) - 16 * MAX_DYNAMIC_BUFFERS -
-				MAX_INLINE_UNIFORM_BLOCK_SIZE * MAX_INLINE_UNIFORM_BLOCK_COUNT) /
-			          (32 /* uniform buffer, 32 due to potential space wasted on alignment */ +
-			           32 /* storage buffer, 32 due to potential space wasted on alignment */ +
-			           32 /* sampler, largest when combined with image */ +
-			           64 /* sampled image */ +
-			           64 /* storage image */);
+			size_t max_descriptor_set_size = radv_max_descriptor_set_size();
 			properties->maxPerStageDescriptorUpdateAfterBindSamplers = max_descriptor_set_size;
 			properties->maxPerStageDescriptorUpdateAfterBindUniformBuffers = max_descriptor_set_size;
 			properties->maxPerStageDescriptorUpdateAfterBindStorageBuffers = max_descriptor_set_size;
@@ -1559,6 +1651,8 @@ void radv_GetPhysicalDeviceProperties2(
 			 * support for changing the register. The same logic
 			 * applies for the rounding modes because they are
 			 * configured with the same config register.
+			 * TODO: we can enable a lot of these for ACO when it
+			 * supports all stages
 			 */
 			properties->shaderDenormFlushToZeroFloat32 = true;
 			properties->shaderDenormPreserveFloat32 = false;
@@ -1613,7 +1707,7 @@ static void radv_get_physical_device_queue_family_properties(
 {
 	int num_queue_families = 1;
 	int idx;
-	if (pdevice->rad_info.num_compute_rings > 0 &&
+	if (pdevice->rad_info.num_rings[RING_COMPUTE] > 0 &&
 	    !(pdevice->instance->debug_flags & RADV_DEBUG_NO_COMPUTE_QUEUE))
 		num_queue_families++;
 
@@ -1639,14 +1733,14 @@ static void radv_get_physical_device_queue_family_properties(
 		idx++;
 	}
 
-	if (pdevice->rad_info.num_compute_rings > 0 &&
+	if (pdevice->rad_info.num_rings[RING_COMPUTE] > 0 &&
 	    !(pdevice->instance->debug_flags & RADV_DEBUG_NO_COMPUTE_QUEUE)) {
 		if (*pCount > idx) {
 			*pQueueFamilyProperties[idx] = (VkQueueFamilyProperties) {
 				.queueFlags = VK_QUEUE_COMPUTE_BIT |
 				              VK_QUEUE_TRANSFER_BIT |
 				              VK_QUEUE_SPARSE_BINDING_BIT,
-				.queueCount = pdevice->rad_info.num_compute_rings,
+				.queueCount = pdevice->rad_info.num_rings[RING_COMPUTE],
 				.timestampValidBits = 64,
 				.minImageTransferGranularity = (VkExtent3D) { 1, 1, 1 },
 			};
@@ -1726,8 +1820,7 @@ radv_get_memory_budget_properties(VkPhysicalDevice physicalDevice,
 	for (int i = 0; i < device->memory_properties.memoryTypeCount; i++) {
 		uint32_t heap_index = device->memory_properties.memoryTypes[i].heapIndex;
 
-		switch (device->mem_type_indices[i]) {
-		case RADV_MEM_TYPE_VRAM:
+		if (radv_is_mem_type_vram(device->mem_type_indices[i])) {
 			heap_usage = device->ws->query_value(device->ws,
 							     RADEON_ALLOCATED_VRAM);
 
@@ -1737,8 +1830,7 @@ radv_get_memory_budget_properties(VkPhysicalDevice physicalDevice,
 
 			memoryBudget->heapBudget[heap_index] = heap_budget;
 			memoryBudget->heapUsage[heap_index] = heap_usage;
-			break;
-		case RADV_MEM_TYPE_VRAM_CPU_ACCESS:
+		} else if (radv_is_mem_type_vram_visible(device->mem_type_indices[i])) {
 			heap_usage = device->ws->query_value(device->ws,
 							     RADEON_ALLOCATED_VRAM_VIS);
 
@@ -1748,8 +1840,7 @@ radv_get_memory_budget_properties(VkPhysicalDevice physicalDevice,
 
 			memoryBudget->heapBudget[heap_index] = heap_budget;
 			memoryBudget->heapUsage[heap_index] = heap_usage;
-			break;
-		case RADV_MEM_TYPE_GTT_WRITE_COMBINE:
+		} else if (radv_is_mem_type_gtt_wc(device->mem_type_indices[i])) {
 			heap_usage = device->ws->query_value(device->ws,
 							     RADEON_ALLOCATED_GTT);
 
@@ -1759,9 +1850,6 @@ radv_get_memory_budget_properties(VkPhysicalDevice physicalDevice,
 
 			memoryBudget->heapBudget[heap_index] = heap_budget;
 			memoryBudget->heapUsage[heap_index] = heap_usage;
-			break;
-		default:
-			break;
 		}
 	}
 
@@ -1803,7 +1891,7 @@ VkResult radv_GetMemoryHostPointerPropertiesEXT(
 		const struct radv_physical_device *physical_device = device->physical_device;
 		uint32_t memoryTypeBits = 0;
 		for (int i = 0; i < physical_device->memory_properties.memoryTypeCount; i++) {
-			if (physical_device->mem_type_indices[i] == RADV_MEM_TYPE_GTT_CACHED) {
+			if (radv_is_mem_type_gtt_cached(physical_device->mem_type_indices[i])) {
 				memoryTypeBits = (1 << i);
 				break;
 			}
@@ -2006,8 +2094,16 @@ static int install_seccomp_filter() {
 		BPF_JUMP(BPF_JMP + BPF_JEQ + BPF_K, AUDIT_ARCH_X86_64, 0, 12),
 
 		/* Futex is required for mutex locks */
+		#if defined __NR__newselect
+		BPF_STMT(BPF_LD + BPF_W + BPF_ABS, (offsetof(struct seccomp_data, nr))),
+		BPF_JUMP(BPF_JMP + BPF_JEQ + BPF_K, __NR__newselect, 11, 0),
+		#elif defined __NR_select
 		BPF_STMT(BPF_LD + BPF_W + BPF_ABS, (offsetof(struct seccomp_data, nr))),
 		BPF_JUMP(BPF_JMP + BPF_JEQ + BPF_K, __NR_select, 11, 0),
+		#else
+		BPF_STMT(BPF_LD + BPF_W + BPF_ABS, (offsetof(struct seccomp_data, nr))),
+		BPF_JUMP(BPF_JMP + BPF_JEQ + BPF_K, __NR_pselect6, 11, 0),
+		#endif
 
 		/* Allow system exit calls for the forked process */
 		BPF_STMT(BPF_LD + BPF_W + BPF_ABS, (offsetof(struct seccomp_data, nr))),
@@ -2120,16 +2216,69 @@ static bool radv_close_all_fds(const int *keep_fds, int keep_fd_count)
 	return true;
 }
 
-static void run_secure_compile_device(struct radv_device *device, unsigned process,
-				      int fd_secure_input, int fd_secure_output)
+static bool secure_compile_open_fifo_fds(struct radv_secure_compile_state *sc,
+					 int *fd_server, int *fd_client,
+					 unsigned process, bool make_fifo)
 {
+	bool result = false;
+	char *fifo_server_path = NULL;
+	char *fifo_client_path = NULL;
+
+	if (asprintf(&fifo_server_path, "/tmp/radv_server_%s_%u", sc->uid, process) == -1)
+		goto open_fifo_exit;
+
+	if (asprintf(&fifo_client_path, "/tmp/radv_client_%s_%u", sc->uid, process) == -1)
+		goto open_fifo_exit;
+
+	if (make_fifo) {
+		int file1 = mkfifo(fifo_server_path, 0666);
+		if(file1 < 0)
+			goto open_fifo_exit;
+
+		int file2 = mkfifo(fifo_client_path, 0666);
+		if(file2 < 0)
+			goto open_fifo_exit;
+	}
+
+	*fd_server = open(fifo_server_path, O_RDWR);
+	if(*fd_server < 1)
+		goto open_fifo_exit;
+
+	*fd_client = open(fifo_client_path, O_RDWR);
+	if(*fd_client < 1) {
+		close(*fd_server);
+		goto open_fifo_exit;
+	}
+
+	result = true;
+
+open_fifo_exit:
+	free(fifo_server_path);
+	free(fifo_client_path);
+
+	return result;
+}
+
+static void run_secure_compile_device(struct radv_device *device, unsigned process,
+				      int fd_idle_device_output)
+{
+	int fd_secure_input;
+	int fd_secure_output;
+	bool fifo_result = secure_compile_open_fifo_fds(device->sc_state,
+							&fd_secure_input,
+							&fd_secure_output,
+							process, false);
+
 	enum radv_secure_compile_type sc_type;
 
 	const int needed_fds[] = {
 		fd_secure_input,
 		fd_secure_output,
+		fd_idle_device_output,
 	};
-	if (!radv_close_all_fds(needed_fds, ARRAY_SIZE(needed_fds)) || install_seccomp_filter() == -1) {
+
+	if (!fifo_result || !radv_close_all_fds(needed_fds, ARRAY_SIZE(needed_fds)) ||
+	    install_seccomp_filter() == -1) {
 		sc_type = RADV_SC_TYPE_INIT_FAILURE;
 	} else {
 		sc_type = RADV_SC_TYPE_INIT_SUCCESS;
@@ -2137,7 +2286,7 @@ static void run_secure_compile_device(struct radv_device *device, unsigned proce
 		device->sc_state->secure_compile_processes[process].fd_secure_output = fd_secure_output;
 	}
 
-	write(fd_secure_output, &sc_type, sizeof(sc_type));
+	write(fd_idle_device_output, &sc_type, sizeof(sc_type));
 
 	if (sc_type == RADV_SC_TYPE_INIT_FAILURE)
 		goto secure_compile_exit;
@@ -2288,6 +2437,89 @@ static void run_secure_compile_device(struct radv_device *device, unsigned proce
 secure_compile_exit:
 	close(fd_secure_input);
 	close(fd_secure_output);
+	close(fd_idle_device_output);
+	_exit(0);
+}
+
+static enum radv_secure_compile_type fork_secure_compile_device(struct radv_device *device, unsigned process)
+{
+	int fd_secure_input[2];
+	int fd_secure_output[2];
+
+	/* create pipe descriptors (used to communicate between processes) */
+	if (pipe(fd_secure_input) == -1 || pipe(fd_secure_output) == -1)
+		return RADV_SC_TYPE_INIT_FAILURE;
+
+
+	int sc_pid;
+	if ((sc_pid = fork()) == 0) {
+		device->sc_state->secure_compile_thread_counter = process;
+		run_secure_compile_device(device, process, fd_secure_output[1]);
+	} else {
+		if (sc_pid == -1)
+			return RADV_SC_TYPE_INIT_FAILURE;
+
+		/* Read the init result returned from the secure process */
+		enum radv_secure_compile_type sc_type;
+		bool sc_read = radv_sc_read(fd_secure_output[0], &sc_type, sizeof(sc_type), true);
+
+		if (sc_type == RADV_SC_TYPE_INIT_FAILURE || !sc_read) {
+			close(fd_secure_input[0]);
+			close(fd_secure_input[1]);
+			close(fd_secure_output[1]);
+			close(fd_secure_output[0]);
+			int status;
+			waitpid(sc_pid, &status, 0);
+
+			return RADV_SC_TYPE_INIT_FAILURE;
+		} else {
+			assert(sc_type == RADV_SC_TYPE_INIT_SUCCESS);
+			write(device->sc_state->secure_compile_processes[process].fd_secure_output, &sc_type, sizeof(sc_type));
+
+			close(fd_secure_input[0]);
+			close(fd_secure_input[1]);
+			close(fd_secure_output[1]);
+			close(fd_secure_output[0]);
+
+			int status;
+			waitpid(sc_pid, &status, 0);
+		}
+	}
+
+	return RADV_SC_TYPE_INIT_SUCCESS;
+}
+
+/* Run a bare bones fork of a device that was forked right after its creation.
+ * This device will have low overhead when it is forked again before each
+ * pipeline compilation. This device sits idle and its only job is to fork
+ * itself.
+ */
+static void run_secure_compile_idle_device(struct radv_device *device, unsigned process,
+					    int fd_secure_input, int fd_secure_output)
+{
+	enum radv_secure_compile_type sc_type = RADV_SC_TYPE_INIT_SUCCESS;
+	device->sc_state->secure_compile_processes[process].fd_secure_input = fd_secure_input;
+	device->sc_state->secure_compile_processes[process].fd_secure_output = fd_secure_output;
+
+	write(fd_secure_output, &sc_type, sizeof(sc_type));
+
+	while (true) {
+		radv_sc_read(fd_secure_input, &sc_type, sizeof(sc_type), false);
+
+		if (sc_type == RADV_SC_TYPE_FORK_DEVICE) {
+			sc_type = fork_secure_compile_device(device, process);
+
+			if (sc_type == RADV_SC_TYPE_INIT_FAILURE)
+				goto secure_compile_exit;
+
+		} else if (sc_type == RADV_SC_TYPE_DESTROY_DEVICE) {
+			goto secure_compile_exit;
+		}
+	}
+
+secure_compile_exit:
+	close(fd_secure_input);
+	close(fd_secure_output);
 	_exit(0);
 }
 
@@ -2305,13 +2537,22 @@ static void destroy_secure_compile_device(struct radv_device *device, unsigned p
 	waitpid(device->sc_state->secure_compile_processes[process].sc_pid, &status, 0);
 }
 
-static VkResult fork_secure_compile_device(struct radv_device *device)
+static VkResult fork_secure_compile_idle_device(struct radv_device *device)
 {
 	device->sc_state = vk_zalloc(&device->alloc,
 				     sizeof(struct radv_secure_compile_state),
 				     8, VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
 
 	mtx_init(&device->sc_state->secure_compile_mutex, mtx_plain);
+
+	pid_t upid = getpid();
+	time_t seconds = time(NULL);
+
+	char *uid;
+	if (asprintf(&uid, "%ld_%ld", (long) upid, (long) seconds) == -1)
+		return VK_ERROR_INITIALIZATION_FAILED;
+
+	device->sc_state->uid = uid;
 
 	uint8_t sc_threads = device->instance->num_sc_threads;
 	int fd_secure_input[MAX_SC_PROCS][2];
@@ -2332,7 +2573,7 @@ static VkResult fork_secure_compile_device(struct radv_device *device)
 	for (unsigned process = 0; process < sc_threads; process++) {
 		if ((device->sc_state->secure_compile_processes[process].sc_pid = fork()) == 0) {
 			device->sc_state->secure_compile_thread_counter = process;
-			run_secure_compile_device(device, process, fd_secure_input[process][0], fd_secure_output[process][1]);
+			run_secure_compile_idle_device(device, process, fd_secure_input[process][0], fd_secure_output[process][1]);
 		} else {
 			if (device->sc_state->secure_compile_processes[process].sc_pid == -1)
 				return VK_ERROR_INITIALIZATION_FAILED;
@@ -2341,7 +2582,18 @@ static VkResult fork_secure_compile_device(struct radv_device *device)
 			enum radv_secure_compile_type sc_type;
 			bool sc_read = radv_sc_read(fd_secure_output[process][0], &sc_type, sizeof(sc_type), true);
 
-			if (sc_type == RADV_SC_TYPE_INIT_FAILURE || !sc_read) {
+			bool fifo_result;
+			if (sc_read && sc_type == RADV_SC_TYPE_INIT_SUCCESS) {
+				fifo_result = secure_compile_open_fifo_fds(device->sc_state,
+									   &device->sc_state->secure_compile_processes[process].fd_server,
+									   &device->sc_state->secure_compile_processes[process].fd_client,
+									   process, true);
+
+				device->sc_state->secure_compile_processes[process].fd_secure_input = fd_secure_input[process][1];
+				device->sc_state->secure_compile_processes[process].fd_secure_output = fd_secure_output[process][0];
+			}
+
+			if (sc_type == RADV_SC_TYPE_INIT_FAILURE || !sc_read || !fifo_result) {
 				close(fd_secure_input[process][0]);
 				close(fd_secure_input[process][1]);
 				close(fd_secure_output[process][1]);
@@ -2355,10 +2607,6 @@ static VkResult fork_secure_compile_device(struct radv_device *device)
 				}
 
 				return VK_ERROR_INITIALIZATION_FAILED;
-			} else {
-				assert(sc_type == RADV_SC_TYPE_INIT_SUCCESS);
-				device->sc_state->secure_compile_processes[process].fd_secure_input = fd_secure_input[process][1];
-				device->sc_state->secure_compile_processes[process].fd_secure_output = fd_secure_output[process][0];
 			}
 		}
 	}
@@ -2445,7 +2693,8 @@ VkResult radv_CreateDevice(
 	device->use_global_bo_list =
 		(device->instance->perftest_flags & RADV_PERFTEST_BO_LIST) ||
 		device->enabled_extensions.EXT_descriptor_indexing ||
-		device->enabled_extensions.EXT_buffer_device_address;
+		device->enabled_extensions.EXT_buffer_device_address ||
+		device->enabled_extensions.KHR_buffer_device_address;
 
 	device->robust_buffer_access = pCreateInfo->pEnabledFeatures &&
 	                               pCreateInfo->pEnabledFeatures->robustBufferAccess;
@@ -2597,7 +2846,8 @@ VkResult radv_CreateDevice(
 	/* Fork device for secure compile as required */
 	device->instance->num_sc_threads = sc_threads;
 	if (radv_device_use_secure_compile(device->instance)) {
-		result = fork_secure_compile_device(device);
+
+		result = fork_secure_compile_idle_device(device);
 		if (result != VK_SUCCESS)
 			goto fail_meta;
 	}
@@ -2661,15 +2911,16 @@ void radv_DestroyDevice(
 
 	pthread_cond_destroy(&device->timeline_cond);
 	radv_bo_list_finish(&device->bo_list);
-
 	if (radv_device_use_secure_compile(device->instance)) {
 		for (unsigned i = 0; i < device->instance->num_sc_threads; i++ ) {
 			destroy_secure_compile_device(device, i);
 		}
 	}
 
-	if (device->sc_state)
+	if (device->sc_state) {
+		free(device->sc_state->uid);
 		vk_free(&device->alloc, device->sc_state->secure_compile_processes);
+	}
 	vk_free(&device->alloc, device->sc_state);
 	vk_free(&device->alloc, device);
 }
@@ -3049,8 +3300,27 @@ radv_emit_tess_factor_ring(struct radv_queue *queue, struct radeon_cmdbuf *cs,
 }
 
 static void
+radv_emit_graphics_scratch(struct radv_queue *queue, struct radeon_cmdbuf *cs,
+                           uint32_t size_per_wave, uint32_t waves,
+                           struct radeon_winsys_bo *scratch_bo)
+{
+	if (queue->queue_family_index != RADV_QUEUE_GENERAL)
+		return;
+
+	if (!scratch_bo)
+		return;
+
+	radv_cs_add_buffer(queue->device->ws, cs, scratch_bo);
+
+	radeon_set_context_reg(cs, R_0286E8_SPI_TMPRING_SIZE,
+	                       S_0286E8_WAVES(waves) |
+	                       S_0286E8_WAVESIZE(round_up_u32(size_per_wave, 1024)));
+}
+
+static void
 radv_emit_compute_scratch(struct radv_queue *queue, struct radeon_cmdbuf *cs,
-			  struct radeon_winsys_bo *compute_scratch_bo)
+                          uint32_t size_per_wave, uint32_t waves,
+                          struct radeon_winsys_bo *compute_scratch_bo)
 {
 	uint64_t scratch_va;
 
@@ -3065,6 +3335,10 @@ radv_emit_compute_scratch(struct radv_queue *queue, struct radeon_cmdbuf *cs,
 	radeon_emit(cs, scratch_va);
 	radeon_emit(cs, S_008F04_BASE_ADDRESS_HI(scratch_va >> 32) |
 			S_008F04_SWIZZLE_ENABLE(1));
+
+	radeon_set_sh_reg(cs, R_00B860_COMPUTE_TMPRING_SIZE,
+	                 S_00B860_WAVES(waves) |
+	                 S_00B860_WAVESIZE(round_up_u32(size_per_wave, 1024)));
 }
 
 static void
@@ -3145,8 +3419,10 @@ radv_init_compute_state(struct radeon_cmdbuf *cs, struct radv_queue *queue)
 
 static VkResult
 radv_get_preamble_cs(struct radv_queue *queue,
-                     uint32_t scratch_size,
-                     uint32_t compute_scratch_size,
+		     uint32_t scratch_size_per_wave,
+		     uint32_t scratch_waves,
+		     uint32_t compute_scratch_size_per_wave,
+		     uint32_t compute_scratch_waves,
 		     uint32_t esgs_ring_size,
 		     uint32_t gsvs_ring_size,
 		     bool needs_tess_rings,
@@ -3190,8 +3466,22 @@ radv_get_preamble_cs(struct radv_queue *queue,
 	tess_offchip_ring_size = max_offchip_buffers *
 		queue->device->tess_offchip_block_dw_size * 4;
 
-	if (scratch_size <= queue->scratch_size &&
-	    compute_scratch_size <= queue->compute_scratch_size &&
+	scratch_size_per_wave = MAX2(scratch_size_per_wave, queue->scratch_size_per_wave);
+	if (scratch_size_per_wave)
+		scratch_waves = MIN2(scratch_waves, UINT32_MAX / scratch_size_per_wave);
+	else
+		scratch_waves = 0;
+
+	compute_scratch_size_per_wave = MAX2(compute_scratch_size_per_wave, queue->compute_scratch_size_per_wave);
+	if (compute_scratch_size_per_wave)
+		compute_scratch_waves = MIN2(compute_scratch_waves, UINT32_MAX / compute_scratch_size_per_wave);
+	else
+		compute_scratch_waves = 0;
+
+	if (scratch_size_per_wave <= queue->scratch_size_per_wave &&
+	    scratch_waves <= queue->scratch_waves &&
+	    compute_scratch_size_per_wave <= queue->compute_scratch_size_per_wave &&
+	    compute_scratch_waves <= queue->compute_scratch_waves &&
 	    esgs_ring_size <= queue->esgs_ring_size &&
 	    gsvs_ring_size <= queue->gsvs_ring_size &&
 	    !add_tess_rings && !add_gds && !add_sample_positions &&
@@ -3199,13 +3489,16 @@ radv_get_preamble_cs(struct radv_queue *queue,
 		*initial_full_flush_preamble_cs = queue->initial_full_flush_preamble_cs;
 		*initial_preamble_cs = queue->initial_preamble_cs;
 		*continue_preamble_cs = queue->continue_preamble_cs;
-		if (!scratch_size && !compute_scratch_size && !esgs_ring_size && !gsvs_ring_size &&
-		    !needs_tess_rings && !needs_gds && !needs_sample_positions)
+		if (!scratch_size_per_wave && !compute_scratch_size_per_wave &&
+		    !esgs_ring_size && !gsvs_ring_size && !needs_tess_rings &&
+		    !needs_gds && !needs_sample_positions)
 			*continue_preamble_cs = NULL;
 		return VK_SUCCESS;
 	}
 
-	if (scratch_size > queue->scratch_size) {
+	uint32_t scratch_size = scratch_size_per_wave * scratch_waves;
+	uint32_t queue_scratch_size = queue->scratch_size_per_wave * queue->scratch_waves;
+	if (scratch_size > queue_scratch_size) {
 		scratch_bo = queue->device->ws->buffer_create(queue->device->ws,
 		                                              scratch_size,
 		                                              4096,
@@ -3217,7 +3510,9 @@ radv_get_preamble_cs(struct radv_queue *queue,
 	} else
 		scratch_bo = queue->scratch_bo;
 
-	if (compute_scratch_size > queue->compute_scratch_size) {
+	uint32_t compute_scratch_size = compute_scratch_size_per_wave * compute_scratch_waves;
+	uint32_t compute_queue_scratch_size = queue->compute_scratch_size_per_wave * queue->compute_scratch_waves;
+	if (compute_scratch_size > compute_queue_scratch_size) {
 		compute_scratch_bo = queue->device->ws->buffer_create(queue->device->ws,
 		                                                      compute_scratch_size,
 		                                                      4096,
@@ -3385,7 +3680,10 @@ radv_get_preamble_cs(struct radv_queue *queue,
 		radv_emit_tess_factor_ring(queue, cs, hs_offchip_param,
 					   tess_factor_ring_size, tess_rings_bo);
 		radv_emit_global_shader_pointers(queue, cs, descriptor_bo);
-		radv_emit_compute_scratch(queue, cs, compute_scratch_bo);
+		radv_emit_compute_scratch(queue, cs, compute_scratch_size_per_wave,
+		                          compute_scratch_waves, compute_scratch_bo);
+		radv_emit_graphics_scratch(queue, cs, scratch_size_per_wave,
+		                           scratch_waves, scratch_bo);
 
 		if (gds_bo)
 			radv_cs_add_buffer(queue->device->ws, cs, gds_bo);
@@ -3438,15 +3736,17 @@ radv_get_preamble_cs(struct radv_queue *queue,
 		if (queue->scratch_bo)
 			queue->device->ws->buffer_destroy(queue->scratch_bo);
 		queue->scratch_bo = scratch_bo;
-		queue->scratch_size = scratch_size;
 	}
+	queue->scratch_size_per_wave = scratch_size_per_wave;
+	queue->scratch_waves = scratch_waves;
 
 	if (compute_scratch_bo != queue->compute_scratch_bo) {
 		if (queue->compute_scratch_bo)
 			queue->device->ws->buffer_destroy(queue->compute_scratch_bo);
 		queue->compute_scratch_bo = compute_scratch_bo;
-		queue->compute_scratch_size = compute_scratch_size;
 	}
+	queue->compute_scratch_size_per_wave = compute_scratch_size_per_wave;
+	queue->compute_scratch_waves = compute_scratch_waves;
 
 	if (esgs_ring_bo != queue->esgs_ring_bo) {
 		if (queue->esgs_ring_bo)
@@ -3742,8 +4042,8 @@ radv_get_preambles(struct radv_queue *queue,
                    struct radeon_cmdbuf **initial_preamble_cs,
                    struct radeon_cmdbuf **continue_preamble_cs)
 {
-	uint32_t scratch_size = 0;
-	uint32_t compute_scratch_size = 0;
+	uint32_t scratch_size_per_wave = 0, waves_wanted = 0;
+	uint32_t compute_scratch_size_per_wave = 0, compute_waves_wanted = 0;
 	uint32_t esgs_ring_size = 0, gsvs_ring_size = 0;
 	bool tess_rings_needed = false;
 	bool gds_needed = false;
@@ -3753,9 +4053,12 @@ radv_get_preambles(struct radv_queue *queue,
 		RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer,
 				 cmd_buffers[j]);
 
-		scratch_size = MAX2(scratch_size, cmd_buffer->scratch_size_needed);
-		compute_scratch_size = MAX2(compute_scratch_size,
-		                            cmd_buffer->compute_scratch_size_needed);
+		scratch_size_per_wave = MAX2(scratch_size_per_wave, cmd_buffer->scratch_size_per_wave_needed);
+		waves_wanted = MAX2(waves_wanted, cmd_buffer->scratch_waves_wanted);
+		compute_scratch_size_per_wave = MAX2(compute_scratch_size_per_wave,
+		                                     cmd_buffer->compute_scratch_size_per_wave_needed);
+		compute_waves_wanted = MAX2(compute_waves_wanted,
+		                            cmd_buffer->compute_scratch_waves_wanted);
 		esgs_ring_size = MAX2(esgs_ring_size, cmd_buffer->esgs_ring_size_needed);
 		gsvs_ring_size = MAX2(gsvs_ring_size, cmd_buffer->gsvs_ring_size_needed);
 		tess_rings_needed |= cmd_buffer->tess_rings_needed;
@@ -3763,11 +4066,12 @@ radv_get_preambles(struct radv_queue *queue,
 		sample_positions_needed |= cmd_buffer->sample_positions_needed;
 	}
 
-	return radv_get_preamble_cs(queue, scratch_size, compute_scratch_size,
-	                              esgs_ring_size, gsvs_ring_size, tess_rings_needed,
-	                              gds_needed, sample_positions_needed,
-	                              initial_full_flush_preamble_cs,
-	                              initial_preamble_cs, continue_preamble_cs);
+	return radv_get_preamble_cs(queue, scratch_size_per_wave, waves_wanted,
+	                            compute_scratch_size_per_wave, compute_waves_wanted,
+	                            esgs_ring_size, gsvs_ring_size, tess_rings_needed,
+	                            gds_needed, sample_positions_needed,
+	                            initial_full_flush_preamble_cs,
+	                            initial_preamble_cs, continue_preamble_cs);
 }
 
 struct radv_deferred_queue_submission {
@@ -4491,7 +4795,7 @@ static VkResult radv_alloc_memory(struct radv_device *device,
 		}
 	} else if (host_ptr_info) {
 		assert(host_ptr_info->handleType == VK_EXTERNAL_MEMORY_HANDLE_TYPE_HOST_ALLOCATION_BIT_EXT);
-		assert(mem_type_index == RADV_MEM_TYPE_GTT_CACHED);
+		assert(radv_is_mem_type_gtt_cached(mem_type_index));
 		mem->bo = device->ws->buffer_from_ptr(device->ws, host_ptr_info->pHostPointer,
 		                                      pAllocateInfo->allocationSize,
 		                                      priority);
@@ -4503,18 +4807,18 @@ static VkResult radv_alloc_memory(struct radv_device *device,
 		}
 	} else {
 		uint64_t alloc_size = align_u64(pAllocateInfo->allocationSize, 4096);
-		if (mem_type_index == RADV_MEM_TYPE_GTT_WRITE_COMBINE ||
-		    mem_type_index == RADV_MEM_TYPE_GTT_CACHED)
+		if (radv_is_mem_type_gtt_wc(mem_type_index) ||
+		    radv_is_mem_type_gtt_cached(mem_type_index))
 			domain = RADEON_DOMAIN_GTT;
 		else
 			domain = RADEON_DOMAIN_VRAM;
 
-		if (mem_type_index == RADV_MEM_TYPE_VRAM)
+		if (radv_is_mem_type_vram(mem_type_index))
 			flags |= RADEON_FLAG_NO_CPU_ACCESS;
 		else
 			flags |= RADEON_FLAG_CPU_ACCESS;
 
-		if (mem_type_index == RADV_MEM_TYPE_GTT_WRITE_COMBINE)
+		if (radv_is_mem_type_gtt_wc(mem_type_index))
 			flags |= RADEON_FLAG_GTT_WC;
 
 		if (!dedicate_info && !import_info && (!export_info || !export_info->handleTypes)) {
@@ -4522,6 +4826,11 @@ static VkResult radv_alloc_memory(struct radv_device *device,
 			if (device->use_global_bo_list) {
 				flags |= RADEON_FLAG_PREFER_LOCAL_BO;
 			}
+		}
+
+		if (radv_is_mem_type_uncached(mem_type_index)) {
+			assert(device->physical_device->rad_info.has_l2_uncached);
+			flags |= RADEON_FLAG_VA_UNCACHED;
 		}
 
 		mem->bo = device->ws->buffer_create(device->ws, alloc_size, device->physical_device->rad_info.max_alignment,
@@ -5632,14 +5941,26 @@ void radv_DestroyBuffer(
 	vk_free2(&device->alloc, pAllocator, buffer);
 }
 
-VkDeviceAddress radv_GetBufferDeviceAddressEXT(
+VkDeviceAddress radv_GetBufferDeviceAddressKHR(
 	VkDevice                                    device,
-	const VkBufferDeviceAddressInfoEXT*         pInfo)
+	const VkBufferDeviceAddressInfoKHR*         pInfo)
 {
 	RADV_FROM_HANDLE(radv_buffer, buffer, pInfo->buffer);
 	return radv_buffer_get_va(buffer->bo) + buffer->offset;
 }
 
+
+uint64_t radv_GetBufferOpaqueCaptureAddressKHR(VkDevice device,
+					       const VkBufferDeviceAddressInfoKHR* pInfo)
+{
+	return 0;
+}
+
+uint64_t radv_GetDeviceMemoryOpaqueCaptureAddressKHR(VkDevice device,
+						     const VkDeviceMemoryOpaqueCaptureAddressInfoKHR* pInfo)
+{
+	return 0;
+}
 
 static inline unsigned
 si_tile_mode_index(const struct radv_image_plane *plane, unsigned level, bool stencil)

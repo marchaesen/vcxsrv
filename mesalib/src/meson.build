@@ -60,7 +60,9 @@ subdir('compiler')
 if with_tools.contains('drm-shim')
   subdir('drm-shim')
 endif
-subdir('imgui')
+if with_imgui
+  subdir('imgui')
+endif
 if with_platform_wayland
   subdir('egl/wayland/wayland-drm')
 endif

@@ -495,11 +495,15 @@ _mesa_glsl_msg(const YYLTYPE *locp, _mesa_glsl_parse_state *state,
    /* Get the offset that the new message will be written to. */
    int msg_offset = strlen(state->info_log);
 
-   ralloc_asprintf_append(&state->info_log, "%u:%u(%u): %s: ",
-					    locp->source,
-					    locp->first_line,
-					    locp->first_column,
-					    error ? "error" : "warning");
+   if (locp->path) {
+      ralloc_asprintf_append(&state->info_log, "\"%s\"", locp->path);
+   } else {
+      ralloc_asprintf_append(&state->info_log, "%u", locp->source);
+   }
+   ralloc_asprintf_append(&state->info_log, ":%u(%u): %s: ",
+                          locp->first_line, locp->first_column,
+                          error ? "error" : "warning");
+
    ralloc_vasprintf_append(&state->info_log, fmt, ap);
 
    const char *const msg = &state->info_log[msg_offset];
@@ -665,6 +669,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    EXT(ARB_shader_texture_lod),
    EXT(ARB_shader_viewport_layer_array),
    EXT(ARB_shading_language_420pack),
+   EXT(ARB_shading_language_include),
    EXT(ARB_shading_language_packing),
    EXT(ARB_tessellation_shader),
    EXT(ARB_texture_cube_map_array),
@@ -2103,13 +2108,11 @@ opt_shader_and_create_symbol_table(struct gl_context *ctx,
                                       shader->symbols);
 }
 
-void
-_mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
-                          bool dump_ast, bool dump_hir, bool force_recompile)
+static bool
+can_skip_compile(struct gl_context *ctx, struct gl_shader *shader,
+                 const char *source, bool force_recompile,
+                 bool source_has_shader_include)
 {
-   const char *source = force_recompile && shader->FallbackSource ?
-      shader->FallbackSource : shader->Source;
-
    if (!force_recompile) {
       if (ctx->Cache) {
          char buf[41];
@@ -2124,28 +2127,69 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
             shader->CompileStatus = COMPILE_SKIPPED;
 
             free((void *)shader->FallbackSource);
-            shader->FallbackSource = NULL;
-            return;
+
+            /* Copy pre-processed shader include to fallback source otherwise
+             * we have no guarantee the shader include source tree has not
+             * changed.
+             */
+            shader->FallbackSource = source_has_shader_include ?
+               strdup(source) : NULL;
+            return true;
          }
       }
    } else {
       /* We should only ever end up here if a re-compile has been forced by a
        * shader cache miss. In which case we can skip the compile if its
-       * already be done by a previous fallback or the initial compile call.
+       * already been done by a previous fallback or the initial compile call.
        */
       if (shader->CompileStatus == COMPILE_SUCCESS)
-         return;
+         return true;
    }
 
-   struct _mesa_glsl_parse_state *state =
+   return false;
+}
+
+void
+_mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
+                          bool dump_ast, bool dump_hir, bool force_recompile)
+{
+   const char *source = force_recompile && shader->FallbackSource ?
+      shader->FallbackSource : shader->Source;
+
+   /* Note this will be true for shaders the have #include inside comments
+    * however that should be rare enough not to worry about.
+    */
+   bool source_has_shader_include =
+      strstr(source, "#include") == NULL ? false : true;
+
+   /* If there was no shader include we can check the shader cache and skip
+    * compilation before we run the preprocessor. We never skip compiling
+    * shaders that use ARB_shading_language_include because we would need to
+    * keep duplicate copies of the shader include source tree and paths.
+    */
+   if (!source_has_shader_include &&
+       can_skip_compile(ctx, shader, source, force_recompile, false))
+      return;
+
+    struct _mesa_glsl_parse_state *state =
       new(shader) _mesa_glsl_parse_state(ctx, shader->Stage, shader);
 
    if (ctx->Const.GenerateTemporaryNames)
       (void) p_atomic_cmpxchg(&ir_variable::temporaries_allocate_names,
                               false, true);
 
-   state->error = glcpp_preprocess(state, &source, &state->info_log,
-                                   add_builtin_defines, state, ctx);
+   if (!source_has_shader_include || !force_recompile) {
+      state->error = glcpp_preprocess(state, &source, &state->info_log,
+                                      add_builtin_defines, state, ctx);
+   }
+
+   /* Now that we have run the preprocessor we can check the shader cache and
+    * skip compilation if possible for those shaders that contained a shader
+    * include.
+    */
+   if (source_has_shader_include &&
+       can_skip_compile(ctx, shader, source, force_recompile, true))
+      return;
 
    if (!state->error) {
      _mesa_glsl_lexer_ctor(state, source);
@@ -2195,7 +2239,12 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
 
    if (!force_recompile) {
       free((void *)shader->FallbackSource);
-      shader->FallbackSource = NULL;
+
+      /* Copy pre-processed shader include to fallback source otherwise we
+       * have no guarantee the shader include source tree has not changed.
+       */
+      shader->FallbackSource = source_has_shader_include ?
+         strdup(source) : NULL;
    }
 
    delete state->symbols;

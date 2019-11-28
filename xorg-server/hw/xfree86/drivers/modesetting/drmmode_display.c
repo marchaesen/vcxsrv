@@ -755,6 +755,7 @@ drmmode_crtc_set_mode(xf86CrtcPtr crtc, Bool test_only)
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(crtc->scrn);
     drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
     drmmode_ptr drmmode = drmmode_crtc->drmmode;
+    ScreenPtr screen = crtc->scrn->pScreen;
     drmModeModeInfo kmode;
     int output_count = 0;
     uint32_t *output_ids = NULL;
@@ -764,6 +765,12 @@ drmmode_crtc_set_mode(xf86CrtcPtr crtc, Bool test_only)
 
     if (!drmmode_crtc_get_fb_id(crtc, &fb_id, &x, &y))
         return 1;
+
+#ifdef GLAMOR_HAS_GBM
+    /* Make sure any pending drawing will be visible in a new scanout buffer */
+    if (drmmode->glamor)
+        glamor_finish(screen);
+#endif
 
     if (ms->atomic_modeset) {
         drmModeAtomicReq *req = drmModeAtomicAlloc();
@@ -1378,6 +1385,7 @@ create_pixmap_for_fbcon(drmmode_ptr drmmode, ScrnInfoPtr pScrn, int fbcon_id)
     PixmapPtr pixmap = drmmode->fbcon_pixmap;
     drmModeFBPtr fbcon;
     ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
+    modesettingPtr ms = modesettingPTR(pScrn);
     Bool ret;
 
     if (pixmap)
@@ -1398,7 +1406,8 @@ create_pixmap_for_fbcon(drmmode_ptr drmmode, ScrnInfoPtr pScrn, int fbcon_id)
     if (!pixmap)
         goto out_free_fb;
 
-    ret = glamor_egl_create_textured_pixmap(pixmap, fbcon->handle, fbcon->pitch);
+    ret = ms->glamor.egl_create_textured_pixmap(pixmap, fbcon->handle,
+                                                fbcon->pitch);
     if (!ret) {
       FreePixmap(pixmap);
       pixmap = NULL;
@@ -1453,8 +1462,6 @@ drmmode_copy_fb(ScrnInfoPtr pScrn, drmmode_ptr drmmode)
                          pScrn->virtualX, pScrn->virtualY, 0, 0);
 
     FreeScratchGC(gc);
-
-    glamor_finish(pScreen);
 
     pScreen->canDoBGNoneRoot = TRUE;
 
@@ -1790,6 +1797,27 @@ drmmode_set_scanout_pixmap(xf86CrtcPtr crtc, PixmapPtr ppix)
 
     return drmmode_set_target_scanout_pixmap(crtc, ppix,
                                              &drmmode_crtc->prime_pixmap);
+}
+
+static void
+drmmode_clear_pixmap(PixmapPtr pixmap)
+{
+    ScreenPtr screen = pixmap->drawable.pScreen;
+    GCPtr gc;
+#ifdef GLAMOR_HAS_GBM
+    modesettingPtr ms = modesettingPTR(xf86ScreenToScrn(screen));
+
+    if (ms->drmmode.glamor) {
+        ms->glamor.clear_pixmap(pixmap);
+        return;
+    }
+#endif
+
+    gc = GetScratchGC(pixmap->drawable.depth, screen);
+    if (gc) {
+        miClearDrawable(&pixmap->drawable, gc);
+        FreeScratchGC(gc);
+    }
 }
 
 static void *
@@ -3090,12 +3118,13 @@ drmmode_set_pixmap_bo(drmmode_ptr drmmode, PixmapPtr pixmap, drmmode_bo *bo)
 {
 #ifdef GLAMOR_HAS_GBM
     ScrnInfoPtr scrn = drmmode->scrn;
+    modesettingPtr ms = modesettingPTR(scrn);
 
     if (!drmmode->glamor)
         return TRUE;
 
-    if (!glamor_egl_create_textured_pixmap_from_gbm_bo(pixmap, bo->gbm,
-                                                       bo->used_modifiers)) {
+    if (!ms->glamor.egl_create_textured_pixmap_from_gbm_bo(pixmap, bo->gbm,
+                                                           bo->used_modifiers)) {
         xf86DrvMsg(scrn->scrnIndex, X_ERROR, "Failed to create pixmap\n");
         return FALSE;
     }
@@ -3181,6 +3210,8 @@ drmmode_xf86crtc_resize(ScrnInfoPtr scrn, int width, int height)
 
     if (!drmmode_glamor_handle_new_screen_pixmap(drmmode))
         goto fail;
+
+    drmmode_clear_pixmap(ppix);
 
     for (i = 0; i < xf86_config->num_crtc; i++) {
         xf86CrtcPtr crtc = xf86_config->crtc[i];
@@ -3410,13 +3441,14 @@ drmmode_init(ScrnInfoPtr pScrn, drmmode_ptr drmmode)
 {
 #ifdef GLAMOR_HAS_GBM
     ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
+    modesettingPtr ms = modesettingPTR(pScrn);
 
     if (drmmode->glamor) {
-        if (!glamor_init(pScreen, GLAMOR_USE_EGL_SCREEN)) {
+        if (!ms->glamor.init(pScreen, GLAMOR_USE_EGL_SCREEN)) {
             return FALSE;
         }
 #ifdef GBM_BO_WITH_MODIFIERS
-        glamor_set_drawable_modifiers_func(pScreen, get_drawable_modifiers);
+        ms->glamor.set_drawable_modifiers_func(pScreen, get_drawable_modifiers);
 #endif
     }
 #endif

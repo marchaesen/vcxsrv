@@ -448,7 +448,9 @@ typedef enum {
         midgard_op_ld_vary_16 = 0x99,
         midgard_op_ld_vary_32u = 0x9A,
         midgard_op_ld_vary_32i = 0x9B,
-        midgard_op_ld_color_buffer_16 = 0x9D,
+
+        /* Old version of midgard_op_ld_color_buffer_u8_as_fp16, for T720 */
+        midgard_op_ld_color_buffer_u8_as_fp16_old = 0x9D,
 
         /* The distinction between these ops is the alignment requirement /
          * accompanying shift. Thus, the offset to ld_ubo_int4 is in 16-byte
@@ -464,6 +466,8 @@ typedef enum {
         midgard_op_ld_ubo_short4 = 0xAC,
         midgard_op_ld_ubo_int4   = 0xB0,
 
+        /* New-style blending ops. Works on T760/T860 */
+        midgard_op_ld_color_buffer_u8_as_fp16 = 0xB9,
         midgard_op_ld_color_buffer_8 = 0xBA,
 
         midgard_op_st_char = 0xC0,

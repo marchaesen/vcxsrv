@@ -6,6 +6,8 @@ env.Append(CPPPATH = [
     '#src',
     'indices',
     'util',
+    '#src/compiler/nir',
+    '../../compiler/nir',
 ])
 
 env = env.Clone()
@@ -26,18 +28,6 @@ env.CodeGenerate(
     command = python_cmd + ' $SCRIPT > $TARGET'
 )
 
-env.CodeGenerate(
-    target = 'util/u_format_table.c',
-    script = '#src/gallium/auxiliary/util/u_format_table.py',
-    source = ['#src/gallium/auxiliary/util/u_format.csv'],
-    command = python_cmd + ' $SCRIPT $SOURCE > $TARGET'
-)
-
-env.Depends('util/u_format_table.c', [
-    '#src/gallium/auxiliary/util/u_format_parse.py',
-    'util/u_format_pack.py',
-])
-
 source = env.ParseSourceList('Makefile.sources', [
     'C_SOURCES',
     'VL_STUB_SOURCES',
@@ -46,6 +36,7 @@ source = env.ParseSourceList('Makefile.sources', [
 
 if env['llvm']:
     source += env.ParseSourceList('Makefile.sources', [
+        'NIR_SOURCES',
         'GALLIVM_SOURCES',
     ])
 

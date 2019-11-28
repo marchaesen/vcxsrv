@@ -50,7 +50,6 @@
 #include "xf86Crtc.h"
 #include "miscstruct.h"
 #include "dixstruct.h"
-#include "shadow.h"
 #include "xf86xv.h"
 #include <X11/extensions/Xv.h>
 #include <xorg-config.h>
@@ -60,7 +59,6 @@
 #ifdef XSERVER_LIBPCIACCESS
 #include <pciaccess.h>
 #endif
-
 #include "driver.h"
 
 static void AdjustFrame(ScrnInfoPtr pScrn, int x, int y);
@@ -617,7 +615,7 @@ redisplay_dirty(ScreenPtr screen, PixmapDirtyUpdatePtr dirty, int *timeout)
          * the shared pixmap, but not all).
          */
         if (ms->drmmode.glamor)
-            glamor_finish(screen);
+            ms->glamor.finish(screen);
 #endif
         /* Ensure the slave processes the damage immediately */
         if (timeout)
@@ -746,6 +744,28 @@ FreeRec(ScrnInfoPtr pScrn)
 }
 
 static void
+bind_glamor_api(void *mod, modesettingPtr ms)
+{
+    ms->glamor.back_pixmap_from_fd = LoaderSymbolFromModule(mod, "glamor_back_pixmap_from_fd");
+    ms->glamor.block_handler = LoaderSymbolFromModule(mod, "glamor_block_handler");
+    ms->glamor.clear_pixmap = LoaderSymbolFromModule(mod, "glamor_clear_pixmap");
+    ms->glamor.egl_create_textured_pixmap = LoaderSymbolFromModule(mod, "glamor_egl_create_textured_pixmap");
+    ms->glamor.egl_create_textured_pixmap_from_gbm_bo = LoaderSymbolFromModule(mod, "glamor_egl_create_textured_pixmap_from_gbm_bo");
+    ms->glamor.egl_exchange_buffers = LoaderSymbolFromModule(mod, "glamor_egl_exchange_buffers");
+    ms->glamor.egl_get_gbm_device = LoaderSymbolFromModule(mod, "glamor_egl_get_gbm_device");
+    ms->glamor.egl_init = LoaderSymbolFromModule(mod, "glamor_egl_init");
+    ms->glamor.finish = LoaderSymbolFromModule(mod, "glamor_finish");
+    ms->glamor.gbm_bo_from_pixmap = LoaderSymbolFromModule(mod, "glamor_gbm_bo_from_pixmap");
+    ms->glamor.init = LoaderSymbolFromModule(mod, "glamor_init");
+    ms->glamor.name_from_pixmap = LoaderSymbolFromModule(mod, "glamor_name_from_pixmap");
+    ms->glamor.set_drawable_modifiers_func = LoaderSymbolFromModule(mod, "glamor_set_drawable_modifiers_func");
+    ms->glamor.shareable_fd_from_pixmap = LoaderSymbolFromModule(mod, "glamor_shareable_fd_from_pixmap");
+    ms->glamor.supports_pixmap_import_export = LoaderSymbolFromModule(mod, "glamor_supports_pixmap_import_export");
+    ms->glamor.xv_init = LoaderSymbolFromModule(mod, "glamor_xv_init");
+    ms->glamor.egl_get_driver_name = LoaderSymbolFromModule(mod, "glamor_egl_get_driver_name");
+}
+
+static void
 try_enable_glamor(ScrnInfoPtr pScrn)
 {
     modesettingPtr ms = modesettingPTR(pScrn);
@@ -753,6 +773,7 @@ try_enable_glamor(ScrnInfoPtr pScrn)
                                                        OPTION_ACCEL_METHOD);
     Bool do_glamor = (!accel_method_str ||
                       strcmp(accel_method_str, "glamor") == 0);
+    void *mod;
 
     ms->drmmode.glamor = FALSE;
 
@@ -767,8 +788,10 @@ try_enable_glamor(ScrnInfoPtr pScrn)
         return;
     }
 
-    if (xf86LoadSubModule(pScrn, GLAMOR_EGL_MODULE_NAME)) {
-        if (glamor_egl_init(pScrn, ms->fd)) {
+    mod = xf86LoadSubModule(pScrn, GLAMOR_EGL_MODULE_NAME);
+    if (mod) {
+        bind_glamor_api(mod, ms);
+        if (ms->glamor.egl_init(pScrn, ms->fd)) {
             xf86DrvMsg(pScrn->scrnIndex, X_INFO, "glamor initialized\n");
             ms->drmmode.glamor = TRUE;
         } else {
@@ -1084,9 +1107,16 @@ PreInit(ScrnInfoPtr pScrn, int flags)
     }
 
     if (ms->drmmode.shadow_enable) {
-        if (!xf86LoadSubModule(pScrn, "shadow")) {
+        void *mod = xf86LoadSubModule(pScrn, "shadow");
+
+        if (!mod)
             return FALSE;
-        }
+
+        ms->shadow.Setup        = LoaderSymbolFromModule(mod, "shadowSetup");
+        ms->shadow.Add          = LoaderSymbolFromModule(mod, "shadowAdd");
+        ms->shadow.Remove       = LoaderSymbolFromModule(mod, "shadowRemove");
+        ms->shadow.Update32to24 = LoaderSymbolFromModule(mod, "shadowUpdate32to24");
+        ms->shadow.UpdatePacked = LoaderSymbolFromModule(mod, "shadowUpdatePacked");
     }
 
     return TRUE;
@@ -1191,9 +1221,9 @@ msUpdatePacked(ScreenPtr pScreen, shadowBufPtr pBuf)
     } while (0);
 
     if (use_3224)
-        shadowUpdate32to24(pScreen, pBuf);
+        ms->shadow.Update32to24(pScreen, pBuf);
     else
-        shadowUpdatePacked(pScreen, pBuf);
+        ms->shadow.UpdatePacked(pScreen, pBuf);
 }
 
 static Bool
@@ -1381,8 +1411,8 @@ CreateScreenResources(ScreenPtr pScreen)
         FatalError("Couldn't adjust screen pixmap\n");
 
     if (ms->drmmode.shadow_enable) {
-        if (!shadowAdd(pScreen, rootPixmap, msUpdatePacked, msShadowWindow,
-                       0, 0))
+        if (!ms->shadow.Add(pScreen, rootPixmap, msUpdatePacked, msShadowWindow,
+                            0, 0))
             return FALSE;
     }
 
@@ -1413,23 +1443,15 @@ CreateScreenResources(ScreenPtr pScreen)
 }
 
 static Bool
-msShadowInit(ScreenPtr pScreen)
-{
-    if (!shadowSetup(pScreen)) {
-        return FALSE;
-    }
-    return TRUE;
-}
-
-static Bool
 msSharePixmapBacking(PixmapPtr ppix, ScreenPtr screen, void **handle)
 {
 #ifdef GLAMOR_HAS_GBM
+    modesettingPtr ms = modesettingPTR(xf86ScreenToScrn(screen));
     int ret;
     CARD16 stride;
     CARD32 size;
-    ret = glamor_shareable_fd_from_pixmap(ppix->drawable.pScreen, ppix,
-                                          &stride, &size);
+    ret = ms->glamor.shareable_fd_from_pixmap(ppix->drawable.pScreen, ppix,
+                                              &stride, &size);
     if (ret == -1)
         return FALSE;
 
@@ -1454,11 +1476,12 @@ msSetSharedPixmapBacking(PixmapPtr ppix, void *fd_handle)
            return drmmode_SetSlaveBO(ppix, &ms->drmmode, ihandle, 0, 0);
 
     if (ms->drmmode.reverse_prime_offload_mode) {
-        ret = glamor_back_pixmap_from_fd(ppix, ihandle,
-                                         ppix->drawable.width,
-                                         ppix->drawable.height,
-                                         ppix->devKind, ppix->drawable.depth,
-                                         ppix->drawable.bitsPerPixel);
+        ret = ms->glamor.back_pixmap_from_fd(ppix, ihandle,
+                                             ppix->drawable.width,
+                                             ppix->drawable.height,
+                                             ppix->devKind,
+                                             ppix->drawable.depth,
+                                             ppix->drawable.bitsPerPixel);
     } else {
         int size = ppix->devKind * ppix->drawable.height;
         ret = drmmode_SetSlaveBO(ppix, &ms->drmmode, ihandle, ppix->devKind, size);
@@ -1575,7 +1598,7 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
 
 #ifdef GLAMOR_HAS_GBM
     if (ms->drmmode.glamor)
-        ms->drmmode.gbm = glamor_egl_get_gbm_device(pScreen);
+        ms->drmmode.gbm = ms->glamor.egl_get_gbm_device(pScreen);
 #endif
 
     /* HW dependent - FIXME */
@@ -1640,7 +1663,7 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
         return FALSE;
     }
 
-    if (ms->drmmode.shadow_enable && !msShadowInit(pScreen)) {
+    if (ms->drmmode.shadow_enable && !ms->shadow.Setup(pScreen)) {
         xf86DrvMsg(pScrn->scrnIndex, X_ERROR, "shadow fb init failed\n");
         return FALSE;
     }
@@ -1719,7 +1742,7 @@ ScreenInit(ScreenPtr pScreen, int argc, char **argv)
     if (ms->drmmode.glamor) {
         XF86VideoAdaptorPtr     glamor_adaptor;
 
-        glamor_adaptor = glamor_xv_init(pScreen, 16);
+        glamor_adaptor = ms->glamor.xv_init(pScreen, 16);
         if (glamor_adaptor != NULL)
             xf86XVScreenInit(pScreen, &glamor_adaptor, 1);
         else
@@ -1854,7 +1877,7 @@ CloseScreen(ScreenPtr pScreen)
     }
 
     if (ms->drmmode.shadow_enable) {
-        shadowRemove(pScreen, pScreen->GetScreenPixmap(pScreen));
+        ms->shadow.Remove(pScreen, pScreen->GetScreenPixmap(pScreen));
         free(ms->drmmode.shadow_fb);
         ms->drmmode.shadow_fb = NULL;
         free(ms->drmmode.shadow_fb2);

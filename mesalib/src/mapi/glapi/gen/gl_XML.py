@@ -565,7 +565,14 @@ class gl_parameter(object):
 
 
     def size_string(self, use_parens = 1):
-        s = self.size()
+        base_size_str = ""
+
+        count = self.get_element_count()
+        if count:
+            base_size_str = "%d * " % count
+
+        base_size_str += "sizeof(%s)" % ( self.get_base_type_string() )
+
         if self.counter or self.count_parameter_list:
             list = [ "compsize" ]
 
@@ -574,8 +581,8 @@ class gl_parameter(object):
             elif self.counter:
                 list = [ self.counter ]
 
-            if s > 1:
-                list.append( str(s) )
+            if self.size() > 1:
+                list.append( base_size_str )
 
             if len(list) > 1 and use_parens :
                 return "safe_mul(%s)" % ", ".join(list)
@@ -585,7 +592,7 @@ class gl_parameter(object):
         elif self.is_image():
             return "compsize"
         else:
-            return str(s)
+            return base_size_str
 
 
     def format_string(self):

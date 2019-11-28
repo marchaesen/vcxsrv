@@ -42,7 +42,7 @@
 
 #include "cso_cache/cso_context.h"
 #include "util/u_draw_quad.h"
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 #include "util/u_inlines.h"
 #include "util/u_memory.h"
 #include "util/u_math.h"
@@ -1816,7 +1816,7 @@ hud_create(struct cso_context *cso, struct hud_context *share)
 #ifdef PIPE_OS_UNIX
    unsigned signo = debug_get_num_option("GALLIUM_HUD_TOGGLE_SIGNAL", 0);
    static boolean sig_handled = FALSE;
-   struct sigaction action = {};
+   struct sigaction action = {{0}};
 #endif
    huds_visible = debug_get_bool_option("GALLIUM_HUD_VISIBLE", TRUE);
 

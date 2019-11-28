@@ -71,7 +71,7 @@
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"
 #include "tgsi/tgsi_ureg.h"
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 #include "util/u_inlines.h"
 #include "util/u_math.h"
 #include "util/u_simple_shaders.h"
@@ -642,7 +642,8 @@ make_texture(struct st_context *st,
 
       pipeFormat = st_choose_format(st, intFormat, format, type,
                                     st->internal_target, 0, 0,
-                                    PIPE_BIND_SAMPLER_VIEW, FALSE);
+                                    PIPE_BIND_SAMPLER_VIEW,
+                                    false, false);
       assert(pipeFormat != PIPE_FORMAT_NONE);
    }
 
@@ -1362,7 +1363,7 @@ st_DrawPixels(struct gl_context *ctx, GLint x, GLint y,
       fpv = (format != GL_COLOR_INDEX) ? get_color_fp_variant(st) :
                                          get_color_index_fp_variant(st);
 
-      driver_fp = fpv->driver_shader;
+      driver_fp = fpv->base.driver_shader;
 
       if (ctx->Pixel.MapColorFlag && format != GL_COLOR_INDEX) {
          pipe_sampler_view_reference(&sv[1],
@@ -1740,7 +1741,7 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
 
       rbRead = st_get_color_read_renderbuffer(ctx);
 
-      driver_fp = fpv->driver_shader;
+      driver_fp = fpv->base.driver_shader;
 
       if (ctx->Pixel.MapColorFlag) {
          pipe_sampler_view_reference(&sv[1],
@@ -1772,7 +1773,7 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
       if (type == GL_DEPTH) {
          srcFormat = st_choose_format(st, GL_DEPTH_COMPONENT, GL_NONE,
                                       GL_NONE, st->internal_target, 0, 0,
-                                      srcBind, FALSE);
+                                      srcBind, false, false);
       }
       else {
          assert(type == GL_COLOR);
@@ -1780,27 +1781,27 @@ st_CopyPixels(struct gl_context *ctx, GLint srcx, GLint srcy,
          if (util_format_is_float(srcFormat)) {
             srcFormat = st_choose_format(st, GL_RGBA32F, GL_NONE,
                                          GL_NONE, st->internal_target, 0, 0,
-                                         srcBind, FALSE);
+                                         srcBind, false, false);
          }
          else if (util_format_is_pure_sint(srcFormat)) {
             srcFormat = st_choose_format(st, GL_RGBA32I, GL_NONE,
                                          GL_NONE, st->internal_target, 0, 0,
-                                         srcBind, FALSE);
+                                         srcBind, false, false);
          }
          else if (util_format_is_pure_uint(srcFormat)) {
             srcFormat = st_choose_format(st, GL_RGBA32UI, GL_NONE,
                                          GL_NONE, st->internal_target, 0, 0,
-                                         srcBind, FALSE);
+                                         srcBind, false, false);
          }
          else if (util_format_is_snorm(srcFormat)) {
             srcFormat = st_choose_format(st, GL_RGBA16_SNORM, GL_NONE,
                                          GL_NONE, st->internal_target, 0, 0,
-                                         srcBind, FALSE);
+                                         srcBind, false, false);
          }
          else {
             srcFormat = st_choose_format(st, GL_RGBA, GL_NONE,
                                          GL_NONE, st->internal_target, 0, 0,
-                                         srcBind, FALSE);
+                                         srcBind, false, false);
          }
       }
 

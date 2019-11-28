@@ -477,19 +477,17 @@ format_array_format_table_init(void)
       if (!info || !info->ArrayFormat)
          continue;
 
+      /* All sRGB formats should have an equivalent UNORM format, and that's
+       * the one we want in the table.
+       */
+      if (_mesa_is_format_srgb(f))
+         continue;
+
 #if UTIL_ARCH_LITTLE_ENDIAN
          array_format = info->ArrayFormat;
 #else
          array_format = _mesa_array_format_flip_channels(info->ArrayFormat);
 #endif
-
-      /* This can happen and does for some of the BGR formats.  Let's take
-       * the first one in the list.
-       */
-      if (_mesa_hash_table_search_pre_hashed(format_array_format_table,
-                                             array_format,
-                                             (void *)(intptr_t)array_format))
-         continue;
 
       _mesa_hash_table_insert_pre_hashed(format_array_format_table,
                                          array_format,

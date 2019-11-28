@@ -1,9 +1,14 @@
 # vim: set expandtab shiftwidth=2 tabstop=8 textwidth=0:
 
+# global variables to be used by most/all jobs.
 variables:
-  ARCH_PKGS: 'xorg-util-macros autoconf automake make gettext pkg-config gcc grep m4'
+  # minimal set of packages required to build xkeyboard-config. extra packages
+  # will be installed in the tests where required.
+  ARCH_PKGS: 'xorg-util-macros autoconf automake make gettext pkg-config gcc grep m4 python'
   BUILDDIR: '_build'
-  INSTDIR: '$HOME/_inst'
+  # installation directory must be inside $CI_PROJECT_DIR to allow for artifact caching
+  INSTDIR: '$CI_PROJECT_DIR/_inst'
+  # Override these in the jobs to pass commands to configure/make
   CONFIGURE_ARGS: ''
   MAKE_EXTRA_ARG: ''
 
@@ -24,13 +29,23 @@ variables:
    - mkdir -p "$INSTDIR"
    - autoreconf -ivf
    - pushd "$BUILDDIR"
-   - ../configure --prefix="$PWD/../$INSTDIR" --disable-silent-rules --disable-runtime-deps "$CONFIGURE_ARGS"
+   - ../configure --prefix="$INSTDIR" --disable-silent-rules --disable-runtime-deps "$CONFIGURE_ARGS"
    - make
    - if test x"$MAKE_EXTRA_COMMAND" != "x"; then make $MAKE_EXTRA_COMMAND; fi
 
-make:
+make_install:
   extends: .default_build
   stage: build
+  variables:
+      MAKE_EXTRA_COMMAND: "install"
+  after_script:
+    - pacman -S --noconfirm tree
+    - tree $INSTDIR
+  artifacts:
+    name: installed files
+    expire_in: 20 min
+    paths:
+      - $INSTDIR/
 
 make_check:
   extends: .default_build
@@ -43,3 +58,40 @@ make_distcheck:
   stage: build
   variables:
       MAKE_EXTRA_COMMAND: "distcheck"
+
+xmllint:
+  image: archlinux/base
+  dependencies: ['make_install']
+  needs: ['make_install']
+  stage: test
+  before_script:
+    - pacman -S --refresh
+    - pacman -S --sysupgrade --noconfirm
+    - pacman -S --noconfirm libxml2
+  script:
+    - xmllint --dtdvalid "$INSTDIR/share/X11/xkb/rules/xkb.dtd" $INSTDIR/share/X11/xkb/rules/*.xml > /dev/null
+
+# download libxkbcommon and run its layout test program. This will
+# run a basic keymap compile test against every combination of
+# layout/variant/option. Syntax errors will fail the test, check the
+# archived file for details.
+layout_tests:
+  extends: .default_setup
+  stage: test
+  needs: ["make_install"]
+  script:
+    - pacman -S --noconfirm git meson bison gcc
+    - git clone https://github.com/xkbcommon/libxkbcommon
+    - pushd libxkbcommon > /dev/null
+    - meson builddir -Denable-wayland=false -Denable-x11=false -Denable-docs=false -Dxkb-config-root="$INSTDIR/share/X11/xkb"
+    - ninja -C builddir
+    - echo Running test script - this will take several minutes
+    - ./builddir/xkeyboard-config-test > $INSTDIR/xkeyboard-config-test.out
+    - popd > /dev/null
+  variables:
+    GIT_STRATEGY: none
+  artifacts:
+    name: xkeyboard-config test output
+    expire_in: 2 weeks
+    paths:
+    - $INSTDIR/xkeyboard-config-test.out

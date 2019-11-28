@@ -91,7 +91,7 @@ disk_cache_format_hex_id(char *buf, const uint8_t *hex_id, unsigned size)
    return buf;
 }
 
-#ifdef HAVE_DLFCN_H
+#ifdef HAVE_DLADDR
 static inline bool
 disk_cache_get_function_timestamp(void *ptr, uint32_t* timestamp)
 {

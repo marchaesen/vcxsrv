@@ -32,7 +32,6 @@
 
 #include "pipe/p_state.h"
 #include "pipe/p_shader_tokens.h"
-#include "tgsi/tgsi_dump.h"
 
 #include "cso_cache/cso_cache.h"
 
@@ -46,7 +45,8 @@ int ST_DEBUG = 0;
 
 static const struct debug_named_value st_debug_flags[] = {
    { "mesa",     DEBUG_MESA, NULL },
-   { "tgsi",     DEBUG_TGSI, NULL },
+   { "tgsi",     DEBUG_PRINT_IR, NULL },
+   { "nir",      DEBUG_PRINT_IR, NULL },
    { "constants",DEBUG_CONSTANTS, NULL },
    { "pipe",     DEBUG_PIPE, NULL },
    { "tex",      DEBUG_TEX, NULL },
@@ -69,37 +69,6 @@ void
 st_debug_init(void)
 {
    ST_DEBUG = debug_get_option_st_debug();
-}
-
-
-
-/**
- * Print current state.  May be called from inside gdb to see currently
- * bound vertex/fragment shaders and associated constants.
- */
-void
-st_print_current(void)
-{
-   GET_CURRENT_CONTEXT(ctx);
-   struct st_context *st = st_context(ctx);
-
-#if 0
-   int i;
-
-   printf("Vertex Transform Inputs:\n");
-   for (i = 0; i < st->vp->state.num_inputs; i++) {
-      printf("  Slot %d:  VERT_ATTRIB_%d\n", i, st->vp->index_to_input[i]);
-   }
-#endif
-
-   if (st->vp->variants)
-      tgsi_dump(st->vp->variants[0].tokens, 0);
-   if (st->vp->Base.Parameters)
-      _mesa_print_parameter_list(st->vp->Base.Parameters);
-
-   tgsi_dump(st->fp->state.tokens, 0);
-   if (st->fp->Base.Parameters)
-      _mesa_print_parameter_list(st->fp->Base.Parameters);
 }
 
 

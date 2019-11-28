@@ -208,7 +208,8 @@ xf86InstallSIGIOHandler(int fd, void (*f) (int, void *), void *closure)
                 }
             }
 #endif
-#ifdef I_SETSIG                 /* System V Streams - used on Solaris for input devices */
+#if defined(I_SETSIG) && defined(HAVE_ISASTREAM)
+            /* System V Streams - used on Solaris for input devices */
             if (!installed && isastream(fd)) {
                 if (ioctl(fd, I_SETSIG, S_INPUT | S_ERROR | S_HANGUP) == -1) {
                     xf86Msg(X_WARNING, "fcntl(%d, I_SETSIG): %s\n",
@@ -279,7 +280,7 @@ xf86RemoveSIGIOHandler(int fd)
 #ifdef O_ASYNC
         fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) & ~O_ASYNC);
 #endif
-#ifdef I_SETSIG
+#if defined(I_SETSIG) && defined(HAVE_ISASTREAM)
         if (isastream(fd)) {
             if (ioctl(fd, I_SETSIG, 0) == -1) {
                 xf86Msg(X_WARNING, "fcntl(%d, I_SETSIG, 0): %s\n",

@@ -37,6 +37,7 @@ static void ir3_setup_const_state(struct ir3_shader *shader, nir_shader *nir);
 static const nir_shader_compiler_options options = {
 		.lower_fpow = true,
 		.lower_scmp = true,
+		.lower_flrp16 = true,
 		.lower_flrp32 = true,
 		.lower_flrp64 = true,
 		.lower_ffract = true,
@@ -64,6 +65,7 @@ static const nir_shader_compiler_options options = {
 static const nir_shader_compiler_options options_a6xx = {
 		.lower_fpow = true,
 		.lower_scmp = true,
+		.lower_flrp16 = true,
 		.lower_flrp32 = true,
 		.lower_flrp64 = true,
 		.lower_ffract = true,

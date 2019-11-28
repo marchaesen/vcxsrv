@@ -125,8 +125,7 @@ struct radv_shader_variant_key {
 struct radv_nir_compiler_options {
 	struct radv_pipeline_layout *layout;
 	struct radv_shader_variant_key key;
-	bool unsafe_math;
-	bool supports_spill;
+	bool explicit_scratch_args;
 	bool clamp_shadow_reference;
 	bool robust_buffer_access;
 	bool dump_shader;

@@ -649,8 +649,6 @@ present_wnmd_abort_vblank(ScreenPtr screen, WindowPtr window, RRCrtcPtr crtc, ui
     present_window_priv_ptr window_priv = present_window_priv(window);
     present_vblank_ptr      vblank;
 
-    assert(crtc);
-
     (*screen_priv->wnmd_info->abort_vblank) (window, crtc, event_id, msc);
 
     xorg_list_for_each_entry(vblank, &window_priv->exec_queue, event_queue) {

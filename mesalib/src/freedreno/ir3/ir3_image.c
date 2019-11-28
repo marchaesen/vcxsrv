@@ -145,6 +145,12 @@ ir3_get_image_type(const nir_variable *var)
 		return TYPE_S32;
 	case GLSL_TYPE_FLOAT:
 		return TYPE_F32;
+	case GLSL_TYPE_UINT16:
+		return TYPE_U16;
+	case GLSL_TYPE_INT16:
+		return TYPE_S16;
+	case GLSL_TYPE_FLOAT16:
+		return TYPE_F16;
 	default:
 		unreachable("bad sampler type.");
 		return 0;

@@ -52,6 +52,18 @@ struct ir3_context {
 	struct ir3 *ir;
 	struct ir3_shader_variant *so;
 
+	/* Tables of scalar inputs/outputs.  Because of the way varying packing
+	 * works, we could have inputs w/ fractional location, which is a bit
+	 * awkward to deal with unless we keep track of the split scalar in/
+	 * out components.
+	 *
+	 * These *only* have inputs/outputs that are touched by load_*input and
+	 * store_output.
+	 */
+	unsigned ninputs, noutputs;
+	struct ir3_instruction **inputs;
+	struct ir3_instruction **outputs;
+
 	struct ir3_block *block;      /* the current block */
 	struct ir3_block *in_block;   /* block created for shader inputs */
 

@@ -91,7 +91,9 @@ OF THIS SOFTWARE.
 #define LIMITCLIENTS	256     /* Must be a power of 2 and <= MAXCLIENTS */
 #define MAXEXTENSIONS   128
 #define MAXFORMATS	8
-#define MAXDEVICES	40      /* input devices */
+#ifndef MAXDEVICES
+#define MAXDEVICES	256      /* input devices */
+#endif
 #define GPU_SCREEN_OFFSET 256
 
 /* 128 event opcodes for core + extension events, excluding GE */

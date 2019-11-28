@@ -200,7 +200,6 @@ visit_intrinsic(bool *divergent, nir_intrinsic_instr *instr,
    case nir_intrinsic_ballot_find_lsb:
    case nir_intrinsic_ballot_find_msb:
    case nir_intrinsic_ballot_bit_count_reduce:
-   case nir_intrinsic_shuffle:
    case nir_intrinsic_shuffle_xor:
    case nir_intrinsic_shuffle_up:
    case nir_intrinsic_shuffle_down:
@@ -246,6 +245,11 @@ visit_intrinsic(bool *divergent, nir_intrinsic_instr *instr,
       }
       break;
    }
+
+   case nir_intrinsic_shuffle:
+      is_divergent = divergent[instr->src[0].ssa->index] &&
+                     divergent[instr->src[1].ssa->index];
+      break;
 
    /* Intrinsics which are always divergent */
    case nir_intrinsic_load_color0:

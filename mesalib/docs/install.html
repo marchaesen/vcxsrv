@@ -105,7 +105,7 @@ the packaging tool used by your distro.
 
 <h2 id="meson">2. Building with meson</h2>
 
-<p><string>Meson &6t;= 0.46.0 is required</string></p>
+<p><string>Meson &gt;= 0.46.0 is required</string></p>
 
 <p>
 Meson is the latest build system in mesa, it is currently able to build for
@@ -120,18 +120,6 @@ The general approach is:
   ninja -C builddir/
   sudo ninja -C builddir/ install
 </pre>
-
-<p>On windows you can also use the visual studio backend</p>
-<pre>
-  meson builddir --backend=vs
-  cd builddir
-  msbuild mesa.sln /m
-</pre>
-
-<p>
-Please read the <a href="meson.html">detailed meson instructions</a>
-for more information
-</p>
 
 <p>On windows you can also use the visual studio backend</p>
 <pre>

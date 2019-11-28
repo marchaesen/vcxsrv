@@ -117,9 +117,13 @@ void setup_reduce_temp(Program* program)
          /* same as before, except for the vector temporary instead of the reduce temporary */
          unsigned cluster_size = static_cast<Pseudo_reduction_instruction *>(instr)->cluster_size;
          bool need_vtmp = op == imul32 || op == fadd64 || op == fmul64 ||
-                          op == fmin64 || op == fmax64;
+                          op == fmin64 || op == fmax64 || op == umin64 ||
+                          op == umax64 || op == imin64 || op == imax64 ||
+                          op == imul64;
 
          if (program->chip_class >= GFX10 && cluster_size == 64 && op != gfx10_wave64_bpermute)
+            need_vtmp = true;
+         if (program->chip_class >= GFX10 && op == iadd64)
             need_vtmp = true;
 
          need_vtmp |= cluster_size == 32;
@@ -161,7 +165,13 @@ void setup_reduce_temp(Program* program)
          }
 
          /* vcc clobber */
-         if (op == iadd32 && program->chip_class < GFX9)
+         bool clobber_vcc = false;
+         if ((op == iadd32 || op == imul64) && program->chip_class < GFX9)
+            clobber_vcc = true;
+         if (op == iadd64 || op == umin64 || op == umax64 || op == imin64 || op == imax64)
+            clobber_vcc = true;
+
+         if (clobber_vcc)
             instr->definitions[4] = Definition(vcc, s2);
       }
    }

@@ -197,13 +197,19 @@ blob_reserve_intptr(struct blob *blob)
    return blob_reserve_bytes(blob, sizeof(intptr_t));
 }
 
-bool
-blob_write_uint32(struct blob *blob, uint32_t value)
-{
-   align_blob(blob, sizeof(value));
-
-   return blob_write_bytes(blob, &value, sizeof(value));
+#define BLOB_WRITE_TYPE(name, type)                      \
+bool                                                     \
+name(struct blob *blob, type value)                      \
+{                                                        \
+   align_blob(blob, sizeof(value));                      \
+   return blob_write_bytes(blob, &value, sizeof(value)); \
 }
+
+BLOB_WRITE_TYPE(blob_write_uint8, uint8_t)
+BLOB_WRITE_TYPE(blob_write_uint16, uint16_t)
+BLOB_WRITE_TYPE(blob_write_uint32, uint32_t)
+BLOB_WRITE_TYPE(blob_write_uint64, uint64_t)
+BLOB_WRITE_TYPE(blob_write_intptr, intptr_t)
 
 #define ASSERT_ALIGNED(_offset, _align) \
    assert(ALIGN((_offset), (_align)) == (_offset))
@@ -215,22 +221,6 @@ blob_overwrite_uint32 (struct blob *blob,
 {
    ASSERT_ALIGNED(offset, sizeof(value));
    return blob_overwrite_bytes(blob, offset, &value, sizeof(value));
-}
-
-bool
-blob_write_uint64(struct blob *blob, uint64_t value)
-{
-   align_blob(blob, sizeof(value));
-
-   return blob_write_bytes(blob, &value, sizeof(value));
-}
-
-bool
-blob_write_intptr(struct blob *blob, intptr_t value)
-{
-   align_blob(blob, sizeof(value));
-
-   return blob_write_bytes(blob, &value, sizeof(value));
 }
 
 bool
@@ -313,59 +303,26 @@ blob_skip_bytes(struct blob_reader *blob, size_t size)
  * these first three we should probably switch to generating these with a
  * preprocessor macro.
 */
-uint32_t
-blob_read_uint32(struct blob_reader *blob)
-{
-   uint32_t ret;
-   int size = sizeof(ret);
 
-   align_blob_reader(blob, size);
-
-   if (! ensure_can_read(blob, size))
-      return 0;
-
-   ret = *((uint32_t*) blob->current);
-
-   blob->current += size;
-
-   return ret;
+#define BLOB_READ_TYPE(name, type)         \
+type                                       \
+name(struct blob_reader *blob)             \
+{                                          \
+   type ret;                               \
+   int size = sizeof(ret);                 \
+   align_blob_reader(blob, size);          \
+   if (! ensure_can_read(blob, size))      \
+      return 0;                            \
+   ret = *((type*) blob->current);         \
+   blob->current += size;                  \
+   return ret;                             \
 }
 
-uint64_t
-blob_read_uint64(struct blob_reader *blob)
-{
-   uint64_t ret;
-   int size = sizeof(ret);
-
-   align_blob_reader(blob, size);
-
-   if (! ensure_can_read(blob, size))
-      return 0;
-
-   ret = *((uint64_t*) blob->current);
-
-   blob->current += size;
-
-   return ret;
-}
-
-intptr_t
-blob_read_intptr(struct blob_reader *blob)
-{
-   intptr_t ret;
-   int size = sizeof(ret);
-
-   align_blob_reader(blob, size);
-
-   if (! ensure_can_read(blob, size))
-      return 0;
-
-   ret = *((intptr_t *) blob->current);
-
-   blob->current += size;
-
-   return ret;
-}
+BLOB_READ_TYPE(blob_read_uint8, uint8_t)
+BLOB_READ_TYPE(blob_read_uint16, uint16_t)
+BLOB_READ_TYPE(blob_read_uint32, uint32_t)
+BLOB_READ_TYPE(blob_read_uint64, uint64_t)
+BLOB_READ_TYPE(blob_read_intptr, intptr_t)
 
 char *
 blob_read_string(struct blob_reader *blob)

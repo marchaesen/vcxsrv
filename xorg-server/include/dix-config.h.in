@@ -515,4 +515,7 @@
 /* Have sigprocmask */
 #undef HAVE_SIGPROCMASK
 
+/* Have isastream */
+#undef HAVE_ISASTREAM
+
 #endif /* _DIX_CONFIG_H_ */

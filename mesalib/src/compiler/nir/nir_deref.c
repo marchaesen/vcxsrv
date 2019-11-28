@@ -292,7 +292,7 @@ nir_build_deref_offset(nir_builder *b, nir_deref_instr *deref,
 
    assert(path.path[0]->deref_type == nir_deref_type_var);
 
-   nir_ssa_def *offset = nir_imm_int(b, 0);
+   nir_ssa_def *offset = nir_imm_intN_t(b, 0, deref->dest.ssa.bit_size);
    for (nir_deref_instr **p = &path.path[1]; *p; p++) {
       if ((*p)->deref_type == nir_deref_type_array) {
          nir_ssa_def *index = nir_ssa_for_src(b, (*p)->arr.index, 1);
@@ -401,7 +401,7 @@ deref_path_contains_coherent_decoration(nir_deref_path *path)
 {
    assert(path->path[0]->deref_type == nir_deref_type_var);
 
-   if (path->path[0]->var->data.image.access & ACCESS_COHERENT)
+   if (path->path[0]->var->data.access & ACCESS_COHERENT)
       return true;
 
    for (nir_deref_instr **p = &path->path[1]; *p; p++) {

@@ -1528,6 +1528,8 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 		    break;
 		case TT_NAME_ID_MAC_FULL_NAME:
 		case TT_NAME_ID_FULL_NAME:
+		    if (variable)
+			break;
 		    if (FcDebug () & FC_DBG_SCANV)
 			printf ("found full   (n %2d p %d e %d l 0x%04x)",
 				sname.name_id, sname.platform_id,

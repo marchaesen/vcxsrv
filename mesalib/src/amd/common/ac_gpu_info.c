@@ -410,6 +410,9 @@ bool ac_query_gpu_info(int fd, void *dev_p,
 	else
 		info->max_alloc_size = info->gart_size * 0.7;
 
+	/* Set which chips have uncached device memory. */
+	info->has_l2_uncached = info->chip_class >= GFX9;
+
 	/* Set hardware information. */
 	info->gds_size = gds.gds_total_size;
 	info->gds_gfx_partition_size = gds.gds_gfx_partition_size;
@@ -497,8 +500,15 @@ bool ac_query_gpu_info(int fd, void *dev_p,
 	assert(util_is_power_of_two_or_zero(compute.available_rings + 1));
 
 	info->has_graphics = gfx.available_rings > 0;
-	info->num_sdma_rings = util_bitcount(dma.available_rings);
-	info->num_compute_rings = util_bitcount(compute.available_rings);
+	info->num_rings[RING_GFX] = util_bitcount(gfx.available_rings);
+	info->num_rings[RING_COMPUTE] = util_bitcount(compute.available_rings);
+	info->num_rings[RING_DMA] = util_bitcount(dma.available_rings);
+	info->num_rings[RING_UVD] = util_bitcount(uvd.available_rings);
+	info->num_rings[RING_VCE] = util_bitcount(vce.available_rings);
+	info->num_rings[RING_UVD_ENC] = util_bitcount(uvd_enc.available_rings);
+	info->num_rings[RING_VCN_DEC] = util_bitcount(vcn_dec.available_rings);
+	info->num_rings[RING_VCN_ENC] = util_bitcount(vcn_enc.available_rings);
+	info->num_rings[RING_VCN_JPEG] = util_bitcount(vcn_jpeg.available_rings);
 
 	/* The mere presence of CLEAR_STATE in the IB causes random GPU hangs
 	 * on GFX6. Some CLEAR_STATE cause asic hang on radeon kernel, etc.
@@ -705,8 +715,15 @@ void ac_print_gpu_info(struct radeon_info *info)
 
 	printf("Features:\n");
 	printf("    has_graphics = %i\n", info->has_graphics);
-	printf("    num_compute_rings = %u\n", info->num_compute_rings);
-	printf("    num_sdma_rings = %i\n", info->num_sdma_rings);
+	printf("    num_rings[RING_GFX] = %i\n", info->num_rings[RING_GFX]);
+	printf("    num_rings[RING_DMA] = %i\n", info->num_rings[RING_DMA]);
+	printf("    num_rings[RING_COMPUTE] = %u\n", info->num_rings[RING_COMPUTE]);
+	printf("    num_rings[RING_UVD] = %i\n", info->num_rings[RING_UVD]);
+	printf("    num_rings[RING_VCE] = %i\n", info->num_rings[RING_VCE]);
+	printf("    num_rings[RING_UVD_ENC] = %i\n", info->num_rings[RING_UVD_ENC]);
+	printf("    num_rings[RING_VCN_DEC] = %i\n", info->num_rings[RING_VCN_DEC]);
+	printf("    num_rings[RING_VCN_ENC] = %i\n", info->num_rings[RING_VCN_ENC]);
+	printf("    num_rings[RING_VCN_JPEG] = %i\n", info->num_rings[RING_VCN_JPEG]);
 	printf("    has_clear_state = %u\n", info->has_clear_state);
 	printf("    has_distributed_tess = %u\n", info->has_distributed_tess);
 	printf("    has_dcc_constant_encode = %u\n", info->has_dcc_constant_encode);

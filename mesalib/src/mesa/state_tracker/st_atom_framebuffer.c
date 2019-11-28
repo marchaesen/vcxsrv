@@ -43,7 +43,7 @@
 #include "cso_cache/cso_context.h"
 #include "util/u_math.h"
 #include "util/u_inlines.h"
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 #include "util/u_framebuffer.h"
 #include "main/framebuffer.h"
 

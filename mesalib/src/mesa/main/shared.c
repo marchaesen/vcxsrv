@@ -91,6 +91,10 @@ _mesa_alloc_shared_state(struct gl_context *ctx)
    /* GL_ARB_bindless_texture */
    _mesa_init_shared_handles(shared);
 
+   /* ARB_shading_language_include */
+   _mesa_init_shader_includes(shared);
+   mtx_init(&shared->ShaderIncludeMutex, mtx_plain);
+
    /* Allocate the default buffer object */
    shared->NullBufferObj = ctx->Driver.NewBufferObject(ctx, 0);
    if (!shared->NullBufferObj)
@@ -440,6 +444,10 @@ free_shared_state(struct gl_context *ctx, struct gl_shared_state *shared)
    }
 
    _mesa_free_shared_handles(shared);
+
+   /* ARB_shading_language_include */
+   _mesa_destroy_shader_includes(shared);
+   mtx_destroy(&shared->ShaderIncludeMutex);
 
    if (shared->MemoryObjects) {
       _mesa_HashDeleteAll(shared->MemoryObjects, delete_memory_object_cb, ctx);

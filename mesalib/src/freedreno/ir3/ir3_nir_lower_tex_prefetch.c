@@ -99,13 +99,8 @@ coord_offset(nir_ssa_def *ssa)
 int
 ir3_nir_coord_offset(nir_ssa_def *ssa)
 {
-	/* only prefetch for simple 2d tex fetch case.  Note this check only
-	 * applies to the tex coord src itself, and not in the case where
-	 * we recursively chase a vecN's src.
-	 */
-	if (ssa->num_components != 2)
-		return -1;
 
+	assert (ssa->num_components == 2);
 	return coord_offset(ssa);
 }
 
@@ -138,6 +133,10 @@ lower_tex_prefetch_block(nir_block *block)
 				has_src(tex, nir_tex_src_ms_index) ||
 				has_src(tex, nir_tex_src_texture_offset) ||
 				has_src(tex, nir_tex_src_sampler_offset))
+			continue;
+
+		/* only prefetch for simple 2d tex fetch case */
+		if (tex->sampler_dim != GLSL_SAMPLER_DIM_2D || tex->is_array)
 			continue;
 
 		int idx = nir_tex_instr_src_index(tex, nir_tex_src_coord);

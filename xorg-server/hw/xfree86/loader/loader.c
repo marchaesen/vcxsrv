@@ -135,7 +135,8 @@ LoaderSymbol(const char *name)
 void *
 LoaderSymbolFromModule(void *handle, const char *name)
 {
-    return dlsym(handle, name);
+    ModuleDescPtr mod = handle;
+    return dlsym(mod->handle, name);
 }
 
 void

@@ -45,12 +45,6 @@ u_surface_default_template(struct pipe_surface *view,
                            const struct pipe_resource *texture);
 
 extern void
-util_copy_rect(ubyte * dst, enum pipe_format format,
-               unsigned dst_stride, unsigned dst_x, unsigned dst_y,
-               unsigned width, unsigned height, const ubyte * src,
-               int src_stride, unsigned src_x, unsigned src_y);
-
-extern void
 util_copy_box(ubyte * dst,
               enum pipe_format format,
               unsigned dst_stride, unsigned dst_slice_stride,

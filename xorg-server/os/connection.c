@@ -924,6 +924,14 @@ AttendClient(ClientPtr client)
 {
     OsCommPtr oc = (OsCommPtr) client->osPrivate;
 
+    if (client->clientGone) {
+        /*
+         * client is gone, so any pending requests will be dropped and its
+         * ignore count doesn't matter.
+         */
+        return;
+    }
+
     client->ignoreCount--;
     if (client->ignoreCount)
         return;

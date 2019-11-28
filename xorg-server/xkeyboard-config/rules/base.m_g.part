@@ -1,3 +1,4 @@
+! model		=	geometry
   microsoftelite	=	microsoft(elite)
  $msmodels	=	microsoft(natural)
   dell101	=	dell(dell101)

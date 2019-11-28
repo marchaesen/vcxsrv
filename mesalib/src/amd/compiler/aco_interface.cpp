@@ -24,6 +24,7 @@
 #include "aco_interface.h"
 #include "aco_ir.h"
 #include "vulkan/radv_shader.h"
+#include "vulkan/radv_shader_args.h"
 #include "c11/threads.h"
 #include "util/debug.h"
 
@@ -56,8 +57,7 @@ static void init()
 void aco_compile_shader(unsigned shader_count,
                         struct nir_shader *const *shaders,
                         struct radv_shader_binary **binary,
-                        struct radv_shader_info *info,
-                        struct radv_nir_compiler_options *options)
+                        struct radv_shader_args *args)
 {
    call_once(&aco::init_once_flag, aco::init);
 
@@ -65,8 +65,8 @@ void aco_compile_shader(unsigned shader_count,
    std::unique_ptr<aco::Program> program{new aco::Program};
 
    /* Instruction Selection */
-   aco::select_program(program.get(), shader_count, shaders, &config, info, options);
-   if (options->dump_preoptir) {
+   aco::select_program(program.get(), shader_count, shaders, &config, args);
+   if (args->options->dump_preoptir) {
       std::cerr << "After Instruction Selection:\n";
       aco_print_program(program.get(), stderr);
    }
@@ -88,15 +88,15 @@ void aco_compile_shader(unsigned shader_count,
    aco::insert_exec_mask(program.get());
    aco::validate(program.get(), stderr);
 
-   aco::live live_vars = aco::live_var_analysis(program.get(), options);
-   aco::spill(program.get(), live_vars, options);
+   aco::live live_vars = aco::live_var_analysis(program.get(), args->options);
+   aco::spill(program.get(), live_vars, args->options);
 
    //std::cerr << "Before Schedule:\n";
    //aco_print_program(program.get(), stderr);
    aco::schedule_program(program.get(), live_vars);
 
    std::string llvm_ir;
-   if (options->record_ir) {
+   if (args->options->record_ir) {
       char *data = NULL;
       size_t size = 0;
       FILE *f = open_memstream(&data, &size);
@@ -112,12 +112,12 @@ void aco_compile_shader(unsigned shader_count,
 
    /* Register Allocation */
    aco::register_allocation(program.get(), live_vars.live_out);
-   if (options->dump_shader) {
+   if (args->options->dump_shader) {
       std::cerr << "After RA:\n";
       aco_print_program(program.get(), stderr);
    }
 
-   if (aco::validate_ra(program.get(), options, stderr)) {
+   if (aco::validate_ra(program.get(), args->options, stderr)) {
       std::cerr << "Program after RA validation failure:\n";
       aco_print_program(program.get(), stderr);
       abort();
@@ -140,7 +140,7 @@ void aco_compile_shader(unsigned shader_count,
    std::vector<uint32_t> code;
    unsigned exec_size = aco::emit_program(program.get(), code);
 
-   bool get_disasm = options->dump_shader || options->record_ir;
+   bool get_disasm = args->options->dump_shader || args->options->record_ir;
 
    size_t size = llvm_ir.size();
 

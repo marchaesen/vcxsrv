@@ -179,19 +179,15 @@ nir_opt_large_constants(nir_shader *shader,
    /* This pass can only be run once */
    assert(shader->constant_data == NULL && shader->constant_data_size == 0);
 
-   /* The index parameter is unused for local variables so we'll use it for
-    * indexing into our array of variable metadata.
-    */
-   unsigned num_locals = 0;
-   nir_foreach_variable(var, &impl->locals)
-      var->data.index = num_locals++;
+   unsigned num_locals = exec_list_length(&impl->locals);
+   nir_index_vars(shader, impl, nir_var_function_temp);
 
    if (num_locals == 0)
       return false;
 
    struct var_info *var_infos = ralloc_array(NULL, struct var_info, num_locals);
    nir_foreach_variable(var, &impl->locals) {
-      var_infos[var->data.index] = (struct var_info) {
+      var_infos[var->index] = (struct var_info) {
          .var = var,
          .is_constant = true,
          .found_read = false,
@@ -236,7 +232,7 @@ nir_opt_large_constants(nir_shader *shader,
             nir_variable *var = nir_deref_instr_get_variable(dst_deref);
             assert(var->data.mode == nir_var_function_temp);
 
-            struct var_info *info = &var_infos[var->data.index];
+            struct var_info *info = &var_infos[var->index];
             if (!info->is_constant)
                continue;
 
@@ -264,7 +260,7 @@ nir_opt_large_constants(nir_shader *shader,
             /* We only consider variables constant if all the reads are
              * dominated by the block that writes to it.
              */
-            struct var_info *info = &var_infos[var->data.index];
+            struct var_info *info = &var_infos[var->index];
             if (!info->is_constant)
                continue;
 
@@ -286,7 +282,7 @@ nir_opt_large_constants(nir_shader *shader,
       struct var_info *info = &var_infos[i];
 
       /* Fix up indices after we sorted. */
-      info->var->data.index = i;
+      info->var->index = i;
 
       if (!info->is_constant)
          continue;
@@ -339,7 +335,7 @@ nir_opt_large_constants(nir_shader *shader,
                continue;
 
             nir_variable *var = nir_deref_instr_get_variable(deref);
-            struct var_info *info = &var_infos[var->data.index];
+            struct var_info *info = &var_infos[var->index];
             if (info->is_constant) {
                b.cursor = nir_after_instr(&intrin->instr);
                nir_ssa_def *val = build_constant_load(&b, deref, size_align);
@@ -357,7 +353,7 @@ nir_opt_large_constants(nir_shader *shader,
                continue;
 
             nir_variable *var = nir_deref_instr_get_variable(deref);
-            struct var_info *info = &var_infos[var->data.index];
+            struct var_info *info = &var_infos[var->index];
             if (info->is_constant) {
                nir_instr_remove(&intrin->instr);
                nir_deref_instr_remove_if_unused(deref);

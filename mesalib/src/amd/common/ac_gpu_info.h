@@ -57,8 +57,7 @@ struct radeon_info {
 
 	/* Features. */
 	bool                        has_graphics; /* false if the chip is compute-only */
-	uint32_t                    num_compute_rings;
-	uint32_t                    num_sdma_rings;
+	uint32_t                    num_rings[NUM_RING_TYPES];
 	bool                        has_clear_state;
 	bool                        has_distributed_tess;
 	bool                        has_dcc_constant_encode;
@@ -91,6 +90,7 @@ struct radeon_info {
 	uint32_t                    min_alloc_size;
 	uint32_t                    address32_hi;
 	bool                        has_dedicated_vram;
+	bool                        has_l2_uncached;
 	bool                        r600_has_virtual_memory;
 	uint32_t                    num_sdp_interfaces;
 	uint32_t                    num_tcc_blocks;

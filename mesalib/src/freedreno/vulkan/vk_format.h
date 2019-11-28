@@ -29,120 +29,16 @@
 
 #include <assert.h>
 #include <util/macros.h>
+#include <util/format/u_format.h>
+#include <vulkan/util/vk_format.h>
 
 #include <vulkan/vulkan.h>
 
-enum vk_format_layout
+static inline const struct util_format_description *
+vk_format_description(VkFormat format)
 {
-   /**
-    * Formats with vk_format_block::width == vk_format_block::height == 1
-    * that can be described as an ordinary data structure.
-    */
-   VK_FORMAT_LAYOUT_PLAIN = 0,
-
-   /**
-    * Formats with sub-sampled channels.
-    *
-    * This is for formats like YVYU where there is less than one sample per
-    * pixel.
-    */
-   VK_FORMAT_LAYOUT_SUBSAMPLED = 3,
-
-   /**
-    * S3 Texture Compression formats.
-    */
-   VK_FORMAT_LAYOUT_S3TC = 4,
-
-   /**
-    * Red-Green Texture Compression formats.
-    */
-   VK_FORMAT_LAYOUT_RGTC = 5,
-
-   /**
-    * Ericsson Texture Compression
-    */
-   VK_FORMAT_LAYOUT_ETC = 6,
-
-   /**
-    * BC6/7 Texture Compression
-    */
-   VK_FORMAT_LAYOUT_BPTC = 7,
-
-   /**
-    * ASTC
-    */
-   VK_FORMAT_LAYOUT_ASTC = 8,
-
-   /**
-    * Everything else that doesn't fit in any of the above layouts.
-    */
-   VK_FORMAT_LAYOUT_OTHER = 9
-};
-
-struct vk_format_block
-{
-   /** Block width in pixels */
-   unsigned width;
-
-   /** Block height in pixels */
-   unsigned height;
-
-   /** Block size in bits */
-   unsigned bits;
-};
-
-enum vk_format_type
-{
-   VK_FORMAT_TYPE_VOID = 0,
-   VK_FORMAT_TYPE_UNSIGNED = 1,
-   VK_FORMAT_TYPE_SIGNED = 2,
-   VK_FORMAT_TYPE_FIXED = 3,
-   VK_FORMAT_TYPE_FLOAT = 4
-};
-
-enum vk_format_colorspace
-{
-   VK_FORMAT_COLORSPACE_RGB = 0,
-   VK_FORMAT_COLORSPACE_SRGB = 1,
-   VK_FORMAT_COLORSPACE_YUV = 2,
-   VK_FORMAT_COLORSPACE_ZS = 3
-};
-
-struct vk_format_channel_description
-{
-   unsigned type : 5;
-   unsigned normalized : 1;
-   unsigned pure_integer : 1;
-   unsigned scaled : 1;
-   unsigned size : 8;
-   unsigned shift : 16;
-};
-
-struct vk_format_description
-{
-   VkFormat format;
-   const char *name;
-   const char *short_name;
-
-   struct vk_format_block block;
-   enum vk_format_layout layout;
-
-   unsigned nr_channels : 3;
-   unsigned is_array : 1;
-   unsigned is_bitmask : 1;
-   unsigned is_mixed : 1;
-
-   struct vk_format_channel_description channel[4];
-
-   unsigned char swizzle[4];
-
-   enum vk_format_colorspace colorspace;
-};
-
-extern const struct vk_format_description vk_format_description_table[];
-
-const struct vk_format_description *
-vk_format_description(VkFormat format);
+   return util_format_description(vk_format_to_pipe_format(format));
+}
 
 /**
  * Return total bits needed for the pixel format per block.
@@ -150,14 +46,7 @@ vk_format_description(VkFormat format);
 static inline unsigned
 vk_format_get_blocksizebits(VkFormat format)
 {
-   const struct vk_format_description *desc = vk_format_description(format);
-
-   assert(desc);
-   if (!desc) {
-      return 0;
-   }
-
-   return desc->block.bits;
+   return util_format_get_blocksizebits(vk_format_to_pipe_format(format));
 }
 
 /**
@@ -166,96 +55,39 @@ vk_format_get_blocksizebits(VkFormat format)
 static inline unsigned
 vk_format_get_blocksize(VkFormat format)
 {
-   unsigned bits = vk_format_get_blocksizebits(format);
-   unsigned bytes = bits / 8;
-
-   assert(bits % 8 == 0);
-   assert(bytes > 0);
-   if (bytes == 0) {
-      bytes = 1;
-   }
-
-   return bytes;
+   return util_format_get_blocksize(vk_format_to_pipe_format(format));
 }
 
 static inline unsigned
 vk_format_get_blockwidth(VkFormat format)
 {
-   const struct vk_format_description *desc = vk_format_description(format);
-
-   assert(desc);
-   if (!desc) {
-      return 1;
-   }
-
-   return desc->block.width;
+   return util_format_get_blockwidth(vk_format_to_pipe_format(format));
 }
 
 static inline unsigned
 vk_format_get_blockheight(VkFormat format)
 {
-   const struct vk_format_description *desc = vk_format_description(format);
-
-   assert(desc);
-   if (!desc) {
-      return 1;
-   }
-
-   return desc->block.height;
+   return util_format_get_blockheight(vk_format_to_pipe_format(format));
 }
 
 static inline unsigned
 vk_format_get_block_count_width(VkFormat format, unsigned width)
 {
-   unsigned blockwidth = vk_format_get_blockwidth(format);
-   return (width + blockwidth - 1) / blockwidth;
+   return util_format_get_nblocksx(vk_format_to_pipe_format(format), width);
 }
 
 static inline unsigned
 vk_format_get_block_count_height(VkFormat format, unsigned height)
 {
-   unsigned blockheight = vk_format_get_blockheight(format);
-   return (height + blockheight - 1) / blockheight;
+   return util_format_get_nblocksy(vk_format_to_pipe_format(format), height);
 }
 
 static inline unsigned
 vk_format_get_block_count(VkFormat format, unsigned width, unsigned height)
 {
-   return vk_format_get_block_count_width(format, width) *
-          vk_format_get_block_count_height(format, height);
+   return util_format_get_nblocks(vk_format_to_pipe_format(format),
+                                  width, height);
 }
-
-/**
- * Return the index of the first non-void channel
- * -1 if no non-void channels
- */
-static inline int
-vk_format_get_first_non_void_channel(VkFormat format)
-{
-   const struct vk_format_description *desc = vk_format_description(format);
-   int i;
-
-   for (i = 0; i < 4; i++)
-      if (desc->channel[i].type != VK_FORMAT_TYPE_VOID)
-         break;
-
-   if (i == 4)
-      return -1;
-
-   return i;
-}
-
-enum vk_swizzle
-{
-   VK_SWIZZLE_X,
-   VK_SWIZZLE_Y,
-   VK_SWIZZLE_Z,
-   VK_SWIZZLE_W,
-   VK_SWIZZLE_0,
-   VK_SWIZZLE_1,
-   VK_SWIZZLE_NONE,
-   VK_SWIZZLE_MAX, /**< Number of enums counter (must be last) */
-};
 
 static inline VkImageAspectFlags
 vk_format_aspects(VkFormat format)
@@ -282,7 +114,7 @@ vk_format_aspects(VkFormat format)
    }
 }
 
-static inline enum vk_swizzle
+static inline enum pipe_swizzle
 tu_swizzle_conv(VkComponentSwizzle component,
                 const unsigned char chan[4],
                 VkComponentSwizzle vk_swiz)
@@ -293,29 +125,29 @@ tu_swizzle_conv(VkComponentSwizzle component,
       vk_swiz = component;
    switch (vk_swiz) {
    case VK_COMPONENT_SWIZZLE_ZERO:
-      return VK_SWIZZLE_0;
+      return PIPE_SWIZZLE_0;
    case VK_COMPONENT_SWIZZLE_ONE:
-      return VK_SWIZZLE_1;
+      return PIPE_SWIZZLE_1;
    case VK_COMPONENT_SWIZZLE_R:
       for (x = 0; x < 4; x++)
          if (chan[x] == 0)
             return x;
-      return VK_SWIZZLE_0;
+      return PIPE_SWIZZLE_0;
    case VK_COMPONENT_SWIZZLE_G:
       for (x = 0; x < 4; x++)
          if (chan[x] == 1)
             return x;
-      return VK_SWIZZLE_0;
+      return PIPE_SWIZZLE_0;
    case VK_COMPONENT_SWIZZLE_B:
       for (x = 0; x < 4; x++)
          if (chan[x] == 2)
             return x;
-      return VK_SWIZZLE_0;
+      return PIPE_SWIZZLE_0;
    case VK_COMPONENT_SWIZZLE_A:
       for (x = 0; x < 4; x++)
          if (chan[x] == 3)
             return x;
-      return VK_SWIZZLE_1;
+      return PIPE_SWIZZLE_1;
    default:
       unreachable("Illegal swizzle");
    }
@@ -324,7 +156,7 @@ tu_swizzle_conv(VkComponentSwizzle component,
 static inline void
 vk_format_compose_swizzles(const VkComponentMapping *mapping,
                            const unsigned char swz[4],
-                           enum vk_swizzle dst[4])
+                           enum pipe_swizzle dst[4])
 {
    dst[0] = tu_swizzle_conv(VK_COMPONENT_SWIZZLE_R, swz, mapping->r);
    dst[1] = tu_swizzle_conv(VK_COMPONENT_SWIZZLE_G, swz, mapping->g);
@@ -335,77 +167,29 @@ vk_format_compose_swizzles(const VkComponentMapping *mapping,
 static inline bool
 vk_format_is_compressed(VkFormat format)
 {
-   const struct vk_format_description *desc = vk_format_description(format);
-
-   assert(desc);
-   if (!desc) {
-      return false;
-   }
-
-   switch (desc->layout) {
-   case VK_FORMAT_LAYOUT_S3TC:
-   case VK_FORMAT_LAYOUT_RGTC:
-   case VK_FORMAT_LAYOUT_ETC:
-   case VK_FORMAT_LAYOUT_BPTC:
-   case VK_FORMAT_LAYOUT_ASTC:
-      /* XXX add other formats in the future */
-      return true;
-   default:
-      return false;
-   }
+   return util_format_is_compressed(vk_format_to_pipe_format(format));
 }
 
 static inline bool
-vk_format_has_depth(const struct vk_format_description *desc)
+vk_format_has_depth(VkFormat format)
 {
-   return desc->colorspace == VK_FORMAT_COLORSPACE_ZS &&
-          desc->swizzle[0] != VK_SWIZZLE_NONE;
+   const struct util_format_description *desc = vk_format_description(format);
+
+   return util_format_has_depth(desc);
 }
 
 static inline bool
-vk_format_has_stencil(const struct vk_format_description *desc)
+vk_format_has_stencil(VkFormat format)
 {
-   return desc->colorspace == VK_FORMAT_COLORSPACE_ZS &&
-          desc->swizzle[1] != VK_SWIZZLE_NONE;
+   const struct util_format_description *desc = vk_format_description(format);
+
+   return util_format_has_stencil(desc);
 }
 
 static inline bool
 vk_format_is_depth_or_stencil(VkFormat format)
 {
-   const struct vk_format_description *desc = vk_format_description(format);
-
-   assert(desc);
-   if (!desc) {
-      return false;
-   }
-
-   return vk_format_has_depth(desc) || vk_format_has_stencil(desc);
-}
-
-static inline bool
-vk_format_is_depth(VkFormat format)
-{
-   const struct vk_format_description *desc = vk_format_description(format);
-
-   assert(desc);
-   if (!desc) {
-      return false;
-   }
-
-   return vk_format_has_depth(desc);
-}
-
-static inline bool
-vk_format_is_stencil(VkFormat format)
-{
-   const struct vk_format_description *desc = vk_format_description(format);
-
-   assert(desc);
-   if (!desc) {
-      return false;
-   }
-
-   return vk_format_has_stencil(desc);
+   return vk_format_has_depth(format) || vk_format_has_stencil(format);
 }
 
 static inline bool
@@ -417,11 +201,7 @@ vk_format_is_color(VkFormat format)
 static inline bool
 vk_format_has_alpha(VkFormat format)
 {
-   const struct vk_format_description *desc = vk_format_description(format);
-
-   return (desc->colorspace == VK_FORMAT_COLORSPACE_RGB ||
-           desc->colorspace == VK_FORMAT_COLORSPACE_SRGB) &&
-          desc->swizzle[3] != VK_SWIZZLE_1;
+   return util_format_has_alpha(vk_format_to_pipe_format(format));
 }
 
 static inline VkFormat
@@ -442,39 +222,25 @@ vk_format_depth_only(VkFormat format)
 static inline bool
 vk_format_is_int(VkFormat format)
 {
-   const struct vk_format_description *desc = vk_format_description(format);
-   int channel = vk_format_get_first_non_void_channel(format);
-
-   return channel >= 0 && desc->channel[channel].pure_integer;
+   return util_format_is_pure_integer(vk_format_to_pipe_format(format));
 }
 
 static inline bool
 vk_format_is_uint(VkFormat format)
 {
-   const struct vk_format_description *desc = vk_format_description(format);
-   int channel = vk_format_get_first_non_void_channel(format);
-
-   return channel >= 0 &&
-          desc->channel[channel].pure_integer &&
-          desc->channel[channel].type != VK_FORMAT_TYPE_SIGNED;
+   return util_format_is_pure_uint(vk_format_to_pipe_format(format));
 }
 
 static inline bool
 vk_format_is_sint(VkFormat format)
 {
-   const struct vk_format_description *desc = vk_format_description(format);
-   int channel = vk_format_get_first_non_void_channel(format);
-
-   return channel >= 0 &&
-          desc->channel[channel].pure_integer &&
-          desc->channel[channel].type == VK_FORMAT_TYPE_SIGNED;
+   return util_format_is_pure_sint(vk_format_to_pipe_format(format));
 }
 
 static inline bool
 vk_format_is_srgb(VkFormat format)
 {
-   const struct vk_format_description *desc = vk_format_description(format);
-   return desc->colorspace == VK_FORMAT_COLORSPACE_SRGB;
+   return util_format_is_srgb(vk_format_to_pipe_format(format));
 }
 
 static inline VkFormat
@@ -525,75 +291,17 @@ vk_format_stencil_only(VkFormat format)
 
 static inline unsigned
 vk_format_get_component_bits(VkFormat format,
-                             enum vk_format_colorspace colorspace,
+                             enum util_format_colorspace colorspace,
                              unsigned component)
 {
-   const struct vk_format_description *desc = vk_format_description(format);
-   enum vk_format_colorspace desc_colorspace;
-
-   assert(format);
-   if (!format) {
-      return 0;
-   }
-
-   assert(component < 4);
-
-   /* Treat RGB and SRGB as equivalent. */
-   if (colorspace == VK_FORMAT_COLORSPACE_SRGB) {
-      colorspace = VK_FORMAT_COLORSPACE_RGB;
-   }
-   if (desc->colorspace == VK_FORMAT_COLORSPACE_SRGB) {
-      desc_colorspace = VK_FORMAT_COLORSPACE_RGB;
-   } else {
-      desc_colorspace = desc->colorspace;
-   }
-
-   if (desc_colorspace != colorspace) {
-      return 0;
-   }
-
-   switch (desc->swizzle[component]) {
-   case VK_SWIZZLE_X:
-      return desc->channel[0].size;
-   case VK_SWIZZLE_Y:
-      return desc->channel[1].size;
-   case VK_SWIZZLE_Z:
-      return desc->channel[2].size;
-   case VK_SWIZZLE_W:
-      return desc->channel[3].size;
-   default:
-      return 0;
-   }
-}
-
-static inline VkFormat
-vk_to_non_srgb_format(VkFormat format)
-{
-   switch (format) {
-   case VK_FORMAT_R8_SRGB:
-      return VK_FORMAT_R8_UNORM;
-   case VK_FORMAT_R8G8_SRGB:
-      return VK_FORMAT_R8G8_UNORM;
-   case VK_FORMAT_R8G8B8_SRGB:
-      return VK_FORMAT_R8G8B8_UNORM;
-   case VK_FORMAT_B8G8R8_SRGB:
-      return VK_FORMAT_B8G8R8_UNORM;
-   case VK_FORMAT_R8G8B8A8_SRGB:
-      return VK_FORMAT_R8G8B8A8_UNORM;
-   case VK_FORMAT_B8G8R8A8_SRGB:
-      return VK_FORMAT_B8G8R8A8_UNORM;
-   case VK_FORMAT_A8B8G8R8_SRGB_PACK32:
-      return VK_FORMAT_A8B8G8R8_UNORM_PACK32;
-   default:
-      return format;
-   }
+   return util_format_get_component_bits(vk_format_to_pipe_format(format),
+                                         colorspace, component);
 }
 
 static inline unsigned
 vk_format_get_nr_components(VkFormat format)
 {
-   const struct vk_format_description *desc = vk_format_description(format);
-   return desc->nr_channels;
+   return util_format_get_nr_components(vk_format_to_pipe_format(format));
 }
 
 #endif /* VK_FORMAT_H */

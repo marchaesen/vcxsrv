@@ -881,7 +881,15 @@ void handle_pseudo(ra_ctx& ctx,
          break;
       }
    }
-   if (!writes_sgpr)
+   /* if all operands are constant, no need to care either */
+   bool reads_sgpr = false;
+   for (Operand& op : instr->operands) {
+      if (op.isTemp() && op.getTemp().type() == RegType::sgpr) {
+         reads_sgpr = true;
+         break;
+      }
+   }
+   if (!(writes_sgpr && reads_sgpr))
       return;
 
    Pseudo_instruction *pi = (Pseudo_instruction *)instr;
@@ -1414,7 +1422,7 @@ void register_allocation(Program *program, std::vector<std::set<Temp>> live_out_
                      for (unsigned j = 0; j < i; j++) {
                         Operand& op = instr->operands[j];
                         if (op.isTemp() && op.tempId() == blocking_id) {
-                           op = Operand(pc_def.getTemp());
+                           op.setTemp(pc_def.getTemp());
                            op.setFixed(reg);
                         }
                      }

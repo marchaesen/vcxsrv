@@ -28,7 +28,7 @@
 #include "util/u_tests.h"
 
 #include "util/u_draw_quad.h"
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 #include "util/u_inlines.h"
 #include "util/u_memory.h"
 #include "util/u_simple_shaders.h"

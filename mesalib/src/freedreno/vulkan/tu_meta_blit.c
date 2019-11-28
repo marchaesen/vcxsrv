@@ -64,7 +64,7 @@ tu_blit_image(struct tu_cmd_buffer *cmdbuf,
       .rotation = rotate[mirror_y][mirror_x],
    };
 
-   tu_blit(cmdbuf, &blt, false);
+   tu_blit(cmdbuf, &blt);
 }
 
 void

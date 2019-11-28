@@ -26,7 +26,6 @@
 #include "st_tgsi_lower_yuv.h"
 #include "tgsi/tgsi_transform.h"
 #include "tgsi/tgsi_scan.h"
-#include "tgsi/tgsi_dump.h"
 #include "util/u_debug.h"
 
 #include "util/bitscan.h"

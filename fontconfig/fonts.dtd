@@ -124,7 +124,7 @@
 <!--
     Reset the list of fonts directories
 -->
-<!ELEMENT reset-dirs >
+<!ELEMENT reset-dirs EMPTY>
 
 <!--
     Periodically rescan the font configuration and

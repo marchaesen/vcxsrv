@@ -30,6 +30,8 @@
 #include "compiler/nir/nir.h"
 #include "amd_family.h"
 #include "ac_shader_util.h"
+#include "ac_shader_args.h"
+#include "ac_shader_abi.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -62,6 +64,8 @@ struct ac_llvm_context {
 	LLVMContextRef context;
 	LLVMModuleRef module;
 	LLVMBuilderRef builder;
+
+	LLVMValueRef main_function;
 
 	LLVMTypeRef voidt;
 	LLVMTypeRef i1;
@@ -295,8 +299,7 @@ ac_build_buffer_store_dword(struct ac_llvm_context *ctx,
 			    LLVMValueRef voffset,
 			    LLVMValueRef soffset,
 			    unsigned inst_offset,
-			    unsigned cache_policy,
-			    bool swizzle_enable_hint);
+			    unsigned cache_policy);
 
 void
 ac_build_buffer_store_format(struct ac_llvm_context *ctx,
@@ -529,6 +532,7 @@ enum ac_image_cache_policy {
 	ac_glc = 1 << 0, /* per-CU cache control */
 	ac_slc = 1 << 1, /* global L2 cache control */
 	ac_dlc = 1 << 2, /* per-shader-array cache control */
+	ac_swizzled = 1 << 3, /* the access is swizzled, disabling load/store merging */
 };
 
 struct ac_image_args {
@@ -742,6 +746,27 @@ void
 ac_export_mrt_z(struct ac_llvm_context *ctx, LLVMValueRef depth,
 		LLVMValueRef stencil, LLVMValueRef samplemask,
 		struct ac_export_args *args);
+
+static inline LLVMValueRef
+ac_get_arg(struct ac_llvm_context *ctx, struct ac_arg arg)
+{
+	assert(arg.used);
+	return LLVMGetParam(ctx->main_function, arg.arg_index);
+}
+
+enum ac_llvm_calling_convention {
+	AC_LLVM_AMDGPU_VS = 87,
+	AC_LLVM_AMDGPU_GS = 88,
+	AC_LLVM_AMDGPU_PS = 89,
+	AC_LLVM_AMDGPU_CS = 90,
+	AC_LLVM_AMDGPU_HS = 93,
+};
+
+LLVMValueRef ac_build_main(const struct ac_shader_args *args,
+			   struct ac_llvm_context *ctx,
+			   enum ac_llvm_calling_convention convention,
+			   const char *name, LLVMTypeRef ret_type,
+			   LLVMModuleRef module);
 
 #ifdef __cplusplus
 }

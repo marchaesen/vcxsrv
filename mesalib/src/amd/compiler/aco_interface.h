@@ -35,8 +35,7 @@ struct ac_shader_config;
 void aco_compile_shader(unsigned shader_count,
                         struct nir_shader *const *shaders,
                         struct radv_shader_binary** binary,
-                        struct radv_shader_info *info,
-                        struct radv_nir_compiler_options *options);
+                        struct radv_shader_args *args);
 
 #ifdef __cplusplus
 }

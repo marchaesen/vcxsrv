@@ -231,10 +231,12 @@ void compute_global_next_uses(spill_ctx& ctx, std::vector<std::set<Temp>>& live_
 bool should_rematerialize(aco_ptr<Instruction>& instr)
 {
    /* TODO: rematerialization is only supported for VOP1, SOP1 and PSEUDO */
-   if (instr->format != Format::VOP1 && instr->format != Format::SOP1 && instr->format != Format::PSEUDO)
+   if (instr->format != Format::VOP1 && instr->format != Format::SOP1 && instr->format != Format::PSEUDO && instr->format != Format::SOPK)
       return false;
    /* TODO: pseudo-instruction rematerialization is only supported for p_create_vector */
    if (instr->format == Format::PSEUDO && instr->opcode != aco_opcode::p_create_vector)
+      return false;
+   if (instr->format == Format::SOPK && instr->opcode != aco_opcode::s_movk_i32)
       return false;
 
    for (const Operand& op : instr->operands) {
@@ -255,7 +257,7 @@ aco_ptr<Instruction> do_reload(spill_ctx& ctx, Temp tmp, Temp new_name, uint32_t
    std::map<Temp, remat_info>::iterator remat = ctx.remat.find(tmp);
    if (remat != ctx.remat.end()) {
       Instruction *instr = remat->second.instr;
-      assert((instr->format == Format::VOP1 || instr->format == Format::SOP1 || instr->format == Format::PSEUDO) && "unsupported");
+      assert((instr->format == Format::VOP1 || instr->format == Format::SOP1 || instr->format == Format::PSEUDO || instr->format == Format::SOPK) && "unsupported");
       assert((instr->format != Format::PSEUDO || instr->opcode == aco_opcode::p_create_vector) && "unsupported");
       assert(instr->definitions.size() == 1 && "unsupported");
 
@@ -265,7 +267,10 @@ aco_ptr<Instruction> do_reload(spill_ctx& ctx, Temp tmp, Temp new_name, uint32_t
       } else if (instr->format == Format::SOP1) {
          res.reset(create_instruction<SOP1_instruction>(instr->opcode, instr->format, instr->operands.size(), instr->definitions.size()));
       } else if (instr->format == Format::PSEUDO) {
-         res.reset(create_instruction<Instruction>(instr->opcode, instr->format, instr->operands.size(), instr->definitions.size()));
+         res.reset(create_instruction<Pseudo_instruction>(instr->opcode, instr->format, instr->operands.size(), instr->definitions.size()));
+      } else if (instr->format == Format::SOPK) {
+         res.reset(create_instruction<SOPK_instruction>(instr->opcode, instr->format, instr->operands.size(), instr->definitions.size()));
+         static_cast<SOPK_instruction*>(res.get())->imm = static_cast<SOPK_instruction*>(instr)->imm;
       }
       for (unsigned i = 0; i < instr->operands.size(); i++) {
          res->operands[i] = instr->operands[i];

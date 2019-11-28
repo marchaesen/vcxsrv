@@ -6,8 +6,6 @@ DEQP_OPTIONS=(--deqp-surface-width=256 --deqp-surface-height=256)
 DEQP_OPTIONS+=(--deqp-surface-type=pbuffer)
 DEQP_OPTIONS+=(--deqp-gl-config-name=rgba8888d24s8ms0)
 DEQP_OPTIONS+=(--deqp-visibility=hidden)
-DEQP_OPTIONS+=(--deqp-log-images=disable)
-DEQP_OPTIONS+=(--deqp-crashhandler=enable)
 
 # It would be nice to be able to enable the watchdog, so that hangs in a test
 # don't need to wait the full hour for the run to time out.  However, some
@@ -26,20 +24,7 @@ if [ -z "$DEQP_SKIPS" ]; then
    exit 1
 fi
 
-# Prep the expected failure list
-if [ -n "$DEQP_EXPECTED_FAILS" ]; then
-   export DEQP_EXPECTED_FAILS=`pwd`/artifacts/$DEQP_EXPECTED_FAILS
-else
-   export DEQP_EXPECTED_FAILS=/tmp/expect-no-failures.txt
-   touch $DEQP_EXPECTED_FAILS
-fi
-sort < $DEQP_EXPECTED_FAILS > /tmp/expected-fails.txt
-
-# Fix relative paths on inputs.
-export DEQP_SKIPS=`pwd`/artifacts/$DEQP_SKIPS
-
-# Be a good citizen on the shared runners.
-export LP_NUM_THREADS=4
+ARTIFACTS=`pwd`/artifacts
 
 # Set up the driver environment.
 export LD_LIBRARY_PATH=`pwd`/install/lib/
@@ -52,18 +37,8 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 RESULTS=`pwd`/results
 mkdir -p $RESULTS
 
-cd /deqp/modules/$DEQP_VER
-
 # Generate test case list file
 cp /deqp/mustpass/$DEQP_VER-master.txt /tmp/case-list.txt
-
-# Note: not using sorted input and comm, becuase I want to run the tests in
-# the same order that dEQP would.
-while read -r line; do
-   if echo "$line" | grep -q '^[^#]'; then
-       sed -i "/$line/d" /tmp/case-list.txt
-   fi
-done < $DEQP_SKIPS
 
 # If the job is parallel, take the corresponding fraction of the caselist.
 # Note: N~M is a gnu sed extension to match every nth line (first line is #1).
@@ -76,61 +51,166 @@ if [ ! -s /tmp/case-list.txt ]; then
     exit 1
 fi
 
-# Cannot use tee because dash doesn't have pipefail
-touch /tmp/result.txt
-tail -f /tmp/result.txt &
+if [ -n "$DEQP_EXPECTED_FAILS" ]; then
+    XFAIL="--xfail-list $ARTIFACTS/$DEQP_EXPECTED_FAILS"
+fi
 
-./deqp-$DEQP_VER "${DEQP_OPTIONS[@]}" --deqp-log-filename=$RESULTS/results.qpa --deqp-caselist-file=/tmp/case-list.txt >> /tmp/result.txt
+set +e
+
+run_cts() {
+    caselist=$1
+    output=$2
+    deqp-runner \
+        --deqp /deqp/modules/$DEQP_VER/deqp-$DEQP_VER \
+        --output $output \
+        --caselist $caselist \
+        --exclude-list $ARTIFACTS/$DEQP_SKIPS \
+        $XFAIL \
+        --job ${DEQP_PARALLEL:-1} \
+	--allow-flakes true \
+        -- \
+        "${DEQP_OPTIONS[@]}"
+}
+
+report_flakes() {
+    if [ -z "$FLAKES_CHANNEL" ]; then
+        return 0
+    fi
+    flakes=$1
+    bot="$CI_RUNNER_DESCRIPTION-$CI_PIPELINE_ID"
+    channel="$FLAKES_CHANNEL"
+    (
+    echo NICK $bot
+    echo USER $bot unused unused :Gitlab CI Notifier
+    sleep 10
+    echo "JOIN $channel"
+    sleep 1
+    desc="Flakes detected in job: $CI_JOB_URL on $CI_RUNNER_DESCRIPTION"
+    if [ -n "CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" ]; then
+        desc="$desc on branch $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME ($CI_MERGE_REQUEST_TITLE)"
+    fi
+    echo "PRIVMSG $channel :$desc"
+    for flake in `cat $flakes`; do
+        echo "PRIVMSG $channel :$flake"
+    done
+    echo "PRIVMSG $channel :See $CI_JOB_URL/artifacts/browse/results/"
+    echo "QUIT"
+    ) | nc irc.freenode.net 6667 > /dev/null
+
+}
+
+extract_xml_result() {
+    testcase=$1
+    shift 1
+    qpas=$*
+    start="#beginTestCaseResult $testcase"
+    for qpa in $qpas; do
+        while IFS= read -r line; do
+            if [ "$line" = "$start" ]; then
+                dst="$testcase.qpa"
+                echo "#beginSession" > $dst
+                echo $line >> $dst
+                while IFS= read -r line; do
+                    if [ "$line" = "#endTestCaseResult" ]; then
+                        echo $line >> $dst
+                        echo "#endSession" >> $dst
+                        /deqp/executor/testlog-to-xml $dst "$RESULTS/$testcase.xml"
+                        # copy the stylesheets here so they only end up in artifacts
+                        # if we have one or more result xml in artifacts
+                        cp /deqp/testlog.{css,xsl} "$RESULTS/"
+                        return 0
+                    fi
+                    echo $line >> $dst
+                done
+                return 1
+            fi
+        done < $qpa
+    done
+}
+
+extract_xml_results() {
+    qpas=$*
+    while IFS= read -r testcase; do
+        testcase=${testcase%,*}
+        extract_xml_result $testcase $qpas
+    done
+}
+
+# Generate junit results
+generate_junit() {
+    results=$1
+    echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+    echo "<testsuites>"
+    echo "<testsuite name=\"$DEQP_VER-$CI_NODE_INDEX\">"
+    while read line; do
+        testcase=${line%,*}
+        result=${line#*,}
+        # avoid counting Skip's in the # of tests:
+        if [ "$result" = "Skip" ]; then
+            continue;
+        fi
+        echo "<testcase name=\"$testcase\">"
+        if [ "$result" != "Pass" ]; then
+            echo "<failure type=\"$result\">"
+            echo "$result: See $CI_JOB_URL/artifacts/results/$testcase.xml"
+            echo "</failure>"
+        fi
+        echo "</testcase>"
+    done < $results
+    echo "</testsuite>"
+    echo "</testsuites>"
+}
+
+# wrapper to supress +x to avoid spamming the log
+quiet() {
+    set +x
+    "$@"
+    set -x
+}
+
+run_cts /tmp/case-list.txt $RESULTS/cts-runner-results.txt
 DEQP_EXITCODE=$?
 
-sed -ne \
-    '/StatusCode="Fail"/{x;p}; s/#beginTestCaseResult //; T; h' \
-    $RESULTS/results.qpa \
-    > /tmp/unsorted-fails.txt
+quiet generate_junit $RESULTS/cts-runner-results.txt > $RESULTS/results.xml
 
-# Scrape out the renderer that the test run used, so we can validate that the
-# right driver was used.
-if grep -q "dEQP-.*.info.renderer" /tmp/case-list.txt; then
-    # This is an ugly dependency on the .qpa format: Print 3 lines after the
-    # match, which happens to contain the result.
-    RENDERER=`sed -n '/#beginTestCaseResult dEQP-.*.info.renderer/{n;n;n;p}' $RESULTS/results.qpa | sed -n -E "s|<Text>(.*)</Text>|\1|p"`
+if [ $DEQP_EXITCODE -ne 0 ]; then
+    # preserve caselist files in case of failures:
+    cp /tmp/cts_runner.*.txt $RESULTS/
+    echo "Some unexpected results found (see cts-runner-results.txt in artifacts for full results):"
+    cat $RESULTS/cts-runner-results.txt | \
+        grep -v ",Pass" | \
+        grep -v ",Skip" | \
+        grep -v ",ExpectedFail" > \
+        $RESULTS/cts-runner-unexpected-results.txt
+    head -n 50 $RESULTS/cts-runner-unexpected-results.txt
 
-    echo "GL_RENDERER for this test run: $RENDERER"
+    # Save the logs for up to the first 50 unexpected results:
+    head -n 50 $RESULTS/cts-runner-unexpected-results.txt | quiet extract_xml_results /tmp/*.qpa
 
-    if [ -n "$DEQP_RENDERER_MATCH" ]; then
-        echo $RENDERER | grep -q $DEQP_RENDERER_MATCH > /dev/null
+    count=`cat $RESULTS/cts-runner-unexpected-results.txt | wc -l`
+
+    # Re-run fails to detect flakes.  But use a small threshold, if
+    # something was fundamentally broken, we don't want to re-run
+    # the entire caselist
+else
+    cat $RESULTS/cts-runner-results.txt | \
+        grep ",Flake" > \
+        $RESULTS/cts-runner-flakes.txt
+
+    count=`cat $RESULTS/cts-runner-flakes.txt | wc -l`
+    if [ $count -gt 0 ]; then
+        echo "Some flakes found (see cts-runner-flakes.txt in artifacts for full results):"
+        head -n 50 $RESULTS/cts-runner-flakes.txt
+
+        # Save the logs for up to the first 50 flakes:
+        head -n 50 $RESULTS/cts-runner-flakes.txt | quiet extract_xml_results /tmp/*.qpa
+
+        # Report the flakes to IRC channel for monitoring (if configured):
+        quiet report_flakes $RESULTS/cts-runner-flakes.txt
+    else
+        # no flakes, so clean-up:
+        rm $RESULTS/cts-runner-flakes.txt
     fi
 fi
 
-if grep -q "dEQP-.*.info.version" /tmp/case-list.txt; then
-    # This is an ugly dependency on the .qpa format: Print 3 lines after the
-    # match, which happens to contain the result.
-    VERSION=`sed -n '/#beginTestCaseResult dEQP-.*.info.version/{n;n;n;p}' $RESULTS/results.qpa | sed -n -E "s|<Text>(.*)</Text>|\1|p"`
-    echo "Driver version tested: $VERSION"
-fi
-
-if [ $DEQP_EXITCODE -ne 0 ]; then
-   exit $DEQP_EXITCODE
-fi
-
-sort < /tmp/unsorted-fails.txt > $RESULTS/fails.txt
-
-comm -23 $RESULTS/fails.txt /tmp/expected-fails.txt > /tmp/new-fails.txt
-if [ -s /tmp/new-fails.txt ]; then
-    echo "Unexpected failures:"
-    cat /tmp/new-fails.txt
-    exit 1
-else
-    echo "No new failures"
-fi
-
-sort /tmp/case-list.txt > /tmp/sorted-case-list.txt
-comm -12 /tmp/sorted-case-list.txt /tmp/expected-fails.txt > /tmp/expected-fails-in-caselist.txt
-comm -13 $RESULTS/fails.txt /tmp/expected-fails-in-caselist.txt > /tmp/new-passes.txt
-if [ -s /tmp/new-passes.txt ]; then
-    echo "Unexpected passes, please update $DEQP_EXPECTED_FAILS (or add flaky tests to $DEQP_SKIPS):"
-    cat /tmp/new-passes.txt
-    exit 1
-else
-    echo "No new passes"
-fi
+exit $DEQP_EXITCODE

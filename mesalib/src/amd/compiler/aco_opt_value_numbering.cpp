@@ -81,17 +81,6 @@ struct InstrPred {
          return false;
       if (a->operands.size() != b->operands.size() || a->definitions.size() != b->definitions.size())
          return false; /* possible with pseudo-instructions */
-      /* We can't value number v_readlane_b32 across control flow or discards
-       * because of the possibility of live-range splits.
-       * We can't value number permutes for the same reason as
-       * v_readlane_b32 and because discards affect the result */
-      if (a->opcode == aco_opcode::v_readfirstlane_b32 || a->opcode == aco_opcode::v_readlane_b32 ||
-          a->opcode == aco_opcode::ds_bpermute_b32 || a->opcode == aco_opcode::ds_permute_b32 ||
-          a->opcode == aco_opcode::ds_swizzle_b32 || a->format == Format::PSEUDO_REDUCTION ||
-          a->opcode == aco_opcode::p_phi || a->opcode == aco_opcode::p_linear_phi) {
-         if (a->pass_flags != b->pass_flags)
-            return false;
-      }
       for (unsigned i = 0; i < a->operands.size(); i++) {
          if (a->operands[i].isConstant()) {
             if (!b->operands[i].isConstant())
@@ -108,11 +97,11 @@ struct InstrPred {
          else if (a->operands[i].isUndefined() ^ b->operands[i].isUndefined())
             return false;
          if (a->operands[i].isFixed()) {
-            if (a->operands[i].physReg() == exec)
-               return false;
             if (!b->operands[i].isFixed())
                return false;
-            if (!(a->operands[i].physReg() == b->operands[i].physReg()))
+            if (a->operands[i].physReg() != b->operands[i].physReg())
+               return false;
+            if (a->operands[i].physReg() == exec && a->pass_flags != b->pass_flags)
                return false;
          }
       }
@@ -126,10 +115,19 @@ struct InstrPred {
          if (a->definitions[i].isFixed()) {
             if (!b->definitions[i].isFixed())
                return false;
-            if (!(a->definitions[i].physReg() == b->definitions[i].physReg()))
+            if (a->definitions[i].physReg() != b->definitions[i].physReg())
+               return false;
+            if (a->definitions[i].physReg() == exec)
                return false;
          }
       }
+
+      if (a->opcode == aco_opcode::v_readfirstlane_b32)
+         return a->pass_flags == b->pass_flags;
+
+      /* The results of VOPC depend on the exec mask if used for subgroup operations. */
+      if ((uint32_t) a->format & (uint32_t) Format::VOPC && a->pass_flags != b->pass_flags)
+         return false;
       if (a->format == Format::PSEUDO_BRANCH)
          return false;
       if (a->isVOP3()) {
@@ -157,11 +155,6 @@ struct InstrPred {
                 aDPP->neg[1] == bDPP->neg[1];
       }
       switch (a->format) {
-         case Format::VOPC: {
-            /* Since the results depend on the exec mask, these shouldn't
-             * be value numbered (this is especially useful for subgroupBallot()). */
-            return false;
-         }
          case Format::SOPK: {
             SOPK_instruction* aK = static_cast<SOPK_instruction*>(a);
             SOPK_instruction* bK = static_cast<SOPK_instruction*>(b);
@@ -185,7 +178,9 @@ struct InstrPred {
          case Format::PSEUDO_REDUCTION: {
             Pseudo_reduction_instruction *aR = static_cast<Pseudo_reduction_instruction*>(a);
             Pseudo_reduction_instruction *bR = static_cast<Pseudo_reduction_instruction*>(b);
-            return aR->reduce_op == bR->reduce_op && aR->cluster_size == bR->cluster_size;
+            return aR->pass_flags == bR->pass_flags &&
+                   aR->reduce_op == bR->reduce_op &&
+                   aR->cluster_size == bR->cluster_size;
          }
          case Format::MTBUF: {
             /* this is fine since they are only used for vertex input fetches */
@@ -210,14 +205,16 @@ struct InstrPred {
          case Format::SCRATCH:
             return false;
          case Format::DS: {
-            /* we already handle potential issue with permute/swizzle above */
-            DS_instruction* aD = static_cast<DS_instruction *>(a);
-            DS_instruction* bD = static_cast<DS_instruction *>(b);
             if (a->opcode != aco_opcode::ds_bpermute_b32 &&
                 a->opcode != aco_opcode::ds_permute_b32 &&
                 a->opcode != aco_opcode::ds_swizzle_b32)
                return false;
-            return aD->gds == bD->gds && aD->offset0 == bD->offset0 && aD->offset1 == bD->offset1;
+            DS_instruction* aD = static_cast<DS_instruction *>(a);
+            DS_instruction* bD = static_cast<DS_instruction *>(b);
+            return aD->pass_flags == bD->pass_flags &&
+                   aD->gds == bD->gds &&
+                   aD->offset0 == bD->offset0 &&
+                   aD->offset1 == bD->offset1;
          }
          case Format::MIMG: {
             MIMG_instruction* aM = static_cast<MIMG_instruction*>(a);
@@ -248,14 +245,25 @@ struct vn_ctx {
    Program* program;
    expr_set expr_values;
    std::map<uint32_t, Temp> renames;
-   uint32_t exec_id = 0;
+
+   /* The exec id should be the same on the same level of control flow depth.
+    * Together with the check for dominator relations, it is safe to assume
+    * that the same exec_id also means the same execution mask.
+    * Discards increment the exec_id, so that it won't return to the previous value.
+    */
+   uint32_t exec_id = 1;
 
    vn_ctx(Program* program) : program(program) {}
 };
 
+
+/* dominates() returns true if the parent block dominates the child block and
+ * if the parent block is part of the same loop or has a smaller loop nest depth.
+ */
 bool dominates(vn_ctx& ctx, uint32_t parent, uint32_t child)
 {
-   while (parent < child)
+   unsigned parent_loop_nest_depth = ctx.program->blocks[parent].loop_nest_depth;
+   while (parent < child && parent_loop_nest_depth <= ctx.program->blocks[child].loop_nest_depth)
       child = ctx.program->blocks[child].logical_idom;
 
    return parent == child;
@@ -276,7 +284,7 @@ void process_block(vn_ctx& ctx, Block& block)
             op.setTemp(it->second);
       }
 
-      if (instr->definitions.empty()) {
+      if (instr->definitions.empty() || instr->opcode == aco_opcode::p_phi || instr->opcode == aco_opcode::p_linear_phi) {
          new_instructions.emplace_back(std::move(instr));
          continue;
       }
@@ -300,7 +308,8 @@ void process_block(vn_ctx& ctx, Block& block)
          Instruction* orig_instr = res.first->first;
          assert(instr->definitions.size() == orig_instr->definitions.size());
          /* check if the original instruction dominates the current one */
-         if (dominates(ctx, res.first->second, block.index)) {
+         if (dominates(ctx, res.first->second, block.index) &&
+             ctx.program->blocks[res.first->second].fp_mode.canReplace(block.fp_mode)) {
             for (unsigned i = 0; i < instr->definitions.size(); i++) {
                assert(instr->definitions[i].regClass() == orig_instr->definitions[i].regClass());
                ctx.renames[instr->definitions[i].tempId()] = orig_instr->definitions[i].getTemp();
@@ -339,14 +348,34 @@ void rename_phi_operands(Block& block, std::map<uint32_t, Temp>& renames)
 void value_numbering(Program* program)
 {
    vn_ctx ctx(program);
+   std::vector<unsigned> loop_headers;
 
    for (Block& block : program->blocks) {
+      assert(ctx.exec_id > 0);
+      /* decrement exec_id when leaving nested control flow */
+      if (block.kind & block_kind_loop_header)
+         loop_headers.push_back(block.index);
+      if (block.kind & block_kind_merge) {
+         ctx.exec_id--;
+      } else if (block.kind & block_kind_loop_exit) {
+         ctx.exec_id -= program->blocks[loop_headers.back()].logical_preds.size();
+         ctx.exec_id -= block.logical_preds.size();
+         loop_headers.pop_back();
+      }
+
       if (block.logical_idom != -1)
          process_block(ctx, block);
       else
          rename_phi_operands(block, ctx.renames);
 
-      ctx.exec_id++;
+      /* increment exec_id when entering nested control flow */
+      if (block.kind & block_kind_branch ||
+          block.kind & block_kind_loop_preheader ||
+          block.kind & block_kind_break ||
+          block.kind & block_kind_continue)
+         ctx.exec_id++;
+      else if (block.kind & block_kind_continue_or_break)
+         ctx.exec_id += 2;
    }
 
    /* rename loop header phi operands */

@@ -121,6 +121,10 @@ enum radv_mem_type {
 	RADV_MEM_TYPE_GTT_WRITE_COMBINE,
 	RADV_MEM_TYPE_VRAM_CPU_ACCESS,
 	RADV_MEM_TYPE_GTT_CACHED,
+	RADV_MEM_TYPE_VRAM_UNCACHED,
+	RADV_MEM_TYPE_GTT_WRITE_COMBINE_VRAM_UNCACHED,
+	RADV_MEM_TYPE_VRAM_CPU_ACCESS_UNCACHED,
+	RADV_MEM_TYPE_GTT_CACHED_VRAM_UNCACHED,
 	RADV_MEM_TYPE_COUNT
 };
 
@@ -131,6 +135,7 @@ enum radv_secure_compile_type {
 	RADV_SC_TYPE_COMPILE_PIPELINE_FINISHED,
 	RADV_SC_TYPE_READ_DISK_CACHE,
 	RADV_SC_TYPE_WRITE_DISK_CACHE,
+	RADV_SC_TYPE_FORK_DEVICE,
 	RADV_SC_TYPE_DESTROY_DEVICE,
 	RADV_SC_TYPE_COUNT
 };
@@ -648,7 +653,7 @@ struct radv_meta_state {
 
 	struct {
 		VkPipelineLayout                          p_layout;
-		VkPipeline                                decompress_pipeline;
+		VkPipeline                                decompress_pipeline[NUM_DEPTH_DECOMPRESS_PIPELINES];
 		VkPipeline                                resummarize_pipeline;
 		VkRenderPass                              pass;
 	} depth_decomp[MAX_SAMPLES_LOG2];
@@ -708,8 +713,10 @@ struct radv_queue {
 	int queue_idx;
 	VkDeviceQueueCreateFlags flags;
 
-	uint32_t scratch_size;
-	uint32_t compute_scratch_size;
+	uint32_t scratch_size_per_wave;
+	uint32_t scratch_waves;
+	uint32_t compute_scratch_size_per_wave;
+	uint32_t compute_scratch_waves;
 	uint32_t esgs_ring_size;
 	uint32_t gsvs_ring_size;
 	bool has_tess_rings;
@@ -739,9 +746,18 @@ struct radv_bo_list {
 };
 
 struct radv_secure_compile_process {
-	/* Secure process file descriptors */
+	/* Secure process file descriptors. Used to communicate between the
+	 * user facing device and the idle forked device used to fork a clean
+	 * process for each new pipeline compile.
+	 */
 	int fd_secure_input;
 	int fd_secure_output;
+
+	/* FIFO file descriptors used to communicate between the user facing
+	 * device and the secure process that does the actual secure compile.
+	 */
+	int fd_server;
+	int fd_client;
 
 	/* Secure compile process id */
 	pid_t sc_pid;
@@ -754,6 +770,9 @@ struct radv_secure_compile_state {
 	struct radv_secure_compile_process *secure_compile_processes;
 	uint32_t secure_compile_thread_counter;
 	mtx_t secure_compile_mutex;
+
+	/* Unique process ID used to build name for FIFO file descriptor */
+	char *uid;
 };
 
 struct radv_device {
@@ -1305,8 +1324,10 @@ struct radv_cmd_buffer {
 
 	struct radv_cmd_buffer_upload upload;
 
-	uint32_t scratch_size_needed;
-	uint32_t compute_scratch_size_needed;
+	uint32_t scratch_size_per_wave_needed;
+	uint32_t scratch_waves_wanted;
+	uint32_t compute_scratch_size_per_wave_needed;
+	uint32_t compute_scratch_waves_wanted;
 	uint32_t esgs_ring_size_needed;
 	uint32_t gsvs_ring_size_needed;
 	bool tess_rings_needed;
@@ -1500,12 +1521,11 @@ struct radv_shader_module;
 
 #define RADV_HASH_SHADER_IS_GEOM_COPY_SHADER (1 << 0)
 #define RADV_HASH_SHADER_SISCHED             (1 << 1)
-#define RADV_HASH_SHADER_UNSAFE_MATH         (1 << 2)
-#define RADV_HASH_SHADER_NO_NGG              (1 << 3)
-#define RADV_HASH_SHADER_CS_WAVE32           (1 << 4)
-#define RADV_HASH_SHADER_PS_WAVE32           (1 << 5)
-#define RADV_HASH_SHADER_GE_WAVE32           (1 << 6)
-#define RADV_HASH_SHADER_ACO                 (1 << 7)
+#define RADV_HASH_SHADER_NO_NGG              (1 << 2)
+#define RADV_HASH_SHADER_CS_WAVE32           (1 << 3)
+#define RADV_HASH_SHADER_PS_WAVE32           (1 << 4)
+#define RADV_HASH_SHADER_GE_WAVE32           (1 << 5)
+#define RADV_HASH_SHADER_ACO                 (1 << 6)
 
 void
 radv_hash_shaders(unsigned char *hash,
@@ -2278,21 +2298,18 @@ struct radv_fence {
 };
 
 /* radv_nir_to_llvm.c */
-struct radv_shader_info;
-struct radv_nir_compiler_options;
+struct radv_shader_args;
 
 void radv_compile_gs_copy_shader(struct ac_llvm_compiler *ac_llvm,
 				 struct nir_shader *geom_shader,
 				 struct radv_shader_binary **rbinary,
-				 struct radv_shader_info *info,
-				 const struct radv_nir_compiler_options *option);
+				 const struct radv_shader_args *args);
 
 void radv_compile_nir_shader(struct ac_llvm_compiler *ac_llvm,
 			     struct radv_shader_binary **rbinary,
-			     struct radv_shader_info *info,
+			     const struct radv_shader_args *args,
 			     struct nir_shader *const *nir,
-			     int nir_count,
-			     const struct radv_nir_compiler_options *options);
+			     int nir_count);
 
 unsigned radv_nir_get_max_workgroup_size(enum chip_class chip_class,
 					 gl_shader_stage stage,

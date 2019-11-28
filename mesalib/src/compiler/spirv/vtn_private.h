@@ -537,7 +537,6 @@ struct vtn_image_pointer {
 };
 
 struct vtn_sampled_image {
-   struct vtn_type *type;
    struct vtn_pointer *image; /* Image or array of images */
    struct vtn_pointer *sampler; /* Sampler */
 };

@@ -55,7 +55,7 @@ st_choose_format(struct st_context *st, GLenum internalFormat,
                  GLenum format, GLenum type,
                  enum pipe_texture_target target, unsigned sample_count,
                  unsigned storage_sample_count,
-                 unsigned bindings, boolean allow_dxt);
+                 unsigned bindings, bool swap_bytes, bool allow_dxt);
 
 extern enum pipe_format
 st_choose_renderbuffer_format(struct st_context *st,

@@ -156,8 +156,6 @@ static uint32_t get_hash_flags(struct radv_device *device)
 {
 	uint32_t hash_flags = 0;
 
-	if (device->instance->debug_flags & RADV_DEBUG_UNSAFE_MATH)
-		hash_flags |= RADV_HASH_SHADER_UNSAFE_MATH;
 	if (device->instance->debug_flags & RADV_DEBUG_NO_NGG)
 		hash_flags |= RADV_HASH_SHADER_NO_NGG;
 	if (device->instance->perftest_flags & RADV_PERFTEST_SISCHED)
@@ -182,7 +180,8 @@ radv_pipeline_scratch_init(struct radv_device *device,
 	unsigned min_waves = 1;
 
 	for (int i = 0; i < MESA_SHADER_STAGES; ++i) {
-		if (pipeline->shaders[i]) {
+		if (pipeline->shaders[i] &&
+		    pipeline->shaders[i]->config.scratch_bytes_per_wave) {
 			unsigned max_stage_waves = device->scratch_waves;
 
 			scratch_bytes_per_wave = MAX2(scratch_bytes_per_wave,
@@ -202,14 +201,6 @@ radv_pipeline_scratch_init(struct radv_device *device,
 		min_waves = MAX2(min_waves, round_up_u32(group_size, 64));
 	}
 
-	if (scratch_bytes_per_wave)
-		max_waves = MIN2(max_waves, 0xffffffffu / scratch_bytes_per_wave);
-
-	if (scratch_bytes_per_wave && max_waves < min_waves) {
-		/* Not really true at this moment, but will be true on first
-		 * execution. Avoid having hanging shaders. */
-		return vk_error(device->instance, VK_ERROR_OUT_OF_DEVICE_MEMORY);
-	}
 	pipeline->scratch_bytes_per_wave = scratch_bytes_per_wave;
 	pipeline->max_waves = max_waves;
 	return VK_SUCCESS;
@@ -1108,15 +1099,32 @@ radv_pipeline_init_multisample_state(struct radv_pipeline *pipeline,
 	int ps_iter_samples = 1;
 	uint32_t mask = 0xffff;
 
-	if (vkms)
+	if (vkms) {
 		ms->num_samples = vkms->rasterizationSamples;
-	else
-		ms->num_samples = 1;
 
-	if (vkms)
-		ps_iter_samples = radv_pipeline_get_ps_iter_samples(vkms);
-	if (vkms && !vkms->sampleShadingEnable && pipeline->shaders[MESA_SHADER_FRAGMENT]->info.ps.force_persample) {
-		ps_iter_samples = ms->num_samples;
+		/* From the Vulkan 1.1.129 spec, 26.7. Sample Shading:
+		 *
+		 * "Sample shading is enabled for a graphics pipeline:
+		 *
+		 * - If the interface of the fragment shader entry point of the
+		 *   graphics pipeline includes an input variable decorated
+		 *   with SampleId or SamplePosition. In this case
+		 *   minSampleShadingFactor takes the value 1.0.
+		 * - Else if the sampleShadingEnable member of the
+		 *   VkPipelineMultisampleStateCreateInfo structure specified
+		 *   when creating the graphics pipeline is set to VK_TRUE. In
+		 *   this case minSampleShadingFactor takes the value of
+		 *   VkPipelineMultisampleStateCreateInfo::minSampleShading.
+		 *
+		 * Otherwise, sample shading is considered disabled."
+		 */
+		if (pipeline->shaders[MESA_SHADER_FRAGMENT]->info.ps.force_persample) {
+			ps_iter_samples = ms->num_samples;
+		} else {
+			ps_iter_samples = radv_pipeline_get_ps_iter_samples(vkms);
+		}
+	} else {
+		ms->num_samples = 1;
 	}
 
 	const struct VkPipelineRasterizationStateRasterizationOrderAMD *raster_order =
@@ -4483,10 +4491,6 @@ radv_pipeline_generate_pm4(struct radv_pipeline *pipeline,
 	if (pipeline->device->physical_device->rad_info.chip_class >= GFX10 && !radv_pipeline_has_ngg(pipeline))
 		gfx10_pipeline_generate_ge_cntl(ctx_cs, pipeline, tess);
 
-	radeon_set_context_reg(ctx_cs, R_0286E8_SPI_TMPRING_SIZE,
-			       S_0286E8_WAVES(pipeline->max_waves) |
-			       S_0286E8_WAVESIZE(pipeline->scratch_bytes_per_wave >> 10));
-
 	radeon_set_context_reg(ctx_cs, R_028B54_VGT_SHADER_STAGES_EN, radv_compute_vgt_shader_stages_en(pipeline));
 
 	if (pipeline->device->physical_device->rad_info.chip_class >= GFX7) {
@@ -4721,8 +4725,19 @@ radv_secure_compile(struct radv_pipeline *pipeline,
 	int fd_secure_input = device->sc_state->secure_compile_processes[process].fd_secure_input;
 	int fd_secure_output = device->sc_state->secure_compile_processes[process].fd_secure_output;
 
+	/* Fork a copy of the slim untainted secure compile process */
+	enum radv_secure_compile_type sc_type = RADV_SC_TYPE_FORK_DEVICE;
+	write(fd_secure_input, &sc_type, sizeof(sc_type));
+
+	if (!radv_sc_read(fd_secure_output, &sc_type, sizeof(sc_type), true) ||
+	    sc_type != RADV_SC_TYPE_INIT_SUCCESS)
+		return VK_ERROR_DEVICE_LOST;
+
+	fd_secure_input = device->sc_state->secure_compile_processes[process].fd_server;
+	fd_secure_output = device->sc_state->secure_compile_processes[process].fd_client;
+
 	/* Write pipeline / shader module out to secure process via pipe */
-	enum radv_secure_compile_type sc_type = RADV_SC_TYPE_COMPILE_PIPELINE;
+	sc_type = RADV_SC_TYPE_COMPILE_PIPELINE;
 	write(fd_secure_input, &sc_type, sizeof(sc_type));
 
 	/* Write pipeline layout out to secure process */
@@ -4830,6 +4845,9 @@ radv_secure_compile(struct radv_pipeline *pipeline,
 			free(entry);
 		}
 	}
+
+	sc_type = RADV_SC_TYPE_DESTROY_DEVICE;
+	write(fd_secure_input, &sc_type, sizeof(sc_type));
 
 	mtx_lock(&device->sc_state->secure_compile_mutex);
 	device->sc_state->secure_compile_thread_counter--;
@@ -5073,10 +5091,6 @@ radv_compute_generate_pm4(struct radv_pipeline *pipeline)
 	if (device->physical_device->rad_info.chip_class >= GFX10) {
 		radeon_set_sh_reg(&pipeline->cs, R_00B8A0_COMPUTE_PGM_RSRC3, compute_shader->config.rsrc3);
 	}
-
-	radeon_set_sh_reg(&pipeline->cs, R_00B860_COMPUTE_TMPRING_SIZE,
-			  S_00B860_WAVES(pipeline->max_waves) |
-			  S_00B860_WAVESIZE(pipeline->scratch_bytes_per_wave >> 10));
 
 	/* Calculate best compute resource limits. */
 	threads_per_threadgroup = compute_shader->info.cs.block_size[0] *
@@ -5335,6 +5349,7 @@ VkResult radv_GetPipelineExecutablePropertiesKHR(
 			break;
 		}
 
+		pProperties[executable_idx].subgroupSize = pipeline->shaders[i]->info.wave_size;
 		desc_copy(pProperties[executable_idx].name, name);
 		desc_copy(pProperties[executable_idx].description, description);
 
@@ -5346,6 +5361,7 @@ VkResult radv_GetPipelineExecutablePropertiesKHR(
 				break;
 
 			pProperties[executable_idx].stages = VK_SHADER_STAGE_GEOMETRY_BIT;
+			pProperties[executable_idx].subgroupSize = 64;
 			desc_copy(pProperties[executable_idx].name, "GS Copy Shader");
 			desc_copy(pProperties[executable_idx].description,
 				  "Extra shader stage that loads the GS output ringbuffer into the rasterizer");
@@ -5353,9 +5369,6 @@ VkResult radv_GetPipelineExecutablePropertiesKHR(
 			++executable_idx;
 		}
 	}
-
-	for (unsigned i = 0; i < count; ++i)
-		pProperties[i].subgroupSize = 64;
 
 	VkResult result = *pExecutableCount < total_count ? VK_INCOMPLETE : VK_SUCCESS;
 	*pExecutableCount = count;

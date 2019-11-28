@@ -41,27 +41,37 @@ struct tu_blit_surf {
    uint32_t x, y;
    uint32_t width, height;
    unsigned samples;
+   uint64_t ubwc_va;
+   uint32_t ubwc_pitch;
+   uint32_t ubwc_size;
 };
 
 static inline struct tu_blit_surf
-tu_blit_surf(struct tu_image *img,
+tu_blit_surf(struct tu_image *image,
              VkImageSubresourceLayers subres,
              const VkOffset3D *offsets)
 {
+   unsigned layer = subres.baseArrayLayer;
+   if (image->type == VK_IMAGE_TYPE_3D) {
+      assert(layer == 0);
+      layer = MIN2(offsets[0].z, offsets[1].z);
+   }
+
    return (struct tu_blit_surf) {
-      .fmt = img->vk_format,
-      .tile_mode = tu6_get_image_tile_mode(img, subres.mipLevel),
-      .tiled = img->tile_mode != TILE6_LINEAR,
-      .va = img->bo->iova + img->bo_offset + img->levels[subres.mipLevel].offset +
-            subres.baseArrayLayer * img->layer_size +
-            MIN2(offsets[0].z, offsets[1].z) * img->levels[subres.mipLevel].size,
-      .pitch = img->levels[subres.mipLevel].pitch * vk_format_get_blocksize(img->vk_format) * img->samples,
-      .layer_size = img->type == VK_IMAGE_TYPE_3D ? img->levels[subres.mipLevel].size : img->layer_size,
+      .fmt = image->vk_format,
+      .tile_mode = tu6_get_image_tile_mode(image, subres.mipLevel),
+      .tiled = image->tile_mode != TILE6_LINEAR,
+      .va = tu_image_base(image, subres.mipLevel, layer),
+      .pitch = tu_image_stride(image, subres.mipLevel),
+      .layer_size = tu_layer_size(image, subres.mipLevel),
       .x = MIN2(offsets[0].x, offsets[1].x),
       .y = MIN2(offsets[0].y, offsets[1].y),
       .width = abs(offsets[1].x - offsets[0].x),
       .height = abs(offsets[1].y - offsets[0].y),
-      .samples = img->samples,
+      .samples = image->samples,
+      .ubwc_va = tu_image_ubwc_base(image, subres.mipLevel, layer),
+      .ubwc_pitch = tu_image_ubwc_pitch(image, subres.mipLevel),
+      .ubwc_size = tu_image_ubwc_size(image, subres.mipLevel),
    };
 }
 
@@ -79,12 +89,24 @@ tu_blit_surf_ext(struct tu_image *image,
 }
 
 static inline struct tu_blit_surf
-tu_blit_surf_whole(struct tu_image *image)
+tu_blit_surf_whole(struct tu_image *image, int level, int layer)
 {
-   return tu_blit_surf(image, (VkImageSubresourceLayers){}, (VkOffset3D[]) {
-      {}, {image->extent.width, image->extent.height}
+   return tu_blit_surf(image, (VkImageSubresourceLayers){
+      .mipLevel = level,
+      .baseArrayLayer = layer,
+   }, (VkOffset3D[]) {
+      {}, {
+         u_minify(image->extent.width, level),
+         u_minify(image->extent.height, level),
+      }
    });
 }
+
+enum tu_blit_type {
+   TU_BLIT_DEFAULT,
+   TU_BLIT_COPY,
+   TU_BLIT_CLEAR,
+};
 
 struct tu_blit {
    struct tu_blit_surf dst;
@@ -93,8 +115,10 @@ struct tu_blit {
    bool filter;
    bool stencil_read;
    enum a6xx_rotation rotation;
+   uint32_t clear_value[4];
+   enum tu_blit_type type;
 };
 
-void tu_blit(struct tu_cmd_buffer *cmdbuf, struct tu_blit *blt, bool copy);
+void tu_blit(struct tu_cmd_buffer *cmdbuf, struct tu_blit *blt);
 
 #endif /* TU_BLIT_H */

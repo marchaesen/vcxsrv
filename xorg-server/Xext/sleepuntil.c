@@ -125,8 +125,7 @@ ClientSleepUntil(ClientPtr client,
 static void
 ClientAwaken(ClientPtr client, void *closure)
 {
-    if (!client->clientGone)
-        AttendClient(client);
+    AttendClient(client);
 }
 
 static int

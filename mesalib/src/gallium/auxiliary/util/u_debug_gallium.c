@@ -30,7 +30,7 @@
 #include "util/u_debug.h"
 #include "u_debug_gallium.h"
 #include "u_dump.h"
-#include "u_format.h"
+#include "util/format/u_format.h"
 
 #ifdef DEBUG
 

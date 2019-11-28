@@ -91,6 +91,7 @@ static bool match_layout_qualifier(const char *s1, const char *s2,
    @$.last_line = 1;
    @$.last_column = 1;
    @$.source = 0;
+   @$.path = NULL;
 }
 
 %lex-param   {struct _mesa_glsl_parse_state *state}

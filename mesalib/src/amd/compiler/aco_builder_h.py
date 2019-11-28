@@ -283,10 +283,10 @@ public:
       }
    }
 
-   Result vadd32(Definition dst, Op a, Op b, bool carry_out=false, Op carry_in=Op(Operand(s2))) {
+   Result vadd32(Definition dst, Op a, Op b, bool carry_out=false, Op carry_in=Op(Operand(s2)), bool post_ra=false) {
       if (!b.op.isTemp() || b.op.regClass().type() != RegType::vgpr)
          std::swap(a, b);
-      assert(b.op.isTemp() && b.op.regClass().type() == RegType::vgpr);
+      assert((post_ra || b.op.hasRegClass()) && b.op.regClass().type() == RegType::vgpr);
 
       if (!carry_in.op.isUndefined())
          return vop2(aco_opcode::v_addc_co_u32, Definition(dst), hint_vcc(def(s2)), a, b, carry_in);

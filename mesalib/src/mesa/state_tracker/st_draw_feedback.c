@@ -136,7 +136,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
       vbo_get_minmax_indices(ctx, prims, ib, &min_index, &max_index, nr_prims);
 
    /* must get these after state validation! */
-   vp = st->vp;
+   vp = (struct st_vertex_program *)st->vp;
    vp_variant = st->vp_variant;
 
    struct pipe_shader_state state = {0};

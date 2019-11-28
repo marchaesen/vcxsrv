@@ -77,6 +77,7 @@ struct prog_instruction;
 struct gl_program_parameter_list;
 struct gl_shader_spirv_data;
 struct set;
+struct shader_includes;
 struct vbo_context;
 /*@}*/
 
@@ -3193,6 +3194,9 @@ struct gl_shader_compiler_options
    /** Clamp UBO and SSBO block indices so they don't go out-of-bounds. */
    GLboolean ClampBlockIndicesToArrayBounds;
 
+   /** (driconf) Force gl_Position to be considered invariant */
+   GLboolean PositionAlwaysInvariant;
+
    const struct nir_shader_compiler_options *NirOptions;
 };
 
@@ -3321,6 +3325,13 @@ struct gl_shared_state
    struct hash_table_u64 *TextureHandles;
    struct hash_table_u64 *ImageHandles;
    mtx_t HandlesMutex; /**< For texture/image handles safety */
+
+   /* GL_ARB_shading_language_include */
+   struct shader_includes *ShaderIncludes;
+   /* glCompileShaderInclude expects ShaderIncludes not to change while it is
+    * in progress.
+    */
+   mtx_t ShaderIncludeMutex;
 
    /**
     * Some context in this share group was affected by a GPU reset

@@ -101,6 +101,8 @@ libradv_files = files(
   'radv_radeon_winsys.h',
   'radv_shader.c',
   'radv_shader.h',
+  'radv_shader_args.c',
+  'radv_shader_args.h',
   'radv_shader_helper.h',
   'radv_shader_info.c',
   'radv_query.c',

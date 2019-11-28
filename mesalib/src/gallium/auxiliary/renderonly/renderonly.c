@@ -33,7 +33,7 @@
 
 #include "state_tracker/drm_driver.h"
 #include "pipe/p_screen.h"
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 #include "util/u_inlines.h"
 #include "util/u_memory.h"
 
@@ -55,7 +55,7 @@ void
 renderonly_scanout_destroy(struct renderonly_scanout *scanout,
 			   struct renderonly *ro)
 {
-   struct drm_mode_destroy_dumb destroy_dumb = { };
+   struct drm_mode_destroy_dumb destroy_dumb = {0};
 
    if (ro->kms_fd != -1) {
       destroy_dumb.handle = scanout->handle;
@@ -76,7 +76,7 @@ renderonly_create_kms_dumb_buffer_for_resource(struct pipe_resource *rsc,
       .height = rsc->height0,
       .bpp = util_format_get_blocksizebits(rsc->format),
    };
-   struct drm_mode_destroy_dumb destroy_dumb = { };
+   struct drm_mode_destroy_dumb destroy_dumb = {0};
 
    scanout = CALLOC_STRUCT(renderonly_scanout);
    if (!scanout)

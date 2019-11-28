@@ -98,10 +98,10 @@ get_texture_target(struct gl_context *ctx, const unsigned unit)
 void
 st_update_fp( struct st_context *st )
 {
-   struct st_common_program *stfp;
+   struct st_program *stfp;
 
    assert(st->ctx->FragmentProgram._Current);
-   stfp = st_common_program(st->ctx->FragmentProgram._Current);
+   stfp = st_program(st->ctx->FragmentProgram._Current);
    assert(stfp->Base.Target == GL_FRAGMENT_PROGRAM_ARB);
 
    void *shader;
@@ -109,10 +109,10 @@ st_update_fp( struct st_context *st )
    if (st->shader_has_one_variant[MESA_SHADER_FRAGMENT] &&
        !stfp->ati_fs && /* ATI_fragment_shader always has multiple variants */
        !stfp->Base.ExternalSamplersUsed && /* external samplers need variants */
-       stfp->fp_variants &&
-       !stfp->fp_variants->key.drawpixels &&
-       !stfp->fp_variants->key.bitmap) {
-      shader = stfp->fp_variants->driver_shader;
+       stfp->variants &&
+       !st_fp_variant(stfp->variants)->key.drawpixels &&
+       !st_fp_variant(stfp->variants)->key.bitmap) {
+      shader = stfp->variants->driver_shader;
    } else {
       struct st_fp_variant_key key;
 
@@ -160,7 +160,7 @@ st_update_fp( struct st_context *st )
 
       key.external = st_get_external_sampler_key(st, &stfp->Base);
 
-      shader = st_get_fp_variant(st, stfp, &key)->driver_shader;
+      shader = st_get_fp_variant(st, stfp, &key)->base.driver_shader;
    }
 
    st_reference_prog(st, &st->fp, stfp);
@@ -176,19 +176,19 @@ st_update_fp( struct st_context *st )
 void
 st_update_vp( struct st_context *st )
 {
-   struct st_vertex_program *stvp;
+   struct st_program *stvp;
 
    /* find active shader and params -- Should be covered by
     * ST_NEW_VERTEX_PROGRAM
     */
    assert(st->ctx->VertexProgram._Current);
-   stvp = st_vertex_program(st->ctx->VertexProgram._Current);
+   stvp = st_program(st->ctx->VertexProgram._Current);
    assert(stvp->Base.Target == GL_VERTEX_PROGRAM_ARB);
 
    if (st->shader_has_one_variant[MESA_SHADER_VERTEX] &&
        stvp->variants &&
-       stvp->variants->key.passthrough_edgeflags == st->vertdata_edgeflags) {
-      st->vp_variant = stvp->variants;
+       st_vp_variant(stvp->variants)->key.passthrough_edgeflags == st->vertdata_edgeflags) {
+      st->vp_variant = st_vp_variant(stvp->variants);
    } else {
       struct st_common_variant_key key;
 
@@ -233,25 +233,25 @@ st_update_vp( struct st_context *st )
       st->vp_variant = st_get_vp_variant(st, stvp, &key);
    }
 
-   st_reference_vertprog(st, &st->vp, stvp);
+   st_reference_prog(st, &st->vp, stvp);
 
    cso_set_vertex_shader_handle(st->cso_context, 
-                                st->vp_variant->driver_shader);
+                                st->vp_variant->base.driver_shader);
 }
 
 
 static void *
 st_update_common_program(struct st_context *st, struct gl_program *prog,
-                         unsigned pipe_shader, struct st_common_program **dst)
+                         unsigned pipe_shader, struct st_program **dst)
 {
-   struct st_common_program *stp;
+   struct st_program *stp;
 
    if (!prog) {
       st_reference_prog(st, dst, NULL);
       return NULL;
    }
 
-   stp = st_common_program(prog);
+   stp = st_program(prog);
    st_reference_prog(st, dst, stp);
 
    if (st->shader_has_one_variant[prog->info.stage] && stp->variants)
