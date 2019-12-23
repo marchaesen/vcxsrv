@@ -1186,7 +1186,6 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<reg32 offset="0x2243" name="VFD_INDEX_MAX" type="uint"/>
 	<reg32 offset="0x2244" name="VFD_INSTANCEID_OFFSET" type="uint"/>
 	<reg32 offset="0x2245" name="VFD_INDEX_OFFSET" type="uint"/>
-	<reg32 offset="0x2245" name="VFD_INDEX_OFFSET" type="uint"/>
 	<array offset="0x2246" name="VFD_FETCH" stride="2" length="16">
 		<reg32 offset="0x0" name="INSTR_0">
 			<bitfield name="FETCHSIZE" low="0" high="6" type="uint"/>

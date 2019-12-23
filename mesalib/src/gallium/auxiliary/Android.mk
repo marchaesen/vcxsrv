@@ -74,3 +74,14 @@ LOCAL_GENERATED_SOURCES += $(MESA_GEN_NIR_H)
 
 include $(GALLIUM_COMMON_MK)
 include $(BUILD_STATIC_LIBRARY)
+
+# Build libmesa_galliumvl used by radeonsi
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := \
+	$(VL_SOURCES)
+
+LOCAL_MODULE := libmesa_galliumvl
+
+include $(GALLIUM_COMMON_MK)
+include $(BUILD_STATIC_LIBRARY)

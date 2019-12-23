@@ -24,18 +24,30 @@
  * SOFTWARE.
  */
 
-#include "xwayland.h"
+#include <xwayland-config.h>
 
 #include <linux/input.h>
-
 #include <sys/mman.h>
+
+#include <inputstr.h>
+#include <exevents.h>
 #include <xkbsrv.h>
 #include <xserver-properties.h>
 #include <inpututils.h>
+#include <mi.h>
 #include <mipointer.h>
 #include <mipointrst.h>
 #include <misc.h>
+
+#include "xwayland-cursor.h"
+#include "xwayland-input.h"
+#include "xwayland-window.h"
+#include "xwayland-screen.h"
+
+#include "pointer-constraints-unstable-v1-client-protocol.h"
+#include "relative-pointer-unstable-v1-client-protocol.h"
 #include "tablet-unstable-v2-client-protocol.h"
+#include "xwayland-keyboard-grab-unstable-v1-client-protocol.h"
 
 struct axis_discrete_pending {
     struct xorg_list l;

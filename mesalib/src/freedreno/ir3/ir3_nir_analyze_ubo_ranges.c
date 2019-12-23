@@ -246,6 +246,9 @@ ir3_nir_analyze_ubo_ranges(nir_shader *nir, struct ir3_shader *shader)
 			state->range[i].end = state->range[i].start + range_size;
 		}
 		offset += range_size;
+
+		if (state->range[i].start < state->range[i].end)
+			state->enabled |= 1 << i;
 	}
 	state->size = offset;
 

@@ -27,10 +27,7 @@
  *
  */
 
-#include "xwayland.h"
-
-#include "wayland-eglstream-client-protocol.h"
-#include "wayland-eglstream-controller-client-protocol.h"
+#include <xwayland-config.h>
 
 #define MESA_EGL_NO_X11_HEADERS
 #define EGL_NO_X11
@@ -42,6 +39,13 @@
 #include <xf86drm.h>
 
 #include <epoxy/egl.h>
+
+#include "xwayland-glamor.h"
+#include "xwayland-pixmap.h"
+#include "xwayland-screen.h"
+
+#include "wayland-eglstream-client-protocol.h"
+#include "wayland-eglstream-controller-client-protocol.h"
 
 struct xwl_eglstream_pending_stream {
     PixmapPtr pixmap;
@@ -305,9 +309,10 @@ xwl_glamor_eglstream_destroy_pixmap(PixmapPtr pixmap)
 {
     struct xwl_pixmap *xwl_pixmap = xwl_pixmap_get(pixmap);
 
-    if (xwl_pixmap && pixmap->refcnt == 1)
+    if (xwl_pixmap && pixmap->refcnt == 1) {
+        xwl_pixmap_del_buffer_release_cb(pixmap);
         xwl_eglstream_unref_pixmap_stream(xwl_pixmap);
-
+    }
     return glamor_destroy_pixmap(pixmap);
 }
 
@@ -475,7 +480,10 @@ xwl_eglstream_queue_pending_stream(struct xwl_screen *xwl_screen,
 static void
 xwl_eglstream_buffer_release_callback(void *data, struct wl_buffer *wl_buffer)
 {
-    xwl_eglstream_unref_pixmap_stream(data);
+    struct xwl_pixmap *xwl_pixmap = xwl_pixmap_get(data);
+
+    xwl_pixmap_buffer_release_cb(data, wl_buffer);
+    xwl_eglstream_unref_pixmap_stream(xwl_pixmap);
 }
 
 static const struct wl_buffer_listener xwl_eglstream_buffer_release_listener = {
@@ -517,7 +525,7 @@ xwl_eglstream_create_pending_stream(struct xwl_screen *xwl_screen,
 
     wl_buffer_add_listener(xwl_pixmap->buffer,
                            &xwl_eglstream_buffer_release_listener,
-                           xwl_pixmap);
+                           pixmap);
 
     wl_eglstream_controller_attach_eglstream_consumer(
         xwl_eglstream->controller, xwl_window->surface, xwl_pixmap->buffer);

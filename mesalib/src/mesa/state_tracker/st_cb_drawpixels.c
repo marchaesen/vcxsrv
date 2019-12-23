@@ -722,11 +722,11 @@ make_texture(struct st_context *st,
       ctx->_ImageTransferState = imageTransferStateSave;
    }
 
-   _mesa_unmap_pbo_source(ctx, unpack);
-
 #if USE_DRAWPIXELS_CACHE
    cache_drawpixels_image(st, width, height, format, type, unpack, pixels, pt);
 #endif
+
+   _mesa_unmap_pbo_source(ctx, unpack);
 
    return pt;
 }

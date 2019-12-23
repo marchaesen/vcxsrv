@@ -73,6 +73,7 @@ static void print_instr_name(struct ir3_instruction *instr, bool flags)
 	printf("%04u:", instr->name);
 	printf("%04u:", instr->ip);
 	printf("%03d:", instr->depth);
+	printf("%03u: ", instr->use_count);
 
 	if (flags) {
 		printf("\t");
@@ -289,7 +290,7 @@ print_block(struct ir3_block *block, int lvl)
 		printf("\n");
 	}
 
-	list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
+	foreach_instr (instr, &block->instr_list) {
 		print_instr(instr, lvl+1);
 	}
 
@@ -318,7 +319,7 @@ print_block(struct ir3_block *block, int lvl)
 void
 ir3_print(struct ir3 *ir)
 {
-	list_for_each_entry (struct ir3_block, block, &ir->block_list, node)
+	foreach_block (block, &ir->block_list)
 		print_block(block, 0);
 
 	struct ir3_instruction *out;

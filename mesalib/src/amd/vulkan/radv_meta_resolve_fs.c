@@ -608,7 +608,12 @@ create_depth_stencil_resolve_pipeline(struct radv_device *device,
 			.cullMode = VK_CULL_MODE_NONE,
 			.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE
 		},
-		.pMultisampleState = NULL,
+		.pMultisampleState = &(VkPipelineMultisampleStateCreateInfo) {
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+			.rasterizationSamples = 1,
+			.sampleShadingEnable = false,
+			.pSampleMask = (VkSampleMask[]) { UINT32_MAX },
+		},
 		.pColorBlendState = &(VkPipelineColorBlendStateCreateInfo) {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
 			.attachmentCount = 0,

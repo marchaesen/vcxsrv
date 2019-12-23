@@ -125,6 +125,8 @@ void setup_reduce_temp(Program* program)
             need_vtmp = true;
          if (program->chip_class >= GFX10 && op == iadd64)
             need_vtmp = true;
+         if (program->chip_class <= GFX7)
+            need_vtmp = true;
 
          need_vtmp |= cluster_size == 32;
 
@@ -153,7 +155,7 @@ void setup_reduce_temp(Program* program)
          instr->definitions[1] = bld.def(s2);
 
          /* scalar identity temporary */
-         bool need_sitmp = program->chip_class >= GFX10 && cluster_size == 64;
+         bool need_sitmp = (program->chip_class <= GFX7 || program->chip_class >= GFX10) && instr->opcode != aco_opcode::p_reduce;
          if (instr->opcode == aco_opcode::p_exclusive_scan) {
             need_sitmp |=
                (op == imin32 || op == imin64 || op == imax32 || op == imax64 ||
@@ -172,7 +174,7 @@ void setup_reduce_temp(Program* program)
             clobber_vcc = true;
 
          if (clobber_vcc)
-            instr->definitions[4] = Definition(vcc, s2);
+            instr->definitions[4] = Definition(vcc, bld.lm);
       }
    }
 }

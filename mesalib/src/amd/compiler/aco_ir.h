@@ -324,8 +324,6 @@ public:
          setFixed(PhysReg{246});
       else if (v == 0xc0800000) /* -4.0 */
          setFixed(PhysReg{247});
-      else if (v == 0x3e22f983) /* 1/(2*PI) */
-         setFixed(PhysReg{248});
       else /* Literal Constant */
          setFixed(PhysReg{255});
    };
@@ -353,8 +351,6 @@ public:
          setFixed(PhysReg{246});
       else if (v == 0xC010000000000000) /* -4.0 */
          setFixed(PhysReg{247});
-      else if (v == 0x3fc45f306dc9c882) /* 1/(2*PI) */
-         setFixed(PhysReg{248});
       else { /* Literal Constant: we don't know if it is a long or double.*/
          isConstant_ = 0;
          assert(false && "attempt to create a 64-bit literal constant");
@@ -850,6 +846,9 @@ struct FLAT_instruction : public Instruction {
    bool dlc; /* NAVI: device level coherent */
    bool lds;
    bool nv;
+   bool disable_wqm; /* Require an exec mask without helper invocations */
+   bool can_reorder;
+   barrier_interaction barrier;
 };
 
 struct Export_instruction : public Instruction {
@@ -971,7 +970,8 @@ constexpr barrier_interaction get_barrier_interaction(Instruction* instr)
       return static_cast<MIMG_instruction*>(instr)->barrier;
    case Format::FLAT:
    case Format::GLOBAL:
-      return barrier_buffer;
+   case Format::SCRATCH:
+      return static_cast<FLAT_instruction*>(instr)->barrier;
    case Format::DS:
       return barrier_shared;
    default:
@@ -1145,6 +1145,7 @@ public:
    enum chip_class chip_class;
    enum radeon_family family;
    unsigned wave_size;
+   RegClass lane_mask;
    Stage stage; /* Stage */
    bool needs_exact = false; /* there exists an instruction with disable_wqm = true */
    bool needs_wqm = false; /* there exists a p_wqm instruction */
@@ -1160,6 +1161,7 @@ public:
    uint16_t sgpr_limit;
    uint16_t physical_sgprs;
    uint16_t sgpr_alloc_granule; /* minus one. must be power of two */
+   uint16_t vgpr_alloc_granule; /* minus one. must be power of two */
 
    bool needs_vcc = false;
    bool needs_xnack_mask = false;
@@ -1247,13 +1249,16 @@ void aco_print_program(Program *program, FILE *output);
 /* number of sgprs that need to be allocated but might notbe addressable as s0-s105 */
 uint16_t get_extra_sgprs(Program *program);
 
-/* get number of sgprs allocated required to address a number of sgprs */
+/* get number of sgprs/vgprs allocated required to address a number of sgprs/vgprs */
 uint16_t get_sgpr_alloc(Program *program, uint16_t addressable_sgprs);
+uint16_t get_vgpr_alloc(Program *program, uint16_t addressable_vgprs);
 
-/* return number of addressable SGPRs for max_waves */
+/* return number of addressable sgprs/vgprs for max_waves */
 uint16_t get_addr_sgpr_from_waves(Program *program, uint16_t max_waves);
+uint16_t get_addr_vgpr_from_waves(Program *program, uint16_t max_waves);
 
 typedef struct {
+   const int16_t opcode_gfx7[static_cast<int>(aco_opcode::num_opcodes)];
    const int16_t opcode_gfx9[static_cast<int>(aco_opcode::num_opcodes)];
    const int16_t opcode_gfx10[static_cast<int>(aco_opcode::num_opcodes)];
    const std::bitset<static_cast<int>(aco_opcode::num_opcodes)> can_use_input_modifiers;

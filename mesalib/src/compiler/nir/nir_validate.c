@@ -128,8 +128,7 @@ static void validate_src(nir_src *src, validate_state *state,
 static void
 validate_num_components(validate_state *state, unsigned num_components)
 {
-   validate_assert(state, num_components >= 1 &&
-                          num_components <= 4);
+   validate_assert(state, nir_num_components_valid(num_components));
 }
 
 static void

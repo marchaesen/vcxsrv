@@ -10,6 +10,12 @@ timeouts:
       seconds: 30
 priority: 75
 visibility: public
+{% if tags %}
+tags:
+{% for tag in tags %}
+  - {{ tag }}
+{% endfor %}
+{% endif %}
 actions:
 - deploy:
     timeout:

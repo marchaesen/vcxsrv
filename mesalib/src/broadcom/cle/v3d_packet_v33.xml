@@ -289,6 +289,7 @@
     <value name="16-way" value="0"/>
     <value name="8-way" value="1"/>
     <value name="4-way" value="2"/>
+    <value name="1-way" value="3"/>
   </enum>
 
   <enum name="TCS flush mode" prefix="V3D_TCS_FLUSH_MODE">
@@ -1300,24 +1301,39 @@
   </struct>
 
   <struct name="Geometry Shader State Record" min_ver="41">
-    <field name="Geometry Bin Mode Shader Code Address" size="32" start="0b" type="address"/>
-    <field name="4-way threadable" size="1" start="0" type="bool"/>
-    <field name="Start in final thread section" size="1" start="1" type="bool"/>
-    <field name="Propagate NaNs" size="1" start="2" type="bool"/>
+    <field name="Geometry Bin Mode Shader Code Address" size="29" start="3" type="address"/>
+    <field name="Geometry Bin Mode Shader 4-way threadable" size="1" start="0" type="bool"/>
+    <field name="Geometry Bin Mode Shader Start in final thread section" size="1" start="1" type="bool"/>
+    <field name="Geometry Bin Mode Shader Propagate NaNs" size="1" start="2" type="bool"/>
     <field name="Geometry Bin Mode Shader Uniforms Address" size="32" start="4b" type="address"/>
-    <field name="Geometry Render Mode Shader Code Address" size="32" start="8b" type="address"/>
+    <field name="Geometry Render Mode Shader Code Address" size="29" start="67" type="address"/>
+    <field name="Geometry Render Mode Shader 4-way threadable" size="1" start="64" type="bool"/>
+    <field name="Geometry Render Mode Shader Start in final thread section" size="1" start="65" type="bool"/>
+    <field name="Geometry Render Mode Shader Propagate NaNs" size="1" start="66" type="bool"/>
     <field name="Geometry Render Mode Shader Uniforms Address" size="32" start="12b" type="address"/>
   </struct>
 
   <struct name="Tessellation Shader State Record" min_ver="41">
-    <field name="Tessellation Bin Mode Control Shader Code Address" size="32" start="0b" type="address"/>
+    <field name="Tessellation Bin Mode Control Shader Code Address" size="29" start="3" type="address"/>
+    <field name="Tessellation Bin Mode Control Shader 4-way threadable" size="1" start="0" type="bool"/>
+    <field name="Tessellation Bin Mode Control Shader Start in final thread section" size="1" start="1" type="bool"/>
+    <field name="Tessellation Bin Mode Control Shader Propagate NaNs" size="1" start="2" type="bool"/>
     <field name="Tessellation Bin Mode Control Shader Uniforms Address" size="32" start="4b" type="address"/>
-    <field name="Tessellation Render Mode Control Shader Code Address" size="32" start="8b" type="address"/>
+    <field name="Tessellation Render Mode Control Shader Code Address" size="29" start="67" type="address"/>
+    <field name="Tessellation Render Mode Control Shader 4-way threadable" size="1" start="64" type="bool"/>
+    <field name="Tessellation Render Mode Control Shader Start in final thread section" size="1" start="65" type="bool"/>
+    <field name="Tessellation Render Mode Control Shader Propagate NaNs" size="1" start="66" type="bool"/>
     <field name="Tessellation Render Mode Control Shader Uniforms Address" size="32" start="12b" type="address"/>
 
-    <field name="Tessellation Bin Mode Evaluation Shader Code Address" size="32" start="16b" type="address"/>
+    <field name="Tessellation Bin Mode Evaluation Shader Code Address" size="29" start="131" type="address"/>
+    <field name="Tessellation Bin Mode Evaluation Shader 4-way threadable" size="1" start="128" type="bool"/>
+    <field name="Tessellation Bin Mode Evaluation Shader Start in final thread section" size="1" start="129" type="bool"/>
+    <field name="Tessellation Bin Mode Evaluation Shader Propagate NaNs" size="1" start="130" type="bool"/>
     <field name="Tessellation Bin Mode Evaluation Shader Uniforms Address" size="32" start="20b" type="address"/>
-    <field name="Tessellation Render Mode Evaluation Shader Code Address" size="32" start="24b" type="address"/>
+    <field name="Tessellation Render Mode Evaluation Shader Code Address" size="29" start="195" type="address"/>
+    <field name="Tessellation Render Mode Evaluation Shader 4-way threadable" size="1" start="192" type="bool"/>
+    <field name="Tessellation Render Mode Evaluation Shader Start in final thread section" size="1" start="193" type="bool"/>
+    <field name="Tessellation Render Mode Evaluation Shader Propagate NaNs" size="1" start="194" type="bool"/>
     <field name="Tessellation Render Mode Evaluation Shader Uniforms Address" size="32" start="28b" type="address"/>
   </struct>
 
@@ -1348,6 +1364,11 @@
 
     <field name="Geometry Shader Instances" size="5" start="19" type="uint"/> <!-- 0 == 32 -->
 
+     <!-- This field should not be filled, but we need it in the struct description so
+          we don't compute an incorrect packet size, since it uses an full byte.
+      -->
+    <field name="Reserved" size="8" start="24" type="uint"/>
+
     <!-- followed by "Tessellation/Geometry Shader Params" for bin, then render -->
   </struct>
 
@@ -1373,7 +1394,7 @@
     <field name="TPG max TCS output segments per TES batch" size="3" start="51" type="uint" minus_one="true"/>
     <field name="TPG min TES output segments required in play" size="3" start="54" type="uint" minus_one="true"/>
     <field name="GBG max TES output/vertex segments per GS batch" size="2" start="57" type="uint"/>
-    <field name="GBG max TES output/vertex segments required in play" size="3" start="59" type="uint" minus_one="true"/>
+    <field name="GBG min GS output segments required in play" size="3" start="59" type="uint" minus_one="true"/>
   </struct>
 
   <struct name="GL Shader State Attribute Record" max_ver="33">

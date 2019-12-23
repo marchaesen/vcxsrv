@@ -392,8 +392,8 @@ vk_format_from_android(unsigned android_format, unsigned android_usage)
 {
 	switch (android_format) {
 	case AHARDWAREBUFFER_FORMAT_R8G8B8A8_UNORM:
-		return VK_FORMAT_R8G8B8A8_UNORM;
 	case AHARDWAREBUFFER_FORMAT_R8G8B8X8_UNORM:
+		return VK_FORMAT_R8G8B8A8_UNORM;
 	case AHARDWAREBUFFER_FORMAT_R8G8B8_UNORM:
 		return VK_FORMAT_R8G8B8_UNORM;
 	case AHARDWAREBUFFER_FORMAT_R5G6B5_UNORM:

@@ -188,8 +188,11 @@ struct st_context
       struct pipe_blend_state               blend;
       struct pipe_depth_stencil_alpha_state depth_stencil;
       struct pipe_rasterizer_state          rasterizer;
+      struct pipe_sampler_state vert_samplers[PIPE_MAX_SAMPLERS];
       struct pipe_sampler_state frag_samplers[PIPE_MAX_SAMPLERS];
+      GLuint num_vert_samplers;
       GLuint num_frag_samplers;
+      struct pipe_sampler_view *vert_sampler_views[PIPE_MAX_SAMPLERS];
       struct pipe_sampler_view *frag_sampler_views[PIPE_MAX_SAMPLERS];
       GLuint num_sampler_views[PIPE_SHADER_TYPES];
       struct pipe_clip_state clip;
@@ -256,7 +259,7 @@ struct st_context
       struct gl_program *current_program[MESA_SHADER_STAGES];
    };
 
-   struct st_vp_variant *vp_variant;
+   struct st_common_variant *vp_variant;
 
    struct {
       struct pipe_resource *pixelmap_texture;

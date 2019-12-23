@@ -102,7 +102,7 @@ midgard_emit_derivatives(compiler_context *ctx, nir_alu_instr *instr)
                 .type = TAG_TEXTURE_4,
                 .mask = mask_of(nr_components),
                 .dest = nir_dest_index(ctx, &instr->dest.dest),
-                .src = { nir_alu_src_index(ctx, &instr->src[0]), ~0, ~0 },
+                .src = { nir_alu_src_index(ctx, &instr->src[0]), ~0, ~0, ~0 },
                 .texture = {
                         .op = mir_derivative_op(instr->op),
                         .format = MALI_TEX_2D,

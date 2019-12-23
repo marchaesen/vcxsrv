@@ -30,8 +30,11 @@
 #define V3D_CHANNELS 16
 
 #define V3D_MAX_FS_INPUTS 64
+#define V3D_MAX_GS_INPUTS 64
 #define V3D_MAX_VS_INPUTS 64
-#define V3D_MAX_ANY_STAGE_INPUTS MAX2(V3D_MAX_VS_INPUTS, V3D_MAX_FS_INPUTS)
+#define V3D_MAX_ANY_STAGE_INPUTS MAX3(V3D_MAX_VS_INPUTS, \
+                                      V3D_MAX_GS_INPUTS, \
+                                      V3D_MAX_FS_INPUTS)
 
 /* Not specifically a hardware limit, just coordination between compiler and
  * driver.

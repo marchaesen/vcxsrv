@@ -133,7 +133,7 @@ schedule_barrier(compiler_context *ctx)
 			.type = TAG_LOAD_STORE_4, \
                         .mask = 0xF, \
                         .dest = ~0, \
-                        .src = { ~0, ~0, ~0 }, \
+                        .src = { ~0, ~0, ~0, ~0 }, \
                         .swizzle = SWIZZLE_IDENTITY_4, \
 			.load_store = { \
 				.op = midgard_op_##name, \
@@ -238,7 +238,7 @@ v_alu_br_compact_cond(midgard_jmp_writeout_op op, unsigned tag, signed offset, u
                 .compact_branch = true,
                 .br_compact = compact,
                 .dest = ~0,
-                .src = { ~0, ~0, ~0 },
+                .src = { ~0, ~0, ~0, ~0 },
         };
 
         if (op == midgard_jmp_writeout_op_writeout)
@@ -259,7 +259,7 @@ v_branch(bool conditional, bool invert)
                         .invert_conditional = invert
                 },
                 .dest = ~0,
-                .src = { ~0, ~0, ~0 },
+                .src = { ~0, ~0, ~0, ~0 },
         };
 
         return ins;
@@ -494,7 +494,6 @@ optimise_nir(nir_shader *nir, unsigned quirks)
                 (nir->options->lower_flrp64 ? 64 : 0);
 
         NIR_PASS(progress, nir, nir_lower_regs_to_ssa);
-        NIR_PASS(progress, nir, midgard_nir_lower_fdot2);
         NIR_PASS(progress, nir, nir_lower_idiv, nir_lower_idiv_fast);
 
         nir_lower_tex_options lower_tex_options = {
@@ -502,9 +501,15 @@ optimise_nir(nir_shader *nir, unsigned quirks)
                 .lower_txp = ~0,
                 .lower_tex_without_implicit_lod =
                         (quirks & MIDGARD_EXPLICIT_LOD),
+
+                /* TODO: we have native gradient.. */
+                .lower_txd = true,
         };
 
         NIR_PASS(progress, nir, nir_lower_tex, &lower_tex_options);
+
+        /* Must lower fdot2 after tex is lowered */
+        NIR_PASS(progress, nir, midgard_nir_lower_fdot2);
 
         /* T720 is broken. */
 
@@ -992,6 +997,7 @@ emit_alu(compiler_context *ctx, nir_alu_instr *instr)
                         quirk_flipped_r24 ? ~0 : src0,
                         quirk_flipped_r24 ? src0       : src1,
                         src2,
+                        ~0
                 },
                 .dest = dest,
         };
@@ -1164,7 +1170,9 @@ emit_ubo_read(
 
         midgard_instruction ins = m_ld_ubo_int4(dest, 0);
         ins.constants[0] = offset;
-        mir_set_intr_mask(instr, &ins, true);
+
+        if (instr->type == nir_instr_type_intrinsic)
+                mir_set_intr_mask(instr, &ins, true);
 
         if (indirect_offset) {
                 ins.src[2] = nir_src_index(ctx, indirect_offset);
@@ -1330,50 +1338,26 @@ compute_builtin_arg(nir_op op)
 
 /* Emit store for a fragment shader, which is encoded via a fancy branch. TODO:
  * Handle MRT here */
+static void
+emit_fragment_epilogue(compiler_context *ctx, unsigned rt);
 
 static void
 emit_fragment_store(compiler_context *ctx, unsigned src, unsigned rt)
 {
         emit_explicit_constant(ctx, src, src);
 
-        /* If we're doing MRT, we need to specify the render target */
-
-        midgard_instruction rt_move = {
-                .dest = ~0
-        };
-
-        if (rt != 0) {
-                /* We'll write to r1.z */
-                rt_move = v_mov(~0, SSA_FIXED_REGISTER(1));
-                rt_move.mask = 1 << COMPONENT_Z;
-                rt_move.unit = UNIT_SADD;
-
-                /* r1.z = (rt * 0x100) */
-                rt_move.has_inline_constant = true;
-                rt_move.inline_constant = (rt * 0x100);
-
-                /* r1 */
-                ctx->work_registers = MAX2(ctx->work_registers, 1);
-
-                /* Do the write */
-                emit_mir_instruction(ctx, rt_move);
-        }
-
-        /* Next, generate the branch. For R render targets in the writeout, the
-         * i'th render target jumps to pseudo-offset [2(R-1) + i] */
-
-        unsigned outputs = ctx->is_blend ? 1 : ctx->nir->num_outputs;
-        unsigned offset = (2 * (outputs - 1)) + rt;
-
         struct midgard_instruction ins =
-                v_alu_br_compact_cond(midgard_jmp_writeout_op_writeout, TAG_ALU_4, offset, midgard_condition_always);
+                v_alu_br_compact_cond(midgard_jmp_writeout_op_writeout, TAG_ALU_8, 0, midgard_condition_always);
 
         /* Add dependencies */
         ins.src[0] = src;
-        ins.src[1] = rt_move.dest;
+        ins.constants[0] = rt * 0x100;
 
         /* Emit the branch */
         emit_mir_instruction(ctx, ins);
+        schedule_barrier(ctx);
+
+        emit_fragment_epilogue(ctx, rt);
 }
 
 static void
@@ -1590,7 +1574,26 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
         case nir_intrinsic_store_raw_output_pan:
                 assert (ctx->stage == MESA_SHADER_FRAGMENT);
                 reg = nir_src_index(ctx, &instr->src[0]);
-                emit_fragment_store(ctx, reg, 0);
+
+                if (ctx->quirks & MIDGARD_OLD_BLEND) {
+                        /* Suppose reg = qr0.xyzw. That means 4 8-bit ---> 1 32-bit. So
+                         * reg = r0.x. We want to splatter. So we can do a 32-bit move
+                         * of:
+                         *
+                         * imov r0.xyzw, r0.xxxx
+                         */
+
+                        unsigned expanded = make_compiler_temp(ctx);
+
+                        midgard_instruction splatter = v_mov(reg, expanded);
+
+                        for (unsigned c = 0; c < 16; ++c)
+                                splatter.swizzle[1][c] = 0;
+
+                        emit_mir_instruction(ctx, splatter);
+                        emit_fragment_store(ctx, expanded, ctx->blend_rt);
+                } else
+                        emit_fragment_store(ctx, reg, ctx->blend_rt);
 
                 break;
 
@@ -1717,7 +1720,7 @@ emit_texop_native(compiler_context *ctx, nir_tex_instr *instr,
                 .type = TAG_TEXTURE_4,
                 .mask = 0xF,
                 .dest = nir_dest_index(ctx, &instr->dest),
-                .src = { ~0, ~0, ~0 },
+                .src = { ~0, ~0, ~0, ~0 },
                 .swizzle = SWIZZLE_IDENTITY_4,
                 .texture = {
                         .op = midgard_texop,
@@ -1730,8 +1733,17 @@ emit_texop_native(compiler_context *ctx, nir_tex_instr *instr,
                         .out_full = 1,
 
                         .sampler_type = midgard_sampler_type(instr->dest_type),
+                        .shadow = instr->is_shadow,
                 }
         };
+
+        /* We may need a temporary for the coordinate */
+
+        bool needs_temp_coord =
+                (midgard_texop == TEXTURE_OP_TEXEL_FETCH) ||
+                (instr->is_shadow);
+
+        unsigned coords = needs_temp_coord ? make_compiler_temp_reg(ctx) : 0;
 
         for (unsigned i = 0; i < instr->num_srcs; ++i) {
                 int index = nir_src_index(ctx, &instr->src[i].src);
@@ -1741,23 +1753,24 @@ emit_texop_native(compiler_context *ctx, nir_tex_instr *instr,
                 case nir_tex_src_coord: {
                         emit_explicit_constant(ctx, index, index);
 
+                        if (needs_temp_coord) {
+                                /* mov coord_temp, coords */
+                                midgard_instruction mov = v_mov(index, coords);
+                                mov.mask = 0x3;
+                                emit_mir_instruction(ctx, mov);
+                        } else {
+                                coords = index;
+                        }
+
                         /* Texelfetch coordinates uses all four elements
                          * (xyz/index) regardless of texture dimensionality,
                          * which means it's necessary to zero the unused
                          * components to keep everything happy */
 
                         if (midgard_texop == TEXTURE_OP_TEXEL_FETCH) {
-                                unsigned old_index = index;
-
-                                index = make_compiler_temp(ctx);
-
-                                /* mov index, old_index */
-                                midgard_instruction mov = v_mov(old_index, index);
-                                mov.mask = 0x3;
-                                emit_mir_instruction(ctx, mov);
-
                                 /* mov index.zw, #0 */
-                                mov = v_mov(SSA_FIXED_REGISTER(REGISTER_CONSTANT), index);
+                                midgard_instruction mov =
+                                        v_mov(SSA_FIXED_REGISTER(REGISTER_CONSTANT), coords);
                                 mov.has_constants = true;
                                 mov.mask = (1 << COMPONENT_Z) | (1 << COMPONENT_W);
                                 emit_mir_instruction(ctx, mov);
@@ -1773,7 +1786,7 @@ emit_texop_native(compiler_context *ctx, nir_tex_instr *instr,
 
                                 unsigned temp = make_compiler_temp(ctx);
                                 midgard_instruction ld = m_ld_cubemap_coords(temp, 0);
-                                ld.src[1] = index;
+                                ld.src[1] = coords;
                                 ld.mask = 0x3; /* xy */
                                 ld.load_store.arg_1 = 0x20;
                                 ld.swizzle[1][3] = COMPONENT_X;
@@ -1784,7 +1797,7 @@ emit_texop_native(compiler_context *ctx, nir_tex_instr *instr,
                                 ins.swizzle[1][2] = COMPONENT_X;
                                 ins.swizzle[1][3] = COMPONENT_X;
                         } else {
-                                ins.src[1] = index;
+                                ins.src[1] = coords;
                         }
 
                         if (instr->sampler_dim == GLSL_SAMPLER_DIM_2D) {
@@ -1793,7 +1806,8 @@ emit_texop_native(compiler_context *ctx, nir_tex_instr *instr,
                                         ins.swizzle[1][2] = COMPONENT_Z;
                                         ins.swizzle[1][3] = COMPONENT_Z;
                                 } else if (nr_components == 2) {
-                                        ins.swizzle[1][2] = COMPONENT_X;
+                                        ins.swizzle[1][2] =
+                                                instr->is_shadow ? COMPONENT_Z : COMPONENT_X;
                                         ins.swizzle[1][3] = COMPONENT_X;
                                 } else
                                         unreachable("Invalid texture 2D components");
@@ -1816,6 +1830,31 @@ emit_texop_native(compiler_context *ctx, nir_tex_instr *instr,
 
                         break;
                 };
+
+                case nir_tex_src_offset: {
+                        ins.texture.offset_register = true;
+                        ins.src[3] = index;
+
+                        for (unsigned c = 0; c < MIR_VEC_COMPONENTS; ++c)
+                                ins.swizzle[3][c] = (c > COMPONENT_Z) ? 0 : c;
+
+                        emit_explicit_constant(ctx, index, index);
+                };
+
+                case nir_tex_src_comparator: {
+                        /* TODO: generalize */
+                        unsigned comp = COMPONENT_Z;
+
+                        /* mov coord_temp.foo, coords */
+                        midgard_instruction mov = v_mov(index, coords);
+                        mov.mask = 1 << comp;
+
+                        for (unsigned i = 0; i < MIR_VEC_COMPONENTS; ++i)
+                                mov.swizzle[1][i] = COMPONENT_X;
+
+                        emit_mir_instruction(ctx, mov);
+                        break;
+                }
 
                 default:
                         unreachable("Unknown texture source type\n");
@@ -2209,10 +2248,21 @@ midgard_opt_pos_propagate(compiler_context *ctx, midgard_block *block)
 }
 
 static void
-emit_fragment_epilogue(compiler_context *ctx)
+emit_fragment_epilogue(compiler_context *ctx, unsigned rt)
 {
-        /* Just emit the last chunk with the branch */
-        EMIT(alu_br_compact_cond, midgard_jmp_writeout_op_writeout, TAG_ALU_4, ~0, midgard_condition_always);
+        /* Include a move to specify the render target */
+
+        if (rt > 0) {
+                midgard_instruction rt_move = v_mov(SSA_FIXED_REGISTER(1),
+                                SSA_FIXED_REGISTER(1));
+                rt_move.mask = 1 << COMPONENT_Z;
+                rt_move.unit = UNIT_SADD;
+                emit_mir_instruction(ctx, rt_move);
+        }
+
+        EMIT(alu_br_compact_cond, midgard_jmp_writeout_op_writeout, TAG_ALU_8, -2, midgard_condition_always);
+        ctx->current_block->epilogue = true;
+        schedule_barrier(ctx);
 }
 
 static midgard_block *
@@ -2414,7 +2464,7 @@ midgard_get_first_tag_from_block(compiler_context *ctx, unsigned block_idx)
 }
 
 int
-midgard_compile_shader_nir(nir_shader *nir, midgard_program *program, bool is_blend, unsigned gpu_id)
+midgard_compile_shader_nir(nir_shader *nir, midgard_program *program, bool is_blend, unsigned blend_rt, unsigned gpu_id, bool shaderdb)
 {
         struct util_dynarray *compiled = &program->compiled;
 
@@ -2427,6 +2477,7 @@ midgard_compile_shader_nir(nir_shader *nir, midgard_program *program, bool is_bl
         ctx->stage = nir->info.stage;
         ctx->is_blend = is_blend;
         ctx->alpha_ref = program->alpha_ref;
+        ctx->blend_rt = blend_rt;
         ctx->quirks = midgard_get_quirks(gpu_id);
 
         /* Start off with a safe cutoff, allowing usage of all 16 work
@@ -2503,19 +2554,6 @@ midgard_compile_shader_nir(nir_shader *nir, midgard_program *program, bool is_bl
                 ctx->func = func;
 
                 emit_cf_list(ctx, &func->impl->body);
-
-                /* Emit empty exit block with successor */
-
-                struct midgard_block *semi_end = ctx->current_block;
-
-                struct midgard_block *end =
-                        emit_block(ctx, func->impl->end_block);
-
-                if (ctx->stage == MESA_SHADER_FRAGMENT)
-                        emit_fragment_epilogue(ctx);
-
-                midgard_block_add_successor(semi_end, end);
-
                 break; /* TODO: Multi-function shaders */
         }
 
@@ -2545,6 +2583,7 @@ midgard_compile_shader_nir(nir_shader *nir, midgard_program *program, bool is_bl
                         progress |= midgard_opt_fuse_src_invert(ctx, block);
                         progress |= midgard_opt_fuse_dest_invert(ctx, block);
                         progress |= midgard_opt_csel_invert(ctx, block);
+                        progress |= midgard_opt_drop_cmp_invert(ctx, block);
                 }
         } while (progress);
 
@@ -2567,6 +2606,7 @@ midgard_compile_shader_nir(nir_shader *nir, midgard_program *program, bool is_bl
 
         /* Schedule! */
         schedule_program(ctx);
+        mir_ra(ctx);
 
         /* Now that all the bundles are scheduled and we can calculate block
          * sizes, emit actual branch instructions rather than placeholders */
@@ -2740,7 +2780,7 @@ midgard_compile_shader_nir(nir_shader *nir, midgard_program *program, bool is_bl
         if (midgard_debug & MIDGARD_DBG_SHADERS)
                 disassemble_midgard(program->compiled.data, program->compiled.size, gpu_id, ctx->stage);
 
-        if (midgard_debug & MIDGARD_DBG_SHADERDB) {
+        if (midgard_debug & MIDGARD_DBG_SHADERDB || shaderdb) {
                 unsigned nr_bundles = 0, nr_ins = 0;
 
                 /* Count instructions and bundles */

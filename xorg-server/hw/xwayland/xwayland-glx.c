@@ -31,7 +31,7 @@
  */
 
 #include <xwayland-config.h>
-#include "xwayland.h"
+
 #define MESA_EGL_NO_X11_HEADERS
 #define EGL_NO_X11
 // #include <EGL/egl.h>
@@ -42,6 +42,8 @@
 #include <X11/extensions/composite.h>
 #include "glamor_context.h"
 #include "glamor.h"
+
+#include "xwayland-screen.h"
 
 /* Can't get these from <GL/glx.h> since it pulls in client headers */
 #define GLX_RGBA_BIT		0x00000001
@@ -144,7 +146,7 @@ egl_create_glx_drawable(ClientPtr client, __GLXscreen *screen,
 static struct egl_config *
 translate_eglconfig(struct egl_screen *screen, EGLConfig hc,
                     struct egl_config *chain, Bool direct_color,
-                    Bool double_buffer)
+                    Bool double_buffer, Bool duplicate_for_composite)
 {
     EGLint value;
     struct egl_config *c = calloc(1, sizeof *c);
@@ -280,6 +282,28 @@ translate_eglconfig(struct egl_screen *screen, EGLConfig hc,
         }
     }
 
+    /*
+     * Here we decide which fbconfigs will be duplicated for compositing.
+     * fgbconfigs marked with duplicatedForComp will be reserved for
+     * compositing visuals.
+     * It might look strange to do this decision this late when translation
+     * from an EGLConfig is already done, but using the EGLConfig
+     * accessor functions becomes worse both with respect to code complexity
+     * and CPU usage.
+     */
+    if (duplicate_for_composite &&
+        (c->base.renderType == GLX_RGBA_FLOAT_BIT_ARB ||
+         c->base.rgbBits != 32 ||
+         c->base.redBits != 8 ||
+         c->base.greenBits != 8 ||
+         c->base.blueBits != 8 ||
+         c->base.visualRating != GLX_NONE ||
+         c->base.sampleBuffers != 0)) {
+        free(c);
+        return chain;
+    }
+    c->base.duplicatedForComp = duplicate_for_composite;
+
     c->base.next = chain ? &chain->base : NULL;
     return c;
 }
@@ -290,7 +314,6 @@ egl_mirror_configs(ScreenPtr pScreen, struct egl_screen *screen)
     int i, j, k, nconfigs;
     struct egl_config *c = NULL;
     EGLConfig *host_configs = NULL;
-    Bool offon[] = { FALSE, TRUE };
 
     eglGetConfigs(screen->display, NULL, 0, &nconfigs);
     if (!(host_configs = calloc(nconfigs, sizeof *host_configs)))
@@ -302,12 +325,12 @@ egl_mirror_configs(ScreenPtr pScreen, struct egl_screen *screen)
      * ->next chain easier.
      */
     for (i = nconfigs - 1; i > 0; i--)
-        for (j = 0; j < 2; j++) /* direct_color */
-            for (k = 0; k < 2; k++) /* direct_color */
+        for (j = 0; j < 3; j++) /* direct_color */
+            for (k = 0; k < 2; k++) /* double_buffer */
                 c = translate_eglconfig(screen, host_configs[i], c,
-                                        /* direct_color */ offon[j],
-                                        /* double_buffer */ offon[k]
-                                        );
+                                        /* direct_color */ j == 1,
+                                        /* double_buffer */ k > 0,
+                                        /* duplicate_for_composite */ j == 0);
 
     screen->configs = host_configs;
     return c ? &c->base : NULL;

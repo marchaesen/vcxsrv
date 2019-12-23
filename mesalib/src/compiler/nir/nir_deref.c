@@ -644,6 +644,7 @@ rematerialize_deref_in_block(nir_deref_instr *deref,
       break;
 
    case nir_deref_type_array:
+   case nir_deref_type_ptr_as_array:
       assert(!nir_src_as_deref(deref->arr.index));
       nir_src_copy(&new_deref->arr.index, &deref->arr.index, new_deref);
       break;

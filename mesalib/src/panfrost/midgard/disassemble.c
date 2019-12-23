@@ -487,10 +487,8 @@ print_mask(uint8_t mask, unsigned bits, midgard_dest_override override)
 
         const char *alphabet = components;
 
-        if (override == midgard_dest_override_upper) {
-                unsigned components = 128 / bits;
-                alphabet += components;
-        }
+        if (override == midgard_dest_override_upper)
+                alphabet += (128 / bits);
 
         for (unsigned i = 0; i < 8; i += skip) {
                 bool a = (mask & (1 << i)) != 0;
@@ -1310,7 +1308,7 @@ print_texture_word(uint32_t *word, unsigned tabs, unsigned in_reg_base, unsigned
         /* Output modifiers are always interpreted floatly */
         print_outmod(texture->outmod, false);
 
-        printf(" %sr%d", texture->out_full ? "" : "h",
+        printf(" %sr%u", texture->out_full ? "" : "h",
                         out_reg_base + texture->out_reg_select);
         print_mask_4(texture->mask, texture->out_upper);
         assert(!(texture->out_full && texture->out_upper));
@@ -1346,7 +1344,7 @@ print_texture_word(uint32_t *word, unsigned tabs, unsigned in_reg_base, unsigned
         }
 
         print_swizzle_vec4(texture->swizzle, false, false);
-        printf(", %sr%d", texture->in_reg_full ? "" : "h", in_reg_base + texture->in_reg_select);
+        printf(", %sr%u", texture->in_reg_full ? "" : "h", in_reg_base + texture->in_reg_select);
         assert(!(texture->in_reg_full && texture->in_reg_upper));
 
         /* TODO: integrate with swizzle */
@@ -1372,7 +1370,7 @@ print_texture_word(uint32_t *word, unsigned tabs, unsigned in_reg_base, unsigned
                 bool select = texture->offset_x & 2;
                 bool upper = texture->offset_x & 4;
 
-                printf("%sr%d", full ? "" : "h", in_reg_base + select);
+                printf("%sr%u", full ? "" : "h", in_reg_base + select);
                 assert(!(texture->out_full && texture->out_upper));
 
                 /* TODO: integrate with swizzle */

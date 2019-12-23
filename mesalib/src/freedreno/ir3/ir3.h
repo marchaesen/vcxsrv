@@ -58,6 +58,8 @@ struct ir3_info {
 
 	/* number of sync bits: */
 	uint16_t ss, sy;
+
+	uint16_t last_baryf;     /* instruction # of last varying fetch */
 };
 
 struct ir3_register {
@@ -614,6 +616,10 @@ static inline uint32_t reg_comp(struct ir3_register *reg)
 	return reg->num & 0x3;
 }
 
+#define INVALID_REG      regid(63, 0)
+#define VALIDREG(r)      ((r) != INVALID_REG)
+#define CONDREG(r, val)  COND(VALIDREG(r), (val))
+
 static inline bool is_flow(struct ir3_instruction *instr)
 {
 	return (opc_cat(instr->opc) == 0);
@@ -1082,6 +1088,24 @@ static inline bool __is_false_dep(struct ir3_instruction *instr, unsigned n)
 		if ((__outinstr = (__ir)->outputs[__cnt]))
 #define foreach_output(__outinstr, __ir) \
 	foreach_output_n(__outinstr, __i, __ir)
+
+/* iterators for instructions: */
+#define foreach_instr(__instr, __list) \
+	list_for_each_entry(struct ir3_instruction, __instr, __list, node)
+#define foreach_instr_rev(__instr, __list) \
+	list_for_each_entry_rev(struct ir3_instruction, __instr, __list, node)
+#define foreach_instr_safe(__instr, __list) \
+	list_for_each_entry_safe(struct ir3_instruction, __instr, __list, node)
+
+/* iterators for blocks: */
+#define foreach_block(__block, __list) \
+	list_for_each_entry(struct ir3_block, __block, __list, node)
+#define foreach_block_safe(__block, __list) \
+	list_for_each_entry_safe(struct ir3_block, __block, __list, node)
+
+/* iterators for arrays: */
+#define foreach_array(__array, __list) \
+	list_for_each_entry(struct ir3_array, __array, __list, node)
 
 /* dump: */
 void ir3_print(struct ir3 *ir);

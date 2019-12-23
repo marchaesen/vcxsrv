@@ -56,8 +56,8 @@ mir_pipeline_ins(
 
         /* Analyze the bundle for a per-byte read mask */
 
-        for (unsigned i = 0; i < bundle->instruction_count; ++i) {
-                midgard_instruction *q = bundle->instructions[i];
+        for (unsigned j = 0; j < bundle->instruction_count; ++j) {
+                midgard_instruction *q = bundle->instructions[j];
                 read_mask |= mir_bytemask_of_read_components(q, node);
 
                 /* The fragment colour can't be pipelined (well, it is
@@ -69,8 +69,8 @@ mir_pipeline_ins(
         }
 
         /* Now analyze for a write mask */
-        for (unsigned i = 0; i < bundle->instruction_count; ++i) {
-                midgard_instruction *q = bundle->instructions[i];
+        for (unsigned j = 0; j < bundle->instruction_count; ++j) {
+                midgard_instruction *q = bundle->instructions[j];
                 if (q->dest != node) continue;
 
                 /* Remove the written mask from the read requirements */

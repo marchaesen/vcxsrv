@@ -12,12 +12,29 @@ Xwayland_CFLAGS =				\
 Xwayland_SOURCES =				\
 	xwayland.c				\
 	xwayland-input.c			\
+	xwayland-input.h			\
 	xwayland-cursor.c			\
+	xwayland-cursor.h			\
+	xwayland-glamor.h			\
+	xwayland-glx.h				\
+	xwayland-pixmap.c			\
+	xwayland-pixmap.h			\
+	xwayland-present.h			\
+	xwayland-screen.c			\
+	xwayland-screen.h			\
 	xwayland-shm.c				\
+	xwayland-shm.h				\
+	xwayland-types.h			\
 	xwayland-output.c			\
+	xwayland-output.h			\
 	xwayland-cvt.c				\
+	xwayland-cvt.h				\
 	xwayland-vidmode.c			\
-	xwayland.h				\
+	xwayland-vidmode.h			\
+	xwayland-window.c			\
+	xwayland-window.h			\
+	xwayland-window-buffers.c		\
+	xwayland-window-buffers.h		\
 	$(top_srcdir)/Xi/stubs.c		\
 	$(top_srcdir)/mi/miinitext.c
 

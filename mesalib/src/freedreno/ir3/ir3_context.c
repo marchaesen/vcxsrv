@@ -483,7 +483,7 @@ ir3_declare_array(struct ir3_context *ctx, nir_register *reg)
 struct ir3_array *
 ir3_get_array(struct ir3_context *ctx, nir_register *reg)
 {
-	list_for_each_entry (struct ir3_array, arr, &ctx->ir->array_list, node) {
+	foreach_array (arr, &ctx->ir->array_list) {
 		if (arr->r == reg)
 			return arr;
 	}

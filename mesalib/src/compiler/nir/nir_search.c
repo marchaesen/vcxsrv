@@ -56,7 +56,13 @@ static bool
 nir_algebraic_automaton(nir_instr *instr, struct util_dynarray *states,
                         const struct per_op_table *pass_op_table);
 
-static const uint8_t identity_swizzle[NIR_MAX_VEC_COMPONENTS] = { 0, 1, 2, 3 };
+static const uint8_t identity_swizzle[NIR_MAX_VEC_COMPONENTS] =
+{
+    0,  1,  2,  3,
+    4,  5,  6,  7,
+    8,  9, 10, 11,
+   12, 13, 14, 15,
+};
 
 /**
  * Check if a source produces a value of the given type.

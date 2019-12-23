@@ -2630,9 +2630,13 @@ encode_type_to_blob(struct blob *blob, const glsl_type *type)
    case GLSL_TYPE_INT64:
    case GLSL_TYPE_BOOL:
       encoded.basic.interface_row_major = type->interface_row_major;
-      assert(type->vector_elements < 8);
       assert(type->matrix_columns < 8);
-      encoded.basic.vector_elements = type->vector_elements;
+      if (type->vector_elements <= 4)
+         encoded.basic.vector_elements = type->vector_elements;
+      else if (type->vector_elements == 8)
+         encoded.basic.vector_elements = 5;
+      else if (type->vector_elements == 16)
+         encoded.basic.vector_elements = 6;
       encoded.basic.matrix_columns = type->matrix_columns;
       encoded.basic.explicit_stride = MIN2(type->explicit_stride, 0xfffff);
       blob_write_uint32(blob, encoded.u32);
@@ -2741,6 +2745,11 @@ decode_type_from_blob(struct blob_reader *blob)
       unsigned explicit_stride = encoded.basic.explicit_stride;
       if (explicit_stride == 0xfffff)
          explicit_stride = blob_read_uint32(blob);
+      uint32_t vector_elements = encoded.basic.vector_elements;
+      if (vector_elements == 5)
+         vector_elements = 8;
+      else if (vector_elements == 6)
+         vector_elements = 16;
       return glsl_type::get_instance(base_type, encoded.basic.vector_elements,
                                      encoded.basic.matrix_columns,
                                      explicit_stride,

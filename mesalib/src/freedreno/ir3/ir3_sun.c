@@ -100,7 +100,7 @@ ir3_sun(struct ir3 *ir)
 	foreach_output(out, ir)
 		max = MAX2(max, number_instr(out));
 
-	list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
+	foreach_block (block, &ir->block_list) {
 		for (unsigned i = 0; i < block->keeps_count; i++)
 			max = MAX2(max, number_instr(block->keeps[i]));
 		if (block->condition)

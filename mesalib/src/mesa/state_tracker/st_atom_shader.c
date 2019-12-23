@@ -187,8 +187,8 @@ st_update_vp( struct st_context *st )
 
    if (st->shader_has_one_variant[MESA_SHADER_VERTEX] &&
        stvp->variants &&
-       st_vp_variant(stvp->variants)->key.passthrough_edgeflags == st->vertdata_edgeflags) {
-      st->vp_variant = st_vp_variant(stvp->variants);
+       st_common_variant(stvp->variants)->key.passthrough_edgeflags == st->vertdata_edgeflags) {
+      st->vp_variant = st_common_variant(stvp->variants);
    } else {
       struct st_common_variant_key key;
 

@@ -11,6 +11,10 @@ namespace aco {
 void print_asm(Program *program, std::vector<uint32_t>& binary,
                unsigned exec_size, std::ostream& out)
 {
+   if (program->chip_class <= GFX7) {
+      out << "Disassembly for this GPU currently not supported." << std::endl;
+      return;
+   }
    std::vector<bool> referenced_blocks(program->blocks.size());
    referenced_blocks[0] = true;
    for (Block& block : program->blocks) {
@@ -51,13 +55,19 @@ void print_asm(Program *program, std::vector<uint32_t>& binary,
          next_block++;
       }
 
+      /* mask out src2 on v_writelane_b32 */
+      if (((program->chip_class == GFX8 || program->chip_class == GFX9) && (binary[pos] & 0xffff8000) == 0xd28a0000) ||
+          (program->chip_class == GFX10 && (binary[pos] & 0xffff8000) == 0xd7610000)) {
+         binary[pos+1] = binary[pos+1] & 0xF803FFFF;
+      }
+
       size_t l = LLVMDisasmInstruction(disasm, (uint8_t *) &binary[pos],
                                        (exec_size - pos) * sizeof(uint32_t), pos * 4,
                                        outline, sizeof(outline));
 
       size_t new_pos;
       const int align_width = 60;
-      if (program->chip_class == GFX9 && !l && ((binary[pos] & 0xffff8000) == 0xd1348000)) { /* not actually an invalid instruction */
+      if (!l && program->chip_class == GFX9 && ((binary[pos] & 0xffff8000) == 0xd1348000)) { /* not actually an invalid instruction */
          out << std::left << std::setw(align_width) << std::setfill(' ') << "\tv_add_u32_e64 + clamp";
          new_pos = pos + 2;
       } else if (!l) {

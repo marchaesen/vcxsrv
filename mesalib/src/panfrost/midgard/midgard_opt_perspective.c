@@ -116,7 +116,7 @@ midgard_opt_combine_projection(compiler_context *ctx, midgard_block *block)
                         .type = TAG_LOAD_STORE_4,
                         .mask = ins->mask,
                         .dest = to,
-                        .src = { frcp_from, ~0, ~0 },
+                        .src = { frcp_from, ~0, ~0, ~0 },
                         .swizzle = SWIZZLE_IDENTITY_4,
                         .load_store = {
                                 .op = frcp_component == COMPONENT_W ?

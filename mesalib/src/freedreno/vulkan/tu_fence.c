@@ -211,6 +211,10 @@ tu_fence_init_poll_fds(uint32_t fence_count,
    for (uint32_t i = 0; i < fence_count; i++) {
       TU_FROM_HANDLE(tu_fence, fence, fences[i]);
 
+      /* skip wsi fences */
+      if (fence->fence_wsi)
+            continue;
+
       if (fence->signaled) {
          if (wait_all) {
             /* skip signaled fences */
@@ -292,6 +296,10 @@ tu_fence_update_fences_and_poll_fds(uint32_t fence_count,
    for (uint32_t i = 0; i < fence_count; i++) {
       TU_FROM_HANDLE(tu_fence, fence, fences[i]);
 
+      /* skip wsi fences */
+      if (fence->fence_wsi)
+            continue;
+
       /* no signaled fence in fds */
       if (fence->signaled)
          continue;
@@ -351,6 +359,9 @@ tu_WaitForFences(VkDevice _device,
 
    if (fds != stack_fds)
       vk_free(&device->alloc, fds);
+
+   if (result != VK_SUCCESS)
+      return result;
 
    for (uint32_t i = 0; i < fenceCount; ++i) {
       TU_FROM_HANDLE(tu_fence, fence, pFences[i]);

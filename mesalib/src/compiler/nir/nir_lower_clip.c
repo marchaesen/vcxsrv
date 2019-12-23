@@ -317,6 +317,17 @@ nir_lower_clip_vs(nir_shader *shader, unsigned ucp_enables, bool use_vars,
    if (!ucp_enables)
       return false;
 
+   /* find clipvertex/position outputs: */
+   nir_foreach_variable(var, &shader->outputs) {
+      int loc = var->data.driver_location;
+
+      /* keep track of last used driver-location.. we'll be
+       * appending CLIP_DIST0/CLIP_DIST1 after last existing
+       * output:
+       */
+      maxloc = MAX2(maxloc, loc);
+   }
+
    nir_builder_init(&b, impl);
 
    /* NIR should ensure that, even in case of loops/if-else, there

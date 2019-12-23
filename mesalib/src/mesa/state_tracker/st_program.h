@@ -190,36 +190,11 @@ struct st_common_variant_key
 
    /* for user-defined clip-planes */
    uint8_t lower_ucp;
-};
 
-
-/**
- * This represents a vertex program, especially translated to match
- * the inputs of a particular fragment shader.
- */
-struct st_vp_variant
-{
-   struct st_variant base;
-
-   /* Parameters which generated this translated version of a vertex
-    * shader:
+   /* Whether st_variant::driver_shader is for the draw module,
+    * not for the driver.
     */
-   struct st_common_variant_key key;
-
-   /**
-    * The shader variant saved for the draw module to later emulate
-    * selection/feedback/rasterpos.
-    */
-   const struct tgsi_token *tokens;
-
-   /** For using our private draw module (glRasterPos) */
-   struct draw_vertex_shader *draw_shader;
-
-   /** similar to that in st_vertex_program, but with edgeflags info too */
-   GLuint num_inputs;
-
-   /** Bitfield of VERT_BIT_* bits of mesa vertex processing inputs */
-   GLbitfield vert_attrib_mask;
+   bool is_draw_shader;
 };
 
 
@@ -232,6 +207,11 @@ struct st_common_variant
 
    /* Parameters which generated this variant. */
    struct st_common_variant_key key;
+
+   /* Bitfield of VERT_BIT_* bits matching vertex shader inputs,
+    * but not include the high part of doubles.
+    */
+   GLbitfield vert_attrib_mask;
 };
 
 
@@ -290,12 +270,6 @@ st_common_variant(struct st_variant *v)
    return (struct st_common_variant*)v;
 }
 
-static inline struct st_vp_variant *
-st_vp_variant(struct st_variant *v)
-{
-   return (struct st_vp_variant*)v;
-}
-
 static inline struct st_fp_variant *
 st_fp_variant(struct st_variant *v)
 {
@@ -315,7 +289,7 @@ st_get_generic_varying_index(struct st_context *st, GLuint attr)
 extern void
 st_set_prog_affected_state_flags(struct gl_program *prog);
 
-extern struct st_vp_variant *
+extern struct st_common_variant *
 st_get_vp_variant(struct st_context *st,
                   struct st_program *stvp,
                   const struct st_common_variant_key *key);

@@ -495,6 +495,7 @@ util_format_is_compressed(enum pipe_format format)
    case UTIL_FORMAT_LAYOUT_BPTC:
    case UTIL_FORMAT_LAYOUT_ASTC:
    case UTIL_FORMAT_LAYOUT_ATC:
+   case UTIL_FORMAT_LAYOUT_FXT1:
       /* XXX add other formats in the future */
       return TRUE;
    default:
@@ -973,8 +974,12 @@ util_format_srgb(enum pipe_format format)
       return PIPE_FORMAT_R8_SRGB;
    case PIPE_FORMAT_L8A8_UNORM:
       return PIPE_FORMAT_L8A8_SRGB;
+   case PIPE_FORMAT_R8G8_UNORM:
+      return PIPE_FORMAT_R8G8_SRGB;
    case PIPE_FORMAT_R8G8B8_UNORM:
       return PIPE_FORMAT_R8G8B8_SRGB;
+   case PIPE_FORMAT_B8G8R8_UNORM:
+      return PIPE_FORMAT_B8G8R8_SRGB;
    case PIPE_FORMAT_A8B8G8R8_UNORM:
       return PIPE_FORMAT_A8B8G8R8_SRGB;
    case PIPE_FORMAT_X8B8G8R8_UNORM:
@@ -1057,8 +1062,12 @@ util_format_linear(enum pipe_format format)
       return PIPE_FORMAT_R8_UNORM;
    case PIPE_FORMAT_L8A8_SRGB:
       return PIPE_FORMAT_L8A8_UNORM;
+   case PIPE_FORMAT_R8G8_SRGB:
+      return PIPE_FORMAT_R8G8_UNORM;
    case PIPE_FORMAT_R8G8B8_SRGB:
       return PIPE_FORMAT_R8G8B8_UNORM;
+   case PIPE_FORMAT_B8G8R8_SRGB:
+      return PIPE_FORMAT_B8G8R8_UNORM;
    case PIPE_FORMAT_A8B8G8R8_SRGB:
       return PIPE_FORMAT_A8B8G8R8_UNORM;
    case PIPE_FORMAT_X8B8G8R8_SRGB:

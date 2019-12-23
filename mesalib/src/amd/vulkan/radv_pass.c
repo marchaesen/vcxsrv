@@ -226,6 +226,8 @@ VkResult radv_CreateRenderPass(
 		att->stencil_load_op = pCreateInfo->pAttachments[i].stencilLoadOp;
 		att->initial_layout =  pCreateInfo->pAttachments[i].initialLayout;
 		att->final_layout =  pCreateInfo->pAttachments[i].finalLayout;
+		att->stencil_initial_layout = pCreateInfo->pAttachments[i].initialLayout;
+		att->stencil_final_layout = pCreateInfo->pAttachments[i].finalLayout;
 		// att->store_op = pCreateInfo->pAttachments[i].storeOp;
 		// att->stencil_store_op = pCreateInfo->pAttachments[i].stencilStoreOp;
 	}
@@ -269,6 +271,7 @@ VkResult radv_CreateRenderPass(
 				subpass->input_attachments[j] = (struct radv_subpass_attachment) {
 					.attachment = desc->pInputAttachments[j].attachment,
 					.layout = desc->pInputAttachments[j].layout,
+					.stencil_layout = desc->pInputAttachments[j].layout,
 				};
 			}
 		}
@@ -293,6 +296,7 @@ VkResult radv_CreateRenderPass(
 				subpass->resolve_attachments[j] = (struct radv_subpass_attachment) {
 					.attachment = desc->pResolveAttachments[j].attachment,
 					.layout = desc->pResolveAttachments[j].layout,
+					.stencil_layout = desc->pResolveAttachments[j].layout,
 				};
 			}
 		}
@@ -303,6 +307,7 @@ VkResult radv_CreateRenderPass(
 			*subpass->depth_stencil_attachment = (struct radv_subpass_attachment) {
 				.attachment = desc->pDepthStencilAttachment->attachment,
 				.layout = desc->pDepthStencilAttachment->layout,
+				.stencil_layout = desc->pDepthStencilAttachment->layout,
 			};
 		}
 	}
@@ -372,6 +377,9 @@ VkResult radv_CreateRenderPass2KHR(
 
 	for (uint32_t i = 0; i < pCreateInfo->attachmentCount; i++) {
 		struct radv_render_pass_attachment *att = &pass->attachments[i];
+		const VkAttachmentDescriptionStencilLayoutKHR *stencil_layout =
+			vk_find_struct_const(pCreateInfo->pAttachments[i].pNext,
+					     ATTACHMENT_DESCRIPTION_STENCIL_LAYOUT_KHR);
 
 		att->format = pCreateInfo->pAttachments[i].format;
 		att->samples = pCreateInfo->pAttachments[i].samples;
@@ -379,6 +387,12 @@ VkResult radv_CreateRenderPass2KHR(
 		att->stencil_load_op = pCreateInfo->pAttachments[i].stencilLoadOp;
 		att->initial_layout =  pCreateInfo->pAttachments[i].initialLayout;
 		att->final_layout =  pCreateInfo->pAttachments[i].finalLayout;
+		att->stencil_initial_layout = (stencil_layout ?
+					       stencil_layout->stencilInitialLayout :
+					       pCreateInfo->pAttachments[i].initialLayout);
+		att->stencil_final_layout = (stencil_layout ?
+					     stencil_layout->stencilFinalLayout :
+					     pCreateInfo->pAttachments[i].finalLayout);
 		// att->store_op = pCreateInfo->pAttachments[i].storeOp;
 		// att->stencil_store_op = pCreateInfo->pAttachments[i].stencilStoreOp;
 	}
@@ -417,9 +431,16 @@ VkResult radv_CreateRenderPass2KHR(
 			p += desc->inputAttachmentCount;
 
 			for (uint32_t j = 0; j < desc->inputAttachmentCount; j++) {
+				const VkAttachmentReferenceStencilLayoutKHR *stencil_attachment =
+			            vk_find_struct_const(desc->pInputAttachments[j].pNext,
+							 ATTACHMENT_REFERENCE_STENCIL_LAYOUT_KHR);
+
 				subpass->input_attachments[j] = (struct radv_subpass_attachment) {
 					.attachment = desc->pInputAttachments[j].attachment,
 					.layout = desc->pInputAttachments[j].layout,
+					.stencil_layout = (stencil_attachment ?
+							   stencil_attachment->stencilLayout :
+							   desc->pInputAttachments[j].layout),
 				};
 			}
 		}
@@ -451,9 +472,16 @@ VkResult radv_CreateRenderPass2KHR(
 		if (desc->pDepthStencilAttachment) {
 			subpass->depth_stencil_attachment = p++;
 
+			const VkAttachmentReferenceStencilLayoutKHR *stencil_attachment =
+		            vk_find_struct_const(desc->pDepthStencilAttachment->pNext,
+						 ATTACHMENT_REFERENCE_STENCIL_LAYOUT_KHR);
+
 			*subpass->depth_stencil_attachment = (struct radv_subpass_attachment) {
 				.attachment = desc->pDepthStencilAttachment->attachment,
 				.layout = desc->pDepthStencilAttachment->layout,
+				.stencil_layout = (stencil_attachment ?
+						   stencil_attachment->stencilLayout :
+						   desc->pDepthStencilAttachment->layout),
 			};
 		}
 
@@ -464,9 +492,16 @@ VkResult radv_CreateRenderPass2KHR(
 		if (ds_resolve && ds_resolve->pDepthStencilResolveAttachment) {
 			subpass->ds_resolve_attachment = p++;
 
+			const VkAttachmentReferenceStencilLayoutKHR *stencil_resolve_attachment =
+		            vk_find_struct_const(ds_resolve->pDepthStencilResolveAttachment->pNext,
+						 ATTACHMENT_REFERENCE_STENCIL_LAYOUT_KHR);
+
 			*subpass->ds_resolve_attachment = (struct radv_subpass_attachment) {
 				.attachment =  ds_resolve->pDepthStencilResolveAttachment->attachment,
 				.layout =      ds_resolve->pDepthStencilResolveAttachment->layout,
+				.stencil_layout = (stencil_resolve_attachment ?
+						   stencil_resolve_attachment->stencilLayout :
+						   ds_resolve->pDepthStencilResolveAttachment->layout),
 			};
 
 			subpass->depth_resolve_mode = ds_resolve->depthResolveMode;

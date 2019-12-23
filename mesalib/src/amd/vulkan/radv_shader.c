@@ -249,7 +249,7 @@ radv_optimize_nir(struct nir_shader *shader, bool optimize_conservatively,
 		NIR_PASS(progress, shader, nir_opt_copy_prop_vars);
 		NIR_PASS(progress, shader, nir_opt_dead_write_vars);
 		NIR_PASS(progress, shader, nir_remove_dead_variables,
-			 nir_var_function_temp);
+			 nir_var_function_temp | nir_var_shader_in | nir_var_shader_out);
 
                 NIR_PASS_V(shader, nir_lower_alu_to_scalar, NULL, NULL);
                 NIR_PASS_V(shader, nir_lower_phis_to_scalar);
@@ -299,6 +299,17 @@ radv_optimize_nir(struct nir_shader *shader, bool optimize_conservatively,
 	NIR_PASS(progress, shader, nir_opt_conditional_discard);
         NIR_PASS(progress, shader, nir_opt_shrink_load);
         NIR_PASS(progress, shader, nir_opt_move, nir_move_load_ubo);
+}
+
+static void
+shared_var_info(const struct glsl_type *type, unsigned *size, unsigned *align)
+{
+	assert(glsl_type_is_vector_or_scalar(type));
+
+	uint32_t comp_size = glsl_type_is_boolean(type) ? 4 : glsl_get_bit_size(type) / 8;
+	unsigned length = glsl_get_vector_elements(type);
+	*size = comp_size * length,
+	*align = comp_size;
 }
 
 nir_shader *
@@ -364,6 +375,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 				.float16 = !device->physical_device->use_aco,
 				.float64 = true,
 				.geometry_streams = true,
+				.image_ms_array = true,
 				.image_read_without_format = true,
 				.image_write_without_format = true,
 				.int8 = !device->physical_device->use_aco,
@@ -502,6 +514,14 @@ radv_shader_compile_to_nir(struct radv_device *device,
 	 * to remove any copies introduced by nir_opt_find_array_copies().
 	 */
 	nir_lower_var_copies(nir);
+
+	/* Lower deref operations for compute shared memory. */
+	if (nir->info.stage == MESA_SHADER_COMPUTE) {
+		NIR_PASS_V(nir, nir_lower_vars_to_explicit_types,
+			   nir_var_mem_shared, shared_var_info);
+		NIR_PASS_V(nir, nir_lower_explicit_io,
+			   nir_var_mem_shared, nir_address_format_32bit_offset);
+	}
 
 	/* Lower large variables that are always constant with load_constant
 	 * intrinsics, which get turned into PC-relative loads from a data

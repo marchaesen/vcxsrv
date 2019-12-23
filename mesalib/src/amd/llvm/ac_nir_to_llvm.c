@@ -101,14 +101,16 @@ static LLVMValueRef get_src(struct ac_nir_context *nir, nir_src src)
 }
 
 static LLVMValueRef
-get_memory_ptr(struct ac_nir_context *ctx, nir_src src)
+get_memory_ptr(struct ac_nir_context *ctx, nir_src src, unsigned bit_size)
 {
 	LLVMValueRef ptr = get_src(ctx, src);
 	ptr = LLVMBuildGEP(ctx->ac.builder, ctx->ac.lds, &ptr, 1, "");
 	int addr_space = LLVMGetPointerAddressSpace(LLVMTypeOf(ptr));
 
+	LLVMTypeRef type = LLVMIntTypeInContext(ctx->ac.context, bit_size);
+
 	return LLVMBuildBitCast(ctx->ac.builder, ptr,
-				LLVMPointerType(ctx->ac.i32, addr_space), "");
+				LLVMPointerType(type, addr_space), "");
 }
 
 static LLVMBasicBlockRef get_block(struct ac_nir_context *nir,
@@ -2144,13 +2146,6 @@ static LLVMValueRef visit_load_var(struct ac_nir_context *ctx,
 			}
 		}
 		break;
-	case nir_var_mem_shared: {
-		LLVMValueRef address = get_src(ctx, instr->src[0]);
-		LLVMValueRef val = LLVMBuildLoad(ctx->ac.builder, address, "");
-		return LLVMBuildBitCast(ctx->ac.builder, val,
-					get_def_type(ctx, &instr->dest.ssa),
-					"");
-	}
 	case nir_var_shader_out:
 		if (ctx->stage == MESA_SHADER_TESS_CTRL) {
 			return load_tess_varyings(ctx, instr, false);
@@ -2329,8 +2324,7 @@ visit_store_var(struct ac_nir_context *ctx,
 		}
 		break;
 
-	case nir_var_mem_global:
-	case nir_var_mem_shared: {
+	case nir_var_mem_global: {
 		int writemask = instr->const_index[0];
 		LLVMValueRef address = get_src(ctx, instr->src[0]);
 		LLVMValueRef val = get_src(ctx, instr->src[1]);
@@ -2983,7 +2977,8 @@ visit_load_shared(struct ac_nir_context *ctx,
 {
 	LLVMValueRef values[4], derived_ptr, index, ret;
 
-	LLVMValueRef ptr = get_memory_ptr(ctx, instr->src[0]);
+	LLVMValueRef ptr = get_memory_ptr(ctx, instr->src[0],
+					  instr->dest.ssa.bit_size);
 
 	for (int chan = 0; chan < instr->num_components; chan++) {
 		index = LLVMConstInt(ctx->ac.i32, chan, 0);
@@ -3002,7 +2997,8 @@ visit_store_shared(struct ac_nir_context *ctx,
 	LLVMValueRef derived_ptr, data,index;
 	LLVMBuilderRef builder = ctx->ac.builder;
 
-	LLVMValueRef ptr = get_memory_ptr(ctx, instr->src[1]);
+	LLVMValueRef ptr = get_memory_ptr(ctx, instr->src[1],
+					  instr->src[0].ssa->bit_size);
 	LLVMValueRef src = get_src(ctx, instr->src[0]);
 
 	int writemask = nir_intrinsic_write_mask(instr);
@@ -3025,6 +3021,17 @@ static LLVMValueRef visit_var_atomic(struct ac_nir_context *ctx,
 	LLVMValueRef src = get_src(ctx, instr->src[src_idx]);
 
 	const char *sync_scope = LLVM_VERSION_MAJOR >= 9 ? "workgroup-one-as" : "workgroup";
+
+	if (instr->src[0].ssa->parent_instr->type == nir_instr_type_deref) {
+		nir_deref_instr *deref = nir_instr_as_deref(instr->src[0].ssa->parent_instr);
+		if (deref->mode == nir_var_mem_global) {
+			/* use "singlethread" sync scope to implement relaxed ordering */
+			sync_scope = LLVM_VERSION_MAJOR >= 9 ? "singlethread-one-as" : "singlethread";
+
+			LLVMTypeRef ptr_type = LLVMPointerType(LLVMTypeOf(src), LLVMGetPointerAddressSpace(LLVMTypeOf(ptr)));
+			ptr = LLVMBuildBitCast(ctx->ac.builder, ptr, ptr_type , "");
+		}
+	}
 
 	if (instr->intrinsic == nir_intrinsic_shared_atomic_comp_swap ||
 	    instr->intrinsic == nir_intrinsic_deref_atomic_comp_swap) {
@@ -3551,7 +3558,8 @@ static void visit_intrinsic(struct ac_nir_context *ctx,
 	case nir_intrinsic_shared_atomic_xor:
 	case nir_intrinsic_shared_atomic_exchange:
 	case nir_intrinsic_shared_atomic_comp_swap: {
-		LLVMValueRef ptr = get_memory_ptr(ctx, instr->src[0]);
+		LLVMValueRef ptr = get_memory_ptr(ctx, instr->src[0],
+						  instr->src[1].ssa->bit_size);
 		result = visit_var_atomic(ctx, instr, ptr, 1);
 		break;
 	}
@@ -3750,11 +3758,21 @@ static void visit_intrinsic(struct ac_nir_context *ctx,
 		break;
 	}
 	case nir_intrinsic_load_constant: {
+		unsigned base = nir_intrinsic_base(instr);
+		unsigned range = nir_intrinsic_range(instr);
+
 		LLVMValueRef offset = get_src(ctx, instr->src[0]);
-		LLVMValueRef base = LLVMConstInt(ctx->ac.i32,
-						 nir_intrinsic_base(instr),
-						 false);
-		offset = LLVMBuildAdd(ctx->ac.builder, offset, base, "");
+		offset = LLVMBuildAdd(ctx->ac.builder, offset,
+				      LLVMConstInt(ctx->ac.i32, base, false), "");
+
+		/* Clamp the offset to avoid out-of-bound access because global
+		 * instructions can't handle them.
+		 */
+		LLVMValueRef size = LLVMConstInt(ctx->ac.i32, base + range, false);
+		LLVMValueRef cond = LLVMBuildICmp(ctx->ac.builder, LLVMIntULT,
+						  offset, size, "");
+		offset = LLVMBuildSelect(ctx->ac.builder, cond, offset, size, "");
+
 		LLVMValueRef ptr = ac_build_gep0(&ctx->ac, ctx->constant_data,
 						 offset);
 		LLVMTypeRef comp_type =
@@ -4736,14 +4754,21 @@ static void
 setup_shared(struct ac_nir_context *ctx,
 	     struct nir_shader *nir)
 {
-	nir_foreach_variable(variable, &nir->shared) {
-		LLVMValueRef shared =
-			LLVMAddGlobalInAddressSpace(
-			   ctx->ac.module, glsl_to_llvm_type(&ctx->ac, variable->type),
-			   variable->name ? variable->name : "",
-			   AC_ADDR_SPACE_LDS);
-		_mesa_hash_table_insert(ctx->vars, variable, shared);
-	}
+	if (ctx->ac.lds)
+		return;
+
+	LLVMTypeRef type = LLVMArrayType(ctx->ac.i8,
+					 nir->info.cs.shared_size);
+
+	LLVMValueRef lds =
+		LLVMAddGlobalInAddressSpace(ctx->ac.module, type,
+					    "compute_lds",
+					    AC_ADDR_SPACE_LDS);
+	LLVMSetAlignment(lds, 64 * 1024);
+
+	ctx->ac.lds = LLVMBuildBitCast(ctx->ac.builder, lds,
+				       LLVMPointerType(ctx->ac.i8,
+						       AC_ADDR_SPACE_LDS), "");
 }
 
 void ac_nir_translate(struct ac_llvm_context *ac, struct ac_shader_abi *abi,

@@ -46,7 +46,7 @@
 
 #include <unistd.h>
 #include <sys/mman.h>
-#include "mm.h"
+#include "util/u_mm.h"
 
 #ifdef MESA_SELINUX
 #include <selinux/selinux.h>
@@ -78,11 +78,11 @@ init_heap(void)
 #endif
 
    if (!exec_heap)
-      exec_heap = mmInit( 0, EXEC_HEAP_SIZE );
+      exec_heap = u_mmInit( 0, EXEC_HEAP_SIZE );
    
    if (!exec_mem)
       exec_mem = mmap(NULL, EXEC_HEAP_SIZE, PROT_EXEC | PROT_READ | PROT_WRITE,
-		      MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+                      MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
    return (exec_mem != MAP_FAILED);
 }
@@ -101,7 +101,7 @@ _mesa_exec_malloc(GLuint size)
 
    if (exec_heap) {
       size = (size + 31) & ~31;
-      block = mmAllocMem( exec_heap, size, 32, 0 );
+      block = u_mmAllocMem(exec_heap, size, 5, 0);
    }
 
    if (block)
@@ -122,10 +122,10 @@ _mesa_exec_free(void *addr)
    mtx_lock(&exec_mutex);
 
    if (exec_heap) {
-      struct mem_block *block = mmFindBlock(exec_heap, (unsigned char *)addr - exec_mem);
+      struct mem_block *block = u_mmFindBlock(exec_heap, (unsigned char *)addr - exec_mem);
    
       if (block)
-	 mmFreeMem(block);
+	 u_mmFreeMem(block);
    }
 
    mtx_unlock(&exec_mutex);

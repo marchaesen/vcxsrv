@@ -153,7 +153,7 @@ mir_compute_liveness(compiler_context *ctx)
 
                 /* If we made progress, we need to process the predecessors */
 
-                if (progress || (blk == exit)) {
+                if (progress || (blk == exit) || blk->epilogue) {
                         mir_foreach_predecessor(blk, pred)
                                 _mesa_set_add(work_list, pred);
                 }

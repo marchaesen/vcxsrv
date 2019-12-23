@@ -119,7 +119,7 @@ VOID* Object::Alloc(
     size_t objSize      ///< [in] Size to allocate
     ) const
 {
-    return ClientAlloc(objSize, &m_client);
+    return ClientAlloc(objSize, &m_client);;
 }
 
 /**
@@ -216,16 +216,20 @@ VOID Object::DebugPrint(
 #if DEBUG
     if (m_client.callbacks.debugPrint != NULL)
     {
+        va_list ap;
+
+        va_start(ap, pDebugString);
+
         ADDR_DEBUGPRINT_INPUT debugPrintInput = {0};
 
         debugPrintInput.size         = sizeof(ADDR_DEBUGPRINT_INPUT);
         debugPrintInput.pDebugString = const_cast<CHAR*>(pDebugString);
         debugPrintInput.hClient      = m_client.handle;
-        va_start(debugPrintInput.ap, pDebugString);
+        va_copy(debugPrintInput.ap, ap);
 
         m_client.callbacks.debugPrint(&debugPrintInput);
 
-        va_end(debugPrintInput.ap);
+        va_end(ap);
     }
 #endif
 }

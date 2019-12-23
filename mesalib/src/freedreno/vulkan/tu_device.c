@@ -258,8 +258,8 @@ tu_physical_device_init(struct tu_physical_device *device,
    switch (device->gpu_id) {
    case 630:
    case 640:
-      device->tile_align_w = 32;
-      device->tile_align_h = 32;
+      device->tile_align_w = 64;
+      device->tile_align_h = 16;
       break;
    default:
       result = vk_errorf(instance, VK_ERROR_INITIALIZATION_FAILED,
@@ -354,6 +354,7 @@ static const struct debug_control tu_debug_options[] = {
    { "startup", TU_DEBUG_STARTUP },
    { "nir", TU_DEBUG_NIR },
    { "ir3", TU_DEBUG_IR3 },
+   { "nobin", TU_DEBUG_NOBIN },
    { NULL, 0 }
 };
 
@@ -725,7 +726,7 @@ tu_GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice,
       .maxImageArrayLayers = (1 << 11),
       .maxTexelBufferElements = 128 * 1024 * 1024,
       .maxUniformBufferRange = UINT32_MAX,
-      .maxStorageBufferRange = UINT32_MAX,
+      .maxStorageBufferRange = MAX_STORAGE_BUFFER_RANGE,
       .maxPushConstantsSize = MAX_PUSH_CONSTANTS_SIZE,
       .maxMemoryAllocationCount = UINT32_MAX,
       .maxSamplerAllocationCount = 64 * 1024,
@@ -1562,7 +1563,7 @@ tu_GetImageMemoryRequirements(VkDevice _device,
    TU_FROM_HANDLE(tu_image, image, _image);
 
    pMemoryRequirements->memoryTypeBits = 1;
-   pMemoryRequirements->size = image->size;
+   pMemoryRequirements->size = image->layout.size;
    pMemoryRequirements->alignment = image->alignment;
 }
 
@@ -1959,6 +1960,7 @@ tu_init_sampler(struct tu_device *device,
     */
 
    sampler->needs_border = needs_border;
+   sampler->border = pCreateInfo->borderColor;
 }
 
 VkResult

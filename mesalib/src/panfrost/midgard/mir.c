@@ -265,7 +265,6 @@ mir_srcsize(midgard_instruction *ins, unsigned i)
 
         if (i >= 2) {
                 /* TODO: 16-bit conditions, ffma */
-                assert(i == 2);
                 return midgard_reg_mode_32;
         }
 
@@ -312,7 +311,7 @@ mir_to_bytemask(midgard_reg_mode mode, unsigned mask)
 
         case midgard_reg_mode_16: {
                 unsigned space =
-                        ((mask & 0x1) << (0 - 0)) |
+                        (mask & 0x1) |
                         ((mask & 0x2) << (2 - 1)) |
                         ((mask & 0x4) << (4 - 2)) |
                         ((mask & 0x8) << (6 - 3)) |
@@ -326,7 +325,7 @@ mir_to_bytemask(midgard_reg_mode mode, unsigned mask)
 
         case midgard_reg_mode_32: {
                 unsigned space =
-                        ((mask & 0x1) << (0 - 0)) |
+                        (mask & 0x1) |
                         ((mask & 0x2) << (4 - 1)) |
                         ((mask & 0x4) << (8 - 2)) |
                         ((mask & 0x8) << (12 - 3));

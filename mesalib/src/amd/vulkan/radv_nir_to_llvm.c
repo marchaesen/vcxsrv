@@ -468,7 +468,7 @@ radv_load_resource(struct ac_shader_abi *abi, LLVMValueRef index,
 
 		if (ctx->ac.chip_class >= GFX10) {
 			desc_type |= S_008F0C_FORMAT(V_008F0C_IMG_FORMAT_32_FLOAT) |
-				     S_008F0C_OOB_SELECT(3) |
+				     S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW) |
 				     S_008F0C_RESOURCE_LEVEL(1);
 		} else {
 			desc_type |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
@@ -1280,34 +1280,28 @@ adjust_vertex_fetch_alpha(struct radv_shader_context *ctx,
 	return LLVMBuildBitCast(ctx->ac.builder, alpha, ctx->ac.i32, "");
 }
 
-static unsigned
-get_num_channels_from_data_format(unsigned data_format)
-{
-	switch (data_format) {
-	case V_008F0C_BUF_DATA_FORMAT_8:
-	case V_008F0C_BUF_DATA_FORMAT_16:
-	case V_008F0C_BUF_DATA_FORMAT_32:
-		return 1;
-	case V_008F0C_BUF_DATA_FORMAT_8_8:
-	case V_008F0C_BUF_DATA_FORMAT_16_16:
-	case V_008F0C_BUF_DATA_FORMAT_32_32:
-		return 2;
-	case V_008F0C_BUF_DATA_FORMAT_10_11_11:
-	case V_008F0C_BUF_DATA_FORMAT_11_11_10:
-	case V_008F0C_BUF_DATA_FORMAT_32_32_32:
-		return 3;
-	case V_008F0C_BUF_DATA_FORMAT_8_8_8_8:
-	case V_008F0C_BUF_DATA_FORMAT_10_10_10_2:
-	case V_008F0C_BUF_DATA_FORMAT_2_10_10_10:
-	case V_008F0C_BUF_DATA_FORMAT_16_16_16_16:
-	case V_008F0C_BUF_DATA_FORMAT_32_32_32_32:
-		return 4;
-	default:
-		break;
-	}
-
-	return 4;
-}
+static const struct vertex_format_info {
+	uint8_t vertex_byte_size;
+	uint8_t num_channels;
+	uint8_t chan_byte_size;
+	uint8_t chan_format;
+} vertex_format_table[] = {
+	{  0, 4, 0, V_008F0C_BUF_DATA_FORMAT_INVALID	},	/* BUF_DATA_FORMAT_INVALID	*/
+	{  1, 1, 1, V_008F0C_BUF_DATA_FORMAT_8		},	/* BUF_DATA_FORMAT_8		*/
+	{  2, 1, 2, V_008F0C_BUF_DATA_FORMAT_16		},	/* BUF_DATA_FORMAT_16		*/
+	{  2, 2, 1, V_008F0C_BUF_DATA_FORMAT_8		},	/* BUF_DATA_FORMAT_8_8		*/
+	{  4, 1, 4, V_008F0C_BUF_DATA_FORMAT_32		},	/* BUF_DATA_FORMAT_32		*/
+	{  4, 2, 2, V_008F0C_BUF_DATA_FORMAT_16		},	/* BUF_DATA_FORMAT_16_16	*/
+	{  4, 3, 0, V_008F0C_BUF_DATA_FORMAT_10_11_11	},	/* BUF_DATA_FORMAT_10_11_11	*/
+	{  4, 3, 0, V_008F0C_BUF_DATA_FORMAT_11_11_10	},	/* BUF_DATA_FORMAT_11_11_10	*/
+	{  4, 4, 0, V_008F0C_BUF_DATA_FORMAT_10_10_10_2	},	/* BUF_DATA_FORMAT_10_10_10_2	*/
+	{  4, 4, 0, V_008F0C_BUF_DATA_FORMAT_2_10_10_10	},	/* BUF_DATA_FORMAT_2_10_10_10	*/
+	{  4, 4, 1, V_008F0C_BUF_DATA_FORMAT_8		},	/* BUF_DATA_FORMAT_8_8_8_8	*/
+	{  8, 2, 4, V_008F0C_BUF_DATA_FORMAT_32		},	/* BUF_DATA_FORMAT_32_32	*/
+	{  8, 4, 2, V_008F0C_BUF_DATA_FORMAT_16		},	/* BUF_DATA_FORMAT_16_16_16_16	*/
+	{ 12, 3, 4, V_008F0C_BUF_DATA_FORMAT_32		},	/* BUF_DATA_FORMAT_32_32_32	*/
+	{ 16, 4, 4, V_008F0C_BUF_DATA_FORMAT_32		},	/* BUF_DATA_FORMAT_32_32_32_32	*/
+};
 
 static LLVMValueRef
 radv_fixup_vertex_input_fetches(struct radv_shader_context *ctx,
@@ -1330,10 +1324,8 @@ radv_fixup_vertex_input_fetches(struct radv_shader_context *ctx,
 		for (unsigned i = 0; i < num_channels; i++)
 			chan[i] = ac_llvm_extract_elem(&ctx->ac, value, i);
 	} else {
-		if (num_channels) {
-			assert(num_channels == 1);
-			chan[0] = value;
-		}
+		assert(num_channels == 1);
+		chan[0] = value;
 	}
 
 	for (unsigned i = num_channels; i < 4; i++) {
@@ -1395,11 +1387,13 @@ handle_vs_input_decl(struct radv_shader_context *ctx,
 							       ctx->args->ac.base_vertex), "");
 		}
 
+		assert(data_format < ARRAY_SIZE(vertex_format_table));
+		const struct vertex_format_info *vtx_info = &vertex_format_table[data_format];
+
 		/* Adjust the number of channels to load based on the vertex
 		 * attribute format.
 		 */
-		unsigned num_format_channels = get_num_channels_from_data_format(data_format);
-		unsigned num_channels = MIN2(num_input_channels, num_format_channels);
+		unsigned num_channels = MIN2(num_input_channels, vtx_info->num_channels);
 		unsigned attrib_binding = ctx->args->options->key.vs.vertex_attribute_bindings[attrib_index];
 		unsigned attrib_offset = ctx->args->options->key.vs.vertex_attribute_offsets[attrib_index];
 		unsigned attrib_stride = ctx->args->options->key.vs.vertex_attribute_strides[attrib_index];
@@ -1411,27 +1405,70 @@ handle_vs_input_decl(struct radv_shader_context *ctx,
 			num_channels = MAX2(num_channels, 3);
 		}
 
-		if (attrib_stride != 0 && attrib_offset > attrib_stride) {
-			LLVMValueRef buffer_offset =
-				LLVMConstInt(ctx->ac.i32,
-					     attrib_offset / attrib_stride, false);
-
-			buffer_index = LLVMBuildAdd(ctx->ac.builder,
-						    buffer_index,
-						    buffer_offset, "");
-
-			attrib_offset = attrib_offset % attrib_stride;
-		}
-
 		t_offset = LLVMConstInt(ctx->ac.i32, attrib_binding, false);
 		t_list = ac_build_load_to_sgpr(&ctx->ac, t_list_ptr, t_offset);
 
-		input = ac_build_struct_tbuffer_load(&ctx->ac, t_list,
-						     buffer_index,
-						     LLVMConstInt(ctx->ac.i32, attrib_offset, false),
-						     ctx->ac.i32_0, ctx->ac.i32_0,
-						     num_channels,
-						     data_format, num_format, 0, true);
+		/* Perform per-channel vertex fetch operations if unaligned
+		 * access are detected. Only GFX6 and GFX10 are affected.
+		 */
+		bool unaligned_vertex_fetches = false;
+		if ((ctx->ac.chip_class == GFX6 || ctx->ac.chip_class == GFX10) &&
+		    vtx_info->chan_format != data_format &&
+		    ((attrib_offset % vtx_info->vertex_byte_size) ||
+		     (attrib_stride % vtx_info->vertex_byte_size)))
+			unaligned_vertex_fetches = true;
+
+		if (unaligned_vertex_fetches) {
+			unsigned chan_format = vtx_info->chan_format;
+			LLVMValueRef values[4];
+
+			assert(ctx->ac.chip_class == GFX6 ||
+			       ctx->ac.chip_class == GFX10);
+
+			for (unsigned chan  = 0; chan < num_channels; chan++) {
+				unsigned chan_offset = attrib_offset + chan * vtx_info->chan_byte_size;
+				LLVMValueRef chan_index = buffer_index;
+
+				if (attrib_stride != 0 && chan_offset > attrib_stride) {
+					LLVMValueRef buffer_offset =
+						LLVMConstInt(ctx->ac.i32,
+							     chan_offset / attrib_stride, false);
+
+					chan_index = LLVMBuildAdd(ctx->ac.builder,
+								  buffer_index,
+								  buffer_offset, "");
+
+					chan_offset = chan_offset % attrib_stride;
+				}
+
+				values[chan] = ac_build_struct_tbuffer_load(&ctx->ac, t_list,
+									   chan_index,
+									   LLVMConstInt(ctx->ac.i32, chan_offset, false),
+									   ctx->ac.i32_0, ctx->ac.i32_0, 1,
+									   chan_format, num_format, 0, true);
+			}
+
+			input = ac_build_gather_values(&ctx->ac, values, num_channels);
+		} else {
+			if (attrib_stride != 0 && attrib_offset > attrib_stride) {
+				LLVMValueRef buffer_offset =
+					LLVMConstInt(ctx->ac.i32,
+						     attrib_offset / attrib_stride, false);
+
+				buffer_index = LLVMBuildAdd(ctx->ac.builder,
+							    buffer_index,
+							    buffer_offset, "");
+
+				attrib_offset = attrib_offset % attrib_stride;
+			}
+
+			input = ac_build_struct_tbuffer_load(&ctx->ac, t_list,
+							     buffer_index,
+							     LLVMConstInt(ctx->ac.i32, attrib_offset, false),
+							     ctx->ac.i32_0, ctx->ac.i32_0,
+							     num_channels,
+							     data_format, num_format, 0, true);
+		}
 
 		if (ctx->args->options->key.vs.post_shuffle & (1 << attrib_index)) {
 			LLVMValueRef c[4];
@@ -2248,7 +2285,7 @@ static LLVMValueRef ngg_get_ordered_id(struct radv_shader_context *ctx)
 {
 	return ac_build_bfe(&ctx->ac, ac_get_arg(&ctx->ac, ctx->args->gs_tg_info),
 			    ctx->ac.i32_0,
-			    LLVMConstInt(ctx->ac.i32, 11, false),
+			    LLVMConstInt(ctx->ac.i32, 12, false),
 			    false);
 }
 
@@ -2359,7 +2396,6 @@ static void build_sendmsg_gs_alloc_req(struct radv_shader_context *ctx,
 struct ngg_prim {
 	unsigned num_vertices;
 	LLVMValueRef isnull;
-	LLVMValueRef swap;
 	LLVMValueRef index[3];
 	LLVMValueRef edgeflag[3];
 };
@@ -2369,52 +2405,19 @@ static void build_export_prim(struct radv_shader_context *ctx,
 {
 	LLVMBuilderRef builder = ctx->ac.builder;
 	struct ac_export_args args;
-	LLVMValueRef vertices[3];
-	LLVMValueRef odd, even;
 	LLVMValueRef tmp;
 
 	tmp = LLVMBuildZExt(builder, prim->isnull, ctx->ac.i32, "");
 	args.out[0] = LLVMBuildShl(builder, tmp, LLVMConstInt(ctx->ac.i32, 31, false), "");
 
 	for (unsigned i = 0; i < prim->num_vertices; ++i) {
-               tmp = LLVMBuildZExt(builder, prim->edgeflag[i], ctx->ac.i32, "");
-               tmp = LLVMBuildShl(builder, tmp,
-                                  LLVMConstInt(ctx->ac.i32, 9, false), "");
-               vertices[i] = LLVMBuildOr(builder, prim->index[i], tmp, "");
-	}
-
-	switch (prim->num_vertices) {
-	case 1:
-		args.out[0] = LLVMBuildOr(builder, args.out[0], vertices[0], "");
-		break;
-	case 2:
-		tmp = LLVMBuildShl(builder, vertices[1],
-				   LLVMConstInt(ctx->ac.i32, 10, false), "");
-		tmp = LLVMBuildOr(builder, args.out[0], tmp, "");
-		args.out[0] = LLVMBuildOr(builder, tmp, vertices[0], "");
-		break;
-	case 3:
-		/* Swap vertices if needed to follow drawing order. */
-		tmp = LLVMBuildShl(builder, vertices[2],
-				   LLVMConstInt(ctx->ac.i32, 20, false), "");
-		even = LLVMBuildOr(builder, args.out[0], tmp, "");
-		tmp = LLVMBuildShl(builder, vertices[1],
-				   LLVMConstInt(ctx->ac.i32, 10, false), "");
-		even = LLVMBuildOr(builder, even, tmp, "");
-		even = LLVMBuildOr(builder, even, vertices[0], "");
-
-		tmp = LLVMBuildShl(builder, vertices[1],
-				   LLVMConstInt(ctx->ac.i32, 20, false), "");
-		odd = LLVMBuildOr(builder, args.out[0], tmp, "");
-		tmp = LLVMBuildShl(builder, vertices[2],
-				   LLVMConstInt(ctx->ac.i32, 10, false), "");
-		odd = LLVMBuildOr(builder, odd, tmp, "");
-		odd = LLVMBuildOr(builder, odd, vertices[0], "");
-
-		args.out[0] = LLVMBuildSelect(builder, prim->swap, odd, even, "");
-		break;
-	default:
-		unreachable("invalid number of vertices");
+		tmp = LLVMBuildShl(builder, prim->index[i],
+				   LLVMConstInt(ctx->ac.i32, 10 * i, false), "");
+		args.out[0] = LLVMBuildOr(builder, args.out[0], tmp, "");
+		tmp = LLVMBuildZExt(builder, prim->edgeflag[i], ctx->ac.i32, "");
+		tmp = LLVMBuildShl(builder, tmp,
+				   LLVMConstInt(ctx->ac.i32, 10 * i + 9, false), "");
+		args.out[0] = LLVMBuildOr(builder, args.out[0], tmp, "");
 	}
 
 	args.out[0] = LLVMBuildBitCast(builder, args.out[0], ctx->ac.f32, "");
@@ -3042,7 +3045,6 @@ handle_ngg_outputs_post_2(struct radv_shader_context *ctx)
 
 		prim.num_vertices = num_vertices;
 		prim.isnull = ctx->ac.i1false;
-		prim.swap = ctx->ac.i1false;
 		memcpy(prim.index, vtxindex, sizeof(vtxindex[0]) * 3);
 
 		for (unsigned i = 0; i < num_vertices; ++i) {
@@ -3340,6 +3342,7 @@ static void gfx10_ngg_gs_emit_epilogue_2(struct radv_shader_context *ctx)
 	tmp = LLVMBuildICmp(builder, LLVMIntULT, tid, num_emit_threads, "");
 	ac_build_ifcc(&ctx->ac, tmp, 5140);
 	{
+		LLVMValueRef flags;
 		struct ngg_prim prim = {};
 		prim.num_vertices = verts_per_prim;
 
@@ -3350,17 +3353,31 @@ static void gfx10_ngg_gs_emit_epilogue_2(struct radv_shader_context *ctx)
 			ctx->ac.i32_0, /* primflag */
 		};
 		tmp = LLVMBuildGEP(builder, tmp, gep_idx, 3, "");
-		tmp = LLVMBuildLoad(builder, tmp, "");
-		prim.isnull = LLVMBuildICmp(builder, LLVMIntEQ, tmp,
-					    LLVMConstInt(ctx->ac.i8, 0, false), "");
-		prim.swap = LLVMBuildICmp(builder, LLVMIntEQ,
-					  LLVMBuildAnd(builder, tid, LLVMConstInt(ctx->ac.i32, 1, false), ""),
-					  LLVMConstInt(ctx->ac.i32, 1, false), "");
+		flags = LLVMBuildLoad(builder, tmp, "");
+		prim.isnull = LLVMBuildNot(builder, LLVMBuildTrunc(builder, flags, ctx->ac.i1, ""), "");
 
 		for (unsigned i = 0; i < verts_per_prim; ++i) {
 			prim.index[i] = LLVMBuildSub(builder, vertlive_scan.result_exclusive,
 				LLVMConstInt(ctx->ac.i32, verts_per_prim - i - 1, false), "");
 			prim.edgeflag[i] = ctx->ac.i1false;
+		}
+
+		/* Geometry shaders output triangle strips, but NGG expects
+		 * triangles. We need to change the vertex order for odd
+		 * triangles to get correct front/back facing by swapping 2
+		 * vertex indices, but we also have to keep the provoking
+		 * vertex in the same place.
+		 */
+		if (verts_per_prim == 3) {
+			LLVMValueRef is_odd = LLVMBuildLShr(builder, flags, ctx->ac.i8_1, "");
+			is_odd = LLVMBuildTrunc(builder, is_odd, ctx->ac.i1, "");
+
+			struct ngg_prim in = prim;
+			prim.index[0] = in.index[0];
+			prim.index[1] = LLVMBuildSelect(builder, is_odd,
+							in.index[2], in.index[1], "");
+			prim.index[2] = LLVMBuildSelect(builder, is_odd,
+							in.index[1], in.index[2], "");
 		}
 
 		build_export_prim(ctx, &prim);
@@ -3516,6 +3533,17 @@ static void gfx10_ngg_gs_emit_vertex(struct radv_shader_context *ctx,
 	const LLVMValueRef iscompleteprim =
 		LLVMBuildICmp(builder, LLVMIntUGE, curverts, tmp, "");
 
+	/* Since the geometry shader emits triangle strips, we need to
+	 * track which primitive is odd and swap vertex indices to get
+	 * the correct vertex order.
+	 */
+	LLVMValueRef is_odd = ctx->ac.i1false;
+	if (stream == 0 &&
+	    si_conv_gl_prim_to_vertices(ctx->shader->info.gs.output_primitive) == 3) {
+		tmp = LLVMBuildAnd(builder, curverts, ctx->ac.i32_1, "");
+		is_odd = LLVMBuildICmp(builder, LLVMIntEQ, tmp, ctx->ac.i32_1, "");
+	}
+
 	tmp = LLVMBuildAdd(builder, curverts, ctx->ac.i32_1, "");
 	LLVMBuildStore(builder, tmp, ctx->gs_curprim_verts[stream]);
 
@@ -3527,7 +3555,15 @@ static void gfx10_ngg_gs_emit_vertex(struct radv_shader_context *ctx,
 	const LLVMValueRef primflagptr =
 		LLVMBuildGEP(builder, vertexptr, gep_idx, 3, "");
 
+	/* The per-vertex primitive flag encoding:
+	 *   bit 0: whether this vertex finishes a primitive
+	 *   bit 1: whether the primitive is odd (if we are emitting triangle strips)
+	 */
 	tmp = LLVMBuildZExt(builder, iscompleteprim, ctx->ac.i8, "");
+	tmp = LLVMBuildOr(builder, tmp,
+			  LLVMBuildShl(builder,
+				       LLVMBuildZExt(builder, is_odd, ctx->ac.i8, ""),
+				       ctx->ac.i8_1, ""), "");
 	LLVMBuildStore(builder, tmp, primflagptr);
 
 	tmp = LLVMBuildLoad(builder, ctx->gs_generated_prims[stream], "");

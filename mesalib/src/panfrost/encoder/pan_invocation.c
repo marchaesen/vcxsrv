@@ -50,17 +50,7 @@ panfrost_pack_work_groups_compute(
         unsigned size_z,
         bool quirk_graphics)
 {
-        /* First of all, all 6 values are off-by-one (strictly positive).
-         * Account for that, first by ensuring all values are strictly positive
-         * and then by offsetting */
-
-        assert(num_x > 0);
-        assert(num_y > 0);
-        assert(num_z > 0);
-
-        assert(size_x > 0);
-        assert(size_y > 0);
-        assert(size_z > 0);
+        /* First of all, all 6 values are off-by-one (strictly positive). */
 
         num_x = MALI_POSITIVE(num_x);
         num_y = MALI_POSITIVE(num_y);
@@ -91,33 +81,38 @@ panfrost_pack_work_groups_compute(
                 shifts[i + 1] = shifts[i] + bit_count;
         }
 
-        /* We're packed, so upload everything */
-        out->invocation_count = packed;
-        out->size_y_shift = shifts[1];
-        out->size_z_shift = shifts[2];
-        out->workgroups_x_shift = shifts[3];
-        out->workgroups_y_shift = shifts[4];
-        out->workgroups_z_shift = shifts[5];
-
         /* Quirk: for non-instanced graphics, the blob sets workgroups_z_shift
          * = 32. This doesn't appear to matter to the hardware, but it's good
          * to be bit-identical. */
 
         if (quirk_graphics && (num_z <= 1))
-                out->workgroups_z_shift = 32;
+                shifts[5] = 32;
 
         /* Quirk: for graphics, workgroups_x_shift_2 must be at least 2,
          * whereas for OpenCL it is simply equal to workgroups_x_shift. For GL
          * compute, it seems it might *always* be 2, but this is suspicious and
          * needs further investigation. (I'm probably just using GL wrong). */
 
+        unsigned shift_2 = shifts[3];
+
         if (quirk_graphics)
-                out->workgroups_x_shift_2 = MAX2(out->workgroups_x_shift, 2);
-        else
-                out->workgroups_x_shift_2 = out->workgroups_x_shift;
+                shift_2 = MAX2(shift_2, 2);
+
+        /* Pack them in */
+        uint32_t packed_shifts =
+                (shifts[1] << 0) |
+                (shifts[2] << 5) |
+                (shifts[3] << 10) |
+                (shifts[4] << 16) |
+                (shifts[5] << 22) |
+                (shift_2 << 28);
+
+        /* Upload the packed bitfields */
+        out->invocation_count = packed;
+        out->invocation_shifts = packed_shifts;
 
         /* TODO: Compute workgroups_x_shift_3 */
-        out->workgroups_x_shift_3 = out->workgroups_x_shift_2;
+        out->workgroups_x_shift_3 = shift_2;
 }
 
 /* Packs vertex/tiler descriptors simultaneously */
@@ -136,12 +131,7 @@ panfrost_pack_work_groups_fused(
 
         /* Copy results over */
         tiler->invocation_count = vertex->invocation_count;
-        tiler->size_y_shift = vertex->size_y_shift;
-        tiler->size_z_shift = vertex->size_z_shift;
-        tiler->workgroups_x_shift = vertex->workgroups_x_shift;
-        tiler->workgroups_x_shift_2 = vertex->workgroups_x_shift_2;
-        tiler->workgroups_y_shift = vertex->workgroups_y_shift;
-        tiler->workgroups_z_shift = vertex->workgroups_z_shift;
+        tiler->invocation_shifts = vertex->invocation_shifts;
 
         /* Set special fields for each */
         vertex->workgroups_x_shift_3 = 5;

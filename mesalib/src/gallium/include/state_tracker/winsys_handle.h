@@ -53,6 +53,12 @@ struct winsys_handle
     * Input to resource_from_handle.
     * Output from resource_get_handle.
     */
+   uint64_t format;
+
+   /**
+    * Input to resource_from_handle.
+    * Output from resource_get_handle.
+    */
    uint64_t modifier;
 };
 

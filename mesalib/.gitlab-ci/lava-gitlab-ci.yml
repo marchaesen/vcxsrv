@@ -1,31 +1,17 @@
 include:
   - project: 'wayland/ci-templates'
     # Must be the same as in .gitlab-ci.yml
-    ref: f69acac60d5dde0410124fd5674764600821b7a6
+    ref: 0a9bdd33a98f05af6761ab118b5074952242aab0
     file: '/templates/debian.yml'
-
-# When to automatically run the CI
-.lava-ci-run-policy:
-  only:
-    - branches@mesa/mesa
-    - merge_requests
-    - /^lava-ci([-/].*)?$/
-  retry:
-    max: 2
-    when:
-      - runner_system_failure
-  # Cancel CI run if a newer commit is pushed to the same branch
-  interruptible: true
 
 # Build Docker image with deqp, the rootfs and the build deps for Mesa
 .lava-container:
   extends:
     - .debian@container-ifnot-exists
     - .container
-    - .lava-ci-run-policy
   variables:
     REPO_SUFFIX: ${CI_JOB_NAME}
-    DEBIAN_TAG:  &debian_tag '2019-10-23'
+    DEBIAN_TAG:  &debian_tag '2019-12-05-1'
     DEBIAN_EXEC: 'DEBIAN_ARCH=${DEBIAN_ARCH}
                   GCC_ARCH=${GCC_ARCH}
                   KERNEL_ARCH=${KERNEL_ARCH}
@@ -55,7 +41,7 @@ lava_arm64:
     KERNEL_ARCH: "arm64"
     VOLT_ARCH: "aarch64"
     DEFCONFIG: "arch/arm64/configs/defconfig"
-    DEVICE_TREES: "arch/arm64/boot/dts/rockchip/rk3399-gru-kevin.dtb arch/arm64/boot/dts/amlogic/meson-gxl-s905x-libretech-cc.dtb"
+    DEVICE_TREES: "arch/arm64/boot/dts/rockchip/rk3399-gru-kevin.dtb arch/arm64/boot/dts/amlogic/meson-gxl-s905x-libretech-cc.dtb arch/arm64/boot/dts/allwinner/sun50i-h6-pine-h64.dtb arch/arm64/boot/dts/amlogic/meson-gxm-khadas-vim2.dtb"
     KERNEL_IMAGE_NAME: "Image"
 
 .lava-build:
@@ -64,7 +50,7 @@ lava_arm64:
   image: $CI_REGISTRY_IMAGE/debian/lava_${DEBIAN_ARCH}:$TAG
   extends:
     - .build-linux
-    - .lava-ci-run-policy
+    - .ci-run-policy
   script:
     # Build Mesa
     - mkdir -p results mesa-build
@@ -136,12 +122,12 @@ lava-build:arm64:
   variables:
     DEBIAN_ARCH: "arm64"
     GCC_ARCH: "aarch64-linux-gnu"
-    DEVICE_TYPES: "rk3399-gru-kevin meson-gxl-s905x-libretech-cc"
+    DEVICE_TYPES: "rk3399-gru-kevin meson-gxl-s905x-libretech-cc sun50i-h6-pine-h64 meson-gxm-khadas-vim2"
     KERNEL_IMAGE_NAME: "Image"
 
 .lava-test:
   extends:
-    - .lava-ci-run-policy
+    - .ci-run-policy
   stage: test
   variables:
     GIT_STRATEGY: none # testing doesn't build anything from source
@@ -180,6 +166,13 @@ lava-build:arm64:
   dependencies:
     - lava-build:arm64
 
+panfrost-t720-test:arm64:
+  extends: .lava-test:arm64
+  variables:
+    DEVICE_TYPE: sun50i-h6-pine-h64
+  tags:
+    - lava-sun50i-h6-pine-h64
+
 panfrost-t760-test:armhf:
   extends: .lava-test:armhf
   variables:
@@ -193,6 +186,13 @@ panfrost-t860-test:arm64:
     DEVICE_TYPE: rk3399-gru-kevin
   tags:
     - lava-rk3399-gru-kevin
+
+.panfrost-t820-test:arm64:
+  extends: .lava-test:arm64
+  variables:
+    DEVICE_TYPE: meson-gxm-khadas-vim2
+  tags:
+    - lava-meson-gxm-khadas-vim2
 
 .lima-test:armhf:
   extends: .lava-test:armhf

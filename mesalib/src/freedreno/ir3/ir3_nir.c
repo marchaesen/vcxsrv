@@ -46,7 +46,9 @@ static const nir_shader_compiler_options options = {
 		.lower_isign = true,
 		.lower_ldexp = true,
 		.lower_uadd_carry = true,
+		.lower_usub_borrow = true,
 		.lower_mul_high = true,
+		.lower_mul_2x32_64 = true,
 		.fuse_ffma = true,
 		.vertex_id_zero_based = true,
 		.lower_extract_byte = true,
@@ -55,6 +57,18 @@ static const nir_shader_compiler_options options = {
 		.lower_helper_invocation = true,
 		.lower_bitfield_insert_to_shifts = true,
 		.lower_bitfield_extract_to_shifts = true,
+		.lower_pack_half_2x16 = true,
+		.lower_pack_half_2x16_split = true,
+		.lower_pack_snorm_4x8 = true,
+		.lower_pack_snorm_2x16 = true,
+		.lower_pack_unorm_4x8 = true,
+		.lower_pack_unorm_2x16 = true,
+		.lower_unpack_half_2x16 = true,
+		.lower_unpack_half_2x16_split = true,
+		.lower_unpack_snorm_4x8 = true,
+		.lower_unpack_snorm_2x16 = true,
+		.lower_unpack_unorm_4x8 = true,
+		.lower_unpack_unorm_2x16 = true,
 		.use_interpolated_input_intrinsics = true,
 		.lower_rotate = true,
 		.lower_to_scalar = true,
@@ -74,7 +88,9 @@ static const nir_shader_compiler_options options_a6xx = {
 		.lower_isign = true,
 		.lower_ldexp = true,
 		.lower_uadd_carry = true,
+		.lower_usub_borrow = true,
 		.lower_mul_high = true,
+		.lower_mul_2x32_64 = true,
 		.fuse_ffma = true,
 		.vertex_id_zero_based = false,
 		.lower_extract_byte = true,
@@ -83,6 +99,18 @@ static const nir_shader_compiler_options options_a6xx = {
 		.lower_helper_invocation = true,
 		.lower_bitfield_insert_to_shifts = true,
 		.lower_bitfield_extract_to_shifts = true,
+		.lower_pack_half_2x16 = true,
+		.lower_pack_half_2x16_split = true,
+		.lower_pack_snorm_4x8 = true,
+		.lower_pack_snorm_2x16 = true,
+		.lower_pack_unorm_4x8 = true,
+		.lower_pack_unorm_2x16 = true,
+		.lower_unpack_half_2x16 = true,
+		.lower_unpack_half_2x16_split = true,
+		.lower_unpack_snorm_4x8 = true,
+		.lower_unpack_snorm_2x16 = true,
+		.lower_unpack_unorm_4x8 = true,
+		.lower_unpack_unorm_2x16 = true,
 		.use_interpolated_input_intrinsics = true,
 		.lower_rotate = true,
 		.vectorize_io = true,
@@ -148,6 +176,7 @@ ir3_optimize_loop(nir_shader *s)
 		progress |= OPT(s, nir_opt_peephole_select, 16, true, true);
 		progress |= OPT(s, nir_opt_intrinsics);
 		progress |= OPT(s, nir_opt_algebraic);
+		progress |= OPT(s, nir_lower_alu);
 		progress |= OPT(s, nir_opt_constant_folding);
 
 		if (lower_flrp != 0) {
@@ -385,6 +414,10 @@ ir3_nir_scan_driver_consts(nir_shader *shader,
 				case nir_intrinsic_load_first_vertex:
 					layout->num_driver_params =
 						MAX2(layout->num_driver_params, IR3_DP_VTXID_BASE + 1);
+					break;
+				case nir_intrinsic_load_base_instance:
+					layout->num_driver_params =
+						MAX2(layout->num_driver_params, IR3_DP_INSTID_BASE + 1);
 					break;
 				case nir_intrinsic_load_user_clip_plane:
 					layout->num_driver_params =

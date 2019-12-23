@@ -388,10 +388,10 @@ static dr_emit_flags_t instrument_instr(
     if (instr_reads_memory(instr) || instr_writes_memory(instr)) {
         for (int i = 0, limit = instr_num_srcs(instr); i < limit; i++)
             try_mem_opnd(drcontext, bb, instr, &loc,
-                         instr_get_src(instr, i), false);
+                         instr_get_src(instr, i), instr_writes_memory(instr));
         for (int i = 0, limit = instr_num_dsts(instr); i < limit; i++)
             try_mem_opnd(drcontext, bb, instr, &loc,
-                         instr_get_dst(instr, i), false);
+                         instr_get_dst(instr, i), instr_writes_memory(instr));
     }
 
     /*
@@ -539,9 +539,12 @@ static void load_module(
          * need to add more aliases here to stop the test failing.
          */
         TRY_WRAP("__GI___libc_malloc", wrap_malloc_pre, wrap_alloc_post);
+        TRY_WRAP("__libc_malloc", wrap_malloc_pre, wrap_alloc_post);
         TRY_WRAP("__GI___libc_realloc", wrap_realloc_pre, wrap_alloc_post);
         TRY_WRAP("__GI___libc_free", wrap_free_pre, unpause_post);
         TRY_WRAP("__memset_sse2_unaligned", wrap_memset_pre, unpause_post);
+        TRY_WRAP("__memset_sse2", wrap_memset_pre, unpause_post);
+        TRY_WRAP("cfree", wrap_free_pre, unpause_post);
     }
 }
 

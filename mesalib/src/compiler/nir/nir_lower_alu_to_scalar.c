@@ -117,6 +117,8 @@ lower_alu_instr_scalar(nir_builder *b, nir_instr *instr, void *_data)
       return lower_reduction(alu, chan, merge, b); \
 
    switch (alu->op) {
+   case nir_op_vec16:
+   case nir_op_vec8:
    case nir_op_vec4:
    case nir_op_vec3:
    case nir_op_vec2:

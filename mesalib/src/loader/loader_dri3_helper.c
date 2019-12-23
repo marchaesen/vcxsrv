@@ -1119,6 +1119,7 @@ dri3_cpp_for_format(uint32_t format) {
    case  __DRI_IMAGE_FORMAT_ABGR2101010:
    case  __DRI_IMAGE_FORMAT_SARGB8:
    case  __DRI_IMAGE_FORMAT_SABGR8:
+   case  __DRI_IMAGE_FORMAT_SXRGB8:
       return 4;
    case __DRI_IMAGE_FORMAT_XBGR16161616F:
    case __DRI_IMAGE_FORMAT_ABGR16161616F:
@@ -1172,6 +1173,7 @@ image_format_to_fourcc(int format)
    switch (format) {
    case __DRI_IMAGE_FORMAT_SARGB8: return __DRI_IMAGE_FOURCC_SARGB8888;
    case __DRI_IMAGE_FORMAT_SABGR8: return __DRI_IMAGE_FOURCC_SABGR8888;
+   case __DRI_IMAGE_FORMAT_SXRGB8: return __DRI_IMAGE_FOURCC_SXRGB8888;
    case __DRI_IMAGE_FORMAT_RGB565: return DRM_FORMAT_RGB565;
    case __DRI_IMAGE_FORMAT_XRGB8888: return DRM_FORMAT_XRGB8888;
    case __DRI_IMAGE_FORMAT_ARGB8888: return DRM_FORMAT_ARGB8888;
@@ -1392,6 +1394,8 @@ dri3_alloc_render_buffer(struct loader_dri3_drawable *draw, unsigned int format,
          image = pixmap_buffer;
       }
 
+      buffer_fds[i] = -1;
+
       ret = draw->ext->image->queryImage(image, __DRI_IMAGE_ATTRIB_FD,
                                          &buffer_fds[i]);
       ret &= draw->ext->image->queryImage(image, __DRI_IMAGE_ATTRIB_STRIDE,
@@ -1464,7 +1468,8 @@ dri3_alloc_render_buffer(struct loader_dri3_drawable *draw, unsigned int format,
 
 no_buffer_attrib:
    do {
-      close(buffer_fds[i]);
+      if (buffer_fds[i] != -1)
+         close(buffer_fds[i]);
    } while (--i >= 0);
    draw->ext->image->destroyImage(pixmap_buffer);
 no_linear_buffer:

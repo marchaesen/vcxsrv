@@ -1,0 +1,31 @@
+# Disable a TON of tests to keep the run around 5-10 minutes because my runner is
+# slow.
+dEQP-VK.api.*
+dEQP-VK.binding_model.*
+dEQP-VK.clipping.*
+dEQP-VK.compute.*
+dEQP-VK.conditional_rendering.*
+dEQP-VK.descriptor_indexing.*
+dEQP-VK.device_group.*
+dEQP-VK.fragment_operations.*
+dEQP-VK.fragment_shader_interlock.*
+dEQP-VK.graphicsfuzz.*
+dEQP-VK.image.*
+dEQP-VK.imageless_framebuffer.*
+dEQP-VK.info.*
+dEQP-VK.memory.*
+dEQP-VK.memory_model.*
+dEQP-VK.multiview.*
+dEQP-VK.pipeline.*
+dEQP-VK.protected_memory.*
+dEQP-VK.query_pool.*
+dEQP-VK.robustness.*
+dEQP-VK.sparse_resources.*
+dEQP-VK.spirv_assembly.*
+dEQP-VK.subgroups.*
+dEQP-VK.synchronization.*
+dEQP-VK.texture.*
+dEQP-VK.transform_feedback.*
+dEQP-VK.ubo.*
+dEQP-VK.wsi.*
+dEQP-VK.ycbcr.*

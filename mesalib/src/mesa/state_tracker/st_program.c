@@ -41,6 +41,7 @@
 #include "program/programopt.h"
 
 #include "compiler/nir/nir.h"
+#include "draw/draw_context.h"
 
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"
@@ -217,7 +218,11 @@ static void
 delete_variant(struct st_context *st, struct st_variant *v, GLenum target)
 {
    if (v->driver_shader) {
-      if (st->has_shareable_shaders || v->st == st) {
+      if (target == GL_VERTEX_PROGRAM_ARB &&
+          ((struct st_common_variant*)v)->key.is_draw_shader) {
+         /* Draw shader. */
+         draw_delete_vertex_shader(st->draw, v->driver_shader);
+      } else if (st->has_shareable_shaders || v->st == st) {
          /* The shader's context matches the calling context, or we
           * don't care.
           */
@@ -252,16 +257,6 @@ delete_variant(struct st_context *st, struct st_variant *v, GLenum target)
 
          st_save_zombie_shader(v->st, type, v->driver_shader);
       }
-   }
-
-   if (target == GL_VERTEX_PROGRAM_ARB) {
-      struct st_vp_variant *vpv = (struct st_vp_variant *)v;
-
-      if (vpv->draw_shader)
-         draw_delete_vertex_shader( st->draw, vpv->draw_shader );
-
-      if (vpv->tokens)
-         ureg_free_tokens(vpv->tokens);
    }
 
    free(v);
@@ -459,7 +454,24 @@ st_translate_vertex_program(struct st_context *st,
       if (stp->Base.Parameters->NumParameters)
          stp->affected_states |= ST_NEW_VS_CONSTANTS;
 
-      /* No samplers are allowed in ARB_vp. */
+      /* Translate to NIR if preferred. */
+      if (st->pipe->screen->get_shader_param(st->pipe->screen,
+                                             PIPE_SHADER_VERTEX,
+                                             PIPE_SHADER_CAP_PREFERRED_IR)) {
+         assert(!stp->glsl_to_tgsi);
+
+         if (stp->Base.nir)
+            ralloc_free(stp->Base.nir);
+
+         stp->state.type = PIPE_SHADER_IR_NIR;
+         stp->Base.nir = st_translate_prog_to_nir(st, &stp->Base,
+                                                  MESA_SHADER_VERTEX);
+         /* For st_draw_feedback, we need to generate TGSI too if draw doesn't
+          * use LLVM.
+          */
+         if (draw_has_llvm())
+            return true;
+      }
    }
 
    /* Get semantic names and indices. */
@@ -550,39 +562,18 @@ st_translate_vertex_program(struct st_context *st,
       st_store_ir_in_disk_cache(st, &stp->Base, false);
    }
 
-   /* Translate to NIR.
-    *
-    * This must be done after the translation to TGSI is done, because
-    * we'll pass the NIR shader to the driver and the TGSI version to
-    * the draw module for the select/feedback/rasterpos code.
-    */
-   if (st->pipe->screen->get_shader_param(st->pipe->screen,
-                                          PIPE_SHADER_VERTEX,
-                                          PIPE_SHADER_CAP_PREFERRED_IR)) {
-      assert(!stp->glsl_to_tgsi);
-
-      nir_shader *nir =
-         st_translate_prog_to_nir(st, &stp->Base, MESA_SHADER_VERTEX);
-
-      if (stp->Base.nir)
-         ralloc_free(stp->Base.nir);
-      stp->state.type = PIPE_SHADER_IR_NIR;
-      stp->Base.nir = nir;
-      return true;
-   }
-
    return stp->state.tokens != NULL;
 }
 
 static const gl_state_index16 depth_range_state[STATE_LENGTH] =
    { STATE_DEPTH_RANGE };
 
-static struct st_vp_variant *
+static struct st_common_variant *
 st_create_vp_variant(struct st_context *st,
                      struct st_program *stvp,
                      const struct st_common_variant_key *key)
 {
-   struct st_vp_variant *vpv = CALLOC_STRUCT(st_vp_variant);
+   struct st_common_variant *vpv = CALLOC_STRUCT(st_common_variant);
    struct pipe_context *pipe = st->pipe;
    struct pipe_screen *screen = pipe->screen;
    struct pipe_shader_state state = {0};
@@ -592,11 +583,11 @@ st_create_vp_variant(struct st_context *st,
    struct gl_program_parameter_list *params = stvp->Base.Parameters;
 
    vpv->key = *key;
-   vpv->num_inputs = ((struct st_vertex_program*)stvp)->num_inputs;
 
    state.stream_output = stvp->state.stream_output;
 
-   if (stvp->state.type == PIPE_SHADER_IR_NIR) {
+   if (stvp->state.type == PIPE_SHADER_IR_NIR &&
+       (!key->is_draw_shader || draw_has_llvm())) {
       bool finalize = false;
 
       state.type = PIPE_SHADER_IR_NIR;
@@ -607,7 +598,6 @@ st_create_vp_variant(struct st_context *st,
       }
       if (key->passthrough_edgeflags) {
          NIR_PASS_V(state.ir.nir, nir_lower_passthrough_edgeflags);
-         vpv->num_inputs++;
          finalize = true;
       }
 
@@ -656,18 +646,10 @@ st_create_vp_variant(struct st_context *st,
       if (ST_DEBUG & DEBUG_PRINT_IR)
          nir_print_shader(state.ir.nir, stderr);
 
-      vpv->base.driver_shader = pipe->create_vs_state(pipe, &state);
-
-      /* When generating a NIR program, we usually don't have TGSI tokens.
-       * However, we do create them for ARB_vertex_program / fixed-function VS
-       * programs which we may need to use with the draw module for legacy
-       * feedback/select emulation.  If they exist, copy them.
-       *
-       * TODO: Lowering for shader variants is not applied to TGSI when
-       * generating a NIR shader.
-       */
-      if (stvp->state.tokens)
-         vpv->tokens = tgsi_dup_tokens(stvp->state.tokens);
+      if (key->is_draw_shader)
+         vpv->base.driver_shader = draw_create_vertex_shader(st->draw, &state);
+      else
+         vpv->base.driver_shader = pipe->create_vs_state(pipe, &state);
 
       return vpv;
    }
@@ -687,11 +669,9 @@ st_create_vp_variant(struct st_context *st,
       if (tokens) {
          tgsi_free_tokens(state.tokens);
          state.tokens = tokens;
-
-         if (key->passthrough_edgeflags)
-            vpv->num_inputs++;
-      } else
+      } else {
          fprintf(stderr, "mesa: cannot emulate deprecated features\n");
+      }
    }
 
    if (key->lower_depth_clamp) {
@@ -709,9 +689,15 @@ st_create_vp_variant(struct st_context *st,
    if (ST_DEBUG & DEBUG_PRINT_IR)
       tgsi_dump(state.tokens, 0);
 
-   vpv->base.driver_shader = pipe->create_vs_state(pipe, &state);
-   /* Save this for selection/feedback/rasterpos. */
-   vpv->tokens = state.tokens;
+   if (key->is_draw_shader)
+      vpv->base.driver_shader = draw_create_vertex_shader(st->draw, &state);
+   else
+      vpv->base.driver_shader = pipe->create_vs_state(pipe, &state);
+
+   if (state.tokens) {
+      tgsi_free_tokens(state.tokens);
+   }
+
    return vpv;
 }
 
@@ -719,17 +705,17 @@ st_create_vp_variant(struct st_context *st,
 /**
  * Find/create a vertex program variant.
  */
-struct st_vp_variant *
+struct st_common_variant *
 st_get_vp_variant(struct st_context *st,
                   struct st_program *stp,
                   const struct st_common_variant_key *key)
 {
    struct st_vertex_program *stvp = (struct st_vertex_program *)stp;
-   struct st_vp_variant *vpv;
+   struct st_common_variant *vpv;
 
    /* Search for existing variant */
-   for (vpv = st_vp_variant(stp->variants); vpv;
-        vpv = st_vp_variant(vpv->base.next)) {
+   for (vpv = st_common_variant(stp->variants); vpv;
+        vpv = st_common_variant(vpv->base.next)) {
       if (memcmp(&vpv->key, key, sizeof(*key)) == 0) {
          break;
       }
@@ -741,7 +727,8 @@ st_get_vp_variant(struct st_context *st,
       if (vpv) {
          vpv->base.st = key->st;
 
-         for (unsigned index = 0; index < vpv->num_inputs; ++index) {
+         unsigned num_inputs = stvp->num_inputs + key->passthrough_edgeflags;
+         for (unsigned index = 0; index < num_inputs; ++index) {
             unsigned attr = stvp->index_to_input[index];
             if (attr == ST_DOUBLE_ATTRIB_PLACEHOLDER)
                continue;

@@ -25,7 +25,6 @@
  */
 
 #include "math.h"
-
 #include "nir/nir_builtin_builder.h"
 
 #include "vtn_private.h"
@@ -213,25 +212,34 @@ _handle_v_load_store(struct vtn_builder *b, enum OpenCLstd_Entrypoints opcode,
 
    const struct glsl_type *dest_type = type->type;
    unsigned components = glsl_get_vector_elements(dest_type);
-   unsigned stride = components * glsl_get_bit_size(dest_type) / 8;
 
    nir_ssa_def *offset = vtn_ssa_value(b, w[5 + a])->def;
    struct vtn_value *p = vtn_value(b, w[6 + a], vtn_value_type_pointer);
 
+   struct vtn_ssa_value *comps[NIR_MAX_VEC_COMPONENTS];
+   nir_ssa_def *ncomps[NIR_MAX_VEC_COMPONENTS];
+
+   nir_ssa_def *moffset = nir_imul_imm(&b->nb, offset, components);
    nir_deref_instr *deref = vtn_pointer_to_deref(b, p->pointer);
 
-   /* 1. cast to vec type with adjusted stride */
-   deref = nir_build_deref_cast(&b->nb, &deref->dest.ssa, deref->mode,
-                                dest_type, stride);
-   /* 2. deref ptr_as_array */
-   deref = nir_build_deref_ptr_as_array(&b->nb, deref, offset);
+   for (int i = 0; i < components; i++) {
+      nir_ssa_def *coffset = nir_iadd_imm(&b->nb, moffset, i);
+      nir_deref_instr *arr_deref = nir_build_deref_ptr_as_array(&b->nb, deref, coffset);
 
+      if (load) {
+         comps[i] = vtn_local_load(b, arr_deref, p->type->access);
+         ncomps[i] = comps[i]->def;
+      } else {
+         struct vtn_ssa_value *ssa = vtn_create_ssa_value(b, glsl_scalar_type(glsl_get_base_type(dest_type)));
+         struct vtn_ssa_value *val = vtn_ssa_value(b, w[5]);
+         ssa->def = vtn_vector_extract(b, val->def, i);
+         vtn_local_store(b, ssa, arr_deref, p->type->access);
+      }
+   }
    if (load) {
-      struct vtn_ssa_value *val = vtn_local_load(b, deref, p->type->access);
-      vtn_push_ssa(b, w[2], type, val);
-   } else {
-      struct vtn_ssa_value *val = vtn_ssa_value(b, w[5]);
-      vtn_local_store(b, val, deref, p->type->access);
+      struct vtn_ssa_value *ssa = vtn_create_ssa_value(b, dest_type);
+      ssa->def = nir_vec(&b->nb, ncomps, components);
+      vtn_push_ssa(b, w[2], type, ssa);
    }
 }
 
@@ -256,6 +264,52 @@ handle_printf(struct vtn_builder *b, enum OpenCLstd_Entrypoints opcode,
 {
    /* hahah, yeah, right.. */
    return nir_imm_int(&b->nb, -1);
+}
+
+static nir_ssa_def *
+handle_shuffle(struct vtn_builder *b, enum OpenCLstd_Entrypoints opcode, unsigned num_srcs,
+               nir_ssa_def **srcs, const struct glsl_type *dest_type)
+{
+   struct nir_ssa_def *input = srcs[0];
+   struct nir_ssa_def *mask = srcs[1];
+
+   unsigned out_elems = glsl_get_vector_elements(dest_type);
+   nir_ssa_def *outres[NIR_MAX_VEC_COMPONENTS];
+   unsigned in_elems = input->num_components;
+   if (mask->bit_size != 32)
+      mask = nir_u2u32(&b->nb, mask);
+   mask = nir_iand(&b->nb, mask, nir_imm_intN_t(&b->nb, in_elems - 1, mask->bit_size));
+   for (unsigned i = 0; i < out_elems; i++)
+      outres[i] = nir_vector_extract(&b->nb, input, nir_channel(&b->nb, mask, i));
+
+   return nir_vec(&b->nb, outres, out_elems);
+}
+
+static nir_ssa_def *
+handle_shuffle2(struct vtn_builder *b, enum OpenCLstd_Entrypoints opcode, unsigned num_srcs,
+                nir_ssa_def **srcs, const struct glsl_type *dest_type)
+{
+   struct nir_ssa_def *input0 = srcs[0];
+   struct nir_ssa_def *input1 = srcs[1];
+   struct nir_ssa_def *mask = srcs[2];
+
+   unsigned out_elems = glsl_get_vector_elements(dest_type);
+   nir_ssa_def *outres[NIR_MAX_VEC_COMPONENTS];
+   unsigned in_elems = input0->num_components;
+   unsigned total_mask = 2 * in_elems - 1;
+   unsigned half_mask = in_elems - 1;
+   if (mask->bit_size != 32)
+      mask = nir_u2u32(&b->nb, mask);
+   mask = nir_iand(&b->nb, mask, nir_imm_intN_t(&b->nb, total_mask, mask->bit_size));
+   for (unsigned i = 0; i < out_elems; i++) {
+      nir_ssa_def *this_mask = nir_channel(&b->nb, mask, i);
+      nir_ssa_def *vmask = nir_iand(&b->nb, this_mask, nir_imm_intN_t(&b->nb, half_mask, mask->bit_size));
+      nir_ssa_def *val0 = nir_vector_extract(&b->nb, input0, vmask);
+      nir_ssa_def *val1 = nir_vector_extract(&b->nb, input1, vmask);
+      nir_ssa_def *sel = nir_ilt(&b->nb, this_mask, nir_imm_intN_t(&b->nb, in_elems, mask->bit_size));
+      outres[i] = nir_bcsel(&b->nb, sel, val0, val1);
+   }
+   return nir_vec(&b->nb, outres, out_elems);
 }
 
 bool
@@ -341,6 +395,12 @@ vtn_handle_opencl_instruction(struct vtn_builder *b, SpvOp ext_opcode,
       return true;
    case OpenCLstd_Vstoren:
       vtn_handle_opencl_vstore(b, ext_opcode, w, count);
+      return true;
+   case OpenCLstd_Shuffle:
+      handle_instr(b, ext_opcode, w, count, handle_shuffle);
+      return true;
+   case OpenCLstd_Shuffle2:
+      handle_instr(b, ext_opcode, w, count, handle_shuffle2);
       return true;
    case OpenCLstd_Printf:
       handle_instr(b, ext_opcode, w, count, handle_printf);

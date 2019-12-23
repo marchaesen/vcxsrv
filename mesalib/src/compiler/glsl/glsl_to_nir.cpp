@@ -235,13 +235,6 @@ glsl_to_nir(struct gl_context *ctx,
       }
    }
 
-   /* Remap the locations to slots so those requiring two slots will occupy
-    * two locations. For instance, if we have in the IR code a dvec3 attr0 in
-    * location 0 and vec4 attr1 in location 1, in NIR attr0 will use
-    * locations/slots 0 and 1, and attr1 will use location/slot 2 */
-   if (shader->info.stage == MESA_SHADER_VERTEX)
-      nir_remap_dual_slot_attributes(shader, &sh->Program->DualSlotInputs);
-
    shader->info.name = ralloc_asprintf(shader, "GLSL%d", shader_prog->Name);
    if (shader_prog->Label)
       shader->info.label = ralloc_strdup(shader, shader_prog->Label);
@@ -417,6 +410,15 @@ wrap_type_in_array(const glsl_type *elem_type, const glsl_type *array_type)
    return glsl_type::get_array_instance(elem_type, array_type->length);
 }
 
+static unsigned
+get_nir_how_declared(unsigned how_declared)
+{
+   if (how_declared == ir_var_hidden)
+      return nir_var_hidden;
+
+   return nir_var_declared_normally;
+}
+
 void
 nir_visitor::visit(ir_variable *ir)
 {
@@ -442,11 +444,16 @@ nir_visitor::visit(ir_variable *ir)
    var->data.centroid = ir->data.centroid;
    var->data.sample = ir->data.sample;
    var->data.patch = ir->data.patch;
+   var->data.how_declared = get_nir_how_declared(ir->data.how_declared);
    var->data.invariant = ir->data.invariant;
    var->data.location = ir->data.location;
    var->data.stream = ir->data.stream;
    if (ir->data.stream & (1u << 31))
       var->data.stream |= NIR_STREAM_PACKED;
+
+   var->data.precision = ir->data.precision;
+   var->data.explicit_location = ir->data.explicit_location;
+   var->data.from_named_ifc_block = ir->data.from_named_ifc_block;
    var->data.compact = false;
 
    switch(ir->data.mode) {

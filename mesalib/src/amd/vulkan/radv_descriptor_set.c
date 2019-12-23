@@ -864,7 +864,7 @@ static void write_buffer_descriptor(struct radv_device *device,
 
 	if (device->physical_device->rad_info.chip_class >= GFX10) {
 		dst[3] |= S_008F0C_FORMAT(V_008F0C_IMG_FORMAT_32_FLOAT) |
-			  S_008F0C_OOB_SELECT(3) |
+			  S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW) |
 			  S_008F0C_RESOURCE_LEVEL(1);
 	} else {
 		dst[3] |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
@@ -1153,7 +1153,18 @@ VkResult radv_CreateDescriptorUpdateTemplate(VkDevice _device,
 		return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
 	templ->entry_count = entry_count;
-	templ->bind_point = pCreateInfo->pipelineBindPoint;
+
+	if (pCreateInfo->templateType == VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_PUSH_DESCRIPTORS_KHR) {
+		RADV_FROM_HANDLE(radv_pipeline_layout, pipeline_layout, pCreateInfo->pipelineLayout);
+
+		/* descriptorSetLayout should be ignored for push descriptors
+		 * and instead it refers to pipelineLayout and set.
+		 */
+		assert(pCreateInfo->set < MAX_SETS);
+		set_layout = pipeline_layout->set[pCreateInfo->set].layout;
+
+		templ->bind_point = pCreateInfo->pipelineBindPoint;
+	}
 
 	for (i = 0; i < entry_count; i++) {
 		const VkDescriptorUpdateTemplateEntry *entry = &pCreateInfo->pDescriptorUpdateEntries[i];

@@ -36,6 +36,7 @@
 
 #include "addrlib2.h"
 #include "coord.h"
+#include "gfx10SwizzlePattern.h"
 
 namespace Addr
 {
@@ -93,7 +94,11 @@ const UINT_32 Gfx10Blk64KBSwModeMask = (1u << ADDR_SW_64KB_S)   |
                                        (1u << ADDR_SW_64KB_D_X) |
                                        (1u << ADDR_SW_64KB_R_X);
 
-const UINT_32 Gfx10ZSwModeMask = (1u << ADDR_SW_64KB_Z_X);
+const UINT_32 Gfx10BlkVarSwModeMask = (1u << ADDR_SW_VAR_Z_X) |
+                                      (1u << ADDR_SW_VAR_R_X);
+
+const UINT_32 Gfx10ZSwModeMask = (1u << ADDR_SW_64KB_Z_X) |
+                                 (1u << ADDR_SW_VAR_Z_X);
 
 const UINT_32 Gfx10StandardSwModeMask = (1u << ADDR_SW_256B_S)   |
                                         (1u << ADDR_SW_4KB_S)    |
@@ -109,14 +114,16 @@ const UINT_32 Gfx10DisplaySwModeMask = (1u << ADDR_SW_256B_D)   |
                                        (1u << ADDR_SW_4KB_D_X)  |
                                        (1u << ADDR_SW_64KB_D_X);
 
-const UINT_32 Gfx10RenderSwModeMask = (1u << ADDR_SW_64KB_R_X);
+const UINT_32 Gfx10RenderSwModeMask = (1u << ADDR_SW_64KB_R_X) |
+                                      (1u << ADDR_SW_VAR_R_X);
 
 const UINT_32 Gfx10XSwModeMask = (1u << ADDR_SW_4KB_S_X)  |
                                  (1u << ADDR_SW_4KB_D_X)  |
                                  (1u << ADDR_SW_64KB_Z_X) |
                                  (1u << ADDR_SW_64KB_S_X) |
                                  (1u << ADDR_SW_64KB_D_X) |
-                                 (1u << ADDR_SW_64KB_R_X);
+                                 (1u << ADDR_SW_64KB_R_X) |
+                                 Gfx10BlkVarSwModeMask;
 
 const UINT_32 Gfx10TSwModeMask = (1u << ADDR_SW_64KB_S_T) |
                                  (1u << ADDR_SW_64KB_D_T);
@@ -131,7 +138,8 @@ const UINT_32 Gfx10Rsrc1dSwModeMask = Gfx10LinearSwModeMask |
 const UINT_32 Gfx10Rsrc2dSwModeMask = Gfx10LinearSwModeMask  |
                                       Gfx10Blk256BSwModeMask |
                                       Gfx10Blk4KBSwModeMask  |
-                                      Gfx10Blk64KBSwModeMask;
+                                      Gfx10Blk64KBSwModeMask |
+                                      Gfx10BlkVarSwModeMask;
 
 const UINT_32 Gfx10Rsrc3dSwModeMask = (1u << ADDR_SW_LINEAR)   |
                                       (1u << ADDR_SW_4KB_S)    |
@@ -141,14 +149,23 @@ const UINT_32 Gfx10Rsrc3dSwModeMask = (1u << ADDR_SW_LINEAR)   |
                                       (1u << ADDR_SW_64KB_Z_X) |
                                       (1u << ADDR_SW_64KB_S_X) |
                                       (1u << ADDR_SW_64KB_D_X) |
-                                      (1u << ADDR_SW_64KB_R_X);
+                                      (1u << ADDR_SW_64KB_R_X) |
+                                      Gfx10BlkVarSwModeMask;
 
 const UINT_32 Gfx10Rsrc2dPrtSwModeMask = (Gfx10Blk4KBSwModeMask | Gfx10Blk64KBSwModeMask) & ~Gfx10XSwModeMask;
 
 const UINT_32 Gfx10Rsrc3dPrtSwModeMask = Gfx10Rsrc2dPrtSwModeMask & ~Gfx10DisplaySwModeMask;
 
-const UINT_32 Gfx10Rsrc3dThinSwModeMask = (1u << ADDR_SW_64KB_Z_X) |
-                                          (1u << ADDR_SW_64KB_R_X);
+const UINT_32 Gfx10Rsrc3dThin64KBSwModeMask = (1u << ADDR_SW_64KB_Z_X) |
+                                              (1u << ADDR_SW_64KB_R_X);
+
+const UINT_32 Gfx10Rsrc3dThinSwModeMask = Gfx10Rsrc3dThin64KBSwModeMask | Gfx10BlkVarSwModeMask;
+
+const UINT_32 Gfx10Rsrc3dThickSwModeMask = Gfx10Rsrc3dSwModeMask & ~(Gfx10Rsrc3dThinSwModeMask | Gfx10LinearSwModeMask);
+
+const UINT_32 Gfx10Rsrc3dThick4KBSwModeMask = Gfx10Rsrc3dThickSwModeMask & Gfx10Blk4KBSwModeMask;
+
+const UINT_32 Gfx10Rsrc3dThick64KBSwModeMask = Gfx10Rsrc3dThickSwModeMask & Gfx10Blk64KBSwModeMask;
 
 const UINT_32 Gfx10MsaaSwModeMask = Gfx10ZSwModeMask |
                                     Gfx10RenderSwModeMask;
@@ -290,6 +307,14 @@ protected:
         const ADDR2_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT* pIn,
         ADDR2_COMPUTE_SURFACE_ADDRFROMCOORD_OUTPUT*      pOut) const;
 
+    virtual UINT_32 HwlComputeMaxBaseAlignments() const;
+
+    virtual UINT_32 HwlComputeMaxMetaBaseAlignments() const;
+
+    virtual BOOL_32 HwlInitGlobalParams(const ADDR_CREATE_INPUT* pCreateIn);
+
+    virtual ChipFamily HwlConvertChipFamily(UINT_32 uChipFamily, UINT_32 uChipRevision);
+
     // Initialize equation table
     VOID InitEquationTable();
 
@@ -309,6 +334,7 @@ protected:
         const ADDR2_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT* pIn,
         ADDR2_COMPUTE_SURFACE_ADDRFROMCOORD_OUTPUT*      pOut) const;
 
+private:
     UINT_32 ComputeOffsetFromSwizzlePattern(
         const UINT_64* pPattern,
         UINT_32        numBits,
@@ -351,13 +377,6 @@ protected:
         return compressBlkDim;
     }
 
-    static UINT_32 ShiftCeil(
-        UINT_32 a,
-        UINT_32 b)
-    {
-        return (a >> b) + (((a & ((1 << b) - 1)) != 0) ? 1 : 0);
-    }
-
     static void GetMipSize(
         UINT_32  mip0Width,
         UINT_32  mip0Height,
@@ -376,18 +395,39 @@ protected:
         }
     }
 
-    const UINT_64* GetSwizzlePattern(
+    const ADDR_SW_PATINFO* GetSwizzlePatternInfo(
         AddrSwizzleMode  swizzleMode,
         AddrResourceType resourceType,
         UINT_32          log2Elem,
         UINT_32          numFrag) const;
 
+    VOID GetSwizzlePatternFromPatternInfo(
+        const ADDR_SW_PATINFO* pPatInfo,
+        ADDR_BIT_SETTING       (&pSwizzle)[20]) const
+    {
+        memcpy(pSwizzle,
+               GFX10_SW_PATTERN_NIBBLE01[pPatInfo->nibble01Idx],
+               sizeof(GFX10_SW_PATTERN_NIBBLE01[pPatInfo->nibble01Idx]));
+
+        memcpy(&pSwizzle[8],
+               GFX10_SW_PATTERN_NIBBLE2[pPatInfo->nibble2Idx],
+               sizeof(GFX10_SW_PATTERN_NIBBLE2[pPatInfo->nibble2Idx]));
+
+        memcpy(&pSwizzle[12],
+               GFX10_SW_PATTERN_NIBBLE3[pPatInfo->nibble3Idx],
+               sizeof(GFX10_SW_PATTERN_NIBBLE3[pPatInfo->nibble3Idx]));
+
+        memcpy(&pSwizzle[16],
+               GFX10_SW_PATTERN_NIBBLE4[pPatInfo->nibble4Idx],
+               sizeof(GFX10_SW_PATTERN_NIBBLE4[pPatInfo->nibble4Idx]));
+    }
+
     VOID ConvertSwizzlePatternToEquation(
-        UINT_32          elemLog2,
-        AddrResourceType rsrcType,
-        AddrSwizzleMode  swMode,
-        const UINT_64*   pPattern,
-        ADDR_EQUATION*   pEquation) const;
+        UINT_32                elemLog2,
+        AddrResourceType       rsrcType,
+        AddrSwizzleMode        swMode,
+        const ADDR_SW_PATINFO* pPatInfo,
+        ADDR_EQUATION*         pEquation) const;
 
     static INT_32 GetMetaElementSizeLog2(Gfx10DataType dataType);
 
@@ -429,14 +469,6 @@ protected:
         BOOL_32          pipeAlign,
         Dim3d*           pBlock) const;
 
-    BOOL_32 IsEquationCompatibleThick(
-        AddrResourceType resourceType,
-        AddrSwizzleMode  swizzleMode) const
-    {
-        return IsThick(resourceType, swizzleMode) &&
-               ((m_settings.supportRbPlus == 0) || (swizzleMode != ADDR_SW_64KB_D_X));
-    }
-
     INT_32 GetPipeRotateAmount(
         AddrResourceType resourceType,
         AddrSwizzleMode  swizzleMode) const;
@@ -460,61 +492,29 @@ protected:
 
     }
 
-    static const Dim3d      Block256_3d[MaxNumOfBpp];
-    static const Dim3d      Block64K_3d[MaxNumOfBpp];
-    static const Dim3d      Block4K_3d[MaxNumOfBpp];
-    static const Dim3d      Block64K_Log2_3d[MaxNumOfBpp];
-    static const Dim3d      Block4K_Log2_3d[MaxNumOfBpp];
-
-    static const Dim2d      Block64K_2d[MaxNumOfBpp];
-    static const Dim2d      Block4K_2d[MaxNumOfBpp];
-
-    static const Dim2d      Block64K_Log2_2d[MaxNumOfBpp];
-    static const Dim2d      Block4K_Log2_2d[MaxNumOfBpp];
-
-    static const SwizzleModeFlags SwizzleModeTable[ADDR_SW_MAX_TYPE];
-
-    // Max number of swizzle mode supported for equation
-    static const UINT_32    MaxSwMode = 32;
-    // Max number of resource type (2D/3D) supported for equation
-    static const UINT_32    MaxRsrcType = 2;
-    // Max number of bpp (8bpp/16bpp/32bpp/64bpp/128bpp)
-    static const UINT_32    MaxElementBytesLog2  = 5;
-    // Almost all swizzle mode + resource type support equation
-    static const UINT_32    EquationTableSize = MaxElementBytesLog2 * MaxSwMode * MaxRsrcType;
-    // Equation table
-    ADDR_EQUATION           m_equationTable[EquationTableSize];
-
-    // Number of equation entries in the table
-    UINT_32                 m_numEquations;
-    // Equation lookup table according to bpp and tile index
-    UINT_32                 m_equationLookupTable[MaxRsrcType][MaxSwMode][MaxElementBytesLog2];
-    // Number of packers log2
-    UINT_32                 m_numPkrLog2;
-    // Number of shader array log2
-    UINT_32                 m_numSaLog2;
-
-private:
-    virtual UINT_32 HwlComputeMaxBaseAlignments() const;
-
-    virtual UINT_32 HwlComputeMaxMetaBaseAlignments() const;
-
-    virtual BOOL_32 HwlInitGlobalParams(const ADDR_CREATE_INPUT* pCreateIn);
-
-    virtual ChipFamily HwlConvertChipFamily(UINT_32 uChipFamily, UINT_32 uChipRevision);
-
     BOOL_32 IsValidDisplaySwizzleMode(const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const;
 
     UINT_32 GetMaxNumMipsInTail(UINT_32 blockSizeLog2, BOOL_32 isThin) const;
 
-    static ADDR2_BLOCK_SET GetAllowedBlockSet(ADDR2_SWMODE_SET allowedSwModeSet)
+    static ADDR2_BLOCK_SET GetAllowedBlockSet(ADDR2_SWMODE_SET allowedSwModeSet, AddrResourceType rsrcType)
     {
         ADDR2_BLOCK_SET allowedBlockSet = {};
 
-        allowedBlockSet.micro     = (allowedSwModeSet.value & Gfx10Blk256BSwModeMask) ? TRUE : FALSE;
-        allowedBlockSet.macro4KB  = (allowedSwModeSet.value & Gfx10Blk4KBSwModeMask)  ? TRUE : FALSE;
-        allowedBlockSet.macro64KB = (allowedSwModeSet.value & Gfx10Blk64KBSwModeMask) ? TRUE : FALSE;
-        allowedBlockSet.linear    = (allowedSwModeSet.value & Gfx10LinearSwModeMask)  ? TRUE : FALSE;
+        allowedBlockSet.micro  = (allowedSwModeSet.value & Gfx10Blk256BSwModeMask) ? TRUE : FALSE;
+        allowedBlockSet.linear = (allowedSwModeSet.value & Gfx10LinearSwModeMask)  ? TRUE : FALSE;
+        allowedBlockSet.var    = (allowedSwModeSet.value & Gfx10BlkVarSwModeMask)  ? TRUE : FALSE;
+
+        if (rsrcType == ADDR_RSRC_TEX_3D)
+        {
+            allowedBlockSet.macroThick4KB  = (allowedSwModeSet.value & Gfx10Rsrc3dThick4KBSwModeMask)  ? TRUE : FALSE;
+            allowedBlockSet.macroThin64KB  = (allowedSwModeSet.value & Gfx10Rsrc3dThin64KBSwModeMask)  ? TRUE : FALSE;
+            allowedBlockSet.macroThick64KB = (allowedSwModeSet.value & Gfx10Rsrc3dThick64KBSwModeMask) ? TRUE : FALSE;
+        }
+        else
+        {
+            allowedBlockSet.macroThin4KB  = (allowedSwModeSet.value & Gfx10Blk4KBSwModeMask)  ? TRUE : FALSE;
+            allowedBlockSet.macroThin64KB = (allowedSwModeSet.value & Gfx10Blk64KBSwModeMask) ? TRUE : FALSE;
+        }
 
         return allowedBlockSet;
     }
@@ -554,12 +554,26 @@ private:
     BOOL_32 ValidateNonSwModeParams(const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const;
     BOOL_32 ValidateSwModeParams(const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const;
 
-    static const UINT_32 ColumnBits = 2;
-    static const UINT_32 BankBits   = 4;
+    static const UINT_32 ColumnBits       = 2;
+    static const UINT_32 BankBits         = 4;
+    static const UINT_32 UnalignedDccType = 3;
+
+    static const Dim3d Block256_3d[MaxNumOfBpp];
+    static const Dim3d Block64K_Log2_3d[MaxNumOfBpp];
+    static const Dim3d Block4K_Log2_3d[MaxNumOfBpp];
+
+    static const SwizzleModeFlags SwizzleModeTable[ADDR_SW_MAX_TYPE];
+
+    // Number of packers log2
+    UINT_32 m_numPkrLog2;
+    // Number of shader array log2
+    UINT_32 m_numSaLog2;
 
     Gfx10ChipSettings m_settings;
-    UINT_32           m_colorBaseIndex;
-    UINT_32           m_htileBaseIndex;
+
+    UINT_32 m_colorBaseIndex;
+    UINT_32 m_xmaskBaseIndex;
+    UINT_32 m_dccBaseIndex;
 };
 
 } // V2

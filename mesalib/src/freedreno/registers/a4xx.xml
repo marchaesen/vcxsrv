@@ -1304,8 +1304,6 @@ perhaps they should be taken with a grain of salt
 	<reg32 offset="0x0113" name="RBBM_PERFCTR_UCHE_7_HI"/>
 	<reg32 offset="0x0114" name="RBBM_PERFCTR_TP_0_LO"/>
 	<reg32 offset="0x0115" name="RBBM_PERFCTR_TP_0_HI"/>
-	<reg32 offset="0x0114" name="RBBM_PERFCTR_TP_0_LO"/>
-	<reg32 offset="0x0115" name="RBBM_PERFCTR_TP_0_HI"/>
 	<reg32 offset="0x0116" name="RBBM_PERFCTR_TP_1_LO"/>
 	<reg32 offset="0x0117" name="RBBM_PERFCTR_TP_1_HI"/>
 	<reg32 offset="0x0118" name="RBBM_PERFCTR_TP_2_LO"/>
@@ -1435,7 +1433,6 @@ perhaps they should be taken with a grain of salt
 
 	<reg32 offset="0x0099" name="RBBM_SP_REGFILE_SLEEP_CNTL_0"/>
 	<reg32 offset="0x009a" name="RBBM_SP_REGFILE_SLEEP_CNTL_1"/>
-	<reg32 offset="0x0168" name="RBBM_PERFCTR_PWR_1_LO"/>
 	<reg32 offset="0x0170" name="RBBM_PERFCTR_CTL"/>
 	<reg32 offset="0x0171" name="RBBM_PERFCTR_LOAD_CMD0"/>
 	<reg32 offset="0x0172" name="RBBM_PERFCTR_LOAD_CMD1"/>

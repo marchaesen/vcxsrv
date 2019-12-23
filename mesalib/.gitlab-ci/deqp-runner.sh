@@ -15,8 +15,15 @@ DEQP_OPTIONS+=(--deqp-visibility=hidden)
 #DEQP_OPTIONS+=(--deqp-watchdog=enable)
 
 if [ -z "$DEQP_VER" ]; then
-   echo 'DEQP_VER must be set to something like "gles2" or "gles31" for the test run'
+   echo 'DEQP_VER must be set to something like "gles2", "gles31" or "vk" for the test run'
    exit 1
+fi
+
+if [ "$DEQP_VER" == "vk" ]; then
+   if [ -z "$VK_DRIVER" ]; then
+      echo 'VK_DRIVER must be to something like "radeon" or "intel" for the test run'
+      exit 1
+   fi
 fi
 
 if [ -z "$DEQP_SKIPS" ]; then
@@ -29,6 +36,7 @@ ARTIFACTS=`pwd`/artifacts
 # Set up the driver environment.
 export LD_LIBRARY_PATH=`pwd`/install/lib/
 export EGL_PLATFORM=surfaceless
+export VK_ICD_FILENAMES=`pwd`/install/share/vulkan/icd.d/"$VK_DRIVER"_icd.x86_64.json
 
 # the runner was failing to look for libkms in /usr/local/lib for some reason
 # I never figured out.
@@ -37,8 +45,14 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 RESULTS=`pwd`/results
 mkdir -p $RESULTS
 
-# Generate test case list file
-cp /deqp/mustpass/$DEQP_VER-master.txt /tmp/case-list.txt
+# Generate test case list file.
+if [ "$DEQP_VER" == "vk" ]; then
+   cp /deqp/mustpass/vk-master.txt /tmp/case-list.txt
+   DEQP=/deqp/external/vulkancts/modules/vulkan/deqp-vk
+else
+   cp /deqp/mustpass/$DEQP_VER-master.txt /tmp/case-list.txt
+   DEQP=/deqp/modules/$DEQP_VER/deqp-$DEQP_VER
+fi
 
 # If the job is parallel, take the corresponding fraction of the caselist.
 # Note: N~M is a gnu sed extension to match every nth line (first line is #1).
@@ -58,10 +72,11 @@ fi
 set +e
 
 run_cts() {
-    caselist=$1
-    output=$2
+    deqp=$1
+    caselist=$2
+    output=$3
     deqp-runner \
-        --deqp /deqp/modules/$DEQP_VER/deqp-$DEQP_VER \
+        --deqp $deqp \
         --output $output \
         --caselist $caselist \
         --exclude-list $ARTIFACTS/$DEQP_SKIPS \
@@ -168,14 +183,14 @@ quiet() {
     set -x
 }
 
-run_cts /tmp/case-list.txt $RESULTS/cts-runner-results.txt
+run_cts $DEQP /tmp/case-list.txt $RESULTS/cts-runner-results.txt
 DEQP_EXITCODE=$?
 
 quiet generate_junit $RESULTS/cts-runner-results.txt > $RESULTS/results.xml
 
 if [ $DEQP_EXITCODE -ne 0 ]; then
     # preserve caselist files in case of failures:
-    cp /tmp/cts_runner.*.txt $RESULTS/
+    cp /tmp/deqp_runner.*.txt $RESULTS/
     echo "Some unexpected results found (see cts-runner-results.txt in artifacts for full results):"
     cat $RESULTS/cts-runner-results.txt | \
         grep -v ",Pass" | \

@@ -292,6 +292,18 @@ struct ${type}${width}_vec {
    ${type}${width}_t y;
    ${type}${width}_t z;
    ${type}${width}_t w;
+   ${type}${width}_t e;
+   ${type}${width}_t f;
+   ${type}${width}_t g;
+   ${type}${width}_t h;
+   ${type}${width}_t i;
+   ${type}${width}_t j;
+   ${type}${width}_t k;
+   ${type}${width}_t l;
+   ${type}${width}_t m;
+   ${type}${width}_t n;
+   ${type}${width}_t o;
+   ${type}${width}_t p;
 };
 % endfor
 % endfor
@@ -324,7 +336,7 @@ struct ${type}${width}_vec {
             _src[${j}][${k}].${get_const_field(input_types[j])},
          % endif
       % endfor
-      % for k in range(op.input_sizes[j], 4):
+      % for k in range(op.input_sizes[j], 16):
          0,
       % endfor
       };
@@ -418,18 +430,18 @@ struct ${type}${width}_vec {
       % for k in range(op.output_size):
          % if output_type == "int1" or output_type == "uint1":
             /* 1-bit integers get truncated */
-            _dst_val[${k}].b = dst.${"xyzw"[k]} & 1;
+            _dst_val[${k}].b = dst.${"xyzwefghijklmnop"[k]} & 1;
          % elif output_type.startswith("bool"):
             ## Sanitize the C value to a proper NIR 0/-1 bool
-            _dst_val[${k}].${get_const_field(output_type)} = -(int)dst.${"xyzw"[k]};
+            _dst_val[${k}].${get_const_field(output_type)} = -(int)dst.${"xyzwefghijklmnop"[k]};
          % elif output_type == "float16":
             if (nir_is_rounding_mode_rtz(execution_mode, 16)) {
-               _dst_val[${k}].u16 = _mesa_float_to_float16_rtz(dst.${"xyzw"[k]});
+               _dst_val[${k}].u16 = _mesa_float_to_float16_rtz(dst.${"xyzwefghijklmnop"[k]});
             } else {
-               _dst_val[${k}].u16 = _mesa_float_to_float16_rtne(dst.${"xyzw"[k]});
+               _dst_val[${k}].u16 = _mesa_float_to_float16_rtne(dst.${"xyzwefghijklmnop"[k]});
             }
          % else:
-            _dst_val[${k}].${get_const_field(output_type)} = dst.${"xyzw"[k]};
+            _dst_val[${k}].${get_const_field(output_type)} = dst.${"xyzwefghijklmnop"[k]};
          % endif
 
          % if op.name != "fquantize2f16" and type_base_type(output_type) == "float":

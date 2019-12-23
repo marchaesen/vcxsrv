@@ -142,7 +142,7 @@ mir_pack_swizzle_64(unsigned *swizzle, unsigned max_component)
         for (unsigned i = 0; i < 2; ++i) {
                 assert(swizzle[i] <= max_component);
 
-                unsigned a = swizzle[i] & 1 ?
+                unsigned a = (swizzle[i] & 1) ?
                         (COMPONENT_W << 2) | COMPONENT_Z :
                         (COMPONENT_Y << 2) | COMPONENT_X;
 
@@ -359,6 +359,19 @@ emit_alu_bundle(compiler_context *ctx,
         }
 }
 
+/* Shift applied to the immediate used as an offset. Probably this is papering
+ * over some other semantic distinction else well, but it unifies things in the
+ * compiler so I don't mind. */
+
+static unsigned
+mir_ldst_imm_shift(midgard_load_store_op op)
+{
+        if (OP_IS_UBO_READ(op))
+                return 3;
+        else
+                return 1;
+}
+
 /* After everything is scheduled, emit whole bundles at a time */
 
 void
@@ -393,8 +406,11 @@ emit_binary_bundle(compiler_context *ctx,
                         unsigned offset = bundle->instructions[i]->constants[0];
 
                         if (offset) {
-                                bundle->instructions[i]->load_store.varying_parameters |= (offset & 0x7F) << 3;
-                                bundle->instructions[i]->load_store.address |= (offset >> 7);
+                                unsigned shift = mir_ldst_imm_shift(bundle->instructions[i]->load_store.op);
+                                unsigned upper_shift = 10 - shift;
+
+                                bundle->instructions[i]->load_store.varying_parameters |= (offset & ((1 << upper_shift) - 1)) << shift;
+                                bundle->instructions[i]->load_store.address |= (offset >> upper_shift);
                         }
                 }
 

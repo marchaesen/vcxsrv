@@ -250,6 +250,7 @@ ADDR_E_RETURNCODE Lib::Create(
         pLib->m_configFlags.useHtileSliceAlign  = pCreateIn->createFlags.useHtileSliceAlign;
         pLib->m_configFlags.allowLargeThickTile = pCreateIn->createFlags.allowLargeThickTile;
         pLib->m_configFlags.forceDccAndTcCompat = pCreateIn->createFlags.forceDccAndTcCompat;
+        pLib->m_configFlags.nonPower2MemConfig  = pCreateIn->createFlags.nonPower2MemConfig;
         pLib->m_configFlags.disableLinearOpt    = FALSE;
 
         pLib->SetChipFamily(pCreateIn->chipFamily, pCreateIn->chipRevision);

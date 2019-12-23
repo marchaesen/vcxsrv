@@ -4,7 +4,7 @@ variables:
 include:
   - project: 'wayland/ci-templates'
     # Must be the same as in .gitlab-ci/lava-gitlab-ci.yml
-    ref: f69acac60d5dde0410124fd5674764600821b7a6
+    ref: 0a9bdd33a98f05af6761ab118b5074952242aab0
     file: '/templates/debian.yml'
 
 include:
@@ -18,28 +18,8 @@ stages:
 
 # When to automatically run the CI
 .ci-run-policy:
-  only:
-    refs:
-      - branches@mesa/mesa
-      - merge_requests
-      - /^ci([-/].*)?$/
-    changes:
-      - VERSION
-      - bin/**/*
-      # GitLab CI
-      - .gitlab-ci.yml
-      - .gitlab-ci/**/*
-      # Meson
-      - meson*
-      - build-support/**/*
-      - subprojects/**/*
-      # SCons
-      - SConstruct
-      - scons/**/*
-      - common.py
-      # Source code
-      - include/**/*
-      - src/**/*
+  rules:
+    - when: on_success
   retry:
     max: 2
     when:
@@ -77,6 +57,32 @@ stages:
   stage: container
   extends:
     - .ci-run-policy
+  rules:
+    # Run pipeline by default for merge requests changing files affecting it
+    - if: '$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == $CI_COMMIT_REF_NAME'
+      changes:
+      - VERSION
+      - bin/**/*
+      # GitLab CI
+      - .gitlab-ci.yml
+      - .gitlab-ci/**/*
+      # Meson
+      - meson*
+      - build-support/**/*
+      - subprojects/**/*
+      # SCons
+      - SConstruct
+      - scons/**/*
+      - common.py
+      # Source code
+      - include/**/*
+      - src/**/*
+      when: on_success
+    # Always run pipeline by default in the main project
+    - if: '$CI_PROJECT_PATH == "mesa/mesa"'
+      when: on_success
+    # Otherwise, allow triggering jobs manually
+    - when: manual
   variables:
     DEBIAN_VERSION: buster-slim
     REPO_SUFFIX: $CI_JOB_NAME
@@ -99,11 +105,29 @@ x86_build:
   needs:
     - x86_build
 
-# Debian 10 based x86 test image
-x86_test:
+# Debian 10 based x86 test image for GL
+x86_test-gl:
   extends: x86_build
   variables:
-    DEBIAN_TAG: &x86_test "2019-11-22"
+    DEBIAN_TAG: &x86_test-gl "2019-12-05"
+
+# Debian 10 based x86 test image for VK
+x86_test-vk:
+  extends: x86_build
+  variables:
+    DEBIAN_TAG: &x86_test-vk "2019-11-22"
+  # Can only be triggered manually on personal branches because RADV is the only
+  # driver that does Vulkan testing at the moment.
+  rules:
+    # Never build the test image for VK by default in the main project.
+    - if: '$CI_PROJECT_PATH == "mesa/mesa"'
+      when: never
+    # Never build the test image for VK by default for merge requests.
+    - if: '$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == $CI_COMMIT_REF_NAME'
+      when: never
+    # Otherwise, allow building it manually for personal branches.
+    - when: manual
+
 
 # Debian 9 based x86 build image (old LLVM)
 x86_build_old:
@@ -217,7 +241,7 @@ meson-testing:
     GALLIUM_ST: >
       -D dri3=true
     GALLIUM_DRIVERS: "swrast"
-    LLVM_VERSION: "7"
+    VULKAN_DRIVERS: amd
     BUILDTYPE: "debugoptimized"
   script:
     - .gitlab-ci/meson-build.sh
@@ -453,8 +477,6 @@ scons-old-llvm:
   stage: test
   variables:
     GIT_STRATEGY: none # testing doesn't build anything from source
-    TAG: *x86_test
-  image: "$CI_REGISTRY_IMAGE/debian/x86_test:$TAG"
   before_script:
     # Note: Build dir (and thus install) may be dirty due to GIT_STRATEGY
     - rm -rf install
@@ -467,12 +489,29 @@ scons-old-llvm:
       - results/
   dependencies:
     - meson-testing
+
+.test-gl:
+  extends:
+    - .test
+  variables:
+    TAG: *x86_test-gl
+  image: "$CI_REGISTRY_IMAGE/debian/x86_test-gl:$TAG"
   needs:
     - meson-testing
-    - x86_test
+    - x86_test-gl
+
+.test-vk:
+  extends:
+    - .test
+  variables:
+    TAG: *x86_test-vk
+  image: "$CI_REGISTRY_IMAGE/debian/x86_test-vk:$TAG"
+  needs:
+    - meson-testing
+    - x86_test-vk
 
 .piglit-test:
-  extends: .test
+  extends: .test-gl
   artifacts:
     when: on_failure
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_NAME"
@@ -488,48 +527,61 @@ piglit-quick_gl:
   extends: .piglit-test
   variables:
     LP_NUM_THREADS: 0
+    NIR_VALIDATE: 0
     PIGLIT_OPTIONS: >
+      --process-isolation false
       -x arb_gpu_shader5
+      -x egl_ext_device_
+      -x egl_ext_platform_device
       -x glx-multithread-clearbuffer
       -x glx-multithread-shader-compile
       -x max-texture-size
       -x maxsize
     PIGLIT_PROFILES: quick_gl
 
-piglit-glslparser+quick_shader:
+piglit-glslparser:
+  extends: .piglit-test
+  variables:
+    LP_NUM_THREADS: 0
+    NIR_VALIDATE: 0
+    PIGLIT_PROFILES: glslparser
+
+piglit-quick_shader:
   extends: .piglit-test
   variables:
     LP_NUM_THREADS: 1
-    PIGLIT_OPTIONS: >
-      -x spec@arb_arrays_of_arrays@execution@ubo
-      -x spec@arb_gpu_shader_int64@execution$$
-      -x spec@arb_separate_shader_objects@execution
-      -x spec@arb_separate_shader_objects@linker
-      -x spec@arb_shader_storage_buffer_object@execution
-      -x spec@glsl-1.50@execution@built-in-functions
-    PIGLIT_PROFILES: "glslparser quick_shader"
-    PIGLIT_RESULTS: "glslparser+quick_shader"
+    NIR_VALIDATE: 0
+    PIGLIT_PROFILES: quick_shader
 
 .deqp-test:
-  extends: .test
   variables:
     DEQP_SKIPS: deqp-default-skips.txt
   script:
     - ./artifacts/deqp-runner.sh
-  artifacts:
-    reports:
-      junit: results/results.xml
+
+.deqp-test-gl:
+  extends:
+    - .test-gl
+    - .deqp-test
+
+.deqp-test-vk:
+  extends:
+    - .test-vk
+    - .deqp-test
+  variables:
+    DEQP_VER: vk
 
 test-llvmpipe-gles2:
   variables:
     DEQP_VER: gles2
     DEQP_PARALLEL: 4
+    NIR_VALIDATE: 0
     # Don't use threads inside llvmpipe, we've already got all 4 cores
     # busy with DEQP_PARALLEL.
     LP_NUM_THREADS: 0
     DEQP_EXPECTED_FAILS: deqp-llvmpipe-fails.txt
     LIBGL_ALWAYS_SOFTWARE: "true"
-  extends: .deqp-test
+  extends: .deqp-test-gl
 
 test-softpipe-gles2:
   extends: test-llvmpipe-gles2
@@ -552,7 +604,7 @@ test-softpipe-gles31:
 
 arm64_a630_gles2:
   extends:
-    - .deqp-test
+    - .deqp-test-gl
     - .use-arm_test
   variables:
     DEQP_VER: gles2
@@ -583,3 +635,31 @@ arm64_a306_gles2:
     DEQP_SKIPS: deqp-default-skips.txt
   tags:
     - db410c
+
+# RADV CI
+.test-radv:
+  variables:
+    VK_DRIVER: radeon
+    RADV_DEBUG: checkir
+  # Can only be triggered manually on personal branches because RADV is the only
+  # driver that does Vulkan testing at the moment.
+  rules:
+    # Never test RADV by default in the main project.
+    - if: '$CI_PROJECT_PATH == "mesa/mesa"'
+      when: never
+    # Never test RADV by default for merge requests.
+    - if: '$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == $CI_COMMIT_REF_NAME'
+      when: never
+    # Otherwise, allow testing RADV if the test image for VK has been manually
+    # started.
+    - when: on_success
+
+radv_polaris10_vkcts:
+  extends:
+    - .deqp-test-vk
+    - .test-radv
+  variables:
+    DEQP_PARALLEL: 4
+    DEQP_SKIPS: deqp-radv-polaris10-skips.txt
+  tags:
+    - polaris10

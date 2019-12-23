@@ -46,22 +46,13 @@ midgard_opt_copy_prop_reg(compiler_context *ctx, midgard_block *block)
                 if (ins->has_constants) continue;
                 if (mir_nontrivial_source2_mod(ins)) continue;
                 if (mir_nontrivial_outmod(ins)) continue;
-                if (!mir_single_use(ctx, ins->src[1])) continue;
+                if (!mir_single_use(ctx, from)) continue;
 
-                bool bad = false;
+                /* Ensure mask is continguous from 0 */
+                if (!(ins->mask & (1 << COMPONENT_X))) continue;
+                if (ins->mask & (ins->mask + 1)) continue;
 
-                mir_foreach_instr_global(ctx, c) {
-                        if (mir_has_arg(c, ins->src[1])) {
-                                if (ins->mask != c->mask)
-                                        bad = true;
-                        }
-                }
-
-                if (bad)
-                        continue;
-
-
-                mir_rewrite_index_dst(ctx, ins->src[1], ins->dest);
+                mir_rewrite_index_dst(ctx, from, ins->dest);
                 mir_remove_instruction(ins);
                 progress |= true;
         }

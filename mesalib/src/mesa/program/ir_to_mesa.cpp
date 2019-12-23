@@ -3127,7 +3127,7 @@ _mesa_ir_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
       }
    }
 
-   build_program_resource_list(ctx, prog);
+   build_program_resource_list(ctx, prog, false);
    return prog->data->LinkStatus;
 }
 

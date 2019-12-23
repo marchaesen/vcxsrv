@@ -23,6 +23,7 @@
 
 #include "tu_private.h"
 #include "tu_blit.h"
+#include "tu_cs.h"
 
 static void
 clear_image(struct tu_cmd_buffer *cmdbuf,
@@ -44,7 +45,6 @@ clear_image(struct tu_cmd_buffer *cmdbuf,
 
       tu_blit(cmdbuf, &(struct tu_blit) {
          .dst = tu_blit_surf_whole(image, range->baseMipLevel + j, range->baseArrayLayer),
-         .src = tu_blit_surf_whole(image, range->baseMipLevel + j, range->baseArrayLayer),
          .layers = layer_count,
          .clear_value = {clear_value[0], clear_value[1], clear_value[2], clear_value[3]},
          .type = TU_BLIT_CLEAR,
@@ -99,5 +99,74 @@ tu_CmdClearAttachments(VkCommandBuffer commandBuffer,
                        uint32_t rectCount,
                        const VkClearRect *pRects)
 {
-   tu_finishme("CmdClearAttachments");
+   TU_FROM_HANDLE(tu_cmd_buffer, cmd, commandBuffer);
+   const struct tu_subpass *subpass = cmd->state.subpass;
+   struct tu_cs *cs = &cmd->draw_cs;
+
+   VkResult result = tu_cs_reserve_space(cmd->device, cs,
+                                         rectCount * (3 + 15 * attachmentCount));
+   if (result != VK_SUCCESS) {
+      cmd->record_result = result;
+      return;
+   }
+
+   /* TODO: deal with layered rendering (when layered rendering is implemented)
+    * TODO: disable bypass rendering for subpass (when bypass is implemented)
+    */
+
+   for (unsigned i = 0; i < rectCount; i++) {
+      unsigned x1 = pRects[i].rect.offset.x;
+      unsigned y1 = pRects[i].rect.offset.y;
+      unsigned x2 = x1 + pRects[i].rect.extent.width - 1;
+      unsigned y2 = y1 + pRects[i].rect.extent.height - 1;
+
+      tu_cs_emit_pkt4(cs, REG_A6XX_RB_BLIT_SCISSOR_TL, 2);
+      tu_cs_emit(cs, A6XX_RB_BLIT_SCISSOR_TL_X(x1) | A6XX_RB_BLIT_SCISSOR_TL_Y(y1));
+      tu_cs_emit(cs, A6XX_RB_BLIT_SCISSOR_BR_X(x2) | A6XX_RB_BLIT_SCISSOR_BR_Y(y2));
+
+      for (unsigned j = 0; j < attachmentCount; j++) {
+         uint32_t a;
+         unsigned clear_mask = 0;
+         if (pAttachments[j].aspectMask & VK_IMAGE_ASPECT_COLOR_BIT) {
+            clear_mask = 0xf;
+            a = subpass->color_attachments[pAttachments[j].colorAttachment].attachment;
+         } else {
+            a = subpass->depth_stencil_attachment.attachment;
+            if (pAttachments[j].aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT)
+               clear_mask |= 1;
+            if (pAttachments[j].aspectMask & VK_IMAGE_ASPECT_STENCIL_BIT)
+               clear_mask |= 2;
+         }
+
+         if (a == VK_ATTACHMENT_UNUSED)
+               continue;
+
+         VkFormat fmt = cmd->state.pass->attachments[a].format;
+         const struct tu_native_format *format = tu6_get_native_format(fmt);
+         assert(format && format->rb >= 0);
+
+         tu_cs_emit_pkt4(cs, REG_A6XX_RB_BLIT_DST_INFO, 1);
+         tu_cs_emit(cs, A6XX_RB_BLIT_DST_INFO_COLOR_FORMAT(format->rb));
+
+         tu_cs_emit_pkt4(cs, REG_A6XX_RB_BLIT_INFO, 1);
+         tu_cs_emit(cs, A6XX_RB_BLIT_INFO_GMEM | A6XX_RB_BLIT_INFO_CLEAR_MASK(clear_mask));
+
+         tu_cs_emit_pkt4(cs, REG_A6XX_RB_BLIT_BASE_GMEM, 1);
+         tu_cs_emit(cs, cmd->state.pass->attachments[a].gmem_offset);
+
+         tu_cs_emit_pkt4(cs, REG_A6XX_RB_UNKNOWN_88D0, 1);
+         tu_cs_emit(cs, 0);
+
+         uint32_t clear_vals[4] = { 0 };
+         tu_pack_clear_value(&pAttachments[j].clearValue, fmt, clear_vals);
+
+         tu_cs_emit_pkt4(cs, REG_A6XX_RB_BLIT_CLEAR_COLOR_DW0, 4);
+         tu_cs_emit(cs, clear_vals[0]);
+         tu_cs_emit(cs, clear_vals[1]);
+         tu_cs_emit(cs, clear_vals[2]);
+         tu_cs_emit(cs, clear_vals[3]);
+
+         tu6_emit_event_write(cmd, cs, BLIT, false);
+      }
+   }
 }

@@ -57,6 +57,7 @@ enum ir3_driver_param {
 	/* vertex shader driver params: */
 	IR3_DP_VTXID_BASE = 0,
 	IR3_DP_VTXCNT_MAX = 1,
+	IR3_DP_INSTID_BASE = 2,
 	/* user-clip-plane components, up to 8x vec4's: */
 	IR3_DP_UCP0_X     = 4,
 	/* .... */
@@ -615,6 +616,7 @@ struct ir3_ubo_range {
 
 struct ir3_ubo_analysis_state {
 	struct ir3_ubo_range range[IR3_MAX_CONSTANT_BUFFERS];
+	uint32_t enabled;
 	uint32_t size;
 	uint32_t lower_count;
 	uint32_t cmdstream_size; /* for per-gen backend to stash required cmdstream size */

@@ -43,6 +43,9 @@ void util_vma_heap_finish(struct util_vma_heap *heap);
 uint64_t util_vma_heap_alloc(struct util_vma_heap *heap,
                              uint64_t size, uint64_t alignment);
 
+bool util_vma_heap_alloc_addr(struct util_vma_heap *heap,
+                              uint64_t addr, uint64_t size);
+
 void util_vma_heap_free(struct util_vma_heap *heap,
                         uint64_t offset, uint64_t size);
 

@@ -23,9 +23,16 @@
  * SOFTWARE.
  */
 
-#include "xwayland.h"
+#include <xwayland-config.h>
 
+#include <windowstr.h>
 #include <present.h>
+
+#include "xwayland-present.h"
+#include "xwayland-screen.h"
+#include "xwayland-window.h"
+#include "xwayland-pixmap.h"
+#include "glamor.h"
 
 /*
  * When not flipping let Present copy with 60fps.
@@ -59,6 +66,7 @@ xwl_present_window_get_priv(WindowPtr window)
         xwl_present_window->msc = 1;
         xwl_present_window->ust = GetTimeInMicros();
 
+        xorg_list_init(&xwl_present_window->frame_callback_list);
         xorg_list_init(&xwl_present_window->event_list);
         xorg_list_init(&xwl_present_window->release_queue);
 
@@ -95,7 +103,7 @@ xwl_present_reset_timer(struct xwl_present_window *xwl_present_window)
     if (xwl_present_has_events(xwl_present_window)) {
         CARD32 timeout;
 
-        if (xwl_present_window->frame_callback)
+        if (!xorg_list_is_empty(&xwl_present_window->frame_callback_list))
             timeout = TIMER_LEN_FLIP;
         else
             timeout = TIMER_LEN_COPY;
@@ -118,10 +126,7 @@ xwl_present_cleanup(WindowPtr window)
     if (!xwl_present_window)
         return;
 
-    if (xwl_present_window->frame_callback) {
-        wl_callback_destroy(xwl_present_window->frame_callback);
-        xwl_present_window->frame_callback = NULL;
-    }
+    xorg_list_del(&xwl_present_window->frame_callback_list);
 
     if (xwl_present_window->sync_callback) {
         wl_callback_destroy(xwl_present_window->sync_callback);
@@ -169,13 +174,14 @@ xwl_present_free_event(struct xwl_present_event *event)
 }
 
 static void
-xwl_present_buffer_release(void *data, struct wl_buffer *buffer)
+xwl_present_buffer_release(PixmapPtr pixmap, void *data)
 {
     struct xwl_present_event *event = data;
+
     if (!event)
         return;
 
-    wl_buffer_set_user_data(buffer, NULL);
+    xwl_pixmap_del_buffer_release_cb(pixmap);
     event->buffer_released = TRUE;
 
     if (event->abort) {
@@ -192,10 +198,6 @@ xwl_present_buffer_release(void *data, struct wl_buffer *buffer)
         xwl_present_free_event(event);
     }
 }
-
-static const struct wl_buffer_listener xwl_present_release_listener = {
-    xwl_present_buffer_release
-};
 
 static void
 xwl_present_msc_bump(struct xwl_present_window *xwl_present_window)
@@ -243,7 +245,10 @@ xwl_present_timer_callback(OsTimerPtr timer,
 {
     struct xwl_present_window *xwl_present_window = arg;
 
-    xwl_present_window->frame_timer_firing = TRUE;
+    /* If we were expecting a frame callback for this window, it didn't arrive
+     * in a second. Stop listening to it to avoid double-bumping the MSC
+     */
+    xorg_list_del(&xwl_present_window->frame_callback_list);
 
     xwl_present_msc_bump(xwl_present_window);
     xwl_present_reset_timer(xwl_present_window);
@@ -251,20 +256,10 @@ xwl_present_timer_callback(OsTimerPtr timer,
     return 0;
 }
 
-static void
-xwl_present_frame_callback(void *data,
-               struct wl_callback *callback,
-               uint32_t time)
+void
+xwl_present_frame_callback(struct xwl_present_window *xwl_present_window)
 {
-    struct xwl_present_window *xwl_present_window = data;
-
-    wl_callback_destroy(xwl_present_window->frame_callback);
-    xwl_present_window->frame_callback = NULL;
-
-    if (xwl_present_window->frame_timer_firing) {
-        /* If the timer is firing, this frame callback is too late */
-        return;
-    }
+    xorg_list_del(&xwl_present_window->frame_callback_list);
 
     xwl_present_msc_bump(xwl_present_window);
 
@@ -273,10 +268,6 @@ xwl_present_frame_callback(void *data,
      */
     xwl_present_reset_timer(xwl_present_window);
 }
-
-static const struct wl_callback_listener xwl_present_frame_listener = {
-    xwl_present_frame_callback
-};
 
 static void
 xwl_present_sync_callback(void *data,
@@ -359,6 +350,7 @@ xwl_present_queue_vblank(WindowPtr present_window,
                          uint64_t msc)
 {
     struct xwl_present_window *xwl_present_window = xwl_present_window_get_priv(present_window);
+    struct xwl_window *xwl_window = xwl_window_from_window(present_window);
     struct xwl_present_event *event;
 
     event = malloc(sizeof *event);
@@ -371,7 +363,15 @@ xwl_present_queue_vblank(WindowPtr present_window,
 
     xorg_list_append(&event->list, &xwl_present_window->event_list);
 
-    if (!xwl_present_window->frame_timer)
+    /* If there's a pending frame callback, use that */
+    if (xwl_window && xwl_window->frame_callback &&
+        xorg_list_is_empty(&xwl_present_window->frame_callback_list)) {
+        xorg_list_add(&xwl_present_window->frame_callback_list,
+                      &xwl_window->frame_callback_list);
+    }
+
+    if ((xwl_window && xwl_window->frame_callback) ||
+        !xwl_present_window->frame_timer)
         xwl_present_reset_timer(xwl_present_window);
 
     return Success;
@@ -412,9 +412,7 @@ xwl_present_abort_vblank(WindowPtr present_window,
 static void
 xwl_present_flush(WindowPtr window)
 {
-    /* Only called when a Pixmap is copied instead of flipped,
-     * but in this case we wait on the next block_handler.
-     */
+    glamor_block_handler(window->drawable.pScreen);
 }
 
 static Bool
@@ -452,7 +450,6 @@ xwl_present_flip(WindowPtr present_window,
     struct xwl_window           *xwl_window = xwl_window_from_window(present_window);
     struct xwl_present_window   *xwl_present_window = xwl_present_window_priv(present_window);
     BoxPtr                      damage_box;
-    Bool                        buffer_created;
     struct wl_buffer            *buffer;
     struct xwl_present_event    *event;
 
@@ -465,7 +462,7 @@ xwl_present_flip(WindowPtr present_window,
     if (!event)
         return FALSE;
 
-    buffer = xwl_glamor_pixmap_get_wl_buffer(pixmap, &buffer_created);
+    buffer = xwl_glamor_pixmap_get_wl_buffer(pixmap, NULL);
 
     event->event_id = event_id;
     event->xwl_present_window = xwl_present_window;
@@ -482,22 +479,20 @@ xwl_present_flip(WindowPtr present_window,
         xorg_list_add(&event->list, &xwl_present_window->release_queue);
     }
 
-    if (buffer_created)
-        wl_buffer_add_listener(buffer, &xwl_present_release_listener, NULL);
-    wl_buffer_set_user_data(buffer, event);
+    xwl_pixmap_set_buffer_release_cb(pixmap, xwl_present_buffer_release, event);
 
     /* We can flip directly to the main surface (full screen window without clips) */
     wl_surface_attach(xwl_window->surface, buffer, 0, 0);
 
-    if (!xwl_present_window->frame_callback) {
-        xwl_present_window->frame_callback = wl_surface_frame(xwl_window->surface);
-        wl_callback_add_listener(xwl_present_window->frame_callback,
-                                 &xwl_present_frame_listener,
-                                 xwl_present_window);
+    if (!xwl_window->frame_callback)
+        xwl_window_create_frame_callback(xwl_window);
+
+    if (xorg_list_is_empty(&xwl_present_window->frame_callback_list)) {
+        xorg_list_add(&xwl_present_window->frame_callback_list,
+                      &xwl_window->frame_callback_list);
     }
 
     /* Realign timer */
-    xwl_present_window->frame_timer_firing = FALSE;
     xwl_present_reset_timer(xwl_present_window);
 
     xwl_surface_damage(xwl_window->xwl_screen, xwl_window->surface, 0, 0,
@@ -533,14 +528,14 @@ xwl_present_unrealize_window(WindowPtr window)
 {
     struct xwl_present_window *xwl_present_window = xwl_present_window_priv(window);
 
-    if (!xwl_present_window || !xwl_present_window->frame_callback)
+    if (!xwl_present_window ||
+        xorg_list_is_empty(&xwl_present_window->frame_callback_list))
         return;
 
     /* The pending frame callback may never be called, so drop it and shorten
      * the frame timer interval.
      */
-    wl_callback_destroy(xwl_present_window->frame_callback);
-    xwl_present_window->frame_callback = NULL;
+    xorg_list_del(&xwl_present_window->frame_callback_list);
     xwl_present_reset_timer(xwl_present_window);
 }
 

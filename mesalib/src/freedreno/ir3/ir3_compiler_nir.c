@@ -1671,6 +1671,12 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 		}
 		dst[0] = ctx->basevertex;
 		break;
+	case nir_intrinsic_load_base_instance:
+		if (!ctx->base_instance) {
+			ctx->base_instance = create_driver_param(ctx, IR3_DP_INSTID_BASE);
+		}
+		dst[0] = ctx->base_instance;
+		break;
 	case nir_intrinsic_load_vertex_id_zero_base:
 	case nir_intrinsic_load_vertex_id:
 		if (!ctx->vertex_id) {
@@ -1895,6 +1901,8 @@ tex_info(nir_tex_instr *tex, unsigned *flagsp, unsigned *coordsp)
 	case GLSL_SAMPLER_DIM_RECT:
 	case GLSL_SAMPLER_DIM_EXTERNAL:
 	case GLSL_SAMPLER_DIM_MS:
+	case GLSL_SAMPLER_DIM_SUBPASS:
+	case GLSL_SAMPLER_DIM_SUBPASS_MS:
 		coords = 2;
 		break;
 	case GLSL_SAMPLER_DIM_3D:
@@ -2804,8 +2812,8 @@ pack_inlocs(struct ir3_context *ctx)
 	 * First Step: scan shader to find which bary.f/ldlv remain:
 	 */
 
-	list_for_each_entry (struct ir3_block, block, &ctx->ir->block_list, node) {
-		list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
+	foreach_block (block, &ctx->ir->block_list) {
+		foreach_instr (instr, &block->instr_list) {
 			if (is_input(instr)) {
 				unsigned inloc = instr->regs[1]->iim_val;
 				unsigned i = inloc / 4;
@@ -2868,14 +2876,18 @@ pack_inlocs(struct ir3_context *ctx)
 	 * Third Step: reassign packed inloc's:
 	 */
 
-	list_for_each_entry (struct ir3_block, block, &ctx->ir->block_list, node) {
-		list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
+	foreach_block (block, &ctx->ir->block_list) {
+		foreach_instr (instr, &block->instr_list) {
 			if (is_input(instr)) {
 				unsigned inloc = instr->regs[1]->iim_val;
 				unsigned i = inloc / 4;
 				unsigned j = inloc % 4;
 
 				instr->regs[1]->iim_val = so->inputs[i].inloc + j;
+			} else if (instr->opc == OPC_META_TEX_PREFETCH) {
+				unsigned i = instr->prefetch.input_offset / 4;
+				unsigned j = instr->prefetch.input_offset % 4;
+				instr->prefetch.input_offset = so->inputs[i].inloc + j;
 			}
 		}
 	}
@@ -3183,9 +3195,8 @@ collect_tex_prefetches(struct ir3_context *ctx, struct ir3 *ir)
 	unsigned idx = 0;
 
 	/* Collect sampling instructions eligible for pre-dispatch. */
-	list_for_each_entry(struct ir3_block, block, &ir->block_list, node) {
-		list_for_each_entry_safe(struct ir3_instruction, instr,
-				&block->instr_list, node) {
+	foreach_block (block, &ir->block_list) {
+		foreach_instr_safe (instr, &block->instr_list) {
 			if (instr->opc == OPC_META_TEX_PREFETCH) {
 				assert(idx < ARRAY_SIZE(ctx->so->sampler_prefetch));
 				struct ir3_sampler_prefetch *fetch =
@@ -3472,9 +3483,9 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
 	 */
 
 	for (unsigned i = 0; i < so->inputs_count; i++)
-		so->inputs[i].regid = regid(63, 0);
+		so->inputs[i].regid = INVALID_REG;
 	for (unsigned i = 0; i < so->outputs_count; i++)
-		so->outputs[i].regid = regid(63, 0);
+		so->outputs[i].regid = INVALID_REG;
 
 	struct ir3_instruction *out;
 	foreach_output(out, ir) {
@@ -3490,8 +3501,19 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
 		assert(in->opc == OPC_META_INPUT);
 		unsigned inidx = in->input.inidx;
 
-		so->inputs[inidx].regid = in->regs[0]->num;
-		so->inputs[inidx].half  = !!(in->regs[0]->flags & IR3_REG_HALF);
+		if (pre_assign_inputs && !so->inputs[inidx].sysval) {
+			if (VALIDREG(so->nonbinning->inputs[inidx].regid)) {
+				compile_assert(ctx, in->regs[0]->num ==
+						so->nonbinning->inputs[inidx].regid);
+				compile_assert(ctx, !!(in->regs[0]->flags & IR3_REG_HALF) ==
+						so->nonbinning->inputs[inidx].half);
+			}
+			so->inputs[inidx].regid = so->nonbinning->inputs[inidx].regid;
+			so->inputs[inidx].half  = so->nonbinning->inputs[inidx].half;
+		} else {
+			so->inputs[inidx].regid = in->regs[0]->num;
+			so->inputs[inidx].half  = !!(in->regs[0]->flags & IR3_REG_HALF);
+		}
 	}
 
 	if (ctx->astc_srgb)
@@ -3509,8 +3531,8 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
 	 */
 	if (so->type == MESA_SHADER_TESS_CTRL ||
 		so->type == MESA_SHADER_GEOMETRY ) {
-		list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
-			list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
+		foreach_block (block, &ir->block_list) {
+			foreach_instr (instr, &block->instr_list) {
 				instr->flags |= IR3_INSTR_SS | IR3_INSTR_SY;
 				break;
 			}

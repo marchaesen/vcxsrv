@@ -149,7 +149,7 @@ util_get_L3_for_pinned_thread(thrd_t thread, unsigned cores_per_L3)
 static inline int64_t
 u_thread_get_time_nano(thrd_t thread)
 {
-#if defined(__linux__) && defined(HAVE_PTHREAD)
+#if defined(HAVE_PTHREAD) && !defined(__APPLE__)
    struct timespec ts;
    clockid_t cid;
 

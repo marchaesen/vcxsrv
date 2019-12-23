@@ -159,7 +159,7 @@ tu_cs_add_bo(struct tu_device *dev, struct tu_cs *cs, uint32_t size)
  * Reserve an IB entry.
  */
 static VkResult
-tu_cs_reserve_entry(struct tu_device *dev, struct tu_cs *cs)
+tu_cs_reserve_entry(struct tu_cs *cs)
 {
    /* entries are only for TU_CS_MODE_GROW */
    assert(cs->mode == TU_CS_MODE_GROW);
@@ -207,6 +207,34 @@ tu_cs_add_entry(struct tu_cs *cs)
    };
 
    cs->start = cs->cur;
+}
+
+/**
+ * same behavior as tu_cs_emit_call but without the indirect
+ */
+VkResult
+tu_cs_add_entries(struct tu_cs *cs, struct tu_cs *target)
+{
+   VkResult result;
+
+   assert(cs->mode == TU_CS_MODE_GROW);
+   assert(target->mode == TU_CS_MODE_GROW);
+
+   if (!tu_cs_is_empty(cs)) {
+      tu_cs_add_entry(cs);
+      result = tu_cs_reserve_entry(cs);
+      if (result != VK_SUCCESS)
+         return result;
+   }
+
+   for (unsigned i = 0; i < target->entry_count; i++) {
+      cs->entries[cs->entry_count++] = target->entries[i];
+      result = tu_cs_reserve_entry(cs);
+      if (result != VK_SUCCESS)
+         return result;
+   }
+
+   return VK_SUCCESS;
 }
 
 /**
@@ -258,6 +286,41 @@ tu_cs_begin_sub_stream(struct tu_device *dev,
    tu_cs_begin(sub_cs);
    result = tu_cs_reserve_space(dev, sub_cs, size);
    assert(result == VK_SUCCESS);
+
+   return VK_SUCCESS;
+}
+
+/**
+ * Allocate count*size dwords, aligned to size dwords.
+ * \a cs must be in TU_CS_MODE_SUB_STREAM mode.
+ *
+ */
+VkResult
+tu_cs_alloc(struct tu_device *dev,
+            struct tu_cs *cs,
+            uint32_t count,
+            uint32_t size,
+            struct ts_cs_memory *memory)
+{
+   assert(cs->mode == TU_CS_MODE_SUB_STREAM);
+   assert(size && size <= 1024);
+
+   if (!count)
+      return VK_SUCCESS;
+
+   /* TODO: smarter way to deal with alignment? */
+
+   VkResult result = tu_cs_reserve_space(dev, cs, count * size + (size-1));
+   if (result != VK_SUCCESS)
+      return result;
+
+   struct tu_bo *bo = cs->bos[cs->bo_count - 1];
+   size_t offset = align(tu_cs_get_offset(cs), size);
+
+   memory->map = bo->map + offset * sizeof(uint32_t);
+   memory->iova = bo->iova + offset * sizeof(uint32_t);
+
+   cs->start = cs->cur = (uint32_t*) bo->map + offset + count * size;
 
    return VK_SUCCESS;
 }
@@ -332,7 +395,7 @@ tu_cs_reserve_space(struct tu_device *dev,
 
    if (cs->mode == TU_CS_MODE_GROW) {
       /* reserve an entry for the next call to this function or tu_cs_end */
-      return tu_cs_reserve_entry(dev, cs);
+      return tu_cs_reserve_entry(cs);
    }
 
    return VK_SUCCESS;

@@ -491,8 +491,11 @@ def generate(env):
             '-Werror=missing-prototypes',
             '-Werror=return-type',
             '-Werror=incompatible-pointer-types',
-            '-std=gnu99',
         ]
+        if platform == 'darwin' and host_platform.mac_ver()[0] >= '10.15':
+            cflags += ['-std=gnu11']
+        else:
+            cflags += ['-std=gnu99']
     if icc:
         cflags += [
             '-std=gnu99',

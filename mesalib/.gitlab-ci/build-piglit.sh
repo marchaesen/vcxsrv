@@ -4,7 +4,7 @@ set -ex
 
 git clone https://gitlab.freedesktop.org/mesa/piglit.git --single-branch --no-checkout /piglit
 pushd /piglit
-git checkout d5aa2cf85503c5339cd8dff04b709acb8085ad93
+git checkout 8771c3860505db2bcf4877216221d774bf90af6b
 patch -p1 <$OLDPWD/.gitlab-ci/piglit/disable-vs_in.diff
 cmake -G Ninja -DCMAKE_BUILD_TYPE=Release
 ninja -j4

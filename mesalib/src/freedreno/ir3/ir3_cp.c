@@ -742,8 +742,8 @@ ir3_cp(struct ir3 *ir, struct ir3_shader_variant *so)
 	 * a mov, so we need to do a pass to first count consumers of a
 	 * mov.
 	 */
-	list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
-		list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
+	foreach_block (block, &ir->block_list) {
+		foreach_instr (instr, &block->instr_list) {
 			struct ir3_instruction *src;
 
 			/* by the way, we don't account for false-dep's, so the CP
@@ -765,7 +765,7 @@ ir3_cp(struct ir3 *ir, struct ir3_shader_variant *so)
 		ir->outputs[n] = eliminate_output_mov(out);
 	}
 
-	list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
+	foreach_block (block, &ir->block_list) {
 		if (block->condition) {
 			instr_cp(&ctx, block->condition);
 			block->condition = eliminate_output_mov(block->condition);

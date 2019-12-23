@@ -265,8 +265,9 @@ void tu_blit(struct tu_cmd_buffer *cmdbuf, struct tu_blit *blt)
    case TU_BLIT_CLEAR:
       /* unsupported format cleared as UINT32 */
       if (blt->dst.fmt == VK_FORMAT_E5B9G9R9_UFLOAT_PACK32)
-         blt->dst.fmt = blt->src.fmt = VK_FORMAT_R32_UINT;
+         blt->dst.fmt = VK_FORMAT_R32_UINT;
       assert(blt->dst.samples == 1); /* TODO */
+      blt->src = blt->dst;
       break;
    default:
       assert(blt->dst.samples == 1);
@@ -285,7 +286,30 @@ void tu_blit(struct tu_cmd_buffer *cmdbuf, struct tu_blit *blt)
    tu_cs_emit(&cmdbuf->cs, A6XX_CP_SET_MARKER_0_MODE(RM6_BLIT2DSCALE));
 
    for (unsigned layer = 0; layer < blt->layers; layer++) {
-      if ((blt->src.va & 63) || (blt->src.pitch & 63)) {
+      if (blt->buffer) {
+         struct tu_blit line_blt = *blt;
+         uint64_t dst_va = line_blt.dst.va, src_va = line_blt.src.va;
+         unsigned blocksize = vk_format_get_blocksize(blt->src.fmt);
+         uint32_t size = line_blt.src.width, tmp;
+
+         while (size) {
+            line_blt.src.x = (src_va & 63) / blocksize;
+            line_blt.src.va = src_va & ~63;
+            tmp = MIN2(size, 0x4000 - line_blt.src.x);
+
+            line_blt.dst.x = (dst_va & 63) / blocksize;
+            line_blt.dst.va = dst_va & ~63;
+            tmp = MIN2(tmp, 0x4000 - line_blt.dst.x);
+
+            line_blt.src.width = line_blt.dst.width = tmp;
+
+            emit_blit_step(cmdbuf, &line_blt);
+
+            src_va += tmp * blocksize;
+            dst_va += tmp * blocksize;
+            size -= tmp;
+         }
+      } else if ((blt->src.va & 63) || (blt->src.pitch & 63)) {
          /* per line copy path (buffer_to_image) */
          assert(blt->type == TU_BLIT_COPY && !blt->src.tiled);
          struct tu_blit line_blt = *blt;

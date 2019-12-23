@@ -11,7 +11,7 @@ PIGLIT_OPTIONS=$(echo $PIGLIT_OPTIONS | head -n 1)
 xvfb-run --server-args="-noreset" sh -c \
          "export LD_LIBRARY_PATH=$OLDPWD/install/lib;
          wflinfo --platform glx --api gl --profile core | grep \"Mesa $VERSION\\\$\" &&
-         ./piglit run -j4 --process-isolation false $PIGLIT_OPTIONS $PIGLIT_PROFILES $OLDPWD/results"
+         ./piglit run -j4 $PIGLIT_OPTIONS $PIGLIT_PROFILES $OLDPWD/results"
 
 PIGLIT_RESULTS=${PIGLIT_RESULTS:-$PIGLIT_PROFILES}
 mkdir -p .gitlab-ci/piglit

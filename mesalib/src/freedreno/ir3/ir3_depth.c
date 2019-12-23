@@ -121,7 +121,7 @@ ir3_insert_by_depth(struct ir3_instruction *instr, struct list_head *list)
 	list_delinit(&instr->node);
 
 	/* find where to re-insert instruction: */
-	list_for_each_entry (struct ir3_instruction, pos, list, node) {
+	foreach_instr (pos, list) {
 		if (pos->depth > instr->depth) {
 			list_add(&instr->node, &pos->node);
 			return;
@@ -171,7 +171,7 @@ static bool
 remove_unused_by_block(struct ir3_block *block)
 {
 	bool progress = false;
-	list_for_each_entry_safe (struct ir3_instruction, instr, &block->instr_list, node) {
+	foreach_instr_safe (instr, &block->instr_list) {
 		if (instr->opc == OPC_END || instr->opc == OPC_CHSH || instr->opc == OPC_CHMASK)
 			continue;
 		if (instr->flags & IR3_INSTR_UNUSED) {
@@ -217,8 +217,8 @@ compute_depth_and_remove_unused(struct ir3 *ir, struct ir3_shader_variant *so)
 	/* initially mark everything as unused, we'll clear the flag as we
 	 * visit the instructions:
 	 */
-	list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
-		list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
+	foreach_block (block, &ir->block_list) {
+		foreach_instr (instr, &block->instr_list) {
 			/* special case, if pre-fs texture fetch used, we cannot
 			 * eliminate the barycentric i/j input
 			 */
@@ -234,7 +234,7 @@ compute_depth_and_remove_unused(struct ir3 *ir, struct ir3_shader_variant *so)
 	foreach_output(out, ir)
 		ir3_instr_depth(out, 0, false);
 
-	list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
+	foreach_block (block, &ir->block_list) {
 		for (i = 0; i < block->keeps_count; i++)
 			ir3_instr_depth(block->keeps[i], 0, false);
 
@@ -244,7 +244,7 @@ compute_depth_and_remove_unused(struct ir3 *ir, struct ir3_shader_variant *so)
 	}
 
 	/* mark un-used instructions: */
-	list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
+	foreach_block (block, &ir->block_list) {
 		progress |= remove_unused_by_block(block);
 	}
 

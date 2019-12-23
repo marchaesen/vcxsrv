@@ -28,9 +28,10 @@
  *
  */
 
-#include "xwayland.h"
+#include <xwayland-config.h>
 
 #include <fcntl.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <xf86drm.h>
 #include <drm_fourcc.h>
@@ -44,6 +45,12 @@
 #include <glamor_context.h>
 #include <dri3.h>
 #include "drm-client-protocol.h"
+
+#include "xwayland-glamor.h"
+#include "xwayland-pixmap.h"
+#include "xwayland-screen.h"
+
+#include "linux-dmabuf-unstable-v1-client-protocol.h"
 
 struct xwl_gbm_private {
     char *device_name;
@@ -260,6 +267,7 @@ xwl_glamor_gbm_destroy_pixmap(PixmapPtr pixmap)
     struct xwl_pixmap *xwl_pixmap = xwl_pixmap_get(pixmap);
 
     if (xwl_pixmap && pixmap->refcnt == 1) {
+        xwl_pixmap_del_buffer_release_cb(pixmap);
         if (xwl_pixmap->buffer)
             wl_buffer_destroy(xwl_pixmap->buffer);
 
@@ -271,6 +279,10 @@ xwl_glamor_gbm_destroy_pixmap(PixmapPtr pixmap)
 
     return glamor_destroy_pixmap(pixmap);
 }
+
+static const struct wl_buffer_listener xwl_glamor_gbm_buffer_listener = {
+    xwl_pixmap_buffer_release_cb,
+};
 
 static struct wl_buffer *
 xwl_glamor_gbm_get_wl_buffer_for_pixmap(PixmapPtr pixmap,
@@ -348,6 +360,11 @@ xwl_glamor_gbm_get_wl_buffer_for_pixmap(PixmapPtr pixmap,
     }
 
     close(prime_fd);
+
+    /* Add our listener now */
+    wl_buffer_add_listener(xwl_pixmap->buffer,
+                           &xwl_glamor_gbm_buffer_listener, pixmap);
+
     return xwl_pixmap->buffer;
 }
 

@@ -151,7 +151,7 @@ GL 4.1, GLSL 4.10 --- all DONE: i965/gen7+, nvc0, r600, radeonsi, virgl
 
 GL 4.2, GLSL 4.20 -- all DONE: i965/gen7+, nvc0, r600, radeonsi, virgl
 
-  GL_ARB_texture_compression_bptc                       DONE (freedreno, i965)
+  GL_ARB_texture_compression_bptc                       DONE (freedreno, i965, llvmpipe, softpipe, swr)
   GL_ARB_compressed_texture_pixel_storage               DONE (all drivers)
   GL_ARB_shader_atomic_counters                         DONE (freedreno/a5xx+, i965, llvmpipe, softpipe)
   GL_ARB_texture_storage                                DONE (all drivers)
@@ -224,18 +224,18 @@ GL 4.5, GLSL 4.50 -- all DONE: nvc0, radeonsi, r600
   GL_KHR_robustness                                     DONE (freedreno, i965)
   GL_EXT_shader_integer_mix                             DONE (all drivers that support GLSL)
 
-GL 4.6, GLSL 4.60
+GL 4.6, GLSL 4.60 -- all DONE: radeonsi
 
   GL_ARB_gl_spirv                                       DONE (i965/gen7+)
-  GL_ARB_indirect_parameters                            DONE (i965/gen7+, nvc0, radeonsi, virgl)
-  GL_ARB_pipeline_statistics_query                      DONE (i965, nvc0, r600, radeonsi, llvmpipe, softpipe, swr)
-  GL_ARB_polygon_offset_clamp                           DONE (freedreno, i965, nv50, nvc0, r600, radeonsi, llvmpipe, swr, virgl)
-  GL_ARB_shader_atomic_counter_ops                      DONE (freedreno/a5xx+, i965/gen7+, nvc0, r600, radeonsi, llvmpipe, softpipe, virgl)
-  GL_ARB_shader_draw_parameters                         DONE (i965, nvc0, radeonsi)
-  GL_ARB_shader_group_vote                              DONE (i965, nvc0, radeonsi)
+  GL_ARB_indirect_parameters                            DONE (i965/gen7+, nvc0, virgl)
+  GL_ARB_pipeline_statistics_query                      DONE (i965, nvc0, r600, llvmpipe, softpipe, swr)
+  GL_ARB_polygon_offset_clamp                           DONE (freedreno, i965, nv50, nvc0, r600, llvmpipe, swr, virgl)
+  GL_ARB_shader_atomic_counter_ops                      DONE (freedreno/a5xx+, i965/gen7+, nvc0, r600, llvmpipe, softpipe, virgl)
+  GL_ARB_shader_draw_parameters                         DONE (i965, llvmpipe, nvc0)
+  GL_ARB_shader_group_vote                              DONE (i965, nvc0)
   GL_ARB_spirv_extensions                               DONE (i965/gen7+)
-  GL_ARB_texture_filter_anisotropic                     DONE (freedreno, i965, nv50, nvc0, r600, radeonsi, softpipe (*), llvmpipe (*))
-  GL_ARB_transform_feedback_overflow_query              DONE (i965/gen6+, nvc0, radeonsi, llvmpipe, softpipe, virgl)
+  GL_ARB_texture_filter_anisotropic                     DONE (freedreno, i965, nv50, nvc0, r600, softpipe (*), llvmpipe (*))
+  GL_ARB_transform_feedback_overflow_query              DONE (i965/gen6+, nvc0, llvmpipe, softpipe, virgl)
   GL_KHR_no_error                                       DONE (all drivers)
 
 (*) softpipe and llvmpipe advertise 16x anisotropy but simply ignore the setting

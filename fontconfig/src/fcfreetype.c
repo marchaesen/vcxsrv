@@ -1495,7 +1495,8 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 		 * and treat the instance's nameid as FONT_SUBFAMILY.
 		 * Postscript name is automatically handled by FreeType. */
 		if (nameid == TT_NAME_ID_WWS_SUBFAMILY ||
-		    nameid == TT_NAME_ID_PREFERRED_SUBFAMILY)
+		    nameid == TT_NAME_ID_PREFERRED_SUBFAMILY ||
+		    nameid == TT_NAME_ID_FULL_NAME)
 		    continue;
 
 		if (nameid == TT_NAME_ID_FONT_SUBFAMILY)
@@ -1681,6 +1682,61 @@ FcFreeTypeQueryFaceInternal (const FT_Face  face,
 	++nfamily;
     }
 
+    /* Add the fullname into the cache */
+    if (!variable && !nfullname)
+    {
+	FcChar8 *family, *style, *lang;
+	int n = 0;
+	size_t len, i;
+	FcStrBuf sbuf;
+
+	while (FcPatternObjectGetString (pat, FC_FAMILYLANG_OBJECT, n, &lang) == FcResultMatch)
+	{
+	    if (FcStrCmp (lang, (const FcChar8 *) "en") == 0)
+		break;
+	    n++;
+	    lang = NULL;
+	}
+	if (!lang)
+	    n = 0;
+	if (FcPatternObjectGetString (pat, FC_FAMILY_OBJECT, n, &family) != FcResultMatch)
+	    goto bail1;
+	len = strlen ((const char *) family);
+	for (i = len; i > 0; i--)
+	{
+	    if (!isspace (family[i]))
+		break;
+	}
+	family[i] = 0;
+	while (FcPatternObjectGetString (pat, FC_STYLELANG_OBJECT, n, &lang) == FcResultMatch)
+	{
+	    if (FcStrCmp (lang, (const FcChar8 *) "en") == 0)
+		break;
+	    n++;
+	    lang = NULL;
+	}
+	if (!lang)
+	    n = 0;
+	if (FcPatternObjectGetString (pat, FC_STYLE_OBJECT, n, &style) != FcResultMatch)
+	    goto bail1;
+	len = strlen ((const char *) style);
+	for (i = 0; style[i] != 0 && isspace (style[i]); i++)
+	    break;
+	memcpy (style, &style[i], len - i);
+	FcStrBufInit (&sbuf, NULL, 0);
+	FcStrBufString (&sbuf, family);
+	FcStrBufChar (&sbuf, ' ');
+	FcStrBufString (&sbuf, style);
+	if (!FcPatternObjectAddString (pat, FC_FULLNAME_OBJECT, FcStrBufDoneStatic (&sbuf)))
+	{
+	    FcStrBufDestroy (&sbuf);
+	    goto bail1;
+	}
+	FcStrBufDestroy (&sbuf);
+	if (!FcPatternObjectAddString (pat, FC_FULLNAMELANG_OBJECT, (const FcChar8 *) "en"))
+	    goto bail1;
+	++nfullname;
+    }
     /* Add the PostScript name into the cache */
     if (!variable)
     {

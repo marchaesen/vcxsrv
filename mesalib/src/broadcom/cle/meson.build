@@ -58,6 +58,6 @@ libbroadcom_cle = static_library(
   'v3d_decoder.c',
   include_directories : [inc_common, inc_broadcom],
   c_args : [c_vis_args, no_override_init_args],
-  dependencies : [dep_libdrm, dep_valgrind],
+  dependencies : [dep_libdrm, dep_valgrind, dep_expat, dep_zlib],
   build_by_default : false,
 )

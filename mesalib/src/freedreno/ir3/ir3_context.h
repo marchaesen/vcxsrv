@@ -83,7 +83,7 @@ struct ir3_context {
 	struct ir3_instruction *frag_face, *frag_coord;
 
 	/* For vertex shaders, keep track of the system values sources */
-	struct ir3_instruction *vertex_id, *basevertex, *instance_id;
+	struct ir3_instruction *vertex_id, *basevertex, *instance_id, *base_instance;
 
 	/* For fragment shaders: */
 	struct ir3_instruction *samp_id, *samp_mask_in;

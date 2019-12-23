@@ -415,7 +415,7 @@ mir_compute_interference(
 /* This routine performs the actual register allocation. It should be succeeded
  * by install_registers */
 
-struct lcra_state *
+static struct lcra_state *
 allocate_registers(compiler_context *ctx, bool *spilled)
 {
         /* The number of vec4 work registers available depends on when the
@@ -473,6 +473,14 @@ allocate_registers(compiler_context *ctx, bool *spilled)
 
                 if (ins->type == TAG_LOAD_STORE_4 && ins->load_64)
                         min_alignment[dest] = 3;
+
+                /* We don't have a swizzle for the conditional and we don't
+                 * want to muck with the conditional itself, so just force
+                 * alignment for now */
+
+                if (ins->type == TAG_ALU_4 && OP_IS_CSEL_V(ins->alu.op))
+                        min_alignment[dest] = 4; /* 1 << 4= 16-byte = vec4 */
+
         }
 
         for (unsigned i = 0; i < ctx->temp_count; ++i) {
@@ -505,6 +513,7 @@ allocate_registers(compiler_context *ctx, bool *spilled)
                         set_class(l->class, ins->src[0], REG_CLASS_TEXR);
                         set_class(l->class, ins->src[1], REG_CLASS_TEXR);
                         set_class(l->class, ins->src[2], REG_CLASS_TEXR);
+                        set_class(l->class, ins->src[3], REG_CLASS_TEXR);
                 }
         }
 
@@ -516,16 +525,32 @@ allocate_registers(compiler_context *ctx, bool *spilled)
                 assert(check_read_class(l->class, ins->type, ins->src[2]));
         }
 
-        /* Mark writeout to r0 */
+        /* Mark writeout to r0, render target to r1.z, unknown to r1.w */
         mir_foreach_instr_global(ctx, ins) {
-                if (ins->compact_branch && ins->writeout && ins->src[0] < ctx->temp_count)
+                if (!(ins->compact_branch && ins->writeout)) continue;
+
+                if (ins->src[0] < ctx->temp_count)
                         l->solutions[ins->src[0]] = 0;
+
+                if (ins->src[1] < ctx->temp_count)
+                        l->solutions[ins->src[1]] = (16 * 1) + COMPONENT_Z * 4;
+
+                if (ins->src[2] < ctx->temp_count)
+                        l->solutions[ins->src[2]] = (16 * 1) + COMPONENT_W * 4;
         }
         
         mir_compute_interference(ctx, l);
 
         *spilled = !lcra_solve(l);
         return l;
+}
+
+/* Reverses 2 bits, used to pack swizzles of offsets for some reason */
+
+static unsigned
+mir_reverse2(unsigned in)
+{
+        return (in >> 1) | ((in & 1) << 1);
 }
 
 /* Once registers have been decided via register allocation
@@ -634,6 +659,7 @@ install_registers_instr(
                 struct phys_reg dest = index_to_reg(ctx, l, ins->dest, mir_typesize(ins));
                 struct phys_reg coord = index_to_reg(ctx, l, ins->src[1], mir_srcsize(ins, 1));
                 struct phys_reg lod = index_to_reg(ctx, l, ins->src[2], mir_srcsize(ins, 2));
+                struct phys_reg offset = index_to_reg(ctx, l, ins->src[3], mir_srcsize(ins, 2));
 
                 /* First, install the texture coordinate */
                 ins->texture.in_reg_full = 1;
@@ -652,7 +678,7 @@ install_registers_instr(
                 if (ins->src[2] != ~0) {
                         assert(!(lod.offset & 3));
                         midgard_tex_register_select sel = {
-                                .select = lod.reg,
+                                .select = lod.reg & 1,
                                 .full = 1,
                                 .component = lod.offset / 4
                         };
@@ -660,6 +686,24 @@ install_registers_instr(
                         uint8_t packed;
                         memcpy(&packed, &sel, sizeof(packed));
                         ins->texture.bias = packed;
+                }
+
+                /* If there is an offset register, install it */
+                if (ins->src[3] != ~0) {
+                        ins->texture.offset_x = 
+                                (1)                   | /* full */
+                                (offset.reg & 1) << 1 | /* select */
+                                0 << 2;                 /* upper */
+
+                        unsigned x = offset.offset / 4;
+                        unsigned y = x + 1;
+                        unsigned z = x + 2;
+
+                        ins->texture.offset_y =
+                                mir_reverse2(y) | (mir_reverse2(x) << 2);
+
+                        ins->texture.offset_z =
+                                mir_reverse2(z);
                 }
 
                 break;
@@ -670,9 +714,210 @@ install_registers_instr(
         }
 }
 
-void
+static void
 install_registers(compiler_context *ctx, struct lcra_state *l)
 {
         mir_foreach_instr_global(ctx, ins)
                 install_registers_instr(ctx, l, ins);
+}
+
+
+/* If register allocation fails, find the best spill node */
+
+static signed
+mir_choose_spill_node(
+                compiler_context *ctx,
+                struct lcra_state *l)
+{
+        /* We can't spill a previously spilled value or an unspill */
+
+        mir_foreach_instr_global(ctx, ins) {
+                if (ins->no_spill & (1 << l->spill_class)) {
+                        lcra_set_node_spill_cost(l, ins->dest, -1);
+
+                        if (l->spill_class != REG_CLASS_WORK) {
+                                mir_foreach_src(ins, s)
+                                        lcra_set_node_spill_cost(l, ins->src[s], -1);
+                        }
+                }
+        }
+
+        return lcra_get_best_spill_node(l);
+}
+
+/* Once we've chosen a spill node, spill it */
+
+static void
+mir_spill_register(
+                compiler_context *ctx,
+                unsigned spill_node,
+                unsigned spill_class,
+                unsigned *spill_count)
+{
+        unsigned spill_index = ctx->temp_count;
+
+        /* We have a spill node, so check the class. Work registers
+         * legitimately spill to TLS, but special registers just spill to work
+         * registers */
+
+        bool is_special = spill_class != REG_CLASS_WORK;
+        bool is_special_w = spill_class == REG_CLASS_TEXW;
+
+        /* Allocate TLS slot (maybe) */
+        unsigned spill_slot = !is_special ? (*spill_count)++ : 0;
+
+        /* For TLS, replace all stores to the spilled node. For
+         * special reads, just keep as-is; the class will be demoted
+         * implicitly. For special writes, spill to a work register */
+
+        if (!is_special || is_special_w) {
+                if (is_special_w)
+                        spill_slot = spill_index++;
+
+                mir_foreach_block(ctx, block) {
+                mir_foreach_instr_in_block_safe(block, ins) {
+                        if (ins->dest != spill_node) continue;
+
+                        midgard_instruction st;
+
+                        if (is_special_w) {
+                                st = v_mov(spill_node, spill_slot);
+                                st.no_spill |= (1 << spill_class);
+                        } else {
+                                ins->dest = spill_index++;
+                                ins->no_spill |= (1 << spill_class);
+                                st = v_load_store_scratch(ins->dest, spill_slot, true, ins->mask);
+                        }
+
+                        /* Hint: don't rewrite this node */
+                        st.hint = true;
+
+                        mir_insert_instruction_after_scheduled(ctx, block, ins, st);
+
+                        if (!is_special)
+                                ctx->spills++;
+                }
+                }
+        }
+
+        /* For special reads, figure out how many bytes we need */
+        unsigned read_bytemask = 0;
+
+        mir_foreach_instr_global_safe(ctx, ins) {
+                read_bytemask |= mir_bytemask_of_read_components(ins, spill_node);
+        }
+
+        /* Insert a load from TLS before the first consecutive
+         * use of the node, rewriting to use spilled indices to
+         * break up the live range. Or, for special, insert a
+         * move. Ironically the latter *increases* register
+         * pressure, but the two uses of the spilling mechanism
+         * are somewhat orthogonal. (special spilling is to use
+         * work registers to back special registers; TLS
+         * spilling is to use memory to back work registers) */
+
+        mir_foreach_block(ctx, block) {
+                mir_foreach_instr_in_block(block, ins) {
+                        /* We can't rewrite the moves used to spill in the
+                         * first place. These moves are hinted. */
+                        if (ins->hint) continue;
+
+                        /* If we don't use the spilled value, nothing to do */
+                        if (!mir_has_arg(ins, spill_node)) continue;
+
+                        unsigned index = 0;
+
+                        if (!is_special_w) {
+                                index = ++spill_index;
+
+                                midgard_instruction *before = ins;
+                                midgard_instruction st;
+
+                                if (is_special) {
+                                        /* Move */
+                                        st = v_mov(spill_node, index);
+                                        st.no_spill |= (1 << spill_class);
+                                } else {
+                                        /* TLS load */
+                                        st = v_load_store_scratch(index, spill_slot, false, 0xF);
+                                }
+
+                                /* Mask the load based on the component count
+                                 * actually needed to prevent RA loops */
+
+                                st.mask = mir_from_bytemask(read_bytemask, midgard_reg_mode_32);
+
+                                mir_insert_instruction_before_scheduled(ctx, block, before, st);
+                        } else {
+                                /* Special writes already have their move spilled in */
+                                index = spill_slot;
+                        }
+
+
+                        /* Rewrite to use */
+                        mir_rewrite_index_src_single(ins, spill_node, index);
+
+                        if (!is_special)
+                                ctx->fills++;
+                }
+        }
+
+        /* Reset hints */
+
+        mir_foreach_instr_global(ctx, ins) {
+                ins->hint = false;
+        }
+}
+
+/* Run register allocation in a loop, spilling until we succeed */
+
+void
+mir_ra(compiler_context *ctx)
+{
+        struct lcra_state *l = NULL;
+        bool spilled = false;
+        int iter_count = 1000; /* max iterations */
+
+        /* Number of 128-bit slots in memory we've spilled into */
+        unsigned spill_count = 0;
+
+
+        mir_create_pipeline_registers(ctx);
+
+        do {
+                if (spilled) {
+                        signed spill_node = mir_choose_spill_node(ctx, l);
+
+                        if (spill_node == -1) {
+                                fprintf(stderr, "ERROR: Failed to choose spill node\n");
+                                return;
+                        }
+
+                        mir_spill_register(ctx, spill_node, l->spill_class, &spill_count);
+                }
+
+                mir_squeeze_index(ctx);
+                mir_invalidate_liveness(ctx);
+
+                if (l) {
+                        lcra_free(l);
+                        l = NULL;
+                }
+
+                l = allocate_registers(ctx, &spilled);
+        } while(spilled && ((iter_count--) > 0));
+
+        if (iter_count <= 0) {
+                fprintf(stderr, "panfrost: Gave up allocating registers, rendering will be incomplete\n");
+                assert(0);
+        }
+
+        /* Report spilling information. spill_count is in 128-bit slots (vec4 x
+         * fp32), but tls_size is in bytes, so multiply by 16 */
+
+        ctx->tls_size = spill_count * 16;
+
+        install_registers(ctx, l);
+
+        lcra_free(l);
 }

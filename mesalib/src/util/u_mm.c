@@ -1,5 +1,5 @@
-/*
- * GLX Hardware Device Driver common code
+/**************************************************************************
+ *
  * Copyright (C) 1999 Wittawat Yamwong
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -20,57 +20,66 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE 
  * OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  *
- */
+ **************************************************************************/
 
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
 
-#include "mm.h"
+#include "util/u_debug.h"
+
+#include "util/u_memory.h"
+#include "util/u_mm.h"
 
 
 void
-mmDumpMemInfo(const struct mem_block *heap)
+u_mmDumpMemInfo(const struct mem_block *heap)
 {
-   fprintf(stderr, "Memory heap %p:\n", (void *)heap);
-   if (heap == 0) {
-      fprintf(stderr, "  heap == 0\n");
-   } else {
+   debug_printf("Memory heap %p:\n", (void *) heap);
+   if (heap == NULL) {
+      debug_printf("  heap == 0\n");
+   }
+   else {
       const struct mem_block *p;
+      int total_used = 0, total_free = 0;
 
-      for(p = heap->next; p != heap; p = p->next) {
-	 fprintf(stderr, "  Offset:%08x, Size:%08x, %c%c\n",p->ofs,p->size,
-		 p->free ? 'F':'.',
-		 p->reserved ? 'R':'.');
+      for (p = heap->next; p != heap; p = p->next) {
+	 debug_printf("  Offset:%08x, Size:%08x, %c%c\n", p->ofs, p->size,
+                      p->free ? 'F':'.',
+                      p->reserved ? 'R':'.');
+         if (p->free)
+            total_free += p->size;
+         else
+            total_used += p->size;
       }
 
-      fprintf(stderr, "\nFree list:\n");
+      debug_printf("'\nMemory stats: total = %d, used = %d, free = %d\n",
+                   total_used + total_free, total_used, total_free);
+      debug_printf("\nFree list:\n");
 
-      for(p = heap->next_free; p != heap; p = p->next_free) {
-	 fprintf(stderr, " FREE Offset:%08x, Size:%08x, %c%c\n",p->ofs,p->size,
-		 p->free ? 'F':'.',
-		 p->reserved ? 'R':'.');
+      for (p = heap->next_free; p != heap; p = p->next_free) {
+	 debug_printf(" FREE Offset:%08x, Size:%08x, %c%c\n", p->ofs, p->size,
+                      p->free ? 'F':'.',
+                      p->reserved ? 'R':'.');
       }
 
    }
-   fprintf(stderr, "End of memory blocks\n");
+   debug_printf("End of memory blocks\n");
 }
 
+
 struct mem_block *
-mmInit(unsigned ofs, unsigned size)
+u_mmInit(int ofs, int size)
 {
    struct mem_block *heap, *block;
   
-   if (!size) 
+   if (size <= 0) 
       return NULL;
 
-   heap = calloc(1, sizeof(struct mem_block));
+   heap = CALLOC_STRUCT(mem_block);
    if (!heap) 
       return NULL;
    
-   block = calloc(1, sizeof(struct mem_block));
+   block = CALLOC_STRUCT(mem_block);
    if (!block) {
-      free(heap);
+      FREE(heap);
       return NULL;
    }
 
@@ -95,14 +104,14 @@ mmInit(unsigned ofs, unsigned size)
 
 static struct mem_block *
 SliceBlock(struct mem_block *p, 
-           unsigned startofs, unsigned size, 
-           unsigned reserved, unsigned alignment)
+           int startofs, int size, 
+           int reserved, UNUSED int alignment)
 {
    struct mem_block *newblock;
 
    /* break left  [p, newblock, p->next], then p = newblock */
    if (startofs > p->ofs) {
-      newblock = calloc(1, sizeof(struct mem_block));
+      newblock = CALLOC_STRUCT(mem_block);
       if (!newblock)
 	 return NULL;
       newblock->ofs = startofs;
@@ -126,7 +135,7 @@ SliceBlock(struct mem_block *p,
 
    /* break right, also [p, newblock, p->next] */
    if (size < p->size) {
-      newblock = calloc(1, sizeof(struct mem_block));
+      newblock = CALLOC_STRUCT(mem_block);
       if (!newblock)
 	 return NULL;
       newblock->ofs = startofs + size;
@@ -164,14 +173,21 @@ SliceBlock(struct mem_block *p,
 
 
 struct mem_block *
-mmAllocMem(struct mem_block *heap, unsigned size, unsigned align2, unsigned startSearch)
+u_mmAllocMem(struct mem_block *heap, int size, int align2, int startSearch)
 {
    struct mem_block *p;
-   const unsigned mask = (1 << align2)-1;
-   unsigned startofs = 0;
-   unsigned endofs;
+   const int mask = (1 << align2)-1;
+   int startofs = 0;
+   int endofs;
 
-   if (!heap || !size)
+   assert(size >= 0);
+   assert(align2 >= 0);
+   /* Make sure that a byte alignment isn't getting passed for our
+    * power-of-two alignment arg.
+    */
+   assert(align2 < 32);
+
+   if (!heap || align2 < 0 || size <= 0)
       return NULL;
 
    for (p = heap->next_free; p != heap; p = p->next_free) {
@@ -197,7 +213,7 @@ mmAllocMem(struct mem_block *heap, unsigned size, unsigned align2, unsigned star
 
 
 struct mem_block *
-mmFindBlock(struct mem_block *heap, unsigned start)
+u_mmFindBlock(struct mem_block *heap, int start)
 {
    struct mem_block *p;
 
@@ -229,24 +245,24 @@ Join2Blocks(struct mem_block *p)
       q->next_free->prev_free = q->prev_free; 
       q->prev_free->next_free = q->next_free;
      
-      free(q);
+      FREE(q);
       return 1;
    }
    return 0;
 }
 
 int
-mmFreeMem(struct mem_block *b)
+u_mmFreeMem(struct mem_block *b)
 {
    if (!b)
       return 0;
 
    if (b->free) {
-      fprintf(stderr, "block already free\n");
+      debug_printf("block already free\n");
       return -1;
    }
    if (b->reserved) {
-      fprintf(stderr, "block is reserved\n");
+      debug_printf("block is reserved\n");
       return -1;
    }
 
@@ -265,7 +281,7 @@ mmFreeMem(struct mem_block *b)
 
 
 void
-mmDestroy(struct mem_block *heap)
+u_mmDestroy(struct mem_block *heap)
 {
    struct mem_block *p;
 
@@ -274,9 +290,9 @@ mmDestroy(struct mem_block *heap)
 
    for (p = heap->next; p != heap; ) {
       struct mem_block *next = p->next;
-      free(p);
+      FREE(p);
       p = next;
    }
 
-   free(heap);
+   FREE(heap);
 }

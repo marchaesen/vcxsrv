@@ -237,7 +237,7 @@ nir_lower_aaline_fs(struct nir_shader *shader, int *varying)
      line_width->data.driver_location = highest_drv_location + 1;
    }
    shader->num_inputs++;
-   *varying = tgsi_get_generic_gl_varying_index(line_width->data.location, false);
+   *varying = tgsi_get_generic_gl_varying_index(line_width->data.location, true);
    state.line_width_input = line_width;
 
    nir_foreach_function(function, shader) {
@@ -361,7 +361,7 @@ nir_lower_aapoint_fs(struct nir_shader *shader, int *varying)
    aapoint_input->data.driver_location = highest_drv_location + 1;
 
    shader->num_inputs++;
-   *varying = tgsi_get_generic_gl_varying_index(aapoint_input->data.location, false);
+   *varying = tgsi_get_generic_gl_varying_index(aapoint_input->data.location, true);
    state.input = aapoint_input;
 
    nir_foreach_function(function, shader) {

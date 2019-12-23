@@ -1,0 +1,96 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<title>Mesa Release Notes</title>
+<link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+<h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 19.2.7 Release Notes / 2019-12-04</h1>
+
+<p>
+    Mesa 19.2.7 is a bug fix release which fixes bugs found since the 19.2.6 release.
+</p>
+<p>
+Mesa 19.2.7 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5. OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+<p>
+Mesa 19.2.7 implements the Vulkan 1.1 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+</p>
+
+<h2>SHA256 checksum</h2>
+<pre>
+    e3799fb7896fd9ed2f90f651fb907b95cdebfbd494968ff116e6bf1be143579e  mesa-19.2.7.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+
+<ul>
+    <li>None</li>
+</ul>
+
+<h2>Bug fixes</h2>
+
+<ul>
+    <li>ld.lld: error: duplicate symbol (mesa-19.3.0-rc1)</li>
+    <li>triangle strip clipping with GL_FIRST_VERTEX_CONVENTION causes wrong vertex&#x27;s attribute to be broadcasted for flat interpolation</li>
+    <li>[bisected][regression][g45,g965,ilk] piglit arb_fragment_program kil failures</li>
+</ul>
+
+<h2>Changes</h2>
+
+<ul>
+    <p>Bas Nieuwenhuizen (2):</p>
+    <li>      radv: Allocate cmdbuffer space for buffer marker write.</li>
+    <li>      radv: Unify max_descriptor_set_size.</li>
+    <p></p>
+    <p>Boris Brezillon (1):</p>
+    <li>      gallium: Fix the -&gt;set_damage_region() implementation</li>
+    <p></p>
+    <p>Ian Romanick (1):</p>
+    <li>      intel/fs: Disable conditional discard optimization on Gen4 and Gen5</li>
+    <p></p>
+    <p>Jason Ekstrand (1):</p>
+    <li>      anv: Set up SBE_SWIZ properly for gl_Viewport</li>
+    <p></p>
+    <p>Jonathan Gray (2):</p>
+    <li>      winsys/amdgpu: avoid double simple_mtx_unlock()</li>
+    <li>      i965: update Makefile.sources for perf changes</li>
+    <p></p>
+    <p>Rhys Perry (1):</p>
+    <li>      radv: set writes_memory for global memory stores/atomics</li>
+    <p></p>
+    <p>Samuel Pitoiset (3):</p>
+    <li>      radv: fix enabling sample shading with SampleID/SamplePosition</li>
+    <li>      radv/gfx10: fix implementation of exclusive scans</li>
+    <li>      radv: fix compute pipeline keys when optimizations are disabled</li>
+    <p></p>
+    <p>Yevhenii Kolesnikov (1):</p>
+    <li>      meson: Fix linkage of libgallium_nine with libgalliumvl</li>
+    <p></p>
+    <p>Zebediah Figura (1):</p>
+    <li>      Revert &quot;draw: revert using correct order for prim decomposition.&quot;</li>
+    <p></p>
+    <p></p>
+</ul>
+
+</div>
+</body>
+</html>

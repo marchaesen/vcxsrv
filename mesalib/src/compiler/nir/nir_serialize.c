@@ -799,7 +799,8 @@ is_alu_src_ssa_16bit(write_ctx *ctx, const nir_alu_instr *alu)
          /* The swizzles for src0.x and src1.x are stored
           * in writemask_or_two_swizzles for SSA ALUs.
           */
-         if (alu->dest.dest.is_ssa && i < 2 && chan == 0)
+         if (alu->dest.dest.is_ssa && i < 2 && chan == 0 &&
+             alu->src[i].swizzle[chan] < 4)
             continue;
 
          if (alu->src[i].swizzle[chan] != chan)
@@ -854,14 +855,16 @@ write_alu(write_ctx *ctx, const nir_alu_instr *alu)
       }
    } else {
       for (unsigned i = 0; i < num_srcs; i++) {
-         unsigned src_components = nir_ssa_alu_instr_src_components(alu, i);
+         unsigned src_channels = nir_ssa_alu_instr_src_components(alu, i);
+         unsigned src_components = nir_src_num_components(alu->src[i].src);
          union packed_src src;
+         bool packed = src_components <= 4 && src_channels <= 4;
          src.u32 = 0;
 
          src.alu.negate = alu->src[i].negate;
          src.alu.abs = alu->src[i].abs;
 
-         if (src_components <= 4) {
+         if (packed) {
             src.alu.swizzle_x = alu->src[i].swizzle[0];
             src.alu.swizzle_y = alu->src[i].swizzle[1];
             src.alu.swizzle_z = alu->src[i].swizzle[2];
@@ -871,12 +874,12 @@ write_alu(write_ctx *ctx, const nir_alu_instr *alu)
          write_src_full(ctx, &alu->src[i].src, src);
 
          /* Store swizzles for vec8 and vec16. */
-         if (src_components > 4) {
-            for (unsigned i = 0; i < src_components; i += 8) {
+         if (!packed) {
+            for (unsigned o = 0; o < src_channels; o += 8) {
                unsigned value = 0;
 
-               for (unsigned j = 0; j < 8 && i + j < src_components; j++) {
-                  value |= alu->src[i].swizzle[i + j] <<
+               for (unsigned j = 0; j < 8 && o + j < src_channels; j++) {
+                  value |= (uint32_t)alu->src[i].swizzle[o + j] <<
                            (4 * j); /* 4 bits per swizzle */
                }
 
@@ -926,25 +929,27 @@ read_alu(read_ctx *ctx, union packed_instr header)
    } else {
       for (unsigned i = 0; i < num_srcs; i++) {
          union packed_src src = read_src(ctx, &alu->src[i].src, &alu->instr);
-         unsigned src_components = nir_ssa_alu_instr_src_components(alu, i);
+         unsigned src_channels = nir_ssa_alu_instr_src_components(alu, i);
+         unsigned src_components = nir_src_num_components(alu->src[i].src);
+         bool packed = src_components <= 4 && src_channels <= 4;
 
          alu->src[i].negate = src.alu.negate;
          alu->src[i].abs = src.alu.abs;
 
          memset(&alu->src[i].swizzle, 0, sizeof(alu->src[i].swizzle));
 
-         if (src_components <= 4) {
+         if (packed) {
             alu->src[i].swizzle[0] = src.alu.swizzle_x;
             alu->src[i].swizzle[1] = src.alu.swizzle_y;
             alu->src[i].swizzle[2] = src.alu.swizzle_z;
             alu->src[i].swizzle[3] = src.alu.swizzle_w;
          } else {
             /* Load swizzles for vec8 and vec16. */
-            for (unsigned i = 0; i < src_components; i += 8) {
+            for (unsigned o = 0; o < src_channels; o += 8) {
                unsigned value = blob_read_uint32(ctx->blob);
 
-               for (unsigned j = 0; j < 8 && i + j < src_components; j++) {
-                  alu->src[i].swizzle[i + j] =
+               for (unsigned j = 0; j < 8 && o + j < src_channels; j++) {
+                  alu->src[i].swizzle[o + j] =
                      (value >> (4 * j)) & 0xf; /* 4 bits per swizzle */
                }
             }

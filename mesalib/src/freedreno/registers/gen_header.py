@@ -28,6 +28,9 @@ class Enum(object):
 				print("\t%s = %d," % (name, value))
 		print("};\n")
 
+	def dump_pack_struct(self):
+		pass
+
 class Field(object):
 	def __init__(self, name, low, high, shr, type, parser):
 		self.name = name
@@ -36,7 +39,7 @@ class Field(object):
 		self.shr = shr
 		self.type = type
 
-		builtin_types = [ None, "boolean", "uint", "hex", "int", "fixed", "ufixed", "float" ]
+		builtin_types = [ None, "boolean", "uint", "hex", "int", "fixed", "ufixed", "float", "address", "waddress" ]
 
 		if low < 0 or low > 31:
 			raise parser.error("low attribute out of range: %d" % low)
@@ -51,37 +54,40 @@ class Field(object):
 		elif not self.type in builtin_types and not self.type in parser.enums:
 			raise parser.error("unknown type '%s'" % self.type);
 
-	def ctype(self):
+	def ctype(self, var_name):
 		if self.type == None:
 			type = "uint32_t"
-			val = "val"
+			val = var_name
 		elif self.type == "boolean":
 			type = "bool"
-			val = "val"
+			val = var_name
 		elif self.type == "uint" or self.type == "hex":
 			type = "uint32_t"
-			val = "val"
+			val = var_name
 		elif self.type == "int":
 			type = "int32_t"
-			val = "val"
+			val = var_name
 		elif self.type == "fixed":
 			type = "float"
-			val = "((int32_t)(val * %d.0))" % (1 << self.radix)
+			val = "((int32_t)(%s * %d.0))" % (var_name, 1 << self.radix)
 		elif self.type == "ufixed":
 			type = "float"
-			val = "((uint32_t)(val * %d.0))" % (1 << self.radix)
+			val = "((uint32_t)(%s * %d.0))" % (var_name, 1 << self.radix)
 		elif self.type == "float" and self.high - self.low == 31:
 			type = "float"
-			val = "fui(val)"
+			val = "fui(%s)" % var_name
 		elif self.type == "float" and self.high - self.low == 15:
 			type = "float"
-			val = "util_float_to_half(val)"
+			val = "util_float_to_half(%s)" % var_name
+		elif self.type in [ "address", "waddress" ]:
+			type = "uint64_t"
+			val = var_name
 		else:
 			type = "enum %s" % self.type
-			val = "val"
+			val = var_name
 
 		if self.shr > 0:
-			val = "%s >> %d" % (val, self.shr)
+			val = "(%s >> %d)" % (val, self.shr)
 
 		return (type, val)
 
@@ -103,6 +109,97 @@ class Bitset(object):
 		else:
 			self.fields = []
 
+	def dump_pack_struct(self, prefix=None, array=None):
+		def field_name(prefix, name):
+			if f.name:
+				name = f.name.lower()
+			else:
+				name = prefix.lower()
+
+			if (name in [ "double", "float", "int" ]) or not (name[0].isalpha()):
+					name = "_" + name
+
+			return name
+
+		if not prefix:
+			return
+		if prefix == None:
+			prefix = self.name
+
+		print("struct %s {" % prefix)
+		for f in self.fields:
+			if f.type in [ "address", "waddress" ]:
+				tab_to("    __bo_type", "bo;")
+				tab_to("    uint32_t", "bo_offset;")
+				continue
+			name = field_name(prefix, f.name)
+
+			type, val = f.ctype("var")
+
+			tab_to("    %s" % type, "%s;" % name)
+		tab_to("    uint32_t", "unknown;")
+		tab_to("    uint32_t", "dword;")
+		print("};\n")
+
+		address = None;
+		for f in self.fields:
+			if f.type in [ "address", "waddress" ]:
+				address = f
+		if array:
+			print("static inline struct fd_reg_pair\npack_%s(uint32_t i, struct %s fields)\n{" %
+				  (prefix, prefix));
+		else:
+			print("static inline struct fd_reg_pair\npack_%s(struct %s fields)\n{" %
+				  (prefix, prefix));
+
+		print("#ifndef NDEBUG")
+		known_mask = 0
+		for f in self.fields:
+			known_mask |= mask(f.low, f.high)
+			if f.type in [ "boolean", "address", "waddress" ]:
+				continue
+			type, val = f.ctype("fields.%s" % field_name(prefix, f.name))
+			print("    assert((%-40s & 0x%08x) == 0);" % (val, 0xffffffff ^ mask(0 , f.high - f.low)))
+		print("    assert((%-40s & 0x%08x) == 0);" % ("fields.unknown", known_mask))
+		print("#endif\n")
+
+		print("    return (struct fd_reg_pair) {")
+		if array:
+			print("        .reg = REG_%s(i)," % prefix)
+		else:
+			print("        .reg = REG_%s," % prefix)
+
+		print("        .value =")
+		for f in self.fields:
+			if f.type in [ "address", "waddress" ]:
+				continue
+			else:
+				type, val = f.ctype("fields.%s" % field_name(prefix, f.name))
+				print("            (%-40s << %2d) |" % (val, f.low))
+		print("            fields.unknown | fields.dword,")
+
+		if address:
+			print("        .bo = fields.bo,")
+			if f.type == "waddress":
+				print("        .bo_write = true,")
+			print("        .bo_offset = fields.bo_offset,")
+			print("        .bo_shift = %d" % address.shr)
+
+		print("    };\n}\n")
+
+		if address:
+			skip = ", { .reg = 0 }"
+		else:
+			skip = ""
+
+		if array:
+			print("#define %s(i, ...) pack_%s(i, (struct %s) { __VA_ARGS__ })%s\n" %
+				  (prefix, prefix, prefix, skip))
+		else:
+			print("#define %s(...) pack_%s((struct %s) { __VA_ARGS__ })%s\n" %
+				  (prefix, prefix, prefix, skip))
+
+
 	def dump(self, prefix=None):
 		if prefix == None:
 			prefix = self.name
@@ -119,12 +216,13 @@ class Bitset(object):
 			else:
 				tab_to("#define %s__MASK" % name, "0x%08x" % mask(f.low, f.high))
 				tab_to("#define %s__SHIFT" % name, "%d" % f.low)
-				type, val = f.ctype()
+				type, val = f.ctype("val")
 
 				print("static inline uint32_t %s(%s val)\n{" % (name, type))
 				if f.shr > 0:
 					print("\tassert(!(val & 0x%x));" % mask(0, f.shr - 1))
 				print("\treturn ((%s) << %s__SHIFT) & %s__MASK;\n}" % (val, name, name))
+		print()
 
 class Array(object):
 	def __init__(self, attrs, domain):
@@ -137,27 +235,39 @@ class Array(object):
 	def dump(self):
 		print("static inline uint32_t REG_%s_%s(uint32_t i0) { return 0x%08x + 0x%x*i0; }\n" % (self.domain, self.name, self.offset, self.stride))
 
+	def dump_pack_struct(self):
+		pass
+
 class Reg(object):
-	def __init__(self, attrs, domain, array):
+	def __init__(self, attrs, domain, array, bit_size):
 		self.name = attrs["name"]
 		self.domain = domain
 		self.array = array
 		self.offset = int(attrs["offset"], 0)
 		self.type = None
+		self.bit_size = bit_size
+
+		if self.array:
+			self.full_name = self.domain + "_" + self.array.name + "_" + self.name
+		else:
+			self.full_name = self.domain + "_" + self.name
 
 	def dump(self):
 		if self.array:
-			name = self.domain + "_" + self.array.name + "_" + self.name
 			offset = self.array.offset + self.offset
-			print("static inline uint32_t REG_%s(uint32_t i0) { return 0x%08x + 0x%x*i0; }" % (name, offset, self.array.stride))
+			print("static inline uint32_t REG_%s(uint32_t i0) { return 0x%08x + 0x%x*i0; }" % (self.full_name, offset, self.array.stride))
 		else:
-			name = self.domain + "_" + self.name
-			tab_to("#define REG_%s" % name, "0x%08x" % self.offset)
+			tab_to("#define REG_%s" % self.full_name, "0x%08x" % self.offset)
 
 		if self.bitset.inline:
-			self.bitset.dump(name)
+			self.bitset.dump(self.full_name)
 		print("")
-		
+
+	def dump_pack_struct(self):
+		if self.bitset.inline:
+			self.bitset.dump_pack_struct(self.full_name, not self.array == None)
+
+
 def parse_variants(attrs):
 		if not "variants" in attrs:
 				return None
@@ -235,6 +345,21 @@ class Parser(object):
 		self.stack = []
 		self.do_parse(filename)
 
+	def parse_reg(self, attrs, bit_size):
+		if "type" in attrs and attrs["type"] in self.bitsets:
+			self.current_bitset = self.bitsets[attrs["type"]]
+		else:
+			self.current_bitset = Bitset(attrs["name"], None)
+			self.current_bitset.inline = True
+			if "type" in attrs:
+				self.parse_field(None, attrs)
+
+		self.current_reg = Reg(attrs, self.prefix(), self.current_array, bit_size)
+		self.current_reg.bitset = self.current_bitset
+
+		if len(self.stack) == 1:
+			self.file.append(self.current_reg)
+
 	def start_element(self, name, attrs):
 		if name == "import":
 			filename = os.path.basename(attrs["file"])
@@ -259,19 +384,9 @@ class Parser(object):
 			self.current_enum.values.append((attrs["name"], value))
 			# self.current_enum_value = value + 1
 		elif name == "reg32":
-			if "type" in attrs and attrs["type"] in self.bitsets:
-				self.current_bitset = self.bitsets[attrs["type"]]
-			else:
-				self.current_bitset = Bitset(attrs["name"], None)
-				self.current_bitset.inline = True
-				if "type" in attrs:
-					self.parse_field(None, attrs)
-
-			self.current_reg = Reg(attrs, self.prefix(), self.current_array)
-			self.current_reg.bitset = self.current_bitset
-
-			if len(self.stack) == 1:
-				self.file.append(self.current_reg)
+			self.parse_reg(attrs, 32)
+		elif name == "reg64":
+			self.parse_reg(attrs, 64)
 		elif name == "array":
 			self.current_array = Array(attrs, self.prefix())
 			if len(self.stack) == 1:
@@ -316,11 +431,21 @@ class Parser(object):
 		for e in enums + bitsets + regs:
 			e.dump()
 
+	def dump_structs(self):
+		for e in self.file:
+			e.dump_pack_struct()
+
+
 def main():
 	p = Parser()
 	xml_file = sys.argv[1]
+	if len(sys.argv) > 2 and sys.argv[2] == '--pack-structs':
+		do_structs = True
+		guard = str.replace(os.path.basename(xml_file), '.', '_').upper() + '_STRUCTS'
+	else:
+		do_structs = False
+		guard = str.replace(os.path.basename(xml_file), '.', '_').upper()
 
-	guard = str.replace(os.path.basename(xml_file), '.', '_').upper()
 	print("#ifndef %s\n#define %s\n" % (guard, guard))
 
 	try:
@@ -329,7 +454,10 @@ def main():
 		print(e)
 		exit(1)
 
-	p.dump()
+	if do_structs:
+		p.dump_structs()
+	else:
+		p.dump()
 
 	print("\n#endif /* %s */" % guard)
 

@@ -128,8 +128,7 @@ struct InstrPred {
       /* The results of VOPC depend on the exec mask if used for subgroup operations. */
       if ((uint32_t) a->format & (uint32_t) Format::VOPC && a->pass_flags != b->pass_flags)
          return false;
-      if (a->format == Format::PSEUDO_BRANCH)
-         return false;
+
       if (a->isVOP3()) {
          VOP3A_instruction* a3 = static_cast<VOP3A_instruction*>(a);
          VOP3A_instruction* b3 = static_cast<VOP3A_instruction*>(b);
@@ -145,7 +144,8 @@ struct InstrPred {
       if (a->isDPP()) {
          DPP_instruction* aDPP = static_cast<DPP_instruction*>(a);
          DPP_instruction* bDPP = static_cast<DPP_instruction*>(b);
-         return aDPP->dpp_ctrl == bDPP->dpp_ctrl &&
+         return aDPP->pass_flags == bDPP->pass_flags &&
+                aDPP->dpp_ctrl == bDPP->dpp_ctrl &&
                 aDPP->bank_mask == bDPP->bank_mask &&
                 aDPP->row_mask == bDPP->row_mask &&
                 aDPP->bound_ctrl == bDPP->bound_ctrl &&
@@ -154,6 +154,7 @@ struct InstrPred {
                 aDPP->neg[0] == bDPP->neg[0] &&
                 aDPP->neg[1] == bDPP->neg[1];
       }
+
       switch (a->format) {
          case Format::SOPK: {
             SOPK_instruction* aK = static_cast<SOPK_instruction*>(a);
@@ -186,7 +187,7 @@ struct InstrPred {
             /* this is fine since they are only used for vertex input fetches */
             MTBUF_instruction* aM = static_cast<MTBUF_instruction *>(a);
             MTBUF_instruction* bM = static_cast<MTBUF_instruction *>(b);
-            return aM->can_reorder == bM->can_reorder &&
+            return aM->can_reorder && bM->can_reorder &&
                    aM->barrier == bM->barrier &&
                    aM->dfmt == bM->dfmt &&
                    aM->nfmt == bM->nfmt &&
@@ -203,6 +204,10 @@ struct InstrPred {
          case Format::FLAT:
          case Format::GLOBAL:
          case Format::SCRATCH:
+         case Format::EXP:
+         case Format::SOPP:
+         case Format::PSEUDO_BRANCH:
+         case Format::PSEUDO_BARRIER:
             return false;
          case Format::DS: {
             if (a->opcode != aco_opcode::ds_bpermute_b32 &&
@@ -284,6 +289,10 @@ void process_block(vn_ctx& ctx, Block& block)
             op.setTemp(it->second);
       }
 
+      if (instr->opcode == aco_opcode::p_discard_if ||
+          instr->opcode == aco_opcode::p_demote_to_helper)
+         ctx.exec_id++;
+
       if (instr->definitions.empty() || instr->opcode == aco_opcode::p_phi || instr->opcode == aco_opcode::p_linear_phi) {
          new_instructions.emplace_back(std::move(instr));
          continue;
@@ -295,10 +304,6 @@ void process_block(vn_ctx& ctx, Block& block)
           !instr->isDPP() && !((int)instr->format & (int)Format::SDWA)) {
          ctx.renames[instr->definitions[0].tempId()] = instr->operands[0].getTemp();
       }
-
-      if (instr->opcode == aco_opcode::p_discard_if ||
-          instr->opcode == aco_opcode::p_demote_to_helper)
-         ctx.exec_id++;
 
       instr->pass_flags = ctx.exec_id;
       std::pair<expr_set::iterator, bool> res = ctx.expr_values.emplace(instr.get(), block.index);
@@ -312,6 +317,7 @@ void process_block(vn_ctx& ctx, Block& block)
              ctx.program->blocks[res.first->second].fp_mode.canReplace(block.fp_mode)) {
             for (unsigned i = 0; i < instr->definitions.size(); i++) {
                assert(instr->definitions[i].regClass() == orig_instr->definitions[i].regClass());
+               assert(instr->definitions[i].isTemp());
                ctx.renames[instr->definitions[i].tempId()] = orig_instr->definitions[i].getTemp();
             }
          } else {
@@ -358,8 +364,8 @@ void value_numbering(Program* program)
       if (block.kind & block_kind_merge) {
          ctx.exec_id--;
       } else if (block.kind & block_kind_loop_exit) {
-         ctx.exec_id -= program->blocks[loop_headers.back()].logical_preds.size();
-         ctx.exec_id -= block.logical_preds.size();
+         ctx.exec_id -= program->blocks[loop_headers.back()].linear_preds.size();
+         ctx.exec_id -= block.linear_preds.size();
          loop_headers.pop_back();
       }
 
@@ -372,7 +378,8 @@ void value_numbering(Program* program)
       if (block.kind & block_kind_branch ||
           block.kind & block_kind_loop_preheader ||
           block.kind & block_kind_break ||
-          block.kind & block_kind_continue)
+          block.kind & block_kind_continue ||
+          block.kind & block_kind_discard)
          ctx.exec_id++;
       else if (block.kind & block_kind_continue_or_break)
          ctx.exec_id += 2;

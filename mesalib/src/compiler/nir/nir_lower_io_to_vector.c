@@ -184,7 +184,10 @@ get_flat_type(const nir_shader *shader, nir_variable *old_vars[MAX_SLOTS][4],
    if (num_vars <= 1)
       return NULL;
 
-   return glsl_array_type(glsl_vector_type(base, 4), slots, 0);
+   if (slots == 1)
+      return glsl_vector_type(base, 4);
+   else
+      return glsl_array_type(glsl_vector_type(base, 4), slots, 0);
 }
 
 static bool
@@ -339,6 +342,9 @@ build_array_deref_of_new_var_flat(nir_shader *shader,
       leader = nir_deref_instr_parent(leader);
       deref = nir_build_deref_array(b, deref, index);
    }
+
+   if (!glsl_type_is_array(deref->type))
+      return deref;
 
    bool vs_in = shader->info.stage == MESA_SHADER_VERTEX &&
                 new_var->data.mode == nir_var_shader_in;

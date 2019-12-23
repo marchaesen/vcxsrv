@@ -35,9 +35,12 @@
 #include "extinit.h"
 
 #ifdef XF86VIDMODE
-#include "xwayland.h"
+
 #include "randrstr.h"
 #include "vidmodestr.h"
+
+#include "xwayland-screen.h"
+#include "xwayland-vidmode.h"
 
 static DevPrivateKeyRec xwlVidModePrivateKeyRec;
 #define xwlVidModePrivateKey (&xwlVidModePrivateKeyRec)

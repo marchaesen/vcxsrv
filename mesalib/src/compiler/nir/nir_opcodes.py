@@ -75,7 +75,7 @@ class Opcode(object):
       assert isinstance(algebraic_properties, str)
       assert isinstance(const_expr, str)
       assert len(input_sizes) == len(input_types)
-      assert 0 <= output_size <= 4
+      assert 0 <= output_size <= 4 or (output_size == 8) or (output_size == 16)
       for size in input_sizes:
          assert 0 <= size <= 4
          if output_size != 0:
@@ -1055,6 +1055,40 @@ dst.x = src0.x;
 dst.y = src1.x;
 dst.z = src2.x;
 dst.w = src3.x;
+""")
+
+opcode("vec8", 8, tuint,
+       [1] * 8, [tuint] * 8,
+       False, "", """
+dst.x = src0.x;
+dst.y = src1.x;
+dst.z = src2.x;
+dst.w = src3.x;
+dst.e = src4.x;
+dst.f = src5.x;
+dst.g = src6.x;
+dst.h = src7.x;
+""")
+
+opcode("vec16", 16, tuint,
+       [1] * 16, [tuint] * 16,
+       False, "", """
+dst.x = src0.x;
+dst.y = src1.x;
+dst.z = src2.x;
+dst.w = src3.x;
+dst.e = src4.x;
+dst.f = src5.x;
+dst.g = src6.x;
+dst.h = src7.x;
+dst.i = src8.x;
+dst.j = src9.x;
+dst.k = src10.x;
+dst.l = src11.x;
+dst.m = src12.x;
+dst.n = src13.x;
+dst.o = src14.x;
+dst.p = src15.x;
 """)
 
 # An integer multiply instruction for address calculation.  This is

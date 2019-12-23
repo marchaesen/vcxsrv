@@ -40,6 +40,7 @@ apt-get install -y --no-remove \
       libxkbcommon-dev \
       libxrender1 \
       libxrender-dev \
+      libllvm8 \
       meson \
       patch \
       pkg-config \
@@ -61,9 +62,9 @@ apt-get install -y --no-remove \
 
 . .gitlab-ci/build-cts-runner.sh
 
-############### Build dEQP
+############### Build dEQP GL
 
-. .gitlab-ci/build-deqp.sh
+. .gitlab-ci/build-deqp-gl.sh
 
 
 ############### Uninstall the build software

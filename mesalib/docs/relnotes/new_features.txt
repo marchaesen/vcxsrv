@@ -1,5 +1,8 @@
+OpenGL 4.6 on radeonsi.
+GL_ARB_gl_spirv on radeonsi.
+GL_ARB_spirv_extensions on radeonsi.
+GL_EXT_direct_state_access for compatibility profile.
 VK_AMD_device_coherent_memory on RADV.
 VK_EXT_subgroup_size_control on RADV.
-VK_KHR_separate_depth_stencil_layouts on Intel.
+VK_KHR_separate_depth_stencil_layouts on Intel, RADV.
 VK_KHR_shader_subgroup_extended_types on RADV.
-EXT_direct_state_access for compatibility profile.

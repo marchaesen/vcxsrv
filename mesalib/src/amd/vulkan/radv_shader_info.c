@@ -152,6 +152,15 @@ set_output_usage_mask(const nir_shader *nir, const nir_intrinsic_instr *instr,
 }
 
 static void
+set_writes_memory(const nir_shader *nir, struct radv_shader_info *info)
+{
+	if (nir->info.stage == MESA_SHADER_FRAGMENT)
+		info->ps.writes_memory = true;
+	else if (nir->info.stage == MESA_SHADER_GEOMETRY)
+		info->gs.writes_memory = true;
+}
+
+static void
 gather_intrinsic_store_deref_info(const nir_shader *nir,
 				const nir_intrinsic_instr *instr,
 				struct radv_shader_info *info)
@@ -308,10 +317,7 @@ gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
 		    instr->intrinsic == nir_intrinsic_image_deref_atomic_xor ||
 		    instr->intrinsic == nir_intrinsic_image_deref_atomic_exchange ||
 		    instr->intrinsic == nir_intrinsic_image_deref_atomic_comp_swap) {
-			if (nir->info.stage == MESA_SHADER_FRAGMENT)
-				info->ps.writes_memory = true;
-			else if (nir->info.stage == MESA_SHADER_GEOMETRY)
-				info->gs.writes_memory = true;
+			set_writes_memory(nir, info);
 		}
 		break;
 	}
@@ -326,17 +332,28 @@ gather_intrinsic_info(const nir_shader *nir, const nir_intrinsic_instr *instr,
 	case nir_intrinsic_ssbo_atomic_xor:
 	case nir_intrinsic_ssbo_atomic_exchange:
 	case nir_intrinsic_ssbo_atomic_comp_swap:
-		if (nir->info.stage == MESA_SHADER_FRAGMENT)
-			info->ps.writes_memory = true;
-		else if (nir->info.stage == MESA_SHADER_GEOMETRY)
-			info->gs.writes_memory = true;
+		set_writes_memory(nir, info);
 		break;
 	case nir_intrinsic_load_deref:
 		gather_intrinsic_load_deref_info(nir, instr, info);
 		break;
 	case nir_intrinsic_store_deref:
 		gather_intrinsic_store_deref_info(nir, instr, info);
+		/* fallthrough */
+	case nir_intrinsic_deref_atomic_add:
+	case nir_intrinsic_deref_atomic_imin:
+	case nir_intrinsic_deref_atomic_umin:
+	case nir_intrinsic_deref_atomic_imax:
+	case nir_intrinsic_deref_atomic_umax:
+	case nir_intrinsic_deref_atomic_and:
+	case nir_intrinsic_deref_atomic_or:
+	case nir_intrinsic_deref_atomic_xor:
+	case nir_intrinsic_deref_atomic_exchange:
+	case nir_intrinsic_deref_atomic_comp_swap: {
+		if (nir_src_as_deref(instr->src[0])->mode & (nir_var_mem_global | nir_var_mem_ssbo))
+			set_writes_memory(nir, info);
 		break;
+	}
 	default:
 		break;
 	}

@@ -398,7 +398,7 @@ radv_physical_device_init(struct radv_physical_device *device,
 	radv_handle_env_var_force_family(device);
 
 	device->use_aco = instance->perftest_flags & RADV_PERFTEST_ACO;
-	if (device->rad_info.chip_class < GFX8 && device->use_aco) {
+	if (device->rad_info.chip_class < GFX7 && device->use_aco) {
 		fprintf(stderr, "WARNING: disabling ACO on unsupported GPUs.\n");
 		device->use_aco = false;
 	}
@@ -439,7 +439,8 @@ radv_physical_device_init(struct radv_physical_device *device,
 	device->dcc_msaa_allowed =
 		(device->instance->perftest_flags & RADV_PERFTEST_DCC_MSAA);
 
-	device->use_shader_ballot = device->use_aco || (device->instance->perftest_flags & RADV_PERFTEST_SHADER_BALLOT);
+	device->use_shader_ballot = (device->use_aco && device->rad_info.chip_class >= GFX8) ||
+				    (device->instance->perftest_flags & RADV_PERFTEST_SHADER_BALLOT);
 
 	device->use_ngg = device->rad_info.chip_class >= GFX10 &&
 			  device->rad_info.family != CHIP_NAVI14 &&
@@ -625,10 +626,11 @@ radv_handle_per_app_options(struct radv_instance *instance,
 		if (LLVM_VERSION_MAJOR < 9)
 			instance->debug_flags |= RADV_DEBUG_NO_LOAD_STORE_OPT;
 	} else if (!strcmp(name, "Wolfenstein: Youngblood")) {
-		if (!(instance->debug_flags & RADV_DEBUG_NO_SHADER_BALLOT)) {
+		if (!(instance->debug_flags & RADV_DEBUG_NO_SHADER_BALLOT) &&
+		    !(instance->perftest_flags & RADV_PERFTEST_ACO)) {
 			/* Force enable VK_AMD_shader_ballot because it looks
 			 * safe and it gives a nice boost (+20% on Vega 56 at
-			 * this time).
+			 * this time). It also prevents corruption on LLVM.
 			 */
 			instance->perftest_flags |= RADV_PERFTEST_SHADER_BALLOT;
 		}
@@ -1027,8 +1029,8 @@ void radv_GetPhysicalDeviceFeatures2(
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VERTEX_ATTRIBUTE_DIVISOR_FEATURES_EXT: {
 			VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT *features =
 				(VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT *)ext;
-			features->vertexAttributeInstanceRateDivisor = VK_TRUE;
-			features->vertexAttributeInstanceRateZeroDivisor = VK_TRUE;
+			features->vertexAttributeInstanceRateDivisor = true;
+			features->vertexAttributeInstanceRateZeroDivisor = true;
 			break;
 		}
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT: {
@@ -1047,7 +1049,7 @@ void radv_GetPhysicalDeviceFeatures2(
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_PRIORITY_FEATURES_EXT: {
 			VkPhysicalDeviceMemoryPriorityFeaturesEXT *features =
 				(VkPhysicalDeviceMemoryPriorityFeaturesEXT *)ext;
-			features->memoryPriority = VK_TRUE;
+			features->memoryPriority = true;
 			break;
 		}
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT: {
@@ -1190,6 +1192,12 @@ void radv_GetPhysicalDeviceFeatures2(
 			features->shaderSubgroupExtendedTypes = true;
 			break;
 		}
+		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES_KHR: {
+			VkPhysicalDeviceSeparateDepthStencilLayoutsFeaturesKHR *features =
+				(VkPhysicalDeviceSeparateDepthStencilLayoutsFeaturesKHR *)ext;
+			features->separateDepthStencilLayouts = true;
+			break;
+		}
 		default:
 			break;
 		}
@@ -1278,11 +1286,11 @@ void radv_GetPhysicalDeviceProperties(
 		.maxFragmentCombinedOutputResources       = 8,
 		.maxComputeSharedMemorySize               = 32768,
 		.maxComputeWorkGroupCount                 = { 65535, 65535, 65535 },
-		.maxComputeWorkGroupInvocations           = 2048,
+		.maxComputeWorkGroupInvocations           = 1024,
 		.maxComputeWorkGroupSize = {
-			2048,
-			2048,
-			2048
+			1024,
+			1024,
+			1024
 		},
 		.subPixelPrecisionBits                    = 8,
 		.subTexelPrecisionBits                    = 8,
@@ -1529,12 +1537,12 @@ void radv_GetPhysicalDeviceProperties2(
 			properties->primitiveOverestimationSize = 0;
 			properties->maxExtraPrimitiveOverestimationSize = 0;
 			properties->extraPrimitiveOverestimationSizeGranularity = 0;
-			properties->primitiveUnderestimation = VK_FALSE;
-			properties->conservativePointAndLineRasterization = VK_FALSE;
-			properties->degenerateTrianglesRasterized = VK_FALSE;
-			properties->degenerateLinesRasterized = VK_FALSE;
-			properties->fullyCoveredFragmentShaderInputVariable = VK_FALSE;
-			properties->conservativeRasterizationPostDepthCoverage = VK_FALSE;
+			properties->primitiveUnderestimation = false;
+			properties->conservativePointAndLineRasterization = false;
+			properties->degenerateTrianglesRasterized = false;
+			properties->degenerateLinesRasterized = false;
+			properties->fullyCoveredFragmentShaderInputVariable = false;
+			properties->conservativeRasterizationPostDepthCoverage = false;
 			break;
 		}
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PCI_BUS_INFO_PROPERTIES_EXT: {
@@ -1600,7 +1608,7 @@ void radv_GetPhysicalDeviceProperties2(
 			properties->sampleLocationCoordinateRange[0] = 0.0f;
 			properties->sampleLocationCoordinateRange[1] = 0.9375f;
 			properties->sampleLocationSubPixelBits = 4;
-			properties->variableSampleLocations = VK_FALSE;
+			properties->variableSampleLocations = false;
 			break;
 		}
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DEPTH_STENCIL_RESOLVE_PROPERTIES_KHR: {
@@ -1620,8 +1628,8 @@ void radv_GetPhysicalDeviceProperties2(
 				VK_RESOLVE_MODE_MIN_BIT_KHR |
 				VK_RESOLVE_MODE_MAX_BIT_KHR;
 
-			properties->independentResolveNone = VK_TRUE;
-			properties->independentResolve = VK_TRUE;
+			properties->independentResolveNone = true;
+			properties->independentResolve = true;
 			break;
 		}
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TEXEL_BUFFER_ALIGNMENT_PROPERTIES_EXT: {
@@ -3025,7 +3033,7 @@ fill_geom_tess_rings(struct radv_queue *queue,
 
 		if (queue->device->physical_device->rad_info.chip_class >= GFX10) {
 			desc[3] |= S_008F0C_FORMAT(V_008F0C_IMG_FORMAT_32_FLOAT) |
-				   S_008F0C_OOB_SELECT(2) |
+				   S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_DISABLED) |
 				   S_008F0C_RESOURCE_LEVEL(1);
 		} else {
 			desc[3] |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
@@ -3046,7 +3054,7 @@ fill_geom_tess_rings(struct radv_queue *queue,
 
 		if (queue->device->physical_device->rad_info.chip_class >= GFX10) {
 			desc[7] |= S_008F0C_FORMAT(V_008F0C_IMG_FORMAT_32_FLOAT) |
-				   S_008F0C_OOB_SELECT(2) |
+				   S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_DISABLED) |
 				   S_008F0C_RESOURCE_LEVEL(1);
 		} else {
 			desc[7] |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
@@ -3072,7 +3080,7 @@ fill_geom_tess_rings(struct radv_queue *queue,
 
 		if (queue->device->physical_device->rad_info.chip_class >= GFX10) {
 			desc[3] |= S_008F0C_FORMAT(V_008F0C_IMG_FORMAT_32_FLOAT) |
-				   S_008F0C_OOB_SELECT(2) |
+				   S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_DISABLED) |
 				   S_008F0C_RESOURCE_LEVEL(1);
 		} else {
 			desc[3] |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
@@ -3095,7 +3103,7 @@ fill_geom_tess_rings(struct radv_queue *queue,
 
 		if (queue->device->physical_device->rad_info.chip_class >= GFX10) {
 			desc[7] |= S_008F0C_FORMAT(V_008F0C_IMG_FORMAT_32_FLOAT) |
-				   S_008F0C_OOB_SELECT(2) |
+				   S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_DISABLED) |
 				   S_008F0C_RESOURCE_LEVEL(1);
 		} else {
 			desc[7] |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
@@ -3121,7 +3129,7 @@ fill_geom_tess_rings(struct radv_queue *queue,
 
 		if (queue->device->physical_device->rad_info.chip_class >= GFX10) {
 			desc[3] |= S_008F0C_FORMAT(V_008F0C_IMG_FORMAT_32_FLOAT) |
-				   S_008F0C_OOB_SELECT(3) |
+				   S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW) |
 				   S_008F0C_RESOURCE_LEVEL(1);
 		} else {
 			desc[3] |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
@@ -3138,7 +3146,7 @@ fill_geom_tess_rings(struct radv_queue *queue,
 
 		if (queue->device->physical_device->rad_info.chip_class >= GFX10) {
 			desc[7] |= S_008F0C_FORMAT(V_008F0C_IMG_FORMAT_32_FLOAT) |
-				   S_008F0C_OOB_SELECT(3) |
+				   S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW) |
 				   S_008F0C_RESOURCE_LEVEL(1);
 		} else {
 			desc[7] |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
@@ -3973,8 +3981,7 @@ radv_finalize_timelines(struct radv_device *device,
 			pthread_mutex_lock(&wait_sems[i]->timeline.mutex);
 			struct radv_timeline_point *point =
 				radv_timeline_find_point_at_least_locked(device, &wait_sems[i]->timeline, wait_values[i]);
-			if (point)
-				--point->wait_count;
+			point->wait_count -= 2;
 			pthread_mutex_unlock(&wait_sems[i]->timeline.mutex);
 		}
 	}
@@ -3983,11 +3990,9 @@ radv_finalize_timelines(struct radv_device *device,
 			pthread_mutex_lock(&signal_sems[i]->timeline.mutex);
 			struct radv_timeline_point *point =
 				radv_timeline_find_point_at_least_locked(device, &signal_sems[i]->timeline, signal_values[i]);
-			if (point) {
-				signal_sems[i]->timeline.highest_submitted =
-					MAX2(signal_sems[i]->timeline.highest_submitted, point->value);
-				point->wait_count--;
-			}
+			signal_sems[i]->timeline.highest_submitted =
+				MAX2(signal_sems[i]->timeline.highest_submitted, point->value);
+			point->wait_count -= 2;
 			radv_timeline_trigger_waiters_locked(&signal_sems[i]->timeline, processing_list);
 			pthread_mutex_unlock(&signal_sems[i]->timeline.mutex);
 		}
@@ -5580,8 +5585,6 @@ radv_timeline_wait_locked(struct radv_device *device,
 	struct radv_timeline_point *point = radv_timeline_find_point_at_least_locked(device, timeline, value);
 	if (!point)
 		return VK_SUCCESS;
-
-	point->wait_count++;
 
 	pthread_mutex_unlock(&timeline->mutex);
 
