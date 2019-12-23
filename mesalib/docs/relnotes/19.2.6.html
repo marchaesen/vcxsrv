@@ -1,0 +1,87 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<title>Mesa Release Notes</title>
+<link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+<h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 19.2.6 Release Notes / 2019-11-21</h1>
+
+<p>
+    Mesa 19.2.6 is a bug fix release which fixes bugs found since the 19.2.5 release.
+</p>
+<p>
+Mesa 19.2.6 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5. OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+<p>
+Mesa 19.2.6 implements the Vulkan 1.1 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+</p>
+
+<h2>SHA256 checksum</h2>
+<pre>
+    9d7b24fa60c82db34788196450042a55ce6cb2d70c7a8d5c31401619b6907797  mesa-19.2.6.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+
+<ul>
+    <li>None</li>
+</ul>
+
+<h2>Bug fixes</h2>
+
+<ul>
+    <li>glesv2.pc is not built since fafd20f67dec9f589</li>
+    <li>textureSize(samplerExternalOES, int) missing in desktop mesa 19.1.7 implementation</li>
+    <li>[19.2.5] lp_bld_misc: broken #if PIPE_ARCH_LITTLE_ENDIAN on ppc64l</li>
+</ul>
+
+<h2>Changes</h2>
+
+<ul>
+    <p>Alejandro Piñeiro (1):</p>
+    <li>      v3d: adds an extra MOV for any sig.ld*</li>
+    <p></p>
+    <p>Dave Airlie (1):</p>
+    <li>      llvmpipe/ppc: fix if/ifdef confusion in backport.</li>
+    <p></p>
+    <p>Dylan Baker (2):</p>
+    <li>      docs/relnotes/19.2.5: Add SHA256 sum</li>
+    <li>      meson: generate .pc files for gles and gles2 with old glvnd</li>
+    <p></p>
+    <p>Eric Engestrom (1):</p>
+    <li>      vulkan: delete typo&#x27;d header</li>
+    <p></p>
+    <p>Hyunjun Ko (1):</p>
+    <li>      freedreno/ir3: fix printing output registers of FS.</li>
+    <p></p>
+    <p>Jose Maria Casanova Crespo (1):</p>
+    <li>      v3d: Fix predication with atomic image operations</li>
+    <p></p>
+    <p>Yevhenii Kolesnikov (1):</p>
+    <li>      glsl: Enable textureSize for samplerExternalOES</li>
+    <p></p>
+    <p></p>
+</ul>
+
+</div>
+</body>
+</html>

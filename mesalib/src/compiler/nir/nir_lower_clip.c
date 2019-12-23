@@ -243,6 +243,7 @@ lower_clip_outputs(nir_builder *b, nir_variable *position,
          exec_node_remove(&clipvertex->node);
          clipvertex->data.mode = nir_var_shader_temp;
          exec_list_push_tail(&b->shader->globals, &clipvertex->node);
+         nir_fixup_deref_modes(b->shader);
       }
    } else {
       if (clipvertex)

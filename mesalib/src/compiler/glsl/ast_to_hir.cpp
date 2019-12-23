@@ -5195,7 +5195,8 @@ ast_declarator_list::hir(exec_list *instructions,
       apply_layout_qualifier_to_variable(&this->type->qualifier, var, state,
                                          &loc);
 
-      if ((var->data.mode == ir_var_auto || var->data.mode == ir_var_temporary)
+      if ((var->data.mode == ir_var_auto || var->data.mode == ir_var_temporary
+           || var->data.mode == ir_var_shader_out)
           && (var->type->is_numeric() || var->type->is_boolean())
           && state->zero_init) {
          const ir_constant_data data = { { 0 } };

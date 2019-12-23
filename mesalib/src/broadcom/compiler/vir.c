@@ -960,6 +960,11 @@ uint64_t *v3d_compile(const struct v3d_compiler *compiler,
         NIR_PASS_V(c->s, nir_lower_bool_to_int32);
         NIR_PASS_V(c->s, nir_convert_from_ssa, true);
 
+        /* Schedule for about half our register space, to enable more shaders
+         * to hit 4 threads.
+         */
+        NIR_PASS_V(c->s, nir_schedule, 24);
+
         v3d_nir_to_vir(c);
 
         v3d_set_prog_data(c, prog_data);

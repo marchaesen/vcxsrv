@@ -34,6 +34,7 @@
 #include "midgard.h"
 #include "midgard-parse.h"
 #include "midgard_ops.h"
+#include "midgard_quirks.h"
 #include "disassemble.h"
 #include "helpers.h"
 #include "util/half_float.h"
@@ -1514,11 +1515,12 @@ disassemble_midgard(uint8_t *code, size_t size, unsigned gpu_id, gl_shader_stage
 
                 switch (midgard_word_types[tag]) {
                 case midgard_word_type_texture: {
-                        /* Vertex texturing uses ldst/work space on older Midgard */
-                        bool has_texture_pipeline = (stage == MESA_SHADER_FRAGMENT) && gpu_id >= 0x750;
+                        bool interpipe_aliasing =
+                                midgard_get_quirks(gpu_id) & MIDGARD_INTERPIPE_REG_ALIASING;
+
                         print_texture_word(&words[i], tabs,
-                                        has_texture_pipeline ? REG_TEX_BASE : 0,
-                                        has_texture_pipeline ? REG_TEX_BASE : REGISTER_LDST_BASE);
+                                        interpipe_aliasing ? 0 : REG_TEX_BASE,
+                                        interpipe_aliasing ? REGISTER_LDST_BASE : REG_TEX_BASE);
                         break;
                 }
 

@@ -62,28 +62,3 @@ ninja -j4
 LC_ALL=C.UTF-8 ninja test
 ninja install
 cd ..
-
-if test -n "$MESON_SHADERDB"; then
-    ./.gitlab-ci/run-shader-db.sh;
-fi
-
-# Delete 2MB of includes from artifacts.
-rm -rf install/include
-
-# Strip the drivers in the artifacts to cut 80% of the artifacts size.
-if [ -n "$CROSS" ]; then
-    STRIP=`sed -n -E "s/strip\s*=\s*'(.*)'/\1/p" "$CROSS_FILE"`
-    if [ -z "$STRIP" ]; then
-        echo "Failed to find strip command in cross file"
-        exit 1
-    fi
-else
-    STRIP="strip"
-fi
-find install -name \*.so -exec $STRIP {} \;
-
-# Test runs don't pull down the git tree, so put the dEQP helper
-# script and associated bits there.
-mkdir -p artifacts/
-cp -Rp .gitlab-ci/deqp* artifacts/
-# cp -Rp src/freedreno/ci/expected* artifacts/

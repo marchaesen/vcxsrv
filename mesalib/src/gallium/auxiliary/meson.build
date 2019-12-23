@@ -264,26 +264,6 @@ files_libgallium = files(
   'util/u_dump.h',
   'util/u_dump_state.c',
   'util/u_fifo.h',
-  'util/u_format.c',
-  'util/u_format.h',
-  'util/u_format_bptc.c',
-  'util/u_format_bptc.h',
-  'util/u_format_etc.c',
-  'util/u_format_etc.h',
-  'util/u_format_latc.c',
-  'util/u_format_latc.h',
-  'util/u_format_other.c',
-  'util/u_format_other.h',
-  'util/u_format_rgtc.c',
-  'util/u_format_rgtc.h',
-  'util/u_format_s3tc.c',
-  'util/u_format_s3tc.h',
-  'util/u_format_tests.c',
-  'util/u_format_tests.h',
-  'util/u_format_yuv.c',
-  'util/u_format_yuv.h',
-  'util/u_format_zs.c',
-  'util/u_format_zs.h',
   'util/u_framebuffer.c',
   'util/u_framebuffer.h',
   'util/u_gen_mipmap.c',
@@ -356,6 +336,8 @@ files_libgallium = files(
   'util/u_viewport.h',
   'nir/tgsi_to_nir.c',
   'nir/tgsi_to_nir.h',
+  'nir/nir_draw_helpers.c',
+  'nir/nir_draw_helpers.h',
 )
 
 if dep_libdrm.found()
@@ -401,11 +383,16 @@ if with_llvm
     'gallivm/lp_bld_init.h',
     'gallivm/lp_bld_intr.c',
     'gallivm/lp_bld_intr.h',
+    'gallivm/lp_bld_ir_common.c',
+    'gallivm/lp_bld_ir_common.h',
     'gallivm/lp_bld_limits.h',
     'gallivm/lp_bld_logic.c',
     'gallivm/lp_bld_logic.h',
     'gallivm/lp_bld_misc.cpp',
     'gallivm/lp_bld_misc.h',
+    'gallivm/lp_bld_nir.h',
+    'gallivm/lp_bld_nir.c',
+    'gallivm/lp_bld_nir_soa.c',
     'gallivm/lp_bld_pack.c',
     'gallivm/lp_bld_pack.h',
     'gallivm/lp_bld_printf.c',
@@ -435,6 +422,8 @@ if with_llvm
     'draw/draw_llvm_sample.c',
     'draw/draw_pt_fetch_shade_pipeline_llvm.c',
     'draw/draw_vs_llvm.c',
+    'nir/nir_to_tgsi_info.c',
+    'nir/nir_to_tgsi_info.h',
   )
 endif
 
@@ -508,18 +497,9 @@ u_unfilled_gen_c = custom_target(
   capture : true,
 )
 
-u_format_table_c = custom_target(
-  'u_format_table.c',
-  input : ['util/u_format_table.py', 'util/u_format.csv'],
-  output : 'u_format_table.c',
-  command : [prog_python, '@INPUT@'],
-  depend_files : files('util/u_format_pack.py', 'util/u_format_parse.py'),
-  capture : true,
-)
-
 libgallium = static_library(
   'gallium',
-  [files_libgallium, u_indices_gen_c, u_unfilled_gen_c, u_format_table_c],
+  [files_libgallium, u_indices_gen_c, u_unfilled_gen_c],
   include_directories : [
     inc_loader, inc_gallium, inc_src, inc_include, include_directories('util')
   ],

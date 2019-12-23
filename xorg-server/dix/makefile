@@ -1,6 +1,7 @@
 ifeq ($(DEBUG),1)
 DEFINES += FONTDEBUG XSERVER_DTRACE
 endif
+DEFINES += PIXMAN_API=
 
 INCLUDES += ..\composite ..\miext\sync
 

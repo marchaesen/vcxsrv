@@ -21,3 +21,7 @@
 inc_etnaviv = include_directories(['.'])
 
 subdir('drm')
+
+if with_tools.contains('drm-shim')
+  subdir('drm-shim')
+endif

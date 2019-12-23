@@ -28,7 +28,7 @@
 #include "pipe/p_screen.h"
 #include "util/u_memory.h"
 #include "util/u_inlines.h"
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 #include "util/u_upload_mgr.h"
 #include "noop_public.h"
 
@@ -516,6 +516,9 @@ static const void *noop_get_compiler_options(struct pipe_screen *pscreen,
 
 static void noop_finalize_nir(struct pipe_screen *pscreen, void *nir, bool optimize)
 {
+   struct pipe_screen *screen = ((struct noop_pipe_screen*)pscreen)->oscreen;
+
+   screen->finalize_nir(screen, nir, optimize);
 }
 
 struct pipe_screen *noop_screen_create(struct pipe_screen *oscreen)

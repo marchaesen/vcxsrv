@@ -150,13 +150,6 @@ void lower_divergent_bool_phi(Program *program, Block *block, aco_ptr<Instructio
 
       assert(phi->operands[i].isTemp());
       Temp phi_src = phi->operands[i].getTemp();
-      if (phi_src.regClass() == s1) {
-         Temp new_phi_src = bld.tmp(s2);
-         insert_before_logical_end(pred,
-            bld.sop2(aco_opcode::s_cselect_b64, Definition(new_phi_src),
-                     Operand((uint32_t)-1), Operand(0u), bld.scc(phi_src)).get_ptr());
-         phi_src = new_phi_src;
-      }
       assert(phi_src.regClass() == s2);
 
       Operand cur = get_ssa(program, pred->index, &state);
@@ -218,6 +211,7 @@ void lower_bool_phis(Program* program)
    for (Block& block : program->blocks) {
       for (aco_ptr<Instruction>& phi : block.instructions) {
          if (phi->opcode == aco_opcode::p_phi) {
+            assert(phi->definitions[0].regClass() != s1);
             if (phi->definitions[0].regClass() == s2)
                lower_divergent_bool_phi(program, &block, phi);
          } else if (phi->opcode == aco_opcode::p_linear_phi) {

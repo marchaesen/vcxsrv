@@ -649,6 +649,9 @@ radv_cmd_buffer_resolve_subpass(struct radv_cmd_buffer *cmd_buffer)
 		struct radv_image_view *dst_iview =
 			cmd_buffer->state.attachments[dst_att.attachment].iview;
 
+		/* Make sure to not clear the depth/stencil attachment after resolves. */
+		cmd_buffer->state.attachments[dst_att.attachment].pending_clear_aspects = 0;
+
 		radv_pick_resolve_method_images(cmd_buffer->device,
 						src_iview->image,
 						src_iview->vk_format,
@@ -799,7 +802,7 @@ radv_decompress_resolve_subpass_src(struct radv_cmd_buffer *cmd_buffer)
 		struct radv_image *src_image = src_iview->image;
 
 		VkImageResolve region = {};
-		region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		region.srcSubresource.aspectMask = src_iview->aspect_mask;
 		region.srcSubresource.mipLevel = 0;
 		region.srcSubresource.baseArrayLayer = src_iview->base_layer;
 		region.srcSubresource.layerCount = layer_count;
@@ -814,7 +817,7 @@ radv_decompress_resolve_subpass_src(struct radv_cmd_buffer *cmd_buffer)
 		struct radv_image *src_image = src_iview->image;
 
 		VkImageResolve region = {};
-		region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+		region.srcSubresource.aspectMask = src_iview->aspect_mask;
 		region.srcSubresource.mipLevel = 0;
 		region.srcSubresource.baseArrayLayer = src_iview->base_layer;
 		region.srcSubresource.layerCount = layer_count;

@@ -25,7 +25,7 @@
  **************************************************************************/
 
 #include "pipe/p_state.h"
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 #include "util/u_debug_describe.h"
 #include "util/u_string.h"
 

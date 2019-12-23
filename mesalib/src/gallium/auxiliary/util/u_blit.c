@@ -42,7 +42,7 @@
 
 #include "util/u_blit.h"
 #include "util/u_draw_quad.h"
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 #include "util/u_math.h"
 #include "util/u_memory.h"
 #include "util/u_sampler.h"

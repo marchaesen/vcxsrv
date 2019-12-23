@@ -54,3 +54,5 @@ CSRCS=allowev.c \
 
 LIBRARY=libXi
 
+DEFINES += PIXMAN_API=
+

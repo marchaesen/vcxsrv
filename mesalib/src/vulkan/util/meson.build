@@ -22,6 +22,7 @@ files_vulkan_util = files(
   'vk_alloc.h',
   'vk_debug_report.c',
   'vk_debug_report.h',
+  'vk_format.c',
   'vk_util.c',
   'vk_util.h',
 )

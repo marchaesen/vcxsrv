@@ -29,7 +29,7 @@
 #include "pipe/p_compiler.h"
 #include "util/u_memory.h"
 #include "util/u_string.h"
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 #include "tgsi/tgsi_dump.h"
 
 #include <inttypes.h>

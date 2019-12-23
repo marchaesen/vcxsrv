@@ -73,7 +73,7 @@
 # define UTIL_ARCH_BIG_ENDIAN 1
 #endif
 
-#elif defined(_WIN32)
+#elif defined(_WIN32) || defined(ANDROID)
 
 #define UTIL_ARCH_LITTLE_ENDIAN 1
 #define UTIL_ARCH_BIG_ENDIAN 0

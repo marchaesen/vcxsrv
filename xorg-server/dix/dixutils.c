@@ -662,14 +662,7 @@ ClientWakeup(ClientPtr client)
         if (q->client == client) {
             *prev = q->next;
             free(q);
-            if (client->clientGone)
-                /* Oops -- new zombie cleanup code ensures this only
-                 * happens from inside CloseDownClient; don't want to
-                 * recurse here...
-                 */
-                /* CloseDownClient(client) */ ;
-            else
-                AttendClient(client);
+            AttendClient(client);
             break;
         }
         prev = &q->next;

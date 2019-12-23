@@ -620,31 +620,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
     if (!dixRegisterPrivateKey(&xf86ScreenKeyRec, PRIVATE_SCREEN, 0))
         FatalError("Cannot register DDX private keys");
 
-    for (i = 0; i < xf86NumGPUScreens; i++) {
-        ScrnInfoPtr pScrn = xf86GPUScreens[i];
-        xf86VGAarbiterLock(pScrn);
-
-        /*
-         * Almost everything uses these defaults, and many of those that
-         * don't, will wrap them.
-         */
-        pScrn->EnableDisableFBAccess = xf86EnableDisableFBAccess;
-#ifdef XFreeXDGA
-        pScrn->SetDGAMode = xf86SetDGAMode;
-#endif
-        scr_index = AddGPUScreen(xf86ScreenInit, argc, argv);
-        xf86VGAarbiterUnlock(pScrn);
-        if (scr_index == i) {
-            dixSetPrivate(&screenInfo.gpuscreens[scr_index]->devPrivates,
-                          xf86ScreenKey, xf86GPUScreens[i]);
-            pScrn->pScreen = screenInfo.gpuscreens[scr_index];
-            /* The driver should set this, but make sure it is set anyway */
-            pScrn->vtSema = TRUE;
-        } else {
-            FatalError("AddScreen/ScreenInit failed for gpu driver %d %d\n", i, scr_index);
-        }
-    }
-
     for (i = 0; i < xf86NumScreens; i++) {
         xf86VGAarbiterLock(xf86Screens[i]);
         /*
@@ -688,6 +663,31 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char **argv)
          * fallback support.
          */
         xf86EnsureRANDR(xf86Screens[i]->pScreen);
+    }
+
+    for (i = 0; i < xf86NumGPUScreens; i++) {
+        ScrnInfoPtr pScrn = xf86GPUScreens[i];
+        xf86VGAarbiterLock(pScrn);
+
+        /*
+         * Almost everything uses these defaults, and many of those that
+         * don't, will wrap them.
+         */
+        pScrn->EnableDisableFBAccess = xf86EnableDisableFBAccess;
+#ifdef XFreeXDGA
+        pScrn->SetDGAMode = xf86SetDGAMode;
+#endif
+        scr_index = AddGPUScreen(xf86ScreenInit, argc, argv);
+        xf86VGAarbiterUnlock(pScrn);
+        if (scr_index == i) {
+            dixSetPrivate(&screenInfo.gpuscreens[scr_index]->devPrivates,
+                          xf86ScreenKey, xf86GPUScreens[i]);
+            pScrn->pScreen = screenInfo.gpuscreens[scr_index];
+            /* The driver should set this, but make sure it is set anyway */
+            pScrn->vtSema = TRUE;
+        } else {
+            FatalError("AddScreen/ScreenInit failed for gpu driver %d %d\n", i, scr_index);
+        }
     }
 
     for (i = 0; i < xf86NumGPUScreens; i++)

@@ -51,7 +51,6 @@ actions:
           - mount -t devtmpfs none /dev
           - mkdir -p /dev/pts
           - mount -t devpts devpts /dev/pts
-          - echo 3 > /proc/sys/kernel/printk
           - sh /deqp/lava-deqp-runner.sh {{ gpu_version }}
           - cat /proc/loadavg
         parse:

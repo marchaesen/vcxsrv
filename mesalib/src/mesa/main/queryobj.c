@@ -663,11 +663,21 @@ _mesa_GetQueryIndexediv(GLenum target, GLuint index, GLenum pname,
     * <pname> is not CURRENT_QUERY_EXT."
     *
     * Same rule is present also in ES 3.2 spec.
+    *
+    * EXT_disjoint_timer_query extends this with GL_QUERY_COUNTER_BITS.
     */
-   if (_mesa_is_gles(ctx) && pname != GL_CURRENT_QUERY) {
-      _mesa_error(ctx, GL_INVALID_ENUM, "glGetQueryivEXT(%s)",
-                  _mesa_enum_to_string(pname));
-      return;
+   if (_mesa_is_gles(ctx)) {
+      switch (pname) {
+      case GL_CURRENT_QUERY:
+         break;
+      case GL_QUERY_COUNTER_BITS:
+         if (_mesa_has_EXT_disjoint_timer_query(ctx))
+            break;
+         /* fallthrough */
+      default:
+         _mesa_error(ctx, GL_INVALID_ENUM, "glGetQueryivEXT(%s)",
+                     _mesa_enum_to_string(pname));
+      }
    }
 
    if (target == GL_TIMESTAMP) {

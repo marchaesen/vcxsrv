@@ -213,15 +213,22 @@ vtn_handle_subgroup(struct vtn_builder *b, SpvOp opcode,
       case SpvOpSubgroupAnyKHR:
          op = nir_intrinsic_vote_any;
          break;
+      case SpvOpSubgroupAllEqualKHR:
+         op = nir_intrinsic_vote_ieq;
+         break;
       case SpvOpGroupNonUniformAllEqual:
-      case SpvOpSubgroupAllEqualKHR: {
-         switch (glsl_get_base_type(val->type->type)) {
+         switch (glsl_get_base_type(vtn_ssa_value(b, w[4])->type)) {
          case GLSL_TYPE_FLOAT:
+         case GLSL_TYPE_FLOAT16:
          case GLSL_TYPE_DOUBLE:
             op = nir_intrinsic_vote_feq;
             break;
          case GLSL_TYPE_UINT:
          case GLSL_TYPE_INT:
+         case GLSL_TYPE_UINT8:
+         case GLSL_TYPE_INT8:
+         case GLSL_TYPE_UINT16:
+         case GLSL_TYPE_INT16:
          case GLSL_TYPE_UINT64:
          case GLSL_TYPE_INT64:
          case GLSL_TYPE_BOOL:
@@ -231,7 +238,6 @@ vtn_handle_subgroup(struct vtn_builder *b, SpvOp opcode,
             unreachable("Unhandled type");
          }
          break;
-      }
       default:
          unreachable("Unhandled opcode");
       }

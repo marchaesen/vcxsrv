@@ -1,3 +1,4 @@
+! model		=	symbols
   a4techKB21    =       +inet(media_nav_common)
   a4techKBS8    =       +inet(media_nav_acpi_common)
   a4_rfkb23     =       +inet(media_nav_acpi_common)

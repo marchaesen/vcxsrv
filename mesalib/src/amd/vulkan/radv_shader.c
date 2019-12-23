@@ -31,6 +31,7 @@
 #include "radv_private.h"
 #include "radv_shader.h"
 #include "radv_shader_helper.h"
+#include "radv_shader_args.h"
 #include "nir/nir.h"
 #include "nir/nir_builder.h"
 #include "spirv/nir_spirv.h"
@@ -700,20 +701,6 @@ static void radv_postprocess_config(const struct radv_physical_device *pdevice,
 	config_out->num_sgprs = num_sgprs;
 	config_out->num_shared_vgprs = num_shared_vgprs;
 
-	/* Enable 64-bit and 16-bit denormals, because there is no performance
-	 * cost.
-	 *
-	 * If denormals are enabled, all floating-point output modifiers are
-	 * ignored.
-	 *
-	 * Don't enable denormals for 32-bit floats, because:
-	 * - Floating-point output modifiers would be ignored by the hw.
-	 * - Some opcodes don't support denormals, such as v_mad_f32. We would
-	 *   have to stop using those.
-	 * - GFX6 & GFX7 would be very slow.
-	 */
-	config_out->float_mode |= V_00B028_FP_64_DENORMS;
-
 	config_out->rsrc2 = S_00B12C_USER_SGPR(info->num_user_sgprs) |
 			    S_00B12C_SCRATCH_EN(scratch_enabled);
 
@@ -971,6 +958,20 @@ radv_shader_variant_create(struct radv_device *device,
 			return NULL;
 		}
 
+		/* Enable 64-bit and 16-bit denormals, because there is no performance
+		 * cost.
+		 *
+		 * If denormals are enabled, all floating-point output modifiers are
+		 * ignored.
+		 *
+		 * Don't enable denormals for 32-bit floats, because:
+		 * - Floating-point output modifiers would be ignored by the hw.
+		 * - Some opcodes don't support denormals, such as v_mad_f32. We would
+		 *   have to stop using those.
+		 * - GFX6 & GFX7 would be very slow.
+		 */
+		config.float_mode |= V_00B028_FP_64_DENORMS;
+
 		if (rtld_binary.lds_size > 0) {
 			unsigned alloc_granularity = device->physical_device->rad_info.chip_class >= GFX7 ? 512 : 256;
 			config.lds_size = align(rtld_binary.lds_size, alloc_granularity) / alloc_granularity;
@@ -1095,19 +1096,29 @@ shader_variant_compile(struct radv_device *device,
 	options->has_ls_vgpr_init_bug = device->physical_device->rad_info.has_ls_vgpr_init_bug;
 	options->use_ngg_streamout = device->physical_device->use_ngg_streamout;
 
+	struct radv_shader_args args = {};
+	args.options = options;
+	args.shader_info = info;
+	args.is_gs_copy_shader = gs_copy_shader;
+	radv_declare_shader_args(&args, 
+				 gs_copy_shader ? MESA_SHADER_VERTEX
+						: shaders[shader_count - 1]->info.stage,
+				 shader_count >= 2,
+				 shader_count >= 2 ? shaders[shader_count - 2]->info.stage
+						   : MESA_SHADER_VERTEX);
+
 	if (!use_aco || options->dump_shader || options->record_ir)
 		ac_init_llvm_once();
 
 	if (use_aco) {
-		aco_compile_shader(shader_count, shaders, &binary, info, options);
+		aco_compile_shader(shader_count, shaders, &binary, &args);
 		binary->info = *info;
 	} else {
 		enum ac_target_machine_options tm_options = 0;
 		struct ac_llvm_compiler ac_llvm;
 		bool thread_compiler;
 
-		if (options->supports_spill)
-			tm_options |= AC_TM_SUPPORTS_SPILL;
+		tm_options |= AC_TM_SUPPORTS_SPILL;
 		if (device->instance->perftest_flags & RADV_PERFTEST_SISCHED)
 			tm_options |= AC_TM_SISCHED;
 		if (options->check_ir)
@@ -1124,10 +1135,10 @@ shader_variant_compile(struct radv_device *device,
 		if (gs_copy_shader) {
 			assert(shader_count == 1);
 			radv_compile_gs_copy_shader(&ac_llvm, *shaders, &binary,
-						    info, options);
+						    &args);
 		} else {
-			radv_compile_nir_shader(&ac_llvm, &binary, info,
-						shaders, shader_count, options);
+			radv_compile_nir_shader(&ac_llvm, &binary, &args,
+						shaders, shader_count);
 		}
 
 		binary->info = *info;
@@ -1188,8 +1199,7 @@ radv_shader_variant_compile(struct radv_device *device,
 	if (key)
 		options.key = *key;
 
-	options.unsafe_math = !!(device->instance->debug_flags & RADV_DEBUG_UNSAFE_MATH);
-	options.supports_spill = true;
+	options.explicit_scratch_args = use_aco;
 	options.robust_buffer_access = device->robust_buffer_access;
 
 	return shader_variant_compile(device, module, shaders, shader_count, shaders[shader_count - 1]->info.stage, info,

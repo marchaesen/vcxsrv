@@ -10,3 +10,6 @@ srcdir=.
 format_srgb.c: format_srgb.py
 	python $(srcdir)/format_srgb.py > $@
 
+format/u_format_table.c: $(srcdir)/format/u_format_table.py $(srcdir)/format/u_format.csv
+	python $(srcdir)/format/u_format_table.py $(srcdir)/format/u_format.csv > $@
+

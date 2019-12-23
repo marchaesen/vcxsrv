@@ -864,6 +864,12 @@
         <param name="id" type="GLuint"/>
         <param name="target" type="GLenum"/>
     </function>
+
+    <function name="GetInteger64vEXT" alias="GetInteger64v" es2="2.0">
+        <param name="pname" type="GLenum"/>
+        <param name="params" type="GLint64 *" output="true" variable_param="pname"/>
+    </function>
+
 </category>
 
 <!-- 151. GL_EXT_draw_buffers -->

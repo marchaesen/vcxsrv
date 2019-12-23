@@ -1,6 +1,6 @@
 LIBRARY=libglx
 
-DEFINES += GLAPIENTRY=__stdcall _GLAPI_NO_EXPORTS
+DEFINES += GLAPIENTRY=__stdcall _GLAPI_NO_EXPORTS PIXMAN_API=
 
 
 indirect_sources =					\

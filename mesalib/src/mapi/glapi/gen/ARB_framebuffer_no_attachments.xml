@@ -27,6 +27,18 @@
        <param name="params" type="GLint *" output="true" />
     </function>
 
+    <function name="NamedFramebufferParameteriEXT">
+      <param name="framebuffer" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="param" type="GLint" />
+    </function>
+
+    <function name="GetNamedFramebufferParameterivEXT">
+      <param name="framebuffer" type="GLuint" />
+      <param name="pname" type="GLenum" />
+      <param name="params" type="GLint*" />
+    </function>
+
 </category>
 
 </OpenGLAPI>

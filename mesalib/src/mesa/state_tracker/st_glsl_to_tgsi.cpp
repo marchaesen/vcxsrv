@@ -7308,26 +7308,7 @@ get_mesa_program_tgsi(struct gl_context *ctx,
       return NULL;
    }
 
-   struct st_vertex_program *stvp;
-   struct st_common_program *stp;
-
-   switch (shader->Stage) {
-   case MESA_SHADER_VERTEX:
-      stvp = (struct st_vertex_program *)prog;
-      stvp->glsl_to_tgsi = v;
-      break;
-   case MESA_SHADER_FRAGMENT:
-   case MESA_SHADER_TESS_CTRL:
-   case MESA_SHADER_TESS_EVAL:
-   case MESA_SHADER_GEOMETRY:
-   case MESA_SHADER_COMPUTE:
-      stp = st_common_program(prog);
-      stp->glsl_to_tgsi = v;
-      break;
-   default:
-      assert(!"should not be reached");
-      return NULL;
-   }
+   st_program(prog)->glsl_to_tgsi = v;
 
    PRINT_STATS(v->print_stats());
 

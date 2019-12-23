@@ -26,14 +26,13 @@
         <param name="data" type="const GLvoid *"/>
     </function>
 
-<!--    <function name="ClearNamedBufferDataEXT">
+    <function name="ClearNamedBufferDataEXT">
         <param name="buffer" type="GLuint"/>
         <param name="internalformat" type="GLenum"/>
         <param name="format" type="GLenum"/>
         <param name="type" type="GLenum"/>
         <param name="data" type="const GLvoid *"/>
     </function>
-
 
     <function name="ClearNamedBufferSubDataEXT">
         <param name="buffer" type="GLuint"/>
@@ -43,7 +42,7 @@
         <param name="format" type="GLenum"/>
         <param name="type" type="GLenum"/>
         <param name="data" type="const GLvoid *"/>
-    </function> -->
+    </function>
 
 </category>
 

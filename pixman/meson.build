@@ -23,7 +23,7 @@ project(
   ['c'],
   version : '0.38.5',
   license : 'MIT',
-  meson_version : '>= 0.47.2',
+  meson_version : '>= 0.50.0',
   default_options : ['buildtype=debugoptimized'],
 )
 
@@ -85,9 +85,12 @@ endif
 
 use_mmx = get_option('mmx')
 have_mmx = false
-mmx_flags = ['-mmmx', '-Winline']
+mmx_flags = []
+if cc.get_id() != 'msvc'
+  mmx_flags = ['-mmmx', '-Winline']
+endif
 if not use_mmx.disabled()
-  if host_machine.cpu_family() == 'x86_64'
+  if host_machine.cpu_family() == 'x86_64' or cc.get_id() == 'msvc'
     have_mmx = true
   elif host_machine.cpu_family() == 'x86' and cc.compiles('''
       #include <mmintrin.h>
@@ -128,14 +131,21 @@ if not use_mmx.disabled()
 endif
 
 if have_mmx
-  config.set10('USE_X86_MMX', true)
+  # Inline assembly do not work on X64 MSVC, so we use
+  # compatibility intrinsics there
+  if cc.get_id() != 'msvc' or host_machine.cpu_family() != 'x86_64'
+    config.set10('USE_X86_MMX', true)
+  endif
 elif use_mmx.enabled()
   error('MMX Support unavailable, but required')
 endif
 
 use_sse2 = get_option('sse2')
 have_sse2 = false
-sse2_flags = ['-msse2', '-Winline']
+sse2_flags = []
+if cc.get_id() != 'msvc'
+  sse2_flags = ['-msse2', '-Winline']
+endif
 if not use_sse2.disabled()
   if host_machine.cpu_family() == 'x86'
     if cc.compiles('''
@@ -170,8 +180,13 @@ endif
 
 use_ssse3 = get_option('ssse3')
 have_ssse3 = false
-ssse3_flags =['-mssse3', '-Winline']
-if not use_ssse3.disabled()
+ssse3_flags = []
+if cc.get_id() != 'msvc'
+  ssse3_flags = ['-mssse3', '-Winline']
+endif
+
+# x64 pre-2010 MSVC compilers crashes when building the ssse3 code
+if not use_ssse3.disabled() and not (cc.get_id() == 'msvc' and cc.version().version_compare('<16') and host_machine.cpu_family() == 'x86_64')
   if host_machine.cpu_family().startswith('x86')
     if cc.compiles('''
         #include <mmintrin.h>
@@ -350,14 +365,21 @@ if get_option('gnuplot')
   config.set('PIXMAN_GNUPLOT', 1)
 endif
 
-dep_openmp = dependency('openmp', required : get_option('openmp'))
-if dep_openmp.found()
-  config.set10('USE_OPENMP', true)
-elif meson.version().version_compare('<0.51.0')
-# In versions of meson before 0.51 the openmp dependency can still
-# inject arguments in the the auto case when it is not found, the
-# detection does work correctly in that case however, so we just
-# replace dep_openmp with null_dep to work around this.
+if cc.get_id() != 'msvc'
+  dep_openmp = dependency('openmp', required : get_option('openmp'))
+  if dep_openmp.found()
+    config.set10('USE_OPENMP', true)
+  elif meson.version().version_compare('<0.51.0')
+  # In versions of meson before 0.51 the openmp dependency can still
+  # inject arguments in the the auto case when it is not found, the
+  # detection does work correctly in that case however, so we just
+  # replace dep_openmp with null_dep to work around this.
+    dep_openmp = null_dep
+  endif
+else
+  # the MSVC implementation of openmp is not compliant enough for our
+  # uses here, so we disable it here.
+  # Please see: https://stackoverflow.com/questions/12560243/using-threadprivate-directive-in-visual-studio
   dep_openmp = null_dep
 endif
 
@@ -365,13 +387,52 @@ dep_gtk = dependency('gtk+-2.0', version : '>= 2.16', required : get_option('gtk
 dep_glib = dependency('glib-2.0', required : get_option('gtk'))
 dep_pixman = dependency('pixman-1', required : get_option('gtk'),
                         version : '>= ' + meson.project_version())
-dep_png = dependency('libpng', required : get_option('libpng'))
+
+dep_png = null_dep
+if not get_option('libpng').disabled()
+  dep_png = dependency('libpng', required : false)
+
+  # We need to look for the right library to link to for libpng,
+  # when looking for libpng manually
+  foreach png_ver : [ '16', '15', '14', '13', '12', '10' ]
+    if not dep_png.found()
+      dep_png = cc.find_library('libpng@0@'.format(png_ver), has_headers : ['png.h'], required : false)
+    endif
+  endforeach
+
+  if get_option('libpng').enabled() and not dep_png.found()
+    error('libpng support requested but libpng library not found')
+  endif
+endif
+
 if dep_png.found()
   config.set('HAVE_LIBPNG', 1)
 endif
 dep_m = cc.find_library('m', required : false)
 dep_threads = dependency('threads')
-if dep_threads.found()
+
+# MSVC-style compilers do not come with pthreads, so we must link
+# to it explicitly, currently pthreads-win32 is supported
+pthreads_found = false
+
+if dep_threads.found() and cc.has_header('pthread.h')
+  if cc.get_argument_syntax() == 'msvc'
+    pthread_lib = null_dep
+    foreach pthread_type : ['VC3', 'VSE3', 'VCE3', 'VC2', 'VSE2', 'VCE2']
+      if not pthread_lib.found()
+        pthread_lib = cc.find_library('pthread@0@'.format(pthread_type), required : false)
+      endif
+    endforeach
+    if pthread_lib.found()
+      pthreads_found = true
+      dep_threads = pthread_lib
+    endif
+  else
+    pthreads_found = true
+  endif
+endif
+
+if pthreads_found
   config.set('HAVE_PTHREADS', 1)
 endif
 

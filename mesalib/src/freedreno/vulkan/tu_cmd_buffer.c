@@ -389,6 +389,22 @@ tu6_emit_wfi(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
 }
 
 static void
+tu6_emit_flag_buffer(struct tu_cs *cs, const struct tu_image_view *iview)
+{
+   uint64_t va = tu_image_ubwc_base(iview->image, iview->base_mip, iview->base_layer);
+   uint32_t pitch = tu_image_ubwc_pitch(iview->image, iview->base_mip);
+   uint32_t size = tu_image_ubwc_size(iview->image, iview->base_mip);
+   if (iview->image->ubwc_size) {
+      tu_cs_emit_qw(cs, va);
+      tu_cs_emit(cs, A6XX_RB_DEPTH_FLAG_BUFFER_PITCH_PITCH(pitch) |
+                     A6XX_RB_DEPTH_FLAG_BUFFER_PITCH_ARRAY_PITCH(size >> 2));
+   } else {
+      tu_cs_emit_qw(cs, 0);
+      tu_cs_emit(cs, 0);
+   }
+}
+
+static void
 tu6_emit_zs(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
 {
    const struct tu_framebuffer *fb = cmd->state.framebuffer;
@@ -430,21 +446,20 @@ tu6_emit_zs(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
    }
 
    const struct tu_image_view *iview = fb->attachments[a].attachment;
-   const struct tu_image_level *slice = &iview->image->levels[iview->base_mip];
    enum a6xx_depth_format fmt = tu6_pipe2depth(iview->vk_format);
-
-   uint32_t offset = slice->offset + slice->size * iview->base_layer;
-   uint32_t stride = slice->pitch * iview->image->cpp;
 
    tu_cs_emit_pkt4(cs, REG_A6XX_RB_DEPTH_BUFFER_INFO, 6);
    tu_cs_emit(cs, A6XX_RB_DEPTH_BUFFER_INFO_DEPTH_FORMAT(fmt));
-   tu_cs_emit(cs, A6XX_RB_DEPTH_BUFFER_PITCH(stride));
-   tu_cs_emit(cs, A6XX_RB_DEPTH_BUFFER_ARRAY_PITCH(slice->size));
-   tu_cs_emit_qw(cs, iview->image->bo->iova + iview->image->bo_offset + offset);
+   tu_cs_emit(cs, A6XX_RB_DEPTH_BUFFER_PITCH(tu_image_stride(iview->image, iview->base_mip)));
+   tu_cs_emit(cs, A6XX_RB_DEPTH_BUFFER_ARRAY_PITCH(iview->image->layer_size));
+   tu_cs_emit_qw(cs, tu_image_base(iview->image, iview->base_mip, iview->base_layer));
    tu_cs_emit(cs, tiling->gmem_offsets[gmem_index]);
 
    tu_cs_emit_pkt4(cs, REG_A6XX_GRAS_SU_DEPTH_BUFFER_INFO, 1);
    tu_cs_emit(cs, A6XX_GRAS_SU_DEPTH_BUFFER_INFO_DEPTH_FORMAT(fmt));
+
+   tu_cs_emit_pkt4(cs, REG_A6XX_RB_DEPTH_FLAG_BUFFER_BASE_LO, 3);
+   tu6_emit_flag_buffer(cs, iview);
 
    tu_cs_emit_pkt4(cs, REG_A6XX_GRAS_LRZ_BUFFER_BASE_LO, 5);
    tu_cs_emit(cs, 0x00000000); /* RB_DEPTH_FLAG_BUFFER_BASE_LO */
@@ -475,12 +490,8 @@ tu6_emit_mrt(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
          continue;
 
       const struct tu_image_view *iview = fb->attachments[a].attachment;
-      const struct tu_image_level *slice =
-         &iview->image->levels[iview->base_mip];
       const enum a6xx_tile_mode tile_mode =
          tu6_get_image_tile_mode(iview->image, iview->base_mip);
-      uint32_t stride = 0;
-      uint32_t offset = 0;
 
       mrt_comp[i] = 0xf;
 
@@ -491,33 +502,23 @@ tu6_emit_mrt(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
          tu6_get_native_format(iview->vk_format);
       assert(format && format->rb >= 0);
 
-      offset = slice->offset + slice->size * iview->base_layer;
-      stride = slice->pitch * iview->image->cpp;
-
       tu_cs_emit_pkt4(cs, REG_A6XX_RB_MRT_BUF_INFO(i), 6);
       tu_cs_emit(cs, A6XX_RB_MRT_BUF_INFO_COLOR_FORMAT(format->rb) |
                         A6XX_RB_MRT_BUF_INFO_COLOR_TILE_MODE(tile_mode) |
                         A6XX_RB_MRT_BUF_INFO_COLOR_SWAP(format->swap));
-      tu_cs_emit(cs, A6XX_RB_MRT_PITCH(stride));
-      tu_cs_emit(cs, A6XX_RB_MRT_ARRAY_PITCH(slice->size));
-      tu_cs_emit_qw(cs, iview->image->bo->iova + iview->image->bo_offset +
-                           offset); /* BASE_LO/HI */
+      tu_cs_emit(cs, A6XX_RB_MRT_PITCH(tu_image_stride(iview->image, iview->base_mip)));
+      tu_cs_emit(cs, A6XX_RB_MRT_ARRAY_PITCH(iview->image->layer_size));
+      tu_cs_emit_qw(cs, tu_image_base(iview->image, iview->base_mip, iview->base_layer));
       tu_cs_emit(
          cs, tiling->gmem_offsets[gmem_index++]); /* RB_MRT[i].BASE_GMEM */
 
       tu_cs_emit_pkt4(cs, REG_A6XX_SP_FS_MRT_REG(i), 1);
-      tu_cs_emit(cs, A6XX_SP_FS_MRT_REG_COLOR_FORMAT(format->rb));
+      tu_cs_emit(cs, A6XX_SP_FS_MRT_REG_COLOR_FORMAT(format->rb) |
+                     COND(vk_format_is_sint(iview->vk_format), A6XX_SP_FS_MRT_REG_COLOR_SINT) |
+                     COND(vk_format_is_uint(iview->vk_format), A6XX_SP_FS_MRT_REG_COLOR_UINT));
 
-#if 0
-      /* when we support UBWC, these would be the system memory
-       * addr/pitch/etc:
-       */
-      tu_cs_emit_pkt4(cs, REG_A6XX_RB_MRT_FLAG_BUFFER(i), 4);
-      tu_cs_emit(cs, 0x00000000);    /* RB_MRT_FLAG_BUFFER[i].ADDR_LO */
-      tu_cs_emit(cs, 0x00000000);    /* RB_MRT_FLAG_BUFFER[i].ADDR_HI */
-      tu_cs_emit(cs, A6XX_RB_MRT_FLAG_BUFFER_PITCH(0));
-      tu_cs_emit(cs, A6XX_RB_MRT_FLAG_BUFFER_ARRAY_PITCH(0));
-#endif
+      tu_cs_emit_pkt4(cs, REG_A6XX_RB_MRT_FLAG_BUFFER(i), 3);
+      tu6_emit_flag_buffer(cs, iview);
    }
 
    tu_cs_emit_pkt4(cs, REG_A6XX_RB_SRGB_CNTL, 1);
@@ -633,11 +634,6 @@ tu6_emit_blit_info(struct tu_cmd_buffer *cmd,
                    uint32_t gmem_offset,
                    uint32_t blit_info)
 {
-   const struct tu_image_level *slice =
-      &iview->image->levels[iview->base_mip];
-   const uint32_t offset = slice->offset + slice->size * iview->base_layer;
-   const uint32_t stride = slice->pitch * iview->image->cpp;
-
    tu_cs_emit_pkt4(cs, REG_A6XX_RB_BLIT_INFO, 1);
    tu_cs_emit(cs, blit_info);
 
@@ -651,11 +647,16 @@ tu6_emit_blit_info(struct tu_cmd_buffer *cmd,
    tu_cs_emit(cs, A6XX_RB_BLIT_DST_INFO_TILE_MODE(tile_mode) |
                      A6XX_RB_BLIT_DST_INFO_SAMPLES(tu_msaa_samples(iview->image->samples)) |
                      A6XX_RB_BLIT_DST_INFO_COLOR_FORMAT(format->rb) |
-                     A6XX_RB_BLIT_DST_INFO_COLOR_SWAP(format->swap));
-   tu_cs_emit_qw(cs,
-                 iview->image->bo->iova + iview->image->bo_offset + offset);
-   tu_cs_emit(cs, A6XX_RB_BLIT_DST_PITCH(stride));
-   tu_cs_emit(cs, A6XX_RB_BLIT_DST_ARRAY_PITCH(slice->size));
+                     A6XX_RB_BLIT_DST_INFO_COLOR_SWAP(format->swap) |
+                     COND(iview->image->ubwc_size, A6XX_RB_BLIT_DST_INFO_FLAGS));
+   tu_cs_emit_qw(cs, tu_image_base(iview->image, iview->base_mip, iview->base_layer));
+   tu_cs_emit(cs, A6XX_RB_BLIT_DST_PITCH(tu_image_stride(iview->image, iview->base_mip)));
+   tu_cs_emit(cs, A6XX_RB_BLIT_DST_ARRAY_PITCH(iview->image->layer_size));
+
+   if (iview->image->ubwc_size) {
+      tu_cs_emit_pkt4(cs, REG_A6XX_RB_BLIT_FLAG_DST_LO, 3);
+      tu6_emit_flag_buffer(cs, iview);
+   }
 
    tu_cs_emit_pkt4(cs, REG_A6XX_RB_BLIT_BASE_GMEM, 1);
    tu_cs_emit(cs, gmem_offset);
@@ -1153,10 +1154,10 @@ tu6_render_end(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
          tu_bo_list_add(&cmd->bo_list, dst_img->bo, MSM_SUBMIT_BO_WRITE);
 
          tu_blit(cmd, &(struct tu_blit) {
-            .dst = tu_blit_surf_whole(dst_img),
-            .src = tu_blit_surf_whole(src_img),
+            .dst = tu_blit_surf_whole(dst_img, 0, 0),
+            .src = tu_blit_surf_whole(src_img, 0, 0),
             .layers = 1,
-         }, false);
+         });
       }
    }
 

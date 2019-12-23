@@ -4733,6 +4733,65 @@ _mesa_NamedFramebufferParameteri(GLuint framebuffer, GLenum pname,
 }
 
 
+/* Helper function for ARB_framebuffer_no_attachments functions interacting with EXT_direct_state_access */
+static struct gl_framebuffer *
+lookup_named_framebuffer_ext_dsa(struct gl_context *ctx, GLuint framebuffer, const char* caller)
+{
+   struct gl_framebuffer *fb = NULL;
+
+   if (framebuffer) {
+      /* The ARB_framebuffer_no_attachments spec says:
+       *
+       *     "The error INVALID_VALUE is generated if <framebuffer> is not
+       *     a name returned by GenFramebuffers.  If a framebuffer object
+       *     named <framebuffer> does not yet exist, it will be created."
+       *
+       * This is different from the EXT_direct_state_access spec which says:
+       *
+       *     "If the framebuffer object named by the framebuffer parameter has not
+       *      been previously bound or has been deleted since the last binding,
+       *     the GL first creates a new state vector in the same manner as when
+       *    BindFramebuffer creates a new framebuffer object"
+       *
+       * So first we verify that the name exists.
+       */
+      fb = _mesa_lookup_framebuffer(ctx, framebuffer);
+      if (!fb) {
+         _mesa_error(ctx, GL_INVALID_VALUE, "%s(frameBuffer)", caller);
+         return NULL;
+      }
+      /* Then, make sure it's initialized */
+      if (fb == &DummyFramebuffer) {
+         fb = ctx->Driver.NewFramebuffer(ctx, framebuffer);
+         _mesa_HashLockMutex(ctx->Shared->FrameBuffers);
+         _mesa_HashInsert(ctx->Shared->FrameBuffers, framebuffer, fb);
+         _mesa_HashUnlockMutex(ctx->Shared->BufferObjects);
+      }
+   }
+   else
+      fb = ctx->WinSysDrawBuffer;
+
+   return fb;
+}
+
+
+void GLAPIENTRY
+_mesa_NamedFramebufferParameteriEXT(GLuint framebuffer, GLenum pname,
+                                    GLint param)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_framebuffer *fb =
+      lookup_named_framebuffer_ext_dsa(ctx, framebuffer,
+                                       "glNamedFramebufferParameteriEXT");
+
+   if (!fb)
+      return;
+
+   framebuffer_parameteri(ctx, fb, pname, param,
+                             "glNamedFramebufferParameteriEXT");
+}
+
+
 void GLAPIENTRY
 _mesa_GetFramebufferParameterivEXT(GLuint framebuffer, GLenum pname,
                                    GLint *param)
@@ -4795,6 +4854,23 @@ _mesa_GetNamedFramebufferParameteriv(GLuint framebuffer, GLenum pname,
       get_framebuffer_parameteriv(ctx, fb, pname, param,
                                   "glGetNamedFramebufferParameteriv");
    }
+}
+
+
+void GLAPIENTRY
+_mesa_GetNamedFramebufferParameterivEXT(GLuint framebuffer, GLenum pname,
+                                     GLint *param)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   struct gl_framebuffer *fb =
+      lookup_named_framebuffer_ext_dsa(ctx, framebuffer,
+                                       "glGetNamedFramebufferParameterivEXT");
+
+   if (!fb)
+      return;
+
+   get_framebuffer_parameteriv(ctx, fb, pname, param,
+                               "glGetNamedFramebufferParameterivEXT");
 }
 
 

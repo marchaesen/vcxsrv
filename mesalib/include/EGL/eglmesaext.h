@@ -76,7 +76,7 @@ typedef EGLBoolean (EGLAPIENTRYP PFNEGLSWAPBUFFERSREGIONNOK) (EGLDisplay dpy, EG
 
 #ifndef EGL_MESA_configless_context
 #define EGL_MESA_configless_context 1
-#define EGL_NO_CONFIG_MESA			((EGLConfig)0)
+#define EGL_NO_CONFIG_MESA			EGL_CAST(EGLConfig,0)
 #endif
 
 #ifndef EGL_MESA_drm_image_formats

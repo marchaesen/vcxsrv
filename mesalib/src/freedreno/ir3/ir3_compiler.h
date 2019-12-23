@@ -115,4 +115,13 @@ shader_debug_enabled(gl_shader_stage type)
 	}
 }
 
+static inline void
+ir3_debug_print(struct ir3 *ir, const char *when)
+{
+	if (ir3_shader_debug & IR3_DBG_OPTMSGS) {
+		printf("%s:\n", when);
+		ir3_print(ir);
+	}
+}
+
 #endif /* IR3_COMPILER_H_ */

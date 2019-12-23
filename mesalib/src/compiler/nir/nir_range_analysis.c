@@ -218,19 +218,37 @@ analyze_constant(const struct nir_alu_instr *instr, unsigned src,
  */
 #define _______ unknown
 
+
+/* MSVC doesn't have C99's _Pragma() */
+#ifdef _MSC_VER
+#define _Pragma(x)
+#endif
+
+
 #ifndef NDEBUG
 #define ASSERT_TABLE_IS_COMMUTATIVE(t)                        \
    do {                                                       \
-      for (unsigned r = 0; r < ARRAY_SIZE(t); r++) {          \
-         for (unsigned c = 0; c < ARRAY_SIZE(t[0]); c++)      \
-            assert(t[r][c] == t[c][r]);                       \
+      static bool first = true;                               \
+      if (first) {                                            \
+         first = false;                                       \
+         _Pragma("GCC unroll 7")                              \
+         for (unsigned r = 0; r < ARRAY_SIZE(t); r++) {       \
+            _Pragma("GCC unroll 7")                           \
+            for (unsigned c = 0; c < ARRAY_SIZE(t[0]); c++)   \
+               assert(t[r][c] == t[c][r]);                    \
+         }                                                    \
       }                                                       \
    } while (false)
 
 #define ASSERT_TABLE_IS_DIAGONAL(t)                           \
    do {                                                       \
-      for (unsigned r = 0; r < ARRAY_SIZE(t); r++)            \
-         assert(t[r][r] == r);                                \
+      static bool first = true;                               \
+      if (first) {                                            \
+         first = false;                                       \
+         _Pragma("GCC unroll 7")                              \
+         for (unsigned r = 0; r < ARRAY_SIZE(t); r++)         \
+            assert(t[r][r] == r);                             \
+      }                                                       \
    } while (false)
 
 static enum ssa_ranges
@@ -258,17 +276,23 @@ union_ranges(enum ssa_ranges a, enum ssa_ranges b)
  */
 #define ASSERT_UNION_OF_OTHERS_MATCHES_UNKNOWN_2_SOURCE(t)              \
    do {                                                                 \
-      for (unsigned i = 0; i < last_range; i++) {                       \
-         enum ssa_ranges col_range = t[i][unknown + 1];                 \
-         enum ssa_ranges row_range = t[unknown + 1][i];                 \
+      static bool first = true;                                         \
+      if (first) {                                                      \
+         first = false;                                                 \
+         _Pragma("GCC unroll 7")                                        \
+         for (unsigned i = 0; i < last_range; i++) {                    \
+            enum ssa_ranges col_range = t[i][unknown + 1];              \
+            enum ssa_ranges row_range = t[unknown + 1][i];              \
                                                                         \
-         for (unsigned j = unknown + 2; j < last_range; j++) {          \
-            col_range = union_ranges(col_range, t[i][j]);               \
-            row_range = union_ranges(row_range, t[j][i]);               \
+            _Pragma("GCC unroll 5")                                     \
+            for (unsigned j = unknown + 2; j < last_range; j++) {       \
+               col_range = union_ranges(col_range, t[i][j]);            \
+               row_range = union_ranges(row_range, t[j][i]);            \
+            }                                                           \
+                                                                        \
+            assert(col_range == t[i][unknown]);                         \
+            assert(row_range == t[unknown][i]);                         \
          }                                                              \
-                                                                        \
-         assert(col_range == t[i][unknown]);                            \
-         assert(row_range == t[unknown][i]);                            \
       }                                                                 \
    } while (false)
 
@@ -286,11 +310,16 @@ union_ranges(enum ssa_ranges a, enum ssa_ranges b)
 
 #define ASSERT_UNION_OF_EQ_AND_STRICT_INEQ_MATCHES_NONSTRICT_2_SOURCE(t) \
    do {                                                                 \
-      for (unsigned i = 0; i < last_range; i++) {                       \
-         assert(union_ranges(t[i][lt_zero], t[i][eq_zero]) == t[i][le_zero]); \
-         assert(union_ranges(t[i][gt_zero], t[i][eq_zero]) == t[i][ge_zero]); \
-         assert(union_ranges(t[lt_zero][i], t[eq_zero][i]) == t[le_zero][i]); \
-         assert(union_ranges(t[gt_zero][i], t[eq_zero][i]) == t[ge_zero][i]); \
+      static bool first = true;                                         \
+      if (first) {                                                      \
+         first = false;                                                 \
+         _Pragma("GCC unroll 7")                                        \
+         for (unsigned i = 0; i < last_range; i++) {                    \
+            assert(union_ranges(t[i][lt_zero], t[i][eq_zero]) == t[i][le_zero]); \
+            assert(union_ranges(t[i][gt_zero], t[i][eq_zero]) == t[i][ge_zero]); \
+            assert(union_ranges(t[lt_zero][i], t[eq_zero][i]) == t[le_zero][i]); \
+            assert(union_ranges(t[gt_zero][i], t[eq_zero][i]) == t[ge_zero][i]); \
+         }                                                              \
       }                                                                 \
    } while (false)
 
@@ -316,20 +345,25 @@ union_ranges(enum ssa_ranges a, enum ssa_ranges b)
 
 #define ASSERT_UNION_OF_DISJOINT_MATCHES_UNKNOWN_2_SOURCE(t)            \
    do {                                                                 \
-      for (unsigned i = 0; i < last_range; i++) {                       \
-         assert(union_ranges(t[i][lt_zero], t[i][ge_zero]) ==           \
-                t[i][unknown]);                                         \
-         assert(union_ranges(t[i][le_zero], t[i][gt_zero]) ==           \
-                t[i][unknown]);                                         \
-         assert(union_ranges(t[i][eq_zero], t[i][ne_zero]) ==           \
-                t[i][unknown]);                                         \
+      static bool first = true;                                         \
+      if (first) {                                                      \
+         first = false;                                                 \
+         _Pragma("GCC unroll 7")                                        \
+         for (unsigned i = 0; i < last_range; i++) {                    \
+            assert(union_ranges(t[i][lt_zero], t[i][ge_zero]) ==        \
+                   t[i][unknown]);                                      \
+            assert(union_ranges(t[i][le_zero], t[i][gt_zero]) ==        \
+                   t[i][unknown]);                                      \
+            assert(union_ranges(t[i][eq_zero], t[i][ne_zero]) ==        \
+                   t[i][unknown]);                                      \
                                                                         \
-         assert(union_ranges(t[lt_zero][i], t[ge_zero][i]) ==           \
-                t[unknown][i]);                                         \
-         assert(union_ranges(t[le_zero][i], t[gt_zero][i]) ==           \
-                t[unknown][i]);                                         \
-         assert(union_ranges(t[eq_zero][i], t[ne_zero][i]) ==           \
-                t[unknown][i]);                                         \
+            assert(union_ranges(t[lt_zero][i], t[ge_zero][i]) ==        \
+                   t[unknown][i]);                                      \
+            assert(union_ranges(t[le_zero][i], t[gt_zero][i]) ==        \
+                   t[unknown][i]);                                      \
+            assert(union_ranges(t[eq_zero][i], t[ne_zero][i]) ==        \
+                   t[unknown][i]);                                      \
+         }                                                              \
       }                                                                 \
    } while (false)
 
@@ -356,6 +390,9 @@ static struct ssa_result_range
 analyze_expression(const nir_alu_instr *instr, unsigned src,
                    struct hash_table *ht, nir_alu_type use_type)
 {
+   /* Ensure that the _Pragma("GCC unroll 7") above are correct. */
+   STATIC_ASSERT(last_range + 1 == 7);
+
    if (!instr->src[src].src.is_ssa)
       return (struct ssa_result_range){unknown, false};
 

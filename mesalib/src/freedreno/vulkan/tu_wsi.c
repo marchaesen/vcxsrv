@@ -27,6 +27,7 @@
 
 #include "vk_util.h"
 #include "wsi_common.h"
+#include "drm-uapi/drm_fourcc.h"
 
 static PFN_vkVoidFunction
 tu_wsi_proc_addr(VkPhysicalDevice physicalDevice, const char *pName)
@@ -34,13 +35,38 @@ tu_wsi_proc_addr(VkPhysicalDevice physicalDevice, const char *pName)
    return tu_lookup_entrypoint_unchecked(pName);
 }
 
+static uint64_t
+tu_wsi_image_get_modifier(VkImage _image)
+{
+   TU_FROM_HANDLE(tu_image, image, _image);
+
+   if (!image->tile_mode)
+      return DRM_FORMAT_MOD_LINEAR;
+
+   if (image->ubwc_size)
+      return DRM_FORMAT_MOD_QCOM_COMPRESSED;
+
+   /* TODO invent a modifier for tiled but not UBWC buffers: */
+   return DRM_FORMAT_MOD_INVALID;
+}
+
 VkResult
 tu_wsi_init(struct tu_physical_device *physical_device)
 {
-   return wsi_device_init(&physical_device->wsi_device,
-                          tu_physical_device_to_handle(physical_device),
-                          tu_wsi_proc_addr, &physical_device->instance->alloc,
-                          physical_device->master_fd, NULL);
+   VkResult result;
+
+   result = wsi_device_init(&physical_device->wsi_device,
+                            tu_physical_device_to_handle(physical_device),
+                            tu_wsi_proc_addr,
+                            &physical_device->instance->alloc,
+                            physical_device->master_fd, NULL);
+   if (result != VK_SUCCESS)
+      return result;
+
+   physical_device->wsi_device.supports_modifiers = true;
+   physical_device->wsi_device.image_get_modifier = tu_wsi_image_get_modifier;
+
+   return VK_SUCCESS;
 }
 
 void

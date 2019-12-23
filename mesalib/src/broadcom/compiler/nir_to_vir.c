@@ -22,7 +22,7 @@
  */
 
 #include <inttypes.h>
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 #include "util/u_math.h"
 #include "util/u_memory.h"
 #include "util/ralloc.h"
@@ -409,6 +409,20 @@ ntq_init_ssa_def(struct v3d_compile *c, nir_ssa_def *def)
         return qregs;
 }
 
+static bool
+is_ld_signal(const struct v3d_qpu_sig *sig)
+{
+        return (sig->ldunif ||
+                sig->ldunifa ||
+                sig->ldunifrf ||
+                sig->ldunifarf ||
+                sig->ldtmu ||
+                sig->ldvary ||
+                sig->ldvpm ||
+                sig->ldtlb ||
+                sig->ldtlbu);
+}
+
 /**
  * This function is responsible for getting VIR results into the associated
  * storage for a NIR instruction.
@@ -456,11 +470,12 @@ ntq_store_dest(struct v3d_compile *c, nir_dest *dest, int chan,
                         _mesa_hash_table_search(c->def_ht, reg);
                 struct qreg *qregs = entry->data;
 
-                /* Insert a MOV if the source wasn't an SSA def in the
-                 * previous instruction.
+                /* If the previous instruction can't be predicated for
+                 * the store into the nir_register, then emit a MOV
+                 * that can be.
                  */
-                if ((vir_in_nonuniform_control_flow(c) &&
-                     c->defs[last_inst->dst.index]->qpu.sig.ldunif)) {
+                if (vir_in_nonuniform_control_flow(c) &&
+                    is_ld_signal(&c->defs[last_inst->dst.index]->qpu.sig)) {
                         result = vir_MOV(c, result);
                         last_inst = c->defs[result.index];
                 }

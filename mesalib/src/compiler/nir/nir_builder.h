@@ -757,6 +757,85 @@ nir_unpack_bits(nir_builder *b, nir_ssa_def *src, unsigned dest_bit_size)
    return nir_vec(b, dest_comps, dest_num_components);
 }
 
+/**
+ * Treats srcs as if it's one big blob of bits and extracts the range of bits
+ * given by
+ *
+ *       [first_bit, first_bit + dest_num_components * dest_bit_size)
+ *
+ * The range can have any alignment or size as long as it's an integer number
+ * of destination components and fits inside the concatenated sources.
+ *
+ * TODO: The one caveat here is that we can't handle byte alignment if 64-bit
+ * values are involved because that would require pack/unpack to/from a vec8
+ * which NIR currently does not support.
+ */
+static inline nir_ssa_def *
+nir_extract_bits(nir_builder *b, nir_ssa_def **srcs, unsigned num_srcs,
+                 unsigned first_bit,
+                 unsigned dest_num_components, unsigned dest_bit_size)
+{
+   const unsigned num_bits = dest_num_components * dest_bit_size;
+
+   /* Figure out the common bit size */
+   unsigned common_bit_size = dest_bit_size;
+   for (unsigned i = 0; i < num_srcs; i++)
+      common_bit_size = MIN2(common_bit_size, srcs[i]->bit_size);
+   if (first_bit > 0)
+      common_bit_size = MIN2(common_bit_size, (1u << (ffs(first_bit) - 1)));
+
+   /* We don't want to have to deal with 1-bit values */
+   assert(common_bit_size >= 8);
+
+   nir_ssa_def *common_comps[NIR_MAX_VEC_COMPONENTS * sizeof(uint64_t)];
+   assert(num_bits / common_bit_size <= ARRAY_SIZE(common_comps));
+
+   /* First, unpack to the common bit size and select the components from the
+    * source.
+    */
+   int src_idx = -1;
+   unsigned src_start_bit = 0;
+   unsigned src_end_bit = 0;
+   for (unsigned i = 0; i < num_bits / common_bit_size; i++) {
+      const unsigned bit = first_bit + (i * common_bit_size);
+      while (bit >= src_end_bit) {
+         src_idx++;
+         assert(src_idx < (int) num_srcs);
+         src_start_bit = src_end_bit;
+         src_end_bit += srcs[src_idx]->bit_size *
+                        srcs[src_idx]->num_components;
+      }
+      assert(bit >= src_start_bit);
+      assert(bit + common_bit_size <= src_end_bit);
+      const unsigned rel_bit = bit - src_start_bit;
+      const unsigned src_bit_size = srcs[src_idx]->bit_size;
+
+      nir_ssa_def *comp = nir_channel(b, srcs[src_idx],
+                                      rel_bit / src_bit_size);
+      if (srcs[src_idx]->bit_size > common_bit_size) {
+         nir_ssa_def *unpacked = nir_unpack_bits(b, comp, common_bit_size);
+         comp = nir_channel(b, unpacked, (rel_bit % src_bit_size) /
+                                         common_bit_size);
+      }
+      common_comps[i] = comp;
+   }
+
+   /* Now, re-pack the destination if we have to */
+   if (dest_bit_size > common_bit_size) {
+      unsigned common_per_dest = dest_bit_size / common_bit_size;
+      nir_ssa_def *dest_comps[NIR_MAX_VEC_COMPONENTS];
+      for (unsigned i = 0; i < dest_num_components; i++) {
+         nir_ssa_def *unpacked = nir_vec(b, common_comps + i * common_per_dest,
+                                         common_per_dest);
+         dest_comps[i] = nir_pack_bits(b, unpacked, dest_bit_size);
+      }
+      return nir_vec(b, dest_comps, dest_num_components);
+   } else {
+      assert(dest_bit_size == common_bit_size);
+      return nir_vec(b, common_comps, dest_num_components);
+   }
+}
+
 static inline nir_ssa_def *
 nir_bitcast_vector(nir_builder *b, nir_ssa_def *src, unsigned dest_bit_size)
 {
@@ -765,43 +844,7 @@ nir_bitcast_vector(nir_builder *b, nir_ssa_def *src, unsigned dest_bit_size)
       (src->bit_size * src->num_components) / dest_bit_size;
    assert(dest_num_components <= NIR_MAX_VEC_COMPONENTS);
 
-   if (src->bit_size > dest_bit_size) {
-      assert(src->bit_size % dest_bit_size == 0);
-      if (src->num_components == 1) {
-         return nir_unpack_bits(b, src, dest_bit_size);
-      } else {
-         const unsigned divisor = src->bit_size / dest_bit_size;
-         assert(src->num_components * divisor == dest_num_components);
-         nir_ssa_def *dest[NIR_MAX_VEC_COMPONENTS];
-         for (unsigned i = 0; i < src->num_components; i++) {
-            nir_ssa_def *unpacked =
-               nir_unpack_bits(b, nir_channel(b, src, i), dest_bit_size);
-            assert(unpacked->num_components == divisor);
-            for (unsigned j = 0; j < divisor; j++)
-               dest[i * divisor + j] = nir_channel(b, unpacked, j);
-         }
-         return nir_vec(b, dest, dest_num_components);
-      }
-   } else if (src->bit_size < dest_bit_size) {
-      assert(dest_bit_size % src->bit_size == 0);
-      if (dest_num_components == 1) {
-         return nir_pack_bits(b, src, dest_bit_size);
-      } else {
-         const unsigned divisor = dest_bit_size / src->bit_size;
-         assert(src->num_components == dest_num_components * divisor);
-         nir_ssa_def *dest[NIR_MAX_VEC_COMPONENTS];
-         for (unsigned i = 0; i < dest_num_components; i++) {
-            nir_component_mask_t src_mask =
-               ((1 << divisor) - 1) << (i * divisor);
-            dest[i] = nir_pack_bits(b, nir_channels(b, src, src_mask),
-                                       dest_bit_size);
-         }
-         return nir_vec(b, dest, dest_num_components);
-      }
-   } else {
-      assert(src->bit_size == dest_bit_size);
-      return src;
-   }
+   return nir_extract_bits(b, &src, 1, 0, dest_num_components, dest_bit_size);
 }
 
 /**

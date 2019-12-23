@@ -35,6 +35,7 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <c99_alloca.h>
+
 #include "main/glheader.h"
 #include "main/context.h"
 #include "main/enums.h"
@@ -61,6 +62,7 @@
 #include "util/mesa-sha1.h"
 #include "util/crc32.h"
 #include "util/os_file.h"
+#include "util/simple_list.h"
 
 /**
  * Return mask of GLSL_x flags by examining the MESA_GLSL env var.
@@ -3136,6 +3138,533 @@ _mesa_GetProgramStageiv(GLuint program, GLenum shadertype,
       values[0] = -1;
       break;
    }
+}
+
+/* This is simple list entry that will be used to hold a list of string
+ * tokens of a parsed shader include path.
+ */
+struct sh_incl_path_entry
+{
+   struct sh_incl_path_entry *next;
+   struct sh_incl_path_entry *prev;
+
+   char *path;
+};
+
+/* Nodes of the shader include tree */
+struct sh_incl_path_ht_entry
+{
+   struct hash_table *path;
+   char *shader_source;
+};
+
+struct shader_includes {
+   /* Array to hold include paths given to glCompileShaderIncludeARB() */
+   struct sh_incl_path_entry **include_paths;
+   size_t num_include_paths;
+   size_t relative_path_cursor;
+
+   /* Root hash table holding the shader include tree */
+   struct hash_table *shader_include_tree;
+};
+
+void
+_mesa_init_shader_includes(struct gl_shared_state *shared)
+{
+   shared->ShaderIncludes = calloc(1, sizeof(struct shader_includes));
+   shared->ShaderIncludes->shader_include_tree =
+      _mesa_hash_table_create(NULL, _mesa_hash_string,
+                              _mesa_key_string_equal);
+}
+
+size_t
+_mesa_get_shader_include_cursor(struct gl_shared_state *shared)
+{
+   return shared->ShaderIncludes->relative_path_cursor;
+}
+
+void
+_mesa_set_shader_include_cursor(struct gl_shared_state *shared, size_t cursor)
+{
+   shared->ShaderIncludes->relative_path_cursor = cursor;
+}
+
+static void
+destroy_shader_include(struct hash_entry *entry)
+{
+   struct sh_incl_path_ht_entry *sh_incl_ht_entry =
+      (struct sh_incl_path_ht_entry *) entry->data;
+
+   _mesa_hash_table_destroy(sh_incl_ht_entry->path, destroy_shader_include);
+   free(sh_incl_ht_entry->shader_source);
+   free(sh_incl_ht_entry);
+}
+
+void
+_mesa_destroy_shader_includes(struct gl_shared_state *shared)
+{
+   _mesa_hash_table_destroy(shared->ShaderIncludes->shader_include_tree,
+                            destroy_shader_include);
+   free(shared->ShaderIncludes);
+}
+
+static bool
+valid_path_format(const char *str, bool relative_path)
+{
+   int i = 0;
+
+   if (!str[i] || (!relative_path && str[i] != '/'))
+      return false;
+
+   i++;
+
+   while (str[i]) {
+      const char c = str[i++];
+      if (('A' <= c && c <= 'Z') ||
+          ('a' <= c && c <= 'z') ||
+          ('0' <= c && c <= '9'))
+         continue;
+
+      if (c == '/') {
+         if (str[i - 2] == '/')
+            return false;
+
+         continue;
+      }
+
+      if (strchr("^. _+*%[](){}|&~=!:;,?-", c) == NULL)
+         return false;
+  }
+
+  if (str[i - 1] == '/')
+     return false;
+
+  return true;
+}
+
+
+static bool
+validate_and_tokenise_sh_incl(struct gl_context *ctx,
+                              void *mem_ctx,
+                              struct sh_incl_path_entry **path_list,
+                              char *full_path, bool error_check)
+{
+   bool relative_path = ctx->Shared->ShaderIncludes->num_include_paths;
+
+   if (!valid_path_format(full_path, relative_path)) {
+      if (error_check) {
+         _mesa_error(ctx, GL_INVALID_VALUE,
+                     "glNamedStringARB(invalid name %s)", full_path);
+      }
+      return false;
+   }
+
+   char *save_ptr = NULL;
+   char *path_str = strtok_r(full_path, "/", &save_ptr);
+
+   *path_list = rzalloc(mem_ctx, struct sh_incl_path_entry);
+
+   make_empty_list(*path_list);
+
+   while (path_str != NULL) {
+      if (strlen(path_str) == 0) {
+         if (error_check) {
+            _mesa_error(ctx, GL_INVALID_VALUE,
+                        "glNamedStringARB(invalid name %s)", full_path);
+         }
+
+         return false;
+      }
+
+      if (strcmp(path_str, ".") == 0) {
+         /* Do nothing */
+      } else if (strcmp(path_str, "..") == 0) {
+         struct sh_incl_path_entry *last = last_elem(*path_list);
+         remove_from_list(last);
+      } else {
+         struct sh_incl_path_entry *path =
+            rzalloc(mem_ctx, struct sh_incl_path_entry);
+
+         path->path = strdup(path_str);
+         insert_at_tail(*path_list, path);
+      }
+
+      path_str = strtok_r(NULL, "/", &save_ptr);
+   }
+
+   return true;
+}
+
+static struct sh_incl_path_ht_entry *
+lookup_shader_include(struct gl_context *ctx, char *path,
+                      bool error_check)
+{
+   void *mem_ctx = ralloc_context(NULL);
+   struct sh_incl_path_entry *path_list;
+
+   if (!validate_and_tokenise_sh_incl(ctx, mem_ctx, &path_list, path,
+                                      error_check)) {
+      ralloc_free(mem_ctx);
+      return NULL;
+   }
+
+   struct sh_incl_path_ht_entry *sh_incl_ht_entry = NULL;
+   struct hash_table *path_ht =
+      ctx->Shared->ShaderIncludes->shader_include_tree;
+
+   size_t count = ctx->Shared->ShaderIncludes->num_include_paths;
+   bool relative_path = path[0] != '/';
+
+   size_t i = ctx->Shared->ShaderIncludes->relative_path_cursor;
+   bool use_cursor = ctx->Shared->ShaderIncludes->relative_path_cursor;
+
+   do {
+      struct sh_incl_path_entry *entry;
+
+      if (relative_path) {
+next_relative_path:
+         {
+            struct sh_incl_path_entry *rel_path_list =
+               ctx->Shared->ShaderIncludes->include_paths[i];
+            foreach(entry, rel_path_list) {
+               struct hash_entry *ht_entry =
+                  _mesa_hash_table_search(path_ht, entry->path);
+
+               if (!ht_entry) {
+                  /* Reset search path and skip to the next include path */
+                  path_ht = ctx->Shared->ShaderIncludes->shader_include_tree;
+                  sh_incl_ht_entry = NULL;
+                  if (use_cursor) {
+                     i = 0;
+                     use_cursor = false;
+
+                     goto next_relative_path;
+                  }
+                  i++;
+                  if (i < count)
+                     goto next_relative_path;
+                  else
+                     break;
+               } else {
+                  sh_incl_ht_entry =
+                    (struct sh_incl_path_ht_entry *) ht_entry->data;
+               }
+
+               path_ht = sh_incl_ht_entry->path;
+            }
+         }
+      }
+
+      foreach(entry, path_list) {
+         struct hash_entry *ht_entry =
+            _mesa_hash_table_search(path_ht, entry->path);
+
+         if (!ht_entry) {
+            /* Reset search path and skip to the next include path */
+            path_ht = ctx->Shared->ShaderIncludes->shader_include_tree;
+            sh_incl_ht_entry = NULL;
+            if (use_cursor) {
+               i = 0;
+               use_cursor = false;
+
+               break;
+            }
+            i++;
+            break;
+         } else {
+
+            sh_incl_ht_entry =
+               (struct sh_incl_path_ht_entry *) ht_entry->data;
+         }
+
+         path_ht = sh_incl_ht_entry->path;
+      }
+
+      if (i < count &&
+          (sh_incl_ht_entry == NULL || !sh_incl_ht_entry->shader_source))
+         continue;
+
+      /* If we get here then we have found a matching path or exahusted our
+       * relative search paths.
+       */
+      ctx->Shared->ShaderIncludes->relative_path_cursor = i;
+      break;
+   } while (i < count);
+
+   ralloc_free(mem_ctx);
+
+   return sh_incl_ht_entry;
+}
+
+const char *
+_mesa_lookup_shader_include(struct gl_context *ctx, char *path,
+                            bool error_check)
+{
+   struct sh_incl_path_ht_entry *shader_include =
+      lookup_shader_include(ctx, path, error_check);
+
+   return shader_include ? shader_include->shader_source : NULL;
+}
+
+static char *
+copy_string(struct gl_context *ctx, const char *str, int str_len,
+            const char *caller)
+{
+   if (!str) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(NULL string)", caller);
+      return NULL;
+   }
+
+   char *cp;
+   if (str_len == -1)
+      cp = strdup(str);
+   else {
+      cp = calloc(sizeof(char), str_len + 1);
+      memcpy(cp, str, str_len);
+   }
+
+   return cp;
+}
+
+GLvoid GLAPIENTRY
+_mesa_NamedStringARB(GLenum type, GLint namelen, const GLchar *name,
+                     GLint stringlen, const GLchar *string)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   const char *caller = "glNamedStringARB";
+
+   if (type != GL_SHADER_INCLUDE_ARB) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(invalid type)", caller);
+      return;
+   }
+
+   char *name_cp = copy_string(ctx, name, namelen, caller);
+   char *string_cp = copy_string(ctx, string, stringlen, caller);
+   if (!name_cp || !string_cp) {
+      free(string_cp);
+      free(name_cp);
+      return;
+   }
+
+   void *mem_ctx = ralloc_context(NULL);
+   struct sh_incl_path_entry *path_list;
+
+   if (!validate_and_tokenise_sh_incl(ctx, mem_ctx, &path_list, name_cp,
+                                      true)) {
+      free(string_cp);
+      free(name_cp);
+      ralloc_free(mem_ctx);
+      return;
+   }
+
+   mtx_lock(&ctx->Shared->ShaderIncludeMutex);
+
+   struct hash_table *path_ht =
+      ctx->Shared->ShaderIncludes->shader_include_tree;
+
+   struct sh_incl_path_entry *entry;
+   foreach(entry, path_list) {
+      struct hash_entry *ht_entry =
+         _mesa_hash_table_search(path_ht, entry->path);
+
+      struct sh_incl_path_ht_entry *sh_incl_ht_entry;
+      if (!ht_entry) {
+         sh_incl_ht_entry = calloc(1, sizeof(struct sh_incl_path_ht_entry));
+         sh_incl_ht_entry->path =
+            _mesa_hash_table_create(NULL, _mesa_hash_string,
+                                    _mesa_key_string_equal);
+         _mesa_hash_table_insert(path_ht, entry->path, sh_incl_ht_entry);
+      } else {
+         sh_incl_ht_entry = (struct sh_incl_path_ht_entry *) ht_entry->data;
+      }
+
+      path_ht = sh_incl_ht_entry->path;
+
+      if (last_elem(path_list) == entry) {
+         free(sh_incl_ht_entry->shader_source);
+         sh_incl_ht_entry->shader_source = string_cp;
+      }
+   }
+
+   mtx_unlock(&ctx->Shared->ShaderIncludeMutex);
+
+   free(name_cp);
+   ralloc_free(mem_ctx);
+}
+
+GLvoid GLAPIENTRY
+_mesa_DeleteNamedStringARB(GLint namelen, const GLchar *name)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   const char *caller = "glDeleteNamedStringARB";
+
+   char *name_cp = copy_string(ctx, name, namelen, caller);
+   if (!name_cp)
+      return;
+
+   struct sh_incl_path_ht_entry *shader_include =
+      lookup_shader_include(ctx, name_cp, true);
+
+   if (!shader_include) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(no string associated with path %s)", caller, name_cp);
+      free(name_cp);
+      return;
+   }
+
+   mtx_lock(&ctx->Shared->ShaderIncludeMutex);
+
+   free(shader_include->shader_source);
+   shader_include->shader_source = NULL;
+
+   mtx_unlock(&ctx->Shared->ShaderIncludeMutex);
+
+   free(name_cp);
+}
+
+GLvoid GLAPIENTRY
+_mesa_CompileShaderIncludeARB(GLuint shader, GLsizei count,
+                              const GLchar* const *path, const GLint *length)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   const char *caller = "glCompileShaderIncludeARB";
+
+   if (count > 0 && path == NULL) {
+      _mesa_error(ctx, GL_INVALID_VALUE, "%s(count > 0 && path == NULL)",
+                  caller);
+      return;
+   }
+
+   void *mem_ctx = ralloc_context(NULL);
+
+   mtx_lock(&ctx->Shared->ShaderIncludeMutex);
+
+   ctx->Shared->ShaderIncludes->include_paths =
+      ralloc_array_size(mem_ctx, sizeof(struct sh_incl_path_entry *), count);
+
+   for (size_t i = 0; i < count; i++) {
+      char *path_cp = copy_string(ctx, path[i], length ? length[i] : -1,
+                                  caller);
+      if (!path_cp) {
+         goto exit;
+      }
+
+      struct sh_incl_path_entry *path_list;
+
+      if (!validate_and_tokenise_sh_incl(ctx, mem_ctx, &path_list, path_cp,
+                                         true)) {
+         free(path_cp);
+         goto exit;
+      }
+
+      ctx->Shared->ShaderIncludes->include_paths[i] = path_list;
+
+      free(path_cp);
+   }
+
+   /* We must set this *after* all calls to validate_and_tokenise_sh_incl()
+    * are done as we use this to decide if we need to check the start of the
+    * path for a '/'
+    */
+   ctx->Shared->ShaderIncludes->num_include_paths = count;
+
+   struct gl_shader *sh = _mesa_lookup_shader(ctx, shader);
+   if (!sh) {
+      _mesa_error(ctx, GL_INVALID_OPERATION, "%s(shader)", caller);
+      goto exit;
+   }
+
+   _mesa_compile_shader(ctx, sh);
+
+exit:
+   ctx->Shared->ShaderIncludes->num_include_paths = 0;
+   ctx->Shared->ShaderIncludes->relative_path_cursor = 0;
+   ctx->Shared->ShaderIncludes->include_paths = NULL;
+
+   mtx_unlock(&ctx->Shared->ShaderIncludeMutex);
+
+   ralloc_free(mem_ctx);
+}
+
+GLboolean GLAPIENTRY
+_mesa_IsNamedStringARB(GLint namelen, const GLchar *name)
+{
+   GET_CURRENT_CONTEXT(ctx);
+
+   if (!name)
+      return false;
+
+   char *name_cp = copy_string(ctx, name, namelen, "");
+
+   const char *source = _mesa_lookup_shader_include(ctx, name_cp, false);
+   free(name_cp);
+
+   if (!source)
+      return false;
+
+   return true;
+}
+
+GLvoid GLAPIENTRY
+_mesa_GetNamedStringARB(GLint namelen, const GLchar *name, GLsizei bufSize,
+                        GLint *stringlen, GLchar *string)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   const char *caller = "glGetNamedStringARB";
+
+   char *name_cp = copy_string(ctx, name, namelen, caller);
+   if (!name_cp)
+      return;
+
+   const char *source = _mesa_lookup_shader_include(ctx, name_cp, true);
+   if (!source) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(no string associated with path %s)", caller, name_cp);
+      free(name_cp);
+      return;
+   }
+
+   size_t size = MIN2(strlen(source), bufSize - 1);
+   memcpy(string, source, size);
+   string[size] = '\0';
+
+   *stringlen = size;
+
+   free(name_cp);
+}
+
+GLvoid GLAPIENTRY
+_mesa_GetNamedStringivARB(GLint namelen, const GLchar *name,
+                          GLenum pname, GLint *params)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   const char *caller = "glGetNamedStringivARB";
+
+   char *name_cp = copy_string(ctx, name, namelen, caller);
+   if (!name_cp)
+      return;
+
+   const char *source = _mesa_lookup_shader_include(ctx, name_cp, true);
+   if (!source) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "%s(no string associated with path %s)", caller, name_cp);
+      free(name_cp);
+      return;
+   }
+
+   switch (pname) {
+   case GL_NAMED_STRING_LENGTH_ARB:
+      *params = strlen(source) + 1;
+      break;
+   case GL_NAMED_STRING_TYPE_ARB:
+      *params = GL_SHADER_INCLUDE_ARB;
+      break;
+   default:
+      _mesa_error(ctx, GL_INVALID_ENUM, "%s(pname)", caller);
+      break;
+   }
+
+   free(name_cp);
 }
 
 static int

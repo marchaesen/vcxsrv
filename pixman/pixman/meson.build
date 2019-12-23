@@ -30,6 +30,11 @@ version_h = configure_file(
   install_dir : join_paths(get_option('prefix'), get_option('includedir'), 'pixman-1')
 )
 
+libpixman_extra_cargs = []
+if cc.has_function_attribute('dllexport')
+  libpixman_extra_cargs = ['-DPIXMAN_API=__declspec(dllexport)']
+endif
+
 pixman_simd_libs = []
 simds = [
   # the mmx library can be compiled with mmx on x86/x86_64, iwmmxt on
@@ -107,7 +112,8 @@ endforeach
 libpixman = library(
   'pixman-1',
   [pixman_files, config_h, version_h],
-  objects: _obs,
+  objects : _obs,
+  c_args : libpixman_extra_cargs,
   dependencies : [dep_m, dep_threads],
   version : meson.project_version(),
   install : true,

@@ -776,7 +776,7 @@ LoadModule(const char *module, void *options, const XF86ModReqInfo *modreq,
             *errmaj = LDR_NOMEM;
         goto LoadModule_fail;
     }
-    initdata = LoaderSymbolFromModule(ret->handle, p);
+    initdata = LoaderSymbolFromModule(ret, p);
     if (initdata) {
         ModuleSetupProc setup;
         ModuleTearDownProc teardown;

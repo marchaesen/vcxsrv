@@ -15,6 +15,12 @@
     <param name="divisor" type="GLuint"/>
   </function>
 
+  <function name="VertexArrayVertexAttribDivisorEXT">
+	<param name="vaobj" type="GLuint"/>
+    <param name="index" type="GLuint"/>
+    <param name="divisor" type="GLuint"/>
+  </function>
+
 </category>
 
 

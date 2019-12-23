@@ -79,7 +79,7 @@ unuse_each_src(struct ir3_sched_ctx *ctx, struct ir3_instruction *instr)
 			continue;
 		if (instr->block != src->block)
 			continue;
-		if ((src->opc == OPC_META_FI) || (src->opc == OPC_META_FO)) {
+		if ((src->opc == OPC_META_COLLECT) || (src->opc == OPC_META_SPLIT)) {
 			unuse_each_src(ctx, src);
 		} else {
 			debug_assert(src->use_count > 0);
@@ -133,7 +133,7 @@ use_each_src(struct ir3_instruction *instr)
 static void
 use_instr(struct ir3_instruction *instr)
 {
-	if ((instr->opc == OPC_META_FI) || (instr->opc == OPC_META_FO)) {
+	if ((instr->opc == OPC_META_COLLECT) || (instr->opc == OPC_META_SPLIT)) {
 		use_each_src(instr);
 	} else {
 		instr->use_count++;
@@ -143,7 +143,7 @@ use_instr(struct ir3_instruction *instr)
 static void
 update_live_values(struct ir3_sched_ctx *ctx, struct ir3_instruction *instr)
 {
-	if ((instr->opc == OPC_META_FI) || (instr->opc == OPC_META_FO))
+	if ((instr->opc == OPC_META_COLLECT) || (instr->opc == OPC_META_SPLIT))
 		return;
 
 	ctx->live_values += dest_regs(instr);
@@ -161,7 +161,7 @@ update_use_count(struct ir3 *ir)
 
 	list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
 		list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
-			if ((instr->opc == OPC_META_FI) || (instr->opc == OPC_META_FO))
+			if ((instr->opc == OPC_META_COLLECT) || (instr->opc == OPC_META_SPLIT))
 				continue;
 
 			use_each_src(instr);
@@ -170,14 +170,9 @@ update_use_count(struct ir3 *ir)
 
 	/* Shader outputs are also used:
 	 */
-	for (unsigned i = 0; i <  ir->noutputs; i++) {
-		struct ir3_instruction  *out = ir->outputs[i];
-
-		if (!out)
-			continue;
-
+	struct ir3_instruction *out;
+	foreach_output(out, ir)
 		use_instr(out);
-	}
 }
 
 #define NULL_INSTR ((void *)~0)
@@ -542,15 +537,15 @@ live_effect(struct ir3_instruction *instr)
 		if (instr->block != src->block)
 			continue;
 
-		/* for fanout/split, just pass things along to the real src: */
-		if (src->opc == OPC_META_FO)
+		/* for split, just pass things along to the real src: */
+		if (src->opc == OPC_META_SPLIT)
 			src = ssa(src->regs[1]);
 
-		/* for fanin/collect, if this is the last use of *each* src,
+		/* for collect, if this is the last use of *each* src,
 		 * then it will decrease the live values, since RA treats
 		 * them as a whole:
 		 */
-		if (src->opc == OPC_META_FI) {
+		if (src->opc == OPC_META_COLLECT) {
 			struct ir3_instruction *src2;
 			bool last_use = true;
 
@@ -783,18 +778,28 @@ sched_block(struct ir3_sched_ctx *ctx, struct ir3_block *block)
 	list_inithead(&block->instr_list);
 	list_inithead(&ctx->depth_list);
 
-	/* first a pre-pass to schedule all meta:input instructions
-	 * (which need to appear first so that RA knows the register is
-	 * occupied), and move remaining to depth sorted list:
+	/* First schedule all meta:input instructions, followed by
+	 * tex-prefetch.  We want all of the instructions that load
+	 * values into registers before the shader starts to go
+	 * before any other instructions.  But in particular we
+	 * want inputs to come before prefetches.  This is because
+	 * a FS's bary_ij input may not actually be live in the
+	 * shader, but it should not be scheduled on top of any
+	 * other input (but can be overwritten by a tex prefetch)
+	 *
+	 * Finally, move all the remaining instructions to the depth-
+	 * list
 	 */
-	list_for_each_entry_safe (struct ir3_instruction, instr, &unscheduled_list, node) {
-		if ((instr->opc == OPC_META_INPUT) ||
-				(instr->opc == OPC_META_TEX_PREFETCH)) {
+	list_for_each_entry_safe (struct ir3_instruction, instr, &unscheduled_list, node)
+		if (instr->opc == OPC_META_INPUT)
 			schedule(ctx, instr);
-		} else {
-			ir3_insert_by_depth(instr, &ctx->depth_list);
-		}
-	}
+
+	list_for_each_entry_safe (struct ir3_instruction, instr, &unscheduled_list, node)
+		if (instr->opc == OPC_META_TEX_PREFETCH)
+			schedule(ctx, instr);
+
+	list_for_each_entry_safe (struct ir3_instruction, instr, &unscheduled_list, node)
+		ir3_insert_by_depth(instr, &ctx->depth_list);
 
 	while (!list_is_empty(&ctx->depth_list)) {
 		struct ir3_sched_notes notes = {0};

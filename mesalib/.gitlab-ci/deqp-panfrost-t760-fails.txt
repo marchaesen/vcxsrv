@@ -25,14 +25,6 @@ dEQP-GLES2.functional.fbo.render.shared_colorbuffer.tex2d_rgb_depth_component16 
 dEQP-GLES2.functional.fbo.render.shared_depthbuffer.rbo_rgb565_depth_component16 Fail
 dEQP-GLES2.functional.fbo.render.shared_depthbuffer.tex2d_rgba_depth_component16 Fail
 dEQP-GLES2.functional.fbo.render.shared_depthbuffer.tex2d_rgb_depth_component16 Fail
-dEQP-GLES2.functional.fragment_ops.blend.equation_src_func_dst_func.add_dst_color_one_minus_src_color Fail
-dEQP-GLES2.functional.fragment_ops.blend.equation_src_func_dst_func.reverse_subtract_zero_dst_alpha Fail
-dEQP-GLES2.functional.fragment_ops.blend.equation_src_func_dst_func.reverse_subtract_zero_dst_color Fail
-dEQP-GLES2.functional.fragment_ops.blend.equation_src_func_dst_func.reverse_subtract_zero_one Fail
-dEQP-GLES2.functional.fragment_ops.blend.rgb_func_alpha_func.dst.one_minus_src_color_one_minus_src_alpha Fail
-dEQP-GLES2.functional.fragment_ops.blend.rgb_func_alpha_func.dst.one_minus_src_color_one_minus_src_color Fail
 dEQP-GLES2.functional.fragment_ops.interaction.basic_shader.6  Fail
-dEQP-GLES2.functional.polygon_offset.default_render_with_units Fail
-dEQP-GLES2.functional.polygon_offset.fixed16_render_with_units Fail
 dEQP-GLES2.functional.shaders.scoping.valid.local_variable_hides_function_parameter_fragment Fail
 dEQP-GLES2.functional.shaders.scoping.valid.local_variable_hides_function_parameter_vertex Fail

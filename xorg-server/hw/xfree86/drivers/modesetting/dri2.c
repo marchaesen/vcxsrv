@@ -123,6 +123,7 @@ ms_dri2_create_buffer2(ScreenPtr screen, DrawablePtr drawable,
                        unsigned int attachment, unsigned int format)
 {
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
+    modesettingPtr ms = modesettingPTR(scrn);
     DRI2Buffer2Ptr buffer;
     PixmapPtr pixmap;
     CARD32 size;
@@ -200,7 +201,7 @@ ms_dri2_create_buffer2(ScreenPtr screen, DrawablePtr drawable,
      */
     buffer->flags = 0;
 
-    buffer->name = glamor_name_from_pixmap(pixmap, &pitch, &size);
+    buffer->name = ms->glamor.name_from_pixmap(pixmap, &pitch, &size);
     buffer->pitch = pitch;
     if (buffer->name == -1) {
         xf86DrvMsg(scrn->scrnIndex, X_ERROR,
@@ -510,11 +511,12 @@ update_front(DrawablePtr draw, DRI2BufferPtr front)
     ScreenPtr screen = draw->pScreen;
     PixmapPtr pixmap = get_drawable_pixmap(draw);
     ms_dri2_buffer_private_ptr priv = front->driverPrivate;
+    modesettingPtr ms = modesettingPTR(xf86ScreenToScrn(screen));
     CARD32 size;
     CARD16 pitch;
     int name;
 
-    name = glamor_name_from_pixmap(pixmap, &pitch, &size);
+    name = ms->glamor.name_from_pixmap(pixmap, &pitch, &size);
     if (name < 0)
         return FALSE;
 
@@ -618,7 +620,7 @@ ms_dri2_exchange_buffers(DrawablePtr draw, DRI2BufferPtr front,
     *front_pix = *back_pix;
     *back_pix = tmp_pix;
 
-    glamor_egl_exchange_buffers(front_priv->pixmap, back_priv->pixmap);
+    ms->glamor.egl_exchange_buffers(front_priv->pixmap, back_priv->pixmap);
 
     /* Post damage on the front buffer so that listeners, such
      * as DisplayLink know take a copy and shove it over the USB.
@@ -1035,8 +1037,9 @@ ms_dri2_screen_init(ScreenPtr screen)
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     modesettingPtr ms = modesettingPTR(scrn);
     DRI2InfoRec info;
+    const char *driver_names[2] = { NULL, NULL };
 
-    if (!glamor_supports_pixmap_import_export(screen)) {
+    if (!ms->glamor.supports_pixmap_import_export(screen)) {
         xf86DrvMsg(scrn->scrnIndex, X_WARNING,
                    "DRI2: glamor lacks support for pixmap import/export\n");
     }
@@ -1073,9 +1076,31 @@ ms_dri2_screen_init(ScreenPtr screen)
     info.DestroyBuffer2 = ms_dri2_destroy_buffer2;
     info.CopyRegion2 = ms_dri2_copy_region2;
 
-    /* These two will be filled in by dri2.c */
-    info.numDrivers = 0;
-    info.driverNames = NULL;
+    /* Ask Glamor to obtain the DRI driver name via EGL_MESA_query_driver, */
+    if (ms->glamor.egl_get_driver_name)
+        driver_names[0] = ms->glamor.egl_get_driver_name(screen);
+
+    if (driver_names[0]) {
+        /* There is no VDPAU driver for Intel, fallback to the generic
+         * OpenGL/VAAPI va_gl backend to emulate VDPAU.  Otherwise,
+         * guess that the DRI and VDPAU drivers have the same name.
+         */
+        if (strcmp(driver_names[0], "i965") == 0 ||
+            strcmp(driver_names[0], "iris") == 0) {
+            driver_names[1] = "va_gl";
+        } else {
+            driver_names[1] = driver_names[0];
+        }
+
+        info.numDrivers = 2;
+        info.driverNames = driver_names;
+    } else {
+        /* EGL_MESA_query_driver was unavailable; let dri2.c select the
+         * driver and fill in these fields for us.
+         */
+        info.numDrivers = 0;
+        info.driverNames = NULL;
+    }
 
     return DRI2ScreenInit(screen, &info);
 }

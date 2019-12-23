@@ -13,7 +13,7 @@ source commands.sh
 rm -f commands.sh
 if [[ "$MHMAKECONF" == "" ]] ; then
   export MHMAKECONF=`cygpath -w $DIR`
-  export PYTHON3=c:\\Python3\\python.exe
+  export PYTHON3=c:\\Python36\\python.exe
 fi
 
 export IS64=$1

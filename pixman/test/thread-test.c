@@ -1,23 +1,34 @@
 #include "utils.h"
 
-#ifndef HAVE_PTHREADS
+#if !defined (HAVE_PTHREADS) && !defined (_WIN32)
 
 int main ()
 {
-    printf ("Skipped thread-test - pthreads not supported\n");
+    printf ("Skipped thread-test - pthreads or Windows Threads not supported\n");
     return 0;
 }
 
 #else
 
 #include <stdlib.h>
-#include <pthread.h>
+
+#ifdef HAVE_PTHREADS
+# include <pthread.h>
+#elif defined (_WIN32)
+# define WIN32_LEAN_AND_MEAN
+# include <windows.h>
+#endif
+
+#define THREADS 16
 
 typedef struct
 {
     int       thread_no;
     uint32_t *dst_buf;
     prng_t    prng_state;
+#if defined (_WIN32) && !defined (HAVE_PTHREADS)
+    uint32_t  crc32;
+#endif
 } info_t;
 
 static const pixman_op_t operators[] = 
@@ -67,8 +78,13 @@ static const pixman_format_code_t formats[] =
 
 #define DEST_WIDTH (7)
 
+#ifdef HAVE_PTHREADS
 static void *
 thread (void *data)
+#elif defined (_WIN32)
+DWORD WINAPI
+thread (LPVOID data)
+#endif
 {
     info_t *info = data;
     uint32_t crc32 = 0x0;
@@ -112,7 +128,12 @@ thread (void *data)
 	pixman_image_unref (dst_img);
     }
 
+#ifdef HAVE_PTHREADS
     return (void *)(uintptr_t)crc32;
+#elif defined (_WIN32)
+    info->crc32 = crc32;
+    return 0;
+#endif
 }
 
 static inline uint32_t
@@ -127,32 +148,70 @@ byteswap32 (uint32_t x)
 int
 main (void)
 {
-    uint32_t dest[16 * DEST_WIDTH];
-    info_t info[16] = { { 0 } };
-    pthread_t threads[16];
-    void *retvals[16];
-    uint32_t crc32s[16], crc32;
+    uint32_t dest[THREADS * DEST_WIDTH];
+    info_t info[THREADS] = { { 0 } };
+
+#ifdef HAVE_PTHREADS
+    pthread_t threads[THREADS];
+    void *retvals[THREADS];
+#elif defined (_WIN32)
+    HANDLE  hThreadArray[THREADS];
+    DWORD   dwThreadIdArray[THREADS];
+#endif
+
+    uint32_t crc32s[THREADS], crc32;
     int i;
 
-    for (i = 0; i < 16; ++i)
+    for (i = 0; i < THREADS; ++i)
     {
 	info[i].thread_no = i;
 	info[i].dst_buf = &dest[i * DEST_WIDTH];
     }
 
-    for (i = 0; i < 16; ++i)
-	pthread_create (&threads[i], NULL, thread, &info[i]);
+#ifdef HAVE_PTHREADS
+    for (i = 0; i < THREADS; ++i)
+      pthread_create (&threads[i], NULL, thread, &info[i]);
 
-    for (i = 0; i < 16; ++i)
-	pthread_join (threads[i], &retvals[i]);
+    for (i = 0; i < THREADS; ++i)
+	  pthread_join (threads[i], &retvals[i]);
 
-    for (i = 0; i < 16; ++i)
+    for (i = 0; i < THREADS; ++i)
     {
 	crc32s[i] = (uintptr_t)retvals[i];
 
 	if (is_little_endian())
 	    crc32s[i] = byteswap32 (crc32s[i]);
     }
+
+#elif defined (_WIN32)
+    for (i = 0; i < THREADS; ++i)
+      {
+        hThreadArray[i] = CreateThread(NULL,
+                                       0,
+                                       thread,
+                                       &info[i],
+                                       0,
+                                       &dwThreadIdArray[i]);
+        if (hThreadArray[i] == NULL)
+          {
+            printf ("Windows thread creation failed!\n");
+            return 1;
+          }
+      }
+    for (i = 0; i < THREADS; ++i)
+      {
+        WaitForSingleObject (hThreadArray[i], INFINITE);
+        CloseHandle(hThreadArray[i]);
+      }
+
+    for (i = 0; i < THREADS; ++i)
+      {
+        crc32s[i] = info[i].crc32;
+
+        if (is_little_endian())
+          crc32s[i] = byteswap32 (crc32s[i]);
+      }
+#endif
 
     crc32 = compute_crc32 (0, crc32s, sizeof crc32s);
 

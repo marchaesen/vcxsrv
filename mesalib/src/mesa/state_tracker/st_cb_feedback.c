@@ -84,6 +84,7 @@ feedback_vertex(struct gl_context *ctx, const struct draw_context *draw,
                 const struct vertex_header *v)
 {
    const struct st_context *st = st_context(ctx);
+   struct st_vertex_program *stvp = (struct st_vertex_program *)st->vp;
    GLfloat win[4];
    const GLfloat *color, *texcoord;
    GLuint slot;
@@ -101,13 +102,13 @@ feedback_vertex(struct gl_context *ctx, const struct draw_context *draw,
     * color and texcoord attribs to use here.
     */
 
-   slot = st->vp->result_to_output[VARYING_SLOT_COL0];
+   slot = stvp->result_to_output[VARYING_SLOT_COL0];
    if (slot != ~0U)
       color = v->data[slot];
    else
       color = ctx->Current.Attrib[VERT_ATTRIB_COLOR0];
 
-   slot = st->vp->result_to_output[VARYING_SLOT_TEX0];
+   slot = stvp->result_to_output[VARYING_SLOT_TEX0];
    if (slot != ~0U)
       texcoord = v->data[slot];
    else
@@ -303,7 +304,7 @@ st_RenderMode(struct gl_context *ctx, GLenum newMode )
       ctx->Driver.Draw = st_feedback_draw_vbo;
       /* need to generate/use a vertex program that emits pos/color/tex */
       if (vp)
-         st->dirty |= ST_NEW_VERTEX_PROGRAM(st, st_vertex_program(vp));
+         st->dirty |= ST_NEW_VERTEX_PROGRAM(st, st_program(vp));
    }
 }
 

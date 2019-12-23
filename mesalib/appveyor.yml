@@ -55,7 +55,7 @@ environment:
     buildsystem: scons
   - compiler: msvc
     buildsystem: meson
-    path: C:\Python37-x64;C:\Python37-x64\Scripts;%path%
+    path: C:\Python38-x64;C:\Python38-x64\Scripts;%path%
 
 install:
 - cmd: .appveyor\appveyor_msvc.bat install

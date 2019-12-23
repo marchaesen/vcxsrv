@@ -31,6 +31,8 @@
 #include <vulkan/vk_android_native_buffer.h>
 #include <vulkan/vk_icd.h>
 
+#include "drm-uapi/drm_fourcc.h"
+
 static int
 tu_hal_open(const struct hw_module_t *mod,
             const char *id,
@@ -120,12 +122,8 @@ tu_image_from_gralloc(VkDevice device_h,
    struct tu_bo *bo = NULL;
    VkResult result;
 
-   result = tu_image_create(
-      device_h,
-      &(struct tu_image_create_info) {
-         .vk_info = base_info, .scanout = true, .no_metadata_planes = true },
-      alloc, &image_h);
-
+   result = tu_image_create(device_h, base_info, alloc, &image_h,
+                            DRM_FORMAT_MOD_LINEAR);
    if (result != VK_SUCCESS)
       return result;
 

@@ -63,7 +63,7 @@
     } while(0)
 
 /* total number of offsets below */
-#define _gloffset_COUNT 1583
+#define _gloffset_COUNT 1605
 
 #define _gloffset_NewList 0
 #define _gloffset_EndList 1
@@ -473,7 +473,7 @@
 #define _gloffset_MultiTexCoord4iv 405
 #define _gloffset_MultiTexCoord4s 406
 #define _gloffset_MultiTexCoord4sv 407
-#define driDispatchRemapTable_size 1175
+#define driDispatchRemapTable_size 1197
 SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 
 #define CompressedTexImage1D_remap_index 0
@@ -1651,6 +1651,28 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define GetVertexArrayPointervEXT_remap_index 1172
 #define GetVertexArrayIntegeri_vEXT_remap_index 1173
 #define GetVertexArrayPointeri_vEXT_remap_index 1174
+#define ClearNamedBufferDataEXT_remap_index 1175
+#define ClearNamedBufferSubDataEXT_remap_index 1176
+#define NamedFramebufferParameteriEXT_remap_index 1177
+#define GetNamedFramebufferParameterivEXT_remap_index 1178
+#define VertexArrayVertexAttribLOffsetEXT_remap_index 1179
+#define VertexArrayVertexAttribDivisorEXT_remap_index 1180
+#define TextureBufferRangeEXT_remap_index 1181
+#define TextureStorage2DMultisampleEXT_remap_index 1182
+#define TextureStorage3DMultisampleEXT_remap_index 1183
+#define VertexArrayBindVertexBufferEXT_remap_index 1184
+#define VertexArrayVertexAttribFormatEXT_remap_index 1185
+#define VertexArrayVertexAttribIFormatEXT_remap_index 1186
+#define VertexArrayVertexAttribLFormatEXT_remap_index 1187
+#define VertexArrayVertexAttribBindingEXT_remap_index 1188
+#define VertexArrayVertexBindingDivisorEXT_remap_index 1189
+#define NamedBufferPageCommitmentEXT_remap_index 1190
+#define NamedStringARB_remap_index 1191
+#define DeleteNamedStringARB_remap_index 1192
+#define CompileShaderIncludeARB_remap_index 1193
+#define IsNamedStringARB_remap_index 1194
+#define GetNamedStringARB_remap_index 1195
+#define GetNamedStringivARB_remap_index 1196
 
 #define _gloffset_CompressedTexImage1D driDispatchRemapTable[CompressedTexImage1D_remap_index]
 #define _gloffset_CompressedTexImage2D driDispatchRemapTable[CompressedTexImage2D_remap_index]
@@ -2827,6 +2849,28 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define _gloffset_GetVertexArrayPointervEXT driDispatchRemapTable[GetVertexArrayPointervEXT_remap_index]
 #define _gloffset_GetVertexArrayIntegeri_vEXT driDispatchRemapTable[GetVertexArrayIntegeri_vEXT_remap_index]
 #define _gloffset_GetVertexArrayPointeri_vEXT driDispatchRemapTable[GetVertexArrayPointeri_vEXT_remap_index]
+#define _gloffset_ClearNamedBufferDataEXT driDispatchRemapTable[ClearNamedBufferDataEXT_remap_index]
+#define _gloffset_ClearNamedBufferSubDataEXT driDispatchRemapTable[ClearNamedBufferSubDataEXT_remap_index]
+#define _gloffset_NamedFramebufferParameteriEXT driDispatchRemapTable[NamedFramebufferParameteriEXT_remap_index]
+#define _gloffset_GetNamedFramebufferParameterivEXT driDispatchRemapTable[GetNamedFramebufferParameterivEXT_remap_index]
+#define _gloffset_VertexArrayVertexAttribLOffsetEXT driDispatchRemapTable[VertexArrayVertexAttribLOffsetEXT_remap_index]
+#define _gloffset_VertexArrayVertexAttribDivisorEXT driDispatchRemapTable[VertexArrayVertexAttribDivisorEXT_remap_index]
+#define _gloffset_TextureBufferRangeEXT driDispatchRemapTable[TextureBufferRangeEXT_remap_index]
+#define _gloffset_TextureStorage2DMultisampleEXT driDispatchRemapTable[TextureStorage2DMultisampleEXT_remap_index]
+#define _gloffset_TextureStorage3DMultisampleEXT driDispatchRemapTable[TextureStorage3DMultisampleEXT_remap_index]
+#define _gloffset_VertexArrayBindVertexBufferEXT driDispatchRemapTable[VertexArrayBindVertexBufferEXT_remap_index]
+#define _gloffset_VertexArrayVertexAttribFormatEXT driDispatchRemapTable[VertexArrayVertexAttribFormatEXT_remap_index]
+#define _gloffset_VertexArrayVertexAttribIFormatEXT driDispatchRemapTable[VertexArrayVertexAttribIFormatEXT_remap_index]
+#define _gloffset_VertexArrayVertexAttribLFormatEXT driDispatchRemapTable[VertexArrayVertexAttribLFormatEXT_remap_index]
+#define _gloffset_VertexArrayVertexAttribBindingEXT driDispatchRemapTable[VertexArrayVertexAttribBindingEXT_remap_index]
+#define _gloffset_VertexArrayVertexBindingDivisorEXT driDispatchRemapTable[VertexArrayVertexBindingDivisorEXT_remap_index]
+#define _gloffset_NamedBufferPageCommitmentEXT driDispatchRemapTable[NamedBufferPageCommitmentEXT_remap_index]
+#define _gloffset_NamedStringARB driDispatchRemapTable[NamedStringARB_remap_index]
+#define _gloffset_DeleteNamedStringARB driDispatchRemapTable[DeleteNamedStringARB_remap_index]
+#define _gloffset_CompileShaderIncludeARB driDispatchRemapTable[CompileShaderIncludeARB_remap_index]
+#define _gloffset_IsNamedStringARB driDispatchRemapTable[IsNamedStringARB_remap_index]
+#define _gloffset_GetNamedStringARB driDispatchRemapTable[GetNamedStringARB_remap_index]
+#define _gloffset_GetNamedStringivARB driDispatchRemapTable[GetNamedStringivARB_remap_index]
 
 typedef void (GLAPIENTRYP _glptr_NewList)(GLuint, GLenum);
 #define CALL_NewList(disp, parameters) \
@@ -20239,6 +20283,248 @@ static INLINE _glptr_GetVertexArrayPointeri_vEXT GET_GetVertexArrayPointeri_vEXT
 
 static INLINE void SET_GetVertexArrayPointeri_vEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLuint, GLenum, GLvoid**)) {
    SET_by_offset(disp, _gloffset_GetVertexArrayPointeri_vEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_ClearNamedBufferDataEXT)(GLuint, GLenum, GLenum, GLenum, const GLvoid *);
+#define CALL_ClearNamedBufferDataEXT(disp, parameters) \
+    (* GET_ClearNamedBufferDataEXT(disp)) parameters
+static INLINE _glptr_ClearNamedBufferDataEXT GET_ClearNamedBufferDataEXT(struct _glapi_table *disp) {
+   return (_glptr_ClearNamedBufferDataEXT) (GET_by_offset(disp, _gloffset_ClearNamedBufferDataEXT));
+}
+
+static INLINE void SET_ClearNamedBufferDataEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLenum, GLenum, const GLvoid *)) {
+   SET_by_offset(disp, _gloffset_ClearNamedBufferDataEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_ClearNamedBufferSubDataEXT)(GLuint, GLenum, GLintptr, GLsizeiptr, GLenum, GLenum, const GLvoid *);
+#define CALL_ClearNamedBufferSubDataEXT(disp, parameters) \
+    (* GET_ClearNamedBufferSubDataEXT(disp)) parameters
+static INLINE _glptr_ClearNamedBufferSubDataEXT GET_ClearNamedBufferSubDataEXT(struct _glapi_table *disp) {
+   return (_glptr_ClearNamedBufferSubDataEXT) (GET_by_offset(disp, _gloffset_ClearNamedBufferSubDataEXT));
+}
+
+static INLINE void SET_ClearNamedBufferSubDataEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLintptr, GLsizeiptr, GLenum, GLenum, const GLvoid *)) {
+   SET_by_offset(disp, _gloffset_ClearNamedBufferSubDataEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_NamedFramebufferParameteriEXT)(GLuint, GLenum, GLint);
+#define CALL_NamedFramebufferParameteriEXT(disp, parameters) \
+    (* GET_NamedFramebufferParameteriEXT(disp)) parameters
+static INLINE _glptr_NamedFramebufferParameteriEXT GET_NamedFramebufferParameteriEXT(struct _glapi_table *disp) {
+   return (_glptr_NamedFramebufferParameteriEXT) (GET_by_offset(disp, _gloffset_NamedFramebufferParameteriEXT));
+}
+
+static INLINE void SET_NamedFramebufferParameteriEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint)) {
+   SET_by_offset(disp, _gloffset_NamedFramebufferParameteriEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetNamedFramebufferParameterivEXT)(GLuint, GLenum, GLint*);
+#define CALL_GetNamedFramebufferParameterivEXT(disp, parameters) \
+    (* GET_GetNamedFramebufferParameterivEXT(disp)) parameters
+static INLINE _glptr_GetNamedFramebufferParameterivEXT GET_GetNamedFramebufferParameterivEXT(struct _glapi_table *disp) {
+   return (_glptr_GetNamedFramebufferParameterivEXT) (GET_by_offset(disp, _gloffset_GetNamedFramebufferParameterivEXT));
+}
+
+static INLINE void SET_GetNamedFramebufferParameterivEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint*)) {
+   SET_by_offset(disp, _gloffset_GetNamedFramebufferParameterivEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_VertexArrayVertexAttribLOffsetEXT)(GLuint, GLuint, GLuint, GLint, GLenum, GLsizei, GLintptr);
+#define CALL_VertexArrayVertexAttribLOffsetEXT(disp, parameters) \
+    (* GET_VertexArrayVertexAttribLOffsetEXT(disp)) parameters
+static INLINE _glptr_VertexArrayVertexAttribLOffsetEXT GET_VertexArrayVertexAttribLOffsetEXT(struct _glapi_table *disp) {
+   return (_glptr_VertexArrayVertexAttribLOffsetEXT) (GET_by_offset(disp, _gloffset_VertexArrayVertexAttribLOffsetEXT));
+}
+
+static INLINE void SET_VertexArrayVertexAttribLOffsetEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLuint, GLuint, GLint, GLenum, GLsizei, GLintptr)) {
+   SET_by_offset(disp, _gloffset_VertexArrayVertexAttribLOffsetEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_VertexArrayVertexAttribDivisorEXT)(GLuint, GLuint, GLuint);
+#define CALL_VertexArrayVertexAttribDivisorEXT(disp, parameters) \
+    (* GET_VertexArrayVertexAttribDivisorEXT(disp)) parameters
+static INLINE _glptr_VertexArrayVertexAttribDivisorEXT GET_VertexArrayVertexAttribDivisorEXT(struct _glapi_table *disp) {
+   return (_glptr_VertexArrayVertexAttribDivisorEXT) (GET_by_offset(disp, _gloffset_VertexArrayVertexAttribDivisorEXT));
+}
+
+static INLINE void SET_VertexArrayVertexAttribDivisorEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLuint, GLuint)) {
+   SET_by_offset(disp, _gloffset_VertexArrayVertexAttribDivisorEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TextureBufferRangeEXT)(GLuint, GLenum, GLenum, GLuint, GLintptr, GLsizeiptr);
+#define CALL_TextureBufferRangeEXT(disp, parameters) \
+    (* GET_TextureBufferRangeEXT(disp)) parameters
+static INLINE _glptr_TextureBufferRangeEXT GET_TextureBufferRangeEXT(struct _glapi_table *disp) {
+   return (_glptr_TextureBufferRangeEXT) (GET_by_offset(disp, _gloffset_TextureBufferRangeEXT));
+}
+
+static INLINE void SET_TextureBufferRangeEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLenum, GLuint, GLintptr, GLsizeiptr)) {
+   SET_by_offset(disp, _gloffset_TextureBufferRangeEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TextureStorage2DMultisampleEXT)(GLuint, GLenum, GLsizei, GLenum, GLsizei, GLsizei, GLboolean);
+#define CALL_TextureStorage2DMultisampleEXT(disp, parameters) \
+    (* GET_TextureStorage2DMultisampleEXT(disp)) parameters
+static INLINE _glptr_TextureStorage2DMultisampleEXT GET_TextureStorage2DMultisampleEXT(struct _glapi_table *disp) {
+   return (_glptr_TextureStorage2DMultisampleEXT) (GET_by_offset(disp, _gloffset_TextureStorage2DMultisampleEXT));
+}
+
+static INLINE void SET_TextureStorage2DMultisampleEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLsizei, GLenum, GLsizei, GLsizei, GLboolean)) {
+   SET_by_offset(disp, _gloffset_TextureStorage2DMultisampleEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_TextureStorage3DMultisampleEXT)(GLuint, GLenum, GLsizei, GLenum, GLsizei, GLsizei, GLsizei, GLboolean);
+#define CALL_TextureStorage3DMultisampleEXT(disp, parameters) \
+    (* GET_TextureStorage3DMultisampleEXT(disp)) parameters
+static INLINE _glptr_TextureStorage3DMultisampleEXT GET_TextureStorage3DMultisampleEXT(struct _glapi_table *disp) {
+   return (_glptr_TextureStorage3DMultisampleEXT) (GET_by_offset(disp, _gloffset_TextureStorage3DMultisampleEXT));
+}
+
+static INLINE void SET_TextureStorage3DMultisampleEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLsizei, GLenum, GLsizei, GLsizei, GLsizei, GLboolean)) {
+   SET_by_offset(disp, _gloffset_TextureStorage3DMultisampleEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_VertexArrayBindVertexBufferEXT)(GLuint, GLuint, GLuint, GLintptr, GLsizei);
+#define CALL_VertexArrayBindVertexBufferEXT(disp, parameters) \
+    (* GET_VertexArrayBindVertexBufferEXT(disp)) parameters
+static INLINE _glptr_VertexArrayBindVertexBufferEXT GET_VertexArrayBindVertexBufferEXT(struct _glapi_table *disp) {
+   return (_glptr_VertexArrayBindVertexBufferEXT) (GET_by_offset(disp, _gloffset_VertexArrayBindVertexBufferEXT));
+}
+
+static INLINE void SET_VertexArrayBindVertexBufferEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLuint, GLuint, GLintptr, GLsizei)) {
+   SET_by_offset(disp, _gloffset_VertexArrayBindVertexBufferEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_VertexArrayVertexAttribFormatEXT)(GLuint, GLuint, GLint, GLenum, GLboolean, GLuint);
+#define CALL_VertexArrayVertexAttribFormatEXT(disp, parameters) \
+    (* GET_VertexArrayVertexAttribFormatEXT(disp)) parameters
+static INLINE _glptr_VertexArrayVertexAttribFormatEXT GET_VertexArrayVertexAttribFormatEXT(struct _glapi_table *disp) {
+   return (_glptr_VertexArrayVertexAttribFormatEXT) (GET_by_offset(disp, _gloffset_VertexArrayVertexAttribFormatEXT));
+}
+
+static INLINE void SET_VertexArrayVertexAttribFormatEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLuint, GLint, GLenum, GLboolean, GLuint)) {
+   SET_by_offset(disp, _gloffset_VertexArrayVertexAttribFormatEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_VertexArrayVertexAttribIFormatEXT)(GLuint, GLuint, GLint, GLenum, GLuint);
+#define CALL_VertexArrayVertexAttribIFormatEXT(disp, parameters) \
+    (* GET_VertexArrayVertexAttribIFormatEXT(disp)) parameters
+static INLINE _glptr_VertexArrayVertexAttribIFormatEXT GET_VertexArrayVertexAttribIFormatEXT(struct _glapi_table *disp) {
+   return (_glptr_VertexArrayVertexAttribIFormatEXT) (GET_by_offset(disp, _gloffset_VertexArrayVertexAttribIFormatEXT));
+}
+
+static INLINE void SET_VertexArrayVertexAttribIFormatEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLuint, GLint, GLenum, GLuint)) {
+   SET_by_offset(disp, _gloffset_VertexArrayVertexAttribIFormatEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_VertexArrayVertexAttribLFormatEXT)(GLuint, GLuint, GLint, GLenum, GLuint);
+#define CALL_VertexArrayVertexAttribLFormatEXT(disp, parameters) \
+    (* GET_VertexArrayVertexAttribLFormatEXT(disp)) parameters
+static INLINE _glptr_VertexArrayVertexAttribLFormatEXT GET_VertexArrayVertexAttribLFormatEXT(struct _glapi_table *disp) {
+   return (_glptr_VertexArrayVertexAttribLFormatEXT) (GET_by_offset(disp, _gloffset_VertexArrayVertexAttribLFormatEXT));
+}
+
+static INLINE void SET_VertexArrayVertexAttribLFormatEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLuint, GLint, GLenum, GLuint)) {
+   SET_by_offset(disp, _gloffset_VertexArrayVertexAttribLFormatEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_VertexArrayVertexAttribBindingEXT)(GLuint, GLuint, GLuint);
+#define CALL_VertexArrayVertexAttribBindingEXT(disp, parameters) \
+    (* GET_VertexArrayVertexAttribBindingEXT(disp)) parameters
+static INLINE _glptr_VertexArrayVertexAttribBindingEXT GET_VertexArrayVertexAttribBindingEXT(struct _glapi_table *disp) {
+   return (_glptr_VertexArrayVertexAttribBindingEXT) (GET_by_offset(disp, _gloffset_VertexArrayVertexAttribBindingEXT));
+}
+
+static INLINE void SET_VertexArrayVertexAttribBindingEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLuint, GLuint)) {
+   SET_by_offset(disp, _gloffset_VertexArrayVertexAttribBindingEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_VertexArrayVertexBindingDivisorEXT)(GLuint, GLuint, GLuint);
+#define CALL_VertexArrayVertexBindingDivisorEXT(disp, parameters) \
+    (* GET_VertexArrayVertexBindingDivisorEXT(disp)) parameters
+static INLINE _glptr_VertexArrayVertexBindingDivisorEXT GET_VertexArrayVertexBindingDivisorEXT(struct _glapi_table *disp) {
+   return (_glptr_VertexArrayVertexBindingDivisorEXT) (GET_by_offset(disp, _gloffset_VertexArrayVertexBindingDivisorEXT));
+}
+
+static INLINE void SET_VertexArrayVertexBindingDivisorEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLuint, GLuint)) {
+   SET_by_offset(disp, _gloffset_VertexArrayVertexBindingDivisorEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_NamedBufferPageCommitmentEXT)(GLuint, GLintptr, GLsizeiptr, GLboolean);
+#define CALL_NamedBufferPageCommitmentEXT(disp, parameters) \
+    (* GET_NamedBufferPageCommitmentEXT(disp)) parameters
+static INLINE _glptr_NamedBufferPageCommitmentEXT GET_NamedBufferPageCommitmentEXT(struct _glapi_table *disp) {
+   return (_glptr_NamedBufferPageCommitmentEXT) (GET_by_offset(disp, _gloffset_NamedBufferPageCommitmentEXT));
+}
+
+static INLINE void SET_NamedBufferPageCommitmentEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLintptr, GLsizeiptr, GLboolean)) {
+   SET_by_offset(disp, _gloffset_NamedBufferPageCommitmentEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_NamedStringARB)(GLenum, GLint, const GLchar *, GLint, const GLchar *);
+#define CALL_NamedStringARB(disp, parameters) \
+    (* GET_NamedStringARB(disp)) parameters
+static INLINE _glptr_NamedStringARB GET_NamedStringARB(struct _glapi_table *disp) {
+   return (_glptr_NamedStringARB) (GET_by_offset(disp, _gloffset_NamedStringARB));
+}
+
+static INLINE void SET_NamedStringARB(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLint, const GLchar *, GLint, const GLchar *)) {
+   SET_by_offset(disp, _gloffset_NamedStringARB, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_DeleteNamedStringARB)(GLint, const GLchar *);
+#define CALL_DeleteNamedStringARB(disp, parameters) \
+    (* GET_DeleteNamedStringARB(disp)) parameters
+static INLINE _glptr_DeleteNamedStringARB GET_DeleteNamedStringARB(struct _glapi_table *disp) {
+   return (_glptr_DeleteNamedStringARB) (GET_by_offset(disp, _gloffset_DeleteNamedStringARB));
+}
+
+static INLINE void SET_DeleteNamedStringARB(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLint, const GLchar *)) {
+   SET_by_offset(disp, _gloffset_DeleteNamedStringARB, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CompileShaderIncludeARB)(GLuint, GLsizei, const GLchar * const *, const GLint *);
+#define CALL_CompileShaderIncludeARB(disp, parameters) \
+    (* GET_CompileShaderIncludeARB(disp)) parameters
+static INLINE _glptr_CompileShaderIncludeARB GET_CompileShaderIncludeARB(struct _glapi_table *disp) {
+   return (_glptr_CompileShaderIncludeARB) (GET_by_offset(disp, _gloffset_CompileShaderIncludeARB));
+}
+
+static INLINE void SET_CompileShaderIncludeARB(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLsizei, const GLchar * const *, const GLint *)) {
+   SET_by_offset(disp, _gloffset_CompileShaderIncludeARB, fn);
+}
+
+typedef GLboolean (GLAPIENTRYP _glptr_IsNamedStringARB)(GLint, const GLchar *);
+#define CALL_IsNamedStringARB(disp, parameters) \
+    (* GET_IsNamedStringARB(disp)) parameters
+static INLINE _glptr_IsNamedStringARB GET_IsNamedStringARB(struct _glapi_table *disp) {
+   return (_glptr_IsNamedStringARB) (GET_by_offset(disp, _gloffset_IsNamedStringARB));
+}
+
+static INLINE void SET_IsNamedStringARB(struct _glapi_table *disp, GLboolean (GLAPIENTRYP fn)(GLint, const GLchar *)) {
+   SET_by_offset(disp, _gloffset_IsNamedStringARB, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetNamedStringARB)(GLint, const GLchar *, GLsizei, GLint *, GLchar *);
+#define CALL_GetNamedStringARB(disp, parameters) \
+    (* GET_GetNamedStringARB(disp)) parameters
+static INLINE _glptr_GetNamedStringARB GET_GetNamedStringARB(struct _glapi_table *disp) {
+   return (_glptr_GetNamedStringARB) (GET_by_offset(disp, _gloffset_GetNamedStringARB));
+}
+
+static INLINE void SET_GetNamedStringARB(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLint, const GLchar *, GLsizei, GLint *, GLchar *)) {
+   SET_by_offset(disp, _gloffset_GetNamedStringARB, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_GetNamedStringivARB)(GLint, const GLchar *, GLenum, GLint *);
+#define CALL_GetNamedStringivARB(disp, parameters) \
+    (* GET_GetNamedStringivARB(disp)) parameters
+static INLINE _glptr_GetNamedStringivARB GET_GetNamedStringivARB(struct _glapi_table *disp) {
+   return (_glptr_GetNamedStringivARB) (GET_by_offset(disp, _gloffset_GetNamedStringivARB));
+}
+
+static INLINE void SET_GetNamedStringivARB(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLint, const GLchar *, GLenum, GLint *)) {
+   SET_by_offset(disp, _gloffset_GetNamedStringivARB, fn);
 }
 
 

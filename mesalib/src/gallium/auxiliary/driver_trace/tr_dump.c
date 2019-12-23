@@ -50,7 +50,7 @@
 #include "util/u_memory.h"
 #include "util/u_string.h"
 #include "util/u_math.h"
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 
 #include "tr_dump.h"
 #include "tr_screen.h"

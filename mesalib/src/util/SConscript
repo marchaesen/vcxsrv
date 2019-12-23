@@ -17,6 +17,7 @@ env.Prepend(CPPPATH = [
     '#src/gallium/include',
     '#src/gallium/auxiliary',
     '#src/util',
+    '#src/util/format',
 ])
 
 env.CodeGenerate(
@@ -25,6 +26,18 @@ env.CodeGenerate(
     source = [],
     command = python_cmd + ' $SCRIPT > $TARGET'
 )
+
+env.CodeGenerate(
+    target = 'format/u_format_table.c',
+    script = 'format/u_format_table.py',
+    source = ['format/u_format.csv'],
+    command = python_cmd + ' $SCRIPT $SOURCE > $TARGET'
+)
+
+env.Depends('format/u_format_table.c', [
+    'format/u_format_parse.py',
+    'format/u_format_pack.py',
+])
 
 # parse Makefile.sources
 source_lists = env.ParseSourceList('Makefile.sources')

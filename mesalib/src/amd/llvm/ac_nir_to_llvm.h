@@ -34,6 +34,7 @@ struct nir_shader;
 struct nir_variable;
 struct ac_llvm_context;
 struct ac_shader_abi;
+struct ac_shader_args;
 
 /* Interpolation locations */
 #define INTERP_CENTER 0
@@ -45,12 +46,12 @@ static inline unsigned ac_llvm_reg_index_soa(unsigned index, unsigned chan)
 	return (index * 4) + chan;
 }
 
-void ac_lower_indirect_derefs(struct nir_shader *nir, enum chip_class);
+bool ac_lower_indirect_derefs(struct nir_shader *nir, enum chip_class);
 
 bool ac_are_tessfactors_def_in_all_invocs(const struct nir_shader *nir);
 
 void ac_nir_translate(struct ac_llvm_context *ac, struct ac_shader_abi *abi,
-		      struct nir_shader *nir);
+		      const struct ac_shader_args *args, struct nir_shader *nir);
 
 void
 ac_handle_shader_output_decl(struct ac_llvm_context *ctx,

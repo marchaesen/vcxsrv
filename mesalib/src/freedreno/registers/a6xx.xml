@@ -2009,8 +2009,7 @@ to upconvert to 32b float internally?
 	</enum>
 
 	<bitset name="a6xx_2d_blit_cntl" inline="yes">
-		<bitfield name="ROTATE" low="0" high="1" type="a6xx_rotation"/>
-		<bitfield name="HORIZONTAL_FLIP" low="2" high="2" type="boolean"/>
+		<bitfield name="ROTATE" low="0" high="2" type="a6xx_rotation"/>
 		<bitfield name="SOLID_COLOR" pos="7" type="boolean"/>
 		<bitfield name="COLOR_FORMAT" low="8" high="15" type="a6xx_color_fmt"/>
 		<bitfield name="SCISSOR" pos="16" type="boolean"/>
@@ -3295,7 +3294,12 @@ to upconvert to 32b float internally?
 		 -->
 		<bitfield name="ARRAY_PITCH" low="0" high="13" shr="12" type="uint"/>
 		<bitfield name="MIN_LAYERSZ" low="23" high="26" shr="12"/>
-		<bitfield name="UNK27" pos="27" type="boolean"/>
+		<!--
+		by default levels with w < 16 are linear
+		TILE_ALL makes all levels have tiling
+		seems required when using UBWC, since all levels have UBWC (can possibly be disabled?)
+		 -->
+		<bitfield name="TILE_ALL" pos="27" type="boolean"/>
 		<bitfield name="FLAG" pos="28" type="boolean"/>
 	</reg32>
 	<reg32 offset="4" name="4">
@@ -3316,11 +3320,10 @@ to upconvert to 32b float internally?
 		<bitfield name="FLAG_BUFFER_ARRAY_PITCH" low="0" high="16" shr="4" type="uint"/>
 	</reg32>
 	<reg32 offset="10" name="10">
-		<!--
-		I see some other bits set by blob above FLAG_BUFFER_PITCH, but they
-		don't seem to be particularly sensible... or needed for UBWC to work
-		 -->
 		<bitfield name="FLAG_BUFFER_PITCH" low="0" high="6" shr="6" type="uint"/>
+		<!-- log2 size of the first level, required for mipmapping -->
+		<bitfield name="FLAG_BUFFER_LOGW" low="8" high="11" type="uint"/>
+		<bitfield name="FLAG_BUFFER_LOGH" low="12" high="15" type="uint"/>
 	</reg32>
 	<reg32 offset="11" name="11"/>
 	<reg32 offset="12" name="12"/>

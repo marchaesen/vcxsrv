@@ -32,3 +32,4 @@ LIBRARY=libmi
 
 INCLUDES+=../composite
 
+DEFINES +=  PIXMAN_API=

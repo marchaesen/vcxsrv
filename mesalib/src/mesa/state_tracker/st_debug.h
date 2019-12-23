@@ -34,12 +34,8 @@
 
 struct st_context;
 
-extern void
-st_print_current(void);
-
-
 #define DEBUG_MESA      0x1
-#define DEBUG_TGSI      0x2
+#define DEBUG_PRINT_IR  0x2
 #define DEBUG_CONSTANTS 0x4
 #define DEBUG_PIPE      0x8
 #define DEBUG_TEX       0x10

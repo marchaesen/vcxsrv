@@ -103,7 +103,7 @@ GLenum pname       = * (GLenum *)(pc + 0);
     }
 
     compsize = __glFogfv_size(pname);
-    return safe_pad(safe_mul(compsize, 4));
+    return safe_pad(safe_mul(compsize, 1 * sizeof(GLfloat)));
 }
 
 int
@@ -117,7 +117,7 @@ GLenum pname       = * (GLenum *)(pc + 4);
     }
 
     compsize = __glLightfv_size(pname);
-    return safe_pad(safe_mul(compsize, 4));
+    return safe_pad(safe_mul(compsize, 1 * sizeof(GLfloat)));
 }
 
 int
@@ -131,7 +131,7 @@ GLenum pname       = * (GLenum *)(pc + 0);
     }
 
     compsize = __glLightModelfv_size(pname);
-    return safe_pad(safe_mul(compsize, 4));
+    return safe_pad(safe_mul(compsize, 1 * sizeof(GLfloat)));
 }
 
 int
@@ -145,7 +145,7 @@ GLenum pname       = * (GLenum *)(pc + 4);
     }
 
     compsize = __glMaterialfv_size(pname);
-    return safe_pad(safe_mul(compsize, 4));
+    return safe_pad(safe_mul(compsize, 1 * sizeof(GLfloat)));
 }
 
 int
@@ -179,7 +179,7 @@ GLenum pname       = * (GLenum *)(pc + 4);
     }
 
     compsize = __glTexParameterfv_size(pname);
-    return safe_pad(safe_mul(compsize, 4));
+    return safe_pad(safe_mul(compsize, 1 * sizeof(GLfloat)));
 }
 
 int
@@ -251,7 +251,7 @@ GLenum pname       = * (GLenum *)(pc + 4);
     }
 
     compsize = __glTexEnvfv_size(pname);
-    return safe_pad(safe_mul(compsize, 4));
+    return safe_pad(safe_mul(compsize, 1 * sizeof(GLfloat)));
 }
 
 int
@@ -265,7 +265,7 @@ GLenum pname       = * (GLenum *)(pc + 4);
     }
 
     compsize = __glTexGendv_size(pname);
-    return safe_pad(safe_mul(compsize, 8));
+    return safe_pad(safe_mul(compsize, 1 * sizeof(GLdouble)));
 }
 
 int
@@ -279,7 +279,7 @@ GLenum pname       = * (GLenum *)(pc + 4);
     }
 
     compsize = __glTexGenfv_size(pname);
-    return safe_pad(safe_mul(compsize, 4));
+    return safe_pad(safe_mul(compsize, 1 * sizeof(GLfloat)));
 }
 
 int
@@ -291,7 +291,7 @@ GLsizei mapsize    = *(GLsizei *)(pc + 4);
         mapsize = bswap_32(mapsize);
     }
 
-    return safe_pad(safe_mul(mapsize, 4));
+    return safe_pad(safe_mul(mapsize, 1 * sizeof(GLfloat)));
 }
 
 int
@@ -303,7 +303,7 @@ GLsizei mapsize    = *(GLsizei *)(pc + 4);
         mapsize = bswap_32(mapsize);
     }
 
-    return safe_pad(safe_mul(mapsize, 2));
+    return safe_pad(safe_mul(mapsize, 1 * sizeof(GLushort)));
 }
 
 int
@@ -343,7 +343,7 @@ GLsizei n          = *(GLsizei *)(pc + 0);
         n = bswap_32(n);
     }
 
-    return safe_pad(safe_add(safe_mul(n, 4), safe_mul(n, 4)));
+    return safe_pad(safe_add(safe_mul(n, 1 * sizeof(GLuint)), safe_mul(n, 1 * sizeof(GLclampf))));
 }
 
 int
@@ -443,7 +443,7 @@ GLenum pname       = * (GLenum *)(pc + 4);
     }
 
     compsize = __glColorTableParameterfv_size(pname);
-    return safe_pad(safe_mul(compsize, 4));
+    return safe_pad(safe_mul(compsize, 1 * sizeof(GLfloat)));
 }
 
 int
@@ -543,7 +543,7 @@ GLenum pname       = * (GLenum *)(pc + 4);
     }
 
     compsize = __glConvolutionParameterfv_size(pname);
-    return safe_pad(safe_mul(compsize, 4));
+    return safe_pad(safe_mul(compsize, 1 * sizeof(GLfloat)));
 }
 
 int
@@ -676,7 +676,7 @@ GLenum pname       = * (GLenum *)(pc + 0);
     }
 
     compsize = __glPointParameterfv_size(pname);
-    return safe_pad(safe_mul(compsize, 4));
+    return safe_pad(safe_mul(compsize, 1 * sizeof(GLfloat)));
 }
 
 int
@@ -688,7 +688,7 @@ GLsizei n          = *(GLsizei *)(pc + 0);
         n = bswap_32(n);
     }
 
-    return safe_pad(safe_mul(n, 4));
+    return safe_pad(safe_mul(n, 1 * sizeof(GLenum)));
 }
 
 int
@@ -712,7 +712,7 @@ GLsizei num        = *(GLsizei *)(pc + 8);
         num = bswap_32(num);
     }
 
-    return safe_pad(safe_mul(num, 32));
+    return safe_pad(safe_mul(num, 4 * sizeof(GLdouble)));
 }
 
 int
@@ -724,7 +724,7 @@ GLsizei num        = *(GLsizei *)(pc + 8);
         num = bswap_32(num);
     }
 
-    return safe_pad(safe_mul(num, 16));
+    return safe_pad(safe_mul(num, 4 * sizeof(GLfloat)));
 }
 
 int
@@ -736,7 +736,7 @@ GLsizei n          = *(GLsizei *)(pc + 4);
         n = bswap_32(n);
     }
 
-    return safe_pad(safe_mul(n, 8));
+    return safe_pad(safe_mul(n, 1 * sizeof(GLdouble)));
 }
 
 int
@@ -748,7 +748,7 @@ GLsizei n          = *(GLsizei *)(pc + 4);
         n = bswap_32(n);
     }
 
-    return safe_pad(safe_mul(n, 16));
+    return safe_pad(safe_mul(n, 2 * sizeof(GLdouble)));
 }
 
 int
@@ -760,7 +760,7 @@ GLsizei n          = *(GLsizei *)(pc + 4);
         n = bswap_32(n);
     }
 
-    return safe_pad(safe_mul(n, 24));
+    return safe_pad(safe_mul(n, 3 * sizeof(GLdouble)));
 }
 
 int
@@ -772,7 +772,7 @@ GLsizei n          = *(GLsizei *)(pc + 4);
         n = bswap_32(n);
     }
 
-    return safe_pad(safe_mul(n, 12));
+    return safe_pad(safe_mul(n, 3 * sizeof(GLfloat)));
 }
 
 int
@@ -784,7 +784,7 @@ GLsizei n          = *(GLsizei *)(pc + 4);
         n = bswap_32(n);
     }
 
-    return safe_pad(safe_mul(n, 6));
+    return safe_pad(safe_mul(n, 3 * sizeof(GLshort)));
 }
 
 int
@@ -796,7 +796,7 @@ GLsizei n          = *(GLsizei *)(pc + 4);
         n = bswap_32(n);
     }
 
-    return safe_pad(safe_mul(n, 32));
+    return safe_pad(safe_mul(n, 4 * sizeof(GLdouble)));
 }
 
 int

@@ -47,7 +47,7 @@
 #include "st_format.h"
 #include "st_cb_texture.h"
 #include "pipe/p_context.h"
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 #include "util/u_inlines.h"
 #include "cso_cache/cso_context.h"
 

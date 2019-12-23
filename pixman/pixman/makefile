@@ -42,5 +42,4 @@ endif
 
 # sse2 code
 CSRCS += pixman-sse2.c
-DEFINES+=USE_SSE2
-
+DEFINES+=USE_SSE2 PIXMAN_API=

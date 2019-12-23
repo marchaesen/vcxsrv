@@ -39,15 +39,6 @@ tu_extensions_c = custom_target(
   ],
 )
 
-tu_format_table_c = custom_target(
-  'tu_format_table.c',
-  input : ['vk_format_table.py', 'vk_format_layout.csv'],
-  output : 'vk_format_table.c',
-  command : [prog_python, '@INPUT@'],
-  depend_files : files('vk_format_parse.py'),
-  capture : true,
-)
-
 libtu_files = files(
   'tu_blit.c',
   'tu_blit.h',
@@ -81,15 +72,34 @@ libtu_files = files(
 tu_deps = []
 tu_flags = []
 
+if with_platform_x11
+  tu_deps += dep_xcb_dri3
+  tu_flags += [
+    '-DVK_USE_PLATFORM_XCB_KHR',
+    '-DVK_USE_PLATFORM_XLIB_KHR',
+  ]
+  libtu_files += files('tu_wsi_x11.c')
+endif
+
 if with_platform_wayland
   tu_deps += dep_wayland_client
   tu_flags += '-DVK_USE_PLATFORM_WAYLAND_KHR'
   libtu_files += files('tu_wsi_wayland.c')
 endif
 
+if with_platform_drm
+  tu_flags += '-DVK_USE_PLATFORM_DISPLAY_KHR'
+  libtu_files += files('tu_wsi_display.c')
+endif
+
+if with_xlib_lease
+  tu_deps += [dep_xcb_xrandr, dep_xlib_xrandr]
+  tu_flags += '-DVK_USE_PLATFORM_XLIB_XRANDR_EXT'
+endif
+
 libvulkan_freedreno = shared_library(
   'vulkan_freedreno',
-  [libtu_files, tu_entrypoints, tu_extensions_c, tu_format_table_c, freedreno_xml_header_files],
+  [libtu_files, tu_entrypoints, tu_extensions_c, freedreno_xml_header_files],
   include_directories : [
     inc_common,
     inc_compiler,

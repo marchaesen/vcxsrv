@@ -33,7 +33,7 @@
 #include "main/enums.h"
 #include "main/framebuffer.h"
 #include "util/u_inlines.h"
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 #include "cso_cache/cso_context.h"
 
 #include "st_cb_fbo.h"

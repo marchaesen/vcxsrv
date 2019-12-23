@@ -30,7 +30,7 @@
 #include "pipe/p_state.h"
 
 #include "u_bitcast.h"
-#include "u_format.h"
+#include "util/format/u_format.h"
 #include "u_sampler.h"
 #include "tgsi/tgsi_text.h"
 #include "tgsi/tgsi_ureg.h"

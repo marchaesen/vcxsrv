@@ -115,13 +115,6 @@ bool VALU_writes_sgpr(aco_ptr<Instruction>& instr)
    return false;
 }
 
-bool instr_reads_exec(const aco_ptr<Instruction>& instr)
-{
-   return std::any_of(instr->operands.begin(), instr->operands.end(), [](const Operand &op) -> bool {
-      return op.physReg() == exec_lo || op.physReg() == exec_hi;
-   });
-}
-
 bool instr_writes_exec(const aco_ptr<Instruction>& instr)
 {
    return std::any_of(instr->definitions.begin(), instr->definitions.end(), [](const Definition &def) -> bool {
@@ -445,7 +438,7 @@ void handle_instruction_gfx10(NOP_ctx_gfx10 &ctx, aco_ptr<Instruction>& instr,
    /* VcmpxExecWARHazard
     * Handle any VALU instruction writing the exec mask after it was read by a non-VALU instruction.
     */
-   if (!instr->isVALU() && instr_reads_exec(instr)) {
+   if (!instr->isVALU() && instr->reads_exec()) {
       ctx.has_nonVALU_exec_read = true;
    } else if (instr->isVALU()) {
       if (instr_writes_exec(instr)) {

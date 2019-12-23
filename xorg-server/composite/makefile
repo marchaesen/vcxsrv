@@ -7,3 +7,5 @@ CSRCS = 	\
 	compinit.c		\
 	compoverlay.c		\
 	compwindow.c		
+
+DEFINES+= PIXMAN_API=

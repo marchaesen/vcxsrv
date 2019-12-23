@@ -26,27 +26,6 @@
 
 #include "compiler/nir/nir.h"
 #include "util/u_dynarray.h"
-#include "util/register_allocate.h"
-
-/* To be shoved inside panfrost_screen for the Gallium driver, or somewhere
- * else for Vulkan/standalone. The single compiler "screen" to be shared across
- * all shader compiles, used to store complex initialization (for instance,
- * related to register allocation) */
-
-struct midgard_screen {
-        /* Precomputed register allocation sets for varying numbers of work
-         * registers.  The zeroeth entry corresponds to 8 work registers. The
-         * eighth entry corresponds to 16 work registers. NULL if this set has
-         * not been allocated yet. */
-
-        struct ra_regs *regs[9];
-
-        /* Work register classes corresponds to the above register sets. 20 per
-         * set for 5 classes per work/ldst/ldst27/texr/texw/fragc. TODO: Unify with
-         * compiler.h */
-
-        unsigned reg_classes[9][5 * 5];
-};
 
 /* Define the general compiler entry point */
 
@@ -68,6 +47,7 @@ enum {
         PAN_SYSVAL_TEXTURE_SIZE = 3,
         PAN_SYSVAL_SSBO = 4,
         PAN_SYSVAL_NUM_WORK_GROUPS = 5,
+        PAN_SYSVAL_SAMPLER = 7,
 } pan_sysval;
 
 #define PAN_TXS_SYSVAL_ID(texidx, dim, is_array)          \
@@ -111,7 +91,7 @@ typedef struct {
 } midgard_program;
 
 int
-midgard_compile_shader_nir(struct midgard_screen *screen, nir_shader *nir, midgard_program *program, bool is_blend, unsigned gpu_id);
+midgard_compile_shader_nir(nir_shader *nir, midgard_program *program, bool is_blend, unsigned gpu_id);
 
 /* NIR options are shared between the standalone compiler and the online
  * compiler. Defining it here is the simplest, though maybe not the Right

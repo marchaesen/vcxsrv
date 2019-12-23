@@ -39,41 +39,6 @@ struct group_ops {
 	void (*insert_mov)(void *arr, int idx, struct ir3_instruction *instr);
 };
 
-static struct ir3_instruction *arr_get(void *arr, int idx)
-{
-	return ((struct ir3_instruction **)arr)[idx];
-}
-static void arr_insert_mov_out(void *arr, int idx, struct ir3_instruction *instr)
-{
-	((struct ir3_instruction **)arr)[idx] =
-			ir3_MOV(instr->block, instr, TYPE_F32);
-}
-static void arr_insert_mov_in(void *arr, int idx, struct ir3_instruction *instr)
-{
-	/* so, we can't insert a mov in front of a meta:in.. and the downstream
-	 * instruction already has a pointer to 'instr'.  So we cheat a bit and
-	 * morph the meta:in instruction into a mov and insert a new meta:in
-	 * in front.
-	 */
-	struct ir3_instruction *in;
-
-	debug_assert(instr->regs_count == 1);
-
-	in = ir3_instr_create(instr->block, OPC_META_INPUT);
-	in->input.sysval = instr->input.sysval;
-	__ssa_dst(in);
-
-	/* create src reg for meta:in and fixup to now be a mov: */
-	__ssa_src(instr, in, 0);
-	instr->opc = OPC_MOV;
-	instr->cat1.src_type = TYPE_F32;
-	instr->cat1.dst_type = TYPE_F32;
-
-	((struct ir3_instruction **)arr)[idx] = in;
-}
-static struct group_ops arr_ops_out = { arr_get, arr_insert_mov_out };
-static struct group_ops arr_ops_in = { arr_get, arr_insert_mov_in };
-
 static struct ir3_instruction *instr_get(void *arr, int idx)
 {
 	return ssa(((struct ir3_instruction *)arr)->regs[idx+1]);
@@ -185,42 +150,11 @@ instr_find_neighbors(struct ir3_instruction *instr)
 	if (ir3_instr_check_mark(instr))
 		return;
 
-	if (instr->opc == OPC_META_FI)
+	if (instr->opc == OPC_META_COLLECT)
 		group_n(&instr_ops, instr, instr->regs_count - 1);
 
 	foreach_ssa_src(src, instr)
 		instr_find_neighbors(src);
-}
-
-/* a bit of sadness.. we can't have "holes" in inputs from PoV of
- * register assignment, they still need to be grouped together.  So
- * we need to insert dummy/padding instruction for grouping, and
- * then take it back out again before anyone notices.
- */
-static void
-pad_and_group_input(struct ir3_instruction **input, unsigned n)
-{
-	int i, mask = 0;
-	struct ir3_block *block = NULL;
-
-	for (i = n - 1; i >= 0; i--) {
-		struct ir3_instruction *instr = input[i];
-		if (instr) {
-			block = instr->block;
-		} else if (block) {
-			instr = ir3_NOP(block);
-			__ssa_dst(instr);          /* dummy dst */
-			input[i] = instr;
-			mask |= (1 << i);
-		}
-	}
-
-	group_n(&arr_ops_in, input, n);
-
-	for (i = 0; i < n; i++) {
-		if (mask & (1 << i))
-			input[i] = NULL;
-	}
 }
 
 static void
@@ -228,31 +162,9 @@ find_neighbors(struct ir3 *ir)
 {
 	unsigned i;
 
-	/* shader inputs/outputs themselves must be contiguous as well:
-	 *
-	 * NOTE: group inputs first, since we only insert mov's
-	 * *before* the conflicted instr (and that would go badly
-	 * for inputs).  By doing inputs first, we should never
-	 * have a conflict on inputs.. pushing any conflict to
-	 * resolve to the outputs, for stuff like:
-	 *
-	 *     MOV OUT[n], IN[m].wzyx
-	 *
-	 * NOTE: we assume here inputs/outputs are grouped in vec4.
-	 * This logic won't quite cut it if we don't align smaller
-	 * on vec4 boundaries
-	 */
-	for (i = 0; i < ir->ninputs; i += 4)
-		pad_and_group_input(&ir->inputs[i], 4);
-	for (i = 0; i < ir->noutputs; i += 4)
-		group_n(&arr_ops_out, &ir->outputs[i], 4);
-
-	for (i = 0; i < ir->noutputs; i++) {
-		if (ir->outputs[i]) {
-			struct ir3_instruction *instr = ir->outputs[i];
-			instr_find_neighbors(instr);
-		}
-	}
+	struct ir3_instruction *out;
+	foreach_output(out, ir)
+		instr_find_neighbors(out);
 
 	list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
 		for (i = 0; i < block->keeps_count; i++) {

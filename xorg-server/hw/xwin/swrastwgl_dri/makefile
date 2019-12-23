@@ -1,7 +1,7 @@
 SHAREDLIB = swrastwgl_dri
 
 INCLUDES += $(OBJDIR) ..\..\.. .. ..\glx $(MHMAKECONF)\gl\include $(MHMAKECONF)\mesalib\include
-DEFINES += INSERVER HAVE_XWIN_CONFIG_H PTW32_STATIC_LIB
+DEFINES += INSERVER HAVE_XWIN_CONFIG_H PTW32_STATIC_LIB PIXMAN_API=
 
 $(OBJDIR)\swrastwgl_dri.dll : ..\..\..\$(SERVOBJDIR)\vcxsrv.exe
 LINKLIBS += ..\..\..\$(SERVOBJDIR)\vcxsrv.lib

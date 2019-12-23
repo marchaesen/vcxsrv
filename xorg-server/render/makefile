@@ -13,3 +13,5 @@ CSRCS =	\
 	mitri.c		\
 	picture.c	\
 	render.c
+
+DEFINES += PIXMAN_API=

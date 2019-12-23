@@ -212,7 +212,7 @@ setup_render_state(struct gl_context *ctx,
    cso_set_rasterizer(cso, &st->bitmap.rasterizer);
 
    /* fragment shader state: TEX lookup program */
-   cso_set_fragment_shader_handle(cso, fpv->driver_shader);
+   cso_set_fragment_shader_handle(cso, fpv->base.driver_shader);
 
    /* vertex shader state: position + texcoord pass-through */
    cso_set_vertex_shader_handle(cso, st->passthrough_vs);

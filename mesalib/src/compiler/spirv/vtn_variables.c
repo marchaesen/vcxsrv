@@ -30,18 +30,49 @@
 #include "nir_deref.h"
 #include <vulkan/vulkan_core.h>
 
-static void ptr_decoration_cb(struct vtn_builder *b,
-                              struct vtn_value *val, int member,
-                              const struct vtn_decoration *dec,
-                              void *void_ptr);
+static void
+ptr_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
+                  const struct vtn_decoration *dec, void *void_ptr)
+{
+   struct vtn_pointer *ptr = void_ptr;
+
+   switch (dec->decoration) {
+   case SpvDecorationNonUniformEXT:
+      ptr->access |= ACCESS_NON_UNIFORM;
+      break;
+
+   default:
+      break;
+   }
+}
+
+static struct vtn_pointer*
+vtn_decorate_pointer(struct vtn_builder *b, struct vtn_value *val,
+                     struct vtn_pointer *ptr)
+{
+   struct vtn_pointer dummy = { .access = 0 };
+   vtn_foreach_decoration(b, val, ptr_decoration_cb, &dummy);
+
+   /* If we're adding access flags, make a copy of the pointer.  We could
+    * probably just OR them in without doing so but this prevents us from
+    * leaking them any further than actually specified in the SPIR-V.
+    */
+   if (dummy.access & ~ptr->access) {
+      struct vtn_pointer *copy = ralloc(b, struct vtn_pointer);
+      *copy = *ptr;
+      copy->access |= dummy.access;
+      return copy;
+   }
+
+   return ptr;
+}
 
 struct vtn_value *
 vtn_push_value_pointer(struct vtn_builder *b, uint32_t value_id,
                        struct vtn_pointer *ptr)
 {
    struct vtn_value *val = vtn_push_value(b, value_id, vtn_value_type_pointer);
-   val->pointer = ptr;
-   vtn_foreach_decoration(b, val, ptr_decoration_cb, ptr);
+   val->pointer = vtn_decorate_pointer(b, val, ptr);
    return val;
 }
 
@@ -1512,20 +1543,20 @@ apply_var_decoration(struct vtn_builder *b,
       var_data->read_only = true;
       break;
    case SpvDecorationNonReadable:
-      var_data->image.access |= ACCESS_NON_READABLE;
+      var_data->access |= ACCESS_NON_READABLE;
       break;
    case SpvDecorationNonWritable:
       var_data->read_only = true;
-      var_data->image.access |= ACCESS_NON_WRITEABLE;
+      var_data->access |= ACCESS_NON_WRITEABLE;
       break;
    case SpvDecorationRestrict:
-      var_data->image.access |= ACCESS_RESTRICT;
+      var_data->access |= ACCESS_RESTRICT;
       break;
    case SpvDecorationVolatile:
-      var_data->image.access |= ACCESS_VOLATILE;
+      var_data->access |= ACCESS_VOLATILE;
       break;
    case SpvDecorationCoherent:
-      var_data->image.access |= ACCESS_COHERENT;
+      var_data->access |= ACCESS_COHERENT;
       break;
    case SpvDecorationComponent:
       var_data->location_frac = dec->operands[0];
@@ -1750,22 +1781,6 @@ var_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
                     vtn_var->mode == vtn_variable_mode_ssbo ||
                     vtn_var->mode == vtn_variable_mode_push_constant);
       }
-   }
-}
-
-static void
-ptr_decoration_cb(struct vtn_builder *b, struct vtn_value *val, int member,
-                  const struct vtn_decoration *dec, void *void_ptr)
-{
-   struct vtn_pointer *ptr = void_ptr;
-
-   switch (dec->decoration) {
-   case SpvDecorationNonUniformEXT:
-      ptr->access |= ACCESS_NON_UNIFORM;
-      break;
-
-   default:
-      break;
    }
 }
 
@@ -2490,14 +2505,13 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
          struct vtn_value *val =
             vtn_push_value(b, w[2], vtn_value_type_sampled_image);
          val->sampled_image = ralloc(b, struct vtn_sampled_image);
-         val->sampled_image->type = base_val->sampled_image->type;
          val->sampled_image->image =
             vtn_pointer_dereference(b, base_val->sampled_image->image, chain);
          val->sampled_image->sampler = base_val->sampled_image->sampler;
-         vtn_foreach_decoration(b, val, ptr_decoration_cb,
-                                val->sampled_image->image);
-         vtn_foreach_decoration(b, val, ptr_decoration_cb,
-                                val->sampled_image->sampler);
+         val->sampled_image->image =
+            vtn_decorate_pointer(b, val, val->sampled_image->image);
+         val->sampled_image->sampler =
+            vtn_decorate_pointer(b, val, val->sampled_image->sampler);
       } else {
          vtn_assert(base_val->value_type == vtn_value_type_pointer);
          struct vtn_pointer *ptr =
@@ -2527,9 +2541,16 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
 
       vtn_assert_types_equal(b, opcode, res_type, src_val->type->deref);
 
-      if (glsl_type_is_image(res_type->type) ||
-          glsl_type_is_sampler(res_type->type)) {
+      if (res_type->base_type == vtn_base_type_image ||
+          res_type->base_type == vtn_base_type_sampler) {
          vtn_push_value_pointer(b, w[2], src);
+         return;
+      } else if (res_type->base_type == vtn_base_type_sampled_image) {
+         struct vtn_value *val =
+            vtn_push_value(b, w[2], vtn_value_type_sampled_image);
+         val->sampled_image = ralloc(b, struct vtn_sampled_image);
+         val->sampled_image->image = val->sampled_image->sampler =
+            vtn_decorate_pointer(b, val, src);
          return;
       }
 
@@ -2588,8 +2609,13 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
             vtn_warn("OpStore of a sampler detected.  Doing on-the-fly copy "
                      "propagation to workaround the problem.");
             vtn_assert(dest->var->copy_prop_sampler == NULL);
-            dest->var->copy_prop_sampler =
-               vtn_value(b, w[2], vtn_value_type_pointer)->pointer;
+            struct vtn_value *v = vtn_untyped_value(b, w[2]);
+            if (v->value_type == vtn_value_type_sampled_image) {
+               dest->var->copy_prop_sampler = v->sampled_image->sampler;
+            } else {
+               vtn_assert(v->value_type == vtn_value_type_pointer);
+               dest->var->copy_prop_sampler = v->pointer;
+            }
          } else {
             vtn_fail("Vulkan does not allow OpStore of a sampler or image.");
          }

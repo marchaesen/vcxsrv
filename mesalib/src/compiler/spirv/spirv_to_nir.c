@@ -2246,8 +2246,6 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
       struct vtn_value *val =
          vtn_push_value(b, w[2], vtn_value_type_sampled_image);
       val->sampled_image = ralloc(b, struct vtn_sampled_image);
-      val->sampled_image->type =
-         vtn_value(b, w[1], vtn_value_type_type)->type;
       val->sampled_image->image =
          vtn_value(b, w[3], vtn_value_type_pointer)->pointer;
       val->sampled_image->sampler =
@@ -2266,18 +2264,21 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
 
    struct vtn_type *ret_type = vtn_value(b, w[1], vtn_value_type_type)->type;
 
-   struct vtn_sampled_image sampled;
+   struct vtn_pointer *image = NULL, *sampler = NULL;
    struct vtn_value *sampled_val = vtn_untyped_value(b, w[3]);
    if (sampled_val->value_type == vtn_value_type_sampled_image) {
-      sampled = *sampled_val->sampled_image;
+      image = sampled_val->sampled_image->image;
+      sampler = sampled_val->sampled_image->sampler;
    } else {
       vtn_assert(sampled_val->value_type == vtn_value_type_pointer);
-      sampled.type = sampled_val->pointer->type;
-      sampled.image = NULL;
-      sampled.sampler = sampled_val->pointer;
+      image = sampled_val->pointer;
    }
 
-   const struct glsl_type *image_type = sampled.type->type;
+   nir_deref_instr *image_deref = vtn_pointer_to_deref(b, image);
+   nir_deref_instr *sampler_deref =
+      sampler ? vtn_pointer_to_deref(b, sampler) : NULL;
+
+   const struct glsl_type *image_type = sampled_val->type->type;
    const enum glsl_sampler_dim sampler_dim = glsl_get_sampler_dim(image_type);
    const bool is_array = glsl_sampler_type_is_array(image_type);
    nir_alu_type dest_type = nir_type_invalid;
@@ -2300,7 +2301,7 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
       break;
 
    case SpvOpImageFetch:
-      if (glsl_get_sampler_dim(image_type) == GLSL_SAMPLER_DIM_MS) {
+      if (sampler_dim == GLSL_SAMPLER_DIM_MS) {
          texop = nir_texop_txf_ms;
       } else {
          texop = nir_texop_txf;
@@ -2340,11 +2341,7 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
    nir_tex_src srcs[10]; /* 10 should be enough */
    nir_tex_src *p = srcs;
 
-   nir_deref_instr *sampler = vtn_pointer_to_deref(b, sampled.sampler);
-   nir_deref_instr *texture =
-      sampled.image ? vtn_pointer_to_deref(b, sampled.image) : sampler;
-
-   p->src = nir_src_for_ssa(&texture->dest.ssa);
+   p->src = nir_src_for_ssa(&image_deref->dest.ssa);
    p->src_type = nir_tex_src_texture_deref;
    p++;
 
@@ -2355,8 +2352,10 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
    case nir_texop_txd:
    case nir_texop_tg4:
    case nir_texop_lod:
-      /* These operations require a sampler */
-      p->src = nir_src_for_ssa(&sampler->dest.ssa);
+      vtn_fail_if(sampler == NULL,
+                  "%s requires an image of type OpTypeSampledImage",
+                  spirv_op_to_string(opcode));
+      p->src = nir_src_for_ssa(&sampler_deref->dest.ssa);
       p->src_type = nir_tex_src_sampler_deref;
       p++;
       break;
@@ -2557,10 +2556,10 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
       is_shadow && glsl_get_components(ret_type->type) == 1;
    instr->component = gather_component;
 
-   if (sampled.image && (sampled.image->access & ACCESS_NON_UNIFORM))
+   if (image && (image->access & ACCESS_NON_UNIFORM))
       instr->texture_non_uniform = true;
 
-   if (sampled.sampler && (sampled.sampler->access & ACCESS_NON_UNIFORM))
+   if (sampler && (sampler->access & ACCESS_NON_UNIFORM))
       instr->sampler_non_uniform = true;
 
    /* for non-query ops, get dest_type from sampler type */
@@ -4072,7 +4071,6 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       case SpvAddressingModelLogical:
          vtn_fail_if(b->shader->info.stage >= MESA_SHADER_STAGES,
                      "AddressingModelLogical only supported for shaders");
-         b->shader->info.cs.ptr_size = 0;
          b->physical_ptrs = false;
          break;
       case SpvAddressingModelPhysicalStorageBuffer64EXT:

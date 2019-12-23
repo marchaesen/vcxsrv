@@ -33,7 +33,7 @@
 #include <xf86Crtc.h>
 #include <damage.h>
 #include <X11/extensions/dpmsconst.h>
-
+#include <shadow.h>
 #ifdef GLAMOR_HAS_GBM
 #define GLAMOR_FOR_XORG 1
 #include "glamor.h"
@@ -122,7 +122,45 @@ typedef struct _modesettingRec {
 
     Bool kms_has_modifiers;
 
+    /* shadow API */
+    struct {
+        Bool (*Setup)(ScreenPtr);
+        Bool (*Add)(ScreenPtr, PixmapPtr, ShadowUpdateProc, ShadowWindowProc,
+                    int, void *);
+        void (*Remove)(ScreenPtr, PixmapPtr);
+        void (*Update32to24)(ScreenPtr, shadowBufPtr);
+        void (*UpdatePacked)(ScreenPtr, shadowBufPtr);
+    } shadow;
+
+    /* glamor API */
+    struct {
+        Bool (*back_pixmap_from_fd)(PixmapPtr, int, CARD16, CARD16, CARD16,
+                                    CARD8, CARD8);
+        void (*block_handler)(ScreenPtr);
+        void (*clear_pixmap)(PixmapPtr);
+        Bool (*egl_create_textured_pixmap)(PixmapPtr, int, int);
+        Bool (*egl_create_textured_pixmap_from_gbm_bo)(PixmapPtr,
+                                                       struct gbm_bo *,
+                                                       Bool);
+        void (*egl_exchange_buffers)(PixmapPtr, PixmapPtr);
+        struct gbm_device *(*egl_get_gbm_device)(ScreenPtr);
+        Bool (*egl_init)(ScrnInfoPtr, int);
+        void (*finish)(ScreenPtr);
+        struct gbm_bo *(*gbm_bo_from_pixmap)(ScreenPtr, PixmapPtr);
+        Bool (*init)(ScreenPtr, unsigned int);
+        int (*name_from_pixmap)(PixmapPtr, CARD16 *, CARD32 *);
+        void (*set_drawable_modifiers_func)(ScreenPtr,
+                                            GetDrawableModifiersFuncPtr);
+        int (*shareable_fd_from_pixmap)(ScreenPtr, PixmapPtr, CARD16 *,
+                                        CARD32 *);
+        Bool (*supports_pixmap_import_export)(ScreenPtr);
+        XF86VideoAdaptorPtr (*xv_init)(ScreenPtr, int);
+        const char *(*egl_get_driver_name)(ScreenPtr);
+    } glamor;
+
 } modesettingRec, *modesettingPtr;
+
+#define glamor_finish(screen) ms->glamor.finish(screen)
 
 #define modesettingPTR(p) ((modesettingPtr)((p)->driverPrivate))
 modesettingEntPtr ms_ent_priv(ScrnInfoPtr scrn);
@@ -149,6 +187,7 @@ void ms_drm_abort_seq(ScrnInfoPtr scrn, uint32_t seq);
 Bool ms_crtc_on(xf86CrtcPtr crtc);
 
 xf86CrtcPtr ms_dri2_crtc_covering_drawable(DrawablePtr pDraw);
+RRCrtcPtr   ms_randr_crtc_covering_drawable(DrawablePtr pDraw);
 
 int ms_get_crtc_ust_msc(xf86CrtcPtr crtc, CARD64 *ust, CARD64 *msc);
 

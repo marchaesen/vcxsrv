@@ -392,8 +392,20 @@ v3d40_vir_emit_image_load_store(struct v3d_compile *c,
                 }
         }
 
+        if (vir_in_nonuniform_control_flow(c) &&
+            instr->intrinsic != nir_intrinsic_image_deref_load) {
+           vir_set_pf(vir_MOV_dest(c, vir_nop_reg(), c->execute),
+                      V3D_QPU_PF_PUSHZ);
+        }
+
         vir_TMU_WRITE(c, V3D_QPU_WADDR_TMUSF, ntq_get_src(c, instr->src[1], 0),
                       &tmu_writes);
+
+        if (vir_in_nonuniform_control_flow(c) &&
+            instr->intrinsic != nir_intrinsic_image_deref_load) {
+           struct qinst *last_inst= (struct  qinst *)c->cur_block->instructions.prev;
+           vir_set_cond(last_inst, V3D_QPU_COND_IFA);
+        }
 
         vir_emit_thrsw(c);
 

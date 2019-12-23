@@ -155,7 +155,7 @@ st_update_fs_constants(struct st_context *st)
 void
 st_update_gs_constants(struct st_context *st)
 {
-   struct st_common_program *gp = st->gp;
+   struct st_program *gp = st->gp;
 
    if (gp)
       st_upload_constants(st, &gp->Base);
@@ -166,7 +166,7 @@ st_update_gs_constants(struct st_context *st)
 void
 st_update_tcs_constants(struct st_context *st)
 {
-   struct st_common_program *tcp = st->tcp;
+   struct st_program *tcp = st->tcp;
 
    if (tcp)
       st_upload_constants(st, &tcp->Base);
@@ -177,7 +177,7 @@ st_update_tcs_constants(struct st_context *st)
 void
 st_update_tes_constants(struct st_context *st)
 {
-   struct st_common_program *tep = st->tep;
+   struct st_program *tep = st->tep;
 
    if (tep)
       st_upload_constants(st, &tep->Base);
@@ -188,7 +188,7 @@ st_update_tes_constants(struct st_context *st)
 void
 st_update_cs_constants(struct st_context *st)
 {
-   struct st_common_program *cp = st->cp;
+   struct st_program *cp = st->cp;
 
    if (cp)
       st_upload_constants(st, &cp->Base);

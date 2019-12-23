@@ -88,10 +88,6 @@ LLVMBuilderRef ac_create_builder(LLVMContextRef ctx,
 		flags.setNoSignedZeros();
 		llvm::unwrap(builder)->setFastMathFlags(flags);
 		break;
-	case AC_FLOAT_MODE_UNSAFE_FP_MATH:
-		flags.setFast();
-		llvm::unwrap(builder)->setFastMathFlags(flags);
-		break;
 	}
 
 	return builder;
@@ -192,7 +188,11 @@ struct ac_compiler_passes *ac_create_llvm_passes(LLVMTargetMachineRef tm)
 
 	if (TM->addPassesToEmitFile(p->passmgr, p->ostream,
 				    nullptr,
+#if LLVM_VERSION_MAJOR >= 10
+				    llvm::CGFT_ObjectFile)) {
+#else
 				    llvm::TargetMachine::CGFT_ObjectFile)) {
+#endif
 		fprintf(stderr, "amd: TargetMachine can't emit a file of this type!\n");
 		delete p;
 		return NULL;

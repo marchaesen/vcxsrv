@@ -3,6 +3,7 @@ LIBRARY=libfb
 
 CCFLAGS:=$(CCFLAGS:-RTCc=)
 
+DEFINES += PIXMAN_API=
 
 CSRCS = 	\
 	fballpriv.c	\

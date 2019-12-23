@@ -630,6 +630,44 @@ pandecode_midgard_tiler_descriptor(
         pandecode_log("}\n");
 }
 
+static void
+pandecode_midgard_tiler_descriptor_0x20(
+                const struct midgard_tiler_descriptor *t)
+{
+        pandecode_log(".tiler = {\n");
+        pandecode_indent++;
+
+        pandecode_prop("hierarchy_mask = 0x%" PRIx16, t->hierarchy_mask);
+        pandecode_prop("flags = 0x%" PRIx16, t->flags);
+        MEMORY_PROP(t, polygon_list);
+        MEMORY_PROP(t, polygon_list_body);
+        pandecode_prop("polygon_list_size = 0x%x", t->polygon_list_size);
+        MEMORY_PROP(t, heap_start);
+        MEMORY_PROP(t, heap_end);
+
+        /* We've never seen weights used in practice, but we know from the
+         * kernel these fields are there */
+
+        bool nonzero_weights = false;
+
+        for (unsigned w = 0; w < ARRAY_SIZE(t->weights); ++w) {
+                nonzero_weights |= t->weights[w] != 0x0;
+        }
+
+        if (nonzero_weights) {
+                pandecode_log(".weights = {");
+
+                for (unsigned w = 0; w < ARRAY_SIZE(t->weights); ++w) {
+                        pandecode_log("%d, ", t->weights[w]);
+                }
+
+                pandecode_log("},");
+        }
+
+        pandecode_indent--;
+        pandecode_log("}\n");
+}
+
 /* Information about the framebuffer passed back for
  * additional analysis */
 
@@ -671,7 +709,7 @@ pandecode_sfbd_format(struct mali_sfbd_format format)
 }
 
 static struct pandecode_fbd
-pandecode_sfbd(uint64_t gpu_va, int job_no, bool is_fragment)
+pandecode_sfbd(uint64_t gpu_va, int job_no, bool is_fragment, unsigned gpu_id)
 {
         struct pandecode_mapped_memory *mem = pandecode_find_mapped_gpu_mem_containing(gpu_va);
         const struct mali_single_framebuffer *PANDECODE_PTR_VAR(s, mem, (mali_ptr) gpu_va);
@@ -754,7 +792,11 @@ pandecode_sfbd(uint64_t gpu_va, int job_no, bool is_fragment)
 
         MEMORY_PROP(s, unknown_address_0);
         const struct midgard_tiler_descriptor t = s->tiler;
-        pandecode_midgard_tiler_descriptor(&t, s->width + 1, s->height + 1, is_fragment);
+        if (gpu_id == 0x0720 || gpu_id == 0x0820 || gpu_id == 0x0830)
+                /* These ones don't have an "Advanced Tiling Unit" */
+                pandecode_midgard_tiler_descriptor_0x20(&t);
+        else
+                pandecode_midgard_tiler_descriptor(&t, s->width + 1, s->height + 1, is_fragment);
 
         pandecode_indent--;
         pandecode_log("};\n");
@@ -2118,7 +2160,7 @@ pandecode_vertex_tiler_postfix_pre(
         else if (job_type == JOB_TYPE_COMPUTE)
                 pandecode_compute_fbd((u64) (uintptr_t) p->framebuffer, job_no);
         else
-                fbd_info = pandecode_sfbd((u64) (uintptr_t) p->framebuffer, job_no, false);
+                fbd_info = pandecode_sfbd((u64) (uintptr_t) p->framebuffer, job_no, false, gpu_id);
 
         int varying_count = 0, attribute_count = 0, uniform_count = 0, uniform_buffer_count = 0;
         int texture_count = 0, sampler_count = 0;
@@ -2281,7 +2323,7 @@ pandecode_vertex_tiler_postfix_pre(
                 /* MRT blend fields are used whenever MFBD is used, with
                  * per-RT descriptors */
 
-                if (job_type == JOB_TYPE_TILER) {
+                if (job_type == JOB_TYPE_TILER && p->framebuffer & MALI_MFBD) {
                         void* blend_base = (void *) (s + 1);
 
                         for (unsigned i = 0; i < fbd_info.rt_count; i++) {
@@ -2421,6 +2463,9 @@ pandecode_vertex_tiler_postfix_pre(
 
                                 pandecode_prop("min_lod = FIXED_16(%f)", DECODE_FIXED_16(s->min_lod));
                                 pandecode_prop("max_lod = FIXED_16(%f)", DECODE_FIXED_16(s->max_lod));
+
+                                if (s->lod_bias)
+                                        pandecode_prop("lod_bias = FIXED_16(%f)", DECODE_FIXED_16(s->lod_bias));
 
                                 pandecode_prop("wrap_s = %s", pandecode_wrap_mode(s->wrap_s));
                                 pandecode_prop("wrap_t = %s", pandecode_wrap_mode(s->wrap_t));
@@ -2723,7 +2768,7 @@ pandecode_vertex_or_tiler_job_mdg(const struct mali_job_descriptor_header *h,
 static int
 pandecode_fragment_job(const struct pandecode_mapped_memory *mem,
                               mali_ptr payload, int job_no,
-                              bool is_bifrost)
+                              bool is_bifrost, unsigned gpu_id)
 {
         const struct mali_payload_fragment *PANDECODE_PTR_VAR(s, mem, payload);
 
@@ -2740,7 +2785,7 @@ pandecode_fragment_job(const struct pandecode_mapped_memory *mem,
         if (is_mfbd)
                 info = pandecode_mfbd_bfr(s->framebuffer & FBD_MASK, job_no, true);
         else
-                info = pandecode_sfbd(s->framebuffer & FBD_MASK, job_no, true);
+                info = pandecode_sfbd(s->framebuffer & FBD_MASK, job_no, true, gpu_id);
 
         /* Compute the tag for the tagged pointer. This contains the type of
          * FBD (MFBD/SFBD), and in the case of an MFBD, information about which
@@ -2921,7 +2966,7 @@ pandecode_jc(mali_ptr jc_gpu_va, bool bifrost, unsigned gpu_id)
                         break;
 
                 case JOB_TYPE_FRAGMENT:
-                        pandecode_fragment_job(mem, payload_ptr, job_no, bifrost);
+                        pandecode_fragment_job(mem, payload_ptr, job_no, bifrost, gpu_id);
                         break;
 
                 default:

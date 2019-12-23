@@ -72,12 +72,19 @@ mir_derivative_op(nir_op op)
  * implicitly */
 
 bool
-mir_op_computes_derivatives(unsigned op)
+mir_op_computes_derivatives(gl_shader_stage stage, unsigned op)
 {
+        /* Only fragment shaders may compute derivatives, but the sense of
+         * "normal" changes in vertex shaders on certain GPUs */
+
+        if (op == TEXTURE_OP_NORMAL && stage != MESA_SHADER_FRAGMENT)
+                return false;
+
         switch (op) {
         case TEXTURE_OP_NORMAL:
         case TEXTURE_OP_DFDX:
         case TEXTURE_OP_DFDY:
+                assert(stage == MESA_SHADER_FRAGMENT);
                 return true;
         default:
                 return false;

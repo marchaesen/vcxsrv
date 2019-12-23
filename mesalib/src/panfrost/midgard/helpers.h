@@ -244,17 +244,19 @@ struct mir_ldst_op_props {
 /* This file is common, so don't define the tables themselves. #include
  * midgard_op.h if you need that, or edit midgard_ops.c directly */
 
-/* Duplicate bits to convert a 4-bit writemask to duplicated 8-bit format,
- * which is used for 32-bit vector units */
+/* Duplicate bits to convert a per-component to duplicated 8-bit format,
+ * which is used for vector units */
 
 static inline unsigned
-expand_writemask_32(unsigned mask)
+expand_writemask(unsigned mask, unsigned channels)
 {
         unsigned o = 0;
+        unsigned factor = 8 / channels;
+        unsigned expanded = (1 << factor) - 1;
 
-        for (int i = 0; i < 4; ++i)
+        for (unsigned i = 0; i < channels; ++i)
                 if (mask & (1 << i))
-                        o |= (3 << (2 * i));
+                        o |= (expanded << (factor * i));
 
         return o;
 }

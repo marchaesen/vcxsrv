@@ -38,7 +38,7 @@
 #include "pipe/p_screen.h"
 #include "cso_cache/cso_context.h"
 #include "tgsi/tgsi_ureg.h"
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 #include "util/u_inlines.h"
 #include "util/u_upload_mgr.h"
 
@@ -546,7 +546,7 @@ create_fs_nir(struct st_context *st,
          nir_variable_create(b.shader, nir_var_uniform,
                              glsl_image_type(GLSL_SAMPLER_DIM_BUF, false,
                                              GLSL_TYPE_FLOAT), "img");
-      img_var->data.image.access = ACCESS_NON_READABLE;
+      img_var->data.access = ACCESS_NON_READABLE;
       img_var->data.explicit_binding = true;
       img_var->data.binding = 0;
       nir_deref_instr *img_deref = nir_build_deref_var(&b, img_var);

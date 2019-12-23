@@ -74,7 +74,7 @@
  * mask is 0xFFFF0000.
  */
 #define ABI_ANSIC_VERSION	SET_ABI_VERSION(0, 4)
-#define ABI_VIDEODRV_VERSION	SET_ABI_VERSION(25, 0)
+#define ABI_VIDEODRV_VERSION	SET_ABI_VERSION(25, 1)
 #define ABI_XINPUT_VERSION	SET_ABI_VERSION(24, 1)
 #define ABI_EXTENSION_VERSION	SET_ABI_VERSION(10, 0)
 
@@ -156,6 +156,7 @@ extern _X_EXPORT void *LoadSubModule(void *, const char *, const char **,
 extern _X_EXPORT void UnloadSubModule(void *);
 extern _X_EXPORT void UnloadModule(void *);
 extern _X_EXPORT void *LoaderSymbol(const char *);
+extern _X_EXPORT void *LoaderSymbolFromModule(void *, const char *);
 extern _X_EXPORT void LoaderErrorMsg(const char *, const char *, int, int);
 extern _X_EXPORT Bool LoaderShouldIgnoreABI(void);
 extern _X_EXPORT int LoaderGetABIVersion(const char *abiclass);

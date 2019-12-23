@@ -48,7 +48,7 @@
 #include "pipe/p_context.h"
 #include "pipe/p_defines.h"
 #include "pipe/p_screen.h"
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 #include "st_cb_texture.h"
 #include "st_context.h"
 #include "st_format.h"
@@ -1078,78 +1078,6 @@ find_supported_format(struct pipe_screen *screen,
    return PIPE_FORMAT_NONE;
 }
 
-
-struct exact_format_mapping
-{
-   GLenum format;
-   GLenum type;
-   enum pipe_format pformat;
-};
-
-static const struct exact_format_mapping rgba8888_tbl[] =
-{
-   { GL_RGBA,     GL_UNSIGNED_INT_8_8_8_8,        PIPE_FORMAT_ABGR8888_UNORM },
-   { GL_ABGR_EXT, GL_UNSIGNED_INT_8_8_8_8_REV,    PIPE_FORMAT_ABGR8888_UNORM },
-   { GL_RGBA,     GL_UNSIGNED_INT_8_8_8_8_REV,    PIPE_FORMAT_RGBA8888_UNORM },
-   { GL_ABGR_EXT, GL_UNSIGNED_INT_8_8_8_8,        PIPE_FORMAT_RGBA8888_UNORM },
-   { GL_BGRA,     GL_UNSIGNED_INT_8_8_8_8,        PIPE_FORMAT_ARGB8888_UNORM },
-   { GL_BGRA,     GL_UNSIGNED_INT_8_8_8_8_REV,    PIPE_FORMAT_BGRA8888_UNORM },
-   { GL_RGBA,     GL_UNSIGNED_BYTE,               PIPE_FORMAT_R8G8B8A8_UNORM },
-   { GL_ABGR_EXT, GL_UNSIGNED_BYTE,               PIPE_FORMAT_A8B8G8R8_UNORM },
-   { GL_BGRA,     GL_UNSIGNED_BYTE,               PIPE_FORMAT_B8G8R8A8_UNORM },
-   { 0,           0,                              0                          }
-};
-
-static const struct exact_format_mapping rgbx8888_tbl[] =
-{
-   { GL_RGBA,     GL_UNSIGNED_INT_8_8_8_8,        PIPE_FORMAT_XBGR8888_UNORM },
-   { GL_ABGR_EXT, GL_UNSIGNED_INT_8_8_8_8_REV,    PIPE_FORMAT_XBGR8888_UNORM },
-   { GL_RGBA,     GL_UNSIGNED_INT_8_8_8_8_REV,    PIPE_FORMAT_RGBX8888_UNORM },
-   { GL_ABGR_EXT, GL_UNSIGNED_INT_8_8_8_8,        PIPE_FORMAT_RGBX8888_UNORM },
-   { GL_BGRA,     GL_UNSIGNED_INT_8_8_8_8,        PIPE_FORMAT_XRGB8888_UNORM },
-   { GL_BGRA,     GL_UNSIGNED_INT_8_8_8_8_REV,    PIPE_FORMAT_BGRX8888_UNORM },
-   { GL_RGBA,     GL_UNSIGNED_BYTE,               PIPE_FORMAT_R8G8B8X8_UNORM },
-   { GL_ABGR_EXT, GL_UNSIGNED_BYTE,               PIPE_FORMAT_X8B8G8R8_UNORM },
-   { GL_BGRA,     GL_UNSIGNED_BYTE,               PIPE_FORMAT_B8G8R8X8_UNORM },
-   { 0,           0,                              0                          }
-};
-
-
-/**
- * For unsized/base internal formats, we may choose a convenient effective
- * internal format for {format, type}. If one exists, return that, otherwise
- * return PIPE_FORMAT_NONE.
- */
-static enum pipe_format
-find_exact_format(GLint internalFormat, GLenum format, GLenum type)
-{
-   uint i;
-   const struct exact_format_mapping* tbl;
-
-   if (format == GL_NONE || type == GL_NONE)
-      return PIPE_FORMAT_NONE;
-
-   switch (internalFormat) {
-   case 4:
-   case GL_RGBA:
-      tbl = rgba8888_tbl;
-      break;
-   case 3:
-   case GL_RGB:
-      tbl = rgbx8888_tbl;
-      break;
-   default:
-      return PIPE_FORMAT_NONE;
-   }
-
-   for (i = 0; tbl[i].format; i++)
-      if (tbl[i].format == format && tbl[i].type == type)
-         return tbl[i].pformat;
-
-   return PIPE_FORMAT_NONE;
-}
-
-
 /**
  * Given an OpenGL internalFormat value for a texture or surface, return
  * the best matching PIPE_FORMAT_x, or PIPE_FORMAT_NONE if there's no match.
@@ -1172,7 +1100,7 @@ st_choose_format(struct st_context *st, GLenum internalFormat,
                  GLenum format, GLenum type,
                  enum pipe_texture_target target, unsigned sample_count,
                  unsigned storage_sample_count,
-                 unsigned bindings, boolean allow_dxt)
+                 unsigned bindings, bool swap_bytes, bool allow_dxt)
 {
    struct pipe_screen *screen = st->pipe->screen;
    unsigned i;
@@ -1185,12 +1113,23 @@ st_choose_format(struct st_context *st, GLenum internalFormat,
       return PIPE_FORMAT_NONE;
    }
 
-   /* search for exact matches */
-   pf = find_exact_format(internalFormat, format, type);
-   if (pf != PIPE_FORMAT_NONE &&
-       screen->is_format_supported(screen, pf, target, sample_count,
-                                   storage_sample_count, bindings)) {
-      goto success;
+   /* If we have an unsized internalFormat, and the driver supports a format
+    * that exactly matches format/type such that we can just memcpy, pick that
+    * (unless the format wouldn't still be unorm, which is the expectation for
+    * unsized formats).
+    */
+   if (_mesa_is_enum_format_unsized(internalFormat) && format != 0 &&
+       _mesa_is_type_unsigned(type)) {
+      pf = st_choose_matching_format(st, bindings, format, type,
+                                     swap_bytes);
+
+      if (pf != PIPE_FORMAT_NONE &&
+          screen->is_format_supported(screen, pf, target, sample_count,
+                                      storage_sample_count, bindings) &&
+          _mesa_get_format_base_format(st_pipe_format_to_mesa_format(pf)) ==
+          internalFormat) {
+         goto success;
+      }
    }
 
    /* For an unsized GL_RGB but a 2_10_10_10 type, try to pick one of the
@@ -1261,7 +1200,8 @@ st_choose_renderbuffer_format(struct st_context *st,
       bindings = PIPE_BIND_RENDER_TARGET;
    return st_choose_format(st, internalFormat, GL_NONE, GL_NONE,
                            PIPE_TEXTURE_2D, sample_count,
-                           storage_sample_count, bindings, FALSE);
+                           storage_sample_count, bindings,
+                           false, false);
 }
 
 
@@ -1277,36 +1217,20 @@ st_choose_matching_format(struct st_context *st, unsigned bind,
                           GLenum format, GLenum type, GLboolean swapBytes)
 {
    struct pipe_screen *screen = st->pipe->screen;
-   mesa_format mesa_format;
 
-   for (mesa_format = 1; mesa_format < MESA_FORMAT_COUNT; mesa_format++) {
-      if (!_mesa_get_format_name(mesa_format))
-         continue;
+   if (swapBytes && !_mesa_swap_bytes_in_type_enum(&type))
+      return PIPE_FORMAT_NONE;
 
-      if (_mesa_is_format_srgb(mesa_format)) {
-         continue;
-      }
-      if (_mesa_get_format_bits(mesa_format, GL_TEXTURE_INTENSITY_SIZE) > 0) {
-         /* If `format` is GL_RED/GL_RED_INTEGER, then we might match some
-          * intensity formats, which we don't want.
-          */
-         continue;
-      }
-
-      if (_mesa_format_matches_format_and_type(mesa_format, format, type,
-                                               swapBytes, NULL)) {
-         enum pipe_format format =
-            st_mesa_format_to_pipe_format(st, mesa_format);
-
-         if (format &&
-             screen->is_format_supported(screen, format, PIPE_TEXTURE_2D,
-                                         0, 0, bind)) {
-            return format;
-         }
-         /* It's unlikely to find 2 matching Mesa formats. */
-         break;
-      }
+   mesa_format mesa_format = _mesa_format_from_format_and_type(format, type);
+   if (_mesa_format_is_mesa_array_format(mesa_format))
+      mesa_format = _mesa_format_from_array_format(mesa_format);
+   if (mesa_format != MESA_FORMAT_NONE) {
+      enum pipe_format format = st_mesa_format_to_pipe_format(st, mesa_format);
+      if (format != PIPE_FORMAT_NONE &&
+          screen->is_format_supported(screen, format, PIPE_TEXTURE_2D, 0, 0, bind))
+         return format;
    }
+
    return PIPE_FORMAT_NONE;
 }
 
@@ -1398,13 +1322,14 @@ st_ChooseTextureFormat(struct gl_context *ctx, GLenum target,
    }
 
    pFormat = st_choose_format(st, internalFormat, format, type,
-                              pTarget, 0, 0, bindings, GL_TRUE);
+                              pTarget, 0, 0, bindings,
+                              ctx->Unpack.SwapBytes, true);
 
    if (pFormat == PIPE_FORMAT_NONE && !is_renderbuffer) {
       /* try choosing format again, this time without render target bindings */
       pFormat = st_choose_format(st, internalFormat, format, type,
                                  pTarget, 0, 0, PIPE_BIND_SAMPLER_VIEW,
-                                 GL_TRUE);
+                                 ctx->Unpack.SwapBytes, true);
    }
 
    if (pFormat == PIPE_FORMAT_NONE) {
@@ -1461,7 +1386,8 @@ st_QuerySamplesForFormat(struct gl_context *ctx, GLenum target,
    /* Set sample counts in descending order. */
    for (i = 16; i > 1; i--) {
       format = st_choose_format(st, internalFormat, GL_NONE, GL_NONE,
-                                PIPE_TEXTURE_2D, i, i, bind, FALSE);
+                                PIPE_TEXTURE_2D, i, i, bind,
+                                false, false);
 
       if (format != PIPE_FORMAT_NONE) {
          samples[num_sample_counts++] = i;
@@ -1521,7 +1447,8 @@ st_QueryInternalFormat(struct gl_context *ctx, GLenum target,
                                                   GL_NONE,
                                                   GL_NONE,
                                                   PIPE_TEXTURE_2D, 0, 0,
-                                                  bindings, FALSE);
+                                                  bindings,
+                                                  false, false);
       if (pformat)
          params[0] = internalFormat;
       break;

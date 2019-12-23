@@ -45,11 +45,13 @@
 namespace {
 class lower_const_array_visitor : public ir_rvalue_visitor {
 public:
-   lower_const_array_visitor(exec_list *insts, unsigned s)
+   lower_const_array_visitor(exec_list *insts, unsigned s,
+                             unsigned available_uni_components)
    {
       instructions = insts;
       stage = s;
       const_count = 0;
+      free_uni_components = available_uni_components;
       progress = false;
    }
 
@@ -66,6 +68,7 @@ private:
    exec_list *instructions;
    unsigned stage;
    unsigned const_count;
+   unsigned free_uni_components;
    bool progress;
 };
 
@@ -84,6 +87,15 @@ lower_const_array_visitor::handle_rvalue(ir_rvalue **rvalue)
    ir_constant *con = (*rvalue)->as_constant();
    if (!con || !con->type->is_array())
       return;
+
+   /* How many uniform component slots are required? */
+   unsigned component_slots = con->type->component_slots();
+
+   /* We would utilize more than is available, bail out. */
+   if (component_slots > free_uni_components)
+      return;
+
+   free_uni_components -= component_slots;
 
    void *mem_ctx = ralloc_parent(con);
 
@@ -116,9 +128,30 @@ lower_const_array_visitor::handle_rvalue(ir_rvalue **rvalue)
 
 } /* anonymous namespace */
 
-bool
-lower_const_arrays_to_uniforms(exec_list *instructions, unsigned stage)
+
+static unsigned
+count_uniforms(exec_list *instructions)
 {
-   lower_const_array_visitor v(instructions, stage);
+   unsigned total = 0;
+
+   foreach_in_list(ir_instruction, node, instructions) {
+      ir_variable *const var = node->as_variable();
+
+      if (!var || var->data.mode != ir_var_uniform)
+         continue;
+
+      total += var->type->component_slots();
+   }
+   return total;
+}
+
+bool
+lower_const_arrays_to_uniforms(exec_list *instructions, unsigned stage,
+                               unsigned max_uniform_components)
+{
+   unsigned uniform_components = count_uniforms(instructions);
+   unsigned free_uniform_slots = max_uniform_components - uniform_components;
+
+   lower_const_array_visitor v(instructions, stage, free_uniform_slots);
    return v.run();
 }

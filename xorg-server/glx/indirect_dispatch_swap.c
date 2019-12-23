@@ -1339,7 +1339,7 @@ void __glXDispSwap_TexGendv(GLbyte * pc)
 
 #ifdef __GLX_ALIGN64
     const GLuint compsize = __glTexGendv_size(pname);
-    const GLuint cmdlen = 12 + safe_pad(safe_mul(compsize, 8)) - 4;
+    const GLuint cmdlen = 12 + safe_pad(safe_mul(compsize, 1 * sizeof(GLdouble))) - 4;
     if ((unsigned long)(pc) & 7) {
         (void) memmove(pc-4, pc, cmdlen);
         pc -= 4;
@@ -5715,7 +5715,7 @@ void __glXDispSwap_ProgramParameters4dvNV(GLbyte * pc)
     const GLsizei num =  (GLsizei )bswap_CARD32 ( pc +  8 );
 
 #ifdef __GLX_ALIGN64
-    const GLuint cmdlen = 16 + safe_pad(safe_mul(num, 32)) - 4;
+    const GLuint cmdlen = 16 + safe_pad(safe_mul(num, 4 * sizeof(GLdouble))) - 4;
     if ((unsigned long)(pc) & 7) {
         (void) memmove(pc-4, pc, cmdlen);
         pc -= 4;
@@ -5899,7 +5899,7 @@ void __glXDispSwap_VertexAttribs1dvNV(GLbyte * pc)
     const GLsizei n =  (GLsizei )bswap_CARD32 ( pc +  4 );
 
 #ifdef __GLX_ALIGN64
-    const GLuint cmdlen = 12 + safe_pad(safe_mul(n, 8)) - 4;
+    const GLuint cmdlen = 12 + safe_pad(safe_mul(n, 1 * sizeof(GLdouble))) - 4;
     if ((unsigned long)(pc) & 7) {
         (void) memmove(pc-4, pc, cmdlen);
         pc -= 4;
@@ -5940,7 +5940,7 @@ void __glXDispSwap_VertexAttribs2dvNV(GLbyte * pc)
     const GLsizei n =  (GLsizei )bswap_CARD32 ( pc +  4 );
 
 #ifdef __GLX_ALIGN64
-    const GLuint cmdlen = 12 + safe_pad(safe_mul(n, 16)) - 4;
+    const GLuint cmdlen = 12 + safe_pad(safe_mul(n, 2 * sizeof(GLdouble))) - 4;
     if ((unsigned long)(pc) & 7) {
         (void) memmove(pc-4, pc, cmdlen);
         pc -= 4;
@@ -5981,7 +5981,7 @@ void __glXDispSwap_VertexAttribs3dvNV(GLbyte * pc)
     const GLsizei n =  (GLsizei )bswap_CARD32 ( pc +  4 );
 
 #ifdef __GLX_ALIGN64
-    const GLuint cmdlen = 12 + safe_pad(safe_mul(n, 24)) - 4;
+    const GLuint cmdlen = 12 + safe_pad(safe_mul(n, 3 * sizeof(GLdouble))) - 4;
     if ((unsigned long)(pc) & 7) {
         (void) memmove(pc-4, pc, cmdlen);
         pc -= 4;
@@ -6022,7 +6022,7 @@ void __glXDispSwap_VertexAttribs4dvNV(GLbyte * pc)
     const GLsizei n =  (GLsizei )bswap_CARD32 ( pc +  4 );
 
 #ifdef __GLX_ALIGN64
-    const GLuint cmdlen = 12 + safe_pad(safe_mul(n, 32)) - 4;
+    const GLuint cmdlen = 12 + safe_pad(safe_mul(n, 4 * sizeof(GLdouble))) - 4;
     if ((unsigned long)(pc) & 7) {
         (void) memmove(pc-4, pc, cmdlen);
         pc -= 4;

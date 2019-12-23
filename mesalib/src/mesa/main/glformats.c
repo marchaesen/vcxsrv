@@ -3566,6 +3566,9 @@ _mesa_format_from_format_and_type(GLenum format, GLenum type)
    bool normalized = false, is_float = false, is_signed = false;
    int num_channels = 0, type_size = 0;
 
+   if (format == GL_COLOR_INDEX)
+      return MESA_FORMAT_NONE;
+
    /* Extract array format type information from the OpenGL data type */
    switch (type) {
    case GL_UNSIGNED_BYTE:

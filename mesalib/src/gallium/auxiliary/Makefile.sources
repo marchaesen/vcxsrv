@@ -244,26 +244,6 @@ C_SOURCES := \
 	util/u_dump.h \
 	util/u_dump_state.c \
 	util/u_fifo.h \
-	util/u_format.c \
-	util/u_format.h \
-	util/u_format_bptc.c \
-	util/u_format_bptc.h \
-	util/u_format_etc.c \
-	util/u_format_etc.h \
-	util/u_format_latc.c \
-	util/u_format_latc.h \
-	util/u_format_other.c \
-	util/u_format_other.h \
-	util/u_format_rgtc.c \
-	util/u_format_rgtc.h \
-	util/u_format_s3tc.c \
-	util/u_format_s3tc.h \
-	util/u_format_tests.c \
-	util/u_format_tests.h \
-	util/u_format_yuv.c \
-	util/u_format_yuv.h \
-	util/u_format_zs.c \
-	util/u_format_zs.h \
 	util/u_framebuffer.c \
 	util/u_framebuffer.h \
 	util/u_gen_mipmap.c \
@@ -337,7 +317,11 @@ C_SOURCES := \
 
 NIR_SOURCES := \
 	nir/tgsi_to_nir.c \
-	nir/tgsi_to_nir.h
+	nir/tgsi_to_nir.h \
+	nir/nir_to_tgsi_info.c \
+	nir/nir_to_tgsi_info.h \
+	nir/nir_draw_helpers.c \
+	nir/nir_draw_helpers.h
 
 VL_SOURCES := \
 	vl/vl_bicubic_filter.c \
@@ -396,8 +380,7 @@ VL_STUB_SOURCES := \
 
 GENERATED_SOURCES := \
 	indices/u_indices_gen.c \
-	indices/u_unfilled_gen.c \
-	util/u_format_table.c
+	indices/u_unfilled_gen.c
 
 GALLIVM_SOURCES := \
 	gallivm/lp_bld_arit.c \
@@ -434,11 +417,16 @@ GALLIVM_SOURCES := \
 	gallivm/lp_bld_init.h \
 	gallivm/lp_bld_intr.c \
 	gallivm/lp_bld_intr.h \
+	gallivm/lp_bld_ir_common.c \
+	gallivm/lp_bld_ir_common.h \
 	gallivm/lp_bld_limits.h \
 	gallivm/lp_bld_logic.c \
 	gallivm/lp_bld_logic.h \
 	gallivm/lp_bld_misc.cpp \
 	gallivm/lp_bld_misc.h \
+	gallivm/lp_bld_nir.c \
+	gallivm/lp_bld_nir.h \
+	gallivm/lp_bld_nir_soa.c \
 	gallivm/lp_bld_pack.c \
 	gallivm/lp_bld_pack.h \
 	gallivm/lp_bld_printf.c \

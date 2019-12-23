@@ -1,5 +1,5 @@
-
-transform_files=layoutsMapping.lst variantsMapping.lst
+layout_mappings=$(srcdir)/layoutsMapping.lst
+variant_mappings=$(srcdir)/variantsMapping.lst
 
 dist_parts=base.o_s.part \
 base.lv_c.part \
@@ -7,8 +7,6 @@ base.l1v1_c.part \
 base.l2v2_c.part \
 base.l3v3_c.part \
 base.l4v4_c.part
-
-scripts_dir=$(srcdir)/../bin
 
 scripts= \
 base.ml2_s.part \
@@ -32,36 +30,36 @@ noinst_SCRIPTS=
 
 endif
 
-base.ml2_s.part: $(scripts_dir)/mln_s.sh $(transform_files)
-	sh $(scripts_dir)/mln_s.sh 2 $(srcdir)
+base.ml1_s.part: map-variants.py $(layout_mappings) $(variant_mappings)
+	$(srcdir)/map-variants.py --want=mls --number=1 $@ $(layout_mappings) $(variant_mappings)
 
-base.ml3_s.part: $(scripts_dir)/mln_s.sh $(transform_files)
-	sh $(scripts_dir)/mln_s.sh 3 $(srcdir)
+base.ml2_s.part: map-variants.py $(layout_mappings) $(variant_mappings)
+	$(srcdir)/map-variants.py --want=mls --number=2 $@ $(layout_mappings) $(variant_mappings)
 
-base.ml4_s.part: $(scripts_dir)/mln_s.sh $(transform_files)
-	sh $(scripts_dir)/mln_s.sh 4 $(srcdir)
+base.ml3_s.part: map-variants.py $(layout_mappings) $(variant_mappings)
+	$(srcdir)/map-variants.py --want=mls --number=3 $@ $(layout_mappings) $(variant_mappings)
 
-base.ml2v2_s.part: $(scripts_dir)/mlnvn_s.sh $(transform_files)
-	sh $(scripts_dir)/mlnvn_s.sh 2 $(srcdir)
+base.ml4_s.part: map-variants.py $(layout_mappings) $(variant_mappings)
+	$(srcdir)/map-variants.py --want=mls --number=4 $@ $(layout_mappings) $(variant_mappings)
 
-base.ml3v3_s.part: $(scripts_dir)/mlnvn_s.sh $(transform_files)
-	sh $(scripts_dir)/mlnvn_s.sh 3 $(srcdir)
+base.ml1v1_s.part: map-variants.py $(variant_mappings)
+	$(srcdir)/map-variants.py --want=mlvs --number=1 $@ $(variant_mappings)
 
-base.ml4v4_s.part: $(scripts_dir)/mlnvn_s.sh $(transform_files)
-	sh $(scripts_dir)/mlnvn_s.sh 4 $(srcdir)
+base.ml2v2_s.part: map-variants.py $(variant_mappings)
+	$(srcdir)/map-variants.py --want=mlvs --number=2 $@ $(variant_mappings)
 
-base.ml_s.part: $(scripts_dir)/ml_s.sh $(transform_files)
-	sh $(scripts_dir)/ml_s.sh $(srcdir)
+base.ml3v3_s.part: map-variants.py $(variant_mappings)
+	$(srcdir)/map-variants.py --want=mlvs --number=3 $@ $(variant_mappings)
 
-base.ml1_s.part: $(scripts_dir)/ml1_s.sh $(transform_files)
-	sh $(scripts_dir)/ml1_s.sh $(srcdir)
+base.ml4v4_s.part: map-variants.py $(variant_mappings)
+	$(srcdir)/map-variants.py --want=mlvs --number=4 $@ $(variant_mappings)
 
-base.mlv_s.part: $(scripts_dir)/mlv_s.sh $(transform_files)
-	sh $(scripts_dir)/mlv_s.sh $(srcdir)
+base.ml_s.part: map-variants.py $(layout_mappings) $(variant_mappings)
+	$(srcdir)/map-variants.py --want=mls $@ $(layout_mappings) $(variant_mappings)
 
-base.ml1v1_s.part: $(scripts_dir)/ml1v1_s.sh $(transform_files)
-	sh $(scripts_dir)/ml1v1_s.sh $(srcdir)
+base.mlv_s.part: map-variants.py $(layout_mappings) $(variant_mappings)
+	$(srcdir)/map-variants.py --want=mlvs $@ $(variant_mappings)
 
-EXTRA_DIST=base.lists.part $(transform_files) $(dist_parts)
+EXTRA_DIST=base.lists.part $(layout_mappings) $(variant_mappings) $(dist_parts) map-variants.py
 
 CLEANFILES=$(scripts)

@@ -12,3 +12,5 @@ CSRCS = \
 	present_wnmd.c
 
 LIBRARY=libpresent
+
+DEFINES += PIXMAN_API=

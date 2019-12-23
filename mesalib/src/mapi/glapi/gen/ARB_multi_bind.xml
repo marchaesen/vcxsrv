@@ -11,42 +11,42 @@
         <param name="target" type="GLenum"/>
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
-        <param name="buffers" type="const GLuint *"/>
+        <param name="buffers" type="const GLuint *" count="count"/>
     </function>
 
     <function name="BindBuffersRange">
         <param name="target" type="GLenum"/>
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
-        <param name="buffers" type="const GLuint *"/>
-        <param name="offsets" type="const GLintptr *"/>
-        <param name="sizes" type="const GLsizeiptr *"/>
+        <param name="buffers" type="const GLuint *" count="count"/>
+        <param name="offsets" type="const GLintptr *" count="count"/>
+        <param name="sizes" type="const GLsizeiptr *" count="count"/>
     </function>
 
     <function name="BindTextures" no_error="true">
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
-        <param name="textures" type="const GLuint *"/>
+        <param name="textures" type="const GLuint *" count="count"/>
     </function>
 
     <function name="BindSamplers" no_error="true">
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
-        <param name="samplers" type="const GLuint *"/>
+        <param name="samplers" type="const GLuint *" count="count"/>
     </function>
 
     <function name="BindImageTextures" no_error="true">
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
-        <param name="textures" type="const GLuint *"/>
+        <param name="textures" type="const GLuint *" count="count"/>
     </function>
 
     <function name="BindVertexBuffers" no_error="true">
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
-        <param name="buffers" type="const GLuint *"/>
-        <param name="offsets" type="const GLintptr *"/>
-        <param name="strides" type="const GLsizei *"/>
+        <param name="buffers" type="const GLuint *" count="count"/>
+        <param name="offsets" type="const GLintptr *" count="count"/>
+        <param name="strides" type="const GLsizei *" count="count"/>
     </function>
 
 </category>

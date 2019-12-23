@@ -214,13 +214,16 @@ typedef enum {
 	/* meta instructions (category -1): */
 	/* placeholder instr to mark shader inputs: */
 	OPC_META_INPUT      = _OPC(-1, 0),
-	/* The "fan-in" and "fan-out" instructions are used for keeping
+	/* The "collect" and "split" instructions are used for keeping
 	 * track of instructions that write to multiple dst registers
-	 * (fan-out) like texture sample instructions, or read multiple
-	 * consecutive scalar registers (fan-in) (bary.f, texture samp)
+	 * (split) like texture sample instructions, or read multiple
+	 * consecutive scalar registers (collect) (bary.f, texture samp)
+	 *
+	 * A "split" extracts a scalar component from a vecN, and a
+	 * "collect" gathers multiple scalar components into a vecN
 	 */
-	OPC_META_FO         = _OPC(-1, 2),
-	OPC_META_FI         = _OPC(-1, 3),
+	OPC_META_SPLIT      = _OPC(-1, 2),
+	OPC_META_COLLECT    = _OPC(-1, 3),
 
 	/* placeholder for texture fetches that run before FS invocation
 	 * starts:

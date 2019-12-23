@@ -16,7 +16,7 @@ if "%buildsystem%" == "scons" (
     call scons --version
 ) else (
     python --version
-    python -m pip install Mako==1.0.7 meson
+    python -m pip install Mako meson
     meson --version
 
     rem Install pkg-config, which meson requires even on windows

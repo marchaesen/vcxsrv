@@ -64,6 +64,16 @@
         <param name="pname" type="GLenum"/>
         <param name="params" type="GLdouble *"/>
     </function>
+
+    <function name="VertexArrayVertexAttribLOffsetEXT">
+        <param name="vaobj" type="GLuint" />
+        <param name="buffer" type="GLuint" />
+        <param name="index" type="GLuint" />
+        <param name="size" type="GLint" />
+        <param name="type" type="GLenum" />
+        <param name="stride" type="GLsizei" />
+        <param name="offset" type="GLintptr" />
+    </function>
 </category>
 
 </OpenGLAPI>

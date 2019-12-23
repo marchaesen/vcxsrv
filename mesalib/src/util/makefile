@@ -42,6 +42,6 @@ CSRCS += $(notdir $(subst /,$/,$(libxmlconfig_la_SOURCES)))
 
 CSRCS := $(CSRCS:%.h=)
 
-vpath %.c sha1
+vpath %.c sha1:format
 
 load_makefile IS64=0 NORELDBG=1 makefile.srcs

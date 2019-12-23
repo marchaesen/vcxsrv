@@ -223,7 +223,8 @@ struct mir_ldst_op_props load_store_opcode_props[256] = {
         [midgard_op_ld_vary_32u] = {"ld_vary_32u", M32},
 
         [midgard_op_ld_color_buffer_8]  = {"ld_color_buffer_8",  M8 | LDST_SPECIAL_MASK},
-        [midgard_op_ld_color_buffer_16] = {"ld_color_buffer_16", 0},
+        [midgard_op_ld_color_buffer_u8_as_fp16] = {"ld_color_buffer_u8_as_fp16", M16 | LDST_SPECIAL_MASK},
+        [midgard_op_ld_color_buffer_u8_as_fp16_old] = {"ld_color_buffer_u8_as_fp16_old", M16 | LDST_SPECIAL_MASK},
 
         [midgard_op_ld_ubo_char]   = {"ld_ubo_char",   M32},
         [midgard_op_ld_ubo_char2]  = {"ld_ubo_char2",  M16},

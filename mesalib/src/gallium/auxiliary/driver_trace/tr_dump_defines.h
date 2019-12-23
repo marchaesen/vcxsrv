@@ -29,7 +29,7 @@
 #define TR_DUMP_DEFINES_H_
 
 #include "pipe/p_compiler.h"
-#include "util/u_format.h"
+#include "util/format/u_format.h"
 #include "util/u_dump.h"
 #include "tr_dump.h"
 

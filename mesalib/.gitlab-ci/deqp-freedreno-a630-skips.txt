@@ -3,27 +3,19 @@
 # delete lines from the test list.  Be careful.
 
 # Skip the perf/stress tests to keep runtime manageable
-dEQP-GLES[0-9]*.performance
-dEQP-GLES[0-9]*.stress
+dEQP-GLES[0-9]*.performance.*
+dEQP-GLES[0-9]*.stress.*
 
 # These are really slow on tiling architectures (including llvmpipe).
-dEQP-GLES[0-9]*.functional.flush_finish
+dEQP-GLES[0-9]*.functional.flush_finish.*
 
 # Unstable test results
-dEQP-GLES3.functional.fragment_out.random.*
-dEQP-GLES3.functional.transform_feedback.*
+#dEQP-GLES3.functional.fragment_out.random.*
+dEQP-GLES3.functional.transform_feedback.*points.*
+dEQP-GLES3.functional.transform_feedback.*lines.*
 dEQP-GLES31.functional.primitive_bounding_box.*
-dEQP-GLES31.functional.layout_binding.ssbo.fragment_binding_array
+#dEQP-GLES31.functional.layout_binding.ssbo.fragment_binding_array.*
 
-# Seen a couple flakes on this one.  Note that valgrind complains about
-# some things in deqp reference renderer on this one.  Not sure if that
-# is a real problem or perhaps valgrind gets confused about unitialized
-# z24 channel in z24s8??  Let's just skip this one for now:
-dEQP-GLES3.functional.fbo.msaa.2_samples.stencil_index8
+# Intermittent timeout
+dEQP-GLES31.functional.ssbo.layout.random.all_shared_buffer.23
 
-# Two reports of spurious failures on unrelated MRs (2019-09-27, 2019-10-05)
-dEQP-GLES3.functional.texture.specification.texsubimage2d_pbo.r16ui_2d
-
-# Layered rendering is sysmem only and needs working clears
-dEQP-GLES31.functional.geometry_shading.layered.*
-dEQP-GLES31.functional.geometry_shading.instanced.*layer.*

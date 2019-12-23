@@ -137,18 +137,18 @@ st_query_memory_info(struct gl_context *ctx, struct gl_memory_info *out)
 static uint64_t
 st_get_active_states(struct gl_context *ctx)
 {
-   struct st_vertex_program *vp =
-      st_vertex_program(ctx->VertexProgram._Current);
-   struct st_common_program *tcp =
-      st_common_program(ctx->TessCtrlProgram._Current);
-   struct st_common_program *tep =
-      st_common_program(ctx->TessEvalProgram._Current);
-   struct st_common_program *gp =
-      st_common_program(ctx->GeometryProgram._Current);
-   struct st_common_program *fp =
-      st_common_program(ctx->FragmentProgram._Current);
-   struct st_common_program *cp =
-      st_common_program(ctx->ComputeProgram._Current);
+   struct st_program *vp =
+      st_program(ctx->VertexProgram._Current);
+   struct st_program *tcp =
+      st_program(ctx->TessCtrlProgram._Current);
+   struct st_program *tep =
+      st_program(ctx->TessEvalProgram._Current);
+   struct st_program *gp =
+      st_program(ctx->GeometryProgram._Current);
+   struct st_program *fp =
+      st_program(ctx->FragmentProgram._Current);
+   struct st_program *cp =
+      st_program(ctx->ComputeProgram._Current);
    uint64_t active_shader_states = 0;
 
    if (vp)
@@ -754,6 +754,8 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
    ctx->Const.ShaderCompilerOptions[MESA_SHADER_VERTEX].EmitNoSat =
       !screen->get_param(screen, PIPE_CAP_VERTEX_SHADER_SATURATE);
 
+   ctx->Const.ShaderCompilerOptions[MESA_SHADER_VERTEX].PositionAlwaysInvariant = options->vs_position_always_invariant;
+
    if (ctx->Const.GLSLVersion < 400) {
       for (i = 0; i < MESA_SHADER_STAGES; i++)
          ctx->Const.ShaderCompilerOptions[i].EmitNoIndirectSampler = true;
@@ -960,8 +962,7 @@ st_create_context(gl_api api, struct pipe_context *pipe,
 
    st_debug_init();
 
-   if (pipe->screen->get_disk_shader_cache &&
-       !(ST_DEBUG & DEBUG_TGSI))
+   if (pipe->screen->get_disk_shader_cache)
       ctx->Cache = pipe->screen->get_disk_shader_cache(pipe->screen);
 
    /* XXX: need a capability bit in gallium to query if the pipe
@@ -1056,7 +1057,7 @@ st_destroy_context(struct st_context *st)
 
    st_reference_prog(st, &st->fp, NULL);
    st_reference_prog(st, &st->gp, NULL);
-   st_reference_vertprog(st, &st->vp, NULL);
+   st_reference_prog(st, &st->vp, NULL);
    st_reference_prog(st, &st->tcp, NULL);
    st_reference_prog(st, &st->tep, NULL);
    st_reference_prog(st, &st->cp, NULL);

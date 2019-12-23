@@ -1969,7 +1969,7 @@ _mesa_GetCompressedTextureImage(GLuint texture, GLint level,
 }
 
 
-void APIENTRY
+void GLAPIENTRY
 _mesa_GetCompressedTextureSubImage(GLuint texture, GLint level,
                                    GLint xoffset, GLint yoffset,
                                    GLint zoffset, GLsizei width,
