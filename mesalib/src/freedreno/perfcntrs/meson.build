@@ -53,6 +53,7 @@ if dep_libconfig.found() and dep_ncurses.found()
     ],
     dependencies : [
       dep_libconfig,
+      dep_libdrm,
       dep_ncurses,
       idep_mesautil,
     ],

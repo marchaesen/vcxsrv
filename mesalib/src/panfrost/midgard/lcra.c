@@ -67,6 +67,25 @@ lcra_alloc_equations(
 }
 
 void
+lcra_free(struct lcra_state *l)
+{
+        if (!l)
+                return;
+
+        free(l->alignment);
+        free(l->linear);
+        free(l->modulus);
+        free(l->class);
+        free(l->class_start);
+        free(l->class_disjoint);
+        free(l->class_size);
+        free(l->spill_cost);
+        free(l->solutions);
+
+        free(l);
+}
+
+void
 lcra_set_alignment(struct lcra_state *l, unsigned node, unsigned align_log2)
 {
         l->alignment[node] = align_log2 + 1;
@@ -181,7 +200,8 @@ lcra_solve(struct lcra_state *l)
 void
 lcra_set_node_spill_cost(struct lcra_state *l, unsigned node, signed cost)
 {
-        l->spill_cost[node] = cost;
+        if (node < l->node_count)
+                l->spill_cost[node] = cost;
 }
 
 /* Count along the lower triangle */

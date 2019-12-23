@@ -151,7 +151,6 @@ protected:
         UINT_32 mipLevel, UINT_32 numSamples, ADDR_COMPUTE_SURFACE_INFO_OUTPUT* pOut) const;
 
 private:
-
     VOID ReadGbTileMode(
         UINT_32 regValue, TileConfig* pCfg) const;
 

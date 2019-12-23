@@ -262,8 +262,10 @@ st_update_vertex_textures(struct st_context *st)
    const struct gl_context *ctx = st->ctx;
 
    if (ctx->Const.Program[MESA_SHADER_VERTEX].MaxTextureImageUnits > 0) {
-      update_textures_local(st, PIPE_SHADER_VERTEX,
-                            ctx->VertexProgram._Current);
+      update_textures(st,
+                      PIPE_SHADER_VERTEX,
+                      ctx->VertexProgram._Current,
+                      st->state.vert_sampler_views);
    }
 }
 

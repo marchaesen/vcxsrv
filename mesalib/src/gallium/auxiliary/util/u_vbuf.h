@@ -54,6 +54,9 @@ struct u_vbuf_caps {
 
    /* Whether the driver supports user vertex buffers. */
    unsigned user_vertex_buffers:1;
+
+   /* Maximum number of vertex buffers */
+   unsigned max_vertex_buffers:6;
 };
 
 

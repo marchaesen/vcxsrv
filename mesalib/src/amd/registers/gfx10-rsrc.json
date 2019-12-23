@@ -183,6 +183,14 @@
     {"name": "BC_SWIZZLE_ZYXW", "value": 4},
     {"name": "BC_SWIZZLE_YXWZ", "value": 5}
    ]
+  },
+  "SQ_BUF_RSRC_WORD3__OOB_SELECT": {
+    "entries": [
+    {"name": "OOB_SELECT_STRUCTURED_WITH_OFFSET", "value": 0},
+    {"name": "OOB_SELECT_STRUCTURED", "value": 1},
+    {"name": "OOB_SELECT_DISABLED", "value": 2},
+    {"name": "OOB_SELECT_RAW", "value": 3}
+   ]
   }
  },
  "register_mappings": [
@@ -304,7 +312,7 @@
     {"bits": [21, 22], "name": "INDEX_STRIDE"},
     {"bits": [23, 23], "name": "ADD_TID_ENABLE"},
     {"bits": [24, 24], "comment": "must be 1", "name": "RESOURCE_LEVEL"},
-    {"bits": [28, 29], "name": "OOB_SELECT"},
+    {"bits": [28, 29], "enum_ref": "SQ_BUF_RSRC_WORD3__OOB_SELECT", "name": "OOB_SELECT"},
     {"bits": [30, 31], "comment": "must be 0", "name": "TYPE"}
    ]
   },

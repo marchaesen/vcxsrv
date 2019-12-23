@@ -166,7 +166,7 @@ find_neighbors(struct ir3 *ir)
 	foreach_output(out, ir)
 		instr_find_neighbors(out);
 
-	list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
+	foreach_block (block, &ir->block_list) {
 		for (i = 0; i < block->keeps_count; i++) {
 			struct ir3_instruction *instr = block->keeps[i];
 			instr_find_neighbors(instr);

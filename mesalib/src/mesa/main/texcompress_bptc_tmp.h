@@ -826,11 +826,10 @@ static int32_t
 sign_extend(int32_t value,
             int n_bits)
 {
-   if ((value & (1 << (n_bits - 1)))) {
-      value |= (~(int32_t) 0) << n_bits;
-   }
+   assert(n_bits > 0 && n_bits < 32);
 
-   return value;
+   const unsigned n = 32 - n_bits;
+   return (int32_t)((uint32_t)value << n) >> n;
 }
 
 static int

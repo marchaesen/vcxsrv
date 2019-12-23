@@ -56,14 +56,34 @@ panfrost_pack_work_groups_fused(
 /* Tiler structure size computation */
 
 unsigned
-panfrost_tiler_header_size(unsigned width, unsigned height, unsigned mask);
+panfrost_tiler_header_size(unsigned width, unsigned height, unsigned mask, bool hierarchy);
 
 unsigned
-panfrost_tiler_full_size(unsigned width, unsigned height, unsigned mask);
+panfrost_tiler_full_size(unsigned width, unsigned height, unsigned mask, bool hierarchy);
 
 unsigned
 panfrost_choose_hierarchy_mask(
         unsigned width, unsigned height,
-        unsigned vertex_count);
+        unsigned vertex_count, bool hierarchy);
+
+/* Stack sizes */
+
+unsigned
+panfrost_get_stack_shift(unsigned stack_size);
+
+unsigned
+panfrost_get_total_stack_size(
+                unsigned stack_shift,
+                unsigned threads_per_core,
+                unsigned core_count);
+
+/* Property queries */
+
+
+unsigned panfrost_query_gpu_version(int fd);
+unsigned panfrost_query_core_count(int fd);
+unsigned panfrost_query_thread_tls_alloc(int fd);
+
+const char * panfrost_model_name(unsigned gpu_id);
 
 #endif

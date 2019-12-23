@@ -1195,6 +1195,7 @@ struct radv_attachment_state {
 	uint32_t                                     cleared_views;
 	VkClearValue                                 clear_value;
 	VkImageLayout                                current_layout;
+	VkImageLayout                                current_stencil_layout;
 	bool                                         current_in_render_loop;
 	struct radv_sample_locations_state	     sample_location;
 
@@ -2128,6 +2129,7 @@ void radv_subpass_barrier(struct radv_cmd_buffer *cmd_buffer,
 struct radv_subpass_attachment {
 	uint32_t         attachment;
 	VkImageLayout    layout;
+	VkImageLayout    stencil_layout;
 	bool             in_render_loop;
 };
 
@@ -2167,6 +2169,8 @@ struct radv_render_pass_attachment {
 	VkAttachmentLoadOp                           stencil_load_op;
 	VkImageLayout                                initial_layout;
 	VkImageLayout                                final_layout;
+	VkImageLayout                                stencil_initial_layout;
+	VkImageLayout                                stencil_final_layout;
 
 	/* The subpass id in which the attachment will be used first/last. */
 	uint32_t				     first_subpass_idx;

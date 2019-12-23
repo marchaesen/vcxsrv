@@ -37,6 +37,7 @@
 #define VK_STRUCTURE_TYPE_WSI_MEMORY_ALLOCATE_INFO_MESA (VkStructureType)1000001003
 #define VK_STRUCTURE_TYPE_WSI_FORMAT_MODIFIER_PROPERTIES_LIST_MESA (VkStructureType)1000001004
 #define VK_STRUCTURE_TYPE_WSI_SURFACE_SUPPORTED_COUNTERS_MESA (VkStructureType)1000001005
+#define VK_STRUCTURE_TYPE_WSI_MEMORY_SIGNAL_SUBMIT_INFO_MESA (VkStructureType)1000001006
 
 struct wsi_image_create_info {
     VkStructureType sType;
@@ -74,6 +75,13 @@ struct wsi_surface_supported_counters {
 
    VkSurfaceCounterFlagsEXT supported_surface_counters;
 
+};
+
+/* To be chained into VkSubmitInfo */
+struct wsi_memory_signal_submit_info {
+    VkStructureType sType;
+    const void *pNext;
+    VkDeviceMemory memory;
 };
 
 struct wsi_fence {
@@ -121,6 +129,22 @@ struct wsi_device {
    } x11;
 
    uint64_t (*image_get_modifier)(VkImage image);
+
+   /* Signals the semaphore such that any wait on the semaphore will wait on
+    * any reads or writes on the give memory object.  This is used to
+    * implement the semaphore signal operation in vkAcquireNextImage.
+    */
+   void (*signal_semaphore_for_memory)(VkDevice device,
+                                       VkSemaphore semaphore,
+                                       VkDeviceMemory memory);
+
+   /* Signals the fence such that any wait on the fence will wait on any reads
+    * or writes on the give memory object.  This is used to implement the
+    * semaphore signal operation in vkAcquireNextImage.
+    */
+   void (*signal_fence_for_memory)(VkDevice device,
+                                   VkFence fence,
+                                   VkDeviceMemory memory);
 
 #define WSI_CB(cb) PFN_vk##cb cb
    WSI_CB(AllocateMemory);

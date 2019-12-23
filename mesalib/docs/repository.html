@@ -62,7 +62,7 @@ To get the Mesa sources anonymously (read-only):
 <h2 id="developer">Developer git Access</h2>
 
 <p>
-If you wish to become a Mesa developer with git-write privilege, please
+If you wish to become a Mesa developer with gitlab merge privilege, please
 follow this procedure:
 </p>
 <ol>
@@ -70,40 +70,29 @@ follow this procedure:
 <a href="https://lists.freedesktop.org/mailman/listinfo/mesa-dev">mesa-dev</a>
 mailing list.
 <li>Start contributing to the project by
-<a href="submittingpatches.html" target="_parent">submitting patches</a> to
-the mesa-dev list.  Specifically,
+<a href="submittingpatches.html" target="_parent">submitting patches</a>.  Specifically,
 <ul>
-<li>Use <code>git send-mail</code> to post your patches to mesa-dev.
+<li>Use <a href="https://gitlab.freedesktop.org/">gitlab</a> to create your merge requests.
 <li>Wait for someone to review the code and give you a <code>Reviewed-by</code>
 statement.
 <li>You'll have to rely on another Mesa developer to push your initial patches
 after they've been reviewed.
 </ul>
 <li>After you've demonstrated the ability to write good code and have had
-a dozen or so patches accepted you can apply for an account.
-<li>Occasionally, but rarely, someone may be given a git account sooner, but
-only if they're being supervised by another Mesa developer at the same
-organization and planning to work in a limited area of the code or on a
-separate branch.
-<li>To apply for an account, follow
-<a href="https://www.freedesktop.org/wiki/AccountRequests">these directions</a>.
-It's also appreciated if you briefly describe what you intend to do (work
-on a particular driver, add a new extension, etc.) in the bugzilla record.
+a dozen or so patches accepted, a maintainer may use their discretion to give
+you access to merge your own code.
 </ol>
 
-<p>
-Once your account is established, you can update your push url to use SSH:
-<pre>
-git remote set-url --push <em>origin</em> git@gitlab.freedesktop.org:mesa/mesa.git
-</pre>
+<h2>Pushing code to your gitlab account via HTTPS</h2>
 
-You can also use <a href="https://gitlab.freedesktop.org/profile/personal_access_tokens">personal access tokens</a>
-to push over HTTPS instead (useful for people behind strict proxies).
+<p>Useful for people behind strict proxies</p>
+
+You can use <a href="https://gitlab.freedesktop.org/profile/personal_access_tokens">personal access tokens</a>
+to push over HTTPS if ssh will does not suit your needs.
 In this case, create a token, and put it in the url as shown here:
 <pre>
-git remote set-url --push <em>origin</em> https://<em>USER</em>:<em>TOKEN</em>@gitlab.freedesktop.org/mesa/mesa.git
+git remote set-url --push <em>origin</em> https://<em>USER</em>:<em>TOKEN</em>@gitlab.freedesktop.org/your~user~name/mesa.git
 </pre>
-
 
 <h2>Windows Users</h2>
 

@@ -529,7 +529,7 @@ get_definer(struct ir3_ra_ctx *ctx, struct ir3_instruction *instr,
 static void
 ra_block_find_definers(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 {
-	list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
+	foreach_instr (instr, &block->instr_list) {
 		struct ir3_ra_instr_data *id = &ctx->instrd[instr->ip];
 		if (instr->regs_count == 0)
 			continue;
@@ -579,7 +579,7 @@ ra_block_find_definers(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 static void
 ra_block_name_instructions(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 {
-	list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
+	foreach_instr (instr, &block->instr_list) {
 		struct ir3_ra_instr_data *id = &ctx->instrd[instr->ip];
 
 #ifdef DEBUG
@@ -614,11 +614,11 @@ ra_init(struct ir3_ra_ctx *ctx)
 
 	ctx->instrd = rzalloc_array(NULL, struct ir3_ra_instr_data, n);
 
-	list_for_each_entry (struct ir3_block, block, &ctx->ir->block_list, node) {
+	foreach_block (block, &ctx->ir->block_list) {
 		ra_block_find_definers(ctx, block);
 	}
 
-	list_for_each_entry (struct ir3_block, block, &ctx->ir->block_list, node) {
+	foreach_block (block, &ctx->ir->block_list) {
 		ra_block_name_instructions(ctx, block);
 	}
 
@@ -633,7 +633,7 @@ ra_init(struct ir3_ra_ctx *ctx)
 
 	/* and vreg names for array elements: */
 	base = ctx->class_base[total_class_count];
-	list_for_each_entry (struct ir3_array, arr, &ctx->ir->array_list, node) {
+	foreach_array (arr, &ctx->ir->array_list) {
 		arr->base = base;
 		ctx->class_alloc_count[total_class_count] += arr->length;
 		base += arr->length;
@@ -702,7 +702,7 @@ ra_block_compute_live_ranges(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 	block->data = bd;
 
 	struct ir3_instruction *first_non_input = NULL;
-	list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
+	foreach_instr (instr, &block->instr_list) {
 		if (instr->opc != OPC_META_INPUT) {
 			first_non_input = instr;
 			break;
@@ -710,7 +710,7 @@ ra_block_compute_live_ranges(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 	}
 
 
-	list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
+	foreach_instr (instr, &block->instr_list) {
 		struct ir3_instruction *src;
 		struct ir3_register *reg;
 
@@ -832,7 +832,7 @@ ra_compute_livein_liveout(struct ir3_ra_ctx *ctx)
 	unsigned bitset_words = BITSET_WORDS(ctx->alloc_count);
 	bool progress = false;
 
-	list_for_each_entry (struct ir3_block, block, &ctx->ir->block_list, node) {
+	foreach_block (block, &ctx->ir->block_list) {
 		struct ir3_ra_block_data *bd = block->data;
 
 		/* update livein: */
@@ -893,7 +893,7 @@ ra_add_interference(struct ir3_ra_ctx *ctx)
 	struct ir3 *ir = ctx->ir;
 
 	/* initialize array live ranges: */
-	list_for_each_entry (struct ir3_array, arr, &ir->array_list, node) {
+	foreach_array (arr, &ir->array_list) {
 		arr->start_ip = ~0;
 		arr->end_ip = 0;
 	}
@@ -902,7 +902,7 @@ ra_add_interference(struct ir3_ra_ctx *ctx)
 	 * block's def/use bitmasks (used below to calculate per-block
 	 * livein/liveout):
 	 */
-	list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
+	foreach_block (block, &ir->block_list) {
 		ra_block_compute_live_ranges(ctx, block);
 	}
 
@@ -911,7 +911,7 @@ ra_add_interference(struct ir3_ra_ctx *ctx)
 
 	if (ir3_shader_debug & IR3_DBG_OPTMSGS) {
 		debug_printf("AFTER LIVEIN/OUT:\n");
-		list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
+		foreach_block (block, &ir->block_list) {
 			struct ir3_ra_block_data *bd = block->data;
 			debug_printf("block%u:\n", block_id(block));
 			print_bitset("  def", bd->def, ctx->alloc_count);
@@ -919,7 +919,7 @@ ra_add_interference(struct ir3_ra_ctx *ctx)
 			print_bitset("  l/i", bd->livein, ctx->alloc_count);
 			print_bitset("  l/o", bd->liveout, ctx->alloc_count);
 		}
-		list_for_each_entry (struct ir3_array, arr, &ir->array_list, node) {
+		foreach_array (arr, &ir->array_list) {
 			debug_printf("array%u:\n", arr->id);
 			debug_printf("  length:   %u\n", arr->length);
 			debug_printf("  start_ip: %u\n", arr->start_ip);
@@ -928,7 +928,7 @@ ra_add_interference(struct ir3_ra_ctx *ctx)
 	}
 
 	/* extend start/end ranges based on livein/liveout info from cfg: */
-	list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
+	foreach_block (block, &ir->block_list) {
 		struct ir3_ra_block_data *bd = block->data;
 
 		for (unsigned i = 0; i < ctx->alloc_count; i++) {
@@ -943,7 +943,7 @@ ra_add_interference(struct ir3_ra_ctx *ctx)
 			}
 		}
 
-		list_for_each_entry (struct ir3_array, arr, &ctx->ir->array_list, node) {
+		foreach_array (arr, &ctx->ir->array_list) {
 			for (unsigned i = 0; i < arr->length; i++) {
 				if (BITSET_TEST(bd->livein, i + arr->base)) {
 					arr->start_ip = MIN2(arr->start_ip, block->start_ip);
@@ -1075,7 +1075,7 @@ reg_assign(struct ir3_ra_ctx *ctx, struct ir3_register *reg,
 static void
 ra_block_alloc(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 {
-	list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
+	foreach_instr (instr, &block->instr_list) {
 		struct ir3_register *reg;
 
 		if (writes_gpr(instr)) {
@@ -1141,7 +1141,7 @@ ra_precolor(struct ir3_ra_ctx *ctx, struct ir3_instruction **precolor, unsigned 
 
 	/* pre-assign array elements:
 	 */
-	list_for_each_entry (struct ir3_array, arr, &ctx->ir->array_list, node) {
+	foreach_array (arr, &ctx->ir->array_list) {
 		unsigned base = 0;
 
 		if (arr->end_ip == 0)
@@ -1151,7 +1151,7 @@ ra_precolor(struct ir3_ra_ctx *ctx, struct ir3_instruction **precolor, unsigned 
 		 * been assigned:
 		 */
 retry:
-		list_for_each_entry (struct ir3_array, arr2, &ctx->ir->array_list, node) {
+		foreach_array (arr2, &ctx->ir->array_list) {
 			if (arr2 == arr)
 				break;
 			if (arr2->end_ip == 0)
@@ -1213,7 +1213,7 @@ ra_alloc(struct ir3_ra_ctx *ctx)
 	if (!ra_allocate(ctx->g))
 		return -1;
 
-	list_for_each_entry (struct ir3_block, block, &ctx->ir->block_list, node) {
+	foreach_block (block, &ctx->ir->block_list) {
 		ra_block_alloc(ctx, block);
 	}
 

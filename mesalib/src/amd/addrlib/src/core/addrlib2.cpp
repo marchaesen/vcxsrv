@@ -73,7 +73,8 @@ Lib::Lib()
     m_rbPerSeLog2(0),
     m_maxCompFragLog2(0),
     m_pipeInterleaveLog2(0),
-    m_blockVarSizeLog2(0)
+    m_blockVarSizeLog2(0),
+    m_numEquations(0)
 {
 }
 
@@ -98,7 +99,8 @@ Lib::Lib(const Client* pClient)
     m_rbPerSeLog2(0),
     m_maxCompFragLog2(0),
     m_pipeInterleaveLog2(0),
-    m_blockVarSizeLog2(0)
+    m_blockVarSizeLog2(0),
+    m_numEquations(0)
 {
 }
 
@@ -1363,33 +1365,63 @@ ADDR_E_RETURNCODE Lib::ComputeBlockDimensionForSurf(
     AddrResourceType resourceType,
     AddrSwizzleMode  swizzleMode) const
 {
-    ADDR_E_RETURNCODE returnCode = ComputeBlockDimension(pWidth,
-                                                         pHeight,
-                                                         pDepth,
-                                                         bpp,
-                                                         resourceType,
-                                                         swizzleMode);
+    ADDR_E_RETURNCODE returnCode = ADDR_OK;
 
-    if ((returnCode == ADDR_OK) && (numSamples > 1) && IsThin(resourceType, swizzleMode))
+    if (IsThick(resourceType, swizzleMode))
     {
-        const UINT_32 log2blkSize = GetBlockSizeLog2(swizzleMode);
-        const UINT_32 log2sample  = Log2(numSamples);
-        const UINT_32 q           = log2sample >> 1;
-        const UINT_32 r           = log2sample & 1;
-
-        if (log2blkSize & 1)
-        {
-            *pWidth  >>= q;
-            *pHeight >>= (q + r);
-        }
-        else
-        {
-            *pWidth  >>= (q + r);
-            *pHeight >>= q;
-        }
+        ComputeThickBlockDimension(pWidth, pHeight, pDepth, bpp, resourceType, swizzleMode);
+    }
+    else if (IsThin(resourceType, swizzleMode))
+    {
+        ComputeThinBlockDimension(pWidth, pHeight, pDepth, bpp, numSamples, resourceType, swizzleMode);
+    }
+    else
+    {
+        ADDR_ASSERT_ALWAYS();
+        returnCode = ADDR_INVALIDPARAMS;
     }
 
     return returnCode;
+}
+
+/**
+************************************************************************************************************************
+*   Lib::ComputeThinBlockDimension
+*
+*   @brief
+*       Internal function to get thin block width/height/depth in element from surface input params.
+*
+*   @return
+*       N/A
+************************************************************************************************************************
+*/
+VOID Lib::ComputeThinBlockDimension(
+    UINT_32*         pWidth,
+    UINT_32*         pHeight,
+    UINT_32*         pDepth,
+    UINT_32          bpp,
+    UINT_32          numSamples,
+    AddrResourceType resourceType,
+    AddrSwizzleMode  swizzleMode) const
+{
+    ADDR_ASSERT(IsThin(resourceType, swizzleMode));
+
+    // GFX9/GFX10 use different dimension amplifying logic: say for 128KB block + 1xAA + 1BPE, the dimension of thin
+    // swizzle mode will be [256W * 512H] on GFX9 ASICs and [512W * 256H] on GFX10 ASICs. Since GFX10 is newer HWL so we
+    // make its implementation into base class (in order to save future change on new HWLs)
+    const UINT_32 log2BlkSize  = GetBlockSizeLog2(swizzleMode);
+    const UINT_32 log2EleBytes = Log2(bpp >> 3);
+    const UINT_32 log2Samples  = Log2(Max(numSamples, 1u));
+    const UINT_32 log2NumEle   = log2BlkSize - log2EleBytes - log2Samples;
+
+    // For "1xAA/4xAA cases" or "2xAA/8xAA + odd log2BlkSize cases", width == height or width == 2 * height;
+    // For other cases, height == width or height == 2 * width
+    const BOOL_32 widthPrecedent = ((log2Samples & 1) == 0) || ((log2BlkSize & 1) != 0);
+    const UINT_32 log2Width      = (log2NumEle + (widthPrecedent ? 1 : 0)) / 2;
+
+    *pWidth  = 1u << log2Width;
+    *pHeight = 1u << (log2NumEle - log2Width);
+    *pDepth  = 1;
 }
 
 /**
@@ -1404,42 +1436,22 @@ ADDR_E_RETURNCODE Lib::ComputeBlockDimensionForSurf(
 ************************************************************************************************************************
 */
 ADDR_E_RETURNCODE Lib::ComputeBlockDimension(
-    UINT_32*          pWidth,
-    UINT_32*          pHeight,
-    UINT_32*          pDepth,
-    UINT_32           bpp,
-    AddrResourceType  resourceType,
-    AddrSwizzleMode   swizzleMode) const
+    UINT_32*         pWidth,
+    UINT_32*         pHeight,
+    UINT_32*         pDepth,
+    UINT_32          bpp,
+    AddrResourceType resourceType,
+    AddrSwizzleMode  swizzleMode) const
 {
     ADDR_E_RETURNCODE returnCode = ADDR_OK;
 
-    UINT_32 eleBytes                 = bpp >> 3;
-    UINT_32 microBlockSizeTableIndex = Log2(eleBytes);
-    UINT_32 log2blkSize              = GetBlockSizeLog2(swizzleMode);
-
-    if (IsThin(resourceType, swizzleMode))
+    if (IsThick(resourceType, swizzleMode))
     {
-        UINT_32 log2blkSizeIn256B = log2blkSize - 8;
-        UINT_32 widthAmp          = log2blkSizeIn256B / 2;
-        UINT_32 heightAmp         = log2blkSizeIn256B - widthAmp;
-
-        ADDR_ASSERT(microBlockSizeTableIndex < sizeof(Block256_2d) / sizeof(Block256_2d[0]));
-
-        *pWidth  = (Block256_2d[microBlockSizeTableIndex].w << widthAmp);
-        *pHeight = (Block256_2d[microBlockSizeTableIndex].h << heightAmp);
-        *pDepth  = 1;
+        ComputeThickBlockDimension(pWidth, pHeight, pDepth, bpp, resourceType, swizzleMode);
     }
-    else if (IsThick(resourceType, swizzleMode))
+    else if (IsThin(resourceType, swizzleMode))
     {
-        UINT_32 log2blkSizeIn1KB = log2blkSize - 10;
-        UINT_32 averageAmp       = log2blkSizeIn1KB / 3;
-        UINT_32 restAmp          = log2blkSizeIn1KB % 3;
-
-        ADDR_ASSERT(microBlockSizeTableIndex < sizeof(Block1K_3d) / sizeof(Block1K_3d[0]));
-
-        *pWidth  = Block1K_3d[microBlockSizeTableIndex].w << averageAmp;
-        *pHeight = Block1K_3d[microBlockSizeTableIndex].h << (averageAmp + (restAmp / 2));
-        *pDepth  = Block1K_3d[microBlockSizeTableIndex].d << (averageAmp + ((restAmp != 0) ? 1 : 0));
+        ComputeThinBlockDimension(pWidth, pHeight, pDepth, bpp, 0, resourceType, swizzleMode);
     }
     else
     {
@@ -1448,6 +1460,42 @@ ADDR_E_RETURNCODE Lib::ComputeBlockDimension(
     }
 
     return returnCode;
+}
+
+/**
+************************************************************************************************************************
+*   Lib::ComputeThickBlockDimension
+*
+*   @brief
+*       Internal function to get block width/height/depth in element for thick swizzle mode
+*
+*   @return
+*       N/A
+************************************************************************************************************************
+*/
+VOID Lib::ComputeThickBlockDimension(
+    UINT_32*         pWidth,
+    UINT_32*         pHeight,
+    UINT_32*         pDepth,
+    UINT_32          bpp,
+    AddrResourceType resourceType,
+    AddrSwizzleMode  swizzleMode) const
+{
+    ADDR_ASSERT(IsThick(resourceType, swizzleMode));
+
+    const UINT_32 log2BlkSize              = GetBlockSizeLog2(swizzleMode);
+    const UINT_32 eleBytes                 = bpp >> 3;
+    const UINT_32 microBlockSizeTableIndex = Log2(eleBytes);
+
+    ADDR_ASSERT(microBlockSizeTableIndex < sizeof(Block1K_3d) / sizeof(Block1K_3d[0]));
+
+    const UINT_32 log2blkSizeIn1KB = log2BlkSize - 10;
+    const UINT_32 averageAmp       = log2blkSizeIn1KB / 3;
+    const UINT_32 restAmp          = log2blkSizeIn1KB % 3;
+
+    *pWidth  = Block1K_3d[microBlockSizeTableIndex].w << averageAmp;
+    *pHeight = Block1K_3d[microBlockSizeTableIndex].h << (averageAmp + (restAmp / 2));
+    *pDepth  = Block1K_3d[microBlockSizeTableIndex].d << (averageAmp + ((restAmp != 0) ? 1 : 0));
 }
 
 /**
@@ -1469,11 +1517,11 @@ Dim3d Lib::GetMipTailDim(
     UINT_32           blockDepth) const
 {
     Dim3d   out         = {blockWidth, blockHeight, blockDepth};
-    UINT_32 log2blkSize = GetBlockSizeLog2(swizzleMode);
+    UINT_32 log2BlkSize = GetBlockSizeLog2(swizzleMode);
 
     if (IsThick(resourceType, swizzleMode))
     {
-        UINT_32 dim = log2blkSize % 3;
+        UINT_32 dim = log2BlkSize % 3;
 
         if (dim == 0)
         {
@@ -1490,11 +1538,22 @@ Dim3d Lib::GetMipTailDim(
     }
     else
     {
-        if (log2blkSize & 1)
+        ADDR_ASSERT(IsThin(resourceType, swizzleMode));
+
+        // GFX9/GFX10 use different dimension shrinking logic for mipmap tail: say for 128KB block + 2BPE, the maximum
+        // dimension of mipmap tail level will be [256W * 128H] on GFX9 ASICs and [128W * 256H] on GFX10 ASICs. Since
+        // GFX10 is newer HWL so we make its implementation into base class, in order to save future change on new HWLs.
+        // And assert log2BlkSize will always be an even value on GFX9, so we never need the logic wrapped by DEBUG...
+#if DEBUG
+        if ((log2BlkSize & 1) && (m_chipFamily == ADDR_CHIP_FAMILY_AI))
         {
+            // Should never go here...
+            ADDR_ASSERT_ALWAYS();
+
             out.h >>= 1;
         }
         else
+#endif
         {
             out.w >>= 1;
         }
@@ -1873,7 +1932,52 @@ VOID Lib::ComputeQbStereoInfo(
     pOut->pixelHeight <<= 1;
 
     // Double size
-    pOut->surfSize <<= 1;
+    pOut->surfSize  <<= 1;
+    pOut->sliceSize <<= 1;
+}
+
+/**
+************************************************************************************************************************
+*   Lib::FilterInvalidEqSwizzleMode
+*
+*   @brief
+*       Filter out swizzle mode(s) if it doesn't have valid equation index
+*
+*   @return
+*       N/A
+************************************************************************************************************************
+*/
+VOID Lib::FilterInvalidEqSwizzleMode(
+    ADDR2_SWMODE_SET& allowedSwModeSet,
+    AddrResourceType  resourceType,
+    UINT_32           elemLog2
+    ) const
+{
+    if (resourceType != ADDR_RSRC_TEX_1D)
+    {
+        UINT_32       allowedSwModeSetVal = allowedSwModeSet.value;
+        const UINT_32 rsrcTypeIdx         = static_cast<UINT_32>(resourceType) - 1;
+        UINT_32       validSwModeSet      = allowedSwModeSetVal;
+
+        for (UINT_32 swModeIdx = 0; validSwModeSet != 0; swModeIdx++)
+        {
+            if (validSwModeSet & 1)
+            {
+                if (m_equationLookupTable[rsrcTypeIdx][swModeIdx][elemLog2] == ADDR_INVALID_EQUATION_INDEX)
+                {
+                    allowedSwModeSetVal &= ~(1u << swModeIdx);
+                }
+            }
+
+            validSwModeSet >>= 1;
+        }
+
+        // Only apply the filtering if at least one valid swizzle mode remains
+        if (allowedSwModeSetVal != 0)
+        {
+            allowedSwModeSet.value = allowedSwModeSetVal;
+        }
+    }
 }
 
 } // V2

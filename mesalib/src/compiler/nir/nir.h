@@ -58,10 +58,19 @@ extern "C" {
 
 #define NIR_FALSE 0u
 #define NIR_TRUE (~0u)
-#define NIR_MAX_VEC_COMPONENTS 4
+#define NIR_MAX_VEC_COMPONENTS 16
 #define NIR_MAX_MATRIX_COLUMNS 4
 #define NIR_STREAM_PACKED (1 << 8)
-typedef uint8_t nir_component_mask_t;
+typedef uint16_t nir_component_mask_t;
+
+static inline bool
+nir_num_components_valid(unsigned num_components)
+{
+   return (num_components >= 1  &&
+           num_components <= 4) ||
+           num_components == 8  ||
+           num_components == 16;
+}
 
 /** Defines a cast function
  *
@@ -330,6 +339,19 @@ typedef struct nir_variable {
       unsigned patch:1;
       unsigned invariant:1;
 
+     /**
+       * Precision qualifier.
+       *
+       * In desktop GLSL we do not care about precision qualifiers at all, in
+       * fact, the spec says that precision qualifiers are ignored.
+       *
+       * To make things easy, we make it so that this field is always
+       * GLSL_PRECISION_NONE on desktop shaders. This way all the variables
+       * have the same precision value and the checks we add in the compiler
+       * for this field will never break a desktop shader compile.
+       */
+      unsigned precision:2;
+
       /**
        * Can this variable be coalesced with another?
        *
@@ -393,6 +415,15 @@ typedef struct nir_variable {
       unsigned explicit_binding:1;
 
       /**
+       * Was the location explicitly set in the shader?
+       *
+       * If the location is explicitly set in the shader, it \b cannot be changed
+       * by the linker or by the API (e.g., calls to \c glBindAttribLocation have
+       * no effect).
+       */
+      unsigned explicit_location:1;
+
+      /**
        * Was a transfer feedback buffer set in the shader?
        */
       unsigned explicit_xfb_buffer:1;
@@ -406,6 +437,12 @@ typedef struct nir_variable {
        * Was an explicit offset set in the shader?
        */
       unsigned explicit_offset:1;
+
+      /**
+       * Non-zero if this variable was created by lowering a named interface
+       * block.
+       */
+      unsigned from_named_ifc_block:1;
 
       /**
        * How the variable was declared.  See nir_var_declaration_type.
@@ -1002,6 +1039,8 @@ nir_op_vec(unsigned components)
    case  2: return nir_op_vec2;
    case  3: return nir_op_vec3;
    case  4: return nir_op_vec4;
+   case  8: return nir_op_vec8;
+   case 16: return nir_op_vec16;
    default: unreachable("bad component count");
    }
 }
@@ -2733,11 +2772,13 @@ typedef struct nir_shader_compiler_options {
    bool lower_ldexp;
 
    bool lower_pack_half_2x16;
+   bool lower_pack_half_2x16_split;
    bool lower_pack_unorm_2x16;
    bool lower_pack_snorm_2x16;
    bool lower_pack_unorm_4x8;
    bool lower_pack_snorm_4x8;
    bool lower_unpack_half_2x16;
+   bool lower_unpack_half_2x16_split;
    bool lower_unpack_unorm_2x16;
    bool lower_unpack_snorm_2x16;
    bool lower_unpack_unorm_4x8;

@@ -2046,6 +2046,8 @@ st_GetTexSubImage(struct gl_context * ctx,
       case PIPE_FORMAT_ASTC_12x10:
       case PIPE_FORMAT_ASTC_12x12:
       case PIPE_FORMAT_BPTC_RGBA_UNORM:
+      case PIPE_FORMAT_FXT1_RGB:
+      case PIPE_FORMAT_FXT1_RGBA:
          dst_glformat = GL_RGBA8;
          break;
       case PIPE_FORMAT_RGTC1_SNORM:

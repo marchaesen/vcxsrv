@@ -50,7 +50,7 @@ struct radv_shader_args {
 
 	/* HW GS */
 	/* On gfx10:
-	 *  - bits 0..10: ordered_wave_id
+	 *  - bits 0..11: ordered_wave_id
 	 *  - bits 12..20: number of vertices in group
 	 *  - bits 22..30: number of primitives in group
 	 */

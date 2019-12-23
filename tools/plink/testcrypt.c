@@ -516,6 +516,7 @@ NULLABLE_RETURN_WRAPPER(val_string_asciz, char *)
 NULLABLE_RETURN_WRAPPER(val_cipher, ssh_cipher *)
 NULLABLE_RETURN_WRAPPER(val_hash, ssh_hash *)
 NULLABLE_RETURN_WRAPPER(val_key, ssh_key *)
+NULLABLE_RETURN_WRAPPER(val_mpint, mp_int *)
 
 static void handle_hello(BinarySource *in, strbuf *out)
 {
@@ -621,6 +622,16 @@ mp_int *monty_modulus_wrapper(MontyContext *mc)
     return mp_copy(monty_modulus(mc));
 }
 #define monty_modulus monty_modulus_wrapper
+
+strbuf *ssh_hash_digest_wrapper(ssh_hash *h)
+{
+    strbuf *sb = strbuf_new();
+    void *p = strbuf_append(sb, ssh_hash_alg(h)->hlen);
+    ssh_hash_digest(h, p);
+    return sb;
+}
+#undef ssh_hash_digest
+#define ssh_hash_digest ssh_hash_digest_wrapper
 
 strbuf *ssh_hash_final_wrapper(ssh_hash *h)
 {

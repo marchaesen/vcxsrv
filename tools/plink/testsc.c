@@ -104,6 +104,7 @@ static uint64_t random_counter = 0;
 static const char *random_seedstr = NULL;
 static uint8_t random_buf[MAX_HASH_LEN];
 static size_t random_buf_limit = 0;
+static ssh_hash *random_hash;
 
 static void random_seed(const char *seedstr)
 {
@@ -118,12 +119,12 @@ void random_read(void *vbuf, size_t size)
     uint8_t *buf = (uint8_t *)vbuf;
     while (size-- > 0) {
         if (random_buf_limit == 0) {
-            ssh_hash *h = ssh_hash_new(&ssh_sha256);
-            put_asciz(h, random_seedstr);
-            put_uint64(h, random_counter);
+            ssh_hash_reset(random_hash);
+            put_asciz(random_hash, random_seedstr);
+            put_uint64(random_hash, random_counter);
             random_counter++;
-            random_buf_limit = ssh_hash_alg(h)->hlen;
-            ssh_hash_final(h, random_buf);
+            random_buf_limit = ssh_hash_alg(random_hash)->hlen;
+            ssh_hash_digest(random_hash, random_buf);
         }
         *buf++ = random_buf[random_buf_limit--];
     }
@@ -1320,12 +1321,6 @@ static void test_mac(const ssh2_macalg *malg)
     size_t maclen = malg->len;
     uint8_t *data = snewn(datalen + maclen, uint8_t);
 
-    /* Preliminarily key the MAC, to avoid the divergence of control
-     * flow in which hmac_key() avoids some free()s the first time
-     * through */
-    random_read(mkey, malg->keylen);
-    ssh2_mac_setkey(m, make_ptrlen(mkey, malg->keylen));
-
     for (size_t i = 0; i < looplimit(16); i++) {
         random_read(mkey, malg->keylen);
         random_read(data, datalen);
@@ -1401,6 +1396,7 @@ int main(int argc, char **argv)
     bool test_names_given = false;
 
     memset(tests_to_run, 1, sizeof(tests_to_run));
+    random_hash = ssh_hash_new(&ssh_sha256);
 
     while (--argc > 0) {
         char *p = *++argv;
@@ -1454,6 +1450,15 @@ int main(int argc, char **argv)
     if (is_dry_run) {
         printf("Dry run (DynamoRIO instrumentation not detected)\n");
     } else {
+        /* Print the address of main() in this run. The idea is that
+         * if this image is compiled to be position-independent, then
+         * PC values in the logs won't match the ones you get if you
+         * disassemble the binary, so it'll be harder to match up the
+         * log messages to the code. But if you know the address of a
+         * fixed (and not inlined) function in both worlds, you can
+         * find out the offset between them. */
+        printf("Live run, main = %p\n", (void *)main);
+
         if (!outdir) {
             fprintf(stderr, "expected -O <outdir> option\n");
             return 1;
@@ -1560,6 +1565,8 @@ int main(int argc, char **argv)
             }
         }
     }
+
+    ssh_hash_free(random_hash);
 
     if (npass == nrun) {
         printf("All tests passed\n");

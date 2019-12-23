@@ -15,3 +15,38 @@ VK_INSTANCE_LAYERS=VK_LAYER_MESA_overlay VK_LAYER_MESA_OVERLAY_CONFIG=submit,dra
 Position the layer :
 
 VK_INSTANCE_LAYERS=VK_LAYER_MESA_overlay VK_LAYER_MESA_OVERLAY_CONFIG=submit,draw,pipeline_graphics,position=top-right /path/to/my_vulkan_app
+
+Dump statistics into a file:
+
+VK_INSTANCE_LAYERS=VK_LAYER_MESA_overlay VK_LAYER_MESA_OVERLAY_CONFIG=position=top-right,output_file=/tmp/output.txt /path/to/my_vulkan_app
+
+Dump statistics into a file, controlling when such statistics will start
+to be captured:
+
+VK_INSTANCE_LAYERS=VK_LAYER_MESA_overlay VK_LAYER_MESA_OVERLAY_CONFIG=position=top-right,output_file=/tmp/output.txt,control=mesa_overlay /path/to/my_vulkan_app
+
+The above command will open a unix socket with abstract path
+'mesa_overlay'.  Once a client connects to the socket, the overlay layer
+will immediately send the following commands to the client:
+
+:MesaOverlayControlVersion=1;
+:DeviceName=<device name>;
+:MesaVersion=<mesa version>;
+
+The client connected to the overlay layer can enable statistics
+capturing by sending the command:
+
+:capture=1;
+
+And disable it by emitting
+
+:capture=0;
+
+By default, capture is enabled when an output_file is specified, but it
+will be disabled by default when a control socket is in use. In the
+latter case, it needs to be explicitly enabled through the sockets, by
+using the commands above.
+
+The provided script overlay-control.py can be used to start/stop
+capture. The --path option can be used to specify the socket path. By
+default, it will try to connect to a path named "mesa_overlay".

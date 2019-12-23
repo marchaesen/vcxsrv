@@ -1784,8 +1784,7 @@ static int
 GetShift(int mask)
 {
     int shift = 0;
-
-    while ((mask &1) == 0) {
+    while (mask > 1) {
         shift++;
         mask >>=1;
     }

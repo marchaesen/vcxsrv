@@ -144,8 +144,15 @@ do_dead_code(exec_list *instructions, bool uniform_locations_assigned)
              */
             if (entry->var->is_in_buffer_block()) {
                if (entry->var->get_interface_type_packing() !=
-                   GLSL_INTERFACE_PACKING_PACKED)
+                   GLSL_INTERFACE_PACKING_PACKED) {
+                  /* Set used to false so it doesn't get set as referenced by
+                   * the shader in the program resource list. This will also
+                   * help avoid the state being unnecessarily flushed for the
+                   * shader stage.
+                   */
+                  entry->var->data.used = false;
                   continue;
+               }
             }
 
             if (entry->var->type->is_subroutine())

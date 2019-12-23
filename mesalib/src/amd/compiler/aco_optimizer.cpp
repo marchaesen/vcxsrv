@@ -421,14 +421,19 @@ bool can_use_VOP3(aco_ptr<Instruction>& instr)
    return instr->opcode != aco_opcode::v_madmk_f32 &&
           instr->opcode != aco_opcode::v_madak_f32 &&
           instr->opcode != aco_opcode::v_madmk_f16 &&
-          instr->opcode != aco_opcode::v_madak_f16;
+          instr->opcode != aco_opcode::v_madak_f16 &&
+          instr->opcode != aco_opcode::v_readlane_b32 &&
+          instr->opcode != aco_opcode::v_writelane_b32 &&
+          instr->opcode != aco_opcode::v_readfirstlane_b32;
 }
 
 bool can_apply_sgprs(aco_ptr<Instruction>& instr)
 {
    return instr->opcode != aco_opcode::v_readfirstlane_b32 &&
           instr->opcode != aco_opcode::v_readlane_b32 &&
-          instr->opcode != aco_opcode::v_writelane_b32;
+          instr->opcode != aco_opcode::v_readlane_b32_e64 &&
+          instr->opcode != aco_opcode::v_writelane_b32 &&
+          instr->opcode != aco_opcode::v_writelane_b32_e64;
 }
 
 void to_VOP3(opt_ctx& ctx, aco_ptr<Instruction>& instr)
@@ -458,6 +463,7 @@ bool can_accept_constant(aco_ptr<Instruction>& instr, unsigned operand)
    case aco_opcode::v_interp_p2_f32:
    case aco_opcode::v_mac_f32:
    case aco_opcode::v_writelane_b32:
+   case aco_opcode::v_writelane_b32_e64:
    case aco_opcode::v_cndmask_b32:
       return operand != 2;
    case aco_opcode::s_addk_i32:
@@ -466,6 +472,7 @@ bool can_accept_constant(aco_ptr<Instruction>& instr, unsigned operand)
    case aco_opcode::p_extract_vector:
    case aco_opcode::p_split_vector:
    case aco_opcode::v_readlane_b32:
+   case aco_opcode::v_readlane_b32_e64:
    case aco_opcode::v_readfirstlane_b32:
       return operand != 0;
    default:
@@ -494,7 +501,8 @@ bool valu_can_accept_literal(opt_ctx& ctx, aco_ptr<Instruction>& instr, unsigned
 
 bool valu_can_accept_vgpr(aco_ptr<Instruction>& instr, unsigned operand)
 {
-   if (instr->opcode == aco_opcode::v_readlane_b32 || instr->opcode == aco_opcode::v_writelane_b32)
+   if (instr->opcode == aco_opcode::v_readlane_b32 || instr->opcode == aco_opcode::v_readlane_b32_e64 ||
+       instr->opcode == aco_opcode::v_writelane_b32 || instr->opcode == aco_opcode::v_writelane_b32_e64)
       return operand != 1;
    return true;
 }
@@ -548,6 +556,15 @@ bool parse_base_offset(opt_ctx &ctx, Instruction* instr, unsigned op_index, Temp
    return false;
 }
 
+Operand get_constant_op(opt_ctx &ctx, uint32_t val)
+{
+   // TODO: this functions shouldn't be needed if we store Operand instead of value.
+   Operand op(val);
+   if (val == 0x3e22f983 && ctx.program->chip_class >= GFX8)
+      op.setFixed(PhysReg{248}); /* 1/2 PI can be an inline constant on GFX8+ */
+   return op;
+}
+
 void label_instruction(opt_ctx &ctx, Block& block, aco_ptr<Instruction>& instr)
 {
    if (instr->isSALU() || instr->isVALU() || instr->format == Format::PSEUDO) {
@@ -597,7 +614,7 @@ void label_instruction(opt_ctx &ctx, Block& block, aco_ptr<Instruction>& instr)
             }
          }
          if ((info.is_constant() || (info.is_literal() && instr->format == Format::PSEUDO)) && !instr->operands[i].isFixed() && can_accept_constant(instr, i)) {
-            instr->operands[i] = Operand(info.val);
+            instr->operands[i] = get_constant_op(ctx, info.val);
             continue;
          }
       }
@@ -633,16 +650,16 @@ void label_instruction(opt_ctx &ctx, Block& block, aco_ptr<Instruction>& instr)
          }
          if (info.is_constant() && can_accept_constant(instr, i)) {
             perfwarn(instr->opcode == aco_opcode::v_cndmask_b32 && i == 2, "v_cndmask_b32 with a constant selector", instr.get());
-            if (i == 0) {
-               instr->operands[i] = Operand(info.val);
+            if (i == 0 || instr->opcode == aco_opcode::v_readlane_b32 || instr->opcode == aco_opcode::v_writelane_b32) {
+               instr->operands[i] = get_constant_op(ctx, info.val);
                continue;
             } else if (!instr->isVOP3() && can_swap_operands(instr)) {
                instr->operands[i] = instr->operands[0];
-               instr->operands[0] = Operand(info.val);
+               instr->operands[0] = get_constant_op(ctx, info.val);
                continue;
             } else if (can_use_VOP3(instr)) {
                to_VOP3(ctx, instr);
-               instr->operands[i] = Operand(info.val);
+               instr->operands[i] = get_constant_op(ctx, info.val);
                continue;
             }
          }
@@ -709,7 +726,8 @@ void label_instruction(opt_ctx &ctx, Block& block, aco_ptr<Instruction>& instr)
          SMEM_instruction *smem = static_cast<SMEM_instruction *>(instr.get());
          Temp base;
          uint32_t offset;
-         if (i == 1 && info.is_constant_or_literal() && info.val <= 0xFFFFF) {
+         if (i == 1 && info.is_constant_or_literal() &&
+             (ctx.program->chip_class < GFX8 || info.val <= 0xFFFFF)) {
             instr->operands[i] = Operand(info.val);
             continue;
          } else if (i == 1 && parse_base_offset(ctx, instr.get(), i, &base, &offset) && base.regClass() == s1 && offset <= 0xFFFFF && ctx.program->chip_class >= GFX9) {
@@ -759,8 +777,13 @@ void label_instruction(opt_ctx &ctx, Block& block, aco_ptr<Instruction>& instr)
          unsigned k = 0;
          for (Operand& old_op : old_vec->operands) {
             if (old_op.isTemp() && ctx.info[old_op.tempId()].is_vec()) {
-               for (unsigned j = 0; j < ctx.info[old_op.tempId()].instr->operands.size(); j++)
-                  instr->operands[k++] = ctx.info[old_op.tempId()].instr->operands[j];
+               for (unsigned j = 0; j < ctx.info[old_op.tempId()].instr->operands.size(); j++) {
+                  Operand op = ctx.info[old_op.tempId()].instr->operands[j];
+                  if (op.isTemp() && ctx.info[op.tempId()].is_temp() &&
+                      ctx.info[op.tempId()].temp.type() == instr->definitions[0].regClass().type())
+                     op.setTemp(ctx.info[op.tempId()].temp);
+                  instr->operands[k++] = op;
+               }
             } else {
                instr->operands[k++] = old_op;
             }
@@ -993,13 +1016,13 @@ void label_instruction(opt_ctx &ctx, Block& block, aco_ptr<Instruction>& instr)
    case aco_opcode::s_add_u32:
       ctx.info[instr->definitions[0].tempId()].set_add_sub(instr.get());
       break;
+   case aco_opcode::s_and_b32:
    case aco_opcode::s_and_b64:
       if (instr->operands[1].isFixed() && instr->operands[1].physReg() == exec &&
           instr->operands[0].isTemp() && ctx.info[instr->operands[0].tempId()].is_uniform_bool()) {
          ctx.info[instr->definitions[1].tempId()].set_temp(ctx.info[instr->operands[0].tempId()].temp);
       }
       /* fallthrough */
-   case aco_opcode::s_and_b32:
    case aco_opcode::s_not_b32:
    case aco_opcode::s_not_b64:
    case aco_opcode::s_or_b32:
@@ -1042,6 +1065,7 @@ void label_instruction(opt_ctx &ctx, Block& block, aco_ptr<Instruction>& instr)
       ctx.info[instr->definitions[0].tempId()].set_fcmp(instr.get());
       break;
    case aco_opcode::s_cselect_b64:
+   case aco_opcode::s_cselect_b32:
       if (instr->operands[0].constantEquals((unsigned) -1) &&
           instr->operands[1].constantEquals(0)) {
          /* Found a cselect that operates on a uniform bool that comes from eg. s_cmp */
@@ -1140,10 +1164,12 @@ Instruction *follow_operand(opt_ctx &ctx, Operand op, bool ignore_uses=false)
  * s_and_b64(eq(a, a), eq(b, b)) -> v_cmp_o_f32(a, b) */
 bool combine_ordering_test(opt_ctx &ctx, aco_ptr<Instruction>& instr)
 {
-   if (instr->opcode != aco_opcode::s_or_b64 && instr->opcode != aco_opcode::s_and_b64)
+   if (instr->definitions[0].regClass() != ctx.program->lane_mask)
       return false;
    if (instr->definitions[1].isTemp() && ctx.uses[instr->definitions[1].tempId()])
       return false;
+
+   bool is_or = instr->opcode == aco_opcode::s_or_b64 || instr->opcode == aco_opcode::s_or_b32;
 
    bool neg[2] = {false, false};
    bool abs[2] = {false, false};
@@ -1156,8 +1182,7 @@ bool combine_ordering_test(opt_ctx &ctx, aco_ptr<Instruction>& instr)
       if (!op_instr[i])
          return false;
 
-      aco_opcode expected_cmp = instr->opcode == aco_opcode::s_or_b64 ?
-                                aco_opcode::v_cmp_neq_f32 : aco_opcode::v_cmp_eq_f32;
+      aco_opcode expected_cmp = is_or ? aco_opcode::v_cmp_neq_f32 : aco_opcode::v_cmp_eq_f32;
 
       if (op_instr[i]->opcode != expected_cmp)
          return false;
@@ -1189,8 +1214,7 @@ bool combine_ordering_test(opt_ctx &ctx, aco_ptr<Instruction>& instr)
    decrease_uses(ctx, op_instr[0]);
    decrease_uses(ctx, op_instr[1]);
 
-   aco_opcode new_op = instr->opcode == aco_opcode::s_or_b64 ?
-                       aco_opcode::v_cmp_u_f32 : aco_opcode::v_cmp_o_f32;
+   aco_opcode new_op = is_or ? aco_opcode::v_cmp_u_f32 : aco_opcode::v_cmp_o_f32;
    Instruction *new_instr;
    if (neg[0] || neg[1] || abs[0] || abs[1] || opsel[0] || opsel[1]) {
       VOP3A_instruction *vop3 = create_instruction<VOP3A_instruction>(new_op, asVOP3(Format::VOPC), 2, 1);
@@ -1219,13 +1243,13 @@ bool combine_ordering_test(opt_ctx &ctx, aco_ptr<Instruction>& instr)
  * s_and_b64(v_cmp_o_f32(a, b), cmp(a, b)) -> get_ordered(cmp)(a, b) */
 bool combine_comparison_ordering(opt_ctx &ctx, aco_ptr<Instruction>& instr)
 {
-   if (instr->opcode != aco_opcode::s_or_b64 && instr->opcode != aco_opcode::s_and_b64)
+   if (instr->definitions[0].regClass() != ctx.program->lane_mask)
       return false;
    if (instr->definitions[1].isTemp() && ctx.uses[instr->definitions[1].tempId()])
       return false;
 
-   aco_opcode expected_nan_test = instr->opcode == aco_opcode::s_or_b64 ?
-                                  aco_opcode::v_cmp_u_f32 : aco_opcode::v_cmp_o_f32;
+   bool is_or = instr->opcode == aco_opcode::s_or_b64 || instr->opcode == aco_opcode::s_or_b32;
+   aco_opcode expected_nan_test = is_or ? aco_opcode::v_cmp_u_f32 : aco_opcode::v_cmp_o_f32;
 
    Instruction *nan_test = follow_operand(ctx, instr->operands[0], true);
    Instruction *cmp = follow_operand(ctx, instr->operands[1], true);
@@ -1259,8 +1283,7 @@ bool combine_comparison_ordering(opt_ctx &ctx, aco_ptr<Instruction>& instr)
    decrease_uses(ctx, nan_test);
    decrease_uses(ctx, cmp);
 
-   aco_opcode new_op = instr->opcode == aco_opcode::s_or_b64 ?
-                       get_unordered(cmp->opcode) : get_ordered(cmp->opcode);
+   aco_opcode new_op = is_or ? get_unordered(cmp->opcode) : get_ordered(cmp->opcode);
    Instruction *new_instr;
    if (cmp->isVOP3()) {
       VOP3A_instruction *new_vop3 = create_instruction<VOP3A_instruction>(new_op, asVOP3(Format::VOPC), 2, 1);
@@ -1290,10 +1313,12 @@ bool combine_comparison_ordering(opt_ctx &ctx, aco_ptr<Instruction>& instr)
  * s_and_b64(v_cmp_eq_f32(a, a), cmp(a, #b)) and b is not NaN -> get_ordered(cmp)(a, b) */
 bool combine_constant_comparison_ordering(opt_ctx &ctx, aco_ptr<Instruction>& instr)
 {
-   if (instr->opcode != aco_opcode::s_or_b64 && instr->opcode != aco_opcode::s_and_b64)
+   if (instr->definitions[0].regClass() != ctx.program->lane_mask)
       return false;
    if (instr->definitions[1].isTemp() && ctx.uses[instr->definitions[1].tempId()])
       return false;
+
+   bool is_or = instr->opcode == aco_opcode::s_or_b64 || instr->opcode == aco_opcode::s_or_b32;
 
    Instruction *nan_test = follow_operand(ctx, instr->operands[0], true);
    Instruction *cmp = follow_operand(ctx, instr->operands[1], true);
@@ -1301,8 +1326,7 @@ bool combine_constant_comparison_ordering(opt_ctx &ctx, aco_ptr<Instruction>& in
    if (!nan_test || !cmp)
       return false;
 
-   aco_opcode expected_nan_test = instr->opcode == aco_opcode::s_or_b64 ?
-                                  aco_opcode::v_cmp_neq_f32 : aco_opcode::v_cmp_eq_f32;
+   aco_opcode expected_nan_test = is_or ? aco_opcode::v_cmp_neq_f32 : aco_opcode::v_cmp_eq_f32;
    if (cmp->opcode == expected_nan_test)
       std::swap(nan_test, cmp);
    else if (nan_test->opcode != expected_nan_test)
@@ -1355,8 +1379,7 @@ bool combine_constant_comparison_ordering(opt_ctx &ctx, aco_ptr<Instruction>& in
    decrease_uses(ctx, nan_test);
    decrease_uses(ctx, cmp);
 
-   aco_opcode new_op = instr->opcode == aco_opcode::s_or_b64 ?
-                       get_unordered(cmp->opcode) : get_ordered(cmp->opcode);
+   aco_opcode new_op = is_or ? get_unordered(cmp->opcode) : get_ordered(cmp->opcode);
    Instruction *new_instr;
    if (cmp->isVOP3()) {
       VOP3A_instruction *new_vop3 = create_instruction<VOP3A_instruction>(new_op, asVOP3(Format::VOPC), 2, 1);
@@ -2209,9 +2232,8 @@ void combine_instruction(opt_ctx &ctx, Block& block, aco_ptr<Instruction>& instr
    } else if (instr->opcode == aco_opcode::s_not_b64) {
       if (combine_inverse_comparison(ctx, instr)) ;
       else combine_salu_not_bitwise(ctx, instr);
-   } else if (instr->opcode == aco_opcode::s_and_b32 || instr->opcode == aco_opcode::s_or_b32) {
-      combine_salu_n2(ctx, instr);
-   } else if (instr->opcode == aco_opcode::s_and_b64 || instr->opcode == aco_opcode::s_or_b64) {
+   } else if (instr->opcode == aco_opcode::s_and_b32 || instr->opcode == aco_opcode::s_or_b32 ||
+              instr->opcode == aco_opcode::s_and_b64 || instr->opcode == aco_opcode::s_or_b64) {
       if (combine_ordering_test(ctx, instr)) ;
       else if (combine_comparison_ordering(ctx, instr)) ;
       else if (combine_constant_comparison_ordering(ctx, instr)) ;

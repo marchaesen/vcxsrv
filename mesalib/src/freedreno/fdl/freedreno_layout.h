@@ -24,6 +24,13 @@
 #ifndef FREEDRENO_LAYOUT_H_
 #define FREEDRENO_LAYOUT_H_
 
+#include <stdbool.h>
+#include <stdint.h>
+
+#include "util/u_debug.h"
+#include "util/u_math.h"
+#include "util/format/u_format.h"
+
 /* Shared freedreno mipmap layout helper
  *
  * It does *not* attempt to track surface transitions, in particular
@@ -68,6 +75,8 @@
  * texture.
  */
 
+#define FDL_MAX_MIP_LEVELS 14
+
 struct fdl_slice {
 	uint32_t offset;         /* offset of first layer in slice */
 	uint32_t pitch;
@@ -80,7 +89,8 @@ struct fdl_slice {
  * to derive this.
  */
 struct fdl_layout {
-	struct fdl_slice slices[MAX_MIP_LEVELS];
+	struct fdl_slice slices[FDL_MAX_MIP_LEVELS];
+	struct fdl_slice ubwc_slices[FDL_MAX_MIP_LEVELS];
 	uint32_t layer_size;
 	bool layer_first : 1;    /* see above description */
 
@@ -99,10 +109,8 @@ struct fdl_layout {
 
 	uint32_t width0, height0, depth0;
 
-	/* UBWC specific fields: */
-	uint32_t offset;         /* offset to start of pixel data */
-	uint32_t ubwc_offset;    /* offset to UBWC meta data */
-	uint32_t ubwc_pitch;
+	uint32_t size; /* Size of the whole image, in bytes. */
+
 	uint32_t ubwc_size;
 };
 
@@ -119,9 +127,7 @@ static inline uint32_t
 fdl_surface_offset(const struct fdl_layout *layout, unsigned level, unsigned layer)
 {
 	const struct fdl_slice *slice = &layout->slices[level];
-	unsigned offset = slice->offset;
-	offset += fdl_layer_stride(layout, level) * layer;
-	return offset + layout->offset;
+	return slice->offset + fdl_layer_stride(layout, level) * layer;
 }
 
 static inline uint32_t
@@ -131,10 +137,10 @@ fdl_ubwc_offset(const struct fdl_layout *layout, unsigned level, unsigned layer)
 	 * for multi layer/level images, it will.
 	 */
 	if (layout->ubwc_size) {
-		debug_assert(level == 0);
-		debug_assert(layer == 0);
+		assert(level == 0);
+		assert(layer == 0);
 	}
-	return layout->ubwc_offset;
+	return layout->ubwc_slices[0].offset;
 }
 
 static inline bool
@@ -160,5 +166,18 @@ fdl_ubwc_enabled(const struct fdl_layout *layout, int level)
 {
 	return layout->ubwc_size && fdl_tile_mode(layout, level);
 }
+
+void
+fdl_layout_buffer(struct fdl_layout *layout, uint32_t size);
+
+void
+fdl6_layout(struct fdl_layout *layout,
+		enum pipe_format format, uint32_t nr_samples,
+		uint32_t width0, uint32_t height0, uint32_t depth0,
+		uint32_t mip_levels, uint32_t array_size, bool is_3d, bool ubwc);
+
+void
+fdl6_get_ubwc_blockwidth(struct fdl_layout *layout,
+		uint32_t *blockwidth, uint32_t *blockheight);
 
 #endif /* FREEDRENO_LAYOUT_H_ */

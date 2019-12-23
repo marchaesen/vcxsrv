@@ -48,6 +48,13 @@ tu_cs_begin_sub_stream(struct tu_device *dev,
                        uint32_t size,
                        struct tu_cs *sub_cs);
 
+VkResult
+tu_cs_alloc(struct tu_device *dev,
+            struct tu_cs *cs,
+            uint32_t count,
+            uint32_t size,
+            struct ts_cs_memory *memory);
+
 struct tu_cs_entry
 tu_cs_end_sub_stream(struct tu_cs *cs, struct tu_cs *sub_cs);
 
@@ -58,6 +65,9 @@ tu_cs_reserve_space(struct tu_device *dev,
 
 void
 tu_cs_reset(struct tu_device *dev, struct tu_cs *cs);
+
+VkResult
+tu_cs_add_entries(struct tu_cs *cs, struct tu_cs *target);
 
 /**
  * Discard all entries.  This allows \a cs to be reused while keeping the

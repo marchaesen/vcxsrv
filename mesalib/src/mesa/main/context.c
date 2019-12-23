@@ -1318,7 +1318,7 @@ fail:
  * \sa _mesa_initialize_context() and init_attrib_groups().
  */
 void
-_mesa_free_context_data(struct gl_context *ctx, bool destroy_compiler_types)
+_mesa_free_context_data(struct gl_context *ctx)
 {
    if (!_mesa_get_current_context()){
       /* No current context, but we may need one in order to delete
@@ -1421,7 +1421,7 @@ void
 _mesa_destroy_context( struct gl_context *ctx )
 {
    if (ctx) {
-      _mesa_free_context_data(ctx, true);
+      _mesa_free_context_data(ctx);
       free( (void *) ctx );
    }
 }

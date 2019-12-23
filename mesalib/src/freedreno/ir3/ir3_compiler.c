@@ -39,6 +39,9 @@ static const struct debug_named_value shader_debug_options[] = {
 	{"optmsgs",    IR3_DBG_OPTMSGS,    "Enable optimizer debug messages"},
 	{"forces2en",  IR3_DBG_FORCES2EN,  "Force s2en mode for tex sampler instructions"},
 	{"nouboopt",   IR3_DBG_NOUBOOPT,   "Disable lowering UBO to uniform"},
+#ifdef DEBUG
+	{"schedmsgs",  IR3_DBG_SCHEDMSGS,  "Enable scheduler debug messages"},
+#endif
 	DEBUG_NAMED_VALUE_END
 };
 

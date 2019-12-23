@@ -51,6 +51,7 @@ static const struct debug_control debug_control[] = {
         { "perf",        V3D_DEBUG_PERF},
         { "norast",      V3D_DEBUG_NORAST},
         { "fs",          V3D_DEBUG_FS},
+        { "gs",          V3D_DEBUG_GS},
         { "vs",          V3D_DEBUG_VS},
         { "cs",          V3D_DEBUG_CS},
         { "always_flush", V3D_DEBUG_ALWAYS_FLUSH},
@@ -65,7 +66,7 @@ v3d_debug_flag_for_shader_stage(gl_shader_stage stage)
                 [MESA_SHADER_VERTEX] = V3D_DEBUG_VS,
                 [MESA_SHADER_TESS_CTRL] = 0,
                 [MESA_SHADER_TESS_EVAL] = 0,
-                [MESA_SHADER_GEOMETRY] = 0,
+                [MESA_SHADER_GEOMETRY] = V3D_DEBUG_GS,
                 [MESA_SHADER_FRAGMENT] = V3D_DEBUG_FS,
                 [MESA_SHADER_COMPUTE] = V3D_DEBUG_CS,
         };

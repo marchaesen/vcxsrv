@@ -26,7 +26,8 @@ before_install:
     fi
 
   # Set PATH for homebrew pip3 installs
-  - PATH="$HOME/Library/Python/3.6/bin:${PATH}"
+  - PYTHON_VERSION=$(python3 -V | awk '{print $2}' | cut -d. -f1-2)
+  - PATH="$HOME/Library/Python/$PYTHON_VERSION/bin:${PATH}"
   # Set PKG_CONFIG_PATH for keg-only expat
   - PKG_CONFIG_PATH="/usr/local/opt/expat/lib/pkgconfig:${PKG_CONFIG_PATH}"
   # Set PATH for keg-only gettext

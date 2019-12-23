@@ -166,6 +166,10 @@ mir_print_instruction(midgard_instruction *ins)
         mir_print_index(ins->src[2]);
         mir_print_swizzle(ins->swizzle[2]);
 
+        printf(", ");
+        mir_print_index(ins->src[3]);
+        mir_print_swizzle(ins->swizzle[3]);
+
         if (ins->has_constants) {
                 uint32_t *uc = ins->constants;
                 float *fc = (float *) uc;

@@ -1043,7 +1043,7 @@ radv_depth_stencil_resolve_subpass_cs(struct radv_cmd_buffer *cmd_buffer,
 	if (radv_image_has_htile(dst_image)) {
 		if (aspects == VK_IMAGE_ASPECT_DEPTH_BIT) {
 			VkImageSubresourceRange range = {};
-			range.aspectMask = aspects;
+			range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 			range.baseMipLevel = dst_iview->base_mip;
 			range.levelCount = 1;
 			range.baseArrayLayer = dst_iview->base_layer;

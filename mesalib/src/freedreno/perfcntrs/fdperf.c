@@ -40,6 +40,7 @@
 #include <curses.h>
 #include <libconfig.h>
 #include <inttypes.h>
+#include <xf86drm.h>
 
 #include "drm/freedreno_drmif.h"
 #include "drm/freedreno_ringbuffer.h"
@@ -327,7 +328,7 @@ find_device(void)
 	if (!dev.dtnode)
 		errx(1, "could not find qcom,adreno-3xx node");
 
-	fd = open("/dev/dri/card0", O_RDWR);
+	fd = drmOpen("msm", NULL);
 	if (fd < 0)
 		err(1, "could not open drm device");
 

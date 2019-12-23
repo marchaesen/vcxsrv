@@ -42,9 +42,7 @@ components.
 <code>git bisect</code>.)
 <li>Patches should be properly <a href="#formatting">formatted</a>.
 <li>Patches should be sufficiently <a href="#testing">tested</a> before submitting.
-<li>Patches should be <a href="#submit">submitted</a>
-to <a href="#mailing">mesa-dev</a> or with
-a <a href="#merge-request">merge request</a>
+<li>Patches should be <a href="#submit">submitted</a> via a merge request</a>
 for <a href="#reviewing">review</a>.
 
 </ul>
@@ -161,67 +159,13 @@ replacing <code>"meson test"</code> with whatever other test you want to
 run.
 </p>
 
-
 <h2 id="submit">Submitting Patches</h2>
 
 <p>
-Patches may be submitted to the Mesa project by
-<a href="#mailing">email</a> or with a
-GitLab <a href="#merge-request">merge request</a>. To prevent
-duplicate code review, only use one method to submit your changes.
+Patches are submitted to the Mesa project via a
+<a href="https://gitlab.freedesktop.org/mesa/mesa">GitLab</a> Merge Request.
 </p>
 
-<h3 id="mailing">Mailing Patches</h3>
-
-<p>
-Patches may be sent to the mesa-dev mailing list for review:
-<a href="https://lists.freedesktop.org/mailman/listinfo/mesa-dev">
-mesa-dev@lists.freedesktop.org</a>.
-When submitting a patch make sure to use
-<a href="https://git-scm.com/docs/git-send-email">git send-email</a>
-rather than attaching patches to emails. Sending patches as
-attachments prevents people from being able to provide in-line review
-comments.
-</p>
-
-<p>
-When submitting follow-up patches you can use --in-reply-to to make v2, v3,
-etc patches show up as replies to the originals. This usually works well
-when you're sending out updates to individual patches (as opposed to
-re-sending the whole series). Using --in-reply-to makes
-it harder for reviewers to accidentally review old patches.
-</p>
-
-<p>
-When submitting follow-up patches you should also login to
-<a href="https://patchwork.freedesktop.org">patchwork</a> and change the
-state of your old patches to Superseded.
-</p>
-
-<p>
-Some companies' mail server automatically append a legal disclaimer,
-usually containing something along the lines of "The information in this
-email is confidential" and "distribution is strictly prohibited".
-</p>
-<p>
-These legal notices prevent us from being able to accept your patch,
-rendering the whole process pointless. Please make sure these are
-disabled before sending your patches. (Note that you may need to contact
-your email administrator for this.)
-</p>
-
-<h3 id="merge-request">GitLab Merge Requests</h3>
-
-<p>
-  <a href="https://gitlab.freedesktop.org/mesa/mesa">GitLab</a> Merge
-  Requests (MR) can also be used to submit patches for Mesa.
-</p>
-
-<p>
-  If the MR may have interest for most of the Mesa community, you can
-  send an email to the mesa-dev email list including a link to the MR.
-  Don't send the patch to mesa-dev, just the MR link.
-</p>
 <p>
   Add labels to your MR to help reviewers find it. For example:
 </p>
@@ -270,16 +214,15 @@ your email administrator for this.)
 <h2 id="reviewing">Reviewing Patches</h2>
 
 <p>
-  To participate in code review, you should monitor the
-  <a href="https://lists.freedesktop.org/mailman/listinfo/mesa-dev">
-  mesa-dev</a> email list and the GitLab
-  Mesa <a href="https://gitlab.freedesktop.org/mesa/mesa/merge_requests">Merge
-  Requests</a> page.
+  To participate in code review, you can monitor the GitLab Mesa
+ <a href="https://gitlab.freedesktop.org/mesa/mesa/merge_requests">Merge
+  Requests</a> page, and/or register for notifications in your gitlab
+  settings.
 </p>
 
 <p>
-When you've reviewed a patch on the mailing list, please be unambiguous
-about your review.  That is, state either
+When you've reviewed a patch, please be unambiguous about your review.
+  That is, state either
 </p>
 <pre>
     Reviewed-by: Joe Hacker &lt;jhacker@foo.com&gt;

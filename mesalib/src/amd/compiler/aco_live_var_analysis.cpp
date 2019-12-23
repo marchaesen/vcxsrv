@@ -54,7 +54,7 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
    bool exec_live = false;
    if (block->live_out_exec != Temp()) {
       live_sgprs.insert(block->live_out_exec);
-      new_demand.sgpr += 2;
+      new_demand.sgpr += program->lane_mask.size();
       exec_live = true;
    }
 
@@ -77,10 +77,10 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
       if (is_phi(insn))
          break;
 
-      /* substract the 2 sgprs from exec */
+      /* substract the 1 or 2 sgprs from exec */
       if (exec_live)
-         assert(new_demand.sgpr >= 2);
-      register_demand[idx] = RegisterDemand(new_demand.vgpr, new_demand.sgpr - (exec_live ? 2 : 0));
+         assert(new_demand.sgpr >= (int16_t) program->lane_mask.size());
+      register_demand[idx] = RegisterDemand(new_demand.vgpr, new_demand.sgpr - (exec_live ? program->lane_mask.size() : 0));
 
       /* KILL */
       for (Definition& definition : insn->definitions) {
@@ -144,8 +144,8 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
 
    /* update block's register demand for a last time */
    if (exec_live)
-      assert(new_demand.sgpr >= 2);
-   new_demand.sgpr -= exec_live ? 2 : 0;
+      assert(new_demand.sgpr >= (int16_t) program->lane_mask.size());
+   new_demand.sgpr -= exec_live ? program->lane_mask.size() : 0;
    block->register_demand.update(new_demand);
 
    /* handle phi definitions */
@@ -264,11 +264,24 @@ uint16_t get_sgpr_alloc(Program *program, uint16_t addressable_sgprs)
    return align(std::max(sgprs, granule), granule);
 }
 
+uint16_t get_vgpr_alloc(Program *program, uint16_t addressable_vgprs)
+{
+   assert(addressable_vgprs <= program->vgpr_limit);
+   uint16_t granule = program->vgpr_alloc_granule + 1;
+   return align(std::max(addressable_vgprs, granule), granule);
+}
+
 uint16_t get_addr_sgpr_from_waves(Program *program, uint16_t max_waves)
 {
     uint16_t sgprs = program->physical_sgprs / max_waves & ~program->sgpr_alloc_granule;
     sgprs -= get_extra_sgprs(program);
     return std::min(sgprs, program->sgpr_limit);
+}
+
+uint16_t get_addr_vgpr_from_waves(Program *program, uint16_t max_waves)
+{
+    uint16_t vgprs = 256 / max_waves & ~program->vgpr_alloc_granule;
+    return std::min(vgprs, program->vgpr_limit);
 }
 
 void update_vgpr_sgpr_demand(Program* program, const RegisterDemand new_demand)
@@ -281,14 +294,13 @@ void update_vgpr_sgpr_demand(Program* program, const RegisterDemand new_demand)
    unsigned simd_per_cu_wgp = wgp ? simd_per_cu * 2 : simd_per_cu;
    unsigned lds_limit = wgp ? program->lds_limit * 2 : program->lds_limit;
 
-   const int16_t vgpr_alloc = std::max<int16_t>(4, (new_demand.vgpr + 3) & ~3);
    /* this won't compile, register pressure reduction necessary */
    if (new_demand.vgpr > program->vgpr_limit || new_demand.sgpr > program->sgpr_limit) {
       program->num_waves = 0;
       program->max_reg_demand = new_demand;
    } else {
       program->num_waves = program->physical_sgprs / get_sgpr_alloc(program, new_demand.sgpr);
-      program->num_waves = std::min<uint16_t>(program->num_waves, 256 / vgpr_alloc);
+      program->num_waves = std::min<uint16_t>(program->num_waves, 256 / get_vgpr_alloc(program, new_demand.vgpr));
       program->max_waves = max_waves_per_simd;
 
       /* adjust max_waves for workgroup and LDS limits */
@@ -314,7 +326,7 @@ void update_vgpr_sgpr_demand(Program* program, const RegisterDemand new_demand)
 
       /* incorporate max_waves and calculate max_reg_demand */
       program->num_waves = std::min<uint16_t>(program->num_waves, program->max_waves);
-      program->max_reg_demand.vgpr = int16_t((256 / program->num_waves) & ~3);
+      program->max_reg_demand.vgpr = get_addr_vgpr_from_waves(program, program->num_waves);
       program->max_reg_demand.sgpr = get_addr_sgpr_from_waves(program, program->num_waves);
    }
 }

@@ -1385,10 +1385,6 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<reg32 offset="0x0468" name="RBBM_PERFCTR_LOAD_CMD3"/>
 	<reg32 offset="0x0469" name="RBBM_PERFCTR_LOAD_VALUE_LO"/>
 	<reg32 offset="0x046a" name="RBBM_PERFCTR_LOAD_VALUE_HI"/>
-	<reg32 offset="0x046b" name="RBBM_PERFCTR_RBBM_SEL_0"/>
-	<reg32 offset="0x046c" name="RBBM_PERFCTR_RBBM_SEL_1"/>
-	<reg32 offset="0x046d" name="RBBM_PERFCTR_RBBM_SEL_2"/>
-	<reg32 offset="0x046e" name="RBBM_PERFCTR_RBBM_SEL_3"/>
 	<reg32 offset="0x046f" name="RBBM_PERFCTR_GPU_BUSY_MASKED"/>
 	<reg32 offset="0x04ed" name="RBBM_AHB_ERROR"/>
 	<reg32 offset="0x0504" name="RBBM_CFG_DBGBUS_EVENT_LOGIC"/>
@@ -1707,7 +1703,6 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<reg32 offset="0xa892" name="GPMU_PWR_COL_INTER_FRAME_CTRL"/>
 	<reg32 offset="0xa893" name="GPMU_PWR_COL_INTER_FRAME_HYST"/>
 	<reg32 offset="0xa894" name="GPMU_PWR_COL_BINNING_CTRL"/>
-	<reg32 offset="0xa8a3" name="GPMU_CLOCK_THROTTLE_CTRL"/>
 	<reg32 offset="0xa8c1" name="GPMU_WFI_CONFIG"/>
 	<reg32 offset="0xa8d6" name="GPMU_RBBM_INTR_INFO"/>
 	<reg32 offset="0xa8d8" name="GPMU_CM3_SYSRESET"/>

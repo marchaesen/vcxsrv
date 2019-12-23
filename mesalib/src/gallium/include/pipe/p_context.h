@@ -191,6 +191,50 @@ struct pipe_context {
     */
    void (*set_active_query_state)(struct pipe_context *pipe, bool enable);
 
+   /**
+    * INTEL Performance Query
+    */
+   /*@{*/
+
+   unsigned (*init_intel_perf_query_info)(struct pipe_context *pipe);
+
+   void (*get_intel_perf_query_info)(struct pipe_context *pipe,
+                                     unsigned query_index,
+                                     const char **name,
+                                     uint32_t *data_size,
+                                     uint32_t *n_counters,
+                                     uint32_t *n_active);
+
+   void (*get_intel_perf_query_counter_info)(struct pipe_context *pipe,
+                                             unsigned query_index,
+                                             unsigned counter_index,
+                                             const char **name,
+                                             const char **desc,
+                                             uint32_t *offset,
+                                             uint32_t *data_size,
+                                             uint32_t *type_enum,
+                                             uint32_t *data_type_enum,
+                                             uint64_t *raw_max);
+
+   struct pipe_query *(*new_intel_perf_query_obj)(struct pipe_context *pipe,
+                                                 unsigned query_index);
+
+   void (*begin_intel_perf_query)(struct pipe_context *pipe, struct pipe_query *q);
+
+   void (*end_intel_perf_query)(struct pipe_context *pipe, struct pipe_query *q);
+
+   void (*delete_intel_perf_query)(struct pipe_context *pipe, struct pipe_query *q);
+
+   void (*wait_intel_perf_query)(struct pipe_context *pipe, struct pipe_query *q);
+
+   bool (*is_intel_perf_query_ready)(struct pipe_context *pipe, struct pipe_query *q);
+
+   void (*get_intel_perf_query_data)(struct pipe_context *pipe,
+                                     struct pipe_query *q,
+                                     size_t data_size,
+                                     uint32_t *data,
+                                     uint32_t *bytes_written);
+
    /*@}*/
 
    /**

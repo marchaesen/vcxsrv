@@ -60,6 +60,8 @@ typedef struct {
 
 #define _SIMPLE_MTX_INITIALIZER_NP { 0 }
 
+#define _SIMPLE_MTX_INVALID_VALUE 0xd0d0d0d0
+
 static inline void
 simple_mtx_init(simple_mtx_t *mtx, ASSERTED int type)
 {
@@ -69,8 +71,11 @@ simple_mtx_init(simple_mtx_t *mtx, ASSERTED int type)
 }
 
 static inline void
-simple_mtx_destroy(UNUSED simple_mtx_t *mtx)
+simple_mtx_destroy(ASSERTED simple_mtx_t *mtx)
 {
+#ifndef NDEBUG
+   mtx->val = _SIMPLE_MTX_INVALID_VALUE;
+#endif
 }
 
 static inline void
@@ -79,6 +84,9 @@ simple_mtx_lock(simple_mtx_t *mtx)
    uint32_t c;
 
    c = __sync_val_compare_and_swap(&mtx->val, 0, 1);
+
+   assert(c != _SIMPLE_MTX_INVALID_VALUE);
+
    if (__builtin_expect(c != 0, 0)) {
       if (c != 2)
          c = __sync_lock_test_and_set(&mtx->val, 2);
@@ -95,6 +103,9 @@ simple_mtx_unlock(simple_mtx_t *mtx)
    uint32_t c;
 
    c = __sync_fetch_and_sub(&mtx->val, 1);
+
+   assert(c != _SIMPLE_MTX_INVALID_VALUE);
+
    if (__builtin_expect(c != 1, 0)) {
       mtx->val = 0;
       futex_wake(&mtx->val, 1);

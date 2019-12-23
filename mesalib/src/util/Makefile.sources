@@ -57,6 +57,8 @@ MESA_UTIL_FILES := \
 	os_time.h \
 	os_file.c \
 	os_file.h \
+	os_socket.c \
+	os_socket.h \
 	os_misc.c \
 	os_misc.h \
 	u_process.c \
@@ -112,6 +114,8 @@ MESA_UTIL_FILES := \
 	os_memory_stdc.h \
 	os_memory.h \
 	u_memory.h \
+	u_mm.h \
+	u_mm.c \
 	vma.c \
 	vma.h
 

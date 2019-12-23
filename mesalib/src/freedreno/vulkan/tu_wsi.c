@@ -40,10 +40,10 @@ tu_wsi_image_get_modifier(VkImage _image)
 {
    TU_FROM_HANDLE(tu_image, image, _image);
 
-   if (!image->tile_mode)
+   if (!image->layout.tile_mode)
       return DRM_FORMAT_MOD_LINEAR;
 
-   if (image->ubwc_size)
+   if (image->layout.ubwc_size)
       return DRM_FORMAT_MOD_QCOM_COMPRESSED;
 
    /* TODO invent a modifier for tiled but not UBWC buffers: */

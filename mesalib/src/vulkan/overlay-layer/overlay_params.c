@@ -24,8 +24,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 
 #include "overlay_params.h"
+
+#include "util/os_socket.h"
 
 static enum overlay_param_position
 parse_position(const char *str)
@@ -45,6 +49,21 @@ static FILE *
 parse_output_file(const char *str)
 {
    return fopen(str, "w+");
+}
+
+static int
+parse_control(const char *str)
+{
+   int ret = os_socket_listen_abstract(str, 1);
+   if (ret < 0) {
+      fprintf(stderr, "ERROR: Couldn't create socket pipe at '%s'\n", str);
+      fprintf(stderr, "ERROR: '%s'\n", strerror(errno));
+      return ret;
+   }
+
+   os_socket_block(ret, false);
+
+   return ret;
 }
 
 static uint32_t
@@ -148,6 +167,7 @@ parse_overlay_env(struct overlay_params *params,
    params->enabled[OVERLAY_PARAM_ENABLED_frame_timing] = true;
    params->fps_sampling_period = 500000; /* 500ms */
    params->width = params->height = 300;
+   params->control = -1;
 
    if (!env)
       return;

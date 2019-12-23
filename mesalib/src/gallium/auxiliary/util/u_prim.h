@@ -338,7 +338,14 @@ u_stream_outputs_for_vertices(enum pipe_prim_type primitive, unsigned nr)
    /* Extraneous vertices don't contribute to stream outputs */
    u_trim_pipe_prim(primitive, &nr);
 
-   /* Consider how many primitives are actually generated */
+   /* Polygons are special, since they are a single primitive with many
+    * vertices. In this case, we just have an output for each vertex (after
+    * trimming) */
+
+   if (primitive == PIPE_PRIM_POLYGON)
+      return nr;
+
+   /* Normally, consider how many primitives are actually generated */
    unsigned prims = u_decomposed_prims_for_vertices(primitive, nr);
 
    /* One output per vertex after decomposition */

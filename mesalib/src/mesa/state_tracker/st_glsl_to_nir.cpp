@@ -31,6 +31,7 @@
 #include "program/prog_statevars.h"
 #include "program/prog_parameter.h"
 #include "program/ir_to_mesa.h"
+#include "main/context.h"
 #include "main/mtypes.h"
 #include "main/errors.h"
 #include "main/glspirv.h"
@@ -368,9 +369,16 @@ st_nir_preprocess(struct st_context *st, struct gl_program *prog,
       st->ctx->SoftFP64 = glsl_float64_funcs_to_nir(st->ctx, options);
    }
 
-   nir_variable_mode mask =
-      (nir_variable_mode) (nir_var_shader_in | nir_var_shader_out);
-   nir_remove_dead_variables(nir, mask);
+   /* ES has strict SSO validation rules for shader IO matching so we can't
+    * remove dead IO until the resource list has been built. Here we skip
+    * removing them until later. This will potentially make the IO lowering
+    * calls below do a little extra work but should otherwise have no impact.
+    */
+   if (!_mesa_is_gles(st->ctx) || !nir->info.separate_shader) {
+      nir_variable_mode mask =
+         (nir_variable_mode) (nir_var_shader_in | nir_var_shader_out);
+      nir_remove_dead_variables(nir, mask);
+   }
 
    if (options->lower_all_io_to_temps ||
        nir->info.stage == MESA_SHADER_VERTEX ||
@@ -405,7 +413,6 @@ st_nir_preprocess(struct st_context *st, struct gl_program *prog,
                  nir_var_mem_shared, nir_address_format_32bit_offset);
    }
 
-   NIR_PASS_V(nir, gl_nir_lower_buffers, shader_program);
    /* Do a round of constant folding to clean up address calculations */
    NIR_PASS_V(nir, nir_opt_constant_folding);
 }
@@ -700,7 +707,7 @@ st_link_nir(struct gl_context *ctx,
       if (!gl_nir_link(ctx, shader_program, &opts))
          return GL_FALSE;
 
-      nir_build_program_resource_list(ctx, shader_program);
+      nir_build_program_resource_list(ctx, shader_program, true);
 
       for (unsigned i = 0; i < num_shaders; i++) {
          struct gl_linked_shader *shader = linked_shader[i];
@@ -722,15 +729,28 @@ st_link_nir(struct gl_context *ctx,
                           linked_shader[i + 1]->Program->nir);
    }
 
+   if (!shader_program->data->spirv)
+      nir_build_program_resource_list(ctx, shader_program, false);
+
    for (unsigned i = 0; i < num_shaders; i++) {
       struct gl_linked_shader *shader = linked_shader[i];
       nir_shader *nir = shader->Program->nir;
+
+      NIR_PASS_V(nir, gl_nir_lower_buffers, shader_program);
 
       /* Linked shaders are optimized in st_nir_link_shaders. Separate shaders
        * and shaders with a fixed-func VS or FS are optimized here.
        */
       if (num_shaders == 1)
          st_nir_opts(nir);
+
+      /* Remap the locations to slots so those requiring two slots will occupy
+       * two locations. For instance, if we have in the IR code a dvec3 attr0 in
+       * location 0 and vec4 attr1 in location 1, in NIR attr0 will use
+       * locations/slots 0 and 1, and attr1 will use location/slot 2
+       */
+      if (nir->info.stage == MESA_SHADER_VERTEX && !shader_program->data->spirv)
+         nir_remap_dual_slot_attributes(nir, &shader->Program->DualSlotInputs);
 
       NIR_PASS_V(nir, st_nir_lower_wpos_ytransform, shader->Program,
                  st->pipe->screen);

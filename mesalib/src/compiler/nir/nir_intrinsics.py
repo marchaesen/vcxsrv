@@ -868,3 +868,7 @@ load("tlb_color_v3d", 1, [BASE, COMPONENT], [])
 # src[] = { value, render_target }
 # BASE = sample index
 store("tlb_sample_color_v3d", 2, [BASE, COMPONENT, TYPE], [])
+
+# V3D-specific intrinsic to load the number of layers attached to
+# the target framebuffer
+intrinsic("load_fb_layers_v3d", dest_comp=1, flags=[CAN_ELIMINATE, CAN_REORDER])

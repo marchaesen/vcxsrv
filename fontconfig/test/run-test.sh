@@ -40,9 +40,8 @@ ECHO=true
 FCLIST="$LOG_COMPILER ../fc-list/fc-list$EXEEXT"
 FCCACHE="$LOG_COMPILER ../fc-cache/fc-cache$EXEEXT"
 
-which bwrap > /dev/null 2>&1
-if [ $? -eq 0 ]; then
-    BWRAP=`which bwrap`
+if [ -x "$(command -v bwrap)" ]; then
+    BWRAP="$(command -v bwrap)"
 fi
 
 FONT1=$TESTDIR/4x6.pcf

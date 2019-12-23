@@ -877,6 +877,10 @@ void st_init_extensions(struct pipe_screen *screen,
           PIPE_FORMAT_BPTC_RGB_FLOAT,
           PIPE_FORMAT_BPTC_RGB_UFLOAT } },
 
+      { { o(TDFX_texture_compression_FXT1) },
+        { PIPE_FORMAT_FXT1_RGB,
+          PIPE_FORMAT_FXT1_RGBA } },
+
       { { o(KHR_texture_compression_astc_ldr),
           o(KHR_texture_compression_astc_sliced_3d) },
         { PIPE_FORMAT_ASTC_4x4,

@@ -40,7 +40,7 @@ midgard_lower_invert(compiler_context *ctx, midgard_block *block)
                 midgard_instruction not = {
                         .type = TAG_ALU_4,
                         .mask = ins->mask,
-                        .src = { temp, ~0, ~0 },
+                        .src = { temp, ~0, ~0, ~0 },
                         .swizzle = SWIZZLE_IDENTITY,
                         .dest = ins->dest,
                         .has_inline_constant = true,
@@ -294,6 +294,82 @@ midgard_opt_csel_invert(compiler_context *ctx, midgard_block *block)
                 if (!mir_strip_inverted(ctx, ins->src[2])) continue;
 
                 mir_flip(ins);
+                progress |= true;
+        }
+
+        return progress;
+}
+
+
+static bool
+mir_is_inverted(compiler_context *ctx, unsigned node)
+{
+        mir_foreach_instr_global(ctx, ins) {
+                if (ins->compact_branch) continue;
+                if (ins->dest != node) continue;
+
+                return ins->invert;
+        }
+
+        unreachable("Invalid node passed");
+}
+
+
+
+/* Optimizes comparisions which invert both arguments
+ *
+ *
+ * ieq(not(a), not(b)) = ieq(a, b)
+ * ine(not(a), not(b)) = ine(a, b)
+ *
+ * This does apply for ilt and ile if we flip the argument order:
+ * Proofs below provided by Alyssa Rosenzweig
+ *
+ * not(x) = −(x+1)
+ *
+ * ( not(A) <= not(B) ) <=> ( −(A+1) <= −(B+1) )
+ *                      <=> ( A+1 >= B+1)
+ *                      <=> ( B <= A )
+ *
+ * On unsigned comparisons (ult / ule) we can perform the same optimization
+ * with the additional restriction that the source registers must
+ * have the same size.
+ *
+ * TODO: We may not need them to be of the same size, if we can
+ *       prove that they are the same after sext/zext
+ *
+ * not(x) = 2n−x−1
+ *
+ * ( not(A) <= not(B) ) <=> ( 2n−A−1 <= 2n−B−1 )
+ *                      <=> ( −A <= −B )
+ *                      <=> ( B <= A )
+ */
+bool
+midgard_opt_drop_cmp_invert(compiler_context *ctx, midgard_block *block)
+{
+
+        bool progress = false;
+
+        mir_foreach_instr_in_block_safe(block, ins) {
+                if (ins->type != TAG_ALU_4) continue;
+                if (!OP_IS_INTEGER_CMP(ins->alu.op)) continue;
+
+                if ((ins->src[0] & IS_REG) || (ins->src[1] & IS_REG)) continue;
+                if (!mir_single_use(ctx, ins->src[0]) || !mir_single_use(ctx, ins->src[1])) continue;
+
+                bool a_inverted = mir_is_inverted(ctx, ins->src[0]);
+                bool b_inverted = mir_is_inverted(ctx, ins->src[1]);
+
+                if (!a_inverted || !b_inverted) continue;
+                if (OP_IS_UNSIGNED_CMP(ins->alu.op) && mir_srcsize(ins, 0) != mir_srcsize(ins, 1)) continue;
+
+
+                mir_strip_inverted(ctx, ins->src[0]);
+                mir_strip_inverted(ctx, ins->src[1]);
+
+                if (ins->alu.op != midgard_alu_op_ieq && ins->alu.op != midgard_alu_op_ine)
+                        mir_flip(ins);
+
                 progress |= true;
         }
 

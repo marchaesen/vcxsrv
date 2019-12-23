@@ -121,12 +121,12 @@ TU_FORMAT_TABLE(tu6_format_table0) = {
    TU6_xxx(R8G8B8_SRGB,                8_8_8_UNORM,       R8G8B8_UNORM,       WZYX), /* 29 */
 
    /* 24-bit BGR */
-   TU6_Vxx(B8G8R8_UNORM,               8_8_8_UNORM,       R8G8B8_UNORM,       WXYZ), /* 30 */
-   TU6_Vxx(B8G8R8_SNORM,               8_8_8_SNORM,       R8G8B8_SNORM,       WXYZ), /* 31 */
-   TU6_Vxx(B8G8R8_USCALED,             8_8_8_UINT,        R8G8B8_UINT,        WXYZ), /* 32 */
-   TU6_Vxx(B8G8R8_SSCALED,             8_8_8_SINT,        R8G8B8_SINT,        WXYZ), /* 33 */
-   TU6_Vxx(B8G8R8_UINT,                8_8_8_UINT,        R8G8B8_UINT,        WXYZ), /* 34 */
-   TU6_Vxx(B8G8R8_SINT,                8_8_8_SINT,        R8G8B8_SINT,        WXYZ), /* 35 */
+   TU6_xxx(B8G8R8_UNORM,               8_8_8_UNORM,       R8G8B8_UNORM,       WXYZ), /* 30 */
+   TU6_xxx(B8G8R8_SNORM,               8_8_8_SNORM,       R8G8B8_SNORM,       WXYZ), /* 31 */
+   TU6_xxx(B8G8R8_USCALED,             8_8_8_UINT,        R8G8B8_UINT,        WXYZ), /* 32 */
+   TU6_xxx(B8G8R8_SSCALED,             8_8_8_SINT,        R8G8B8_SINT,        WXYZ), /* 33 */
+   TU6_xxx(B8G8R8_UINT,                8_8_8_UINT,        R8G8B8_UINT,        WXYZ), /* 34 */
+   TU6_xxx(B8G8R8_SINT,                8_8_8_SINT,        R8G8B8_SINT,        WXYZ), /* 35 */
    TU6_xxx(B8G8R8_SRGB,                8_8_8_UNORM,       R8G8B8_UNORM,       WXYZ), /* 36 */
 
    /* 32-bit RGBA */
@@ -345,7 +345,7 @@ tu6_rb_fmt_to_ifmt(enum a6xx_color_fmt fmt)
    case RB6_R8G8_UNORM:
    case RB6_R8G8_SNORM:
    case RB6_R8G8B8A8_UNORM:
-   case RB6_R8G8B8_UNORM:
+   case RB6_R8G8B8X8_UNORM:
    case RB6_R8G8B8A8_SNORM:
    case RB6_R4G4B4A4_UNORM:
    case RB6_R5G5B5A1_UNORM:
@@ -868,8 +868,10 @@ tu_get_image_format_properties(
          VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)) &&
        !(info->flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) &&
        !(info->usage & VK_IMAGE_USAGE_STORAGE_BIT)) {
-      sampleCounts |= VK_SAMPLE_COUNT_2_BIT | VK_SAMPLE_COUNT_4_BIT |
-                      VK_SAMPLE_COUNT_8_BIT;
+      sampleCounts |= VK_SAMPLE_COUNT_2_BIT | VK_SAMPLE_COUNT_4_BIT;
+      /* 8x MSAA on 128bpp formats doesn't seem to work */
+      if (vk_format_get_blocksize(info->format) <= 8)
+         sampleCounts |= VK_SAMPLE_COUNT_8_BIT;
    }
 
    if (info->usage & VK_IMAGE_USAGE_SAMPLED_BIT) {

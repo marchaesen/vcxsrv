@@ -389,7 +389,9 @@ struct st_context_iface
     * Flush all drawing from context to the pipe also flushes the pipe.
     */
    void (*flush)(struct st_context_iface *stctxi, unsigned flags,
-                 struct pipe_fence_handle **fence);
+                 struct pipe_fence_handle **fence,
+                 void (*notify_before_flush_cb) (void*),
+                 void* notify_before_flush_cb_args);
 
    /**
     * Replace the texture image of a texture object at the specified level.

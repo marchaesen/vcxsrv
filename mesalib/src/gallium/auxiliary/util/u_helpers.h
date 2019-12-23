@@ -54,7 +54,7 @@ void util_set_shader_buffers_mask(struct pipe_shader_buffer *dst,
 bool util_upload_index_buffer(struct pipe_context *pipe,
                               const struct pipe_draw_info *info,
                               struct pipe_resource **out_buffer,
-                              unsigned *out_offset);
+                              unsigned *out_offset, unsigned alignment);
 
 void
 util_pin_driver_threads_to_random_L3(struct pipe_context *ctx,

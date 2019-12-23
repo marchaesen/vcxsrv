@@ -892,8 +892,8 @@ void * ir3_assemble(struct ir3 *shader, struct ir3_info *info,
 	info->sizedwords    = 0;
 	info->ss = info->sy = 0;
 
-	list_for_each_entry (struct ir3_block, block, &shader->block_list, node) {
-		list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
+	foreach_block (block, &shader->block_list) {
+		foreach_instr (instr, &block->instr_list) {
 			info->sizedwords += 2;
 		}
 	}
@@ -910,11 +910,15 @@ void * ir3_assemble(struct ir3 *shader, struct ir3_info *info,
 
 	ptr = dwords = calloc(4, info->sizedwords);
 
-	list_for_each_entry (struct ir3_block, block, &shader->block_list, node) {
-		list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
+	foreach_block (block, &shader->block_list) {
+		foreach_instr (instr, &block->instr_list) {
 			int ret = emit[opc_cat(instr->opc)](instr, dwords, info);
 			if (ret)
 				goto fail;
+
+			if ((instr->opc == OPC_BARY_F) && (instr->regs[0]->flags & IR3_REG_EI))
+				info->last_baryf = info->instrs_count;
+
 			info->instrs_count += 1 + instr->repeat + instr->nop;
 			info->nops_count += instr->nop;
 			if (instr->opc == OPC_NOP)
@@ -1078,14 +1082,14 @@ ir3_instr_set_address(struct ir3_instruction *instr,
 void
 ir3_block_clear_mark(struct ir3_block *block)
 {
-	list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node)
+	foreach_instr (instr, &block->instr_list)
 		instr->flags &= ~IR3_INSTR_MARK;
 }
 
 void
 ir3_clear_mark(struct ir3 *ir)
 {
-	list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
+	foreach_block (block, &ir->block_list) {
 		ir3_block_clear_mark(block);
 	}
 }
@@ -1095,10 +1099,10 @@ unsigned
 ir3_count_instructions(struct ir3 *ir)
 {
 	unsigned cnt = 0;
-	list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
+	foreach_block (block, &ir->block_list) {
 		block->start_ip = cnt;
 		block->end_ip = cnt;
-		list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node) {
+		foreach_instr (instr, &block->instr_list) {
 			instr->ip = cnt++;
 			block->end_ip = instr->ip;
 		}
@@ -1109,7 +1113,7 @@ ir3_count_instructions(struct ir3 *ir)
 struct ir3_array *
 ir3_lookup_array(struct ir3 *ir, unsigned id)
 {
-	list_for_each_entry (struct ir3_array, arr, &ir->array_list, node)
+	foreach_array (arr, &ir->array_list)
 		if (arr->id == id)
 			return arr;
 	return NULL;

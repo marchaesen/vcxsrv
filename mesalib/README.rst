@@ -56,5 +56,4 @@ Contributions are welcome, and step-by-step instructions can be found in our
 documentation (`docs/submittingpatches.html
 <https://mesa3d.org/submittingpatches.html>`_).
 
-Note that Mesa uses email mailing-lists for patches submission, review and
-discussions.
+Note that Mesa uses gitlab for patches submission, review and discussions.

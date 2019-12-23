@@ -113,7 +113,7 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 	list_replace(&block->instr_list, &instr_list);
 	list_inithead(&block->instr_list);
 
-	list_for_each_entry_safe (struct ir3_instruction, n, &instr_list, node) {
+	foreach_instr_safe (n, &instr_list) {
 		struct ir3_register *reg;
 		unsigned i;
 
@@ -521,8 +521,8 @@ resolve_jump(struct ir3_instruction *instr)
 static bool
 resolve_jumps(struct ir3 *ir)
 {
-	list_for_each_entry (struct ir3_block, block, &ir->block_list, node)
-		list_for_each_entry (struct ir3_instruction, instr, &block->instr_list, node)
+	foreach_block (block, &ir->block_list)
+		foreach_instr (instr, &block->instr_list)
 			if (is_flow(instr) && instr->cat0.target)
 				if (resolve_jump(instr))
 					return true;
@@ -547,7 +547,7 @@ static void mark_jp(struct ir3_block *block)
 static void
 mark_xvergence_points(struct ir3 *ir)
 {
-	list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
+	foreach_block (block, &ir->block_list) {
 		if (block->predecessors->entries > 1) {
 			/* if a block has more than one possible predecessor, then
 			 * the first instruction is a convergence point.
@@ -578,14 +578,14 @@ ir3_legalize(struct ir3 *ir, bool *has_ssbo, bool *need_pixlod, int *max_bary)
 	ctx->type = ir->type;
 
 	/* allocate per-block data: */
-	list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
+	foreach_block (block, &ir->block_list) {
 		block->data = rzalloc(ctx, struct ir3_legalize_block_data);
 	}
 
 	/* process each block: */
 	do {
 		progress = false;
-		list_for_each_entry (struct ir3_block, block, &ir->block_list, node) {
+		foreach_block (block, &ir->block_list) {
 			progress |= legalize_block(ctx, block);
 		}
 	} while (progress);

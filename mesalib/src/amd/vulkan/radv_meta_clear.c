@@ -1084,10 +1084,8 @@ radv_fast_clear_depth(struct radv_cmd_buffer *cmd_buffer,
 	VkClearDepthStencilValue clear_value = clear_att->clearValue.depthStencil;
 	VkImageAspectFlags aspects = clear_att->aspectMask;
 	uint32_t clear_word, flush_bits;
-	uint32_t htile_mask;
 
 	clear_word = radv_get_htile_fast_clear_value(iview->image, clear_value);
-	htile_mask = radv_get_htile_mask(iview->image, aspects);
 
 	if (pre_flush) {
 		cmd_buffer->state.flush_bits |= (RADV_CMD_FLAG_FLUSH_AND_INV_DB |
@@ -1095,17 +1093,24 @@ radv_fast_clear_depth(struct radv_cmd_buffer *cmd_buffer,
 		*pre_flush |= cmd_buffer->state.flush_bits;
 	}
 
-	if (htile_mask == UINT_MAX) {
-		/* Clear the whole HTILE buffer. */
-		flush_bits = radv_fill_buffer(cmd_buffer, iview->image->bo,
-					      iview->image->offset + iview->image->htile_offset,
-					      iview->image->planes[0].surface.htile_size, clear_word);
-	} else {
-		/* Only clear depth or stencil bytes in the HTILE buffer. */
-		flush_bits = clear_htile_mask(cmd_buffer, iview->image->bo,
-					      iview->image->offset + iview->image->htile_offset,
-					      iview->image->planes[0].surface.htile_size, clear_word,
-					      htile_mask);
+	struct VkImageSubresourceRange range = {
+		.aspectMask = aspects,
+		.baseMipLevel = 0,
+		.levelCount = VK_REMAINING_MIP_LEVELS,
+		.baseArrayLayer = 0,
+		.layerCount = VK_REMAINING_ARRAY_LAYERS,
+	};
+
+	flush_bits = radv_clear_htile(cmd_buffer, iview->image, &range, clear_word);
+
+	if (iview->image->planes[0].surface.has_stencil &&
+	    !(aspects == (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))) {
+		/* Synchronize after performing a depth-only or a stencil-only
+		 * fast clear because the driver uses an optimized path which
+		 * performs a read-modify-write operation, and the two separate
+		 * aspects might use the same HTILE memory.
+		 */
+		cmd_buffer->state.flush_bits |= flush_bits;
 	}
 
 	radv_update_ds_clear_metadata(cmd_buffer, iview, clear_value, aspects);
@@ -1520,15 +1525,30 @@ radv_clear_dcc(struct radv_cmd_buffer *cmd_buffer,
 }
 
 uint32_t
-radv_clear_htile(struct radv_cmd_buffer *cmd_buffer, struct radv_image *image,
-		 const VkImageSubresourceRange *range, uint32_t value)
+radv_clear_htile(struct radv_cmd_buffer *cmd_buffer,
+		 const struct radv_image *image,
+		 const VkImageSubresourceRange *range,
+		 uint32_t value)
 {
 	unsigned layer_count = radv_get_layerCount(image, range);
 	uint64_t size = image->planes[0].surface.htile_slice_size * layer_count;
 	uint64_t offset = image->offset + image->htile_offset +
 	                  image->planes[0].surface.htile_slice_size * range->baseArrayLayer;
+	uint32_t htile_mask, flush_bits;
 
-	return radv_fill_buffer(cmd_buffer, image->bo, offset, size, value);
+	htile_mask = radv_get_htile_mask(image, range->aspectMask);
+
+	if (htile_mask == UINT_MAX) {
+		/* Clear the whole HTILE buffer. */
+		flush_bits = radv_fill_buffer(cmd_buffer, image->bo, offset,
+					      size, value);
+	} else {
+		/* Only clear depth or stencil bytes in the HTILE buffer. */
+		flush_bits = clear_htile_mask(cmd_buffer, image->bo, offset,
+					      size, value, htile_mask);
+	}
+
+	return flush_bits;
 }
 
 enum {

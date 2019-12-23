@@ -264,8 +264,6 @@ C_SOURCES := \
 	util/u_linear.h \
 	util/u_log.c \
 	util/u_log.h \
-	util/u_mm.c \
-	util/u_mm.h \
 	util/u_network.c \
 	util/u_network.h \
 	util/u_pack_color.h \
@@ -287,6 +285,8 @@ C_SOURCES := \
 	util/u_screen.h \
 	util/u_simple_shaders.c \
 	util/u_simple_shaders.h \
+	util/u_split_draw.c \
+	util/u_split_draw.h \
 	util/u_split_prim.h \
 	util/u_sse.h \
 	util/u_suballoc.c \
@@ -318,8 +318,6 @@ C_SOURCES := \
 NIR_SOURCES := \
 	nir/tgsi_to_nir.c \
 	nir/tgsi_to_nir.h \
-	nir/nir_to_tgsi_info.c \
-	nir/nir_to_tgsi_info.h \
 	nir/nir_draw_helpers.c \
 	nir/nir_draw_helpers.h
 
@@ -451,6 +449,8 @@ GALLIVM_SOURCES := \
 	gallivm/lp_bld_tgsi_soa.c \
 	gallivm/lp_bld_type.c \
 	gallivm/lp_bld_type.h \
+	nir/nir_to_tgsi_info.c \
+	nir/nir_to_tgsi_info.h \
 	draw/draw_llvm.c \
 	draw/draw_llvm.h \
 	draw/draw_llvm_sample.c \

@@ -1443,10 +1443,11 @@ CreateScreenResources(ScreenPtr pScreen)
 }
 
 static Bool
-msSharePixmapBacking(PixmapPtr ppix, ScreenPtr screen, void **handle)
+msSharePixmapBacking(PixmapPtr ppix, ScreenPtr slave, void **handle)
 {
 #ifdef GLAMOR_HAS_GBM
-    modesettingPtr ms = modesettingPTR(xf86ScreenToScrn(screen));
+    modesettingPtr ms =
+        modesettingPTR(xf86ScreenToScrn(ppix->drawable.pScreen));
     int ret;
     CARD16 stride;
     CARD32 size;

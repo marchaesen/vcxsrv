@@ -136,7 +136,7 @@ static LLVMValueRef cull_bbox(struct ac_llvm_context *ctx,
 	LLVMBuilderRef builder = ctx->builder;
 
 	if (!cull_view_xy && !cull_view_near_z && !cull_view_far_z && !cull_small_prims)
-		return ctx->i1true;
+		return initially_accepted;
 
 	/* Skip the culling if the primitive has already been rejected or
 	 * if any W is negative. The bounding box culling doesn't work when

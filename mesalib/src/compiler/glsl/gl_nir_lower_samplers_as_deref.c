@@ -328,9 +328,6 @@ gl_nir_lower_samplers_as_deref(nir_shader *shader,
    state.remap_table = _mesa_hash_table_create(NULL, _mesa_key_hash_string,
                                                _mesa_key_string_equal);
 
-   shader->info.textures_used = 0;
-   shader->info.textures_used_by_txf = 0;
-
    nir_foreach_function(function, shader) {
       if (function->impl)
          progress |= lower_impl(function->impl, &state);

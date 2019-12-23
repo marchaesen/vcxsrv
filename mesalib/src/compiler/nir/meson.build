@@ -349,4 +349,16 @@ if with_tests
     ),
     suite : ['compiler', 'nir'],
   )
+
+  test(
+    'nir_serialize_test',
+    executable(
+      'nir_serialize_test',
+      files('tests/serialize_tests.cpp'),
+      cpp_args : [cpp_vis_args, cpp_msvc_compat_args],
+      include_directories : [inc_common],
+      dependencies : [dep_thread, idep_gtest, idep_nir, idep_mesautil],
+    ),
+    suite : ['compiler', 'nir'],
+  )
 endif

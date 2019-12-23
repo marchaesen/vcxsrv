@@ -34,7 +34,7 @@
 enum mali_job_type {
         JOB_NOT_STARTED	= 0,
         JOB_TYPE_NULL = 1,
-        JOB_TYPE_SET_VALUE = 2,
+        JOB_TYPE_WRITE_VALUE = 2,
         JOB_TYPE_CACHE_FLUSH = 3,
         JOB_TYPE_COMPUTE = 4,
         JOB_TYPE_VERTEX = 5,
@@ -436,8 +436,7 @@ union midgard_blend {
 struct midgard_blend_rt {
         /* Flags base value of 0x200 to enable the render target.
          * OR with 0x1 for blending (anything other than REPLACE).
-         * OR with 0x2 for programmable blending with 0-2 registers
-         * OR with 0x3 for programmable blending with 2+ registers
+         * OR with 0x2 for programmable blending
          * OR with MALI_BLEND_SRGB for implicit sRGB
          */
 
@@ -658,9 +657,16 @@ enum mali_exception_access {
         MALI_EXCEPTION_ACCESS_WRITE   = 3
 };
 
-struct mali_payload_set_value {
-        u64 out;
-        u64 unknown;
+/* Details about write_value from panfrost igt tests which use it as a generic
+ * dword write primitive */
+
+#define MALI_WRITE_VALUE_ZERO 3
+
+struct mali_payload_write_value {
+        u64 address;
+        u32 value_descriptor;
+        u32 reserved;
+        u64 immediate;
 } __attribute__((packed));
 
 /* Special attributes have a fixed index */
@@ -866,13 +872,10 @@ struct mali_attr_meta {
         int32_t src_offset;
 } __attribute__((packed));
 
-enum mali_fbd_type {
-        MALI_SFBD = 0,
-        MALI_MFBD = 1,
-};
-
-#define FBD_TYPE (1)
 #define FBD_MASK (~0x3f)
+
+/* MFBD, rather than SFBD */
+#define MALI_MFBD (0x1)
 
 /* ORed into an MFBD address to specify the fbx section is included */
 #define MALI_MFBD_TAG_EXTRA (0x2)
@@ -934,13 +937,16 @@ struct mali_vertex_tiler_prefix {
          */
         u32 invocation_count;
 
-        u32 size_y_shift : 5;
-        u32 size_z_shift : 5;
-        u32 workgroups_x_shift : 6;
-        u32 workgroups_y_shift : 6;
-        u32 workgroups_z_shift : 6;
-        /* This is max(workgroups_x_shift, 2) in all the cases I've seen. */
-        u32 workgroups_x_shift_2 : 4;
+        /* Bitfield for shifts:
+         *
+         * size_y_shift : 5
+         * size_z_shift : 5
+         * workgroups_x_shift : 6
+         * workgroups_y_shift : 6
+         * workgroups_z_shift : 6
+         * workgroups_x_shift_2 : 4
+         */
+        u32 invocation_shifts;
 
         u32 draw_mode : 4;
         u32 unknown_draw : 22;
@@ -1392,8 +1398,16 @@ struct mali_payload_fragment {
 /* See pan_tiler.c for derivation */
 #define MALI_HIERARCHY_MASK ((1 << 9) - 1)
 
-/* Flag disabling the tiler for clear-only jobs */
+/* Flag disabling the tiler for clear-only jobs, with
+   hierarchical tiling */
 #define MALI_TILER_DISABLED (1 << 12)
+
+/* Flag selecting userspace-generated polygon list, for clear-only jobs without
+ * hierarhical tiling. */
+#define MALI_TILER_USER 0xFFF
+
+/* Absent any geometry, the minimum size of the polygon list header */
+#define MALI_TILER_MINIMUM_HEADER_SIZE 0x200
 
 struct midgard_tiler_descriptor {
         /* Size of the entire polygon list; see pan_tiler.c for the
@@ -1456,7 +1470,8 @@ struct mali_sfbd_format {
 struct mali_single_framebuffer {
         u32 unknown1;
         u32 unknown2;
-        u64 unknown_address_0;
+        mali_ptr scratchpad;
+
         u64 zero1;
         u64 zero0;
 
@@ -1656,7 +1671,8 @@ struct bifrost_fb_extra {
 #define MALI_MFBD_EXTRA (1 << 13)
 
 struct bifrost_framebuffer {
-        u32 unk0; // = 0x10
+        u32 stack_shift : 4;
+        u32 unk0 : 28;
 
         u32 unknown2; // = 0x1f, same as SFBD
         mali_ptr scratchpad;

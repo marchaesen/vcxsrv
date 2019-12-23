@@ -1004,7 +1004,28 @@ wsi_common_acquire_next_image2(const struct wsi_device *wsi,
 {
    WSI_FROM_HANDLE(wsi_swapchain, swapchain, pAcquireInfo->swapchain);
 
-   return swapchain->acquire_next_image(swapchain, pAcquireInfo, pImageIndex);
+   VkResult result = swapchain->acquire_next_image(swapchain, pAcquireInfo,
+                                                   pImageIndex);
+   if (result != VK_SUCCESS)
+      return result;
+
+   if (pAcquireInfo->semaphore != VK_NULL_HANDLE &&
+       wsi->signal_semaphore_for_memory != NULL) {
+      struct wsi_image *image =
+         swapchain->get_wsi_image(swapchain, *pImageIndex);
+      wsi->signal_semaphore_for_memory(device, pAcquireInfo->semaphore,
+                                       image->memory);
+   }
+
+   if (pAcquireInfo->fence != VK_NULL_HANDLE &&
+       wsi->signal_fence_for_memory != NULL) {
+      struct wsi_image *image =
+         swapchain->get_wsi_image(swapchain, *pImageIndex);
+      wsi->signal_fence_for_memory(device, pAcquireInfo->fence,
+                                   image->memory);
+   }
+
+   return VK_SUCCESS;
 }
 
 VkResult
@@ -1036,15 +1057,30 @@ wsi_common_queue_present(const struct wsi_device *wsi,
          if (result != VK_SUCCESS)
             goto fail_present;
       } else {
-         wsi->WaitForFences(device, 1, &swapchain->fences[image_index],
-                            true, 1);
+         result =
+            wsi->WaitForFences(device, 1, &swapchain->fences[image_index],
+                               true, ~0ull);
+         if (result != VK_SUCCESS)
+            goto fail_present;
 
-         wsi->ResetFences(device, 1, &swapchain->fences[image_index]);
+         result =
+            wsi->ResetFences(device, 1, &swapchain->fences[image_index]);
+         if (result != VK_SUCCESS)
+            goto fail_present;
       }
+
+      struct wsi_image *image =
+         swapchain->get_wsi_image(swapchain, image_index);
+
+      struct wsi_memory_signal_submit_info mem_signal = {
+         .sType = VK_STRUCTURE_TYPE_WSI_MEMORY_SIGNAL_SUBMIT_INFO_MESA,
+         .pNext = NULL,
+         .memory = image->memory,
+      };
 
       VkSubmitInfo submit_info = {
          .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-         .pNext = NULL,
+         .pNext = &mem_signal,
       };
 
       VkPipelineStageFlags *stage_flags = NULL;
@@ -1075,11 +1111,10 @@ wsi_common_queue_present(const struct wsi_device *wsi,
          /* If we are using prime blits, we need to perform the blit now.  The
           * command buffer is attached to the image.
           */
-         struct wsi_image *image =
-            swapchain->get_wsi_image(swapchain, image_index);
          submit_info.commandBufferCount = 1;
          submit_info.pCommandBuffers =
             &image->prime.blit_cmd_buffers[queue_family_index];
+         mem_signal.memory = image->prime.memory;
       }
 
       result = wsi->QueueSubmit(queue, 1, &submit_info, swapchain->fences[image_index]);

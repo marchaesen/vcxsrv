@@ -27,6 +27,7 @@
 
 #include "nir.h"
 #include "nir_control_flow.h"
+#include "nir_search_helpers.h"
 
 /*
  * Implements a small peephole optimization that looks for
@@ -107,6 +108,8 @@ block_check_for_allowed_instrs(nir_block *block, unsigned *count,
 
       case nir_instr_type_alu: {
          nir_alu_instr *mov = nir_instr_as_alu(instr);
+         bool movelike = false;
+
          switch (mov->op) {
          case nir_op_mov:
          case nir_op_fneg:
@@ -116,6 +119,7 @@ block_check_for_allowed_instrs(nir_block *block, unsigned *count,
          case nir_op_vec2:
          case nir_op_vec3:
          case nir_op_vec4:
+            movelike = true;
             break;
 
          case nir_op_fcos:
@@ -149,7 +153,13 @@ block_check_for_allowed_instrs(nir_block *block, unsigned *count,
             return false;
 
          if (alu_ok) {
-            (*count)++;
+            /* If the ALU operation is an fsat or a move-like operation, do
+             * not count it.  The expectation is that it will eventually be
+             * merged as a destination modifier or source modifier on some
+             * other instruction.
+             */
+            if (mov->op != nir_op_fsat && !movelike)
+               (*count)++;
          } else {
             /* Can't handle saturate */
             if (mov->dest.saturate)

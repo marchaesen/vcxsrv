@@ -332,16 +332,14 @@ static const struct format_mapping format_map[] = {
       { PIPE_FORMAT_DXT5_RGBA, 0 }
    },
 
-#if 0
    {
       { GL_COMPRESSED_RGB_FXT1_3DFX, 0 },
-      { PIPE_FORMAT_RGB_FXT1, 0 }
+      { PIPE_FORMAT_FXT1_RGB, 0 }
    },
    {
       { GL_COMPRESSED_RGBA_FXT1_3DFX, 0 },
-      { PIPE_FORMAT_RGBA_FXT1, 0 }
+      { PIPE_FORMAT_FXT1_RGBA, 0 }
    },
-#endif
 
    /* Depth formats */
    {

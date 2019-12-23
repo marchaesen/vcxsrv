@@ -24,6 +24,8 @@ libpanfrost_encoder_files = files(
 
   'pan_invocation.c',
   'pan_tiler.c',
+  'pan_scratch.c',
+  'pan_props.c',
 )
 
 libpanfrost_encoder = static_library(
@@ -32,5 +34,6 @@ libpanfrost_encoder = static_library(
   include_directories : [inc_common, inc_panfrost_hw],
   c_args : [c_vis_args, no_override_init_args],
   cpp_args : [cpp_vis_args],
+  dependencies: [dep_libdrm],
   build_by_default : false,
 )

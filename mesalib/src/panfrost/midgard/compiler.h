@@ -78,7 +78,7 @@ typedef struct midgard_branch {
  * emitted before the register allocation pass.
  */
 
-#define MIR_SRC_COUNT 3
+#define MIR_SRC_COUNT 4
 #define MIR_VEC_COMPONENTS 16
 
 typedef struct midgard_instruction {
@@ -89,7 +89,7 @@ typedef struct midgard_instruction {
 
         /* Instruction arguments represented as block-local SSA
          * indices, rather than registers. ~0 means unused. */
-        unsigned src[3];
+        unsigned src[MIR_SRC_COUNT];
         unsigned dest;
 
         /* vec16 swizzle, unpacked, per source */
@@ -121,15 +121,16 @@ typedef struct midgard_instruction {
         uint16_t mask;
 
         /* For ALU ops only: set to true to invert (bitwise NOT) the
-         * destination of an integer-out op. Not imeplemented in hardware but
+         * destination of an integer-out op. Not implemented in hardware but
          * allows more optimizations */
 
         bool invert;
 
         /* Hint for the register allocator not to spill the destination written
-         * from this instruction (because it is a spill/unspill node itself) */
+         * from this instruction (because it is a spill/unspill node itself).
+         * Bitmask of spilled classes */
 
-        bool no_spill;
+        unsigned no_spill;
 
         /* Generic hint for intra-pass use */
         bool hint;
@@ -197,6 +198,9 @@ typedef struct midgard_block {
          * simple bit fields, but for us, liveness is a vector idea. */
         uint16_t *live_in;
         uint16_t *live_out;
+
+        /* Indicates this is a fixed-function fragment epilogue block */
+        bool epilogue;
 } midgard_block;
 
 typedef struct midgard_bundle {
@@ -222,6 +226,9 @@ typedef struct compiler_context {
 
         /* Is internally a blend shader? Depends on stage == FRAGMENT */
         bool is_blend;
+
+        /* Render target number for a keyed blend shader. Depends on is_blend */
+        unsigned blend_rt;
 
         /* Tracking for blend constant patching */
         int blend_constant_offset;
@@ -390,7 +397,7 @@ mir_next_op(struct midgard_instruction *ins)
         mir_foreach_bundle_in_block_rev(block, _bundle) \
                 for (i = (_bundle->instruction_count - 1), v = _bundle->instructions[i]; \
                                 i >= 0; \
-                                --i, v = _bundle->instructions[i]) \
+                                --i, v = (i >= 0) ? _bundle->instructions[i] : NULL) \
 
 #define mir_foreach_instr_global(ctx, v) \
         mir_foreach_block(ctx, v_block) \
@@ -551,7 +558,7 @@ v_mov(unsigned src, unsigned dest)
         midgard_instruction ins = {
                 .type = TAG_ALU_4,
                 .mask = 0xF,
-                .src = { SSA_UNUSED, src, SSA_UNUSED },
+                .src = { ~0, src, ~0, ~0 },
                 .swizzle = SWIZZLE_IDENTITY,
                 .dest = dest,
                 .alu = {
@@ -561,6 +568,62 @@ v_mov(unsigned src, unsigned dest)
                         .outmod = midgard_outmod_int_wrap
                 },
         };
+
+        return ins;
+}
+
+/* Broad types of register classes so we can handle special
+ * registers */
+
+#define REG_CLASS_WORK          0
+#define REG_CLASS_LDST          1
+#define REG_CLASS_TEXR          3
+#define REG_CLASS_TEXW          4
+
+/* Like a move, but to thread local storage! */
+
+static inline midgard_instruction
+v_load_store_scratch(
+                unsigned srcdest,
+                unsigned index,
+                bool is_store,
+                unsigned mask)
+{
+        /* We index by 32-bit vec4s */
+        unsigned byte = (index * 4 * 4);
+
+        midgard_instruction ins = {
+                .type = TAG_LOAD_STORE_4,
+                .mask = mask,
+                .dest = ~0,
+                .src = { ~0, ~0, ~0, ~0 },
+                .swizzle = SWIZZLE_IDENTITY_4,
+                .load_store = {
+                        .op = is_store ? midgard_op_st_int4 : midgard_op_ld_int4,
+
+                        /* For register spilling - to thread local storage */
+                        .arg_1 = 0xEA,
+                        .arg_2 = 0x1E,
+                },
+
+                /* If we spill an unspill, RA goes into an infinite loop */
+                .no_spill = (1 << REG_CLASS_WORK)
+        };
+
+        ins.constants[0] = byte;
+
+        if (is_store) {
+                ins.src[0] = srcdest;
+
+                /* Ensure we are tightly swizzled so liveness analysis is
+                 * correct */
+
+                for (unsigned i = 0; i < 4; ++i) {
+                        if (!(mask & (1 << i)))
+                                ins.swizzle[0][i] = COMPONENT_X;
+                }
+        } else
+                ins.dest = srcdest;
 
         return ins;
 }
@@ -583,26 +646,16 @@ mir_has_arg(midgard_instruction *ins, unsigned arg)
 
 void schedule_program(compiler_context *ctx);
 
-/* Broad types of register classes so we can handle special
- * registers */
-
-#define REG_CLASS_WORK          0
-#define REG_CLASS_LDST          1
-#define REG_CLASS_TEXR          3
-#define REG_CLASS_TEXW          4
-
+void mir_ra(compiler_context *ctx);
+void mir_squeeze_index(compiler_context *ctx);
 void mir_lower_special_reads(compiler_context *ctx);
-struct lcra_state* allocate_registers(compiler_context *ctx, bool *spilled);
-void install_registers(compiler_context *ctx, struct lcra_state *g);
 void mir_liveness_ins_update(uint16_t *live, midgard_instruction *ins, unsigned max);
 void mir_compute_liveness(compiler_context *ctx);
 void mir_invalidate_liveness(compiler_context *ctx);
 bool mir_is_live_after(compiler_context *ctx, midgard_block *block, midgard_instruction *start, int src);
 
 void mir_create_pipeline_registers(compiler_context *ctx);
-
-void
-midgard_promote_uniforms(compiler_context *ctx, unsigned promoted_count);
+void midgard_promote_uniforms(compiler_context *ctx);
 
 midgard_instruction *
 emit_ubo_read(
@@ -651,5 +704,6 @@ bool midgard_opt_fuse_src_invert(compiler_context *ctx, midgard_block *block);
 bool midgard_opt_fuse_dest_invert(compiler_context *ctx, midgard_block *block);
 bool midgard_opt_csel_invert(compiler_context *ctx, midgard_block *block);
 bool midgard_opt_promote_fmov(compiler_context *ctx, midgard_block *block);
+bool midgard_opt_drop_cmp_invert(compiler_context *ctx, midgard_block *block);
 
 #endif

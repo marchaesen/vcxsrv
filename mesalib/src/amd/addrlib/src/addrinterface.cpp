@@ -60,7 +60,6 @@ ADDR_E_RETURNCODE ADDR_API AddrCreate(
     ADDR_CREATE_OUTPUT*         pAddrCreateOut) ///< [out] address lib handle
 {
     ADDR_E_RETURNCODE returnCode = ADDR_OK;
-
     {
         returnCode = Lib::Create(pAddrCreateIn, pAddrCreateOut);
     }

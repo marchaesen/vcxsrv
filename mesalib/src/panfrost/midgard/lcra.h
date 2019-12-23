@@ -85,6 +85,8 @@ lcra_alloc_equations(
                 unsigned min_alignment, unsigned max_alignment,
                 unsigned bound, unsigned class_count);
 
+void
+lcra_free(struct lcra_state *l);
 
 void
 lcra_set_disjoint_class(struct lcra_state *l, unsigned c1, unsigned c2);

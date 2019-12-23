@@ -60,13 +60,14 @@ struct spill_ctx {
    std::vector<bool> is_reloaded;
    std::map<Temp, remat_info> remat;
    std::map<Instruction *, bool> remat_used;
+   unsigned wave_size;
 
    spill_ctx(const RegisterDemand target_pressure, Program* program,
              std::vector<std::vector<RegisterDemand>> register_demand)
       : target_pressure(target_pressure), program(program),
         register_demand(register_demand), renames(program->blocks.size()),
         spills_entry(program->blocks.size()), spills_exit(program->blocks.size()),
-        processed(program->blocks.size(), false) {}
+        processed(program->blocks.size(), false), wave_size(program->wave_size) {}
 
    void add_affinity(uint32_t first, uint32_t second)
    {
@@ -1290,7 +1291,7 @@ Temp load_scratch_resource(spill_ctx& ctx, Temp& scratch_offset,
 
    if (ctx.program->chip_class >= GFX10) {
       rsrc_conf |= S_008F0C_FORMAT(V_008F0C_IMG_FORMAT_32_FLOAT) |
-                   S_008F0C_OOB_SELECT(3) |
+                   S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW) |
                    S_008F0C_RESOURCE_LEVEL(1);
    } else if (ctx.program->chip_class <= GFX7) { /* dfmt modifies stride on GFX8/GFX9 when ADD_TID_EN=1 */
       rsrc_conf |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
@@ -1351,7 +1352,7 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
          for (unsigned i = slot_idx; i < slot_idx + ctx.interferences[id].first.size(); i++) {
             if (i == spill_slot_interferences.size())
                spill_slot_interferences.emplace_back(std::set<uint32_t>());
-            if (spill_slot_interferences[i].find(id) != spill_slot_interferences[i].end() || i / 64 != slot_idx / 64) {
+            if (spill_slot_interferences[i].find(id) != spill_slot_interferences[i].end() || i / ctx.wave_size != slot_idx / ctx.wave_size) {
                interferes = true;
                break;
             }
@@ -1465,7 +1466,7 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
    }
 
    /* hope, we didn't mess up */
-   std::vector<Temp> vgpr_spill_temps((sgpr_spill_slots + 63) / 64);
+   std::vector<Temp> vgpr_spill_temps((sgpr_spill_slots + ctx.wave_size - 1) / ctx.wave_size);
    assert(vgpr_spill_temps.size() <= spills_to_vgpr);
 
    /* replace pseudo instructions with actual hardware instructions */
@@ -1510,7 +1511,7 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
             for (std::pair<Temp, uint32_t> pair : ctx.spills_exit[block.linear_preds[0]]) {
 
                if (sgpr_slot.find(pair.second) != sgpr_slot.end() &&
-                   sgpr_slot[pair.second] / 64 == i) {
+                   sgpr_slot[pair.second] / ctx.wave_size == i) {
                   can_destroy = false;
                   break;
                }
@@ -1570,9 +1571,9 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
                uint32_t spill_slot = sgpr_slot[spill_id];
 
                /* check if the linear vgpr already exists */
-               if (vgpr_spill_temps[spill_slot / 64] == Temp()) {
+               if (vgpr_spill_temps[spill_slot / ctx.wave_size] == Temp()) {
                   Temp linear_vgpr = {ctx.program->allocateId(), v1.as_linear()};
-                  vgpr_spill_temps[spill_slot / 64] = linear_vgpr;
+                  vgpr_spill_temps[spill_slot / ctx.wave_size] = linear_vgpr;
                   aco_ptr<Pseudo_instruction> create{create_instruction<Pseudo_instruction>(aco_opcode::p_start_linear_vgpr, Format::PSEUDO, 0, 1)};
                   create->definitions[0] = Definition(linear_vgpr);
                   /* find the right place to insert this definition */
@@ -1589,8 +1590,8 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
 
                /* spill sgpr: just add the vgpr temp to operands */
                Pseudo_instruction* spill = create_instruction<Pseudo_instruction>(aco_opcode::p_spill, Format::PSEUDO, 3, 0);
-               spill->operands[0] = Operand(vgpr_spill_temps[spill_slot / 64]);
-               spill->operands[1] = Operand(spill_slot % 64);
+               spill->operands[0] = Operand(vgpr_spill_temps[spill_slot / ctx.wave_size]);
+               spill->operands[1] = Operand(spill_slot % ctx.wave_size);
                spill->operands[2] = (*it)->operands[0];
                instructions.emplace_back(aco_ptr<Instruction>(spill));
             } else {
@@ -1634,12 +1635,12 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
                }
             } else if (sgpr_slot.find(spill_id) != sgpr_slot.end()) {
                uint32_t spill_slot = sgpr_slot[spill_id];
-               reload_in_loop[spill_slot / 64] = block.loop_nest_depth > 0;
+               reload_in_loop[spill_slot / ctx.wave_size] = block.loop_nest_depth > 0;
 
                /* check if the linear vgpr already exists */
-               if (vgpr_spill_temps[spill_slot / 64] == Temp()) {
+               if (vgpr_spill_temps[spill_slot / ctx.wave_size] == Temp()) {
                   Temp linear_vgpr = {ctx.program->allocateId(), v1.as_linear()};
-                  vgpr_spill_temps[spill_slot / 64] = linear_vgpr;
+                  vgpr_spill_temps[spill_slot / ctx.wave_size] = linear_vgpr;
                   aco_ptr<Pseudo_instruction> create{create_instruction<Pseudo_instruction>(aco_opcode::p_start_linear_vgpr, Format::PSEUDO, 0, 1)};
                   create->definitions[0] = Definition(linear_vgpr);
                   /* find the right place to insert this definition */
@@ -1656,8 +1657,8 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
 
                /* reload sgpr: just add the vgpr temp to operands */
                Pseudo_instruction* reload = create_instruction<Pseudo_instruction>(aco_opcode::p_reload, Format::PSEUDO, 2, 1);
-               reload->operands[0] = Operand(vgpr_spill_temps[spill_slot / 64]);
-               reload->operands[1] = Operand(spill_slot % 64);
+               reload->operands[0] = Operand(vgpr_spill_temps[spill_slot / ctx.wave_size]);
+               reload->operands[1] = Operand(spill_slot % ctx.wave_size);
                reload->definitions[0] = (*it)->definitions[0];
                instructions.emplace_back(aco_ptr<Instruction>(reload));
             } else {
@@ -1744,14 +1745,14 @@ void spill(Program* program, live& live_vars, const struct radv_nir_compiler_opt
    /* calculate target register demand */
    RegisterDemand register_target = program->max_reg_demand;
    if (register_target.sgpr > program->sgpr_limit)
-      register_target.vgpr += (register_target.sgpr - program->sgpr_limit + 63 + 32) / 64;
+      register_target.vgpr += (register_target.sgpr - program->sgpr_limit + program->wave_size - 1 + 32) / program->wave_size;
    register_target.sgpr = program->sgpr_limit;
 
    if (register_target.vgpr > program->vgpr_limit)
       register_target.sgpr = program->sgpr_limit - 5;
    register_target.vgpr = program->vgpr_limit - (register_target.vgpr - program->max_reg_demand.vgpr);
 
-   int spills_to_vgpr = (program->max_reg_demand.sgpr - register_target.sgpr + 63 + 32) / 64;
+   int spills_to_vgpr = (program->max_reg_demand.sgpr - register_target.sgpr + program->wave_size - 1 + 32) / program->wave_size;
 
    /* initialize ctx */
    spill_ctx ctx(register_target, program, live_vars.register_demand);

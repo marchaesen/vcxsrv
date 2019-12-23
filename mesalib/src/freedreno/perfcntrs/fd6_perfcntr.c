@@ -390,7 +390,7 @@ static const struct fd_perfcntr_countable rb_countables[] = {
 	COUNTABLE(PERF_RB_EARLY_Z_SKIP_GRANT, UINT64, AVERAGE),
 };
 
-static const struct fd_perfcntr_counter rbbm_counters[] = {
+UNUSED static const struct fd_perfcntr_counter rbbm_counters[] = {
 //RESERVED: for kernel
 //	COUNTER(RBBM_PERFCTR_RBBM_SEL_0, RBBM_PERFCTR_RBBM_0_LO, RBBM_PERFCTR_RBBM_0_HI),
 	COUNTER(RBBM_PERFCTR_RBBM_SEL_1, RBBM_PERFCTR_RBBM_1_LO, RBBM_PERFCTR_RBBM_1_HI),
@@ -398,7 +398,7 @@ static const struct fd_perfcntr_counter rbbm_counters[] = {
 	COUNTER(RBBM_PERFCTR_RBBM_SEL_3, RBBM_PERFCTR_RBBM_3_LO, RBBM_PERFCTR_RBBM_3_HI),
 };
 
-static const struct fd_perfcntr_countable rbbm_countables[] = {
+UNUSED static const struct fd_perfcntr_countable rbbm_countables[] = {
 	COUNTABLE(PERF_RBBM_ALWAYS_COUNT, UINT64, AVERAGE),
 	COUNTABLE(PERF_RBBM_ALWAYS_ON, UINT64, AVERAGE),
 	COUNTABLE(PERF_RBBM_TSE_BUSY, UINT64, AVERAGE),

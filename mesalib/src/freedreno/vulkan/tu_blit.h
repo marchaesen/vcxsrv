@@ -60,7 +60,7 @@ tu_blit_surf(struct tu_image *image,
    return (struct tu_blit_surf) {
       .fmt = image->vk_format,
       .tile_mode = tu6_get_image_tile_mode(image, subres.mipLevel),
-      .tiled = image->tile_mode != TILE6_LINEAR,
+      .tiled = image->layout.tile_mode != TILE6_LINEAR,
       .va = tu_image_base(image, subres.mipLevel, layer),
       .pitch = tu_image_stride(image, subres.mipLevel),
       .layer_size = tu_layer_size(image, subres.mipLevel),
@@ -114,6 +114,7 @@ struct tu_blit {
    uint32_t layers;
    bool filter;
    bool stencil_read;
+   bool buffer; /* 1d copy/clear */
    enum a6xx_rotation rotation;
    uint32_t clear_value[4];
    enum tu_blit_type type;

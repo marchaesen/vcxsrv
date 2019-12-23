@@ -505,14 +505,23 @@ ac_build_ballot(struct ac_llvm_context *ctx,
 LLVMValueRef ac_get_i1_sgpr_mask(struct ac_llvm_context *ctx,
 				 LLVMValueRef value)
 {
-	const char *name = LLVM_VERSION_MAJOR >= 9 ? "llvm.amdgcn.icmp.i64.i1" : "llvm.amdgcn.icmp.i1";
+	const char *name;
+
+	if (LLVM_VERSION_MAJOR >= 9) {
+		if (ctx->wave_size == 64)
+			name = "llvm.amdgcn.icmp.i64.i1";
+		else
+			name = "llvm.amdgcn.icmp.i32.i1";
+	} else {
+		name = "llvm.amdgcn.icmp.i1";
+	}
 	LLVMValueRef args[3] = {
 		value,
 		ctx->i1false,
 		LLVMConstInt(ctx->i32, LLVMIntNE, 0),
 	};
 
-	return ac_build_intrinsic(ctx, name, ctx->i64, args, 3,
+	return ac_build_intrinsic(ctx, name, ctx->iN_wavemask, args, 3,
 				  AC_FUNC_ATTR_NOUNWIND |
 				  AC_FUNC_ATTR_READNONE |
 				  AC_FUNC_ATTR_CONVERGENT);

@@ -759,11 +759,18 @@ PhysReg get_reg_create_vector(ra_ctx& ctx,
 
       /* count variables to be moved and check war_hint */
       bool war_hint = false;
-      for (unsigned j = reg_lo; j <= reg_hi; j++) {
-         if (reg_file[j] != 0)
+      bool linear_vgpr = false;
+      for (unsigned j = reg_lo; j <= reg_hi && !linear_vgpr; j++) {
+         if (reg_file[j] != 0) {
             k++;
+            /* we cannot split live ranges of linear vgprs */
+            if (ctx.assignments[reg_file[j]].second & (1 << 6))
+               linear_vgpr = true;
+         }
          war_hint |= ctx.war_hint[j];
       }
+      if (linear_vgpr || (war_hint && !best_war_hint))
+         continue;
 
       /* count operands in wrong positions */
       for (unsigned j = 0, offset = 0; j < instr->operands.size(); offset += instr->operands[j].size(), j++) {
@@ -775,7 +782,7 @@ PhysReg get_reg_create_vector(ra_ctx& ctx,
             k += instr->operands[j].size();
       }
       bool aligned = rc == RegClass::v4 && reg_lo % 4 == 0;
-      if (k > num_moves || (!aligned && k == num_moves) || (war_hint && !best_war_hint))
+      if (k > num_moves || (!aligned && k == num_moves))
          continue;
 
       best_pos = reg_lo;
@@ -961,7 +968,7 @@ void register_allocation(Program *program, std::vector<std::set<Temp>> live_out_
 
    handle_live_in = [&](Temp val, Block *block) -> Temp {
       std::vector<unsigned>& preds = val.is_linear() ? block->linear_preds : block->logical_preds;
-      if (preds.size() == 0 && block->index != 0) {
+      if (preds.size() == 0 || val.regClass() == val.regClass().as_linear()) {
          renames[block->index][val.id()] = val;
          return val;
       }
@@ -1502,7 +1509,8 @@ void register_allocation(Program *program, std::vector<std::set<Temp>> live_out_
          /* handle definitions which must have the same register as an operand */
          if (instr->opcode == aco_opcode::v_interp_p2_f32 ||
              instr->opcode == aco_opcode::v_mac_f32 ||
-             instr->opcode == aco_opcode::v_writelane_b32) {
+             instr->opcode == aco_opcode::v_writelane_b32 ||
+             instr->opcode == aco_opcode::v_writelane_b32_e64) {
             instr->definitions[0].setFixed(instr->operands[2].physReg());
          } else if (instr->opcode == aco_opcode::s_addk_i32 ||
                     instr->opcode == aco_opcode::s_mulk_i32) {
@@ -1712,6 +1720,7 @@ void register_allocation(Program *program, std::vector<std::set<Temp>> live_out_
 
                pc->operands[i] = parallelcopy[i].first;
                pc->definitions[i] = parallelcopy[i].second;
+               assert(pc->operands[i].size() == pc->definitions[i].size());
 
                /* it might happen that the operand is already renamed. we have to restore the original name. */
                std::map<unsigned, Temp>::iterator it = ctx.orig_names.find(pc->operands[i].tempId());

@@ -29,13 +29,12 @@
  * code is shared directly.
  */
 
-#ifdef HAVE_DIX_CONFIG_H
-#include <dix-config.h>
-#endif
+#include <xwayland-config.h>
 
 #include <string.h>
 #include <randrstr.h>
-#include "xwayland.h"
+
+#include "xwayland-cvt.h"
 
 /*
  * Generate a CVT standard mode from HDisplay, VDisplay and VRefresh.

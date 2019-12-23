@@ -39,3 +39,11 @@ foreach f : xml_files
     capture : true,
   )
 endforeach
+
+freedreno_xml_header_files += custom_target(
+    'a6xx-pack.xml.h',
+    input : ['gen_header.py', 'a6xx.xml'],
+    output : 'a6xx-pack.xml.h',
+    command : [prog_python, '@INPUT@', '--pack-structs'],
+    capture : true,
+  )

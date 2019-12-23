@@ -1,0 +1,108 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<title>Mesa Release Notes</title>
+<link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+<h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 19.2.8 Release Notes / 2019-12-18</h1>
+
+<p>
+    Mesa 19.2.8 is a bug fix release which fixes bugs found since the 19.2.7 release.
+</p>
+<p>
+Mesa 19.2.8 implements the OpenGL 4.5 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.5. OpenGL
+4.5 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+<p>
+Mesa 19.2.8 implements the Vulkan 1.1 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+</p>
+
+<h2>SHA256 checksum</h2>
+<pre>
+    cffa8fa755c7422ce014c39ca0b770a092d9e0bbae537ceb2609c106916e5a57  mesa-19.2.8.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+
+<ul>
+    <li>None</li>
+</ul>
+
+<h2>Bug fixes</h2>
+
+<ul>
+    <li>i965/iris: assert when destroy GL context with active query</li>
+</ul>
+
+<h2>Changes</h2>
+
+<ul>
+    <p>Alyssa Rosenzweig (1):</p>
+    <li>      gallium/util: Support POLYGON in u_stream_outputs_for_vertices</li>
+    <p></p>
+    <p>Bas Nieuwenhuizen (2):</p>
+    <li>      amd/common: Always use addrlib for HTILE tc-compat.</li>
+    <li>      amd/common: Fix tcCompatible degradation on Stoney.</li>
+    <p></p>
+    <p>Dylan Baker (4):</p>
+    <li>      docs: Add SHA256 sums for 19.2.7</li>
+    <li>      meson/broadcom: libbroadcom_cle needs expat headers</li>
+    <li>      meson/broadcom: libbroadcom_cle also needs zlib</li>
+    <li>      cherry-ignore: Update for 19.2.8</li>
+    <p></p>
+    <p>Gert Wollny (1):</p>
+    <li>      virgl: Increase the shader transfer buffer by doubling the size</li>
+    <p></p>
+    <p>Iván Briano (1):</p>
+    <li>      anv: Export filter_minmax support only when it&#x27;s really supported</li>
+    <p></p>
+    <p>Jason Ekstrand (2):</p>
+    <li>      anv: Re-emit all compute state on pipeline switch</li>
+    <li>      anv: Don&#x27;t leak when set_tiling fails</li>
+    <p></p>
+    <p>Kenneth Graunke (1):</p>
+    <li>      iris: Default to X-tiling for scanout buffers without modifiers</li>
+    <p></p>
+    <p>Lionel Landwerlin (7):</p>
+    <li>      intel/perf: fix invalid hw_id in query results</li>
+    <li>      intel/perf: set read buffer len to 0 to identify empty buffer</li>
+    <li>      intel/perf: take into account that reports read can be fairly old</li>
+    <li>      intel/perf: simplify the processing of OA reports</li>
+    <li>      intel/perf: fix improper pointer access</li>
+    <li>      anv: fix fence underlying primitive checks</li>
+    <li>      mesa: avoid triggering assert in implementation</li>
+    <p></p>
+    <p>Nanley Chery (2):</p>
+    <li>      gallium/dri2: Fix creation of multi-planar modifier images</li>
+    <li>      gallium: Store the image format in winsys_handle</li>
+    <p></p>
+    <p>Rob Clark (1):</p>
+    <li>      nir/lower_clip: Fix incorrect driver loc for clipdist outputs</li>
+    <p></p>
+    <p>Timothy Arceri (1):</p>
+    <li>      glsl/nir: iterate the system values list when adding varyings</li>
+    <p></p>
+    <p></p>
+</ul>
+
+</div>
+</body>
+</html>

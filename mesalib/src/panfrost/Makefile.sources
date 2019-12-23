@@ -17,7 +17,8 @@ bifrost_FILES := \
 encoder_FILES := \
         encoder/pan_encoder.h \
         encoder/pan_invocation.c \
-        encoder/pan_tiler.c
+        encoder/pan_tiler.c \
+        encoder/pan_scratch.c
 
 midgard_FILES := \
         midgard/compiler.h \
@@ -46,6 +47,8 @@ midgard_FILES := \
         midgard/midgard_errata_lod.c \
         midgard/mir.c \
         midgard/mir_promote_uniforms.c \
+        midgard/mir_squeeze.c \
+        midgard/nir_undef_to_zero.c \
         midgard/lcra.c
 
 shared_FILES := \
