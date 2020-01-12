@@ -72,12 +72,16 @@ int main(int argc, char **argv)
       return 1;
    }
 
+   glsl_type_singleton_init_or_ref();
+
    struct spirv_to_nir_options spirv_opts = {0};
 
    nir_shader *nir = spirv_to_nir(map, word_count, NULL, 0,
                                   MESA_SHADER_FRAGMENT, "main",
                                   &spirv_opts, NULL);
    nir_print_shader(nir, stderr);
+
+   glsl_type_singleton_decref();
 
    return 0;
 }

@@ -134,6 +134,8 @@ radv_render_pass_compile(struct radv_render_pass *pass)
 
 		subpass->max_sample_count = MAX2(color_sample_count,
 						 depth_sample_count);
+		subpass->color_sample_count = color_sample_count;
+		subpass->depth_sample_count = depth_sample_count;
 
 		/* We have to handle resolve attachments specially */
 		subpass->has_color_resolve = false;

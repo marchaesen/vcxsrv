@@ -811,6 +811,11 @@ vtn_handle_phi_second_pass(struct vtn_builder *b, SpvOp opcode,
       struct vtn_block *pred =
          vtn_value(b, w[i + 1], vtn_value_type_block)->block;
 
+      /* If block does not have end_nop, that is because it is an unreacheable
+       * block, and hence it is not worth to handle it */
+      if (!pred->end_nop)
+         continue;
+
       b->nb.cursor = nir_after_instr(&pred->end_nop->instr);
 
       struct vtn_ssa_value *src = vtn_ssa_value(b, w[i]);

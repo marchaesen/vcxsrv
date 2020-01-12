@@ -135,6 +135,7 @@ build_resolve_compute_shader(struct radv_device *dev, bool is_integer, bool is_s
 	store->src[1] = nir_src_for_ssa(coord);
 	store->src[2] = nir_src_for_ssa(nir_ssa_undef(&b, 1, 32));
 	store->src[3] = nir_src_for_ssa(outval);
+	store->src[4] = nir_src_for_ssa(nir_imm_int(&b, 0));
 	nir_builder_instr_insert(&b, &store->instr);
 	return b.shader;
 }
@@ -295,6 +296,7 @@ build_depth_stencil_resolve_compute_shader(struct radv_device *dev, int samples,
 	store->src[1] = nir_src_for_ssa(coord);
 	store->src[2] = nir_src_for_ssa(nir_ssa_undef(&b, 1, 32));
 	store->src[3] = nir_src_for_ssa(outval);
+	store->src[4] = nir_src_for_ssa(nir_imm_int(&b, 0));
 	nir_builder_instr_insert(&b, &store->instr);
 	return b.shader;
 }

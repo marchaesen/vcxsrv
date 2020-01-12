@@ -220,7 +220,7 @@ static RRCrtcPtr
 ms_covering_randr_crtc(ScreenPtr pScreen, BoxPtr box, Bool screen_is_ms)
 {
     ScrnInfoPtr scrn = xf86ScreenToScrn(pScreen);
-    rrScrPrivPtr pScrPriv = rrGetScrPriv(pScreen);
+    rrScrPrivPtr pScrPriv;
     RRCrtcPtr crtc, best_crtc;
     int coverage, best_coverage;
     int c;
@@ -229,6 +229,11 @@ ms_covering_randr_crtc(ScreenPtr pScreen, BoxPtr box, Bool screen_is_ms)
 
     best_crtc = NULL;
     best_coverage = 0;
+
+    if (!dixPrivateKeyRegistered(rrPrivKey))
+        return NULL;
+
+    pScrPriv = rrGetScrPriv(pScreen);
 
     if (!pScrPriv)
         return NULL;

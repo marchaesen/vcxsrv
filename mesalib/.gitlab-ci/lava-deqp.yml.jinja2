@@ -57,8 +57,29 @@ actions:
           - mount -t devtmpfs none /dev
           - mkdir -p /dev/pts
           - mount -t devpts devpts /dev/pts
-          - sh /deqp/lava-deqp-runner.sh {{ gpu_version }}
-          - cat /proc/loadavg
+
+          - export MESA_GLES_VERSION_OVERRIDE=3.0
+          - export DEQP_PARALLEL=6
+          - export DEQP_NO_SAVE_RESULTS=1
+          - 'export DEQP_RUNNER_OPTIONS="--compact-display false --shuffle false"'
+          - export DEQP_EXPECTED_FAILS={{ fails_file }}
+          - export DEQP_SKIPS={{ skips_file }}
+          - export DEQP_VER={{ deqp_version }}
+          - export LIBGL_DRIVERS_PATH=`pwd`/install/lib/dri
+
+          # Put stuff where the runner script expects it
+          - mkdir artifacts
+          - mkdir results
+          - mkdir -p install/lib
+          - cp /deqp/$DEQP_EXPECTED_FAILS artifacts/.
+          - cp /deqp/$DEQP_SKIPS artifacts/.
+          - mv /mesa/lib/* install/lib/.
+
+          - "if sh /deqp/deqp-runner.sh; then
+                  echo 'deqp: pass';
+             else
+                  echo 'deqp: fail';
+             fi"
         parse:
           pattern: '(?P<test_case_id>\S*):\s+(?P<result>(pass|fail))'
       from: inline

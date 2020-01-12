@@ -533,7 +533,7 @@ void emit_reduction(lower_context *ctx, aco_opcode op, ReduceOp reduce_op, unsig
                                          Definition(PhysReg{vtmp+i}, v1),
                                          Operand(PhysReg{tmp+i}, v1),
                                          Operand(0xffffffffu), Operand(0xffffffffu)).instr;
-            static_cast<VOP3A_instruction*>(perm)->opsel[0] = true; /* FI (Fetch Inactive) */
+            static_cast<VOP3A_instruction*>(perm)->opsel = 1; /* FI (Fetch Inactive) */
          }
          bld.sop1(Builder::s_mov, Definition(exec, bld.lm), Operand(UINT64_MAX));
 
@@ -644,7 +644,7 @@ void emit_reduction(lower_context *ctx, aco_opcode op, ReduceOp reduce_op, unsig
                                          Definition(PhysReg{vtmp+i}, v1),
                                          Operand(PhysReg{tmp+i}, v1),
                                          Operand(0xffffffffu), Operand(0xffffffffu)).instr;
-            static_cast<VOP3A_instruction*>(perm)->opsel[0] = true; /* FI (Fetch Inactive) */
+            static_cast<VOP3A_instruction*>(perm)->opsel = 1; /* FI (Fetch Inactive) */
          }
          emit_op(ctx, tmp, tmp, vtmp, PhysReg{0}, reduce_op, src.size());
 

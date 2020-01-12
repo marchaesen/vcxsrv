@@ -572,7 +572,7 @@ print_var_decl(nir_variable *var, print_state *state)
       unsigned int num_components =
          glsl_get_components(glsl_without_array(var->type));
       const char *components = NULL;
-      char components_local[6] = {'.' /* the rest is 0-filled */};
+      char components_local[18] = {'.' /* the rest is 0-filled */};
       switch (var->data.mode) {
       case nir_var_shader_in:
       case nir_var_shader_out:
@@ -1134,6 +1134,14 @@ print_tex_instr(nir_tex_instr *instr, print_state *state)
       if (!has_sampler_deref) {
          fprintf(fp, ", %u (sampler)", instr->sampler_index);
       }
+   }
+
+   if (instr->texture_non_uniform) {
+      fprintf(fp, ", texture non-uniform");
+   }
+
+   if (instr->sampler_non_uniform) {
+      fprintf(fp, ", sampler non-uniform");
    }
 }
 

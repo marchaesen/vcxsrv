@@ -380,6 +380,27 @@ mir_compute_interference(
         /* First, we need liveness information to be computed per block */
         mir_compute_liveness(ctx);
 
+        /* We need to force r1.w live throughout a blend shader */
+
+        if (ctx->is_blend) {
+                unsigned r1w = ~0;
+
+                mir_foreach_block(ctx, block) {
+                        mir_foreach_instr_in_block_rev(block, ins) {
+                                if (ins->writeout)
+                                        r1w = ins->src[2];
+                        }
+
+                        if (r1w != ~0)
+                                break;
+                }
+
+                mir_foreach_instr_global(ctx, ins) {
+                        if (ins->dest < ctx->temp_count)
+                                lcra_add_node_interference(l, ins->dest, mir_bytemask(ins), r1w, 0xF);
+                }
+        }
+
         /* Now that every block has live_in/live_out computed, we can determine
          * interference by walking each block linearly. Take live_out at the
          * end of each block and walk the block backwards. */
@@ -506,14 +527,25 @@ allocate_registers(compiler_context *ctx, bool *spilled)
                         set_class(l->class, ins->src[1], REG_CLASS_LDST);
                         set_class(l->class, ins->src[2], REG_CLASS_LDST);
 
-                        if (OP_IS_VEC4_ONLY(ins->load_store.op))
+                        if (OP_IS_VEC4_ONLY(ins->load_store.op)) {
                                 lcra_restrict_range(l, ins->dest, 16);
+                                lcra_restrict_range(l, ins->src[0], 16);
+                                lcra_restrict_range(l, ins->src[1], 16);
+                                lcra_restrict_range(l, ins->src[2], 16);
+                        }
                 } else if (ins->type == TAG_TEXTURE_4) {
                         set_class(l->class, ins->dest, REG_CLASS_TEXW);
                         set_class(l->class, ins->src[0], REG_CLASS_TEXR);
                         set_class(l->class, ins->src[1], REG_CLASS_TEXR);
                         set_class(l->class, ins->src[2], REG_CLASS_TEXR);
                         set_class(l->class, ins->src[3], REG_CLASS_TEXR);
+
+                        /* Texture offsets need to be aligned to vec4, since
+                         * the swizzle for x is forced to x in hardware, while
+                         * the other components are free. TODO: Relax to 8 for
+                         * half-registers if that ever occurs. */
+
+                        //lcra_restrict_range(l, ins->src[3], 16);
                 }
         }
 
@@ -545,13 +577,6 @@ allocate_registers(compiler_context *ctx, bool *spilled)
         return l;
 }
 
-/* Reverses 2 bits, used to pack swizzles of offsets for some reason */
-
-static unsigned
-mir_reverse2(unsigned in)
-{
-        return (in >> 1) | ((in & 1) << 1);
-}
 
 /* Once registers have been decided via register allocation
  * (allocate_registers), we need to rewrite the MIR to use registers instead of
@@ -690,20 +715,20 @@ install_registers_instr(
 
                 /* If there is an offset register, install it */
                 if (ins->src[3] != ~0) {
-                        ins->texture.offset_x = 
-                                (1)                   | /* full */
-                                (offset.reg & 1) << 1 | /* select */
-                                0 << 2;                 /* upper */
-
                         unsigned x = offset.offset / 4;
                         unsigned y = x + 1;
                         unsigned z = x + 2;
 
-                        ins->texture.offset_y =
-                                mir_reverse2(y) | (mir_reverse2(x) << 2);
+                        /* Check range, TODO: half-registers */
+                        assert(z < 4);
 
-                        ins->texture.offset_z =
-                                mir_reverse2(z);
+                        ins->texture.offset =
+                                (1)                   | /* full */
+                                (offset.reg & 1) << 1 | /* select */
+                                (0 << 2)              | /* upper */
+                                (x << 3)              | /* swizzle */
+                                (y << 5)              | /* swizzle */
+                                (z << 7);               /* swizzle */
                 }
 
                 break;

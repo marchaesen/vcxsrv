@@ -222,7 +222,7 @@ static void process_block_array_leaf(const char *name, gl_uniform_block *blocks,
                                      gl_uniform_buffer_variable *variables,
                                      const struct link_uniform_block_active *const b,
                                      unsigned *block_index,
-                                     unsigned *binding_offset,
+                                     unsigned binding_offset,
                                      unsigned linearized_index,
                                      struct gl_context *ctx,
                                      struct gl_shader_program *prog);
@@ -237,26 +237,28 @@ process_block_array(struct uniform_block_array_elements *ub_array, char **name,
                     size_t name_length, gl_uniform_block *blocks,
                     ubo_visitor *parcel, gl_uniform_buffer_variable *variables,
                     const struct link_uniform_block_active *const b,
-                    unsigned *block_index, unsigned *binding_offset,
+                    unsigned *block_index, unsigned binding_offset,
                     struct gl_context *ctx, struct gl_shader_program *prog,
                     unsigned first_index)
 {
    for (unsigned j = 0; j < ub_array->num_array_elements; j++) {
       size_t new_length = name_length;
 
+      unsigned int element_idx = ub_array->array_elements[j];
       /* Append the subscript to the current variable name */
-      ralloc_asprintf_rewrite_tail(name, &new_length, "[%u]",
-                                   ub_array->array_elements[j]);
+      ralloc_asprintf_rewrite_tail(name, &new_length, "[%u]", element_idx);
 
       if (ub_array->array) {
+         unsigned binding_stride = binding_offset + (element_idx *
+                                   ub_array->array->aoa_size);
          process_block_array(ub_array->array, name, new_length, blocks,
                              parcel, variables, b, block_index,
-                             binding_offset, ctx, prog, first_index);
+                             binding_stride, ctx, prog, first_index);
       } else {
          process_block_array_leaf(*name, blocks,
                                   parcel, variables, b, block_index,
-                                  binding_offset, *block_index - first_index,
-                                  ctx, prog);
+                                  binding_offset + element_idx,
+                                  *block_index - first_index, ctx, prog);
       }
    }
 }
@@ -266,7 +268,7 @@ process_block_array_leaf(const char *name,
                          gl_uniform_block *blocks,
                          ubo_visitor *parcel, gl_uniform_buffer_variable *variables,
                          const struct link_uniform_block_active *const b,
-                         unsigned *block_index, unsigned *binding_offset,
+                         unsigned *block_index, unsigned binding_offset,
                          unsigned linearized_index,
                          struct gl_context *ctx, struct gl_shader_program *prog)
 {
@@ -283,7 +285,7 @@ process_block_array_leaf(const char *name,
     *    block binding and each subsequent element takes the next consecutive
     *    uniform block binding point.
     */
-   blocks[i].Binding = (b->has_binding) ? b->binding + *binding_offset : 0;
+   blocks[i].Binding = (b->has_binding) ? b->binding + binding_offset : 0;
 
    blocks[i].UniformBufferSize = 0;
    blocks[i]._Packing = glsl_interface_packing(type->interface_packing);
@@ -307,7 +309,6 @@ process_block_array_leaf(const char *name,
       (unsigned)(ptrdiff_t)(&variables[parcel->index] - blocks[i].Uniforms);
 
    *block_index = *block_index + 1;
-   *binding_offset = *binding_offset + 1;
 }
 
 /* This function resizes the array types of the block so that later we can use
@@ -370,7 +371,6 @@ create_buffer_blocks(void *mem_ctx, struct gl_context *ctx,
       if ((create_ubo_blocks && !b->is_shader_storage) ||
           (!create_ubo_blocks && b->is_shader_storage)) {
 
-         unsigned binding_offset = 0;
          if (b->array != NULL) {
             char *name = ralloc_strdup(NULL,
                                        block_type->without_array()->name);
@@ -378,12 +378,12 @@ create_buffer_blocks(void *mem_ctx, struct gl_context *ctx,
 
             assert(b->has_instance_name);
             process_block_array(b->array, &name, name_length, blocks, &parcel,
-                                variables, b, &i, &binding_offset, ctx, prog,
+                                variables, b, &i, 0, ctx, prog,
                                 i);
             ralloc_free(name);
          } else {
             process_block_array_leaf(block_type->name, blocks, &parcel,
-                                     variables, b, &i, &binding_offset,
+                                     variables, b, &i, 0,
                                      0, ctx, prog);
          }
       }
@@ -440,6 +440,7 @@ link_uniform_blocks(void *mem_ctx,
            GLSL_INTERFACE_PACKING_PACKED)) {
          b->type = resize_block_array(b->type, b->array);
          b->var->type = b->type;
+         b->var->data.max_array_access = b->type->length - 1;
       }
 
       block_size.num_active_uniforms = 0;

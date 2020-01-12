@@ -60,8 +60,6 @@ converts = [
 
     # Totally redundant
     (('~f2f16', ('f2f32', 'a@16')), a),
-
-    (('pack_half_2x16_split', 'a@32', 'b@32'), ('ior', ('ishl', ('i2i32', ('f2f16', b)), 16), ('i2i32', ('f2f16', a)))),
 ]
 
 # Midgard scales fsin/fcos arguments by pi.

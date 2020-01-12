@@ -68,7 +68,7 @@
         #define ADDR_DBG_BREAK()    { __debugbreak(); }
     #endif
 #else
-    #define ADDR_DBG_BREAK()
+    #define ADDR_DBG_BREAK() do {} while(0)
 #endif
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -147,15 +147,15 @@
 
 #define ADDRDPF 1 ? (void)0 : (void)
 
-#define ADDR_PRNT(a)
+#define ADDR_PRNT(a) do {} while(0)
 
-#define ADDR_DBG_BREAK()
+#define ADDR_DBG_BREAK() do {} while(0)
 
-#define ADDR_INFO(cond, a)
+#define ADDR_INFO(cond, a) do {} while(0)
 
-#define ADDR_WARN(cond, a)
+#define ADDR_WARN(cond, a) do {} while(0)
 
-#define ADDR_EXIT(cond, a)
+#define ADDR_EXIT(cond, a) do {} while(0)
 
 #endif // DEBUG
 ////////////////////////////////////////////////////////////////////////////////////////////////////

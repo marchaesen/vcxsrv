@@ -999,6 +999,22 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
                                                    config_attribs);
     }
 
+    if (glamor_egl->context != EGL_NO_CONTEXT) {
+        if (!eglMakeCurrent(glamor_egl->display,
+                            EGL_NO_SURFACE, EGL_NO_SURFACE, glamor_egl->context)) {
+            xf86DrvMsg(scrn->scrnIndex, X_ERROR,
+                       "Failed to make GL context current\n");
+            goto error;
+        }
+
+        if (epoxy_gl_version() < 21) {
+            xf86DrvMsg(scrn->scrnIndex, X_INFO,
+                       "glamor: Ignoring GL < 2.1, falling back to GLES.\n");
+            eglDestroyContext(glamor_egl->display, glamor_egl->context);
+            glamor_egl->context = EGL_NO_CONTEXT;
+        }
+    }
+
     if (glamor_egl->context == EGL_NO_CONTEXT) {
         static const EGLint config_attribs[] = {
             EGL_CONTEXT_CLIENT_VERSION, 2,
@@ -1019,18 +1035,19 @@ glamor_egl_init(ScrnInfoPtr scrn, int fd)
         glamor_egl->context = eglCreateContext(glamor_egl->display,
                                                egl_config, EGL_NO_CONTEXT,
                                                config_attribs);
-    }
-    if (glamor_egl->context == EGL_NO_CONTEXT) {
-        xf86DrvMsg(scrn->scrnIndex, X_ERROR,
-                   "glamor: Failed to create GL or GLES2 contexts\n");
-        goto error;
-    }
 
-    if (!eglMakeCurrent(glamor_egl->display,
-                        EGL_NO_SURFACE, EGL_NO_SURFACE, glamor_egl->context)) {
-        xf86DrvMsg(scrn->scrnIndex, X_ERROR,
-                   "Failed to make EGL context current\n");
-        goto error;
+        if (glamor_egl->context == EGL_NO_CONTEXT) {
+            xf86DrvMsg(scrn->scrnIndex, X_ERROR,
+                       "glamor: Failed to create GL or GLES2 contexts\n");
+            goto error;
+        }
+
+        if (!eglMakeCurrent(glamor_egl->display,
+                            EGL_NO_SURFACE, EGL_NO_SURFACE, glamor_egl->context)) {
+            xf86DrvMsg(scrn->scrnIndex, X_ERROR,
+                       "Failed to make GLES2 context current\n");
+            goto error;
+        }
     }
 
     renderer = glGetString(GL_RENDERER);

@@ -534,6 +534,7 @@ struct vtn_image_pointer {
    struct vtn_pointer *image;
    nir_ssa_def *coord;
    nir_ssa_def *sample;
+   nir_ssa_def *lod;
 };
 
 struct vtn_sampled_image {

@@ -362,6 +362,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 			.lower_ubo_ssbo_access_to_offsets = true,
 			.caps = {
 				.amd_gcn_shader = true,
+				.amd_image_read_write_lod = true,
 				.amd_shader_ballot = device->physical_device->use_shader_ballot,
 				.amd_trinary_minmax = true,
 				.demote_to_helper_invocation = device->physical_device->use_aco,

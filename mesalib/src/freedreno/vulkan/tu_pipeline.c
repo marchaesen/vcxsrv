@@ -1980,7 +1980,7 @@ tu_graphics_pipeline_create(VkDevice device,
    if (result == VK_SUCCESS)
       *pPipeline = tu_pipeline_to_handle(pipeline);
    else
-      *pPipeline = NULL;
+      *pPipeline = VK_NULL_HANDLE;
 
    return result;
 }

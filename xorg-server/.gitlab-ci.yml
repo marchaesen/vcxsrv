@@ -18,7 +18,7 @@ variables:
     DEBIAN_VERSION: testing-slim
     DEBIAN_EXEC: 'bash .gitlab-ci/debian-install.sh'
 
-    DEBIAN_TAG: "2019-09-03"
+    DEBIAN_TAG: "2020-01-06"
     IMAGE_LOCAL: "$CI_REGISTRY_IMAGE/debian/$DEBIAN_VERSION:$DEBIAN_TAG"
 
 include:
@@ -30,40 +30,39 @@ stages:
     - docker-image
     - build-and-test
 
-# Retry jobs after runner system failures
-.retry: &retry
+.ci-run-policy:
+  # Retry jobs after runner system failures
   retry:
     max: 2
     when:
       - runner_system_failure
+  # Cancel CI run if a newer commit is pushed to the same branch
+  interruptible: true
 
 debian-testing:
-  extends: .debian@container-ifnot-exists
+  extends:
+    - .debian@container-ifnot-exists
+    - .ci-run-policy
   stage: docker-image
-  <<: *retry
 
 .common-build-and-test:
-    <<: *retry
+    extends: .ci-run-policy
     stage: build-and-test
     image: $IMAGE_LOCAL
     artifacts:
         when: on_failure
         paths:
             - build/test/piglit-results/
-    cache:
-        paths:
-            - ccache/
     variables:
+        CCACHE_COMPILERCHECK: content
+        CCACHE_DIR: /cache/xserver/cache
         LC_ALL: C.UTF-8
     before_script:
         - export CCACHE_BASEDIR="$PWD"
-        - export CCACHE_DIR="$PWD/ccache"
-        - export CCACHE_COMPILERCHECK=content
         - export PATH="/usr/lib/ccache:$PATH"
-        - ccache --zero-stats
         - ccache --show-stats
     after_script:
-        - CCACHE_DIR="$PWD/ccache" ccache --show-stats
+        - ccache --show-stats
 
 autotools-build-and-test:
     extends: .common-build-and-test
@@ -71,8 +70,8 @@ autotools-build-and-test:
         - mkdir build/
         - cd build/
         - ../autogen.sh --prefix=/usr
-        - make -j$(nproc) distcheck
-        - PIGLIT_DIR=/root/piglit XTEST_DIR=/root/xts make -j$(nproc) check
+        - make -j4 distcheck
+        - PIGLIT_DIR=/root/piglit XTEST_DIR=/root/xts make -j4 check
         - cd ..
         - .gitlab-ci/manpages-check
 
@@ -83,6 +82,6 @@ meson-build-and-test:
         XTEST_DIR: /root/xts
     script:
         - meson -Dprefix=/usr -Dxephyr=true build/
-        - ninja -C build/ install
-        - ninja -C build/ test
+        - ninja -j4 -C build/ install
+        - ninja -j4 -C build/ test
         - .gitlab-ci/manpages-check

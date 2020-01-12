@@ -319,6 +319,8 @@ bool socket_writable(SOCKET skt);
 void socket_reselect_all(void);
 /* Make a SockAddr which just holds a named pipe address. */
 SockAddr *sk_namedpipe_addr(const char *pipename);
+/* Turn a WinSock error code into a string. */
+const char *winsock_error_string(int error);
 
 /*
  * winnet.c dynamically loads WinSock 2 or WinSock 1 depending on
@@ -347,10 +349,21 @@ DECL_WINDOWS_FUNCTION(GLOBAL, int, select,
 #endif
 
 /*
- * Provided by each client of winnet.c, and called by winnet.c to turn
- * on or off WSA*Select for a given socket.
+ * Implemented differently depending on the client of winnet.c, and
+ * called by winnet.c to turn on or off WSA*Select for a given socket.
  */
-char *do_select(SOCKET skt, bool startup);
+const char *do_select(SOCKET skt, bool enable);
+
+/*
+ * Exports from winselgui.c and winselcli.c, each of which provides an
+ * implementation of do_select.
+ */
+void winselgui_set_hwnd(HWND hwnd);
+void winselgui_clear_hwnd(void);
+
+void winselcli_setup(void);
+SOCKET winselcli_unique_socket(void);
+extern HANDLE winselcli_event;
 
 /*
  * Network-subsystem-related functions provided in other Windows modules.
@@ -359,6 +372,12 @@ Socket *make_handle_socket(HANDLE send_H, HANDLE recv_H, HANDLE stderr_H,
                            Plug *plug, bool overlapped); /* winhsock */
 Socket *new_named_pipe_client(const char *pipename, Plug *plug); /* winnpc */
 Socket *new_named_pipe_listener(const char *pipename, Plug *plug); /* winnps */
+
+/* A lower-level function in winnpc.c, which does most of the work of
+ * new_named_pipe_client (including checking the ownership of what
+ * it's connected to), but returns a plain HANDLE instead of wrapping
+ * it into a Socket. */
+HANDLE connect_to_named_pipe(const char *pipename, char **err);
 
 /*
  * Exports from winctrls.c.
@@ -633,6 +652,11 @@ struct handle_sink {
     BinarySink_IMPLEMENTATION;
 };
 void handle_sink_init(handle_sink *sink, struct handle *h);
+
+/*
+ * Exports from winpgntc.c.
+ */
+char *agent_named_pipe_name(void);
 
 /*
  * winpgntc.c needs to schedule callbacks for asynchronous agent

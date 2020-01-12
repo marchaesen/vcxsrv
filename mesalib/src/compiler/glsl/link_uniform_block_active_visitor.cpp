@@ -103,6 +103,8 @@ process_arrays(void *mem_ctx, ir_dereference_array *ir,
       if (*ub_array_ptr == NULL) {
          *ub_array_ptr = rzalloc(mem_ctx, struct uniform_block_array_elements);
          (*ub_array_ptr)->ir = ir;
+         (*ub_array_ptr)->aoa_size =
+                      ir->array->type->arrays_of_arrays_size();
       }
 
       struct uniform_block_array_elements *ub_array = *ub_array_ptr;
@@ -199,6 +201,7 @@ link_uniform_block_active_visitor::visit(ir_variable *var)
                                              (*ub_array)->array_elements,
                                              unsigned,
                                              (*ub_array)->num_array_elements);
+      (*ub_array)->aoa_size = type->arrays_of_arrays_size();
 
       for (unsigned i = 0; i < (*ub_array)->num_array_elements; i++) {
          (*ub_array)->array_elements[i] = i;

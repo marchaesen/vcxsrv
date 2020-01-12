@@ -73,6 +73,7 @@ enum radeon_micro_mode {
 #define RADEON_SURF_FORCE_SWIZZLE_MODE          (1 << 28)
 #define RADEON_SURF_NO_FMASK                    (1 << 29)
 #define RADEON_SURF_NO_HTILE                    (1 << 30)
+#define RADEON_SURF_FORCE_MICRO_TILE_MODE       (1u << 31)
 
 struct legacy_surf_level {
     uint64_t                    offset;
@@ -154,6 +155,8 @@ struct gfx9_surf_layout {
     uint64_t                    surf_slice_size;
     /* Mipmap level offset within the slice in bytes. Only valid for LINEAR. */
     uint32_t                    offset[RADEON_SURF_MAX_LEVELS];
+    /* Mipmap level pitch in elements. Only valid for LINEAR. */
+    uint16_t                    pitch[RADEON_SURF_MAX_LEVELS];
 
     uint64_t                    stencil_offset; /* separate stencil */
 

@@ -191,6 +191,7 @@ update_textures(struct st_context *st,
          sampler_views[extra] =
                st->pipe->create_sampler_view(st->pipe, stObj->pt->next, &tmpl);
          break;
+      case PIPE_FORMAT_P010:
       case PIPE_FORMAT_P016:
          /* we need one additional R16G16 view: */
          tmpl.format = PIPE_FORMAT_RG1616_UNORM;

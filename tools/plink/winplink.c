@@ -39,8 +39,6 @@ StripCtrlChars *stdout_scc, *stderr_scc;
 BinarySink *stdout_bs, *stderr_bs;
 DWORD orig_console_mode;
 
-WSAEVENT netevent;
-
 static Backend *backend;
 Conf *conf;
 
@@ -189,26 +187,6 @@ static void version(void)
     printf("plink: %s\n%s\n", ver, buildinfo_text);
     sfree(buildinfo_text);
     exit(0);
-}
-
-char *do_select(SOCKET skt, bool startup)
-{
-    int events;
-    if (startup) {
-        events = (FD_CONNECT | FD_READ | FD_WRITE |
-                  FD_OOB | FD_CLOSE | FD_ACCEPT);
-    } else {
-        events = 0;
-    }
-    if (p_WSAEventSelect(skt, netevent, events) == SOCKET_ERROR) {
-        switch (p_WSAGetLastError()) {
-          case WSAENETDOWN:
-            return "Network is down";
-          default:
-            return "WSAEventSelect(): unknown error";
-        }
-    }
-    return NULL;
 }
 
 size_t stdin_gotdata(struct handle *h, const void *data, size_t len, int err)
@@ -503,7 +481,7 @@ int main(int argc, char **argv)
     /*
      * Start up the connection.
      */
-    netevent = CreateEvent(NULL, false, false, NULL);
+    winselcli_setup();                 /* ensure event object exists */
     {
         const char *error;
         char *realhost;
@@ -559,7 +537,7 @@ int main(int argc, char **argv)
 
         handles = handle_get_events(&nhandles);
         handles = sresize(handles, nhandles+1, HANDLE);
-        handles[nhandles] = netevent;
+        handles[nhandles] = winselcli_event;
         n = MsgWaitForMultipleObjects(nhandles+1, handles, false, ticks,
                                       QS_POSTMESSAGE);
         if ((unsigned)(n - WAIT_OBJECT_0) < (unsigned)nhandles) {

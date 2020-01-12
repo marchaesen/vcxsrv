@@ -3187,6 +3187,9 @@ _mesa_glsl_link_shader(struct gl_context *ctx, struct gl_shader_program *prog)
       prog->data->LinkStatus = LINKING_FAILURE;
    }
 
+   if (prog->data->LinkStatus != LINKING_FAILURE)
+      _mesa_create_program_resource_hash(prog);
+
    /* Return early if we are loading the shader from on-disk cache */
    if (prog->data->LinkStatus == LINKING_SKIPPED)
       return;

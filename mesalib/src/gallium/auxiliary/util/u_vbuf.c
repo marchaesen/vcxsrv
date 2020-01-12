@@ -255,11 +255,11 @@ static const struct {
    { PIPE_FORMAT_R8G8B8A8_SSCALED,     PIPE_FORMAT_R32G32B32A32_FLOAT },
 };
 
-boolean u_vbuf_get_caps(struct pipe_screen *screen, struct u_vbuf_caps *caps,
-                        unsigned flags)
+void u_vbuf_get_caps(struct pipe_screen *screen, struct u_vbuf_caps *caps)
 {
    unsigned i;
-   boolean fallback = FALSE;
+
+   memset(caps, 0, sizeof(*caps));
 
    /* I'd rather have a bitfield of which formats are supported and a static
     * table of the translations indexed by format, but since we don't have C99
@@ -275,7 +275,7 @@ boolean u_vbuf_get_caps(struct pipe_screen *screen, struct u_vbuf_caps *caps,
       if (!screen->is_format_supported(screen, format, PIPE_BUFFER, 0, 0,
                                        PIPE_BIND_VERTEX_BUFFER)) {
          caps->format_translation[format] = vbuf_format_fallbacks[i].to;
-         fallback = TRUE;
+         caps->fallback_always = true;
       }
    }
 
@@ -295,16 +295,15 @@ boolean u_vbuf_get_caps(struct pipe_screen *screen, struct u_vbuf_caps *caps,
 
    /* OpenGL 2.0 requires a minimum of 16 vertex buffers */
    if (caps->max_vertex_buffers < 16)
-      fallback = TRUE;
+      caps->fallback_always = true;
 
    if (!caps->buffer_offset_unaligned ||
        !caps->buffer_stride_unaligned ||
-       !caps->velem_src_offset_unaligned ||
-       (!(flags & U_VBUF_FLAG_NO_USER_VBOS) && !caps->user_vertex_buffers)) {
-      fallback = TRUE;
-   }
+       !caps->velem_src_offset_unaligned)
+      caps->fallback_always = true;
 
-   return fallback;
+   if (!caps->fallback_always && !caps->user_vertex_buffers)
+      caps->fallback_only_for_user_vbuffers = true;
 }
 
 struct u_vbuf *
@@ -372,6 +371,11 @@ void u_vbuf_set_vertex_elements(struct u_vbuf *mgr, unsigned count,
                                const struct pipe_vertex_element *states)
 {
    mgr->ve = u_vbuf_set_vertex_elements_internal(mgr, count, states);
+}
+
+void u_vbuf_unset_vertex_elements(struct u_vbuf *mgr)
+{
+   mgr->ve = NULL;
 }
 
 void u_vbuf_destroy(struct u_vbuf *mgr)
@@ -538,15 +542,14 @@ u_vbuf_translate_buffers(struct u_vbuf *mgr, struct translate_key *key,
 
 static boolean
 u_vbuf_translate_find_free_vb_slots(struct u_vbuf *mgr,
-                                    unsigned mask[VB_NUM],
-                                    unsigned extra_free_vb_mask)
+                                    unsigned mask[VB_NUM])
 {
    unsigned type;
    unsigned fallback_vbs[VB_NUM];
    /* Set the bit for each buffer which is incompatible, or isn't set. */
    uint32_t unused_vb_mask =
-      (mgr->ve->incompatible_vb_mask_all | mgr->incompatible_vb_mask |
-      ~mgr->enabled_vb_mask | extra_free_vb_mask) & mgr->allowed_vb_mask;
+      mgr->ve->incompatible_vb_mask_all | mgr->incompatible_vb_mask |
+      ~mgr->enabled_vb_mask;
    uint32_t unused_vb_mask_orig;
    boolean insufficient_buffers = false;
 
@@ -607,7 +610,6 @@ u_vbuf_translate_begin(struct u_vbuf *mgr,
    unsigned i, type;
    const unsigned incompatible_vb_mask = mgr->incompatible_vb_mask &
                                          mgr->ve->used_vb_mask;
-   unsigned extra_free_vb_mask = 0;
 
    const int start[VB_NUM] = {
       start_vertex,           /* VERTEX */
@@ -653,15 +655,8 @@ u_vbuf_translate_begin(struct u_vbuf *mgr,
 
    assert(mask[VB_VERTEX] || mask[VB_INSTANCE] || mask[VB_CONST]);
 
-   /* In the case of unroll_indices, we can regard all non-constant
-    * vertex buffers with only non-instance vertex elements as incompatible
-    * and thus free.
-    */
-   if (unroll_indices)
-       extra_free_vb_mask = mask[VB_VERTEX] & ~mask[VB_INSTANCE];
-
    /* Find free vertex buffer slots. */
-   if (!u_vbuf_translate_find_free_vb_slots(mgr, mask, extra_free_vb_mask)) {
+   if (!u_vbuf_translate_find_free_vb_slots(mgr, mask)) {
       return FALSE;
    }
 
@@ -858,7 +853,8 @@ static void u_vbuf_delete_vertex_elements(struct u_vbuf *mgr, void *cso)
    struct pipe_context *pipe = mgr->pipe;
    struct u_vbuf_elements *ve = cso;
 
-   pipe->delete_vertex_elements_state(pipe, ve->driver_cso);
+   if (ve->driver_cso)
+      pipe->delete_vertex_elements_state(pipe, ve->driver_cso);
    FREE(ve);
 }
 

@@ -176,13 +176,13 @@ def make_retval(rettype, word, unpack_strings):
                       retwords[0])
     if rettype.startswith("val_"):
         return Value(rettype, word)
-    elif rettype == "uint":
+    elif rettype == "int" or rettype == "uint":
         return int(word, 0)
     elif rettype == "boolean":
         assert word == b"true" or word == b"false"
         return word == b"true"
     raise TypeError("Can't deal with return value {!r} of type {!r}"
-                    .format(rettype, word))
+                    .format(word, rettype))
 
 def make_retvals(rettypes, retwords, unpack_strings=True):
     assert len(rettypes) == len(retwords) # FIXME: better exception

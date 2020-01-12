@@ -1252,10 +1252,13 @@ builtin_variable_generator::generate_fs_special_vars()
       add_input(VARYING_SLOT_POS, vec4_t, frag_coord_precision, "gl_FragCoord");
    }
 
-   if (this->state->ctx->Const.GLSLFrontFacingIsSysVal)
-      add_system_value(SYSTEM_VALUE_FRONT_FACE, bool_t, "gl_FrontFacing");
-   else
-      add_input(VARYING_SLOT_FACE, bool_t, "gl_FrontFacing");
+   if (this->state->ctx->Const.GLSLFrontFacingIsSysVal) {
+      var = add_system_value(SYSTEM_VALUE_FRONT_FACE, bool_t, "gl_FrontFacing");
+      var->data.interpolation = INTERP_MODE_FLAT;
+   } else {
+      var = add_input(VARYING_SLOT_FACE, bool_t, "gl_FrontFacing");
+      var->data.interpolation = INTERP_MODE_FLAT;
+   }
 
    if (state->is_version(120, 100)) {
       if (this->state->ctx->Const.GLSLPointCoordIsSysVal)

@@ -153,6 +153,30 @@ mir_pack_swizzle_64(unsigned *swizzle, unsigned max_component)
 }
 
 static void
+mir_pack_mask_alu(midgard_instruction *ins)
+{
+        unsigned effective = ins->mask;
+
+        /* If we have a destination override, we need to figure out whether to
+         * override to the lower or upper half, shifting the effective mask in
+         * the latter, so AAAA.... becomes AAAA */
+
+        unsigned upper_shift = mir_upper_override(ins);
+
+        if (upper_shift) {
+                effective >>= upper_shift;
+                ins->alu.dest_override = midgard_dest_override_upper;
+        }
+
+        if (ins->alu.reg_mode == midgard_reg_mode_32)
+                ins->alu.mask = expand_writemask(effective, 4);
+        else if (ins->alu.reg_mode == midgard_reg_mode_64)
+                ins->alu.mask = expand_writemask(effective, 2);
+        else
+                ins->alu.mask = effective;
+}
+
+static void
 mir_pack_swizzle_alu(midgard_instruction *ins)
 {
         midgard_vector_alu_src src[] = {
@@ -301,7 +325,7 @@ emit_alu_bundle(compiler_context *ctx,
                 midgard_instruction *ins = bundle->instructions[i];
 
                 /* Check if this instruction has registers */
-                if (ins->compact_branch || ins->prepacked_branch) continue;
+                if (ins->compact_branch) continue;
 
                 /* Otherwise, just emit the registers */
                 uint16_t reg_word = 0;
@@ -321,13 +345,7 @@ emit_alu_bundle(compiler_context *ctx,
                 midgard_scalar_alu scalarized;
 
                 if (ins->unit & UNITS_ANY_VECTOR) {
-                        if (ins->alu.reg_mode == midgard_reg_mode_64)
-                                ins->alu.mask = expand_writemask(ins->mask, 2);
-                        else if (ins->alu.reg_mode == midgard_reg_mode_32)
-                                ins->alu.mask = expand_writemask(ins->mask, 4);
-                        else
-                                ins->alu.mask = ins->mask;
-
+                        mir_pack_mask_alu(ins);
                         mir_pack_swizzle_alu(ins);
                         size = sizeof(midgard_vector_alu);
                         source = &ins->alu;
@@ -387,6 +405,10 @@ emit_binary_bundle(compiler_context *ctx,
         case TAG_ALU_8:
         case TAG_ALU_12:
         case TAG_ALU_16:
+        case TAG_ALU_4 + 4:
+        case TAG_ALU_8 + 4:
+        case TAG_ALU_12 + 4:
+        case TAG_ALU_16 + 4:
                 emit_alu_bundle(ctx, bundle, emission, lookahead);
                 break;
 

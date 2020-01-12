@@ -498,9 +498,6 @@ spec/arb_get_program_binary/xfb-varyings: skip
 spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-dlist-uniforms: skip
 spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-fs-non-uniform-control-flow-ssbo: skip
 spec/arb_gpu_shader_fp64/execution/arb_gpu_shader_fp64-vs-non-uniform-control-flow-ssbo: skip
-spec/arb_indirect_parameters/conditional-render: skip
-spec/arb_indirect_parameters/tf-count-arrays: skip
-spec/arb_indirect_parameters/tf-count-elements: skip
 spec/arb_internalformat_query/minmax: skip
 spec/arb_internalformat_query/misc. api error checks: skip
 spec/arb_pipeline_statistics_query/arb_pipeline_statistics_query-frag: fail
@@ -539,17 +536,6 @@ spec/arb_query_buffer_object/coherency/indirect-dispatch-gl_tess_evaluation_shad
 spec/arb_query_buffer_object/coherency/indirect-dispatch-gl_transform_feedback_primitives_written: skip
 spec/arb_query_buffer_object/coherency/indirect-dispatch-gl_vertex_shader_invocations: skip
 spec/arb_query_buffer_object/coherency/indirect-dispatch-gl_vertices_submitted: skip
-spec/arb_query_buffer_object/coherency/indirect-draw-count-gl_any_samples_passed: skip
-spec/arb_query_buffer_object/coherency/indirect-draw-count-gl_any_samples_passed_conservative: skip
-spec/arb_query_buffer_object/coherency/indirect-draw-count-gl_clipping_input_primitives: skip
-spec/arb_query_buffer_object/coherency/indirect-draw-count-gl_clipping_output_primitives: skip
-spec/arb_query_buffer_object/coherency/indirect-draw-count-gl_compute_shader_invocations: skip
-spec/arb_query_buffer_object/coherency/indirect-draw-count-gl_fragment_shader_invocations: skip
-spec/arb_query_buffer_object/coherency/indirect-draw-count-gl_geometry_shader_invocations: skip
-spec/arb_query_buffer_object/coherency/indirect-draw-count-gl_geometry_shader_primitives_emitted: skip
-spec/arb_query_buffer_object/coherency/indirect-draw-count-gl_primitives_generated: skip
-spec/arb_query_buffer_object/coherency/indirect-draw-count-gl_primitives_submitted: skip
-spec/arb_query_buffer_object/coherency/indirect-draw-count-gl_samples_passed: skip
 spec/arb_query_buffer_object/coherency/indirect-draw-count-gl_tess_control_shader_patches: skip
 spec/arb_query_buffer_object/coherency/indirect-draw-count-gl_tess_evaluation_shader_invocations: skip
 spec/arb_query_buffer_object/coherency/indirect-draw-count-gl_time_elapsed: skip
@@ -2221,10 +2207,10 @@ wgl/wgl-sanity: skip
 summary:
        name:  results
        ----  --------
-       pass:    19302
+       pass:    19319
        fail:      236
       crash:        2
-       skip:     1962
+       skip:     1948
     timeout:        0
        warn:        2
  incomplete:        0
@@ -2233,4 +2219,4 @@ summary:
     changes:        0
       fixes:        0
 regressions:        0
-      total:    21522
+      total:    21525

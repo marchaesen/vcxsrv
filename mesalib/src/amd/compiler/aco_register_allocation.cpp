@@ -1497,9 +1497,8 @@ void register_allocation(Program *program, std::vector<std::set<Temp>> live_out_
              instr->operands[1].getTemp().type() == RegType::vgpr) { /* TODO: swap src0 and src1 in this case */
             VOP3A_instruction* vop3 = static_cast<VOP3A_instruction*>(instr.get());
             bool can_use_mac = !(vop3->abs[0] || vop3->abs[1] || vop3->abs[2] ||
-                                 vop3->opsel[0] || vop3->opsel[1] || vop3->opsel[2] ||
                                  vop3->neg[0] || vop3->neg[1] || vop3->neg[2] ||
-                                 vop3->clamp || vop3->omod);
+                                 vop3->clamp || vop3->omod || vop3->opsel);
             if (can_use_mac) {
                instr->format = Format::VOP2;
                instr->opcode = aco_opcode::v_mac_f32;

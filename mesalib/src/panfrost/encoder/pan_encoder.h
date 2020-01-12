@@ -27,6 +27,7 @@
 #ifndef __PAN_ENCODER_H
 #define __PAN_ENCODER_H
 
+#include <stdbool.h>
 #include "panfrost-job.h"
 
 /* Invocation packing */
@@ -85,5 +86,25 @@ unsigned panfrost_query_core_count(int fd);
 unsigned panfrost_query_thread_tls_alloc(int fd);
 
 const char * panfrost_model_name(unsigned gpu_id);
+
+/* Attributes / instancing */
+
+unsigned
+panfrost_padded_vertex_count(unsigned vertex_count);
+
+unsigned
+panfrost_vertex_instanced(
+        unsigned padded_count,
+        unsigned instance_shift, unsigned instance_odd,
+        unsigned divisor,
+        union mali_attr *attrs);
+
+void panfrost_vertex_id(unsigned padded_count, union mali_attr *attr);
+void panfrost_instance_id(unsigned padded_count, union mali_attr *attr);
+
+/* Samplers */
+
+enum mali_func
+panfrost_flip_compare_func(enum mali_func f);
 
 #endif

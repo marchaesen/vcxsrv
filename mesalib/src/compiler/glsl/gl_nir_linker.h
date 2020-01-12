@@ -35,9 +35,11 @@ struct gl_nir_linker_options {
    bool fill_parameters;
 };
 
-bool gl_nir_link(struct gl_context *ctx,
-                 struct gl_shader_program *prog,
-                 const struct gl_nir_linker_options *options);
+bool gl_nir_link_spirv(struct gl_context *ctx,
+                       struct gl_shader_program *prog,
+                       const struct gl_nir_linker_options *options);
+
+bool gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog);
 
 bool gl_nir_link_uniforms(struct gl_context *ctx,
                           struct gl_shader_program *prog,
@@ -52,6 +54,9 @@ void nir_build_program_resource_list(struct gl_context *ctx,
 
 void gl_nir_link_assign_atomic_counter_resources(struct gl_context *ctx,
                                                  struct gl_shader_program *prog);
+
+void gl_nir_link_check_atomic_counter_resources(struct gl_context *ctx,
+                                                struct gl_shader_program *prog);
 
 void gl_nir_link_assign_xfb_resources(struct gl_context *ctx,
                                       struct gl_shader_program *prog);

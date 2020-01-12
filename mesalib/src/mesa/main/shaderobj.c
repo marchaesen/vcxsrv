@@ -344,6 +344,11 @@ _mesa_clear_shader_program_data(struct gl_context *ctx,
       shProg->UniformHash = NULL;
    }
 
+   if (shProg->data && shProg->data->ProgramResourceHash) {
+      _mesa_hash_table_u64_destroy(shProg->data->ProgramResourceHash, NULL);
+      shProg->data->ProgramResourceHash = NULL;
+   }
+
    _mesa_reference_shader_program_data(ctx, &shProg->data, NULL);
 }
 

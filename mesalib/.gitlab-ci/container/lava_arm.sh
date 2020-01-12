@@ -33,13 +33,6 @@ apt-get -y install --no-install-recommends \
 	procps \
 	qemu-user-static \
 	cpio \
-	clang-8 \
-	llvm-8 \
-	libclang-8-dev \
-	llvm-8-dev \
-	gdc-9 \
-	lld-8 \
-	nasm \
 	libegl1-mesa-dev \
 	\
 	libdrm-dev:${DEBIAN_ARCH} \
@@ -66,81 +59,29 @@ apt-get -y install --no-install-recommends \
 	libglvnd-core-dev:${DEBIAN_ARCH} \
 	libgles2-mesa-dev:${DEBIAN_ARCH} \
 	libegl1-mesa-dev:${DEBIAN_ARCH} \
-	libpng-dev:${DEBIAN_ARCH}
-
-############### Cross-build dEQP
-mkdir -p /artifacts/rootfs/deqp
-
-git config --global user.email "mesa@example.com"
-git config --global user.name "Mesa CI"
-# XXX: Use --depth 1 once we can drop the cherry-picks.
-git clone \
-    https://github.com/KhronosGroup/VK-GL-CTS.git \
-    -b opengl-es-cts-3.2.5.1 \
-    /VK-GL-CTS
-cd /VK-GL-CTS
-# Fix surfaceless build
-git cherry-pick -x 22f41e5e321c6dcd8569c4dad91bce89f06b3670
-git cherry-pick -x 1daa8dff73161ea60ead965bd6c9f2a0a2165648
-
-# surfaceless links against libkms and such despite not using it.
-sed -i '/gbm/d' targets/surfaceless/surfaceless.cmake
-sed -i '/libkms/d' targets/surfaceless/surfaceless.cmake
-sed -i '/libgbm/d' targets/surfaceless/surfaceless.cmake
-
-python3 external/fetch_sources.py
-
-cd /artifacts/rootfs/deqp
-cmake -G Ninja                                \
-      -DDEQP_TARGET=surfaceless               \
-      -DCMAKE_BUILD_TYPE=Release              \
-      -DCMAKE_C_COMPILER=${GCC_ARCH}-gcc      \
-      -DCMAKE_CXX_COMPILER=${GCC_ARCH}-g++    \
-      /VK-GL-CTS
-ninja
-rm -rf /artifacts/rootfs/deqp/external
-rm -rf /artifacts/rootfs/deqp/modules/gles31
-rm -rf /artifacts/rootfs/deqp/modules/internal
-rm -rf /artifacts/rootfs/deqp/executor
-rm -rf /artifacts/rootfs/deqp/execserver
-rm -rf /artifacts/rootfs/deqp/modules/egl
-rm -rf /artifacts/rootfs/deqp/framework
-find . -name CMakeFiles | xargs rm -rf
-find . -name lib\*.a | xargs rm -rf
-du -sh *
-rm -rf /VK-GL-CTS
+	libpng-dev:${DEBIAN_ARCH} \
+	libvulkan-dev:${DEBIAN_ARCH} \
+	libvulkan1:${DEBIAN_ARCH} \
+	libclang-7-dev:${DEBIAN_ARCH}
 
 
-############### Cross-build Volt dEQP runner
-mkdir -p /battery
-cd /battery
-wget https://github.com/VoltLang/Battery/releases/download/v0.1.23/battery-0.1.23-x86_64-linux.tar.gz
-tar xzvf battery-0.1.23-x86_64-linux.tar.gz
-rm battery-0.1.23-x86_64-linux.tar.gz
-mv battery /usr/local/bin
-rm -rf /battery
-
-mkdir -p /volt
-cd /volt
-mkdir -p Watt Volta dEQP
-wget -qO- https://github.com/VoltLang/Watt/archive/v0.1.3.tar.gz | tar -xz --strip-components=1 -C ./Watt
-wget -qO- https://github.com/VoltLang/Volta/archive/v0.1.3.tar.gz | tar -xz --strip-components=1 -C ./Volta
-wget -qO- https://github.com/Wallbraker/dEQP/archive/v0.1.4.tar.gz | tar -xz --strip-components=1 -C ./dEQP
-battery config --release --lto Volta Watt
-battery build
-battery config --arch ${VOLT_ARCH} --cmd-volta Volta/volta Volta/rt Watt dEQP
-battery build
-rm /usr/local/bin/battery
-cp dEQP/deqp /artifacts/rootfs/deqp/deqp-volt
-rm -rf /volt
+############### Build dEQP runner
+/usr/share/meson/debcrossgen --arch ${DEBIAN_ARCH} -o /tmp/cross_file.txt
+EXTRA_MESON_ARGS="--cross-file /tmp/cross_file.txt"
+. .gitlab-ci/build-cts-runner.sh
+mkdir -p /artifacts/rootfs/usr/bin
+mv /usr/local/bin/deqp-runner /artifacts/rootfs/usr/bin/.
 
 
-############### Remove LLVM now, so the container image is smaller
-apt-get -y remove \*llvm\*
+############### Build dEQP
+EXTRA_CMAKE_ARGS="-DCMAKE_C_COMPILER=${GCC_ARCH}-gcc -DCMAKE_CXX_COMPILER=${GCC_ARCH}-g++"
+STRIP_CMD="${GCC_ARCH}-strip"
+. .gitlab-ci/build-deqp-gl.sh
+mv /deqp /artifacts/rootfs/.
 
 
 ############### Cross-build kernel
-KERNEL_URL="https://gitlab.freedesktop.org/tomeu/linux/-/archive/panfrost-veyron-fix/linux-panfrost-veyron-fix.tar.gz"
+KERNEL_URL="https://gitlab.freedesktop.org/tomeu/linux/-/archive/v5.5-rc1-panfrost-fixes/linux-v5.5-rc1-panfrost-fixes.tar.gz"
 export ARCH=${KERNEL_ARCH}
 export CROSS_COMPILE="${GCC_ARCH}-"
 

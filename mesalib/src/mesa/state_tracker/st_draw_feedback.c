@@ -160,7 +160,9 @@ st_feedback_draw_vbo(struct gl_context *ctx,
 
    /* Must setup these after state validation! */
    /* Setup arrays */
-   st_setup_arrays(st, vp, vp_variant, velements, vbuffers, &num_vbuffers);
+   bool uses_user_vertex_buffers;
+   st_setup_arrays(st, vp, vp_variant, velements, vbuffers, &num_vbuffers,
+                   &uses_user_vertex_buffers);
    /* Setup current values as userspace arrays */
    st_setup_current_user(st, vp, vp_variant, velements, vbuffers, &num_vbuffers);
 

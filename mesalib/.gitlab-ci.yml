@@ -96,7 +96,7 @@ x86_build:
     - .debian@container-ifnot-exists
     - .container
   variables:
-    DEBIAN_TAG: &x86_build "2019-11-13"
+    DEBIAN_TAG: &x86_build "2020-01-07"
 
 .use-x86_build:
   variables:
@@ -109,13 +109,13 @@ x86_build:
 x86_test-gl:
   extends: x86_build
   variables:
-    DEBIAN_TAG: &x86_test-gl "2019-12-05"
+    DEBIAN_TAG: &x86_test-gl "2020-01-07"
 
 # Debian 10 based x86 test image for VK
 x86_test-vk:
   extends: x86_build
   variables:
-    DEBIAN_TAG: &x86_test-vk "2019-11-22"
+    DEBIAN_TAG: &x86_test-vk "2020-01-07"
   # Can only be triggered manually on personal branches because RADV is the only
   # driver that does Vulkan testing at the moment.
   rules:
@@ -162,7 +162,7 @@ arm_build:
 arm_test:
   extends: arm_build
   variables:
-    DEBIAN_TAG: &arm_test "2019-11-22"
+    DEBIAN_TAG: &arm_test "2019-12-18"
 
 .use-arm_test:
   variables:
@@ -215,6 +215,8 @@ arm_test:
   extends:
     - .build-linux
     - .use-x86_build
+  variables:
+    LLVM_VERSION: 9
   script:
     - .gitlab-ci/meson-build.sh
 
@@ -268,7 +270,6 @@ meson-main:
       -D gallium-nine=true
       -D gallium-opencl=disabled
     GALLIUM_DRIVERS: "iris,nouveau,kmsro,r300,r600,freedreno,swr,swrast,svga,v3d,vc4,virgl,etnaviv,panfrost,lima,zink"
-    LLVM_VERSION: "7"
     EXTRA_OPTION: >
       -D osmesa=gallium
       -D tools=all
@@ -320,6 +321,7 @@ meson-arm64:
     - .ci-deqp-artifacts
   variables:
     BUILDTYPE: "debugoptimized"
+    LLVM_VERSION: "8"
     VULKAN_DRIVERS: "freedreno,amd"
   script:
     - .gitlab-ci/meson-build.sh
@@ -334,8 +336,8 @@ meson-clang:
     DRI_DRIVERS: "auto"
     GALLIUM_DRIVERS: "auto"
     VULKAN_DRIVERS: intel,amd,freedreno
-    CC: "ccache clang-8"
-    CXX: "ccache clang++-8"
+    CC: "ccache clang-9"
+    CXX: "ccache clang++-9"
 
 .meson-windows:
   extends:
@@ -425,7 +427,6 @@ meson-vulkan:
       -D cpp_args=-fno-sanitize-recover=all
     UBSAN_OPTIONS: "print_stacktrace=1"
     VULKAN_DRIVERS: intel,amd,freedreno
-    LLVM_VERSION: "8"
     EXTRA_OPTION: >
       -D vulkan-overlay-layer=true
 
@@ -462,7 +463,7 @@ scons:
     SCONS_CHECK_COMMAND: "scons llvm=1 force_scons=1 check"
   script:
     - SCONS_TARGET="" SCONS_CHECK_COMMAND="scons check force_scons=1" .gitlab-ci/scons-build.sh
-    - LLVM_VERSION=8 .gitlab-ci/scons-build.sh
+    - LLVM_VERSION=9 .gitlab-ci/scons-build.sh
 
 scons-old-llvm:
   extends:

@@ -136,28 +136,7 @@
 #define TAG_ALU_12 0xA
 #define TAG_ALU_16 0xB
 
-static inline int
-quadword_size(int tag)
-{
-        switch (tag) {
-        case TAG_ALU_4:
-        case TAG_LOAD_STORE_4:
-        case TAG_TEXTURE_4:
-        case TAG_TEXTURE_4_VTX:
-                return 1;
-        case TAG_ALU_8:
-                return 2;
-        case TAG_ALU_12:
-                return 3;
-        case TAG_ALU_16:
-                return 4;
-        default:
-                unreachable("Unknown tag");
-        }
-}
-
-#define IS_ALU(tag) (tag == TAG_ALU_4 || tag == TAG_ALU_8 ||  \
-		     tag == TAG_ALU_12 || tag == TAG_ALU_16)
+#define IS_ALU(tag) (tag >= TAG_ALU_4)
 
 /* Special register aliases */
 
@@ -335,6 +314,12 @@ midgard_ldst_reg(unsigned reg, unsigned component)
         memcpy(&packed, &sel, sizeof(packed));
 
         return packed;
+}
+
+static inline bool
+midgard_is_branch_unit(unsigned unit)
+{
+        return (unit == ALU_ENAB_BRANCH) || (unit == ALU_ENAB_BR_COMPACT);
 }
 
 #endif

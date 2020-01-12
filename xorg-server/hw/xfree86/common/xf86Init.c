@@ -74,7 +74,6 @@
 #include "xf86Crtc.h"
 #include "picturestr.h"
 #include "randrstr.h"
-#include "glxvndabi.h"
 #include "xf86Bus.h"
 #ifdef XSERVER_LIBPCIACCESS
 #include "xf86VGAarbiter.h"

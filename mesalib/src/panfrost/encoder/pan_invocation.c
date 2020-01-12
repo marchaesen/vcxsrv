@@ -50,25 +50,21 @@ panfrost_pack_work_groups_compute(
         unsigned size_z,
         bool quirk_graphics)
 {
-        /* First of all, all 6 values are off-by-one (strictly positive). */
-
-        num_x = MALI_POSITIVE(num_x);
-        num_y = MALI_POSITIVE(num_y);
-        num_z = MALI_POSITIVE(num_z);
-
-        size_x = MALI_POSITIVE(size_x);
-        size_y = MALI_POSITIVE(size_y);
-        size_z = MALI_POSITIVE(size_z);
-
-        /* Next up is to pack in order */
-
         uint32_t packed = 0;
 
         /* The values needing packing, in order, and the corresponding shifts.
          * Indicies into shift are off-by-one to make the logic easier */
 
         unsigned shifts[7] = { 0 };
-        unsigned values[6] = { size_x, size_y, size_z, num_x, num_y, num_z };
+
+        unsigned values[6] = {
+                MALI_POSITIVE(size_x),
+                MALI_POSITIVE(size_y),
+                MALI_POSITIVE(size_z),
+                MALI_POSITIVE(num_x),
+                MALI_POSITIVE(num_y),
+                MALI_POSITIVE(num_z),
+        };
 
         for (unsigned i = 0; i < 6; ++i) {
                 /* OR it in, shifting as required */

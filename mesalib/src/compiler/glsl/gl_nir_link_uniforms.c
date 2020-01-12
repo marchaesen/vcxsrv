@@ -257,7 +257,6 @@ struct nir_link_uniforms_state {
    bool var_is_in_block;
    int top_level_array_size;
    int top_level_array_stride;
-   int main_uniform_storage_index;
 
    struct type_tree_entry *current_type;
 };
@@ -394,7 +393,7 @@ add_parameter(struct gl_uniform_storage *uniform,
    for (unsigned i = 0; i < num_params; i++) {
       struct gl_program_parameter *param = &params->Parameters[base_index + i];
       param->UniformStorageIndex = uniform - prog->data->UniformStorage;
-      param->MainUniformStorageIndex = state->main_uniform_storage_index;
+      param->MainUniformStorageIndex = state->current_var->data.location;
    }
 }
 
@@ -489,9 +488,6 @@ nir_link_uniform(struct gl_context *ctx,
          linker_error(prog, "Out of memory during linking.\n");
          return -1;
       }
-
-      if (state->main_uniform_storage_index == -1)
-         state->main_uniform_storage_index = prog->data->NumUniformStorage;
 
       uniform = &prog->data->UniformStorage[prog->data->NumUniformStorage];
       prog->data->NumUniformStorage++;
@@ -703,6 +699,8 @@ gl_nir_link_uniforms(struct gl_context *ctx,
       nir_foreach_variable(var, &nir->uniforms) {
          struct gl_uniform_storage *uniform = NULL;
 
+         state.current_var = var;
+
          /* Check if the uniform has been processed already for
           * other stage. If so, validate they are compatible and update
           * the active stage mask.
@@ -721,12 +719,10 @@ gl_nir_link_uniforms(struct gl_context *ctx,
          /* From now on the variable’s location will be its uniform index */
          var->data.location = prog->data->NumUniformStorage;
 
-         state.current_var = var;
          state.offset = 0;
          state.var_is_in_block = nir_variable_is_in_block(var);
          state.top_level_array_size = 0;
          state.top_level_array_stride = 0;
-         state.main_uniform_storage_index = -1;
 
          /*
           * From ARB_program_interface spec, issue (16):

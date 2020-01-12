@@ -1,25 +1,25 @@
-#!/bin/bash
+#!/bin/sh
 
 set -ex
 
-DEQP_OPTIONS=(--deqp-surface-width=256 --deqp-surface-height=256)
-DEQP_OPTIONS+=(--deqp-surface-type=pbuffer)
-DEQP_OPTIONS+=(--deqp-gl-config-name=rgba8888d24s8ms0)
-DEQP_OPTIONS+=(--deqp-visibility=hidden)
+DEQP_OPTIONS="--deqp-surface-width=256 --deqp-surface-height=256"
+DEQP_OPTIONS="$DEQP_OPTIONS --deqp-surface-type=pbuffer"
+DEQP_OPTIONS="$DEQP_OPTIONS --deqp-gl-config-name=rgba8888d24s8ms0"
+DEQP_OPTIONS="$DEQP_OPTIONS --deqp-visibility=hidden"
 
 # It would be nice to be able to enable the watchdog, so that hangs in a test
 # don't need to wait the full hour for the run to time out.  However, some
 # shaders end up taking long enough to compile
 # (dEQP-GLES31.functional.ubo.random.all_per_block_buffers.20 for example)
 # that they'll sporadically trigger the watchdog.
-#DEQP_OPTIONS+=(--deqp-watchdog=enable)
+#DEQP_OPTIONS="$DEQP_OPTIONS --deqp-watchdog=enable"
 
 if [ -z "$DEQP_VER" ]; then
    echo 'DEQP_VER must be set to something like "gles2", "gles31" or "vk" for the test run'
    exit 1
 fi
 
-if [ "$DEQP_VER" == "vk" ]; then
+if [ "$DEQP_VER" = "vk" ]; then
    if [ -z "$VK_DRIVER" ]; then
       echo 'VK_DRIVER must be to something like "radeon" or "intel" for the test run'
       exit 1
@@ -46,7 +46,7 @@ RESULTS=`pwd`/results
 mkdir -p $RESULTS
 
 # Generate test case list file.
-if [ "$DEQP_VER" == "vk" ]; then
+if [ "$DEQP_VER" = "vk" ]; then
    cp /deqp/mustpass/vk-master.txt /tmp/case-list.txt
    DEQP=/deqp/external/vulkancts/modules/vulkan/deqp-vk
 else
@@ -83,8 +83,9 @@ run_cts() {
         $XFAIL \
         --job ${DEQP_PARALLEL:-1} \
 	--allow-flakes true \
+	$DEQP_RUNNER_OPTIONS \
         -- \
-        "${DEQP_OPTIONS[@]}"
+        $DEQP_OPTIONS
 }
 
 report_flakes() {
@@ -199,8 +200,10 @@ if [ $DEQP_EXITCODE -ne 0 ]; then
         $RESULTS/cts-runner-unexpected-results.txt
     head -n 50 $RESULTS/cts-runner-unexpected-results.txt
 
-    # Save the logs for up to the first 50 unexpected results:
-    head -n 50 $RESULTS/cts-runner-unexpected-results.txt | quiet extract_xml_results /tmp/*.qpa
+    if [ -z "$DEQP_NO_SAVE_RESULTS" ]; then
+        # Save the logs for up to the first 50 unexpected results:
+        head -n 50 $RESULTS/cts-runner-unexpected-results.txt | quiet extract_xml_results /tmp/*.qpa
+    fi
 
     count=`cat $RESULTS/cts-runner-unexpected-results.txt | wc -l`
 
@@ -217,8 +220,10 @@ else
         echo "Some flakes found (see cts-runner-flakes.txt in artifacts for full results):"
         head -n 50 $RESULTS/cts-runner-flakes.txt
 
-        # Save the logs for up to the first 50 flakes:
-        head -n 50 $RESULTS/cts-runner-flakes.txt | quiet extract_xml_results /tmp/*.qpa
+        if [ -z "$DEQP_NO_SAVE_RESULTS" ]; then
+            # Save the logs for up to the first 50 flakes:
+            head -n 50 $RESULTS/cts-runner-flakes.txt | quiet extract_xml_results /tmp/*.qpa
+        fi
 
         # Report the flakes to IRC channel for monitoring (if configured):
         quiet report_flakes $RESULTS/cts-runner-flakes.txt

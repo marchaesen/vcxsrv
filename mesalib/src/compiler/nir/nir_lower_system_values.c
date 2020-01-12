@@ -222,6 +222,10 @@ lower_system_value_instr(nir_builder *b, nir_instr *instr, void *_state)
          return NULL;
       }
 
+   case nir_intrinsic_load_num_work_groups:
+   case nir_intrinsic_load_work_group_id:
+      return sanitize_32bit_sysval(b, intrin);
+
    case nir_intrinsic_load_deref: {
       nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
       if (deref->mode != nir_var_system_value)

@@ -1368,7 +1368,6 @@ static Bool
 CreateScreenResources(ScreenPtr pScreen)
 {
     ScrnInfoPtr pScrn = xf86ScreenToScrn(pScreen);
-    rrScrPrivPtr pScrPriv = rrGetScrPriv(pScreen);
     modesettingPtr ms = modesettingPTR(pScrn);
     PixmapPtr rootPixmap;
     Bool ret;
@@ -1434,10 +1433,14 @@ CreateScreenResources(ScreenPtr pScreen)
         }
     }
 
-    pScrPriv->rrEnableSharedPixmapFlipping = msEnableSharedPixmapFlipping;
-    pScrPriv->rrDisableSharedPixmapFlipping = msDisableSharedPixmapFlipping;
+    if (dixPrivateKeyRegistered(rrPrivKey)) {
+        rrScrPrivPtr pScrPriv = rrGetScrPriv(pScreen);
 
-    pScrPriv->rrStartFlippingPixmapTracking = msStartFlippingPixmapTracking;
+        pScrPriv->rrEnableSharedPixmapFlipping = msEnableSharedPixmapFlipping;
+        pScrPriv->rrDisableSharedPixmapFlipping = msDisableSharedPixmapFlipping;
+
+        pScrPriv->rrStartFlippingPixmapTracking = msStartFlippingPixmapTracking;
+    }
 
     return ret;
 }

@@ -70,6 +70,9 @@ for device_type in args.device_types:
     values['boot_method'] = device_types[device_type]['boot_method']
     values['kernel_image_type'] = device_types[device_type]['kernel_image_type']
     values['tags'] = device_types[device_type]['tags']
+    values['fails_file'] = 'deqp-%s-fails.txt' % device_types[device_type]['gpu_version']
+    values['skips_file'] = 'deqp-%s-skips.txt' % device_types[device_type]['gpu_version']
+    values['deqp_version'] = 'gles2'
 
     f = open('results/lava-deqp-%s.yml' % device_type, "w")
     f.write(template.render(values))

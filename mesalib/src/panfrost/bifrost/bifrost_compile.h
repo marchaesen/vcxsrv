@@ -64,7 +64,6 @@ static const nir_shader_compiler_options bifrost_nir_options = {
         .lower_extract_word = true,
         .lower_all_io_to_temps = true,
         .lower_all_io_to_elements = true,
-        .vertex_id_zero_based = true,
 };
 
 #endif

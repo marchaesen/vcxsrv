@@ -153,14 +153,20 @@ mir_compute_liveness(compiler_context *ctx)
 
                 /* If we made progress, we need to process the predecessors */
 
-                if (progress || (blk == exit) || blk->epilogue) {
+                if (progress || !blk->visited) {
                         mir_foreach_predecessor(blk, pred)
                                 _mesa_set_add(work_list, pred);
                 }
+
+                blk->visited = true;
         } while((cur = _mesa_set_next_entry(work_list, NULL)) != NULL);
 
         /* Liveness is now valid */
         ctx->metadata |= MIDGARD_METADATA_LIVENESS;
+
+        mir_foreach_block(ctx, block) {
+                block->visited = false;
+        }
 }
 
 /* Once liveness data is no longer valid, call this */

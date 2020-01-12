@@ -49,6 +49,12 @@ nir_ssa_def* nir_upsample(nir_builder *b, nir_ssa_def *hi, nir_ssa_def *lo);
 nir_ssa_def* nir_atan(nir_builder *b, nir_ssa_def *y_over_x);
 nir_ssa_def* nir_atan2(nir_builder *b, nir_ssa_def *y, nir_ssa_def *x);
 
+nir_ssa_def *
+nir_get_texture_lod(nir_builder *b, nir_tex_instr *tex);
+
+nir_ssa_def *
+nir_get_texture_size(nir_builder *b, nir_tex_instr *tex);
+
 static inline nir_ssa_def *
 nir_nan_check2(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y, nir_ssa_def *res)
 {

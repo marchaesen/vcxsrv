@@ -350,16 +350,20 @@ spec/arb_conservative_depth/preprocessor/disabled-undefined-core.tese: skip
 spec/arb_conservative_depth/preprocessor/disabled-undefined-core.vert: skip
 spec/arb_conservative_depth/preprocessor/enabled-core.tesc: skip
 spec/arb_conservative_depth/preprocessor/enabled-core.tese: skip
+spec/arb_derivative_control/preprocessor/disabled-defined-core.comp: skip
+spec/arb_derivative_control/preprocessor/disabled-defined-core.frag: skip
+spec/arb_derivative_control/preprocessor/disabled-defined-core.geom: skip
 spec/arb_derivative_control/preprocessor/disabled-defined-core.tesc: skip
 spec/arb_derivative_control/preprocessor/disabled-defined-core.tese: skip
+spec/arb_derivative_control/preprocessor/disabled-defined-core.vert: skip
+spec/arb_derivative_control/preprocessor/disabled-undefined-core.comp: skip
+spec/arb_derivative_control/preprocessor/disabled-undefined-core.frag: skip
+spec/arb_derivative_control/preprocessor/disabled-undefined-core.geom: skip
 spec/arb_derivative_control/preprocessor/disabled-undefined-core.tesc: skip
 spec/arb_derivative_control/preprocessor/disabled-undefined-core.tese: skip
-spec/arb_derivative_control/preprocessor/enabled-core.comp: skip
-spec/arb_derivative_control/preprocessor/enabled-core.frag: skip
-spec/arb_derivative_control/preprocessor/enabled-core.geom: skip
+spec/arb_derivative_control/preprocessor/disabled-undefined-core.vert: skip
 spec/arb_derivative_control/preprocessor/enabled-core.tesc: skip
 spec/arb_derivative_control/preprocessor/enabled-core.tese: skip
-spec/arb_derivative_control/preprocessor/enabled-core.vert: skip
 spec/arb_draw_buffers/preprocessor/disabled-defined-compat.frag: skip
 spec/arb_draw_buffers/preprocessor/disabled-defined-compat.vert: skip
 spec/arb_draw_buffers/preprocessor/disabled-defined-core.comp: skip
@@ -1288,18 +1292,24 @@ spec/arb_shader_draw_parameters/preprocessor/disabled-undefined-core.tese: skip
 spec/arb_shader_draw_parameters/preprocessor/disabled-undefined-core.vert: skip
 spec/arb_shader_draw_parameters/preprocessor/enabled-core.tesc: skip
 spec/arb_shader_draw_parameters/preprocessor/enabled-core.tese: skip
+spec/arb_shader_group_vote/preprocessor/disabled-defined-compat.frag: skip
+spec/arb_shader_group_vote/preprocessor/disabled-defined-compat.vert: skip
+spec/arb_shader_group_vote/preprocessor/disabled-defined-core.comp: skip
+spec/arb_shader_group_vote/preprocessor/disabled-defined-core.frag: skip
+spec/arb_shader_group_vote/preprocessor/disabled-defined-core.geom: skip
 spec/arb_shader_group_vote/preprocessor/disabled-defined-core.tesc: skip
 spec/arb_shader_group_vote/preprocessor/disabled-defined-core.tese: skip
+spec/arb_shader_group_vote/preprocessor/disabled-defined-core.vert: skip
+spec/arb_shader_group_vote/preprocessor/disabled-undefined-compat.frag: skip
+spec/arb_shader_group_vote/preprocessor/disabled-undefined-compat.vert: skip
+spec/arb_shader_group_vote/preprocessor/disabled-undefined-core.comp: skip
+spec/arb_shader_group_vote/preprocessor/disabled-undefined-core.frag: skip
+spec/arb_shader_group_vote/preprocessor/disabled-undefined-core.geom: skip
 spec/arb_shader_group_vote/preprocessor/disabled-undefined-core.tesc: skip
 spec/arb_shader_group_vote/preprocessor/disabled-undefined-core.tese: skip
-spec/arb_shader_group_vote/preprocessor/enabled-compat.frag: skip
-spec/arb_shader_group_vote/preprocessor/enabled-compat.vert: skip
-spec/arb_shader_group_vote/preprocessor/enabled-core.comp: skip
-spec/arb_shader_group_vote/preprocessor/enabled-core.frag: skip
-spec/arb_shader_group_vote/preprocessor/enabled-core.geom: skip
+spec/arb_shader_group_vote/preprocessor/disabled-undefined-core.vert: skip
 spec/arb_shader_group_vote/preprocessor/enabled-core.tesc: skip
 spec/arb_shader_group_vote/preprocessor/enabled-core.tese: skip
-spec/arb_shader_group_vote/preprocessor/enabled-core.vert: skip
 spec/arb_shader_image_load_store/preprocessor/disabled-defined-compat.frag: skip
 spec/arb_shader_image_load_store/preprocessor/disabled-defined-compat.vert: skip
 spec/arb_shader_image_load_store/preprocessor/disabled-defined-core.comp: skip
@@ -5092,10 +5102,10 @@ spec/oes_texture_storage_multisample_2d_array/preprocessor/enabled-es.tese: skip
 summary:
        name:  results
        ----  --------
-       pass:     9692
+       pass:     9682
        fail:        2
       crash:        0
-       skip:     5089
+       skip:     5099
     timeout:        0
        warn:        0
  incomplete:        0

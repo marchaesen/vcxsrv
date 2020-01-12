@@ -422,6 +422,9 @@ clone_tex(clone_state *state, const nir_tex_instr *tex)
    ntex->texture_array_size = tex->texture_array_size;
    ntex->sampler_index = tex->sampler_index;
 
+   ntex->texture_non_uniform = tex->texture_non_uniform;
+   ntex->sampler_non_uniform = tex->sampler_non_uniform;
+
    return ntex;
 }
 
