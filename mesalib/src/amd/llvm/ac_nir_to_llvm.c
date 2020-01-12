@@ -2583,10 +2583,14 @@ static LLVMValueRef visit_image_load(struct ac_nir_context *ctx,
 		res = ac_trim_vector(&ctx->ac, res, instr->dest.ssa.num_components);
 		res = ac_to_integer(&ctx->ac, res);
 	} else {
-		args.opcode = ac_image_load;
+		bool level_zero = nir_src_is_const(instr->src[3]) && nir_src_as_uint(instr->src[3]) == 0;
+
+		args.opcode = level_zero ? ac_image_load : ac_image_load_mip;
 		args.resource = get_image_descriptor(ctx, instr, AC_DESC_IMAGE, false);
 		get_image_coords(ctx, instr, &args, dim, is_array);
 		args.dim = ac_get_image_dim(ctx->ac.chip_class, dim, is_array);
+		if (!level_zero)
+			args.lod = get_src(ctx, instr->src[3]);
 		args.dmask = 15;
 		args.attributes = AC_FUNC_ATTR_READONLY;
 
@@ -2639,11 +2643,15 @@ static void visit_image_store(struct ac_nir_context *ctx,
 					     ctx->ac.i32_0, src_channels,
 					     args.cache_policy);
 	} else {
-		args.opcode = ac_image_store;
+		bool level_zero = nir_src_is_const(instr->src[4]) && nir_src_as_uint(instr->src[4]) == 0;
+
+		args.opcode = level_zero ? ac_image_store : ac_image_store_mip;
 		args.data[0] = ac_to_float(&ctx->ac, get_src(ctx, instr->src[3]));
 		args.resource = get_image_descriptor(ctx, instr, AC_DESC_IMAGE, true);
 		get_image_coords(ctx, instr, &args, dim, is_array);
 		args.dim = ac_get_image_dim(ctx->ac.chip_class, dim, is_array);
+		if (!level_zero)
+			args.lod = get_src(ctx, instr->src[4]);
 		args.dmask = 15;
 
 		ac_build_image_opcode(&ctx->ac, &args);

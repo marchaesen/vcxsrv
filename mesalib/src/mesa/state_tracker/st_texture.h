@@ -323,6 +323,9 @@ void
 st_destroy_bound_image_handles(struct st_context *st);
 
 bool
+st_astc_format_fallback(const struct st_context *st, mesa_format format);
+
+bool
 st_compressed_format_fallback(struct st_context *st, mesa_format format);
 
 void

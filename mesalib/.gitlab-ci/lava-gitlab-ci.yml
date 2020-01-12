@@ -11,7 +11,7 @@ include:
     - .container
   variables:
     REPO_SUFFIX: ${CI_JOB_NAME}
-    DEBIAN_TAG:  &debian_tag '2019-12-05-1'
+    DEBIAN_TAG:  &debian_tag '2019-12-17-1'
     DEBIAN_EXEC: 'DEBIAN_ARCH=${DEBIAN_ARCH}
                   GCC_ARCH=${GCC_ARCH}
                   KERNEL_ARCH=${KERNEL_ARCH}
@@ -84,7 +84,7 @@ lava_arm64:
     - rm -rf /artifacts/rootfs/mesa/include
 
     # Pack rootfs
-    - cp .gitlab-ci/lava-deqp-runner.sh /artifacts/rootfs/deqp/.
+    - cp .gitlab-ci/deqp-runner.sh /artifacts/rootfs/deqp/.
     - cp .gitlab-ci/deqp-*-fails.txt /artifacts/rootfs/deqp/.
     - cp .gitlab-ci/deqp-*-skips.txt /artifacts/rootfs/deqp/.
     - du -sh /artifacts/rootfs/deqp/*
@@ -132,6 +132,8 @@ lava-build:arm64:
   variables:
     GIT_STRATEGY: none # testing doesn't build anything from source
     TAG: *debian_tag
+    DEQP_PARALLEL: 6
+    NIR_VALIDATE: 0
   image: $CI_REGISTRY_IMAGE/debian/lava_${DEBIAN_ARCH}:$TAG
   script:
     - lava_job_id=`lavacli jobs submit $CI_PROJECT_DIR/results/lava-deqp-$DEVICE_TYPE.yml`

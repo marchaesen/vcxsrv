@@ -3,11 +3,11 @@
 # delete lines from the test list.  Be careful.
 
 # Skip the perf/stress tests to keep runtime manageable
-dEQP-GLES[0-9]*.performance
-dEQP-GLES[0-9]*.stress
+dEQP-GLES[0-9]*.performance.*
+dEQP-GLES[0-9]*.stress.*
 
 # These are really slow on tiling architectures (including llvmpipe).
-dEQP-GLES[0-9]*.functional.flush_finish
+dEQP-GLES[0-9]*.functional.flush_finish.*
 
 # XXX: Why does this flake?
 dEQP-GLES2.functional.clipping.triangle_vertex.clip_three.clip_neg_x_neg_z_and_pos_x_pos_z_and_neg_x_neg_y_pos_z

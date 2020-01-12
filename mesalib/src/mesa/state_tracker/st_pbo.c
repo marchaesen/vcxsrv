@@ -557,6 +557,7 @@ create_fs_nir(struct st_context *st,
          nir_src_for_ssa(nir_vec4(&b, pbo_addr, zero, zero, zero));
       intrin->src[2] = nir_src_for_ssa(zero);
       intrin->src[3] = nir_src_for_ssa(result);
+      intrin->src[4] = nir_src_for_ssa(nir_imm_int(&b, 0));
       intrin->num_components = 4;
       nir_builder_instr_insert(&b, &intrin->instr);
    } else {

@@ -1048,7 +1048,8 @@ _mesa_GetNamedProgramivEXT(GLuint program, GLenum target, GLenum pname,
 {
    struct gl_program* prog;
    if (pname == GL_PROGRAM_BINDING_ARB) {
-      return _mesa_GetProgramivARB(target, pname, params);
+      _mesa_GetProgramivARB(target, pname, params);
+      return;
    }
    prog = lookup_or_create_program(program, target,
                                                       "glGetNamedProgramivEXT");

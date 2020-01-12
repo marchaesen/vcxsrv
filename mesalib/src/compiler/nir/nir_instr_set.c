@@ -276,6 +276,8 @@ hash_tex(uint32_t hash, const nir_tex_instr *instr)
    hash = HASH(hash, instr->texture_index);
    hash = HASH(hash, instr->texture_array_size);
    hash = HASH(hash, instr->sampler_index);
+   hash = HASH(hash, instr->texture_non_uniform);
+   hash = HASH(hash, instr->sampler_non_uniform);
 
    return hash;
 }

@@ -504,8 +504,9 @@ st_glsl_to_nir_post_opts(struct st_context *st, struct gl_program *prog,
       (nir_var_shader_in | nir_var_shader_out | nir_var_function_temp );
    nir_remove_dead_variables(nir, mask);
 
-   NIR_PASS_V(nir, nir_lower_atomics_to_ssbo,
-              st->ctx->Const.Program[nir->info.stage].MaxAtomicBuffers);
+   if (!st->has_hw_atomics)
+      NIR_PASS_V(nir, nir_lower_atomics_to_ssbo,
+                 st->ctx->Const.Program[nir->info.stage].MaxAtomicBuffers);
 
    st_finalize_nir_before_variants(nir);
 
@@ -704,7 +705,7 @@ st_link_nir(struct gl_context *ctx,
       static const gl_nir_linker_options opts = {
          true /*fill_parameters */
       };
-      if (!gl_nir_link(ctx, shader_program, &opts))
+      if (!gl_nir_link_spirv(ctx, shader_program, &opts))
          return GL_FALSE;
 
       nir_build_program_resource_list(ctx, shader_program, true);
@@ -728,21 +729,28 @@ st_link_nir(struct gl_context *ctx,
       st_nir_link_shaders(linked_shader[i]->Program->nir,
                           linked_shader[i + 1]->Program->nir);
    }
+   /* Linking shaders also optimizes them. Separate shaders, compute shaders
+    * and shaders with a fixed-func VS or FS that don't need linking are
+    * optimized here.
+    */
+   if (num_shaders == 1)
+      st_nir_opts(linked_shader[0]->Program->nir);
 
-   if (!shader_program->data->spirv)
+   if (!shader_program->data->spirv) {
+      if (!gl_nir_link_glsl(ctx, shader_program))
+         return GL_FALSE;
+
       nir_build_program_resource_list(ctx, shader_program, false);
+   }
 
    for (unsigned i = 0; i < num_shaders; i++) {
       struct gl_linked_shader *shader = linked_shader[i];
       nir_shader *nir = shader->Program->nir;
 
+      /* This needs to run after the initial pass of nir_lower_vars_to_ssa, so
+       * that the buffer indices are constants in nir where they where
+       * constants in GLSL. */
       NIR_PASS_V(nir, gl_nir_lower_buffers, shader_program);
-
-      /* Linked shaders are optimized in st_nir_link_shaders. Separate shaders
-       * and shaders with a fixed-func VS or FS are optimized here.
-       */
-      if (num_shaders == 1)
-         st_nir_opts(nir);
 
       /* Remap the locations to slots so those requiring two slots will occupy
        * two locations. For instance, if we have in the IR code a dvec3 attr0 in
@@ -811,6 +819,28 @@ st_link_nir(struct gl_context *ctx,
       /* The GLSL IR won't be needed anymore. */
       ralloc_free(shader->ir);
       shader->ir = NULL;
+   }
+
+   struct shader_info *prev_info = NULL;
+
+   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+      struct gl_linked_shader *shader = shader_program->_LinkedShaders[i];
+      if (!shader)
+         continue;
+
+      struct shader_info *info = &shader->Program->nir->info;
+
+      if (prev_info &&
+          ctx->Const.ShaderCompilerOptions[i].NirOptions->unify_interfaces) {
+         prev_info->outputs_written |= info->inputs_read &
+            ~(VARYING_BIT_TESS_LEVEL_INNER | VARYING_BIT_TESS_LEVEL_OUTER);
+         info->inputs_read |= prev_info->outputs_written &
+            ~(VARYING_BIT_TESS_LEVEL_INNER | VARYING_BIT_TESS_LEVEL_OUTER);
+
+         prev_info->patch_outputs_written |= info->patch_inputs_read;
+         info->patch_inputs_read |= prev_info->patch_outputs_written;
+      }
+      prev_info = info;
    }
 
    return true;

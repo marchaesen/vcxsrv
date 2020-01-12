@@ -951,6 +951,7 @@ else
     '-Werror=return-type',
     '-Werror=empty-body',
     '-Werror=incompatible-pointer-types',
+    '-Werror=int-conversion',
     '-Wno-missing-field-initializers',
     '-Wno-format-truncation',
     '-fno-math-errno',

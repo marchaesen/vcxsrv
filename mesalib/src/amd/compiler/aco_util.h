@@ -47,8 +47,8 @@ public:
    using const_iterator         = const_pointer;
    using reverse_iterator       = std::reverse_iterator<iterator>;
    using const_reverse_iterator = std::reverse_iterator<const_iterator>;
-   using size_type              = std::size_t;
-   using difference_type        = std::ptrdiff_t;
+   using size_type              = uint16_t;
+   using difference_type        = ptrdiff_t;
 
    /*! \brief                  Compiler generated default constructor
    */
@@ -58,49 +58,49 @@ public:
    *   \param[in]   data      Pointer to the underlying data array
    *   \param[in]   length    The size of the span
    */
-   constexpr span(pointer data, const size_type length)
-       : data{ data } , length{ length } {}
+   constexpr span(uint16_t offset, const size_type length)
+       : offset{ offset } , length{ length } {}
 
    /*! \brief                 Returns an iterator to the begin of the span
    *   \return                data
    */
    constexpr iterator begin() noexcept {
-      return data;
+      return (pointer)((char*)this + offset);
    }
 
    /*! \brief                 Returns a const_iterator to the begin of the span
    *   \return                data
    */
    constexpr const_iterator begin() const noexcept {
-      return data;
+      return (const_pointer)((const char *)this + offset);
    }
 
    /*! \brief                 Returns an iterator to the end of the span
    *   \return                data + length
    */
    constexpr iterator end() noexcept {
-      return std::next(data, length);
+      return std::next(begin(), length);
    }
 
    /*! \brief                 Returns a const_iterator to the end of the span
    *   \return                data + length
    */
    constexpr const_iterator end() const noexcept {
-      return std::next(data, length);
+      return std::next(begin(), length);
    }
 
    /*! \brief                 Returns a const_iterator to the begin of the span
    *   \return                data
    */
    constexpr const_iterator cbegin() const noexcept {
-      return data;
+      return begin();
    }
 
    /*! \brief                 Returns a const_iterator to the end of the span
    *   \return                data + length
    */
    constexpr const_iterator cend() const noexcept {
-      return std::next(data, length);
+      return std::next(begin(), length);
    }
 
    /*! \brief                 Returns a reverse_iterator to the end of the span
@@ -151,7 +151,7 @@ public:
    */
    constexpr reference operator[](const size_type index) noexcept {
       assert(length > index);
-      return *(std::next(data, index));
+      return *(std::next(begin(), index));
    }
 
    /*! \brief                 Unchecked const access operator
@@ -160,7 +160,7 @@ public:
    */
    constexpr const_reference operator[](const size_type index) const noexcept {
       assert(length > index);
-      return *(std::next(data, index));
+      return *(std::next(begin(), index));
    }
 
    /*! \brief                 Returns a reference to the last element of the span
@@ -168,7 +168,7 @@ public:
    */
    constexpr reference back() noexcept {
       assert(length > 0);
-      return *(std::next(data, length - 1));
+      return *(std::next(begin(), length - 1));
    }
 
    /*! \brief                 Returns a const_reference to the last element of the span
@@ -176,7 +176,7 @@ public:
    */
    constexpr const_reference back() const noexcept {
       assert(length > 0);
-      return *(std::next(data, length - 1));
+      return *(std::next(begin(), length - 1));
    }
 
    /*! \brief                 Returns a reference to the first element of the span
@@ -219,12 +219,12 @@ public:
    /*! \brief                 Clears the span
    */
    constexpr void clear() noexcept {
-      data = nullptr;
+      offset = 0;
       length = 0;
    }
 
 private:
-   pointer data{ nullptr };   //!> Pointer to the underlying data array
+   uint16_t offset{ 0 };      //!> Byte offset from span to data
    size_type length{ 0 };     //!> Size of the span
 };
 

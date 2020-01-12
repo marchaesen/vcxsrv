@@ -1,5 +1,6 @@
+#!/usr/bin/env python3
 # encoding=utf-8
-# Copyright © 2017-2018 Intel Corporation
+# Copyright 2017-2018 Intel Corporation
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal

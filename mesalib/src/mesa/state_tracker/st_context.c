@@ -586,9 +586,9 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
     * profile, so that u_vbuf is bypassed completely if there is nothing else
     * to do.
     */
-   unsigned vbuf_flags =
-      ctx->API == API_OPENGL_CORE ? U_VBUF_FLAG_NO_USER_VBOS : 0;
-   st->cso_context = cso_create_context(pipe, vbuf_flags);
+   unsigned cso_flags =
+      ctx->API == API_OPENGL_CORE ? CSO_NO_USER_VERTEX_BUFFERS : 0;
+   st->cso_context = cso_create_context(pipe, cso_flags);
 
    st_init_atoms(st);
    st_init_clear(st);
@@ -651,6 +651,9 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
                                               PIPE_BIND_SAMPLER_VIEW);
    st->has_astc_2d_ldr =
       screen->is_format_supported(screen, PIPE_FORMAT_ASTC_4x4_SRGB,
+                                  PIPE_TEXTURE_2D, 0, 0, PIPE_BIND_SAMPLER_VIEW);
+   st->has_astc_5x5_ldr =
+      screen->is_format_supported(screen, PIPE_FORMAT_ASTC_5x5_SRGB,
                                   PIPE_TEXTURE_2D, 0, 0, PIPE_BIND_SAMPLER_VIEW);
    st->prefer_blit_based_texture_transfer = screen->get_param(screen,
                               PIPE_CAP_PREFER_BLIT_BASED_TEXTURE_TRANSFER);
@@ -761,6 +764,11 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
       !screen->get_param(screen, PIPE_CAP_VERTEX_SHADER_SATURATE);
 
    ctx->Const.ShaderCompilerOptions[MESA_SHADER_VERTEX].PositionAlwaysInvariant = options->vs_position_always_invariant;
+
+   enum pipe_shader_ir preferred_ir = (enum pipe_shader_ir)
+      screen->get_shader_param(screen, PIPE_SHADER_VERTEX,
+                               PIPE_SHADER_CAP_PREFERRED_IR);
+   ctx->Const.UseNIRGLSLLinker = preferred_ir == PIPE_SHADER_IR_NIR;
 
    if (ctx->Const.GLSLVersion < 400) {
       for (i = 0; i < MESA_SHADER_STAGES; i++)

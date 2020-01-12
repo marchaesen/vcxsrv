@@ -1323,7 +1323,7 @@ void radv_GetPhysicalDeviceProperties(
 		.framebufferNoAttachmentsSampleCounts     = sample_counts,
 		.maxColorAttachments                      = MAX_RTS,
 		.sampledImageColorSampleCounts            = sample_counts,
-		.sampledImageIntegerSampleCounts          = VK_SAMPLE_COUNT_1_BIT,
+		.sampledImageIntegerSampleCounts          = sample_counts,
 		.sampledImageDepthSampleCounts            = sample_counts,
 		.sampledImageStencilSampleCounts          = sample_counts,
 		.storageImageSampleCounts                 = pdevice->rad_info.chip_class >= GFX8 ? sample_counts : VK_SAMPLE_COUNT_1_BIT,

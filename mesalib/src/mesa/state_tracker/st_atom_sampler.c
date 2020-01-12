@@ -309,6 +309,7 @@ update_shader_samplers(struct st_context *st,
 
       switch (st_get_view_format(stObj)) {
       case PIPE_FORMAT_NV12:
+      case PIPE_FORMAT_P010:
       case PIPE_FORMAT_P016:
       case PIPE_FORMAT_YUYV:
       case PIPE_FORMAT_UYVY:

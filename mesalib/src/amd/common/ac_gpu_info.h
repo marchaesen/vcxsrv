@@ -96,6 +96,7 @@ struct radeon_info {
 	uint32_t                    num_tcc_blocks;
 	uint32_t                    tcc_cache_line_size;
 	bool			    tcc_harvested;
+	unsigned                    pc_lines;
 
 	/* CP info. */
 	bool                        gfx_ib_pad_with_type2;

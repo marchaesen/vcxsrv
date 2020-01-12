@@ -63,7 +63,8 @@ st_setup_arrays(struct st_context *st,
                 const struct st_vertex_program *vp,
                 const struct st_common_variant *vp_variant,
                 struct pipe_vertex_element *velements,
-                struct pipe_vertex_buffer *vbuffer, unsigned *num_vbuffers);
+                struct pipe_vertex_buffer *vbuffer, unsigned *num_vbuffers,
+                bool *has_user_vertex_buffers);
 
 void
 st_setup_current(struct st_context *st,

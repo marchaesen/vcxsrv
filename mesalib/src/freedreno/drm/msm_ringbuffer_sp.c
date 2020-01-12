@@ -509,6 +509,7 @@ msm_ringbuffer_sp_destroy(struct fd_ringbuffer *ring)
 		for (unsigned i = 0; i < msm_ring->u.nr_reloc_bos; i++) {
 			fd_bo_del(msm_ring->u.reloc_bos[i].bo);
 		}
+		free(msm_ring->u.reloc_bos);
 
 		free(msm_ring);
 	} else {
@@ -517,6 +518,7 @@ msm_ringbuffer_sp_destroy(struct fd_ringbuffer *ring)
 		for (unsigned i = 0; i < msm_ring->u.nr_cmds; i++) {
 			fd_bo_del(msm_ring->u.cmds[i].ring_bo);
 		}
+		free(msm_ring->u.cmds);
 
 		slab_free(&to_msm_submit_sp(submit)->ring_pool, msm_ring);
 	}

@@ -2710,6 +2710,7 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
       val->image->image = vtn_value(b, w[3], vtn_value_type_pointer)->pointer;
       val->image->coord = get_image_coord(b, w[4]);
       val->image->sample = vtn_ssa_value(b, w[5])->def;
+      val->image->lod = nir_imm_int(&b->nb, 0);
       return;
    }
 
@@ -2748,6 +2749,7 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
       image.image = vtn_value(b, w[3], vtn_value_type_pointer)->pointer;
       image.coord = NULL;
       image.sample = NULL;
+      image.lod = NULL;
       break;
 
    case SpvOpImageRead: {
@@ -2772,6 +2774,14 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
                                           SpvImageOperandsMakeTexelVisibleMask);
          semantics = SpvMemorySemanticsMakeVisibleMask;
          scope = vtn_constant_uint(b, w[arg]);
+      }
+
+      if (operands & SpvImageOperandsLodMask) {
+         uint32_t arg = image_operand_arg(b, w, count, 5,
+                                          SpvImageOperandsLodMask);
+         image.lod = vtn_ssa_value(b, w[arg])->def;
+      } else {
+         image.lod = nir_imm_int(&b->nb, 0);
       }
 
       /* TODO: Volatile. */
@@ -2803,6 +2813,14 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
                                           SpvImageOperandsMakeTexelAvailableMask);
          semantics = SpvMemorySemanticsMakeAvailableMask;
          scope = vtn_constant_uint(b, w[arg]);
+      }
+
+      if (operands & SpvImageOperandsLodMask) {
+         uint32_t arg = image_operand_arg(b, w, count, 4,
+                                          SpvImageOperandsLodMask);
+         image.lod = vtn_ssa_value(b, w[arg])->def;
+      } else {
+         image.lod = nir_imm_int(&b->nb, 0);
       }
 
       /* TODO: Volatile. */
@@ -2861,6 +2879,14 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
    case SpvOpAtomicLoad:
    case SpvOpImageQuerySize:
    case SpvOpImageRead:
+      if (opcode == SpvOpImageRead || opcode == SpvOpAtomicLoad) {
+         /* Only OpImageRead can support a lod parameter if
+          * SPV_AMD_shader_image_load_store_lod is used but the current NIR
+          * intrinsics definition for atomics requires us to set it for
+          * OpAtomicLoad.
+          */
+         intrin->src[3] = nir_src_for_ssa(image.lod);
+      }
       break;
    case SpvOpAtomicStore:
    case SpvOpImageWrite: {
@@ -2870,6 +2896,12 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
       assert(op == nir_intrinsic_image_deref_store);
       intrin->num_components = 4;
       intrin->src[3] = nir_src_for_ssa(expand_to_vec4(&b->nb, value));
+      /* Only OpImageWrite can support a lod parameter if
+       * SPV_AMD_shader_image_load_store_lod is used but the current NIR
+       * intrinsics definition for atomics requires us to set it for
+       * OpAtomicStore.
+       */
+      intrin->src[4] = nir_src_for_ssa(image.lod);
       break;
    }
 
@@ -4046,6 +4078,10 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
 
       case SpvCapabilityVulkanMemoryModelDeviceScope:
          spv_check_supported(vk_memory_model_device_scope, cap);
+         break;
+
+      case SpvCapabilityImageReadWriteLodAMD:
+         spv_check_supported(amd_image_read_write_lod, cap);
          break;
 
       default:

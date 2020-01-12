@@ -654,9 +654,13 @@ _mesa_BindImageTexture(GLuint unit, GLuint texture, GLint level,
        * However note that issue 7 of the GL_OES_texture_buffer spec
        * recognizes that there is no way to create immutable buffer textures,
        * so those are excluded from this requirement.
+       *
+       * Additionally, issue 10 of the OES_EGL_image_external_essl3 spec
+       * states that glBindImageTexture must accept external textures.
        */
       if (_mesa_is_gles(ctx) && !texObj->Immutable &&
-          texObj->Target != GL_TEXTURE_BUFFER) {
+          texObj->Target != GL_TEXTURE_BUFFER &&
+          texObj->Target != GL_TEXTURE_EXTERNAL_OES) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "glBindImageTexture(!immutable)");
          return;

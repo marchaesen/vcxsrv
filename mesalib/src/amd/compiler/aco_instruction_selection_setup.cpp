@@ -819,8 +819,13 @@ setup_isel_context(Program* program,
       program->sgpr_alloc_granule = 7;
       program->sgpr_limit = 104;
    }
+
    /* TODO: we don't have to allocate VCC if we don't need it */
    program->needs_vcc = true;
+
+   calc_min_waves(program);
+   program->vgpr_limit = get_addr_vgpr_from_waves(program, program->min_waves);
+   program->sgpr_limit = get_addr_sgpr_from_waves(program, program->min_waves);
 
    isel_context ctx = {};
    ctx.program = program;

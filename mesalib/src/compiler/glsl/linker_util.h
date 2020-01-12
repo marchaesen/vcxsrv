@@ -24,6 +24,7 @@
 #ifndef GLSL_LINKER_UTIL_H
 #define GLSL_LINKER_UTIL_H
 
+struct gl_context;
 struct gl_shader_program;
 struct gl_uniform_storage;
 
@@ -69,6 +70,16 @@ link_util_find_empty_block(struct gl_shader_program *prog,
 
 void
 link_util_update_empty_uniform_locations(struct gl_shader_program *prog);
+
+void
+link_util_check_subroutine_resources(struct gl_shader_program *prog);
+
+void
+link_util_check_uniform_resources(struct gl_context *ctx,
+                                  struct gl_shader_program *prog);
+
+void
+link_util_calculate_subroutine_compat(struct gl_shader_program *prog);
 
 #ifdef __cplusplus
 }

@@ -375,3 +375,27 @@ midgard_opt_drop_cmp_invert(compiler_context *ctx, midgard_block *block)
 
         return progress;
 }
+
+/* Optimizes branches with inverted arguments by inverting the
+ * branch condition instead of the argument condition.
+ */
+bool
+midgard_opt_invert_branch(compiler_context *ctx, midgard_block *block)
+{
+        bool progress = false;
+
+        mir_foreach_instr_in_block_safe(block, ins) {
+                if (ins->type != TAG_ALU_4) continue;
+                if (!midgard_is_branch_unit(ins->unit)) continue;
+                if (!ins->branch.conditional) continue;
+                if (ins->src[0] & IS_REG) continue;
+
+                if (mir_strip_inverted(ctx, ins->src[0])) {
+                        ins->branch.invert_conditional = !ins->branch.invert_conditional;
+
+                        progress |= true;
+		}
+        }
+
+        return progress;
+}

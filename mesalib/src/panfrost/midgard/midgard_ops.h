@@ -19,12 +19,17 @@
  * THE SOFTWARE.
  */
 
+#ifndef __MIDGARD_OPS
+#define __MIDGARD_OPS
+
 #include "helpers.h"
 
 /* Forward declare */
 
 extern struct mir_op_props alu_opcode_props[256];
 extern struct mir_ldst_op_props load_store_opcode_props[256];
+extern midgard_word_type midgard_word_types[16];
+extern unsigned midgard_word_size[16];
 
 #define OP_IS_STORE(op) (load_store_opcode_props[op].props & LDST_STORE)
 
@@ -72,4 +77,4 @@ effective_writemask(midgard_vector_alu *alu, unsigned existing_mask)
         return existing_mask;
 };
 
-
+#endif

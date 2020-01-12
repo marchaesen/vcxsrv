@@ -1536,7 +1536,7 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 					 * that is easier than mapping things back to a
 					 * nir_variable to figure out what it is.
 					 */
-					dst[i] = ctx->ir->inputs[inloc];
+					dst[i] = ctx->inputs[inloc];
 				}
 			}
 		} else {

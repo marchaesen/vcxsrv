@@ -2371,69 +2371,6 @@ ngg_gs_emit_vertex_ptr(struct radv_shader_context *ctx, LLVMValueRef gsthread,
 	return ngg_gs_vertex_ptr(ctx, vertexidx);
 }
 
-/* Send GS Alloc Req message from the first wave of the group to SPI.
- * Message payload is:
- * - bits 0..10: vertices in group
- * - bits 12..22: primitives in group
- */
-static void build_sendmsg_gs_alloc_req(struct radv_shader_context *ctx,
-				       LLVMValueRef vtx_cnt,
-				       LLVMValueRef prim_cnt)
-{
-	LLVMBuilderRef builder = ctx->ac.builder;
-	LLVMValueRef tmp;
-
-	tmp = LLVMBuildICmp(builder, LLVMIntEQ, get_wave_id_in_tg(ctx), ctx->ac.i32_0, "");
-	ac_build_ifcc(&ctx->ac, tmp, 5020);
-
-	tmp = LLVMBuildShl(builder, prim_cnt, LLVMConstInt(ctx->ac.i32, 12, false),"");
-	tmp = LLVMBuildOr(builder, tmp, vtx_cnt, "");
-	ac_build_sendmsg(&ctx->ac, AC_SENDMSG_GS_ALLOC_REQ, tmp);
-
-	ac_build_endif(&ctx->ac, 5020);
-}
-
-struct ngg_prim {
-	unsigned num_vertices;
-	LLVMValueRef isnull;
-	LLVMValueRef index[3];
-	LLVMValueRef edgeflag[3];
-};
-
-static void build_export_prim(struct radv_shader_context *ctx,
-			      const struct ngg_prim *prim)
-{
-	LLVMBuilderRef builder = ctx->ac.builder;
-	struct ac_export_args args;
-	LLVMValueRef tmp;
-
-	tmp = LLVMBuildZExt(builder, prim->isnull, ctx->ac.i32, "");
-	args.out[0] = LLVMBuildShl(builder, tmp, LLVMConstInt(ctx->ac.i32, 31, false), "");
-
-	for (unsigned i = 0; i < prim->num_vertices; ++i) {
-		tmp = LLVMBuildShl(builder, prim->index[i],
-				   LLVMConstInt(ctx->ac.i32, 10 * i, false), "");
-		args.out[0] = LLVMBuildOr(builder, args.out[0], tmp, "");
-		tmp = LLVMBuildZExt(builder, prim->edgeflag[i], ctx->ac.i32, "");
-		tmp = LLVMBuildShl(builder, tmp,
-				   LLVMConstInt(ctx->ac.i32, 10 * i + 9, false), "");
-		args.out[0] = LLVMBuildOr(builder, args.out[0], tmp, "");
-	}
-
-	args.out[0] = LLVMBuildBitCast(builder, args.out[0], ctx->ac.f32, "");
-	args.out[1] = LLVMGetUndef(ctx->ac.f32);
-	args.out[2] = LLVMGetUndef(ctx->ac.f32);
-	args.out[3] = LLVMGetUndef(ctx->ac.f32);
-
-	args.target = V_008DFC_SQ_EXP_PRIM;
-	args.enabled_channels = 1;
-	args.done = true;
-	args.valid_mask = false;
-	args.compr = false;
-
-	ac_build_export(&ctx->ac, &args);
-}
-
 static struct radv_stream_output *
 radv_get_stream_output_by_loc(struct radv_streamout_info *so, unsigned location)
 {
@@ -3020,17 +2957,11 @@ handle_ngg_outputs_post_2(struct radv_shader_context *ctx)
 
 	/* TODO: primitive culling */
 
-	build_sendmsg_gs_alloc_req(ctx, ngg_get_vtx_cnt(ctx), ngg_get_prim_cnt(ctx));
+	ac_build_sendmsg_gs_alloc_req(&ctx->ac, get_wave_id_in_tg(ctx),
+				      ngg_get_vtx_cnt(ctx), ngg_get_prim_cnt(ctx));
 
 	/* TODO: streamout queries */
-	/* Export primitive data to the index buffer. Format is:
-	 *  - bits 0..8: index 0
-	 *  - bit 9: edge flag 0
-	 *  - bits 10..18: index 1
-	 *  - bit 19: edge flag 1
-	 *  - bits 20..28: index 2
-	 *  - bit 29: edge flag 2
-	 *  - bit 31: null primitive (skip)
+	/* Export primitive data to the index buffer.
 	 *
 	 * For the first version, we will always build up all three indices
 	 * independent of the primitive type. The additional garbage data
@@ -3041,7 +2972,7 @@ handle_ngg_outputs_post_2(struct radv_shader_context *ctx)
 	 */
 	ac_build_ifcc(&ctx->ac, is_gs_thread, 6001);
 	{
-		struct ngg_prim prim = {};
+		struct ac_ngg_prim prim = {};
 
 		prim.num_vertices = num_vertices;
 		prim.isnull = ctx->ac.i1false;
@@ -3054,7 +2985,7 @@ handle_ngg_outputs_post_2(struct radv_shader_context *ctx)
 			prim.edgeflag[i] = LLVMBuildTrunc(builder, tmp, ctx->ac.i1, "");
 		}
 
-		build_export_prim(ctx, &prim);
+		ac_build_export_prim(&ctx->ac, &prim);
 	}
 	ac_build_endif(&ctx->ac, 6001);
 
@@ -3317,7 +3248,8 @@ static void gfx10_ngg_gs_emit_epilogue_2(struct radv_shader_context *ctx)
 	 *       there are 4 or more contiguous null primitives in the export
 	 *       (in the common case of single-dword prim exports).
 	 */
-	build_sendmsg_gs_alloc_req(ctx, vertlive_scan.result_reduce, num_emit_threads);
+	ac_build_sendmsg_gs_alloc_req(&ctx->ac, get_wave_id_in_tg(ctx),
+				      vertlive_scan.result_reduce, num_emit_threads);
 
 	/* Setup the reverse vertex compaction permutation. We re-use stream 1
 	 * of the primitive liveness flags, relying on the fact that each
@@ -3343,7 +3275,7 @@ static void gfx10_ngg_gs_emit_epilogue_2(struct radv_shader_context *ctx)
 	ac_build_ifcc(&ctx->ac, tmp, 5140);
 	{
 		LLVMValueRef flags;
-		struct ngg_prim prim = {};
+		struct ac_ngg_prim prim = {};
 		prim.num_vertices = verts_per_prim;
 
 		tmp = ngg_gs_vertex_ptr(ctx, tid);
@@ -3372,7 +3304,7 @@ static void gfx10_ngg_gs_emit_epilogue_2(struct radv_shader_context *ctx)
 			LLVMValueRef is_odd = LLVMBuildLShr(builder, flags, ctx->ac.i8_1, "");
 			is_odd = LLVMBuildTrunc(builder, is_odd, ctx->ac.i1, "");
 
-			struct ngg_prim in = prim;
+			struct ac_ngg_prim in = prim;
 			prim.index[0] = in.index[0];
 			prim.index[1] = LLVMBuildSelect(builder, is_odd,
 							in.index[2], in.index[1], "");
@@ -3380,7 +3312,7 @@ static void gfx10_ngg_gs_emit_epilogue_2(struct radv_shader_context *ctx)
 							in.index[1], in.index[2], "");
 		}
 
-		build_export_prim(ctx, &prim);
+		ac_build_export_prim(&ctx->ac, &prim);
 	}
 	ac_build_endif(&ctx->ac, 5140);
 

@@ -12,8 +12,13 @@ done
 
 apt-get install -y \
       ca-certificates \
+      gnupg \
       unzip \
       wget
+
+# Upstream LLVM package repository
+apt-key add .gitlab-ci/container/llvm-snapshot.gpg.key
+echo "deb https://apt.llvm.org/buster/ llvm-toolchain-buster-9 main" >/etc/apt/sources.list.d/llvm9.list
 
 sed -i -e 's/http:\/\/deb/https:\/\/deb/g' /etc/apt/sources.list
 echo 'deb https://deb.debian.org/debian buster-backports main' >/etc/apt/sources.list.d/backports.list
@@ -34,7 +39,7 @@ apt-get install -y --no-remove \
       automake \
       autotools-dev \
       bison \
-      clang-8 \
+      clang-9 \
       cmake \
       flex \
       g++ \
@@ -44,6 +49,7 @@ apt-get install -y --no-remove \
       libclang-6.0-dev \
       libclang-7-dev \
       libclang-8-dev \
+      libclang-9-dev \
       libclc-dev \
       libelf-dev \
       libepoxy-dev \
@@ -69,6 +75,7 @@ apt-get install -y --no-remove \
       llvm-6.0-dev \
       llvm-7-dev \
       llvm-8-dev \
+      llvm-9-dev \
       meson \
       pkg-config \
       python-mako \
@@ -204,6 +211,7 @@ apt-get purge -y \
       autotools-dev \
       cmake \
       git \
+      gnupg \
       libgbm-dev \
       libtool \
       unzip \

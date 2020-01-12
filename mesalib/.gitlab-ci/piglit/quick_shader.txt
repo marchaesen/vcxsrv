@@ -124,11 +124,6 @@ spec/arb_compute_variable_group_size/execution/separate-global-id-2: skip
 spec/arb_compute_variable_group_size/linker/mixed_fixed_variable_local_work_size: skip
 spec/arb_compute_variable_group_size/linker/no_local_size_specified: skip
 spec/arb_cull_distance/clip-cull-4: fail
-spec/arb_derivative_control/execution/dfdx-coarse: skip
-spec/arb_derivative_control/execution/dfdx-dfdy: skip
-spec/arb_derivative_control/execution/dfdx-fine: skip
-spec/arb_derivative_control/execution/dfdy-coarse: skip
-spec/arb_derivative_control/execution/dfdy-fine: skip
 spec/arb_enhanced_layouts/execution/component-layout/vs-tcs-load-output: skip
 spec/arb_enhanced_layouts/execution/component-layout/vs-tcs-load-output-indirect: skip
 spec/arb_enhanced_layouts/execution/component-layout/vs-tcs-tes-fs: skip
@@ -1352,15 +1347,6 @@ spec/arb_shader_ballot/execution/fs-readinvocation-uint: skip
 spec/arb_shader_ballot/execution/fs-readinvocation-uint-uniform: skip
 spec/arb_shader_clock/execution/clock: skip
 spec/arb_shader_clock/execution/clock2x32: skip
-spec/arb_shader_group_vote/cs-all: skip
-spec/arb_shader_group_vote/cs-any: skip
-spec/arb_shader_group_vote/cs-eq: skip
-spec/arb_shader_group_vote/vs-all-const: skip
-spec/arb_shader_group_vote/vs-all-uniform: skip
-spec/arb_shader_group_vote/vs-any-const: skip
-spec/arb_shader_group_vote/vs-any-uniform: skip
-spec/arb_shader_group_vote/vs-eq-const: skip
-spec/arb_shader_group_vote/vs-eq-uniform: skip
 spec/arb_shader_image_load_store/execution/gl45-imageatomicexchange-float: skip
 spec/arb_shader_precision/fs-degrees-float: skip
 spec/arb_shader_precision/fs-degrees-vec2: skip
@@ -6417,10 +6403,10 @@ spec/oes_viewport_array/viewport-gs-writes-out-of-range: skip
 summary:
        name:  results
        ----  --------
-       pass:     8930
+       pass:     8944
        fail:       55
       crash:        0
-       skip:     6361
+       skip:     6347
     timeout:        0
        warn:        0
  incomplete:        0

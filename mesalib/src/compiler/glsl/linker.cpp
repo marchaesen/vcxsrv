@@ -3322,135 +3322,6 @@ store_fragdepth_layout(struct gl_shader_program *prog)
 }
 
 /**
- * Validate the resources used by a program versus the implementation limits
- */
-static void
-check_resources(struct gl_context *ctx, struct gl_shader_program *prog)
-{
-   unsigned total_uniform_blocks = 0;
-   unsigned total_shader_storage_blocks = 0;
-
-   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
-      struct gl_linked_shader *sh = prog->_LinkedShaders[i];
-
-      if (sh == NULL)
-         continue;
-
-      if (sh->num_uniform_components >
-          ctx->Const.Program[i].MaxUniformComponents) {
-         if (ctx->Const.GLSLSkipStrictMaxUniformLimitCheck) {
-            linker_warning(prog, "Too many %s shader default uniform block "
-                           "components, but the driver will try to optimize "
-                           "them out; this is non-portable out-of-spec "
-                           "behavior\n",
-                           _mesa_shader_stage_to_string(i));
-         } else {
-            linker_error(prog, "Too many %s shader default uniform block "
-                         "components\n",
-                         _mesa_shader_stage_to_string(i));
-         }
-      }
-
-      if (sh->num_combined_uniform_components >
-          ctx->Const.Program[i].MaxCombinedUniformComponents) {
-         if (ctx->Const.GLSLSkipStrictMaxUniformLimitCheck) {
-            linker_warning(prog, "Too many %s shader uniform components, "
-                           "but the driver will try to optimize them out; "
-                           "this is non-portable out-of-spec behavior\n",
-                           _mesa_shader_stage_to_string(i));
-         } else {
-            linker_error(prog, "Too many %s shader uniform components\n",
-                         _mesa_shader_stage_to_string(i));
-         }
-      }
-
-      total_shader_storage_blocks += sh->Program->info.num_ssbos;
-      total_uniform_blocks += sh->Program->info.num_ubos;
-   }
-
-   if (total_uniform_blocks > ctx->Const.MaxCombinedUniformBlocks) {
-      linker_error(prog, "Too many combined uniform blocks (%d/%d)\n",
-                   total_uniform_blocks, ctx->Const.MaxCombinedUniformBlocks);
-   }
-
-   if (total_shader_storage_blocks > ctx->Const.MaxCombinedShaderStorageBlocks) {
-      linker_error(prog, "Too many combined shader storage blocks (%d/%d)\n",
-                   total_shader_storage_blocks,
-                   ctx->Const.MaxCombinedShaderStorageBlocks);
-   }
-
-   for (unsigned i = 0; i < prog->data->NumUniformBlocks; i++) {
-      if (prog->data->UniformBlocks[i].UniformBufferSize >
-          ctx->Const.MaxUniformBlockSize) {
-         linker_error(prog, "Uniform block %s too big (%d/%d)\n",
-                      prog->data->UniformBlocks[i].Name,
-                      prog->data->UniformBlocks[i].UniformBufferSize,
-                      ctx->Const.MaxUniformBlockSize);
-      }
-   }
-
-   for (unsigned i = 0; i < prog->data->NumShaderStorageBlocks; i++) {
-      if (prog->data->ShaderStorageBlocks[i].UniformBufferSize >
-          ctx->Const.MaxShaderStorageBlockSize) {
-         linker_error(prog, "Shader storage block %s too big (%d/%d)\n",
-                      prog->data->ShaderStorageBlocks[i].Name,
-                      prog->data->ShaderStorageBlocks[i].UniformBufferSize,
-                      ctx->Const.MaxShaderStorageBlockSize);
-      }
-   }
-}
-
-static void
-link_calculate_subroutine_compat(struct gl_shader_program *prog)
-{
-   unsigned mask = prog->data->linked_stages;
-   while (mask) {
-      const int i = u_bit_scan(&mask);
-      struct gl_program *p = prog->_LinkedShaders[i]->Program;
-
-      for (unsigned j = 0; j < p->sh.NumSubroutineUniformRemapTable; j++) {
-         if (p->sh.SubroutineUniformRemapTable[j] == INACTIVE_UNIFORM_EXPLICIT_LOCATION)
-            continue;
-
-         struct gl_uniform_storage *uni = p->sh.SubroutineUniformRemapTable[j];
-
-         if (!uni)
-            continue;
-
-         int count = 0;
-         if (p->sh.NumSubroutineFunctions == 0) {
-            linker_error(prog, "subroutine uniform %s defined but no valid functions found\n", uni->type->name);
-            continue;
-         }
-         for (unsigned f = 0; f < p->sh.NumSubroutineFunctions; f++) {
-            struct gl_subroutine_function *fn = &p->sh.SubroutineFunctions[f];
-            for (int k = 0; k < fn->num_compat_types; k++) {
-               if (fn->types[k] == uni->type) {
-                  count++;
-                  break;
-               }
-            }
-         }
-         uni->num_compatible_subroutines = count;
-      }
-   }
-}
-
-static void
-check_subroutine_resources(struct gl_shader_program *prog)
-{
-   unsigned mask = prog->data->linked_stages;
-   while (mask) {
-      const int i = u_bit_scan(&mask);
-      struct gl_program *p = prog->_LinkedShaders[i]->Program;
-
-      if (p->sh.NumSubroutineUniformRemapTable > MAX_SUBROUTINE_UNIFORM_LOCATIONS) {
-         linker_error(prog, "Too many %s shader subroutine uniforms\n",
-                      _mesa_shader_stage_to_string(i));
-      }
-   }
-}
-/**
  * Validate shader image resources.
  */
 static void
@@ -4533,12 +4404,14 @@ link_and_validate_uniforms(struct gl_context *ctx,
    if (prog->data->LinkStatus == LINKING_FAILURE)
       return;
 
-   link_assign_atomic_counter_resources(ctx, prog);
-   link_calculate_subroutine_compat(prog);
-   check_resources(ctx, prog);
-   check_subroutine_resources(prog);
-   check_image_resources(ctx, prog);
-   link_check_atomic_counter_resources(ctx, prog);
+   if (!ctx->Const.UseNIRGLSLLinker) {
+      link_util_calculate_subroutine_compat(prog);
+      link_util_check_uniform_resources(ctx, prog);
+      link_util_check_subroutine_resources(prog);
+      check_image_resources(ctx, prog);
+      link_assign_atomic_counter_resources(ctx, prog);
+      link_check_atomic_counter_resources(ctx, prog);
+   }
 }
 
 static bool

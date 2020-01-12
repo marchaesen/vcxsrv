@@ -38,6 +38,9 @@
 
 #include "util/u_atomic.h"
 
+#define AMDGPU_TILING_SCANOUT_SHIFT 63
+#define AMDGPU_TILING_SCANOUT_MASK 1
+
 static void radv_amdgpu_winsys_bo_destroy(struct radeon_winsys_bo *_bo);
 
 static int
@@ -667,6 +670,7 @@ radv_amdgpu_winsys_bo_set_metadata(struct radeon_winsys_bo *_bo,
 
 	if (bo->ws->info.chip_class >= GFX9) {
 		tiling_flags |= AMDGPU_TILING_SET(SWIZZLE_MODE, md->u.gfx9.swizzle_mode);
+		tiling_flags |= AMDGPU_TILING_SET(SCANOUT, md->u.gfx9.scanout);
 	} else {
 		if (md->u.legacy.macrotile == RADEON_LAYOUT_TILED)
 			tiling_flags |= AMDGPU_TILING_SET(ARRAY_MODE, 4); /* 2D_TILED_THIN1 */
@@ -711,6 +715,7 @@ radv_amdgpu_winsys_bo_get_metadata(struct radeon_winsys_bo *_bo,
 
 	if (bo->ws->info.chip_class >= GFX9) {
 		md->u.gfx9.swizzle_mode = AMDGPU_TILING_GET(tiling_flags, SWIZZLE_MODE);
+		md->u.gfx9.scanout = AMDGPU_TILING_GET(tiling_flags, SCANOUT);
 	} else {
 		md->u.legacy.microtile = RADEON_LAYOUT_LINEAR;
 		md->u.legacy.macrotile = RADEON_LAYOUT_LINEAR;

@@ -37,6 +37,7 @@
 
 #include "nir.h"
 #include "nir_builder.h"
+#include "nir_builtin_builder.h"
 #include "nir_format_convert.h"
 
 static bool
@@ -103,110 +104,6 @@ project_src(nir_builder *b, nir_tex_instr *tex)
    return true;
 }
 
-static nir_ssa_def *
-get_texture_size(nir_builder *b, nir_tex_instr *tex)
-{
-   b->cursor = nir_before_instr(&tex->instr);
-
-   nir_tex_instr *txs;
-
-   unsigned num_srcs = 1; /* One for the LOD */
-   for (unsigned i = 0; i < tex->num_srcs; i++) {
-      if (tex->src[i].src_type == nir_tex_src_texture_deref ||
-          tex->src[i].src_type == nir_tex_src_sampler_deref ||
-          tex->src[i].src_type == nir_tex_src_texture_offset ||
-          tex->src[i].src_type == nir_tex_src_sampler_offset ||
-          tex->src[i].src_type == nir_tex_src_texture_handle ||
-          tex->src[i].src_type == nir_tex_src_sampler_handle)
-         num_srcs++;
-   }
-
-   txs = nir_tex_instr_create(b->shader, num_srcs);
-   txs->op = nir_texop_txs;
-   txs->sampler_dim = tex->sampler_dim;
-   txs->is_array = tex->is_array;
-   txs->is_shadow = tex->is_shadow;
-   txs->is_new_style_shadow = tex->is_new_style_shadow;
-   txs->texture_index = tex->texture_index;
-   txs->sampler_index = tex->sampler_index;
-   txs->dest_type = nir_type_int;
-
-   unsigned idx = 0;
-   for (unsigned i = 0; i < tex->num_srcs; i++) {
-      if (tex->src[i].src_type == nir_tex_src_texture_deref ||
-          tex->src[i].src_type == nir_tex_src_sampler_deref ||
-          tex->src[i].src_type == nir_tex_src_texture_offset ||
-          tex->src[i].src_type == nir_tex_src_sampler_offset ||
-          tex->src[i].src_type == nir_tex_src_texture_handle ||
-          tex->src[i].src_type == nir_tex_src_sampler_handle) {
-         nir_src_copy(&txs->src[idx].src, &tex->src[i].src, txs);
-         txs->src[idx].src_type = tex->src[i].src_type;
-         idx++;
-      }
-   }
-   /* Add in an LOD because some back-ends require it */
-   txs->src[idx].src = nir_src_for_ssa(nir_imm_int(b, 0));
-   txs->src[idx].src_type = nir_tex_src_lod;
-
-   nir_ssa_dest_init(&txs->instr, &txs->dest,
-                     nir_tex_instr_dest_size(txs), 32, NULL);
-   nir_builder_instr_insert(b, &txs->instr);
-
-   return nir_i2f32(b, &txs->dest.ssa);
-}
-
-static nir_ssa_def *
-get_texture_lod(nir_builder *b, nir_tex_instr *tex)
-{
-   b->cursor = nir_before_instr(&tex->instr);
-
-   nir_tex_instr *tql;
-
-   unsigned num_srcs = 0;
-   for (unsigned i = 0; i < tex->num_srcs; i++) {
-      if (tex->src[i].src_type == nir_tex_src_coord ||
-          tex->src[i].src_type == nir_tex_src_texture_deref ||
-          tex->src[i].src_type == nir_tex_src_sampler_deref ||
-          tex->src[i].src_type == nir_tex_src_texture_offset ||
-          tex->src[i].src_type == nir_tex_src_sampler_offset ||
-          tex->src[i].src_type == nir_tex_src_texture_handle ||
-          tex->src[i].src_type == nir_tex_src_sampler_handle)
-         num_srcs++;
-   }
-
-   tql = nir_tex_instr_create(b->shader, num_srcs);
-   tql->op = nir_texop_lod;
-   tql->coord_components = tex->coord_components;
-   tql->sampler_dim = tex->sampler_dim;
-   tql->is_array = tex->is_array;
-   tql->is_shadow = tex->is_shadow;
-   tql->is_new_style_shadow = tex->is_new_style_shadow;
-   tql->texture_index = tex->texture_index;
-   tql->sampler_index = tex->sampler_index;
-   tql->dest_type = nir_type_float;
-
-   unsigned idx = 0;
-   for (unsigned i = 0; i < tex->num_srcs; i++) {
-      if (tex->src[i].src_type == nir_tex_src_coord ||
-          tex->src[i].src_type == nir_tex_src_texture_deref ||
-          tex->src[i].src_type == nir_tex_src_sampler_deref ||
-          tex->src[i].src_type == nir_tex_src_texture_offset ||
-          tex->src[i].src_type == nir_tex_src_sampler_offset ||
-          tex->src[i].src_type == nir_tex_src_texture_handle ||
-          tex->src[i].src_type == nir_tex_src_sampler_handle) {
-         nir_src_copy(&tql->src[idx].src, &tex->src[i].src, tql);
-         tql->src[idx].src_type = tex->src[i].src_type;
-         idx++;
-      }
-   }
-
-   nir_ssa_dest_init(&tql->instr, &tql->dest, 2, 32, NULL);
-   nir_builder_instr_insert(b, &tql->instr);
-
-   /* The LOD is the y component of the result */
-   return nir_channel(b, &tql->dest.ssa, 1);
-}
-
 static bool
 lower_offset(nir_builder *b, nir_tex_instr *tex)
 {
@@ -229,7 +126,7 @@ lower_offset(nir_builder *b, nir_tex_instr *tex)
       if (tex->sampler_dim == GLSL_SAMPLER_DIM_RECT) {
          offset_coord = nir_fadd(b, coord, nir_i2f32(b, offset));
       } else {
-         nir_ssa_def *txs = get_texture_size(b, tex);
+         nir_ssa_def *txs = nir_get_texture_size(b, tex);
          nir_ssa_def *scale = nir_frcp(b, txs);
 
          offset_coord = nir_fadd(b, coord,
@@ -271,7 +168,7 @@ lower_rect(nir_builder *b, nir_tex_instr *tex)
     */
    tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
 
-   nir_ssa_def *txs = get_texture_size(b, tex);
+   nir_ssa_def *txs = nir_get_texture_size(b, tex);
    nir_ssa_def *scale = nir_frcp(b, txs);
 
    /* Walk through the sources normalizing the requested arguments. */
@@ -297,7 +194,7 @@ lower_implicit_lod(nir_builder *b, nir_tex_instr *tex)
 
    b->cursor = nir_before_instr(&tex->instr);
 
-   nir_ssa_def *lod = get_texture_lod(b, tex);
+   nir_ssa_def *lod = nir_get_texture_lod(b, tex);
 
    int bias_idx = nir_tex_instr_src_index(tex, nir_tex_src_bias);
    if (bias_idx >= 0) {
@@ -508,7 +405,7 @@ lower_gradient_cube_map(nir_builder *b, nir_tex_instr *tex)
    assert(tex->dest.is_ssa);
 
    /* Use textureSize() to get the width and height of LOD 0 */
-   nir_ssa_def *size = get_texture_size(b, tex);
+   nir_ssa_def *size = nir_get_texture_size(b, tex);
 
    /* Cubemap texture lookups first generate a texture coordinate normalized
     * to [-1, 1] on the appropiate face. The appropiate face is determined
@@ -675,7 +572,7 @@ lower_gradient(nir_builder *b, nir_tex_instr *tex)
    }
 
    nir_ssa_def *size =
-      nir_channels(b, get_texture_size(b, tex), component_mask);
+      nir_channels(b, nir_get_texture_size(b, tex), component_mask);
 
    /* Scale the gradients by width and height.  Effectively, the incoming
     * gradients are s'(x,y), t'(x,y), and r'(x,y) from equation 3.19 in the
@@ -737,7 +634,7 @@ saturate_src(nir_builder *b, nir_tex_instr *tex, unsigned sat_mask)
                /* non-normalized texture coords, so clamp to texture
                 * size rather than [0.0, 1.0]
                 */
-               nir_ssa_def *txs = get_texture_size(b, tex);
+               nir_ssa_def *txs = nir_get_texture_size(b, tex);
                comp[j] = nir_fmax(b, comp[j], nir_imm_float(b, 0.0));
                comp[j] = nir_fmin(b, comp[j], nir_channel(b, txs, j));
             } else {

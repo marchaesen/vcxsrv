@@ -37,7 +37,8 @@ intermediates := $(call local-generated-sources-dir)
 
 LOCAL_C_INCLUDES := \
 	$(MESA_TOP)/include/vulkan \
-	$(MESA_TOP)/src/vulkan/util
+	$(MESA_TOP)/src/vulkan/util \
+	$(MESA_TOP)/src/gallium/include
 
 ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 27; echo $$?), 0)
 LOCAL_C_INCLUDES += \

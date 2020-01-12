@@ -516,10 +516,9 @@ void emit_instruction(asm_context& ctx, std::vector<uint32_t>& out, Instruction*
             encoding |= opcode << 16;
             encoding |= (vop3->clamp ? 1 : 0) << 15;
          }
+         encoding |= vop3->opsel << 11;
          for (unsigned i = 0; i < 3; i++)
             encoding |= vop3->abs[i] << (8+i);
-         for (unsigned i = 0; i < 4; i++)
-            encoding |= vop3->opsel[i] << (11+i);
          if (instr->definitions.size() == 2)
             encoding |= instr->definitions[1].physReg() << 8;
          encoding |= (0xFF & instr->definitions[0].physReg());

@@ -170,6 +170,26 @@ find_active_atomic_counters(struct gl_context *ctx,
    return buffers;
 }
 
+static bool
+check_atomic_counters_overlap(const nir_variable *x, const nir_variable *y)
+{
+   return ((x->data.offset >= y->data.offset &&
+            x->data.offset < y->data.offset + glsl_atomic_size(y->type)) ||
+           (y->data.offset >= x->data.offset &&
+            y->data.offset < x->data.offset + glsl_atomic_size(x->type)));
+}
+
+static int
+cmp_active_counter_offsets(const void *a, const void *b)
+{
+   const struct active_atomic_counter_uniform *const first =
+      (struct active_atomic_counter_uniform *) a;
+   const struct active_atomic_counter_uniform *const second =
+      (struct active_atomic_counter_uniform *) b;
+
+   return first->var->data.offset - second->var->data.offset;
+}
+
 void
 gl_nir_link_assign_atomic_counter_resources(struct gl_context *ctx,
                                             struct gl_shader_program *prog)
@@ -277,6 +297,78 @@ gl_nir_link_assign_atomic_counter_resources(struct gl_context *ctx,
    }
 
    assert(buffer_idx == num_buffers);
+
+   ralloc_free(abs);
+}
+
+void
+gl_nir_link_check_atomic_counter_resources(struct gl_context *ctx,
+                                           struct gl_shader_program *prog)
+{
+   unsigned num_buffers;
+   struct active_atomic_buffer *abs =
+      find_active_atomic_counters(ctx, prog, &num_buffers);
+   unsigned atomic_counters[MESA_SHADER_STAGES] = {0};
+   unsigned atomic_buffers[MESA_SHADER_STAGES] = {0};
+   unsigned total_atomic_counters = 0;
+   unsigned total_atomic_buffers = 0;
+
+   /* Sum the required resources.  Note that this counts buffers and
+    * counters referenced by several shader stages multiple times
+    * against the combined limit -- That's the behavior the spec
+    * requires.
+    */
+   for (unsigned i = 0; i < ctx->Const.MaxAtomicBufferBindings; i++) {
+      if (abs[i].size == 0)
+         continue;
+
+      qsort(abs[i].uniforms, abs[i].num_uniforms,
+            sizeof(struct active_atomic_counter_uniform),
+            cmp_active_counter_offsets);
+
+      for (unsigned j = 1; j < abs[i].num_uniforms; j++) {
+         /* If an overlapping counter found, it must be a reference to the
+          * same counter from a different shader stage.
+          */
+         if (check_atomic_counters_overlap(abs[i].uniforms[j-1].var,
+                                           abs[i].uniforms[j].var)
+             && strcmp(abs[i].uniforms[j-1].var->name,
+                       abs[i].uniforms[j].var->name) != 0) {
+            linker_error(prog, "Atomic counter %s declared at offset %d "
+                         "which is already in use.",
+                         abs[i].uniforms[j].var->name,
+                         abs[i].uniforms[j].var->data.offset);
+         }
+      }
+
+      for (unsigned j = 0; j < MESA_SHADER_STAGES; ++j) {
+         const unsigned n = abs[i].stage_counter_references[j];
+
+         if (n) {
+            atomic_counters[j] += n;
+            total_atomic_counters += n;
+            atomic_buffers[j]++;
+            total_atomic_buffers++;
+         }
+      }
+   }
+
+   /* Check that they are within the supported limits. */
+   for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
+      if (atomic_counters[i] > ctx->Const.Program[i].MaxAtomicCounters)
+         linker_error(prog, "Too many %s shader atomic counters",
+                      _mesa_shader_stage_to_string(i));
+
+      if (atomic_buffers[i] > ctx->Const.Program[i].MaxAtomicBuffers)
+         linker_error(prog, "Too many %s shader atomic counter buffers",
+                      _mesa_shader_stage_to_string(i));
+   }
+
+   if (total_atomic_counters > ctx->Const.MaxCombinedAtomicCounters)
+      linker_error(prog, "Too many combined atomic counters");
+
+   if (total_atomic_buffers > ctx->Const.MaxCombinedAtomicBuffers)
+      linker_error(prog, "Too many combined atomic buffers");
 
    ralloc_free(abs);
 }

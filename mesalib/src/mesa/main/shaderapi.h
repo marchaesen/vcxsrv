@@ -332,6 +332,9 @@ _mesa_get_program_resourceiv(struct gl_shader_program *shProg,
                              GLsizei bufSize, GLsizei *length,
                              GLint *params);
 
+extern void
+_mesa_create_program_resource_hash(struct gl_shader_program *shProg);
+
 /* GL_ARB_tessellation_shader */
 void GLAPIENTRY
 _mesa_PatchParameteri_no_error(GLenum pname, GLint value);

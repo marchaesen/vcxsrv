@@ -416,6 +416,35 @@ mir_set_bytemask(midgard_instruction *ins, uint16_t bytemask)
         ins->mask = mir_from_bytemask(bytemask, mir_typesize(ins));
 }
 
+/* Checks if we should use an upper destination override, rather than the lower
+ * one in the IR. Returns zero if no, returns the bytes to shift otherwise */
+
+unsigned
+mir_upper_override(midgard_instruction *ins)
+{
+        /* If there is no override, there is no upper override, tautology */
+        if (ins->alu.dest_override == midgard_dest_override_none)
+                return 0;
+
+        /* Make sure we didn't already lower somehow */
+        assert(ins->alu.dest_override == midgard_dest_override_lower);
+
+        /* What is the mask in terms of currently? */
+        midgard_reg_mode type = mir_typesize(ins);
+
+        /* There are 16 bytes per vector, so there are (16/bytes)
+         * components per vector. So the magic half is half of
+         * (16/bytes), which simplifies to 8/bytes */
+
+        unsigned threshold = 8 / mir_bytes_for_mode(type);
+
+        /* How many components did we shift over? */
+        unsigned zeroes = __builtin_ctz(ins->mask);
+
+        /* Did we hit the threshold? */
+        return (zeroes >= threshold) ? threshold : 0;
+}
+
 /* Creates a mask of the components of a node read by an instruction, by
  * analyzing the swizzle with respect to the instruction's mask. E.g.:
  *
@@ -453,7 +482,7 @@ mir_bytemask_of_read_components(midgard_instruction *ins, unsigned node)
                         return 0xFFFF;
 
                 /* Conditional branches read one 32-bit component = 4 bytes (TODO: multi branch??) */
-                if (ins->compact_branch && !ins->prepacked_branch && ins->branch.conditional && (i == 0))
+                if (ins->compact_branch && ins->branch.conditional && (i == 0))
                         return 0xF;
 
                 /* ALU ops act componentwise so we need to pay attention to
@@ -545,7 +574,7 @@ mir_insert_instruction_before_scheduled(
         memcpy(bundles + before, &new, sizeof(new));
 
         list_addtail(&new.instructions[0]->link, &before_bundle->instructions[0]->link);
-        block->quadword_count += quadword_size(new.tag);
+        block->quadword_count += midgard_word_size[new.tag];
 }
 
 void
@@ -570,7 +599,7 @@ mir_insert_instruction_after_scheduled(
         midgard_bundle new = mir_bundle_for_op(ctx, ins);
         memcpy(bundles + after + 1, &new, sizeof(new));
         list_add(&new.instructions[0]->link, &after_bundle->instructions[after_bundle->instruction_count - 1]->link);
-        block->quadword_count += quadword_size(new.tag);
+        block->quadword_count += midgard_word_size[new.tag];
 }
 
 /* Flip the first-two arguments of a (binary) op. Currently ALU

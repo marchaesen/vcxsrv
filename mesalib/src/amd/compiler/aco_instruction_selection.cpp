@@ -188,7 +188,7 @@ static Temp emit_bpermute(isel_context *ctx, Builder &bld, Temp index, Temp data
    Temp lane_id = emit_mbcnt(ctx, bld.def(v1));
    Temp lane_is_hi = bld.vop2(aco_opcode::v_and_b32, bld.def(v1), Operand(0x20u), lane_id);
    Temp index_is_hi = bld.vop2(aco_opcode::v_and_b32, bld.def(v1), Operand(0x20u), index);
-   Temp cmp = bld.vopc(aco_opcode::v_cmp_eq_u32, bld.def(s2, vcc), lane_is_hi, index_is_hi);
+   Temp cmp = bld.vopc(aco_opcode::v_cmp_eq_u32, bld.def(bld.lm, vcc), lane_is_hi, index_is_hi);
 
    return bld.reduction(aco_opcode::p_wave64_bpermute, bld.def(v1), bld.def(s2), bld.def(s1, scc),
                         bld.vcc(cmp), Operand(v2.as_linear()), index_x4, data, gfx10_wave64_bpermute);
@@ -591,6 +591,7 @@ void emit_comparison(isel_context *ctx, nir_alu_instr *instr, Temp dst,
                    ctx->allocated[instr->src[1].src.ssa->index].type() == RegType::vgpr;
    aco_opcode op = use_valu ? v_op : s_op;
    assert(op != aco_opcode::num_opcodes);
+   assert(dst.regClass() == ctx->program->lane_mask);
 
    if (use_valu)
       emit_vopc_instruction(ctx, instr, op, dst);
@@ -2099,7 +2100,7 @@ void visit_alu_instr(isel_context *ctx, nir_alu_instr *instr)
    case nir_op_i2i64: {
       Temp src = get_alu_src(ctx, instr->src[0]);
       if (src.regClass() == s1) {
-         Temp high = bld.sopc(aco_opcode::s_ashr_i32, bld.def(s1, scc), src, Operand(31u));
+         Temp high = bld.sop2(aco_opcode::s_ashr_i32, bld.def(s1), bld.def(s1, scc), src, Operand(31u));
          bld.pseudo(aco_opcode::p_create_vector, Definition(dst), src, high);
       } else if (src.regClass() == v1) {
          Temp high = bld.vop2(aco_opcode::v_ashrrev_i32, bld.def(v1), Operand(31u), src);
@@ -2142,6 +2143,7 @@ void visit_alu_instr(isel_context *ctx, nir_alu_instr *instr)
 
       if (src.type() == RegType::vgpr) {
          assert(src.regClass() == v1 || src.regClass() == v2);
+         assert(dst.regClass() == bld.lm);
          bld.vopc(src.size() == 2 ? aco_opcode::v_cmp_lg_u64 : aco_opcode::v_cmp_lg_u32,
                   Definition(dst), Operand(0u), src).def(0).setHint(vcc);
       } else {
@@ -2229,7 +2231,7 @@ void visit_alu_instr(isel_context *ctx, nir_alu_instr *instr)
           */
          f32 = bld.vop1(aco_opcode::v_cvt_f32_f16, bld.def(v1), f16);
          Temp smallest = bld.copy(bld.def(s1), Operand(0x38800000u));
-         Instruction* vop3 = bld.vopc_e64(aco_opcode::v_cmp_nlt_f32, bld.hint_vcc(bld.def(s2)), f32, smallest);
+         Instruction* vop3 = bld.vopc_e64(aco_opcode::v_cmp_nlt_f32, bld.hint_vcc(bld.def(bld.lm)), f32, smallest);
          static_cast<VOP3A_instruction*>(vop3)->abs[0] = true;
          cmp_res = vop3->definitions[0].getTemp();
       }
@@ -4078,6 +4080,15 @@ static Temp get_image_coords(isel_context *ctx, const nir_intrinsic_instr *instr
          coords[i] = Operand(emit_extract_vector(ctx, src0, i, v1));
    }
 
+   if (instr->intrinsic == nir_intrinsic_image_deref_load ||
+       instr->intrinsic == nir_intrinsic_image_deref_store) {
+      int lod_index = instr->intrinsic == nir_intrinsic_image_deref_load ? 3 : 4;
+      bool level_zero = nir_src_is_const(instr->src[lod_index]) && nir_src_as_uint(instr->src[lod_index]) == 0;
+
+      if (!level_zero)
+         coords.emplace_back(Operand(get_ssa_temp(ctx, instr->src[lod_index].ssa)));
+   }
+
    aco_ptr<Pseudo_instruction> vec{create_instruction<Pseudo_instruction>(aco_opcode::p_create_vector, Format::PSEUDO, coords.size(), 1)};
    for (unsigned i = 0; i < coords.size(); i++)
       vec->operands[i] = coords[i];
@@ -4151,7 +4162,10 @@ void visit_image_load(isel_context *ctx, nir_intrinsic_instr *instr)
    else
       tmp = {ctx->program->allocateId(), RegClass(RegType::vgpr, num_components)};
 
-   aco_ptr<MIMG_instruction> load{create_instruction<MIMG_instruction>(aco_opcode::image_load, Format::MIMG, 2, 1)};
+   bool level_zero = nir_src_is_const(instr->src[3]) && nir_src_as_uint(instr->src[3]) == 0;
+   aco_opcode opcode = level_zero ? aco_opcode::image_load : aco_opcode::image_load_mip;
+
+   aco_ptr<MIMG_instruction> load{create_instruction<MIMG_instruction>(opcode, Format::MIMG, 2, 1)};
    load->operands[0] = Operand(coords);
    load->operands[1] = Operand(resource);
    load->definitions[0] = Definition(tmp);
@@ -4217,7 +4231,10 @@ void visit_image_store(isel_context *ctx, nir_intrinsic_instr *instr)
    Temp coords = get_image_coords(ctx, instr, type);
    Temp resource = get_sampler_desc(ctx, nir_instr_as_deref(instr->src[0].ssa->parent_instr), ACO_DESC_IMAGE, nullptr, true, true);
 
-   aco_ptr<MIMG_instruction> store{create_instruction<MIMG_instruction>(aco_opcode::image_store, Format::MIMG, 4, 0)};
+   bool level_zero = nir_src_is_const(instr->src[4]) && nir_src_as_uint(instr->src[4]) == 0;
+   aco_opcode opcode = level_zero ? aco_opcode::image_store : aco_opcode::image_store_mip;
+
+   aco_ptr<MIMG_instruction> store{create_instruction<MIMG_instruction>(opcode, Format::MIMG, 4, 0)};
    store->operands[0] = Operand(coords);
    store->operands[1] = Operand(resource);
    store->operands[2] = Operand(s4);
@@ -4409,7 +4426,7 @@ void visit_image_size(isel_context *ctx, nir_intrinsic_instr *instr)
    aco_ptr<MIMG_instruction> mimg{create_instruction<MIMG_instruction>(aco_opcode::image_get_resinfo, Format::MIMG, 2, 1)};
    mimg->operands[0] = Operand(lod);
    mimg->operands[1] = Operand(resource);
-   unsigned& dmask = mimg->dmask;
+   uint8_t& dmask = mimg->dmask;
    mimg->dim = ac_get_image_dim(ctx->options->chip_class, dim, is_array);
    mimg->dmask = (1 << instr->dest.ssa.num_components) - 1;
    mimg->da = glsl_sampler_type_is_array(type);
@@ -6327,7 +6344,7 @@ void build_cube_select(isel_context *ctx, Temp ma, Temp id, Temp deriv,
    Temp neg_sgn_ma = bld.vop2(aco_opcode::v_sub_f32, bld.def(v1), Operand(0u), sgn_ma);
 
    Temp is_ma_z = bld.vopc(aco_opcode::v_cmp_le_f32, bld.hint_vcc(bld.def(bld.lm)), four, id);
-   Temp is_ma_y = bld.vopc(aco_opcode::v_cmp_le_f32, bld.def(s2), two, id);
+   Temp is_ma_y = bld.vopc(aco_opcode::v_cmp_le_f32, bld.def(bld.lm), two, id);
    is_ma_y = bld.sop2(Builder::s_andn2, bld.hint_vcc(bld.def(bld.lm)), is_ma_y, is_ma_z);
    Temp is_not_ma_x = bld.sop2(aco_opcode::s_or_b64, bld.hint_vcc(bld.def(bld.lm)), bld.def(s1, scc), is_ma_z, is_ma_y);
 
@@ -7898,7 +7915,7 @@ static void emit_streamout(isel_context *ctx, unsigned stream)
 
    Temp tid = emit_mbcnt(ctx, bld.def(v1));
 
-   Temp can_emit = bld.vopc(aco_opcode::v_cmp_gt_i32, bld.def(s2), so_vtx_count, tid);
+   Temp can_emit = bld.vopc(aco_opcode::v_cmp_gt_i32, bld.def(bld.lm), so_vtx_count, tid);
 
    if_context ic;
    begin_divergent_if_then(ctx, &ic, can_emit);
@@ -7949,7 +7966,7 @@ void split_arguments(isel_context *ctx, Pseudo_instruction *startpgm)
    /* Split all arguments except for the first (ring_offsets) and the last
     * (exec) so that the dead channels don't stay live throughout the program.
     */
-   for (unsigned i = 1; i < startpgm->definitions.size() - 1; i++) {
+   for (int i = 1; i < startpgm->definitions.size() - 1; i++) {
       if (startpgm->definitions[i].regClass().size() > 1) {
          emit_split_vector(ctx, startpgm->definitions[i].getTemp(),
                            startpgm->definitions[i].regClass().size());

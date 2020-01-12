@@ -1932,8 +1932,13 @@ ttn_mem(struct ttn_compile *c, nir_alu_dest dest, nir_ssa_def **src)
          instr->src[2] = nir_src_for_ssa(nir_ssa_undef(b, 1, 32));
       }
 
+      if (tgsi_inst->Instruction.Opcode == TGSI_OPCODE_LOAD) {
+         instr->src[3] = nir_src_for_ssa(nir_imm_int(b, 0)); /* LOD */
+      }
+
       if (tgsi_inst->Instruction.Opcode == TGSI_OPCODE_STORE) {
          instr->src[3] = nir_src_for_ssa(nir_swizzle(b, src[1], SWIZ(X, Y, Z, W), 4));
+         instr->src[4] = nir_src_for_ssa(nir_imm_int(b, 0)); /* LOD */
       }
 
       instr->num_components = 4;

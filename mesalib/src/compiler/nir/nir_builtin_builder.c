@@ -325,3 +325,107 @@ nir_atan2(nir_builder *b, nir_ssa_def *y, nir_ssa_def *x)
    return nir_bcsel(b, nir_flt(b, nir_fmin(b, y, rcp_scaled_t), zero),
                     nir_fneg(b, arc), arc);
 }
+
+nir_ssa_def *
+nir_get_texture_size(nir_builder *b, nir_tex_instr *tex)
+{
+   b->cursor = nir_before_instr(&tex->instr);
+
+   nir_tex_instr *txs;
+
+   unsigned num_srcs = 1; /* One for the LOD */
+   for (unsigned i = 0; i < tex->num_srcs; i++) {
+      if (tex->src[i].src_type == nir_tex_src_texture_deref ||
+          tex->src[i].src_type == nir_tex_src_sampler_deref ||
+          tex->src[i].src_type == nir_tex_src_texture_offset ||
+          tex->src[i].src_type == nir_tex_src_sampler_offset ||
+          tex->src[i].src_type == nir_tex_src_texture_handle ||
+          tex->src[i].src_type == nir_tex_src_sampler_handle)
+         num_srcs++;
+   }
+
+   txs = nir_tex_instr_create(b->shader, num_srcs);
+   txs->op = nir_texop_txs;
+   txs->sampler_dim = tex->sampler_dim;
+   txs->is_array = tex->is_array;
+   txs->is_shadow = tex->is_shadow;
+   txs->is_new_style_shadow = tex->is_new_style_shadow;
+   txs->texture_index = tex->texture_index;
+   txs->sampler_index = tex->sampler_index;
+   txs->dest_type = nir_type_int;
+
+   unsigned idx = 0;
+   for (unsigned i = 0; i < tex->num_srcs; i++) {
+      if (tex->src[i].src_type == nir_tex_src_texture_deref ||
+          tex->src[i].src_type == nir_tex_src_sampler_deref ||
+          tex->src[i].src_type == nir_tex_src_texture_offset ||
+          tex->src[i].src_type == nir_tex_src_sampler_offset ||
+          tex->src[i].src_type == nir_tex_src_texture_handle ||
+          tex->src[i].src_type == nir_tex_src_sampler_handle) {
+         nir_src_copy(&txs->src[idx].src, &tex->src[i].src, txs);
+         txs->src[idx].src_type = tex->src[i].src_type;
+         idx++;
+      }
+   }
+   /* Add in an LOD because some back-ends require it */
+   txs->src[idx].src = nir_src_for_ssa(nir_imm_int(b, 0));
+   txs->src[idx].src_type = nir_tex_src_lod;
+
+   nir_ssa_dest_init(&txs->instr, &txs->dest,
+                     nir_tex_instr_dest_size(txs), 32, NULL);
+   nir_builder_instr_insert(b, &txs->instr);
+
+   return nir_i2f32(b, &txs->dest.ssa);
+}
+
+nir_ssa_def *
+nir_get_texture_lod(nir_builder *b, nir_tex_instr *tex)
+{
+   b->cursor = nir_before_instr(&tex->instr);
+
+   nir_tex_instr *tql;
+
+   unsigned num_srcs = 0;
+   for (unsigned i = 0; i < tex->num_srcs; i++) {
+      if (tex->src[i].src_type == nir_tex_src_coord ||
+          tex->src[i].src_type == nir_tex_src_texture_deref ||
+          tex->src[i].src_type == nir_tex_src_sampler_deref ||
+          tex->src[i].src_type == nir_tex_src_texture_offset ||
+          tex->src[i].src_type == nir_tex_src_sampler_offset ||
+          tex->src[i].src_type == nir_tex_src_texture_handle ||
+          tex->src[i].src_type == nir_tex_src_sampler_handle)
+         num_srcs++;
+   }
+
+   tql = nir_tex_instr_create(b->shader, num_srcs);
+   tql->op = nir_texop_lod;
+   tql->coord_components = tex->coord_components;
+   tql->sampler_dim = tex->sampler_dim;
+   tql->is_array = tex->is_array;
+   tql->is_shadow = tex->is_shadow;
+   tql->is_new_style_shadow = tex->is_new_style_shadow;
+   tql->texture_index = tex->texture_index;
+   tql->sampler_index = tex->sampler_index;
+   tql->dest_type = nir_type_float;
+
+   unsigned idx = 0;
+   for (unsigned i = 0; i < tex->num_srcs; i++) {
+      if (tex->src[i].src_type == nir_tex_src_coord ||
+          tex->src[i].src_type == nir_tex_src_texture_deref ||
+          tex->src[i].src_type == nir_tex_src_sampler_deref ||
+          tex->src[i].src_type == nir_tex_src_texture_offset ||
+          tex->src[i].src_type == nir_tex_src_sampler_offset ||
+          tex->src[i].src_type == nir_tex_src_texture_handle ||
+          tex->src[i].src_type == nir_tex_src_sampler_handle) {
+         nir_src_copy(&tql->src[idx].src, &tex->src[i].src, tql);
+         tql->src[idx].src_type = tex->src[i].src_type;
+         idx++;
+      }
+   }
+
+   nir_ssa_dest_init(&tql->instr, &tql->dest, 2, 32, NULL);
+   nir_builder_instr_insert(b, &tql->instr);
+
+   /* The LOD is the y component of the result */
+   return nir_channel(b, &tql->dest.ssa, 1);
+}

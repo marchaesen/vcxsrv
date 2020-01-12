@@ -49,7 +49,6 @@ get_block_array_index(nir_builder *b, nir_deref_instr *deref,
 
       if (nir_src_is_const(deref->arr.index)) {
          unsigned arr_index = nir_src_as_uint(deref->arr.index);
-         arr_index = MIN2(arr_index, arr_size - 1);
 
          /* We're walking the deref from the tail so prepend the array index */
          block_name = ralloc_asprintf(b->shader, "[%u]%s", arr_index,

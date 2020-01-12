@@ -1269,8 +1269,9 @@ get_version(struct pipe_screen *screen,
 
    st_init_limits(screen, &consts, &extensions);
    st_init_extensions(screen, &consts, &extensions, options, api);
-
-   return _mesa_get_version(&extensions, &consts, api);
+   version = _mesa_get_version(&extensions, &consts, api);
+   free(consts.SpirVExtensions);
+   return version;
 }
 
 

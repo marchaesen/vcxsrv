@@ -3245,12 +3245,18 @@ static void
 drmmode_validate_leases(ScrnInfoPtr scrn)
 {
     ScreenPtr screen = scrn->pScreen;
-    rrScrPrivPtr scr_priv = rrGetScrPriv(screen);
+    rrScrPrivPtr scr_priv;
     modesettingPtr ms = modesettingPTR(scrn);
     drmmode_ptr drmmode = &ms->drmmode;
     drmModeLesseeListPtr lessees;
     RRLeasePtr lease, next;
     int l;
+
+    /* Bail out if RandR wasn't initialized. */
+    if (!dixPrivateKeyRegistered(rrPrivKey))
+        return;
+
+    scr_priv = rrGetScrPriv(screen);
 
     /* We can't talk to the kernel about leases when VT switched */
     if (!scrn->vtSema)

@@ -29,6 +29,7 @@ cd /deqp
 cmake -G Ninja \
       -DDEQP_TARGET=surfaceless               \
       -DCMAKE_BUILD_TYPE=Release              \
+      $EXTRA_CMAKE_ARGS                       \
       /VK-GL-CTS
 ninja
 
@@ -53,6 +54,6 @@ rm -rf /deqp/execserver
 rm -rf /deqp/modules/egl
 rm -rf /deqp/framework
 find -iname '*cmake*' -o -name '*ninja*' -o -name '*.o' -o -name '*.a' | xargs rm -rf
-strip modules/*/deqp-*
+${STRIP_CMD:-strip} modules/*/deqp-*
 du -sh *
 rm -rf /VK-GL-CTS

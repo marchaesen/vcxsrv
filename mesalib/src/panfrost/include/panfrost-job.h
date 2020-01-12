@@ -29,6 +29,7 @@
 #define __PANFROST_JOB_H__
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <panfrost-misc.h>
 
 enum mali_job_type {
@@ -86,19 +87,6 @@ enum mali_func {
         MALI_FUNC_NOTEQUAL = 5,
         MALI_FUNC_GEQUAL   = 6,
         MALI_FUNC_ALWAYS   = 7
-};
-
-/* Same OpenGL, but mixed up. Why? Because forget me, that's why! */
-
-enum mali_alt_func {
-        MALI_ALT_FUNC_NEVER    = 0,
-        MALI_ALT_FUNC_GREATER  = 1,
-        MALI_ALT_FUNC_EQUAL    = 2,
-        MALI_ALT_FUNC_GEQUAL   = 3,
-        MALI_ALT_FUNC_LESS     = 4,
-        MALI_ALT_FUNC_NOTEQUAL = 5,
-        MALI_ALT_FUNC_LEQUAL   = 6,
-        MALI_ALT_FUNC_ALWAYS   = 7
 };
 
 /* Flags apply to unknown2_3? */
@@ -535,9 +523,7 @@ struct mali_shader_meta {
                         unsigned uniform_buffer_count : 4;
                         unsigned flags : 12;
 
-                        /* Whole number of uniform registers used, times two;
-                         * whole number of work registers used (no scale).
-                         */
+                        /* vec4 units */
                         unsigned work_count : 5;
                         unsigned uniform_count : 5;
                         unsigned unknown2 : 6;
@@ -635,11 +621,7 @@ struct mali_job_descriptor_header {
         u16 job_index;
         u16 job_dependency_index_1;
         u16 job_dependency_index_2;
-
-        union {
-                u64 next_job_64;
-                u32 next_job_32;
-        };
+        u64 next_job;
 } __attribute__((packed));
 
 /* These concern exception_status */
@@ -668,11 +650,6 @@ struct mali_payload_write_value {
         u32 reserved;
         u64 immediate;
 } __attribute__((packed));
-
-/* Special attributes have a fixed index */
-#define MALI_SPECIAL_ATTRIBUTE_BASE 16
-#define MALI_VERTEX_ID   (MALI_SPECIAL_ATTRIBUTE_BASE + 0)
-#define MALI_INSTANCE_ID (MALI_SPECIAL_ATTRIBUTE_BASE + 1)
 
 /*
  * Mali Attributes
@@ -801,9 +778,8 @@ struct mali_payload_write_value {
  * let shift=extra_flags=0. Stride is set to the image format's bytes-per-pixel
  * (*NOT the row stride*). Size is set to the size of the image itself.
  *
- * Special internal varyings (including gl_FrontFacing) could be seen as
- * IMAGE/INTERNAL as well as LINEAR, setting all fields set to zero and using a
- * special elements pseudo-pointer.
+ * Special internal attribtues and varyings (gl_VertexID, gl_FrontFacing, etc)
+ * use particular fixed addresses with modified structures.
  */
 
 enum mali_attr_mode {
@@ -813,12 +789,12 @@ enum mali_attr_mode {
 	MALI_ATTR_MODULO = 3,
 	MALI_ATTR_NPOT_DIVIDE = 4,
         MALI_ATTR_IMAGE = 5,
-        MALI_ATTR_INTERNAL = 6
 };
 
-/* Pseudo-address for gl_FrontFacing, used with INTERNAL. Same addres is used
- * for gl_FragCoord with IMAGE, needing a coordinate flip. Who knows. */
+/* Pseudo-address for gl_VertexID, gl_FragCoord, gl_FrontFacing */
 
+#define MALI_ATTR_VERTEXID (0x22)
+#define MALI_ATTR_INSTANCEID (0x24)
 #define MALI_VARYING_FRAG_COORD (0x25)
 #define MALI_VARYING_FRONT_FACING (0x26)
 
@@ -832,7 +808,7 @@ enum mali_attr_mode {
 /* Used for comparison to check if an address is special. Mostly a guess, but
  * it doesn't really matter. */
 
-#define MALI_VARYING_SPECIAL (0x100)
+#define MALI_RECORD_SPECIAL (0x100)
 
 union mali_attr {
 	/* This is used for actual attributes. */
@@ -909,6 +885,12 @@ struct mali_uniform_buffer_meta {
 #define MALI_DRAW_INDEXED_SHIFT  (4)
 
 #define MALI_DRAW_VARYING_SIZE   (0x100)
+
+/* Set to use first vertex as the provoking vertex for flatshading. Clear to
+ * use the last vertex. This is the default in DX and VK, but not in GL. */
+
+#define MALI_DRAW_FLATSHADE_FIRST (0x800)
+
 #define MALI_DRAW_PRIMITIVE_RESTART_FIXED_INDEX (0x10000)
 
 struct mali_vertex_tiler_prefix {
@@ -1157,17 +1139,17 @@ struct bifrost_payload_fused {
 
 #define MALI_POSITIVE(dim) (dim - 1)
 
-/* Opposite of MALI_POSITIVE, found in the depth_units field */
-
-#define MALI_NEGATIVE(dim) (dim + 1)
-
-/* Used with wrapping. Incomplete (this is a 4-bit field...) */
+/* Used with wrapping. Unclear what top bit conveys */
 
 enum mali_wrap_mode {
-        MALI_WRAP_REPEAT = 0x8,
-        MALI_WRAP_CLAMP_TO_EDGE = 0x9,
-        MALI_WRAP_CLAMP_TO_BORDER = 0xB,
-        MALI_WRAP_MIRRORED_REPEAT = 0xC
+        MALI_WRAP_REPEAT                   = 0x8 |       0x0,
+        MALI_WRAP_CLAMP_TO_EDGE            = 0x8 |       0x1,
+        MALI_WRAP_CLAMP                    = 0x8 |       0x2,
+        MALI_WRAP_CLAMP_TO_BORDER          = 0x8 |       0x3,
+        MALI_WRAP_MIRRORED_REPEAT          = 0x8 | 0x4 | 0x0,
+        MALI_WRAP_MIRRORED_CLAMP_TO_EDGE   = 0x8 | 0x4 | 0x1,
+        MALI_WRAP_MIRRORED_CLAMP           = 0x8 | 0x4 | 0x2,
+        MALI_WRAP_MIRRORED_CLAMP_TO_BORDER = 0x8 | 0x4 | 0x3,
 };
 
 /* Shared across both command stream and Midgard, and even with Bifrost */
@@ -1250,8 +1232,6 @@ struct mali_texture_descriptor {
         uint32_t unknown5;
         uint32_t unknown6;
         uint32_t unknown7;
-
-        mali_ptr payload[MAX_MIP_LEVELS * MAX_CUBE_FACES * MAX_ELEMENTS];
 } __attribute__((packed));
 
 /* filter_mode */
@@ -1274,13 +1254,14 @@ struct mali_texture_descriptor {
 
 #define DECODE_FIXED_16(x) ((float) (x / 256.0))
 
-static inline uint16_t
-FIXED_16(float x)
+static inline int16_t
+FIXED_16(float x, bool allow_negative)
 {
         /* Clamp inputs, accounting for float error */
         float max_lod = (32.0 - (1.0 / 512.0));
+        float min_lod = allow_negative ? -max_lod : 0.0;
 
-        x = ((x > max_lod) ? max_lod : ((x < 0.0) ? 0.0 : x));
+        x = ((x > max_lod) ? max_lod : ((x < min_lod) ? min_lod : x));
 
         return (int) (x * 256.0);
 }
@@ -1288,20 +1269,21 @@ FIXED_16(float x)
 struct mali_sampler_descriptor {
         uint16_t filter_mode;
 
-        /* Fixed point. Upper 8-bits is before the decimal point, although it
-         * caps [0-31]. Lower 8-bits is after the decimal point: int(round(x *
-         * 256)) */
+        /* Fixed point, signed.
+         * Upper 7 bits before the decimal point, although it caps [0-31].
+         * Lower 8 bits after the decimal point: int(round(x * 256)) */
 
-        uint16_t lod_bias;
-        uint16_t min_lod;
-        uint16_t max_lod;
+        int16_t lod_bias;
+        int16_t min_lod;
+        int16_t max_lod;
 
-        /* All one word in reality, but packed a bit */
+        /* All one word in reality, but packed a bit. Comparisons are flipped
+         * from OpenGL. */
 
         enum mali_wrap_mode wrap_s : 4;
         enum mali_wrap_mode wrap_t : 4;
         enum mali_wrap_mode wrap_r : 4;
-        enum mali_alt_func compare_func : 3;
+        enum mali_func compare_func : 3;
 
         /* No effect on 2D textures. For cubemaps, set for ES3 and clear for
          * ES2, controlling seamless cubemapping */

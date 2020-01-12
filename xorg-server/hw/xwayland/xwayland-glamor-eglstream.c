@@ -43,6 +43,7 @@
 #include "xwayland-glamor.h"
 #include "xwayland-pixmap.h"
 #include "xwayland-screen.h"
+#include "xwayland-window.h"
 
 #include "wayland-eglstream-client-protocol.h"
 #include "wayland-eglstream-controller-client-protocol.h"

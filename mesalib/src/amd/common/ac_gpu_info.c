@@ -516,8 +516,8 @@ bool ac_query_gpu_info(int fd, void *dev_p,
 	 */
 	info->has_clear_state = info->chip_class >= GFX7;
 
-	info->has_distributed_tess = info->chip_class >= GFX8 &&
-				     info->max_se >= 2;
+	info->has_distributed_tess = info->chip_class >= GFX10 ||
+				     (info->chip_class >= GFX8 && info->max_se >= 2);
 
 	info->has_dcc_constant_encode = info->family == CHIP_RAVEN2 ||
 					info->family == CHIP_RENOIR ||
@@ -639,6 +639,8 @@ bool ac_query_gpu_info(int fd, void *dev_p,
 			assert(0);
 		}
 
+		info->pc_lines = pc_lines;
+
 		if (info->chip_class >= GFX10) {
 			info->pbb_max_alloc_count = pc_lines / 3;
 		} else {
@@ -758,6 +760,7 @@ void ac_print_gpu_info(struct radeon_info *info)
 	printf("    num_tcc_blocks = %i\n", info->num_tcc_blocks);
 	printf("    tcc_cache_line_size = %u\n", info->tcc_cache_line_size);
 	printf("    tcc_harvested = %u\n", info->tcc_harvested);
+	printf("    pc_lines = %u\n", info->pc_lines);
 
 	printf("CP info:\n");
 	printf("    gfx_ib_pad_with_type2 = %i\n", info->gfx_ib_pad_with_type2);

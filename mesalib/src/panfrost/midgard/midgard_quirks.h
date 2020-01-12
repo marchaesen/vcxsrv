@@ -57,6 +57,11 @@
 
 #define MIDGARD_BROKEN_LOD (1 << 3)
 
+/* Don't use upper ALU tags for writeout (if you do, you'll get a
+ * INSTR_INVALID_ENC). It's not clear to me what these tags are for. */
+
+#define MIDGARD_NO_UPPER_ALU (1 << 4)
+
 static inline unsigned
 midgard_get_quirks(unsigned gpu_id)
 {
@@ -64,18 +69,23 @@ midgard_get_quirks(unsigned gpu_id)
         case 0x600:
         case 0x620:
                 return MIDGARD_OLD_BLEND |
-                        MIDGARD_BROKEN_LOD;
+                        MIDGARD_BROKEN_LOD |
+                        MIDGARD_NO_UPPER_ALU;
 
         case 0x720:
                 return MIDGARD_INTERPIPE_REG_ALIASING | 
                         MIDGARD_OLD_BLEND |
-                        MIDGARD_BROKEN_LOD;
+                        MIDGARD_BROKEN_LOD |
+                        MIDGARD_NO_UPPER_ALU;
 
         case 0x820:
         case 0x830:
                 return MIDGARD_INTERPIPE_REG_ALIASING;
 
         case 0x750:
+                return MIDGARD_EXPLICIT_LOD |
+                        MIDGARD_NO_UPPER_ALU;
+
         case 0x860:
         case 0x880:
                 return MIDGARD_EXPLICIT_LOD;

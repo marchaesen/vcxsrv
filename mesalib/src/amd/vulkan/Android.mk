@@ -30,6 +30,7 @@ include $(LOCAL_PATH)/Makefile.sources
 RADV_COMMON_INCLUDES := \
 	$(MESA_TOP)/include \
 	$(MESA_TOP)/src/ \
+	$(MESA_TOP)/src/amd/vulkan \
 	$(MESA_TOP)/src/vulkan/wsi \
 	$(MESA_TOP)/src/vulkan/util \
 	$(MESA_TOP)/src/amd \

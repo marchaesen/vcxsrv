@@ -2840,6 +2840,12 @@ typedef struct nir_shader_compiler_options {
    bool lower_to_scalar;
 
    /**
+    * Should the linker unify inputs_read/outputs_written between adjacent
+    * shader stages which are linked into a single program?
+    */
+   bool unify_interfaces;
+
+   /**
     * Should nir_lower_io() create load_interpolated_input intrinsics?
     *
     * If not, it generates regular load_input intrinsics and interpolation
@@ -3626,6 +3632,8 @@ bool nir_lower_vars_to_scratch(nir_shader *shader,
                                nir_variable_mode modes,
                                int size_threshold,
                                glsl_type_size_align_func size_align);
+
+void nir_lower_clip_halfz(nir_shader *shader);
 
 void nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint);
 

@@ -106,7 +106,7 @@ st_mesa_format_to_pipe_format(const struct st_context *st,
       }
    }
 
-   if (_mesa_is_format_astc_2d(mesaFormat) && !st->has_astc_2d_ldr) {
+   if (st_astc_format_fallback(st, mesaFormat)) {
       if (_mesa_is_format_srgb(mesaFormat))
          return PIPE_FORMAT_R8G8B8A8_SRGB;
       else

@@ -1373,13 +1373,18 @@ nir_visitor::visit(ir_call *ir)
             instr->src[3] =
                nir_src_for_ssa(evaluate_rvalue((ir_dereference *)param));
             param = param->get_next();
+         } else if (op == nir_intrinsic_image_deref_load) {
+            instr->src[3] = nir_src_for_ssa(nir_imm_int(&b, 0)); /* LOD */
          }
 
          if (!param->is_tail_sentinel()) {
             instr->src[4] =
                nir_src_for_ssa(evaluate_rvalue((ir_dereference *)param));
             param = param->get_next();
+         } else if (op == nir_intrinsic_image_deref_store) {
+            instr->src[4] = nir_src_for_ssa(nir_imm_int(&b, 0)); /* LOD */
          }
+
          nir_builder_instr_insert(&b, &instr->instr);
          break;
       }

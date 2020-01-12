@@ -81,6 +81,7 @@ struct spirv_supported_capabilities {
    bool amd_gcn_shader;
    bool amd_shader_ballot;
    bool amd_trinary_minmax;
+   bool amd_image_read_write_lod;
 };
 
 typedef struct shader_info {

@@ -1,0 +1,138 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<title>Mesa Release Notes</title>
+<link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+<h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 19.3.2 Release Notes / 2020-01-09</h1>
+
+<p>
+    Mesa 19.3.2 is a bug fix release which fixes bugs found since the 19.3.1 release.
+</p>
+<p>
+Mesa 19.3.2 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+<p>
+Mesa 19.3.2 implements the Vulkan 1.1 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+</p>
+
+<h2>SHA256 checksum</h2>
+<pre>
+    4e3aee324616352bbc7f58d47ab573e10f68cc7719fd045bd6d3abcdd97ee1c1  mesa-19.3.2.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+
+<ul>
+    <li>None</li>
+</ul>
+
+<h2>Bug fixes</h2>
+
+<ul>
+    <li>Rise of the Tomb Raider benchmark crash on Dell XPS 7390 2-in-1 w/ Iris Plus Graphics (Ice Lake 8x8 GT2)</li>
+    <li>Raven Ridge (2400G): Resident Evil 2 crashes my machine</li>
+    <li>Rocket League ingame artifacts</li>
+    <li>[radv] SteamVR direct mode no longer works</li>
+    <li>[RADV]  [Navi] LOD artifacting in Halo - The Master Chief Collection (Halo Reach)</li>
+    <li>[ANV] unused create parameters not properly ignored</li>
+    <li>Blocky corruption in The Surge 2</li>
+    <li>radeonsi: Floating point exception on R9 270 gpu for a set of traces</li>
+    <li>[CTS] dEQP-VK.api.image_clearing.core.clear_color_image.2d.linear.single_layer.r32g32b32_* fail on GFX6-GFX8</li>
+    <li>Vulkan: Please consider adding another sample count to sampledImageIntegerSampleCounts</li>
+    <li>Navi10: Bitrate based encoding with VAAPI/RadeonSI unusable</li>
+    <li>[GFX10] Glitch rendering Custom Avatars in Beat Saber</li>
+    <li>intel/fs: Check for 16-bit immediates in fs_visitor::lower_mul_dword_inst is too strict</li>
+</ul>
+
+<h2>Changes</h2>
+
+<ul>
+    <p>Andrii Simiklit (3):</p>
+    <li>      glsl: fix an incorrect max_array_access after optimization of ssbo/ubo</li>
+    <li>      glsl: fix a binding points assignment for ssbo/ubo arrays</li>
+    <li>      glsl/nir: do not change an element index to have correct block name</li>
+    <p></p>
+    <p>Bas Nieuwenhuizen (7):</p>
+    <li>      radv: Limit workgroup size to 1024.</li>
+    <li>      radv: Expose all sample counts for integer formats as well.</li>
+    <li>      amd/common: Handle alignment of 96-bit formats.</li>
+    <li>      nir: Add clone/hash/serialize support for non-uniform tex instructions.</li>
+    <li>      spirv: Fix glsl type assert in spir2nir.</li>
+    <li>      radv: Only use the gfx mipmap level offset/pitch for linear textures.</li>
+    <li>      radv: Emit a BATCH_BREAK when changing pixel shaders or CB_TARGET_MASK.</li>
+    <p></p>
+    <p>Caio Marcelo de Oliveira Filho (4):</p>
+    <li>      intel/fs: Lower 64-bit MOVs after lower_load_payload()</li>
+    <li>      intel/fs: Fix lowering of dword multiplication by 16-bit constant</li>
+    <li>      intel/vec4: Fix lowering of multiplication by 16-bit constant</li>
+    <li>      anv: Ignore some CreateInfo structs when rasterization is disabled</li>
+    <p></p>
+    <p>Christian Gmeiner (1):</p>
+    <li>      etnaviv: update resource status after flushing</li>
+    <p></p>
+    <p>Dylan Baker (2):</p>
+    <li>      dcos: add releanse notes for 19.3.1</li>
+    <li>      cherry-ignore: update for 19.3.2</li>
+    <p></p>
+    <p>Eric Engestrom (4):</p>
+    <li>      util/format: remove left-over util_format_description_table declaration</li>
+    <li>      amd: fix empty-body issues</li>
+    <li>      nine: fix empty-body-issues</li>
+    <li>      mesa: avoid returning a value in a void function</li>
+    <p></p>
+    <p>Gert Wollny (1):</p>
+    <li>      r600: Fix maximum line width</li>
+    <p></p>
+    <p>Jason Ekstrand (2):</p>
+    <li>      anv: Properly advertise sampledImageIntegerSampleCounts</li>
+    <li>      intel/nir: Add a memory barrier before barrier()</li>
+    <p></p>
+    <p>Lionel Landwerlin (2):</p>
+    <li>      loader: fix close on uninitialized file descriptor value</li>
+    <li>      anv: don&#x27;t close invalid syncfd semaphore</li>
+    <p></p>
+    <p>Marek Olšák (2):</p>
+    <li>      winsys/radeon: initialize pte_fragment_size</li>
+    <li>      radeonsi: disable SDMA on gfx8 to fix corruption on RX 580</li>
+    <p></p>
+    <p>Pierre-Eric Pelloux-Prayer (2):</p>
+    <li>      radeon/vcn2: enable rate control for hevc encoding</li>
+    <li>      radeonsi: check ctx-&gt;sdma_cs before using it</li>
+    <p></p>
+    <p>Samuel Pitoiset (2):</p>
+    <li>      radv/gfx10: fix the out-of-bounds check for vertex descriptors</li>
+    <li>      radv: return the correct pitch for linear mipmaps on GFX10</li>
+    <p></p>
+    <p>Timur Kristóf (1):</p>
+    <li>      aco: Fix uniform i2i64.</li>
+    <p></p>
+    <p>Yevhenii Kolesnikov (2):</p>
+    <li>      meta: Cleanup function for DrawTex</li>
+    <li>      main: allow external textures for BindImageTexture</li>
+    <p></p>
+    <p></p>
+</ul>
+
+</div>
+</body>
+</html>

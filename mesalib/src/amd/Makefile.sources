@@ -46,6 +46,8 @@ AMD_COMMON_FILES = \
 	common/ac_surface.h \
 	common/ac_rtld.c \
 	common/ac_rtld.h \
+	common/ac_shader_args.c \
+	common/ac_shader_args.h \
 	common/ac_shader_util.c \
 	common/ac_shader_util.h
 

@@ -5,7 +5,13 @@ set -o xtrace
 
 export DEBIAN_FRONTEND=noninteractive
 
-apt-get install -y ca-certificates
+apt-get install -y \
+        ca-certificates \
+        gnupg \
+
+# Upstream LLVM package repository
+apt-key add .gitlab-ci/container/llvm-snapshot.gpg.key
+echo "deb https://apt.llvm.org/buster/ llvm-toolchain-buster-9 main" >/etc/apt/sources.list.d/llvm9.list
 
 sed -i -e 's/http:\/\/deb/https:\/\/deb/g' /etc/apt/sources.list
 echo 'deb https://deb.debian.org/debian buster-backports main' >/etc/apt/sources.list.d/backports.list
@@ -40,7 +46,7 @@ apt-get install -y --no-remove \
       libxkbcommon-dev \
       libxrender1 \
       libxrender-dev \
-      libllvm8 \
+      libllvm9 \
       meson \
       patch \
       pkg-config \
@@ -74,6 +80,7 @@ apt-get purge -y \
       g++ \
       gcc \
       git \
+      gnupg \
       libc6-dev \
       libgbm-dev \
       libgles2-mesa-dev \

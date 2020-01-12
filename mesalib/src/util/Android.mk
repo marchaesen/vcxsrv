@@ -70,9 +70,6 @@ MESA_DRI_OPTIONS_H := $(intermediates)/xmlpool/options.h
 LOCAL_GENERATED_SOURCES += $(MESA_DRI_OPTIONS_H)
 
 
-$(intermediates)/format/u_format_table.c: $(intermediates)/%.c: $(LOCAL_PATH)/%.py $(LOCAL_PATH)/format/u_format.csv
-	$(transform-generated-source)
-
 #
 # Generate options.h from gettext translations.
 #
@@ -111,7 +108,7 @@ $(PRIVATE_MO_FILES): $(intermediates)/xmlpool/%.gmo: $(intermediates)/xmlpool/%.
 	msgfmt -o $@ $<
 
 $(UTIL_GENERATED_SOURCES): PRIVATE_CUSTOM_TOOL = $(PRIVATE_PYTHON) $^ > $@
-$(UTIL_GENERATED_SOURCES): $(intermediates)/%.c: $(LOCAL_PATH)/%.py
+$(UTIL_GENERATED_SOURCES): $(intermediates)/%.c: $(LOCAL_PATH)/%.py $(LOCAL_PATH)/format/u_format.csv
 	$(transform-generated-source)
 
 $(MESA_DRI_OPTIONS_H): PRIVATE_CUSTOM_TOOL = $(PRIVATE_PYTHON) $< \

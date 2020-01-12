@@ -47,9 +47,9 @@ struct InstrHash {
          VOP3A_instruction* vop3 = static_cast<VOP3A_instruction*>(instr);
          for (unsigned i = 0; i < 3; i++) {
             hash ^= vop3->abs[i] << (i*3 + 0);
-            hash ^= vop3->opsel[i] << (i*3 + 1);
             hash ^= vop3->neg[i] << (i*3 + 2);
          }
+         hash ^= vop3->opsel * 13;
          hash ^= (vop3->clamp << 28) * 13;
          hash += vop3->omod << 19;
       }
@@ -134,12 +134,12 @@ struct InstrPred {
          VOP3A_instruction* b3 = static_cast<VOP3A_instruction*>(b);
          for (unsigned i = 0; i < 3; i++) {
             if (a3->abs[i] != b3->abs[i] ||
-                a3->opsel[i] != b3->opsel[i] ||
                 a3->neg[i] != b3->neg[i])
                return false;
          }
          return a3->clamp == b3->clamp &&
-                a3->omod == b3->omod;
+                a3->omod == b3->omod &&
+                a3->opsel == b3->opsel;
       }
       if (a->isDPP()) {
          DPP_instruction* aDPP = static_cast<DPP_instruction*>(a);

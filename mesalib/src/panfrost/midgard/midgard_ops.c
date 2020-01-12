@@ -222,7 +222,7 @@ struct mir_ldst_op_props load_store_opcode_props[256] = {
         [midgard_op_ld_vary_32i] = {"ld_vary_32i", M32},
         [midgard_op_ld_vary_32u] = {"ld_vary_32u", M32},
 
-        [midgard_op_ld_color_buffer_8]  = {"ld_color_buffer_8",  M8 | LDST_SPECIAL_MASK},
+        [midgard_op_ld_color_buffer_32u]  = {"ld_color_buffer_32u",  M32 | LDST_SPECIAL_MASK},
         [midgard_op_ld_color_buffer_u8_as_fp16] = {"ld_color_buffer_u8_as_fp16", M16 | LDST_SPECIAL_MASK},
         [midgard_op_ld_color_buffer_u8_as_fp16_old] = {"ld_color_buffer_u8_as_fp16_old", M16 | LDST_SPECIAL_MASK},
 
@@ -252,3 +252,44 @@ struct mir_ldst_op_props load_store_opcode_props[256] = {
 #undef M16
 #undef M32
 #undef M64
+
+midgard_word_type midgard_word_types[16] = {
+        midgard_word_type_unknown,    /* 0x0 */
+        midgard_word_type_unknown,    /* 0x1 */
+        midgard_word_type_texture,    /* 0x2 */
+        midgard_word_type_texture,    /* 0x3 */
+        midgard_word_type_unknown,    /* 0x4 */
+        midgard_word_type_load_store, /* 0x5 */
+        midgard_word_type_unknown,    /* 0x6 */
+        midgard_word_type_unknown,    /* 0x7 */
+        midgard_word_type_alu,        /* 0x8 */
+        midgard_word_type_alu,        /* 0x9 */
+        midgard_word_type_alu,        /* 0xA */
+        midgard_word_type_alu,        /* 0xB */
+        midgard_word_type_alu,        /* 0xC */
+        midgard_word_type_alu,        /* 0xD */
+        midgard_word_type_alu,        /* 0xE */
+        midgard_word_type_alu,        /* 0xF */
+};
+
+unsigned midgard_word_size[16] = {
+        0, /* 0x0 */
+        0, /* 0x1 */
+        1, /* 0x2 */
+        1, /* 0x3 */
+        0, /* 0x4 */
+        1, /* 0x5 */
+        0, /* 0x6 */
+        0, /* 0x7 */
+        1, /* 0x8 */
+        2, /* 0x9 */
+        3, /* 0xA */
+        4, /* 0xB */
+        1, /* 0xC */
+        2, /* 0xD */
+        3, /* 0xE */
+        4, /* 0xF */
+};
+
+
+

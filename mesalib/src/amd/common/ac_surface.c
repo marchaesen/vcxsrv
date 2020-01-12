@@ -206,6 +206,17 @@ static int gfx6_compute_level(ADDR_HANDLE addrlib,
 		AddrSurfInfoIn->width = align(AddrSurfInfoIn->width, alignment);
 	}
 
+	/* addrlib assumes the bytes/pixel is a divisor of 64, which is not
+	 * true for r32g32b32 formats. */
+	if (AddrSurfInfoIn->bpp == 96) {
+		assert(config->info.levels == 1);
+		assert(AddrSurfInfoIn->tileMode == ADDR_TM_LINEAR_ALIGNED);
+
+		/* The least common multiple of 64 bytes and 12 bytes/pixel is
+		 * 192 bytes, or 16 pixels. */
+		AddrSurfInfoIn->width = align(AddrSurfInfoIn->width, 16);
+	}
+
 	if (config->is_3d)
 		AddrSurfInfoIn->numSlices = u_minify(config->info.depth, level);
 	else if (config->is_cube)
@@ -960,6 +971,7 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib,
 /* This is only called when expecting a tiled layout. */
 static int
 gfx9_get_preferred_swizzle_mode(ADDR_HANDLE addrlib,
+				struct radeon_surf *surf,
 				ADDR2_COMPUTE_SURFACE_INFO_INPUT *in,
 				bool is_fmask, AddrSwizzleMode *swizzle_mode)
 {
@@ -989,6 +1001,19 @@ gfx9_get_preferred_swizzle_mode(ADDR_HANDLE addrlib,
 		sin.flags.display = 0;
 		sin.flags.color = 0;
 		sin.flags.fmask = 1;
+	}
+
+	if (surf->flags & RADEON_SURF_FORCE_MICRO_TILE_MODE) {
+		sin.forbiddenBlock.linear = 1;
+
+		if (surf->micro_tile_mode == RADEON_MICRO_MODE_DISPLAY)
+			sin.preferredSwSet.sw_D = 1;
+		else if (surf->micro_tile_mode == RADEON_MICRO_MODE_THIN)
+			sin.preferredSwSet.sw_S = 1;
+		else if (surf->micro_tile_mode == RADEON_MICRO_MODE_DEPTH)
+			sin.preferredSwSet.sw_Z = 1;
+		else if (surf->micro_tile_mode == RADEON_MICRO_MODE_ROTATED)
+			sin.preferredSwSet.sw_R = 1;
 	}
 
 	ret = Addr2GetPreferredSurfaceSetting(addrlib, &sin, &sout);
@@ -1051,8 +1076,10 @@ static int gfx9_compute_miptree(ADDR_HANDLE addrlib,
 	surf->surf_alignment = out.baseAlign;
 
 	if (in->swizzleMode == ADDR_SW_LINEAR) {
-		for (unsigned i = 0; i < in->numMipLevels; i++)
+		for (unsigned i = 0; i < in->numMipLevels; i++) {
 			surf->u.gfx9.offset[i] = mip_info[i].offset;
+			surf->u.gfx9.pitch[i] = mip_info[i].pitch;
+		}
 	}
 
 	if (in->flags.depth) {
@@ -1301,7 +1328,7 @@ static int gfx9_compute_miptree(ADDR_HANDLE addrlib,
 			fin.size = sizeof(ADDR2_COMPUTE_FMASK_INFO_INPUT);
 			fout.size = sizeof(ADDR2_COMPUTE_FMASK_INFO_OUTPUT);
 
-			ret = gfx9_get_preferred_swizzle_mode(addrlib, in,
+			ret = gfx9_get_preferred_swizzle_mode(addrlib, surf, in,
 							      true, &fin.swizzleMode);
 			if (ret != ADDR_OK)
 				return ret;
@@ -1523,7 +1550,7 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 			break;
 		}
 
-		r = gfx9_get_preferred_swizzle_mode(addrlib, &AddrSurfInfoIn,
+		r = gfx9_get_preferred_swizzle_mode(addrlib, surf, &AddrSurfInfoIn,
 						    false, &AddrSurfInfoIn.swizzleMode);
 		if (r)
 			return r;
@@ -1562,7 +1589,7 @@ static int gfx9_compute_surface(ADDR_HANDLE addrlib,
 		AddrSurfInfoIn.format = ADDR_FMT_8;
 
 		if (!AddrSurfInfoIn.flags.depth) {
-			r = gfx9_get_preferred_swizzle_mode(addrlib, &AddrSurfInfoIn,
+			r = gfx9_get_preferred_swizzle_mode(addrlib, surf, &AddrSurfInfoIn,
 							    false, &AddrSurfInfoIn.swizzleMode);
 			if (r)
 				goto error;

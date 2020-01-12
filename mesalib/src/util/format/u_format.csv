@@ -385,6 +385,7 @@ PIPE_FORMAT_IYUV                  , planar3, 1, 1, 1,     ,     ,     ,     , xy
 PIPE_FORMAT_NV12                  , planar2, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
 PIPE_FORMAT_NV21                  , planar2, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
 
+PIPE_FORMAT_P010                  , planar2, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
 PIPE_FORMAT_P016                  , planar2, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
 
 # Usually used to implement IA44 and AI44 formats in video decoding

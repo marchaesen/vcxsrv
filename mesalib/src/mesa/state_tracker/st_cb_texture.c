@@ -226,6 +226,18 @@ st_FreeTextureImageBuffer(struct gl_context *ctx,
    st_texture_release_all_sampler_views(st, stObj);
 }
 
+bool
+st_astc_format_fallback(const struct st_context *st, mesa_format format)
+{
+   if (!_mesa_is_format_astc_2d(format))
+      return false;
+
+   if (format == MESA_FORMAT_RGBA_ASTC_5x5 ||
+       format == MESA_FORMAT_SRGB8_ALPHA8_ASTC_5x5)
+      return !st->has_astc_5x5_ldr;
+
+   return !st->has_astc_2d_ldr;
+}
 
 bool
 st_compressed_format_fallback(struct st_context *st, mesa_format format)
@@ -236,8 +248,8 @@ st_compressed_format_fallback(struct st_context *st, mesa_format format)
    if (_mesa_is_format_etc2(format))
       return !st->has_etc2;
 
-   if (_mesa_is_format_astc_2d(format))
-      return !st->has_astc_2d_ldr;
+   if (st_astc_format_fallback(st, format))
+      return true;
 
    return false;
 }

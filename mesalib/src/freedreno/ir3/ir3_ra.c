@@ -297,8 +297,7 @@ ir3_ra_alloc_reg_set(struct ir3_compiler *compiler)
 				unsigned hreg0 = set->gpr_to_ra_reg[i + HALF_OFFSET][(j * 2) + 0];
 				unsigned hreg1 = set->gpr_to_ra_reg[i + HALF_OFFSET][(j * 2) + 1];
 
-				ra_add_transitive_reg_conflict(set->regs, freg, hreg0);
-				ra_add_transitive_reg_conflict(set->regs, freg, hreg1);
+				ra_add_transitive_reg_pair_conflict(set->regs, freg, hreg0, hreg1);
 			}
 		}
 

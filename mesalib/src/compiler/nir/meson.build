@@ -123,6 +123,7 @@ files_libnir = files(
   'nir_lower_clamp_color_outputs.c',
   'nir_lower_clip.c',
   'nir_lower_clip_cull_distance_arrays.c',
+  'nir_lower_clip_halfz.c',
   'nir_lower_constant_initializers.c',
   'nir_lower_double_ops.c',
   'nir_lower_drawpixels.c',
