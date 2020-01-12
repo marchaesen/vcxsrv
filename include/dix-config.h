@@ -373,10 +373,10 @@
 #undef XORG_RELEASE
 
 /* Current Xorg version */
-#define XORG_VERSION_CURRENT (((1) * 10000000) + ((20) * 100000) + ((5) * 1000) + 1)
+#define XORG_VERSION_CURRENT (((1) * 10000000) + ((20) * 100000) + ((6) * 1000) + 0)
 
 /* Xorg release date */
-#define XORG_DATE "16 November 2015"
+#define XORG_DATE "12 Januari 2020"
 
 /* Build Xv Extension */
 #undef XvExtension
