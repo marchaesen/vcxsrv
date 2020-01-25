@@ -46,10 +46,10 @@ while the latter have a non-zero one.
 For example:
 </p>
 <pre>
-	Mesa 10.1.0 - 10.1 branch, feature
-	Mesa 10.1.4 - 10.1 branch, bugfix
-	Mesa 12.0.0 - 12.0 branch, feature
-	Mesa 12.0.2 - 12.0 branch, bugfix
+Mesa 10.1.0 - 10.1 branch, feature
+Mesa 10.1.4 - 10.1 branch, bugfix
+Mesa 12.0.0 - 12.0 branch, feature
+Mesa 12.0.2 - 12.0 branch, bugfix
 </pre>
 
 
@@ -183,27 +183,27 @@ This should be noted in the <a href="#prerelease">pre-announce</a> email.
 </p>
 
 <pre>
-    git show b10859ec41d09c57663a258f43fe57c12332698e
+git show b10859ec41d09c57663a258f43fe57c12332698e
 
-    commit b10859ec41d09c57663a258f43fe57c12332698e
-    Author: Jonas Pfeil &lt;pfeiljonas@gmx.de&gt;
-    Date:   Wed Mar 1 18:11:10 2017 +0100
+commit b10859ec41d09c57663a258f43fe57c12332698e
+Author: Jonas Pfeil &lt;pfeiljonas@gmx.de&gt;
+Date:   Wed Mar 1 18:11:10 2017 +0100
 
-        ralloc: Make sure ralloc() allocations match malloc()'s alignment.
+    ralloc: Make sure ralloc() allocations match malloc()'s alignment.
 
-        The header of ralloc needs to be aligned, because the compiler assumes
-        ...
+    The header of ralloc needs to be aligned, because the compiler assumes
+    ...
 
-        (cherry picked from commit cd2b55e536dc806f9358f71db438dd9c246cdb14)
+    (cherry picked from commit cd2b55e536dc806f9358f71db438dd9c246cdb14)
 
-        Squashed with commit:
+    Squashed with commit:
 
-        ralloc: don't leave out the alignment factor
+    ralloc: don't leave out the alignment factor
 
-        Experimentation shows that without alignment factor gcc and clang choose
-        ...
+    Experimentation shows that without alignment factor gcc and clang choose
+    ...
 
-        (cherry picked from commit ff494fe999510ea40e3ed5827e7818550b6de126)
+    (cherry picked from commit ff494fe999510ea40e3ed5827e7818550b6de126)
 </pre>
 
 <h2>Regression/functionality testing</h2>
@@ -236,8 +236,8 @@ A live branch, which contains the currently merge/rejected patches is available
 in the main repository under <code>staging/X.Y</code>. For example:
 </p>
 <pre>
-	staging/18.1 - WIP branch for the 18.1 series
-	staging/18.2 - WIP branch for the 18.2 series
+staging/18.1 - WIP branch for the 18.1 series
+staging/18.2 - WIP branch for the 18.2 series
 </pre>
 
 <p>
@@ -271,15 +271,15 @@ Check if the version number is going to remain as, alternatively
 To setup the branchpoint:
 </p>
 <pre>
-	git checkout master # make sure we're in master first
-	git tag -s X.Y-branchpoint -m "Mesa X.Y branchpoint"
-	git checkout -b X.Y
-	git checkout master
-	$EDITOR VERSION # bump the version number
-	git commit -as
-	cp docs/relnotes/{X.Y,X.Y+1}.html # copy/create relnotes template
-	git commit -as
-	git push origin X.Y-branchpoint X.Y
+git checkout master # make sure we're in master first
+git tag -s X.Y-branchpoint -m "Mesa X.Y branchpoint"
+git checkout -b X.Y
+git checkout master
+$EDITOR VERSION # bump the version number
+git commit -as
+cp docs/relnotes/{X.Y,X.Y+1}.html # copy/create relnotes template
+git commit -as
+git push origin X.Y-branchpoint X.Y
 </pre>
 
 <p>
@@ -482,45 +482,45 @@ So we do a quick 'touch test'
 </p>
 
 <pre>
-    __glxgears_cmd='glxgears 2&gt;&amp;1 | grep -v "configuration file"'
-    __es2info_cmd='es2_info 2&gt;&amp;1 | egrep "GL_VERSION|GL_RENDERER|.*dri\.so"'
-    __es2gears_cmd='es2gears_x11 2&gt;&amp;1 | grep -v "configuration file"'
-    test "x$LD_LIBRARY_PATH" != 'x' &amp;&amp; __old_ld="$LD_LIBRARY_PATH"
-    export LD_LIBRARY_PATH=`pwd`/test/usr/local/lib/:"${__old_ld}"
-    export LIBGL_DRIVERS_PATH=`pwd`/test/usr/local/lib/dri/
-    export LIBGL_DEBUG=verbose
-    eval $__glxinfo_cmd
-    eval $__glxgears_cmd
-    eval $__es2info_cmd
-    eval $__es2gears_cmd
-    export LIBGL_ALWAYS_SOFTWARE=true
-    eval $__glxinfo_cmd
-    eval $__glxgears_cmd
-    eval $__es2info_cmd
-    eval $__es2gears_cmd
-    export LIBGL_ALWAYS_SOFTWARE=true
-    export GALLIUM_DRIVER=softpipe
-    eval $__glxinfo_cmd
-    eval $__glxgears_cmd
-    eval $__es2info_cmd
-    eval $__es2gears_cmd
-    # Smoke test DOTA2
-    unset LD_LIBRARY_PATH
-    test "x$__old_ld" != 'x' &amp;&amp; export LD_LIBRARY_PATH="$__old_ld" &amp;&amp; unset __old_ld
-    unset LIBGL_DRIVERS_PATH
-    unset LIBGL_DEBUG
-    unset LIBGL_ALWAYS_SOFTWARE
-    unset GALLIUM_DRIVER
-    export VK_ICD_FILENAMES=`pwd`/test/usr/local/share/vulkan/icd.d/intel_icd.x86_64.json
-    steam steam://rungameid/570  -vconsole -vulkan
-    unset VK_ICD_FILENAMES
+__glxgears_cmd='glxgears 2&gt;&amp;1 | grep -v "configuration file"'
+__es2info_cmd='es2_info 2&gt;&amp;1 | egrep "GL_VERSION|GL_RENDERER|.*dri\.so"'
+__es2gears_cmd='es2gears_x11 2&gt;&amp;1 | grep -v "configuration file"'
+test "x$LD_LIBRARY_PATH" != 'x' &amp;&amp; __old_ld="$LD_LIBRARY_PATH"
+export LD_LIBRARY_PATH=`pwd`/test/usr/local/lib/:"${__old_ld}"
+export LIBGL_DRIVERS_PATH=`pwd`/test/usr/local/lib/dri/
+export LIBGL_DEBUG=verbose
+eval $__glxinfo_cmd
+eval $__glxgears_cmd
+eval $__es2info_cmd
+eval $__es2gears_cmd
+export LIBGL_ALWAYS_SOFTWARE=true
+eval $__glxinfo_cmd
+eval $__glxgears_cmd
+eval $__es2info_cmd
+eval $__es2gears_cmd
+export LIBGL_ALWAYS_SOFTWARE=true
+export GALLIUM_DRIVER=softpipe
+eval $__glxinfo_cmd
+eval $__glxgears_cmd
+eval $__es2info_cmd
+eval $__es2gears_cmd
+# Smoke test DOTA2
+unset LD_LIBRARY_PATH
+test "x$__old_ld" != 'x' &amp;&amp; export LD_LIBRARY_PATH="$__old_ld" &amp;&amp; unset __old_ld
+unset LIBGL_DRIVERS_PATH
+unset LIBGL_DEBUG
+unset LIBGL_ALWAYS_SOFTWARE
+unset GALLIUM_DRIVER
+export VK_ICD_FILENAMES=`pwd`/test/usr/local/share/vulkan/icd.d/intel_icd.x86_64.json
+steam steam://rungameid/570  -vconsole -vulkan
+unset VK_ICD_FILENAMES
 </pre>
 
 <h3>Create release notes for the new release</h3>
 
 <p>
 The release notes are completely generated by the
-<pre>bin/gen_release_notes.py</pre> script. Simply run this script before
+<code>bin/gen_release_notes.py</code> script. Simply run this script before
 bumping the version
 
 The only thing left to do is add the sha256 sums.
@@ -538,7 +538,7 @@ Commit these changes and push the branch.
 </p>
 
 <pre>
-	git push origin HEAD
+git push origin HEAD
 </pre>
 
 
@@ -549,9 +549,9 @@ Start the release process.
 </p>
 
 <pre>
-	# For the dist/distcheck, you may want to specify which LLVM to use:
-	# export LLVM_CONFIG=/usr/lib/llvm-3.9/bin/llvm-config
-	../relative/path/to/release.sh . # append --dist if you've already done distcheck above
+# For the dist/distcheck, you may want to specify which LLVM to use:
+# export LLVM_CONFIG=/usr/lib/llvm-3.9/bin/llvm-config
+../relative/path/to/release.sh . # append --dist if you've already done distcheck above
 </pre>
 
 <p>
@@ -572,18 +572,18 @@ Something like the following steps will do the trick:
 </p>
 
 <pre>
-	git cherry-pick -x X.Y~1
-	git cherry-pick -x X.Y
+git cherry-pick -x X.Y~1
+git cherry-pick -x X.Y
 </pre>
 
-<p>Then run the <pre>./bin/post_verison.py X.Y.Z</pre>, where X.Y.Z is the
+<p>Then run the <code>./bin/post_verison.py X.Y.Z</code>, where X.Y.Z is the
 version you just made. This will updated docs/relnotes.html and
 docs/index.html. Remove docs/release-calendar.html. Then commit and push:
 </p>
 
 <pre>
-	git commit -as -m "docs: update calendar, add news item and link release notes for X.Y.Z"
-	git push origin master X.Y
+git commit -as -m "docs: update calendar, add news item and link release notes for X.Y.Z"
+git push origin master X.Y
 </pre>
 
 

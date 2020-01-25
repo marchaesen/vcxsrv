@@ -46,14 +46,8 @@ st_bind_ssbos(struct st_context *st, struct gl_program *prog,
 {
    unsigned i;
    struct pipe_shader_buffer buffers[MAX_SHADER_STORAGE_BUFFERS];
-   struct gl_program_constants *c;
-   int buffer_base;
    if (!prog || !st->pipe->set_shader_buffers)
       return;
-
-   c = &st->ctx->Const.Program[prog->info.stage];
-
-   buffer_base = st->has_hw_atomics ? 0 : c->MaxAtomicBuffers;
 
    for (i = 0; i < prog->info.num_ssbos; i++) {
       struct gl_buffer_binding *binding;
@@ -81,16 +75,22 @@ st_bind_ssbos(struct st_context *st, struct gl_program *prog,
          sb->buffer_size = 0;
       }
    }
-   st->pipe->set_shader_buffers(st->pipe, shader_type, buffer_base,
+   st->pipe->set_shader_buffers(st->pipe, shader_type, 0,
                                 prog->info.num_ssbos, buffers,
                                 prog->sh.ShaderStorageBlocksWriteAccess);
-   /* clear out any stale shader buffers */
-   if (prog->info.num_ssbos < c->MaxShaderStorageBlocks)
+
+   /* Clear out any stale shader buffers (or lowered atomic counters). */
+   int num_ssbos = prog->info.num_ssbos;
+   if (!st->has_hw_atomics)
+      num_ssbos += st->last_used_atomic_bindings[shader_type];
+   if (st->last_num_ssbos[shader_type] > num_ssbos) {
       st->pipe->set_shader_buffers(
             st->pipe, shader_type,
-            buffer_base + prog->info.num_ssbos,
-            c->MaxShaderStorageBlocks - prog->info.num_ssbos,
+            num_ssbos,
+            st->last_num_ssbos[shader_type] - num_ssbos,
             NULL, 0);
+      st->last_num_ssbos[shader_type] = num_ssbos;
+   }
 }
 
 void st_bind_vs_ssbos(struct st_context *st)

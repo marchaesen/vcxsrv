@@ -220,18 +220,14 @@ tu_cs_add_entries(struct tu_cs *cs, struct tu_cs *target)
    assert(cs->mode == TU_CS_MODE_GROW);
    assert(target->mode == TU_CS_MODE_GROW);
 
-   if (!tu_cs_is_empty(cs)) {
+   if (!tu_cs_is_empty(cs))
       tu_cs_add_entry(cs);
-      result = tu_cs_reserve_entry(cs);
-      if (result != VK_SUCCESS)
-         return result;
-   }
 
    for (unsigned i = 0; i < target->entry_count; i++) {
-      cs->entries[cs->entry_count++] = target->entries[i];
       result = tu_cs_reserve_entry(cs);
       if (result != VK_SUCCESS)
          return result;
+      cs->entries[cs->entry_count++] = target->entries[i];
    }
 
    return VK_SUCCESS;

@@ -33,18 +33,6 @@ struct partial_update_state {
         uint8_t channels;
 };
 
-static uint32_t
-int_hash(const void *key)
-{
-        return _mesa_hash_data(key, sizeof(int));
-}
-
-static bool
-int_compare(const void *key1, const void *key2)
-{
-        return *(const int *)key1 == *(const int *)key2;
-}
-
 static int
 vir_reg_to_var(struct qreg reg)
 {
@@ -197,7 +185,7 @@ static void
 vir_setup_def_use(struct v3d_compile *c)
 {
         struct hash_table *partial_update_ht =
-                _mesa_hash_table_create(c, int_hash, int_compare);
+                _mesa_hash_table_create(c, _mesa_hash_int, _mesa_key_int_equal);
         int ip = 0;
 
         vir_for_each_block(block, c) {

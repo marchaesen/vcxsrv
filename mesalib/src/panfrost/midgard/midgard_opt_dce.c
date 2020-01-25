@@ -74,7 +74,7 @@ midgard_opt_dead_code_eliminate(compiler_context *ctx, midgard_block *block)
                         midgard_reg_mode mode = mir_typesize(ins);
                         unsigned oldmask = ins->mask;
 
-                        unsigned rounded = mir_round_bytemask_down(live[ins->dest], mode);
+                        unsigned rounded = mir_round_bytemask_up(live[ins->dest], mode);
                         unsigned cmask = mir_from_bytemask(rounded, mode);
 
                         ins->mask &= cmask;

@@ -50,7 +50,8 @@ struct ac_arg {
 };
 
 
-#define AC_MAX_ARGS 64
+#define AC_MAX_ARGS 128
+
 struct ac_shader_args {
 	/* Info on how to declare arguments */
 	struct {

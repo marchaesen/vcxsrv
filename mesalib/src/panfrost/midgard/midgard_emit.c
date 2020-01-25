@@ -369,12 +369,8 @@ emit_alu_bundle(compiler_context *ctx,
 
         /* Tack on constants */
 
-        if (bundle->has_embedded_constants) {
-                util_dynarray_append(emission, float, bundle->constants[0]);
-                util_dynarray_append(emission, float, bundle->constants[1]);
-                util_dynarray_append(emission, float, bundle->constants[2]);
-                util_dynarray_append(emission, float, bundle->constants[3]);
-        }
+        if (bundle->has_embedded_constants)
+                util_dynarray_append(emission, midgard_constants, bundle->constants);
 }
 
 /* Shift applied to the immediate used as an offset. Probably this is papering
@@ -425,7 +421,7 @@ emit_binary_bundle(compiler_context *ctx,
                         mir_pack_swizzle_ldst(bundle->instructions[i]);
 
                         /* Apply a constant offset */
-                        unsigned offset = bundle->instructions[i]->constants[0];
+                        unsigned offset = bundle->instructions[i]->constants.u32[0];
 
                         if (offset) {
                                 unsigned shift = mir_ldst_imm_shift(bundle->instructions[i]->load_store.op);

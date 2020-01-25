@@ -41,9 +41,8 @@
 
 struct ir3_legalize_ctx {
 	struct ir3_compiler *compiler;
+	struct ir3_shader_variant *so;
 	gl_shader_stage type;
-	bool has_ssbo;
-	bool need_pixlod;
 	int max_bary;
 };
 
@@ -139,7 +138,7 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 			regmask_init(&state->needs_sy);
 		}
 
-		if (last_n && (last_n->opc == OPC_CONDEND)) {
+		if (last_n && (last_n->opc == OPC_IF)) {
 			n->flags |= IR3_INSTR_SS;
 			regmask_init(&state->needs_ss_war);
 			regmask_init(&state->needs_ss);
@@ -247,12 +246,19 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 			list_addtail(&n->node, &block->instr_list);
 		}
 
+		if (n->opc == OPC_DSXPP_1 || n->opc == OPC_DSYPP_1) {
+			struct ir3_instruction *op_p = ir3_instr_clone(n);
+			op_p->flags = IR3_INSTR_P;
+
+			ctx->so->need_fine_derivatives = true;
+		}
+
 		if (is_sfu(n))
 			regmask_set(&state->needs_ss, n->regs[0]);
 
 		if (is_tex(n) || (n->opc == OPC_META_TEX_PREFETCH)) {
 			regmask_set(&state->needs_sy, n->regs[0]);
-			ctx->need_pixlod = true;
+			ctx->so->need_pixlod = true;
 			if (n->opc == OPC_META_TEX_PREFETCH)
 				has_tex_prefetch = true;
 		} else if (n->opc == OPC_RESINFO) {
@@ -281,7 +287,7 @@ legalize_block(struct ir3_legalize_ctx *ctx, struct ir3_block *block)
 		}
 
 		if (is_ssbo(n->opc) || (is_atomic(n->opc) && (n->flags & IR3_INSTR_G)))
-			ctx->has_ssbo = true;
+			ctx->so->has_ssbo = true;
 
 		/* both tex/sfu appear to not always immediately consume
 		 * their src register(s):
@@ -568,11 +574,12 @@ mark_xvergence_points(struct ir3 *ir)
 }
 
 void
-ir3_legalize(struct ir3 *ir, bool *has_ssbo, bool *need_pixlod, int *max_bary)
+ir3_legalize(struct ir3 *ir, struct ir3_shader_variant *so, int *max_bary)
 {
 	struct ir3_legalize_ctx *ctx = rzalloc(ir, struct ir3_legalize_ctx);
 	bool progress;
 
+	ctx->so = so;
 	ctx->max_bary = -1;
 	ctx->compiler = ir->compiler;
 	ctx->type = ir->type;
@@ -590,8 +597,6 @@ ir3_legalize(struct ir3 *ir, bool *has_ssbo, bool *need_pixlod, int *max_bary)
 		}
 	} while (progress);
 
-	*has_ssbo = ctx->has_ssbo;
-	*need_pixlod = ctx->need_pixlod;
 	*max_bary = ctx->max_bary;
 
 	do {

@@ -872,6 +872,8 @@ struct _mesa_glsl_parse_state {
    bool INTEL_conservative_rasterization_warn;
    bool INTEL_shader_atomic_float_minmax_enable;
    bool INTEL_shader_atomic_float_minmax_warn;
+   bool INTEL_shader_integer_functions2_enable;
+   bool INTEL_shader_integer_functions2_warn;
    bool MESA_shader_integer_functions_enable;
    bool MESA_shader_integer_functions_warn;
    bool NV_compute_shader_derivatives_enable;

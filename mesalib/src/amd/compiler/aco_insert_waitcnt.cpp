@@ -65,6 +65,7 @@ enum wait_event : uint16_t {
    event_exp_mrt_null = 1 << 8,
    event_gds_gpr_lock = 1 << 9,
    event_vmem_gpr_lock = 1 << 10,
+   event_sendmsg = 1 << 11,
 };
 
 enum counter_type : uint8_t {
@@ -75,7 +76,7 @@ enum counter_type : uint8_t {
 };
 
 static const uint16_t exp_events = event_exp_pos | event_exp_param | event_exp_mrt_null | event_gds_gpr_lock | event_vmem_gpr_lock;
-static const uint16_t lgkm_events = event_smem | event_lds | event_gds | event_flat;
+static const uint16_t lgkm_events = event_smem | event_lds | event_gds | event_flat | event_sendmsg;
 static const uint16_t vm_events = event_vmem | event_flat;
 static const uint16_t vs_events = event_vmem_store;
 
@@ -85,6 +86,7 @@ uint8_t get_counters_for_event(wait_event ev)
    case event_smem:
    case event_lds:
    case event_gds:
+   case event_sendmsg:
       return counter_lgkm;
    case event_vmem:
       return counter_vm;
@@ -204,7 +206,7 @@ struct wait_entry {
 
       if (counter == counter_lgkm) {
          imm.lgkm = wait_imm::unset_counter;
-         events &= ~(event_smem | event_lds | event_gds);
+         events &= ~(event_smem | event_lds | event_gds | event_sendmsg);
       }
 
       if (counter == counter_vm) {
@@ -394,15 +396,18 @@ wait_imm kill(Instruction* instr, wait_ctx& ctx)
    }
 
    if (instr->format == Format::PSEUDO_BARRIER) {
-      unsigned* bsize = ctx.program->info->cs.block_size;
-      unsigned workgroup_size = bsize[0] * bsize[1] * bsize[2];
+      uint32_t workgroup_size = UINT32_MAX;
+      if (ctx.program->stage & sw_cs) {
+         unsigned* bsize = ctx.program->info->cs.block_size;
+         workgroup_size = bsize[0] * bsize[1] * bsize[2];
+      }
       switch (instr->opcode) {
-      case aco_opcode::p_memory_barrier_all:
-         for (unsigned i = 0; i < barrier_count; i++) {
-            if ((1 << i) == barrier_shared && workgroup_size <= ctx.program->wave_size)
-               continue;
-            imm.combine(ctx.barrier_imm[i]);
-         }
+      case aco_opcode::p_memory_barrier_common:
+         imm.combine(ctx.barrier_imm[ffs(barrier_atomic) - 1]);
+         imm.combine(ctx.barrier_imm[ffs(barrier_buffer) - 1]);
+         imm.combine(ctx.barrier_imm[ffs(barrier_image) - 1]);
+         if (workgroup_size > ctx.program->wave_size)
+            imm.combine(ctx.barrier_imm[ffs(barrier_shared) - 1]);
          break;
       case aco_opcode::p_memory_barrier_atomic:
          imm.combine(ctx.barrier_imm[ffs(barrier_atomic) - 1]);
@@ -416,6 +421,12 @@ wait_imm kill(Instruction* instr, wait_ctx& ctx)
       case aco_opcode::p_memory_barrier_shared:
          if (workgroup_size > ctx.program->wave_size)
             imm.combine(ctx.barrier_imm[ffs(barrier_shared) - 1]);
+         break;
+      case aco_opcode::p_memory_barrier_gs_data:
+         imm.combine(ctx.barrier_imm[ffs(barrier_gs_data) - 1]);
+         break;
+      case aco_opcode::p_memory_barrier_gs_sendmsg:
+         imm.combine(ctx.barrier_imm[ffs(barrier_gs_sendmsg) - 1]);
          break;
       default:
          assert(false);
@@ -684,6 +695,11 @@ void gen(Instruction* instr, wait_ctx& ctx)
          insert_wait_entry(ctx, instr->operands[3], event_vmem_gpr_lock);
       }
       break;
+   }
+   case Format::SOPP: {
+      if (instr->opcode == aco_opcode::s_sendmsg ||
+          instr->opcode == aco_opcode::s_sendmsghalt)
+         update_counters(ctx, event_sendmsg, get_barrier_interaction(instr));
    }
    default:
       break;

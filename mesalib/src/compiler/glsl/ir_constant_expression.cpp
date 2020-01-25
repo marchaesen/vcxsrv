@@ -416,6 +416,42 @@ unpack_half_1x16(uint16_t u)
    return _mesa_half_to_float(u);
 }
 
+static int32_t
+iadd_saturate(int32_t a, int32_t b)
+{
+   return CLAMP(int64_t(a) + int64_t(b), INT32_MIN, INT32_MAX);
+}
+
+static int64_t
+iadd64_saturate(int64_t a, int64_t b)
+{
+   if (a < 0 && b < INT64_MIN - a)
+      return INT64_MIN;
+
+   if (a > 0 && b > INT64_MAX - a)
+      return INT64_MAX;
+
+   return a + b;
+}
+
+static int32_t
+isub_saturate(int32_t a, int32_t b)
+{
+   return CLAMP(int64_t(a) - int64_t(b), INT32_MIN, INT32_MAX);
+}
+
+static int64_t
+isub64_saturate(int64_t a, int64_t b)
+{
+   if (b > 0 && a < INT64_MIN + b)
+      return INT64_MIN;
+
+   if (b < 0 && a > INT64_MAX + b)
+      return INT64_MAX;
+
+   return a - b;
+}
+
 /**
  * Get the constant that is ultimately referenced by an r-value, in a constant
  * expression evaluation context.

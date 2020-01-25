@@ -25,8 +25,9 @@
  *
  */
 
-#include <stdbool.h>
 #include "pan_tiling.h"
+#include <stdbool.h>
+#include "util/macros.h"
 
 /* This file implements software encode/decode of the tiling format used for
  * textures and framebuffers primarily on Utgard GPUs. Names for this format
@@ -82,7 +83,7 @@
  * 0b11001100. The idea is that for the bits in the solely Y place, we
  * get a Y place, and the bits in the XOR place *also* get a Y. */
 
-uint32_t bit_duplication[16] = {
+const uint32_t bit_duplication[16] = {
    0b00000000,
    0b00000011,
    0b00001100,
@@ -103,7 +104,7 @@ uint32_t bit_duplication[16] = {
 
 /* Space the bits out of a 4-bit nibble */
 
-unsigned space_4[16] = {
+const unsigned space_4[16] = {
    0b0000000,
    0b0000001,
    0b0000100,
@@ -128,185 +129,244 @@ unsigned space_4[16] = {
 #define TILE_HEIGHT 16
 #define PIXELS_PER_TILE (TILE_WIDTH * TILE_HEIGHT)
 
-/* An optimized routine to tile an aligned (width & 0xF == 0) bpp4 texture */
+/* We need a 128-bit type for idiomatically tiling bpp128 formats. The type must
+ * only support copies and sizeof, so emulating with a packed structure works
+ * well enough, but if there's a native 128-bit type we may we well prefer
+ * that. */
 
-static void
-panfrost_store_tiled_image_bpp4(void *dst, const void *src,
-                               const struct pipe_box *box,
-                               uint32_t dst_stride,
-                               uint32_t src_stride)
-{
-   /* Precompute the offset to the beginning of the first horizontal tile we're
-    * writing to, knowing that box->x is 16-aligned. Tiles themselves are
-    * stored linearly, so we get the X tile number by shifting and then
-    * multiply by the bytes per tile */
+#ifdef __SIZEOF_INT128__
+typedef __uint128_t pan_uint128_t;
+#else
+typedef struct {
+  uint64_t lo;
+  uint64_t hi;
+} __attribute__((packed)) pan_uint128_t;
+#endif
 
-   uint8_t *dest_start = dst + ((box->x >> 4) * PIXELS_PER_TILE * 4);
+/* Optimized routine to tile an aligned (w & 0xF == 0) texture. Explanation:
+ *
+ * dest_start precomputes the offset to the beginning of the first horizontal
+ * tile we're writing to, knowing that x is 16-aligned. Tiles themselves are
+ * stored linearly, so we get the X tile number by shifting and then multiply
+ * by the bytes per tile .
+ *
+ * We iterate across the pixels we're trying to store in source-order. For each
+ * row in the destination image, we figure out which row of 16x16 block we're
+ * in, by slicing off the lower 4-bits (block_y).
+ *
+ * dest then precomputes the location of the top-left corner of the block the
+ * row starts in. In pixel coordinates (where the origin is the top-left),
+ * (block_y, 0) is the top-left corner of the leftmost tile in this row.  While
+ * pixels are reordered within a block, the blocks themselves are stored
+ * linearly, so multiplying block_y by the pixel stride of the destination
+ * image equals the byte offset of that top-left corner of the block this row
+ * is in.
+ *
+ * On the other hand, the source is linear so we compute the locations of the
+ * start and end of the row in the source by a simple linear addressing.
+ *
+ * For indexing within the tile, we need to XOR with the [y3 y3 y2 y2 y1 y1 y0
+ * y0] value. Since this is constant across a row, we look it up per-row and
+ * store in expanded_y.
+ *
+ * Finally, we iterate each row in source order. In the outer loop, we iterate
+ * each 16 pixel tile. Within each tile, we iterate the 16 pixels (this should
+ * be unrolled), calculating the index within the tile and writing.
+ */
 
-   /* Iterate across the pixels we're trying to store in source-order */
+#define TILED_STORE_TYPE(pixel_t, shift) \
+static void \
+panfrost_store_tiled_image_##pixel_t \
+                              (void *dst, const void *src, \
+                               uint16_t sx, uint16_t sy, \
+                               uint16_t w, uint16_t h, \
+                               uint32_t dst_stride, \
+                               uint32_t src_stride) \
+{ \
+   uint8_t *dest_start = dst + ((sx >> 4) * PIXELS_PER_TILE * sizeof(pixel_t)); \
+   for (int y = sy, src_y = 0; src_y < h; ++y, ++src_y) { \
+      uint16_t block_y = y & ~0x0f; \
+      uint8_t *dest = (uint8_t *) (dest_start + (block_y * dst_stride)); \
+      const pixel_t *source = src + (src_y * src_stride); \
+      const pixel_t *source_end = source + w; \
+      unsigned expanded_y = bit_duplication[y & 0xF] << shift; \
+      for (; source < source_end; dest += (PIXELS_PER_TILE << shift)) { \
+         for (uint8_t i = 0; i < 16; ++i) { \
+            unsigned index = expanded_y ^ (space_4[i] << shift); \
+            *((pixel_t *) (dest + index)) = *(source++); \
+         } \
+      } \
+   } \
+} \
 
-   for (int y = box->y, src_y = 0; src_y < box->height; ++y, ++src_y) {
-      /* For each pixel in the destination image, figure out the part
-       * corresponding to the 16x16 block index */
+TILED_STORE_TYPE(uint8_t, 0);
+TILED_STORE_TYPE(uint16_t, 1);
+TILED_STORE_TYPE(uint32_t, 2);
+TILED_STORE_TYPE(uint64_t, 3);
+TILED_STORE_TYPE(pan_uint128_t, 4);
 
-      int block_y = y & ~0x0f;
+#define TILED_UNALIGNED_TYPE(pixel_t, is_store, tile_shift) { \
+   const unsigned mask = (1 << tile_shift) - 1; \
+   for (int y = sy, src_y = 0; src_y < h; ++y, ++src_y) { \
+      unsigned block_y = y & ~mask; \
+      unsigned block_start_s = block_y * dst_stride; \
+      unsigned source_start = src_y * src_stride; \
+      unsigned expanded_y = bit_duplication[y & mask]; \
+ \
+      for (int x = sx, src_x = 0; src_x < w; ++x, ++src_x) { \
+         unsigned block_x_s = (x >> tile_shift) * (1 << (tile_shift * 2)); \
+         unsigned index = expanded_y ^ space_4[x & mask]; \
+         uint8_t *source = src + source_start + sizeof(pixel_t) * src_x; \
+         uint8_t *dest = dst + block_start_s + sizeof(pixel_t) * (block_x_s + index); \
+ \
+         pixel_t *outp = (pixel_t *) (is_store ? dest : source); \
+         pixel_t *inp = (pixel_t *) (is_store ? source : dest); \
+         *outp = *inp; \
+      } \
+   } \
+}
 
-      /* In pixel coordinates (where the origin is the top-left), (block_y, 0)
-       * is the top-left corner of the leftmost tile in this row. While pixels
-       * are reordered within a block, the blocks themselves are stored
-       * linearly, so multiplying block_y by the pixel stride of the
-       * destination image equals the byte offset of that top-left corner of
-       * the block this row is in */
-
-      uint32_t *dest = (uint32_t *) (dest_start + (block_y * dst_stride));
-
-      /* The source is actually linear, so compute the byte offset to the start
-       * and end of this row in the source */
-
-      const uint32_t *source = src + (src_y * src_stride);
-      const uint32_t *source_end = source + box->width;
-
-      /* We want to duplicate the bits of the bottom nibble of Y */
-      unsigned expanded_y = bit_duplication[y & 0xF];
-
-      /* Iterate the row in source order. In the outer loop, we iterate 16
-       * bytes tiles. After each tile, we increment dest to include the size of
-       * that tile in pixels. */
-
-      for (; source < source_end; dest += PIXELS_PER_TILE) {
-         /* Within each tile, we iterate each of the 16 pixels in the row of
-          * the tile. This loop should be unrolled. */
-
-         for (int i = 0; i < 16; ++i) {
-            /* We have the X component spaced out in space_x and we have the Y
-             * component duplicated. So we just XOR them together. The X bits
-             * get the XOR like the pattern needs. The Y bits are XORing with
-             * zero so this is a no-op */
-
-            unsigned index = expanded_y ^ space_4[i];
-
-            /* Copy over the pixel */
-            dest[index] = *(source++);
-         }
-      }
-   }
+#define TILED_UNALIGNED_TYPES(store, shift) { \
+   if (bpp == 8) \
+      TILED_UNALIGNED_TYPE(uint8_t, store, shift) \
+   else if (bpp == 16) \
+      TILED_UNALIGNED_TYPE(uint16_t, store, shift) \
+   else if (bpp == 32) \
+      TILED_UNALIGNED_TYPE(uint32_t, store, shift) \
+   else if (bpp == 64) \
+      TILED_UNALIGNED_TYPE(uint64_t, store, shift) \
+   else if (bpp == 128) \
+      TILED_UNALIGNED_TYPE(pan_uint128_t, store, shift) \
 }
 
 static void
 panfrost_access_tiled_image_generic(void *dst, void *src,
-                               const struct pipe_box *box,
+                               unsigned sx, unsigned sy,
+                               unsigned w, unsigned h,
                                uint32_t dst_stride,
                                uint32_t src_stride,
-                               uint32_t bpp,
-                               bool is_store)
+                               const struct util_format_description *desc,
+                               bool _is_store)
 {
-   for (int y = box->y, src_y = 0; src_y < box->height; ++y, ++src_y) {
-      int block_y = y & ~0x0f;
-      int block_start_s = block_y * dst_stride;
-      int source_start = src_y * src_stride;
+   unsigned bpp = desc->block.bits;
 
-      unsigned expanded_y = bit_duplication[y & 0xF];
+   if (desc->block.width > 1) {
+      w = DIV_ROUND_UP(w, desc->block.width);
+      h = DIV_ROUND_UP(h, desc->block.height);
 
-      for (int x = box->x, src_x = 0; src_x < box->width; ++x, ++src_x) {
-         int block_x_s = (x >> 4) * 256;
-
-         unsigned index = expanded_y ^ space_4[x & 0xF];
-
-         uint8_t *src8 = src;
-         uint8_t *source = &src8[source_start + bpp * src_x];
-         uint8_t *dest = dst + block_start_s + bpp * (block_x_s + index);
-
-         uint8_t *out = is_store ? dest : source;
-         uint8_t *in = is_store ? source : dest;
-
-         uint16_t *out16 = (uint16_t *) out;
-         uint16_t *in16 = (uint16_t *) in;
-
-         uint32_t *out32 = (uint32_t *) out;
-         uint32_t *in32 = (uint32_t *) in;
-
-         uint64_t *out64 = (uint64_t *) out;
-         uint64_t *in64 = (uint64_t *) in;
-
-         /* Write out 1-16 bytes. Written like this rather than a loop so the
-          * compiler can see what's going on */
-
-         switch (bpp) {
-            case 1:
-               out[0] = in[0];
-               break;
-
-            case 2:
-               out16[0] = in16[0];
-               break;
-
-            case 3:
-               out16[0] = in16[0];
-               out[2] = in[2];
-               break;
-
-            case 4:
-               out32[0] = in32[0];
-               break;
-
-            case 6:
-               out32[0] = in32[0];
-               out16[2] = in16[2];
-               break;
-
-            case 8:
-               out64[0] = in64[0];
-               break;
-
-            case 12:
-               out64[0] = in64[0];
-               out32[2] = in32[2];
-               break;
-
-            case 16:
-               out64[0] = in64[0];
-               out64[1] = in64[1];
-               break;
-
-            default:
-               unreachable("Invalid bpp in software tiling");
-         }
-      }
+      if (_is_store)
+         TILED_UNALIGNED_TYPES(true, 2)
+      else
+         TILED_UNALIGNED_TYPES(false, 2)
+   } else {
+      if (_is_store)
+         TILED_UNALIGNED_TYPES(true, 4)
+      else
+         TILED_UNALIGNED_TYPES(false, 4)
    }
 }
 
+#define OFFSET(src, _x, _y) (void *) ((uint8_t *) src + ((_y) - orig_y) * src_stride + (((_x) - orig_x) * (bpp / 8)))
+
 void
 panfrost_store_tiled_image(void *dst, const void *src,
-                           const struct pipe_box *box,
+                           unsigned x, unsigned y,
+                           unsigned w, unsigned h,
                            uint32_t dst_stride,
                            uint32_t src_stride,
-                           uint32_t bpp)
+                           enum pipe_format format)
 {
-   /* The optimized path is for aligned writes specifically */
+   const struct util_format_description *desc = util_format_description(format);
 
-   if (box->x & 0xF || box->width & 0xF) {
-      panfrost_access_tiled_image_generic(dst, (void *) src, box, dst_stride, src_stride, bpp, TRUE);
+   if (desc->block.width > 1) {
+      panfrost_access_tiled_image_generic(dst, (void *) src,
+            x, y, w, h,
+            dst_stride, src_stride, desc, true);
+
       return;
    }
 
-   /* Attempt to use an optimized path if we have one */
+   unsigned bpp = desc->block.bits;
+   unsigned first_full_tile_x = DIV_ROUND_UP(x, TILE_WIDTH) * TILE_WIDTH;
+   unsigned first_full_tile_y = DIV_ROUND_UP(y, TILE_HEIGHT) * TILE_HEIGHT;
+   unsigned last_full_tile_x = ((x + w) / TILE_WIDTH) * TILE_WIDTH;
+   unsigned last_full_tile_y = ((y + h) / TILE_HEIGHT) * TILE_HEIGHT;
 
-   switch (bpp) {
-      case 4:
-         panfrost_store_tiled_image_bpp4(dst, (void *) src, box, dst_stride, src_stride);
-         break;
-      default:
-         panfrost_access_tiled_image_generic(dst, (void *) src, box, dst_stride, src_stride, bpp, TRUE);
-         break;
+   /* First, tile the top portion */
+
+   unsigned orig_x = x, orig_y = y;
+
+   if (first_full_tile_y != y) {
+      unsigned dist = MIN2(first_full_tile_y - y, h);
+
+      panfrost_access_tiled_image_generic(dst, OFFSET(src, x, y),
+            x, y, w, dist,
+            dst_stride, src_stride, desc, true);  
+
+      if (dist == h)
+         return;
+
+      y += dist;
+      h -= dist;
    }
+
+   /* Next, the bottom portion */
+   if (last_full_tile_y != (y + h)) {
+      unsigned dist = (y + h) - last_full_tile_y;
+
+      panfrost_access_tiled_image_generic(dst, OFFSET(src, x, last_full_tile_y),
+            x, last_full_tile_y, w, dist,
+            dst_stride, src_stride, desc, true);
+
+      h -= dist;
+   }
+
+   /* The left portion */
+   if (first_full_tile_x != x) {
+      unsigned dist = MIN2(first_full_tile_x - x, w);
+
+      panfrost_access_tiled_image_generic(dst, OFFSET(src, x, y),
+            x, y, dist, h,
+            dst_stride, src_stride, desc, true);
+
+      if (dist == w)
+         return;
+
+      x += dist;
+      w -= dist;
+   }
+
+   /* Finally, the right portion */
+   if (last_full_tile_x != (x + w)) {
+      unsigned dist = (x + w) - last_full_tile_x;
+
+      panfrost_access_tiled_image_generic(dst, OFFSET(src, last_full_tile_x, y),
+            last_full_tile_x, y, dist, h,
+            dst_stride, src_stride, desc, true);
+
+      w -= dist;
+   }
+
+   if (bpp == 8)
+      panfrost_store_tiled_image_uint8_t(dst,  OFFSET(src, x, y), x, y, w, h, dst_stride, src_stride);
+   else if (bpp == 16)
+      panfrost_store_tiled_image_uint16_t(dst, OFFSET(src, x, y), x, y, w, h, dst_stride, src_stride);
+   else if (bpp == 32)
+      panfrost_store_tiled_image_uint32_t(dst, OFFSET(src, x, y), x, y, w, h, dst_stride, src_stride);
+   else if (bpp == 64)
+      panfrost_store_tiled_image_uint64_t(dst, OFFSET(src, x, y), x, y, w, h, dst_stride, src_stride);
+   else if (bpp == 128)
+      panfrost_store_tiled_image_pan_uint128_t(dst, OFFSET(src, x, y), x, y, w, h, dst_stride, src_stride);
 }
 
 void
 panfrost_load_tiled_image(void *dst, const void *src,
-                           const struct pipe_box *box,
+                           unsigned x, unsigned y,
+                           unsigned w, unsigned h,
                            uint32_t dst_stride,
                            uint32_t src_stride,
-                           uint32_t bpp)
+                           enum pipe_format format)
 {
-   panfrost_access_tiled_image_generic((void *) src, dst, box, src_stride, dst_stride, bpp, FALSE);
+   const struct util_format_description *desc = util_format_description(format);
+   panfrost_access_tiled_image_generic((void *) src, dst, x, y, w, h, src_stride, dst_stride, desc, false);
 }

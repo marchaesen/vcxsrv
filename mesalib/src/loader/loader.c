@@ -61,6 +61,11 @@
 #define __IS_LOADER
 #include "pci_id_driver_map.h"
 
+/* For systems like Hurd */
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
+
 static void default_logger(int level, const char *fmt, ...)
 {
    if (level <= _LOADER_WARNING) {

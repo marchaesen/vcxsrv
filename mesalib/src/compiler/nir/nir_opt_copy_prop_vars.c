@@ -155,7 +155,8 @@ gather_vars_written(struct copy_prop_var_state *state,
                               nir_var_shader_temp |
                               nir_var_function_temp |
                               nir_var_mem_ssbo |
-                              nir_var_mem_shared;
+                              nir_var_mem_shared |
+                              nir_var_mem_global;
             continue;
          }
 
@@ -164,11 +165,12 @@ gather_vars_written(struct copy_prop_var_state *state,
 
          nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
          switch (intrin->intrinsic) {
-         case nir_intrinsic_barrier:
+         case nir_intrinsic_control_barrier:
          case nir_intrinsic_memory_barrier:
             written->modes |= nir_var_shader_out |
                               nir_var_mem_ssbo |
-                              nir_var_mem_shared;
+                              nir_var_mem_shared |
+                              nir_var_mem_global;
             break;
 
          case nir_intrinsic_scoped_memory_barrier:
@@ -788,7 +790,8 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
                                          nir_var_shader_temp |
                                          nir_var_function_temp |
                                          nir_var_mem_ssbo |
-                                         nir_var_mem_shared);
+                                         nir_var_mem_shared |
+                                         nir_var_mem_global);
          if (debug) dump_copy_entries(copies);
          continue;
       }
@@ -798,13 +801,33 @@ copy_prop_vars_block(struct copy_prop_var_state *state,
 
       nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
       switch (intrin->intrinsic) {
-      case nir_intrinsic_barrier:
+      case nir_intrinsic_control_barrier:
       case nir_intrinsic_memory_barrier:
          if (debug) dump_instr(instr);
 
          apply_barrier_for_modes(copies, nir_var_shader_out |
                                          nir_var_mem_ssbo |
-                                         nir_var_mem_shared);
+                                         nir_var_mem_shared |
+                                         nir_var_mem_global);
+         break;
+
+      case nir_intrinsic_memory_barrier_buffer:
+         if (debug) dump_instr(instr);
+
+         apply_barrier_for_modes(copies, nir_var_mem_ssbo |
+                                         nir_var_mem_global);
+         break;
+
+      case nir_intrinsic_memory_barrier_shared:
+         if (debug) dump_instr(instr);
+
+         apply_barrier_for_modes(copies, nir_var_mem_shared);
+         break;
+
+      case nir_intrinsic_memory_barrier_tcs_patch:
+         if (debug) dump_instr(instr);
+
+         apply_barrier_for_modes(copies, nir_var_shader_out);
          break;
 
       case nir_intrinsic_scoped_memory_barrier:

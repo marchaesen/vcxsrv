@@ -28,6 +28,7 @@ LOCAL_C_INCLUDES += \
 	$(GALLIUM_TOP)/auxiliary \
 	$(GALLIUM_TOP)/winsys \
 	$(GALLIUM_TOP)/drivers \
+	$(MESA_TOP)/src/etnaviv \
 	$(MESA_TOP)/src/freedreno \
 	$(MESA_TOP)/src/freedreno/ir3 \
 	$(MESA_TOP)/src/freedreno/registers

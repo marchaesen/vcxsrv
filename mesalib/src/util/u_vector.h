@@ -33,6 +33,10 @@
 #include <stdlib.h>
 #include "util/macros.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* TODO - move to u_math.h - name it better etc */
 static inline uint32_t
 u_align_u32(uint32_t v, uint32_t a)
@@ -80,16 +84,19 @@ u_vector_finish(struct u_vector *queue)
    free(queue->data);
 }
 
-#ifndef __GNUC__
+#if !defined(__GNUC__) || defined(__cplusplus)
 #define __builtin_types_compatible_p(t1, t2) 1
 #endif
 
 #define u_vector_foreach(elem, queue)                                  \
    STATIC_ASSERT(__builtin_types_compatible_p(__typeof__(queue), struct u_vector *)); \
    for (uint32_t __u_vector_offset = (queue)->tail;                                \
-        elem = (void *)((char *)(queue)->data + (__u_vector_offset & ((queue)->size - 1))), __u_vector_offset < (queue)->head; \
+        elem = (void *)((char *)(queue)->data + (__u_vector_offset & ((queue)->size - 1))), __u_vector_offset != (queue)->head; \
         __u_vector_offset += (queue)->element_size)
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 

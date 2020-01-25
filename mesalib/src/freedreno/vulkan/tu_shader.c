@@ -80,34 +80,6 @@ tu_spirv_to_nir(struct ir3_compiler *compiler,
    return nir;
 }
 
-static void
-tu_sort_variables_by_location(struct exec_list *variables)
-{
-   struct exec_list sorted;
-   exec_list_make_empty(&sorted);
-
-   nir_foreach_variable_safe(var, variables)
-   {
-      exec_node_remove(&var->node);
-
-      /* insert the variable into the sorted list */
-      nir_variable *next = NULL;
-      nir_foreach_variable(tmp, &sorted)
-      {
-         if (var->data.location < tmp->data.location) {
-            next = tmp;
-            break;
-         }
-      }
-      if (next)
-         exec_node_insert_node_before(&next->node, &var->node);
-      else
-         exec_list_push_tail(&sorted, &var->node);
-   }
-
-   exec_list_move_nodes_to(&sorted, variables);
-}
-
 static unsigned
 map_add(struct tu_descriptor_map *map, int set, int binding, int value,
         int array_size)
@@ -233,44 +205,33 @@ lower_sampler(nir_builder *b, nir_tex_instr *instr, struct tu_shader *shader,
    return true;
 }
 
-static bool
-lower_intrinsic(nir_builder *b, nir_intrinsic_instr *instr,
-                struct tu_shader *shader,
-                const struct tu_pipeline_layout *layout)
+static void
+lower_load_push_constant(nir_builder *b, nir_intrinsic_instr *instr,
+                         struct tu_shader *shader)
 {
-   /* TODO: remove this when layered rendering is implemented */
-   if (instr->intrinsic == nir_intrinsic_load_layer_id) {
-      nir_ssa_def_rewrite_uses(&instr->dest.ssa,
-                               nir_src_for_ssa(nir_imm_int(b, 0)));
-      nir_instr_remove(&instr->instr);
-      return true;
-   }
+   /* note: ir3 wants load_ubo, not load_uniform */
+   assert(nir_intrinsic_base(instr) == 0);
 
-   if (instr->intrinsic == nir_intrinsic_load_push_constant) {
-      /* note: ir3 wants load_ubo, not load_uniform */
-      assert(nir_intrinsic_base(instr) == 0);
+   nir_intrinsic_instr *load =
+      nir_intrinsic_instr_create(b->shader, nir_intrinsic_load_ubo);
+   load->num_components = instr->num_components;
+   load->src[0] = nir_src_for_ssa(nir_imm_int(b, 0));
+   load->src[1] = instr->src[0];
+   nir_ssa_dest_init(&load->instr, &load->dest,
+                     load->num_components, instr->dest.ssa.bit_size,
+                     instr->dest.ssa.name);
+   nir_builder_instr_insert(b, &load->instr);
+   nir_ssa_def_rewrite_uses(&instr->dest.ssa, nir_src_for_ssa(&load->dest.ssa));
 
-      nir_intrinsic_instr *load =
-         nir_intrinsic_instr_create(b->shader, nir_intrinsic_load_ubo);
-      load->num_components = instr->num_components;
-      load->src[0] = nir_src_for_ssa(nir_imm_int(b, 0));
-      load->src[1] = instr->src[0];
-      nir_ssa_dest_init(&load->instr, &load->dest,
-                        load->num_components, instr->dest.ssa.bit_size,
-                        instr->dest.ssa.name);
-      nir_builder_instr_insert(b, &load->instr);
-      nir_ssa_def_rewrite_uses(&instr->dest.ssa, nir_src_for_ssa(&load->dest.ssa));
+   nir_instr_remove(&instr->instr);
+}
 
-      nir_instr_remove(&instr->instr);
-
-      return true;
-   }
-
-   if (instr->intrinsic != nir_intrinsic_vulkan_resource_index)
-      return false;
-
+static void
+lower_vulkan_resource_index(nir_builder *b, nir_intrinsic_instr *instr,
+                            struct tu_shader *shader,
+                            const struct tu_pipeline_layout *layout)
+{
    nir_const_value *const_val = nir_src_as_const_value(instr->src[0]);
-
 
    unsigned set = nir_intrinsic_desc_set(instr);
    unsigned binding = nir_intrinsic_binding(instr);
@@ -282,11 +243,12 @@ lower_intrinsic(nir_builder *b, nir_intrinsic_instr *instr,
    switch (nir_intrinsic_desc_type(instr)) {
    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-      if (!const_val || const_val->u32 != 0)
-         tu_finishme("non-zero vulkan_resource_index array index");
+      if (!const_val)
+         tu_finishme("non-constant vulkan_resource_index array index");
       /* skip index 0 which is used for push constants */
       index = map_add(&shader->ubo_map, set, binding, 0,
                       binding_layout->array_size) + 1;
+      index += const_val->u32;
       break;
    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
@@ -294,6 +256,7 @@ lower_intrinsic(nir_builder *b, nir_intrinsic_instr *instr,
          tu_finishme("non-constant vulkan_resource_index array index");
       index = map_add(&shader->ssbo_map, set, binding, 0,
                       binding_layout->array_size);
+      index += const_val->u32;
       break;
    default:
       tu_finishme("unsupported desc_type for vulkan_resource_index");
@@ -303,8 +266,70 @@ lower_intrinsic(nir_builder *b, nir_intrinsic_instr *instr,
    nir_ssa_def_rewrite_uses(&instr->dest.ssa,
                             nir_src_for_ssa(nir_imm_int(b, index)));
    nir_instr_remove(&instr->instr);
+}
 
-   return true;
+static void
+add_image_deref_mapping(nir_intrinsic_instr *instr, struct tu_shader *shader,
+                const struct tu_pipeline_layout *layout)
+{
+   nir_deref_instr *deref = nir_src_as_deref(instr->src[0]);
+   nir_variable *var = nir_deref_instr_get_variable(deref);
+
+   uint32_t set = var->data.descriptor_set;
+   uint32_t binding = var->data.binding;
+   struct tu_descriptor_set_layout *set_layout = layout->set[set].layout;
+   struct tu_descriptor_set_binding_layout *binding_layout =
+      &set_layout->binding[binding];
+
+   var->data.driver_location =
+      map_add(&shader->image_map, set, binding, var->data.index,
+              binding_layout->array_size);
+}
+
+static bool
+lower_intrinsic(nir_builder *b, nir_intrinsic_instr *instr,
+                struct tu_shader *shader,
+                const struct tu_pipeline_layout *layout)
+{
+   switch (instr->intrinsic) {
+   case nir_intrinsic_load_layer_id:
+      /* TODO: remove this when layered rendering is implemented */
+      nir_ssa_def_rewrite_uses(&instr->dest.ssa,
+                               nir_src_for_ssa(nir_imm_int(b, 0)));
+      nir_instr_remove(&instr->instr);
+      return true;
+
+   case nir_intrinsic_load_push_constant:
+      lower_load_push_constant(b, instr, shader);
+      return true;
+
+   case nir_intrinsic_vulkan_resource_index:
+      lower_vulkan_resource_index(b, instr, shader, layout);
+      return true;
+
+   case nir_intrinsic_image_deref_load:
+   case nir_intrinsic_image_deref_store:
+   case nir_intrinsic_image_deref_atomic_add:
+   case nir_intrinsic_image_deref_atomic_imin:
+   case nir_intrinsic_image_deref_atomic_umin:
+   case nir_intrinsic_image_deref_atomic_imax:
+   case nir_intrinsic_image_deref_atomic_umax:
+   case nir_intrinsic_image_deref_atomic_and:
+   case nir_intrinsic_image_deref_atomic_or:
+   case nir_intrinsic_image_deref_atomic_xor:
+   case nir_intrinsic_image_deref_atomic_exchange:
+   case nir_intrinsic_image_deref_atomic_comp_swap:
+   case nir_intrinsic_image_deref_size:
+   case nir_intrinsic_image_deref_samples:
+   case nir_intrinsic_image_deref_load_param_intel:
+   case nir_intrinsic_image_deref_load_raw_intel:
+   case nir_intrinsic_image_deref_store_raw_intel:
+      add_image_deref_mapping(instr, shader, layout);
+      return true;
+
+   default:
+      return false;
+   }
 }
 
 static bool
@@ -344,6 +369,12 @@ tu_lower_io(nir_shader *shader, struct tu_shader *tu_shader,
       if (function->impl)
          progress |= lower_impl(function->impl, tu_shader, layout);
    }
+
+   /* spirv_to_nir produces num_ssbos equal to the number of SSBO-containing
+    * variables, while ir3 wants the number of descriptors (like the gallium
+    * path).
+    */
+   shader->info.num_ssbos = tu_shader->ssbo_map.num_desc;
 
    return progress;
 }
@@ -417,25 +448,7 @@ tu_shader_create(struct tu_device *dev,
    /* ir3 doesn't support indirect input/output */
    NIR_PASS_V(nir, nir_lower_indirect_derefs, nir_var_shader_in | nir_var_shader_out);
 
-   switch (stage) {
-   case MESA_SHADER_VERTEX:
-      tu_sort_variables_by_location(&nir->outputs);
-      break;
-   case MESA_SHADER_TESS_CTRL:
-   case MESA_SHADER_TESS_EVAL:
-   case MESA_SHADER_GEOMETRY:
-      tu_sort_variables_by_location(&nir->inputs);
-      tu_sort_variables_by_location(&nir->outputs);
-      break;
-   case MESA_SHADER_FRAGMENT:
-      tu_sort_variables_by_location(&nir->inputs);
-      break;
-   case MESA_SHADER_COMPUTE:
-      break;
-   default:
-      unreachable("invalid gl_shader_stage");
-      break;
-   }
+   NIR_PASS_V(nir, nir_lower_io_arrays_to_elements_no_indirects, false);
 
    nir_assign_io_var_locations(&nir->inputs, &nir->num_inputs, stage);
    nir_assign_io_var_locations(&nir->outputs, &nir->num_outputs, stage);
@@ -459,8 +472,6 @@ tu_shader_create(struct tu_device *dev,
 
       NIR_PASS_V(nir, ir3_nir_move_varying_inputs);
    }
-
-   NIR_PASS_V(nir, nir_lower_io_arrays_to_elements_no_indirects, false);
 
    nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
 

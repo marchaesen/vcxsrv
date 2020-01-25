@@ -31,9 +31,9 @@
 
 
 void ir3_ibo_mapping_init(struct ir3_ibo_mapping *mapping, unsigned num_textures);
-unsigned ir3_ssbo_to_ibo(struct ir3_ibo_mapping *mapping, unsigned ssbo);
+unsigned ir3_ssbo_to_ibo(struct ir3_shader *shader, unsigned ssbo);
 unsigned ir3_ssbo_to_tex(struct ir3_ibo_mapping *mapping, unsigned ssbo);
-unsigned ir3_image_to_ibo(struct ir3_ibo_mapping *mapping, unsigned image);
+unsigned ir3_image_to_ibo(struct ir3_shader *shader, unsigned image);
 unsigned ir3_image_to_tex(struct ir3_ibo_mapping *mapping, unsigned image);
 
 unsigned ir3_get_image_slot(nir_deref_instr *deref);

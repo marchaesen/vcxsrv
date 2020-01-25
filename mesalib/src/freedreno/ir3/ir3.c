@@ -148,8 +148,15 @@ static int emit_cat0(struct ir3_instruction *instr, void *ptr,
 	cat0->sync     = !!(instr->flags & IR3_INSTR_SY);
 	cat0->opc_cat  = 0;
 
-	if (instr->opc == OPC_CONDEND || instr->opc == OPC_ENDPATCH)
+	switch (instr->opc) {
+	case OPC_IF:
+	case OPC_ELSE:
+	case OPC_ENDIF:
 		cat0->dummy4 = 16;
+		break;
+	default:
+		break;
+	}
 
 	return 0;
 }

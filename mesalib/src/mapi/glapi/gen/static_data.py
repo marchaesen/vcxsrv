@@ -1638,6 +1638,8 @@ offsets = {
     "IsNamedStringARB": 1602,
     "GetNamedStringARB": 1603,
     "GetNamedStringivARB": 1604,
+    "EGLImageTargetTexStorageEXT" : 1605,
+    "EGLImageTargetTextureStorageEXT" : 1606,
 }
 
 functions = [

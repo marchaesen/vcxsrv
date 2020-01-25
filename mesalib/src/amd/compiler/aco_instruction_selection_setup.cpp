@@ -39,7 +39,7 @@
 
 namespace aco {
 
-struct vs_output_state {
+struct output_state {
    uint8_t mask[VARYING_SLOT_VAR31 + 1];
    Temp outputs[VARYING_SLOT_VAR31 + 1][4];
 };
@@ -74,19 +74,23 @@ struct isel_context {
 
    Temp arg_temps[AC_MAX_ARGS];
 
-   /* inputs common for merged stages */
-   Temp merged_wave_info = Temp(0, s1);
-
    /* FS inputs */
    Temp persp_centroid, linear_centroid;
 
-   /* VS inputs */
-   bool needs_instance_id;
+   /* GS inputs */
+   Temp gs_wave_id;
+
+   /* gathered information */
+   uint64_t input_masks[MESA_SHADER_COMPUTE];
+   uint64_t output_masks[MESA_SHADER_COMPUTE];
 
    /* VS output information */
+   bool export_clip_dists;
    unsigned num_clip_distances;
    unsigned num_cull_distances;
-   vs_output_state vs_output;
+
+   /* VS, FS or GS output information */
+   output_state outputs;
 };
 
 Temp get_arg(isel_context *ctx, struct ac_arg arg)
@@ -298,6 +302,7 @@ void init_context(isel_context *ctx, nir_shader *shader)
                   case nir_intrinsic_load_sample_id:
                   case nir_intrinsic_load_sample_mask_in:
                   case nir_intrinsic_load_input:
+                  case nir_intrinsic_load_per_vertex_input:
                   case nir_intrinsic_load_vertex_id:
                   case nir_intrinsic_load_vertex_id_zero_base:
                   case nir_intrinsic_load_barycentric_sample:
@@ -357,6 +362,8 @@ void init_context(isel_context *ctx, nir_shader *shader)
                   case nir_intrinsic_shared_atomic_exchange:
                   case nir_intrinsic_shared_atomic_comp_swap:
                   case nir_intrinsic_load_scratch:
+                  case nir_intrinsic_load_invocation_id:
+                  case nir_intrinsic_load_primitive_id:
                      type = RegType::vgpr;
                      break;
                   case nir_intrinsic_shuffle:
@@ -656,46 +663,25 @@ mem_vectorize_callback(unsigned align, unsigned bit_size,
 }
 
 void
-setup_vs_variables(isel_context *ctx, nir_shader *nir)
+setup_vs_output_info(isel_context *ctx, nir_shader *nir,
+                     bool export_prim_id, bool export_clip_dists,
+                     radv_vs_output_info *outinfo)
 {
-   nir_foreach_variable(variable, &nir->inputs)
-   {
-      variable->data.driver_location = variable->data.location * 4;
-   }
-   nir_foreach_variable(variable, &nir->outputs)
-   {
-      variable->data.driver_location = variable->data.location * 4;
-   }
-
-   radv_vs_output_info *outinfo = &ctx->program->info->vs.outinfo;
-
    memset(outinfo->vs_output_param_offset, AC_EXP_PARAM_UNDEFINED,
           sizeof(outinfo->vs_output_param_offset));
-
-   ctx->needs_instance_id = ctx->program->info->vs.needs_instance_id;
-
-   bool export_clip_dists = ctx->options->key.vs_common_out.export_clip_dists;
 
    outinfo->param_exports = 0;
    int pos_written = 0x1;
    if (outinfo->writes_pointsize || outinfo->writes_viewport_index || outinfo->writes_layer)
       pos_written |= 1 << 1;
 
-   nir_foreach_variable(variable, &nir->outputs)
-   {
-      int idx = variable->data.location;
-      unsigned slots = variable->type->count_attribute_slots(false);
-      if (variable->data.compact) {
-         unsigned component_count = variable->data.location_frac + variable->type->length;
-         slots = (component_count + 3) / 4;
-      }
-
+   uint64_t mask = ctx->output_masks[nir->info.stage];
+   while (mask) {
+      int idx = u_bit_scan64(&mask);
       if (idx >= VARYING_SLOT_VAR0 || idx == VARYING_SLOT_LAYER || idx == VARYING_SLOT_PRIMITIVE_ID ||
           ((idx == VARYING_SLOT_CLIP_DIST0 || idx == VARYING_SLOT_CLIP_DIST1) && export_clip_dists)) {
-         for (unsigned i = 0; i < slots; i++) {
-            if (outinfo->vs_output_param_offset[idx + i] == AC_EXP_PARAM_UNDEFINED)
-               outinfo->vs_output_param_offset[idx + i] = outinfo->param_exports++;
-         }
+         if (outinfo->vs_output_param_offset[idx] == AC_EXP_PARAM_UNDEFINED)
+            outinfo->vs_output_param_offset[idx] = outinfo->param_exports++;
       }
    }
    if (outinfo->writes_layer &&
@@ -705,11 +691,12 @@ setup_vs_variables(isel_context *ctx, nir_shader *nir)
       outinfo->vs_output_param_offset[VARYING_SLOT_LAYER] = outinfo->param_exports++;
    }
 
-   if (outinfo->export_prim_id) {
+   if (export_prim_id) {
       assert(outinfo->vs_output_param_offset[VARYING_SLOT_PRIMITIVE_ID] == AC_EXP_PARAM_UNDEFINED);
       outinfo->vs_output_param_offset[VARYING_SLOT_PRIMITIVE_ID] = outinfo->param_exports++;
    }
 
+   ctx->export_clip_dists = export_clip_dists;
    ctx->num_clip_distances = util_bitcount(outinfo->clip_dist_mask);
    ctx->num_cull_distances = util_bitcount(outinfo->cull_dist_mask);
 
@@ -721,6 +708,39 @@ setup_vs_variables(isel_context *ctx, nir_shader *nir)
       pos_written |= 1 << 3;
 
    outinfo->pos_exports = util_bitcount(pos_written);
+}
+
+void
+setup_vs_variables(isel_context *ctx, nir_shader *nir)
+{
+   nir_foreach_variable(variable, &nir->inputs)
+   {
+      variable->data.driver_location = variable->data.location * 4;
+   }
+   nir_foreach_variable(variable, &nir->outputs)
+   {
+      if (ctx->stage == vertex_geometry_gs)
+         variable->data.driver_location = util_bitcount64(ctx->output_masks[nir->info.stage] & ((1ull << variable->data.location) - 1ull)) * 4;
+      else if (ctx->stage == vertex_es)
+         //TODO: make this more compact
+         variable->data.driver_location = shader_io_get_unique_index((gl_varying_slot)variable->data.location) * 4;
+      else
+         variable->data.driver_location = variable->data.location * 4;
+   }
+
+   if (ctx->stage == vertex_vs) {
+      radv_vs_output_info *outinfo = &ctx->program->info->vs.outinfo;
+      setup_vs_output_info(ctx, nir, outinfo->export_prim_id,
+                           ctx->options->key.vs_common_out.export_clip_dists, outinfo);
+   } else if (ctx->stage == vertex_geometry_gs || ctx->stage == vertex_es) {
+      /* TODO: radv_nir_shader_info_pass() already sets this but it's larger
+       * than it needs to be in order to set it better, we have to improve
+       * radv_nir_shader_info_pass() because gfx9_get_gs_info() uses
+       * esgs_itemsize and has to be done before compilation
+       */
+      /* radv_es_output_info *outinfo = &ctx->program->info->vs.es_info;
+      outinfo->esgs_itemsize = util_bitcount64(ctx->output_masks[nir->info.stage]) * 16u; */
+   }
 }
 
 void
@@ -744,9 +764,140 @@ setup_variables(isel_context *ctx, nir_shader *nir)
       setup_vs_variables(ctx, nir);
       break;
    }
+   case MESA_SHADER_GEOMETRY: {
+      assert(ctx->stage == vertex_geometry_gs || ctx->stage == geometry_gs);
+      if (ctx->stage == vertex_geometry_gs) {
+         nir_foreach_variable(variable, &nir->inputs) {
+            variable->data.driver_location = util_bitcount64(ctx->input_masks[nir->info.stage] & ((1ull << variable->data.location) - 1ull)) * 4;
+         }
+      } else {
+         //TODO: make this more compact
+         nir_foreach_variable(variable, &nir->inputs) {
+            variable->data.driver_location = shader_io_get_unique_index((gl_varying_slot)variable->data.location) * 4;
+         }
+      }
+      nir_foreach_variable(variable, &nir->outputs) {
+         variable->data.driver_location = variable->data.location * 4;
+      }
+      if (ctx->stage == vertex_geometry_gs)
+         ctx->program->info->gs.es_type = MESA_SHADER_VERTEX; /* tesselation shaders are not yet supported */
+      break;
+   }
    default:
       unreachable("Unhandled shader stage.");
    }
+}
+
+void
+get_io_masks(isel_context *ctx, unsigned shader_count, struct nir_shader *const *shaders)
+{
+   for (unsigned i = 0; i < shader_count; i++) {
+      nir_shader *nir = shaders[i];
+      if (nir->info.stage == MESA_SHADER_COMPUTE)
+         continue;
+
+      uint64_t output_mask = 0;
+      nir_foreach_variable(variable, &nir->outputs) {
+         const glsl_type *type = variable->type;
+         if (nir_is_per_vertex_io(variable, nir->info.stage))
+            type = type->fields.array;
+         unsigned slots = type->count_attribute_slots(false);
+         if (variable->data.compact) {
+            unsigned component_count = variable->data.location_frac + type->length;
+            slots = (component_count + 3) / 4;
+         }
+         output_mask |= ((1ull << slots) - 1) << variable->data.location;
+      }
+
+      uint64_t input_mask = 0;
+      nir_foreach_variable(variable, &nir->inputs) {
+         const glsl_type *type = variable->type;
+         if (nir_is_per_vertex_io(variable, nir->info.stage))
+            type = type->fields.array;
+         unsigned slots = type->count_attribute_slots(false);
+         if (variable->data.compact) {
+            unsigned component_count = variable->data.location_frac + type->length;
+            slots = (component_count + 3) / 4;
+         }
+         input_mask |= ((1ull << slots) - 1) << variable->data.location;
+      }
+
+      ctx->output_masks[nir->info.stage] |= output_mask;
+      if (i + 1 < shader_count)
+         ctx->input_masks[shaders[i + 1]->info.stage] |= output_mask;
+
+      ctx->input_masks[nir->info.stage] |= input_mask;
+      if (i)
+         ctx->output_masks[shaders[i - 1]->info.stage] |= input_mask;
+   }
+}
+
+void
+setup_nir(isel_context *ctx, nir_shader *nir)
+{
+   Program *program = ctx->program;
+
+   /* align and copy constant data */
+   while (program->constant_data.size() % 4u)
+      program->constant_data.push_back(0);
+   ctx->constant_data_offset = program->constant_data.size();
+   program->constant_data.insert(program->constant_data.end(),
+                                 (uint8_t*)nir->constant_data,
+                                 (uint8_t*)nir->constant_data + nir->constant_data_size);
+
+   /* the variable setup has to be done before lower_io / CSE */
+   setup_variables(ctx, nir);
+
+   /* optimize and lower memory operations */
+   bool lower_to_scalar = false;
+   bool lower_pack = false;
+   if (nir_opt_load_store_vectorize(nir,
+                                    (nir_variable_mode)(nir_var_mem_ssbo | nir_var_mem_ubo |
+                                                        nir_var_mem_push_const | nir_var_mem_shared),
+                                    mem_vectorize_callback)) {
+      lower_to_scalar = true;
+      lower_pack = true;
+   }
+   if (nir->info.stage != MESA_SHADER_COMPUTE)
+      nir_lower_io(nir, (nir_variable_mode)(nir_var_shader_in | nir_var_shader_out), type_size, (nir_lower_io_options)0);
+   nir_lower_explicit_io(nir, nir_var_mem_global, nir_address_format_64bit_global);
+
+   if (lower_to_scalar)
+      nir_lower_alu_to_scalar(nir, NULL, NULL);
+   if (lower_pack)
+      nir_lower_pack(nir);
+
+   /* lower ALU operations */
+   // TODO: implement logic64 in aco, it's more effective for sgprs
+   nir_lower_int64(nir, nir->options->lower_int64_options);
+
+   nir_opt_idiv_const(nir, 32);
+   nir_lower_idiv(nir, nir_lower_idiv_precise);
+
+   /* optimize the lowered ALU operations */
+   bool more_algebraic = true;
+   while (more_algebraic) {
+      more_algebraic = false;
+      NIR_PASS_V(nir, nir_copy_prop);
+      NIR_PASS_V(nir, nir_opt_dce);
+      NIR_PASS_V(nir, nir_opt_constant_folding);
+      NIR_PASS(more_algebraic, nir, nir_opt_algebraic);
+   }
+
+   /* cleanup passes */
+   nir_lower_load_const_to_scalar(nir);
+   nir_opt_shrink_load(nir);
+   nir_move_options move_opts = (nir_move_options)(
+      nir_move_const_undef | nir_move_load_ubo | nir_move_load_input |
+      nir_move_comparisons | nir_move_copies);
+   nir_opt_sink(nir, move_opts);
+   nir_opt_move(nir, move_opts);
+   nir_convert_to_lcssa(nir, true, false);
+   nir_lower_phis_to_scalar(nir);
+
+   nir_function_impl *func = nir_shader_get_entrypoint(nir);
+   nir_index_ssa_defs(func);
+   nir_metadata_require(func, nir_metadata_block_index);
 }
 
 isel_context
@@ -754,7 +905,8 @@ setup_isel_context(Program* program,
                    unsigned shader_count,
                    struct nir_shader *const *shaders,
                    ac_shader_config* config,
-                   struct radv_shader_args *args)
+                   struct radv_shader_args *args,
+                   bool is_gs_copy_shader)
 {
    program->stage = 0;
    for (unsigned i = 0; i < shader_count; i++) {
@@ -769,7 +921,7 @@ setup_isel_context(Program* program,
          program->stage |= sw_tes;
          break;
       case MESA_SHADER_GEOMETRY:
-         program->stage |= sw_gs;
+         program->stage |= is_gs_copy_shader ? sw_gs_copy : sw_gs;
          break;
       case MESA_SHADER_FRAGMENT:
          program->stage |= sw_fs;
@@ -781,12 +933,22 @@ setup_isel_context(Program* program,
          unreachable("Shader stage not implemented");
       }
    }
-   if (program->stage == sw_vs)
+   bool gfx9_plus = args->options->chip_class >= GFX9;
+   bool ngg = args->shader_info->is_ngg && args->options->chip_class >= GFX10;
+   if (program->stage == sw_vs && args->shader_info->vs.as_es)
+      program->stage |= hw_es;
+   else if (program->stage == sw_vs && !args->shader_info->vs.as_ls)
       program->stage |= hw_vs;
+   else if (program->stage == sw_gs)
+      program->stage |= hw_gs;
    else if (program->stage == sw_fs)
       program->stage |= hw_fs;
    else if (program->stage == sw_cs)
       program->stage |= hw_cs;
+   else if (program->stage == sw_gs_copy)
+      program->stage |= hw_vs;
+   else if (program->stage == (sw_vs | sw_gs) && gfx9_plus && !ngg)
+      program->stage |= hw_gs;
    else
       unreachable("Shader stage not implemented");
 
@@ -833,94 +995,27 @@ setup_isel_context(Program* program,
    ctx.options = args->options;
    ctx.stage = program->stage;
 
-   for (unsigned i = 0; i < shader_count; i++) {
-      nir_shader *nir = shaders[i];
-
-      /* align and copy constant data */
-      while (program->constant_data.size() % 4u)
-         program->constant_data.push_back(0);
-      ctx.constant_data_offset = program->constant_data.size();
-      program->constant_data.insert(program->constant_data.end(),
-                                    (uint8_t*)nir->constant_data,
-                                    (uint8_t*)nir->constant_data + nir->constant_data_size);
-
-      /* the variable setup has to be done before lower_io / CSE */
-      setup_variables(&ctx, nir);
-
-      /* optimize and lower memory operations */
-      bool lower_to_scalar = false;
-      bool lower_pack = false;
-      if (nir_opt_load_store_vectorize(nir,
-                                       (nir_variable_mode)(nir_var_mem_ssbo | nir_var_mem_ubo |
-                                                           nir_var_mem_push_const | nir_var_mem_shared),
-                                       mem_vectorize_callback)) {
-         lower_to_scalar = true;
-         lower_pack = true;
-      }
-      if (nir->info.stage != MESA_SHADER_COMPUTE)
-         nir_lower_io(nir, (nir_variable_mode)(nir_var_shader_in | nir_var_shader_out), type_size, (nir_lower_io_options)0);
-      nir_lower_explicit_io(nir, nir_var_mem_global, nir_address_format_64bit_global);
-
-      if (lower_to_scalar)
-         nir_lower_alu_to_scalar(nir, NULL, NULL);
-      if (lower_pack)
-         nir_lower_pack(nir);
-
-      /* lower ALU operations */
-      // TODO: implement logic64 in aco, it's more effective for sgprs
-      nir_lower_int64(nir, nir->options->lower_int64_options);
-
-      nir_opt_idiv_const(nir, 32);
-      nir_lower_idiv(nir, nir_lower_idiv_precise);
-
-      /* optimize the lowered ALU operations */
-      bool more_algebraic = true;
-      while (more_algebraic) {
-         more_algebraic = false;
-         NIR_PASS_V(nir, nir_copy_prop);
-         NIR_PASS_V(nir, nir_opt_dce);
-         NIR_PASS_V(nir, nir_opt_constant_folding);
-         NIR_PASS(more_algebraic, nir, nir_opt_algebraic);
-      }
-
-      /* Do late algebraic optimization to turn add(a, neg(b)) back into
-      * subs, then the mandatory cleanup after algebraic.  Note that it may
-      * produce fnegs, and if so then we need to keep running to squash
-      * fneg(fneg(a)).
-      */
-      bool more_late_algebraic = true;
-      while (more_late_algebraic) {
-         more_late_algebraic = false;
-         NIR_PASS(more_late_algebraic, nir, nir_opt_algebraic_late);
-         NIR_PASS_V(nir, nir_opt_constant_folding);
-         NIR_PASS_V(nir, nir_copy_prop);
-         NIR_PASS_V(nir, nir_opt_dce);
-         NIR_PASS_V(nir, nir_opt_cse);
-      }
-
-      /* cleanup passes */
-      nir_lower_load_const_to_scalar(nir);
-      nir_opt_shrink_load(nir);
-      nir_move_options move_opts = (nir_move_options)(
-         nir_move_const_undef | nir_move_load_ubo | nir_move_load_input | nir_move_comparisons);
-      nir_opt_sink(nir, move_opts);
-      nir_opt_move(nir, move_opts);
-      nir_convert_to_lcssa(nir, true, false);
-      nir_lower_phis_to_scalar(nir);
-
-      nir_function_impl *func = nir_shader_get_entrypoint(nir);
-      nir_index_ssa_defs(func);
-      nir_metadata_require(func, nir_metadata_block_index);
-
-      if (args->options->dump_preoptir) {
-         fprintf(stderr, "NIR shader before instruction selection:\n");
-         nir_print_shader(nir, stderr);
-      }
-   }
+   get_io_masks(&ctx, shader_count, shaders);
 
    unsigned scratch_size = 0;
-   for (unsigned i = 0; i < shader_count; i++)
-      scratch_size = std::max(scratch_size, shaders[i]->scratch_size);
+   if (program->stage == gs_copy_vs) {
+      assert(shader_count == 1);
+      setup_vs_output_info(&ctx, shaders[0], false, true, &args->shader_info->vs.outinfo);
+   } else {
+      for (unsigned i = 0; i < shader_count; i++) {
+         nir_shader *nir = shaders[i];
+         setup_nir(&ctx, nir);
+
+         if (args->options->dump_preoptir) {
+            fprintf(stderr, "NIR shader before instruction selection:\n");
+            nir_print_shader(nir, stderr);
+         }
+      }
+
+      for (unsigned i = 0; i < shader_count; i++)
+         scratch_size = std::max(scratch_size, shaders[i]->scratch_size);
+   }
+
    ctx.program->config->scratch_bytes_per_wave = align(scratch_size * ctx.program->wave_size, 1024);
 
    ctx.block = ctx.program->create_and_insert_block();

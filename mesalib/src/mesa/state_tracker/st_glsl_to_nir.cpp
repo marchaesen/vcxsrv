@@ -40,7 +40,6 @@
 
 #include "main/shaderobj.h"
 #include "st_context.h"
-#include "st_glsl_types.h"
 #include "st_program.h"
 #include "st_shader_cache.h"
 
@@ -505,8 +504,7 @@ st_glsl_to_nir_post_opts(struct st_context *st, struct gl_program *prog,
    nir_remove_dead_variables(nir, mask);
 
    if (!st->has_hw_atomics)
-      NIR_PASS_V(nir, nir_lower_atomics_to_ssbo,
-                 st->ctx->Const.Program[nir->info.stage].MaxAtomicBuffers);
+      NIR_PASS_V(nir, nir_lower_atomics_to_ssbo);
 
    st_finalize_nir_before_variants(nir);
 
@@ -897,6 +895,33 @@ st_nir_lower_samplers(struct pipe_screen *screen, nir_shader *nir,
    }
 }
 
+static int
+st_packed_uniforms_type_size(const struct glsl_type *type, bool bindless)
+{
+   return glsl_count_dword_slots(type, bindless);
+}
+
+static int
+st_unpacked_uniforms_type_size(const struct glsl_type *type, bool bindless)
+{
+   return glsl_count_vec4_slots(type, false, bindless);
+}
+
+void
+st_nir_lower_uniforms(struct st_context *st, nir_shader *nir)
+{
+   if (st->ctx->Const.PackedDriverUniformStorage) {
+      NIR_PASS_V(nir, nir_lower_io, nir_var_uniform,
+                 st_packed_uniforms_type_size,
+                 (nir_lower_io_options)0);
+      NIR_PASS_V(nir, nir_lower_uniforms_to_ubo, 4);
+   } else {
+      NIR_PASS_V(nir, nir_lower_io, nir_var_uniform,
+                 st_unpacked_uniforms_type_size,
+                 (nir_lower_io_options)0);
+   }
+}
+
 /* Last third of preparing nir from glsl, which happens after shader
  * variant lowering.
  */
@@ -917,15 +942,7 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog,
    /* Set num_uniforms in number of attribute slots (vec4s) */
    nir->num_uniforms = DIV_ROUND_UP(prog->Parameters->NumParameterValues, 4);
 
-   if (st->ctx->Const.PackedDriverUniformStorage) {
-      NIR_PASS_V(nir, nir_lower_io, nir_var_uniform, st_glsl_type_dword_size,
-                 (nir_lower_io_options)0);
-      NIR_PASS_V(nir, nir_lower_uniforms_to_ubo, 4);
-   } else {
-      NIR_PASS_V(nir, nir_lower_io, nir_var_uniform, st_glsl_uniforms_type_size,
-                 (nir_lower_io_options)0);
-   }
-
+   st_nir_lower_uniforms(st, nir);
    st_nir_lower_samplers(screen, nir, shader_program, prog);
 
    if (finalize_by_driver && screen->finalize_nir)

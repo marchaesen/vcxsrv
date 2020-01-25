@@ -13260,6 +13260,7 @@
 </category>
 
 <xi:include href="OES_EGL_image.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+<xi:include href="EXT_EGL_image_storage.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 <xi:include href="EXT_texture_integer.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 

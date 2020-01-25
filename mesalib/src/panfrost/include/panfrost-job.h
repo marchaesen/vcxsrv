@@ -229,6 +229,9 @@ struct mali_channel_swizzle {
 
 /* The top 3 bits specify how the bits of each component are interpreted. */
 
+/* e.g. ETC2_RGB8 */
+#define MALI_FORMAT_COMPRESSED (0 << 5)
+
 /* e.g. R11F_G11F_B10F */
 #define MALI_FORMAT_SPECIAL (2 << 5)
 
@@ -273,6 +276,16 @@ struct mali_channel_swizzle {
 #define MALI_CHANNEL_FLOAT 7
 
 enum mali_format {
+	MALI_ETC2_RGB8       = MALI_FORMAT_COMPRESSED | 0x1,
+	MALI_ETC2_R11_UNORM  = MALI_FORMAT_COMPRESSED | 0x2,
+	MALI_ETC2_RGBA8      = MALI_FORMAT_COMPRESSED | 0x3,
+	MALI_ETC2_RG11_UNORM = MALI_FORMAT_COMPRESSED | 0x4,
+	MALI_ETC2_R11_SNORM  = MALI_FORMAT_COMPRESSED | 0x11,
+	MALI_ETC2_RG11_SNORM = MALI_FORMAT_COMPRESSED | 0x12,
+	MALI_ETC2_RGB8A1     = MALI_FORMAT_COMPRESSED | 0x13,
+	MALI_ASTC_SRGB_SUPP  = MALI_FORMAT_COMPRESSED | 0x16,
+	MALI_ASTC_HDR_SUPP   = MALI_FORMAT_COMPRESSED | 0x17,
+
 	MALI_RGB565         = MALI_FORMAT_SPECIAL | 0x0,
 	MALI_RGB5_A1_UNORM  = MALI_FORMAT_SPECIAL | 0x2,
 	MALI_RGB10_A2_UNORM = MALI_FORMAT_SPECIAL | 0x3,
@@ -1597,11 +1610,10 @@ struct bifrost_render_target {
  * - TODO: Anything else?
  */
 
-/* Flags field: note, these are guesses */
+/* flags_hi */
+#define MALI_EXTRA_PRESENT      (0x10)
 
-#define MALI_EXTRA_PRESENT      (0x400)
-#define MALI_EXTRA_AFBC         (0x20)
-#define MALI_EXTRA_AFBC_ZS      (0x10)
+/* flags_lo */
 #define MALI_EXTRA_ZS           (0x4)
 
 struct bifrost_fb_extra {
@@ -1609,7 +1621,9 @@ struct bifrost_fb_extra {
         /* Each tile has an 8 byte checksum, so the stride is "width in tiles * 8" */
         u32 checksum_stride;
 
-        u32 flags;
+        unsigned flags_lo : 4;
+        enum mali_block_format zs_block : 2;
+        unsigned flags_hi : 26;
 
         union {
                 /* Note: AFBC is only allowed for 24/8 combined depth/stencil. */

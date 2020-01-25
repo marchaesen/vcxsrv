@@ -578,8 +578,6 @@ files_libmesa_gallium = files(
   'state_tracker/st_glsl_to_tgsi_private.h',
   'state_tracker/st_glsl_to_tgsi_temprename.cpp',
   'state_tracker/st_glsl_to_tgsi_temprename.h',
-  'state_tracker/st_glsl_types.cpp',
-  'state_tracker/st_glsl_types.h',
   'state_tracker/st_manager.c',
   'state_tracker/st_manager.h',
   'state_tracker/st_mesa_to_tgsi.c',

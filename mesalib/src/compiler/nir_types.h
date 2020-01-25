@@ -80,6 +80,9 @@ unsigned glsl_get_length(const struct glsl_type *type);
 
 unsigned glsl_get_aoa_size(const struct glsl_type *type);
 
+unsigned glsl_count_vec4_slots(const struct glsl_type *type,
+                               bool is_gl_vertex_input, bool is_bindless);
+unsigned glsl_count_dword_slots(const struct glsl_type *type, bool is_bindless);
 unsigned glsl_count_attribute_slots(const struct glsl_type *type,
                                     bool is_gl_vertex_input);
 unsigned glsl_get_component_slots(const struct glsl_type *type);

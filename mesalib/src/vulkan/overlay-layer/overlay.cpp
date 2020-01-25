@@ -2044,7 +2044,7 @@ static void overlay_CmdDrawIndexedIndirect(
    device_data->vtable.CmdDrawIndexedIndirect(commandBuffer, buffer, offset, drawCount, stride);
 }
 
-static void overlay_CmdDrawIndirectCountKHR(
+static void overlay_CmdDrawIndirectCount(
     VkCommandBuffer                             commandBuffer,
     VkBuffer                                    buffer,
     VkDeviceSize                                offset,
@@ -2057,12 +2057,12 @@ static void overlay_CmdDrawIndirectCountKHR(
       FIND(struct command_buffer_data, commandBuffer);
    cmd_buffer_data->stats.stats[OVERLAY_PARAM_ENABLED_draw_indirect_count]++;
    struct device_data *device_data = cmd_buffer_data->device;
-   device_data->vtable.CmdDrawIndirectCountKHR(commandBuffer, buffer, offset,
-                                               countBuffer, countBufferOffset,
-                                               maxDrawCount, stride);
+   device_data->vtable.CmdDrawIndirectCount(commandBuffer, buffer, offset,
+                                            countBuffer, countBufferOffset,
+                                            maxDrawCount, stride);
 }
 
-static void overlay_CmdDrawIndexedIndirectCountKHR(
+static void overlay_CmdDrawIndexedIndirectCount(
     VkCommandBuffer                             commandBuffer,
     VkBuffer                                    buffer,
     VkDeviceSize                                offset,
@@ -2075,9 +2075,9 @@ static void overlay_CmdDrawIndexedIndirectCountKHR(
       FIND(struct command_buffer_data, commandBuffer);
    cmd_buffer_data->stats.stats[OVERLAY_PARAM_ENABLED_draw_indexed_indirect_count]++;
    struct device_data *device_data = cmd_buffer_data->device;
-   device_data->vtable.CmdDrawIndexedIndirectCountKHR(commandBuffer, buffer, offset,
-                                                      countBuffer, countBufferOffset,
-                                                      maxDrawCount, stride);
+   device_data->vtable.CmdDrawIndexedIndirectCount(commandBuffer, buffer, offset,
+                                                   countBuffer, countBufferOffset,
+                                                   maxDrawCount, stride);
 }
 
 static void overlay_CmdDispatch(
@@ -2513,6 +2513,7 @@ static const struct {
 } name_to_funcptr_map[] = {
    { "vkGetDeviceProcAddr", (void *) vkGetDeviceProcAddr },
 #define ADD_HOOK(fn) { "vk" # fn, (void *) overlay_ ## fn }
+#define ADD_ALIAS_HOOK(alias, fn) { "vk" # alias, (void *) overlay_ ## fn }
    ADD_HOOK(AllocateCommandBuffers),
    ADD_HOOK(FreeCommandBuffers),
    ADD_HOOK(ResetCommandBuffer),
@@ -2526,8 +2527,10 @@ static const struct {
    ADD_HOOK(CmdDrawIndexedIndirect),
    ADD_HOOK(CmdDispatch),
    ADD_HOOK(CmdDispatchIndirect),
-   ADD_HOOK(CmdDrawIndirectCountKHR),
-   ADD_HOOK(CmdDrawIndexedIndirectCountKHR),
+   ADD_HOOK(CmdDrawIndirectCount),
+   ADD_ALIAS_HOOK(CmdDrawIndirectCountKHR, CmdDrawIndirectCount),
+   ADD_HOOK(CmdDrawIndexedIndirectCount),
+   ADD_ALIAS_HOOK(CmdDrawIndexedIndirectCountKHR, CmdDrawIndexedIndirectCount),
 
    ADD_HOOK(CmdBindPipeline),
 

@@ -975,6 +975,13 @@ struct dd_function_table {
 					     void *image_handle);
 
    /**
+    * \name GL_EXT_EGL_image_storage interface
+    */
+   void (*EGLImageTargetTexStorage)(struct gl_context *ctx, GLenum target,
+                                    struct gl_texture_object *texObj,
+                                    struct gl_texture_image *texImage,
+                                    GLeglImageOES image_handle);
+   /**
     * \name GL_EXT_transform_feedback interface
     */
    struct gl_transform_feedback_object *

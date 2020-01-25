@@ -479,6 +479,9 @@
 /* Glamor can use eglQueryDmaBuf* functions */
 #undef GLAMOR_HAS_EGL_QUERY_DMABUF
 
+/* Glamor can use EGL_MESA_query_driver functions */
+#undef GLAMOR_HAS_EGL_QUERY_DRIVER
+
 /* byte order */
 #undef X_BYTE_ORDER
 

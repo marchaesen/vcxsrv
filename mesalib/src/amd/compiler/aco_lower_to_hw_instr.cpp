@@ -962,7 +962,7 @@ void lower_to_hw_instr(Program* program)
                {
                   Operand operand = instr->operands[i];
                   if (operand.isConstant() || operand.size() == 1) {
-                     assert(instr->definitions[i].size() == 1);
+                     assert(instr->definitions[i].size() == operand.size());
                      copy_operations[instr->definitions[i].physReg()] = {operand, instr->definitions[i], 0, 1};
                   } else {
                      RegClass def_rc = RegClass(instr->definitions[i].regClass().type(), 1);

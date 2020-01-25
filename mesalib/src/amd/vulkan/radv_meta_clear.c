@@ -235,7 +235,27 @@ create_color_renderpass(struct radv_device *device,
 						       .preserveAttachmentCount = 0,
 						       .pPreserveAttachments = NULL,
 					       },
-								.dependencyCount = 0,
+							.dependencyCount = 2,
+							.pDependencies = (VkSubpassDependency[]) {
+								{
+									.srcSubpass = VK_SUBPASS_EXTERNAL,
+									.dstSubpass = 0,
+									.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+									.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+									.srcAccessMask = 0,
+									.dstAccessMask = 0,
+									.dependencyFlags = 0
+								},
+								{
+									.srcSubpass = 0,
+									.dstSubpass = VK_SUBPASS_EXTERNAL,
+									.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+									.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+									.srcAccessMask = 0,
+									.dstAccessMask = 0,
+									.dependencyFlags = 0
+								}
+							},
 									 }, &device->meta_state.alloc, pass);
 	mtx_unlock(&device->meta_state.mtx);
 	return result;
@@ -586,7 +606,27 @@ create_depthstencil_renderpass(struct radv_device *device,
 						       .preserveAttachmentCount = 0,
 						       .pPreserveAttachments = NULL,
 					       },
-								.dependencyCount = 0,
+							.dependencyCount = 2,
+							.pDependencies = (VkSubpassDependency[]) {
+								{
+									.srcSubpass = VK_SUBPASS_EXTERNAL,
+									.dstSubpass = 0,
+									.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+									.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+									.srcAccessMask = 0,
+									.dstAccessMask = 0,
+									.dependencyFlags = 0
+								},
+								{
+									.srcSubpass = 0,
+									.dstSubpass = VK_SUBPASS_EXTERNAL,
+									.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+									.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+									.srcAccessMask = 0,
+									.dstAccessMask = 0,
+									.dependencyFlags = 0
+								}
+							}
 									 }, &device->meta_state.alloc, render_pass);
 	mtx_unlock(&device->meta_state.mtx);
 	return result;
@@ -2084,7 +2124,28 @@ radv_clear_image_layer(struct radv_cmd_buffer *cmd_buffer,
 					      .pAttachments = &att_desc,
 					      .subpassCount = 1,
 					      .pSubpasses = &subpass_desc,
-					      },
+					      .dependencyCount = 2,
+					      .pDependencies = (VkSubpassDependency[]) {
+							{
+								.srcSubpass = VK_SUBPASS_EXTERNAL,
+								.dstSubpass = 0,
+								.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+								.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+								.srcAccessMask = 0,
+								.dstAccessMask = 0,
+								.dependencyFlags = 0
+							},
+							{
+								.srcSubpass = 0,
+								.dstSubpass = VK_SUBPASS_EXTERNAL,
+								.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+								.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+								.srcAccessMask = 0,
+								.dstAccessMask = 0,
+								.dependencyFlags = 0
+							}
+						}
+					},
 			      &cmd_buffer->pool->alloc,
 			      &pass);
 

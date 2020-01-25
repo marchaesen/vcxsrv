@@ -427,12 +427,10 @@ ir3_normalize_key(struct ir3_shader_key *key, gl_shader_stage type)
  */
 struct ir3_ibo_mapping {
 #define IBO_INVALID 0xff
-	/* Maps logical SSBO state to hw state: */
-	uint8_t ssbo_to_ibo[IR3_MAX_SHADER_BUFFERS];
+	/* Maps logical SSBO state to hw tex state: */
 	uint8_t ssbo_to_tex[IR3_MAX_SHADER_BUFFERS];
 
-	/* Maps logical Image state to hw state: */
-	uint8_t image_to_ibo[IR3_MAX_SHADER_IMAGES];
+	/* Maps logical Image state to hw tex state: */
 	uint8_t image_to_tex[IR3_MAX_SHADER_IMAGES];
 
 	/* Maps hw state back to logical SSBO or Image state:
@@ -441,10 +439,8 @@ struct ir3_ibo_mapping {
 	 * hw slot is used for SSBO state vs Image state.
 	 */
 #define IBO_SSBO    0x80
-	uint8_t ibo_to_image[32];
 	uint8_t tex_to_image[32];
 
-	uint8_t num_ibo;
 	uint8_t num_tex;    /* including real textures */
 	uint8_t tex_base;   /* the number of real textures, ie. image/ssbo start here */
 };
@@ -567,6 +563,8 @@ struct ir3_shader_variant {
 
 	/* do we need derivatives: */
 	bool need_pixlod;
+
+	bool need_fine_derivatives;
 
 	/* do we have kill, image write, etc (which prevents early-z): */
 	bool no_earlyz;
@@ -793,6 +791,16 @@ static inline uint32_t
 ir3_shader_halfregs(const struct ir3_shader_variant *v)
 {
 	return (2 * (v->info.max_reg + 1)) + (v->info.max_half_reg + 1);
+}
+
+static inline uint32_t
+ir3_shader_nibo(const struct ir3_shader_variant *v)
+{
+	/* The dummy variant used in binning mode won't have an actual shader. */
+	if (!v->shader)
+		return 0;
+
+	return v->shader->nir->info.num_ssbos + v->shader->nir->info.num_images;
 }
 
 #endif /* IR3_SHADER_H_ */

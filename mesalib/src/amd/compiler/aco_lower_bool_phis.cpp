@@ -54,7 +54,7 @@ Operand get_ssa(Program *program, unsigned block_idx, ssa_state *state)
    while (true) {
       auto pos = state->latest.find(block_idx);
       if (pos != state->latest.end())
-         return Operand({pos->second, program->lane_mask});
+         return Operand(Temp(pos->second, program->lane_mask));
 
       Block& block = program->blocks[block_idx];
       size_t pred = block.linear_preds.size();
@@ -78,7 +78,7 @@ Operand get_ssa(Program *program, unsigned block_idx, ssa_state *state)
          phi->definitions[0] = Definition(Temp{res, program->lane_mask});
          block.instructions.emplace(block.instructions.begin(), std::move(phi));
 
-         return Operand({res, program->lane_mask});
+         return Operand(Temp(res, program->lane_mask));
       }
    }
 }

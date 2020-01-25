@@ -57,11 +57,7 @@ void process_block(dce_ctx& ctx, Block& block)
          continue;
 
       aco_ptr<Instruction>& instr = block.instructions[idx];
-      const bool is_live = instr->definitions.empty() ||
-                           std::any_of(instr->definitions.begin(), instr->definitions.end(),
-                              [&ctx] (const Definition& def) { return !def.isTemp() || ctx.uses[def.tempId()];});
-
-      if (is_live) {
+      if (!is_dead(ctx.uses, instr.get())) {
          for (const Operand& op : instr->operands) {
             if (op.isTemp()) {
                if (ctx.uses[op.tempId()] == 0)
@@ -80,6 +76,16 @@ void process_block(dce_ctx& ctx, Block& block)
 }
 
 } /* end namespace */
+
+bool is_dead(const std::vector<uint16_t>& uses, Instruction *instr)
+{
+   if (instr->definitions.empty())
+      return false;
+   if (std::any_of(instr->definitions.begin(), instr->definitions.end(),
+          [&uses] (const Definition& def) { return uses[def.tempId()];}))
+      return false;
+   return instr_info.is_atomic[(int)instr->opcode];
+}
 
 std::vector<uint16_t> dead_code_analysis(Program *program) {
 

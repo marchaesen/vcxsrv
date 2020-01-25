@@ -65,14 +65,14 @@ public:
    *   \return                data
    */
    constexpr iterator begin() noexcept {
-      return (pointer)((char*)this + offset);
+      return (pointer)((uintptr_t)this + offset);
    }
 
    /*! \brief                 Returns a const_iterator to the begin of the span
    *   \return                data
    */
    constexpr const_iterator begin() const noexcept {
-      return (const_pointer)((const char *)this + offset);
+      return (const_pointer)((uintptr_t)this + offset);
    }
 
    /*! \brief                 Returns an iterator to the end of the span

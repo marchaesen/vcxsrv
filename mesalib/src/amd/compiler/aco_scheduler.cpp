@@ -23,6 +23,7 @@
  */
 
 #include "aco_ir.h"
+#include "aco_builder.h"
 #include <unordered_set>
 #include <algorithm>
 
@@ -111,6 +112,74 @@ static bool is_spill_reload(aco_ptr<Instruction>& instr)
    return instr->opcode == aco_opcode::p_spill || instr->opcode == aco_opcode::p_reload;
 }
 
+bool can_reorder(Instruction* candidate)
+{
+   switch (candidate->format) {
+   case Format::SMEM:
+      return static_cast<SMEM_instruction*>(candidate)->can_reorder;
+   case Format::MUBUF:
+      return static_cast<MUBUF_instruction*>(candidate)->can_reorder;
+   case Format::MIMG:
+      return static_cast<MIMG_instruction*>(candidate)->can_reorder;
+   case Format::MTBUF:
+      return static_cast<MTBUF_instruction*>(candidate)->can_reorder;
+   case Format::FLAT:
+   case Format::GLOBAL:
+   case Format::SCRATCH:
+      return static_cast<FLAT_instruction*>(candidate)->can_reorder;
+   default:
+      return true;
+   }
+}
+
+bool is_gs_or_done_sendmsg(Instruction *instr)
+{
+   if (instr->opcode == aco_opcode::s_sendmsg) {
+      uint16_t imm = static_cast<SOPP_instruction*>(instr)->imm;
+      return (imm & sendmsg_id_mask) == _sendmsg_gs ||
+             (imm & sendmsg_id_mask) == _sendmsg_gs_done;
+   }
+   return false;
+}
+
+bool is_done_sendmsg(Instruction *instr)
+{
+   if (instr->opcode == aco_opcode::s_sendmsg) {
+      uint16_t imm = static_cast<SOPP_instruction*>(instr)->imm;
+      return (imm & sendmsg_id_mask) == _sendmsg_gs_done;
+   }
+   return false;
+}
+
+barrier_interaction get_barrier_interaction(Instruction* instr)
+{
+   switch (instr->format) {
+   case Format::SMEM:
+      return static_cast<SMEM_instruction*>(instr)->barrier;
+   case Format::MUBUF:
+      return static_cast<MUBUF_instruction*>(instr)->barrier;
+   case Format::MIMG:
+      return static_cast<MIMG_instruction*>(instr)->barrier;
+   case Format::MTBUF:
+      return static_cast<MTBUF_instruction*>(instr)->barrier;
+   case Format::FLAT:
+   case Format::GLOBAL:
+   case Format::SCRATCH:
+      return static_cast<FLAT_instruction*>(instr)->barrier;
+   case Format::DS:
+      return barrier_shared;
+   case Format::SOPP:
+      if (is_done_sendmsg(instr))
+         return (barrier_interaction)(barrier_gs_data | barrier_gs_sendmsg);
+      else if (is_gs_or_done_sendmsg(instr))
+         return barrier_gs_sendmsg;
+      else
+         return barrier_none;
+   default:
+      return barrier_none;
+   }
+}
+
 bool can_move_instr(aco_ptr<Instruction>& instr, Instruction* current, int moving_interaction)
 {
    /* don't move exports so that they stay closer together */
@@ -127,26 +196,11 @@ bool can_move_instr(aco_ptr<Instruction>& instr, Instruction* current, int movin
     * instructions interacting with them instead? */
    if (instr->format != Format::PSEUDO_BARRIER) {
       if (instr->opcode == aco_opcode::s_barrier) {
-         bool can_reorder = false;
-         switch (current->format) {
-         case Format::SMEM:
-            can_reorder = static_cast<SMEM_instruction*>(current)->can_reorder;
-            break;
-         case Format::MUBUF:
-            can_reorder = static_cast<MUBUF_instruction*>(current)->can_reorder;
-            break;
-         case Format::MIMG:
-            can_reorder = static_cast<MIMG_instruction*>(current)->can_reorder;
-            break;
-         case Format::FLAT:
-         case Format::GLOBAL:
-         case Format::SCRATCH:
-            can_reorder = static_cast<FLAT_instruction*>(current)->can_reorder;
-            break;
-         default:
-            break;
-         }
-         return can_reorder && moving_interaction == barrier_none;
+         return can_reorder(current) && moving_interaction == barrier_none;
+      } else if (is_gs_or_done_sendmsg(instr.get())) {
+         int interaction = get_barrier_interaction(current);
+         interaction |= moving_interaction;
+         return !(interaction & get_barrier_interaction(instr.get()));
       } else {
          return true;
       }
@@ -170,30 +224,14 @@ bool can_move_instr(aco_ptr<Instruction>& instr, Instruction* current, int movin
       return !(interaction & (barrier_image | barrier_buffer));
    case aco_opcode::p_memory_barrier_shared:
       return !(interaction & barrier_shared);
-   case aco_opcode::p_memory_barrier_all:
-      return interaction == barrier_none;
+   case aco_opcode::p_memory_barrier_common:
+      return !(interaction & (barrier_image | barrier_buffer | barrier_shared | barrier_atomic));
+   case aco_opcode::p_memory_barrier_gs_data:
+      return !(interaction & barrier_gs_data);
+   case aco_opcode::p_memory_barrier_gs_sendmsg:
+      return !(interaction & barrier_gs_sendmsg);
    default:
       return false;
-   }
-}
-
-bool can_reorder(Instruction* candidate)
-{
-   switch (candidate->format) {
-   case Format::SMEM:
-      return static_cast<SMEM_instruction*>(candidate)->can_reorder;
-   case Format::MUBUF:
-      return static_cast<MUBUF_instruction*>(candidate)->can_reorder;
-   case Format::MIMG:
-      return static_cast<MIMG_instruction*>(candidate)->can_reorder;
-   case Format::MTBUF:
-      return static_cast<MTBUF_instruction*>(candidate)->can_reorder;
-   case Format::FLAT:
-   case Format::GLOBAL:
-   case Format::SCRATCH:
-      return static_cast<FLAT_instruction*>(candidate)->can_reorder;
-   default:
-      return true;
    }
 }
 

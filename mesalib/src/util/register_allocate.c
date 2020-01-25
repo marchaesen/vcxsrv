@@ -342,10 +342,9 @@ void
 ra_make_reg_conflicts_transitive(struct ra_regs *regs, unsigned int r)
 {
    struct ra_reg *reg = &regs->regs[r];
-   BITSET_WORD tmp;
    int c;
 
-   BITSET_FOREACH_SET(c, tmp, reg->conflicts, regs->count) {
+   BITSET_FOREACH_SET(c, reg->conflicts, regs->count) {
       struct ra_reg *other = &regs->regs[c];
       unsigned i;
       for (i = 0; i < BITSET_WORDS(regs->count); i++)

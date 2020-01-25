@@ -196,6 +196,27 @@ glsl_base_type_get_bit_size(const enum glsl_base_type base_type)
    return 0;
 }
 
+static inline enum glsl_base_type
+glsl_unsigned_base_type_of(enum glsl_base_type type)
+{
+   switch (type) {
+   case GLSL_TYPE_INT:
+      return GLSL_TYPE_UINT;
+   case GLSL_TYPE_INT8:
+      return GLSL_TYPE_UINT8;
+   case GLSL_TYPE_INT16:
+      return GLSL_TYPE_UINT16;
+   case GLSL_TYPE_INT64:
+      return GLSL_TYPE_UINT64;
+   default:
+      assert(type == GLSL_TYPE_UINT ||
+             type == GLSL_TYPE_UINT8 ||
+             type == GLSL_TYPE_UINT16 ||
+             type == GLSL_TYPE_UINT64);
+      return type;
+   }
+}
+
 enum glsl_sampler_dim {
    GLSL_SAMPLER_DIM_1D = 0,
    GLSL_SAMPLER_DIM_2D,
@@ -473,6 +494,23 @@ public:
    unsigned varying_count() const;
 
    /**
+    * Calculate the number of vec4 slots required to hold this type.
+    *
+    * This is the underlying recursive type_size function for
+    * count_attribute_slots() (vertex inputs and varyings) but also for
+    * gallium's !PIPE_CAP_PACKED_UNIFORMS case.
+    */
+   unsigned count_vec4_slots(bool is_gl_vertex_input, bool bindless) const;
+
+   /**
+    * Calculate the number of vec4 slots required to hold this type.
+    *
+    * This is the underlying recursive type_size function for
+    * gallium's PIPE_CAP_PACKED_UNIFORMS case.
+    */
+   unsigned count_dword_slots(bool bindless) const;
+
+   /**
     * Calculate the number of attribute slots required to hold this type
     *
     * This implements the language rules of GLSL 1.50 for counting the number
@@ -487,7 +525,9 @@ public:
     * Vulkan doesn’t make this distinction so the argument should always be
     * false.
     */
-   unsigned count_attribute_slots(bool is_gl_vertex_input) const;
+   unsigned count_attribute_slots(bool is_gl_vertex_input) const {
+      return count_vec4_slots(is_gl_vertex_input, true);
+   }
 
    /**
     * Alignment in bytes of the start of this type in a std140 uniform

@@ -1,0 +1,10 @@
+C_SOURCES :=  \
+	etnaviv_device.c 	\
+	etnaviv_gpu.c		\
+	etnaviv_bo.c		\
+	etnaviv_bo_cache.c	\
+	etnaviv_perfmon.c	\
+	etnaviv_pipe.c		\
+	etnaviv_cmd_stream.c	\
+	etnaviv_drmif.h		\
+	etnaviv_priv.h

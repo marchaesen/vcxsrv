@@ -34,6 +34,20 @@ iframe {
 	float: left;
 }
 
+figure {
+	margin: 0.5em;
+	padding: 0.5em;
+	border: 1px solid #ccc;
+}
+
+figure pre {
+	margin: 0;
+}
+
+figure figcaption {
+	padding-top: 0.5em;
+}
+
 .content {
 	position: absolute;
 	left: 20em;

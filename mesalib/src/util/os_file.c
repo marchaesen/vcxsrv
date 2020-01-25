@@ -34,7 +34,9 @@ os_file_create_unique(const char *filename, int filemode)
 #if defined(__linux__)
 
 #include <fcntl.h>
+#include <linux/kcmp.h>
 #include <sys/stat.h>
+#include <sys/syscall.h>
 #include <unistd.h>
 
 
@@ -130,13 +132,34 @@ os_read_file(const char *filename)
    return buf;
 }
 
+bool
+os_same_file_description(int fd1, int fd2)
+{
+   pid_t pid = getpid();
+
+   return syscall(SYS_kcmp, pid, pid, KCMP_FILE, fd1, fd2) == 0;
+}
+
 #else
+
+#include "u_debug.h"
 
 char *
 os_read_file(const char *filename)
 {
    errno = -ENOSYS;
    return NULL;
+}
+
+bool
+os_same_file_description(int fd1, int fd2)
+{
+   if (fd1 == fd2)
+      return true;
+
+   debug_warn_once("Can't tell if different file descriptors reference the same"
+                   " file description, false negatives might cause trouble!\n");
+   return false;
 }
 
 #endif

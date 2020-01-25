@@ -185,7 +185,7 @@ static void print_instr_cat0(struct disasm_ctx *ctx, instr_t *instr)
 
 	switch (cat0->opc) {
 	case OPC_KILL:
-	case OPC_CONDEND:
+	case OPC_IF:
 		fprintf(ctx->out, " %sp0.%c", cat0->inv ? "!" : "",
 				component[cat0->comp]);
 		break;
@@ -927,8 +927,9 @@ static const struct opc_info {
 	OPC(0, OPC_CHMASK,       chmask),
 	OPC(0, OPC_CHSH,         chsh),
 	OPC(0, OPC_FLOW_REV,     flow_rev),
-	OPC(0, OPC_CONDEND,      condend),
-	OPC(0, OPC_ENDPATCH,     endpatch),
+	OPC(0, OPC_IF,           if),
+	OPC(0, OPC_ELSE,         else),
+	OPC(0, OPC_ENDIF,        endif),
 
 	/* category 1: */
 	OPC(1, OPC_MOV, ),

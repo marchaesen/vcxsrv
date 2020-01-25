@@ -473,7 +473,10 @@ lower_subgroups_instr(nir_builder *b, nir_instr *instr, void *_options)
    case nir_intrinsic_quad_swap_horizontal:
    case nir_intrinsic_quad_swap_vertical:
    case nir_intrinsic_quad_swap_diagonal:
-      if (options->lower_quad)
+      if (options->lower_quad ||
+          (options->lower_quad_broadcast_dynamic &&
+           intrin->intrinsic == nir_intrinsic_quad_broadcast &&
+           !nir_src_is_const(intrin->src[1])))
          return lower_shuffle(b, intrin, options->lower_to_scalar, false);
       else if (options->lower_to_scalar && intrin->num_components > 1)
          return lower_subgroup_op_to_scalar(b, intrin, false);

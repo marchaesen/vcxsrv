@@ -64,12 +64,12 @@ The format of accepted values is:  <code>visual-class depth</code>
 Here are some examples:
 </p>
 <pre>
-   using csh:
+using csh:
 	% setenv MESA_RGB_VISUAL "TrueColor 8"		// 8-bit TrueColor
 	% setenv MESA_CI_VISUAL "PseudoColor 12"	// 12-bit PseudoColor
 	% setenv MESA_RGB_VISUAL "PseudoColor 8"	// 8-bit PseudoColor
 
-   using bash:
+using bash:
 	$ export MESA_RGB_VISUAL="TrueColor 8"
 	$ export MESA_CI_VISUAL="PseudoColor 12"
 	$ export MESA_RGB_VISUAL="PseudoColor 8"
@@ -146,8 +146,8 @@ The defaults are all 1.0, effectively disabling gamma correction.
 Examples:
 </p>
 <pre>
-	% export MESA_GAMMA="2.3 2.2 2.4"	// separate R,G,B values
-	% export MESA_GAMMA="2.0"		// same gamma for R,G,B
+% export MESA_GAMMA="2.3 2.2 2.4"	// separate R,G,B values
+% export MESA_GAMMA="2.0"		// same gamma for R,G,B
 </pre>
 <p>
 The <code>demos/gamma.c</code> program in mesa/demos repository may help
@@ -183,7 +183,7 @@ determine if your X server has overlay support you can test for the
 SERVER_OVERLAY_VISUALS property:
 </p>
 <pre>
-	xprop -root | grep SERVER_OVERLAY_VISUALS
+xprop -root | grep SERVER_OVERLAY_VISUALS
 </pre>
 
 
@@ -207,8 +207,8 @@ The following Mesa-specific extensions are implemented in the Xlib driver.
 This extension adds the GLX function:
 </p>
 <pre>
-    GLXPixmap glXCreateGLXPixmapMESA( Display *dpy, XVisualInfo *visual,
-                                      Pixmap pixmap, Colormap cmap )
+GLXPixmap glXCreateGLXPixmapMESA( Display *dpy, XVisualInfo *visual,
+                                  Pixmap pixmap, Colormap cmap )
 </pre>
 <p>
 It is an alternative to the standard glXCreateGLXPixmap() function.
@@ -243,10 +243,10 @@ deallocate the ancillary buffers by calling glxReleaseBuffersMESA()
 just before an X window is destroyed.  For example:
 </p>
 <pre>
-         #ifdef GLX_MESA_release_buffers
-            glXReleaseBuffersMESA( dpy, window );
-         #endif
-         XDestroyWindow( dpy, window );
+#ifdef GLX_MESA_release_buffers
+   glXReleaseBuffersMESA( dpy, window );
+#endif
+XDestroyWindow( dpy, window );
 </pre>
 <p>
 <a href="specs/MESA_release_buffers.spec">GLX_MESA_release_buffers specification</a>
@@ -270,11 +270,11 @@ This extension was added in Mesa 2.6
 
 <h2>Summary of X-related environment variables</h2>
 <pre>
-   MESA_RGB_VISUAL - specifies the X visual and depth for RGB mode (X only)
-   MESA_CI_VISUAL - specifies the X visual and depth for CI mode (X only)
-   MESA_BACK_BUFFER - specifies how to implement the back color buffer (X only)
-   MESA_PRIVATE_CMAP - force aux/tk libraries to use private colormaps (X only)
-   MESA_GAMMA - gamma correction coefficients (X only)
+MESA_RGB_VISUAL - specifies the X visual and depth for RGB mode (X only)
+MESA_CI_VISUAL - specifies the X visual and depth for CI mode (X only)
+MESA_BACK_BUFFER - specifies how to implement the back color buffer (X only)
+MESA_PRIVATE_CMAP - force aux/tk libraries to use private colormaps (X only)
+MESA_GAMMA - gamma correction coefficients (X only)
 </pre>
 
 </div>

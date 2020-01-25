@@ -103,7 +103,7 @@ typedef struct midgard_instruction {
         int unit;
 
         bool has_constants;
-        uint32_t constants[4];
+        midgard_constants constants;
         uint16_t inline_constant;
         bool has_blend_constant;
         bool has_inline_constant;
@@ -217,7 +217,7 @@ typedef struct midgard_bundle {
         int padding;
         int control;
         bool has_embedded_constants;
-        float constants[4];
+        midgard_constants constants;
         bool has_blend_constant;
         bool last_writeout;
 } midgard_bundle;
@@ -537,7 +537,7 @@ midgard_reg_mode mir_mode_for_destsize(unsigned size);
 uint16_t mir_from_bytemask(uint16_t bytemask, midgard_reg_mode mode);
 uint16_t mir_to_bytemask(midgard_reg_mode mode, unsigned mask);
 uint16_t mir_bytemask(midgard_instruction *ins);
-uint16_t mir_round_bytemask_down(uint16_t mask, midgard_reg_mode mode);
+uint16_t mir_round_bytemask_up(uint16_t mask, midgard_reg_mode mode);
 void mir_set_bytemask(midgard_instruction *ins, uint16_t bytemask);
 unsigned mir_upper_override(midgard_instruction *ins);
 
@@ -616,7 +616,7 @@ v_load_store_scratch(
                 .no_spill = (1 << REG_CLASS_WORK)
         };
 
-        ins.constants[0] = byte;
+        ins.constants.u32[0] = byte;
 
         if (is_store) {
                 ins.src[0] = srcdest;
@@ -650,7 +650,7 @@ mir_has_arg(midgard_instruction *ins, unsigned arg)
 
 /* Scheduling */
 
-void schedule_program(compiler_context *ctx);
+void midgard_schedule_program(compiler_context *ctx);
 
 void mir_ra(compiler_context *ctx);
 void mir_squeeze_index(compiler_context *ctx);

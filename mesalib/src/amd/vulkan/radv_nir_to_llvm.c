@@ -2371,6 +2371,30 @@ ngg_gs_emit_vertex_ptr(struct radv_shader_context *ctx, LLVMValueRef gsthread,
 	return ngg_gs_vertex_ptr(ctx, vertexidx);
 }
 
+static LLVMValueRef
+ngg_gs_get_emit_output_ptr(struct radv_shader_context *ctx, LLVMValueRef vertexptr,
+			   unsigned out_idx)
+{
+	LLVMValueRef gep_idx[3] = {
+		ctx->ac.i32_0, /* implied C-style array */
+		ctx->ac.i32_0, /* first struct entry */
+		LLVMConstInt(ctx->ac.i32, out_idx, false),
+	};
+	return LLVMBuildGEP(ctx->ac.builder, vertexptr, gep_idx, 3, "");
+}
+
+static LLVMValueRef
+ngg_gs_get_emit_primflag_ptr(struct radv_shader_context *ctx, LLVMValueRef vertexptr,
+			     unsigned stream)
+{
+	LLVMValueRef gep_idx[3] = {
+		ctx->ac.i32_0, /* implied C-style array */
+		ctx->ac.i32_1, /* second struct entry */
+		LLVMConstInt(ctx->ac.i32, stream, false),
+	};
+	return LLVMBuildGEP(ctx->ac.builder, vertexptr, gep_idx, 3, "");
+}
+
 static struct radv_stream_output *
 radv_get_stream_output_by_loc(struct radv_streamout_info *so, unsigned location)
 {
@@ -2974,15 +2998,19 @@ handle_ngg_outputs_post_2(struct radv_shader_context *ctx)
 	{
 		struct ac_ngg_prim prim = {};
 
-		prim.num_vertices = num_vertices;
-		prim.isnull = ctx->ac.i1false;
-		memcpy(prim.index, vtxindex, sizeof(vtxindex[0]) * 3);
+		if (ctx->args->options->key.vs_common_out.as_ngg_passthrough) {
+			prim.passthrough = ac_get_arg(&ctx->ac, ctx->args->gs_vtx_offset[0]);
+		} else {
+			prim.num_vertices = num_vertices;
+			prim.isnull = ctx->ac.i1false;
+			memcpy(prim.index, vtxindex, sizeof(vtxindex[0]) * 3);
 
-		for (unsigned i = 0; i < num_vertices; ++i) {
-			tmp = LLVMBuildLShr(builder,
-					    ac_get_arg(&ctx->ac, ctx->args->ac.gs_invocation_id),
-					    LLVMConstInt(ctx->ac.i32, 8 + i, false), "");
-			prim.edgeflag[i] = LLVMBuildTrunc(builder, tmp, ctx->ac.i1, "");
+			for (unsigned i = 0; i < num_vertices; ++i) {
+				tmp = LLVMBuildLShr(builder,
+						    ac_get_arg(&ctx->ac, ctx->args->ac.gs_invocation_id),
+						    LLVMConstInt(ctx->ac.i32, 8 + i, false), "");
+				prim.edgeflag[i] = LLVMBuildTrunc(builder, tmp, ctx->ac.i1, "");
+			}
 		}
 
 		ac_build_export_prim(&ctx->ac, &prim);
@@ -3096,13 +3124,8 @@ static void gfx10_ngg_gs_emit_epilogue_1(struct radv_shader_context *ctx)
 		LLVMBuildStore(builder, tmp, ctx->gs_next_vertex[stream]);
 
 		tmp = ngg_gs_emit_vertex_ptr(ctx, gsthread, vertexidx);
-		LLVMValueRef gep_idx[3] = {
-			ctx->ac.i32_0, /* implied C-style array */
-			ctx->ac.i32_1, /* second entry of struct */
-			LLVMConstInt(ctx->ac.i32, stream, false),
-		};
-		tmp = LLVMBuildGEP(builder, tmp, gep_idx, 3, "");
-		LLVMBuildStore(builder, i8_0, tmp);
+		LLVMBuildStore(builder, i8_0,
+			       ngg_gs_get_emit_primflag_ptr(ctx, tmp, stream));
 
 		ac_build_endloop(&ctx->ac, 5100);
 	}
@@ -3154,13 +3177,8 @@ static void gfx10_ngg_gs_emit_epilogue_2(struct radv_shader_context *ctx)
 			if (!ctx->args->shader_info->gs.num_stream_output_components[stream])
 				continue;
 
-			LLVMValueRef gep_idx[3] = {
-				ctx->ac.i32_0, /* implicit C-style array */
-				ctx->ac.i32_1, /* second value of struct */
-				LLVMConstInt(ctx->ac.i32, stream, false),
-			};
-			tmp = LLVMBuildGEP(builder, vertexptr, gep_idx, 3, "");
-			tmp = LLVMBuildLoad(builder, tmp, "");
+			tmp = LLVMBuildLoad(builder,
+					    ngg_gs_get_emit_primflag_ptr(ctx, vertexptr, stream), "");
 			tmp = LLVMBuildTrunc(builder, tmp, ctx->ac.i1, "");
 			tmp2 = LLVMBuildICmp(builder, LLVMIntULT, tid, num_emit_threads, "");
 			nggso.prim_enable[stream] = LLVMBuildAnd(builder, tmp, tmp2, "");
@@ -3196,13 +3214,8 @@ static void gfx10_ngg_gs_emit_epilogue_2(struct radv_shader_context *ctx)
 
 			/* Load primitive liveness */
 			tmp = ngg_gs_vertex_ptr(ctx, primidx);
-			LLVMValueRef gep_idx[3] = {
-				ctx->ac.i32_0, /* implicit C-style array */
-				ctx->ac.i32_1, /* second value of struct */
-				ctx->ac.i32_0, /* stream 0 */
-			};
-			tmp = LLVMBuildGEP(builder, tmp, gep_idx, 3, "");
-			tmp = LLVMBuildLoad(builder, tmp, "");
+			tmp = LLVMBuildLoad(builder,
+					    ngg_gs_get_emit_primflag_ptr(ctx, tmp, 0), "");
 			const LLVMValueRef primlive =
 				LLVMBuildTrunc(builder, tmp, ctx->ac.i1, "");
 
@@ -3257,14 +3270,9 @@ static void gfx10_ngg_gs_emit_epilogue_2(struct radv_shader_context *ctx)
 	ac_build_ifcc(&ctx->ac, vertlive, 5130);
 	{
 		tmp = ngg_gs_vertex_ptr(ctx, vertlive_scan.result_exclusive);
-		LLVMValueRef gep_idx[3] = {
-			ctx->ac.i32_0, /* implicit C-style array */
-			ctx->ac.i32_1, /* second value of struct */
-			ctx->ac.i32_1, /* stream 1 */
-		};
-		tmp = LLVMBuildGEP(builder, tmp, gep_idx, 3, "");
 		tmp2 = LLVMBuildTrunc(builder, tid, ctx->ac.i8, "");
-		LLVMBuildStore(builder, tmp2, tmp);
+		LLVMBuildStore(builder, tmp2,
+			       ngg_gs_get_emit_primflag_ptr(ctx, tmp, 1));
 	}
 	ac_build_endif(&ctx->ac, 5130);
 
@@ -3279,13 +3287,8 @@ static void gfx10_ngg_gs_emit_epilogue_2(struct radv_shader_context *ctx)
 		prim.num_vertices = verts_per_prim;
 
 		tmp = ngg_gs_vertex_ptr(ctx, tid);
-		LLVMValueRef gep_idx[3] = {
-			ctx->ac.i32_0, /* implicit C-style array */
-			ctx->ac.i32_1, /* second value of struct */
-			ctx->ac.i32_0, /* primflag */
-		};
-		tmp = LLVMBuildGEP(builder, tmp, gep_idx, 3, "");
-		flags = LLVMBuildLoad(builder, tmp, "");
+		flags = LLVMBuildLoad(builder,
+				      ngg_gs_get_emit_primflag_ptr(ctx, tmp, 0), "");
 		prim.isnull = LLVMBuildNot(builder, LLVMBuildTrunc(builder, flags, ctx->ac.i1, ""), "");
 
 		for (unsigned i = 0; i < verts_per_prim; ++i) {
@@ -3334,18 +3337,12 @@ static void gfx10_ngg_gs_emit_epilogue_2(struct radv_shader_context *ctx)
 		outinfo->pos_exports = 0;
 
 		tmp = ngg_gs_vertex_ptr(ctx, tid);
-		LLVMValueRef gep_idx[3] = {
-			ctx->ac.i32_0, /* implicit C-style array */
-			ctx->ac.i32_1, /* second value of struct */
-			ctx->ac.i32_1, /* stream 1: source data index */
-		};
-		tmp = LLVMBuildGEP(builder, tmp, gep_idx, 3, "");
-		tmp = LLVMBuildLoad(builder, tmp, "");
+		tmp = LLVMBuildLoad(builder,
+				    ngg_gs_get_emit_primflag_ptr(ctx, tmp, 1), "");
 		tmp = LLVMBuildZExt(builder, tmp, ctx->ac.i32, "");
 		const LLVMValueRef vertexptr = ngg_gs_vertex_ptr(ctx, tmp);
 
 		unsigned out_idx = 0;
-		gep_idx[1] = ctx->ac.i32_0;
 		for (unsigned i = 0; i < AC_LLVM_MAX_OUTPUTS; ++i) {
 			unsigned output_usage_mask =
 				ctx->args->shader_info->gs.output_usage_mask[i];
@@ -3362,8 +3359,7 @@ static void gfx10_ngg_gs_emit_epilogue_2(struct radv_shader_context *ctx)
 				if (!(output_usage_mask & (1 << j)))
 					continue;
 
-				gep_idx[2] = LLVMConstInt(ctx->ac.i32, out_idx, false);
-				tmp = LLVMBuildGEP(builder, vertexptr, gep_idx, 3, "");
+				tmp = ngg_gs_get_emit_output_ptr(ctx, vertexptr, out_idx);
 				tmp = LLVMBuildLoad(builder, tmp, "");
 
 				LLVMTypeRef type = LLVMGetAllocatedType(ctx->abi.outputs[ac_llvm_reg_index_soa(i, j)]);
@@ -3443,17 +3439,11 @@ static void gfx10_ngg_gs_emit_vertex(struct radv_shader_context *ctx,
 
 			LLVMValueRef out_val = LLVMBuildLoad(ctx->ac.builder,
 							     out_ptr[j], "");
-			LLVMValueRef gep_idx[3] = {
-				ctx->ac.i32_0, /* implied C-style array */
-				ctx->ac.i32_0, /* first entry of struct */
-				LLVMConstInt(ctx->ac.i32, out_idx, false),
-			};
-			LLVMValueRef ptr = LLVMBuildGEP(builder, vertexptr, gep_idx, 3, "");
-
 			out_val = ac_to_integer(&ctx->ac, out_val);
 			out_val = LLVMBuildZExtOrBitCast(ctx->ac.builder, out_val, ctx->ac.i32, "");
 
-			LLVMBuildStore(builder, out_val, ptr);
+			LLVMBuildStore(builder, out_val,
+				       ngg_gs_get_emit_output_ptr(ctx, vertexptr, out_idx));
 		}
 	}
 	assert(out_idx * 4 <= ctx->args->shader_info->gs.gsvs_vertex_size);
@@ -3479,14 +3469,6 @@ static void gfx10_ngg_gs_emit_vertex(struct radv_shader_context *ctx,
 	tmp = LLVMBuildAdd(builder, curverts, ctx->ac.i32_1, "");
 	LLVMBuildStore(builder, tmp, ctx->gs_curprim_verts[stream]);
 
-	LLVMValueRef gep_idx[3] = {
-		ctx->ac.i32_0, /* implied C-style array */
-		ctx->ac.i32_1, /* second struct entry */
-		LLVMConstInt(ctx->ac.i32, stream, false),
-	};
-	const LLVMValueRef primflagptr =
-		LLVMBuildGEP(builder, vertexptr, gep_idx, 3, "");
-
 	/* The per-vertex primitive flag encoding:
 	 *   bit 0: whether this vertex finishes a primitive
 	 *   bit 1: whether the primitive is odd (if we are emitting triangle strips)
@@ -3496,7 +3478,8 @@ static void gfx10_ngg_gs_emit_vertex(struct radv_shader_context *ctx,
 			  LLVMBuildShl(builder,
 				       LLVMBuildZExt(builder, is_odd, ctx->ac.i8, ""),
 				       ctx->ac.i8_1, ""), "");
-	LLVMBuildStore(builder, tmp, primflagptr);
+	LLVMBuildStore(builder, tmp,
+		       ngg_gs_get_emit_primflag_ptr(ctx, vertexptr, stream));
 
 	tmp = LLVMBuildLoad(builder, ctx->gs_generated_prims[stream], "");
 	tmp = LLVMBuildAdd(builder, tmp, LLVMBuildZExt(builder, iscompleteprim, ctx->ac.i32, ""), "");
@@ -4084,16 +4067,19 @@ LLVMModuleRef ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm,
 		 * Add an extra dword per vertex to ensure an odd stride, which
 		 * avoids bank conflicts for SoA accesses.
 		 */
-		declare_esgs_ring(&ctx);
+		if (!args->options->key.vs_common_out.as_ngg_passthrough)
+			declare_esgs_ring(&ctx);
 
 		/* This is really only needed when streamout and / or vertex
 		 * compaction is enabled.
 		 */
-		LLVMTypeRef asi32 = LLVMArrayType(ctx.ac.i32, 8);
-		ctx.gs_ngg_scratch = LLVMAddGlobalInAddressSpace(ctx.ac.module,
-			asi32, "ngg_scratch", AC_ADDR_SPACE_LDS);
-		LLVMSetInitializer(ctx.gs_ngg_scratch, LLVMGetUndef(asi32));
-		LLVMSetAlignment(ctx.gs_ngg_scratch, 4);
+		if (args->shader_info->so.num_outputs) {
+			LLVMTypeRef asi32 = LLVMArrayType(ctx.ac.i32, 8);
+			ctx.gs_ngg_scratch = LLVMAddGlobalInAddressSpace(ctx.ac.module,
+				asi32, "ngg_scratch", AC_ADDR_SPACE_LDS);
+			LLVMSetInitializer(ctx.gs_ngg_scratch, LLVMGetUndef(asi32));
+			LLVMSetAlignment(ctx.gs_ngg_scratch, 4);
+		}
 	}
 
 	for(int i = 0; i < shader_count; ++i) {

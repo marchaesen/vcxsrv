@@ -562,8 +562,12 @@ print_var_decl(nir_variable *var, print_state *state)
       }
 
       if (!loc) {
-         snprintf(buf, sizeof(buf), "%u", var->data.location);
-         loc = buf;
+         if (var->data.location == ~0) {
+            loc = "~0";
+         } else {
+            snprintf(buf, sizeof(buf), "%u", var->data.location);
+            loc = buf;
+         }
       }
 
       /* For shader I/O vars that have been split to components or packed,
@@ -1036,6 +1040,12 @@ print_tex_instr(nir_tex_instr *instr, print_state *state)
    case nir_texop_tex_prefetch:
       fprintf(fp, "tex (pre-dispatchable) ");
       break;
+   case nir_texop_fragment_fetch:
+      fprintf(fp, "fragment_fetch ");
+      break;
+   case nir_texop_fragment_mask_fetch:
+      fprintf(fp, "fragment_mask_fetch ");
+      break;
    default:
       unreachable("Invalid texture operation");
       break;
@@ -1476,7 +1486,7 @@ init_print_state(print_state *state, nir_shader *shader, FILE *fp)
    state->fp = fp;
    state->shader = shader;
    state->ht = _mesa_pointer_hash_table_create(NULL);
-   state->syms = _mesa_set_create(NULL, _mesa_key_hash_string,
+   state->syms = _mesa_set_create(NULL, _mesa_hash_string,
                                   _mesa_key_string_equal);
    state->index = 0;
 }

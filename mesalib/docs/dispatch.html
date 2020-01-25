@@ -77,17 +77,17 @@ table.</li>
 <p>This can be implemented in just a few lines of C code.  The file
 <code>src/mesa/glapi/glapitemp.h</code> contains code very similar to this.</p>
 
-<blockquote>
-<table border="1">
-<tr><td><pre>
+<figure>
+<pre>
 void glVertex3f(GLfloat x, GLfloat y, GLfloat z)
 {
     const struct _glapi_table * const dispatch = GET_DISPATCH();
 
     (*dispatch-&gt;Vertex3f)(x, y, z);
-}</pre></td></tr>
-<tr><td>Sample dispatch function</td></tr></table>
-</blockquote>
+}
+</pre>
+<figcaption>Sample dispatch function</figcaption>
+</figure>
 
 <p>The problem with this simple implementation is the large amount of
 overhead that it adds to every GL function call.</p>
@@ -129,15 +129,14 @@ The resulting implementation of <code>GET_DISPATCH</code> is slightly more
 complex, but it avoids the expensive <code>pthread_getspecific</code> call in
 the common case.</p>
 
-<blockquote>
-<table border="1">
-<tr><td><pre>
+<figure>
+<pre>
 #define GET_DISPATCH() \
     (_glapi_Dispatch != NULL) \
         ? _glapi_Dispatch : pthread_getspecific(&amp;_glapi_Dispatch_key)
-</pre></td></tr>
-<tr><td>Improved <code>GET_DISPATCH</code> Implementation</td></tr></table>
-</blockquote>
+</pre>
+<figcaption>Improved <code>GET_DISPATCH</code> Implementation</figcaption>
+</figure>
 
 <h3>3.2. ELF TLS</h3>
 
@@ -154,16 +153,15 @@ direct rendering drivers that use either interface.  Once the pointer is
 properly declared, <code>GET_DISPACH</code> becomes a simple variable
 reference.</p>
 
-<blockquote>
-<table border="1">
-<tr><td><pre>
+<figure>
+<pre>
 extern __thread struct _glapi_table *_glapi_tls_Dispatch
     __attribute__((tls_model("initial-exec")));
 
 #define GET_DISPATCH() _glapi_tls_Dispatch
-</pre></td></tr>
-<tr><td>TLS <code>GET_DISPATCH</code> Implementation</td></tr></table>
-</blockquote>
+</pre>
+<figcaption>TLS <code>GET_DISPATCH</code> Implementation</figcaption>
+</figure>
 
 <p>Use of this path is controlled by the preprocessor define
 <code>USE_ELF_TLS</code>.  Any platform capable of using ELF TLS should use this
@@ -215,13 +213,12 @@ of the assembly source file different implementations of the macro are
 selected based on the defined preprocessor variables.  The assembly code
 then consists of a series of invocations of the macros such as:
 
-<blockquote>
-<table border="1">
-<tr><td><pre>
+<figure>
+<pre>
 GL_STUB(Color3fv, _gloffset_Color3fv)
-</pre></td></tr>
-<tr><td>SPARC Assembly Implementation of <code>glColor3fv</code></td></tr></table>
-</blockquote>
+</pre>
+<figcaption>SPARC Assembly Implementation of <code>glColor3fv</code></figcaption>
+</figure>
 
 <p>The benefit of this technique is that changes to the calling pattern
 (i.e., addition of a new dispatch table pointer access method) require fewer
@@ -270,8 +267,6 @@ dispatch stub.</p>
 <p>This path is activated by adding the correct <code>#ifdef</code> magic to
 <code>src/mesa/glapi/glapi.c</code> just before <code>glprocs.h</code> is
 included.</p>
-
-<h2 id="autogen">4. Automatic Generation of Dispatch Stubs</h2>
 
 </div>
 </body>

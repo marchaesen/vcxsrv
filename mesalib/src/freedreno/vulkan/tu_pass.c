@@ -213,10 +213,10 @@ tu_CreateRenderPass(VkDevice _device,
 }
 
 VkResult
-tu_CreateRenderPass2KHR(VkDevice _device,
-                        const VkRenderPassCreateInfo2KHR *pCreateInfo,
-                        const VkAllocationCallbacks *pAllocator,
-                        VkRenderPass *pRenderPass)
+tu_CreateRenderPass2(VkDevice _device,
+                     const VkRenderPassCreateInfo2KHR *pCreateInfo,
+                     const VkAllocationCallbacks *pAllocator,
+                     VkRenderPass *pRenderPass)
 {
    TU_FROM_HANDLE(tu_device, device, _device);
    struct tu_render_pass *pass;
@@ -351,6 +351,7 @@ tu_DestroyRenderPass(VkDevice _device,
 
    if (!_pass)
       return;
+
    vk_free2(&device->alloc, pAllocator, pass->subpass_attachments);
    vk_free2(&device->alloc, pAllocator, pass);
 }

@@ -1691,7 +1691,7 @@ void radv_CmdResetQueryPool(
 	}
 }
 
-void radv_ResetQueryPoolEXT(
+void radv_ResetQueryPool(
 	VkDevice                                   _device,
 	VkQueryPool                                 queryPool,
 	uint32_t                                    firstQuery,

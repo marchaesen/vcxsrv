@@ -62,7 +62,7 @@ def generate_srgb_tables():
     print('util_format_srgb_8unorm_to_linear_float_table[256] = {')
     for j in range(0, 256, 4):
         print('   ', end=' ')
-        print(' '.join(['%.7e,' % srgb_to_linear(i / 255.0) for i in range(j, j + 4)]))
+        print(' '.join(['%.7ef,' % srgb_to_linear(i / 255.0) for i in range(j, j + 4)]))
     print('};')
     print()
     print('const uint8_t')

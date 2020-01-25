@@ -525,6 +525,17 @@ allocate_full_mipmap(const struct st_texture_object *stObj,
    if (stImage->base.Level > 0 || stObj->base.GenerateMipmap)
       return TRUE;
 
+   /* If the application has explicitly called glTextureParameter to set
+    * GL_TEXTURE_MAX_LEVEL, such that (max - base) > 0, then they're trying
+    * to communicate that they will have multiple miplevels.
+    *
+    * Core Mesa will initialize MaxLevel to value much larger than
+    * MAX_TEXTURE_LEVELS, so we check that to see if it's been set at all.
+    */
+   if (stObj->base.MaxLevel < MAX_TEXTURE_LEVELS &&
+       stObj->base.MaxLevel - stObj->base.BaseLevel > 0)
+      return TRUE;
+
    if (stImage->base._BaseFormat == GL_DEPTH_COMPONENT ||
        stImage->base._BaseFormat == GL_DEPTH_STENCIL_EXT)
       /* depth/stencil textures are seldom mipmapped */

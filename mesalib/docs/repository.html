@@ -102,7 +102,7 @@ using git on Windows</a> you'll want to enable automatic CR/LF conversion in
 your local copy of the repository:
 </p>
 <pre>
-   git config --global core.autocrlf true
+git config --global core.autocrlf true
 </pre>
 
 <p>
@@ -141,8 +141,8 @@ If you try to do a pull by just saying<code> git pull </code>
 and git complains that you have not specified a
 branch, try:
 <pre>
-    git config branch.master.remote origin
-    git config branch.master.merge master
+git config branch.master.remote origin
+git config branch.master.merge master
 </pre>
 <p>
 Otherwise, you have to say<code> git pull origin master </code>
@@ -161,7 +161,7 @@ unnecessary and distracting branch in master.
 <p>
 If it has been awhile since you've done the initial clone, try
 <pre>
-    git pull
+git pull
 </pre>
 <p>
 to get the latest files before you start working.
@@ -169,8 +169,8 @@ to get the latest files before you start working.
 <p>
 Make your changes and use
 <pre>
-    git add &lt;files to commit&gt;
-    git commit
+git add &lt;files to commit&gt;
+git commit
 </pre>
 <p>
 to get your changes ready to push back into the fd.o repository.
@@ -185,8 +185,8 @@ where you did your last pull and merging it to a point after the other changes.
 <p>
 To avoid this, 
 <pre>
-    git pull --rebase
-    git push
+git pull --rebase
+git push
 </pre>
 <p>
 If you are familiar with CVS or similar system, this is similar to doing a
@@ -207,8 +207,8 @@ those before doing the push.
 <p>
 If you want the rebase action to be the default action, then
 <pre>
-    git config branch.master.rebase true
-    git config --global branch.autosetuprebase=always
+git config branch.master.rebase true
+git config --global branch.autosetuprebase=always
 </pre>
 <p>
 See <a href="https://www.eecs.harvard.edu/~cduan/technical/git/">Understanding Git Conceptually</a> for a fairly clear explanation about all of this.

@@ -50,6 +50,9 @@
 #include "main/hash.h"
 #include "fast_urem_by_const.h"
 
+#define XXH_INLINE_ALL
+#include "xxhash.h"
+
 static const uint32_t deleted_key_value;
 
 /**
@@ -546,20 +549,28 @@ _mesa_hash_table_random_entry(struct hash_table *ht,
 }
 
 
-/**
- * Quick FNV-1a hash implementation based on:
- * http://www.isthe.com/chongo/tech/comp/fnv/
- *
- * FNV-1a is not be the best hash out there -- Jenkins's lookup3 is supposed
- * to be quite good, and it probably beats FNV.  But FNV has the advantage
- * that it involves almost no code.  For an improvement on both, see Paul
- * Hsieh's http://www.azillionmonkeys.com/qed/hash.html
- */
 uint32_t
 _mesa_hash_data(const void *data, size_t size)
 {
-   return _mesa_fnv32_1a_accumulate_block(_mesa_fnv32_1a_offset_bias,
-                                          data, size);
+   return XXH32(data, size, 0);
+}
+
+uint32_t
+_mesa_hash_int(const void *key)
+{
+   return XXH32(key, sizeof(int), 0);
+}
+
+uint32_t
+_mesa_hash_uint(const void *key)
+{
+   return XXH32(key, sizeof(unsigned), 0);
+}
+
+uint32_t
+_mesa_hash_u32(const void *key)
+{
+   return XXH32(key, 4, 0);
 }
 
 /** FNV-1a string hash implementation */
@@ -575,6 +586,32 @@ _mesa_hash_string(const void *_key)
    }
 
    return hash;
+}
+
+uint32_t
+_mesa_hash_pointer(const void *pointer)
+{
+   uintptr_t num = (uintptr_t) pointer;
+   return (uint32_t) ((num >> 2) ^ (num >> 6) ^ (num >> 10) ^ (num >> 14));
+}
+
+bool
+_mesa_key_int_equal(const void *a, const void *b)
+{
+   return *((const int *)a) == *((const int *)b);
+}
+
+bool
+_mesa_key_uint_equal(const void *a, const void *b)
+{
+
+   return *((const unsigned *)a) == *((const unsigned *)b);
+}
+
+bool
+_mesa_key_u32_equal(const void *a, const void *b)
+{
+   return *((const uint32_t *)a) == *((const uint32_t *)b);
 }
 
 /**

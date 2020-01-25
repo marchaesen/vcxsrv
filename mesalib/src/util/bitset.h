@@ -129,9 +129,17 @@ __bitset_next_set(unsigned i, BITSET_WORD *tmp,
    return word * BITSET_WORDBITS + bit;
 }
 
-#define BITSET_FOREACH_SET(__i, __tmp, __set, __size) \
-   for (__tmp = *(__set), __i = 0; \
-        (__i = __bitset_next_set(__i, &__tmp, __set, __size)) < __size;)
+/**
+ * Iterates over each set bit in a set
+ *
+ * @param __i    iteration variable, bit number
+ * @param __set  the bitset to iterate (will not be modified)
+ * @param __size number of bits in the set to consider
+ */
+#define BITSET_FOREACH_SET(__i, __set, __size) \
+   for (BITSET_WORD __tmp = *(__set), *__foo = &__tmp; __foo != NULL; __foo = NULL) \
+      for (__i = 0; \
+           (__i = __bitset_next_set(__i, &__tmp, __set, __size)) < __size;)
 
 #ifdef __cplusplus
 

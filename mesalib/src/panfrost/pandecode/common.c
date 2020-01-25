@@ -31,6 +31,7 @@
 
 #include "decode.h"
 #include "util/macros.h"
+#include "util/u_debug.h"
 
 /* Memory handling */
 
@@ -115,9 +116,56 @@ pointer_as_memory_reference(uint64_t ptr)
 
 }
 
+static int pandecode_dump_frame_count = 0;
+
+static void
+pandecode_dump_file_open(void)
+{
+        if (pandecode_dump_stream)
+                return;
+
+        char buffer[1024];
+
+        /* This does a getenv every frame, so it is possible to use
+         * setenv to change the base at runtime.
+         */
+        const char *dump_file_base = debug_get_option("PANDECODE_DUMP_FILE", "pandecode.dump");
+        snprintf(buffer, sizeof(buffer), "%s.%04d", dump_file_base, pandecode_dump_frame_count);
+
+        printf("pandecode: dump command stream to file %s\n", buffer);
+        pandecode_dump_stream = fopen(buffer, "w");
+
+        if (!pandecode_dump_stream)
+                fprintf(stderr,"pandecode: failed to open command stream log file %s\n",
+                        buffer);
+}
+
+static void
+pandecode_dump_file_close(void)
+{
+        if (pandecode_dump_stream) {
+                fclose(pandecode_dump_stream);
+                pandecode_dump_stream = NULL;
+        }
+}
+
 void
 pandecode_initialize(void)
 {
         list_inithead(&mmaps.node);
+        pandecode_dump_file_open();
+}
 
+void
+pandecode_next_frame(void)
+{
+        pandecode_dump_file_close();
+        pandecode_dump_frame_count++;
+        pandecode_dump_file_open();
+}
+
+void
+pandecode_close(void)
+{
+        pandecode_dump_file_close();
 }

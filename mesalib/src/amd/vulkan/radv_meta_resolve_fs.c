@@ -231,7 +231,27 @@ create_resolve_pipeline(struct radv_device *device,
 						.preserveAttachmentCount = 0,
 						.pPreserveAttachments = NULL,
 					},
-					.dependencyCount = 0,
+					.dependencyCount = 2,
+					.pDependencies = (VkSubpassDependency[]) {
+						{
+							.srcSubpass = VK_SUBPASS_EXTERNAL,
+							.dstSubpass = 0,
+							.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+							.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+							.srcAccessMask = 0,
+							.dstAccessMask = 0,
+							.dependencyFlags = 0
+						},
+						{
+							.srcSubpass = 0,
+							.dstSubpass = VK_SUBPASS_EXTERNAL,
+							.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+							.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+							.srcAccessMask = 0,
+							.dstAccessMask = 0,
+							.dependencyFlags = 0
+						}
+					},
 				}, &device->meta_state.alloc, rp + dst_layout);
 	}
 
@@ -318,7 +338,7 @@ enum {
 };
 
 static const char *
-get_resolve_mode_str(VkResolveModeFlagBitsKHR resolve_mode)
+get_resolve_mode_str(VkResolveModeFlagBits resolve_mode)
 {
 	switch (resolve_mode) {
 	case VK_RESOLVE_MODE_SAMPLE_ZERO_BIT_KHR:
@@ -337,7 +357,7 @@ get_resolve_mode_str(VkResolveModeFlagBitsKHR resolve_mode)
 static nir_shader *
 build_depth_stencil_resolve_fragment_shader(struct radv_device *dev, int samples,
 					    int index,
-					    VkResolveModeFlagBitsKHR resolve_mode)
+					    VkResolveModeFlagBits resolve_mode)
 {
 	nir_builder b;
 	char name[64];
@@ -454,7 +474,7 @@ static VkResult
 create_depth_stencil_resolve_pipeline(struct radv_device *device,
 				      int samples_log2,
 				      int index,
-				      VkResolveModeFlagBitsKHR resolve_mode)
+				      VkResolveModeFlagBits resolve_mode)
 {
 	VkRenderPass *render_pass;
 	VkPipeline *pipeline;
@@ -555,7 +575,27 @@ create_depth_stencil_resolve_pipeline(struct radv_device *device,
 							.preserveAttachmentCount = 0,
 							.pPreserveAttachments = NULL,
 						},
-						.dependencyCount = 0,
+						.dependencyCount = 2,
+						.pDependencies = (VkSubpassDependency[]) {
+							{
+								.srcSubpass = VK_SUBPASS_EXTERNAL,
+								.dstSubpass = 0,
+								.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+								.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+								.srcAccessMask = 0,
+								.dstAccessMask = 0,
+								.dependencyFlags = 0
+							},
+							{
+								.srcSubpass = 0,
+								.dstSubpass = VK_SUBPASS_EXTERNAL,
+								.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+								.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+								.srcAccessMask = 0,
+								.dstAccessMask = 0,
+								.dependencyFlags = 0
+							}
+						},
 					}, &device->meta_state.alloc, render_pass);
 	}
 
@@ -885,7 +925,7 @@ emit_depth_stencil_resolve(struct radv_cmd_buffer *cmd_buffer,
 			   const VkOffset2D *dst_offset,
 			   const VkExtent2D *resolve_extent,
 			   VkImageAspectFlags aspects,
-			   VkResolveModeFlagBitsKHR resolve_mode)
+			   VkResolveModeFlagBits resolve_mode)
 {
 	struct radv_device *device = cmd_buffer->device;
 	const uint32_t samples = src_iview->image->info.samples;
@@ -1181,7 +1221,7 @@ radv_cmd_buffer_resolve_subpass_fs(struct radv_cmd_buffer *cmd_buffer)
 void
 radv_depth_stencil_resolve_subpass_fs(struct radv_cmd_buffer *cmd_buffer,
 				      VkImageAspectFlags aspects,
-				      VkResolveModeFlagBitsKHR resolve_mode)
+				      VkResolveModeFlagBits resolve_mode)
 {
 	struct radv_framebuffer *fb = cmd_buffer->state.framebuffer;
 	const struct radv_subpass *subpass = cmd_buffer->state.subpass;

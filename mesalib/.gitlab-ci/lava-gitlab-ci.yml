@@ -1,144 +1,33 @@
-include:
-  - project: 'wayland/ci-templates'
-    # Must be the same as in .gitlab-ci.yml
-    ref: 0a9bdd33a98f05af6761ab118b5074952242aab0
-    file: '/templates/debian.yml'
-
-# Build Docker image with deqp, the rootfs and the build deps for Mesa
-.lava-container:
-  extends:
-    - .debian@container-ifnot-exists
-    - .container
-  variables:
-    REPO_SUFFIX: ${CI_JOB_NAME}
-    DEBIAN_TAG:  &debian_tag '2019-12-17-1'
-    DEBIAN_EXEC: 'DEBIAN_ARCH=${DEBIAN_ARCH}
-                  GCC_ARCH=${GCC_ARCH}
-                  KERNEL_ARCH=${KERNEL_ARCH}
-                  VOLT_ARCH=${VOLT_ARCH}
-                  DEFCONFIG=${DEFCONFIG}
-                  DEVICE_TREES="${DEVICE_TREES}"
-                  KERNEL_IMAGE_NAME=${KERNEL_IMAGE_NAME}
-                  bash .gitlab-ci/container/lava_arm.sh'
-    DEBIAN_VERSION: testing-slim
-
-lava_armhf:
-  extends: .lava-container
-  variables:
-    DEBIAN_ARCH: "armhf"
-    GCC_ARCH: "arm-linux-gnueabihf"
-    KERNEL_ARCH: "arm"
-    VOLT_ARCH: "armhf"
-    DEFCONFIG: "arch/arm/configs/multi_v7_defconfig"
-    DEVICE_TREES: "arch/arm/boot/dts/rk3288-veyron-jaq.dtb arch/arm/boot/dts/sun8i-h3-libretech-all-h3-cc.dtb"
-    KERNEL_IMAGE_NAME: "zImage"
-
-lava_arm64:
-  extends: .lava-container
-  variables:
-    DEBIAN_ARCH: "arm64"
-    GCC_ARCH: "aarch64-linux-gnu"
-    KERNEL_ARCH: "arm64"
-    VOLT_ARCH: "aarch64"
-    DEFCONFIG: "arch/arm64/configs/defconfig"
-    DEVICE_TREES: "arch/arm64/boot/dts/rockchip/rk3399-gru-kevin.dtb arch/arm64/boot/dts/amlogic/meson-gxl-s905x-libretech-cc.dtb arch/arm64/boot/dts/allwinner/sun50i-h6-pine-h64.dtb arch/arm64/boot/dts/amlogic/meson-gxm-khadas-vim2.dtb"
-    KERNEL_IMAGE_NAME: "Image"
-
-.lava-build:
-  variables:
-    TAG: *debian_tag
-  image: $CI_REGISTRY_IMAGE/debian/lava_${DEBIAN_ARCH}:$TAG
-  extends:
-    - .build-linux
-    - .ci-run-policy
-  script:
-    # Build Mesa
-    - mkdir -p results mesa-build
-    - mkdir -p ccache
-    - /usr/share/meson/debcrossgen --arch ${DEBIAN_ARCH} -o /tmp/cross_file.txt
-    - meson . mesa-build
-        --cross-file /tmp/cross_file.txt
-        --libdir /artifacts/rootfs/mesa/lib/
-        --buildtype debugoptimized
-        -D gallium-drivers=kmsro,panfrost,lima
-        -D dri-drivers=
-        -D prefix=/artifacts/rootfs/mesa
-        -D glx=disabled
-        -D gbm=false
-        -D egl=true
-        -D platforms=surfaceless
-        -D osmesa=none
-        -D dri3=false
-        -D gallium-vdpau=false
-        -D gallium-xvmc=false
-        -D gallium-omx=disabled
-        -D gallium-va=false
-        -D gallium-xa=false
-        -D gallium-nine=false
-        -D llvm=false
-    - ninja -C mesa-build -j4
-    - ninja -C mesa-build install
-    - find /artifacts/rootfs/mesa/lib -name \*.so -exec ${GCC_ARCH}-strip {} \;
-
-    - du -sh /artifacts/rootfs/mesa/*
-    - rm -rf /artifacts/rootfs/mesa/include
-
-    # Pack rootfs
-    - cp .gitlab-ci/deqp-runner.sh /artifacts/rootfs/deqp/.
-    - cp .gitlab-ci/deqp-*-fails.txt /artifacts/rootfs/deqp/.
-    - cp .gitlab-ci/deqp-*-skips.txt /artifacts/rootfs/deqp/.
-    - du -sh /artifacts/rootfs/deqp/*
-    - find /artifacts/rootfs/ -type f -printf "%s\t%p\n" | sort -n
-    - pushd /artifacts/rootfs/ ; find -H  |  cpio -H newc -v -o | gzip -c - > $CI_PROJECT_DIR/results/lava-rootfs-${DEBIAN_ARCH}.cpio.gz; popd
-
-    # Copy kernel and DT
-    - cp /artifacts/${KERNEL_IMAGE_NAME} /artifacts/*.dtb $CI_PROJECT_DIR/results/.
-
-    # Generate LAVA job
-    - cd $CI_PROJECT_DIR
-    - .gitlab-ci/generate_lava.py
-        --template .gitlab-ci/lava-deqp.yml.jinja2
-        --arch ${DEBIAN_ARCH}
-        --base-artifacts-url $CI_PROJECT_URL/-/jobs/$CI_JOB_ID/artifacts/raw/results
-        --device-types ${DEVICE_TYPES}
-        --kernel-image-name ${KERNEL_IMAGE_NAME}
-  artifacts:
-    when: always
-    paths:
-      - results/
-
-lava-build:armhf:
-  extends: .lava-build
-  needs: ["lava_armhf"]
-  variables:
-    DEBIAN_ARCH: "armhf"
-    GCC_ARCH: "arm-linux-gnueabihf"
-    DEVICE_TYPES: "rk3288-veyron-jaq sun8i-h3-libretech-all-h3-cc"
-    KERNEL_IMAGE_NAME: "zImage"
-
-lava-build:arm64:
-  extends: .lava-build
-  needs: ["lava_arm64"]
-  variables:
-    DEBIAN_ARCH: "arm64"
-    GCC_ARCH: "aarch64-linux-gnu"
-    DEVICE_TYPES: "rk3399-gru-kevin meson-gxl-s905x-libretech-cc sun50i-h6-pine-h64 meson-gxm-khadas-vim2"
-    KERNEL_IMAGE_NAME: "Image"
-
 .lava-test:
   extends:
     - .ci-run-policy
   stage: test
   variables:
     GIT_STRATEGY: none # testing doesn't build anything from source
-    TAG: *debian_tag
-    DEQP_PARALLEL: 6
-    NIR_VALIDATE: 0
-  image: $CI_REGISTRY_IMAGE/debian/lava_${DEBIAN_ARCH}:$TAG
+    ENV_VARS: "MESA_GLES_VERSION_OVERRIDE=3.0 DEQP_PARALLEL=6"
   script:
-    - lava_job_id=`lavacli jobs submit $CI_PROJECT_DIR/results/lava-deqp-$DEVICE_TYPE.yml`
+    - BUILD_JOB_ID=`cat artifacts/build_job_id.txt`
+    - >
+      artifacts/generate_lava.py \
+        --template artifacts/lava-deqp.yml.jinja2 \
+        --pipeline-info "$CI_PIPELINE_URL on $CI_COMMIT_REF_NAME ${CI_NODE_INDEX}/${CI_NODE_TOTAL}" \
+        --base-artifacts-url $CI_PROJECT_URL/-/jobs/$BUILD_JOB_ID/artifacts/raw/artifacts \
+        --device-type ${DEVICE_TYPE} \
+        --env-vars "${ENV_VARS}" \
+        --arch ${ARCH} \
+        --deqp-version gles2 \
+        --kernel-image-name ${KERNEL_IMAGE_NAME} \
+        --kernel-image-type "${KERNEL_IMAGE_TYPE}" \
+        --gpu-version ${GPU_VERSION} \
+        --boot-method ${BOOT_METHOD} \
+        --lava-tags "${LAVA_TAGS}" \
+        --ci-node-index "${CI_NODE_INDEX}" \
+        --ci-node-total "${CI_NODE_TOTAL}"
+    - lava_job_id=`lavacli jobs submit lava-deqp.yml`
     - echo $lava_job_id
-    - lavacli jobs logs $lava_job_id | grep -a -v "{'case':" | tee results/lava-deqp-$lava_job_id.log
+    - rm -rf artifacts/*
+    - cp lava-deqp.yml artifacts/.
+    - lavacli jobs logs $lava_job_id | grep -a -v "{'case':" | tee artifacts/lava-deqp-$lava_job_id.log
     - lavacli jobs show $lava_job_id
     - result=`lavacli results $lava_job_id 0_deqp deqp | head -1`
     - echo $result
@@ -146,32 +35,41 @@ lava-build:arm64:
   artifacts:
     when: always
     paths:
-      - results/
+      - artifacts/
 
 .lava-test:armhf:
   variables:
-    DEBIAN_ARCH: armhf
-  extends: .lava-test
-  needs:
-    - lava_armhf
-    - lava-build:armhf
+    ARCH: armhf
+    KERNEL_IMAGE_NAME: zImage
+    KERNEL_IMAGE_TYPE: "type:\ zimage"
+    BOOT_METHOD: u-boot
+  extends:
+    - .lava-test
+    - .use-arm_build
   dependencies:
-    - lava-build:armhf
+    - meson-armhf
+  needs:
+    - meson-armhf
 
 .lava-test:arm64:
   variables:
-    DEBIAN_ARCH: arm64
-  extends: .lava-test
-  needs:
-    - lava_arm64
-    - lava-build:arm64
+    ARCH: arm64
+    KERNEL_IMAGE_NAME: Image
+    KERNEL_IMAGE_TYPE: "type:\ image"
+    BOOT_METHOD: u-boot
+  extends:
+    - .lava-test
+    - .use-arm_build
   dependencies:
-    - lava-build:arm64
+    - meson-arm64
+  needs:
+    - meson-arm64
 
 panfrost-t720-test:arm64:
   extends: .lava-test:arm64
   variables:
     DEVICE_TYPE: sun50i-h6-pine-h64
+    GPU_VERSION: panfrost-t720
   tags:
     - lava-sun50i-h6-pine-h64
 
@@ -179,6 +77,9 @@ panfrost-t760-test:armhf:
   extends: .lava-test:armhf
   variables:
     DEVICE_TYPE: rk3288-veyron-jaq
+    GPU_VERSION: panfrost-t760
+    BOOT_METHOD: depthcharge
+    KERNEL_IMAGE_TYPE: ""
   tags:
     - lava-rk3288-veyron-jaq
 
@@ -186,6 +87,9 @@ panfrost-t860-test:arm64:
   extends: .lava-test:arm64
   variables:
     DEVICE_TYPE: rk3399-gru-kevin
+    GPU_VERSION: panfrost-t860
+    BOOT_METHOD: depthcharge
+    KERNEL_IMAGE_TYPE: ""
   tags:
     - lava-rk3399-gru-kevin
 
@@ -193,19 +97,26 @@ panfrost-t860-test:arm64:
   extends: .lava-test:arm64
   variables:
     DEVICE_TYPE: meson-gxm-khadas-vim2
+    GPU_VERSION: panfrost-t820
+    LAVA_TAGS: panfrost
   tags:
     - lava-meson-gxm-khadas-vim2
 
-.lima-test:armhf:
+.lima-mali400-test:armhf:
+  parallel: 2
   extends: .lava-test:armhf
   variables:
     DEVICE_TYPE: sun8i-h3-libretech-all-h3-cc
+    GPU_VERSION: lima
+    ENV_VARS: "DEQP_PARALLEL=3"
   tags:
     - lava-sun8i-h3-libretech-all-h3-cc
 
-.lima-test:arm64:
+lima-mali450-test:arm64:
   extends: .lava-test:arm64
   variables:
     DEVICE_TYPE: meson-gxl-s905x-libretech-cc
+    GPU_VERSION: lima
+    ENV_VARS: "DEQP_PARALLEL=6"
   tags:
     - lava-meson-gxl-s905x-libretech-cc

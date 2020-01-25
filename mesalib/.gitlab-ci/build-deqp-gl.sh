@@ -5,7 +5,7 @@ git clone \
     https://github.com/KhronosGroup/VK-GL-CTS.git \
     -b opengl-es-cts-3.2.5.1 \
     /VK-GL-CTS
-cd /VK-GL-CTS
+pushd /VK-GL-CTS
 # Fix surfaceless build
 git cherry-pick -x 22f41e5e321c6dcd8569c4dad91bce89f06b3670
 git cherry-pick -x 1daa8dff73161ea60ead965bd6c9f2a0a2165648
@@ -24,8 +24,9 @@ mkdir -p /deqp
 
 # Save the testlog stylesheets:
 cp doc/testlog-stylesheet/testlog.{css,xsl} /deqp
+popd
 
-cd /deqp
+pushd /deqp
 cmake -G Ninja \
       -DDEQP_TARGET=surfaceless               \
       -DCMAKE_BUILD_TYPE=Release              \
@@ -57,3 +58,4 @@ find -iname '*cmake*' -o -name '*ninja*' -o -name '*.o' -o -name '*.a' | xargs r
 ${STRIP_CMD:-strip} modules/*/deqp-*
 du -sh *
 rm -rf /VK-GL-CTS
+popd

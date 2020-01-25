@@ -159,6 +159,10 @@ static void print_barrier_reorder(bool can_reorder, barrier_interaction barrier,
       fprintf(output, " atomic");
    if (barrier & barrier_shared)
       fprintf(output, " shared");
+   if (barrier & barrier_gs_data)
+      fprintf(output, " gs_data");
+   if (barrier & barrier_gs_sendmsg)
+      fprintf(output, " gs_sendmsg");
 }
 
 static void print_instr_format_specific(struct Instruction *instr, FILE *output)
@@ -190,6 +194,41 @@ static void print_instr_format_specific(struct Instruction *instr, FILE *output)
       case aco_opcode::s_icache_inv:
       case aco_opcode::s_ttracedata:
       case aco_opcode::s_set_gpr_idx_off: {
+         break;
+      }
+      case aco_opcode::s_sendmsg: {
+         unsigned id = imm & sendmsg_id_mask;
+         switch (id) {
+         case sendmsg_none:
+            fprintf(output, " sendmsg(MSG_NONE)");
+            break;
+         case _sendmsg_gs:
+            fprintf(output, " sendmsg(gs%s%s, %u)",
+                    imm & 0x10 ? ", cut" : "", imm & 0x20 ? ", emit" : "", imm >> 8);
+            break;
+         case _sendmsg_gs_done:
+            fprintf(output, " sendmsg(gs_done%s%s, %u)",
+                    imm & 0x10 ? ", cut" : "", imm & 0x20 ? ", emit" : "", imm >> 8);
+            break;
+         case sendmsg_save_wave:
+            fprintf(output, " sendmsg(save_wave)");
+            break;
+         case sendmsg_stall_wave_gen:
+            fprintf(output, " sendmsg(stall_wave_gen)");
+            break;
+         case sendmsg_halt_waves:
+            fprintf(output, " sendmsg(halt_waves)");
+            break;
+         case sendmsg_ordered_ps_done:
+            fprintf(output, " sendmsg(ordered_ps_done)");
+            break;
+         case sendmsg_early_prim_dealloc:
+            fprintf(output, " sendmsg(early_prim_dealloc)");
+            break;
+         case sendmsg_gs_alloc_req:
+            fprintf(output, " sendmsg(gs_alloc_req)");
+            break;
+         }
          break;
       }
       default: {
@@ -236,6 +275,8 @@ static void print_instr_format_specific(struct Instruction *instr, FILE *output)
          fprintf(output, " offen");
       if (mubuf->idxen)
          fprintf(output, " idxen");
+      if (mubuf->addr64)
+         fprintf(output, " addr64");
       if (mubuf->glc)
          fprintf(output, " glc");
       if (mubuf->dlc)

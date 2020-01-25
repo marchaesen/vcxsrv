@@ -292,7 +292,7 @@ _mesa_symbol_table_ctor(void)
     struct _mesa_symbol_table *table = calloc(1, sizeof(*table));
 
     if (table != NULL) {
-       table->ht = _mesa_hash_table_create(NULL, _mesa_key_hash_string,
+       table->ht = _mesa_hash_table_create(NULL, _mesa_hash_string,
                                            _mesa_key_string_equal);
 
        _mesa_symbol_table_push_scope(table);

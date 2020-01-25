@@ -627,7 +627,7 @@ static inline bool is_flow(struct ir3_instruction *instr)
 
 static inline bool is_kill(struct ir3_instruction *instr)
 {
-	return instr->opc == OPC_KILL || instr->opc == OPC_CONDEND;
+	return instr->opc == OPC_KILL;
 }
 
 static inline bool is_nop(struct ir3_instruction *instr)
@@ -1138,7 +1138,7 @@ struct ir3_ra_reg_set * ir3_ra_alloc_reg_set(struct ir3_compiler *compiler);
 int ir3_ra(struct ir3_shader_variant *v, struct ir3_instruction **precolor, unsigned nprecolor);
 
 /* legalize: */
-void ir3_legalize(struct ir3 *ir, bool *has_ssbo, bool *need_pixlod, int *max_bary);
+void ir3_legalize(struct ir3 *ir, struct ir3_shader_variant *so, int *max_bary);
 
 /* ************************************************************************* */
 /* instruction helpers */
@@ -1356,8 +1356,9 @@ INSTR1(KILL)
 INSTR0(END)
 INSTR0(CHSH)
 INSTR0(CHMASK)
-INSTR1(CONDEND)
-INSTR0(ENDPATCH)
+INSTR1(IF)
+INSTR0(ELSE)
+INSTR0(ENDIF)
 
 /* cat2 instructions, most 2 src but some 1 src: */
 INSTR2(ADD_F)
@@ -1436,7 +1437,9 @@ INSTR1(SQRT)
 
 /* cat5 instructions: */
 INSTR1(DSX)
+INSTR1(DSXPP_1)
 INSTR1(DSY)
+INSTR1(DSYPP_1)
 INSTR1F(3D, DSX)
 INSTR1F(3D, DSY)
 INSTR1(RGETPOS)

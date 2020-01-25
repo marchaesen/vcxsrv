@@ -3595,8 +3595,6 @@ _ac_build_readlane(struct ac_llvm_context *ctx, LLVMValueRef src, LLVMValueRef l
 	LLVMTypeRef type = LLVMTypeOf(src);
 	LLVMValueRef result;
 
-	ac_build_optimization_barrier(ctx, &src);
-
 	src = LLVMBuildZExt(ctx->builder, src, ctx->i32, "");
 	if (lane)
 		lane = LLVMBuildZExt(ctx->builder, lane, ctx->i32, "");
@@ -3613,16 +3611,18 @@ _ac_build_readlane(struct ac_llvm_context *ctx, LLVMValueRef src, LLVMValueRef l
 
 /**
  * Builds the "llvm.amdgcn.readlane" or "llvm.amdgcn.readfirstlane" intrinsic.
+ *
+ * The optimization barrier is not needed if the value is the same in all lanes
+ * or if this is called in the outermost block.
+ *
  * @param ctx
  * @param src
  * @param lane - id of the lane or NULL for the first active lane
  * @return value of the lane
  */
-LLVMValueRef
-ac_build_readlane(struct ac_llvm_context *ctx, LLVMValueRef src, LLVMValueRef lane)
+LLVMValueRef ac_build_readlane_no_opt_barrier(struct ac_llvm_context *ctx,
+					      LLVMValueRef src, LLVMValueRef lane)
 {
-	LLVMTypeRef src_type = LLVMTypeOf(src);
-	src = ac_to_integer(ctx, src);
 	unsigned bits = LLVMGetIntTypeWidth(LLVMTypeOf(src));
 	LLVMValueRef ret;
 
@@ -3643,6 +3643,19 @@ ac_build_readlane(struct ac_llvm_context *ctx, LLVMValueRef src, LLVMValueRef la
 		ret = _ac_build_readlane(ctx, src, lane);
 	}
 
+	return ret;
+}
+
+LLVMValueRef
+ac_build_readlane(struct ac_llvm_context *ctx, LLVMValueRef src, LLVMValueRef lane)
+{
+	LLVMTypeRef src_type = LLVMTypeOf(src);
+	src = ac_to_integer(ctx, src);
+	LLVMValueRef ret;
+
+	ac_build_optimization_barrier(ctx, &src);
+
+	ret = ac_build_readlane_no_opt_barrier(ctx, src, lane);
 	if (LLVMGetTypeKind(src_type) == LLVMPointerTypeKind)
 		return LLVMBuildIntToPtr(ctx->builder, ret, src_type, "");
 	return LLVMBuildBitCast(ctx->builder, ret, src_type, "");
@@ -4897,4 +4910,98 @@ void ac_build_s_endpgm(struct ac_llvm_context *ctx)
 	LLVMTypeRef calltype = LLVMFunctionType(ctx->voidt, NULL, 0, false);
 	LLVMValueRef code = LLVMConstInlineAsm(calltype, "s_endpgm", "", true, false);
 	LLVMBuildCall(ctx->builder, code, NULL, 0, "");
+}
+
+LLVMValueRef ac_prefix_bitcount(struct ac_llvm_context *ctx,
+				LLVMValueRef mask, LLVMValueRef index)
+{
+	LLVMBuilderRef builder = ctx->builder;
+	LLVMTypeRef type = LLVMTypeOf(mask);
+
+	LLVMValueRef bit = LLVMBuildShl(builder, LLVMConstInt(type, 1, 0),
+					LLVMBuildZExt(builder, index, type, ""), "");
+	LLVMValueRef prefix_bits = LLVMBuildSub(builder, bit, LLVMConstInt(type, 1, 0), "");
+	LLVMValueRef prefix_mask = LLVMBuildAnd(builder, mask, prefix_bits, "");
+	return ac_build_bit_count(ctx, prefix_mask);
+}
+
+/* Compute the prefix sum of the "mask" bit array with 128 elements (bits). */
+LLVMValueRef ac_prefix_bitcount_2x64(struct ac_llvm_context *ctx,
+				     LLVMValueRef mask[2], LLVMValueRef index)
+{
+	LLVMBuilderRef builder = ctx->builder;
+#if 0
+	/* Reference version using i128. */
+	LLVMValueRef input_mask =
+		LLVMBuildBitCast(builder, ac_build_gather_values(ctx, mask, 2), ctx->i128, "");
+
+	return ac_prefix_bitcount(ctx, input_mask, index);
+#else
+	/* Optimized version using 2 64-bit masks. */
+	LLVMValueRef is_hi, is_0, c64, c128, all_bits;
+	LLVMValueRef prefix_mask[2], shift[2], mask_bcnt0, prefix_bcnt[2];
+
+	/* Compute the 128-bit prefix mask. */
+	c64 = LLVMConstInt(ctx->i32, 64, 0);
+	c128 = LLVMConstInt(ctx->i32, 128, 0);
+	all_bits = LLVMConstInt(ctx->i64, UINT64_MAX, 0);
+	/* The first index that can have non-zero high bits in the prefix mask is 65. */
+	is_hi = LLVMBuildICmp(builder, LLVMIntUGT, index, c64, "");
+	is_0 = LLVMBuildICmp(builder, LLVMIntEQ, index, ctx->i32_0, "");
+	mask_bcnt0 = ac_build_bit_count(ctx, mask[0]);
+
+	for (unsigned i = 0; i < 2; i++) {
+		shift[i] = LLVMBuildSub(builder, i ? c128 : c64, index, "");
+		/* For i==0, index==0, the right shift by 64 doesn't give the desired result,
+		 * so we handle it by the is_0 select.
+		 * For i==1, index==64, same story, so we handle it by the last is_hi select.
+		 * For i==0, index==64, we shift by 0, which is what we want.
+		 */
+		prefix_mask[i] = LLVMBuildLShr(builder, all_bits,
+					LLVMBuildZExt(builder, shift[i], ctx->i64, ""), "");
+		prefix_mask[i] = LLVMBuildAnd(builder, mask[i], prefix_mask[i], "");
+		prefix_bcnt[i] = ac_build_bit_count(ctx, prefix_mask[i]);
+	}
+
+	prefix_bcnt[0] = LLVMBuildSelect(builder, is_0, ctx->i32_0, prefix_bcnt[0], "");
+	prefix_bcnt[0] = LLVMBuildSelect(builder, is_hi, mask_bcnt0, prefix_bcnt[0], "");
+	prefix_bcnt[1] = LLVMBuildSelect(builder, is_hi, prefix_bcnt[1], ctx->i32_0, "");
+
+	return LLVMBuildAdd(builder, prefix_bcnt[0], prefix_bcnt[1], "");
+#endif
+}
+
+/**
+ * Convert triangle strip indices to triangle indices. This is used to decompose
+ * triangle strips into triangles.
+ */
+void ac_build_triangle_strip_indices_to_triangle(struct ac_llvm_context *ctx,
+						 LLVMValueRef is_odd,
+						 LLVMValueRef flatshade_first,
+						 LLVMValueRef index[3])
+{
+	LLVMBuilderRef builder = ctx->builder;
+	LLVMValueRef out[3];
+
+	/* We need to change the vertex order for odd triangles to get correct
+	 * front/back facing by swapping 2 vertex indices, but we also have to
+	 * keep the provoking vertex in the same place.
+	 *
+	 * If the first vertex is provoking, swap index 1 and 2.
+	 * If the last vertex is provoking, swap index 0 and 1.
+	 */
+	out[0] = LLVMBuildSelect(builder, flatshade_first,
+				 index[0],
+				 LLVMBuildSelect(builder, is_odd,
+						 index[1], index[0], ""), "");
+	out[1] = LLVMBuildSelect(builder, flatshade_first,
+				 LLVMBuildSelect(builder, is_odd,
+						 index[2], index[1], ""),
+				 LLVMBuildSelect(builder, is_odd,
+						 index[0], index[1], ""), "");
+	out[2] = LLVMBuildSelect(builder, flatshade_first,
+				 LLVMBuildSelect(builder, is_odd,
+						 index[1], index[2], ""),
+				 index[2], "");
+	memcpy(index, out, sizeof(out));
 }

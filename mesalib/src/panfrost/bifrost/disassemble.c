@@ -187,74 +187,75 @@ enum branch_bit_size {
         BR_SIZE_ZERO = 7,
 };
 
-void dump_header(struct bifrost_header header, bool verbose);
-void dump_instr(const struct bifrost_alu_inst *instr, struct bifrost_regs next_regs, uint64_t *consts,
+void dump_header(FILE *fp, struct bifrost_header header, bool verbose);
+void dump_instr(FILE *fp, const struct bifrost_alu_inst *instr,
+                struct bifrost_regs next_regs, uint64_t *consts,
                 unsigned data_reg, unsigned offset, bool verbose);
-bool dump_clause(uint32_t *words, unsigned *size, unsigned offset, bool verbose);
+bool dump_clause(FILE *fp, uint32_t *words, unsigned *size, unsigned offset, bool verbose);
 
-void dump_header(struct bifrost_header header, bool verbose)
+void dump_header(FILE *fp, struct bifrost_header header, bool verbose)
 {
         if (header.clause_type != 0) {
-                printf("id(%du) ", header.scoreboard_index);
+                fprintf(fp, "id(%du) ", header.scoreboard_index);
         }
 
         if (header.scoreboard_deps != 0) {
-                printf("next-wait(");
+                fprintf(fp, "next-wait(");
                 bool first = true;
                 for (unsigned i = 0; i < 8; i++) {
                         if (header.scoreboard_deps & (1 << i)) {
                                 if (!first) {
-                                        printf(", ");
+                                        fprintf(fp, ", ");
                                 }
-                                printf("%d", i);
+                                fprintf(fp, "%d", i);
                                 first = false;
                         }
                 }
-                printf(") ");
+                fprintf(fp, ") ");
         }
 
         if (header.datareg_writebarrier)
-                printf("data-reg-barrier ");
+                fprintf(fp, "data-reg-barrier ");
 
         if (!header.no_end_of_shader)
-                printf("eos ");
+                fprintf(fp, "eos ");
 
         if (!header.back_to_back) {
-                printf("nbb ");
+                fprintf(fp, "nbb ");
                 if (header.branch_cond)
-                        printf("branch-cond ");
+                        fprintf(fp, "branch-cond ");
                 else
-                        printf("branch-uncond ");
+                        fprintf(fp, "branch-uncond ");
         }
 
         if (header.elide_writes)
-                printf("we ");
+                fprintf(fp, "we ");
 
         if (header.suppress_inf)
-                printf("suppress-inf ");
+                fprintf(fp, "suppress-inf ");
         if (header.suppress_nan)
-                printf("suppress-nan ");
+                fprintf(fp, "suppress-nan ");
 
         if (header.unk0)
-                printf("unk0 ");
+                fprintf(fp, "unk0 ");
         if (header.unk1)
-                printf("unk1 ");
+                fprintf(fp, "unk1 ");
         if  (header.unk2)
-                printf("unk2 ");
+                fprintf(fp, "unk2 ");
         if (header.unk3)
-                printf("unk3 ");
+                fprintf(fp, "unk3 ");
         if (header.unk4)
-                printf("unk4 ");
+                fprintf(fp, "unk4 ");
 
-        printf("\n");
+        fprintf(fp, "\n");
 
         if (verbose) {
-                printf("# clause type %d, next clause type %d\n",
+                fprintf(fp, "# clause type %d, next clause type %d\n",
                        header.clause_type, header.next_clause_type);
         }
 }
 
-static struct bifrost_reg_ctrl DecodeRegCtrl(struct bifrost_regs regs)
+static struct bifrost_reg_ctrl DecodeRegCtrl(FILE *fp, struct bifrost_regs regs)
 {
         struct bifrost_reg_ctrl decoded = {};
         unsigned ctrl;
@@ -309,7 +310,7 @@ static struct bifrost_reg_ctrl DecodeRegCtrl(struct bifrost_regs regs)
                 decoded.add_write_unit = REG_WRITE_TWO;
                 break;
         default:
-                printf("# unknown reg ctrl %d\n", ctrl);
+                fprintf(fp, "# unknown reg ctrl %d\n", ctrl);
         }
 
         return decoded;
@@ -330,43 +331,43 @@ static unsigned GetRegToWrite(enum bifrost_reg_write_unit unit, struct bifrost_r
         }
 }
 
-static void dump_regs(struct bifrost_regs srcs)
+static void dump_regs(FILE *fp, struct bifrost_regs srcs)
 {
-        struct bifrost_reg_ctrl ctrl = DecodeRegCtrl(srcs);
-        printf("# ");
+        struct bifrost_reg_ctrl ctrl = DecodeRegCtrl(fp, srcs);
+        fprintf(fp, "# ");
         if (ctrl.read_reg0)
-                printf("port 0: R%d ", get_reg0(srcs));
+                fprintf(fp, "port 0: R%d ", get_reg0(srcs));
         if (ctrl.read_reg1)
-                printf("port 1: R%d ", get_reg1(srcs));
+                fprintf(fp, "port 1: R%d ", get_reg1(srcs));
 
         if (ctrl.fma_write_unit == REG_WRITE_TWO)
-                printf("port 2: R%d (write FMA) ", srcs.reg2);
+                fprintf(fp, "port 2: R%d (write FMA) ", srcs.reg2);
         else if (ctrl.add_write_unit == REG_WRITE_TWO)
-                printf("port 2: R%d (write ADD) ", srcs.reg2);
+                fprintf(fp, "port 2: R%d (write ADD) ", srcs.reg2);
 
         if (ctrl.fma_write_unit == REG_WRITE_THREE)
-                printf("port 3: R%d (write FMA) ", srcs.reg3);
+                fprintf(fp, "port 3: R%d (write FMA) ", srcs.reg3);
         else if (ctrl.add_write_unit == REG_WRITE_THREE)
-                printf("port 3: R%d (write ADD) ", srcs.reg3);
+                fprintf(fp, "port 3: R%d (write ADD) ", srcs.reg3);
         else if (ctrl.read_reg3)
-                printf("port 3: R%d (read) ", srcs.reg3);
+                fprintf(fp, "port 3: R%d (read) ", srcs.reg3);
 
         if (srcs.uniform_const) {
                 if (srcs.uniform_const & 0x80) {
-                        printf("uniform: U%d", (srcs.uniform_const & 0x7f) * 2);
+                        fprintf(fp, "uniform: U%d", (srcs.uniform_const & 0x7f) * 2);
                 }
         }
 
-        printf("\n");
+        fprintf(fp, "\n");
 }
-static void dump_const_imm(uint32_t imm)
+static void dump_const_imm(FILE *fp, uint32_t imm)
 {
         union {
                 float f;
                 uint32_t i;
         } fi;
         fi.i = imm;
-        printf("0x%08x /* %f */", imm, fi.f);
+        fprintf(fp, "0x%08x /* %f */", imm, fi.f);
 }
 
 static uint64_t get_const(uint64_t *consts, struct bifrost_regs srcs)
@@ -399,27 +400,27 @@ static uint64_t get_const(uint64_t *consts, struct bifrost_regs srcs)
         return imm | low_bits;
 }
 
-static void dump_uniform_const_src(struct bifrost_regs srcs, uint64_t *consts, bool high32)
+static void dump_uniform_const_src(FILE *fp, struct bifrost_regs srcs, uint64_t *consts, bool high32)
 {
         if (srcs.uniform_const & 0x80) {
                 unsigned uniform = (srcs.uniform_const & 0x7f) * 2;
-                printf("U%d", uniform + (high32 ? 1 : 0));
+                fprintf(fp, "U%d", uniform + (high32 ? 1 : 0));
         } else if (srcs.uniform_const >= 0x20) {
                 uint64_t imm = get_const(consts, srcs);
                 if (high32)
-                        dump_const_imm(imm >> 32);
+                        dump_const_imm(fp, imm >> 32);
                 else
-                        dump_const_imm(imm);
+                        dump_const_imm(fp, imm);
         } else {
                 switch (srcs.uniform_const) {
                 case 0:
-                        printf("0");
+                        fprintf(fp, "0");
                         break;
                 case 5:
-                        printf("atest-data");
+                        fprintf(fp, "atest-data");
                         break;
                 case 6:
-                        printf("sample-ptr");
+                        fprintf(fp, "sample-ptr");
                         break;
                 case 8:
                 case 9:
@@ -429,73 +430,73 @@ static void dump_uniform_const_src(struct bifrost_regs srcs, uint64_t *consts, b
                 case 13:
                 case 14:
                 case 15:
-                        printf("blend-descriptor%u", (unsigned) srcs.uniform_const - 8);
+                        fprintf(fp, "blend-descriptor%u", (unsigned) srcs.uniform_const - 8);
                         break;
                 default:
-                        printf("unkConst%u", (unsigned) srcs.uniform_const);
+                        fprintf(fp, "unkConst%u", (unsigned) srcs.uniform_const);
                         break;
                 }
 
                 if (high32)
-                        printf(".y");
+                        fprintf(fp, ".y");
                 else
-                        printf(".x");
+                        fprintf(fp, ".x");
         }
 }
 
-static void dump_src(unsigned src, struct bifrost_regs srcs, uint64_t *consts, bool isFMA)
+static void dump_src(FILE *fp, unsigned src, struct bifrost_regs srcs, uint64_t *consts, bool isFMA)
 {
         switch (src) {
         case 0:
-                printf("R%d", get_reg0(srcs));
+                fprintf(fp, "R%d", get_reg0(srcs));
                 break;
         case 1:
-                printf("R%d", get_reg1(srcs));
+                fprintf(fp, "R%d", get_reg1(srcs));
                 break;
         case 2:
-                printf("R%d", srcs.reg3);
+                fprintf(fp, "R%d", srcs.reg3);
                 break;
         case 3:
                 if (isFMA)
-                        printf("0");
+                        fprintf(fp, "0");
                 else
-                        printf("T"); // i.e. the output of FMA this cycle
+                        fprintf(fp, "T"); // i.e. the output of FMA this cycle
                 break;
         case 4:
-                dump_uniform_const_src(srcs, consts, false);
+                dump_uniform_const_src(fp, srcs, consts, false);
                 break;
         case 5:
-                dump_uniform_const_src(srcs, consts, true);
+                dump_uniform_const_src(fp, srcs, consts, true);
                 break;
         case 6:
-                printf("T0");
+                fprintf(fp, "T0");
                 break;
         case 7:
-                printf("T1");
+                fprintf(fp, "T1");
                 break;
         }
 }
 
-static void dump_output_mod(unsigned mod)
+static void dump_output_mod(FILE *fp, unsigned mod)
 {
         switch (mod) {
         case 0:
                 break;
         case 1:
-                printf(".clamp_0_inf");
+                fprintf(fp, ".clamp_0_inf");
                 break; // max(out, 0)
         case 2:
-                printf(".clamp_m1_1");
+                fprintf(fp, ".clamp_m1_1");
                 break; // clamp(out, -1, 1)
         case 3:
-                printf(".clamp_0_1");
+                fprintf(fp, ".clamp_0_1");
                 break; // clamp(out, 0, 1)
         default:
                 break;
         }
 }
 
-static void dump_minmax_mode(unsigned mod)
+static void dump_minmax_mode(FILE *fp, unsigned mod)
 {
         switch (mod) {
         case 0:
@@ -509,7 +510,7 @@ static void dump_minmax_mode(unsigned mod)
                  * "greater"/"lesser" NaN is always returned, first by checking the
                  * sign and then the mantissa bits.
                  */
-                printf(".nan_wins");
+                fprintf(fp, ".nan_wins");
                 break;
         case 2:
                 /* For max, implement src0 > src1 ? src0 : src1
@@ -520,20 +521,20 @@ static void dump_minmax_mode(unsigned mod)
                  * return false for NaN's. As a result, this mode is *not*
                  * commutative.
                  */
-                printf(".src1_wins");
+                fprintf(fp, ".src1_wins");
                 break;
         case 3:
                 /* For max, implement src0 < src1 ? src1 : src0
                  * For min, implement src0 > src1 ? src1 : src0
                  */
-                printf(".src0_wins");
+                fprintf(fp, ".src0_wins");
                 break;
         default:
                 break;
         }
 }
 
-static void dump_round_mode(unsigned mod)
+static void dump_round_mode(FILE *fp, unsigned mod)
 {
         switch (mod) {
         case 0:
@@ -541,15 +542,15 @@ static void dump_round_mode(unsigned mod)
                 break;
         case 1:
                 /* roundTowardPositive in the IEEE spec. */
-                printf(".round_pos");
+                fprintf(fp, ".round_pos");
                 break;
         case 2:
                 /* roundTowardNegative in the IEEE spec. */
-                printf(".round_neg");
+                fprintf(fp, ".round_neg");
                 break;
         case 3:
                 /* roundTowardZero in the IEEE spec. */
-                printf(".round_zero");
+                fprintf(fp, ".round_zero");
                 break;
         default:
                 break;
@@ -838,121 +839,121 @@ static struct fma_op_info find_fma_op_info(unsigned op)
         return info;
 }
 
-static void dump_fcmp(unsigned op)
+static void dump_fcmp(FILE *fp, unsigned op)
 {
         switch (op) {
         case 0:
-                printf(".OEQ");
+                fprintf(fp, ".OEQ");
                 break;
         case 1:
-                printf(".OGT");
+                fprintf(fp, ".OGT");
                 break;
         case 2:
-                printf(".OGE");
+                fprintf(fp, ".OGE");
                 break;
         case 3:
-                printf(".UNE");
+                fprintf(fp, ".UNE");
                 break;
         case 4:
-                printf(".OLT");
+                fprintf(fp, ".OLT");
                 break;
         case 5:
-                printf(".OLE");
+                fprintf(fp, ".OLE");
                 break;
         default:
-                printf(".unk%d", op);
+                fprintf(fp, ".unk%d", op);
                 break;
         }
 }
 
-static void dump_16swizzle(unsigned swiz)
+static void dump_16swizzle(FILE *fp, unsigned swiz)
 {
         if (swiz == 2)
                 return;
-        printf(".%c%c", "xy"[swiz & 1], "xy"[(swiz >> 1) & 1]);
+        fprintf(fp, ".%c%c", "xy"[swiz & 1], "xy"[(swiz >> 1) & 1]);
 }
 
-static void dump_fma_expand_src0(unsigned ctrl)
+static void dump_fma_expand_src0(FILE *fp, unsigned ctrl)
 {
         switch (ctrl) {
         case 3:
         case 4:
         case 6:
-                printf(".x");
+                fprintf(fp, ".x");
                 break;
         case 5:
         case 7:
-                printf(".y");
+                fprintf(fp, ".y");
                 break;
         case 0:
         case 1:
         case 2:
                 break;
         default:
-                printf(".unk");
+                fprintf(fp, ".unk");
                 break;
         }
 }
 
-static void dump_fma_expand_src1(unsigned ctrl)
+static void dump_fma_expand_src1(FILE *fp, unsigned ctrl)
 {
         switch (ctrl) {
         case 1:
         case 3:
-                printf(".x");
+                fprintf(fp, ".x");
                 break;
         case 2:
         case 4:
         case 5:
-                printf(".y");
+                fprintf(fp, ".y");
                 break;
         case 0:
         case 6:
         case 7:
                 break;
         default:
-                printf(".unk");
+                fprintf(fp, ".unk");
                 break;
         }
 }
 
-static void dump_fma(uint64_t word, struct bifrost_regs regs, struct bifrost_regs next_regs, uint64_t *consts, bool verbose)
+static void dump_fma(FILE *fp, uint64_t word, struct bifrost_regs regs, struct bifrost_regs next_regs, uint64_t *consts, bool verbose)
 {
         if (verbose) {
-                printf("# FMA: %016" PRIx64 "\n", word);
+                fprintf(fp, "# FMA: %016" PRIx64 "\n", word);
         }
         struct bifrost_fma_inst FMA;
         memcpy((char *) &FMA, (char *) &word, sizeof(struct bifrost_fma_inst));
         struct fma_op_info info = find_fma_op_info(FMA.op);
 
-        printf("%s", info.name);
+        fprintf(fp, "%s", info.name);
         if (info.src_type == FMA_FADD ||
             info.src_type == FMA_FMINMAX ||
             info.src_type == FMA_FMA ||
             info.src_type == FMA_FADD16 ||
             info.src_type == FMA_FMINMAX16 ||
             info.src_type == FMA_FMA16) {
-                dump_output_mod(bits(FMA.op, 12, 14));
+                dump_output_mod(fp, bits(FMA.op, 12, 14));
                 switch (info.src_type) {
                 case FMA_FADD:
                 case FMA_FMA:
                 case FMA_FADD16:
                 case FMA_FMA16:
-                        dump_round_mode(bits(FMA.op, 10, 12));
+                        dump_round_mode(fp, bits(FMA.op, 10, 12));
                         break;
                 case FMA_FMINMAX:
                 case FMA_FMINMAX16:
-                        dump_minmax_mode(bits(FMA.op, 10, 12));
+                        dump_minmax_mode(fp, bits(FMA.op, 10, 12));
                         break;
                 default:
                         assert(0);
                 }
         } else if (info.src_type == FMA_FCMP || info.src_type == FMA_FCMP16) {
-                dump_fcmp(bits(FMA.op, 10, 13));
+                dump_fcmp(fp, bits(FMA.op, 10, 13));
                 if (info.src_type == FMA_FCMP)
-                        printf(".f32");
+                        fprintf(fp, ".f32");
                 else
-                        printf(".v2f16");
+                        fprintf(fp, ".v2f16");
         } else if (info.src_type == FMA_FMA_MSCALE) {
                 if (FMA.op & (1 << 11)) {
                         switch ((FMA.op >> 9) & 0x3) {
@@ -965,190 +966,190 @@ static void dump_fma(uint64_t word, struct bifrost_regs regs, struct bifrost_reg
                                  *   presumably to make sure that the same exact nan is
                                  *   returned for 1/nan.
                                  */
-                                printf(".rcp_mode");
+                                fprintf(fp, ".rcp_mode");
                                 break;
                         case 3:
                                 /* Similar to the above, but src0 always wins when multiplying
                                  * 0 by infinity.
                                  */
-                                printf(".sqrt_mode");
+                                fprintf(fp, ".sqrt_mode");
                                 break;
                         default:
-                                printf(".unk%d_mode", (int) (FMA.op >> 9) & 0x3);
+                                fprintf(fp, ".unk%d_mode", (int) (FMA.op >> 9) & 0x3);
                         }
                 } else {
-                        dump_output_mod(bits(FMA.op, 9, 11));
+                        dump_output_mod(fp, bits(FMA.op, 9, 11));
                 }
         }
 
-        printf(" ");
+        fprintf(fp, " ");
 
-        struct bifrost_reg_ctrl next_ctrl = DecodeRegCtrl(next_regs);
+        struct bifrost_reg_ctrl next_ctrl = DecodeRegCtrl(fp, next_regs);
         if (next_ctrl.fma_write_unit != REG_WRITE_NONE) {
-                printf("{R%d, T0}, ", GetRegToWrite(next_ctrl.fma_write_unit, next_regs));
+                fprintf(fp, "{R%d, T0}, ", GetRegToWrite(next_ctrl.fma_write_unit, next_regs));
         } else {
-                printf("T0, ");
+                fprintf(fp, "T0, ");
         }
 
         switch (info.src_type) {
         case FMA_ONE_SRC:
-                dump_src(FMA.src0, regs, consts, true);
+                dump_src(fp, FMA.src0, regs, consts, true);
                 break;
         case FMA_TWO_SRC:
-                dump_src(FMA.src0, regs, consts, true);
-                printf(", ");
-                dump_src(FMA.op & 0x7, regs, consts, true);
+                dump_src(fp, FMA.src0, regs, consts, true);
+                fprintf(fp, ", ");
+                dump_src(fp, FMA.op & 0x7, regs, consts, true);
                 break;
         case FMA_FADD:
         case FMA_FMINMAX:
                 if (FMA.op & 0x10)
-                        printf("-");
+                        fprintf(fp, "-");
                 if (FMA.op & 0x200)
-                        printf("abs(");
-                dump_src(FMA.src0, regs, consts, true);
-                dump_fma_expand_src0((FMA.op >> 6) & 0x7);
+                        fprintf(fp, "abs(");
+                dump_src(fp, FMA.src0, regs, consts, true);
+                dump_fma_expand_src0(fp, (FMA.op >> 6) & 0x7);
                 if (FMA.op & 0x200)
-                        printf(")");
-                printf(", ");
+                        fprintf(fp, ")");
+                fprintf(fp, ", ");
                 if (FMA.op & 0x20)
-                        printf("-");
+                        fprintf(fp, "-");
                 if (FMA.op & 0x8)
-                        printf("abs(");
-                dump_src(FMA.op & 0x7, regs, consts, true);
-                dump_fma_expand_src1((FMA.op >> 6) & 0x7);
+                        fprintf(fp, "abs(");
+                dump_src(fp, FMA.op & 0x7, regs, consts, true);
+                dump_fma_expand_src1(fp, (FMA.op >> 6) & 0x7);
                 if (FMA.op & 0x8)
-                        printf(")");
+                        fprintf(fp, ")");
                 break;
         case FMA_FADD16:
         case FMA_FMINMAX16: {
                 bool abs1 = FMA.op & 0x8;
                 bool abs2 = (FMA.op & 0x7) < FMA.src0;
                 if (FMA.op & 0x10)
-                        printf("-");
+                        fprintf(fp, "-");
                 if (abs1 || abs2)
-                        printf("abs(");
-                dump_src(FMA.src0, regs, consts, true);
-                dump_16swizzle((FMA.op >> 6) & 0x3);
+                        fprintf(fp, "abs(");
+                dump_src(fp, FMA.src0, regs, consts, true);
+                dump_16swizzle(fp, (FMA.op >> 6) & 0x3);
                 if (abs1 || abs2)
-                        printf(")");
-                printf(", ");
+                        fprintf(fp, ")");
+                fprintf(fp, ", ");
                 if (FMA.op & 0x20)
-                        printf("-");
+                        fprintf(fp, "-");
                 if (abs1 && abs2)
-                        printf("abs(");
-                dump_src(FMA.op & 0x7, regs, consts, true);
-                dump_16swizzle((FMA.op >> 8) & 0x3);
+                        fprintf(fp, "abs(");
+                dump_src(fp, FMA.op & 0x7, regs, consts, true);
+                dump_16swizzle(fp, (FMA.op >> 8) & 0x3);
                 if (abs1 && abs2)
-                        printf(")");
+                        fprintf(fp, ")");
                 break;
         }
         case FMA_FCMP:
                 if (FMA.op & 0x200)
-                        printf("abs(");
-                dump_src(FMA.src0, regs, consts, true);
-                dump_fma_expand_src0((FMA.op >> 6) & 0x7);
+                        fprintf(fp, "abs(");
+                dump_src(fp, FMA.src0, regs, consts, true);
+                dump_fma_expand_src0(fp, (FMA.op >> 6) & 0x7);
                 if (FMA.op & 0x200)
-                        printf(")");
-                printf(", ");
+                        fprintf(fp, ")");
+                fprintf(fp, ", ");
                 if (FMA.op & 0x20)
-                        printf("-");
+                        fprintf(fp, "-");
                 if (FMA.op & 0x8)
-                        printf("abs(");
-                dump_src(FMA.op & 0x7, regs, consts, true);
-                dump_fma_expand_src1((FMA.op >> 6) & 0x7);
+                        fprintf(fp, "abs(");
+                dump_src(fp, FMA.op & 0x7, regs, consts, true);
+                dump_fma_expand_src1(fp, (FMA.op >> 6) & 0x7);
                 if (FMA.op & 0x8)
-                        printf(")");
+                        fprintf(fp, ")");
                 break;
         case FMA_FCMP16:
-                dump_src(FMA.src0, regs, consts, true);
+                dump_src(fp, FMA.src0, regs, consts, true);
                 // Note: this is kinda a guess, I haven't seen the blob set this to
                 // anything other than the identity, but it matches FMA_TWO_SRCFmod16
-                dump_16swizzle((FMA.op >> 6) & 0x3);
-                printf(", ");
-                dump_src(FMA.op & 0x7, regs, consts, true);
-                dump_16swizzle((FMA.op >> 8) & 0x3);
+                dump_16swizzle(fp, (FMA.op >> 6) & 0x3);
+                fprintf(fp, ", ");
+                dump_src(fp, FMA.op & 0x7, regs, consts, true);
+                dump_16swizzle(fp, (FMA.op >> 8) & 0x3);
                 break;
         case FMA_SHIFT_ADD64:
-                dump_src(FMA.src0, regs, consts, true);
-                printf(", ");
-                dump_src(FMA.op & 0x7, regs, consts, true);
-                printf(", ");
-                printf("shift:%u", (FMA.op >> 3) & 0x7);
+                dump_src(fp, FMA.src0, regs, consts, true);
+                fprintf(fp, ", ");
+                dump_src(fp, FMA.op & 0x7, regs, consts, true);
+                fprintf(fp, ", ");
+                fprintf(fp, "shift:%u", (FMA.op >> 3) & 0x7);
                 break;
         case FMA_THREE_SRC:
-                dump_src(FMA.src0, regs, consts, true);
-                printf(", ");
-                dump_src(FMA.op & 0x7, regs, consts, true);
-                printf(", ");
-                dump_src((FMA.op >> 3) & 0x7, regs, consts, true);
+                dump_src(fp, FMA.src0, regs, consts, true);
+                fprintf(fp, ", ");
+                dump_src(fp, FMA.op & 0x7, regs, consts, true);
+                fprintf(fp, ", ");
+                dump_src(fp, (FMA.op >> 3) & 0x7, regs, consts, true);
                 break;
         case FMA_FMA:
                 if (FMA.op & (1 << 14))
-                        printf("-");
+                        fprintf(fp, "-");
                 if (FMA.op & (1 << 9))
-                        printf("abs(");
-                dump_src(FMA.src0, regs, consts, true);
-                dump_fma_expand_src0((FMA.op >> 6) & 0x7);
+                        fprintf(fp, "abs(");
+                dump_src(fp, FMA.src0, regs, consts, true);
+                dump_fma_expand_src0(fp, (FMA.op >> 6) & 0x7);
                 if (FMA.op & (1 << 9))
-                        printf(")");
-                printf(", ");
+                        fprintf(fp, ")");
+                fprintf(fp, ", ");
                 if (FMA.op & (1 << 16))
-                        printf("abs(");
-                dump_src(FMA.op & 0x7, regs, consts, true);
-                dump_fma_expand_src1((FMA.op >> 6) & 0x7);
+                        fprintf(fp, "abs(");
+                dump_src(fp, FMA.op & 0x7, regs, consts, true);
+                dump_fma_expand_src1(fp, (FMA.op >> 6) & 0x7);
                 if (FMA.op & (1 << 16))
-                        printf(")");
-                printf(", ");
+                        fprintf(fp, ")");
+                fprintf(fp, ", ");
                 if (FMA.op & (1 << 15))
-                        printf("-");
+                        fprintf(fp, "-");
                 if (FMA.op & (1 << 17))
-                        printf("abs(");
-                dump_src((FMA.op >> 3) & 0x7, regs, consts, true);
+                        fprintf(fp, "abs(");
+                dump_src(fp, (FMA.op >> 3) & 0x7, regs, consts, true);
                 if (FMA.op & (1 << 17))
-                        printf(")");
+                        fprintf(fp, ")");
                 break;
         case FMA_FMA16:
                 if (FMA.op & (1 << 14))
-                        printf("-");
-                dump_src(FMA.src0, regs, consts, true);
-                dump_16swizzle((FMA.op >> 6) & 0x3);
-                printf(", ");
-                dump_src(FMA.op & 0x7, regs, consts, true);
-                dump_16swizzle((FMA.op >> 8) & 0x3);
-                printf(", ");
+                        fprintf(fp, "-");
+                dump_src(fp, FMA.src0, regs, consts, true);
+                dump_16swizzle(fp, (FMA.op >> 6) & 0x3);
+                fprintf(fp, ", ");
+                dump_src(fp, FMA.op & 0x7, regs, consts, true);
+                dump_16swizzle(fp, (FMA.op >> 8) & 0x3);
+                fprintf(fp, ", ");
                 if (FMA.op & (1 << 15))
-                        printf("-");
-                dump_src((FMA.op >> 3) & 0x7, regs, consts, true);
-                dump_16swizzle((FMA.op >> 16) & 0x3);
+                        fprintf(fp, "-");
+                dump_src(fp, (FMA.op >> 3) & 0x7, regs, consts, true);
+                dump_16swizzle(fp, (FMA.op >> 16) & 0x3);
                 break;
         case FMA_FOUR_SRC:
-                dump_src(FMA.src0, regs, consts, true);
-                printf(", ");
-                dump_src(FMA.op & 0x7, regs, consts, true);
-                printf(", ");
-                dump_src((FMA.op >> 3) & 0x7, regs, consts, true);
-                printf(", ");
-                dump_src((FMA.op >> 6) & 0x7, regs, consts, true);
+                dump_src(fp, FMA.src0, regs, consts, true);
+                fprintf(fp, ", ");
+                dump_src(fp, FMA.op & 0x7, regs, consts, true);
+                fprintf(fp, ", ");
+                dump_src(fp, (FMA.op >> 3) & 0x7, regs, consts, true);
+                fprintf(fp, ", ");
+                dump_src(fp, (FMA.op >> 6) & 0x7, regs, consts, true);
                 break;
         case FMA_FMA_MSCALE:
                 if (FMA.op & (1 << 12))
-                        printf("abs(");
-                dump_src(FMA.src0, regs, consts, true);
+                        fprintf(fp, "abs(");
+                dump_src(fp, FMA.src0, regs, consts, true);
                 if (FMA.op & (1 << 12))
-                        printf(")");
-                printf(", ");
+                        fprintf(fp, ")");
+                fprintf(fp, ", ");
                 if (FMA.op & (1 << 13))
-                        printf("-");
-                dump_src(FMA.op & 0x7, regs, consts, true);
-                printf(", ");
+                        fprintf(fp, "-");
+                dump_src(fp, FMA.op & 0x7, regs, consts, true);
+                fprintf(fp, ", ");
                 if (FMA.op & (1 << 14))
-                        printf("-");
-                dump_src((FMA.op >> 3) & 0x7, regs, consts, true);
-                printf(", ");
-                dump_src((FMA.op >> 6) & 0x7, regs, consts, true);
+                        fprintf(fp, "-");
+                dump_src(fp, (FMA.op >> 3) & 0x7, regs, consts, true);
+                fprintf(fp, ", ");
+                dump_src(fp, (FMA.op >> 6) & 0x7, regs, consts, true);
                 break;
         }
-        printf("\n");
+        fprintf(fp, "\n");
 }
 
 static const struct add_op_info add_op_infos[] = {
@@ -1429,77 +1430,78 @@ static struct add_op_info find_add_op_info(unsigned op)
         return info;
 }
 
-static void dump_add(uint64_t word, struct bifrost_regs regs, struct bifrost_regs next_regs, uint64_t *consts,
+static void dump_add(FILE *fp, uint64_t word, struct bifrost_regs regs,
+                     struct bifrost_regs next_regs, uint64_t *consts,
                      unsigned data_reg, unsigned offset, bool verbose)
 {
         if (verbose) {
-                printf("# ADD: %016" PRIx64 "\n", word);
+                fprintf(fp, "# ADD: %016" PRIx64 "\n", word);
         }
         struct bifrost_add_inst ADD;
         memcpy((char *) &ADD, (char *) &word, sizeof(ADD));
         struct add_op_info info = find_add_op_info(ADD.op);
 
-        printf("%s", info.name);
+        fprintf(fp, "%s", info.name);
 
         // float16 seems like it doesn't support output modifiers
         if (info.src_type == ADD_FADD || info.src_type == ADD_FMINMAX) {
                 // output modifiers
-                dump_output_mod(bits(ADD.op, 8, 10));
+                dump_output_mod(fp, bits(ADD.op, 8, 10));
                 if (info.src_type == ADD_FADD)
-                        dump_round_mode(bits(ADD.op, 10, 12));
+                        dump_round_mode(fp, bits(ADD.op, 10, 12));
                 else
-                        dump_minmax_mode(bits(ADD.op, 10, 12));
+                        dump_minmax_mode(fp, bits(ADD.op, 10, 12));
         } else if (info.src_type == ADD_FCMP || info.src_type == ADD_FCMP16) {
-                dump_fcmp(bits(ADD.op, 3, 6));
+                dump_fcmp(fp, bits(ADD.op, 3, 6));
                 if (info.src_type == ADD_FCMP)
-                        printf(".f32");
+                        fprintf(fp, ".f32");
                 else
-                        printf(".v2f16");
+                        fprintf(fp, ".v2f16");
         } else if (info.src_type == ADD_FADDMscale) {
                 switch ((ADD.op >> 6) & 0x7) {
                 case 0:
                         break;
                 // causes GPU hangs on G71
                 case 1:
-                        printf(".invalid");
+                        fprintf(fp, ".invalid");
                         break;
                 // Same as usual outmod value.
                 case 2:
-                        printf(".clamp_0_1");
+                        fprintf(fp, ".clamp_0_1");
                         break;
                 // If src0 is infinite or NaN, flush it to zero so that the other
                 // source is passed through unmodified.
                 case 3:
-                        printf(".flush_src0_inf_nan");
+                        fprintf(fp, ".flush_src0_inf_nan");
                         break;
                 // Vice versa.
                 case 4:
-                        printf(".flush_src1_inf_nan");
+                        fprintf(fp, ".flush_src1_inf_nan");
                         break;
                 // Every other case seems to behave the same as the above?
                 default:
-                        printf(".unk%d", (ADD.op >> 6) & 0x7);
+                        fprintf(fp, ".unk%d", (ADD.op >> 6) & 0x7);
                         break;
                 }
         } else if (info.src_type == ADD_VARYING_INTERP) {
                 if (ADD.op & 0x200)
-                        printf(".reuse");
+                        fprintf(fp, ".reuse");
                 if (ADD.op & 0x400)
-                        printf(".flat");
+                        fprintf(fp, ".flat");
                 switch ((ADD.op >> 7) & 0x3) {
                 case 0:
-                        printf(".per_frag");
+                        fprintf(fp, ".per_frag");
                         break;
                 case 1:
-                        printf(".centroid");
+                        fprintf(fp, ".centroid");
                         break;
                 case 2:
                         break;
                 case 3:
-                        printf(".explicit");
+                        fprintf(fp, ".explicit");
                         break;
                 }
-                printf(".v%d", ((ADD.op >> 5) & 0x3) + 1);
+                fprintf(fp, ".v%d", ((ADD.op >> 5) & 0x3) + 1);
         } else if (info.src_type == ADD_BRANCH) {
                 enum branch_code branchCode = (enum branch_code) ((ADD.op >> 6) & 0x3f);
                 if (branchCode == BR_ALWAYS) {
@@ -1526,87 +1528,87 @@ static void dump_add(uint64_t word, struct bifrost_regs regs, struct bifrost_reg
                         switch (cond) {
                         case BR_COND_LT:
                                 if (portSwapped)
-                                        printf(".LT.u");
+                                        fprintf(fp, ".LT.u");
                                 else
-                                        printf(".LT.i");
+                                        fprintf(fp, ".LT.i");
                                 break;
                         case BR_COND_LE:
                                 if (size == BR_SIZE_32_AND_16X || size == BR_SIZE_32_AND_16Y) {
-                                        printf(".UNE.f");
+                                        fprintf(fp, ".UNE.f");
                                 } else {
                                         if (portSwapped)
-                                                printf(".LE.u");
+                                                fprintf(fp, ".LE.u");
                                         else
-                                                printf(".LE.i");
+                                                fprintf(fp, ".LE.i");
                                 }
                                 break;
                         case BR_COND_GT:
                                 if (portSwapped)
-                                        printf(".GT.u");
+                                        fprintf(fp, ".GT.u");
                                 else
-                                        printf(".GT.i");
+                                        fprintf(fp, ".GT.i");
                                 break;
                         case BR_COND_GE:
                                 if (portSwapped)
-                                        printf(".GE.u");
+                                        fprintf(fp, ".GE.u");
                                 else
-                                        printf(".GE.i");
+                                        fprintf(fp, ".GE.i");
                                 break;
                         case BR_COND_EQ:
                                 if (portSwapped)
-                                        printf(".NE.i");
+                                        fprintf(fp, ".NE.i");
                                 else
-                                        printf(".EQ.i");
+                                        fprintf(fp, ".EQ.i");
                                 break;
                         case BR_COND_OEQ:
                                 if (portSwapped)
-                                        printf(".UNE.f");
+                                        fprintf(fp, ".UNE.f");
                                 else
-                                        printf(".OEQ.f");
+                                        fprintf(fp, ".OEQ.f");
                                 break;
                         case BR_COND_OGT:
                                 if (portSwapped)
-                                        printf(".OGT.unk.f");
+                                        fprintf(fp, ".OGT.unk.f");
                                 else
-                                        printf(".OGT.f");
+                                        fprintf(fp, ".OGT.f");
                                 break;
                         case BR_COND_OLT:
                                 if (portSwapped)
-                                        printf(".OLT.unk.f");
+                                        fprintf(fp, ".OLT.unk.f");
                                 else
-                                        printf(".OLT.f");
+                                        fprintf(fp, ".OLT.f");
                                 break;
                         }
                         switch (size) {
                         case BR_SIZE_32:
                         case BR_SIZE_32_AND_16X:
                         case BR_SIZE_32_AND_16Y:
-                                printf("32");
+                                fprintf(fp, "32");
                                 break;
                         case BR_SIZE_16XX:
                         case BR_SIZE_16YY:
                         case BR_SIZE_16YX0:
                         case BR_SIZE_16YX1:
-                                printf("16");
+                                fprintf(fp, "16");
                                 break;
                         case BR_SIZE_ZERO: {
                                 unsigned ctrl = (ADD.op >> 1) & 0x3;
                                 if (ctrl == 0)
-                                        printf("32.Z");
+                                        fprintf(fp, "32.Z");
                                 else
-                                        printf("16.Z");
+                                        fprintf(fp, "16.Z");
                                 break;
                         }
                         }
                 }
         }
-        printf(" ");
+        fprintf(fp, " ");
 
-        struct bifrost_reg_ctrl next_ctrl = DecodeRegCtrl(next_regs);
+        struct bifrost_reg_ctrl next_ctrl = DecodeRegCtrl(fp, next_regs);
         if (next_ctrl.add_write_unit != REG_WRITE_NONE) {
-                printf("{R%d, T1}, ", GetRegToWrite(next_ctrl.add_write_unit, next_regs));
+                fprintf(fp, "{R%d, T1}, ", GetRegToWrite(next_ctrl.add_write_unit, next_regs));
         } else {
-                printf("T1, ");
+                fprintf(fp, "T1, ");
         }
 
         switch (info.src_type) {
@@ -1616,10 +1618,10 @@ static void dump_add(uint64_t word, struct bifrost_regs regs, struct bifrost_reg
                 // same instruction. This re-uses the encoding that normally means
                 // "disabled", where the low 4 bits are ignored. Perhaps the extra
                 // 0x8 or'd in indicates this is happening.
-                printf("location:%d, ", regs.uniform_const & 0x7);
+                fprintf(fp, "location:%d, ", regs.uniform_const & 0x7);
         // fallthrough
         case ADD_ONE_SRC:
-                dump_src(ADD.src0, regs, consts, false);
+                dump_src(fp, ADD.src0, regs, consts, false);
                 break;
         case ADD_TEX:
         case ADD_TEX_COMPACT: {
@@ -1632,7 +1634,7 @@ static void dump_add(uint64_t word, struct bifrost_regs regs, struct bifrost_reg
                         bool unknown = (ADD.op & 0x40);
                         // TODO: figure out if the unknown bit is ever 0
                         if (!unknown)
-                                printf("unknown ");
+                                fprintf(fp, "unknown ");
                 } else {
                         uint64_t constVal = get_const(consts, regs);
                         uint32_t controlBits = (ADD.op & 0x8) ? (constVal >> 32) : constVal;
@@ -1643,11 +1645,11 @@ static void dump_add(uint64_t word, struct bifrost_regs regs, struct bifrost_reg
                         if (ctrl.result_type == 9) {
                                 struct bifrost_dual_tex_ctrl dualCtrl;
                                 memcpy((char *) &dualCtrl, (char *) &controlBits, sizeof(ctrl));
-                                printf("(dualtex) tex0:%d samp0:%d tex1:%d samp1:%d ",
+                                fprintf(fp, "(dualtex) tex0:%d samp0:%d tex1:%d samp1:%d ",
                                        dualCtrl.tex_index0, dualCtrl.sampler_index0,
                                        dualCtrl.tex_index1, dualCtrl.sampler_index1);
                                 if (dualCtrl.unk0 != 3)
-                                        printf("unk:%d ", dualCtrl.unk0);
+                                        fprintf(fp, "unk:%d ", dualCtrl.unk0);
                                 dualTex = true;
                         } else {
                                 if (ctrl.no_merge_index) {
@@ -1657,7 +1659,7 @@ static void dump_add(uint64_t word, struct bifrost_regs regs, struct bifrost_reg
                                         tex_index = sampler_index = ctrl.tex_index;
                                         unsigned unk = ctrl.sampler_index >> 2;
                                         if (unk != 3)
-                                                printf("unk:%d ", unk);
+                                                fprintf(fp, "unk:%d ", unk);
                                         if (ctrl.sampler_index & 1)
                                                 tex_index = -1;
                                         if (ctrl.sampler_index & 2)
@@ -1665,80 +1667,80 @@ static void dump_add(uint64_t word, struct bifrost_regs regs, struct bifrost_reg
                                 }
 
                                 if (ctrl.unk0 != 3)
-                                        printf("unk0:%d ", ctrl.unk0);
+                                        fprintf(fp, "unk0:%d ", ctrl.unk0);
                                 if (ctrl.unk1)
-                                        printf("unk1 ");
+                                        fprintf(fp, "unk1 ");
                                 if (ctrl.unk2 != 0xf)
-                                        printf("unk2:%x ", ctrl.unk2);
+                                        fprintf(fp, "unk2:%x ", ctrl.unk2);
 
                                 switch (ctrl.result_type) {
                                 case 0x4:
-                                        printf("f32 ");
+                                        fprintf(fp, "f32 ");
                                         break;
                                 case 0xe:
-                                        printf("i32 ");
+                                        fprintf(fp, "i32 ");
                                         break;
                                 case 0xf:
-                                        printf("u32 ");
+                                        fprintf(fp, "u32 ");
                                         break;
                                 default:
-                                        printf("unktype(%x) ", ctrl.result_type);
+                                        fprintf(fp, "unktype(%x) ", ctrl.result_type);
                                 }
 
                                 switch (ctrl.tex_type) {
                                 case 0:
-                                        printf("cube ");
+                                        fprintf(fp, "cube ");
                                         break;
                                 case 1:
-                                        printf("buffer ");
+                                        fprintf(fp, "buffer ");
                                         break;
                                 case 2:
-                                        printf("2D ");
+                                        fprintf(fp, "2D ");
                                         break;
                                 case 3:
-                                        printf("3D ");
+                                        fprintf(fp, "3D ");
                                         break;
                                 }
 
                                 if (ctrl.is_shadow)
-                                        printf("shadow ");
+                                        fprintf(fp, "shadow ");
                                 if (ctrl.is_array)
-                                        printf("array ");
+                                        fprintf(fp, "array ");
 
                                 if (!ctrl.filter) {
                                         if (ctrl.calc_gradients) {
                                                 int comp = (controlBits >> 20) & 0x3;
-                                                printf("txg comp:%d ", comp);
+                                                fprintf(fp, "txg comp:%d ", comp);
                                         } else {
-                                                printf("txf ");
+                                                fprintf(fp, "txf ");
                                         }
                                 } else {
                                         if (!ctrl.not_supply_lod) {
                                                 if (ctrl.compute_lod)
-                                                        printf("lod_bias ");
+                                                        fprintf(fp, "lod_bias ");
                                                 else
-                                                        printf("lod ");
+                                                        fprintf(fp, "lod ");
                                         }
 
                                         if (!ctrl.calc_gradients)
-                                                printf("grad ");
+                                                fprintf(fp, "grad ");
                                 }
 
                                 if (ctrl.texel_offset)
-                                        printf("offset ");
+                                        fprintf(fp, "offset ");
                         }
                 }
 
                 if (!dualTex) {
                         if (tex_index == -1)
-                                printf("tex:indirect ");
+                                fprintf(fp, "tex:indirect ");
                         else
-                                printf("tex:%d ", tex_index);
+                                fprintf(fp, "tex:%d ", tex_index);
 
                         if (sampler_index == -1)
-                                printf("samp:indirect ");
+                                fprintf(fp, "samp:indirect ");
                         else
-                                printf("samp:%d ", sampler_index);
+                                fprintf(fp, "samp:%d ", sampler_index);
                 }
                 break;
         }
@@ -1746,222 +1748,222 @@ static void dump_add(uint64_t word, struct bifrost_regs regs, struct bifrost_reg
                 unsigned addr = ADD.op & 0x1f;
                 if (addr < 0b10100) {
                         // direct addr
-                        printf("%d", addr);
+                        fprintf(fp, "%d", addr);
                 } else if (addr < 0b11000) {
                         if (addr == 22)
-                                printf("fragw");
+                                fprintf(fp, "fragw");
                         else if (addr == 23)
-                                printf("fragz");
+                                fprintf(fp, "fragz");
                         else
-                                printf("unk%d", addr);
+                                fprintf(fp, "unk%d", addr);
                 } else {
-                        dump_src(ADD.op & 0x7, regs, consts, false);
+                        dump_src(fp, ADD.op & 0x7, regs, consts, false);
                 }
-                printf(", ");
-                dump_src(ADD.src0, regs, consts, false);
+                fprintf(fp, ", ");
+                dump_src(fp, ADD.src0, regs, consts, false);
                 break;
         }
         case ADD_VARYING_ADDRESS: {
-                dump_src(ADD.src0, regs, consts, false);
-                printf(", ");
-                dump_src(ADD.op & 0x7, regs, consts, false);
-                printf(", ");
+                dump_src(fp, ADD.src0, regs, consts, false);
+                fprintf(fp, ", ");
+                dump_src(fp, ADD.op & 0x7, regs, consts, false);
+                fprintf(fp, ", ");
                 unsigned location = (ADD.op >> 3) & 0x1f;
                 if (location < 16) {
-                        printf("location:%d", location);
+                        fprintf(fp, "location:%d", location);
                 } else if (location == 20) {
-                        printf("location:%u", (uint32_t) get_const(consts, regs));
+                        fprintf(fp, "location:%u", (uint32_t) get_const(consts, regs));
                 } else if (location == 21) {
-                        printf("location:%u", (uint32_t) (get_const(consts, regs) >> 32));
+                        fprintf(fp, "location:%u", (uint32_t) (get_const(consts, regs) >> 32));
                 } else {
-                        printf("location:%d(unk)", location);
+                        fprintf(fp, "location:%d(unk)", location);
                 }
                 break;
         }
         case ADD_LOAD_ATTR:
-                printf("location:%d, ", (ADD.op >> 3) & 0xf);
+                fprintf(fp, "location:%d, ", (ADD.op >> 3) & 0xf);
         case ADD_TWO_SRC:
-                dump_src(ADD.src0, regs, consts, false);
-                printf(", ");
-                dump_src(ADD.op & 0x7, regs, consts, false);
+                dump_src(fp, ADD.src0, regs, consts, false);
+                fprintf(fp, ", ");
+                dump_src(fp, ADD.op & 0x7, regs, consts, false);
                 break;
         case ADD_THREE_SRC:
-                dump_src(ADD.src0, regs, consts, false);
-                printf(", ");
-                dump_src(ADD.op & 0x7, regs, consts, false);
-                printf(", ");
-                dump_src((ADD.op >> 3) & 0x7, regs, consts, false);
+                dump_src(fp, ADD.src0, regs, consts, false);
+                fprintf(fp, ", ");
+                dump_src(fp, ADD.op & 0x7, regs, consts, false);
+                fprintf(fp, ", ");
+                dump_src(fp, (ADD.op >> 3) & 0x7, regs, consts, false);
                 break;
         case ADD_FADD:
         case ADD_FMINMAX:
                 if (ADD.op & 0x10)
-                        printf("-");
+                        fprintf(fp, "-");
                 if (ADD.op & 0x1000)
-                        printf("abs(");
-                dump_src(ADD.src0, regs, consts, false);
+                        fprintf(fp, "abs(");
+                dump_src(fp, ADD.src0, regs, consts, false);
                 switch ((ADD.op >> 6) & 0x3) {
                 case 3:
-                        printf(".x");
+                        fprintf(fp, ".x");
                         break;
                 default:
                         break;
                 }
                 if (ADD.op & 0x1000)
-                        printf(")");
-                printf(", ");
+                        fprintf(fp, ")");
+                fprintf(fp, ", ");
                 if (ADD.op & 0x20)
-                        printf("-");
+                        fprintf(fp, "-");
                 if (ADD.op & 0x8)
-                        printf("abs(");
-                dump_src(ADD.op & 0x7, regs, consts, false);
+                        fprintf(fp, "abs(");
+                dump_src(fp, ADD.op & 0x7, regs, consts, false);
                 switch ((ADD.op >> 6) & 0x3) {
                 case 1:
                 case 3:
-                        printf(".x");
+                        fprintf(fp, ".x");
                         break;
                 case 2:
-                        printf(".y");
+                        fprintf(fp, ".y");
                         break;
                 case 0:
                         break;
                 default:
-                        printf(".unk");
+                        fprintf(fp, ".unk");
                         break;
                 }
                 if (ADD.op & 0x8)
-                        printf(")");
+                        fprintf(fp, ")");
                 break;
         case ADD_FADD16:
                 if (ADD.op & 0x10)
-                        printf("-");
+                        fprintf(fp, "-");
                 if (ADD.op & 0x1000)
-                        printf("abs(");
-                dump_src(ADD.src0, regs, consts, false);
+                        fprintf(fp, "abs(");
+                dump_src(fp, ADD.src0, regs, consts, false);
                 if (ADD.op & 0x1000)
-                        printf(")");
-                dump_16swizzle((ADD.op >> 6) & 0x3);
-                printf(", ");
+                        fprintf(fp, ")");
+                dump_16swizzle(fp, (ADD.op >> 6) & 0x3);
+                fprintf(fp, ", ");
                 if (ADD.op & 0x20)
-                        printf("-");
+                        fprintf(fp, "-");
                 if (ADD.op & 0x8)
-                        printf("abs(");
-                dump_src(ADD.op & 0x7, regs, consts, false);
-                dump_16swizzle((ADD.op >> 8) & 0x3);
+                        fprintf(fp, "abs(");
+                dump_src(fp, ADD.op & 0x7, regs, consts, false);
+                dump_16swizzle(fp, (ADD.op >> 8) & 0x3);
                 if (ADD.op & 0x8)
-                        printf(")");
+                        fprintf(fp, ")");
                 break;
         case ADD_FMINMAX16: {
                 bool abs1 = ADD.op & 0x8;
                 bool abs2 = (ADD.op & 0x7) < ADD.src0;
                 if (ADD.op & 0x10)
-                        printf("-");
+                        fprintf(fp, "-");
                 if (abs1 || abs2)
-                        printf("abs(");
-                dump_src(ADD.src0, regs, consts, false);
-                dump_16swizzle((ADD.op >> 6) & 0x3);
+                        fprintf(fp, "abs(");
+                dump_src(fp, ADD.src0, regs, consts, false);
+                dump_16swizzle(fp, (ADD.op >> 6) & 0x3);
                 if (abs1 || abs2)
-                        printf(")");
-                printf(", ");
+                        fprintf(fp, ")");
+                fprintf(fp, ", ");
                 if (ADD.op & 0x20)
-                        printf("-");
+                        fprintf(fp, "-");
                 if (abs1 && abs2)
-                        printf("abs(");
-                dump_src(ADD.op & 0x7, regs, consts, false);
-                dump_16swizzle((ADD.op >> 8) & 0x3);
+                        fprintf(fp, "abs(");
+                dump_src(fp, ADD.op & 0x7, regs, consts, false);
+                dump_16swizzle(fp, (ADD.op >> 8) & 0x3);
                 if (abs1 && abs2)
-                        printf(")");
+                        fprintf(fp, ")");
                 break;
         }
         case ADD_FADDMscale: {
                 if (ADD.op & 0x400)
-                        printf("-");
+                        fprintf(fp, "-");
                 if (ADD.op & 0x200)
-                        printf("abs(");
-                dump_src(ADD.src0, regs, consts, false);
+                        fprintf(fp, "abs(");
+                dump_src(fp, ADD.src0, regs, consts, false);
                 if (ADD.op & 0x200)
-                        printf(")");
+                        fprintf(fp, ")");
 
-                printf(", ");
+                fprintf(fp, ", ");
 
                 if (ADD.op & 0x800)
-                        printf("-");
-                dump_src(ADD.op & 0x7, regs, consts, false);
+                        fprintf(fp, "-");
+                dump_src(fp, ADD.op & 0x7, regs, consts, false);
 
-                printf(", ");
+                fprintf(fp, ", ");
 
-                dump_src((ADD.op >> 3) & 0x7, regs, consts, false);
+                dump_src(fp, (ADD.op >> 3) & 0x7, regs, consts, false);
                 break;
         }
         case ADD_FCMP:
                 if (ADD.op & 0x400) {
-                        printf("-");
+                        fprintf(fp, "-");
                 }
                 if (ADD.op & 0x100) {
-                        printf("abs(");
+                        fprintf(fp, "abs(");
                 }
-                dump_src(ADD.src0, regs, consts, false);
+                dump_src(fp, ADD.src0, regs, consts, false);
                 switch ((ADD.op >> 6) & 0x3) {
                 case 3:
-                        printf(".x");
+                        fprintf(fp, ".x");
                         break;
                 default:
                         break;
                 }
                 if (ADD.op & 0x100) {
-                        printf(")");
+                        fprintf(fp, ")");
                 }
-                printf(", ");
+                fprintf(fp, ", ");
                 if (ADD.op & 0x200) {
-                        printf("abs(");
+                        fprintf(fp, "abs(");
                 }
-                dump_src(ADD.op & 0x7, regs, consts, false);
+                dump_src(fp, ADD.op & 0x7, regs, consts, false);
                 switch ((ADD.op >> 6) & 0x3) {
                 case 1:
                 case 3:
-                        printf(".x");
+                        fprintf(fp, ".x");
                         break;
                 case 2:
-                        printf(".y");
+                        fprintf(fp, ".y");
                         break;
                 case 0:
                         break;
                 default:
-                        printf(".unk");
+                        fprintf(fp, ".unk");
                         break;
                 }
                 if (ADD.op & 0x200) {
-                        printf(")");
+                        fprintf(fp, ")");
                 }
                 break;
         case ADD_FCMP16:
-                dump_src(ADD.src0, regs, consts, false);
-                dump_16swizzle((ADD.op >> 6) & 0x3);
-                printf(", ");
-                dump_src(ADD.op & 0x7, regs, consts, false);
-                dump_16swizzle((ADD.op >> 8) & 0x3);
+                dump_src(fp, ADD.src0, regs, consts, false);
+                dump_16swizzle(fp, (ADD.op >> 6) & 0x3);
+                fprintf(fp, ", ");
+                dump_src(fp, ADD.op & 0x7, regs, consts, false);
+                dump_16swizzle(fp, (ADD.op >> 8) & 0x3);
                 break;
         case ADD_BRANCH: {
                 enum branch_code code = (enum branch_code) ((ADD.op >> 6) & 0x3f);
                 enum branch_bit_size size = (enum branch_bit_size) ((ADD.op >> 9) & 0x7);
                 if (code != BR_ALWAYS) {
-                        dump_src(ADD.src0, regs, consts, false);
+                        dump_src(fp, ADD.src0, regs, consts, false);
                         switch (size) {
                         case BR_SIZE_16XX:
-                                printf(".x");
+                                fprintf(fp, ".x");
                                 break;
                         case BR_SIZE_16YY:
                         case BR_SIZE_16YX0:
                         case BR_SIZE_16YX1:
-                                printf(".y");
+                                fprintf(fp, ".y");
                                 break;
                         case BR_SIZE_ZERO: {
                                 unsigned ctrl = (ADD.op >> 1) & 0x3;
                                 switch (ctrl) {
                                 case 1:
-                                        printf(".y");
+                                        fprintf(fp, ".y");
                                         break;
                                 case 2:
-                                        printf(".x");
+                                        fprintf(fp, ".x");
                                         break;
                                 default:
                                         break;
@@ -1970,25 +1972,25 @@ static void dump_add(uint64_t word, struct bifrost_regs regs, struct bifrost_reg
                         default:
                                 break;
                         }
-                        printf(", ");
+                        fprintf(fp, ", ");
                 }
                 if (code != BR_ALWAYS && size != BR_SIZE_ZERO) {
-                        dump_src(ADD.op & 0x7, regs, consts, false);
+                        dump_src(fp, ADD.op & 0x7, regs, consts, false);
                         switch (size) {
                         case BR_SIZE_16XX:
                         case BR_SIZE_16YX0:
                         case BR_SIZE_16YX1:
                         case BR_SIZE_32_AND_16X:
-                                printf(".x");
+                                fprintf(fp, ".x");
                                 break;
                         case BR_SIZE_16YY:
                         case BR_SIZE_32_AND_16Y:
-                                printf(".y");
+                                fprintf(fp, ".y");
                                 break;
                         default:
                                 break;
                         }
-                        printf(", ");
+                        fprintf(fp, ", ");
                 }
                 // I haven't had the chance to test if this actually specifies the
                 // branch offset, since I couldn't get it to produce values other
@@ -2020,33 +2022,34 @@ static void dump_add(uint64_t word, struct bifrost_regs regs, struct bifrost_reg
                         // Note: the offset is in bytes, relative to the beginning of the
                         // current clause, so a zero offset would be a loop back to the
                         // same clause (annoyingly different from Midgard).
-                        printf("clause_%d", offset + branch_offset);
+                        fprintf(fp, "clause_%d", offset + branch_offset);
                 } else {
-                        dump_src(offsetSrc, regs, consts, false);
+                        dump_src(fp, offsetSrc, regs, consts, false);
                 }
         }
         }
         if (info.has_data_reg) {
-                printf(", R%d", data_reg);
+                fprintf(fp, ", R%d", data_reg);
         }
-        printf("\n");
+        fprintf(fp, "\n");
 }
 
-void dump_instr(const struct bifrost_alu_inst *instr, struct bifrost_regs next_regs, uint64_t *consts,
+void dump_instr(FILE *fp, const struct bifrost_alu_inst *instr,
+                struct bifrost_regs next_regs, uint64_t *consts,
                 unsigned data_reg, unsigned offset, bool verbose)
 {
         struct bifrost_regs regs;
         memcpy((char *) &regs, (char *) &instr->reg_bits, sizeof(regs));
 
         if (verbose) {
-                printf("# regs: %016" PRIx64 "\n", instr->reg_bits);
-                dump_regs(regs);
+                fprintf(fp, "# regs: %016" PRIx64 "\n", instr->reg_bits);
+                dump_regs(fp, regs);
         }
-        dump_fma(instr->fma_bits, regs, next_regs, consts, verbose);
-        dump_add(instr->add_bits, regs, next_regs, consts, data_reg, offset, verbose);
+        dump_fma(fp, instr->fma_bits, regs, next_regs, consts, verbose);
+        dump_add(fp, instr->add_bits, regs, next_regs, consts, data_reg, offset, verbose);
 }
 
-bool dump_clause(uint32_t *words, unsigned *size, unsigned offset, bool verbose)
+bool dump_clause(FILE *fp, uint32_t *words, unsigned *size, unsigned offset, bool verbose)
 {
         // State for a decoded clause
         struct bifrost_alu_inst instrs[8] = {};
@@ -2059,10 +2062,10 @@ bool dump_clause(uint32_t *words, unsigned *size, unsigned offset, bool verbose)
         unsigned i;
         for (i = 0; ; i++, words += 4) {
                 if (verbose) {
-                        printf("# ");
+                        fprintf(fp, "# ");
                         for (int j = 0; j < 4; j++)
-                                printf("%08x ", words[3 - j]); // low bit on the right
-                        printf("\n");
+                                fprintf(fp, "%08x ", words[3 - j]); // low bit on the right
+                        fprintf(fp, "\n");
                 }
                 unsigned tag = bits(words[0], 0, 8);
 
@@ -2081,7 +2084,7 @@ bool dump_clause(uint32_t *words, unsigned *size, unsigned offset, bool verbose)
                 bool stop = tag & 0x40;
 
                 if (verbose) {
-                        printf("# tag: 0x%02x\n", tag);
+                        fprintf(fp, "# tag: 0x%02x\n", tag);
                 }
                 if (tag & 0x80) {
                         unsigned idx = stop ? 5 : 2;
@@ -2137,7 +2140,7 @@ bool dump_clause(uint32_t *words, unsigned *size, unsigned offset, bool verbose)
                                         done = stop;
                                         break;
                                 default:
-                                        printf("unknown tag bits 0x%02x\n", tag);
+                                        fprintf(fp, "unknown tag bits 0x%02x\n", tag);
                                 }
                                 break;
                         case 0x2:
@@ -2204,7 +2207,7 @@ bool dump_clause(uint32_t *words, unsigned *size, unsigned offset, bool verbose)
                                         const_idx = 4;
                                         break;
                                 default:
-                                        printf("# unknown pos 0x%x\n", pos);
+                                        fprintf(fp, "# unknown pos 0x%x\n", pos);
                                         break;
                                 }
 
@@ -2228,16 +2231,16 @@ bool dump_clause(uint32_t *words, unsigned *size, unsigned offset, bool verbose)
         *size = i + 1;
 
         if (verbose) {
-                printf("# header: %012" PRIx64 "\n", header_bits);
+                fprintf(fp, "# header: %012" PRIx64 "\n", header_bits);
         }
 
         struct bifrost_header header;
         memcpy((char *) &header, (char *) &header_bits, sizeof(struct bifrost_header));
-        dump_header(header, verbose);
+        dump_header(fp, header, verbose);
         if (!header.no_end_of_shader)
                 stopbit = true;
 
-        printf("{\n");
+        fprintf(fp, "{\n");
         for (i = 0; i < num_instrs; i++) {
                 struct bifrost_regs next_regs;
                 if (i + 1 == num_instrs) {
@@ -2248,20 +2251,20 @@ bool dump_clause(uint32_t *words, unsigned *size, unsigned offset, bool verbose)
                                sizeof(next_regs));
                 }
 
-                dump_instr(&instrs[i], next_regs, consts, header.datareg, offset, verbose);
+                dump_instr(fp, &instrs[i], next_regs, consts, header.datareg, offset, verbose);
         }
-        printf("}\n");
+        fprintf(fp, "}\n");
 
         if (verbose) {
                 for (unsigned i = 0; i < num_consts; i++) {
-                        printf("# const%d: %08" PRIx64 "\n", 2 * i, consts[i] & 0xffffffff);
-                        printf("# const%d: %08" PRIx64 "\n", 2 * i + 1, consts[i] >> 32);
+                        fprintf(fp, "# const%d: %08" PRIx64 "\n", 2 * i, consts[i] & 0xffffffff);
+                        fprintf(fp, "# const%d: %08" PRIx64 "\n", 2 * i + 1, consts[i] >> 32);
                 }
         }
         return stopbit;
 }
 
-void disassemble_bifrost(uint8_t *code, size_t size, bool verbose)
+void disassemble_bifrost(FILE *fp, uint8_t *code, size_t size, bool verbose)
 {
         uint32_t *words = (uint32_t *) code;
         uint32_t *words_end = words + (size / 4);
@@ -2273,9 +2276,9 @@ void disassemble_bifrost(uint8_t *code, size_t size, bool verbose)
                 uint32_t zero[4] = {};
                 if (memcmp(words, zero, 4 * sizeof(uint32_t)) == 0)
                         break;
-                printf("clause_%d:\n", offset);
+                fprintf(fp, "clause_%d:\n", offset);
                 unsigned size;
-                if (dump_clause(words, &size, offset, verbose) == true) {
+                if (dump_clause(fp, words, &size, offset, verbose) == true) {
                         break;
                 }
                 words += size * 4;

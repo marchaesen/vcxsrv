@@ -126,6 +126,35 @@ try_lower_input_load(nir_function_impl *impl, nir_intrinsic_instr *load,
    return true;
 }
 
+static bool
+try_lower_input_texop(nir_function_impl *impl, nir_tex_instr *tex,
+							 bool use_fragcoord_sysval)
+{
+   nir_deref_instr *deref = nir_src_as_deref(tex->src[0].src);
+   assert(glsl_type_is_image(deref->type));
+
+   if (glsl_get_sampler_dim(deref->type) != GLSL_SAMPLER_DIM_SUBPASS_MS)
+      return false;
+
+   nir_builder b;
+   nir_builder_init(&b, impl);
+   b.cursor = nir_before_instr(&tex->instr);
+
+   nir_ssa_def *frag_coord = use_fragcoord_sysval ? nir_load_frag_coord(&b)
+                                                  : load_frag_coord(&b);
+   frag_coord = nir_f2i32(&b, frag_coord);
+
+   nir_ssa_def *layer = nir_load_layer_id(&b);
+   nir_ssa_def *coord = nir_vec3(&b, nir_channel(&b, frag_coord, 0),
+                                     nir_channel(&b, frag_coord, 1), layer);
+
+   tex->coord_components = 3;
+
+   nir_instr_rewrite_src(&tex->instr, &tex->src[1].src, nir_src_for_ssa(coord));
+
+   return true;
+}
+
 bool
 nir_lower_input_attachments(nir_shader *shader, bool use_fragcoord_sysval)
 {
@@ -138,16 +167,29 @@ nir_lower_input_attachments(nir_shader *shader, bool use_fragcoord_sysval)
 
       nir_foreach_block(block, function->impl) {
          nir_foreach_instr_safe(instr, block) {
-            if (instr->type != nir_instr_type_intrinsic)
-               continue;
+            switch (instr->type) {
+            case nir_instr_type_tex: {
+               nir_tex_instr *tex = nir_instr_as_tex(instr);
 
-            nir_intrinsic_instr *load = nir_instr_as_intrinsic(instr);
+               if (tex->op == nir_texop_fragment_mask_fetch ||
+                   tex->op == nir_texop_fragment_fetch) {
+                  progress |= try_lower_input_texop(function->impl, tex,
+                                                    use_fragcoord_sysval);
+               }
+               break;
+            }
+            case nir_instr_type_intrinsic: {
+               nir_intrinsic_instr *load = nir_instr_as_intrinsic(instr);
 
-            if (load->intrinsic != nir_intrinsic_image_deref_load)
-               continue;
-
-            progress |= try_lower_input_load(function->impl, load,
-                                             use_fragcoord_sysval);
+               if (load->intrinsic == nir_intrinsic_image_deref_load) {
+                  progress |= try_lower_input_load(function->impl, load,
+                                                   use_fragcoord_sysval);
+               }
+               break;
+            }
+            default:
+               break;
+            }
          }
       }
    }
