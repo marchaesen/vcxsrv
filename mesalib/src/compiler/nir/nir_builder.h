@@ -656,7 +656,8 @@ _nir_mul_imm(nir_builder *build, nir_ssa_def *x, uint64_t y, bool amul)
       return nir_imm_intN_t(build, 0, x->bit_size);
    } else if (y == 1) {
       return x;
-   } else if (util_is_power_of_two_or_zero64(y)) {
+   } else if (!build->shader->options->lower_bitops &&
+              util_is_power_of_two_or_zero64(y)) {
       return nir_ishl(build, x, nir_imm_int(build, ffsll(y) - 1));
    } else if (amul) {
       return nir_amul(build, x, nir_imm_intN_t(build, y, x->bit_size));

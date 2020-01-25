@@ -43,7 +43,7 @@ emit_intrinsic_load_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr,
 	struct ir3_instruction *ldgb, *src0, *src1, *byte_offset, *offset;
 
 	/* can this be non-const buffer_index?  how do we handle that? */
-	int ibo_idx = ir3_ssbo_to_ibo(&ctx->so->image_mapping, nir_src_as_uint(intr->src[0]));
+	int ibo_idx = ir3_ssbo_to_ibo(ctx->so->shader, nir_src_as_uint(intr->src[0]));
 
 	byte_offset = ir3_get_src(ctx, &intr->src[1])[0];
 	offset = ir3_get_src(ctx, &intr->src[2])[0];
@@ -81,7 +81,7 @@ emit_intrinsic_store_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	unsigned ncomp = ffs(~wrmask) - 1;
 
 	/* can this be non-const buffer_index?  how do we handle that? */
-	int ibo_idx = ir3_ssbo_to_ibo(&ctx->so->image_mapping, nir_src_as_uint(intr->src[1]));
+	int ibo_idx = ir3_ssbo_to_ibo(ctx->so->shader, nir_src_as_uint(intr->src[1]));
 
 	byte_offset = ir3_get_src(ctx, &intr->src[2])[0];
 	offset = ir3_get_src(ctx, &intr->src[3])[0];
@@ -132,7 +132,7 @@ emit_intrinsic_atomic_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	type_t type = TYPE_U32;
 
 	/* can this be non-const buffer_index?  how do we handle that? */
-	int ibo_idx = ir3_ssbo_to_ibo(&ctx->so->image_mapping, nir_src_as_uint(intr->src[0]));
+	int ibo_idx = ir3_ssbo_to_ibo(ctx->so->shader, nir_src_as_uint(intr->src[0]));
 	ssbo = create_immed(b, ibo_idx);
 
 	byte_offset = ir3_get_src(ctx, &intr->src[1])[0];
@@ -262,7 +262,7 @@ emit_intrinsic_store_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	struct ir3_instruction * const *coords = ir3_get_src(ctx, &intr->src[1]);
 	unsigned ncoords = ir3_get_image_coords(var, NULL);
 	unsigned slot = ir3_get_image_slot(nir_src_as_deref(intr->src[0]));
-	unsigned ibo_idx = ir3_image_to_ibo(&ctx->so->image_mapping, slot);
+	unsigned ibo_idx = ir3_image_to_ibo(ctx->so->shader, slot);
 	unsigned ncomp = ir3_get_num_components_for_glformat(var->data.image.format);
 
 	/* src0 is value
@@ -301,7 +301,7 @@ emit_intrinsic_atomic_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	struct ir3_instruction * const *coords = ir3_get_src(ctx, &intr->src[1]);
 	unsigned ncoords = ir3_get_image_coords(var, NULL);
 	unsigned slot = ir3_get_image_slot(nir_src_as_deref(intr->src[0]));
-	unsigned ibo_idx = ir3_image_to_ibo(&ctx->so->image_mapping, slot);
+	unsigned ibo_idx = ir3_image_to_ibo(ctx->so->shader, slot);
 
 	image = create_immed(b, ibo_idx);
 

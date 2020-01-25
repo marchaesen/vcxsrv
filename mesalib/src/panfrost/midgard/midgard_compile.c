@@ -487,6 +487,7 @@ optimise_nir(nir_shader *nir, unsigned quirks)
                 NIR_PASS(progress, nir, nir_lower_vars_to_ssa);
 
                 NIR_PASS(progress, nir, nir_copy_prop);
+                NIR_PASS(progress, nir, nir_opt_remove_phis);
                 NIR_PASS(progress, nir, nir_opt_dce);
                 NIR_PASS(progress, nir, nir_opt_dead_cf);
                 NIR_PASS(progress, nir, nir_opt_cse);
@@ -571,11 +572,33 @@ emit_load_const(compiler_context *ctx, nir_load_const_instr *instr)
 {
         nir_ssa_def def = instr->def;
 
-        float *v = rzalloc_array(NULL, float, 4);
-        nir_const_value_to_array(v, instr->value, instr->def.num_components, f32);
+        midgard_constants *consts = rzalloc(NULL, midgard_constants);
+
+        assert(instr->def.num_components * instr->def.bit_size <= sizeof(*consts) * 8);
+
+#define RAW_CONST_COPY(bits)                                         \
+        nir_const_value_to_array(consts->u##bits, instr->value,      \
+                                 instr->def.num_components, u##bits)
+
+        switch (instr->def.bit_size) {
+        case 64:
+                RAW_CONST_COPY(64);
+                break;
+        case 32:
+                RAW_CONST_COPY(32);
+                break;
+        case 16:
+                RAW_CONST_COPY(16);
+                break;
+        case 8:
+                RAW_CONST_COPY(8);
+                break;
+        default:
+                unreachable("Invalid bit_size for load_const instruction\n");
+        }
 
         /* Shifted for SSA, +1 for off-by-one */
-        _mesa_hash_table_u64_insert(ctx->ssa_constants, (def.index << 1) + 1, v);
+        _mesa_hash_table_u64_insert(ctx->ssa_constants, (def.index << 1) + 1, consts);
 }
 
 /* Normally constants are embedded implicitly, but for I/O and such we have to
@@ -763,6 +786,11 @@ emit_alu(compiler_context *ctx, nir_alu_instr *instr)
                 ALU_CASE(fexp2, fexp2);
                 ALU_CASE(flog2, flog2);
 
+                ALU_CASE(f2i64, f2i_rtz);
+                ALU_CASE(f2u64, f2u_rtz);
+                ALU_CASE(i2f64, i2f_rtz);
+                ALU_CASE(u2f64, u2f_rtz);
+
                 ALU_CASE(f2i32, f2i_rtz);
                 ALU_CASE(f2u32, f2u_rtz);
                 ALU_CASE(i2f32, i2f_rtz);
@@ -825,8 +853,15 @@ emit_alu(compiler_context *ctx, nir_alu_instr *instr)
         case nir_op_u2u8:
         case nir_op_u2u16:
         case nir_op_u2u32:
-        case nir_op_u2u64: {
-                op = midgard_alu_op_imov;
+        case nir_op_u2u64:
+        case nir_op_f2f16:
+        case nir_op_f2f32:
+        case nir_op_f2f64: {
+                if (instr->op == nir_op_f2f16 || instr->op == nir_op_f2f32 ||
+                    instr->op == nir_op_f2f64)
+                        op = midgard_alu_op_fmov;
+                else
+                        op = midgard_alu_op_imov;
 
                 if (dst_bitsize == (src_bitsize * 2)) {
                         /* Converting up */
@@ -841,24 +876,6 @@ emit_alu(compiler_context *ctx, nir_alu_instr *instr)
 
                 break;
         }
-
-        case nir_op_f2f16: {
-                assert(src_bitsize == 32);
-
-                op = midgard_alu_op_fmov;
-                dest_override = midgard_dest_override_lower;
-                break;
-        }
-
-        case nir_op_f2f32: {
-                assert(src_bitsize == 16);
-
-                op = midgard_alu_op_fmov;
-                half_2 = true;
-                reg_mode++;
-                break;
-        }
-
 
         /* For greater-or-equal, we lower to less-or-equal and flip the
          * arguments */
@@ -1043,13 +1060,10 @@ emit_alu(compiler_context *ctx, nir_alu_instr *instr)
                 ins.src[1] = SSA_FIXED_REGISTER(REGISTER_CONSTANT);
                 ins.has_constants = true;
 
-                if (instr->op == nir_op_b2f32) {
-                        float f = 1.0f;
-                        memcpy(&ins.constants, &f, sizeof(float));
-                } else {
-                        ins.constants[0] = 1;
-                }
-
+                if (instr->op == nir_op_b2f32)
+                        ins.constants.f32[0] = 1.0f;
+                else
+                        ins.constants.i32[0] = 1;
 
                 for (unsigned c = 0; c < 16; ++c)
                         ins.swizzle[1][c] = 0;
@@ -1058,7 +1072,7 @@ emit_alu(compiler_context *ctx, nir_alu_instr *instr)
                 ins.has_inline_constant = false;
                 ins.src[1] = SSA_FIXED_REGISTER(REGISTER_CONSTANT);
                 ins.has_constants = true;
-                ins.constants[0] = 0;
+                ins.constants.u32[0] = 0;
 
                 for (unsigned c = 0; c < 16; ++c)
                         ins.swizzle[1][c] = 0;
@@ -1134,7 +1148,7 @@ emit_ubo_read(
         /* TODO: half-floats */
 
         midgard_instruction ins = m_ld_ubo_int4(dest, 0);
-        ins.constants[0] = offset;
+        ins.constants.u32[0] = offset;
 
         if (instr->type == nir_instr_type_intrinsic)
                 mir_set_intr_mask(instr, &ins, true);
@@ -1344,7 +1358,7 @@ emit_fragment_store(compiler_context *ctx, unsigned src, unsigned rt)
 
         /* Add dependencies */
         ins.src[0] = src;
-        ins.constants[0] = rt * 0x100;
+        ins.constants.u32[0] = rt * 0x100;
 
         /* Emit the branch */
         midgard_instruction *br = emit_mir_instruction(ctx, ins);
@@ -1553,7 +1567,7 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
 
                         emit_explicit_constant(ctx, reg, reg);
 
-                        unsigned component = nir_intrinsic_component(instr);
+                        unsigned dst_component = nir_intrinsic_component(instr);
                         unsigned nr_comp = nir_src_num_components(instr->src[0]);
 
                         midgard_instruction st = m_st_vary_32(reg, offset);
@@ -1576,8 +1590,20 @@ emit_intrinsic(compiler_context *ctx, nir_intrinsic_instr *instr)
                                 break;
                         }
 
-                        for (unsigned i = 0; i < ARRAY_SIZE(st.swizzle[0]); ++i)
-                                st.swizzle[0][i] = MIN2(i + component, nr_comp);
+                        /* nir_intrinsic_component(store_intr) encodes the
+                         * destination component start. Source component offset
+                         * adjustment is taken care of in
+                         * install_registers_instr(), when offset_swizzle() is
+                         * called.
+                         */
+                        unsigned src_component = COMPONENT_X;
+
+                        assert(nr_comp > 0);
+                        for (unsigned i = 0; i < ARRAY_SIZE(st.swizzle); ++i) {
+                                st.swizzle[0][i] = src_component;
+                                if (i >= dst_component && i < dst_component + nr_comp - 1)
+                                        src_component++;
+                        }
 
                         emit_mir_instruction(ctx, st);
                 } else {
@@ -2145,16 +2171,16 @@ embedded_to_inline_constant(compiler_context *ctx, midgard_block *block)
                         /* Scale constant appropriately, if we can legally */
                         uint16_t scaled_constant = 0;
 
-                        if (midgard_is_integer_op(op) || is_16) {
-                                unsigned int *iconstants = (unsigned int *) ins->constants;
-                                scaled_constant = (uint16_t) iconstants[component];
+                        if (is_16) {
+                                scaled_constant = ins->constants.u16[component];
+                        } else if (midgard_is_integer_op(op)) {
+                                scaled_constant = ins->constants.u32[component];
 
                                 /* Constant overflow after resize */
-                                if (scaled_constant != iconstants[component])
+                                if (scaled_constant != ins->constants.u32[component])
                                         continue;
                         } else {
-                                float *f = (float *) ins->constants;
-                                float original = f[component];
+                                float original = ins->constants.f32[component];
                                 scaled_constant = _mesa_float_to_half(original);
 
                                 /* Check for loss of precision. If this is
@@ -2180,8 +2206,8 @@ embedded_to_inline_constant(compiler_context *ctx, midgard_block *block)
                         /* Make sure that the constant is not itself a vector
                          * by checking if all accessed values are the same. */
 
-                        uint32_t *cons = ins->constants;
-                        uint32_t value = cons[component];
+                        const midgard_constants *cons = &ins->constants;
+                        uint32_t value = is_16 ? cons->u16[component] : cons->u32[component];
 
                         bool is_vector = false;
                         unsigned mask = effective_writemask(&ins->alu, ins->mask);
@@ -2191,7 +2217,9 @@ embedded_to_inline_constant(compiler_context *ctx, midgard_block *block)
                                 if (!(mask & (1 << c)))
                                         continue;
 
-                                uint32_t test = cons[ins->swizzle[1][c]];
+                                uint32_t test = is_16 ?
+                                                cons->u16[ins->swizzle[1][c]] :
+                                                cons->u32[ins->swizzle[1][c]];
 
                                 if (test != value) {
                                         is_vector = true;
@@ -2298,7 +2326,7 @@ emit_fragment_epilogue(compiler_context *ctx, unsigned rt)
         struct midgard_instruction ins = v_branch(false, false);
         ins.writeout = true;
         ins.branch.target_block = ctx->block_count - 1;
-        ins.constants[0] = rt * 0x100;
+        ins.constants.u32[0] = rt * 0x100;
         emit_mir_instruction(ctx, ins);
 
         ctx->current_block->epilogue = true;
@@ -2732,7 +2760,7 @@ midgard_compile_shader_nir(nir_shader *nir, midgard_program *program, bool is_bl
                 mir_add_writeout_loops(ctx);
 
         /* Schedule! */
-        schedule_program(ctx);
+        midgard_schedule_program(ctx);
         mir_ra(ctx);
 
         /* Now that all the bundles are scheduled and we can calculate block
@@ -2897,7 +2925,7 @@ midgard_compile_shader_nir(nir_shader *nir, midgard_program *program, bool is_bl
         program->tls_size = ctx->tls_size;
 
         if (midgard_debug & MIDGARD_DBG_SHADERS)
-                disassemble_midgard(program->compiled.data, program->compiled.size, gpu_id, ctx->stage);
+                disassemble_midgard(stdout, program->compiled.data, program->compiled.size, gpu_id, ctx->stage);
 
         if (midgard_debug & MIDGARD_DBG_SHADERDB || shaderdb) {
                 unsigned nr_bundles = 0, nr_ins = 0;

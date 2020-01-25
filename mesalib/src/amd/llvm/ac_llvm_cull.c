@@ -153,7 +153,7 @@ static LLVMValueRef cull_bbox(struct ac_llvm_context *ctx,
 		LLVMValueRef accepted = initially_accepted;
 
 		/* Compute the primitive bounding box for easy culling. */
-		for (unsigned chan = 0; chan < 3; chan++) {
+		for (unsigned chan = 0; chan < (cull_view_near_z || cull_view_far_z ? 3 : 2); chan++) {
 			bbox_min[chan] = ac_build_fmin(ctx, pos[0][chan], pos[1][chan]);
 			bbox_min[chan] = ac_build_fmin(ctx, bbox_min[chan], pos[2][chan]);
 

@@ -131,6 +131,15 @@ finish and then write to vcc (for example, `s_mov_b64 vcc, vcc`) to correct vccz
 
 Currently, we don't do this.
 
+## GCN / GFX6 hazards
+
+### VINTRP followed by a read with v_readfirstlane or v_readlane
+
+It's required to insert 1 wait state if the dst VGPR of any v_interp_* is
+followed by a read with v_readfirstlane or v_readlane to fix GPU hangs on GFX6.
+Note that v_writelane_* is apparently not affected. This hazard isn't
+documented anywhere but AMD confirmed it.
+
 ## RDNA / GFX10 hazards
 
 ### SMEM store followed by a load with the same address
@@ -154,7 +163,6 @@ A VALU instruction or an `s_waitcnt vmcnt(0)` between the two instructions.
 
 Triggered by:
 An SMEM instruction reads an SGPR. Then, a VALU instruction writes that same SGPR.
-Despite LLVM
 
 Mitigated by:
 Any non-SOPP SALU instruction (except `s_setvskip`, `s_version`, and any non-lgkmcnt `s_waitcnt`).

@@ -626,6 +626,9 @@ struct vtn_builder {
    /* True if we should watch out for GLSLang issue #179 */
    bool wa_glslang_179;
 
+   /* True if we need to fix up CS OpControlBarrier */
+   bool wa_glslang_cs_barrier;
+
    gl_shader_stage entry_point_stage;
    const char *entry_point_name;
    struct vtn_value *entry_point;

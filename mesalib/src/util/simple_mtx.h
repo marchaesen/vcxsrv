@@ -25,6 +25,7 @@
 #define _SIMPLE_MTX_H
 
 #include "util/futex.h"
+#include "util/macros.h"
 
 #include "c11/threads.h"
 

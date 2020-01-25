@@ -261,6 +261,21 @@ vtn_nir_alu_op_for_spirv_opcode(struct vtn_builder *b,
    case SpvOpBitReverse:            return nir_op_bitfield_reverse;
    case SpvOpBitCount:              return nir_op_bit_count;
 
+   case SpvOpUCountLeadingZerosINTEL: return nir_op_uclz;
+   /* SpvOpUCountTrailingZerosINTEL is handled elsewhere. */
+   case SpvOpAbsISubINTEL:          return nir_op_uabs_isub;
+   case SpvOpAbsUSubINTEL:          return nir_op_uabs_usub;
+   case SpvOpIAddSatINTEL:          return nir_op_iadd_sat;
+   case SpvOpUAddSatINTEL:          return nir_op_uadd_sat;
+   case SpvOpIAverageINTEL:         return nir_op_ihadd;
+   case SpvOpUAverageINTEL:         return nir_op_uhadd;
+   case SpvOpIAverageRoundedINTEL:  return nir_op_irhadd;
+   case SpvOpUAverageRoundedINTEL:  return nir_op_urhadd;
+   case SpvOpISubSatINTEL:          return nir_op_isub_sat;
+   case SpvOpUSubSatINTEL:          return nir_op_usub_sat;
+   case SpvOpIMul32x16INTEL:        return nir_op_imul_32x16;
+   case SpvOpUMul32x16INTEL:        return nir_op_umul_32x16;
+
    /* The ordered / unordered operators need special implementation besides
     * the logical operator to use since they also need to check if operands are
     * ordered.
@@ -639,6 +654,12 @@ vtn_handle_alu(struct vtn_builder *b, SpvOp opcode,
       val->ssa->def = nir_i2b(&b->nb, val->ssa->def);
       break;
    }
+
+   case SpvOpUCountTrailingZerosINTEL:
+      val->ssa->def = nir_umin(&b->nb,
+                               nir_find_lsb(&b->nb, src[0]),
+                               nir_imm_int(&b->nb, 32u));
+      break;
 
    default: {
       bool swap;

@@ -73,7 +73,7 @@ public:
         function_list(), added_functions(&function_list, mem_ctx)
    {
       functions = _mesa_hash_table_create(mem_ctx,
-                                          _mesa_key_hash_string,
+                                          _mesa_hash_string,
                                           _mesa_key_string_equal);
 
       foreach_in_list(ir_instruction, node, instructions) {

@@ -97,6 +97,7 @@ endef
 
 # add subdirectories
 SUBDIRS := \
+	src/etnaviv \
 	src/freedreno \
 	src/gbm \
 	src/loader \

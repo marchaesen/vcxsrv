@@ -37,6 +37,7 @@
 #include "inputstr.h"
 #include "xf86str.h"
 #include "X11/Xatom.h"
+#include "mi.h"
 #include "micmap.h"
 #include "xf86cmap.h"
 #include "xf86DDC.h"

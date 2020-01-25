@@ -57,6 +57,9 @@ ST_STATE(ST_NEW_TES_ATOMICS, st_bind_tes_atomics)
 ST_STATE(ST_NEW_FS_ATOMICS, st_bind_fs_atomics)
 ST_STATE(ST_NEW_GS_ATOMICS, st_bind_gs_atomics)
 
+/* SSBOs depend on the _atomics having been updated first in the
+ * !has_hw_atomics case.
+ */
 ST_STATE(ST_NEW_VS_SSBOS, st_bind_vs_ssbos)
 ST_STATE(ST_NEW_TCS_SSBOS, st_bind_tcs_ssbos)
 ST_STATE(ST_NEW_TES_SSBOS, st_bind_tes_ssbos)

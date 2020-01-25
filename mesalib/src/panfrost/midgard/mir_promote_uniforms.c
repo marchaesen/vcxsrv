@@ -44,10 +44,10 @@ mir_is_promoteable_ubo(midgard_instruction *ins)
 
         return (ins->type == TAG_LOAD_STORE_4) &&
                 (OP_IS_UBO_READ(ins->load_store.op)) &&
-                !(ins->constants[0] & 0xF) &&
+                !(ins->constants.u32[0] & 0xF) &&
                 !(ins->load_store.arg_1) &&
                 (ins->load_store.arg_2 == 0x1E) &&
-                ((ins->constants[0] / 16) < 16);
+                ((ins->constants.u32[0] / 16) < 16);
 }
 
 static unsigned
@@ -57,7 +57,7 @@ mir_promoteable_uniform_count(compiler_context *ctx)
 
         mir_foreach_instr_global(ctx, ins) {
                 if (mir_is_promoteable_ubo(ins))
-                        count = MAX2(count, ins->constants[0] / 16);
+                        count = MAX2(count, ins->constants.u32[0] / 16);
         }
 
         return count;
@@ -135,7 +135,7 @@ midgard_promote_uniforms(compiler_context *ctx)
         mir_foreach_instr_global_safe(ctx, ins) {
                 if (!mir_is_promoteable_ubo(ins)) continue;
 
-                unsigned off = ins->constants[0];
+                unsigned off = ins->constants.u32[0];
                 unsigned address = off / 16;
 
                 /* Check if it's a promotable range */

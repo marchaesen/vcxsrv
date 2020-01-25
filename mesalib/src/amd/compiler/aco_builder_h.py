@@ -78,6 +78,33 @@ ds_pattern_bitmode(unsigned and_mask, unsigned or_mask, unsigned xor_mask)
 
 aco_ptr<Instruction> create_s_mov(Definition dst, Operand src);
 
+enum sendmsg {
+   sendmsg_none = 0,
+   _sendmsg_gs = 2,
+   _sendmsg_gs_done = 3,
+   sendmsg_save_wave = 4,
+   sendmsg_stall_wave_gen = 5,
+   sendmsg_halt_waves = 6,
+   sendmsg_ordered_ps_done = 7,
+   sendmsg_early_prim_dealloc = 8,
+   sendmsg_gs_alloc_req = 9,
+   sendmsg_id_mask = 0xf,
+};
+
+inline sendmsg
+sendmsg_gs(bool cut, bool emit, unsigned stream)
+{
+    assert(stream < 4);
+    return (sendmsg)((unsigned)_sendmsg_gs | (cut << 4) | (emit << 5) | (stream << 8));
+}
+
+inline sendmsg
+sendmsg_gs_done(bool cut, bool emit, unsigned stream)
+{
+    assert(stream < 4);
+    return (sendmsg)((unsigned)_sendmsg_gs_done | (cut << 4) | (emit << 5) | (stream << 8));
+}
+
 class Builder {
 public:
    struct Result {

@@ -595,7 +595,7 @@ static bool radv_is_filter_minmax_format_supported(VkFormat format)
 	/* From the Vulkan spec 1.1.71:
 	 *
 	 * "The following formats must support the
-	 *  VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT_EXT feature with
+	 *  VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT feature with
 	 *  VK_IMAGE_TILING_OPTIMAL, if they support
 	 *  VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT."
 	 */
@@ -694,7 +694,7 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 			         VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
 
 			if (radv_is_filter_minmax_format_supported(format))
-				 tiled |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT_EXT;
+				 tiled |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT;
 
 			/* Don't support blitting surfaces with depth/stencil. */
 			if (vk_format_is_depth(format) && vk_format_is_stencil(format))
@@ -712,7 +712,7 @@ radv_physical_device_get_format_properties(struct radv_physical_device *physical
 				VK_FORMAT_FEATURE_BLIT_SRC_BIT;
 
 			if (radv_is_filter_minmax_format_supported(format))
-				 tiled |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT_EXT;
+				 tiled |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT;
 
 			if (linear_sampling) {
 				linear |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;

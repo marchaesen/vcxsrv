@@ -108,7 +108,12 @@ enum barrier_interaction : uint8_t {
    barrier_image = 0x2,
    barrier_atomic = 0x4,
    barrier_shared = 0x8,
-   barrier_count = 4,
+   /* used for geometry shaders to ensure vertex data writes are before the
+    * GS_DONE s_sendmsg. */
+   barrier_gs_data = 0x10,
+   /* used for geometry shaders to ensure s_sendmsg instructions are in-order. */
+   barrier_gs_sendmsg = 0x20,
+   barrier_count = 6,
 };
 
 enum fp_round {
@@ -300,10 +305,11 @@ public:
          setFixed(PhysReg{128});
       }
    };
-   explicit Operand(uint32_t v) noexcept
+   explicit Operand(uint32_t v, bool is64bit = false) noexcept
    {
       data_.i = v;
       isConstant_ = true;
+      is64BitConst_ = is64bit;
       if (v <= 64)
          setFixed(PhysReg{128 + v});
       else if (v >= 0xFFFFFFF0) /* [-16 .. -1] */
@@ -324,34 +330,46 @@ public:
          setFixed(PhysReg{246});
       else if (v == 0xc0800000) /* -4.0 */
          setFixed(PhysReg{247});
-      else /* Literal Constant */
+      else { /* Literal Constant */
+         assert(!is64bit && "attempt to create a 64-bit literal constant");
          setFixed(PhysReg{255});
+      }
    };
    explicit Operand(uint64_t v) noexcept
    {
       isConstant_ = true;
       is64BitConst_ = true;
-      if (v <= 64)
+      if (v <= 64) {
+         data_.i = (uint32_t) v;
          setFixed(PhysReg{128 + (uint32_t) v});
-      else if (v >= 0xFFFFFFFFFFFFFFF0) /* [-16 .. -1] */
+      } else if (v >= 0xFFFFFFFFFFFFFFF0) { /* [-16 .. -1] */
+         data_.i = (uint32_t) v;
          setFixed(PhysReg{192 - (uint32_t) v});
-      else if (v == 0x3FE0000000000000) /* 0.5 */
+      } else if (v == 0x3FE0000000000000) { /* 0.5 */
+         data_.i = 0x3f000000;
          setFixed(PhysReg{240});
-      else if (v == 0xBFE0000000000000) /* -0.5 */
+      } else if (v == 0xBFE0000000000000) { /* -0.5 */
+         data_.i = 0xbf000000;
          setFixed(PhysReg{241});
-      else if (v == 0x3FF0000000000000) /* 1.0 */
+      } else if (v == 0x3FF0000000000000) { /* 1.0 */
+         data_.i = 0x3f800000;
          setFixed(PhysReg{242});
-      else if (v == 0xBFF0000000000000) /* -1.0 */
+      } else if (v == 0xBFF0000000000000) { /* -1.0 */
+         data_.i = 0xbf800000;
          setFixed(PhysReg{243});
-      else if (v == 0x4000000000000000) /* 2.0 */
+      } else if (v == 0x4000000000000000) { /* 2.0 */
+         data_.i = 0x40000000;
          setFixed(PhysReg{244});
-      else if (v == 0xC000000000000000) /* -2.0 */
+      } else if (v == 0xC000000000000000) { /* -2.0 */
+         data_.i = 0xc0000000;
          setFixed(PhysReg{245});
-      else if (v == 0x4010000000000000) /* 4.0 */
+      } else if (v == 0x4010000000000000) { /* 4.0 */
+         data_.i = 0x40800000;
          setFixed(PhysReg{246});
-      else if (v == 0xC010000000000000) /* -4.0 */
+      } else if (v == 0xC010000000000000) { /* -4.0 */
+         data_.i = 0xc0800000;
          setFixed(PhysReg{247});
-      else { /* Literal Constant: we don't know if it is a long or double.*/
+      } else { /* Literal Constant: we don't know if it is a long or double.*/
          isConstant_ = 0;
          assert(false && "attempt to create a 64-bit literal constant");
       }
@@ -773,6 +791,7 @@ struct MUBUF_instruction : public Instruction {
    uint16_t offset : 12; /* Unsigned byte offset - 12 bit */
    bool offen : 1; /* Supply an offset from VGPR (VADDR) */
    bool idxen : 1; /* Supply an index from VGPR (VADDR) */
+   bool addr64 : 1; /* SI, CIK: Address size is 64-bit */
    bool glc : 1; /* globally coherent */
    bool dlc : 1; /* NAVI: device level coherent */
    bool slc : 1; /* system level coherent */
@@ -961,25 +980,9 @@ static inline bool is_phi(aco_ptr<Instruction>& instr)
    return is_phi(instr.get());
 }
 
-constexpr barrier_interaction get_barrier_interaction(Instruction* instr)
-{
-   switch (instr->format) {
-   case Format::SMEM:
-      return static_cast<SMEM_instruction*>(instr)->barrier;
-   case Format::MUBUF:
-      return static_cast<MUBUF_instruction*>(instr)->barrier;
-   case Format::MIMG:
-      return static_cast<MIMG_instruction*>(instr)->barrier;
-   case Format::FLAT:
-   case Format::GLOBAL:
-   case Format::SCRATCH:
-      return static_cast<FLAT_instruction*>(instr)->barrier;
-   case Format::DS:
-      return barrier_shared;
-   default:
-      return barrier_none;
-   }
-}
+barrier_interaction get_barrier_interaction(Instruction* instr);
+
+bool is_dead(const std::vector<uint16_t>& uses, Instruction *instr);
 
 enum block_kind {
    /* uniform indicates that leaving this block,
@@ -999,6 +1002,7 @@ enum block_kind {
    block_kind_uses_discard_if = 1 << 12,
    block_kind_needs_lowering = 1 << 13,
    block_kind_uses_demote = 1 << 14,
+   block_kind_export_end = 1 << 15,
 };
 
 
@@ -1102,23 +1106,25 @@ static constexpr Stage sw_tcs = 1 << 2;
 static constexpr Stage sw_tes = 1 << 3;
 static constexpr Stage sw_fs = 1 << 4;
 static constexpr Stage sw_cs = 1 << 5;
-static constexpr Stage sw_mask = 0x3f;
+static constexpr Stage sw_gs_copy = 1 << 6;
+static constexpr Stage sw_mask = 0x7f;
 
 /* hardware stages (can't be OR'd, just a mask for convenience when testing multiple) */
-static constexpr Stage hw_vs = 1 << 6;
-static constexpr Stage hw_es = 1 << 7; /* not on GFX9. combined into GS on GFX9 (and GFX10/legacy). */
-static constexpr Stage hw_gs = 1 << 8;
-static constexpr Stage hw_ls = 1 << 9; /* not on GFX9. combined into HS on GFX9 (and GFX10/legacy). */
-static constexpr Stage hw_hs = 1 << 10;
-static constexpr Stage hw_fs = 1 << 11;
-static constexpr Stage hw_cs = 1 << 12;
-static constexpr Stage hw_mask = 0x7f << 6;
+static constexpr Stage hw_vs = 1 << 7;
+static constexpr Stage hw_es = 1 << 8; /* not on GFX9. combined into GS on GFX9 (and GFX10/legacy). */
+static constexpr Stage hw_gs = 1 << 9;
+static constexpr Stage hw_ls = 1 << 10; /* not on GFX9. combined into HS on GFX9 (and GFX10/legacy). */
+static constexpr Stage hw_hs = 1 << 11;
+static constexpr Stage hw_fs = 1 << 12;
+static constexpr Stage hw_cs = 1 << 13;
+static constexpr Stage hw_mask = 0x7f << 7;
 
 /* possible settings of Program::stage */
 static constexpr Stage vertex_vs = sw_vs | hw_vs;
 static constexpr Stage fragment_fs = sw_fs | hw_fs;
 static constexpr Stage compute_cs = sw_cs | hw_cs;
 static constexpr Stage tess_eval_vs = sw_tes | hw_vs;
+static constexpr Stage gs_copy_vs = sw_gs_copy | hw_vs;
 /* GFX10/NGG */
 static constexpr Stage ngg_vertex_gs = sw_vs | hw_gs;
 static constexpr Stage ngg_vertex_geometry_gs = sw_vs | sw_gs | hw_gs;
@@ -1215,6 +1221,9 @@ void select_program(Program *program,
                     struct nir_shader *const *shaders,
                     ac_shader_config* config,
                     struct radv_shader_args *args);
+void select_gs_copy_shader(Program *program, struct nir_shader *gs_shader,
+                           ac_shader_config* config,
+                           struct radv_shader_args *args);
 
 void lower_wqm(Program* program, live& live_vars,
                const struct radv_nir_compiler_options *options);
@@ -1267,6 +1276,7 @@ typedef struct {
    const int16_t opcode_gfx10[static_cast<int>(aco_opcode::num_opcodes)];
    const std::bitset<static_cast<int>(aco_opcode::num_opcodes)> can_use_input_modifiers;
    const std::bitset<static_cast<int>(aco_opcode::num_opcodes)> can_use_output_modifiers;
+   const std::bitset<static_cast<int>(aco_opcode::num_opcodes)> is_atomic;
    const char *name[static_cast<int>(aco_opcode::num_opcodes)];
    const aco::Format format[static_cast<int>(aco_opcode::num_opcodes)];
 } Info;

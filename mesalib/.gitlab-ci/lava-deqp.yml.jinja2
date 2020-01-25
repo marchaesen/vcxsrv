@@ -1,5 +1,5 @@
-job_name: mesa-deqp-{{ gpu_version }}
-device_type: {{ lava_device_type }}
+job_name: mesa-deqp-{{ gpu_version }} {{ pipeline_info }}
+device_type: {{ device_type }}
 timeouts:
   job:
     minutes: 40
@@ -23,7 +23,9 @@ actions:
     to: tftp
     kernel:
       url: {{ base_artifacts_url }}/{{ kernel_image_name }}
+{% if kernel_image_type %}
       {{ kernel_image_type }}
+{% endif %}
     ramdisk:
       url: {{ base_artifacts_url }}/lava-rootfs-{{ arch }}.cpio.gz
       compression: gz
@@ -58,14 +60,18 @@ actions:
           - mkdir -p /dev/pts
           - mount -t devpts devpts /dev/pts
 
-          - export MESA_GLES_VERSION_OVERRIDE=3.0
-          - export DEQP_PARALLEL=6
+{% if env_vars %}
+          - export {{ env_vars }}
+{% endif %}
+
           - export DEQP_NO_SAVE_RESULTS=1
           - 'export DEQP_RUNNER_OPTIONS="--compact-display false --shuffle false"'
-          - export DEQP_EXPECTED_FAILS={{ fails_file }}
-          - export DEQP_SKIPS={{ skips_file }}
+          - export DEQP_EXPECTED_FAILS=deqp-{{ gpu_version }}-fails.txt
+          - export DEQP_SKIPS=deqp-{{ gpu_version }}-skips.txt
           - export DEQP_VER={{ deqp_version }}
           - export LIBGL_DRIVERS_PATH=`pwd`/install/lib/dri
+          - export CI_NODE_INDEX={{ ci_node_index }}
+          - export CI_NODE_TOTAL={{ ci_node_total }}
 
           # Put stuff where the runner script expects it
           - mkdir artifacts

@@ -358,6 +358,15 @@ tu6_blend_op(VkBlendOp op)
    }
 }
 
+static unsigned
+tu_shader_nibo(const struct tu_shader *shader)
+{
+   /* Don't use ir3_shader_nibo(), because that would include declared but
+    * unused storage images and SSBOs.
+    */
+   return shader->ssbo_map.num_desc + shader->image_map.num_desc;
+}
+
 static void
 tu6_emit_vs_config(struct tu_cs *cs, struct tu_shader *shader,
                    const struct ir3_shader_variant *vs)
@@ -369,6 +378,8 @@ tu6_emit_vs_config(struct tu_cs *cs, struct tu_shader *shader,
       A6XX_SP_VS_CTRL_REG0_BRANCHSTACK(vs->branchstack);
    if (vs->need_pixlod)
       sp_vs_ctrl |= A6XX_SP_VS_CTRL_REG0_PIXLODENABLE;
+   if (vs->need_fine_derivatives)
+      sp_vs_ctrl |= A6XX_SP_VS_CTRL_REG0_DIFF_FINE;
 
    uint32_t sp_vs_config = A6XX_SP_VS_CONFIG_NTEX(shader->texture_map.num_desc) |
                            A6XX_SP_VS_CONFIG_NSAMP(shader->sampler_map.num_desc);
@@ -454,10 +465,12 @@ tu6_emit_fs_config(struct tu_cs *cs, struct tu_shader *shader,
       sp_fs_ctrl |= A6XX_SP_FS_CTRL_REG0_VARYING;
    if (fs->need_pixlod)
       sp_fs_ctrl |= A6XX_SP_FS_CTRL_REG0_PIXLODENABLE;
+   if (fs->need_fine_derivatives)
+      sp_fs_ctrl |= A6XX_SP_FS_CTRL_REG0_DIFF_FINE;
 
    uint32_t sp_fs_config = A6XX_SP_FS_CONFIG_NTEX(shader->texture_map.num_desc) |
                            A6XX_SP_FS_CONFIG_NSAMP(shader->sampler_map.num_desc) |
-                           A6XX_SP_FS_CONFIG_NIBO(fs->image_mapping.num_ibo);
+                           A6XX_SP_FS_CONFIG_NIBO(tu_shader_nibo(shader));
    if (fs->instrlen)
       sp_fs_config |= A6XX_SP_FS_CONFIG_ENABLED;
 
@@ -479,7 +492,7 @@ tu6_emit_fs_config(struct tu_cs *cs, struct tu_shader *shader,
                   A6XX_HLSQ_FS_CNTL_ENABLED);
 
    tu_cs_emit_pkt4(cs, REG_A6XX_SP_IBO_COUNT, 1);
-   tu_cs_emit(cs, fs->image_mapping.num_ibo);
+   tu_cs_emit(cs, tu_shader_nibo(shader));
 }
 
 static void
@@ -496,7 +509,7 @@ tu6_emit_cs_config(struct tu_cs *cs, const struct tu_shader *shader,
 
    tu_cs_emit_pkt4(cs, REG_A6XX_SP_CS_CONFIG, 2);
    tu_cs_emit(cs, A6XX_SP_CS_CONFIG_ENABLED |
-              A6XX_SP_CS_CONFIG_NIBO(v->image_mapping.num_ibo) |
+              A6XX_SP_CS_CONFIG_NIBO(tu_shader_nibo(shader)) |
               A6XX_SP_CS_CONFIG_NTEX(shader->texture_map.num_desc) |
               A6XX_SP_CS_CONFIG_NSAMP(shader->sampler_map.num_desc));
    tu_cs_emit(cs, v->instrlen);
@@ -506,7 +519,8 @@ tu6_emit_cs_config(struct tu_cs *cs, const struct tu_shader *shader,
               A6XX_SP_CS_CTRL_REG0_FULLREGFOOTPRINT(v->info.max_reg + 1) |
               A6XX_SP_CS_CTRL_REG0_MERGEDREGS |
               A6XX_SP_CS_CTRL_REG0_BRANCHSTACK(v->branchstack) |
-              COND(v->need_pixlod, A6XX_SP_CS_CTRL_REG0_PIXLODENABLE));
+              COND(v->need_pixlod, A6XX_SP_CS_CTRL_REG0_PIXLODENABLE) |
+              COND(v->need_fine_derivatives, A6XX_SP_CS_CTRL_REG0_DIFF_FINE));
 
    tu_cs_emit_pkt4(cs, REG_A6XX_SP_CS_UNKNOWN_A9B1, 1);
    tu_cs_emit(cs, 0x41);
@@ -525,7 +539,7 @@ tu6_emit_cs_config(struct tu_cs *cs, const struct tu_shader *shader,
    tu_cs_emit(cs, 0x2fc);             /* HLSQ_CS_UNKNOWN_B998 */
 
    tu_cs_emit_pkt4(cs, REG_A6XX_SP_CS_IBO_COUNT, 1);
-   tu_cs_emit(cs, v->image_mapping.num_ibo);
+   tu_cs_emit(cs, tu_shader_nibo(shader));
 }
 
 static void
@@ -1171,12 +1185,12 @@ tu6_emit_viewport(struct tu_cs *cs, const VkViewport *viewport)
    guardband_adj.height = tu6_guardband_adj(max.y - min.y);
 
    tu_cs_emit_pkt4(cs, REG_A6XX_GRAS_CL_VPORT_XOFFSET_0, 6);
-   tu_cs_emit(cs, A6XX_GRAS_CL_VPORT_XOFFSET_0(offsets[0]));
-   tu_cs_emit(cs, A6XX_GRAS_CL_VPORT_XSCALE_0(scales[0]));
-   tu_cs_emit(cs, A6XX_GRAS_CL_VPORT_YOFFSET_0(offsets[1]));
-   tu_cs_emit(cs, A6XX_GRAS_CL_VPORT_YSCALE_0(scales[1]));
-   tu_cs_emit(cs, A6XX_GRAS_CL_VPORT_ZOFFSET_0(offsets[2]));
-   tu_cs_emit(cs, A6XX_GRAS_CL_VPORT_ZSCALE_0(scales[2]));
+   tu_cs_emit(cs, A6XX_GRAS_CL_VPORT_XOFFSET_0(offsets[0]).value);
+   tu_cs_emit(cs, A6XX_GRAS_CL_VPORT_XSCALE_0(scales[0]).value);
+   tu_cs_emit(cs, A6XX_GRAS_CL_VPORT_YOFFSET_0(offsets[1]).value);
+   tu_cs_emit(cs, A6XX_GRAS_CL_VPORT_YSCALE_0(scales[1]).value);
+   tu_cs_emit(cs, A6XX_GRAS_CL_VPORT_ZOFFSET_0(offsets[2]).value);
+   tu_cs_emit(cs, A6XX_GRAS_CL_VPORT_ZSCALE_0(scales[2]).value);
 
    tu_cs_emit_pkt4(cs, REG_A6XX_GRAS_SC_VIEWPORT_SCISSOR_TL_0, 2);
    tu_cs_emit(cs, A6XX_GRAS_SC_VIEWPORT_SCISSOR_TL_0_X(min.x) |
@@ -1223,7 +1237,7 @@ tu6_emit_point_size(struct tu_cs *cs)
    tu_cs_emit_pkt4(cs, REG_A6XX_GRAS_SU_POINT_MINMAX, 2);
    tu_cs_emit(cs, A6XX_GRAS_SU_POINT_MINMAX_MIN(1.0f / 16.0f) |
                      A6XX_GRAS_SU_POINT_MINMAX_MAX(4092.0f));
-   tu_cs_emit(cs, A6XX_GRAS_SU_POINT_SIZE(1.0f));
+   tu_cs_emit(cs, A6XX_GRAS_SU_POINT_SIZE(1.0f).value);
 }
 
 static uint32_t
@@ -1270,9 +1284,9 @@ tu6_emit_depth_bias(struct tu_cs *cs,
                     float slope_factor)
 {
    tu_cs_emit_pkt4(cs, REG_A6XX_GRAS_SU_POLY_OFFSET_SCALE, 3);
-   tu_cs_emit(cs, A6XX_GRAS_SU_POLY_OFFSET_SCALE(slope_factor));
-   tu_cs_emit(cs, A6XX_GRAS_SU_POLY_OFFSET_OFFSET(constant_factor));
-   tu_cs_emit(cs, A6XX_GRAS_SU_POLY_OFFSET_OFFSET_CLAMP(clamp));
+   tu_cs_emit(cs, A6XX_GRAS_SU_POLY_OFFSET_SCALE(slope_factor).value);
+   tu_cs_emit(cs, A6XX_GRAS_SU_POLY_OFFSET_OFFSET(constant_factor).value);
+   tu_cs_emit(cs, A6XX_GRAS_SU_POLY_OFFSET_OFFSET_CLAMP(clamp).value);
 }
 
 static void
@@ -1621,6 +1635,21 @@ tu_pipeline_builder_parse_dynamic(struct tu_pipeline_builder *builder,
 }
 
 static void
+tu_pipeline_set_linkage(struct tu_program_descriptor_linkage *link,
+                        struct tu_shader *shader,
+                        struct ir3_shader_variant *v)
+{
+   link->ubo_state = v->shader->ubo_state;
+   link->const_state = v->shader->const_state;
+   link->constlen = v->constlen;
+   link->texture_map = shader->texture_map;
+   link->sampler_map = shader->sampler_map;
+   link->ubo_map = shader->ubo_map;
+   link->ssbo_map = shader->ssbo_map;
+   link->image_map = shader->image_map;
+}
+
+static void
 tu_pipeline_builder_parse_shader_stages(struct tu_pipeline_builder *builder,
                                         struct tu_pipeline *pipeline)
 {
@@ -1638,17 +1667,9 @@ tu_pipeline_builder_parse_shader_stages(struct tu_pipeline_builder *builder,
       if (!builder->shaders[i])
          continue;
 
-      struct tu_program_descriptor_linkage *link = &pipeline->program.link[i];
-      struct ir3_shader *shader = builder->shaders[i]->variants[0].shader;
-
-      link->ubo_state = shader->ubo_state;
-      link->const_state = shader->const_state;
-      link->constlen = builder->shaders[i]->variants[0].constlen;
-      link->texture_map = builder->shaders[i]->texture_map;
-      link->sampler_map = builder->shaders[i]->sampler_map;
-      link->ubo_map = builder->shaders[i]->ubo_map;
-      link->ssbo_map = builder->shaders[i]->ssbo_map;
-      link->image_mapping =  builder->shaders[i]->variants[0].image_mapping;
+      tu_pipeline_set_linkage(&pipeline->program.link[i],
+                              builder->shaders[i],
+                              &builder->shaders[i]->variants[0]);
    }
 }
 
@@ -2081,17 +2102,10 @@ tu_compute_pipeline_create(VkDevice device,
    if (result != VK_SUCCESS)
       return result;
 
-   struct tu_program_descriptor_linkage *link = &pipeline->program.link[MESA_SHADER_COMPUTE];
    struct ir3_shader_variant *v = &shader->variants[0];
 
-   link->ubo_state = v->shader->ubo_state;
-   link->const_state = v->shader->const_state;
-   link->constlen = v->constlen;
-   link->texture_map = shader->texture_map;
-   link->sampler_map = shader->sampler_map;
-   link->ubo_map = shader->ubo_map;
-   link->ssbo_map = shader->ssbo_map;
-   link->image_mapping =  v->image_mapping;
+   tu_pipeline_set_linkage(&pipeline->program.link[MESA_SHADER_COMPUTE],
+                           shader, v);
 
    result = tu_compute_upload_shader(device, pipeline, shader);
    if (result != VK_SUCCESS)

@@ -47,7 +47,7 @@ or
 <pre>
 sudo dnf install meson   # Fedora
 </pre>
-
+<p>
 Some older versions of meson do not check that they are too old and will error
 out in odd ways.
 </p>
@@ -68,15 +68,15 @@ The easiest way to install everything you need is with <a
 href="https://chocolatey.org/">chocolatey</a>.
 </p>
 <pre>
-  choco install python3 winflexbison pkgconfiglite
+choco install python3 winflexbison pkgconfiglite
 </pre>
 <p>You can even use chocolatey to install mingw and ninja (ninja can be used with MSVC as well)</p>
 <pre>
-  choco install ninja mingw
+choco install ninja mingw
 </pre>
 <p>Then install meson using pip</p>
 <pre>
-  py -3 -m pip install meson mako
+py -3 -m pip install meson mako
 </pre>
 
 You may need to add the python3 scripts directory to your path for meson.
@@ -203,10 +203,7 @@ or greater. Older versions always use the microsoft compiler.
 
 <h2 id="advanced">3. Advanced Usage</h2>
 
-<dl>
-
-<dt>Installation Location</dt>
-<dd>
+<h3>Installation Location</h3>
 <p>
 Meson default to installing libGL.so in your system's main lib/ directory
 and DRI drivers to a dri/ subdirectory.
@@ -228,10 +225,8 @@ to run/test the driver.
 <p>
 Meson also honors <code>DESTDIR</code> for installs.
 </p>
-</dd>
 
-<dt>Compiler Options</dt>
-<dd>
+<h3>Compiler Options</h3>
 <p>Meson supports the common CFLAGS, CXXFLAGS, etc. environment
 variables but their use is discouraged because of the many caveats
 in using them.
@@ -247,11 +242,9 @@ for C++ sources:
 <pre>
 meson builddir/ -Dc_args=-fmax-errors=10 -Dcpp_args=-DMAGIC=123
 </pre>
-</dd>
 
 
-<dt>Compiler Specification</dt>
-<dd>
+<h3>Compiler Specification</h3>
 <p>
 Meson supports the standard CC and CXX environment variables for
 changing the default compiler.  Note that Meson does not allow
@@ -274,28 +267,26 @@ The default compilers depends on your operating system. Meson supports most of
 the popular compilers, a complete list is available
 <a href="https://mesonbuild.com/Reference-tables.html#compiler-ids">here</a>.
 </p>
-</dd>
 
-<dt>LLVM</dt>
-<dd><p>Meson includes upstream logic to wrap llvm-config using its standard
+<h3>LLVM</h3>
+<p>Meson includes upstream logic to wrap llvm-config using its standard
 dependency interface.
-</p></dd>
-
-<dd><p>
+</p>
+<p>
 As of meson 0.51.0 meson can use cmake to find llvm (the cmake finder
 was added in meson 0.49.0, but LLVM cannot be found until 0.51) Due to the
 way LLVM implements its cmake finder it will only find static libraries, it
 will never find libllvm.so.
 
-There is also a <pre>-Dcmake_module_path</pre> option in this meson version,
+There is also a <code>-Dcmake_module_path</code> option in this meson version,
 which points to the root of an alternative installation (the prefix). For
 example:
+</p>
 <pre>
-        meson builddir -Dcmake_module_path=/home/user/mycmake/prefix
+meson builddir -Dcmake_module_path=/home/user/mycmake/prefix
 </pre>
-</p></dd>
 
-<dd><p>
+<p>
 As of meson 0.49.0 meson also has the concept of a
 <a href="https://mesonbuild.com/Native-environments.html">"native file"</a>,
 these files provide information about the native build environment (as opposed
@@ -305,18 +296,17 @@ find llvm-config:
 
 custom-llvm.ini
 <pre>
-    [binaries]
-    llvm-config = '/usr/local/bin/llvm/llvm-config'
+[binaries]
+llvm-config = '/usr/local/bin/llvm/llvm-config'
 </pre>
 
 Then configure meson:
 
 <pre>
-    meson builddir/ --native-file custom-llvm.ini
+meson builddir/ --native-file custom-llvm.ini
 </pre>
-</dd>
 
-<dd><p>
+<p>
 Meson &lt; 0.49 doesn't support native files, so to specify a custom
 <code>llvm-config</code> you need to modify your <code>$PATH</code> (or
 <code>%PATH%</code> on windows), which will be searched for
@@ -326,9 +316,8 @@ and <code>llvm-config-<i>$version</i></code>:
 <pre>
 PATH=/path/to/folder/with/llvm-config:$PATH meson build
 </pre>
-</dd>
 
-<dd><p>
+<p>
 For selecting llvm-config for cross compiling a
 <a href="https://mesonbuild.com/Cross-compilation.html#defining-the-environment">"cross file"</a>
 should be used. It uses the same format as the native file above:
@@ -336,23 +325,22 @@ should be used. It uses the same format as the native file above:
 
 <p>cross-llvm.ini</p>
 <pre>
-    [binaries]
-    ...
-    llvm-config = '/usr/lib/llvm-config-32'
-    cmake = '/usr/bin/cmake-for-my-arch'
+[binaries]
+...
+llvm-config = '/usr/lib/llvm-config-32'
+cmake = '/usr/bin/cmake-for-my-arch'
 </pre>
 
 <p>Obviously, only cmake or llvm-config is required.</p>
 
 <p>Then configure meson:</p>
 <pre>
-    meson builddir/ --cross-file cross-llvm.ini
+meson builddir/ --cross-file cross-llvm.ini
 </pre>
 
 See the <a href="#cross-compilation">Cross Compilation</a> section for more information.
-</dd>
 
-<dd><p>On windows (and in other cases), using llvm-config or cmake may be
+<p>On windows (and in other cases), using llvm-config or cmake may be
 either undesirable or impossible. Meson's solution for this is a
 <a href="https://mesonbuild.com/Wrap-dependency-system-manual.html">wrap</a>, in
 this case a "binary wrap". Follow the steps below:</p>
@@ -417,20 +405,16 @@ irbuilder_h = files('include/llvm/IR/IRBuilder.h')
 workarounds for the wrong version of LLVM might be used resulting in build
 failures.</p>
 
-</dd>
-</dl>
-
-<dt><code>PKG_CONFIG_PATH</code></dt>
-<dd><p>The
+<h3><code>PKG_CONFIG_PATH</code></h3>
+<p>The
 <code>pkg-config</code> utility is a hard requirement for configuring and
 building Mesa on Unix-like systems. It is used to search for external libraries
 on the system. This environment variable is used to control the search path for
 <code>pkg-config</code>. For instance, setting
 <code>PKG_CONFIG_PATH=/usr/X11R6/lib/pkgconfig</code> will search for package
 metadata in <code>/usr/X11R6</code> before the standard directories.</p>
-</dd>
-</dl>
 
+<h3>Options</h3>
 <p>
 One of the oddities of meson is that some options are different when passed to
 the <code>meson</code> than to <code>meson configure</code>. These options are

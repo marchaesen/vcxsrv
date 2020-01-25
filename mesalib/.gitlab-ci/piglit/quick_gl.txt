@@ -22,7 +22,6 @@ glx/glx-swap-event_event: skip
 glx/glx-swap-event_interval: skip
 glx/glx-swap-exchange: skip
 glx/glx-swap-pixmap-bad: fail
-glx/glx-swap-singlebuffer: fail
 glx/glx-visuals-depth: fail
 glx/glx-visuals-depth -pixmap: fail
 glx/glx-visuals-stencil: fail
@@ -2012,7 +2011,6 @@ spec/ext_texture_srgb/multisample-formats 32 gl_ext_texture_srgb: skip
 spec/ext_texture_srgb/multisample-formats 4 gl_ext_texture_srgb: skip
 spec/ext_texture_srgb/multisample-formats 6 gl_ext_texture_srgb: skip
 spec/ext_texture_srgb/multisample-formats 8 gl_ext_texture_srgb: skip
-spec/ext_timer_query/time-elapsed: fail
 spec/ext_transform_feedback/tessellation quad_strip flat_first: warn
 spec/ext_transform_feedback/tessellation quads flat_first: warn
 spec/ext_window_rectangles/dlist/call: skip
@@ -2207,8 +2205,8 @@ wgl/wgl-sanity: skip
 summary:
        name:  results
        ----  --------
-       pass:    19319
-       fail:      236
+       pass:    19320
+       fail:      234
       crash:        2
        skip:     1948
     timeout:        0
@@ -2219,4 +2217,4 @@ summary:
     changes:        0
       fixes:        0
 regressions:        0
-      total:    21525
+      total:    21524

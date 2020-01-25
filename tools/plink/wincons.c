@@ -491,7 +491,6 @@ int console_get_userpass_input(prompts_t *p)
     for (curr_prompt = 0; curr_prompt < p->n_prompts; curr_prompt++) {
 
         DWORD savemode, newmode;
-        size_t len;
         prompt_t *pr = p->prompts[curr_prompt];
 
         GetConsoleMode(hin, &savemode);
@@ -504,22 +503,21 @@ int console_get_userpass_input(prompts_t *p)
 
         console_write(hout, ptrlen_from_asciz(pr->prompt));
 
-        len = 0;
+        bool failed = false;
         while (1) {
+            DWORD toread = 65536;
+            size_t prev_result_len = pr->result->len;
+            void *ptr = strbuf_append(pr->result, toread);
+
             DWORD ret = 0;
-
-            prompt_ensure_result_size(pr, len * 5 / 4 + 512);
-
-            if (!ReadFile(hin, pr->result + len, pr->resultsize - len - 1,
-                          &ret, NULL) || ret == 0) {
-                len = (size_t)-1;
+            if (!ReadFile(hin, ptr, toread, &ret, NULL) || ret == 0) {
+                failed = true;
                 break;
             }
-            len += ret;
-            if (pr->result[len - 1] == '\n') {
-                len--;
-                if (pr->result[len - 1] == '\r')
-                    len--;
+
+            strbuf_shrink_to(pr->result, prev_result_len + ret);
+            if (strbuf_chomp(pr->result, '\n')) {
+                strbuf_chomp(pr->result, '\r');
                 break;
             }
         }
@@ -530,11 +528,9 @@ int console_get_userpass_input(prompts_t *p)
             console_write(hout, PTRLEN_LITERAL("\r\n"));
 	    FlushFileBuffers(hout);
 
-        if (len == (size_t)-1) {
+        if (failed) {
             return 0;                  /* failure due to read error */
         }
-
-        pr->result[len] = '\0';
     }
 
     return 1; /* success */

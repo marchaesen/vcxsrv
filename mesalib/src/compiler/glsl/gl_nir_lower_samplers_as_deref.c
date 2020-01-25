@@ -168,7 +168,7 @@ lower_deref(nir_builder *b, struct lower_samplers_as_deref_state *state,
       return deref;
    }
 
-   uint32_t hash = _mesa_key_hash_string(name);
+   uint32_t hash = _mesa_hash_string(name);
    struct hash_entry *h =
       _mesa_hash_table_search_pre_hashed(state->remap_table, hash, name);
 
@@ -325,7 +325,7 @@ gl_nir_lower_samplers_as_deref(nir_shader *shader,
 
    state.shader = shader;
    state.shader_program = shader_program;
-   state.remap_table = _mesa_hash_table_create(NULL, _mesa_key_hash_string,
+   state.remap_table = _mesa_hash_table_create(NULL, _mesa_hash_string,
                                                _mesa_key_string_equal);
 
    nir_foreach_function(function, shader) {

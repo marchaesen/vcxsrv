@@ -6,26 +6,69 @@ include:
     # Must be the same as in .gitlab-ci/lava-gitlab-ci.yml
     ref: 0a9bdd33a98f05af6761ab118b5074952242aab0
     file: '/templates/debian.yml'
-
-include:
   - local: '.gitlab-ci/lava-gitlab-ci.yml'
 
 stages:
   - container
   - build
   - test
+  - success
 
 
 # When to automatically run the CI
 .ci-run-policy:
   rules:
-    - when: on_success
+    # Run pipeline by default for merge requests changing files affecting it
+    - if: '$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == $CI_COMMIT_REF_NAME'
+      changes: &paths
+      - VERSION
+      - bin/**/*
+      # GitLab CI
+      - .gitlab-ci.yml
+      - .gitlab-ci/**/*
+      # Meson
+      - meson*
+      - build-support/**/*
+      - subprojects/**/*
+      # SCons
+      - SConstruct
+      - scons/**/*
+      - common.py
+      # Source code
+      - include/**/*
+      - src/**/*
+      when: on_success
+    # Run pipeline by default in the main project if files affecting it were
+    # changed
+    - if: '$CI_PROJECT_PATH == "mesa/mesa"'
+      changes:
+        *paths
+      when: on_success
+    # Allow triggering jobs manually on branches of forked projects
+    - if: '$CI_PROJECT_PATH != "mesa/mesa" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $CI_COMMIT_REF_NAME'
+      when: manual
+    # Otherwise, most jobs won't run
+    - when: never
   retry:
     max: 2
     when:
       - runner_system_failure
   # Cancel CI run if a newer commit is pushed to the same branch
   interruptible: true
+
+success:
+  stage: success
+  image: debian:stable-slim
+  only:
+    - merge_requests
+  except:
+    changes:
+      *paths
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - echo "Dummy job to make sure every merge request pipeline runs at least one job"
+
 
 .ci-deqp-artifacts:
   artifacts:
@@ -36,7 +79,7 @@ stages:
       # https://gitlab.com/gitlab-org/gitlab-ce/commit/8788fb925706cad594adf6917a6c5f6587dd1521
       - artifacts
 
-# Build the "normal" (non-LAVA) CI docker images.
+# Build the CI docker images.
 #
 # DEBIAN_TAG is the tag of the docker image used by later stage jobs. If the
 # image doesn't exist yet, the container stage job generates it.
@@ -57,32 +100,6 @@ stages:
   stage: container
   extends:
     - .ci-run-policy
-  rules:
-    # Run pipeline by default for merge requests changing files affecting it
-    - if: '$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == $CI_COMMIT_REF_NAME'
-      changes:
-      - VERSION
-      - bin/**/*
-      # GitLab CI
-      - .gitlab-ci.yml
-      - .gitlab-ci/**/*
-      # Meson
-      - meson*
-      - build-support/**/*
-      - subprojects/**/*
-      # SCons
-      - SConstruct
-      - scons/**/*
-      - common.py
-      # Source code
-      - include/**/*
-      - src/**/*
-      when: on_success
-    # Always run pipeline by default in the main project
-    - if: '$CI_PROJECT_PATH == "mesa/mesa"'
-      when: on_success
-    # Otherwise, allow triggering jobs manually
-    - when: manual
   variables:
     DEBIAN_VERSION: buster-slim
     REPO_SUFFIX: $CI_JOB_NAME
@@ -96,7 +113,7 @@ x86_build:
     - .debian@container-ifnot-exists
     - .container
   variables:
-    DEBIAN_TAG: &x86_build "2020-01-07"
+    DEBIAN_TAG: &x86_build "2020-01-14"
 
 .use-x86_build:
   variables:
@@ -109,13 +126,13 @@ x86_build:
 x86_test-gl:
   extends: x86_build
   variables:
-    DEBIAN_TAG: &x86_test-gl "2020-01-07"
+    DEBIAN_TAG: &x86_test-gl "2020-01-14"
 
 # Debian 10 based x86 test image for VK
 x86_test-vk:
   extends: x86_build
   variables:
-    DEBIAN_TAG: &x86_test-vk "2020-01-07"
+    DEBIAN_TAG: &x86_test-vk "2020-01-14"
   # Can only be triggered manually on personal branches because RADV is the only
   # driver that does Vulkan testing at the moment.
   rules:
@@ -149,7 +166,7 @@ arm_build:
     - .debian@container-ifnot-exists@arm64v8
     - .container
   variables:
-    DEBIAN_TAG: &arm_build "2019-11-13"
+    DEBIAN_TAG: &arm_build "2020-01-14"
 
 .use-arm_build:
   variables:
@@ -304,23 +321,28 @@ meson-main:
   variables:
     VULKAN_DRIVERS: freedreno
     GALLIUM_DRIVERS: "etnaviv,freedreno,kmsro,lima,nouveau,panfrost,swrast,tegra,v3d,vc4"
+    BUILDTYPE: "debugoptimized"
     EXTRA_OPTION: >
       -D I-love-half-baked-turnips=true
   tags:
     - aarch64
 
 meson-armhf:
-  extends: .meson-arm
+  extends:
+    - .meson-arm
+    - .ci-deqp-artifacts
   variables:
     CROSS: armhf
     LLVM_VERSION: "7"
+  script:
+    - .gitlab-ci/meson-build.sh
+    - .gitlab-ci/prepare-artifacts.sh
 
 meson-arm64:
   extends:
     - .meson-arm
     - .ci-deqp-artifacts
   variables:
-    BUILDTYPE: "debugoptimized"
     LLVM_VERSION: "8"
     VULKAN_DRIVERS: "freedreno,amd"
   script:
@@ -534,6 +556,7 @@ piglit-quick_gl:
       -x arb_gpu_shader5
       -x egl_ext_device_
       -x egl_ext_platform_device
+      -x ext_timer_query@time-elapsed
       -x glx-multithread-clearbuffer
       -x glx-multithread-shader-compile
       -x max-texture-size

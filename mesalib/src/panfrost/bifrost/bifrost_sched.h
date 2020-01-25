@@ -24,6 +24,6 @@
 #define bifrost_ra_h
 #include "compiler_defines.h"
 
-void schedule_program(compiler_context *ctx);
+void bifrost_schedule_program(compiler_context *ctx);
 
 #endif /* bifrost_ra_h */

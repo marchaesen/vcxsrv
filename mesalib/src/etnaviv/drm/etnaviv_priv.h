@@ -204,10 +204,9 @@ struct etna_perfmon_signal
 static inline void get_abs_timeout(struct drm_etnaviv_timespec *tv, uint64_t ns)
 {
 	struct timespec t;
-	uint32_t s = ns / 1000000000;
 	clock_gettime(CLOCK_MONOTONIC, &t);
-	tv->tv_sec = t.tv_sec + s;
-	tv->tv_nsec = t.tv_nsec + ns - (s * 1000000000);
+	tv->tv_sec = t.tv_sec + ns / 1000000000;
+	tv->tv_nsec = t.tv_nsec + ns % 1000000000;
 }
 
 #if HAVE_VALGRIND

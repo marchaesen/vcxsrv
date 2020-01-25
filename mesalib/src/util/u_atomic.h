@@ -216,7 +216,7 @@
    sizeof(*v) == sizeof(uint64_t) ? atomic_add_64((uint64_t *)(v), (i)) : \
                                     (assert(!"should not get here"), 0))
 
-#define p_atomic_add_return(v, i) (void) ( \
+#define p_atomic_add_return(v, i) (__typeof(*v)) ( \
    sizeof(*v) == sizeof(uint8_t)  ? atomic_add_8_nv ((uint8_t  *)(v), (i)) : \
    sizeof(*v) == sizeof(uint16_t) ? atomic_add_16_nv((uint16_t *)(v), (i)) : \
    sizeof(*v) == sizeof(uint32_t) ? atomic_add_32_nv((uint32_t *)(v), (i)) : \

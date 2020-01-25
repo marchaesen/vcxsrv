@@ -103,17 +103,41 @@ mir_print_instruction(midgard_instruction *ins)
 {
         printf("\t");
 
-        switch (ins->type) {
-        case TAG_ALU_4: {
-                midgard_alu_op op = ins->alu.op;
-                const char *name = alu_opcode_props[op].name;
-
+        if (midgard_is_branch_unit(ins->unit)) {
                 const char *branch_target_names[] = {
                         "goto", "break", "continue", "discard"
                 };
 
-                if (ins->compact_branch)
-                        name = branch_target_names[ins->branch.target_type];
+                printf("%s.", mir_get_unit(ins->unit));
+                if (ins->branch.target_type == TARGET_DISCARD)
+                        printf("discard.");
+                else if (ins->writeout)
+                        printf("write.");
+                else if (ins->unit == ALU_ENAB_BR_COMPACT &&
+                         !ins->branch.conditional)
+                        printf("uncond.");
+                else
+                        printf("cond.");
+
+                if (!ins->branch.conditional)
+                        printf("always");
+                else if (ins->branch.invert_conditional)
+                        printf("false");
+                else
+                        printf("true");
+
+                if (ins->branch.target_type != TARGET_DISCARD)
+                        printf(" %s -> block(%d)\n",
+                               branch_target_names[ins->branch.target_type],
+                               ins->branch.target_block);
+
+                return;
+        }
+
+        switch (ins->type) {
+        case TAG_ALU_4: {
+                midgard_alu_op op = ins->alu.op;
+                const char *name = alu_opcode_props[op].name;
 
                 if (ins->unit)
                         printf("%s.", mir_get_unit(ins->unit));
@@ -171,8 +195,8 @@ mir_print_instruction(midgard_instruction *ins)
         mir_print_swizzle(ins->swizzle[3]);
 
         if (ins->has_constants) {
-                uint32_t *uc = ins->constants;
-                float *fc = (float *) uc;
+                uint32_t *uc = ins->constants.u32;
+                float *fc = ins->constants.f32;
 
                 if (midgard_is_integer_op(ins->alu.op))
                         printf(" <0x%X, 0x%X, 0x%X, 0x%x>", uc[0], uc[1], uc[2], uc[3]);

@@ -2583,13 +2583,13 @@ assign_varying_locations(struct gl_context *ctx,
                            consumer ? consumer->Stage : MESA_SHADER_NONE);
    void *hash_table_ctx = ralloc_context(NULL);
    hash_table *tfeedback_candidates =
-         _mesa_hash_table_create(hash_table_ctx, _mesa_key_hash_string,
+         _mesa_hash_table_create(hash_table_ctx, _mesa_hash_string,
                                  _mesa_key_string_equal);
    hash_table *consumer_inputs =
-         _mesa_hash_table_create(hash_table_ctx, _mesa_key_hash_string,
+         _mesa_hash_table_create(hash_table_ctx, _mesa_hash_string,
                                  _mesa_key_string_equal);
    hash_table *consumer_interface_inputs =
-         _mesa_hash_table_create(hash_table_ctx, _mesa_key_hash_string,
+         _mesa_hash_table_create(hash_table_ctx, _mesa_hash_string,
                                  _mesa_key_string_equal);
    ir_variable *consumer_inputs_with_locations[VARYING_SLOT_TESS_MAX] = {
       NULL,

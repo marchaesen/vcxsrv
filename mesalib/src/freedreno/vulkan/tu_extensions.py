@@ -31,7 +31,7 @@ import xml.etree.cElementTree as et
 
 from mako.template import Template
 
-MAX_API_VERSION = '1.1.82'
+MAX_API_VERSION = '1.2.131'
 
 class Extension:
     def __init__(self, name, ext_version, enable):
@@ -76,6 +76,7 @@ EXTENSIONS = [
     Extension('VK_KHR_external_memory',                   1, True),
     Extension('VK_KHR_external_memory_fd',                1, True),
     Extension('VK_EXT_external_memory_dma_buf',           1, True),
+    Extension('VK_EXT_image_drm_format_modifier',         1, False),
 ]
 
 class VkVersion:

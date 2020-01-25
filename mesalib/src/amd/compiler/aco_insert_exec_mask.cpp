@@ -24,6 +24,7 @@
 
 #include "aco_ir.h"
 #include "aco_builder.h"
+#include "util/u_math.h"
 
 namespace aco {
 
@@ -354,6 +355,12 @@ unsigned add_coupling_code(exec_ctx& ctx, Block* block,
       assert(startpgm->opcode == aco_opcode::p_startpgm);
       Temp exec_mask = startpgm->definitions.back().getTemp();
       bld.insert(std::move(startpgm));
+
+      /* exec seems to need to be manually initialized with combined shaders */
+      if (util_bitcount(ctx.program->stage & sw_mask) > 1) {
+         bld.sop1(Builder::s_mov, bld.exec(Definition(exec_mask)), bld.lm == s2 ? Operand(UINT64_MAX) : Operand(UINT32_MAX));
+         instructions[0]->definitions.pop_back();
+      }
 
       if (ctx.handle_wqm) {
          ctx.info[0].exec.emplace_back(exec_mask, mask_type_global | mask_type_exact | mask_type_initial);
@@ -729,14 +736,18 @@ void process_instructions(exec_ctx& ctx, Block* block,
          assert((ctx.info[block->index].exec[0].second & (mask_type_exact | mask_type_global)) == (mask_type_exact | mask_type_global));
          ctx.info[block->index].exec[0].second &= ~mask_type_initial;
 
-         int num = 0;
-         Temp cond;
-         if (instr->operands.empty()) {
+         int num;
+         Temp cond, exit_cond;
+         if (instr->operands[0].isConstant()) {
+            assert(instr->operands[0].constantValue() == -1u);
             /* transition to exact and set exec to zero */
             Temp old_exec = ctx.info[block->index].exec.back().first;
             Temp new_exec = bld.tmp(bld.lm);
-            cond = bld.sop1(Builder::s_and_saveexec, bld.def(bld.lm), bld.def(s1, scc),
+            exit_cond = bld.tmp(s1);
+            cond = bld.sop1(Builder::s_and_saveexec, bld.def(bld.lm), bld.scc(Definition(exit_cond)),
                             bld.exec(Definition(new_exec)), Operand(0u), bld.exec(old_exec));
+
+            num = ctx.info[block->index].exec.size() - 2;
             if (ctx.info[block->index].exec.back().second & mask_type_exact) {
                ctx.info[block->index].exec.back().first = new_exec;
             } else {
@@ -748,27 +759,26 @@ void process_instructions(exec_ctx& ctx, Block* block,
             transition_to_Exact(ctx, bld, block->index);
             assert(instr->operands[0].isTemp());
             cond = instr->operands[0].getTemp();
-            num = 1;
+            num = ctx.info[block->index].exec.size() - 1;
          }
 
-         num += ctx.info[block->index].exec.size() - 1;
-         for (int i = num - 1; i >= 0; i--) {
+         for (int i = num; i >= 0; i--) {
             if (ctx.info[block->index].exec[i].second & mask_type_exact) {
                Instruction *andn2 = bld.sop2(Builder::s_andn2, bld.def(bld.lm), bld.def(s1, scc),
                                              ctx.info[block->index].exec[i].first, cond);
-               if (i == num - 1) {
+               if (i == (int)ctx.info[block->index].exec.size() - 1) {
                   andn2->operands[0].setFixed(exec);
                   andn2->definitions[0].setFixed(exec);
                }
-               if (i == 0) {
-                  instr->opcode = aco_opcode::p_exit_early_if;
-                  instr->operands[0] = bld.scc(andn2->definitions[1].getTemp());
-               }
+
                ctx.info[block->index].exec[i].first = andn2->definitions[0].getTemp();
+               exit_cond = andn2->definitions[1].getTemp();
             } else {
                assert(i != 0);
             }
          }
+         instr->opcode = aco_opcode::p_exit_early_if;
+         instr->operands[0] = bld.scc(exit_cond);
          state = Exact;
 
       } else if (instr->opcode == aco_opcode::p_fs_buffer_store_smem) {

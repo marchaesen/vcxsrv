@@ -1830,6 +1830,8 @@ typedef enum {
                                   * identical.
                                   */
    nir_texop_tex_prefetch,       /**< Regular texture look-up, eligible for pre-dispatch */
+   nir_texop_fragment_fetch,     /**< Multisample fragment color texture fetch */
+   nir_texop_fragment_mask_fetch,/**< Multisample fragment mask texture fetch */
 } nir_texop;
 
 typedef struct {
@@ -1926,6 +1928,7 @@ nir_tex_instr_dest_size(const nir_tex_instr *instr)
    case nir_texop_texture_samples:
    case nir_texop_query_levels:
    case nir_texop_samples_identical:
+   case nir_texop_fragment_mask_fetch:
       return 1;
 
    default:
@@ -2829,8 +2832,46 @@ typedef struct nir_shader_compiler_options {
    /* Set if nir_lower_wpos_ytransform() should also invert gl_PointCoord. */
    bool lower_wpos_pntc;
 
+   /**
+    * Set if nir_op_[iu]hadd and nir_op_[iu]rhadd instructions should be
+    * lowered to simple arithmetic.
+    *
+    * If this flag is set, the lowering will be applied to all bit-sizes of
+    * these instructions.
+    *
+    * \sa ::lower_hadd64
+    */
    bool lower_hadd;
+
+   /**
+    * Set if only 64-bit nir_op_[iu]hadd and nir_op_[iu]rhadd instructions
+    * should be lowered to simple arithmetic.
+    *
+    * If this flag is set, the lowering will be applied to only 64-bit
+    * versions of these instructions.
+    *
+    * \sa ::lower_hadd
+    */
+   bool lower_hadd64;
+
+   /**
+    * Set if nir_op_add_sat and nir_op_usub_sat should be lowered to simple
+    * arithmetic.
+    *
+    * If this flag is set, the lowering will be applied to all bit-sizes of
+    * these instructions.
+    *
+    * \sa ::lower_usub_sat64
+    */
    bool lower_add_sat;
+
+   /**
+    * Set if only 64-bit nir_op_usub_sat should be lowered to simple
+    * arithmetic.
+    *
+    * \sa ::lower_add_sat
+    */
+   bool lower_usub_sat64;
 
    /**
     * Should IO be re-vectorized?  Some scalar ISAs still operate on vec4's
@@ -3839,6 +3880,7 @@ typedef struct nir_lower_subgroups_options {
    bool lower_shuffle:1;
    bool lower_shuffle_to_32bit:1;
    bool lower_quad:1;
+   bool lower_quad_broadcast_dynamic:1;
 } nir_lower_subgroups_options;
 
 bool nir_lower_subgroups(nir_shader *shader,
@@ -4099,7 +4141,7 @@ typedef struct nir_lower_bitmap_options {
 
 void nir_lower_bitmap(nir_shader *shader, const nir_lower_bitmap_options *options);
 
-bool nir_lower_atomics_to_ssbo(nir_shader *shader, unsigned ssbo_offset);
+bool nir_lower_atomics_to_ssbo(nir_shader *shader);
 
 typedef enum  {
    nir_lower_int_source_mods = 1 << 0,
@@ -4111,7 +4153,7 @@ typedef enum  {
 
 bool nir_lower_to_source_mods(nir_shader *shader, nir_lower_to_source_mods_flags options);
 
-bool nir_lower_gs_intrinsics(nir_shader *shader);
+bool nir_lower_gs_intrinsics(nir_shader *shader, bool per_stream);
 
 typedef unsigned (*nir_lower_bit_size_callback)(const nir_alu_instr *, void *);
 
@@ -4217,6 +4259,7 @@ typedef enum {
     nir_move_load_ubo    = (1 << 1),
     nir_move_load_input  = (1 << 2),
     nir_move_comparisons = (1 << 3),
+    nir_move_copies      = (1 << 4),
 } nir_move_options;
 
 bool nir_can_move_instr(nir_instr *instr, nir_move_options options);

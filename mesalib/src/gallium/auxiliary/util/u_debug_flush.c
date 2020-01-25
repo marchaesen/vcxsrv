@@ -111,7 +111,7 @@ debug_flush_pointer_compare(void *key1, void *key2)
 static unsigned
 debug_flush_pointer_hash(void *key)
 {
-   return (unsigned) (unsigned long) key;
+   return (unsigned) (uintptr_t) key;
 }
 
 struct debug_flush_buf *

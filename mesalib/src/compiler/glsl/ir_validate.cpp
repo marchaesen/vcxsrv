@@ -546,6 +546,11 @@ ir_validate::visit_leave(ir_expression *ir)
       assert(ir->type->base_type == GLSL_TYPE_INT);
       break;
 
+   case ir_unop_clz:
+      assert(ir->operands[0]->type == ir->type);
+      assert(ir->type->base_type == GLSL_TYPE_UINT);
+      break;
+
    case ir_unop_noise:
       /* XXX what can we assert here? */
       break;
@@ -649,6 +654,25 @@ ir_validate::visit_leave(ir_expression *ir)
       }
       break;
 
+   case ir_binop_abs_sub:
+      assert(ir->operands[0]->type == ir->operands[1]->type);
+      assert(ir->operands[0]->type->is_integer_32_64());
+      assert(ir->operands[0]->type->vector_elements ==
+             ir->type->vector_elements);
+      assert(ir->type->base_type == GLSL_TYPE_UINT ||
+             ir->type->base_type == GLSL_TYPE_UINT64);
+      break;
+
+   case ir_binop_add_sat:
+   case ir_binop_sub_sat:
+   case ir_binop_avg:
+   case ir_binop_avg_round:
+      assert(ir->type == ir->operands[0]->type);
+      assert(ir->type == ir->operands[1]->type);
+      assert(ir->type->is_integer_32_64());
+      break;
+
+   case ir_binop_mul_32x16:
    case ir_binop_imul_high:
       assert(ir->type == ir->operands[0]->type);
       assert(ir->type == ir->operands[1]->type);

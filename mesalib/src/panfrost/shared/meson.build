@@ -28,7 +28,7 @@ libpanfrost_shared = static_library(
   'panfrost_shared',
   [libpanfrost_shared_files],
   include_directories : [inc_common],
-  c_args : [c_vis_args, no_override_init_args],
+  c_args : [c_vis_args, no_override_init_args, '-O3'],
   cpp_args : [cpp_vis_args],
   build_by_default : false,
 )

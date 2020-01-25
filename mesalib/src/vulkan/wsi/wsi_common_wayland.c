@@ -421,6 +421,21 @@ wsi_wl_display_init(struct wsi_wayland *wsi_wl,
    if (display->drm.wl_drm || display->dmabuf.wl_dmabuf)
       wl_display_roundtrip_queue(display->wl_display, display->queue);
 
+   if (wsi_wl->wsi->force_bgra8_unorm_first) {
+      /* Find BGRA8_UNORM in the list and swap it to the first position if we
+       * can find it.  Some apps get confused if SRGB is first in the list.
+       */
+      VkFormat *first_fmt = u_vector_head(display->formats);
+      VkFormat *iter_fmt;
+      u_vector_foreach(iter_fmt, display->formats) {
+         if (*iter_fmt == VK_FORMAT_B8G8R8A8_UNORM) {
+            *iter_fmt = *first_fmt;
+            *first_fmt = VK_FORMAT_B8G8R8A8_UNORM;
+            break;
+         }
+      }
+   }
+
    /* We need prime support for wl_drm */
    if (display->drm.wl_drm &&
        (display->drm.capabilities & WL_DRM_CAPABILITY_PRIME)) {

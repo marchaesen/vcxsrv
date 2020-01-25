@@ -330,6 +330,12 @@ _mesa_TexImage3D_no_error(GLenum target, GLint level, GLint internalformat,
 extern void GLAPIENTRY
 _mesa_EGLImageTargetTexture2DOES( GLenum target, GLeglImageOES image );
 
+extern void GLAPIENTRY
+_mesa_EGLImageTargetTexStorageEXT(GLenum target, GLeglImageOES image,
+                                  const GLint *attrib_list);
+extern void GLAPIENTRY
+_mesa_EGLImageTargetTextureStorageEXT(GLuint texture, GLeglImageOES image,
+                                      const GLint *attrib_list);
 void GLAPIENTRY
 _mesa_TexSubImage1D_no_error(GLenum target, GLint level, GLint xoffset,
                              GLsizei width,

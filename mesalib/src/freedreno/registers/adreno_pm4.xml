@@ -157,6 +157,12 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value name="CP_PREEMPT_ENABLE" value="0x1c"/>
 	<value name="CP_PREEMPT_TOKEN" value="0x1e"/>
 	<value name="CP_INDIRECT_BUFFER" value="0x3f"/>
+	<doc>
+		Takes the same arguments as CP_INDIRECT_BUFFER, but jumps to
+		another buffer at the same level. Must be at the end of IB, and
+		doesn't work with draw state IB's.
+	</doc>
+	<value name="CP_INDIRECT_BUFFER_CHAIN" value="0x57" variants="A5XX-"/>
 	<doc>indirect buffer dispatch.  same as IB, but init is pipelined</doc>
 	<value name="CP_INDIRECT_BUFFER_PFD" value="0x37"/>
 	<doc>wait for the IDLE state of the engine</doc>
@@ -422,14 +428,7 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value name="CP_WAIT_TWO_REGS" value="0x70" variants="A6XX"/>
 	<value name="CP_MEMCPY" value="0x75" variants="A6XX"/>
 	<value name="CP_SET_BIN_DATA5_OFFSET" value="0x2e" variants="A6XX"/>
-<!--
-unknown a6xx opcodes:
-
-opcode: (null) (14) (5 dwords)
-opcode: (null) (55) (4 dwords)
-opcode: (null) (6d) (4 dwords)
- -->
-	<value name="CP_UNK_A6XX_55" value="0x55" variants="A6XX"/>
+	<value name="CP_SET_CTXSWITCH_IB" value="0x55" variants="A6XX"/>
 
 	<!--
 	Seems to always have the payload:
@@ -1387,13 +1386,22 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 		<value value="4" name="RM6_GMEM"/>
 		<value value="5" name="RM6_BLIT2D"/>
 		<value value="6" name="RM6_RESOLVE"/>
+		<value value="7" name="RM6_YIELD"/>
 		<value value="0xc" name="RM6_BLIT2DSCALE"/>
+
+		<!--
+			These values come from a6xx_set_marker() in the
+			downstream kernel, and they can only be set by the kernel
+		-->
+		<value value="0xd" name="RM6_IB1LIST_START"/>
+		<value value="0xe" name="RM6_IB1LIST_END"/>
+		<!-- IFPC - inter-frame power collapse -->
+		<value value="0x100" name="RM6_IFPC_ENABLE"/>
+		<value value="0x101" name="RM6_IFPC_DISABLE"/>
 	</enum>
 	<reg32 offset="0" name="0">
 		<bitfield name="MARKER" low="0" high="3"/>
-		<bitfield name="MODE" low="0" high="3" type="a6xx_render_mode"/>
-		<!-- IFPC - inter-frame power collapse -->
-		<bitfield name="IFPC" pos="8" type="boolean"/>
+		<bitfield name="MODE" low="0" high="8" type="a6xx_render_mode"/>
 	</reg32>
 </domain>
 
@@ -1446,9 +1454,36 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 
 <!-- I *think* this existed at least as far back as a4xx -->
 <domain name="CP_COND_REG_EXEC" width="32">
+	<enum name="compare_mode">
+		<!-- use the predicate bit set by CP_REG_TEST -->
+		<value value="1" name="PRED_TEST"/>
+		<!-- compare two registers directly for equality -->
+		<value value="2" name="REG_COMPARE"/>
+		<!-- test if certain render modes are set via CP_SET_MARKER -->
+		<value value="3" name="RENDER_MODE" variants="A6XX-"/>
+	</enum>
 	<reg32 offset="0" name="0">
-		<bitfield name="UNK28" pos="28" type="boolean"/>
+		<bitfield name="REG0" low="0" high="17" type="hex"/>
+
+		<!--
+			Note: these bits have the same meaning, and use the same
+			internal mechanism as the bits in CP_SET_DRAW_STATE.
+			When RENDER_MODE is selected, they're used as
+			a bitmask of which modes pass the test.
+		-->
+
+		<!-- RM6_BINNING -->
+		<bitfield name="BINNING" pos="20" variants="A6XX-" type="boolean"/>
+		<!-- all others -->
+		<bitfield name="GMEM" pos="21" variants="A6XX-" type="boolean"/>
+		<!-- RM6_BYPASS -->
+		<bitfield name="SYSMEM" pos="22" variants="A6XX-" type="boolean"/>
+
+		<bitfield name="MODE" low="28" high="31" type="compare_mode"/>
 	</reg32>
+
+	<!-- in REG_COMPARE mode, there's an extra DWORD here with REG1 -->
+
 	<reg32 offset="1" name="1">
 		<bitfield name="DWORDS" low="0" high="31" type="uint"/>
 	</reg32>
@@ -1477,6 +1512,55 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 	</reg32>
 	<reg32 offset="1" name="1">
 		<bitfield name="DWORDS" low="0" high="31" type="uint"/>
+	</reg32>
+</domain>
+
+<domain name="CP_SET_CTXSWITCH_IB" width="32">
+	<doc>
+                Used by the userspace driver to set various IB's which are
+                executed during context save/restore for handling
+                state that isn't restored by the
+                context switch routine itself.
+	</doc>
+	<enum name="ctxswitch_ib">
+		<value name="RESTORE_IB" value="0">
+			<doc>Executed unconditionally when switching back to the context.</doc>
+		</value>
+		<value name="YIELD_RESTORE_IB" value="1">
+                        <doc>
+				Executed when switching back after switching
+				away during execution of
+				a CP_SET_MARKER packet with RM6_YIELD as the
+				payload *and* the normal save routine was
+				bypassed for a shorter one. I think this is
+				connected to the "skipsaverestore" bit set by
+				the kernel when preempting.
+			</doc>
+		</value>
+		<value name="SAVE_IB" value="2">
+                        <doc>
+				Executed when switching away from the context,
+				except for context switches initiated via
+				CP_YIELD.
+                        </doc>
+		</value>
+		<value name="RB_SAVE_IB" value="3">
+			<doc>
+				This can only be set by the RB (i.e. the kernel)
+				and executes with protected mode off, but
+				is otherwise similar to SAVE_IB.
+			</doc>
+		</value>
+	</enum>
+	<reg32 offset="0" name="0">
+		<bitfield name="ADDR_LO" low="0" high="31"/>
+	</reg32>
+	<reg32 offset="1" name="1">
+		<bitfield name="ADDR_HI" low="0" high="31"/>
+	</reg32>
+	<reg32 offset="2" name="2">
+		<bitfield name="DWORDS" low="0" high="19" type="uint"/>
+		<bitfield name="TYPE" low="20" high="21" type="ctxswitch_ib"/>
 	</reg32>
 </domain>
 

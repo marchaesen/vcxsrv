@@ -374,7 +374,7 @@ remove_extract_elements(compiler_context *ctx, bifrost_block *block)
 }
 
 
-void schedule_program(compiler_context *ctx)
+void bifrost_schedule_program(compiler_context *ctx)
 {
         // XXX: we should move instructions together before RA that can feed in to each other and be scheduled in the same clause
         allocate_registers(ctx);

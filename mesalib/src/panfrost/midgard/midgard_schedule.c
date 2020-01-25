@@ -300,8 +300,7 @@ mir_update_worklist(
          * where possible. */
 
         unsigned i;
-        BITSET_WORD tmp;
-        BITSET_FOREACH_SET(i, tmp, done->dependents, count) {
+        BITSET_FOREACH_SET(i, done->dependents, count) {
                 assert(instructions[i]->nr_dependencies);
 
                 if (!(--instructions[i]->nr_dependencies))
@@ -332,8 +331,8 @@ struct midgard_predicate {
          * mode, the constants array will be updated, and the instruction
          * will be adjusted to index into the constants array */
 
-        uint8_t *constants;
-        unsigned constant_count;
+        midgard_constants *constants;
+        unsigned constant_mask;
         bool blend_constant;
 
         /* Exclude this destination (if not ~0) */
@@ -360,11 +359,11 @@ mir_adjust_constants(midgard_instruction *ins,
 {
         /* Blend constants dominate */
         if (ins->has_blend_constant) {
-                if (pred->constant_count)
+                if (pred->constant_mask)
                         return false;
                 else if (destructive) {
                         pred->blend_constant = true;
-                        pred->constant_count = 16;
+                        pred->constant_mask = 0xffff;
                         return true;
                 }
         }
@@ -373,115 +372,90 @@ mir_adjust_constants(midgard_instruction *ins,
         if (!ins->has_constants)
                 return true;
 
-        if (ins->alu.reg_mode != midgard_reg_mode_32) {
-                /* TODO: 16-bit constant combining */
-                if (pred->constant_count)
-                        return false;
+        unsigned r_constant = SSA_FIXED_REGISTER(REGISTER_CONSTANT);
+        midgard_reg_mode reg_mode = ins->alu.reg_mode;
 
-                uint16_t *bundles = (uint16_t *) pred->constants;
-                uint32_t *constants = (uint32_t *) ins->constants;
+        midgard_vector_alu_src const_src = { };
 
-                /* Copy them wholesale */
-                for (unsigned i = 0; i < 4; ++i)
-                        bundles[i] = constants[i];
+        if (ins->src[0] == r_constant)
+                const_src = vector_alu_from_unsigned(ins->alu.src1);
+        else if (ins->src[1] == r_constant)
+                const_src = vector_alu_from_unsigned(ins->alu.src2);
 
-                pred->constant_count = 16;
-        } else {
-                /* Pack 32-bit constants */
-                uint32_t *bundles = (uint32_t *) pred->constants;
-                uint32_t *constants = (uint32_t *) ins->constants;
-                unsigned r_constant = SSA_FIXED_REGISTER(REGISTER_CONSTANT);
-                unsigned mask = mir_from_bytemask(mir_bytemask_of_read_components(ins, r_constant), midgard_reg_mode_32);
+        unsigned type_size = mir_bytes_for_mode(reg_mode);
 
-                /* First, check if it fits */
-                unsigned count = DIV_ROUND_UP(pred->constant_count, sizeof(uint32_t));
-                unsigned existing_count = count;
+        /* If the ALU is converting up we need to divide type_size by 2 */
+        if (const_src.half)
+                type_size /= 2;
 
-                for (unsigned i = 0; i < 4; ++i) {
-                        if (!(mask & (1 << i)))
-                                continue;
+        unsigned max_comp = 16 / type_size;
+        unsigned comp_mask = mir_from_bytemask(mir_bytemask_of_read_components(ins, r_constant),
+                                               reg_mode);
+        unsigned type_mask = (1 << type_size) - 1;
+        unsigned bundle_constant_mask = pred->constant_mask;
+        unsigned comp_mapping[16] = { };
+        uint8_t bundle_constants[16];
 
-                        bool ok = false;
+        memcpy(bundle_constants, pred->constants, 16);
 
-                        /* Look for existing constant */
-                        for (unsigned j = 0; j < existing_count; ++j) {
-                                if (bundles[j] == constants[i]) {
-                                        ok = true;
-                                        break;
-                                }
-                        }
+        /* Let's try to find a place for each active component of the constant
+         * register.
+         */
+        for (unsigned comp = 0; comp < max_comp; comp++) {
+                if (!(comp_mask & (1 << comp)))
+                        continue;
 
-                        if (ok)
-                                continue;
+                uint8_t *constantp = ins->constants.u8 + (type_size * comp);
+                unsigned best_reuse_bytes = 0;
+                signed best_place = -1;
+                unsigned i, j;
 
-                        /* If the constant is new, check ourselves */
-                        for (unsigned j = 0; j < i; ++j) {
-                                if (constants[j] == constants[i] && (mask & (1 << j))) {
-                                        ok = true;
-                                        break;
-                                }
-                        }
+                for (i = 0; i < 16; i += type_size) {
+                        unsigned reuse_bytes = 0;
 
-                        if (ok)
-                                continue;
-
-                        /* Otherwise, this is a new constant */
-                        count++;
-                }
-
-                /* Check if we have space */
-                if (count > 4)
-                        return false;
-
-                /* If non-destructive, we're done */
-                if (!destructive)
-                        return true;
-
-                /* If destructive, let's copy in the new constants and adjust
-                 * swizzles to pack it in. */
-
-                unsigned indices[16] = { 0 };
-
-                /* Reset count */
-                count = existing_count;
-
-                for (unsigned i = 0; i < 4; ++i) {
-                        if (!(mask & (1 << i)))
-                                continue;
-
-                        uint32_t cons = constants[i];
-                        bool constant_found = false;
-
-                        /* Search for the constant */
-                        for (unsigned j = 0; j < count; ++j) {
-                                if (bundles[j] != cons)
+                        for (j = 0; j < type_size; j++) {
+                                if (!(bundle_constant_mask & (1 << (i + j))))
                                         continue;
+                                if (constantp[j] != bundle_constants[i + j])
+                                        break;
 
-                                /* We found it, reuse */
-                                indices[i] = j;
-                                constant_found = true;
+                                reuse_bytes++;
+                        }
+
+                        /* Select the place where existing bytes can be
+                         * reused so we leave empty slots to others
+                         */
+                        if (j == type_size &&
+                            (reuse_bytes > best_reuse_bytes || best_place < 0)) {
+                                best_reuse_bytes = reuse_bytes;
+                                best_place = i;
                                 break;
                         }
-
-                        if (constant_found)
-                                continue;
-
-                        /* We didn't find it, so allocate it */
-                        unsigned idx = count++;
-
-                        /* We have space, copy it in! */
-                        bundles[idx] = cons;
-                        indices[i] = idx;
                 }
 
-                pred->constant_count = count * sizeof(uint32_t);
+                /* This component couldn't fit in the remaining constant slot,
+                 * no need check the remaining components, bail out now
+                 */
+                if (best_place < 0)
+                        return false;
 
-                /* Use indices as a swizzle */
+                memcpy(&bundle_constants[i], constantp, type_size);
+                bundle_constant_mask |= type_mask << best_place;
+                comp_mapping[comp] = best_place / type_size;
+        }
 
-                mir_foreach_src(ins, s) {
-                        if (ins->src[s] == r_constant)
-                                mir_compose_swizzle(ins->swizzle[s], indices, ins->swizzle[s]);
-                }
+        /* If non-destructive, we're done */
+        if (!destructive)
+                return true;
+
+	/* Otherwise update the constant_mask and constant values */
+        pred->constant_mask = bundle_constant_mask;
+        memcpy(pred->constants, bundle_constants, 16);
+
+        /* Use comp_mapping as a swizzle */
+        mir_foreach_src(ins, s) {
+                if (ins->src[s] == r_constant)
+                        mir_compose_swizzle(ins->swizzle[s], comp_mapping, ins->swizzle[s]);
         }
 
         return true;
@@ -507,7 +481,6 @@ mir_choose_instruction(
 
         /* Iterate to find the best instruction satisfying the predicate */
         unsigned i;
-        BITSET_WORD tmp;
 
         signed best_index = -1;
         bool best_conditional = false;
@@ -519,11 +492,11 @@ mir_choose_instruction(
         unsigned max_active = 0;
         unsigned max_distance = 6;
 
-        BITSET_FOREACH_SET(i, tmp, worklist, count) {
+        BITSET_FOREACH_SET(i, worklist, count) {
                 max_active = MAX2(max_active, i);
         }
 
-        BITSET_FOREACH_SET(i, tmp, worklist, count) {
+        BITSET_FOREACH_SET(i, worklist, count) {
                 if ((max_active - i) >= max_distance)
                         continue;
 
@@ -667,6 +640,10 @@ mir_comparison_mobile(
 
                 /* Must fit in an ALU bundle */
                 if (instructions[i]->type != TAG_ALU_4)
+                        return ~0;
+
+                /* If it would itself require a condition, that's recursive */
+                if (OP_IS_CSEL(instructions[i]->alu.op))
                         return ~0;
 
                 /* We'll need to rewrite to .w but that doesn't work for vector
@@ -860,7 +837,7 @@ mir_schedule_alu(
                 .tag = TAG_ALU_4,
                 .destructive = true,
                 .exclude = ~0,
-                .constants = (uint8_t *) bundle.constants
+                .constants = &bundle.constants
         };
 
         midgard_instruction *vmul = NULL;
@@ -942,13 +919,13 @@ mir_schedule_alu(
 
         /* If we have a render target reference, schedule a move for it */
 
-        if (branch && branch->writeout && (branch->constants[0] || ctx->is_blend)) {
+        if (branch && branch->writeout && (branch->constants.u32[0] || ctx->is_blend)) {
                 midgard_instruction mov = v_mov(~0, make_compiler_temp(ctx));
                 sadd = mem_dup(&mov, sizeof(midgard_instruction));
                 sadd->unit = UNIT_SADD;
                 sadd->mask = 0x1;
                 sadd->has_inline_constant = true;
-                sadd->inline_constant = branch->constants[0];
+                sadd->inline_constant = branch->constants.u32[0];
                 branch->src[1] = mov.dest;
                 /* TODO: Don't leak */
         }
@@ -1024,7 +1001,7 @@ mir_schedule_alu(
         mir_update_worklist(worklist, len, instructions, sadd);
 
         bundle.has_blend_constant = predicate.blend_constant;
-        bundle.has_embedded_constants = predicate.constant_count > 0;
+        bundle.has_embedded_constants = predicate.constant_mask != 0;
 
         unsigned padding = 0;
 
@@ -1115,10 +1092,11 @@ schedule_block(compiler_context *ctx, midgard_block *block)
 
         /* We emitted bundles backwards; copy into the block in reverse-order */
 
-        util_dynarray_init(&block->bundles, NULL);
+        util_dynarray_init(&block->bundles, block);
         util_dynarray_foreach_reverse(&bundles, midgard_bundle, bundle) {
                 util_dynarray_append(&block->bundles, midgard_bundle, *bundle);
         }
+        util_dynarray_fini(&bundles);
 
         /* Blend constant was backwards as well. blend_offset if set is
          * strictly positive, as an offset of zero would imply constants before
@@ -1148,7 +1126,7 @@ schedule_block(compiler_context *ctx, midgard_block *block)
 }
 
 void
-schedule_program(compiler_context *ctx)
+midgard_schedule_program(compiler_context *ctx)
 {
         midgard_promote_uniforms(ctx);
 

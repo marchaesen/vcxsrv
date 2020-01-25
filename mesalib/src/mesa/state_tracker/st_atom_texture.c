@@ -182,6 +182,10 @@ update_textures(struct st_context *st,
       /* use original view as template: */
       tmpl = *sampler_views[unit];
 
+      /* if resource format matches then YUV wasn't lowered */
+      if (st_get_view_format(stObj) == stObj->pt->format)
+         continue;
+
       switch (st_get_view_format(stObj)) {
       case PIPE_FORMAT_NV12:
          /* we need one additional R8G8 view: */

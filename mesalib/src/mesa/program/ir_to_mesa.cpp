@@ -500,83 +500,9 @@ ir_to_mesa_visitor::src_reg_for_float(float val)
 }
 
 static int
-storage_type_size(const struct glsl_type *type, bool bindless)
-{
-   unsigned int i;
-   int size;
-
-   switch (type->base_type) {
-   case GLSL_TYPE_UINT:
-   case GLSL_TYPE_INT:
-   case GLSL_TYPE_UINT8:
-   case GLSL_TYPE_INT8:
-   case GLSL_TYPE_UINT16:
-   case GLSL_TYPE_INT16:
-   case GLSL_TYPE_FLOAT:
-   case GLSL_TYPE_FLOAT16:
-   case GLSL_TYPE_BOOL:
-      if (type->is_matrix()) {
-	 return type->matrix_columns;
-      } else {
-	 /* Regardless of size of vector, it gets a vec4. This is bad
-	  * packing for things like floats, but otherwise arrays become a
-	  * mess.  Hopefully a later pass over the code can pack scalars
-	  * down if appropriate.
-	  */
-	 return 1;
-      }
-      break;
-   case GLSL_TYPE_DOUBLE:
-      if (type->is_matrix()) {
-         if (type->vector_elements > 2)
-            return type->matrix_columns * 2;
-         else
-            return type->matrix_columns;
-      } else {
-         if (type->vector_elements > 2)
-            return 2;
-         else
-            return 1;
-      }
-      break;
-   case GLSL_TYPE_UINT64:
-   case GLSL_TYPE_INT64:
-      if (type->vector_elements > 2)
-         return 2;
-      else
-         return 1;
-   case GLSL_TYPE_ARRAY:
-      assert(type->length > 0);
-      return storage_type_size(type->fields.array, bindless) * type->length;
-   case GLSL_TYPE_STRUCT:
-      size = 0;
-      for (i = 0; i < type->length; i++) {
-	 size += storage_type_size(type->fields.structure[i].type, bindless);
-      }
-      return size;
-   case GLSL_TYPE_SAMPLER:
-   case GLSL_TYPE_IMAGE:
-      if (!bindless)
-         return 0;
-      /* fall through */
-   case GLSL_TYPE_SUBROUTINE:
-      return 1;
-   case GLSL_TYPE_ATOMIC_UINT:
-   case GLSL_TYPE_VOID:
-   case GLSL_TYPE_ERROR:
-   case GLSL_TYPE_INTERFACE:
-   case GLSL_TYPE_FUNCTION:
-      assert(!"Invalid type in type_size");
-      break;
-   }
-
-   return 0;
-}
-
-static int
 type_size(const struct glsl_type *type)
 {
-   return storage_type_size(type, false);
+   return type->count_vec4_slots(false, false);
 }
 
 /**
@@ -1370,6 +1296,12 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
    case ir_binop_ldexp:
    case ir_binop_carry:
    case ir_binop_borrow:
+   case ir_binop_abs_sub:
+   case ir_binop_add_sat:
+   case ir_binop_sub_sat:
+   case ir_binop_avg:
+   case ir_binop_avg_round:
+   case ir_binop_mul_32x16:
    case ir_binop_imul_high:
    case ir_unop_interpolate_at_centroid:
    case ir_binop_interpolate_at_offset:
@@ -1414,6 +1346,7 @@ ir_to_mesa_visitor::visit(ir_expression *ir)
    case ir_unop_unpack_image_2x32:
    case ir_unop_atan:
    case ir_binop_atan2:
+   case ir_unop_clz:
       assert(!"not supported");
       break;
 

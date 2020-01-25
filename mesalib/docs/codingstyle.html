@@ -41,11 +41,11 @@ as if you're defining a large, static table of information.
 <li>Opening braces go on the same line as the if/for/while statement.
 For example:
 <pre>
-   if (condition) {
-      foo;
-   } else {
-      bar;
-   }
+if (condition) {
+   foo;
+} else {
+   bar;
+}
 </pre>
 
 <li>Put a space before/after operators.  For example, <code>a = b + c;</code>
@@ -53,7 +53,7 @@ and not <code>a=b+c;</code>
 
 <li>This GNU indent command generally does the right thing for formatting:
 <pre>
-   indent -br -i3 -npcs --no-tabs infile.c -o outfile.c
+indent -br -i3 -npcs --no-tabs infile.c -o outfile.c
 </pre>
 
 <li>
@@ -63,47 +63,47 @@ follow <a href="http://www.doxygen.nl">Doxygen</a> conventions.
 </p>
 Single-line comments:
 <pre>
-   /* null-out pointer to prevent dangling reference below */
-   bufferObj = NULL;
+/* null-out pointer to prevent dangling reference below */
+bufferObj = NULL;
 </pre>
 Or,
 <pre>
-   bufferObj = NULL;  /* prevent dangling reference below */
+bufferObj = NULL;  /* prevent dangling reference below */
 </pre>
 Multi-line comment:
 <pre>
-   /* If this is a new buffer object id, or one which was generated but
-    * never used before, allocate a buffer object now.
-    */
+/* If this is a new buffer object id, or one which was generated but
+ * never used before, allocate a buffer object now.
+ */
 </pre>
 We try to quote the OpenGL specification where prudent:
 <pre>
-   /* Page 38 of the PDF of the OpenGL ES 3.0 spec says:
-    *
-    *     "An INVALID_OPERATION error is generated for any of the following
-    *     conditions:
-    *
-    *     * &lt;length&gt; is zero."
-    *
-    * Additionally, page 94 of the PDF of the OpenGL 4.5 core spec
-    * (30.10.2014) also says this, so it's no longer allowed for desktop GL,
-    * either.
-    */
+/* Page 38 of the PDF of the OpenGL ES 3.0 spec says:
+ *
+ *     "An INVALID_OPERATION error is generated for any of the following
+ *     conditions:
+ *
+ *     * &lt;length&gt; is zero."
+ *
+ * Additionally, page 94 of the PDF of the OpenGL 4.5 core spec
+ * (30.10.2014) also says this, so it's no longer allowed for desktop GL,
+ * either.
+ */
 </pre>
 Function comment example:
 <pre>
-   /**
-    * Create and initialize a new buffer object.  Called via the
-    * ctx-&gt;Driver.CreateObject() driver callback function.
-    * \param  name  integer name of the object
-    * \param  type  one of GL_FOO, GL_BAR, etc.
-    * \return  pointer to new object or NULL if error
-    */
-   struct gl_object *
-   _mesa_create_object(GLuint name, GLenum type)
-   {
-      /* function body */
-   }
+/**
+ * Create and initialize a new buffer object.  Called via the
+ * ctx-&gt;Driver.CreateObject() driver callback function.
+ * \param  name  integer name of the object
+ * \param  type  one of GL_FOO, GL_BAR, etc.
+ * \return  pointer to new object or NULL if error
+ */
+struct gl_object *
+_mesa_create_object(GLuint name, GLenum type)
+{
+   /* function body */
+}
 </pre>
 
 <li>Put the function return type and qualifiers on one line and the function
@@ -113,11 +113,11 @@ the opening brace goes on the next line by itself (see above.)
 
 <li>Function names follow various conventions depending on the type of function:
 <pre>
-   glFooBar()       - a public GL entry point (in glapi_dispatch.c)
-   _mesa_FooBar()   - the internal immediate mode function
-   save_FooBar()    - retained mode (display list) function in dlist.c
-   foo_bar()        - a static (private) function
-   _mesa_foo_bar()  - an internal non-static Mesa function
+glFooBar()       - a public GL entry point (in glapi_dispatch.c)
+_mesa_FooBar()   - the internal immediate mode function
+save_FooBar()    - retained mode (display list) function in dlist.c
+foo_bar()        - a static (private) function
+_mesa_foo_bar()  - an internal non-static Mesa function
 </pre>
 
 <li>Constants, macros and enum names are <code>ALL_UPPERCASE</code>, with _

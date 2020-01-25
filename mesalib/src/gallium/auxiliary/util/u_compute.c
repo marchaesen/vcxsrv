@@ -120,12 +120,6 @@ void util_compute_blit(struct pipe_context *ctx, struct pipe_blit_info *blit_inf
 
    ctx->set_shader_images(ctx, PIPE_SHADER_COMPUTE, 0, 1, &image);
 
-   /* Initialize the sampler view. */
-   u_sampler_view_default_template(&src_templ, src, src->format);
-   src_templ.format = util_format_linear(blit_info->src.format);
-   src_view = ctx->create_sampler_view(ctx, src, &src_templ);
-   ctx->set_sampler_views(ctx, PIPE_SHADER_COMPUTE, 0, 1, &src_view);
-
    struct pipe_sampler_state sampler_state={0};
    sampler_state.wrap_s = PIPE_TEX_WRAP_CLAMP_TO_EDGE;
    sampler_state.wrap_t = PIPE_TEX_WRAP_CLAMP_TO_EDGE;
@@ -139,6 +133,12 @@ void util_compute_blit(struct pipe_context *ctx, struct pipe_blit_info *blit_inf
 
    sampler_state_p = ctx->create_sampler_state(ctx, &sampler_state);
    ctx->bind_sampler_states(ctx, PIPE_SHADER_COMPUTE, 0, 1, &sampler_state_p);
+
+   /* Initialize the sampler view. */
+   u_sampler_view_default_template(&src_templ, src, src->format);
+   src_templ.format = util_format_linear(blit_info->src.format);
+   src_view = ctx->create_sampler_view(ctx, src, &src_templ);
+   ctx->set_sampler_views(ctx, PIPE_SHADER_COMPUTE, 0, 1, &src_view);
 
    if (!*compute_state)
      *compute_state = blit_compute_shader(ctx);

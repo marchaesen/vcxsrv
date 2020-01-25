@@ -381,22 +381,21 @@ mir_from_bytemask(uint16_t bytemask, midgard_reg_mode mode)
         return value;
 }
 
-/* Rounds down a bytemask to fit a given component count. Iterate each
- * component, and check if all bytes in the component are masked on */
+/* Rounds up a bytemask to fill a given component count. Iterate each
+ * component, and check if any bytes in the component are masked on */
 
 uint16_t
-mir_round_bytemask_down(uint16_t mask, midgard_reg_mode mode)
+mir_round_bytemask_up(uint16_t mask, midgard_reg_mode mode)
 {
         unsigned bytes = mir_bytes_for_mode(mode);
         unsigned maxmask = mask_of(bytes);
         unsigned channels = 16 / bytes;
 
         for (unsigned c = 0; c < channels; ++c) {
-                /* Get bytes in component */
-                unsigned submask = (mask >> (c * bytes)) & maxmask;
+                unsigned submask = maxmask << (c * bytes);
 
-                if (submask != maxmask)
-                        mask &= ~(maxmask << (c * bytes));
+                if (mask & submask)
+                        mask |= submask;
         }
 
         return mask;

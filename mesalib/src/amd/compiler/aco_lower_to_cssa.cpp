@@ -52,18 +52,6 @@ struct cssa_ctx {
    cssa_ctx(Program* program, live& live_vars) : program(program), live_vars(live_vars) {}
 };
 
-unsigned get_lca(cssa_ctx& ctx, unsigned x, unsigned y, bool is_logical)
-{
-   while (x != y) {
-      if (x > y) {
-         x = is_logical ? ctx.program->blocks[x].logical_idom : ctx.program->blocks[x].linear_idom;
-      } else {
-         y = is_logical ? ctx.program->blocks[y].logical_idom : ctx.program->blocks[y].linear_idom;
-      }
-   }
-   return x;
-}
-
 bool collect_phi_info(cssa_ctx& ctx)
 {
    bool progress = false;
@@ -113,75 +101,59 @@ bool collect_phi_info(cssa_ctx& ctx)
             if (op.isTemp() && op.getTemp() == ctx.program->blocks[preds[i]].live_out_exec)
                op.setFixed(exec);
 
-            /* calculate the earliest block where we can insert a copy if needed */
-            bool intersects = false;
-            unsigned upper_bound = preds[i];
-            while (def_points[i] < upper_bound) {
-               unsigned new_ub = is_logical ?
-                                 ctx.program->blocks[upper_bound].logical_idom :
-                                 ctx.program->blocks[upper_bound].linear_idom;
-
-               for (unsigned j = 0; j < phi->operands.size(); j++) {
-                  /* same operands cannot intersect */
-                  if (phi->operands[j].isTemp() && op.getTemp() == phi->operands[j].getTemp())
+            bool interferes = false;
+            unsigned idom = is_logical ?
+                            ctx.program->blocks[def_points[i]].logical_idom :
+                            ctx.program->blocks[def_points[i]].linear_idom;
+            /* live-through operands definitely interfere */
+            if (op.isTemp() && !op.isKill()) {
+               interferes = true;
+            /* create copies for constants to ease spilling */
+            } else if (op.isConstant()) {
+               interferes = true;
+            /* create copies for SGPR -> VGPR moves */
+            } else if (op.regClass() != phi->definitions[0].regClass()) {
+               interferes = true;
+            /* operand might interfere with any phi-def*/
+            } else if (def_points[i] == block.index) {
+               interferes = true;
+            /* operand might interfere with phi-def */
+            } else if (ctx.live_vars.live_out[idom].count(phi->definitions[0].getTemp())) {
+               interferes = true;
+            /* else check for interferences with other operands */
+            } else {
+               for (unsigned j = 0; !interferes && j < phi->operands.size(); j++) {
+                  /* don't care about other register classes */
+                  if (!phi->operands[j].isTemp() || phi->operands[j].regClass() != phi->definitions[0].regClass())
                      continue;
-                  /* live-ranges intersect if any other definition point is dominated by the current definition */
-                  intersects |= def_points[j] == new_ub;
+                  /* same operands cannot interfere */
+                  if (op.getTemp() == phi->operands[j].getTemp())
+                     continue;
+                  /* if def_points[i] dominates any other def_point, assume they interfere.
+                   * As live-through operands are checked above, only test up the current block. */
+                  unsigned other_def_point = def_points[j];
+                  while (def_points[i] < other_def_point && other_def_point != block.index)
+                     other_def_point = is_logical ?
+                                       ctx.program->blocks[other_def_point].logical_idom :
+                                       ctx.program->blocks[other_def_point].linear_idom;
+                  interferes = def_points[i] == other_def_point;
                }
-               if (intersects)
-                  break;
-               else
-                  upper_bound = new_ub;
             }
 
-            if (!intersects) {
-               /* constants and live-through definitions can get a copy
-                * at their definition point if there is no other intersection */
-               if (op.isConstant() || !op.isKill() || op.regClass().type() != phi->definitions[0].regClass().type()) {
-                  upper_bound = def_points[i];
-               } else {
-                  continue;
-               }
-            }
+            if (!interferes)
+               continue;
 
             progress = true;
-            unsigned insert_block = preds[i];
-
-            /* if the predecessor block is empty, try to insert at the dominator */
-            bool is_empty = (is_logical && ctx.program->blocks[insert_block].instructions.size() == 3) ||
-                            ctx.program->blocks[insert_block].instructions.size() == 1;
-            if (is_empty) {
-               unsigned idom = is_logical ?
-                               ctx.program->blocks[insert_block].logical_idom :
-                               ctx.program->blocks[insert_block].linear_idom;
-               if (idom > upper_bound)
-                  insert_block = idom;
-            }
-
-            /* if other operands share the same value, try to insert at LCA */
-            std::vector<unsigned> indices = {i};
-            for (unsigned j = i + 1; j < phi->operands.size(); j++) {
-               if ((phi->operands[j].isTemp() && op.isTemp() && phi->operands[j].getTemp() == op.getTemp()) ||
-                   (phi->operands[j].isConstant() && op.isConstant() && phi->operands[j].constantValue() == op.constantValue())) {
-                  unsigned lca = get_lca(ctx, insert_block, preds[j], is_logical);
-                  if (lca > upper_bound) {
-                     insert_block = lca;
-                     indices.push_back(j);
-                  }
-               }
-            }
 
             /* create new temporary and rename operands */
             Temp new_tmp = Temp{ctx.program->allocateId(), phi->definitions[0].regClass()};
             if (is_logical)
-               ctx.logical_phi_info[insert_block].emplace_back(Definition(new_tmp), op);
+               ctx.logical_phi_info[preds[i]].emplace_back(Definition(new_tmp), op);
             else
-               ctx.linear_phi_info[insert_block].emplace_back(Definition(new_tmp), op);
-            for (unsigned index : indices) {
-               phi->operands[index] = Operand(new_tmp);
-               phi->operands[index].setKill(true);
-               def_points[index] = insert_block;
-            }
+               ctx.linear_phi_info[preds[i]].emplace_back(Definition(new_tmp), op);
+            phi->operands[i] = Operand(new_tmp);
+            phi->operands[i].setKill(true);
+            def_points[i] = preds[i];
          }
       }
    }

@@ -436,6 +436,7 @@ if with_vulkan_icd_dir == ''
   with_vulkan_icd_dir = join_paths(get_option('datadir'), 'vulkan/icd.d')
 endif
 
+# GNU/Hurd includes egl_dri2, without drm.
 with_dri2 = (with_dri or with_any_vk) and (with_dri_platform == 'drm' or
   host_machine.system() == 'gnu')
 _dri3 = get_option('dri3')
@@ -1178,6 +1179,11 @@ if host_machine.system() != 'windows'
   endif
 endif
 
+if cc.has_member('struct dirent', 'd_type', prefix: '''#include <sys/types.h>
+   #include <dirent.h>''')
+   pre_args += '-DHAVE_DIRENT_D_TYPE'
+endif
+
 # strtod locale support
 if cc.links('''
     #define _GNU_SOURCE
@@ -1353,7 +1359,8 @@ endforeach
 with_gallium_drisw_kms = false
 dep_libdrm = dependency(
   'libdrm', version : '>=' + _drm_ver,
-  required : with_dri2 or with_dri3
+  # GNU/Hurd includes egl_dri2, without drm.
+  required : (with_dri2 and host_machine.system() != 'gnu') or with_dri3
 )
 if dep_libdrm.found()
   pre_args += '-DHAVE_LIBDRM'

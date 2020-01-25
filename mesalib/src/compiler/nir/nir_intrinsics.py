@@ -195,7 +195,6 @@ intrinsic("get_buffer_size", src_comp=[-1], dest_comp=1,
 def barrier(name):
     intrinsic(name)
 
-barrier("barrier")
 barrier("discard")
 
 # Demote fragment shader invocation to a helper invocation.  Any stores to
@@ -207,6 +206,12 @@ barrier("discard")
 barrier("demote")
 intrinsic("is_helper_invocation", dest_comp=1, flags=[CAN_ELIMINATE])
 
+# A workgroup-level control barrier.  Any thread which hits this barrier will
+# pause until all threads within the current workgroup have also hit the
+# barrier.  For compute shaders, the workgroup is defined as the local group.
+# For tessellation control shaders, the workgroup is defined as the current
+# patch.  This intrinsic does not imply any sort of memory barrier.
+barrier("control_barrier")
 
 # Memory barrier with semantics analogous to the memoryBarrier() GLSL
 # intrinsic.
@@ -254,6 +259,9 @@ barrier("memory_barrier_image")
 barrier("memory_barrier_shared")
 barrier("begin_invocation_interlock")
 barrier("end_invocation_interlock")
+
+# Memory barrier for synchronizing TCS patch outputs
+barrier("memory_barrier_tcs_patch")
 
 # A conditional discard/demote, with a single boolean source.
 intrinsic("discard_if", src_comp=[1])

@@ -35,20 +35,14 @@ void
 ir3_ibo_mapping_init(struct ir3_ibo_mapping *mapping, unsigned num_textures)
 {
 	memset(mapping, IBO_INVALID, sizeof(*mapping));
-	mapping->num_ibo = 0;
 	mapping->num_tex = 0;
 	mapping->tex_base = num_textures;
 }
 
 unsigned
-ir3_ssbo_to_ibo(struct ir3_ibo_mapping *mapping, unsigned ssbo)
+ir3_ssbo_to_ibo(struct ir3_shader *shader, unsigned ssbo)
 {
-	if (mapping->ssbo_to_ibo[ssbo] == IBO_INVALID) {
-		unsigned ibo = mapping->num_ibo++;
-		mapping->ssbo_to_ibo[ssbo] = ibo;
-		mapping->ibo_to_image[ibo] = IBO_SSBO | ssbo;
-	}
-	return mapping->ssbo_to_ibo[ssbo];
+	return ssbo;
 }
 
 unsigned
@@ -63,14 +57,9 @@ ir3_ssbo_to_tex(struct ir3_ibo_mapping *mapping, unsigned ssbo)
 }
 
 unsigned
-ir3_image_to_ibo(struct ir3_ibo_mapping *mapping, unsigned image)
+ir3_image_to_ibo(struct ir3_shader *shader, unsigned image)
 {
-	if (mapping->image_to_ibo[image] == IBO_INVALID) {
-		unsigned ibo = mapping->num_ibo++;
-		mapping->image_to_ibo[image] = ibo;
-		mapping->ibo_to_image[ibo] = image;
-	}
-	return mapping->image_to_ibo[image];
+	return shader->nir->info.num_ssbos + image;
 }
 
 unsigned

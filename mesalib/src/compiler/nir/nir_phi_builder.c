@@ -132,8 +132,7 @@ nir_phi_builder_add_value(struct nir_phi_builder *pb, unsigned num_components,
 
    pb->iter_count++;
 
-   BITSET_WORD tmp;
-   BITSET_FOREACH_SET(i, tmp, defs, pb->num_blocks) {
+   BITSET_FOREACH_SET(i, defs, pb->num_blocks) {
       if (pb->work[i] < pb->iter_count)
          pb->W[w_end++] = pb->blocks[i];
       pb->work[i] = pb->iter_count;

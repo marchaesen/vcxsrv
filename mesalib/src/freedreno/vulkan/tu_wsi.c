@@ -35,21 +35,6 @@ tu_wsi_proc_addr(VkPhysicalDevice physicalDevice, const char *pName)
    return tu_lookup_entrypoint_unchecked(pName);
 }
 
-static uint64_t
-tu_wsi_image_get_modifier(VkImage _image)
-{
-   TU_FROM_HANDLE(tu_image, image, _image);
-
-   if (!image->layout.tile_mode)
-      return DRM_FORMAT_MOD_LINEAR;
-
-   if (image->layout.ubwc_size)
-      return DRM_FORMAT_MOD_QCOM_COMPRESSED;
-
-   /* TODO invent a modifier for tiled but not UBWC buffers: */
-   return DRM_FORMAT_MOD_INVALID;
-}
-
 VkResult
 tu_wsi_init(struct tu_physical_device *physical_device)
 {
@@ -64,7 +49,6 @@ tu_wsi_init(struct tu_physical_device *physical_device)
       return result;
 
    physical_device->wsi_device.supports_modifiers = true;
-   physical_device->wsi_device.image_get_modifier = tu_wsi_image_get_modifier;
 
    return VK_SUCCESS;
 }

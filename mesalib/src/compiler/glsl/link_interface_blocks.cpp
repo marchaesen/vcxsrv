@@ -220,7 +220,7 @@ class interface_block_definitions
 public:
    interface_block_definitions()
       : mem_ctx(ralloc_context(NULL)),
-        ht(_mesa_hash_table_create(NULL, _mesa_key_hash_string,
+        ht(_mesa_hash_table_create(NULL, _mesa_hash_string,
                                    _mesa_key_string_equal))
    {
    }

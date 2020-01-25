@@ -21,7 +21,6 @@
  */
 
 #include "tgsi/tgsi_from_mesa.h"
-#include "st_glsl_types.h"
 #include "st_nir.h"
 
 #include "compiler/nir/nir_builder.h"
@@ -58,15 +57,7 @@ st_nir_finish_builtin_shader(struct st_context *st,
    st_nir_assign_varying_locations(st, nir);
 
    st_nir_lower_samplers(screen, nir, NULL, NULL);
-
-   if (st->ctx->Const.PackedDriverUniformStorage) {
-      NIR_PASS_V(nir, nir_lower_io, nir_var_uniform, st_glsl_type_dword_size,
-                 (nir_lower_io_options)0);
-      NIR_PASS_V(nir, nir_lower_uniforms_to_ubo, 4);
-   } else {
-      NIR_PASS_V(nir, nir_lower_io, nir_var_uniform, st_glsl_uniforms_type_size,
-                 (nir_lower_io_options)0);
-   }
+   st_nir_lower_uniforms(st, nir);
 
    if (screen->finalize_nir)
       screen->finalize_nir(screen, nir, true);

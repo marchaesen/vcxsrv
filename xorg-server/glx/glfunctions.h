@@ -1639,5 +1639,7 @@
 #define glIsNamedStringARB(a1, a2) CALL_IsNamedStringARB(GET_DISPATCH(), (a1, a2))
 #define glGetNamedStringARB(a1, a2, a3, a4, a5) CALL_GetNamedStringARB(GET_DISPATCH(), (a1, a2, a3, a4, a5))
 #define glGetNamedStringivARB(a1, a2, a3, a4) CALL_GetNamedStringivARB(GET_DISPATCH(), (a1, a2, a3, a4))
+#define glEGLImageTargetTexStorageEXT(a1, a2, a3) CALL_EGLImageTargetTexStorageEXT(GET_DISPATCH(), (a1, a2, a3))
+#define glEGLImageTargetTextureStorageEXT(a1, a2, a3) CALL_EGLImageTargetTextureStorageEXT(GET_DISPATCH(), (a1, a2, a3))
 
 #endif /* !defined( __GLFUNCTIONS_H__ ) */

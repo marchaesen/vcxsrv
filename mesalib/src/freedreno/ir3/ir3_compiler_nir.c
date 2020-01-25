@@ -467,11 +467,19 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
 		dst[0] = ir3_DSX(b, src[0], 0);
 		dst[0]->cat5.type = TYPE_F32;
 		break;
+	case nir_op_fddx_fine:
+		dst[0] = ir3_DSXPP_1(b, src[0], 0);
+		dst[0]->cat5.type = TYPE_F32;
+		break;
 	case nir_op_fddy:
 	case nir_op_fddy_coarse:
 		dst[0] = ir3_DSY(b, src[0], 0);
 		dst[0]->cat5.type = TYPE_F32;
 		break;
+		break;
+	case nir_op_fddy_fine:
+		dst[0] = ir3_DSYPP_1(b, src[0], 0);
+		dst[0]->cat5.type = TYPE_F32;
 		break;
 	case nir_op_flt16:
 	case nir_op_flt32:
@@ -1155,7 +1163,7 @@ emit_intrinsic_barrier(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	struct ir3_instruction *barrier;
 
 	switch (intr->intrinsic) {
-	case nir_intrinsic_barrier:
+	case nir_intrinsic_control_barrier:
 		barrier = ir3_BAR(b);
 		barrier->cat7.g = true;
 		barrier->cat7.l = true;
@@ -1174,7 +1182,6 @@ emit_intrinsic_barrier(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 				IR3_BARRIER_IMAGE_R | IR3_BARRIER_IMAGE_W |
 				IR3_BARRIER_BUFFER_R | IR3_BARRIER_BUFFER_W;
 		break;
-	case nir_intrinsic_memory_barrier_atomic_counter:
 	case nir_intrinsic_memory_barrier_buffer:
 		barrier = ir3_FENCE(b);
 		barrier->cat7.g = true;
@@ -1424,7 +1431,7 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 
 	case nir_intrinsic_end_patch_ir3:
 		assert(ctx->so->type == MESA_SHADER_TESS_CTRL);
-		struct ir3_instruction *end = ir3_ENDPATCH(b);
+		struct ir3_instruction *end = ir3_ENDIF(b);
 		array_insert(b, b->keeps, end);
 
 		end->barrier_class = IR3_BARRIER_EVERYTHING;
@@ -1641,10 +1648,9 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 			ctx->so->no_earlyz = true;
 		dst[0] = ctx->funcs->emit_intrinsic_atomic_image(ctx, intr);
 		break;
-	case nir_intrinsic_barrier:
+	case nir_intrinsic_control_barrier:
 	case nir_intrinsic_memory_barrier:
 	case nir_intrinsic_group_memory_barrier:
-	case nir_intrinsic_memory_barrier_atomic_counter:
 	case nir_intrinsic_memory_barrier_buffer:
 	case nir_intrinsic_memory_barrier_image:
 	case nir_intrinsic_memory_barrier_shared:
@@ -1795,7 +1801,7 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 		/* condition always goes in predicate register: */
 		cond->regs[0]->num = regid(REG_P0, 0);
 
-		kill = ir3_CONDEND(b, cond, 0);
+		kill = ir3_IF(b, cond, 0);
 
 		kill->barrier_class = IR3_BARRIER_EVERYTHING;
 		kill->barrier_conflict = IR3_BARRIER_EVERYTHING;
@@ -2706,7 +2712,7 @@ setup_input(struct ir3_context *ctx, nir_variable *in)
 		return;
 
 	so->inputs[n].slot = slot;
-	so->inputs[n].compmask = (1 << (ncomp + frac)) - 1;
+	so->inputs[n].compmask |= (1 << (ncomp + frac)) - 1;
 	so->inputs_count = MAX2(so->inputs_count, n + 1);
 	so->inputs[n].interpolate = in->data.interpolation;
 
@@ -2769,17 +2775,25 @@ setup_input(struct ir3_context *ctx, nir_variable *in)
 			ctx->inputs[idx] = instr;
 		}
 	} else if (ctx->so->type == MESA_SHADER_VERTEX) {
-		/* We shouldn't have fractional input for VS input.. that only shows
-		 * up with varying packing
-		 */
-		assert(frac == 0);
+		struct ir3_instruction *input = NULL, *in;
+		struct ir3_instruction *components[4];
+		unsigned mask = (1 << (ncomp + frac)) - 1;
 
-		struct ir3_instruction *input = create_input(ctx, (1 << ncomp) - 1);
-		struct ir3_instruction *components[ncomp];
+		foreach_input(in, ctx->ir) {
+			if (in->input.inidx == n) {
+				input = in;
+				break;
+			}
+		}
 
-		input->input.inidx = n;
+		if (!input) {
+			input = create_input(ctx, mask);
+			input->input.inidx = n;
+		} else {
+			input->regs[0]->wrmask |= mask;
+		}
 
-		ir3_split_dest(ctx->block, components, input, 0, ncomp);
+		ir3_split_dest(ctx->block, components, input, frac, ncomp);
 
 		for (int i = 0; i < ncomp; i++) {
 			unsigned idx = (n * 4) + i + frac;
@@ -3522,7 +3536,7 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
 	/* We need to do legalize after (for frag shader's) the "bary.f"
 	 * offsets (inloc) have been assigned.
 	 */
-	ir3_legalize(ir, &so->has_ssbo, &so->need_pixlod, &max_bary);
+	ir3_legalize(ir, so, &max_bary);
 
 	ir3_debug_print(ir, "AFTER LEGALIZE");
 

@@ -48,7 +48,7 @@ emit_intrinsic_load_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr,
 	struct ir3_instruction *ldib;
 
 	/* can this be non-const buffer_index?  how do we handle that? */
-	int ibo_idx = ir3_ssbo_to_ibo(&ctx->so->image_mapping, nir_src_as_uint(intr->src[0]));
+	int ibo_idx = ir3_ssbo_to_ibo(ctx->so->shader, nir_src_as_uint(intr->src[0]));
 
 	offset = ir3_get_src(ctx, &intr->src[2])[0];
 
@@ -77,7 +77,7 @@ emit_intrinsic_store_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	unsigned ncomp = ffs(~wrmask) - 1;
 
 	/* can this be non-const buffer_index?  how do we handle that? */
-	int ibo_idx = ir3_ssbo_to_ibo(&ctx->so->image_mapping, nir_src_as_uint(intr->src[1]));
+	int ibo_idx = ir3_ssbo_to_ibo(ctx->so->shader, nir_src_as_uint(intr->src[1]));
 
 	/* src0 is offset, src1 is value:
 	 */
@@ -119,7 +119,8 @@ emit_intrinsic_atomic_ssbo(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	type_t type = TYPE_U32;
 
 	/* can this be non-const buffer_index?  how do we handle that? */
-	int ibo_idx = ir3_ssbo_to_ibo(&ctx->so->image_mapping, nir_src_as_uint(intr->src[0]));
+	int ibo_idx = ir3_ssbo_to_ibo(ctx->so->shader,
+			nir_src_as_uint(intr->src[0]));
 	ibo = create_immed(b, ibo_idx);
 
 	data   = ir3_get_src(ctx, &intr->src[2])[0];
@@ -213,7 +214,7 @@ emit_intrinsic_store_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	struct ir3_instruction * const *coords = ir3_get_src(ctx, &intr->src[1]);
 	unsigned ncoords = ir3_get_image_coords(var, NULL);
 	unsigned slot = ir3_get_image_slot(nir_src_as_deref(intr->src[0]));
-	unsigned ibo_idx = ir3_image_to_ibo(&ctx->so->image_mapping, slot);
+	unsigned ibo_idx = ir3_image_to_ibo(ctx->so->shader, slot);
 	unsigned ncomp = ir3_get_num_components_for_glformat(var->data.image.format);
 
 	/* src0 is offset, src1 is value:
@@ -242,7 +243,7 @@ emit_intrinsic_atomic_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	struct ir3_instruction *value = ir3_get_src(ctx, &intr->src[3])[0];
 	unsigned ncoords = ir3_get_image_coords(var, NULL);
 	unsigned slot = ir3_get_image_slot(nir_src_as_deref(intr->src[0]));
-	unsigned ibo_idx = ir3_image_to_ibo(&ctx->so->image_mapping, slot);
+	unsigned ibo_idx = ir3_image_to_ibo(ctx->so->shader, slot);
 
 	ibo = create_immed(b, ibo_idx);
 
@@ -383,7 +384,7 @@ get_atomic_dest_mov(struct ir3_instruction *atomic)
 void
 ir3_a6xx_fixup_atomic_dests(struct ir3 *ir, struct ir3_shader_variant *so)
 {
-	if (so->image_mapping.num_ibo == 0)
+	if (ir3_shader_nibo(so) == 0)
 		return;
 
 	foreach_block (block, &ir->block_list) {

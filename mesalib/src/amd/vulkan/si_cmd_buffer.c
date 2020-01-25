@@ -327,8 +327,11 @@ si_emit_graphics(struct radv_physical_device *physical_device,
 			}
 		}
 
-		/* Don't use late alloc for NGG on Navi14 due to a hw bug. */
-		if (physical_device->rad_info.family == CHIP_NAVI14) {
+		/* Don't use late alloc for NGG on Navi14 due to a hw bug.
+		 * If NGG is never used, enable all CUs.
+		 */
+		if (!physical_device->use_ngg ||
+		    physical_device->rad_info.family == CHIP_NAVI14) {
 			late_alloc_limit_gs = 0;
 			cu_mask_gs = 0xffff;
 		}

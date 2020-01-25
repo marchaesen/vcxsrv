@@ -9,12 +9,38 @@ dEQP-GLES[0-9]*.stress
 # These are really slow on tiling architectures (including llvmpipe).
 dEQP-GLES[0-9]*.functional.flush_finish
 
-dEQP-GLES2.accuracy.texture.*
-dEQP-GLES2.functional.clipping.*
-dEQP-GLES2.functional.fbo.render.depth.*
-dEQP-GLES2.functional.fbo.render.*
-dEQP-GLES2.functional.fbo.completeness.*
-dEQP-GLES2.functional.fragment_ops.*
-dEQP-GLES2.functional.polygon_offset.*
-dEQP-GLES2.functional.shaders.*
-dEQP-GLES2.functional.texture.*
+# Crashes
+dEQP-GLES2.functional.shaders.invariance.highp.common_subexpression_1
+dEQP-GLES2.functional.shaders.invariance.mediump.common_subexpression_1
+dEQP-GLES2.functional.shaders.invariance.lowp.common_subexpression_1
+
+# Flaky
+dEQP-GLES2.functional.fbo.completeness.size.distinct
+dEQP-GLES2.functional.negative_api.shader.uniform_matrixfv_invalid_transpose
+dEQP-GLES2.functional.negative_api.texture.generatemipmap_zero_level_array_compressed
+dEQP-GLES2.functional.shaders.random.exponential.fragment.94
+dEQP-GLES2.functional.shaders.random.all_features.fragment.55
+dEQP-GLES2.functional.clipping.triangle_vertex.clip_three.clip_neg_x_neg_z_and_pos_x_pos_z_and_neg_x_neg_y_pos_z
+
+# Driver bugs causing GPU errors
+dEQP-GLES2.functional.shaders.loops.while_constant_iterations.nested_sequence_vertex
+dEQP-GLES2.functional.shaders.loops.while_constant_iterations.conditional_body_vertex
+dEQP-GLES2.functional.shaders.loops.while_uniform_iterations.conditional_continue_vertex
+dEQP-GLES2.functional.shaders.loops.while_uniform_iterations.double_continue_vertex
+
+# Hangs / OOM
+dEQP-GLES2.functional.shaders.indexing.varying_array.vec4_dynamic_loop_write_static_read
+dEQP-GLES2.functional.shaders.indexing.varying_array.vec4_dynamic_loop_write_dynamic_read
+dEQP-GLES2.functional.shaders.indexing.varying_array.vec4_dynamic_loop_write_static_loop_read
+dEQP-GLES2.functional.shaders.indexing.varying_array.vec4_dynamic_loop_write_dynamic_loop_read
+dEQP-GLES2.functional.shaders.indexing.tmp_array.vec3_dynamic_loop_write_dynamic_read_vertex
+
+dEQP-GLES2.functional.shaders.indexing.tmp_array.vec4_dynamic_loop_write_static_read_vertex
+dEQP-GLES2.functional.shaders.indexing.tmp_array.vec4_dynamic_loop_write_dynamic_read_vertex
+dEQP-GLES2.functional.shaders.indexing.tmp_array.vec4_dynamic_loop_write_static_loop_read_vertex
+dEQP-GLES2.functional.shaders.indexing.tmp_array.vec4_dynamic_loop_write_dynamic_loop_read_vertex
+
+dEQP-GLES2.functional.shaders.indexing.matrix_subscript.mat4_dynamic_loop_write_static_read_vertex
+dEQP-GLES2.functional.shaders.indexing.matrix_subscript.mat4_dynamic_loop_write_dynamic_read_vertex
+dEQP-GLES2.functional.shaders.indexing.matrix_subscript.mat4_dynamic_loop_write_static_loop_read_vertex
+dEQP-GLES2.functional.shaders.indexing.matrix_subscript.mat4_dynamic_loop_write_dynamic_loop_read_vertex

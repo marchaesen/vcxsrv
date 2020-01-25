@@ -56,12 +56,13 @@ midgard_opt_promote_fmov(compiler_context *ctx, midgard_block *block)
                 if (!ins->has_constants) continue;
                 if (mir_nontrivial_source2_mod_simple(ins)) continue;
                 if (mir_nontrivial_outmod(ins)) continue;
+                if (ins->alu.reg_mode != midgard_reg_mode_32) continue;
 
                 /* We found an imov with a constant. Check the constants */
                 bool ok = true;
 
-                for (unsigned i = 0; i < ARRAY_SIZE(ins->constants); ++i)
-                        ok &= mir_constant_float(ins->constants[i]);
+                for (unsigned i = 0; i < ARRAY_SIZE(ins->constants.u32); ++i)
+                        ok &= mir_constant_float(ins->constants.u32[i]);
 
                 if (!ok)
                         continue;

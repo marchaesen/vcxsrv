@@ -179,6 +179,7 @@ class Bitset(object):
 		print("            fields.unknown | fields.dword,")
 
 		if address:
+			print("        .is_address = true,")
 			print("        .bo = fields.bo,")
 			if f.type == "waddress":
 				print("        .bo_write = true,")

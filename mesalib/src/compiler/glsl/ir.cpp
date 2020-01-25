@@ -257,6 +257,7 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
    case ir_unop_dFdy_fine:
    case ir_unop_bitfield_reverse:
    case ir_unop_interpolate_at_centroid:
+   case ir_unop_clz:
    case ir_unop_saturate:
    case ir_unop_atan:
       this->type = op0->type;
@@ -500,6 +501,7 @@ ir_expression::ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1)
       break;
 
    case ir_binop_imul_high:
+   case ir_binop_mul_32x16:
    case ir_binop_carry:
    case ir_binop_borrow:
    case ir_binop_lshift:
@@ -509,6 +511,44 @@ ir_expression::ir_expression(int op, ir_rvalue *op0, ir_rvalue *op1)
    case ir_binop_interpolate_at_sample:
       this->type = op0->type;
       break;
+
+   case ir_binop_add_sat:
+   case ir_binop_sub_sat:
+   case ir_binop_avg:
+   case ir_binop_avg_round:
+      assert(op0->type == op1->type);
+      this->type = op0->type;
+      break;
+
+   case ir_binop_abs_sub: {
+      enum glsl_base_type base;
+
+      assert(op0->type == op1->type);
+
+      switch (op0->type->base_type) {
+      case GLSL_TYPE_UINT:
+      case GLSL_TYPE_INT:
+         base = GLSL_TYPE_UINT;
+         break;
+      case GLSL_TYPE_UINT8:
+      case GLSL_TYPE_INT8:
+         base = GLSL_TYPE_UINT8;
+         break;
+      case GLSL_TYPE_UINT16:
+      case GLSL_TYPE_INT16:
+         base = GLSL_TYPE_UINT16;
+         break;
+      case GLSL_TYPE_UINT64:
+      case GLSL_TYPE_INT64:
+         base = GLSL_TYPE_UINT64;
+         break;
+      default:
+         unreachable(!"Invalid base type.");
+      }
+
+      this->type = glsl_type::get_instance(base, op0->type->vector_elements, 1);
+      break;
+   }
 
    case ir_binop_vector_extract:
       this->type = op0->type->get_scalar_type();

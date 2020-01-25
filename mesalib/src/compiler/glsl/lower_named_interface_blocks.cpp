@@ -125,7 +125,7 @@ public:
 void
 flatten_named_interface_blocks_declarations::run(exec_list *instructions)
 {
-   interface_namespace = _mesa_hash_table_create(NULL, _mesa_key_hash_string,
+   interface_namespace = _mesa_hash_table_create(NULL, _mesa_hash_string,
                                                  _mesa_key_string_equal);
 
    /* First pass: adjust instance block variables with an instance name

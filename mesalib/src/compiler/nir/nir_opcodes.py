@@ -419,6 +419,15 @@ for (int bit = bit_size - 1; bit >= 0; bit--) {
 }
 """)
 
+unop("uclz", tuint32, """
+int bit;
+for (bit = bit_size - 1; bit >= 0; bit--) {
+   if ((src0 & (1u << bit)) != 0)
+      break;
+}
+dst = (unsigned)(31 - bit);
+""")
+
 unop("ifind_msb", tint32, """
 dst = -1;
 for (int bit = 31; bit >= 0; bit--) {
@@ -586,6 +595,11 @@ if (nir_is_rounding_mode_rtz(execution_mode, bit_size)) {
 }
 """)
 binop("isub", tint, "", "src0 - src1")
+binop_convert("uabs_isub", tuint, tint, "", """
+              src1 > src0 ? (uint64_t) src1 - (uint64_t) src0
+                          : (uint64_t) src0 - (uint64_t) src1
+""")
+binop("uabs_usub", tuint, "", "(src1 > src0) ? (src1 - src0) : (src0 - src1)")
 
 binop("fmul", tfloat, _2src_commutative + associative, """
 if (nir_is_rounding_mode_rtz(execution_mode, bit_size)) {
@@ -653,6 +667,9 @@ uint64_t mask = (1 << (bit_size / 2)) - 1;
 dst = ((uint64_t)src0 & mask) * ((uint64_t)src1 & mask);
 """)
 
+# Multiply 32-bits with low 16-bits.
+binop("imul_32x16", tint32, "", "src0 * (int16_t) src1")
+binop("umul_32x16", tuint32, "", "src0 * (uint16_t) src1")
 
 binop("fdiv", tfloat, "", "src0 / src1")
 binop("idiv", tint, "", "src1 == 0 ? 0 : (src0 / src1)")

@@ -191,10 +191,10 @@ emit_decls(struct tgsi_transform_context *tctx)
     */
 
    /* ITU-R BT.601 conversion */
-   emit_immed(tctx, 0, 1.164,  0.000,  1.596,  0.0);
-   emit_immed(tctx, 1, 1.164, -0.392, -0.813,  0.0);
-   emit_immed(tctx, 2, 1.164,  2.017,  0.000,  0.0);
-   emit_immed(tctx, 3, 0.0625, 0.500,  0.500,  1.0);
+   emit_immed(tctx, 0, 1.164f,  0.000f,  1.596f,  0.0f);
+   emit_immed(tctx, 1, 1.164f, -0.392f, -0.813f,  0.0f);
+   emit_immed(tctx, 2, 1.164f,  2.017f,  0.000f,  0.0f);
+   emit_immed(tctx, 3, 0.0625f, 0.500f,  0.500f,  1.0f);
 
    /*
     * Declare extra samplers / sampler-views:

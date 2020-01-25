@@ -5,6 +5,10 @@ GL_EXT_direct_state_access for compatibility profile.
 VK_AMD_device_coherent_memory on RADV.
 VK_AMD_mixed_attachment_samples on RADV.
 VK_AMD_shader_image_load_store_lod on RADV.
+VK_AMD_shader_fragment_mask on RADV.
 VK_EXT_subgroup_size_control on RADV.
 VK_KHR_separate_depth_stencil_layouts on Intel, RADV.
 VK_KHR_shader_subgroup_extended_types on RADV.
+VK_KHR_swapchain_mutable_format on RADV.
+Vulkan 1.2 on Intel, RADV.
+GL_INTEL_shader_integer_functions2 and VK_INTEL_shader_integer_functions2 on Intel.

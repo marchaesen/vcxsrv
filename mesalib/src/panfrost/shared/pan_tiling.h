@@ -27,18 +27,21 @@
 #ifndef H_PANFROST_TILING
 #define H_PANFROST_TILING
 
-#include "util/u_box.h"
+#include <stdint.h>
+#include <util/format/u_format.h>
 
 void panfrost_load_tiled_image(void *dst, const void *src,
-                               const struct pipe_box *box,
+                               unsigned x, unsigned y,
+                               unsigned w, unsigned h,
                                uint32_t dst_stride,
                                uint32_t src_stride,
-                               uint32_t bpp);
+                               enum pipe_format format);
 
 void panfrost_store_tiled_image(void *dst, const void *src,
-                                const struct pipe_box *box,
+                                unsigned x, unsigned y,
+                                unsigned w, unsigned h,
                                 uint32_t dst_stride,
                                 uint32_t src_stride,
-                                uint32_t bpp);
+                                enum pipe_format format);
 
 #endif

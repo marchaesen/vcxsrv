@@ -35,7 +35,6 @@
  */
 #define VK_STRUCTURE_TYPE_WSI_IMAGE_CREATE_INFO_MESA (VkStructureType)1000001002
 #define VK_STRUCTURE_TYPE_WSI_MEMORY_ALLOCATE_INFO_MESA (VkStructureType)1000001003
-#define VK_STRUCTURE_TYPE_WSI_FORMAT_MODIFIER_PROPERTIES_LIST_MESA (VkStructureType)1000001004
 #define VK_STRUCTURE_TYPE_WSI_SURFACE_SUPPORTED_COUNTERS_MESA (VkStructureType)1000001005
 #define VK_STRUCTURE_TYPE_WSI_MEMORY_SIGNAL_SUBMIT_INFO_MESA (VkStructureType)1000001006
 
@@ -43,29 +42,12 @@ struct wsi_image_create_info {
     VkStructureType sType;
     const void *pNext;
     bool scanout;
-
-    uint32_t modifier_count;
-    const uint64_t *modifiers;
 };
 
 struct wsi_memory_allocate_info {
     VkStructureType sType;
     const void *pNext;
     bool implicit_sync;
-};
-
-struct wsi_format_modifier_properties {
-   uint64_t modifier;
-   uint32_t modifier_plane_count;
-};
-
-/* Chain in for vkGetPhysicalDeviceFormatProperties2KHR */
-struct wsi_format_modifier_properties_list {
-   VkStructureType sType;
-   const void *pNext;
-
-   uint32_t modifier_count;
-   struct wsi_format_modifier_properties *modifier_properties;
 };
 
 /* To be chained into VkSurfaceCapabilities2KHR */
@@ -112,6 +94,7 @@ struct wsi_device {
    bool supports_modifiers;
    uint32_t maxImageDimension2D;
    VkPresentModeKHR override_present_mode;
+   bool force_bgra8_unorm_first;
 
    /* Whether to enable adaptive sync for a swapchain if implemented and
     * available. Not all window systems might support this. */
@@ -127,8 +110,6 @@ struct wsi_device {
        */
       bool strict_imageCount;
    } x11;
-
-   uint64_t (*image_get_modifier)(VkImage image);
 
    /* Signals the semaphore such that any wait on the semaphore will wait on
     * any reads or writes on the give memory object.  This is used to
@@ -165,11 +146,13 @@ struct wsi_device {
    WSI_CB(FreeMemory);
    WSI_CB(FreeCommandBuffers);
    WSI_CB(GetBufferMemoryRequirements);
+   WSI_CB(GetImageDrmFormatModifierPropertiesEXT);
    WSI_CB(GetImageMemoryRequirements);
    WSI_CB(GetImageSubresourceLayout);
    WSI_CB(GetMemoryFdKHR);
    WSI_CB(GetPhysicalDeviceFormatProperties);
    WSI_CB(GetPhysicalDeviceFormatProperties2KHR);
+   WSI_CB(GetPhysicalDeviceImageFormatProperties2);
    WSI_CB(ResetFences);
    WSI_CB(QueueSubmit);
    WSI_CB(WaitForFences);

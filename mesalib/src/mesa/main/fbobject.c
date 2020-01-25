@@ -5070,9 +5070,10 @@ discard_framebuffer(struct gl_context *ctx, struct gl_framebuffer *fb,
                                 GL_STENCIL_ATTACHMENT : GL_DEPTH_ATTACHMENT);
          bool has_both = false;
          for (int j = 0; j < numAttachments; j++) {
-            if (attachments[j] == other_format)
+            if (attachments[j] == other_format) {
                has_both = true;
-            break;
+               break;
+            }
          }
 
          if (fb->Attachment[BUFFER_DEPTH].Renderbuffer !=

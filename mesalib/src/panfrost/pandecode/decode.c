@@ -58,6 +58,8 @@ static void pandecode_swizzle(unsigned swizzle, enum mali_format format);
         } \
 }
 
+FILE *pandecode_dump_stream;
+
 /* Semantic logging type.
  *
  * Raw: for raw messages to be printed as is.
@@ -83,7 +85,7 @@ static void
 pandecode_make_indent(void)
 {
         for (unsigned i = 0; i < pandecode_indent; ++i)
-                printf("    ");
+                fprintf(pandecode_dump_stream, "    ");
 }
 
 static void
@@ -94,16 +96,16 @@ pandecode_log_typed(enum pandecode_log_type type, const char *format, ...)
         pandecode_make_indent();
 
         if (type == PANDECODE_MESSAGE)
-                printf("// ");
+                fprintf(pandecode_dump_stream, "// ");
         else if (type == PANDECODE_PROPERTY)
-                printf(".");
+                fprintf(pandecode_dump_stream, ".");
 
         va_start(ap, format);
-        vprintf(format, ap);
+        vfprintf(pandecode_dump_stream, format, ap);
         va_end(ap);
 
         if (type == PANDECODE_PROPERTY)
-                printf(",\n");
+                fprintf(pandecode_dump_stream, ",\n");
 }
 
 static void
@@ -112,7 +114,7 @@ pandecode_log_cont(const char *format, ...)
         va_list ap;
 
         va_start(ap, format);
-        vprintf(format, ap);
+        vfprintf(pandecode_dump_stream, format, ap);
         va_end(ap);
 }
 
@@ -247,9 +249,14 @@ static const struct pandecode_flag_info mfbd_fmt_flag_info[] = {
 #undef FLAG_INFO
 
 #define FLAG_INFO(flag) { MALI_EXTRA_##flag, "MALI_EXTRA_" #flag }
-static const struct pandecode_flag_info mfbd_extra_flag_info[] = {
+static const struct pandecode_flag_info mfbd_extra_flag_hi_info[] = {
         FLAG_INFO(PRESENT),
-        FLAG_INFO(AFBC),
+        {}
+};
+#undef FLAG_INFO
+
+#define FLAG_INFO(flag) { MALI_EXTRA_##flag, "MALI_EXTRA_" #flag }
+static const struct pandecode_flag_info mfbd_extra_flag_lo_info[] = {
         FLAG_INFO(ZS),
         {}
 };
@@ -473,7 +480,7 @@ pandecode_block_format(enum mali_block_format fmt)
 
 #define DEFINE_CASE(name) case MALI_EXCEPTION_ACCESS_## name: return ""#name
 char *
-pandecode_exception_access(enum mali_exception_access access)
+pandecode_exception_access(unsigned access)
 {
         switch (access) {
                 DEFINE_CASE(NONE);
@@ -750,36 +757,22 @@ pandecode_sfbd(uint64_t gpu_va, int job_no, bool is_fragment, unsigned gpu_id)
         pandecode_prop("zero4 = 0x%" PRIx32, s->zero4);
         pandecode_prop("zero5 = 0x%" PRIx32, s->zero5);
 
-        printf(".zero3 = {");
+        pandecode_log_cont(".zero3 = {");
 
         for (int i = 0; i < sizeof(s->zero3) / sizeof(s->zero3[0]); ++i)
-                printf("%X, ", s->zero3[i]);
+                pandecode_log_cont("%X, ", s->zero3[i]);
 
-        printf("},\n");
+        pandecode_log_cont("},\n");
 
-        printf(".zero6 = {");
+        pandecode_log_cont(".zero6 = {");
 
         for (int i = 0; i < sizeof(s->zero6) / sizeof(s->zero6[0]); ++i)
-                printf("%X, ", s->zero6[i]);
+                pandecode_log_cont("%X, ", s->zero6[i]);
 
-        printf("},\n");
+        pandecode_log_cont("},\n");
 
         return info;
 }
-
-static void
-pandecode_u32_slide(unsigned name, const u32 *slide, unsigned count)
-{
-        pandecode_log(".unknown%d = {", name);
-
-        for (int i = 0; i < count; ++i)
-                printf("%X, ", slide[i]);
-
-        pandecode_log("},\n");
-}
-
-#define SHORT_SLIDE(num) \
-        pandecode_u32_slide(num, s->unknown ## num, ARRAY_SIZE(s->unknown ## num))
 
 static void
 pandecode_compute_fbd(uint64_t gpu_va, int job_no)
@@ -790,10 +783,15 @@ pandecode_compute_fbd(uint64_t gpu_va, int job_no)
         pandecode_log("struct mali_compute_fbd framebuffer_%"PRIx64"_%d = {\n", gpu_va, job_no);
         pandecode_indent++;
 
-        SHORT_SLIDE(1);
+        pandecode_log(".unknown1 = {");
+
+        for (int i = 0; i < ARRAY_SIZE(s->unknown1); ++i)
+                pandecode_log_cont("%X, ", s->unknown1[i]);
+
+        pandecode_log("},\n");
 
         pandecode_indent--;
-        printf("},\n");
+        pandecode_log_cont("},\n");
 }
 
 /* Extracts the number of components associated with a Mali format */
@@ -1128,11 +1126,17 @@ pandecode_mfbd_bfr(uint64_t gpu_va, int job_no, bool is_fragment)
                 if (fbx->checksum_stride)
                         pandecode_prop("checksum_stride = %d", fbx->checksum_stride);
 
-                pandecode_log(".flags = ");
-                pandecode_log_decoded_flags(mfbd_extra_flag_info, fbx->flags);
+                pandecode_log(".flags_hi = ");
+                pandecode_log_decoded_flags(mfbd_extra_flag_hi_info, fbx->flags_lo);
                 pandecode_log_cont(",\n");
 
-                if (fbx->flags & MALI_EXTRA_AFBC_ZS) {
+                pandecode_log(".flags_lo = ");
+                pandecode_log_decoded_flags(mfbd_extra_flag_lo_info, fbx->flags_lo);
+                pandecode_log_cont(",\n");
+
+                pandecode_prop("zs_block = %s\n", pandecode_block_format(fbx->zs_block));
+
+                if (fbx->zs_block == MALI_BLOCK_AFBC) {
                         pandecode_log(".ds_afbc = {\n");
                         pandecode_indent++;
 
@@ -1159,12 +1163,16 @@ pandecode_mfbd_bfr(uint64_t gpu_va, int job_no, bool is_fragment)
                                 MEMORY_PROP_DIR(fbx->ds_linear, depth);
                                 pandecode_prop("depth_stride = %d",
                                                fbx->ds_linear.depth_stride);
+                        } else if (fbx->ds_linear.depth_stride) {
+                                pandecode_msg("XXX: depth stride zero tripped %d\n", fbx->ds_linear.depth_stride);
                         }
 
                         if (fbx->ds_linear.stencil) {
                                 MEMORY_PROP_DIR(fbx->ds_linear, stencil);
                                 pandecode_prop("stencil_stride = %d",
                                                fbx->ds_linear.stencil_stride);
+                        } else if (fbx->ds_linear.stencil_stride) {
+                                pandecode_msg("XXX: stencil stride zero tripped %d\n", fbx->ds_linear.stencil_stride);
                         }
 
                         if (fbx->ds_linear.depth_stride_zero ||
@@ -1851,12 +1859,12 @@ pandecode_shader_disassemble(mali_ptr shader_ptr, int shader_no, int type,
         /* Print some boilerplate to clearly denote the assembly (which doesn't
          * obey indentation rules), and actually do the disassembly! */
 
-        printf("\n\n");
+        pandecode_log_cont("\n\n");
 
         struct midgard_disasm_stats stats;
 
         if (is_bifrost) {
-                disassemble_bifrost(code, sz, false);
+                disassemble_bifrost(pandecode_dump_stream, code, sz, false);
 
                 /* TODO: Extend stats to Bifrost */
                 stats.texture_count = -128;
@@ -1872,7 +1880,8 @@ pandecode_shader_disassemble(mali_ptr shader_ptr, int shader_no, int type,
                 stats.quadword_count = 0;
                 stats.helper_invocations = false;
         } else {
-                stats = disassemble_midgard(code, sz, gpu_id,
+                stats = disassemble_midgard(pandecode_dump_stream,
+                                code, sz, gpu_id,
                                 type == JOB_TYPE_TILER ?
                                 MESA_SHADER_FRAGMENT : MESA_SHADER_VERTEX);
         }
@@ -1888,7 +1897,7 @@ pandecode_shader_disassemble(mali_ptr shader_ptr, int shader_no, int type,
                         (stats.work_count <= 8) ? 2 :
                         1;
 
-                printf("shader%d - MESA_SHADER_%s shader: "
+                pandecode_log_cont("shader%d - MESA_SHADER_%s shader: "
                         "%u inst, %u bundles, %u quadwords, "
                         "%u registers, %u threads, 0 loops, 0:0 spills:fills\n\n\n",
                         shader_id++,
@@ -1933,7 +1942,7 @@ pandecode_texture(mali_ptr u,
         if (f.layout == MALI_TEXTURE_AFBC)
                 pandecode_log_cont("afbc");
         else if (f.layout == MALI_TEXTURE_TILED)
-                pandecode_log_cont(is_zs ? "linear" : "tiled");
+                pandecode_log_cont("tiled");
         else if (f.layout == MALI_TEXTURE_LINEAR)
                 pandecode_log_cont("linear");
         else
@@ -2841,7 +2850,6 @@ pandecode_jc(mali_ptr jc_gpu_va, bool bifrost, unsigned gpu_id)
         int start_number = 0;
 
         bool first = true;
-        bool last_size;
 
         do {
                 struct pandecode_mapped_memory *mem =
@@ -2870,9 +2878,6 @@ pandecode_jc(mali_ptr jc_gpu_va, bool bifrost, unsigned gpu_id)
                 pandecode_indent++;
 
                 pandecode_prop("job_type = %s", pandecode_job_type(h->job_type));
-
-                /* Save for next job fixing */
-                last_size = h->job_descriptor_size;
 
                 if (h->job_descriptor_size)
                         pandecode_prop("job_descriptor_size = %d", h->job_descriptor_size);

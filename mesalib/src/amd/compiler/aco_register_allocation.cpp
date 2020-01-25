@@ -1112,18 +1112,10 @@ void register_allocation(Program *program, std::vector<std::set<Temp>> live_out_
       std::vector<aco_ptr<Instruction>>::reverse_iterator rit;
       for (rit = block.instructions.rbegin(); rit != block.instructions.rend(); ++rit) {
          aco_ptr<Instruction>& instr = *rit;
-         if (!is_phi(instr)) {
-            for (const Operand& op : instr->operands) {
-               if (op.isTemp())
-                  live.emplace(op.getTemp());
-            }
-            if (instr->opcode == aco_opcode::p_create_vector) {
-               for (const Operand& op : instr->operands) {
-                  if (op.isTemp() && op.getTemp().type() == instr->definitions[0].getTemp().type())
-                     vectors[op.tempId()] = instr.get();
-               }
-            }
-         } else if (!instr->definitions[0].isKill() && !instr->definitions[0].isFixed()) {
+         if (is_phi(instr)) {
+            live.erase(instr->definitions[0].getTemp());
+            if (instr->definitions[0].isKill() || instr->definitions[0].isFixed())
+               continue;
             /* collect information about affinity-related temporaries */
             std::vector<Temp> affinity_related;
             /* affinity_related[0] is the last seen affinity-related temp */
@@ -1136,15 +1128,41 @@ void register_allocation(Program *program, std::vector<std::set<Temp>> live_out_
                }
             }
             phi_ressources.emplace_back(std::move(affinity_related));
+            continue;
          }
 
-         /* erase from live */
-         for (const Definition& def : instr->definitions) {
-            if (def.isTemp()) {
-               live.erase(def.getTemp());
-               std::map<unsigned, unsigned>::iterator it = temp_to_phi_ressources.find(def.tempId());
-               if (it != temp_to_phi_ressources.end() && def.regClass() == phi_ressources[it->second][0].regClass())
-                  phi_ressources[it->second][0] = def.getTemp();
+         /* add vector affinities */
+         if (instr->opcode == aco_opcode::p_create_vector) {
+            for (const Operand& op : instr->operands) {
+               if (op.isTemp() && op.getTemp().type() == instr->definitions[0].getTemp().type())
+                  vectors[op.tempId()] = instr.get();
+            }
+         }
+
+         /* add operands to live variables */
+         for (const Operand& op : instr->operands) {
+            if (op.isTemp())
+               live.emplace(op.getTemp());
+         }
+
+         /* erase definitions from live */
+         for (unsigned i = 0; i < instr->definitions.size(); i++) {
+            const Definition& def = instr->definitions[i];
+            if (!def.isTemp())
+               continue;
+            live.erase(def.getTemp());
+            /* mark last-seen phi operand */
+            std::map<unsigned, unsigned>::iterator it = temp_to_phi_ressources.find(def.tempId());
+            if (it != temp_to_phi_ressources.end() && def.regClass() == phi_ressources[it->second][0].regClass()) {
+               phi_ressources[it->second][0] = def.getTemp();
+               /* try to coalesce phi affinities with parallelcopies */
+               if (!def.isFixed() && instr->opcode == aco_opcode::p_parallelcopy) {
+                  Operand op = instr->operands[i];
+                  if (op.isTemp() && op.isFirstKill() && def.regClass() == op.regClass()) {
+                     phi_ressources[it->second].emplace_back(op.getTemp());
+                     temp_to_phi_ressources[op.tempId()] = it->second;
+                  }
+               }
             }
          }
       }
@@ -1347,7 +1365,7 @@ void register_allocation(Program *program, std::vector<std::set<Temp>> live_out_
       }
 
       /* fill in sgpr_live_in */
-      for (unsigned i = 0; i < ctx.max_used_sgpr; i++)
+      for (unsigned i = 0; i <= ctx.max_used_sgpr; i++)
          sgpr_live_in[block.index][i] = register_file[i];
       sgpr_live_in[block.index][127] = register_file[scc.reg];
 
@@ -1792,7 +1810,7 @@ void register_allocation(Program *program, std::vector<std::set<Temp>> live_out_
          if (instr_needs_vop3) {
 
             /* if the first operand is a literal, we have to move it to a reg */
-            if (instr->operands.size() && instr->operands[0].isLiteral()) {
+            if (instr->operands.size() && instr->operands[0].isLiteral() && program->chip_class < GFX10) {
                bool can_sgpr = true;
                /* check, if we have to move to vgpr */
                for (const Operand& op : instr->operands) {

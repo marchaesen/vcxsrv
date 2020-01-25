@@ -61,7 +61,7 @@ struct string_to_uint_map {
 public:
    string_to_uint_map()
    {
-      this->ht = _mesa_hash_table_create(NULL, _mesa_key_hash_string,
+      this->ht = _mesa_hash_table_create(NULL, _mesa_hash_string,
                                          _mesa_key_string_equal);
    }
 

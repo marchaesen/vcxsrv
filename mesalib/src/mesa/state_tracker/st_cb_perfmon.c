@@ -88,9 +88,8 @@ init_perf_monitor(struct gl_context *ctx, struct gl_perf_monitor_object *m)
    for (gid = 0; gid < ctx->PerfMonitor.NumGroups; gid++) {
       const struct gl_perf_monitor_group *g = &ctx->PerfMonitor.Groups[gid];
       const struct st_perf_monitor_group *stg = &st->perfmon[gid];
-      BITSET_WORD tmp;
 
-      BITSET_FOREACH_SET(cid, tmp, m->ActiveCounters[gid], g->NumCounters) {
+      BITSET_FOREACH_SET(cid, m->ActiveCounters[gid], g->NumCounters) {
          const struct st_perf_monitor_counter *stc = &stg->counters[cid];
          struct st_perf_counter_object *cntr =
             &stm->active_counters[stm->num_active_counters];

@@ -568,9 +568,8 @@ perf_monitor_result_size(const struct gl_context *ctx,
 
    for (group = 0; group < ctx->PerfMonitor.NumGroups; group++) {
       const struct gl_perf_monitor_group *g = &ctx->PerfMonitor.Groups[group];
-      BITSET_WORD tmp;
 
-      BITSET_FOREACH_SET(counter, tmp, m->ActiveCounters[group], g->NumCounters) {
+      BITSET_FOREACH_SET(counter, m->ActiveCounters[group], g->NumCounters) {
          const struct gl_perf_monitor_counter *c = &g->Counters[counter];
 
          size += sizeof(uint32_t); /* Group ID */

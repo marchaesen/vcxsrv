@@ -42,8 +42,8 @@ components.
 <code>git bisect</code>.)
 <li>Patches should be properly <a href="#formatting">formatted</a>.
 <li>Patches should be sufficiently <a href="#testing">tested</a> before submitting.
-<li>Patches should be <a href="#submit">submitted</a> via a merge request</a>
-for <a href="#reviewing">review</a>.
+<li>Patches should be <a href="#submit">submitted</a> via a merge request for
+<a href="#reviewing">review</a>.
 
 </ul>
 
@@ -56,36 +56,36 @@ log uses 4 spaces of indentation (4 + 75 &lt; 80).
 <li>The first line should be a short, concise summary of the change prefixed
 with a module name.  Examples:
 <pre>
-    mesa: Add support for querying GL_VERTEX_ATTRIB_ARRAY_LONG
+mesa: Add support for querying GL_VERTEX_ATTRIB_ARRAY_LONG
 
-    gallium: add PIPE_CAP_DEVICE_RESET_STATUS_QUERY
+gallium: add PIPE_CAP_DEVICE_RESET_STATUS_QUERY
 
-    i965: Fix missing type in local variable declaration.
+i965: Fix missing type in local variable declaration.
 </pre>
 <li>Subsequent patch comments should describe the change in more detail,
 if needed.  For example:
 <pre>
-    i965: Remove end-of-thread SEND alignment code.
+i965: Remove end-of-thread SEND alignment code.
 
-    This was present in Eric's initial implementation of the compaction code
-    for Sandybridge (commit 077d01b6). There is no documentation saying this
-    is necessary, and removing it causes no regressions in piglit on any
-    platform.
+This was present in Eric's initial implementation of the compaction code
+for Sandybridge (commit 077d01b6). There is no documentation saying this
+is necessary, and removing it causes no regressions in piglit on any
+platform.
 </pre>
 <li>A "Signed-off-by:" line is not required, but not discouraged either.
 <li>If a patch addresses an issue in gitlab, use the Closes: tag
 For example:
 <pre>
-    Closes: https://gitlab.freedesktop.org/mesa/mesa/issues/1
+Closes: https://gitlab.freedesktop.org/mesa/mesa/issues/1
 </pre>
-<p>Prefer the full url to just <pre>Closes: #1</pre>, since the url makes it
-easier to get to the bug page from <pre>git log</pre></p>
+<p>Prefer the full url to just <code>Closes: #1</code>, since the url makes it
+easier to get to the bug page from <code>git log</code></p>
 <b>Do not use the Fixes: tag for this!</b> Mesa already uses Fixes for something else.
 
 <li>If a patch addresses a issue introduced with earlier commit, that should be
 noted in the patch comment.  For example:
 <pre>
-   Fixes: d7b3707c612 "util/disk_cache: use stat() to check if entry is a directory"
+Fixes: d7b3707c612 "util/disk_cache: use stat() to check if entry is a directory"
 </pre>
 <li>You can produce those fixes lines by running
 <pre>git config --global alias.fixes "show -s --pretty='format:Fixes: %h (\"%s\")'"</pre>
@@ -93,29 +93,29 @@ once and then using <pre>git fixes &lt;sha1&gt;</pre>
 <li>If there have been several revisions to a patch during the review
 process, they should be noted such as in this example:
 <pre>
-    st/mesa: add ARB_texture_stencil8 support (v4)
+st/mesa: add ARB_texture_stencil8 support (v4)
 
-    if we support stencil texturing, enable texture_stencil8
-    there is no requirement to support native S8 for this,
-    the texture can be converted to x24s8 fine.
+if we support stencil texturing, enable texture_stencil8
+there is no requirement to support native S8 for this,
+the texture can be converted to x24s8 fine.
 
-    v2: fold fixes from Marek in:
-       a) put S8 last in the list
-       b) fix renderable to always test for d/s renderable
-        fixup the texture case to use a stencil only format
-        for picking the format for the texture view.
-    v3: hit fallback for getteximage
-    v4: put s8 back in front, it shouldn't get picked now (Ilia)
+v2: fold fixes from Marek in:
+   a) put S8 last in the list
+   b) fix renderable to always test for d/s renderable
+     fixup the texture case to use a stencil only format
+     for picking the format for the texture view.
+v3: hit fallback for getteximage
+v4: put s8 back in front, it shouldn't get picked now (Ilia)
 </pre>
 <li>If someone tested your patch, document it with a line like this:
 <pre>
-    Tested-by: Joe Hacker &lt;jhacker@foo.com&gt;
+Tested-by: Joe Hacker &lt;jhacker@foo.com&gt;
 </pre>
 <li>If the patch was reviewed (usually the case) or acked by someone,
 that should be documented with:
 <pre>
-    Reviewed-by: Joe Hacker &lt;jhacker@foo.com&gt;
-    Acked-by: Joe Hacker &lt;jhacker@foo.com&gt;
+Reviewed-by: Joe Hacker &lt;jhacker@foo.com&gt;
+Acked-by: Joe Hacker &lt;jhacker@foo.com&gt;
 </pre>
 <li>If sending later revision of a patch, add all the tags - ack, r-b,
 Cc: mesa-stable and/or other. This provides reviewers with quick feedback if the
@@ -225,11 +225,11 @@ When you've reviewed a patch, please be unambiguous about your review.
   That is, state either
 </p>
 <pre>
-    Reviewed-by: Joe Hacker &lt;jhacker@foo.com&gt;
+Reviewed-by: Joe Hacker &lt;jhacker@foo.com&gt;
 </pre>
 or
 <pre>
-    Acked-by: Joe Hacker &lt;jhacker@foo.com&gt;
+Acked-by: Joe Hacker &lt;jhacker@foo.com&gt;
 </pre>
 <p>
 Rather than saying just "LGTM" or "Seems OK".
@@ -239,7 +239,7 @@ Rather than saying just "LGTM" or "Seems OK".
 If small changes are suggested, it's OK to say something like:
 </p>
 <pre>
-   With the above fixes, Reviewed-by: Joe Hacker &lt;jhacker@foo.com&gt;
+With the above fixes, Reviewed-by: Joe Hacker &lt;jhacker@foo.com&gt;
 </pre>
 <p>
 which tells the patch author that the patch can be committed, as long
@@ -256,7 +256,7 @@ When providing a Reviewed-by, Acked-by, or Tested-by tag in a gitlab MR,
 enclose the tag in backticks:
 </p>
 <pre>
-  `Reviewed-by: Joe Hacker &lt;jhacker@example.com&gt;`</pre>
+`Reviewed-by: Joe Hacker &lt;jhacker@example.com&gt;`</pre>
 <p>
 This is the markdown format for literal, and will prevent gitlab from hiding
 the &lt; and &gt; symbols.
@@ -405,23 +405,23 @@ within the commit summary.
 <li><code>git rebase -i ...</code> is your friend. Don't be afraid to use it.
 <li>Apply a fixup to commit FOO.
 <pre>
-    git add ...
-    git commit --fixup=FOO
-    git rebase -i --autosquash ...
+git add ...
+git commit --fixup=FOO
+git rebase -i --autosquash ...
 </pre>
 <li>Test for build breakage between patches e.g last 8 commits.
 <pre>
-    git rebase -i --exec="ninja -C build/" HEAD~8
+git rebase -i --exec="ninja -C build/" HEAD~8
 </pre>
 <li>Sets the default mailing address for your repo.
 <pre>
-    git config --local sendemail.to mesa-dev@lists.freedesktop.org
+git config --local sendemail.to mesa-dev@lists.freedesktop.org
 </pre>
 <li> Add version to subject line of patch series in this case for the last 8
 commits before sending.
 <pre>
-    git send-email --subject-prefix="PATCH v4" HEAD~8
-    git send-email -v4 @~8 # shorter version, inherited from git format-patch
+git send-email --subject-prefix="PATCH v4" HEAD~8
+git send-email -v4 @~8 # shorter version, inherited from git format-patch
 </pre>
 </ul>
 

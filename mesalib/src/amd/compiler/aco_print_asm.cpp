@@ -8,13 +8,83 @@
 
 namespace aco {
 
+/* LLVM disassembler only supports GFX8+, try to disassemble with CLRXdisasm
+ * for GFX6-GFX7 if found on the system, this is better than nothing.
+*/
+void print_asm_gfx6_gfx7(Program *program, std::vector<uint32_t>& binary,
+                         std::ostream& out)
+{
+   char path[] = "/tmp/fileXXXXXX";
+   char line[2048], command[128];
+   const char *gpu_type;
+   FILE *p;
+   int fd;
+
+   /* Dump the binary into a temporary file. */
+   fd = mkstemp(path);
+   if (fd < 0)
+      return;
+
+   for (uint32_t w : binary)
+   {
+      if (write(fd, &w, sizeof(w)) == -1)
+         goto fail;
+   }
+
+   /* Determine the GPU type for CLRXdisasm. Use the family for GFX6 chips
+    * because it doesn't allow to use gfx600 directly.
+    */
+   switch (program->chip_class) {
+   case GFX6:
+      switch (program->family) {
+      case CHIP_TAHITI:
+         gpu_type = "tahiti";
+         break;
+      case CHIP_PITCAIRN:
+         gpu_type = "pitcairn";
+         break;
+      case CHIP_VERDE:
+         gpu_type = "capeverde";
+         break;
+      case CHIP_OLAND:
+         gpu_type = "oland";
+         break;
+      case CHIP_HAINAN:
+         gpu_type = "hainan";
+         break;
+      default:
+         unreachable("Invalid GFX6 family!");
+      }
+      break;
+   case GFX7:
+      gpu_type = "gfx700";
+      break;
+   default:
+      unreachable("Invalid chip class!");
+   }
+
+   sprintf(command, "clrxdisasm --gpuType=%s -r %s", gpu_type, path);
+
+   p = popen(command, "r");
+   if (p) {
+      while (fgets(line, sizeof(line), p))
+         out << line;
+      pclose(p);
+   }
+
+fail:
+   close(fd);
+   unlink(path);
+}
+
 void print_asm(Program *program, std::vector<uint32_t>& binary,
                unsigned exec_size, std::ostream& out)
 {
    if (program->chip_class <= GFX7) {
-      out << "Disassembly for this GPU currently not supported." << std::endl;
+      print_asm_gfx6_gfx7(program, binary, out);
       return;
    }
+
    std::vector<bool> referenced_blocks(program->blocks.size());
    referenced_blocks[0] = true;
    for (Block& block : program->blocks) {

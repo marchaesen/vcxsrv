@@ -817,7 +817,27 @@ blit2d_init_color_pipeline(struct radv_device *device,
 						.preserveAttachmentCount = 0,
 						.pPreserveAttachments = NULL,
 						},
-						.dependencyCount = 0,
+						.dependencyCount = 2,
+						.pDependencies = (VkSubpassDependency[]) {
+							{
+								.srcSubpass = VK_SUBPASS_EXTERNAL,
+								.dstSubpass = 0,
+								.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+								.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+								.srcAccessMask = 0,
+								.dstAccessMask = 0,
+								.dependencyFlags = 0
+							},
+							{
+								.srcSubpass = 0,
+								.dstSubpass = VK_SUBPASS_EXTERNAL,
+								.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+								.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+								.srcAccessMask = 0,
+								.dstAccessMask = 0,
+								.dependencyFlags = 0
+							}
+						},
 					}, &device->meta_state.alloc, &device->meta_state.blit2d_render_passes[fs_key][dst_layout]);
 		}
 	}
@@ -988,7 +1008,27 @@ blit2d_init_depth_only_pipeline(struct radv_device *device,
 								       .preserveAttachmentCount = 0,
 								       .pPreserveAttachments = NULL,
 							       },
-							       .dependencyCount = 0,
+							       .dependencyCount = 2,
+							       .pDependencies = (VkSubpassDependency[]) {
+								{
+									.srcSubpass = VK_SUBPASS_EXTERNAL,
+									.dstSubpass = 0,
+									.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+									.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+									.srcAccessMask = 0,
+									.dstAccessMask = 0,
+									.dependencyFlags = 0
+								},
+								{
+									.srcSubpass = 0,
+									.dstSubpass = VK_SUBPASS_EXTERNAL,
+									.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+									.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+									.srcAccessMask = 0,
+									.dstAccessMask = 0,
+									.dependencyFlags = 0
+								}
+							},
 							}, &device->meta_state.alloc, &device->meta_state.blit2d_depth_only_rp[ds_layout]);
 		}
 	}
@@ -1158,7 +1198,27 @@ blit2d_init_stencil_only_pipeline(struct radv_device *device,
 								       .preserveAttachmentCount = 0,
 								       .pPreserveAttachments = NULL,
 							       },
-							       .dependencyCount = 0,
+							       .dependencyCount = 2,
+							       .pDependencies = (VkSubpassDependency[]) {
+								{
+									.srcSubpass = VK_SUBPASS_EXTERNAL,
+									.dstSubpass = 0,
+									.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+									.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+									.srcAccessMask = 0,
+									.dstAccessMask = 0,
+									.dependencyFlags = 0
+								},
+								{
+									.srcSubpass = 0,
+									.dstSubpass = VK_SUBPASS_EXTERNAL,
+									.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+									.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+									.srcAccessMask = 0,
+									.dstAccessMask = 0,
+									.dependencyFlags = 0
+								}
+							},
 						       }, &device->meta_state.alloc, &device->meta_state.blit2d_stencil_only_rp[ds_layout]);
 		}
 	}

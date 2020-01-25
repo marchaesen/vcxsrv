@@ -1811,7 +1811,7 @@ vtn_storage_class_to_mode(struct vtn_builder *b,
       mode = vtn_variable_mode_ssbo;
       nir_mode = nir_var_mem_ssbo;
       break;
-   case SpvStorageClassPhysicalStorageBufferEXT:
+   case SpvStorageClassPhysicalStorageBuffer:
       mode = vtn_variable_mode_phys_ssbo;
       nir_mode = nir_var_mem_global;
       break;
@@ -1951,10 +1951,10 @@ vtn_pointer_to_ssa(struct vtn_builder *b, struct vtn_pointer *ptr)
          /* In this case, we're looking for a block index and not an actual
           * deref.
           *
-          * For PhysicalStorageBufferEXT pointers, we don't have a block index
+          * For PhysicalStorageBuffer pointers, we don't have a block index
           * at all because we get the pointer directly from the client.  This
           * assumes that there will never be a SSBO binding variable using the
-          * PhysicalStorageBufferEXT storage class.  This assumption appears
+          * PhysicalStorageBuffer storage class.  This assumption appears
           * to be correct according to the Vulkan spec because the table,
           * "Shader Resource and Storage Class Correspondence," the only the
           * Uniform storage class with BufferBlock or the StorageBuffer
@@ -2038,10 +2038,10 @@ vtn_pointer_from_ssa(struct vtn_builder *b, nir_ssa_def *ssa,
          /* This is a pointer to something internal or a pointer inside a
           * block.  It's just a regular cast.
           *
-          * For PhysicalStorageBufferEXT pointers, we don't have a block index
+          * For PhysicalStorageBuffer pointers, we don't have a block index
           * at all because we get the pointer directly from the client.  This
           * assumes that there will never be a SSBO binding variable using the
-          * PhysicalStorageBufferEXT storage class.  This assumption appears
+          * PhysicalStorageBuffer storage class.  This assumption appears
           * to be correct according to the Vulkan spec because the table,
           * "Shader Resource and Storage Class Correspondence," the only the
           * Uniform storage class with BufferBlock or the StorageBuffer
@@ -2175,7 +2175,7 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
 
    case vtn_variable_mode_phys_ssbo:
       vtn_fail("Cannot create a variable with the "
-               "PhysicalStorageBufferEXT storage class");
+               "PhysicalStorageBuffer storage class");
       break;
 
    default:

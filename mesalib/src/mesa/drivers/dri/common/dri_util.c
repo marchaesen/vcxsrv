@@ -875,101 +875,125 @@ driUpdateFramebufferSize(struct gl_context *ctx, const __DRIdrawable *dPriv)
 static const struct {
    uint32_t    image_format;
    mesa_format mesa_format;
+   GLenum internal_format;
 } format_mapping[] = {
    {
-      .image_format = __DRI_IMAGE_FORMAT_RGB565,
-      .mesa_format  =        MESA_FORMAT_B5G6R5_UNORM,
+      .image_format    = __DRI_IMAGE_FORMAT_RGB565,
+      .mesa_format     =        MESA_FORMAT_B5G6R5_UNORM,
+      .internal_format =        GL_RGB565,
    },
    {
-      .image_format = __DRI_IMAGE_FORMAT_ARGB1555,
-      .mesa_format  =        MESA_FORMAT_B5G5R5A1_UNORM,
+      .image_format    = __DRI_IMAGE_FORMAT_ARGB1555,
+      .mesa_format     =        MESA_FORMAT_B5G5R5A1_UNORM,
+      .internal_format =        GL_RGB5_A1,
    },
    {
-      .image_format = __DRI_IMAGE_FORMAT_XRGB8888,
-      .mesa_format  =        MESA_FORMAT_B8G8R8X8_UNORM,
+      .image_format    = __DRI_IMAGE_FORMAT_XRGB8888,
+      .mesa_format     =        MESA_FORMAT_B8G8R8X8_UNORM,
+      .internal_format =        GL_RGBA8,
    },
    {
-      .image_format = __DRI_IMAGE_FORMAT_ABGR16161616F,
-      .mesa_format  =        MESA_FORMAT_RGBA_FLOAT16,
+      .image_format    = __DRI_IMAGE_FORMAT_ABGR16161616F,
+      .mesa_format     =        MESA_FORMAT_RGBA_FLOAT16,
+      .internal_format =        GL_RGBA16F,
    },
    {
-      .image_format = __DRI_IMAGE_FORMAT_XBGR16161616F,
-      .mesa_format  =        MESA_FORMAT_RGBX_FLOAT16,
+      .image_format    = __DRI_IMAGE_FORMAT_XBGR16161616F,
+      .mesa_format     =        MESA_FORMAT_RGBX_FLOAT16,
+      .internal_format =        GL_RGBA16F,
    },
    {
-      .image_format = __DRI_IMAGE_FORMAT_ARGB2101010,
-      .mesa_format  =        MESA_FORMAT_B10G10R10A2_UNORM,
+      .image_format    = __DRI_IMAGE_FORMAT_ARGB2101010,
+      .mesa_format     =        MESA_FORMAT_B10G10R10A2_UNORM,
+      .internal_format =        GL_RGB10_A2,
    },
    {
-      .image_format = __DRI_IMAGE_FORMAT_XRGB2101010,
-      .mesa_format  =        MESA_FORMAT_B10G10R10X2_UNORM,
+      .image_format    = __DRI_IMAGE_FORMAT_XRGB2101010,
+      .mesa_format     =        MESA_FORMAT_B10G10R10X2_UNORM,
+      .internal_format =        GL_RGB10_A2,
    },
    {
-      .image_format = __DRI_IMAGE_FORMAT_ABGR2101010,
-      .mesa_format  =        MESA_FORMAT_R10G10B10A2_UNORM,
+      .image_format    = __DRI_IMAGE_FORMAT_ABGR2101010,
+      .mesa_format     =        MESA_FORMAT_R10G10B10A2_UNORM,
+      .internal_format =        GL_RGB10_A2,
    },
    {
-      .image_format = __DRI_IMAGE_FORMAT_XBGR2101010,
-      .mesa_format  =        MESA_FORMAT_R10G10B10X2_UNORM,
+      .image_format    = __DRI_IMAGE_FORMAT_XBGR2101010,
+      .mesa_format     =        MESA_FORMAT_R10G10B10X2_UNORM,
+      .internal_format =        GL_RGB10_A2,
    },
    {
-      .image_format = __DRI_IMAGE_FORMAT_ARGB8888,
-      .mesa_format  =        MESA_FORMAT_B8G8R8A8_UNORM,
+      .image_format    = __DRI_IMAGE_FORMAT_ARGB8888,
+      .mesa_format     =        MESA_FORMAT_B8G8R8A8_UNORM,
+      .internal_format =        GL_RGBA8,
    },
    {
-      .image_format = __DRI_IMAGE_FORMAT_ABGR8888,
-      .mesa_format  =        MESA_FORMAT_R8G8B8A8_UNORM,
+      .image_format    = __DRI_IMAGE_FORMAT_ABGR8888,
+      .mesa_format     =        MESA_FORMAT_R8G8B8A8_UNORM,
+      .internal_format =        GL_RGBA8,
    },
    {
-      .image_format = __DRI_IMAGE_FORMAT_XBGR8888,
-      .mesa_format  =        MESA_FORMAT_R8G8B8X8_UNORM,
+      .image_format    = __DRI_IMAGE_FORMAT_XBGR8888,
+      .mesa_format     =        MESA_FORMAT_R8G8B8X8_UNORM,
+      .internal_format =        GL_RGBA8,
    },
    {
-      .image_format = __DRI_IMAGE_FORMAT_R8,
-      .mesa_format  =        MESA_FORMAT_R_UNORM8,
+      .image_format    = __DRI_IMAGE_FORMAT_R8,
+      .mesa_format     =        MESA_FORMAT_R_UNORM8,
+      .internal_format =        GL_R8,
    },
    {
-      .image_format = __DRI_IMAGE_FORMAT_R8,
-      .mesa_format  =        MESA_FORMAT_L_UNORM8,
+      .image_format    = __DRI_IMAGE_FORMAT_R8,
+      .mesa_format     =        MESA_FORMAT_L_UNORM8,
+      .internal_format =        GL_R8,
    },
 #if UTIL_ARCH_LITTLE_ENDIAN
    {
-      .image_format = __DRI_IMAGE_FORMAT_GR88,
-      .mesa_format  =        MESA_FORMAT_RG_UNORM8,
+      .image_format    = __DRI_IMAGE_FORMAT_GR88,
+      .mesa_format     =        MESA_FORMAT_RG_UNORM8,
+      .internal_format =        GL_RG8,
    },
    {
-      .image_format = __DRI_IMAGE_FORMAT_GR88,
-      .mesa_format  =        MESA_FORMAT_LA_UNORM8,
+      .image_format    = __DRI_IMAGE_FORMAT_GR88,
+      .mesa_format     =        MESA_FORMAT_LA_UNORM8,
+      .internal_format =        GL_RG8,
    },
 #endif
    {
-      .image_format = __DRI_IMAGE_FORMAT_SABGR8,
-      .mesa_format  =        MESA_FORMAT_R8G8B8A8_SRGB,
+      .image_format    = __DRI_IMAGE_FORMAT_SABGR8,
+      .mesa_format     =        MESA_FORMAT_R8G8B8A8_SRGB,
+      .internal_format =        GL_SRGB8_ALPHA8,
    },
    {
-      .image_format = __DRI_IMAGE_FORMAT_SARGB8,
-      .mesa_format  =        MESA_FORMAT_B8G8R8A8_SRGB,
+      .image_format    = __DRI_IMAGE_FORMAT_SARGB8,
+      .mesa_format     =        MESA_FORMAT_B8G8R8A8_SRGB,
+      .internal_format =        GL_SRGB8_ALPHA8,
    },
    {
       .image_format = __DRI_IMAGE_FORMAT_SXRGB8,
-      .mesa_format  =        MESA_FORMAT_B8G8R8X8_SRGB,
+      .mesa_format  =           MESA_FORMAT_B8G8R8X8_SRGB,
+      .internal_format =        GL_SRGB8_ALPHA8,
    },
    {
-      .image_format = __DRI_IMAGE_FORMAT_R16,
-      .mesa_format  =        MESA_FORMAT_R_UNORM16,
+      .image_format    = __DRI_IMAGE_FORMAT_R16,
+      .mesa_format     =        MESA_FORMAT_R_UNORM16,
+      .internal_format =        GL_R16,
    },
    {
-      .image_format = __DRI_IMAGE_FORMAT_R16,
-      .mesa_format  =        MESA_FORMAT_L_UNORM16,
+      .image_format    = __DRI_IMAGE_FORMAT_R16,
+      .mesa_format     =        MESA_FORMAT_L_UNORM16,
+      .internal_format =        GL_R16,
    },
 #if UTIL_ARCH_LITTLE_ENDIAN
    {
-      .image_format = __DRI_IMAGE_FORMAT_GR1616,
-      .mesa_format  =        MESA_FORMAT_RG_UNORM16,
+      .image_format    = __DRI_IMAGE_FORMAT_GR1616,
+      .mesa_format     =        MESA_FORMAT_RG_UNORM16,
+      .internal_format =        GL_RG16,
    },
    {
-      .image_format = __DRI_IMAGE_FORMAT_GR1616,
-      .mesa_format  =        MESA_FORMAT_LA_UNORM16,
+      .image_format    = __DRI_IMAGE_FORMAT_GR1616,
+      .mesa_format     =        MESA_FORMAT_LA_UNORM16,
+      .internal_format =        GL_RG16,
    },
 #endif
 };
@@ -982,6 +1006,16 @@ driGLFormatToImageFormat(mesa_format format)
          return format_mapping[i].image_format;
 
    return __DRI_IMAGE_FORMAT_NONE;
+}
+
+uint32_t
+driGLFormatToSizedInternalGLFormat(mesa_format format)
+{
+   for (size_t i = 0; i < ARRAY_SIZE(format_mapping); i++)
+      if (format_mapping[i].mesa_format == format)
+         return format_mapping[i].internal_format;
+
+   return GL_NONE;
 }
 
 mesa_format

@@ -55,6 +55,7 @@ struct radv_vs_out_key {
 	uint32_t as_es:1;
 	uint32_t as_ls:1;
 	uint32_t as_ngg:1;
+	uint32_t as_ngg_passthrough:1;
 	uint32_t export_prim_id:1;
 	uint32_t export_layer_id:1;
 	uint32_t export_clip_dists:1;
@@ -241,6 +242,7 @@ struct radv_shader_info {
 	unsigned private_mem_vgprs;
 	bool need_indirect_descriptor_sets;
 	bool is_ngg;
+	bool is_ngg_passthrough;
 	struct {
 		uint64_t ls_outputs_written;
 		uint8_t input_usage_mask[VERT_ATTRIB_MAX];
@@ -440,7 +442,8 @@ struct radv_shader_variant *
 radv_create_gs_copy_shader(struct radv_device *device, struct nir_shader *nir,
 			   struct radv_shader_info *info,
 			   struct radv_shader_binary **binary_out,
-			   bool multiview,  bool keep_shader_info);
+			   bool multiview,  bool keep_shader_info,
+			   bool use_aco);
 
 void
 radv_shader_variant_destroy(struct radv_device *device,
@@ -476,8 +479,29 @@ bool
 radv_can_dump_shader_stats(struct radv_device *device,
 			   struct radv_shader_module *module);
 
-unsigned
-shader_io_get_unique_index(gl_varying_slot slot);
+static inline unsigned
+shader_io_get_unique_index(gl_varying_slot slot)
+{
+	/* handle patch indices separate */
+	if (slot == VARYING_SLOT_TESS_LEVEL_OUTER)
+		return 0;
+	if (slot == VARYING_SLOT_TESS_LEVEL_INNER)
+		return 1;
+	if (slot >= VARYING_SLOT_PATCH0 && slot <= VARYING_SLOT_TESS_MAX)
+		return 2 + (slot - VARYING_SLOT_PATCH0);
+	if (slot == VARYING_SLOT_POS)
+		return 0;
+	if (slot == VARYING_SLOT_PSIZ)
+		return 1;
+	if (slot == VARYING_SLOT_CLIP_DIST0)
+		return 2;
+	if (slot == VARYING_SLOT_CLIP_DIST1)
+		return 3;
+	/* 3 is reserved for clip dist as well */
+	if (slot >= VARYING_SLOT_VAR0 && slot <= VARYING_SLOT_VAR31)
+		return 4 + (slot - VARYING_SLOT_VAR0);
+	unreachable("illegal slot in get unique index\n");
+}
 
 void
 radv_lower_fs_io(nir_shader *nir);

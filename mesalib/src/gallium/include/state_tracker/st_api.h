@@ -182,6 +182,8 @@ struct st_egl_image
 
    unsigned level;
    unsigned layer;
+   /* GL internal format. */
+   unsigned internalformat;
 };
 
 /**

@@ -133,7 +133,8 @@ extract_xml_result() {
                         /deqp/executor/testlog-to-xml $dst "$RESULTS/$testcase.xml"
                         # copy the stylesheets here so they only end up in artifacts
                         # if we have one or more result xml in artifacts
-                        cp /deqp/testlog.{css,xsl} "$RESULTS/"
+                        cp /deqp/testlog.css "$RESULTS/"
+                        cp /deqp/testlog.xsl "$RESULTS/"
                         return 0
                     fi
                     echo $line >> $dst

@@ -87,7 +87,7 @@ build_dcc_decompress_compute_shader(struct radv_device *dev)
 	nir_intrinsic_instr *membar = nir_intrinsic_instr_create(b.shader, nir_intrinsic_memory_barrier);
 	nir_builder_instr_insert(&b, &membar->instr);
 
-	nir_intrinsic_instr *bar = nir_intrinsic_instr_create(b.shader, nir_intrinsic_barrier);
+	nir_intrinsic_instr *bar = nir_intrinsic_instr_create(b.shader, nir_intrinsic_control_barrier);
 	nir_builder_instr_insert(&b, &bar->instr);
 
 	nir_ssa_def *outval = &tex->dest.ssa;
@@ -223,7 +223,27 @@ create_pass(struct radv_device *device)
 						       .preserveAttachmentCount = 0,
 						       .pPreserveAttachments = NULL,
 					       },
-								.dependencyCount = 0,
+							.dependencyCount = 2,
+							.pDependencies = (VkSubpassDependency[]) {
+								{
+									.srcSubpass = VK_SUBPASS_EXTERNAL,
+									.dstSubpass = 0,
+									.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+									.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+									.srcAccessMask = 0,
+									.dstAccessMask = 0,
+									.dependencyFlags = 0
+								},
+								{
+									.srcSubpass = 0,
+									.dstSubpass = VK_SUBPASS_EXTERNAL,
+									.srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+									.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+									.srcAccessMask = 0,
+									.dstAccessMask = 0,
+									.dependencyFlags = 0
+								}
+							},
 				       },
 				       alloc,
 				       &device->meta_state.fast_clear_flush.pass);

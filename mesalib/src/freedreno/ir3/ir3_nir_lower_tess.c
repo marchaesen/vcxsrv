@@ -348,7 +348,8 @@ lower_tess_ctrl_block(nir_block *block, nir_builder *b, struct state *state)
 			nir_instr_remove(&intr->instr);
 			break;
 
-		case nir_intrinsic_barrier:
+		case nir_intrinsic_control_barrier:
+		case nir_intrinsic_memory_barrier_tcs_patch:
 			/* Hull shaders dispatch 32 wide so an entire patch will always
 			 * fit in a single warp and execute in lock-step.  Consequently,
 			 * we don't need to do anything for TCS barriers so just remove
@@ -530,8 +531,9 @@ emit_tess_epilouge(nir_builder *b, struct state *state)
 		nir_intrinsic_set_write_mask(store, (1 << levels[1]->num_components) - 1);
 	}
 
-	/* Finally, Insert endpatch instruction, maybe signalling the tess engine
-	 * that another primitive is ready?
+	/* Finally, Insert endpatch instruction:
+	 *
+	 * TODO we should re-work this to use normal flow control.
 	 */
 
 	nir_intrinsic_instr *end_patch =

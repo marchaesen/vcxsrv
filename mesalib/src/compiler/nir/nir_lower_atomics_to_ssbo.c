@@ -32,47 +32,25 @@
 #endif
 
 /*
- * Remap atomic counters to SSBOs.  Atomic counters get remapped to
- * SSBO binding points [0..ssbo_offset) and the original SSBOs are
- * remapped to [ssbo_offset..n) (mostly to align with what mesa/st
- * does.
+ * Remap atomic counters to SSBOs, starting from the shader's next SSBO slot
+ * (info.num_ssbos).
  */
 
 static bool
 lower_instr(nir_intrinsic_instr *instr, unsigned ssbo_offset, nir_builder *b)
 {
    nir_intrinsic_op op;
-   int idx_src;
 
    b->cursor = nir_before_instr(&instr->instr);
 
    switch (instr->intrinsic) {
-   case nir_intrinsic_ssbo_atomic_add:
-   case nir_intrinsic_ssbo_atomic_imin:
-   case nir_intrinsic_ssbo_atomic_umin:
-   case nir_intrinsic_ssbo_atomic_imax:
-   case nir_intrinsic_ssbo_atomic_umax:
-   case nir_intrinsic_ssbo_atomic_and:
-   case nir_intrinsic_ssbo_atomic_or:
-   case nir_intrinsic_ssbo_atomic_xor:
-   case nir_intrinsic_ssbo_atomic_exchange:
-   case nir_intrinsic_ssbo_atomic_comp_swap:
-   case nir_intrinsic_ssbo_atomic_fadd:
-   case nir_intrinsic_ssbo_atomic_fmin:
-   case nir_intrinsic_ssbo_atomic_fmax:
-   case nir_intrinsic_ssbo_atomic_fcomp_swap:
-   case nir_intrinsic_store_ssbo:
-   case nir_intrinsic_load_ssbo:
-   case nir_intrinsic_get_buffer_size:
-      /* easy case, keep same opcode and just remap SSBO buffer index: */
-      op = instr->intrinsic;
-      idx_src = (op == nir_intrinsic_store_ssbo) ? 1 : 0;
-      nir_ssa_def *old_idx = nir_ssa_for_src(b, instr->src[idx_src], 1);
-      nir_ssa_def *new_idx = nir_iadd(b, old_idx, nir_imm_int(b, ssbo_offset));
-      nir_instr_rewrite_src(&instr->instr,
-                            &instr->src[idx_src],
-                            nir_src_for_ssa(new_idx));
+   case nir_intrinsic_memory_barrier_atomic_counter:
+      /* Atomic counters are now SSBOs so memoryBarrierAtomicCounter() is now
+       * memoryBarrierBuffer().
+       */
+      instr->intrinsic = nir_intrinsic_memory_barrier_buffer;
       return true;
+
    case nir_intrinsic_atomic_counter_inc:
    case nir_intrinsic_atomic_counter_add:
    case nir_intrinsic_atomic_counter_pre_dec:
@@ -108,7 +86,7 @@ lower_instr(nir_intrinsic_instr *instr, unsigned ssbo_offset, nir_builder *b)
       return false;
    }
 
-   nir_ssa_def *buffer = nir_imm_int(b, nir_intrinsic_base(instr));
+   nir_ssa_def *buffer = nir_imm_int(b, ssbo_offset + nir_intrinsic_base(instr));
    nir_ssa_def *temp = NULL;
    nir_intrinsic_instr *new_instr =
          nir_intrinsic_instr_create(ralloc_parent(instr), op);
@@ -184,8 +162,9 @@ is_atomic_uint(const struct glsl_type *type)
 }
 
 bool
-nir_lower_atomics_to_ssbo(nir_shader *shader, unsigned ssbo_offset)
+nir_lower_atomics_to_ssbo(nir_shader *shader)
 {
+   unsigned ssbo_offset = shader->info.num_ssbos;
    bool progress = false;
 
    nir_foreach_function(function, shader) {
@@ -224,7 +203,21 @@ nir_lower_atomics_to_ssbo(nir_shader *shader, unsigned ssbo_offset)
             snprintf(name, sizeof(name), "counter%d", var->data.binding);
 
             ssbo = nir_variable_create(shader, nir_var_mem_ssbo, type, name);
-            ssbo->data.binding = var->data.binding;
+            ssbo->data.binding = ssbo_offset + var->data.binding;
+
+            /* We can't use num_abos, because it only represents the number of
+             * active atomic counters, and currently unlike SSBO's they aren't
+             * compacted so num_abos actually isn't a bound on the index passed
+             * to nir_intrinsic_atomic_counter_*. e.g. if we have a single atomic
+             * counter declared like:
+             *
+             * layout(binding=1) atomic_uint counter0;
+             *
+             * then when we lower accesses to it the atomic_counter_* intrinsics
+             * will have 1 as the index but num_abos will still be 1.
+             */
+            shader->info.num_ssbos = MAX2(shader->info.num_ssbos,
+                                          ssbo->data.binding + 1);
 
             struct glsl_struct_field field = {
                   .type = type,
@@ -240,25 +233,6 @@ nir_lower_atomics_to_ssbo(nir_shader *shader, unsigned ssbo_offset)
          }
       }
 
-      /* Make sure that shader->info.num_ssbos still reflects the maximum SSBO
-       * index that can be used in the shader.
-       */
-      if (shader->info.num_ssbos > 0) {
-         shader->info.num_ssbos += ssbo_offset;
-      } else {
-         /* We can't use num_abos, because it only represents the number of
-          * active atomic counters, and currently unlike SSBO's they aren't
-          * compacted so num_abos actually isn't a bound on the index passed
-          * to nir_intrinsic_atomic_counter_*. e.g. if we have a single atomic
-          * counter declared like:
-          *
-          * layout(binding=1) atomic_uint counter0;
-          *
-          * then when we lower accesses to it the atomic_counter_* intrinsics
-          * will have 1 as the index but num_abos will still be 1.
-          * */
-         shader->info.num_ssbos = util_last_bit(replaced);
-      }
       shader->info.num_abos = 0;
    }
 

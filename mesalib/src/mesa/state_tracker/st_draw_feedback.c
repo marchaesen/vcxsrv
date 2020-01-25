@@ -259,8 +259,6 @@ st_feedback_draw_vbo(struct gl_context *ctx,
    /* shader buffers */
    /* TODO: atomic counter buffers */
    struct pipe_transfer *ssbo_transfer[PIPE_MAX_SHADER_BUFFERS] = {0};
-   unsigned ssbo_first_slot = st->has_hw_atomics ? 0 :
-      st->ctx->Const.Program[MESA_SHADER_VERTEX].MaxAtomicBuffers;
 
    for (unsigned i = 0; i < prog->info.num_ssbos; i++) {
       struct gl_buffer_binding *binding =
@@ -285,7 +283,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
                                         PIPE_TRANSFER_READ, &ssbo_transfer[i]);
 
       draw_set_mapped_shader_buffer(draw, PIPE_SHADER_VERTEX,
-                                    ssbo_first_slot + i, ptr, size);
+                                    i, ptr, size);
    }
 
    /* samplers */

@@ -63,7 +63,7 @@
     } while(0)
 
 /* total number of offsets below */
-#define _gloffset_COUNT 1605
+#define _gloffset_COUNT 1607
 
 #define _gloffset_NewList 0
 #define _gloffset_EndList 1
@@ -473,7 +473,7 @@
 #define _gloffset_MultiTexCoord4iv 405
 #define _gloffset_MultiTexCoord4s 406
 #define _gloffset_MultiTexCoord4sv 407
-#define driDispatchRemapTable_size 1197
+#define driDispatchRemapTable_size 1199
 SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 
 #define CompressedTexImage1D_remap_index 0
@@ -1673,6 +1673,8 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define IsNamedStringARB_remap_index 1194
 #define GetNamedStringARB_remap_index 1195
 #define GetNamedStringivARB_remap_index 1196
+#define EGLImageTargetTexStorageEXT_remap_index 1197
+#define EGLImageTargetTextureStorageEXT_remap_index 1198
 
 #define _gloffset_CompressedTexImage1D driDispatchRemapTable[CompressedTexImage1D_remap_index]
 #define _gloffset_CompressedTexImage2D driDispatchRemapTable[CompressedTexImage2D_remap_index]
@@ -2871,6 +2873,8 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define _gloffset_IsNamedStringARB driDispatchRemapTable[IsNamedStringARB_remap_index]
 #define _gloffset_GetNamedStringARB driDispatchRemapTable[GetNamedStringARB_remap_index]
 #define _gloffset_GetNamedStringivARB driDispatchRemapTable[GetNamedStringivARB_remap_index]
+#define _gloffset_EGLImageTargetTexStorageEXT driDispatchRemapTable[EGLImageTargetTexStorageEXT_remap_index]
+#define _gloffset_EGLImageTargetTextureStorageEXT driDispatchRemapTable[EGLImageTargetTextureStorageEXT_remap_index]
 
 typedef void (GLAPIENTRYP _glptr_NewList)(GLuint, GLenum);
 #define CALL_NewList(disp, parameters) \
@@ -20525,6 +20529,28 @@ static INLINE _glptr_GetNamedStringivARB GET_GetNamedStringivARB(struct _glapi_t
 
 static INLINE void SET_GetNamedStringivARB(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLint, const GLchar *, GLenum, GLint *)) {
    SET_by_offset(disp, _gloffset_GetNamedStringivARB, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_EGLImageTargetTexStorageEXT)(GLenum, GLvoid *, const GLint *);
+#define CALL_EGLImageTargetTexStorageEXT(disp, parameters) \
+    (* GET_EGLImageTargetTexStorageEXT(disp)) parameters
+static INLINE _glptr_EGLImageTargetTexStorageEXT GET_EGLImageTargetTexStorageEXT(struct _glapi_table *disp) {
+   return (_glptr_EGLImageTargetTexStorageEXT) (GET_by_offset(disp, _gloffset_EGLImageTargetTexStorageEXT));
+}
+
+static INLINE void SET_EGLImageTargetTexStorageEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLenum, GLvoid *, const GLint *)) {
+   SET_by_offset(disp, _gloffset_EGLImageTargetTexStorageEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_EGLImageTargetTextureStorageEXT)(GLuint, GLvoid *, const GLint *);
+#define CALL_EGLImageTargetTextureStorageEXT(disp, parameters) \
+    (* GET_EGLImageTargetTextureStorageEXT(disp)) parameters
+static INLINE _glptr_EGLImageTargetTextureStorageEXT GET_EGLImageTargetTextureStorageEXT(struct _glapi_table *disp) {
+   return (_glptr_EGLImageTargetTextureStorageEXT) (GET_by_offset(disp, _gloffset_EGLImageTargetTextureStorageEXT));
+}
+
+static INLINE void SET_EGLImageTargetTextureStorageEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLvoid *, const GLint *)) {
+   SET_by_offset(disp, _gloffset_EGLImageTargetTextureStorageEXT, fn);
 }
 
 

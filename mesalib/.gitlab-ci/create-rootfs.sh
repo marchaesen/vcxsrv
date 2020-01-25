@@ -1,8 +1,23 @@
-#!/bin/sh
+#!/bin/bash
 
 set -ex
 
-apt-get -y install --no-install-recommends initramfs-tools libpng16-16 strace libsensors5 libexpat1 libdrm2
+LLVM=libllvm8
+
+# LLVMPipe on armhf is broken with LLVM 8
+if [ `dpkg --print-architecture` = "armhf" ]; then
+        LLVM=libllvm7
+fi
+
+apt-get -y install --no-install-recommends \
+    initramfs-tools \
+    libpng16-16 \
+    strace \
+    libsensors5 \
+    libexpat1 \
+    libdrm2 \
+    libdrm-nouveau2 \
+    $LLVM
 passwd root -d
 chsh -s /bin/sh
 ln -s /bin/sh /init
@@ -82,15 +97,10 @@ UNNEEDED_PACKAGES="apt libapt-pkg5.0 "\
 "libsemanage1 libsemanage-common "\
 "libsepol1 "\
 "gzip "\
-"gnupg "\
 "gpgv "\
 "hostname "\
 "adduser "\
 "debian-archive-keyring "\
-"libgl1 libgl1-mesa-dri libglapi-mesa libglvnd0 libglx-mesa0 libegl-mesa0 libgles2 "\
-"libllvm7 "\
-"libx11-data libthai-data "\
-"systemd dbus "\
 
 # Removing unneeded packages
 for PACKAGE in ${UNNEEDED_PACKAGES}

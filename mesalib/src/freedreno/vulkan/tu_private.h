@@ -936,6 +936,7 @@ struct tu_cmd_buffer
    struct tu_bo_list bo_list;
    struct tu_cs cs;
    struct tu_cs draw_cs;
+   struct tu_cs draw_epilogue_cs;
    struct tu_cs sub_cs;
 
    uint16_t marker_reg;
@@ -953,6 +954,19 @@ struct tu_cmd_buffer
    bool use_vsc_data;
 
    bool wait_for_idle;
+};
+
+/* Temporary struct for tracking a register state to be written, used by
+ * a6xx-pack.h and tu_cs_emit_regs()
+ */
+struct tu_reg_value {
+   uint32_t reg;
+   uint64_t value;
+   bool is_address;
+   struct tu_bo *bo;
+   bool bo_write;
+   uint32_t bo_offset;
+   uint32_t bo_shift;
 };
 
 unsigned
@@ -1058,6 +1072,7 @@ struct tu_shader
    struct tu_descriptor_map sampler_map;
    struct tu_descriptor_map ubo_map;
    struct tu_descriptor_map ssbo_map;
+   struct tu_descriptor_map image_map;
 
    /* This may be true for vertex shaders.  When true, variants[1] is the
     * binning variant and binning_binary is non-NULL.
@@ -1105,7 +1120,7 @@ struct tu_program_descriptor_linkage
    struct tu_descriptor_map sampler_map;
    struct tu_descriptor_map ubo_map;
    struct tu_descriptor_map ssbo_map;
-   struct ir3_ibo_mapping image_mapping;
+   struct tu_descriptor_map image_map;
 };
 
 struct tu_pipeline
@@ -1337,6 +1352,14 @@ tu_image_base(struct tu_image *image, int level, int layer)
       fdl_surface_offset(&image->layout, level, layer);
 }
 
+#define tu_image_base_ref(image, level, layer)                          \
+   .bo = image->bo,                                                     \
+   .bo_offset = (image->bo_offset + fdl_surface_offset(&image->layout,  \
+                                                       level, layer))
+
+#define tu_image_view_base_ref(iview)                                   \
+   tu_image_base_ref(iview->image, iview->base_mip, iview->base_layer)
+
 static inline VkDeviceSize
 tu_image_ubwc_size(struct tu_image *image, int level)
 {
@@ -1350,12 +1373,26 @@ tu_image_ubwc_pitch(struct tu_image *image, int level)
 }
 
 static inline uint64_t
+tu_image_ubwc_surface_offset(struct tu_image *image, int level, int layer)
+{
+   return image->layout.ubwc_slices[level].offset +
+      layer * tu_image_ubwc_size(image, level);
+}
+
+static inline uint64_t
 tu_image_ubwc_base(struct tu_image *image, int level, int layer)
 {
    return image->bo->iova + image->bo_offset +
-          image->layout.ubwc_slices[level].offset +
-          layer * tu_image_ubwc_size(image, level);
+      tu_image_ubwc_surface_offset(image, level, layer);
 }
+
+#define tu_image_ubwc_base_ref(image, level, layer)                     \
+   .bo = image->bo,                                                     \
+   .bo_offset = (image->bo_offset + tu_image_ubwc_surface_offset(image, \
+                                                                 level, layer))
+
+#define tu_image_view_ubwc_base_ref(iview) \
+   tu_image_ubwc_base_ref(iview->image, iview->base_mip, iview->base_layer)
 
 enum a6xx_tile_mode
 tu6_get_image_tile_mode(struct tu_image *image, int level);
@@ -1412,9 +1449,9 @@ tu_image_view_init(struct tu_image_view *view,
 
 struct tu_buffer_view
 {
-   VkFormat vk_format;
-   uint64_t range; /**< VkBufferViewCreateInfo::range */
-   uint32_t state[4];
+   uint32_t descriptor[A6XX_TEX_CONST_DWORDS];
+
+   struct tu_buffer *buffer;
 };
 void
 tu_buffer_view_init(struct tu_buffer_view *view,
@@ -1513,12 +1550,11 @@ tu_device_finish_meta(struct tu_device *device);
 
 struct tu_query_pool
 {
-   uint32_t stride;
-   uint32_t availability_offset;
-   uint64_t size;
-   char *ptr;
    VkQueryType type;
-   uint32_t pipeline_stats_mask;
+   uint32_t stride;
+   uint64_t size;
+   uint32_t pipeline_statistics;
+   struct tu_bo bo;
 };
 
 struct tu_semaphore

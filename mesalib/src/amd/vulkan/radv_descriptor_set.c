@@ -78,8 +78,8 @@ VkResult radv_CreateDescriptorSetLayout(
 	struct radv_descriptor_set_layout *set_layout;
 
 	assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO);
-	const VkDescriptorSetLayoutBindingFlagsCreateInfoEXT *variable_flags =
-		vk_find_struct_const(pCreateInfo->pNext, DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT);
+	const VkDescriptorSetLayoutBindingFlagsCreateInfo *variable_flags =
+		vk_find_struct_const(pCreateInfo->pNext, DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO);
 
 	uint32_t max_binding = 0;
 	uint32_t immutable_sampler_count = 0;
@@ -310,10 +310,10 @@ void radv_GetDescriptorSetLayoutSupport(VkDevice device,
 		return;
 	}
 
-	const VkDescriptorSetLayoutBindingFlagsCreateInfoEXT *variable_flags =
-		vk_find_struct_const(pCreateInfo->pNext, DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT);
-	VkDescriptorSetVariableDescriptorCountLayoutSupportEXT *variable_count =
-		vk_find_struct((void*)pCreateInfo->pNext, DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_LAYOUT_SUPPORT_EXT);
+	const VkDescriptorSetLayoutBindingFlagsCreateInfo *variable_flags =
+		vk_find_struct_const(pCreateInfo->pNext, DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO);
+	VkDescriptorSetVariableDescriptorCountLayoutSupport *variable_count =
+		vk_find_struct((void*)pCreateInfo->pNext, DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_LAYOUT_SUPPORT);
 	if (variable_count) {
 		variable_count->maxVariableDescriptorCount = 0;
 	}
@@ -770,8 +770,8 @@ VkResult radv_AllocateDescriptorSets(
 	uint32_t i;
 	struct radv_descriptor_set *set = NULL;
 
-	const VkDescriptorSetVariableDescriptorCountAllocateInfoEXT *variable_counts =
-		vk_find_struct_const(pAllocateInfo->pNext, DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT);
+	const VkDescriptorSetVariableDescriptorCountAllocateInfo *variable_counts =
+		vk_find_struct_const(pAllocateInfo->pNext, DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO);
 	const uint32_t zero = 0;
 
 	/* allocate a set of buffers for each shader to contain descriptors */

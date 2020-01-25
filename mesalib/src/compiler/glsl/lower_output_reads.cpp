@@ -72,7 +72,7 @@ static unsigned
 hash_table_var_hash(const void *key)
 {
    const ir_variable * var = static_cast<const ir_variable *>(key);
-   return _mesa_key_hash_string(var->name);
+   return _mesa_hash_string(var->name);
 }
 
 output_read_remover::output_read_remover(unsigned stage)

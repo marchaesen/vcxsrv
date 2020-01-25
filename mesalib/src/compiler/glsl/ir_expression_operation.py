@@ -539,6 +539,7 @@ ir_expression_operation = [
    operation("bit_count", 1, source_types=(uint_type, int_type), dest_type=int_type, c_expression="util_bitcount({src0})"),
    operation("find_msb", 1, source_types=(uint_type, int_type), dest_type=int_type, c_expression={'u': "find_msb_uint({src0})", 'i': "find_msb_int({src0})"}),
    operation("find_lsb", 1, source_types=(uint_type, int_type), dest_type=int_type, c_expression="find_msb_uint({src0} & -{src0})"),
+   operation("clz", 1, source_types=(uint_type,), dest_type=uint_type, c_expression="(unsigned)(31 - find_msb_uint({src0}))"),
 
    operation("saturate", 1, printable_name="sat", source_types=(float_type,), c_expression="CLAMP({src0}, 0.0f, 1.0f)"),
 
@@ -584,8 +585,33 @@ ir_expression_operation = [
 
    operation("add", 2, printable_name="+", source_types=numeric_types, c_expression="{src0} + {src1}", flags=vector_scalar_operation),
    operation("sub", 2, printable_name="-", source_types=numeric_types, c_expression="{src0} - {src1}", flags=vector_scalar_operation),
+   operation("add_sat", 2, printable_name="add_sat", source_types=integer_types, c_expression={
+      'u': "({src0} + {src1}) < {src0} ? UINT32_MAX : ({src0} + {src1})",
+      'i': "iadd_saturate({src0}, {src1})",
+      'u64': "({src0} + {src1}) < {src0} ? UINT64_MAX : ({src0} + {src1})",
+      'i64': "iadd64_saturate({src0}, {src1})"
+   }),
+   operation("sub_sat", 2, printable_name="sub_sat", source_types=integer_types, c_expression={
+      'u': "({src1} > {src0}) ? 0 : {src0} - {src1}",
+      'i': "isub_saturate({src0}, {src1})",
+      'u64': "({src1} > {src0}) ? 0 : {src0} - {src1}",
+      'i64': "isub64_saturate({src0}, {src1})"
+   }),
+   operation("abs_sub", 2, printable_name="abs_sub", source_types=integer_types, c_expression={
+      'u': "({src1} > {src0}) ? {src1} - {src0} : {src0} - {src1}",
+      'i': "({src1} > {src0}) ? (unsigned){src1} - (unsigned){src0} : (unsigned){src0} - (unsigned){src1}",
+      'u64': "({src1} > {src0}) ? {src1} - {src0} : {src0} - {src1}",
+      'i64': "({src1} > {src0}) ? (uint64_t){src1} - (uint64_t){src0} : (uint64_t){src0} - (uint64_t){src1}",
+   }),
+   operation("avg", 2, printable_name="average", source_types=integer_types, c_expression="({src0} >> 1) + ({src1} >> 1) + (({src0} & {src1}) & 1)"),
+   operation("avg_round", 2, printable_name="average_rounded", source_types=integer_types, c_expression="({src0} >> 1) + ({src1} >> 1) + (({src0} | {src1}) & 1)"),
+
    # "Floating-point or low 32-bit integer multiply."
    operation("mul", 2, printable_name="*", source_types=numeric_types, c_expression="{src0} * {src1}"),
+   operation("mul_32x16", 2, printable_name="*", source_types=(uint_type, int_type), c_expression={
+      'u': "{src0} * (uint16_t){src1}",
+      'i': "{src0} * (int16_t){src0}"
+   }),
    operation("imul_high", 2),       # Calculates the high 32-bits of a 64-bit multiply.
    operation("div", 2, printable_name="/", source_types=numeric_types, c_expression={'u': "{src1} == 0 ? 0 : {src0} / {src1}", 'i': "{src1} == 0 ? 0 : {src0} / {src1}", 'u64': "{src1} == 0 ? 0 : {src0} / {src1}", 'i64': "{src1} == 0 ? 0 : {src0} / {src1}", 'default': "{src0} / {src1}"}, flags=vector_scalar_operation),
 

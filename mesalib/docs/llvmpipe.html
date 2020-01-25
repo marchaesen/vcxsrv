@@ -56,7 +56,7 @@ It's the fastest software rasterizer for Mesa.
    For Linux, on a recent Debian based distribution do:
    </p>
 <pre>
-     aptitude install llvm-dev
+aptitude install llvm-dev
 </pre>
    <p>
    If you want development snapshot builds of LLVM for Debian and derived
@@ -68,7 +68,7 @@ It's the fastest software rasterizer for Mesa.
    For a RPM-based distribution do:
    </p>
 <pre>
-     yum install llvm-devel
+yum install llvm-devel
 </pre>
 
    <p>
@@ -120,15 +120,15 @@ It's the fastest software rasterizer for Mesa.
 To build everything on Linux invoke scons as:
 
 <pre>
-  scons build=debug libgl-xlib
+scons build=debug libgl-xlib
 </pre>
 
 Alternatively, you can build it with meson with:
 <pre>
-  mkdir build
-  cd build
-  meson -D glx=gallium-xlib -D gallium-drivers=swrast
-  ninja
+mkdir build
+cd build
+meson -D glx=gallium-xlib -D gallium-drivers=swrast
+ninja
 </pre>
 
 but the rest of these instructions assume that scons is used.
@@ -136,7 +136,7 @@ but the rest of these instructions assume that scons is used.
 For Windows the procedure is similar except the target:
 
 <pre>
-  scons platform=windows build=debug libgl-gdi
+scons platform=windows build=debug libgl-gdi
 </pre>
 
 
@@ -148,11 +148,11 @@ For Windows the procedure is similar except the target:
 <code>libGL.so</code> into</p>
 
 <pre>
-  build/foo/gallium/targets/libgl-xlib/libGL.so
+build/foo/gallium/targets/libgl-xlib/libGL.so
 </pre>
 or
 <pre>
-  lib/gallium/libGL.so
+lib/gallium/libGL.so
 </pre>
 
 <p>To use it set the <code>LD_LIBRARY_PATH</code> environment variable
@@ -206,7 +206,7 @@ any OpenGL drivers):
 To profile llvmpipe you should build as
 </p>
 <pre>
-  scons build=profile &lt;same-as-before&gt;
+scons build=profile &lt;same-as-before&gt;
 </pre>
 
 <p>
@@ -221,8 +221,8 @@ On Linux, it is possible to have symbol resolution of JIT code with <a href="htt
 </p>
 
 <pre>
-	perf record -g /my/application
-	perf report
+perf record -g /my/application
+perf report
 </pre>
 
 <p>
@@ -255,7 +255,7 @@ Some of these tests can output results and benchmarks to a tab-separated file
 for later analysis, e.g.:
 </p>
 <pre>
-  build/linux-x86_64-debug/gallium/drivers/llvmpipe/lp_test_blend -o blend.tsv
+build/linux-x86_64-debug/gallium/drivers/llvmpipe/lp_test_blend -o blend.tsv
 </pre>
 
 

@@ -87,7 +87,7 @@ disassemble(const char *filename)
         }
         fclose(fp);
 
-        disassemble_bifrost(code, filesize, false);
+        disassemble_bifrost(stdout, code, filesize, false);
         free(code);
 }
 

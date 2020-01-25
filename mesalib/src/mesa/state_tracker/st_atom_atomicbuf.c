@@ -66,13 +66,19 @@ st_binding_to_sb(struct gl_buffer_binding *binding,
 
 static void
 st_bind_atomics(struct st_context *st, struct gl_program *prog,
-                enum pipe_shader_type shader_type)
+                gl_shader_stage stage)
 {
    unsigned i;
+   enum pipe_shader_type shader_type = pipe_shader_type_from_mesa(stage);
 
    if (!prog || !st->pipe->set_shader_buffers || st->has_hw_atomics)
       return;
 
+   /* For !has_hw_atomics, the atomic counters have been rewritten to be above
+    * the SSBOs used by the program.
+    */
+   unsigned buffer_base = prog->info.num_ssbos;
+   unsigned used_bindings = 0;
    for (i = 0; i < prog->sh.data->NumAtomicBuffers; i++) {
       struct gl_active_atomic_buffer *atomic =
          &prog->sh.data->AtomicBuffers[i];
@@ -81,8 +87,10 @@ st_bind_atomics(struct st_context *st, struct gl_program *prog,
       st_binding_to_sb(&st->ctx->AtomicBufferBindings[atomic->Binding], &sb);
 
       st->pipe->set_shader_buffers(st->pipe, shader_type,
-                                   atomic->Binding, 1, &sb, 0x1);
+                                   buffer_base + atomic->Binding, 1, &sb, 0x1);
+      used_bindings = MAX2(atomic->Binding + 1, used_bindings);
    }
+   st->last_used_atomic_bindings[shader_type] = used_bindings;
 }
 
 void
@@ -91,7 +99,7 @@ st_bind_vs_atomics(struct st_context *st)
    struct gl_program *prog =
       st->ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX];
 
-   st_bind_atomics(st, prog, PIPE_SHADER_VERTEX);
+   st_bind_atomics(st, prog, MESA_SHADER_VERTEX);
 }
 
 void
@@ -100,7 +108,7 @@ st_bind_fs_atomics(struct st_context *st)
    struct gl_program *prog =
       st->ctx->_Shader->CurrentProgram[MESA_SHADER_FRAGMENT];
 
-   st_bind_atomics(st, prog, PIPE_SHADER_FRAGMENT);
+   st_bind_atomics(st, prog, MESA_SHADER_FRAGMENT);
 }
 
 void
@@ -109,7 +117,7 @@ st_bind_gs_atomics(struct st_context *st)
    struct gl_program *prog =
       st->ctx->_Shader->CurrentProgram[MESA_SHADER_GEOMETRY];
 
-   st_bind_atomics(st, prog, PIPE_SHADER_GEOMETRY);
+   st_bind_atomics(st, prog, MESA_SHADER_GEOMETRY);
 }
 
 void
@@ -118,7 +126,7 @@ st_bind_tcs_atomics(struct st_context *st)
    struct gl_program *prog =
       st->ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_CTRL];
 
-   st_bind_atomics(st, prog, PIPE_SHADER_TESS_CTRL);
+   st_bind_atomics(st, prog, MESA_SHADER_TESS_CTRL);
 }
 
 void
@@ -127,7 +135,7 @@ st_bind_tes_atomics(struct st_context *st)
    struct gl_program *prog =
       st->ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_EVAL];
 
-   st_bind_atomics(st, prog, PIPE_SHADER_TESS_EVAL);
+   st_bind_atomics(st, prog, MESA_SHADER_TESS_EVAL);
 }
 
 void
@@ -140,7 +148,7 @@ st_bind_cs_atomics(struct st_context *st)
    struct gl_program *prog =
       st->ctx->_Shader->CurrentProgram[MESA_SHADER_COMPUTE];
 
-   st_bind_atomics(st, prog, PIPE_SHADER_COMPUTE);
+   st_bind_atomics(st, prog, MESA_SHADER_COMPUTE);
 }
 
 void

@@ -152,29 +152,6 @@ radv_can_dump_shader_stats(struct radv_device *device,
 	       module && !module->nir;
 }
 
-unsigned shader_io_get_unique_index(gl_varying_slot slot)
-{
-	/* handle patch indices separate */
-	if (slot == VARYING_SLOT_TESS_LEVEL_OUTER)
-		return 0;
-	if (slot == VARYING_SLOT_TESS_LEVEL_INNER)
-		return 1;
-	if (slot >= VARYING_SLOT_PATCH0 && slot <= VARYING_SLOT_TESS_MAX)
-		return 2 + (slot - VARYING_SLOT_PATCH0);
-	if (slot == VARYING_SLOT_POS)
-		return 0;
-	if (slot == VARYING_SLOT_PSIZ)
-		return 1;
-	if (slot == VARYING_SLOT_CLIP_DIST0)
-		return 2;
-	if (slot == VARYING_SLOT_CLIP_DIST1)
-		return 3;
-	/* 3 is reserved for clip dist as well */
-	if (slot >= VARYING_SLOT_VAR0 && slot <= VARYING_SLOT_VAR31)
-		return 4 + (slot - VARYING_SLOT_VAR0);
-	unreachable("illegal slot in get unique index\n");
-}
-
 VkResult radv_CreateShaderModule(
 	VkDevice                                    _device,
 	const VkShaderModuleCreateInfo*             pCreateInfo,
@@ -361,6 +338,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 		const struct spirv_to_nir_options spirv_options = {
 			.lower_ubo_ssbo_access_to_offsets = true,
 			.caps = {
+				.amd_fragment_mask = true,
 				.amd_gcn_shader = true,
 				.amd_image_read_write_lod = true,
 				.amd_shader_ballot = device->physical_device->use_shader_ballot,
@@ -472,6 +450,9 @@ radv_shader_compile_to_nir(struct radv_device *device,
 	nir->info.separate_shader = true;
 
 	nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
+
+	if (nir->info.stage == MESA_SHADER_GEOMETRY && use_aco)
+		nir_lower_gs_intrinsics(nir, true);
 
 	static const nir_lower_tex_options tex_options = {
 	  .lower_txp = ~0,
@@ -1233,14 +1214,15 @@ radv_create_gs_copy_shader(struct radv_device *device,
 			   struct radv_shader_info *info,
 			   struct radv_shader_binary **binary_out,
 			   bool keep_shader_info,
-			   bool multiview)
+			   bool multiview, bool use_aco)
 {
 	struct radv_nir_compiler_options options = {0};
 
+	options.explicit_scratch_args = use_aco;
 	options.key.has_multiview_view_index = multiview;
 
 	return shader_variant_compile(device, NULL, &shader, 1, MESA_SHADER_VERTEX,
-				      info, &options, true, keep_shader_info, false, binary_out);
+				      info, &options, true, keep_shader_info, use_aco, binary_out);
 }
 
 void

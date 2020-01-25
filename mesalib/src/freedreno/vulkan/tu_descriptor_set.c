@@ -85,17 +85,19 @@ descriptor_size(enum VkDescriptorType type)
       return 0;
    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-   case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
-   case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
       /* 64bit pointer */
       return 8;
    case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-   case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
    case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
-      return A6XX_TEX_CONST_DWORDS*4;
+   case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+   case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+      return A6XX_TEX_CONST_DWORDS * 4;
+   case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+      /* We may need the IBO or the TEX representation, or both. */
+      return A6XX_TEX_CONST_DWORDS * 4 * 2;
    case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
       /* texture const + tu_sampler struct (includes border color) */
-      return A6XX_TEX_CONST_DWORDS*4 + sizeof(struct tu_sampler);
+      return A6XX_TEX_CONST_DWORDS * 4 + sizeof(struct tu_sampler);
    case VK_DESCRIPTOR_TYPE_SAMPLER:
       return sizeof(struct tu_sampler);
    default:
@@ -172,6 +174,9 @@ tu_CreateDescriptorSetLayout(
       unsigned binding_buffer_count = 1;
 
       switch (binding->descriptorType) {
+      case VK_DESCRIPTOR_TYPE_SAMPLER:
+         binding_buffer_count = 0;
+         break;
       case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
       case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
          assert(!(pCreateInfo->flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR));
@@ -691,9 +696,16 @@ static void write_texel_buffer_descriptor(struct tu_device *device,
                                           struct tu_cmd_buffer *cmd_buffer,
                                           unsigned *dst,
                                           struct tu_bo **buffer_list,
-                                          const VkBufferView _buffer_view)
+                                          const VkBufferView buffer_view)
 {
-   tu_finishme("texel buffer descriptor");
+   TU_FROM_HANDLE(tu_buffer_view, view, buffer_view);
+
+   memcpy(dst, view->descriptor, sizeof(view->descriptor));
+
+   if (cmd_buffer)
+      tu_bo_list_add(&cmd_buffer->bo_list, view->buffer->bo, MSM_SUBMIT_BO_READ);
+   else
+      *buffer_list = view->buffer->bo;
 }
 
 static void write_buffer_descriptor(struct tu_device *device,
@@ -741,15 +753,12 @@ write_image_descriptor(struct tu_device *device,
              const VkDescriptorImageInfo *image_info)
 {
    TU_FROM_HANDLE(tu_image_view, iview, image_info->imageView);
-   uint32_t *descriptor;
 
+   memcpy(dst, iview->descriptor, sizeof(iview->descriptor));
    if (descriptor_type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE) {
-      descriptor = iview->storage_descriptor;
-   } else {
-      descriptor = iview->descriptor;
+      memcpy(&dst[A6XX_TEX_CONST_DWORDS], iview->storage_descriptor,
+             sizeof(iview->storage_descriptor));
    }
-
-   memcpy(dst, descriptor, sizeof(iview->descriptor));
 
    if (cmd_buffer)
       tu_bo_list_add(&cmd_buffer->bo_list, iview->image->bo, MSM_SUBMIT_BO_READ);
@@ -842,7 +851,7 @@ tu_update_descriptor_sets(struct tu_device *device,
             break;
          case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
             write_combined_image_sampler_descriptor(device, cmd_buffer,
-                                                    A6XX_TEX_CONST_DWORDS*4,
+                                                    A6XX_TEX_CONST_DWORDS * 4,
                                                     ptr, buffer_list,
                                                     writeset->descriptorType,
                                                     writeset->pImageInfo + j,

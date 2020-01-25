@@ -429,6 +429,29 @@ void *strbuf_append(strbuf *buf_o, size_t len)
     return toret;
 }
 
+void strbuf_shrink_to(strbuf *buf, size_t new_len)
+{
+    assert(new_len <= buf->len);
+    buf->len = new_len;
+    buf->s[buf->len] = '\0';
+}
+
+void strbuf_shrink_by(strbuf *buf, size_t amount_to_remove)
+{
+    assert(amount_to_remove <= buf->len);
+    buf->len -= amount_to_remove;
+    buf->s[buf->len] = '\0';
+}
+
+bool strbuf_chomp(strbuf *buf, char char_to_remove)
+{
+    if (buf->len > 0 && buf->s[buf->len-1] == char_to_remove) {
+        strbuf_shrink_by(buf, 1);
+        return true;
+    }
+    return false;
+}
+
 static void strbuf_BinarySink_write(
     BinarySink *bs, const void *data, size_t len)
 {
