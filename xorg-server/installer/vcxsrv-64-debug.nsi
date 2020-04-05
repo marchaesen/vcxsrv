@@ -110,6 +110,7 @@ Section "VcXsrv debug exe and dlls"
   File "..\..\libXmu\src\obj64\debug\libXmu.dll"
   File "..\..\openssl\debug64\libcrypto-1_1-x64.dll"
   File "vcruntime140d.dll"
+  File "vcruntime140_1d.dll"
   File "msvcp140d.dll"
 
   WriteRegStr HKLM SOFTWARE\VcXsrv "Install_Dir_64" $INSTDIR
