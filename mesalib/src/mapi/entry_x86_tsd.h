@@ -25,6 +25,12 @@
  *    Chia-I Wu <olv@lunarg.com>
  */
 
+#ifdef __CET__
+#define ENDBR "endbr32\n\t"
+#else
+#define ENDBR
+#endif
+
 #ifdef HAVE_FUNC_ATTRIBUTE_VISIBILITY
 #define HIDDEN __attribute__((visibility("hidden")))
 #else
@@ -44,6 +50,7 @@ __asm__(".text\n"
    func ":"
 
 #define STUB_ASM_CODE(slot)         \
+   ENDBR                            \
    "call 1f\n\t"                    \
    "1:\n\t"                         \
    "popl %ecx\n\t"                  \

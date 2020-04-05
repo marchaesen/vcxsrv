@@ -24,9 +24,9 @@
  */
 
 #include "st_glsl_to_tgsi_private.h"
-#include <tgsi/tgsi_info.h>
-#include <mesa/program/prog_instruction.h>
-#include <mesa/program/prog_print.h>
+#include "tgsi/tgsi_info.h"
+#include "mesa/program/prog_instruction.h"
+#include "mesa/program/prog_print.h"
 
 static int swizzle_for_type(const glsl_type *type, int component = 0)
 {

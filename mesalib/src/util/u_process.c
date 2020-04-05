@@ -26,11 +26,23 @@
  */
 
 #include "u_process.h"
+#include "detect_os.h"
+#include "macros.h"
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
 
 #undef GET_PROGRAM_NAME
+
+#if DETECT_OS_WINDOWS
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+#if DETECT_OS_APPLE
+#include <mach-o/dyld.h>
+#endif
 
 #if defined(__linux__) && defined(HAVE_PROGRAM_INVOCATION_NAME)
 
@@ -151,4 +163,33 @@ const char *
 util_get_process_name(void)
 {
    return GET_PROGRAM_NAME();
+}
+
+size_t
+util_get_process_exec_path(char* process_path, size_t len)
+{
+#if DETECT_OS_WINDOWS
+   return GetModuleFileNameA(NULL, process_path, len);
+#elif DETECT_OS_APPLE
+   uint32_t bufSize = len;
+   int result = _NSGetExecutablePath(process_path, &bufSize);
+
+   return (result == 0) ? strlen(process_path) : 0;
+#elif DETECT_OS_UNIX
+   ssize_t r;
+
+   if ((r = readlink("/proc/self/exe", process_path, len)) > 0)
+      goto success;
+   if ((r = readlink("/proc/curproc/exe", process_path, len)) > 0)
+      goto success;
+   if ((r = readlink("/proc/curproc/file", process_path, len)) > 0)
+      goto success;
+
+    return 0;
+success:
+    process_path[r] = '\0';
+    return r;
+
+#endif
+   return 0;
 }

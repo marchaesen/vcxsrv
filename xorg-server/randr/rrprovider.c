@@ -1,5 +1,6 @@
 /*
  * Copyright © 2012 Red Hat Inc.
+ * Copyright 2019 DisplayLink (UK) Ltd.
  *
  * Permission to use, copy, modify, distribute, and sell this software and its
  * documentation for any purpose is hereby granted without fee, provided that
@@ -501,6 +502,9 @@ RRProviderAutoConfigGpuScreen(ScreenPtr pScreen, ScreenPtr masterScreen)
         (master_provider->capabilities & RR_Capability_SourceOutput)) {
         pScrPriv->rrProviderSetOutputSource(pScreen, provider, master_provider);
         RRInitPrimeSyncProps(pScreen);
+
+        masterPriv->configChanged = TRUE;
+        RRSetChanged(masterScreen);
     }
 
     if ((provider->capabilities & RR_Capability_SourceOffload) &&

@@ -1166,9 +1166,7 @@ get_non_self_referential_store_comps(nir_intrinsic_instr *store)
                comps &= ~(1u << i);
          }
       }
-   } else if (src_alu->op == nir_op_vec2 ||
-              src_alu->op == nir_op_vec3 ||
-              src_alu->op == nir_op_vec4) {
+   } else if (nir_op_is_vec(src_alu->op)) {
       /* If it's a vec, discount any channels that are just loads from the
        * same deref put in the same spot.
        */

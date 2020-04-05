@@ -100,7 +100,9 @@ Xwayland_built_sources +=					\
 	linux-dmabuf-unstable-v1-client-protocol.h		\
 	linux-dmabuf-unstable-v1-protocol.c			\
 	viewporter-client-protocol.h				\
-	viewporter-protocol.c
+	viewporter-protocol.c\
+	xdg-shell-client-protocol.h\
+	xdg-shell-protocol.c
 
 if XWAYLAND_EGLSTREAM
 Xwayland_built_sources +=					\
@@ -152,6 +154,11 @@ linux-dmabuf-unstable-v1-client-protocol.h : $(WAYLAND_PROTOCOLS_DATADIR)/unstab
 viewporter-protocol.c: $(WAYLAND_PROTOCOLS_DATADIR)/stable/viewporter/viewporter.xml
 	$(AM_V_GEN)$(WAYLAND_SCANNER) @SCANNER_ARG@ < $< > $@
 viewporter-client-protocol.h: $(WAYLAND_PROTOCOLS_DATADIR)/stable/viewporter/viewporter.xml
+	$(AM_V_GEN)$(WAYLAND_SCANNER) client-header < $< > $@
+
+xdg-shell-protocol.c: $(WAYLAND_PROTOCOLS_DATADIR)/stable/xdg-shell/xdg-shell.xml
+	$(AM_V_GEN)$(WAYLAND_SCANNER) @SCANNER_ARG@ < $< > $@
+xdg-shell-client-protocol.h: $(WAYLAND_PROTOCOLS_DATADIR)/stable/xdg-shell/xdg-shell.xml
 	$(AM_V_GEN)$(WAYLAND_SCANNER) client-header < $< > $@
 
 wayland-eglstream-client-protocol.h : $(WAYLAND_EGLSTREAM_DATADIR)/wayland-eglstream.xml

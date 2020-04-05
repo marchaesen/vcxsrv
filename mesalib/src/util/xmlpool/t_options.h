@@ -145,6 +145,11 @@ DRI_CONF_OPT_BEGIN_B(allow_glsl_layout_qualifier_on_function_parameters, def) \
         DRI_CONF_DESC(en,gettext("Allow layout qualifiers on function parameters.")) \
 DRI_CONF_OPT_END
 
+#define DRI_CONF_ALLOW_DRAW_OUT_OF_ORDER(def) \
+DRI_CONF_OPT_BEGIN_B(allow_draw_out_of_order, def) \
+        DRI_CONF_DESC(en,gettext("Allow out-of-order draw optimizations. Set when Z fighting doesn't have to be accurate.")) \
+DRI_CONF_OPT_END
+
 #define DRI_CONF_FORCE_GL_VENDOR(def) \
 DRI_CONF_OPT_BEGIN(force_gl_vendor, string, def) \
         DRI_CONF_DESC(en,gettext("Allow GPU vendor to be overridden.")) \
@@ -372,11 +377,6 @@ DRI_CONF_OPT_END
 /**
  * \brief radeonsi specific configuration options
  */
-
-#define DRI_CONF_RADEONSI_ENABLE_SISCHED(def) \
-DRI_CONF_OPT_BEGIN_B(radeonsi_enable_sisched, def) \
-        DRI_CONF_DESC(en,gettext("Use the LLVM sisched option for shader compiles")) \
-DRI_CONF_OPT_END
 
 #define DRI_CONF_RADEONSI_ASSUME_NO_Z_FIGHTS(def) \
 DRI_CONF_OPT_BEGIN_B(radeonsi_assume_no_z_fights, def) \

@@ -25,7 +25,7 @@
 #include "ir3_compiler.h"
 #include "compiler/nir/nir.h"
 #include "compiler/nir/nir_builder.h"
-#include "mesa/main/macros.h"
+#include "util/u_math.h"
 
 static inline struct ir3_ubo_range
 get_ubo_load_range(nir_intrinsic_instr *instr)
@@ -53,7 +53,7 @@ gather_ubo_ranges(nir_shader *nir, nir_intrinsic_instr *instr,
 			/* If this is an indirect on UBO 0, we'll still lower it back to
 			 * load_uniform.  Set the range to cover all of UBO 0.
 			 */
-			state->range[0].end = align(nir->num_uniforms * 16, 16 * 4);
+			state->range[0].end = ALIGN(nir->num_uniforms * 16, 16 * 4);
 		}
 
 		return;
@@ -214,10 +214,10 @@ ir3_nir_analyze_ubo_ranges(nir_shader *nir, struct ir3_shader *shader)
 
 	memset(state, 0, sizeof(*state));
 
-	nir_foreach_function(function, nir) {
+	nir_foreach_function (function, nir) {
 		if (function->impl) {
-			nir_foreach_block(block, function->impl) {
-				nir_foreach_instr(instr, block) {
+			nir_foreach_block (block, function->impl) {
+				nir_foreach_instr (instr, block) {
 					if (instr->type == nir_instr_type_intrinsic &&
 						nir_instr_as_intrinsic(instr)->intrinsic == nir_intrinsic_load_ubo)
 						gather_ubo_ranges(nir, nir_instr_as_intrinsic(instr), state);
@@ -252,12 +252,12 @@ ir3_nir_analyze_ubo_ranges(nir_shader *nir, struct ir3_shader *shader)
 	}
 	state->size = offset;
 
-	nir_foreach_function(function, nir) {
+	nir_foreach_function (function, nir) {
 		if (function->impl) {
 			nir_builder builder;
 			nir_builder_init(&builder, function->impl);
-			nir_foreach_block(block, function->impl) {
-				nir_foreach_instr_safe(instr, block) {
+			nir_foreach_block (block, function->impl) {
+				nir_foreach_instr_safe (instr, block) {
 					if (instr->type == nir_instr_type_intrinsic &&
 						nir_instr_as_intrinsic(instr)->intrinsic == nir_intrinsic_load_ubo)
 						lower_ubo_load_to_uniform(nir_instr_as_intrinsic(instr), &builder, state);

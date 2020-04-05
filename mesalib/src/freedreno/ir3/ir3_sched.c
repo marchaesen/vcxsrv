@@ -71,7 +71,13 @@ struct ir3_sched_ctx {
 	struct ir3_instruction *addr;      /* current a0.x user, if any */
 	struct ir3_instruction *pred;      /* current p0.x user, if any */
 	int live_values;                   /* estimate of current live values */
+	int half_live_values;              /* estimate of current half precision live values */
 	bool error;
+
+	unsigned live_threshold_hi;
+	unsigned live_threshold_lo;
+	unsigned depth_threshold_hi;
+	unsigned depth_threshold_lo;
 };
 
 static bool is_scheduled(struct ir3_instruction *instr)
@@ -79,17 +85,12 @@ static bool is_scheduled(struct ir3_instruction *instr)
 	return !!(instr->flags & IR3_INSTR_MARK);
 }
 
-static bool is_sfu_or_mem(struct ir3_instruction *instr)
-{
-	return is_sfu(instr) || is_mem(instr);
-}
-
 static void
 unuse_each_src(struct ir3_sched_ctx *ctx, struct ir3_instruction *instr)
 {
 	struct ir3_instruction *src;
 
-	foreach_ssa_src_n(src, n, instr) {
+	foreach_ssa_src_n (src, n, instr) {
 		if (__is_false_dep(instr, n))
 			continue;
 		if (instr->block != src->block)
@@ -100,8 +101,13 @@ unuse_each_src(struct ir3_sched_ctx *ctx, struct ir3_instruction *instr)
 			debug_assert(src->use_count > 0);
 
 			if (--src->use_count == 0) {
-				ctx->live_values -= dest_regs(src);
-				debug_assert(ctx->live_values >= 0);
+				if (is_half(src)) {
+					ctx->half_live_values -= dest_regs(src);
+					debug_assert(ctx->half_live_values >= 0);
+				} else {
+					ctx->live_values -= dest_regs(src);
+					debug_assert(ctx->live_values >= 0);
+				}
 			}
 		}
 	}
@@ -123,10 +129,14 @@ transfer_use(struct ir3_sched_ctx *ctx, struct ir3_instruction *orig_instr,
 
 	debug_assert(is_scheduled(orig_instr));
 
-	foreach_ssa_src_n(src, n, new_instr) {
+	foreach_ssa_src_n (src, n, new_instr) {
 		if (__is_false_dep(new_instr, n))
 			continue;
-		ctx->live_values += dest_regs(src);
+		if (is_half(new_instr)) {
+			ctx->half_live_values += dest_regs(src);
+		} else {
+			ctx->live_values += dest_regs(src);
+		}
 		use_instr(src);
 	}
 
@@ -138,7 +148,7 @@ use_each_src(struct ir3_instruction *instr)
 {
 	struct ir3_instruction *src;
 
-	foreach_ssa_src_n(src, n, instr) {
+	foreach_ssa_src_n (src, n, instr) {
 		if (__is_false_dep(instr, n))
 			continue;
 		use_instr(src);
@@ -156,13 +166,18 @@ use_instr(struct ir3_instruction *instr)
 }
 
 static void
-update_live_values(struct ir3_sched_ctx *ctx, struct ir3_instruction *instr)
+update_live_values(struct ir3_sched_ctx *ctx, struct ir3_instruction *scheduled)
 {
-	if ((instr->opc == OPC_META_COLLECT) || (instr->opc == OPC_META_SPLIT))
+	if ((scheduled->opc == OPC_META_COLLECT) || (scheduled->opc == OPC_META_SPLIT))
 		return;
 
-	ctx->live_values += dest_regs(instr);
-	unuse_each_src(ctx, instr);
+	if ((scheduled->regs_count > 0) && is_half(scheduled)) {
+		ctx->half_live_values += dest_regs(scheduled);
+	} else {
+		ctx->live_values += dest_regs(scheduled);
+	}
+
+	unuse_each_src(ctx, scheduled);
 }
 
 static void
@@ -186,7 +201,7 @@ update_use_count(struct ir3 *ir)
 	/* Shader outputs are also used:
 	 */
 	struct ir3_instruction *out;
-	foreach_output(out, ir)
+	foreach_output (out, ir)
 		use_instr(out);
 }
 
@@ -205,13 +220,6 @@ static void
 schedule(struct ir3_sched_ctx *ctx, struct ir3_instruction *instr)
 {
 	debug_assert(ctx->block == instr->block);
-
-	/* maybe there is a better way to handle this than just stuffing
-	 * a nop.. ideally we'd know about this constraint in the
-	 * scheduling and depth calculation..
-	 */
-	if (ctx->scheduled && is_sfu_or_mem(ctx->scheduled) && is_sfu_or_mem(instr))
-		ir3_NOP(ctx->block);
 
 	/* remove from depth list:
 	 */
@@ -265,117 +273,6 @@ deepest(struct ir3_instruction **srcs, unsigned nsrcs)
 	return d;
 }
 
-/**
- * @block: the block to search in, starting from end; in first pass,
- *    this will be the block the instruction would be inserted into
- *    (but has not yet, ie. it only contains already scheduled
- *    instructions).  For intra-block scheduling (second pass), this
- *    would be one of the predecessor blocks.
- * @instr: the instruction to search for
- * @maxd:  max distance, bail after searching this # of instruction
- *    slots, since it means the instruction we are looking for is
- *    far enough away
- * @pred:  if true, recursively search into predecessor blocks to
- *    find the worst case (shortest) distance (only possible after
- *    individual blocks are all scheduled
- */
-static unsigned
-distance(struct ir3_block *block, struct ir3_instruction *instr,
-		unsigned maxd, bool pred)
-{
-	unsigned d = 0;
-
-	foreach_instr_rev (n, &block->instr_list) {
-		if ((n == instr) || (d >= maxd))
-			return d;
-		/* NOTE: don't count branch/jump since we don't know yet if they will
-		 * be eliminated later in resolve_jumps().. really should do that
-		 * earlier so we don't have this constraint.
-		 */
-		if (is_alu(n) || (is_flow(n) && (n->opc != OPC_JUMP) && (n->opc != OPC_BR)))
-			d++;
-	}
-
-	/* if coming from a predecessor block, assume it is assigned far
-	 * enough away.. we'll fix up later.
-	 */
-	if (!pred)
-		return maxd;
-
-	if (pred && (block->data != block)) {
-		/* Search into predecessor blocks, finding the one with the
-		 * shortest distance, since that will be the worst case
-		 */
-		unsigned min = maxd - d;
-
-		/* (ab)use block->data to prevent recursion: */
-		block->data = block;
-
-		set_foreach(block->predecessors, entry) {
-			struct ir3_block *pred = (struct ir3_block *)entry->key;
-			unsigned n;
-
-			n = distance(pred, instr, min, pred);
-
-			min = MIN2(min, n);
-		}
-
-		block->data = NULL;
-		d += min;
-	}
-
-	return d;
-}
-
-/* calculate delay for specified src: */
-static unsigned
-delay_calc_srcn(struct ir3_block *block,
-		struct ir3_instruction *assigner,
-		struct ir3_instruction *consumer,
-		unsigned srcn, bool soft, bool pred)
-{
-	unsigned delay = 0;
-
-	if (is_meta(assigner)) {
-		struct ir3_instruction *src;
-		foreach_ssa_src(src, assigner) {
-			unsigned d;
-			d = delay_calc_srcn(block, src, consumer, srcn, soft, pred);
-			delay = MAX2(delay, d);
-		}
-	} else {
-		if (soft) {
-			if (is_sfu(assigner)) {
-				delay = 4;
-			} else {
-				delay = ir3_delayslots(assigner, consumer, srcn);
-			}
-		} else {
-			delay = ir3_delayslots(assigner, consumer, srcn);
-		}
-		delay -= distance(block, assigner, delay, pred);
-	}
-
-	return delay;
-}
-
-/* calculate delay for instruction (maximum of delay for all srcs): */
-static unsigned
-delay_calc(struct ir3_block *block, struct ir3_instruction *instr,
-		bool soft, bool pred)
-{
-	unsigned delay = 0;
-	struct ir3_instruction *src;
-
-	foreach_ssa_src_n(src, i, instr) {
-		unsigned d;
-		d = delay_calc_srcn(block, src, instr, i, soft, pred);
-		delay = MAX2(delay, d);
-	}
-
-	return delay;
-}
-
 struct ir3_sched_notes {
 	/* there is at least one kill which could be scheduled, except
 	 * for unscheduled bary.f's:
@@ -392,7 +289,7 @@ static bool
 could_sched(struct ir3_instruction *instr, struct ir3_instruction *src)
 {
 	struct ir3_instruction *other_src;
-	foreach_ssa_src(other_src, instr) {
+	foreach_ssa_src (other_src, instr) {
 		/* if dependency not scheduled, we aren't ready yet: */
 		if ((src != other_src) && !is_scheduled(other_src)) {
 			return false;
@@ -506,7 +403,7 @@ find_instr_recursive(struct ir3_sched_ctx *ctx, struct ir3_sched_notes *notes,
 	}
 
 	/* find unscheduled srcs: */
-	foreach_ssa_src(src, instr) {
+	foreach_ssa_src (src, instr) {
 		if (!is_scheduled(src) && (src->block == instr->block)) {
 			debug_assert(nsrcs < ARRAY_SIZE(srcs));
 			srcs[nsrcs++] = src;
@@ -547,7 +444,7 @@ live_effect(struct ir3_instruction *instr)
 	int new_live = dest_regs(instr);
 	int old_live = 0;
 
-	foreach_ssa_src_n(src, n, instr) {
+	foreach_ssa_src_n (src, n, instr) {
 		if (__is_false_dep(instr, n))
 			continue;
 
@@ -566,7 +463,7 @@ live_effect(struct ir3_instruction *instr)
 			struct ir3_instruction *src2;
 			bool last_use = true;
 
-			foreach_ssa_src(src2, src) {
+			foreach_ssa_src (src2, src) {
 				if (src2->use_count > 1) {
 					last_use = false;
 					break;
@@ -628,6 +525,7 @@ find_eligible_instr(struct ir3_sched_ctx *ctx, struct ir3_sched_notes *notes,
 
 		/* determine net change to # of live values: */
 		int le = live_effect(candidate);
+		unsigned live_values = (2 * ctx->live_values) + ctx->half_live_values;
 
 		/* if there is a net increase in # of live values, then apply some
 		 * threshold to avoid instructions getting scheduled *too* early
@@ -636,10 +534,10 @@ find_eligible_instr(struct ir3_sched_ctx *ctx, struct ir3_sched_notes *notes,
 		if (le >= 1) {
 			unsigned threshold;
 
-			if (ctx->live_values > 4*4) {
-				threshold = 4;
+			if (live_values > ctx->live_threshold_lo) {
+				threshold = ctx->depth_threshold_lo;
 			} else {
-				threshold = 6;
+				threshold = ctx->depth_threshold_hi;
 			}
 
 			/* Filter out any "shallow" instructions which would otherwise
@@ -658,14 +556,14 @@ find_eligible_instr(struct ir3_sched_ctx *ctx, struct ir3_sched_notes *notes,
 				continue;
 		}
 
-		int rank = delay_calc(ctx->block, candidate, soft, false);
+		int rank = ir3_delay_calc(ctx->block, candidate, soft, false);
 
 		/* if too many live values, prioritize instructions that reduce the
 		 * number of live values:
 		 */
-		if (ctx->live_values > 16*4) {
+		if (live_values > ctx->live_threshold_hi) {
 			rank = le;
-		} else if (ctx->live_values > 4*4) {
+		} else if (live_values > ctx->live_threshold_lo) {
 			rank += le;
 		}
 
@@ -827,8 +725,7 @@ sched_block(struct ir3_sched_ctx *ctx, struct ir3_block *block)
 			instr = find_eligible_instr(ctx, &notes, false);
 
 		if (instr) {
-			unsigned delay = delay_calc(ctx->block, instr, false, false);
-
+			unsigned delay = ir3_delay_calc(ctx->block, instr, false, false);
 			d("delay=%u", delay);
 
 			/* and if we run out of instructions that can be scheduled,
@@ -873,94 +770,21 @@ sched_block(struct ir3_sched_ctx *ctx, struct ir3_block *block)
 			}
 		}
 	}
-
-	/* And lastly, insert branch/jump instructions to take us to
-	 * the next block.  Later we'll strip back out the branches
-	 * that simply jump to next instruction.
-	 */
-	if (block->successors[1]) {
-		/* if/else, conditional branches to "then" or "else": */
-		struct ir3_instruction *br;
-		unsigned delay = 6;
-
-		debug_assert(ctx->pred);
-		debug_assert(block->condition);
-
-		delay -= distance(ctx->block, ctx->pred, delay, false);
-
-		while (delay > 0) {
-			ir3_NOP(block);
-			delay--;
-		}
-
-		/* create "else" branch first (since "then" block should
-		 * frequently/always end up being a fall-thru):
-		 */
-		br = ir3_BR(block);
-		br->cat0.inv = true;
-		br->cat0.target = block->successors[1];
-
-		/* NOTE: we have to hard code delay of 6 above, since
-		 * we want to insert the nop's before constructing the
-		 * branch.  Throw in an assert so we notice if this
-		 * ever breaks on future generation:
-		 */
-		debug_assert(ir3_delayslots(ctx->pred, br, 0) == 6);
-
-		br = ir3_BR(block);
-		br->cat0.target = block->successors[0];
-
-	} else if (block->successors[0]) {
-		/* otherwise unconditional jump to next block: */
-		struct ir3_instruction *jmp;
-
-		jmp = ir3_JUMP(block);
-		jmp->cat0.target = block->successors[0];
-	}
-
-	/* NOTE: if we kept track of the predecessors, we could do a better
-	 * job w/ (jp) flags.. every node w/ > predecessor is a join point.
-	 * Note that as we eliminate blocks which contain only an unconditional
-	 * jump we probably need to propagate (jp) flag..
-	 */
 }
 
-/* After scheduling individual blocks, we still could have cases where
- * one (or more) paths into a block, a value produced by a previous
- * has too few delay slots to be legal.  We can't deal with this in the
- * first pass, because loops (ie. we can't ensure all predecessor blocks
- * are already scheduled in the first pass).  All we can really do at
- * this point is stuff in extra nop's until things are legal.
- */
 static void
-sched_intra_block(struct ir3_sched_ctx *ctx, struct ir3_block *block)
+setup_thresholds(struct ir3_sched_ctx *ctx, struct ir3 *ir)
 {
-	unsigned n = 0;
-
-	ctx->block = block;
-
-	foreach_instr_safe (instr, &block->instr_list) {
-		unsigned delay = 0;
-
-		set_foreach(block->predecessors, entry) {
-			struct ir3_block *pred = (struct ir3_block *)entry->key;
-			unsigned d = delay_calc(pred, instr, false, true);
-			delay = MAX2(d, delay);
-		}
-
-		while (delay > n) {
-			struct ir3_instruction *nop = ir3_NOP(block);
-
-			/* move to before instr: */
-			list_delinit(&nop->node);
-			list_addtail(&nop->node, &instr->node);
-
-			n++;
-		}
-
-		/* we can bail once we hit worst case delay: */
-		if (++n > 6)
-			break;
+	if (ir3_has_latency_to_hide(ir)) {
+		ctx->live_threshold_hi = 2 * 16 * 4;
+		ctx->live_threshold_lo = 2 * 4 * 4;
+		ctx->depth_threshold_hi = 6;
+		ctx->depth_threshold_lo = 4;
+	} else {
+		ctx->live_threshold_hi = 2 * 16 * 4;
+		ctx->live_threshold_lo = 2 * 12 * 4;
+		ctx->depth_threshold_hi = 16;
+		ctx->depth_threshold_lo = 16;
 	}
 }
 
@@ -968,16 +792,15 @@ int ir3_sched(struct ir3 *ir)
 {
 	struct ir3_sched_ctx ctx = {0};
 
+	setup_thresholds(&ctx, ir);
+
 	ir3_clear_mark(ir);
 	update_use_count(ir);
 
 	foreach_block (block, &ir->block_list) {
 		ctx.live_values = 0;
+		ctx.half_live_values = 0;
 		sched_block(&ctx, block);
-	}
-
-	foreach_block (block, &ir->block_list) {
-		sched_intra_block(&ctx, block);
 	}
 
 	if (ctx.error)

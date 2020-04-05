@@ -33,14 +33,14 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include "main/macros.h"
+#include <string.h>
 #include "amd_family.h"
+#include "util/u_memory.h"
+#include "util/u_math.h"
 
 struct radeon_info;
 struct ac_surf_info;
 struct radeon_surf;
-
-#define FREE(x) free(x)
 
 enum radeon_bo_domain { /* bitfield */
 	RADEON_DOMAIN_GTT  = 2,
@@ -61,6 +61,7 @@ enum radeon_bo_flag { /* bitfield */
 	RADEON_FLAG_READ_ONLY =     (1 << 7),
 	RADEON_FLAG_32BIT =         (1 << 8),
 	RADEON_FLAG_PREFER_LOCAL_BO = (1 << 9),
+	RADEON_FLAG_ZERO_VRAM = (1 << 10),
 };
 
 enum radeon_bo_usage { /* bitfield */

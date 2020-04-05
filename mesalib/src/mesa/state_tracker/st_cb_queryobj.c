@@ -33,8 +33,8 @@
  */
 
 
-#include "main/imports.h"
-#include "main/compiler.h"
+#include "util/imports.h"
+#include "util/compiler.h"
 #include "main/context.h"
 #include "main/queryobj.h"
 

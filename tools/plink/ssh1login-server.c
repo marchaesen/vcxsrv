@@ -11,6 +11,7 @@
 #include "sshppl.h"
 #include "sshcr.h"
 #include "sshserver.h"
+#include "sshkeygen.h"
 
 struct ssh1_login_server_state {
     int crState;
@@ -57,18 +58,17 @@ static void ssh1_login_server_got_user_input(PacketProtocolLayer *ppl) {}
 static void ssh1_login_server_reconfigure(
     PacketProtocolLayer *ppl, Conf *conf) {}
 
-static const struct PacketProtocolLayerVtable ssh1_login_server_vtable = {
-    ssh1_login_server_free,
-    ssh1_login_server_process_queue,
-    ssh1_login_server_get_specials,
-    ssh1_login_server_special_cmd,
-    ssh1_login_server_want_user_input,
-    ssh1_login_server_got_user_input,
-    ssh1_login_server_reconfigure,
-    NULL /* no layer names in SSH-1 */,
+static const PacketProtocolLayerVtable ssh1_login_server_vtable = {
+    .free = ssh1_login_server_free,
+    .process_queue = ssh1_login_server_process_queue,
+    .get_specials = ssh1_login_server_get_specials,
+    .special_cmd = ssh1_login_server_special_cmd,
+    .want_user_input = ssh1_login_server_want_user_input,
+    .got_user_input = ssh1_login_server_got_user_input,
+    .reconfigure = ssh1_login_server_reconfigure,
+    .queued_data_size = ssh_ppl_default_queued_data_size,
+    .name = NULL, /* no layer names in SSH-1 */
 };
-
-static void no_progress(void *param, int action, int phase, int iprogress) {}
 
 PacketProtocolLayer *ssh1_login_server_new(
     PacketProtocolLayer *successor_layer, RSAKey *hostkey,
@@ -140,7 +140,14 @@ static void ssh1_login_server_process_queue(PacketProtocolLayer *ppl)
         if (server_key_bits < 512)
             server_key_bits = s->hostkey->bytes + 256;
         s->servkey = snew(RSAKey);
-        rsa_generate(s->servkey, server_key_bits, no_progress, NULL);
+
+        PrimeGenerationContext *pgc = primegen_new_context(
+            &primegen_probabilistic);
+        ProgressReceiver null_progress;
+        null_progress.vt = &null_progress_vt;
+        rsa_generate(s->servkey, server_key_bits, false, pgc, &null_progress);
+        primegen_free_context(pgc);
+
         s->servkey->comment = NULL;
         s->servkey_generated_here = true;
     }

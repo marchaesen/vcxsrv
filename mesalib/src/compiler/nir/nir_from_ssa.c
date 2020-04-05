@@ -680,15 +680,17 @@ resolve_parallel_copy(nir_parallel_copy_instr *pcopy,
          int a = pred[b];
          emit_copy(&state->builder, values[loc[a]], values[b]);
 
-         /* If any other copies want a they can find it at b */
-         loc[a] = b;
-
          /* b has been filled, mark it as not needing to be copied */
          pred[b] = -1;
 
-         /* If a needs to be filled, it's ready for copying now */
-         if (pred[a] != -1)
+         /* If a needs to be filled... */
+         if (pred[a] != -1) {
+            /* If any other copies want a they can find it at b */
+            loc[a] = b;
+
+            /* It's ready for copying now */
             ready[++ready_idx] = a;
+         }
       }
       int b = to_do[to_do_idx--];
       if (pred[b] == -1)

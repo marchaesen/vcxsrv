@@ -26,7 +26,7 @@
  */
 
 #include "nir.h"
-#include <main/imports.h>
+#include <util/imports.h>
 
 /**
  * SSA-based copy propagation
@@ -61,9 +61,8 @@ static bool is_vec(nir_alu_instr *instr)
          return false;
    }
 
-   return instr->op == nir_op_vec2 ||
-          instr->op == nir_op_vec3 ||
-          instr->op == nir_op_vec4;
+   assert(instr->dest.dest.is_ssa);
+   return nir_op_is_vec(instr->op);
 }
 
 static bool

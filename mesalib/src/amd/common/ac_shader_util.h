@@ -46,6 +46,13 @@ enum ac_image_dim {
 	ac_image_2darraymsaa,
 };
 
+struct ac_data_format_info {
+	uint8_t element_size;
+	uint8_t num_channels;
+	uint8_t chan_byte_size;
+	uint8_t chan_format;
+};
+
 unsigned
 ac_get_spi_shader_z_format(bool writes_z, bool writes_stencil,
 			   bool writes_samplemask);
@@ -59,6 +66,9 @@ ac_vgt_gs_mode(unsigned gs_max_vert_out, enum chip_class chip_class);
 unsigned
 ac_get_tbuffer_format(enum chip_class chip_class,
 		      unsigned dfmt, unsigned nfmt);
+
+const struct ac_data_format_info *
+ac_get_data_format_info(unsigned dfmt);
 
 enum ac_image_dim
 ac_get_sampler_dim(enum chip_class chip_class, enum glsl_sampler_dim dim,

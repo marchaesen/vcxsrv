@@ -56,6 +56,10 @@ can_dce(midgard_instruction *ins)
                 if (load_store_opcode_props[ins->load_store.op].props & LDST_SIDE_FX)
                         return false;
 
+        if (ins->type == TAG_TEXTURE_4)
+                if (ins->texture.op == TEXTURE_OP_BARRIER)
+                        return false;
+
         return true;
 }
 
@@ -67,7 +71,7 @@ midgard_opt_dead_code_eliminate(compiler_context *ctx, midgard_block *block)
         mir_invalidate_liveness(ctx);
         mir_compute_liveness(ctx);
 
-        uint16_t *live = mem_dup(block->live_out, ctx->temp_count * sizeof(uint16_t));
+        uint16_t *live = mem_dup(block->base.live_out, ctx->temp_count * sizeof(uint16_t));
 
         mir_foreach_instr_in_block_rev(block, ins) {
                 if (can_cull_mask(ctx, ins)) {

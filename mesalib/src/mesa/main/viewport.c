@@ -610,10 +610,11 @@ subpixel_precision_bias(struct gl_context *ctx, GLuint xbits, GLuint ybits)
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glSubpixelPrecisionBiasNV(%u, %u)\n", xbits, ybits);
 
+   FLUSH_VERTICES(ctx, 0);
+
    ctx->SubpixelPrecisionBias[0] = xbits;
    ctx->SubpixelPrecisionBias[1] = ybits;
 
-   FLUSH_VERTICES(ctx, 0);
    ctx->NewDriverState |=
       ctx->DriverFlags.NewNvConservativeRasterizationParams;
 }

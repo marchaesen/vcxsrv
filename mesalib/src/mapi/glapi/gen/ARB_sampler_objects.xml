@@ -14,7 +14,7 @@
 
     <function name="DeleteSamplers" es2="3.0" no_error="true">
       <param name="count" type="GLsizei"/>
-      <param name="samplers" type="const GLuint *"/>
+      <param name="samplers" type="const GLuint *" count="count"/>
     </function>
 
     <function name="IsSampler" es2="3.0">
@@ -42,25 +42,25 @@
     <function name="SamplerParameteriv" es2="3.0">
       <param name="sampler" type="GLuint"/>
       <param name="pname" type="GLenum"/>
-      <param name="params" type="const GLint *"/>
+      <param name="params" type="const GLint *" count="_mesa_tex_param_enum_to_count(pname)"/>
     </function>
 
     <function name="SamplerParameterfv" es2="3.0">
       <param name="sampler" type="GLuint"/>
       <param name="pname" type="GLenum"/>
-      <param name="params" type="const GLfloat *"/>
+      <param name="params" type="const GLfloat *" count="_mesa_tex_param_enum_to_count(pname)"/>
     </function>
 
     <function name="SamplerParameterIiv" es2="3.2">
       <param name="sampler" type="GLuint"/>
       <param name="pname" type="GLenum"/>
-      <param name="params" type="const GLint *"/>
+      <param name="params" type="const GLint *" count="_mesa_tex_param_enum_to_count(pname)"/>
     </function>
 
     <function name="SamplerParameterIuiv" es2="3.2">
       <param name="sampler" type="GLuint"/>
       <param name="pname" type="GLenum"/>
-      <param name="params" type="const GLuint *"/>
+      <param name="params" type="const GLuint *" count="_mesa_tex_param_enum_to_count(pname)"/>
     </function>
 
     <function name="GetSamplerParameteriv" es2="3.0">

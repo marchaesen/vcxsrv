@@ -28,7 +28,7 @@
 #include "main/bufferobj.h"
 #include "main/image.h"
 #include "main/pbo.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/readpix.h"
 #include "main/enums.h"
 #include "main/framebuffer.h"

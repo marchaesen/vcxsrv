@@ -32,7 +32,6 @@
 #include "radv_cs.h"
 #include "sid.h"
 #include "radv_util.h"
-#include "main/macros.h"
 
 static void
 si_write_harvested_raster_configs(struct radv_physical_device *physical_device,
@@ -293,54 +292,65 @@ si_emit_graphics(struct radv_physical_device *physical_device,
 
 		/* Compute LATE_ALLOC_VS.LIMIT. */
 		unsigned num_cu_per_sh = physical_device->rad_info.num_good_cu_per_sh;
-		unsigned late_alloc_limit; /* The limit is per SH. */
-
-		if (physical_device->rad_info.family == CHIP_KABINI) {
-			late_alloc_limit = 0; /* Potential hang on Kabini. */
-		} else if (num_cu_per_sh <= 4) {
-			/* Too few available compute units per SH. Disallowing
-			 * VS to run on one CU could hurt us more than late VS
-			 * allocation would help.
-			 *
-			 * 2 is the highest safe number that allows us to keep
-			 * all CUs enabled.
-			 */
-			late_alloc_limit = 2;
-		} else {
-			/* This is a good initial value, allowing 1 late_alloc
-			 * wave per SIMD on num_cu - 2.
-			 */
-			late_alloc_limit = (num_cu_per_sh - 2) * 4;
-		}
-
-		unsigned late_alloc_limit_gs = late_alloc_limit;
+		unsigned late_alloc_wave64 = 0; /* The limit is per SH. */
+		unsigned late_alloc_wave64_gs = 0;
 		unsigned cu_mask_vs = 0xffff;
 		unsigned cu_mask_gs = 0xffff;
 
-		if (late_alloc_limit > 2) {
-			if (physical_device->rad_info.chip_class >= GFX10) {
+		if (physical_device->rad_info.chip_class >= GFX10) {
+			/* For Wave32, the hw will launch twice the number of late
+			 * alloc waves, so 1 == 2x wave32.
+			 */
+			if (!physical_device->rad_info.use_late_alloc) {
+				late_alloc_wave64 = 0;
+			} else if (num_cu_per_sh <= 6) {
+				late_alloc_wave64 = num_cu_per_sh - 2;
+			} else {
+				late_alloc_wave64 = (num_cu_per_sh - 2) * 4;
+
 				/* CU2 & CU3 disabled because of the dual CU design */
 				cu_mask_vs = 0xfff3;
 				cu_mask_gs = 0xfff3; /* NGG only */
-			} else {
-				cu_mask_vs = 0xfffe; /* 1 CU disabled */
 			}
-		}
 
-		/* Don't use late alloc for NGG on Navi14 due to a hw bug.
-		 * If NGG is never used, enable all CUs.
-		 */
-		if (!physical_device->use_ngg ||
-		    physical_device->rad_info.family == CHIP_NAVI14) {
-			late_alloc_limit_gs = 0;
-			cu_mask_gs = 0xffff;
+			late_alloc_wave64_gs = late_alloc_wave64;
+
+			/* Don't use late alloc for NGG on Navi14 due to a hw
+			 * bug. If NGG is never used, enable all CUs.
+			 */
+			if (!physical_device->use_ngg ||
+			    physical_device->rad_info.family == CHIP_NAVI14) {
+				late_alloc_wave64_gs = 0;
+				cu_mask_gs = 0xffff;
+			}
+		} else {
+			if (!physical_device->rad_info.use_late_alloc) {
+				late_alloc_wave64 = 0;
+			} else if (num_cu_per_sh <= 4) {
+				/* Too few available compute units per SH.
+				 * Disallowing VS to run on one CU could hurt
+				 * us more than late VS allocation would help.
+				 *
+				 * 2 is the highest safe number that allows us
+				 * to keep all CUs enabled.
+				 */
+				late_alloc_wave64 = 2;
+			} else {
+				/* This is a good initial value, allowing 1
+				 * late_alloc wave per SIMD on num_cu - 2.
+				 */
+				late_alloc_wave64 = (num_cu_per_sh - 2) * 4;
+			}
+
+			if (late_alloc_wave64 > 2)
+				cu_mask_vs = 0xfffe; /* 1 CU disabled */
 		}
 
 		radeon_set_sh_reg_idx(physical_device, cs, R_00B118_SPI_SHADER_PGM_RSRC3_VS,
 				      3, S_00B118_CU_EN(cu_mask_vs) |
 				      S_00B118_WAVE_LIMIT(0x3F));
 		radeon_set_sh_reg(cs, R_00B11C_SPI_SHADER_LATE_ALLOC_VS,
-				  S_00B11C_LIMIT(late_alloc_limit));
+				  S_00B11C_LIMIT(late_alloc_wave64));
 
 		radeon_set_sh_reg_idx(physical_device, cs, R_00B21C_SPI_SHADER_PGM_RSRC3_GS,
 				      3, S_00B21C_CU_EN(cu_mask_gs) | S_00B21C_WAVE_LIMIT(0x3F));
@@ -348,7 +358,7 @@ si_emit_graphics(struct radv_physical_device *physical_device,
 		if (physical_device->rad_info.chip_class >= GFX10) {
 			radeon_set_sh_reg_idx(physical_device, cs, R_00B204_SPI_SHADER_PGM_RSRC4_GS,
 					      3, S_00B204_CU_EN(0xffff) |
-					      S_00B204_SPI_SHADER_LATE_ALLOC_GS_GFX10(late_alloc_limit_gs));
+					      S_00B204_SPI_SHADER_LATE_ALLOC_GS_GFX10(late_alloc_wave64_gs));
 		}
 
 		radeon_set_sh_reg_idx(physical_device, cs, R_00B01C_SPI_SHADER_PGM_RSRC3_PS,
@@ -368,23 +378,36 @@ si_emit_graphics(struct radv_physical_device *physical_device,
 		radeon_set_context_reg(cs, R_028C50_PA_SC_NGG_MODE_CNTL,
 				       S_028C50_MAX_DEALLOCS_IN_WAVE(512));
 		radeon_set_context_reg(cs, R_028C58_VGT_VERTEX_REUSE_BLOCK_CNTL, 14);
+
+		/* Enable CMASK/FMASK/HTILE/DCC caching in L2 for small chips. */
+		unsigned meta_write_policy, meta_read_policy;
+
+		/* TODO: investigate whether LRU improves performance on other chips too */
+		if (physical_device->rad_info.num_render_backends <= 4) {
+			meta_write_policy = V_02807C_CACHE_LRU_WR; /* cache writes */
+			meta_read_policy =  V_02807C_CACHE_LRU_RD; /* cache reads */
+		} else {
+			meta_write_policy = V_02807C_CACHE_STREAM_WR; /* write combine */
+			meta_read_policy =  V_02807C_CACHE_NOA_RD;    /* don't cache reads */
+		}
+
 		radeon_set_context_reg(cs, R_02807C_DB_RMI_L2_CACHE_CONTROL,
 				       S_02807C_Z_WR_POLICY(V_02807C_CACHE_STREAM_WR) |
 				       S_02807C_S_WR_POLICY(V_02807C_CACHE_STREAM_WR) |
-				       S_02807C_HTILE_WR_POLICY(V_02807C_CACHE_STREAM_WR) |
+				       S_02807C_HTILE_WR_POLICY(meta_write_policy) |
 				       S_02807C_ZPCPSD_WR_POLICY(V_02807C_CACHE_STREAM_WR) |
 				       S_02807C_Z_RD_POLICY(V_02807C_CACHE_NOA_RD) |
 				       S_02807C_S_RD_POLICY(V_02807C_CACHE_NOA_RD) |
-				       S_02807C_HTILE_RD_POLICY(V_02807C_CACHE_NOA_RD));
+				       S_02807C_HTILE_RD_POLICY(meta_read_policy));
 
 		radeon_set_context_reg(cs, R_028410_CB_RMI_GL2_CACHE_CONTROL,
-				       S_028410_CMASK_WR_POLICY(V_028410_CACHE_STREAM_WR) |
-				       S_028410_FMASK_WR_POLICY(V_028410_CACHE_STREAM_WR) |
-				       S_028410_DCC_WR_POLICY(V_028410_CACHE_STREAM_WR) |
+				       S_028410_CMASK_WR_POLICY(meta_write_policy) |
+				       S_028410_FMASK_WR_POLICY(meta_write_policy) |
+				       S_028410_DCC_WR_POLICY(meta_write_policy) |
 				       S_028410_COLOR_WR_POLICY(V_028410_CACHE_STREAM_WR) |
-				       S_028410_CMASK_RD_POLICY(V_028410_CACHE_NOA_RD) |
-				       S_028410_FMASK_RD_POLICY(V_028410_CACHE_NOA_RD) |
-				       S_028410_DCC_RD_POLICY(V_028410_CACHE_NOA_RD) |
+				       S_028410_CMASK_RD_POLICY(meta_read_policy) |
+				       S_028410_FMASK_RD_POLICY(meta_read_policy) |
+				       S_028410_DCC_RD_POLICY(meta_read_policy) |
 				       S_028410_COLOR_RD_POLICY(V_028410_CACHE_NOA_RD));
 		radeon_set_context_reg(cs, R_028428_CB_COVERAGE_OUT_CONTROL, 0);
 
@@ -403,11 +426,18 @@ si_emit_graphics(struct radv_physical_device *physical_device,
 
 		/* TODO: For culling, replace 128 with 256. */
 		radeon_set_uconfig_reg(cs, R_030980_GE_PC_ALLOC,
-				       S_030980_OVERSUB_EN(1) |
+				       S_030980_OVERSUB_EN(physical_device->rad_info.use_late_alloc) |
 				       S_030980_NUM_PC_LINES(128 * physical_device->rad_info.max_se - 1));
 	}
 
-	if (physical_device->rad_info.chip_class >= GFX8) {
+	if (physical_device->rad_info.chip_class >= GFX9) {
+		radeon_set_context_reg(cs, R_028B50_VGT_TESS_DISTRIBUTION,
+				       S_028B50_ACCUM_ISOLINE(40) |
+				       S_028B50_ACCUM_TRI(30) |
+				       S_028B50_ACCUM_QUAD(24) |
+				       S_028B50_DONUT_SPLIT(24) |
+				       S_028B50_TRAP_SPLIT(6));
+	} else if (physical_device->rad_info.chip_class >= GFX8) {
 		uint32_t vgt_tess_distribution;
 
 		vgt_tess_distribution = S_028B50_ACCUM_ISOLINE(32) |

@@ -352,6 +352,7 @@ public:
 
    Result copy(Definition dst, Op op_) {
       Operand op = op_.op;
+      assert(op.bytes() == dst.bytes());
       if (dst.regClass() == s1 && op.size() == 1 && op.isLiteral()) {
          uint32_t imm = op.constantValue();
          if (imm == 0x3e22f983) {
@@ -372,15 +373,24 @@ public:
          }
       }
 
-      if (dst.regClass() == s2) {
+      if (dst.regClass() == s1) {
+        return sop1(aco_opcode::s_mov_b32, dst, op);
+      } else if (dst.regClass() == s2) {
         return sop1(aco_opcode::s_mov_b64, dst, op);
-      } else if (op.size() > 1) {
-         return pseudo(aco_opcode::p_create_vector, dst, op);
       } else if (dst.regClass() == v1 || dst.regClass() == v1.as_linear()) {
         return vop1(aco_opcode::v_mov_b32, dst, op);
+      } else if (op.bytes() > 2) {
+         return pseudo(aco_opcode::p_create_vector, dst, op);
+      } else if (dst.regClass().is_subdword()) {
+        aco_ptr<SDWA_instruction> sdwa{create_instruction<SDWA_instruction>(aco_opcode::v_mov_b32, asSDWA(Format::VOP1), 1, 1)};
+        sdwa->operands[0] = op;
+        sdwa->definitions[0] = dst;
+        sdwa->sel[0] = op.bytes() == 1 ? sdwa_ubyte : sdwa_uword;
+        sdwa->dst_sel = dst.bytes() == 1 ? sdwa_ubyte : sdwa_uword;
+        sdwa->dst_preserve = true;
+        return insert(std::move(sdwa));
       } else {
-        assert(dst.regClass() == s1);
-        return sop1(aco_opcode::s_mov_b32, dst, op);
+        unreachable("Unhandled case in bld.copy()");
       }
    }
 
@@ -392,7 +402,7 @@ public:
       if (!carry_in.op.isUndefined())
          return vop2(aco_opcode::v_addc_co_u32, Definition(dst), hint_vcc(def(lm)), a, b, carry_in);
       else if (program->chip_class >= GFX10 && carry_out)
-         return vop3(aco_opcode::v_add_co_u32_e64, Definition(dst), def(s2), a, b);
+         return vop3(aco_opcode::v_add_co_u32_e64, Definition(dst), def(lm), a, b);
       else if (program->chip_class < GFX9 || carry_out)
          return vop2(aco_opcode::v_add_co_u32, Definition(dst), hint_vcc(def(lm)), a, b);
       else
@@ -472,7 +482,8 @@ formats = [("pseudo", [Format.PSEUDO], 'Pseudo_instruction', list(itertools.prod
            ("smem", [Format.SMEM], 'SMEM_instruction', [(0, 4), (0, 3), (1, 0), (1, 3), (1, 2), (0, 0)]),
            ("ds", [Format.DS], 'DS_instruction', [(1, 1), (1, 2), (0, 3), (0, 4)]),
            ("mubuf", [Format.MUBUF], 'MUBUF_instruction', [(0, 4), (1, 3)]),
-           ("mimg", [Format.MIMG], 'MIMG_instruction', [(0, 4), (1, 3), (0, 3), (1, 2)]), #TODO(pendingchaos): less shapes?
+           ("mtbuf", [Format.MTBUF], 'MTBUF_instruction', [(0, 4), (1, 3)]),
+           ("mimg", [Format.MIMG], 'MIMG_instruction', [(0, 3), (1, 3)]),
            ("exp", [Format.EXP], 'Export_instruction', [(0, 4)]),
            ("branch", [Format.PSEUDO_BRANCH], 'Pseudo_branch_instruction', itertools.product([0], [0, 1])),
            ("barrier", [Format.PSEUDO_BARRIER], 'Pseudo_barrier_instruction', [(0, 0)]),

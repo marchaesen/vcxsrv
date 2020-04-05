@@ -44,7 +44,6 @@ struct radv_amdgpu_winsys {
 	ADDR_HANDLE addrlib;
 
 	bool debug_all_bos;
-	bool batchchain;
 	bool use_ib_bos;
 	bool zero_all_vram_allocs;
 	bool use_local_bos;

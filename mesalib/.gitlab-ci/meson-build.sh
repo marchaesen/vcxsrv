@@ -54,11 +54,10 @@ meson _build --native-file=native.file \
       ${GALLIUM_ST} \
       -D gallium-drivers=${GALLIUM_DRIVERS:-[]} \
       -D vulkan-drivers=${VULKAN_DRIVERS:-[]} \
-      -D I-love-half-baked-turnips=true \
       ${EXTRA_OPTION}
 cd _build
 meson configure
-ninja -j4
+ninja
 LC_ALL=C.UTF-8 ninja test
 ninja install
 cd ..

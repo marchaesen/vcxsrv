@@ -39,7 +39,7 @@ dest_is_ssa(nir_dest *dest, void *data)
    return dest->is_ssa;
 }
 
-static inline bool
+ASSERTED static inline bool
 instr_each_src_and_dest_is_ssa(const nir_instr *instr)
 {
    if (!nir_foreach_dest((nir_instr *)instr, dest_is_ssa, NULL) ||
@@ -274,7 +274,6 @@ hash_tex(uint32_t hash, const nir_tex_instr *instr)
       for (unsigned j = 0; j < 2; ++j)
          hash = HASH(hash, instr->tg4_offsets[i][j]);
    hash = HASH(hash, instr->texture_index);
-   hash = HASH(hash, instr->texture_array_size);
    hash = HASH(hash, instr->sampler_index);
    hash = HASH(hash, instr->texture_non_uniform);
    hash = HASH(hash, instr->sampler_non_uniform);
@@ -659,7 +658,6 @@ nir_instrs_equal(const nir_instr *instr1, const nir_instr *instr2)
           tex1->is_new_style_shadow != tex2->is_new_style_shadow ||
           tex1->component != tex2->component ||
          tex1->texture_index != tex2->texture_index ||
-         tex1->texture_array_size != tex2->texture_array_size ||
          tex1->sampler_index != tex2->sampler_index) {
          return false;
       }

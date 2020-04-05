@@ -80,7 +80,7 @@ u_fifo_pop(struct util_fifo *fifo, void **ptr)
 
    *ptr = array[fifo->tail];
 
-   ++fifo->num;
+   --fifo->num;
 
    return TRUE;
 }

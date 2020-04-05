@@ -26,7 +26,7 @@
  */
 
 #include "main/errors.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/bufferobj.h"
 #include "main/mtypes.h"
 #include "main/samplerobj.h"

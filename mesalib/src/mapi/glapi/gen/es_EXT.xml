@@ -319,7 +319,8 @@
     <enum name="POINT_SIZE_ARRAY_BUFFER_BINDING_OES"	  value="0x8B9F"/>
 
     <function name="PointSizePointerOES" es1="1.0" desktop="false"
-              no_error="true">
+              no_error="true" marshal="async"
+              marshal_call_after="if (COMPAT) _mesa_glthread_AttribPointer(ctx, VERT_ATTRIB_POINT_SIZE);">
         <param name="type" type="GLenum"/>
         <param name="stride" type="GLsizei"/>
         <param name="pointer" type="const GLvoid *"/>
@@ -1463,7 +1464,7 @@
     <function name="DepthRangeArrayfvOES" es2="3.1" desktop="false">
         <param name="first" type="GLuint"/>
         <param name="count" type="GLsizei"/>
-        <param name="v" type="const GLfloat *"/>
+        <param name="v" type="const GLfloat *" count="(2 * count)"/>
     </function>
     <function name="DepthRangeIndexedfOES" es2="3.1" desktop="false">
         <param name="index" type="GLuint"/>

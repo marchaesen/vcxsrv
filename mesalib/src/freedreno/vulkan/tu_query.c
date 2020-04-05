@@ -168,6 +168,20 @@ wait_for_available(struct tu_device *device, struct tu_query_pool *pool,
    return vk_error(device->instance, VK_TIMEOUT);
 }
 
+/* Writes a query value to a buffer from the CPU. */
+static void
+write_query_value_cpu(char* base,
+                      uint32_t offset,
+                      uint64_t value,
+                      VkQueryResultFlags flags)
+{
+   if (flags & VK_QUERY_RESULT_64_BIT) {
+      *(uint64_t*)(base + (offset * sizeof(uint64_t))) = value;
+   } else {
+      *(uint32_t*)(base + (offset * sizeof(uint32_t))) = value;
+   }
+}
+
 static VkResult
 get_occlusion_query_pool_results(struct tu_device *device,
                                  struct tu_query_pool *pool,
@@ -180,7 +194,7 @@ get_occlusion_query_pool_results(struct tu_device *device,
 {
    assert(dataSize >= stride * queryCount);
 
-   char *query_result = pData;
+   char *result_base = pData;
    VkResult result = VK_SUCCESS;
    for (uint32_t i = 0; i < queryCount; i++) {
       uint32_t query = firstQuery + i;
@@ -203,23 +217,14 @@ get_occlusion_query_pool_results(struct tu_device *device,
           */
          result = VK_NOT_READY;
          if (!(flags & VK_QUERY_RESULT_WITH_AVAILABILITY_BIT)) {
-            query_result += stride;
+            result_base += stride;
             continue;
          }
       }
 
-      uint64_t value;
-      if (available) {
-         value = slot->result.value;
-      } else if (flags & VK_QUERY_RESULT_WITH_AVAILABILITY_BIT) {
-         /* From the Vulkan 1.1.130 spec:
-          *
-          *    If VK_QUERY_RESULT_WITH_AVAILABILITY_BIT is set, the final
-          *    integer value written for each query is non-zero if the query’s
-          *    status was available or zero if the status was unavailable.
-          */
-         value = 0;
-      } else if (flags & VK_QUERY_RESULT_PARTIAL_BIT) {
+      if (available)
+         write_query_value_cpu(result_base, 0, slot->result.value, flags);
+      else if (flags & VK_QUERY_RESULT_PARTIAL_BIT)
           /* From the Vulkan 1.1.130 spec:
            *
            *   If VK_QUERY_RESULT_PARTIAL_BIT is set, VK_QUERY_RESULT_WAIT_BIT
@@ -229,15 +234,18 @@ get_occlusion_query_pool_results(struct tu_device *device,
            *
            * Just return 0 here for simplicity since it's a valid result.
            */
-         value = 0;
-      }
+         write_query_value_cpu(result_base, 0, 0, flags);
 
-      if (flags & VK_QUERY_RESULT_64_BIT) {
-         *(uint64_t*)query_result = value;
-      } else {
-         *(uint32_t*)query_result = value;
-      }
-      query_result += stride;
+      if (flags & VK_QUERY_RESULT_WITH_AVAILABILITY_BIT)
+         /* From the Vulkan 1.1.130 spec:
+          *
+          *    If VK_QUERY_RESULT_WITH_AVAILABILITY_BIT is set, the final
+          *    integer value written for each query is non-zero if the query’s
+          *    status was available or zero if the status was unavailable.
+          */
+         write_query_value_cpu(result_base, 1, available, flags);
+
+      result_base += stride;
    }
    return result;
 }
@@ -270,6 +278,26 @@ tu_GetQueryPoolResults(VkDevice _device,
    return VK_SUCCESS;
 }
 
+/* Copies a query value from one buffer to another from the GPU. */
+static void
+copy_query_value_gpu(struct tu_cmd_buffer *cmdbuf,
+                     struct tu_cs *cs,
+                     uint64_t src_iova,
+                     uint64_t base_write_iova,
+                     uint32_t offset,
+                     VkQueryResultFlags flags) {
+   uint32_t element_size = flags & VK_QUERY_RESULT_64_BIT ?
+         sizeof(uint64_t) : sizeof(uint32_t);
+   uint64_t write_iova = base_write_iova + (offset * element_size);
+
+   tu_cs_emit_pkt7(cs, CP_MEM_TO_MEM, 5);
+   uint32_t mem_to_mem_flags = flags & VK_QUERY_RESULT_64_BIT ?
+         CP_MEM_TO_MEM_0_DOUBLE : 0;
+   tu_cs_emit(cs, mem_to_mem_flags);
+   tu_cs_emit_qw(cs, write_iova);
+   tu_cs_emit_qw(cs, src_iova);
+}
+
 static void
 emit_copy_occlusion_query_pool_results(struct tu_cmd_buffer *cmdbuf,
                                        struct tu_cs *cs,
@@ -290,7 +318,6 @@ emit_copy_occlusion_query_pool_results(struct tu_cmd_buffer *cmdbuf,
     * To ensure that previous writes to the available bit are coherent, first
     * wait for all writes to complete.
     */
-   tu_cs_reserve_space(cmdbuf->device, cs, 1);
    tu_cs_emit_pkt7(cs, CP_WAIT_MEM_WRITES, 0);
 
    for (uint32_t i = 0; i < queryCount; i++) {
@@ -301,7 +328,6 @@ emit_copy_occlusion_query_pool_results(struct tu_cmd_buffer *cmdbuf,
       /* Wait for the available bit to be set if executed with the
        * VK_QUERY_RESULT_WAIT_BIT flag. */
       if (flags & VK_QUERY_RESULT_WAIT_BIT) {
-         tu_cs_reserve_space(cmdbuf->device, cs, 7);
          tu_cs_emit_pkt7(cs, CP_WAIT_REG_MEM, 6);
          tu_cs_emit(cs, CP_WAIT_REG_MEM_0_FUNCTION(WRITE_EQ) |
                         CP_WAIT_REG_MEM_0_POLL_MEMORY);
@@ -311,53 +337,38 @@ emit_copy_occlusion_query_pool_results(struct tu_cmd_buffer *cmdbuf,
          tu_cs_emit(cs, CP_WAIT_REG_MEM_5_DELAY_LOOP_CYCLES(16));
       }
 
-      /* If the query result is available, conditionally emit a packet to copy
-       * the result (bo->result) into the buffer.
-       *
-       * NOTE: For the conditional packet to be executed, CP_COND_EXEC tests
-       * that ADDR0 != 0 and ADDR1 < REF. The packet here simply tests that
-       * 0 < available < 2, aka available == 1.
-       */
-      tu_cs_reserve_space(cmdbuf->device, cs, 13);
-      tu_cs_emit_pkt7(cs, CP_COND_EXEC, 6);
-      tu_cs_emit_qw(cs, available_iova);
-      tu_cs_emit_qw(cs, available_iova);
-      tu_cs_emit(cs, CP_COND_EXEC_4_REF(0x2));
-      tu_cs_emit(cs, 6); /* Conditionally execute the next 6 DWORDS */
-
-      /* Start of conditional execution */
-      tu_cs_emit_pkt7(cs, CP_MEM_TO_MEM, 5);
-      uint32_t mem_to_mem_flags = flags & VK_QUERY_RESULT_64_BIT ?
-            CP_MEM_TO_MEM_0_DOUBLE : 0;
-      tu_cs_emit(cs, mem_to_mem_flags);
-      tu_cs_emit_qw(cs, buffer_iova);
-      tu_cs_emit_qw(cs, result_iova);
-      /* End of conditional execution */
-
-      /* Like in the case of vkGetQueryPoolResults, copying the results of an
-       * unavailable query with the VK_QUERY_RESULT_WITH_AVAILABILITY_BIT or
-       * VK_QUERY_RESULT_PARTIAL_BIT flags will return 0. */
-      if (flags & (VK_QUERY_RESULT_WITH_AVAILABILITY_BIT |
-                   VK_QUERY_RESULT_PARTIAL_BIT)) {
-         if (flags & VK_QUERY_RESULT_64_BIT) {
-            tu_cs_reserve_space(cmdbuf->device, cs, 10);
-            tu_cs_emit_pkt7(cs, CP_COND_WRITE5, 9);
-         } else {
-            tu_cs_reserve_space(cmdbuf->device, cs, 9);
-            tu_cs_emit_pkt7(cs, CP_COND_WRITE5, 8);
-         }
-         tu_cs_emit(cs, CP_COND_WRITE5_0_FUNCTION(WRITE_EQ) |
-                        CP_COND_WRITE5_0_POLL_MEMORY |
-                        CP_COND_WRITE5_0_WRITE_MEMORY);
+      if (flags & VK_QUERY_RESULT_PARTIAL_BIT) {
+         /* Unconditionally copying the bo->result into the buffer here is
+          * valid because we only set bo->result on vkCmdEndQuery. Thus, even
+          * if the query is unavailable, this will copy the correct partial
+          * value of 0.
+          */
+         copy_query_value_gpu(cmdbuf, cs, result_iova, buffer_iova,
+                              0 /* offset */, flags);
+      } else {
+         /* Conditionally copy bo->result into the buffer based on whether the
+          * query is available.
+          *
+          * NOTE: For the conditional packets to be executed, CP_COND_EXEC
+          * tests that ADDR0 != 0 and ADDR1 < REF. The packet here simply tests
+          * that 0 < available < 2, aka available == 1.
+          */
+         tu_cs_reserve(cs, 7 + 6);
+         tu_cs_emit_pkt7(cs, CP_COND_EXEC, 6);
          tu_cs_emit_qw(cs, available_iova);
-         tu_cs_emit(cs, CP_COND_WRITE5_3_REF(0));
-         tu_cs_emit(cs, CP_COND_WRITE5_4_MASK(~0));
-         tu_cs_emit_qw(cs, buffer_iova);
-         if (flags & VK_QUERY_RESULT_64_BIT) {
-            tu_cs_emit_qw(cs, 0);
-         } else {
-            tu_cs_emit(cs, 0);
-         }
+         tu_cs_emit_qw(cs, available_iova);
+         tu_cs_emit(cs, CP_COND_EXEC_4_REF(0x2));
+         tu_cs_emit(cs, 6); /* Cond execute the next 6 DWORDS */
+
+         /* Start of conditional execution */
+         copy_query_value_gpu(cmdbuf, cs, result_iova, buffer_iova,
+                              0 /* offset */, flags);
+         /* End of conditional execution */
+      }
+
+      if (flags & VK_QUERY_RESULT_WITH_AVAILABILITY_BIT) {
+         copy_query_value_gpu(cmdbuf, cs, available_iova, buffer_iova,
+                              1 /* offset */, flags);
       }
    }
 
@@ -405,7 +416,6 @@ emit_reset_occlusion_query_pool(struct tu_cmd_buffer *cmdbuf,
       uint32_t query = firstQuery + i;
       uint64_t available_iova = occlusion_query_iova(pool, query, available);
       uint64_t result_iova = occlusion_query_iova(pool, query, result);
-      tu_cs_reserve_space(cmdbuf->device, cs, 11);
       tu_cs_emit_pkt7(cs, CP_MEM_WRITE, 4);
       tu_cs_emit_qw(cs, available_iova);
       tu_cs_emit_qw(cs, 0x0);
@@ -461,7 +471,6 @@ emit_begin_occlusion_query(struct tu_cmd_buffer *cmdbuf,
 
    uint64_t begin_iova = occlusion_query_iova(pool, query, begin);
 
-   tu_cs_reserve_space(cmdbuf->device, cs, 7);
    tu_cs_emit_regs(cs,
                    A6XX_RB_SAMPLE_COUNT_CONTROL(.copy = true));
 
@@ -526,7 +535,6 @@ emit_end_occlusion_query(struct tu_cmd_buffer *cmdbuf,
    uint64_t begin_iova = occlusion_query_iova(pool, query, begin);
    uint64_t end_iova = occlusion_query_iova(pool, query, end);
    uint64_t result_iova = occlusion_query_iova(pool, query, result);
-   tu_cs_reserve_space(cmdbuf->device, cs, 31);
    tu_cs_emit_pkt7(cs, CP_MEM_WRITE, 4);
    tu_cs_emit_qw(cs, end_iova);
    tu_cs_emit_qw(cs, 0xffffffffffffffffull);
@@ -569,7 +577,6 @@ emit_end_occlusion_query(struct tu_cmd_buffer *cmdbuf,
        */
       cs = &cmdbuf->draw_epilogue_cs;
 
-   tu_cs_reserve_space(cmdbuf->device, cs, 5);
    tu_cs_emit_pkt7(cs, CP_MEM_WRITE, 4);
    tu_cs_emit_qw(cs, available_iova);
    tu_cs_emit_qw(cs, 0x1);

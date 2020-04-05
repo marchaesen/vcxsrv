@@ -26,6 +26,19 @@
 #include "nir_deref.h"
 #include "util/hash_table.h"
 
+static bool
+is_trivial_deref_cast(nir_deref_instr *cast)
+{
+   nir_deref_instr *parent = nir_src_as_deref(cast->parent);
+   if (!parent)
+      return false;
+
+   return cast->mode == parent->mode &&
+          cast->type == parent->type &&
+          cast->dest.ssa.num_components == parent->dest.ssa.num_components &&
+          cast->dest.ssa.bit_size == parent->dest.ssa.bit_size;
+}
+
 void
 nir_deref_path_init(nir_deref_path *path,
                     nir_deref_instr *deref, void *mem_ctx)
@@ -44,6 +57,8 @@ nir_deref_path_init(nir_deref_path *path,
 
    *tail = NULL;
    for (nir_deref_instr *d = deref; d; d = nir_deref_instr_parent(d)) {
+      if (d->deref_type == nir_deref_type_cast && is_trivial_deref_cast(d))
+         continue;
       count++;
       if (count <= max_short_path_len)
          *(--head) = d;
@@ -64,8 +79,11 @@ nir_deref_path_init(nir_deref_path *path,
    path->path = ralloc_array(mem_ctx, nir_deref_instr *, count + 1);
    head = tail = path->path + count;
    *tail = NULL;
-   for (nir_deref_instr *d = deref; d; d = nir_deref_instr_parent(d))
+   for (nir_deref_instr *d = deref; d; d = nir_deref_instr_parent(d)) {
+      if (d->deref_type == nir_deref_type_cast && is_trivial_deref_cast(d))
+         continue;
       *(--head) = d;
+   }
 
 done:
    assert(head == path->path);
@@ -733,19 +751,6 @@ nir_rematerialize_derefs_in_use_blocks_impl(nir_function_impl *impl)
    _mesa_hash_table_destroy(state.cache, NULL);
 
    return state.progress;
-}
-
-static bool
-is_trivial_deref_cast(nir_deref_instr *cast)
-{
-   nir_deref_instr *parent = nir_src_as_deref(cast->parent);
-   if (!parent)
-      return false;
-
-   return cast->mode == parent->mode &&
-          cast->type == parent->type &&
-          cast->dest.ssa.num_components == parent->dest.ssa.num_components &&
-          cast->dest.ssa.bit_size == parent->dest.ssa.bit_size;
 }
 
 static bool

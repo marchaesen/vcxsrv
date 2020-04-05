@@ -33,6 +33,7 @@
 #include <X11/X.h>
 #include <dix.h>
 #include <propertyst.h>
+#include <validate.h>
 
 #include "xwayland-types.h"
 
@@ -40,9 +41,8 @@ struct xwl_window {
     struct xwl_screen *xwl_screen;
     struct wl_surface *surface;
     struct wp_viewport *viewport;
-    int32_t x, y, width, height;
     float scale_x, scale_y;
-    struct wl_shell_surface *shell_surface;
+    struct xdg_surface *xdg_surface;
     WindowPtr window;
     struct xorg_list link_damage;
     struct xorg_list link_window;
@@ -69,10 +69,15 @@ void xwl_window_check_resolution_change_emulation(struct xwl_window *xwl_window)
 void xwl_window_set_window_pixmap(WindowPtr window, PixmapPtr pixmap);
 Bool xwl_realize_window(WindowPtr window);
 Bool xwl_unrealize_window(WindowPtr window);
+Bool xwl_change_window_attributes(WindowPtr window, unsigned long mask);
 void xwl_resize_window(WindowPtr window,
                        int x, int y,
                        unsigned int width, unsigned int height,
                        WindowPtr sib);
+void xwl_move_window(WindowPtr window,
+                     int x, int y,
+                     WindowPtr next_sib,
+                     VTKind kind);
 Bool xwl_destroy_window(WindowPtr window);
 void xwl_window_post_damage(struct xwl_window *xwl_window);
 void xwl_window_create_frame_callback(struct xwl_window *xwl_window);

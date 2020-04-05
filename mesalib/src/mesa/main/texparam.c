@@ -924,7 +924,6 @@ _mesa_texture_parameteri(struct gl_context *ctx,
    case GL_TEXTURE_PRIORITY:
    case GL_TEXTURE_MAX_ANISOTROPY_EXT:
    case GL_TEXTURE_LOD_BIAS:
-   case GL_TEXTURE_COMPARE_FAIL_VALUE_ARB:
       {
          GLfloat fparam[4];
          fparam[0] = (GLfloat) param;
@@ -981,7 +980,6 @@ _mesa_texture_parameteriv(struct gl_context *ctx,
    case GL_TEXTURE_PRIORITY:
    case GL_TEXTURE_MAX_ANISOTROPY_EXT:
    case GL_TEXTURE_LOD_BIAS:
-   case GL_TEXTURE_COMPARE_FAIL_VALUE_ARB:
       {
          /* convert int param to float */
          GLfloat fparams[4];

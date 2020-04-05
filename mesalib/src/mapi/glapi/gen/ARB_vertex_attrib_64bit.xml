@@ -5,25 +5,25 @@
 
 <category name="GL_ARB_vertex_attrib_64bit" number="99">
 
-    <function name="VertexAttribL1d">
+    <function name="VertexAttribL1d" exec="dynamic">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLdouble"/>
     </function>
 
-    <function name="VertexAttribL2d">
+    <function name="VertexAttribL2d" exec="dynamic">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
     </function>
 
-    <function name="VertexAttribL3d">
+    <function name="VertexAttribL3d" exec="dynamic">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
         <param name="z" type="GLdouble"/>
     </function>
 
-    <function name="VertexAttribL4d">
+    <function name="VertexAttribL4d" exec="dynamic">
         <param name="index" type="GLuint"/>
         <param name="x" type="GLdouble"/>
         <param name="y" type="GLdouble"/>
@@ -31,27 +31,28 @@
         <param name="w" type="GLdouble"/>
     </function>
 
-    <function name="VertexAttribL1dv">
+    <function name="VertexAttribL1dv" exec="dynamic">
         <param name="index" type="GLuint"/>
-        <param name="v" type="const GLdouble *"/>
+        <param name="v" type="const GLdouble *" count="1"/>
     </function>
 
-    <function name="VertexAttribL2dv">
+    <function name="VertexAttribL2dv" exec="dynamic">
         <param name="index" type="GLuint"/>
-        <param name="v" type="const GLdouble *"/>
+        <param name="v" type="const GLdouble *" count="2"/>
     </function>
 
-    <function name="VertexAttribL3dv">
+    <function name="VertexAttribL3dv" exec="dynamic">
         <param name="index" type="GLuint"/>
-        <param name="v" type="const GLdouble *"/>
+        <param name="v" type="const GLdouble *" count="3"/>
     </function>
 
-    <function name="VertexAttribL4dv">
+    <function name="VertexAttribL4dv" exec="dynamic">
         <param name="index" type="GLuint"/>
-        <param name="v" type="const GLdouble *"/>
+        <param name="v" type="const GLdouble *" count="4"/>
     </function>
 
-    <function name="VertexAttribLPointer" no_error="true">
+    <function name="VertexAttribLPointer" no_error="true" marshal="async"
+              marshal_call_after="if (COMPAT) _mesa_glthread_AttribPointer(ctx, VERT_ATTRIB_GENERIC(index));">
         <param name="index" type="GLuint"/>
         <param name="size" type="GLint"/>
         <param name="type" type="GLenum"/>

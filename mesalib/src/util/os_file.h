@@ -27,15 +27,21 @@ os_file_create_unique(const char *filename, int filemode);
 /*
  * Read a file.
  * Returns a char* that the caller must free(), or NULL and sets errno.
+ * If size is not null and no error occured it's set to the size of the
+ * file.
  */
 char *
-os_read_file(const char *filename);
+os_read_file(const char *filename, size_t *size);
 
 /*
- * Returns true if the two file descriptors passed in can be determined to
- * reference the same file description, false otherwise
+ * Try to determine if two file descriptors reference the same file description
+ *
+ * Return values:
+ * - 0:   They reference the same file description
+ * - > 0: They do not reference the same file description
+ * - < 0: Unable to determine whether they reference the same file description
  */
-bool
+int
 os_same_file_description(int fd1, int fd2);
 
 #ifdef __cplusplus

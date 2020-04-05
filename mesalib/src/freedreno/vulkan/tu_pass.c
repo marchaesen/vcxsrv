@@ -81,7 +81,6 @@ compute_gmem_offsets(struct tu_render_pass *pass, uint32_t gmem_size)
    }
 
    pass->gmem_pixels = pixels;
-   assert(pixels);
 }
 
 VkResult

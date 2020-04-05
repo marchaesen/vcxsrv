@@ -35,7 +35,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define VBO_EXEC_H
 
 #include "main/dd.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "vbo.h"
 #include "vbo_attrib.h"
 
@@ -44,12 +44,6 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
  * Max number of primitives (number of glBegin/End pairs) per VBO.
  */
 #define VBO_MAX_PRIM 64
-
-
-/**
- * Size (in bytes) of the VBO to use for glBegin/glVertex/glEnd-style rendering.
- */
-#define VBO_VERT_BUFFER_SIZE (1024 * 64)
 
 
 struct vbo_exec_eval1_map {
@@ -80,6 +74,7 @@ struct vbo_exec_context
       struct gl_buffer_object *bufferobj;
 
       GLuint vertex_size;       /* in dwords */
+      GLuint vertex_size_no_pos;
 
       struct _mesa_prim prim[VBO_MAX_PRIM];
       GLuint prim_count;
@@ -87,6 +82,7 @@ struct vbo_exec_context
       fi_type *buffer_map;
       fi_type *buffer_ptr;              /* cursor, points into buffer */
       GLuint   buffer_used;             /* in bytes */
+      unsigned buffer_offset;           /* only for persistent mappings */
       fi_type vertex[VBO_ATTRIB_MAX*4]; /* current vertex */
 
       GLuint vert_count;   /**< Number of vertices currently in buffer */
@@ -94,9 +90,13 @@ struct vbo_exec_context
       struct vbo_exec_copied_vtx copied;
 
       GLbitfield64 enabled;             /**< mask of enabled vbo arrays. */
-      GLubyte attrsz[VBO_ATTRIB_MAX];   /**< nr. of attrib components (1..4) */
-      GLenum16 attrtype[VBO_ATTRIB_MAX];  /**< GL_FLOAT, GL_DOUBLE, GL_INT, etc */
-      GLubyte active_sz[VBO_ATTRIB_MAX];  /**< attrib size (nr. 32-bit words) */
+
+      /* Keep these packed in a structure for faster access. */
+      struct {
+         GLenum16 type;       /**< GL_FLOAT, GL_DOUBLE, GL_INT, etc */
+         GLubyte active_size; /**< number of components, but can shrink */
+         GLubyte size;        /**< number of components (1..4) */
+      } attr[VBO_ATTRIB_MAX];
 
       /** pointers into the current 'vertex' array, declared above */
       fi_type *attrptr[VBO_ATTRIB_MAX];
@@ -108,9 +108,6 @@ struct vbo_exec_context
       struct vbo_exec_eval2_map map2[VERT_ATTRIB_MAX];
    } eval;
 
-   /* Which flags to set in vbo_exec_begin_vertices() */
-   GLbitfield begin_vertices_flags;
-
 #ifndef NDEBUG
    GLint flush_call_depth;
 #endif
@@ -119,19 +116,19 @@ struct vbo_exec_context
 
 
 void
-vbo_exec_init(struct gl_context *ctx);
+vbo_exec_init(struct gl_context *ctx, bool use_buffer_objects);
 
 void
 vbo_exec_destroy(struct gl_context *ctx);
 
 void
-vbo_exec_vtx_init(struct vbo_exec_context *exec);
+vbo_exec_vtx_init(struct vbo_exec_context *exec, bool use_buffer_objects);
 
 void
 vbo_exec_vtx_destroy(struct vbo_exec_context *exec);
 
 void
-vbo_exec_vtx_flush(struct vbo_exec_context *exec, GLboolean unmap);
+vbo_exec_vtx_flush(struct vbo_exec_context *exec);
 
 void
 vbo_exec_vtx_map(struct vbo_exec_context *exec);

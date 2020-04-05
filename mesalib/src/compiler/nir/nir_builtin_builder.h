@@ -25,7 +25,7 @@
 #define NIR_BUILTIN_BUILDER_H
 
 #include "util/u_math.h"
-#include "nir/nir_builder.h"
+#include "nir_builder.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -86,6 +86,18 @@ nir_uabs_diff(nir_builder *b, nir_ssa_def *x, nir_ssa_def *y)
    nir_ssa_def *res0 = nir_isub(b, x, y);
    nir_ssa_def *res1 = nir_isub(b, y, x);
    return nir_bcsel(b, cond, res0, res1);
+}
+
+static inline nir_ssa_def *
+nir_fexp(nir_builder *b, nir_ssa_def *x)
+{
+   return nir_fexp2(b, nir_fmul_imm(b, x, M_LOG2E));
+}
+
+static inline nir_ssa_def *
+nir_flog(nir_builder *b, nir_ssa_def *x)
+{
+   return nir_fmul_imm(b, nir_flog2(b, x), 1.0 / M_LOG2E);
 }
 
 static inline nir_ssa_def *

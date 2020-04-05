@@ -1583,7 +1583,7 @@ CheckKeyTypes(ClientPtr client,
               XkbDescPtr xkb,
               xkbSetMapReq * req,
               xkbKeyTypeWireDesc ** wireRtrn,
-              int *nMapsRtrn, CARD8 *mapWidthRtrn)
+              int *nMapsRtrn, CARD8 *mapWidthRtrn, Bool doswap)
 {
     unsigned nMaps;
     register unsigned i, n;
@@ -1622,7 +1622,7 @@ CheckKeyTypes(ClientPtr client,
     for (i = 0; i < req->nTypes; i++) {
         unsigned width;
 
-        if (client->swapped) {
+        if (client->swapped && doswap) {
             swaps(&wire->virtualMods);
         }
         n = i + req->firstType;
@@ -1649,7 +1649,7 @@ CheckKeyTypes(ClientPtr client,
             mapWire = (xkbKTSetMapEntryWireDesc *) &wire[1];
             preWire = (xkbModsWireDesc *) &mapWire[wire->nMapEntries];
             for (n = 0; n < wire->nMapEntries; n++) {
-                if (client->swapped) {
+                if (client->swapped && doswap) {
                     swaps(&mapWire[n].virtualMods);
                 }
                 if (mapWire[n].realMods & (~wire->realMods)) {
@@ -1667,7 +1667,7 @@ CheckKeyTypes(ClientPtr client,
                     return 0;
                 }
                 if (wire->preserve) {
-                    if (client->swapped) {
+                    if (client->swapped && doswap) {
                         swaps(&preWire[n].virtualMods);
                     }
                     if (preWire[n].realMods & (~mapWire[n].realMods)) {
@@ -1706,7 +1706,7 @@ CheckKeySyms(ClientPtr client,
              xkbSetMapReq * req,
              int nTypes,
              CARD8 *mapWidths,
-             CARD16 *symsPerKey, xkbSymMapWireDesc ** wireRtrn, int *errorRtrn)
+             CARD16 *symsPerKey, xkbSymMapWireDesc ** wireRtrn, int *errorRtrn, Bool doswap)
 {
     register unsigned i;
     XkbSymMapPtr map;
@@ -1720,7 +1720,7 @@ CheckKeySyms(ClientPtr client,
         KeySym *pSyms;
         register unsigned nG;
 
-        if (client->swapped) {
+        if (client->swapped && doswap) {
             swaps(&wire->nSyms);
         }
         nG = XkbNumGroups(wire->groupInfo);
@@ -2367,11 +2367,11 @@ SetVirtualModMap(XkbSrvInfoPtr xkbi,
 
 /**
  * Check if the given request can be applied to the given device but don't
- * actually do anything..
+ * actually do anything, except swap values when client->swapped and doswap are both true.
  */
 static int
 _XkbSetMapChecks(ClientPtr client, DeviceIntPtr dev, xkbSetMapReq * req,
-                 char *values)
+                 char *values, Bool doswap)
 {
     XkbSrvInfoPtr xkbi;
     XkbDescPtr xkb;
@@ -2411,9 +2411,12 @@ _XkbSetMapChecks(ClientPtr client, DeviceIntPtr dev, xkbSetMapReq * req,
 
     if ((req->present & XkbKeyTypesMask) &&
         (!CheckKeyTypes(client, xkb, req, (xkbKeyTypeWireDesc **) &values,
-                        &nTypes, mapWidths))) {
+                        &nTypes, mapWidths, doswap))) {
         client->errorValue = nTypes;
         return BadValue;
+    }
+    else {
+        nTypes = xkb->map->num_types;
     }
 
     /* symsPerKey/mapWidths must be filled regardless of client-side flags */
@@ -2425,7 +2428,7 @@ _XkbSetMapChecks(ClientPtr client, DeviceIntPtr dev, xkbSetMapReq * req,
         for (w = g = 0; g < ng; g++) {
             if (map->kt_index[g] >= (unsigned) nTypes) {
                 client->errorValue = _XkbErrCode4(0x13, i, g, map->kt_index[g]);
-                return 0;
+                return BadValue;
             }
             if (mapWidths[map->kt_index[g]] > w)
                 w = mapWidths[map->kt_index[g]];
@@ -2435,7 +2438,7 @@ _XkbSetMapChecks(ClientPtr client, DeviceIntPtr dev, xkbSetMapReq * req,
 
     if ((req->present & XkbKeySymsMask) &&
         (!CheckKeySyms(client, xkb, req, nTypes, mapWidths, symsPerKey,
-                       (xkbSymMapWireDesc **) &values, &error))) {
+                       (xkbSymMapWireDesc **) &values, &error, doswap))) {
         client->errorValue = error;
         return BadValue;
     }
@@ -2627,7 +2630,7 @@ ProcXkbSetMap(ClientPtr client)
     /* Check if we can to the SetMap on the requested device. If this
        succeeds, do the same thing for all extension devices (if needed).
        If any of them fails, fail.  */
-    rc = _XkbSetMapChecks(client, dev, stuff, tmp);
+    rc = _XkbSetMapChecks(client, dev, stuff, tmp, TRUE);
 
     if (rc != Success)
         return rc;
@@ -2643,7 +2646,7 @@ ProcXkbSetMap(ClientPtr client)
                 rc = XaceHook(XACE_DEVICE_ACCESS, client, other,
                               DixManageAccess);
                 if (rc == Success) {
-                    rc = _XkbSetMapChecks(client, other, stuff, tmp);
+                    rc = _XkbSetMapChecks(client, other, stuff, tmp, FALSE);
                     if (rc != Success)
                         return rc;
                 }
@@ -2657,7 +2660,7 @@ ProcXkbSetMap(ClientPtr client)
                 (other != master || dev != master->lastSlave))
                 continue;
 
-            rc = _XkbSetMapChecks(client, other, stuff, tmp);
+            rc = _XkbSetMapChecks(client, other, stuff, tmp, FALSE);
             if (rc != Success)
                 return rc;
         }

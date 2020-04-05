@@ -1,4 +1,4 @@
-job_name: mesa-deqp-{{ gpu_version }} {{ pipeline_info }}
+job_name: mesa-deqp-{{ deqp_version }}-{{ gpu_version }} {{ pipeline_info }}
 device_type: {{ device_type }}
 timeouts:
   job:
@@ -11,8 +11,9 @@ timeouts:
 priority: 75
 visibility: public
 {% if tags %}
+{% set lavatags = tags.split(',') %}
 tags:
-{% for tag in tags %}
+{% for tag in lavatags %}
   - {{ tag }}
 {% endfor %}
 {% endif %}
@@ -20,6 +21,13 @@ actions:
 - deploy:
     timeout:
       minutes: 10
+{% if boot_method == "fastboot" %}
+{# fastboot has just one boot image with the dtb and rootfs packed in #}
+    to: fastboot
+    images:
+      boot:
+        url: {{ base_artifacts_url }}/{{ kernel_image_name }}
+{% else %}
     to: tftp
     kernel:
       url: {{ base_artifacts_url }}/{{ kernel_image_name }}
@@ -31,14 +39,25 @@ actions:
       compression: gz
     dtb:
       url: {{ base_artifacts_url }}/{{ device_type }}.dtb
+{% endif %}
     os: oe
 - boot:
     timeout:
       minutes: 5
     method: {{ boot_method }}
+{% if boot_method == "fastboot" %}
+{#
+   For fastboot, LAVA doesn't know how to unpack the rootfs/apply overlay/repack,
+   so we transfer the overlay over the network after boot.
+#}
+    transfer_overlay:
+      download_command: wget -S --progress=dot:giga
+      unpack_command: tar -C / -xzf
+{% else %}
     commands: ramdisk
+{% endif %}
     prompts:
-      - '#' 
+      - 'lava-shell:'
 - test:
     timeout:
       minutes: 60
@@ -56,7 +75,7 @@ actions:
           steps:
           - mount -t proc none /proc
           - mount -t sysfs none /sys 
-          - mount -t devtmpfs none /dev
+          - mount -t devtmpfs none /dev || echo possibly already mounted
           - mkdir -p /dev/pts
           - mount -t devpts devpts /dev/pts
 
@@ -64,24 +83,17 @@ actions:
           - export {{ env_vars }}
 {% endif %}
 
+          # deqp-runner.sh assumes some stuff is in pwd
+          - cd /
+
           - export DEQP_NO_SAVE_RESULTS=1
           - 'export DEQP_RUNNER_OPTIONS="--compact-display false --shuffle false"'
           - export DEQP_EXPECTED_FAILS=deqp-{{ gpu_version }}-fails.txt
           - export DEQP_SKIPS=deqp-{{ gpu_version }}-skips.txt
           - export DEQP_VER={{ deqp_version }}
           - export LIBGL_DRIVERS_PATH=`pwd`/install/lib/dri
-          - export CI_NODE_INDEX={{ ci_node_index }}
-          - export CI_NODE_TOTAL={{ ci_node_total }}
 
-          # Put stuff where the runner script expects it
-          - mkdir artifacts
-          - mkdir results
-          - mkdir -p install/lib
-          - cp /deqp/$DEQP_EXPECTED_FAILS artifacts/.
-          - cp /deqp/$DEQP_SKIPS artifacts/.
-          - mv /mesa/lib/* install/lib/.
-
-          - "if sh /deqp/deqp-runner.sh; then
+          - "if sh /install/deqp-runner.sh; then
                   echo 'deqp: pass';
              else
                   echo 'deqp: fail';

@@ -38,7 +38,7 @@
 #include "framebuffer.h"
 #include "hash.h"
 #include "image.h"
-#include "imports.h"
+#include "util/imports.h"
 #include "macros.h"
 #include "mipmap.h"
 #include "multisample.h"

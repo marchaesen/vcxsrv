@@ -46,23 +46,8 @@
 #include "os/os_thread.h"
 #include "u_hash_table.h"
 
-struct util_hash_table* symbols_hash;
+struct hash_table* symbols_hash;
 static mtx_t symbols_mutex = _MTX_INITIALIZER_NP;
-
-static unsigned hash_ptr(void* p)
-{
-   return (unsigned)(uintptr_t)p;
-}
-
-static int compare_ptr(void* a, void* b)
-{
-   if(a == b)
-      return 0;
-   else if(a < b)
-      return -1;
-   else
-      return 1;
-}
 
 /* TODO with some refactoring we might be able to re-use debug_symbol_name_cached()
  * instead.. otoh if using libunwind I think u_debug_symbol could just be excluded
@@ -76,7 +61,7 @@ symbol_name_cached(unw_cursor_t *cursor, unw_proc_info_t *pip)
 
    mtx_lock(&symbols_mutex);
    if(!symbols_hash)
-      symbols_hash = util_hash_table_create(hash_ptr, compare_ptr);
+      symbols_hash = util_hash_table_create_ptr_keys();
    name = util_hash_table_get(symbols_hash, addr);
    if(!name)
    {
@@ -92,7 +77,7 @@ symbol_name_cached(unw_cursor_t *cursor, unw_proc_info_t *pip)
 
       if (asprintf(&name, "%s%s", procname, ret == -UNW_ENOMEM ? "..." : "") == -1) 
          name = "??";
-      util_hash_table_set(symbols_hash, addr, (void*)name);
+      _mesa_hash_table_insert(symbols_hash, addr, (void*)name);
    }
    mtx_unlock(&symbols_mutex);
 

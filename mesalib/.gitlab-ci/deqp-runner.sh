@@ -31,7 +31,7 @@ if [ -z "$DEQP_SKIPS" ]; then
    exit 1
 fi
 
-ARTIFACTS=`pwd`/artifacts
+INSTALL=`pwd`/install
 
 # Set up the driver environment.
 export LD_LIBRARY_PATH=`pwd`/install/lib/
@@ -66,10 +66,14 @@ if [ ! -s /tmp/case-list.txt ]; then
 fi
 
 if [ -n "$DEQP_EXPECTED_FAILS" ]; then
-    XFAIL="--xfail-list $ARTIFACTS/$DEQP_EXPECTED_FAILS"
+    XFAIL="--xfail-list $INSTALL/$DEQP_EXPECTED_FAILS"
 fi
 
 set +e
+
+if [ -n "$DEQP_PARALLEL" ]; then
+   JOB="--job $DEQP_PARALLEL"
+fi
 
 run_cts() {
     deqp=$1
@@ -79,9 +83,9 @@ run_cts() {
         --deqp $deqp \
         --output $output \
         --caselist $caselist \
-        --exclude-list $ARTIFACTS/$DEQP_SKIPS \
+        --exclude-list $INSTALL/$DEQP_SKIPS \
         $XFAIL \
-        --job ${DEQP_PARALLEL:-1} \
+        $JOB \
 	--allow-flakes true \
 	$DEQP_RUNNER_OPTIONS \
         -- \
@@ -178,6 +182,22 @@ generate_junit() {
     echo "</testsuites>"
 }
 
+parse_renderer() {
+    RENDERER=`grep -A1 TestCaseResult.\*info.renderer $RESULTS/deqp-info.qpa | grep '<Text' | sed 's|.*<Text>||g' | sed 's|</Text>||g'`
+    VERSION=`grep -A1 TestCaseResult.\*info.version $RESULTS/deqp-info.qpa | grep '<Text' | sed 's|.*<Text>||g' | sed 's|</Text>||g'`
+    echo "Renderer: $RENDERER"
+    echo "Version: $VERSION "
+}
+
+check_renderer() {
+    echo "Capturing renderer info for driver sanity checks"
+    # If you're having trouble loading your driver, uncommenting this may help
+    # debug.
+    # export EGL_LOG_LEVEL=debug
+    $DEQP $DEQP_OPTIONS --deqp-case=dEQP-GLES2.info.\* --deqp-log-filename=$RESULTS/deqp-info.qpa
+    parse_renderer
+}
+
 # wrapper to supress +x to avoid spamming the log
 quiet() {
     set +x
@@ -185,25 +205,34 @@ quiet() {
     set -x
 }
 
+if [ $DEQP_VER != vk ]; then
+    quiet check_renderer
+fi
+
 run_cts $DEQP /tmp/case-list.txt $RESULTS/cts-runner-results.txt
 DEQP_EXITCODE=$?
 
-quiet generate_junit $RESULTS/cts-runner-results.txt > $RESULTS/results.xml
+# junit is disabled, because it overloads gitlab.freedesktop.org to parse it.
+#quiet generate_junit $RESULTS/cts-runner-results.txt > $RESULTS/results.xml
 
 if [ $DEQP_EXITCODE -ne 0 ]; then
     # preserve caselist files in case of failures:
     cp /tmp/deqp_runner.*.txt $RESULTS/
-    echo "Some unexpected results found (see cts-runner-results.txt in artifacts for full results):"
     cat $RESULTS/cts-runner-results.txt | \
         grep -v ",Pass" | \
         grep -v ",Skip" | \
         grep -v ",ExpectedFail" > \
         $RESULTS/cts-runner-unexpected-results.txt
-    head -n 50 $RESULTS/cts-runner-unexpected-results.txt
 
     if [ -z "$DEQP_NO_SAVE_RESULTS" ]; then
+        echo "Some unexpected results found (see cts-runner-results.txt in artifacts for full results):"
+        head -n 50 $RESULTS/cts-runner-unexpected-results.txt
+
         # Save the logs for up to the first 50 unexpected results:
         head -n 50 $RESULTS/cts-runner-unexpected-results.txt | quiet extract_xml_results /tmp/*.qpa
+    else
+        echo "Unexpected results found:"
+        cat $RESULTS/cts-runner-unexpected-results.txt
     fi
 
     count=`cat $RESULTS/cts-runner-unexpected-results.txt | wc -l`

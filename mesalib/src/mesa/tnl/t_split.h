@@ -57,6 +57,8 @@ _tnl_split_inplace(struct gl_context *ctx,
                    const struct _mesa_index_buffer *ib,
                    GLuint min_index,
                    GLuint max_index,
+                   GLuint num_instances,
+                   GLuint base_instance,
                    tnl_draw_func draw,
                    const struct split_limits *limits);
 

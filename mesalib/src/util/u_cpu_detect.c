@@ -33,6 +33,7 @@
  */
 
 #include "pipe/p_config.h"
+#include "pipe/p_compiler.h"
 
 #include "util/u_debug.h"
 #include "u_cpu_detect.h"
@@ -83,7 +84,7 @@
 
 
 #ifdef DEBUG
-DEBUG_GET_ONCE_BOOL_OPTION(dump_cpu, "GALLIUM_DUMP_CPU", FALSE)
+DEBUG_GET_ONCE_BOOL_OPTION(dump_cpu, "GALLIUM_DUMP_CPU", false)
 #endif
 
 

@@ -36,21 +36,6 @@
 #include "teximage.h"
 #include "enums.h"
 
-/*
- * Define endian-invariant aliases for some mesa formats that are
- * defined in terms of their channel layout from LSB to MSB in a
- * 32-bit word.  The actual byte offsets matter here because the user
- * is allowed to bit-cast one format into another and get predictable
- * results.
- */
-#ifdef MESA_BIG_ENDIAN
-# define MESA_FORMAT_RGBA_8 MESA_FORMAT_A8B8G8R8_UNORM
-# define MESA_FORMAT_SIGNED_RGBA_8 MESA_FORMAT_A8B8G8R8_SNORM
-#else
-# define MESA_FORMAT_RGBA_8 MESA_FORMAT_R8G8B8A8_UNORM
-# define MESA_FORMAT_SIGNED_RGBA_8 MESA_FORMAT_R8G8B8A8_SNORM
-#endif
-
 mesa_format
 _mesa_get_shader_image_format(GLenum format)
 {
@@ -140,7 +125,7 @@ _mesa_get_shader_image_format(GLenum format)
       return MESA_FORMAT_R10G10B10A2_UNORM;
 
    case GL_RGBA8:
-      return MESA_FORMAT_RGBA_8;
+      return MESA_FORMAT_RGBA_UNORM8;
 
    case GL_RG16:
       return MESA_FORMAT_RG_UNORM16;
@@ -158,7 +143,7 @@ _mesa_get_shader_image_format(GLenum format)
       return MESA_FORMAT_RGBA_SNORM16;
 
    case GL_RGBA8_SNORM:
-      return MESA_FORMAT_SIGNED_RGBA_8;
+      return MESA_FORMAT_RGBA_SNORM8;
 
    case GL_RG16_SNORM:
       return MESA_FORMAT_RG_SNORM16;
@@ -286,7 +271,7 @@ get_image_format_class(mesa_format format)
    case MESA_FORMAT_R10G10B10A2_UNORM:
       return IMAGE_FORMAT_CLASS_2_10_10_10;
 
-   case MESA_FORMAT_RGBA_8:
+   case MESA_FORMAT_RGBA_UNORM8:
       return IMAGE_FORMAT_CLASS_4X8;
 
    case MESA_FORMAT_RG_UNORM16:
@@ -304,7 +289,7 @@ get_image_format_class(mesa_format format)
    case MESA_FORMAT_RGBA_SNORM16:
       return IMAGE_FORMAT_CLASS_4X16;
 
-   case MESA_FORMAT_SIGNED_RGBA_8:
+   case MESA_FORMAT_RGBA_SNORM8:
       return IMAGE_FORMAT_CLASS_4X8;
 
    case MESA_FORMAT_RG_SNORM16:

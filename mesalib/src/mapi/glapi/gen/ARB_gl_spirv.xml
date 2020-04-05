@@ -10,10 +10,10 @@
 
     <function name="SpecializeShaderARB">
         <param name="shader" type="GLuint"/>
-        <param name="pEntryPoint" type="const GLchar *"/>
+        <param name="pEntryPoint" type="const GLchar *" count="(strlen(pEntryPoint) + 1)"/>
         <param name="numSpecializationConstants" type="GLuint"/>
-        <param name="pConstantIndex" type="const GLuint *"/>
-        <param name="pConstantValue" type="const GLuint *"/>
+        <param name="pConstantIndex" type="const GLuint *" count="numSpecializationConstants"/>
+        <param name="pConstantValue" type="const GLuint *" count="numSpecializationConstants"/>
     </function>
 
 </category>

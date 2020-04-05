@@ -31,11 +31,12 @@
 
 #include "defs.h"
 #include "ssh.h"
+#include "sshkeygen.h"
 #include "misc.h"
 #include "mpint.h"
 #include "ecc.h"
 
-static NORETURN void fatal_error(const char *p, ...)
+static NORETURN PRINTF_LIKE(1, 2) void fatal_error(const char *p, ...)
 {
     va_list ap;
     fprintf(stderr, "testcrypt: ");
@@ -55,10 +56,15 @@ static bool old_keyfile_warning_given;
 void old_keyfile_warning(void) { old_keyfile_warning_given = true; }
 
 static bufchain random_data_queue;
+static prng *test_prng;
 void random_read(void *buf, size_t size)
 {
-    if (!bufchain_try_fetch_consume(&random_data_queue, buf, size))
-        fatal_error("No random data in queue");
+    if (test_prng) {
+        prng_read(test_prng, buf, size);
+    } else {
+        if (!bufchain_try_fetch_consume(&random_data_queue, buf, size))
+            fatal_error("No random data in queue");
+    }
 }
 
 uint64_t prng_reseed_time_ms(void)
@@ -87,6 +93,10 @@ uint64_t prng_reseed_time_ms(void)
     X(rsakex, RSAKey *, ssh_rsakex_freekey(v))                          \
     X(rsa, RSAKey *, rsa_free(v))                                       \
     X(prng, prng *, prng_free(v))                                       \
+    X(keycomponents, key_components *, key_components_free(v))          \
+    X(pcs, PrimeCandidateSource *, pcs_free(v))                         \
+    X(pgc, PrimeGenerationContext *, primegen_free_context(v))          \
+    X(pockle, Pockle *, pockle_free(v))                                 \
     /* end of list */
 
 typedef struct Value Value;
@@ -99,11 +109,17 @@ enum ValueType {
 
 typedef enum ValueType ValueType;
 
-const char *const type_names[] = {
+static const char *const type_names[] = {
 #define VALTYPE_NAME(n,t,f) #n,
     VALUE_TYPES(VALTYPE_NAME)
 #undef VALTYPE_NAME
 };
+
+#define VALTYPE_TYPEDEF(n,t,f)                  \
+    typedef t TD_val_##n;                       \
+    typedef t *TD_out_val_##n;
+VALUE_TYPES(VALTYPE_TYPEDEF)
+#undef VALTYPE_TYPEDEF
 
 struct Value {
     /*
@@ -200,6 +216,11 @@ static const ssh_hashalg *get_hashalg(BinarySource *in)
         {"sha256_hw", &ssh_sha256_hw},
         {"sha384", &ssh_sha384},
         {"sha512", &ssh_sha512},
+        {"sha3_224", &ssh_sha3_224},
+        {"sha3_256", &ssh_sha3_256},
+        {"sha3_384", &ssh_sha3_384},
+        {"sha3_512", &ssh_sha3_512},
+        {"shake256_114bytes", &ssh_shake256_114bytes},
     };
 
     ptrlen name = get_word(in);
@@ -242,6 +263,7 @@ static const ssh_keyalg *get_keyalg(BinarySource *in)
         {"dsa", &ssh_dss},
         {"rsa", &ssh_rsa},
         {"ed25519", &ssh_ecdsa_ed25519},
+        {"ed448", &ssh_ecdsa_ed448},
         {"p256", &ssh_ecdsa_nistp256},
         {"p384", &ssh_ecdsa_nistp384},
         {"p521", &ssh_ecdsa_nistp521},
@@ -324,6 +346,7 @@ static const ssh_kex *get_ecdh_alg(BinarySource *in)
         const ssh_kex *value;
     } algs[] = {
         {"curve25519", &ssh_ec_kex_curve25519},
+        {"curve448", &ssh_ec_kex_curve448},
         {"nistp256", &ssh_ec_kex_nistp256},
         {"nistp384", &ssh_ec_kex_nistp384},
         {"nistp521", &ssh_ec_kex_nistp521},
@@ -355,6 +378,26 @@ static RsaSsh1Order get_rsaorder(BinarySource *in)
     fatal_error("rsaorder '%.*s': not found", PTRLEN_PRINTF(name));
 }
 
+static const PrimeGenerationPolicy *get_primegenpolicy(BinarySource *in)
+{
+    static const struct {
+        const char *key;
+        const PrimeGenerationPolicy *value;
+    } algs[] = {
+        {"probabilistic", &primegen_probabilistic},
+        {"provable_fast", &primegen_provable_fast},
+        {"provable_maurer_simple", &primegen_provable_maurer_simple},
+        {"provable_maurer_complex", &primegen_provable_maurer_complex},
+    };
+
+    ptrlen name = get_word(in);
+    for (size_t i = 0; i < lenof(algs); i++)
+        if (ptrlen_eq_string(name, algs[i].key))
+            return algs[i].value;
+
+    fatal_error("primegenpolicy '%.*s': not found", PTRLEN_PRINTF(name));
+}
+
 static uintmax_t get_uint(BinarySource *in)
 {
     ptrlen word = get_word(in);
@@ -362,6 +405,11 @@ static uintmax_t get_uint(BinarySource *in)
     uintmax_t toret = strtoumax(string, NULL, 0);
     sfree(string);
     return toret;
+}
+
+static bool get_boolean(BinarySource *in)
+{
+    return ptrlen_eq_string(get_word(in), "true");
 }
 
 static Value *lookup_value(ptrlen word)
@@ -384,7 +432,7 @@ struct finaliser {
 };
 
 static struct finaliser *finalisers;
-size_t nfinalisers, finalisersize;
+static size_t nfinalisers, finalisersize;
 
 static void add_finaliser(finaliser_fn_t fn, void *ctx)
 {
@@ -406,6 +454,11 @@ static void finaliser_return_value(strbuf *out, void *ctx)
     Value *val = (Value *)ctx;
     put_datapl(out, val->id);
     put_byte(out, '\n');
+}
+
+static void finaliser_sfree(strbuf *out, void *ctx)
+{
+    sfree(ctx);
 }
 
 #define VALTYPE_GETFN(n,t,f)                                            \
@@ -449,6 +502,26 @@ static mp_int **get_out_val_mpint(BinarySource *in)
     Value *val = value_new(VT_mpint);
     add_finaliser(finaliser_return_value, val);
     return &val->vu_mpint;
+}
+
+struct mpint_list {
+    size_t n;
+    mp_int **integers;
+};
+
+static struct mpint_list get_mpint_list(BinarySource *in)
+{
+    size_t n = get_uint(in);
+
+    struct mpint_list mpl;
+    mpl.n = n;
+
+    mpl.integers = snewn(n, mp_int *);
+    for (size_t i = 0; i < n; i++)
+        mpl.integers[i] = get_val_mpint(in);
+
+    add_finaliser(finaliser_sfree, mpl.integers);
+    return mpl;
 }
 
 static void finaliser_return_uint(strbuf *out, void *ctx)
@@ -514,11 +587,6 @@ static const char **get_out_opt_val_string_asciz_const(BinarySource *in)
     return valp;
 }
 
-static void finaliser_sfree(strbuf *out, void *ctx)
-{
-    sfree(ctx);
-}
-
 static BinarySource *get_val_string_binarysource(BinarySource *in)
 {
     strbuf *sb = get_val_string(in);
@@ -528,14 +596,18 @@ static BinarySource *get_val_string_binarysource(BinarySource *in)
     return src;
 }
 
-static ssh_hash *get_consumed_val_hash(BinarySource *in)
-{
-    Value *val = get_value_hash(in);
-    ssh_hash *toret = val->vu_hash;
-    del234(values, val);
-    sfree(val);
-    return toret;
-}
+#define GET_CONSUMED_FN(type)                                           \
+    typedef TD_val_##type TD_consumed_val_##type;                       \
+    static TD_val_##type get_consumed_val_##type(BinarySource *in)      \
+    {                                                                   \
+        Value *val = get_value_##type(in);                              \
+        TD_val_##type toret = val->vu_##type;                           \
+        del234(values, val);                                            \
+        sfree(val);                                                     \
+        return toret;                                                   \
+    }
+GET_CONSUMED_FN(hash)
+GET_CONSUMED_FN(pcs)
 
 static void return_int(strbuf *out, intmax_t u)
 {
@@ -550,6 +622,25 @@ static void return_uint(strbuf *out, uintmax_t u)
 static void return_boolean(strbuf *out, bool b)
 {
     strbuf_catf(out, "%s\n", b ? "true" : "false");
+}
+
+static void return_pocklestatus(strbuf *out, PockleStatus status)
+{
+    switch (status) {
+      default:
+        strbuf_catf(out, "POCKLE_BAD_STATUS_VALUE\n");
+        break;
+
+#define STATUS_CASE(id)                         \
+      case id:                                  \
+        strbuf_catf(out, "%s\n", #id);          \
+        break;
+
+        POCKLE_STATUSES(STATUS_CASE);
+
+#undef STATUS_CASE
+
+    }
 }
 
 static void return_val_string_asciz_const(strbuf *out, const char *s)
@@ -576,6 +667,7 @@ static void return_val_string_asciz(strbuf *out, char *s)
 
 NULLABLE_RETURN_WRAPPER(val_string, strbuf *)
 NULLABLE_RETURN_WRAPPER(val_string_asciz, char *)
+NULLABLE_RETURN_WRAPPER(val_string_asciz_const, const char *)
 NULLABLE_RETURN_WRAPPER(val_cipher, ssh_cipher *)
 NULLABLE_RETURN_WRAPPER(val_hash, ssh_hash *)
 NULLABLE_RETURN_WRAPPER(val_key, ssh_key *)
@@ -671,7 +763,22 @@ static size_t random_queue_len(void)
 
 static void random_clear(void)
 {
+    if (test_prng) {
+        prng_free(test_prng);
+        test_prng = NULL;
+    }
+
     bufchain_clear(&random_data_queue);
+}
+
+static void random_make_prng(const ssh_hashalg *hashalg, ptrlen seed)
+{
+    random_clear();
+
+    test_prng = prng_new(hashalg);
+    prng_seed_begin(test_prng);
+    put_datapl(test_prng, seed);
+    prng_seed_finish(test_prng);
 }
 
 mp_int *monty_identity_wrapper(MontyContext *mc)
@@ -1023,34 +1130,34 @@ strbuf *rsa1_save_sb_wrapper(RSAKey *key, const char *comment,
 
 #define return_void(out, expression) (expression)
 
-static void no_progress(void *param, int action, int phase, int iprogress) {}
+static ProgressReceiver null_progress = { .vt = &null_progress_vt };
 
-mp_int *primegen_wrapper(
-    int bits, int modulus, int residue, mp_int *factor, unsigned firstbits)
+mp_int *primegen_generate_wrapper(
+    PrimeGenerationContext *ctx, PrimeCandidateSource *pcs)
 {
-    return primegen(bits, modulus, residue, factor,
-                    0, no_progress, NULL, firstbits);
+    return primegen_generate(ctx, pcs, &null_progress);
 }
-#define primegen primegen_wrapper
+#define primegen_generate primegen_generate_wrapper
 
-RSAKey *rsa1_generate(int bits)
+RSAKey *rsa1_generate(int bits, bool strong, PrimeGenerationContext *pgc)
 {
     RSAKey *rsakey = snew(RSAKey);
-    rsa_generate(rsakey, bits, no_progress, NULL);
+    rsa_generate(rsakey, bits, strong, pgc, &null_progress);
     rsakey->comment = NULL;
     return rsakey;
 }
 
-ssh_key *rsa_generate_wrapper(int bits)
+ssh_key *rsa_generate_wrapper(int bits, bool strong,
+                              PrimeGenerationContext *pgc)
 {
-    return &rsa1_generate(bits)->sshk;
+    return &rsa1_generate(bits, strong, pgc)->sshk;
 }
 #define rsa_generate rsa_generate_wrapper
 
-ssh_key *dsa_generate_wrapper(int bits)
+ssh_key *dsa_generate_wrapper(int bits, PrimeGenerationContext *pgc)
 {
     struct dss_key *dsskey = snew(struct dss_key);
-    dsa_generate(dsskey, bits, no_progress, NULL);
+    dsa_generate(dsskey, bits, pgc, &null_progress);
     return &dsskey->sshk;
 }
 #define dsa_generate dsa_generate_wrapper
@@ -1058,7 +1165,7 @@ ssh_key *dsa_generate_wrapper(int bits)
 ssh_key *ecdsa_generate_wrapper(int bits)
 {
     struct ecdsa_key *ek = snew(struct ecdsa_key);
-    if (!ecdsa_generate(ek, bits, no_progress, NULL)) {
+    if (!ecdsa_generate(ek, bits)) {
         sfree(ek);
         return NULL;
     }
@@ -1069,7 +1176,7 @@ ssh_key *ecdsa_generate_wrapper(int bits)
 ssh_key *eddsa_generate_wrapper(int bits)
 {
     struct eddsa_key *ek = snew(struct eddsa_key);
-    if (!eddsa_generate(ek, bits, no_progress, NULL)) {
+    if (!eddsa_generate(ek, bits)) {
         sfree(ek);
         return NULL;
     }
@@ -1077,11 +1184,31 @@ ssh_key *eddsa_generate_wrapper(int bits)
 }
 #define eddsa_generate eddsa_generate_wrapper
 
-#define VALTYPE_TYPEDEF(n,t,f)                  \
-    typedef t TD_val_##n;                       \
-    typedef t *TD_out_val_##n;
-VALUE_TYPES(VALTYPE_TYPEDEF)
-#undef VALTYPE_TYPEDEF
+size_t key_components_count(key_components *kc) { return kc->ncomponents; }
+const char *key_components_nth_name(key_components *kc, size_t n)
+{
+    return (n >= kc->ncomponents ? NULL :
+            kc->components[n].name);
+}
+const char *key_components_nth_str(key_components *kc, size_t n)
+{
+    return (n >= kc->ncomponents ? NULL :
+            kc->components[n].is_mp_int ? NULL :
+            kc->components[n].text);
+}
+mp_int *key_components_nth_mp(key_components *kc, size_t n)
+{
+    return (n >= kc->ncomponents ? NULL :
+            !kc->components[n].is_mp_int ? NULL :
+            mp_copy(kc->components[n].mp));
+}
+
+PockleStatus pockle_add_prime_wrapper(Pockle *pockle, mp_int *p,
+                                      struct mpint_list mpl, mp_int *witness)
+{
+    return pockle_add_prime(pockle, p, mpl.integers, mpl.n, witness);
+}
+#define pockle_add_prime pockle_add_prime_wrapper
 
 #define OPTIONAL_PTR_FUNC(type)                                         \
     typedef TD_val_##type TD_opt_val_##type;                            \
@@ -1096,6 +1223,7 @@ OPTIONAL_PTR_FUNC(mpint)
 OPTIONAL_PTR_FUNC(string)
 
 typedef uintmax_t TD_uint;
+typedef bool TD_boolean;
 typedef ptrlen TD_val_string_ptrlen;
 typedef char *TD_val_string_asciz;
 typedef BinarySource *TD_val_string_binarysource;
@@ -1113,6 +1241,10 @@ typedef const ssh_cipheralg *TD_cipheralg;
 typedef const ssh_kex *TD_dh_group;
 typedef const ssh_kex *TD_ecdh_alg;
 typedef RsaSsh1Order TD_rsaorder;
+typedef key_components *TD_keycomponents;
+typedef const PrimeGenerationPolicy *TD_primegenpolicy;
+typedef struct mpint_list TD_mpint_list;
+typedef PockleStatus TD_pocklestatus;
 
 #define FUNC0(rettype, function)                                        \
     static void handle_##function(BinarySource *in, strbuf *out) {      \
@@ -1172,30 +1304,28 @@ static void process_line(BinarySource *in, strbuf *out)
 {
     ptrlen id = get_word(in);
 
-#define DISPATCH_COMMAND(cmd)                   \
-    if (ptrlen_eq_string(id, #cmd)) {           \
-        handle_##cmd(in, out);                  \
-        return;                                 \
-    }
+#define DISPATCH_INTERNAL(cmdname, handler) do {        \
+        if (ptrlen_eq_string(id, cmdname)) {            \
+            handler(in, out);                           \
+            return;                                     \
+        }                                               \
+    } while (0)
+
+#define DISPATCH_COMMAND(cmd) DISPATCH_INTERNAL(#cmd, handle_##cmd)
     DISPATCH_COMMAND(hello);
     DISPATCH_COMMAND(free);
     DISPATCH_COMMAND(newstring);
     DISPATCH_COMMAND(getstring);
     DISPATCH_COMMAND(mp_literal);
     DISPATCH_COMMAND(mp_dump);
+#undef DISPATCH_COMMAND
 
-#define FUNC(rettype, function, ...)            \
-    if (ptrlen_eq_string(id, #function)) {      \
-        handle_##function(in, out);             \
-        return;                                 \
-    }
-
-#define FUNC0 FUNC
-#define FUNC1 FUNC
-#define FUNC2 FUNC
-#define FUNC3 FUNC
-#define FUNC4 FUNC
-#define FUNC5 FUNC
+#define FUNC0(ret,func)           DISPATCH_INTERNAL(#func, handle_##func);
+#define FUNC1(ret,func,x)         DISPATCH_INTERNAL(#func, handle_##func);
+#define FUNC2(ret,func,x,y)       DISPATCH_INTERNAL(#func, handle_##func);
+#define FUNC3(ret,func,x,y,z)     DISPATCH_INTERNAL(#func, handle_##func);
+#define FUNC4(ret,func,x,y,z,v)   DISPATCH_INTERNAL(#func, handle_##func);
+#define FUNC5(ret,func,x,y,z,v,w) DISPATCH_INTERNAL(#func, handle_##func);
 
 #include "testcrypt.h"
 
@@ -1205,6 +1335,8 @@ static void process_line(BinarySource *in, strbuf *out)
 #undef FUNC2
 #undef FUNC1
 #undef FUNC0
+
+#undef DISPATCH_INTERNAL
 
     fatal_error("command '%.*s': unrecognised", PTRLEN_PRINTF(id));
 }
@@ -1286,7 +1418,7 @@ int main(int argc, char **argv)
         for (size_t i = 0; i < sb->len; i++)
             if (sb->s[i] == '\n')
                 lines++;
-        fprintf(outfp, "%zu\n%s", lines, sb->s);
+        fprintf(outfp, "%"SIZEu"\n%s", lines, sb->s);
         fflush(outfp);
         strbuf_free(sb);
         sfree(line);

@@ -159,7 +159,7 @@ vbo_exec_invalidate_state(struct gl_context *ctx)
 
 
 GLboolean
-_vbo_CreateContext(struct gl_context *ctx)
+_vbo_CreateContext(struct gl_context *ctx, bool use_buffer_objects)
 {
    struct vbo_context *vbo = CALLOC_STRUCT(vbo_context);
 
@@ -181,7 +181,7 @@ _vbo_CreateContext(struct gl_context *ctx)
     * will pretty much be permanently installed, which means that the
     * vtxfmt mechanism can be removed now.
     */
-   vbo_exec_init(ctx);
+   vbo_exec_init(ctx, use_buffer_objects);
    if (ctx->API == API_OPENGL_COMPAT)
       vbo_save_init(ctx);
 

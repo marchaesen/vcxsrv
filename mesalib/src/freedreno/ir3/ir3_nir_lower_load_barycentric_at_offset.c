@@ -63,6 +63,9 @@ ir3_nir_lower_load_barycentric_at_offset_instr(nir_builder *b,
 	nir_ssa_def *foo = nir_fddx(b, sij);
 	nir_ssa_def *bar = nir_fddy(b, sij);
 
+	if (b->shader->info.stage == MESA_SHADER_FRAGMENT)
+		b->shader->info.fs.needs_helper_invocations = true;
+
 	nir_ssa_def *x, *y, *z, *i, *j;
 
 	x = nir_ffma(b, chan(off, 0), chan(foo, 0), chan(sij, 0));

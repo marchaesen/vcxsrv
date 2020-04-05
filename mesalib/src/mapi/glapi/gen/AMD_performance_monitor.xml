@@ -48,7 +48,7 @@
 
     <function name="DeletePerfMonitorsAMD" es2="2.0">
         <param name="n" type="GLsizei"/>
-        <param name="monitors" type="GLuint *"/>
+        <param name="monitors" type="GLuint *" count="n"/>
     </function>
 
     <function name="SelectPerfMonitorCountersAMD" es2="2.0">
@@ -56,7 +56,7 @@
         <param name="enable" type="GLboolean"/>
         <param name="group" type="GLuint"/>
         <param name="numCounters" type="GLint"/>
-        <param name="counterList" type="GLuint *"/>
+        <param name="counterList" type="GLuint *" count="numCounters"/>
     </function>
 
     <function name="BeginPerfMonitorAMD" es2="2.0">

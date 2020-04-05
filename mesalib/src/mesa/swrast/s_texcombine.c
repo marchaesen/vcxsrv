@@ -26,7 +26,7 @@
 
 #include "main/glheader.h"
 #include "main/context.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/macros.h"
 #include "main/pixeltransfer.h"
 #include "main/samplerobj.h"

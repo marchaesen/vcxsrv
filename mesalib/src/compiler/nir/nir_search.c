@@ -736,7 +736,41 @@ nir_replace_instr(nir_builder *build, nir_alu_instr *instr,
    fprintf(stderr, " ssa_%d\n", instr->dest.dest.ssa.index);
 #endif
 
-   build->cursor = nir_before_instr(&instr->instr);
+   /* If the instruction at the root of the expression tree being replaced is
+    * a unary operation, insert the replacement instructions at the location
+    * of the source of the unary operation.  Otherwise, insert the replacement
+    * instructions at the location of the expression tree root.
+    *
+    * For the unary operation case, this is done to prevent some spurious code
+    * motion that can dramatically extend live ranges.  Imagine an expression
+    * like -(A+B) where the addtion and the negation are separated by flow
+    * control and thousands of instructions.  If this expression is replaced
+    * with -A+-B, inserting the new instructions at the site of the negation
+    * could extend the live range of A and B dramtically.  This could increase
+    * register pressure and cause spilling.
+    *
+    * It may well be that moving instructions around is a good thing, but
+    * keeping algebraic optimizations and code motion optimizations separate
+    * seems safest.
+    */
+   nir_alu_instr *const src_instr = nir_src_as_alu_instr(instr->src[0].src);
+   if (src_instr != NULL &&
+       (instr->op == nir_op_fneg || instr->op == nir_op_fabs ||
+        instr->op == nir_op_ineg || instr->op == nir_op_iabs ||
+        instr->op == nir_op_inot)) {
+      /* Insert new instructions *after*.  Otherwise a hypothetical
+       * replacement fneg(X) -> fabs(X) would insert the fabs() instruction
+       * before X!  This can also occur for things like fneg(X.wzyx) -> X.wzyx
+       * in vector mode.  A move instruction to handle the swizzle will get
+       * inserted before X.
+       *
+       * This manifested in a single OpenGL ES 2.0 CTS vertex shader test on
+       * older Intel GPU that use vector-mode vertex processing.
+       */
+      build->cursor = nir_after_instr(&src_instr->instr);
+   } else {
+      build->cursor = nir_before_instr(&instr->instr);
+   }
 
    state.states = states;
 
@@ -789,7 +823,7 @@ nir_algebraic_automaton(nir_instr *instr, struct util_dynarray *states,
        * itertools.product(), which was used to emit the transition
        * table.
        */
-      uint16_t index = 0;
+      unsigned index = 0;
       for (unsigned i = 0; i < nir_op_infos[op].num_inputs; i++) {
          index *= tbl->num_filtered_states;
          index += tbl->filter[*util_dynarray_element(states, uint16_t,

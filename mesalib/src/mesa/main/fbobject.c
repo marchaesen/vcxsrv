@@ -3042,6 +3042,7 @@ _mesa_bind_framebuffers(struct gl_context *ctx,
       check_begin_texture_render(ctx, newDrawFb);
 
       _mesa_reference_framebuffer(&ctx->DrawBuffer, newDrawFb);
+      _mesa_update_allow_draw_out_of_order(ctx);
    }
 
    if ((bindDrawBuf || bindReadBuf) && ctx->Driver.BindFramebuffer) {

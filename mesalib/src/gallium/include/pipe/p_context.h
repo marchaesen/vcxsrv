@@ -469,6 +469,17 @@ struct pipe_context {
 
 
    /**
+    * INTEL_blackhole_render
+    */
+   /*@{*/
+
+   void (*set_frontend_noop)(struct pipe_context *,
+                             bool enable);
+
+   /*@}*/
+
+
+   /**
     * Resource functions for blit-like functionality
     *
     * If a driver supports multisampling, blit must implement color resolve.

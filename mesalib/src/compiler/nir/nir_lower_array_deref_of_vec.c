@@ -80,6 +80,7 @@ nir_lower_array_deref_of_vec_impl(nir_function_impl *impl,
              intrin->intrinsic != nir_intrinsic_interp_deref_at_centroid &&
              intrin->intrinsic != nir_intrinsic_interp_deref_at_sample &&
              intrin->intrinsic != nir_intrinsic_interp_deref_at_offset &&
+             intrin->intrinsic != nir_intrinsic_interp_deref_at_vertex &&
              intrin->intrinsic != nir_intrinsic_store_deref)
             continue;
 

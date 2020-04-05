@@ -51,8 +51,7 @@
 #include "util/u_queue.h"
 #include "util/mesa-sha1.h"
 #include "util/ralloc.h"
-#include "main/compiler.h"
-#include "main/errors.h"
+#include "util/compiler.h"
 
 #include "disk_cache.h"
 
@@ -455,6 +454,12 @@ disk_cache_destroy(struct disk_cache *cache)
    ralloc_free(cache);
 }
 
+void
+disk_cache_wait_for_idle(struct disk_cache *cache)
+{
+   util_queue_finish(&cache->cache_queue);
+}
+
 /* Return a filename within the cache's directory corresponding to 'key'. The
  * returned filename is ralloced with 'cache' as the parent context.
  *
@@ -758,7 +763,11 @@ deflate_and_write_to_disk(const void *in_data, size_t in_data_size, int dest,
       free(out);
       return 0;
    }
-   write_all(dest, out, ret);
+   ssize_t written = write_all(dest, out, ret);
+   if (written == -1) {
+      free(out);
+      return 0;
+   }
    free(out);
    return ret;
 #else

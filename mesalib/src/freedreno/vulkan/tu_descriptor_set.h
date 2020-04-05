@@ -92,11 +92,10 @@ struct tu_pipeline_layout
    unsigned char sha1[20];
 };
 
-static inline const struct tu_sampler*
+static inline const uint32_t *
 tu_immutable_samplers(const struct tu_descriptor_set_layout *set,
                       const struct tu_descriptor_set_binding_layout *binding)
 {
-   return (struct tu_sampler *) ((const char *) set +
-                              binding->immutable_samplers_offset);
+   return (void *) ((const char *) set + binding->immutable_samplers_offset);
 }
 #endif /* TU_DESCRIPTOR_SET_H */

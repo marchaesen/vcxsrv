@@ -6319,9 +6319,85 @@
     {"name": "RE_Z", "value": 2},
     {"name": "EARLY_Z_THEN_RE_Z", "value": 3}
    ]
+  },
+  "ThreadTraceRegInclude": {
+    "entries": [
+     {"name": "REG_INCLUDE_SQDEC", "value": 1},
+     {"name": "REG_INCLUDE_SHDEC", "value": 2},
+     {"name": "REG_INCLUDE_GFXUDEC", "value": 4},
+     {"name": "REG_INCLUDE_COMP", "value": 8},
+     {"name": "REG_INCLUDE_CONTEXT", "value": 16},
+     {"name": "REG_INCLUDE_CONFIG", "value": 32},
+     {"name": "REG_INCLUDE_OTHER", "value": 64},
+     {"name": "REG_INCLUDE_READS", "value": 128}
+    ]
+  },
+  "ThreadTraceTokenExclude": {
+    "entries": [
+     {"name": "TOKEN_EXCLUDE_VMEMEXEC", "value": 1},
+     {"name": "TOKEN_EXCLUDE_ALUEXEC", "value": 2},
+     {"name": "TOKEN_EXCLUDE_VALUINST", "value": 4},
+     {"name": "TOKEN_EXCLUDE_WAVERDY", "value": 8},
+     {"name": "TOKEN_EXCLUDE_IMMED1", "value": 16},
+     {"name": "TOKEN_EXCLUDE_IMMEDIATE", "value": 32},
+     {"name": "TOKEN_EXCLUDE_REG", "value": 64},
+     {"name": "TOKEN_EXCLUDE_EVENT", "value": 128},
+     {"name": "TOKEN_EXCLUDE_INST", "value": 256},
+     {"name": "TOKEN_EXCLUDE_UTILCTR", "value": 512},
+     {"name": "TOKEN_EXCLUDE_WAVEALLOC", "value": 1024},
+     {"name": "TOKEN_EXCLUDE_PERF", "value": 2048}
+    ]
   }
  },
  "register_mappings": [
+  {
+   "chips": ["gfx10"],
+   "map": {"at": 36096, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_BUF0_BASE",
+   "type_ref": "SQ_THREAD_TRACE_BUF0_BASE"
+  },
+  {
+   "chips": ["gfx10"],
+   "map": {"at": 36100, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_BUF0_SIZE",
+   "type_ref": "SQ_THREAD_TRACE_BUF0_SIZE"
+  },
+  {
+   "chips": ["gfx10"],
+   "map": {"at": 36112, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_WPTR",
+   "type_ref": "SQ_THREAD_TRACE_WPTR"
+  },
+  {
+   "chips": ["gfx10"],
+   "map": {"at": 36116, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_MASK",
+   "type_ref": "SQ_THREAD_TRACE_MASK"
+  },
+  {
+   "chips": ["gfx10"],
+   "map": {"at": 36120, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_TOKEN_MASK",
+   "type_ref": "SQ_THREAD_TRACE_TOKEN_MASK"
+  },
+  {
+   "chips": ["gfx10"],
+   "map": {"at": 36124, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_CTRL",
+   "type_ref": "SQ_THREAD_TRACE_CTRL"
+  },
+  {
+   "chips": ["gfx10"],
+   "map": {"at": 36128, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_STATUS",
+   "type_ref": "SQ_THREAD_TRACE_STATUS"
+  },
+  {
+   "chips": ["gfx10"],
+   "map": {"at": 36132, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_DROPPED_CNTR",
+   "type_ref": "SQ_THREAD_TRACE_DROPPED_CNTR"
+  },
   {
    "chips": ["gfx10"],
    "map": {"at": 37804, "to": "mm"},
@@ -21045,6 +21121,75 @@
   "SQ_PERFCOUNTER_CTRL2": {
    "fields": [
     {"bits": [0, 0], "name": "FORCE_EN"}
+   ]
+  },
+  "SQ_THREAD_TRACE_BUF0_BASE": {
+   "fields": [
+    {"bits": [0, 31], "name": "BASE_LO"}
+   ]
+  },
+  "SQ_THREAD_TRACE_BUF0_SIZE": {
+   "fields": [
+    {"bits": [0, 3], "name": "BASE_HI"},
+    {"bits": [8, 29], "name": "SIZE"}
+   ]
+  },
+  "SQ_THREAD_TRACE_WPTR": {
+   "fields": [
+    {"bits": [0, 28], "name": "OFFSET"},
+    {"bits": [31, 31], "name": "BUFFER_ID"}
+   ]
+  },
+  "SQ_THREAD_TRACE_MASK": {
+   "fields": [
+    {"bits": [0, 1], "name": "SIMD_SEL"},
+    {"bits": [4, 7], "name": "WGP_SEL"},
+    {"bits": [9, 9], "name": "SA_SEL"},
+    {"bits": [10, 16], "name": "WTYPE_INCLUDE"}
+   ]
+  },
+  "SQ_THREAD_TRACE_TOKEN_MASK": {
+   "fields": [
+    {"bits": [0, 11], "enum_ref": "ThreadTraceTokenExclude", "name": "TOKEN_EXCLUDE"},
+    {"bits": [16, 23], "enum_ref": "ThreadTraceRegInclude", "name": "REG_INCLUDE"},
+    {"bits": [24, 25], "name": "INST_EXCLUDE"},
+    {"bits": [31, 31], "name": "REG_DETAIL_ALL"}
+   ]
+  },
+  "SQ_THREAD_TRACE_CTRL": {
+   "fields": [
+    {"bits": [0, 1], "name": "MODE"},
+    {"bits": [2, 2], "name": "ALL_VMID"},
+    {"bits": [3, 3], "name": "CH_PERF_END"},
+    {"bits": [4, 4], "name": "INTERRUPT_EN"},
+    {"bits": [5, 5], "name": "DOUBLE_BUFFER"},
+    {"bits": [6, 8], "name": "HIWATER"},
+    {"bits": [9, 9], "name": "REG_STALL_EN"},
+    {"bits": [10, 10], "name": "SPI_STALL_EN"},
+    {"bits": [11, 11], "name": "SQ_STALL_EN"},
+    {"bits": [12, 12], "name": "REG_DROP_ON_STALL"},
+    {"bits": [13, 13], "name": "UTIL_TIMER"},
+    {"bits": [14, 15], "name": "WAVESTART_MODE"},
+    {"bits": [16, 17], "name": "RT_FREQ"},
+    {"bits": [18, 18], "name": "SYNC_COUNT_MARKERS"},
+    {"bits": [19, 19], "name": "SYNC_COUNT_DRAWS"},
+    {"bits": [30, 30], "name": "CAPTURE_ALL"},
+    {"bits": [31, 31], "name": "DRAW_EVENT_EN"}
+   ]
+  },
+  "SQ_THREAD_TRACE_STATUS": {
+   "fields": [
+    {"bits": [0, 11], "name": "FINISH_PENDING"},
+    {"bits": [12, 23], "name": "FINISH_DONE"},
+    {"bits": [24, 24], "name": "UTC_ERR"},
+    {"bits": [25, 25], "name": "BUSY"},
+    {"bits": [26, 26], "name": "EVENT_CNTR_OVERFLOW"},
+    {"bits": [27, 27], "name": "EVENT_CNTR_STALL"}
+   ]
+  },
+  "SQ_THREAD_TRACE_DROPPED_CNTR": {
+   "fields": [
+    {"bits": [0, 31], "name": "CNTR"}
    ]
   },
   "SX_BLEND_OPT_CONTROL": {

@@ -37,6 +37,7 @@
 #include "pipe/p_shader_tokens.h"
 #include "pipe/p_state.h"
 #include "tgsi/tgsi_ureg.h"
+#include "tgsi/tgsi_from_mesa.h"
 #include "st_mesa_to_tgsi.h"
 #include "st_context.h"
 #include "program/prog_instruction.h"
@@ -954,7 +955,7 @@ st_translate_mesa_program(struct gl_context *ctx,
    GLbitfield64 sysInputs = program->info.system_values_read;
    for (i = 0; sysInputs; i++) {
       if (sysInputs & (1ull << i)) {
-         unsigned semName = _mesa_sysval_to_semantic(i);
+         unsigned semName = tgsi_get_sysval_semantic(i);
 
          t->systemValues[i] = ureg_DECL_system_value(ureg, semName, 0);
 

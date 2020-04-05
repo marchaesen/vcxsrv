@@ -27,8 +27,6 @@
 
 /**
  * General purpose hash table.
- *  
- * @author José Fonseca <jfonseca@vmware.com>
  */
 
 #ifndef U_HASH_TABLE_H_
@@ -36,63 +34,37 @@
 
 
 #include "pipe/p_defines.h"
+#include "util/hash_table.h"
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-   
 /**
- * Generic purpose hash table.
+ * Create a hash table where the keys are generic pointers.
  */
-struct util_hash_table;
+struct hash_table *
+util_hash_table_create_ptr_keys(void);
 
 
 /**
- * Create an hash table.
- * 
- * @param hash hash function
- * @param compare should return 0 for two equal keys.
+ * Create a hash table where the keys are device FDs.
  */
-struct util_hash_table *
-util_hash_table_create(unsigned (*hash)(void *key),
-                       int (*compare)(void *key1, void *key2));
+struct hash_table *
+util_hash_table_create_fd_keys(void);
 
-
-enum pipe_error
-util_hash_table_set(struct util_hash_table *ht,
-                    void *key,
-                    void *value);
 
 void *
-util_hash_table_get(struct util_hash_table *ht,
+util_hash_table_get(struct hash_table *ht,
                     void *key);
 
 
-void
-util_hash_table_remove(struct util_hash_table *ht,
-                       void *key);
-
-
-void
-util_hash_table_clear(struct util_hash_table *ht);
-
-
 enum pipe_error
-util_hash_table_foreach(struct util_hash_table *ht,
+util_hash_table_foreach(struct hash_table *ht,
                         enum pipe_error (*callback)
                         (void *key, void *value, void *data),
                         void *data);
-
-
-size_t
-util_hash_table_count(struct util_hash_table *ht);
-
-
-void
-util_hash_table_destroy(struct util_hash_table *ht);
-
 
 #ifdef __cplusplus
 }

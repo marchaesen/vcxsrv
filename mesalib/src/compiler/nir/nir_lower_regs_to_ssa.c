@@ -178,13 +178,7 @@ rewrite_alu_instr(nir_alu_instr *alu, struct regs_to_ssa_state *state)
    nir_ssa_dest_init(&alu->instr, &alu->dest.dest, num_components,
                      reg->bit_size, reg->name);
 
-   nir_op vecN_op;
-   switch (reg->num_components) {
-   case 2: vecN_op = nir_op_vec2; break;
-   case 3: vecN_op = nir_op_vec3; break;
-   case 4: vecN_op = nir_op_vec4; break;
-   default: unreachable("not reached");
-   }
+   nir_op vecN_op = nir_op_vec(reg->num_components);
 
    nir_alu_instr *vec = nir_alu_instr_create(state->shader, vecN_op);
 

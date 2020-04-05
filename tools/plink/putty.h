@@ -4,19 +4,6 @@
 #include <stddef.h>                    /* for wchar_t */
 #include <limits.h>                    /* for INT_MAX */
 
-/*
- * Global variables. Most modules declare these `extern', but
- * window.c will do `#define PUTTY_DO_GLOBALS' before including this
- * module, and so will get them properly defined.
- */
-#ifndef GLOBAL
-#ifdef PUTTY_DO_GLOBALS
-#define GLOBAL
-#else
-#define GLOBAL extern
-#endif
-#endif
-
 #include "defs.h"
 #include "puttyps.h"
 #include "network.h"
@@ -324,6 +311,7 @@ enum {
     HK_DSA,
     HK_ECDSA,
     HK_ED25519,
+    HK_ED448,
     HK_MAX
 };
 
@@ -377,11 +365,19 @@ enum {
 };
 
 enum {
+    /* SUPDUP character set options */
+    SUPDUP_CHARSET_ASCII, SUPDUP_CHARSET_ITS, SUPDUP_CHARSET_WAITS
+};
+
+enum {
     /* Protocol back ends. (CONF_protocol) */
-    PROT_RAW, PROT_TELNET, PROT_RLOGIN, PROT_SSH,
+    PROT_RAW, PROT_TELNET, PROT_RLOGIN, PROT_SSH, PROT_SSHCONN,
     /* PROT_SERIAL is supported on a subset of platforms, but it doesn't
      * hurt to define it globally. */
-    PROT_SERIAL
+    PROT_SERIAL,
+    /* PROT_SUPDUP is the historical RFC 734 protocol. */
+    PROT_SUPDUP,
+    PROTOCOL_LIMIT, /* upper bound on number of protocols */
 };
 
 enum {
@@ -490,12 +486,17 @@ enum {
     ADDRTYPE_NAME      /* SockAddr storing an unresolved host name */
 };
 
+/* Backend flags */
+#define BACKEND_RESIZE_FORBIDDEN    0x01   /* Backend does not allow
+                                              resizing terminal */
+#define BACKEND_NEEDS_TERMINAL      0x02   /* Backend must have terminal */
+
 struct Backend {
     const BackendVtable *vt;
 };
 struct BackendVtable {
-    const char *(*init) (Seat *seat, Backend **backend_out,
-                         LogContext *logctx, Conf *conf,
+    const char *(*init) (const BackendVtable *vt, Seat *seat,
+                         Backend **backend_out, LogContext *logctx, Conf *conf,
                          const char *host, int port,
                          char **realhost, bool nodelay, bool keepalive);
 
@@ -525,15 +526,24 @@ struct BackendVtable {
      * connection-sharing upstream exists for a given configuration. */
     bool (*test_for_upstream)(const char *host, int port, Conf *conf);
 
-    const char *name;
+    /* 'id' is a machine-readable name for the backend, used in
+     * saved-session storage. 'displayname' is a human-readable name
+     * for error messages. */
+    const char *id, *displayname;
+
     int protocol;
     int default_port;
+    unsigned flags;
+
+    /* Only relevant for the serial protocol: bit masks of which
+     * parity and flow control settings are supported. */
+    unsigned serial_parity_mask, serial_flow_mask;
 };
 
 static inline const char *backend_init(
     const BackendVtable *vt, Seat *seat, Backend **out, LogContext *logctx,
     Conf *conf, const char *host, int port, char **rhost, bool nd, bool ka)
-{ return vt->init(seat, out, logctx, conf, host, port, rhost, nd, ka); }
+{ return vt->init(vt, seat, out, logctx, conf, host, port, rhost, nd, ka); }
 static inline void backend_free(Backend *be)
 { be->vt->free(be); }
 static inline void backend_reconfig(Backend *be, Conf *conf)
@@ -577,45 +587,6 @@ extern const int be_default_protocol;
  * and other pieces of text.
  */
 extern const char *const appname;
-
-/*
- * Some global flags denoting the type of application.
- *
- * FLAG_VERBOSE is set when the user requests verbose details.
- *
- * FLAG_INTERACTIVE is set when a full interactive shell session is
- * being run, _either_ because no remote command has been provided
- * _or_ because the application is GUI and can't run non-
- * interactively.
- *
- * These flags describe the type of _application_ - they wouldn't
- * vary between individual sessions - and so it's OK to have this
- * variable be GLOBAL.
- *
- * Note that additional flags may be defined in platform-specific
- * headers. It's probably best if those ones start from 0x1000, to
- * avoid collision.
- */
-#define FLAG_VERBOSE     0x0001
-#define FLAG_INTERACTIVE 0x0002
-GLOBAL int flags;
-
-/*
- * Likewise, these two variables are set up when the application
- * initialises, and inform all default-settings accesses after
- * that.
- */
-GLOBAL int default_protocol;
-GLOBAL int default_port;
-
-/*
- * This is set true by cmdline.c iff a session is loaded with "-load".
- */
-GLOBAL bool loaded_session;
-/*
- * This is set to the name of the loaded session.
- */
-GLOBAL char *cmdline_session_name;
 
 /*
  * Mechanism for getting text strings such as usernames and passwords
@@ -667,7 +638,7 @@ typedef struct {
     void *data;         /* slot for housekeeping data, managed by
                          * seat_get_userpass_input(); initially NULL */
 } prompts_t;
-prompts_t *new_prompts();
+prompts_t *new_prompts(void);
 void add_prompt(prompts_t *p, char *promptstr, bool echo);
 void prompt_set_result(prompt_t *pr, const char *newstr);
 char *prompt_get_result(prompt_t *pr);
@@ -954,6 +925,23 @@ struct SeatVtable {
      * prompts by malicious servers.
      */
     bool (*set_trust_status)(Seat *seat, bool trusted);
+
+    /*
+     * Ask the seat whether it would like verbose messages.
+     */
+    bool (*verbose)(Seat *seat);
+
+    /*
+     * Ask the seat whether it's an interactive program.
+     */
+    bool (*interactive)(Seat *seat);
+
+    /*
+     * Return the seat's current idea of where the output cursor is.
+     *
+     * Returns true if the seat has a cursor. Returns false if not.
+     */
+    bool (*get_cursor_position)(Seat *seat, int *x, int *y);
 };
 
 static inline size_t seat_output(
@@ -999,11 +987,17 @@ static inline StripCtrlChars *seat_stripctrl_new(
 { return seat->vt->stripctrl_new(seat, bs, sic); }
 static inline bool seat_set_trust_status(Seat *seat, bool trusted)
 { return  seat->vt->set_trust_status(seat, trusted); }
+static inline bool seat_verbose(Seat *seat)
+{ return seat->vt->verbose(seat); }
+static inline bool seat_interactive(Seat *seat)
+{ return seat->vt->interactive(seat); }
+static inline bool seat_get_cursor_position(Seat *seat, int *x, int *y)
+{ return  seat->vt->get_cursor_position(seat, x, y); }
 
 /* Unlike the seat's actual method, the public entry point
  * seat_connection_fatal is a wrapper function with a printf-like API,
  * defined in misc.c. */
-void seat_connection_fatal(Seat *seat, const char *fmt, ...);
+void seat_connection_fatal(Seat *seat, const char *fmt, ...) PRINTF_LIKE(2, 3);
 
 /* Handy aliases for seat_output which set is_stderr to a fixed value. */
 static inline size_t seat_stdout(Seat *seat, const void *data, size_t len)
@@ -1051,6 +1045,11 @@ StripCtrlChars *nullseat_stripctrl_new(
         Seat *seat, BinarySink *bs_out, SeatInteractionContext sic);
 bool nullseat_set_trust_status(Seat *seat, bool trusted);
 bool nullseat_set_trust_status_vacuously(Seat *seat, bool trusted);
+bool nullseat_verbose_no(Seat *seat);
+bool nullseat_verbose_yes(Seat *seat);
+bool nullseat_interactive_no(Seat *seat);
+bool nullseat_interactive_yes(Seat *seat);
+bool nullseat_get_cursor_position(Seat *seat, int *x, int *y);
 
 /*
  * Seat functions provided by the platform's console-application
@@ -1076,6 +1075,7 @@ bool console_set_trust_status(Seat *seat, bool trusted);
  * Other centralised seat functions.
  */
 int filexfer_get_userpass_input(Seat *seat, prompts_t *p, bufchain *input);
+bool cmdline_seat_verbose(Seat *seat);
 
 /*
  * Data type 'TermWin', which is a vtable encapsulating all the
@@ -1218,8 +1218,8 @@ static inline bool win_is_utf8(TermWin *win)
 /*
  * Global functions not specific to a connection instance.
  */
-void nonfatal(const char *, ...);
-NORETURN void modalfatalbox(const char *, ...);
+void nonfatal(const char *, ...) PRINTF_LIKE(1, 2);
+NORETURN void modalfatalbox(const char *, ...) PRINTF_LIKE(1, 2);
 NORETURN void cleanup_exit(int);
 
 /*
@@ -1310,6 +1310,11 @@ NORETURN void cleanup_exit(int);
     X(INT, NONE, serstopbits) \
     X(INT, NONE, serparity) /* SER_PAR_NONE, SER_PAR_ODD, ... */ \
     X(INT, NONE, serflow) /* SER_FLOW_NONE, SER_FLOW_XONXOFF, ... */ \
+    /* Supdup options */ \
+    X(STR, NONE, supdup_location) \
+    X(INT, NONE, supdup_ascii_set) \
+    X(BOOL, NONE, supdup_more) \
+    X(BOOL, NONE, supdup_scroll) \
     /* Keyboard options */ \
     X(BOOL, NONE, bksp_is_delete) \
     X(BOOL, NONE, rxvt_homeend) \
@@ -1574,6 +1579,8 @@ void load_open_settings(settings_r *sesskey, Conf *conf);
 void get_sesslist(struct sesslist *, bool allocate);
 bool do_defaults(const char *, Conf *);
 void registry_cleanup(void);
+void settings_set_default_protocol(int);
+void settings_set_default_port(int);
 
 /*
  * Functions used by settings.c to provide platform-specific
@@ -1632,6 +1639,7 @@ int term_get_userpass_input(Terminal *term, prompts_t *p, bufchain *input);
 void term_set_trust_status(Terminal *term, bool trusted);
 void term_keyinput(Terminal *, int codepage, const void *buf, int len);
 void term_keyinputw(Terminal *, const wchar_t * widebuf, int len);
+void term_get_cursor_position(Terminal *term, int *x, int *y);
 
 typedef enum SmallKeypadKey {
     SKK_HOME, SKK_END, SKK_INSERT, SKK_DELETE, SKK_PGUP, SKK_PGDN,
@@ -1681,6 +1689,11 @@ struct LogPolicyVtable {
      * file :-)
      */
     void (*logging_error)(LogPolicy *lp, const char *event);
+
+    /*
+     * Ask whether extra verbose log messages are required.
+     */
+    bool (*verbose)(LogPolicy *lp);
 };
 struct LogPolicy {
     const LogPolicyVtable *vt;
@@ -1694,6 +1707,19 @@ static inline int lp_askappend(
 { return lp->vt->askappend(lp, filename, callback, ctx); }
 static inline void lp_logging_error(LogPolicy *lp, const char *event)
 { lp->vt->logging_error(lp, event); }
+static inline bool lp_verbose(LogPolicy *lp)
+{ return lp->vt->verbose(lp); }
+
+/* Defined in conscli.c, used in several console command-line tools */
+extern LogPolicy console_cli_logpolicy[];
+
+int console_askappend(LogPolicy *lp, Filename *filename,
+                      void (*callback)(void *ctx, int result), void *ctx);
+void console_logging_error(LogPolicy *lp, const char *string);
+void console_eventlog(LogPolicy *lp, const char *string);
+bool null_lp_verbose_yes(LogPolicy *lp);
+bool null_lp_verbose_no(LogPolicy *lp);
+bool cmdline_lp_verbose(LogPolicy *lp);
 
 LogContext *log_init(LogPolicy *lp, Conf *conf);
 void log_free(LogContext *logctx);
@@ -1703,7 +1729,7 @@ void logfclose(LogContext *logctx);
 void logtraffic(LogContext *logctx, unsigned char c, int logmode);
 void logflush(LogContext *logctx);
 void logevent(LogContext *logctx, const char *event);
-void logeventf(LogContext *logctx, const char *fmt, ...);
+void logeventf(LogContext *logctx, const char *fmt, ...) PRINTF_LIKE(2, 3);
 void logeventvf(LogContext *logctx, const char *fmt, va_list ap);
 
 /*
@@ -1724,10 +1750,6 @@ void log_packet(LogContext *logctx, int direction, int type,
                 int n_blanks, const struct logblank_t *blanks,
                 const unsigned long *sequence,
                 unsigned downstream_id, const char *additional_log_text);
-
-/* This is defined by applications that have an obvious logging
- * destination like standard error or the GUI. */
-extern LogPolicy default_logpolicy[1];
 
 /*
  * Exports from testback.c
@@ -1758,6 +1780,12 @@ extern const struct BackendVtable telnet_backend;
  * Exports from ssh.c.
  */
 extern const struct BackendVtable ssh_backend;
+extern const struct BackendVtable sshconn_backend;
+
+/*
+ * Exports from supdup.c.
+ */
+extern const struct BackendVtable supdup_backend;
 
 /*
  * Exports from ldisc.c.
@@ -1790,7 +1818,7 @@ void random_unref(void);
 void random_clear(void);
 /* random_setup_special is used by PuTTYgen. It makes an extra-big
  * random number generator. */
-void random_setup_special();
+void random_setup_special(void);
 /* Manually drop a random seed into the random number generator, e.g.
  * just before generating a key. */
 void random_reseed(ptrlen seed);
@@ -1889,15 +1917,8 @@ void agent_cancel_query(agent_pending_query *);
 void agent_query_synchronous(strbuf *in, void **out, int *outlen);
 bool agent_exists(void);
 
-/* For stream-oriented agent connections, if available: agent_connect
- * is a callback for use with portfwdmgr_connect_socket, and the
- * context structure it requires is created and freed by the next two
- * functions. agent_get_connect_ctx may return NULL if no streaming
- * agent connection is available at all on this platform. */
-typedef struct agent_connect_ctx agent_connect_ctx;
-Socket *agent_connect(void *vctx, Plug *plug);
-agent_connect_ctx *agent_get_connect_ctx(void);
-void agent_free_connect_ctx(agent_connect_ctx *ctx);
+/* For stream-oriented agent connections, if available. */
+Socket *agent_connect(Plug *plug);
 
 /*
  * Exports from wildcard.c
@@ -1927,7 +1948,8 @@ bool is_interactive(void);
 void console_print_error_msg(const char *prefix, const char *msg);
 void console_print_error_msg_fmt_v(
     const char *prefix, const char *fmt, va_list ap);
-void console_print_error_msg_fmt(const char *prefix, const char *fmt, ...);
+void console_print_error_msg_fmt(const char *prefix, const char *fmt, ...)
+    PRINTF_LIKE(2, 3);
 
 /*
  * Exports from printing.c.
@@ -1956,16 +1978,38 @@ void cmdline_run_saved(Conf *);
 void cmdline_cleanup(void);
 int cmdline_get_passwd_input(prompts_t *p);
 bool cmdline_host_ok(Conf *);
-#define TOOLTYPE_FILETRANSFER 1
-#define TOOLTYPE_NONNETWORK 2
-#define TOOLTYPE_HOST_ARG 4
-#define TOOLTYPE_HOST_ARG_CAN_BE_SESSION 8
-#define TOOLTYPE_HOST_ARG_PROTOCOL_PREFIX 16
-#define TOOLTYPE_HOST_ARG_FROM_LAUNCHABLE_LOAD 32
-#define TOOLTYPE_PORT_ARG 64
-extern int cmdline_tooltype;
+bool cmdline_verbose(void);
+bool cmdline_loaded_session(void);
 
-void cmdline_error(const char *, ...);
+/*
+ * Here we have a flags word provided by each tool, which describes
+ * the capabilities of that tool that cmdline.c needs to know about.
+ * It will refuse certain command-line options if a particular tool
+ * inherently can't do anything sensible. For example, the file
+ * transfer tools (psftp, pscp) can't do a great deal with protocol
+ * selections (ever tried running scp over telnet?) or with port
+ * forwarding (even if it wasn't a hideously bad idea, they don't have
+ * the select/poll infrastructure to make them work).
+ */
+extern const unsigned cmdline_tooltype;
+
+/* Bit flags for the above */
+#define TOOLTYPE_LIST(X)                        \
+    X(TOOLTYPE_FILETRANSFER)                    \
+    X(TOOLTYPE_NONNETWORK)                      \
+    X(TOOLTYPE_HOST_ARG)                        \
+    X(TOOLTYPE_HOST_ARG_CAN_BE_SESSION)         \
+    X(TOOLTYPE_HOST_ARG_PROTOCOL_PREFIX)        \
+    X(TOOLTYPE_HOST_ARG_FROM_LAUNCHABLE_LOAD)   \
+    X(TOOLTYPE_PORT_ARG)                        \
+    X(TOOLTYPE_NO_VERBOSE_OPTION)               \
+    /* end of list */
+#define BITFLAG_INDEX(val) val ## _bitflag_index,
+enum { TOOLTYPE_LIST(BITFLAG_INDEX) };
+#define BITFLAG_DEF(val) val = 1U << (val ## _bitflag_index),
+enum { TOOLTYPE_LIST(BITFLAG_DEF) };
+
+void cmdline_error(const char *, ...) PRINTF_LIKE(1, 2);
 
 /*
  * Exports from config.c.

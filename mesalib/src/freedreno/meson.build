@@ -25,6 +25,7 @@ subdir('fdl')
 subdir('ir3')
 subdir('registers')
 subdir('perfcntrs')
+subdir('computerator')
 
 if with_tools.contains('drm-shim')
   subdir('drm-shim')

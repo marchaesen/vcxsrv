@@ -1037,7 +1037,7 @@ exaFillRegionSolid(DrawablePtr pDrawable, RegionPtr pRegion, Pixel pixel,
         if (pExaPixmap->pDamage &&
             pExaPixmap->sys_ptr && pDrawable->type == DRAWABLE_PIXMAP &&
             pDrawable->width == 1 && pDrawable->height == 1 &&
-            pDrawable->bitsPerPixel != 24) {
+            pDrawable->bitsPerPixel != 24 && alu == GXcopy) {
             RegionPtr pending_damage = DamagePendingRegion(pExaPixmap->pDamage);
 
             switch (pDrawable->bitsPerPixel) {

@@ -30,9 +30,9 @@
 
     <function name="ShaderBinary" es2="2.0">
         <param name="n" type="GLsizei"/>
-        <param name="shaders" type="const GLuint *"/>
+        <param name="shaders" type="const GLuint *" count="n"/>
         <param name="binaryformat" type="GLenum"/>
-        <param name="binary" type="const GLvoid *"/>
+        <param name="binary" type="const GLvoid *" count="length"/>
         <param name="length" type="GLsizei"/>
     </function>
 

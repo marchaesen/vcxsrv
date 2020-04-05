@@ -28,6 +28,7 @@
 #include <err.h>
 #include <fcntl.h>
 #include <ftw.h>
+#include <locale.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -123,10 +124,12 @@ readfile(const char *path, int *sz)
 		if (ret < 0) {
 			free(buf);
 			*sz = 0;
+			close(fd);
 			return NULL;
 		} else if (ret < CHUNKSIZE) {
 			n += ret;
 			*sz = n;
+			close(fd);
 			return buf;
 		} else {
 			n += CHUNKSIZE;
@@ -231,7 +234,7 @@ readdt(const char *node)
 	void *buf;
 	int sz;
 
-	asprintf(&path, "%s/%s", dev.dtnode, node);
+	(void) asprintf(&path, "%s/%s", dev.dtnode, node);
 	buf = readfile(path, &sz);
 	free(path);
 
@@ -264,7 +267,7 @@ find_freqs(void)
 	dev.min_freq = ~0;
 	dev.max_freq = 0;
 
-	asprintf(&path, "%s/%s", dev.dtnode, "qcom,gpu-pwrlevels");
+	(void) asprintf(&path, "%s/%s", dev.dtnode, "qcom,gpu-pwrlevels");
 
 	ret = nftw(path, find_freqs_fn, 64, 0);
 	if (ret < 0)
@@ -393,8 +396,10 @@ find_device(void)
 		err(1, "could not open /dev/mem");
 
 	dev.io = mmap(0, dev.size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, dev.base);
-	if (!dev.io)
+	if (!dev.io) {
+		close(fd);
 		err(1, "could not map device");
+	}
 }
 
 /*
@@ -636,7 +641,7 @@ static void
 redraw_counter_value_raw(WINDOW *win, float val)
 {
 	char *str;
-	asprintf(&str, "%'.2f", val);
+	(void) asprintf(&str, "%'.2f", val);
 	waddstr(win, str);
 	whline(win, ' ', w - getcurx(win));
 	free(str);
@@ -1029,7 +1034,7 @@ config_restore(void)
 	config_setting_t *root = config_root_setting(&cfg);
 
 	/* per device settings: */
-	asprintf(&str, "a%dxx", dev.chipid >> 24);
+	(void) asprintf(&str, "a%dxx", dev.chipid >> 24);
 	setting = config_setting_get_member(root, str);
 	if (!setting)
 		setting = config_setting_add(root, str, CONFIG_TYPE_GROUP);
@@ -1080,6 +1085,8 @@ main(int argc, char **argv)
 	}
 
 	dev.groups = calloc(dev.ngroups, sizeof(struct counter_group));
+
+	setlocale(LC_NUMERIC, "en_US.UTF-8");
 
 	setup_counter_groups(groups);
 	restore_counter_groups();

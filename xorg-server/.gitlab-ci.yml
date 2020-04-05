@@ -64,24 +64,30 @@ debian-testing:
     after_script:
         - ccache --show-stats
 
-autotools-build-and-test:
+autotools:
     extends: .common-build-and-test
     script:
         - mkdir build/
         - cd build/
-        - ../autogen.sh --prefix=/usr
+        - ../autogen.sh --prefix=/usr CFLAGS="-fno-common"
         - make -j4 distcheck
         - PIGLIT_DIR=/root/piglit XTEST_DIR=/root/xts make -j4 check
         - cd ..
         - .gitlab-ci/manpages-check
 
-meson-build-and-test:
+meson:
     extends: .common-build-and-test
     variables:
         PIGLIT_DIR: /root/piglit
         XTEST_DIR: /root/xts
     script:
-        - meson -Dprefix=/usr -Dxephyr=true build/
+        - meson -Dc_args="-fno-common" -Dprefix=/usr -Dxephyr=true -Dwerror=true $MESON_EXTRA_OPTIONS build/
         - ninja -j4 -C build/ install
         - ninja -j4 -C build/ test
         - .gitlab-ci/manpages-check
+
+meson-noglamor:
+    extends: meson
+    variables:
+        MESON_EXTRA_OPTIONS: >
+          -Dglamor=false

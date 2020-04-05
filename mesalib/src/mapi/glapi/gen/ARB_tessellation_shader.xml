@@ -56,7 +56,7 @@
     </function>
     <function name="PatchParameterfv">
         <param name="pname" type="GLenum"/>
-        <param name="values" type="const GLfloat *"/>
+        <param name="values" type="const GLfloat *" count="_mesa_patch_param_enum_to_count(pname)"/>
     </function>
 
     <function name="PatchParameteriEXT" es2="3.1" alias="PatchParameteri">

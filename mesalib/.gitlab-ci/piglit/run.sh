@@ -3,7 +3,7 @@
 set -e
 set -o xtrace
 
-VERSION=`cat artifacts/VERSION`
+VERSION=`cat install/VERSION`
 
 cd /piglit
 
@@ -15,7 +15,7 @@ xvfb-run --server-args="-noreset" sh -c \
 
 PIGLIT_RESULTS=${PIGLIT_RESULTS:-$PIGLIT_PROFILES}
 mkdir -p .gitlab-ci/piglit
-cp $OLDPWD/artifacts/piglit/$PIGLIT_RESULTS.txt .gitlab-ci/piglit/$PIGLIT_RESULTS.txt.baseline
+cp $OLDPWD/install/piglit/$PIGLIT_RESULTS.txt .gitlab-ci/piglit/$PIGLIT_RESULTS.txt.baseline
 ./piglit summary console $OLDPWD/results | head -n -1 | grep -v ": pass" >.gitlab-ci/piglit/$PIGLIT_RESULTS.txt
 
 if diff -q .gitlab-ci/piglit/$PIGLIT_RESULTS.txt{.baseline,}; then

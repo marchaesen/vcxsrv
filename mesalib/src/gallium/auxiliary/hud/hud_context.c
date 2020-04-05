@@ -55,6 +55,7 @@
 
 /* Control the visibility of all HUD contexts */
 static boolean huds_visible = TRUE;
+static int hud_scale = 1;
 
 
 #ifdef PIPE_OS_UNIX
@@ -84,10 +85,10 @@ hud_draw_colored_prims(struct hud_context *hud, unsigned prim,
    hud->constants.color[1] = g;
    hud->constants.color[2] = b;
    hud->constants.color[3] = a;
-   hud->constants.translate[0] = (float) xoffset;
-   hud->constants.translate[1] = (float) yoffset;
-   hud->constants.scale[0] = 1;
-   hud->constants.scale[1] = yscale;
+   hud->constants.translate[0] = (float) (xoffset * hud_scale);
+   hud->constants.translate[1] = (float) (yoffset * hud_scale);
+   hud->constants.scale[0] = hud_scale;
+   hud->constants.scale[1] = yscale * hud_scale;
    cso_set_constant_buffer(cso, PIPE_SHADER_VERTEX, 0, &hud->constbuf);
 
    cso_set_vertex_buffers(cso, 0, 1, &hud->color_prims.vbuf);
@@ -538,7 +539,7 @@ hud_draw_results(struct hud_context *hud, struct pipe_resource *tex)
    cso_set_tesseval_shader_handle(cso, NULL);
    cso_set_geometry_shader_handle(cso, NULL);
    cso_set_vertex_shader_handle(cso, hud->vs);
-   cso_set_vertex_elements(cso, 2, hud->velems);
+   cso_set_vertex_elements(cso, &hud->velems);
    cso_set_render_condition(cso, NULL, FALSE, 0);
    cso_set_sampler_views(cso, PIPE_SHADER_FRAGMENT, 1,
                          &hud->font_sampler_view);
@@ -556,10 +557,11 @@ hud_draw_results(struct hud_context *hud, struct pipe_resource *tex)
       hud->constants.color[3] = 0.666f;
       hud->constants.translate[0] = 0;
       hud->constants.translate[1] = 0;
-      hud->constants.scale[0] = 1;
-      hud->constants.scale[1] = 1;
+      hud->constants.scale[0] = hud_scale;
+      hud->constants.scale[1] = hud_scale;
 
       cso_set_constant_buffer(cso, PIPE_SHADER_VERTEX, 0, &hud->constbuf);
+
       cso_set_vertex_buffers(cso, 0, 1, &hud->bg.vbuf);
       cso_draw_arrays(cso, PIPE_PRIM_QUADS, 0, hud->bg.num_vertices);
    }
@@ -590,8 +592,8 @@ hud_draw_results(struct hud_context *hud, struct pipe_resource *tex)
    hud->constants.color[3] = 1;
    hud->constants.translate[0] = 0;
    hud->constants.translate[1] = 0;
-   hud->constants.scale[0] = 1;
-   hud->constants.scale[1] = 1;
+   hud->constants.scale[0] = hud_scale;
+   hud->constants.scale[1] = hud_scale;
    cso_set_constant_buffer(cso, PIPE_SHADER_VERTEX, 0, &hud->constbuf);
 
    if (hud->whitelines.num_vertices) {
@@ -1816,9 +1818,12 @@ hud_create(struct cso_context *cso, struct hud_context *share)
 #ifdef PIPE_OS_UNIX
    unsigned signo = debug_get_num_option("GALLIUM_HUD_TOGGLE_SIGNAL", 0);
    static boolean sig_handled = FALSE;
-   struct sigaction action = {{0}};
+   struct sigaction action;
+
+   memset(&action, 0, sizeof(action));
 #endif
    huds_visible = debug_get_bool_option("GALLIUM_HUD_VISIBLE", TRUE);
+   hud_scale = debug_get_num_option("GALLIUM_HUD_SCALE", 1);
 
    if (!env || !*env)
       return NULL;
@@ -1869,10 +1874,11 @@ hud_create(struct cso_context *cso, struct hud_context *share)
    hud->rasterizer_aa_lines.line_smooth = 1;
 
    /* vertex elements */
+   hud->velems.count = 2;
    for (i = 0; i < 2; i++) {
-      hud->velems[i].src_offset = i * 2 * sizeof(float);
-      hud->velems[i].src_format = PIPE_FORMAT_R32G32_FLOAT;
-      hud->velems[i].vertex_buffer_index = 0;
+      hud->velems.velems[i].src_offset = i * 2 * sizeof(float);
+      hud->velems.velems[i].src_format = PIPE_FORMAT_R32G32_FLOAT;
+      hud->velems.velems[i].vertex_buffer_index = 0;
    }
 
    /* sampler state (for font drawing) */

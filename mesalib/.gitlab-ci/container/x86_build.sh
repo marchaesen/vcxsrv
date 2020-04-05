@@ -5,7 +5,7 @@ set -o xtrace
 
 export DEBIAN_FRONTEND=noninteractive
 
-CROSS_ARCHITECTURES="i386"
+CROSS_ARCHITECTURES="i386 ppc64el s390x"
 for arch in $CROSS_ARCHITECTURES; do
     dpkg --add-architecture $arch
 done
@@ -24,14 +24,6 @@ sed -i -e 's/http:\/\/deb/https:\/\/deb/g' /etc/apt/sources.list
 echo 'deb https://deb.debian.org/debian buster-backports main' >/etc/apt/sources.list.d/backports.list
 
 apt-get update
-
-# Use newer packages from backports by default
-cat >/etc/apt/preferences <<EOF
-Package: *
-Pin: release a=buster-backports
-Pin-Priority: 500
-EOF
-
 apt-get dist-upgrade -y
 
 apt-get install -y --no-remove \
@@ -39,6 +31,7 @@ apt-get install -y --no-remove \
       automake \
       autotools-dev \
       bison \
+      ccache \
       clang-9 \
       cmake \
       flex \
@@ -63,10 +56,12 @@ apt-get install -y --no-remove \
       libva-dev \
       libvdpau-dev \
       libvulkan-dev \
+      libvulkan-dev:ppc64el \
       libx11-dev \
       libx11-xcb-dev \
       libxdamage-dev \
       libxext-dev \
+      libxml2-utils \
       libxrandr-dev \
       libxrender-dev \
       libxshmfence-dev \
@@ -74,12 +69,14 @@ apt-get install -y --no-remove \
       libxxf86vm-dev \
       llvm-6.0-dev \
       llvm-7-dev \
-      llvm-8-dev \
       llvm-9-dev \
       meson \
       pkg-config \
       python-mako \
       python3-mako \
+      python3-pil \
+      python3-requests \
+      qemu-user \
       scons \
       x11proto-dri2-dev \
       x11proto-gl-dev \
@@ -87,22 +84,43 @@ apt-get install -y --no-remove \
       xz-utils \
       zlib1g-dev
 
+. .gitlab-ci/container/container_pre_build.sh
+
 # Cross-build Mesa deps
 for arch in $CROSS_ARCHITECTURES; do
     apt-get install -y --no-remove \
             crossbuild-essential-${arch} \
             libdrm-dev:${arch} \
             libelf-dev:${arch} \
-            libexpat1-dev:${arch}
+            libexpat1-dev:${arch} \
+            libffi-dev:${arch} \
+            libllvm8:${arch} \
+            libstdc++6:${arch} \
+            libtinfo-dev:${arch}
+
+    if [ "$arch" == "i386" ]; then
+        # libpciaccess-dev is only needed for Intel.
+        apt-get install -y --no-remove \
+            libpciaccess-dev:${arch}
+    fi
+
+    mkdir /var/cache/apt/archives/${arch}
+    # Download llvm-* packages, but don't install them yet, since they can
+    # only be installed for one architecture at a time
+    apt-get install -o Dir::Cache::archives=/var/cache/apt/archives/$arch --download-only -y --no-remove \
+       llvm-8-dev:${arch}
 done
+
+apt-get install -y --no-remove \
+      llvm-8-dev \
 
 # for 64bit windows cross-builds
 apt-get install -y --no-remove \
-    libz-mingw-w64-dev \
-    mingw-w64 \
-    wine \
-    wine32 \
-    wine64
+      libz-mingw-w64-dev \
+      mingw-w64 \
+      wine \
+      wine32 \
+      wine64
 
 # Debian's pkg-config wrapers for mingw are broken, and there's no sign that
 # they're going to be fixed, so we'll just have to fix it ourselves
@@ -113,6 +131,23 @@ cat >/usr/local/bin/x86_64-w64-mingw32-pkg-config <<EOF
 PKG_CONFIG_LIBDIR=/usr/x86_64-w64-mingw32/lib/pkgconfig pkg-config \$@
 EOF
 chmod +x /usr/local/bin/x86_64-w64-mingw32-pkg-config
+
+
+# Generate cross build files for Meson
+for arch in $CROSS_ARCHITECTURES; do
+  cross_file="/cross_file-$arch.txt"
+  /usr/share/meson/debcrossgen --arch "$arch" -o "$cross_file"
+  # Explicitly set ccache path for cross compilers
+  sed -i "s|/usr/bin/\([^-]*\)-linux-gnu\([^-]*\)-g|/usr/lib/ccache/\\1-linux-gnu\\2-g|g" "$cross_file"
+  if [ "$arch" = "i386" ]; then
+    # Work around a bug in debcrossgen that should be fixed in the next release
+    sed -i "s|cpu_family = 'i686'|cpu_family = 'x86'|g" "$cross_file"
+  fi
+
+  # Rely on qemu-user being configured in binfmt_misc on the host
+  sed -i -e '/\[properties\]/a\' -e "needs_exe_wrapper = False" "$cross_file"
+done
+
 
 # for the vulkan overlay layer
 wget https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-linux-Release.zip
@@ -150,7 +185,11 @@ rm -rf $LIBXCB_VERSION
 
 wget https://dri.freedesktop.org/libdrm/$LIBDRM_VERSION.tar.bz2
 tar -xvf $LIBDRM_VERSION.tar.bz2 && rm $LIBDRM_VERSION.tar.bz2
-cd $LIBDRM_VERSION; meson build -D vc4=true -D freedreno=true -D etnaviv=true; ninja -j4 -C build install; cd ..
+cd $LIBDRM_VERSION
+meson build -D vc4=true -D freedreno=true -D etnaviv=true -D libdir=lib/x86_64-linux-gnu; ninja -C build install
+rm -rf build; meson --cross-file=/cross_file-ppc64el.txt build -D libdir=lib/powerpc64le-linux-gnu; ninja -C build install
+rm -rf build; meson --cross-file=/cross_file-i386.txt build -D libdir=lib/i386-linux-gnu; ninja -C build install
+cd ..
 rm -rf $LIBDRM_VERSION
 
 wget $WAYLAND_RELEASES/$LIBWAYLAND_VERSION.tar.xz
@@ -181,27 +220,6 @@ cd shader-db
 make
 popd
 
-# Use ccache to speed up builds
-apt-get install -y --no-remove ccache
-
-# We need xmllint to validate the XML files in Mesa
-apt-get install -y --no-remove libxml2-utils
-
-
-# Generate cross build files for Meson
-for arch in $CROSS_ARCHITECTURES; do
-  cross_file="/cross_file-$arch.txt"
-  /usr/share/meson/debcrossgen --arch "$arch" -o "$cross_file"
-  # Explicitly set ccache path for cross compilers
-  sed -i "s|/usr/bin/\([^-]*\)-linux-gnu\([^-]*\)-g|/usr/lib/ccache/\\1-linux-gnu\\2-g|g" "$cross_file"
-  if [ "$arch" = "i386" ]; then
-    # Work around a bug in debcrossgen that should be fixed in the next release
-    sed -i "s|cpu_family = 'i686'|cpu_family = 'x86'|g" "$cross_file"
-    # Don't need wrapper for i386 executables
-    sed -i -e '/\[properties\]/a\' -e "needs_exe_wrapper = False" "$cross_file"
-  fi
-done
-
 
 ############### Uninstall the build software
 
@@ -217,4 +235,4 @@ apt-get purge -y \
       unzip \
       wget
 
-apt-get autoremove -y --purge
+. .gitlab-ci/container/container_post_build.sh

@@ -81,7 +81,7 @@
 #include "mpint.h"
 #include "ecc.h"
 
-static NORETURN void fatal_error(const char *p, ...)
+static NORETURN PRINTF_LIKE(1, 2) void fatal_error(const char *p, ...)
 {
     va_list ap;
     fprintf(stderr, "testsc: ");
@@ -93,6 +93,10 @@ static NORETURN void fatal_error(const char *p, ...)
 }
 
 void out_of_memory(void) { fatal_error("out of memory"); }
+FILE *f_open(const Filename *filename, char const *mode, bool is_private)
+{ unreachable("this is a stub needed to link, and should never be called"); }
+void old_keyfile_warning(void)
+{ unreachable("this is a stub needed to link, and should never be called"); }
 
 /*
  * A simple deterministic PRNG, without any of the Fortuna
@@ -161,7 +165,7 @@ VOLATILE_WRAPPED_DEFN(, void, log_to_file, (const char *filename))
 static const char *outdir = NULL;
 char *log_filename(const char *basename, size_t index)
 {
-    return dupprintf("%s/%s.%04zu", outdir, basename, index);
+    return dupprintf("%s/%s.%04"SIZEu, outdir, basename, index);
 }
 
 static char *last_filename;
@@ -268,6 +272,11 @@ VOLATILE_WRAPPED_DEFN(static, size_t, looplimit, (size_t x))
     X(Y, ssh_sha256_sw)                         \
     X(Y, ssh_sha384)                            \
     X(Y, ssh_sha512)                            \
+    X(Y, ssh_sha3_224)                          \
+    X(Y, ssh_sha3_256)                          \
+    X(Y, ssh_sha3_384)                          \
+    X(Y, ssh_sha3_512)                          \
+    X(Y, ssh_shake256_114bytes)                 \
     /* end of list */
 
 #define HASH_TESTLIST(X, name) X(hash_ ## name)
@@ -290,6 +299,7 @@ VOLATILE_WRAPPED_DEFN(static, size_t, looplimit, (size_t x))
     X(mp_mul)                                   \
     X(mp_rshift_safe)                           \
     X(mp_divmod)                                \
+    X(mp_nthroot)                               \
     X(mp_modadd)                                \
     X(mp_modsub)                                \
     X(mp_modmul)                                \
@@ -571,6 +581,23 @@ static void test_mp_divmod(void)
     mp_free(d);
     mp_free(q);
     mp_free(r);
+}
+
+static void test_mp_nthroot(void)
+{
+    mp_int *x = mp_new(256), *remainder = mp_new(256);
+
+    for (size_t i = 0; i < looplimit(32); i++) {
+        uint8_t sizes[1];
+        random_read(sizes, 1);
+        mp_random_bits_into(x, sizes[0]);
+        log_start();
+        mp_free(mp_nthroot(x, 3, remainder));
+        log_end();
+    }
+
+    mp_free(x);
+    mp_free(remainder);
 }
 
 static void test_mp_modarith(
@@ -1572,7 +1599,7 @@ int main(int argc, char **argv)
         printf("All tests passed\n");
         return 0;
     } else {
-        printf("%zu tests failed\n", nrun - npass);
+        printf("%"SIZEu" tests failed\n", nrun - npass);
         return 1;
     }
 }

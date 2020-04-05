@@ -62,7 +62,7 @@
 
 static unsigned char *data[4096 * 20];  /* the request data buffer */
 
-ClientRec client_window;
+extern ClientRec client_window;
 
 int
 __real_XISetEventMask(DeviceIntPtr dev, WindowPtr win, ClientPtr client,

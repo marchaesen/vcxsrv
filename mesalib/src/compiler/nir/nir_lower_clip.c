@@ -466,7 +466,7 @@ bool
 nir_lower_clip_fs(nir_shader *shader, unsigned ucp_enables,
                   bool use_clipdist_array)
 {
-   nir_variable *in[2];
+   nir_variable *in[2] = {0};
    int maxloc = -1;
 
    if (!ucp_enables)

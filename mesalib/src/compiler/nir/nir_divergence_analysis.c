@@ -125,6 +125,11 @@ visit_intrinsic(bool *divergent, nir_intrinsic_instr *instr,
       else
          is_divergent = true;
       break;
+   case nir_intrinsic_load_input_vertex:
+      is_divergent = divergent[instr->src[1].ssa->index];
+      assert(stage == MESA_SHADER_FRAGMENT);
+      is_divergent |= !(options & nir_divergence_single_prim_per_subgroup);
+      break;
    case nir_intrinsic_load_output:
       assert(stage == MESA_SHADER_TESS_CTRL || stage == MESA_SHADER_FRAGMENT);
       is_divergent = divergent[instr->src[0].ssa->index];
@@ -264,11 +269,13 @@ visit_intrinsic(bool *divergent, nir_intrinsic_instr *instr,
    case nir_intrinsic_load_barycentric_pixel:
    case nir_intrinsic_load_barycentric_centroid:
    case nir_intrinsic_load_barycentric_sample:
+   case nir_intrinsic_load_barycentric_model:
    case nir_intrinsic_load_barycentric_at_sample:
    case nir_intrinsic_load_barycentric_at_offset:
    case nir_intrinsic_interp_deref_at_offset:
    case nir_intrinsic_interp_deref_at_sample:
    case nir_intrinsic_interp_deref_at_centroid:
+   case nir_intrinsic_interp_deref_at_vertex:
    case nir_intrinsic_load_tess_coord:
    case nir_intrinsic_load_point_coord:
    case nir_intrinsic_load_frag_coord:

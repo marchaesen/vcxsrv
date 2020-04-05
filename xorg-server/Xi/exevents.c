@@ -748,9 +748,8 @@ UpdateDeviceMotionMask(DeviceIntPtr device, unsigned short state,
 {
     Mask mask;
 
-    mask = DevicePointerMotionMask | state | motion_mask;
-    SetMaskForEvent(device->id, mask, DeviceMotionNotify);
     mask = PointerMotionMask | state | motion_mask;
+    SetMaskForEvent(device->id, mask, DeviceMotionNotify);
     SetMaskForEvent(device->id, mask, MotionNotify);
 }
 
@@ -2526,6 +2525,12 @@ FreeInputMask(OtherInputMasks ** imask)
     *imask = NULL;
 }
 
+#define XIPropagateMask (KeyPressMask | \
+                         KeyReleaseMask | \
+                         ButtonPressMask | \
+                         ButtonReleaseMask | \
+                         PointerMotionMask)
+
 void
 RecalculateDeviceDeliverableEvents(WindowPtr pWin)
 {
@@ -2552,7 +2557,7 @@ RecalculateDeviceDeliverableEvents(WindowPtr pWin)
                         inputMasks->deliverableEvents[i] |=
                             (wOtherInputMasks(tmp)->deliverableEvents[i]
                              & ~inputMasks->dontPropagateMask[i] &
-                             PropagateMask[i]);
+                             XIPropagateMask);
         }
         if (pChild->firstChild) {
             pChild = pChild->firstChild;
@@ -2969,7 +2974,7 @@ DeviceEventSuppressForWindow(WindowPtr pWin, ClientPtr client, Mask mask,
 {
     struct _OtherInputMasks *inputMasks = wOtherInputMasks(pWin);
 
-    if (mask & ~PropagateMask[maskndx]) {
+    if (mask & ~XIPropagateMask) {
         client->errorValue = mask;
         return BadValue;
     }

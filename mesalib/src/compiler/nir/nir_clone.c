@@ -419,7 +419,6 @@ clone_tex(clone_state *state, const nir_tex_instr *tex)
    memcpy(ntex->tg4_offsets, tex->tg4_offsets, sizeof(tex->tg4_offsets));
 
    ntex->texture_index = tex->texture_index;
-   ntex->texture_array_size = tex->texture_array_size;
    ntex->sampler_index = tex->sampler_index;
 
    ntex->texture_non_uniform = tex->texture_non_uniform;

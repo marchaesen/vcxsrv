@@ -6,6 +6,8 @@
  */
 
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <assert.h>
 
@@ -42,36 +44,29 @@ static const ptrlen rsa1_signature =
                           (x)=='+' ? 62 : \
                           (x)=='/' ? 63 : 0 )
 
-typedef struct LoadedFile {
-    char *data;
-    size_t len;
-    BinarySource_IMPLEMENTATION;
-} LoadedFile;
-
-static void lf_free(LoadedFile *lf)
+LoadedFile *lf_new(size_t max_size)
 {
+    LoadedFile *lf = snew_plus(LoadedFile, max_size);
+    lf->data = snew_plus_get_aux(lf);
+    lf->len = 0;
+    lf->max_size = max_size;
+    return lf;
+}
+
+void lf_free(LoadedFile *lf)
+{
+    smemclr(lf->data, lf->max_size);
     smemclr(lf, sizeof(LoadedFile));
     sfree(lf);
 }
 
-static LoadedFile *lf_load(const Filename *filename, size_t max_size,
-                           bool tolerate_overflow)
+LoadFileStatus lf_load_fp(LoadedFile *lf, FILE *fp)
 {
-    FILE *fp = f_open(filename, "rb", false);
-    if (!fp)
-        return NULL;
-
-    LoadedFile *lf = snew_plus(LoadedFile, max_size);
-    lf->data = snew_plus_get_aux(lf);
     lf->len = 0;
-
-    while (lf->len < max_size) {
-        size_t retd = fread(lf->data + lf->len, 1, max_size - lf->len, fp);
-        if (ferror(fp)) {
-            lf_free(lf);
-            fclose(fp);
-            return NULL;
-        }
+    while (lf->len < lf->max_size) {
+        size_t retd = fread(lf->data + lf->len, 1, lf->max_size - lf->len, fp);
+        if (ferror(fp))
+            return LF_ERROR;
 
         if (retd == 0)
             break;
@@ -79,27 +74,71 @@ static LoadedFile *lf_load(const Filename *filename, size_t max_size,
         lf->len += retd;
     }
 
-    if (lf->len == max_size && !tolerate_overflow) {
+    LoadFileStatus status = LF_OK;
+
+    if (lf->len == lf->max_size) {
         /* The file might be too long to fit in our fixed-size
          * structure. Try reading one more byte, to check. */
-        if (fgetc(fp) != EOF) {
-            lf_free(lf);
-            fclose(fp);
-            return NULL;
-        }
+        if (fgetc(fp) != EOF)
+            status = LF_TOO_BIG;
     }
 
-    fclose(fp);
     BinarySource_INIT(lf, lf->data, lf->len);
+
+    return status;
+}
+
+LoadFileStatus lf_load(LoadedFile *lf, const Filename *filename)
+{
+    FILE *fp = f_open(filename, "rb", false);
+    if (!fp)
+        return LF_ERROR;
+
+    LoadFileStatus status = lf_load_fp(lf, fp);
+    fclose(fp);
+    return status;
+}
+
+static inline bool lf_load_keyfile_helper(LoadFileStatus status,
+                                          const char **errptr)
+{
+    const char *error;
+    switch (status) {
+      case LF_OK:
+        return true;
+      case LF_TOO_BIG:
+        error = "file is too large to be a key file";
+        break;
+      case LF_ERROR:
+        error = strerror(errno);
+        break;
+      default:
+        unreachable("bad status value in lf_load_keyfile_helper");
+    }
+    if (errptr)
+        *errptr = error;
+    return false;
+}
+
+LoadedFile *lf_load_keyfile(const Filename *filename, const char **errptr)
+{
+    LoadedFile *lf = lf_new(MAX_KEY_FILE_SIZE);
+    if (!lf_load_keyfile_helper(lf_load(lf, filename), errptr)) {
+        lf_free(lf);
+        return NULL;
+    }
     return lf;
 }
 
-static LoadedFile *lf_load_keyfile(const Filename *filename)
+LoadedFile *lf_load_keyfile_fp(FILE *fp, const char **errptr)
 {
-    return lf_load(filename, MAX_KEY_FILE_SIZE, false);
+    LoadedFile *lf = lf_new(MAX_KEY_FILE_SIZE);
+    if (!lf_load_keyfile_helper(lf_load_fp(lf, fp), errptr)) {
+        lf_free(lf);
+        return NULL;
+    }
+    return lf;
 }
-
-static int key_type_s(BinarySource *src);
 
 static bool expect_signature(BinarySource *src, ptrlen realsig)
 {
@@ -220,11 +259,9 @@ int rsa1_load_s(BinarySource *src, RSAKey *key,
 int rsa1_load_f(const Filename *filename, RSAKey *key,
                 const char *passphrase, const char **errstr)
 {
-    LoadedFile *lf = lf_load_keyfile(filename);
-    if (!lf) {
-        *errstr = "can't open file";
+    LoadedFile *lf = lf_load_keyfile(filename, errstr);
+    if (!lf)
         return false;
-    }
 
     int toret = rsa1_load_s(BinarySource_UPCAST(lf), key, passphrase, errstr);
     lf_free(lf);
@@ -243,7 +280,7 @@ bool rsa1_encrypted_s(BinarySource *src, char **comment)
 
 bool rsa1_encrypted_f(const Filename *filename, char **comment)
 {
-    LoadedFile *lf = lf_load_keyfile(filename);
+    LoadedFile *lf = lf_load_keyfile(filename, NULL);
     if (!lf)
         return false; /* couldn't even open the file */
 
@@ -342,11 +379,9 @@ int rsa1_loadpub_s(BinarySource *src, BinarySink *bs,
 int rsa1_loadpub_f(const Filename *filename, BinarySink *bs,
                    char **commentptr, const char **errorstr)
 {
-    LoadedFile *lf = lf_load_keyfile(filename);
-    if (!lf) {
-        *errorstr = "can't open file";
+    LoadedFile *lf = lf_load_keyfile(filename, errorstr);
+    if (!lf)
         return 0;
-    }
 
     int toret = rsa1_loadpub_s(BinarySource_UPCAST(lf), bs,
                                commentptr, errorstr);
@@ -613,6 +648,8 @@ const ssh_keyalg *find_pubkey_alg_len(ptrlen name)
         return &ssh_ecdsa_nistp521;
     else if (ptrlen_eq_string(name, "ssh-ed25519"))
         return &ssh_ecdsa_ed25519;
+    else if (ptrlen_eq_string(name, "ssh-ed448"))
+        return &ssh_ecdsa_ed448;
     else
         return NULL;
 }
@@ -883,11 +920,9 @@ ssh2_userkey *ppk_load_s(BinarySource *src, const char *passphrase,
 ssh2_userkey *ppk_load_f(const Filename *filename, const char *passphrase,
                          const char **errorstr)
 {
-    LoadedFile *lf = lf_load_keyfile(filename);
-    if (!lf) {
+    LoadedFile *lf = lf_load_keyfile(filename, errorstr);
+    if (!lf)
         *errorstr = "can't open file";
-        return NULL;
-    }
 
     ssh2_userkey *toret = ppk_load_s(BinarySource_UPCAST(lf),
                                      passphrase, errorstr);
@@ -1191,11 +1226,9 @@ bool ppk_loadpub_s(BinarySource *src, char **algorithm, BinarySink *bs,
 bool ppk_loadpub_f(const Filename *filename, char **algorithm, BinarySink *bs,
                    char **commentptr, const char **errorstr)
 {
-    LoadedFile *lf = lf_load_keyfile(filename);
-    if (!lf) {
-        *errorstr = "can't open file";
+    LoadedFile *lf = lf_load_keyfile(filename, errorstr);
+    if (!lf)
         return false;
-    }
 
     bool toret = ppk_loadpub_s(BinarySource_UPCAST(lf), algorithm, bs,
                                commentptr, errorstr);
@@ -1253,7 +1286,7 @@ bool ppk_encrypted_s(BinarySource *src, char **commentptr)
 
 bool ppk_encrypted_f(const Filename *filename, char **commentptr)
 {
-    LoadedFile *lf = lf_load_keyfile(filename);
+    LoadedFile *lf = lf_load_keyfile(filename, NULL);
     if (!lf) {
         if (commentptr)
             *commentptr = NULL;
@@ -1421,8 +1454,8 @@ char *ssh1_pubkey_str(RSAKey *key)
 
     dec1 = mp_get_decimal(key->exponent);
     dec2 = mp_get_decimal(key->modulus);
-    buffer = dupprintf("%zd %s %s%s%s", mp_get_nbits(key->modulus), dec1, dec2,
-                       key->comment ? " " : "",
+    buffer = dupprintf("%"SIZEu" %s %s%s%s", mp_get_nbits(key->modulus),
+                       dec1, dec2, key->comment ? " " : "",
                        key->comment ? key->comment : "");
     sfree(dec1);
     sfree(dec2);
@@ -1639,7 +1672,7 @@ static int key_type_s_internal(BinarySource *src)
     return SSH_KEYTYPE_UNKNOWN;        /* unrecognised or EOF */
 }
 
-static int key_type_s(BinarySource *src)
+int key_type_s(BinarySource *src)
 {
     int toret = key_type_s_internal(src);
     BinarySource_REWIND(src);
@@ -1648,9 +1681,11 @@ static int key_type_s(BinarySource *src)
 
 int key_type(const Filename *filename)
 {
-    LoadedFile *lf = lf_load(filename, 1024, true);
-    if (!lf)
+    LoadedFile *lf = lf_new(1024);
+    if (lf_load(lf, filename) == LF_ERROR) {
+        lf_free(lf);
         return SSH_KEYTYPE_UNOPENABLE;
+    }
 
     int toret = key_type_s(BinarySource_UPCAST(lf));
     lf_free(lf);
@@ -1664,23 +1699,80 @@ int key_type(const Filename *filename)
 const char *key_type_to_str(int type)
 {
     switch (type) {
-      case SSH_KEYTYPE_UNOPENABLE: return "unable to open file"; break;
-      case SSH_KEYTYPE_UNKNOWN: return "not a recognised key file format"; break;
-      case SSH_KEYTYPE_SSH1_PUBLIC: return "SSH-1 public key"; break;
-      case SSH_KEYTYPE_SSH2_PUBLIC_RFC4716: return "SSH-2 public key (RFC 4716 format)"; break;
-      case SSH_KEYTYPE_SSH2_PUBLIC_OPENSSH: return "SSH-2 public key (OpenSSH format)"; break;
-      case SSH_KEYTYPE_SSH1: return "SSH-1 private key"; break;
-      case SSH_KEYTYPE_SSH2: return "PuTTY SSH-2 private key"; break;
-      case SSH_KEYTYPE_OPENSSH_PEM: return "OpenSSH SSH-2 private key (old PEM format)"; break;
-      case SSH_KEYTYPE_OPENSSH_NEW: return "OpenSSH SSH-2 private key (new format)"; break;
-      case SSH_KEYTYPE_SSHCOM: return "ssh.com SSH-2 private key"; break;
+      case SSH_KEYTYPE_UNOPENABLE:
+        return "unable to open file";
+      case SSH_KEYTYPE_UNKNOWN:
+        return "not a recognised key file format";
+      case SSH_KEYTYPE_SSH1_PUBLIC:
+        return "SSH-1 public key";
+      case SSH_KEYTYPE_SSH2_PUBLIC_RFC4716:
+        return "SSH-2 public key (RFC 4716 format)";
+      case SSH_KEYTYPE_SSH2_PUBLIC_OPENSSH:
+        return "SSH-2 public key (OpenSSH format)";
+      case SSH_KEYTYPE_SSH1:
+        return "SSH-1 private key";
+      case SSH_KEYTYPE_SSH2:
+        return "PuTTY SSH-2 private key";
+      case SSH_KEYTYPE_OPENSSH_PEM:
+        return "OpenSSH SSH-2 private key (old PEM format)";
+      case SSH_KEYTYPE_OPENSSH_NEW:
+        return "OpenSSH SSH-2 private key (new format)";
+      case SSH_KEYTYPE_SSHCOM:
+        return "ssh.com SSH-2 private key";
+
         /*
          * This function is called with a key type derived from
          * looking at an actual key file, so the output-only type
          * OPENSSH_AUTO should never get here, and is much an INTERNAL
          * ERROR as a code we don't even understand.
          */
-      case SSH_KEYTYPE_OPENSSH_AUTO: return "INTERNAL ERROR (OPENSSH_AUTO)"; break;
-      default: return "INTERNAL ERROR"; break;
+      case SSH_KEYTYPE_OPENSSH_AUTO:
+        unreachable("OPENSSH_AUTO should never reach key_type_to_str");
+      default:
+        unreachable("bad key type in key_type_to_str");
     }
+}
+
+key_components *key_components_new(void)
+{
+    key_components *kc = snew(key_components);
+    kc->ncomponents = 0;
+    kc->componentsize = 0;
+    kc->components = NULL;
+    return kc;
+}
+
+void key_components_add_text(key_components *kc,
+                             const char *name, const char *value)
+{
+    sgrowarray(kc->components, kc->componentsize, kc->ncomponents);
+    size_t n = kc->ncomponents++;
+    kc->components[n].name = dupstr(name);
+    kc->components[n].is_mp_int = false;
+    kc->components[n].text = dupstr(value);
+}
+
+void key_components_add_mp(key_components *kc,
+                           const char *name, mp_int *value)
+{
+    sgrowarray(kc->components, kc->componentsize, kc->ncomponents);
+    size_t n = kc->ncomponents++;
+    kc->components[n].name = dupstr(name);
+    kc->components[n].is_mp_int = true;
+    kc->components[n].mp = mp_copy(value);
+}
+
+void key_components_free(key_components *kc)
+{
+    for (size_t i = 0; i < kc->ncomponents; i++) {
+        sfree(kc->components[i].name);
+        if (kc->components[i].is_mp_int) {
+            mp_free(kc->components[i].mp);
+        } else {
+            smemclr(kc->components[i].text, strlen(kc->components[i].text));
+            sfree(kc->components[i].text);
+        }
+    }
+    sfree(kc->components);
+    sfree(kc);
 }

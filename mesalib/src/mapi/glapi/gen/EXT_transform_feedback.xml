@@ -89,7 +89,7 @@
 
   <function name="DeleteTransformFeedbacks" es2="3.0">
     <param name="n" type="GLsizei"/>
-    <param name="ids" type="const GLuint *"/>
+    <param name="ids" type="const GLuint *" count="n"/>
   </function>
 
   <function name="GenTransformFeedbacks" es2="3.0">

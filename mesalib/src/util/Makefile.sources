@@ -9,6 +9,7 @@ MESA_UTIL_FILES := \
 	blob.h \
 	build_id.c \
 	build_id.h \
+        compiler.h \
 	crc32.c \
 	crc32.h \
 	dag.c \
@@ -50,6 +51,8 @@ MESA_UTIL_FILES := \
 	half_float.h \
 	hash_table.c \
 	hash_table.h \
+        imports.c \
+        imports.h \
 	list.h \
 	macros.h \
 	mesa-sha1.c \
@@ -108,6 +111,7 @@ MESA_UTIL_FILES := \
 	u_vector.h \
 	u_debug.c \
 	u_debug.h \
+	u_debug_memory.c \
 	u_cpu_detect.c \
 	u_cpu_detect.h \
 	os_memory_aligned.h \
@@ -115,6 +119,7 @@ MESA_UTIL_FILES := \
 	os_memory_stdc.h \
 	os_memory.h \
 	u_memory.h \
+	u_memset.h \
 	u_mm.h \
 	u_mm.c \
 	vma.c \

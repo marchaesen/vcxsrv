@@ -60,7 +60,7 @@ static struct {
     int mask_len;
 } test_data;
 
-ClientRec client_window;
+extern ClientRec client_window;
 
 /* AddResource is called from XISetSEventMask, we don't need this */
 Bool

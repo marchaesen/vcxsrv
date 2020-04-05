@@ -1071,6 +1071,11 @@ static int gfx9_compute_miptree(ADDR_HANDLE addrlib,
 
 	surf->u.gfx9.surf_slice_size = out.sliceSize;
 	surf->u.gfx9.surf_pitch = out.pitch;
+	if (!compressed && surf->blk_w > 1 && out.pitch == out.pixelPitch) {
+		/* Adjust surf_pitch to be in elements units,
+		 * not in pixels */
+		surf->u.gfx9.surf_pitch /= surf->blk_w;
+	}
 	surf->u.gfx9.surf_height = out.height;
 	surf->surf_size = out.surfSize;
 	surf->surf_alignment = out.baseAlign;

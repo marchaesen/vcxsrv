@@ -65,7 +65,7 @@ struct spill_ctx {
    spill_ctx(const RegisterDemand target_pressure, Program* program,
              std::vector<std::vector<RegisterDemand>> register_demand)
       : target_pressure(target_pressure), program(program),
-        register_demand(register_demand), renames(program->blocks.size()),
+        register_demand(std::move(register_demand)), renames(program->blocks.size()),
         spills_entry(program->blocks.size()), spills_exit(program->blocks.size()),
         processed(program->blocks.size(), false), wave_size(program->wave_size) {}
 
@@ -657,6 +657,18 @@ RegisterDemand init_live_in_vars(spill_ctx& ctx, Block* block, unsigned block_id
 }
 
 
+RegisterDemand get_demand_before(spill_ctx& ctx, unsigned block_idx, unsigned idx)
+{
+   if (idx == 0) {
+      RegisterDemand demand = ctx.register_demand[block_idx][idx];
+      aco_ptr<Instruction>& instr = ctx.program->blocks[block_idx].instructions[idx];
+      aco_ptr<Instruction> instr_before(nullptr);
+      return get_demand_before(demand, instr, instr_before);
+   } else {
+      return ctx.register_demand[block_idx][idx - 1];
+   }
+}
+
 void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
 {
    /* no coupling code necessary */
@@ -665,12 +677,13 @@ void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
 
    std::vector<aco_ptr<Instruction>> instructions;
    /* branch block: TODO take other branch into consideration */
-   if (block->linear_preds.size() == 1 && !(block->kind & block_kind_loop_exit)) {
+   if (block->linear_preds.size() == 1 && !(block->kind & (block_kind_loop_exit | block_kind_loop_header))) {
       assert(ctx.processed[block->linear_preds[0]]);
       assert(ctx.register_demand[block_idx].size() == block->instructions.size());
       std::vector<RegisterDemand> reg_demand;
       unsigned insert_idx = 0;
       unsigned pred_idx = block->linear_preds[0];
+      RegisterDemand demand_before = get_demand_before(ctx, block_idx, 0);
 
       for (std::pair<Temp, std::pair<uint32_t, uint32_t>> live : ctx.next_use_distances_start[block_idx]) {
          if (!live.first.is_linear())
@@ -691,7 +704,7 @@ void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
          Temp new_name = {ctx.program->allocateId(), live.first.regClass()};
          aco_ptr<Instruction> reload = do_reload(ctx, live.first, new_name, ctx.spills_exit[pred_idx][live.first]);
          instructions.emplace_back(std::move(reload));
-         reg_demand.push_back(RegisterDemand());
+         reg_demand.push_back(demand_before);
          ctx.renames[block_idx][live.first] = new_name;
       }
 
@@ -989,8 +1002,12 @@ void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
       idx++;
    }
 
-   ctx.register_demand[block->index].erase(ctx.register_demand[block->index].begin(), ctx.register_demand[block->index].begin() + idx);
-   ctx.register_demand[block->index].insert(ctx.register_demand[block->index].begin(), instructions.size(), RegisterDemand());
+   if (!ctx.processed[block_idx]) {
+      assert(!(block->kind & block_kind_loop_header));
+      RegisterDemand demand_before = get_demand_before(ctx, block_idx, idx);
+      ctx.register_demand[block->index].erase(ctx.register_demand[block->index].begin(), ctx.register_demand[block->index].begin() + idx);
+      ctx.register_demand[block->index].insert(ctx.register_demand[block->index].begin(), instructions.size(), demand_before);
+   }
 
    std::vector<aco_ptr<Instruction>>::iterator start = std::next(block->instructions.begin(), idx);
    instructions.insert(instructions.end(), std::move_iterator<std::vector<aco_ptr<Instruction>>::iterator>(start),
@@ -1001,6 +1018,8 @@ void add_coupling_code(spill_ctx& ctx, Block* block, unsigned block_idx)
 void process_block(spill_ctx& ctx, unsigned block_idx, Block* block,
                    std::map<Temp, uint32_t> &current_spills, RegisterDemand spilled_registers)
 {
+   assert(!ctx.processed[block_idx]);
+
    std::vector<std::map<Temp, uint32_t>> local_next_use_distance;
    std::vector<aco_ptr<Instruction>> instructions;
    unsigned idx = 0;
@@ -1052,18 +1071,7 @@ void process_block(spill_ctx& ctx, unsigned block_idx, Block* block,
       if (block->register_demand.exceeds(ctx.target_pressure)) {
 
          RegisterDemand new_demand = ctx.register_demand[block_idx][idx];
-         if (idx == 0) {
-            RegisterDemand demand_before = new_demand;
-            for (const Definition& def : instr->definitions)
-               demand_before -= def.getTemp();
-            for (const Operand& op : instr->operands) {
-               if (op.isFirstKill())
-                  demand_before += op.getTemp();
-            }
-            new_demand.update(demand_before);
-         } else {
-            new_demand.update(ctx.register_demand[block_idx][idx - 1]);
-         }
+         new_demand.update(get_demand_before(ctx, block_idx, idx));
 
          assert(!local_next_use_distance.empty());
 
@@ -1145,7 +1153,6 @@ void process_block(spill_ctx& ctx, unsigned block_idx, Block* block,
 void spill_block(spill_ctx& ctx, unsigned block_idx)
 {
    Block* block = &ctx.program->blocks[block_idx];
-   ctx.processed[block_idx] = true;
 
    /* determine set of variables which are spilled at the beginning of the block */
    RegisterDemand spilled_registers = init_live_in_vars(ctx, block, block_idx);
@@ -1181,6 +1188,8 @@ void spill_block(spill_ctx& ctx, unsigned block_idx)
       process_block(ctx, block_idx, block, current_spills, spilled_registers);
    else
       ctx.spills_exit[block_idx].insert(current_spills.begin(), current_spills.end());
+
+   ctx.processed[block_idx] = true;
 
    /* check if the next block leaves the current loop */
    if (block->loop_nest_depth == 0 || ctx.program->blocks[block_idx + 1].loop_nest_depth >= block->loop_nest_depth)
@@ -1561,9 +1570,9 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
                      split->definitions[i] = bld.def(v1);
                   bld.insert(split);
                   for (unsigned i = 0; i < temp.size(); i++)
-                     bld.mubuf(opcode, Operand(), scratch_rsrc, scratch_offset, split->definitions[i].getTemp(), offset + i * 4, false);
+                     bld.mubuf(opcode, scratch_rsrc, Operand(), scratch_offset, split->definitions[i].getTemp(), offset + i * 4, false);
                } else {
-                  bld.mubuf(opcode, Operand(), scratch_rsrc, scratch_offset, temp, offset, false);
+                  bld.mubuf(opcode, scratch_rsrc, Operand(), scratch_offset, temp, offset, false);
                }
             } else if (sgpr_slot.find(spill_id) != sgpr_slot.end()) {
                ctx.program->config->spilled_sgprs += (*it)->operands[0].size();
@@ -1627,11 +1636,11 @@ void assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr) {
                   for (unsigned i = 0; i < def.size(); i++) {
                      Temp tmp = bld.tmp(v1);
                      vec->operands[i] = Operand(tmp);
-                     bld.mubuf(opcode, Definition(tmp), Operand(), scratch_rsrc, scratch_offset, offset + i * 4, false);
+                     bld.mubuf(opcode, Definition(tmp), scratch_rsrc, Operand(), scratch_offset, offset + i * 4, false);
                   }
                   bld.insert(vec);
                } else {
-                  bld.mubuf(opcode, def, Operand(), scratch_rsrc, scratch_offset, offset, false);
+                  bld.mubuf(opcode, def, scratch_rsrc, Operand(), scratch_offset, offset, false);
                }
             } else if (sgpr_slot.find(spill_id) != sgpr_slot.end()) {
                uint32_t spill_slot = sgpr_slot[spill_id];
@@ -1750,9 +1759,8 @@ void spill(Program* program, live& live_vars, const struct radv_nir_compiler_opt
 
    if (register_target.vgpr > program->vgpr_limit)
       register_target.sgpr = program->sgpr_limit - 5;
-   register_target.vgpr = program->vgpr_limit - (register_target.vgpr - program->max_reg_demand.vgpr);
-
    int spills_to_vgpr = (program->max_reg_demand.sgpr - register_target.sgpr + program->wave_size - 1 + 32) / program->wave_size;
+   register_target.vgpr = program->vgpr_limit - spills_to_vgpr;
 
    /* initialize ctx */
    spill_ctx ctx(register_target, program, live_vars.register_demand);
@@ -1769,7 +1777,7 @@ void spill(Program* program, live& live_vars, const struct radv_nir_compiler_opt
    /* update live variable information */
    live_vars = live_var_analysis(program, options);
 
-   assert(program->num_waves >= 0);
+   assert(program->num_waves > 0);
 }
 
 }

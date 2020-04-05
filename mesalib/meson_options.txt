@@ -349,12 +349,6 @@ option(
   description : 'Enable direct rendering in GLX and EGL for DRI',
 )
 option(
-  'I-love-half-baked-turnips',
-  type : 'boolean',
-  value : false,
-  description : 'Allow work-in-progress freedreno vulkan driver to be enabled',
-)
-option(
   'prefer-iris',
   type : 'boolean',
   value : true,

@@ -30,6 +30,18 @@ RADV_WS_AMDGPU_FILES := \
 	winsys/amdgpu/radv_amdgpu_winsys.h \
 	winsys/amdgpu/radv_amdgpu_winsys_public.h
 
+RADV_WS_NULL_FILES := \
+	winsys/null/radv_null_bo.c \
+	winsys/null/radv_null_bo.h \
+	winsys/null/radv_null_cs.c \
+	winsys/null/radv_null_cs.h \
+	winsys/null/radv_null_winsys.c \
+	winsys/null/radv_null_winsys.h \
+	winsys/null/radv_null_winsys_public.h
+
+RADV_LAYER_SQTT_FILES := \
+	layers/radv_sqtt_layer.c
+
 VULKAN_FILES := \
 	radv_cmd_buffer.c \
 	radv_cs.h \
@@ -62,19 +74,23 @@ VULKAN_FILES := \
 	radv_pipeline_cache.c \
 	radv_private.h \
 	radv_radeon_winsys.h \
+	radv_rgp.c \
 	radv_shader.c \
 	radv_shader_args.c \
 	radv_shader_args.h \
 	radv_shader_info.c \
 	radv_shader.h \
 	radv_shader_helper.h \
+	radv_sqtt.c \
 	radv_query.c \
 	radv_util.c \
 	radv_util.h \
 	radv_wsi.c \
 	si_cmd_buffer.c \
 	vk_format.h \
-	$(RADV_WS_AMDGPU_FILES)
+	$(RADV_LAYER_SQTT_FILES) \
+	$(RADV_WS_AMDGPU_FILES) \
+	$(RADV_WS_NULL_FILES)
 
 VULKAN_ANDROID_FILES := \
 	radv_android.c

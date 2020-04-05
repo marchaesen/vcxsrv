@@ -20,6 +20,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+ifeq ($(MESA_ENABLE_LLVM),true)
+
 # ---------------------------------------
 # Build libmesa_amd_common
 # ---------------------------------------
@@ -97,3 +99,5 @@ $(call mesa-build-with-llvm)
 
 include $(MESA_COMMON_MK)
 include $(BUILD_STATIC_LIBRARY)
+
+endif # MESA_ENABLE_LLVM == true

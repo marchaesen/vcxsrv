@@ -37,13 +37,14 @@
 #include <os.h>
 #include <xserver_poll.h>
 #include <propertyst.h>
+#include <version-config.h>
 
 #include "xwayland-screen.h"
 #include "xwayland-vidmode.h"
 
 #ifdef XF86VIDMODE
 #include <X11/extensions/xf86vmproto.h>
-_X_EXPORT Bool noXFree86VidModeExtension;
+extern _X_EXPORT Bool noXFree86VidModeExtension;
 #endif
 
 void
@@ -89,12 +90,24 @@ ddxUseMsg(void)
     ErrorF("-listenfd fd           add given fd as a listen socket\n");
     ErrorF("-listen fd             deprecated, use \"-listenfd\" instead\n");
     ErrorF("-eglstream             use eglstream backend for nvidia GPUs\n");
+    ErrorF("-version               show the server version and exit\n");
 }
 
 static int init_fd = -1;
 static int wm_fd = -1;
 static int listen_fds[5] = { -1, -1, -1, -1, -1 };
 static int listen_fd_count = 0;
+
+static void
+xwl_show_version(void)
+{
+    ErrorF("%s Xwayland %s (%d)\n", VENDOR_NAME, VENDOR_MAN_VERSION, VENDOR_RELEASE);
+    ErrorF("X Protocol Version %d, Revision %d\n", X_PROTOCOL, X_PROTOCOL_REVISION);
+#if defined(BUILDERSTRING)
+    if (strlen(BUILDERSTRING))
+        ErrorF("%s\n", BUILDERSTRING);
+#endif
+}
 
 static void
 xwl_add_listen_fd(int argc, char *argv[], int i)
@@ -147,6 +160,10 @@ ddxProcessArgument(int argc, char *argv[], int i)
     }
     else if (strcmp(argv[i], "-eglstream") == 0) {
         return 1;
+    }
+    else if (strcmp(argv[i], "-version") == 0) {
+        xwl_show_version();
+        exit(0);
     }
 
     return 0;

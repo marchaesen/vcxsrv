@@ -69,7 +69,7 @@ struct util_sparse_array {
    size_t elem_size;
    unsigned node_size_log2;
 
-   struct util_sparse_array_node *root;
+   uintptr_t root;
 };
 
 void util_sparse_array_init(struct util_sparse_array *arr,

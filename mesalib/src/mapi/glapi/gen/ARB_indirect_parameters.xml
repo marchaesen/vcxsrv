@@ -8,7 +8,8 @@
     <enum name="PARAMETER_BUFFER_ARB"                   value="0x80EE"/>
     <enum name="PARAMETER_BUFFER_BINDING_ARB"           value="0x80EF"/>
 
-    <function name="MultiDrawArraysIndirectCountARB" exec="dynamic">
+    <function name="MultiDrawArraysIndirectCountARB" exec="dynamic" marshal="draw"
+              marshal_sync="_mesa_glthread_has_non_vbo_vertices(ctx)">
         <param name="mode" type="GLenum"/>
         <param name="indirect" type="GLintptr"/>
         <param name="drawcount" type="GLintptr"/>
@@ -16,7 +17,9 @@
         <param name="stride" type="GLsizei"/>
     </function>
 
-    <function name="MultiDrawElementsIndirectCountARB" exec="dynamic">
+    <!-- Use "...has_non_vbo_vertices", because indices always come from a buffer object. -->
+    <function name="MultiDrawElementsIndirectCountARB" exec="dynamic" marshal="draw"
+              marshal_sync="_mesa_glthread_has_non_vbo_vertices(ctx)">
         <param name="mode" type="GLenum"/>
         <param name="type" type="GLenum"/>
         <param name="indirect" type="GLintptr"/>

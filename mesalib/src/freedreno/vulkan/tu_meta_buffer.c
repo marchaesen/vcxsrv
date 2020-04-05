@@ -17,7 +17,7 @@ tu_CmdFillBuffer(VkCommandBuffer commandBuffer,
 
    tu_bo_list_add(&cmd->bo_list, buffer->bo, MSM_SUBMIT_BO_WRITE);
 
-   tu_blit(cmd, &(struct tu_blit) {
+   tu_blit(cmd, &cmd->cs, &(struct tu_blit) {
       .dst = {
          .fmt = VK_FORMAT_R32_UINT,
          .va = tu_buffer_iova(buffer) + dstOffset,
@@ -45,7 +45,7 @@ tu_CmdUpdateBuffer(VkCommandBuffer commandBuffer,
    tu_bo_list_add(&cmd->bo_list, buffer->bo, MSM_SUBMIT_BO_WRITE);
 
    struct ts_cs_memory tmp;
-   VkResult result = tu_cs_alloc(cmd->device, &cmd->sub_cs, DIV_ROUND_UP(dataSize, 64), 64, &tmp);
+   VkResult result = tu_cs_alloc(&cmd->sub_cs, DIV_ROUND_UP(dataSize, 64), 64, &tmp);
    if (result != VK_SUCCESS) {
       cmd->record_result = result;
       return;
@@ -53,7 +53,7 @@ tu_CmdUpdateBuffer(VkCommandBuffer commandBuffer,
 
    memcpy(tmp.map, pData, dataSize);
 
-   tu_blit(cmd, &(struct tu_blit) {
+   tu_blit(cmd, &cmd->cs, &(struct tu_blit) {
       .dst = {
          .fmt = VK_FORMAT_R32_UINT,
          .va = tu_buffer_iova(buffer) + dstOffset,

@@ -36,365 +36,391 @@
 #include "vk_util.h"
 #include "drm-uapi/drm_fourcc.h"
 
-/**
- * Declare a format table.  A format table is an array of tu_native_format.
- * It can map a consecutive range of VkFormat to the corresponding
- * tu_native_format.
- *
- * TU_FORMAT_TABLE_FIRST and TU_FORMAT_TABLE_LAST must already be defined and
- * have the values of the first and last VkFormat of the array respectively.
- */
-#define TU_FORMAT_TABLE(var)                                                 \
-   static const VkFormat var##_first = TU_FORMAT_TABLE_FIRST;                \
-   static const VkFormat var##_last = TU_FORMAT_TABLE_LAST;                  \
-   static const struct tu_native_format var[TU_FORMAT_TABLE_LAST - TU_FORMAT_TABLE_FIRST + 1]
-#undef TU_FORMAT_TABLE_FIRST
-#undef TU_FORMAT_TABLE_LAST
+#define FMT6_x -1
 
-#define VFMT6_x -1
-#define TFMT6_x -1
-#define RB6_x -1
-
-#define TU6_FMT(vkfmt, vtxfmt, texfmt, rbfmt, swapfmt, valid)                \
-   [VK_FORMAT_##vkfmt - TU_FORMAT_TABLE_FIRST] = {                           \
-      .vtx = VFMT6_##vtxfmt,                                                 \
-      .tex = TFMT6_##texfmt,                                                 \
-      .rb = RB6_##rbfmt,                                                     \
-      .swap = swapfmt,                                                       \
-      .present = valid,                                                      \
+#define TU6_FMT(vkfmt, hwfmt, swapfmt, valid) \
+   [VK_FORMAT_##vkfmt] = {                   \
+      .fmt = FMT6_##hwfmt,                     \
+      .swap = swapfmt,                       \
+      .supported = valid,                    \
    }
 
-/**
- * fmt/alias/swap are derived from VkFormat mechanically (and might not even
- * exist).  It is the macro of choice that decides whether a VkFormat is
- * supported and how.
- */
-#define TU6_VTC(vk, fmt, alias, swap) TU6_FMT(vk, fmt, fmt, alias, swap, true)
-#define TU6_xTC(vk, fmt, alias, swap) TU6_FMT(vk, x, fmt, alias, swap, true)
-#define TU6_VTx(vk, fmt, alias, swap) TU6_FMT(vk, fmt, fmt, x, swap, true)
-#define TU6_Vxx(vk, fmt, alias, swap) TU6_FMT(vk, fmt, x, x, swap, true)
-#define TU6_xTx(vk, fmt, alias, swap) TU6_FMT(vk, x, fmt, x, swap, true)
-#define TU6_xxx(vk, fmt, alias, swap) TU6_FMT(vk, x, x, x, WZYX, false)
+#define TU6_VTC(vk, fmt, swap) TU6_FMT(vk, fmt, swap, FMT_VERTEX | FMT_TEXTURE | FMT_COLOR)
+#define TU6_xTC(vk, fmt, swap) TU6_FMT(vk, fmt, swap, FMT_TEXTURE | FMT_COLOR)
+#define TU6_Vxx(vk, fmt, swap) TU6_FMT(vk, fmt, swap, FMT_VERTEX)
+#define TU6_xTx(vk, fmt, swap) TU6_FMT(vk, fmt, swap, FMT_TEXTURE)
+#define TU6_xxx(vk, fmt, swap) TU6_FMT(vk, x, WZYX, false)
 
-#define TU_FORMAT_TABLE_FIRST VK_FORMAT_UNDEFINED
-#define TU_FORMAT_TABLE_LAST VK_FORMAT_ASTC_12x12_SRGB_BLOCK
-TU_FORMAT_TABLE(tu6_format_table0) = {
-   TU6_xxx(UNDEFINED,                  x,                 x,                  x),    /* 0 */
+static const struct tu_native_format tu6_format_table[] = {
+   TU6_xxx(UNDEFINED,                  x,                 x),    /* 0 */
 
    /* 8-bit packed */
-   TU6_xxx(R4G4_UNORM_PACK8,           4_4_UNORM,         R4G4_UNORM,         WZXY), /* 1 */
+   TU6_xxx(R4G4_UNORM_PACK8,           4_4_UNORM,         WZXY), /* 1 */
 
    /* 16-bit packed */
-   TU6_xTC(R4G4B4A4_UNORM_PACK16,      4_4_4_4_UNORM,     R4G4B4A4_UNORM,     XYZW), /* 2 */
-   TU6_xTC(B4G4R4A4_UNORM_PACK16,      4_4_4_4_UNORM,     R4G4B4A4_UNORM,     ZYXW), /* 3 */
-   TU6_xTC(R5G6B5_UNORM_PACK16,        5_6_5_UNORM,       R5G6B5_UNORM,       WXYZ), /* 4 */
-   TU6_xTC(B5G6R5_UNORM_PACK16,        5_6_5_UNORM,       R5G6B5_UNORM,       WZYX), /* 5 */
-   TU6_xxx(R5G5B5A1_UNORM_PACK16,      1_5_5_5_UNORM,     A1R5G5B5_UNORM,     XYZW), /* 6 */
-   TU6_xxx(B5G5R5A1_UNORM_PACK16,      1_5_5_5_UNORM,     A1R5G5B5_UNORM,     XYZW), /* 7 */
-   TU6_xTC(A1R5G5B5_UNORM_PACK16,      5_5_5_1_UNORM,     R5G5B5A1_UNORM,     WXYZ), /* 8 */
+   TU6_xTC(R4G4B4A4_UNORM_PACK16,      4_4_4_4_UNORM,     XYZW), /* 2 */
+   TU6_xTC(B4G4R4A4_UNORM_PACK16,      4_4_4_4_UNORM,     ZYXW), /* 3 */
+   TU6_xTC(R5G6B5_UNORM_PACK16,        5_6_5_UNORM,       WXYZ), /* 4 */
+   TU6_xTC(B5G6R5_UNORM_PACK16,        5_6_5_UNORM,       WZYX), /* 5 */
+   TU6_xTC(R5G5B5A1_UNORM_PACK16,      5_5_5_1_UNORM,     XYZW), /* 6 */
+   TU6_xTC(B5G5R5A1_UNORM_PACK16,      5_5_5_1_UNORM,     ZYXW), /* 7 */
+   TU6_xTC(A1R5G5B5_UNORM_PACK16,      5_5_5_1_UNORM,     WXYZ), /* 8 */
 
    /* 8-bit R */
-   TU6_VTC(R8_UNORM,                   8_UNORM,           R8_UNORM,           WZYX), /* 9 */
-   TU6_VTC(R8_SNORM,                   8_SNORM,           R8_SNORM,           WZYX), /* 10 */
-   TU6_Vxx(R8_USCALED,                 8_UINT,            R8_UINT,            WZYX), /* 11 */
-   TU6_Vxx(R8_SSCALED,                 8_SINT,            R8_SINT,            WZYX), /* 12 */
-   TU6_VTC(R8_UINT,                    8_UINT,            R8_UINT,            WZYX), /* 13 */
-   TU6_VTC(R8_SINT,                    8_SINT,            R8_SINT,            WZYX), /* 14 */
-   TU6_xTC(R8_SRGB,                    8_UNORM,           R8_UNORM,           WZYX), /* 15 */
+   TU6_VTC(R8_UNORM,                   8_UNORM,           WZYX), /* 9 */
+   TU6_VTC(R8_SNORM,                   8_SNORM,           WZYX), /* 10 */
+   TU6_Vxx(R8_USCALED,                 8_UINT,            WZYX), /* 11 */
+   TU6_Vxx(R8_SSCALED,                 8_SINT,            WZYX), /* 12 */
+   TU6_VTC(R8_UINT,                    8_UINT,            WZYX), /* 13 */
+   TU6_VTC(R8_SINT,                    8_SINT,            WZYX), /* 14 */
+   TU6_xTC(R8_SRGB,                    8_UNORM,           WZYX), /* 15 */
 
    /* 16-bit RG */
-   TU6_VTC(R8G8_UNORM,                 8_8_UNORM,         R8G8_UNORM,         WZYX), /* 16 */
-   TU6_VTC(R8G8_SNORM,                 8_8_SNORM,         R8G8_SNORM,         WZYX), /* 17 */
-   TU6_Vxx(R8G8_USCALED,               8_8_UINT,          R8G8_UINT,          WZYX), /* 18 */
-   TU6_Vxx(R8G8_SSCALED,               8_8_SINT,          R8G8_SINT,          WZYX), /* 19 */
-   TU6_VTC(R8G8_UINT,                  8_8_UINT,          R8G8_UINT,          WZYX), /* 20 */
-   TU6_VTC(R8G8_SINT,                  8_8_SINT,          R8G8_SINT,          WZYX), /* 21 */
-   TU6_xTC(R8G8_SRGB,                  8_8_UNORM,         R8G8_UNORM,         WZYX), /* 22 */
+   TU6_VTC(R8G8_UNORM,                 8_8_UNORM,         WZYX), /* 16 */
+   TU6_VTC(R8G8_SNORM,                 8_8_SNORM,         WZYX), /* 17 */
+   TU6_Vxx(R8G8_USCALED,               8_8_UINT,          WZYX), /* 18 */
+   TU6_Vxx(R8G8_SSCALED,               8_8_SINT,          WZYX), /* 19 */
+   TU6_VTC(R8G8_UINT,                  8_8_UINT,          WZYX), /* 20 */
+   TU6_VTC(R8G8_SINT,                  8_8_SINT,          WZYX), /* 21 */
+   TU6_xTC(R8G8_SRGB,                  8_8_UNORM,         WZYX), /* 22 */
 
    /* 24-bit RGB */
-   TU6_Vxx(R8G8B8_UNORM,               8_8_8_UNORM,       R8G8B8_UNORM,       WZYX), /* 23 */
-   TU6_Vxx(R8G8B8_SNORM,               8_8_8_SNORM,       R8G8B8_SNORM,       WZYX), /* 24 */
-   TU6_Vxx(R8G8B8_USCALED,             8_8_8_UINT,        R8G8B8_UINT,        WZYX), /* 25 */
-   TU6_Vxx(R8G8B8_SSCALED,             8_8_8_SINT,        R8G8B8_SINT,        WZYX), /* 26 */
-   TU6_Vxx(R8G8B8_UINT,                8_8_8_UINT,        R8G8B8_UINT,        WZYX), /* 27 */
-   TU6_Vxx(R8G8B8_SINT,                8_8_8_SINT,        R8G8B8_SINT,        WZYX), /* 28 */
-   TU6_xxx(R8G8B8_SRGB,                8_8_8_UNORM,       R8G8B8_UNORM,       WZYX), /* 29 */
+   TU6_Vxx(R8G8B8_UNORM,               8_8_8_UNORM,       WZYX), /* 23 */
+   TU6_Vxx(R8G8B8_SNORM,               8_8_8_SNORM,       WZYX), /* 24 */
+   TU6_Vxx(R8G8B8_USCALED,             8_8_8_UINT,        WZYX), /* 25 */
+   TU6_Vxx(R8G8B8_SSCALED,             8_8_8_SINT,        WZYX), /* 26 */
+   TU6_Vxx(R8G8B8_UINT,                8_8_8_UINT,        WZYX), /* 27 */
+   TU6_Vxx(R8G8B8_SINT,                8_8_8_SINT,        WZYX), /* 28 */
+   TU6_xxx(R8G8B8_SRGB,                8_8_8_UNORM,       WZYX), /* 29 */
 
    /* 24-bit BGR */
-   TU6_xxx(B8G8R8_UNORM,               8_8_8_UNORM,       R8G8B8_UNORM,       WXYZ), /* 30 */
-   TU6_xxx(B8G8R8_SNORM,               8_8_8_SNORM,       R8G8B8_SNORM,       WXYZ), /* 31 */
-   TU6_xxx(B8G8R8_USCALED,             8_8_8_UINT,        R8G8B8_UINT,        WXYZ), /* 32 */
-   TU6_xxx(B8G8R8_SSCALED,             8_8_8_SINT,        R8G8B8_SINT,        WXYZ), /* 33 */
-   TU6_xxx(B8G8R8_UINT,                8_8_8_UINT,        R8G8B8_UINT,        WXYZ), /* 34 */
-   TU6_xxx(B8G8R8_SINT,                8_8_8_SINT,        R8G8B8_SINT,        WXYZ), /* 35 */
-   TU6_xxx(B8G8R8_SRGB,                8_8_8_UNORM,       R8G8B8_UNORM,       WXYZ), /* 36 */
+   TU6_xxx(B8G8R8_UNORM,               8_8_8_UNORM,       WXYZ), /* 30 */
+   TU6_xxx(B8G8R8_SNORM,               8_8_8_SNORM,       WXYZ), /* 31 */
+   TU6_xxx(B8G8R8_USCALED,             8_8_8_UINT,        WXYZ), /* 32 */
+   TU6_xxx(B8G8R8_SSCALED,             8_8_8_SINT,        WXYZ), /* 33 */
+   TU6_xxx(B8G8R8_UINT,                8_8_8_UINT,        WXYZ), /* 34 */
+   TU6_xxx(B8G8R8_SINT,                8_8_8_SINT,        WXYZ), /* 35 */
+   TU6_xxx(B8G8R8_SRGB,                8_8_8_UNORM,       WXYZ), /* 36 */
 
    /* 32-bit RGBA */
-   TU6_VTC(R8G8B8A8_UNORM,             8_8_8_8_UNORM,     R8G8B8A8_UNORM,     WZYX), /* 37 */
-   TU6_VTC(R8G8B8A8_SNORM,             8_8_8_8_SNORM,     R8G8B8A8_SNORM,     WZYX), /* 38 */
-   TU6_Vxx(R8G8B8A8_USCALED,           8_8_8_8_UINT,      R8G8B8A8_UINT,      WZYX), /* 39 */
-   TU6_Vxx(R8G8B8A8_SSCALED,           8_8_8_8_SINT,      R8G8B8A8_SINT,      WZYX), /* 40 */
-   TU6_VTC(R8G8B8A8_UINT,              8_8_8_8_UINT,      R8G8B8A8_UINT,      WZYX), /* 41 */
-   TU6_VTC(R8G8B8A8_SINT,              8_8_8_8_SINT,      R8G8B8A8_SINT,      WZYX), /* 42 */
-   TU6_xTC(R8G8B8A8_SRGB,              8_8_8_8_UNORM,     R8G8B8A8_UNORM,     WZYX), /* 43 */
+   TU6_VTC(R8G8B8A8_UNORM,             8_8_8_8_UNORM,     WZYX), /* 37 */
+   TU6_VTC(R8G8B8A8_SNORM,             8_8_8_8_SNORM,     WZYX), /* 38 */
+   TU6_Vxx(R8G8B8A8_USCALED,           8_8_8_8_UINT,      WZYX), /* 39 */
+   TU6_Vxx(R8G8B8A8_SSCALED,           8_8_8_8_SINT,      WZYX), /* 40 */
+   TU6_VTC(R8G8B8A8_UINT,              8_8_8_8_UINT,      WZYX), /* 41 */
+   TU6_VTC(R8G8B8A8_SINT,              8_8_8_8_SINT,      WZYX), /* 42 */
+   TU6_xTC(R8G8B8A8_SRGB,              8_8_8_8_UNORM,     WZYX), /* 43 */
 
    /* 32-bit BGRA */
-   TU6_VTC(B8G8R8A8_UNORM,             8_8_8_8_UNORM,     R8G8B8A8_UNORM,     WXYZ), /* 44 */
-   TU6_VTC(B8G8R8A8_SNORM,             8_8_8_8_SNORM,     R8G8B8A8_SNORM,     WXYZ), /* 45 */
-   TU6_Vxx(B8G8R8A8_USCALED,           8_8_8_8_UINT,      R8G8B8A8_UINT,      WXYZ), /* 46 */
-   TU6_Vxx(B8G8R8A8_SSCALED,           8_8_8_8_SINT,      R8G8B8A8_SINT,      WXYZ), /* 47 */
-   TU6_VTC(B8G8R8A8_UINT,              8_8_8_8_UINT,      R8G8B8A8_UINT,      WXYZ), /* 48 */
-   TU6_VTC(B8G8R8A8_SINT,              8_8_8_8_SINT,      R8G8B8A8_SINT,      WXYZ), /* 49 */
-   TU6_xTC(B8G8R8A8_SRGB,              8_8_8_8_UNORM,     R8G8B8A8_UNORM,     WXYZ), /* 50 */
+   TU6_VTC(B8G8R8A8_UNORM,             8_8_8_8_UNORM,     WXYZ), /* 44 */
+   TU6_VTC(B8G8R8A8_SNORM,             8_8_8_8_SNORM,     WXYZ), /* 45 */
+   TU6_Vxx(B8G8R8A8_USCALED,           8_8_8_8_UINT,      WXYZ), /* 46 */
+   TU6_Vxx(B8G8R8A8_SSCALED,           8_8_8_8_SINT,      WXYZ), /* 47 */
+   TU6_VTC(B8G8R8A8_UINT,              8_8_8_8_UINT,      WXYZ), /* 48 */
+   TU6_VTC(B8G8R8A8_SINT,              8_8_8_8_SINT,      WXYZ), /* 49 */
+   TU6_xTC(B8G8R8A8_SRGB,              8_8_8_8_UNORM,     WXYZ), /* 50 */
 
    /* 32-bit packed */
-   TU6_VTC(A8B8G8R8_UNORM_PACK32,      8_8_8_8_UNORM,     R8G8B8A8_UNORM,     WZYX), /* 51 */
-   TU6_VTC(A8B8G8R8_SNORM_PACK32,      8_8_8_8_SNORM,     R8G8B8A8_SNORM,     WZYX), /* 52 */
-   TU6_Vxx(A8B8G8R8_USCALED_PACK32,    8_8_8_8_UINT,      R8G8B8A8_UINT,      WZYX), /* 53 */
-   TU6_Vxx(A8B8G8R8_SSCALED_PACK32,    8_8_8_8_SINT,      R8G8B8A8_SINT,      WZYX), /* 54 */
-   TU6_VTC(A8B8G8R8_UINT_PACK32,       8_8_8_8_UINT,      R8G8B8A8_UINT,      WZYX), /* 55 */
-   TU6_VTC(A8B8G8R8_SINT_PACK32,       8_8_8_8_SINT,      R8G8B8A8_SINT,      WZYX), /* 56 */
-   TU6_xTC(A8B8G8R8_SRGB_PACK32,       8_8_8_8_UNORM,     R8G8B8A8_UNORM,     WZYX), /* 57 */
-   TU6_VTC(A2R10G10B10_UNORM_PACK32,   10_10_10_2_UNORM,  R10G10B10A2_UNORM,  WXYZ), /* 58 */
-   TU6_Vxx(A2R10G10B10_SNORM_PACK32,   10_10_10_2_SNORM,  R10G10B10A2_SNORM,  WXYZ), /* 59 */
-   TU6_Vxx(A2R10G10B10_USCALED_PACK32, 10_10_10_2_UINT,   R10G10B10A2_UINT,   WXYZ), /* 60 */
-   TU6_Vxx(A2R10G10B10_SSCALED_PACK32, 10_10_10_2_SINT,   R10G10B10A2_SINT,   WXYZ), /* 61 */
-   TU6_VTC(A2R10G10B10_UINT_PACK32,    10_10_10_2_UINT,   R10G10B10A2_UINT,   WXYZ), /* 62 */
-   TU6_Vxx(A2R10G10B10_SINT_PACK32,    10_10_10_2_SINT,   R10G10B10A2_SINT,   WXYZ), /* 63 */
-   TU6_VTC(A2B10G10R10_UNORM_PACK32,   10_10_10_2_UNORM,  R10G10B10A2_UNORM,  WZYX), /* 64 */
-   TU6_Vxx(A2B10G10R10_SNORM_PACK32,   10_10_10_2_SNORM,  R10G10B10A2_SNORM,  WZYX), /* 65 */
-   TU6_Vxx(A2B10G10R10_USCALED_PACK32, 10_10_10_2_UINT,   R10G10B10A2_UINT,   WZYX), /* 66 */
-   TU6_Vxx(A2B10G10R10_SSCALED_PACK32, 10_10_10_2_SINT,   R10G10B10A2_SINT,   WZYX), /* 67 */
-   TU6_VTC(A2B10G10R10_UINT_PACK32,    10_10_10_2_UINT,   R10G10B10A2_UINT,   WZYX), /* 68 */
-   TU6_Vxx(A2B10G10R10_SINT_PACK32,    10_10_10_2_SINT,   R10G10B10A2_SINT,   WZYX), /* 69 */
+   TU6_VTC(A8B8G8R8_UNORM_PACK32,      8_8_8_8_UNORM,     WZYX), /* 51 */
+   TU6_VTC(A8B8G8R8_SNORM_PACK32,      8_8_8_8_SNORM,     WZYX), /* 52 */
+   TU6_Vxx(A8B8G8R8_USCALED_PACK32,    8_8_8_8_UINT,      WZYX), /* 53 */
+   TU6_Vxx(A8B8G8R8_SSCALED_PACK32,    8_8_8_8_SINT,      WZYX), /* 54 */
+   TU6_VTC(A8B8G8R8_UINT_PACK32,       8_8_8_8_UINT,      WZYX), /* 55 */
+   TU6_VTC(A8B8G8R8_SINT_PACK32,       8_8_8_8_SINT,      WZYX), /* 56 */
+   TU6_xTC(A8B8G8R8_SRGB_PACK32,       8_8_8_8_UNORM,     WZYX), /* 57 */
+   TU6_VTC(A2R10G10B10_UNORM_PACK32,   10_10_10_2_UNORM,  WXYZ), /* 58 */
+   TU6_Vxx(A2R10G10B10_SNORM_PACK32,   10_10_10_2_SNORM,  WXYZ), /* 59 */
+   TU6_Vxx(A2R10G10B10_USCALED_PACK32, 10_10_10_2_UINT,   WXYZ), /* 60 */
+   TU6_Vxx(A2R10G10B10_SSCALED_PACK32, 10_10_10_2_SINT,   WXYZ), /* 61 */
+   TU6_VTC(A2R10G10B10_UINT_PACK32,    10_10_10_2_UINT,   WXYZ), /* 62 */
+   TU6_Vxx(A2R10G10B10_SINT_PACK32,    10_10_10_2_SINT,   WXYZ), /* 63 */
+   TU6_VTC(A2B10G10R10_UNORM_PACK32,   10_10_10_2_UNORM,  WZYX), /* 64 */
+   TU6_Vxx(A2B10G10R10_SNORM_PACK32,   10_10_10_2_SNORM,  WZYX), /* 65 */
+   TU6_Vxx(A2B10G10R10_USCALED_PACK32, 10_10_10_2_UINT,   WZYX), /* 66 */
+   TU6_Vxx(A2B10G10R10_SSCALED_PACK32, 10_10_10_2_SINT,   WZYX), /* 67 */
+   TU6_VTC(A2B10G10R10_UINT_PACK32,    10_10_10_2_UINT,   WZYX), /* 68 */
+   TU6_Vxx(A2B10G10R10_SINT_PACK32,    10_10_10_2_SINT,   WZYX), /* 69 */
 
    /* 16-bit R */
-   TU6_VTC(R16_UNORM,                  16_UNORM,          R16_UNORM,          WZYX), /* 70 */
-   TU6_VTC(R16_SNORM,                  16_SNORM,          R16_SNORM,          WZYX), /* 71 */
-   TU6_Vxx(R16_USCALED,                16_UINT,           R16_UINT,           WZYX), /* 72 */
-   TU6_Vxx(R16_SSCALED,                16_SINT,           R16_SINT,           WZYX), /* 73 */
-   TU6_VTC(R16_UINT,                   16_UINT,           R16_UINT,           WZYX), /* 74 */
-   TU6_VTC(R16_SINT,                   16_SINT,           R16_SINT,           WZYX), /* 75 */
-   TU6_VTC(R16_SFLOAT,                 16_FLOAT,          R16_FLOAT,          WZYX), /* 76 */
+   TU6_VTC(R16_UNORM,                  16_UNORM,          WZYX), /* 70 */
+   TU6_VTC(R16_SNORM,                  16_SNORM,          WZYX), /* 71 */
+   TU6_Vxx(R16_USCALED,                16_UINT,           WZYX), /* 72 */
+   TU6_Vxx(R16_SSCALED,                16_SINT,           WZYX), /* 73 */
+   TU6_VTC(R16_UINT,                   16_UINT,           WZYX), /* 74 */
+   TU6_VTC(R16_SINT,                   16_SINT,           WZYX), /* 75 */
+   TU6_VTC(R16_SFLOAT,                 16_FLOAT,          WZYX), /* 76 */
 
    /* 32-bit RG */
-   TU6_VTC(R16G16_UNORM,               16_16_UNORM,       R16G16_UNORM,       WZYX), /* 77 */
-   TU6_VTC(R16G16_SNORM,               16_16_SNORM,       R16G16_SNORM,       WZYX), /* 78 */
-   TU6_Vxx(R16G16_USCALED,             16_16_UINT,        R16G16_UINT,        WZYX), /* 79 */
-   TU6_Vxx(R16G16_SSCALED,             16_16_SINT,        R16G16_SINT,        WZYX), /* 80 */
-   TU6_VTC(R16G16_UINT,                16_16_UINT,        R16G16_UINT,        WZYX), /* 81 */
-   TU6_VTC(R16G16_SINT,                16_16_SINT,        R16G16_SINT,        WZYX), /* 82 */
-   TU6_VTC(R16G16_SFLOAT,              16_16_FLOAT,       R16G16_FLOAT,       WZYX), /* 83 */
+   TU6_VTC(R16G16_UNORM,               16_16_UNORM,       WZYX), /* 77 */
+   TU6_VTC(R16G16_SNORM,               16_16_SNORM,       WZYX), /* 78 */
+   TU6_Vxx(R16G16_USCALED,             16_16_UINT,        WZYX), /* 79 */
+   TU6_Vxx(R16G16_SSCALED,             16_16_SINT,        WZYX), /* 80 */
+   TU6_VTC(R16G16_UINT,                16_16_UINT,        WZYX), /* 81 */
+   TU6_VTC(R16G16_SINT,                16_16_SINT,        WZYX), /* 82 */
+   TU6_VTC(R16G16_SFLOAT,              16_16_FLOAT,       WZYX), /* 83 */
 
    /* 48-bit RGB */
-   TU6_Vxx(R16G16B16_UNORM,            16_16_16_UNORM,    R16G16B16_UNORM,    WZYX), /* 84 */
-   TU6_Vxx(R16G16B16_SNORM,            16_16_16_SNORM,    R16G16B16_SNORM,    WZYX), /* 85 */
-   TU6_Vxx(R16G16B16_USCALED,          16_16_16_UINT,     R16G16B16_UINT,     WZYX), /* 86 */
-   TU6_Vxx(R16G16B16_SSCALED,          16_16_16_SINT,     R16G16B16_SINT,     WZYX), /* 87 */
-   TU6_Vxx(R16G16B16_UINT,             16_16_16_UINT,     R16G16B16_UINT,     WZYX), /* 88 */
-   TU6_Vxx(R16G16B16_SINT,             16_16_16_SINT,     R16G16B16_SINT,     WZYX), /* 89 */
-   TU6_Vxx(R16G16B16_SFLOAT,           16_16_16_FLOAT,    R16G16B16_FLOAT,    WZYX), /* 90 */
+   TU6_Vxx(R16G16B16_UNORM,            16_16_16_UNORM,    WZYX), /* 84 */
+   TU6_Vxx(R16G16B16_SNORM,            16_16_16_SNORM,    WZYX), /* 85 */
+   TU6_Vxx(R16G16B16_USCALED,          16_16_16_UINT,     WZYX), /* 86 */
+   TU6_Vxx(R16G16B16_SSCALED,          16_16_16_SINT,     WZYX), /* 87 */
+   TU6_Vxx(R16G16B16_UINT,             16_16_16_UINT,     WZYX), /* 88 */
+   TU6_Vxx(R16G16B16_SINT,             16_16_16_SINT,     WZYX), /* 89 */
+   TU6_Vxx(R16G16B16_SFLOAT,           16_16_16_FLOAT,    WZYX), /* 90 */
 
    /* 64-bit RGBA */
-   TU6_VTC(R16G16B16A16_UNORM,         16_16_16_16_UNORM, R16G16B16A16_UNORM, WZYX), /* 91 */
-   TU6_VTC(R16G16B16A16_SNORM,         16_16_16_16_SNORM, R16G16B16A16_SNORM, WZYX), /* 92 */
-   TU6_Vxx(R16G16B16A16_USCALED,       16_16_16_16_UINT,  R16G16B16A16_UINT,  WZYX), /* 93 */
-   TU6_Vxx(R16G16B16A16_SSCALED,       16_16_16_16_SINT,  R16G16B16A16_SINT,  WZYX), /* 94 */
-   TU6_VTC(R16G16B16A16_UINT,          16_16_16_16_UINT,  R16G16B16A16_UINT,  WZYX), /* 95 */
-   TU6_VTC(R16G16B16A16_SINT,          16_16_16_16_SINT,  R16G16B16A16_SINT,  WZYX), /* 96 */
-   TU6_VTC(R16G16B16A16_SFLOAT,        16_16_16_16_FLOAT, R16G16B16A16_FLOAT, WZYX), /* 97 */
+   TU6_VTC(R16G16B16A16_UNORM,         16_16_16_16_UNORM, WZYX), /* 91 */
+   TU6_VTC(R16G16B16A16_SNORM,         16_16_16_16_SNORM, WZYX), /* 92 */
+   TU6_Vxx(R16G16B16A16_USCALED,       16_16_16_16_UINT,  WZYX), /* 93 */
+   TU6_Vxx(R16G16B16A16_SSCALED,       16_16_16_16_SINT,  WZYX), /* 94 */
+   TU6_VTC(R16G16B16A16_UINT,          16_16_16_16_UINT,  WZYX), /* 95 */
+   TU6_VTC(R16G16B16A16_SINT,          16_16_16_16_SINT,  WZYX), /* 96 */
+   TU6_VTC(R16G16B16A16_SFLOAT,        16_16_16_16_FLOAT, WZYX), /* 97 */
 
    /* 32-bit R */
-   TU6_VTC(R32_UINT,                   32_UINT,           R32_UINT,           WZYX), /* 98 */
-   TU6_VTC(R32_SINT,                   32_SINT,           R32_SINT,           WZYX), /* 99 */
-   TU6_VTC(R32_SFLOAT,                 32_FLOAT,          R32_FLOAT,          WZYX), /* 100 */
+   TU6_VTC(R32_UINT,                   32_UINT,           WZYX), /* 98 */
+   TU6_VTC(R32_SINT,                   32_SINT,           WZYX), /* 99 */
+   TU6_VTC(R32_SFLOAT,                 32_FLOAT,          WZYX), /* 100 */
 
    /* 64-bit RG */
-   TU6_VTC(R32G32_UINT,                32_32_UINT,        R32G32_UINT,        WZYX), /* 101 */
-   TU6_VTC(R32G32_SINT,                32_32_SINT,        R32G32_SINT,        WZYX), /* 102 */
-   TU6_VTC(R32G32_SFLOAT,              32_32_FLOAT,       R32G32_FLOAT,       WZYX), /* 103 */
+   TU6_VTC(R32G32_UINT,                32_32_UINT,        WZYX), /* 101 */
+   TU6_VTC(R32G32_SINT,                32_32_SINT,        WZYX), /* 102 */
+   TU6_VTC(R32G32_SFLOAT,              32_32_FLOAT,       WZYX), /* 103 */
 
    /* 96-bit RGB */
-   TU6_Vxx(R32G32B32_UINT,             32_32_32_UINT,     R32G32B32_UINT,     WZYX), /* 104 */
-   TU6_Vxx(R32G32B32_SINT,             32_32_32_SINT,     R32G32B32_SINT,     WZYX), /* 105 */
-   TU6_Vxx(R32G32B32_SFLOAT,           32_32_32_FLOAT,    R32G32B32_FLOAT,    WZYX), /* 106 */
+   TU6_Vxx(R32G32B32_UINT,             32_32_32_UINT,     WZYX), /* 104 */
+   TU6_Vxx(R32G32B32_SINT,             32_32_32_SINT,     WZYX), /* 105 */
+   TU6_Vxx(R32G32B32_SFLOAT,           32_32_32_FLOAT,    WZYX), /* 106 */
 
    /* 128-bit RGBA */
-   TU6_VTC(R32G32B32A32_UINT,          32_32_32_32_UINT,  R32G32B32A32_UINT,  WZYX), /* 107 */
-   TU6_VTC(R32G32B32A32_SINT,          32_32_32_32_SINT,  R32G32B32A32_SINT,  WZYX), /* 108 */
-   TU6_VTC(R32G32B32A32_SFLOAT,        32_32_32_32_FLOAT, R32G32B32A32_FLOAT, WZYX), /* 109 */
+   TU6_VTC(R32G32B32A32_UINT,          32_32_32_32_UINT,  WZYX), /* 107 */
+   TU6_VTC(R32G32B32A32_SINT,          32_32_32_32_SINT,  WZYX), /* 108 */
+   TU6_VTC(R32G32B32A32_SFLOAT,        32_32_32_32_FLOAT, WZYX), /* 109 */
 
    /* 64-bit R */
-   TU6_xxx(R64_UINT,                   64_UINT,           R64_UINT,           WZYX), /* 110 */
-   TU6_xxx(R64_SINT,                   64_SINT,           R64_SINT,           WZYX), /* 111 */
-   TU6_xxx(R64_SFLOAT,                 64_FLOAT,          R64_FLOAT,          WZYX), /* 112 */
+   TU6_xxx(R64_UINT,                   64_UINT,           WZYX), /* 110 */
+   TU6_xxx(R64_SINT,                   64_SINT,           WZYX), /* 111 */
+   TU6_xxx(R64_SFLOAT,                 64_FLOAT,          WZYX), /* 112 */
 
    /* 128-bit RG */
-   TU6_xxx(R64G64_UINT,                64_64_UINT,        R64G64_UINT,        WZYX), /* 113 */
-   TU6_xxx(R64G64_SINT,                64_64_SINT,        R64G64_SINT,        WZYX), /* 114 */
-   TU6_xxx(R64G64_SFLOAT,              64_64_FLOAT,       R64G64_FLOAT,       WZYX), /* 115 */
+   TU6_xxx(R64G64_UINT,                64_64_UINT,        WZYX), /* 113 */
+   TU6_xxx(R64G64_SINT,                64_64_SINT,        WZYX), /* 114 */
+   TU6_xxx(R64G64_SFLOAT,              64_64_FLOAT,       WZYX), /* 115 */
 
    /* 192-bit RGB */
-   TU6_xxx(R64G64B64_UINT,             64_64_64_UINT,     R64G64B64_UINT,     WZYX), /* 116 */
-   TU6_xxx(R64G64B64_SINT,             64_64_64_SINT,     R64G64B64_SINT,     WZYX), /* 117 */
-   TU6_xxx(R64G64B64_SFLOAT,           64_64_64_FLOAT,    R64G64B64_FLOAT,    WZYX), /* 118 */
+   TU6_xxx(R64G64B64_UINT,             64_64_64_UINT,     WZYX), /* 116 */
+   TU6_xxx(R64G64B64_SINT,             64_64_64_SINT,     WZYX), /* 117 */
+   TU6_xxx(R64G64B64_SFLOAT,           64_64_64_FLOAT,    WZYX), /* 118 */
 
    /* 256-bit RGBA */
-   TU6_xxx(R64G64B64A64_UINT,          64_64_64_64_UINT,  R64G64B64A64_UINT,  WZYX), /* 119 */
-   TU6_xxx(R64G64B64A64_SINT,          64_64_64_64_SINT,  R64G64B64A64_SINT,  WZYX), /* 120 */
-   TU6_xxx(R64G64B64A64_SFLOAT,        64_64_64_64_FLOAT, R64G64B64A64_FLOAT, WZYX), /* 121 */
+   TU6_xxx(R64G64B64A64_UINT,          64_64_64_64_UINT,  WZYX), /* 119 */
+   TU6_xxx(R64G64B64A64_SINT,          64_64_64_64_SINT,  WZYX), /* 120 */
+   TU6_xxx(R64G64B64A64_SFLOAT,        64_64_64_64_FLOAT, WZYX), /* 121 */
 
    /* 32-bit packed float */
-   TU6_VTC(B10G11R11_UFLOAT_PACK32,    11_11_10_FLOAT,    R11G11B10_FLOAT,    WZYX), /* 122 */
-   TU6_xTx(E5B9G9R9_UFLOAT_PACK32,     9_9_9_E5_FLOAT,    R9G9B9E5_FLOAT,     WZYX), /* 123 */
+   TU6_VTC(B10G11R11_UFLOAT_PACK32,    11_11_10_FLOAT,    WZYX), /* 122 */
+   TU6_xTx(E5B9G9R9_UFLOAT_PACK32,     9_9_9_E5_FLOAT,    WZYX), /* 123 */
 
    /* depth/stencil */
-   TU6_xTC(D16_UNORM,                  16_UNORM,          R16_UNORM,          WZYX), /* 124 */
-   TU6_xTC(X8_D24_UNORM_PACK32,        Z24_UNORM_S8_UINT, Z24_UNORM_S8_UINT, WZYX), /* 125 */
-   TU6_xTC(D32_SFLOAT,                 32_FLOAT,          R32_FLOAT,          WZYX), /* 126 */
-   TU6_xTC(S8_UINT,                    8_UINT,            R8_UINT,            WZYX), /* 127 */
-   TU6_xxx(D16_UNORM_S8_UINT,          X8Z16_UNORM,       X8Z16_UNORM,        WZYX), /* 128 */
-   TU6_xTC(D24_UNORM_S8_UINT,          Z24_UNORM_S8_UINT, Z24_UNORM_S8_UINT, WZYX), /* 129 */
-   TU6_xxx(D32_SFLOAT_S8_UINT,         x,                 x,                  WZYX), /* 130 */
+   TU6_xTC(D16_UNORM,                  16_UNORM,          WZYX), /* 124 */
+   TU6_xTC(X8_D24_UNORM_PACK32,        Z24_UNORM_S8_UINT, WZYX), /* 125 */
+   TU6_xTC(D32_SFLOAT,                 32_FLOAT,          WZYX), /* 126 */
+   TU6_xTC(S8_UINT,                    8_UINT,            WZYX), /* 127 */
+   TU6_xxx(D16_UNORM_S8_UINT,          X8Z16_UNORM,       WZYX), /* 128 */
+   TU6_xTC(D24_UNORM_S8_UINT,          Z24_UNORM_S8_UINT, WZYX), /* 129 */
+   TU6_xxx(D32_SFLOAT_S8_UINT,         x,                 WZYX), /* 130 */
 
    /* compressed */
-   TU6_xTx(BC1_RGB_UNORM_BLOCK,        DXT1,              DXT1,               WZYX), /* 131 */
-   TU6_xTx(BC1_RGB_SRGB_BLOCK,         DXT1,              DXT1,               WZYX), /* 132 */
-   TU6_xTx(BC1_RGBA_UNORM_BLOCK,       DXT1,              DXT1,               WZYX), /* 133 */
-   TU6_xTx(BC1_RGBA_SRGB_BLOCK,        DXT1,              DXT1,               WZYX), /* 134 */
-   TU6_xTx(BC2_UNORM_BLOCK,            DXT3,              DXT3,               WZYX), /* 135 */
-   TU6_xTx(BC2_SRGB_BLOCK,             DXT3,              DXT3,               WZYX), /* 136 */
-   TU6_xTx(BC3_UNORM_BLOCK,            DXT5,              DXT5,               WZYX), /* 137 */
-   TU6_xTx(BC3_SRGB_BLOCK,             DXT5,              DXT5,               WZYX), /* 138 */
-   TU6_xTx(BC4_UNORM_BLOCK,            RGTC1_UNORM,       RGTC1_UNORM,        WZYX), /* 139 */
-   TU6_xTx(BC4_SNORM_BLOCK,            RGTC1_SNORM,       RGTC1_SNORM,        WZYX), /* 140 */
-   TU6_xTx(BC5_UNORM_BLOCK,            RGTC2_UNORM,       RGTC2_UNORM,        WZYX), /* 141 */
-   TU6_xTx(BC5_SNORM_BLOCK,            RGTC2_SNORM,       RGTC2_SNORM,        WZYX), /* 142 */
-   TU6_xTx(BC6H_UFLOAT_BLOCK,          BPTC_UFLOAT,       BPTC_UFLOAT,        WZYX), /* 143 */
-   TU6_xTx(BC6H_SFLOAT_BLOCK,          BPTC_FLOAT,        BPTC_FLOAT,         WZYX), /* 144 */
-   TU6_xTx(BC7_UNORM_BLOCK,            BPTC,              BPTC,               WZYX), /* 145 */
-   TU6_xTx(BC7_SRGB_BLOCK,             BPTC,              BPTC,               WZYX), /* 146 */
-   TU6_xTx(ETC2_R8G8B8_UNORM_BLOCK,    ETC2_RGB8,         ETC2_RGB8,          WZYX), /* 147 */
-   TU6_xTx(ETC2_R8G8B8_SRGB_BLOCK,     ETC2_RGB8,         ETC2_RGB8,          WZYX), /* 148 */
-   TU6_xTx(ETC2_R8G8B8A1_UNORM_BLOCK,  ETC2_RGB8A1,       ETC2_RGB8A1,        WZYX), /* 149 */
-   TU6_xTx(ETC2_R8G8B8A1_SRGB_BLOCK,   ETC2_RGB8A1,       ETC2_RGB8A1,        WZYX), /* 150 */
-   TU6_xTx(ETC2_R8G8B8A8_UNORM_BLOCK,  ETC2_RGBA8,        ETC2_RGBA8,         WZYX), /* 151 */
-   TU6_xTx(ETC2_R8G8B8A8_SRGB_BLOCK,   ETC2_RGBA8,        ETC2_RGBA8,         WZYX), /* 152 */
-   TU6_xTx(EAC_R11_UNORM_BLOCK,        ETC2_R11_UNORM,    ETC2_R11_UNORM,     WZYX), /* 153 */
-   TU6_xTx(EAC_R11_SNORM_BLOCK,        ETC2_R11_SNORM,    ETC2_R11_SNORM,     WZYX), /* 154 */
-   TU6_xTx(EAC_R11G11_UNORM_BLOCK,     ETC2_RG11_UNORM,   ETC2_RG11_UNORM,    WZYX), /* 155 */
-   TU6_xTx(EAC_R11G11_SNORM_BLOCK,     ETC2_RG11_SNORM,   ETC2_RG11_SNORM,    WZYX), /* 156 */
-   TU6_xTx(ASTC_4x4_UNORM_BLOCK,       ASTC_4x4,          ASTC_4x4,           WZYX), /* 157 */
-   TU6_xTx(ASTC_4x4_SRGB_BLOCK,        ASTC_4x4,          ASTC_4x4,           WZYX), /* 158 */
-   TU6_xTx(ASTC_5x4_UNORM_BLOCK,       ASTC_5x4,          ASTC_5x4,           WZYX), /* 159 */
-   TU6_xTx(ASTC_5x4_SRGB_BLOCK,        ASTC_5x4,          ASTC_5x4,           WZYX), /* 160 */
-   TU6_xTx(ASTC_5x5_UNORM_BLOCK,       ASTC_5x5,          ASTC_5x5,           WZYX), /* 161 */
-   TU6_xTx(ASTC_5x5_SRGB_BLOCK,        ASTC_5x5,          ASTC_5x5,           WZYX), /* 162 */
-   TU6_xTx(ASTC_6x5_UNORM_BLOCK,       ASTC_6x5,          ASTC_6x5,           WZYX), /* 163 */
-   TU6_xTx(ASTC_6x5_SRGB_BLOCK,        ASTC_6x5,          ASTC_6x5,           WZYX), /* 164 */
-   TU6_xTx(ASTC_6x6_UNORM_BLOCK,       ASTC_6x6,          ASTC_6x6,           WZYX), /* 165 */
-   TU6_xTx(ASTC_6x6_SRGB_BLOCK,        ASTC_6x6,          ASTC_6x6,           WZYX), /* 166 */
-   TU6_xTx(ASTC_8x5_UNORM_BLOCK,       ASTC_8x5,          ASTC_8x5,           WZYX), /* 167 */
-   TU6_xTx(ASTC_8x5_SRGB_BLOCK,        ASTC_8x5,          ASTC_8x5,           WZYX), /* 168 */
-   TU6_xTx(ASTC_8x6_UNORM_BLOCK,       ASTC_8x6,          ASTC_8x6,           WZYX), /* 169 */
-   TU6_xTx(ASTC_8x6_SRGB_BLOCK,        ASTC_8x6,          ASTC_8x6,           WZYX), /* 170 */
-   TU6_xTx(ASTC_8x8_UNORM_BLOCK,       ASTC_8x8,          ASTC_8x8,           WZYX), /* 171 */
-   TU6_xTx(ASTC_8x8_SRGB_BLOCK,        ASTC_8x8,          ASTC_8x8,           WZYX), /* 172 */
-   TU6_xTx(ASTC_10x5_UNORM_BLOCK,      ASTC_10x5,         ASTC_10x5,          WZYX), /* 173 */
-   TU6_xTx(ASTC_10x5_SRGB_BLOCK,       ASTC_10x5,         ASTC_10x5,          WZYX), /* 174 */
-   TU6_xTx(ASTC_10x6_UNORM_BLOCK,      ASTC_10x6,         ASTC_10x6,          WZYX), /* 175 */
-   TU6_xTx(ASTC_10x6_SRGB_BLOCK,       ASTC_10x6,         ASTC_10x6,          WZYX), /* 176 */
-   TU6_xTx(ASTC_10x8_UNORM_BLOCK,      ASTC_10x8,         ASTC_10x8,          WZYX), /* 177 */
-   TU6_xTx(ASTC_10x8_SRGB_BLOCK,       ASTC_10x8,         ASTC_10x8,          WZYX), /* 178 */
-   TU6_xTx(ASTC_10x10_UNORM_BLOCK,     ASTC_10x10,        ASTC_10x10,         WZYX), /* 179 */
-   TU6_xTx(ASTC_10x10_SRGB_BLOCK,      ASTC_10x10,        ASTC_10x10,         WZYX), /* 180 */
-   TU6_xTx(ASTC_12x10_UNORM_BLOCK,     ASTC_12x10,        ASTC_12x10,         WZYX), /* 181 */
-   TU6_xTx(ASTC_12x10_SRGB_BLOCK,      ASTC_12x10,        ASTC_12x10,         WZYX), /* 182 */
-   TU6_xTx(ASTC_12x12_UNORM_BLOCK,     ASTC_12x12,        ASTC_12x12,         WZYX), /* 183 */
-   TU6_xTx(ASTC_12x12_SRGB_BLOCK,      ASTC_12x12,        ASTC_12x12,         WZYX), /* 184 */
+   TU6_xTx(BC1_RGB_UNORM_BLOCK,        DXT1,              WZYX), /* 131 */
+   TU6_xTx(BC1_RGB_SRGB_BLOCK,         DXT1,              WZYX), /* 132 */
+   TU6_xTx(BC1_RGBA_UNORM_BLOCK,       DXT1,              WZYX), /* 133 */
+   TU6_xTx(BC1_RGBA_SRGB_BLOCK,        DXT1,              WZYX), /* 134 */
+   TU6_xTx(BC2_UNORM_BLOCK,            DXT3,              WZYX), /* 135 */
+   TU6_xTx(BC2_SRGB_BLOCK,             DXT3,              WZYX), /* 136 */
+   TU6_xTx(BC3_UNORM_BLOCK,            DXT5,              WZYX), /* 137 */
+   TU6_xTx(BC3_SRGB_BLOCK,             DXT5,              WZYX), /* 138 */
+   TU6_xTx(BC4_UNORM_BLOCK,            RGTC1_UNORM,       WZYX), /* 139 */
+   TU6_xTx(BC4_SNORM_BLOCK,            RGTC1_SNORM,       WZYX), /* 140 */
+   TU6_xTx(BC5_UNORM_BLOCK,            RGTC2_UNORM,       WZYX), /* 141 */
+   TU6_xTx(BC5_SNORM_BLOCK,            RGTC2_SNORM,       WZYX), /* 142 */
+   TU6_xTx(BC6H_UFLOAT_BLOCK,          BPTC_UFLOAT,       WZYX), /* 143 */
+   TU6_xTx(BC6H_SFLOAT_BLOCK,          BPTC_FLOAT,        WZYX), /* 144 */
+   TU6_xTx(BC7_UNORM_BLOCK,            BPTC,              WZYX), /* 145 */
+   TU6_xTx(BC7_SRGB_BLOCK,             BPTC,              WZYX), /* 146 */
+   TU6_xTx(ETC2_R8G8B8_UNORM_BLOCK,    ETC2_RGB8,         WZYX), /* 147 */
+   TU6_xTx(ETC2_R8G8B8_SRGB_BLOCK,     ETC2_RGB8,         WZYX), /* 148 */
+   TU6_xTx(ETC2_R8G8B8A1_UNORM_BLOCK,  ETC2_RGB8A1,       WZYX), /* 149 */
+   TU6_xTx(ETC2_R8G8B8A1_SRGB_BLOCK,   ETC2_RGB8A1,       WZYX), /* 150 */
+   TU6_xTx(ETC2_R8G8B8A8_UNORM_BLOCK,  ETC2_RGBA8,        WZYX), /* 151 */
+   TU6_xTx(ETC2_R8G8B8A8_SRGB_BLOCK,   ETC2_RGBA8,        WZYX), /* 152 */
+   TU6_xTx(EAC_R11_UNORM_BLOCK,        ETC2_R11_UNORM,    WZYX), /* 153 */
+   TU6_xTx(EAC_R11_SNORM_BLOCK,        ETC2_R11_SNORM,    WZYX), /* 154 */
+   TU6_xTx(EAC_R11G11_UNORM_BLOCK,     ETC2_RG11_UNORM,   WZYX), /* 155 */
+   TU6_xTx(EAC_R11G11_SNORM_BLOCK,     ETC2_RG11_SNORM,   WZYX), /* 156 */
+   TU6_xTx(ASTC_4x4_UNORM_BLOCK,       ASTC_4x4,          WZYX), /* 157 */
+   TU6_xTx(ASTC_4x4_SRGB_BLOCK,        ASTC_4x4,          WZYX), /* 158 */
+   TU6_xTx(ASTC_5x4_UNORM_BLOCK,       ASTC_5x4,          WZYX), /* 159 */
+   TU6_xTx(ASTC_5x4_SRGB_BLOCK,        ASTC_5x4,          WZYX), /* 160 */
+   TU6_xTx(ASTC_5x5_UNORM_BLOCK,       ASTC_5x5,          WZYX), /* 161 */
+   TU6_xTx(ASTC_5x5_SRGB_BLOCK,        ASTC_5x5,          WZYX), /* 162 */
+   TU6_xTx(ASTC_6x5_UNORM_BLOCK,       ASTC_6x5,          WZYX), /* 163 */
+   TU6_xTx(ASTC_6x5_SRGB_BLOCK,        ASTC_6x5,          WZYX), /* 164 */
+   TU6_xTx(ASTC_6x6_UNORM_BLOCK,       ASTC_6x6,          WZYX), /* 165 */
+   TU6_xTx(ASTC_6x6_SRGB_BLOCK,        ASTC_6x6,          WZYX), /* 166 */
+   TU6_xTx(ASTC_8x5_UNORM_BLOCK,       ASTC_8x5,          WZYX), /* 167 */
+   TU6_xTx(ASTC_8x5_SRGB_BLOCK,        ASTC_8x5,          WZYX), /* 168 */
+   TU6_xTx(ASTC_8x6_UNORM_BLOCK,       ASTC_8x6,          WZYX), /* 169 */
+   TU6_xTx(ASTC_8x6_SRGB_BLOCK,        ASTC_8x6,          WZYX), /* 170 */
+   TU6_xTx(ASTC_8x8_UNORM_BLOCK,       ASTC_8x8,          WZYX), /* 171 */
+   TU6_xTx(ASTC_8x8_SRGB_BLOCK,        ASTC_8x8,          WZYX), /* 172 */
+   TU6_xTx(ASTC_10x5_UNORM_BLOCK,      ASTC_10x5,         WZYX), /* 173 */
+   TU6_xTx(ASTC_10x5_SRGB_BLOCK,       ASTC_10x5,         WZYX), /* 174 */
+   TU6_xTx(ASTC_10x6_UNORM_BLOCK,      ASTC_10x6,         WZYX), /* 175 */
+   TU6_xTx(ASTC_10x6_SRGB_BLOCK,       ASTC_10x6,         WZYX), /* 176 */
+   TU6_xTx(ASTC_10x8_UNORM_BLOCK,      ASTC_10x8,         WZYX), /* 177 */
+   TU6_xTx(ASTC_10x8_SRGB_BLOCK,       ASTC_10x8,         WZYX), /* 178 */
+   TU6_xTx(ASTC_10x10_UNORM_BLOCK,     ASTC_10x10,        WZYX), /* 179 */
+   TU6_xTx(ASTC_10x10_SRGB_BLOCK,      ASTC_10x10,        WZYX), /* 180 */
+   TU6_xTx(ASTC_12x10_UNORM_BLOCK,     ASTC_12x10,        WZYX), /* 181 */
+   TU6_xTx(ASTC_12x10_SRGB_BLOCK,      ASTC_12x10,        WZYX), /* 182 */
+   TU6_xTx(ASTC_12x12_UNORM_BLOCK,     ASTC_12x12,        WZYX), /* 183 */
+   TU6_xTx(ASTC_12x12_SRGB_BLOCK,      ASTC_12x12,        WZYX), /* 184 */
 };
-#undef TU_FORMAT_TABLE_FIRST
-#undef TU_FORMAT_TABLE_LAST
 
-const struct tu_native_format *
+struct tu_native_format
 tu6_get_native_format(VkFormat format)
 {
-   const struct tu_native_format *fmt = NULL;
+   struct tu_native_format fmt = {};
 
-   if (format >= tu6_format_table0_first && format <= tu6_format_table0_last)
-      fmt = &tu6_format_table0[format - tu6_format_table0_first];
+   if (format >= ARRAY_SIZE(tu6_format_table))
+      return fmt;
 
-   if (!fmt || !fmt->present)
-      return NULL;
+   if (!tu6_format_table[format].supported)
+      return fmt;
 
    if (vk_format_to_pipe_format(format) == PIPE_FORMAT_NONE) {
       tu_finishme("vk_format %d missing matching pipe format.\n", format);
-      return NULL;
+      return fmt;
    }
 
-   return (fmt && fmt->present) ? fmt : NULL;
+   return tu6_format_table[format];
+}
+
+struct tu_native_format
+tu6_format_vtx(VkFormat format)
+{
+   struct tu_native_format fmt = tu6_get_native_format(format);
+   assert(fmt.supported & FMT_VERTEX);
+   return fmt;
+}
+
+enum a6xx_format
+tu6_format_gmem(VkFormat format)
+{
+   struct tu_native_format fmt = tu6_get_native_format(format);
+   assert(fmt.supported & FMT_COLOR);
+
+   if (fmt.fmt == FMT6_10_10_10_2_UNORM)
+      return FMT6_10_10_10_2_UNORM_DEST;
+
+   return fmt.fmt;
+}
+
+struct tu_native_format
+tu6_format_color(VkFormat format, bool tiled)
+{
+   struct tu_native_format fmt = tu6_get_native_format(format);
+   assert(fmt.supported & FMT_COLOR);
+
+   if (fmt.fmt == FMT6_10_10_10_2_UNORM)
+      fmt.fmt = FMT6_10_10_10_2_UNORM_DEST;
+
+   if (tiled)
+      fmt.swap = WZYX;
+
+   return fmt;
+}
+
+struct tu_native_format
+tu6_format_texture(VkFormat format, bool tiled)
+{
+   struct tu_native_format fmt = tu6_get_native_format(format);
+   assert(fmt.supported & FMT_TEXTURE);
+
+   if (!tiled) {
+      /* different from format table when used as linear src */
+      if (format == VK_FORMAT_R5G5B5A1_UNORM_PACK16)
+         fmt.fmt = FMT6_1_5_5_5_UNORM, fmt.swap = WXYZ;
+      if (format == VK_FORMAT_B5G5R5A1_UNORM_PACK16)
+         fmt.fmt = FMT6_1_5_5_5_UNORM, fmt.swap = WZYX;
+   } else {
+      fmt.swap = WZYX;
+   }
+
+   return fmt;
 }
 
 enum a6xx_2d_ifmt
-tu6_rb_fmt_to_ifmt(enum a6xx_color_fmt fmt)
+tu6_fmt_to_ifmt(enum a6xx_format fmt)
 {
    switch (fmt) {
-   case RB6_A8_UNORM:
-   case RB6_R8_UNORM:
-   case RB6_R8_SNORM:
-   case RB6_R8G8_UNORM:
-   case RB6_R8G8_SNORM:
-   case RB6_R8G8B8A8_UNORM:
-   case RB6_R8G8B8X8_UNORM:
-   case RB6_R8G8B8A8_SNORM:
-   case RB6_R4G4B4A4_UNORM:
-   case RB6_R5G5B5A1_UNORM:
-   case RB6_R5G6B5_UNORM:
-   case RB6_Z24_UNORM_S8_UINT:
-   case RB6_Z24_UNORM_S8_UINT_AS_R8G8B8A8:
+   case FMT6_A8_UNORM:
+   case FMT6_8_UNORM:
+   case FMT6_8_SNORM:
+   case FMT6_8_8_UNORM:
+   case FMT6_8_8_SNORM:
+   case FMT6_8_8_8_8_UNORM:
+   case FMT6_8_8_8_X8_UNORM:
+   case FMT6_8_8_8_8_SNORM:
+   case FMT6_4_4_4_4_UNORM:
+   case FMT6_5_5_5_1_UNORM:
+   case FMT6_5_6_5_UNORM:
+   case FMT6_Z24_UNORM_S8_UINT:
+   case FMT6_Z24_UNORM_S8_UINT_AS_R8G8B8A8:
       return R2D_UNORM8;
 
-   case RB6_R32_UINT:
-   case RB6_R32_SINT:
-   case RB6_R32G32_UINT:
-   case RB6_R32G32_SINT:
-   case RB6_R32G32B32A32_UINT:
-   case RB6_R32G32B32A32_SINT:
+   case FMT6_32_UINT:
+   case FMT6_32_SINT:
+   case FMT6_32_32_UINT:
+   case FMT6_32_32_SINT:
+   case FMT6_32_32_32_32_UINT:
+   case FMT6_32_32_32_32_SINT:
       return R2D_INT32;
 
-   case RB6_R16_UINT:
-   case RB6_R16_SINT:
-   case RB6_R16G16_UINT:
-   case RB6_R16G16_SINT:
-   case RB6_R16G16B16A16_UINT:
-   case RB6_R16G16B16A16_SINT:
-   case RB6_R10G10B10A2_UINT:
+   case FMT6_16_UINT:
+   case FMT6_16_SINT:
+   case FMT6_16_16_UINT:
+   case FMT6_16_16_SINT:
+   case FMT6_16_16_16_16_UINT:
+   case FMT6_16_16_16_16_SINT:
+   case FMT6_10_10_10_2_UINT:
       return R2D_INT16;
 
-   case RB6_R8_UINT:
-   case RB6_R8_SINT:
-   case RB6_R8G8_UINT:
-   case RB6_R8G8_SINT:
-   case RB6_R8G8B8A8_UINT:
-   case RB6_R8G8B8A8_SINT:
+   case FMT6_8_UINT:
+   case FMT6_8_SINT:
+   case FMT6_8_8_UINT:
+   case FMT6_8_8_SINT:
+   case FMT6_8_8_8_8_UINT:
+   case FMT6_8_8_8_8_SINT:
       return R2D_INT8;
 
-   case RB6_R16_UNORM:
-   case RB6_R16_SNORM:
-   case RB6_R16G16_UNORM:
-   case RB6_R16G16_SNORM:
-   case RB6_R16G16B16A16_UNORM:
-   case RB6_R16G16B16A16_SNORM:
-   case RB6_R32_FLOAT:
-   case RB6_R32G32_FLOAT:
-   case RB6_R32G32B32A32_FLOAT:
+   case FMT6_16_UNORM:
+   case FMT6_16_SNORM:
+   case FMT6_16_16_UNORM:
+   case FMT6_16_16_SNORM:
+   case FMT6_16_16_16_16_UNORM:
+   case FMT6_16_16_16_16_SNORM:
+   case FMT6_32_FLOAT:
+   case FMT6_32_32_FLOAT:
+   case FMT6_32_32_32_32_FLOAT:
       return R2D_FLOAT32;
 
-   case RB6_R16_FLOAT:
-   case RB6_R16G16_FLOAT:
-   case RB6_R16G16B16A16_FLOAT:
-   case RB6_R11G11B10_FLOAT:
-   case RB6_R10G10B10A2_UNORM:
+   case FMT6_16_FLOAT:
+   case FMT6_16_16_FLOAT:
+   case FMT6_16_16_16_16_FLOAT:
+   case FMT6_11_11_10_FLOAT:
+   case FMT6_10_10_10_2_UNORM:
+   case FMT6_10_10_10_2_UNORM_DEST:
       return R2D_FLOAT16;
 
    default:
@@ -660,7 +686,7 @@ tu_2d_clear_color(const VkClearColorValue *val, VkFormat format, uint32_t buf[4]
       return;
    }
 
-   enum a6xx_2d_ifmt ifmt = tu6_rb_fmt_to_ifmt(tu6_get_native_format(format)->rb);
+   enum a6xx_2d_ifmt ifmt = tu6_fmt_to_ifmt(tu6_get_native_format(format).fmt);
 
    assert(desc && (desc->layout == UTIL_FORMAT_LAYOUT_PLAIN ||
                    format == VK_FORMAT_B10G11R11_UFLOAT_PACK32));
@@ -725,35 +751,48 @@ tu_physical_device_get_format_properties(
    VkFormat format,
    VkFormatProperties *out_properties)
 {
-   VkFormatFeatureFlags image = 0, buffer = 0;
+   VkFormatFeatureFlags linear = 0, optimal = 0, buffer = 0;
    const struct util_format_description *desc = vk_format_description(format);
-   const struct tu_native_format *native_fmt = tu6_get_native_format(format);
-   if (!desc || !native_fmt) {
+   const struct tu_native_format native_fmt = tu6_get_native_format(format);
+   if (!desc || !native_fmt.supported) {
       goto end;
    }
 
    buffer |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
-   if (native_fmt->vtx >= 0) {
+   if (native_fmt.supported & FMT_VERTEX)
       buffer |= VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT;
-   }
 
-   if (native_fmt->tex >= 0 || native_fmt->rb >= 0)
-      image |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT | VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
-
-   if (native_fmt->tex >= 0) {
-      image |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+   if (native_fmt.supported & FMT_TEXTURE) {
+      optimal |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT |
+                 VK_FORMAT_FEATURE_TRANSFER_DST_BIT |
+                 VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
+                 VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
       buffer |= VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT;
    }
 
-   if (native_fmt->rb >= 0)
-      image |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT | VK_FORMAT_FEATURE_BLIT_SRC_BIT | VK_FORMAT_FEATURE_BLIT_DST_BIT;
+   if (native_fmt.supported & FMT_COLOR) {
+      assert(native_fmt.supported & FMT_TEXTURE);
+      optimal |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT |
+                 VK_FORMAT_FEATURE_BLIT_SRC_BIT |
+                 VK_FORMAT_FEATURE_BLIT_DST_BIT;
+   }
 
+   /* For the most part, we can do anything with a linear image that we could
+    * do with a tiled image. However, we can't support sysmem rendering with a
+    * linear depth texture, because we don't know if there's a bit to control
+    * the tiling of the depth buffer in BYPASS mode, and the blob also
+    * disables linear depth rendering, so there's no way to discover it. We
+    * also can't force GMEM mode, because there are other situations where we
+    * have to use sysmem rendering. So follow the blob here, and only enable
+    * DEPTH_STENCIL_ATTACHMENT_BIT for the optimal features.
+    */
+   linear = optimal;
    if (tu6_pipe2depth(format) != (enum a6xx_depth_format)~0)
-      image |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+      optimal |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
 end:
-   out_properties->linearTilingFeatures = image;
-   out_properties->optimalTilingFeatures = image;
+   out_properties->linearTilingFeatures = linear;
+   out_properties->optimalTilingFeatures = optimal;
    out_properties->bufferFeatures = buffer;
 }
 
@@ -814,8 +853,32 @@ tu_get_image_format_properties(
 
    tu_physical_device_get_format_properties(physical_device, info->format,
                                             &format_props);
-   assert(format_props.optimalTilingFeatures == format_props.linearTilingFeatures);
-   format_feature_flags = format_props.optimalTilingFeatures;
+
+   switch (info->tiling) {
+   case VK_IMAGE_TILING_LINEAR:
+      format_feature_flags = format_props.linearTilingFeatures;
+      break;
+
+   case VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT:
+      /* The only difference between optimal and linear is currently whether
+       * depth/stencil attachments are allowed on depth/stencil formats.
+       * There's no reason to allow importing depth/stencil textures, so just
+       * disallow it and then this annoying edge case goes away.
+       *
+       * TODO: If anyone cares, we could enable this by looking at the
+       * modifier and checking if it's LINEAR or not.
+       */
+      if (vk_format_is_depth_or_stencil(info->format))
+         goto unsupported;
+
+      assert(format_props.optimalTilingFeatures == format_props.linearTilingFeatures);
+      /* fallthrough */
+   case VK_IMAGE_TILING_OPTIMAL:
+      format_feature_flags = format_props.optimalTilingFeatures;
+      break;
+   default:
+      unreachable("bad VkPhysicalDeviceImageFormatInfo2");
+   }
 
    if (format_feature_flags == 0)
       goto unsupported;

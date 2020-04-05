@@ -130,7 +130,7 @@ static void MD5_Block(MD5_Core_State *s, uint32_t *block)
 
 static void MD5_BinarySink_write(BinarySink *bs, const void *data, size_t len);
 
-void MD5Init(struct MD5Context *s)
+static void MD5Init(struct MD5Context *s)
 {
     MD5_Core_Init(&s->core);
     s->blkused = 0;
@@ -183,7 +183,7 @@ static void MD5_BinarySink_write(BinarySink *bs, const void *data, size_t len)
     }
 }
 
-void MD5Final(unsigned char output[16], struct MD5Context *s)
+static void MD5Final(unsigned char output[16], struct MD5Context *s)
 {
     int i;
     unsigned pad;
@@ -211,16 +211,6 @@ void MD5Final(unsigned char output[16], struct MD5Context *s)
         output[4 * i + 1] = (s->core.h[i] >> 8) & 0xFF;
         output[4 * i + 0] = (s->core.h[i] >> 0) & 0xFF;
     }
-}
-
-void MD5Simple(void const *p, unsigned len, unsigned char output[16])
-{
-    struct MD5Context s;
-
-    MD5Init(&s);
-    put_data(&s, (unsigned char const *)p, len);
-    MD5Final(output, &s);
-    smemclr(&s, sizeof(s));
 }
 
 /* ----------------------------------------------------------------------
@@ -270,6 +260,12 @@ static void md5_digest(ssh_hash *hash, unsigned char *output)
 }
 
 const ssh_hashalg ssh_md5 = {
-    md5_new, md5_reset, md5_copyfrom, md5_digest, md5_free,
-    16, 64, HASHALG_NAMES_BARE("MD5"),
+    .new = md5_new,
+    .reset = md5_reset,
+    .copyfrom = md5_copyfrom,
+    .digest = md5_digest,
+    .free = md5_free,
+    .hlen = 16,
+    .blocklen = 64,
+    HASHALG_NAMES_BARE("MD5"),
 };

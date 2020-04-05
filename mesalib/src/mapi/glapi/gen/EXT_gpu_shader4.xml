@@ -99,17 +99,17 @@
 
     <function name="VertexAttribI2ivEXT" exec="dynamic">
         <param name="index" type="GLuint"/>
-        <param name="v" type="const GLint *"/>
+        <param name="v" type="const GLint *" count="2"/>
     </function>
 
     <function name="VertexAttribI3ivEXT" exec="dynamic">
         <param name="index" type="GLuint"/>
-        <param name="v" type="const GLint *"/>
+        <param name="v" type="const GLint *" count="3"/>
     </function>
 
     <function name="VertexAttribI4ivEXT" exec="dynamic">
         <param name="index" type="GLuint"/>
-        <param name="v" type="const GLint *"/>
+        <param name="v" type="const GLint *" count="4"/>
     </function>
 
     <function name="VertexAttribI1uivEXT" alias="VertexAttribI1uiv">
@@ -119,17 +119,17 @@
 
     <function name="VertexAttribI2uivEXT" exec="dynamic">
         <param name="index" type="GLuint"/>
-        <param name="v" type="const GLuint *"/>
+        <param name="v" type="const GLuint *" count="2"/>
     </function>
 
     <function name="VertexAttribI3uivEXT" exec="dynamic">
         <param name="index" type="GLuint"/>
-        <param name="v" type="const GLuint *"/>
+        <param name="v" type="const GLuint *" count="3"/>
     </function>
 
     <function name="VertexAttribI4uivEXT" exec="dynamic">
         <param name="index" type="GLuint"/>
-        <param name="v" type="const GLuint *"/>
+        <param name="v" type="const GLuint *" count="4"/>
     </function>
 
     <function name="VertexAttribI4bvEXT" alias="VertexAttribI4bv">

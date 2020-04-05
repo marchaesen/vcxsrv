@@ -56,7 +56,7 @@ number_instr(struct ir3_instruction *instr)
 	/* TODO I think including false-deps in the calculation is the right
 	 * thing to do:
 	 */
-	foreach_ssa_src_n(src, n, instr) {
+	foreach_ssa_src_n (src, n, instr) {
 		if (__is_false_dep(instr, n))
 			continue;
 		if (src->block != instr->block) {
@@ -97,7 +97,7 @@ ir3_sun(struct ir3 *ir)
 	ir3_clear_mark(ir);
 
 	struct ir3_instruction *out;
-	foreach_output(out, ir)
+	foreach_output (out, ir)
 		max = MAX2(max, number_instr(out));
 
 	foreach_block (block, &ir->block_list) {

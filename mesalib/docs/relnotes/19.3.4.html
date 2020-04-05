@@ -1,0 +1,187 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<title>Mesa Release Notes</title>
+<link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+<h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 19.3.4 Release Notes / 2020-02-13</h1>
+
+<p>
+    Mesa 19.3.4 is a bug fix release which fixes bugs found since the 19.3.3 release.
+</p>
+<p>
+Mesa 19.3.4 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+<p>
+Mesa 19.3.4 implements the Vulkan 1.1 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+</p>
+
+<h2>SHA256 checksum</h2>
+<pre>
+    1da467e6ae2799a517e242462331eafd29ae77d9872f3a845df81f7c308e8fe4  mesa-19.3.4.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+
+<ul>
+    <li>None</li>
+</ul>
+
+<h2>Bug fixes</h2>
+
+<ul>
+    <li>[RADV] GPU hangs while the cutscene plays in the game Assassin&#x27;s Creed Origins</li>
+    <li>Broken rendering of glxgears on S/390 architecture (64bit, BigEndian)</li>
+    <li>GL_EXT_disjoint_timer_query failing with GL_INVALID_ENUM</li>
+    <li>GL_EXT_disjoint_timer_query failing with GL_INVALID_ENUM</li>
+    <li>OSMesa osmesa_choose_format returns a format not supported by st_new_renderbuffer_fb</li>
+    <li>Using EGL_KHR_surfaceless_context causes spurious &quot;libEGL warning: FIXME: egl/x11 doesn&#x27;t support front buffer rendering.&quot;</li>
+    <li>[Regression] JavaFX unbounded VRAM+RAM usage</li>
+    <li>!3460 broke texsubimage test with piglit on zink+anv</li>
+</ul>
+
+<h2>Changes</h2>
+
+<ul>
+    <p>Bas Nieuwenhuizen (1):</p>
+    <li>      radv: Do not set SX DISABLE bits for RB+ with unused surfaces.</li>
+    <p></p>
+    <p>Boris Brezillon (1):</p>
+    <li>      panfrost: Fix the damage box clamping logic</li>
+    <p></p>
+    <p>Brian Ho (2):</p>
+    <li>      anv: Properly fetch partial results in vkGetQueryPoolResults</li>
+    <li>      anv: Handle unavailable queries in vkCmdCopyQueryPoolResults</li>
+    <p></p>
+    <p>Danylo Piliaiev (2):</p>
+    <li>      i965: Do not set front_buffer_dirty if there is no front buffer</li>
+    <li>      st/mesa: Handle the rest renderbuffer formats from OSMesa</li>
+    <p></p>
+    <p>Drew Davenport (1):</p>
+    <li>      radeonsi: Clear uninitialized variable</li>
+    <p></p>
+    <p>Dylan Baker (15):</p>
+    <li>      docs: Add SHA 256 sums for 19.3.3</li>
+    <li>      .pick_status.json: Mark 58c929be0ddbbd9291d0dadbf11538170178e791 as backported</li>
+    <li>      .pick_status.json: Mark df34fa14bb872447fed9076e06ffc504d85e2d1c as backported</li>
+    <li>      .pick_status.json: Update to 997040e4b8353fe9b71a5e9fde2f933eae09c7a3</li>
+    <li>      .pick_status.json: Update to ca6a22305b275b49fbc88b8f4cba2fefb24c2a5d</li>
+    <li>      .pick_status.json: Mark 552028c013cc1d49a2b61ebe0fc3a3781a9ba826 as denominated</li>
+    <li>      .pick_status.json: Update to f09c466732e4a5b648d7503787777c926dd93c29</li>
+    <li>      bin/pick-ui: Add a new maintainer script for picking patches</li>
+    <li>      .pick_status.json: Update to b550b7ef3b8d12f533b67b1a03159a127a3ff34a</li>
+    <li>      .pick_status.json: Update to 9afdcd64f2c96f3fcc1a28912987f2e8066aa995</li>
+    <li>      .pick_status.json: Update to 7eaf21cb6f67adbe0e79b80b4feb8c816a98a720</li>
+    <li>      .pick_status.json: Mark ca6a22305b275b49fbc88b8f4cba2fefb24c2a5d as backported</li>
+    <li>      .pick_status.json: Update to d8bae10bfe0f487dcaec721743cd51441bcc12f5</li>
+    <li>      .pick_status.json: Update to 689817c9dfde9a0852f2b2489cb0fa93ffbcb215</li>
+    <li>      .pick_status.json: Update to 23037627359e739c42b194dec54875aefbb9d00b</li>
+    <p></p>
+    <p>Eric Anholt (1):</p>
+    <li>      Revert &quot;gallium: Fix big-endian addressing of non-bitmask array formats.&quot;</li>
+    <p></p>
+    <p>Florian Will (1):</p>
+    <li>      radv/winsys: set IB flags prior to submit in the sysmem path</li>
+    <p></p>
+    <p>Georg Lehmann (3):</p>
+    <li>      Correctly wait in the fragment stage until all semaphores are signaled</li>
+    <li>      Vulkan Overlay: Don&#x27;t try to change the image layout to present twice</li>
+    <li>      Vulkan overlay: use the corresponding image index for each swapchain</li>
+    <p></p>
+    <p>Hyunjun Ko (1):</p>
+    <li>      freedreno/ir3: put the conversion back for half const to the right place.</li>
+    <p></p>
+    <p>Ian Romanick (1):</p>
+    <li>      intel/fs: Don&#x27;t count integer instructions as being possibly coissue</li>
+    <p></p>
+    <p>Jan Vesely (1):</p>
+    <li>      clover: Use explicit conversion from llvm::StringRef to std::string</li>
+    <p></p>
+    <p>Jason Ekstrand (6):</p>
+    <li>      anv: Insert holes for non-existant XFB varyings</li>
+    <li>      anv: Improve BTI change cache flushing</li>
+    <li>      anv,iris: Set 3DSTATE_SF::DerefBlockSize to per-poly on Gen12+</li>
+    <li>      genxml: Add a new 3DSTATE_SF field on gen12</li>
+    <li>      intel/fs: Write the address register with NoMask for MOV_INDIRECT</li>
+    <li>      anv/blorp: Use the correct size for vkCmdCopyBufferToImage</li>
+    <p></p>
+    <p>Kenneth Graunke (1):</p>
+    <li>      i965: Use brw_batch_references in tex_busy check</li>
+    <p></p>
+    <p>Lionel Landwerlin (1):</p>
+    <li>      isl: drop CCS row pitch requirement for linear surfaces</li>
+    <p></p>
+    <p>Marek Olšák (1):</p>
+    <li>      radeonsi: fix the DCC MSAA bug workaround</li>
+    <p></p>
+    <p>Marek Vasut (1):</p>
+    <li>      etnaviv: Destroy rsc-&gt;pending_ctx set in etna_resource_destroy()</li>
+    <p></p>
+    <p>Michel Dänzer (6):</p>
+    <li>      winsys/amdgpu: Keep a list of amdgpu_screen_winsyses in amdgpu_winsys</li>
+    <li>      winsys/amdgpu: Keep track of retrieved KMS handles using hash tables</li>
+    <li>      winsys/amdgpu: Only re-export KMS handles for different DRM FDs</li>
+    <li>      util: Add os_same_file_description helper</li>
+    <li>      winsys/amdgpu: Re-use amdgpu_screen_winsys when possible</li>
+    <li>      winsys/amdgpu: Close KMS handles for other DRM file descriptions</li>
+    <p></p>
+    <p>Neha Bhende (1):</p>
+    <li>      svga: fix size of format_conversion_table[]</li>
+    <p></p>
+    <p>Pierre-Eric Pelloux-Prayer (2):</p>
+    <li>      radeonsi: disable display DCC</li>
+    <li>      radeonsi: stop using the VM_ALWAYS_VALID flag</li>
+    <p></p>
+    <p>Rafael Antognolli (1):</p>
+    <li>      intel: Load the driver even if I915_PARAM_REVISION is not found.</li>
+    <p></p>
+    <p>Rhys Perry (6):</p>
+    <li>      aco: fix operand to scc when selecting SGPR ufind_msb/ifind_msb</li>
+    <li>      aco: ensure predecessors&#x27; p_logical_end is in WQM when a p_phi is in WQM</li>
+    <li>      aco: run p_wqm instructions in WQM</li>
+    <li>      aco: don&#x27;t consider loop header blocks branch blocks in add_coupling_code</li>
+    <li>      aco: don&#x27;t always add logical edges from continue_break blocks to headers</li>
+    <li>      aco: fix target calculation when vgpr spilling introduces sgpr spilling</li>
+    <p></p>
+    <p>Samuel Pitoiset (2):</p>
+    <li>      radv: do not allow sparse resources with multi-planar formats</li>
+    <li>      nir: do not use De Morgan&#x27;s Law rules for flt and fge</li>
+    <p></p>
+    <p>Tapani Pälli (2):</p>
+    <li>      mapi: add GetInteger64vEXT with EXT_disjoint_timer_query</li>
+    <li>      mesa: allow bit queries for EXT_disjoint_timer_query</li>
+    <p></p>
+    <p>Thomas Hellstrom (1):</p>
+    <li>      svga: Fix banded DMA upload</li>
+    <p></p>
+    <p>Vasily Khoruzhick (1):</p>
+    <li>      lima: ppir: don&#x27;t delete root ld_tex nodes without successors in current block</li>
+    <p></p>
+    <p>Vinson Lee (1):</p>
+    <li>      swr: Fix GCC 4.9 checks.</li>
+    <p></p>
+    <p></p>
+</ul>
+
+</div>
+</body>
+</html>

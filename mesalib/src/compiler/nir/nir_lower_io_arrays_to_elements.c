@@ -167,7 +167,8 @@ lower_array(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *var,
                         intr->num_components, intr->dest.ssa.bit_size, NULL);
 
       if (intr->intrinsic == nir_intrinsic_interp_deref_at_offset ||
-          intr->intrinsic == nir_intrinsic_interp_deref_at_sample) {
+          intr->intrinsic == nir_intrinsic_interp_deref_at_sample ||
+          intr->intrinsic == nir_intrinsic_interp_deref_at_vertex) {
          nir_src_copy(&element_intr->src[1], &intr->src[1],
                       &element_intr->instr);
       }
@@ -232,7 +233,8 @@ create_indirects_mask(nir_shader *shader,
                    intr->intrinsic != nir_intrinsic_store_deref &&
                    intr->intrinsic != nir_intrinsic_interp_deref_at_centroid &&
                    intr->intrinsic != nir_intrinsic_interp_deref_at_sample &&
-                   intr->intrinsic != nir_intrinsic_interp_deref_at_offset)
+                   intr->intrinsic != nir_intrinsic_interp_deref_at_offset &&
+                   intr->intrinsic != nir_intrinsic_interp_deref_at_vertex)
                   continue;
 
                nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
@@ -277,7 +279,8 @@ lower_io_arrays_to_elements(nir_shader *shader, nir_variable_mode mask,
                    intr->intrinsic != nir_intrinsic_store_deref &&
                    intr->intrinsic != nir_intrinsic_interp_deref_at_centroid &&
                    intr->intrinsic != nir_intrinsic_interp_deref_at_sample &&
-                   intr->intrinsic != nir_intrinsic_interp_deref_at_offset)
+                   intr->intrinsic != nir_intrinsic_interp_deref_at_offset &&
+                   intr->intrinsic != nir_intrinsic_interp_deref_at_vertex)
                   continue;
 
                nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
@@ -327,6 +330,7 @@ lower_io_arrays_to_elements(nir_shader *shader, nir_variable_mode mask,
                case nir_intrinsic_interp_deref_at_centroid:
                case nir_intrinsic_interp_deref_at_sample:
                case nir_intrinsic_interp_deref_at_offset:
+               case nir_intrinsic_interp_deref_at_vertex:
                case nir_intrinsic_load_deref:
                case nir_intrinsic_store_deref:
                   if ((mask & nir_var_shader_in && mode == nir_var_shader_in) ||

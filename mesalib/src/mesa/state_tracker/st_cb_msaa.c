@@ -26,7 +26,7 @@
  **************************************************************************/
 
 #include "main/bufferobj.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/framebuffer.h"
 
 #include "state_tracker/st_cb_msaa.h"

@@ -40,7 +40,14 @@ sources := \
 	main/format_info.h \
 	main/remap_helper.h \
 	main/get_hash.h \
-	main/marshal_generated.c \
+	main/marshal_generated0.c \
+	main/marshal_generated1.c \
+	main/marshal_generated2.c \
+	main/marshal_generated3.c \
+	main/marshal_generated4.c \
+	main/marshal_generated5.c \
+	main/marshal_generated6.c \
+	main/marshal_generated7.c \
 	main/marshal_generated.h
 
 LOCAL_SRC_FILES := $(filter-out $(sources), $(LOCAL_SRC_FILES))
@@ -87,10 +94,52 @@ $(intermediates)/main/api_exec.c: PRIVATE_XML := -f $(glapi)/gl_and_es_API.xml
 $(intermediates)/main/api_exec.c: $(dispatch_deps)
 	$(call es-gen)
 
-$(intermediates)/main/marshal_generated.c: PRIVATE_SCRIPT := $(MESA_PYTHON2) $(glapi)/gl_marshal.py
-$(intermediates)/main/marshal_generated.c: PRIVATE_XML := -f $(glapi)/gl_and_es_API.xml
+$(intermediates)/main/marshal_generated0.c: PRIVATE_SCRIPT := $(MESA_PYTHON2) $(glapi)/gl_marshal.py
+$(intermediates)/main/marshal_generated0.c: PRIVATE_XML := -f $(glapi)/gl_and_es_API.xml -i 0 -n 8
 
-$(intermediates)/main/marshal_generated.c: $(dispatch_deps)
+$(intermediates)/main/marshal_generated0.c: $(dispatch_deps)
+	$(call es-gen)
+
+$(intermediates)/main/marshal_generated1.c: PRIVATE_SCRIPT := $(MESA_PYTHON2) $(glapi)/gl_marshal.py
+$(intermediates)/main/marshal_generated1.c: PRIVATE_XML := -f $(glapi)/gl_and_es_API.xml -i 1 -n 8
+
+$(intermediates)/main/marshal_generated1.c: $(dispatch_deps)
+	$(call es-gen)
+
+$(intermediates)/main/marshal_generated2.c: PRIVATE_SCRIPT := $(MESA_PYTHON2) $(glapi)/gl_marshal.py
+$(intermediates)/main/marshal_generated2.c: PRIVATE_XML := -f $(glapi)/gl_and_es_API.xml -i 2 -n 8
+
+$(intermediates)/main/marshal_generated2.c: $(dispatch_deps)
+	$(call es-gen)
+
+$(intermediates)/main/marshal_generated3.c: PRIVATE_SCRIPT := $(MESA_PYTHON2) $(glapi)/gl_marshal.py
+$(intermediates)/main/marshal_generated3.c: PRIVATE_XML := -f $(glapi)/gl_and_es_API.xml -i 3 -n 8
+
+$(intermediates)/main/marshal_generated3.c: $(dispatch_deps)
+	$(call es-gen)
+
+$(intermediates)/main/marshal_generated4.c: PRIVATE_SCRIPT := $(MESA_PYTHON2) $(glapi)/gl_marshal.py
+$(intermediates)/main/marshal_generated4.c: PRIVATE_XML := -f $(glapi)/gl_and_es_API.xml -i 4 -n 8
+
+$(intermediates)/main/marshal_generated4.c: $(dispatch_deps)
+	$(call es-gen)
+
+$(intermediates)/main/marshal_generated5.c: PRIVATE_SCRIPT := $(MESA_PYTHON2) $(glapi)/gl_marshal.py
+$(intermediates)/main/marshal_generated5.c: PRIVATE_XML := -f $(glapi)/gl_and_es_API.xml -i 5 -n 8
+
+$(intermediates)/main/marshal_generated5.c: $(dispatch_deps)
+	$(call es-gen)
+
+$(intermediates)/main/marshal_generated6.c: PRIVATE_SCRIPT := $(MESA_PYTHON2) $(glapi)/gl_marshal.py
+$(intermediates)/main/marshal_generated6.c: PRIVATE_XML := -f $(glapi)/gl_and_es_API.xml -i 6 -n 8
+
+$(intermediates)/main/marshal_generated6.c: $(dispatch_deps)
+	$(call es-gen)
+
+$(intermediates)/main/marshal_generated7.c: PRIVATE_SCRIPT := $(MESA_PYTHON2) $(glapi)/gl_marshal.py
+$(intermediates)/main/marshal_generated7.c: PRIVATE_XML := -f $(glapi)/gl_and_es_API.xml -i 7 -n 8
+
+$(intermediates)/main/marshal_generated7.c: $(dispatch_deps)
 	$(call es-gen)
 
 $(intermediates)/main/marshal_generated.h: PRIVATE_SCRIPT := $(MESA_PYTHON2) $(glapi)/gl_marshal_h.py

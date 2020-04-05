@@ -23,7 +23,7 @@ inc_dri_common = include_directories('.')
 libdricommon = static_library(
   'dricommon',
   files('utils.c', 'utils.h', 'dri_util.c', 'dri_util.h'),
-  include_directories : [inc_common, inc_util],
+  include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_util],
   c_args : c_vis_args,
   dependencies : [dep_libdrm, idep_xmlconfig_headers],
   build_by_default : false,
@@ -32,7 +32,7 @@ libdricommon = static_library(
 libmegadriver_stub = static_library(
   'megadriver_stub',
   'megadriver_stub.c',
-  include_directories : inc_common,
+  include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
   c_args : c_vis_args,
   dependencies : dep_libdrm,
   build_by_default : false,

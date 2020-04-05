@@ -22,7 +22,7 @@
     <function name="WindowRectanglesEXT" es2="3.0">
         <param name="mode" type="GLenum"/>
         <param name="count" type="GLsizei"/>
-        <param name="box" type="const GLint *"/>
+        <param name="box" type="const GLint *" count="(4 * count)"/>
     </function>
 </category>
 

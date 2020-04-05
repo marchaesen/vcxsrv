@@ -1,14 +1,13 @@
+#!/bin/bash
+
 git config --global user.email "mesa@example.com"
 git config --global user.name "Mesa CI"
-# XXX: Use --depth 1 once we can drop the cherry-picks.
 git clone \
+    --depth 1 \
     https://github.com/KhronosGroup/VK-GL-CTS.git \
-    -b opengl-es-cts-3.2.5.1 \
+    -b opengl-es-cts-3.2.6.1 \
     /VK-GL-CTS
 pushd /VK-GL-CTS
-# Fix surfaceless build
-git cherry-pick -x 22f41e5e321c6dcd8569c4dad91bce89f06b3670
-git cherry-pick -x 1daa8dff73161ea60ead965bd6c9f2a0a2165648
 
 # surfaceless links against libkms and such despite not using it.
 sed -i '/gbm/d' targets/surfaceless/surfaceless.cmake
@@ -38,7 +37,7 @@ ninja
 mkdir /deqp/mustpass
 for gles in gles2 gles3 gles31; do
     cp \
-        /deqp/external/openglcts/modules/gl_cts/data/mustpass/gles/aosp_mustpass/3.2.5.x/$gles-master.txt \
+        /deqp/external/openglcts/modules/gl_cts/data/mustpass/gles/aosp_mustpass/3.2.6.x/$gles-master.txt \
         /deqp/mustpass/$gles-master.txt
 done
 

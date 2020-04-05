@@ -1127,20 +1127,21 @@ void radv_meta_resolve_fragment_image(struct radv_cmd_buffer *cmd_buffer,
 				       .layers = 1
 				}, &cmd_buffer->pool->alloc, &fb);
 
-			radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
-						&(VkRenderPassBeginInfo) {
-							.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-								.renderPass = rp,
-								.framebuffer = fb,
-								.renderArea = {
-								.offset = { dstOffset.x, dstOffset.y, },
-								.extent = { extent.width, extent.height },
-							},
+			radv_cmd_buffer_begin_render_pass(cmd_buffer,
+							  &(VkRenderPassBeginInfo) {
+								.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+									.renderPass = rp,
+									.framebuffer = fb,
+									.renderArea = {
+										.offset = { dstOffset.x, dstOffset.y, },
+										.extent = { extent.width, extent.height },
+									},
 								.clearValueCount = 0,
 								.pClearValues = NULL,
-						}, VK_SUBPASS_CONTENTS_INLINE);
+						});
 
-
+			radv_cmd_buffer_set_subpass(cmd_buffer,
+						    &cmd_buffer->state.pass->subpasses[0]);
 
 			emit_resolve(cmd_buffer,
 				     &src_iview,
@@ -1149,7 +1150,7 @@ void radv_meta_resolve_fragment_image(struct radv_cmd_buffer *cmd_buffer,
 				     &(VkOffset2D) { dstOffset.x, dstOffset.y },
 				     &(VkExtent2D) { extent.width, extent.height });
 
-			radv_CmdEndRenderPass(radv_cmd_buffer_to_handle(cmd_buffer));
+			radv_cmd_buffer_end_render_pass(cmd_buffer);
 
 			radv_DestroyFramebuffer(radv_device_to_handle(cmd_buffer->device), fb, &cmd_buffer->pool->alloc);
 		}

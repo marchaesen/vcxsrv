@@ -86,19 +86,10 @@ build_constant_load(nir_builder *b, nir_deref_instr *deref,
    nir_builder_instr_insert(b, &load->instr);
 
    if (load->dest.ssa.bit_size < 8) {
-      /* Booleans are special-cased to be 32-bit
-       *
-       * Ideally, for drivers that can handle 32-bit booleans, we wouldn't
-       * emit the i2b here.  However, at this point, the driver is likely to
-       * still have 1-bit booleans so we need to at least convert bit sizes.
-       * Unfortunately, we don't have a good way to annotate the load as
-       * loading a known boolean value so the optimizer isn't going to be
-       * able to get rid of the conversion.  Some day, we may solve that
-       * problem but not today.
-       */
+      /* Booleans are special-cased to be 32-bit */
       assert(glsl_type_is_boolean(deref->type));
       load->dest.ssa.bit_size = 32;
-      return nir_i2b(b, &load->dest.ssa);
+      return nir_b2b1(b, &load->dest.ssa);
    } else {
       return &load->dest.ssa;
    }

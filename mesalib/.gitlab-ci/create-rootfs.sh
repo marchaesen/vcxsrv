@@ -2,14 +2,8 @@
 
 set -ex
 
-LLVM=libllvm8
-
-# LLVMPipe on armhf is broken with LLVM 8
-if [ `dpkg --print-architecture` = "armhf" ]; then
-        LLVM=libllvm7
-fi
-
 apt-get -y install --no-install-recommends \
+    ca-certificates \
     initramfs-tools \
     libpng16-16 \
     strace \
@@ -17,14 +11,32 @@ apt-get -y install --no-install-recommends \
     libexpat1 \
     libdrm2 \
     libdrm-nouveau2 \
-    $LLVM
+    firmware-qcom-media \
+    wget \
+    xz-utils
 passwd root -d
 chsh -s /bin/sh
-ln -s /bin/sh /init
+
+cat > /init <<EOF
+#!/bin/sh
+export PS1=lava-shell:
+exec sh
+EOF
+chmod +x  /init
+
+mkdir -p /lib/firmware/rtl_nic
+wget https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/tree/rtl_nic/rtl8153a-3.fw -O /lib/firmware/rtl_nic/rtl8153a-3.fw
 
 #######################################################################
 # Strip the image to a small minimal system without removing the debian
 # toolchain.
+
+# xz compress firmware so it doesn't waste RAM at runtime.  Except db820c's
+# GPU firmware, due to using a precompiled kernel without compression support.
+find /lib/firmware -type f -print0 | \
+    grep -vz a530 | \
+    xargs -0r -P4 -n4 xz -T1 -C crc32
+ln -s /lib/firmware/qcom/a530* /lib/firmware/
 
 # Copy timezone file and remove tzdata package
 rm -rf /etc/localtime
@@ -93,10 +105,10 @@ UNNEEDED_PACKAGES="apt libapt-pkg5.0 "\
 "init-system-helpers "\
 "bash "\
 "cpio "\
+"xz-utils "\
 "passwd "\
 "libsemanage1 libsemanage-common "\
 "libsepol1 "\
-"gzip "\
 "gpgv "\
 "hostname "\
 "adduser "\
@@ -191,5 +203,3 @@ rm usr/lib/*/libdb-5.3.so
 # remove NSS support for nis, nisplus and hesiod
 rm usr/lib/*/libnss_hesiod*
 rm usr/lib/*/libnss_nis*
-
-rm bin/tar

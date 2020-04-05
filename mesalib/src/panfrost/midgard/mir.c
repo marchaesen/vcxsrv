@@ -255,6 +255,17 @@ mir_typesize(midgard_instruction *ins)
 midgard_reg_mode
 mir_srcsize(midgard_instruction *ins, unsigned i)
 {
+        if (ins->type == TAG_LOAD_STORE_4) {
+                if (OP_HAS_ADDRESS(ins->load_store.op)) {
+                        if (i == 1)
+                                return midgard_reg_mode_64;
+                        else if (i == 2) {
+                                bool zext = ins->load_store.arg_1 & 0x80;
+                                return zext ? midgard_reg_mode_32 : midgard_reg_mode_64;
+                        }
+                }
+        }
+
         /* TODO: 16-bit textures/ldst */
         if (ins->type == TAG_TEXTURE_4 || ins->type == TAG_LOAD_STORE_4)
                 return midgard_reg_mode_32;
@@ -296,51 +307,6 @@ mir_mode_for_destsize(unsigned size)
                 return midgard_reg_mode_64;
         default:
                 unreachable("Unknown destination size");
-        }
-}
-
-
-/* Converts per-component mask to a byte mask */
-
-uint16_t
-mir_to_bytemask(midgard_reg_mode mode, unsigned mask)
-{
-        switch (mode) {
-        case midgard_reg_mode_8:
-                return mask;
-
-        case midgard_reg_mode_16: {
-                unsigned space =
-                        (mask & 0x1) |
-                        ((mask & 0x2) << (2 - 1)) |
-                        ((mask & 0x4) << (4 - 2)) |
-                        ((mask & 0x8) << (6 - 3)) |
-                        ((mask & 0x10) << (8 - 4)) |
-                        ((mask & 0x20) << (10 - 5)) |
-                        ((mask & 0x40) << (12 - 6)) |
-                        ((mask & 0x80) << (14 - 7));
-
-                return space | (space << 1);
-        }
-
-        case midgard_reg_mode_32: {
-                unsigned space =
-                        (mask & 0x1) |
-                        ((mask & 0x2) << (4 - 1)) |
-                        ((mask & 0x4) << (8 - 2)) |
-                        ((mask & 0x8) << (12 - 3));
-
-                return space | (space << 1) | (space << 2) | (space << 3);
-        }
-
-        case midgard_reg_mode_64: {
-                unsigned A = (mask & 0x1) ? 0xFF : 0x00;
-                unsigned B = (mask & 0x2) ? 0xFF : 0x00;
-                return A | (B << 8);
-        }
-
-        default:
-                unreachable("Invalid register mode");
         }
 }
 
@@ -406,7 +372,7 @@ mir_round_bytemask_up(uint16_t mask, midgard_reg_mode mode)
 uint16_t
 mir_bytemask(midgard_instruction *ins)
 {
-        return mir_to_bytemask(mir_typesize(ins), ins->mask);
+        return pan_to_bytemask(mir_bytes_for_mode(mir_typesize(ins)) * 8, ins->mask);
 }
 
 void
@@ -462,7 +428,46 @@ mir_bytemask_of_read_components_single(unsigned *swizzle, unsigned inmask, midga
                 cmask |= (1 << swizzle[c]);
         }
 
-        return mir_to_bytemask(mode, cmask);
+        return pan_to_bytemask(mir_bytes_for_mode(mode) * 8, cmask);
+}
+
+uint16_t
+mir_bytemask_of_read_components_index(midgard_instruction *ins, unsigned i)
+{
+        if (ins->compact_branch && ins->writeout && (i == 0)) {
+                /* Non-ZS writeout uses all components */
+                if (!ins->writeout_depth && !ins->writeout_stencil)
+                        return 0xFFFF;
+
+                /* For ZS-writeout, if both Z and S are written we need two
+                 * components, otherwise we only need one.
+                 */
+                if (ins->writeout_depth && ins->writeout_stencil)
+                        return 0xFF;
+                else
+                        return 0xF;
+        }
+
+        /* Conditional branches read one 32-bit component = 4 bytes (TODO: multi branch??) */
+        if (ins->compact_branch && ins->branch.conditional && (i == 0))
+                return 0xF;
+
+        /* ALU ops act componentwise so we need to pay attention to
+         * their mask. Texture/ldst does not so we don't clamp source
+         * readmasks based on the writemask */
+        unsigned qmask = (ins->type == TAG_ALU_4) ? ins->mask : ~0;
+
+        /* Handle dot products and things */
+        if (ins->type == TAG_ALU_4 && !ins->compact_branch) {
+                unsigned props = alu_opcode_props[ins->alu.op].props;
+
+                unsigned channel_override = GET_CHANNEL_COUNT(props);
+
+                if (channel_override)
+                        qmask = mask_of(channel_override);
+        }
+
+        return mir_bytemask_of_read_components_single(ins->swizzle[i], qmask, mir_srcsize(ins, i));
 }
 
 uint16_t
@@ -475,31 +480,7 @@ mir_bytemask_of_read_components(midgard_instruction *ins, unsigned node)
 
         mir_foreach_src(ins, i) {
                 if (ins->src[i] != node) continue;
-
-                /* Branch writeout uses all components */
-                if (ins->compact_branch && ins->writeout && (i == 0))
-                        return 0xFFFF;
-
-                /* Conditional branches read one 32-bit component = 4 bytes (TODO: multi branch??) */
-                if (ins->compact_branch && ins->branch.conditional && (i == 0))
-                        return 0xF;
-
-                /* ALU ops act componentwise so we need to pay attention to
-                 * their mask. Texture/ldst does not so we don't clamp source
-                 * readmasks based on the writemask */
-                unsigned qmask = (ins->type == TAG_ALU_4) ? ins->mask : ~0;
-
-                /* Handle dot products and things */
-                if (ins->type == TAG_ALU_4 && !ins->compact_branch) {
-                        unsigned props = alu_opcode_props[ins->alu.op].props;
-
-                        unsigned channel_override = GET_CHANNEL_COUNT(props);
-
-                        if (channel_override)
-                                qmask = mask_of(channel_override);
-                }
-
-                mask |= mir_bytemask_of_read_components_single(ins->swizzle[i], qmask, mir_srcsize(ins, i));
+                mask |= mir_bytemask_of_read_components_index(ins, i);
         }
 
         return mask;
@@ -573,7 +554,7 @@ mir_insert_instruction_before_scheduled(
         memcpy(bundles + before, &new, sizeof(new));
 
         list_addtail(&new.instructions[0]->link, &before_bundle->instructions[0]->link);
-        block->quadword_count += midgard_word_size[new.tag];
+        block->quadword_count += midgard_tag_props[new.tag].size;
 }
 
 void
@@ -598,7 +579,7 @@ mir_insert_instruction_after_scheduled(
         midgard_bundle new = mir_bundle_for_op(ctx, ins);
         memcpy(bundles + after + 1, &new, sizeof(new));
         list_add(&new.instructions[0]->link, &after_bundle->instructions[after_bundle->instruction_count - 1]->link);
-        block->quadword_count += midgard_word_size[new.tag];
+        block->quadword_count += midgard_tag_props[new.tag].size;
 }
 
 /* Flip the first-two arguments of a (binary) op. Currently ALU

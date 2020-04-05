@@ -92,6 +92,8 @@ struct fdl_layout {
 	struct fdl_slice slices[FDL_MAX_MIP_LEVELS];
 	struct fdl_slice ubwc_slices[FDL_MAX_MIP_LEVELS];
 	uint32_t layer_size;
+	uint32_t ubwc_layer_size; /* in bytes */
+	bool ubwc : 1;
 	bool layer_first : 1;    /* see above description */
 
 	/* Note that for tiled textures, beyond a certain mipmap level (ie.
@@ -108,10 +110,11 @@ struct fdl_layout {
 	uint8_t cpp;
 
 	uint32_t width0, height0, depth0;
+	uint32_t nr_samples;
+	enum pipe_format format;
 
 	uint32_t size; /* Size of the whole image, in bytes. */
-
-	uint32_t ubwc_size;
+	uint32_t base_align; /* Alignment of the base address, in bytes. */
 };
 
 static inline uint32_t
@@ -133,22 +136,20 @@ fdl_surface_offset(const struct fdl_layout *layout, unsigned level, unsigned lay
 static inline uint32_t
 fdl_ubwc_offset(const struct fdl_layout *layout, unsigned level, unsigned layer)
 {
-	/* for now this doesn't do anything clever, but when UBWC is enabled
-	 * for multi layer/level images, it will.
-	 */
-	if (layout->ubwc_size) {
-		assert(level == 0);
-		assert(layer == 0);
-	}
-	return layout->ubwc_slices[0].offset;
+	const struct fdl_slice *slice = &layout->ubwc_slices[level];
+	return slice->offset + layer * layout->ubwc_layer_size;
 }
 
 static inline bool
 fdl_level_linear(const struct fdl_layout *layout, int level)
 {
+	if (layout->ubwc)
+		return false;
+
 	unsigned w = u_minify(layout->width0, level);
 	if (w < 16)
 		return true;
+
 	return false;
 }
 
@@ -164,7 +165,7 @@ fdl_tile_mode(const struct fdl_layout *layout, int level)
 static inline bool
 fdl_ubwc_enabled(const struct fdl_layout *layout, int level)
 {
-	return layout->ubwc_size && fdl_tile_mode(layout, level);
+	return layout->ubwc;
 }
 
 void
@@ -174,7 +175,10 @@ void
 fdl6_layout(struct fdl_layout *layout,
 		enum pipe_format format, uint32_t nr_samples,
 		uint32_t width0, uint32_t height0, uint32_t depth0,
-		uint32_t mip_levels, uint32_t array_size, bool is_3d, bool ubwc);
+		uint32_t mip_levels, uint32_t array_size, bool is_3d);
+
+void
+fdl_dump_layout(struct fdl_layout *layout);
 
 void
 fdl6_get_ubwc_blockwidth(struct fdl_layout *layout,

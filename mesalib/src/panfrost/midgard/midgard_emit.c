@@ -194,8 +194,19 @@ mir_pack_swizzle_alu(midgard_instruction *ins)
                         packed = mir_pack_swizzle_64(ins->swizzle[i], components);
 
                         if (mode == midgard_reg_mode_32) {
-                                src[i].rep_low |= (ins->swizzle[i][0] >= COMPONENT_Z);
-                                src[i].rep_high |= (ins->swizzle[i][1] >= COMPONENT_Z);
+                                bool lo = ins->swizzle[i][0] >= COMPONENT_Z;
+                                bool hi = ins->swizzle[i][1] >= COMPONENT_Z;
+                                unsigned mask = mir_bytemask(ins);
+
+                                if (mask & 0xFF) {
+                                        /* We can't mix halves... */
+                                        if (mask & 0xFF00)
+                                                assert(lo == hi);
+
+                                        src[i].rep_low |= lo;
+                                } else {
+                                        src[i].rep_low |= hi;
+                                }
                         } else if (mode < midgard_reg_mode_32) {
                                 unreachable("Cannot encode 8/16 swizzle in 64-bit");
                         }
@@ -361,11 +372,11 @@ emit_alu_bundle(compiler_context *ctx,
                         source = &scalarized;
                 }
 
-                memcpy(util_dynarray_grow_bytes(emission, 1, size), source, size);
+                memcpy(util_dynarray_grow_bytes(emission, size, 1), source, size);
         }
 
         /* Emit padding (all zero) */
-        memset(util_dynarray_grow_bytes(emission, 1, bundle->padding), 0, bundle->padding);
+        memset(util_dynarray_grow_bytes(emission, bundle->padding, 1), 0, bundle->padding);
 
         /* Tack on constants */
 
@@ -450,7 +461,8 @@ emit_binary_bundle(compiler_context *ctx,
         }
 
         case TAG_TEXTURE_4:
-        case TAG_TEXTURE_4_VTX: {
+        case TAG_TEXTURE_4_VTX:
+        case TAG_TEXTURE_4_BARRIER: {
                 /* Texture instructions are easy, since there is no pipelining
                  * nor VLIW to worry about. We may need to set .cont/.last
                  * flags. */

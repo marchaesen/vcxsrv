@@ -87,7 +87,7 @@ set_opaque_binding(struct set_opaque_binding_closure *data,
                   storage->storage[i].i;
             }
          }
-      } else if (glsl_type_is_image(type)) {
+      } else if (glsl_type_is_image(storage->type)) {
          for (unsigned i = 0; i < elements; i++) {
             const unsigned index = storage->opaque[sh].index + i;
 

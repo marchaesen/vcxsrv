@@ -111,79 +111,15 @@ copy_vertices(struct gl_context *ctx,
               const fi_type * src_buffer)
 {
    struct vbo_save_context *save = &vbo_context(ctx)->save;
-   const struct _mesa_prim *prim = &node->prims[node->prim_count - 1];
-   GLuint nr = prim->count;
+   struct _mesa_prim *prim = &node->prims[node->prim_count - 1];
    GLuint sz = save->vertex_size;
    const fi_type *src = src_buffer + prim->start * sz;
    fi_type *dst = save->copied.buffer;
-   GLuint ovf, i;
 
    if (prim->end)
       return 0;
 
-   switch (prim->mode) {
-   case GL_POINTS:
-      return 0;
-   case GL_LINES:
-      ovf = nr & 1;
-      for (i = 0; i < ovf; i++)
-         memcpy(dst + i * sz, src + (nr - ovf + i) * sz,
-                sz * sizeof(GLfloat));
-      return i;
-   case GL_TRIANGLES:
-      ovf = nr % 3;
-      for (i = 0; i < ovf; i++)
-         memcpy(dst + i * sz, src + (nr - ovf + i) * sz,
-                sz * sizeof(GLfloat));
-      return i;
-   case GL_QUADS:
-      ovf = nr & 3;
-      for (i = 0; i < ovf; i++)
-         memcpy(dst + i * sz, src + (nr - ovf + i) * sz,
-                sz * sizeof(GLfloat));
-      return i;
-   case GL_LINE_STRIP:
-      if (nr == 0)
-         return 0;
-      else {
-         memcpy(dst, src + (nr - 1) * sz, sz * sizeof(GLfloat));
-         return 1;
-      }
-   case GL_LINE_LOOP:
-   case GL_TRIANGLE_FAN:
-   case GL_POLYGON:
-      if (nr == 0)
-         return 0;
-      else if (nr == 1) {
-         memcpy(dst, src + 0, sz * sizeof(GLfloat));
-         return 1;
-      }
-      else {
-         memcpy(dst, src + 0, sz * sizeof(GLfloat));
-         memcpy(dst + sz, src + (nr - 1) * sz, sz * sizeof(GLfloat));
-         return 2;
-      }
-   case GL_TRIANGLE_STRIP:
-   case GL_QUAD_STRIP:
-      switch (nr) {
-      case 0:
-         ovf = 0;
-         break;
-      case 1:
-         ovf = 1;
-         break;
-      default:
-         ovf = 2 + (nr & 1);
-         break;
-      }
-      for (i = 0; i < ovf; i++)
-         memcpy(dst + i * sz, src + (nr - ovf + i) * sz,
-                sz * sizeof(GLfloat));
-      return i;
-   default:
-      unreachable("Unexpected primitive type");
-      return 0;
-   }
+   return vbo_copy_vertices(ctx, prim->mode, prim, sz, true, dst, src);
 }
 
 
@@ -337,7 +273,7 @@ reset_counters(struct gl_context *ctx)
  * previous prim.
  */
 static void
-merge_prims(struct _mesa_prim *prim_list,
+merge_prims(struct gl_context *ctx, struct _mesa_prim *prim_list,
             GLuint *prim_count)
 {
    GLuint i;
@@ -348,11 +284,10 @@ merge_prims(struct _mesa_prim *prim_list,
 
       vbo_try_prim_conversion(this_prim);
 
-      if (vbo_can_merge_prims(prev_prim, this_prim)) {
+      if (vbo_merge_draws(ctx, true, prev_prim, this_prim)) {
          /* We've found a prim that just extend the previous one.  Tack it
           * onto the previous one, and let this primitive struct get dropped.
           */
-         vbo_merge_prims(prev_prim, this_prim);
          continue;
       }
 
@@ -642,7 +577,7 @@ compile_vertex_list(struct gl_context *ctx)
       convert_line_loop_to_strip(save, node);
    }
 
-   merge_prims(node->prims, &node->prim_count);
+   merge_prims(ctx, node->prims, &node->prim_count);
 
    /* Correct the primitive starts, we can only do this here as copy_vertices
     * and convert_line_loop_to_strip above consume the uncorrected starts.
@@ -737,12 +672,8 @@ wrap_buffers(struct gl_context *ctx)
    save->prims[0].mode = mode;
    save->prims[0].begin = 0;
    save->prims[0].end = 0;
-   save->prims[0].pad = 0;
    save->prims[0].start = 0;
    save->prims[0].count = 0;
-   save->prims[0].num_instances = 1;
-   save->prims[0].base_instance = 0;
-   save->prims[0].is_indirect = 0;
    save->prim_count = 1;
 }
 
@@ -1218,12 +1149,8 @@ vbo_save_NotifyBegin(struct gl_context *ctx, GLenum mode,
    save->prims[i].mode = mode & VBO_SAVE_PRIM_MODE_MASK;
    save->prims[i].begin = 1;
    save->prims[i].end = 0;
-   save->prims[i].pad = 0;
    save->prims[i].start = save->vert_count;
    save->prims[i].count = 0;
-   save->prims[i].num_instances = 1;
-   save->prims[i].base_instance = 0;
-   save->prims[i].is_indirect = 0;
 
    save->no_current_update = no_current_update;
 
@@ -1559,157 +1486,12 @@ vtxfmt_init(struct gl_context *ctx)
    struct vbo_save_context *save = &vbo_context(ctx)->save;
    GLvertexformat *vfmt = &save->vtxfmt;
 
-   vfmt->ArrayElement = _ae_ArrayElement;
+#define NAME_AE(x) _ae_##x
+#define NAME_CALLLIST(x) _save_##x
+#define NAME(x) _save_##x
+#define NAME_ES(x) _save_##x##ARB
 
-   vfmt->Color3f = _save_Color3f;
-   vfmt->Color3fv = _save_Color3fv;
-   vfmt->Color4f = _save_Color4f;
-   vfmt->Color4fv = _save_Color4fv;
-   vfmt->EdgeFlag = _save_EdgeFlag;
-   vfmt->End = _save_End;
-   vfmt->PrimitiveRestartNV = _save_PrimitiveRestartNV;
-   vfmt->FogCoordfEXT = _save_FogCoordfEXT;
-   vfmt->FogCoordfvEXT = _save_FogCoordfvEXT;
-   vfmt->Indexf = _save_Indexf;
-   vfmt->Indexfv = _save_Indexfv;
-   vfmt->Materialfv = _save_Materialfv;
-   vfmt->MultiTexCoord1fARB = _save_MultiTexCoord1f;
-   vfmt->MultiTexCoord1fvARB = _save_MultiTexCoord1fv;
-   vfmt->MultiTexCoord2fARB = _save_MultiTexCoord2f;
-   vfmt->MultiTexCoord2fvARB = _save_MultiTexCoord2fv;
-   vfmt->MultiTexCoord3fARB = _save_MultiTexCoord3f;
-   vfmt->MultiTexCoord3fvARB = _save_MultiTexCoord3fv;
-   vfmt->MultiTexCoord4fARB = _save_MultiTexCoord4f;
-   vfmt->MultiTexCoord4fvARB = _save_MultiTexCoord4fv;
-   vfmt->Normal3f = _save_Normal3f;
-   vfmt->Normal3fv = _save_Normal3fv;
-   vfmt->SecondaryColor3fEXT = _save_SecondaryColor3fEXT;
-   vfmt->SecondaryColor3fvEXT = _save_SecondaryColor3fvEXT;
-   vfmt->TexCoord1f = _save_TexCoord1f;
-   vfmt->TexCoord1fv = _save_TexCoord1fv;
-   vfmt->TexCoord2f = _save_TexCoord2f;
-   vfmt->TexCoord2fv = _save_TexCoord2fv;
-   vfmt->TexCoord3f = _save_TexCoord3f;
-   vfmt->TexCoord3fv = _save_TexCoord3fv;
-   vfmt->TexCoord4f = _save_TexCoord4f;
-   vfmt->TexCoord4fv = _save_TexCoord4fv;
-   vfmt->Vertex2f = _save_Vertex2f;
-   vfmt->Vertex2fv = _save_Vertex2fv;
-   vfmt->Vertex3f = _save_Vertex3f;
-   vfmt->Vertex3fv = _save_Vertex3fv;
-   vfmt->Vertex4f = _save_Vertex4f;
-   vfmt->Vertex4fv = _save_Vertex4fv;
-   vfmt->VertexAttrib1fARB = _save_VertexAttrib1fARB;
-   vfmt->VertexAttrib1fvARB = _save_VertexAttrib1fvARB;
-   vfmt->VertexAttrib2fARB = _save_VertexAttrib2fARB;
-   vfmt->VertexAttrib2fvARB = _save_VertexAttrib2fvARB;
-   vfmt->VertexAttrib3fARB = _save_VertexAttrib3fARB;
-   vfmt->VertexAttrib3fvARB = _save_VertexAttrib3fvARB;
-   vfmt->VertexAttrib4fARB = _save_VertexAttrib4fARB;
-   vfmt->VertexAttrib4fvARB = _save_VertexAttrib4fvARB;
-
-   vfmt->VertexAttrib1fNV = _save_VertexAttrib1fNV;
-   vfmt->VertexAttrib1fvNV = _save_VertexAttrib1fvNV;
-   vfmt->VertexAttrib2fNV = _save_VertexAttrib2fNV;
-   vfmt->VertexAttrib2fvNV = _save_VertexAttrib2fvNV;
-   vfmt->VertexAttrib3fNV = _save_VertexAttrib3fNV;
-   vfmt->VertexAttrib3fvNV = _save_VertexAttrib3fvNV;
-   vfmt->VertexAttrib4fNV = _save_VertexAttrib4fNV;
-   vfmt->VertexAttrib4fvNV = _save_VertexAttrib4fvNV;
-
-   /* integer-valued */
-   vfmt->VertexAttribI1i = _save_VertexAttribI1i;
-   vfmt->VertexAttribI2i = _save_VertexAttribI2i;
-   vfmt->VertexAttribI3i = _save_VertexAttribI3i;
-   vfmt->VertexAttribI4i = _save_VertexAttribI4i;
-   vfmt->VertexAttribI2iv = _save_VertexAttribI2iv;
-   vfmt->VertexAttribI3iv = _save_VertexAttribI3iv;
-   vfmt->VertexAttribI4iv = _save_VertexAttribI4iv;
-
-   /* unsigned integer-valued */
-   vfmt->VertexAttribI1ui = _save_VertexAttribI1ui;
-   vfmt->VertexAttribI2ui = _save_VertexAttribI2ui;
-   vfmt->VertexAttribI3ui = _save_VertexAttribI3ui;
-   vfmt->VertexAttribI4ui = _save_VertexAttribI4ui;
-   vfmt->VertexAttribI2uiv = _save_VertexAttribI2uiv;
-   vfmt->VertexAttribI3uiv = _save_VertexAttribI3uiv;
-   vfmt->VertexAttribI4uiv = _save_VertexAttribI4uiv;
-
-   vfmt->VertexP2ui = _save_VertexP2ui;
-   vfmt->VertexP3ui = _save_VertexP3ui;
-   vfmt->VertexP4ui = _save_VertexP4ui;
-   vfmt->VertexP2uiv = _save_VertexP2uiv;
-   vfmt->VertexP3uiv = _save_VertexP3uiv;
-   vfmt->VertexP4uiv = _save_VertexP4uiv;
-
-   vfmt->TexCoordP1ui = _save_TexCoordP1ui;
-   vfmt->TexCoordP2ui = _save_TexCoordP2ui;
-   vfmt->TexCoordP3ui = _save_TexCoordP3ui;
-   vfmt->TexCoordP4ui = _save_TexCoordP4ui;
-   vfmt->TexCoordP1uiv = _save_TexCoordP1uiv;
-   vfmt->TexCoordP2uiv = _save_TexCoordP2uiv;
-   vfmt->TexCoordP3uiv = _save_TexCoordP3uiv;
-   vfmt->TexCoordP4uiv = _save_TexCoordP4uiv;
-
-   vfmt->MultiTexCoordP1ui = _save_MultiTexCoordP1ui;
-   vfmt->MultiTexCoordP2ui = _save_MultiTexCoordP2ui;
-   vfmt->MultiTexCoordP3ui = _save_MultiTexCoordP3ui;
-   vfmt->MultiTexCoordP4ui = _save_MultiTexCoordP4ui;
-   vfmt->MultiTexCoordP1uiv = _save_MultiTexCoordP1uiv;
-   vfmt->MultiTexCoordP2uiv = _save_MultiTexCoordP2uiv;
-   vfmt->MultiTexCoordP3uiv = _save_MultiTexCoordP3uiv;
-   vfmt->MultiTexCoordP4uiv = _save_MultiTexCoordP4uiv;
-
-   vfmt->NormalP3ui = _save_NormalP3ui;
-   vfmt->NormalP3uiv = _save_NormalP3uiv;
-
-   vfmt->ColorP3ui = _save_ColorP3ui;
-   vfmt->ColorP4ui = _save_ColorP4ui;
-   vfmt->ColorP3uiv = _save_ColorP3uiv;
-   vfmt->ColorP4uiv = _save_ColorP4uiv;
-
-   vfmt->SecondaryColorP3ui = _save_SecondaryColorP3ui;
-   vfmt->SecondaryColorP3uiv = _save_SecondaryColorP3uiv;
-
-   vfmt->VertexAttribP1ui = _save_VertexAttribP1ui;
-   vfmt->VertexAttribP2ui = _save_VertexAttribP2ui;
-   vfmt->VertexAttribP3ui = _save_VertexAttribP3ui;
-   vfmt->VertexAttribP4ui = _save_VertexAttribP4ui;
-
-   vfmt->VertexAttribP1uiv = _save_VertexAttribP1uiv;
-   vfmt->VertexAttribP2uiv = _save_VertexAttribP2uiv;
-   vfmt->VertexAttribP3uiv = _save_VertexAttribP3uiv;
-   vfmt->VertexAttribP4uiv = _save_VertexAttribP4uiv;
-
-   vfmt->VertexAttribL1d = _save_VertexAttribL1d;
-   vfmt->VertexAttribL2d = _save_VertexAttribL2d;
-   vfmt->VertexAttribL3d = _save_VertexAttribL3d;
-   vfmt->VertexAttribL4d = _save_VertexAttribL4d;
-
-   vfmt->VertexAttribL1dv = _save_VertexAttribL1dv;
-   vfmt->VertexAttribL2dv = _save_VertexAttribL2dv;
-   vfmt->VertexAttribL3dv = _save_VertexAttribL3dv;
-   vfmt->VertexAttribL4dv = _save_VertexAttribL4dv;
-
-   vfmt->VertexAttribL1ui64ARB = _save_VertexAttribL1ui64ARB;
-   vfmt->VertexAttribL1ui64vARB = _save_VertexAttribL1ui64vARB;
-
-   /* This will all require us to fallback to saving the list as opcodes:
-    */
-   vfmt->CallList = _save_CallList;
-   vfmt->CallLists = _save_CallLists;
-
-   vfmt->EvalCoord1f = _save_EvalCoord1f;
-   vfmt->EvalCoord1fv = _save_EvalCoord1fv;
-   vfmt->EvalCoord2f = _save_EvalCoord2f;
-   vfmt->EvalCoord2fv = _save_EvalCoord2fv;
-   vfmt->EvalPoint1 = _save_EvalPoint1;
-   vfmt->EvalPoint2 = _save_EvalPoint2;
-
-   /* These calls all generate GL_INVALID_OPERATION since this vtxfmt is
-    * only used when we're inside a glBegin/End pair.
-    */
-   vfmt->Begin = _save_Begin;
+#include "vbo_init_tmp.h"
 }
 
 
@@ -1930,5 +1712,5 @@ vbo_save_api_init(struct vbo_save_context *save)
 
    vtxfmt_init(ctx);
    current_init(ctx);
-   _mesa_noop_vtxfmt_init(&save->vtxfmt_noop);
+   _mesa_noop_vtxfmt_init(ctx, &save->vtxfmt_noop);
 }

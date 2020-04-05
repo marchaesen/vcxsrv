@@ -265,10 +265,6 @@ msgid ""
 "(-1) CSMT is enabled on known thread-safe drivers."
 msgstr ""
 
-#: src/util/xmlpool/t_options.h:323
-msgid "Use the LLVM sisched option for shader compiles"
-msgstr ""
-
 #: src/util/xmlpool/t_options.h:328
 msgid ""
 "Assume no Z fights (enables aggressive out-of-order rasterization to improve "

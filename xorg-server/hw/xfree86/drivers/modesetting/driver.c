@@ -743,9 +743,17 @@ FreeRec(ScrnInfoPtr pScrn)
 
 }
 
-static void
-bind_glamor_api(void *mod, modesettingPtr ms)
+#ifdef GLAMOR_HAS_GBM
+
+static Bool
+load_glamor(ScrnInfoPtr pScrn)
 {
+    void *mod = xf86LoadSubModule(pScrn, GLAMOR_EGL_MODULE_NAME);
+    modesettingPtr ms = modesettingPTR(pScrn);
+
+    if (!mod)
+        return FALSE;
+
     ms->glamor.back_pixmap_from_fd = LoaderSymbolFromModule(mod, "glamor_back_pixmap_from_fd");
     ms->glamor.block_handler = LoaderSymbolFromModule(mod, "glamor_block_handler");
     ms->glamor.clear_pixmap = LoaderSymbolFromModule(mod, "glamor_clear_pixmap");
@@ -763,7 +771,11 @@ bind_glamor_api(void *mod, modesettingPtr ms)
     ms->glamor.supports_pixmap_import_export = LoaderSymbolFromModule(mod, "glamor_supports_pixmap_import_export");
     ms->glamor.xv_init = LoaderSymbolFromModule(mod, "glamor_xv_init");
     ms->glamor.egl_get_driver_name = LoaderSymbolFromModule(mod, "glamor_egl_get_driver_name");
+
+    return TRUE;
 }
+
+#endif
 
 static void
 try_enable_glamor(ScrnInfoPtr pScrn)
@@ -773,7 +785,6 @@ try_enable_glamor(ScrnInfoPtr pScrn)
                                                        OPTION_ACCEL_METHOD);
     Bool do_glamor = (!accel_method_str ||
                       strcmp(accel_method_str, "glamor") == 0);
-    void *mod;
 
     ms->drmmode.glamor = FALSE;
 
@@ -788,9 +799,7 @@ try_enable_glamor(ScrnInfoPtr pScrn)
         return;
     }
 
-    mod = xf86LoadSubModule(pScrn, GLAMOR_EGL_MODULE_NAME);
-    if (mod) {
-        bind_glamor_api(mod, ms);
+    if (load_glamor(pScrn)) {
         if (ms->glamor.egl_init(pScrn, ms->fd)) {
             xf86DrvMsg(pScrn->scrnIndex, X_INFO, "glamor initialized\n");
             ms->drmmode.glamor = TRUE;

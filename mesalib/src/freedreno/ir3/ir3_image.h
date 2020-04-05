@@ -36,9 +36,8 @@ unsigned ir3_ssbo_to_tex(struct ir3_ibo_mapping *mapping, unsigned ssbo);
 unsigned ir3_image_to_ibo(struct ir3_shader *shader, unsigned image);
 unsigned ir3_image_to_tex(struct ir3_ibo_mapping *mapping, unsigned image);
 
-unsigned ir3_get_image_slot(nir_deref_instr *deref);
-unsigned ir3_get_image_coords(const nir_variable *var, unsigned *flagsp);
-type_t ir3_get_image_type(const nir_variable *var);
-unsigned ir3_get_num_components_for_glformat(GLuint format);
+unsigned ir3_get_image_coords(const nir_intrinsic_instr *instr, unsigned *flagsp);
+type_t ir3_get_type_for_image_intrinsic(const nir_intrinsic_instr *instr);
+unsigned ir3_get_num_components_for_image_format(enum pipe_format);
 
 #endif /* IR3_IMAGE_H_ */

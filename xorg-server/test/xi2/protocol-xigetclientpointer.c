@@ -46,7 +46,7 @@ static struct {
     int win;
 } test_data;
 
-ClientRec client_window;
+extern ClientRec client_window;
 static ClientRec client_request;
 
 static void

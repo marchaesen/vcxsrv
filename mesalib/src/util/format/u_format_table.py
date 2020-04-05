@@ -182,12 +182,12 @@ def write_format_table(formats):
         if format.is_pure_unsigned():
             print("   &util_format_%s_unpack_unsigned, /* unpack_rgba_uint */" % format.short_name())
             print("   &util_format_%s_pack_unsigned, /* pack_rgba_uint */" % format.short_name())
-            print("   &util_format_%s_unpack_signed, /* unpack_rgba_sint */" % format.short_name())
+            print("   NULL, /* unpack_rgba_sint */")
             print("   &util_format_%s_pack_signed,  /* pack_rgba_sint */" % format.short_name())
             print("   &util_format_%s_fetch_unsigned,  /* fetch_rgba_uint */" % format.short_name())
             print("   NULL  /* fetch_rgba_sint */")
         elif format.is_pure_signed():
-            print("   &util_format_%s_unpack_unsigned, /* unpack_rgba_uint */" % format.short_name())
+            print("   NULL, /* unpack_rgba_uint */")
             print("   &util_format_%s_pack_unsigned, /* pack_rgba_uint */" % format.short_name())
             print("   &util_format_%s_unpack_signed, /* unpack_rgba_sint */" % format.short_name())
             print("   &util_format_%s_pack_signed,  /* pack_rgba_sint */" % format.short_name())

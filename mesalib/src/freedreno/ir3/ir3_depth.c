@@ -48,72 +48,6 @@
  * blocks depth sorted list, which is used by the scheduling pass.
  */
 
-/* generally don't count false dependencies, since this can just be
- * something like a barrier, or SSBO store.  The exception is array
- * dependencies if the assigner is an array write and the consumer
- * reads the same array.
- */
-static bool
-ignore_dep(struct ir3_instruction *assigner,
-		struct ir3_instruction *consumer, unsigned n)
-{
-	if (!__is_false_dep(consumer, n))
-		return false;
-
-	if (assigner->barrier_class & IR3_BARRIER_ARRAY_W) {
-		struct ir3_register *dst = assigner->regs[0];
-		struct ir3_register *src;
-
-		debug_assert(dst->flags & IR3_REG_ARRAY);
-
-		foreach_src(src, consumer) {
-			if ((src->flags & IR3_REG_ARRAY) &&
-					(dst->array.id == src->array.id)) {
-				return false;
-			}
-		}
-	}
-
-	return true;
-}
-
-/* calculate required # of delay slots between the instruction that
- * assigns a value and the one that consumes
- */
-int ir3_delayslots(struct ir3_instruction *assigner,
-		struct ir3_instruction *consumer, unsigned n)
-{
-	if (ignore_dep(assigner, consumer, n))
-		return 0;
-
-	/* worst case is cat1-3 (alu) -> cat4/5 needing 6 cycles, normal
-	 * alu -> alu needs 3 cycles, cat4 -> alu and texture fetch
-	 * handled with sync bits
-	 */
-
-	if (is_meta(assigner) || is_meta(consumer))
-		return 0;
-
-	if (writes_addr(assigner))
-		return 6;
-
-	/* handled via sync flags: */
-	if (is_sfu(assigner) || is_tex(assigner) || is_mem(assigner))
-		return 0;
-
-	/* assigner must be alu: */
-	if (is_flow(consumer) || is_sfu(consumer) || is_tex(consumer) ||
-			is_mem(consumer)) {
-		return 6;
-	} else if ((is_mad(consumer->opc) || is_madsh(consumer->opc)) &&
-			(n == 3)) {
-		/* special case, 3rd src to cat3 not required on first cycle */
-		return 1;
-	} else {
-		return 3;
-	}
-}
-
 void
 ir3_insert_by_depth(struct ir3_instruction *instr, struct list_head *list)
 {
@@ -145,7 +79,7 @@ ir3_instr_depth(struct ir3_instruction *instr, unsigned boost, bool falsedep)
 
 	instr->depth = 0;
 
-	foreach_ssa_src_n(src, i, instr) {
+	foreach_ssa_src_n (src, i, instr) {
 		unsigned sd;
 
 		/* visit child to compute it's depth: */
@@ -155,7 +89,7 @@ ir3_instr_depth(struct ir3_instruction *instr, unsigned boost, bool falsedep)
 		if (i == 0)
 			continue;
 
-		sd = ir3_delayslots(src, instr, i) + src->depth;
+		sd = ir3_delayslots(src, instr, i, true) + src->depth;
 		sd += boost;
 
 		instr->depth = MAX2(instr->depth, sd);
@@ -180,7 +114,7 @@ remove_unused_by_block(struct ir3_block *block)
 				/* tex (cat5) instructions have a writemask, so we can
 				 * mask off unused components.  Other instructions do not.
 				 */
-				if (is_tex(src) && (src->regs[0]->wrmask > 1)) {
+				if (is_tex_or_prefetch(src) && (src->regs[0]->wrmask > 1)) {
 					src->regs[0]->wrmask &= ~(1 << instr->split.off);
 
 					/* prune no-longer needed right-neighbors.  We could
@@ -224,14 +158,14 @@ compute_depth_and_remove_unused(struct ir3 *ir, struct ir3_shader_variant *so)
 			 */
 			if (so->num_sampler_prefetch &&
 					(instr->opc == OPC_META_INPUT) &&
-					(instr->input.sysval == SYSTEM_VALUE_BARYCENTRIC_PIXEL))
+					(instr->input.sysval == SYSTEM_VALUE_BARYCENTRIC_PERSP_PIXEL))
 				continue;
 			instr->flags |= IR3_INSTR_UNUSED;
 		}
 	}
 
 	struct ir3_instruction *out;
-	foreach_output(out, ir)
+	foreach_output (out, ir)
 		ir3_instr_depth(out, 0, false);
 
 	foreach_block (block, &ir->block_list) {
@@ -243,9 +177,25 @@ compute_depth_and_remove_unused(struct ir3 *ir, struct ir3_shader_variant *so)
 			ir3_instr_depth(block->condition, 6, false);
 	}
 
-	/* mark un-used instructions: */
+	/* remove un-used instructions: */
 	foreach_block (block, &ir->block_list) {
 		progress |= remove_unused_by_block(block);
+	}
+
+	/* fixup wrmask of split instructions to account for adjusted tex
+	 * wrmask's:
+	 */
+	foreach_block (block, &ir->block_list) {
+		foreach_instr (instr, &block->instr_list) {
+			if (instr->opc != OPC_META_SPLIT)
+				continue;
+
+			struct ir3_instruction *src = ssa(instr->regs[1]);
+			if (!is_tex_or_prefetch(src))
+				continue;
+
+			instr->regs[1]->wrmask = src->regs[0]->wrmask;
+		}
 	}
 
 	/* note that we can end up with unused indirects, but we should
@@ -259,7 +209,7 @@ compute_depth_and_remove_unused(struct ir3 *ir, struct ir3_shader_variant *so)
 
 	/* cleanup unused inputs: */
 	struct ir3_instruction *in;
-	foreach_input_n(in, n, ir)
+	foreach_input_n (in, n, ir)
 		if (in->flags & IR3_INSTR_UNUSED)
 			ir->inputs[n] = NULL;
 

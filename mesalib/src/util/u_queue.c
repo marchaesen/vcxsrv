@@ -286,6 +286,8 @@ util_queue_thread_func(void *input)
 
       queue->num_queued--;
       cnd_signal(&queue->has_space_cond);
+      if (job.job)
+         queue->total_jobs_size -= job.job_size;
       mtx_unlock(&queue->lock);
 
       if (job.job) {
@@ -293,8 +295,6 @@ util_queue_thread_func(void *input)
          util_queue_fence_signal(job.fence);
          if (job.cleanup)
             job.cleanup(job.job, thread_index);
-
-         queue->total_jobs_size -= job.job_size;
       }
    }
 

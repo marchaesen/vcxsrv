@@ -68,6 +68,7 @@ enum ir3_driver_param {
 #define IR3_MAX_SHADER_BUFFERS   32
 #define IR3_MAX_SHADER_IMAGES    32
 #define IR3_MAX_SO_BUFFERS        4
+#define IR3_MAX_SO_STREAMS        4
 #define IR3_MAX_SO_OUTPUTS       64
 #define IR3_MAX_CONSTANT_BUFFERS 32
 
@@ -627,9 +628,6 @@ struct ir3_shader {
 	/* shader id (for debug): */
 	uint32_t id;
 	uint32_t variant_count;
-
-	/* so we know when we can disable TGSI related hacks: */
-	bool from_tgsi;
 
 	struct ir3_compiler *compiler;
 

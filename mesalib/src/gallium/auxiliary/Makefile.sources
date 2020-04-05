@@ -50,6 +50,8 @@ C_SOURCES := \
 	draw/draw_pt_vsplit_tmp.h \
 	draw/draw_so_emit_tmp.h \
 	draw/draw_split_tmp.h \
+	draw/draw_tess.c \
+	draw/draw_tess.h \
 	draw/draw_vbuf.h \
 	draw/draw_vertex.c \
 	draw/draw_vertex.h \
@@ -154,6 +156,10 @@ C_SOURCES := \
 	rtasm/rtasm_execmem.h \
 	rtasm/rtasm_x86sse.c \
 	rtasm/rtasm_x86sse.h \
+	tessellator/p_tessellator.cpp \
+	tessellator/p_tessellator.h \
+	tessellator/tessellator.cpp \
+	tessellator/tessellator.hpp \
 	tgsi/tgsi_aa_point.c \
 	tgsi/tgsi_aa_point.h \
 	tgsi/tgsi_build.c \
@@ -216,15 +222,12 @@ C_SOURCES := \
 	util/u_cache.h \
 	util/u_compute.c \
 	util/u_compute.h \
-	util/u_debug_gallium.h \
-	util/u_debug_gallium.c \
 	util/u_debug_describe.c \
 	util/u_debug_describe.h \
 	util/u_debug_flush.c \
 	util/u_debug_flush.h \
 	util/u_debug_image.c \
 	util/u_debug_image.h \
-	util/u_debug_memory.c \
 	util/u_debug_refcnt.c \
 	util/u_debug_refcnt.h \
 	util/u_debug_stack.c \
@@ -295,8 +298,6 @@ C_SOURCES := \
 	util/u_suballoc.h \
 	util/u_surface.c \
 	util/u_surface.h \
-	util/u_surfaces.c \
-	util/u_surfaces.h \
 	util/u_tests.c \
 	util/u_tests.h \
 	util/u_texture.c \

@@ -174,36 +174,40 @@ typedef struct {
  * be unrolled), calculating the index within the tile and writing.
  */
 
-#define TILED_STORE_TYPE(pixel_t, shift) \
-static void \
-panfrost_store_tiled_image_##pixel_t \
-                              (void *dst, const void *src, \
+#define TILED_ACCESS_TYPE(pixel_t, shift) \
+static ALWAYS_INLINE void \
+panfrost_access_tiled_image_##pixel_t \
+                              (void *dst, void *src, \
                                uint16_t sx, uint16_t sy, \
                                uint16_t w, uint16_t h, \
                                uint32_t dst_stride, \
-                               uint32_t src_stride) \
+                               uint32_t src_stride, \
+                               bool is_store) \
 { \
    uint8_t *dest_start = dst + ((sx >> 4) * PIXELS_PER_TILE * sizeof(pixel_t)); \
    for (int y = sy, src_y = 0; src_y < h; ++y, ++src_y) { \
       uint16_t block_y = y & ~0x0f; \
       uint8_t *dest = (uint8_t *) (dest_start + (block_y * dst_stride)); \
-      const pixel_t *source = src + (src_y * src_stride); \
-      const pixel_t *source_end = source + w; \
+      pixel_t *source = src + (src_y * src_stride); \
+      pixel_t *source_end = source + w; \
       unsigned expanded_y = bit_duplication[y & 0xF] << shift; \
       for (; source < source_end; dest += (PIXELS_PER_TILE << shift)) { \
          for (uint8_t i = 0; i < 16; ++i) { \
             unsigned index = expanded_y ^ (space_4[i] << shift); \
-            *((pixel_t *) (dest + index)) = *(source++); \
+            if (is_store) \
+                *((pixel_t *) (dest + index)) = *(source++); \
+            else \
+                *(source++) = *((pixel_t *) (dest + index)); \
          } \
       } \
    } \
 } \
 
-TILED_STORE_TYPE(uint8_t, 0);
-TILED_STORE_TYPE(uint16_t, 1);
-TILED_STORE_TYPE(uint32_t, 2);
-TILED_STORE_TYPE(uint64_t, 3);
-TILED_STORE_TYPE(pan_uint128_t, 4);
+TILED_ACCESS_TYPE(uint8_t, 0);
+TILED_ACCESS_TYPE(uint16_t, 1);
+TILED_ACCESS_TYPE(uint32_t, 2);
+TILED_ACCESS_TYPE(uint64_t, 3);
+TILED_ACCESS_TYPE(pan_uint128_t, 4);
 
 #define TILED_UNALIGNED_TYPE(pixel_t, is_store, tile_shift) { \
    const unsigned mask = (1 << tile_shift) - 1; \
@@ -268,20 +272,21 @@ panfrost_access_tiled_image_generic(void *dst, void *src,
 
 #define OFFSET(src, _x, _y) (void *) ((uint8_t *) src + ((_y) - orig_y) * src_stride + (((_x) - orig_x) * (bpp / 8)))
 
-void
-panfrost_store_tiled_image(void *dst, const void *src,
+static ALWAYS_INLINE void
+panfrost_access_tiled_image(void *dst, void *src,
                            unsigned x, unsigned y,
                            unsigned w, unsigned h,
                            uint32_t dst_stride,
                            uint32_t src_stride,
-                           enum pipe_format format)
+                           enum pipe_format format,
+                           bool is_store)
 {
    const struct util_format_description *desc = util_format_description(format);
 
    if (desc->block.width > 1) {
       panfrost_access_tiled_image_generic(dst, (void *) src,
             x, y, w, h,
-            dst_stride, src_stride, desc, true);
+            dst_stride, src_stride, desc, is_store);
 
       return;
    }
@@ -301,7 +306,7 @@ panfrost_store_tiled_image(void *dst, const void *src,
 
       panfrost_access_tiled_image_generic(dst, OFFSET(src, x, y),
             x, y, w, dist,
-            dst_stride, src_stride, desc, true);  
+            dst_stride, src_stride, desc, is_store);
 
       if (dist == h)
          return;
@@ -316,7 +321,7 @@ panfrost_store_tiled_image(void *dst, const void *src,
 
       panfrost_access_tiled_image_generic(dst, OFFSET(src, x, last_full_tile_y),
             x, last_full_tile_y, w, dist,
-            dst_stride, src_stride, desc, true);
+            dst_stride, src_stride, desc, is_store);
 
       h -= dist;
    }
@@ -327,7 +332,7 @@ panfrost_store_tiled_image(void *dst, const void *src,
 
       panfrost_access_tiled_image_generic(dst, OFFSET(src, x, y),
             x, y, dist, h,
-            dst_stride, src_stride, desc, true);
+            dst_stride, src_stride, desc, is_store);
 
       if (dist == w)
          return;
@@ -342,21 +347,34 @@ panfrost_store_tiled_image(void *dst, const void *src,
 
       panfrost_access_tiled_image_generic(dst, OFFSET(src, last_full_tile_x, y),
             last_full_tile_x, y, dist, h,
-            dst_stride, src_stride, desc, true);
+            dst_stride, src_stride, desc, is_store);
 
       w -= dist;
    }
 
    if (bpp == 8)
-      panfrost_store_tiled_image_uint8_t(dst,  OFFSET(src, x, y), x, y, w, h, dst_stride, src_stride);
+      panfrost_access_tiled_image_uint8_t(dst,  OFFSET(src, x, y), x, y, w, h, dst_stride, src_stride, is_store);
    else if (bpp == 16)
-      panfrost_store_tiled_image_uint16_t(dst, OFFSET(src, x, y), x, y, w, h, dst_stride, src_stride);
+      panfrost_access_tiled_image_uint16_t(dst, OFFSET(src, x, y), x, y, w, h, dst_stride, src_stride, is_store);
    else if (bpp == 32)
-      panfrost_store_tiled_image_uint32_t(dst, OFFSET(src, x, y), x, y, w, h, dst_stride, src_stride);
+      panfrost_access_tiled_image_uint32_t(dst, OFFSET(src, x, y), x, y, w, h, dst_stride, src_stride, is_store);
    else if (bpp == 64)
-      panfrost_store_tiled_image_uint64_t(dst, OFFSET(src, x, y), x, y, w, h, dst_stride, src_stride);
+      panfrost_access_tiled_image_uint64_t(dst, OFFSET(src, x, y), x, y, w, h, dst_stride, src_stride, is_store);
    else if (bpp == 128)
-      panfrost_store_tiled_image_pan_uint128_t(dst, OFFSET(src, x, y), x, y, w, h, dst_stride, src_stride);
+      panfrost_access_tiled_image_pan_uint128_t(dst, OFFSET(src, x, y), x, y, w, h, dst_stride, src_stride, is_store);
+}
+
+void
+panfrost_store_tiled_image(void *dst, const void *src,
+                           unsigned x, unsigned y,
+                           unsigned w, unsigned h,
+                           uint32_t dst_stride,
+                           uint32_t src_stride,
+                           enum pipe_format format)
+{
+    panfrost_access_tiled_image(dst, (void *) src,
+        x, y, w, h,
+        dst_stride, src_stride, format, true);
 }
 
 void
@@ -367,6 +385,7 @@ panfrost_load_tiled_image(void *dst, const void *src,
                            uint32_t src_stride,
                            enum pipe_format format)
 {
-   const struct util_format_description *desc = util_format_description(format);
-   panfrost_access_tiled_image_generic((void *) src, dst, x, y, w, h, src_stride, dst_stride, desc, false);
+   panfrost_access_tiled_image((void *) src, dst,
+       x, y, w, h,
+       src_stride, dst_stride, format, false);
 }

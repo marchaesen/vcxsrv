@@ -375,7 +375,7 @@ nir_get_texture_size(nir_builder *b, nir_tex_instr *tex)
                      nir_tex_instr_dest_size(txs), 32, NULL);
    nir_builder_instr_insert(b, &txs->instr);
 
-   return nir_i2f32(b, &txs->dest.ssa);
+   return &txs->dest.ssa;
 }
 
 nir_ssa_def *

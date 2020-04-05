@@ -36,26 +36,27 @@
  * missing 96/128 CPP for 8x MSAA with 32_32_32/32_32_32_32
  */
 static const struct {
+	unsigned basealign;
 	unsigned pitchalign;
 	unsigned heightalign;
 	uint8_t ubwc_blockwidth;
 	uint8_t ubwc_blockheight;
 } tile_alignment[] = {
-	[1]  = { 128, 32, 16, 4 },
-	[2]  = { 128, 16, 16, 4 },
-	[3]  = {  64, 32 },
-	[4]  = {  64, 16, 16, 4 },
-	[6]  = {  64, 16 },
-	[8]  = {  64, 16, 8, 4, },
-	[12] = {  64, 16 },
-	[16] = {  64, 16, 4, 4, },
-	[24] = {  64, 16 },
-	[32] = {  64, 16, 4, 2 },
-	[48] = {  64, 16 },
-	[64] = {  64, 16 },
+	[1]  = {  64, 128, 32, 16, 4 },
+	[2]  = { 128, 128, 16, 16, 4 },
+	[3]  = { 256,  64, 32 },
+	[4]  = { 256,  64, 16, 16, 4 },
+	[6]  = { 256,  64, 16 },
+	[8]  = { 256,  64, 16, 8, 4, },
+	[12] = { 256,  64, 16 },
+	[16] = { 256,  64, 16, 4, 4, },
+	[24] = { 256,  64, 16 },
+	[32] = { 256,  64, 16, 4, 2 },
+	[48] = { 256,  64, 16 },
+	[64] = { 256,  64, 16 },
 
 	/* special cases for r8g8: */
-	[0]  = {  64, 32, 16, 4 },
+	[0]  = { 256, 64, 32, 16, 4 },
 };
 
 #define RGB_TILE_WIDTH_ALIGNMENT 64
@@ -69,7 +70,7 @@ void
 fdl6_layout(struct fdl_layout *layout,
 		enum pipe_format format, uint32_t nr_samples,
 		uint32_t width0, uint32_t height0, uint32_t depth0,
-		uint32_t mip_levels, uint32_t array_size, bool is_3d, bool ubwc)
+		uint32_t mip_levels, uint32_t array_size, bool is_3d)
 {
 	assert(nr_samples > 0);
 	layout->width0 = width0;
@@ -78,6 +79,13 @@ fdl6_layout(struct fdl_layout *layout,
 
 	layout->cpp = util_format_get_blocksize(format);
 	layout->cpp *= nr_samples;
+	layout->format = format;
+	layout->nr_samples = nr_samples;
+
+	if (depth0 > 1)
+		layout->ubwc = false;
+	if (tile_alignment[layout->cpp].ubwc_blockwidth == 0)
+		layout->ubwc = false;
 
 	const struct util_format_description *format_desc =
 		util_format_description(format);
@@ -110,11 +118,16 @@ fdl6_layout(struct fdl_layout *layout,
 	debug_assert(ta < ARRAY_SIZE(tile_alignment));
 	debug_assert(tile_alignment[ta].pitchalign);
 
+	if (layout->tile_mode) {
+		layout->base_align = tile_alignment[ta].basealign;
+	} else {
+		layout->base_align = 64;
+	}
+
 	for (uint32_t level = 0; level < mip_levels; level++) {
 		struct fdl_slice *slice = &layout->slices[level];
 		struct fdl_slice *ubwc_slice = &layout->ubwc_slices[level];
-		uint32_t tile_mode = (ubwc ?
-				layout->tile_mode : fdl_tile_mode(layout, level));
+		uint32_t tile_mode = fdl_tile_mode(layout, level);
 		uint32_t width, height;
 
 		/* tiled levels of 3D textures are rounded up to PoT dimensions: */
@@ -174,7 +187,7 @@ fdl6_layout(struct fdl_layout *layout,
 
 		layout->size += slice->size0 * depth * layers_in_level;
 
-		if (ubwc) {
+		if (layout->ubwc) {
 			/* with UBWC every level is aligned to 4K */
 			layout->size = align(layout->size, 4096);
 
@@ -196,8 +209,8 @@ fdl6_layout(struct fdl_layout *layout,
 
 			ubwc_slice->size0 = align(meta_pitch * meta_height, UBWC_PLANE_SIZE_ALIGNMENT);
 			ubwc_slice->pitch = meta_pitch;
-			ubwc_slice->offset = layout->ubwc_size;
-			layout->ubwc_size += ubwc_slice->size0;
+			ubwc_slice->offset = layout->ubwc_layer_size;
+			layout->ubwc_layer_size += ubwc_slice->size0;
 		}
 
 		depth = u_minify(depth, 1);
@@ -217,32 +230,10 @@ fdl6_layout(struct fdl_layout *layout,
 	 * get to program the UBWC and non-UBWC offset/strides
 	 * independently.
 	 */
-	if (ubwc) {
+	if (layout->ubwc) {
 		for (uint32_t level = 0; level < mip_levels; level++)
-			layout->slices[level].offset += layout->ubwc_size * array_size;
-		layout->size += layout->ubwc_size * array_size;
-	}
-
-	if (false) {
-		for (uint32_t level = 0; level < mip_levels; level++) {
-			struct fdl_slice *slice = &layout->slices[level];
-			struct fdl_slice *ubwc_slice = &layout->ubwc_slices[level];
-			uint32_t tile_mode = (ubwc ?
-					layout->tile_mode : fdl_tile_mode(layout, level));
-
-			fprintf(stderr, "%s: %ux%ux%u@%ux%u:\t%2u: stride=%4u, size=%6u,%6u, aligned_height=%3u, offset=0x%x,0x%x tiling=%d\n",
-					util_format_name(format),
-					u_minify(layout->width0, level),
-					u_minify(layout->height0, level),
-					u_minify(layout->depth0, level),
-					layout->cpp, nr_samples,
-					level,
-					slice->pitch * layout->cpp,
-					slice->size0, ubwc_slice->size0,
-					slice->size0 / (slice->pitch * layout->cpp),
-					slice->offset, ubwc_slice->offset,
-					tile_mode);
-		}
+			layout->slices[level].offset += layout->ubwc_layer_size * array_size;
+		layout->size += layout->ubwc_layer_size * array_size;
 	}
 }
 

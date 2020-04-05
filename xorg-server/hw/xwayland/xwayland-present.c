@@ -524,14 +524,8 @@ xwl_present_flips_stop(WindowPtr window)
 }
 
 void
-xwl_present_unrealize_window(WindowPtr window)
+xwl_present_unrealize_window(struct xwl_present_window *xwl_present_window)
 {
-    struct xwl_present_window *xwl_present_window = xwl_present_window_priv(window);
-
-    if (!xwl_present_window ||
-        xorg_list_is_empty(&xwl_present_window->frame_callback_list))
-        return;
-
     /* The pending frame callback may never be called, so drop it and shorten
      * the frame timer interval.
      */

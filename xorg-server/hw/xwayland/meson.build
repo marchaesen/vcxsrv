@@ -40,6 +40,7 @@ kbgrab_xml = join_paths(protodir, 'unstable', 'xwayland-keyboard-grab', 'xwaylan
 xdg_output_xml = join_paths(protodir, 'unstable', 'xdg-output', 'xdg-output-unstable-v1.xml')
 dmabuf_xml = join_paths(protodir, 'unstable', 'linux-dmabuf', 'linux-dmabuf-unstable-v1.xml')
 viewporter_xml = join_paths(protodir, 'stable', 'viewporter', 'viewporter.xml')
+xdg_shell_xml = join_paths(protodir, 'stable', 'xdg-shell', 'xdg-shell.xml')
 
 client_header = generator(scanner,
     output : '@BASENAME@-client-protocol.h',
@@ -63,6 +64,7 @@ srcs += client_header.process(kbgrab_xml)
 srcs += client_header.process(xdg_output_xml)
 srcs += client_header.process(dmabuf_xml)
 srcs += client_header.process(viewporter_xml)
+srcs += client_header.process(xdg_shell_xml)
 srcs += code.process(relative_xml)
 srcs += code.process(pointer_xml)
 srcs += code.process(tablet_xml)
@@ -70,6 +72,7 @@ srcs += code.process(kbgrab_xml)
 srcs += code.process(xdg_output_xml)
 srcs += code.process(dmabuf_xml)
 srcs += code.process(viewporter_xml)
+srcs += code.process(xdg_shell_xml)
 
 xwayland_glamor = []
 eglstream_srcs = []

@@ -52,8 +52,6 @@ st_flush(struct st_context *st,
          struct pipe_fence_handle **fence,
          unsigned flags)
 {
-   st_flush_bitmap_cache(st);
-
    /* We want to call this function periodically.
     * Typically, it has nothing to do so it shouldn't be expensive.
     */
@@ -71,6 +69,7 @@ st_finish(struct st_context *st)
 {
    struct pipe_fence_handle *fence = NULL;
 
+   st_flush_bitmap_cache(st);
    st_flush(st, &fence, PIPE_FLUSH_ASYNC | PIPE_FLUSH_HINT_FINISH);
 
    if (fence) {
@@ -91,6 +90,8 @@ static void
 st_glFlush(struct gl_context *ctx)
 {
    struct st_context *st = st_context(ctx);
+
+   st_flush_bitmap_cache(st);
 
    /* Don't call st_finish() here.  It is not the state tracker's
     * responsibilty to inject sleeps in the hope of avoiding buffer

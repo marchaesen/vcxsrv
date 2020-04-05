@@ -83,7 +83,7 @@ move_varying_inputs_block(state *state, nir_block *block)
 {
 	bool progress = false;
 
-	nir_foreach_instr_safe(instr, block) {
+	nir_foreach_instr_safe (instr, block) {
 		if (instr->type != nir_instr_type_intrinsic)
 			continue;
 

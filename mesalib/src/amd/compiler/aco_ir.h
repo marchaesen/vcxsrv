@@ -113,6 +113,8 @@ enum barrier_interaction : uint8_t {
    barrier_gs_data = 0x10,
    /* used for geometry shaders to ensure s_sendmsg instructions are in-order. */
    barrier_gs_sendmsg = 0x20,
+   /* used by barriers. created by s_barrier */
+   barrier_barrier = 0x40,
    barrier_count = 6,
 };
 
@@ -167,6 +169,11 @@ constexpr Format asVOP3(Format format) {
    return (Format) ((uint32_t) Format::VOP3 | (uint32_t) format);
 };
 
+constexpr Format asSDWA(Format format) {
+   assert(format == Format::VOP1 || format == Format::VOP2 || format == Format::VOPC);
+   return (Format) ((uint32_t) Format::SDWA | (uint32_t) format);
+}
+
 enum class RegType {
    none = 0,
    sgpr,
@@ -192,6 +199,13 @@ struct RegClass {
       v6 = 6  | (1 << 5),
       v7 = 7  | (1 << 5),
       v8 = 8  | (1 << 5),
+      /* byte-sized register class */
+      v1b = v1 | (1 << 7),
+      v2b = v2 | (1 << 7),
+      v3b = v3 | (1 << 7),
+      v4b = v4 | (1 << 7),
+      v6b = v6 | (1 << 7),
+      v8b = v8 | (1 << 7),
       /* these are used for WWM and spills to vgpr */
       v1_linear = v1 | (1 << 6),
       v2_linear = v2 | (1 << 6),
@@ -207,9 +221,13 @@ struct RegClass {
    explicit operator bool() = delete;
 
    constexpr RegType type() const { return rc <= RC::s16 ? RegType::sgpr : RegType::vgpr; }
-   constexpr unsigned size() const { return (unsigned) rc & 0x1F; }
+   constexpr bool is_subdword() const { return rc & (1 << 7); }
+   constexpr unsigned bytes() const { return ((unsigned) rc & 0x1F) * (is_subdword() ? 1 : 4); }
+   //TODO: use size() less in favor of bytes()
+   constexpr unsigned size() const { return (bytes() + 3) >> 2; }
    constexpr bool is_linear() const { return rc <= RC::s16 || rc & (1 << 6); }
    constexpr RegClass as_linear() const { return RegClass((RC) (rc | (1 << 6))); }
+   constexpr RegClass as_subdword() const { return RegClass((RC) (rc | 1 << 7)); }
 
 private:
    RC rc;
@@ -230,6 +248,12 @@ static constexpr RegClass v5{RegClass::v5};
 static constexpr RegClass v6{RegClass::v6};
 static constexpr RegClass v7{RegClass::v7};
 static constexpr RegClass v8{RegClass::v8};
+static constexpr RegClass v1b{RegClass::v1b};
+static constexpr RegClass v2b{RegClass::v2b};
+static constexpr RegClass v3b{RegClass::v3b};
+static constexpr RegClass v4b{RegClass::v4b};
+static constexpr RegClass v6b{RegClass::v6b};
+static constexpr RegClass v8b{RegClass::v8b};
 
 /**
  * Temp Class
@@ -245,6 +269,7 @@ struct Temp {
    constexpr uint32_t id() const noexcept { return id_; }
    constexpr RegClass regClass() const noexcept { return reg_class; }
 
+   constexpr unsigned bytes() const noexcept { return reg_class.bytes(); }
    constexpr unsigned size() const noexcept { return reg_class.size(); }
    constexpr RegType type() const noexcept { return reg_class.type(); }
    constexpr bool is_linear() const noexcept { return reg_class.is_linear(); }
@@ -265,19 +290,27 @@ private:
  */
 struct PhysReg {
    constexpr PhysReg() = default;
-   explicit constexpr PhysReg(unsigned r) : reg(r) {}
-   constexpr operator unsigned() const { return reg; }
+   explicit constexpr PhysReg(unsigned r) : reg_b(r << 2) {}
+   constexpr unsigned reg() const { return reg_b >> 2; }
+   constexpr unsigned byte() const { return reg_b & 0x3; }
+   constexpr operator unsigned() const { return reg(); }
+   constexpr bool operator==(PhysReg other) const { return reg_b == other.reg_b; }
+   constexpr bool operator!=(PhysReg other) const { return reg_b != other.reg_b; }
+   constexpr bool operator <(PhysReg other) const { return reg_b < other.reg_b; }
 
-   uint16_t reg = 0;
+   uint16_t reg_b = 0;
 };
 
 /* helper expressions for special registers */
 static constexpr PhysReg m0{124};
 static constexpr PhysReg vcc{106};
+static constexpr PhysReg vcc_hi{107};
 static constexpr PhysReg sgpr_null{125}; /* GFX10+ */
 static constexpr PhysReg exec{126};
 static constexpr PhysReg exec_lo{126};
 static constexpr PhysReg exec_hi{127};
+static constexpr PhysReg vccz{251};
+static constexpr PhysReg execz{252};
 static constexpr PhysReg scc{253};
 
 /**
@@ -293,7 +326,8 @@ class Operand final
 public:
    constexpr Operand()
       : reg_(PhysReg{128}), isTemp_(false), isFixed_(true), isConstant_(false),
-        isKill_(false), isUndef_(true), isFirstKill_(false), is64BitConst_(false) {}
+        isKill_(false), isUndef_(true), isFirstKill_(false), is64BitConst_(false),
+        isLateKill_(false) {}
 
    explicit Operand(Temp r) noexcept
    {
@@ -417,6 +451,14 @@ public:
       return data_.temp.regClass();
    }
 
+   constexpr unsigned bytes() const noexcept
+   {
+      if (isConstant())
+         return is64BitConst_ ? 8 : 4; //TODO: sub-dword constants
+      else
+         return data_.temp.bytes();
+   }
+
    constexpr unsigned size() const noexcept
    {
       if (isConstant())
@@ -466,6 +508,49 @@ public:
       return isConstant() && constantValue() == cmp;
    }
 
+   constexpr uint64_t constantValue64(bool signext=false) const noexcept
+   {
+      if (is64BitConst_) {
+         if (reg_ <= 192)
+            return reg_ - 128;
+         else if (reg_ <= 208)
+            return 0xFFFFFFFFFFFFFFFF - (reg_ - 193);
+
+         switch (reg_) {
+         case 240:
+            return 0x3FE0000000000000;
+         case 241:
+            return 0xBFE0000000000000;
+         case 242:
+            return 0x3FF0000000000000;
+         case 243:
+            return 0xBFF0000000000000;
+         case 244:
+            return 0x4000000000000000;
+         case 245:
+            return 0xC000000000000000;
+         case 246:
+            return 0x4010000000000000;
+         case 247:
+            return 0xC010000000000000;
+         }
+      }
+      return (signext && (data_.i & 0x80000000u) ? 0xffffffff00000000ull : 0ull) | data_.i;
+   }
+
+   /* Indicates that the killed operand's live range intersects with the
+    * instruction's definitions. Unlike isKill() and isFirstKill(), this is
+    * not set by liveness analysis. */
+   constexpr void setLateKill(bool flag) noexcept
+   {
+      isLateKill_ = flag;
+   }
+
+   constexpr bool isLateKill() const noexcept
+   {
+      return isLateKill_;
+   }
+
    constexpr void setKill(bool flag) noexcept
    {
       isKill_ = flag;
@@ -492,6 +577,33 @@ public:
       return isFirstKill_;
    }
 
+   constexpr bool isKillBeforeDef() const noexcept
+   {
+      return isKill() && !isLateKill();
+   }
+
+   constexpr bool isFirstKillBeforeDef() const noexcept
+   {
+      return isFirstKill() && !isLateKill();
+   }
+
+   constexpr bool operator == (Operand other) const noexcept
+   {
+      if (other.size() != size())
+         return false;
+      if (isFixed() != other.isFixed() || isKillBeforeDef() != other.isKillBeforeDef())
+         return false;
+      if (isFixed() && other.isFixed() && physReg() != other.physReg())
+         return false;
+      if (isLiteral())
+         return other.isLiteral() && other.constantValue() == constantValue();
+      else if (isConstant())
+         return other.isConstant() && other.physReg() == physReg();
+      else if (isUndefined())
+         return other.isUndefined() && other.regClass() == regClass();
+      else
+         return other.isTemp() && other.getTemp() == getTemp();
+   }
 private:
    union {
       uint32_t i;
@@ -508,6 +620,7 @@ private:
          uint8_t isUndef_:1;
          uint8_t isFirstKill_:1;
          uint8_t is64BitConst_:1;
+         uint8_t isLateKill_:1;
       };
       /* can't initialize bit-fields in c++11, so work around using a union */
       uint8_t control_ = 0;
@@ -561,6 +674,11 @@ public:
    constexpr RegClass regClass() const noexcept
    {
       return temp.regClass();
+   }
+
+   constexpr unsigned bytes() const noexcept
+   {
+      return temp.bytes();
    }
 
    constexpr unsigned size() const noexcept
@@ -759,6 +877,63 @@ struct DPP_instruction : public Instruction {
    bool bound_ctrl : 1;
 };
 
+enum sdwa_sel : uint8_t {
+    /* masks */
+    sdwa_wordnum = 0x1,
+    sdwa_bytenum = 0x3,
+    sdwa_asuint = 0x7 | 0x10,
+    sdwa_rasize = 0x3,
+
+    /* flags */
+    sdwa_isword = 0x4,
+    sdwa_sext = 0x8,
+    sdwa_isra = 0x10,
+
+    /* specific values */
+    sdwa_ubyte0 = 0,
+    sdwa_ubyte1 = 1,
+    sdwa_ubyte2 = 2,
+    sdwa_ubyte3 = 3,
+    sdwa_uword0 = sdwa_isword | 0,
+    sdwa_uword1 = sdwa_isword | 1,
+    sdwa_udword = 6,
+
+    sdwa_sbyte0 = sdwa_ubyte0 | sdwa_sext,
+    sdwa_sbyte1 = sdwa_ubyte1 | sdwa_sext,
+    sdwa_sbyte2 = sdwa_ubyte2 | sdwa_sext,
+    sdwa_sbyte3 = sdwa_ubyte3 | sdwa_sext,
+    sdwa_sword0 = sdwa_uword0 | sdwa_sext,
+    sdwa_sword1 = sdwa_uword1 | sdwa_sext,
+    sdwa_sdword = sdwa_udword | sdwa_sext,
+
+    /* register-allocated */
+    sdwa_ubyte = 1 | sdwa_isra,
+    sdwa_uword = 2 | sdwa_isra,
+    sdwa_sbyte = sdwa_ubyte | sdwa_sext,
+    sdwa_sword = sdwa_uword | sdwa_sext,
+};
+
+/**
+ * Sub-Dword Addressing Format:
+ * This format can be used for VOP1, VOP2 or VOPC instructions.
+ *
+ * omod and SGPR/constant operands are only available on GFX9+. For VOPC,
+ * the definition doesn't have to be VCC on GFX9+.
+ *
+ */
+struct SDWA_instruction : public Instruction {
+   /* these destination modifiers aren't available with VOPC except for
+    * clamp on GFX8 */
+   unsigned dst_sel:8;
+   bool dst_preserve:1;
+   bool clamp:1;
+   unsigned omod:2; /* GFX9+ */
+
+   unsigned sel[2];
+   bool neg[2];
+   bool abs[2];
+};
+
 struct Interp_instruction : public Instruction {
    uint8_t attribute;
    uint8_t component;
@@ -781,8 +956,8 @@ struct DS_instruction : public Instruction {
 
 /**
  * Vector Memory Untyped-buffer Instructions
- * Operand(0): VADDR - Address source. Can carry an index and/or offset
- * Operand(1): SRSRC - Specifies which SGPR supplies T# (resource constant)
+ * Operand(0): SRSRC - Specifies which SGPR supplies T# (resource constant)
+ * Operand(1): VADDR - Address source. Can carry an index and/or offset
  * Operand(2): SOFFSET - SGPR to supply unsigned byte offset. (SGPR, M0, or inline constant)
  * Operand(3) / Definition(0): VDATA - Vector GPR for write result / read data
  *
@@ -804,8 +979,8 @@ struct MUBUF_instruction : public Instruction {
 
 /**
  * Vector Memory Typed-buffer Instructions
- * Operand(0): VADDR - Address source. Can carry an index and/or offset
- * Operand(1): SRSRC - Specifies which SGPR supplies T# (resource constant)
+ * Operand(0): SRSRC - Specifies which SGPR supplies T# (resource constant)
+ * Operand(1): VADDR - Address source. Can carry an index and/or offset
  * Operand(2): SOFFSET - SGPR to supply unsigned byte offset. (SGPR, M0, or inline constant)
  * Operand(3) / Definition(0): VDATA - Vector GPR for write result / read data
  *
@@ -827,10 +1002,11 @@ struct MTBUF_instruction : public Instruction {
 
 /**
  * Vector Memory Image Instructions
- * Operand(0): VADDR - Address source. Can carry an offset or an index.
- * Operand(1): SRSRC - Scalar GPR that specifies the resource constant.
- * Operand(2): SSAMP - Scalar GPR that specifies sampler constant.
- * Operand(3) / Definition(0): VDATA - Vector GPR for read / write result.
+ * Operand(0) SRSRC - Scalar GPR that specifies the resource constant.
+ * Operand(1): SSAMP - Scalar GPR that specifies sampler constant.
+ *             or VDATA - Vector GPR for write data.
+ * Operand(2): VADDR - Address source. Can carry an offset or an index.
+ * Definition(0): VDATA - Vector GPR for read result.
  *
  */
 struct MIMG_instruction : public Instruction {
@@ -1138,8 +1314,23 @@ static constexpr Stage tess_eval_geometry_gs = sw_tes | sw_gs | hw_gs;
 static constexpr Stage vertex_ls = sw_vs | hw_ls; /* vertex before tesselation control */
 static constexpr Stage vertex_es = sw_vs | hw_es; /* vertex before geometry */
 static constexpr Stage tess_control_hs = sw_tcs | hw_hs;
-static constexpr Stage tess_eval_es = sw_tes | hw_gs; /* tesselation evaluation before geometry */
+static constexpr Stage tess_eval_es = sw_tes | hw_es; /* tesselation evaluation before geometry */
 static constexpr Stage geometry_gs = sw_gs | hw_gs;
+
+enum statistic {
+   statistic_hash,
+   statistic_instructions,
+   statistic_copies,
+   statistic_branches,
+   statistic_cycles,
+   statistic_vmem_clauses,
+   statistic_smem_clauses,
+   statistic_vmem_score,
+   statistic_smem_score,
+   statistic_sgpr_presched,
+   statistic_vgpr_presched,
+   num_statistics
+};
 
 class Program final {
 public:
@@ -1166,15 +1357,21 @@ public:
    uint16_t min_waves = 0;
    uint16_t lds_alloc_granule;
    uint32_t lds_limit; /* in bytes */
+   bool has_16bank_lds;
    uint16_t vgpr_limit;
    uint16_t sgpr_limit;
    uint16_t physical_sgprs;
    uint16_t sgpr_alloc_granule; /* minus one. must be power of two */
    uint16_t vgpr_alloc_granule; /* minus one. must be power of two */
+   unsigned workgroup_size; /* if known; otherwise UINT_MAX */
+
+   bool xnack_enabled = false;
 
    bool needs_vcc = false;
-   bool needs_xnack_mask = false;
    bool needs_flat_scr = false;
+
+   bool collect_statistics = false;
+   uint32_t statistics[num_statistics];
 
    uint32_t allocateId()
    {
@@ -1256,8 +1453,17 @@ void perfwarn(bool cond, const char *msg, Instruction *instr=NULL);
 #define perfwarn(program, cond, msg, ...) do {} while(0)
 #endif
 
+void collect_presched_stats(Program *program);
+void collect_preasm_stats(Program *program);
+void collect_postasm_stats(Program *program, const std::vector<uint32_t>& code);
+
 void aco_print_instr(Instruction *instr, FILE *output);
 void aco_print_program(Program *program, FILE *output);
+
+/* utilities for dealing with register demand */
+RegisterDemand get_live_changes(aco_ptr<Instruction>& instr);
+RegisterDemand get_temp_registers(aco_ptr<Instruction>& instr);
+RegisterDemand get_demand_before(RegisterDemand demand, aco_ptr<Instruction>& instr, aco_ptr<Instruction>& instr_before);
 
 /* number of sgprs that need to be allocated but might notbe addressable as s0-s105 */
 uint16_t get_extra_sgprs(Program *program);

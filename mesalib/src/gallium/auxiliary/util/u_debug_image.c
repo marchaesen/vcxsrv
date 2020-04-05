@@ -220,6 +220,7 @@ debug_dump_transfer_bmp(UNUSED struct pipe_context *pipe,
 
    pipe_get_tile_rgba(transfer, ptr, 0, 0,
                       transfer->box.width, transfer->box.height,
+                      transfer->resource->format,
                       rgba);
 
    debug_dump_float_rgba_bmp(filename,

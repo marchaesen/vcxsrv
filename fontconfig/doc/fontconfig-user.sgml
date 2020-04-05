@@ -301,7 +301,7 @@ directory (&confdir;).  Each configuration file should contain the
 following structure:
     <programlisting>
 	&lt;?xml version="1.0"?&gt;
-	&lt;!DOCTYPE fontconfig SYSTEM "fonts.dtd"&gt;
+	&lt;!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd"&gt;
 	&lt;fontconfig&gt;
 	...
 	&lt;/fontconfig&gt;
@@ -591,7 +591,7 @@ This is an example of a system-wide configuration file
     </para>
     <programlisting>
 &lt;?xml version="1.0"?&gt;
-&lt;!DOCTYPE fontconfig SYSTEM "fonts.dtd"&gt;
+&lt;!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd"&gt;
 &lt;!-- &confdir;/fonts.conf file to configure system font access --&gt;
 &lt;fontconfig&gt;
 &lt;!-- 
@@ -702,7 +702,7 @@ $XDG_CONFIG_HOME/fontconfig/fonts.conf
     </para>
     <programlisting>
 &lt;?xml version="1.0"?&gt;
-&lt;!DOCTYPE fontconfig SYSTEM "fonts.dtd"&gt;
+&lt;!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd"&gt;
 &lt;!-- $XDG_CONFIG_HOME/fontconfig/fonts.conf for per-user font configuration --&gt;
 &lt;fontconfig&gt;
 

@@ -207,12 +207,12 @@ struct mir_ldst_op_props load_store_opcode_props[256] = {
         [midgard_op_atomic_umax64] = {"atomic_umax64", M64 | LDST_SIDE_FX},
         [midgard_op_atomic_xchg64] = {"atomic_xchg64", M64 | LDST_SIDE_FX},
 
-        [midgard_op_ld_char]   = {"ld_char",   M32},
-        [midgard_op_ld_char2]  = {"ld_char2",  M16},
-        [midgard_op_ld_short]  = {"ld_short",  M32},
-        [midgard_op_ld_char4]  = {"ld_char4",  M32},
-        [midgard_op_ld_short4] = {"ld_short4", M32},
-        [midgard_op_ld_int4]   = {"ld_int4",   M32},
+        [midgard_op_ld_char]   = {"ld_char",   M32 | LDST_ADDRESS},
+        [midgard_op_ld_char2]  = {"ld_char2",  M16 | LDST_ADDRESS},
+        [midgard_op_ld_short]  = {"ld_short",  M32 | LDST_ADDRESS},
+        [midgard_op_ld_char4]  = {"ld_char4",  M32 | LDST_ADDRESS},
+        [midgard_op_ld_short4] = {"ld_short4", M32 | LDST_ADDRESS},
+        [midgard_op_ld_int4]   = {"ld_int4",   M32 | LDST_ADDRESS},
 
         [midgard_op_ld_attr_32]  = {"ld_attr_32",  M32},
         [midgard_op_ld_attr_32i] = {"ld_attr_32i", M32},
@@ -234,11 +234,11 @@ struct mir_ldst_op_props load_store_opcode_props[256] = {
         [midgard_op_ld_ubo_short4] = {"ld_ubo_short4", M32},
         [midgard_op_ld_ubo_int4]   = {"ld_ubo_int4",   M32},
 
-        [midgard_op_st_char]   = {"st_char",   M32 | LDST_STORE},
-        [midgard_op_st_char2]  = {"st_char2",  M16 | LDST_STORE},
-        [midgard_op_st_char4]  = {"st_char4",  M32 | LDST_STORE},
-        [midgard_op_st_short4] = {"st_short4", M32 | LDST_STORE},
-        [midgard_op_st_int4]   = {"st_int4",   M32 | LDST_STORE},
+        [midgard_op_st_char]   = {"st_char",   M32 | LDST_STORE | LDST_ADDRESS},
+        [midgard_op_st_char2]  = {"st_char2",  M16 | LDST_STORE | LDST_ADDRESS},
+        [midgard_op_st_char4]  = {"st_char4",  M32 | LDST_STORE | LDST_ADDRESS},
+        [midgard_op_st_short4] = {"st_short4", M32 | LDST_STORE | LDST_ADDRESS},
+        [midgard_op_st_int4]   = {"st_int4",   M32 | LDST_STORE | LDST_ADDRESS},
 
         [midgard_op_st_vary_32]  = {"st_vary_32",  M32 | LDST_STORE},
         [midgard_op_st_vary_32i] = {"st_vary_32i", M32 | LDST_STORE},
@@ -255,43 +255,21 @@ struct mir_ldst_op_props load_store_opcode_props[256] = {
 #undef M32
 #undef M64
 
-midgard_word_type midgard_word_types[16] = {
-        midgard_word_type_unknown,    /* 0x0 */
-        midgard_word_type_unknown,    /* 0x1 */
-        midgard_word_type_texture,    /* 0x2 */
-        midgard_word_type_texture,    /* 0x3 */
-        midgard_word_type_unknown,    /* 0x4 */
-        midgard_word_type_load_store, /* 0x5 */
-        midgard_word_type_unknown,    /* 0x6 */
-        midgard_word_type_unknown,    /* 0x7 */
-        midgard_word_type_alu,        /* 0x8 */
-        midgard_word_type_alu,        /* 0x9 */
-        midgard_word_type_alu,        /* 0xA */
-        midgard_word_type_alu,        /* 0xB */
-        midgard_word_type_alu,        /* 0xC */
-        midgard_word_type_alu,        /* 0xD */
-        midgard_word_type_alu,        /* 0xE */
-        midgard_word_type_alu,        /* 0xF */
+struct mir_tag_props midgard_tag_props[16] = {
+        [TAG_INVALID]           = {"invalid", 0},
+        [TAG_BREAK]             = {"break", 0},
+        [TAG_TEXTURE_4_VTX]     = {"tex/vt", 1},
+        [TAG_TEXTURE_4]         = {"tex", 1},
+        [TAG_TEXTURE_4_BARRIER] = {"tex/bar", 1},
+        [TAG_LOAD_STORE_4]      = {"ldst", 1},
+        [TAG_UNKNOWN_1]         = {"unk1", 1},
+        [TAG_UNKNOWN_2]         = {"unk2", 1},
+        [TAG_ALU_4]             = {"alu/4", 1},
+        [TAG_ALU_8]             = {"alu/8", 2},
+        [TAG_ALU_12]            = {"alu/12", 3},
+        [TAG_ALU_16]            = {"alu/16", 4},
+        [TAG_ALU_4_WRITEOUT]    = {"aluw/4", 1},
+        [TAG_ALU_8_WRITEOUT]    = {"aluw/8", 2},
+        [TAG_ALU_12_WRITEOUT]   = {"aluw/12", 3},
+        [TAG_ALU_16_WRITEOUT]   = {"aluw/16", 4}
 };
-
-unsigned midgard_word_size[16] = {
-        0, /* 0x0 */
-        0, /* 0x1 */
-        1, /* 0x2 */
-        1, /* 0x3 */
-        0, /* 0x4 */
-        1, /* 0x5 */
-        0, /* 0x6 */
-        0, /* 0x7 */
-        1, /* 0x8 */
-        2, /* 0x9 */
-        3, /* 0xA */
-        4, /* 0xB */
-        1, /* 0xC */
-        2, /* 0xD */
-        3, /* 0xE */
-        4, /* 0xF */
-};
-
-
-

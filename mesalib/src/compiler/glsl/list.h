@@ -281,7 +281,7 @@ inline bool exec_node::is_head_sentinel() const
  * \param field Name of the field in \c type that is the embedded \c exec_node
  */
 #define exec_node_data(type, node, field) \
-   ((type *) (((char *) node) - exec_list_offsetof(type, field, node)))
+   ((type *) (((uintptr_t) node) - exec_list_offsetof(type, field, node)))
 
 #ifdef __cplusplus
 struct exec_node;

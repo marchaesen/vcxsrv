@@ -56,6 +56,97 @@
 #include "blend.h"
 
 
+void
+_mesa_update_allow_draw_out_of_order(struct gl_context *ctx)
+{
+   /* Out-of-order drawing is useful when vertex array draws and immediate
+    * mode are interleaved.
+    *
+    * Example with 3 draws:
+    *   glBegin();
+    *      glVertex();
+    *   glEnd();
+    *   glDrawElements();
+    *   glBegin();
+    *      glVertex();
+    *   glEnd();
+    *
+    * Out-of-order drawing changes the execution order like this:
+    *   glDrawElements();
+    *   glBegin();
+    *      glVertex();
+    *      glVertex();
+    *   glEnd();
+    *
+    * If out-of-order draws are enabled, immediate mode vertices are not
+    * flushed before glDrawElements, resulting in fewer draws and lower CPU
+    * overhead. This helps workstation applications.
+    *
+    * This is a simplified version of out-of-order determination to catch
+    * common cases.
+    *
+    * RadeonSI has a complete and more complicated out-of-order determination
+    * for driver-internal reasons.
+    */
+   /* Only the compatibility profile with immediate mode needs this. */
+   if (ctx->API != API_OPENGL_COMPAT || !ctx->Const.AllowDrawOutOfOrder)
+      return;
+
+   /* If all of these are NULL, GLSL is disabled. */
+   struct gl_program *vs =
+      ctx->_Shader->CurrentProgram[MESA_SHADER_VERTEX];
+   struct gl_program *tcs =
+      ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_CTRL];
+   struct gl_program *tes =
+      ctx->_Shader->CurrentProgram[MESA_SHADER_TESS_EVAL];
+   struct gl_program *gs =
+      ctx->_Shader->CurrentProgram[MESA_SHADER_GEOMETRY];
+   struct gl_program *fs =
+      ctx->_Shader->CurrentProgram[MESA_SHADER_FRAGMENT];
+   GLenum16 depth_func = ctx->Depth.Func;
+
+   /* Z fighting and any primitives with equal Z shouldn't be reordered
+    * with LESS/LEQUAL/GREATER/GEQUAL functions.
+    *
+    * When drawing 2 primitive with equal Z:
+    * - with LEQUAL/GEQUAL, the last primitive wins the Z test.
+    * - with LESS/GREATER, the first primitive wins the Z test.
+    *
+    * Here we ignore that on the basis that such cases don't occur in real
+    * apps, and we they do occur, they occur with blending where out-of-order
+    * drawing is always disabled.
+    */
+   bool previous_state = ctx->_AllowDrawOutOfOrder;
+   ctx->_AllowDrawOutOfOrder =
+         ctx->DrawBuffer &&
+         ctx->DrawBuffer->Visual.depthBits &&
+         ctx->Depth.Test &&
+         ctx->Depth.Mask &&
+         (depth_func == GL_NEVER ||
+          depth_func == GL_LESS ||
+          depth_func == GL_LEQUAL ||
+          depth_func == GL_GREATER ||
+          depth_func == GL_GEQUAL) &&
+         (!ctx->DrawBuffer->Visual.stencilBits ||
+          !ctx->Stencil.Enabled) &&
+         (!ctx->Color.ColorMask ||
+          (!ctx->Color.BlendEnabled &&
+           (!ctx->Color.ColorLogicOpEnabled ||
+            ctx->Color._LogicOp == COLOR_LOGICOP_COPY))) &&
+         (!vs || !vs->info.writes_memory) &&
+         (!tes || !tes->info.writes_memory) &&
+         (!tcs || !tcs->info.writes_memory) &&
+         (!gs || !gs->info.writes_memory) &&
+         (!fs || !fs->info.writes_memory || !fs->info.fs.early_fragment_tests);
+
+   /* If we are disabling out-of-order drawing, we need to flush queued
+    * vertices.
+    */
+   if (previous_state && !ctx->_AllowDrawOutOfOrder)
+      FLUSH_VERTICES(ctx, 0);
+}
+
+
 /**
  * Update the ctx->*Program._Current pointers to point to the
  * current/active programs.

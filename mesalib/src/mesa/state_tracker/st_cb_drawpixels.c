@@ -31,7 +31,7 @@
   */
 
 #include "main/errors.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/image.h"
 #include "main/bufferobj.h"
 #include "main/blit.h"
@@ -111,7 +111,8 @@
 
 static nir_ssa_def *
 sample_via_nir(nir_builder *b, nir_variable *texcoord,
-               const char *name, int sampler, enum glsl_base_type base_type)
+               const char *name, int sampler, enum glsl_base_type base_type,
+               nir_alu_type alu_type)
 {
    const struct glsl_type *sampler2D =
       glsl_sampler_type(GLSL_SAMPLER_DIM_2D, false, false, base_type);
@@ -127,7 +128,7 @@ sample_via_nir(nir_builder *b, nir_variable *texcoord,
    tex->op = nir_texop_tex;
    tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
    tex->coord_components = 2;
-   tex->dest_type = nir_type_float;
+   tex->dest_type = alu_type;
    tex->src[0].src_type = nir_tex_src_texture_deref;
    tex->src[0].src = nir_src_for_ssa(&deref->dest.ssa);
    tex->src[1].src_type = nir_tex_src_sampler_deref;
@@ -164,7 +165,7 @@ make_drawpix_z_stencil_program_nir(struct st_context *st,
                              "gl_FragDepth");
       out->data.location = FRAG_RESULT_DEPTH;
       nir_ssa_def *depth = sample_via_nir(&b, texcoord, "depth", 0,
-                                          GLSL_TYPE_FLOAT);
+                                          GLSL_TYPE_FLOAT, nir_type_float);
       nir_store_var(&b, out, depth, 0x1);
 
       /* Also copy color */
@@ -186,7 +187,7 @@ make_drawpix_z_stencil_program_nir(struct st_context *st,
                              "gl_FragStencilRefARB");
       out->data.location = FRAG_RESULT_STENCIL;
       nir_ssa_def *stencil = sample_via_nir(&b, texcoord, "stencil", 1,
-                                            GLSL_TYPE_UINT);
+                                            GLSL_TYPE_UINT, nir_type_uint);
       nir_store_var(&b, out, stencil, 0x1);
    }
 
@@ -895,7 +896,8 @@ draw_textured_quad(struct gl_context *ctx, GLint x, GLint y, GLfloat z,
    /* viewport state: viewport matching window dims */
    cso_set_viewport_dims(cso, fb_width, fb_height, TRUE);
 
-   cso_set_vertex_elements(cso, 3, st->util_velems);
+   st->util_velems.count = 3;
+   cso_set_vertex_elements(cso, &st->util_velems);
    cso_set_stream_outputs(cso, 0, NULL, NULL);
 
    /* Compute Gallium window coords (y=0=top) with pixel zoom.
@@ -1914,12 +1916,11 @@ st_destroy_drawpix(struct st_context *st)
 
    for (i = 0; i < ARRAY_SIZE(st->drawpix.zs_shaders); i++) {
       if (st->drawpix.zs_shaders[i])
-         cso_delete_fragment_shader(st->cso_context,
-                                    st->drawpix.zs_shaders[i]);
+         st->pipe->delete_fs_state(st->pipe, st->drawpix.zs_shaders[i]);
    }
 
    if (st->passthrough_vs)
-      cso_delete_vertex_shader(st->cso_context, st->passthrough_vs);
+      st->pipe->delete_vs_state(st->pipe, st->passthrough_vs);
 
    /* Free cache data */
    for (i = 0; i < ARRAY_SIZE(st->drawpix_cache.entries); i++) {

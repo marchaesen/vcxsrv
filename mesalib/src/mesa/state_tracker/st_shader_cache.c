@@ -75,7 +75,13 @@ write_tgsi_to_cache(struct blob *blob, const struct tgsi_token *tokens,
 static void
 write_nir_to_cache(struct blob *blob, struct gl_program *prog)
 {
-   nir_serialize(blob, prog->nir, false);
+   struct st_program *stp = (struct st_program *)prog;
+
+   st_serialize_nir(stp);
+
+   blob_write_intptr(blob, stp->serialized_nir_size);
+   blob_write_bytes(blob, stp->serialized_nir, stp->serialized_nir_size);
+
    copy_blob_to_driver_cache_blob(blob, prog);
 }
 
@@ -172,8 +178,6 @@ st_deserialise_ir_program(struct gl_context *ctx,
    struct st_context *st = st_context(ctx);
    size_t size = prog->driver_cache_blob_size;
    uint8_t *buffer = (uint8_t *) prog->driver_cache_blob;
-   const struct nir_shader_compiler_options *options =
-      ctx->Const.ShaderCompilerOptions[prog->info.stage].NirOptions;
 
    st_set_prog_affected_state_flags(prog);
    _mesa_associate_uniform_storage(ctx, shProg, prog);
@@ -203,9 +207,14 @@ st_deserialise_ir_program(struct gl_context *ctx,
       read_stream_out_from_cache(&blob_reader, &stp->state);
 
    if (nir) {
+      assert(prog->nir == NULL);
+      assert(stp->serialized_nir == NULL);
+
       stp->state.type = PIPE_SHADER_IR_NIR;
+      stp->serialized_nir_size = blob_read_intptr(&blob_reader);
+      stp->serialized_nir = malloc(stp->serialized_nir_size);
+      blob_copy_bytes(&blob_reader, stp->serialized_nir, stp->serialized_nir_size);
       stp->shader_program = shProg;
-      prog->nir = nir_deserialize(NULL, options, &blob_reader);
    } else {
       read_tgsi_from_cache(&blob_reader, &stp->state.tokens);
    }

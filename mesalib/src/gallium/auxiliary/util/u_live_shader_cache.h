@@ -80,7 +80,8 @@ util_live_shader_cache_deinit(struct util_live_shader_cache *cache);
 void *
 util_live_shader_cache_get(struct pipe_context *ctx,
                            struct util_live_shader_cache *cache,
-                           const struct pipe_shader_state *state);
+                           const struct pipe_shader_state *state,
+                           bool* cache_hit);
 
 void
 util_shader_reference(struct pipe_context *ctx,

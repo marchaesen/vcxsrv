@@ -26,22 +26,120 @@
 
 #include "aco_ir.h"
 #include <stack>
+#include <functional>
+
+#include <time.h>
 
 namespace aco {
 namespace {
 
-struct NOP_ctx_gfx8_9 {
-   enum chip_class chip_class;
-   unsigned vcc_physical;
-
-   /* just initialize these with something less than max NOPs */
-   int VALU_wrexec = -10;
-   int VALU_wrvcc = -10;
-   int VALU_wrsgpr = -10;
-
-   NOP_ctx_gfx8_9(Program* program) : chip_class(program->chip_class) {
-      vcc_physical = program->config->num_sgprs - 2;
+struct NOP_ctx_gfx6 {
+   void join(const NOP_ctx_gfx6 &other) {
+      set_vskip_mode_then_vector = MAX2(set_vskip_mode_then_vector, other.set_vskip_mode_then_vector);
+      valu_wr_vcc_then_vccz = MAX2(valu_wr_vcc_then_vccz, other.valu_wr_vcc_then_vccz);
+      valu_wr_exec_then_execz = MAX2(valu_wr_exec_then_execz, other.valu_wr_exec_then_execz);
+      valu_wr_vcc_then_div_fmas = MAX2(valu_wr_vcc_then_div_fmas, other.valu_wr_vcc_then_div_fmas);
+      salu_wr_m0_then_gds_msg_ttrace = MAX2(salu_wr_m0_then_gds_msg_ttrace, other.salu_wr_m0_then_gds_msg_ttrace);
+      valu_wr_exec_then_dpp = MAX2(valu_wr_exec_then_dpp, other.valu_wr_exec_then_dpp);
+      salu_wr_m0_then_lds = MAX2(salu_wr_m0_then_lds, other.salu_wr_m0_then_lds);
+      salu_wr_m0_then_moverel = MAX2(salu_wr_m0_then_moverel, other.salu_wr_m0_then_moverel);
+      setreg_then_getsetreg = MAX2(setreg_then_getsetreg, other.setreg_then_getsetreg);
+      vmem_store_then_wr_data |= other.vmem_store_then_wr_data;
+      smem_clause |= other.smem_clause;
+      smem_write |= other.smem_write;
+      for (unsigned i = 0; i < BITSET_WORDS(128); i++) {
+         smem_clause_read_write[i] |= other.smem_clause_read_write[i];
+         smem_clause_write[i] |= other.smem_clause_write[i];
+      }
    }
+
+   bool operator==(const NOP_ctx_gfx6 &other)
+   {
+      return
+         set_vskip_mode_then_vector == other.set_vskip_mode_then_vector &&
+         valu_wr_vcc_then_vccz == other.valu_wr_vcc_then_vccz &&
+         valu_wr_exec_then_execz == other.valu_wr_exec_then_execz &&
+         valu_wr_vcc_then_div_fmas == other.valu_wr_vcc_then_div_fmas &&
+         vmem_store_then_wr_data == other.vmem_store_then_wr_data &&
+         salu_wr_m0_then_gds_msg_ttrace == other.salu_wr_m0_then_gds_msg_ttrace &&
+         valu_wr_exec_then_dpp == other.valu_wr_exec_then_dpp &&
+         salu_wr_m0_then_lds == other.salu_wr_m0_then_lds &&
+         salu_wr_m0_then_moverel == other.salu_wr_m0_then_moverel &&
+         setreg_then_getsetreg == other.setreg_then_getsetreg &&
+         smem_clause == other.smem_clause &&
+         smem_write == other.smem_write &&
+         BITSET_EQUAL(smem_clause_read_write, other.smem_clause_read_write) &&
+         BITSET_EQUAL(smem_clause_write, other.smem_clause_write);
+   }
+
+   void add_wait_states(unsigned amount)
+   {
+      if ((set_vskip_mode_then_vector -= amount) < 0)
+         set_vskip_mode_then_vector = 0;
+
+      if ((valu_wr_vcc_then_vccz -= amount) < 0)
+         valu_wr_vcc_then_vccz = 0;
+
+      if ((valu_wr_exec_then_execz -= amount) < 0)
+         valu_wr_exec_then_execz = 0;
+
+      if ((valu_wr_vcc_then_div_fmas -= amount) < 0)
+         valu_wr_vcc_then_div_fmas = 0;
+
+      if ((salu_wr_m0_then_gds_msg_ttrace -= amount) < 0)
+         salu_wr_m0_then_gds_msg_ttrace = 0;
+
+      if ((valu_wr_exec_then_dpp -= amount) < 0)
+         valu_wr_exec_then_dpp = 0;
+
+      if ((salu_wr_m0_then_lds -= amount) < 0)
+         salu_wr_m0_then_lds = 0;
+
+      if ((salu_wr_m0_then_moverel -= amount) < 0)
+         salu_wr_m0_then_moverel = 0;
+
+      if ((setreg_then_getsetreg -= amount) < 0)
+         setreg_then_getsetreg = 0;
+
+      vmem_store_then_wr_data.reset();
+   }
+
+   /* setting MODE.vskip and then any vector op requires 2 wait states */
+   int8_t set_vskip_mode_then_vector = 0;
+
+   /* VALU writing VCC/EXEC and then a VALU reading VCCZ/EXECZ requires 5 wait states */
+   int8_t valu_wr_vcc_then_vccz = 0;
+   int8_t valu_wr_exec_then_execz = 0;
+
+   /* VALU writing VCC followed by v_div_fmas require 4 wait states */
+   int8_t valu_wr_vcc_then_div_fmas = 0;
+
+   /* SALU writing M0 followed by GDS, s_sendmsg or s_ttrace_data requires 1 wait state */
+   int8_t salu_wr_m0_then_gds_msg_ttrace = 0;
+
+   /* VALU writing EXEC followed by DPP requires 5 wait states */
+   int8_t valu_wr_exec_then_dpp = 0;
+
+   /* SALU writing M0 followed by some LDS instructions requires 1 wait state on GFX10 */
+   int8_t salu_wr_m0_then_lds = 0;
+
+   /* SALU writing M0 followed by s_moverel requires 1 wait state on GFX9 */
+   int8_t salu_wr_m0_then_moverel = 0;
+
+   /* s_setreg followed by a s_getreg/s_setreg of the same register needs 2 wait states
+    * currently we don't look at the actual register */
+   int8_t setreg_then_getsetreg = 0;
+
+   /* some memory instructions writing >64bit followed by a instructions
+    * writing the VGPRs holding the writedata requires 1 wait state */
+   std::bitset<256> vmem_store_then_wr_data;
+
+   /* we break up SMEM clauses that contain stores or overwrite an
+    * operand/definition of another instruction in the clause */
+   bool smem_clause = false;
+   bool smem_write = false;
+   BITSET_DECLARE(smem_clause_read_write, 128) = {0};
+   BITSET_DECLARE(smem_clause_write, 128) = {0};
 };
 
 struct NOP_ctx_gfx10 {
@@ -78,6 +176,342 @@ struct NOP_ctx_gfx10 {
          sgprs_read_by_SMEM == other.sgprs_read_by_SMEM;
    }
 };
+
+int get_wait_states(aco_ptr<Instruction>& instr)
+{
+   if (instr->opcode == aco_opcode::s_nop)
+      return static_cast<SOPP_instruction*>(instr.get())->imm + 1;
+   else if (instr->opcode == aco_opcode::p_constaddr)
+      return 3; /* lowered to 3 instructions in the assembler */
+   else
+      return 1;
+}
+
+bool regs_intersect(PhysReg a_reg, unsigned a_size, PhysReg b_reg, unsigned b_size)
+{
+   return a_reg > b_reg ?
+          (a_reg - b_reg < b_size) :
+          (b_reg - a_reg < a_size);
+}
+
+template <bool Valu, bool Vintrp, bool Salu>
+int handle_raw_hazard_internal(Program *program, Block *block,
+                               int nops_needed, PhysReg reg, uint32_t mask)
+{
+   unsigned mask_size = util_last_bit(mask);
+   for (int pred_idx = block->instructions.size() - 1; pred_idx >= 0; pred_idx--) {
+      aco_ptr<Instruction>& pred = block->instructions[pred_idx];
+
+      uint32_t writemask = 0;
+      for (Definition& def : pred->definitions) {
+         if (regs_intersect(reg, mask_size, def.physReg(), def.size())) {
+            unsigned start = def.physReg() > reg ? def.physReg() - reg : 0;
+            unsigned end = MIN2(mask_size, start + def.size());
+            writemask |= u_bit_consecutive(start, end - start);
+         }
+      }
+
+      bool is_hazard = writemask != 0 &&
+                       ((pred->isVALU() && Valu) ||
+                        (pred->format == Format::VINTRP && Vintrp) ||
+                        (pred->isSALU() && Salu));
+      if (is_hazard)
+         return nops_needed;
+
+      mask &= ~writemask;
+      nops_needed -= get_wait_states(pred);
+
+      if (nops_needed <= 0 || mask == 0)
+         return 0;
+   }
+
+   int res = 0;
+
+   /* Loops require branch instructions, which count towards the wait
+    * states. So even with loops this should finish unless nops_needed is some
+    * huge value. */
+   for (unsigned lin_pred : block->linear_preds) {
+      res = std::max(res, handle_raw_hazard_internal<Valu, Vintrp, Salu>(
+         program, &program->blocks[lin_pred], nops_needed, reg, mask));
+   }
+   return res;
+}
+
+template <bool Valu, bool Vintrp, bool Salu>
+void handle_raw_hazard(Program *program, Block *cur_block, int *NOPs, int min_states, Operand op)
+{
+   if (*NOPs >= min_states)
+      return;
+   int res = handle_raw_hazard_internal<Valu, Vintrp, Salu>(program, cur_block, min_states, op.physReg(), u_bit_consecutive(0, op.size()));
+   *NOPs = MAX2(*NOPs, res);
+}
+
+static auto handle_valu_then_read_hazard = handle_raw_hazard<true, true, false>;
+static auto handle_vintrp_then_read_hazard = handle_raw_hazard<false, true, false>;
+static auto handle_valu_salu_then_read_hazard = handle_raw_hazard<true, true, true>;
+
+void set_bitset_range(BITSET_WORD *words, unsigned start, unsigned size) {
+   unsigned end = start + size - 1;
+   unsigned start_mod = start % BITSET_WORDBITS;
+   if (start_mod + size <= BITSET_WORDBITS) {
+      BITSET_SET_RANGE(words, start, end);
+   } else {
+      unsigned first_size = BITSET_WORDBITS - start_mod;
+      set_bitset_range(words, start, BITSET_WORDBITS - start_mod);
+      set_bitset_range(words, start + first_size, size - first_size);
+   }
+}
+
+bool test_bitset_range(BITSET_WORD *words, unsigned start, unsigned size) {
+   unsigned end = start + size - 1;
+   unsigned start_mod = start % BITSET_WORDBITS;
+   if (start_mod + size <= BITSET_WORDBITS) {
+      return BITSET_TEST_RANGE(words, start, end);
+   } else {
+      unsigned first_size = BITSET_WORDBITS - start_mod;
+      return test_bitset_range(words, start, BITSET_WORDBITS - start_mod) ||
+             test_bitset_range(words, start + first_size, size - first_size);
+   }
+}
+
+/* A SMEM clause is any group of consecutive SMEM instructions. The
+ * instructions in this group may return out of order and/or may be replayed.
+ *
+ * To fix this potential hazard correctly, we have to make sure that when a
+ * clause has more than one instruction, no instruction in the clause writes
+ * to a register that is read by another instruction in the clause (including
+ * itself). In this case, we have to break the SMEM clause by inserting non
+ * SMEM instructions.
+ *
+ * SMEM clauses are only present on GFX8+, and only matter when XNACK is set.
+ */
+void handle_smem_clause_hazards(Program *program, NOP_ctx_gfx6 &ctx,
+                                aco_ptr<Instruction>& instr, int *NOPs)
+{
+   /* break off from previous SMEM clause if needed */
+   if (!*NOPs & (ctx.smem_clause || ctx.smem_write)) {
+      /* Don't allow clauses with store instructions since the clause's
+       * instructions may use the same address. */
+      if (ctx.smem_write || instr->definitions.empty() || instr_info.is_atomic[(unsigned)instr->opcode]) {
+         *NOPs = 1;
+      } else if (program->xnack_enabled) {
+         for (Operand op : instr->operands) {
+            if (!op.isConstant() && test_bitset_range(ctx.smem_clause_write, op.physReg(), op.size())) {
+               *NOPs = 1;
+               break;
+            }
+         }
+
+         Definition def = instr->definitions[0];
+         if (!*NOPs && test_bitset_range(ctx.smem_clause_read_write, def.physReg(), def.size()))
+            *NOPs = 1;
+      }
+   }
+}
+
+/* TODO: we don't handle accessing VCC using the actual SGPR instead of using the alias */
+void handle_instruction_gfx6(Program *program, Block *cur_block, NOP_ctx_gfx6 &ctx,
+                             aco_ptr<Instruction>& instr, std::vector<aco_ptr<Instruction>>& new_instructions)
+{
+   /* check hazards */
+   int NOPs = 0;
+
+   if (instr->format == Format::SMEM) {
+      if (program->chip_class == GFX6) {
+         /* A read of an SGPR by SMRD instruction requires 4 wait states
+          * when the SGPR was written by a VALU instruction. According to LLVM,
+          * there is also an undocumented hardware behavior when the buffer
+          * descriptor is written by a SALU instruction */
+         for (unsigned i = 0; i < instr->operands.size(); i++) {
+            Operand op = instr->operands[i];
+            if (op.isConstant())
+               continue;
+
+            bool is_buffer_desc = i == 0 && op.size() > 2;
+            if (is_buffer_desc)
+               handle_valu_salu_then_read_hazard(program, cur_block, &NOPs, 4, op);
+            else
+               handle_valu_then_read_hazard(program, cur_block, &NOPs, 4, op);
+         }
+      }
+
+      handle_smem_clause_hazards(program, ctx, instr, &NOPs);
+   } else if (instr->isSALU()) {
+      if (instr->opcode == aco_opcode::s_setreg_b32 || instr->opcode == aco_opcode::s_setreg_imm32_b32 ||
+          instr->opcode == aco_opcode::s_getreg_b32) {
+         NOPs = MAX2(NOPs, ctx.setreg_then_getsetreg);
+      }
+
+      if (program->chip_class == GFX9) {
+         if (instr->opcode == aco_opcode::s_movrels_b32 || instr->opcode == aco_opcode::s_movrels_b64 ||
+             instr->opcode == aco_opcode::s_movreld_b32 || instr->opcode == aco_opcode::s_movreld_b64) {
+            NOPs = MAX2(NOPs, ctx.salu_wr_m0_then_moverel);
+         }
+      }
+
+      if (instr->opcode == aco_opcode::s_sendmsg || instr->opcode == aco_opcode::s_ttracedata)
+         NOPs = MAX2(NOPs, ctx.salu_wr_m0_then_gds_msg_ttrace);
+   } else if (instr->format == Format::DS && static_cast<DS_instruction *>(instr.get())->gds) {
+      NOPs = MAX2(NOPs, ctx.salu_wr_m0_then_gds_msg_ttrace);
+   } else if (instr->isVALU() || instr->format == Format::VINTRP) {
+      for (Operand op : instr->operands) {
+         if (op.physReg() == vccz)
+            NOPs = MAX2(NOPs, ctx.valu_wr_vcc_then_vccz);
+         if (op.physReg() == execz)
+            NOPs = MAX2(NOPs, ctx.valu_wr_exec_then_execz);
+      }
+
+      if (instr->isDPP()) {
+         NOPs = MAX2(NOPs, ctx.valu_wr_exec_then_dpp);
+         handle_valu_then_read_hazard(program, cur_block, &NOPs, 2, instr->operands[0]);
+      }
+
+      for (Definition def : instr->definitions) {
+         if (def.regClass().type() != RegType::sgpr) {
+            for (unsigned i = 0; i < def.size(); i++)
+               NOPs = MAX2(NOPs, ctx.vmem_store_then_wr_data[(def.physReg() & 0xff) + i]);
+         }
+      }
+
+      if ((instr->opcode == aco_opcode::v_readlane_b32 ||
+           instr->opcode == aco_opcode::v_readlane_b32_e64 ||
+           instr->opcode == aco_opcode::v_writelane_b32 ||
+           instr->opcode == aco_opcode::v_writelane_b32_e64) &&
+          !instr->operands[1].isConstant()) {
+         handle_valu_then_read_hazard(program, cur_block, &NOPs, 4, instr->operands[1]);
+      }
+
+      /* It's required to insert 1 wait state if the dst VGPR of any v_interp_*
+       * is followed by a read with v_readfirstlane or v_readlane to fix GPU
+       * hangs on GFX6. Note that v_writelane_* is apparently not affected.
+       * This hazard isn't documented anywhere but AMD confirmed that hazard.
+       */
+      if (program->chip_class == GFX6 &&
+          (instr->opcode == aco_opcode::v_readlane_b32 || /* GFX6 doesn't have v_readlane_b32_e64 */
+           instr->opcode == aco_opcode::v_readfirstlane_b32)) {
+         handle_vintrp_then_read_hazard(program, cur_block, &NOPs, 1, instr->operands[0]);
+      }
+
+      if (instr->opcode == aco_opcode::v_div_fmas_f32 || instr->opcode == aco_opcode::v_div_fmas_f64)
+         NOPs = MAX2(NOPs, ctx.valu_wr_vcc_then_div_fmas);
+   } else if (instr->isVMEM() || instr->isFlatOrGlobal() || instr->format == Format::SCRATCH) {
+      /* If the VALU writes the SGPR that is used by a VMEM, the user must add five wait states. */
+      for (Operand op : instr->operands) {
+         if (!op.isConstant() && !op.isUndefined() && op.regClass().type() == RegType::sgpr)
+            handle_valu_then_read_hazard(program, cur_block, &NOPs, 5, op);
+      }
+   }
+
+   if (!instr->isSALU() && instr->format != Format::SMEM)
+      NOPs = MAX2(NOPs, ctx.set_vskip_mode_then_vector);
+
+   if (program->chip_class == GFX9) {
+      bool lds_scratch_global = (instr->format == Format::SCRATCH || instr->format == Format::GLOBAL) &&
+                                static_cast<FLAT_instruction *>(instr.get())->lds;
+      if (instr->format == Format::VINTRP ||
+          instr->opcode == aco_opcode::ds_read_addtid_b32 ||
+          instr->opcode == aco_opcode::ds_write_addtid_b32 ||
+          instr->opcode == aco_opcode::buffer_store_lds_dword ||
+          lds_scratch_global) {
+         NOPs = MAX2(NOPs, ctx.salu_wr_m0_then_lds);
+      }
+   }
+
+   ctx.add_wait_states(NOPs + get_wait_states(instr));
+
+   // TODO: try to schedule the NOP-causing instruction up to reduce the number of stall cycles
+   if (NOPs) {
+      /* create NOP */
+      aco_ptr<SOPP_instruction> nop{create_instruction<SOPP_instruction>(aco_opcode::s_nop, Format::SOPP, 0, 0)};
+      nop->imm = NOPs - 1;
+      nop->block = -1;
+      new_instructions.emplace_back(std::move(nop));
+   }
+
+   /* update information to check for later hazards */
+   if ((ctx.smem_clause || ctx.smem_write) && (NOPs || instr->format != Format::SMEM)) {
+      ctx.smem_clause = false;
+      ctx.smem_write = false;
+
+      if (program->xnack_enabled) {
+         BITSET_ZERO(ctx.smem_clause_read_write);
+         BITSET_ZERO(ctx.smem_clause_write);
+      }
+   }
+
+   if (instr->format == Format::SMEM) {
+      if (instr->definitions.empty() || instr_info.is_atomic[(unsigned)instr->opcode]) {
+         ctx.smem_write = true;
+      } else {
+         ctx.smem_clause = true;
+
+         if (program->xnack_enabled) {
+            for (Operand op : instr->operands) {
+               if (!op.isConstant()) {
+                  set_bitset_range(ctx.smem_clause_read_write, op.physReg(), op.size());
+               }
+            }
+
+            Definition def = instr->definitions[0];
+            set_bitset_range(ctx.smem_clause_read_write, def.physReg(), def.size());
+            set_bitset_range(ctx.smem_clause_write, def.physReg(), def.size());
+         }
+      }
+   } else if (instr->isVALU()) {
+      for (Definition def : instr->definitions) {
+         if (def.regClass().type() == RegType::sgpr) {
+            if (def.physReg() == vcc || def.physReg() == vcc_hi) {
+               ctx.valu_wr_vcc_then_vccz = 5;
+               ctx.valu_wr_vcc_then_div_fmas = 4;
+            }
+            if (def.physReg() == exec || def.physReg() == exec_hi) {
+               ctx.valu_wr_exec_then_execz = 5;
+               ctx.valu_wr_exec_then_dpp = 5;
+            }
+         }
+      }
+   } else if (instr->isSALU() && !instr->definitions.empty()) {
+      if (!instr->definitions.empty()) {
+         /* all other definitions should be SCC */
+         Definition def = instr->definitions[0];
+         if (def.physReg() == m0) {
+            ctx.salu_wr_m0_then_gds_msg_ttrace = 1;
+            ctx.salu_wr_m0_then_lds = 1;
+            ctx.salu_wr_m0_then_moverel = 1;
+         }
+      } else if (instr->opcode == aco_opcode::s_setreg_b32 || instr->opcode == aco_opcode::s_setreg_imm32_b32) {
+         SOPK_instruction *sopk = static_cast<SOPK_instruction *>(instr.get());
+         unsigned offset = (sopk->imm >> 6) & 0x1f;
+         unsigned size = ((sopk->imm >> 11) & 0x1f) + 1;
+         unsigned reg = sopk->imm & 0x3f;
+         ctx.setreg_then_getsetreg = 2;
+
+         if (reg == 1 && offset >= 28 && size > (28 - offset))
+            ctx.set_vskip_mode_then_vector = 2;
+      }
+   } else if (instr->isVMEM() || instr->isFlatOrGlobal() || instr->format == Format::SCRATCH) {
+      /* >64-bit MUBUF/MTBUF store with a constant in SOFFSET */
+      bool consider_buf = (instr->format == Format::MUBUF || instr->format == Format::MTBUF) &&
+                          instr->operands.size() == 4 &&
+                          instr->operands[3].size() > 2 &&
+                          instr->operands[2].physReg() >= 128;
+      /* MIMG store with a 128-bit T# with more than two bits set in dmask (making it a >64-bit store) */
+      bool consider_mimg = instr->format == Format::MIMG &&
+                           instr->operands[1].regClass().type() == RegType::vgpr &&
+                           instr->operands[1].size() > 2 &&
+                           instr->operands[0].size() == 4;
+      /* FLAT/GLOBAL/SCRATCH store with >64-bit data */
+      bool consider_flat = (instr->isFlatOrGlobal() || instr->format == Format::SCRATCH) &&
+                            instr->operands.size() == 3 &&
+                            instr->operands[2].size() > 2;
+      if (consider_buf || consider_mimg || consider_flat) {
+         PhysReg wrdata = instr->operands[consider_flat ? 2 : 3].physReg();
+         unsigned size = instr->operands[consider_flat ? 2 : 3].size();
+         for (unsigned i = 0; i < size; i++)
+            ctx.vmem_store_then_wr_data[(wrdata & 0xff) + i] = 1;
+      }
+   }
+}
 
 template <std::size_t N>
 bool check_written_regs(const aco_ptr<Instruction> &instr, const std::bitset<N> &check_regs)
@@ -152,304 +586,11 @@ inline bool instr_is_branch(const aco_ptr<Instruction>& instr)
           instr->opcode == aco_opcode::s_call_b64;
 }
 
-bool regs_intersect(PhysReg a_reg, unsigned a_size, PhysReg b_reg, unsigned b_size)
+void handle_instruction_gfx10(Program *program, Block *cur_block, NOP_ctx_gfx10 &ctx,
+                              aco_ptr<Instruction>& instr, std::vector<aco_ptr<Instruction>>& new_instructions)
 {
-   return a_reg > b_reg ?
-          (a_reg - b_reg < b_size) :
-          (b_reg - a_reg < a_size);
-}
+   //TODO: s_dcache_inv needs to be in it's own group on GFX10
 
-unsigned handle_SMEM_clause(aco_ptr<Instruction>& instr, int new_idx,
-                            std::vector<aco_ptr<Instruction>>& new_instructions)
-{
-   //TODO: s_dcache_inv needs to be in it's own group on GFX10 (and previous versions?)
-   const bool is_store = instr->definitions.empty();
-   for (int pred_idx = new_idx - 1; pred_idx >= 0; pred_idx--) {
-      aco_ptr<Instruction>& pred = new_instructions[pred_idx];
-      if (pred->format != Format::SMEM)
-         break;
-
-      /* Don't allow clauses with store instructions since the clause's
-       * instructions may use the same address. */
-      if (is_store || pred->definitions.empty())
-         return 1;
-
-      Definition& instr_def = instr->definitions[0];
-      Definition& pred_def = pred->definitions[0];
-
-      /* ISA reference doesn't say anything about this, but best to be safe */
-      if (regs_intersect(instr_def.physReg(), instr_def.size(), pred_def.physReg(), pred_def.size()))
-         return 1;
-
-      for (const Operand& op : pred->operands) {
-         if (op.isConstant() || !op.isFixed())
-            continue;
-         if (regs_intersect(instr_def.physReg(), instr_def.size(), op.physReg(), op.size()))
-            return 1;
-      }
-      for (const Operand& op : instr->operands) {
-         if (op.isConstant() || !op.isFixed())
-            continue;
-         if (regs_intersect(pred_def.physReg(), pred_def.size(), op.physReg(), op.size()))
-            return 1;
-      }
-   }
-
-   return 0;
-}
-
-int handle_instruction_gfx8_9(NOP_ctx_gfx8_9& ctx, aco_ptr<Instruction>& instr,
-                              std::vector<aco_ptr<Instruction>>& old_instructions,
-                              std::vector<aco_ptr<Instruction>>& new_instructions)
-{
-   int new_idx = new_instructions.size();
-
-   // TODO: setreg / getreg / m0 writes
-   // TODO: try to schedule the NOP-causing instruction up to reduce the number of stall cycles
-
-
-   if (instr->format == Format::SMEM) {
-      if (ctx.chip_class == GFX6) {
-         bool is_buffer_load = instr->operands.size() && instr->operands[0].size() > 2;
-         for (int pred_idx = new_idx - 1; pred_idx >= 0 && pred_idx >= new_idx - 4; pred_idx--) {
-            aco_ptr<Instruction>& pred = new_instructions[pred_idx];
-            /* A read of an SGPR by SMRD instruction requires 4 wait states
-             * when the SGPR was written by a VALU instruction. */
-            if (VALU_writes_sgpr(pred)) {
-               Definition pred_def = pred->definitions[pred->definitions.size() - 1];
-               for (const Operand& op : instr->operands) {
-                  if (regs_intersect(pred_def.physReg(), pred_def.size(), op.physReg(), op.size()))
-                     return 4 + pred_idx - new_idx + 1;
-               }
-            }
-            /* According to LLVM, this is an undocumented hardware behavior */
-            if (is_buffer_load && pred->isSALU() && pred->definitions.size()) {
-               Definition pred_def = pred->definitions[0];
-               Operand& op = instr->operands[0];
-               if (regs_intersect(pred_def.physReg(), pred_def.size(), op.physReg(), op.size()))
-                  return 4 + pred_idx - new_idx + 1;
-            }
-         }
-      }
-
-      /* break off from prevous SMEM clause if needed */
-      return handle_SMEM_clause(instr, new_idx, new_instructions);
-
-   } else if (instr->isVALU() || instr->format == Format::VINTRP) {
-      int NOPs = 0;
-
-      if (instr->isDPP()) {
-         /* VALU does not forward EXEC to DPP. */
-         if (ctx.VALU_wrexec + 5 >= new_idx)
-            NOPs = 5 + ctx.VALU_wrexec - new_idx + 1;
-
-         /* VALU DPP reads VGPR written by VALU */
-         for (int pred_idx = new_idx - 1; pred_idx >= 0 && pred_idx >= new_idx - 2; pred_idx--) {
-            aco_ptr<Instruction>& pred = new_instructions[pred_idx];
-            if ((pred->isVALU() || pred->format == Format::VINTRP) &&
-                !pred->definitions.empty() &&
-                pred->definitions[0].physReg() == instr->operands[0].physReg()) {
-               NOPs = std::max(NOPs, 2 + pred_idx - new_idx + 1);
-               break;
-            }
-         }
-      }
-
-      /* SALU writes M0 */
-      if (instr->format == Format::VINTRP && new_idx > 0 && ctx.chip_class >= GFX9) {
-         aco_ptr<Instruction>& pred = new_instructions.back();
-         if (pred->isSALU() &&
-             !pred->definitions.empty() &&
-             pred->definitions[0].physReg() == m0)
-            NOPs = std::max(NOPs, 1);
-      }
-
-      for (const Operand& op : instr->operands) {
-         /* VALU which uses VCCZ */
-         if (op.physReg() == PhysReg{251} &&
-             ctx.VALU_wrvcc + 5 >= new_idx)
-            NOPs = std::max(NOPs, 5 + ctx.VALU_wrvcc - new_idx + 1);
-
-         /* VALU which uses EXECZ */
-         if (op.physReg() == PhysReg{252} &&
-             ctx.VALU_wrexec + 5 >= new_idx)
-            NOPs = std::max(NOPs, 5 + ctx.VALU_wrexec - new_idx + 1);
-
-         /* VALU which reads VCC as a constant */
-         if (ctx.VALU_wrvcc + 1 >= new_idx) {
-            for (unsigned k = 0; k < op.size(); k++) {
-               unsigned reg = op.physReg() + k;
-               if (reg == ctx.vcc_physical || reg == ctx.vcc_physical + 1)
-                  NOPs = std::max(NOPs, 1);
-            }
-         }
-      }
-
-      switch (instr->opcode) {
-         case aco_opcode::v_readlane_b32:
-         case aco_opcode::v_readlane_b32_e64:
-         case aco_opcode::v_writelane_b32:
-         case aco_opcode::v_writelane_b32_e64: {
-            if (ctx.VALU_wrsgpr + 4 < new_idx)
-               break;
-            PhysReg reg = instr->operands[1].physReg();
-            for (int pred_idx = new_idx - 1; pred_idx >= 0 && pred_idx >= new_idx - 4; pred_idx--) {
-               aco_ptr<Instruction>& pred = new_instructions[pred_idx];
-               if (!pred->isVALU() || !VALU_writes_sgpr(pred))
-                  continue;
-               for (const Definition& def : pred->definitions) {
-                  if (def.physReg() == reg)
-                     NOPs = std::max(NOPs, 4 + pred_idx - new_idx + 1);
-               }
-            }
-            break;
-         }
-         case aco_opcode::v_div_fmas_f32:
-         case aco_opcode::v_div_fmas_f64: {
-            if (ctx.VALU_wrvcc + 4 >= new_idx)
-               NOPs = std::max(NOPs, 4 + ctx.VALU_wrvcc - new_idx + 1);
-            break;
-         }
-         default:
-            break;
-      }
-
-      /* Write VGPRs holding writedata > 64 bit from MIMG/MUBUF instructions */
-      // FIXME: handle case if the last instruction of a block without branch is such store
-      if (new_idx > 0) {
-         aco_ptr<Instruction>& pred = new_instructions.back();
-         /* >64-bit MUBUF/MTBUF store with a constant in SOFFSET */
-         bool consider_buf = (pred->format == Format::MUBUF || pred->format == Format::MTBUF) &&
-                             pred->operands.size() == 4 &&
-                             pred->operands[3].size() > 2 &&
-                             pred->operands[2].physReg() >= 128;
-         /* MIMG store with a 128-bit T# with more than two bits set in dmask (making it a >64-bit store) */
-         bool consider_mimg = pred->format == Format::MIMG &&
-                              pred->operands.size() == 4 &&
-                              pred->operands[3].size() > 2 &&
-                              pred->operands[1].size() != 8;
-         /* FLAT/GLOBAL/SCRATCH store with >64-bit data */
-         bool consider_flat = (pred->isFlatOrGlobal() || pred->format == Format::SCRATCH) &&
-                              pred->operands.size() == 3 &&
-                              pred->operands[2].size() > 2;
-         if (consider_buf || consider_mimg || consider_flat) {
-            PhysReg wrdata = pred->operands[3].physReg();
-            unsigned size = pred->operands[3].size();
-            assert(wrdata >= 256);
-            for (const Definition& def : instr->definitions) {
-               if (regs_intersect(def.physReg(), def.size(), wrdata, size))
-                  NOPs = std::max(NOPs, 1);
-            }
-         }
-      }
-
-      if (VALU_writes_sgpr(instr)) {
-         for (const Definition& def : instr->definitions) {
-            if (def.physReg() == vcc)
-               ctx.VALU_wrvcc = NOPs ? new_idx : new_idx + 1;
-            else if (def.physReg() == exec)
-               ctx.VALU_wrexec = NOPs ? new_idx : new_idx + 1;
-            else if (def.physReg() <= 102)
-               ctx.VALU_wrsgpr = NOPs ? new_idx : new_idx + 1;
-         }
-      }
-
-      /* It's required to insert 1 wait state if the dst VGPR of any v_interp_*
-       * is followed by a read with v_readfirstlane or v_readlane to fix GPU
-       * hangs on GFX6. Note that v_writelane_* is apparently not affected.
-       * This hazard isn't documented anywhere but AMD confirmed that hazard.
-       */
-      if (ctx.chip_class == GFX6 &&
-          !new_instructions.empty() &&
-          (instr->opcode == aco_opcode::v_readfirstlane_b32 ||
-           instr->opcode == aco_opcode::v_readlane_b32)) {
-         aco_ptr<Instruction>& pred = new_instructions.back();
-         if (pred->format == Format::VINTRP) {
-            Definition pred_def = pred->definitions[0];
-            Operand& op = instr->operands[0];
-            if (regs_intersect(pred_def.physReg(), pred_def.size(), op.physReg(), op.size()))
-               NOPs = std::max(NOPs, 1);
-         }
-      }
-      return NOPs;
-   } else if (instr->isVMEM() && ctx.VALU_wrsgpr + 5 >= new_idx) {
-      /* If the VALU writes the SGPR that is used by a VMEM, the user must add five wait states. */
-      for (int pred_idx = new_idx - 1; pred_idx >= 0 && pred_idx >= new_idx - 5; pred_idx--) {
-         aco_ptr<Instruction>& pred = new_instructions[pred_idx];
-         if (!(pred->isVALU() && VALU_writes_sgpr(pred)))
-            continue;
-
-         for (const Definition& def : pred->definitions) {
-            if (def.physReg() > 102)
-               continue;
-
-            if (instr->operands.size() > 1 &&
-                regs_intersect(instr->operands[1].physReg(), instr->operands[1].size(),
-                               def.physReg(), def.size())) {
-                  return 5 + pred_idx - new_idx + 1;
-            }
-
-            if (instr->operands.size() > 2 &&
-                regs_intersect(instr->operands[2].physReg(), instr->operands[2].size(),
-                               def.physReg(), def.size())) {
-                  return 5 + pred_idx - new_idx + 1;
-            }
-         }
-      }
-   } else if (instr->format == Format::SOPP) {
-      if (instr->opcode == aco_opcode::s_sendmsg && new_idx > 0) {
-         aco_ptr<Instruction>& pred = new_instructions.back();
-         if (pred->isSALU() &&
-             !pred->definitions.empty() &&
-             pred->definitions[0].physReg() == m0)
-            return 1;
-      }
-   }
-
-   return 0;
-}
-
-void handle_block_gfx8_9(NOP_ctx_gfx8_9& ctx, Block& block)
-{
-   std::vector<aco_ptr<Instruction>> instructions;
-   instructions.reserve(block.instructions.size());
-   for (unsigned i = 0; i < block.instructions.size(); i++) {
-      aco_ptr<Instruction>& instr = block.instructions[i];
-      unsigned NOPs = handle_instruction_gfx8_9(ctx, instr, block.instructions, instructions);
-      if (NOPs) {
-         // TODO: try to move the instruction down
-         /* create NOP */
-         aco_ptr<SOPP_instruction> nop{create_instruction<SOPP_instruction>(aco_opcode::s_nop, Format::SOPP, 0, 0)};
-         nop->imm = NOPs - 1;
-         nop->block = -1;
-         instructions.emplace_back(std::move(nop));
-      }
-
-      instructions.emplace_back(std::move(instr));
-   }
-
-   ctx.VALU_wrvcc -= instructions.size();
-   ctx.VALU_wrexec -= instructions.size();
-   ctx.VALU_wrsgpr -= instructions.size();
-   block.instructions = std::move(instructions);
-}
-
-void insert_NOPs_gfx8_9(Program* program)
-{
-   NOP_ctx_gfx8_9 ctx(program);
-
-   for (Block& block : program->blocks) {
-      if (block.instructions.empty())
-         continue;
-
-      handle_block_gfx8_9(ctx, block);
-   }
-}
-
-void handle_instruction_gfx10(Program *program, NOP_ctx_gfx10 &ctx, aco_ptr<Instruction>& instr,
-                              std::vector<aco_ptr<Instruction>>& old_instructions,
-                              std::vector<aco_ptr<Instruction>>& new_instructions)
-{
    /* VMEMtoScalarWriteHazard
     * Handle EXEC/M0/SGPR write following a VMEM instruction without a VALU or "waitcnt vmcnt(0)" in-between.
     */
@@ -592,41 +733,46 @@ void handle_instruction_gfx10(Program *program, NOP_ctx_gfx10 &ctx, aco_ptr<Inst
    }
 }
 
-void handle_block_gfx10(Program *program, NOP_ctx_gfx10& ctx, Block& block)
+template <typename Ctx>
+using HandleInstr = void (*)(Program *, Block *block, Ctx&, aco_ptr<Instruction>&,
+                             std::vector<aco_ptr<Instruction>>&);
+
+template <typename Ctx, HandleInstr<Ctx> Handle>
+void handle_block(Program *program, Ctx& ctx, Block& block)
 {
    if (block.instructions.empty())
       return;
 
-   std::vector<aco_ptr<Instruction>> instructions;
-   instructions.reserve(block.instructions.size());
+   std::vector<aco_ptr<Instruction>> old_instructions = std::move(block.instructions);
 
-   for (aco_ptr<Instruction>& instr : block.instructions) {
-      handle_instruction_gfx10(program, ctx, instr, block.instructions, instructions);
-      instructions.emplace_back(std::move(instr));
+   block.instructions.reserve(block.instructions.size());
+
+   for (aco_ptr<Instruction>& instr : old_instructions) {
+      Handle(program, &block, ctx, instr, block.instructions);
+      block.instructions.emplace_back(std::move(instr));
    }
-
-   block.instructions = std::move(instructions);
 }
 
-void mitigate_hazards_gfx10(Program *program)
+template <typename Ctx, HandleInstr<Ctx> Handle>
+void mitigate_hazards(Program *program)
 {
-   NOP_ctx_gfx10 all_ctx[program->blocks.size()];
+   std::vector<Ctx> all_ctx(program->blocks.size());
    std::stack<unsigned> loop_header_indices;
 
    for (unsigned i = 0; i < program->blocks.size(); i++) {
       Block& block = program->blocks[i];
-      NOP_ctx_gfx10 &ctx = all_ctx[i];
+      Ctx &ctx = all_ctx[i];
 
       if (block.kind & block_kind_loop_header) {
          loop_header_indices.push(i);
       } else if (block.kind & block_kind_loop_exit) {
          /* Go through the whole loop again */
          for (unsigned idx = loop_header_indices.top(); idx < i; idx++) {
-            NOP_ctx_gfx10 loop_block_ctx;
+            Ctx loop_block_ctx;
             for (unsigned b : program->blocks[idx].linear_preds)
                loop_block_ctx.join(all_ctx[b]);
 
-            handle_block_gfx10(program, loop_block_ctx, program->blocks[idx]);
+            handle_block<Ctx, Handle>(program, loop_block_ctx, program->blocks[idx]);
 
             /* We only need to continue if the loop header context changed */
             if (idx == loop_header_indices.top() && loop_block_ctx == all_ctx[idx])
@@ -641,7 +787,7 @@ void mitigate_hazards_gfx10(Program *program)
       for (unsigned b : block.linear_preds)
          ctx.join(all_ctx[b]);
 
-      handle_block_gfx10(program, ctx, block);
+      handle_block<Ctx, Handle>(program, ctx, block);
    }
 }
 
@@ -650,9 +796,9 @@ void mitigate_hazards_gfx10(Program *program)
 void insert_NOPs(Program* program)
 {
    if (program->chip_class >= GFX10)
-      mitigate_hazards_gfx10(program);
+      mitigate_hazards<NOP_ctx_gfx10, handle_instruction_gfx10>(program);
    else
-      insert_NOPs_gfx8_9(program);
+      mitigate_hazards<NOP_ctx_gfx6, handle_instruction_gfx6>(program);
 }
 
 }

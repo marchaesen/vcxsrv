@@ -717,13 +717,13 @@ util_format_translate(enum pipe_format dst_format,
 
       while (height--) {
          if (tmp_z) {
-            src_format_desc->unpack_z_float(tmp_z, 0, src_row, src_stride, width, 1);
-            dst_format_desc->pack_z_float(dst_row, dst_stride, tmp_z, 0, width, 1);
+            util_format_unpack_z_float(src_format, tmp_z, src_row, width);
+            util_format_pack_z_float(dst_format, dst_row, tmp_z, width);
          }
 
          if (tmp_s) {
-            src_format_desc->unpack_s_8uint(tmp_s, 0, src_row, src_stride, width, 1);
-            dst_format_desc->pack_s_8uint(dst_row, dst_stride, tmp_s, 0, width, 1);
+            util_format_unpack_s_8uint(src_format, tmp_s, src_row, width);
+            util_format_pack_s_8uint(dst_format, dst_row, tmp_s, width);
          }
 
          dst_row += dst_step;

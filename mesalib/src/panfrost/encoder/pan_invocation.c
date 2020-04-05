@@ -86,8 +86,8 @@ panfrost_pack_work_groups_compute(
 
         /* Quirk: for graphics, workgroups_x_shift_2 must be at least 2,
          * whereas for OpenCL it is simply equal to workgroups_x_shift. For GL
-         * compute, it seems it might *always* be 2, but this is suspicious and
-         * needs further investigation. (I'm probably just using GL wrong). */
+         * compute, it is always 2 if no barriers are in use, but is equal to
+         * workgroups_x_shift is barriers are in use. */
 
         unsigned shift_2 = shifts[3];
 

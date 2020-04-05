@@ -28,6 +28,18 @@ struct asm_context {
    int subvector_begin_pos = -1;
 };
 
+static uint32_t get_sdwa_sel(unsigned sel, PhysReg reg)
+{
+   if (sel & sdwa_isra) {
+      unsigned size = sdwa_rasize & sel;
+      if (size == 1)
+         return reg.byte();
+      else /* size == 2 */
+         return sdwa_isword | (reg.byte() >> 1);
+   }
+   return sel & sdwa_asuint;
+}
+
 void emit_instruction(asm_context& ctx, std::vector<uint32_t>& out, Instruction* instr)
 {
    uint32_t instr_offset = out.size() * 4u;
@@ -156,7 +168,7 @@ void emit_instruction(asm_context& ctx, std::vector<uint32_t>& out, Instruction*
          encoding |= instr->operands.size() ? (instr->operands[0].physReg() >> 1) << 9 : 0;
          if (instr->operands.size() >= 2) {
             if (!instr->operands[1].isConstant() || instr->operands[1].constantValue() >= 1024) {
-               encoding |= instr->operands[1].physReg().reg;
+               encoding |= instr->operands[1].physReg().reg();
             } else {
                encoding |= instr->operands[1].constantValue() >> 2;
                encoding |= 1 << 8;
@@ -329,10 +341,10 @@ void emit_instruction(asm_context& ctx, std::vector<uint32_t>& out, Instruction*
       }
       encoding |= instr->operands[2].physReg() << 24;
       encoding |= (mubuf->tfe ? 1 : 0) << 23;
-      encoding |= (instr->operands[1].physReg() >> 2) << 16;
+      encoding |= (instr->operands[0].physReg() >> 2) << 16;
       unsigned reg = instr->operands.size() > 3 ? instr->operands[3].physReg() : instr->definitions[0].physReg();
       encoding |= (0xFF & reg) << 8;
-      encoding |= (0xFF & instr->operands[0].physReg());
+      encoding |= (0xFF & instr->operands[1].physReg());
       out.push_back(encoding);
       break;
    }
@@ -362,10 +374,10 @@ void emit_instruction(asm_context& ctx, std::vector<uint32_t>& out, Instruction*
       encoding |= instr->operands[2].physReg() << 24;
       encoding |= (mtbuf->tfe ? 1 : 0) << 23;
       encoding |= (mtbuf->slc ? 1 : 0) << 22;
-      encoding |= (instr->operands[1].physReg() >> 2) << 16;
+      encoding |= (instr->operands[0].physReg() >> 2) << 16;
       unsigned reg = instr->operands.size() > 3 ? instr->operands[3].physReg() : instr->definitions[0].physReg();
       encoding |= (0xFF & reg) << 8;
-      encoding |= (0xFF & instr->operands[0].physReg());
+      encoding |= (0xFF & instr->operands[1].physReg());
 
       if (ctx.chip_class >= GFX10) {
          encoding |= (((opcode & 0x08) >> 4) << 21); /* MSB of 4-bit OPCODE */
@@ -395,15 +407,15 @@ void emit_instruction(asm_context& ctx, std::vector<uint32_t>& out, Instruction*
       }
       encoding |= (0xF & mimg->dmask) << 8;
       out.push_back(encoding);
-      encoding = (0xFF & instr->operands[0].physReg()); /* VADDR */
+      encoding = (0xFF & instr->operands[2].physReg()); /* VADDR */
       if (!instr->definitions.empty()) {
          encoding |= (0xFF & instr->definitions[0].physReg()) << 8; /* VDATA */
-      } else if (instr->operands.size() == 4) {
-         encoding |= (0xFF & instr->operands[3].physReg()) << 8; /* VDATA */
+      } else if (instr->operands[1].regClass().type() == RegType::vgpr) {
+         encoding |= (0xFF & instr->operands[1].physReg()) << 8; /* VDATA */
       }
-      encoding |= (0x1F & (instr->operands[1].physReg() >> 2)) << 16; /* T# (resource) */
-      if (instr->operands.size() > 2)
-         encoding |= (0x1F & (instr->operands[2].physReg() >> 2)) << 21; /* sampler */
+      encoding |= (0x1F & (instr->operands[0].physReg() >> 2)) << 16; /* T# (resource) */
+      if (instr->operands[1].regClass().type() == RegType::sgpr)
+         encoding |= (0x1F & (instr->operands[1].physReg() >> 2)) << 21; /* sampler */
 
       assert(!mimg->d16 || ctx.chip_class >= GFX9);
       encoding |= mimg->d16 ? 1 << 15 : 0;
@@ -547,7 +559,7 @@ void emit_instruction(asm_context& ctx, std::vector<uint32_t>& out, Instruction*
          /* first emit the instruction without the DPP operand */
          Operand dpp_op = instr->operands[0];
          instr->operands[0] = Operand(PhysReg{250}, v1);
-         instr->format = (Format) ((uint32_t) instr->format & ~(1 << 14));
+         instr->format = (Format) ((uint16_t) instr->format & ~(uint16_t)Format::DPP);
          emit_instruction(ctx, out, instr);
          DPP_instruction* dpp = static_cast<DPP_instruction*>(instr);
          uint32_t encoding = (0xF & dpp->row_mask) << 28;
@@ -561,6 +573,49 @@ void emit_instruction(asm_context& ctx, std::vector<uint32_t>& out, Instruction*
          encoding |= (0xFF) & dpp_op.physReg();
          out.push_back(encoding);
          return;
+      } else if (instr->isSDWA()) {
+         /* first emit the instruction without the SDWA operand */
+         Operand sdwa_op = instr->operands[0];
+         instr->operands[0] = Operand(PhysReg{249}, v1);
+         instr->format = (Format) ((uint16_t) instr->format & ~(uint16_t)Format::SDWA);
+         emit_instruction(ctx, out, instr);
+
+         SDWA_instruction* sdwa = static_cast<SDWA_instruction*>(instr);
+         uint32_t encoding = 0;
+
+         if ((uint16_t)instr->format & (uint16_t)Format::VOPC) {
+            if (instr->definitions[0].physReg() != vcc) {
+               encoding |= instr->definitions[0].physReg() << 8;
+               encoding |= 1 << 15;
+            }
+            encoding |= (sdwa->clamp ? 1 : 0) << 13;
+         } else {
+            encoding |= get_sdwa_sel(sdwa->dst_sel, instr->definitions[0].physReg()) << 8;
+            uint32_t dst_u = sdwa->dst_sel & sdwa_sext ? 1 : 0;
+            if (sdwa->dst_preserve || (sdwa->dst_sel & sdwa_isra))
+               dst_u = 2;
+            encoding |= dst_u << 11;
+            encoding |= (sdwa->clamp ? 1 : 0) << 13;
+            encoding |= sdwa->omod << 14;
+         }
+
+         encoding |= get_sdwa_sel(sdwa->sel[0], sdwa_op.physReg()) << 16;
+         encoding |= sdwa->sel[0] & sdwa_sext ? 1 << 19 : 0;
+         encoding |= sdwa->abs[0] << 21;
+         encoding |= sdwa->neg[0] << 20;
+
+         if (instr->operands.size() >= 2) {
+            encoding |= get_sdwa_sel(sdwa->sel[1], instr->operands[1].physReg()) << 24;
+            encoding |= sdwa->sel[1] & sdwa_sext ? 1 << 27 : 0;
+            encoding |= sdwa->abs[1] << 29;
+            encoding |= sdwa->neg[1] << 28;
+         }
+
+         encoding |= 0xFF & sdwa_op.physReg();
+         encoding |= (sdwa_op.physReg() < 256) << 23;
+         if (instr->operands.size() >= 2)
+            encoding |= (instr->operands[1].physReg() < 256) << 31;
+         out.push_back(encoding);
       } else {
          unreachable("unimplemented instruction format");
       }
@@ -595,11 +650,11 @@ void emit_block(asm_context& ctx, std::vector<uint32_t>& out, Block& block)
 
 void fix_exports(asm_context& ctx, std::vector<uint32_t>& out, Program* program)
 {
+   bool exported = false;
    for (Block& block : program->blocks) {
       if (!(block.kind & block_kind_export_end))
          continue;
       std::vector<aco_ptr<Instruction>>::reverse_iterator it = block.instructions.rbegin();
-      bool exported = false;
       while ( it != block.instructions.rend())
       {
          if ((*it)->format == Format::EXP) {
@@ -620,22 +675,13 @@ void fix_exports(asm_context& ctx, std::vector<uint32_t>& out, Program* program)
             break;
          ++it;
       }
-      if (exported)
-         continue;
-      /* we didn't find an Export instruction and have to insert a null export */
-      aco_ptr<Export_instruction> exp{create_instruction<Export_instruction>(aco_opcode::exp, Format::EXP, 4, 0)};
-      for (unsigned i = 0; i < 4; i++)
-         exp->operands[i] = Operand(v1);
-      exp->enabled_mask = 0;
-      exp->compressed = false;
-      exp->done = true;
-      exp->valid_mask = (program->stage & hw_fs) || program->chip_class >= GFX10;
-      if (program->stage & hw_fs)
-         exp->dest = 9; /* NULL */
-      else
-         exp->dest = V_008DFC_SQ_EXP_POS;
-      /* insert the null export 1 instruction before branch/endpgm */
-      block.instructions.insert(block.instructions.end() - 1, std::move(exp));
+   }
+
+   if (!exported) {
+      /* Abort in order to avoid a GPU hang. */
+      fprintf(stderr, "Missing export in %s shader:\n", (program->stage & hw_vs) ? "vertex" : "fragment");
+      aco_print_program(program, stderr);
+      abort();
    }
 }
 

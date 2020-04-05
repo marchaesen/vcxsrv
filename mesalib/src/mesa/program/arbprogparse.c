@@ -52,7 +52,7 @@ having three separate program parameter arrays.
 
 
 #include "main/glheader.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/context.h"
 #include "main/mtypes.h"
 #include "arbprogparse.h"

@@ -71,14 +71,13 @@
  */
 
 #include <stdbool.h>
+#include <limits.h>
 
 #include "ralloc.h"
-#include "main/imports.h"
-#include "main/macros.h"
+#include "util/imports.h"
 #include "util/bitset.h"
+#include "u_math.h"
 #include "register_allocate.h"
-
-#define NO_REG ~0U
 
 struct ra_reg {
    BITSET_WORD *conflicts;
@@ -171,8 +170,7 @@ struct ra_graph {
 
    unsigned int alloc; /**< count of nodes allocated. */
 
-   unsigned int (*select_reg_callback)(struct ra_graph *g, BITSET_WORD *regs,
-                                       void *data);
+   ra_select_reg_callback select_reg_callback;
    void *select_reg_callback_data;
 
    /* Temporary data for the algorithm to scratch around in */
@@ -499,7 +497,7 @@ ra_realloc_interference_graph(struct ra_graph *g, unsigned int alloc)
     * easier to memset the top of the growing bitsets.
     */
    assert(g->alloc % BITSET_WORDBITS == 0);
-   alloc = ALIGN(alloc, BITSET_WORDBITS);
+   alloc = align64(alloc, BITSET_WORDBITS);
 
    g->nodes = reralloc(g, g->nodes, struct ra_node, alloc);
 
@@ -565,9 +563,7 @@ ra_resize_interference_graph(struct ra_graph *g, unsigned int count)
 }
 
 void ra_set_select_reg_callback(struct ra_graph *g,
-                                unsigned int (*callback)(struct ra_graph *g,
-                                                         BITSET_WORD *regs,
-                                                         void *data),
+                                ra_select_reg_callback callback,
                                 void *data)
 {
    g->select_reg_callback = callback;
@@ -868,7 +864,7 @@ ra_select(struct ra_graph *g)
             return false;
          }
 
-         r = g->select_reg_callback(g, select_regs, g->select_reg_callback_data);
+         r = g->select_reg_callback(n, select_regs, g->select_reg_callback_data);
       } else {
          /* Find the lowest-numbered reg which is not used by a member
           * of the graph adjacent to us.

@@ -132,6 +132,7 @@ typedef struct _modesettingRec {
         void (*UpdatePacked)(ScreenPtr, shadowBufPtr);
     } shadow;
 
+#ifdef GLAMOR_HAS_GBM
     /* glamor API */
     struct {
         Bool (*back_pixmap_from_fd)(PixmapPtr, int, CARD16, CARD16, CARD16,
@@ -157,7 +158,7 @@ typedef struct _modesettingRec {
         XF86VideoAdaptorPtr (*xv_init)(ScreenPtr, int);
         const char *(*egl_get_driver_name)(ScreenPtr);
     } glamor;
-
+#endif
 } modesettingRec, *modesettingPtr;
 
 #define glamor_finish(screen) ms->glamor.finish(screen)

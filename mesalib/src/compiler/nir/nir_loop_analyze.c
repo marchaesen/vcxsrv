@@ -200,12 +200,6 @@ is_var_alu(nir_loop_variable *var)
 }
 
 static inline bool
-is_var_constant(nir_loop_variable *var)
-{
-   return var->def->parent_instr->type == nir_instr_type_load_const;
-}
-
-static inline bool
 is_var_phi(nir_loop_variable *var)
 {
    return var->def->parent_instr->type == nir_instr_type_phi;

@@ -528,6 +528,8 @@ struct dd_function_table {
     * \param index_bounds_valid  are min_index and max_index valid?
     * \param min_index  lowest vertex index used
     * \param max_index  highest vertex index used
+    * \param num_instances  instance count from ARB_draw_instanced
+    * \param base_instance  base instance from ARB_base_instance
     * \param tfb_vertcount  if non-null, indicates which transform feedback
     *                       object has the vertex count.
     * \param tfb_stream  If called via DrawTransformFeedbackStream, specifies
@@ -542,8 +544,9 @@ struct dd_function_table {
                 const struct _mesa_index_buffer *ib,
                 GLboolean index_bounds_valid,
                 GLuint min_index, GLuint max_index,
+                GLuint num_instances, GLuint base_instance,
                 struct gl_transform_feedback_object *tfb_vertcount,
-                unsigned tfb_stream, struct gl_buffer_object *indirect);
+                unsigned tfb_stream);
 
 
    /**

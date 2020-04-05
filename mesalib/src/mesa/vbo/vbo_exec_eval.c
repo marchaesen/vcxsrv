@@ -140,7 +140,7 @@ void vbo_exec_do_EvalCoord1f(struct vbo_exec_context *exec, GLfloat u)
 				   map->Order);
 
 	 COPY_SZ_4V( exec->vtx.attrptr[attr],
-		     exec->vtx.attrsz[attr],
+		     exec->vtx.attr[attr].size,
 		     data );
       }
    }
@@ -189,7 +189,7 @@ void vbo_exec_do_EvalCoord2f( struct vbo_exec_context *exec,
 				  map->Uorder, map->Vorder);
 
 	 COPY_SZ_4V( exec->vtx.attrptr[attr],
-		     exec->vtx.attrsz[attr],
+		     exec->vtx.attr[attr].size,
 		     data );
       }
    }
@@ -228,7 +228,7 @@ void vbo_exec_do_EvalCoord2f( struct vbo_exec_context *exec,
 	 normal[3] = FLOAT_AS_UNION(1.0);
 
  	 COPY_SZ_4V( exec->vtx.attrptr[VBO_ATTRIB_NORMAL],
-		     exec->vtx.attrsz[VBO_ATTRIB_NORMAL],
+		     exec->vtx.attr[VBO_ATTRIB_NORMAL].size,
 		     normal );
 
       }
@@ -238,7 +238,7 @@ void vbo_exec_do_EvalCoord2f( struct vbo_exec_context *exec,
 				  map->Uorder, map->Vorder);
       }
 
-      if (exec->vtx.attrsz[0] == 4) 
+      if (exec->vtx.attr[VBO_ATTRIB_POS].size == 4)
 	 CALL_Vertex4fv(GET_DISPATCH(), ( vertex ));
       else
 	 CALL_Vertex3fv(GET_DISPATCH(), ( vertex )); 

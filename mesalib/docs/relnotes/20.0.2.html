@@ -1,0 +1,159 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<title>Mesa Release Notes</title>
+<link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+<h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 20.0.2 Release Notes / 2020-03-18</h1>
+
+<p>
+    Mesa 20.0.2 is a bug fix release which fixes bugs found since the 20.0.1 release.
+</p>
+<p>
+Mesa 20.0.2 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+<p>
+Mesa 20.0.2 implements the Vulkan 1.2 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+</p>
+
+<h2>SHA256 checksum</h2>
+<pre>
+  aa54f1cb669550606aab8ceb475105d15aeb814fca5a778ce70d0fd10e98e86f  mesa-20.0.2.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+
+<ul>
+</ul>
+
+<h2>Bug fixes</h2>
+
+<ul>
+    <li>RPCS3 / Persona 5 - Performance regression [RADV / Navi]</li>
+    <li>[CTS] dEQP-VK.descriptor_indexing.* fails on RADV/LLVM</li>
+    <li>[RadeonSI][gfx10/navi] Kerbal Space Program crash: si_draw_vbo: Assertion `0&#x27; failed</li>
+    <li>src/compiler/glsl/glcpp/glcpp-parse.y:1297: _token_print: Assertion `!&quot;Error: Don&#x27;t know how to print token.&quot;&#x27; failed.</li>
+    <li>Budget Cuts hits VK_AMD_shader_fragment_mask assert</li>
+</ul>
+
+<h2>Changes</h2>
+
+<ul>
+    <p>Andreas Baierl (1):</p>
+    <li>      gitlab-ci: Add add a set of lima flakes</li>
+    <p></p>
+    <p>Bas Nieuwenhuizen (2):</p>
+    <li>      amd/llvm: Fix divergent descriptor indexing. (v3)</li>
+    <li>      amd/llvm: Fix divergent descriptor regressions with radeonsi.</li>
+    <p></p>
+    <p>Danylo Piliaiev (2):</p>
+    <li>      glsl: do not crash if string literal is used outside of #include/#line</li>
+    <li>      st/mesa: Fix signed integer overflow when using util_throttle_memory_usage</li>
+    <p></p>
+    <p>Dave Airlie (1):</p>
+    <li>      gallium: fix build with latest meson and gcc10</li>
+    <p></p>
+    <p>Dylan Baker (8):</p>
+    <li>      docs: Add sha256sums for 20.0.1</li>
+    <li>      .pick_status.json: Update to 07f1ef5656e0721282d01a8421eaca056348137d</li>
+    <li>      .pick_status.json: Update to 70341d7746c177a4cd7377ef633e9f85afd11d54</li>
+    <li>      .pick_status.json: Update to 625d8705f02e211e2733c3fe12845505725c37d4</li>
+    <li>      .pick_status.json: Mark b83c9aca4a5fd02d920c90c1799137fed52dc1d9 as backported</li>
+    <li>      .pick_status.json: Update to ee9e0d1ecae307fa48200d2604d3114070253299</li>
+    <li>      .pick_status.json: Update to 3dd0d12aa5fefa94123269a541c94cdf57599e34</li>
+    <li>      .pick_status.json: Update to 94e37859a96cc56cf0c5418a5af00a3e9f5a1bf5</li>
+    <p></p>
+    <p>Eric Anholt (1):</p>
+    <li>      glsl/tests: Fix waiting for disk_cache_put() to finish.</li>
+    <p></p>
+    <p>Eric Engestrom (7):</p>
+    <li>      bin/gen_release_notes.py: fix commit list command</li>
+    <li>      .pick_status.json: Update to 24db276d11976905b2e8a44965c684bb48c3d49f</li>
+    <li>      gen_release_notes: fix vulkan version reported</li>
+    <li>      docs/relnotes/20.0: fix vulkan version reported</li>
+    <li>      .pick_status.json: Update to ba03e308b66b0b88f60b99d9d47851a5e1522e6e</li>
+    <li>      vulkan/wsi: fix cleanup when dup() fails</li>
+    <li>      gen_release_notes: fix version in &quot;you should wait&quot; message</li>
+    <p></p>
+    <p>Francisco Jerez (1):</p>
+    <li>      intel/fs: Fix workaround for VxH indirect addressing bug under control flow.</li>
+    <p></p>
+    <p>Jason Ekstrand (9):</p>
+    <li>      isl: Set 3DSTATE_DEPTH_BUFFER::Depth correctly for 3D surfaces</li>
+    <li>      iris: Don&#x27;t skip fast depth clears if the color changed</li>
+    <li>      anv: Parse VkPhysicalDeviceFeatures2 in CreateDevice</li>
+    <li>      vulkan/wsi: Don&#x27;t leak the FD when GetImageDrmFormatModifierProperties fails</li>
+    <li>      vulkan/wsi: Return an error if dup() fails</li>
+    <li>      anv: Use the PIPE_CONTROL instead of bits for the CS stall W/A</li>
+    <li>      anv: Use a proper end-of-pipe sync instead of just CS stall</li>
+    <li>      anv: Do end-of-pipe sync around MCS/CCS ops instead of CS stall</li>
+    <li>      anv: Do an end-of-pipe sync before updating AUX table entries</li>
+    <p></p>
+    <p>José Fonseca (1):</p>
+    <li>      meson: Avoid duplicate symbols.</li>
+    <p></p>
+    <p>Kristian Høgsberg (2):</p>
+    <li>      Revert &quot;glsl: Use a simpler formula for tanh&quot;</li>
+    <li>      Revert &quot;spirv: Use a simpler and more correct implementaiton of tanh()&quot;</li>
+    <p></p>
+    <p>Marek Olšák (4):</p>
+    <li>      Revert &quot;mesa: check for z=0 in _mesa_Vertex3dv()&quot;</li>
+    <li>      radeonsi: add a bug workaround for NGG - LATE_ALLOC_GS</li>
+    <li>      ac: add a bug workaround for the 100% NGG culling case</li>
+    <li>      gallium/cso_context: remove cso_delete_xxx_shader helpers to fix the live cache</li>
+    <p></p>
+    <p>Martin Fuzzey (3):</p>
+    <li>      freedreno: android: fix build failure on android due to python version</li>
+    <li>      freedreno: android: add a6xx-pack.xml.h generation to android build</li>
+    <li>      freedreno: android: fix build of perfcounters.</li>
+    <p></p>
+    <p>Michel Dänzer (1):</p>
+    <li>      llvmpipe: Use uintptr_t for pointer values</li>
+    <p></p>
+    <p>Rafael Antognolli (3):</p>
+    <li>      anv: Wait for the GPU to be idle before invalidating the aux table.</li>
+    <li>      iris: Split aux map initialization from invalidation.</li>
+    <li>      iris: Wait for the GPU to be idle before invalidating the aux table.</li>
+    <p></p>
+    <p>Rob Clark (1):</p>
+    <li>      freedreno: fix FD_MESA_DEBUG=inorder</li>
+    <p></p>
+    <p>Samuel Pitoiset (5):</p>
+    <li>      aco: fix image load/store with lod and 1D images</li>
+    <li>      nir/lower_input_attachments: remove bogus assert in try_lower_input_texop()</li>
+    <li>      ac/llvm: add missing optimization barrier for 64-bit readlanes</li>
+    <li>      radv: only inject implicit subpass dependencies if necessary</li>
+    <li>      radv: fix random depth range unrestricted failures due to a cache issue</li>
+    <p></p>
+    <p>Timur Kristóf (2):</p>
+    <li>      nir: Add ability to lower non-const quad broadcasts to const ones.</li>
+    <li>      radv: Enable lowering dynamic quad broadcasts.</li>
+    <p></p>
+    <p>Vinson Lee (1):</p>
+    <li>      st/nine: Fix incompatible-pointer-types-discards-qualifiers errors.</li>
+    <p></p>
+    <p></p>
+</ul>
+
+</div>
+</body>
+</html>

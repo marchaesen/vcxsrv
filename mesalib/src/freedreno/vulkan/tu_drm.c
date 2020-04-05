@@ -80,6 +80,12 @@ tu_drm_get_gmem_size(const struct tu_physical_device *dev, uint32_t *size)
 }
 
 int
+tu_drm_get_gmem_base(const struct tu_physical_device *dev, uint64_t *base)
+{
+   return tu_drm_get_param(dev, MSM_PARAM_GMEM_BASE, base);
+}
+
+int
 tu_drm_submitqueue_new(const struct tu_device *dev,
                        int priority,
                        uint32_t *queue_id)

@@ -219,7 +219,7 @@ st_pbo_draw(struct st_context *st, const struct st_pbo_addresses *addr,
    /* Upload vertices */
    {
       struct pipe_vertex_buffer vbo = {0};
-      struct pipe_vertex_element velem;
+      struct cso_velems_state velem;
 
       float x0 = (float) addr->xoffset / surface_width * 2.0f - 1.0f;
       float y0 = (float) addr->yoffset / surface_height * 2.0f - 1.0f;
@@ -246,14 +246,15 @@ st_pbo_draw(struct st_context *st, const struct st_pbo_addresses *addr,
 
       u_upload_unmap(st->pipe->stream_uploader);
 
-      velem.src_offset = 0;
-      velem.instance_divisor = 0;
-      velem.vertex_buffer_index = 0;
-      velem.src_format = PIPE_FORMAT_R32G32_FLOAT;
+      velem.count = 1;
+      velem.velems[0].src_offset = 0;
+      velem.velems[0].instance_divisor = 0;
+      velem.velems[0].vertex_buffer_index = 0;
+      velem.velems[0].src_format = PIPE_FORMAT_R32G32_FLOAT;
 
-      cso_set_vertex_elements(cso, 1, &velem);
+      cso_set_vertex_elements(cso, &velem);
 
-      cso_set_vertex_buffers(cso, velem.vertex_buffer_index, 1, &vbo);
+      cso_set_vertex_buffers(cso, 0, 1, &vbo);
 
       pipe_resource_reference(&vbo.buffer.resource, NULL);
    }
@@ -829,7 +830,7 @@ st_destroy_pbo_helpers(struct st_context *st)
 
    for (i = 0; i < ARRAY_SIZE(st->pbo.upload_fs); ++i) {
       if (st->pbo.upload_fs[i]) {
-         cso_delete_fragment_shader(st->cso_context, st->pbo.upload_fs[i]);
+         st->pipe->delete_fs_state(st->pipe, st->pbo.upload_fs[i]);
          st->pbo.upload_fs[i] = NULL;
       }
    }
@@ -837,19 +838,19 @@ st_destroy_pbo_helpers(struct st_context *st)
    for (i = 0; i < ARRAY_SIZE(st->pbo.download_fs); ++i) {
       for (unsigned j = 0; j < ARRAY_SIZE(st->pbo.download_fs[0]); ++j) {
          if (st->pbo.download_fs[i][j]) {
-            cso_delete_fragment_shader(st->cso_context, st->pbo.download_fs[i][j]);
+            st->pipe->delete_fs_state(st->pipe, st->pbo.download_fs[i][j]);
             st->pbo.download_fs[i][j] = NULL;
          }
       }
    }
 
    if (st->pbo.gs) {
-      cso_delete_geometry_shader(st->cso_context, st->pbo.gs);
+      st->pipe->delete_gs_state(st->pipe, st->pbo.gs);
       st->pbo.gs = NULL;
    }
 
    if (st->pbo.vs) {
-      cso_delete_vertex_shader(st->cso_context, st->pbo.vs);
+      st->pipe->delete_vs_state(st->pipe, st->pbo.vs);
       st->pbo.vs = NULL;
    }
 }

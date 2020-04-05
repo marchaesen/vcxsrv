@@ -10,6 +10,8 @@ echo 'deb https://deb.debian.org/debian buster-backports main' >/etc/apt/sources
 dpkg --add-architecture armhf
 apt-get update
 apt-get -y install \
+	abootimg \
+	android-sdk-ext4-utils \
 	bc \
 	bison \
 	ccache \
@@ -17,6 +19,7 @@ apt-get -y install \
 	cpio \
 	crossbuild-essential-armhf \
 	debootstrap \
+	fastboot \
 	flex \
 	g++ \
 	gettext \
@@ -41,17 +44,22 @@ apt-get -y install \
 	meson \
 	pkg-config \
 	python \
+	python3-distutils \
 	python3-mako \
+	python3-serial \
 	unzip \
 	wget \
+	xz-utils \
 	zlib1g-dev
+
+. .gitlab-ci/container/container_pre_build.sh
 
 # dependencies where we want a specific version
 export LIBDRM_VERSION=libdrm-2.4.100
 
 wget https://dri.freedesktop.org/libdrm/$LIBDRM_VERSION.tar.bz2
 tar -xvf $LIBDRM_VERSION.tar.bz2 && rm $LIBDRM_VERSION.tar.bz2
-cd $LIBDRM_VERSION; meson build -D vc4=true -D freedreno=true -D etnaviv=true; ninja -j4 -C build install; cd ..
+cd $LIBDRM_VERSION; meson build -D vc4=true -D freedreno=true -D etnaviv=true; ninja -C build install; cd ..
 rm -rf $LIBDRM_VERSION
 
 ############### Generate cross build file for Meson
@@ -69,6 +77,7 @@ DEBIAN_ARCH=arm64 . .gitlab-ci/container/lava_arm.sh
 DEBIAN_ARCH=armhf . .gitlab-ci/container/lava_arm.sh
 
 apt-get purge -y \
+        python3-distutils \
         wget
 
-apt-get autoremove -y --purge
+. .gitlab-ci/container/container_post_build.sh

@@ -135,11 +135,14 @@ enum vtn_cf_node_type {
    vtn_cf_node_type_block,
    vtn_cf_node_type_if,
    vtn_cf_node_type_loop,
+   vtn_cf_node_type_case,
    vtn_cf_node_type_switch,
+   vtn_cf_node_type_function,
 };
 
 struct vtn_cf_node {
    struct list_head link;
+   struct vtn_cf_node *parent;
    enum vtn_cf_node_type type;
 };
 
@@ -172,7 +175,7 @@ struct vtn_if {
 };
 
 struct vtn_case {
-   struct list_head link;
+   struct vtn_cf_node node;
 
    struct list_head body;
 
@@ -225,7 +228,7 @@ struct vtn_block {
 };
 
 struct vtn_function {
-   struct exec_node node;
+   struct vtn_cf_node node;
 
    struct vtn_type *type;
 
@@ -241,6 +244,24 @@ struct vtn_function {
 
    SpvFunctionControlMask control;
 };
+
+#define VTN_DECL_CF_NODE_CAST(_type)               \
+static inline struct vtn_##_type *                 \
+vtn_cf_node_as_##_type(struct vtn_cf_node *node)   \
+{                                                  \
+   assert(node->type == vtn_cf_node_type_##_type); \
+   return (struct vtn_##_type *)node;              \
+}
+
+VTN_DECL_CF_NODE_CAST(block)
+VTN_DECL_CF_NODE_CAST(loop)
+VTN_DECL_CF_NODE_CAST(if)
+VTN_DECL_CF_NODE_CAST(case)
+VTN_DECL_CF_NODE_CAST(switch)
+VTN_DECL_CF_NODE_CAST(function)
+
+#define vtn_foreach_cf_node(node, cf_list) \
+   list_for_each_entry(struct vtn_cf_node, node, cf_list, link)
 
 typedef bool (*vtn_instruction_handler)(struct vtn_builder *, SpvOp,
                                         const uint32_t *, unsigned);
@@ -636,7 +657,7 @@ struct vtn_builder {
    bool variable_pointers;
 
    struct vtn_function *func;
-   struct exec_list functions;
+   struct list_head functions;
 
    /* Current function parameter index */
    unsigned func_param_idx;
@@ -890,6 +911,11 @@ bool vtn_handle_amd_shader_ballot_instruction(struct vtn_builder *b, SpvOp ext_o
 
 bool vtn_handle_amd_shader_trinary_minmax_instruction(struct vtn_builder *b, SpvOp ext_opcode,
 						      const uint32_t *words, unsigned count);
+
+bool vtn_handle_amd_shader_explicit_vertex_parameter_instruction(struct vtn_builder *b,
+                                                                 SpvOp ext_opcode,
+                                                                 const uint32_t *words,
+                                                                 unsigned count);
 
 SpvMemorySemanticsMask vtn_storage_class_to_memory_semantics(SpvStorageClass sc);
 

@@ -44,7 +44,6 @@ extern int DeviceBusy;
 extern int BadClass;
 
 /* Note: only the ones needed in files other than extinit.c are declared */
-extern const Mask DevicePointerMotionMask;
 extern const Mask DevicePointerMotionHintMask;
 extern const Mask DeviceFocusChangeMask;
 extern const Mask DeviceStateNotifyMask;
@@ -55,8 +54,6 @@ extern const Mask DeviceButtonMotionMask;
 extern const Mask DevicePresenceNotifyMask;
 extern const Mask DevicePropertyNotifyMask;
 extern const Mask XIAllMasks;
-
-extern Mask PropagateMask[];
 
 extern int DeviceValuator;
 extern int DeviceKeyPress;

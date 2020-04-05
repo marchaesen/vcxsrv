@@ -135,10 +135,13 @@ static void gather_intrinsic_load_deref_info(const nir_shader *nir,
 {
    assert(var && var->data.mode == nir_var_shader_in);
 
-   gather_usage(deref, nir_ssa_def_components_read(&instr->dest.ssa),
-		info->input_usage_mask);
+   if (nir->info.stage == MESA_SHADER_FRAGMENT)
+      gather_usage(deref, nir_ssa_def_components_read(&instr->dest.ssa),
+                   info->input_usage_mask);
+
    switch (nir->info.stage) {
    case MESA_SHADER_VERTEX: {
+
       break;
    }
    default: {

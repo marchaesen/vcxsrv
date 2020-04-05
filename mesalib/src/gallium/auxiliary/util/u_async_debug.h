@@ -34,7 +34,7 @@
 #define UTIL_ASYNC_DEBUG_H
 
 #include "pipe/p_state.h"
-
+#include "util/u_debug.h"
 #include "util/simple_mtx.h"
 
 struct util_debug_message {

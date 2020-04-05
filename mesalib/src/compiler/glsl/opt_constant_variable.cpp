@@ -49,6 +49,9 @@ struct assignment_entry {
 
 class ir_constant_variable_visitor : public ir_hierarchical_visitor {
 public:
+   using ir_hierarchical_visitor::visit;
+   using ir_hierarchical_visitor::visit_enter;
+
    virtual ir_visitor_status visit_enter(ir_dereference_variable *);
    virtual ir_visitor_status visit(ir_variable *);
    virtual ir_visitor_status visit_enter(ir_assignment *);

@@ -86,7 +86,12 @@ endif
 use_mmx = get_option('mmx')
 have_mmx = false
 mmx_flags = []
-if cc.get_id() != 'msvc'
+
+if cc.get_id() == 'msvc'
+  mmx_flags = ['/w14710', '/w14714', '/wd4244']
+elif cc.get_id() == 'sun'
+  mmx_flags = ['-xarch=sse']
+else
   mmx_flags = ['-mmmx', '-Winline']
 endif
 if not use_mmx.disabled()
@@ -143,7 +148,9 @@ endif
 use_sse2 = get_option('sse2')
 have_sse2 = false
 sse2_flags = []
-if cc.get_id() != 'msvc'
+if cc.get_id() == 'sun'
+  sse2_flags = ['-xarch=sse2']
+elif cc.get_id() != 'msvc'
   sse2_flags = ['-msse2', '-Winline']
 endif
 if not use_sse2.disabled()
@@ -436,7 +443,7 @@ if pthreads_found
   config.set('HAVE_PTHREADS', 1)
 endif
 
-funcs = ['sigaction', 'alarm', 'mprotect', 'getpagesize', 'mmap']
+funcs = ['sigaction', 'alarm', 'mprotect', 'getpagesize', 'mmap', 'getisax', 'gettimeofday']
 # mingw claimes to have posix_memalign, but it doesn't
 if host_machine.system() != 'windows'
   funcs += 'posix_memalign'
@@ -447,10 +454,6 @@ foreach f : funcs
     config.set('HAVE_@0@'.format(f.to_upper()), 1)
   endif
 endforeach
-
-if cc.has_function('gettimeofday')
-  config.set('HAVE_GETTIMEOFDAY', 1)
-endif
 
 # This is only used in one test, that defines _GNU_SOURCE
 if cc.has_function('feenableexcept',

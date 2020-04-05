@@ -113,16 +113,35 @@ mir_is_bitwise(midgard_instruction *ins)
         }
 }
 
+static bool
+mir_is_inverted_bitwise(midgard_instruction *ins)
+{
+        switch (ins->alu.op) {
+        case midgard_alu_op_inand:
+        case midgard_alu_op_inor:
+        case midgard_alu_op_inxor:
+                return true;
+        default:
+                return false;
+        }
+}
+
 static midgard_alu_op
 mir_invert_op(midgard_alu_op op)
 {
         switch (op) {
         case midgard_alu_op_iand:
                 return midgard_alu_op_inand;
+        case midgard_alu_op_inand:
+                return midgard_alu_op_iand;
         case midgard_alu_op_ior:
                 return midgard_alu_op_inor;
+        case midgard_alu_op_inor:
+                return midgard_alu_op_ior;
         case midgard_alu_op_ixor:
                 return midgard_alu_op_inxor;
+        case midgard_alu_op_inxor:
+                return midgard_alu_op_ixor;
         default:
                 unreachable("Op not invertible");
         }
@@ -162,7 +181,7 @@ midgard_opt_fuse_dest_invert(compiler_context *ctx, midgard_block *block)
         mir_foreach_instr_in_block_safe(block, ins) {
                 /* Search for inverted bitwise */
                 if (ins->type != TAG_ALU_4) continue;
-                if (!mir_is_bitwise(ins)) continue;
+                if (!mir_is_bitwise(ins) && !mir_is_inverted_bitwise(ins)) continue;
                 if (!ins->invert) continue;
 
                 ins->alu.op = mir_invert_op(ins->alu.op);
@@ -223,7 +242,6 @@ midgard_opt_fuse_src_invert(compiler_context *ctx, midgard_block *block)
                 /* Search for inverted bitwise */
                 if (ins->type != TAG_ALU_4) continue;
                 if (!mir_is_bitwise(ins)) continue;
-                if (ins->invert) continue;
 
                 if (!is_ssa_or_constant(ins->src[0])) continue;
                 if (!is_ssa_or_constant(ins->src[1])) continue;

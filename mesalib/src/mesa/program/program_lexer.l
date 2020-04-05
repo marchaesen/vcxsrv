@@ -27,7 +27,7 @@
 #endif
 
 #include "main/glheader.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "program/prog_instruction.h"
 #include "program/prog_statevars.h"
 #include "program/symbol_table.h"

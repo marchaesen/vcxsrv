@@ -36,7 +36,7 @@
  */
 
 
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/macros.h"
 #include "main/arrayobj.h"
 #include "main/feedback.h"
@@ -205,15 +205,10 @@ new_draw_rastpos_stage(struct gl_context *ctx, struct draw_context *draw)
    _mesa_enable_vertex_array_attrib(ctx, rs->VAO, 0);
 
    rs->prim.mode = GL_POINTS;
-   rs->prim.indexed = 0;
    rs->prim.begin = 1;
    rs->prim.end = 1;
    rs->prim.start = 0;
    rs->prim.count = 1;
-   rs->prim.pad = 0;
-   rs->prim.num_instances = 1;
-   rs->prim.base_instance = 0;
-   rs->prim.is_indirect = 0;
 
    return rs;
 }
@@ -265,8 +260,8 @@ st_RasterPos(struct gl_context *ctx, const GLfloat v[4])
    _mesa_set_draw_vao(ctx, rs->VAO, VERT_BIT_POS);
 
    /* Draw the point. */
-   st_feedback_draw_vbo(ctx, &rs->prim, 1, NULL, GL_TRUE, 0, 1,
-                        NULL, 0, NULL);
+   st_feedback_draw_vbo(ctx, &rs->prim, 1, NULL, GL_TRUE, 0, 1, 1, 0,
+                        NULL, 0);
 
    /* restore draw's rasterization stage depending on rendermode */
    if (ctx->RenderMode == GL_FEEDBACK) {

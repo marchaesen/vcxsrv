@@ -159,6 +159,31 @@ ac_get_tbuffer_format(enum chip_class chip_class,
 	}
 }
 
+static const struct ac_data_format_info data_format_table[] = {
+	[V_008F0C_BUF_DATA_FORMAT_INVALID]     = {  0, 4, 0, V_008F0C_BUF_DATA_FORMAT_INVALID	 },
+	[V_008F0C_BUF_DATA_FORMAT_8]           = {  1, 1, 1, V_008F0C_BUF_DATA_FORMAT_8		 },
+	[V_008F0C_BUF_DATA_FORMAT_16]          = {  2, 1, 2, V_008F0C_BUF_DATA_FORMAT_16	 },
+	[V_008F0C_BUF_DATA_FORMAT_8_8]         = {  2, 2, 1, V_008F0C_BUF_DATA_FORMAT_8		 },
+	[V_008F0C_BUF_DATA_FORMAT_32]          = {  4, 1, 4, V_008F0C_BUF_DATA_FORMAT_32	 },
+	[V_008F0C_BUF_DATA_FORMAT_16_16]       = {  4, 2, 2, V_008F0C_BUF_DATA_FORMAT_16         },
+	[V_008F0C_BUF_DATA_FORMAT_10_11_11]    = {  4, 3, 0, V_008F0C_BUF_DATA_FORMAT_10_11_11	 },
+	[V_008F0C_BUF_DATA_FORMAT_11_11_10]    = {  4, 3, 0, V_008F0C_BUF_DATA_FORMAT_11_11_10	 },
+	[V_008F0C_BUF_DATA_FORMAT_10_10_10_2]  = {  4, 4, 0, V_008F0C_BUF_DATA_FORMAT_10_10_10_2 },
+	[V_008F0C_BUF_DATA_FORMAT_2_10_10_10]  = {  4, 4, 0, V_008F0C_BUF_DATA_FORMAT_2_10_10_10 },
+	[V_008F0C_BUF_DATA_FORMAT_8_8_8_8]     = {  4, 4, 1, V_008F0C_BUF_DATA_FORMAT_8		 },
+	[V_008F0C_BUF_DATA_FORMAT_32_32]       = {  8, 2, 4, V_008F0C_BUF_DATA_FORMAT_32	 },
+	[V_008F0C_BUF_DATA_FORMAT_16_16_16_16] = {  8, 4, 2, V_008F0C_BUF_DATA_FORMAT_16	 },
+	[V_008F0C_BUF_DATA_FORMAT_32_32_32]    = { 12, 3, 4, V_008F0C_BUF_DATA_FORMAT_32	 },
+	[V_008F0C_BUF_DATA_FORMAT_32_32_32_32] = { 16, 4, 4, V_008F0C_BUF_DATA_FORMAT_32	 },
+};
+
+const struct ac_data_format_info *
+ac_get_data_format_info(unsigned dfmt)
+{
+	assert(dfmt < ARRAY_SIZE(data_format_table));
+	return &data_format_table[dfmt];
+}
+
 enum ac_image_dim
 ac_get_sampler_dim(enum chip_class chip_class, enum glsl_sampler_dim dim,
 		   bool is_array)

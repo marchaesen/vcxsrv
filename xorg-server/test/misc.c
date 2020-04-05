@@ -33,8 +33,6 @@
 
 #include "tests-common.h"
 
-ScreenInfo screenInfo;
-
 static void
 dix_version_compare(void)
 {

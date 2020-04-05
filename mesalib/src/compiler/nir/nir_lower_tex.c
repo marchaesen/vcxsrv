@@ -126,7 +126,7 @@ lower_offset(nir_builder *b, nir_tex_instr *tex)
       if (tex->sampler_dim == GLSL_SAMPLER_DIM_RECT) {
          offset_coord = nir_fadd(b, coord, nir_i2f32(b, offset));
       } else {
-         nir_ssa_def *txs = nir_get_texture_size(b, tex);
+         nir_ssa_def *txs = nir_i2f32(b, nir_get_texture_size(b, tex));
          nir_ssa_def *scale = nir_frcp(b, txs);
 
          offset_coord = nir_fadd(b, coord,
@@ -168,7 +168,7 @@ lower_rect(nir_builder *b, nir_tex_instr *tex)
     */
    tex->sampler_dim = GLSL_SAMPLER_DIM_2D;
 
-   nir_ssa_def *txs = nir_get_texture_size(b, tex);
+   nir_ssa_def *txs = nir_i2f32(b, nir_get_texture_size(b, tex));
    nir_ssa_def *scale = nir_frcp(b, txs);
 
    /* Walk through the sources normalizing the requested arguments. */
@@ -405,7 +405,7 @@ lower_gradient_cube_map(nir_builder *b, nir_tex_instr *tex)
    assert(tex->dest.is_ssa);
 
    /* Use textureSize() to get the width and height of LOD 0 */
-   nir_ssa_def *size = nir_get_texture_size(b, tex);
+   nir_ssa_def *size = nir_i2f32(b, nir_get_texture_size(b, tex));
 
    /* Cubemap texture lookups first generate a texture coordinate normalized
     * to [-1, 1] on the appropiate face. The appropiate face is determined
@@ -572,7 +572,8 @@ lower_gradient(nir_builder *b, nir_tex_instr *tex)
    }
 
    nir_ssa_def *size =
-      nir_channels(b, nir_get_texture_size(b, tex), component_mask);
+      nir_channels(b, nir_i2f32(b, nir_get_texture_size(b, tex)),
+                      component_mask);
 
    /* Scale the gradients by width and height.  Effectively, the incoming
     * gradients are s'(x,y), t'(x,y), and r'(x,y) from equation 3.19 in the
@@ -634,7 +635,7 @@ saturate_src(nir_builder *b, nir_tex_instr *tex, unsigned sat_mask)
                /* non-normalized texture coords, so clamp to texture
                 * size rather than [0.0, 1.0]
                 */
-               nir_ssa_def *txs = nir_get_texture_size(b, tex);
+               nir_ssa_def *txs = nir_i2f32(b, nir_get_texture_size(b, tex));
                comp[j] = nir_fmax(b, comp[j], nir_imm_float(b, 0.0));
                comp[j] = nir_fmin(b, comp[j], nir_channel(b, txs, j));
             } else {

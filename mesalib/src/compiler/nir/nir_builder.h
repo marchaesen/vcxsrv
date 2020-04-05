@@ -1250,8 +1250,9 @@ static inline nir_ssa_def *
 nir_load_barycentric(nir_builder *build, nir_intrinsic_op op,
                      unsigned interp_mode)
 {
+   unsigned num_components = op == nir_intrinsic_load_barycentric_model ? 3 : 2;
    nir_intrinsic_instr *bary = nir_intrinsic_instr_create(build->shader, op);
-   nir_ssa_dest_init(&bary->instr, &bary->dest, 2, 32, NULL);
+   nir_ssa_dest_init(&bary->instr, &bary->dest, num_components, 32, NULL);
    nir_intrinsic_set_interp_mode(bary, interp_mode);
    nir_builder_instr_insert(build, &bary->instr);
    return &bary->dest.ssa;
@@ -1287,6 +1288,20 @@ nir_compare_func(nir_builder *b, enum compare_func func,
       return nir_fge(b, src1, src0);
    }
    unreachable("bad compare func");
+}
+
+static inline void
+nir_scoped_memory_barrier(nir_builder *b,
+                          nir_scope scope,
+                          nir_memory_semantics semantics,
+                          nir_variable_mode modes)
+{
+   nir_intrinsic_instr *intrin =
+      nir_intrinsic_instr_create(b->shader, nir_intrinsic_scoped_memory_barrier);
+   nir_intrinsic_set_memory_scope(intrin, scope);
+   nir_intrinsic_set_memory_semantics(intrin, semantics);
+   nir_intrinsic_set_memory_modes(intrin, modes);
+   nir_builder_instr_insert(b, &intrin->instr);
 }
 
 #endif /* NIR_BUILDER_H */

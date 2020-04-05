@@ -411,7 +411,8 @@ nir_lower_io_to_vector_impl(nir_function_impl *impl, nir_variable_mode modes)
          case nir_intrinsic_load_deref:
          case nir_intrinsic_interp_deref_at_centroid:
          case nir_intrinsic_interp_deref_at_sample:
-         case nir_intrinsic_interp_deref_at_offset: {
+         case nir_intrinsic_interp_deref_at_offset:
+         case nir_intrinsic_interp_deref_at_vertex: {
             nir_deref_instr *old_deref = nir_src_as_deref(intrin->src[0]);
             if (!(old_deref->mode & modes))
                break;

@@ -41,19 +41,20 @@
  * must allocate for, and DRM_PANFROST_PARAM_SHADER_PRESENT for a bitmask of
  * shader cores (so take a popcount of that mask for the number of shader
  * cores). On older kernels that do not support querying these values,
- * following kbase, we may use the worst-case value of 1024 threads for
+ * following kbase, we may use the worst-case value of 256 threads for
  * THREAD_TLS_ALLOC, and the worst-case value of 16 cores for Midgard per the
  * "shader core count" column of the implementations table in
  * https://en.wikipedia.org/wiki/Mali_%28GPU% [citation needed]
  *
  * Within a particular thread, there is stack allocated. If it is present, its
- * size is a power-of-two, and it is at least 256 bytes. Stack is allocated
- * with the framebuffer descriptor used for all shaders within a frame (note
+ * size is a power-of-two, and it is at least 16 bytes. Stack is allocated
+ * with the shared memory descriptor used for all shaders within a frame (note
  * that they don't execute concurrently so it's fine). So, consider the maximum
  * stack size used by any shader within a job, and then compute (where npot
  * denotes the next power of two):
  *
- *      allocated = npot(max(size, 256)) * (# of threads/core) * (# of cores)
+ *      bytes/thread = npot(max(size, 16))
+ *      allocated = (# of bytes/thread) * (# of threads/core) * (# of cores)
  *
  * The size of Thread Local Storage is signaled to the GPU in a dedicated
  * log_stack_size field. Since stack sizes are powers of two, it follows that
@@ -70,23 +71,30 @@
  *      stack_size <= 2^(log_stack_size + 4)
  *
  *  Given the constraints about powers-of-two and the minimum of 256, we thus
- *  derive a formula for log_stack_size in terms of stack size (s):
+ *  derive a formula for log_stack_size in terms of stack size (s), where s is
+ *  positive:
  *
- *      log_stack_size = ceil(log2(max(s, 256))) - 4
+ *      log_stack_size = ceil(log2(max(s, 16))) - 4
  *
  * There are other valid characterisations of this formula, of course, but this
- * is computationally simple, so good enough for our purposes.
+ * is computationally simple, so good enough for our purposes. If s=0, since
+ * there is no spilling used whatsoever, we may set log_stack_size to 0 to
+ * disable the stack.
  */
 
-/* Computes log_stack_size = ceil(log2(max(s, 256))) - 4 */
+/* Computes log_stack_size = ceil(log2(max(s, 16))) - 4 */
 
 unsigned
 panfrost_get_stack_shift(unsigned stack_size)
 {
-        return util_logbase2_ceil(MAX2(stack_size, 256)) - 4;
+        if (stack_size)
+                return util_logbase2_ceil(MAX2(stack_size, 16)) - 4;
+        else
+                return 0;
 }
 
-/* Computes the aligned stack size given the shift and thread count */
+/* Computes the aligned stack size given the shift and thread count. The blob
+ * reserves an extra page, and since this is hardware-internal, we do too. */
 
 unsigned
 panfrost_get_total_stack_size(
@@ -94,6 +102,8 @@ panfrost_get_total_stack_size(
                 unsigned threads_per_core,
                 unsigned core_count)
 {
-        unsigned stack_size = 1 << (stack_shift + 4);
-        return stack_size * threads_per_core * core_count;
+        unsigned size_per_thread = MAX2(1 << (stack_shift + 4), 32);
+        unsigned size = size_per_thread * threads_per_core * core_count;
+
+        return size + 4096;
 }

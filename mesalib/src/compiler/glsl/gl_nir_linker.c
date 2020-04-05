@@ -29,10 +29,9 @@
 #include "main/shaderobj.h"
 #include "ir_uniform.h" /* for gl_uniform_storage */
 
-/* This file included general link methods, using NIR, instead of IR as
+/**
+ * This file included general link methods, using NIR, instead of IR as
  * the counter-part glsl/linker.cpp
- *
- * Also note that this is tailored for ARB_gl_spirv needs and particularities
  */
 
 /**

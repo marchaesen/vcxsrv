@@ -41,7 +41,7 @@
 
 #include "protocol-common.h"
 
-ClientRec client_window;
+extern ClientRec client_window;
 static ClientRec client_request;
 
 #define N_MODS 7

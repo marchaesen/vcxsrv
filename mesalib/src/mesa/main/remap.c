@@ -38,7 +38,7 @@
 #include <stdbool.h>
 #include "glapi/glapi.h"
 #include "remap.h"
-#include "imports.h"
+#include "util/imports.h"
 
 #define MAX_ENTRY_POINTS 16
 

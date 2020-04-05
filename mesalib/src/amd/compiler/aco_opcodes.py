@@ -77,7 +77,6 @@ class Format(Enum):
       elif self == Format.MTBUF:
          return [('unsigned', 'dfmt', None),
                  ('unsigned', 'nfmt', None),
-                 ('unsigned', 'img_format', None),
                  ('unsigned', 'offset', None),
                  ('bool', 'offen', None),
                  ('bool', 'idxen', 'false'),
@@ -85,8 +84,7 @@ class Format(Enum):
                  ('bool', 'glc', 'false'),
                  ('bool', 'dlc', 'false'),
                  ('bool', 'slc', 'false'),
-                 ('bool', 'tfe', 'false'),
-                 ('bool', 'lds', 'false')]
+                 ('bool', 'tfe', 'false')]
       elif self == Format.MUBUF:
          return [('unsigned', 'offset', None),
                  ('bool', 'offen', None),
@@ -188,7 +186,7 @@ class Opcode(object):
 # global dictionary of opcodes
 opcodes = {}
 
-def opcode(name, opcode_gfx7 = -1, opcode_gfx9 = -1, opcode_gfx10 = -1, format = Format.PSEUDO, input_mod = False, output_mod = False, is_atomic = True):
+def opcode(name, opcode_gfx7 = -1, opcode_gfx9 = -1, opcode_gfx10 = -1, format = Format.PSEUDO, input_mod = False, output_mod = False, is_atomic = False):
    assert name not in opcodes
    opcodes[name] = Opcode(name, opcode_gfx7, opcode_gfx9, opcode_gfx10, format, input_mod, output_mod, is_atomic)
 
@@ -588,7 +586,7 @@ SMEM = {
    (  -1,   -1,   -1, 0xac, 0xac, "s_atomic_dec_x2"),
 }
 for (gfx6, gfx7, gfx8, gfx9, gfx10, name) in SMEM:
-   opcode(name, gfx7, gfx9, gfx10, Format.SMEM, is_atomic = "atomic" not in name)
+   opcode(name, gfx7, gfx9, gfx10, Format.SMEM, is_atomic = "atomic" in name)
 
 
 # VOP2 instructions: 2 inputs, 1 output (+ optional vcc)
@@ -1271,7 +1269,7 @@ MUBUF = {
    (  -1,   -1,   -1,   -1, 0x72, "buffer_gl1_inv"),
 }
 for (gfx6, gfx7, gfx8, gfx9, gfx10, name) in MUBUF:
-    opcode(name, gfx7, gfx9, gfx10, Format.MUBUF, is_atomic = "atomic" not in name)
+    opcode(name, gfx7, gfx9, gfx10, Format.MUBUF, is_atomic = "atomic" in name)
 
 MTBUF = {
    (0x00, 0x00, 0x00, 0x00, 0x00, "tbuffer_load_format_x"),
@@ -1335,7 +1333,7 @@ IMAGE_ATOMIC = {
 # (gfx6, gfx7, gfx8, gfx9, gfx10, name) = (gfx6, gfx7, gfx89, gfx89, ???, name)
 # gfx7 and gfx10 opcodes are the same here
 for (gfx6, gfx7, gfx89, name) in IMAGE_ATOMIC:
-   opcode(name, gfx7, gfx89, gfx7, Format.MIMG, is_atomic = False)
+   opcode(name, gfx7, gfx89, gfx7, Format.MIMG, is_atomic = True)
 
 IMAGE_SAMPLE = {
    (0x20, "image_sample"),
@@ -1475,7 +1473,7 @@ FLAT = {
    (0x60,   -1, 0x60, "flat_atomic_fmax_x2"),
 }
 for (gfx7, gfx8, gfx10, name) in FLAT:
-    opcode(name, gfx7, gfx8, gfx10, Format.FLAT, is_atomic = "atomic" not in name)
+    opcode(name, gfx7, gfx8, gfx10, Format.FLAT, is_atomic = "atomic" in name)
 
 GLOBAL = {
    #GFX8_9, GFX10
@@ -1535,7 +1533,7 @@ GLOBAL = {
    (  -1, 0x60, "global_atomic_fmax_x2"),
 }
 for (gfx8, gfx10, name) in GLOBAL:
-    opcode(name, -1, gfx8, gfx10, Format.GLOBAL, is_atomic = "atomic" not in name)
+    opcode(name, -1, gfx8, gfx10, Format.GLOBAL, is_atomic = "atomic" in name)
 
 SCRATCH = {
    #GFX8_9, GFX10

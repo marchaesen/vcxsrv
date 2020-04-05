@@ -1,0 +1,129 @@
+# This file list source dependencies to avoid creating/running jobs
+# those outcome cannot be changed by the modifications from a branch.
+
+# Mesa core source file dependencies
+# ----------------------------------
+.mesa-rules:
+  rules:
+    - changes: &mesa_core_file_list
+      - .gitlab-ci.yml
+      - .gitlab-ci/**/*
+      - include/**/*
+      - meson.build
+      - SConstruct
+      - src/*
+      - src/compiler/**/*
+      - src/drm-shim/**/*
+      - src/egl/**/*
+      - src/gbm/**/*
+      - src/glx/**/*
+      - src/gtest/**/*
+      - src/hgl/**/*
+      - src/include/**/*
+      - src/loader/**/*
+      - src/mapi/**/*
+      - src/mesa/**/*
+      - src/util/**/*
+
+# Gallium core source file dependencies
+# -------------------------------------
+.gallium-rules:
+  rules:
+    - changes: &gallium_core_file_list
+      - src/gallium/*
+      - src/gallium/auxiliary/**/*
+      - src/gallium/drivers/*
+      - src/gallium/include/**/*
+      - src/gallium/state_trackers/**/*
+      - src/gallium/targets/**/*
+      - src/gallium/tests/**/*
+      - src/gallium/winsys/*
+
+.softpipe-rules:
+  stage: softpipe
+  rules:
+    - changes:
+        *mesa_core_file_list
+      when: on_success
+    - changes:
+        *gallium_core_file_list
+      when: on_success
+    - changes:
+      - src/gallium/drivers/softpipe/**/*
+      - src/gallium/winsys/sw/**/*
+      when: on_success
+    - when: never
+
+.llvmpipe-rules:
+  stage: llvmpipe
+  rules:
+    - changes:
+        *mesa_core_file_list
+      when: on_success
+    - changes:
+        *gallium_core_file_list
+      when: on_success
+    - changes:
+      - src/gallium/drivers/llvmpipe/**/*
+      - src/gallium/winsys/sw/**/*
+      when: on_success
+    - when: never
+
+.freedreno-rules:
+  stage: freedreno
+  rules:
+    - changes:
+        *mesa_core_file_list
+      when: on_success
+    - changes:
+        *gallium_core_file_list
+      when: on_success
+    - changes:
+      - src/freedreno/**/*
+      - src/gallium/drivers/freedreno/**/*
+      - src/gallium/winsys/freedreno/**/*
+      when: on_success
+    - when: never
+
+.panfrost-rules:
+  stage: panfrost
+  rules:
+    - changes:
+        *mesa_core_file_list
+      when: on_success
+    - changes:
+        *gallium_core_file_list
+      when: on_success
+    - changes:
+      - src/gallium/drivers/panfrost/**/*
+      - src/gallium/winsys/panfrost/**/*
+      - src/panfrost/**/*
+      when: on_success
+    - when: never
+
+.lima-rules:
+  stage: lima
+  rules:
+    - changes:
+        *mesa_core_file_list
+      when: on_success
+    - changes:
+        *gallium_core_file_list
+      when: on_success
+    - changes:
+      - src/gallium/drivers/lima/**/*
+      - src/gallium/winsys/lima/**/*
+      - src/lima/**/*
+      when: on_success
+    - when: never
+
+.radv-rules:
+  rules:
+    - changes:
+        *mesa_core_file_list
+      when: on_success
+    - changes:
+      - src/amd/**/*
+      - src/vulkan/**/*
+      when: on_success
+    - when: never

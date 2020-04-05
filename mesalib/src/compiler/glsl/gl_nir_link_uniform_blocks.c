@@ -27,11 +27,11 @@
 #include "linker_util.h"
 #include "main/mtypes.h"
 
-/* Summary: This file contains code to do a nir-based linking for uniform
- * blocks. This includes ubos and ssbos.  Note that it is tailored to
- * ARB_gl_spirv needs and particularities.
+/**
+ * This file contains code to do a nir-based linking for uniform blocks. This
+ * includes ubos and ssbos.
  *
- * More details:
+ * For the case of ARB_gl_spirv there are some differences compared with GLSL:
  *
  * 1. Linking doesn't use names: GLSL linking use names as core concept. But
  *    on SPIR-V, uniform block name, fields names, and other names are
@@ -67,8 +67,9 @@
  *    RESOLVED.  Pick (c), but also allow debug names to be returned if an
  *    implementation wants to."
  *
- * This implemention doesn't care for the names, as the main objective is
- * functional, and not support optional debug features.
+ * When linking SPIR-V shaders this implemention doesn't care for the names,
+ * as the main objective is functional, and not support optional debug
+ * features.
  *
  * 2. Terminology: this file handles both UBO and SSBO, including both as
  *    "uniform blocks" analogously to what is done in the GLSL (IR) path.
@@ -80,11 +81,11 @@
  *       <skip>
  *       buffer  blockN { ... } ...;  -> Uniform, with BufferBlock decoration"
  *
- * 3. Explicit data: The code assumes that all structure members have an
- *    Offset decoration, all arrays have an ArrayStride and all matrices have
- *    a MatrixStride, even for nested structures. That way we don’t have to
- *    worry about the different layout modes. This is explicitly required in
- *    the SPIR-V spec:
+ * 3. Explicit data: for the SPIR-V path the code assumes that all structure
+ *    members have an Offset decoration, all arrays have an ArrayStride and
+ *    all matrices have a MatrixStride, even for nested structures. That way
+ *    we don’t have to worry about the different layout modes. This is
+ *    explicitly required in the SPIR-V spec:
  *
  *    "Composite objects in the UniformConstant, Uniform, and PushConstant
  *     Storage Classes must be explicitly laid out. The following apply to all

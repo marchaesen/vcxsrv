@@ -38,17 +38,16 @@
 #ifndef U_DEBUG_H_
 #define U_DEBUG_H_
 
-
+#include <stdarg.h>
+#include <string.h>
 #include "util/os_misc.h"
 #include "util/detect_os.h"
+#include "util/macros.h"
 
 #if DETECT_OS_HAIKU
 /* Haiku provides debug_printf in libroot with OS.h */
 #include <OS.h>
 #endif
-
-#include "pipe/p_defines.h"
-
 
 #ifdef	__cplusplus
 extern "C" {

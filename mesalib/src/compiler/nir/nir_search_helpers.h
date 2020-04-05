@@ -90,6 +90,32 @@ is_neg_power_of_two(UNUSED struct hash_table *ht, nir_alu_instr *instr,
    return true;
 }
 
+#define MULTIPLE(test)                                                  \
+static inline bool                                                      \
+is_unsigned_multiple_of_ ## test(UNUSED struct hash_table *ht, nir_alu_instr *instr, \
+                                 unsigned src, unsigned num_components, \
+                                 const uint8_t *swizzle)                \
+{                                                                       \
+   /* only constant srcs: */                                            \
+   if (!nir_src_is_const(instr->src[src].src))                          \
+      return false;                                                     \
+                                                                        \
+   for (unsigned i = 0; i < num_components; i++) {                      \
+      uint64_t val = nir_src_comp_as_uint(instr->src[src].src, swizzle[i]); \
+      if (val % test != 0)                                              \
+         return false;                                                  \
+   }                                                                    \
+                                                                        \
+   return true;                                                         \
+}
+
+MULTIPLE(2)
+MULTIPLE(4)
+MULTIPLE(8)
+MULTIPLE(16)
+MULTIPLE(32)
+MULTIPLE(64)
+
 static inline bool
 is_zero_to_one(UNUSED struct hash_table *ht, nir_alu_instr *instr, unsigned src,
                unsigned num_components,

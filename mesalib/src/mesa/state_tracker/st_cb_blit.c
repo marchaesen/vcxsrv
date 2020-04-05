@@ -30,7 +30,7 @@
   *   Brian Paul
   */
 
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/image.h"
 #include "main/macros.h"
 

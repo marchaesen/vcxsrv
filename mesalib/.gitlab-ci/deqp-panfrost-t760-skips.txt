@@ -8,3 +8,4 @@ dEQP-GLES[0-9]*.stress.*
 
 # These are really slow on tiling architectures (including llvmpipe).
 dEQP-GLES[0-9]*.functional.flush_finish.*
+

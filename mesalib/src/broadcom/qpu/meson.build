@@ -27,7 +27,7 @@ libbroadcom_qpu_files = files(
 libbroadcom_qpu = static_library(
   ['broadcom_qpu', v3d_xml_pack],
   libbroadcom_qpu_files,
-  include_directories : [inc_common, inc_broadcom],
+  include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_broadcom],
   c_args : [c_vis_args, no_override_init_args],
   dependencies : [dep_libdrm, dep_valgrind],
   build_by_default : false,
@@ -41,7 +41,7 @@ test(
     'qpu_disasm', 'tests/qpu_disasm.c',
     link_with: libbroadcom_qpu,
     dependencies : idep_mesautil,
-    include_directories: inc_common
+    include_directories: [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux]
   ),
   suite : ['broadcom'],
 )

@@ -22,7 +22,7 @@ project(
   'mesa',
   ['c', 'cpp'],
   version : run_command(
-    [find_program('python', 'python2', 'python3'), 'bin/meson_get_version.py']
+    [find_program('python', 'python3'), 'bin/meson_get_version.py']
   ).stdout(),
   license : 'MIT',
   meson_version : '>= 0.46',
@@ -33,6 +33,10 @@ cc = meson.get_compiler('c')
 cpp = meson.get_compiler('cpp')
 
 null_dep = dependency('', required : false)
+
+if get_option('layout') != 'mirror'
+  error('`mirror` is the only build directory layout supported')
+endif
 
 # Arguments for the preprocessor, put these in a separate array from the C and
 # C++ (cpp in meson terminology) arguments since they need to be added to the
@@ -243,10 +247,6 @@ with_intel_vk = _vulkan_drivers.contains('intel')
 with_amd_vk = _vulkan_drivers.contains('amd')
 with_freedreno_vk = _vulkan_drivers.contains('freedreno')
 with_any_vk = _vulkan_drivers.length() != 0 and _vulkan_drivers != ['']
-
-if with_freedreno_vk and get_option('I-love-half-baked-turnips') != true
-  error('Cannot enable freedreno vulkan driver')
-endif
 
 if with_dri_swrast and (with_gallium_softpipe or with_gallium_swr)
   error('Only one swrast provider can be built')
@@ -933,7 +933,11 @@ if cc.get_id() == 'msvc'
                '/wd4756',  # overflow in constant arithmetic
                '/wd4800',  # forcing value to bool 'true' or 'false' (performance warning)
                '/wd4996',  # disabled deprecated POSIX name warnings
-               '/wd4291']  # no matching operator delete found
+               '/wd4291',  # no matching operator delete found
+               '/wd4146',  # unary minus operator applied to unsigned type, result still unsigned
+               '/wd4200',  # nonstandard extension used: zero-sized array in struct/union
+               '/wd4624',  # destructor was implicitly defined as deleted [from LLVM]
+              ]
     if cc.has_argument(a)
       c_args += a
     endif
@@ -958,6 +962,7 @@ else
     '-fno-math-errno',
     '-fno-trapping-math',
     '-Qunused-arguments',
+    '-fno-common',
   ]
   # MinGW chokes on format specifiers and I can't get it all working
   if not (cc.get_id() == 'gcc' and host_machine.system() == 'windows')
@@ -1508,6 +1513,14 @@ if host_machine.system() == 'windows'
   endif
 else
   prog_bison = find_program('bison', required : with_any_opengl)
+
+  # Disable deprecated keyword warnings, since we have to use them for
+  # old-bison compat.  See discussion in
+  # https://gitlab.freedesktop.org/mesa/mesa/merge_requests/2161
+  if meson.version().version_compare('>= 0.52.0') and find_program('bison', required : false, version : '> 2.3').found()
+    prog_bison = [prog_bison, '-Wno-deprecated']
+  endif
+
   prog_flex = find_program('flex', required : with_any_opengl)
 endif
 

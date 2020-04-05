@@ -36,7 +36,7 @@
 #include "bufferobj.h"
 #include "glformats.h"
 #include "image.h"
-#include "imports.h"
+#include "util/imports.h"
 #include "mtypes.h"
 #include "pbo.h"
 

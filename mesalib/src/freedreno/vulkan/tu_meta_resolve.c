@@ -39,7 +39,7 @@ tu_resolve_image(struct tu_cmd_buffer *cmdbuf,
 {
    assert(info->dstSubresource.layerCount == info->srcSubresource.layerCount);
 
-   tu_blit(cmdbuf, &(struct tu_blit) {
+   tu_blit(cmdbuf, &cmdbuf->cs, &(struct tu_blit) {
       .dst = tu_blit_surf_ext(dst_image, info->dstSubresource, info->dstOffset, info->extent),
       .src = tu_blit_surf_ext(src_image, info->srcSubresource, info->srcOffset, info->extent),
       .layers = MAX2(info->extent.depth, info->dstSubresource.layerCount)

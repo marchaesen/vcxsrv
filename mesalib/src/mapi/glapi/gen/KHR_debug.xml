@@ -88,7 +88,7 @@
     <param name="id" type="GLuint"/>
     <param name="severity" type="GLenum"/>
     <param name="length" type="GLsizei"/>
-    <param name="buf" type="const GLchar *"/>
+    <param name="buf" type="const GLchar *" count="length"/>
   </function>
 
   <function name="DebugMessageCallback" es2="3.2">
@@ -112,7 +112,7 @@
     <param name="source" type="GLenum"/>
     <param name="id" type="GLuint"/>
     <param name="length" type="GLsizei"/>
-    <param name="message" type="const GLchar *"/>
+    <param name="message" type="const GLchar *" count="length"/>
   </function>
 
   <function name="PopDebugGroup" es2="3.2" />
@@ -121,7 +121,7 @@
     <param name="identifier" type="GLenum"/>
     <param name="name" type="GLuint"/>
     <param name="length" type="GLsizei"/>
-    <param name="label" type="const GLchar *"/>
+    <param name="label" type="const GLchar *" count="length"/>
   </function>
 
   <function name="GetObjectLabel" es2="3.2">
@@ -135,7 +135,7 @@
   <function name="ObjectPtrLabel" es2="3.2">
     <param name="ptr" type="const GLvoid *"/>
     <param name="length" type="GLsizei"/>
-    <param name="label" type="const GLchar *"/>
+    <param name="label" type="const GLchar *" count="length"/>
   </function>
 
   <function name="GetObjectPtrLabel" es2="3.2">

@@ -40,7 +40,9 @@
                    exec                NMTOKEN #IMPLIED
                    desktop             (true | false) "true"
                    marshal             NMTOKEN #IMPLIED
-                   marshal_fail        CDATA #IMPLIED>
+                   marshal_sync        CDATA #IMPLIED>
+                   marshal_count       CDATA #IMPLIED>
+                   marshal_call_after  CDATA #IMPLIED>
 <!ATTLIST size     name                NMTOKEN #REQUIRED
                    count               NMTOKEN #IMPLIED
                    mode                (get | set) "set">
@@ -130,10 +132,11 @@ param:
         generated but a custom implementation will be present in marshal.c.
         If "draw", it will follow the "async" rules except that "indices" are
         ignored (since they may come from a VBO).
-     marshal_fail - an expression that, if it evaluates true, causes glthread
-        to switch back to the Mesa implementation and call it directly.  Used
-        to disable glthread for GL compatibility interactions that we don't
-        want to track state for.
+     marshal_sync - an expression that, if it evaluates true, causes glthread
+        to sync and execute the call directly.
+     marshal_count - same as count, but variable_param is ignored. Used by
+        glthread.
+     marshal_call_after - insert the string at the end of the marshal function
 
 glx:
      rop - Opcode value for "render" commands

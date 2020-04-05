@@ -773,7 +773,7 @@ struct ast_type_qualifier {
     * \note
     * This field is only valid if \c explicit_image_format is set.
     */
-   GLenum image_format;
+   enum pipe_format image_format;
 
    /**
     * Arrangement of invocations used to calculate derivatives in a compute

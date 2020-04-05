@@ -18,8 +18,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-inc_common = [inc_include, include_directories(
-  '.', 'mapi', 'mesa', 'gallium/include', 'gallium/auxiliary')]
 inc_mesa = include_directories('mesa')
 inc_mapi = include_directories('mapi')
 inc_src = include_directories('.')
@@ -31,11 +29,11 @@ inc_amd_common_llvm = include_directories('amd/llvm')
 libglsl_util = static_library(
   'glsl_util',
   files(
-    'mesa/main/extensions_table.c', 'mesa/main/imports.c',
+    'mesa/main/extensions_table.c',
     'mesa/program/prog_parameter.c', 'mesa/program/symbol_table.c',
     'mesa/program/dummy_errors.c',
   ),
-  include_directories : [inc_common],
+  include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
   c_args : [c_vis_args],
   build_by_default : false,
 )

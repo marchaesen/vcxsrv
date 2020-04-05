@@ -43,7 +43,7 @@ u_format_table_c = custom_target(
 libmesa_format = static_library(
   'mesa_format',
   [files_mesa_format, u_format_table_c],
-  include_directories : inc_common,
+  include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
   dependencies : dep_m,
   c_args : [c_msvc_compat_args, c_vis_args],
   build_by_default : false

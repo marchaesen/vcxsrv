@@ -38,6 +38,7 @@
 #include "util/list.h"
 #include "vbo/vbo.h"
 #include "util/list.h"
+#include "cso_cache/cso_context.h"
 
 
 #ifdef __cplusplus
@@ -147,7 +148,6 @@ struct st_context
    boolean has_indep_blend_func;
    boolean needs_rgb_dst_alpha_override;
    boolean can_bind_const_buffer_as_vertex;
-   boolean has_signed_vertex_buffer_offset;
    boolean lower_flatshade;
    boolean lower_alpha_test;
    boolean lower_point_size;
@@ -323,7 +323,7 @@ struct st_context
    } pbo;
 
    /** for drawing with st_util_vertex */
-   struct pipe_vertex_element util_velems[3];
+   struct cso_velems_state util_velems;
 
    /** passthrough vertex shader matching the util_velem attributes */
    void *passthrough_vs;

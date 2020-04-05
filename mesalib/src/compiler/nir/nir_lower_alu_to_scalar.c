@@ -208,6 +208,7 @@ lower_alu_instr_scalar(nir_builder *b, nir_instr *instr, void *_data)
    }
 
    case nir_op_unpack_64_2x32:
+   case nir_op_unpack_64_4x16:
    case nir_op_unpack_32_2x16:
       return NULL;
 

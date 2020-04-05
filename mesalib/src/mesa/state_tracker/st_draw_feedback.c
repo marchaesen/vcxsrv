@@ -25,7 +25,7 @@
  * 
  **************************************************************************/
 
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/arrayobj.h"
 #include "main/image.h"
 #include "main/macros.h"
@@ -100,9 +100,10 @@ st_feedback_draw_vbo(struct gl_context *ctx,
 		     GLboolean index_bounds_valid,
                      GLuint min_index,
                      GLuint max_index,
+                     GLuint num_instances,
+                     GLuint base_instance,
                      struct gl_transform_feedback_object *tfb_vertcount,
-                     unsigned stream,
-                     struct gl_buffer_object *indirect)
+                     unsigned stream)
 {
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
@@ -111,7 +112,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
    struct st_common_variant *vp_variant;
    struct pipe_vertex_buffer vbuffers[PIPE_MAX_SHADER_INPUTS];
    unsigned num_vbuffers = 0;
-   struct pipe_vertex_element velements[PIPE_MAX_ATTRIBS];
+   struct cso_velems_state velements;
    struct pipe_transfer *vb_transfer[PIPE_MAX_ATTRIBS] = {NULL};
    struct pipe_transfer *ib_transfer = NULL;
    GLuint i;
@@ -133,7 +134,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
 
    st_validate_state(st, ST_PIPELINE_RENDER);
 
-   if (!index_bounds_valid)
+   if (ib && !index_bounds_valid)
       vbo_get_minmax_indices(ctx, prims, ib, &min_index, &max_index, nr_prims);
 
    /* must get these after state validation! */
@@ -161,10 +162,10 @@ st_feedback_draw_vbo(struct gl_context *ctx,
    /* Must setup these after state validation! */
    /* Setup arrays */
    bool uses_user_vertex_buffers;
-   st_setup_arrays(st, vp, vp_variant, velements, vbuffers, &num_vbuffers,
+   st_setup_arrays(st, vp, vp_variant, &velements, vbuffers, &num_vbuffers,
                    &uses_user_vertex_buffers);
    /* Setup current values as userspace arrays */
-   st_setup_current_user(st, vp, vp_variant, velements, vbuffers, &num_vbuffers);
+   st_setup_current_user(st, vp, vp_variant, &velements, vbuffers, &num_vbuffers);
 
    /* Map all buffers and tell draw about their mapping */
    for (unsigned buf = 0; buf < num_vbuffers; ++buf) {
@@ -181,13 +182,13 @@ st_feedback_draw_vbo(struct gl_context *ctx,
    }
 
    draw_set_vertex_buffers(draw, 0, num_vbuffers, vbuffers);
-   draw_set_vertex_elements(draw, vp->num_inputs, velements);
+   draw_set_vertex_elements(draw, vp->num_inputs, velements.velems);
 
    unsigned start = 0;
 
    if (ib) {
       struct gl_buffer_object *bufobj = ib->obj;
-      unsigned index_size = ib->index_size;
+      unsigned index_size = 1 << ib->index_size_shift;
 
       if (index_size == 0)
          goto out_unref_vertex;
@@ -195,7 +196,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
       if (bufobj && bufobj->Name) {
          struct st_buffer_object *stobj = st_buffer_object(bufobj);
 
-         start = pointer_to_offset(ib->ptr) / index_size;
+         start = pointer_to_offset(ib->ptr) >> ib->index_size_shift;
          mapped_indices = pipe_buffer_map(pipe, stobj->buffer,
                                           PIPE_TRANSFER_READ, &ib_transfer);
       }
@@ -203,7 +204,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
          mapped_indices = ib->ptr;
       }
 
-      info.index_size = ib->index_size;
+      info.index_size = index_size;
       info.min_index = min_index;
       info.max_index = max_index;
       info.has_user_indices = true;
@@ -420,6 +421,9 @@ st_feedback_draw_vbo(struct gl_context *ctx,
    }
    draw_set_images(draw, PIPE_SHADER_VERTEX, images, prog->info.num_images);
 
+   info.start_instance = base_instance;
+   info.instance_count = num_instances;
+
    /* draw here */
    for (i = 0; i < nr_prims; i++) {
       info.count = prims[i].count;
@@ -429,8 +433,6 @@ st_feedback_draw_vbo(struct gl_context *ctx,
 
       info.mode = prims[i].mode;
       info.start = start + prims[i].start;
-      info.start_instance = prims[i].base_instance;
-      info.instance_count = prims[i].num_instances;
       info.index_bias = prims[i].basevertex;
       info.drawid = prims[i].draw_id;
       if (!ib) {

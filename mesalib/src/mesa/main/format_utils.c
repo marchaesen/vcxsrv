@@ -36,6 +36,10 @@ const mesa_array_format RGBA8_UBYTE =
    MESA_ARRAY_FORMAT(MESA_ARRAY_FORMAT_BASE_FORMAT_RGBA_VARIANTS,
                      1, 0, 0, 1, 4, 0, 1, 2, 3);
 
+const mesa_array_format BGRA8_UBYTE =
+   MESA_ARRAY_FORMAT(MESA_ARRAY_FORMAT_BASE_FORMAT_RGBA_VARIANTS,
+                     1, 0, 0, 1, 4, 2, 1, 0, 3);
+
 const mesa_array_format RGBA32_UINT =
    MESA_ARRAY_FORMAT(MESA_ARRAY_FORMAT_BASE_FORMAT_RGBA_VARIANTS,
                      4, 0, 0, 0, 4, 0, 1, 2, 3);
@@ -350,6 +354,11 @@ _mesa_format_convert(void *void_dst, uint32_t dst_format, size_t dst_stride,
                dst += dst_stride;
             }
             return;
+         } else if (dst_array_format == BGRA8_UBYTE &&
+                    src_format == MESA_FORMAT_R8G8B8A8_UNORM) {
+             convert_ubyte_rgba_to_bgra(width, height, src, src_stride,
+                                        dst, dst_stride);
+             return;
          } else if (dst_array_format == RGBA32_UINT &&
                     _mesa_is_format_unsigned(src_format)) {
             assert(_mesa_is_format_integer_color(src_format));

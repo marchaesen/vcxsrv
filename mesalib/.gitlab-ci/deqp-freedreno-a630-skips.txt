@@ -18,4 +18,46 @@ dEQP-GLES31.functional.primitive_bounding_box.*
 
 # Intermittent timeout
 dEQP-GLES31.functional.ssbo.layout.random.all_shared_buffer.23
+dEQP-GLES31.functional.ssbo.layout.random.all_shared_buffer.48
 
+# Flakes reported more than once during Jan-Feb 2020
+dEQP-GLES31.functional.layout_binding.ssbo.fragment_binding_array
+dEQP-GLES3.functional.fragment_out.random.0
+dEQP-GLES3.functional.fragment_out.random.1
+dEQP-GLES3.functional.fragment_out.random.12
+dEQP-GLES3.functional.fragment_out.random.13
+dEQP-GLES3.functional.fragment_out.random.17
+dEQP-GLES3.functional.fragment_out.random.24
+dEQP-GLES3.functional.fragment_out.random.27
+dEQP-GLES3.functional.fragment_out.random.28
+dEQP-GLES3.functional.fragment_out.random.32
+dEQP-GLES3.functional.fragment_out.random.34
+dEQP-GLES3.functional.fragment_out.random.35
+dEQP-GLES3.functional.fragment_out.random.36
+dEQP-GLES3.functional.fragment_out.random.40
+dEQP-GLES3.functional.fragment_out.random.44
+dEQP-GLES3.functional.fragment_out.random.47
+dEQP-GLES3.functional.fragment_out.random.5
+dEQP-GLES3.functional.fragment_out.random.50
+dEQP-GLES3.functional.fragment_out.random.51
+dEQP-GLES3.functional.fragment_out.random.55
+dEQP-GLES3.functional.fragment_out.random.58
+dEQP-GLES3.functional.fragment_out.random.59
+dEQP-GLES3.functional.fragment_out.random.61
+dEQP-GLES3.functional.fragment_out.random.63
+dEQP-GLES3.functional.fragment_out.random.66
+dEQP-GLES3.functional.fragment_out.random.67
+dEQP-GLES3.functional.fragment_out.random.69
+dEQP-GLES3.functional.fragment_out.random.70
+dEQP-GLES3.functional.fragment_out.random.71
+dEQP-GLES3.functional.fragment_out.random.80
+dEQP-GLES3.functional.fragment_out.random.82
+dEQP-GLES3.functional.fragment_out.random.86
+dEQP-GLES3.functional.fragment_out.random.88
+dEQP-GLES3.functional.fragment_out.random.91
+dEQP-GLES3.functional.fragment_out.random.93
+dEQP-GLES3.functional.fragment_out.random.95
+dEQP-GLES3.functional.fragment_out.random.96
+dEQP-GLES3.functional.transform_feedback.array_element.interleaved.triangles.highp_mat2x3
+dEQP-GLES3.functional.transform_feedback.array_element.interleaved.triangles.lowp_mat2x4
+dEQP-GLES3.functional.transform_feedback.array_element.separate.triangles.lowp_mat2x4

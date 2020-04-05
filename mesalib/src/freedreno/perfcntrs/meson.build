@@ -29,7 +29,7 @@ libfreedreno_perfcntrs_files = files(
 libfreedreno_perfcntrs = static_library(
   'freedreno_perfcntrs',
   [libfreedreno_perfcntrs_files, freedreno_xml_header_files],
-  include_directories : [inc_freedreno, inc_common],
+  include_directories : [inc_freedreno, inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
   c_args : [c_vis_args, no_override_init_args],
   cpp_args : [cpp_vis_args],
   dependencies : idep_nir_headers,
@@ -44,8 +44,13 @@ if dep_libconfig.found() and dep_ncurses.found()
     'fdperf',
     'fdperf.c',
     include_directories : [
-      inc_common,
       inc_freedreno,
+      inc_include,
+      inc_src,
+      inc_mapi,
+      inc_mesa,
+      inc_gallium,
+      inc_gallium_aux,
     ],
     link_with : [
       libfreedreno_drm,

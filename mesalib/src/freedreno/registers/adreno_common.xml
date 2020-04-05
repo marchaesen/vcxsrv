@@ -280,10 +280,6 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	Common between A3xx and A4xx:
  -->
 
-<enum name="a3xx_regid">
-  <value name="REGID_UNUSED" value="0xfc"/>
-</enum>
-
 <enum name="a3xx_rop_code">
 	<value name="ROP_CLEAR"         value="0"/>
 	<value name="ROP_NOR"           value="1"/>

@@ -24,17 +24,17 @@
 
     <function name="VertexP2uiv" deprecated="3.1" exec="dynamic">
         <param name="type" type="GLenum"/>
-        <param name="value" type="const GLuint *"/>
+        <param name="value" type="const GLuint *" count="1"/>
     </function>
 
     <function name="VertexP3uiv" deprecated="3.1" exec="dynamic">
         <param name="type" type="GLenum"/>
-        <param name="value" type="const GLuint *"/>
+        <param name="value" type="const GLuint *" count="1"/>
     </function>
 
     <function name="VertexP4uiv" deprecated="3.1" exec="dynamic">
         <param name="type" type="GLenum"/>
-        <param name="value" type="const GLuint *"/>
+        <param name="value" type="const GLuint *" count="1"/>
     </function>
 
     <function name="TexCoordP1ui" deprecated="3.1" exec="dynamic">
@@ -59,22 +59,22 @@
 
     <function name="TexCoordP1uiv" deprecated="3.1" exec="dynamic">
         <param name="type" type="GLenum"/>
-        <param name="coords" type="const GLuint *"/>
+        <param name="coords" type="const GLuint *" count="1"/>
     </function>
 
     <function name="TexCoordP2uiv" deprecated="3.1" exec="dynamic">
         <param name="type" type="GLenum"/>
-        <param name="coords" type="const GLuint *"/>
+        <param name="coords" type="const GLuint *" count="1"/>
     </function>
 
     <function name="TexCoordP3uiv" deprecated="3.1" exec="dynamic">
         <param name="type" type="GLenum"/>
-        <param name="coords" type="const GLuint *"/>
+        <param name="coords" type="const GLuint *" count="1"/>
     </function>
 
     <function name="TexCoordP4uiv" deprecated="3.1" exec="dynamic">
         <param name="type" type="GLenum"/>
-        <param name="coords" type="const GLuint *"/>
+        <param name="coords" type="const GLuint *" count="1"/>
     </function>
 
     <function name="MultiTexCoordP1ui" deprecated="3.1" exec="dynamic">
@@ -104,25 +104,25 @@
     <function name="MultiTexCoordP1uiv" deprecated="3.1" exec="dynamic">
         <param name="texture" type="GLenum"/>
         <param name="type" type="GLenum"/>
-        <param name="coords" type="const GLuint *"/>
+        <param name="coords" type="const GLuint *" count="1"/>
     </function>
 
     <function name="MultiTexCoordP2uiv" deprecated="3.1" exec="dynamic">
         <param name="texture" type="GLenum"/>
         <param name="type" type="GLenum"/>
-        <param name="coords" type="const GLuint *"/>
+        <param name="coords" type="const GLuint *" count="1"/>
     </function>
 
     <function name="MultiTexCoordP3uiv" deprecated="3.1" exec="dynamic">
         <param name="texture" type="GLenum"/>
         <param name="type" type="GLenum"/>
-        <param name="coords" type="const GLuint *"/>
+        <param name="coords" type="const GLuint *" count="1"/>
     </function>
 
     <function name="MultiTexCoordP4uiv" deprecated="3.1" exec="dynamic">
         <param name="texture" type="GLenum"/>
         <param name="type" type="GLenum"/>
-        <param name="coords" type="const GLuint *"/>
+        <param name="coords" type="const GLuint *" count="1"/>
     </function>
 
     <function name="NormalP3ui" deprecated="3.1" exec="dynamic">
@@ -132,7 +132,7 @@
 
     <function name="NormalP3uiv" deprecated="3.1" exec="dynamic">
         <param name="type" type="GLenum"/>
-        <param name="coords" type="const GLuint *"/>
+        <param name="coords" type="const GLuint *" count="1"/>
     </function>
 
     <function name="ColorP3ui" deprecated="3.1" exec="dynamic">
@@ -147,12 +147,12 @@
 
     <function name="ColorP3uiv" deprecated="3.1" exec="dynamic">
         <param name="type" type="GLenum"/>
-        <param name="color" type="const GLuint *"/>
+        <param name="color" type="const GLuint *" count="1"/>
     </function>
 
     <function name="ColorP4uiv" deprecated="3.1" exec="dynamic">
         <param name="type" type="GLenum"/>
-        <param name="color" type="const GLuint *"/>
+        <param name="color" type="const GLuint *" count="1"/>
     </function>
 
     <function name="SecondaryColorP3ui" deprecated="3.1" exec="dynamic">
@@ -162,7 +162,7 @@
 
     <function name="SecondaryColorP3uiv" deprecated="3.1" exec="dynamic">
         <param name="type" type="GLenum"/>
-        <param name="color" type="const GLuint *"/>
+        <param name="color" type="const GLuint *" count="1"/>
     </function>
 
     <function name="VertexAttribP1ui" exec="dynamic">
@@ -197,28 +197,28 @@
         <param name="index" type="GLuint"/>
         <param name="type" type="GLenum"/>
         <param name="normalized" type="GLboolean"/>
-        <param name="value" type="const GLuint *"/>
+        <param name="value" type="const GLuint *" count="1"/>
     </function>
 
     <function name="VertexAttribP2uiv" exec="dynamic">
         <param name="index" type="GLuint"/>
         <param name="type" type="GLenum"/>
         <param name="normalized" type="GLboolean"/>
-        <param name="value" type="const GLuint *"/>
+        <param name="value" type="const GLuint *" count="1"/>
     </function>
 
     <function name="VertexAttribP3uiv" exec="dynamic">
         <param name="index" type="GLuint"/>
         <param name="type" type="GLenum"/>
         <param name="normalized" type="GLboolean"/>
-        <param name="value" type="const GLuint *"/>
+        <param name="value" type="const GLuint *" count="1"/>
     </function>
 
     <function name="VertexAttribP4uiv" exec="dynamic">
         <param name="index" type="GLuint"/>
         <param name="type" type="GLenum"/>
         <param name="normalized" type="GLboolean"/>
-        <param name="value" type="const GLuint *"/>
+        <param name="value" type="const GLuint *" count="1"/>
     </function>
 
 </category>

@@ -9,7 +9,7 @@
 <category name="GL_ARB_draw_elements_base_vertex" number="62">
 
     <function name="DrawElementsBaseVertex" es2="3.2" exec="dynamic" marshal="draw"
-              marshal_fail="_mesa_glthread_is_non_vbo_draw_elements(ctx)">
+              marshal_sync="_mesa_glthread_has_non_vbo_vertices_or_indices(ctx)">
         <param name="mode" type="GLenum"/>
         <param name="count" type="GLsizei"/>
         <param name="type" type="GLenum"/>
@@ -18,7 +18,7 @@
     </function>
 
     <function name="DrawRangeElementsBaseVertex" es2="3.2" exec="dynamic" marshal="draw"
-              marshal_fail="_mesa_glthread_is_non_vbo_draw_elements(ctx)">
+              marshal_sync="_mesa_glthread_has_non_vbo_vertices_or_indices(ctx)">
         <param name="mode" type="GLenum"/>
         <param name="start" type="GLuint"/>
         <param name="end" type="GLuint"/>
@@ -29,17 +29,17 @@
     </function>
 
     <function name="MultiDrawElementsBaseVertex" exec="dynamic" marshal="draw"
-              marshal_fail="_mesa_glthread_is_non_vbo_draw_elements(ctx)">
+              marshal_sync="_mesa_glthread_has_non_vbo_vertices_or_indices(ctx)">
         <param name="mode" type="GLenum"/>
-        <param name="count" type="const GLsizei *"/>
+        <param name="count" type="const GLsizei *" count="primcount"/>
         <param name="type" type="GLenum"/>
-        <param name="indices" type="const GLvoid * const *"/>
+        <param name="indices" type="const GLvoid * const *" count="(sizeof(GLvoid *) * primcount)"/>
         <param name="primcount" type="GLsizei"/>
-        <param name="basevertex" type="const GLint *"/>
+        <param name="basevertex" type="const GLint *" count="primcount"/>
     </function>
 
     <function name="DrawElementsInstancedBaseVertex" es2="3.2" exec="dynamic" marshal="draw"
-              marshal_fail="_mesa_glthread_is_non_vbo_draw_elements(ctx)">
+              marshal_sync="_mesa_glthread_has_non_vbo_vertices_or_indices(ctx)">
         <param name="mode" type="GLenum"/>
         <param name="count" type="GLsizei"/>
         <param name="type" type="GLenum"/>

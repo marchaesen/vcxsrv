@@ -149,4 +149,20 @@ static inline void radeon_set_uconfig_reg_idx(const struct radv_physical_device 
 	radeon_emit(cs, value);
 }
 
+static inline void radeon_set_privileged_config_reg(struct radeon_cmdbuf *cs,
+						    unsigned reg,
+						    unsigned value)
+{
+	assert(reg < CIK_UCONFIG_REG_OFFSET);
+	assert(cs->cdw + 6 <= cs->max_dw);
+
+	radeon_emit(cs, PKT3(PKT3_COPY_DATA, 4, 0));
+	radeon_emit(cs, COPY_DATA_SRC_SEL(COPY_DATA_IMM) |
+			COPY_DATA_DST_SEL(COPY_DATA_PERF));
+	radeon_emit(cs, value);
+	radeon_emit(cs, 0); /* unused */
+	radeon_emit(cs, reg >> 2);
+	radeon_emit(cs, 0); /* unused */
+}
+
 #endif /* RADV_CS_H */

@@ -229,6 +229,9 @@ static bool valid_flags(struct ir3_instruction *instr, unsigned n,
 			if (instr->opc == OPC_STLW && n == 0)
 				return false;
 
+			if (instr->opc == OPC_LDLW && n == 0)
+				return false;
+
 			/* disallow CP into anything but the SSBO slot argument for
 			 * atomics:
 			 */
@@ -305,6 +308,12 @@ lower_immed(struct ir3_cp_ctx *ctx, struct ir3_register *reg, unsigned new_flags
 
 	reg = ir3_reg_clone(ctx->shader, reg);
 
+	/* Half constant registers seems to handle only 32-bit values
+	 * within floating-point opcodes. So convert back to 32-bit values.
+	 */
+	if (f_opcode && (new_flags & IR3_REG_HALF))
+		reg->uim_val = fui(_mesa_half_to_float(reg->uim_val));
+
 	/* in some cases, there are restrictions on (abs)/(neg) plus const..
 	 * so just evaluate those and clear the flags:
 	 */
@@ -349,12 +358,6 @@ lower_immed(struct ir3_cp_ctx *ctx, struct ir3_register *reg, unsigned new_flags
 		/* need to generate a new immediate: */
 		swiz = i % 4;
 		idx  = i / 4;
-
-		/* Half constant registers seems to handle only 32-bit values
-		 * within floating-point opcodes. So convert back to 32-bit values. */
-		if (f_opcode && (new_flags & IR3_REG_HALF)) {
-			reg->uim_val = fui(_mesa_half_to_float(reg->uim_val));
-		}
 
 		const_state->immediates[idx].val[swiz] = reg->uim_val;
 		const_state->immediates_count = idx + 1;
@@ -463,7 +466,7 @@ reg_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr,
 
 			return true;
 		}
-	} else if (is_same_type_mov(src) &&
+	} else if ((is_same_type_mov(src) || is_const_mov(src)) &&
 			/* cannot collapse const/immed/etc into meta instrs: */
 			!is_meta(instr)) {
 		/* immed/const/etc cases, which require some special handling: */
@@ -522,6 +525,17 @@ reg_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr,
 					(src_reg->flags & IR3_REG_RELATIV) &&
 					(src_reg->array.offset == 0))
 				return false;
+
+			/* When narrowing constant from 32b to 16b, it seems
+			 * to work only for float. So we should do this only with
+			 * float opcodes.
+			 */
+			if (src->cat1.dst_type == TYPE_F16) {
+				if (instr->opc == OPC_MOV && !type_float(instr->cat1.src_type))
+					return false;
+				if (!ir3_cat2_float(instr->opc) && !ir3_cat3_float(instr->opc))
+					return false;
+			}
 
 			src_reg = ir3_reg_clone(instr->block->shader, src_reg);
 			src_reg->flags = new_flags;
@@ -632,7 +646,7 @@ instr_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr)
 	bool progress;
 	do {
 		progress = false;
-		foreach_src_n(reg, n, instr) {
+		foreach_src_n (reg, n, instr) {
 			struct ir3_instruction *src = ssa(reg);
 
 			if (!src)
@@ -723,7 +737,12 @@ instr_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr)
 			instr->flags &= ~IR3_INSTR_S2EN;
 			instr->cat5.samp = samp->regs[1]->iim_val;
 			instr->cat5.tex  = tex->regs[1]->iim_val;
-			instr->regs[1]->instr = NULL;
+
+			/* shuffle around the regs to remove the first src: */
+			instr->regs_count--;
+			for (unsigned i = 1; i < instr->regs_count; i++) {
+				instr->regs[i] = instr->regs[i + 1];
+			}
 		}
 	}
 }
@@ -751,7 +770,7 @@ ir3_cp(struct ir3 *ir, struct ir3_shader_variant *so)
 			 */
 			debug_assert(instr->deps_count == 0);
 
-			foreach_ssa_src(src, instr) {
+			foreach_ssa_src (src, instr) {
 				src->use_count++;
 			}
 		}
@@ -760,7 +779,7 @@ ir3_cp(struct ir3 *ir, struct ir3_shader_variant *so)
 	ir3_clear_mark(ir);
 
 	struct ir3_instruction *out;
-	foreach_output_n(out, n, ir) {
+	foreach_output_n (out, n, ir) {
 		instr_cp(&ctx, out);
 		ir->outputs[n] = eliminate_output_mov(out);
 	}

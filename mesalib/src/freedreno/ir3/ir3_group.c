@@ -153,7 +153,7 @@ instr_find_neighbors(struct ir3_instruction *instr)
 	if (instr->opc == OPC_META_COLLECT)
 		group_n(&instr_ops, instr, instr->regs_count - 1);
 
-	foreach_ssa_src(src, instr)
+	foreach_ssa_src (src, instr)
 		instr_find_neighbors(src);
 }
 
@@ -163,7 +163,7 @@ find_neighbors(struct ir3 *ir)
 	unsigned i;
 
 	struct ir3_instruction *out;
-	foreach_output(out, ir)
+	foreach_output (out, ir)
 		instr_find_neighbors(out);
 
 	foreach_block (block, &ir->block_list) {

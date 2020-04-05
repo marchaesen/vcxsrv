@@ -37,6 +37,8 @@
 #include <unistd.h>
 
 #include "util/u_atomic.h"
+#include "util/u_memory.h"
+#include "util/u_math.h"
 
 #define AMDGPU_TILING_SCANOUT_SHIFT 63
 #define AMDGPU_TILING_SCANOUT_MASK 1
@@ -61,7 +63,7 @@ radv_amdgpu_bo_va_op(struct radv_amdgpu_winsys *ws,
 	if (!(bo_flags & RADEON_FLAG_READ_ONLY))
 		flags |= AMDGPU_VM_PAGE_WRITEABLE;
 
-	size = ALIGN(size, getpagesize());
+	size = align64(size, getpagesize());
 
 	return amdgpu_bo_va_op_raw(ws->dev, bo, offset, size, addr,
 				   flags, ops);
@@ -382,8 +384,11 @@ radv_amdgpu_winsys_bo_create(struct radeon_winsys *_ws,
 	}
 
 	/* this won't do anything on pre 4.9 kernels */
-	if (ws->zero_all_vram_allocs && (initial_domain & RADEON_DOMAIN_VRAM))
-		request.flags |= AMDGPU_GEM_CREATE_VRAM_CLEARED;
+	if (initial_domain & RADEON_DOMAIN_VRAM) {
+		if (ws->zero_all_vram_allocs || (flags & RADEON_FLAG_ZERO_VRAM))
+			request.flags |= AMDGPU_GEM_CREATE_VRAM_CLEARED;
+	}
+
 	r = amdgpu_bo_alloc(ws->dev, &request, &buf_handle);
 	if (r) {
 		fprintf(stderr, "amdgpu: Failed to allocate a buffer:\n");
