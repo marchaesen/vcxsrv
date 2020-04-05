@@ -41,6 +41,8 @@
  * named function in the specified dispatch table.
  */
 
+#include "glheader.h"
+
 #ifdef _MSC_VER
 #ifndef INLINE
 #define INLINE __inline
@@ -63,7 +65,7 @@
     } while(0)
 
 /* total number of offsets below */
-#define _gloffset_COUNT 1607
+#define _gloffset_COUNT 1608
 
 #define _gloffset_NewList 0
 #define _gloffset_EndList 1
@@ -473,7 +475,7 @@
 #define _gloffset_MultiTexCoord4iv 405
 #define _gloffset_MultiTexCoord4s 406
 #define _gloffset_MultiTexCoord4sv 407
-#define driDispatchRemapTable_size 1199
+#define driDispatchRemapTable_size 1200
 SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 
 #define CompressedTexImage1D_remap_index 0
@@ -1675,6 +1677,7 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define GetNamedStringivARB_remap_index 1196
 #define EGLImageTargetTexStorageEXT_remap_index 1197
 #define EGLImageTargetTextureStorageEXT_remap_index 1198
+#define CopyImageSubDataNV_remap_index 1199
 
 #define _gloffset_CompressedTexImage1D driDispatchRemapTable[CompressedTexImage1D_remap_index]
 #define _gloffset_CompressedTexImage2D driDispatchRemapTable[CompressedTexImage2D_remap_index]
@@ -2875,6 +2878,7 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define _gloffset_GetNamedStringivARB driDispatchRemapTable[GetNamedStringivARB_remap_index]
 #define _gloffset_EGLImageTargetTexStorageEXT driDispatchRemapTable[EGLImageTargetTexStorageEXT_remap_index]
 #define _gloffset_EGLImageTargetTextureStorageEXT driDispatchRemapTable[EGLImageTargetTextureStorageEXT_remap_index]
+#define _gloffset_CopyImageSubDataNV driDispatchRemapTable[CopyImageSubDataNV_remap_index]
 
 typedef void (GLAPIENTRYP _glptr_NewList)(GLuint, GLenum);
 #define CALL_NewList(disp, parameters) \
@@ -20551,6 +20555,17 @@ static INLINE _glptr_EGLImageTargetTextureStorageEXT GET_EGLImageTargetTextureSt
 
 static INLINE void SET_EGLImageTargetTextureStorageEXT(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLvoid *, const GLint *)) {
    SET_by_offset(disp, _gloffset_EGLImageTargetTextureStorageEXT, fn);
+}
+
+typedef void (GLAPIENTRYP _glptr_CopyImageSubDataNV)(GLuint, GLenum, GLint, GLint, GLint, GLint, GLuint, GLenum, GLint, GLint, GLint, GLint, GLsizei, GLsizei, GLsizei);
+#define CALL_CopyImageSubDataNV(disp, parameters) \
+    (* GET_CopyImageSubDataNV(disp)) parameters
+static INLINE _glptr_CopyImageSubDataNV GET_CopyImageSubDataNV(struct _glapi_table *disp) {
+   return (_glptr_CopyImageSubDataNV) (GET_by_offset(disp, _gloffset_CopyImageSubDataNV));
+}
+
+static INLINE void SET_CopyImageSubDataNV(struct _glapi_table *disp, void (GLAPIENTRYP fn)(GLuint, GLenum, GLint, GLint, GLint, GLint, GLuint, GLenum, GLint, GLint, GLint, GLint, GLsizei, GLsizei, GLsizei)) {
+   SET_by_offset(disp, _gloffset_CopyImageSubDataNV, fn);
 }
 
 

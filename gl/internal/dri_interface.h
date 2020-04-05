@@ -634,7 +634,7 @@ struct __DRIdamageExtensionRec {
  * SWRast Loader extension.
  */
 #define __DRI_SWRAST_LOADER "DRI_SWRastLoader"
-#define __DRI_SWRAST_LOADER_VERSION 5
+#define __DRI_SWRAST_LOADER_VERSION 6
 struct __DRIswrastLoaderExtensionRec {
     __DRIextension base;
 
@@ -711,6 +711,19 @@ struct __DRIswrastLoaderExtensionRec {
                          int width, int height, int stride,
                          int shmid, char *shmaddr, unsigned offset,
                          void *loaderPrivate);
+
+    /**
+     * get shm image to drawable (v2)
+     *
+     * There are some cases where GLX can't use SHM, but DRI
+     * still tries, we need to get a return type for when to
+     * fallback to the non-shm path.
+     *
+     * \since 6
+     */
+    GLboolean (*getImageShm2)(__DRIdrawable *readable,
+                              int x, int y, int width, int height,
+                              int shmid, void *loaderPrivate);
 };
 
 /**

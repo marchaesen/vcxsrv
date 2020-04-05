@@ -39,3 +39,4 @@ mesa/program/program_parse.tab.c
 mesa/program/program_parse.tab.h
 util/format_srgb.c
 util/xmlpool/options.h
+mesa/main/marshal_generated.h

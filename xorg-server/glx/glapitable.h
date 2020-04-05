@@ -1649,6 +1649,9 @@ struct _glapi_table
    GLboolean (GLAPIENTRYP IsNamedStringARB)(GLint namelen, const GLchar * name); /* 1602 */
    void (GLAPIENTRYP GetNamedStringARB)(GLint namelen, const GLchar * name, GLsizei bufSize, GLint * stringlen, GLchar * string); /* 1603 */
    void (GLAPIENTRYP GetNamedStringivARB)(GLint namelen, const GLchar * name, GLenum pname, GLint * params); /* 1604 */
+   void (GLAPIENTRYP EGLImageTargetTexStorageEXT)(GLenum target, GLvoid * image, const GLint * attrib_list); /* 1605 */
+   void (GLAPIENTRYP EGLImageTargetTextureStorageEXT)(GLuint texture, GLvoid * image, const GLint * attrib_list); /* 1606 */
+   void (GLAPIENTRYP CopyImageSubDataNV)(GLuint srcName, GLenum srcTarget, GLint srcLevel, GLint srcX, GLint srcY, GLint srcZ, GLuint dstName, GLenum dstTarget, GLint dstLevel, GLint dstX, GLint dstY, GLint dstZ, GLsizei width, GLsizei height, GLsizei depth); /* 1607 */
 };
 
 #ifdef __cplusplus

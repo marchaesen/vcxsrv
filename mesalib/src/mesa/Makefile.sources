@@ -140,15 +140,6 @@ MAIN_FILES = \
 	main/lines.c \
 	main/lines.h \
 	main/macros.h \
-	main/marshal_generated0.c \
-	main/marshal_generated1.c \
-	main/marshal_generated2.c \
-	main/marshal_generated3.c \
-	main/marshal_generated4.c \
-	main/marshal_generated5.c \
-	main/marshal_generated6.c \
-	main/marshal_generated7.c \
-	main/marshal_generated.h \
 	main/matrix.c \
 	main/matrix.h \
 	main/mipmap.c \

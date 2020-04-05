@@ -198,7 +198,7 @@ lower_xfb_varying(void *mem_ctx,
 
    if (!get_deref(mem_ctx, old_var_name, shader, &deref, &type)) {
       if (deref) {
-         delete deref;
+         ::delete deref;
       }
       return NULL;
    }

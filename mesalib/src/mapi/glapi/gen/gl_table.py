@@ -102,7 +102,7 @@ class PrintRemapTable(gl_XML.gl_print_base):
  * named function in the specified dispatch table.
  */
 
-#include "main/glheader.h"
+#include "glheader.h"
 """)
         return
 

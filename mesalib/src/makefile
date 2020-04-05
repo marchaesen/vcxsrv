@@ -58,7 +58,6 @@ INCLUDES += \
 
 libglsl_util_la_SOURCES = \
 	mesa/main/extensions_table.c \
-	mesa/main/imports.c \
 	mesa/program/prog_parameter.c \
 	mesa/program/symbol_table.c \
 

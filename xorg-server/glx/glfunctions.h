@@ -1641,5 +1641,6 @@
 #define glGetNamedStringivARB(a1, a2, a3, a4) CALL_GetNamedStringivARB(GET_DISPATCH(), (a1, a2, a3, a4))
 #define glEGLImageTargetTexStorageEXT(a1, a2, a3) CALL_EGLImageTargetTexStorageEXT(GET_DISPATCH(), (a1, a2, a3))
 #define glEGLImageTargetTextureStorageEXT(a1, a2, a3) CALL_EGLImageTargetTextureStorageEXT(GET_DISPATCH(), (a1, a2, a3))
+#define glCopyImageSubDataNV(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15) CALL_CopyImageSubDataNV(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15))
 
 #endif /* !defined( __GLFUNCTIONS_H__ ) */
