@@ -32,7 +32,7 @@
 
 
 #include "main/errors.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/hash.h"
 #include "main/mtypes.h"
 #include "program/prog_parameter.h"
@@ -41,6 +41,7 @@
 #include "program/programopt.h"
 
 #include "compiler/nir/nir.h"
+#include "compiler/nir/nir_serialize.h"
 #include "draw/draw_context.h"
 
 #include "pipe/p_context.h"
@@ -228,22 +229,22 @@ delete_variant(struct st_context *st, struct st_variant *v, GLenum target)
           */
          switch (target) {
          case GL_VERTEX_PROGRAM_ARB:
-            cso_delete_vertex_shader(st->cso_context, v->driver_shader);
+            st->pipe->delete_vs_state(st->pipe, v->driver_shader);
             break;
          case GL_TESS_CONTROL_PROGRAM_NV:
-            cso_delete_tessctrl_shader(st->cso_context, v->driver_shader);
+            st->pipe->delete_tcs_state(st->pipe, v->driver_shader);
             break;
          case GL_TESS_EVALUATION_PROGRAM_NV:
-            cso_delete_tesseval_shader(st->cso_context, v->driver_shader);
+            st->pipe->delete_tes_state(st->pipe, v->driver_shader);
             break;
          case GL_GEOMETRY_PROGRAM_NV:
-            cso_delete_geometry_shader(st->cso_context, v->driver_shader);
+            st->pipe->delete_gs_state(st->pipe, v->driver_shader);
             break;
          case GL_FRAGMENT_PROGRAM_ARB:
-            cso_delete_fragment_shader(st->cso_context, v->driver_shader);
+            st->pipe->delete_fs_state(st->pipe, v->driver_shader);
             break;
          case GL_COMPUTE_PROGRAM_NV:
-            cso_delete_compute_shader(st->cso_context, v->driver_shader);
+            st->pipe->delete_compute_state(st->pipe, v->driver_shader);
             break;
          default:
             unreachable("bad shader type in delete_basic_variant");
@@ -262,6 +263,39 @@ delete_variant(struct st_context *st, struct st_variant *v, GLenum target)
    free(v);
 }
 
+static void
+st_unbind_program(struct st_context *st, struct st_program *p)
+{
+   /* Unbind the shader in cso_context and re-bind in st/mesa. */
+   switch (p->Base.info.stage) {
+   case MESA_SHADER_VERTEX:
+      cso_set_vertex_shader_handle(st->cso_context, NULL);
+      st->dirty |= ST_NEW_VS_STATE;
+      break;
+   case MESA_SHADER_TESS_CTRL:
+      cso_set_tessctrl_shader_handle(st->cso_context, NULL);
+      st->dirty |= ST_NEW_TCS_STATE;
+      break;
+   case MESA_SHADER_TESS_EVAL:
+      cso_set_tesseval_shader_handle(st->cso_context, NULL);
+      st->dirty |= ST_NEW_TES_STATE;
+      break;
+   case MESA_SHADER_GEOMETRY:
+      cso_set_geometry_shader_handle(st->cso_context, NULL);
+      st->dirty |= ST_NEW_GS_STATE;
+      break;
+   case MESA_SHADER_FRAGMENT:
+      cso_set_fragment_shader_handle(st->cso_context, NULL);
+      st->dirty |= ST_NEW_FS_STATE;
+      break;
+   case MESA_SHADER_COMPUTE:
+      cso_set_compute_shader_handle(st->cso_context, NULL);
+      st->dirty |= ST_NEW_CS_STATE;
+      break;
+   default:
+      unreachable("invalid shader type");
+   }
+}
 
 /**
  * Free all basic program variants.
@@ -270,6 +304,12 @@ void
 st_release_variants(struct st_context *st, struct st_program *p)
 {
    struct st_variant *v;
+
+   /* If we are releasing shaders, re-bind them, because we don't
+    * know which shaders are bound in the driver.
+    */
+   if (p->variants)
+      st_unbind_program(st, p);
 
    for (v = p->variants; v; ) {
       struct st_variant *next = v->next;
@@ -463,6 +503,11 @@ st_translate_vertex_program(struct st_context *st,
          if (stp->Base.nir)
             ralloc_free(stp->Base.nir);
 
+         if (stp->serialized_nir) {
+            free(stp->serialized_nir);
+            stp->serialized_nir = NULL;
+         }
+
          stp->state.type = PIPE_SHADER_IR_NIR;
          stp->Base.nir = st_translate_prog_to_nir(st, &stp->Base,
                                                   MESA_SHADER_VERTEX);
@@ -565,6 +610,29 @@ st_translate_vertex_program(struct st_context *st,
    return stp->state.tokens != NULL;
 }
 
+static struct nir_shader *
+get_nir_shader(struct st_context *st, struct st_program *stp)
+{
+   if (stp->Base.nir) {
+      nir_shader *nir = stp->Base.nir;
+
+      /* The first shader variant takes ownership of NIR, so that there is
+       * no cloning. Additional shader variants are always generated from
+       * serialized NIR to save memory.
+       */
+      stp->Base.nir = NULL;
+      assert(stp->serialized_nir && stp->serialized_nir_size);
+      return nir;
+   }
+
+   struct blob_reader blob_reader;
+   const struct nir_shader_compiler_options *options =
+      st->ctx->Const.ShaderCompilerOptions[stp->Base.info.stage].NirOptions;
+
+   blob_reader_init(&blob_reader, stp->serialized_nir, stp->serialized_nir_size);
+   return nir_deserialize(NULL, options, &blob_reader);
+}
+
 static const gl_state_index16 depth_range_state[STATE_LENGTH] =
    { STATE_DEPTH_RANGE };
 
@@ -591,7 +659,7 @@ st_create_vp_variant(struct st_context *st,
       bool finalize = false;
 
       state.type = PIPE_SHADER_IR_NIR;
-      state.ir.nir = nir_shader_clone(NULL, stvp->Base.nir);
+      state.ir.nir = get_nir_shader(st, stvp);
       if (key->clamp_color) {
          NIR_PASS_V(state.ir.nir, nir_lower_clamp_color_outputs);
          finalize = true;
@@ -788,6 +856,10 @@ st_translate_fragment_program(struct st_context *st,
 
          if (stfp->Base.nir)
             ralloc_free(stfp->Base.nir);
+         if (stfp->serialized_nir) {
+            free(stfp->serialized_nir);
+            stfp->serialized_nir = NULL;
+         }
          stfp->state.type = PIPE_SHADER_IR_NIR;
          stfp->Base.nir = nir;
          return true;
@@ -1145,7 +1217,7 @@ st_create_fp_variant(struct st_context *st,
       bool finalize = false;
 
       state.type = PIPE_SHADER_IR_NIR;
-      state.ir.nir = nir_shader_clone(NULL, stfp->Base.nir);
+      state.ir.nir = get_nir_shader(st, stfp);
 
       if (key->clamp_color) {
          NIR_PASS_V(state.ir.nir, nir_lower_clamp_color_outputs);
@@ -1676,7 +1748,7 @@ st_get_common_variant(struct st_context *st,
             bool finalize = false;
 
 	    state.type = PIPE_SHADER_IR_NIR;
-	    state.ir.nir = nir_shader_clone(NULL, prog->Base.nir);
+	    state.ir.nir = get_nir_shader(st, prog);
 
             if (key->clamp_color) {
                NIR_PASS_V(state.ir.nir, nir_lower_clamp_color_outputs);
@@ -1770,10 +1842,16 @@ destroy_program_variants(struct st_context *st, struct gl_program *target)
 
    struct st_program *p = st_program(target);
    struct st_variant *v, **prevPtr = &p->variants;
+   bool unbound = false;
 
    for (v = p->variants; v; ) {
       struct st_variant *next = v->next;
       if (v->st == st) {
+         if (!unbound) {
+            st_unbind_program(st, p);
+            unbound = true;
+         }
+
          /* unlink from list */
          *prevPtr = next;
          /* destroy this variant */
@@ -1909,6 +1987,20 @@ st_precompile_shader_variant(struct st_context *st,
 }
 
 void
+st_serialize_nir(struct st_program *stp)
+{
+   if (!stp->serialized_nir) {
+      struct blob blob;
+      size_t size;
+
+      blob_init(&blob);
+      nir_serialize(&blob, stp->Base.nir, false);
+      blob_finish_get_buffer(&blob, &stp->serialized_nir, &size);
+      stp->serialized_nir_size = size;
+   }
+}
+
+void
 st_finalize_program(struct st_context *st, struct gl_program *prog)
 {
    if (st->current_program[prog->info.stage] == prog) {
@@ -1918,8 +2010,15 @@ st_finalize_program(struct st_context *st, struct gl_program *prog)
          st->dirty |= ((struct st_program *)prog)->affected_states;
    }
 
-   if (prog->nir)
+   if (prog->nir) {
       nir_sweep(prog->nir);
+
+      /* This is only needed for ARB_vp/fp programs and when the disk cache
+       * is disabled. If the disk cache is enabled, GLSL programs are
+       * serialized in write_nir_to_cache.
+       */
+      st_serialize_nir(st_program(prog));
+   }
 
    /* Create Gallium shaders now instead of on demand. */
    if (ST_DEBUG & DEBUG_PRECOMPILE ||

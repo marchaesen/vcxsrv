@@ -180,7 +180,6 @@ bench_L  (pixman_op_t              op,
     int64_t      i, j, k;
     int          x = 0;
     int          q = 0;
-    volatile int qx;
 
     for (i = 0; i < n; i++)
     {
@@ -204,7 +203,6 @@ bench_L  (pixman_op_t              op,
 	    x = 0;
 	call_func (func, op, src_img, mask_img, dst_img, x, 0, x, 0, 63 - x, 0, width, lines_count);
     }
-    qx = q;
 
     return (double)n * lines_count * width;
 }

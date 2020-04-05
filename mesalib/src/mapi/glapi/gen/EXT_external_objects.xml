@@ -39,7 +39,7 @@
 
     <function name="DeleteMemoryObjectsEXT" es2="3.2">
         <param name="n" type="GLsizei"/>
-        <param name="memoryObjects" type="const GLuint *"/>
+        <param name="memoryObjects" type="const GLuint *" count="n"/>
     </function>
 
     <function name="IsMemoryObjectEXT" es2="3.2">
@@ -55,7 +55,7 @@
     <function name="MemoryObjectParameterivEXT" es2="3.2">
         <param name="memoryObject" type="GLuint"/>
         <param name="pname" type="GLenum"/>
-        <param name="params" type="const GLint *"/>
+        <param name="params" type="const GLint *" count="_mesa_memobj_enum_to_count(pname)"/>
     </function>
 
     <function name="GetMemoryObjectParameterivEXT" es2="3.2">
@@ -191,7 +191,7 @@
 
     <function name="DeleteSemaphoresEXT" es2="3.2">
         <param name="n" type="GLsizei"/>
-        <param name="semaphores" type="const GLuint *"/>
+        <param name="semaphores" type="const GLuint *" count="n"/>
     </function>
 
     <function name="IsSemaphoreEXT" es2="3.2">
@@ -202,7 +202,7 @@
     <function name="SemaphoreParameterui64vEXT" es2="3.2">
         <param name="semaphore" type="GLuint"/>
         <param name="pname" type="GLenum"/>
-        <param name="params" type="const GLuint64 *"/>
+        <param name="params" type="const GLuint64 *" count="_mesa_semaphore_enum_to_count(pname)"/>
     </function>
 
     <function name="GetSemaphoreParameterui64vEXT" es2="3.2">
@@ -214,19 +214,19 @@
     <function name="WaitSemaphoreEXT" es2="3.2">
         <param name="semaphore" type="GLuint"/>
         <param name="numBufferBarriers" type="GLuint"/>
-        <param name="buffers" type="const GLuint *"/>
+        <param name="buffers" type="const GLuint *" count="numBufferBarriers"/>
         <param name="numTextureBarriers" type="GLuint"/>
-        <param name="textures" type="const GLuint *"/>
-        <param name="srcLayouts" type="const GLenum *"/>
+        <param name="textures" type="const GLuint *" count="numTextureBarriers"/>
+        <param name="srcLayouts" type="const GLenum *" count="numTextureBarriers"/>
     </function>
 
     <function name="SignalSemaphoreEXT" es2="3.2">
         <param name="semaphore" type="GLuint"/>
         <param name="numBufferBarriers" type="GLuint"/>
-        <param name="buffers" type="const GLuint *"/>
+        <param name="buffers" type="const GLuint *" count="numBufferBarriers"/>
         <param name="numTextureBarriers" type="GLuint"/>
-        <param name="textures" type="const GLuint *"/>
-        <param name="dstLayouts" type="const GLenum *"/>
+        <param name="textures" type="const GLuint *" count="numTextureBarriers"/>
+        <param name="dstLayouts" type="const GLenum *" count="numTextureBarriers"/>
     </function>
 
 </category>

@@ -10,6 +10,7 @@
 #include "sshppl.h"
 #include "sshcr.h"
 #include "sshserver.h"
+#include "sshkeygen.h"
 #include "storage.h"
 #include "ssh2transport.h"
 #include "mpint.h"
@@ -33,10 +34,6 @@ static strbuf *finalise_and_sign_exhash(struct ssh2_transport_state *s)
         s->hkey, make_ptrlen(s->exchange_hash, s->kex_alg->hash->hlen),
         0, BinarySink_UPCAST(sb));
     return sb;
-}
-
-static void no_progress(void *param, int action, int phase, int iprogress)
-{
 }
 
 void ssh2kex_coroutine(struct ssh2_transport_state *s, bool *aborted)
@@ -100,7 +97,13 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s, bool *aborted)
              * group! It's good enough for testing a client against,
              * but not for serious use.
              */
-            s->p = primegen(s->pbits, 2, 2, NULL, 1, no_progress, NULL, 1);
+            PrimeGenerationContext *pgc = primegen_new_context(
+                &primegen_probabilistic);
+            ProgressReceiver null_progress;
+            null_progress.vt = &null_progress_vt;
+            s->p = primegen_generate(pgc, pcs_new(s->pbits), &null_progress);
+            primegen_free_context(pgc);
+
             s->g = mp_from_integer(2);
             s->dh_ctx = dh_setup_gex(s->p, s->g);
             s->kex_init_value = SSH2_MSG_KEX_DH_GEX_INIT;
@@ -262,7 +265,15 @@ void ssh2kex_coroutine(struct ssh2_transport_state *s, bool *aborted)
             ppl_logevent("Generating a %d-bit RSA key", extra->minklen);
 
             s->rsa_kex_key = snew(RSAKey);
-            rsa_generate(s->rsa_kex_key, extra->minklen, no_progress, NULL);
+
+            PrimeGenerationContext *pgc = primegen_new_context(
+                &primegen_probabilistic);
+            ProgressReceiver null_progress;
+            null_progress.vt = &null_progress_vt;
+            rsa_generate(s->rsa_kex_key, extra->minklen, false,
+                         pgc, &null_progress);
+            primegen_free_context(pgc);
+
             s->rsa_kex_key->comment = NULL;
             s->rsa_kex_key_needs_freeing = true;
         }

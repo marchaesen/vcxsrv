@@ -146,7 +146,7 @@ to check for regressions.
 </p>
 
 <p>
-As mentioned at the begining, patches should be bisectable.
+As mentioned at the beginning, patches should be bisectable.
 A good way to test this is to make use of the `git rebase` command,
 to run your tests on each commit. Assuming your branch is based off
 <code>origin/master</code>, you can run:
@@ -278,13 +278,14 @@ release.
 </p>
 <ul>
 <li> By adding the Cc: mesa-stable@ tag as described below.
-<li> Sending the commit ID (as seen in master branch) to the mesa-stable@ mailing list.
-<li> Forwarding the patch from the mesa-dev@ mailing list.
+<li> By adding the fixes: tag as described below.
+<li> By submitting a merge request against the "staging/year.quarter" branch on gitlab.
 </li>
 </ul>
 <p>
-Note: resending patch identical to one on mesa-dev@ or one that differs only
-by the extra mesa-stable@ tag is <strong>not</strong> recommended.
+Please <strong>DO NOT</strong> send patches to
+mesa-stable@lists.freedesktop.org, it is not monitored actively and is a
+historical artifact.
 </p>
 <p>
 If you are not the author of the original patch, please Cc: them in your
@@ -303,30 +304,26 @@ you should add an appropriate note to the commit message.
 </p>
 
 <p>
+Using a "fixes tag" as described in <a href="#formatting">Patch formatting</a>
+is the preferred way to nominate a commit that you know ahead of time should be
+backported. There are scripts that will figure out which releases to apply the
+patch to automatically, so you don't need to figure it out.
+</p>
+
+<p>
+Alternatively, you may use a "CC:" tag.
+
 Here are some examples of such a note:
 </p>
 <pre>
-CC: &lt;mesa-stable@lists.freedesktop.org&gt;
+CC: 20.0 19.3 &lt;mesa-stable@lists.freedesktop.org&gt;
 </pre>
 
-Simply adding the CC to the mesa-stable list address is adequate to nominate
-the commit for all the active stable branches. If the commit is not applicable
-for said branch the stable-release manager will reply stating so.
-
-This "CC" syntax for patch nomination will cause patches to automatically be
-copied to the mesa-stable@ mailing list when you use "git send-email" to send
-patches to the mesa-dev@ mailing list. If you prefer using --suppress-cc that
-won't have any negative effect on the patch nomination.
-
 <p>
-Note: by removing the tag [as the commit is pushed] the patch is
-<strong>explicitly</strong> rejected from inclusion in the stable branch(es).
-Thus, drop the line <strong>only</strong> if you want to cancel the nomination.
+Using the CC tag <strong>should</strong> include the stable branches you want
+to nominate the patch to. If you do not provide any version it is nominated to
+all active stable branches.
 </p>
-
-Alternatively, if one uses the "Fixes" tag as described in the "Patch formatting"
-section, it nominates a commit for all active stable branches that include the
-commit that is referred to.
 
 <h2 id="criteria">Criteria for accepting patches to the stable branch</h2>
 
@@ -387,16 +384,22 @@ yourself warned.
 
 <h2 id="backports">Sending backports for the stable branch</h2>
 <p>
-By default merge conflicts are resolved by the stable-release manager. In which
-case he/she should provide a comment about the changes required, alongside the
-<code>Conflicts</code> section. Summary of which will be provided in the
-<a href="releasing.html#prerelease">pre-release</a> announcement.
+By default merge conflicts are resolved by the stable-release manager. The
+release maintainer should resolve trivial conflicts, but for complex conflicts
+they should ask the original author to provide a backport or de-nominate the
+patch.
 </p>
 
 <p>
-Developers are interested in sending backports are recommended to use either a
-<code>[BACKPORT #branch]</code> subject prefix or provides similar information
-within the commit summary.
+For patches that either need to be nominated after they've landed in master, or
+that are known ahead of time to not not apply cleanly to a stable branch (such
+as due to a rename), using a gitlab MR is most appropriate.
+
+The MR should be based on and target the staging/year.quarter branch, not on
+the year.quarter branch, per the stable branch policy.
+
+Assigning the MR to release maintainer for said branch or mentioning them is
+helpful, but not required.
 </p>
 
 <h2 id="gittips">Git tips</h2>

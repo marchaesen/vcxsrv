@@ -680,7 +680,7 @@ hostx_init(void)
         }
     }
 
-    if (!xcb_aux_parse_color("red", &red, &green, &blue)) {
+    if (!xcb_aux_parse_color((char*)"red", &red, &green, &blue)) {
         xcb_lookup_color_cookie_t c =
             xcb_lookup_color(HostX.conn, xscreen->default_colormap, 3, "red");
         xcb_lookup_color_reply_t *reply =

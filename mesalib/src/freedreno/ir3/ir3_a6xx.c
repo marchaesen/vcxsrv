@@ -208,14 +208,14 @@ static void
 emit_intrinsic_store_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 {
 	struct ir3_block *b = ctx->block;
-	const nir_variable *var = nir_intrinsic_get_var(intr, 0);
 	struct ir3_instruction *stib;
 	struct ir3_instruction * const *value = ir3_get_src(ctx, &intr->src[3]);
 	struct ir3_instruction * const *coords = ir3_get_src(ctx, &intr->src[1]);
-	unsigned ncoords = ir3_get_image_coords(var, NULL);
-	unsigned slot = ir3_get_image_slot(nir_src_as_deref(intr->src[0]));
+	unsigned ncoords = ir3_get_image_coords(intr, NULL);
+	unsigned slot = nir_src_as_uint(intr->src[0]);
 	unsigned ibo_idx = ir3_image_to_ibo(ctx->so->shader, slot);
-	unsigned ncomp = ir3_get_num_components_for_glformat(var->data.image.format);
+	enum pipe_format format = nir_intrinsic_format(intr);
+	unsigned ncomp = ir3_get_num_components_for_image_format(format);
 
 	/* src0 is offset, src1 is value:
 	 */
@@ -224,7 +224,7 @@ emit_intrinsic_store_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 			ir3_create_collect(ctx, value, ncomp), 0);
 	stib->cat6.iim_val = ncomp;
 	stib->cat6.d = ncoords;
-	stib->cat6.type = ir3_get_image_type(var);
+	stib->cat6.type = ir3_get_type_for_image_intrinsic(intr);
 	stib->cat6.typed = true;
 	stib->barrier_class = IR3_BARRIER_IMAGE_W;
 	stib->barrier_conflict = IR3_BARRIER_IMAGE_R | IR3_BARRIER_IMAGE_W;
@@ -237,12 +237,11 @@ static struct ir3_instruction *
 emit_intrinsic_atomic_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 {
 	struct ir3_block *b = ctx->block;
-	const nir_variable *var = nir_intrinsic_get_var(intr, 0);
 	struct ir3_instruction *atomic, *ibo, *src0, *src1, *dummy;
 	struct ir3_instruction * const *coords = ir3_get_src(ctx, &intr->src[1]);
 	struct ir3_instruction *value = ir3_get_src(ctx, &intr->src[3])[0];
-	unsigned ncoords = ir3_get_image_coords(var, NULL);
-	unsigned slot = ir3_get_image_slot(nir_src_as_deref(intr->src[0]));
+	unsigned ncoords = ir3_get_image_coords(intr, NULL);
+	unsigned slot = nir_src_as_uint(intr->src[0]);
 	unsigned ibo_idx = ir3_image_to_ibo(ctx->so->shader, slot);
 
 	ibo = create_immed(b, ibo_idx);
@@ -262,7 +261,7 @@ emit_intrinsic_atomic_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	dummy = create_immed(b, 0);
 	src0 = ir3_create_collect(ctx, coords, ncoords);
 
-	if (intr->intrinsic == nir_intrinsic_image_deref_atomic_comp_swap) {
+	if (intr->intrinsic == nir_intrinsic_image_atomic_comp_swap) {
 		struct ir3_instruction *compare = ir3_get_src(ctx, &intr->src[4])[0];
 		src1 = ir3_create_collect(ctx, (struct ir3_instruction*[]){
 			dummy, compare, value
@@ -274,30 +273,30 @@ emit_intrinsic_atomic_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 	}
 
 	switch (intr->intrinsic) {
-	case nir_intrinsic_image_deref_atomic_add:
+	case nir_intrinsic_image_atomic_add:
 		atomic = ir3_ATOMIC_ADD_G(b, ibo, 0, src0, 0, src1, 0);
 		break;
-	case nir_intrinsic_image_deref_atomic_imin:
-	case nir_intrinsic_image_deref_atomic_umin:
+	case nir_intrinsic_image_atomic_imin:
+	case nir_intrinsic_image_atomic_umin:
 		atomic = ir3_ATOMIC_MIN_G(b, ibo, 0, src0, 0, src1, 0);
 		break;
-	case nir_intrinsic_image_deref_atomic_imax:
-	case nir_intrinsic_image_deref_atomic_umax:
+	case nir_intrinsic_image_atomic_imax:
+	case nir_intrinsic_image_atomic_umax:
 		atomic = ir3_ATOMIC_MAX_G(b, ibo, 0, src0, 0, src1, 0);
 		break;
-	case nir_intrinsic_image_deref_atomic_and:
+	case nir_intrinsic_image_atomic_and:
 		atomic = ir3_ATOMIC_AND_G(b, ibo, 0, src0, 0, src1, 0);
 		break;
-	case nir_intrinsic_image_deref_atomic_or:
+	case nir_intrinsic_image_atomic_or:
 		atomic = ir3_ATOMIC_OR_G(b, ibo, 0, src0, 0, src1, 0);
 		break;
-	case nir_intrinsic_image_deref_atomic_xor:
+	case nir_intrinsic_image_atomic_xor:
 		atomic = ir3_ATOMIC_XOR_G(b, ibo, 0, src0, 0, src1, 0);
 		break;
-	case nir_intrinsic_image_deref_atomic_exchange:
+	case nir_intrinsic_image_atomic_exchange:
 		atomic = ir3_ATOMIC_XCHG_G(b, ibo, 0, src0, 0, src1, 0);
 		break;
-	case nir_intrinsic_image_deref_atomic_comp_swap:
+	case nir_intrinsic_image_atomic_comp_swap:
 		atomic = ir3_ATOMIC_CMPXCHG_G(b, ibo, 0, src0, 0, src1, 0);
 		break;
 	default:
@@ -306,7 +305,7 @@ emit_intrinsic_atomic_image(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 
 	atomic->cat6.iim_val = 1;
 	atomic->cat6.d = ncoords;
-	atomic->cat6.type = ir3_get_image_type(var);
+	atomic->cat6.type = ir3_get_type_for_image_intrinsic(intr);
 	atomic->cat6.typed = true;
 	atomic->barrier_class = IR3_BARRIER_IMAGE_W;
 	atomic->barrier_conflict = IR3_BARRIER_IMAGE_R | IR3_BARRIER_IMAGE_W;
@@ -330,34 +329,34 @@ const struct ir3_context_funcs ir3_a6xx_funcs = {
  * extra mov from src1.x to dst.  This way the other compiler passes
  * can ignore this quirk of the new instruction encoding.
  *
- * This might cause extra complication in the future when we support
- * spilling, as I think we'd want to re-run the scheduling pass.  One
- * possible alternative might be to do this in the RA pass after
- * ra_allocate() but before destroying the SSA links.  (Ie. we do
- * want to know if anything consumes the result of the atomic instr,
- * if there is no consumer then inserting the extra mov is pointless.
+ * This should run after RA.
  */
 
 static struct ir3_instruction *
 get_atomic_dest_mov(struct ir3_instruction *atomic)
 {
+	struct ir3_instruction *mov;
+
 	/* if we've already created the mov-out, then re-use it: */
 	if (atomic->data)
 		return atomic->data;
 
-	/* extract back out the 'dummy' which serves as stand-in for dest: */
-	struct ir3_instruction *src = ssa(atomic->regs[3]);
-	debug_assert(src->opc == OPC_META_COLLECT);
-	struct ir3_instruction *dummy = ssa(src->regs[1]);
+	/* We are already out of SSA here, so we can't use the nice builders: */
+	mov = ir3_instr_create(atomic->block, OPC_MOV);
+	ir3_reg_create(mov, 0, 0);    /* dst */
+	ir3_reg_create(mov, 0, 0);    /* src */
 
-	struct ir3_instruction *mov = ir3_MOV(atomic->block, dummy, TYPE_U32);
+	mov->cat1.src_type = TYPE_U32;
+	mov->cat1.dst_type = TYPE_U32;
+
+	/* extract back out the 'dummy' which serves as stand-in for dest: */
+	struct ir3_instruction *src = atomic->regs[3]->instr;
+	debug_assert(src->opc == OPC_META_COLLECT);
+
+	*mov->regs[0] = *atomic->regs[0];
+	*mov->regs[1] = *src->regs[1]->instr->regs[0];
 
 	mov->flags |= IR3_INSTR_SY;
-
-	if (atomic->regs[0]->flags & IR3_REG_ARRAY) {
-		mov->regs[0]->flags |= IR3_REG_ARRAY;
-		mov->regs[0]->array = atomic->regs[0]->array;
-	}
 
 	/* it will have already been appended to the end of the block, which
 	 * isn't where we want it, so fix-up the location:
@@ -365,27 +364,16 @@ get_atomic_dest_mov(struct ir3_instruction *atomic)
 	list_delinit(&mov->node);
 	list_add(&mov->node, &atomic->node);
 
-	/* And because this is after instruction scheduling, we don't really
-	 * have a good way to know if extra delay slots are needed.  For
-	 * example, if the result is consumed by an stib (storeImage()) there
-	 * would be no extra delay slots in place already, but 5 are needed.
-	 * Just plan for the worst and hope nobody looks at the resulting
-	 * code that is generated :-(
-	 */
-	struct ir3_instruction *nop = ir3_NOP(atomic->block);
-	nop->repeat = 5;
-
-	list_delinit(&nop->node);
-	list_add(&nop->node, &mov->node);
-
 	return atomic->data = mov;
 }
 
-void
+bool
 ir3_a6xx_fixup_atomic_dests(struct ir3 *ir, struct ir3_shader_variant *so)
 {
+	bool progress = false;
+
 	if (ir3_shader_nibo(so) == 0)
-		return;
+		return false;
 
 	foreach_block (block, &ir->block_list) {
 		foreach_instr (instr, &block->instr_list) {
@@ -397,22 +385,28 @@ ir3_a6xx_fixup_atomic_dests(struct ir3 *ir, struct ir3_shader_variant *so)
 		foreach_instr_safe (instr, &block->instr_list) {
 			struct ir3_register *reg;
 
-			foreach_src(reg, instr) {
-				struct ir3_instruction *src = ssa(reg);
+			foreach_src (reg, instr) {
+				struct ir3_instruction *src = reg->instr;
 
 				if (!src)
 					continue;
 
-				if (is_atomic(src->opc) && (src->flags & IR3_INSTR_G))
+				if (is_atomic(src->opc) && (src->flags & IR3_INSTR_G)) {
 					reg->instr = get_atomic_dest_mov(src);
+					progress = true;
+				}
 			}
 		}
-
-		/* we also need to fixup shader outputs: */
-		struct ir3_instruction *out;
-		foreach_output_n(out, n, ir)
-			if (is_atomic(out->opc) && (out->flags & IR3_INSTR_G))
-				ir->outputs[n] = get_atomic_dest_mov(out);
 	}
 
+	/* we also need to fixup shader outputs: */
+	struct ir3_instruction *out;
+	foreach_output_n (out, n, ir) {
+		if (is_atomic(out->opc) && (out->flags & IR3_INSTR_G)) {
+			ir->outputs[n] = get_atomic_dest_mov(out);
+			progress = true;
+		}
+	}
+
+	return progress;
 }

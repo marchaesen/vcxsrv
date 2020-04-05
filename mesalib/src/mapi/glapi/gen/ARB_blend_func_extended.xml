@@ -12,7 +12,7 @@
         <param name="program" type="GLuint"/>
         <param name="colorNumber" type="GLuint"/>
         <param name="index" type="GLuint"/>
-        <param name="name" type="const GLchar *"/>
+        <param name="name" type="const GLchar *" count="(strlen(name) + 1)"/>
     </function>
 
     <function name="GetFragDataIndex">

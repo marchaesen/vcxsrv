@@ -776,7 +776,63 @@ check_unrolling_restrictions(nir_shader *shader, nir_loop *loop)
 }
 
 static bool
-process_loops(nir_shader *sh, nir_cf_node *cf_node, bool *has_nested_loop_out)
+process_loops(nir_shader *sh, nir_cf_node *cf_node, bool *has_nested_loop_out,
+              bool *unrolled_this_block);
+
+static bool
+process_loops_in_block(nir_shader *sh, struct exec_list *block,
+                       bool *has_nested_loop_out)
+{
+   /* We try to unroll as many loops in one pass as possible.
+    * E.g. we can safely unroll both loops in this block:
+    *
+    *    if (...) {
+    *       loop {...}
+    *    }
+    *
+    *    if (...) {
+    *       loop {...}
+    *    }
+    *
+    * Unrolling one loop doesn't affect the other one.
+    *
+    * On the other hand for block with:
+    *
+    *    loop {...}
+    *    ...
+    *    loop {...}
+    *
+    * It is unsafe to unroll both loops in one pass without taking
+    * complicating precautions, since the structure of the block would
+    * change after unrolling the first loop. So in such a case we leave
+    * the second loop for the next iteration of unrolling to handle.
+    */
+
+   bool progress = false;
+   bool unrolled_this_block = false;
+
+   foreach_list_typed(nir_cf_node, nested_node, node, block) {
+      if (process_loops(sh, nested_node,
+                        has_nested_loop_out, &unrolled_this_block)) {
+         progress = true;
+
+         /* If current node is unrolled we could not safely continue
+          * our iteration since we don't know the next node
+          * and it's hard to guarantee that we won't end up unrolling
+          * inner loop of the currently unrolled one, if such exists.
+          */
+         if (unrolled_this_block) {
+            break;
+         }
+      }
+   }
+
+   return progress;
+}
+
+static bool
+process_loops(nir_shader *sh, nir_cf_node *cf_node, bool *has_nested_loop_out,
+              bool *unrolled_this_block)
 {
    bool progress = false;
    bool has_nested_loop = false;
@@ -787,22 +843,23 @@ process_loops(nir_shader *sh, nir_cf_node *cf_node, bool *has_nested_loop_out)
       return progress;
    case nir_cf_node_if: {
       nir_if *if_stmt = nir_cf_node_as_if(cf_node);
-      foreach_list_typed_safe(nir_cf_node, nested_node, node, &if_stmt->then_list)
-         progress |= process_loops(sh, nested_node, has_nested_loop_out);
-      foreach_list_typed_safe(nir_cf_node, nested_node, node, &if_stmt->else_list)
-         progress |= process_loops(sh, nested_node, has_nested_loop_out);
+      progress |= process_loops_in_block(sh, &if_stmt->then_list,
+                                         has_nested_loop_out);
+      progress |= process_loops_in_block(sh, &if_stmt->else_list,
+                                         has_nested_loop_out);
       return progress;
    }
    case nir_cf_node_loop: {
       loop = nir_cf_node_as_loop(cf_node);
-      foreach_list_typed_safe(nir_cf_node, nested_node, node, &loop->body)
-         progress |= process_loops(sh, nested_node, &has_nested_loop);
+      progress |= process_loops_in_block(sh, &loop->body, &has_nested_loop);
 
       break;
    }
    default:
       unreachable("unknown cf node type");
    }
+
+   const bool unrolled_child_block = progress;
 
    /* Don't attempt to unroll a second inner loop in this pass, wait until the
     * next pass as we have altered the cf.
@@ -888,6 +945,9 @@ process_loops(nir_shader *sh, nir_cf_node *cf_node, bool *has_nested_loop_out)
 
 exit:
    *has_nested_loop_out = true;
+   if (progress && !unrolled_child_block)
+      *unrolled_this_block = true;
+
    return progress;
 }
 
@@ -899,11 +959,9 @@ nir_opt_loop_unroll_impl(nir_function_impl *impl,
    nir_metadata_require(impl, nir_metadata_loop_analysis, indirect_mask);
    nir_metadata_require(impl, nir_metadata_block_index);
 
-   foreach_list_typed_safe(nir_cf_node, node, node, &impl->body) {
-      bool has_nested_loop = false;
-      progress |= process_loops(impl->function->shader, node,
-                                &has_nested_loop);
-   }
+   bool has_nested_loop = false;
+   progress |= process_loops_in_block(impl->function->shader, &impl->body,
+                                      &has_nested_loop);
 
    if (progress)
       nir_lower_regs_to_ssa_impl(impl);

@@ -41,7 +41,7 @@
 
 #include "protocol-common.h"
 
-ClientRec client_window;
+extern ClientRec client_window;
 static ClientRec client_request;
 static void reply_XIQueryPointer_data(ClientPtr client, int len,
                                       char *data, void *closure);

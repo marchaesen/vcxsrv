@@ -39,6 +39,33 @@ struct etna_shim_gpu
 
 static const struct etna_shim_gpu gpus[] = {
    {
+      .name = "GC400",
+      .reg_map = (const uint64_t[]){
+         [ETNAVIV_PARAM_GPU_MODEL] = 0x400,
+         [ETNAVIV_PARAM_GPU_REVISION] = 0x4652,
+         [ETNAVIV_PARAM_GPU_FEATURES_0] = 0xa0e9e004,
+         [ETNAVIV_PARAM_GPU_FEATURES_1] = 0xe1299fff,
+         [ETNAVIV_PARAM_GPU_FEATURES_2] = 0xbe13b219,
+         [ETNAVIV_PARAM_GPU_FEATURES_3] = 0xce110010,
+         [ETNAVIV_PARAM_GPU_FEATURES_4] = 0x8000001,
+         [ETNAVIV_PARAM_GPU_FEATURES_5] = 0x20102,
+         [ETNAVIV_PARAM_GPU_FEATURES_6] = 0x120000,
+         [ETNAVIV_PARAM_GPU_FEATURES_7] = 0x0,
+         [ETNAVIV_PARAM_GPU_STREAM_COUNT] = 0x4,
+         [ETNAVIV_PARAM_GPU_REGISTER_MAX] = 0x40,
+         [ETNAVIV_PARAM_GPU_THREAD_COUNT] = 0x80,
+         [ETNAVIV_PARAM_GPU_VERTEX_CACHE_SIZE] = 0x8,
+         [ETNAVIV_PARAM_GPU_SHADER_CORE_COUNT] = 0x1,
+         [ETNAVIV_PARAM_GPU_PIXEL_PIPES] = 0x1,
+         [ETNAVIV_PARAM_GPU_VERTEX_OUTPUT_BUFFER_SIZE] = 0x80,
+         [ETNAVIV_PARAM_GPU_BUFFER_SIZE] = 0x0,
+         [ETNAVIV_PARAM_GPU_INSTRUCTION_COUNT] = 0x100,
+         [ETNAVIV_PARAM_GPU_NUM_CONSTANTS] = 0x140,
+         [ETNAVIV_PARAM_GPU_NUM_VARYINGS] = 0x8,
+         [ETNAVIV_PARAM_SOFTPIN_START_ADDR] = ~0ULL,
+      }
+   },
+   {
       .name = "GC2000",
       .reg_map = (const uint64_t[]){
          [ETNAVIV_PARAM_GPU_MODEL] = 0x2000,
@@ -188,6 +215,7 @@ static ioctl_fn_t driver_ioctls[] = {
 void
 drm_shim_driver_init(void)
 {
+   shim_device.bus_type = DRM_BUS_PLATFORM;
    shim_device.driver_name = "etnaviv";
    shim_device.driver_ioctls = driver_ioctls;
    shim_device.driver_ioctl_count = ARRAY_SIZE(driver_ioctls);
@@ -214,7 +242,7 @@ drm_shim_driver_init(void)
 
    /* NOTE: keep keep default value and fallback index in sync */
    if (!shim_gpu)
-      shim_gpu = &gpus[0];
+      shim_gpu = &gpus[1];
 
    fprintf(stderr, "Using %s as shim gpu\n", shim_gpu->name);
 }

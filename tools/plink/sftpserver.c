@@ -15,6 +15,7 @@ struct sftp_packet *sftp_handle_request(
 {
     struct sftp_packet *reply;
     unsigned id;
+    uint32_t flags;
     ptrlen path, dstpath, handle, data;
     uint64_t offset;
     unsigned length;
@@ -266,13 +267,13 @@ static void default_reply_attrs(
     put_fxp_attrs(d->pkt, attrs);
 }
 
-const struct SftpReplyBuilderVtable DefaultSftpReplyBuilder_vt = {
-    default_reply_ok,
-    default_reply_error,
-    default_reply_simple_name,
-    default_reply_name_count,
-    default_reply_full_name,
-    default_reply_handle,
-    default_reply_data,
-    default_reply_attrs,
+const SftpReplyBuilderVtable DefaultSftpReplyBuilder_vt = {
+    .reply_ok = default_reply_ok,
+    .reply_error = default_reply_error,
+    .reply_simple_name = default_reply_simple_name,
+    .reply_name_count = default_reply_name_count,
+    .reply_full_name = default_reply_full_name,
+    .reply_handle = default_reply_handle,
+    .reply_data = default_reply_data,
+    .reply_attrs = default_reply_attrs,
 };

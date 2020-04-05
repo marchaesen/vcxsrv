@@ -45,6 +45,8 @@ static ClientRec server_client;
 
 void *global_userdata;
 
+void (*reply_handler) (ClientPtr client, int len, char *data, void *userdata);
+
 int enable_GrabButton_wrap = 1;
 int enable_XISetEventMask_wrap = 1;
 

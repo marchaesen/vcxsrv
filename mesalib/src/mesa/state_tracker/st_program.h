@@ -232,6 +232,9 @@ struct st_program
    struct ati_fragment_shader *ati_fs;
    uint64_t affected_states; /**< ST_NEW_* flags to mark dirty when binding */
 
+   void *serialized_nir;
+   unsigned serialized_nir_size;
+
    /* used when bypassing glsl_to_tgsi: */
    struct gl_shader_program *shader_program;
 
@@ -337,6 +340,9 @@ st_translate_fragment_program(struct st_context *st,
 extern bool
 st_translate_common_program(struct st_context *st,
                             struct st_program *stp);
+
+extern void
+st_serialize_nir(struct st_program *stp);
 
 extern void
 st_finalize_program(struct st_context *st, struct gl_program *prog);

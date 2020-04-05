@@ -25,6 +25,8 @@ import argparse
 import calendar
 import datetime
 import pathlib
+import subprocess
+
 from lxml import (
     etree,
     html,
@@ -83,7 +85,8 @@ def update_index(is_point: bool, version: str, previous_version: str) -> None:
     root.insert(index, body)
     root.insert(index, header)
 
-    tree.write(p.as_posix(), method='html')
+    tree.write(p.as_posix(), method='html', pretty_print=True)
+    subprocess.run(['git', 'add', p])
 
 
 def update_release_notes(previous_version: str) -> None:
@@ -98,7 +101,42 @@ def update_release_notes(previous_version: str) -> None:
     ul = tree.xpath('.//ul')[0]
     ul.insert(0, li)
 
-    tree.write(p.as_posix(), method='html')
+    tree.write(p.as_posix(), method='html', pretty_print=True)
+    subprocess.run(['git', 'add', p])
+
+
+def update_calendar(previous_version: str) -> None:
+    p = pathlib.Path(__file__).parent.parent / 'docs' / 'release-calendar.html'
+    with p.open('rt') as f:
+        tree = html.parse(f)
+
+    base_version = previous_version[:-2]
+
+    old = None
+    new = None
+
+    for tr in tree.xpath('.//tr'):
+        if old is not None:
+            new = tr
+            break
+
+        for td in tr.xpath('./td'):
+            if td.text == base_version:
+                old = tr
+                break
+
+    assert old is not None
+    assert new is not None
+    old.getparent().remove(old)
+
+    # rowspan is 1 based in html, but 0 based in lxml
+    rowspan = int(td.get("rowspan")) - 1
+    if rowspan:
+        td.set("rowspan", str(rowspan))
+        new.insert(0, td)
+
+    tree.write(p.as_posix(), method='html', pretty_print=True)
+    subprocess.run(['git', 'add', p])
 
 
 def main() -> None:
@@ -111,6 +149,10 @@ def main() -> None:
 
     update_index(is_point, args.version, previous_version)
     update_release_notes(previous_version)
+    update_calendar(previous_version)
+    subprocess.run(['git', 'commit', '-m',
+                    'docs: update calendar, add news item, and link releases '
+                    f'notes for {previous_version}'])
 
 
 if __name__ == "__main__":

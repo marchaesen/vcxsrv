@@ -29,6 +29,9 @@
 #include "mtypes.h"
 
 extern void
+_mesa_update_allow_draw_out_of_order(struct gl_context *ctx);
+
+extern void
 _mesa_update_state(struct gl_context *ctx);
 
 /* As above but can only be called between _mesa_lock_context_textures() and 

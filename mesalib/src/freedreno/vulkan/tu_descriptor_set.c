@@ -96,10 +96,10 @@ descriptor_size(enum VkDescriptorType type)
       /* We may need the IBO or the TEX representation, or both. */
       return A6XX_TEX_CONST_DWORDS * 4 * 2;
    case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-      /* texture const + tu_sampler struct (includes border color) */
-      return A6XX_TEX_CONST_DWORDS * 4 + sizeof(struct tu_sampler);
+      /* texture const + texture sampler */
+      return (A6XX_TEX_CONST_DWORDS + A6XX_TEX_SAMP_DWORDS) * 4;
    case VK_DESCRIPTOR_TYPE_SAMPLER:
-      return sizeof(struct tu_sampler);
+      return A6XX_TEX_SAMP_DWORDS * 4;
    default:
       unreachable("unknown descriptor type\n");
       return 0;
@@ -136,7 +136,7 @@ tu_CreateDescriptorSetLayout(
 
    uint32_t samplers_offset = sizeof(struct tu_descriptor_set_layout) +
       (max_binding + 1) * sizeof(set_layout->binding[0]);
-   uint32_t size = samplers_offset + immutable_sampler_count * sizeof(struct tu_sampler);
+   uint32_t size = samplers_offset + immutable_sampler_count * A6XX_TEX_SAMP_DWORDS * 4;
 
    set_layout = vk_alloc2(&device->alloc, pAllocator, size, 8,
                           VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);

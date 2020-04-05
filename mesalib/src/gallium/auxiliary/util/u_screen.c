@@ -406,7 +406,24 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
 
    case PIPE_CAP_OPENCL_INTEGER_FUNCTIONS:
    case PIPE_CAP_INTEGER_MULTIPLY_32X16:
+   case PIPE_CAP_DRAW_INFO_START_WITH_USER_INDICES:
       return 0;
+   case PIPE_CAP_NIR_IMAGES_AS_DEREF:
+      return 1;
+
+   case PIPE_CAP_FRONTEND_NOOP:
+      /* Enables INTEL_blackhole_render */
+      return 0;
+
+   case PIPE_CAP_PACKED_STREAM_OUTPUT:
+      return 1;
+
+   case PIPE_CAP_VIEWPORT_TRANSFORM_LOWERED:
+   case PIPE_CAP_PSIZ_CLAMPED:
+      return 0;
+
+   case PIPE_CAP_GL_BEGIN_END_BUFFER_SIZE:
+      return 512 * 1024;
 
    default:
       unreachable("bad PIPE_CAP_*");

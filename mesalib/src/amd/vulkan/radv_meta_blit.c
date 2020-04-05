@@ -350,18 +350,18 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
 		unsigned dst_layout = radv_meta_dst_layout_from_layout(dest_image_layout);
 		fs_key = radv_format_meta_fs_key(dest_image->vk_format);
 
-		radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
-					      &(VkRenderPassBeginInfo) {
-						      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-							      .renderPass = device->meta_state.blit.render_pass[fs_key][dst_layout],
-							      .framebuffer = fb,
-							      .renderArea = {
-							      .offset = { dest_box.offset.x, dest_box.offset.y },
-							      .extent = { dest_box.extent.width, dest_box.extent.height },
-						      },
-							      .clearValueCount = 0,
-								       .pClearValues = NULL,
-						       }, VK_SUBPASS_CONTENTS_INLINE);
+		radv_cmd_buffer_begin_render_pass(cmd_buffer,
+						  &(VkRenderPassBeginInfo) {
+							.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+								.renderPass = device->meta_state.blit.render_pass[fs_key][dst_layout],
+								.framebuffer = fb,
+								.renderArea = {
+									.offset = { dest_box.offset.x, dest_box.offset.y },
+									.extent = { dest_box.extent.width, dest_box.extent.height },
+								},
+							.clearValueCount = 0,
+							.pClearValues = NULL,
+						});
 		switch (src_image->type) {
 		case VK_IMAGE_TYPE_1D:
 			pipeline = &device->meta_state.blit.pipeline_1d_src[fs_key];
@@ -379,18 +379,18 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
 	}
 	case VK_IMAGE_ASPECT_DEPTH_BIT: {
 		enum radv_blit_ds_layout ds_layout = radv_meta_blit_ds_to_type(dest_image_layout);
-		radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
-					      &(VkRenderPassBeginInfo) {
-						      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-							      .renderPass = device->meta_state.blit.depth_only_rp[ds_layout],
-							      .framebuffer = fb,
-							      .renderArea = {
-							      .offset = { dest_box.offset.x, dest_box.offset.y },
-							      .extent = { dest_box.extent.width, dest_box.extent.height },
-						      },
-							      .clearValueCount = 0,
-								       .pClearValues = NULL,
-						       }, VK_SUBPASS_CONTENTS_INLINE);
+		radv_cmd_buffer_begin_render_pass(cmd_buffer,
+						  &(VkRenderPassBeginInfo) {
+							.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+							.renderPass = device->meta_state.blit.depth_only_rp[ds_layout],
+							.framebuffer = fb,
+							.renderArea = {
+								.offset = { dest_box.offset.x, dest_box.offset.y },
+								.extent = { dest_box.extent.width, dest_box.extent.height },
+							},
+							.clearValueCount = 0,
+							.pClearValues = NULL,
+						  });
 		switch (src_image->type) {
 		case VK_IMAGE_TYPE_1D:
 			pipeline = &device->meta_state.blit.depth_only_1d_pipeline;
@@ -408,18 +408,18 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
 	}
 	case VK_IMAGE_ASPECT_STENCIL_BIT: {
 		enum radv_blit_ds_layout ds_layout = radv_meta_blit_ds_to_type(dest_image_layout);
-		radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
-					      &(VkRenderPassBeginInfo) {
-						      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-							      .renderPass = device->meta_state.blit.stencil_only_rp[ds_layout],
-							      .framebuffer = fb,
-							      .renderArea = {
-							      .offset = { dest_box.offset.x, dest_box.offset.y },
-							      .extent = { dest_box.extent.width, dest_box.extent.height },
-						              },
-							      .clearValueCount = 0,
-								       .pClearValues = NULL,
-						       }, VK_SUBPASS_CONTENTS_INLINE);
+		radv_cmd_buffer_begin_render_pass(cmd_buffer,
+						  &(VkRenderPassBeginInfo) {
+							.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+							.renderPass = device->meta_state.blit.stencil_only_rp[ds_layout],
+							.framebuffer = fb,
+							.renderArea = {
+								.offset = { dest_box.offset.x, dest_box.offset.y },
+								.extent = { dest_box.extent.width, dest_box.extent.height },
+						        },
+							.clearValueCount = 0,
+							.pClearValues = NULL,
+						  });
 		switch (src_image->type) {
 		case VK_IMAGE_TYPE_1D:
 			pipeline = &device->meta_state.blit.stencil_only_1d_pipeline;
@@ -438,6 +438,9 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
 	default:
 		unreachable("bad VkImageType");
 	}
+
+	radv_cmd_buffer_set_subpass(cmd_buffer,
+				    &cmd_buffer->state.pass->subpasses[0]);
 
 	if (!*pipeline) {
 		VkResult ret = build_pipeline(device, src_iview->aspect_mask, translate_sampler_dim(src_image->type), fs_key, pipeline);
@@ -491,7 +494,7 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer,
 	radv_CmdDraw(radv_cmd_buffer_to_handle(cmd_buffer), 3, 1, 0, 0);
 
 fail_pipeline:
-	radv_CmdEndRenderPass(radv_cmd_buffer_to_handle(cmd_buffer));
+	radv_cmd_buffer_end_render_pass(cmd_buffer);
 
 	/* At the point where we emit the draw call, all data from the
 	 * descriptor sets, etc. has been used.  We are free to delete it.

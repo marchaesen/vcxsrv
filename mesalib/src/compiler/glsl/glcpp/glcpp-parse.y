@@ -1248,6 +1248,7 @@ _token_print(struct _mesa_string_buffer *out, token_t *token)
       break;
    case IDENTIFIER:
    case INTEGER_STRING:
+   case PATH:
    case OTHER:
       _mesa_string_buffer_append(out, token->value.str);
       break;

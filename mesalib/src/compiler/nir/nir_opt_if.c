@@ -388,10 +388,7 @@ opt_split_alu_of_phi(nir_builder *b, nir_loop *loop)
        * to loop unrolling not recognizing loop termintators, and type
        * conversions also lead to regressions.
        */
-      if (alu->op == nir_op_vec2 ||
-          alu->op == nir_op_vec3 ||
-          alu->op == nir_op_vec4 ||
-          alu->op == nir_op_mov ||
+      if (nir_op_is_vec(alu->op) ||
           alu_instr_is_comparison(alu) ||
           alu_instr_is_type_conversion(alu))
          continue;

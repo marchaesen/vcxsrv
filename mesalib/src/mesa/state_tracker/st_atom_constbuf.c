@@ -31,7 +31,7 @@
  *   Brian Paul
  */
 
-#include "main/imports.h"
+#include "util/imports.h"
 #include "program/prog_parameter.h"
 #include "program/prog_print.h"
 #include "main/shaderapi.h"

@@ -32,7 +32,8 @@
 
 
 #include <stdio.h>
-#include "imports.h"
+#include "util/imports.h"
+#include "main/glheader.h"
 #include "execmem.h"
 #include "c11/threads.h"
 
@@ -89,7 +90,7 @@ init_heap(void)
 
 
 void *
-_mesa_exec_malloc(GLuint size)
+_mesa_exec_malloc(unsigned size)
 {
    struct mem_block *block = NULL;
    void *addr = NULL;
@@ -139,7 +140,7 @@ _mesa_exec_free(void *addr)
  */
 
 void *
-_mesa_exec_malloc(GLuint size)
+_mesa_exec_malloc(unsigned size)
 {
    return malloc( size );
 }

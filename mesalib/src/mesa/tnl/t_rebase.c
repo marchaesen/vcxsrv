@@ -50,7 +50,7 @@
 #include "main/bufferobj.h"
 #include "main/errors.h"
 #include "main/glheader.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/mtypes.h"
 #include "vbo/vbo.h"
 
@@ -110,6 +110,8 @@ void t_rebase_prims( struct gl_context *ctx,
                      const struct _mesa_index_buffer *ib,
                      GLuint min_index,
                      GLuint max_index,
+                     GLuint num_instances,
+                     GLuint base_instance,
                      tnl_draw_func draw )
 {
    struct gl_array_attributes tmp_attribs[VERT_ATTRIB_MAX];
@@ -163,14 +165,14 @@ void t_rebase_prims( struct gl_context *ctx,
       /* Some users might prefer it if we translated elements to
        * GLuints here.  Others wouldn't...
        */
-      switch (ib->index_size) {
-      case 4:
+      switch (ib->index_size_shift) {
+      case 2:
 	 tmp_indices = rebase_GLuint( ptr, ib->count, min_index );
 	 break;
-      case 2:
+      case 1:
 	 tmp_indices = rebase_GLushort( ptr, ib->count, min_index );
 	 break;
-      case 1:
+      case 0:
 	 tmp_indices = rebase_GLubyte( ptr, ib->count, min_index );
 	 break;
       }      
@@ -185,7 +187,7 @@ void t_rebase_prims( struct gl_context *ctx,
       tmp_ib.obj = ctx->Shared->NullBufferObj;
       tmp_ib.ptr = tmp_indices;
       tmp_ib.count = ib->count;
-      tmp_ib.index_size = ib->index_size;
+      tmp_ib.index_size_shift = ib->index_size_shift;
 
       ib = &tmp_ib;
    }
@@ -242,7 +244,8 @@ void t_rebase_prims( struct gl_context *ctx,
 	 GL_TRUE,
 	 0, 
 	 max_index - min_index,
-	 NULL, 0, NULL );
+         num_instances, base_instance,
+	 NULL, 0);
 
    free(tmp_indices);
    

@@ -40,11 +40,65 @@
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
+#include <getopt.h>
 
 #define WORD_SIZE 4
 
+static gl_shader_stage
+stage_to_enum(char *stage)
+{
+   if (!strcmp(stage, "vertex"))
+      return MESA_SHADER_VERTEX;
+   else if (!strcmp(stage, "tess-ctrl"))
+      return MESA_SHADER_TESS_CTRL;
+   else if (!strcmp(stage, "tess-eval"))
+      return MESA_SHADER_TESS_EVAL;
+   else if (!strcmp(stage, "geometry"))
+      return MESA_SHADER_GEOMETRY;
+   else if (!strcmp(stage, "fragment"))
+      return MESA_SHADER_FRAGMENT;
+   else if (!strcmp(stage, "compute"))
+      return MESA_SHADER_COMPUTE;
+   else if (!strcmp(stage, "kernel"))
+      return MESA_SHADER_KERNEL;
+   else
+      return MESA_SHADER_NONE;
+}
+
 int main(int argc, char **argv)
 {
+   gl_shader_stage shader_stage = MESA_SHADER_FRAGMENT;
+   char *entry_point = "main";
+   int ch;
+
+   static struct option long_options[] =
+     {
+       {"stage",  required_argument, 0, 's'},
+       {"entry",  required_argument, 0, 'e'},
+       {0, 0, 0, 0}
+     };
+
+   while ((ch = getopt_long(argc - 1, argv + 1, "s:e:", long_options, NULL)) != -1)
+   {
+      switch (ch)
+      {
+         case 's':
+            shader_stage = stage_to_enum(optarg);
+            if (shader_stage == MESA_SHADER_NONE)
+            {
+               fprintf(stderr, "Unknown stage %s\n", optarg);
+               return 1;
+            }
+            break;
+         case 'e':
+            entry_point = optarg;
+            break;
+         default:
+            fprintf(stderr, "Unrecognized option.\n");
+            return 1;
+      }
+   }
+
    int fd = open(argv[1], O_RDONLY);
    if (fd < 0)
    {
@@ -75,11 +129,25 @@ int main(int argc, char **argv)
    glsl_type_singleton_init_or_ref();
 
    struct spirv_to_nir_options spirv_opts = {0};
+   if (shader_stage == MESA_SHADER_KERNEL) {
+      spirv_opts.environment = NIR_SPIRV_OPENCL;
+      spirv_opts.caps.address = true;
+      spirv_opts.caps.float64 = true;
+      spirv_opts.caps.int8 = true;
+      spirv_opts.caps.int16 = true;
+      spirv_opts.caps.int64 = true;
+      spirv_opts.caps.kernel = true;
+      spirv_opts.constant_as_global = true;
+   }
 
    nir_shader *nir = spirv_to_nir(map, word_count, NULL, 0,
-                                  MESA_SHADER_FRAGMENT, "main",
+                                  shader_stage, entry_point,
                                   &spirv_opts, NULL);
-   nir_print_shader(nir, stderr);
+
+   if (nir)
+      nir_print_shader(nir, stderr);
+   else
+      fprintf(stderr, "SPIRV to NIR compilation failed\n");
 
    glsl_type_singleton_decref();
 

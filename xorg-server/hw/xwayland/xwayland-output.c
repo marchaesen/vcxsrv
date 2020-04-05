@@ -313,8 +313,11 @@ xwl_output_remove_emulated_mode_for_client(struct xwl_output *xwl_output,
     struct xwl_emulated_mode *emulated_mode;
 
     emulated_mode = xwl_output_get_emulated_mode_for_client(xwl_output, client);
-    if (emulated_mode)
+    if (emulated_mode) {
+        DebugF("XWAYLAND: xwl_output_remove_emulated_mode: %dx%d\n",
+               emulated_mode->width, emulated_mode->height);
         memset(emulated_mode, 0, sizeof(*emulated_mode));
+    }
 }
 
 /* From hw/xfree86/common/xf86DefModeSet.c with some obscure modes dropped */
@@ -469,9 +472,6 @@ static void
 xwl_output_set_randr_emu_prop(WindowPtr window,
                               struct xwl_output_randr_emu_prop *prop)
 {
-    if (!xwl_window_is_toplevel(window))
-        return;
-
     if (prop->rect_count) {
         dixChangeWindowProperty(serverClient, window, prop->atom,
                                 XA_CARDINAL, 32, PropModeReplace,
@@ -484,7 +484,8 @@ xwl_output_set_randr_emu_prop(WindowPtr window,
 static void
 xwl_output_set_randr_emu_prop_callback(void *resource, XID id, void *user_data)
 {
-    xwl_output_set_randr_emu_prop(resource, user_data);
+    if (xwl_window_is_toplevel(resource))
+        xwl_output_set_randr_emu_prop(resource, user_data);
 }
 
 static void
@@ -515,7 +516,8 @@ xwl_output_set_emulated_mode(struct xwl_output *xwl_output, ClientPtr client,
            from_vidmode ? "vidmode" : "randr",
            mode->mode.width, mode->mode.height);
 
-    if (mode->mode.width == xwl_output->width && mode->mode.height == xwl_output->height)
+    /* modes[0] is the actual (not-emulated) output mode */
+    if (mode == xwl_output->randr_output->modes[0])
         xwl_output_remove_emulated_mode_for_client(xwl_output, client);
     else
         xwl_output_add_emulated_mode_for_client(xwl_output, client, mode, from_vidmode);

@@ -28,6 +28,7 @@ inc_panfrost = include_directories([
 ])
 
 subdir('shared')
+subdir('util')
 subdir('midgard')
 subdir('bifrost')
 subdir('pandecode')
@@ -35,24 +36,33 @@ subdir('encoder')
 
 files_bifrost = files(
   'bifrost/cmdline.c',
+  'bifrost/test/bi_submit.c'
 )
 
 bifrost_compiler = executable(
   'bifrost_compiler',
   [files_bifrost],
   include_directories : [
-    inc_common,
+    inc_mapi,
+    inc_mesa,
+    inc_gallium,
+    inc_gallium_aux,
     inc_include,
     inc_src,
     inc_panfrost,
+    inc_panfrost_hw,
  ],
   dependencies : [
     idep_nir,
     idep_mesautil,
+    dep_libdrm,
   ],
   link_with : [
     libglsl_standalone,
-    libpanfrost_bifrost
+    libpanfrost_bifrost,
+    libpanfrost_decode,
+    libpanfrost_encoder,
+    libpanfrost_midgard, # references disassemble_midgard...
   ],
   build_by_default : true
 )

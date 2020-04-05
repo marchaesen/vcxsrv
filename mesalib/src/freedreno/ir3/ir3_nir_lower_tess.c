@@ -75,7 +75,7 @@ build_local_primitive_id(nir_builder *b, struct state *state)
 static nir_variable *
 get_var(struct exec_list *list, int driver_location)
 {
-	nir_foreach_variable(v, list) {
+	nir_foreach_variable (v, list) {
 		if (v->data.driver_location == driver_location) {
 			return v;
 		}
@@ -147,7 +147,7 @@ replace_intrinsic(nir_builder *b, nir_intrinsic_instr *intr,
 static void
 build_primitive_map(nir_shader *shader, struct primitive_map *map, struct exec_list *list)
 {
-	nir_foreach_variable(var, list) {
+	nir_foreach_variable (var, list) {
 		switch (var->data.location) {
 		case VARYING_SLOT_TESS_LEVEL_OUTER:
 		case VARYING_SLOT_TESS_LEVEL_INNER:
@@ -181,7 +181,7 @@ build_primitive_map(nir_shader *shader, struct primitive_map *map, struct exec_l
 static void
 lower_vs_block(nir_block *block, nir_builder *b, struct state *state)
 {
-	nir_foreach_instr_safe(instr, block) {
+	nir_foreach_instr_safe (instr, block) {
 		if (instr->type != nir_instr_type_intrinsic)
 			continue;
 
@@ -241,7 +241,7 @@ ir3_nir_lower_to_explicit_io(nir_shader *shader, struct ir3_shader *s, unsigned 
 	else
 		state.header = nir_load_gs_header_ir3(&b);
 
-	nir_foreach_block_safe(block, impl)
+	nir_foreach_block_safe (block, impl)
 		lower_vs_block(block, &b, &state);
 
 	nir_metadata_preserve(impl, nir_metadata_block_index |
@@ -332,7 +332,7 @@ build_tessfactor_base(nir_builder *b, gl_varying_slot slot, struct state *state)
 static void
 lower_tess_ctrl_block(nir_block *block, nir_builder *b, struct state *state)
 {
-	nir_foreach_instr_safe(instr, block) {
+	nir_foreach_instr_safe (instr, block) {
 		if (instr->type != nir_instr_type_intrinsic)
 			continue;
 
@@ -565,7 +565,7 @@ ir3_nir_lower_tess_ctrl(nir_shader *shader, struct ir3_shader *s, unsigned topol
 
 	state.header = nir_load_tcs_header_ir3(&b);
 
-	nir_foreach_block_safe(block, impl)
+	nir_foreach_block_safe (block, impl)
 		lower_tess_ctrl_block(block, &b, &state);
 
 	/* Now move the body of the TCS into a conditional:
@@ -612,7 +612,7 @@ ir3_nir_lower_tess_ctrl(nir_shader *shader, struct ir3_shader *s, unsigned topol
 static void
 lower_tess_eval_block(nir_block *block, nir_builder *b, struct state *state)
 {
-	nir_foreach_instr_safe(instr, block) {
+	nir_foreach_instr_safe (instr, block) {
 		if (instr->type != nir_instr_type_intrinsic)
 			continue;
 
@@ -734,7 +734,7 @@ ir3_nir_lower_tess_eval(nir_shader *shader, unsigned topology)
 	nir_builder b;
 	nir_builder_init(&b, impl);
 
-	nir_foreach_block_safe(block, impl)
+	nir_foreach_block_safe (block, impl)
 		lower_tess_eval_block(block, &b, &state);
 
 	nir_metadata_preserve(impl, 0);
@@ -745,7 +745,7 @@ lower_gs_block(nir_block *block, nir_builder *b, struct state *state)
 {
 	nir_intrinsic_instr *outputs[32] = {};
 
-	nir_foreach_instr_safe(instr, block) {
+	nir_foreach_instr_safe (instr, block) {
 		if (instr->type != nir_instr_type_intrinsic)
 			continue;
 
@@ -859,13 +859,13 @@ clean_up_split_vars(nir_shader *shader, struct exec_list *list)
 {
 	uint32_t components[32] = {};
 
-	nir_foreach_variable(var, list) {
+	nir_foreach_variable (var, list) {
 		uint32_t mask =
 			((1 << glsl_get_components(glsl_without_array(var->type))) - 1) << var->data.location_frac;
 		components[var->data.driver_location] |= mask;
 	}
 
-	nir_foreach_variable_safe(var, list) {
+	nir_foreach_variable_safe (var, list) {
 		uint32_t mask =
 			((1 << glsl_get_components(glsl_without_array(var->type))) - 1) << var->data.location_frac;
 		bool subset =
@@ -891,7 +891,7 @@ ir3_nir_lower_gs(nir_shader *shader, struct ir3_shader *s)
 	build_primitive_map(shader, &state.map, &shader->inputs);
 
 	uint32_t loc = 0;
-	nir_foreach_variable(var, &shader->outputs) {
+	nir_foreach_variable (var, &shader->outputs) {
 		uint32_t end = var->data.driver_location + glsl_count_attribute_slots(var->type, false);
 		loc = MAX2(loc, end);
 	}
@@ -910,7 +910,7 @@ ir3_nir_lower_gs(nir_shader *shader, struct ir3_shader *s)
 
 	state.header = nir_load_gs_header_ir3(&b);
 
-	nir_foreach_variable(var, &shader->outputs) {
+	nir_foreach_variable (var, &shader->outputs) {
 		state.output_vars[var->data.driver_location] = 
 			nir_local_variable_create(impl, var->type,
 					ralloc_asprintf(var, "%s:gs-temp", var->name));
@@ -930,7 +930,7 @@ ir3_nir_lower_gs(nir_shader *shader, struct ir3_shader *s)
 	nir_store_var(&b, state.emitted_vertex_var, nir_imm_int(&b, 0), 0x1);
 	nir_store_var(&b, state.vertex_flags_var, nir_imm_int(&b, 4), 0x1);
 
-	nir_foreach_block_safe(block, impl)
+	nir_foreach_block_safe (block, impl)
 		lower_gs_block(block, &b, &state);
 
 	set_foreach(impl->end_block->predecessors, block_entry) {

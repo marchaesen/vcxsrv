@@ -47,8 +47,6 @@
 #include "extinit.h"
 #include "glx_extinit.h"
 
-int noGlxExtension;
-
 /*
 ** Forward declarations.
 */

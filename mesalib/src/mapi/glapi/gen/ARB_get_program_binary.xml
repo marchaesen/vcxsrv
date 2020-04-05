@@ -22,7 +22,7 @@
     <function name="ProgramBinary" es2="3.0">
         <param name="program" type="GLuint"/>
         <param name="binaryFormat" type="GLenum"/>
-        <param name="binary" type="const GLvoid *"/>
+        <param name="binary" type="const GLvoid *" count="length"/>
         <param name="length" type="GLsizei"/>
     </function>
 

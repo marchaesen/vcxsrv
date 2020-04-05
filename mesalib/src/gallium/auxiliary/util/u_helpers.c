@@ -192,6 +192,16 @@ util_pin_driver_threads_to_random_L3(struct pipe_context *ctx,
    /* Do the same for the upper level thread if there is any (e.g. glthread) */
    if (upper_thread)
       util_pin_thread_to_L3(*upper_thread, cache, util_cpu_caps.cores_per_L3);
+
+   /* Optionally pin the application thread to the same L3 to get maximum
+    * performance with glthread on AMD Zen. (this function is only called
+    * with glthread) This is used to estimate and remove the overhead of
+    * Infinity Fabric between L3 caches.
+    */
+#if defined(HAVE_PTHREAD)
+   if (debug_get_bool_option("pin_app_thread", false))
+      util_pin_thread_to_L3(pthread_self(), cache, util_cpu_caps.cores_per_L3);
+#endif
 }
 
 /* This is a helper for hardware bring-up. Don't remove. */

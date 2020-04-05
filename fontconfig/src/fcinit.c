@@ -199,10 +199,10 @@ void
 FcFini (void)
 {
     FcConfigFini ();
-    FcCacheFini ();
+    FcConfigPathFini ();
     FcDefaultFini ();
     FcObjectFini ();
-    FcConfigPathFini ();
+    FcCacheFini ();
 }
 
 /*

@@ -29,7 +29,7 @@
 #include "main/context.h"
 #include "main/glheader.h"
 #include "main/enums.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/dispatch.h"
 #include "glapi/glapi.h"
 

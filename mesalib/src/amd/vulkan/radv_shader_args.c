@@ -615,6 +615,11 @@ radv_declare_shader_args(struct radv_shader_args *args,
 					   &args->ac.view_index);
 			}
 
+			if (args->options->key.vs_common_out.as_ngg) {
+				ac_add_arg(&args->ac, AC_ARG_SGPR, 1, AC_ARG_INT,
+					   &args->ngg_gs_state);
+			}
+
 			ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT,
 				   &args->gs_vtx_offset[0]);
 			ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT,
@@ -674,7 +679,7 @@ radv_declare_shader_args(struct radv_shader_args *args,
 		ac_add_arg(&args->ac, AC_ARG_VGPR, 2, AC_ARG_INT, &args->ac.persp_sample);
 		ac_add_arg(&args->ac, AC_ARG_VGPR, 2, AC_ARG_INT, &args->ac.persp_center);
 		ac_add_arg(&args->ac, AC_ARG_VGPR, 2, AC_ARG_INT, &args->ac.persp_centroid);
-		ac_add_arg(&args->ac, AC_ARG_VGPR, 3, AC_ARG_INT, NULL); /* persp pull model */
+		ac_add_arg(&args->ac, AC_ARG_VGPR, 3, AC_ARG_INT, &args->ac.pull_model);
 		ac_add_arg(&args->ac, AC_ARG_VGPR, 2, AC_ARG_INT, &args->ac.linear_sample);
 		ac_add_arg(&args->ac, AC_ARG_VGPR, 2, AC_ARG_INT, &args->ac.linear_center);
 		ac_add_arg(&args->ac, AC_ARG_VGPR, 2, AC_ARG_INT, &args->ac.linear_centroid);
@@ -742,6 +747,9 @@ radv_declare_shader_args(struct radv_shader_args *args,
 		}
 		if (args->ac.view_index.used)
 			set_loc_shader(args, AC_UD_VIEW_INDEX, &user_sgpr_idx, 1);
+
+		if (args->ngg_gs_state.used)
+			set_loc_shader(args, AC_UD_NGG_GS_STATE, &user_sgpr_idx, 1);
 		break;
 	case MESA_SHADER_FRAGMENT:
 		break;

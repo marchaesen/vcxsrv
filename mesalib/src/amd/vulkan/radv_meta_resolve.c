@@ -609,25 +609,27 @@ void radv_CmdResolveImage(
 					       &cmd_buffer->pool->alloc,
 					       &fb_h);
 
-			radv_CmdBeginRenderPass(cmd_buffer_h,
-						      &(VkRenderPassBeginInfo) {
-							      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-								      .renderPass = device->meta_state.resolve.pass[fs_key],
-								      .framebuffer = fb_h,
-								      .renderArea = {
-								      .offset = {
-									      dstOffset.x,
-									      dstOffset.y,
-								      },
-								      .extent = {
-									      extent.width,
-									      extent.height,
+			radv_cmd_buffer_begin_render_pass(cmd_buffer,
+							  &(VkRenderPassBeginInfo) {
+								.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+								.renderPass = device->meta_state.resolve.pass[fs_key],
+								.framebuffer = fb_h,
+								.renderArea = {
+									.offset = {
+										dstOffset.x,
+										dstOffset.y,
+									},
+									.extent = {
+										extent.width,
+										extent.height,
 								      }
-							      },
-							      .clearValueCount = 0,
-							      .pClearValues = NULL,
-						      },
-						      VK_SUBPASS_CONTENTS_INLINE);
+								},
+								.clearValueCount = 0,
+								.pClearValues = NULL,
+						      });
+
+			radv_cmd_buffer_set_subpass(cmd_buffer,
+						    &cmd_buffer->state.pass->subpasses[0]);
 
 			emit_resolve(cmd_buffer,
 				     dest_iview.vk_format,
@@ -640,7 +642,7 @@ void radv_CmdResolveImage(
 					     .height = extent.height,
 				     });
 
-			radv_CmdEndRenderPass(cmd_buffer_h);
+			radv_cmd_buffer_end_render_pass(cmd_buffer);
 
 			radv_DestroyFramebuffer(device_h, fb_h,
 						&cmd_buffer->pool->alloc);

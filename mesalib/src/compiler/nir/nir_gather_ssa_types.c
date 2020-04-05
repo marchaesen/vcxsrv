@@ -112,6 +112,8 @@ nir_gather_ssa_types(nir_function_impl *impl,
                case nir_op_vec2:
                case nir_op_vec3:
                case nir_op_vec4:
+               case nir_op_vec8:
+               case nir_op_vec16:
                   for (unsigned i = 0; i < info->num_inputs; i++) {
                      copy_types(alu->src[i].src, &alu->dest.dest,
                                 float_types, int_types, &progress);

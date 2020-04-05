@@ -33,7 +33,7 @@
 
 #include "main/glheader.h"
 #include "main/mtypes.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/arbprogram.h"
 #include "main/arrayobj.h"
 #include "main/blend.h"

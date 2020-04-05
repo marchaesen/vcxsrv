@@ -64,7 +64,7 @@ panfrost_large_padded_vertex_count(uint32_t vertex_count)
 
         switch (middle_two) {
         case 0b00:
-                if (nibble & 1)
+                if (!(nibble & 1))
                         return (1 << n) * 9;
                 else
                         return (1 << (n + 1)) * 5;
@@ -202,7 +202,9 @@ panfrost_instance_id(
         union mali_attr *attr)
 {
         attr->elements = MALI_ATTR_INSTANCEID;
-        attr->stride = attr->extra_flags = attr->size = 0;
+        attr->stride = 0;
+        attr->extra_flags = 0;
+        attr->size = 0;
         
         /* POT records have just a shift directly with an off-by-one for
          * unclear reasons. NPOT records have a magic divisor smushed into the

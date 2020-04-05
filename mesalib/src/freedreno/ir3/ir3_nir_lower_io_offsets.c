@@ -255,7 +255,7 @@ lower_io_offsets_block(nir_block *block, nir_builder *b, void *mem_ctx)
 {
 	bool progress = false;
 
-	nir_foreach_instr_safe(instr, block) {
+	nir_foreach_instr_safe (instr, block) {
 		if (instr->type != nir_instr_type_intrinsic)
 			continue;
 
@@ -283,7 +283,7 @@ lower_io_offsets_func(nir_function_impl *impl)
 	nir_builder_init(&b, impl);
 
 	bool progress = false;
-	nir_foreach_block_safe(block, impl) {
+	nir_foreach_block_safe (block, impl) {
 		progress |= lower_io_offsets_block(block, &b, mem_ctx);
 	}
 
@@ -300,7 +300,7 @@ ir3_nir_lower_io_offsets(nir_shader *shader)
 {
 	bool progress = false;
 
-	nir_foreach_function(function, shader) {
+	nir_foreach_function (function, shader) {
 		if (function->impl)
 			progress |= lower_io_offsets_func(function->impl);
 	}

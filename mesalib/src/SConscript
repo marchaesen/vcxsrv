@@ -45,17 +45,7 @@ if env['platform'] != 'windows':
 SConscript('mapi/glapi/gen/SConscript')
 SConscript('mapi/glapi/SConscript')
 
-# Haiku C++ libGL dispatch (renderers depend on libgl)
-if env['platform'] in ['haiku']:
-    SConscript('hgl/SConscript')
-
 SConscript('mesa/SConscript')
-
-if not env['embedded']:
-    if env['platform'] not in ('cygwin', 'darwin', 'freebsd', 'haiku', 'windows'):
-        SConscript('glx/SConscript')
-    if env['platform'] == 'haiku':
-        SConscript('egl/SConscript')
 
 SConscript('gallium/SConscript')
 

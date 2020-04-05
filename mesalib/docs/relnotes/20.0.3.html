@@ -1,0 +1,177 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<title>Mesa Release Notes</title>
+<link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+<h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 20.0.3 Release Notes / 2020-04-01</h1>
+
+<p>
+    Mesa 20.0.3 is a bug fix release which fixes bugs found since the 20.0.2 release.
+</p>
+<p>
+Mesa 20.0.3 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+<p>
+Mesa 20.0.3 implements the Vulkan 1.2 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+</p>
+
+<h2>SHA256 checksum</h2>
+<pre>
+d63aaf2c27143eded2f4f376f18f7a766ad997f8eeb96c357e8ade84e8a237af  mesa-20.0.3.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+
+<ul>
+</ul>
+
+<h2>Bug fixes</h2>
+
+<ul>
+    <li>RADV: flickering textures in Q.U.B.E. 2 through Proton</li>
+    <li>src/compiler/glsl/ast_to_hir.cpp:2134: ir_rvalue* ast_expression::do_hir(exec_list*, _mesa_glsl_parse_state*, bool): Assertion `result != NULL || !needs_rvalue&#x27; failed.</li>
+    <li>[ACO] Reliable crash with RPCS3 that is not present with LLVM</li>
+    <li>[RADV] vkCmdBindTransformFeedbackBuffersEXT pSizes optional parameter not handled</li>
+    <li>soft-fp64: __fsat64 incorrectly returns NaN for a NaN input.  It should return zero.</li>
+    <li>Hang when using glWaitSync with multithreaded shared GL contexts</li>
+</ul>
+
+<h2>Changes</h2>
+
+<ul>
+    <p>Caio Marcelo de Oliveira Filho (1):</p>
+    <li>      mesa/main: Fix overflow in validation of DispatchComputeGroupSizeARB</li>
+    <p></p>
+    <p>Dylan Baker (6):</p>
+    <li>      docs/relnotes: Add sha256 sums for 20.0.2</li>
+    <li>      .pick_status.json: Update to cf62c2b2ac69637785f55b790fdd601c17e7e9d5</li>
+    <li>      .pick_status.json: Mark 672d10619980687acec329742f055f7f3796c1b8 as backported</li>
+    <li>      .pick_status.json: Mark c923de68dd0ab10a5a5fb3196f539707d046d897 as backported</li>
+    <li>      .pick_status.json: Mark 56de6f698e3f164d97f132203e8159ef0b8e9bb8 as denominated</li>
+    <li>      .pick_status.json: Update to aee004a7c8900938d1c17f0ac299d40001b383b0</li>
+    <p></p>
+    <p>Eric Engestrom (6):</p>
+    <li>      .pick_status.json: Update to 3252041a7872c49e53bb02ffe8b079b5fc43f15e</li>
+    <li>      .pick_status.json: Update to 12711939320e4fcd3a0d86af22da1042ad92035f</li>
+    <li>      .pick_status.json: Update to 05069e1f0794aadd40ce9269f858e50c64254388</li>
+    <li>      .pick_status.json: Update to 8970b7839aebefa7207c9535ac34ab4e8cc0ae25</li>
+    <li>      .pick_status.json: Update to 5f4d9b419a1c931ad468b8b22b8a95b1216891e4</li>
+    <li>      .pick_status.json: Update to 70ac7f5b0c46370075a35067c9f7dfe78e84b16d</li>
+    <p></p>
+    <p>Erik Faye-Lund (3):</p>
+    <li>      rbug: do not return void-value</li>
+    <li>      pipebuffer: clean up cast-warnings</li>
+    <li>      vtn/opencl: fully enable OpenCLstd_Clz</li>
+    <p></p>
+    <p>Francisco Jerez (1):</p>
+    <li>      intel/fs/gen12: Fix interaction of SWSB dependency combination with EU fusion workaround.</li>
+    <p></p>
+    <p>Greg V (1):</p>
+    <li>      amd/addrlib: fix build on non-x86 platforms</li>
+    <p></p>
+    <p>Ian Romanick (2):</p>
+    <li>      soft-fp64/fsat: Correctly handle NaN</li>
+    <li>      soft-fp64: Split a block that was missing a cast on a comparison</li>
+    <p></p>
+    <p>Jason Ekstrand (5):</p>
+    <li>      intel/blorp: Add support for swizzling fast-clear colors</li>
+    <li>      anv: Swizzle fast-clear values</li>
+    <li>      nir/lower_int64: Lower 8 and 16-bit downcasts with nir_lower_mov64</li>
+    <li>      anv: Account for the header in anv_state_stream_alloc</li>
+    <li>      spirv: Implement OpCopyObject and OpCopyLogical as blind copies</li>
+    <p></p>
+    <p>John Stultz (2):</p>
+    <li>      gallium: hud_context: Fix scalar initializer warning.</li>
+    <li>      vc4_bufmgr: Remove duplicative VC definition</li>
+    <p></p>
+    <p>Jordan Justen (2):</p>
+    <li>      intel: Update TGL PCI strings</li>
+    <li>      intel: Add TGL PCI ID</li>
+    <p></p>
+    <p>Lionel Landwerlin (5):</p>
+    <li>      isl: implement linear tiling row pitch requirement for display</li>
+    <li>      isl: properly filter supported display modifiers on Gen9+</li>
+    <li>      isl: only apply main surface ccs pitch constraint with CCS</li>
+    <li>      isl: drop min row pitch alignment when set by the driver</li>
+    <li>      intel: add new TGL pci ids</li>
+    <p></p>
+    <p>Marek Olšák (3):</p>
+    <li>      nir: fix clip/cull_distance_array_size in nir_lower_clip_cull_distance_arrays</li>
+    <li>      ac: fix fast division</li>
+    <li>      st/mesa: fix use of uninitialized memory due to st_nir_lower_builtin</li>
+    <p></p>
+    <p>Marek Vasut (1):</p>
+    <li>      etnaviv: Emit PE.ALPHA_COLOR_EXT* on GPUs with half-float support</li>
+    <p></p>
+    <p>Neil Armstrong (1):</p>
+    <li>      Revert &quot;ci: Remove T820 from CI temporarily&quot;</li>
+    <p></p>
+    <p>Pierre-Eric Pelloux-Prayer (1):</p>
+    <li>      st/mesa: disallow deferred flush if there are multiple contexts</li>
+    <p></p>
+    <p>Rhys Perry (11):</p>
+    <li>      nir/gather_info: handle emit_vertex_with_counter</li>
+    <li>      aco: set has_divergent_branch for discards in loops</li>
+    <li>      aco: handle missing second predecessors at merge block phis</li>
+    <li>      aco: skip NIR in unreachable merge blocks</li>
+    <li>      aco: improve check for unreachable loop continue blocks</li>
+    <li>      aco: emit IR in IF&#x27;s merge block instead if the other side ends in a jump</li>
+    <li>      aco: fix boolean undef regclass</li>
+    <li>      nir/gather_info: fix per-vertex handling in try_mask_partial_io</li>
+    <li>      aco: implement 64-bit VGPR constant copies in handle_operands()</li>
+    <li>      glsl: fix race in instance getters</li>
+    <li>      util/u_queue: fix race in total_jobs_size access</li>
+    <p></p>
+    <p>Rob Clark (2):</p>
+    <li>      freedreno/ir3/ra: fix array liveranges</li>
+    <li>      util: fix u_fifo_pop()</li>
+    <p></p>
+    <p>Samuel Pitoiset (7):</p>
+    <li>      radv/gfx10: fix required subgroup size with VK_EXT_subgroup_size_control</li>
+    <li>      radv/gfx10: fix required ballot size with VK_EXT_subgroup_size_control</li>
+    <li>      radv: fix optional pSizes parameter when binding streamout buffers</li>
+    <li>      radv: enable VK_KHR_8bit_storage on GFX6-GFX7</li>
+    <li>      ac/nir: use llvm.amdgcn.rcp for nir_op_frcp</li>
+    <li>      ac/nir: use llvm.amdgcn.rsq for nir_op_frsq</li>
+    <li>      ac/nir: use llvm.amdgcn.rcp in ac_build_fdiv()</li>
+    <p></p>
+    <p>Tapani Pälli (1):</p>
+    <li>      glsl: set error_emitted true if type not ok for assignment</li>
+    <p></p>
+    <p>Thomas Hellstrom (1):</p>
+    <li>      svga, winsys/svga: Fix persistent memory discard maps</li>
+    <p></p>
+    <p>Timothy Arceri (3):</p>
+    <li>      glsl: fix varying packing for 64bit integers</li>
+    <li>      nir: fix packing of TCS varyings not read by the TES</li>
+    <li>      nir: fix crash in varying packing on interface mismatch</li>
+    <p></p>
+    <p>Timur Kristóf (1):</p>
+    <li>      radv/llvm: fix subgroup shuffle for chips without bpermute</li>
+    <p></p>
+    <p></p>
+</ul>
+
+</div>
+</body>
+</html>

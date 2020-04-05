@@ -184,7 +184,6 @@ struct InstrPred {
                    aR->cluster_size == bR->cluster_size;
          }
          case Format::MTBUF: {
-            /* this is fine since they are only used for vertex input fetches */
             MTBUF_instruction* aM = static_cast<MTBUF_instruction *>(a);
             MTBUF_instruction* bM = static_cast<MTBUF_instruction *>(b);
             return aM->can_reorder && bM->can_reorder &&
@@ -195,12 +194,27 @@ struct InstrPred {
                    aM->offen == bM->offen &&
                    aM->idxen == bM->idxen &&
                    aM->glc == bM->glc &&
+                   aM->dlc == bM->dlc &&
                    aM->slc == bM->slc &&
                    aM->tfe == bM->tfe &&
                    aM->disable_wqm == bM->disable_wqm;
          }
+         case Format::MUBUF: {
+            MUBUF_instruction* aM = static_cast<MUBUF_instruction *>(a);
+            MUBUF_instruction* bM = static_cast<MUBUF_instruction *>(b);
+            return aM->can_reorder && bM->can_reorder &&
+                   aM->barrier == bM->barrier &&
+                   aM->offset == bM->offset &&
+                   aM->offen == bM->offen &&
+                   aM->idxen == bM->idxen &&
+                   aM->glc == bM->glc &&
+                   aM->dlc == bM->dlc &&
+                   aM->slc == bM->slc &&
+                   aM->tfe == bM->tfe &&
+                   aM->lds == bM->lds &&
+                   aM->disable_wqm == bM->disable_wqm;
+         }
          /* we want to optimize these in NIR and don't hassle with load-store dependencies */
-         case Format::MUBUF:
          case Format::FLAT:
          case Format::GLOBAL:
          case Format::SCRATCH:

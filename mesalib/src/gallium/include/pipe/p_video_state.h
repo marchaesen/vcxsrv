@@ -431,7 +431,7 @@ struct pipe_h264_enc_picture_desc
 
    bool not_referenced;
    bool enable_vui;
-   struct util_hash_table *frame_idx;
+   struct hash_table *frame_idx;
 
 };
 
@@ -513,7 +513,7 @@ struct pipe_h265_enc_picture_desc
    unsigned ref_idx_l0;
    unsigned ref_idx_l1;
    bool not_referenced;
-   struct util_hash_table *frame_idx;
+   struct hash_table *frame_idx;
 };
 
 struct pipe_h265_sps

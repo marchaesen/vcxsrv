@@ -214,8 +214,8 @@ _nir_format_norm_factor(nir_builder *b, const unsigned *bits,
    nir_const_value factor[NIR_MAX_VEC_COMPONENTS];
    memset(factor, 0, sizeof(factor));
    for (unsigned i = 0; i < num_components; i++) {
-      assert(bits[i] < 32);
-      factor[i].f32 = (1ul << (bits[i] - is_signed)) - 1;
+      assert(bits[i] <= 32);
+      factor[i].f32 = (1ull << (bits[i] - is_signed)) - 1;
    }
    return nir_build_imm(b, num_components, 32, factor);
 }

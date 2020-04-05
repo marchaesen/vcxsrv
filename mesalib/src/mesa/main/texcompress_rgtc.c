@@ -35,7 +35,7 @@
 
 #include "config.h"
 #include "glheader.h"
-#include "imports.h"
+#include "util/imports.h"
 #include "image.h"
 #include "macros.h"
 #include "mipmap.h"

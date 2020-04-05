@@ -397,6 +397,8 @@ Mesa EGL supports different sets of environment variables.  See the
     <code>GALLIUM_HUD_TOGGLE_SIGNAL</code> to <code>10</code>
     (<code>SIGUSR1</code>).
     Use <code>kill -10 &lt;pid&gt;</code> to toggle the hud as desired.</dd>
+<dt><code>GALLIUM_HUD_SCALE</code></dt>
+<dd>Scale hud by an integer factor, for high DPI displays. Default is 1.</dd>
 <dt><code>GALLIUM_HUD_DUMP_DIR</code></dt>
 <dd>specifies a directory for writing the displayed hud values into files.</dd>
 <dt><code>GALLIUM_DRIVER</code></dt>
@@ -587,8 +589,6 @@ Mesa EGL supports different sets of environment variables.  See the
    <dd>disable out-of-order rasterization</dd>
    <dt><code>noshaderballot</code></dt>
    <dd>disable shader ballot</dd>
-   <dt><code>nosisched</code></dt>
-   <dd>disable LLVM sisched experimental scheduler</dd>
    <dt><code>nothreadllvm</code></dt>
    <dd>disable LLVM threaded compilation</dd>
    <dt><code>preoptir</code></dt>
@@ -628,24 +628,142 @@ Mesa EGL supports different sets of environment variables.  See the
    <dd>enable wave32 for vertex/tess/geometry shaders (GFX10+)</dd>
    <dt><code>localbos</code></dt>
    <dd>enable local BOs</dd>
-   <dt><code>nobatchchain</code></dt>
-   <dd>disable chained submissions</dd>
    <dt><code>pswave32</code></dt>
    <dd>enable wave32 for pixel shaders (GFX10+)</dd>
    <dt><code>shader_ballot</code></dt>
    <dd>enable shader ballot</dd>
-   <dt><code>sisched</code></dt>
-   <dd>enable LLVM sisched experimental scheduler</dd>
    <dt><code>tccompatcmask</code></dt>
    <dd>enable TC-compat cmask for MSAA images</dd>
 </dl>
 </dd>
 <dt><code>RADV_SECURE_COMPILE_THREADS</code></dt>
 <dd>maximum number of secure compile threads (up to 32)</dd>
+<dt><code>RADV_TEX_ANISO</code></dt>
+<dd>force anisotropy filter (up to 16)</dd>
 <dt><code>RADV_TRACE_FILE</code></dt>
 <dd>generate cmdbuffer tracefiles when a GPU hang is detected</dd>
 </dl>
 
+<h3>radeonsi driver environment variables</h3>
+<dl>
+<dt><code>AMD_DEBUG</code></dt>
+<dd>a comma-separated list of named flags, which do various things:</dd>
+<dl>
+<dd></dd>
+  <h4>Disable features / workaround flags (useful to diagnose an issue):</h4>
+  <dt><code>nodma</code></dt>
+  <dd>Disable SDMA</dd>
+  <dt><code>nodmaclear</code></dt>
+  <dd>Disable SDMA clears</dd>
+  <dt><code>nodmacopyimage</code></dt>
+  <dd>Disable SDMA image copies</dd>
+  <dt><code>zerovram</code></dt>
+  <dd>Clear VRAM allocations.</dd>
+  <dt><code>nodcc</code></dt>
+  <dd>Disable DCC.</dd>
+  <dt><code>nodccclear</code></dt>
+  <dd>Disable DCC fast clear.</dd>
+  <dt><code>nodccfb</code></dt>
+  <dd>Disable separate DCC on the main framebuffer</dd>
+  <dt><code>nodccmsaa</code></dt>
+  <dd>Disable DCC for MSAA</dd>
+  <dt><code>nodpbb</code></dt>
+  <dd>Disable DPBB.</dd>
+  <dt><code>nodfsm</code></dt>
+  <dd>Disable DFSM.</dd>
+  <dt><code>notiling</code></dt>
+  <dd>Disable tiling</dd>
+  <dt><code>nofmask</code></dt>
+  <dd>Disable MSAA compression</dd>
+  <dt><code>nohyperz</code></dt>
+  <dd>Disable Hyper-Z</dd>
+  <dt><code>norbplus</code></dt>
+  <dd>Disable RB+.</dd>
+  <dt><code>no2d</code></dt>
+  <dd>Disable 2D tiling</dd>
+  <h4>Info flags:</h4>
+  <dt><code>info</code></dt>
+  <dd>Print driver information</dd>
+  <dt><code>tex</code></dt>
+  <dd>Print texture info</dd>
+  <dt><code>compute</code></dt>
+  <dd>Print compute info</dd>
+  <dt><code>vm</code></dt>
+  <dd>Print virtual addresses when creating resources</dd>
+  <h4>Print shaders flags:</h4>
+  <dt><code>vs</code></dt>
+  <dd>Print vertex shaders</dd>
+  <dt><code>ps</code></dt>
+  <dd>Print pixel shaders</dd>
+  <dt><code>gs</code></dt>
+  <dd>Print geometry shaders</dd>
+  <dt><code>tcs</code></dt>
+  <dd>Print tessellation control shaders</dd>
+  <dt><code>tes</code></dt>
+  <dd>Print tessellation evaluation shaders</dd>
+  <dt><code>cs</code></dt>
+  <dd>Print compute shaders</dd>
+  <dt><code>noir</code></dt>
+  <dd>Don't print the LLVM IR</dd>
+  <dt><code>nonir</code></dt>
+  <dd>Don't print NIR when printing shaders</dd>
+  <dt><code>noasm</code></dt>
+  <dd>Don't print disassembled shaders</dd>
+  <dt><code>preoptir</code></dt>
+  <dd>Print the LLVM IR before initial optimizations</dd>
+  <h4>Shader compilation tuning flags:</h4>
+  <dt><code>gisel</code></dt>
+  <dd>Enable LLVM global instruction selector.</dd>
+  <dt><code>w32ge</code></dt>
+  <dd>Use Wave32 for vertex, tessellation, and geometry shaders.</dd>
+  <dt><code>w32ps</code></dt>
+  <dd>Use Wave32 for pixel shaders.</dd>
+  <dt><code>w32cs</code></dt>
+  <dd>Use Wave32 for computes shaders.</dd>
+  <dt><code>w64ge</code></dt>
+  <dd>Use Wave64 for vertex, tessellation, and geometry shaders.</dd>
+  <dt><code>w64ps</code></dt>
+  <dd>Use Wave64 for pixel shaders.</dd>
+  <dt><code>w64cs</code></dt>
+  <dd>Use Wave64 for computes shaders.</dd>
+  <dt><code>checkir</code></dt>
+  <dd>Enable additional sanity checks on shader IR</dd>
+  <dt><code>mono</code></dt>
+  <dd>Use old-style monolithic shaders compiled on demand</dd>
+  <dt><code>nooptvariant</code></dt>
+  <dd>Disable compiling optimized shader variants.</dd>
+  <h4>Advanced usage flags:</h4>
+  <dt><code>forcedma</code></dt>
+  <dd>Use SDMA for all operations when possible.</dd>
+  <dt><code>nowc</code></dt>
+  <dd>Disable GTT write combining</dd>
+  <dt><code>check_vm</code></dt>
+  <dd>Check VM faults and dump debug info.</dd>
+  <dt><code>reserve_vmid</code></dt>
+  <dd>Force VMID reservation per context.</dd>
+  <dt><code>nogfx</code></dt>
+  <dd>Disable graphics. Only multimedia compute paths can be used.</dd>
+  <dt><code>nongg</code></dt>
+  <dd>Disable NGG and use the legacy pipeline.</dd>
+  <dt><code>nggc</code></dt>
+  <dd>Always use NGG culling even when it can hurt.</dd>
+  <dt><code>nonggc</code></dt>
+  <dd>Disable NGG culling.</dd>
+  <dt><code>alwayspd</code></dt>
+  <dd>Always enable the primitive discard compute shader.</dd>
+  <dt><code>pd</code></dt>
+  <dd>Enable the primitive discard compute shader for large draw calls.</dd>
+  <dt><code>nopd</code></dt>
+  <dd>Disable the primitive discard compute shader.</dd>
+  <dt><code>switch_on_eop</code></dt>
+  <dd>Program WD/IA to switch on end-of-packet.</dd>
+  <dt><code>nooutoforder</code></dt>
+  <dd>Disable out-of-order rasterization</dd>
+  <dt><code>dpbb</code></dt>
+  <dd>Enable DPBB.</dd>
+  <dt><code>dfsm</code></dt>
+  <dd>Enable DFSM.</dd>
+</dl>
 
 <p>
 Other Gallium drivers have their own environment variables.  These may change

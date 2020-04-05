@@ -27,10 +27,9 @@
 #include "compiler/glsl/ir_uniform.h" /* for gl_uniform_storage */
 #include "main/context.h"
 
-/* This file do the common link for GLSL atomic counter uniforms, using NIR,
+/**
+ * This file do the common link for GLSL atomic counter uniforms, using NIR,
  * instead of IR as the counter-part glsl/link_uniforms.cpp
- *
- * Also note that this is tailored for ARB_gl_spirv needs and particularities
  */
 
 struct active_atomic_counter_uniform {

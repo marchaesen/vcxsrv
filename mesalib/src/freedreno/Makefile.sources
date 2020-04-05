@@ -28,7 +28,9 @@ ir3_SOURCES := \
 	ir3/ir3_context.c \
 	ir3/ir3_context.h \
 	ir3/ir3_cp.c \
+	ir3/ir3_cf.c \
 	ir3/ir3_depth.c \
+	ir3/ir3_delay.c \
 	ir3/ir3_group.c \
 	ir3/ir3_image.c \
 	ir3/ir3_image.h \
@@ -44,8 +46,11 @@ ir3_SOURCES := \
 	ir3/ir3_nir_lower_tex_prefetch.c \
 	ir3/ir3_nir_lower_tg4_to_tex.c \
 	ir3/ir3_nir_move_varying_inputs.c \
+	ir3/ir3_postsched.c \
 	ir3/ir3_print.c \
 	ir3/ir3_ra.c \
+	ir3/ir3_ra.h \
+	ir3/ir3_ra_regset.c \
 	ir3/ir3_sched.c \
 	ir3/ir3_shader.c \
 	ir3/ir3_shader.h \

@@ -99,7 +99,7 @@ extern void *global_userdata;
  * The reply handler called from WriteToClient. Set this handler if you need
  * to check the reply values.
  */
-void (*reply_handler) (ClientPtr client, int len, char *data, void *userdata);
+extern void (*reply_handler) (ClientPtr client, int len, char *data, void *userdata);
 
 /**
  * The default screen used for the windows. Initialized by init_simple().

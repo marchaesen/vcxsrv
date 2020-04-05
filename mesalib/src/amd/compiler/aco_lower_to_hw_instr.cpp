@@ -195,15 +195,15 @@ void emit_int64_op(lower_context *ctx, PhysReg dst_reg, PhysReg src0_reg, PhysRe
 {
    Builder bld(ctx->program, &ctx->instructions);
    Definition dst[] = {Definition(dst_reg, v1), Definition(PhysReg{dst_reg+1}, v1)};
-   RegClass src0_rc = src0_reg.reg >= 256 ? v1 : s1;
+   RegClass src0_rc = src0_reg.reg() >= 256 ? v1 : s1;
    Operand src0[] = {Operand(src0_reg, src0_rc), Operand(PhysReg{src0_reg+1}, src0_rc)};
    Operand src1[] = {Operand(src1_reg, v1), Operand(PhysReg{src1_reg+1}, v1)};
-   Operand src0_64 = Operand(src0_reg, src0_reg.reg >= 256 ? v2 : s2);
+   Operand src0_64 = Operand(src0_reg, src0_reg.reg() >= 256 ? v2 : s2);
    Operand src1_64 = Operand(src1_reg, v2);
 
    if (src0_rc == s1 &&
        (op == imul64 || op == umin64 || op == umax64 || op == imin64 || op == imax64)) {
-      assert(vtmp.reg != 0);
+      assert(vtmp.reg() != 0);
       bld.vop1(aco_opcode::v_mov_b32, Definition(vtmp, v1), src0[0]);
       bld.vop1(aco_opcode::v_mov_b32, Definition(PhysReg{vtmp+1}, v1), src0[1]);
       src0_reg = vtmp;
@@ -211,7 +211,7 @@ void emit_int64_op(lower_context *ctx, PhysReg dst_reg, PhysReg src0_reg, PhysRe
       src0[1] = Operand(PhysReg{vtmp+1}, v1);
       src0_64 = Operand(vtmp, v2);
    } else if (src0_rc == s1 && op == iadd64) {
-      assert(vtmp.reg != 0);
+      assert(vtmp.reg() != 0);
       bld.vop1(aco_opcode::v_mov_b32, Definition(PhysReg{vtmp+1}, v1), src0[1]);
       src0[1] = Operand(PhysReg{vtmp+1}, v1);
    }
@@ -330,7 +330,7 @@ void emit_op(lower_context *ctx, PhysReg dst_reg, PhysReg src0_reg, PhysReg src1
    Builder bld(ctx->program, &ctx->instructions);
    RegClass rc = RegClass(RegType::vgpr, size);
    Definition dst(dst_reg, rc);
-   Operand src0(src0_reg, RegClass(src0_reg.reg >= 256 ? RegType::vgpr : RegType::sgpr, size));
+   Operand src0(src0_reg, RegClass(src0_reg.reg() >= 256 ? RegType::vgpr : RegType::sgpr, size));
    Operand src1(src1_reg, rc);
 
    aco_opcode opcode = get_reduce_opcode(ctx->program->chip_class, op);
@@ -696,8 +696,11 @@ void emit_reduction(lower_context *ctx, aco_opcode op, ReduceOp reduce_op, unsig
 struct copy_operation {
    Operand op;
    Definition def;
-   unsigned uses;
-   unsigned size;
+   unsigned bytes;
+   union {
+      uint8_t uses[8];
+      uint64_t is_used = 0;
+   };
 };
 
 void handle_operands(std::map<PhysReg, copy_operation>& copy_map, lower_context* ctx, chip_class chip_class, Pseudo_instruction *pi)
@@ -710,10 +713,6 @@ void handle_operands(std::map<PhysReg, copy_operation>& copy_map, lower_context*
 
    /* count the number of uses for each dst reg */
    while (it != copy_map.end()) {
-      if (it->second.op.isConstant()) {
-         ++it;
-         continue;
-      }
 
       if (it->second.def.physReg() == scc)
          writes_scc = true;
@@ -725,10 +724,33 @@ void handle_operands(std::map<PhysReg, copy_operation>& copy_map, lower_context*
          it = copy_map.erase(it);
          continue;
       }
-      /* check if the operand reg may be overwritten by another copy operation */
-      target = copy_map.find(it->second.op.physReg());
-      if (target != copy_map.end()) {
-         target->second.uses++;
+
+      /* split large copies */
+      if (it->second.bytes > 8) {
+         assert(!it->second.op.isConstant());
+         assert(!it->second.def.regClass().is_subdword());
+         RegClass rc = RegClass(it->second.def.regClass().type(), it->second.def.size() - 2);
+         Definition hi_def = Definition(PhysReg{it->first + 2}, rc);
+         rc = RegClass(it->second.op.regClass().type(), it->second.op.size() - 2);
+         Operand hi_op = Operand(PhysReg{it->second.op.physReg() + 2}, rc);
+         copy_operation copy = {hi_op, hi_def, it->second.bytes - 8};
+         copy_map[hi_def.physReg()] = copy;
+         assert(it->second.op.physReg().byte() == 0 && it->second.def.physReg().byte() == 0);
+         it->second.op = Operand(it->second.op.physReg(), it->second.op.regClass().type() == RegType::sgpr ? s2 : v2);
+         it->second.def = Definition(it->second.def.physReg(), it->second.def.regClass().type() == RegType::sgpr ? s2 : v2);
+         it->second.bytes = 8;
+      }
+
+      /* check if the definition reg is used by another copy operation */
+      for (std::pair<const PhysReg, copy_operation>& copy : copy_map) {
+         if (copy.second.op.isConstant())
+            continue;
+         for (uint16_t i = 0; i < it->second.bytes; i++) {
+            /* distance might underflow */
+            unsigned distance = it->first.reg_b + i - copy.second.op.physReg().reg_b;
+            if (distance < copy.second.bytes)
+               it->second.uses[i] += 1;
+         }
       }
 
       ++it;
@@ -739,46 +761,109 @@ void handle_operands(std::map<PhysReg, copy_operation>& copy_map, lower_context*
    it = copy_map.begin();
    while (it != copy_map.end()) {
 
+      /* split cross half-reg copies: SDWA can only access bytes and shorts */
+      if (it->second.def.regClass().is_subdword()) {
+         PhysReg def_reg = it->second.def.physReg();
+         PhysReg op_reg = it->second.op.physReg();
+         unsigned new_bytes = 0;
+         if (it->second.bytes > 1 && (def_reg.byte() % 2 || op_reg.byte() % 2)) {
+            new_bytes = 1;
+         } else if (it->second.bytes > 2 && (def_reg.byte() || op_reg.byte())) {
+            new_bytes = 2;
+         } else if (it->second.bytes == 3) {
+            new_bytes = 2;
+         } else if (it->second.bytes > 4) {
+            assert(it->second.op.physReg().byte() == 0 && it->second.def.physReg().byte() == 0);
+            new_bytes = 4;
+         }
+         if (new_bytes) {
+            RegClass rc = RegClass(RegType::vgpr, it->second.bytes - new_bytes).as_subdword();
+            def_reg.reg_b += new_bytes;
+            op_reg.reg_b += new_bytes;
+            copy_operation copy = {Operand(op_reg, rc), Definition(def_reg, rc), it->second.bytes - new_bytes};
+            copy.is_used = it->second.is_used >> (8 * new_bytes);
+            copy_map[def_reg] = copy;
+            rc = RegClass(RegType::vgpr, new_bytes).as_subdword();
+            it->second.op = Operand(it->second.op.physReg(), rc);
+            it->second.def = Definition(it->second.def.physReg(), rc);
+            it->second.is_used = it->second.is_used & ((1 << (8 * new_bytes)) - 1);
+            it->second.bytes = new_bytes;
+         }
+
+         /* convert dword moves to normal regclass */
+         if (it->second.bytes == 4) {
+            it->second.op = Operand(it->second.op.physReg(), v1);
+            it->second.def = Definition(it->second.def.physReg(), v1);
+         }
+      }
+
+      /* split multi-reg copies */
+      if (it->second.bytes > 4 && !it->second.op.isConstant()) {
+         assert(!it->second.def.regClass().is_subdword());
+         RegClass rc = RegClass(it->second.def.regClass().type(), it->second.def.size() - 1);
+         Definition hi_def = Definition(PhysReg{it->first + 1}, rc);
+         rc = RegClass(it->second.op.regClass().type(), it->second.op.size() - 1);
+         Operand hi_op = Operand(PhysReg{it->second.op.physReg() + 1}, rc);
+         copy_operation copy = {hi_op, hi_def, it->second.bytes - 4};
+         copy.is_used = it->second.is_used >> 32;
+         copy_map[hi_def.physReg()] = copy;
+         assert(it->second.op.physReg().byte() == 0 && it->second.def.physReg().byte() == 0);
+         it->second.op = Operand(it->second.op.physReg(), it->second.op.regClass().type() == RegType::sgpr ? s1 : v1);
+         it->second.def = Definition(it->second.def.physReg(), it->second.def.regClass().type() == RegType::sgpr ? s1 : v1);
+         it->second.is_used = it->second.is_used & 0xFFFFFFFF;
+         it->second.bytes = 4;
+      }
+
       /* the target reg is not used as operand for any other copy */
-      if (it->second.uses == 0) {
+      if (it->second.is_used == 0) {
 
          /* try to coalesce 32-bit sgpr copies to 64-bit copies */
-         if (it->second.def.getTemp().type() == RegType::sgpr && it->second.size == 1 &&
+         if (it->second.def.getTemp().type() == RegType::sgpr && it->second.bytes == 4 &&
              !it->second.op.isConstant() && it->first % 2 == it->second.op.physReg() % 2) {
 
             PhysReg other_def_reg = PhysReg{it->first % 2 ? it->first - 1 : it->first + 1};
             PhysReg other_op_reg = PhysReg{it->first % 2 ? it->second.op.physReg() - 1 : it->second.op.physReg() + 1};
             std::map<PhysReg, copy_operation>::iterator other = copy_map.find(other_def_reg);
 
-            if (other != copy_map.end() && !other->second.uses && other->second.size == 1 &&
+            if (other != copy_map.end() && !other->second.is_used && other->second.bytes == 4 &&
                 other->second.op.physReg() == other_op_reg && !other->second.op.isConstant()) {
                std::map<PhysReg, copy_operation>::iterator to_erase = it->first % 2 ? it : other;
                it = it->first % 2 ? other : it;
                copy_map.erase(to_erase);
-               it->second.size = 2;
+               it->second.bytes = 8;
             }
          }
+         // TODO: try to coalesce subdword copies
 
          if (it->second.def.physReg() == scc) {
             bld.sopc(aco_opcode::s_cmp_lg_i32, it->second.def, it->second.op, Operand(0u));
             preserve_scc = true;
-         } else if (it->second.size == 2 && it->second.def.getTemp().type() == RegType::sgpr) {
+         } else if (it->second.bytes == 8 && it->second.def.getTemp().type() == RegType::sgpr) {
             bld.sop1(aco_opcode::s_mov_b64, it->second.def, Operand(it->second.op.physReg(), s2));
+         } else if (it->second.bytes == 8 && it->second.op.isConstant()) {
+            uint64_t val = it->second.op.constantValue64();
+            bld.vop1(aco_opcode::v_mov_b32, it->second.def, Operand((uint32_t)val));
+            bld.vop1(aco_opcode::v_mov_b32, Definition(PhysReg{it->second.def.physReg() + 1}, v1),
+                     Operand((uint32_t)(val >> 32)));
          } else {
             bld.copy(it->second.def, it->second.op);
          }
 
          /* reduce the number of uses of the operand reg by one */
          if (!it->second.op.isConstant()) {
-            for (unsigned i = 0; i < it->second.size; i++) {
-               target = copy_map.find(PhysReg{it->second.op.physReg() + i});
-               if (target != copy_map.end())
-                  target->second.uses--;
+            for (std::pair<const PhysReg, copy_operation>& copy : copy_map) {
+               for (uint16_t i = 0; i < copy.second.bytes; i++) {
+                  /* distance might underflow */
+                  unsigned distance = copy.first.reg_b + i - it->second.op.physReg().reg_b;
+                  if (distance < it->second.bytes)
+                     copy.second.uses[i] -= 1;
+               }
             }
          }
 
          copy_map.erase(it);
          it = copy_map.begin();
+         ctx->program->statistics[statistic_copies]++;
          continue;
       } else {
          /* the target reg is used as operand, check the next entry */
@@ -790,16 +875,13 @@ void handle_operands(std::map<PhysReg, copy_operation>& copy_map, lower_context*
       return;
 
    /* all target regs are needed as operand somewhere which means, all entries are part of a cycle */
-   bool constants = false;
    for (it = copy_map.begin(); it != copy_map.end(); ++it) {
       assert(it->second.op.isFixed());
       if (it->first == it->second.op.physReg())
          continue;
-      /* do constants later */
-      if (it->second.op.isConstant()) {
-         constants = true;
-         continue;
-      }
+
+      /* should already be done */
+      assert(!it->second.op.isConstant());
 
       if (preserve_scc && it->second.def.getTemp().type() == RegType::sgpr)
          assert(!(it->second.def.physReg() == pi->scratch_sgpr));
@@ -809,8 +891,14 @@ void handle_operands(std::map<PhysReg, copy_operation>& copy_map, lower_context*
       assert(swap.op.regClass() == swap.def.regClass());
       Operand def_as_op = Operand(swap.def.physReg(), swap.def.regClass());
       Definition op_as_def = Definition(swap.op.physReg(), swap.op.regClass());
-      if (chip_class >= GFX9 && swap.def.getTemp().type() == RegType::vgpr) {
+      if (chip_class >= GFX9 && swap.def.regClass() == v1) {
          bld.vop1(aco_opcode::v_swap_b32, swap.def, op_as_def, swap.op, def_as_op);
+         ctx->program->statistics[statistic_copies]++;
+      } else if (swap.def.regClass() == v1) {
+         bld.vop2(aco_opcode::v_xor_b32, op_as_def, swap.op, def_as_op);
+         bld.vop2(aco_opcode::v_xor_b32, swap.def, swap.op, def_as_op);
+         bld.vop2(aco_opcode::v_xor_b32, op_as_def, swap.op, def_as_op);
+         ctx->program->statistics[statistic_copies] += 3;
       } else if (swap.op.physReg() == scc || swap.def.physReg() == scc) {
          /* we need to swap scc and another sgpr */
          assert(!preserve_scc);
@@ -820,7 +908,8 @@ void handle_operands(std::map<PhysReg, copy_operation>& copy_map, lower_context*
          bld.sop1(aco_opcode::s_mov_b32, Definition(pi->scratch_sgpr, s1), Operand(scc, s1));
          bld.sopc(aco_opcode::s_cmp_lg_i32, Definition(scc, s1), Operand(other, s1), Operand(0u));
          bld.sop1(aco_opcode::s_mov_b32, Definition(other, s1), Operand(pi->scratch_sgpr, s1));
-      } else if (swap.def.getTemp().type() == RegType::sgpr) {
+         ctx->program->statistics[statistic_copies] += 3;
+      } else if (swap.def.regClass() == s1) {
          if (preserve_scc) {
             bld.sop1(aco_opcode::s_mov_b32, Definition(pi->scratch_sgpr, s1), swap.op);
             bld.sop1(aco_opcode::s_mov_b32, op_as_def, def_as_op);
@@ -830,32 +919,23 @@ void handle_operands(std::map<PhysReg, copy_operation>& copy_map, lower_context*
             bld.sop2(aco_opcode::s_xor_b32, swap.def, Definition(scc, s1), swap.op, def_as_op);
             bld.sop2(aco_opcode::s_xor_b32, op_as_def, Definition(scc, s1), swap.op, def_as_op);
          }
+         ctx->program->statistics[statistic_copies] += 3;
       } else {
          bld.vop2(aco_opcode::v_xor_b32, op_as_def, swap.op, def_as_op);
          bld.vop2(aco_opcode::v_xor_b32, swap.def, swap.op, def_as_op);
          bld.vop2(aco_opcode::v_xor_b32, op_as_def, swap.op, def_as_op);
+         ctx->program->statistics[statistic_copies] += 3;
+         assert(swap.def.regClass().is_subdword());
+         assert(false && "Subdword swaps not yet implemented.");
       }
 
       /* change the operand reg of the target's use */
-      assert(swap.uses == 1);
+      assert(swap.is_used == 0x01010101lu); // each 1 use per byte
       target = it;
       for (++target; target != copy_map.end(); ++target) {
          if (target->second.op.physReg() == it->first) {
             target->second.op.setFixed(swap.op.physReg());
             break;
-         }
-      }
-   }
-
-   /* copy constants into a registers which were operands */
-   if (constants) {
-      for (it = copy_map.begin(); it != copy_map.end(); ++it) {
-         if (!it->second.op.isConstant())
-            continue;
-         if (it->second.def.physReg() == scc) {
-            bld.sopc(aco_opcode::s_cmp_lg_i32, Definition(scc, s1), Operand(0u), Operand(it->second.op.constantValue() ? 1u : 0u));
-         } else {
-            bld.copy(it->second.def, it->second.op);
          }
       }
    }
@@ -898,42 +978,43 @@ void lower_to_hw_instr(Program* program)
             {
             case aco_opcode::p_extract_vector:
             {
-               unsigned reg = instr->operands[0].physReg() + instr->operands[1].constantValue() * instr->definitions[0].size();
-               RegClass rc = RegClass(instr->operands[0].getTemp().type(), 1);
-               RegClass rc_def = RegClass(instr->definitions[0].getTemp().type(), 1);
-               if (reg == instr->definitions[0].physReg())
+               PhysReg reg = instr->operands[0].physReg();
+               Definition& def = instr->definitions[0];
+               reg.reg_b += instr->operands[1].constantValue() * def.bytes();
+
+               if (reg == def.physReg())
                   break;
 
+               RegClass op_rc = def.regClass().is_subdword() ? def.regClass() :
+                                RegClass(instr->operands[0].getTemp().type(), def.size());
                std::map<PhysReg, copy_operation> copy_operations;
-               for (unsigned i = 0; i < instr->definitions[0].size(); i++) {
-                  Definition def = Definition(PhysReg{instr->definitions[0].physReg() + i}, rc_def);
-                  copy_operations[def.physReg()] = {Operand(PhysReg{reg + i}, rc), def, 0, 1};
-               }
+               copy_operations[def.physReg()] = {Operand(reg, op_rc), def, def.bytes()};
                handle_operands(copy_operations, &ctx, program->chip_class, pi);
                break;
             }
             case aco_opcode::p_create_vector:
             {
                std::map<PhysReg, copy_operation> copy_operations;
-               RegClass rc_def = RegClass(instr->definitions[0].getTemp().type(), 1);
-               unsigned reg_idx = 0;
+               PhysReg reg = instr->definitions[0].physReg();
+
                for (const Operand& op : instr->operands) {
                   if (op.isConstant()) {
-                     const PhysReg reg = PhysReg{instr->definitions[0].physReg() + reg_idx};
-                     const Definition def = Definition(reg, rc_def);
-                     copy_operations[reg] = {op, def, 0, 1};
-                     reg_idx++;
+                     const Definition def = Definition(reg, RegClass(instr->definitions[0].getTemp().type(), op.size()));
+                     copy_operations[reg] = {op, def, op.bytes()};
+                     reg.reg_b += op.bytes();
+                     continue;
+                  }
+                  if (op.isUndefined()) {
+                     // TODO: coalesce subdword copies if dst byte is 0
+                     reg.reg_b += op.bytes();
                      continue;
                   }
 
-                  RegClass rc_op = RegClass(op.getTemp().type(), 1);
-                  for (unsigned j = 0; j < op.size(); j++)
-                  {
-                     const Operand copy_op = Operand(PhysReg{op.physReg() + j}, rc_op);
-                     const Definition def = Definition(PhysReg{instr->definitions[0].physReg() + reg_idx}, rc_def);
-                     copy_operations[def.physReg()] = {copy_op, def, 0, 1};
-                     reg_idx++;
-                  }
+                  RegClass rc_def = op.regClass().is_subdword() ? op.regClass() :
+                                    RegClass(instr->definitions[0].getTemp().type(), op.size());
+                  const Definition def = Definition(reg, rc_def);
+                  copy_operations[def.physReg()] = {op, def, op.bytes()};
+                  reg.reg_b += op.bytes();
                }
                handle_operands(copy_operations, &ctx, program->chip_class, pi);
                break;
@@ -941,15 +1022,14 @@ void lower_to_hw_instr(Program* program)
             case aco_opcode::p_split_vector:
             {
                std::map<PhysReg, copy_operation> copy_operations;
-               RegClass rc_op = instr->operands[0].isConstant() ? s1 : RegClass(instr->operands[0].regClass().type(), 1);
-               for (unsigned i = 0; i < instr->definitions.size(); i++) {
-                  unsigned k = instr->definitions[i].size();
-                  RegClass rc_def = RegClass(instr->definitions[i].getTemp().type(), 1);
-                  for (unsigned j = 0; j < k; j++) {
-                     Operand op = Operand(PhysReg{instr->operands[0].physReg() + (i*k+j)}, rc_op);
-                     Definition def = Definition(PhysReg{instr->definitions[i].physReg() + j}, rc_def);
-                     copy_operations[def.physReg()] = {op, def, 0, 1};
-                  }
+               PhysReg reg = instr->operands[0].physReg();
+
+               for (const Definition& def : instr->definitions) {
+                  RegClass rc_op = def.regClass().is_subdword() ? def.regClass() :
+                                   RegClass(instr->operands[0].getTemp().type(), def.size());
+                  const Operand op = Operand(reg, rc_op);
+                  copy_operations[def.physReg()] = {op, def, def.bytes()};
+                  reg.reg_b += def.bytes();
                }
                handle_operands(copy_operations, &ctx, program->chip_class, pi);
                break;
@@ -958,32 +1038,39 @@ void lower_to_hw_instr(Program* program)
             case aco_opcode::p_wqm:
             {
                std::map<PhysReg, copy_operation> copy_operations;
-               for (unsigned i = 0; i < instr->operands.size(); i++)
-               {
-                  Operand operand = instr->operands[i];
-                  if (operand.isConstant() || operand.size() == 1) {
-                     assert(instr->definitions[i].size() == operand.size());
-                     copy_operations[instr->definitions[i].physReg()] = {operand, instr->definitions[i], 0, 1};
-                  } else {
-                     RegClass def_rc = RegClass(instr->definitions[i].regClass().type(), 1);
-                     RegClass op_rc = RegClass(operand.getTemp().type(), 1);
-                     for (unsigned j = 0; j < operand.size(); j++)
-                     {
-                        Operand op = Operand(PhysReg{instr->operands[i].physReg() + j}, op_rc);
-                        Definition def = Definition(PhysReg{instr->definitions[i].physReg() + j}, def_rc);
-                        copy_operations[def.physReg()] = {op, def, 0, 1};
-                     }
-                  }
+               for (unsigned i = 0; i < instr->operands.size(); i++) {
+                  assert(instr->definitions[i].bytes() == instr->operands[i].bytes());
+                  copy_operations[instr->definitions[i].physReg()] = {instr->operands[i], instr->definitions[i], instr->operands[i].bytes()};
                }
                handle_operands(copy_operations, &ctx, program->chip_class, pi);
                break;
             }
             case aco_opcode::p_exit_early_if:
             {
-               /* don't bother with an early exit at the end of the program */
-               if (block->instructions[j + 1]->opcode == aco_opcode::p_logical_end &&
-                   block->instructions[j + 2]->opcode == aco_opcode::s_endpgm) {
-                  break;
+               /* don't bother with an early exit near the end of the program */
+               if ((block->instructions.size() - 1 - j) <= 4 &&
+                    block->instructions.back()->opcode == aco_opcode::s_endpgm) {
+                  unsigned null_exp_dest = (ctx.program->stage & hw_fs) ? 9 /* NULL */ : V_008DFC_SQ_EXP_POS;
+                  bool ignore_early_exit = true;
+
+                  for (unsigned k = j + 1; k < block->instructions.size(); ++k) {
+                     const aco_ptr<Instruction> &instr = block->instructions[k];
+                     if (instr->opcode == aco_opcode::s_endpgm ||
+                         instr->opcode == aco_opcode::p_logical_end)
+                        continue;
+                     else if (instr->opcode == aco_opcode::exp &&
+                              static_cast<Export_instruction *>(instr.get())->dest == null_exp_dest)
+                        continue;
+                     else if (instr->opcode == aco_opcode::p_parallelcopy &&
+                         instr->definitions[0].isFixed() &&
+                         instr->definitions[0].physReg() == exec)
+                        continue;
+
+                     ignore_early_exit = false;
+                  }
+
+                  if (ignore_early_exit)
+                     break;
                }
 
                if (!discard_block) {
@@ -1032,19 +1119,7 @@ void lower_to_hw_instr(Program* program)
             {
                if (instr->operands[0].isConstant() || instr->operands[0].regClass().type() == RegType::sgpr) {
                   std::map<PhysReg, copy_operation> copy_operations;
-                  Operand operand = instr->operands[0];
-                  if (operand.isConstant() || operand.size() == 1) {
-                     assert(instr->definitions[0].size() == 1);
-                     copy_operations[instr->definitions[0].physReg()] = {operand, instr->definitions[0], 0, 1};
-                  } else {
-                     for (unsigned i = 0; i < operand.size(); i++)
-                     {
-                        Operand op = Operand(PhysReg{operand.physReg() + i}, s1);
-                        Definition def = Definition(PhysReg{instr->definitions[0].physReg() + i}, s1);
-                        copy_operations[def.physReg()] = {op, def, 0, 1};
-                     }
-                  }
-
+                  copy_operations[instr->definitions[0].physReg()] = {instr->operands[0], instr->definitions[0], instr->definitions[0].bytes()};
                   handle_operands(copy_operations, &ctx, program->chip_class, pi);
                } else {
                   assert(instr->operands[0].regClass().type() == RegType::vgpr);

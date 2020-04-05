@@ -50,7 +50,7 @@
 
 
 #include "errors.h"
-#include "imports.h"
+#include "util/imports.h"
 #include "extensions.h"
 #include "mtypes.h"
 #include "vbo/vbo.h"
@@ -244,8 +244,14 @@ do {								\
 do {                                                            \
    if (MESA_VERBOSE & VERBOSE_STATE)                            \
       _mesa_debug(ctx, "FLUSH_FOR_DRAW in %s\n", __func__);     \
-   if (ctx->Driver.NeedFlush)                                   \
-      vbo_exec_FlushVertices(ctx, ctx->Driver.NeedFlush);       \
+   if (ctx->Driver.NeedFlush) {                                 \
+      if (ctx->_AllowDrawOutOfOrder) {                          \
+          if (ctx->Driver.NeedFlush & FLUSH_UPDATE_CURRENT)     \
+             vbo_exec_FlushVertices(ctx, FLUSH_UPDATE_CURRENT); \
+      } else {                                                  \
+         vbo_exec_FlushVertices(ctx, ctx->Driver.NeedFlush);    \
+      }                                                         \
+   }                                                            \
 } while (0)
 
 /**

@@ -106,6 +106,8 @@ _tnl_split_prims(struct gl_context *ctx,
                  const struct _mesa_index_buffer *ib,
                  GLuint min_index,
                  GLuint max_index,
+                 GLuint num_instances,
+                 GLuint base_instance,
                  tnl_draw_func draw,
                  const struct split_limits *limits)
 {
@@ -135,7 +137,8 @@ _tnl_split_prims(struct gl_context *ctx,
           * individual primitives.
           */
          _tnl_split_inplace(ctx, arrays, prim, nr_prims, ib,
-                            min_index, max_index, draw, limits);
+                            min_index, max_index, num_instances,
+                            base_instance, draw, limits);
       }
       else {
          /* Why were we called? */
@@ -149,7 +152,8 @@ _tnl_split_prims(struct gl_context *ctx,
           * otherwise try to split the individual primitives.
           */
          _tnl_split_inplace(ctx, arrays, prim, nr_prims, ib,
-                            min_index, max_index, draw, limits);
+                            min_index, max_index, num_instances,
+                            base_instance, draw, limits);
       }
       else {
          /* Why were we called? */

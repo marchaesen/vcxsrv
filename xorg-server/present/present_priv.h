@@ -279,12 +279,12 @@ present_set_tree_pixmap(WindowPtr window,
                         PixmapPtr expected,
                         PixmapPtr pixmap);
 
-void
-present_adjust_timings(uint32_t options,
-                       uint64_t *crtc_msc,
-                       uint64_t *target_msc,
+uint64_t
+present_get_target_msc(uint64_t target_msc_arg,
+                       uint64_t crtc_msc,
                        uint64_t divisor,
-                       uint64_t remainder);
+                       uint64_t remainder,
+                       uint32_t options);
 
 int
 present_pixmap(WindowPtr window,

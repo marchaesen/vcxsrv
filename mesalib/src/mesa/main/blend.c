@@ -35,6 +35,7 @@
 #include "enums.h"
 #include "macros.h"
 #include "mtypes.h"
+#include "state.h"
 
 
 
@@ -905,6 +906,7 @@ logic_op(struct gl_context *ctx, GLenum opcode, bool no_error)
    ctx->NewDriverState |= ctx->DriverFlags.NewLogicOp;
    ctx->Color.LogicOp = opcode;
    ctx->Color._LogicOp = color_logicop_mapping[opcode & 0x0f];
+   _mesa_update_allow_draw_out_of_order(ctx);
 
    if (ctx->Driver.LogicOpcode)
       ctx->Driver.LogicOpcode(ctx, ctx->Color._LogicOp);
@@ -991,6 +993,7 @@ _mesa_ColorMask( GLboolean red, GLboolean green,
    FLUSH_VERTICES(ctx, ctx->DriverFlags.NewColorMask ? 0 : _NEW_COLOR);
    ctx->NewDriverState |= ctx->DriverFlags.NewColorMask;
    ctx->Color.ColorMask = mask;
+   _mesa_update_allow_draw_out_of_order(ctx);
 
    if (ctx->Driver.ColorMask)
       ctx->Driver.ColorMask( ctx, red, green, blue, alpha );
@@ -1027,6 +1030,7 @@ _mesa_ColorMaski(GLuint buf, GLboolean red, GLboolean green,
    ctx->NewDriverState |= ctx->DriverFlags.NewColorMask;
    ctx->Color.ColorMask &= ~(0xf << (4 * buf));
    ctx->Color.ColorMask |= mask << (4 * buf);
+   _mesa_update_allow_draw_out_of_order(ctx);
 }
 
 

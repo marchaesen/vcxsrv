@@ -65,6 +65,9 @@ struct radv_shader_args {
 	struct ac_arg streamout_config;
 	struct ac_arg streamout_offset[4];
 
+	/* NGG GS */
+	struct ac_arg ngg_gs_state;
+
 	bool is_gs_copy_shader;
 };
 

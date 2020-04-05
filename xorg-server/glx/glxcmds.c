@@ -284,6 +284,15 @@ DoCreateContext(__GLXclientState * cl, GLXContextID gcId,
              */
             isDirect = GL_FALSE;
         }
+
+        /* Core GLX doesn't explicitly require this, but GLX_ARB_create_context
+         * does (see glx/createcontext.c), and it's assumed by our
+         * implementation anyway, so let's be consistent about it.
+         */
+        if (shareglxc->pGlxScreen != pGlxScreen) {
+            client->errorValue = shareglxc->pGlxScreen->pScreen->myNum;
+            return BadMatch;
+        }
     }
 
     /*

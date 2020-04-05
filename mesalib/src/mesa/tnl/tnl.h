@@ -107,17 +107,18 @@ _tnl_draw_prims(struct gl_context *ctx,
 		     GLboolean index_bounds_valid,
 		     GLuint min_index,
 		     GLuint max_index,
+                     GLuint num_instances,
+                     GLuint base_instance,
 		     struct gl_transform_feedback_object *tfb_vertcount,
-                     unsigned stream,
-		     struct gl_buffer_object *indirect );
+                     unsigned stream);
 
 void
 _tnl_draw(struct gl_context *ctx,
           const struct _mesa_prim *prim, GLuint nr_prims,
           const struct _mesa_index_buffer *ib,
           GLboolean index_bounds_valid, GLuint min_index, GLuint max_index,
-          struct gl_transform_feedback_object *tfb_vertcount, unsigned stream,
-          struct gl_buffer_object *indirect);
+          GLuint num_instances, GLuint base_instance,
+          struct gl_transform_feedback_object *tfb_vertcount, unsigned stream);
 
 extern void
 _tnl_RasterPos(struct gl_context *ctx, const GLfloat vObj[4]);
@@ -174,9 +175,10 @@ typedef void (*tnl_draw_func)(struct gl_context *ctx,
                               GLboolean index_bounds_valid,
                               GLuint min_index,
                               GLuint max_index,
+                              GLuint num_instances,
+                              GLuint base_instance,
                               struct gl_transform_feedback_object *tfb_vertcount,
-                              unsigned tfb_stream,
-                              struct gl_buffer_object *indirect);
+                              unsigned tfb_stream);
 
 
 /* Utility function to cope with various constraints on tnl modules or
@@ -201,6 +203,8 @@ _tnl_split_prims(struct gl_context *ctx,
                  const struct _mesa_index_buffer *ib,
                  GLuint min_index,
                  GLuint max_index,
+                 GLuint num_instances,
+                 GLuint base_instance,
                  tnl_draw_func draw,
                  const struct split_limits *limits);
 

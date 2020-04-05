@@ -207,6 +207,8 @@
 
 #define XF86XK_RotationLockToggle 0x1008FFB7 /* Toggle screen rotation lock on/off */
 
+#define XF86XK_FullScreen	0x1008FFB8   /* Toggle fullscreen */
+
 /* Keys for special action keys (hot keys) */
 /* Virtual terminals on some operating systems */
 #define XF86XK_Switch_VT_1	0x1008FE01

@@ -519,25 +519,28 @@ present_wnmd_queue_vblank(ScreenPtr screen,
     return (*screen_priv->wnmd_info->queue_vblank) (window, crtc, event_id, msc);
 }
 
-static uint64_t
-present_wnmd_window_to_crtc_msc(WindowPtr window, RRCrtcPtr crtc, uint64_t window_msc, uint64_t new_msc)
+static void
+present_wnmd_update_window_crtc(WindowPtr window, RRCrtcPtr crtc, uint64_t new_msc)
 {
     present_window_priv_ptr window_priv = present_get_window_priv(window, TRUE);
 
-    if (crtc != window_priv->crtc) {
-        if (window_priv->crtc == PresentCrtcNeverSet) {
-            window_priv->msc_offset = 0;
-        } else {
-            /* The old CRTC may have been turned off, in which case
-             * we'll just use whatever previous MSC we'd seen from this CRTC
-             */
+    /* Crtc unchanged, no offset. */
+    if (crtc == window_priv->crtc)
+        return;
 
-            window_priv->msc_offset += new_msc - window_priv->msc;
-        }
+    /* No crtc earlier to offset against, just set the crtc. */
+    if (window_priv->crtc == PresentCrtcNeverSet) {
+        window_priv->msc_offset = 0;
         window_priv->crtc = crtc;
+        return;
     }
 
-    return window_msc + window_priv->msc_offset;
+    /* In window-mode the last correct msc-offset is always kept
+     * in window-priv struct because msc is saved per window and
+     * not per crtc as in screen-mode.
+     */
+    window_priv->msc_offset += new_msc - window_priv->msc;
+    window_priv->crtc = crtc;
 }
 
 static int
@@ -552,7 +555,7 @@ present_wnmd_pixmap(WindowPtr window,
                     SyncFence *wait_fence,
                     SyncFence *idle_fence,
                     uint32_t options,
-                    uint64_t window_msc,
+                    uint64_t target_window_msc,
                     uint64_t divisor,
                     uint64_t remainder,
                     present_notify_ptr notifies,
@@ -574,7 +577,7 @@ present_wnmd_pixmap(WindowPtr window,
 
     ret = present_wnmd_get_ust_msc(screen, window, &ust, &crtc_msc);
 
-    target_msc = present_wnmd_window_to_crtc_msc(window, target_crtc, window_msc, crtc_msc);
+    present_wnmd_update_window_crtc(window, target_crtc, crtc_msc);
 
     if (ret == Success) {
         /* Stash the current MSC away in case we need it later
@@ -582,11 +585,11 @@ present_wnmd_pixmap(WindowPtr window,
         window_priv->msc = crtc_msc;
     }
 
-    present_adjust_timings(options,
-                           &crtc_msc,
-                           &target_msc,
-                           divisor,
-                           remainder);
+    target_msc = present_get_target_msc(target_window_msc + window_priv->msc_offset,
+                                        crtc_msc,
+                                        divisor,
+                                        remainder,
+                                        options);
 
     /*
      * Look for a matching presentation already on the list...

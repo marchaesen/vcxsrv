@@ -22,12 +22,18 @@
  */
 
 #include "sparse_array.h"
+#include "os_memory.h"
 
-struct util_sparse_array_node {
-   uint32_t level;
-   uint32_t _pad;
-   uint64_t max_idx;
-};
+/* Aligning our allocations to 64 has two advantages:
+ *
+ *  1. On x86 platforms, it means that they are cache-line aligned so we
+ *     reduce the likelihood that one of our allocations shares a cache line
+ *     with some other allocation.
+ *
+ *  2. It lets us use the bottom 6 bits of the pointer to store the tree level
+ *     of the node so we can avoid some pointer indirections.
+ */
+#define NODE_ALLOC_ALIGN 64
 
 void
 util_sparse_array_init(struct util_sparse_array *arr,
@@ -39,27 +45,45 @@ util_sparse_array_init(struct util_sparse_array *arr,
    assert(node_size >= 2 && node_size == (1ull << arr->node_size_log2));
 }
 
-static inline void *
-_util_sparse_array_node_data(struct util_sparse_array_node *node)
+#define NODE_PTR_MASK (~((uintptr_t)NODE_ALLOC_ALIGN - 1))
+#define NODE_LEVEL_MASK ((uintptr_t)NODE_ALLOC_ALIGN - 1)
+#define NULL_NODE 0
+
+static inline uintptr_t
+_util_sparse_array_node(void *data, unsigned level)
 {
-   return node + 1;
+   assert(data != NULL);
+   assert(((uintptr_t)data & NODE_LEVEL_MASK) == 0);
+   assert((level & NODE_PTR_MASK) == 0);
+   return (uintptr_t)data | level;
+}
+
+static inline void *
+_util_sparse_array_node_data(uintptr_t handle)
+{
+   return (void *)(handle & NODE_PTR_MASK);
+}
+
+static inline unsigned
+_util_sparse_array_node_level(uintptr_t handle)
+{
+   return handle & NODE_LEVEL_MASK;
 }
 
 static inline void
 _util_sparse_array_node_finish(struct util_sparse_array *arr,
-                               struct util_sparse_array_node *node)
+                               uintptr_t node)
 {
-   if (node->level > 0) {
-      struct util_sparse_array_node **children =
-         _util_sparse_array_node_data(node);
+   if (_util_sparse_array_node_level(node) > 0) {
+      uintptr_t *children = _util_sparse_array_node_data(node);
       size_t node_size = 1ull << arr->node_size_log2;
       for (size_t i = 0; i < node_size; i++) {
-         if (children[i] != NULL)
+         if (children[i])
             _util_sparse_array_node_finish(arr, children[i]);
       }
    }
 
-   free(node);
+   os_free_aligned(_util_sparse_array_node_data(node));
 }
 
 void
@@ -69,36 +93,35 @@ util_sparse_array_finish(struct util_sparse_array *arr)
       _util_sparse_array_node_finish(arr, arr->root);
 }
 
-static inline struct util_sparse_array_node *
-_util_sparse_array_alloc_node(struct util_sparse_array *arr,
+static inline uintptr_t
+_util_sparse_array_node_alloc(struct util_sparse_array *arr,
                               unsigned level)
 {
-   size_t size = sizeof(struct util_sparse_array_node);
+   size_t size;
    if (level == 0) {
-      size += arr->elem_size << arr->node_size_log2;
+      size = arr->elem_size << arr->node_size_log2;
    } else {
-      size += sizeof(struct util_sparse_array_node *) << arr->node_size_log2;
+      size = sizeof(uintptr_t) << arr->node_size_log2;
    }
 
-   struct util_sparse_array_node *node = calloc(1, size);
-   node->level = level;
+   void *data = os_malloc_aligned(size, NODE_ALLOC_ALIGN);
+   memset(data, 0, size);
 
-   return node;
+   return _util_sparse_array_node(data, level);
 }
 
-static inline struct util_sparse_array_node *
-_util_sparse_array_set_or_free_node(struct util_sparse_array_node **node_ptr,
-                                    struct util_sparse_array_node *cmp_node,
-                                    struct util_sparse_array_node *node)
+static inline uintptr_t
+_util_sparse_array_set_or_free_node(uintptr_t *node_ptr,
+                                    uintptr_t cmp_node,
+                                    uintptr_t node)
 {
-   struct util_sparse_array_node *prev_node =
-      p_atomic_cmpxchg(node_ptr, cmp_node, node);
+   uintptr_t prev_node = p_atomic_cmpxchg(node_ptr, cmp_node, node);
 
    if (prev_node != cmp_node) {
       /* We lost the race.  Free this one and return the one that was already
        * allocated.
        */
-      free(node);
+      os_free_aligned(_util_sparse_array_node_data(node));
       return prev_node;
    } else {
       return node;
@@ -108,32 +131,32 @@ _util_sparse_array_set_or_free_node(struct util_sparse_array_node **node_ptr,
 void *
 util_sparse_array_get(struct util_sparse_array *arr, uint64_t idx)
 {
-   struct util_sparse_array_node *root = p_atomic_read(&arr->root);
-   if (unlikely(root == NULL)) {
+   const unsigned node_size_log2 = arr->node_size_log2;
+   uintptr_t root = p_atomic_read(&arr->root);
+   if (unlikely(!root)) {
       unsigned root_level = 0;
-      uint64_t idx_iter = idx >> arr->node_size_log2;
+      uint64_t idx_iter = idx >> node_size_log2;
       while (idx_iter) {
-         idx_iter >>= arr->node_size_log2;
+         idx_iter >>= node_size_log2;
          root_level++;
       }
-      struct util_sparse_array_node *new_root =
-         _util_sparse_array_alloc_node(arr, root_level);
-      root = _util_sparse_array_set_or_free_node(&arr->root, NULL, new_root);
+      uintptr_t new_root = _util_sparse_array_node_alloc(arr, root_level);
+      root = _util_sparse_array_set_or_free_node(&arr->root,
+                                                 NULL_NODE, new_root);
    }
 
    while (1) {
-      uint64_t root_idx = idx >> (root->level * arr->node_size_log2);
-      if (likely(root_idx < (1ull << arr->node_size_log2)))
+      unsigned root_level = _util_sparse_array_node_level(root);
+      uint64_t root_idx = idx >> (root_level * node_size_log2);
+      if (likely(root_idx < (1ull << node_size_log2)))
          break;
 
       /* In this case, we have a root but its level is low enough that the
        * requested index is out-of-bounds.
        */
-      struct util_sparse_array_node *new_root =
-         _util_sparse_array_alloc_node(arr, root->level + 1);
+      uintptr_t new_root = _util_sparse_array_node_alloc(arr, root_level + 1);
 
-      struct util_sparse_array_node **new_root_children =
-         _util_sparse_array_node_data(new_root);
+      uintptr_t *new_root_children = _util_sparse_array_node_data(new_root);
       new_root_children[0] = root;
 
       /* We only add one at a time instead of the whole tree because it's
@@ -145,43 +168,40 @@ util_sparse_array_get(struct util_sparse_array *arr, uint64_t idx)
       root = _util_sparse_array_set_or_free_node(&arr->root, root, new_root);
    }
 
-   struct util_sparse_array_node *node = root;
-   while (node->level > 0) {
-      uint64_t child_idx = (idx >> (node->level * arr->node_size_log2)) &
-                           ((1ull << arr->node_size_log2) - 1);
+   void *node_data = _util_sparse_array_node_data(root);
+   unsigned node_level = _util_sparse_array_node_level(root);
+   while (node_level > 0) {
+      uint64_t child_idx = (idx >> (node_level * node_size_log2)) &
+                           ((1ull << node_size_log2) - 1);
 
-      struct util_sparse_array_node **children =
-         _util_sparse_array_node_data(node);
-      struct util_sparse_array_node *child =
-         p_atomic_read(&children[child_idx]);
+      uintptr_t *children = node_data;
+      uintptr_t child = p_atomic_read(&children[child_idx]);
 
-      if (unlikely(child == NULL)) {
-         child = _util_sparse_array_alloc_node(arr, node->level - 1);
+      if (unlikely(!child)) {
+         child = _util_sparse_array_node_alloc(arr, node_level - 1);
          child = _util_sparse_array_set_or_free_node(&children[child_idx],
-                                                     NULL, child);
+                                                     NULL_NODE, child);
       }
 
-      node = child;
+      node_data = _util_sparse_array_node_data(child);
+      node_level = _util_sparse_array_node_level(child);
    }
 
-   uint64_t elem_idx = idx & ((1ull << arr->node_size_log2) - 1);
-   return (void *)((char *)_util_sparse_array_node_data(node) +
-                   (elem_idx * arr->elem_size));
+   uint64_t elem_idx = idx & ((1ull << node_size_log2) - 1);
+   return (void *)((char *)node_data + (elem_idx * arr->elem_size));
 }
 
 static void
 validate_node_level(struct util_sparse_array *arr,
-                    struct util_sparse_array_node *node,
-                    unsigned level)
+                    uintptr_t node, unsigned level)
 {
-   assert(node->level == level);
+   assert(_util_sparse_array_node_level(node) == level);
 
-   if (node->level > 0) {
-      struct util_sparse_array_node **children =
-         _util_sparse_array_node_data(node);
+   if (_util_sparse_array_node_level(node) > 0) {
+      uintptr_t *children = _util_sparse_array_node_data(node);
       size_t node_size = 1ull << arr->node_size_log2;
       for (size_t i = 0; i < node_size; i++) {
-         if (children[i] != NULL)
+         if (children[i])
             validate_node_level(arr, children[i], level - 1);
       }
    }
@@ -190,7 +210,8 @@ validate_node_level(struct util_sparse_array *arr,
 void
 util_sparse_array_validate(struct util_sparse_array *arr)
 {
-   validate_node_level(arr, arr->root, arr->root->level);
+   uintptr_t root = p_atomic_read(&arr->root);
+   validate_node_level(arr, root, _util_sparse_array_node_level(root));
 }
 
 void

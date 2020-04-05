@@ -101,7 +101,12 @@ libvulkan_freedreno = shared_library(
   'vulkan_freedreno',
   [libtu_files, tu_entrypoints, tu_extensions_c, freedreno_xml_header_files],
   include_directories : [
-    inc_common,
+    inc_include,
+    inc_src,
+    inc_mapi,
+    inc_mesa,
+    inc_gallium,
+    inc_gallium_aux,
     inc_compiler,
     inc_vulkan_wsi,
     inc_freedreno,

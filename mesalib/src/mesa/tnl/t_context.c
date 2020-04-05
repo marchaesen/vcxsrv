@@ -27,7 +27,7 @@
 
 
 #include "main/glheader.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/context.h"
 #include "main/macros.h"
 #include "main/mtypes.h"

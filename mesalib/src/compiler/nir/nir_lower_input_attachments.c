@@ -131,7 +131,6 @@ try_lower_input_texop(nir_function_impl *impl, nir_tex_instr *tex,
 							 bool use_fragcoord_sysval)
 {
    nir_deref_instr *deref = nir_src_as_deref(tex->src[0].src);
-   assert(glsl_type_is_image(deref->type));
 
    if (glsl_get_sampler_dim(deref->type) != GLSL_SAMPLER_DIM_SUBPASS_MS)
       return false;

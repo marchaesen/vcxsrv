@@ -1,0 +1,6 @@
+fossils-db:
+  repo: "https://gitlab.freedesktop.org/hakzsam/fossils-db"
+  commit: "59b11cd19e375c5871c512f73b1f8ecc33a5c417"
+
+fossils:
+  - path: sascha-willems/database.foz

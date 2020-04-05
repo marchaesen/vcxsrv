@@ -756,7 +756,6 @@ drmmode_crtc_set_mode(xf86CrtcPtr crtc, Bool test_only)
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(crtc->scrn);
     drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
     drmmode_ptr drmmode = drmmode_crtc->drmmode;
-    ScreenPtr screen = crtc->scrn->pScreen;
     drmModeModeInfo kmode;
     int output_count = 0;
     uint32_t *output_ids = NULL;
@@ -770,7 +769,7 @@ drmmode_crtc_set_mode(xf86CrtcPtr crtc, Bool test_only)
 #ifdef GLAMOR_HAS_GBM
     /* Make sure any pending drawing will be visible in a new scanout buffer */
     if (drmmode->glamor)
-        glamor_finish(screen);
+        glamor_finish(crtc->scrn->pScreen);
 #endif
 
     if (ms->atomic_modeset) {
@@ -1023,10 +1022,20 @@ drmmode_create_bo(drmmode_ptr drmmode, drmmode_bo *bo,
 #endif
         uint32_t format;
 
-        if (drmmode->scrn->depth == 30)
+        switch (drmmode->scrn->depth) {
+        case 15:
+            format = GBM_FORMAT_ARGB1555;
+            break;
+        case 16:
+            format = GBM_FORMAT_RGB565;
+            break;
+        case 30:
             format = GBM_FORMAT_ARGB2101010;
-        else
+            break;
+        default:
             format = GBM_FORMAT_ARGB8888;
+            break;
+        }
 
 #ifdef GBM_BO_WITH_MODIFIERS
         num_modifiers = get_modifiers_set(drmmode->scrn, format, &modifiers,
@@ -3697,7 +3706,7 @@ drmmode_handle_uevents(int fd, void *closure)
         goto out;
 
     if (mode_res->count_crtcs != config->num_crtc) {
-        ErrorF("number of CRTCs changed - failed to handle, %d vs %d\n", mode_res->count_crtcs, config->num_crtc);
+        /* this triggers with Zaphod mode where we don't currently support connector hotplug or MST. */
         goto out_free_res;
     }
 
@@ -3746,15 +3755,16 @@ drmmode_handle_uevents(int fd, void *closure)
         drmmode_output_init(scrn, drmmode, mode_res, i, TRUE, 0);
     }
 
-    /* Check to see if a lessee has disappeared */
-    drmmode_validate_leases(scrn);
-
     if (changed) {
         RRSetChanged(xf86ScrnToScreen(scrn));
         RRTellChanged(xf86ScrnToScreen(scrn));
     }
 
 out_free_res:
+
+    /* Check to see if a lessee has disappeared */
+    drmmode_validate_leases(scrn);
+
     drmModeFreeResources(mode_res);
 out:
     RRGetInfo(xf86ScrnToScreen(scrn), TRUE);

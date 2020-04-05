@@ -59,7 +59,11 @@
 
 /* You can lower the BignumInt size by defining BIGNUM_OVERRIDE on the
  * command line to be your chosen max value of BIGNUM_INT_BITS_BITS */
-#define BB_OK(b) (!defined BIGNUM_OVERRIDE || BIGNUM_OVERRIDE >= b)
+#if defined BIGNUM_OVERRIDE
+#define BB_OK(b) ((b) <= BIGNUM_OVERRIDE)
+#else
+#define BB_OK(b) (1)
+#endif
 
 #if defined __SIZEOF_INT128__ && BB_OK(6)
 
@@ -315,3 +319,6 @@ struct MontyContext {
      */
     mp_int *scratch;
 };
+
+/* Functions shared between mpint.c and mpunsafe.c */
+mp_int *mp_make_sized(size_t nw);

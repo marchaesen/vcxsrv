@@ -72,8 +72,17 @@ combine_clip_cull(nir_shader *nir,
          cull = var;
    }
 
-   if (!cull && !clip)
+   if (!cull && !clip) {
+      /* If this is run after optimizations and the variables have been
+       * eliminated, we should update the shader info, because no other
+       * place does that.
+       */
+      if (store_info) {
+         nir->info.clip_distance_array_size = 0;
+         nir->info.cull_distance_array_size = 0;
+      }
       return false;
+   }
 
    if (!cull && clip) {
       /* The GLSL IR lowering pass must have converted these to vectors */

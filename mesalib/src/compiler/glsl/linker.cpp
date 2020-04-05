@@ -86,7 +86,7 @@
 #include "util/u_string.h"
 #include "util/u_math.h"
 
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/shaderobj.h"
 #include "main/enums.h"
 #include "main/mtypes.h"
@@ -260,6 +260,8 @@ public:
 
 class array_resize_visitor : public deref_type_updater {
 public:
+   using deref_type_updater::visit;
+
    unsigned num_vertices;
    gl_shader_program *prog;
    gl_shader_stage stage;
@@ -1506,6 +1508,8 @@ move_non_declarations(exec_list *instructions, exec_node *last,
  */
 class array_sizing_visitor : public deref_type_updater {
 public:
+   using deref_type_updater::visit;
+
    array_sizing_visitor()
       : mem_ctx(ralloc_context(NULL)),
         unnamed_interfaces(_mesa_pointer_hash_table_create(NULL))
@@ -4036,8 +4040,10 @@ build_program_resource_list(struct gl_context *ctx,
          return;
    }
 
-   if (add_packed_varyings_only)
+   if (add_packed_varyings_only) {
+      _mesa_set_destroy(resource_set, NULL);
       return;
+   }
 
    if (!add_fragdata_arrays(ctx, shProg, resource_set))
       return;

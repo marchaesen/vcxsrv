@@ -270,23 +270,8 @@ debug_symbol_print(const void *addr)
    debug_printf("\t%s\n", buf);
 }
 
-struct util_hash_table* symbols_hash;
+struct hash_table* symbols_hash;
 static mtx_t symbols_mutex = _MTX_INITIALIZER_NP;
-
-static unsigned hash_ptr(void* p)
-{
-   return (unsigned)(uintptr_t)p;
-}
-
-static int compare_ptr(void* a, void* b)
-{
-   if(a == b)
-      return 0;
-   else if(a < b)
-      return -1;
-   else
-      return 1;
-}
 
 const char*
 debug_symbol_name_cached(const void *addr)
@@ -303,7 +288,7 @@ debug_symbol_name_cached(const void *addr)
 
    mtx_lock(&symbols_mutex);
    if(!symbols_hash)
-      symbols_hash = util_hash_table_create(hash_ptr, compare_ptr);
+      symbols_hash = util_hash_table_create_ptr_keys();
    name = util_hash_table_get(symbols_hash, (void*)addr);
    if(!name)
    {
@@ -311,7 +296,7 @@ debug_symbol_name_cached(const void *addr)
       debug_symbol_name(addr, buf, sizeof(buf));
       name = strdup(buf);
 
-      util_hash_table_set(symbols_hash, (void*)addr, (void*)name);
+      _mesa_hash_table_insert(symbols_hash, (void*)addr, (void*)name);
    }
    mtx_unlock(&symbols_mutex);
    return name;

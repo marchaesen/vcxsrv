@@ -11,9 +11,9 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value name="CACHE_FLUSH_TS" value="4"/>
 	<value name="CONTEXT_DONE" value="5"/>
 	<value name="CACHE_FLUSH" value="6"/>
-	<value name="HLSQ_FLUSH" value="7"/> <!-- on a3xx -->
-	<value name="VIZQUERY_START" value="7"/> <!-- on a2xx (??) -->
-	<value name="VIZQUERY_END" value="8"/>
+	<value name="VIZQUERY_START" value="7" variants="A2XX"/>
+	<value name="HLSQ_FLUSH" value="7" variants="A3XX,A4XX"/>
+	<value name="VIZQUERY_END" value="8" variants="A2XX"/>
 	<value name="SC_WAIT_WC" value="9"/>
 	<value name="WRITE_PRIMITIVE_COUNTS" value="9" variants="A6XX"/>
 	<value name="START_PRIMITIVE_CTRS" value="11" variants="A6XX"/>
@@ -24,21 +24,24 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value name="STAT_EVENT" value="16"/>
 	<value name="CACHE_FLUSH_AND_INV_TS_EVENT" value="20" variants="A2XX,A3XX,A4XX"/>
 	<value name="ZPASS_DONE" value="21"/>
-	<value name="CACHE_FLUSH_AND_INV_EVENT" value="22"/>
+	<value name="CACHE_FLUSH_AND_INV_EVENT" value="22" variants="A2XX"/>
+	<value name="RB_DONE_TS" value="22" variants="A3XX-"/>
 	<value name="PERFCOUNTER_START" value="23" variants="A2XX,A3XX,A4XX"/>
 	<value name="PERFCOUNTER_STOP" value="24" variants="A2XX,A3XX,A4XX"/>
 	<value name="VS_FETCH_DONE" value="27"/>
 	<value name="FACENESS_FLUSH" value="28" variants="A2XX,A3XX,A4XX"/>
 
 	<!-- a5xx events -->
+	<value name="WT_DONE_TS" value="8" variants="A5XX,A6XX"/>
 	<value name="FLUSH_SO_0" value="17" variants="A5XX,A6XX"/>
 	<value name="FLUSH_SO_1" value="18" variants="A5XX,A6XX"/>
 	<value name="FLUSH_SO_2" value="19" variants="A5XX,A6XX"/>
 	<value name="FLUSH_SO_3" value="20" variants="A5XX,A6XX"/>
 	<value name="PC_CCU_INVALIDATE_DEPTH" value="24" variants="A5XX,A6XX"/>
 	<value name="PC_CCU_INVALIDATE_COLOR" value="25" variants="A5XX,A6XX"/>
-	<value name="UNK_1C" value="28" variants="A5XX,A6XX"/>
-	<value name="UNK_1D" value="29" variants="A5XX,A6XX"/>
+	<value name="PC_CCU_RESOLVE_TS" value="26" variants="A6XX"/>
+	<value name="PC_CCU_FLUSH_DEPTH_TS" value="28" variants="A5XX,A6XX"/>
+	<value name="PC_CCU_FLUSH_COLOR_TS" value="29" variants="A5XX,A6XX"/>
 	<value name="BLIT" value="30" variants="A5XX,A6XX"/>
 	<value name="UNK_25" value="37" variants="A5XX"/>
 	<value name="LRZ_FLUSH" value="38" variants="A5XX,A6XX"/>
@@ -833,7 +836,7 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 		<bitfield name="BIN_DATA_ADDR2_LO" low="0" high="31"/>
 	</reg32>
 	<reg32 offset="6" name="6">
-		<bitfield name="BIN_DATA_ADDR2_LO" low="0" high="31"/>
+		<bitfield name="BIN_DATA_ADDR2_HI" low="0" high="31"/>
 	</reg32>
 </domain>
 
@@ -1384,10 +1387,11 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 		<value value="1" name="RM6_BYPASS"/>
 		<value value="2" name="RM6_BINNING"/>
 		<value value="4" name="RM6_GMEM"/>
-		<value value="5" name="RM6_BLIT2D"/>
+		<value value="5" name="RM6_ENDVIS"/>
 		<value value="6" name="RM6_RESOLVE"/>
 		<value value="7" name="RM6_YIELD"/>
-		<value value="0xc" name="RM6_BLIT2DSCALE"/>
+		<value value="8" name="RM6_COMPUTE"/>
+		<value value="0xc" name="RM6_BLIT2DSCALE"/>  <!-- no-op (at least on current sqe fw) -->
 
 		<!--
 			These values come from a6xx_set_marker() in the
@@ -1400,8 +1404,18 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 		<value value="0x101" name="RM6_IFPC_DISABLE"/>
 	</enum>
 	<reg32 offset="0" name="0">
-		<bitfield name="MARKER" low="0" high="3"/>
+		<!--
+			NOTE: blob driver and some versions of freedreno/turnip set
+			b4, which is unused (at least by current sqe fw), but interferes
+			with parsing if we extend the size of the bitfield to include
+			b8 (only sent by kernel mode driver).  Really, the way the
+			parsing works in the firmware, only b0-b3 are considered, but
+			if b8 is set, the low bits are interpreted differently.  To
+			model this, without getting confused by spurious b4, this is
+			described as two overlapping bitfields:
+		 -->
 		<bitfield name="MODE" low="0" high="8" type="a6xx_render_mode"/>
+		<bitfield name="MARKER" low="0" high="3" type="a6xx_render_mode"/>
 	</reg32>
 </domain>
 
@@ -1473,11 +1487,11 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 		-->
 
 		<!-- RM6_BINNING -->
-		<bitfield name="BINNING" pos="20" variants="A6XX-" type="boolean"/>
+		<bitfield name="BINNING" pos="25" variants="A6XX-" type="boolean"/>
 		<!-- all others -->
-		<bitfield name="GMEM" pos="21" variants="A6XX-" type="boolean"/>
+		<bitfield name="GMEM" pos="26" variants="A6XX-" type="boolean"/>
 		<!-- RM6_BYPASS -->
-		<bitfield name="SYSMEM" pos="22" variants="A6XX-" type="boolean"/>
+		<bitfield name="SYSMEM" pos="27" variants="A6XX-" type="boolean"/>
 
 		<bitfield name="MODE" low="28" high="31" type="compare_mode"/>
 	</reg32>
@@ -1510,7 +1524,7 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 	<reg32 offset="4" name="4">
 		<bitfield name="REF" low="0" high="31"/>
 	</reg32>
-	<reg32 offset="1" name="1">
+	<reg32 offset="5" name="5">
 		<bitfield name="DWORDS" low="0" high="31" type="uint"/>
 	</reg32>
 </domain>
@@ -1561,6 +1575,38 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 	<reg32 offset="2" name="2">
 		<bitfield name="DWORDS" low="0" high="19" type="uint"/>
 		<bitfield name="TYPE" low="20" high="21" type="ctxswitch_ib"/>
+	</reg32>
+</domain>
+
+<domain name="CP_REG_WRITE" width="32">
+	<enum name="reg_tracker">
+		<doc>
+			Keep shadow copies of these registers and only set them
+			when drawing, avoiding redundant writes:
+			- VPC_CNTL_0
+			- HLSQ_CONTROL_1_REG
+			- HLSQ_UNKNOWN_B980
+		</doc>
+		<value name="TRACK_CNTL_REG" value="0x1"/>
+		<doc>
+			Track RB_RENDER_CNTL, and insert a WFI in the following
+			situation:
+			- There is a write that disables binning
+			- There was a draw with binning left enabled, but in
+			  BYPASS mode
+			Presumably this is a hang workaround?
+		</doc>
+		<value name="TRACK_RENDER_CNTL" value="0x2"/>
+		<doc>
+			Do a mysterious CP_EVENT_WRITE 0x3f when the low bit of
+			the data to write is 0. Used by the Vulkan blob with
+			PC_UNKNOWN_9B07, but this isn't predicated on particular
+			register(s) like the others.
+		</doc>
+		<value name="UNK_EVENT_WRITE" value="0x4"/>
+	</enum>
+	<reg32 offset="0" name="0">
+		<bitfield name="TRACKER" low="0" high="2" type="reg_tracker"/>
 	</reg32>
 </domain>
 

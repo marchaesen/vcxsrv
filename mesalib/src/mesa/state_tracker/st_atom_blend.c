@@ -223,7 +223,7 @@ st_update_blend( struct st_context *st )
              !blend->rt[i].colormask)
             continue;
 
-	 if (ctx->Extensions.ARB_draw_buffers_blend)
+         if (ctx->Extensions.ARB_draw_buffers_blend)
             j = i;
 
          blend->rt[i].blend_enable = 1;

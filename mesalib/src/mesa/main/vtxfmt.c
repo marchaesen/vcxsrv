@@ -28,7 +28,7 @@
 #include "glheader.h"
 #include "api_arrayelt.h"
 #include "context.h"
-#include "imports.h"
+#include "util/imports.h"
 #include "mtypes.h"
 #include "vtxfmt.h"
 #include "eval.h"
@@ -111,7 +111,7 @@ install_vtxfmt(struct gl_context *ctx, struct _glapi_table *tab,
       SET_PrimitiveRestartNV(tab, vfmt->PrimitiveRestartNV);
    }
 
-   /* Originally for GL_NV_vertex_program, this is also used by dlist.c */
+   /* Originally for GL_NV_vertex_program, this is now only used by dlist.c */
    if (ctx->API == API_OPENGL_COMPAT) {
       SET_VertexAttrib1fNV(tab, vfmt->VertexAttrib1fNV);
       SET_VertexAttrib1fvNV(tab, vfmt->VertexAttrib1fvNV);

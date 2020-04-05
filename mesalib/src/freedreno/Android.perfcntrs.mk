@@ -31,13 +31,13 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES := \
 	$(perfcntrs_SOURCES)
 
-LOCAL_C_INCLUDES :=
+LOCAL_C_INCLUDES := \
+	$(MESA_TOP)/src/gallium/include \
+	$(MESA_TOP)/src/gallium/auxiliary
 
 LOCAL_MODULE := libfreedreno_perfcntrs
 
-LOCAL_GENERATED_SOURCES := \
-	$(MESA_GEN_GLSL_H) \
-	$(MESA_GEN_NIR_H)
+LOCAL_STATIC_LIBRARIES := libfreedreno_registers
 
 include $(MESA_COMMON_MK)
 include $(BUILD_STATIC_LIBRARY)

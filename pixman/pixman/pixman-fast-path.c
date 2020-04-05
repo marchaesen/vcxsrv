@@ -2800,7 +2800,7 @@ bits_image_fetch_separable_convolution_affine (pixman_image_t * image,
 			    repeat (repeat_mode, &rx, bits->width);
 			    repeat (repeat_mode, &ry, bits->height);
 
-			    row = (uint8_t *)bits->bits + bits->rowstride * 4 * ry;
+			    row = (uint8_t *)(bits->bits + bits->rowstride * ry);
 			    pixel = convert_pixel (row, rx) | mask;
 			}
 			else
@@ -2811,7 +2811,7 @@ bits_image_fetch_separable_convolution_affine (pixman_image_t * image,
 			    }
 			    else
 			    {
-				row = (uint8_t *)bits->bits + bits->rowstride * 4 * ry;
+				row = (uint8_t *)(bits->bits + bits->rowstride * ry);
 				pixel = convert_pixel (row, rx) | mask;
 			    }
 			}
@@ -2913,8 +2913,8 @@ bits_image_fetch_bilinear_affine (pixman_image_t * image,
 	    repeat (repeat_mode, &x2, width);
 	    repeat (repeat_mode, &y2, height);
 
-	    row1 = (uint8_t *)bits->bits + bits->rowstride * 4 * y1;
-	    row2 = (uint8_t *)bits->bits + bits->rowstride * 4 * y2;
+	    row1 = (uint8_t *)(bits->bits + bits->rowstride * y1);
+	    row2 = (uint8_t *)(bits->bits + bits->rowstride * y2);
 
 	    tl = convert_pixel (row1, x1) | mask;
 	    tr = convert_pixel (row1, x2) | mask;
@@ -2949,7 +2949,7 @@ bits_image_fetch_bilinear_affine (pixman_image_t * image,
 	    }
 	    else
 	    {
-		row1 = (uint8_t *)bits->bits + bits->rowstride * 4 * y1;
+		row1 = (uint8_t *)(bits->bits + bits->rowstride * y1);
 		row1 += bpp / 8 * x1;
 
 		mask1 = PIXMAN_FORMAT_A (format)? 0 : 0xff000000;
@@ -2962,7 +2962,7 @@ bits_image_fetch_bilinear_affine (pixman_image_t * image,
 	    }
 	    else
 	    {
-		row2 = (uint8_t *)bits->bits + bits->rowstride * 4 * y2;
+		row2 = (uint8_t *)(bits->bits + bits->rowstride * y2);
 		row2 += bpp / 8 * x1;
 
 		mask2 = PIXMAN_FORMAT_A (format)? 0 : 0xff000000;
@@ -3060,7 +3060,7 @@ bits_image_fetch_nearest_affine (pixman_image_t * image,
 		repeat (repeat_mode, &y0, height);
 	    }
 
-	    row = (uint8_t *)bits->bits + bits->rowstride * 4 * y0;
+	    row = (uint8_t *)(bits->bits + bits->rowstride * y0);
 
 	    buffer[i] = convert_pixel (row, x0) | mask;
 	}

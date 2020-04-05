@@ -28,8 +28,13 @@
 
 #include "util/u_math.h"
 #include "util/macros.h"
+#include "util/hash_table.h"
+#include "util/u_thread.h"
 #include "drm-uapi/panfrost_drm.h"
 #include "pan_encoder.h"
+#include "pan_device.h"
+#include "panfrost-quirks.h"
+#include "pan_bo.h"
 
 /* Abstraction over the raw drm_panfrost_get_param ioctl for fetching
  * information about devices */
@@ -44,7 +49,7 @@ panfrost_query_raw(
         struct drm_panfrost_get_param get_param = {0,};
         ASSERTED int ret;
 
-        get_param.param = DRM_PANFROST_PARAM_GPU_PROD_ID;
+        get_param.param = param;
         ret = drmIoctl(fd, DRM_IOCTL_PANFROST_GET_PARAM, &get_param);
 
         if (ret) {
@@ -75,11 +80,17 @@ panfrost_query_core_count(int fd)
 unsigned
 panfrost_query_thread_tls_alloc(int fd)
 {
-        /* On older kernels, we worst-case to 1024 threads, the architectural
-         * maximum for Midgard */
+        /* On older kernels, we worst-case to 256 threads, the architectural
+         * maximum for Midgard. On my current kernel/hardware, I'm seeing this
+         * readback as 0, so we'll worst-case there too */
 
-        return panfrost_query_raw(fd,
-                        DRM_PANFROST_PARAM_THREAD_TLS_ALLOC, false, 1024);
+        unsigned tls = panfrost_query_raw(fd,
+                        DRM_PANFROST_PARAM_THREAD_TLS_ALLOC, false, 256);
+
+        if (tls)
+                return tls;
+        else
+                return 256;
 }
 
 /* Given a GPU ID like 0x860, return a prettified model name */
@@ -99,4 +110,52 @@ panfrost_model_name(unsigned gpu_id)
         default:
                     unreachable("Invalid GPU ID");
         }
+}
+
+static uint32_t
+panfrost_active_bos_hash(const void *key)
+{
+        const struct panfrost_bo *bo = key;
+
+        return _mesa_hash_data(&bo->gem_handle, sizeof(bo->gem_handle));
+}
+
+static bool
+panfrost_active_bos_cmp(const void *keya, const void *keyb)
+{
+        const struct panfrost_bo *a = keya, *b = keyb;
+
+        return a->gem_handle == b->gem_handle;
+}
+
+void
+panfrost_open_device(void *memctx, int fd, struct panfrost_device *dev)
+{
+        dev->fd = fd;
+        dev->memctx = memctx;
+        dev->gpu_id = panfrost_query_gpu_version(fd);
+        dev->core_count = panfrost_query_core_count(fd);
+        dev->thread_tls_alloc = panfrost_query_thread_tls_alloc(fd);
+        dev->kernel_version = drmGetVersion(fd);
+        dev->quirks = panfrost_get_quirks(dev->gpu_id);
+
+        pthread_mutex_init(&dev->active_bos_lock, NULL);
+        dev->active_bos = _mesa_set_create(memctx,
+                        panfrost_active_bos_hash, panfrost_active_bos_cmp);
+
+        pthread_mutex_init(&dev->bo_cache.lock, NULL);
+        list_inithead(&dev->bo_cache.lru);
+
+        for (unsigned i = 0; i < ARRAY_SIZE(dev->bo_cache.buckets); ++i)
+                list_inithead(&dev->bo_cache.buckets[i]);
+}
+
+void
+panfrost_close_device(struct panfrost_device *dev)
+{
+        panfrost_bo_cache_evict_all(dev);
+        pthread_mutex_destroy(&dev->bo_cache.lock);
+        pthread_mutex_destroy(&dev->active_bos_lock);
+        drmFreeVersion(dev->kernel_version);
+
 }

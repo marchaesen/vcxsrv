@@ -78,6 +78,7 @@ v3d_ioctl_get_bo_offset(int fd, unsigned long request, void *arg)
 void
 drm_shim_driver_init(void)
 {
+        shim_device.bus_type = DRM_BUS_PLATFORM;
         shim_device.driver_name = "v3d";
 
         drm_shim_override_file("OF_FULLNAME=/rdb/v3d\n"

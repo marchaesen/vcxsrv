@@ -2466,12 +2466,19 @@ FcConfigRealFilename (FcConfig		*config,
     {
 	FcChar8 buf[FC_PATH_MAX];
 	ssize_t len;
+	struct stat sb;
 
 	if ((len = FcReadLink (n, buf, sizeof (buf) - 1)) != -1)
 	{
 	    buf[len] = 0;
 
-	    if (!FcStrIsAbsoluteFilename (buf))
+	    /* We try to pick up a config from FONTCONFIG_FILE
+	     * when url is null. don't try to address the real filename
+	     * if it is a named pipe.
+	     */
+	    if (!url && FcStat (n, &sb) == 0 && S_ISFIFO (sb.st_mode))
+		return n;
+	    else if (!FcStrIsAbsoluteFilename (buf))
 	    {
 		FcChar8 *dirname = FcStrDirname (n);
 		FcStrFree (n);

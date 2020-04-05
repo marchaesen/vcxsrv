@@ -43,7 +43,7 @@
 #include "glheader.h"
 #include "hash.h"
 #include "image.h"
-#include "imports.h"
+#include "util/imports.h"
 #include "context.h"
 #include "bufferobj.h"
 #include "arrayobj.h"
@@ -611,9 +611,12 @@ _mesa_update_vao_derived_arrays(struct gl_context *ctx,
    const GLbitfield enabled = vao->Enabled;
    /* VBO array bits. */
    const GLbitfield vbos = vao->VertexAttribBufferMask;
+   const GLbitfield divisor_is_nonzero = vao->NonZeroDivisorMask;
 
    /* Compute and store effectively enabled and mapped vbo arrays */
    vao->_EffEnabledVBO = _mesa_vao_enable_to_vp_inputs(mode, enabled & vbos);
+   vao->_EffEnabledNonZeroDivisor =
+      _mesa_vao_enable_to_vp_inputs(mode, enabled & divisor_is_nonzero);
    /* Walk those enabled arrays that have a real vbo attached */
    GLbitfield mask = enabled;
    while (mask) {

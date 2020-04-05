@@ -43,6 +43,21 @@ void BinarySource_get_rsa_ssh1_priv(
     rsa->private_exponent = get_mp_ssh1(src);
 }
 
+key_components *rsa_components(RSAKey *rsa)
+{
+    key_components *kc = key_components_new();
+    key_components_add_text(kc, "key_type", "RSA");
+    key_components_add_mp(kc, "public_modulus", rsa->modulus);
+    key_components_add_mp(kc, "public_exponent", rsa->exponent);
+    if (rsa->private_exponent) {
+        key_components_add_mp(kc, "private_exponent", rsa->private_exponent);
+        key_components_add_mp(kc, "private_p", rsa->p);
+        key_components_add_mp(kc, "private_q", rsa->q);
+        key_components_add_mp(kc, "private_inverse_q_mod_p", rsa->iqmp);
+    }
+    return kc;
+}
+
 RSAKey *BinarySource_get_rsa_ssh1_priv_agent(BinarySource *src)
 {
     RSAKey *rsa = snew(RSAKey);
@@ -128,8 +143,8 @@ bool rsa_ssh1_encrypt(unsigned char *data, int length, RSAKey *key)
  * Uses Chinese Remainder Theorem to speed computation up over the
  * obvious implementation of a single big modpow.
  */
-mp_int *crt_modpow(mp_int *base, mp_int *exp, mp_int *mod,
-                      mp_int *p, mp_int *q, mp_int *iqmp)
+static mp_int *crt_modpow(mp_int *base, mp_int *exp, mp_int *mod,
+                          mp_int *p, mp_int *q, mp_int *iqmp)
 {
     mp_int *pm1, *qm1, *pexp, *qexp, *presult, *qresult;
     mp_int *diff, *multiplier, *ret0, *ret;
@@ -296,7 +311,7 @@ char *rsa_ssh1_fingerprint(RSAKey *key)
     ssh_hash_final(hash, digest);
 
     out = strbuf_new();
-    strbuf_catf(out, "%d ", mp_get_nbits(key->modulus));
+    strbuf_catf(out, "%"SIZEu" ", mp_get_nbits(key->modulus));
     for (i = 0; i < 16; i++)
         strbuf_catf(out, "%s%02x", i ? ":" : "", digest[i]);
     if (key->comment)
@@ -482,6 +497,12 @@ static char *rsa2_cache_str(ssh_key *key)
 {
     RSAKey *rsa = container_of(key, RSAKey, sshk);
     return rsastr_fmt(rsa);
+}
+
+static key_components *rsa2_components(ssh_key *key)
+{
+    RSAKey *rsa = container_of(key, RSAKey, sshk);
+    return rsa_components(rsa);
 }
 
 static void rsa2_public_blob(ssh_key *key, BinarySink *bs)
@@ -780,7 +801,7 @@ static void rsa2_sign(ssh_key *key, ptrlen data,
     mp_free(out);
 }
 
-char *rsa2_invalid(ssh_key *key, unsigned flags)
+static char *rsa2_invalid(ssh_key *key, unsigned flags)
 {
     RSAKey *rsa = container_of(key, RSAKey, sshk);
     size_t bits = mp_get_nbits(rsa->modulus), nbytes = (bits + 7) / 8;
@@ -788,7 +809,7 @@ char *rsa2_invalid(ssh_key *key, unsigned flags)
     const ssh_hashalg *halg = rsa2_hash_alg_for_flags(flags, &sign_alg_name);
     if (nbytes < rsa_pkcs1_length_of_fixed_parts(halg)) {
         return dupprintf(
-            "%zu-bit RSA key is too short to generate %s signatures",
+            "%"SIZEu"-bit RSA key is too short to generate %s signatures",
             bits, sign_alg_name);
     }
 
@@ -796,25 +817,22 @@ char *rsa2_invalid(ssh_key *key, unsigned flags)
 }
 
 const ssh_keyalg ssh_rsa = {
-    rsa2_new_pub,
-    rsa2_new_priv,
-    rsa2_new_priv_openssh,
-
-    rsa2_freekey,
-    rsa2_invalid,
-    rsa2_sign,
-    rsa2_verify,
-    rsa2_public_blob,
-    rsa2_private_blob,
-    rsa2_openssh_blob,
-    rsa2_cache_str,
-
-    rsa2_pubkey_bits,
-
-    "ssh-rsa",
-    "rsa2",
-    NULL,
-    SSH_AGENT_RSA_SHA2_256 | SSH_AGENT_RSA_SHA2_512,
+    .new_pub = rsa2_new_pub,
+    .new_priv = rsa2_new_priv,
+    .new_priv_openssh = rsa2_new_priv_openssh,
+    .freekey = rsa2_freekey,
+    .invalid = rsa2_invalid,
+    .sign = rsa2_sign,
+    .verify = rsa2_verify,
+    .public_blob = rsa2_public_blob,
+    .private_blob = rsa2_private_blob,
+    .openssh_blob = rsa2_openssh_blob,
+    .cache_str = rsa2_cache_str,
+    .components = rsa2_components,
+    .pubkey_bits = rsa2_pubkey_bits,
+    .ssh_id = "ssh-rsa",
+    .cache_id = "rsa2",
+    .supported_flags = SSH_AGENT_RSA_SHA2_256 | SSH_AGENT_RSA_SHA2_512,
 };
 
 RSAKey *ssh_rsakex_newkey(ptrlen data)

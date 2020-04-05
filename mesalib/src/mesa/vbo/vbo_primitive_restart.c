@@ -29,7 +29,7 @@
  */
 
 #include "main/errors.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/macros.h"
 #include "main/varray.h"
 
@@ -164,7 +164,9 @@ vbo_sw_primitive_restart(struct gl_context *ctx,
                          const struct _mesa_prim *prims,
                          GLuint nr_prims,
                          const struct _mesa_index_buffer *ib,
-                         struct gl_buffer_object *indirect)
+                         GLuint num_instances, GLuint base_instance,
+                         struct gl_buffer_object *indirect,
+                         GLsizeiptr indirect_offset)
 {
    GLuint prim_num;
    struct _mesa_prim new_prim;
@@ -175,13 +177,13 @@ vbo_sw_primitive_restart(struct gl_context *ctx,
    GLuint sub_prim_num;
    GLuint end_index;
    GLuint sub_end_index;
-   GLuint restart_index = _mesa_primitive_restart_index(ctx, ib->index_size);
+   GLuint restart_index = _mesa_primitive_restart_index(ctx, 1 << ib->index_size_shift);
    struct _mesa_prim temp_prim;
    GLboolean map_ib = ib->obj->Name && !ib->obj->Mappings[MAP_INTERNAL].Pointer;
    void *ptr;
 
    /* If there is an indirect buffer, map it and extract the draw params */
-   if (indirect && prims[0].is_indirect) {
+   if (indirect) {
       const uint32_t *indirect_params;
       if (!ctx->Driver.MapBufferRange(ctx, 0, indirect->Size, GL_MAP_READ_BIT,
                                       indirect, MAP_INTERNAL)) {
@@ -196,14 +198,14 @@ vbo_sw_primitive_restart(struct gl_context *ctx,
       new_prim = prims[0];
       indirect_params = (const uint32_t *)
                         ADD_POINTERS(indirect->Mappings[MAP_INTERNAL].Pointer,
-                                     new_prim.indirect_offset);
+                                     indirect_offset);
 
-      new_prim.is_indirect = 0;
       new_prim.count = indirect_params[0];
-      new_prim.num_instances = indirect_params[1];
       new_prim.start = indirect_params[2];
       new_prim.basevertex = indirect_params[3];
-      new_prim.base_instance = indirect_params[4];
+
+      num_instances = indirect_params[1];
+      base_instance = indirect_params[4];
 
       new_ib = *ib;
       new_ib.count = new_prim.count;
@@ -224,7 +226,7 @@ vbo_sw_primitive_restart(struct gl_context *ctx,
 
    ptr = ADD_POINTERS(ib->obj->Mappings[MAP_INTERNAL].Pointer, ib->ptr);
 
-   sub_prims = find_sub_primitives(ptr, ib->index_size,
+   sub_prims = find_sub_primitives(ptr, 1 << ib->index_size_shift,
                                    0, ib->count, restart_index,
                                    &num_sub_prims);
 
@@ -249,11 +251,13 @@ vbo_sw_primitive_restart(struct gl_context *ctx,
                 (temp_prim.count == sub_prim->count)) {
                ctx->Driver.Draw(ctx, &temp_prim, 1, ib, GL_TRUE,
                                 sub_prim->min_index, sub_prim->max_index,
-                                NULL, 0, NULL);
+                                num_instances, base_instance,
+                                NULL, 0);
             } else {
                ctx->Driver.Draw(ctx, &temp_prim, 1, ib,
                                 GL_FALSE, -1, -1,
-                                NULL, 0, NULL);
+                                num_instances, base_instance,
+                                NULL, 0);
             }
          }
          if (sub_end_index >= end_index) {

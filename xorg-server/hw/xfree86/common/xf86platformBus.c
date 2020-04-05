@@ -536,12 +536,20 @@ xf86platformProbeDev(DriverPtr drvp)
 
     /* find the main device or any device specificed in xorg.conf */
     for (i = 0; i < numDevs; i++) {
+        const char *devpath;
+
         /* skip inactive devices */
         if (!devList[i]->active)
             continue;
 
+        /* This is specific to modesetting. */
+        devpath = xf86FindOptionValue(devList[i]->options, "kmsdev");
+
         for (j = 0; j < xf86_num_platform_devices; j++) {
-            if (devList[i]->busID && *devList[i]->busID) {
+            if (devpath && *devpath) {
+                if (strcmp(xf86_platform_devices[j].attribs->path, devpath) == 0)
+                    break;
+            } else if (devList[i]->busID && *devList[i]->busID) {
                 if (xf86PlatformDeviceCheckBusID(&xf86_platform_devices[j], devList[i]->busID))
                     break;
             }

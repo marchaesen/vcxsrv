@@ -108,7 +108,9 @@ mir_create_pipeline_registers(compiler_context *ctx)
 {
         mir_invalidate_liveness(ctx);
 
-        mir_foreach_block(ctx, block) {
+        mir_foreach_block(ctx, _block) {
+                midgard_block *block = (midgard_block *) _block;
+
                 mir_foreach_bundle_in_block(block, bundle) {
                         if (!mir_is_alu_bundle(bundle)) continue;
                         if (bundle->instruction_count < 2) continue;

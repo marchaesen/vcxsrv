@@ -41,7 +41,7 @@ tu_copy_buffer(struct tu_cmd_buffer *cmd,
    tu_bo_list_add(&cmd->bo_list, src->bo, MSM_SUBMIT_BO_READ);
    tu_bo_list_add(&cmd->bo_list, dst->bo, MSM_SUBMIT_BO_WRITE);
 
-   tu_blit(cmd, &(struct tu_blit) {
+   tu_blit(cmd, &cmd->cs, &(struct tu_blit) {
       .dst = {
          .fmt = VK_FORMAT_R8_UNORM,
          .va = tu_buffer_iova(dst) + region->dstOffset,
@@ -97,7 +97,7 @@ tu_copy_buffer_to_image(struct tu_cmd_buffer *cmdbuf,
       return;
    }
 
-   tu_blit(cmdbuf, &(struct tu_blit) {
+   tu_blit(cmdbuf, &cmdbuf->cs, &(struct tu_blit) {
       .dst = tu_blit_surf_ext(dst_image, info->imageSubresource, info->imageOffset, info->imageExtent),
       .src = tu_blit_buffer(src_buffer, dst_image->vk_format, info),
       .layers = MAX2(info->imageExtent.depth, info->imageSubresource.layerCount),
@@ -111,7 +111,7 @@ tu_copy_image_to_buffer(struct tu_cmd_buffer *cmdbuf,
                         struct tu_buffer *dst_buffer,
                         const VkBufferImageCopy *info)
 {
-   tu_blit(cmdbuf, &(struct tu_blit) {
+   tu_blit(cmdbuf, &cmdbuf->cs, &(struct tu_blit) {
       .dst = tu_blit_buffer(dst_buffer, src_image->vk_format, info),
       .src = tu_blit_surf_ext(src_image, info->imageSubresource, info->imageOffset, info->imageExtent),
       .layers = MAX2(info->imageExtent.depth, info->imageSubresource.layerCount),
@@ -133,7 +133,7 @@ tu_copy_image_to_image(struct tu_cmd_buffer *cmdbuf,
       return;
    }
 
-   tu_blit(cmdbuf, &(struct tu_blit) {
+   tu_blit(cmdbuf, &cmdbuf->cs, &(struct tu_blit) {
       .dst = tu_blit_surf_ext(dst_image, info->dstSubresource, info->dstOffset, info->extent),
       .src = tu_blit_surf_ext(src_image, info->srcSubresource, info->srcOffset, info->extent),
       .layers = info->extent.depth,

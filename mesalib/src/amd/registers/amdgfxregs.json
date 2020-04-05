@@ -6260,6 +6260,89 @@
   },
   {
    "chips": ["gfx7", "fiji", "gfx9", "stoney", "gfx8"],
+   "map": {"at": 199872, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_BASE",
+   "type_ref": "SQ_THREAD_TRACE_BASE"
+  },
+  {
+   "chips": ["gfx7", "fiji", "gfx9", "stoney", "gfx8"],
+   "map": {"at": 199876, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_SIZE",
+   "type_ref": "SQ_THREAD_TRACE_SIZE"
+  },
+  {
+   "chips": ["gfx7", "fiji", "gfx9", "stoney", "gfx8"],
+   "map": {"at": 199880, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_MASK",
+   "type_ref": "SQ_THREAD_TRACE_MASK"
+  },
+  {
+   "chips": ["gfx7", "fiji", "gfx9", "stoney", "gfx8"],
+   "map": {"at": 199884, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_TOKEN_MASK",
+   "type_ref": "SQ_THREAD_TRACE_TOKEN_MASK"
+  },
+  {
+   "chips": ["gfx7", "fiji", "gfx9", "stoney", "gfx8"],
+   "map": {"at": 199888, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_PERF_MASK",
+   "type_ref": "SQ_THREAD_TRACE_PERF_MASK"
+  },
+  {
+   "chips": ["gfx7", "fiji", "gfx9", "stoney", "gfx8"],
+   "map": {"at": 199892, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_CTRL",
+   "type_ref": "SQ_THREAD_TRACE_CTRL"
+  },
+  {
+   "chips": ["gfx7", "fiji", "gfx9", "stoney", "gfx8"],
+   "map": {"at": 199896, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_MODE",
+   "type_ref": "SQ_THREAD_TRACE_MODE"
+  },
+  {
+   "chips": ["gfx7", "fiji", "gfx9", "stoney", "gfx8"],
+   "map": {"at": 199900, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_BASE2",
+   "type_ref": "SQ_THREAD_TRACE_BASE2"
+  },
+  {
+   "chips": ["gfx7", "fiji", "gfx9", "stoney", "gfx8"],
+   "map": {"at": 199904, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_TOKEN_MASK2",
+   "type_ref": "SQ_THREAD_TRACE_TOKEN_MASK2"
+  },
+  {
+   "chips": ["gfx7", "fiji", "gfx9", "stoney", "gfx8"],
+   "map": {"at": 199908, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_WPTR"
+  },
+  {
+   "chips": ["gfx7", "fiji", "gfx9", "stoney", "gfx8"],
+   "map": {"at": 199912, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_STATUS",
+   "type_ref": "SQ_THREAD_TRACE_STATUS"
+  },
+  {
+   "chips": ["gfx7", "fiji", "gfx9", "stoney", "gfx8"],
+   "map": {"at": 199916, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_HIWATER",
+   "type_ref": "SQ_THREAD_TRACE_HIWATER"
+  },
+  {
+   "chips": ["gfx7", "fiji", "stoney", "gfx8"],
+   "map": {"at": 36416, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_CNTR",
+   "type_ref": "SQ_THREAD_TRACE_CNTR"
+  },
+  {
+   "chips": ["gfx9"],
+   "map": {"at": 199920, "to": "mm"},
+   "name": "SQ_THREAD_TRACE_CNTR",
+   "type_ref": "SQ_THREAD_TRACE_CNTR"
+  },
+  {
+   "chips": ["gfx7", "fiji", "gfx9", "stoney", "gfx8"],
    "map": {"at": 199184, "to": "mm"},
    "name": "PA_SC_SCREEN_EXTENT_MIN_0",
    "type_ref": "PA_SC_SCREEN_EXTENT_MIN_0"
@@ -15106,6 +15189,95 @@
     {"bits": [0, 6], "name": "RET"},
     {"bits": [7, 9], "name": "RUI"},
     {"bits": [10, 20], "name": "RNG"}
+   ]
+  },
+  "SQ_THREAD_TRACE_BASE": {
+   "fields": [
+    {"bits": [0, 31], "name": "ADDR"}
+   ]
+  },
+  "SQ_THREAD_TRACE_SIZE": {
+   "fields": [
+    {"bits": [0, 21], "name": "SIZE"}
+   ]
+  },
+  "SQ_THREAD_TRACE_MASK": {
+   "fields": [
+    {"bits": [0, 4], "name": "CU_SEL"},
+    {"bits": [5, 5], "name": "SH_SEL"},
+    {"bits": [7, 7], "name": "REG_STALL_EN"},
+    {"bits": [8, 11], "name": "SIMD_EN"},
+    {"bits": [12, 13], "name": "VM_ID_MASK"},
+    {"bits": [14, 14], "name": "SPI_STALL_EN"},
+    {"bits": [15, 15], "name": "SQ_STALL_EN"},
+    {"bits": [16, 31], "comment": "not on GFX9", "name": "RANDOM_SEED"}
+   ]
+  },
+  "SQ_THREAD_TRACE_TOKEN_MASK": {
+   "fields": [
+    {"bits": [0, 15], "name": "TOKEN_MASK"},
+    {"bits": [16, 23], "name": "REG_MASK"},
+    {"bits": [24, 24], "name": "REG_DROP_ON_STALL"}
+   ]
+  },
+  "SQ_THREAD_TRACE_PERF_MASK": {
+   "fields": [
+    {"bits": [0, 15], "name": "SH0_MASK"},
+    {"bits": [16, 31], "name": "SH1_MASK"}
+   ]
+  },
+  "SQ_THREAD_TRACE_CTRL": {
+   "fields": [
+    {"bits": [31, 31], "name": "RESET_BUFFER"}
+   ]
+  },
+  "SQ_THREAD_TRACE_MODE": {
+   "fields": [
+    {"bits": [0, 2], "name": "MASK_PS"},
+    {"bits": [3, 5], "name": "MASK_VS"},
+    {"bits": [6, 8], "name": "MASK_GS"},
+    {"bits": [9, 11], "name": "MASK_ES"},
+    {"bits": [12, 14], "name": "MASK_HS"},
+    {"bits": [15, 17], "name": "MASK_LS"},
+    {"bits": [18, 20], "name": "MASK_CS"},
+    {"bits": [21, 22], "name": "MODE"},
+    {"bits": [23, 24], "name": "CAPTURE_MODE"},
+    {"bits": [25, 25], "name": "AUTOFLUSH_EN"},
+    {"bits": [26, 26], "name": "TC_PERF_EN"},
+    {"bits": [27, 28], "name": "ISSUE_MASK"},
+    {"bits": [29, 29], "name": "TEST_MODE"},
+    {"bits": [30, 30], "name": "INTERRUPT_EN"},
+    {"bits": [31, 31], "name": "WRAP"}
+   ]
+  },
+  "SQ_THREAD_TRACE_BASE2": {
+   "fields": [
+    {"bits": [0, 3], "name": "ADDR_HI"}
+   ]
+  },
+  "SQ_THREAD_TRACE_TOKEN_MASK2": {
+   "fields": [
+    {"bits": [0, 31], "name": "INST_MASK"}
+   ]
+  },
+  "SQ_THREAD_TRACE_STATUS": {
+   "fields": [
+    {"bits": [0, 9], "name": "FINISH_PENDING"},
+    {"bits": [16, 25], "name": "FINISH_DONE"},
+    {"bits": [28, 28], "comment": "only on GFX9", "name": "UTC_ERROR"},
+    {"bits": [29, 29], "name": "NEW_BUF"},
+    {"bits": [30, 30], "name": "BUSY"},
+    {"bits": [31, 31], "name": "FULL"}
+   ]
+  },
+ "SQ_THREAD_TRACE_HIWATER": {
+   "fields": [
+    {"bits": [0, 2], "name": "HIWATER"}
+   ]
+  },
+  "SQ_THREAD_TRACE_CNTR": {
+   "fields": [
+    {"bits": [0, 31], "name": "CNTR"}
    ]
   },
   "SRBM_STATUS": {

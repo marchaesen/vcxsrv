@@ -36,7 +36,7 @@ from mako import exceptions
 
 
 CURRENT_GL_VERSION = '4.6'
-CURRENT_VK_VERSION = '1.1'
+CURRENT_VK_VERSION = '1.2'
 
 TEMPLATE = Template(textwrap.dedent("""\
     <%!
@@ -58,19 +58,19 @@ TEMPLATE = Template(textwrap.dedent("""\
     <iframe src="../contents.html"></iframe>
     <div class="content">
 
-    <h1>Mesa ${next_version} Release Notes / ${today}</h1>
+    <h1>Mesa ${this_version} Release Notes / ${today}</h1>
 
     <p>
     %if not bugfix:
-        Mesa ${next_version} is a new development release. People who are concerned
+        Mesa ${this_version} is a new development release. People who are concerned
         with stability and reliability should stick with a previous release or
-        wait for Mesa ${version[:-1]}1.
+        wait for Mesa ${this_version[:-1]}1.
     %else:
-        Mesa ${next_version} is a bug fix release which fixes bugs found since the ${version} release.
+        Mesa ${this_version} is a bug fix release which fixes bugs found since the ${previous_version} release.
     %endif
     </p>
     <p>
-    Mesa ${next_version} implements the OpenGL ${gl_version} API, but the version reported by
+    Mesa ${this_version} implements the OpenGL ${gl_version} API, but the version reported by
     glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
     glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
     Some drivers don't support all the features required in OpenGL ${gl_version}. OpenGL
@@ -78,7 +78,7 @@ TEMPLATE = Template(textwrap.dedent("""\
     Compatibility contexts may report a lower version depending on each driver.
     </p>
     <p>
-    Mesa ${next_version} implements the Vulkan ${vk_version} API, but the version reported by
+    Mesa ${this_version} implements the Vulkan ${vk_version} API, but the version reported by
     the apiVersion property of the VkPhysicalDeviceProperties struct
     depends on the particular driver being used.
     </p>
@@ -125,7 +125,7 @@ TEMPLATE = Template(textwrap.dedent("""\
 
 async def gather_commits(version: str) -> str:
     p = await asyncio.create_subprocess_exec(
-        'git', 'log', f'mesa-{version}..', '--grep', r'Closes: \(https\|#\).*',
+        'git', 'log', '--oneline', f'mesa-{version}..', '--grep', r'Closes: \(https\|#\).*',
         stdout=asyncio.subprocess.PIPE)
     out, _ = await p.communicate()
     assert p.returncode == 0, f"git log didn't work: {version}"
@@ -242,14 +242,14 @@ async def main() -> None:
     assert '-devel' not in raw_version, 'Do not run this script on -devel'
     version = raw_version.split('-')[0]
     previous_version = calculate_previous_version(version, is_point_release)
-    next_version = calculate_next_version(version, is_point_release)
+    this_version = calculate_next_version(version, is_point_release)
 
     shortlog, bugs = await asyncio.gather(
         get_shortlog(previous_version),
         gather_bugs(previous_version),
     )
 
-    final = pathlib.Path(__file__).parent.parent / 'docs' / 'relnotes' / f'{next_version}.html'
+    final = pathlib.Path(__file__).parent.parent / 'docs' / 'relnotes' / f'{this_version}.html'
     with final.open('wt') as f:
         try:
             f.write(TEMPLATE.render(
@@ -258,9 +258,9 @@ async def main() -> None:
                 changes=walk_shortlog(shortlog),
                 features=get_features(is_point_release),
                 gl_version=CURRENT_GL_VERSION,
-                next_version=next_version,
+                this_version=this_version,
                 today=datetime.date.today(),
-                version=previous_version,
+                previous_version=previous_version,
                 vk_version=CURRENT_VK_VERSION,
             ))
         except:

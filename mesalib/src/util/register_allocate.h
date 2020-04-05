@@ -83,10 +83,28 @@ void ra_resize_interference_graph(struct ra_graph *g, unsigned int count);
 void ra_set_node_class(struct ra_graph *g, unsigned int n, unsigned int c);
 unsigned int ra_get_node_class(struct ra_graph *g, unsigned int n);
 unsigned int ra_add_node(struct ra_graph *g, unsigned int c);
+
+/** @{ Register selection callback.
+ *
+ * The register allocator can use either one of two built-in register
+ * selection behaviors (ie. lowest-available or round-robin), or the
+ * user can implement it's own selection policy by setting an register
+ * selection callback.  The parameters to the callback are:
+ *
+ *  - n       the graph node, ie. the virtual variable to select a
+ *            register for
+ *  - regs    bitset of available registers to choose; this bitset
+ *            contains *all* registers, but registers of different
+ *            classes will not have their corresponding bit set.
+ *  - data    callback data specified in ra_set_select_reg_callback()
+ */
+typedef unsigned int (*ra_select_reg_callback)(
+      unsigned int n,        /* virtual variable to choose a physical reg for */
+      BITSET_WORD *regs,     /* available physical regs to choose from */
+      void *data);
+
 void ra_set_select_reg_callback(struct ra_graph *g,
-                                unsigned int (*callback)(struct ra_graph *g,
-                                                         BITSET_WORD *regs,
-                                                         void *data),
+                                ra_select_reg_callback callback,
                                 void *data);
 void ra_add_node_interference(struct ra_graph *g,
                               unsigned int n1, unsigned int n2);
@@ -96,6 +114,10 @@ void ra_reset_node_interference(struct ra_graph *g, unsigned int n);
 /** @{ Graph-coloring register allocation */
 bool ra_allocate(struct ra_graph *g);
 
+#define NO_REG ~0U
+/**
+ * Returns NO_REG for a node that has not (yet) been assigned.
+ */
 unsigned int ra_get_node_reg(struct ra_graph *g, unsigned int n);
 void ra_set_node_reg(struct ra_graph * g, unsigned int n, unsigned int reg);
 void ra_set_node_spill_cost(struct ra_graph *g, unsigned int n, float cost);

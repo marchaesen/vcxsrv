@@ -28,7 +28,7 @@
  * \author Ian Romanick <ian.d.romanick@intel.com>
  */
 
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/mtypes.h"
 #include "prog_parameter.h"
 #include "prog_parameter_layout.h"

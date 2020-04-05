@@ -27,17 +27,6 @@
 #include "present_priv.h"
 #include <gcstruct.h>
 
-/*
- * Returns:
- * TRUE if the first MSC value is equal to or after the second one
- * FALSE if the first MSC value is before the second one
- */
-static Bool
-msc_is_equal_or_after(uint64_t test, uint64_t reference)
-{
-    return (int64_t)(test - reference) >= 0;
-}
-
 uint32_t
 present_query_capabilities(RRCrtcPtr crtc)
 {
@@ -157,31 +146,73 @@ present_can_window_flip(WindowPtr window)
     return screen_priv->can_window_flip(window);
 }
 
-void
-present_adjust_timings(uint32_t options,
-                       uint64_t *crtc_msc,
-                       uint64_t *target_msc,
+uint64_t
+present_get_target_msc(uint64_t target_msc_arg,
+                       uint64_t crtc_msc,
                        uint64_t divisor,
-                       uint64_t remainder)
+                       uint64_t remainder,
+                       uint32_t options)
 {
-    /* Adjust target_msc to match modulus
+    const Bool  synced_flip = !(options & PresentOptionAsync);
+    uint64_t    target_msc;
+
+    /* If the specified target-msc lies in the future, then this
+     * defines the target-msc according to Present protocol.
      */
-    if (msc_is_equal_or_after(*crtc_msc, *target_msc)) {
-        if (divisor != 0) {
-            *target_msc = *crtc_msc - (*crtc_msc % divisor) + remainder;
-            if (options & PresentOptionAsync) {
-                if (msc_is_after(*crtc_msc, *target_msc))
-                    *target_msc += divisor;
-            } else {
-                if (msc_is_equal_or_after(*crtc_msc, *target_msc))
-                    *target_msc += divisor;
-            }
-        } else {
-            *target_msc = *crtc_msc;
-            if (!(options & PresentOptionAsync))
-                (*target_msc)++;
-        }
+    if (msc_is_after(target_msc_arg, crtc_msc))
+        return target_msc_arg;
+
+    /* If no divisor is specified, the modulo is undefined
+     * and we do present instead asap.
+     */
+    if (divisor == 0) {
+        target_msc = crtc_msc;
+
+        /* When no async presentation is forced, by default we sync the
+         * presentation with vblank. But in this case we can't target
+         * the current crtc-msc, which already has begun, but must aim
+         * for the upcoming one.
+         */
+        if (synced_flip)
+            target_msc++;
+
+        return target_msc;
     }
+
+    /* Calculate target-msc by the specified modulo parameters. According
+     * to Present protocol this is after the next field with:
+     *
+     *      field-msc % divisor == remainder.
+     *
+     * The following formula calculates a target_msc solving above equation
+     * and with |target_msc - crtc_msc| < divisor.
+     *
+     * Example with crtc_msc = 10, divisor = 4 and remainder = 3, 2, 1, 0:
+     *      11 = 10 - 2 + 3 = 10 - (10 % 4) + 3,
+     *      10 = 10 - 2 + 2 = 10 - (10 % 4) + 2,
+     *       9 = 10 - 2 + 1 = 10 - (10 % 4) + 1,
+     *       8 = 10 - 2 + 0 = 10 - (10 % 4) + 0.
+     */
+    target_msc = crtc_msc - (crtc_msc % divisor) + remainder;
+
+    /* Here we already found the correct field-msc. */
+    if (msc_is_after(target_msc, crtc_msc))
+        return target_msc;
+    /*
+     * Here either:
+     * a) target_msc == crtc_msc, i.e. crtc_msc actually solved
+     * above equation with crtc_msc % divisor == remainder.
+     *
+     * => This means we want to present at target_msc + divisor for a synced
+     *    flip or directly now for an async flip.
+     *
+     * b) target_msc < crtc_msc with target_msc + divisor > crtc_msc.
+     *
+     * => This means in any case we want to present at target_msc + divisor.
+     */
+    if (synced_flip || msc_is_after(crtc_msc, target_msc))
+        target_msc += divisor;
+    return target_msc;
 }
 
 int

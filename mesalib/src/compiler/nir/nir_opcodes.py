@@ -100,6 +100,7 @@ tbool16 = "bool16"
 tbool32 = "bool32"
 tuint = "uint"
 tuint16 = "uint16"
+tfloat16 = "float16"
 tfloat32 = "float32"
 tint32 = "int32"
 tuint32 = "uint32"
@@ -210,7 +211,7 @@ unop("flog2", tfloat, "log2f(src0)")
 # Generate all of the numeric conversion opcodes
 for src_t in [tint, tuint, tfloat, tbool]:
    if src_t == tbool:
-      dst_types = [tfloat, tint]
+      dst_types = [tfloat, tint, tbool]
    elif src_t == tint:
       dst_types = [tfloat, tint, tbool]
    elif src_t == tuint:
@@ -265,6 +266,11 @@ for src_t in [tint, tuint, tfloat, tbool]:
                                                        dst_bit_size),
                                    dst_t + str(dst_bit_size), src_t, conv_expr)
 
+# Special opcode that is the same as f2f16 except that it is safe to remove it
+# if the result is immediately converted back to float32 again. This is
+# generated as part of the precision lowering pass. mp stands for medium
+# precision.
+unop_numeric_convert("f2fmp", tfloat16, tfloat, opcodes["f2f16"].const_expr)
 
 # Unary floating-point rounding operations.
 
@@ -461,9 +467,9 @@ for i in range(1, 5):
 # AMD_gcn_shader extended instructions
 unop_horiz("cube_face_coord", 2, tfloat32, 3, tfloat32, """
 dst.x = dst.y = 0.0;
-float absX = fabs(src0.x);
-float absY = fabs(src0.y);
-float absZ = fabs(src0.z);
+float absX = fabsf(src0.x);
+float absY = fabsf(src0.y);
+float absZ = fabsf(src0.z);
 
 float ma = 0.0;
 if (absX >= absY && absX >= absZ) { ma = 2 * src0.x; }
@@ -482,9 +488,9 @@ dst.y = dst.y / ma + 0.5;
 """)
 
 unop_horiz("cube_face_index", 1, tfloat32, 3, tfloat32, """
-float absX = fabs(src0.x);
-float absY = fabs(src0.y);
-float absZ = fabs(src0.z);
+float absX = fabsf(src0.x);
+float absY = fabsf(src0.y);
+float absZ = fabsf(src0.z);
 if (src0.x >= 0 && absX >= absY && absX >= absZ) dst.x = 0;
 if (src0.x < 0 && absX >= absY && absX >= absZ) dst.x = 1;
 if (src0.y >= 0 && absY >= absX && absY >= absZ) dst.x = 2;
@@ -815,10 +821,10 @@ opcode("fdph", 1, tfloat, [3, 4], [tfloat, tfloat], False, "",
 opcode("fdph_replicated", 4, tfloat, [3, 4], [tfloat, tfloat], False, "",
        "src0.x * src1.x + src0.y * src1.y + src0.z * src1.z + src1.w")
 
-binop("fmin", tfloat, "", "fmin(src0, src1)")
+binop("fmin", tfloat, _2src_commutative + associative, "fmin(src0, src1)")
 binop("imin", tint, _2src_commutative + associative, "src1 > src0 ? src0 : src1")
 binop("umin", tuint, _2src_commutative + associative, "src1 > src0 ? src0 : src1")
-binop("fmax", tfloat, "", "fmax(src0, src1)")
+binop("fmax", tfloat, _2src_commutative + associative, "fmax(src0, src1)")
 binop("imax", tint, _2src_commutative + associative, "src1 > src0 ? src1 : src0")
 binop("umax", tuint, _2src_commutative + associative, "src1 > src0 ? src1 : src0")
 
@@ -1123,9 +1129,9 @@ binop("amul", tint, _2src_commutative + associative, "src0 * src1")
 # ir3-specific instruction that maps directly to mul-add shift high mix,
 # (IMADSH_MIX16 i.e. ah * bl << 16 + c). It is used for lowering integer
 # multiplication (imul) on Freedreno backend..
-opcode("imadsh_mix16", 1, tint32,
-       [1, 1, 1], [tint32, tint32, tint32], False, "", """
-dst.x = ((((src0.x & 0xffff0000) >> 16) * (src1.x & 0x0000ffff)) << 16) + src2.x;
+opcode("imadsh_mix16", 0, tint32,
+       [0, 0, 0], [tint32, tint32, tint32], False, "", """
+dst = ((((src0 & 0xffff0000) >> 16) * (src1 & 0x0000ffff)) << 16) + src2;
 """)
 
 # ir3-specific instruction that maps directly to ir3 mad.s24.

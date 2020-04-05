@@ -699,7 +699,7 @@ LoadModule(const char *module, void *options, const XF86ModReqInfo *modreq,
 
     /* Backward compatibility, vbe and int10 are merged into int10 now */
     if (!strcmp(m, "vbe"))
-        m = name = "int10";
+        m = name = strdup("int10");
 
     for (cim = compiled_in_modules; *cim; cim++)
         if (!strcmp(m, *cim)) {

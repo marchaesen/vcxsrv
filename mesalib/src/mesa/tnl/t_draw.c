@@ -32,7 +32,7 @@
 #include "main/bufferobj.h"
 #include "main/condrender.h"
 #include "main/context.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/mtypes.h"
 #include "main/macros.h"
 #include "main/enums.h"
@@ -368,7 +368,7 @@ static void bind_indices( struct gl_context *ctx,
       bo[*nr_bo] = ib->obj;
       (*nr_bo)++;
       ptr = ctx->Driver.MapBufferRange(ctx, (GLsizeiptr) ib->ptr,
-                                       ib->count * ib->index_size,
+                                       ib->count << ib->index_size_shift,
 				       GL_MAP_READ_BIT, ib->obj,
                                        MAP_INTERNAL);
       assert(ib->obj->Mappings[MAP_INTERNAL].Pointer);
@@ -377,19 +377,19 @@ static void bind_indices( struct gl_context *ctx,
       ptr = ADD_POINTERS(ib->obj->Mappings[MAP_INTERNAL].Pointer, ib->ptr);
    }
 
-   if (ib->index_size == 4 && VB->Primitive[0].basevertex == 0) {
+   if (ib->index_size_shift == 2 && VB->Primitive[0].basevertex == 0) {
       VB->Elts = (GLuint *) ptr;
    }
    else {
       GLuint *elts = (GLuint *)get_space(ctx, ib->count * sizeof(GLuint));
       VB->Elts = elts;
 
-      if (ib->index_size == 4) {
+      if (ib->index_size_shift == 2) {
 	 const GLuint *in = (GLuint *)ptr;
 	 for (i = 0; i < ib->count; i++)
 	    *elts++ = (GLuint)(*in++) + VB->Primitive[0].basevertex;
       }
-      else if (ib->index_size == 2) {
+      else if (ib->index_size_shift == 1) {
 	 const GLushort *in = (GLushort *)ptr;
 	 for (i = 0; i < ib->count; i++) 
 	    *elts++ = (GLuint)(*in++) + VB->Primitive[0].basevertex;
@@ -434,9 +434,10 @@ void _tnl_draw_prims(struct gl_context *ctx,
 			 GLboolean index_bounds_valid,
 			 GLuint min_index,
 			 GLuint max_index,
+                         GLuint num_instances,
+                         GLuint base_instance,
 			 struct gl_transform_feedback_object *tfb_vertcount,
-                         unsigned stream,
-			 struct gl_buffer_object *indirect)
+                         unsigned stream)
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    const GLuint TEST_SPLIT = 0;
@@ -470,7 +471,7 @@ void _tnl_draw_prims(struct gl_context *ctx,
       /* We always translate away calls with min_index != 0. 
        */
       t_rebase_prims( ctx, arrays, prim, nr_prims, ib,
-                      min_index, max_index,
+                      min_index, max_index, num_instances, base_instance,
                       _tnl_draw_prims );
       return;
    }
@@ -489,6 +490,7 @@ void _tnl_draw_prims(struct gl_context *ctx,
        */
       _tnl_split_prims( ctx, arrays, prim, nr_prims, ib,
                         0, max_index + prim->basevertex,
+                        num_instances, base_instance,
                         _tnl_draw_prims,
                         &limits );
    }
@@ -499,6 +501,8 @@ void _tnl_draw_prims(struct gl_context *ctx,
       struct gl_buffer_object *bo[VERT_ATTRIB_MAX + 1];
       GLuint nr_bo = 0;
       GLuint inst;
+
+      assert(num_instances > 0);
 
       for (i = 0; i < nr_prims;) {
 	 GLuint this_nr_prims;
@@ -513,12 +517,10 @@ void _tnl_draw_prims(struct gl_context *ctx,
 	       break;
 	 }
 
-         assert(prim[i].num_instances > 0);
-
 	 /* Binding inputs may imply mapping some vertex buffer objects.
 	  * They will need to be unmapped below.
 	  */
-         for (inst = 0; inst < prim[i].num_instances; inst++) {
+         for (inst = 0; inst < num_instances; inst++) {
 
             bind_prims(ctx, &prim[i], this_nr_prims);
             bind_inputs(ctx, arrays, max_index + prim[i].basevertex + 1,
@@ -638,8 +640,9 @@ _tnl_draw(struct gl_context *ctx,
           const struct _mesa_prim *prim, GLuint nr_prims,
           const struct _mesa_index_buffer *ib,
           GLboolean index_bounds_valid, GLuint min_index, GLuint max_index,
+          GLuint num_instances, GLuint base_instance,
           struct gl_transform_feedback_object *tfb_vertcount,
-          unsigned stream, struct gl_buffer_object *indirect)
+          unsigned stream)
 {
    /* Update TNLcontext::draw_arrays and return that pointer.
     */
@@ -647,7 +650,7 @@ _tnl_draw(struct gl_context *ctx,
 
    _tnl_draw_prims(ctx, arrays, prim, nr_prims, ib,
                    index_bounds_valid, min_index, max_index,
-                   tfb_vertcount, stream, indirect);
+                   num_instances, base_instance, tfb_vertcount, stream);
 }
 
 

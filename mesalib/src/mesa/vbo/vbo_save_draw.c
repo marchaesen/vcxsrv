@@ -31,7 +31,7 @@
 #include "main/glheader.h"
 #include "main/bufferobj.h"
 #include "main/context.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/macros.h"
 #include "main/light.h"
 #include "main/state.h"
@@ -213,7 +213,7 @@ vbo_save_playback_vertex_list(struct gl_context *ctx, void *data)
          GLuint min_index = _vbo_save_get_min_index(node);
          GLuint max_index = _vbo_save_get_max_index(node);
          ctx->Driver.Draw(ctx, node->prims, node->prim_count, NULL, GL_TRUE,
-                          min_index, max_index, NULL, 0, NULL);
+                          min_index, max_index, 1, 0, NULL, 0);
       }
    }
 

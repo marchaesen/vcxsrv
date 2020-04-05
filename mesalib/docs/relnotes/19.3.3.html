@@ -1,0 +1,193 @@
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<title>Mesa Release Notes</title>
+<link rel="stylesheet" type="text/css" href="../mesa.css">
+</head>
+<body>
+
+<div class="header">
+<h1>The Mesa 3D Graphics Library</h1>
+</div>
+
+<iframe src="../contents.html"></iframe>
+<div class="content">
+
+<h1>Mesa 19.3.3 Release Notes / 2020-01-28</h1>
+
+<p>
+    Mesa 19.3.3 is a bug fix release which fixes bugs found since the 19.3.2 release.
+</p>
+<p>
+Mesa 19.3.3 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is <strong>only</strong> available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+</p>
+<p>
+Mesa 19.3.3 implements the Vulkan 1.1 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+</p>
+
+<h2>SHA256 checksum</h2>
+<pre>
+    81ce4810bb25d61300f8104856461f4d49cf7cb794aa70cb572312e370c39f09  mesa-19.3.3.tar.xz
+</pre>
+
+
+<h2>New features</h2>
+
+<ul>
+    <li>None</li>
+</ul>
+
+<h2>Bug fixes</h2>
+
+<ul>
+    <li>aco: Dead Rising 4 crashes in lower_to_hw_instr() on GFX6-GFX7</li>
+    <li>libvulkan_radeon.so crash with `free(): double free detected in tcache 2`</li>
+    <li>Commit be08e6a causes crash in com.android.launcher3 (Launcher)</li>
+    <li>Mesa no longer compiles with GCC 10</li>
+    <li>[bisected] [radeonsi] GPU hangs/resets while playing interlaced content on Kodi with VAAPI</li>
+    <li>[radeonsi] MSAA image not copied properly after image store through texture view</li>
+    <li>T-Rex and Manhattan onscreen performance issue on Android</li>
+    <li>VkSamplerCreateInfo compareEnable not respected</li>
+    <li>VkSamplerCreateInfo compareEnable not respected</li>
+    <li>Freedreno drm softpin driver implementation leaks memory</li>
+    <li>[POLARIS10] VRAM leak involving glTexImage2D with non-NULL data argument</li>
+</ul>
+
+<h2>Changes</h2>
+
+<ul>
+    <p>Adam Jackson (1):</p>
+    <li>      drisw: Cache the depth of the X drawable</li>
+    <p></p>
+    <p>Andrii Simiklit (1):</p>
+    <li>      mesa/st: fix a memory leak in get_version</li>
+    <p></p>
+    <p>Bas Nieuwenhuizen (2):</p>
+    <li>      radv: Disable VK_EXT_sample_locations on GFX10.</li>
+    <li>      radv: Remove syncobj_handle variable in header.</li>
+    <p></p>
+    <p>Caio Marcelo de Oliveira Filho (1):</p>
+    <li>      intel/fs: Only use SLM fence in compute shaders</li>
+    <p></p>
+    <p>Daniel Schürmann (2):</p>
+    <li>      aco: fix unconditional demote_to_helper</li>
+    <li>      aco: rework lower_to_cssa()</li>
+    <p></p>
+    <p>Dylan Baker (3):</p>
+    <li>      docs: add SHA256 sums for 19.3.2</li>
+    <li>      cherry-ignore: Update for 19.3.3</li>
+    <li>      .pick_status.json: Update to c787b8d2a16d5e2950f209b1fcbec6e6c0388845</li>
+    <p></p>
+    <p>Eric Anholt (1):</p>
+    <li>      mesa: Fix detection of invalidating both depth and stencil.</li>
+    <p></p>
+    <p>Eric Engestrom (1):</p>
+    <li>      meson: use github URL for wraps instead of completely unreliable wrapdb</li>
+    <p></p>
+    <p>Erik Faye-Lund (8):</p>
+    <li>      docs: fix typo in html tag name</li>
+    <li>      docs: fix paragraphs</li>
+    <li>      docs: open paragraph before closing it</li>
+    <li>      docs: use code-tag instead of pre-tag</li>
+    <li>      docs: use code-tags instead of pre-tags</li>
+    <li>      docs: use code-tags instead of pre-tags</li>
+    <li>      docs: move paragraph closing tag</li>
+    <li>      docs: remove double-closed definition-list</li>
+    <p></p>
+    <p>Francisco Jerez (3):</p>
+    <li>      glsl: Fix software 64-bit integer to 32-bit float conversions.</li>
+    <li>      intel/fs/gen11+: Handle ROR/ROL in lower_simd_width().</li>
+    <li>      intel/fs/gen8+: Fix r127 dst/src overlap RA workaround for EOT message payload.</li>
+    <p></p>
+    <p>Hyunjun Ko (1):</p>
+    <li>      turnip: fix invalid VK_ERROR_OUT_OF_POOL_MEMORY</li>
+    <p></p>
+    <p>Jan Vesely (1):</p>
+    <li>      clover: Initialize Asm Parsers</li>
+    <p></p>
+    <p>Jason Ekstrand (8):</p>
+    <li>      anv: Flag descriptors dirty when gl_NumWorkgroups is used</li>
+    <li>      intel/vec4: Support scoped_memory_barrier</li>
+    <li>      intel/blorp: Fill out all the dwords of MI_ATOMIC</li>
+    <li>      anv: Don&#x27;t over-advertise descriptor indexing features</li>
+    <li>      anv: Memset array properties</li>
+    <li>      anv/blorp: Rename buffer image stride parameters</li>
+    <li>      anv: Canonicalize buffer formats for image/buffer copies</li>
+    <li>      anv: Stop allocating WSI event fences off the instance</li>
+    <p></p>
+    <p>Jonathan Marek (1):</p>
+    <li>      st/mesa: don&#x27;t lower YUV when driver supports it natively</li>
+    <p></p>
+    <p>Kenneth Graunke (2):</p>
+    <li>      intel/compiler: Fix illegal mutation in get_nir_image_intrinsic_image</li>
+    <li>      intel: Fix aux map alignments on 32-bit builds.</li>
+    <p></p>
+    <p>Lasse Lopperi (1):</p>
+    <li>      freedreno/drm: Fix memory leak in softpin implementation</li>
+    <p></p>
+    <p>Lionel Landwerlin (4):</p>
+    <li>      anv: fix intel perf queries availability writes</li>
+    <li>      anv: only use VkSamplerCreateInfo::compareOp if enabled</li>
+    <li>      intel/perf: expose timestamp begin for mdapi</li>
+    <li>      intel/perf: report query split for mdapi</li>
+    <p></p>
+    <p>Marek Olšák (4):</p>
+    <li>      ac/gpu_info: always use distributed tessellation on gfx10</li>
+    <li>      radeonsi: work around an LLVM crash when using llvm.amdgcn.icmp.i64.i1</li>
+    <li>      radeonsi: clean up how internal compute dispatches are handled</li>
+    <li>      radeonsi: don&#x27;t invoke decompression inside internal launch_grid</li>
+    <p></p>
+    <p>Nataraj Deshpande (1):</p>
+    <li>      egl/android: Restrict minimum triple buffering for android color_buffers</li>
+    <p></p>
+    <p>Pierre-Eric Pelloux-Prayer (8):</p>
+    <li>      radeonsi: release saved resources in si_retile_dcc</li>
+    <li>      radeonsi: release saved resources in si_compute_expand_fmask</li>
+    <li>      radeonsi: release saved resources in si_compute_clear_render_target</li>
+    <li>      radeonsi: release saved resources in si_compute_copy_image</li>
+    <li>      radeonsi: release saved resources in si_compute_do_clear_or_copy</li>
+    <li>      radeonsi: fix fmask expand compute shader</li>
+    <li>      radeonsi: make sure fmask expand is done if needed</li>
+    <li>      util: call bind_sampler_states before setting sampler_views</li>
+    <p></p>
+    <p>Rhys Perry (8):</p>
+    <li>      aco: set vm for pos0 exports on GFX10</li>
+    <li>      aco: fix imageSize()/textureSize() with large buffers on GFX8</li>
+    <li>      aco: fix uninitialized data in the binary</li>
+    <li>      aco: set exec_potentially_empty for demotes</li>
+    <li>      aco: disable add combining for ds_swizzle_b32</li>
+    <li>      aco: don&#x27;t DCE atomics with return values</li>
+    <li>      aco: check if multiplication/clamp is live when applying output modifier</li>
+    <li>      aco: fix off-by-one error when initializing sgpr_live_in</li>
+    <p></p>
+    <p>Samuel Pitoiset (2):</p>
+    <li>      radv: only use VkSamplerCreateInfo::compareOp if enabled</li>
+    <li>      radv: fix double free corruption in radv_alloc_memory()</li>
+    <p></p>
+    <p>Samuel Thibault (1):</p>
+    <li>      meson: Do not require libdrm for DRI2 on hurd</li>
+    <p></p>
+    <p>Tapani Pälli (1):</p>
+    <li>      egl/android: fix buffer_count for applications setting max count</li>
+    <p></p>
+    <p>Thong Thai (1):</p>
+    <li>      mesa: Prevent _MaxLevel from being less than zero</li>
+    <p></p>
+    <p>Timur Kristóf (1):</p>
+    <li>      aco/gfx10: Fix VcmpxExecWARHazard mitigation.</li>
+    <p></p>
+    <p></p>
+</ul>
+
+</div>
+</body>
+</html>

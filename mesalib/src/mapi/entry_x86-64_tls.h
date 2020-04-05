@@ -25,6 +25,12 @@
  *    Chia-I Wu <olv@lunarg.com>
  */
 
+#ifdef __CET__
+#define ENDBR "endbr64\n\t"
+#else
+#define ENDBR
+#endif
+
 #ifdef HAVE_FUNC_ATTRIBUTE_VISIBILITY
 #define HIDDEN __attribute__((visibility("hidden")))
 #else
@@ -44,6 +50,7 @@ __asm__(".text\n"
 #ifndef __ILP32__
 
 #define STUB_ASM_CODE(slot)                              \
+   ENDBR                                                 \
    "movq " ENTRY_CURRENT_TABLE "@GOTTPOFF(%rip), %rax\n\t"  \
    "movq %fs:(%rax), %r11\n\t"                           \
    "jmp *(8 * " slot ")(%r11)"
@@ -51,6 +58,7 @@ __asm__(".text\n"
 #else
 
 #define STUB_ASM_CODE(slot)                              \
+   ENDBR                                                 \
    "movq " ENTRY_CURRENT_TABLE "@GOTTPOFF(%rip), %rax\n\t"  \
    "movl %fs:(%rax), %r11d\n\t"                          \
    "movl 4*" slot "(%r11d), %r11d\n\t"                   \

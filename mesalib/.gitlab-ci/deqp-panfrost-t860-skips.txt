@@ -11,3 +11,10 @@ dEQP-GLES[0-9]*.functional.flush_finish.*
 
 # XXX: Why does this flake?
 dEQP-GLES2.functional.clipping.triangle_vertex.clip_three.clip_neg_x_neg_z_and_pos_x_pos_z_and_neg_x_neg_y_pos_z
+
+# XXX: Causes irrecoverable GPU hangs when run in parallel with dEQP-GLES3.functional.transform_feedback.*
+dEQP-GLES3.functional.rasterizer_discard.*
+
+# XXX: Not completely implemented yet, behave flakily
+dEQP-GLES3.functional.shaders.derivate.*
+

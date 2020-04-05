@@ -30,12 +30,12 @@ import sys
 
 
 header = """
-#ifndef MARSHAL_GENERATABLE_H
-#define MARSHAL_GENERATABLE_H
+#ifndef MARSHAL_GENERATED_H
+#define MARSHAL_GENERATED_H
 """
 
 footer = """
-#endif /* MARSHAL_GENERATABLE_H */
+#endif /* MARSHAL_GENERATED_H */
 """
 
 
@@ -54,6 +54,8 @@ class PrintCode(gl_XML.gl_print_base):
         print(footer)
 
     def printBody(self, api):
+        print('#include "GL/gl.h"')
+        print('')
         print('enum marshal_dispatch_cmd_id')
         print('{')
         for func in api.functionIterateAll():
@@ -61,7 +63,19 @@ class PrintCode(gl_XML.gl_print_base):
             if flavor in ('skip', 'sync'):
                 continue
             print('   DISPATCH_CMD_{0},'.format(func.name))
+        print('   NUM_DISPATCH_CMD,')
         print('};')
+        print('')
+
+        for func in api.functionIterateAll():
+            flavor = func.marshal_flavor()
+            if flavor in ('custom', 'async'):
+                print('struct marshal_cmd_{0};'.format(func.name))
+                print(('void _mesa_unmarshal_{0}(struct gl_context *ctx, '
+                       'const struct marshal_cmd_{0} *cmd);').format(func.name))
+                print('void GLAPIENTRY _mesa_marshal_{0}({1});'.format(func.name, func.get_parameter_string()))
+            elif flavor == 'sync':
+                print('{0} GLAPIENTRY _mesa_marshal_{1}({2});'.format(func.return_type, func.name, func.get_parameter_string()))
 
 
 def show_usage():

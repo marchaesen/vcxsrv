@@ -26,7 +26,6 @@
 #include "midgard_ops.h"
 #include "util/u_math.h"
 #include "util/u_memory.h"
-#include "lcra.h"
 #include "midgard_quirks.h"
 
 struct phys_reg {
@@ -385,7 +384,8 @@ mir_compute_interference(
         if (ctx->is_blend) {
                 unsigned r1w = ~0;
 
-                mir_foreach_block(ctx, block) {
+                mir_foreach_block(ctx, _block) {
+                        midgard_block *block = (midgard_block *) _block;
                         mir_foreach_instr_in_block_rev(block, ins) {
                                 if (ins->writeout)
                                         r1w = ins->src[2];
@@ -405,8 +405,9 @@ mir_compute_interference(
          * interference by walking each block linearly. Take live_out at the
          * end of each block and walk the block backwards. */
 
-        mir_foreach_block(ctx, blk) {
-                uint16_t *live = mem_dup(blk->live_out, ctx->temp_count * sizeof(uint16_t));
+        mir_foreach_block(ctx, _blk) {
+                midgard_block *blk = (midgard_block *) _blk;
+                uint16_t *live = mem_dup(_blk->live_out, ctx->temp_count * sizeof(uint16_t));
 
                 mir_foreach_instr_in_block_rev(blk, ins) {
                         /* Mark all registers live after the instruction as
@@ -477,6 +478,31 @@ allocate_registers(compiler_context *ctx, bool *spilled)
         unsigned *min_alignment = calloc(sizeof(unsigned), ctx->temp_count);
 
         mir_foreach_instr_global(ctx, ins) {
+                /* Swizzles of 32-bit sources on 64-bit instructions need to be
+                 * aligned to either bottom (xy) or top (zw). More general
+                 * swizzle lowering should happen prior to scheduling (TODO),
+                 * but once we get RA we shouldn't disrupt this further. Align
+                 * sources of 64-bit instructions. */
+
+                if (ins->type == TAG_ALU_4 && ins->alu.reg_mode == midgard_reg_mode_64) {
+                        mir_foreach_src(ins, v) {
+                                unsigned s = ins->src[v];
+
+                                if (s < ctx->temp_count)
+                                        min_alignment[s] = 3;
+                        }
+                }
+
+                if (ins->type == TAG_LOAD_STORE_4 && OP_HAS_ADDRESS(ins->load_store.op)) {
+                        mir_foreach_src(ins, v) {
+                                unsigned s = ins->src[v];
+                                unsigned size = mir_srcsize(ins, v);
+
+                                if (s < ctx->temp_count)
+                                        min_alignment[s] = (size == midgard_reg_mode_64) ? 3 : 2;
+                        }
+                }
+
                 if (ins->dest >= SSA_FIXED_MINIMUM) continue;
 
                 /* 0 for x, 1 for xy, 2 for xyz, 3 for xyzw */
@@ -539,13 +565,6 @@ allocate_registers(compiler_context *ctx, bool *spilled)
                         set_class(l->class, ins->src[1], REG_CLASS_TEXR);
                         set_class(l->class, ins->src[2], REG_CLASS_TEXR);
                         set_class(l->class, ins->src[3], REG_CLASS_TEXR);
-
-                        /* Texture offsets need to be aligned to vec4, since
-                         * the swizzle for x is forced to x in hardware, while
-                         * the other components are free. TODO: Relax to 8 for
-                         * half-registers if that ever occurs. */
-
-                        //lcra_restrict_range(l, ins->src[3], 16);
                 }
         }
 
@@ -561,8 +580,14 @@ allocate_registers(compiler_context *ctx, bool *spilled)
         mir_foreach_instr_global(ctx, ins) {
                 if (!(ins->compact_branch && ins->writeout)) continue;
 
-                if (ins->src[0] < ctx->temp_count)
-                        l->solutions[ins->src[0]] = 0;
+                if (ins->src[0] < ctx->temp_count) {
+                        if (ins->writeout_depth)
+                                l->solutions[ins->src[0]] = (16 * 1) + COMPONENT_X * 4;
+                        else if (ins->writeout_stencil)
+                                l->solutions[ins->src[0]] = (16 * 1) + COMPONENT_Y * 4;
+                        else
+                                l->solutions[ins->src[0]] = 0;
+                }
 
                 if (ins->src[1] < ctx->temp_count)
                         l->solutions[ins->src[1]] = (16 * 1) + COMPONENT_Z * 4;
@@ -661,16 +686,17 @@ install_registers_instr(
 
                 unsigned src2 = ins->src[1];
                 unsigned src3 = ins->src[2];
+                midgard_reg_mode m32 = midgard_reg_mode_32;
 
                 if (src2 != ~0) {
-                        struct phys_reg src = index_to_reg(ctx, l, src2, mir_srcsize(ins, 1));
+                        struct phys_reg src = index_to_reg(ctx, l, src2, m32);
                         unsigned component = src.offset / src.size;
                         assert(component * src.size == src.offset);
                         ins->load_store.arg_1 |= midgard_ldst_reg(src.reg, component);
                 }
 
                 if (src3 != ~0) {
-                        struct phys_reg src = index_to_reg(ctx, l, src3, mir_srcsize(ins, 2));
+                        struct phys_reg src = index_to_reg(ctx, l, src3, m32);
                         unsigned component = src.offset / src.size;
                         assert(component * src.size == src.offset);
                         ins->load_store.arg_2 |= midgard_ldst_reg(src.reg, component);
@@ -680,6 +706,9 @@ install_registers_instr(
         }
 
         case TAG_TEXTURE_4: {
+                if (ins->texture.op == TEXTURE_OP_BARRIER)
+                        break;
+
                 /* Grab RA results */
                 struct phys_reg dest = index_to_reg(ctx, l, ins->dest, mir_typesize(ins));
                 struct phys_reg coord = index_to_reg(ctx, l, ins->src[1], mir_srcsize(ins, 1));
@@ -799,7 +828,8 @@ mir_spill_register(
                 if (is_special_w)
                         spill_slot = spill_index++;
 
-                mir_foreach_block(ctx, block) {
+                mir_foreach_block(ctx, _block) {
+                midgard_block *block = (midgard_block *) _block;
                 mir_foreach_instr_in_block_safe(block, ins) {
                         if (ins->dest != spill_node) continue;
 
@@ -841,7 +871,8 @@ mir_spill_register(
          * work registers to back special registers; TLS
          * spilling is to use memory to back work registers) */
 
-        mir_foreach_block(ctx, block) {
+        mir_foreach_block(ctx, _block) {
+                midgard_block *block = (midgard_block *) _block;
                 mir_foreach_instr_in_block(block, ins) {
                         /* We can't rewrite the moves used to spill in the
                          * first place. These moves are hinted. */

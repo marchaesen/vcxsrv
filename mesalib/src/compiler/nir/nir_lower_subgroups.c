@@ -302,6 +302,46 @@ build_subgroup_mask(nir_builder *b, unsigned bit_size,
 }
 
 static nir_ssa_def *
+lower_dynamic_quad_broadcast(nir_builder *b, nir_intrinsic_instr *intrin,
+                             const nir_lower_subgroups_options *options)
+{
+   if (!options->lower_quad_broadcast_dynamic_to_const)
+      return lower_shuffle(b, intrin, options->lower_to_scalar, false);
+
+   nir_ssa_def *dst = NULL;
+
+   for (unsigned i = 0; i < 4; ++i) {
+      nir_intrinsic_instr *qbcst =
+         nir_intrinsic_instr_create(b->shader, nir_intrinsic_quad_broadcast);
+
+      qbcst->num_components = intrin->num_components;
+      qbcst->src[1] = nir_src_for_ssa(nir_imm_int(b, i));
+      nir_src_copy(&qbcst->src[0], &intrin->src[0], qbcst);
+      nir_ssa_dest_init(&qbcst->instr, &qbcst->dest,
+                        intrin->dest.ssa.num_components,
+                        intrin->dest.ssa.bit_size, NULL);
+
+      nir_ssa_def *qbcst_dst = NULL;
+
+      if (options->lower_to_scalar && qbcst->num_components > 1) {
+         qbcst_dst = lower_subgroup_op_to_scalar(b, qbcst, false);
+      } else {
+         nir_builder_instr_insert(b, &qbcst->instr);
+         qbcst_dst = &qbcst->dest.ssa;
+      }
+
+      if (i)
+         dst = nir_bcsel(b, nir_ieq(b, intrin->src[1].ssa,
+                                    nir_src_for_ssa(nir_imm_int(b, i)).ssa),
+                         qbcst_dst, dst);
+      else
+         dst = qbcst_dst;
+   }
+
+   return dst;
+}
+
+static nir_ssa_def *
 lower_subgroups_instr(nir_builder *b, nir_instr *instr, void *_options)
 {
    const nir_lower_subgroups_options *options = _options;
@@ -477,7 +517,7 @@ lower_subgroups_instr(nir_builder *b, nir_instr *instr, void *_options)
           (options->lower_quad_broadcast_dynamic &&
            intrin->intrinsic == nir_intrinsic_quad_broadcast &&
            !nir_src_is_const(intrin->src[1])))
-         return lower_shuffle(b, intrin, options->lower_to_scalar, false);
+         return lower_dynamic_quad_broadcast(b, intrin, options);
       else if (options->lower_to_scalar && intrin->num_components > 1)
          return lower_subgroup_op_to_scalar(b, intrin, false);
       break;

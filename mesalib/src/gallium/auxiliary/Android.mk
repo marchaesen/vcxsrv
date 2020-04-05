@@ -28,8 +28,9 @@ include $(LOCAL_PATH)/Makefile.sources
 
 include $(CLEAR_VARS)
 
+# filter-out tessellator/tessellator.hpp to avoid "Unused source files" error
 LOCAL_SRC_FILES := \
-	$(C_SOURCES) \
+	$(filter-out tessellator/tessellator.hpp, $(C_SOURCES)) \
 	$(NIR_SOURCES) \
 	$(RENDERONLY_SOURCES) \
 	$(VL_STUB_SOURCES)

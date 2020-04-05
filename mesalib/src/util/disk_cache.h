@@ -174,6 +174,12 @@ disk_cache_create(const char *gpu_name, const char *timestamp,
 void
 disk_cache_destroy(struct disk_cache *cache);
 
+/* Wait for all previous disk_cache_put() calls to be processed (used for unit
+ * testing).
+ */
+void
+disk_cache_wait_for_idle(struct disk_cache *cache);
+
 /**
  * Remove the item in the cache under the name \key.
  */

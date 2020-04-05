@@ -197,7 +197,7 @@ static void fancybasecolorsearch( UNUSED GLubyte *blkaddr, GLubyte srccolors[4][
    GLuint pixerror, pixerrorred, pixerrorgreen, pixerrorblue, pixerrorbest;
    GLint colordist, blockerrlin[2][3];
    GLubyte nrcolor[2];
-   GLint pixerrorcolorbest[3];
+   GLint pixerrorcolorbest[3] = {0};
    GLubyte enc = 0;
    GLubyte cv[4][4];
    GLubyte testcolor[2][3];

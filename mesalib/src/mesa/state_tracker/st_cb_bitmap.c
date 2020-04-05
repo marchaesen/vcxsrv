@@ -31,7 +31,7 @@
   */
 
 #include "main/errors.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/image.h"
 #include "main/bufferobj.h"
 #include "main/dlist.h"
@@ -255,7 +255,8 @@ setup_render_state(struct gl_context *ctx,
                          st->state.fb_height,
                          st->state.fb_orientation == Y_0_TOP);
 
-   cso_set_vertex_elements(cso, 3, st->util_velems);
+   st->util_velems.count = 3;
+   cso_set_vertex_elements(cso, &st->util_velems);
 
    cso_set_stream_outputs(st->cso_context, 0, NULL, NULL);
 }

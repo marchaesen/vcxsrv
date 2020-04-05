@@ -443,6 +443,7 @@ struct varying_component {
    uint8_t interp_loc;
    bool is_32bit;
    bool is_patch;
+   bool is_intra_stage_only;
    bool initialised;
 };
 
@@ -455,6 +456,12 @@ cmp_varying_component(const void *comp1_v, const void *comp2_v)
    /* We want patches to be order at the end of the array */
    if (comp1->is_patch != comp2->is_patch)
       return comp1->is_patch ? 1 : -1;
+
+   /* We want to try to group together TCS outputs that are only read by other
+    * TCS invocations and not consumed by the follow stage.
+    */
+   if (comp1->is_intra_stage_only != comp2->is_intra_stage_only)
+      return comp1->is_intra_stage_only ? 1 : -1;
 
    /* We can only pack varyings with matching interpolation types so group
     * them together.
@@ -471,7 +478,7 @@ cmp_varying_component(const void *comp1_v, const void *comp2_v)
 }
 
 static void
-gather_varying_component_info(nir_shader *consumer,
+gather_varying_component_info(nir_shader *producer, nir_shader *consumer,
                               struct varying_component **varying_comp_info,
                               unsigned *varying_comp_info_size,
                               bool default_to_smooth_interp)
@@ -482,7 +489,7 @@ gather_varying_component_info(nir_shader *consumer,
    /* Count the number of varying that can be packed and create a mapping
     * of those varyings to the array we will pass to qsort.
     */
-   nir_foreach_variable(var, &consumer->inputs) {
+   nir_foreach_variable(var, &producer->outputs) {
 
       /* Only remap things that aren't builtins. */
       if (var->data.location >= VARYING_SLOT_VAR0 &&
@@ -493,7 +500,7 @@ gather_varying_component_info(nir_shader *consumer,
             continue;
 
          const struct glsl_type *type = var->type;
-         if (nir_is_per_vertex_io(var, consumer->info.stage)) {
+         if (nir_is_per_vertex_io(var, producer->info.stage)) {
             assert(glsl_type_is_array(type));
             type = glsl_get_array_element(type);
          }
@@ -523,7 +530,8 @@ gather_varying_component_info(nir_shader *consumer,
          if (intr->intrinsic != nir_intrinsic_load_deref &&
              intr->intrinsic != nir_intrinsic_interp_deref_at_centroid &&
              intr->intrinsic != nir_intrinsic_interp_deref_at_sample &&
-             intr->intrinsic != nir_intrinsic_interp_deref_at_offset)
+             intr->intrinsic != nir_intrinsic_interp_deref_at_offset &&
+             intr->intrinsic != nir_intrinsic_interp_deref_at_vertex)
             continue;
 
          nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
@@ -560,7 +568,84 @@ gather_varying_component_info(nir_shader *consumer,
             vc_info->interp_loc = get_interp_loc(in_var);
             vc_info->is_32bit = glsl_type_is_32bit(type);
             vc_info->is_patch = in_var->data.patch;
+            vc_info->is_intra_stage_only = false;
+            vc_info->initialised = true;
          }
+      }
+   }
+
+   /* Walk over the shader and populate the varying component info array
+    * for varyings which are read by other TCS instances but are not consumed
+    * by the TES.
+    */
+   if (producer->info.stage == MESA_SHADER_TESS_CTRL) {
+      impl = nir_shader_get_entrypoint(producer);
+
+      nir_foreach_block(block, impl) {
+         nir_foreach_instr(instr, block) {
+            if (instr->type != nir_instr_type_intrinsic)
+               continue;
+
+            nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+            if (intr->intrinsic != nir_intrinsic_load_deref)
+               continue;
+
+            nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
+            if (deref->mode != nir_var_shader_out)
+               continue;
+
+            /* We only remap things that aren't builtins. */
+            nir_variable *out_var = nir_deref_instr_get_variable(deref);
+            if (out_var->data.location < VARYING_SLOT_VAR0)
+               continue;
+
+            unsigned location = out_var->data.location - VARYING_SLOT_VAR0;
+            if (location >= MAX_VARYINGS_INCL_PATCH)
+               continue;
+
+            unsigned var_info_idx =
+               store_varying_info_idx[location][out_var->data.location_frac];
+            if (!var_info_idx) {
+               /* Something went wrong, the shader interfaces didn't match, so
+                * abandon packing. This can happen for example when the
+                * inputs are scalars but the outputs are struct members.
+                */
+               *varying_comp_info_size = 0;
+               break;
+            }
+
+            struct varying_component *vc_info =
+               &(*varying_comp_info)[var_info_idx-1];
+
+            if (!vc_info->initialised) {
+               const struct glsl_type *type = out_var->type;
+               if (nir_is_per_vertex_io(out_var, producer->info.stage)) {
+                  assert(glsl_type_is_array(type));
+                  type = glsl_get_array_element(type);
+               }
+
+               vc_info->var = out_var;
+               vc_info->interp_type =
+                  get_interp_type(out_var, type, default_to_smooth_interp);
+               vc_info->interp_loc = get_interp_loc(out_var);
+               vc_info->is_32bit = glsl_type_is_32bit(type);
+               vc_info->is_patch = out_var->data.patch;
+               vc_info->is_intra_stage_only = true;
+               vc_info->initialised = true;
+            }
+         }
+      }
+   }
+
+   for (unsigned i = 0; i < *varying_comp_info_size; i++ ) {
+      struct varying_component *vc_info = &(*varying_comp_info)[i];
+      if (!vc_info->initialised) {
+         /* Something went wrong, the shader interfaces didn't match, so
+          * abandon packing. This can happen for example when the outputs are
+          * scalars but the inputs are struct members.
+          */
+         *varying_comp_info_size = 0;
+         break;
       }
    }
 }
@@ -647,7 +732,7 @@ compact_components(nir_shader *producer, nir_shader *consumer,
    unsigned varying_comp_info_size;
 
    /* Gather varying component info */
-   gather_varying_component_info(consumer, &varying_comp_info,
+   gather_varying_component_info(producer, consumer, &varying_comp_info,
                                  &varying_comp_info_size,
                                  default_to_smooth_interp);
 

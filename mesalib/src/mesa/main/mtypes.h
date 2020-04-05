@@ -39,6 +39,7 @@
 #include "c11/threads.h"
 
 #include "main/glheader.h"
+#include "main/glthread.h"
 #include "main/menums.h"
 #include "main/config.h"
 #include "glapi/glapi.h"
@@ -459,6 +460,7 @@ struct gl_vertex_format
 {
    GLenum16 Type;        /**< datatype: GL_FLOAT, GL_INT, etc */
    GLenum16 Format;      /**< default: GL_RGBA, but may be GL_BGRA */
+   enum pipe_format _PipeFormat:16; /**< pipe_format for Gallium */
    GLubyte Size:5;       /**< components per element (1,2,3,4) */
    GLubyte Normalized:1; /**< GL_ARB_vertex_program */
    GLubyte Integer:1;    /**< Integer-valued? */
@@ -1546,6 +1548,9 @@ struct gl_vertex_array_object
    /** Mask indicating which vertex arrays have vertex buffer associated. */
    GLbitfield VertexAttribBufferMask;
 
+   /** Mask indicating which vertex arrays have a non-zero instance divisor. */
+   GLbitfield NonZeroDivisorMask;
+
    /** Mask of VERT_BIT_* values indicating which arrays are enabled */
    GLbitfield Enabled;
 
@@ -1557,6 +1562,9 @@ struct gl_vertex_array_object
     * the VAO to Array._DrawVAO.
     */
    GLbitfield _EffEnabledVBO;
+
+   /** Same as _EffEnabledVBO, but for instance divisors. */
+   GLbitfield _EffEnabledNonZeroDivisor;
 
    /** Denotes the way the position/generic0 attribute is mapped */
    gl_attribute_map_mode _AttributeMapMode;
@@ -3167,6 +3175,15 @@ struct gl_shader_compiler_options
                                               * gl_CullDistance together from
                                               * float[8] to vec4[2]
                                               **/
+   GLbitfield LowerBuiltinVariablesXfb;   /**< Which builtin variables should
+                                           * be lowered for transform feedback
+                                           **/
+
+   /**
+    * If we can lower the precision of variables based on precision
+    * qualifiers
+    */
+   GLboolean LowerPrecision;
 
    /**
     * \name Forms of indirect addressing the driver cannot do.
@@ -3968,6 +3985,15 @@ struct gl_constants
    GLboolean DisableVaryingPacking;
 
    /**
+    * Disable varying packing if used for transform feedback.  This is needed
+    * for some drivers (e.g. Panfrost) where transform feedback requires
+    * unpacked varyings.
+    *
+    * This variable is mutually exlusive with DisableVaryingPacking.
+    */
+   GLboolean DisableTransformFeedbackPacking;
+
+   /**
     * UBOs and SSBOs can be packed tightly by the OpenGL implementation when
     * layout is set as shared (the default) or packed. However most Mesa drivers
     * just use STD140 for these layouts. This flag allows drivers to use STD430
@@ -4150,6 +4176,15 @@ struct gl_constants
    /** Wether or not glBitmap uses red textures rather than alpha */
    bool BitmapUsesRed;
 
+   /** Whether the vertex buffer offset is a signed 32-bit integer. */
+   bool VertexBufferOffsetIsInt32;
+
+   /** Whether the driver can handle MultiDrawElements with non-VBO indices. */
+   bool MultiDrawWithUserIndices;
+
+   /** Whether out-of-order draw (Begin/End) optimizations are allowed. */
+   bool AllowDrawOutOfOrder;
+
    /** GL_ARB_gl_spirv */
    struct spirv_supported_capabilities SpirVCapabilities;
 
@@ -4157,6 +4192,9 @@ struct gl_constants
    struct spirv_supported_extensions *SpirVExtensions;
 
    char *VendorOverride;
+
+   /** Buffer size used to upload vertices from glBegin/glEnd. */
+   unsigned glBeginEndBufferSize;
 };
 
 
@@ -4327,6 +4365,7 @@ struct gl_extensions
    GLboolean EXT_texture_filter_anisotropic;
    GLboolean EXT_texture_integer;
    GLboolean EXT_texture_mirror_clamp;
+   GLboolean EXT_texture_norm16;
    GLboolean EXT_texture_shadow_lod;
    GLboolean EXT_texture_shared_exponent;
    GLboolean EXT_texture_snorm;
@@ -4364,6 +4403,7 @@ struct gl_extensions
    GLboolean ATI_texture_env_combine3;
    GLboolean ATI_fragment_shader;
    GLboolean GREMEDY_string_marker;
+   GLboolean INTEL_blackhole_render;
    GLboolean INTEL_conservative_rasterization;
    GLboolean INTEL_performance_query;
    GLboolean INTEL_shader_atomic_float_minmax;
@@ -4383,6 +4423,7 @@ struct gl_extensions
    GLboolean MESA_ycbcr_texture;
    GLboolean NV_compute_shader_derivatives;
    GLboolean NV_conditional_render;
+   GLboolean NV_copy_image;
    GLboolean NV_fill_rectangle;
    GLboolean NV_fog_distance;
    GLboolean NV_point_sprite;
@@ -4556,7 +4597,7 @@ struct gl_dlist_state
    GLvertexformat ListVtxfmt;
 
    GLubyte ActiveAttribSize[VERT_ATTRIB_MAX];
-   GLfloat CurrentAttrib[VERT_ATTRIB_MAX][8];
+   uint32_t CurrentAttrib[VERT_ATTRIB_MAX][8];
 
    GLubyte ActiveMaterialSize[MAT_ATTRIB_MAX];
    GLfloat CurrentMaterial[MAT_ATTRIB_MAX][4];
@@ -4876,7 +4917,7 @@ struct gl_context
 
    /*@}*/
 
-   struct glthread_state *GLThread;
+   struct glthread_state GLThread;
 
    struct gl_config Visual;
    struct gl_framebuffer *DrawBuffer;	/**< buffer for writing */
@@ -5106,6 +5147,7 @@ struct gl_context
    struct gl_driver_flags DriverFlags;
 
    GLboolean ViewportInitialized;  /**< has viewport size been initialized? */
+   GLboolean _AllowDrawOutOfOrder;
 
    GLbitfield varying_vp_inputs;  /**< mask of VERT_BIT_* flags */
 
@@ -5139,6 +5181,8 @@ struct gl_context
    GLboolean ConservativeRasterization; /**< GL_CONSERVATIVE_RASTERIZATION_NV */
    GLfloat ConservativeRasterDilate;
    GLenum16 ConservativeRasterMode;
+
+   GLboolean IntelBlackholeRender; /**< GL_INTEL_blackhole_render */
 
    /** Does glVertexAttrib(0) alias glVertex()? */
    bool _AttribZeroAliasesVertex;

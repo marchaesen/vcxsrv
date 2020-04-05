@@ -48,6 +48,7 @@ struct xwl_screen {
     int height;
     int depth;
     ScreenPtr screen;
+    int wm_client_id;
     int expecting_event;
     enum RootClipMode root_clip_mode;
 
@@ -62,7 +63,9 @@ struct xwl_screen {
     DestroyWindowProcPtr DestroyWindow;
     XYToWindowProcPtr XYToWindow;
     SetWindowPixmapProcPtr SetWindowPixmap;
+    ChangeWindowAttributesProcPtr ChangeWindowAttributes;
     ResizeWindowProcPtr ResizeWindow;
+    MoveWindowProcPtr MoveWindow;
 
     struct xorg_list output_list;
     struct xorg_list seat_list;
@@ -76,7 +79,7 @@ struct xwl_screen {
     struct wl_compositor *compositor;
     struct zwp_tablet_manager_v2 *tablet_manager;
     struct wl_shm *shm;
-    struct wl_shell *shell;
+    struct xdg_wm_base *xdg_wm_base;
     struct zwp_relative_pointer_manager_v1 *relative_pointer_manager;
     struct zwp_pointer_constraints_v1 *pointer_constraints;
     struct zwp_xwayland_keyboard_grab_manager_v1 *wp_grab;

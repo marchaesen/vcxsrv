@@ -75,6 +75,7 @@ REAL_FUNCTION_POINTER(opendir);
 REAL_FUNCTION_POINTER(readdir);
 REAL_FUNCTION_POINTER(readdir64);
 REAL_FUNCTION_POINTER(readlink);
+REAL_FUNCTION_POINTER(realpath);
 REAL_FUNCTION_POINTER(__xstat);
 REAL_FUNCTION_POINTER(__xstat64);
 REAL_FUNCTION_POINTER(__fxstat);
@@ -84,6 +85,8 @@ REAL_FUNCTION_POINTER(__fxstat64);
 static char *render_node_path;
 /* renderD* */
 static char *render_node_dirent_name;
+/* /sys/dev/char/major:minor/device */
+static char *device_path;
 /* /sys/dev/char/major:minor/device/subsystem */
 static char *subsystem_path;
 int render_node_minor = -1;
@@ -187,6 +190,7 @@ init_shim(void)
    GET_FUNCTION_POINTER(readdir);
    GET_FUNCTION_POINTER(readdir64);
    GET_FUNCTION_POINTER(readlink);
+   GET_FUNCTION_POINTER(realpath);
    GET_FUNCTION_POINTER(__xstat);
    GET_FUNCTION_POINTER(__xstat64);
    GET_FUNCTION_POINTER(__fxstat);
@@ -198,6 +202,10 @@ init_shim(void)
       fprintf(stderr, "Initializing DRM shim on %s\n",
               render_node_path);
    }
+
+   asprintf(&device_path,
+            "/sys/dev/char/%d:%d/device",
+            DRM_MAJOR, render_node_minor);
 
    asprintf(&subsystem_path,
             "/sys/dev/char/%d:%d/device/subsystem",
@@ -452,10 +460,42 @@ readlink(const char *path, char *buf, size_t size)
 
    if (strcmp(path, subsystem_path) != 0)
       return real_readlink(path, buf, size);
-   strncpy(buf, "/platform", size);
-   buf[size - 1] = 0;
+
+   static const struct {
+      const char *name;
+      int bus_type;
+   } bus_types[] = {
+      { "/pci", DRM_BUS_PCI },
+      { "/usb", DRM_BUS_USB },
+      { "/platform", DRM_BUS_PLATFORM },
+      { "/spi", DRM_BUS_PLATFORM },
+      { "/host1x", DRM_BUS_HOST1X },
+   };
+
+   for (uint32_t i = 0; i < ARRAY_SIZE(bus_types); i++) {
+      if (bus_types[i].bus_type != shim_device.bus_type)
+         continue;
+
+      strncpy(buf, bus_types[i].name, size);
+      buf[size - 1] = 0;
+      break;
+   }
 
    return strlen(buf) + 1;
+}
+
+/* Handles libdrm's realpath to figure out what kind of device we have. */
+PUBLIC char *
+realpath(const char *path, char *resolved_path)
+{
+   init_shim();
+
+   if (strcmp(path, device_path) != 0)
+      return real_realpath(path, resolved_path);
+
+   strcpy(resolved_path, path);
+
+   return resolved_path;
 }
 
 /* Main entrypoint to DRM drivers: the ioctl syscall.  We send all ioctls on

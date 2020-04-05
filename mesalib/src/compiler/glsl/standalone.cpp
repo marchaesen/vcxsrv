@@ -446,6 +446,14 @@ standalone_compile_shader(const struct standalone_options *_options,
       initialize_context(ctx, options->glsl_version > 130 ? API_OPENGL_CORE : API_OPENGL_COMPAT);
    }
 
+   if (options->lower_precision) {
+      for (unsigned i = MESA_SHADER_VERTEX; i <= MESA_SHADER_FRAGMENT; i++) {
+         struct gl_shader_compiler_options *options =
+            &ctx->Const.ShaderCompilerOptions[i];
+         options->LowerPrecision = true;
+      }
+   }
+
    struct gl_shader_program *whole_program;
 
    whole_program = rzalloc (NULL, struct gl_shader_program);

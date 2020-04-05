@@ -53,7 +53,7 @@
    <function name="UniformHandleui64vARB">
       <param name="location" type="GLint" />
       <param name="count" type="GLsizei" />
-      <param name="value" type="const GLuint64 *" />
+      <param name="value" type="const GLuint64 *" count="count"/>
    </function>
 
    <function name="ProgramUniformHandleui64ARB">
@@ -66,7 +66,7 @@
       <param name="program" type="GLuint" />
       <param name="location" type="GLint" />
       <param name="count" type="GLsizei" />
-      <param name="value" type="const GLuint64 *" />
+      <param name="value" type="const GLuint64 *" count="count"/>
    </function>
 
    <function name="IsTextureHandleResidentARB" no_error="true">
@@ -86,7 +86,7 @@
 
    <function name="VertexAttribL1ui64vARB" exec="dynamic">
       <param name="index" type="GLuint" />
-      <param name="v" type="const GLuint64EXT *" />
+      <param name="v" type="const GLuint64EXT *" count="1"/>
    </function>
 
    <function name="GetVertexAttribLui64vARB">

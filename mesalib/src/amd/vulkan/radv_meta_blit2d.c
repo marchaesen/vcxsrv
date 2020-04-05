@@ -299,19 +299,21 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer,
 					}
 				}
 
-				radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
-							&(VkRenderPassBeginInfo) {
-								.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+				radv_cmd_buffer_begin_render_pass(cmd_buffer,
+								  &(VkRenderPassBeginInfo) {
+									.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 									.renderPass = device->meta_state.blit2d_render_passes[fs_key][dst_layout],
 									.framebuffer = dst_temps.fb,
 									.renderArea = {
-									.offset = { rects[r].dst_x, rects[r].dst_y, },
-									.extent = { rects[r].width, rects[r].height },
-								},
+										.offset = { rects[r].dst_x, rects[r].dst_y, },
+										.extent = { rects[r].width, rects[r].height },
+									},
 									.clearValueCount = 0,
-										.pClearValues = NULL,
-										}, VK_SUBPASS_CONTENTS_INLINE);
+									.pClearValues = NULL,
+								  });
 
+				radv_cmd_buffer_set_subpass(cmd_buffer,
+							    &cmd_buffer->state.pass->subpasses[0]);
 
 				bind_pipeline(cmd_buffer, src_type, fs_key, log2_samples);
 			} else if (aspect_mask == VK_IMAGE_ASPECT_DEPTH_BIT) {
@@ -325,19 +327,21 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer,
 					}
 				}
 
-				radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
-							&(VkRenderPassBeginInfo) {
-								.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+				radv_cmd_buffer_begin_render_pass(cmd_buffer,
+								  &(VkRenderPassBeginInfo) {
+									.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 									.renderPass = device->meta_state.blit2d_depth_only_rp[ds_layout],
 									.framebuffer = dst_temps.fb,
 									.renderArea = {
-									.offset = { rects[r].dst_x, rects[r].dst_y, },
-									.extent = { rects[r].width, rects[r].height },
-								},
+										.offset = { rects[r].dst_x, rects[r].dst_y, },
+										.extent = { rects[r].width, rects[r].height },
+									},
 									.clearValueCount = 0,
-										.pClearValues = NULL,
-										}, VK_SUBPASS_CONTENTS_INLINE);
+									.pClearValues = NULL,
+								  });
 
+				radv_cmd_buffer_set_subpass(cmd_buffer,
+							    &cmd_buffer->state.pass->subpasses[0]);
 
 				bind_depth_pipeline(cmd_buffer, src_type, log2_samples);
 
@@ -352,19 +356,21 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer,
 					}
 				}
 
-				radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
-							&(VkRenderPassBeginInfo) {
-								.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+				radv_cmd_buffer_begin_render_pass(cmd_buffer,
+								  &(VkRenderPassBeginInfo) {
+									.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 									.renderPass = device->meta_state.blit2d_stencil_only_rp[ds_layout],
 									.framebuffer = dst_temps.fb,
 									.renderArea = {
-									.offset = { rects[r].dst_x, rects[r].dst_y, },
-									.extent = { rects[r].width, rects[r].height },
-								},
+										.offset = { rects[r].dst_x, rects[r].dst_y, },
+										.extent = { rects[r].width, rects[r].height },
+									},
 									.clearValueCount = 0,
-										.pClearValues = NULL,
-										}, VK_SUBPASS_CONTENTS_INLINE);
+									.pClearValues = NULL,
+								   });
 
+				radv_cmd_buffer_set_subpass(cmd_buffer,
+							    &cmd_buffer->state.pass->subpasses[0]);
 
 				bind_stencil_pipeline(cmd_buffer, src_type, log2_samples);
 			} else
@@ -387,7 +393,7 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer,
 
 
 			radv_CmdDraw(radv_cmd_buffer_to_handle(cmd_buffer), 3, 1, 0, 0);
-			radv_CmdEndRenderPass(radv_cmd_buffer_to_handle(cmd_buffer));
+			radv_cmd_buffer_end_render_pass(cmd_buffer);
 
 fail_pipeline:
 			/* At the point where we emit the draw call, all data from the

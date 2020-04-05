@@ -62,7 +62,8 @@ radv_init_trace(struct radv_device *device)
 	device->trace_bo = ws->buffer_create(ws, TRACE_BO_SIZE, 8,
 					     RADEON_DOMAIN_VRAM,
 					     RADEON_FLAG_CPU_ACCESS|
-					     RADEON_FLAG_NO_INTERPROCESS_SHARING,
+					     RADEON_FLAG_NO_INTERPROCESS_SHARING |
+					     RADEON_FLAG_ZERO_VRAM,
 					     RADV_BO_PRIORITY_UPLOAD_BUFFER);
 	if (!device->trace_bo)
 		return false;
@@ -70,8 +71,6 @@ radv_init_trace(struct radv_device *device)
 	device->trace_id_ptr = ws->buffer_map(device->trace_bo);
 	if (!device->trace_id_ptr)
 		return false;
-
-	memset(device->trace_id_ptr, 0, TRACE_BO_SIZE);
 
 	ac_vm_fault_occured(device->physical_device->rad_info.chip_class,
 			    &device->dmesg_timestamp, NULL);

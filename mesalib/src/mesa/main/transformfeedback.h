@@ -28,7 +28,7 @@
 
 #include <stdbool.h>
 #include "bufferobj.h"
-#include "compiler.h"
+#include "util/compiler.h"
 #include "glheader.h"
 #include "mtypes.h"
 

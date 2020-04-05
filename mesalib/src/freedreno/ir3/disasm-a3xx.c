@@ -247,12 +247,13 @@ static void print_instr_cat1(struct disasm_ctx *ctx, instr_t *instr)
 		 * libllvm-a3xx...
 		 */
 		char type = cat1->src_rel_c ? 'c' : 'r';
+		const char *full = (type_size(cat1->src_type) == 32) ? "" : "h";
 		if (cat1->off < 0)
-			fprintf(ctx->out, "%c<a0.x - %d>", type, -cat1->off);
+			fprintf(ctx->out, "%s%c<a0.x - %d>", full, type, -cat1->off);
 		else if (cat1->off > 0)
-			fprintf(ctx->out, "%c<a0.x + %d>", type, cat1->off);
+			fprintf(ctx->out, "%s%c<a0.x + %d>", full, type, cat1->off);
 		else
-			fprintf(ctx->out, "%c<a0.x>", type);
+			fprintf(ctx->out, "%s%c<a0.x>", full, type);
 	} else {
 		print_reg_src(ctx, (reg_t)(cat1->src), type_size(cat1->src_type) == 32,
 				cat1->src_r, cat1->src_c, cat1->src_im, false, false, false);

@@ -36,8 +36,53 @@
 #include "vulkan/radv_shader.h"
 
 namespace aco {
-namespace {
+RegisterDemand get_live_changes(aco_ptr<Instruction>& instr)
+{
+   RegisterDemand changes;
+   for (const Definition& def : instr->definitions) {
+      if (!def.isTemp() || def.isKill())
+         continue;
+      changes += def.getTemp();
+   }
 
+   for (const Operand& op : instr->operands) {
+      if (!op.isTemp() || !op.isFirstKill())
+         continue;
+      changes -= op.getTemp();
+   }
+
+   return changes;
+}
+
+RegisterDemand get_temp_registers(aco_ptr<Instruction>& instr)
+{
+   RegisterDemand temp_registers;
+
+   for (Definition def : instr->definitions) {
+      if (!def.isTemp())
+         continue;
+      if (def.isKill())
+         temp_registers += def.getTemp();
+   }
+
+   for (Operand op : instr->operands) {
+      if (op.isTemp() && op.isLateKill() && op.isFirstKill())
+         temp_registers += op.getTemp();
+   }
+
+   return temp_registers;
+}
+
+RegisterDemand get_demand_before(RegisterDemand demand, aco_ptr<Instruction>& instr, aco_ptr<Instruction>& instr_before)
+{
+   demand -= get_live_changes(instr);
+   demand -= get_temp_registers(instr);
+   if (instr_before)
+      demand += get_temp_registers(instr_before);
+   return demand;
+}
+
+namespace {
 void process_live_temps_per_block(Program *program, live& lives, Block* block,
                                   std::set<unsigned>& worklist, std::vector<uint16_t>& phi_sgpr_ops)
 {
@@ -87,6 +132,8 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
          if (!definition.isTemp()) {
             continue;
          }
+         if ((definition.isFixed() || definition.hasHint()) && definition.physReg() == vcc)
+            program->needs_vcc = true;
 
          const Temp temp = definition.getTemp();
          size_t n = 0;
@@ -120,9 +167,10 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
          for (unsigned i = 0; i < insn->operands.size(); ++i)
          {
             Operand& operand = insn->operands[i];
-            if (!operand.isTemp()) {
+            if (!operand.isTemp())
                continue;
-            }
+            if (operand.isFixed() && operand.physReg() == vcc)
+               program->needs_vcc = true;
             const Temp temp = operand.getTemp();
             const bool inserted = temp.is_linear()
                                 ? live_sgprs.insert(temp).second
@@ -135,6 +183,8 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
                      insn->operands[j].setKill(true);
                   }
                }
+               if (operand.isLateKill())
+                  register_demand[idx] += temp;
                new_demand += temp;
             }
 
@@ -161,6 +211,8 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
       assert(is_phi(insn));
       assert(insn->definitions.size() == 1 && insn->definitions[0].isTemp());
       Definition& definition = insn->definitions[0];
+      if ((definition.isFixed() || definition.hasHint()) && definition.physReg() == vcc)
+         program->needs_vcc = true;
       const Temp temp = definition.getTemp();
       size_t n = 0;
 
@@ -205,9 +257,10 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
                                    : block->linear_preds;
       for (unsigned i = 0; i < preds.size(); ++i) {
          Operand &operand = insn->operands[i];
-         if (!operand.isTemp()) {
+         if (!operand.isTemp())
             continue;
-         }
+         if (operand.isFixed() && operand.physReg() == vcc)
+            program->needs_vcc = true;
          /* check if we changed an already processed block */
          const bool inserted = live_temps[preds[i]].insert(operand.getTemp()).second;
          if (inserted) {
@@ -220,7 +273,8 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
       phi_idx--;
    }
 
-   if (!(block->index != 0 || (live_vgprs.empty() && live_sgprs.empty()))) {
+   if ((block->logical_preds.empty() && !live_vgprs.empty()) ||
+       (block->linear_preds.empty() && !live_sgprs.empty())) {
       aco_print_program(program, stderr);
       fprintf(stderr, "These temporaries are never defined or are defined after use:\n");
       for (Temp vgpr : live_vgprs)
@@ -235,11 +289,11 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
 
 unsigned calc_waves_per_workgroup(Program *program)
 {
-   unsigned workgroup_size = program->wave_size;
-   if (program->stage == compute_cs) {
-      unsigned* bsize = program->info->cs.block_size;
-      workgroup_size = bsize[0] * bsize[1] * bsize[2];
-   }
+   /* When workgroup size is not known, just go with wave_size */
+   unsigned workgroup_size = program->workgroup_size == UINT_MAX
+                             ? program->wave_size
+                             : program->workgroup_size;
+
    return align(workgroup_size, program->wave_size) / program->wave_size;
 }
 } /* end namespace */
@@ -248,19 +302,19 @@ uint16_t get_extra_sgprs(Program *program)
 {
    if (program->chip_class >= GFX10) {
       assert(!program->needs_flat_scr);
-      assert(!program->needs_xnack_mask);
+      assert(!program->xnack_enabled);
       return 2;
    } else if (program->chip_class >= GFX8) {
       if (program->needs_flat_scr)
          return 6;
-      else if (program->needs_xnack_mask)
+      else if (program->xnack_enabled)
          return 4;
       else if (program->needs_vcc)
          return 2;
       else
          return 0;
    } else {
-      assert(!program->needs_xnack_mask);
+      assert(!program->xnack_enabled);
       if (program->needs_flat_scr)
          return 4;
       else if (program->needs_vcc)
@@ -362,6 +416,8 @@ live live_var_analysis(Program* program,
    std::set<unsigned> worklist;
    std::vector<uint16_t> phi_sgpr_ops(program->blocks.size());
    RegisterDemand new_demand;
+
+   program->needs_vcc = false;
 
    /* this implementation assumes that the block idx corresponds to the block's position in program->blocks vector */
    for (Block& block : program->blocks)

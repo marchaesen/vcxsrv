@@ -44,7 +44,7 @@
 static int expected_x = SPRITE_X;
 static int expected_y = SPRITE_Y;
 
-ClientRec client_window;
+extern ClientRec client_window;
 
 /**
  * This function overrides the one in the screen rec.

@@ -51,7 +51,7 @@
 #include <stdio.h>
 
 /* Future improvement: Use realloc instead? */
-#define DEBUG_FLUSH_MAP_DEPTH 16
+#define DEBUG_FLUSH_MAP_DEPTH 32
 
 struct debug_map_item {
    struct debug_stack_frame *frame;
@@ -82,7 +82,7 @@ struct debug_flush_ctx {
    /* Contexts are used by a single thread at a time */
    unsigned bt_depth;
    boolean catch_map_of_referenced;
-   struct util_hash_table *ref_hash;
+   struct hash_table *ref_hash;
    struct list_head head;
 };
 
@@ -100,18 +100,6 @@ debug_flush_capture_frame(int start, int depth)
 
    debug_backtrace_capture(frames, start, depth);
    return frames;
-}
-
-static int
-debug_flush_pointer_compare(void *key1, void *key2)
-{
-   return (key1 == key2) ? 0 : 1;
-}
-
-static unsigned
-debug_flush_pointer_hash(void *key)
-{
-   return (unsigned) (uintptr_t) key;
 }
 
 struct debug_flush_buf *
@@ -171,8 +159,7 @@ debug_flush_ctx_create(UNUSED boolean catch_reference_of_mapped,
    if (!fctx)
       goto out_no_ctx;
 
-   fctx->ref_hash = util_hash_table_create(debug_flush_pointer_hash,
-                                           debug_flush_pointer_compare);
+   fctx->ref_hash = util_hash_table_create_ptr_keys();
 
    if (!fctx->ref_hash)
       goto out_no_ref_hash;
@@ -336,10 +323,7 @@ debug_flush_cb_reference(struct debug_flush_ctx *fctx,
          debug_flush_buf_reference(&item->fbuf, fbuf);
          item->bt_depth = fctx->bt_depth;
          item->ref_frame = debug_flush_capture_frame(2, item->bt_depth);
-         if (util_hash_table_set(fctx->ref_hash, fbuf, item) != PIPE_OK) {
-            debug_flush_item_destroy(item);
-            goto out_no_item;
-         }
+         _mesa_hash_table_insert(fctx->ref_hash, fbuf, item);
          return;
       }
       goto out_no_item;
@@ -422,7 +406,7 @@ debug_flush_flush(struct debug_flush_ctx *fctx)
    util_hash_table_foreach(fctx->ref_hash,
                            debug_flush_flush_cb,
                            NULL);
-   util_hash_table_clear(fctx->ref_hash);
+   _mesa_hash_table_clear(fctx->ref_hash, NULL);
 }
 
 void
@@ -435,8 +419,8 @@ debug_flush_ctx_destroy(struct debug_flush_ctx *fctx)
    util_hash_table_foreach(fctx->ref_hash,
                            debug_flush_flush_cb,
                            NULL);
-   util_hash_table_clear(fctx->ref_hash);
-   util_hash_table_destroy(fctx->ref_hash);
+   _mesa_hash_table_clear(fctx->ref_hash, NULL);
+   _mesa_hash_table_destroy(fctx->ref_hash, NULL);
    FREE(fctx);
 }
 #endif

@@ -32,7 +32,7 @@
 static PFN_vkVoidFunction
 radv_wsi_proc_addr(VkPhysicalDevice physicalDevice, const char *pName)
 {
-	return radv_lookup_entrypoint_unchecked(pName);
+	return radv_lookup_entrypoint(pName);
 }
 
 VkResult
@@ -276,9 +276,9 @@ VkResult radv_QueuePresentKHR(
 	RADV_FROM_HANDLE(radv_queue, queue, _queue);
 	return wsi_common_queue_present(&queue->device->physical_device->wsi_device,
 					radv_device_to_handle(queue->device),
-					_queue,
-					queue->queue_family_index,
-					pPresentInfo);
+				        _queue,
+				        queue->queue_family_index,
+				        pPresentInfo);
 }
 
 

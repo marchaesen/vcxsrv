@@ -59,6 +59,11 @@ conservative_raster_parameter(GLenum pname, GLfloat param,
          _mesa_error(ctx, GL_INVALID_VALUE, "%s(param=%g)", func, param);
          return;
       }
+
+      FLUSH_VERTICES(ctx, 0);
+      ctx->NewDriverState |=
+         ctx->DriverFlags.NewNvConservativeRasterizationParams;
+
       ctx->ConservativeRasterDilate =
          CLAMP(param,
                ctx->Const.ConservativeRasterDilateRange[0],
@@ -74,16 +79,17 @@ conservative_raster_parameter(GLenum pname, GLfloat param,
                      "%s(pname=%s)", func, _mesa_enum_to_string(param));
          return;
       }
+
+      FLUSH_VERTICES(ctx, 0);
+      ctx->NewDriverState |=
+         ctx->DriverFlags.NewNvConservativeRasterizationParams;
+
       ctx->ConservativeRasterMode = param;
       break;
    default:
       goto invalid_pname_enum;
       break;
    }
-
-   FLUSH_VERTICES(ctx, 0);
-   ctx->NewDriverState |=
-      ctx->DriverFlags.NewNvConservativeRasterizationParams;
 
    return;
 invalid_pname_enum:

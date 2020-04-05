@@ -71,7 +71,6 @@ if env['msvc']:
 
 # Copy these files to avoid generation object files into src/mesa/program
 env.Prepend(CPPPATH = ['#src/mesa/main'])
-env.Command('glsl/imports.c', '#src/mesa/main/imports.c', Copy('$TARGET', '$SOURCE'))
 env.Command('glsl/extensions_table.c', '#src/mesa/main/extensions_table.c', Copy('$TARGET', '$SOURCE'))
 # Copy these files to avoid generation object files into src/mesa/program
 env.Prepend(CPPPATH = ['#src/mesa/program'])
@@ -82,7 +81,6 @@ compiler_objs = env.StaticObject(source_lists['GLSL_COMPILER_CXX_FILES'])
 
 mesa_objs = env.StaticObject([
     'glsl/extensions_table.c',
-    'glsl/imports.c',
     'glsl/symbol_table.c',
     'glsl/dummy_errors.c',
 ])

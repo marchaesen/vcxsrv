@@ -85,19 +85,19 @@ void
 st_destroy_clear(struct st_context *st)
 {
    if (st->clear.fs) {
-      cso_delete_fragment_shader(st->cso_context, st->clear.fs);
+      st->pipe->delete_fs_state(st->pipe, st->clear.fs);
       st->clear.fs = NULL;
    }
    if (st->clear.vs) {
-      cso_delete_vertex_shader(st->cso_context, st->clear.vs);
+      st->pipe->delete_vs_state(st->pipe, st->clear.vs);
       st->clear.vs = NULL;
    }
    if (st->clear.vs_layered) {
-      cso_delete_vertex_shader(st->cso_context, st->clear.vs_layered);
+      st->pipe->delete_vs_state(st->pipe, st->clear.vs_layered);
       st->clear.vs_layered = NULL;
    }
    if (st->clear.gs_layered) {
-      cso_delete_geometry_shader(st->cso_context, st->clear.gs_layered);
+      st->pipe->delete_gs_state(st->pipe, st->clear.gs_layered);
       st->clear.gs_layered = NULL;
    }
 }
@@ -321,7 +321,9 @@ clear_with_quad(struct gl_context *ctx, unsigned clear_buffers)
       cso_set_depth_stencil_alpha(cso, &depth_stencil);
    }
 
-   cso_set_vertex_elements(cso, 2, st->util_velems);
+   st->util_velems.count = 2;
+   cso_set_vertex_elements(cso, &st->util_velems);
+
    cso_set_stream_outputs(cso, 0, NULL, NULL);
    cso_set_sample_mask(cso, ~0);
    cso_set_min_samples(cso, 1);

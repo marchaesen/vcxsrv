@@ -27,6 +27,7 @@
 #include <dix-config.h>
 #endif
 
+#include <ctype.h>
 #include <stdint.h>
 #include <errno.h>
 #include <dlfcn.h>
@@ -321,6 +322,15 @@ glxProbeDriver(const char *driverName,
     if (asprintf(&get_extensions_name, "%s_%s",
                  __DRI_DRIVER_GET_EXTENSIONS, driverName) != -1) {
         const __DRIextension **(*get_extensions)(void);
+
+        for (i = 0; i < strlen(get_extensions_name); i++) {
+            /* Replace all non-alphanumeric characters with underscore,
+             * since they are not allowed in C symbol names. That fixes up
+             * symbol name for drivers with '-drm' suffix
+             */
+            if (!isalnum(get_extensions_name[i]))
+                get_extensions_name[i] = '_';
+        }
 
         get_extensions = dlsym(driver, get_extensions_name);
         if (get_extensions)

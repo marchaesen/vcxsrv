@@ -234,7 +234,7 @@
     <function name="TexParameterxvOES" es1="1.0" alias="TexParameterxv">
         <param name="target" type="GLenum"/>
         <param name="pname" type="GLenum"/>
-        <param name="params" type="const GLfixed *"/>
+        <param name="params" type="const GLfixed *" count="_mesa_tex_param_enum_to_count(pname)"/>
     </function>
 
     <!-- texgen -->
@@ -254,7 +254,8 @@
     <function name="TexGenxvOES" es1="1.0" desktop="false">
         <param name="coord" type="GLenum"/>
         <param name="pname" type="GLenum"/>
-        <param name="params" type="const GLfixed *" variable_param="pname"/>
+        <param name="params" type="const GLfixed *" variable_param="pname"
+               marshal_count="_mesa_texgen_enum_to_count(pname)"/>
     </function>
 </category>
 

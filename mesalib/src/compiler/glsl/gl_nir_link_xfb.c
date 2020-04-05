@@ -28,11 +28,8 @@
 #include "main/context.h"
 #include "util/u_math.h"
 
-/*
+/**
  * This file does the linking of GLSL transform feedback using NIR.
- *
- * Note: This linking pass is currently tailored for ARB_gl_spirv needs and
- * particularities.
  */
 
 void

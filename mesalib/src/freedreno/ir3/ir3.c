@@ -462,24 +462,17 @@ static int emit_cat5(struct ir3_instruction *instr, void *ptr,
 	struct ir3_register *src2;
 	instr_cat5_t *cat5 = ptr;
 
-	iassert((instr->regs_count == 2) ||
-			(instr->regs_count == 3) || (instr->regs_count == 4));
+	iassert((instr->regs_count == 1) ||
+			(instr->regs_count == 2) ||
+			(instr->regs_count == 3) ||
+			(instr->regs_count == 4));
 
-	switch (instr->opc) {
-	case OPC_DSX:
-	case OPC_DSXPP_1:
-	case OPC_DSY:
-	case OPC_DSYPP_1:
-	case OPC_RGETPOS:
-	case OPC_RGETINFO:
-		iassert((instr->flags & IR3_INSTR_S2EN) == 0);
-		src1 = instr->regs[1];
-		src2 = instr->regs_count > 2 ? instr->regs[2] : NULL;
-		break;
-	default:
+	if (instr->flags & IR3_INSTR_S2EN) {
 		src1 = instr->regs[2];
 		src2 = instr->regs_count > 3 ? instr->regs[3] : NULL;
-		break;
+	} else {
+		src1 = instr->regs_count > 1 ? instr->regs[1] : NULL;
+		src2 = instr->regs_count > 2 ? instr->regs[2] : NULL;
 	}
 
 	assume(src1 || !src2);
@@ -918,6 +911,8 @@ void * ir3_assemble(struct ir3 *shader, struct ir3_info *info,
 	ptr = dwords = calloc(4, info->sizedwords);
 
 	foreach_block (block, &shader->block_list) {
+		unsigned sfu_delay = 0;
+
 		foreach_instr (instr, &block->instr_list) {
 			int ret = emit[opc_cat(instr->opc)](instr, dwords, info);
 			if (ret)
@@ -932,11 +927,19 @@ void * ir3_assemble(struct ir3 *shader, struct ir3_info *info,
 				info->nops_count += 1 + instr->repeat;
 			dwords += 2;
 
-			if (instr->flags & IR3_INSTR_SS)
+			if (instr->flags & IR3_INSTR_SS) {
 				info->ss++;
+				info->sstall += sfu_delay;
+			}
 
 			if (instr->flags & IR3_INSTR_SY)
 				info->sy++;
+
+			if (is_sfu(instr)) {
+				sfu_delay = 10;
+			} else if (sfu_delay > 0) {
+				sfu_delay--;
+			}
 		}
 	}
 
@@ -1105,7 +1108,7 @@ ir3_clear_mark(struct ir3 *ir)
 unsigned
 ir3_count_instructions(struct ir3 *ir)
 {
-	unsigned cnt = 0;
+	unsigned cnt = 1;
 	foreach_block (block, &ir->block_list) {
 		block->start_ip = cnt;
 		block->end_ip = cnt;
@@ -1124,4 +1127,28 @@ ir3_lookup_array(struct ir3 *ir, unsigned id)
 		if (arr->id == id)
 			return arr;
 	return NULL;
+}
+
+void
+ir3_find_ssa_uses(struct ir3 *ir, void *mem_ctx)
+{
+	/* We could do this in a single pass if we can assume instructions
+	 * are always sorted.  Which currently might not always be true.
+	 * (In particular after ir3_group pass, but maybe other places.)
+	 */
+	foreach_block (block, &ir->block_list)
+		foreach_instr (instr, &block->instr_list)
+			instr->uses = NULL;
+
+	foreach_block (block, &ir->block_list) {
+		foreach_instr (instr, &block->instr_list) {
+			struct ir3_instruction *src;
+
+			foreach_ssa_src (src, instr) {
+				if (!src->uses)
+					src->uses = _mesa_pointer_set_create(mem_ctx);
+				_mesa_set_add(src->uses, instr);
+			}
+		}
+	}
 }

@@ -140,6 +140,9 @@ void print_asm(Program *program, std::vector<uint32_t>& binary,
       if (!l && program->chip_class == GFX9 && ((binary[pos] & 0xffff8000) == 0xd1348000)) { /* not actually an invalid instruction */
          out << std::left << std::setw(align_width) << std::setfill(' ') << "\tv_add_u32_e64 + clamp";
          new_pos = pos + 2;
+      } else if (program->chip_class == GFX10 && l == 4 && ((binary[pos] & 0xfe0001ff) == 0x020000f9)) {
+         out << std::left << std::setw(align_width) << std::setfill(' ') << "\tv_cndmask_b32 + sdwa";
+         new_pos = pos + 2;
       } else if (!l) {
          out << std::left << std::setw(align_width) << std::setfill(' ') << "(invalid instruction)";
          new_pos = pos + 1;

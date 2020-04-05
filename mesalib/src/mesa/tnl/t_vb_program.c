@@ -33,7 +33,7 @@
 
 #include "main/glheader.h"
 #include "main/macros.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/samplerobj.h"
 #include "main/state.h"
 #include "math/m_xform.h"

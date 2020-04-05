@@ -52,6 +52,25 @@ typedef enum {
         midgard_alu_lut
 } midgard_alu;
 
+enum {
+        TAG_INVALID = 0x0,
+        TAG_BREAK = 0x1,
+        TAG_TEXTURE_4_VTX = 0x2,
+        TAG_TEXTURE_4 = 0x3,
+        TAG_TEXTURE_4_BARRIER = 0x4,
+        TAG_LOAD_STORE_4 = 0x5,
+        TAG_UNKNOWN_1 = 0x6,
+        TAG_UNKNOWN_2 = 0x7,
+        TAG_ALU_4 = 0x8,
+        TAG_ALU_8 = 0x9,
+        TAG_ALU_12 = 0xA,
+        TAG_ALU_16 = 0xB,
+        TAG_ALU_4_WRITEOUT = 0xC,
+        TAG_ALU_8_WRITEOUT = 0xD,
+        TAG_ALU_12_WRITEOUT = 0xE,
+        TAG_ALU_16_WRITEOUT = 0xF
+};
+
 /*
  * ALU words
  */
@@ -188,9 +207,9 @@ typedef enum {
 
 typedef enum {
         midgard_outmod_none = 0,
-        midgard_outmod_pos  = 1,
-        /* 0x2 unknown */
-        midgard_outmod_sat  = 3
+        midgard_outmod_pos  = 1, /* max(x, 0.0) */
+        midgard_outmod_one  = 2, /* clamp(x, -1.0, 1.0) */
+        midgard_outmod_sat  = 3 /* clamp(x, 0.0, 1.0) */
 } midgard_outmod_float;
 
 typedef enum {
@@ -612,6 +631,9 @@ midgard_tex_register_select;
 #define TEXTURE_OP_LOD 0x12             /* textureLod */
 #define TEXTURE_OP_TEXEL_FETCH 0x14     /* texelFetch */
 
+/* Implements barrier() */
+#define TEXTURE_OP_BARRIER 0x0B
+
 /* Computes horizontal and vertical derivatives respectively. Use with a float
  * sampler and a "2D" texture.  Leave texture/sampler IDs as zero; they ought
  * to be ignored. Only works for fp32 on 64-bit at a time, so derivatives of a
@@ -690,9 +712,15 @@ __attribute__((__packed__))
         midgard_outmod_float outmod  : 2;
 
         unsigned swizzle  : 8;
-        unsigned unknown4  : 8;
 
-        unsigned unknownA  : 4;
+        /* For barriers, control barriers are implied regardless, but these
+         * bits also enable memory barriers of various types. For regular
+         * textures, these bits are not yet understood. */
+        unsigned barrier_buffer : 1;
+        unsigned barrier_shared : 1;
+        unsigned barrier_stack  : 1;
+
+        unsigned unknown4  : 9;
 
         /* In immediate mode, each offset field is an immediate range [0, 7].
          *
@@ -742,9 +770,33 @@ __attribute__((__packed__))
 }
 midgard_texture_word;
 
-/* Up to 16 constant bytes can be embedded in a bundle. This union describes
- * all possible layouts.
- */
+/* Technically barriers are texture instructions but it's less work to add them
+ * as an explicitly zeroed special case, since most fields are forced to go to
+ * zero */
+
+typedef struct
+__attribute__((__packed__))
+{
+        unsigned type      : 4;
+        unsigned next_type : 4;
+
+        /* op = TEXTURE_OP_BARRIER */
+        unsigned op  : 6;
+        unsigned zero1    : 2;
+
+        /* Since helper invocations don't make any sense, these are forced to one */
+        unsigned cont  : 1;
+        unsigned last  : 1;
+        unsigned zero2 : 14;
+
+        unsigned zero3 : 24;
+        unsigned buffer : 1;
+        unsigned shared : 1;
+        unsigned stack  : 1;
+        unsigned zero4 : 5;
+
+        uint64_t zero5;
+} midgard_texture_barrier_word;
 
 typedef union midgard_constants {
         double f64[2];

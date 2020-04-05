@@ -194,7 +194,7 @@
    <function name="NamedFramebufferDrawBuffers" no_error="true">
       <param name="framebuffer" type="GLuint" />
       <param name="n" type="GLsizei" />
-      <param name="bufs" type="const GLenum *" />
+      <param name="bufs" type="const GLenum *" count="n"/>
    </function>
 
    <function name="NamedFramebufferReadBuffer" no_error="true">
@@ -205,13 +205,13 @@
    <function name="InvalidateNamedFramebufferData">
       <param name="framebuffer" type="GLuint" />
       <param name="numAttachments" type="GLsizei" />
-      <param name="attachments" type="const GLenum *" />
+      <param name="attachments" type="const GLenum *" count="numAttachments"/>
    </function>
 
    <function name="InvalidateNamedFramebufferSubData">
       <param name="framebuffer" type="GLuint" />
       <param name="numAttachments" type="GLsizei" />
-      <param name="attachments" type="const GLenum *" />
+      <param name="attachments" type="const GLenum *" count="numAttachments"/>
       <param name="x" type="GLint" />
       <param name="y" type="GLint" />
       <param name="width" type="GLsizei" />
@@ -222,21 +222,21 @@
       <param name="framebuffer" type="GLuint" />
       <param name="buffer" type="GLenum" />
       <param name="drawbuffer" type="GLint" />
-      <param name="value" type="const GLint *" />
+      <param name="value" type="const GLint *" count="_mesa_buffer_enum_to_count(buffer)"/>
    </function>
 
    <function name="ClearNamedFramebufferuiv">
       <param name="framebuffer" type="GLuint" />
       <param name="buffer" type="GLenum" />
       <param name="drawbuffer" type="GLint" />
-      <param name="value" type="const GLuint *" />
+      <param name="value" type="const GLuint *" count="_mesa_buffer_enum_to_count(buffer)"/>
    </function>
 
    <function name="ClearNamedFramebufferfv">
       <param name="framebuffer" type="GLuint" />
       <param name="buffer" type="GLenum" />
       <param name="drawbuffer" type="GLint" />
-      <param name="value" type="const GLfloat *" />
+      <param name="value" type="const GLfloat *" count="_mesa_buffer_enum_to_count(buffer)"/>
    </function>
 
    <function name="ClearNamedFramebufferfi">
@@ -487,7 +487,7 @@
    <function name="TextureParameterfv">
       <param name="texture" type="GLuint" />
       <param name="pname" type="GLenum" />
-      <param name="param" type="const GLfloat *" />
+      <param name="param" type="const GLfloat *" count="_mesa_tex_param_enum_to_count(pname)"/>
    </function>
 
    <function name="TextureParameteri">
@@ -499,19 +499,19 @@
    <function name="TextureParameterIiv">
       <param name="texture" type="GLuint" />
       <param name="pname" type="GLenum" />
-      <param name="params" type="const GLint *" />
+      <param name="params" type="const GLint *" count="_mesa_tex_param_enum_to_count(pname)"/>
    </function>
 
    <function name="TextureParameterIuiv">
       <param name="texture" type="GLuint" />
       <param name="pname" type="GLenum" />
-      <param name="params" type="const GLuint *" />
+      <param name="params" type="const GLuint *" count="_mesa_tex_param_enum_to_count(pname)"/>
    </function>
 
    <function name="TextureParameteriv">
       <param name="texture" type="GLuint" />
       <param name="pname" type="GLenum" />
-      <param name="param" type="const GLint *" />
+      <param name="param" type="const GLint *" count="_mesa_tex_param_enum_to_count(pname)"/>
    </function>
 
    <function name="GenerateTextureMipmap" no_error="true">
@@ -579,17 +579,20 @@
 
    <!-- Vertex Array object functions -->
 
-   <function name="CreateVertexArrays" no_error="true">
+   <function name="CreateVertexArrays" no_error="true"
+             marshal_call_after="if (COMPAT) _mesa_glthread_GenVertexArrays(ctx, n, arrays);">
       <param name="n" type="GLsizei" />
       <param name="arrays" type="GLuint *" />
    </function>
 
-   <function name="DisableVertexArrayAttrib" no_error="true">
+   <function name="DisableVertexArrayAttrib" no_error="true"
+             marshal_call_after="if (COMPAT) _mesa_glthread_ClientState(ctx, &amp;vaobj, VERT_ATTRIB_GENERIC(index), false);">
       <param name="vaobj" type="GLuint" />
       <param name="index" type="GLuint" />
    </function>
 
-   <function name="EnableVertexArrayAttrib" no_error="true">
+   <function name="EnableVertexArrayAttrib" no_error="true"
+             marshal_call_after="if (COMPAT) _mesa_glthread_ClientState(ctx, &amp;vaobj, VERT_ATTRIB_GENERIC(index), true);">
       <param name="vaobj" type="GLuint" />
       <param name="index" type="GLuint" />
    </function>
@@ -611,9 +614,9 @@
       <param name="vaobj" type="GLuint" />
       <param name="first" type="GLuint" />
       <param name="count" type="GLsizei" />
-      <param name="buffers" type="const GLuint *" />
-      <param name="offsets" type="const GLintptr *" />
-      <param name="strides" type="const GLsizei *" />
+      <param name="buffers" type="const GLuint *" count="count"/>
+      <param name="offsets" type="const GLintptr *" count="count"/>
+      <param name="strides" type="const GLsizei *" count="count"/>
    </function>
 
    <function name="VertexArrayAttribFormat">

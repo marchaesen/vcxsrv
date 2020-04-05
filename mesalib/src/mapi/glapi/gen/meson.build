@@ -133,6 +133,7 @@ api_xml_files = files(
   'KHR_robustness.xml',
   'KHR_robustness_es.xml',
   'KHR_texture_compression_astc.xml',
+  'NV_copy_image.xml',
   'NV_conditional_render.xml',
   'NV_primitive_restart.xml',
   'NV_texture_barrier.xml',
@@ -221,14 +222,17 @@ main_api_exec_c = custom_target(
   capture : true,
 )
 
-main_marshal_generated_c = custom_target(
-  'marshal_generated.c',
-  input : ['gl_marshal.py', 'gl_and_es_API.xml'],
-  output : 'marshal_generated.c',
-  command : [prog_python, '@INPUT0@', '-f', '@INPUT1@'],
-  depend_files : files('marshal_XML.py') + glapi_gen_depends,
-  capture : true,
-)
+main_marshal_generated_c = []
+foreach x : ['0', '1', '2', '3', '4', '5', '6', '7']
+  main_marshal_generated_c += custom_target(
+    'marshal_generated' + x + '.c',
+    input : ['gl_marshal.py', 'gl_and_es_API.xml'],
+    output : 'marshal_generated' + x + '.c',
+    command : [prog_python, '@INPUT0@', '-f', '@INPUT1@', '-i', x, '-n', '8'],
+    depend_files : files('marshal_XML.py') + glapi_gen_depends,
+    capture : true,
+  )
+endforeach
 
 glx_generated = []
 

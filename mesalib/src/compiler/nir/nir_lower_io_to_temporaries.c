@@ -199,7 +199,8 @@ emit_interp(nir_builder *b, nir_deref_instr **old_interp_deref,
 
    new_interp->src[0] = nir_src_for_ssa(&new_interp_deref->dest.ssa);
    if (interp->intrinsic == nir_intrinsic_interp_deref_at_sample ||
-       interp->intrinsic == nir_intrinsic_interp_deref_at_offset) {
+       interp->intrinsic == nir_intrinsic_interp_deref_at_offset ||
+       interp->intrinsic == nir_intrinsic_interp_deref_at_vertex) {
       new_interp->src[1] = interp->src[1];
    }
 
@@ -262,7 +263,8 @@ fixup_interpolation(struct lower_io_state *state, nir_function_impl *impl,
          
          if (interp->intrinsic == nir_intrinsic_interp_deref_at_centroid ||
              interp->intrinsic == nir_intrinsic_interp_deref_at_sample ||
-             interp->intrinsic == nir_intrinsic_interp_deref_at_offset) {
+             interp->intrinsic == nir_intrinsic_interp_deref_at_offset ||
+             interp->intrinsic == nir_intrinsic_interp_deref_at_vertex) {
             fixup_interpolation_instr(state, interp, b);
          }
       }
@@ -295,7 +297,7 @@ create_shadow_temp(struct lower_io_state *state, nir_variable *var)
    /* Reparent the name to the new variable */
    ralloc_steal(nvar, nvar->name);
 
-   assert(nvar->constant_initializer == NULL);
+   assert(nvar->constant_initializer == NULL && nvar->pointer_initializer == NULL);
 
    /* Give the original a new name with @<mode>-temp appended */
    const char *mode = (temp->data.mode == nir_var_shader_in) ? "in" : "out";

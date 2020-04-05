@@ -379,27 +379,16 @@ def parse(filename):
             channel.shift = le_shift
             le_shift += channel.size
 
+        be_shift = 0
+        for channel in be_channels[3::-1]:
+            channel.shift = be_shift
+            be_shift += channel.size
+
+        assert le_shift == be_shift
         for i in range(4):
             assert (le_swizzles[i] != SWIZZLE_NONE) == (be_swizzles[i] != SWIZZLE_NONE)
 
         format = Format(name, layout, block_width, block_height, block_depth, le_channels, le_swizzles, be_channels, be_swizzles, colorspace)
-
-        if format.is_array() and not format.is_bitmask():
-            # Formats accessed as arrays by the pack functions (R32G32_FLOAT or
-            # R8G8B8_UNORM, for example) should not be channel-ordering-reversed
-            # for BE.
-            # Note that __eq__ on channels ignores .shift!
-            assert(format.be_channels == format.le_channels)
-            assert(format.be_swizzles == format.le_swizzles)
-            format.be_channels = format.le_channels
-        else:
-            be_shift = 0
-            for channel in format.be_channels[3::-1]:
-                channel.shift = be_shift
-                be_shift += channel.size
-
-            assert le_shift == be_shift
-
         formats.append(format)
     return formats
 

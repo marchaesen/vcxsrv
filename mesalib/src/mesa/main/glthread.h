@@ -46,9 +46,18 @@
 #include <inttypes.h>
 #include <stdbool.h>
 #include "util/u_queue.h"
+#include "GL/gl.h"
+#include "compiler/shader_enums.h"
 
-enum marshal_dispatch_cmd_id;
 struct gl_context;
+struct _mesa_HashTable;
+
+struct glthread_vao {
+   GLuint Name;
+   GLuint CurrentElementBufferName;
+   GLbitfield Enabled;
+   GLbitfield UserPointerMask;
+};
 
 /** A single batch of commands queued up for execution. */
 struct glthread_batch
@@ -60,9 +69,14 @@ struct glthread_batch
    struct gl_context *ctx;
 
    /** Amount of data used by batch commands, in bytes. */
-   size_t used;
+   int used;
 
    /** Data contained in the command buffer. */
+#ifdef _MSC_VER
+   __declspec(align(8))
+#else
+   __attribute__((aligned(8)))
+#endif
    uint8_t buffer[MARSHAL_MAX_CMD_SIZE];
 };
 
@@ -74,6 +88,9 @@ struct glthread_state
    /** This is sent to the driver for framebuffer overlay / HUD. */
    struct util_queue_monitoring stats;
 
+   /** Whether GLThread is enabled. */
+   bool enabled;
+
    /** The ring of batches in memory. */
    struct glthread_batch batches[MARSHAL_MAX_BATCHES];
 
@@ -83,24 +100,40 @@ struct glthread_state
    /** Index of the batch being filled and about to be submitted. */
    unsigned next;
 
-   /**
-    * Tracks on the main thread side whether the current vertex array binding
-    * is in a VBO.
-    */
-   bool vertex_array_is_vbo;
+   /** Vertex Array objects tracked by glthread independently of Mesa. */
+   struct _mesa_HashTable *VAOs;
+   struct glthread_vao *CurrentVAO;
+   struct glthread_vao *LastLookedUpVAO;
+   struct glthread_vao DefaultVAO;
+   int ClientActiveTexture;
 
-   /**
-    * Tracks on the main thread side whether the current element array (index
-    * buffer) binding is in a VBO.
-    */
-   bool element_array_is_vbo;
+   /** Currently-bound buffer object IDs. */
+   GLuint CurrentArrayBufferName;
+   GLuint CurrentDrawIndirectBufferName;
 };
 
 void _mesa_glthread_init(struct gl_context *ctx);
 void _mesa_glthread_destroy(struct gl_context *ctx);
 
 void _mesa_glthread_restore_dispatch(struct gl_context *ctx, const char *func);
+void _mesa_glthread_disable(struct gl_context *ctx, const char *func);
 void _mesa_glthread_flush_batch(struct gl_context *ctx);
 void _mesa_glthread_finish(struct gl_context *ctx);
+void _mesa_glthread_finish_before(struct gl_context *ctx, const char *func);
+
+void _mesa_glthread_BindBuffer(struct gl_context *ctx, GLenum target,
+                               GLuint buffer);
+void _mesa_glthread_DeleteBuffers(struct gl_context *ctx, GLsizei n,
+                                  const GLuint *buffers);
+
+void _mesa_glthread_BindVertexArray(struct gl_context *ctx, GLuint id);
+void _mesa_glthread_DeleteVertexArrays(struct gl_context *ctx,
+                                       GLsizei n, const GLuint *ids);
+void _mesa_glthread_GenVertexArrays(struct gl_context *ctx,
+                                    GLsizei n, GLuint *arrays);
+void _mesa_glthread_ClientState(struct gl_context *ctx, GLuint *vaobj,
+                                gl_vert_attrib attrib, bool enable);
+void _mesa_glthread_AttribPointer(struct gl_context *ctx,
+                                  gl_vert_attrib attrib);
 
 #endif /* _GLTHREAD_H*/

@@ -626,31 +626,28 @@ radv_process_color_image_layer(struct radv_cmd_buffer *cmd_buffer,
 					.layers = 1
 				}, &cmd_buffer->pool->alloc, &fb_h);
 
-	radv_CmdBeginRenderPass(radv_cmd_buffer_to_handle(cmd_buffer),
-				&(VkRenderPassBeginInfo) {
-					.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-					.renderPass = device->meta_state.fast_clear_flush.pass,
-					.framebuffer = fb_h,
-					.renderArea = {
-						.offset = {
-							0,
-							0,
+	radv_cmd_buffer_begin_render_pass(cmd_buffer,
+					  &(VkRenderPassBeginInfo) {
+						.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+						.renderPass = device->meta_state.fast_clear_flush.pass,
+						.framebuffer = fb_h,
+						.renderArea = {
+							.offset = { 0, 0, },
+							.extent = { width, height, }
 						},
-						.extent = {
-							width,
-							height,
-						}
-					},
-					.clearValueCount = 0,
-					.pClearValues = NULL,
-				}, VK_SUBPASS_CONTENTS_INLINE);
+						.clearValueCount = 0,
+						.pClearValues = NULL,
+					});
+
+	radv_cmd_buffer_set_subpass(cmd_buffer,
+				    &cmd_buffer->state.pass->subpasses[0]);
 
 	radv_CmdDraw(radv_cmd_buffer_to_handle(cmd_buffer), 3, 1, 0, 0);
 
 	cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_CB |
 					RADV_CMD_FLAG_FLUSH_AND_INV_CB_META;
 
-	radv_CmdEndRenderPass(radv_cmd_buffer_to_handle(cmd_buffer));
+	radv_cmd_buffer_end_render_pass(cmd_buffer);
 
 	radv_DestroyFramebuffer(radv_device_to_handle(device), fb_h,
 				&cmd_buffer->pool->alloc);
@@ -786,6 +783,15 @@ radv_fast_clear_flush_image_inplace(struct radv_cmd_buffer *cmd_buffer,
                                     struct radv_image *image,
                                     const VkImageSubresourceRange *subresourceRange)
 {
+	struct radv_barrier_data barrier = {};
+
+	if (radv_image_has_fmask(image)) {
+		barrier.layout_transitions.fmask_decompress = 1;
+	} else {
+		barrier.layout_transitions.fast_clear_eliminate = 1;
+	}
+	radv_describe_layout_transition(cmd_buffer, &barrier);
+
 	radv_emit_color_decompress(cmd_buffer, image, subresourceRange, false);
 }
 
@@ -931,6 +937,11 @@ radv_decompress_dcc(struct radv_cmd_buffer *cmd_buffer,
                     struct radv_image *image,
                     const VkImageSubresourceRange *subresourceRange)
 {
+	struct radv_barrier_data barrier = {};
+
+	barrier.layout_transitions.dcc_decompress = 1;
+	radv_describe_layout_transition(cmd_buffer, &barrier);
+
 	if (cmd_buffer->queue_family_index == RADV_QUEUE_GENERAL)
 		radv_decompress_dcc_gfx(cmd_buffer, image, subresourceRange);
 	else

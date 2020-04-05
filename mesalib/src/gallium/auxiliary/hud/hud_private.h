@@ -32,6 +32,7 @@
 #include "pipe/p_state.h"
 #include "util/list.h"
 #include "hud/font.h"
+#include "cso_cache/cso_context.h"
 
 enum hud_counter {
    HUD_COUNTER_OFFLOADED,
@@ -61,7 +62,7 @@ struct hud_context {
    void *fs_color, *fs_text;
    struct pipe_rasterizer_state rasterizer, rasterizer_aa_lines;
    void *vs;
-   struct pipe_vertex_element velems[2];
+   struct cso_velems_state velems;
 
    /* font */
    struct util_font font;

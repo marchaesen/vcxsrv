@@ -534,6 +534,7 @@ _mesa_bind_pipeline(struct gl_context *ctx,
       }
 
       _mesa_update_vertex_processing_mode(ctx);
+      _mesa_update_allow_draw_out_of_order(ctx);
    }
 }
 

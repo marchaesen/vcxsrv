@@ -24,36 +24,37 @@ EOF
 apt-get dist-upgrade -y
 
 apt-get install -y --no-remove \
-      llvm-3.9-dev \
-      libclang-3.9-dev \
-      llvm-4.0-dev \
-      libclang-4.0-dev \
-      llvm-5.0-dev \
-      libclang-5.0-dev \
-      g++ \
+      bison \
       bzip2 \
       ccache \
-      zlib1g-dev \
-      pkg-config \
+      flex \
+      g++ \
       gcc \
+      gettext \
       git \
-      libepoxy-dev \
+      libclang-3.9-dev \
+      libclang-4.0-dev \
+      libclang-5.0-dev \
       libclc-dev \
-      xz-utils \
       libdrm-dev \
-      libexpat1-dev \
       libelf-dev \
-      libunwind-dev \
+      libepoxy-dev \
+      libexpat1-dev \
       libpng-dev \
+      libunwind-dev \
+      llvm-3.9-dev \
+      llvm-4.0-dev \
+      llvm-5.0-dev \
+      meson \
+      pkg-config \
       python-mako \
       python3-mako \
-      bison \
-      flex \
-      gettext \
       scons \
-      meson
+      xz-utils \
+      zlib1g-dev
 
+. .gitlab-ci/container/container_pre_build.sh
 
 ############### Uninstall unused packages
 
-apt-get autoremove -y --purge
+. .gitlab-ci/container/container_post_build.sh

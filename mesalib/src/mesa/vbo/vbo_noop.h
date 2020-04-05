@@ -31,7 +31,7 @@
 struct _glapi_table;
 
 extern void
-_mesa_noop_vtxfmt_init(GLvertexformat *vfmt);
+_mesa_noop_vtxfmt_init(struct gl_context *ctx, GLvertexformat *vfmt);
 
 extern GLboolean
 _mesa_using_noop_vtxfmt(const struct _glapi_table *dispatch);

@@ -29,6 +29,7 @@
 #include <pthread.h>
 #include <errno.h>
 
+#include "util/u_memory.h"
 #include "ac_debug.h"
 #include "radv_radeon_winsys.h"
 #include "radv_amdgpu_cs.h"
@@ -1119,6 +1120,7 @@ static int radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx,
 
 				ibs[j].size = size;
 				ibs[j].ib_mc_address = radv_buffer_get_va(bos[j]);
+				ibs[j].flags = 0;
 			}
 
 			cnt++;
@@ -1163,6 +1165,7 @@ static int radv_amdgpu_winsys_cs_submit_sysmem(struct radeon_winsys_ctx *_ctx,
 
 			ibs[0].size = size;
 			ibs[0].ib_mc_address = radv_buffer_get_va(bos[0]);
+			ibs[0].flags = 0;
 		}
 
 		r = radv_amdgpu_create_bo_list(cs0->ws, &cs_array[i], cnt,
@@ -1237,7 +1240,7 @@ static int radv_amdgpu_winsys_cs_submit(struct radeon_winsys_ctx *_ctx,
 	if (!cs->ws->use_ib_bos) {
 		ret = radv_amdgpu_winsys_cs_submit_sysmem(_ctx, queue_idx, sem_info, bo_list, cs_array,
 							   cs_count, initial_preamble_cs, continue_preamble_cs, _fence);
-	} else if (can_patch && cs->ws->batchchain) {
+	} else if (can_patch) {
 		ret = radv_amdgpu_winsys_cs_submit_chained(_ctx, queue_idx, sem_info, bo_list, cs_array,
 							    cs_count, initial_preamble_cs, continue_preamble_cs, _fence);
 	} else {

@@ -66,7 +66,7 @@ split_variable(struct nir_variable *var, nir_shader *shader,
    assert(var->state_slots == NULL);
 
    /* Constant initializers are currently not handled */
-   assert(var->constant_initializer == NULL);
+   assert(var->constant_initializer == NULL && var->pointer_initializer == NULL);
 
    nir_variable **members =
       ralloc_array(dead_ctx, nir_variable *, var->num_members);

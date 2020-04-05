@@ -24,7 +24,7 @@
 
 
 #include "main/glheader.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/accum.h"
 #include "main/arrayobj.h"
 #include "main/context.h"
@@ -122,7 +122,7 @@ _mesa_init_driver_functions(struct dd_function_table *driver)
 
    /* Draw functions */
    driver->Draw = NULL;
-   driver->DrawIndirect = _mesa_draw_indirect;
+   driver->DrawIndirect = NULL;
 
    /* simple state commands */
    driver->AlphaFunc = NULL;

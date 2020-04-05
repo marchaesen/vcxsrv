@@ -22,6 +22,7 @@
 libpanfrost_midgard_files = files(
   'midgard_compile.c',
   'mir.c',
+  'midgard_address.c',
   'midgard_print.c',
   'midgard_schedule.c',
   'midgard_derivatives.c',
@@ -40,7 +41,6 @@ libpanfrost_midgard_files = files(
   'midgard_errata_lod.c',
   'nir_undef_to_zero.c',
   'disassemble.c',
-  'lcra.c'
 )
 
 midgard_nir_algebraic_c = custom_target(
@@ -59,7 +59,10 @@ libpanfrost_midgard = static_library(
   'panfrost_midgard',
   [libpanfrost_midgard_files, midgard_nir_algebraic_c],
   include_directories : [
-   inc_common,
+   inc_mapi,
+   inc_mesa,
+   inc_gallium,
+   inc_gallium_aux,
    inc_include,
    inc_src,
    inc_panfrost_hw,
@@ -67,6 +70,7 @@ libpanfrost_midgard = static_library(
   dependencies: [
    idep_nir
   ],
+  link_with: [libpanfrost_util],
   c_args : [c_vis_args, no_override_init_args],
   cpp_args : [cpp_vis_args],
   build_by_default : false,

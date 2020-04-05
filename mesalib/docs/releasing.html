@@ -18,15 +18,14 @@
 <h1>Releasing Process</h1>
 
 <ul>
-<li><a href="#overview">Overview</a>
-<li><a href="#schedule">Release schedule</a>
-<li><a href="#pickntest">Cherry-pick and test</a>
-<li><a href="#stagingbranch">Staging branch</a>
-<li><a href="#branch">Making a branchpoint</a>
-<li><a href="#prerelease">Pre-release announcement</a>
-<li><a href="#release">Making a new release</a>
-<li><a href="#announce">Announce the release</a>
-<li><a href="#gitlab">Update Gitlab Issues</a>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#schedule">Release schedule</a></li>
+<li><a href="#pickntest">Cherry-pick and test</a></li>
+<li><a href="#stagingbranch">Staging branch</a></li>
+<li><a href="#branch">Making a branchpoint</a></li>
+<li><a href="#release">Making a new release</a></li>
+<li><a href="#announce">Announce the release</a></li>
+<li><a href="#gitlab">Update Gitlab Issues</a></li>
 </ul>
 
 
@@ -68,22 +67,18 @@ date and other details for individual releases.
 
 <h2>Feature releases</h2>
 <ul>
-<li>Available approximately every three months.
+<li>Available approximately every three months.</li>
 <li>Initial timeplan available 2-4 weeks before the planned branchpoint (rc1)
-on the mesa-announce@ mailing list.
+on the mesa-announce@ mailing list.</li>
 <li>Typically, the final release will happen after 4
 candidates. Additional ones may be needed in order to resolve blocking
-regressions, though.
-<li>A <a href="#prerelease">pre-release</a> announcement should be available
-approximately 24 hours before the final (non-rc) release.
+regressions, though.</li>
 </ul>
 
 <h2>Stable releases</h2>
 <ul>
-<li>Normally available once every two weeks.
-<li>Only the latest branch has releases. See note below.
-<li>A <a href="#prerelease">pre-release</a> announcement should be available
-approximately 48 hours before the actual release.
+<li>Normally available once every two weeks.</li>
+<li>Only the latest branch has releases. See note below.</li>
 </ul>
 
 <p>
@@ -113,20 +108,24 @@ described in the same section.
 </p>
 
 <p>
-Nomination happens in the mesa-stable@ mailing list. However,
-maintainer is responsible of checking for forgotten candidates in the
-master branch. This is achieved by a combination of ad-hoc scripts and
-a casual search for terms such as regression, fix, broken and similar.
+Nominations happen via special tags in the commit messages, and via gitlab
+merge requests against the staging branches. There are special scripts used
+to read the tags.
 </p>
 
 <p>
-Maintainer is also responsible for testing in various possible permutations of
-the meson and scons build.
+The maintainer should watch or be in contact with the Intel CI team, as well
+as watch the gitlab CI for regressions.
 </p>
 
-<h2>Cherry-picking and build/check testing</h2>
+<p>
+Cherry picking should be done with the '-x' switch (to automatically add
+"cherry picked from ..." to the commit message):
+</p>
 
-<p>Done continuously up-to the <a href="#prerelease">pre-release</a> announcement.</p>
+<code>
+git cherry-pick -x abcdef12345667890
+</code>
 
 <p>
 Developers can request, <em>as an exception</em>, patches to be applied up-to
@@ -137,24 +136,11 @@ well contained. Thus it cannot affect more than one driver/subsystem.
 
 <p>Following developers have requested permanent exception</p>
 <ul>
-<li><em>Ilia Mirkin</em>
-<li><em>AMD team</em>
+<li><em>Ilia Mirkin</em></li>
+<li><em>AMD team</em></li>
 </ul>
 
-<p>The following must pass:</p>
-<ul>
-<li>meson test, scons and scons check
-<li>Testing with different version of system components - LLVM and others is also
-performed where possible.
-<li>As a general rule, testing with various combinations of configure
-switches, depending on the specific patchset.
-</ul>
-
-<p>
-These are achieved by combination of <a href="basictesting">local testing</a>,
-which includes mingw-w64 cross compilation and AppVeyor plus Travis-CI, the
-latter two as part of their Github integration.
-</p>
+<p>The gitlab CI must pass.</p>
 
 <p>
 For Windows related changes, the main contact point is Brian
@@ -176,10 +162,6 @@ good contact point.
 <strong>Note:</strong> If a patch in the current queue needs any additional
 fix(es), then they should be squashed together. The commit messages and the
 &quot;<code>cherry picked from</code>&quot;-tags must be preserved.
-</p>
-
-<p>
-This should be noted in the <a href="#prerelease">pre-announce</a> email.
 </p>
 
 <pre>
@@ -208,26 +190,11 @@ Date:   Wed Mar 1 18:11:10 2017 +0100
 
 <h2>Regression/functionality testing</h2>
 
-<p>
-Less often (once or twice), shortly before the pre-release announcement.
-Ensure that testing is redone if Intel devs have requested an exception, as per above.
-</p>
-
 <ul>
-<li><em>no regressions should be observed for Piglit/dEQP/CTS/Vulkan on Intel platforms</em>
+<li><em>no regressions should be observed for Piglit/dEQP/CTS/Vulkan on Intel platforms</em></li>
 <li><em>no regressions should be observed for Piglit using the swrast, softpipe
-and llvmpipe drivers</em>
+and llvmpipe drivers</em></li>
 </ul>
-
-<p>
-Currently testing is performed courtesy of the Intel OTC team and their Jenkins CI setup. Check with the Intel team over IRC how to get things setup.
-</p>
-
-<p>
-Installing the built driver from the pre-announced RC branch in the
-system and making some every day's use until the release may be a good
-idea too.
-</p>
 
 <h2 id="stagingbranch">Staging branch</h2>
 
@@ -277,8 +244,8 @@ git checkout -b X.Y
 git checkout master
 $EDITOR VERSION # bump the version number
 git commit -as
-cp docs/relnotes/{X.Y,X.Y+1}.html # copy/create relnotes template
-git commit -as
+truncate docs/relnotes/new_features.txt
+git commit -a
 git push origin X.Y-branchpoint X.Y
 </pre>
 
@@ -292,162 +259,6 @@ Check that there are no distribution breaking changes and revert them if needed.
 For example: files being overwritten on install, etc. Happens extremely rarely -
 we had only one case so far (see commit 2ced8eb136528914e1bf4e000dea06a9d53c7e04).
 </p>
-
-<p>
-Proceed to <a href="#release">release</a> -rc1.
-</p>
-
-
-<h2 id="prerelease">Pre-release announcement</h2>
-
-<p>
-It comes shortly after outstanding patches in the respective branch are pushed.
-Developers can check, in brief, what's the status of their patches. They,
-alongside very early testers, are strongly encouraged to test the branch and
-report any regressions.
-</p>
-<p>
-It is followed by a brief period (normally 24 or 48 hours) before the actual
-release is made.
-</p>
-
-<p>
-Be aware to add a note to warn about a final release in a series, if
-that is the case.
-</p>
-
-<h2>Terminology used</h2>
-
-<ul><li>Nominated</ul>
-
-<p>
-Patch that is nominated but yet to to merged in the patch queue/branch.
-</p>
-
-<ul><li>Queued</ul>
-
-<p>
-Patch is in the queue/branch and will feature in the next release.
-Barring reported regressions or objections from developers.
-</p>
-
-<ul><li>Rejected</ul>
-
-<p>
-Patch does not fit the
-<a href="submittingpatches.html#criteria" target="_parent">criteria</a> and
-is followed by a brief information. The release maintainer is human so if you
-believe you've spotted a mistake do let them know.
-</p>
-
-<h2>Format/template</h2>
-<pre>
-Subject: [ANNOUNCE] Mesa X.Y.Z release candidate
-To: mesa-announce@...
-Cc: mesa-dev@...
-
-Hello list,
-
-The candidate for the Mesa X.Y.Z is now available. Currently we have:
- - NUMBER queued
- - NUMBER nominated (outstanding)
- - and NUMBER rejected patches
-
-[If applicable:
-Note: this is the final anticipated release in the SERIES series. Users are
-encouraged to migrate to the NEXT_SERIES series in order to obtain future fixes.]
-
-BRIEF SUMMARY OF CHANGES
-
-Take a look at section "Mesa stable queue" for more information.
-
-
-Testing reports/general approval
---------------------------------
-Any testing reports (or general approval of the state of the branch) will be
-greatly appreciated.
-
-The plan is to have X.Y.Z this DAY (DATE), around or shortly after TIME.
-
-If you have any questions or suggestions - be that about the current patch
-queue or otherwise, please go ahead.
-
-
-Trivial merge conflicts
------------------------
-List of commits where manual intervention was required.
-Keep the authors in the CC list.
-
-commit SHA
-Author: AUTHOR
-
-    COMMIT SUMMARY
-
-    CHERRY PICKED FROM
-
-
-For example:
-
-commit 990f395e007c3204639daa34efc3049f350ee819
-Author: Emil Velikov &lt;emil.velikov@collabora.com&gt;
-
-    anv: automake: cleanup the generated json file during make clean
-
-    (cherry picked from commit 8df581520a823564be0ab5af7dbb7d501b1c9670)
-
-
-Cheers,
-Emil
-
-
-Mesa stable queue
------------------
-
-Nominated (NUMBER)
-==================
-
-AUTHOR (NUMBER):
-      SHA     COMMIT SUMMARY
-
-For example:
-
-Dave Airlie (1):
-      2de85eb radv: fix texturesamples to handle single sample case
-
-
-Queued (NUMBER)
-===============
-
-AUTHOR (NUMBER):
-      COMMIT SUMMARY
-[If applicable:
-Squashed with
-      COMMIT SUMMARY]
-
-For example:
-
-Jonas Pfeil (1):
-      ralloc: Make sure ralloc() allocations match malloc()'s alignment.
-Squashed with
-      ralloc: don't leave out the alignment factor
-
-
-Rejected (NUMBER)
-=================
-
-AUTHOR (NUMBER):
-      SHA     COMMIT SUMMARY
-
-Reason: ...
-
-For example:
-
-Emil Velikov (1)
-      a39ad18 configure.ac: honour LLVM_LIBDIR when linking against LLVM
-
-Reason: The patch was reverted shortly after it was merged.
-</pre>
-
 
 <h2 id="release">Making a new release</h2>
 
@@ -466,15 +277,14 @@ relevant branch.
 
 <p>
 Most of the testing should already be done during the
-<a href="#pickntest">cherry-pick</a> and
-<a href="#prerelease">pre-announce</a> stages.
+<a href="#pickntest">cherry-pick</a>
 So we do a quick 'touch test'
 </p>
 
 <ul>
-<li>meson dist
-<li>scons (from release tarball)
-<li>the produced binaries work
+<li>meson dist</li>
+<li>scons (from release tarball)</li>
+<li>the produced binaries work</li>
 </ul>
 
 <p>
@@ -521,12 +331,10 @@ unset VK_ICD_FILENAMES
 <p>
 The release notes are completely generated by the
 <code>bin/gen_release_notes.py</code> script. Simply run this script before
-bumping the version
+bumping the version, and commit the results.
 
 The only thing left to do is add the sha256 sums.
 </p>
-
-<h3>Update version in file VERSION</h3>
 
 <p>
 Increment the version contained in the file VERSION at Mesa's top-level, then
@@ -549,8 +357,6 @@ Start the release process.
 </p>
 
 <pre>
-# For the dist/distcheck, you may want to specify which LLVM to use:
-# export LLVM_CONFIG=/usr/lib/llvm-3.9/bin/llvm-config
 ../relative/path/to/release.sh . # append --dist if you've already done distcheck above
 </pre>
 
@@ -562,7 +368,7 @@ and SSH passphrase(s) to sign and upload the files, respectively.
 <h3>Add the sha256sums to the release notes</h3>
 
 <p>
-Edit docs/relnotes/X.Y.Z.html to add the sha256sums as available in the mesa-X.Y.Z.announce template. Commit this change.
+Edit docs/relnotes/X.Y.Z.html to add the sha256sum as available in the mesa-X.Y.Z.announce template. Commit this change.
 </p>
 
 <h3>Back on mesa master, add the new release notes into the tree</h3>
@@ -576,14 +382,14 @@ git cherry-pick -x X.Y~1
 git cherry-pick -x X.Y
 </pre>
 
-<p>Then run the <code>./bin/post_verison.py X.Y.Z</code>, where X.Y.Z is the
-version you just made. This will updated docs/relnotes.html and
-docs/index.html. Remove docs/release-calendar.html. Then commit and push:
+<p>Then run the <pre>./bin/post_version.py X.Y.Z</pre>, where X.Y.Z is the
+version you just made. This will updated docs/relnotes.html,
+docs/index.html, and docs/release-calendar.html. It will then generate
+a git commit automatically. Check that everything looks correct and push:
 </p>
 
 <pre>
-git commit -as -m "docs: update calendar, add news item and link release notes for X.Y.Z"
-git push origin master X.Y
+	git push origin master X.Y
 </pre>
 
 
@@ -602,7 +408,7 @@ series, if that is the case.
 <h2 id="gitlab">Update gitlab issues</h2>
 
 <p>
-Parse through the bugreports as listed in the docs/relnotes/X.Y.Z.html
+Parse through the bug reports as listed in the docs/relnotes/X.Y.Z.html
 document. If there's outstanding action, close the bug referencing the commit
 ID which addresses the bug and mention the Mesa version that has the fix.
 </p>

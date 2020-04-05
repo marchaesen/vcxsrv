@@ -76,8 +76,6 @@
 /* max number of descriptor sets */
 #define MAX_SETS 32
 
-#define RADV_NUM_PHYSICAL_VGPRS 256
-
 /* Make sure everything is addressable by a signed 32-bit int, and
  * our largest descriptors are 96 bytes.
  */

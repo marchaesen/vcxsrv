@@ -23,6 +23,7 @@
 
 #include <string.h>
 #include "util/macros.h"
+#include "util/bitscan.h"
 
 #include "broadcom/common/v3d_device_info.h"
 #include "qpu_instr.h"

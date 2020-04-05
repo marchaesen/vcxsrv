@@ -1256,6 +1256,7 @@ serialize_glsl_program(struct blob *blob, struct gl_context *ctx,
    write_hash_tables(blob, prog);
 
    blob_write_uint32(blob, prog->data->Version);
+   blob_write_uint32(blob, prog->IsES);
    blob_write_uint32(blob, prog->data->linked_stages);
 
    for (unsigned i = 0; i < MESA_SHADER_STAGES; i++) {
@@ -1314,6 +1315,7 @@ deserialize_glsl_program(struct blob_reader *blob, struct gl_context *ctx,
    read_hash_tables(blob, prog);
 
    prog->data->Version = blob_read_uint32(blob);
+   prog->IsES = blob_read_uint32(blob);
    prog->data->linked_stages = blob_read_uint32(blob);
 
    unsigned mask = prog->data->linked_stages;

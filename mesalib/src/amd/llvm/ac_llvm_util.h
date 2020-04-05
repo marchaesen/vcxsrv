@@ -58,15 +58,14 @@ enum ac_func_attr {
 
 enum ac_target_machine_options {
 	AC_TM_SUPPORTS_SPILL = (1 << 0),
-	AC_TM_SISCHED = (1 << 1),
-	AC_TM_FORCE_ENABLE_XNACK = (1 << 2),
-	AC_TM_FORCE_DISABLE_XNACK = (1 << 3),
-	AC_TM_PROMOTE_ALLOCA_TO_SCRATCH = (1 << 4),
-	AC_TM_CHECK_IR = (1 << 5),
-	AC_TM_ENABLE_GLOBAL_ISEL = (1 << 6),
-	AC_TM_CREATE_LOW_OPT = (1 << 7),
-	AC_TM_NO_LOAD_STORE_OPT = (1 << 8),
-	AC_TM_WAVE32 = (1 << 9),
+	AC_TM_FORCE_ENABLE_XNACK = (1 << 1),
+	AC_TM_FORCE_DISABLE_XNACK = (1 << 2),
+	AC_TM_PROMOTE_ALLOCA_TO_SCRATCH = (1 << 3),
+	AC_TM_CHECK_IR = (1 << 4),
+	AC_TM_ENABLE_GLOBAL_ISEL = (1 << 5),
+	AC_TM_CREATE_LOW_OPT = (1 << 6),
+	AC_TM_NO_LOAD_STORE_OPT = (1 << 7),
+	AC_TM_WAVE32 = (1 << 8),
 };
 
 enum ac_float_mode {

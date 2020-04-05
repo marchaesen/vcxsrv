@@ -50,7 +50,7 @@
     <function name="UniformSubroutinesuiv">
         <param name="shadertype" type="GLenum"/>
         <param name="count" type="GLsizei"/>
-        <param name="indices" type="const GLuint *"/>
+        <param name="indices" type="const GLuint *" count="count"/>
     </function>
 
     <function name="GetUniformSubroutineuiv">

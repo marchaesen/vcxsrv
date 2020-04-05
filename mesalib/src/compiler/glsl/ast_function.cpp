@@ -612,11 +612,6 @@ generate_call(exec_list *instructions, ir_function_signature *sig,
    ir_call *call = new(ctx) ir_call(sig, deref,
                                     actual_parameters, sub_var, array_idx);
    instructions->push_tail(call);
-   if (sig->is_builtin()) {
-      /* inline immediately */
-      call->generate_inline(call);
-      call->remove();
-   }
 
    /* Also emit any necessary out-parameter conversions. */
    instructions->append_list(&post_call_conversions);

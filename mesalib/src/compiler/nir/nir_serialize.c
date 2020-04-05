@@ -206,12 +206,13 @@ union packed_var {
    struct {
       unsigned has_name:1;
       unsigned has_constant_initializer:1;
+      unsigned has_pointer_initializer:1;
       unsigned has_interface_type:1;
       unsigned num_state_slots:7;
       unsigned data_encoding:2;
       unsigned type_same_as_last:1;
       unsigned interface_type_same_as_last:1;
-      unsigned _pad:2;
+      unsigned _pad:1;
       unsigned num_members:16;
    } u;
 };
@@ -231,7 +232,6 @@ write_variable(write_ctx *ctx, const nir_variable *var)
    write_add_object(ctx, var);
 
    assert(var->num_state_slots < (1 << 7));
-   assert(var->num_members < (1 << 16));
 
    STATIC_ASSERT(sizeof(union packed_var) == 4);
    union packed_var flags;
@@ -239,6 +239,7 @@ write_variable(write_ctx *ctx, const nir_variable *var)
 
    flags.u.has_name = !ctx->strip && var->name;
    flags.u.has_constant_initializer = !!(var->constant_initializer);
+   flags.u.has_pointer_initializer = !!(var->pointer_initializer);
    flags.u.has_interface_type = !!(var->interface_type);
    flags.u.type_same_as_last = var->type == ctx->last_type;
    flags.u.interface_type_same_as_last =
@@ -323,6 +324,8 @@ write_variable(write_ctx *ctx, const nir_variable *var)
    }
    if (var->constant_initializer)
       write_constant(ctx, var->constant_initializer);
+   if (var->pointer_initializer)
+      write_lookup_object(ctx, var->pointer_initializer);
    if (var->num_members > 0) {
       blob_write_bytes(ctx->blob, (uint8_t *) var->members,
                        var->num_members * sizeof(*var->members));
@@ -393,6 +396,12 @@ read_variable(read_ctx *ctx)
       var->constant_initializer = read_constant(ctx, var);
    else
       var->constant_initializer = NULL;
+
+   if (flags.u.has_pointer_initializer)
+      var->pointer_initializer = read_object(ctx);
+   else
+      var->pointer_initializer = NULL;
+
    var->num_members = flags.u.num_members;
    if (var->num_members > 0) {
       var->members = ralloc_array(var, struct nir_variable_data,
@@ -663,8 +672,8 @@ union packed_instr {
       unsigned instr_type:4;
       unsigned num_srcs:4;
       unsigned op:4;
-      unsigned texture_array_size:12;
       unsigned dest:8;
+      unsigned _pad:12;
    } tex;
    struct {
       unsigned instr_type:4;
@@ -1451,7 +1460,6 @@ write_tex(write_ctx *ctx, const nir_tex_instr *tex)
 {
    assert(tex->num_srcs < 16);
    assert(tex->op < 16);
-   assert(tex->texture_array_size < 1024);
 
    union packed_instr header;
    header.u32 = 0;
@@ -1459,7 +1467,6 @@ write_tex(write_ctx *ctx, const nir_tex_instr *tex)
    header.tex.instr_type = tex->instr.type;
    header.tex.num_srcs = tex->num_srcs;
    header.tex.op = tex->op;
-   header.tex.texture_array_size = tex->texture_array_size;
 
    write_dest(ctx, &tex->dest, header, tex->instr.type);
 
@@ -1499,7 +1506,6 @@ read_tex(read_ctx *ctx, union packed_instr header)
 
    tex->op = header.tex.op;
    tex->texture_index = blob_read_uint32(ctx->blob);
-   tex->texture_array_size = header.tex.texture_array_size;
    tex->sampler_index = blob_read_uint32(ctx->blob);
    if (tex->op == nir_texop_tg4)
       blob_copy_bytes(ctx->blob, tex->tg4_offsets, sizeof(tex->tg4_offsets));

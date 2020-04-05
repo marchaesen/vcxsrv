@@ -39,7 +39,7 @@ class Field(object):
 		self.shr = shr
 		self.type = type
 
-		builtin_types = [ None, "boolean", "uint", "hex", "int", "fixed", "ufixed", "float", "address", "waddress" ]
+		builtin_types = [ None, "a3xx_regid", "boolean", "uint", "hex", "int", "fixed", "ufixed", "float", "address", "waddress" ]
 
 		if low < 0 or low > 31:
 			raise parser.error("low attribute out of range: %d" % low)
@@ -61,7 +61,7 @@ class Field(object):
 		elif self.type == "boolean":
 			type = "bool"
 			val = var_name
-		elif self.type == "uint" or self.type == "hex":
+		elif self.type == "uint" or self.type == "hex" or self.type == "a3xx_regid":
 			type = "uint32_t"
 			val = var_name
 		elif self.type == "int":

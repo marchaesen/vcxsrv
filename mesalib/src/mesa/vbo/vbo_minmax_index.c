@@ -242,16 +242,16 @@ vbo_get_minmax_index(struct gl_context *ctx,
 {
    const GLboolean restart = ctx->Array._PrimitiveRestart;
    const GLuint restartIndex =
-      _mesa_primitive_restart_index(ctx, ib->index_size);
+      _mesa_primitive_restart_index(ctx, 1 << ib->index_size_shift);
    const char *indices;
    GLuint i;
    GLintptr offset = 0;
 
-   indices = (char *) ib->ptr + prim->start * ib->index_size;
+   indices = (char *) ib->ptr + (prim->start << ib->index_size_shift);
    if (_mesa_is_bufferobj(ib->obj)) {
-      GLsizeiptr size = MIN2(count * ib->index_size, ib->obj->Size);
+      GLsizeiptr size = MIN2(count << ib->index_size_shift, ib->obj->Size);
 
-      if (vbo_get_minmax_cached(ib->obj, ib->index_size, (GLintptr) indices,
+      if (vbo_get_minmax_cached(ib->obj, 1 << ib->index_size_shift, (GLintptr) indices,
                                 count, min_index, max_index))
          return;
 
@@ -261,8 +261,8 @@ vbo_get_minmax_index(struct gl_context *ctx,
                                            MAP_INTERNAL);
    }
 
-   switch (ib->index_size) {
-   case 4: {
+   switch (ib->index_size_shift) {
+   case 2: {
       const GLuint *ui_indices = (const GLuint *)indices;
       GLuint max_ui = 0;
       GLuint min_ui = ~0U;
@@ -290,7 +290,7 @@ vbo_get_minmax_index(struct gl_context *ctx,
       *max_index = max_ui;
       break;
    }
-   case 2: {
+   case 1: {
       const GLushort *us_indices = (const GLushort *)indices;
       GLuint max_us = 0;
       GLuint min_us = ~0U;
@@ -312,7 +312,7 @@ vbo_get_minmax_index(struct gl_context *ctx,
       *max_index = max_us;
       break;
    }
-   case 1: {
+   case 0: {
       const GLubyte *ub_indices = (const GLubyte *)indices;
       GLuint max_ub = 0;
       GLuint min_ub = ~0U;
@@ -339,7 +339,7 @@ vbo_get_minmax_index(struct gl_context *ctx,
    }
 
    if (_mesa_is_bufferobj(ib->obj)) {
-      vbo_minmax_cache_store(ctx, ib->obj, ib->index_size, offset,
+      vbo_minmax_cache_store(ctx, ib->obj, 1 << ib->index_size_shift, offset,
                              count, *min_index, *max_index);
       ctx->Driver.UnmapBuffer(ctx, ib->obj, MAP_INTERNAL);
    }

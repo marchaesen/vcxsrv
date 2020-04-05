@@ -20,18 +20,37 @@
 # SOFTWARE.
 
 libpanfrost_bifrost_files = files(
-  'bifrost_compile.c',
-  'bifrost_opts.c',
-  'bifrost_sched.c',
-  'bifrost_print.c',
   'disassemble.c',
+  'bi_liveness.c',
+  'bi_lower_combine.c',
+  'bi_print.c',
+  'bi_opt_dce.c',
+  'bi_pack.c',
+  'bi_ra.c',
+  'bi_schedule.c',
+  'bi_tables.c',
+  'bir.c',
+  'bifrost_compile.c',
+)
+
+bifrost_nir_algebraic_c = custom_target(
+  'bifrost_nir_algebraic.c',
+  input : 'bifrost_nir_algebraic.py',
+  output : 'bifrost_nir_algebraic.c',
+  command : [
+    prog_python, '@INPUT@',
+    '-p', join_paths(meson.source_root(), 'src/compiler/nir/'),
+  ],
+  capture : true,
+  depend_files : nir_algebraic_py,
 )
 
 libpanfrost_bifrost = static_library(
   'panfrost_bifrost',
-  [libpanfrost_bifrost_files],
-  include_directories : [inc_common, inc_include, inc_src],
+  [libpanfrost_bifrost_files, bifrost_nir_algebraic_c],
+  include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_panfrost_hw],
   dependencies: [idep_nir],
+  link_with: [libpanfrost_util],
   c_args : [c_vis_args, no_override_init_args],
   cpp_args : [cpp_vis_args],
   build_by_default : false,

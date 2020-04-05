@@ -217,7 +217,8 @@ lower_load_to_scalar_early(nir_builder *b, nir_intrinsic_instr *intr,
       chan_intr->src[0] = nir_src_for_ssa(&deref->dest.ssa);
 
       if (intr->intrinsic == nir_intrinsic_interp_deref_at_offset ||
-          intr->intrinsic == nir_intrinsic_interp_deref_at_sample)
+          intr->intrinsic == nir_intrinsic_interp_deref_at_sample ||
+          intr->intrinsic == nir_intrinsic_interp_deref_at_vertex)
          nir_src_copy(&chan_intr->src[1], &intr->src[1], &chan_intr->instr);
 
       nir_builder_instr_insert(b, &chan_intr->instr);
@@ -311,7 +312,8 @@ nir_lower_io_to_scalar_early(nir_shader *shader, nir_variable_mode mask)
                    intr->intrinsic != nir_intrinsic_store_deref &&
                    intr->intrinsic != nir_intrinsic_interp_deref_at_centroid &&
                    intr->intrinsic != nir_intrinsic_interp_deref_at_sample &&
-                   intr->intrinsic != nir_intrinsic_interp_deref_at_offset)
+                   intr->intrinsic != nir_intrinsic_interp_deref_at_offset &&
+                   intr->intrinsic != nir_intrinsic_interp_deref_at_vertex)
                   continue;
 
                nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
@@ -350,6 +352,7 @@ nir_lower_io_to_scalar_early(nir_shader *shader, nir_variable_mode mask)
                case nir_intrinsic_interp_deref_at_centroid:
                case nir_intrinsic_interp_deref_at_sample:
                case nir_intrinsic_interp_deref_at_offset:
+               case nir_intrinsic_interp_deref_at_vertex:
                case nir_intrinsic_load_deref:
                   if ((mask & nir_var_shader_in && mode == nir_var_shader_in) ||
                       (mask & nir_var_shader_out && mode == nir_var_shader_out))

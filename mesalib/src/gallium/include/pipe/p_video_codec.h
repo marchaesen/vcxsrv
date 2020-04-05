@@ -122,7 +122,6 @@ struct pipe_video_buffer
    struct pipe_context *context;
 
    enum pipe_format buffer_format;
-   enum pipe_video_chroma_format chroma_format;
    unsigned width;
    unsigned height;
    bool interlaced;

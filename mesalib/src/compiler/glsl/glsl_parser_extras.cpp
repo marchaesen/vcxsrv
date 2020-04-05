@@ -2232,7 +2232,13 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
    shader->Version = state->language_version;
    shader->IsES = state->es_shader;
 
+   struct gl_shader_compiler_options *options =
+      &ctx->Const.ShaderCompilerOptions[shader->Stage];
+
    if (!state->error && !shader->ir->is_empty()) {
+      if (options->LowerPrecision)
+         lower_precision(shader->ir);
+      lower_builtins(shader->ir);
       assign_subroutine_indexes(state);
       lower_subroutine(shader->ir, state);
       opt_shader_and_create_symbol_table(ctx, state->symbols, shader);

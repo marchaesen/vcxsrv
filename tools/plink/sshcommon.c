@@ -35,6 +35,7 @@ void pq_base_push(PacketQueueBase *pqb, PacketQueueNode *node)
     node->prev = pqb->end.prev;
     node->next->prev = node;
     node->prev->next = node;
+    pqb->total_size += node->formal_size;
 
     if (pqb->ic)
         queue_idempotent_callback(pqb->ic);
@@ -47,6 +48,7 @@ void pq_base_push_front(PacketQueueBase *pqb, PacketQueueNode *node)
     node->next = pqb->end.next;
     node->next->prev = node;
     node->prev->next = node;
+    pqb->total_size += node->formal_size;
 
     if (pqb->ic)
         queue_idempotent_callback(pqb->ic);
@@ -72,6 +74,23 @@ static IdempotentCallback ic_pktin_free = {
     pktin_free_queue_callback, NULL, false
 };
 
+static inline void pq_unlink_common(PacketQueueBase *pqb,
+                                    PacketQueueNode *node)
+{
+    node->next->prev = node->prev;
+    node->prev->next = node->next;
+
+    /* Check total_size doesn't drift out of sync downwards, by
+     * ensuring it doesn't underflow when we do this subtraction */
+    assert(pqb->total_size >= node->formal_size);
+    pqb->total_size -= node->formal_size;
+
+    /* Check total_size doesn't drift out of sync upwards, by checking
+     * that it's returned to exactly zero whenever a queue is
+     * emptied */
+    assert(pqb->end.next != &pqb->end || pqb->total_size == 0);
+}
+
 static PktIn *pq_in_after(PacketQueueBase *pqb,
                           PacketQueueNode *prev, bool pop)
 {
@@ -80,14 +99,14 @@ static PktIn *pq_in_after(PacketQueueBase *pqb,
         return NULL;
 
     if (pop) {
-        node->next->prev = node->prev;
-        node->prev->next = node->next;
+        pq_unlink_common(pqb, node);
 
         node->prev = pktin_freeq_head.prev;
         node->next = &pktin_freeq_head;
         node->next->prev = node;
         node->prev->next = node;
         node->on_free_queue = true;
+
         queue_idempotent_callback(&ic_pktin_free);
     }
 
@@ -102,8 +121,8 @@ static PktOut *pq_out_after(PacketQueueBase *pqb,
         return NULL;
 
     if (pop) {
-        node->next->prev = node->prev;
-        node->prev->next = node->next;
+        pq_unlink_common(pqb, node);
+
         node->prev = node->next = NULL;
     }
 
@@ -115,6 +134,7 @@ void pq_in_init(PktInQueue *pq)
     pq->pqb.ic = NULL;
     pq->pqb.end.next = pq->pqb.end.prev = &pq->pqb.end;
     pq->after = pq_in_after;
+    pq->pqb.total_size = 0;
 }
 
 void pq_out_init(PktOutQueue *pq)
@@ -122,6 +142,7 @@ void pq_out_init(PktOutQueue *pq)
     pq->pqb.ic = NULL;
     pq->pqb.end.next = pq->pqb.end.prev = &pq->pqb.end;
     pq->after = pq_out_after;
+    pq->pqb.total_size = 0;
 }
 
 void pq_in_clear(PktInQueue *pq)
@@ -153,6 +174,8 @@ void pq_base_concatenate(PacketQueueBase *qdest,
 {
     struct PacketQueueNode *head1, *tail1, *head2, *tail2;
 
+    size_t total_size = q1->total_size + q2->total_size;
+
     /*
      * Extract the contents from both input queues, and empty them.
      */
@@ -164,6 +187,7 @@ void pq_base_concatenate(PacketQueueBase *qdest,
 
     q1->end.next = q1->end.prev = &q1->end;
     q2->end.next = q2->end.prev = &q2->end;
+    q1->total_size = q2->total_size = 0;
 
     /*
      * Link the two lists together, handling the case where one or
@@ -206,6 +230,8 @@ void pq_base_concatenate(PacketQueueBase *qdest,
         if (qdest->ic)
             queue_idempotent_callback(qdest->ic);
     }
+
+    qdest->total_size = total_size;
 }
 
 /* ----------------------------------------------------------------------
@@ -235,6 +261,7 @@ static void ssh_pkt_adddata(PktOut *pkt, const void *data, int len)
     sgrowarrayn_nm(pkt->data, pkt->maxlen, pkt->length, len);
     memcpy(pkt->data + pkt->length, data, len);
     pkt->length += len;
+    pkt->qnode.formal_size = pkt->length;
 }
 
 static void ssh_pkt_BinarySink_write(BinarySink *bs,
@@ -263,29 +290,29 @@ static void zombiechan_open_failure(Channel *chan, const char *);
 static bool zombiechan_want_close(Channel *chan, bool sent_eof, bool rcvd_eof);
 static char *zombiechan_log_close_msg(Channel *chan) { return NULL; }
 
-static const struct ChannelVtable zombiechan_channelvt = {
-    zombiechan_free,
-    zombiechan_do_nothing,             /* open_confirmation */
-    zombiechan_open_failure,
-    zombiechan_send,
-    zombiechan_do_nothing,             /* send_eof */
-    zombiechan_set_input_wanted,
-    zombiechan_log_close_msg,
-    zombiechan_want_close,
-    chan_no_exit_status,
-    chan_no_exit_signal,
-    chan_no_exit_signal_numeric,
-    chan_no_run_shell,
-    chan_no_run_command,
-    chan_no_run_subsystem,
-    chan_no_enable_x11_forwarding,
-    chan_no_enable_agent_forwarding,
-    chan_no_allocate_pty,
-    chan_no_set_env,
-    chan_no_send_break,
-    chan_no_send_signal,
-    chan_no_change_window_size,
-    chan_no_request_response,
+static const ChannelVtable zombiechan_channelvt = {
+    .free = zombiechan_free,
+    .open_confirmation = zombiechan_do_nothing,
+    .open_failed = zombiechan_open_failure,
+    .send = zombiechan_send,
+    .send_eof = zombiechan_do_nothing,
+    .set_input_wanted = zombiechan_set_input_wanted,
+    .log_close_msg = zombiechan_log_close_msg,
+    .want_close = zombiechan_want_close,
+    .rcvd_exit_status = chan_no_exit_status,
+    .rcvd_exit_signal = chan_no_exit_signal,
+    .rcvd_exit_signal_numeric = chan_no_exit_signal_numeric,
+    .run_shell = chan_no_run_shell,
+    .run_command = chan_no_run_command,
+    .run_subsystem = chan_no_run_subsystem,
+    .enable_x11_forwarding = chan_no_enable_x11_forwarding,
+    .enable_agent_forwarding = chan_no_enable_agent_forwarding,
+    .allocate_pty = chan_no_allocate_pty,
+    .set_env = chan_no_set_env,
+    .send_break = chan_no_send_break,
+    .send_signal = chan_no_send_signal,
+    .change_window_size = chan_no_change_window_size,
+    .request_response = chan_no_request_response,
 };
 
 Channel *zombiechan_new(void)
@@ -327,109 +354,6 @@ static void zombiechan_set_input_wanted(Channel *chan, bool enable)
 static bool zombiechan_want_close(Channel *chan, bool sent_eof, bool rcvd_eof)
 {
     return true;
-}
-
-/* ----------------------------------------------------------------------
- * Centralised standard methods for other channel implementations to
- * borrow.
- */
-
-void chan_remotely_opened_confirmation(Channel *chan)
-{
-    unreachable("this channel type should never receive OPEN_CONFIRMATION");
-}
-
-void chan_remotely_opened_failure(Channel *chan, const char *errtext)
-{
-    unreachable("this channel type should never receive OPEN_FAILURE");
-}
-
-bool chan_default_want_close(
-    Channel *chan, bool sent_local_eof, bool rcvd_remote_eof)
-{
-    /*
-     * Default close policy: we start initiating the CHANNEL_CLOSE
-     * procedure as soon as both sides of the channel have seen EOF.
-     */
-    return sent_local_eof && rcvd_remote_eof;
-}
-
-bool chan_no_exit_status(Channel *chan, int status)
-{
-    return false;
-}
-
-bool chan_no_exit_signal(
-    Channel *chan, ptrlen signame, bool core_dumped, ptrlen msg)
-{
-    return false;
-}
-
-bool chan_no_exit_signal_numeric(
-    Channel *chan, int signum, bool core_dumped, ptrlen msg)
-{
-    return false;
-}
-
-bool chan_no_run_shell(Channel *chan)
-{
-    return false;
-}
-
-bool chan_no_run_command(Channel *chan, ptrlen command)
-{
-    return false;
-}
-
-bool chan_no_run_subsystem(Channel *chan, ptrlen subsys)
-{
-    return false;
-}
-
-bool chan_no_enable_x11_forwarding(
-    Channel *chan, bool oneshot, ptrlen authproto, ptrlen authdata,
-    unsigned screen_number)
-{
-    return false;
-}
-
-bool chan_no_enable_agent_forwarding(Channel *chan)
-{
-    return false;
-}
-
-bool chan_no_allocate_pty(
-    Channel *chan, ptrlen termtype, unsigned width, unsigned height,
-    unsigned pixwidth, unsigned pixheight, struct ssh_ttymodes modes)
-{
-    return false;
-}
-
-bool chan_no_set_env(Channel *chan, ptrlen var, ptrlen value)
-{
-    return false;
-}
-
-bool chan_no_send_break(Channel *chan, unsigned length)
-{
-    return false;
-}
-
-bool chan_no_send_signal(Channel *chan, ptrlen signame)
-{
-    return false;
-}
-
-bool chan_no_change_window_size(
-    Channel *chan, unsigned width, unsigned height,
-    unsigned pixwidth, unsigned pixheight)
-{
-    return false;
-}
-
-void chan_no_request_response(Channel *chan, bool success)
-{
-    unreachable("this channel type should never send a want-reply request");
 }
 
 /* ----------------------------------------------------------------------
@@ -808,6 +732,11 @@ void ssh_ppl_user_output_string_and_free(PacketProtocolLayer *ppl, char *text)
     sfree(text);
 }
 
+size_t ssh_ppl_default_queued_data_size(PacketProtocolLayer *ppl)
+{
+    return ppl->out_pq->pqb.total_size;
+}
+
 /* ----------------------------------------------------------------------
  * Common helper functions for clients and implementations of
  * BinaryPacketProtocol.
@@ -1014,18 +943,4 @@ void ssh1_compute_session_id(
         put_byte(hash, mp_get_byte(servkey->modulus, i));
     put_data(hash, cookie, 8);
     ssh_hash_final(hash, session_id);
-}
-
-/* ----------------------------------------------------------------------
- * Other miscellaneous utility functions.
- */
-
-void free_rportfwd(struct ssh_rportfwd *rpf)
-{
-    if (rpf) {
-        sfree(rpf->log_description);
-        sfree(rpf->shost);
-        sfree(rpf->dhost);
-        sfree(rpf);
-    }
 }

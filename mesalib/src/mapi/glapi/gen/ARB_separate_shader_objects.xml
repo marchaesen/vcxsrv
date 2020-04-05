@@ -35,7 +35,7 @@
       </function>
       <function name="DeleteProgramPipelines" es2="3.1">
          <param name="n" type="GLsizei" />
-         <param name="pipelines" type="const GLuint *" />
+         <param name="pipelines" type="const GLuint *" count="n"/>
       </function>
       <function name="GenProgramPipelines" es2="3.1" no_error="true">
          <param name="n" type="GLsizei" />

@@ -25,7 +25,7 @@
 
 
 #include "main/glheader.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "prog_instruction.h"
 #include "prog_parameter.h"
 

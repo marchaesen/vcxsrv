@@ -39,7 +39,7 @@
 #include "main/fbobject.h"
 #include "main/formats.h"
 #include "main/framebuffer.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/renderbuffer.h"
 #include "main/version.h"
 #include "main/vtxfmt.h"
@@ -809,7 +809,7 @@ dri_create_context(gl_api api,
 
     /* create module contexts */
     _swrast_CreateContext( mesaCtx );
-    _vbo_CreateContext( mesaCtx );
+    _vbo_CreateContext( mesaCtx, false );
     _tnl_CreateContext( mesaCtx );
     _swsetup_CreateContext( mesaCtx );
     _swsetup_Wakeup( mesaCtx );

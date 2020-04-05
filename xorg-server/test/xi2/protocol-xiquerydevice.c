@@ -54,7 +54,7 @@ struct test_data {
     int num_devices_in_reply;
 };
 
-ClientRec client_window;
+extern ClientRec client_window;
 
 static void reply_XIQueryDevice_data(ClientPtr client, int len, char *data,
                                      void *closure);

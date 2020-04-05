@@ -126,6 +126,7 @@ lower_indirect_derefs_block(nir_block *block, nir_builder *b,
           intrin->intrinsic != nir_intrinsic_interp_deref_at_centroid &&
           intrin->intrinsic != nir_intrinsic_interp_deref_at_sample &&
           intrin->intrinsic != nir_intrinsic_interp_deref_at_offset &&
+          intrin->intrinsic != nir_intrinsic_interp_deref_at_vertex &&
           intrin->intrinsic != nir_intrinsic_store_deref)
          continue;
 

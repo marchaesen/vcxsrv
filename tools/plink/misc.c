@@ -223,22 +223,26 @@ char *buildinfo(const char *newline)
 #else
     strbuf_catf(buf, ", emulating ");
 #endif
-    strbuf_catf(buf, "Visual Studio", newline);
+    strbuf_catf(buf, "Visual Studio");
 
 #if 0
     /*
      * List of _MSC_VER values and their translations taken from
      * https://docs.microsoft.com/en-us/cpp/preprocessor/predefined-macros
-     * except for 1920, which is not yet listed on that page as of
-     * 2019-03-22, and was determined experimentally by Sean Kain.
      *
      * The pointless #if 0 branch containing this comment is there so
      * that every real clause can start with #elif and there's no
      * anomalous first clause. That way the patch looks nicer when you
      * add extra ones.
      */
+#elif _MSC_VER == 1923
+    strbuf_catf(buf, " 2019 (16.3)");
+#elif _MSC_VER == 1922
+    strbuf_catf(buf, " 2019 (16.2)");
+#elif _MSC_VER == 1921
+    strbuf_catf(buf, " 2019 (16.1)");
 #elif _MSC_VER == 1920
-    strbuf_catf(buf, " 2019 (16.x)");
+    strbuf_catf(buf, " 2019 (16.0)");
 #elif _MSC_VER == 1916
     strbuf_catf(buf, " 2017 version 15.9");
 #elif _MSC_VER == 1915
@@ -360,6 +364,14 @@ StripCtrlChars *nullseat_stripctrl_new(
     Seat *seat, BinarySink *bs_out, SeatInteractionContext sic) {return NULL;}
 bool nullseat_set_trust_status(Seat *seat, bool tr) { return false; }
 bool nullseat_set_trust_status_vacuously(Seat *seat, bool tr) { return true; }
+bool nullseat_verbose_no(Seat *seat) { return false; }
+bool nullseat_verbose_yes(Seat *seat) { return true; }
+bool nullseat_interactive_no(Seat *seat) { return false; }
+bool nullseat_interactive_yes(Seat *seat) { return true; }
+bool nullseat_get_cursor_position(Seat *seat, int *x, int *y) { return false; }
+
+bool null_lp_verbose_no(LogPolicy *lp) { return false; }
+bool null_lp_verbose_yes(LogPolicy *lp) { return true; }
 
 void sk_free_peer_info(SocketPeerInfo *pi)
 {

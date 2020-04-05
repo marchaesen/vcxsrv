@@ -112,15 +112,16 @@ static PktOut *ssh2_userauth_gss_packet(
 static void ssh2_userauth_antispoof_msg(
     struct ssh2_userauth_state *s, const char *msg);
 
-static const struct PacketProtocolLayerVtable ssh2_userauth_vtable = {
-    ssh2_userauth_free,
-    ssh2_userauth_process_queue,
-    ssh2_userauth_get_specials,
-    ssh2_userauth_special_cmd,
-    ssh2_userauth_want_user_input,
-    ssh2_userauth_got_user_input,
-    ssh2_userauth_reconfigure,
-    "ssh-userauth",
+static const PacketProtocolLayerVtable ssh2_userauth_vtable = {
+    .free = ssh2_userauth_free,
+    .process_queue = ssh2_userauth_process_queue,
+    .get_specials = ssh2_userauth_get_specials,
+    .special_cmd = ssh2_userauth_special_cmd,
+    .want_user_input = ssh2_userauth_want_user_input,
+    .got_user_input = ssh2_userauth_got_user_input,
+    .reconfigure = ssh2_userauth_reconfigure,
+    .queued_data_size = ssh_ppl_default_queued_data_size,
+    .name = "ssh-userauth",
 };
 
 PacketProtocolLayer *ssh2_userauth_new(
@@ -433,7 +434,7 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
                 prompt_get_result(s->cur_prompt->prompts[0]);
             free_prompts(s->cur_prompt);
         } else {
-            if ((flags & FLAG_VERBOSE) || (flags & FLAG_INTERACTIVE))
+            if (seat_verbose(s->ppl.seat) || seat_interactive(s->ppl.seat))
                 ppl_printf("Using username \"%s\".\r\n", s->username);
         }
         s->got_username = true;
@@ -496,7 +497,7 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
              * anti-spoofing header lines.
              */
             if (bufchain_size(&s->banner) &&
-                (flags & (FLAG_VERBOSE | FLAG_INTERACTIVE))) {
+                (seat_verbose(s->ppl.seat) || seat_interactive(s->ppl.seat))) {
                 if (s->banner_scc) {
                     ssh2_userauth_antispoof_msg(
                         s, "Pre-authentication banner message from server:");
@@ -727,7 +728,7 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
                 } else {
                     strbuf *agentreq, *sigdata;
 
-                    if (flags & FLAG_VERBOSE)
+                    if (seat_verbose(s->ppl.seat))
                         ppl_printf("Authenticating with public key "
                                    "\"%.*s\" from agent\r\n",
                                    PTRLEN_PRINTF(s->comment));
@@ -780,7 +781,15 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
                             ppl_printf("Pageant failed to "
                                        "provide a signature\r\n");
                             s->suppress_wait_for_response_packet = true;
+                            ssh_free_pktout(s->pktout);
                         }
+                    } else {
+                        ppl_logevent("Pageant failed to respond to "
+                                     "signing request");
+                        ppl_printf("Pageant failed to "
+                                   "respond to signing request\r\n");
+                        s->suppress_wait_for_response_packet = true;
+                        ssh_free_pktout(s->pktout);
                     }
                 }
 
@@ -836,7 +845,7 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
                  * Actually attempt a serious authentication using
                  * the key.
                  */
-                if (flags & FLAG_VERBOSE)
+                if (seat_verbose(s->ppl.seat))
                     ppl_printf("Authenticating with public key \"%s\"\r\n",
                                s->publickey_comment);
 
@@ -1332,6 +1341,8 @@ static void ssh2_userauth_process_queue(PacketProtocolLayer *ppl)
                     }
                     if (sb->len)
                         s->cur_prompt->instruction = strbuf_to_str(sb);
+                    else
+                        strbuf_free(sb);
 
                     /*
                      * Our prompts_t is fully constructed now. Get the

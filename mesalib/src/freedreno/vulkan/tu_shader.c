@@ -25,6 +25,7 @@
 
 #include "spirv/nir_spirv.h"
 #include "util/mesa-sha1.h"
+#include "nir/nir_xfb_info.h"
 
 #include "ir3/ir3_nir.h"
 
@@ -40,7 +41,9 @@ tu_spirv_to_nir(struct ir3_compiler *compiler,
    const struct spirv_to_nir_options spirv_options = {
       .frag_coord_is_sysval = true,
       .lower_ubo_ssbo_access_to_offsets = true,
-      .caps = { false },
+      .caps = {
+         .transform_feedback = compiler->gpu_id >= 600,
+      },
    };
    const nir_shader_compiler_options *nir_options =
       ir3_get_compiler_options(compiler);
@@ -159,8 +162,6 @@ lower_tex_src_to_offset(nir_builder *b, nir_tex_instr *instr, unsigned src_idx,
       src->src_type = is_sampler ?
          nir_tex_src_sampler_offset :
          nir_tex_src_texture_offset;
-
-      instr->texture_array_size = array_elements;
    } else {
       nir_tex_instr_remove_src(instr, src_idx);
    }
@@ -269,8 +270,9 @@ lower_vulkan_resource_index(nir_builder *b, nir_intrinsic_instr *instr,
 }
 
 static void
-add_image_deref_mapping(nir_intrinsic_instr *instr, struct tu_shader *shader,
-                const struct tu_pipeline_layout *layout)
+lower_image_deref(nir_builder *b,
+                  nir_intrinsic_instr *instr, struct tu_shader *shader,
+                  const struct tu_pipeline_layout *layout)
 {
    nir_deref_instr *deref = nir_src_as_deref(instr->src[0]);
    nir_variable *var = nir_deref_instr_get_variable(deref);
@@ -281,9 +283,15 @@ add_image_deref_mapping(nir_intrinsic_instr *instr, struct tu_shader *shader,
    struct tu_descriptor_set_binding_layout *binding_layout =
       &set_layout->binding[binding];
 
-   var->data.driver_location =
-      map_add(&shader->image_map, set, binding, var->data.index,
-              binding_layout->array_size);
+   nir_ssa_def *index = nir_imm_int(b,
+                                    map_add(&shader->image_map,
+                                            set, binding, var->data.index,
+                                            binding_layout->array_size));
+   if (deref->deref_type != nir_deref_type_var) {
+      assert(deref->deref_type == nir_deref_type_array);
+      index = nir_iadd(b, index, nir_ssa_for_src(b, deref->arr.index, 1));
+   }
+   nir_rewrite_image_intrinsic(instr, index, false);
 }
 
 static bool
@@ -324,7 +332,7 @@ lower_intrinsic(nir_builder *b, nir_intrinsic_instr *instr,
    case nir_intrinsic_image_deref_load_param_intel:
    case nir_intrinsic_image_deref_load_raw_intel:
    case nir_intrinsic_image_deref_store_raw_intel:
-      add_image_deref_mapping(instr, shader, layout);
+      lower_image_deref(b, instr, shader, layout);
       return true;
 
    default:
@@ -379,6 +387,48 @@ tu_lower_io(nir_shader *shader, struct tu_shader *tu_shader,
    return progress;
 }
 
+static void
+tu_gather_xfb_info(nir_shader *nir, struct tu_shader *shader)
+{
+   struct ir3_stream_output_info *info = &shader->ir3_shader.stream_output;
+   nir_xfb_info *xfb = nir_gather_xfb_info(nir, NULL);
+
+   if (!xfb)
+      return;
+
+   /* creating a map from VARYING_SLOT_* enums to consecutive index */
+   uint8_t num_outputs = 0;
+   uint64_t outputs_written = 0;
+   for (int i = 0; i < xfb->output_count; i++)
+      outputs_written |= BITFIELD64_BIT(xfb->outputs[i].location);
+
+   uint8_t output_map[VARYING_SLOT_TESS_MAX];
+   memset(output_map, 0, sizeof(output_map));
+
+   for (unsigned attr = 0; attr < VARYING_SLOT_MAX; attr++) {
+      if (outputs_written & BITFIELD64_BIT(attr))
+         output_map[attr] = num_outputs++;
+   }
+
+   assert(xfb->output_count < IR3_MAX_SO_OUTPUTS);
+   info->num_outputs = xfb->output_count;
+
+   for (int i = 0; i < IR3_MAX_SO_BUFFERS; i++)
+      info->stride[i] = xfb->buffers[i].stride / 4;
+
+   for (int i = 0; i < xfb->output_count; i++) {
+      info->output[i].register_index = output_map[xfb->outputs[i].location];
+      info->output[i].start_component = xfb->outputs[i].component_offset;
+      info->output[i].num_components =
+                           util_bitcount(xfb->outputs[i].component_mask);
+      info->output[i].output_buffer  = xfb->outputs[i].buffer;
+      info->output[i].dst_offset = xfb->outputs[i].offset / 4;
+      info->output[i].stream = xfb->buffer_to_stream[xfb->outputs[i].buffer];
+   }
+
+   ralloc_free(xfb);
+}
+
 struct tu_shader *
 tu_shader_create(struct tu_device *dev,
                  gl_shader_stage stage,
@@ -414,7 +464,7 @@ tu_shader_create(struct tu_device *dev,
    }
 
    /* multi step inlining procedure */
-   NIR_PASS_V(nir, nir_lower_constant_initializers, nir_var_function_temp);
+   NIR_PASS_V(nir, nir_lower_variable_initializers, nir_var_function_temp);
    NIR_PASS_V(nir, nir_lower_returns);
    NIR_PASS_V(nir, nir_inline_functions);
    NIR_PASS_V(nir, nir_opt_deref);
@@ -423,7 +473,7 @@ tu_shader_create(struct tu_device *dev,
          exec_node_remove(&func->node);
    }
    assert(exec_list_length(&nir->functions) == 1);
-   NIR_PASS_V(nir, nir_lower_constant_initializers, ~nir_var_function_temp);
+   NIR_PASS_V(nir, nir_lower_variable_initializers, ~nir_var_function_temp);
 
    /* Split member structs.  We do this before lower_io_to_temporaries so that
     * it doesn't lower system values to temporaries by accident.
@@ -433,6 +483,16 @@ tu_shader_create(struct tu_device *dev,
 
    NIR_PASS_V(nir, nir_remove_dead_variables,
               nir_var_shader_in | nir_var_shader_out | nir_var_system_value | nir_var_mem_shared);
+
+   /* Gather information for transform feedback.
+    * This should be called after nir_split_per_member_structs.
+    * Also needs to be called after nir_remove_dead_variables with varyings,
+    * so that we could align stream outputs correctly.
+    */
+   if (nir->info.stage == MESA_SHADER_VERTEX ||
+         nir->info.stage == MESA_SHADER_TESS_EVAL ||
+         nir->info.stage == MESA_SHADER_GEOMETRY)
+      tu_gather_xfb_info(nir, shader);
 
    NIR_PASS_V(nir, nir_propagate_invariant);
 

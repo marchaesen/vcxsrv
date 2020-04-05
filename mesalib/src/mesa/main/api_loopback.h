@@ -270,13 +270,9 @@ _mesa_MultiTexCoord4sv(GLenum target, const GLshort *v);
 void GLAPIENTRY
 _mesa_EvalCoord2dv( const GLdouble *u );
 void GLAPIENTRY
-_mesa_EvalCoord2fv( const GLfloat *u );
-void GLAPIENTRY
 _mesa_EvalCoord2d( GLdouble u, GLdouble v );
 void GLAPIENTRY
 _mesa_EvalCoord1dv( const GLdouble *u );
-void GLAPIENTRY
-_mesa_EvalCoord1fv( const GLfloat *u );
 void GLAPIENTRY
 _mesa_EvalCoord1d( GLdouble u );
 void GLAPIENTRY
@@ -463,28 +459,5 @@ void GLAPIENTRY
 _mesa_VertexAttribI4ubv(GLuint index, const GLubyte *v);
 void GLAPIENTRY
 _mesa_VertexAttribI4usv(GLuint index, const GLushort *v);
-
-void GLAPIENTRY
-_mesa_VertexAttribL1d(GLuint index, GLdouble x);
-void GLAPIENTRY
-_mesa_VertexAttribL2d(GLuint index, GLdouble x, GLdouble y);
-void GLAPIENTRY
-_mesa_VertexAttribL3d(GLuint index, GLdouble x, GLdouble y, GLdouble z);
-void GLAPIENTRY
-_mesa_VertexAttribL4d(GLuint index, GLdouble x, GLdouble y, GLdouble z, GLdouble w);
-
-void GLAPIENTRY
-_mesa_VertexAttribL1dv(GLuint index, const GLdouble *v);
-void GLAPIENTRY
-_mesa_VertexAttribL2dv(GLuint index, const GLdouble *v);
-void GLAPIENTRY
-_mesa_VertexAttribL3dv(GLuint index, const GLdouble *v);
-void GLAPIENTRY
-_mesa_VertexAttribL4dv(GLuint index, const GLdouble *v);
-
-void GLAPIENTRY
-_mesa_VertexAttribL1ui64ARB(GLuint index, GLuint64EXT x);
-void GLAPIENTRY
-_mesa_VertexAttribL1ui64vARB(GLuint index, const GLuint64EXT *v);
 
 #endif /* API_LOOPBACK_H */

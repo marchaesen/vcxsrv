@@ -69,26 +69,64 @@
  * is about as concise as the specification in the old python script.
  */
 
-#define FLOAT_TO_BOOLEAN(X)   ( (X) ? GL_TRUE : GL_FALSE )
-#define FLOAT_TO_FIXED(F)     ( ((F) * 65536.0f > INT_MAX) ? INT_MAX : \
-                                ((F) * 65536.0f < INT_MIN) ? INT_MIN : \
-                                (GLint) ((F) * 65536.0f) )
+static inline GLboolean
+FLOAT_TO_BOOLEAN(GLfloat X)
+{
+   return ( (X) ? GL_TRUE : GL_FALSE );
+}
 
-#define INT_TO_BOOLEAN(I)     ( (I) ? GL_TRUE : GL_FALSE )
-#define INT_TO_FIXED(I)       ( ((I) > SHRT_MAX) ? INT_MAX : \
-                                ((I) < SHRT_MIN) ? INT_MIN : \
-                                (GLint) ((I) * 65536) )
+static inline GLint
+FLOAT_TO_FIXED(GLfloat F)
+{
+   return ( ((F) * 65536.0f > INT_MAX) ? INT_MAX :
+            ((F) * 65536.0f < INT_MIN) ? INT_MIN :
+            (GLint) ((F) * 65536.0f) );
+}
 
-#define INT64_TO_BOOLEAN(I)   ( (I) ? GL_TRUE : GL_FALSE )
-#define INT64_TO_INT(I)       ( (GLint)((I > INT_MAX) ? INT_MAX : ((I < INT_MIN) ? INT_MIN : (I))) )
+static inline GLboolean
+INT_TO_BOOLEAN(GLint I)
+{
+   return ( (I) ? GL_TRUE : GL_FALSE );
+}
 
-#define BOOLEAN_TO_INT(B)     ( (GLint) (B) )
-#define BOOLEAN_TO_INT64(B)   ( (GLint64) (B) )
-#define BOOLEAN_TO_FLOAT(B)   ( (B) ? 1.0F : 0.0F )
-#define BOOLEAN_TO_FIXED(B)   ( (GLint) ((B) ? 1 : 0) << 16 )
+static inline GLfixed
+INT_TO_FIXED(GLint I)
+{
+   return (((I) > SHRT_MAX) ? INT_MAX :
+           ((I) < SHRT_MIN) ? INT_MIN :
+           (GLint) ((I) * 65536) );
+}
 
-#define ENUM_TO_INT64(E)      ( (GLint64) (E) )
-#define ENUM_TO_FIXED(E)      (E)
+
+static inline GLboolean
+INT64_TO_BOOLEAN(GLint64 I)
+{
+   return ( (I) ? GL_TRUE : GL_FALSE );
+}
+
+static inline GLint
+INT64_TO_INT(GLint64 I)
+{
+   return ( (GLint)((I > INT_MAX) ? INT_MAX : ((I < INT_MIN) ? INT_MIN : (I))) );
+}
+
+static inline GLint
+BOOLEAN_TO_INT(GLboolean B)
+{
+   return ( (GLint) (B) );
+}
+
+static inline GLfloat
+BOOLEAN_TO_FLOAT(GLboolean B)
+{
+   return ( (B) ? 1.0F : 0.0F );
+}
+
+static inline GLfixed
+BOOLEAN_TO_FIXED(GLboolean B)
+{
+   return ( (GLint) ((B) ? 1 : 0) << 16 );
+}
 
 enum value_type {
    TYPE_INVALID,
@@ -1509,6 +1547,8 @@ find_value(const char *func, GLenum pname, void **p, union value *v)
    int mask, hash;
    const struct value_desc *d;
    int api;
+
+   *p = NULL;
 
    api = ctx->API;
    /* We index into the table_set[] list of per-API hash tables using the API's

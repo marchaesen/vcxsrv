@@ -37,4 +37,29 @@ fdl_layout_buffer(struct fdl_layout *layout, uint32_t size)
 	layout->depth0 = 1;
 	layout->cpp = 1;
 	layout->size = size;
+	layout->format = PIPE_FORMAT_R8_UINT;
+	layout->nr_samples = 1;
+}
+
+void
+fdl_dump_layout(struct fdl_layout *layout)
+{
+	for (uint32_t level = 0; level < layout->slices[level].size0; level++) {
+		struct fdl_slice *slice = &layout->slices[level];
+		struct fdl_slice *ubwc_slice = &layout->ubwc_slices[level];
+
+		fprintf(stderr, "%s: %ux%ux%u@%ux%u:\t%2u: stride=%4u, size=%6u,%6u, aligned_height=%3u, offset=0x%x,0x%x, layersz %5u,%5u tiling=%d\n",
+				util_format_name(layout->format),
+				u_minify(layout->width0, level),
+				u_minify(layout->height0, level),
+				u_minify(layout->depth0, level),
+				layout->cpp, layout->nr_samples,
+				level,
+				slice->pitch * layout->cpp,
+				slice->size0, ubwc_slice->size0,
+				slice->size0 / (slice->pitch * layout->cpp),
+				slice->offset, ubwc_slice->offset,
+				layout->layer_size, layout->ubwc_layer_size,
+				fdl_tile_mode(layout, level));
+	}
 }

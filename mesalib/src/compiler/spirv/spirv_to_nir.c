@@ -32,6 +32,7 @@
 #include "nir/nir_deref.h"
 #include "spirv_info.h"
 
+#include "util/format/u_format.h"
 #include "util/u_math.h"
 
 #include <stdio.h>
@@ -398,6 +399,9 @@ vtn_handle_extension(struct vtn_builder *b, SpvOp opcode,
       } else if ((strcmp(ext, "SPV_AMD_shader_trinary_minmax") == 0)
                 && (b->options && b->options->caps.amd_trinary_minmax)) {
          val->ext_handler = vtn_handle_amd_shader_trinary_minmax_instruction;
+      } else if ((strcmp(ext, "SPV_AMD_shader_explicit_vertex_parameter") == 0)
+                && (b->options && b->options->caps.amd_shader_explicit_vertex_parameter)) {
+         val->ext_handler = vtn_handle_amd_shader_explicit_vertex_parameter_instruction;
       } else if (strcmp(ext, "OpenCL.std") == 0) {
          val->ext_handler = vtn_handle_opencl_instruction;
       } else if (strstr(ext, "NonSemantic.") == ext) {
@@ -779,6 +783,9 @@ struct_member_decoration_cb(struct vtn_builder *b,
    case SpvDecorationFlat:
       ctx->fields[member].interpolation = INTERP_MODE_FLAT;
       break;
+   case SpvDecorationExplicitInterpAMD:
+      ctx->fields[member].interpolation = INTERP_MODE_EXPLICIT;
+      break;
    case SpvDecorationCentroid:
       ctx->fields[member].centroid = true;
       break;
@@ -786,8 +793,7 @@ struct_member_decoration_cb(struct vtn_builder *b,
       ctx->fields[member].sample = true;
       break;
    case SpvDecorationStream:
-      /* Vulkan only allows one GS stream */
-      vtn_assert(dec->operands[0] == 0);
+      /* This is handled later by var_decoration_cb in vtn_variables.c */
       break;
    case SpvDecorationLocation:
       ctx->fields[member].location = dec->operands[0];
@@ -838,7 +844,7 @@ struct_member_decoration_cb(struct vtn_builder *b,
 
    case SpvDecorationXfbBuffer:
    case SpvDecorationXfbStride:
-      vtn_warn("Vulkan does not have transform feedback");
+      /* This is handled later by var_decoration_cb in vtn_variables.c */
       break;
 
    case SpvDecorationCPacked:
@@ -984,6 +990,7 @@ type_decoration_cb(struct vtn_builder *b,
    case SpvDecorationPatch:
    case SpvDecorationCentroid:
    case SpvDecorationSample:
+   case SpvDecorationExplicitInterpAMD:
    case SpvDecorationVolatile:
    case SpvDecorationCoherent:
    case SpvDecorationNonWritable:
@@ -1050,46 +1057,46 @@ static unsigned
 translate_image_format(struct vtn_builder *b, SpvImageFormat format)
 {
    switch (format) {
-   case SpvImageFormatUnknown:      return 0;      /* GL_NONE */
-   case SpvImageFormatRgba32f:      return 0x8814; /* GL_RGBA32F */
-   case SpvImageFormatRgba16f:      return 0x881A; /* GL_RGBA16F */
-   case SpvImageFormatR32f:         return 0x822E; /* GL_R32F */
-   case SpvImageFormatRgba8:        return 0x8058; /* GL_RGBA8 */
-   case SpvImageFormatRgba8Snorm:   return 0x8F97; /* GL_RGBA8_SNORM */
-   case SpvImageFormatRg32f:        return 0x8230; /* GL_RG32F */
-   case SpvImageFormatRg16f:        return 0x822F; /* GL_RG16F */
-   case SpvImageFormatR11fG11fB10f: return 0x8C3A; /* GL_R11F_G11F_B10F */
-   case SpvImageFormatR16f:         return 0x822D; /* GL_R16F */
-   case SpvImageFormatRgba16:       return 0x805B; /* GL_RGBA16 */
-   case SpvImageFormatRgb10A2:      return 0x8059; /* GL_RGB10_A2 */
-   case SpvImageFormatRg16:         return 0x822C; /* GL_RG16 */
-   case SpvImageFormatRg8:          return 0x822B; /* GL_RG8 */
-   case SpvImageFormatR16:          return 0x822A; /* GL_R16 */
-   case SpvImageFormatR8:           return 0x8229; /* GL_R8 */
-   case SpvImageFormatRgba16Snorm:  return 0x8F9B; /* GL_RGBA16_SNORM */
-   case SpvImageFormatRg16Snorm:    return 0x8F99; /* GL_RG16_SNORM */
-   case SpvImageFormatRg8Snorm:     return 0x8F95; /* GL_RG8_SNORM */
-   case SpvImageFormatR16Snorm:     return 0x8F98; /* GL_R16_SNORM */
-   case SpvImageFormatR8Snorm:      return 0x8F94; /* GL_R8_SNORM */
-   case SpvImageFormatRgba32i:      return 0x8D82; /* GL_RGBA32I */
-   case SpvImageFormatRgba16i:      return 0x8D88; /* GL_RGBA16I */
-   case SpvImageFormatRgba8i:       return 0x8D8E; /* GL_RGBA8I */
-   case SpvImageFormatR32i:         return 0x8235; /* GL_R32I */
-   case SpvImageFormatRg32i:        return 0x823B; /* GL_RG32I */
-   case SpvImageFormatRg16i:        return 0x8239; /* GL_RG16I */
-   case SpvImageFormatRg8i:         return 0x8237; /* GL_RG8I */
-   case SpvImageFormatR16i:         return 0x8233; /* GL_R16I */
-   case SpvImageFormatR8i:          return 0x8231; /* GL_R8I */
-   case SpvImageFormatRgba32ui:     return 0x8D70; /* GL_RGBA32UI */
-   case SpvImageFormatRgba16ui:     return 0x8D76; /* GL_RGBA16UI */
-   case SpvImageFormatRgba8ui:      return 0x8D7C; /* GL_RGBA8UI */
-   case SpvImageFormatR32ui:        return 0x8236; /* GL_R32UI */
-   case SpvImageFormatRgb10a2ui:    return 0x906F; /* GL_RGB10_A2UI */
-   case SpvImageFormatRg32ui:       return 0x823C; /* GL_RG32UI */
-   case SpvImageFormatRg16ui:       return 0x823A; /* GL_RG16UI */
-   case SpvImageFormatRg8ui:        return 0x8238; /* GL_RG8UI */
-   case SpvImageFormatR16ui:        return 0x8234; /* GL_R16UI */
-   case SpvImageFormatR8ui:         return 0x8232; /* GL_R8UI */
+   case SpvImageFormatUnknown:      return PIPE_FORMAT_NONE;
+   case SpvImageFormatRgba32f:      return PIPE_FORMAT_R32G32B32A32_FLOAT;
+   case SpvImageFormatRgba16f:      return PIPE_FORMAT_R16G16B16A16_FLOAT;
+   case SpvImageFormatR32f:         return PIPE_FORMAT_R32_FLOAT;
+   case SpvImageFormatRgba8:        return PIPE_FORMAT_R8G8B8A8_UNORM;
+   case SpvImageFormatRgba8Snorm:   return PIPE_FORMAT_R8G8B8A8_SNORM;
+   case SpvImageFormatRg32f:        return PIPE_FORMAT_R32G32_FLOAT;
+   case SpvImageFormatRg16f:        return PIPE_FORMAT_R16G16_FLOAT;
+   case SpvImageFormatR11fG11fB10f: return PIPE_FORMAT_R11G11B10_FLOAT;
+   case SpvImageFormatR16f:         return PIPE_FORMAT_R16_FLOAT;
+   case SpvImageFormatRgba16:       return PIPE_FORMAT_R16G16B16A16_UNORM;
+   case SpvImageFormatRgb10A2:      return PIPE_FORMAT_R10G10B10A2_UNORM;
+   case SpvImageFormatRg16:         return PIPE_FORMAT_R16G16_UNORM;
+   case SpvImageFormatRg8:          return PIPE_FORMAT_R8G8_UNORM;
+   case SpvImageFormatR16:          return PIPE_FORMAT_R16_UNORM;
+   case SpvImageFormatR8:           return PIPE_FORMAT_R8_UNORM;
+   case SpvImageFormatRgba16Snorm:  return PIPE_FORMAT_R16G16B16A16_SNORM;
+   case SpvImageFormatRg16Snorm:    return PIPE_FORMAT_R16G16_SNORM;
+   case SpvImageFormatRg8Snorm:     return PIPE_FORMAT_R8G8_SNORM;
+   case SpvImageFormatR16Snorm:     return PIPE_FORMAT_R16_SNORM;
+   case SpvImageFormatR8Snorm:      return PIPE_FORMAT_R8_SNORM;
+   case SpvImageFormatRgba32i:      return PIPE_FORMAT_R32G32B32A32_SINT;
+   case SpvImageFormatRgba16i:      return PIPE_FORMAT_R16G16B16A16_SINT;
+   case SpvImageFormatRgba8i:       return PIPE_FORMAT_R8G8B8A8_SINT;
+   case SpvImageFormatR32i:         return PIPE_FORMAT_R32_SINT;
+   case SpvImageFormatRg32i:        return PIPE_FORMAT_R32G32_SINT;
+   case SpvImageFormatRg16i:        return PIPE_FORMAT_R16G16_SINT;
+   case SpvImageFormatRg8i:         return PIPE_FORMAT_R8G8_SINT;
+   case SpvImageFormatR16i:         return PIPE_FORMAT_R16_SINT;
+   case SpvImageFormatR8i:          return PIPE_FORMAT_R8_SINT;
+   case SpvImageFormatRgba32ui:     return PIPE_FORMAT_R32G32B32A32_UINT;
+   case SpvImageFormatRgba16ui:     return PIPE_FORMAT_R16G16B16A16_UINT;
+   case SpvImageFormatRgba8ui:      return PIPE_FORMAT_R8G8B8A8_UINT;
+   case SpvImageFormatR32ui:        return PIPE_FORMAT_R32_UINT;
+   case SpvImageFormatRgb10a2ui:    return PIPE_FORMAT_R10G10B10A2_UINT;
+   case SpvImageFormatRg32ui:       return PIPE_FORMAT_R32G32_UINT;
+   case SpvImageFormatRg16ui:       return PIPE_FORMAT_R16G16_UINT;
+   case SpvImageFormatRg8ui:        return PIPE_FORMAT_R8G8_UINT;
+   case SpvImageFormatR16ui:        return PIPE_FORMAT_R16_UINT;
+   case SpvImageFormatR8ui:         return PIPE_FORMAT_R8_UINT;
    default:
       vtn_fail("Invalid image format: %s (%u)",
                spirv_imageformat_to_string(format), format);
@@ -2418,24 +2425,7 @@ vtn_handle_texture(struct vtn_builder *b, SpvOp opcode,
    case SpvOpFragmentFetchAMD:
    case SpvOpFragmentMaskFetchAMD: {
       /* All these types have the coordinate as their first real argument */
-      switch (sampler_dim) {
-      case GLSL_SAMPLER_DIM_1D:
-      case GLSL_SAMPLER_DIM_BUF:
-         coord_components = 1;
-         break;
-      case GLSL_SAMPLER_DIM_2D:
-      case GLSL_SAMPLER_DIM_RECT:
-      case GLSL_SAMPLER_DIM_MS:
-      case GLSL_SAMPLER_DIM_SUBPASS_MS:
-         coord_components = 2;
-         break;
-      case GLSL_SAMPLER_DIM_3D:
-      case GLSL_SAMPLER_DIM_CUBE:
-         coord_components = 3;
-         break;
-      default:
-         vtn_fail("Invalid sampler type");
-      }
+      coord_components = glsl_get_sampler_dim_coordinate_components(sampler_dim);
 
       if (is_array && texop != nir_texop_lod)
          coord_components++;
@@ -3586,7 +3576,7 @@ void
 vtn_emit_memory_barrier(struct vtn_builder *b, SpvScope scope,
                         SpvMemorySemanticsMask semantics)
 {
-   if (b->options->use_scoped_memory_barrier) {
+   if (b->shader->options->use_scoped_memory_barrier) {
       vtn_emit_scoped_memory_barrier(b, scope, semantics);
       return;
    }
@@ -3595,7 +3585,8 @@ vtn_emit_memory_barrier(struct vtn_builder *b, SpvScope scope,
       SpvMemorySemanticsUniformMemoryMask |
       SpvMemorySemanticsWorkgroupMemoryMask |
       SpvMemorySemanticsAtomicCounterMemoryMask |
-      SpvMemorySemanticsImageMemoryMask;
+      SpvMemorySemanticsImageMemoryMask |
+      SpvMemorySemanticsOutputMemoryMask;
 
    /* If we're not actually doing a memory barrier, bail */
    if (!(semantics & all_memory_semantics))
@@ -3615,9 +3606,14 @@ vtn_emit_memory_barrier(struct vtn_builder *b, SpvScope scope,
    /* There's only two scopes thing left */
    vtn_assert(scope == SpvScopeInvocation || scope == SpvScopeDevice);
 
-   if ((semantics & all_memory_semantics) == all_memory_semantics) {
-      vtn_emit_barrier(b, nir_intrinsic_memory_barrier);
-      return;
+   /* Map the GLSL memoryBarrier() construct to the corresponding NIR one. */
+   static const SpvMemorySemanticsMask glsl_memory_barrier =
+      SpvMemorySemanticsUniformMemoryMask |
+      SpvMemorySemanticsWorkgroupMemoryMask |
+      SpvMemorySemanticsImageMemoryMask;
+   if ((semantics & glsl_memory_barrier) == glsl_memory_barrier) {
+       vtn_emit_barrier(b, nir_intrinsic_memory_barrier);
+       semantics &= ~(glsl_memory_barrier | SpvMemorySemanticsAtomicCounterMemoryMask);
    }
 
    /* Issue a bunch of more specific barriers */
@@ -4176,7 +4172,7 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          b->options->temp_addr_format = nir_address_format_64bit_global;
          break;
       case SpvAddressingModelLogical:
-         vtn_fail_if(b->shader->info.stage >= MESA_SHADER_STAGES,
+         vtn_fail_if(b->shader->info.stage == MESA_SHADER_KERNEL,
                      "AddressingModelLogical only supported for shaders");
          b->physical_ptrs = false;
          break;
@@ -5152,7 +5148,7 @@ vtn_create_builder(const uint32_t *words, size_t word_count,
    b->file = NULL;
    b->line = -1;
    b->col = -1;
-   exec_list_make_empty(&b->functions);
+   list_inithead(&b->functions);
    b->entry_point_stage = stage;
    b->entry_point_name = entry_point_name;
    b->options = dup_options;
@@ -5350,7 +5346,8 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
    bool progress;
    do {
       progress = false;
-      foreach_list_typed(struct vtn_function, func, node, &b->functions) {
+      vtn_foreach_cf_node(node, &b->functions) {
+         struct vtn_function *func = vtn_cf_node_as_function(node);
          if (func->referenced && !func->emitted) {
             b->const_table = _mesa_pointer_hash_table_create(b);
 
@@ -5380,7 +5377,7 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
     * right away.  In order to do so, we must lower any constant initializers
     * on outputs so nir_remove_dead_variables sees that they're written to.
     */
-   nir_lower_constant_initializers(b->shader, nir_var_shader_out);
+   nir_lower_variable_initializers(b->shader, nir_var_shader_out);
    nir_remove_dead_variables(b->shader,
                              nir_var_shader_in | nir_var_shader_out);
 

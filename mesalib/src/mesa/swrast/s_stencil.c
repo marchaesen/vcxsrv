@@ -25,7 +25,7 @@
 
 #include "main/glheader.h"
 #include "main/context.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/format_pack.h"
 #include "main/format_unpack.h"
 #include "main/stencil.h"

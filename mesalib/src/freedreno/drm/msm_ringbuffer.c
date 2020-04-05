@@ -218,8 +218,7 @@ msm_submit_suballoc_ring_bo(struct fd_submit *submit,
 
 	if (!suballoc_bo) {
 		// TODO possibly larger size for streaming bo?
-		msm_ring->ring_bo = fd_bo_new_ring(
-				submit->pipe->dev, 0x8000, 0);
+		msm_ring->ring_bo = fd_bo_new_ring(submit->pipe->dev, 0x8000);
 		msm_ring->offset = 0;
 	} else {
 		msm_ring->ring_bo = fd_bo_ref(suballoc_bo);
@@ -257,7 +256,7 @@ msm_submit_new_ringbuffer(struct fd_submit *submit, uint32_t size,
 			size = INIT_SIZE;
 
 		msm_ring->offset = 0;
-		msm_ring->ring_bo = fd_bo_new_ring(submit->pipe->dev, size, 0);
+		msm_ring->ring_bo = fd_bo_new_ring(submit->pipe->dev, size);
 	}
 
 	if (!msm_ringbuffer_init(msm_ring, size, flags))
@@ -503,7 +502,7 @@ msm_ringbuffer_grow(struct fd_ringbuffer *ring, uint32_t size)
 	finalize_current_cmd(ring);
 
 	fd_bo_del(msm_ring->ring_bo);
-	msm_ring->ring_bo = fd_bo_new_ring(pipe->dev, size, 0);
+	msm_ring->ring_bo = fd_bo_new_ring(pipe->dev, size);
 	msm_ring->cmd = cmd_new(msm_ring->ring_bo);
 
 	ring->start = fd_bo_map(msm_ring->ring_bo);
@@ -612,6 +611,9 @@ msm_ringbuffer_emit_reloc_ring(struct fd_ringbuffer *ring,
 		.offset = msm_target->offset,
 	});
 
+	if (!size)
+		return 0;
+
 	if ((target->flags & _FD_RINGBUFFER_OBJECT) &&
 			!(ring->flags & _FD_RINGBUFFER_OBJECT)) {
 		struct msm_submit *msm_submit = to_msm_submit(msm_ring->u.submit);
@@ -708,7 +710,7 @@ msm_ringbuffer_new_object(struct fd_pipe *pipe, uint32_t size)
 
 	msm_ring->u.pipe = pipe;
 	msm_ring->offset = 0;
-	msm_ring->ring_bo = fd_bo_new_ring(pipe->dev, size, 0);
+	msm_ring->ring_bo = fd_bo_new_ring(pipe->dev, size);
 	msm_ring->base.refcnt = 1;
 
 	msm_ring->u.reloc_bos = NULL;

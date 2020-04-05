@@ -34,7 +34,6 @@
 #ifndef U_MEMORY_H
 #define U_MEMORY_H
 
-#include "util/u_pointer.h"
 #include "util/u_debug.h"
 #include "util/os_memory.h"
 
@@ -75,7 +74,7 @@ align_calloc(size_t size, unsigned long alignment)
  * Duplicate a block of memory.
  */
 static inline void *
-mem_dup(const void *src, uint size)
+mem_dup(const void *src, size_t size)
 {
    void *dup = MALLOC(size);
    if (dup)

@@ -135,6 +135,8 @@ vbo_get_default_vals_as_union(GLenum format)
 {
    static const GLfloat default_float[4] = { 0, 0, 0, 1 };
    static const GLint default_int[4] = { 0, 0, 0, 1 };
+   static const GLdouble default_double[4] = { 0, 0, 0, 1 };
+   static const uint64_t default_uint64[4] = { 0, 0, 0, 1 };
 
    switch (format) {
    case GL_FLOAT:
@@ -142,6 +144,10 @@ vbo_get_default_vals_as_union(GLenum format)
    case GL_INT:
    case GL_UNSIGNED_INT:
       return (fi_type *)default_int;
+   case GL_DOUBLE:
+      return (fi_type *)default_double;
+   case GL_UNSIGNED_INT64_ARB:
+      return (fi_type *)default_uint64;
    default:
       unreachable("Bad vertex format");
       return NULL;
@@ -157,8 +163,9 @@ vbo_get_default_vals_as_union(GLenum format)
 static inline unsigned
 vbo_compute_max_verts(const struct vbo_exec_context *exec)
 {
-   unsigned n = (VBO_VERT_BUFFER_SIZE - exec->vtx.buffer_used) /
-      (exec->vtx.vertex_size * sizeof(GLfloat));
+   unsigned n = (exec->ctx->Const.glBeginEndBufferSize -
+                 exec->vtx.buffer_used) /
+                (exec->vtx.vertex_size * sizeof(GLfloat));
    if (n == 0)
       return 0;
    /* Subtract one so we're always sure to have room for an extra
@@ -173,11 +180,17 @@ void
 vbo_try_prim_conversion(struct _mesa_prim *p);
 
 bool
-vbo_can_merge_prims(const struct _mesa_prim *p0, const struct _mesa_prim *p1);
+vbo_merge_draws(struct gl_context *ctx, bool in_dlist,
+                struct _mesa_prim *p0, const struct _mesa_prim *p1);
 
-void
-vbo_merge_prims(struct _mesa_prim *p0, const struct _mesa_prim *p1);
-
+unsigned
+vbo_copy_vertices(struct gl_context *ctx,
+                  GLenum mode,
+                  struct _mesa_prim *last_prim,
+                  unsigned vertex_size,
+                  bool in_dlist,
+                  fi_type *dst,
+                  const fi_type *src);
 
 /**
  * Get the filter mask for vbo draws depending on the vertex_processing_mode.

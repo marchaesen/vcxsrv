@@ -33,7 +33,7 @@
 
 #include "main/glheader.h"
 #include "main/bufferobj.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/glformats.h"
 #include "main/macros.h"
 #include "main/mtypes.h"
@@ -211,7 +211,9 @@ flush(struct copy_context *copy)
               GL_TRUE,
               0,
               copy->dstbuf_nr - 1,
-              NULL, 0, NULL);
+              1,
+              0,
+              NULL, 0);
 
    /* Reset all pointers:
     */
@@ -237,7 +239,6 @@ begin(struct copy_context *copy, GLenum mode, GLboolean begin_flag)
 
    prim->mode = mode;
    prim->begin = begin_flag;
-   prim->num_instances = 1;
 }
 
 
@@ -480,8 +481,8 @@ replay_init(struct copy_context *copy)
             ADD_POINTERS(copy->ib->obj->Mappings[MAP_INTERNAL].Pointer,
                          copy->ib->ptr);
 
-   switch (copy->ib->index_size) {
-   case 1:
+   switch (copy->ib->index_size_shift) {
+   case 0:
       copy->translated_elt_buf = malloc(sizeof(GLuint) * copy->ib->count);
       copy->srcelt = copy->translated_elt_buf;
 
@@ -489,7 +490,7 @@ replay_init(struct copy_context *copy)
          copy->translated_elt_buf[i] = ((const GLubyte *)srcptr)[i];
       break;
 
-   case 2:
+   case 1:
       copy->translated_elt_buf = malloc(sizeof(GLuint) * copy->ib->count);
       copy->srcelt = copy->translated_elt_buf;
 
@@ -497,7 +498,7 @@ replay_init(struct copy_context *copy)
          copy->translated_elt_buf[i] = ((const GLushort *)srcptr)[i];
       break;
 
-   case 4:
+   case 2:
       copy->translated_elt_buf = NULL;
       copy->srcelt = (const GLuint *)srcptr;
       break;
@@ -549,7 +550,7 @@ replay_init(struct copy_context *copy)
     * list:
     */
    copy->dstib.count = 0;        /* duplicates dstelt_nr */
-   copy->dstib.index_size = 4;
+   copy->dstib.index_size_shift = 2;
    copy->dstib.obj = ctx->Shared->NullBufferObj;
    copy->dstib.ptr = copy->dstelt;
 }

@@ -61,7 +61,7 @@
 #include "gl_nir.h"
 #include "ir_uniform.h"
 
-#include "main/compiler.h"
+#include "util/compiler.h"
 #include "main/mtypes.h"
 
 struct lower_samplers_as_deref_state {
@@ -117,6 +117,21 @@ remove_struct_derefs_prep(nir_deref_instr **p, char **name,
       break;
    }
 }
+
+static void
+record_images_used(struct shader_info *info,
+                   nir_deref_instr *deref)
+{
+   nir_variable *var = nir_deref_instr_get_variable(deref);
+
+   /* Structs have been lowered already, so get_aoa_size is sufficient. */
+   const unsigned size =
+      glsl_type_is_array(var->type) ? glsl_get_aoa_size(var->type) : 1;
+   unsigned mask = ((1ull << MAX2(size, 1)) - 1) << var->data.binding;
+
+   info->images_used |= mask;
+}
+
 
 static nir_deref_instr *
 lower_deref(nir_builder *b, struct lower_samplers_as_deref_state *state,
@@ -286,6 +301,9 @@ lower_intrinsic(nir_intrinsic_instr *instr,
       b->cursor = nir_before_instr(&instr->instr);
       nir_deref_instr *deref =
          lower_deref(b, state, nir_src_as_deref(instr->src[0]));
+
+      record_images_used(&state->shader->info, deref);
+
       /* don't lower bindless: */
       if (!deref)
          return false;

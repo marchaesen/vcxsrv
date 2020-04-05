@@ -42,7 +42,7 @@
  * included in-tree.
  */
 
-void pandecode_initialize(void);
+void pandecode_initialize(bool to_stderr);
 
 void pandecode_next_frame(void);
 
@@ -51,7 +51,7 @@ void pandecode_close(void);
 void
 pandecode_inject_mmap(uint64_t gpu_va, void *cpu, unsigned sz, const char *name);
 
-int pandecode_jc(uint64_t jc_gpu_va, bool bifrost, unsigned gpu_id);
+void pandecode_jc(uint64_t jc_gpu_va, bool bifrost, unsigned gpu_id, bool minimal);
 
 char *
 pandecode_exception_access(unsigned access);

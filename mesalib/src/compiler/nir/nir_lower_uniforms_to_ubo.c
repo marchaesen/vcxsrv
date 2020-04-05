@@ -65,6 +65,8 @@ lower_instr(nir_intrinsic_instr *instr, nir_builder *b, int multiplier)
       load->num_components = instr->num_components;
       load->src[0] = nir_src_for_ssa(ubo_idx);
       load->src[1] = nir_src_for_ssa(ubo_offset);
+      assert(instr->dest.ssa.bit_size >= 8);
+      nir_intrinsic_set_align(load, instr->dest.ssa.bit_size / 8, 0);
       nir_ssa_dest_init(&load->instr, &load->dest,
                         load->num_components, instr->dest.ssa.bit_size,
                         instr->dest.ssa.name);

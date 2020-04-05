@@ -84,7 +84,7 @@ bool is_dead(const std::vector<uint16_t>& uses, Instruction *instr)
    if (std::any_of(instr->definitions.begin(), instr->definitions.end(),
           [&uses] (const Definition& def) { return uses[def.tempId()];}))
       return false;
-   return instr_info.is_atomic[(int)instr->opcode];
+   return !instr_info.is_atomic[(int)instr->opcode];
 }
 
 std::vector<uint16_t> dead_code_analysis(Program *program) {

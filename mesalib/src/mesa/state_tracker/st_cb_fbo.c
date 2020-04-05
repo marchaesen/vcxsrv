@@ -33,7 +33,7 @@
  */
 
 
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/context.h"
 #include "main/fbobject.h"
 #include "main/framebuffer.h"
@@ -355,6 +355,7 @@ st_new_renderbuffer_fb(enum pipe_format format, unsigned samples, boolean sw)
    case PIPE_FORMAT_R8G8B8X8_UNORM:
    case PIPE_FORMAT_B8G8R8X8_UNORM:
    case PIPE_FORMAT_X8R8G8B8_UNORM:
+   case PIPE_FORMAT_R8G8B8_UNORM:
       strb->Base.InternalFormat = GL_RGB8;
       break;
    case PIPE_FORMAT_R8G8B8A8_SRGB:
@@ -400,6 +401,9 @@ st_new_renderbuffer_fb(enum pipe_format format, unsigned samples, boolean sw)
    case PIPE_FORMAT_R16G16B16A16_UNORM:
       strb->Base.InternalFormat = GL_RGBA16;
       break;
+   case PIPE_FORMAT_R16G16B16_UNORM:
+      strb->Base.InternalFormat = GL_RGB16;
+      break;
    case PIPE_FORMAT_R8_UNORM:
       strb->Base.InternalFormat = GL_R8;
       break;
@@ -416,6 +420,7 @@ st_new_renderbuffer_fb(enum pipe_format format, unsigned samples, boolean sw)
       strb->Base.InternalFormat = GL_RGBA32F;
       break;
    case PIPE_FORMAT_R32G32B32X32_FLOAT:
+   case PIPE_FORMAT_R32G32B32_FLOAT:
       strb->Base.InternalFormat = GL_RGB32F;
       break;
    case PIPE_FORMAT_R16G16B16A16_FLOAT:

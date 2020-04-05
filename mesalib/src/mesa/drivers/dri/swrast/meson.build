@@ -22,6 +22,6 @@ libswrast_dri = static_library(
   'swrast_dri',
   files('swrast.c', 'swrast_priv.h'),
   c_args : [c_vis_args],
-  include_directories : [inc_common, inc_dri_common],
+  include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_dri_common],
   dependencies : dep_libdrm,
 )

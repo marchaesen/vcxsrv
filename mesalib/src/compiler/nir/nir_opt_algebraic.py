@@ -109,7 +109,6 @@ optimizations = [
 
    (('~fneg', ('fneg', a)), a),
    (('ineg', ('ineg', a)), a),
-   (('fabs', ('fabs', a)), ('fabs', a)),
    (('fabs', ('fneg', a)), ('fabs', a)),
    (('fabs', ('u2f', a)), ('u2f', a)),
    (('iabs', ('iabs', a)), ('iabs', a)),
@@ -254,6 +253,41 @@ for s in [8, 16, 32, 64]:
        ((ishr, (ishr, a, '#b'), '#c'),
         (ishr, a, ('imin', ('iadd', ('iand', b, mask), ('iand', c, mask)), s - 1))),
    ])
+
+# Optimize a pattern of address calculation created by DXVK where the offset is
+# divided by 4 and then multipled by 4. This can be turned into an iand and the
+# additions before can be reassociated to CSE the iand instruction.
+for log2 in range(1, 7): # powers of two from 2 to 64
+   v = 1 << log2
+   mask = 0xffffffff & ~(v - 1)
+   b_is_multiple = '#b(is_unsigned_multiple_of_{})'.format(v)
+
+   optimizations.extend([
+       # 'a >> #b << #b' -> 'a & ~((1 << #b) - 1)'
+       (('ishl@32', ('ushr@32', a, log2), log2), ('iand', a, mask)),
+
+       # Reassociate for improved CSE
+       (('iand@32', ('iadd@32', a, b_is_multiple), mask), ('iadd', ('iand', a, mask), b)),
+   ])
+
+# To save space in the state tables, reduce to the set that is known to help.
+# Previously, this was range(1, 32).  In addition, a couple rules inside the
+# loop are commented out.  Revisit someday, probably after mesa/#2635 has some
+# resolution.
+for i in [1, 2, 16, 24]:
+    lo_mask = 0xffffffff >> i
+    hi_mask = (0xffffffff << i) & 0xffffffff
+
+    optimizations.extend([
+        # This pattern seems to only help in the soft-fp64 code.
+        (('ishl@32', ('iand', 'a@32', lo_mask), i), ('ishl', a, i)),
+#        (('ushr@32', ('iand', 'a@32', hi_mask), i), ('ushr', a, i)),
+#        (('ishr@32', ('iand', 'a@32', hi_mask), i), ('ishr', a, i)),
+
+        (('iand', ('ishl', 'a@32', i), hi_mask), ('ishl', a, i)),
+        (('iand', ('ushr', 'a@32', i), lo_mask), ('ushr', a, i)),
+#        (('iand', ('ishr', 'a@32', i), lo_mask), ('ushr', a, i)), # Yes, ushr is correct
+    ])
 
 optimizations.extend([
    # This is common for address calculations.  Reassociating may enable the
@@ -481,8 +515,21 @@ optimizations.extend([
    (('umin', ('umin', a, b), b), ('umin', a, b)),
    (('imin', ('imin', a, b), b), ('imin', a, b)),
    (('iand@32', a, ('inot', ('ishr', a, 31))), ('imax', a, 0)),
-   (('fmax', a, ('fneg', a)), ('fabs', a)),
-   (('imax', a, ('ineg', a)), ('iabs', a)),
+
+   # Simplify logic to detect sign of an integer.
+   (('ieq', ('iand', a, 0x80000000), 0x00000000), ('ige', a, 0)),
+   (('ine', ('iand', a, 0x80000000), 0x80000000), ('ige', a, 0)),
+   (('ine', ('iand', a, 0x80000000), 0x00000000), ('ilt', a, 0)),
+   (('ieq', ('iand', a, 0x80000000), 0x80000000), ('ilt', a, 0)),
+   (('ine', ('ushr', 'a@32', 31), 0), ('ilt', a, 0)),
+   (('ieq', ('ushr', 'a@32', 31), 0), ('ige', a, 0)),
+   (('ieq', ('ushr', 'a@32', 31), 1), ('ilt', a, 0)),
+   (('ine', ('ushr', 'a@32', 31), 1), ('ige', a, 0)),
+   (('ine', ('ishr', 'a@32', 31), 0), ('ilt', a, 0)),
+   (('ieq', ('ishr', 'a@32', 31), 0), ('ige', a, 0)),
+   (('ieq', ('ishr', 'a@32', 31), -1), ('ilt', a, 0)),
+   (('ine', ('ishr', 'a@32', 31), -1), ('ige', a, 0)),
+
    (('fmin', a, ('fneg', a)), ('fneg', ('fabs', a))),
    (('imin', a, ('ineg', a)), ('ineg', ('iabs', a))),
    (('fmin', a, ('fneg', ('fabs', a))), ('fneg', ('fabs', a))),
@@ -512,6 +559,16 @@ optimizations.extend([
    (('umin', ('umax', ('umin', ('umax', a, b), c), b), c), ('umin', ('umax', a, b), c)),
    (('fmax', ('fsat', a), '#b@32(is_zero_to_one)'), ('fsat', ('fmax', a, b))),
    (('fmin', ('fsat', a), '#b@32(is_zero_to_one)'), ('fsat', ('fmin', a, b))),
+
+   # If a in [0,b] then b-a is also in [0,b].  Since b in [0,1], max(b-a, 0) =
+   # fsat(b-a).
+   #
+   # If a > b, then b-a < 0 and max(b-a, 0) = fsat(b-a) = 0
+   #
+   # This should be NaN safe since max(NaN, 0) = fsat(NaN) = 0.
+   (('fmax', ('fadd(is_used_once)', ('fneg', 'a(is_not_negative)'), '#b@32(is_zero_to_one)'), 0.0),
+    ('fsat', ('fadd', ('fneg',  a), b)), '!options->lower_fsat'),
+
    (('extract_u8', ('imin', ('imax', a, 0), 0xff), 0), ('imin', ('imax', a, 0), 0xff)),
    (('~ior', ('flt(is_used_once)', a, b), ('flt', a, c)), ('flt', a, ('fmax', b, c))),
    (('~ior', ('flt(is_used_once)', a, c), ('flt', b, c)), ('flt', ('fmin', a, b), c)),
@@ -578,7 +635,19 @@ optimizations.extend([
    (('ine', ('ineg', ('b2i32', 'a@1')), ('ineg', ('b2i32', 'b@1'))), ('ine', a, b)),
    (('b2i32', ('ine', 'a@1', 'b@1')), ('b2i32', ('ixor', a, b))),
 
-   (('iand', ('ieq', 'a@32', 0), ('ieq', 'b@32', 0)), ('ieq', ('ior', 'a@32', 'b@32'), 0), '!options->lower_bitops'),
+   (('iand', ('ieq', 'a@32', 0), ('ieq', 'b@32', 0)), ('ieq', ('ior', a, b), 0), '!options->lower_bitops'),
+   (('ior',  ('ine', 'a@32', 0), ('ine', 'b@32', 0)), ('ine', ('ior', a, b), 0), '!options->lower_bitops'),
+
+   # This pattern occurs coutresy of __flt64_nonnan in the soft-fp64 code.
+   # The first part of the iand comes from the !__feq64_nonnan.
+   #
+   # The second pattern is a reformulation of the first based on the relation
+   # (a == 0 || y == 0) <=> umin(a, y) == 0, where b in the first equation
+   # happens to be y == 0.
+   (('iand', ('inot', ('iand', ('ior', ('ieq', a, 0),  b), c)), ('ilt', a, 0)),
+    ('iand', ('inot', ('iand',                         b , c)), ('ilt', a, 0))),
+   (('iand', ('inot', ('iand', ('ieq', ('umin', a, b), 0), c)), ('ilt', a, 0)),
+    ('iand', ('inot', ('iand', ('ieq',             b , 0), c)), ('ilt', a, 0))),
 
    # These patterns can result when (a < b || a < c) => (a < min(b, c))
    # transformations occur before constant propagation and loop-unrolling.
@@ -708,8 +777,6 @@ optimizations.extend([
    (('ishr', a, 0), a),
    (('ushr', 0, a), 0),
    (('ushr', a, 0), a),
-   (('iand', 0xff, ('ushr@32', a, 24)), ('ushr', a, 24)),
-   (('iand', 0xffff, ('ushr@32', a, 16)), ('ushr', a, 16)),
    (('ior', ('ishl@16', a, b), ('ushr@16', a, ('iadd', 16, ('ineg', b)))), ('urol', a, b), '!options->lower_rotate'),
    (('ior', ('ishl@16', a, b), ('ushr@16', a, ('isub', 16, b))), ('urol', a, b), '!options->lower_rotate'),
    (('ior', ('ishl@32', a, b), ('ushr@32', a, ('iadd', 32, ('ineg', b)))), ('urol', a, b), '!options->lower_rotate'),
@@ -729,6 +796,7 @@ optimizations.extend([
    (('~fexp2', ('fmul', ('flog2', a), b)), ('fpow', a, b), '!options->lower_fpow'), # 2^(lg2(a)*b) = a^b
    (('~fexp2', ('fadd', ('fmul', ('flog2', a), b), ('fmul', ('flog2', c), d))),
     ('~fmul', ('fpow', a, b), ('fpow', c, d)), '!options->lower_fpow'), # 2^(lg2(a) * b + lg2(c) + d) = a^b * c^d
+   (('~fexp2', ('fmul', ('flog2', a), 0.5)), ('fsqrt', a)),
    (('~fexp2', ('fmul', ('flog2', a), 2.0)), ('fmul', a, a)),
    (('~fexp2', ('fmul', ('flog2', a), 4.0)), ('fmul', ('fmul', a, a), ('fmul', a, a))),
    (('~fpow', a, 1.0), a),
@@ -817,6 +885,13 @@ optimizations.extend([
    (('~f2u32', ('i2f', 'a@32')), a),
    (('~f2u32', ('u2f', 'a@32')), a),
 
+   # Conversions from float16 to float32 and back can always be removed
+   (('f2f16', ('f2f32', 'a@16')), a),
+   (('f2fmp', ('f2f32', 'a@16')), a),
+   # Conversions to float16 would be lossy so they should only be removed if
+   # the instruction was generated by the precision lowering pass.
+   (('f2f32', ('f2fmp', 'a@32')), a),
+
    (('ffloor', 'a(is_integral)'), a),
    (('fceil', 'a(is_integral)'), a),
    (('ftrunc', 'a(is_integral)'), a),
@@ -888,6 +963,7 @@ optimizations.extend([
    (('ilt', 'a(is_lt_zero)',      'b(is_not_negative)'), True),
 
    (('ult', 0, 'a(is_gt_zero)'), True),
+   (('ult', a, 0), False),
 
    # Packing and then unpacking does nothing
    (('unpack_64_2x32_split_x', ('pack_64_2x32_split', a, b)), a),
@@ -919,6 +995,15 @@ optimizations.extend([
    (('unpack_half_2x16_split_y', ('iand', a, 0xffff0000)), ('unpack_half_2x16_split_y', a)),
    (('unpack_32_2x16_split_y', ('iand', a, 0xffff0000)), ('unpack_32_2x16_split_y', a)),
    (('unpack_64_2x32_split_y', ('iand', a, 0xffffffff00000000)), ('unpack_64_2x32_split_y', a)),
+
+   # Optimize half packing
+   (('ishl', ('pack_half_2x16', ('vec2', a, 0)), 16), ('pack_half_2x16', ('vec2', 0, a))),
+   (('ishr', ('pack_half_2x16', ('vec2', 0, a)), 16), ('pack_half_2x16', ('vec2', a, 0))),
+
+   (('iadd', ('pack_half_2x16', ('vec2', a, 0)), ('pack_half_2x16', ('vec2', 0, b))),
+    ('pack_half_2x16', ('vec2', a, b))),
+   (('ior', ('pack_half_2x16', ('vec2', a, 0)), ('pack_half_2x16', ('vec2', 0, b))),
+    ('pack_half_2x16', ('vec2', a, b))),
 ])
 
 # After the ('extract_u8', a, 0) pattern, above, triggers, there will be
@@ -973,6 +1058,9 @@ optimizations.extend([
    (('~fadd', '#a',          ('fadd', 'b(is_not_const)', '#c')),  ('fadd', ('fadd', a,          c),           b)),
    (('~fadd', '#a', ('fneg', ('fadd', 'b(is_not_const)', '#c'))), ('fadd', ('fadd', a, ('fneg', c)), ('fneg', b))),
    (('iadd', '#a', ('iadd', 'b(is_not_const)', '#c')), ('iadd', ('iadd', a, c), b)),
+   (('iand', '#a', ('iand', 'b(is_not_const)', '#c')), ('iand', ('iand', a, c), b)),
+   (('ior',  '#a', ('ior',  'b(is_not_const)', '#c')), ('ior',  ('ior',  a, c), b)),
+   (('ixor', '#a', ('ixor', 'b(is_not_const)', '#c')), ('ixor', ('ixor', a, c), b)),
 
    # Drop mul-div by the same value when there's no wrapping.
    (('idiv', ('imul(no_signed_wrap)', a, b), b), a),
@@ -989,8 +1077,7 @@ optimizations.extend([
    (('bcsel', ('ine', a, -1), ('ifind_msb', a), -1), ('ifind_msb', a)),
 
    # Misc. lowering
-   (('fmod@16', a, b), ('fsub', a, ('fmul', b, ('ffloor', ('fdiv', a, b)))), 'options->lower_fmod'),
-   (('fmod@32', a, b), ('fsub', a, ('fmul', b, ('ffloor', ('fdiv', a, b)))), 'options->lower_fmod'),
+   (('fmod', a, b), ('fsub', a, ('fmul', b, ('ffloor', ('fdiv', a, b)))), 'options->lower_fmod'),
    (('frem', a, b), ('fsub', a, ('fmul', b, ('ftrunc', ('fdiv', a, b)))), 'options->lower_fmod'),
    (('uadd_carry@32', a, b), ('b2i', ('ult', ('iadd', a, b), a)), 'options->lower_uadd_carry'),
    (('usub_borrow@32', a, b), ('b2i', ('ult', a, b)), 'options->lower_usub_borrow'),
@@ -1254,7 +1341,7 @@ for bit_size in [8, 16, 32, 64]:
                                 ('bcsel', ('ilt', a, ('isub', a, b)), intmin, ('isub', a, b))), 'options->lower_add_sat'),
    ]
 
-invert = OrderedDict([('feq', 'fne'), ('fne', 'feq'), ('fge', 'flt'), ('flt', 'fge')])
+invert = OrderedDict([('feq', 'fne'), ('fne', 'feq')])
 
 for left, right in itertools.combinations_with_replacement(invert.keys(), 2):
    optimizations.append((('inot', ('ior(is_used_once)', (left, a, b), (right, c, d))),
@@ -1281,7 +1368,7 @@ for x, y in itertools.product(['f', 'u', 'i'], ['f', 'u', 'i']):
    optimizations.append(((x2yN, (b2x, a)), (b2y, a)))
 
 # Optimize away x2xN(a@N)
-for t in ['int', 'uint', 'float']:
+for t in ['int', 'uint', 'float', 'bool']:
    for N in type_sizes(t):
       x2xN = '{0}2{0}{1}'.format(t[0], N)
       aN = 'a@{0}'.format(N)
@@ -1321,6 +1408,15 @@ for N, M in itertools.product(type_sizes('uint'), type_sizes('uint')):
    else:
       # The N == M case is handled by other optimizations
       pass
+
+# Downcast operations should be able to see through pack
+for t in ['i', 'u']:
+    for N in [8, 16, 32]:
+        x2xN = '{0}2{0}{1}'.format(t, N)
+        optimizations += [
+            ((x2xN, ('pack_64_2x32_split', a, b)), (x2xN, a)),
+            ((x2xN, ('pack_64_2x32_split', a, b)), (x2xN, a)),
+        ]
 
 # Optimize comparisons with up-casts
 for t in ['int', 'uint', 'float']:
@@ -1390,7 +1486,16 @@ for t in ['int', 'uint', 'float']:
             ]
 
 def fexp2i(exp, bits):
-   # We assume that exp is already in the right range.
+   # Generate an expression which constructs value 2.0^exp or 0.0.
+   #
+   # We assume that exp is already in a valid range:
+   #
+   #   * [-15, 15] for 16-bit float
+   #   * [-127, 127] for 32-bit float
+   #   * [-1023, 1023] for 16-bit float
+   #
+   # If exp is the lowest value in the valid range, a value of 0.0 is
+   # constructed.  Otherwise, the value 2.0^exp is constructed.
    if bits == 16:
       return ('i2i16', ('ishl', ('iadd', exp, 15), 10))
    elif bits == 32:
@@ -1401,22 +1506,40 @@ def fexp2i(exp, bits):
       assert False
 
 def ldexp(f, exp, bits):
-   # First, we clamp exp to a reasonable range.  The maximum possible range
-   # for a normal exponent is [-126, 127] and, throwing in denormals, you get
-   # a maximum range of [-149, 127].  This means that we can potentially have
-   # a swing of +-276.  If you start with FLT_MAX, you actually have to do
-   # ldexp(FLT_MAX, -278) to get it to flush all the way to zero.  The GLSL
-   # spec, on the other hand, only requires that we handle an exponent value
-   # in the range [-126, 128].  This implementation is *mostly* correct; it
-   # handles a range on exp of [-252, 254] which allows you to create any
-   # value (including denorms if the hardware supports it) and to adjust the
-   # exponent of any normal value to anything you want.
+   # The maximum possible range for a normal exponent is [-126, 127] and,
+   # throwing in denormals, you get a maximum range of [-149, 127].  This
+   # means that we can potentially have a swing of +-276.  If you start with
+   # FLT_MAX, you actually have to do ldexp(FLT_MAX, -278) to get it to flush
+   # all the way to zero.  The GLSL spec only requires that we handle a subset
+   # of this range.  From version 4.60 of the spec:
+   #
+   #    "If exp is greater than +128 (single-precision) or +1024
+   #    (double-precision), the value returned is undefined. If exp is less
+   #    than -126 (single-precision) or -1022 (double-precision), the value
+   #    returned may be flushed to zero. Additionally, splitting the value
+   #    into a significand and exponent using frexp() and then reconstructing
+   #    a floating-point value using ldexp() should yield the original input
+   #    for zero and all finite non-denormalized values."
+   #
+   # The SPIR-V spec has similar language.
+   #
+   # In order to handle the maximum value +128 using the fexp2i() helper
+   # above, we have to split the exponent in half and do two multiply
+   # operations.
+   #
+   # First, we clamp exp to a reasonable range.  Specifically, we clamp to
+   # twice the full range that is valid for the fexp2i() function above.  If
+   # exp/2 is the bottom value of that range, the fexp2i() expression will
+   # yield 0.0f which, when multiplied by f, will flush it to zero which is
+   # allowed by the GLSL and SPIR-V specs for low exponent values.  If the
+   # value is clamped from above, then it must have been above the supported
+   # range of the GLSL built-in and therefore any return value is acceptable.
    if bits == 16:
-      exp = ('imin', ('imax', exp, -28), 30)
+      exp = ('imin', ('imax', exp, -30), 30)
    elif bits == 32:
-      exp = ('imin', ('imax', exp, -252), 254)
+      exp = ('imin', ('imax', exp, -254), 254)
    elif bits == 64:
-      exp = ('imin', ('imax', exp, -2044), 2046)
+      exp = ('imin', ('imax', exp, -2046), 2046)
    else:
       assert False
 
@@ -1634,6 +1757,9 @@ late_optimizations = [
    (('ior', a, a), a),
    (('iand', a, a), a),
 
+   (('iand', ('ine(is_used_once)', 'a@32', 0), ('ine', 'b@32', 0)), ('ine', ('umin', a, b), 0)),
+   (('ior',  ('ieq(is_used_once)', 'a@32', 0), ('ieq', 'b@32', 0)), ('ieq', ('umin', a, b), 0)),
+
    (('~fadd', ('fneg(is_used_once)', ('fsat(is_used_once)', 'a(is_not_fmul)')), 1.0), ('fsat', ('fadd', 1.0, ('fneg', a)))),
 
    (('fdot2', a, b), ('fdot_replicated2', a, b), 'options->fdot_replicates'),
@@ -1714,6 +1840,11 @@ late_optimizations = [
     ('ffma', a, b, ('ffma', c, d, ('ffma', e, 'f', 'g'))), '(info->stage != MESA_SHADER_VERTEX && info->stage != MESA_SHADER_GEOMETRY) && !options->intel_vec4'),
    (('~fadd', ('ffma(is_used_once)', a, b, ('fmul', 'c(is_not_const_and_not_fsign)', 'd(is_not_const_and_not_fsign)') ), 'e(is_not_const)'),
     ('ffma', a, b, ('ffma', c, d, e)), '(info->stage != MESA_SHADER_VERTEX && info->stage != MESA_SHADER_GEOMETRY) && !options->intel_vec4'),
+
+   # Convert f2fmp instructions to concrete f2f16 instructions. At this point
+   # any conversions that could have been removed will have been removed in
+   # nir_opt_algebraic so any remaining ones are required.
+   (('f2fmp', a), ('f2f16', a)),
 ]
 
 for op in ['fadd']:
@@ -1731,8 +1862,43 @@ for op in ['ffma']:
         (('bcsel', a, (op, b, c, d), (op + '(is_used_once)', b, e, d)), (op, b, ('bcsel', a, c, e), d)),
     ]
 
+distribute_src_mods = [
+   # Try to remove some spurious negations rather than pushing them down.
+   (('fmul', ('fneg', a), ('fneg', b)), ('fmul', a, b)),
+   (('ffma', ('fneg', a), ('fneg', b), c), ('ffma', a, b, c)),
+   (('fdot_replicated2', ('fneg', a), ('fneg', b)), ('fdot_replicated2', a, b)),
+   (('fdot_replicated3', ('fneg', a), ('fneg', b)), ('fdot_replicated3', a, b)),
+   (('fdot_replicated4', ('fneg', a), ('fneg', b)), ('fdot_replicated4', a, b)),
+   (('fneg', ('fneg', a)), a),
+
+   (('fneg', ('ffma(is_used_once)', a, b, c)), ('ffma', ('fneg', a), b, ('fneg', c))),
+   (('fneg', ('flrp(is_used_once)', a, b, c)), ('flrp', ('fneg', a), ('fneg', b), c)),
+   (('fneg', ('fadd(is_used_once)', a, b)), ('fadd', ('fneg', a), ('fneg', b))),
+
+   # Note that fmin <-> fmax.  I don't think there is a way to distribute
+   # fabs() into fmin or fmax.
+   (('fneg', ('fmin(is_used_once)', a, b)), ('fmax', ('fneg', a), ('fneg', b))),
+   (('fneg', ('fmax(is_used_once)', a, b)), ('fmin', ('fneg', a), ('fneg', b))),
+
+   # fdph works mostly like fdot, but to get the correct result, the negation
+   # must be applied to the second source.
+   (('fneg', ('fdph_replicated(is_used_once)', a, b)), ('fdph_replicated', a, ('fneg', b))),
+   (('fabs', ('fdph_replicated(is_used_once)', a, b)), ('fdph_replicated', ('fabs', a), ('fabs', b))),
+
+   (('fneg', ('fsign(is_used_once)', a)), ('fsign', ('fneg', a))),
+   (('fabs', ('fsign(is_used_once)', a)), ('fsign', ('fabs', a))),
+]
+
+for op in ['fmul', 'fdot_replicated2', 'fdot_replicated3', 'fdot_replicated4']:
+   distribute_src_mods.extend([
+       (('fneg', (op + '(is_used_once)', a, b)), (op, ('fneg', a), b)),
+       (('fabs', (op + '(is_used_once)', a, b)), (op, ('fabs', a), ('fabs', b))),
+   ])
+
 print(nir_algebraic.AlgebraicPass("nir_opt_algebraic", optimizations).render())
 print(nir_algebraic.AlgebraicPass("nir_opt_algebraic_before_ffma",
                                   before_ffma_optimizations).render())
 print(nir_algebraic.AlgebraicPass("nir_opt_algebraic_late",
                                   late_optimizations).render())
+print(nir_algebraic.AlgebraicPass("nir_opt_algebraic_distribute_src_mods",
+                                  distribute_src_mods).render())

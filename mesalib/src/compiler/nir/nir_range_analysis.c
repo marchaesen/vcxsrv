@@ -219,9 +219,24 @@ analyze_constant(const struct nir_alu_instr *instr, unsigned src,
 #define _______ unknown
 
 
-/* MSVC doesn't have C99's _Pragma() */
-#ifdef _MSC_VER
-#define _Pragma(x)
+#if defined(__clang__)
+   /* clang wants _Pragma("unroll X") */
+   #define pragma_unroll_5 _Pragma("unroll 5")
+   #define pragma_unroll_7 _Pragma("unroll 7")
+/* gcc wants _Pragma("GCC unroll X") */
+#elif defined(__GNUC__)
+   #if __GNUC__ >= 8
+      #define pragma_unroll_5 _Pragma("GCC unroll 5")
+      #define pragma_unroll_7 _Pragma("GCC unroll 7")
+   #else
+      #pragma GCC optimize ("unroll-loops")
+      #define pragma_unroll_5
+      #define pragma_unroll_7
+   #endif
+#else
+   /* MSVC doesn't have C99's _Pragma() */
+   #define pragma_unroll_5
+   #define pragma_unroll_7
 #endif
 
 
@@ -231,9 +246,9 @@ analyze_constant(const struct nir_alu_instr *instr, unsigned src,
       static bool first = true;                               \
       if (first) {                                            \
          first = false;                                       \
-         _Pragma("GCC unroll 7")                              \
+         pragma_unroll_7                                      \
          for (unsigned r = 0; r < ARRAY_SIZE(t); r++) {       \
-            _Pragma("GCC unroll 7")                           \
+            pragma_unroll_7                                   \
             for (unsigned c = 0; c < ARRAY_SIZE(t[0]); c++)   \
                assert(t[r][c] == t[c][r]);                    \
          }                                                    \
@@ -245,7 +260,7 @@ analyze_constant(const struct nir_alu_instr *instr, unsigned src,
       static bool first = true;                               \
       if (first) {                                            \
          first = false;                                       \
-         _Pragma("GCC unroll 7")                              \
+         pragma_unroll_7                                      \
          for (unsigned r = 0; r < ARRAY_SIZE(t); r++)         \
             assert(t[r][r] == r);                             \
       }                                                       \
@@ -279,12 +294,12 @@ union_ranges(enum ssa_ranges a, enum ssa_ranges b)
       static bool first = true;                                         \
       if (first) {                                                      \
          first = false;                                                 \
-         _Pragma("GCC unroll 7")                                        \
+         pragma_unroll_7                                                \
          for (unsigned i = 0; i < last_range; i++) {                    \
             enum ssa_ranges col_range = t[i][unknown + 1];              \
             enum ssa_ranges row_range = t[unknown + 1][i];              \
                                                                         \
-            _Pragma("GCC unroll 5")                                     \
+            pragma_unroll_5                                             \
             for (unsigned j = unknown + 2; j < last_range; j++) {       \
                col_range = union_ranges(col_range, t[i][j]);            \
                row_range = union_ranges(row_range, t[j][i]);            \
@@ -313,7 +328,7 @@ union_ranges(enum ssa_ranges a, enum ssa_ranges b)
       static bool first = true;                                         \
       if (first) {                                                      \
          first = false;                                                 \
-         _Pragma("GCC unroll 7")                                        \
+         pragma_unroll_7                                                \
          for (unsigned i = 0; i < last_range; i++) {                    \
             assert(union_ranges(t[i][lt_zero], t[i][eq_zero]) == t[i][le_zero]); \
             assert(union_ranges(t[i][gt_zero], t[i][eq_zero]) == t[i][ge_zero]); \
@@ -348,7 +363,7 @@ union_ranges(enum ssa_ranges a, enum ssa_ranges b)
       static bool first = true;                                         \
       if (first) {                                                      \
          first = false;                                                 \
-         _Pragma("GCC unroll 7")                                        \
+         pragma_unroll_7                                                \
          for (unsigned i = 0; i < last_range; i++) {                    \
             assert(union_ranges(t[i][lt_zero], t[i][ge_zero]) ==        \
                    t[i][unknown]);                                      \

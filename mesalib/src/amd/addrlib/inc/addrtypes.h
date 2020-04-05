@@ -87,9 +87,7 @@ typedef int            INT;
 #endif
 
 #ifndef ADDR_FASTCALL
-    #if defined(BRAHMA_ARM)
-        #define ADDR_FASTCALL
-    #elif defined(__GNUC__)
+    #if defined(__GNUC__)
         #define ADDR_FASTCALL __attribute__((regparm(0)))
     #else
         #define ADDR_FASTCALL __fastcall
@@ -115,7 +113,11 @@ typedef int            INT;
     #define ADDR_INLINE   __inline
 #endif // #if defined(__GNUC__)
 
-#define ADDR_API ADDR_FASTCALL //default call convention is fast call
+#if defined(__amd64__) || defined(__x86_64__) || defined(__i386__)
+    #define ADDR_API ADDR_FASTCALL // default call convention is fast call
+#else
+    #define ADDR_API
+#endif
 
 /**
 ****************************************************************************************************

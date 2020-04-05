@@ -24,6 +24,8 @@ args = parser.parse_args()
 env = Environment(loader = FileSystemLoader(os.path.dirname(args.template)), trim_blocks=True, lstrip_blocks=True)
 template = env.get_template(os.path.basename(args.template))
 
+env_vars = "%s CI_NODE_INDEX=%s CI_NODE_TOTAL=%s" % (args.env_vars, args.ci_node_index, args.ci_node_total)
+
 values = {}
 values['pipeline_info'] = args.pipeline_info
 values['base_artifacts_url'] = args.base_artifacts_url
@@ -33,11 +35,9 @@ values['kernel_image_type'] = args.kernel_image_type
 values['gpu_version'] = args.gpu_version
 values['boot_method'] = args.boot_method
 values['tags'] = args.lava_tags
-values['env_vars'] = args.env_vars
+values['env_vars'] = env_vars
 values['deqp_version'] = args.deqp_version
 values['arch'] = args.arch
-values['ci_node_index'] = args.ci_node_index
-values['ci_node_total'] = args.ci_node_total
 
 f = open('lava-deqp.yml', "w")
 f.write(template.render(values))

@@ -44,7 +44,8 @@ LOCAL_C_INCLUDES := \
 LOCAL_STATIC_LIBRARIES := \
 	libmesa_glsl \
 	libmesa_nir \
-	libmesa_st_mesa
+	libmesa_st_mesa \
+	libpanfrost_util \
 
 midgard_nir_algebraic_gen := $(LOCAL_PATH)/midgard/midgard_nir_algebraic.py
 midgard_nir_algebraic_deps := \

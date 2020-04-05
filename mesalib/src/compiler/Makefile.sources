@@ -24,7 +24,7 @@ LIBGLSL_FILES = \
 	glsl/builtin_variables.cpp \
 	glsl/generate_ir.cpp \
 	glsl/gl_nir_lower_atomics.c \
-	glsl/gl_nir_lower_bindless_images.c \
+	glsl/gl_nir_lower_images.c \
 	glsl/gl_nir_lower_buffers.c \
 	glsl/gl_nir_lower_samplers.c \
 	glsl/gl_nir_lower_samplers_as_deref.c \
@@ -95,6 +95,7 @@ LIBGLSL_FILES = \
 	glsl/loop_analysis.h \
 	glsl/loop_unroll.cpp \
 	glsl/lower_blend_equation_advanced.cpp \
+	glsl/lower_builtins.cpp \
 	glsl/lower_buffer_access.cpp \
 	glsl/lower_buffer_access.h \
 	glsl/lower_const_arrays_to_uniforms.cpp \
@@ -112,6 +113,7 @@ LIBGLSL_FILES = \
 	glsl/lower_packed_varyings.cpp \
 	glsl/lower_named_interface_blocks.cpp \
 	glsl/lower_packing_builtins.cpp \
+	glsl/lower_precision.cpp \
 	glsl/lower_subroutine.cpp \
 	glsl/lower_tess_level.cpp \
 	glsl/lower_texture_projection.cpp \
@@ -125,6 +127,7 @@ LIBGLSL_FILES = \
 	glsl/lower_output_reads.cpp \
 	glsl/lower_shared_reference.cpp \
 	glsl/lower_ubo_reference.cpp \
+	glsl/lower_xfb_varying.cpp \
 	glsl/opt_algebraic.cpp \
 	glsl/opt_array_splitting.cpp \
 	glsl/opt_conditional_discard.cpp \
@@ -237,13 +240,15 @@ NIR_FILES = \
 	nir/nir_lower_atomics_to_ssbo.c \
 	nir/nir_lower_bitmap.c \
 	nir/nir_lower_bit_size.c \
+	nir/nir_lower_bool_to_bitsize.c \
 	nir/nir_lower_bool_to_float.c \
 	nir/nir_lower_bool_to_int32.c \
 	nir/nir_lower_clamp_color_outputs.c \
 	nir/nir_lower_clip.c \
 	nir/nir_lower_clip_cull_distance_arrays.c \
 	nir/nir_lower_clip_halfz.c \
-	nir/nir_lower_constant_initializers.c \
+	nir/nir_lower_variable_initializers.c \
+	nir/nir_lower_discard_to_demote.c \
 	nir/nir_lower_double_ops.c \
 	nir/nir_lower_drawpixels.c \
 	nir/nir_lower_fb_read.c \
@@ -277,6 +282,7 @@ NIR_FILES = \
 	nir/nir_lower_returns.c \
 	nir/nir_lower_samplers.c \
 	nir/nir_lower_scratch.c \
+	nir/nir_lower_ssbo.c \
 	nir/nir_lower_subgroups.c \
 	nir/nir_lower_system_values.c \
 	nir/nir_lower_tex.c \
@@ -293,6 +299,7 @@ NIR_FILES = \
 	nir/nir_move_vec_src_uses_to_dest.c \
 	nir/nir_normalize_cubemap_coords.c \
 	nir/nir_opt_access.c \
+	nir/nir_opt_barriers.c \
 	nir/nir_opt_combine_stores.c \
 	nir/nir_opt_comparison_pre.c \
 	nir/nir_opt_conditional_discard.c \

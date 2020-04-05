@@ -639,6 +639,10 @@ if host_machine.system() == 'windows'
     common_dep += socket_dep
 endif
 
+if get_option('libunwind')
+    common_dep += dependency('libunwind', required: true)
+endif
+
 glx_inc = include_directories('glx')
 
 top_dir_inc = include_directories('.')

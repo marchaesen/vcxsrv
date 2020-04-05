@@ -29,6 +29,10 @@
 #include <unistd.h>
 #include <errno.h>
 
+#ifdef XWL_HAS_GLAMOR
+#include <glamor.h>
+#endif
+
 #include <X11/Xatom.h>
 #include <micmap.h>
 #include <misyncshm.h>
@@ -50,6 +54,7 @@
 
 #include "xdg-output-unstable-v1-client-protocol.h"
 #include "viewporter-client-protocol.h"
+#include "xdg-shell-client-protocol.h"
 
 static DevPrivateKeyRec xwl_screen_private_key;
 static DevPrivateKeyRec xwl_client_private_key;
@@ -273,6 +278,9 @@ static void
 xwl_screen_post_damage(struct xwl_screen *xwl_screen)
 {
     struct xwl_window *xwl_window, *next_xwl_window;
+    struct xorg_list commit_window_list;
+
+    xorg_list_init(&commit_window_list);
 
     xorg_list_for_each_entry_safe(xwl_window, next_xwl_window,
                                   &xwl_screen->damage_window_list, link_damage) {
@@ -290,8 +298,37 @@ xwl_screen_post_damage(struct xwl_screen *xwl_screen)
 #endif
 
         xwl_window_post_damage(xwl_window);
+        xorg_list_del(&xwl_window->link_damage);
+        xorg_list_append(&xwl_window->link_damage, &commit_window_list);
+    }
+
+    if (xorg_list_is_empty(&commit_window_list))
+        return;
+
+#ifdef XWL_HAS_GLAMOR
+    if (xwl_screen->glamor &&
+        xwl_screen->egl_backend == &xwl_screen->gbm_backend) {
+        glamor_block_handler(xwl_screen->screen);
+    }
+#endif
+
+    xorg_list_for_each_entry_safe(xwl_window, next_xwl_window,
+                                  &commit_window_list, link_damage) {
+        wl_surface_commit(xwl_window->surface);
+        xorg_list_del(&xwl_window->link_damage);
     }
 }
+
+static void
+xdg_wm_base_ping(void *data, struct xdg_wm_base *xdg_wm_base,
+                 uint32_t serial)
+{
+    xdg_wm_base_pong(xdg_wm_base, serial);
+}
+
+static const struct xdg_wm_base_listener xdg_wm_base_listener = {
+    xdg_wm_base_ping,
+};
 
 static void
 registry_global(void *data, struct wl_registry *registry, uint32_t id,
@@ -311,9 +348,12 @@ registry_global(void *data, struct wl_registry *registry, uint32_t id,
     else if (strcmp(interface, "wl_shm") == 0) {
         xwl_screen->shm = wl_registry_bind(registry, id, &wl_shm_interface, 1);
     }
-    else if (strcmp(interface, "wl_shell") == 0) {
-        xwl_screen->shell =
-            wl_registry_bind(registry, id, &wl_shell_interface, 1);
+    else if (strcmp(interface, "xdg_wm_base") == 0) {
+        xwl_screen->xdg_wm_base =
+            wl_registry_bind(registry, id, &xdg_wm_base_interface, 1);
+        xdg_wm_base_add_listener(xwl_screen->xdg_wm_base,
+                                 &xdg_wm_base_listener,
+                                 NULL);
     }
     else if (strcmp(interface, "wl_output") == 0 && version >= 2) {
         if (xwl_output_create(xwl_screen, id))
@@ -613,8 +653,14 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     xwl_screen->CloseScreen = pScreen->CloseScreen;
     pScreen->CloseScreen = xwl_close_screen;
 
+    xwl_screen->ChangeWindowAttributes = pScreen->ChangeWindowAttributes;
+    pScreen->ChangeWindowAttributes = xwl_change_window_attributes;
+
     xwl_screen->ResizeWindow = pScreen->ResizeWindow;
     pScreen->ResizeWindow = xwl_resize_window;
+
+    xwl_screen->MoveWindow = pScreen->MoveWindow;
+    pScreen->MoveWindow = xwl_move_window;
 
     if (xwl_screen->rootless) {
         xwl_screen->SetWindowPixmap = pScreen->SetWindowPixmap;

@@ -479,6 +479,8 @@ gather_info_input_decl_ps(const nir_shader *nir, const nir_variable *var,
 
 	if (var->data.interpolation == INTERP_MODE_FLAT)
 		info->ps.flat_shaded_mask |= mask << var->data.driver_location;
+	if (var->data.interpolation == INTERP_MODE_EXPLICIT)
+		info->ps.explicit_shaded_mask |= mask << var->data.driver_location;
 
 	if (var->data.location >= VARYING_SLOT_VAR0)
 		info->ps.input_mask |= mask << (var->data.location - VARYING_SLOT_VAR0);

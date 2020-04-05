@@ -41,6 +41,7 @@ FUNC3(void, mp_and_into, val_mpint, val_mpint, val_mpint)
 FUNC3(void, mp_or_into, val_mpint, val_mpint, val_mpint)
 FUNC3(void, mp_xor_into, val_mpint, val_mpint, val_mpint)
 FUNC3(void, mp_bic_into, val_mpint, val_mpint, val_mpint)
+FUNC2(void, mp_copy_integer_into, val_mpint, uint)
 FUNC3(void, mp_add_integer_into, val_mpint, val_mpint, uint)
 FUNC3(void, mp_sub_integer_into, val_mpint, val_mpint, uint)
 FUNC3(void, mp_mul_integer_into, val_mpint, val_mpint, uint)
@@ -48,12 +49,16 @@ FUNC4(void, mp_cond_add_into, val_mpint, val_mpint, val_mpint, uint)
 FUNC4(void, mp_cond_sub_into, val_mpint, val_mpint, val_mpint, uint)
 FUNC3(void, mp_cond_swap, val_mpint, val_mpint, uint)
 FUNC2(void, mp_cond_clear, val_mpint, uint)
-FUNC4(void, mp_divmod_into, val_mpint, val_mpint, val_mpint, val_mpint)
+FUNC4(void, mp_divmod_into, val_mpint, val_mpint, opt_val_mpint, opt_val_mpint)
 FUNC2(val_mpint, mp_div, val_mpint, val_mpint)
 FUNC2(val_mpint, mp_mod, val_mpint, val_mpint)
+FUNC3(val_mpint, mp_nthroot, val_mpint, uint, opt_val_mpint)
 FUNC2(void, mp_reduce_mod_2to, val_mpint, uint)
 FUNC2(val_mpint, mp_invert_mod_2to, val_mpint, uint)
 FUNC2(val_mpint, mp_invert, val_mpint, val_mpint)
+FUNC5(void, mp_gcd_into, val_mpint, val_mpint, opt_val_mpint, opt_val_mpint, opt_val_mpint)
+FUNC2(val_mpint, mp_gcd, val_mpint, val_mpint)
+FUNC2(uint, mp_coprime, val_mpint, val_mpint)
 FUNC2(val_modsqrt, modsqrt_new, val_mpint, val_mpint)
 /* The modsqrt functions' 'success' pointer becomes a second return value */
 FUNC3(val_mpint, mp_modsqrt, val_modsqrt, val_mpint, out_uint)
@@ -75,6 +80,8 @@ FUNC3(val_mpint, mp_modpow, val_mpint, val_mpint, val_mpint)
 FUNC3(val_mpint, mp_modmul, val_mpint, val_mpint, val_mpint)
 FUNC3(val_mpint, mp_modadd, val_mpint, val_mpint, val_mpint)
 FUNC3(val_mpint, mp_modsub, val_mpint, val_mpint, val_mpint)
+FUNC3(void, mp_lshift_safe_into, val_mpint, val_mpint, uint)
+FUNC3(void, mp_rshift_safe_into, val_mpint, val_mpint, uint)
 FUNC2(val_mpint, mp_rshift_safe, val_mpint, uint)
 FUNC3(void, mp_lshift_fixed_into, val_mpint, val_mpint, uint)
 FUNC3(void, mp_rshift_fixed_into, val_mpint, val_mpint, uint)
@@ -105,6 +112,7 @@ FUNC3(val_mpoint, ecc_montgomery_diff_add, val_mpoint, val_mpoint, val_mpoint)
 FUNC1(val_mpoint, ecc_montgomery_double, val_mpoint)
 FUNC2(val_mpoint, ecc_montgomery_multiply, val_mpoint, val_mpint)
 FUNC2(void, ecc_montgomery_get_affine, val_mpoint, out_val_mpint)
+FUNC1(boolean, ecc_montgomery_is_identity, val_mpoint)
 FUNC4(val_ecurve, ecc_edwards_curve, val_mpint, val_mpint, val_mpint, opt_val_mpint)
 FUNC3(val_epoint, ecc_edwards_point_new, val_ecurve, val_mpint, val_mpint)
 FUNC3(val_epoint, ecc_edwards_point_new_from_y, val_ecurve, val_mpint, uint)
@@ -138,6 +146,7 @@ FUNC2(void, ssh2_mac_setkey, val_mac, val_string_ptrlen)
 FUNC1(void, ssh2_mac_start, val_mac)
 FUNC2(void, ssh2_mac_update, val_mac, val_string_ptrlen)
 FUNC1(val_string, ssh2_mac_genresult, val_mac)
+FUNC1(val_string_asciz_const, ssh2_mac_text_name, val_mac)
 
 /*
  * The ssh_key abstraction. All the uses of BinarySink and
@@ -156,7 +165,16 @@ FUNC2(void, ssh_key_public_blob, val_key, out_val_string_binarysink)
 FUNC2(void, ssh_key_private_blob, val_key, out_val_string_binarysink)
 FUNC2(void, ssh_key_openssh_blob, val_key, out_val_string_binarysink)
 FUNC1(val_string_asciz, ssh_key_cache_str, val_key)
+FUNC1(val_keycomponents, ssh_key_components, val_key)
 FUNC2(uint, ssh_key_public_bits, keyalg, val_string_ptrlen)
+
+/*
+ * Accessors to retrieve the innards of a 'key_components'.
+ */
+FUNC1(uint, key_components_count, val_keycomponents)
+FUNC2(opt_val_string_asciz_const, key_components_nth_name, val_keycomponents, uint)
+FUNC2(opt_val_string_asciz_const, key_components_nth_str, val_keycomponents, uint)
+FUNC2(opt_val_mpint, key_components_nth_mp, val_keycomponents, uint)
 
 /*
  * The ssh_cipher abstraction. The in-place encrypt and decrypt
@@ -186,7 +204,7 @@ FUNC2(val_mpint, dh_find_K, val_dh, val_mpint)
  */
 FUNC1(val_ecdh, ssh_ecdhkex_newkey, ecdh_alg)
 FUNC2(void, ssh_ecdhkex_getpublic, val_ecdh, out_val_string_binarysink)
-FUNC2(val_mpint, ssh_ecdhkex_getkey, val_ecdh, val_string_ptrlen)
+FUNC2(opt_val_mpint, ssh_ecdhkex_getkey, val_ecdh, val_string_ptrlen)
 
 /*
  * RSA key exchange, and also the BinarySource get function
@@ -244,12 +262,31 @@ FUNC3(val_string, rsa1_save_sb, val_rsa, opt_val_string_asciz, opt_val_string_as
 /*
  * Key generation functions.
  */
-FUNC1(val_key, rsa_generate, uint)
-FUNC1(val_key, dsa_generate, uint)
+FUNC3(val_key, rsa_generate, uint, boolean, val_pgc)
+FUNC2(val_key, dsa_generate, uint, val_pgc)
 FUNC1(opt_val_key, ecdsa_generate, uint)
 FUNC1(opt_val_key, eddsa_generate, uint)
-FUNC1(val_rsa, rsa1_generate, uint)
-FUNC5(val_mpint, primegen, uint, uint, uint, val_mpint, uint)
+FUNC3(val_rsa, rsa1_generate, uint, boolean, val_pgc)
+FUNC1(val_pgc, primegen_new_context, primegenpolicy)
+FUNC2(opt_val_mpint, primegen_generate, val_pgc, consumed_val_pcs)
+FUNC2(val_string, primegen_mpu_certificate, val_pgc, val_mpint)
+FUNC1(val_pcs, pcs_new, uint)
+FUNC3(val_pcs, pcs_new_with_firstbits, uint, uint, uint)
+FUNC3(void, pcs_require_residue, val_pcs, val_mpint, val_mpint)
+FUNC2(void, pcs_require_residue_1, val_pcs, val_mpint)
+FUNC2(void, pcs_require_residue_1_mod_prime, val_pcs, val_mpint)
+FUNC3(void, pcs_avoid_residue_small, val_pcs, uint, uint)
+FUNC1(void, pcs_try_sophie_germain, val_pcs)
+FUNC1(void, pcs_set_oneshot, val_pcs)
+FUNC1(void, pcs_ready, val_pcs)
+FUNC4(void, pcs_inspect, val_pcs, out_val_mpint, out_val_mpint, out_val_mpint)
+FUNC1(val_mpint, pcs_generate, val_pcs)
+FUNC0(val_pockle, pockle_new)
+FUNC1(uint, pockle_mark, val_pockle)
+FUNC2(void, pockle_release, val_pockle, uint)
+FUNC2(pocklestatus, pockle_add_small_prime, val_pockle, val_mpint)
+FUNC4(pocklestatus, pockle_add_prime, val_pockle, val_mpint, mpint_list, val_mpint)
+FUNC2(val_string, pockle_mpu, val_pockle, val_mpint)
 
 /*
  * Miscellaneous.
@@ -275,4 +312,5 @@ FUNC2(boolean, crcda_detect, val_string_ptrlen, val_string_ptrlen)
  */
 FUNC1(void, random_queue, val_string_ptrlen)
 FUNC0(uint, random_queue_len)
+FUNC2(void, random_make_prng, hashalg, val_string_ptrlen)
 FUNC0(void, random_clear)

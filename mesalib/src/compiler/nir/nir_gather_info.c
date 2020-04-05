@@ -22,11 +22,54 @@
  */
 
 #include "nir.h"
+#include "nir_deref.h"
 #include "main/menums.h"
 
 static void
+get_deref_info(nir_shader *shader, nir_variable *var, nir_deref_instr *deref,
+               bool *cross_invocation, bool *indirect)
+{
+   *cross_invocation = false;
+   *indirect = false;
+
+   const bool per_vertex = nir_is_per_vertex_io(var, shader->info.stage);
+
+   nir_deref_path path;
+   nir_deref_path_init(&path, deref, NULL);
+   assert(path.path[0]->deref_type == nir_deref_type_var);
+   nir_deref_instr **p = &path.path[1];
+
+   /* Vertex index is the outermost array index. */
+   if (per_vertex) {
+      assert((*p)->deref_type == nir_deref_type_array);
+      nir_instr *vertex_index_instr = (*p)->arr.index.ssa->parent_instr;
+      *cross_invocation =
+         vertex_index_instr->type != nir_instr_type_intrinsic ||
+         nir_instr_as_intrinsic(vertex_index_instr)->intrinsic !=
+            nir_intrinsic_load_invocation_id;
+      p++;
+   }
+
+   /* We always lower indirect dereferences for "compact" array vars. */
+   if (!path.path[0]->var->data.compact) {
+      /* Non-compact array vars: find out if they are indirect. */
+      for (; *p; p++) {
+         if ((*p)->deref_type == nir_deref_type_array) {
+            *indirect |= !nir_src_is_const((*p)->arr.index);
+         } else if ((*p)->deref_type == nir_deref_type_struct) {
+            /* Struct indices are always constant. */
+         } else {
+            unreachable("Unsupported deref type");
+         }
+      }
+   }
+
+   nir_deref_path_finish(&path);
+}
+
+static void
 set_io_mask(nir_shader *shader, nir_variable *var, int offset, int len,
-            bool is_output_read)
+            nir_deref_instr *deref, bool is_output_read)
 {
    for (int i = 0; i < len; i++) {
       assert(var->data.location != -1);
@@ -48,11 +91,23 @@ set_io_mask(nir_shader *shader, nir_variable *var, int offset, int len,
          bitfield = BITFIELD64_BIT(idx);
       }
 
+      bool cross_invocation;
+      bool indirect;
+      get_deref_info(shader, var, deref, &cross_invocation, &indirect);
+
       if (var->data.mode == nir_var_shader_in) {
-         if (is_patch_generic)
+         if (is_patch_generic) {
             shader->info.patch_inputs_read |= bitfield;
-         else
+            if (indirect)
+               shader->info.patch_inputs_read_indirectly |= bitfield;
+         } else {
             shader->info.inputs_read |= bitfield;
+            if (indirect)
+               shader->info.inputs_read_indirectly |= bitfield;
+         }
+
+         if (cross_invocation && shader->info.stage == MESA_SHADER_TESS_CTRL)
+            shader->info.tess.tcs_cross_invocation_inputs_read |= bitfield;
 
          if (shader->info.stage == MESA_SHADER_FRAGMENT) {
             shader->info.fs.uses_sample_qualifier |= var->data.sample;
@@ -62,16 +117,27 @@ set_io_mask(nir_shader *shader, nir_variable *var, int offset, int len,
          if (is_output_read) {
             if (is_patch_generic) {
                shader->info.patch_outputs_read |= bitfield;
+               if (indirect)
+                  shader->info.patch_outputs_accessed_indirectly |= bitfield;
             } else {
                shader->info.outputs_read |= bitfield;
+               if (indirect)
+                  shader->info.outputs_accessed_indirectly |= bitfield;
             }
+
+            if (cross_invocation && shader->info.stage == MESA_SHADER_TESS_CTRL)
+               shader->info.tess.tcs_cross_invocation_outputs_read |= bitfield;
          } else {
-	    if (is_patch_generic) {
-	       shader->info.patch_outputs_written |= bitfield;
-	    } else if (!var->data.read_only) {
-	       shader->info.outputs_written |= bitfield;
-	    }
-	 }
+            if (is_patch_generic) {
+               shader->info.patch_outputs_written |= bitfield;
+               if (indirect)
+                  shader->info.patch_outputs_accessed_indirectly |= bitfield;
+            } else if (!var->data.read_only) {
+               shader->info.outputs_written |= bitfield;
+               if (indirect)
+                  shader->info.outputs_accessed_indirectly |= bitfield;
+            }
+         }
 
 
          if (var->data.fb_fetch_output)
@@ -85,7 +151,8 @@ set_io_mask(nir_shader *shader, nir_variable *var, int offset, int len,
  * represents a shader input or output.
  */
 static void
-mark_whole_variable(nir_shader *shader, nir_variable *var, bool is_output_read)
+mark_whole_variable(nir_shader *shader, nir_variable *var,
+                    nir_deref_instr *deref, bool is_output_read)
 {
    const struct glsl_type *type = var->type;
 
@@ -98,16 +165,19 @@ mark_whole_variable(nir_shader *shader, nir_variable *var, bool is_output_read)
       var->data.compact ? DIV_ROUND_UP(glsl_get_length(type), 4)
                         : glsl_count_attribute_slots(type, false);
 
-   set_io_mask(shader, var, 0, slots, is_output_read);
+   set_io_mask(shader, var, 0, slots, deref, is_output_read);
 }
 
 static unsigned
-get_io_offset(nir_deref_instr *deref, bool is_vertex_input)
+get_io_offset(nir_deref_instr *deref, bool is_vertex_input, bool per_vertex)
 {
    unsigned offset = 0;
 
    for (nir_deref_instr *d = deref; d; d = nir_deref_instr_parent(d)) {
       if (d->deref_type == nir_deref_type_array) {
+         if (per_vertex && nir_deref_instr_parent(d)->deref_type == nir_deref_type_var)
+            break;
+
          if (!nir_src_is_const(d->arr.index))
             return -1;
 
@@ -132,8 +202,9 @@ try_mask_partial_io(nir_shader *shader, nir_variable *var,
                     nir_deref_instr *deref, bool is_output_read)
 {
    const struct glsl_type *type = var->type;
+   bool per_vertex = nir_is_per_vertex_io(var, shader->info.stage);
 
-   if (nir_is_per_vertex_io(var, shader->info.stage)) {
+   if (per_vertex) {
       assert(glsl_type_is_array(type));
       type = glsl_get_array_element(type);
    }
@@ -157,7 +228,7 @@ try_mask_partial_io(nir_shader *shader, nir_variable *var,
       return false;
    }
 
-   unsigned offset = get_io_offset(deref, false);
+   unsigned offset = get_io_offset(deref, false, per_vertex);
    if (offset == -1)
       return false;
 
@@ -189,7 +260,7 @@ try_mask_partial_io(nir_shader *shader, nir_variable *var,
       return false;
    }
 
-   set_io_mask(shader, var, offset, elem_width, is_output_read);
+   set_io_mask(shader, var, offset, elem_width, deref, is_output_read);
    return true;
 }
 
@@ -200,6 +271,8 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    switch (instr->intrinsic) {
    case nir_intrinsic_demote:
    case nir_intrinsic_demote_if:
+      shader->info.fs.uses_demote = true;
+   /* fallthrough: quads with helper lanes only might be discarded entirely */
    case nir_intrinsic_discard:
    case nir_intrinsic_discard_if:
       assert(shader->info.stage == MESA_SHADER_FRAGMENT);
@@ -209,6 +282,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_interp_deref_at_centroid:
    case nir_intrinsic_interp_deref_at_sample:
    case nir_intrinsic_interp_deref_at_offset:
+   case nir_intrinsic_interp_deref_at_vertex:
    case nir_intrinsic_load_deref:
    case nir_intrinsic_store_deref:{
       nir_deref_instr *deref = nir_src_as_deref(instr->src[0]);
@@ -221,7 +295,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
             is_output_read = true;
 
          if (!try_mask_partial_io(shader, var, deref, is_output_read))
-            mark_whole_variable(shader, var, is_output_read);
+            mark_whole_variable(shader, var, deref, is_output_read);
 
          /* We need to track which input_reads bits correspond to a
           * dvec3/dvec4 input attribute */
@@ -280,9 +354,103 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
       /* fall through */
 
    case nir_intrinsic_emit_vertex:
+   case nir_intrinsic_emit_vertex_with_counter:
       if (nir_intrinsic_stream_id(instr) > 0)
          shader->info.gs.uses_streams = true;
 
+      break;
+
+   case nir_intrinsic_bindless_image_atomic_add:
+   case nir_intrinsic_bindless_image_atomic_and:
+   case nir_intrinsic_bindless_image_atomic_comp_swap:
+   case nir_intrinsic_bindless_image_atomic_dec_wrap:
+   case nir_intrinsic_bindless_image_atomic_exchange:
+   case nir_intrinsic_bindless_image_atomic_fadd:
+   case nir_intrinsic_bindless_image_atomic_imax:
+   case nir_intrinsic_bindless_image_atomic_imin:
+   case nir_intrinsic_bindless_image_atomic_inc_wrap:
+   case nir_intrinsic_bindless_image_atomic_or:
+   case nir_intrinsic_bindless_image_atomic_umax:
+   case nir_intrinsic_bindless_image_atomic_umin:
+   case nir_intrinsic_bindless_image_atomic_xor:
+   case nir_intrinsic_bindless_image_store:
+   case nir_intrinsic_bindless_image_store_raw_intel:
+   case nir_intrinsic_global_atomic_add:
+   case nir_intrinsic_global_atomic_and:
+   case nir_intrinsic_global_atomic_comp_swap:
+   case nir_intrinsic_global_atomic_exchange:
+   case nir_intrinsic_global_atomic_fadd:
+   case nir_intrinsic_global_atomic_fcomp_swap:
+   case nir_intrinsic_global_atomic_fmax:
+   case nir_intrinsic_global_atomic_fmin:
+   case nir_intrinsic_global_atomic_imax:
+   case nir_intrinsic_global_atomic_imin:
+   case nir_intrinsic_global_atomic_or:
+   case nir_intrinsic_global_atomic_umax:
+   case nir_intrinsic_global_atomic_umin:
+   case nir_intrinsic_global_atomic_xor:
+   case nir_intrinsic_image_atomic_add:
+   case nir_intrinsic_image_atomic_and:
+   case nir_intrinsic_image_atomic_comp_swap:
+   case nir_intrinsic_image_atomic_dec_wrap:
+   case nir_intrinsic_image_atomic_exchange:
+   case nir_intrinsic_image_atomic_fadd:
+   case nir_intrinsic_image_atomic_imax:
+   case nir_intrinsic_image_atomic_imin:
+   case nir_intrinsic_image_atomic_inc_wrap:
+   case nir_intrinsic_image_atomic_or:
+   case nir_intrinsic_image_atomic_umax:
+   case nir_intrinsic_image_atomic_umin:
+   case nir_intrinsic_image_atomic_xor:
+   case nir_intrinsic_image_deref_atomic_add:
+   case nir_intrinsic_image_deref_atomic_and:
+   case nir_intrinsic_image_deref_atomic_comp_swap:
+   case nir_intrinsic_image_deref_atomic_dec_wrap:
+   case nir_intrinsic_image_deref_atomic_exchange:
+   case nir_intrinsic_image_deref_atomic_fadd:
+   case nir_intrinsic_image_deref_atomic_imax:
+   case nir_intrinsic_image_deref_atomic_imin:
+   case nir_intrinsic_image_deref_atomic_inc_wrap:
+   case nir_intrinsic_image_deref_atomic_or:
+   case nir_intrinsic_image_deref_atomic_umax:
+   case nir_intrinsic_image_deref_atomic_umin:
+   case nir_intrinsic_image_deref_atomic_xor:
+   case nir_intrinsic_image_deref_store:
+   case nir_intrinsic_image_deref_store_raw_intel:
+   case nir_intrinsic_image_store:
+   case nir_intrinsic_image_store_raw_intel:
+   case nir_intrinsic_ssbo_atomic_add:
+   case nir_intrinsic_ssbo_atomic_add_ir3:
+   case nir_intrinsic_ssbo_atomic_and:
+   case nir_intrinsic_ssbo_atomic_and_ir3:
+   case nir_intrinsic_ssbo_atomic_comp_swap:
+   case nir_intrinsic_ssbo_atomic_comp_swap_ir3:
+   case nir_intrinsic_ssbo_atomic_exchange:
+   case nir_intrinsic_ssbo_atomic_exchange_ir3:
+   case nir_intrinsic_ssbo_atomic_fadd:
+   case nir_intrinsic_ssbo_atomic_fcomp_swap:
+   case nir_intrinsic_ssbo_atomic_fmax:
+   case nir_intrinsic_ssbo_atomic_fmin:
+   case nir_intrinsic_ssbo_atomic_imax:
+   case nir_intrinsic_ssbo_atomic_imax_ir3:
+   case nir_intrinsic_ssbo_atomic_imin:
+   case nir_intrinsic_ssbo_atomic_imin_ir3:
+   case nir_intrinsic_ssbo_atomic_or:
+   case nir_intrinsic_ssbo_atomic_or_ir3:
+   case nir_intrinsic_ssbo_atomic_umax:
+   case nir_intrinsic_ssbo_atomic_umax_ir3:
+   case nir_intrinsic_ssbo_atomic_umin:
+   case nir_intrinsic_ssbo_atomic_umin_ir3:
+   case nir_intrinsic_ssbo_atomic_xor:
+   case nir_intrinsic_ssbo_atomic_xor_ir3:
+   case nir_intrinsic_store_global:
+   case nir_intrinsic_store_global_ir3:
+   case nir_intrinsic_store_ssbo:
+   case nir_intrinsic_store_ssbo_ir3:
+      /* Only set this for globally visible memory, not scratch and not
+       * shared.
+       */
+      shader->info.writes_memory = true;
       break;
 
    default:
@@ -361,6 +529,7 @@ nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint)
    shader->info.num_textures = 0;
    shader->info.num_images = 0;
    shader->info.last_msaa_image = -1;
+
    nir_foreach_variable(var, &shader->uniforms) {
       /* Bindless textures and images don't use non-bindless slots. */
       if (var->data.bindless)
@@ -382,14 +551,26 @@ nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint)
    shader->info.patch_inputs_read = 0;
    shader->info.patch_outputs_written = 0;
    shader->info.system_values_read = 0;
+   shader->info.inputs_read_indirectly = 0;
+   shader->info.outputs_accessed_indirectly = 0;
+   shader->info.patch_inputs_read_indirectly = 0;
+   shader->info.patch_outputs_accessed_indirectly = 0;
+
    if (shader->info.stage == MESA_SHADER_VERTEX) {
       shader->info.vs.double_inputs = 0;
    }
    if (shader->info.stage == MESA_SHADER_FRAGMENT) {
       shader->info.fs.uses_sample_qualifier = false;
       shader->info.fs.uses_discard = false;
+      shader->info.fs.uses_demote = false;
       shader->info.fs.needs_helper_invocations = false;
    }
+   if (shader->info.stage == MESA_SHADER_TESS_CTRL) {
+      shader->info.tess.tcs_cross_invocation_inputs_read = 0;
+      shader->info.tess.tcs_cross_invocation_outputs_read = 0;
+   }
+
+   shader->info.writes_memory = shader->info.has_transform_feedback_varyings;
 
    void *dead_ctx = ralloc_context(NULL);
    nir_foreach_block(block, entrypoint) {

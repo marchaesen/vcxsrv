@@ -30,7 +30,7 @@ Equipment Corporation.
 #define _DPMSCONST_H 1
 
 #define DPMSMajorVersion	1
-#define DPMSMinorVersion	1
+#define DPMSMinorVersion	2
 
 #define DPMSExtensionName	"DPMS"
 
@@ -38,6 +38,9 @@ Equipment Corporation.
 #define DPMSModeStandby	1
 #define DPMSModeSuspend	2
 #define DPMSModeOff	3
+
+#define DPMSInfoNotifyMask	(1L << 0)
+#define DPMSInfoNotify		0
 
 #endif /* !_DPMSCONST_H */
 

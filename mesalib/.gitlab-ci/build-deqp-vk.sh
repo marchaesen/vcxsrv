@@ -1,8 +1,13 @@
-git clone --depth 1 \
+#!/bin/bash
+
+set -ex
+
+git clone \
+    --depth 1 \
     https://github.com/KhronosGroup/VK-GL-CTS.git \
-    -b vulkan-cts-1.1.6.0 \
+    -b vulkan-cts-1.2.1.0 \
     /VK-GL-CTS
-cd /VK-GL-CTS
+pushd /VK-GL-CTS
 
 # --insecure is due to SSL cert failures hitting sourceforge for zlib and
 # libpng (sigh).  The archives get their checksums checked anyway, and git
@@ -10,12 +15,15 @@ cd /VK-GL-CTS
 python3 external/fetch_sources.py --insecure
 
 mkdir -p /deqp
-cd /deqp
+
+popd
+
+pushd /deqp
 cmake -G Ninja \
       -DDEQP_TARGET=x11_glx \
       -DCMAKE_BUILD_TYPE=Release \
       /VK-GL-CTS
-ninja -j4
+ninja
 
 # Copy out the mustpass list we want.
 mkdir /deqp/mustpass
@@ -31,3 +39,4 @@ find -iname '*cmake*' -o -name '*ninja*' -o -name '*.o' -o -name '*.a' | xargs r
 strip external/vulkancts/modules/vulkan/deqp-vk
 du -sh *
 rm -rf /VK-GL-CTS
+popd

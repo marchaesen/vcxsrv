@@ -44,8 +44,8 @@
 
 #include <errno.h>
 
-#define U642VOID(x) ((void *)(unsigned long)(x))
-#define VOID2U64(x) ((uint64_t)(unsigned long)(x))
+#define U642VOID(x) ((void *)(uintptr_t)(x))
+#define VOID2U64(x) ((uint64_t)(uintptr_t)(x))
 
 #define container_of(ptr, type, field) \
    (type*)((char*)ptr - offsetof(type, field))

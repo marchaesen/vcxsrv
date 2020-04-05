@@ -103,8 +103,6 @@ validate_DispatchComputeGroupSizeARB(struct gl_context *ctx,
                                      const GLuint *num_groups,
                                      const GLuint *group_size)
 {
-   GLuint total_invocations = 1;
-
    if (!check_valid_to_compute(ctx, "glDispatchComputeGroupSizeARB"))
       return GL_FALSE;
 
@@ -153,8 +151,6 @@ validate_DispatchComputeGroupSizeARB(struct gl_context *ctx,
                      "glDispatchComputeGroupSizeARB(group_size_%c)", 'x' + i);
          return GL_FALSE;
       }
-
-      total_invocations *= group_size[i];
    }
 
    /* The ARB_compute_variable_group_size spec says:
@@ -165,11 +161,19 @@ validate_DispatchComputeGroupSizeARB(struct gl_context *ctx,
     *  for compute shaders with variable group size
     *  (MAX_COMPUTE_VARIABLE_GROUP_INVOCATIONS_ARB)."
     */
+   uint64_t total_invocations = group_size[0] * group_size[1];
+   if (total_invocations <= UINT32_MAX) {
+      /* Only bother multiplying the third value if total still fits in
+       * 32-bit, since MaxComputeVariableGroupInvocations is also 32-bit.
+       */
+      total_invocations *= group_size[2];
+   }
    if (total_invocations > ctx->Const.MaxComputeVariableGroupInvocations) {
       _mesa_error(ctx, GL_INVALID_VALUE,
                   "glDispatchComputeGroupSizeARB(product of local_sizes "
                   "exceeds MAX_COMPUTE_VARIABLE_GROUP_INVOCATIONS_ARB "
-                  "(%d > %d))", total_invocations,
+                  "(%u * %u * %u > %u))",
+                  group_size[0], group_size[1], group_size[2],
                   ctx->Const.MaxComputeVariableGroupInvocations);
       return GL_FALSE;
    }
@@ -250,7 +254,7 @@ dispatch_compute(GLuint num_groups_x, GLuint num_groups_y,
    GET_CURRENT_CONTEXT(ctx);
    const GLuint num_groups[3] = { num_groups_x, num_groups_y, num_groups_z };
 
-   FLUSH_CURRENT(ctx, 0);
+   FLUSH_VERTICES(ctx, 0);
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glDispatchCompute(%d, %d, %d)\n",
@@ -285,7 +289,7 @@ dispatch_compute_indirect(GLintptr indirect, bool no_error)
 {
    GET_CURRENT_CONTEXT(ctx);
 
-   FLUSH_CURRENT(ctx, 0);
+   FLUSH_VERTICES(ctx, 0);
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx, "glDispatchComputeIndirect(%ld)\n", (long) indirect);
@@ -318,7 +322,7 @@ dispatch_compute_group_size(GLuint num_groups_x, GLuint num_groups_y,
    const GLuint num_groups[3] = { num_groups_x, num_groups_y, num_groups_z };
    const GLuint group_size[3] = { group_size_x, group_size_y, group_size_z };
 
-   FLUSH_CURRENT(ctx, 0);
+   FLUSH_VERTICES(ctx, 0);
 
    if (MESA_VERBOSE & VERBOSE_API)
       _mesa_debug(ctx,

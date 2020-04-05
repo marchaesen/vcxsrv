@@ -42,7 +42,7 @@ wsi_device_init(struct wsi_device *wsi,
                 const struct driOptionCache *dri_options)
 {
    const char *present_mode;
-   VkResult result;
+   UNUSED VkResult result;
 
    memset(wsi, 0, sizeof(*wsi));
 
@@ -145,10 +145,13 @@ wsi_device_init(struct wsi_device *wsi,
    }
 
    return VK_SUCCESS;
-
+#if defined(VK_USE_PLATFORM_XCB_KHR) || \
+   defined(VK_USE_PLATFORM_WAYLAND_KHR) || \
+   defined(VK_USE_PLATFORM_DISPLAY_KHR)
 fail:
    wsi_device_finish(wsi, alloc);
    return result;
+#endif
 }
 
 void
@@ -585,8 +588,10 @@ wsi_create_native_image(const struct wsi_swapchain *chain,
       result = wsi->GetImageDrmFormatModifierPropertiesEXT(chain->device,
                                                            image->image,
                                                            &image_mod_props);
-      if (result != VK_SUCCESS)
+      if (result != VK_SUCCESS) {
+         close(fd);
          goto fail;
+      }
       image->drm_modifier = image_mod_props.drmFormatModifier;
       assert(image->drm_modifier != DRM_FORMAT_MOD_INVALID);
 
@@ -615,8 +620,9 @@ wsi_create_native_image(const struct wsi_swapchain *chain,
             image->fds[p] = dup(fd);
             if (image->fds[p] == -1) {
                for (uint32_t i = 0; i < p; i++)
-                  close(image->fds[p]);
+                  close(image->fds[i]);
 
+               result = VK_ERROR_OUT_OF_HOST_MEMORY;
                goto fail;
             }
          }

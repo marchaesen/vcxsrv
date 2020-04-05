@@ -117,25 +117,25 @@
 
   <!-- These functions are unique to GL3 -->
 
-  <function name="ClearBufferiv" es2="3.0" marshal="custom" no_error="true">
+  <function name="ClearBufferiv" es2="3.0" no_error="true">
     <param name="buffer" type="GLenum"/>
     <param name="drawbuffer" type="GLint"/>
-    <param name="value" type="const GLint *"/>
+    <param name="value" type="const GLint *" count="_mesa_buffer_enum_to_count(buffer)"/>
   </function>
 
-  <function name="ClearBufferuiv" es2="3.0" marshal="custom" no_error="true">
+  <function name="ClearBufferuiv" es2="3.0" no_error="true">
     <param name="buffer" type="GLenum"/>
     <param name="drawbuffer" type="GLint"/>
-    <param name="value" type="const GLuint *"/>
+    <param name="value" type="const GLuint *" count="_mesa_buffer_enum_to_count(buffer)"/>
   </function>
 
-  <function name="ClearBufferfv" es2="3.0" marshal="custom" no_error="true">
+  <function name="ClearBufferfv" es2="3.0" no_error="true">
     <param name="buffer" type="GLenum"/>
     <param name="drawbuffer" type="GLint"/>
-    <param name="value" type="const GLfloat *"/>
+    <param name="value" type="const GLfloat *" count="_mesa_buffer_enum_to_count(buffer)"/>
   </function>
 
-  <function name="ClearBufferfi" es2="3.0" marshal="custom" no_error="true">
+  <function name="ClearBufferfi" es2="3.0" no_error="true">
     <param name="buffer" type="GLenum"/>
     <param name="drawbuffer" type="GLint"/>
     <param name="depth" type="GLfloat"/>
@@ -203,7 +203,7 @@
   <function name="BindFragDataLocation" no_error="true">
     <param name="program" type="GLuint"/>
     <param name="colorNumber" type="GLuint"/>
-    <param name="name" type="const GLchar *"/>
+    <param name="name" type="const GLchar *" count="(strlen(name) + 1)"/>
   </function>
 
   <function name="BeginTransformFeedback" es2="3.0" no_error="true">
@@ -258,7 +258,7 @@
 
   <function name="VertexAttribIPointer" es2="3.0" marshal="async"
             no_error="true"
-            marshal_fail="_mesa_glthread_is_non_vbo_vertex_attrib_pointer(ctx)">
+            marshal_call_after="if (COMPAT) _mesa_glthread_AttribPointer(ctx, VERT_ATTRIB_GENERIC(index));">
     <param name="index" type="GLuint"/>
     <param name="size" type="GLint"/>
     <param name="type" type="GLenum"/>
@@ -332,7 +332,7 @@
 
   <function name="VertexAttribI1iv">
     <param name="index" type="GLuint"/>
-    <param name="v" type="const GLint *"/>
+    <param name="v" type="const GLint *" count="1"/>
   </function>
 
   <function name="VertexAttribI2iv" alias="VertexAttribI2ivEXT">
@@ -352,7 +352,7 @@
 
   <function name="VertexAttribI1uiv">
     <param name="index" type="GLuint"/>
-    <param name="v" type="const GLuint *"/>
+    <param name="v" type="const GLuint *" count="1"/>
   </function>
 
   <function name="VertexAttribI2uiv" alias="VertexAttribI2uivEXT">
@@ -372,22 +372,22 @@
 
   <function name="VertexAttribI4bv">
     <param name="index" type="GLuint"/>
-    <param name="v" type="const GLbyte *"/>
+    <param name="v" type="const GLbyte *" count="4"/>
   </function>
 
   <function name="VertexAttribI4sv">
     <param name="index" type="GLuint"/>
-    <param name="v" type="const GLshort *"/>
+    <param name="v" type="const GLshort *" count="4"/>
   </function>
 
   <function name="VertexAttribI4ubv">
     <param name="index" type="GLuint"/>
-    <param name="v" type="const GLubyte *"/>
+    <param name="v" type="const GLubyte *" count="4"/>
   </function>
 
   <function name="VertexAttribI4usv">
     <param name="index" type="GLuint"/>
-    <param name="v" type="const GLushort *"/>
+    <param name="v" type="const GLushort *" count="4"/>
   </function>
 
   <function name="GetUniformuiv" es2="3.0">
@@ -451,13 +451,13 @@
   <function name="TexParameterIiv" es2="3.2">
     <param name="target" type="GLenum"/>
     <param name="pname" type="GLenum"/>
-    <param name="params" type="const GLint *"/>
+    <param name="params" type="const GLint *" count="_mesa_tex_param_enum_to_count(pname)"/>
   </function>
 
   <function name="TexParameterIuiv" es2="3.2">
     <param name="target" type="GLenum"/>
     <param name="pname" type="GLenum"/>
-    <param name="params" type="const GLuint *"/>
+    <param name="params" type="const GLuint *" count="_mesa_tex_param_enum_to_count(pname)"/>
   </function>
 
   <function name="GetTexParameterIiv" es2="3.2">

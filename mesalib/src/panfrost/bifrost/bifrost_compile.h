@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018 Ryan Houdek <Sonicadvance1@gmail.com>
+ * Copyright (C) 2018-2019 Alyssa Rosenzweig <alyssa@rosenzweig.io>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -21,49 +21,54 @@
  * SOFTWARE.
  */
 
-#ifndef __bifrost_compile_h__
-#define __bifrost_compile_h__
+#ifndef __BIFROST_PUBLIC_H_
+#define __BIFROST_PUBLIC_H_
 
 #include "compiler/nir/nir.h"
 #include "util/u_dynarray.h"
+#include "panfrost/util/pan_ir.h"
 
-struct bifrost_program {
-        struct util_dynarray compiled;
-};
-
-int
-bifrost_compile_shader_nir(nir_shader *nir, struct bifrost_program *program);
+void bifrost_compile_shader_nir(nir_shader *nir, panfrost_program *program, unsigned product_id);
 
 static const nir_shader_compiler_options bifrost_nir_options = {
-        .fuse_ffma = true,
-        .lower_flrp16 = true,
+        .lower_scmp = true,
         .lower_flrp32 = true,
         .lower_flrp64 = true,
+        .lower_ffract = true,
         .lower_fmod = true,
-        .lower_bitfield_extract = true,
-        .lower_bitfield_extract_to_shifts = true,
-        .lower_bitfield_insert = true,
-        .lower_bitfield_insert_to_shifts = true,
-        .lower_bitfield_reverse = true,
+        .lower_fdiv = true,
         .lower_idiv = true,
         .lower_isign = true,
-        .lower_fsign = true,
-        .lower_ffract = true,
+        .lower_fpow = true,
+        .lower_find_lsb = true,
         .lower_fdph = true,
+
+        .lower_wpos_pntc = true,
+        .lower_fsign = true,
+
+        .lower_extract_byte = true,
+        .lower_extract_word = true,
+        .lower_rotate = true,
+
         .lower_pack_half_2x16 = true,
+        .lower_pack_half_2x16_split = true,
         .lower_pack_unorm_2x16 = true,
         .lower_pack_snorm_2x16 = true,
         .lower_pack_unorm_4x8 = true,
         .lower_pack_snorm_4x8 = true,
         .lower_unpack_half_2x16 = true,
+        .lower_unpack_half_2x16_split = true,
         .lower_unpack_unorm_2x16 = true,
         .lower_unpack_snorm_2x16 = true,
         .lower_unpack_unorm_4x8 = true,
         .lower_unpack_snorm_4x8 = true,
-        .lower_extract_byte = true,
-        .lower_extract_word = true,
-        .lower_all_io_to_temps = true,
-        .lower_all_io_to_elements = true,
+
+        .lower_doubles_options = nir_lower_dmod,
+
+        .lower_bitfield_extract_to_shifts = true,
+        .vectorize_io = true,
+        .fuse_ffma = true,
+        .use_interpolated_input_intrinsics = true
 };
 
 #endif

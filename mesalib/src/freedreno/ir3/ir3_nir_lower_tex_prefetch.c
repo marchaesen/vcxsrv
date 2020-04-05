@@ -115,7 +115,7 @@ lower_tex_prefetch_block(nir_block *block)
 {
 	bool progress = false;
 
-	nir_foreach_instr_safe(instr, block) {
+	nir_foreach_instr_safe (instr, block) {
 		if (instr->type != nir_instr_type_tex)
 			continue;
 
@@ -183,7 +183,7 @@ ir3_nir_lower_tex_prefetch(nir_shader *shader)
 
 	assert(shader->info.stage == MESA_SHADER_FRAGMENT);
 
-	nir_foreach_function(function, shader) {
+	nir_foreach_function (function, shader) {
 		/* Only texture sampling instructions inside the main function
 		 * are eligible for pre-dispatch.
 		 */

@@ -24,6 +24,12 @@
 #include "vtn_private.h"
 #include "nir/nir_vla.h"
 
+static struct vtn_block *
+vtn_block(struct vtn_builder *b, uint32_t value_id)
+{
+   return vtn_value(b, value_id, vtn_value_type_block)->block;
+}
+
 static struct vtn_pointer *
 vtn_load_param_pointer(struct vtn_builder *b,
                        struct vtn_type *param_type,
@@ -245,6 +251,8 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
       vtn_assert(b->func == NULL);
       b->func = rzalloc(b, struct vtn_function);
 
+      b->func->node.type = vtn_cf_node_type_function;
+      b->func->node.parent = NULL;
       list_inithead(&b->func->body);
       b->func->control = w[3];
 
@@ -358,7 +366,7 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
           * implemented functions that we'll walk later.
           */
          b->func->start_block = b->block;
-         exec_list_push_tail(&b->functions, &b->func->node);
+         list_addtail(&b->func->node.link, &b->functions);
       }
       break;
    }
@@ -394,8 +402,7 @@ vtn_add_case(struct vtn_builder *b, struct vtn_switch *swtch,
              struct vtn_block *break_block,
              uint32_t block_id, uint64_t val, bool is_default)
 {
-   struct vtn_block *case_block =
-      vtn_value(b, block_id, vtn_value_type_block)->block;
+   struct vtn_block *case_block = vtn_block(b, block_id);
 
    /* Don't create dummy cases that just break */
    if (case_block == break_block)
@@ -404,6 +411,8 @@ vtn_add_case(struct vtn_builder *b, struct vtn_switch *swtch,
    if (case_block->switch_case == NULL) {
       struct vtn_case *c = ralloc(b, struct vtn_case);
 
+      c->node.type = vtn_cf_node_type_case;
+      c->node.parent = &swtch->node;
       list_inithead(&c->body);
       c->start_block = case_block;
       c->fallthrough = NULL;
@@ -411,7 +420,7 @@ vtn_add_case(struct vtn_builder *b, struct vtn_switch *swtch,
       c->is_default = false;
       c->visited = false;
 
-      list_addtail(&c->link, &swtch->cases);
+      list_addtail(&c->node.link, &swtch->cases);
 
       case_block->switch_case = c;
    }
@@ -434,7 +443,7 @@ vtn_order_case(struct vtn_switch *swtch, struct vtn_case *cse)
 
    cse->visited = true;
 
-   list_del(&cse->link);
+   list_del(&cse->node.link);
 
    if (cse->fallthrough) {
       vtn_order_case(swtch, cse->fallthrough);
@@ -446,9 +455,9 @@ vtn_order_case(struct vtn_switch *swtch, struct vtn_case *cse)
        * can't break ordering because the DFS ensures that this case is
        * visited before anything that falls through to it.
        */
-      list_addtail(&cse->link, &cse->fallthrough->link);
+      list_addtail(&cse->node.link, &cse->fallthrough->node.link);
    } else {
-      list_add(&cse->link, &swtch->cases);
+      list_add(&cse->node.link, &swtch->cases);
    }
 }
 
@@ -476,7 +485,9 @@ vtn_get_branch_type(struct vtn_builder *b,
 }
 
 static void
-vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
+vtn_cfg_walk_blocks(struct vtn_builder *b,
+                    struct vtn_cf_node *cf_parent,
+                    struct list_head *cf_list,
                     struct vtn_block *start, struct vtn_case *switch_case,
                     struct vtn_block *switch_break,
                     struct vtn_block *loop_break, struct vtn_block *loop_cont,
@@ -489,6 +500,7 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
          struct vtn_loop *loop = ralloc(b, struct vtn_loop);
 
          loop->node.type = vtn_cf_node_type_loop;
+         loop->node.parent = cf_parent;
          list_inithead(&loop->body);
          list_inithead(&loop->cont_body);
          loop->control = block->merge[3];
@@ -496,10 +508,8 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
          list_addtail(&loop->node.link, cf_list);
          block->loop = loop;
 
-         struct vtn_block *new_loop_break =
-            vtn_value(b, block->merge[1], vtn_value_type_block)->block;
-         struct vtn_block *new_loop_cont =
-            vtn_value(b, block->merge[2], vtn_value_type_block)->block;
+         struct vtn_block *new_loop_break = vtn_block(b, block->merge[1]);
+         struct vtn_block *new_loop_cont = vtn_block(b, block->merge[2]);
 
          /* Note: This recursive call will start with the current block as
           * its start block.  If we weren't careful, we would get here
@@ -515,9 +525,11 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
           * possible that the merge block for the loop is the start of
           * another case.
           */
-         vtn_cfg_walk_blocks(b, &loop->body, block, switch_case, NULL,
+         vtn_cfg_walk_blocks(b, &loop->node, &loop->body,
+                             block, switch_case, NULL,
                              new_loop_break, new_loop_cont, NULL );
-         vtn_cfg_walk_blocks(b, &loop->cont_body, new_loop_cont, NULL, NULL,
+         vtn_cfg_walk_blocks(b, &loop->node, &loop->cont_body,
+                             new_loop_cont, NULL, NULL,
                              new_loop_break, NULL, block);
 
          enum vtn_branch_type branch_type =
@@ -538,12 +550,12 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
       }
 
       vtn_assert(block->node.link.next == NULL);
+      block->node.parent = cf_parent;
       list_addtail(&block->node.link, cf_list);
 
       switch (*block->branch & SpvOpCodeMask) {
       case SpvOpBranch: {
-         struct vtn_block *branch_block =
-            vtn_value(b, block->branch[1], vtn_value_type_block)->block;
+         struct vtn_block *branch_block = vtn_block(b, block->branch[1]);
 
          block->branch_type = vtn_get_branch_type(b, branch_block,
                                                   switch_case, switch_break,
@@ -566,14 +578,13 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
          return;
 
       case SpvOpBranchConditional: {
-         struct vtn_block *then_block =
-            vtn_value(b, block->branch[2], vtn_value_type_block)->block;
-         struct vtn_block *else_block =
-            vtn_value(b, block->branch[3], vtn_value_type_block)->block;
+         struct vtn_block *then_block = vtn_block(b, block->branch[2]);
+         struct vtn_block *else_block = vtn_block(b, block->branch[3]);
 
          struct vtn_if *if_stmt = ralloc(b, struct vtn_if);
 
          if_stmt->node.type = vtn_cf_node_type_if;
+         if_stmt->node.parent = cf_parent;
          if_stmt->condition = block->branch[1];
          list_inithead(&if_stmt->then_body);
          list_inithead(&if_stmt->else_body);
@@ -606,14 +617,13 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
                     if_stmt->else_type == vtn_branch_type_none) {
             /* Neither side of the if is something we can short-circuit. */
             vtn_assert((*block->merge & SpvOpCodeMask) == SpvOpSelectionMerge);
-            struct vtn_block *merge_block =
-               vtn_value(b, block->merge[1], vtn_value_type_block)->block;
+            struct vtn_block *merge_block = vtn_block(b, block->merge[1]);
 
-            vtn_cfg_walk_blocks(b, &if_stmt->then_body, then_block,
-                                switch_case, switch_break,
+            vtn_cfg_walk_blocks(b, &if_stmt->node, &if_stmt->then_body,
+                                then_block, switch_case, switch_break,
                                 loop_break, loop_cont, merge_block);
-            vtn_cfg_walk_blocks(b, &if_stmt->else_body, else_block,
-                                switch_case, switch_break,
+            vtn_cfg_walk_blocks(b, &if_stmt->node, &if_stmt->else_body,
+                                else_block, switch_case, switch_break,
                                 loop_break, loop_cont, merge_block);
 
             enum vtn_branch_type merge_type =
@@ -647,12 +657,12 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
 
       case SpvOpSwitch: {
          vtn_assert((*block->merge & SpvOpCodeMask) == SpvOpSelectionMerge);
-         struct vtn_block *break_block =
-            vtn_value(b, block->merge[1], vtn_value_type_block)->block;
+         struct vtn_block *break_block = vtn_block(b, block->merge[1]);
 
          struct vtn_switch *swtch = ralloc(b, struct vtn_switch);
 
          swtch->node.type = vtn_cf_node_type_switch;
+         swtch->node.parent = cf_parent;
          swtch->selector = block->branch[1];
          list_inithead(&swtch->cases);
 
@@ -697,18 +707,18 @@ vtn_cfg_walk_blocks(struct vtn_builder *b, struct list_head *cf_list,
           * the blocks, we also gather the much-needed fall-through
           * information.
           */
-         list_for_each_entry(struct vtn_case, cse, &swtch->cases, link) {
+         vtn_foreach_cf_node(case_node, &swtch->cases) {
+            struct vtn_case *cse = vtn_cf_node_as_case(case_node);
             vtn_assert(cse->start_block != break_block);
-            vtn_cfg_walk_blocks(b, &cse->body, cse->start_block, cse,
-                                break_block, loop_break, loop_cont, NULL);
+            vtn_cfg_walk_blocks(b, &cse->node, &cse->body, cse->start_block,
+                                cse, break_block, loop_break, loop_cont, NULL);
          }
 
          /* Finally, we walk over all of the cases one more time and put
           * them in fall-through order.
           */
          for (const uint32_t *w = block->branch + 2; w < branch_end;) {
-            struct vtn_block *case_block =
-               vtn_value(b, *w, vtn_value_type_block)->block;
+            struct vtn_block *case_block = vtn_block(b, *w);
 
             if (bitsize <= 32) {
                w += 2;
@@ -757,8 +767,9 @@ vtn_build_cfg(struct vtn_builder *b, const uint32_t *words, const uint32_t *end)
    vtn_foreach_instruction(b, words, end,
                            vtn_cfg_handle_prepass_instruction);
 
-   foreach_list_typed(struct vtn_function, func, node, &b->functions) {
-      vtn_cfg_walk_blocks(b, &func->body, func->start_block,
+   vtn_foreach_cf_node(node, &b->functions) {
+      struct vtn_function *func = vtn_cf_node_as_function(node);
+      vtn_cfg_walk_blocks(b, &func->node, &func->body, func->start_block,
                           NULL, NULL, NULL, NULL, NULL);
    }
 }
@@ -808,8 +819,7 @@ vtn_handle_phi_second_pass(struct vtn_builder *b, SpvOp opcode,
    nir_variable *phi_var = phi_entry->data;
 
    for (unsigned i = 3; i < count; i += 2) {
-      struct vtn_block *pred =
-         vtn_value(b, w[i + 1], vtn_value_type_block)->block;
+      struct vtn_block *pred = vtn_block(b, w[i + 1]);
 
       /* If block does not have end_nop, that is because it is an unreacheable
        * block, and hence it is not worth to handle it */
@@ -863,7 +873,8 @@ vtn_switch_case_condition(struct vtn_builder *b, struct vtn_switch *swtch,
 {
    if (cse->is_default) {
       nir_ssa_def *any = nir_imm_false(&b->nb);
-      list_for_each_entry(struct vtn_case, other, &swtch->cases, link) {
+      vtn_foreach_cf_node(other_node, &swtch->cases) {
+         struct vtn_case *other = vtn_cf_node_as_case(other_node);
          if (other->is_default)
             continue;
 
@@ -922,10 +933,10 @@ vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
                  nir_variable *switch_fall_var, bool *has_switch_break,
                  vtn_instruction_handler handler)
 {
-   list_for_each_entry(struct vtn_cf_node, node, cf_list, link) {
+   vtn_foreach_cf_node(node, cf_list) {
       switch (node->type) {
       case vtn_cf_node_type_block: {
-         struct vtn_block *block = (struct vtn_block *)node;
+         struct vtn_block *block = vtn_cf_node_as_block(node);
 
          const uint32_t *block_start = block->label;
          const uint32_t *block_end = block->merge ? block->merge :
@@ -963,7 +974,7 @@ vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
       }
 
       case vtn_cf_node_type_if: {
-         struct vtn_if *vtn_if = (struct vtn_if *)node;
+         struct vtn_if *vtn_if = vtn_cf_node_as_if(node);
          bool sw_break = false;
 
          nir_if *nif =
@@ -1002,7 +1013,7 @@ vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
       }
 
       case vtn_cf_node_type_loop: {
-         struct vtn_loop *vtn_loop = (struct vtn_loop *)node;
+         struct vtn_loop *vtn_loop = vtn_cf_node_as_loop(node);
 
          nir_loop *loop = nir_push_loop(&b->nb);
          loop->control = vtn_loop_control(b, vtn_loop);
@@ -1039,7 +1050,7 @@ vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
       }
 
       case vtn_cf_node_type_switch: {
-         struct vtn_switch *vtn_switch = (struct vtn_switch *)node;
+         struct vtn_switch *vtn_switch = vtn_cf_node_as_switch(node);
 
          /* First, we create a variable to keep track of whether or not the
           * switch is still going at any given point.  Any switch breaks
@@ -1052,7 +1063,9 @@ vtn_emit_cf_list(struct vtn_builder *b, struct list_head *cf_list,
          nir_ssa_def *sel = vtn_ssa_value(b, vtn_switch->selector)->def;
 
          /* Now we can walk the list of cases and actually emit code */
-         list_for_each_entry(struct vtn_case, cse, &vtn_switch->cases, link) {
+         vtn_foreach_cf_node(case_node, &vtn_switch->cases) {
+            struct vtn_case *cse = vtn_cf_node_as_case(case_node);
+
             /* Figure out the condition */
             nir_ssa_def *cond =
                vtn_switch_case_condition(b, vtn_switch, sel, cse);

@@ -125,8 +125,9 @@ _fd_bo_set_name(struct fd_bo *bo, const char *fmt, va_list ap)
  * to re-use cmdstream bo's for cmdstream and not unrelated purposes.
  */
 struct fd_bo *
-fd_bo_new_ring(struct fd_device *dev, uint32_t size, uint32_t flags)
+fd_bo_new_ring(struct fd_device *dev, uint32_t size)
 {
+	uint32_t flags = DRM_FREEDRENO_GEM_GPUREADONLY;
 	struct fd_bo *bo = bo_new(dev, size, flags, &dev->ring_cache);
 	if (bo)
 		bo->bo_reuse = RING_CACHE;

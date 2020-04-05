@@ -46,6 +46,7 @@
 #include "strndup.h"
 #include "xmlconfig.h"
 #include "u_process.h"
+#include "os_file.h"
 
 /* For systems like Hurd */
 #ifndef PATH_MAX
@@ -780,13 +781,40 @@ parseAppAttr(struct OptConfData *data, const XML_Char **attr)
 {
     uint32_t i;
     const XML_Char *exec = NULL;
+    const XML_Char *sha1 = NULL;
     for (i = 0; attr[i]; i += 2) {
         if (!strcmp (attr[i], "name")) /* not needed here */;
         else if (!strcmp (attr[i], "executable")) exec = attr[i+1];
+        else if (!strcmp (attr[i], "sha1")) sha1 = attr[i+1];
         else XML_WARNING("unknown application attribute: %s.", attr[i]);
     }
-    if (exec && strcmp (exec, data->execName))
+    if (exec && strcmp (exec, data->execName)) {
         data->ignoringApp = data->inApp;
+    } else if (sha1) {
+        /* SHA1_DIGEST_STRING_LENGTH includes terminating null byte */
+        if (strlen(sha1) != (SHA1_DIGEST_STRING_LENGTH - 1)) {
+            XML_WARNING("Incorrect sha1 application attribute");
+            data->ignoringApp = data->inApp;
+        } else {
+            size_t len;
+            char* content;
+            char path[PATH_MAX];
+            if (util_get_process_exec_path(path, ARRAY_SIZE(path)) > 0 &&
+                (content = os_read_file(path, &len))) {
+                uint8_t sha1x[SHA1_DIGEST_LENGTH];
+                char sha1s[SHA1_DIGEST_STRING_LENGTH];
+                _mesa_sha1_compute(content, len, sha1x);
+                _mesa_sha1_format((char*) sha1s, sha1x);
+                free(content);
+
+                if (strcmp(sha1, sha1s)) {
+                    data->ignoringApp = data->inApp;
+                }
+            } else {
+                data->ignoringApp = data->inApp;
+            }
+        }
+    }
 }
 
 /** \brief Parse attributes of an application element. */

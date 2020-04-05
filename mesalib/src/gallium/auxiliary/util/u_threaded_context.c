@@ -1393,6 +1393,9 @@ tc_improve_map_buffer_flags(struct threaded_context *tc,
 
    /* Handle CPU reads trivially. */
    if (usage & PIPE_TRANSFER_READ) {
+      if (usage & PIPE_TRANSFER_UNSYNCHRONIZED)
+         usage |= TC_TRANSFER_MAP_THREADED_UNSYNC; /* don't sync */
+
       /* Drivers aren't allowed to do buffer invalidations. */
       return usage & ~PIPE_TRANSFER_DISCARD_WHOLE_RESOURCE;
    }
@@ -1933,6 +1936,20 @@ tc_set_context_param(struct pipe_context *_pipe,
 {
    struct threaded_context *tc = threaded_context(_pipe);
 
+   if (param == PIPE_CONTEXT_PARAM_PIN_THREADS_TO_L3_CACHE) {
+      /* Pin the gallium thread as requested. */
+      util_pin_thread_to_L3(tc->queue.threads[0], value,
+                            util_cpu_caps.cores_per_L3);
+
+      /* Execute this immediately (without enqueuing).
+       * It's required to be thread-safe.
+       */
+      struct pipe_context *pipe = tc->pipe;
+      if (pipe->set_context_param)
+         pipe->set_context_param(pipe, param, value);
+      return;
+   }
+
    if (tc->pipe->set_context_param) {
       struct tc_context_param *payload =
          tc_add_struct_typed_call(tc, TC_CALL_set_context_param,
@@ -1940,12 +1957,6 @@ tc_set_context_param(struct pipe_context *_pipe,
 
       payload->param = param;
       payload->value = value;
-   }
-
-   if (param == PIPE_CONTEXT_PARAM_PIN_THREADS_TO_L3_CACHE) {
-      /* Pin the gallium thread as requested. */
-      util_pin_thread_to_L3(tc->queue.threads[0], value,
-                            util_cpu_caps.cores_per_L3);
    }
 }
 
@@ -2097,7 +2108,8 @@ tc_draw_vbo(struct pipe_context *_pipe, const struct pipe_draw_info *info)
        * e.g. transfer_unmap and flush partially-uninitialized draw_vbo
        * to the driver if it was done afterwards.
        */
-      u_upload_data(tc->base.stream_uploader, 0, size, 4, info->index.user,
+      u_upload_data(tc->base.stream_uploader, 0, size, 4,
+                    (uint8_t*)info->index.user + info->start * index_size,
                     &offset, &buffer);
       if (unlikely(!buffer))
          return;
@@ -2109,7 +2121,7 @@ tc_draw_vbo(struct pipe_context *_pipe, const struct pipe_draw_info *info)
       memcpy(&p->draw, info, sizeof(*info));
       p->draw.has_user_indices = false;
       p->draw.index.resource = buffer;
-      p->draw.start = offset / index_size;
+      p->draw.start = offset >> util_logbase2(index_size);
    } else {
       /* Non-indexed call or indexed with a real index buffer. */
       struct tc_full_draw_info *p = tc_add_draw_vbo(_pipe, indirect != NULL);

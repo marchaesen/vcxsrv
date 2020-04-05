@@ -28,7 +28,7 @@
  */
 
 #include "errors.h"
-#include "imports.h"
+#include "util/imports.h"
 #include "formats.h"
 #include "glformats.h"
 #include "mipmap.h"

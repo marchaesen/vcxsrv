@@ -101,7 +101,8 @@ get_reg_for_deref(nir_deref_instr *deref, struct locals_to_regs_state *state)
 {
    uint32_t hash = hash_deref(deref);
 
-   assert(nir_deref_instr_get_variable(deref)->constant_initializer == NULL);
+   assert(nir_deref_instr_get_variable(deref)->constant_initializer == NULL &&
+          nir_deref_instr_get_variable(deref)->pointer_initializer == NULL);
 
    struct hash_entry *entry =
       _mesa_hash_table_search_pre_hashed(state->regs_table, hash, deref);

@@ -150,10 +150,14 @@ pandecode_dump_file_close(void)
 }
 
 void
-pandecode_initialize(void)
+pandecode_initialize(bool to_stderr)
 {
         list_inithead(&mmaps.node);
-        pandecode_dump_file_open();
+
+        if (to_stderr)
+                pandecode_dump_stream = stderr;
+        else
+                pandecode_dump_file_open();
 }
 
 void

@@ -617,6 +617,15 @@ _mesa_GetPerfQueryDataINTEL(GLuint queryHandle, GLuint flags,
     */
    *bytesWritten = 0;
 
+   /* Not explicitly covered in the spec but a query that was never started
+    * cannot return any data.
+    */
+   if (!obj->Used) {
+      _mesa_error(ctx, GL_INVALID_OPERATION,
+                  "glGetPerfQueryDataINTEL(query never began)");
+      return;
+   }
+
    /* Not explicitly covered in the spec but to be consistent with
     * EndPerfQuery which validates that an application only ends an
     * active query we also validate that an application doesn't try

@@ -176,7 +176,7 @@ xf86RotateRedisplay(ScreenPtr pScreen)
     DamagePtr damage = xf86_config->rotation_damage;
     RegionPtr region;
 
-    if (!damage)
+    if (!damage || !pScreen->root)
         return FALSE;
     xf86RotatePrepare(pScreen);
     region = DamageRegion(damage);

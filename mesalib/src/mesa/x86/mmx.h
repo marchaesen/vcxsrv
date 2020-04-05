@@ -26,7 +26,7 @@
 #ifndef ASM_MMX_H
 #define ASM_MMX_H
 
-#include "main/compiler.h"
+#include "util/compiler.h"
 #include "main/glheader.h"
 
 struct gl_context;

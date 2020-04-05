@@ -1439,6 +1439,106 @@ util_format_is_unorm8(const struct util_format_description *desc)
    return desc->is_unorm && desc->is_array && desc->channel[c].size == 8;
 }
 
+static inline void
+util_format_unpack_z_float(enum pipe_format format, float *dst,
+                           const void *src, unsigned w)
+{
+   const struct util_format_description *desc = util_format_description(format);
+
+   desc->unpack_z_float(dst, 0, (const uint8_t *)src, 0, w, 1);
+}
+
+static inline void
+util_format_unpack_z_32unorm(enum pipe_format format, uint32_t *dst,
+                             const void *src, unsigned w)
+{
+   const struct util_format_description *desc = util_format_description(format);
+
+   desc->unpack_z_32unorm(dst, 0, (const uint8_t *)src, 0, w, 1);
+}
+
+static inline void
+util_format_unpack_s_8uint(enum pipe_format format, uint8_t *dst,
+                           const void *src, unsigned w)
+{
+   const struct util_format_description *desc = util_format_description(format);
+
+   desc->unpack_s_8uint(dst, 0, (const uint8_t *)src, 0, w, 1);
+}
+
+static inline void
+util_format_unpack_rgba_float(enum pipe_format format, float *dst,
+                              const void *src, unsigned w)
+{
+   const struct util_format_description *desc = util_format_description(format);
+
+   desc->unpack_rgba_float(dst, 0, (const uint8_t *)src, 0, w, 1);
+}
+
+/**
+ * Unpacks a row of color data to 32-bit RGBA, either integers for pure
+ * integer formats (sign-extended for signed data), or 32-bit floats.
+ */
+static inline void
+util_format_unpack_rgba(enum pipe_format format, void *dst,
+                        const void *src, unsigned w)
+{
+   const struct util_format_description *desc = util_format_description(format);
+
+   if (util_format_is_pure_uint(format))
+      desc->unpack_rgba_uint((uint32_t *)dst, 0, (const uint8_t *)src, 0, w, 1);
+   else if (util_format_is_pure_sint(format))
+      desc->unpack_rgba_sint((int32_t *)dst, 0, (const uint8_t *)src, 0, w, 1);
+   else
+      desc->unpack_rgba_float((float *)dst, 0, (const uint8_t *)src, 0, w, 1);
+}
+
+static inline void
+util_format_pack_z_float(enum pipe_format format, void *dst,
+                         const float *src, unsigned w)
+{
+   const struct util_format_description *desc = util_format_description(format);
+
+   desc->pack_z_float((uint8_t *)dst, 0, src, 0, w, 1);
+}
+
+static inline void
+util_format_pack_z_32unorm(enum pipe_format format, void *dst,
+                           const uint32_t *src, unsigned w)
+{
+   const struct util_format_description *desc = util_format_description(format);
+
+   desc->pack_z_32unorm((uint8_t *)dst, 0, src, 0, w, 1);
+}
+
+static inline void
+util_format_pack_s_8uint(enum pipe_format format, void *dst,
+                         const uint8_t *src, unsigned w)
+{
+   const struct util_format_description *desc = util_format_description(format);
+
+   desc->pack_s_8uint((uint8_t *)dst, 0, src, 0, w, 1);
+}
+
+/**
+ * Packs a row of color data from 32-bit RGBA, either integers for pure
+ * integer formats, or 32-bit floats.  Values are clamped to the packed
+ * representation's range.
+ */
+static inline void
+util_format_pack_rgba(enum pipe_format format, void *dst,
+                        const void *src, unsigned w)
+{
+   const struct util_format_description *desc = util_format_description(format);
+
+   if (util_format_is_pure_uint(format))
+      desc->pack_rgba_uint((uint8_t *)dst, 0, (const uint32_t *)src, 0, w, 1);
+   else if (util_format_is_pure_sint(format))
+      desc->pack_rgba_sint((uint8_t *)dst, 0, (const int32_t *)src, 0, w, 1);
+   else
+      desc->pack_rgba_float((uint8_t *)dst, 0, (const float *)src, 0, w, 1);
+}
+
 /*
  * Format access functions.
  */

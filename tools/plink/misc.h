@@ -24,30 +24,10 @@ char *host_strchr(const char *s, int c);
 char *host_strrchr(const char *s, int c);
 char *host_strduptrim(const char *s);
 
-#ifdef __GNUC__
-/*
- * On MinGW, the correct compiler format checking for vsnprintf() etc
- * can depend on compile-time flags; these control whether you get
- * ISO C or Microsoft's non-standard format strings.
- * We sometimes use __attribute__ ((format)) for our own printf-like
- * functions, which are ultimately interpreted by the toolchain-chosen
- * printf, so we need to take that into account to get correct warnings.
- */
-#ifdef __MINGW_PRINTF_FORMAT
-#define PUTTY_PRINTF_ARCHETYPE __MINGW_PRINTF_FORMAT
-#else
-#define PUTTY_PRINTF_ARCHETYPE printf
-#endif
-#endif /* __GNUC__ */
-
 char *dupstr(const char *s);
 char *dupcat_fn(const char *s1, ...);
 #define dupcat(...) dupcat_fn(__VA_ARGS__, (const char *)NULL)
-char *dupprintf(const char *fmt, ...)
-#ifdef __GNUC__
-    __attribute__ ((format (PUTTY_PRINTF_ARCHETYPE, 1, 2)))
-#endif
-    ;
+char *dupprintf(const char *fmt, ...) PRINTF_LIKE(1, 2);
 char *dupvprintf(const char *fmt, va_list ap);
 void burnstr(char *string);
 
@@ -76,7 +56,7 @@ void *strbuf_append(strbuf *buf, size_t len);
 void strbuf_shrink_to(strbuf *buf, size_t new_len);
 void strbuf_shrink_by(strbuf *buf, size_t amount_to_remove);
 char *strbuf_to_str(strbuf *buf); /* does free buf, but you must free result */
-void strbuf_catf(strbuf *buf, const char *fmt, ...);
+void strbuf_catf(strbuf *buf, const char *fmt, ...) PRINTF_LIKE(2, 3);
 void strbuf_catfv(strbuf *buf, const char *fmt, va_list ap);
 static inline void strbuf_clear(strbuf *buf) { strbuf_shrink_to(buf, 0); }
 bool strbuf_chomp(strbuf *buf, char char_to_remove);
@@ -235,6 +215,9 @@ bool smemeq(const void *av, const void *bv, size_t len);
  * been removed. */
 size_t encode_utf8(void *output, unsigned long ch);
 
+/* Write a string out in C string-literal format. */
+void write_c_string_literal(FILE *fp, ptrlen str);
+
 char *buildinfo(const char *newline);
 
 /*
@@ -267,7 +250,7 @@ static inline NORETURN void unreachable_internal(void) { abort(); }
  */
 
 #ifdef DEBUG
-void debug_printf(const char *fmt, ...);
+void debug_printf(const char *fmt, ...) PRINTF_LIKE(1, 2);
 void debug_memdump(const void *buf, int len, bool L);
 #define debug(...) (debug_printf(__VA_ARGS__))
 #define dmemdump(buf,len) (debug_memdump(buf, len, false))
@@ -425,5 +408,26 @@ static inline char *stripctrl_string(StripCtrlChars *sccpub, const char *str)
 {
     return stripctrl_string_ptrlen(sccpub, ptrlen_from_asciz(str));
 }
+
+/*
+ * A mechanism for loading a file from disk into a memory buffer where
+ * it can be picked apart as a BinarySource.
+ */
+struct LoadedFile {
+    char *data;
+    size_t len, max_size;
+    BinarySource_IMPLEMENTATION;
+};
+typedef enum {
+    LF_OK,      /* file loaded successfully */
+    LF_TOO_BIG, /* file didn't fit in buffer */
+    LF_ERROR,   /* error from stdio layer */
+} LoadFileStatus;
+LoadedFile *lf_new(size_t max_size);
+void lf_free(LoadedFile *lf);
+LoadFileStatus lf_load_fp(LoadedFile *lf, FILE *fp);
+LoadFileStatus lf_load(LoadedFile *lf, const Filename *filename);
+static inline ptrlen ptrlen_from_lf(LoadedFile *lf)
+{ return make_ptrlen(lf->data, lf->len); }
 
 #endif

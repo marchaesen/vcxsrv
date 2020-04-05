@@ -33,7 +33,7 @@
 #include "main/glheader.h"
 #include "main/context.h"
 #include "main/blend.h"
-#include "main/imports.h"
+#include "util/imports.h"
 #include "main/macros.h"
 #include "main/mtypes.h"
 #include "main/fbobject.h"

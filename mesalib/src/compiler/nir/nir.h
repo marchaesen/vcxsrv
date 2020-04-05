@@ -37,6 +37,7 @@
 #include "util/bitscan.h"
 #include "util/bitset.h"
 #include "util/macros.h"
+#include "util/format/u_format.h"
 #include "compiler/nir_types.h"
 #include "compiler/shader_enums.h"
 #include "compiler/shader_info.h"
@@ -378,7 +379,7 @@ typedef struct nir_variable {
        *
        * \sa glsl_interp_mode
        */
-      unsigned interpolation:2;
+      unsigned interpolation:3;
 
       /**
        * If non-zero, then this variable may be packed along with other variables
@@ -525,8 +526,8 @@ typedef struct nir_variable {
 
       union {
          struct {
-            /** Image internal format if specified explicitly, otherwise GL_NONE. */
-            uint16_t format; /* GLenum */
+            /** Image internal format if specified explicitly, otherwise PIPE_FORMAT_NONE. */
+            enum pipe_format format;
          } image;
 
          struct {
@@ -576,6 +577,14 @@ typedef struct nir_variable {
     * Most of the rest of NIR ignores this field or asserts that it's NULL.
     */
    nir_constant *constant_initializer;
+
+   /**
+    * Global variable assigned in the initializer of the variable
+    * This field should only be used temporarily by creators of NIR shaders
+    * and then lower_constant_initializers can be used to get rid of them.
+    * Most of the rest of NIR ignores this field or asserts that it's NULL.
+    */
+   struct nir_variable *pointer_initializer;
 
    /**
     * For variables that are in an interface block or are an instance of an
@@ -1046,6 +1055,22 @@ nir_op_vec(unsigned components)
 }
 
 static inline bool
+nir_op_is_vec(nir_op op)
+{
+   switch (op) {
+   case nir_op_mov:
+   case nir_op_vec2:
+   case nir_op_vec3:
+   case nir_op_vec4:
+   case nir_op_vec8:
+   case nir_op_vec16:
+      return true;
+   default:
+      return false;
+   }
+}
+
+static inline bool
 nir_is_float_control_signed_zero_inf_nan_preserve(unsigned execution_mode, unsigned bit_size)
 {
     return (16 == bit_size && execution_mode & FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP16) ||
@@ -1439,18 +1464,19 @@ typedef enum {
    /* Memory ordering. */
    NIR_MEMORY_ACQUIRE        = 1 << 0,
    NIR_MEMORY_RELEASE        = 1 << 1,
+   NIR_MEMORY_ACQ_REL        = NIR_MEMORY_ACQUIRE | NIR_MEMORY_RELEASE,
 
    /* Memory visibility operations. */
-   NIR_MEMORY_MAKE_AVAILABLE = 1 << 3,
-   NIR_MEMORY_MAKE_VISIBLE   = 1 << 4,
+   NIR_MEMORY_MAKE_AVAILABLE = 1 << 2,
+   NIR_MEMORY_MAKE_VISIBLE   = 1 << 3,
 } nir_memory_semantics;
 
 typedef enum {
-   NIR_SCOPE_DEVICE,
-   NIR_SCOPE_QUEUE_FAMILY,
-   NIR_SCOPE_WORKGROUP,
-   NIR_SCOPE_SUBGROUP,
    NIR_SCOPE_INVOCATION,
+   NIR_SCOPE_SUBGROUP,
+   NIR_SCOPE_WORKGROUP,
+   NIR_SCOPE_QUEUE_FAMILY,
+   NIR_SCOPE_DEVICE,
 } nir_scope;
 
 /**
@@ -1719,7 +1745,7 @@ INTRINSIC_IDX_ACCESSORS(image_array, IMAGE_ARRAY, bool)
 INTRINSIC_IDX_ACCESSORS(access, ACCESS, enum gl_access_qualifier)
 INTRINSIC_IDX_ACCESSORS(src_access, SRC_ACCESS, enum gl_access_qualifier)
 INTRINSIC_IDX_ACCESSORS(dst_access, DST_ACCESS, enum gl_access_qualifier)
-INTRINSIC_IDX_ACCESSORS(format, FORMAT, unsigned)
+INTRINSIC_IDX_ACCESSORS(format, FORMAT, enum pipe_format)
 INTRINSIC_IDX_ACCESSORS(align_mul, ALIGN_MUL, unsigned)
 INTRINSIC_IDX_ACCESSORS(align_offset, ALIGN_OFFSET, unsigned)
 INTRINSIC_IDX_ACCESSORS(desc_type, DESC_TYPE, unsigned)
@@ -1755,6 +1781,9 @@ nir_intrinsic_align(const nir_intrinsic_instr *intrin)
    assert(align_offset < align_mul);
    return align_offset ? 1 << (ffs(align_offset) - 1) : align_mul;
 }
+
+unsigned
+nir_image_intrinsic_coord_components(const nir_intrinsic_instr *instr);
 
 /* Converts a image_deref_* intrinsic into a image_* one */
 void nir_rewrite_image_intrinsic(nir_intrinsic_instr *instr,
@@ -1870,9 +1899,6 @@ typedef struct {
     * then the texture index is given by texture_index + texture_offset.
     */
    unsigned texture_index;
-
-   /** The size of the texture array or 0 if it's not an array */
-   unsigned texture_array_size;
 
    /** The sampler index
     *
@@ -2908,6 +2934,11 @@ typedef struct nir_shader_compiler_options {
     */
    bool has_imul24;
 
+   /* Whether to generate only scoped_memory_barrier intrinsics instead of the
+    * set of memory barrier intrinsics based on GLSL.
+    */
+   bool use_scoped_memory_barrier;
+
    /**
     * Is this the Intel vec4 backend?
     *
@@ -3839,7 +3870,7 @@ bool nir_lower_vars_to_ssa(nir_shader *shader);
 bool nir_remove_dead_derefs(nir_shader *shader);
 bool nir_remove_dead_derefs_impl(nir_function_impl *impl);
 bool nir_remove_dead_variables(nir_shader *shader, nir_variable_mode modes);
-bool nir_lower_constant_initializers(nir_shader *shader,
+bool nir_lower_variable_initializers(nir_shader *shader,
                                      nir_variable_mode modes);
 
 bool nir_move_vec_src_uses_to_dest(nir_shader *shader);
@@ -3853,6 +3884,7 @@ bool nir_lower_flrp(nir_shader *shader, unsigned lowering_mask,
                     bool always_precise, bool have_ffma);
 
 bool nir_lower_alu_to_scalar(nir_shader *shader, nir_instr_filter_cb cb, const void *data);
+bool nir_lower_bool_to_bitsize(nir_shader *shader);
 bool nir_lower_bool_to_float(nir_shader *shader);
 bool nir_lower_bool_to_int32(nir_shader *shader);
 bool nir_lower_int_to_float(nir_shader *shader);
@@ -3881,6 +3913,7 @@ typedef struct nir_lower_subgroups_options {
    bool lower_shuffle_to_32bit:1;
    bool lower_quad:1;
    bool lower_quad_broadcast_dynamic:1;
+   bool lower_quad_broadcast_dynamic_to_const:1;
 } nir_lower_subgroups_options;
 
 bool nir_lower_subgroups(nir_shader *shader,
@@ -4182,6 +4215,8 @@ typedef enum {
 bool nir_lower_interpolation(nir_shader *shader,
                              nir_lower_interpolation_options options);
 
+bool nir_lower_discard_to_demote(nir_shader *shader);
+
 bool nir_normalize_cubemap_coords(nir_shader *shader);
 
 void nir_live_ssa_defs_impl(nir_function_impl *impl);
@@ -4209,6 +4244,7 @@ bool nir_lower_ssa_defs_to_regs_block(nir_block *block);
 bool nir_rematerialize_derefs_in_use_blocks_impl(nir_function_impl *impl);
 
 bool nir_lower_samplers(nir_shader *shader);
+bool nir_lower_ssbo(nir_shader *shader);
 
 /* This is here for unit tests. */
 bool nir_opt_comparison_pre_impl(nir_function_impl *impl);
@@ -4219,7 +4255,19 @@ bool nir_opt_access(nir_shader *shader);
 bool nir_opt_algebraic(nir_shader *shader);
 bool nir_opt_algebraic_before_ffma(nir_shader *shader);
 bool nir_opt_algebraic_late(nir_shader *shader);
+bool nir_opt_algebraic_distribute_src_mods(nir_shader *shader);
 bool nir_opt_constant_folding(nir_shader *shader);
+
+/* Try to combine a and b into a.  Return true if combination was possible,
+ * which will result in b being removed by the pass.  Return false if
+ * combination wasn't possible.
+ */
+typedef bool (*nir_combine_memory_barrier_cb)(
+   nir_intrinsic_instr *a, nir_intrinsic_instr *b, void *data);
+
+bool nir_opt_combine_memory_barriers(nir_shader *shader,
+                                     nir_combine_memory_barrier_cb combine_cb,
+                                     void *data);
 
 bool nir_opt_combine_stores(nir_shader *shader, nir_variable_mode modes);
 
