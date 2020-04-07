@@ -37,11 +37,12 @@ if exist "C:\Program Files (x86)\NSIS\makensis.exe" (
   "C:\Program Files\NSIS\makensis.exe" vcxsrv-64-debug.nsi
 )
 
+del vcruntime140_1.dll
+del vcruntime140_1d.dll
+
 :skipx64
 
 del vcruntime140.dll
-del vcruntime140_1.dll
 del vcruntime140d.dll
-del vcruntime140_1d.dll
 del msvcp140.dll
 del msvcp140d.dll
