@@ -141,7 +141,7 @@ ir3_cf(struct ir3 *ir)
 {
 	void *mem_ctx = ralloc_context(NULL);
 
-	ir3_find_ssa_uses(ir, mem_ctx);
+	ir3_find_ssa_uses(ir, mem_ctx, false);
 
 	foreach_block (block, &ir->block_list) {
 		foreach_instr_safe (instr, &block->instr_list) {

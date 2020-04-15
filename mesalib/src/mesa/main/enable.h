@@ -38,6 +38,9 @@ struct gl_context;
 
 
 extern void
+_mesa_update_derived_primitive_restart_state(struct gl_context *ctx);
+
+extern void
 _mesa_set_enable( struct gl_context* ctx, GLenum cap, GLboolean state );
 
 extern void GLAPIENTRY

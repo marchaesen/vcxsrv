@@ -244,10 +244,10 @@ static bool valid_flags(struct ir3_instruction *instr, unsigned n,
 			if (instr->opc == OPC_STG && (instr->flags & IR3_INSTR_G) && (n != 2))
 				return false;
 
-			/* as with atomics, ldib on a6xx can only have immediate for
-			 * SSBO slot argument
+			/* as with atomics, ldib and ldc on a6xx can only have immediate
+			 * for SSBO slot argument
 			 */
-			if ((instr->opc == OPC_LDIB) && (n != 0))
+			if ((instr->opc == OPC_LDIB || instr->opc == OPC_LDC) && (n != 0))
 				return false;
 		}
 
@@ -713,12 +713,14 @@ instr_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr)
 		}
 	}
 
-	/* Handle converting a sam.s2en (taking samp/tex idx params via
-	 * register) into a normal sam (encoding immediate samp/tex idx)
-	 * if they are immediate.  This saves some instructions and regs
-	 * in the common case where we know samp/tex at compile time:
+	/* Handle converting a sam.s2en (taking samp/tex idx params via register)
+	 * into a normal sam (encoding immediate samp/tex idx) if they are
+	 * immediate. This saves some instructions and regs in the common case
+	 * where we know samp/tex at compile time. This needs to be done in the
+	 * frontend for bindless tex, though, so don't replicate it here.
 	 */
 	if (is_tex(instr) && (instr->flags & IR3_INSTR_S2EN) &&
+			!(instr->flags & IR3_INSTR_B) &&
 			!(ir3_shader_debug & IR3_DBG_FORCES2EN)) {
 		/* The first src will be a collect, if both of it's
 		 * two sources are mov from imm, then we can

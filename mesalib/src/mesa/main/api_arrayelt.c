@@ -1413,11 +1413,14 @@ attrib_src(const struct gl_vertex_array_object *vao,
 {
    const struct gl_vertex_buffer_binding *binding =
       &vao->BufferBinding[array->BufferBindingIndex];
-   const GLubyte *src
-      = ADD_POINTERS(binding->BufferObj->Mappings[MAP_INTERNAL].Pointer,
-                     _mesa_vertex_attrib_address(array, binding))
-      + elt * binding->Stride;
-   return src;
+   const GLubyte *src = _mesa_vertex_attrib_address(array, binding);
+
+   if (binding->BufferObj) {
+      src = ADD_POINTERS(binding->BufferObj->Mappings[MAP_INTERNAL].Pointer,
+                         src);
+   }
+
+   return src + elt * binding->Stride;
 }
 
 

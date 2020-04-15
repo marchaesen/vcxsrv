@@ -86,7 +86,6 @@ spec/arb_compute_variable_group_size/execution/separate-global-id: skip
 spec/arb_compute_variable_group_size/execution/separate-global-id-2: skip
 spec/arb_compute_variable_group_size/linker/mixed_fixed_variable_local_work_size: skip
 spec/arb_compute_variable_group_size/linker/no_local_size_specified: skip
-spec/arb_cull_distance/clip-cull-4: fail
 spec/arb_geometry_shader4/execution/2darray-basic: skip
 spec/arb_geometry_shader4/execution/clip-distance-bulk-copy: skip
 spec/arb_geometry_shader4/execution/clip-distance-in-bulk-read: skip
@@ -4636,8 +4635,8 @@ spec/oes_viewport_array/viewport-gs-writes-out-of-range: skip
 summary:
        name:  results
        ----  --------
-       pass:    10711
-       fail:       58
+       pass:    10712
+       fail:       57
       crash:        0
        skip:     4577
     timeout:        0

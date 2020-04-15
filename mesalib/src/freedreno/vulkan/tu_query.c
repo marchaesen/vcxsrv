@@ -50,11 +50,15 @@ struct PACKED slot_value {
    uint64_t __padding;
 };
 
-struct PACKED occlusion_query_slot {
+struct PACKED query_slot {
    struct slot_value available; /* 0 when unavailable, 1 when available */
+   struct slot_value result;
+};
+
+struct PACKED occlusion_query_slot {
+   struct query_slot common;
    struct slot_value begin;
    struct slot_value end;
-   struct slot_value result;
 };
 
 /* Returns the IOVA of a given uint64_t field in a given slot of a query
@@ -66,11 +70,13 @@ struct PACKED occlusion_query_slot {
 #define occlusion_query_iova(pool, query, field)                     \
    query_iova(struct occlusion_query_slot, pool, query, field)
 
-#define query_is_available(type, slot)                               \
-   ((type*)slot)->available.value
+#define query_available_iova(pool, query)                            \
+   query_iova(struct query_slot, pool, query, available)
 
-#define occlusion_query_is_available(slot)                           \
-   query_is_available(struct occlusion_query_slot, slot)
+#define query_result_iova(pool, query)                               \
+   query_iova(struct query_slot, pool, query, result)
+
+#define query_is_available(slot) slot->available.value
 
 /*
  * Returns a pointer to a given slot in a query pool.
@@ -95,8 +101,10 @@ tu_CreateQueryPool(VkDevice _device,
    case VK_QUERY_TYPE_OCCLUSION:
       slot_size = sizeof(struct occlusion_query_slot);
       break;
-   case VK_QUERY_TYPE_PIPELINE_STATISTICS:
    case VK_QUERY_TYPE_TIMESTAMP:
+      slot_size = sizeof(struct query_slot);
+      break;
+   case VK_QUERY_TYPE_PIPELINE_STATISTICS:
       unreachable("Unimplemented query type");
    default:
       assert(!"Invalid query type");
@@ -158,11 +166,11 @@ wait_for_available(struct tu_device *device, struct tu_query_pool *pool,
    /* TODO: Use the MSM_IOVA_WAIT ioctl to wait on the available bit in a
     * scheduler friendly way instead of busy polling once the patch has landed
     * upstream. */
-   struct occlusion_query_slot *slot = slot_address(pool, query);
+   struct query_slot *slot = slot_address(pool, query);
    uint64_t abs_timeout = os_time_get_absolute_timeout(
          WAIT_TIMEOUT * NSEC_PER_SEC);
    while(os_time_get_nano() < abs_timeout) {
-      if (occlusion_query_is_available(slot))
+      if (query_is_available(slot))
          return VK_SUCCESS;
    }
    return vk_error(device->instance, VK_TIMEOUT);
@@ -183,14 +191,14 @@ write_query_value_cpu(char* base,
 }
 
 static VkResult
-get_occlusion_query_pool_results(struct tu_device *device,
-                                 struct tu_query_pool *pool,
-                                 uint32_t firstQuery,
-                                 uint32_t queryCount,
-                                 size_t dataSize,
-                                 void *pData,
-                                 VkDeviceSize stride,
-                                 VkQueryResultFlags flags)
+get_query_pool_results(struct tu_device *device,
+                       struct tu_query_pool *pool,
+                       uint32_t firstQuery,
+                       uint32_t queryCount,
+                       size_t dataSize,
+                       void *pData,
+                       VkDeviceSize stride,
+                       VkQueryResultFlags flags)
 {
    assert(dataSize >= stride * queryCount);
 
@@ -198,8 +206,8 @@ get_occlusion_query_pool_results(struct tu_device *device,
    VkResult result = VK_SUCCESS;
    for (uint32_t i = 0; i < queryCount; i++) {
       uint32_t query = firstQuery + i;
-      struct occlusion_query_slot *slot = slot_address(pool, query);
-      bool available = occlusion_query_is_available(slot);
+      struct query_slot *slot = slot_address(pool, query);
+      bool available = query_is_available(slot);
       if ((flags & VK_QUERY_RESULT_WAIT_BIT) && !available) {
          VkResult wait_result = wait_for_available(device, pool, query);
          if (wait_result != VK_SUCCESS)
@@ -265,12 +273,11 @@ tu_GetQueryPoolResults(VkDevice _device,
    assert(firstQuery + queryCount <= pool->size);
 
    switch (pool->type) {
-   case VK_QUERY_TYPE_OCCLUSION: {
-      return get_occlusion_query_pool_results(device, pool, firstQuery,
-            queryCount, dataSize, pData, stride, flags);
-   }
-   case VK_QUERY_TYPE_PIPELINE_STATISTICS:
+   case VK_QUERY_TYPE_OCCLUSION:
    case VK_QUERY_TYPE_TIMESTAMP:
+      return get_query_pool_results(device, pool, firstQuery, queryCount,
+                                    dataSize, pData, stride, flags);
+   case VK_QUERY_TYPE_PIPELINE_STATISTICS:
       unreachable("Unimplemented query type");
    default:
       assert(!"Invalid query type");
@@ -299,15 +306,15 @@ copy_query_value_gpu(struct tu_cmd_buffer *cmdbuf,
 }
 
 static void
-emit_copy_occlusion_query_pool_results(struct tu_cmd_buffer *cmdbuf,
-                                       struct tu_cs *cs,
-                                       struct tu_query_pool *pool,
-                                       uint32_t firstQuery,
-                                       uint32_t queryCount,
-                                       struct tu_buffer *buffer,
-                                       VkDeviceSize dstOffset,
-                                       VkDeviceSize stride,
-                                       VkQueryResultFlags flags)
+emit_copy_query_pool_results(struct tu_cmd_buffer *cmdbuf,
+                             struct tu_cs *cs,
+                             struct tu_query_pool *pool,
+                             uint32_t firstQuery,
+                             uint32_t queryCount,
+                             struct tu_buffer *buffer,
+                             VkDeviceSize dstOffset,
+                             VkDeviceSize stride,
+                             VkQueryResultFlags flags)
 {
    /* From the Vulkan 1.1.130 spec:
     *
@@ -322,9 +329,10 @@ emit_copy_occlusion_query_pool_results(struct tu_cmd_buffer *cmdbuf,
 
    for (uint32_t i = 0; i < queryCount; i++) {
       uint32_t query = firstQuery + i;
-      uint64_t available_iova = occlusion_query_iova(pool, query, available);
-      uint64_t result_iova = occlusion_query_iova(pool, query, result);
+      uint64_t available_iova = query_available_iova(pool, query);
+      uint64_t result_iova = query_result_iova(pool, query);
       uint64_t buffer_iova = tu_buffer_iova(buffer) + dstOffset + i * stride;
+
       /* Wait for the available bit to be set if executed with the
        * VK_QUERY_RESULT_WAIT_BIT flag. */
       if (flags & VK_QUERY_RESULT_WAIT_BIT) {
@@ -392,12 +400,11 @@ tu_CmdCopyQueryPoolResults(VkCommandBuffer commandBuffer,
    assert(firstQuery + queryCount <= pool->size);
 
    switch (pool->type) {
-   case VK_QUERY_TYPE_OCCLUSION: {
-      return emit_copy_occlusion_query_pool_results(cmdbuf, cs, pool,
-            firstQuery, queryCount, buffer, dstOffset, stride, flags);
-   }
-   case VK_QUERY_TYPE_PIPELINE_STATISTICS:
+   case VK_QUERY_TYPE_OCCLUSION:
    case VK_QUERY_TYPE_TIMESTAMP:
+      return emit_copy_query_pool_results(cmdbuf, cs, pool, firstQuery,
+               queryCount, buffer, dstOffset, stride, flags);
+   case VK_QUERY_TYPE_PIPELINE_STATISTICS:
       unreachable("Unimplemented query type");
    default:
       assert(!"Invalid query type");
@@ -405,23 +412,22 @@ tu_CmdCopyQueryPoolResults(VkCommandBuffer commandBuffer,
 }
 
 static void
-emit_reset_occlusion_query_pool(struct tu_cmd_buffer *cmdbuf,
-                                struct tu_query_pool *pool,
-                                uint32_t firstQuery,
-                                uint32_t queryCount)
+emit_reset_query_pool(struct tu_cmd_buffer *cmdbuf,
+                      struct tu_query_pool *pool,
+                      uint32_t firstQuery,
+                      uint32_t queryCount)
 {
    struct tu_cs *cs = &cmdbuf->cs;
 
    for (uint32_t i = 0; i < queryCount; i++) {
       uint32_t query = firstQuery + i;
-      uint64_t available_iova = occlusion_query_iova(pool, query, available);
-      uint64_t result_iova = occlusion_query_iova(pool, query, result);
+
       tu_cs_emit_pkt7(cs, CP_MEM_WRITE, 4);
-      tu_cs_emit_qw(cs, available_iova);
+      tu_cs_emit_qw(cs, query_available_iova(pool, query));
       tu_cs_emit_qw(cs, 0x0);
 
       tu_cs_emit_pkt7(cs, CP_MEM_WRITE, 4);
-      tu_cs_emit_qw(cs, result_iova);
+      tu_cs_emit_qw(cs, query_result_iova(pool, query));
       tu_cs_emit_qw(cs, 0x0);
    }
 }
@@ -436,11 +442,11 @@ tu_CmdResetQueryPool(VkCommandBuffer commandBuffer,
    TU_FROM_HANDLE(tu_query_pool, pool, queryPool);
 
    switch (pool->type) {
+   case VK_QUERY_TYPE_TIMESTAMP:
    case VK_QUERY_TYPE_OCCLUSION:
-      emit_reset_occlusion_query_pool(cmdbuf, pool, firstQuery, queryCount);
+      emit_reset_query_pool(cmdbuf, pool, firstQuery, queryCount);
       break;
    case VK_QUERY_TYPE_PIPELINE_STATISTICS:
-   case VK_QUERY_TYPE_TIMESTAMP:
       unreachable("Unimplemented query type");
    default:
       assert(!"Invalid query type");
@@ -531,10 +537,10 @@ emit_end_occlusion_query(struct tu_cmd_buffer *cmdbuf,
    const struct tu_render_pass *pass = cmdbuf->state.pass;
    struct tu_cs *cs = pass ? &cmdbuf->draw_cs : &cmdbuf->cs;
 
-   uint64_t available_iova = occlusion_query_iova(pool, query, available);
+   uint64_t available_iova = query_available_iova(pool, query);
    uint64_t begin_iova = occlusion_query_iova(pool, query, begin);
    uint64_t end_iova = occlusion_query_iova(pool, query, end);
-   uint64_t result_iova = occlusion_query_iova(pool, query, result);
+   uint64_t result_iova = query_result_iova(pool, query);
    tu_cs_emit_pkt7(cs, CP_MEM_WRITE, 4);
    tu_cs_emit_qw(cs, end_iova);
    tu_cs_emit_qw(cs, 0xffffffffffffffffull);
@@ -611,4 +617,29 @@ tu_CmdWriteTimestamp(VkCommandBuffer commandBuffer,
                      VkQueryPool queryPool,
                      uint32_t query)
 {
+   TU_FROM_HANDLE(tu_cmd_buffer, cmd, commandBuffer);
+   TU_FROM_HANDLE(tu_query_pool, pool, queryPool);
+   struct tu_cs *cs = cmd->state.pass ? &cmd->draw_epilogue_cs : &cmd->cs;
+
+   /* WFI to get more accurate timestamp */
+   tu_cs_emit_wfi(cs);
+
+   tu_cs_emit_pkt7(cs, CP_REG_TO_MEM, 3);
+   tu_cs_emit(cs, CP_REG_TO_MEM_0_REG(REG_A6XX_CP_ALWAYS_ON_COUNTER_LO) |
+                  CP_REG_TO_MEM_0_CNT(2) |
+                  CP_REG_TO_MEM_0_64B);
+   tu_cs_emit_qw(cs, query_result_iova(pool, query));
+
+   tu_cs_emit_pkt7(cs, CP_MEM_WRITE, 4);
+   tu_cs_emit_qw(cs, query_available_iova(pool, query));
+   tu_cs_emit_qw(cs, 0x1);
+
+   if (cmd->state.pass) {
+      /* TODO: to have useful in-renderpass timestamps:
+       * for sysmem path, we can just emit the timestamp in draw_cs,
+       * for gmem renderpass, we do something with accumulate,
+       * but I'm not sure that would follow the spec
+       */
+      tu_finishme("CmdWriteTimestam in renderpass not accurate");
+   }
 }

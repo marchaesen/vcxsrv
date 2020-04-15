@@ -689,6 +689,52 @@ static void print_block_kind(uint16_t kind, FILE *output)
       fprintf(output, "needs_lowering, ");
    if (kind & block_kind_uses_demote)
       fprintf(output, "uses_demote, ");
+   if (kind & block_kind_export_end)
+      fprintf(output, "export_end, ");
+}
+
+static void print_stage(Stage stage, FILE *output)
+{
+   fprintf(output, "ACO shader stage: ");
+
+   if (stage == compute_cs)
+      fprintf(output, "compute_cs");
+   else if (stage == fragment_fs)
+      fprintf(output, "fragment_fs");
+   else if (stage == gs_copy_vs)
+      fprintf(output, "gs_copy_vs");
+   else if (stage == vertex_ls)
+      fprintf(output, "vertex_ls");
+   else if (stage == vertex_es)
+      fprintf(output, "vertex_es");
+   else if (stage == vertex_vs)
+      fprintf(output, "vertex_vs");
+   else if (stage == tess_control_hs)
+      fprintf(output, "tess_control_hs");
+   else if (stage == vertex_tess_control_hs)
+      fprintf(output, "vertex_tess_control_hs");
+   else if (stage == tess_eval_es)
+      fprintf(output, "tess_eval_es");
+   else if (stage == tess_eval_vs)
+      fprintf(output, "tess_eval_vs");
+   else if (stage == geometry_gs)
+      fprintf(output, "geometry_gs");
+   else if (stage == vertex_geometry_gs)
+      fprintf(output, "vertex_geometry_gs");
+   else if (stage == tess_eval_geometry_gs)
+      fprintf(output, "tess_eval_geometry_gs");
+   else if (stage == ngg_vertex_gs)
+      fprintf(output, "ngg_vertex_gs");
+   else if (stage == ngg_tess_eval_gs)
+      fprintf(output, "ngg_tess_eval_gs");
+   else if (stage == ngg_vertex_geometry_gs)
+      fprintf(output, "ngg_vertex_geometry_gs");
+   else if (stage == ngg_tess_eval_geometry_gs)
+      fprintf(output, "ngg_tess_eval_geometry_gs");
+   else
+      fprintf(output, "unknown");
+
+   fprintf(output, "\n");
 }
 
 void aco_print_block(const struct Block* block, FILE *output)
@@ -712,6 +758,8 @@ void aco_print_block(const struct Block* block, FILE *output)
 
 void aco_print_program(Program *program, FILE *output)
 {
+   print_stage(program->stage, output);
+
    for (Block const& block : program->blocks)
       aco_print_block(&block, output);
 

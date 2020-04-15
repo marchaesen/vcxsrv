@@ -896,6 +896,7 @@ struct radv_descriptor_range {
 struct radv_descriptor_set {
 	const struct radv_descriptor_set_layout *layout;
 	uint32_t size;
+	uint32_t buffer_count;
 
 	struct radeon_winsys_bo *bo;
 	uint64_t va;
@@ -1712,9 +1713,9 @@ struct radv_graphics_pipeline_create_info {
 	bool db_stencil_clear;
 	bool db_depth_disable_expclear;
 	bool db_stencil_disable_expclear;
-	bool db_flush_depth_inplace;
-	bool db_flush_stencil_inplace;
-	bool db_resummarize;
+	bool depth_compress_disable;
+	bool stencil_compress_disable;
+	bool resummarize_enable;
 	uint32_t custom_blend_mode;
 };
 
@@ -1815,13 +1816,6 @@ struct radv_image {
 	unsigned plane_count;
 	struct radv_image_plane planes[0];
 };
-
-/* Whether the image has a htile that is known consistent with the contents of
- * the image. */
-bool radv_layout_has_htile(const struct radv_image *image,
-                           VkImageLayout layout,
-                           bool in_render_loop,
-                           unsigned queue_mask);
 
 /* Whether the image has a htile  that is known consistent with the contents of
  * the image and is allowed to be in compressed form.

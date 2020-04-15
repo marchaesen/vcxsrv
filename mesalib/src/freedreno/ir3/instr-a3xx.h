@@ -567,6 +567,57 @@ typedef struct PACKED {
 	uint32_t opc_cat  : 3;
 } instr_cat4_t;
 
+/* With is_bindless_s2en = 1, this determines whether bindless is enabled and
+ * if so, how to get the (base, index) pair for both sampler and texture.
+ * There is a single base embedded in the instruction, which is always used
+ * for the texture.
+ */
+typedef enum {
+	/* Use traditional GL binding model, get texture and sampler index
+	 * from src3 which is not presumed to be uniform. This is
+	 * backwards-compatible with earlier generations, where this field was
+	 * always 0 and nonuniform-indexed sampling always worked.
+	 */
+	CAT5_NONUNIFORM = 0,
+
+	/* The sampler base comes from the low 3 bits of a1.x, and the sampler
+	 * and texture index come from src3 which is presumed to be uniform.
+	 */
+	CAT5_BINDLESS_A1_UNIFORM = 1,
+
+	/* The texture and sampler share the same base, and the sampler and
+	 * texture index come from src3 which is *not* presumed to be uniform.
+	 */
+	CAT5_BINDLESS_NONUNIFORM = 2,
+
+	/* The sampler base comes from the low 3 bits of a1.x, and the sampler
+	 * and texture index come from src3 which is *not* presumed to be
+	 * uniform.
+	 */
+	CAT5_BINDLESS_A1_NONUNIFORM = 3,
+
+	/* Use traditional GL binding model, get texture and sampler index
+	 * from src3 which is presumed to be uniform.
+	 */
+	CAT5_UNIFORM = 4,
+
+	/* The texture and sampler share the same base, and the sampler and
+	 * texture index come from src3 which is presumed to be uniform.
+	 */
+	CAT5_BINDLESS_UNIFORM = 5,
+
+	/* The texture and sampler share the same base, get sampler index from low
+	 * 4 bits of src3 and texture index from high 4 bits.
+	 */
+	CAT5_BINDLESS_IMM = 6,
+
+	/* The sampler base comes from the low 3 bits of a1.x, and the texture
+	 * index comes from the next 8 bits of a1.x. The sampler index is an
+	 * immediate in src3.
+	 */
+	CAT5_BINDLESS_A1_IMM = 7,
+} cat5_desc_mode_t;
+
 typedef struct PACKED {
 	/* dword0: */
 	union PACKED {
@@ -581,39 +632,41 @@ typedef struct PACKED {
 		} norm;
 		/* s2en case: */
 		struct PACKED {
-			uint32_t full     : 1;   /* not half */
-			uint32_t src1     : 8;
-			uint32_t src2     : 11;
-			uint32_t dummy1   : 1;
-			uint32_t src3     : 8;
-			uint32_t dummy2   : 3;
-		} s2en;
+			uint32_t full         : 1;   /* not half */
+			uint32_t src1         : 8;
+			uint32_t src2         : 8;
+			uint32_t dummy1       : 2;
+			uint32_t base_hi      : 2;
+			uint32_t src3         : 8;
+			uint32_t desc_mode    : 3;
+		} s2en_bindless;
 		/* same in either case: */
 		// XXX I think, confirm this
 		struct PACKED {
 			uint32_t full     : 1;   /* not half */
 			uint32_t src1     : 8;
-			uint32_t pad      : 23;
+			uint32_t src2     : 8;
+			uint32_t pad      : 15;
 		};
 	};
 
 	/* dword1: */
-	uint32_t dst      : 8;
-	uint32_t wrmask   : 4;   /* write-mask */
-	uint32_t type     : 3;
-	uint32_t dummy2   : 1;   /* seems to be ignored */
-	uint32_t is_3d    : 1;
+	uint32_t dst              : 8;
+	uint32_t wrmask           : 4;   /* write-mask */
+	uint32_t type             : 3;
+	uint32_t base_lo          : 1;   /* used with bindless */
+	uint32_t is_3d            : 1;
 
-	uint32_t is_a     : 1;
-	uint32_t is_s     : 1;
-	uint32_t is_s2en  : 1;
-	uint32_t is_o     : 1;
-	uint32_t is_p     : 1;
+	uint32_t is_a             : 1;
+	uint32_t is_s             : 1;
+	uint32_t is_s2en_bindless : 1;
+	uint32_t is_o             : 1;
+	uint32_t is_p             : 1;
 
-	uint32_t opc      : 5;
-	uint32_t jmp_tgt  : 1;
-	uint32_t sync     : 1;
-	uint32_t opc_cat  : 3;
+	uint32_t opc              : 5;
+	uint32_t jmp_tgt          : 1;
+	uint32_t sync             : 1;
+	uint32_t opc_cat          : 3;
 } instr_cat5_t;
 
 /* dword0 encoding for src_off: [src1 + off], src2: */
@@ -748,43 +801,72 @@ typedef union PACKED {
 	};
 } instr_cat6_t;
 
+/* Similar to cat5_desc_mode_t, describes how the descriptor is loaded.
+ */
+typedef enum {
+	/* Use old GL binding model with an immediate index.
+	 * TODO: find CAT6_UNIFORM and CAT6_NONUNIFORM
+	 */
+	CAT6_IMM = 0,
+
+	/* Use the bindless model, with an immediate index.
+	 */
+	CAT6_BINDLESS_IMM = 4,
+
+	/* Use the bindless model, with a uniform register index.
+	 */
+	CAT6_BINDLESS_UNIFORM = 5,
+
+	/* Use the bindless model, with a register index that isn't guaranteed
+	 * to be uniform. This presumably checks if the indices are equal and
+	 * splits up the load/store, because it works the way you would
+	 * expect.
+	 */
+	CAT6_BINDLESS_NONUNIFORM = 6,
+} cat6_desc_mode_t;
+
 /**
  * For atomic ops (which return a value):
  *
- *    pad1=1, pad2=c, pad3=0, pad4=3
+ *    pad1=1, pad3=c, pad5=3
  *    src1    - vecN offset/coords
  *    src2.x  - is actually dest register
  *    src2.y  - is 'data' except for cmpxchg where src2.y is 'compare'
  *              and src2.z is 'data'
  *
  * For stib (which does not return a value):
- *    pad1=0, pad2=c, pad3=0, pad4=2
+ *    pad1=0, pad3=c, pad5=2
  *    src1    - vecN offset/coords
  *    src2    - value to store
  *
  * For ldib:
- *    pad1=1, pad2=c, pad3=0, pad4=2
+ *    pad1=1, pad3=c, pad5=2
  *    src1    - vecN offset/coords
  *
  * for ldc (load from UBO using descriptor):
- *    pad1=0, pad2=8, pad3=0, pad4=2
+ *    pad1=0, pad3=8, pad5=2
+ *
+ * pad2 and pad5 are only observed to be 0.
  */
 typedef struct PACKED {
 	/* dword0: */
-	uint32_t pad1     : 9;
+	uint32_t pad1     : 1;
+	uint32_t base     : 3;
+	uint32_t pad2     : 2;
+	uint32_t desc_mode : 3;
 	uint32_t d        : 2;
 	uint32_t typed    : 1;
 	uint32_t type_size : 2;
 	uint32_t opc      : 5;
-	uint32_t pad2     : 5;
+	uint32_t pad3     : 5;
 	uint32_t src1     : 8;  /* coordinate/offset */
 
 	/* dword1: */
 	uint32_t src2     : 8;  /* or the dst for load instructions */
-	uint32_t pad3     : 1;  //mustbe0 ?? or zero means imm vs reg for ssbo??
+	uint32_t pad4     : 1;  //mustbe0 ??
 	uint32_t ssbo     : 8;  /* ssbo/image binding point */
 	uint32_t type     : 3;
-	uint32_t pad4     : 7;
+	uint32_t pad5     : 7;
 	uint32_t jmp_tgt  : 1;
 	uint32_t sync     : 1;
 	uint32_t opc_cat  : 3;
@@ -869,7 +951,7 @@ static inline bool is_cat6_legacy(instr_t *instr, unsigned gpu_id)
 	 * cmdstream traces I have indicates that the pad bit is zero
 	 * in all cases.  So we can use this to detect new encoding:
 	 */
-	if ((cat6->pad2 & 0x8) && (cat6->pad4 & 0x2)) {
+	if ((cat6->pad3 & 0x8) && (cat6->pad5 & 0x2)) {
 		assert(gpu_id >= 600);
 		assert(instr->cat6.opc == 0);
 		return false;

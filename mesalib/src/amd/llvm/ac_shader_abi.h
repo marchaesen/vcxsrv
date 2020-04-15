@@ -80,6 +80,11 @@ struct ac_shader_abi {
 	void (*emit_primitive)(struct ac_shader_abi *abi,
 			       unsigned stream);
 
+	void (*emit_vertex_with_counter)(struct ac_shader_abi *abi,
+					 unsigned stream,
+					 LLVMValueRef vertexidx,
+					 LLVMValueRef *addrs);
+
 	LLVMValueRef (*load_inputs)(struct ac_shader_abi *abi,
 				    unsigned location,
 				    unsigned driver_location,

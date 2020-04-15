@@ -138,6 +138,7 @@ api_xml_files = files(
   'NV_primitive_restart.xml',
   'NV_texture_barrier.xml',
   'NV_vdpau_interop.xml',
+  'NV_viewport_swizzle.xml',
   'OES_EGL_image.xml',
   'OES_fixed_point.xml',
   'OES_single_precision.xml',

@@ -177,10 +177,10 @@ vbo_sw_primitive_restart(struct gl_context *ctx,
    GLuint sub_prim_num;
    GLuint end_index;
    GLuint sub_end_index;
-   GLuint restart_index = _mesa_primitive_restart_index(ctx, 1 << ib->index_size_shift);
+   GLuint restart_index = ctx->Array._RestartIndex[(1 << ib->index_size_shift) - 1];
    struct _mesa_prim temp_prim;
-   GLboolean map_ib = ib->obj->Name && !ib->obj->Mappings[MAP_INTERNAL].Pointer;
-   void *ptr;
+   GLboolean map_ib = ib->obj && !ib->obj->Mappings[MAP_INTERNAL].Pointer;
+   const void *ptr;
 
    /* If there is an indirect buffer, map it and extract the draw params */
    if (indirect) {
@@ -224,7 +224,10 @@ vbo_sw_primitive_restart(struct gl_context *ctx,
                                  ib->obj, MAP_INTERNAL);
    }
 
-   ptr = ADD_POINTERS(ib->obj->Mappings[MAP_INTERNAL].Pointer, ib->ptr);
+   if (ib->obj)
+      ptr = ADD_POINTERS(ib->obj->Mappings[MAP_INTERNAL].Pointer, ib->ptr);
+   else
+      ptr = ib->ptr;
 
    sub_prims = find_sub_primitives(ptr, 1 << ib->index_size_shift,
                                    0, ib->count, restart_index,

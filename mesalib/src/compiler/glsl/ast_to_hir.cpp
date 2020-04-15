@@ -1690,7 +1690,6 @@ ast_expression::do_hir(exec_list *instructions,
       /* Break out if operand types were not parsed successfully. */
       if ((op[0]->type == glsl_type::error_type ||
            op[1]->type == glsl_type::error_type)) {
-         type = glsl_type::error_type;
          error_emitted = true;
          break;
       }

@@ -63,6 +63,8 @@ ir3_context_init(struct ir3_compiler *compiler,
 			_mesa_hash_pointer, _mesa_key_pointer_equal);
 	ctx->block_ht = _mesa_hash_table_create(ctx,
 			_mesa_hash_pointer, _mesa_key_pointer_equal);
+	ctx->sel_cond_conversions = _mesa_hash_table_create(ctx,
+			_mesa_hash_pointer, _mesa_key_pointer_equal);
 
 	/* TODO: maybe generate some sort of bitmask of what key
 	 * lowers vs what shader has (ie. no need to lower
@@ -184,7 +186,7 @@ ir3_get_src(struct ir3_context *ctx, nir_src *src)
 			ralloc_array(ctx, struct ir3_instruction *, num_components);
 
 		if (src->reg.indirect)
-			addr = ir3_get_addr(ctx, ir3_get_src(ctx, src->reg.indirect)[0],
+			addr = ir3_get_addr0(ctx, ir3_get_src(ctx, src->reg.indirect)[0],
 					reg->num_components);
 
 		for (unsigned i = 0; i < num_components; i++) {
@@ -230,7 +232,7 @@ ir3_put_dst(struct ir3_context *ctx, nir_dest *dst)
 		struct ir3_instruction *addr = NULL;
 
 		if (dst->reg.indirect)
-			addr = ir3_get_addr(ctx, ir3_get_src(ctx, dst->reg.indirect)[0],
+			addr = ir3_get_addr0(ctx, ir3_get_src(ctx, dst->reg.indirect)[0],
 					reg->num_components);
 
 		for (unsigned i = 0; i < num_components; i++) {
@@ -378,7 +380,7 @@ ir3_context_error(struct ir3_context *ctx, const char *format, ...)
 }
 
 static struct ir3_instruction *
-create_addr(struct ir3_block *block, struct ir3_instruction *src, int align)
+create_addr0(struct ir3_block *block, struct ir3_instruction *src, int align)
 {
 	struct ir3_instruction *instr, *immed;
 
@@ -433,29 +435,62 @@ create_addr(struct ir3_block *block, struct ir3_instruction *src, int align)
 	return instr;
 }
 
+static struct ir3_instruction *
+create_addr1(struct ir3_block *block, unsigned const_val)
+{
+
+	struct ir3_instruction *immed = create_immed(block, const_val);
+	struct ir3_instruction *instr = ir3_MOV(block, immed, TYPE_S16);
+	instr->regs[0]->num = regid(REG_A0, 1);
+	instr->regs[0]->flags &= ~IR3_REG_SSA;
+	instr->regs[0]->flags |= IR3_REG_HALF;
+	instr->regs[1]->flags |= IR3_REG_HALF;
+	return instr;
+}
+
 /* caches addr values to avoid generating multiple cov/shl/mova
  * sequences for each use of a given NIR level src as address
  */
 struct ir3_instruction *
-ir3_get_addr(struct ir3_context *ctx, struct ir3_instruction *src, int align)
+ir3_get_addr0(struct ir3_context *ctx, struct ir3_instruction *src, int align)
 {
 	struct ir3_instruction *addr;
 	unsigned idx = align - 1;
 
-	compile_assert(ctx, idx < ARRAY_SIZE(ctx->addr_ht));
+	compile_assert(ctx, idx < ARRAY_SIZE(ctx->addr0_ht));
 
-	if (!ctx->addr_ht[idx]) {
-		ctx->addr_ht[idx] = _mesa_hash_table_create(ctx,
+	if (!ctx->addr0_ht[idx]) {
+		ctx->addr0_ht[idx] = _mesa_hash_table_create(ctx,
 				_mesa_hash_pointer, _mesa_key_pointer_equal);
 	} else {
 		struct hash_entry *entry;
-		entry = _mesa_hash_table_search(ctx->addr_ht[idx], src);
+		entry = _mesa_hash_table_search(ctx->addr0_ht[idx], src);
 		if (entry)
 			return entry->data;
 	}
 
-	addr = create_addr(ctx->block, src, align);
-	_mesa_hash_table_insert(ctx->addr_ht[idx], src, addr);
+	addr = create_addr0(ctx->block, src, align);
+	_mesa_hash_table_insert(ctx->addr0_ht[idx], src, addr);
+
+	return addr;
+}
+
+/* Similar to ir3_get_addr0, but for a1.x. */
+struct ir3_instruction *
+ir3_get_addr1(struct ir3_context *ctx, unsigned const_val)
+{
+	struct ir3_instruction *addr;
+
+	if (!ctx->addr1_ht) {
+		ctx->addr1_ht = _mesa_hash_table_u64_create(ctx);
+	} else {
+		addr = _mesa_hash_table_u64_search(ctx->addr1_ht, const_val);
+		if (addr)
+			return addr;
+	}
+
+	addr = create_addr1(ctx->block, const_val);
+	_mesa_hash_table_u64_insert(ctx->addr1_ht, const_val, addr);
 
 	return addr;
 }

@@ -93,9 +93,9 @@ void aco_compile_shader(unsigned shader_count,
    }
    aco::validate(program.get(), stderr);
 
-   /* Boolean phi lowering */
-   aco::lower_bool_phis(program.get());
-   //std::cerr << "After Boolean Phi Lowering:\n";
+   /* Phi lowering */
+   aco::lower_phis(program.get());
+   //std::cerr << "After Phi Lowering:\n";
    //aco_print_program(program.get(), stderr);
 
    aco::dominator_tree(program.get());

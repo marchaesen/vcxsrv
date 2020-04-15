@@ -512,6 +512,7 @@ radv_descriptor_set_create(struct radv_device *device,
 	}
 
 	set->layout = layout;
+	set->buffer_count = buffer_count;
 	uint32_t layout_size = layout->size;
 	if (variable_count) {
 		assert(layout->has_variable_descriptors);

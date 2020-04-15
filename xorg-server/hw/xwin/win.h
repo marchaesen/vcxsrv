@@ -635,14 +635,6 @@ Bool
  winAllocateCmapPrivates(ColormapPtr pCmap);
 
 /*
- * winauth.c
- */
-
-Bool
- winGenerateAuthorization(void);
-void winSetAuthorization(void);
-
-/*
  * winblock.c
  */
 

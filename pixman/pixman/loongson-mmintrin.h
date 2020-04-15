@@ -209,12 +209,13 @@ _mm_set_pi16 (uint16_t __w3, uint16_t __w2, uint16_t __w1, uint16_t __w0)
 		    : "f" (*(__m64 *)&val), "f" (*(__m64 *)&imm)
 		);
 		return ret;
+	} else {
+		uint64_t val = ((uint64_t)__w3 << 48)
+			     | ((uint64_t)__w2 << 32)
+			     | ((uint64_t)__w1 << 16)
+			     | ((uint64_t)__w0 <<  0);
+		return *(__m64 *)&val;
 	}
-	uint64_t val = ((uint64_t)__w3 << 48)
-		     | ((uint64_t)__w2 << 32)
-		     | ((uint64_t)__w1 << 16)
-		     | ((uint64_t)__w0 <<  0);
-	return *(__m64 *)&val;
 }
 
 extern __inline __m64 __attribute__((__gnu_inline__, __always_inline__, __artificial__))
@@ -236,10 +237,11 @@ _mm_set_pi32 (unsigned __i1, unsigned __i0)
 		    : "f" (*(__m32 *)&__i1), "f" (*(__m64 *)&imm)
 		);
 		return ret;
+	} else {
+		uint64_t val = ((uint64_t)__i1 << 32)
+			     | ((uint64_t)__i0 <<  0);
+		return *(__m64 *)&val;
 	}
-	uint64_t val = ((uint64_t)__i1 << 32)
-		     | ((uint64_t)__i0 <<  0);
-	return *(__m64 *)&val;
 }
 #undef _MM_SHUFFLE
 

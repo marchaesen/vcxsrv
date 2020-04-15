@@ -869,14 +869,14 @@ void handle_block(Program *program, Block& block, wait_ctx& ctx)
 
 } /* end namespace */
 
-static uint32_t calculate_score(unsigned num_ctx, wait_ctx *ctx, uint32_t event_mask)
+static uint32_t calculate_score(std::vector<wait_ctx> &ctx_vec, uint32_t event_mask)
 {
    double result = 0.0;
    unsigned num_waits = 0;
    while (event_mask) {
       unsigned event_index = u_bit_scan(&event_mask);
-      for (unsigned i = 0; i < num_ctx; i++) {
-         for (unsigned dist : ctx[i].wait_distances[event_index]) {
+      for (const wait_ctx &ctx : ctx_vec) {
+         for (unsigned dist : ctx.wait_distances[event_index]) {
             double score = dist;
             /* for many events, excessive distances provide little benefit, so
              * decrease the score in that case. */
@@ -918,11 +918,9 @@ void insert_wait_states(Program* program)
 {
    /* per BB ctx */
    std::vector<bool> done(program->blocks.size());
-   wait_ctx in_ctx[program->blocks.size()];
-   wait_ctx out_ctx[program->blocks.size()];
+   std::vector<wait_ctx> in_ctx(program->blocks.size(), wait_ctx(program));
+   std::vector<wait_ctx> out_ctx(program->blocks.size(), wait_ctx(program));
 
-   for (unsigned i = 0; i < program->blocks.size(); i++)
-      in_ctx[i] = wait_ctx(program);
    std::stack<unsigned> loop_header_indices;
    unsigned loop_progress = 0;
 
@@ -972,9 +970,9 @@ void insert_wait_states(Program* program)
 
    if (program->collect_statistics) {
       program->statistics[statistic_vmem_score] =
-         calculate_score(program->blocks.size(), out_ctx, event_vmem | event_flat | event_vmem_store);
+         calculate_score(out_ctx, event_vmem | event_flat | event_vmem_store);
       program->statistics[statistic_smem_score] =
-         calculate_score(program->blocks.size(), out_ctx, event_smem);
+         calculate_score(out_ctx, event_smem);
    }
 }
 

@@ -377,7 +377,7 @@ unsigned add_coupling_code(exec_ctx& ctx, Block* block,
       bld.insert(std::move(startpgm));
 
       /* exec seems to need to be manually initialized with combined shaders */
-      if (util_bitcount(ctx.program->stage & sw_mask) > 1) {
+      if (util_bitcount(ctx.program->stage & sw_mask) > 1 || (ctx.program->stage & hw_ngg_gs)) {
          bld.sop1(Builder::s_mov, bld.exec(Definition(exec_mask)), bld.lm == s2 ? Operand(UINT64_MAX) : Operand(UINT32_MAX));
          instructions[0]->definitions.pop_back();
       }

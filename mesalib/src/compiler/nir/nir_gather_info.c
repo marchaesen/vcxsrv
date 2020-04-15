@@ -161,6 +161,17 @@ mark_whole_variable(nir_shader *shader, nir_variable *var,
       type = glsl_get_array_element(type);
    }
 
+   if (var->data.per_view) {
+      /* TODO: Per view and Per Vertex are not currently used together.  When
+       * they start to be used (e.g. when adding Primitive Replication for GS
+       * on Intel), verify that "peeling" the type twice is correct.  This
+       * assert ensures we remember it.
+       */
+      assert(!nir_is_per_vertex_io(var, shader->info.stage));
+      assert(glsl_type_is_array(type));
+      type = glsl_get_array_element(type);
+   }
+
    const unsigned slots =
       var->data.compact ? DIV_ROUND_UP(glsl_get_length(type), 4)
                         : glsl_count_attribute_slots(type, false);
@@ -208,6 +219,10 @@ try_mask_partial_io(nir_shader *shader, nir_variable *var,
       assert(glsl_type_is_array(type));
       type = glsl_get_array_element(type);
    }
+
+   /* Per view variables will be considered as a whole. */
+   if (var->data.per_view)
+      return false;
 
    /* The code below only handles:
     *

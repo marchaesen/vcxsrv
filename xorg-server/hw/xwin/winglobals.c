@@ -91,7 +91,6 @@ winDispatchProcPtr winProcEstablishConnectionOrig = NULL;
  * Clipboard variables
  */
 
-Bool g_fUnicodeClipboard = TRUE;
 Bool g_fClipboard = TRUE;
 Bool g_fClipboardLaunched = FALSE;
 Bool g_fClipboardStarted = FALSE;

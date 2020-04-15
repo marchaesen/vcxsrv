@@ -84,6 +84,48 @@ radv_load_push_int(nir_builder *b, unsigned offset, const char *name)
 	return &flags->dest.ssa;
 }
 
+static void
+radv_store_availability(nir_builder *b, nir_ssa_def *flags, nir_ssa_def *dst_buf,
+                        nir_ssa_def *offset, nir_ssa_def *value32)
+{
+	nir_ssa_def *result_is_64bit = nir_test_flag(b, flags, VK_QUERY_RESULT_64_BIT);
+	nir_if *availability_if = nir_if_create(b->shader);
+	availability_if->condition = nir_src_for_ssa(nir_test_flag(b, flags, VK_QUERY_RESULT_WITH_AVAILABILITY_BIT));
+	nir_cf_node_insert(b->cursor, &availability_if->cf_node);
+
+	b->cursor = nir_after_cf_list(&availability_if->then_list);
+
+	nir_if *store_64bit_if = nir_if_create(b->shader);
+	store_64bit_if->condition = nir_src_for_ssa(result_is_64bit);
+	nir_cf_node_insert(b->cursor, &store_64bit_if->cf_node);
+
+	b->cursor = nir_after_cf_list(&store_64bit_if->then_list);
+
+	nir_intrinsic_instr *store = nir_intrinsic_instr_create(b->shader, nir_intrinsic_store_ssbo);
+	store->src[0] = nir_src_for_ssa(nir_vec2(b, value32, nir_imm_int(b, 0)));
+	store->src[1] = nir_src_for_ssa(dst_buf);
+	store->src[2] = nir_src_for_ssa(offset);
+	nir_intrinsic_set_write_mask(store, 0x3);
+	nir_intrinsic_set_align(store, 8, 0);
+	store->num_components = 2;
+	nir_builder_instr_insert(b, &store->instr);
+
+	b->cursor = nir_after_cf_list(&store_64bit_if->else_list);
+
+	store = nir_intrinsic_instr_create(b->shader, nir_intrinsic_store_ssbo);
+	store->src[0] = nir_src_for_ssa(value32);
+	store->src[1] = nir_src_for_ssa(dst_buf);
+	store->src[2] = nir_src_for_ssa(offset);
+	nir_intrinsic_set_write_mask(store, 0x1);
+	nir_intrinsic_set_align(store, 4, 0);
+	store->num_components = 1;
+	nir_builder_instr_insert(b, &store->instr);
+
+	b->cursor = nir_after_cf_node(&store_64bit_if->cf_node);
+
+	b->cursor = nir_after_cf_node(&availability_if->cf_node);
+}
+
 static nir_shader *
 build_occlusion_query_shader(struct radv_device *device) {
 	/* the shader this builds is roughly
@@ -269,22 +311,9 @@ build_occlusion_query_shader(struct radv_device *device) {
 
 	b.cursor = nir_after_cf_node(&store_if->cf_node);
 
-	/* Store the availability bit if requested. */
-
-	nir_if *availability_if = nir_if_create(b.shader);
-	availability_if->condition = nir_src_for_ssa(nir_test_flag(&b, flags, VK_QUERY_RESULT_WITH_AVAILABILITY_BIT));
-	nir_cf_node_insert(b.cursor, &availability_if->cf_node);
-
-	b.cursor = nir_after_cf_list(&availability_if->then_list);
-
-	store = nir_intrinsic_instr_create(b.shader, nir_intrinsic_store_ssbo);
-	store->src[0] = nir_src_for_ssa(nir_b2i32(&b, nir_load_var(&b, available)));
-	store->src[1] = nir_src_for_ssa(&dst_buf->dest.ssa);
-	store->src[2] = nir_src_for_ssa(nir_iadd(&b, result_size, output_base));
-	nir_intrinsic_set_write_mask(store, 0x1);
-	nir_intrinsic_set_align(store, 4, 0);
-	store->num_components = 1;
-	nir_builder_instr_insert(&b, &store->instr);
+	radv_store_availability(&b, flags, &dst_buf->dest.ssa,
+	                        nir_iadd(&b, result_size, output_base),
+	                        nir_b2i32(&b, nir_load_var(&b, available)));
 
 	return b.shader;
 }
@@ -396,24 +425,9 @@ build_pipeline_statistics_query_shader(struct radv_device *device) {
 	nir_ssa_def *elem_size = nir_bcsel(&b, result_is_64bit, nir_imm_int(&b, 8), nir_imm_int(&b, 4));
 	nir_ssa_def *elem_count = nir_ushr(&b, stats_mask, nir_imm_int(&b, 16));
 
-	/* Store the availability bit if requested. */
-
-	nir_if *availability_if = nir_if_create(b.shader);
-	availability_if->condition = nir_src_for_ssa(nir_test_flag(&b, flags, VK_QUERY_RESULT_WITH_AVAILABILITY_BIT));
-	nir_cf_node_insert(b.cursor, &availability_if->cf_node);
-
-	b.cursor = nir_after_cf_list(&availability_if->then_list);
-
-	nir_intrinsic_instr *store = nir_intrinsic_instr_create(b.shader, nir_intrinsic_store_ssbo);
-	store->src[0] = nir_src_for_ssa(available32);
-	store->src[1] = nir_src_for_ssa(&dst_buf->dest.ssa);
-	store->src[2] = nir_src_for_ssa(nir_iadd(&b, output_base, nir_imul(&b, elem_count, elem_size)));
-	nir_intrinsic_set_write_mask(store, 0x1);
-	nir_intrinsic_set_align(store, 4, 0);
-	store->num_components = 1;
-	nir_builder_instr_insert(&b, &store->instr);
-
-	b.cursor = nir_after_cf_node(&availability_if->cf_node);
+	radv_store_availability(&b, flags, &dst_buf->dest.ssa,
+	                        nir_iadd(&b, output_base, nir_imul(&b, elem_count, elem_size)),
+				available32);
 
 	nir_if *available_if = nir_if_create(b.shader);
 	available_if->condition = nir_src_for_ssa(nir_i2b(&b, available32));
@@ -516,7 +530,7 @@ build_pipeline_statistics_query_shader(struct radv_device *device) {
 
 	b.cursor = nir_after_cf_list(&store_64bit_if->then_list);
 
-	store = nir_intrinsic_instr_create(b.shader, nir_intrinsic_store_ssbo);
+	nir_intrinsic_instr *store = nir_intrinsic_instr_create(b.shader, nir_intrinsic_store_ssbo);
 	store->src[0] = nir_src_for_ssa(nir_imm_int64(&b, 0));
 	store->src[1] = nir_src_for_ssa(&dst_buf->dest.ssa);
 	store->src[2] = nir_src_for_ssa(output_elem);
@@ -744,24 +758,9 @@ build_tfb_query_shader(struct radv_device *device)
 
 	b.cursor = nir_after_cf_node(&store_if->cf_node);
 
-	/* Store the availability bit if requested. */
-	nir_if *availability_if = nir_if_create(b.shader);
-	availability_if->condition =
-		nir_src_for_ssa(nir_test_flag(&b, flags, VK_QUERY_RESULT_WITH_AVAILABILITY_BIT));
-	nir_cf_node_insert(b.cursor, &availability_if->cf_node);
-
-	b.cursor = nir_after_cf_list(&availability_if->then_list);
-
-	store = nir_intrinsic_instr_create(b.shader, nir_intrinsic_store_ssbo);
-	store->src[0] = nir_src_for_ssa(nir_b2i32(&b, nir_load_var(&b, available)));
-	store->src[1] = nir_src_for_ssa(&dst_buf->dest.ssa);
-	store->src[2] = nir_src_for_ssa(nir_iadd(&b, result_size, output_base));
-	nir_intrinsic_set_write_mask(store, 0x1);
-	nir_intrinsic_set_align(store, 4, 0);
-	store->num_components = 1;
-	nir_builder_instr_insert(&b, &store->instr);
-
-	b.cursor = nir_after_cf_node(&availability_if->cf_node);
+	radv_store_availability(&b, flags, &dst_buf->dest.ssa,
+	                        nir_iadd(&b, result_size, output_base),
+	                        nir_b2i32(&b, nir_load_var(&b, available)));
 
 	return b.shader;
 }
@@ -931,24 +930,9 @@ build_timestamp_query_shader(struct radv_device *device)
 
 	b.cursor = nir_after_cf_node(&store_if->cf_node);
 
-	/* Store the availability bit if requested. */
-	nir_if *availability_if = nir_if_create(b.shader);
-	availability_if->condition =
-		nir_src_for_ssa(nir_test_flag(&b, flags, VK_QUERY_RESULT_WITH_AVAILABILITY_BIT));
-	nir_cf_node_insert(b.cursor, &availability_if->cf_node);
-
-	b.cursor = nir_after_cf_list(&availability_if->then_list);
-
-	store = nir_intrinsic_instr_create(b.shader, nir_intrinsic_store_ssbo);
-	store->src[0] = nir_src_for_ssa(nir_b2i32(&b, nir_load_var(&b, available)));
-	store->src[1] = nir_src_for_ssa(&dst_buf->dest.ssa);
-	store->src[2] = nir_src_for_ssa(nir_iadd(&b, result_size, output_base));
-	nir_intrinsic_set_write_mask(store, 0x1);
-	nir_intrinsic_set_align(store, 4, 0);
-	store->num_components = 1;
-	nir_builder_instr_insert(&b, &store->instr);
-
-	b.cursor = nir_after_cf_node(&availability_if->cf_node);
+	radv_store_availability(&b, flags, &dst_buf->dest.ssa,
+	                        nir_iadd(&b, result_size, output_base),
+	                        nir_b2i32(&b, nir_load_var(&b, available)));
 
 	return b.shader;
 }

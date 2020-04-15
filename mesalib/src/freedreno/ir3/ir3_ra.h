@@ -27,13 +27,7 @@
 #ifndef IR3_RA_H_
 #define IR3_RA_H_
 
-//#include "util/u_math.h"
-//#include "util/register_allocate.h"
-//#include "util/ralloc.h"
 #include "util/bitset.h"
-
-//#include "ir3.h"
-//#include "ir3_compiler.h"
 
 
 static const unsigned class_sizes[] = {
@@ -63,9 +57,27 @@ static const unsigned high_class_sizes[] = {
 #define NUM_HIGH_REGS        (4 * 8)   /* r48 to r55 */
 #define FIRST_HIGH_REG       (4 * 48)
 /* Number of virtual regs in a given class: */
-#define CLASS_REGS(i)        (NUM_REGS - (class_sizes[i] - 1))
-#define HALF_CLASS_REGS(i)   (NUM_REGS - (half_class_sizes[i] - 1))
-#define HIGH_CLASS_REGS(i)   (NUM_HIGH_REGS - (high_class_sizes[i] - 1))
+
+static inline unsigned CLASS_REGS(unsigned i)
+{
+	assert(i < class_count);
+
+	return (NUM_REGS - (class_sizes[i] - 1));
+}
+
+static inline unsigned HALF_CLASS_REGS(unsigned i)
+{
+	assert(i < half_class_count);
+
+	return (NUM_REGS - (half_class_sizes[i] - 1));
+}
+
+static inline unsigned HIGH_CLASS_REGS(unsigned i)
+{
+	assert(i < high_class_count);
+
+	return (NUM_HIGH_REGS - (high_class_sizes[i] - 1));
+}
 
 #define HALF_OFFSET          (class_count)
 #define HIGH_OFFSET          (class_count + half_class_count)
@@ -199,7 +211,7 @@ writes_gpr(struct ir3_instruction *instr)
 	/* is dest a normal temp register: */
 	struct ir3_register *reg = instr->regs[0];
 	debug_assert(!(reg->flags & (IR3_REG_CONST | IR3_REG_IMMED)));
-	if ((reg->num == regid(REG_A0, 0)) ||
+	if ((reg_num(reg) == REG_A0) ||
 			(reg->num == regid(REG_P0, 0)))
 		return false;
 	return true;

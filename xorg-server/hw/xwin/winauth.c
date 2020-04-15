@@ -32,11 +32,8 @@
 #include <xwin-config.h>
 #endif
 
-#define GC X11_GC  /* To avoid compilation errors later when including win.h (which also defines the GC type) */
-#include <X11/Xlib.h>
-#undef GC
-
-#include "win.h"
+#include "winauth.h"
+#include "winmsg.h"
 
 /* Includes for authorization */
 #include "securitysrv.h"
@@ -64,9 +61,7 @@ static xcb_auth_info_t auth_info;
  */
 
 #ifndef XCSECURITY
-
-static
-    XID
+static XID
 GenerateAuthorization(unsigned name_length,
                       const char *name,
                       unsigned data_length,
@@ -82,10 +77,12 @@ GenerateAuthorization(unsigned name_length,
  * Generate authorization cookie for internal server clients
  */
 
-Bool
+BOOL
 winGenerateAuthorization(void)
 {
+#ifdef XCSECURITY
     SecurityAuthorizationPtr pAuth = NULL;
+#endif
 
     /* Call OS layer to generate authorization key */
     g_authId = GenerateAuthorization(strlen(AUTH_NAME),
@@ -103,7 +100,7 @@ winGenerateAuthorization(void)
     }
 #endif
 
-    auth_info.name = AUTH_NAME;
+    auth_info.name = strdup(AUTH_NAME);
     auth_info.namelen = strlen(AUTH_NAME);
     auth_info.data = g_pAuthData;
     auth_info.datalen = g_uiAuthDataLen;
@@ -136,15 +133,6 @@ winGenerateAuthorization(void)
 #endif
 
     return TRUE;
-}
-
-/* Use our generated cookie for authentication */
-void
-winSetAuthorization(void)
-{
-  if (g_pAuthData)
-    XSetAuthorization(AUTH_NAME,
-                      strlen(AUTH_NAME), g_pAuthData, g_uiAuthDataLen);
 }
 
 xcb_auth_info_t *

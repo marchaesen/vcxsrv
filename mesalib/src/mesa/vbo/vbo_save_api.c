@@ -1329,7 +1329,7 @@ array_element(struct gl_context *ctx,
     * then we call PrimitiveRestartNV and return.
     */
    if (ctx->Array._PrimitiveRestart &&
-       elt == _mesa_primitive_restart_index(ctx, index_size)) {
+       elt == ctx->Array._RestartIndex[index_size - 1]) {
       CALL_PrimitiveRestartNV(GET_DISPATCH(), ());
       return;
    }
@@ -1374,7 +1374,7 @@ _save_OBE_DrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type,
 
    _mesa_vao_map(ctx, vao, GL_MAP_READ_BIT);
 
-   if (_mesa_is_bufferobj(indexbuf))
+   if (indexbuf)
       indices =
          ADD_POINTERS(indexbuf->Mappings[MAP_INTERNAL].Pointer, indices);
 

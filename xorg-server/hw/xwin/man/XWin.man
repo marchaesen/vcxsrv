@@ -233,9 +233,6 @@ icon per screen.  You can globally disable tray icons with
 \fB\-notrayicon\fP, then enable it for specific screens with
 \fB\-trayicon\fP for those screens.
 .TP 8
-.B \-nounicodeclipboard
-Do not use Unicode clipboard even if on a NT-based platform.
-.TP 8
 .B \-[no]unixkill
 Enable or disable the \fICtrl-Alt-Backspace\fP key combination as a
 signal to exit the X Server.  The \fICtrl-Alt-Backspace\fP key combination

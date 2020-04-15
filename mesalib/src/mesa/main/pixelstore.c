@@ -272,8 +272,7 @@ _mesa_init_pixelstore(struct gl_context *ctx)
    ctx->Pack.CompressedBlockHeight = 0;
    ctx->Pack.CompressedBlockDepth = 0;
    ctx->Pack.CompressedBlockSize = 0;
-   _mesa_reference_buffer_object(ctx, &ctx->Pack.BufferObj,
-                                 ctx->Shared->NullBufferObj);
+   _mesa_reference_buffer_object(ctx, &ctx->Pack.BufferObj, NULL);
    ctx->Unpack.Alignment = 4;
    ctx->Unpack.RowLength = 0;
    ctx->Unpack.ImageHeight = 0;
@@ -287,8 +286,7 @@ _mesa_init_pixelstore(struct gl_context *ctx)
    ctx->Unpack.CompressedBlockHeight = 0;
    ctx->Unpack.CompressedBlockDepth = 0;
    ctx->Unpack.CompressedBlockSize = 0;
-   _mesa_reference_buffer_object(ctx, &ctx->Unpack.BufferObj,
-                                 ctx->Shared->NullBufferObj);
+   _mesa_reference_buffer_object(ctx, &ctx->Unpack.BufferObj, NULL);
 
    /*
     * _mesa_unpack_image() returns image data in this format.  When we
@@ -305,8 +303,7 @@ _mesa_init_pixelstore(struct gl_context *ctx)
    ctx->DefaultPacking.SwapBytes = GL_FALSE;
    ctx->DefaultPacking.LsbFirst = GL_FALSE;
    ctx->DefaultPacking.Invert = GL_FALSE;
-   _mesa_reference_buffer_object(ctx, &ctx->DefaultPacking.BufferObj,
-                                 ctx->Shared->NullBufferObj);
+   _mesa_reference_buffer_object(ctx, &ctx->DefaultPacking.BufferObj, NULL);
 }
 
 

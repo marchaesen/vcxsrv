@@ -82,6 +82,18 @@ static inline void radeon_set_context_reg_idx(struct radeon_cmdbuf *cs,
 	radeon_emit(cs, value);
 }
 
+static inline void radeon_set_context_reg_rmw(struct radeon_cmdbuf *cs,
+					      unsigned reg, unsigned value,
+					      unsigned mask)
+{
+	assert(reg >= SI_CONTEXT_REG_OFFSET && reg < SI_CONTEXT_REG_END);
+	assert(cs->cdw + 4 <= cs->max_dw);
+	radeon_emit(cs, PKT3(PKT3_CONTEXT_REG_RMW, 2, 0));
+	radeon_emit(cs, (reg - SI_CONTEXT_REG_OFFSET) >> 2);
+	radeon_emit(cs, mask);
+	radeon_emit(cs, value);
+}
+
 static inline void radeon_set_sh_reg_seq(struct radeon_cmdbuf *cs, unsigned reg, unsigned num)
 {
 	assert(reg >= SI_SH_REG_OFFSET && reg < SI_SH_REG_END);

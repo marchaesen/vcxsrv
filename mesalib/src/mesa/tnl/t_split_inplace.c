@@ -96,8 +96,7 @@ flush_vertex( struct split_context *split)
                split->min_index,
                split->max_index,
                split->num_instances,
-               split->base_instance,
-               NULL, 0);
+               split->base_instance);
 
    split->dstprim_nr = 0;
    split->min_index = ~0;
@@ -228,7 +227,7 @@ split_prims(struct split_context *split)
 
          ib.count = count;
          ib.index_size_shift = 2;
-         ib.obj = split->ctx->Shared->NullBufferObj;
+         ib.obj = NULL;
          ib.ptr = elts;
 
          tmpprim = *prim;
@@ -268,8 +267,6 @@ _tnl_split_inplace(struct gl_context *ctx,
                    const struct _mesa_prim *prim,
                    GLuint nr_prims,
                    const struct _mesa_index_buffer *ib,
-                   GLuint min_index,
-                   GLuint max_index,
                    GLuint num_instances,
                    GLuint base_instance,
                    tnl_draw_func draw,
@@ -297,5 +294,3 @@ _tnl_split_inplace(struct gl_context *ctx,
 
    split_prims(&split);
 }
-
-

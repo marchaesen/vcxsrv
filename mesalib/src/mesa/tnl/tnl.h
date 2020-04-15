@@ -108,9 +108,7 @@ _tnl_draw_prims(struct gl_context *ctx,
 		     GLuint min_index,
 		     GLuint max_index,
                      GLuint num_instances,
-                     GLuint base_instance,
-		     struct gl_transform_feedback_object *tfb_vertcount,
-                     unsigned stream);
+                     GLuint base_instance);
 
 void
 _tnl_draw(struct gl_context *ctx,
@@ -176,9 +174,7 @@ typedef void (*tnl_draw_func)(struct gl_context *ctx,
                               GLuint min_index,
                               GLuint max_index,
                               GLuint num_instances,
-                              GLuint base_instance,
-                              struct gl_transform_feedback_object *tfb_vertcount,
-                              unsigned tfb_stream);
+                              GLuint base_instance);
 
 
 /* Utility function to cope with various constraints on tnl modules or

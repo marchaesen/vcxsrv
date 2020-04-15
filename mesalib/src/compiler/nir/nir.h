@@ -454,6 +454,12 @@ typedef struct nir_variable {
       unsigned how_declared:2;
 
       /**
+       * Is this variable per-view?  If so, we know it must be an array with
+       * size corresponding to the number of views.
+       */
+      unsigned per_view:1;
+
+      /**
        * \brief Layout qualifier for gl_FragDepth.
        *
        * This is not equal to \c ir_depth_layout_none if and only if this
@@ -879,6 +885,26 @@ static inline unsigned
 nir_dest_num_components(nir_dest dest)
 {
    return dest.is_ssa ? dest.ssa.num_components : dest.reg.reg->num_components;
+}
+
+/* Are all components the same, ie. .xxxx */
+static inline bool
+nir_is_same_comp_swizzle(uint8_t *swiz, unsigned nr_comp)
+{
+   for (unsigned i = 1; i < nr_comp; i++)
+      if (swiz[i] != swiz[0])
+         return false;
+   return true;
+}
+
+/* Are all components sequential, ie. .yzw */
+static inline bool
+nir_is_sequential_comp_swizzle(uint8_t *swiz, unsigned nr_comp)
+{
+   for (unsigned i = 1; i < nr_comp; i++)
+      if (swiz[i] != (swiz[0] + i))
+         return false;
+   return true;
 }
 
 void nir_src_copy(nir_src *dest, const nir_src *src, void *instr_or_if);

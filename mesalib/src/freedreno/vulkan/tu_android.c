@@ -119,7 +119,6 @@ tu_image_from_gralloc(VkDevice device_h,
    TU_FROM_HANDLE(tu_device, device, device_h);
    VkImage image_h = VK_NULL_HANDLE;
    struct tu_image *image = NULL;
-   struct tu_bo *bo = NULL;
    VkResult result;
 
    result = tu_image_create(device_h, base_info, alloc, &image_h,
@@ -151,37 +150,20 @@ tu_image_from_gralloc(VkDevice device_h,
       .image = image_h
    };
 
-   const VkImportMemoryFdInfo import_info = {
-      .sType = VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO,
+   const VkImportMemoryFdInfoKHR import_info = {
+      .sType = VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHR,
       .pNext = &ded_alloc,
       .handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT,
       .fd = dup(dma_buf),
    };
-   /* Find the first VRAM memory type, or GART for PRIME images. */
-   int memory_type_index = -1;
-   for (int i = 0;
-        i < device->physical_device->memory_properties.memoryTypeCount; ++i) {
-      bool is_local =
-         !!(device->physical_device->memory_properties.memoryTypes[i]
-               .propertyFlags &
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-      if (is_local) {
-         memory_type_index = i;
-         break;
-      }
-   }
-
-   /* fallback */
-   if (memory_type_index == -1)
-      memory_type_index = 0;
 
    result =
       tu_AllocateMemory(device_h,
                         &(VkMemoryAllocateInfo) {
                            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
                            .pNext = &import_info,
-                           .allocationSize = image->size,
-                           .memoryTypeIndex = memory_type_index,
+                           .allocationSize = image->layout.size,
+                           .memoryTypeIndex = 0,
                         },
                         alloc, &memory_h);
    if (result != VK_SUCCESS)
@@ -196,7 +178,6 @@ tu_image_from_gralloc(VkDevice device_h,
    return VK_SUCCESS;
 
 fail_create_image:
-fail_size:
    tu_DestroyImage(device_h, image_h, alloc);
 
    return result;
@@ -284,6 +265,19 @@ tu_GetSwapchainGrallocUsageANDROID(VkDevice device_h,
 
    if (*grallocUsage == 0)
       return VK_ERROR_FORMAT_NOT_SUPPORTED;
+
+   return VK_SUCCESS;
+}
+
+VkResult
+tu_GetSwapchainGrallocUsage2ANDROID(VkDevice device,
+                                    VkFormat format,
+                                    VkImageUsageFlags imageUsage,
+                                    VkSwapchainImageUsageFlagsANDROID swapchainImageUsage,
+                                    uint64_t *grallocConsumerUsage,
+                                    uint64_t *grallocProducerUsage)
+{
+   tu_stub();
 
    return VK_SUCCESS;
 }

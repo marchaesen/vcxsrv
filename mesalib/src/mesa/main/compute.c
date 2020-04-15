@@ -214,7 +214,7 @@ valid_dispatch_indirect(struct gl_context *ctx,  GLintptr indirect)
     *  DRAW_INDIRECT_BUFFER binding, or if the command would source data
     *  beyond the end of the buffer object."
     */
-   if (!_mesa_is_bufferobj(ctx->DispatchIndirectBuffer)) {
+   if (!ctx->DispatchIndirectBuffer) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "%s: no buffer bound to DISPATCH_INDIRECT_BUFFER", name);
       return GL_FALSE;

@@ -527,17 +527,17 @@ pandecode_midgard_tiler_descriptor(
         MEMORY_PROP(t, polygon_list);
 
         /* The body is offset from the base of the polygon list */
-        assert(t->polygon_list_body > t->polygon_list);
+        //assert(t->polygon_list_body > t->polygon_list);
         unsigned body_offset = t->polygon_list_body - t->polygon_list;
 
         /* It needs to fit inside the reported size */
-        assert(t->polygon_list_size >= body_offset);
+        //assert(t->polygon_list_size >= body_offset);
 
         /* Check that we fit */
         struct pandecode_mapped_memory *plist =
                 pandecode_find_mapped_gpu_mem_containing(t->polygon_list);
 
-        assert(t->polygon_list_size <= plist->length);
+        //assert(t->polygon_list_size <= plist->length);
 
         /* Now that we've sanity checked, we'll try to calculate the sizes
          * ourselves for comparison */
@@ -629,24 +629,18 @@ pandecode_midgard_tiler_descriptor(
 /* TODO: The Bifrost tiler is not understood at all yet */
 
 static void
-pandecode_bifrost_tiler_descriptor(const struct midgard_tiler_descriptor *t)
+pandecode_bifrost_tiler_descriptor(const struct mali_framebuffer *fb)
 {
         pandecode_log(".tiler = {\n");
         pandecode_indent++;
 
-        pandecode_prop("polygon_list_size = 0x%" PRIx32, t->polygon_list_size);
-        pandecode_prop("hierarchy_mask = 0x%" PRIx16, t->hierarchy_mask);
-        pandecode_prop("flags = 0x%" PRIx16, t->flags);
+        MEMORY_PROP(fb, tiler_meta);
 
-        MEMORY_PROP(t, polygon_list);
-        MEMORY_PROP(t, polygon_list_body);
-        MEMORY_PROP(t, heap_start);
-        MEMORY_PROP(t, heap_end);
-
-        pandecode_log(".weights = { ");
-
-        for (unsigned w = 0; w < ARRAY_SIZE(t->weights); ++w) {
-                pandecode_log_cont("%d, ", t->weights[w]);
+        for (int i = 0; i < 16; i++) {
+                if (fb->zeros[i] != 0) {
+                        pandecode_msg("XXX: tiler descriptor zero %d tripped, value %x\n",
+                                      i, fb->zeros[i]);
+                }
         }
 
         pandecode_log("},\n");
@@ -1180,12 +1174,11 @@ pandecode_mfbd_bfr(uint64_t gpu_va, int job_no, bool is_fragment, bool is_comput
         if (fb->clear_depth)
                 pandecode_prop("clear_depth = %f", fb->clear_depth);
 
-        const struct midgard_tiler_descriptor t = fb->tiler;
         if (!is_compute)
                 if (is_bifrost)
-                        pandecode_bifrost_tiler_descriptor(&t);
+                        pandecode_bifrost_tiler_descriptor(fb);
                 else
-                        pandecode_midgard_tiler_descriptor(&t, fb->width1 + 1, fb->height1 + 1, is_fragment, true);
+                        pandecode_midgard_tiler_descriptor(&fb->tiler, fb->width1 + 1, fb->height1 + 1, is_fragment, true);
         else
                 pandecode_msg("XXX: skipping compute MFBD, fixme\n");
 
@@ -1762,7 +1755,7 @@ bits(u32 word, u32 lo, u32 hi)
 static void
 pandecode_vertex_tiler_prefix(struct mali_vertex_tiler_prefix *p, int job_no, bool graphics)
 {
-        pandecode_log_cont("{\n");
+        pandecode_log(".prefix = {\n");
         pandecode_indent++;
 
         /* Decode invocation_count. See the comment before the definition of
@@ -2377,7 +2370,7 @@ pandecode_vertex_tiler_postfix_pre(
                 /* MRT blend fields are used whenever MFBD is used, with
                  * per-RT descriptors */
 
-                if (job_type == JOB_TYPE_TILER && p->shared_memory & MALI_MFBD) {
+                if (job_type == JOB_TYPE_TILER && (is_bifrost || p->shared_memory & MALI_MFBD)) {
                         void* blend_base = (void *) (s + 1);
 
                         for (unsigned i = 0; i < fbd_info.rt_count; i++) {
@@ -2548,16 +2541,39 @@ pandecode_vertex_tiler_postfix_pre(
 }
 
 static void
+pandecode_gl_enables(uint32_t gl_enables, int job_type)
+{
+        pandecode_log(".gl_enables = ");
+
+        pandecode_log_decoded_flags(gl_enable_flag_info, gl_enables);
+
+        pandecode_log_cont(",\n");
+}
+
+static void
 pandecode_vertex_tiler_postfix(const struct mali_vertex_tiler_postfix *p, int job_no, bool is_bifrost)
 {
         if (p->shader & 0xF)
                 pandecode_msg("warn: shader tagged %X\n", (unsigned) (p->shader & 0xF));
 
-        if (!(p->position_varying || p->occlusion_counter))
-                return;
-
         pandecode_log(".postfix = {\n");
         pandecode_indent++;
+
+        pandecode_gl_enables(p->gl_enables, JOB_TYPE_TILER);
+        pandecode_prop("instance_shift = 0x%x", p->instance_shift);
+        pandecode_prop("instance_odd = 0x%x", p->instance_odd);
+
+        if (p->zero4) {
+                pandecode_msg("XXX: vertex only zero tripped");
+                pandecode_prop("zero4 = 0x%" PRIx32, p->zero4);
+        }
+
+        pandecode_prop("offset_start = 0x%x", p->offset_start);
+
+        if (p->zero5) {
+                pandecode_msg("XXX: vertex only zero tripped");
+                pandecode_prop("zero5 = 0x%" PRIx32, p->zero5);
+        }
 
         MEMORY_PROP(p, position_varying);
         MEMORY_PROP(p, occlusion_counter);
@@ -2567,31 +2583,12 @@ pandecode_vertex_tiler_postfix(const struct mali_vertex_tiler_postfix *p, int jo
 }
 
 static void
-pandecode_vertex_only_bfr(struct bifrost_vertex_only *v)
-{
-        pandecode_log_cont("{\n");
-        pandecode_indent++;
-
-        pandecode_prop("unk2 = 0x%x", v->unk2);
-
-        if (v->zero0 || v->zero1) {
-                pandecode_msg("XXX: vertex only zero tripped");
-                pandecode_prop("zero0 = 0x%" PRIx32, v->zero0);
-                pandecode_prop("zero1 = 0x%" PRIx64, v->zero1);
-        }
-
-        pandecode_indent--;
-        pandecode_log("}\n");
-}
-
-static void
 pandecode_tiler_heap_meta(mali_ptr gpu_va, int job_no)
 {
-
         struct pandecode_mapped_memory *mem = pandecode_find_mapped_gpu_mem_containing(gpu_va);
         const struct bifrost_tiler_heap_meta *PANDECODE_PTR_VAR(h, mem, gpu_va);
 
-        pandecode_log("struct mali_tiler_heap_meta tiler_heap_meta_%d = {\n", job_no);
+        pandecode_log("struct bifrost_tiler_heap_meta tiler_heap_meta_%"PRIx64"_%d = {\n", gpu_va, job_no);
         pandecode_indent++;
 
         if (h->zero) {
@@ -2635,7 +2632,7 @@ pandecode_tiler_meta(mali_ptr gpu_va, int job_no)
 
         pandecode_tiler_heap_meta(t->tiler_heap_meta, job_no);
 
-        pandecode_log("struct bifrost_tiler_meta tiler_meta_%d = {\n", job_no);
+        pandecode_log("struct bifrost_tiler_meta tiler_meta_%"PRIx64"_%d = {\n", gpu_va, job_no);
         pandecode_indent++;
 
         if (t->zero0 || t->zero1) {
@@ -2659,16 +2656,6 @@ pandecode_tiler_meta(mali_ptr gpu_va, int job_no)
 
         pandecode_indent--;
         pandecode_log("};\n");
-}
-
-static void
-pandecode_gl_enables(uint32_t gl_enables, int job_type)
-{
-        pandecode_log(".gl_enables = ");
-
-        pandecode_log_decoded_flags(gl_enable_flag_info, gl_enables);
-
-        pandecode_log_cont(",\n");
 }
 
 static void
@@ -2699,10 +2686,8 @@ pandecode_tiler_only_bfr(const struct bifrost_tiler_only *t, int job_no)
         /* TODO: gl_PointSize on Bifrost */
         pandecode_primitive_size(t->primitive_size, true);
 
-        pandecode_gl_enables(t->gl_enables, JOB_TYPE_TILER);
-
         if (t->zero1 || t->zero2 || t->zero3 || t->zero4 || t->zero5
-            || t->zero6 || t->zero7 || t->zero8) {
+            || t->zero6) {
                 pandecode_msg("XXX: tiler only zero tripped\n");
                 pandecode_prop("zero1 = 0x%" PRIx64, t->zero1);
                 pandecode_prop("zero2 = 0x%" PRIx64, t->zero2);
@@ -2710,8 +2695,6 @@ pandecode_tiler_only_bfr(const struct bifrost_tiler_only *t, int job_no)
                 pandecode_prop("zero4 = 0x%" PRIx64, t->zero4);
                 pandecode_prop("zero5 = 0x%" PRIx64, t->zero5);
                 pandecode_prop("zero6 = 0x%" PRIx64, t->zero6);
-                pandecode_prop("zero7 = 0x%" PRIx32, t->zero7);
-                pandecode_prop("zero8 = 0x%" PRIx64, t->zero8);
         }
 
         pandecode_indent--;
@@ -2727,15 +2710,10 @@ pandecode_vertex_job_bfr(const struct mali_job_descriptor_header *h,
 
         pandecode_vertex_tiler_postfix_pre(&v->postfix, job_no, h->job_type, "", true, gpu_id);
 
-        pandecode_log("struct bifrost_payload_vertex payload_%d = {\n", job_no);
+        pandecode_log("struct bifrost_payload_vertex payload_%"PRIx64"_%d = {\n", payload, job_no);
         pandecode_indent++;
 
-        pandecode_log(".prefix = ");
         pandecode_vertex_tiler_prefix(&v->prefix, job_no, false);
-
-        pandecode_log(".vertex = ");
-        pandecode_vertex_only_bfr(&v->vertex);
-
         pandecode_vertex_tiler_postfix(&v->postfix, job_no, true);
 
         pandecode_indent--;
@@ -2754,10 +2732,9 @@ pandecode_tiler_job_bfr(const struct mali_job_descriptor_header *h,
         pandecode_vertex_tiler_postfix_pre(&t->postfix, job_no, h->job_type, "", true, gpu_id);
         pandecode_tiler_meta(t->tiler.tiler_meta, job_no);
 
-        pandecode_log("struct bifrost_payload_tiler payload_%d = {\n", job_no);
+        pandecode_log("struct bifrost_payload_tiler payload_%"PRIx64"_%d = {\n", payload, job_no);
         pandecode_indent++;
 
-        pandecode_log(".prefix = ");
         pandecode_vertex_tiler_prefix(&t->prefix, job_no, false);
 
         pandecode_log(".tiler = ");
@@ -2777,40 +2754,18 @@ pandecode_vertex_or_tiler_job_mdg(const struct mali_job_descriptor_header *h,
                 mali_ptr payload, int job_no, unsigned gpu_id)
 {
         struct midgard_payload_vertex_tiler *PANDECODE_PTR_VAR(v, mem, payload);
+        bool is_graphics = (h->job_type == JOB_TYPE_VERTEX) || (h->job_type == JOB_TYPE_TILER);
 
         pandecode_vertex_tiler_postfix_pre(&v->postfix, job_no, h->job_type, "", false, gpu_id);
 
         pandecode_log("struct midgard_payload_vertex_tiler payload_%d = {\n", job_no);
         pandecode_indent++;
 
+        pandecode_vertex_tiler_prefix(&v->prefix, job_no, is_graphics);
+        pandecode_vertex_tiler_postfix(&v->postfix, job_no, false);
+
         bool has_primitive_pointer = v->prefix.unknown_draw & MALI_DRAW_VARYING_SIZE;
         pandecode_primitive_size(v->primitive_size, !has_primitive_pointer);
-
-        bool is_graphics = (h->job_type == JOB_TYPE_VERTEX) || (h->job_type == JOB_TYPE_TILER);
-
-        pandecode_log(".prefix = ");
-        pandecode_vertex_tiler_prefix(&v->prefix, job_no, is_graphics);
-
-        pandecode_gl_enables(v->gl_enables, h->job_type);
-
-        if (v->instance_shift || v->instance_odd) {
-                pandecode_prop("instance_shift = 0x%d /* %d */",
-                               v->instance_shift, 1 << v->instance_shift);
-                pandecode_prop("instance_odd = 0x%X /* %d */",
-                               v->instance_odd, (2 * v->instance_odd) + 1);
-
-                pandecode_padded_vertices(v->instance_shift, v->instance_odd);
-        }
-
-        if (v->offset_start)
-                pandecode_prop("offset_start = %d", v->offset_start);
-
-        if (v->zero5) {
-                pandecode_msg("XXX: midgard payload zero tripped\n");
-                pandecode_prop("zero5 = 0x%" PRIx64, v->zero5);
-        }
-
-        pandecode_vertex_tiler_postfix(&v->postfix, job_no, false);
 
         pandecode_indent--;
         pandecode_log("};\n");

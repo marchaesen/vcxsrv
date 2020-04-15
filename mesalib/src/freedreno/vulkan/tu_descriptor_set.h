@@ -26,7 +26,10 @@
 
 #include <vulkan/vulkan.h>
 
-#define MAX_SETS 32
+/* The hardware supports 5 descriptor sets, but we reserve 1 for dynamic
+ * descriptors and input attachments.
+ */
+#define MAX_SETS 4
 
 struct tu_descriptor_set_binding_layout
 {
@@ -35,17 +38,31 @@ struct tu_descriptor_set_binding_layout
    /* Number of array elements in this binding */
    uint32_t array_size;
 
-   uint32_t offset;
-   uint32_t buffer_offset;
-   uint16_t dynamic_offset_offset;
-
-   uint16_t dynamic_offset_count;
-   /* redundant with the type, each for a single array element */
+   /* The size in bytes of each Vulkan descriptor. */
    uint32_t size;
+
+   uint32_t offset;
+
+   /* For descriptors that point to a buffer, index into the array of BO's to
+    * be added to the cmdbuffer's used BO list.
+    */
+   uint32_t buffer_offset;
+
+   /* Index into the pDynamicOffsets array for dynamic descriptors, as well as
+    * the array of dynamic descriptors (offsetted by
+    * tu_pipeline_layout::set::dynamic_offset_start).
+    */
+   uint32_t dynamic_offset_offset;
+
+   /* Index into the array of dynamic input attachment descriptors */
+   uint32_t input_attachment_offset;
 
    /* Offset in the tu_descriptor_set_layout of the immutable samplers, or 0
     * if there are no immutable samplers. */
    uint32_t immutable_samplers_offset;
+
+   /* Shader stages that use this binding */
+   uint32_t shader_stages;
 };
 
 struct tu_descriptor_set_layout
@@ -61,13 +78,19 @@ struct tu_descriptor_set_layout
 
    /* Shader stages affected by this descriptor set */
    uint16_t shader_stages;
-   uint16_t dynamic_shader_stages;
-
-   /* Number of buffers in this descriptor set */
-   uint32_t buffer_count;
 
    /* Number of dynamic offsets used by this descriptor set */
    uint16_t dynamic_offset_count;
+
+   /* Number of input attachments used by the descriptor set */
+   uint16_t input_attachment_count;
+
+   /* A bitfield of which dynamic buffers are ubo's, to make the
+    * descriptor-binding-time patching easier.
+    */
+   uint32_t dynamic_ubo;
+
+   uint32_t buffer_count;
 
    bool has_immutable_samplers;
    bool has_variable_descriptors;
@@ -83,11 +106,13 @@ struct tu_pipeline_layout
       struct tu_descriptor_set_layout *layout;
       uint32_t size;
       uint32_t dynamic_offset_start;
+      uint32_t input_attachment_start;
    } set[MAX_SETS];
 
    uint32_t num_sets;
    uint32_t push_constant_size;
    uint32_t dynamic_offset_count;
+   uint32_t input_attachment_count;
 
    unsigned char sha1[20];
 };

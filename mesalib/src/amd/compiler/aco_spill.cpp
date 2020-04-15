@@ -28,6 +28,7 @@
 #include "sid.h"
 
 #include <map>
+#include <set>
 #include <stack>
 
 /*
@@ -213,7 +214,7 @@ void next_uses_per_block(spill_ctx& ctx, unsigned block_idx, std::set<uint32_t>&
 
 }
 
-void compute_global_next_uses(spill_ctx& ctx, std::vector<std::set<Temp>>& live_out)
+void compute_global_next_uses(spill_ctx& ctx)
 {
    ctx.next_use_distances_start.resize(ctx.program->blocks.size());
    ctx.next_use_distances_end.resize(ctx.program->blocks.size());
@@ -1764,7 +1765,7 @@ void spill(Program* program, live& live_vars, const struct radv_nir_compiler_opt
 
    /* initialize ctx */
    spill_ctx ctx(register_target, program, live_vars.register_demand);
-   compute_global_next_uses(ctx, live_vars.live_out);
+   compute_global_next_uses(ctx);
    get_rematerialize_info(ctx);
 
    /* create spills and reloads */

@@ -156,7 +156,7 @@ st_setup_arrays(struct st_context *st,
          = _mesa_draw_buffer_binding(vao, i);
       const unsigned bufidx = (*num_vbuffers)++;
 
-      if (_mesa_is_bufferobj(binding->BufferObj)) {
+      if (binding->BufferObj) {
          /* Set the binding */
          struct st_buffer_object *stobj = st_buffer_object(binding->BufferObj);
 

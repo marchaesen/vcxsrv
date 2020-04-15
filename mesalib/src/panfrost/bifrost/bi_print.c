@@ -122,7 +122,7 @@ bi_ldst_type_name(enum bifrost_ldst_type type)
 /* The remaining functions in this file are for IR-internal
  * structures; the disassembler doesn't use them */
 
-static const char *
+const char *
 bi_class_name(enum bi_class cl)
 {
         switch (cl) {
@@ -251,18 +251,12 @@ bi_bitwise_op_name(enum bi_bitwise_op op)
         }
 }
 
-static const char *
+const char *
 bi_special_op_name(enum bi_special_op op)
 {
         switch (op) {
         case BI_SPECIAL_FRCP: return "frcp";
         case BI_SPECIAL_FRSQ: return "frsq";
-        case BI_SPECIAL_FATAN: return "fatan";
-        case BI_SPECIAL_FSIN: return "fsin";
-        case BI_SPECIAL_FCOS: return "fcos";
-        case BI_SPECIAL_FEXP: return "fexp";
-        case BI_SPECIAL_FLOG2: return "flog2";
-        case BI_SPECIAL_FLOGE: return "flog";
         default: return "invalid";
         }
 }
@@ -279,7 +273,7 @@ bi_print_load_vary(struct bi_load_vary *load, FILE *fp)
                 fprintf(fp, ".flat");
 }
 
-static const char *
+const char *
 bi_cond_name(enum bi_cond cond)
 {
         switch (cond) {

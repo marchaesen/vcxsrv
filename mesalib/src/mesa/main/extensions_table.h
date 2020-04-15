@@ -388,6 +388,7 @@ EXT(NV_fragment_shader_interlock            , ARB_fragment_shader_interlock     
 EXT(NV_image_formats                        , ARB_shader_image_load_store            ,  x ,  x ,  x ,  31, 2014)
 EXT(NV_light_max_exponent                   , dummy_true                             , GLL,  x ,  x ,  x , 1999)
 EXT(NV_packed_depth_stencil                 , dummy_true                             , GLL, GLC,  x ,  x , 2000)
+EXT(NV_pixel_buffer_object                  , EXT_pixel_buffer_object                ,  x ,  x ,  x , ES2, 2012)
 EXT(NV_point_sprite                         , NV_point_sprite                        , GLL, GLC,  x ,  x , 2001)
 EXT(NV_primitive_restart                    , NV_primitive_restart                   , GLL,  x ,  x ,  x , 2002)
 EXT(NV_read_buffer                          , dummy_true                             ,  x ,  x ,  x , ES2, 2011)
@@ -401,6 +402,7 @@ EXT(NV_texture_barrier                      , NV_texture_barrier                
 EXT(NV_texture_env_combine4                 , NV_texture_env_combine4                , GLL,  x ,  x ,  x , 1999)
 EXT(NV_texture_rectangle                    , NV_texture_rectangle                   , GLL,  x ,  x ,  x , 2000)
 EXT(NV_vdpau_interop                        , NV_vdpau_interop                       , GLL, GLC,  x ,  x , 2010)
+EXT(NV_viewport_swizzle                     , NV_viewport_swizzle                    , GLL, GLC,  x ,  31, 2015)
 
 EXT(OES_EGL_image                           , OES_EGL_image                          , GLL, GLC, ES1, ES2, 2006) /* FIXME: Mesa expects GL_OES_EGL_image to be available in OpenGL contexts. */
 EXT(OES_EGL_image_external                  , OES_EGL_image_external                 ,  x ,  x , ES1, ES2, 2010)

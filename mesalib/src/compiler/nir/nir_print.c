@@ -461,8 +461,10 @@ print_var_decl(nir_variable *var, print_state *state)
    const char *const samp = (var->data.sample) ? "sample " : "";
    const char *const patch = (var->data.patch) ? "patch " : "";
    const char *const inv = (var->data.invariant) ? "invariant " : "";
-   fprintf(fp, "%s%s%s%s%s %s ",
-           cent, samp, patch, inv, get_variable_mode_str(var->data.mode, false),
+   const char *const per_view = (var->data.per_view) ? "per_view " : "";
+   fprintf(fp, "%s%s%s%s%s%s %s ",
+           cent, samp, patch, inv, per_view,
+           get_variable_mode_str(var->data.mode, false),
            glsl_interp_mode_name(var->data.interpolation));
 
    enum gl_access_qualifier access = var->data.access;

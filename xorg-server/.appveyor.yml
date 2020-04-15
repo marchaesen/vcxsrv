@@ -37,9 +37,7 @@ libGL-devel,\
 libnettle-devel,\
 libpixman1-devel,\
 libtirpc-devel,\
-libX11-devel,\
 libXRes-devel,\
-libXau-devel,\
 libXaw-devel,\
 libXdmcp-devel,\
 libXext-devel,\

@@ -323,6 +323,33 @@ ApplyTransformationMatrix(DeviceIntPtr dev)
                            PropModeReplace, 9, matrix, FALSE);
 }
 
+static void
+ApplyAutoRepeat(DeviceIntPtr dev)
+{
+    InputInfoPtr pInfo = (InputInfoPtr) dev->public.devicePrivate;
+    XkbSrvInfoPtr xkbi;
+    char *repeatStr;
+    long delay, rate;
+
+    if (!dev->key)
+        return;
+
+    xkbi = dev->key->xkbInfo;
+
+    repeatStr = xf86SetStrOption(pInfo->options, "AutoRepeat", NULL);
+    if (!repeatStr)
+        return;
+
+    if (sscanf(repeatStr, "%ld %ld", &delay, &rate) != 2) {
+        xf86Msg(X_ERROR, "\"%s\" is not a valid AutoRepeat value\n", repeatStr);
+        return;
+    }
+
+    xf86Msg(X_CONFIG, "AutoRepeat: %ld %ld\n", delay, rate);
+    xkbi->desc->ctrls->repeat_delay = delay;
+    xkbi->desc->ctrls->repeat_interval = rate;
+}
+
 /***********************************************************************
  *
  * xf86ProcessCommonOptions --
@@ -821,6 +848,7 @@ xf86InputDevicePostInit(DeviceIntPtr dev)
 {
     ApplyAccelerationSettings(dev);
     ApplyTransformationMatrix(dev);
+    ApplyAutoRepeat(dev);
     return Success;
 }
 

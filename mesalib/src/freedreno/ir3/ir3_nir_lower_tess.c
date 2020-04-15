@@ -956,3 +956,39 @@ ir3_nir_lower_gs(nir_shader *shader, struct ir3_shader *s)
 		nir_print_shader(shader, stderr);
 	}
 }
+
+uint32_t
+ir3_link_geometry_stages(const struct ir3_shader_variant *producer,
+		const struct ir3_shader_variant *consumer,
+		uint32_t *locs)
+{
+	uint32_t num_loc = 0, factor;
+
+	switch (consumer->type) {
+	case MESA_SHADER_TESS_CTRL:
+	case MESA_SHADER_GEOMETRY:
+		/* These stages load with ldlw, which expects byte offsets. */
+		factor = 4;
+		break;
+	case MESA_SHADER_TESS_EVAL:
+		/* The tess eval shader uses ldg, which takes dword offsets. */
+		factor = 1;
+		break;
+	default:
+		unreachable("bad shader stage");
+	}
+
+	nir_foreach_variable(in_var, &consumer->shader->nir->inputs) {
+		nir_foreach_variable(out_var, &producer->shader->nir->outputs) {
+			if (in_var->data.location == out_var->data.location) {
+				locs[in_var->data.driver_location] =
+					producer->shader->output_loc[out_var->data.driver_location] * factor;
+
+				debug_assert(num_loc <= in_var->data.driver_location + 1);
+				num_loc = in_var->data.driver_location + 1;
+			}
+		}
+	}
+
+	return num_loc;
+}

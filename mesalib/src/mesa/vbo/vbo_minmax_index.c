@@ -227,6 +227,91 @@ out:
 }
 
 
+void
+vbo_get_minmax_index_mapped(unsigned count, unsigned index_size,
+                            unsigned restartIndex, bool restart,
+                            const void *indices,
+                            unsigned *min_index, unsigned *max_index)
+{
+   switch (index_size) {
+   case 4: {
+      const GLuint *ui_indices = (const GLuint *)indices;
+      GLuint max_ui = 0;
+      GLuint min_ui = ~0U;
+      if (restart) {
+         for (unsigned i = 0; i < count; i++) {
+            if (ui_indices[i] != restartIndex) {
+               if (ui_indices[i] > max_ui) max_ui = ui_indices[i];
+               if (ui_indices[i] < min_ui) min_ui = ui_indices[i];
+            }
+         }
+      }
+      else {
+#if defined(USE_SSE41)
+         if (cpu_has_sse4_1) {
+            _mesa_uint_array_min_max(ui_indices, &min_ui, &max_ui, count);
+         }
+         else
+#endif
+            for (unsigned i = 0; i < count; i++) {
+               if (ui_indices[i] > max_ui) max_ui = ui_indices[i];
+               if (ui_indices[i] < min_ui) min_ui = ui_indices[i];
+            }
+      }
+      *min_index = min_ui;
+      *max_index = max_ui;
+      break;
+   }
+   case 2: {
+      const GLushort *us_indices = (const GLushort *)indices;
+      GLuint max_us = 0;
+      GLuint min_us = ~0U;
+      if (restart) {
+         for (unsigned i = 0; i < count; i++) {
+            if (us_indices[i] != restartIndex) {
+               if (us_indices[i] > max_us) max_us = us_indices[i];
+               if (us_indices[i] < min_us) min_us = us_indices[i];
+            }
+         }
+      }
+      else {
+         for (unsigned i = 0; i < count; i++) {
+            if (us_indices[i] > max_us) max_us = us_indices[i];
+            if (us_indices[i] < min_us) min_us = us_indices[i];
+         }
+      }
+      *min_index = min_us;
+      *max_index = max_us;
+      break;
+   }
+   case 1: {
+      const GLubyte *ub_indices = (const GLubyte *)indices;
+      GLuint max_ub = 0;
+      GLuint min_ub = ~0U;
+      if (restart) {
+         for (unsigned i = 0; i < count; i++) {
+            if (ub_indices[i] != restartIndex) {
+               if (ub_indices[i] > max_ub) max_ub = ub_indices[i];
+               if (ub_indices[i] < min_ub) min_ub = ub_indices[i];
+            }
+         }
+      }
+      else {
+         for (unsigned i = 0; i < count; i++) {
+            if (ub_indices[i] > max_ub) max_ub = ub_indices[i];
+            if (ub_indices[i] < min_ub) min_ub = ub_indices[i];
+         }
+      }
+      *min_index = min_ub;
+      *max_index = max_ub;
+      break;
+   }
+   default:
+      unreachable("not reached");
+   }
+}
+
+
 /**
  * Compute min and max elements by scanning the index buffer for
  * glDraw[Range]Elements() calls.
@@ -242,13 +327,12 @@ vbo_get_minmax_index(struct gl_context *ctx,
 {
    const GLboolean restart = ctx->Array._PrimitiveRestart;
    const GLuint restartIndex =
-      _mesa_primitive_restart_index(ctx, 1 << ib->index_size_shift);
+      ctx->Array._RestartIndex[(1 << ib->index_size_shift) - 1];
    const char *indices;
-   GLuint i;
    GLintptr offset = 0;
 
    indices = (char *) ib->ptr + (prim->start << ib->index_size_shift);
-   if (_mesa_is_bufferobj(ib->obj)) {
+   if (ib->obj) {
       GLsizeiptr size = MIN2(count << ib->index_size_shift, ib->obj->Size);
 
       if (vbo_get_minmax_cached(ib->obj, 1 << ib->index_size_shift, (GLintptr) indices,
@@ -261,84 +345,10 @@ vbo_get_minmax_index(struct gl_context *ctx,
                                            MAP_INTERNAL);
    }
 
-   switch (ib->index_size_shift) {
-   case 2: {
-      const GLuint *ui_indices = (const GLuint *)indices;
-      GLuint max_ui = 0;
-      GLuint min_ui = ~0U;
-      if (restart) {
-         for (i = 0; i < count; i++) {
-            if (ui_indices[i] != restartIndex) {
-               if (ui_indices[i] > max_ui) max_ui = ui_indices[i];
-               if (ui_indices[i] < min_ui) min_ui = ui_indices[i];
-            }
-         }
-      }
-      else {
-#if defined(USE_SSE41)
-         if (cpu_has_sse4_1) {
-            _mesa_uint_array_min_max(ui_indices, &min_ui, &max_ui, count);
-         }
-         else
-#endif
-            for (i = 0; i < count; i++) {
-               if (ui_indices[i] > max_ui) max_ui = ui_indices[i];
-               if (ui_indices[i] < min_ui) min_ui = ui_indices[i];
-            }
-      }
-      *min_index = min_ui;
-      *max_index = max_ui;
-      break;
-   }
-   case 1: {
-      const GLushort *us_indices = (const GLushort *)indices;
-      GLuint max_us = 0;
-      GLuint min_us = ~0U;
-      if (restart) {
-         for (i = 0; i < count; i++) {
-            if (us_indices[i] != restartIndex) {
-               if (us_indices[i] > max_us) max_us = us_indices[i];
-               if (us_indices[i] < min_us) min_us = us_indices[i];
-            }
-         }
-      }
-      else {
-         for (i = 0; i < count; i++) {
-            if (us_indices[i] > max_us) max_us = us_indices[i];
-            if (us_indices[i] < min_us) min_us = us_indices[i];
-         }
-      }
-      *min_index = min_us;
-      *max_index = max_us;
-      break;
-   }
-   case 0: {
-      const GLubyte *ub_indices = (const GLubyte *)indices;
-      GLuint max_ub = 0;
-      GLuint min_ub = ~0U;
-      if (restart) {
-         for (i = 0; i < count; i++) {
-            if (ub_indices[i] != restartIndex) {
-               if (ub_indices[i] > max_ub) max_ub = ub_indices[i];
-               if (ub_indices[i] < min_ub) min_ub = ub_indices[i];
-            }
-         }
-      }
-      else {
-         for (i = 0; i < count; i++) {
-            if (ub_indices[i] > max_ub) max_ub = ub_indices[i];
-            if (ub_indices[i] < min_ub) min_ub = ub_indices[i];
-         }
-      }
-      *min_index = min_ub;
-      *max_index = max_ub;
-      break;
-   }
-   default:
-      unreachable("not reached");
-   }
+   vbo_get_minmax_index_mapped(count, 1 << ib->index_size_shift, restartIndex,
+                               restart, indices, min_index, max_index);
 
-   if (_mesa_is_bufferobj(ib->obj)) {
+   if (ib->obj) {
       vbo_minmax_cache_store(ctx, ib->obj, 1 << ib->index_size_shift, offset,
                              count, *min_index, *max_index);
       ctx->Driver.UnmapBuffer(ctx, ib->obj, MAP_INTERNAL);

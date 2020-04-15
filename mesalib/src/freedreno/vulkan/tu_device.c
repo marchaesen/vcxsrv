@@ -265,19 +265,17 @@ tu_physical_device_init(struct tu_physical_device *device,
 
    switch (device->gpu_id) {
    case 618:
-      device->tile_align_w = 64;
-      device->tile_align_h = 16;
       device->magic.RB_UNKNOWN_8E04_blit = 0x00100000;
-      device->magic.RB_CCU_CNTL_gmem     = 0x3e400004;
+      device->ccu_offset_gmem = 0x7c000; /* 0x7e000 in some cases? */
+      device->ccu_offset_bypass = 0x10000;
       device->magic.PC_UNKNOWN_9805 = 0x0;
       device->magic.SP_UNKNOWN_A0F8 = 0x0;
       break;
    case 630:
    case 640:
-      device->tile_align_w = 64;
-      device->tile_align_h = 16;
       device->magic.RB_UNKNOWN_8E04_blit = 0x01000000;
-      device->magic.RB_CCU_CNTL_gmem     = 0x7c400004;
+      device->ccu_offset_gmem = 0xf8000;
+      device->ccu_offset_bypass = 0x20000;
       device->magic.PC_UNKNOWN_9805 = 0x1;
       device->magic.SP_UNKNOWN_A0F8 = 0x1;
       break;
@@ -338,7 +336,7 @@ tu_physical_device_finish(struct tu_physical_device *device)
       close(device->master_fd);
 }
 
-static void *
+static VKAPI_ATTR void *
 default_alloc_func(void *pUserData,
                    size_t size,
                    size_t align,
@@ -347,7 +345,7 @@ default_alloc_func(void *pUserData,
    return malloc(size);
 }
 
-static void *
+static VKAPI_ATTR void *
 default_realloc_func(void *pUserData,
                      void *pOriginal,
                      size_t size,
@@ -357,7 +355,7 @@ default_realloc_func(void *pUserData,
    return realloc(pOriginal, size);
 }
 
-static void
+static VKAPI_ATTR void
 default_free_func(void *pUserData, void *pMemory)
 {
    free(pMemory);
@@ -588,7 +586,7 @@ tu_GetPhysicalDeviceFeatures(VkPhysicalDevice physicalDevice,
       .fullDrawIndexUint32 = true,
       .imageCubeArray = false,
       .independentBlend = true,
-      .geometryShader = false,
+      .geometryShader = true,
       .tessellationShader = false,
       .sampleRateShading = true,
       .dualSrcBlend = true,
@@ -731,21 +729,16 @@ tu_GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice,
                                VkPhysicalDeviceProperties *pProperties)
 {
    TU_FROM_HANDLE(tu_physical_device, pdevice, physicalDevice);
-   VkSampleCountFlags sample_counts = VK_SAMPLE_COUNT_1_BIT |
-      VK_SAMPLE_COUNT_2_BIT | VK_SAMPLE_COUNT_4_BIT | VK_SAMPLE_COUNT_8_BIT;
+   VkSampleCountFlags sample_counts =
+      VK_SAMPLE_COUNT_1_BIT | VK_SAMPLE_COUNT_2_BIT | VK_SAMPLE_COUNT_4_BIT;
 
-   /* make sure that the entire descriptor set is addressable with a signed
-    * 32-bit int. So the sum of all limits scaled by descriptor size has to
-    * be at most 2 GiB. the combined image & samples object count as one of
-    * both. This limit is for the pipeline layout, not for the set layout, but
-    * there is no set limit, so we just set a pipeline limit. I don't think
-    * any app is going to hit this soon. */
-   size_t max_descriptor_set_size =
-      ((1ull << 31) - 16 * MAX_DYNAMIC_BUFFERS) /
-      (32 /* uniform buffer, 32 due to potential space wasted on alignment */ +
-       32 /* storage buffer, 32 due to potential space wasted on alignment */ +
-       32 /* sampler, largest when combined with image */ +
-       64 /* sampled image */ + 64 /* storage image */);
+   /* I have no idea what the maximum size is, but the hardware supports very
+    * large numbers of descriptors (at least 2^16). This limit is based on
+    * CP_LOAD_STATE6, which has a 28-bit field for the DWORD offset, so that
+    * we don't have to think about what to do if that overflows, but really
+    * nothing is likely to get close to this.
+    */
+   const size_t max_descriptor_set_size = (1 << 28) / A6XX_TEX_CONST_DWORDS;
 
    VkPhysicalDeviceLimits limits = {
       .maxImageDimension1D = (1 << 14),
@@ -754,7 +747,7 @@ tu_GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice,
       .maxImageDimensionCube = (1 << 14),
       .maxImageArrayLayers = (1 << 11),
       .maxTexelBufferElements = 128 * 1024 * 1024,
-      .maxUniformBufferRange = UINT32_MAX,
+      .maxUniformBufferRange = MAX_UNIFORM_BUFFER_RANGE,
       .maxStorageBufferRange = MAX_STORAGE_BUFFER_RANGE,
       .maxPushConstantsSize = MAX_PUSH_CONSTANTS_SIZE,
       .maxMemoryAllocationCount = UINT32_MAX,
@@ -767,7 +760,7 @@ tu_GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice,
       .maxPerStageDescriptorStorageBuffers = max_descriptor_set_size,
       .maxPerStageDescriptorSampledImages = max_descriptor_set_size,
       .maxPerStageDescriptorStorageImages = max_descriptor_set_size,
-      .maxPerStageDescriptorInputAttachments = max_descriptor_set_size,
+      .maxPerStageDescriptorInputAttachments = MAX_RTS,
       .maxPerStageResources = max_descriptor_set_size,
       .maxDescriptorSetSamplers = max_descriptor_set_size,
       .maxDescriptorSetUniformBuffers = max_descriptor_set_size,
@@ -776,10 +769,10 @@ tu_GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice,
       .maxDescriptorSetStorageBuffersDynamic = MAX_DYNAMIC_STORAGE_BUFFERS,
       .maxDescriptorSetSampledImages = max_descriptor_set_size,
       .maxDescriptorSetStorageImages = max_descriptor_set_size,
-      .maxDescriptorSetInputAttachments = max_descriptor_set_size,
+      .maxDescriptorSetInputAttachments = MAX_RTS,
       .maxVertexInputAttributes = 32,
       .maxVertexInputBindings = 32,
-      .maxVertexInputAttributeOffset = 2047,
+      .maxVertexInputAttributeOffset = 4095,
       .maxVertexInputBindingStride = 2048,
       .maxVertexOutputComponents = 128,
       .maxTessellationGenerationLevel = 64,
@@ -790,7 +783,7 @@ tu_GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice,
       .maxTessellationControlTotalOutputComponents = 4096,
       .maxTessellationEvaluationInputComponents = 128,
       .maxTessellationEvaluationOutputComponents = 128,
-      .maxGeometryShaderInvocations = 127,
+      .maxGeometryShaderInvocations = 32,
       .maxGeometryInputComponents = 64,
       .maxGeometryOutputComponents = 128,
       .maxGeometryOutputVertices = 256,
@@ -816,8 +809,8 @@ tu_GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice,
       .viewportSubPixelBits = 8,
       .minMemoryMapAlignment = 4096, /* A page */
       .minTexelBufferOffsetAlignment = 64,
-      .minUniformBufferOffsetAlignment = 4,
-      .minStorageBufferOffsetAlignment = 4,
+      .minUniformBufferOffsetAlignment = 64,
+      .minStorageBufferOffsetAlignment = 64,
       .minTexelOffset = -32,
       .maxTexelOffset = 31,
       .minTexelGatherOffset = -32,
@@ -839,8 +832,8 @@ tu_GetPhysicalDeviceProperties(VkPhysicalDevice physicalDevice,
       .sampledImageStencilSampleCounts = sample_counts,
       .storageImageSampleCounts = VK_SAMPLE_COUNT_1_BIT,
       .maxSampleMaskWords = 1,
-      .timestampComputeAndGraphics = false, /* FINISHME */
-      .timestampPeriod = 1,
+      .timestampComputeAndGraphics = true,
+      .timestampPeriod = 1000000000.0 / 19200000.0, /* CP_ALWAYS_ON_COUNTER is fixed 19.2MHz */
       .maxClipDistances = 8,
       .maxCullDistances = 8,
       .maxCombinedClipAndCullDistances = 8,
@@ -945,7 +938,7 @@ static const VkQueueFamilyProperties tu_queue_family_properties = {
    .queueFlags =
       VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT,
    .queueCount = 1,
-   .timestampValidBits = 0, /* FINISHME */
+   .timestampValidBits = 48,
    .minImageTransferGranularity = { 1, 1, 1 },
 };
 
@@ -1448,6 +1441,44 @@ tu_DeviceWaitIdle(VkDevice _device)
 }
 
 VkResult
+tu_ImportSemaphoreFdKHR(VkDevice _device,
+                        const VkImportSemaphoreFdInfoKHR *pImportSemaphoreFdInfo)
+{
+   tu_stub();
+
+   return VK_SUCCESS;
+}
+
+VkResult
+tu_GetSemaphoreFdKHR(VkDevice _device,
+                     const VkSemaphoreGetFdInfoKHR *pGetFdInfo,
+                     int *pFd)
+{
+   tu_stub();
+
+   return VK_SUCCESS; 
+}
+
+VkResult
+tu_ImportFenceFdKHR(VkDevice _device,
+                    const VkImportFenceFdInfoKHR *pImportFenceFdInfo)
+{
+   tu_stub();
+
+   return VK_SUCCESS;
+}
+
+VkResult
+tu_GetFenceFdKHR(VkDevice _device,
+                 const VkFenceGetFdInfoKHR *pGetFdInfo,
+                 int *pFd)
+{
+   tu_stub();
+
+   return VK_SUCCESS;
+}
+
+VkResult
 tu_EnumerateInstanceExtensionProperties(const char *pLayerName,
                                         uint32_t *pPropertyCount,
                                         VkExtensionProperties *pProperties)
@@ -1679,7 +1710,7 @@ tu_GetBufferMemoryRequirements(VkDevice _device,
    TU_FROM_HANDLE(tu_buffer, buffer, _buffer);
 
    pMemoryRequirements->memoryTypeBits = 1;
-   pMemoryRequirements->alignment = 16;
+   pMemoryRequirements->alignment = 64;
    pMemoryRequirements->size =
       align64(buffer->size, pMemoryRequirements->alignment);
 }

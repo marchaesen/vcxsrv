@@ -607,6 +607,7 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 	</enum>
 	<enum name="a6xx_state_src">
 		<value name="SS6_DIRECT" value="0"/>
+		<value name="SS6_BINDLESS" value="1"/> <!-- TODO does this exist on a4xx/a5xx? -->
 		<value name="SS6_INDIRECT" value="2"/>
 	</enum>
 	<reg32 offset="0" name="0">

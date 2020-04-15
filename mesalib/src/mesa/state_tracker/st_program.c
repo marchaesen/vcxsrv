@@ -334,6 +334,19 @@ st_release_variants(struct st_context *st, struct st_program *p)
     */
 }
 
+/**
+ * Free all basic program variants and unref program.
+ */
+void
+st_release_program(struct st_context *st, struct st_program **p)
+{
+   if (!*p)
+      return;
+
+   st_release_variants(st, *p);
+   st_reference_prog(st, p, NULL);
+}
+
 void
 st_finalize_nir_before_variants(struct nir_shader *nir)
 {

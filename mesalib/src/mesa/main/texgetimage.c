@@ -701,7 +701,7 @@ _mesa_GetTexSubImage_sw(struct gl_context *ctx,
       _mesa_get_texture_dimensions(texImage->TexObject->Target);
 
    /* map dest buffer, if PBO */
-   if (_mesa_is_bufferobj(ctx->Pack.BufferObj)) {
+   if (ctx->Pack.BufferObj) {
       /* Packing texture image into a PBO.
        * Map the (potentially) VRAM-based buffer into our process space so
        * we can write into it with the code below.
@@ -760,7 +760,7 @@ _mesa_GetTexSubImage_sw(struct gl_context *ctx,
                    width, height, depth, format, type, pixels, texImage);
    }
 
-   if (_mesa_is_bufferobj(ctx->Pack.BufferObj)) {
+   if (ctx->Pack.BufferObj) {
       ctx->Driver.UnmapBuffer(ctx, ctx->Pack.BufferObj, MAP_INTERNAL);
    }
 }
@@ -788,7 +788,7 @@ get_compressed_texsubimage_sw(struct gl_context *ctx,
                                        width, height, depth,
                                        &ctx->Pack, &store);
 
-   if (_mesa_is_bufferobj(ctx->Pack.BufferObj)) {
+   if (ctx->Pack.BufferObj) {
       /* pack texture image into a PBO */
       dest = (GLubyte *)
          ctx->Driver.MapBufferRange(ctx, 0, ctx->Pack.BufferObj->Size,
@@ -835,7 +835,7 @@ get_compressed_texsubimage_sw(struct gl_context *ctx,
       }
    }
 
-   if (_mesa_is_bufferobj(ctx->Pack.BufferObj)) {
+   if (ctx->Pack.BufferObj) {
       ctx->Driver.UnmapBuffer(ctx, ctx->Pack.BufferObj, MAP_INTERNAL);
    }
 }
@@ -1101,7 +1101,7 @@ pbo_error_check(struct gl_context *ctx, GLenum target,
 
    if (!_mesa_validate_pbo_access(dimensions, &ctx->Pack, width, height, depth,
                                   format, type, clientMemSize, pixels)) {
-      if (_mesa_is_bufferobj(ctx->Pack.BufferObj)) {
+      if (ctx->Pack.BufferObj) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "%s(out of bounds PBO access)", caller);
       } else {
@@ -1112,7 +1112,7 @@ pbo_error_check(struct gl_context *ctx, GLenum target,
       return true;
    }
 
-   if (_mesa_is_bufferobj(ctx->Pack.BufferObj)) {
+   if (ctx->Pack.BufferObj) {
       /* PBO should not be mapped */
       if (_mesa_check_disallowed_mapping(ctx->Pack.BufferObj)) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
@@ -1121,7 +1121,7 @@ pbo_error_check(struct gl_context *ctx, GLenum target,
       }
    }
 
-   if (!_mesa_is_bufferobj(ctx->Pack.BufferObj) && !pixels) {
+   if (!ctx->Pack.BufferObj && !pixels) {
       /* not an error, do nothing */
       return true;
    }
@@ -1719,7 +1719,7 @@ getcompressedteximage_error_check(struct gl_context *ctx,
                                        &ctx->Pack);
 
    /* Do dest buffer bounds checking */
-   if (_mesa_is_bufferobj(ctx->Pack.BufferObj)) {
+   if (ctx->Pack.BufferObj) {
       /* do bounds checking on PBO write */
       if ((GLubyte *) pixels + totalBytes >
           (GLubyte *) ctx->Pack.BufferObj->Size) {
@@ -1744,7 +1744,7 @@ getcompressedteximage_error_check(struct gl_context *ctx,
       }
    }
 
-   if (!_mesa_is_bufferobj(ctx->Pack.BufferObj) && !pixels) {
+   if (!ctx->Pack.BufferObj && !pixels) {
       /* not an error, but do nothing */
       return true;
    }

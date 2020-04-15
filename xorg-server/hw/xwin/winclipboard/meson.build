@@ -12,8 +12,10 @@ xwin_clipboard = static_library(
     include_directories: inc,
     c_args: '-DHAVE_XWIN_CONFIG_H',
     dependencies: [
-        dependency('x11'),
-        dependency('xfixes'),
+        dependency('xcb'),
+        dependency('xcb-aux'),
+        dependency('xcb-icccm'),
+        dependency('xcb-xfixes'),
         socket_dep,
     ],
 )
@@ -28,7 +30,6 @@ executable(
     srcs_xwinclip,
     link_with: xwin_clipboard,
     link_args: ['-lgdi32', '-lpthread'],
-    dependencies: [dependency('x11')],
     install: true,
 )
 

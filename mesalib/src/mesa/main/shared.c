@@ -95,11 +95,6 @@ _mesa_alloc_shared_state(struct gl_context *ctx)
    _mesa_init_shader_includes(shared);
    mtx_init(&shared->ShaderIncludeMutex, mtx_plain);
 
-   /* Allocate the default buffer object */
-   shared->NullBufferObj = ctx->Driver.NewBufferObject(ctx, 0);
-   if (!shared->NullBufferObj)
-      goto fail;
-
    /* Create default texture objects */
    for (i = 0; i < NUM_TEXTURE_TARGETS; i++) {
       /* NOTE: the order of these enums matches the TEXTURE_x_INDEX values */
@@ -143,10 +138,6 @@ _mesa_alloc_shared_state(struct gl_context *ctx)
    shared->SemaphoreObjects = _mesa_NewHashTable();
 
    return shared;
-
-fail:
-   free_shared_state(ctx, shared);
-   return NULL;
 }
 
 
@@ -408,9 +399,6 @@ free_shared_state(struct gl_context *ctx, struct gl_shared_state *shared)
       _mesa_HashDeleteAll(shared->RenderBuffers, delete_renderbuffer_cb, ctx);
       _mesa_DeleteHashTable(shared->RenderBuffers);
    }
-
-   if (shared->NullBufferObj)
-      _mesa_reference_buffer_object(ctx, &shared->NullBufferObj, NULL);
 
    if (shared->SyncObjects) {
       set_foreach(shared->SyncObjects, entry) {

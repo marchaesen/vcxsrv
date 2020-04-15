@@ -104,4 +104,16 @@ EXPORTS
   xcb_aux_get_screen
   xcb_image_destroy
   xcb_image_get
-
+  xcb_create_window_checked
+  xcb_destroy_window_checked
+  xcb_set_selection_owner_checked
+  xcb_icccm_set_wm_name
+  xcb_xfixes_query_version_unchecked
+  xcb_xfixes_select_selection_input
+  xcb_change_property_checked
+  xcb_send_event_checked
+  xcb_set_selection_owner
+  xcb_get_selection_owner
+  xcb_get_selection_owner_reply
+  xcb_convert_selection
+  xcb_aux_sync

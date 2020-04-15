@@ -27,6 +27,7 @@
 
 #include <vector>
 #include <set>
+#include <unordered_set>
 #include <bitset>
 #include <memory>
 
@@ -262,25 +263,25 @@ static constexpr RegClass v8b{RegClass::v8b};
  * and SSA id.
  */
 struct Temp {
-   Temp() = default;
+   Temp() noexcept : id_(0), reg_class(0) {}
    constexpr Temp(uint32_t id, RegClass cls) noexcept
-      : id_(id), reg_class(cls) {}
+      : id_(id), reg_class(uint8_t(cls)) {}
 
    constexpr uint32_t id() const noexcept { return id_; }
-   constexpr RegClass regClass() const noexcept { return reg_class; }
+   constexpr RegClass regClass() const noexcept { return (RegClass::RC)reg_class; }
 
-   constexpr unsigned bytes() const noexcept { return reg_class.bytes(); }
-   constexpr unsigned size() const noexcept { return reg_class.size(); }
-   constexpr RegType type() const noexcept { return reg_class.type(); }
-   constexpr bool is_linear() const noexcept { return reg_class.is_linear(); }
+   constexpr unsigned bytes() const noexcept { return regClass().bytes(); }
+   constexpr unsigned size() const noexcept { return regClass().size(); }
+   constexpr RegType type() const noexcept { return regClass().type(); }
+   constexpr bool is_linear() const noexcept { return regClass().is_linear(); }
 
    constexpr bool operator <(Temp other) const noexcept { return id() < other.id(); }
    constexpr bool operator==(Temp other) const noexcept { return id() == other.id(); }
    constexpr bool operator!=(Temp other) const noexcept { return id() != other.id(); }
 
 private:
-   uint32_t id_:24;
-   RegClass reg_class;
+   uint32_t id_: 24;
+   uint32_t reg_class : 8;
 };
 
 /**
@@ -806,24 +807,31 @@ struct Instruction {
       return false;
    }
 };
+static_assert(sizeof(Instruction) == 16);
 
 struct SOPK_instruction : public Instruction {
    uint16_t imm;
+   uint16_t padding;
 };
+static_assert(sizeof(SOPK_instruction) == sizeof(Instruction) + 4);
 
 struct SOPP_instruction : public Instruction {
    uint32_t imm;
    int block;
 };
+static_assert(sizeof(SOPP_instruction) == sizeof(Instruction) + 8);
 
 struct SOPC_instruction : public Instruction {
 };
+static_assert(sizeof(SOPC_instruction) == sizeof(Instruction) + 0);
 
 struct SOP1_instruction : public Instruction {
 };
+static_assert(sizeof(SOP1_instruction) == sizeof(Instruction) + 0);
 
 struct SOP2_instruction : public Instruction {
 };
+static_assert(sizeof(SOP2_instruction) == sizeof(Instruction) + 0);
 
 /**
  * Scalar Memory Format:
@@ -837,22 +845,27 @@ struct SOP2_instruction : public Instruction {
  *
  */
 struct SMEM_instruction : public Instruction {
+   barrier_interaction barrier;
    bool glc : 1; /* VI+: globally coherent */
    bool dlc : 1; /* NAVI: device level coherent */
    bool nv : 1; /* VEGA only: Non-volatile */
    bool can_reorder : 1;
    bool disable_wqm : 1;
-   barrier_interaction barrier;
+   uint32_t padding: 19;
 };
+static_assert(sizeof(SMEM_instruction) == sizeof(Instruction) + 4);
 
 struct VOP1_instruction : public Instruction {
 };
+static_assert(sizeof(VOP1_instruction) == sizeof(Instruction) + 0);
 
 struct VOP2_instruction : public Instruction {
 };
+static_assert(sizeof(VOP2_instruction) == sizeof(Instruction) + 0);
 
 struct VOPC_instruction : public Instruction {
 };
+static_assert(sizeof(VOPC_instruction) == sizeof(Instruction) + 0);
 
 struct VOP3A_instruction : public Instruction {
    bool abs[3];
@@ -860,7 +873,9 @@ struct VOP3A_instruction : public Instruction {
    uint8_t opsel : 4;
    uint8_t omod : 2;
    bool clamp : 1;
+   uint32_t padding : 9;
 };
+static_assert(sizeof(VOP3A_instruction) == sizeof(Instruction) + 8);
 
 /**
  * Data Parallel Primitives Format:
@@ -875,7 +890,9 @@ struct DPP_instruction : public Instruction {
    uint8_t row_mask : 4;
    uint8_t bank_mask : 4;
    bool bound_ctrl : 1;
+   uint32_t padding : 7;
 };
+static_assert(sizeof(DPP_instruction) == sizeof(Instruction) + 8);
 
 enum sdwa_sel : uint8_t {
     /* masks */
@@ -924,20 +941,23 @@ enum sdwa_sel : uint8_t {
 struct SDWA_instruction : public Instruction {
    /* these destination modifiers aren't available with VOPC except for
     * clamp on GFX8 */
-   unsigned dst_sel:8;
-   bool dst_preserve:1;
-   bool clamp:1;
-   unsigned omod:2; /* GFX9+ */
-
-   unsigned sel[2];
+   uint8_t sel[2];
+   uint8_t dst_sel;
    bool neg[2];
    bool abs[2];
+   bool dst_preserve : 1;
+   bool clamp : 1;
+   uint8_t omod : 2; /* GFX9+ */
+   uint32_t padding : 4;
 };
+static_assert(sizeof(SDWA_instruction) == sizeof(Instruction) + 8);
 
 struct Interp_instruction : public Instruction {
    uint8_t attribute;
    uint8_t component;
+   uint16_t padding;
 };
+static_assert(sizeof(Interp_instruction) == sizeof(Instruction) + 4);
 
 /**
  * Local and Global Data Sharing instructions
@@ -953,6 +973,7 @@ struct DS_instruction : public Instruction {
    int8_t offset1;
    bool gds;
 };
+static_assert(sizeof(DS_instruction) == sizeof(Instruction) + 4);
 
 /**
  * Vector Memory Untyped-buffer Instructions
@@ -974,8 +995,10 @@ struct MUBUF_instruction : public Instruction {
    bool lds : 1; /* Return read-data to LDS instead of VGPRs */
    bool disable_wqm : 1; /* Require an exec mask without helper invocations */
    bool can_reorder : 1;
+   uint8_t padding : 2;
    barrier_interaction barrier;
 };
+static_assert(sizeof(MUBUF_instruction) == sizeof(Instruction) + 4);
 
 /**
  * Vector Memory Typed-buffer Instructions
@@ -987,6 +1010,7 @@ struct MUBUF_instruction : public Instruction {
  */
 struct MTBUF_instruction : public Instruction {
    uint16_t offset; /* Unsigned byte offset - 12 bit */
+   barrier_interaction barrier;
    uint8_t dfmt : 4; /* Data Format of data in memory buffer */
    uint8_t nfmt : 3; /* Numeric format of data in memory */
    bool offen : 1; /* Supply an offset from VGPR (VADDR) */
@@ -997,8 +1021,9 @@ struct MTBUF_instruction : public Instruction {
    bool tfe : 1; /* texture fail enable */
    bool disable_wqm : 1; /* Require an exec mask without helper invocations */
    bool can_reorder : 1;
-   barrier_interaction barrier;
+   uint32_t padding : 25;
 };
+static_assert(sizeof(MTBUF_instruction) == sizeof(Instruction) + 8);
 
 /**
  * Vector Memory Image Instructions
@@ -1024,8 +1049,10 @@ struct MIMG_instruction : public Instruction {
    bool d16 : 1; /* Convert 32-bit data to 16-bit data */
    bool disable_wqm : 1; /* Require an exec mask without helper invocations */
    bool can_reorder : 1;
+   uint8_t padding : 1;
    barrier_interaction barrier;
 };
+static_assert(sizeof(MIMG_instruction) == sizeof(Instruction) + 4);
 
 /**
  * Flat/Scratch/Global Instructions
@@ -1043,8 +1070,10 @@ struct FLAT_instruction : public Instruction {
    bool nv : 1;
    bool disable_wqm : 1; /* Require an exec mask without helper invocations */
    bool can_reorder : 1;
+   uint8_t padding : 1;
    barrier_interaction barrier;
 };
+static_assert(sizeof(FLAT_instruction) == sizeof(Instruction) + 4);
 
 struct Export_instruction : public Instruction {
    uint8_t enabled_mask;
@@ -1052,12 +1081,16 @@ struct Export_instruction : public Instruction {
    bool compressed : 1;
    bool done : 1;
    bool valid_mask : 1;
+   uint32_t padding : 13;
 };
+static_assert(sizeof(Export_instruction) == sizeof(Instruction) + 4);
 
 struct Pseudo_instruction : public Instruction {
-   bool tmp_in_scc;
    PhysReg scratch_sgpr; /* might not be valid if it's not needed */
+   bool tmp_in_scc;
+   uint8_t padding;
 };
+static_assert(sizeof(Pseudo_instruction) == sizeof(Instruction) + 4);
 
 struct Pseudo_branch_instruction : public Instruction {
    /* target[0] is the block index of the branch target.
@@ -1066,11 +1099,13 @@ struct Pseudo_branch_instruction : public Instruction {
     */
    uint32_t target[2];
 };
+static_assert(sizeof(Pseudo_branch_instruction) == sizeof(Instruction) + 8);
 
 struct Pseudo_barrier_instruction : public Instruction {
 };
+static_assert(sizeof(Pseudo_barrier_instruction) == sizeof(Instruction) + 0);
 
-enum ReduceOp {
+enum ReduceOp : uint16_t {
    iadd32, iadd64,
    imul32, imul64,
    fadd32, fadd64,
@@ -1102,8 +1137,9 @@ enum ReduceOp {
  */
 struct Pseudo_reduction_instruction : public Instruction {
    ReduceOp reduce_op;
-   unsigned cluster_size; // must be 0 for scans
+   uint16_t cluster_size; // must be 0 for scans
 };
+static_assert(sizeof(Pseudo_reduction_instruction) == sizeof(Instruction) + 4);
 
 struct instr_deleter_functor {
    void operator()(void* p) {
@@ -1287,13 +1323,14 @@ static constexpr Stage sw_mask = 0x7f;
 
 /* hardware stages (can't be OR'd, just a mask for convenience when testing multiple) */
 static constexpr Stage hw_vs = 1 << 7;
-static constexpr Stage hw_es = 1 << 8; /* not on GFX9. combined into GS on GFX9 (and GFX10/legacy). */
-static constexpr Stage hw_gs = 1 << 9;
-static constexpr Stage hw_ls = 1 << 10; /* not on GFX9. combined into HS on GFX9 (and GFX10/legacy). */
-static constexpr Stage hw_hs = 1 << 11;
-static constexpr Stage hw_fs = 1 << 12;
-static constexpr Stage hw_cs = 1 << 13;
-static constexpr Stage hw_mask = 0x7f << 7;
+static constexpr Stage hw_es = 1 << 8; /* Export shader: pre-GS (VS or TES) on GFX6-8. Combined into GS on GFX9 (and GFX10/legacy). */
+static constexpr Stage hw_gs = 1 << 9; /* Geometry shader on GFX10/legacy and GFX6-9. */
+static constexpr Stage hw_ngg_gs = 1 << 10; /* Geometry shader on GFX10/NGG. */
+static constexpr Stage hw_ls = 1 << 11; /* Local shader: pre-TCS (VS) on GFX6-8. Combined into HS on GFX9 (and GFX10/legacy). */
+static constexpr Stage hw_hs = 1 << 12; /* Hull shader: TCS on GFX6-8. Merged VS and TCS on GFX9-10. */
+static constexpr Stage hw_fs = 1 << 13;
+static constexpr Stage hw_cs = 1 << 14;
+static constexpr Stage hw_mask = 0xff << 7;
 
 /* possible settings of Program::stage */
 static constexpr Stage vertex_vs = sw_vs | hw_vs;
@@ -1302,10 +1339,10 @@ static constexpr Stage compute_cs = sw_cs | hw_cs;
 static constexpr Stage tess_eval_vs = sw_tes | hw_vs;
 static constexpr Stage gs_copy_vs = sw_gs_copy | hw_vs;
 /* GFX10/NGG */
-static constexpr Stage ngg_vertex_gs = sw_vs | hw_gs;
-static constexpr Stage ngg_vertex_geometry_gs = sw_vs | sw_gs | hw_gs;
-static constexpr Stage ngg_tess_eval_geometry_gs = sw_tes | sw_gs | hw_gs;
-static constexpr Stage ngg_vertex_tess_control_hs = sw_vs | sw_tcs | hw_hs;
+static constexpr Stage ngg_vertex_gs = sw_vs | hw_ngg_gs;
+static constexpr Stage ngg_vertex_geometry_gs = sw_vs | sw_gs | hw_ngg_gs;
+static constexpr Stage ngg_tess_eval_gs = sw_tes | hw_ngg_gs;
+static constexpr Stage ngg_tess_eval_geometry_gs = sw_tes | sw_gs | hw_ngg_gs;
 /* GFX9 (and GFX10 if NGG isn't used) */
 static constexpr Stage vertex_geometry_gs = sw_vs | sw_gs | hw_gs;
 static constexpr Stage vertex_tess_control_hs = sw_vs | sw_tcs | hw_hs;
@@ -1406,9 +1443,16 @@ private:
    uint32_t allocationID = 1;
 };
 
+struct TempHash {
+   std::size_t operator()(Temp t) const {
+      return t.id();
+   }
+};
+using TempSet = std::unordered_set<Temp, TempHash>;
+
 struct live {
    /* live temps out per block */
-   std::vector<std::set<Temp>> live_out;
+   std::vector<TempSet> live_out;
    /* register demand (sgpr/vgpr) per instruction per block */
    std::vector<std::vector<RegisterDemand>> register_demand;
 };
@@ -1424,7 +1468,7 @@ void select_gs_copy_shader(Program *program, struct nir_shader *gs_shader,
 
 void lower_wqm(Program* program, live& live_vars,
                const struct radv_nir_compiler_options *options);
-void lower_bool_phis(Program* program);
+void lower_phis(Program* program);
 void calc_min_waves(Program* program);
 void update_vgpr_sgpr_demand(Program* program, const RegisterDemand new_demand);
 live live_var_analysis(Program* program, const struct radv_nir_compiler_options *options);
@@ -1435,7 +1479,7 @@ void value_numbering(Program* program);
 void optimize(Program* program);
 void setup_reduce_temp(Program* program);
 void lower_to_cssa(Program* program, live& live_vars, const struct radv_nir_compiler_options *options);
-void register_allocation(Program *program, std::vector<std::set<Temp>> live_out_per_block);
+void register_allocation(Program *program, std::vector<TempSet>& live_out_per_block);
 void ssa_elimination(Program* program);
 void lower_to_hw_instr(Program* program);
 void schedule_program(Program* program, live& live_vars);

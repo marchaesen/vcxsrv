@@ -91,6 +91,7 @@ static int parse_reg(const char *str)
 "(ei)"                            return TOKEN(T_EI);
 "(jp)"                            return TOKEN(T_JP);
 "(rpt"[0-7]")"                    ir3_yylval.num = strtol(yytext+4, NULL, 10); return T_RPT;
+"(nop"[0-7]")"                    ir3_yylval.num = strtol(yytext+4, NULL, 10); return T_NOP;
 "("[x]?[y]?[z]?[w]?")"            ir3_yylval.num = parse_wrmask(yytext); return T_WRMASK;
 
 [h]?"r"[0-9]+"."[xyzw]            ir3_yylval.num = parse_reg(yytext); return T_REGISTER;
@@ -290,6 +291,7 @@ static int parse_reg(const char *str)
 "p"                               return 'p';
 "s2en"                            return TOKEN(T_S2EN);
 "s"                               return 's';
+"base"[0-9]+                      ir3_yylval.num = strtol(yytext+4, NULL, 10); return T_BASE;
 
 "="                               return '=';
 "("                               return '(';

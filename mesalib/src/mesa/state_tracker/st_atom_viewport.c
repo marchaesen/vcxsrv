@@ -34,6 +34,12 @@
 #include "pipe/p_context.h"
 #include "cso_cache/cso_context.h"
 
+static enum pipe_viewport_swizzle
+viewport_swizzle_from_glenum(GLenum16 swizzle)
+{
+   return swizzle - GL_VIEWPORT_SWIZZLE_POSITIVE_X_NV;
+}
+
 /**
  * Update the viewport transformation matrix.  Depends on:
  *  - viewport pos/size
@@ -60,6 +66,11 @@ st_update_viewport( struct st_context *st )
          scale[1] *= -1;
          translate[1] = st->state.fb_height - translate[1];
       }
+
+      st->state.viewport[i].swizzle_x = viewport_swizzle_from_glenum(ctx->ViewportArray[i].SwizzleX);
+      st->state.viewport[i].swizzle_y = viewport_swizzle_from_glenum(ctx->ViewportArray[i].SwizzleY);
+      st->state.viewport[i].swizzle_z = viewport_swizzle_from_glenum(ctx->ViewportArray[i].SwizzleZ);
+      st->state.viewport[i].swizzle_w = viewport_swizzle_from_glenum(ctx->ViewportArray[i].SwizzleW);
    }
 
    cso_set_viewport(st->cso_context, &st->state.viewport[0]);

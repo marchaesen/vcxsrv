@@ -298,6 +298,7 @@ typedef struct shader_info {
 
       struct {
          uint16_t local_size[3];
+         uint16_t max_variable_local_size;
 
          bool local_size_variable:1;
          uint8_t user_data_components_amd:3;

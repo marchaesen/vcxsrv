@@ -590,6 +590,9 @@ bool ac_query_gpu_info(int fd, void *dev_p,
 	info->has_out_of_order_rast = info->chip_class >= GFX8 &&
 				      info->max_se >= 2;
 
+	/* Whether chips support double rate packed math instructions. */
+	info->has_double_rate_fp16 = info->chip_class >= GFX9;
+
 	/* TODO: Figure out how to use LOAD_CONTEXT_REG on GFX6-GFX7. */
 	info->has_load_ctx_reg_pkt = info->chip_class >= GFX9 ||
 				     (info->chip_class >= GFX8 &&

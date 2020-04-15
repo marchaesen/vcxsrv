@@ -86,7 +86,7 @@ ACO_FILES = \
 	compiler/aco_reduce_assign.cpp \
 	compiler/aco_register_allocation.cpp \
 	compiler/aco_live_var_analysis.cpp \
-	compiler/aco_lower_bool_phis.cpp \
+	compiler/aco_lower_phis.cpp \
 	compiler/aco_lower_to_cssa.cpp \
 	compiler/aco_lower_to_hw_instr.cpp \
 	compiler/aco_optimizer.cpp \
@@ -96,6 +96,7 @@ ACO_FILES = \
 	compiler/aco_scheduler.cpp \
 	compiler/aco_ssa_elimination.cpp \
 	compiler/aco_spill.cpp \
+	compiler/aco_statistics.cpp \
 	compiler/aco_util.h \
 	compiler/aco_validate.cpp
 

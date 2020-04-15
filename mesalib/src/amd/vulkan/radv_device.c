@@ -411,10 +411,6 @@ radv_physical_device_init(struct radv_physical_device *device,
 	device->use_ngg = device->rad_info.chip_class >= GFX10 &&
 			  device->rad_info.family != CHIP_NAVI14 &&
 			  !(device->instance->debug_flags & RADV_DEBUG_NO_NGG);
-	if (device->use_aco && device->use_ngg) {
-		fprintf(stderr, "WARNING: disabling NGG because ACO is used.\n");
-		device->use_ngg = false;
-	}
 
 	device->use_ngg_streamout = false;
 
@@ -1004,7 +1000,7 @@ void radv_GetPhysicalDeviceFeatures2(
 			features->storageBuffer16BitAccess = !pdevice->use_aco;
 			features->uniformAndStorageBuffer16BitAccess = !pdevice->use_aco;
 			features->storagePushConstant16 = !pdevice->use_aco;
-			features->storageInputOutput16 = pdevice->rad_info.chip_class >= GFX8 && !pdevice->use_aco && LLVM_VERSION_MAJOR >= 9;
+			features->storageInputOutput16 = pdevice->rad_info.has_double_rate_fp16 && !pdevice->use_aco && LLVM_VERSION_MAJOR >= 9;
 			break;
 		}
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES: {
@@ -1110,7 +1106,7 @@ void radv_GetPhysicalDeviceFeatures2(
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_FLOAT16_INT8_FEATURES: {
 			VkPhysicalDeviceShaderFloat16Int8Features *features =
 				(VkPhysicalDeviceShaderFloat16Int8Features*)ext;
-			features->shaderFloat16 = pdevice->rad_info.chip_class >= GFX8 && !pdevice->use_aco;
+			features->shaderFloat16 = pdevice->rad_info.has_double_rate_fp16 && !pdevice->use_aco;
 			features->shaderInt8 = !pdevice->use_aco;
 			break;
 		}
@@ -1207,7 +1203,7 @@ void radv_GetPhysicalDeviceFeatures2(
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_SUBGROUP_EXTENDED_TYPES_FEATURES: {
 			VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures *features =
 				(VkPhysicalDeviceShaderSubgroupExtendedTypesFeatures *)ext;
-			features->shaderSubgroupExtendedTypes = true;
+			features->shaderSubgroupExtendedTypes = !pdevice->use_aco;
 			break;
 		}
 		case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SEPARATE_DEPTH_STENCIL_LAYOUTS_FEATURES_KHR: {
@@ -1222,7 +1218,7 @@ void radv_GetPhysicalDeviceFeatures2(
 			features->storageBuffer16BitAccess = !pdevice->use_aco;
 			features->uniformAndStorageBuffer16BitAccess = !pdevice->use_aco;
 			features->storagePushConstant16 = !pdevice->use_aco;
-			features->storageInputOutput16 = pdevice->rad_info.chip_class >= GFX8 && !pdevice->use_aco && LLVM_VERSION_MAJOR >= 9;
+			features->storageInputOutput16 = pdevice->rad_info.has_double_rate_fp16 && !pdevice->use_aco && LLVM_VERSION_MAJOR >= 9;
 			features->multiview = true;
 			features->multiviewGeometryShader = true;
 			features->multiviewTessellationShader = true;
@@ -1243,7 +1239,7 @@ void radv_GetPhysicalDeviceFeatures2(
 			features->storagePushConstant8 = !pdevice->use_aco;
 			features->shaderBufferInt64Atomics = LLVM_VERSION_MAJOR >= 9;
 			features->shaderSharedInt64Atomics = LLVM_VERSION_MAJOR >= 9;
-			features->shaderFloat16 = pdevice->rad_info.chip_class >= GFX8 && !pdevice->use_aco;
+			features->shaderFloat16 = pdevice->rad_info.has_double_rate_fp16 && !pdevice->use_aco;
 			features->shaderInt8 = !pdevice->use_aco;
 			features->descriptorIndexing = true;
 			features->shaderInputAttachmentArrayDynamicIndexing = true;
@@ -1270,7 +1266,7 @@ void radv_GetPhysicalDeviceFeatures2(
 			features->scalarBlockLayout = pdevice->rad_info.chip_class >= GFX7;
 			features->imagelessFramebuffer = true;
 			features->uniformBufferStandardLayout = true;
-			features->shaderSubgroupExtendedTypes = true;
+			features->shaderSubgroupExtendedTypes = !pdevice->use_aco;
 			features->separateDepthStencilLayouts = true;
 			features->hostQueryReset = true;
 			features->timelineSemaphore = pdevice->rad_info.has_syncobj_wait_for_submit;
@@ -1343,7 +1339,7 @@ void radv_GetPhysicalDeviceProperties(
 		.maxMemoryAllocationCount                 = UINT32_MAX,
 		.maxSamplerAllocationCount                = 64 * 1024,
 		.bufferImageGranularity                   = 64, /* A cache line */
-		.sparseAddressSpaceSize                   = 0xffffffffu, /* buffer max size */
+		.sparseAddressSpaceSize                   = RADV_MAX_MEMORY_ALLOCATION_SIZE, /* buffer max size */
 		.maxBoundDescriptorSets                   = MAX_SETS,
 		.maxPerStageDescriptorSamplers            = max_descriptor_set_size,
 		.maxPerStageDescriptorUniformBuffers      = max_descriptor_set_size,
@@ -1516,8 +1512,13 @@ radv_get_physical_device_properties_1_2(struct radv_physical_device *pdevice,
 	/* On AMD hardware, denormals and rounding modes for fp16/fp64 are
 	 * controlled by the same config register.
 	 */
-	p->denormBehaviorIndependence = VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_32_BIT_ONLY_KHR;
-	p->roundingModeIndependence = VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_32_BIT_ONLY_KHR;
+	if (pdevice->rad_info.has_double_rate_fp16) {
+		p->denormBehaviorIndependence = VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_32_BIT_ONLY_KHR;
+		p->roundingModeIndependence = VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_32_BIT_ONLY_KHR;
+	} else {
+		p->denormBehaviorIndependence = VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_ALL_KHR;
+		p->roundingModeIndependence = VK_SHADER_FLOAT_CONTROLS_INDEPENDENCE_ALL_KHR;
+	}
 
 	/* Do not allow both preserving and flushing denorms because different
 	 * shaders in the same pipeline can have different settings and this
@@ -1534,10 +1535,10 @@ radv_get_physical_device_properties_1_2(struct radv_physical_device *pdevice,
 	p->shaderSignedZeroInfNanPreserveFloat32 = true;
 
 	p->shaderDenormFlushToZeroFloat16 = false;
-	p->shaderDenormPreserveFloat16 = pdevice->rad_info.chip_class >= GFX8;
-	p->shaderRoundingModeRTEFloat16 = pdevice->rad_info.chip_class >= GFX8;
+	p->shaderDenormPreserveFloat16 = pdevice->rad_info.has_double_rate_fp16;
+	p->shaderRoundingModeRTEFloat16 = pdevice->rad_info.has_double_rate_fp16;
 	p->shaderRoundingModeRTZFloat16 = false;
-	p->shaderSignedZeroInfNanPreserveFloat16 = pdevice->rad_info.chip_class >= GFX8;
+	p->shaderSignedZeroInfNanPreserveFloat16 = pdevice->rad_info.has_double_rate_fp16;
 
 	p->shaderDenormFlushToZeroFloat64 = false;
 	p->shaderDenormPreserveFloat64 = pdevice->rad_info.chip_class >= GFX8;
@@ -6240,6 +6241,9 @@ VkResult radv_CreateBuffer(
 {
 	RADV_FROM_HANDLE(radv_device, device, _device);
 	struct radv_buffer *buffer;
+
+	if (pCreateInfo->size > RADV_MAX_MEMORY_ALLOCATION_SIZE)
+		return VK_ERROR_OUT_OF_DEVICE_MEMORY;
 
 	assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO);
 

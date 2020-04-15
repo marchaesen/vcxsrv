@@ -91,28 +91,18 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
 
    register_demand.resize(block->instructions.size());
    block->register_demand = RegisterDemand();
-
-   std::set<Temp> live_sgprs;
-   std::set<Temp> live_vgprs;
+   TempSet live = lives.live_out[block->index];
 
    /* add the live_out_exec to live */
    bool exec_live = false;
    if (block->live_out_exec != Temp()) {
-      live_sgprs.insert(block->live_out_exec);
-      new_demand.sgpr += program->lane_mask.size();
+      live.insert(block->live_out_exec);
       exec_live = true;
    }
 
-   /* split the live-outs from this block into the temporary sets */
-   std::vector<std::set<Temp>>& live_temps = lives.live_out;
-   for (const Temp temp : live_temps[block->index]) {
-      const bool inserted = temp.is_linear()
-                          ? live_sgprs.insert(temp).second
-                          : live_vgprs.insert(temp).second;
-      if (inserted) {
-         new_demand += temp;
-      }
-   }
+   /* initialize register demand */
+   for (Temp t : live)
+      new_demand += t;
    new_demand.sgpr -= phi_sgpr_ops[block->index];
 
    /* traverse the instructions backwards */
@@ -136,11 +126,7 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
             program->needs_vcc = true;
 
          const Temp temp = definition.getTemp();
-         size_t n = 0;
-         if (temp.is_linear())
-            n = live_sgprs.erase(temp);
-         else
-            n = live_vgprs.erase(temp);
+         const size_t n = live.erase(temp);
 
          if (n) {
             new_demand -= temp;
@@ -172,9 +158,7 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
             if (operand.isFixed() && operand.physReg() == vcc)
                program->needs_vcc = true;
             const Temp temp = operand.getTemp();
-            const bool inserted = temp.is_linear()
-                                ? live_sgprs.insert(temp).second
-                                : live_vgprs.insert(temp).second;
+            const bool inserted = live.insert(temp).second;
             if (inserted) {
                operand.setFirstKill(true);
                for (unsigned j = i + 1; j < insn->operands.size(); ++j) {
@@ -214,12 +198,7 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
       if ((definition.isFixed() || definition.hasHint()) && definition.physReg() == vcc)
          program->needs_vcc = true;
       const Temp temp = definition.getTemp();
-      size_t n = 0;
-
-      if (temp.is_linear())
-         n = live_sgprs.erase(temp);
-      else
-         n = live_vgprs.erase(temp);
+      const size_t n = live.erase(temp);
 
       if (n)
          definition.setKill(false);
@@ -229,18 +208,17 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
       phi_idx--;
    }
 
-   /* now, we have the live-in sets and need to merge them into the live-out sets */
-   for (unsigned pred_idx : block->logical_preds) {
-      for (Temp vgpr : live_vgprs) {
-         auto it = live_temps[pred_idx].insert(vgpr);
-         if (it.second)
-            worklist.insert(pred_idx);
-      }
-   }
+   /* now, we need to merge the live-ins into the live-out sets */
+   for (Temp t : live) {
+      std::vector<unsigned>& preds = t.is_linear() ? block->linear_preds : block->logical_preds;
 
-   for (unsigned pred_idx : block->linear_preds) {
-      for (Temp sgpr : live_sgprs) {
-         auto it = live_temps[pred_idx].insert(sgpr);
+#ifndef NDEBUG
+      if (preds.empty())
+         fprintf(stderr, "Temporary never defined or are defined after use: %%%d in BB%d\n", t.id(), block->index);
+#endif
+
+      for (unsigned pred_idx : preds) {
+         auto it = lives.live_out[pred_idx].insert(t);
          if (it.second)
             worklist.insert(pred_idx);
       }
@@ -262,7 +240,7 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
          if (operand.isFixed() && operand.physReg() == vcc)
             program->needs_vcc = true;
          /* check if we changed an already processed block */
-         const bool inserted = live_temps[preds[i]].insert(operand.getTemp()).second;
+         const bool inserted = lives.live_out[preds[i]].insert(operand.getTemp()).second;
          if (inserted) {
             operand.setKill(true);
             worklist.insert(preds[i]);
@@ -273,18 +251,7 @@ void process_live_temps_per_block(Program *program, live& lives, Block* block,
       phi_idx--;
    }
 
-   if ((block->logical_preds.empty() && !live_vgprs.empty()) ||
-       (block->linear_preds.empty() && !live_sgprs.empty())) {
-      aco_print_program(program, stderr);
-      fprintf(stderr, "These temporaries are never defined or are defined after use:\n");
-      for (Temp vgpr : live_vgprs)
-         fprintf(stderr, "%%%d\n", vgpr.id());
-      for (Temp sgpr : live_sgprs)
-         fprintf(stderr, "%%%d\n", sgpr.id());
-      abort();
-   }
-
-   assert(block->index != 0 || new_demand == RegisterDemand());
+   assert(block->index != 0 || (new_demand == RegisterDemand() && live.empty()));
 }
 
 unsigned calc_waves_per_workgroup(Program *program)

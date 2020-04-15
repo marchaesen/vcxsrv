@@ -876,38 +876,20 @@ static LLVMValueRef load_sample_mask_in(struct ac_shader_abi *abi)
 
 static void gfx10_ngg_gs_emit_vertex(struct radv_shader_context *ctx,
 				     unsigned stream,
+				     LLVMValueRef vertexidx,
 				     LLVMValueRef *addrs);
 
 static void
-visit_emit_vertex(struct ac_shader_abi *abi, unsigned stream, LLVMValueRef *addrs)
+visit_emit_vertex_with_counter(struct ac_shader_abi *abi, unsigned stream,
+			       LLVMValueRef vertexidx, LLVMValueRef *addrs)
 {
-	LLVMValueRef gs_next_vertex;
-	LLVMValueRef can_emit;
 	unsigned offset = 0;
 	struct radv_shader_context *ctx = radv_shader_context_from_abi(abi);
 
 	if (ctx->args->options->key.vs_common_out.as_ngg) {
-		gfx10_ngg_gs_emit_vertex(ctx, stream, addrs);
+		gfx10_ngg_gs_emit_vertex(ctx, stream, vertexidx, addrs);
 		return;
 	}
-
-	/* Write vertex attribute values to GSVS ring */
-	gs_next_vertex = LLVMBuildLoad(ctx->ac.builder,
-				       ctx->gs_next_vertex[stream],
-				       "");
-
-	/* If this thread has already emitted the declared maximum number of
-	 * vertices, don't emit any more: excessive vertex emissions are not
-	 * supposed to have any effect.
-	 */
-	can_emit = LLVMBuildICmp(ctx->ac.builder, LLVMIntULT, gs_next_vertex,
-				 LLVMConstInt(ctx->ac.i32, ctx->shader->info.gs.vertices_out, false), "");
-
-	bool use_kill = !ctx->args->shader_info->gs.writes_memory;
-	if (use_kill)
-		ac_build_kill_if_false(&ctx->ac, can_emit);
-	else
-		ac_build_ifcc(&ctx->ac, can_emit, 6505);
 
 	for (unsigned i = 0; i < AC_LLVM_MAX_OUTPUTS; ++i) {
 		unsigned output_usage_mask =
@@ -933,7 +915,7 @@ visit_emit_vertex(struct ac_shader_abi *abi, unsigned stream, LLVMValueRef *addr
 
 			offset++;
 
-			voffset = LLVMBuildAdd(ctx->ac.builder, voffset, gs_next_vertex, "");
+			voffset = LLVMBuildAdd(ctx->ac.builder, voffset, vertexidx, "");
 			voffset = LLVMBuildMul(ctx->ac.builder, voffset, LLVMConstInt(ctx->ac.i32, 4, false), "");
 
 			out_val = ac_to_integer(&ctx->ac, out_val);
@@ -949,16 +931,9 @@ visit_emit_vertex(struct ac_shader_abi *abi, unsigned stream, LLVMValueRef *addr
 		}
 	}
 
-	gs_next_vertex = LLVMBuildAdd(ctx->ac.builder, gs_next_vertex,
-				      ctx->ac.i32_1, "");
-	LLVMBuildStore(ctx->ac.builder, gs_next_vertex, ctx->gs_next_vertex[stream]);
-
 	ac_build_sendmsg(&ctx->ac,
 			 AC_SENDMSG_GS_OP_EMIT | AC_SENDMSG_GS | (stream << 8),
 			 ctx->gs_wave_id);
-
-	if (!use_kill)
-		ac_build_endif(&ctx->ac, 6505);
 }
 
 static void
@@ -3309,25 +3284,11 @@ static void gfx10_ngg_gs_emit_epilogue_2(struct radv_shader_context *ctx)
 
 static void gfx10_ngg_gs_emit_vertex(struct radv_shader_context *ctx,
 				     unsigned stream,
+				     LLVMValueRef vertexidx,
 				     LLVMValueRef *addrs)
 {
 	LLVMBuilderRef builder = ctx->ac.builder;
 	LLVMValueRef tmp;
-	const LLVMValueRef vertexidx =
-		LLVMBuildLoad(builder, ctx->gs_next_vertex[stream], "");
-
-	/* If this thread has already emitted the declared maximum number of
-	 * vertices, skip the write: excessive vertex emissions are not
-	 * supposed to have any effect.
-	 */
-	const LLVMValueRef can_emit =
-		LLVMBuildICmp(builder, LLVMIntULT, vertexidx,
-			      LLVMConstInt(ctx->ac.i32, ctx->shader->info.gs.vertices_out, false), "");
-	ac_build_ifcc(&ctx->ac, can_emit, 9001);
-
-	tmp = LLVMBuildAdd(builder, vertexidx, ctx->ac.i32_1, "");
-	tmp = LLVMBuildSelect(builder, can_emit, tmp, vertexidx, "");
-	LLVMBuildStore(builder, tmp, ctx->gs_next_vertex[stream]);
 
 	const LLVMValueRef vertexptr =
 		ngg_gs_emit_vertex_ptr(ctx, get_thread_id_in_tg(ctx), vertexidx);
@@ -3358,6 +3319,13 @@ static void gfx10_ngg_gs_emit_vertex(struct radv_shader_context *ctx,
 		}
 	}
 	assert(out_idx * 4 <= ctx->args->shader_info->gs.gsvs_vertex_size);
+
+	/* Store the current number of emitted vertices to zero out remaining
+	 * primitive flags in case the geometry shader doesn't emit the maximum
+	 * number of vertices.
+	 */
+	tmp = LLVMBuildAdd(builder, vertexidx, ctx->ac.i32_1, "");
+	LLVMBuildStore(builder, tmp, ctx->gs_next_vertex[stream]);
 
 	/* Determine and store whether this vertex completed a primitive. */
 	const LLVMValueRef curverts = LLVMBuildLoad(builder, ctx->gs_curprim_verts[stream], "");
@@ -3395,8 +3363,6 @@ static void gfx10_ngg_gs_emit_vertex(struct radv_shader_context *ctx,
 	tmp = LLVMBuildLoad(builder, ctx->gs_generated_prims[stream], "");
 	tmp = LLVMBuildAdd(builder, tmp, LLVMBuildZExt(builder, iscompleteprim, ctx->ac.i32, ""), "");
 	LLVMBuildStore(builder, tmp, ctx->gs_generated_prims[stream]);
-
-	ac_build_endif(&ctx->ac, 9001);
 }
 
 static void
@@ -3948,7 +3914,7 @@ LLVMModuleRef ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm,
 
 	ctx.abi.inputs = &ctx.inputs[0];
 	ctx.abi.emit_outputs = handle_shader_outputs_post;
-	ctx.abi.emit_vertex = visit_emit_vertex;
+	ctx.abi.emit_vertex_with_counter = visit_emit_vertex_with_counter;
 	ctx.abi.load_ubo = radv_load_ubo;
 	ctx.abi.load_ssbo = radv_load_ssbo;
 	ctx.abi.load_sampler_desc = radv_get_sampler_desc;

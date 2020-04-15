@@ -212,7 +212,7 @@ st_bind_ubos(struct st_context *st, struct gl_program *prog,
          &st->ctx->UniformBufferBindings[prog->sh.UniformBlocks[i]->Binding];
       st_obj = st_buffer_object(binding->BufferObject);
 
-      cb.buffer = st_obj->buffer;
+      cb.buffer = st_obj ? st_obj->buffer : NULL;
 
       if (cb.buffer) {
          cb.buffer_offset = binding->Offset;

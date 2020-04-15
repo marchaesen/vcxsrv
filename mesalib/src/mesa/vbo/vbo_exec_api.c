@@ -1013,10 +1013,7 @@ vbo_exec_vtx_init(struct vbo_exec_context *exec, bool use_buffer_objects)
       assert(exec->vtx.buffer_ptr);
    } else {
       /* Use allocated memory for immediate mode. */
-      _mesa_reference_buffer_object(ctx,
-                                    &exec->vtx.bufferobj,
-                                    ctx->Shared->NullBufferObj);
-
+      exec->vtx.bufferobj = NULL;
       exec->vtx.buffer_map =
          _mesa_align_malloc(ctx->Const.glBeginEndBufferSize, 64);
       exec->vtx.buffer_ptr = exec->vtx.buffer_map;
@@ -1039,9 +1036,9 @@ vbo_exec_vtx_destroy(struct vbo_exec_context *exec)
    /* True VBOs should already be unmapped
     */
    if (exec->vtx.buffer_map) {
-      assert(exec->vtx.bufferobj->Name == 0 ||
+      assert(!exec->vtx.bufferobj ||
              exec->vtx.bufferobj->Name == IMM_BUFFER_NAME);
-      if (exec->vtx.bufferobj->Name == 0) {
+      if (!exec->vtx.bufferobj) {
          _mesa_align_free(exec->vtx.buffer_map);
          exec->vtx.buffer_map = NULL;
          exec->vtx.buffer_ptr = NULL;
@@ -1050,7 +1047,8 @@ vbo_exec_vtx_destroy(struct vbo_exec_context *exec)
 
    /* Free the vertex buffer.  Unmap first if needed.
     */
-   if (_mesa_bufferobj_mapped(exec->vtx.bufferobj, MAP_INTERNAL)) {
+   if (exec->vtx.bufferobj &&
+       _mesa_bufferobj_mapped(exec->vtx.bufferobj, MAP_INTERNAL)) {
       ctx->Driver.UnmapBuffer(ctx, exec->vtx.bufferobj, MAP_INTERNAL);
    }
    _mesa_reference_buffer_object(ctx, &exec->vtx.bufferobj, NULL);

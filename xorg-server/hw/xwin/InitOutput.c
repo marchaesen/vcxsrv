@@ -63,6 +63,7 @@ typedef HRESULT  (__stdcall *  SHGETFOLDERPATHPROC)(HWND hwndOwner,
 #include "glx/glwindows.h"
 #include "dri/windowsdri.h"
 #endif
+#include "winauth.h"
 
 /*
  * References to external symbols
@@ -834,9 +835,6 @@ winUseMsg(void)
            "\tDo not draw a window border, title bar, etc.  Windowed\n"
            "\tmode only i.e. ignored when -fullscreen specified.\n");
 
-    ErrorF("-nounicodeclipboard\n"
-           "\tDisable Unicode in the clipboard.\n");
-
     ErrorF("-[no]primary\n"
            "\tWhen clipboard integration is enabled, map the X11 PRIMARY selection\n"
            "\tto the Windows clipboard. Default is enabled.\n");
@@ -1064,24 +1062,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
     if (g_fXdmcpEnabled || g_fAuthEnabled)
         winGenerateAuthorization();
 
-    /* Perform some one time initialization */
-    if (1 == serverGeneration) {
-        /*
-         * setlocale applies to all threads in the current process.
-         * Apply locale specified in LANG environment variable.
-         */
-        if (!setlocale (LC_ALL, ""))
-          {
-            ErrorF ("setlocale failed.\n");
-          }
-
-        /* See if X supports the current locale */
-        if (XSupportsLocale () == FALSE)
-          {
-            ErrorF ("Warning: Locale not supported by X, falling back to 'C' locale.\n");
-            setlocale(LC_ALL, "C");
-          }
-    }
 
     winDebug("InitOutput - Returning.\n");
 }

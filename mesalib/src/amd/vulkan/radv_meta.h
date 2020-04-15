@@ -167,14 +167,14 @@ void radv_meta_clear_image_cs(struct radv_cmd_buffer *cmd_buffer,
 			      struct radv_meta_blit2d_surf *dst,
 			      const VkClearColorValue *clear_color);
 
-void radv_decompress_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
-					 struct radv_image *image,
-					 const VkImageSubresourceRange *subresourceRange,
-					 struct radv_sample_locations_state *sample_locs);
-void radv_resummarize_depth_image_inplace(struct radv_cmd_buffer *cmd_buffer,
-					  struct radv_image *image,
-					  const VkImageSubresourceRange *subresourceRange,
-					  struct radv_sample_locations_state *sample_locs);
+void radv_decompress_depth_stencil(struct radv_cmd_buffer *cmd_buffer,
+				   struct radv_image *image,
+				   const VkImageSubresourceRange *subresourceRange,
+				   struct radv_sample_locations_state *sample_locs);
+void radv_resummarize_depth_stencil(struct radv_cmd_buffer *cmd_buffer,
+				    struct radv_image *image,
+				    const VkImageSubresourceRange *subresourceRange,
+				    struct radv_sample_locations_state *sample_locs);
 void radv_fast_clear_flush_image_inplace(struct radv_cmd_buffer *cmd_buffer,
 					 struct radv_image *image,
 					 const VkImageSubresourceRange *subresourceRange);

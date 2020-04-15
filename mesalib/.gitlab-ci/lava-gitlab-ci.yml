@@ -58,6 +58,7 @@
   dependencies:
     - meson-armhf
   needs:
+    - arm_build
     - meson-armhf
 
 .lava-test:arm64:
@@ -72,6 +73,7 @@
   dependencies:
     - meson-arm64
   needs:
+    - arm_build
     - meson-arm64
 
 panfrost-t720-gles2:arm64:

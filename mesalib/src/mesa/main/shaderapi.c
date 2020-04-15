@@ -1265,7 +1265,7 @@ update_programs_in_pipeline(GLuint key, void *data, void *userData)
    for (unsigned stage = 0; stage < MESA_SHADER_STAGES; stage++) {
       if (obj->CurrentProgram[stage] &&
           obj->CurrentProgram[stage]->Id == params->shProg->Name) {
-         struct gl_program *prog = prog = params->shProg->_LinkedShaders[stage]->Program;
+         struct gl_program *prog = params->shProg->_LinkedShaders[stage]->Program;
          _mesa_use_program(params->ctx, stage, params->shProg, prog, obj);
       }
    }

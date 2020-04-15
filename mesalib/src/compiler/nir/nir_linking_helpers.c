@@ -50,7 +50,7 @@ get_variable_io_mask(nir_variable *var, gl_shader_stage stage)
    assert(var->data.location >= 0);
 
    const struct glsl_type *type = var->type;
-   if (nir_is_per_vertex_io(var, stage)) {
+   if (nir_is_per_vertex_io(var, stage) || var->data.per_view) {
       assert(glsl_type_is_array(type));
       type = glsl_get_array_element(type);
    }
@@ -279,7 +279,7 @@ get_unmoveable_components_masks(struct exec_list *var_list,
           var->data.location - VARYING_SLOT_VAR0 < MAX_VARYINGS_INCL_PATCH) {
 
          const struct glsl_type *type = var->type;
-         if (nir_is_per_vertex_io(var, stage)) {
+         if (nir_is_per_vertex_io(var, stage) || var->data.per_view) {
             assert(glsl_type_is_array(type));
             type = glsl_get_array_element(type);
          }
@@ -376,7 +376,7 @@ remap_slots_and_components(struct exec_list *var_list, gl_shader_stage stage,
           var->data.location - VARYING_SLOT_VAR0 < MAX_VARYINGS_INCL_PATCH) {
 
          const struct glsl_type *type = var->type;
-         if (nir_is_per_vertex_io(var, stage)) {
+         if (nir_is_per_vertex_io(var, stage) || var->data.per_view) {
             assert(glsl_type_is_array(type));
             type = glsl_get_array_element(type);
          }
@@ -500,7 +500,7 @@ gather_varying_component_info(nir_shader *producer, nir_shader *consumer,
             continue;
 
          const struct glsl_type *type = var->type;
-         if (nir_is_per_vertex_io(var, producer->info.stage)) {
+         if (nir_is_per_vertex_io(var, producer->info.stage) || var->data.per_view) {
             assert(glsl_type_is_array(type));
             type = glsl_get_array_element(type);
          }
@@ -557,7 +557,8 @@ gather_varying_component_info(nir_shader *producer, nir_shader *consumer,
 
          if (!vc_info->initialised) {
             const struct glsl_type *type = in_var->type;
-            if (nir_is_per_vertex_io(in_var, consumer->info.stage)) {
+            if (nir_is_per_vertex_io(in_var, consumer->info.stage) ||
+                in_var->data.per_view) {
                assert(glsl_type_is_array(type));
                type = glsl_get_array_element(type);
             }
@@ -1096,7 +1097,7 @@ nir_assign_io_var_locations(struct exec_list *var_list, unsigned *size,
    bool last_partial = false;
    nir_foreach_variable(var, var_list) {
       const struct glsl_type *type = var->type;
-      if (nir_is_per_vertex_io(var, stage)) {
+      if (nir_is_per_vertex_io(var, stage) || var->data.per_view) {
          assert(glsl_type_is_array(type));
          type = glsl_get_array_element(type);
       }

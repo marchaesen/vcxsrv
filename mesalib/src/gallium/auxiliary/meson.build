@@ -46,6 +46,7 @@ files_libgallium = files(
   'draw/draw_pipe_stipple.c',
   'draw/draw_pipe_twoside.c',
   'draw/draw_pipe_unfilled.c',
+  'draw/draw_pipe_user_cull.c',
   'draw/draw_pipe_util.c',
   'draw/draw_pipe_validate.c',
   'draw/draw_pipe_vbuf.c',
@@ -246,7 +247,6 @@ files_libgallium = files(
   'util/u_debug_image.h',
   'util/u_debug_refcnt.c',
   'util/u_debug_refcnt.h',
-  'util/u_debug_stack.c',
   'util/u_debug_stack.h',
   'util/u_debug_symbol.c',
   'util/u_debug_symbol.h',
@@ -338,6 +338,16 @@ files_libgallium = files(
   'nir/nir_draw_helpers.c',
   'nir/nir_draw_helpers.h',
 )
+
+if with_platform_android
+  files_libgallium += files(
+    'util/u_debug_stack_android.cpp',
+  )
+else
+  files_libgallium += files(
+    'util/u_debug_stack.c',
+  )
+endif
 
 if dep_libdrm.found()
   files_libgallium += files(

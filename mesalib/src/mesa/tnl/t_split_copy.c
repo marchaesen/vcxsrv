@@ -146,13 +146,10 @@ check_flush(struct copy_context *copy)
  * Dump the parameters/info for a vbo->draw() call.
  */
 static void
-dump_draw_info(struct gl_context *ctx,
-               const struct tnl_vertex_array *arrays,
+dump_draw_info(const struct tnl_vertex_array *arrays,
                const struct _mesa_prim *prims,
                GLuint nr_prims,
-               const struct _mesa_index_buffer *ib,
-               GLuint min_index,
-               GLuint max_index)
+               const struct _mesa_index_buffer *ib)
 {
    GLuint i, j;
 
@@ -192,13 +189,10 @@ flush(struct copy_context *copy)
    copy->dstib.count = copy->dstelt_nr;
 
 #if 0
-   dump_draw_info(copy->ctx,
-                  copy->dstarray,
+   dump_draw_info(copy->dstarray,
                   copy->dstprim,
                   copy->dstprim_nr,
-                  &copy->dstib,
-                  0,
-                  copy->dstbuf_nr);
+                  &copy->dstib);
 #else
    (void) dump_draw_info;
 #endif
@@ -212,8 +206,7 @@ flush(struct copy_context *copy)
               0,
               copy->dstbuf_nr - 1,
               1,
-              0,
-              NULL, 0);
+              0);
 
    /* Reset all pointers:
     */
@@ -455,13 +448,17 @@ replay_init(struct copy_context *copy)
          copy->varying[j].size = attrib->Format._ElementSize;
          copy->vertex_size += attrib->Format._ElementSize;
 
-         if (_mesa_is_bufferobj(vbo) &&
-             !_mesa_bufferobj_mapped(vbo, MAP_INTERNAL))
-            ctx->Driver.MapBufferRange(ctx, 0, vbo->Size, GL_MAP_READ_BIT, vbo,
-                                       MAP_INTERNAL);
+         if (vbo) {
+            if (!_mesa_bufferobj_mapped(vbo, MAP_INTERNAL)) {
+               ctx->Driver.MapBufferRange(ctx, 0, vbo->Size, GL_MAP_READ_BIT, vbo,
+                                          MAP_INTERNAL);
+            }
 
-         copy->varying[j].src_ptr =
-               ADD_POINTERS(vbo->Mappings[MAP_INTERNAL].Pointer, ptr);
+            copy->varying[j].src_ptr =
+                  ADD_POINTERS(vbo->Mappings[MAP_INTERNAL].Pointer, ptr);
+         } else {
+            copy->varying[j].src_ptr = ptr;
+         }
 
          copy->dstarray[i].VertexAttrib = &copy->varying[j].dstattribs;
          copy->dstarray[i].BufferBinding = &copy->varying[j].dstbinding;
@@ -472,14 +469,16 @@ replay_init(struct copy_context *copy)
     * caller convert non-indexed prims to indexed.  Could alternately
     * do it internally.
     */
-   if (_mesa_is_bufferobj(copy->ib->obj) &&
-       !_mesa_bufferobj_mapped(copy->ib->obj, MAP_INTERNAL))
-      ctx->Driver.MapBufferRange(ctx, 0, copy->ib->obj->Size, GL_MAP_READ_BIT,
-                                 copy->ib->obj, MAP_INTERNAL);
+   if (copy->ib->obj) {
+      if (!_mesa_bufferobj_mapped(copy->ib->obj, MAP_INTERNAL))
+         ctx->Driver.MapBufferRange(ctx, 0, copy->ib->obj->Size, GL_MAP_READ_BIT,
+                                    copy->ib->obj, MAP_INTERNAL);
 
-   srcptr = (const GLubyte *)
-            ADD_POINTERS(copy->ib->obj->Mappings[MAP_INTERNAL].Pointer,
-                         copy->ib->ptr);
+      srcptr = (const GLubyte *)
+         ADD_POINTERS(copy->ib->obj->Mappings[MAP_INTERNAL].Pointer,
+                      copy->ib->ptr);
+   } else
+      srcptr = copy->ib->ptr;
 
    switch (copy->ib->index_size_shift) {
    case 0:
@@ -532,7 +531,7 @@ replay_init(struct copy_context *copy)
       dstattr->Format = srcattr->Format;
       dstattr->Ptr = copy->dstbuf + offset;
       dstbind->Stride = copy->vertex_size;
-      dstbind->BufferObj = ctx->Shared->NullBufferObj;
+      dstbind->BufferObj = NULL;
       dst->BufferBinding = dstbind;
       dst->VertexAttrib = dstattr;
 
@@ -551,7 +550,7 @@ replay_init(struct copy_context *copy)
     */
    copy->dstib.count = 0;        /* duplicates dstelt_nr */
    copy->dstib.index_size_shift = 2;
-   copy->dstib.obj = ctx->Shared->NullBufferObj;
+   copy->dstib.obj = NULL;
    copy->dstib.ptr = copy->dstelt;
 }
 
@@ -574,12 +573,12 @@ replay_finish(struct copy_context *copy)
    for (i = 0; i < copy->nr_varying; i++) {
       struct gl_buffer_object *vbo =
          copy->varying[i].array->BufferBinding->BufferObj;
-      if (_mesa_is_bufferobj(vbo) && _mesa_bufferobj_mapped(vbo, MAP_INTERNAL))
+      if (vbo && _mesa_bufferobj_mapped(vbo, MAP_INTERNAL))
          ctx->Driver.UnmapBuffer(ctx, vbo, MAP_INTERNAL);
    }
 
    /* Unmap index buffer */
-   if (_mesa_is_bufferobj(copy->ib->obj) &&
+   if (copy->ib->obj &&
        _mesa_bufferobj_mapped(copy->ib->obj, MAP_INTERNAL)) {
       ctx->Driver.UnmapBuffer(ctx, copy->ib->obj, MAP_INTERNAL);
    }

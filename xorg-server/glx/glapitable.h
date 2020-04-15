@@ -1652,6 +1652,7 @@ struct _glapi_table
    void (GLAPIENTRYP EGLImageTargetTexStorageEXT)(GLenum target, GLvoid * image, const GLint * attrib_list); /* 1605 */
    void (GLAPIENTRYP EGLImageTargetTextureStorageEXT)(GLuint texture, GLvoid * image, const GLint * attrib_list); /* 1606 */
    void (GLAPIENTRYP CopyImageSubDataNV)(GLuint srcName, GLenum srcTarget, GLint srcLevel, GLint srcX, GLint srcY, GLint srcZ, GLuint dstName, GLenum dstTarget, GLint dstLevel, GLint dstX, GLint dstY, GLint dstZ, GLsizei width, GLsizei height, GLsizei depth); /* 1607 */
+   void (GLAPIENTRYP ViewportSwizzleNV)(GLuint index, GLenum swizzlex, GLenum swizzley, GLenum swizzlez, GLenum swizzlew); /* 1608 */
 };
 
 #ifdef __cplusplus

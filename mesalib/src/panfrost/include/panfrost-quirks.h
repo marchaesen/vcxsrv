@@ -44,11 +44,14 @@
 
 #define MIDGARD_BROKEN_FP16 (1 << 2)
 
+/* What it says on the tin */
+#define IS_BIFROST (1 << 3)
+
 /* Quirk collections common to particular uarchs */
 
 #define MIDGARD_QUIRKS (MIDGARD_BROKEN_FP16)
 
-#define BIFROST_QUIRKS (0)
+#define BIFROST_QUIRKS (IS_BIFROST)
 
 static inline unsigned
 panfrost_get_quirks(unsigned gpu_id)

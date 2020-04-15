@@ -736,6 +736,7 @@ ttn_src_for_file_and_index(struct ttn_compile *c, unsigned file, unsigned index,
          }
          /* UBO offsets are in bytes, but TGSI gives them to us in vec4's */
          offset = nir_ishl(b, offset, nir_imm_int(b, 4));
+         nir_intrinsic_set_align(load, 16, 0);
       } else {
          nir_intrinsic_set_base(load, index);
          if (indirect) {

@@ -48,6 +48,8 @@ delete_variant(struct ir3_shader_variant *v)
 		ir3_destroy(v->ir);
 	if (v->bo)
 		fd_bo_del(v->bo);
+	if (v->binning)
+		delete_variant(v->binning);
 	free(v);
 }
 
@@ -506,11 +508,12 @@ ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
 	fprintf(out, "\n");
 
 	/* print generic shader info: */
-	fprintf(out, "; %s prog %d/%d: %u instr, %u nops, %u non-nops, %u dwords\n",
+	fprintf(out, "; %s prog %d/%d: %u instr, %u nops, %u non-nops, %u mov, %u cov, %u dwords\n",
 			type, so->shader->id, so->id,
 			so->info.instrs_count,
 			so->info.nops_count,
 			so->info.instrs_count - so->info.nops_count,
+			so->info.mov_count, so->info.cov_count,
 			so->info.sizedwords);
 
 	fprintf(out, "; %s prog %d/%d: %u last-baryf, %d half, %d full, %u constlen\n",

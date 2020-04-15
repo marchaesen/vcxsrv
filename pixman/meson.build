@@ -51,7 +51,7 @@ endforeach
 
 use_loongson_mmi = get_option('loongson-mmi')
 have_loongson_mmi = false
-loongson_mmi_flags = ['-march=loongson2f']
+loongson_mmi_flags = ['-mloongson-mmi']
 if not use_loongson_mmi.disabled()
   if host_machine.cpu_family() == 'mips64' and cc.compiles('''
       #ifndef __mips_loongson_vector_rev
