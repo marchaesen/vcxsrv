@@ -185,12 +185,6 @@ enum bi_round_op {
 enum bi_special_op {
         BI_SPECIAL_FRCP,
         BI_SPECIAL_FRSQ,
-        BI_SPECIAL_FATAN,
-        BI_SPECIAL_FSIN,
-        BI_SPECIAL_FCOS,
-        BI_SPECIAL_FEXP,
-        BI_SPECIAL_FLOG2,
-        BI_SPECIAL_FLOGE
 };
 
 typedef struct {

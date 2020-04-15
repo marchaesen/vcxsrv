@@ -783,7 +783,25 @@ util_fpstate_set_denorms_to_zero(unsigned current_fpstate);
 void
 util_fpstate_set(unsigned fpstate);
 
-
+/**
+ * For indexed draw calls, return true if the vertex count to be drawn is
+ * much lower than the vertex count that has to be uploaded, meaning
+ * that the driver should flatten indices instead of trying to upload
+ * a too big range.
+ *
+ * This is used by vertex upload code in u_vbuf and glthread.
+ */
+static inline bool
+util_is_vbo_upload_ratio_too_large(unsigned draw_vertex_count,
+                                   unsigned upload_vertex_count)
+{
+   if (draw_vertex_count > 1024)
+      return upload_vertex_count > draw_vertex_count * 4;
+   else if (draw_vertex_count > 32)
+      return upload_vertex_count > draw_vertex_count * 8;
+   else
+      return upload_vertex_count > draw_vertex_count * 16;
+}
 
 #ifdef __cplusplus
 }

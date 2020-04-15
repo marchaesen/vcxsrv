@@ -264,7 +264,7 @@ ra_block_find_definers(struct ir3_ra_ctx *ctx, struct ir3_block *block)
 		if (instr->regs_count == 0)
 			continue;
 		/* couple special cases: */
-		if (writes_addr(instr) || writes_pred(instr)) {
+		if (writes_addr0(instr) || writes_addr1(instr) || writes_pred(instr)) {
 			id->cls = -1;
 		} else if (instr->regs[0]->flags & IR3_REG_ARRAY) {
 			id->cls = total_class_count;
@@ -441,11 +441,11 @@ ra_select_reg_merged(unsigned int n, BITSET_WORD *regs, void *data)
 	if (!ctx->scalar_pass) {
 		base = ctx->set->gpr_to_ra_reg[class][0];
 		if (high) {
-			max_target = HIGH_CLASS_REGS(sz);
+			max_target = HIGH_CLASS_REGS(class - HIGH_OFFSET);
 		} else if (half) {
-			max_target = HALF_CLASS_REGS(sz);
+			max_target = HALF_CLASS_REGS(class - HALF_OFFSET);
 		} else {
-			max_target = CLASS_REGS(sz);
+			max_target = CLASS_REGS(class);
 		}
 
 		if ((sz == 1) && !high) {
@@ -478,9 +478,16 @@ ra_select_reg_merged(unsigned int n, BITSET_WORD *regs, void *data)
 	 * for write after read hazards:
 	 */
 	struct ir3_instruction *instr = name_to_instr(ctx, n);
-	if (is_sfu(instr) && instr->regs[1]->instr) {
-		struct ir3_instruction *src = instr->regs[1]->instr;
-		unsigned src_n = scalar_name(ctx, src, 0);
+	if (is_sfu(instr)) {
+		struct ir3_register *src = instr->regs[1];
+		int src_n;
+
+		if ((src->flags & IR3_REG_ARRAY) && !(src->flags & IR3_REG_RELATIV)) {
+			struct ir3_array *arr = ir3_lookup_array(ctx->ir, src->array.id);
+			src_n = arr->base + src->array.offset;
+		} else {
+			src_n = scalar_name(ctx, src->instr, 0);
+		}
 
 		unsigned reg = ra_get_node_reg(ctx->g, src_n);
 

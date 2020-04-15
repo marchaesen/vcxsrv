@@ -1072,8 +1072,7 @@ _mesa_init_texture(struct gl_context *ctx)
       return GL_FALSE;
 
    /* GL_ARB_texture_buffer_object */
-   _mesa_reference_buffer_object(ctx, &ctx->Texture.BufferObject,
-                                 ctx->Shared->NullBufferObj);
+   _mesa_reference_buffer_object(ctx, &ctx->Texture.BufferObject, NULL);
 
    ctx->Texture.NumCurrentTexUsed = 0;
 

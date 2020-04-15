@@ -1433,8 +1433,7 @@ void u_vbuf_draw_vbo(struct u_vbuf *mgr, const struct pipe_draw_info *info)
           * performance. */
          if (!info->indirect &&
              !new_info.primitive_restart &&
-             num_vertices > new_info.count * 4 &&
-             new_info.count > 32 &&
+             util_is_vbo_upload_ratio_too_large(new_info.count, num_vertices) &&
              !u_vbuf_mapping_vertex_buffer_blocks(mgr)) {
             unroll_indices = TRUE;
             user_vb_mask &= ~(mgr->nonzero_stride_vb_mask &

@@ -1536,7 +1536,7 @@ unpack_image(struct gl_context *ctx, GLuint dimensions,
       return NULL;
    }
 
-   if (!_mesa_is_bufferobj(unpack->BufferObj)) {
+   if (!unpack->BufferObj) {
       /* no PBO */
       GLvoid *image;
 

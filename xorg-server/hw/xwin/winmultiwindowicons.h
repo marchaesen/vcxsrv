@@ -30,7 +30,7 @@
 #include <xcb/xcb.h>
 
 void
- winUpdateIcon(HWND hWnd, xcb_connection_t *conn, Window id, HICON hIconNew);
+ winUpdateIcon(HWND hWnd, xcb_connection_t *conn, xcb_window_t id, HICON hIconNew);
 
 void
  winInitGlobalIcons(void);

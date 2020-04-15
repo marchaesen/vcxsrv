@@ -110,4 +110,14 @@ _mesa_SubpixelPrecisionBiasNV_no_error(GLuint xbits, GLuint ybits);
 extern void GLAPIENTRY
 _mesa_SubpixelPrecisionBiasNV(GLuint xbits, GLuint ybits);
 
+extern void GLAPIENTRY
+_mesa_ViewportSwizzleNV_no_error(GLuint index,
+                                 GLenum swizzlex, GLenum swizzley,
+                                 GLenum swizzlez, GLenum swizzlew);
+
+extern void GLAPIENTRY
+_mesa_ViewportSwizzleNV(GLuint index,
+                        GLenum swizzlex, GLenum swizzley,
+                        GLenum swizzlez, GLenum swizzlew);
+
 #endif

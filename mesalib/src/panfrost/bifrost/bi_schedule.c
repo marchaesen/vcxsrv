@@ -156,6 +156,12 @@ bi_schedule(bi_context *ctx)
                                 u->data_register_write_barrier = true;
                         }
 
+                        if (ins->type == BI_ATEST)
+                                u->dependencies |= (1 << 6);
+
+                        if (ins->type == BI_BLEND)
+                                u->dependencies |= (1 << 6) | (1 << 7);
+
                         ids = ids & 1;
                         last_id = u->scoreboard_id;
                         u->back_to_back = false;

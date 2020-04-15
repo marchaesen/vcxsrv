@@ -1641,6 +1641,7 @@ offsets = {
     "EGLImageTargetTexStorageEXT" : 1605,
     "EGLImageTargetTextureStorageEXT" : 1606,
     "CopyImageSubDataNV": 1607,
+    "ViewportSwizzleNV": 1608,
 }
 
 functions = [

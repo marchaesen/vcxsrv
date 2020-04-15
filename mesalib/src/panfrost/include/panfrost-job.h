@@ -1019,14 +1019,6 @@ union midgard_primitive_size {
         u64 pointer;
 };
 
-struct bifrost_vertex_only {
-        u32 unk2; /* =0x2 */
-
-        u32 zero0;
-
-        u64 zero1;
-} __attribute__((packed));
-
 struct bifrost_tiler_heap_meta {
         u32 zero;
         u32 heap_size;
@@ -1058,13 +1050,25 @@ struct bifrost_tiler_only {
         mali_ptr tiler_meta;
 
         u64 zero1, zero2, zero3, zero4, zero5, zero6;
-
-        u32 gl_enables;
-        u32 zero7;
-        u64 zero8;
 } __attribute__((packed));
 
 struct mali_vertex_tiler_postfix {
+        u16 gl_enables; // 0x6 on Midgard, 0x2 on Bifrost
+
+        /* Both zero for non-instanced draws. For instanced draws, a
+         * decomposition of padded_num_vertices. See the comments about the
+         * corresponding fields in mali_attr for context. */
+
+        unsigned instance_shift : 5;
+        unsigned instance_odd : 3;
+
+        u8 zero4;
+
+        /* Offset for first vertex in buffer */
+        u32 offset_start;
+
+	u64 zero5;
+
         /* Zero for vertex jobs. Pointer to the position (gl_Position) varying
          * output from the vertex shader for tiler jobs.
          */
@@ -1105,23 +1109,6 @@ struct mali_vertex_tiler_postfix {
 
 struct midgard_payload_vertex_tiler {
         struct mali_vertex_tiler_prefix prefix;
-
-        u16 gl_enables; // 0x5
-
-        /* Both zero for non-instanced draws. For instanced draws, a
-         * decomposition of padded_num_vertices. See the comments about the
-         * corresponding fields in mali_attr for context. */
-
-        unsigned instance_shift : 5;
-        unsigned instance_odd : 3;
-
-        u8 zero4;
-
-        /* Offset for first vertex in buffer */
-        u32 offset_start;
-
-	u64 zero5;
-
         struct mali_vertex_tiler_postfix postfix;
 
         union midgard_primitive_size primitive_size;
@@ -1129,7 +1116,6 @@ struct midgard_payload_vertex_tiler {
 
 struct bifrost_payload_vertex {
         struct mali_vertex_tiler_prefix prefix;
-        struct bifrost_vertex_only vertex;
         struct mali_vertex_tiler_postfix postfix;
 } __attribute__((packed));
 
@@ -1144,7 +1130,6 @@ struct bifrost_payload_fused {
         struct bifrost_tiler_only tiler;
         struct mali_vertex_tiler_postfix tiler_postfix;
         u64 padding; /* zero */
-        struct bifrost_vertex_only vertex;
         struct mali_vertex_tiler_postfix vertex_postfix;
 } __attribute__((packed));
 
@@ -1717,7 +1702,13 @@ struct mali_framebuffer {
         u32 mfbd_flags : 24; // = 0x100
         float clear_depth;
 
-        struct midgard_tiler_descriptor tiler;
+        union {
+                struct midgard_tiler_descriptor tiler;
+                struct {
+                        mali_ptr tiler_meta;
+                        u32 zeros[16];
+                };
+        };
 
         /* optional: struct mali_framebuffer_extra  extra */
         /* struct mali_render_target rts[] */

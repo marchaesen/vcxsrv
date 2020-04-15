@@ -3938,7 +3938,16 @@ static void visit_intrinsic(struct ac_nir_context *ctx,
 	case nir_intrinsic_emit_vertex:
 		ctx->abi->emit_vertex(ctx->abi, nir_intrinsic_stream_id(instr), ctx->abi->outputs);
 		break;
+	case nir_intrinsic_emit_vertex_with_counter: {
+		unsigned stream = nir_intrinsic_stream_id(instr);
+		LLVMValueRef next_vertex = get_src(ctx, instr->src[0]);
+		ctx->abi->emit_vertex_with_counter(ctx->abi, stream,
+						   next_vertex,
+						   ctx->abi->outputs);
+		break;
+	}
 	case nir_intrinsic_end_primitive:
+	case nir_intrinsic_end_primitive_with_counter:
 		ctx->abi->emit_primitive(ctx->abi, nir_intrinsic_stream_id(instr));
 		break;
 	case nir_intrinsic_load_tess_coord:

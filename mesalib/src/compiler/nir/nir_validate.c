@@ -570,30 +570,44 @@ validate_intrinsic_instr(nir_intrinsic_instr *instr, validate_state *state)
       break;
    }
 
-   case nir_intrinsic_load_uniform:
    case nir_intrinsic_load_ubo:
+   case nir_intrinsic_load_ssbo:
+   case nir_intrinsic_load_shared:
+   case nir_intrinsic_load_global:
+   case nir_intrinsic_load_scratch:
+      /* These memory load operations must have alignments */
+      validate_assert(state,
+         util_is_power_of_two_nonzero(nir_intrinsic_align_mul(instr)));
+      validate_assert(state, nir_intrinsic_align_offset(instr) <
+                             nir_intrinsic_align_mul(instr));
+      /* Fall through */
+
+   case nir_intrinsic_load_uniform:
    case nir_intrinsic_load_input:
    case nir_intrinsic_load_per_vertex_input:
    case nir_intrinsic_load_interpolated_input:
-   case nir_intrinsic_load_ssbo:
    case nir_intrinsic_load_output:
    case nir_intrinsic_load_per_vertex_output:
-   case nir_intrinsic_load_shared:
    case nir_intrinsic_load_push_constant:
    case nir_intrinsic_load_constant:
-   case nir_intrinsic_load_global:
-   case nir_intrinsic_load_scratch:
-      /* Memory load operations must load at least a byte */
+      /* All memory load operations must load at least a byte */
       validate_assert(state, nir_dest_bit_size(instr->dest) >= 8);
       break;
 
-   case nir_intrinsic_store_output:
-   case nir_intrinsic_store_per_vertex_output:
    case nir_intrinsic_store_ssbo:
    case nir_intrinsic_store_shared:
    case nir_intrinsic_store_global:
    case nir_intrinsic_store_scratch:
-      /* Memory store operations must store at least a byte */
+      /* These memory store operations must also have alignments */
+      validate_assert(state,
+         util_is_power_of_two_nonzero(nir_intrinsic_align_mul(instr)));
+      validate_assert(state, nir_intrinsic_align_offset(instr) <
+                             nir_intrinsic_align_mul(instr));
+      /* Fall through */
+
+   case nir_intrinsic_store_output:
+   case nir_intrinsic_store_per_vertex_output:
+      /* All memory store operations must store at least a byte */
       validate_assert(state, nir_src_bit_size(instr->src[0]) >= 8);
       break;
 
@@ -1119,6 +1133,9 @@ validate_var_decl(nir_variable *var, nir_variable_mode valid_modes,
       validate_assert(state, var->num_members == glsl_get_length(without_array));
       validate_assert(state, var->members != NULL);
    }
+
+   if (var->data.per_view)
+      validate_assert(state, glsl_type_is_array(var->type));
 
    /*
     * TODO validate some things ir_validate.cpp does (requires more GLSL type

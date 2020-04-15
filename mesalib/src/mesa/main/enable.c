@@ -44,13 +44,14 @@
 #include "varray.h"
 
 
-static void
-update_derived_primitive_restart_state(struct gl_context *ctx)
+void
+_mesa_update_derived_primitive_restart_state(struct gl_context *ctx)
 {
-   /* Update derived primitive restart state.
-    */
-   ctx->Array._PrimitiveRestart = ctx->Array.PrimitiveRestart
-      || ctx->Array.PrimitiveRestartFixedIndex;
+   ctx->Array._PrimitiveRestart = ctx->Array.PrimitiveRestart ||
+                                  ctx->Array.PrimitiveRestartFixedIndex;
+   ctx->Array._RestartIndex[0] = _mesa_primitive_restart_index(ctx, 1);
+   ctx->Array._RestartIndex[1] = _mesa_primitive_restart_index(ctx, 2);
+   ctx->Array._RestartIndex[3] = _mesa_primitive_restart_index(ctx, 4);
 }
 
 
@@ -118,7 +119,7 @@ client_state(struct gl_context *ctx, struct gl_vertex_array_object* vao,
 
          FLUSH_VERTICES(ctx, 0);
          ctx->Array.PrimitiveRestart = state;
-         update_derived_primitive_restart_state(ctx);
+         _mesa_update_derived_primitive_restart_state(ctx);
          return;
 
       default:
@@ -1200,7 +1201,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          if (ctx->Array.PrimitiveRestart != state) {
             FLUSH_VERTICES(ctx, 0);
             ctx->Array.PrimitiveRestart = state;
-            update_derived_primitive_restart_state(ctx);
+            _mesa_update_derived_primitive_restart_state(ctx);
          }
          break;
 
@@ -1210,7 +1211,7 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
          if (ctx->Array.PrimitiveRestartFixedIndex != state) {
             FLUSH_VERTICES(ctx, 0);
             ctx->Array.PrimitiveRestartFixedIndex = state;
-            update_derived_primitive_restart_state(ctx);
+            _mesa_update_derived_primitive_restart_state(ctx);
          }
          break;
 

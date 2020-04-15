@@ -293,6 +293,10 @@ lower_io_arrays_to_elements(nir_shader *shader, nir_variable_mode mask,
                if (var->data.compact)
                   continue;
 
+               /* Per-view variables are expected to remain arrays. */
+               if (var->data.per_view)
+                  continue;
+
                /* Skip indirects */
                int loc = var->data.location * 4 + var->data.location_frac;
                if (BITSET_TEST(indirects, loc))

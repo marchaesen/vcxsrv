@@ -261,7 +261,7 @@ void validate(Program* program, FILE * output)
                }
             } else if (instr->opcode == aco_opcode::p_extract_vector) {
                check((instr->operands[0].isTemp()) && instr->operands[1].isConstant(), "Wrong Operand types", instr.get());
-               check(instr->operands[1].constantValue() < instr->operands[0].size(), "Index out of range", instr.get());
+               check((instr->operands[1].constantValue() + 1) * instr->definitions[0].bytes() <= instr->operands[0].bytes(), "Index out of range", instr.get());
                check(instr->definitions[0].getTemp().type() == RegType::vgpr || instr->operands[0].regClass().type() == RegType::sgpr,
                      "Cannot extract SGPR value from VGPR vector", instr.get());
             } else if (instr->opcode == aco_opcode::p_parallelcopy) {

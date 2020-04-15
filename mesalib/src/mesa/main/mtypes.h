@@ -1312,6 +1312,9 @@ struct gl_viewport_attrib
    GLfloat X, Y;		/**< position */
    GLfloat Width, Height;	/**< size */
    GLfloat Near, Far;		/**< Depth buffer range */
+
+   /**< GL_NV_viewport_swizzle */
+   GLenum16 SwizzleX, SwizzleY, SwizzleZ, SwizzleW;
 };
 
 
@@ -1591,6 +1594,9 @@ struct gl_array_attrib
    /** The last VAO accessed by a DSA function */
    struct gl_vertex_array_object *LastLookedUpVAO;
 
+   /** These contents are copied to newly created VAOs. */
+   struct gl_vertex_array_object DefaultVAOState;
+
    /** Array objects (GL_ARB_vertex_array_object) */
    struct _mesa_HashTable *Objects;
 
@@ -1609,6 +1615,7 @@ struct gl_array_attrib
    GLboolean PrimitiveRestartFixedIndex;
    GLboolean _PrimitiveRestart;
    GLuint RestartIndex;
+   GLuint _RestartIndex[4]; /**< Restart indices for index_size - 1. */
    /*@}*/
 
    /* GL_ARB_vertex_buffer_object */
@@ -3310,9 +3317,6 @@ struct gl_shared_state
    GLuint TextureStateStamp;	        /**< state notification for shared tex */
    /*@}*/
 
-   /** Default buffer object for vertex arrays that aren't in VBOs */
-   struct gl_buffer_object *NullBufferObj;
-
    /**
     * \name Vertex/geometry/fragment programs
     */
@@ -4437,6 +4441,7 @@ struct gl_extensions
    GLboolean NV_conservative_raster_dilate;
    GLboolean NV_conservative_raster_pre_snap_triangles;
    GLboolean NV_conservative_raster_pre_snap;
+   GLboolean NV_viewport_swizzle;
    GLboolean NVX_gpu_memory_info;
    GLboolean TDFX_texture_compression_FXT1;
    GLboolean OES_EGL_image;

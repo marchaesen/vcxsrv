@@ -243,6 +243,18 @@ vk_format_is_srgb(VkFormat format)
    return util_format_is_srgb(vk_format_to_pipe_format(format));
 }
 
+static inline bool
+vk_format_is_snorm(VkFormat format)
+{
+   return util_format_is_snorm(vk_format_to_pipe_format(format));
+}
+
+static inline bool
+vk_format_is_float(VkFormat format)
+{
+   return util_format_is_float(vk_format_to_pipe_format(format));
+}
+
 static inline VkFormat
 vk_format_no_srgb(VkFormat format)
 {

@@ -399,21 +399,27 @@ free_zombie_shaders(struct st_context *st)
 
       switch (entry->type) {
       case PIPE_SHADER_VERTEX:
+         st->pipe->bind_vs_state(st->pipe, NULL);
          st->pipe->delete_vs_state(st->pipe, entry->shader);
          break;
       case PIPE_SHADER_FRAGMENT:
+         st->pipe->bind_fs_state(st->pipe, NULL);
          st->pipe->delete_fs_state(st->pipe, entry->shader);
          break;
       case PIPE_SHADER_GEOMETRY:
+         st->pipe->bind_gs_state(st->pipe, NULL);
          st->pipe->delete_gs_state(st->pipe, entry->shader);
          break;
       case PIPE_SHADER_TESS_CTRL:
+         st->pipe->bind_tcs_state(st->pipe, NULL);
          st->pipe->delete_tcs_state(st->pipe, entry->shader);
          break;
       case PIPE_SHADER_TESS_EVAL:
+         st->pipe->bind_tes_state(st->pipe, NULL);
          st->pipe->delete_tes_state(st->pipe, entry->shader);
          break;
       case PIPE_SHADER_COMPUTE:
+         st->pipe->bind_compute_state(st->pipe, NULL);
          st->pipe->delete_compute_state(st->pipe, entry->shader);
          break;
       default:
@@ -1064,12 +1070,12 @@ st_destroy_context(struct st_context *st)
    simple_mtx_destroy(&st->zombie_sampler_views.mutex);
    simple_mtx_destroy(&st->zombie_shaders.mutex);
 
-   st_reference_prog(st, &st->fp, NULL);
-   st_reference_prog(st, &st->gp, NULL);
-   st_reference_prog(st, &st->vp, NULL);
-   st_reference_prog(st, &st->tcp, NULL);
-   st_reference_prog(st, &st->tep, NULL);
-   st_reference_prog(st, &st->cp, NULL);
+   st_release_program(st, &st->fp);
+   st_release_program(st, &st->gp);
+   st_release_program(st, &st->vp);
+   st_release_program(st, &st->tcp);
+   st_release_program(st, &st->tep);
+   st_release_program(st, &st->cp);
 
    /* release framebuffer in the winsys buffers list */
    LIST_FOR_EACH_ENTRY_SAFE_REV(stfb, next, &st->winsys_buffers, head) {

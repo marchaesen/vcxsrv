@@ -2461,6 +2461,19 @@ radv_fill_shader_keys(struct radv_device *device,
 			keys[MESA_SHADER_TESS_EVAL].vs_common_out.as_ngg = false;
 		}
 
+		if (device->physical_device->use_aco) {
+			/* Disable NGG GS when ACO is used */
+			if (nir[MESA_SHADER_GEOMETRY]) {
+				if (nir[MESA_SHADER_TESS_CTRL])
+					keys[MESA_SHADER_TESS_EVAL].vs_common_out.as_ngg = false;
+				else
+					keys[MESA_SHADER_VERTEX].vs_common_out.as_ngg = false;
+			}
+
+			/* NGG streamout not yet supported by ACO */
+			assert(!device->physical_device->use_ngg_streamout);
+		}
+
 		gl_shader_stage last_xfb_stage = MESA_SHADER_VERTEX;
 
 		for (int i = MESA_SHADER_VERTEX; i <= MESA_SHADER_GEOMETRY; i++) {
@@ -3625,9 +3638,9 @@ radv_pipeline_generate_depth_stencil_state(struct radeon_cmdbuf *ctx_cs,
 		db_render_control |= S_028000_DEPTH_CLEAR_ENABLE(extra->db_depth_clear);
 		db_render_control |= S_028000_STENCIL_CLEAR_ENABLE(extra->db_stencil_clear);
 
-		db_render_control |= S_028000_RESUMMARIZE_ENABLE(extra->db_resummarize);
-		db_render_control |= S_028000_DEPTH_COMPRESS_DISABLE(extra->db_flush_depth_inplace);
-		db_render_control |= S_028000_STENCIL_COMPRESS_DISABLE(extra->db_flush_stencil_inplace);
+		db_render_control |= S_028000_RESUMMARIZE_ENABLE(extra->resummarize_enable);
+		db_render_control |= S_028000_DEPTH_COMPRESS_DISABLE(extra->depth_compress_disable);
+		db_render_control |= S_028000_STENCIL_COMPRESS_DISABLE(extra->stencil_compress_disable);
 		db_render_override2 |= S_028010_DISABLE_ZMASK_EXPCLEAR_OPTIMIZATION(extra->db_depth_disable_expclear);
 		db_render_override2 |= S_028010_DISABLE_SMEM_EXPCLEAR_OPTIMIZATION(extra->db_stencil_disable_expclear);
 	}

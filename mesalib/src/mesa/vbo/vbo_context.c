@@ -168,8 +168,7 @@ _vbo_CreateContext(struct gl_context *ctx, bool use_buffer_objects)
    vbo->binding.Offset = 0;
    vbo->binding.Stride = 0;
    vbo->binding.InstanceDivisor = 0;
-   _mesa_reference_buffer_object(ctx, &vbo->binding.BufferObj,
-                                 ctx->Shared->NullBufferObj);
+
    init_legacy_currval(ctx);
    init_generic_currval(ctx);
    init_mat_currval(ctx);
@@ -202,7 +201,6 @@ _vbo_DestroyContext(struct gl_context *ctx)
    struct vbo_context *vbo = vbo_context(ctx);
 
    if (vbo) {
-
       _mesa_reference_buffer_object(ctx, &vbo->binding.BufferObj, NULL);
 
       vbo_exec_destroy(ctx);

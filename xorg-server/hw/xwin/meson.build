@@ -132,7 +132,6 @@ srcs_windows += pfiles
 
 xwin_dep = [
     common_dep,
-    dependency('x11-xcb'),
     dependency('xcb-aux'),
     dependency('xcb-image'),
     dependency('xcb-ewmh'),

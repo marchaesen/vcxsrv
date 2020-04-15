@@ -1487,7 +1487,7 @@ st_TexSubImage(struct gl_context *ctx, GLuint dims,
 
    /* Try texture_subdata, which should be the fastest memcpy path. */
    if (pixels &&
-       !_mesa_is_bufferobj(unpack->BufferObj) &&
+       !unpack->BufferObj &&
        _mesa_texstore_can_use_memcpy(ctx, texImage->_BaseFormat,
                                      texImage->TexFormat, format, type,
                                      unpack)) {
@@ -1557,7 +1557,7 @@ st_TexSubImage(struct gl_context *ctx, GLuint dims,
       goto fallback;
    }
 
-   if (_mesa_is_bufferobj(unpack->BufferObj)) {
+   if (unpack->BufferObj) {
       if (try_pbo_upload(ctx, dims, texImage, format, type, dst_format,
                          xoffset, yoffset, zoffset,
                          width, height, depth, pixels, unpack))
@@ -1777,7 +1777,7 @@ st_CompressedTexSubImage(struct gl_context *ctx, GLuint dims,
       goto fallback;
    }
 
-   if (!_mesa_is_bufferobj(ctx->Unpack.BufferObj))
+   if (!ctx->Unpack.BufferObj)
       goto fallback;
 
    if (st_compressed_format_fallback(st, texImage->TexFormat))

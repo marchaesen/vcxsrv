@@ -27,12 +27,15 @@
 #ifndef WINCLIPBOARD_H
 #define WINCLIPBOARD_H
 
-Bool winClipboardProc(Bool fUseUnicode, char *szDisplay);
+#include <xcb/xcb.h>
+#include <X11/Xmd.h> // for BOOL type
+
+BOOL winClipboardProc(char *szDisplay, xcb_auth_info_t *auth_info);
 
 void winFixClipboardChain(void);
 
 void winClipboardWindowDestroy(void);
 
-extern Bool fPrimarySelection;
+extern BOOL fPrimarySelection;
 
 #endif

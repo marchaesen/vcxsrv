@@ -1607,6 +1607,7 @@ copy_array_attrib(struct gl_context *ctx,
    dest->PrimitiveRestartFixedIndex = src->PrimitiveRestartFixedIndex;
    dest->_PrimitiveRestart = src->_PrimitiveRestart;
    dest->RestartIndex = src->RestartIndex;
+   memcpy(dest->_RestartIndex, src->_RestartIndex, sizeof(src->_RestartIndex));
    /* skip NewState */
    /* skip RebindArrays */
 
@@ -1666,21 +1667,24 @@ restore_array_attrib(struct gl_context *ctx,
    _mesa_BindVertexArray(src->VAO->Name);
 
    /* Restore or recreate the buffer objects by the names ... */
-   if (is_vao_name_zero || src->ArrayBufferObj->Name == 0 ||
+   if (is_vao_name_zero || !src->ArrayBufferObj ||
        _mesa_IsBuffer(src->ArrayBufferObj->Name)) {
       /* ... and restore its content */
       copy_array_attrib(ctx, dest, src, false);
 
       _mesa_BindBuffer(GL_ARRAY_BUFFER_ARB,
-                       src->ArrayBufferObj->Name);
+                       src->ArrayBufferObj ?
+                          src->ArrayBufferObj->Name : 0);
    } else {
       copy_array_attrib(ctx, dest, src, true);
    }
 
-   if (is_vao_name_zero || src->VAO->IndexBufferObj->Name == 0 ||
-       _mesa_IsBuffer(src->VAO->IndexBufferObj->Name))
+   if (is_vao_name_zero || !src->VAO->IndexBufferObj ||
+       _mesa_IsBuffer(src->VAO->IndexBufferObj->Name)) {
       _mesa_BindBuffer(GL_ELEMENT_ARRAY_BUFFER_ARB,
-                       src->VAO->IndexBufferObj->Name);
+                       src->VAO->IndexBufferObj ?
+                          src->VAO->IndexBufferObj->Name : 0);
+   }
 }
 
 /**
@@ -1692,7 +1696,7 @@ init_array_attrib_data(struct gl_context *ctx,
                        struct gl_array_attrib *attrib)
 {
    /* Get a non driver gl_vertex_array_object. */
-   attrib->VAO = CALLOC_STRUCT(gl_vertex_array_object);
+   attrib->VAO = MALLOC_STRUCT(gl_vertex_array_object);
 
    if (attrib->VAO == NULL) {
       _mesa_error(ctx, GL_OUT_OF_MEMORY, "glPushClientAttrib");

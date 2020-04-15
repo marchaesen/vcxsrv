@@ -82,7 +82,7 @@ ir3_delayslots(struct ir3_instruction *assigner,
 	if (is_meta(assigner) || is_meta(consumer))
 		return 0;
 
-	if (writes_addr(assigner))
+	if (writes_addr0(assigner) || writes_addr1(assigner))
 		return 6;
 
 	/* On a6xx, it takes the number of delay slots to get a SFU result

@@ -59,6 +59,7 @@ apt-get install -y --no-remove \
       python3-pil \
       python3-requests \
       python3-yaml \
+      vulkan-tools \
       wget \
       xauth \
       xvfb

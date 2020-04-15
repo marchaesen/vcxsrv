@@ -31,3 +31,25 @@ libfreedreno_layout = static_library(
   build_by_default : false,
 )
 
+
+test(
+  'fd6_layout',
+  executable(
+    'fd6_layout',
+    [
+      'fd6_layout_test.c',
+      freedreno_xml_header_files,
+    ],
+    link_with: libfreedreno_layout,
+    dependencies : idep_mesautil,
+    include_directories: [
+      inc_include,
+      inc_src,
+      inc_mapi,
+      inc_mesa,
+      inc_gallium,
+      inc_gallium_aux,
+      inc_freedreno],
+  ),
+  suite : ['freedreno'],
+)

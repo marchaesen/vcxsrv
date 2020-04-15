@@ -88,6 +88,12 @@ void
 vbo_delete_minmax_cache(struct gl_buffer_object *bufferObj);
 
 void
+vbo_get_minmax_index_mapped(unsigned count, unsigned index_size,
+                            unsigned restartIndex, bool restart,
+                            const void *indices,
+                            unsigned *min_index, unsigned *max_index);
+
+void
 vbo_get_minmax_indices(struct gl_context *ctx, const struct _mesa_prim *prim,
                        const struct _mesa_index_buffer *ib,
                        GLuint *min_index, GLuint *max_index, GLuint nr_prims);

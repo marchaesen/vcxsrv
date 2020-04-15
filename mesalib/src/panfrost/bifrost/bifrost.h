@@ -110,6 +110,12 @@ struct bifrost_fma_2src {
 } __attribute__((packed));
 
 #define BIFROST_ADD_OP_BLEND (0x1952c)
+#define BIFROST_ADD_OP_FRCP_FAST_F32 (0x0cc00)
+#define BIFROST_ADD_OP_FRCP_FAST_F16_X (0x0ce10)
+#define BIFROST_ADD_OP_FRCP_FAST_F16_Y (0x0ce30)
+#define BIFROST_ADD_OP_FRSQ_FAST_F32 (0x0cc20)
+#define BIFROST_ADD_OP_FRSQ_FAST_F16_X (0x0ce50)
+#define BIFROST_ADD_OP_FRSQ_FAST_F16_Y (0x0ce70)
 
 struct bifrost_add_inst {
         unsigned src0 : 3;
@@ -125,6 +131,23 @@ struct bifrost_add_2src {
         unsigned src0 : 3;
         unsigned src1 : 3;
         unsigned op   : 14;
+} __attribute__((packed));
+
+#define BIFROST_ADD_OP_FMAX32 (0x00)
+#define BIFROST_ADD_OP_FMIN32 (0x01)
+#define BIFROST_ADD_OP_FADD32 (0x02)
+
+struct bifrost_add_faddmin {
+        unsigned src0 : 3;
+        unsigned src1 : 3;
+        unsigned src1_abs : 1;
+        unsigned src0_neg : 1;
+        unsigned src1_neg : 1;
+        unsigned select : 2;
+        unsigned outmod : 2;
+        unsigned mode : 2;
+        unsigned src0_abs : 1;
+        unsigned op   : 4;
 } __attribute__((packed));
 
 #define BIFROST_ADD_OP_ST_VAR (0x19300 >> 8)
@@ -195,6 +218,8 @@ enum bifrost_minmax_mode {
 };
 
 #define BIFROST_FMA_OP_FADD32 (0x58 >> 2)
+#define BIFROST_FMA_OP_FMAX32 (0x40 >> 2)
+#define BIFROST_FMA_OP_FMIN32 (0x44 >> 2)
 
 struct bifrost_fma_add {
         unsigned src0 : 3;
@@ -308,39 +333,36 @@ struct bifrost_shift_add {
         unsigned op : 7;
 } __attribute__((packed));
 
-#define BIFROST_FMA_INT16_TO_32 (0xe0198 >> 3)
-
-struct bifrost_fma_int16_to_32 {
-        unsigned src0 : 3;
-        unsigned is_unsigned : 1;
-        unsigned swizzle : 1;
-        unsigned to_float : 1;
-        unsigned op : 17;
-} __attribute__((packed));
-
-/* We could combine but it's easier to just use FMA_ONE_SRC */
-#define BIFROST_FMA_FLOAT16_TO_32(y) (0xe01a2 | ((y) ? 1 : 0))
-
 /* Two sources for vectorization */
 #define BIFROST_FMA_FLOAT32_TO_16 (0xdd000 >> 3)
+#define BIFROST_ADD_FLOAT32_TO_16 (0x0EC00 >> 3)
 
-/* Again we could combine but easier to just ONE_SRC with an
- * argumnt for unsignedness */
-#define BIFROST_FMA_FLOAT32_TO_INT(u) (0xe0136 | ((u) ? 1 : 0))
-#define BIFROST_FMA_INT_TO_FLOAT32(u) (0xe0178 | ((u) ? 1 : 0))
+enum bifrost_convert_mode {
+        BIFROST_CONV_UNK0 = 0,
+        BIFROST_CONV_F32_TO_I32 = 1,
+        BIFROST_CONV_F16_TO_I16 = 2,
+        BIFROST_CONV_I32_TO_F32 = 3,
+        BIFROST_CONV_I16_TO_X32 = 4,
+        BIFROST_CONV_F16_TO_F32 = 5,
+        BIFROST_CONV_I16_TO_F16 = 6,
+        BIFROST_CONV_UNK7 = 7
+};
 
-/* Used for f2i16 and i2f16 */
-#define BIFROST_FMA_F2I16 (0xe00)
+/* i16 to x32 */
+#define BIFROST_CONVERT_4(is_unsigned, component, to_float) \
+        ((is_unsigned & 1) | ((component & 1) << 1) | ((to_float & 1) << 2) | \
+         ((0x3) << 3) | ((4) << 5) | 0x100)
 
-struct bifrost_fma_f2i_i2f16 {
-        unsigned src0 : 3;
-        unsigned is_unsigned : 1;
-        unsigned direction : 2; /* 00 for i2f, 11 for f2i */
-        unsigned swizzle : 2;
-        unsigned unk : 2; /* always 10 */
-        unsigned direction_2 : 1; /* 0 for f2i, 1 for i2f */
-        unsigned op : 12;
-} __attribute__((packed));
+/* f16 to f32 */
+#define BIFROST_CONVERT_5(component) \
+        ((component & 1) | ((1) << 1) | ((5) << 5) | 0x100)
+
+/* Other conversions */
+#define BIFROST_CONVERT(is_unsigned, roundmode, swizzle, mode) \
+        ((is_unsigned & 1) | ((roundmode & 3) << 1) | ((swizzle & 3) << 3) | ((mode & 7) << 5))
+
+#define BIFROST_FMA_CONVERT (0xe0000)
+#define BIFROST_ADD_CONVERT (0x07800)
 
 enum bifrost_ldst_type {
         BIFROST_LDST_F16 = 0,
@@ -520,7 +542,7 @@ struct bifrost_fmt_constant {
 enum bifrost_reg_control {
         BIFROST_WRITE_FMA_P2         = 1,
         BIFROST_WRITE_FMA_P2_READ_P3 = 2,
-        BIFROST_WRITE_FMA_P2_READ_P3_ALT = 3,
+        BIFROST_FIRST_WRITE_FMA_P2_READ_P3 = 3,
         BIFROST_READ_P3              = 4,
         BIFROST_WRITE_ADD_P2         = 5,
         BIFROST_WRITE_ADD_P2_READ_P3 = 6,
@@ -528,6 +550,7 @@ enum bifrost_reg_control {
 
         BIFROST_FIRST_NONE           = 8,
         BIFROST_FIRST_WRITE_FMA_P2   = 9,
+        /* INSTR_INVALID_ENC */
         BIFROST_REG_NONE             = 11,
         BIFROST_FIRST_READ_P3        = 12,
         BIFROST_FIRST_WRITE_ADD_P2   = 13,

@@ -13305,6 +13305,8 @@
 <xi:include href="EXT_external_objects.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 <xi:include href="EXT_external_objects_fd.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
+<xi:include href="NV_viewport_swizzle.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
 <xi:include href="GL4x.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
 
 </OpenGLAPI>

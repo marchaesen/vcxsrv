@@ -189,7 +189,31 @@ void lower_divergent_bool_phi(Program *program, Block *block, aco_ptr<Instructio
    return;
 }
 
-void lower_bool_phis(Program* program)
+void lower_subdword_phis(Program *program, Block *block, aco_ptr<Instruction>& phi)
+{
+   Builder bld(program);
+   for (unsigned i = 0; i < phi->operands.size(); i++) {
+      if (phi->operands[i].isUndefined())
+         continue;
+      if (phi->operands[i].regClass() == phi->definitions[0].regClass())
+         continue;
+
+      assert(phi->operands[i].isTemp());
+      Block *pred = &program->blocks[block->logical_preds[i]];
+      Temp phi_src = phi->operands[i].getTemp();
+
+      assert(phi_src.regClass().type() == RegType::sgpr);
+      Temp tmp = bld.tmp(RegClass(RegType::vgpr, phi_src.size()));
+      insert_before_logical_end(pred, bld.pseudo(aco_opcode::p_create_vector, Definition(tmp), phi_src).get_ptr());
+      Temp new_phi_src = bld.tmp(phi->definitions[0].regClass());
+      insert_before_logical_end(pred, bld.pseudo(aco_opcode::p_extract_vector, Definition(new_phi_src), tmp, Operand(0u)).get_ptr());
+
+      phi->operands[i].setTemp(new_phi_src);
+   }
+   return;
+}
+
+void lower_phis(Program* program)
 {
    for (Block& block : program->blocks) {
       for (aco_ptr<Instruction>& phi : block.instructions) {
@@ -197,6 +221,8 @@ void lower_bool_phis(Program* program)
             assert(program->wave_size == 64 ? phi->definitions[0].regClass() != s1 : phi->definitions[0].regClass() != s2);
             if (phi->definitions[0].regClass() == program->lane_mask)
                lower_divergent_bool_phi(program, &block, phi);
+            else if (phi->definitions[0].regClass().is_subdword())
+               lower_subdword_phis(program, &block, phi);
          } else if (!is_phi(phi)) {
             break;
          }

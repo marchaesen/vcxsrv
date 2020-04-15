@@ -34,6 +34,12 @@ glsl_get_type_name(const glsl_type *type)
    return type->name;
 }
 
+int
+glsl_array_size(const struct glsl_type *type)
+{
+   return type->array_size();
+}
+
 const glsl_type *
 glsl_get_array_element(const glsl_type* type)
 {

@@ -350,7 +350,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 				.device_group = true,
 				.draw_parameters = true,
 				.float_controls = true,
-				.float16 = !device->physical_device->use_aco,
+				.float16 = device->physical_device->rad_info.has_double_rate_fp16 && !device->physical_device->use_aco,
 				.float64 = true,
 				.geometry_streams = true,
 				.image_ms_array = true,
@@ -453,8 +453,7 @@ radv_shader_compile_to_nir(struct radv_device *device,
 
 	nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
 
-	if (nir->info.stage == MESA_SHADER_GEOMETRY &&
-	    device->physical_device->use_aco)
+	if (nir->info.stage == MESA_SHADER_GEOMETRY)
 		nir_lower_gs_intrinsics(nir, true);
 
 	static const nir_lower_tex_options tex_options = {
@@ -1127,7 +1126,11 @@ shader_variant_compile(struct radv_device *device,
 	}
 
 	if (options->dump_shader) {
-		fprintf(stderr, "disasm:\n%s\n", variant->disasm_string);
+		fprintf(stderr, "%s", radv_get_shader_name(info, shaders[0]->info.stage));
+		for (int i = 1; i < shader_count; ++i)
+			fprintf(stderr, " + %s", radv_get_shader_name(info, shaders[i]->info.stage));
+
+		fprintf(stderr, "\ndisasm:\n%s\n", variant->disasm_string);
 	}
 
 

@@ -273,7 +273,7 @@ dnl ===========================================================================
 dnl Check for Loongson Multimedia Instructions
 
 if test "x$LS_CFLAGS" = "x" ; then
-    LS_CFLAGS="-march=loongson2f"
+    LS_CFLAGS="-mloongson-mmi"
 fi
 
 have_loongson_mmi=no

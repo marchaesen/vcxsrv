@@ -25,9 +25,9 @@ stages:
 # When to automatically run the CI
 .ci-run-policy:
   rules:
-    # Run pipeline by default for merge requests changing files affecting it
-    - if: '$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == $CI_COMMIT_REF_NAME'
-      changes: &paths
+    # If any files affecting the pipeline are changed, build/test jobs run
+    # automatically once all dependency jobs have passed
+    - changes: &all_paths
       - VERSION
       - bin/**/*
       # GitLab CI
@@ -45,16 +45,7 @@ stages:
       - include/**/*
       - src/**/*
       when: on_success
-    # Run pipeline by default in the main project if files affecting it were
-    # changed
-    - if: '$CI_PROJECT_PATH == "mesa/mesa"'
-      changes:
-        *paths
-      when: on_success
-    # Allow triggering jobs manually on branches of forked projects
-    - if: '$CI_PROJECT_PATH != "mesa/mesa" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $CI_COMMIT_REF_NAME'
-      when: manual
-    # Otherwise, most jobs won't run
+    # Otherwise, build/test jobs won't run
     - when: never
   retry:
     max: 2
@@ -70,7 +61,7 @@ success:
     - merge_requests
   except:
     changes:
-      *paths
+      *all_paths
   variables:
     GIT_STRATEGY: none
   script:
@@ -108,6 +99,26 @@ success:
   stage: container
   extends:
     - .ci-run-policy
+  rules:
+    # Run pipeline by default if it was triggered by Marge Bot, is for a
+    # merge request, and any files affecting it were changed
+    - if: '$GITLAB_USER_LOGIN == "marge-bot" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == $CI_COMMIT_REF_NAME'
+      changes:
+        *all_paths
+      when: on_success
+    # Run pipeline by default in the main project if any files affecting it were
+    # changed
+    - if: '$CI_PROJECT_PATH == "mesa/mesa"'
+      changes:
+        *all_paths
+      when: on_success
+    # Allow triggering jobs manually for MRs or branches of forked projects if
+    # any files affecting the pipeline were changed
+    - changes:
+        *all_paths
+      when: manual
+    # Otherwise, container jobs won't run
+    - when: never
   variables:
     FDO_DISTRIBUTION_VERSION: buster-slim
     FDO_REPO_SUFFIX: "debian/$CI_JOB_NAME"
@@ -140,7 +151,7 @@ x86_test-gl:
 x86_test-vk:
   extends: x86_build
   variables:
-    FDO_DISTRIBUTION_TAG: &x86_test-vk "2020-04-01-jflags"
+    FDO_DISTRIBUTION_TAG: &x86_test-vk "2020-04-09"
 
 # Debian 9 based x86 build image (old LLVM)
 x86_build_old:
@@ -709,14 +720,11 @@ softpipe-gles31:
 # to).
 .test-manual:
   rules:
-    # Never test in the main project.
-    - if: '$CI_PROJECT_PATH == "mesa/mesa"'
-      when: never
-    # Never test in merge requests.
-    - if: '$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == $CI_COMMIT_REF_NAME'
-      when: never
-    # Otherwise, allow testing manually for personal branches.
-    - when: manual
+    - if: '$CI_PROJECT_PATH != "mesa/mesa" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME != $CI_COMMIT_REF_NAME'
+      changes:
+        *all_paths
+      when: manual
+    - when: never
 
 arm64_a630_gles2:
   extends:

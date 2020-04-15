@@ -39,7 +39,8 @@ static void update_samples(struct tu_subpass *subpass,
 #define GMEM_ALIGN 0x4000
 
 static void
-compute_gmem_offsets(struct tu_render_pass *pass, uint32_t gmem_size)
+compute_gmem_offsets(struct tu_render_pass *pass,
+                     const struct tu_physical_device *phys_dev)
 {
    /* calculate total bytes per pixel */
    uint32_t cpp_total = 0;
@@ -56,12 +57,14 @@ compute_gmem_offsets(struct tu_render_pass *pass, uint32_t gmem_size)
       return;
    }
 
-   /* TODO: this algorithm isn't optimal
+   /* TODO: using ccu_offset_gmem so that BLIT_OP_SCALE resolve path
+    * doesn't break things. maybe there is a better solution?
+    * TODO: this algorithm isn't optimal
     * for example, two attachments with cpp = {1, 4}
     * result:  nblocks = {12, 52}, pixels = 196608
     * optimal: nblocks = {13, 51}, pixels = 208896
     */
-   uint32_t gmem_blocks = gmem_size / GMEM_ALIGN;
+   uint32_t gmem_blocks = phys_dev->ccu_offset_gmem / GMEM_ALIGN;
    uint32_t offset = 0, pixels = ~0u;
    for (uint32_t i = 0; i < pass->attachment_count; i++) {
       struct tu_render_pass_attachment *att = &pass->attachments[i];
@@ -115,8 +118,8 @@ tu_CreateRenderPass(VkDevice _device,
       struct tu_render_pass_attachment *att = &pass->attachments[i];
 
       att->format = pCreateInfo->pAttachments[i].format;
-      att->cpp = vk_format_get_blocksize(att->format) *
-                           pCreateInfo->pAttachments[i].samples;
+      att->samples = pCreateInfo->pAttachments[i].samples;
+      att->cpp = vk_format_get_blocksize(att->format) * att->samples;
       att->load_op = pCreateInfo->pAttachments[i].loadOp;
       att->stencil_load_op = pCreateInfo->pAttachments[i].stencilLoadOp;
       att->store_op = pCreateInfo->pAttachments[i].storeOp;
@@ -206,7 +209,7 @@ tu_CreateRenderPass(VkDevice _device,
 
    *pRenderPass = tu_render_pass_to_handle(pass);
 
-   compute_gmem_offsets(pass, device->physical_device->gmem_size);
+   compute_gmem_offsets(pass, device->physical_device);
 
    return VK_SUCCESS;
 }
@@ -243,8 +246,8 @@ tu_CreateRenderPass2(VkDevice _device,
       struct tu_render_pass_attachment *att = &pass->attachments[i];
 
       att->format = pCreateInfo->pAttachments[i].format;
-      att->cpp = vk_format_get_blocksize(att->format) *
-                           pCreateInfo->pAttachments[i].samples;
+      att->samples = pCreateInfo->pAttachments[i].samples;
+      att->cpp = vk_format_get_blocksize(att->format) * att->samples;
       att->load_op = pCreateInfo->pAttachments[i].loadOp;
       att->stencil_load_op = pCreateInfo->pAttachments[i].stencilLoadOp;
       att->store_op = pCreateInfo->pAttachments[i].storeOp;
@@ -335,7 +338,7 @@ tu_CreateRenderPass2(VkDevice _device,
 
    *pRenderPass = tu_render_pass_to_handle(pass);
 
-   compute_gmem_offsets(pass, device->physical_device->gmem_size);
+   compute_gmem_offsets(pass, device->physical_device);
 
    return VK_SUCCESS;
 }
@@ -360,8 +363,6 @@ tu_GetRenderAreaGranularity(VkDevice _device,
                             VkRenderPass renderPass,
                             VkExtent2D *pGranularity)
 {
-   TU_FROM_HANDLE(tu_device, device, _device);
-
-   pGranularity->width = device->physical_device->tile_align_w;
-   pGranularity->height = device->physical_device->tile_align_h;
+   pGranularity->width = GMEM_ALIGN_W;
+   pGranularity->height = GMEM_ALIGN_H;
 }

@@ -35,7 +35,6 @@ from The Open Group.
 #include "winmsg.h"
 #include "winconfig.h"
 #include "winprefs.h"
-#include "X11/Xlocale.h"
 #ifdef DPMSExtension
 #include "dpmsproc.h"
 #endif
@@ -66,6 +65,7 @@ typedef WINAPI HRESULT(*SHGETFOLDERPATHPROC) (HWND hwndOwner,
 #include "glx/glwindows.h"
 #include "dri/windowsdri.h"
 #endif
+#include "winauth.h"
 
 /*
  * References to external symbols
@@ -796,9 +796,6 @@ winUseMsg(void)
            "\tDo not draw a window border, title bar, etc.  Windowed\n"
            "\tmode only.\n");
 
-    ErrorF("-nounicodeclipboard\n"
-           "\tDo not use Unicode clipboard even if on a NT-based platform.\n");
-
     ErrorF("-[no]primary\n"
            "\tWhen clipboard integration is enabled, map the X11 PRIMARY selection\n"
            "\tto the Windows clipboard. Default is enabled.\n");
@@ -1020,14 +1017,6 @@ InitOutput(ScreenInfo * pScreenInfo, int argc, char *argv[])
     if (g_fXdmcpEnabled || g_fAuthEnabled)
         winGenerateAuthorization();
 
-    /* Perform some one time initialization */
-    if (1 == serverGeneration) {
-        /*
-         * setlocale applies to all threads in the current process.
-         * Apply locale specified in LANG environment variable.
-         */
-        setlocale(LC_ALL, "");
-    }
 
 #if CYGDEBUG || YES
     winDebug("InitOutput - Returning.\n");

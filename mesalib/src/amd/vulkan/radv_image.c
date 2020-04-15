@@ -81,6 +81,14 @@ radv_use_tc_compat_htile_for_image(struct radv_device *device,
 	if (pCreateInfo->mipLevels > 1)
 		return false;
 
+	/* Do not enable TC-compatible HTILE if the image isn't readable by a
+	 * shader because no texture fetches will happen.
+	 */
+	if (!(pCreateInfo->usage & (VK_IMAGE_USAGE_SAMPLED_BIT |
+				    VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+				    VK_IMAGE_USAGE_TRANSFER_SRC_BIT)))
+		return false;
+
 	/* FIXME: for some reason TC compat with 2/4/8 samples breaks some cts
 	 * tests - disable for now. On GFX10 D32_SFLOAT is affected as well.
 	 */
@@ -1743,29 +1751,28 @@ radv_image_view_init(struct radv_image_view *iview,
 	}
 }
 
-bool radv_layout_has_htile(const struct radv_image *image,
-                           VkImageLayout layout,
-			   bool in_render_loop,
-                           unsigned queue_mask)
-{
-	if (radv_image_is_tc_compat_htile(image))
-		return layout != VK_IMAGE_LAYOUT_GENERAL;
-
-	return radv_image_has_htile(image) &&
-	       (layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL ||
-		layout == VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL_KHR ||
-		layout == VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL_KHR ||
-	        (layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
-	         queue_mask == (1u << RADV_QUEUE_GENERAL)));
-}
-
 bool radv_layout_is_htile_compressed(const struct radv_image *image,
                                      VkImageLayout layout,
 				     bool in_render_loop,
                                      unsigned queue_mask)
 {
-	if (radv_image_is_tc_compat_htile(image))
+	if (radv_image_is_tc_compat_htile(image)) {
+		if (layout == VK_IMAGE_LAYOUT_GENERAL &&
+		    !in_render_loop &&
+		    !(image->usage & VK_IMAGE_USAGE_STORAGE_BIT)) {
+			/* It should be safe to enable TC-compat HTILE with
+			 * VK_IMAGE_LAYOUT_GENERAL if we are not in a render
+			 * loop and if the image doesn't have the storage bit
+			 * set. This improves performance for apps that use
+			 * GENERAL for the main depth pass because this allows
+			 * compression and this reduces the number of
+			 * decompressions from/to GENERAL.
+			 */
+			return true;
+		}
+
 		return layout != VK_IMAGE_LAYOUT_GENERAL;
+	}
 
 	return radv_image_has_htile(image) &&
 	       (layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL ||

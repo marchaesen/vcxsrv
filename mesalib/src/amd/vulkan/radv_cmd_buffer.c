@@ -778,8 +778,6 @@ radv_compute_centroid_priority(struct radv_cmd_buffer *cmd_buffer,
 static void
 radv_emit_sample_locations(struct radv_cmd_buffer *cmd_buffer)
 {
-	struct radv_pipeline *pipeline = cmd_buffer->state.pipeline;
-	struct radv_multisample_state *ms = &pipeline->graphics.ms;
 	struct radv_sample_locations_state *sample_location =
 		&cmd_buffer->state.dynamic.sample_location;
 	uint32_t num_samples = (uint32_t)sample_location->per_pixel;
@@ -810,10 +808,12 @@ radv_emit_sample_locations(struct radv_cmd_buffer *cmd_buffer)
 					       num_samples);
 
 	/* Compute the maximum sample distance from the specified locations. */
-	for (uint32_t i = 0; i < num_samples; i++) {
-		VkOffset2D offset = sample_locs[0][i];
-		max_sample_dist = MAX2(max_sample_dist,
-				       MAX2(abs(offset.x), abs(offset.y)));
+	for (unsigned i = 0; i < 4; ++i) {
+		for (uint32_t j = 0; j < num_samples; j++) {
+			VkOffset2D offset = sample_locs[i][j];
+			max_sample_dist = MAX2(max_sample_dist,
+			                       MAX2(abs(offset.x), abs(offset.y)));
+		}
 	}
 
 	/* Emit the specified user sample locations. */
@@ -840,13 +840,9 @@ radv_emit_sample_locations(struct radv_cmd_buffer *cmd_buffer)
 	}
 
 	/* Emit the maximum sample distance and the centroid priority. */
-	uint32_t pa_sc_aa_config = ms->pa_sc_aa_config;
-
-	pa_sc_aa_config &= C_028BE0_MAX_SAMPLE_DIST;
-	pa_sc_aa_config |= S_028BE0_MAX_SAMPLE_DIST(max_sample_dist);
-
-	radeon_set_context_reg_seq(cs, R_028BE0_PA_SC_AA_CONFIG, 1);
-	radeon_emit(cs, pa_sc_aa_config);
+	radeon_set_context_reg_rmw(cs, R_028BE0_PA_SC_AA_CONFIG,
+				   S_028BE0_MAX_SAMPLE_DIST(max_sample_dist),
+				   ~C_028BE0_MAX_SAMPLE_DIST);
 
 	radeon_set_context_reg_seq(cs, R_028BD4_PA_SC_CENTROID_PRIORITY_0, 2);
 	radeon_emit(cs, centroid_priority);
@@ -1475,10 +1471,10 @@ radv_update_zrange_precision(struct radv_cmd_buffer *cmd_buffer,
 	    !radv_image_is_tc_compat_htile(image))
 		return;
 
-	if (!radv_layout_has_htile(image, layout, in_render_loop,
-	                           radv_image_queue_family_mask(image,
-	                                                        cmd_buffer->queue_family_index,
-	                                                        cmd_buffer->queue_family_index))) {
+	if (!radv_layout_is_htile_compressed(image, layout, in_render_loop,
+					     radv_image_queue_family_mask(image,
+									  cmd_buffer->queue_family_index,
+									  cmd_buffer->queue_family_index))) {
 		db_z_info &= C_028040_TILE_SURFACE_ENABLE;
 	}
 
@@ -1518,10 +1514,10 @@ radv_emit_fb_ds_state(struct radv_cmd_buffer *cmd_buffer,
 	uint32_t db_z_info = ds->db_z_info;
 	uint32_t db_stencil_info = ds->db_stencil_info;
 
-	if (!radv_layout_has_htile(image, layout, in_render_loop,
-	                           radv_image_queue_family_mask(image,
-	                                                        cmd_buffer->queue_family_index,
-	                                                        cmd_buffer->queue_family_index))) {
+	if (!radv_layout_is_htile_compressed(image, layout, in_render_loop,
+					     radv_image_queue_family_mask(image,
+									  cmd_buffer->queue_family_index,
+									  cmd_buffer->queue_family_index))) {
 		db_z_info &= C_028040_TILE_SURFACE_ENABLE;
 		db_stencil_info |= S_028044_TILE_STENCIL_DISABLE(1);
 	}
@@ -2053,14 +2049,7 @@ radv_emit_framebuffer_state(struct radv_cmd_buffer *cmd_buffer)
 		VkImageLayout layout = subpass->depth_stencil_attachment->layout;
 		bool in_render_loop = subpass->depth_stencil_attachment->in_render_loop;
 		struct radv_image_view *iview = cmd_buffer->state.attachments[idx].iview;
-		struct radv_image *image = iview->image;
 		radv_cs_add_buffer(cmd_buffer->device->ws, cmd_buffer->cs, cmd_buffer->state.attachments[idx].iview->bo);
-		ASSERTED uint32_t queue_mask = radv_image_queue_family_mask(image,
-										cmd_buffer->queue_family_index,
-										cmd_buffer->queue_family_index);
-		/* We currently don't support writing decompressed HTILE */
-		assert(radv_layout_has_htile(image, layout, in_render_loop, queue_mask) ==
-		       radv_layout_is_htile_compressed(image, layout, in_render_loop, queue_mask));
 
 		radv_emit_fb_ds_state(cmd_buffer, &cmd_buffer->state.attachments[idx].ds, iview, layout, in_render_loop);
 
@@ -3559,7 +3548,7 @@ radv_bind_descriptor_set(struct radv_cmd_buffer *cmd_buffer,
 	assert(!(set->layout->flags & VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR));
 
 	if (!cmd_buffer->device->use_global_bo_list) {
-		for (unsigned j = 0; j < set->layout->buffer_count; ++j)
+		for (unsigned j = 0; j < set->buffer_count; ++j)
 			if (set->descriptors[j])
 				radv_cs_add_buffer(ws, cmd_buffer->cs, set->descriptors[j]);
 	}
@@ -5386,8 +5375,8 @@ static void radv_handle_depth_image_transition(struct radv_cmd_buffer *cmd_buffe
 		cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_DB |
 		                                RADV_CMD_FLAG_FLUSH_AND_INV_DB_META;
 
-		radv_decompress_depth_image_inplace(cmd_buffer, image, range,
-						    sample_locs);
+		radv_decompress_depth_stencil(cmd_buffer, image, range,
+					      sample_locs);
 
 		cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_FLUSH_AND_INV_DB |
 		                                RADV_CMD_FLAG_FLUSH_AND_INV_DB_META;

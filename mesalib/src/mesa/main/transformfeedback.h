@@ -165,11 +165,11 @@ _mesa_set_transform_feedback_binding(struct gl_context *ctx,
 {
    _mesa_reference_buffer_object(ctx, &tfObj->Buffers[index], bufObj);
 
-   tfObj->BufferNames[index]   = bufObj->Name;
+   tfObj->BufferNames[index]   = bufObj ? bufObj->Name : 0;
    tfObj->Offset[index]        = offset;
    tfObj->RequestedSize[index] = size;
 
-   if (bufObj != ctx->Shared->NullBufferObj)
+   if (bufObj)
       bufObj->UsageHistory |= USAGE_TRANSFORM_FEEDBACK_BUFFER;
 }
 

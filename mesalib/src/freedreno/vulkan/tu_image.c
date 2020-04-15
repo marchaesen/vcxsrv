@@ -111,13 +111,6 @@ tu_image_create(VkDevice _device,
       ubwc_enabled = false;
    }
 
-   /* using UBWC with D24S8 breaks the "stencil read" copy path (why?)
-    * (causes any deqp tests that need to check stencil to fail)
-    * disable UBWC for this format until we properly support copy aspect masks
-    */
-   if (image->vk_format == VK_FORMAT_D24_UNORM_S8_UINT)
-      ubwc_enabled = false;
-
    /* UBWC can't be used with E5B9G9R9 */
    if (image->vk_format == VK_FORMAT_E5B9G9R9_UFLOAT_PACK32)
       ubwc_enabled = false;
@@ -166,7 +159,7 @@ tu_image_create(VkDevice _device,
    return VK_SUCCESS;
 }
 
-static enum a6xx_tex_fetchsize
+enum a6xx_tex_fetchsize
 tu6_fetchsize(VkFormat format)
 {
    if (vk_format_description(format)->layout == UTIL_FORMAT_LAYOUT_ASTC)
@@ -277,24 +270,27 @@ tu_image_view_init(struct tu_image_view *iview,
    memset(iview->descriptor, 0, sizeof(iview->descriptor));
 
    struct tu_native_format fmt =
-      tu6_format_texture(iview->vk_format, image->layout.tile_mode);
+      tu6_format_image_src(image, iview->vk_format, iview->base_mip);
    uint64_t base_addr = tu_image_base(image, iview->base_mip, iview->base_layer);
    uint64_t ubwc_addr = tu_image_ubwc_base(image, iview->base_mip, iview->base_layer);
 
-   uint32_t pitch = tu_image_stride(image, iview->base_mip) / vk_format_get_blockwidth(iview->vk_format);
-   enum a6xx_tile_mode tile_mode = tu6_get_image_tile_mode(image, iview->base_mip);
+   uint32_t pitch = tu_image_pitch(image, iview->base_mip);
    uint32_t width = iview->extent.width;
    uint32_t height = iview->extent.height;
    uint32_t depth = pCreateInfo->viewType == VK_IMAGE_VIEW_TYPE_3D ?
       iview->extent.depth : iview->layer_count;
 
    unsigned fmt_tex = fmt.fmt;
-   if (iview->aspect_mask == VK_IMAGE_ASPECT_STENCIL_BIT &&
-       iview->vk_format == VK_FORMAT_D24_UNORM_S8_UINT)
-      fmt_tex = FMT6_S8Z24_UINT;
+   if (fmt_tex == FMT6_Z24_UNORM_S8_UINT_AS_R8G8B8A8) {
+      if (iview->aspect_mask & VK_IMAGE_ASPECT_DEPTH_BIT)
+         fmt_tex = FMT6_Z24_UNORM_S8_UINT;
+      if (iview->aspect_mask == VK_IMAGE_ASPECT_STENCIL_BIT)
+         fmt_tex = FMT6_S8Z24_UINT;
+      /* TODO: also use this format with storage descriptor ? */
+   }
 
    iview->descriptor[0] =
-      A6XX_TEX_CONST_0_TILE_MODE(tile_mode) |
+      A6XX_TEX_CONST_0_TILE_MODE(fmt.tile_mode) |
       COND(vk_format_is_srgb(iview->vk_format), A6XX_TEX_CONST_0_SRGB) |
       A6XX_TEX_CONST_0_FMT(fmt_tex) |
       A6XX_TEX_CONST_0_SAMPLES(tu_msaa_samples(image->samples)) |
@@ -335,7 +331,7 @@ tu_image_view_init(struct tu_image_view *iview,
 
       iview->storage_descriptor[0] =
          A6XX_IBO_0_FMT(fmt.fmt) |
-         A6XX_IBO_0_TILE_MODE(tile_mode);
+         A6XX_IBO_0_TILE_MODE(fmt.tile_mode);
       iview->storage_descriptor[1] =
          A6XX_IBO_1_WIDTH(width) |
          A6XX_IBO_1_HEIGHT(height);
@@ -520,7 +516,7 @@ tu_buffer_view_init(struct tu_buffer_view *view,
 
    enum VkFormat vfmt = pCreateInfo->format;
    enum pipe_format pfmt = vk_format_to_pipe_format(vfmt);
-   const struct tu_native_format fmt = tu6_format_texture(vfmt, false);
+   const struct tu_native_format fmt = tu6_format_texture(vfmt, TILE6_LINEAR);
 
    uint32_t range;
    if (pCreateInfo->range == VK_WHOLE_SIZE)

@@ -176,6 +176,31 @@ detect_cpu_features (void)
     return features;
 }
 
+#elif defined (_3DS) /* 3DS homebrew (devkitARM) */
+
+static arm_cpu_features_t
+detect_cpu_features (void)
+{
+    arm_cpu_features_t features = 0;
+
+    features |= ARM_V6;
+
+    return features;
+}
+
+#elif defined (PSP2) || defined (__SWITCH__)
+/* Vita (VitaSDK) or Switch (devkitA64) homebrew */
+
+static arm_cpu_features_t
+detect_cpu_features (void)
+{
+    arm_cpu_features_t features = 0;
+
+    features |= ARM_NEON;
+
+    return features;
+}
+
 #else /* Unknown */
 
 static arm_cpu_features_t

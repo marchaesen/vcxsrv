@@ -29,7 +29,7 @@
 #include "wsi_common.h"
 #include "drm-uapi/drm_fourcc.h"
 
-static PFN_vkVoidFunction
+static VKAPI_PTR PFN_vkVoidFunction
 tu_wsi_proc_addr(VkPhysicalDevice physicalDevice, const char *pName)
 {
    return tu_lookup_entrypoint_unchecked(pName);

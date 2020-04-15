@@ -841,6 +841,12 @@ intrinsic("store_global_ir3", [0, 2, 1], indices=[WRMASK, ACCESS, ALIGN_MUL, ALI
 # const_index[] = { access, align_mul, align_offset }
 intrinsic("load_global_ir3", [2, 1], dest_comp=0, indices=[ACCESS, ALIGN_MUL, ALIGN_OFFSET], flags=[CAN_ELIMINATE])
 
+# IR3-specific bindless handle specifier. Similar to vulkan_resource_index, but
+# without the binding because the hardware expects a single flattened index
+# rather than a (binding, index) pair. We may also want to use this with GL.
+# Note that this doesn't actually turn into a HW instruction.
+intrinsic("bindless_resource_ir3", [1], dest_comp=1, indices=[DESC_SET], flags=[CAN_ELIMINATE, CAN_REORDER])
+
 # Intrinsics used by the Midgard/Bifrost blend pipeline. These are defined
 # within a blend shader to read/write the raw value from the tile buffer,
 # without applying any format conversion in the process. If the shader needs

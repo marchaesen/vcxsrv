@@ -89,7 +89,7 @@ vbo_exec_bind_arrays(struct gl_context *ctx)
    struct vbo_exec_context *exec = &vbo->exec;
 
    GLintptr buffer_offset;
-   if (_mesa_is_bufferobj(exec->vtx.bufferobj)) {
+   if (exec->vtx.bufferobj) {
       assert(exec->vtx.bufferobj->Mappings[MAP_INTERNAL].Pointer);
       buffer_offset = exec->vtx.bufferobj->Mappings[MAP_INTERNAL].Offset +
                       exec->vtx.buffer_offset;
@@ -137,7 +137,7 @@ vbo_exec_bind_arrays(struct gl_context *ctx)
    }
    _mesa_enable_vertex_array_attribs(ctx, vao, vao_enabled);
    assert(vao_enabled == vao->Enabled);
-   assert(!_mesa_is_bufferobj(exec->vtx.bufferobj) ||
+   assert(!exec->vtx.bufferobj ||
           (vao_enabled & ~vao->VertexAttribBufferMask) == 0);
 
    _mesa_set_draw_vao(ctx, vao, _vbo_get_vao_filter(mode));
@@ -150,7 +150,7 @@ vbo_exec_bind_arrays(struct gl_context *ctx)
 static void
 vbo_exec_vtx_unmap(struct vbo_exec_context *exec)
 {
-   if (_mesa_is_bufferobj(exec->vtx.bufferobj)) {
+   if (exec->vtx.bufferobj) {
       struct gl_context *ctx = exec->ctx;
 
       if (ctx->Driver.FlushMappedBufferRange &&
@@ -211,7 +211,7 @@ vbo_exec_vtx_map(struct vbo_exec_context *exec)
                      MESA_MAP_NOWAIT_BIT;
    }
 
-   if (!_mesa_is_bufferobj(exec->vtx.bufferobj))
+   if (!exec->vtx.bufferobj)
       return;
 
    assert(!exec->vtx.buffer_map);
@@ -295,7 +295,7 @@ vbo_exec_vtx_flush(struct vbo_exec_context *exec)
 {
    /* Only unmap if persistent mappings are unsupported. */
    bool persistent_mapping = exec->ctx->Extensions.ARB_buffer_storage &&
-                             _mesa_is_bufferobj(exec->vtx.bufferobj) &&
+                             exec->vtx.bufferobj &&
                              exec->vtx.buffer_map;
 
    if (0)

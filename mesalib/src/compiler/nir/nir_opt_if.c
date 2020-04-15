@@ -998,7 +998,7 @@ opt_if_loop_terminator(nir_if *nif)
    if (is_block_empty(first_continue_from_blk))
       return false;
 
-   if (!nir_is_trivial_loop_if(nif, break_blk))
+   if (nir_block_ends_in_jump(continue_from_blk))
       return false;
 
    /* Even though this if statement has a jump on one side, we may still have

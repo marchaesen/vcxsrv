@@ -70,12 +70,12 @@ enum ir3_driver_param {
 #define IR3_MAX_SO_BUFFERS        4
 #define IR3_MAX_SO_STREAMS        4
 #define IR3_MAX_SO_OUTPUTS       64
-#define IR3_MAX_CONSTANT_BUFFERS 32
+#define IR3_MAX_UBO_PUSH_RANGES  32
 
 
 /**
  * Describes the layout of shader consts.  This includes:
- *   + Driver lowered UBO ranges
+ *   + User consts + driver lowered UBO ranges
  *   + SSBO sizes
  *   + Image sizes/dimensions
  *   + Driver params (ie. IR3_DP_*)
@@ -114,6 +114,7 @@ enum ir3_driver_param {
  */
 struct ir3_const_state {
 	unsigned num_ubos;
+	unsigned num_reserved_user_consts;
 	unsigned num_driver_params;   /* scalar */
 
 	struct {
@@ -203,6 +204,7 @@ struct ir3_stream_output_info {
  * encode the return type (in 3 bits) but it hasn't been verified yet.
  */
 #define IR3_SAMPLER_PREFETCH_CMD 0x4
+#define IR3_SAMPLER_BINDLESS_PREFETCH_CMD 0x6
 
 /**
  * Stream output for texture sampling pre-dispatches.
@@ -211,6 +213,8 @@ struct ir3_sampler_prefetch {
 	uint8_t src;
 	uint8_t samp_id;
 	uint8_t tex_id;
+	uint16_t samp_bindless_id;
+	uint16_t tex_bindless_id;
 	uint8_t dst;
 	uint8_t wrmask;
 	uint8_t half_precision;
@@ -562,6 +566,12 @@ struct ir3_shader_variant {
 	/* do we have one or more SSBO instructions: */
 	bool has_ssbo;
 
+	/* Which bindless resources are used, for filling out sp_xs_config */
+	bool bindless_tex;
+	bool bindless_samp;
+	bool bindless_ibo;
+	bool bindless_ubo;
+
 	/* do we need derivatives: */
 	bool need_pixlod;
 
@@ -609,13 +619,16 @@ ir3_shader_stage(struct ir3_shader_variant *v)
 }
 
 struct ir3_ubo_range {
-	uint32_t offset; /* start offset of this block in const register file */
+	uint32_t offset; /* start offset to push in the const register file */
+	uint32_t block; /* Which constant block */
 	uint32_t start, end; /* range of block that's actually used */
+	uint16_t bindless_base; /* For bindless, which base register is used */
+	bool bindless;
 };
 
 struct ir3_ubo_analysis_state {
-	struct ir3_ubo_range range[IR3_MAX_CONSTANT_BUFFERS];
-	uint32_t enabled;
+	struct ir3_ubo_range range[IR3_MAX_UBO_PUSH_RANGES];
+	uint32_t num_enabled;
 	uint32_t size;
 	uint32_t lower_count;
 	uint32_t cmdstream_size; /* for per-gen backend to stash required cmdstream size */

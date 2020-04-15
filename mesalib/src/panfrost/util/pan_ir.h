@@ -84,7 +84,6 @@ panfrost_sysval_for_instr(nir_instr *instr, nir_dest *dest);
 
 typedef struct {
         int work_register_count;
-        int uniform_count;
         int uniform_cutoff;
 
         /* Prepended before uniforms, mapping to SYSVAL_ names for the
@@ -92,9 +91,6 @@ typedef struct {
 
         unsigned sysval_count;
         unsigned sysvals[MAX_SYSVAL_COUNT];
-
-        unsigned varyings[32];
-        enum mali_format varying_type[32];
 
         /* Boolean properties of the program */
         bool writes_point_size;

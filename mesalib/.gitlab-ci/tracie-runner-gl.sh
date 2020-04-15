@@ -15,14 +15,19 @@ export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/renderdoc/build/lib"
 export LD_LIBRARY_PATH="/waffle/build/lib:$LD_LIBRARY_PATH"
 
 # Set environment for apitrace executable.
-export PATH=/apitrace/build:$PATH
+export PATH="/apitrace/build:$PATH"
 
 # Use the surfaceless EGL platform.
-export EGL_PLATFORM=surfaceless
+export EGL_PLATFORM="surfaceless"
 export DISPLAY=
-export WAFFLE_PLATFORM=surfaceless_egl
+export WAFFLE_PLATFORM="surfaceless_egl"
 
 # Perform a self-test to ensure tracie is working properly.
 "$INSTALL/tracie/tests/test.sh"
 
-python3 $INSTALL/tracie/tracie.py --file $INSTALL/traces.yml --device-name $DEVICE_NAME
+# Sanity check to ensure that our environment is sufficient to make our tests
+# run against the Mesa built by CI, rather than any installed distro version.
+MESA_VERSION=$(cat "$INSTALL/VERSION" | sed 's/\./\\./g')
+wflinfo --platform surfaceless_egl --api gles2 | grep "Mesa $MESA_VERSION\(\s\|$\)"
+
+python3 "$INSTALL/tracie/tracie.py" --file "$INSTALL/traces.yml" --device-name "$DEVICE_NAME"

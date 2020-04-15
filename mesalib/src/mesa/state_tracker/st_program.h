@@ -318,6 +318,9 @@ extern void
 st_release_variants(struct st_context *st, struct st_program *p);
 
 extern void
+st_release_program(struct st_context *st, struct st_program **p);
+
+extern void
 st_destroy_program_variants(struct st_context *st);
 
 extern void

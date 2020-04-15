@@ -58,7 +58,7 @@ st_bind_ssbos(struct st_context *st, struct gl_program *prog,
             prog->sh.ShaderStorageBlocks[i]->Binding];
       st_obj = st_buffer_object(binding->BufferObject);
 
-      sb->buffer = st_obj->buffer;
+      sb->buffer = st_obj ? st_obj->buffer : NULL;
 
       if (sb->buffer) {
          sb->buffer_offset = binding->Offset;

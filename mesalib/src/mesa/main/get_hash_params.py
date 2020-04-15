@@ -668,6 +668,12 @@ descriptor=[
 
 # INTEL_conservative_rasterization
   [ "CONSERVATIVE_RASTERIZATION_INTEL", "CONTEXT_BOOL(IntelConservativeRasterization), extra_INTEL_conservative_rasterization" ],
+
+# GL_NV_viewport_swizzle
+  [ "VIEWPORT_SWIZZLE_X_NV", "LOC_CUSTOM, TYPE_ENUM, 0, extra_NV_viewport_swizzle" ],
+  [ "VIEWPORT_SWIZZLE_Y_NV", "LOC_CUSTOM, TYPE_ENUM, 0, extra_NV_viewport_swizzle" ],
+  [ "VIEWPORT_SWIZZLE_Z_NV", "LOC_CUSTOM, TYPE_ENUM, 0, extra_NV_viewport_swizzle" ],
+  [ "VIEWPORT_SWIZZLE_W_NV", "LOC_CUSTOM, TYPE_ENUM, 0, extra_NV_viewport_swizzle" ],
 ]},
 
 # Enums in OpenGL and ES 3.2

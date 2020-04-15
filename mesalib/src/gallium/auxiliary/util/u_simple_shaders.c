@@ -417,7 +417,7 @@ util_make_fs_blit_zs(struct pipe_context *pipe, unsigned zs_mask,
 
    if (zs_mask & PIPE_MASK_S) {
       stencil_sampler = ureg_DECL_sampler(ureg, zs_mask & PIPE_MASK_Z ? 1 : 0);
-      ureg_DECL_sampler_view(ureg, 0, tex_target,
+      ureg_DECL_sampler_view(ureg, zs_mask & PIPE_MASK_Z ? 1 : 0, tex_target,
                              TGSI_RETURN_TYPE_UINT,
                              TGSI_RETURN_TYPE_UINT,
                              TGSI_RETURN_TYPE_UINT,

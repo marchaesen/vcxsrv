@@ -30,26 +30,22 @@
  * Find/group instruction neighbors:
  */
 
-/* bleh.. we need to do the same group_n() thing for both inputs/outputs
- * (where we have a simple instr[] array), and fanin nodes (where we have
- * an extra indirection via reg->instr).
- */
-struct group_ops {
-	struct ir3_instruction *(*get)(void *arr, int idx);
-	void (*insert_mov)(void *arr, int idx, struct ir3_instruction *instr);
-};
-
-static struct ir3_instruction *instr_get(void *arr, int idx)
-{
-	return ssa(((struct ir3_instruction *)arr)->regs[idx+1]);
-}
 static void
-instr_insert_mov(void *arr, int idx, struct ir3_instruction *instr)
+insert_mov(struct ir3_instruction *collect, int idx)
 {
-	((struct ir3_instruction *)arr)->regs[idx+1]->instr =
-			ir3_MOV(instr->block, instr, TYPE_F32);
+	struct ir3_instruction *src = ssa(collect->regs[idx+1]);
+	struct ir3_instruction *mov = ir3_MOV(src->block, src, TYPE_F32);
+	collect->regs[idx+1]->instr = mov;
+
+	/* if collect and src are in the same block, move the inserted mov
+	 * to just before the collect to avoid a use-before-def.  Otherwise
+	 * it should be safe to leave at the end of the block it is in:
+	 */
+	if (src->block == collect->block) {
+		list_delinit(&mov->node);
+		list_addtail(&mov->node, &collect->node);
+	}
 }
-static struct group_ops instr_ops = { instr_get, instr_insert_mov };
 
 /* verify that cur != instr, but cur is also not in instr's neighbor-list: */
 static bool
@@ -71,9 +67,10 @@ in_neighbor_list(struct ir3_instruction *instr, struct ir3_instruction *cur, int
 }
 
 static void
-group_n(struct group_ops *ops, void *arr, unsigned n)
+group_collect(struct ir3_instruction *collect)
 {
-	unsigned i, j;
+	struct ir3_register **regs = &collect->regs[1];
+	unsigned n = collect->regs_count - 1;
 
 	/* first pass, figure out what has conflicts and needs a mov
 	 * inserted.  Do this up front, before starting to setup
@@ -83,11 +80,11 @@ group_n(struct group_ops *ops, void *arr, unsigned n)
 	 * a mov.
 	 */
 restart:
-	for (i = 0; i < n; i++) {
-		struct ir3_instruction *instr = ops->get(arr, i);
+	for (unsigned i = 0; i < n; i++) {
+		struct ir3_instruction *instr = ssa(regs[i]);
 		if (instr) {
-			struct ir3_instruction *left = (i > 0) ? ops->get(arr, i - 1) : NULL;
-			struct ir3_instruction *right = (i < (n-1)) ? ops->get(arr, i + 1) : NULL;
+			struct ir3_instruction *left = (i > 0) ? ssa(regs[i - 1]) : NULL;
+			struct ir3_instruction *right = (i < (n-1)) ? ssa(regs[i + 1]) : NULL;
 			bool conflict;
 
 			/* check for left/right neighbor conflicts: */
@@ -103,12 +100,12 @@ restart:
 				conflict = true;
 
 			/* we also can't have an instr twice in the group: */
-			for (j = i + 1; (j < n) && !conflict; j++)
-				if (in_neighbor_list(ops->get(arr, j), instr, i))
+			for (unsigned j = i + 1; (j < n) && !conflict; j++)
+				if (in_neighbor_list(ssa(regs[j]), instr, i))
 					conflict = true;
 
 			if (conflict) {
-				ops->insert_mov(arr, i, instr);
+				insert_mov(collect, i);
 				/* inserting the mov may have caused a conflict
 				 * against the previous:
 				 */
@@ -121,11 +118,11 @@ restart:
 	 * neighbors.  This is guaranteed to succeed, since by definition
 	 * the newly inserted mov's cannot conflict with anything.
 	 */
-	for (i = 0; i < n; i++) {
-		struct ir3_instruction *instr = ops->get(arr, i);
+	for (unsigned i = 0; i < n; i++) {
+		struct ir3_instruction *instr = ssa(regs[i]);
 		if (instr) {
-			struct ir3_instruction *left = (i > 0) ? ops->get(arr, i - 1) : NULL;
-			struct ir3_instruction *right = (i < (n-1)) ? ops->get(arr, i + 1) : NULL;
+			struct ir3_instruction *left = (i > 0) ? ssa(regs[i - 1]) : NULL;
+			struct ir3_instruction *right = (i < (n-1)) ? ssa(regs[i + 1]) : NULL;
 
 			debug_assert(!conflicts(instr->cp.left, left));
 			if (left) {
@@ -151,7 +148,7 @@ instr_find_neighbors(struct ir3_instruction *instr)
 		return;
 
 	if (instr->opc == OPC_META_COLLECT)
-		group_n(&instr_ops, instr, instr->regs_count - 1);
+		group_collect(instr);
 
 	foreach_ssa_src (src, instr)
 		instr_find_neighbors(src);

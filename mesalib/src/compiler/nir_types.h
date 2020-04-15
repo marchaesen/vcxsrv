@@ -63,6 +63,7 @@ unsigned glsl_get_std430_base_alignment(const struct glsl_type *type,
                                         bool row_major);
 unsigned glsl_get_std430_size(const struct glsl_type *type, bool row_major);
 unsigned glsl_get_explicit_stride(const struct glsl_type *type);
+int glsl_array_size(const struct glsl_type *type);
 const struct glsl_type *glsl_get_array_element(const struct glsl_type *type);
 const struct glsl_type *glsl_without_array(const struct glsl_type *type);
 const struct glsl_type *glsl_without_array_or_matrix(const struct glsl_type *type);

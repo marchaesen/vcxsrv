@@ -1,3 +1,4 @@
+GL_ARB_compute_variable_group_size on i965.
 GL_EXT_texture_shadow_lod on radeonsi.
 GL_NV_copy_image on all gallium drivers.
 VK_KHR_shader_non_semantic_info on Intel, RADV.

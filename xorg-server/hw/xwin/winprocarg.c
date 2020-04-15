@@ -1004,15 +1004,6 @@ ddxProcessArgument(int argc, char *argv[], int i)
         return 2;
     }
 
-    /*
-     * Look for the '-nounicodeclipboard' argument
-     */
-    if (IS_OPTION("-nounicodeclipboard")) {
-        g_fUnicodeClipboard = FALSE;
-        /* Indicate that we have processed the argument */
-        return 1;
-    }
-
     if (IS_OPTION("-xkbrules")) {
         CHECK_ARGS(1);
         g_cmdline.xkbRules = argv[++i];

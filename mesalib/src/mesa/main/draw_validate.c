@@ -773,7 +773,7 @@ _mesa_validate_MultiDrawElements(struct gl_context *ctx,
 
    /* Not using a VBO for indices, so avoid NULL pointer derefs later.
     */
-   if (!_mesa_is_bufferobj(ctx->Array.VAO->IndexBufferObj)) {
+   if (!ctx->Array.VAO->IndexBufferObj) {
       for (i = 0; i < primcount; i++) {
          if (!indices[i])
             return GL_FALSE;
@@ -1161,7 +1161,7 @@ valid_draw_indirect(struct gl_context *ctx,
       return GL_FALSE;
    }
 
-   if (!_mesa_is_bufferobj(ctx->DrawIndirectBuffer)) {
+   if (!ctx->DrawIndirectBuffer) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "%s: no buffer bound to DRAW_INDIRECT_BUFFER", name);
       return GL_FALSE;
@@ -1203,7 +1203,7 @@ valid_draw_indirect_elements(struct gl_context *ctx,
     * If no element array buffer is bound, an INVALID_OPERATION error is
     * generated.
     */
-   if (!_mesa_is_bufferobj(ctx->Array.VAO->IndexBufferObj)) {
+   if (!ctx->Array.VAO->IndexBufferObj) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "%s(no buffer bound to GL_ELEMENT_ARRAY_BUFFER)", name);
       return GL_FALSE;
@@ -1345,7 +1345,7 @@ valid_draw_indirect_parameters(struct gl_context *ctx,
     *  MultiDrawElementsIndirectCountARB if no buffer is bound to the
     *  PARAMETER_BUFFER_ARB binding point."
     */
-   if (!_mesa_is_bufferobj(ctx->ParameterBuffer)) {
+   if (!ctx->ParameterBuffer) {
       _mesa_error(ctx, GL_INVALID_OPERATION,
                   "%s: no buffer bound to PARAMETER_BUFFER", name);
       return GL_FALSE;

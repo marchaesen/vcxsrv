@@ -154,8 +154,7 @@ unsigned get_interp_input(nir_intrinsic_op intrin, enum glsl_interp_mode interp)
 bool
 sanitize_if(nir_function_impl *impl, bool *divergent, nir_if *nif)
 {
-   if (!divergent[nif->condition.ssa->index])
-      return false;
+   //TODO: skip this if the condition is uniform and there are no divergent breaks/continues?
 
    nir_block *then_block = nir_if_last_then_block(nif);
    nir_block *else_block = nir_if_last_else_block(nif);
@@ -310,8 +309,10 @@ void init_context(isel_context *ctx, nir_shader *shader)
                   case nir_op_f2f16_rtne:
                   case nir_op_f2f32:
                   case nir_op_f2f64:
+                  case nir_op_u2f16:
                   case nir_op_u2f32:
                   case nir_op_u2f64:
+                  case nir_op_i2f16:
                   case nir_op_i2f32:
                   case nir_op_i2f64:
                   case nir_op_pack_half_2x16:
@@ -339,6 +340,7 @@ void init_context(isel_context *ctx, nir_shader *shader)
                   case nir_op_f2u64:
                   case nir_op_b2i32:
                   case nir_op_b2b32:
+                  case nir_op_b2f16:
                   case nir_op_b2f32:
                   case nir_op_mov:
                      type = ctx->divergent_vals[alu_instr->dest.dest.ssa.index] ? RegType::vgpr : RegType::sgpr;
@@ -359,12 +361,10 @@ void init_context(isel_context *ctx, nir_shader *shader)
                break;
             }
             case nir_instr_type_load_const: {
-               unsigned size = nir_instr_as_load_const(instr)->def.num_components;
-               if (nir_instr_as_load_const(instr)->def.bit_size == 64)
-                  size *= 2;
-               else if (nir_instr_as_load_const(instr)->def.bit_size == 1)
-                  size *= lane_mask_size;
-               allocated[nir_instr_as_load_const(instr)->def.index] = Temp(0, RegClass(RegType::sgpr, size));
+               unsigned num_components = nir_instr_as_load_const(instr)->def.num_components;
+               unsigned bit_size = nir_instr_as_load_const(instr)->def.bit_size;
+               RegClass rc = get_reg_class(ctx, RegType::sgpr, num_components, bit_size);
+               allocated[nir_instr_as_load_const(instr)->def.index] = Temp(0, rc);
                break;
             }
             case nir_instr_type_intrinsic: {
@@ -550,12 +550,10 @@ void init_context(isel_context *ctx, nir_shader *shader)
                break;
             }
             case nir_instr_type_ssa_undef: {
-               unsigned size = nir_instr_as_ssa_undef(instr)->def.num_components;
-               if (nir_instr_as_ssa_undef(instr)->def.bit_size == 64)
-                  size *= 2;
-               else if (nir_instr_as_ssa_undef(instr)->def.bit_size == 1)
-                  size *= lane_mask_size;
-               allocated[nir_instr_as_ssa_undef(instr)->def.index] = Temp(0, RegClass(RegType::sgpr, size));
+               unsigned num_components = nir_instr_as_ssa_undef(instr)->def.num_components;
+               unsigned bit_size = nir_instr_as_ssa_undef(instr)->def.bit_size;
+               RegClass rc = get_reg_class(ctx, RegType::sgpr, num_components, bit_size);
+               allocated[nir_instr_as_ssa_undef(instr)->def.index] = Temp(0, rc);
                break;
             }
             case nir_instr_type_phi: {
@@ -801,13 +799,13 @@ setup_vs_variables(isel_context *ctx, nir_shader *nir)
                ctx->stage == vertex_tess_control_hs)
          // TODO: make this more compact
          variable->data.driver_location = shader_io_get_unique_index((gl_varying_slot) variable->data.location) * 4;
-      else if (ctx->stage == vertex_vs)
+      else if (ctx->stage == vertex_vs || ctx->stage == ngg_vertex_gs)
          variable->data.driver_location = variable->data.location * 4;
       else
          unreachable("Unsupported VS stage");
    }
 
-   if (ctx->stage == vertex_vs) {
+   if (ctx->stage == vertex_vs || ctx->stage == ngg_vertex_gs) {
       radv_vs_output_info *outinfo = &ctx->program->info->vs.outinfo;
       setup_vs_output_info(ctx, nir, outinfo->export_prim_id,
                            ctx->options->key.vs_common_out.export_clip_dists, outinfo);
@@ -819,6 +817,13 @@ setup_vs_variables(isel_context *ctx, nir_shader *nir)
        */
       /* radv_es_output_info *outinfo = &ctx->program->info->vs.es_info;
       outinfo->esgs_itemsize = util_bitcount64(ctx->output_masks[nir->info.stage]) * 16u; */
+   }
+
+   if (ctx->stage == ngg_vertex_gs && ctx->args->options->key.vs_common_out.export_prim_id) {
+      /* We need to store the primitive IDs in LDS */
+      unsigned lds_size = ctx->program->info->ngg_info.esgs_ring_size;
+      ctx->program->config->lds_size = (lds_size + ctx->program->lds_alloc_granule - 1) /
+                                       ctx->program->lds_alloc_granule;
    }
 }
 
@@ -921,7 +926,7 @@ setup_tes_variables(isel_context *ctx, nir_shader *nir)
    }
 
    nir_foreach_variable(variable, &nir->outputs) {
-      if (ctx->stage == tess_eval_vs)
+      if (ctx->stage == tess_eval_vs || ctx->stage == ngg_tess_eval_gs)
          variable->data.driver_location = variable->data.location * 4;
       else if (ctx->stage == tess_eval_es)
          variable->data.driver_location = shader_io_get_unique_index((gl_varying_slot) variable->data.location) * 4;
@@ -931,7 +936,7 @@ setup_tes_variables(isel_context *ctx, nir_shader *nir)
          unreachable("Unsupported TES shader stage");
    }
 
-   if (ctx->stage == tess_eval_vs) {
+   if (ctx->stage == tess_eval_vs || ctx->stage == ngg_tess_eval_gs) {
       radv_vs_output_info *outinfo = &ctx->program->info->tes.outinfo;
       setup_vs_output_info(ctx, nir, outinfo->export_prim_id,
                            ctx->options->key.vs_common_out.export_clip_dists, outinfo);
@@ -1155,10 +1160,12 @@ setup_isel_context(Program* program,
    }
    bool gfx9_plus = args->options->chip_class >= GFX9;
    bool ngg = args->shader_info->is_ngg && args->options->chip_class >= GFX10;
-   if (program->stage == sw_vs && args->shader_info->vs.as_es)
+   if (program->stage == sw_vs && args->shader_info->vs.as_es && !ngg)
       program->stage |= hw_es;
-   else if (program->stage == sw_vs && !args->shader_info->vs.as_ls)
+   else if (program->stage == sw_vs && !args->shader_info->vs.as_ls && !ngg)
       program->stage |= hw_vs;
+   else if (program->stage == sw_vs && ngg)
+      program->stage |= hw_ngg_gs; /* GFX10/NGG: VS without GS uses the HW GS stage */
    else if (program->stage == sw_gs)
       program->stage |= hw_gs;
    else if (program->stage == sw_fs)
@@ -1177,6 +1184,8 @@ setup_isel_context(Program* program,
       program->stage |= hw_hs; /* GFX9-10: VS+TCS merged into a Hull Shader */
    else if (program->stage == sw_tes && !args->shader_info->tes.as_es && !ngg)
       program->stage |= hw_vs; /* GFX6-9: TES without GS uses the HW VS stage (and GFX10/legacy) */
+   else if (program->stage == sw_tes && !args->shader_info->tes.as_es && ngg)
+      program->stage |= hw_ngg_gs; /* GFX10/NGG: TES without GS uses the HW GS stage */
    else if (program->stage == sw_tes && args->shader_info->tes.as_es && !ngg)
       program->stage |= hw_es; /* GFX6-8: TES is an Export Shader */
    else if (program->stage == (sw_tes | sw_gs) && gfx9_plus && !ngg)
@@ -1248,6 +1257,9 @@ setup_isel_context(Program* program,
       /* Merged LSHS operates in workgroups, but can still have a different number of LS and HS invocations */
       setup_tcs_info(&ctx, shaders[1]);
       program->workgroup_size = ctx.tcs_num_patches * MAX2(shaders[1]->info.tess.tcs_vertices_out, ctx.args->options->key.tcs.input_vertices);
+   } else if (program->stage & hw_ngg_gs) {
+      /* TODO: Calculate workgroup size of NGG shaders. */
+      program->workgroup_size = UINT_MAX;
    } else {
       unreachable("Unsupported shader stage.");
    }

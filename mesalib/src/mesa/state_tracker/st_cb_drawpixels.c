@@ -503,7 +503,7 @@ search_drawpixels_cache(struct st_context *st,
        unpack->SkipPixels != 0 ||
        unpack->SkipRows != 0 ||
        unpack->SwapBytes ||
-       _mesa_is_bufferobj(unpack->BufferObj)) {
+       unpack->BufferObj) {
       /* we don't allow non-default pixel unpacking values */
       return NULL;
    }
