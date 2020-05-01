@@ -32,7 +32,7 @@
 #include "main/format_utils.h"
 #include "main/glformats.h"
 #include "main/image.h"
-#include "util/imports.h"
+
 #include "main/macros.h"
 #include "main/pack.h"
 #include "main/pbo.h"
@@ -623,7 +623,7 @@ draw_depth_stencil_pixels(struct gl_context *ctx, GLint x, GLint y,
          return;
       }
    }
-   
+
    depthRb = ctx->ReadBuffer->Attachment[BUFFER_DEPTH].Renderbuffer;
    stencilRb = ctx->ReadBuffer->Attachment[BUFFER_STENCIL].Renderbuffer;
    assert(depthRb);

@@ -1,0 +1,35 @@
+# CTS bug (should be fixed in next version)
+dEQP-VK.api.buffer_marker.graphics.default_mem.bottom_of_pipe.memory_dep.draw
+dEQP-VK.api.buffer_marker.graphics.external_host_mem.bottom_of_pipe.memory_dep.draw
+
+# SPIR-V->NIR issues.
+dEQP-VK.glsl.builtin.precision.asin.highp.scalar
+dEQP-VK.glsl.builtin.precision.asin.highp.vec2
+dEQP-VK.glsl.builtin.precision.asin.highp.vec3
+dEQP-VK.glsl.builtin.precision.asin.highp.vec4
+
+# CTS bug (list of extensions not up-to-date).
+dEQP-VK.info.device_extensions
+
+# ACO specific issues.
+dEQP-VK.graphicsfuzz.loops-ifs-continues-call
+
+# Interesting failures...
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_2.d32_sfloat_s8_uint.stencil_max
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_2.d32_sfloat_s8_uint.stencil_min
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_2.d32_sfloat_s8_uint.stencil_zero
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_2.d32_sfloat_s8_uint_separate_layouts.stencil_max
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_2.d32_sfloat_s8_uint_separate_layouts.stencil_min
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_2.d32_sfloat_s8_uint_separate_layouts.stencil_zero
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_4.d32_sfloat_s8_uint.stencil_max
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_4.d32_sfloat_s8_uint.stencil_min
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_4.d32_sfloat_s8_uint.stencil_zero
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_4.d32_sfloat_s8_uint_separate_layouts.stencil_max
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_4.d32_sfloat_s8_uint_separate_layouts.stencil_min
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_4.d32_sfloat_s8_uint_separate_layouts.stencil_zero
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_8.d32_sfloat_s8_uint.stencil_max
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_8.d32_sfloat_s8_uint.stencil_min
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_8.d32_sfloat_s8_uint.stencil_zero
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_8.d32_sfloat_s8_uint_separate_layouts.stencil_max
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_8.d32_sfloat_s8_uint_separate_layouts.stencil_min
+dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_16_64_6.samples_8.d32_sfloat_s8_uint_separate_layouts.stencil_zero

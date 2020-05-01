@@ -49,15 +49,15 @@ class Format(Enum):
    PSEUDO_BRANCH = 16
    PSEUDO_BARRIER = 17
    PSEUDO_REDUCTION = 18
+   VOP3P = 19
    VOP1 = 1 << 8
    VOP2 = 1 << 9
    VOPC = 1 << 10
    VOP3A = 1 << 11
    VOP3B = 1 << 11
-   VOP3P = 1 << 12
-   VINTRP = 1 << 13
-   DPP = 1 << 14
-   SDWA = 1 << 15
+   VINTRP = 1 << 12
+   DPP = 1 << 13
+   SDWA = 1 << 14
 
    def get_builder_fields(self):
       if self == Format.SOPK:
@@ -148,6 +148,15 @@ class Format(Enum):
 
    def get_builder_field_decls(self):
       return [('%s %s=%s' % (f[0], f[1], f[2]) if f[2] != None else '%s %s' % (f[0], f[1])) for f in self.get_builder_fields()]
+
+   def get_builder_initialization(self, num_operands):
+      res = ''
+      if self == Format.SDWA:
+         for i in range(min(num_operands, 2)):
+            res += f'instr->sel[{i}] = op{i}.op.bytes() == 2 ? sdwa_uword : (op{i}.op.bytes() == 1 ? sdwa_ubyte : sdwa_udword);\n'
+         res += 'instr->dst_sel = def0.bytes() == 2 ? sdwa_uword : (def0.bytes() == 1 ? sdwa_ubyte : sdwa_udword);\n'
+         res += 'instr->dst_preserve = true;'
+      return res
 
 
 class Opcode(object):
@@ -648,7 +657,7 @@ VOP2 = {
    (  -1,   -1, 0x29, 0x29,   -1, "v_mul_lo_u16", False),
    (  -1,   -1, 0x2a, 0x2a,   -1, "v_lshlrev_b16", False),
    (  -1,   -1, 0x2b, 0x2b,   -1, "v_lshrrev_b16", False),
-   (  -1,   -1, 0x2c, 0x2c,   -1, "v_ashrrev_b16", False),
+   (  -1,   -1, 0x2c, 0x2c,   -1, "v_ashrrev_i16", False),
    (  -1,   -1, 0x2d, 0x2d, 0x39, "v_max_f16", True),
    (  -1,   -1, 0x2e, 0x2e, 0x3a, "v_min_f16", True),
    (  -1,   -1, 0x2f, 0x2f,   -1, "v_max_u16", False),
@@ -1019,7 +1028,16 @@ VOP3 = {
    (   -1,    -1,    -1,    -1, 0x30f, "v_add_co_u32_e64", False, False),
    (   -1,    -1,    -1,    -1, 0x310, "v_sub_co_u32_e64", False, False),
    (   -1,    -1,    -1,    -1, 0x319, "v_subrev_co_u32_e64", False, False),
-# TODO: many 16bit instructions moved from VOP2 to VOP3 on GFX10
+   (   -1,    -1,    -1,    -1, 0x303, "v_add_u16_e64", False, False),
+   (   -1,    -1,    -1,    -1, 0x304, "v_sub_u16_e64", False, False),
+   (   -1,    -1,    -1,    -1, 0x305, "v_mul_lo_u16_e64", False, False),
+   (   -1,    -1,    -1,    -1, 0x309, "v_max_u16_e64", False, False),
+   (   -1,    -1,    -1,    -1, 0x30a, "v_max_i16_e64", False, False),
+   (   -1,    -1,    -1,    -1, 0x30b, "v_min_u16_e64", False, False),
+   (   -1,    -1,    -1,    -1, 0x30c, "v_min_i16_e64", False, False),
+   (   -1,    -1,    -1,    -1, 0x307, "v_lshrrev_b16_e64", False, False),
+   (   -1,    -1,    -1,    -1, 0x308, "v_ashrrev_i16_e64", False, False),
+   (   -1,    -1,    -1,    -1, 0x314, "v_lshlrev_b16_e64", False, False),
 }
 for (gfx6, gfx7, gfx8, gfx9, gfx10, name, in_mod, out_mod) in VOP3:
    opcode(name, gfx7, gfx9, gfx10, Format.VOP3A, in_mod, out_mod)

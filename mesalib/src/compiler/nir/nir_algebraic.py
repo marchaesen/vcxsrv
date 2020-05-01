@@ -283,17 +283,21 @@ class Constant(Value):
 
       return self.value == other.value
 
+# The $ at the end forces there to be an error if any part of the string
+# doesn't match one of the field patterns.
 _var_name_re = re.compile(r"(?P<const>#)?(?P<name>\w+)"
                           r"(?:@(?P<type>int|uint|bool|float)?(?P<bits>\d+)?)?"
                           r"(?P<cond>\([^\)]+\))?"
-                          r"(?P<swiz>\.[xyzw]+)?")
+                          r"(?P<swiz>\.[xyzw]+)?"
+                          r"$")
 
 class Variable(Value):
    def __init__(self, val, name, varset):
       Value.__init__(self, val, name, "variable")
 
       m = _var_name_re.match(val)
-      assert m and m.group('name') is not None
+      assert m and m.group('name') is not None, \
+            "Malformed variable name \"{}\".".format(val)
 
       self.var_name = m.group('name')
 

@@ -58,4 +58,10 @@ _mesa_check_sample_count(struct gl_context *ctx, GLenum target,
                          GLenum internalFormat, GLsizei samples,
                          GLsizei storageSamples);
 
+extern void GLAPIENTRY
+_mesa_AlphaToCoverageDitherControlNV_no_error(GLenum mode);
+
+extern void GLAPIENTRY
+_mesa_AlphaToCoverageDitherControlNV(GLenum mode);
+
 #endif

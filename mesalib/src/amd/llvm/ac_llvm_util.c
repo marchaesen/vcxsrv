@@ -70,6 +70,10 @@ static void ac_init_llvm_target()
 		/* Atomic optimizations require LLVM 10.0 for gfx10 support. */
 		"-amdgpu-atomic-optimizations=true",
 #endif
+#if LLVM_VERSION_MAJOR >= 11
+		/* This was disabled by default in: https://reviews.llvm.org/D77228 */
+		"-structurizecfg-skip-uniform-regions",
+#endif
 	};
 	LLVMParseCommandLineOptions(ARRAY_SIZE(argv), argv, NULL);
 }

@@ -127,6 +127,22 @@ struct wsi_device {
                                    VkFence fence,
                                    VkDeviceMemory memory);
 
+   /*
+    * This sets the ownership for a WSI memory object:
+    *
+    * The ownership is true if and only if the application is allowed to submit
+    * command buffers that reference the buffer.
+    *
+    * This can be used to prune BO lists without too many adverse affects on
+    * implicit sync.
+    *
+    * Side note: care needs to be taken for internally delayed submissions wrt
+    * timeline semaphores.
+    */
+   void (*set_memory_ownership)(VkDevice device,
+                                VkDeviceMemory memory,
+                                VkBool32 ownership);
+
 #define WSI_CB(cb) PFN_vk##cb cb
    WSI_CB(AllocateMemory);
    WSI_CB(AllocateCommandBuffers);

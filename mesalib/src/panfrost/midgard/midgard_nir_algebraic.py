@@ -83,6 +83,12 @@ for op in ('u2u', 'i2i', 'f2f', 'i2f', 'u2f', 'f2i', 'f2u'):
             srcsz *= 2
         dstsz *= 2
 
+# Midgard outputs fp32 for specials. The f2f32 will be folded in later.
+SPECIAL = ['fexp2', 'flog2', 'fsin', 'fcos', 'frcp', 'frsq']
+
+for op in SPECIAL:
+        converts += [((op + '@16', a), ('f2f16', (op, ('f2f32', a))))]
+
 # Midgard scales fsin/fcos arguments by pi.
 # Pass must be run only once, after the main loop
 

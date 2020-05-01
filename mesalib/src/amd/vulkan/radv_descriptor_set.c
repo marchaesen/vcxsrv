@@ -150,7 +150,7 @@ VkResult radv_CreateDescriptorSetLayout(
 	for (uint32_t j = 0; j < pCreateInfo->bindingCount; j++) {
 		const VkDescriptorSetLayoutBinding *binding = bindings + j;
 		uint32_t b = binding->binding;
-		uint32_t alignment;
+		uint32_t alignment = 0;
 		unsigned binding_buffer_count = 0;
 		uint32_t descriptor_count = binding->descriptorCount;
 		bool has_ycbcr_sampler = false;
@@ -214,7 +214,6 @@ VkResult radv_CreateDescriptorSetLayout(
 			descriptor_count = 1;
 			break;
 		default:
-			unreachable("unknown descriptor type\n");
 			break;
 		}
 
@@ -363,7 +362,6 @@ void radv_GetDescriptorSetLayoutSupport(VkDevice device,
 			descriptor_count = 1;
 			break;
 		default:
-			unreachable("unknown descriptor type\n");
 			break;
 		}
 
@@ -673,7 +671,6 @@ VkResult radv_CreateDescriptorPool(
 			bo_size += pCreateInfo->pPoolSizes[i].descriptorCount;
 			break;
 		default:
-			unreachable("unknown descriptor type\n");
 			break;
 		}
 	}
@@ -833,6 +830,11 @@ static void write_texel_buffer_descriptor(struct radv_device *device,
 {
 	RADV_FROM_HANDLE(radv_buffer_view, buffer_view, _buffer_view);
 
+	if (!buffer_view) {
+		memset(dst, 0, 4 * 4);
+		return;
+	}
+
 	memcpy(dst, buffer_view->state, 4 * 4);
 
 	if (cmd_buffer)
@@ -848,11 +850,23 @@ static void write_buffer_descriptor(struct radv_device *device,
                                     const VkDescriptorBufferInfo *buffer_info)
 {
 	RADV_FROM_HANDLE(radv_buffer, buffer, buffer_info->buffer);
+
+	if (!buffer) {
+		memset(dst, 0, 4 * 4);
+		return;
+	}
+
 	uint64_t va = radv_buffer_get_va(buffer->bo);
 	uint32_t range = buffer_info->range;
 
 	if (buffer_info->range == VK_WHOLE_SIZE)
 		range = buffer->size - buffer_info->offset;
+
+	/* robustBufferAccess is relaxed enough to allow this (in combination
+	 * with the alignment/size we return from vkGetBufferMemoryRequirements)
+	 * and this allows the shader compiler to create more efficient 8/16-bit
+	 * buffer accesses. */
+	range = align(range, 4);
 
 	va += buffer_info->offset + buffer->offset;
 	dst[0] = va;
@@ -895,11 +909,23 @@ static void write_dynamic_buffer_descriptor(struct radv_device *device,
                                             const VkDescriptorBufferInfo *buffer_info)
 {
 	RADV_FROM_HANDLE(radv_buffer, buffer, buffer_info->buffer);
-	uint64_t va = radv_buffer_get_va(buffer->bo);
-	unsigned size = buffer_info->range;
+	uint64_t va;
+	unsigned size;
+
+	if (!buffer)
+		return;
+
+	va = radv_buffer_get_va(buffer->bo);
+	size = buffer_info->range;
 
 	if (buffer_info->range == VK_WHOLE_SIZE)
 		size = buffer->size - buffer_info->offset;
+
+	/* robustBufferAccess is relaxed enough to allow this (in combination
+	 * with the alignment/size we return from vkGetBufferMemoryRequirements)
+	 * and this allows the shader compiler to create more efficient 8/16-bit
+	 * buffer accesses. */
+	size = align(size, 4);
 
 	va += buffer_info->offset + buffer->offset;
 	range->va = va;
@@ -918,6 +944,11 @@ write_image_descriptor(struct radv_device *device,
 {
 	RADV_FROM_HANDLE(radv_image_view, iview, image_info->imageView);
 	union radv_descriptor *descriptor;
+
+	if (!iview) {
+		memset(dst, 0, size);
+		return;
+	}
 
 	if (descriptor_type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE) {
 		descriptor = &iview->storage_descriptor;
@@ -1050,7 +1081,6 @@ void radv_update_descriptor_sets(
 				}
 				break;
 			default:
-				unreachable("unimplemented descriptor type");
 				break;
 			}
 			ptr += binding_layout->size / 4;
@@ -1303,7 +1333,6 @@ void radv_update_descriptor_set_with_template(struct radv_device *device,
 					memcpy(pDst, templ->entry[i].immutable_samplers + 4 * j, 16);
 				break;
 			default:
-				unreachable("unimplemented descriptor type");
 				break;
 			}
 		        pSrc += templ->entry[i].src_stride;

@@ -515,6 +515,9 @@ dd_dump_clear(struct dd_draw_state *dstate, struct call_clear *info, FILE *f)
 {
    fprintf(f, "%s:\n", __func__+8);
    DUMP_M(uint, info, buffers);
+   fprintf(f, "  scissor_state: %d,%d %d,%d\n",
+              info->scissor_state.minx, info->scissor_state.miny,
+              info->scissor_state.maxx, info->scissor_state.maxy);
    DUMP_M_ADDR(color_union, info, color);
    DUMP_M(double, info, depth);
    DUMP_M(hex, info, stencil);
@@ -1478,7 +1481,7 @@ dd_context_flush_resource(struct pipe_context *_pipe,
 }
 
 static void
-dd_context_clear(struct pipe_context *_pipe, unsigned buffers,
+dd_context_clear(struct pipe_context *_pipe, unsigned buffers, const struct pipe_scissor_state *scissor_state,
                  const union pipe_color_union *color, double depth,
                  unsigned stencil)
 {
@@ -1488,12 +1491,14 @@ dd_context_clear(struct pipe_context *_pipe, unsigned buffers,
 
    record->call.type = CALL_CLEAR;
    record->call.info.clear.buffers = buffers;
+   if (scissor_state)
+      record->call.info.clear.scissor_state = *scissor_state;
    record->call.info.clear.color = *color;
    record->call.info.clear.depth = depth;
    record->call.info.clear.stencil = stencil;
 
    dd_before_draw(dctx, record);
-   pipe->clear(pipe, buffers, color, depth, stencil);
+   pipe->clear(pipe, buffers, scissor_state, color, depth, stencil);
    dd_after_draw(dctx, record);
 }
 

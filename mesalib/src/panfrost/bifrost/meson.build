@@ -28,6 +28,7 @@ libpanfrost_bifrost_files = files(
   'bi_pack.c',
   'bi_ra.c',
   'bi_schedule.c',
+  'bi_special.c',
   'bi_tables.c',
   'bir.c',
   'bifrost_compile.c',

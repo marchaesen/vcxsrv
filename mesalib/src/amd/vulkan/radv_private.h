@@ -106,25 +106,6 @@ struct gfx10_format {
 
 #include "gfx10_format_table.h"
 
-enum radv_mem_heap {
-	RADV_MEM_HEAP_VRAM,
-	RADV_MEM_HEAP_VRAM_CPU_ACCESS,
-	RADV_MEM_HEAP_GTT,
-	RADV_MEM_HEAP_COUNT
-};
-
-enum radv_mem_type {
-	RADV_MEM_TYPE_VRAM,
-	RADV_MEM_TYPE_GTT_WRITE_COMBINE,
-	RADV_MEM_TYPE_VRAM_CPU_ACCESS,
-	RADV_MEM_TYPE_GTT_CACHED,
-	RADV_MEM_TYPE_VRAM_UNCACHED,
-	RADV_MEM_TYPE_GTT_WRITE_COMBINE_VRAM_UNCACHED,
-	RADV_MEM_TYPE_VRAM_CPU_ACCESS_UNCACHED,
-	RADV_MEM_TYPE_GTT_CACHED_VRAM_UNCACHED,
-	RADV_MEM_TYPE_COUNT
-};
-
 enum radv_secure_compile_type {
 	RADV_SC_TYPE_INIT_SUCCESS,
 	RADV_SC_TYPE_INIT_FAILURE,
@@ -327,6 +308,9 @@ struct radv_physical_device {
 	/* Whether to enable NGG. */
 	bool use_ngg;
 
+	/* Whether to enable NGG GS. */
+	bool use_ngg_gs;
+
 	/* Whether to enable NGG streamout. */
 	bool use_ngg_streamout;
 
@@ -344,7 +328,8 @@ struct radv_physical_device {
 	struct disk_cache *                          disk_cache;
 
 	VkPhysicalDeviceMemoryProperties memory_properties;
-	enum radv_mem_type mem_type_indices[RADV_MEM_TYPE_COUNT];
+	enum radeon_bo_domain memory_domains[VK_MAX_MEMORY_TYPES];
+	enum radeon_bo_flag memory_flags[VK_MAX_MEMORY_TYPES];
 
 	drmPciBusInfo bus_info;
 
@@ -755,6 +740,11 @@ struct radv_bo_list {
 	pthread_mutex_t mutex;
 };
 
+VkResult radv_bo_list_add(struct radv_device *device,
+			  struct radeon_winsys_bo *bo);
+void radv_bo_list_remove(struct radv_device *device,
+			 struct radeon_winsys_bo *bo);
+
 struct radv_secure_compile_process {
 	/* Secure process file descriptors. Used to communicate between the
 	 * user facing device and the idle forked device used to fork a clean
@@ -870,6 +860,11 @@ struct radv_device {
 	void *thread_trace_ptr;
 	uint32_t thread_trace_buffer_size;
 	int thread_trace_start_frame;
+
+	/* Overallocation. */
+	bool overallocation_disallowed;
+	uint64_t allocated_memory_size[VK_MAX_MEMORY_HEAPS];
+	mtx_t overallocation_mutex;
 };
 
 struct radv_device_memory {
@@ -877,8 +872,8 @@ struct radv_device_memory {
 	/* for dedicated allocations */
 	struct radv_image                            *image;
 	struct radv_buffer                           *buffer;
-	uint32_t                                     type_index;
-	VkDeviceSize                                 map_size;
+	uint32_t                                     heap_index;
+	uint64_t                                     alloc_size;
 	void *                                       map;
 	void *                                       user_ptr;
 
@@ -1398,7 +1393,7 @@ struct radv_image_view;
 
 bool radv_cmd_buffer_uses_mec(struct radv_cmd_buffer *cmd_buffer);
 
-void si_emit_graphics(struct radv_physical_device *physical_device,
+void si_emit_graphics(struct radv_device *device,
 		      struct radeon_cmdbuf *cs);
 void si_emit_compute(struct radv_physical_device *physical_device,
 		      struct radeon_cmdbuf *cs);
@@ -2371,7 +2366,8 @@ struct radv_shader_variant_key;
 void radv_nir_shader_info_pass(const struct nir_shader *nir,
 			       const struct radv_pipeline_layout *layout,
 			       const struct radv_shader_variant_key *key,
-			       struct radv_shader_info *info);
+			       struct radv_shader_info *info,
+			       bool use_aco);
 
 void radv_nir_shader_info_init(struct radv_shader_info *info);
 

@@ -50,7 +50,7 @@ predicate_following(nir_cf_node *node, struct lower_returns_state *state)
    nir_builder *b = &state->builder;
    b->cursor = nir_after_cf_node_and_phis(node);
 
-   if (nir_cursors_equal(b->cursor, nir_after_cf_list(state->cf_list)))
+   if (!state->loop && nir_cursors_equal(b->cursor, nir_after_cf_list(state->cf_list)))
       return; /* Nothing to predicate */
 
    assert(state->return_flag);

@@ -113,6 +113,12 @@ simple_mtx_unlock(simple_mtx_t *mtx)
    }
 }
 
+static inline void
+simple_mtx_assert_locked(simple_mtx_t *mtx)
+{
+   assert(mtx->val);
+}
+
 #else
 
 typedef mtx_t simple_mtx_t;
@@ -141,6 +147,22 @@ static inline void
 simple_mtx_unlock(simple_mtx_t *mtx)
 {
    mtx_unlock(mtx);
+}
+
+static inline void
+simple_mtx_assert_locked(simple_mtx_t *mtx)
+{
+#ifdef DEBUG
+   /* NOTE: this would not work for recursive mutexes, but
+    * mtx_t doesn't support those
+    */
+   int ret = mtx_trylock(mtx);
+   assert(ret == thrd_busy);
+   if (ret == thrd_success)
+      mtx_unlock(mtx);
+#else
+   (void)mtx;
+#endif
 }
 
 #endif

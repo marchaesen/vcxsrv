@@ -144,7 +144,7 @@ int
 ac_get_llvm_num_components(LLVMValueRef value)
 {
 	LLVMTypeRef type = LLVMTypeOf(value);
-	unsigned num_components = LLVMGetTypeKind(type) == LLVMVectorTypeKind
+	unsigned num_components = LLVMGetTypeKind(type) == LLVMFixedVectorTypeKind
 	                              ? LLVMGetVectorSize(type)
 	                              : 1;
 	return num_components;
@@ -155,7 +155,7 @@ ac_llvm_extract_elem(struct ac_llvm_context *ac,
 		     LLVMValueRef value,
 		     int index)
 {
-	if (LLVMGetTypeKind(LLVMTypeOf(value)) != LLVMVectorTypeKind) {
+	if (LLVMGetTypeKind(LLVMTypeOf(value)) != LLVMFixedVectorTypeKind) {
 		assert(index == 0);
 		return value;
 	}
@@ -167,7 +167,7 @@ ac_llvm_extract_elem(struct ac_llvm_context *ac,
 int
 ac_get_elem_bits(struct ac_llvm_context *ctx, LLVMTypeRef type)
 {
-	if (LLVMGetTypeKind(type) == LLVMVectorTypeKind)
+	if (LLVMGetTypeKind(type) == LLVMFixedVectorTypeKind)
 		type = LLVMGetElementType(type);
 
 	if (LLVMGetTypeKind(type) == LLVMIntegerTypeKind)
@@ -206,7 +206,7 @@ ac_get_type_size(LLVMTypeRef type)
 		if (LLVMGetPointerAddressSpace(type) == AC_ADDR_SPACE_CONST_32BIT)
 			return 4;
 		return 8;
-	case LLVMVectorTypeKind:
+	case LLVMFixedVectorTypeKind:
 		return LLVMGetVectorSize(type) *
 		       ac_get_type_size(LLVMGetElementType(type));
 	case LLVMArrayTypeKind:
@@ -235,7 +235,7 @@ static LLVMTypeRef to_integer_type_scalar(struct ac_llvm_context *ctx, LLVMTypeR
 LLVMTypeRef
 ac_to_integer_type(struct ac_llvm_context *ctx, LLVMTypeRef t)
 {
-	if (LLVMGetTypeKind(t) == LLVMVectorTypeKind) {
+	if (LLVMGetTypeKind(t) == LLVMFixedVectorTypeKind) {
 		LLVMTypeRef elem_type = LLVMGetElementType(t);
 		return LLVMVectorType(to_integer_type_scalar(ctx, elem_type),
 		                      LLVMGetVectorSize(t));
@@ -290,7 +290,7 @@ static LLVMTypeRef to_float_type_scalar(struct ac_llvm_context *ctx, LLVMTypeRef
 LLVMTypeRef
 ac_to_float_type(struct ac_llvm_context *ctx, LLVMTypeRef t)
 {
-	if (LLVMGetTypeKind(t) == LLVMVectorTypeKind) {
+	if (LLVMGetTypeKind(t) == LLVMFixedVectorTypeKind) {
 		LLVMTypeRef elem_type = LLVMGetElementType(t);
 		return LLVMVectorType(to_float_type_scalar(ctx, elem_type),
 		                      LLVMGetVectorSize(t));
@@ -352,7 +352,7 @@ void ac_build_type_name_for_intr(LLVMTypeRef type, char *buf, unsigned bufsize)
 
 	assert(bufsize >= 8);
 
-	if (LLVMGetTypeKind(type) == LLVMVectorTypeKind) {
+	if (LLVMGetTypeKind(type) == LLVMFixedVectorTypeKind) {
 		int ret = snprintf(buf, bufsize, "v%u",
 					LLVMGetVectorSize(type));
 		if (ret < 0) {
@@ -627,7 +627,7 @@ ac_build_expand(struct ac_llvm_context *ctx,
 	LLVMTypeRef elemtype;
 	LLVMValueRef chan[dst_channels];
 
-	if (LLVMGetTypeKind(LLVMTypeOf(value)) == LLVMVectorTypeKind) {
+	if (LLVMGetTypeKind(LLVMTypeOf(value)) == LLVMFixedVectorTypeKind) {
 		unsigned vec_size = LLVMGetVectorSize(LLVMTypeOf(value));
 
 		if (src_channels == dst_channels && vec_size == dst_channels)
@@ -3081,6 +3081,7 @@ void ac_optimize_vs_outputs(struct ac_llvm_context *ctx,
 			    LLVMValueRef main_fn,
 			    uint8_t *vs_output_param_offset,
 			    uint32_t num_outputs,
+			    uint32_t skip_output_mask,
 			    uint8_t *num_param_exports)
 {
 	LLVMBasicBlockRef bb;
@@ -3123,6 +3124,9 @@ void ac_optimize_vs_outputs(struct ac_llvm_context *ctx,
 				continue;
 
 			target -= V_008DFC_SQ_EXP_PARAM;
+
+			if ((1u << target) & skip_output_mask)
+				continue;
 
 			/* Parse the instruction. */
 			memset(&exp, 0, sizeof(exp));
@@ -4814,10 +4818,7 @@ void ac_build_sendmsg_gs_alloc_req(struct ac_llvm_context *ctx, LLVMValueRef wav
 	 * We always have to export at least 1 primitive.
 	 * Export a degenerate triangle using vertex 0 for all 3 vertices.
 	 */
-	if (prim_cnt == ctx->i32_0 &&
-	    (ctx->family == CHIP_NAVI10 ||
-	     ctx->family == CHIP_NAVI12 ||
-	     ctx->family == CHIP_NAVI14)) {
+	if (prim_cnt == ctx->i32_0 && ctx->chip_class == GFX10) {
 		assert(vtx_cnt == ctx->i32_0);
 		prim_cnt = ctx->i32_1;
 		vtx_cnt = ctx->i32_1;

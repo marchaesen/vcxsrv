@@ -1113,6 +1113,14 @@ nir_assign_io_var_locations(struct exec_list *var_list, unsigned *size,
 
       unsigned var_size;
       if (var->data.compact) {
+         /* If we are inside a partial compact,
+          * don't allow another compact to be in this slot
+          * if it starts at component 0.
+          */
+         if (last_partial && var->data.location_frac == 0) {
+            location++;
+         }
+
          /* compact variables must be arrays of scalars */
          assert(glsl_type_is_array(type));
          assert(glsl_type_is_scalar(glsl_get_array_element(type)));
@@ -1193,3 +1201,102 @@ nir_assign_io_var_locations(struct exec_list *var_list, unsigned *size,
    *size = location;
 }
 
+static uint64_t
+get_linked_variable_location(unsigned location, bool patch)
+{
+   if (!patch)
+      return location;
+
+   /* Reserve locations 0...3 for special patch variables
+    * like tess factors and bounding boxes, and the generic patch
+    * variables will come after them.
+    */
+   if (location >= VARYING_SLOT_PATCH0)
+      return location - VARYING_SLOT_PATCH0 + 4;
+   else if (location >= VARYING_SLOT_TESS_LEVEL_OUTER &&
+            location <= VARYING_SLOT_BOUNDING_BOX1)
+      return location - VARYING_SLOT_TESS_LEVEL_OUTER;
+   else
+      unreachable("Unsupported variable in get_linked_variable_location.");
+}
+
+static uint64_t
+get_linked_variable_io_mask(nir_variable *variable, gl_shader_stage stage)
+{
+   const struct glsl_type *type = variable->type;
+
+   if (nir_is_per_vertex_io(variable, stage)) {
+      assert(glsl_type_is_array(type));
+      type = glsl_get_array_element(type);
+   }
+
+   unsigned slots = glsl_count_attribute_slots(type, false);
+   if (variable->data.compact) {
+      unsigned component_count = variable->data.location_frac + glsl_get_length(type);
+      slots = DIV_ROUND_UP(component_count, 4);
+   }
+
+   uint64_t mask = u_bit_consecutive64(0, slots);
+   return mask;
+}
+
+nir_linked_io_var_info
+nir_assign_linked_io_var_locations(nir_shader *producer, nir_shader *consumer)
+{
+   assert(producer);
+   assert(consumer);
+
+   uint64_t producer_output_mask = 0;
+   uint64_t producer_patch_output_mask = 0;
+
+   nir_foreach_variable(variable, &producer->outputs) {
+      uint64_t mask = get_linked_variable_io_mask(variable, producer->info.stage);
+      uint64_t loc = get_linked_variable_location(variable->data.location, variable->data.patch);
+
+      if (variable->data.patch)
+         producer_patch_output_mask |= mask << loc;
+      else
+         producer_output_mask |= mask << loc;
+   }
+
+   uint64_t consumer_input_mask = 0;
+   uint64_t consumer_patch_input_mask = 0;
+
+   nir_foreach_variable(variable, &consumer->inputs) {
+      uint64_t mask = get_linked_variable_io_mask(variable, consumer->info.stage);
+      uint64_t loc = get_linked_variable_location(variable->data.location, variable->data.patch);
+
+      if (variable->data.patch)
+         consumer_patch_input_mask |= mask << loc;
+      else
+         consumer_input_mask |= mask << loc;
+   }
+
+   uint64_t io_mask = producer_output_mask | consumer_input_mask;
+   uint64_t patch_io_mask = producer_patch_output_mask | consumer_patch_input_mask;
+
+   nir_foreach_variable(variable, &producer->outputs) {
+      uint64_t loc = get_linked_variable_location(variable->data.location, variable->data.patch);
+
+      if (variable->data.patch)
+         variable->data.driver_location = util_bitcount64(patch_io_mask & u_bit_consecutive64(0, loc)) * 4;
+      else
+         variable->data.driver_location = util_bitcount64(io_mask & u_bit_consecutive64(0, loc)) * 4;
+   }
+
+   nir_foreach_variable(variable, &consumer->inputs) {
+      uint64_t loc = get_linked_variable_location(variable->data.location, variable->data.patch);
+
+      if (variable->data.patch)
+         variable->data.driver_location = util_bitcount64(patch_io_mask & u_bit_consecutive64(0, loc)) * 4;
+      else
+         variable->data.driver_location = util_bitcount64(io_mask & u_bit_consecutive64(0, loc)) * 4;
+   }
+
+   nir_linked_io_var_info result = {
+      .num_linked_io_vars = util_bitcount64(io_mask),
+      .num_linked_patch_io_vars = util_bitcount64(patch_io_mask),
+   };
+
+   return result;
+}

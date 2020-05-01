@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2011 Red Hat Inc.
- * 
+ *
  * block compression parts are:
  * Copyright (C) 2004  Roland Scheidegger   All Rights Reserved.
  *
@@ -32,10 +32,11 @@
  * GL_EXT_texture_compression_rgtc support.
  */
 
+#include <stdlib.h>
 
 #include "config.h"
 #include "glheader.h"
-#include "util/imports.h"
+
 #include "image.h"
 #include "macros.h"
 #include "mipmap.h"

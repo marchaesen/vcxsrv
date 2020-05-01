@@ -405,7 +405,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          if (ctx->Eval.AutoNormal == state)
             return;
-         FLUSH_VERTICES(ctx, _NEW_EVAL);
+         FLUSH_VERTICES(ctx, 0);
+         vbo_exec_update_eval_maps(ctx);
          ctx->Eval.AutoNormal = state;
          break;
       case GL_BLEND:
@@ -604,7 +605,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          if (ctx->Eval.Map1Color4 == state)
             return;
-         FLUSH_VERTICES(ctx, _NEW_EVAL);
+         FLUSH_VERTICES(ctx, 0);
+         vbo_exec_update_eval_maps(ctx);
          ctx->Eval.Map1Color4 = state;
          break;
       case GL_MAP1_INDEX:
@@ -612,7 +614,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          if (ctx->Eval.Map1Index == state)
             return;
-         FLUSH_VERTICES(ctx, _NEW_EVAL);
+         FLUSH_VERTICES(ctx, 0);
+         vbo_exec_update_eval_maps(ctx);
          ctx->Eval.Map1Index = state;
          break;
       case GL_MAP1_NORMAL:
@@ -620,7 +623,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          if (ctx->Eval.Map1Normal == state)
             return;
-         FLUSH_VERTICES(ctx, _NEW_EVAL);
+         FLUSH_VERTICES(ctx, 0);
+         vbo_exec_update_eval_maps(ctx);
          ctx->Eval.Map1Normal = state;
          break;
       case GL_MAP1_TEXTURE_COORD_1:
@@ -628,7 +632,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          if (ctx->Eval.Map1TextureCoord1 == state)
             return;
-         FLUSH_VERTICES(ctx, _NEW_EVAL);
+         FLUSH_VERTICES(ctx, 0);
+         vbo_exec_update_eval_maps(ctx);
          ctx->Eval.Map1TextureCoord1 = state;
          break;
       case GL_MAP1_TEXTURE_COORD_2:
@@ -636,7 +641,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          if (ctx->Eval.Map1TextureCoord2 == state)
             return;
-         FLUSH_VERTICES(ctx, _NEW_EVAL);
+         FLUSH_VERTICES(ctx, 0);
+         vbo_exec_update_eval_maps(ctx);
          ctx->Eval.Map1TextureCoord2 = state;
          break;
       case GL_MAP1_TEXTURE_COORD_3:
@@ -644,7 +650,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          if (ctx->Eval.Map1TextureCoord3 == state)
             return;
-         FLUSH_VERTICES(ctx, _NEW_EVAL);
+         FLUSH_VERTICES(ctx, 0);
+         vbo_exec_update_eval_maps(ctx);
          ctx->Eval.Map1TextureCoord3 = state;
          break;
       case GL_MAP1_TEXTURE_COORD_4:
@@ -652,7 +659,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          if (ctx->Eval.Map1TextureCoord4 == state)
             return;
-         FLUSH_VERTICES(ctx, _NEW_EVAL);
+         FLUSH_VERTICES(ctx, 0);
+         vbo_exec_update_eval_maps(ctx);
          ctx->Eval.Map1TextureCoord4 = state;
          break;
       case GL_MAP1_VERTEX_3:
@@ -660,7 +668,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          if (ctx->Eval.Map1Vertex3 == state)
             return;
-         FLUSH_VERTICES(ctx, _NEW_EVAL);
+         FLUSH_VERTICES(ctx, 0);
+         vbo_exec_update_eval_maps(ctx);
          ctx->Eval.Map1Vertex3 = state;
          break;
       case GL_MAP1_VERTEX_4:
@@ -668,7 +677,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          if (ctx->Eval.Map1Vertex4 == state)
             return;
-         FLUSH_VERTICES(ctx, _NEW_EVAL);
+         FLUSH_VERTICES(ctx, 0);
+         vbo_exec_update_eval_maps(ctx);
          ctx->Eval.Map1Vertex4 = state;
          break;
       case GL_MAP2_COLOR_4:
@@ -676,7 +686,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          if (ctx->Eval.Map2Color4 == state)
             return;
-         FLUSH_VERTICES(ctx, _NEW_EVAL);
+         FLUSH_VERTICES(ctx, 0);
+         vbo_exec_update_eval_maps(ctx);
          ctx->Eval.Map2Color4 = state;
          break;
       case GL_MAP2_INDEX:
@@ -684,7 +695,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          if (ctx->Eval.Map2Index == state)
             return;
-         FLUSH_VERTICES(ctx, _NEW_EVAL);
+         FLUSH_VERTICES(ctx, 0);
+         vbo_exec_update_eval_maps(ctx);
          ctx->Eval.Map2Index = state;
          break;
       case GL_MAP2_NORMAL:
@@ -692,7 +704,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          if (ctx->Eval.Map2Normal == state)
             return;
-         FLUSH_VERTICES(ctx, _NEW_EVAL);
+         FLUSH_VERTICES(ctx, 0);
+         vbo_exec_update_eval_maps(ctx);
          ctx->Eval.Map2Normal = state;
          break;
       case GL_MAP2_TEXTURE_COORD_1:
@@ -700,7 +713,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          if (ctx->Eval.Map2TextureCoord1 == state)
             return;
-         FLUSH_VERTICES(ctx, _NEW_EVAL);
+         FLUSH_VERTICES(ctx, 0);
+         vbo_exec_update_eval_maps(ctx);
          ctx->Eval.Map2TextureCoord1 = state;
          break;
       case GL_MAP2_TEXTURE_COORD_2:
@@ -708,7 +722,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          if (ctx->Eval.Map2TextureCoord2 == state)
             return;
-         FLUSH_VERTICES(ctx, _NEW_EVAL);
+         FLUSH_VERTICES(ctx, 0);
+         vbo_exec_update_eval_maps(ctx);
          ctx->Eval.Map2TextureCoord2 = state;
          break;
       case GL_MAP2_TEXTURE_COORD_3:
@@ -716,7 +731,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          if (ctx->Eval.Map2TextureCoord3 == state)
             return;
-         FLUSH_VERTICES(ctx, _NEW_EVAL);
+         FLUSH_VERTICES(ctx, 0);
+         vbo_exec_update_eval_maps(ctx);
          ctx->Eval.Map2TextureCoord3 = state;
          break;
       case GL_MAP2_TEXTURE_COORD_4:
@@ -724,7 +740,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          if (ctx->Eval.Map2TextureCoord4 == state)
             return;
-         FLUSH_VERTICES(ctx, _NEW_EVAL);
+         FLUSH_VERTICES(ctx, 0);
+         vbo_exec_update_eval_maps(ctx);
          ctx->Eval.Map2TextureCoord4 = state;
          break;
       case GL_MAP2_VERTEX_3:
@@ -732,7 +749,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          if (ctx->Eval.Map2Vertex3 == state)
             return;
-         FLUSH_VERTICES(ctx, _NEW_EVAL);
+         FLUSH_VERTICES(ctx, 0);
+         vbo_exec_update_eval_maps(ctx);
          ctx->Eval.Map2Vertex3 = state;
          break;
       case GL_MAP2_VERTEX_4:
@@ -740,7 +758,8 @@ _mesa_set_enable(struct gl_context *ctx, GLenum cap, GLboolean state)
             goto invalid_enum_error;
          if (ctx->Eval.Map2Vertex4 == state)
             return;
-         FLUSH_VERTICES(ctx, _NEW_EVAL);
+         FLUSH_VERTICES(ctx, 0);
+         vbo_exec_update_eval_maps(ctx);
          ctx->Eval.Map2Vertex4 = state;
          break;
       case GL_NORMALIZE:

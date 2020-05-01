@@ -36,34 +36,22 @@
 #include "vbo/vbo_exec.h"
 #include "vbo/vbo_save.h"
 #include "main/varray.h"
+#include "main/macros.h"
 
 
 struct _glapi_table;
-struct _mesa_prim;
-
-
-struct vbo_context {
-   struct gl_vertex_buffer_binding binding;
-   struct gl_array_attributes current[VBO_ATTRIB_MAX];
-
-   struct gl_vertex_array_object *VAO;
-
-   struct vbo_exec_context exec;
-   struct vbo_save_context save;
-};
-
 
 static inline struct vbo_context *
 vbo_context(struct gl_context *ctx)
 {
-   return ctx->vbo_context;
+   return &ctx->vbo_context;
 }
 
 
 static inline const struct vbo_context *
 vbo_context_const(const struct gl_context *ctx)
 {
-   return ctx->vbo_context;
+   return &ctx->vbo_context;
 }
 
 
@@ -242,12 +230,7 @@ _vbo_set_attrib_format(struct gl_context *ctx,
       size /= 2;
    _mesa_update_array_format(ctx, vao, attr, size, type, GL_RGBA,
                              GL_FALSE, integer, doubles, offset);
-   /* Ptr for userspace arrays.
-    * For updating the pointer we would need to add the vao->NewArrays flag
-    * to the VAO. But but that is done already unconditionally in
-    * _mesa_update_array_format called above.
-    */
-   assert((vao->NewArrays | ~vao->Enabled) & VERT_BIT(attr));
+   vao->NewArrays |= vao->Enabled & VERT_BIT(attr);
    vao->VertexAttrib[attr].Ptr = ADD_POINTERS(buffer_offset, offset);
 }
 

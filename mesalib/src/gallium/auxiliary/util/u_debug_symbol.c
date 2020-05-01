@@ -234,7 +234,7 @@ debug_symbol_name_glibc(const void *addr, char* buf, unsigned size)
    if (!syms) {
       return FALSE;
    }
-   strncpy(buf, syms[0], size);
+   strncpy(buf, syms[0], size - 1);
    buf[size - 1] = 0;
    free(syms);
    return TRUE;

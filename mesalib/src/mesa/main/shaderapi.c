@@ -63,6 +63,7 @@
 #include "util/crc32.h"
 #include "util/os_file.h"
 #include "util/simple_list.h"
+#include "util/u_string.h"
 
 /**
  * Return mask of GLSL_x flags by examining the MESA_GLSL env var.

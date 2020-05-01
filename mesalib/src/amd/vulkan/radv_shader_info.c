@@ -458,6 +458,9 @@ gather_info_input_decl_ps(const nir_shader *nir, const nir_variable *var,
 	case VARYING_SLOT_CLIP_DIST1:
 		info->ps.num_input_clips_culls += attrib_count;
 		break;
+	case VARYING_SLOT_VIEWPORT:
+		info->ps.viewport_index_input = true;
+		break;
 	default:
 		break;
 	}
@@ -653,7 +656,8 @@ void
 radv_nir_shader_info_pass(const struct nir_shader *nir,
 			  const struct radv_pipeline_layout *layout,
 			  const struct radv_shader_variant_key *key,
-			  struct radv_shader_info *info)
+			  struct radv_shader_info *info,
+			  bool use_aco)
 {
 	struct nir_function *func =
 		(struct nir_function *)exec_list_get_head_const(&nir->functions);
@@ -730,6 +734,23 @@ radv_nir_shader_info_pass(const struct nir_shader *nir,
 		}
 	}
 
+	/* Make sure to export the ViewportIndex if the fragment shader needs it. */
+	if (key->vs_common_out.export_viewport_index) {
+		switch (nir->info.stage) {
+		case MESA_SHADER_VERTEX:
+			info->vs.output_usage_mask[VARYING_SLOT_VIEWPORT] |= 0x1;
+			break;
+		case MESA_SHADER_TESS_EVAL:
+			info->tes.output_usage_mask[VARYING_SLOT_VIEWPORT] |= 0x1;
+			break;
+		case MESA_SHADER_GEOMETRY:
+			info->gs.output_usage_mask[VARYING_SLOT_VIEWPORT] |= 0x1;
+			break;
+		default:
+			break;
+		}
+	}
+
 	if (nir->info.stage == MESA_SHADER_FRAGMENT)
 		info->ps.num_interp = nir->num_inputs;
 
@@ -788,17 +809,27 @@ radv_nir_shader_info_pass(const struct nir_shader *nir,
 	    key->vs_common_out.as_es) {
 		struct radv_es_output_info *es_info =
 			nir->info.stage == MESA_SHADER_VERTEX ? &info->vs.es_info : &info->tes.es_info;
-		uint32_t max_output_written = 0;
 
-		uint64_t output_mask = nir->info.outputs_written;
-		while (output_mask) {
-			const int i = u_bit_scan64(&output_mask);
-			unsigned param_index = shader_io_get_unique_index(i);
+		if (use_aco) {
+			/* The outputs don't contain gaps, se we can use the number of outputs */
+			uint32_t num_outputs_written = nir->info.stage == MESA_SHADER_VERTEX
+				? info->vs.num_linked_outputs
+				: info->tes.num_linked_outputs;
+			es_info->esgs_itemsize = num_outputs_written * 16;
+		} else {
+			/* The outputs may contain gaps, use the highest output index + 1 */
+			uint32_t max_output_written = 0;
+			uint64_t output_mask = nir->info.outputs_written;
 
-			max_output_written = MAX2(param_index, max_output_written);
+			while (output_mask) {
+				const int i = u_bit_scan64(&output_mask);
+				unsigned param_index = shader_io_get_unique_index(i);
+
+				max_output_written = MAX2(param_index, max_output_written);
+			}
+
+			es_info->esgs_itemsize = (max_output_written + 1) * 16;
 		}
-
-		es_info->esgs_itemsize = (max_output_written + 1) * 16;
 	}
 
 	info->float_controls_mode = nir->info.float_controls_execution_mode;

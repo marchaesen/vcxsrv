@@ -258,7 +258,7 @@
 
   <function name="VertexAttribIPointer" es2="3.0" marshal="async"
             no_error="true"
-            marshal_call_after="if (COMPAT) _mesa_glthread_AttribPointer(ctx, VERT_ATTRIB_GENERIC(index));">
+            marshal_call_after="if (COMPAT) _mesa_glthread_AttribPointer(ctx, VERT_ATTRIB_GENERIC(index), size, type, stride, pointer);">
     <param name="index" type="GLuint"/>
     <param name="size" type="GLint"/>
     <param name="type" type="GLenum"/>
@@ -563,7 +563,8 @@
     <param name="buffer" type="GLuint"/>
   </function>
 
-  <function name="PrimitiveRestartIndex" no_error="true">
+  <function name="PrimitiveRestartIndex" no_error="true"
+            marshal_call_after="_mesa_glthread_PrimitiveRestartIndex(ctx, index);">
     <param name="index" type="GLuint"/>
   </function>
 

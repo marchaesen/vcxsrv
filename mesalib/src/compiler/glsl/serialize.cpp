@@ -1222,8 +1222,7 @@ create_linked_shader_and_program(struct gl_context *ctx,
    struct gl_linked_shader *linked = rzalloc(NULL, struct gl_linked_shader);
    linked->Stage = stage;
 
-   glprog = ctx->Driver.NewProgram(ctx, _mesa_shader_stage_to_program(stage),
-                                   prog->Name, false);
+   glprog = ctx->Driver.NewProgram(ctx, stage, prog->Name, false);
    glprog->info.stage = stage;
    linked->Program = glprog;
 

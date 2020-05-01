@@ -267,7 +267,7 @@ struct ir3_instruction {
 			int src_offset;
 			int dst_offset;
 			int iim_val : 3;      /* for ldgb/stgb, # of components */
-			unsigned d : 3;
+			unsigned d : 3;       /* for ldc, component offset */
 			bool typed : 1;
 			unsigned base : 3;
 		} cat6;
@@ -594,6 +594,7 @@ void ir3_block_clear_mark(struct ir3_block *block);
 void ir3_clear_mark(struct ir3 *shader);
 
 unsigned ir3_count_instructions(struct ir3 *ir);
+unsigned ir3_count_instructions_ra(struct ir3 *ir);
 
 void ir3_find_ssa_uses(struct ir3 *ir, void *mem_ctx, bool falsedeps);
 
@@ -956,42 +957,6 @@ static inline bool ir3_cat2_int(opc_t opc)
 	}
 }
 
-static inline bool ir3_cat2_float(opc_t opc)
-{
-	switch (opc) {
-	case OPC_ADD_F:
-	case OPC_MIN_F:
-	case OPC_MAX_F:
-	case OPC_MUL_F:
-	case OPC_SIGN_F:
-	case OPC_CMPS_F:
-	case OPC_ABSNEG_F:
-	case OPC_CMPV_F:
-	case OPC_FLOOR_F:
-	case OPC_CEIL_F:
-	case OPC_RNDNE_F:
-	case OPC_RNDAZ_F:
-	case OPC_TRUNC_F:
-		return true;
-
-	default:
-		return false;
-	}
-}
-
-static inline bool ir3_cat3_float(opc_t opc)
-{
-	switch (opc) {
-	case OPC_MAD_F16:
-	case OPC_MAD_F32:
-	case OPC_SEL_F16:
-	case OPC_SEL_F32:
-		return true;
-	default:
-		return false;
-	}
-}
-
 /* map cat2 instruction to valid abs/neg flags: */
 static inline unsigned ir3_cat2_absneg(opc_t opc)
 {
@@ -1167,6 +1132,8 @@ static inline bool __is_false_dep(struct ir3_instruction *instr, unsigned n)
 	list_for_each_entry(struct ir3_block, __block, __list, node)
 #define foreach_block_safe(__block, __list) \
 	list_for_each_entry_safe(struct ir3_block, __block, __list, node)
+#define foreach_block_rev(__block, __list) \
+	list_for_each_entry_rev(struct ir3_block, __block, __list, node)
 
 /* iterators for arrays: */
 #define foreach_array(__array, __list) \

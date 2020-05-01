@@ -60,6 +60,9 @@ os_malloc_aligned(size_t size, size_t alignment);
 void
 os_free_aligned(void *ptr);
 
+void *
+os_realloc_aligned(void *ptr, size_t oldsize, size_t newsize, size_t alignemnt);
+
 #ifdef __cplusplus
 }
 #endif

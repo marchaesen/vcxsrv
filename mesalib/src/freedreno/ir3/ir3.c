@@ -561,7 +561,7 @@ static int emit_cat6_a6xx(struct ir3_instruction *instr, void *ptr,
 	}
 
 	cat6->type      = instr->cat6.type;
-	cat6->d         = instr->cat6.d - 1;
+	cat6->d         = instr->cat6.d - (instr->opc == OPC_LDC ? 0 : 1);
 	cat6->typed     = instr->cat6.typed;
 	cat6->type_size = instr->cat6.iim_val - 1;
 	cat6->opc       = instr->opc;
@@ -1155,11 +1155,33 @@ ir3_count_instructions(struct ir3 *ir)
 	unsigned cnt = 1;
 	foreach_block (block, &ir->block_list) {
 		block->start_ip = cnt;
-		block->end_ip = cnt;
 		foreach_instr (instr, &block->instr_list) {
 			instr->ip = cnt++;
-			block->end_ip = instr->ip;
 		}
+		block->end_ip = cnt;
+	}
+	return cnt;
+}
+
+/* When counting instructions for RA, we insert extra fake instructions at the
+ * beginning of each block, where values become live, and at the end where
+ * values die. This prevents problems where values live-in at the beginning or
+ * live-out at the end of a block from being treated as if they were
+ * live-in/live-out at the first/last instruction, which would be incorrect.
+ * In ir3_legalize these ip's are assumed to be actual ip's of the final
+ * program, so it would be incorrect to use this everywhere.
+ */
+
+unsigned
+ir3_count_instructions_ra(struct ir3 *ir)
+{
+	unsigned cnt = 1;
+	foreach_block (block, &ir->block_list) {
+		block->start_ip = cnt++;
+		foreach_instr (instr, &block->instr_list) {
+			instr->ip = cnt++;
+		}
+		block->end_ip = cnt++;
 	}
 	return cnt;
 }

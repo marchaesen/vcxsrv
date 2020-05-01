@@ -622,6 +622,9 @@ check_image_resources(struct gl_context *ctx, struct gl_shader_program *prog)
 bool
 gl_nir_link_glsl(struct gl_context *ctx, struct gl_shader_program *prog)
 {
+   if (!gl_nir_link_uniforms(ctx, prog, true))
+      return false;
+
    link_util_calculate_subroutine_compat(prog);
    link_util_check_uniform_resources(ctx, prog);
    link_util_check_subroutine_resources(prog);

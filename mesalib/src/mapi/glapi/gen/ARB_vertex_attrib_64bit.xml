@@ -52,7 +52,7 @@
     </function>
 
     <function name="VertexAttribLPointer" no_error="true" marshal="async"
-              marshal_call_after="if (COMPAT) _mesa_glthread_AttribPointer(ctx, VERT_ATTRIB_GENERIC(index));">
+              marshal_call_after="if (COMPAT) _mesa_glthread_AttribPointer(ctx, VERT_ATTRIB_GENERIC(index), size, type, stride, pointer);">
         <param name="index" type="GLuint"/>
         <param name="size" type="GLint"/>
         <param name="type" type="GLenum"/>
@@ -66,7 +66,8 @@
         <param name="params" type="GLdouble *"/>
     </function>
 
-    <function name="VertexArrayVertexAttribLOffsetEXT">
+    <function name="VertexArrayVertexAttribLOffsetEXT"
+              marshal_call_after="if (COMPAT) _mesa_glthread_DSAAttribPointer(ctx, vaobj, buffer, VERT_ATTRIB_GENERIC(index), size, type, stride, offset);">
         <param name="vaobj" type="GLuint" />
         <param name="buffer" type="GLuint" />
         <param name="index" type="GLuint" />

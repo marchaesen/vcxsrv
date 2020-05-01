@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 # Copyright (c) 2019 Collabora Ltd
+# Copyright © 2020 Valve Corporation.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -30,10 +31,10 @@ from traceutil import trace_type_from_filename
 def trace_devices(trace):
     return [e['device'] for e in trace['expectations']]
 
-def cmd_traces_db_repo(args):
+def cmd_traces_db_gitlab_project_url(args):
     with open(args.file, 'r') as f:
         y = yaml.safe_load(f)
-    print(y['traces-db']['repo'])
+    print(y['traces-db']['gitlab-project-url'])
 
 def cmd_traces_db_commit(args):
     with open(args.file, 'r') as f:
@@ -74,8 +75,8 @@ def main():
 
     subparsers = parser.add_subparsers(help='sub-command help')
 
-    parser_traces_db_repo = subparsers.add_parser('traces_db_repo')
-    parser_traces_db_repo.set_defaults(func=cmd_traces_db_repo)
+    parser_traces_db_gitlab_project_url = subparsers.add_parser('traces_db_gitlab_project_url')
+    parser_traces_db_gitlab_project_url.set_defaults(func=cmd_traces_db_gitlab_project_url)
 
     parser_traces_db_commit = subparsers.add_parser('traces_db_commit')
     parser_traces_db_commit.set_defaults(func=cmd_traces_db_commit)

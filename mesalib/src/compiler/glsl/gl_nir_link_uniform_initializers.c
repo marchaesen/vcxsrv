@@ -278,6 +278,12 @@ gl_nir_set_uniform_initializers(struct gl_context *ctx,
                                     var->type,
                                     var->constant_initializer);
          } else if (var->data.explicit_binding) {
+
+            if (nir_variable_is_in_block(var)) {
+               /* This case is handled by link_uniform_blocks */
+               continue;
+            }
+
             const struct glsl_type *without_array =
                glsl_without_array(var->type);
 

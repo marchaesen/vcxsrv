@@ -26,6 +26,7 @@
 #include "spirv/nir_spirv.h"
 #include "util/mesa-sha1.h"
 #include "nir/nir_xfb_info.h"
+#include "vk_util.h"
 
 #include "ir3/ir3_nir.h"
 
@@ -52,7 +53,7 @@ tu_spirv_to_nir(struct ir3_compiler *compiler,
    struct nir_spirv_specialization *spec = NULL;
    uint32_t num_spec = 0;
    if (spec_info && spec_info->mapEntryCount) {
-      spec = malloc(sizeof(*spec) * spec_info->mapEntryCount);
+      spec = calloc(spec_info->mapEntryCount, sizeof(*spec));
       if (!spec)
          return NULL;
 
@@ -61,10 +62,23 @@ tu_spirv_to_nir(struct ir3_compiler *compiler,
          const void *data = spec_info->pData + entry->offset;
          assert(data + entry->size <= spec_info->pData + spec_info->dataSize);
          spec[i].id = entry->constantID;
-         if (entry->size == 8)
-            spec[i].data64 = *(const uint64_t *) data;
-         else
-            spec[i].data32 = *(const uint32_t *) data;
+         switch (entry->size) {
+         case 8:
+            spec[i].value.u64 = *(const uint64_t *)data;
+            break;
+         case 4:
+            spec[i].value.u32 = *(const uint32_t *)data;
+            break;
+         case 2:
+            spec[i].value.u16 = *(const uint16_t *)data;
+            break;
+         case 1:
+            spec[i].value.u8 = *(const uint8_t *)data;
+            break;
+         default:
+            assert(!"Invalid spec constant size");
+            break;
+         }
          spec[i].defined_on_module = false;
       }
 
@@ -596,6 +610,7 @@ tu_shader_compile_options_init(
    const VkGraphicsPipelineCreateInfo *pipeline_info)
 {
    bool has_gs = false;
+   bool msaa = false;
    if (pipeline_info) {
       for (uint32_t i = 0; i < pipeline_info->stageCount; i++) {
          if (pipeline_info->pStages[i].stage == VK_SHADER_STAGE_GEOMETRY_BIT) {
@@ -603,12 +618,24 @@ tu_shader_compile_options_init(
             break;
          }
       }
+
+      const VkPipelineMultisampleStateCreateInfo *msaa_info = pipeline_info->pMultisampleState;
+      const struct VkPipelineSampleLocationsStateCreateInfoEXT *sample_locations =
+         vk_find_struct_const(msaa_info->pNext, PIPELINE_SAMPLE_LOCATIONS_STATE_CREATE_INFO_EXT);
+      if (!pipeline_info->pRasterizationState->rasterizerDiscardEnable &&
+          (msaa_info->rasterizationSamples > 1 ||
+          /* also set msaa key when sample location is not the default
+           * since this affects varying interpolation */
+           (sample_locations && sample_locations->sampleLocationsEnable))) {
+         msaa = true;
+      }
    }
 
    *options = (struct tu_shader_compile_options) {
       /* TODO: Populate the remaining fields of ir3_shader_key. */
       .key = {
          .has_gs = has_gs,
+         .msaa = msaa,
       },
       /* TODO: VK_PIPELINE_CREATE_DISABLE_OPTIMIZATION_BIT
        * some optimizations need to happen otherwise shader might not compile

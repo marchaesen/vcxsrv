@@ -289,54 +289,6 @@ ir3_shader_destroy(struct ir3_shader *shader)
 	free(shader);
 }
 
-static bool
-lower_output_var(nir_shader *nir, int location)
-{
-	nir_foreach_variable (var, &nir->outputs) {
-		if (var->data.driver_location == location &&
-				((var->data.precision == GLSL_PRECISION_MEDIUM) ||
-					(var->data.precision == GLSL_PRECISION_LOW))) {
-			if (glsl_get_base_type(var->type) == GLSL_TYPE_FLOAT)
-				var->type = glsl_float16_type(var->type);
-
-			return glsl_get_base_type(var->type) == GLSL_TYPE_FLOAT16;
-		}
-	}
-
-	return false;
-}
-
-static void
-lower_mediump_outputs(nir_shader *nir)
-{
-	nir_function_impl *impl = nir_shader_get_entrypoint(nir);
-	assert(impl);
-
-	/* Get rid of old derefs before we change the types of the variables */
-	nir_opt_dce(nir);
-
-	nir_builder b;
-	nir_builder_init(&b, impl);
-
-	nir_foreach_block_safe (block, impl) {
-		nir_foreach_instr_safe (instr, block) {
-			if (instr->type != nir_instr_type_intrinsic)
-				continue;
-
-			nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
-			if (intr->intrinsic != nir_intrinsic_store_output)
-				continue;
-
-			if (!lower_output_var(nir, nir_intrinsic_base(intr)))
-				continue;
-
-			b.cursor = nir_before_instr(&intr->instr);
-			nir_instr_rewrite_src(&intr->instr, &intr->src[0],
-					nir_src_for_ssa(nir_f2f16(&b, intr->src[0].ssa)));
-		}
-	}
-}
-
 struct ir3_shader *
 ir3_shader_from_nir(struct ir3_compiler *compiler, nir_shader *nir)
 {
@@ -353,7 +305,7 @@ ir3_shader_from_nir(struct ir3_compiler *compiler, nir_shader *nir)
 	if (compiler->gpu_id >= 600 &&
 			nir->info.stage == MESA_SHADER_FRAGMENT &&
 			!(ir3_shader_debug & IR3_DBG_NOFP16))
-		lower_mediump_outputs(nir);
+		NIR_PASS_V(nir, nir_lower_mediump_outputs);
 
 	if (nir->info.stage == MESA_SHADER_FRAGMENT) {
 		/* NOTE: lower load_barycentric_at_sample first, since it
@@ -454,7 +406,7 @@ ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
 	/* print pre-dispatch texture fetches: */
 	for (i = 0; i < so->num_sampler_prefetch; i++) {
 		const struct ir3_sampler_prefetch *fetch = &so->sampler_prefetch[i];
-		fprintf(out, "@tex(%sr%d.%c)\tsrc=%u, samp=%u, tex=%u, wrmask=%x, cmd=%u\n",
+		fprintf(out, "@tex(%sr%d.%c)\tsrc=%u, samp=%u, tex=%u, wrmask=0x%x, cmd=%u\n",
 				fetch->half_precision ? "h" : "",
 				fetch->dst >> 2, "xyzw"[fetch->dst & 0x3],
 				fetch->src, fetch->samp_id, fetch->tex_id,

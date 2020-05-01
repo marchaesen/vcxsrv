@@ -242,6 +242,10 @@ struct radeon_winsys {
 			      struct radeon_winsys_bo *bo,
 			      int *fd);
 
+	bool (*buffer_get_flags_from_fd)(struct radeon_winsys *ws, int fd,
+	                                 enum radeon_bo_domain *domains,
+	                                 enum radeon_bo_flag *flags);
+
 	void (*buffer_unmap)(struct radeon_winsys_bo *bo);
 
 	void (*buffer_set_metadata)(struct radeon_winsys_bo *bo,

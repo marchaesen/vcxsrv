@@ -34,6 +34,7 @@
 #include "glheader.h"
 #include "formats.h"
 #include "menums.h"
+#include "compiler/shader_enums.h"
 
 struct gl_bitmap_atlas;
 struct gl_buffer_object;
@@ -69,6 +70,9 @@ struct _mesa_index_buffer;
  * respect the contents of already referenced data.
  */
 #define MESA_MAP_NOWAIT_BIT       0x4000
+
+/* Mapping a buffer is allowed from any thread. */
+#define MESA_MAP_THREAD_SAFE_BIT  0x8000
 
 
 /**
@@ -450,7 +454,8 @@ struct dd_function_table {
     */
    /*@{*/
    /** Allocate a new program */
-   struct gl_program * (*NewProgram)(struct gl_context *ctx, GLenum target,
+   struct gl_program * (*NewProgram)(struct gl_context *ctx,
+                                     gl_shader_stage stage,
                                      GLuint id, bool is_arb_asm);
    /** Delete a program */
    void (*DeleteProgram)(struct gl_context *ctx, struct gl_program *prog);   

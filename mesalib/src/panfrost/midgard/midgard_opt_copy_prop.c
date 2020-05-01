@@ -39,8 +39,8 @@ midgard_opt_copy_prop_reg(compiler_context *ctx, midgard_block *block)
                 unsigned from = ins->src[1];
                 unsigned to = ins->dest;
 
-                if (!(to & IS_REG))  continue;
-                if (from & IS_REG) continue;
+                if (!(to & PAN_IS_REG))  continue;
+                if (from & PAN_IS_REG) continue;
 
                 if (ins->has_inline_constant) continue;
                 if (ins->has_constants) continue;
@@ -74,10 +74,8 @@ midgard_opt_copy_prop(compiler_context *ctx, midgard_block *block)
 
                 /* We only work on pure SSA */
 
-                if (to >= SSA_FIXED_MINIMUM) continue;
-                if (from >= SSA_FIXED_MINIMUM) continue;
-                if (to & IS_REG) continue;
-                if (from & IS_REG) continue;
+                if (to & PAN_IS_REG) continue;
+                if (from & PAN_IS_REG) continue;
 
                 /* Constant propagation is not handled here, either */
                 if (ins->has_inline_constant) continue;

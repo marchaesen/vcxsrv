@@ -24,7 +24,7 @@
 #include "glheader.h"
 #include "context.h"
 #include "enums.h"
-#include "util/imports.h"
+
 #include "hash.h"
 #include "mtypes.h"
 #include "shaderimage.h"
@@ -33,6 +33,7 @@
 #include "texturebindless.h"
 
 #include "util/hash_table.h"
+#include "util/u_memory.h"
 
 /**
  * Return the gl_texture_handle_object for a given 64-bit handle.

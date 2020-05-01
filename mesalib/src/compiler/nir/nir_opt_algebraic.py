@@ -517,10 +517,10 @@ optimizations.extend([
    (('iand@32', a, ('inot', ('ishr', a, 31))), ('imax', a, 0)),
 
    # Simplify logic to detect sign of an integer.
-   (('ieq', ('iand', a, 0x80000000), 0x00000000), ('ige', a, 0)),
-   (('ine', ('iand', a, 0x80000000), 0x80000000), ('ige', a, 0)),
-   (('ine', ('iand', a, 0x80000000), 0x00000000), ('ilt', a, 0)),
-   (('ieq', ('iand', a, 0x80000000), 0x80000000), ('ilt', a, 0)),
+   (('ieq', ('iand', 'a@32', 0x80000000), 0x00000000), ('ige', a, 0)),
+   (('ine', ('iand', 'a@32', 0x80000000), 0x80000000), ('ige', a, 0)),
+   (('ine', ('iand', 'a@32', 0x80000000), 0x00000000), ('ilt', a, 0)),
+   (('ieq', ('iand', 'a@32', 0x80000000), 0x80000000), ('ilt', a, 0)),
    (('ine', ('ushr', 'a@32', 31), 0), ('ilt', a, 0)),
    (('ieq', ('ushr', 'a@32', 31), 0), ('ige', a, 0)),
    (('ieq', ('ushr', 'a@32', 31), 1), ('ilt', a, 0)),
@@ -1076,6 +1076,10 @@ optimizations.extend([
 
    (('bcsel', ('ine', a, -1), ('ifind_msb', a), -1), ('ifind_msb', a)),
 
+   (('fmin3@64', a, b, c), ('fmin@64', a, ('fmin@64', b, c))),
+   (('fmax3@64', a, b, c), ('fmax@64', a, ('fmax@64', b, c))),
+   (('fmed3@64', a, b, c), ('fmax@64', ('fmin@64', ('fmax@64', a, b), c), ('fmin@64', a, b))),
+
    # Misc. lowering
    (('fmod', a, b), ('fsub', a, ('fmul', b, ('ffloor', ('fdiv', a, b)))), 'options->lower_fmod'),
    (('frem', a, b), ('fsub', a, ('fmul', b, ('ftrunc', ('fdiv', a, b)))), 'options->lower_fmod'),
@@ -1291,15 +1295,27 @@ optimizations.extend([
 
    (('pack_half_2x16_split', 'a@32', 'b@32'),
     ('ior', ('ishl', ('u2u32', ('f2f16', b)), 16), ('u2u32', ('f2f16', a))),
-    'options->lower_pack_half_2x16_split'),
+    'options->lower_pack_split'),
 
    (('unpack_half_2x16_split_x', 'a@32'),
     ('f2f32', ('u2u16', a)),
-    'options->lower_unpack_half_2x16_split'),
+    'options->lower_pack_split'),
 
    (('unpack_half_2x16_split_y', 'a@32'),
     ('f2f32', ('u2u16', ('ushr', a, 16))),
-    'options->lower_unpack_half_2x16_split'),
+    'options->lower_pack_split'),
+
+   (('pack_32_2x16_split', 'a@16', 'b@16'),
+    ('ior', ('ishl', ('u2u32', b), 16), ('u2u32', a)),
+    'options->lower_pack_split'),
+
+   (('unpack_32_2x16_split_x', 'a@32'),
+    ('u2u16', a),
+    'options->lower_pack_split'),
+
+   (('unpack_32_2x16_split_y', 'a@32'),
+    ('u2u16', ('ushr', 'a', 16)),
+    'options->lower_pack_split'),
 
    (('isign', a), ('imin', ('imax', a, -1), 1), 'options->lower_isign'),
    (('fsign', a), ('fsub', ('b2f', ('flt', 0.0, a)), ('b2f', ('flt', a, 0.0))), 'options->lower_fsign'),
@@ -1308,6 +1324,13 @@ optimizations.extend([
    # Drivers supporting imul24 should use the nir_lower_amul() pass, this
    # rule converts everyone else to imul:
    (('amul', a, b), ('imul', a, b), '!options->has_imul24'),
+
+   (('umul24', a, b),
+    ('imul', ('iand', a, 0xffffff), ('iand', b, 0xffffff)),
+    '!options->has_umul24'),
+   (('umad24', a, b, c),
+    ('iadd', ('imul', ('iand', a, 0xffffff), ('iand', b, 0xffffff)), c),
+    '!options->has_umad24'),
 
    (('imad24_ir3', a, b, 0), ('imul24', a, b)),
    (('imad24_ir3', a, 0, c), (c)),
@@ -1424,6 +1447,11 @@ for t in ['int', 'uint', 'float']:
         if N == 1 or N >= M:
             continue
 
+        cond = 'true'
+        if N == 8:
+            cond = 'options->support_8bit_alu'
+        elif N == 16:
+            cond = 'options->support_16bit_alu'
         x2xM = '{0}2{0}{1}'.format(t[0], M)
         x2xN = '{0}2{0}{1}'.format(t[0], N)
         aN = 'a@' + str(N)
@@ -1443,12 +1471,12 @@ for t in ['int', 'uint', 'float']:
 
             bP = 'b@' + str(P)
             optimizations += [
-                ((xeq, (x2xM, aN), (x2xM, bP)), (xeq, a, (x2xN, b))),
-                ((xne, (x2xM, aN), (x2xM, bP)), (xne, a, (x2xN, b))),
-                ((xge, (x2xM, aN), (x2xM, bP)), (xge, a, (x2xN, b))),
-                ((xlt, (x2xM, aN), (x2xM, bP)), (xlt, a, (x2xN, b))),
-                ((xge, (x2xM, bP), (x2xM, aN)), (xge, (x2xN, b), a)),
-                ((xlt, (x2xM, bP), (x2xM, aN)), (xlt, (x2xN, b), a)),
+                ((xeq, (x2xM, aN), (x2xM, bP)), (xeq, a, (x2xN, b)), cond),
+                ((xne, (x2xM, aN), (x2xM, bP)), (xne, a, (x2xN, b)), cond),
+                ((xge, (x2xM, aN), (x2xM, bP)), (xge, a, (x2xN, b)), cond),
+                ((xlt, (x2xM, aN), (x2xM, bP)), (xlt, a, (x2xN, b)), cond),
+                ((xge, (x2xM, bP), (x2xM, aN)), (xge, (x2xN, b), a), cond),
+                ((xlt, (x2xM, bP), (x2xM, aN)), (xlt, (x2xN, b), a), cond),
             ]
 
         # The next bit doesn't work on floats because the range checks would
@@ -1468,21 +1496,21 @@ for t in ['int', 'uint', 'float']:
             # and a check that the constant fits in the smaller bit size.
             optimizations += [
                 ((xeq, (x2xM, aN), '#b'),
-                 ('iand', (xeq, a, (x2xN, b)), (xeq, (x2xM, (x2xN, b)), b))),
+                 ('iand', (xeq, a, (x2xN, b)), (xeq, (x2xM, (x2xN, b)), b)), cond),
                 ((xne, (x2xM, aN), '#b'),
-                 ('ior', (xne, a, (x2xN, b)), (xne, (x2xM, (x2xN, b)), b))),
+                 ('ior', (xne, a, (x2xN, b)), (xne, (x2xM, (x2xN, b)), b)), cond),
                 ((xlt, (x2xM, aN), '#b'),
                  ('iand', (xlt, xN_min, b),
-                          ('ior', (xlt, xN_max, b), (xlt, a, (x2xN, b))))),
+                          ('ior', (xlt, xN_max, b), (xlt, a, (x2xN, b)))), cond),
                 ((xlt, '#a', (x2xM, bN)),
                  ('iand', (xlt, a, xN_max),
-                          ('ior', (xlt, a, xN_min), (xlt, (x2xN, a), b)))),
+                          ('ior', (xlt, a, xN_min), (xlt, (x2xN, a), b))), cond),
                 ((xge, (x2xM, aN), '#b'),
                  ('iand', (xge, xN_max, b),
-                          ('ior', (xge, xN_min, b), (xge, a, (x2xN, b))))),
+                          ('ior', (xge, xN_min, b), (xge, a, (x2xN, b)))), cond),
                 ((xge, '#a', (x2xM, bN)),
                  ('iand', (xge, a, xN_min),
-                          ('ior', (xge, a, xN_max), (xge, (x2xN, a), b)))),
+                          ('ior', (xge, a, xN_max), (xge, (x2xN, a), b))), cond),
             ]
 
 def fexp2i(exp, bits):

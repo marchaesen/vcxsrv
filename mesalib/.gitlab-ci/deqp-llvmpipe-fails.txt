@@ -28,7 +28,6 @@ dEQP-GLES2.functional.rasterization.interpolation.basic.lines_wide
 dEQP-GLES2.functional.rasterization.interpolation.projected.line_loop_wide
 dEQP-GLES2.functional.rasterization.interpolation.projected.line_strip_wide
 dEQP-GLES2.functional.rasterization.interpolation.projected.lines_wide
-dEQP-GLES2.functional.rasterization.limits.points
 dEQP-GLES2.functional.shaders.texture_functions.fragment.texture2d_bias
 dEQP-GLES2.functional.shaders.texture_functions.fragment.texture2dproj_vec3_bias
 dEQP-GLES2.functional.shaders.texture_functions.fragment.texture2dproj_vec4_bias

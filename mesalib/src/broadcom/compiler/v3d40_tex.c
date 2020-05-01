@@ -67,13 +67,7 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
         struct V3D41_TMU_CONFIG_PARAMETER_0 p0_unpacked = {
         };
 
-        struct V3D41_TMU_CONFIG_PARAMETER_1 p1_unpacked = {
-                .output_type_32_bit = (c->key->tex[unit].return_size == 32 &&
-                                       !instr->is_shadow),
-
-                .unnormalized_coordinates = (instr->sampler_dim ==
-                                             GLSL_SAMPLER_DIM_RECT),
-        };
+        assert(instr->op != nir_texop_lod || c->devinfo->ver >= 42);
 
         struct V3D41_TMU_CONFIG_PARAMETER_2 p2_unpacked = {
                 .op = V3D_TMU_OP_REGULAR,
@@ -86,7 +80,11 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
                 .disable_autolod = instr->op == nir_texop_tg4
         };
 
-        int non_array_components = instr->coord_components - instr->is_array;
+        int non_array_components =
+           instr->op != nir_texop_lod ?
+           instr->coord_components - instr->is_array :
+           instr->coord_components;
+
         struct qreg s;
 
         for (unsigned i = 0; i < instr->num_srcs; i++) {
@@ -174,14 +172,6 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
         p0_unpacked.return_words_of_texture_data =
                 nir_ssa_def_components_read(&instr->dest.ssa);
 
-        /* Word enables can't ask for more channels than the output type could
-         * provide (2 for f16, 4 for 32-bit).
-         */
-        assert(!p1_unpacked.output_type_32_bit ||
-               p0_unpacked.return_words_of_texture_data < (1 << 4));
-        assert(p1_unpacked.output_type_32_bit ||
-               p0_unpacked.return_words_of_texture_data < (1 << 2));
-
         assert(p0_unpacked.return_words_of_texture_data != 0);
 
         uint32_t p0_packed;
@@ -189,27 +179,74 @@ v3d40_vir_emit_tex(struct v3d_compile *c, nir_tex_instr *instr)
                                           (uint8_t *)&p0_packed,
                                           &p0_unpacked);
 
-        uint32_t p1_packed;
-        V3D41_TMU_CONFIG_PARAMETER_1_pack(NULL,
-                                          (uint8_t *)&p1_packed,
-                                          &p1_unpacked);
-
         uint32_t p2_packed;
         V3D41_TMU_CONFIG_PARAMETER_2_pack(NULL,
                                           (uint8_t *)&p2_packed,
                                           &p2_unpacked);
 
-        /* Load unit number into the high bits of the texture or sampler
-         * address field, which will be be used by the driver to decide which
-         * texture to put in the actual address field.
+        /* We manually set the LOD Query bit (see
+         * V3D42_TMU_CONFIG_PARAMETER_2) as right now is the only V42 specific
+         * feature over V41 we are using
+         */
+        if (instr->op == nir_texop_lod)
+           p2_packed |= 1UL << 24;
+
+        /* Load unit number into the high bits of the texture address field,
+         * which will be be used by the driver to decide which texture to put
+         * in the actual address field.
          */
         p0_packed |= unit << 24;
-        p1_packed |= unit << 24;
 
         vir_WRTMUC(c, QUNIFORM_TMU_CONFIG_P0, p0_packed);
-        /* XXX perf: Can we skip p1 setup for txf ops? */
-        vir_WRTMUC(c, QUNIFORM_TMU_CONFIG_P1, p1_packed);
-        if (memcmp(&p2_unpacked, &p2_unpacked_default, sizeof(p2_unpacked)) != 0)
+
+        /* Even if the texture operation doesn't need a sampler by
+         * itself, we still need to add the sampler configuration
+         * parameter if the output is 32 bit
+         */
+        bool output_type_32_bit = (c->key->tex[unit].return_size == 32 &&
+                                   !instr->is_shadow);
+
+        /*
+         * p1 is optional, but we can skip it only if p2 can be skipped too
+         */
+        bool needs_p2_config =
+                (instr->op == nir_texop_lod ||
+                 memcmp(&p2_unpacked, &p2_unpacked_default, sizeof(p2_unpacked)) != 0);
+
+        if (needs_p2_config || output_type_32_bit ||
+            nir_tex_instr_need_sampler(instr)) {
+                struct V3D41_TMU_CONFIG_PARAMETER_1 p1_unpacked = {
+                        .output_type_32_bit = output_type_32_bit,
+
+                        .unnormalized_coordinates = (instr->sampler_dim ==
+                                                     GLSL_SAMPLER_DIM_RECT),
+                };
+
+                /* Word enables can't ask for more channels than the
+                 * output type could provide (2 for f16, 4 for
+                 * 32-bit).
+                 */
+                assert(!p1_unpacked.output_type_32_bit ||
+                       p0_unpacked.return_words_of_texture_data < (1 << 4));
+                assert(p1_unpacked.output_type_32_bit ||
+                       p0_unpacked.return_words_of_texture_data < (1 << 2));
+
+                uint32_t p1_packed;
+                V3D41_TMU_CONFIG_PARAMETER_1_pack(NULL,
+                                                  (uint8_t *)&p1_packed,
+                                                  &p1_unpacked);
+
+                /* Load unit number into the high bits of the sampler
+                 * address field, which will be be used by the driver
+                 * to decide which sampler to put in the actual
+                 * address field.
+                 */
+                p1_packed |= unit << 24;
+
+                vir_WRTMUC(c, QUNIFORM_TMU_CONFIG_P1, p1_packed);
+        }
+
+        if (needs_p2_config)
                 vir_WRTMUC(c, QUNIFORM_CONSTANT, p2_packed);
 
         if (instr->op == nir_texop_txf) {

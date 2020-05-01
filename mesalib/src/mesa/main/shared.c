@@ -27,7 +27,7 @@
  * Shared-context state
  */
 
-#include "util/imports.h"
+
 #include "mtypes.h"
 #include "hash.h"
 #include "atifragshader.h"
@@ -43,6 +43,7 @@
 
 #include "util/hash_table.h"
 #include "util/set.h"
+#include "util/u_memory.h"
 
 static void
 free_shared_state(struct gl_context *ctx, struct gl_shared_state *shared);
@@ -74,9 +75,9 @@ _mesa_alloc_shared_state(struct gl_context *ctx)
    shared->Programs = _mesa_NewHashTable();
 
    shared->DefaultVertexProgram =
-      ctx->Driver.NewProgram(ctx, GL_VERTEX_PROGRAM_ARB, 0, true);
+      ctx->Driver.NewProgram(ctx, MESA_SHADER_VERTEX, 0, true);
    shared->DefaultFragmentProgram =
-      ctx->Driver.NewProgram(ctx, GL_FRAGMENT_PROGRAM_ARB, 0, true);
+      ctx->Driver.NewProgram(ctx, MESA_SHADER_FRAGMENT, 0, true);
 
    shared->ATIShaders = _mesa_NewHashTable();
    shared->DefaultFragmentShader = _mesa_new_ati_fragment_shader(ctx, 0);
@@ -329,7 +330,7 @@ delete_semaphore_object_cb(GLuint id, void *data, void *userData)
  *
  * \param ctx GL context.
  * \param shared shared state pointer.
- * 
+ *
  * Frees the display lists, the texture objects (calling the driver texture
  * deletion callback to free its private data) and the vertex programs, as well
  * as their hash tables.

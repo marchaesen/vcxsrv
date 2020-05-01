@@ -2,11 +2,16 @@ bifrost_FILES := \
         bifrost/bifrost.h \
         bifrost/bifrost_compile.c \
         bifrost/bifrost_compile.h \
+        bifrost/bi_liveness.c \
         bifrost/bi_lower_combine.c \
         bifrost/bi_tables.c \
         bifrost/bi_schedule.c \
+        bifrost/bi_special.c \
+        bifrost/bi_pack.c \
         bifrost/bi_print.c \
         bifrost/bi_print.h \
+        bifrost/bi_ra.c \
+        bifrost/bi_opt_dce.c \
         bifrost/bi_quirks.h \
         bifrost/bir.c \
         bifrost/compiler.h \

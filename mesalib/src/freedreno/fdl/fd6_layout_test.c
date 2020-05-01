@@ -400,12 +400,6 @@ static bool test_layout(const struct testcase *testcase)
 			MAX2(testcase->array_size, 1),
 			testcase->is_3d);
 
-	/* Our pitch values in the testcases[] layouts are in bytes straight out
-	 * of the traces, while fdl is in pixels.  Rescale now.
-	 */
-	for (int l = 0; l < mip_levels; l++)
-		layout.slices[l].pitch *= layout.cpp;
-
 	/* fdl lays out UBWC data before the color data, while all we have
 	 * recorded in this testcase are the color offsets.  Shift the fdl layout
 	 * down so we can compare color offsets.

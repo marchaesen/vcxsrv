@@ -213,10 +213,10 @@ fetch_vector4(const struct prog_src_register *source,
    }
 
 #ifdef NAN_CHECK
-   assert(!IS_INF_OR_NAN(result[0]));
-   assert(!IS_INF_OR_NAN(result[0]));
-   assert(!IS_INF_OR_NAN(result[0]));
-   assert(!IS_INF_OR_NAN(result[0]));
+   assert(!util_is_inf_or_nan(result[0]));
+   assert(!util_is_inf_or_nan(result[0]));
+   assert(!util_is_inf_or_nan(result[0]));
+   assert(!util_is_inf_or_nan(result[0]));
 #endif
 }
 
@@ -332,9 +332,9 @@ store_vector4(const struct prog_instruction *inst,
 
 #if 0
    if (value[0] > 1.0e10 ||
-       IS_INF_OR_NAN(value[0]) ||
-       IS_INF_OR_NAN(value[1]) ||
-       IS_INF_OR_NAN(value[2]) || IS_INF_OR_NAN(value[3]))
+       util_is_inf_or_nan(value[0]) ||
+       util_is_inf_or_nan(value[1]) ||
+       util_is_inf_or_nan(value[2]) || util_is_inf_or_nan(value[3]))
       printf("store %g %g %g %g\n", value[0], value[1], value[2], value[3]);
 #endif
 
@@ -347,10 +347,10 @@ store_vector4(const struct prog_instruction *inst,
    }
 
 #ifdef NAN_CHECK
-   assert(!IS_INF_OR_NAN(value[0]));
-   assert(!IS_INF_OR_NAN(value[0]));
-   assert(!IS_INF_OR_NAN(value[0]));
-   assert(!IS_INF_OR_NAN(value[0]));
+   assert(!util_is_inf_or_nan(value[0]));
+   assert(!util_is_inf_or_nan(value[0]));
+   assert(!util_is_inf_or_nan(value[0]));
+   assert(!util_is_inf_or_nan(value[0]));
 #endif
 
    if (writeMask & WRITEMASK_X)
@@ -434,7 +434,7 @@ _mesa_execute_program(struct gl_context * ctx,
          {
             GLfloat t[4];
             fetch_vector4(&inst->SrcReg[0], machine, t);
-            machine->AddressReg[0][0] = IFLOOR(t[0]);
+            machine->AddressReg[0][0] = util_ifloor(t[0]);
             if (DEBUG_PROG) {
                printf("ARL %d\n", machine->AddressReg[0][0]);
             }
@@ -614,7 +614,7 @@ _mesa_execute_program(struct gl_context * ctx,
             fetch_vector1(&inst->SrcReg[0], machine, a);
             val = exp2f(a[0]);
             /*
-            if (IS_INF_OR_NAN(val))
+            if (util_is_inf_or_nan(val))
                val = 1.0e10;
             */
             result[0] = result[1] = result[2] = result[3] = val;
@@ -744,7 +744,7 @@ _mesa_execute_program(struct gl_context * ctx,
             fetch_vector1(&inst->SrcReg[0], machine, t);
             abs_t0 = fabsf(t[0]);
             if (abs_t0 != 0.0F) {
-               if (IS_INF_OR_NAN(abs_t0))
+               if (util_is_inf_or_nan(abs_t0))
                {
                   SET_POS_INFINITY(q[0]);
                   q[1] = 1.0F;
@@ -931,7 +931,7 @@ _mesa_execute_program(struct gl_context * ctx,
             if (DEBUG_PROG) {
                if (a[0] == 0)
                   printf("RCP(0)\n");
-               else if (IS_INF_OR_NAN(a[0]))
+               else if (util_is_inf_or_nan(a[0]))
                   printf("RCP(inf)\n");
             }
             result[0] = result[1] = result[2] = result[3] = 1.0F / a[0];

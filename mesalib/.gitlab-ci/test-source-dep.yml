@@ -63,7 +63,7 @@
     - changes:
         *gallium_core_file_list
       when: on_success
-    - changes:
+    - changes: &llvmpipe_file_list
       - src/gallium/drivers/llvmpipe/**/*
       - src/gallium/winsys/sw/**/*
       when: on_success
@@ -125,5 +125,23 @@
     - changes:
       - src/amd/**/*
       - src/vulkan/**/*
+      when: on_success
+    - when: never
+
+.virgl-rules:
+  stage: virgl
+  rules:
+    - changes:
+        *mesa_core_file_list
+      when: on_success
+    - changes:
+        *gallium_core_file_list
+      when: on_success
+    - changes:
+        *llvmpipe_file_list
+      when: on_success
+    - changes:
+      - src/gallium/drivers/virgl/**/*
+      - src/gallium/winsys/virgl/**/*
       when: on_success
     - when: never

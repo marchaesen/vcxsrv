@@ -33,7 +33,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <amdgpu_drm.h>
+#include "drm-uapi/amdgpu_drm.h"
 #include <assert.h>
 #include "radv_amdgpu_cs.h"
 #include "radv_amdgpu_bo.h"

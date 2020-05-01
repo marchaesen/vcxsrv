@@ -36,38 +36,29 @@ namespace V2
 
 Coordinate::Coordinate()
 {
-    dim = 'x';
+    dim = DIM_X;
     ord = 0;
 }
 
-Coordinate::Coordinate(INT_8 c, INT_32 n)
+Coordinate::Coordinate(enum Dim dim, INT_32 n)
 {
-    set(c, n);
+    set(dim, n);
 }
 
-VOID Coordinate::set(INT_8 c, INT_32 n)
+VOID Coordinate::set(enum Dim d, INT_32 n)
 {
-    dim = c;
+    dim = d;
     ord = static_cast<INT_8>(n);
 }
 
-UINT_32 Coordinate::ison(UINT_32 x, UINT_32 y, UINT_32 z, UINT_32 s, UINT_32 m) const
+UINT_32 Coordinate::ison(const UINT_32 *coords) const
 {
     UINT_32 bit = static_cast<UINT_32>(1ull << static_cast<UINT_32>(ord));
-    UINT_32 out = 0;
 
-    switch (dim)
-    {
-    case 'm': out = m & bit; break;
-    case 's': out = s & bit; break;
-    case 'x': out = x & bit; break;
-    case 'y': out = y & bit; break;
-    case 'z': out = z & bit; break;
-    }
-    return (out != 0) ? 1 : 0;
+    return (coords[dim] & bit) ? 1 : 0;
 }
 
-INT_8 Coordinate::getdim()
+enum Dim Coordinate::getdim()
 {
     return dim;
 }
@@ -240,12 +231,12 @@ UINT_32 CoordTerm::getsize()
     return num_coords;
 }
 
-UINT_32 CoordTerm::getxor(UINT_32 x, UINT_32 y, UINT_32 z, UINT_32 s, UINT_32 m) const
+UINT_32 CoordTerm::getxor(const UINT_32 *coords) const
 {
     UINT_32 out = 0;
     for (UINT_32 i = 0; i < num_coords; i++)
     {
-        out = out ^ m_coord[i].ison(x, y, z, s, m);
+        out = out ^ m_coord[i].ison(coords);
     }
     return out;
 }
@@ -255,14 +246,14 @@ VOID CoordTerm::getsmallest(Coordinate& co)
     co = m_coord[0];
 }
 
-UINT_32 CoordTerm::Filter(INT_8 f, Coordinate& co, UINT_32 start, INT_8 axis)
+UINT_32 CoordTerm::Filter(INT_8 f, Coordinate& co, UINT_32 start, enum Dim axis)
 {
     for (UINT_32 i = start;  i < num_coords;)
     {
         if (((f == '<' && m_coord[i] < co) ||
              (f == '>' && m_coord[i] > co) ||
              (f == '=' && m_coord[i] == co)) &&
-            (axis == '\0' || axis == m_coord[i].getdim()))
+            (axis == NUM_DIMS || axis == m_coord[i].getdim()))
         {
             for (UINT_32 j = i; j < num_coords - 1; j++)
             {
@@ -311,37 +302,12 @@ BOOL_32 CoordTerm::operator!=(const CoordTerm& b)
     return !(*this == b);
 }
 
-BOOL_32 CoordTerm::exceedRange(UINT_32 xRange, UINT_32 yRange, UINT_32 zRange, UINT_32 sRange)
+BOOL_32 CoordTerm::exceedRange(const UINT_32 *ranges)
 {
     BOOL_32 exceed = FALSE;
     for (UINT_32 i = 0; (i < num_coords) && (exceed == FALSE); i++)
     {
-        UINT_32 subject;
-        switch (m_coord[i].getdim())
-        {
-            case 'x':
-                subject = xRange;
-                break;
-            case 'y':
-                subject = yRange;
-                break;
-            case 'z':
-                subject = zRange;
-                break;
-            case 's':
-                subject = sRange;
-                break;
-            case 'm':
-                subject = 0;
-                break;
-            default:
-                // Invalid input!
-                ADDR_ASSERT_ALWAYS();
-                subject = 0;
-                break;
-        }
-
-        exceed = ((1u << m_coord[i].getord()) <= subject);
+        exceed = ((1u << m_coord[i].getord()) <= ranges[m_coord[i].getdim()]);
     }
 
     return exceed;
@@ -392,32 +358,25 @@ UINT_32 CoordEq::getsize()
     return m_numBits;
 }
 
-UINT_64 CoordEq::solve(UINT_32 x, UINT_32 y, UINT_32 z, UINT_32 s, UINT_32 m) const
+UINT_64 CoordEq::solve(const UINT_32 *coords) const
 {
     UINT_64 out = 0;
     for (UINT_32 i = 0; i < m_numBits; i++)
     {
-        if (m_eq[i].getxor(x, y, z, s, m) != 0)
-        {
-            out |= (1ULL << i);
-        }
+        out |= static_cast<UINT_64>(m_eq[i].getxor(coords)) << i;
     }
     return out;
 }
 
 VOID CoordEq::solveAddr(
     UINT_64 addr, UINT_32 sliceInM,
-    UINT_32& x, UINT_32& y, UINT_32& z, UINT_32& s, UINT_32& m) const
+    UINT_32 *coords) const
 {
-    UINT_32 xBitsValid = 0;
-    UINT_32 yBitsValid = 0;
-    UINT_32 zBitsValid = 0;
-    UINT_32 sBitsValid = 0;
-    UINT_32 mBitsValid = 0;
+    UINT_32 BitsValid[NUM_DIMS] = {0};
 
     CoordEq temp = *this;
 
-    x = y = z = s = m = 0;
+    memset(coords, 0, NUM_DIMS * sizeof(coords[0]));
 
     UINT_32 bitsLeft = 0;
 
@@ -428,36 +387,13 @@ VOID CoordEq::solveAddr(
         if (termSize == 1)
         {
             INT_8 bit = (addr >> i) & 1;
-            INT_8 dim = temp.m_eq[i][0].getdim();
+            enum Dim dim = temp.m_eq[i][0].getdim();
             INT_8 ord = temp.m_eq[i][0].getord();
 
             ADDR_ASSERT((ord < 32) || (bit == 0));
 
-            switch (dim)
-            {
-                case 'x':
-                    xBitsValid |= (1 << ord);
-                    x |= (bit << ord);
-                    break;
-                case 'y':
-                    yBitsValid |= (1 << ord);
-                    y |= (bit << ord);
-                    break;
-                case 'z':
-                    zBitsValid |= (1 << ord);
-                    z |= (bit << ord);
-                    break;
-                case 's':
-                    sBitsValid |= (1 << ord);
-                    s |= (bit << ord);
-                    break;
-                case 'm':
-                    mBitsValid |= (1 << ord);
-                    m |= (bit << ord);
-                    break;
-                default:
-                    break;
-            }
+            BitsValid[dim] |= 1u << ord;
+            coords[dim] |= bit << ord;
 
             temp.m_eq[i].Clear();
         }
@@ -471,8 +407,8 @@ VOID CoordEq::solveAddr(
     {
         if (sliceInM != 0)
         {
-            z = m / sliceInM;
-            zBitsValid = 0xffffffff;
+            coords[DIM_Z] = coords[DIM_M] / sliceInM;
+            BitsValid[DIM_Z] = 0xffffffff;
         }
 
         do
@@ -486,34 +422,14 @@ VOID CoordEq::solveAddr(
                 if (termSize == 1)
                 {
                     INT_8 bit = (addr >> i) & 1;
-                    INT_8 dim = temp.m_eq[i][0].getdim();
+                    enum Dim dim = temp.m_eq[i][0].getdim();
                     INT_8 ord = temp.m_eq[i][0].getord();
 
                     ADDR_ASSERT((ord < 32) || (bit == 0));
+                    ADDR_ASSERT(dim < DIM_S);
 
-                    switch (dim)
-                    {
-                        case 'x':
-                            xBitsValid |= (1 << ord);
-                            x |= (bit << ord);
-                            break;
-                        case 'y':
-                            yBitsValid |= (1 << ord);
-                            y |= (bit << ord);
-                            break;
-                        case 'z':
-                            zBitsValid |= (1 << ord);
-                            z |= (bit << ord);
-                            break;
-                        case 's':
-                            ADDR_ASSERT_ALWAYS();
-                            break;
-                        case 'm':
-                            ADDR_ASSERT_ALWAYS();
-                            break;
-                        default:
-                            break;
-                    }
+                    BitsValid[dim] |= 1u << ord;
+                    coords[dim] |= bit << ord;
 
                     temp.m_eq[i].Clear();
                 }
@@ -523,43 +439,16 @@ VOID CoordEq::solveAddr(
 
                     for (UINT_32 j = 0; j < termSize; j++)
                     {
-                        INT_8 dim = temp.m_eq[i][j].getdim();
+                        enum Dim dim = temp.m_eq[i][j].getdim();
                         INT_8 ord = temp.m_eq[i][j].getord();
 
-                        switch (dim)
+                        ADDR_ASSERT(dim < DIM_S);
+
+                        if (BitsValid[dim] & (1u << ord))
                         {
-                            case 'x':
-                                if (xBitsValid & (1 << ord))
-                                {
-                                    UINT_32 v = (((x >> ord) & 1) << i);
-                                    addr ^= static_cast<UINT_64>(v);
-                                    tmpTerm.remove(temp.m_eq[i][j]);
-                                }
-                                break;
-                            case 'y':
-                                if (yBitsValid & (1 << ord))
-                                {
-                                    UINT_32 v = (((y >> ord) & 1) << i);
-                                    addr ^= static_cast<UINT_64>(v);
-                                    tmpTerm.remove(temp.m_eq[i][j]);
-                                }
-                                break;
-                            case 'z':
-                                if (zBitsValid & (1 << ord))
-                                {
-                                    UINT_32 v = (((z >> ord) & 1) << i);
-                                    addr ^= static_cast<UINT_64>(v);
-                                    tmpTerm.remove(temp.m_eq[i][j]);
-                                }
-                                break;
-                            case 's':
-                                ADDR_ASSERT_ALWAYS();
-                                break;
-                            case 'm':
-                                ADDR_ASSERT_ALWAYS();
-                                break;
-                            default:
-                                break;
+                            UINT_32 v = (((coords[dim] >> ord) & 1) << i);
+                            addr ^= static_cast<UINT_64>(v);
+                            tmpTerm.remove(temp.m_eq[i][j]);
                         }
                     }
 
@@ -603,7 +492,7 @@ VOID CoordEq::xorin(CoordEq& x, UINT_32 start)
     }
 }
 
-UINT_32 CoordEq::Filter(INT_8 f, Coordinate& co, UINT_32 start, INT_8 axis)
+UINT_32 CoordEq::Filter(INT_8 f, Coordinate& co, UINT_32 start, enum Dim axis)
 {
     for (UINT_32 i = start; i < m_numBits;)
     {

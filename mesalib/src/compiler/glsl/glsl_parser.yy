@@ -1709,6 +1709,25 @@ layout_qualifier_id:
          }
       }
 
+      /* Layout qualifier for NV_viewport_array2. */
+      if (!$$.flags.i && state->stage != MESA_SHADER_FRAGMENT) {
+         if (match_layout_qualifier($1, "viewport_relative", state) == 0) {
+            $$.flags.q.viewport_relative = 1;
+         }
+
+         if ($$.flags.i && !state->NV_viewport_array2_enable) {
+            _mesa_glsl_error(& @1, state,
+                             "qualifier `%s' requires "
+                             "GL_NV_viewport_array2", $1);
+         }
+
+         if ($$.flags.i && state->NV_viewport_array2_warn) {
+            _mesa_glsl_warning(& @1, state,
+                               "GL_NV_viewport_array2 layout "
+                               "identifier `%s' used", $1);
+         }
+      }
+
       if (!$$.flags.i) {
          _mesa_glsl_error(& @1, state, "unrecognized layout identifier "
                           "`%s'", $1);

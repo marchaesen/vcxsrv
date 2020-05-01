@@ -567,8 +567,6 @@ ir_expression_operation = [
    operation("frexp_sig", 1),
    operation("frexp_exp", 1),
 
-   operation("noise", 1),
-
    operation("subroutine_to_int", 1),
 
    # Interpolate fs input at centroid

@@ -47,3 +47,10 @@ freedreno_xml_header_files += custom_target(
     command : [prog_python, '@INPUT@', '--pack-structs'],
     capture : true,
   )
+freedreno_xml_header_files += custom_target(
+    'adreno-pm4-pack.xml.h',
+     input : ['gen_header.py', 'adreno_pm4.xml'],
+     output : 'adreno-pm4-pack.xml.h',
+     command : [prog_python, '@INPUT@', '--pack-structs'],
+     capture : true,
+  )

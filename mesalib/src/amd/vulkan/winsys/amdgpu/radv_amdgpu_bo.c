@@ -31,7 +31,7 @@
 #include "radv_amdgpu_bo.h"
 
 #include <amdgpu.h>
-#include <amdgpu_drm.h>
+#include "drm-uapi/amdgpu_drm.h"
 #include <inttypes.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -636,6 +636,52 @@ radv_amdgpu_winsys_get_fd(struct radeon_winsys *_ws,
 	return true;
 }
 
+static bool
+radv_amdgpu_bo_get_flags_from_fd(struct radeon_winsys *_ws, int fd,
+                                 enum radeon_bo_domain *domains,
+                                 enum radeon_bo_flag *flags)
+{
+	struct radv_amdgpu_winsys *ws = radv_amdgpu_winsys(_ws);
+	struct amdgpu_bo_import_result result = {0};
+	struct amdgpu_bo_info info = {0};
+	int r;
+
+	*domains = 0;
+	*flags = 0;
+
+	r = amdgpu_bo_import(ws->dev, amdgpu_bo_handle_type_dma_buf_fd, fd, &result);
+	if (r)
+		return false;
+
+	r = amdgpu_bo_query_info(result.buf_handle, &info);
+	amdgpu_bo_free(result.buf_handle);
+	if (r)
+		return false;
+
+	if (info.preferred_heap & AMDGPU_GEM_DOMAIN_VRAM)
+		*domains |= RADEON_DOMAIN_VRAM;
+	if (info.preferred_heap & AMDGPU_GEM_DOMAIN_GTT)
+		*domains |= RADEON_DOMAIN_GTT;
+	if (info.preferred_heap & AMDGPU_GEM_DOMAIN_GDS)
+		*domains |= RADEON_DOMAIN_GDS;
+	if (info.preferred_heap & AMDGPU_GEM_DOMAIN_OA)
+		*domains |= RADEON_DOMAIN_OA;
+
+	if (info.alloc_flags & AMDGPU_GEM_CREATE_CPU_ACCESS_REQUIRED)
+		*flags |= RADEON_FLAG_CPU_ACCESS;
+	if (info.alloc_flags & AMDGPU_GEM_CREATE_NO_CPU_ACCESS)
+		*flags |= RADEON_FLAG_NO_CPU_ACCESS;
+	if (!(info.alloc_flags & AMDGPU_GEM_CREATE_EXPLICIT_SYNC))
+		*flags |= RADEON_FLAG_IMPLICIT_SYNC;
+	if (info.alloc_flags & AMDGPU_GEM_CREATE_CPU_GTT_USWC)
+		*flags |= RADEON_FLAG_GTT_WC;
+	if (info.alloc_flags & AMDGPU_GEM_CREATE_VM_ALWAYS_VALID)
+		*flags |= RADEON_FLAG_NO_INTERPROCESS_SHARING | RADEON_FLAG_PREFER_LOCAL_BO;
+	if (info.alloc_flags & AMDGPU_GEM_CREATE_VRAM_CLEARED)
+		*flags |= RADEON_FLAG_ZERO_VRAM;
+	return true;
+}
+
 static unsigned eg_tile_split(unsigned tile_split)
 {
 	switch (tile_split) {
@@ -755,4 +801,5 @@ void radv_amdgpu_bo_init_functions(struct radv_amdgpu_winsys *ws)
 	ws->base.buffer_set_metadata = radv_amdgpu_winsys_bo_set_metadata;
 	ws->base.buffer_get_metadata = radv_amdgpu_winsys_bo_get_metadata;
 	ws->base.buffer_virtual_bind = radv_amdgpu_winsys_bo_virtual_bind;
+	ws->base.buffer_get_flags_from_fd = radv_amdgpu_bo_get_flags_from_fd;
 }

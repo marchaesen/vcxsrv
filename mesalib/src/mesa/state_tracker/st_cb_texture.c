@@ -34,7 +34,7 @@
 #include "main/format_utils.h"
 #include "main/glformats.h"
 #include "main/image.h"
-#include "util/imports.h"
+
 #include "main/macros.h"
 #include "main/mipmap.h"
 #include "main/pack.h"
@@ -2312,6 +2312,10 @@ fallback_copy_texsubimage(struct gl_context *ctx,
                            PIPE_TRANSFER_READ,
                            srcX, srcY,
                            width, height, &src_trans);
+   if (!map) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glCopyTexSubImage()");
+      return;
+   }
 
    if ((baseFormat == GL_DEPTH_COMPONENT ||
         baseFormat == GL_DEPTH_STENCIL) &&
@@ -2324,6 +2328,10 @@ fallback_copy_texsubimage(struct gl_context *ctx,
                                   destX, destY, slice,
                                   dst_width, dst_height, dst_depth,
                                   &transfer);
+   if (!texDest) {
+      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glCopyTexSubImage()");
+      goto err;
+   }
 
    if (baseFormat == GL_DEPTH_COMPONENT ||
        baseFormat == GL_DEPTH_STENCIL) {
@@ -2371,7 +2379,7 @@ fallback_copy_texsubimage(struct gl_context *ctx,
       GLfloat *tempSrc =
          malloc(width * height * 4 * sizeof(GLfloat));
 
-      if (tempSrc && texDest) {
+      if (tempSrc) {
          const GLint dims = 2;
          GLint dstRowStride;
          struct gl_texture_image *texImage = &stImage->base;
@@ -2419,6 +2427,7 @@ fallback_copy_texsubimage(struct gl_context *ctx,
    }
 
    st_texture_image_unmap(st, stImage, slice);
+err:
    pipe->transfer_unmap(pipe, src_trans);
 }
 
@@ -3056,7 +3065,7 @@ st_TestProxyTexImage(struct gl_context *ctx, GLenum target,
       }
       else {
          /* assume a full set of mipmaps */
-         pt.last_level = _mesa_logbase2(MAX3(width, height, depth));
+         pt.last_level = util_logbase2(MAX3(width, height, depth));
       }
 
       return pipe->screen->can_create_resource(pipe->screen, &pt);

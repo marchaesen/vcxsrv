@@ -345,9 +345,6 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
       this->type = glsl_type::get_instance(GLSL_TYPE_UINT64,
 					   op0->type->vector_elements, 1);
       break;
-   case ir_unop_noise:
-      this->type = glsl_type::float_type;
-      break;
 
    case ir_unop_unpack_double_2x32:
    case ir_unop_unpack_uint_2x32:

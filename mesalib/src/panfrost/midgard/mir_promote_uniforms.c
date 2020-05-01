@@ -152,7 +152,7 @@ midgard_promote_uniforms(compiler_context *ctx)
                 /* We do need the move for safety for a non-SSA dest, or if
                  * we're being fed into a special class */
 
-                bool needs_move = ins->dest & IS_REG;
+                bool needs_move = ins->dest & PAN_IS_REG;
                 needs_move |= mir_special_index(ctx, ins->dest);
 
                 if (needs_move) {

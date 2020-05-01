@@ -432,7 +432,7 @@ void trace_dump_blend_state(const struct pipe_blend_state *state)
 
    trace_dump_member_begin("rt");
    if (state->independent_blend_enable)
-      valid_entries = PIPE_MAX_COLOR_BUFS;
+      valid_entries = state->max_rt + 1;
    trace_dump_struct_array(rt_blend_state, state->rt, valid_entries);
    trace_dump_member_end();
 

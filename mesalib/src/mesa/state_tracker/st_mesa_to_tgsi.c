@@ -141,8 +141,12 @@ src_register(struct st_translate *t,
          return t->constants[index];
 
    case PROGRAM_INPUT:
-      assert(t->inputMapping[index] < ARRAY_SIZE(t->inputs));
-      return t->inputs[t->inputMapping[index]];
+      if (t->inputMapping[index] < ARRAY_SIZE(t->inputs))
+         return t->inputs[t->inputMapping[index]];
+      else {
+         assert(t->procType == PIPE_SHADER_VERTEX);
+         return ureg_DECL_constant(t->ureg, 0);
+      }
 
    case PROGRAM_OUTPUT:
       assert(t->outputMapping[index] < ARRAY_SIZE(t->outputs));

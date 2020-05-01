@@ -557,10 +557,6 @@ ir_validate::visit_leave(ir_expression *ir)
       assert(ir->type->base_type == GLSL_TYPE_UINT);
       break;
 
-   case ir_unop_noise:
-      /* XXX what can we assert here? */
-      break;
-
    case ir_unop_interpolate_at_centroid:
       assert(ir->operands[0]->type == ir->type);
       assert(ir->operands[0]->type->is_float_16_32());

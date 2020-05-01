@@ -87,7 +87,7 @@ actions:
           - cd /
 
           - export DEQP_NO_SAVE_RESULTS=1
-          - 'export DEQP_RUNNER_OPTIONS="--compact-display false --shuffle false"'
+          - 'export DEQP_RUNNER_OPTIONS="--shuffle false"'
           - export DEQP_EXPECTED_FAILS=deqp-{{ gpu_version }}-fails.txt
           - export DEQP_SKIPS=deqp-{{ gpu_version }}-skips.txt
           - export DEQP_VER={{ deqp_version }}

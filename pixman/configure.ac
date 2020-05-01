@@ -53,13 +53,13 @@ AC_PREREQ([2.57])
 #
 
 m4_define([pixman_major], 0)
-m4_define([pixman_minor], 38)
-m4_define([pixman_micro], 5)
+m4_define([pixman_minor], 40)
+m4_define([pixman_micro], 1)
 
 m4_define([pixman_version],[pixman_major.pixman_minor.pixman_micro])
 
 AC_INIT(pixman, pixman_version, [pixman@lists.freedesktop.org], pixman)
-AM_INIT_AUTOMAKE([foreign dist-bzip2])
+AM_INIT_AUTOMAKE([foreign dist-xz])
 
 # Suppress verbose compile lines
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])

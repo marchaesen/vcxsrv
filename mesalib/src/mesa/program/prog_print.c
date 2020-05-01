@@ -33,11 +33,12 @@
 
 #include "main/glheader.h"
 #include "main/context.h"
-#include "util/imports.h"
+
 #include "prog_instruction.h"
 #include "prog_parameter.h"
 #include "prog_print.h"
 #include "prog_statevars.h"
+#include "util/bitscan.h"
 
 
 
@@ -83,7 +84,7 @@ _mesa_register_file_name(gl_register_file f)
    default:
       {
          static char s[20];
-         _mesa_snprintf(s, sizeof(s), "FILE%u", f);
+         snprintf(s, sizeof(s), "FILE%u", f);
          return s;
       }
    }
@@ -165,6 +166,7 @@ arb_input_attrib_string(GLuint index, GLenum progType)
       "fragment.(twenty-eight)", /* VARYING_SLOT_BOUNDING_BOX0 */
       "fragment.(twenty-nine)", /* VARYING_SLOT_BOUNDING_BOX1 */
       "fragment.(thirty)", /* VARYING_SLOT_VIEW_INDEX */
+      "fragment.(thirty-one)", /* VARYING_SLOT_VIEWPORT_MASK */
       "fragment.varying[0]",
       "fragment.varying[1]",
       "fragment.varying[2]",
@@ -297,6 +299,7 @@ arb_output_attrib_string(GLuint index, GLenum progType)
       "result.(twenty-eight)", /* VARYING_SLOT_BOUNDING_BOX0 */
       "result.(twenty-nine)", /* VARYING_SLOT_BOUNDING_BOX1 */
       "result.(thirty)", /* VARYING_SLOT_VIEW_INDEX */
+      "result.(thirty-one)", /* VARYING_SLOT_VIEWPORT_MASK */
       "result.varying[0]",
       "result.varying[1]",
       "result.varying[2]",
@@ -533,7 +536,7 @@ fprint_dst_reg(FILE * f,
 	   reg_string((gl_register_file) dstReg->File,
 		      dstReg->Index, mode, dstReg->RelAddr, prog),
 	   _mesa_writemask_string(dstReg->WriteMask));
-   
+
 #if 0
    fprintf(f, "%s[%d]%s",
 	   _mesa_register_file_name((gl_register_file) dstReg->File),
@@ -545,7 +548,7 @@ fprint_dst_reg(FILE * f,
 
 static void
 fprint_src_reg(FILE *f,
-               const struct prog_src_register *srcReg, 
+               const struct prog_src_register *srcReg,
                gl_prog_print_mode mode,
                const struct gl_program *prog)
 {
@@ -899,7 +902,7 @@ _mesa_fprint_program_parameters(FILE *f,
       const GLfloat *p = prog->LocalParams[i];
       fprintf(f, "%2d: %f, %f, %f, %f\n", i, p[0], p[1], p[2], p[3]);
    }
-#endif	
+#endif
    _mesa_print_parameter_list(prog->Parameters);
 }
 
@@ -986,7 +989,7 @@ _mesa_write_shader_to_file(const struct gl_shader *shader)
       break;
    }
 
-   _mesa_snprintf(filename, sizeof(filename), "shader_%u.%s", shader->Name, type);
+   snprintf(filename, sizeof(filename), "shader_%u.%s", shader->Name, type);
    f = fopen(filename, "w");
    if (!f) {
       fprintf(stderr, "Unable to open %s for writing\n", filename);
@@ -1029,7 +1032,7 @@ _mesa_append_uniforms_to_file(const struct gl_program *prog)
    else
       type = "vert";
 
-   _mesa_snprintf(filename, sizeof(filename), "shader.%s", type);
+   snprintf(filename, sizeof(filename), "shader.%s", type);
    f = fopen(filename, "a"); /* append */
    if (!f) {
       fprintf(stderr, "Unable to open %s for appending\n", filename);

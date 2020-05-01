@@ -79,7 +79,7 @@
 
 struct fdl_slice {
 	uint32_t offset;         /* offset of first layer in slice */
-	uint32_t pitch;
+	uint32_t pitch;          /* pitch in bytes between rows. */
 	uint32_t size0;          /* size of first layer in slice */
 };
 
@@ -109,6 +109,12 @@ struct fdl_layout {
 	 */
 	uint8_t cpp;
 
+	/**
+	 * Left shift necessary to multiply by cpp.  Invalid for NPOT cpp, please
+	 * use fdl_cpp_shift() to sanity check you aren't hitting that case.
+	 */
+	uint8_t cpp_shift;
+
 	uint32_t width0, height0, depth0;
 	uint32_t nr_samples;
 	enum pipe_format format;
@@ -116,6 +122,13 @@ struct fdl_layout {
 	uint32_t size; /* Size of the whole image, in bytes. */
 	uint32_t base_align; /* Alignment of the base address, in bytes. */
 };
+
+static inline uint32_t
+fdl_cpp_shift(const struct fdl_layout *layout)
+{
+	assert(util_is_power_of_two_or_zero(layout->cpp));
+	return layout->cpp_shift;
+}
 
 static inline uint32_t
 fdl_layer_stride(const struct fdl_layout *layout, unsigned level)

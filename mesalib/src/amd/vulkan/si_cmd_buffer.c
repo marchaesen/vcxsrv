@@ -155,9 +155,11 @@ si_set_raster_config(struct radv_physical_device *physical_device,
 }
 
 void
-si_emit_graphics(struct radv_physical_device *physical_device,
+si_emit_graphics(struct radv_device *device,
 		 struct radeon_cmdbuf *cs)
 {
+	struct radv_physical_device *physical_device = device->physical_device;
+
 	bool has_clear_state = physical_device->rad_info.has_clear_state;
 	int i;
 
@@ -416,9 +418,7 @@ si_emit_graphics(struct radv_physical_device *physical_device,
 				  S_00B0C0_NUMBER_OF_REQUESTS_PER_CU(4 - 1));
 		radeon_set_sh_reg(cs, R_00B1C0_SPI_SHADER_REQ_CTRL_VS, 0);
 
-		if (physical_device->rad_info.family == CHIP_NAVI10 ||
-		    physical_device->rad_info.family == CHIP_NAVI12 ||
-		    physical_device->rad_info.family == CHIP_NAVI14) {
+		if (physical_device->rad_info.chip_class == GFX10) {
 			/* SQ_NON_EVENT must be emitted before GE_PC_ALLOC is written. */
 			radeon_emit(cs, PKT3(PKT3_EVENT_WRITE, 0, 0));
 			radeon_emit(cs, EVENT_TYPE(V_028A90_SQ_NON_EVENT) | EVENT_INDEX(0));
@@ -502,7 +502,7 @@ cik_create_gfx_config(struct radv_device *device)
 	if (!cs)
 		return;
 
-	si_emit_graphics(device->physical_device, cs);
+	si_emit_graphics(device, cs);
 
 	while (cs->cdw & 7) {
 		if (device->physical_device->rad_info.gfx_ib_pad_with_type2)
@@ -595,10 +595,10 @@ static VkRect2D si_scissor_from_viewport(const VkViewport *viewport)
 
 	get_viewport_xform(viewport, scale, translate);
 
-	rect.offset.x = translate[0] - fabs(scale[0]);
-	rect.offset.y = translate[1] - fabs(scale[1]);
-	rect.extent.width = ceilf(translate[0] + fabs(scale[0])) - rect.offset.x;
-	rect.extent.height = ceilf(translate[1] + fabs(scale[1])) - rect.offset.y;
+	rect.offset.x = translate[0] - fabsf(scale[0]);
+	rect.offset.y = translate[1] - fabsf(scale[1]);
+	rect.extent.width = ceilf(translate[0] + fabsf(scale[0])) - rect.offset.x;
+	rect.extent.height = ceilf(translate[1] + fabsf(scale[1])) - rect.offset.y;
 
 	return rect;
 }

@@ -223,6 +223,7 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_SHAREABLE_SHADERS:
    case PIPE_CAP_COPY_BETWEEN_COMPRESSED_AND_PLAIN_FORMATS:
    case PIPE_CAP_CLEAR_TEXTURE:
+   case PIPE_CAP_CLEAR_SCISSORED:
    case PIPE_CAP_DRAW_PARAMETERS:
    case PIPE_CAP_TGSI_PACK_HALF_FLOAT:
    case PIPE_CAP_MULTI_DRAW_INDIRECT:
@@ -259,6 +260,7 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
    case PIPE_CAP_POLYGON_OFFSET_UNITS_UNSCALED:
    case PIPE_CAP_VIEWPORT_SUBPIXEL_BITS:
    case PIPE_CAP_VIEWPORT_SWIZZLE:
+   case PIPE_CAP_VIEWPORT_MASK:
    case PIPE_CAP_MIXED_COLOR_DEPTH_BITS:
    case PIPE_CAP_TGSI_ARRAY_COMPONENTS:
    case PIPE_CAP_STREAM_OUTPUT_INTERLEAVE_BUFFERS:
@@ -421,12 +423,14 @@ u_pipe_screen_get_param_defaults(struct pipe_screen *pscreen,
 
    case PIPE_CAP_VIEWPORT_TRANSFORM_LOWERED:
    case PIPE_CAP_PSIZ_CLAMPED:
+   case PIPE_CAP_MAP_UNSYNCHRONIZED_THREAD_SAFE:
       return 0;
 
    case PIPE_CAP_GL_BEGIN_END_BUFFER_SIZE:
       return 512 * 1024;
 
    case PIPE_CAP_SYSTEM_SVM:
+   case PIPE_CAP_ALPHA_TO_COVERAGE_DITHER_CONTROL:
       return 0;
 
    default:

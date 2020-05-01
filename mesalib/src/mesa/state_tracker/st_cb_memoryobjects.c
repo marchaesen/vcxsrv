@@ -22,7 +22,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "util/imports.h"
+
 #include "main/mtypes.h"
 
 #include "main/externalobjects.h"
@@ -34,6 +34,10 @@
 #include "state_tracker/drm_driver.h"
 #include "pipe/p_context.h"
 #include "pipe/p_screen.h"
+
+#ifdef HAVE_LIBDRM
+#include "drm-uapi/drm_fourcc.h"
+#endif
 
 static struct gl_memory_object *
 st_memoryobj_alloc(struct gl_context *ctx, GLuint name)
@@ -64,13 +68,13 @@ st_import_memoryobj_fd(struct gl_context *ctx,
    struct st_context *st = st_context(ctx);
    struct pipe_context *pipe = st->pipe;
    struct pipe_screen *screen = pipe->screen;
-   struct winsys_handle whandle;
-
-   whandle.type = WINSYS_HANDLE_TYPE_FD;
-   whandle.handle = fd;
-   whandle.offset = 0;
-   whandle.layer = 0;
-   whandle.stride = 0;
+   struct winsys_handle whandle = {
+      .type = WINSYS_HANDLE_TYPE_FD,
+      .handle = fd,
+#ifdef HAVE_LIBDRM
+      .modifier = DRM_FORMAT_MOD_INVALID,
+#endif
+   };
 
    st_obj->memory = screen->memobj_create_from_handle(screen,
                                                       &whandle,

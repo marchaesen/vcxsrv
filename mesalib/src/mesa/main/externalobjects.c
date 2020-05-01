@@ -30,6 +30,7 @@
 #include "texobj.h"
 #include "glformats.h"
 #include "texstorage.h"
+#include "util/u_memory.h"
 
 /**
  * Allocate and initialize a new memory object.  But don't put it into the

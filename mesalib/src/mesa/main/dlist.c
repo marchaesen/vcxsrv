@@ -31,7 +31,7 @@
 
 #include "c99_math.h"
 #include "glheader.h"
-#include "util/imports.h"
+
 #include "api_arrayelt.h"
 #include "api_exec.h"
 #include "api_loopback.h"
@@ -73,6 +73,7 @@
 #include "vbo/vbo_util.h"
 #include "util/format_r11g11b10f.h"
 
+#include "util/u_memory.h"
 
 #define USE_BITMAP_ATLAS 1
 
@@ -13547,7 +13548,7 @@ execute_list(struct gl_context *ctx, GLuint list)
          default:
             {
                char msg[1000];
-               _mesa_snprintf(msg, sizeof(msg), "Error in execute_list: opcode=%d",
+               snprintf(msg, sizeof(msg), "Error in execute_list: opcode=%d",
                              (int) opcode);
                _mesa_problem(ctx, "%s", msg);
             }

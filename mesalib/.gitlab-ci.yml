@@ -19,6 +19,7 @@ stages:
   - panfrost
   - radv
   - lima
+  - virgl
   - success
 
 
@@ -132,7 +133,7 @@ x86_build:
     - .fdo.container-build@debian
     - .container
   variables:
-    FDO_DISTRIBUTION_TAG: &x86_build "2020-03-18-jflags"
+    FDO_DISTRIBUTION_TAG: &x86_build "2020-04-22-winehq"
 
 .use-x86_build:
   variables:
@@ -145,7 +146,7 @@ x86_build:
 x86_test-gl:
   extends: x86_build
   variables:
-    FDO_DISTRIBUTION_TAG: &x86_test-gl "2020-03-18-jflags"
+    FDO_DISTRIBUTION_TAG: &x86_test-gl "2020-04-21"
 
 # Debian 10 based x86 test image for VK
 x86_test-vk:
@@ -309,7 +310,7 @@ meson-testing:
       -D platforms=x11,drm,surfaceless
     GALLIUM_ST: >
       -D dri3=true
-    GALLIUM_DRIVERS: "swrast"
+    GALLIUM_DRIVERS: "swrast,virgl"
     VULKAN_DRIVERS: amd
     BUILDTYPE: "debugoptimized"
     EXTRA_OPTION: >
@@ -547,7 +548,8 @@ meson-s390x:
   script:
     # For unknown reasons "too many" installed i386 libraries cause qemu to
     # crash while executing llvm-config for s390x.
-    - apt-get remove -y libglib2.0-0:i386
+    - apt-get purge -y winehq-stable
+    - apt-get autoremove -y --purge
     - dpkg -i /var/cache/apt/archives/$CROSS/*.deb
     - .gitlab-ci/meson-build.sh
 
@@ -688,6 +690,7 @@ llvmpipe-gles2:
     LP_NUM_THREADS: 0
     DEQP_EXPECTED_FAILS: deqp-llvmpipe-fails.txt
     LIBGL_ALWAYS_SOFTWARE: "true"
+    DEQP_EXPECTED_RENDERER: llvmpipe
   extends:
     - .deqp-test-gl
     - .llvmpipe-rules
@@ -700,6 +703,7 @@ softpipe-gles2:
     DEQP_EXPECTED_FAILS: deqp-softpipe-fails.txt
     DEQP_SKIPS: deqp-softpipe-skips.txt
     GALLIUM_DRIVER: "softpipe"
+    DEQP_EXPECTED_RENDERER: softpipe
 
 softpipe-gles3:
   parallel: 2
@@ -712,6 +716,42 @@ softpipe-gles31:
   variables:
     DEQP_VER: gles31
   extends: softpipe-gles2
+
+virgl-gles2:
+  variables:
+    DEQP_VER: gles2
+    DEQP_PARALLEL: 4
+    NIR_VALIDATE: 0
+    DEQP_NO_SAVE_RESULTS: 1
+    # Don't use threads inside llvmpipe, we've already got all 4 cores
+    # busy with DEQP_PARALLEL.
+    LP_NUM_THREADS: 0
+    DEQP_EXPECTED_FAILS: deqp-virgl-fails.txt
+    LIBGL_ALWAYS_SOFTWARE: "true"
+    GALLIUM_DRIVER: "virpipe"
+    DEQP_EXPECTED_RENDERER: virgl
+  extends:
+    - .deqp-test-gl
+    - .virgl-rules
+
+virgl-gles3:
+  variables:
+    DEQP_VER: gles3
+    CI_NODE_INDEX: 1
+    CI_NODE_TOTAL: 3
+    DEQP_RUNNER_OPTIONS: "--timeout 120"
+  extends: virgl-gles2
+
+virgl-gles31:
+  variables:
+    DEQP_VER: gles31
+    CI_NODE_INDEX: 1
+    CI_NODE_TOTAL: 10
+    DEQP_OPTIONS: "--deqp-log-images=disable"
+    DEQP_RUNNER_OPTIONS: "--timeout 120"
+    MESA_GLES_VERSION_OVERRIDE: "3.1"
+    MESA_GLSL_VERSION_OVERRIDE: "310"
+  extends: virgl-gles2
 
 # Rules for tests that should not be present in MRs or the main
 # project's pipeline (don't block marge or report red on
@@ -738,6 +778,7 @@ arm64_a630_gles2:
     NIR_VALIDATE: 0
     DEQP_PARALLEL: 4
     FLAKES_CHANNEL: "#freedreno-ci"
+    DEQP_EXPECTED_RENDERER: FD630
   tags:
     - mesa-cheza
   dependencies:
@@ -752,6 +793,22 @@ arm64_a630_gles3:
   extends: arm64_a630_gles2
   variables:
     DEQP_VER: gles3
+
+arm64_a630_gles31_options:
+  extends: arm64_a630_gles2
+  variables:
+    DEQP_VER: gles31
+    CI_NODE_INDEX: 1
+    CI_NODE_TOTAL: 5
+  script:
+    # We almost always manage to lower UBOs back to constant uploads in
+    # the test suite, so get a little testing for it here.
+    - DEQP_RUN_SUFFIX=-nouboopt IR3_SHADER_DEBUG=nouboopt DEQP_EXPECTED_FAILS=deqp-freedreno-a630-noubo-fails.txt DEQP_CASELIST_FILTER="functional.\*ubo" ./install/deqp-runner.sh
+    # The driver does some guessing as to whether to render using gmem
+    # or bypass, and some GLES3.1 features interact with either one.
+    # Do a little testing with gmem and bypass forced.
+    - DEQP_RUN_SUFFIX=-bypass FD_MESA_DEBUG=nogmem DEQP_EXPECTED_FAILS=deqp-freedreno-a630-bypass-fails.txt ./install/deqp-runner.sh
+    - DEQP_RUN_SUFFIX=-gmem FD_MESA_DEBUG=nobypass ./install/deqp-runner.sh
 
 .baremetal-test:
   extends:
@@ -772,6 +829,7 @@ arm64_a306_gles2:
     DEQP_SKIPS: deqp-freedreno-a307-skips.txt
     DEQP_VER: gles2
     DEQP_PARALLEL: 4
+    DEQP_EXPECTED_RENDERER: FD307
   script:
     - .gitlab-ci/bare-metal/fastboot.sh
   needs:
@@ -783,31 +841,39 @@ arm64_a306_gles2:
 arm64_a306_gles3:
   extends:
     - arm64_a306_gles2
-    - .test-manual
-  parallel: 8
   variables:
     DEQP_VER: gles3
+    DEQP_PARALLEL: 1
+    CI_NODE_INDEX: 1
+    CI_NODE_TOTAL: 50
 
 arm64_a530_gles2:
   extends:
     - arm64_a306_gles2
-  stage: freedreno
   variables:
     BM_KERNEL: /lava-files/db820c-kernel
     BM_DTB: /lava-files/db820c.dtb
     BM_CMDLINE: "ip=dhcp console=ttyMSM0,115200n8"
     DEQP_EXPECTED_FAILS: deqp-freedreno-a530-fails.txt
     DEQP_SKIPS: deqp-freedreno-a530-skips.txt
+    DEQP_EXPECTED_RENDERER: FD530
   tags:
     - google-freedreno-db820c
 
 arm64_a530_gles3:
   extends:
     - arm64_a530_gles2
-    - .test-manual
-  parallel: 6
   variables:
     DEQP_VER: gles3
+    DEQP_PARALLEL: 1
+    CI_NODE_INDEX: 1
+    CI_NODE_TOTAL: 100
+
+arm64_a530_gles31:
+  extends:
+    - arm64_a530_gles3
+  variables:
+    DEQP_VER: gles31
 
 # RADV CI
 .test-radv:
@@ -894,3 +960,14 @@ radv-polaris10-traces:
     DEVICE_NAME: "vk-amd-polaris10"
   tags:
     - polaris10
+
+virgl-traces:
+  extends:
+    - .traces-test-gl
+    - .virgl-rules
+  variables:
+    LIBGL_ALWAYS_SOFTWARE: "true"
+    GALLIUM_DRIVER: "virpipe"
+    DEVICE_NAME: "gl-virgl"
+    MESA_GLES_VERSION_OVERRIDE: "3.1"
+    MESA_GLSL_VERSION_OVERRIDE: "310"

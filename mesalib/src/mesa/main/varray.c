@@ -28,7 +28,7 @@
 #include <inttypes.h>  /* for PRId64 macro */
 
 #include "glheader.h"
-#include "util/imports.h"
+
 #include "bufferobj.h"
 #include "context.h"
 #include "enable.h"
@@ -198,14 +198,15 @@ _mesa_bind_vertex_buffer(struct gl_context *ctx,
                          struct gl_vertex_array_object *vao,
                          GLuint index,
                          struct gl_buffer_object *vbo,
-                         GLintptr offset, GLsizei stride)
+                         GLintptr offset, GLsizei stride,
+                         bool offset_is_int32, bool take_vbo_ownership)
 {
    assert(index < ARRAY_SIZE(vao->BufferBinding));
    assert(!vao->SharedAndImmutable);
    struct gl_vertex_buffer_binding *binding = &vao->BufferBinding[index];
 
    if (ctx->Const.VertexBufferOffsetIsInt32 && (int)offset < 0 &&
-       vbo) {
+       !offset_is_int32 && vbo) {
       /* The offset will be interpreted as a signed int, so make sure
        * the user supplied offset is not negative (driver limitation).
        */
@@ -222,7 +223,12 @@ _mesa_bind_vertex_buffer(struct gl_context *ctx,
        binding->Offset != offset ||
        binding->Stride != stride) {
 
-      _mesa_reference_buffer_object(ctx, &binding->BufferObj, vbo);
+      if (take_vbo_ownership) {
+         _mesa_reference_buffer_object(ctx, &binding->BufferObj, NULL);
+         binding->BufferObj = vbo;
+      } else {
+         _mesa_reference_buffer_object(ctx, &binding->BufferObj, vbo);
+      }
 
       binding->Offset = offset;
       binding->Stride = stride;
@@ -627,13 +633,20 @@ _mesa_update_array_format(struct gl_context *ctx,
                           GLuint relativeOffset)
 {
    struct gl_array_attributes *const array = &vao->VertexAttrib[attrib];
+   struct gl_vertex_format new_format;
 
    assert(!vao->SharedAndImmutable);
    assert(size <= 4);
 
-   array->RelativeOffset = relativeOffset;
-   _mesa_set_vertex_format(&array->Format, size, type, format,
+   _mesa_set_vertex_format(&new_format, size, type, format,
                            normalized, integer, doubles);
+
+   if ((array->RelativeOffset == relativeOffset) &&
+       !memcmp(&new_format, &array->Format, sizeof(new_format)))
+      return;
+
+   array->RelativeOffset = relativeOffset;
+   array->Format = new_format;
 
    vao->NewArrays |= vao->Enabled & VERT_BIT(attrib);
 }
@@ -891,20 +904,18 @@ update_array(struct gl_context *ctx,
 
    /* The Stride and Ptr fields are not set by update_array_format() */
    struct gl_array_attributes *array = &vao->VertexAttrib[attrib];
-   array->Stride = stride;
-   /* For updating the pointer we would need to add the vao->NewArrays flag
-    * to the VAO. But but that is done already unconditionally in
-    * _mesa_update_array_format called above.
-    */
-   assert((vao->NewArrays | ~vao->Enabled) & VERT_BIT(attrib));
-   array->Ptr = ptr;
+   if ((array->Stride != stride) || (array->Ptr != ptr)) {
+      array->Stride = stride;
+      array->Ptr = ptr;
+      vao->NewArrays |= vao->Enabled & VERT_BIT(attrib);
+   }
 
    /* Update the vertex buffer binding */
    GLsizei effectiveStride = stride != 0 ?
       stride : array->Format._ElementSize;
    _mesa_bind_vertex_buffer(ctx, vao, attrib,
                             obj, (GLintptr) ptr,
-                            effectiveStride);
+                            effectiveStride, false, false);
 }
 
 
@@ -2934,7 +2945,7 @@ vertex_array_vertex_buffer(struct gl_context *ctx,
    }
 
    _mesa_bind_vertex_buffer(ctx, vao, VERT_ATTRIB_GENERIC(bindingIndex),
-                            vbo, offset, stride);
+                            vbo, offset, stride, false, false);
 }
 
 
@@ -3099,7 +3110,7 @@ vertex_array_vertex_buffers(struct gl_context *ctx,
        */
       for (i = 0; i < count; i++)
          _mesa_bind_vertex_buffer(ctx, vao, VERT_ATTRIB_GENERIC(first + i),
-                                  NULL, 0, 16);
+                                  NULL, 0, 16, false, false);
 
       return;
    }
@@ -3177,7 +3188,7 @@ vertex_array_vertex_buffers(struct gl_context *ctx,
       }
 
       _mesa_bind_vertex_buffer(ctx, vao, VERT_ATTRIB_GENERIC(first + i),
-                               vbo, offsets[i], strides[i]);
+                               vbo, offsets[i], strides[i], false, false);
    }
 
    _mesa_HashUnlockMutex(ctx->Shared->BufferObjects);
@@ -3245,6 +3256,39 @@ _mesa_BindVertexBuffers(GLuint first, GLsizei count, const GLuint *buffers,
    vertex_array_vertex_buffers_err(ctx, ctx->Array.VAO, first, count,
                                    buffers, offsets, strides,
                                    "glBindVertexBuffers");
+}
+
+
+void
+_mesa_InternalBindVertexBuffers(struct gl_context *ctx,
+                                const struct glthread_attrib_binding *attribs,
+                                GLbitfield attrib_mask,
+                                GLboolean restore_pointers)
+{
+   struct gl_vertex_array_object *vao = ctx->Array.VAO;
+   unsigned param_index = 0;
+
+   if (restore_pointers) {
+      while (attrib_mask) {
+         unsigned i = u_bit_scan(&attrib_mask);
+
+         _mesa_bind_vertex_buffer(ctx, vao, i, NULL,
+                                  (GLintptr)attribs[param_index].original_pointer,
+                                  vao->BufferBinding[i].Stride, false, false);
+         param_index++;
+      }
+      return;
+   }
+
+   while (attrib_mask) {
+      unsigned i = u_bit_scan(&attrib_mask);
+      struct gl_buffer_object *buf = attribs[param_index].buffer;
+
+      /* The buffer reference is passed to _mesa_bind_vertex_buffer. */
+      _mesa_bind_vertex_buffer(ctx, vao, i, buf, attribs[param_index].offset,
+                               vao->BufferBinding[i].Stride, true, true);
+      param_index++;
+   }
 }
 
 
@@ -3793,7 +3837,7 @@ _mesa_print_arrays(struct gl_context *ctx)
               array->Ptr, _mesa_enum_to_string(array->Format.Type),
               array->Format.Size,
               array->Format._ElementSize, binding->Stride, bo ? bo->Name : 0,
-              (unsigned long) bo ? bo->Size : 0);
+              (unsigned long)(bo ? bo->Size : 0));
    }
 }
 

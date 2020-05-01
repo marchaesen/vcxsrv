@@ -20,6 +20,19 @@ apt-get install -y \
 apt-key add .gitlab-ci/container/llvm-snapshot.gpg.key
 echo "deb https://apt.llvm.org/buster/ llvm-toolchain-buster-9 main" >/etc/apt/sources.list.d/llvm9.list
 
+# Upstream Wine (WineHQ) package repository. We use the OBS service
+# instead of the repository at the winehq.org domain because:
+#
+#   " The WineHQ packages for Debian 10 and later require libfaudio0
+#     as a dependency. Since the distro does not provide it for Debian
+#     10, users of that version can download libfaudio0 packages from
+#     the OBS. See https://forum.winehq.org/viewtopic.php?f=8&t=32192
+#     for details."
+#
+# As explained at https://wiki.winehq.org/Debian
+apt-key add .gitlab-ci/container/obs-emulators-wine-debian.gpg.key
+echo 'deb https://download.opensuse.org/repositories/Emulators:/Wine:/Debian/Debian_10/ ./' >/etc/apt/sources.list.d/obs-emulators-wine-debian.list
+
 sed -i -e 's/http:\/\/deb/https:\/\/deb/g' /etc/apt/sources.list
 echo 'deb https://deb.debian.org/debian buster-backports main' >/etc/apt/sources.list.d/backports.list
 
@@ -118,9 +131,7 @@ apt-get install -y --no-remove \
 apt-get install -y --no-remove \
       libz-mingw-w64-dev \
       mingw-w64 \
-      wine \
-      wine32 \
-      wine64
+      winehq-stable
 
 # Debian's pkg-config wrapers for mingw are broken, and there's no sign that
 # they're going to be fixed, so we'll just have to fix it ourselves

@@ -1594,7 +1594,7 @@ _mesa_sampler_uniforms_are_valid(const struct gl_shader_program *shProg,
       return true;
 
    if (!shProg->SamplersValidated) {
-      _mesa_snprintf(errMsg, errMsgLength,
+      snprintf(errMsg, errMsgLength,
                      "active samplers with a different type "
                      "refer to the same texture image unit");
       return false;

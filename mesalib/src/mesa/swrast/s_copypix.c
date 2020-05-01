@@ -29,7 +29,7 @@
 #include "main/macros.h"
 #include "main/blit.h"
 #include "main/pixeltransfer.h"
-#include "util/imports.h"
+
 
 #include "s_context.h"
 #include "s_depth.h"
@@ -618,7 +618,7 @@ _swrast_CopyPixels(struct gl_context *ctx,
 {
    SWcontext *swrast = SWRAST_CONTEXT(ctx);
    struct gl_renderbuffer *rb;
-      
+
    if (!_mesa_check_conditional_render(ctx))
       return; /* don't copy */
 

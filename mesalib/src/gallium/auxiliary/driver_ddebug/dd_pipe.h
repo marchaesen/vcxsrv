@@ -93,6 +93,7 @@ struct call_resource_copy_region
 struct call_clear
 {
    unsigned buffers;
+   struct pipe_scissor_state scissor_state;
    union pipe_color_union color;
    double depth;
    unsigned stencil;

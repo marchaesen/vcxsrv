@@ -93,6 +93,8 @@ fdl6_layout(struct fdl_layout *layout,
 
 	layout->cpp = util_format_get_blocksize(format);
 	layout->cpp *= nr_samples;
+	layout->cpp_shift = ffs(layout->cpp) - 1;
+
 	layout->format = format;
 	layout->nr_samples = nr_samples;
 	layout->layer_first = !is_3d;
@@ -153,12 +155,15 @@ fdl6_layout(struct fdl_layout *layout,
 		if (level == mip_levels - 1)
 			height = align(height, 32);
 
-		slice->pitch = util_align_npot(u_minify(pitch0, level),
+		uint32_t pitch_pixels = util_align_npot(u_minify(pitch0, level),
 				fdl6_pitchalign(layout, ta, level));
 
 		slice->offset = layout->size;
 		uint32_t blocks = util_format_get_nblocks(format,
-				slice->pitch, height);
+				pitch_pixels, height);
+
+		slice->pitch = util_format_get_nblocksx(format, pitch_pixels) *
+			layout->cpp;
 
 		/* 1d array and 2d array textures must all have the same layer size
 		 * for each miplevel on a6xx. 3d textures can have different layer

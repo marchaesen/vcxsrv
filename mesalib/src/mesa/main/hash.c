@@ -38,6 +38,7 @@
 #include "glheader.h"
 #include "hash.h"
 #include "util/hash_table.h"
+#include "util/u_memory.h"
 
 
 /**

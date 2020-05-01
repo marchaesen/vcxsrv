@@ -1419,6 +1419,7 @@ static void *get_clear_blend_state(struct blitter_context_priv *ctx,
       for (i = 0; i < PIPE_MAX_COLOR_BUFS; i++) {
          if (clear_buffers & (PIPE_CLEAR_COLOR0 << i)) {
             blend.rt[i].colormask = PIPE_MASK_RGBA;
+            blend.max_rt = i;
          }
       }
 

@@ -21,6 +21,8 @@
 include $(CLEAR_VARS)
 
 LOCAL_MODULE := libpanfrost_bifrost
+LOCAL_MODULE_CLASS := STATIC_LIBRARIES
+intermediates := $(call local-generated-sources-dir)
 
 LOCAL_SRC_FILES := \
 	$(bifrost_FILES)
@@ -41,7 +43,16 @@ LOCAL_STATIC_LIBRARIES := \
 	libmesa_st_mesa
 
 LOCAL_GENERATED_SOURCES := \
+	$(intermediates)/bifrost_nir_algebraic.c \
 	$(MESA_GEN_GLSL_H)
+
+bifrost_nir_algebraic_gen := $(LOCAL_PATH)/bifrost/bifrost_nir_algebraic.py
+bifrost_nir_algebraic_deps := \
+	$(MESA_TOP)/src/compiler/nir/
+
+$(intermediates)/bifrost_nir_algebraic.c: $(bifrost_nir_algebraic_deps)
+	@mkdir -p $(dir $@)
+	$(hide) $(MESA_PYTHON2) $(bifrost_nir_algebraic_gen) -p $< > $@
 
 LOCAL_EXPORT_C_INCLUDE_DIRS := \
 	$(MESA_TOP)/src/panfrost/bifrost/ \

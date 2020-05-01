@@ -747,7 +747,8 @@ load("shared", 1, [BASE, ALIGN_MUL, ALIGN_OFFSET], [CAN_ELIMINATE])
 # src[] = { offset }.
 load("push_constant", 1, [BASE, RANGE], [CAN_ELIMINATE, CAN_REORDER])
 # src[] = { offset }.
-load("constant", 1, [BASE, RANGE], [CAN_ELIMINATE, CAN_REORDER])
+load("constant", 1, [BASE, RANGE, ALIGN_MUL, ALIGN_OFFSET],
+     [CAN_ELIMINATE, CAN_REORDER])
 # src[] = { address }.
 load("global", 1, [ACCESS, ALIGN_MUL, ALIGN_OFFSET], [CAN_ELIMINATE])
 # src[] = { address }.
@@ -801,6 +802,12 @@ intrinsic("ssbo_atomic_or_ir3",         src_comp=[1, 1, 1, 1],    dest_comp=1)
 intrinsic("ssbo_atomic_xor_ir3",        src_comp=[1, 1, 1, 1],    dest_comp=1)
 intrinsic("ssbo_atomic_exchange_ir3",   src_comp=[1, 1, 1, 1],    dest_comp=1)
 intrinsic("ssbo_atomic_comp_swap_ir3",  src_comp=[1, 1, 1, 1, 1], dest_comp=1)
+
+# IR3-specific instruction for UBO loads using the ldc instruction. The second
+# source is the indirect offset, in units of four dwords. The base is a
+# component offset, in dword units.
+intrinsic("load_ubo_ir3", src_comp=[1, 1], bit_sizes=[32], dest_comp=0, indices=[BASE],
+          flags=[CAN_REORDER, CAN_ELIMINATE])
 
 # System values for freedreno geometry shaders.
 system_value("vs_primitive_stride_ir3", 1)
@@ -881,6 +888,18 @@ load("sampler_lod_parameters_pan", 1, [CAN_ELIMINATE, CAN_REORDER])
 # later
 # src[] = { buffer_index, offset }.
 load("ubo_r600", 2, [ACCESS, ALIGN_MUL, ALIGN_OFFSET], flags=[CAN_ELIMINATE, CAN_REORDER])
+
+# location where the tesselation data is stored in LDS
+system_value("tcs_in_param_base_r600", 4)
+system_value("tcs_out_param_base_r600", 4)
+system_value("tcs_rel_patch_id_r600", 1)
+system_value("tcs_tess_factor_base_r600", 1)
+
+# load as many components as needed giving per-component addresses
+intrinsic("load_local_shared_r600", src_comp=[0], dest_comp=0, indices = [COMPONENT], flags = [CAN_ELIMINATE, CAN_REORDER])
+
+store("local_shared_r600", 2, [WRMASK])
+store("tf_r600", 1)
 
 # V3D-specific instrinc for tile buffer color reads.
 #

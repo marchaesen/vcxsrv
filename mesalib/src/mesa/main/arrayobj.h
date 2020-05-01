@@ -57,6 +57,10 @@ extern struct gl_vertex_array_object *
 _mesa_new_vao(struct gl_context *ctx, GLuint name);
 
 extern void
+_mesa_unbind_array_object_vbos(struct gl_context *ctx,
+                               struct gl_vertex_array_object *obj);
+
+extern void
 _mesa_delete_vao(struct gl_context *ctx, struct gl_vertex_array_object *obj);
 
 extern void

@@ -28,6 +28,8 @@
 #include "v3d.h"
 #include "v3d_simulator_wrapper.h"
 
+bool drm_shim_driver_prefers_first_render_node = false;
+
 static struct v3d_device_info devinfo;
 struct v3d_shim_device v3d = {
         .devinfo = &devinfo

@@ -241,7 +241,7 @@ util_sparse_array_free_list_push(struct util_sparse_array_free_list *fl,
    void *last_elem = util_sparse_array_get(fl->arr, items[0]);
    uint32_t *last_next = (uint32_t *)((char *)last_elem + fl->next_offset);
    for (unsigned i = 1; i < num_items; i++) {
-      *last_next = items[i];
+      p_atomic_set(last_next, items[i]);
       assert(items[i] != fl->sentinel);
       last_elem = util_sparse_array_get(fl->arr, items[i]);
       last_next = (uint32_t *)((char *)last_elem + fl->next_offset);
@@ -251,7 +251,7 @@ util_sparse_array_free_list_push(struct util_sparse_array_free_list *fl,
    old_head = p_atomic_read(&fl->head);
    do {
       current_head = old_head;
-      *last_next = current_head; /* Index is the bottom 32 bits */
+      p_atomic_set(last_next, (uint32_t)current_head); /* Index is the bottom 32 bits */
       uint64_t new_head = free_list_head(current_head, items[0]);
       old_head = p_atomic_cmpxchg(&fl->head, current_head, new_head);
    } while (old_head != current_head);
@@ -270,7 +270,7 @@ util_sparse_array_free_list_pop_idx(struct util_sparse_array_free_list *fl)
       uint32_t head_idx = current_head; /* Index is the bottom 32 bits */
       void *head_elem = util_sparse_array_get(fl->arr, head_idx);
       uint32_t *head_next = (uint32_t *)((char *)head_elem + fl->next_offset);
-      uint32_t new_head = free_list_head(current_head, *head_next);
+      uint64_t new_head = free_list_head(current_head, p_atomic_read(head_next));
       uint64_t old_head = p_atomic_cmpxchg(&fl->head, current_head, new_head);
       if (old_head == current_head)
          return head_idx;
@@ -291,7 +291,7 @@ util_sparse_array_free_list_pop_elem(struct util_sparse_array_free_list *fl)
       uint32_t head_idx = current_head; /* Index is the bottom 32 bits */
       void *head_elem = util_sparse_array_get(fl->arr, head_idx);
       uint32_t *head_next = (uint32_t *)((char *)head_elem + fl->next_offset);
-      uint32_t new_head = free_list_head(current_head, *head_next);
+      uint64_t new_head = free_list_head(current_head, p_atomic_read(head_next));
       uint64_t old_head = p_atomic_cmpxchg(&fl->head, current_head, new_head);
       if (old_head == current_head)
          return head_elem;

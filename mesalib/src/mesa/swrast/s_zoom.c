@@ -25,7 +25,7 @@
 #include "main/errors.h"
 #include "main/glheader.h"
 #include "main/macros.h"
-#include "util/imports.h"
+
 #include "main/format_pack.h"
 
 #include "s_context.h"

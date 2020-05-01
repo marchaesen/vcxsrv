@@ -1,5 +1,5 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2008 VMware, Inc.
  * All Rights Reserved.
  *
@@ -12,7 +12,7 @@
 
 
 
-#include "util/imports.h"
+
 #include "main/image.h"
 #include "main/macros.h"
 #include "main/teximage.h"

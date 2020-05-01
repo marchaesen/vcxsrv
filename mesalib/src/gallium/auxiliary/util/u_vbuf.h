@@ -62,7 +62,8 @@ struct u_vbuf_caps {
 };
 
 
-void u_vbuf_get_caps(struct pipe_screen *screen, struct u_vbuf_caps *caps);
+void u_vbuf_get_caps(struct pipe_screen *screen, struct u_vbuf_caps *caps,
+                     bool needs64b);
 
 struct u_vbuf *
 u_vbuf_create(struct pipe_context *pipe, struct u_vbuf_caps *caps);

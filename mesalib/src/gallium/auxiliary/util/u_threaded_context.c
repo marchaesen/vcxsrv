@@ -108,6 +108,7 @@ tc_batch_flush(struct threaded_context *tc)
    tc_assert(next->num_total_call_slots != 0);
    tc_batch_check(next);
    tc_debug_check(tc);
+   tc->bytes_mapped_estimate = 0;
    p_atomic_add(&tc->num_offloaded_slots, next->num_total_call_slots);
 
    if (next->token) {
@@ -204,6 +205,7 @@ _tc_sync(struct threaded_context *tc, UNUSED const char *info, UNUSED const char
    /* .. and execute unflushed calls directly. */
    if (next->num_total_call_slots) {
       p_atomic_add(&tc->num_direct_slots, next->num_total_call_slots);
+      tc->bytes_mapped_estimate = 0;
       tc_batch_execute(next, 0);
       synced = true;
    }
@@ -1489,6 +1491,8 @@ tc_transfer_map(struct pipe_context *_pipe,
                       usage & PIPE_TRANSFER_DISCARD_RANGE ? "  discard_range" :
                       usage & PIPE_TRANSFER_READ ? "  read" : "  ??");
 
+   tc->bytes_mapped_estimate += box->width;
+
    return pipe->transfer_map(pipe, tres->latest ? tres->latest : resource,
                              level, usage, box, transfer);
 }
@@ -1585,6 +1589,10 @@ tc_call_transfer_unmap(struct pipe_context *pipe, union tc_payload *payload)
 }
 
 static void
+tc_flush(struct pipe_context *_pipe, struct pipe_fence_handle **fence,
+         unsigned flags);
+
+static void
 tc_transfer_unmap(struct pipe_context *_pipe, struct pipe_transfer *transfer)
 {
    struct threaded_context *tc = threaded_context(_pipe);
@@ -1606,6 +1614,16 @@ tc_transfer_unmap(struct pipe_context *_pipe, struct pipe_transfer *transfer)
    }
 
    tc_add_small_call(tc, TC_CALL_transfer_unmap)->transfer = transfer;
+
+   /* tc_transfer_map directly maps the buffers, but tc_transfer_unmap
+    * defers the unmap operation to the batch execution.
+    * bytes_mapped_estimate is an estimation of the map/unmap bytes delta
+    * and if it goes over an optional limit the current batch is flushed,
+    * to reclaim some RAM. */
+   if (!ttrans->staging && tc->bytes_mapped_limit &&
+       tc->bytes_mapped_estimate > tc->bytes_mapped_limit) {
+      tc_flush(_pipe, NULL, PIPE_FLUSH_ASYNC);
+   }
 }
 
 struct tc_buffer_subdata {
@@ -2325,20 +2343,22 @@ tc_invalidate_resource(struct pipe_context *_pipe,
 
 struct tc_clear {
    unsigned buffers;
+   struct pipe_scissor_state scissor_state;
    union pipe_color_union color;
    double depth;
    unsigned stencil;
+   bool scissor_state_set;
 };
 
 static void
 tc_call_clear(struct pipe_context *pipe, union tc_payload *payload)
 {
    struct tc_clear *p = (struct tc_clear *)payload;
-   pipe->clear(pipe, p->buffers, &p->color, p->depth, p->stencil);
+   pipe->clear(pipe, p->buffers, p->scissor_state_set ? &p->scissor_state : NULL, &p->color, p->depth, p->stencil);
 }
 
 static void
-tc_clear(struct pipe_context *_pipe, unsigned buffers,
+tc_clear(struct pipe_context *_pipe, unsigned buffers, const struct pipe_scissor_state *scissor_state,
          const union pipe_color_union *color, double depth,
          unsigned stencil)
 {
@@ -2346,6 +2366,9 @@ tc_clear(struct pipe_context *_pipe, unsigned buffers,
    struct tc_clear *p = tc_add_struct_typed_call(tc, TC_CALL_clear, tc_clear);
 
    p->buffers = buffers;
+   if (scissor_state)
+      p->scissor_state = *scissor_state;
+   p->scissor_state_set = !!scissor_state;
    p->color = *color;
    p->depth = depth;
    p->stencil = stencil;

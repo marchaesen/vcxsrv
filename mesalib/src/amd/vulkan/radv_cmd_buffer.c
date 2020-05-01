@@ -700,8 +700,8 @@ radv_convert_user_sample_locs(struct radv_sample_locations_state *state,
 		float shifted_pos_x = user_locs[i].x - 0.5;
 		float shifted_pos_y = user_locs[i].y - 0.5;
 
-		int32_t scaled_pos_x = floor(shifted_pos_x * 16);
-		int32_t scaled_pos_y = floor(shifted_pos_y * 16);
+		int32_t scaled_pos_x = floorf(shifted_pos_x * 16);
+		int32_t scaled_pos_y = floorf(shifted_pos_y * 16);
 
 		sample_locs[i].x = CLAMP(scaled_pos_x, -8, 7);
 		sample_locs[i].y = CLAMP(scaled_pos_y, -8, 7);
@@ -3453,19 +3453,22 @@ void radv_CmdBindVertexBuffers(
 
 	assert(firstBinding + bindingCount <= MAX_VBS);
 	for (uint32_t i = 0; i < bindingCount; i++) {
+		RADV_FROM_HANDLE(radv_buffer, buffer, pBuffers[i]);
 		uint32_t idx = firstBinding + i;
 
 		if (!changed &&
-		    (vb[idx].buffer != radv_buffer_from_handle(pBuffers[i]) ||
+		    (vb[idx].buffer != buffer ||
 		     vb[idx].offset != pOffsets[i])) {
 			changed = true;
 		}
 
-		vb[idx].buffer = radv_buffer_from_handle(pBuffers[i]);
+		vb[idx].buffer = buffer;
 		vb[idx].offset = pOffsets[i];
 
-		radv_cs_add_buffer(cmd_buffer->device->ws, cmd_buffer->cs,
-				   vb[idx].buffer->bo);
+		if (buffer) {
+			radv_cs_add_buffer(cmd_buffer->device->ws,
+					   cmd_buffer->cs, vb[idx].buffer->bo);
+		}
 	}
 
 	if (!changed) {
@@ -3870,9 +3873,7 @@ void radv_CmdBindPipeline(
 		/* Prefetch all pipeline shaders at first draw time. */
 		cmd_buffer->state.prefetch_L2_mask |= RADV_PREFETCH_SHADERS;
 
-		if ((cmd_buffer->device->physical_device->rad_info.family == CHIP_NAVI10 ||
-		     cmd_buffer->device->physical_device->rad_info.family == CHIP_NAVI12 ||
-		     cmd_buffer->device->physical_device->rad_info.family == CHIP_NAVI14) &&
+		if (cmd_buffer->device->physical_device->rad_info.chip_class == GFX10 &&
 		    cmd_buffer->state.emitted_pipeline &&
 		    radv_pipeline_has_ngg(cmd_buffer->state.emitted_pipeline) &&
 		    !radv_pipeline_has_ngg(cmd_buffer->state.pipeline)) {

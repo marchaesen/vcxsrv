@@ -49,6 +49,7 @@
 #include "macros.h"
 #include "u_memory.h"
 #include "fast_urem_by_const.h"
+#include "util/u_memory.h"
 
 #define XXH_INLINE_ALL
 #include "xxhash.h"

@@ -48,17 +48,24 @@ struct gcm_block_info {
    nir_instr *last_instr;
 };
 
+struct gcm_instr_info {
+   nir_block *early_block;
+};
+
 /* Flags used in the instr->pass_flags field for various instruction states */
 enum {
-   GCM_INSTR_PINNED =            (1 << 0),
-   GCM_INSTR_SCHEDULED_EARLY =   (1 << 1),
-   GCM_INSTR_SCHEDULED_LATE =    (1 << 2),
-   GCM_INSTR_PLACED =            (1 << 3),
+   GCM_INSTR_PINNED =                (1 << 0),
+   GCM_INSTR_SCHEDULE_EARLIER_ONLY = (1 << 1),
+   GCM_INSTR_SCHEDULED_EARLY =       (1 << 2),
+   GCM_INSTR_SCHEDULED_LATE =        (1 << 3),
+   GCM_INSTR_PLACED =                (1 << 4),
 };
 
 struct gcm_state {
    nir_function_impl *impl;
    nir_instr *instr;
+
+   bool progress;
 
    /* The list of non-pinned instructions.  As we do the late scheduling,
     * we pull non-pinned instructions out of their blocks and place them in
@@ -68,6 +75,9 @@ struct gcm_state {
    struct exec_list instrs;
 
    struct gcm_block_info *blocks;
+
+   unsigned num_instrs;
+   struct gcm_instr_info *instr_infos;
 };
 
 /* Recursively walks the CFG and builds the block_info structure */
@@ -99,85 +109,154 @@ gcm_build_block_info(struct exec_list *cf_list, struct gcm_state *state,
    }
 }
 
+static bool
+is_src_scalarizable(nir_src *src)
+{
+   assert(src->is_ssa);
+
+   nir_instr *src_instr = src->ssa->parent_instr;
+   switch (src_instr->type) {
+   case nir_instr_type_alu: {
+      nir_alu_instr *src_alu = nir_instr_as_alu(src_instr);
+
+      /* ALU operations with output_size == 0 should be scalarized.  We
+       * will also see a bunch of vecN operations from scalarizing ALU
+       * operations and, since they can easily be copy-propagated, they
+       * are ok too.
+       */
+      return nir_op_infos[src_alu->op].output_size == 0 ||
+             src_alu->op == nir_op_vec2 ||
+             src_alu->op == nir_op_vec3 ||
+             src_alu->op == nir_op_vec4;
+   }
+
+   case nir_instr_type_load_const:
+      /* These are trivially scalarizable */
+      return true;
+
+   case nir_instr_type_ssa_undef:
+      return true;
+
+   case nir_instr_type_intrinsic: {
+      nir_intrinsic_instr *src_intrin = nir_instr_as_intrinsic(src_instr);
+
+      switch (src_intrin->intrinsic) {
+      case nir_intrinsic_load_deref: {
+         nir_deref_instr *deref = nir_src_as_deref(src_intrin->src[0]);
+         return deref->mode == nir_var_shader_in ||
+                deref->mode == nir_var_uniform ||
+                deref->mode == nir_var_mem_ubo ||
+                deref->mode == nir_var_mem_ssbo ||
+                deref->mode == nir_var_mem_global;
+      }
+
+      case nir_intrinsic_interp_deref_at_centroid:
+      case nir_intrinsic_interp_deref_at_sample:
+      case nir_intrinsic_interp_deref_at_offset:
+      case nir_intrinsic_load_uniform:
+      case nir_intrinsic_load_ubo:
+      case nir_intrinsic_load_ssbo:
+      case nir_intrinsic_load_global:
+      case nir_intrinsic_load_input:
+         return true;
+      default:
+         break;
+      }
+   }
+
+   default:
+      /* We can't scalarize this type of instruction */
+      return false;
+   }
+}
+
 /* Walks the instruction list and marks immovable instructions as pinned
  *
  * This function also serves to initialize the instr->pass_flags field.
  * After this is completed, all instructions' pass_flags fields will be set
  * to either GCM_INSTR_PINNED or 0.
  */
-static bool
-gcm_pin_instructions_block(nir_block *block, struct gcm_state *state)
+static void
+gcm_pin_instructions(nir_function_impl *impl, struct gcm_state *state)
 {
-   nir_foreach_instr_safe(instr, block) {
-      switch (instr->type) {
-      case nir_instr_type_alu:
-         switch (nir_instr_as_alu(instr)->op) {
-         case nir_op_fddx:
-         case nir_op_fddy:
-         case nir_op_fddx_fine:
-         case nir_op_fddy_fine:
-         case nir_op_fddx_coarse:
-         case nir_op_fddy_coarse:
-            /* These can only go in uniform control flow; pin them for now */
+   state->num_instrs = 0;
+
+   nir_foreach_block(block, impl) {
+      nir_foreach_instr_safe(instr, block) {
+         /* Index the instructions for use in gcm_state::instrs */
+         instr->index = state->num_instrs++;
+
+         switch (instr->type) {
+         case nir_instr_type_alu:
+            switch (nir_instr_as_alu(instr)->op) {
+            case nir_op_fddx:
+            case nir_op_fddy:
+            case nir_op_fddx_fine:
+            case nir_op_fddy_fine:
+            case nir_op_fddx_coarse:
+            case nir_op_fddy_coarse:
+               /* These can only go in uniform control flow */
+               instr->pass_flags = GCM_INSTR_SCHEDULE_EARLIER_ONLY;
+               break;
+
+         case nir_op_mov:
+            if (!is_src_scalarizable(&(nir_instr_as_alu(instr)->src[0].src))) {
+               instr->pass_flags = GCM_INSTR_PINNED;
+               break;
+            }
+
+            default:
+               instr->pass_flags = 0;
+               break;
+            }
+            break;
+
+         case nir_instr_type_tex:
+            if (nir_tex_instr_has_implicit_derivative(nir_instr_as_tex(instr)))
+               instr->pass_flags = GCM_INSTR_SCHEDULE_EARLIER_ONLY;
+            break;
+
+         case nir_instr_type_deref:
+         case nir_instr_type_load_const:
+            instr->pass_flags = 0;
+            break;
+
+         case nir_instr_type_intrinsic: {
+            if (nir_intrinsic_can_reorder(nir_instr_as_intrinsic(instr))) {
+               instr->pass_flags = 0;
+            } else {
+               instr->pass_flags = GCM_INSTR_PINNED;
+            }
+            break;
+         }
+
+         case nir_instr_type_jump:
+         case nir_instr_type_ssa_undef:
+         case nir_instr_type_phi:
             instr->pass_flags = GCM_INSTR_PINNED;
             break;
 
          default:
-            instr->pass_flags = 0;
-            break;
+            unreachable("Invalid instruction type in GCM");
          }
-         break;
 
-      case nir_instr_type_deref:
-         instr->pass_flags = 0;
-         break;
-
-      case nir_instr_type_tex:
-         if (nir_tex_instr_has_implicit_derivative(nir_instr_as_tex(instr)))
-            instr->pass_flags = GCM_INSTR_PINNED;
-         break;
-
-      case nir_instr_type_load_const:
-         instr->pass_flags = 0;
-         break;
-
-      case nir_instr_type_intrinsic: {
-         if (nir_intrinsic_can_reorder(nir_instr_as_intrinsic(instr))) {
-            instr->pass_flags = 0;
-         } else {
-            instr->pass_flags = GCM_INSTR_PINNED;
+         if (!(instr->pass_flags & GCM_INSTR_PINNED)) {
+            /* If this is an unpinned instruction, go ahead and pull it out of
+             * the program and put it on the instrs list.  This has a couple
+             * of benifits.  First, it makes the scheduling algorithm more
+             * efficient because we can avoid walking over basic blocks and
+             * pinned instructions.  Second, it keeps us from causing linked
+             * list confusion when we're trying to put everything in its
+             * proper place at the end of the pass.
+             *
+             * Note that we don't use nir_instr_remove here because that also
+             * cleans up uses and defs and we want to keep that information.
+             */
+            exec_node_remove(&instr->node);
+            exec_list_push_tail(&state->instrs, &instr->node);
          }
-         break;
-      }
-
-      case nir_instr_type_jump:
-      case nir_instr_type_ssa_undef:
-      case nir_instr_type_phi:
-         instr->pass_flags = GCM_INSTR_PINNED;
-         break;
-
-      default:
-         unreachable("Invalid instruction type in GCM");
-      }
-
-      if (!(instr->pass_flags & GCM_INSTR_PINNED)) {
-         /* If this is an unpinned instruction, go ahead and pull it out of
-          * the program and put it on the instrs list.  This has a couple
-          * of benifits.  First, it makes the scheduling algorithm more
-          * efficient because we can avoid walking over basic blocks and
-          * pinned instructions.  Second, it keeps us from causing linked
-          * list confusion when we're trying to put everything in its
-          * proper place at the end of the pass.
-          *
-          * Note that we don't use nir_instr_remove here because that also
-          * cleans up uses and defs and we want to keep that information.
-          */
-         exec_node_remove(&instr->node);
-         exec_list_push_tail(&state->instrs, &instr->node);
       }
    }
-
-   return true;
 }
 
 static void
@@ -207,8 +286,11 @@ gcm_schedule_early_src(nir_src *src, void *void_state)
     * all of the sources must lie on the same branch of the dominance tree.
     * Therefore, we can just go ahead and just compare indices.
     */
-   if (instr->block->index < src->ssa->parent_instr->block->index)
-      instr->block = src->ssa->parent_instr->block;
+   struct gcm_instr_info *src_info =
+      &state->instr_infos[src->ssa->parent_instr->index];
+   struct gcm_instr_info *info = &state->instr_infos[instr->index];
+   if (info->early_block->index < src_info->early_block->index)
+      info->early_block = src_info->early_block;
 
    /* We need to restore the state instruction because it may have been
     * changed through the gcm_schedule_early_instr call above.  Since we
@@ -225,7 +307,8 @@ gcm_schedule_early_src(nir_src *src, void *void_state)
  * This function performs a recursive depth-first search starting at the
  * given instruction and proceeding through the sources to schedule
  * instructions as early as they can possibly go in the dominance tree.
- * The instructions are "scheduled" by updating their instr->block field.
+ * The instructions are "scheduled" by updating the early_block field of
+ * the corresponding gcm_instr_state entry.
  */
 static void
 gcm_schedule_early_instr(nir_instr *instr, struct gcm_state *state)
@@ -235,20 +318,57 @@ gcm_schedule_early_instr(nir_instr *instr, struct gcm_state *state)
 
    instr->pass_flags |= GCM_INSTR_SCHEDULED_EARLY;
 
-   /* Pinned instructions are already scheduled so we don't need to do
-    * anything.  Also, bailing here keeps us from ever following the
-    * sources of phi nodes which can be back-edges.
+   /* Pinned instructions always get scheduled in their original block so we
+    * don't need to do anything.  Also, bailing here keeps us from ever
+    * following the sources of phi nodes which can be back-edges.
     */
-   if (instr->pass_flags & GCM_INSTR_PINNED)
+   if (instr->pass_flags & GCM_INSTR_PINNED) {
+      state->instr_infos[instr->index].early_block = instr->block;
       return;
+   }
 
    /* Start with the instruction at the top.  As we iterate over the
     * sources, it will get moved down as needed.
     */
-   instr->block = nir_start_block(state->impl);
+   state->instr_infos[instr->index].early_block = nir_start_block(state->impl);
    state->instr = instr;
 
    nir_foreach_src(instr, gcm_schedule_early_src, state);
+}
+
+static nir_block *
+gcm_choose_block_for_instr(nir_instr *instr, nir_block *early_block,
+                           nir_block *late_block, struct gcm_state *state)
+{
+   assert(nir_block_dominates(early_block, late_block));
+
+   nir_block *best = late_block;
+   for (nir_block *block = late_block; block != NULL; block = block->imm_dom) {
+      /* Being too aggressive with how we pull instructions out of loops can
+       * result in extra register pressure and spilling. For example its fairly
+       * common for loops in compute shaders to calculate SSBO offsets using
+       * the workgroup id, subgroup id and subgroup invocation, pulling all
+       * these calculations outside the loop causes register pressure.
+       *
+       * To work around these issues for now we only allow constant and texture
+       * instructions to be moved outside their original loops.
+       *
+       * TODO: figure out some heuristics to allow more to be moved out of loops.
+       */
+      if (state->blocks[block->index].loop_depth <
+          state->blocks[best->index].loop_depth &&
+          (nir_block_dominates(instr->block, block) ||
+           instr->type == nir_instr_type_load_const ||
+           instr->type == nir_instr_type_tex))
+         best = block;
+      else if (block == instr->block)
+         best = block;
+
+      if (block == early_block)
+         break;
+   }
+
+   return best;
 }
 
 static void
@@ -304,27 +424,35 @@ gcm_schedule_late_def(nir_ssa_def *def, void *void_state)
       lca = nir_dominance_lca(lca, pred_block);
    }
 
-   /* Some instructions may never be used.  We'll just leave them scheduled
-    * early and let dead code clean them up.
+   nir_block *early_block =
+      state->instr_infos[def->parent_instr->index].early_block;
+
+   /* Some instructions may never be used.  Flag them and the instruction
+    * placement code will get rid of them for us.
     */
-   if (lca == NULL)
+   if (lca == NULL) {
+      def->parent_instr->block = NULL;
       return true;
+   }
+
+   if (def->parent_instr->pass_flags & GCM_INSTR_SCHEDULE_EARLIER_ONLY &&
+       lca != def->parent_instr->block &&
+       nir_block_dominates(def->parent_instr->block, lca)) {
+      lca = def->parent_instr->block;
+   }
 
    /* We now have the LCA of all of the uses.  If our invariants hold,
     * this is dominated by the block that we chose when scheduling early.
     * We now walk up the dominance tree and pick the lowest block that is
     * as far outside loops as we can get.
     */
-   nir_block *best = lca;
-   for (nir_block *block = lca; block != NULL; block = block->imm_dom) {
-      if (state->blocks[block->index].loop_depth <
-          state->blocks[best->index].loop_depth)
-         best = block;
+   nir_block *best_block =
+      gcm_choose_block_for_instr(def->parent_instr, early_block, lca, state);
 
-      if (block == def->parent_instr->block)
-         break;
-   }
-   def->parent_instr->block = best;
+   if (def->parent_instr->block != best_block)
+      state->progress = true;
+
+   def->parent_instr->block = best_block;
 
    return true;
 }
@@ -372,6 +500,23 @@ gcm_place_instr_def(nir_ssa_def *def, void *state)
    return false;
 }
 
+static bool
+gcm_replace_def_with_undef(nir_ssa_def *def, void *void_state)
+{
+   struct gcm_state *state = void_state;
+
+   if (list_is_empty(&def->uses) && list_is_empty(&def->if_uses))
+      return true;
+
+   nir_ssa_undef_instr *undef =
+      nir_ssa_undef_instr_create(state->impl->function->shader,
+                                 def->num_components, def->bit_size);
+   nir_instr_insert(nir_before_cf_list(&state->impl->body), &undef->instr);
+   nir_ssa_def_rewrite_uses(def, nir_src_for_ssa(&undef->def));
+
+   return true;
+}
+
 /** Places an instrution back into the program
  *
  * The earlier passes of GCM simply choose blocks for each instruction and
@@ -394,6 +539,12 @@ gcm_place_instr(nir_instr *instr, struct gcm_state *state)
       return;
 
    instr->pass_flags |= GCM_INSTR_PLACED;
+
+   if (instr->block == NULL) {
+      nir_foreach_ssa_def(instr, gcm_replace_def_with_undef, state);
+      nir_instr_remove(instr);
+      return;
+   }
 
    /* Phi nodes are our once source of back-edges.  Since right now we are
     * only doing scheduling within blocks, we don't need to worry about
@@ -453,22 +604,23 @@ opt_gcm_impl(nir_function_impl *impl, bool value_number)
 
    state.impl = impl;
    state.instr = NULL;
+   state.progress = false;
    exec_list_make_empty(&state.instrs);
    state.blocks = rzalloc_array(NULL, struct gcm_block_info, impl->num_blocks);
 
    gcm_build_block_info(&impl->body, &state, 0);
 
-   nir_foreach_block(block, impl) {
-      gcm_pin_instructions_block(block, &state);
-   }
+   gcm_pin_instructions(impl, &state);
 
-   bool progress = false;
+   state.instr_infos =
+      rzalloc_array(NULL, struct gcm_instr_info, state.num_instrs);
+
    if (value_number) {
       struct set *gvn_set = nir_instr_set_create(NULL);
       foreach_list_typed_safe(nir_instr, instr, node, &state.instrs) {
          if (nir_instr_set_add_or_rewrite(gvn_set, instr)) {
             nir_instr_remove(instr);
-            progress = true;
+            state.progress = true;
          }
       }
       nir_instr_set_destroy(gvn_set);
@@ -487,11 +639,12 @@ opt_gcm_impl(nir_function_impl *impl, bool value_number)
    }
 
    ralloc_free(state.blocks);
+   ralloc_free(state.instr_infos);
 
    nir_metadata_preserve(impl, nir_metadata_block_index |
                                nir_metadata_dominance);
 
-   return progress;
+   return state.progress;
 }
 
 bool

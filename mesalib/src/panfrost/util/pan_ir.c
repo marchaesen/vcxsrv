@@ -92,3 +92,32 @@ pan_block_add_successor(pan_block *block, pan_block *successor)
 
         unreachable("Too many successors");
 }
+
+/* Prints a NIR ALU type in Bifrost-style ".f32" ".i8" etc */
+
+void
+pan_print_alu_type(nir_alu_type t, FILE *fp)
+{
+        unsigned size = nir_alu_type_get_type_size(t);
+        nir_alu_type base = nir_alu_type_get_base_type(t);
+
+        switch (base) {
+        case nir_type_int:
+                fprintf(fp, ".i");
+                break;
+        case nir_type_uint:
+                fprintf(fp, ".u");
+                break;
+        case nir_type_bool:
+                fprintf(fp, ".b");
+                break;
+        case nir_type_float:
+                fprintf(fp, ".f");
+                break;
+        default:
+                fprintf(fp, ".unknown");
+                break;
+        }
+
+        fprintf(fp, "%u", size);
+}

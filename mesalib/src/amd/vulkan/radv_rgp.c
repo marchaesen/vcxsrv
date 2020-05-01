@@ -27,7 +27,7 @@
 
 #include "util/u_process.h"
 
-#include <amdgpu_drm.h>
+#include "drm-uapi/amdgpu_drm.h"
 
 #define SQTT_FILE_MAGIC_NUMBER 0x50303042
 #define SQTT_FILE_VERSION_MAJOR 1

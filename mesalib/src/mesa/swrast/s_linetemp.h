@@ -101,7 +101,7 @@ NAME( struct gl_context *ctx, const SWvertex *vert0, const SWvertex *vert1 )
    {
       GLfloat tmp = vert0->attrib[VARYING_SLOT_POS][0] + vert0->attrib[VARYING_SLOT_POS][1]
                   + vert1->attrib[VARYING_SLOT_POS][0] + vert1->attrib[VARYING_SLOT_POS][1];
-      if (IS_INF_OR_NAN(tmp))
+      if (util_is_inf_or_nan(tmp))
 	 return;
    }
 

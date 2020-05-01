@@ -211,9 +211,9 @@ cs_const_emit(struct fd_ringbuffer *ring, struct kernel *kernel, uint32_t grid[3
 	uint32_t base = const_state->offsets.immediate;
 	int size = const_state->immediates_count;
 
-	if (ir3_kernel->numwg != INVALID_REG) {
-		assert((ir3_kernel->numwg & 0x3) == 0);
-		int idx = ir3_kernel->numwg >> 2;
+	if (ir3_kernel->info.numwg != INVALID_REG) {
+		assert((ir3_kernel->info.numwg & 0x3) == 0);
+		int idx = ir3_kernel->info.numwg >> 2;
 		const_state->immediates[idx].val[0] = grid[0];
 		const_state->immediates[idx].val[1] = grid[1];
 		const_state->immediates[idx].val[2] = grid[2];

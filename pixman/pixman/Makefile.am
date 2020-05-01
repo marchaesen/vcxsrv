@@ -12,6 +12,7 @@ noinst_LTLIBRARIES =
 
 EXTRA_DIST =				\
 	Makefile.win32			\
+	dither/make-blue-noise.c	\
 	pixman-region.c			\
 	solaris-hwcap.mapfile		\
 	meson.build			\

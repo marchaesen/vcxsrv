@@ -32,7 +32,9 @@ get_ubo_load_range(nir_intrinsic_instr *instr)
 {
 	struct ir3_ubo_range r;
 
-	const int offset = nir_src_as_uint(instr->src[1]);
+	int offset = nir_src_as_uint(instr->src[1]);
+	if (instr->intrinsic == nir_intrinsic_load_ubo_ir3)
+		offset *= 16;
 	const int bytes = nir_intrinsic_dest_components(instr) * 4;
 
 	r.start = ROUND_DOWN_TO(offset, 16 * 4);
@@ -213,19 +215,29 @@ lower_ubo_load_to_uniform(nir_intrinsic_instr *instr, nir_builder *b,
 	handle_partial_const(b, &ubo_offset, &const_offset);
 
 	/* UBO offset is in bytes, but uniform offset is in units of
-	 * dwords, so we need to divide by 4 (right-shift by 2).  And
+	 * dwords, so we need to divide by 4 (right-shift by 2). For ldc the
+	 * offset is in units of 16 bytes, so we need to multiply by 4. And
 	 * also the same for the constant part of the offset:
 	 */
-	nir_ssa_def *new_offset = ir3_nir_try_propagate_bit_shift(b, ubo_offset, -2);
+
+	const int shift = instr->intrinsic == nir_intrinsic_load_ubo_ir3 ? 2 : -2;
+	nir_ssa_def *new_offset = ir3_nir_try_propagate_bit_shift(b, ubo_offset, shift);
 	nir_ssa_def *uniform_offset = NULL;
 	if (new_offset) {
 		uniform_offset = new_offset;
 	} else {
-		uniform_offset = nir_ushr(b, ubo_offset, nir_imm_int(b, 2));
+		uniform_offset = shift > 0 ?
+			nir_ishl(b, ubo_offset, nir_imm_int(b,  shift)) :
+			nir_ushr(b, ubo_offset, nir_imm_int(b, -shift));
 	}
 
-	debug_assert(!(const_offset & 0x3));
-	const_offset >>= 2;
+	if (instr->intrinsic == nir_intrinsic_load_ubo_ir3) {
+		const_offset <<= 2;
+		const_offset += nir_intrinsic_base(instr);
+	} else {
+		debug_assert(!(const_offset & 0x3));
+		const_offset >>= 2;
+	}
 
 	const int range_offset = (range->offset - range->start) / 4;
 	const_offset += range_offset;
@@ -247,6 +259,16 @@ lower_ubo_load_to_uniform(nir_intrinsic_instr *instr, nir_builder *b,
 	state->lower_count++;
 }
 
+static bool
+instr_is_load_ubo(nir_instr *instr)
+{
+	if (instr->type != nir_instr_type_intrinsic)
+		return false;
+
+	nir_intrinsic_op op = nir_instr_as_intrinsic(instr)->intrinsic;
+	return op == nir_intrinsic_load_ubo || op == nir_intrinsic_load_ubo_ir3;
+}
+
 bool
 ir3_nir_analyze_ubo_ranges(nir_shader *nir, struct ir3_shader *shader)
 {
@@ -261,8 +283,7 @@ ir3_nir_analyze_ubo_ranges(nir_shader *nir, struct ir3_shader *shader)
 		if (function->impl) {
 			nir_foreach_block (block, function->impl) {
 				nir_foreach_instr (instr, block) {
-					if (instr->type == nir_instr_type_intrinsic &&
-						nir_instr_as_intrinsic(instr)->intrinsic == nir_intrinsic_load_ubo)
+					if (instr_is_load_ubo(instr))
 						gather_ubo_ranges(nir, nir_instr_as_intrinsic(instr), state);
 				}
 			}
@@ -305,8 +326,7 @@ ir3_nir_analyze_ubo_ranges(nir_shader *nir, struct ir3_shader *shader)
 			nir_builder_init(&builder, function->impl);
 			nir_foreach_block (block, function->impl) {
 				nir_foreach_instr_safe (instr, block) {
-					if (instr->type == nir_instr_type_intrinsic &&
-						nir_instr_as_intrinsic(instr)->intrinsic == nir_intrinsic_load_ubo)
+					if (instr_is_load_ubo(instr))
 						lower_ubo_load_to_uniform(nir_instr_as_intrinsic(instr), &builder, state);
 				}
 			}

@@ -23,7 +23,7 @@
  */
 
 #include "glheader.h"
-#include "util/imports.h"
+
 #include "blend.h"
 #include "bufferobj.h"
 #include "context.h"

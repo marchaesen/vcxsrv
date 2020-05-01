@@ -34,7 +34,7 @@
 #include "glheader.h"
 #include "context.h"
 #include "mtypes.h"
-#include "util/imports.h"
+
 #include "pixelstore.h"
 #include "texcompress_cpal.h"
 #include "teximage.h"

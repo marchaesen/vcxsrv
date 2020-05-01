@@ -38,6 +38,7 @@
 #include "main/mtypes.h"
 #include "main/samplerobj.h"
 #include "main/texturebindless.h"
+#include "util/u_memory.h"
 
 
 struct gl_sampler_object *
@@ -242,7 +243,7 @@ delete_samplers(struct gl_context *ctx, GLsizei count, const GLuint *samplers)
          GLuint j;
          struct gl_sampler_object *sampObj =
             lookup_samplerobj_locked(ctx, samplers[i]);
-   
+
          if (sampObj) {
             /* If the sampler is currently bound, unbind it. */
             for (j = 0; j < ctx->Const.MaxCombinedTextureImageUnits; j++) {
@@ -326,7 +327,7 @@ bind_sampler(struct gl_context *ctx, GLuint unit, GLuint sampler, bool no_error)
          return;
       }
    }
-   
+
    /* bind new sampler */
    _mesa_bind_sampler(ctx, unit, sampObj);
 }
@@ -472,7 +473,7 @@ _mesa_BindSamplers(GLuint first, GLsizei count, const GLuint *samplers)
  * Check if a coordinate wrap mode is legal.
  * \return GL_TRUE if legal, GL_FALSE otherwise
  */
-static GLboolean 
+static GLboolean
 validate_texture_wrap_mode(struct gl_context *ctx, GLenum wrap)
 {
    const struct gl_extensions * const e = &ctx->Extensions;
@@ -1421,19 +1422,19 @@ _mesa_GetSamplerParameteriv(GLuint sampler, GLenum pname, GLint *params)
       /* GL spec 'Data Conversions' section specifies that floating-point
        * value in integer Get function is rounded to nearest integer
        */
-      *params = IROUND(sampObj->MinLod);
+      *params = lroundf(sampObj->MinLod);
       break;
    case GL_TEXTURE_MAX_LOD:
       /* GL spec 'Data Conversions' section specifies that floating-point
        * value in integer Get function is rounded to nearest integer
        */
-      *params = IROUND(sampObj->MaxLod);
+      *params = lroundf(sampObj->MaxLod);
       break;
    case GL_TEXTURE_LOD_BIAS:
       /* GL spec 'Data Conversions' section specifies that floating-point
        * value in integer Get function is rounded to nearest integer
        */
-      *params = IROUND(sampObj->LodBias);
+      *params = lroundf(sampObj->LodBias);
       break;
    case GL_TEXTURE_COMPARE_MODE:
       *params = sampObj->CompareMode;
@@ -1445,7 +1446,7 @@ _mesa_GetSamplerParameteriv(GLuint sampler, GLenum pname, GLint *params)
       /* GL spec 'Data Conversions' section specifies that floating-point
        * value in integer Get function is rounded to nearest integer
        */
-      *params = IROUND(sampObj->MaxAnisotropy);
+      *params = lroundf(sampObj->MaxAnisotropy);
       break;
    case GL_TEXTURE_BORDER_COLOR:
       params[0] = FLOAT_TO_INT(sampObj->BorderColor.f[0]);

@@ -191,6 +191,9 @@ typedef struct shader_info {
    /* Whether the shader writes memory, including transform feedback. */
    bool writes_memory:1;
 
+   /* Whether gl_Layer is viewport-relative */
+   bool layer_viewport_relative:1;
+
    union {
       struct {
          /* Which inputs are doubles */

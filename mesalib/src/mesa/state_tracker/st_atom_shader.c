@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2003 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 /**
@@ -35,7 +35,7 @@
  *   Brian Paul
  */
 
-#include "util/imports.h"
+
 #include "main/mtypes.h"
 #include "main/framebuffer.h"
 #include "main/state.h"
@@ -133,7 +133,7 @@ st_update_fp( struct st_context *st )
       key.lower_two_sided_color = st->lower_two_sided_color &&
          _mesa_vertex_program_two_side_enabled(st->ctx);
 
-      /* _NEW_FRAG_CLAMP */
+      /* gl_driver_flags::NewFragClamp */
       key.clamp_color = st->clamp_frag_color_in_shader &&
                         st->ctx->Color._ClampFragmentColor;
 
@@ -187,7 +187,8 @@ st_update_vp( struct st_context *st )
 
    if (st->shader_has_one_variant[MESA_SHADER_VERTEX] &&
        stvp->variants &&
-       st_common_variant(stvp->variants)->key.passthrough_edgeflags == st->vertdata_edgeflags) {
+       st_common_variant(stvp->variants)->key.passthrough_edgeflags == st->vertdata_edgeflags &&
+       !st_common_variant(stvp->variants)->key.is_draw_shader) {
       st->vp_variant = st_common_variant(stvp->variants);
    } else {
       struct st_common_variant_key key;
@@ -235,7 +236,7 @@ st_update_vp( struct st_context *st )
 
    st_reference_prog(st, &st->vp, stvp);
 
-   cso_set_vertex_shader_handle(st->cso_context, 
+   cso_set_vertex_shader_handle(st->cso_context,
                                 st->vp_variant->base.driver_shader);
 }
 

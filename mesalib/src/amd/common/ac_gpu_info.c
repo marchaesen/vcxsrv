@@ -33,7 +33,7 @@
 #include <stdio.h>
 
 #include <xf86drm.h>
-#include <amdgpu_drm.h>
+#include "drm-uapi/amdgpu_drm.h"
 
 #include <amdgpu.h>
 
@@ -588,6 +588,7 @@ bool ac_query_gpu_info(int fd, void *dev_p,
 			        info->family == CHIP_RENOIR);
 
 	info->has_out_of_order_rast = info->chip_class >= GFX8 &&
+				      info->chip_class <= GFX9 &&
 				      info->max_se >= 2;
 
 	/* Whether chips support double rate packed math instructions. */
@@ -658,10 +659,13 @@ bool ac_query_gpu_info(int fd, void *dev_p,
 	assert(ib_align);
 	info->ib_start_alignment = ib_align;
 
-	if (info->drm_minor >= 31 &&
-	    (info->family == CHIP_RAVEN ||
-	     info->family == CHIP_RAVEN2 ||
-	     info->family == CHIP_RENOIR)) {
+        if ((info->drm_minor >= 31 &&
+             (info->family == CHIP_RAVEN ||
+              info->family == CHIP_RAVEN2 ||
+              info->family == CHIP_RENOIR)) ||
+            (info->drm_minor >= 34 &&
+             (info->family == CHIP_NAVI12 ||
+              info->family == CHIP_NAVI14))) {
 		if (info->num_render_backends == 1)
 			info->use_display_dcc_unaligned = true;
 		else

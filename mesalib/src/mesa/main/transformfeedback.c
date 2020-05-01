@@ -43,6 +43,8 @@
 #include "program/program.h"
 #include "program/prog_parameter.h"
 
+#include "util/u_memory.h"
+
 struct using_program_tuple
 {
    struct gl_program *prog;

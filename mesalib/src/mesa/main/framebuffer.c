@@ -31,7 +31,7 @@
 
 #include <stdio.h>
 #include "glheader.h"
-#include "util/imports.h"
+
 #include "blend.h"
 #include "buffers.h"
 #include "context.h"
@@ -45,6 +45,7 @@
 #include "texobj.h"
 #include "glformats.h"
 #include "state.h"
+#include "util/u_memory.h"
 
 
 

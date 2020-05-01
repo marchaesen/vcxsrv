@@ -22,9 +22,9 @@
  */
 
 #include "ir3/ir3_compiler.h"
+#include "ir3/ir3_parser.h"
 
 #include "ir3_asm.h"
-#include "ir3_parser.h"
 
 struct ir3_kernel *
 ir3_asm_assemble(struct ir3_compiler *c, FILE *in)
@@ -41,13 +41,17 @@ ir3_asm_assemble(struct ir3_compiler *c, FILE *in)
 
 	kernel->v = v;
 
-	kernel->numwg = INVALID_REG;
+	kernel->info.numwg = INVALID_REG;
 
-	v->ir = ir3_parse(kernel, in);
+	v->ir = ir3_parse(v, &kernel->info, in);
 	if (!v->ir)
 		errx(-1, "parse failed");
 
 	ir3_debug_print(v->ir, "AFTER PARSING");
+
+	memcpy(kernel->base.local_size, kernel->info.local_size, sizeof(kernel->base.local_size));
+	kernel->base.num_bufs = kernel->info.num_bufs;
+	memcpy(kernel->base.buf_sizes, kernel->info.buf_sizes, sizeof(kernel->base.buf_sizes));
 
 	kernel->bin = ir3_shader_assemble(v, c->gpu_id);
 

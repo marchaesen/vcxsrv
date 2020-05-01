@@ -906,6 +906,7 @@ mir_schedule_alu(
                 sadd->has_inline_constant = true;
                 sadd->inline_constant = branch->constants.u32[0];
                 branch->src[1] = sadd->dest;
+                branch->src_types[1] = sadd->dest_type;
 
                 /* Mask off any conditionals. Could be optimized to just scalar
                  * conditionals TODO */
@@ -928,6 +929,7 @@ mir_schedule_alu(
                 if (!ctx->is_blend) {
                         vadd->alu.op = midgard_alu_op_iadd;
                         vadd->src[0] = SSA_FIXED_REGISTER(31);
+                        vadd->src_types[0] = nir_type_uint32;
 
                         for (unsigned c = 0; c < 16; ++c)
                                 vadd->swizzle[0][c] = COMPONENT_X;
@@ -936,6 +938,7 @@ mir_schedule_alu(
                         vadd->inline_constant = 0;
                 } else {
                         vadd->src[1] = SSA_FIXED_REGISTER(1);
+                        vadd->src_types[0] = nir_type_uint32;
 
                         for (unsigned c = 0; c < 16; ++c)
                                 vadd->swizzle[1][c] = COMPONENT_W;
@@ -944,6 +947,7 @@ mir_schedule_alu(
                 vadd->unit = UNIT_VADD;
                 vadd->mask = 0x1;
                 branch->src[2] = vadd->dest;
+                branch->src_types[2] = vadd->dest_type;
         }
 
         mir_choose_alu(&vadd, instructions, worklist, len, &predicate, UNIT_VADD);

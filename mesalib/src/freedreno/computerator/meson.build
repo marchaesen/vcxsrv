@@ -18,32 +18,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-ir3_parser = custom_target(
-  'ir3_parser.[ch]',
-  input: 'ir3_parser.y',
-  output: ['ir3_parser.c', 'ir3_parser.h'],
-  command: [
-    prog_bison, '@INPUT@', '--name-prefix=ir3_yy', '--defines=@OUTPUT1@', '--output=@OUTPUT0@'
-  ]
-)
-
-ir3_lexer = custom_target(
-  'ir3_lexer.c',
-  input: 'ir3_lexer.l',
-  output: 'ir3_lexer.c',
-  command: [
-    prog_flex, '-o', '@OUTPUT@', '@INPUT@'
-  ]
-)
-
 computerator_files = [
   'a6xx.c',
   'ir3_asm.c',
   'main.c',
   freedreno_xml_header_files,
-  ir3_parser[0],
-  ir3_parser[1],
-  ir3_lexer
 ]
 
 computerator = executable(

@@ -34,6 +34,7 @@
 #include "main/macros.h"
 #include "pipe/p_context.h"
 #include "pipe/p_screen.h"
+#include "util/u_memory.h"
 #include "st_context.h"
 #include "st_cb_syncobj.h"
 

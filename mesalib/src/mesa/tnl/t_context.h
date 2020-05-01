@@ -50,7 +50,7 @@
 #define _T_CONTEXT_H
 
 #include "main/glheader.h"
-#include "util/imports.h"
+
 #include "main/mtypes.h"
 
 #include "math/m_vector.h"
@@ -205,7 +205,7 @@ struct vertex_buffer
     * such as backface color or eye-space coordinates, they are stored
     * here.
     */
-   GLuint      *Elts;		                
+   GLuint      *Elts;
    GLvector4f  *EyePtr;		                /* _TNL_BIT_POS */
    GLvector4f  *ClipPtr;	                /* _TNL_BIT_POS */
    GLvector4f  *NdcPtr;                         /* _TNL_BIT_POS */
@@ -218,8 +218,8 @@ struct vertex_buffer
    GLvector4f  *BackfaceColorPtr;
    GLvector4f  *BackfaceSecondaryColorPtr;
 
-   const struct _mesa_prim  *Primitive;	              
-   GLuint      PrimitiveCount;	      
+   const struct _mesa_prim  *Primitive;
+   GLuint      PrimitiveCount;
 
    /* Inputs to the vertex program stage */
    GLvector4f *AttribPtr[_TNL_ATTRIB_MAX];
@@ -264,10 +264,10 @@ struct tnl_pipeline_stage
 
 
 /** Contains the array of all pipeline stages.
- * The default values are defined at the end of t_pipeline.c 
+ * The default values are defined at the end of t_pipeline.c
  */
 struct tnl_pipeline {
-   
+
    GLuint last_attrib_stride[_TNL_ATTRIB_MAX];
    GLuint last_attrib_size[_TNL_ATTRIB_MAX];
    GLuint input_changes;
@@ -280,16 +280,16 @@ struct tnl_pipeline {
 struct tnl_clipspace;
 struct tnl_clipspace_attr;
 
-typedef void (*tnl_extract_func)( const struct tnl_clipspace_attr *a, 
-				  GLfloat *out, 
+typedef void (*tnl_extract_func)( const struct tnl_clipspace_attr *a,
+				  GLfloat *out,
 				  const GLubyte *v );
 
-typedef void (*tnl_insert_func)( const struct tnl_clipspace_attr *a, 
-				 GLubyte *v, 
+typedef void (*tnl_insert_func)( const struct tnl_clipspace_attr *a,
+				 GLubyte *v,
 				 const GLfloat *in );
 
-typedef void (*tnl_emit_func)( struct gl_context *ctx, 
-			       GLuint count, 
+typedef void (*tnl_emit_func)( struct gl_context *ctx,
+			       GLuint count,
 			       GLubyte *dest );
 
 
@@ -357,7 +357,7 @@ struct tnl_clipspace_fastpath {
 struct tnl_clipspace
 {
    GLboolean need_extras;
-   
+
    GLuint new_inputs;
 
    GLubyte *vertex_buf;
@@ -374,13 +374,13 @@ struct tnl_clipspace
    /* Parameters and constants for codegen:
     */
    GLboolean need_viewport;
-   GLfloat vp_scale[4];		
+   GLfloat vp_scale[4];
    GLfloat vp_xlate[4];
    GLfloat chan_scale[4];
    GLfloat identity[4];
 
    struct tnl_clipspace_fastpath *fastpath;
-   
+
    void (*codegen_emit)( struct gl_context *ctx );
 };
 
@@ -408,7 +408,7 @@ struct tnl_device_driver
    void (*RunPipeline)(struct gl_context *ctx);
    /* Replaces PipelineStart/PipelineFinish -- intended to allow
     * drivers to wrap _tnl_run_pipeline() with code to validate state
-    * and grab/release hardware locks.  
+    * and grab/release hardware locks.
     */
 
    void (*NotifyMaterialChange)(struct gl_context *ctx);
@@ -483,7 +483,7 @@ struct tnl_device_driver
        *
        * This function is called only from _tnl_render_stage in tnl/t_render.c.
        */
-      
+
 
       GLboolean (*Multipass)( struct gl_context *ctx, GLuint passno );
       /* Driver may request additional render passes by returning GL_TRUE
@@ -563,7 +563,7 @@ typedef struct
 
    GLvector4f tmp_inputs[VERT_ATTRIB_MAX];
 
-   /* Temp storage for t_draw.c: 
+   /* Temp storage for t_draw.c:
     */
    GLubyte *block[VERT_ATTRIB_MAX];
    GLuint nr_blocks;

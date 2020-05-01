@@ -1531,7 +1531,7 @@
   </struct>
 
   <struct name="TMU Config Parameter 2" min_ver="41" max_ver="41">
-    <field name="Pad" size="24" start="8" type="uint"/>
+    <field name="Pad" size="8" start="24" type="uint"/>
     <field name="Op" size="4" start="20" type="TMU Op"/>
     <field name="Offset R" size="4" start="16" type="int"/>
     <field name="Offset T" size="4" start="12" type="int"/>
@@ -1545,8 +1545,8 @@
   </struct>
 
   <struct name="TMU Config Parameter 2" min_ver="42">
-    <field name="Pad" size="23" start="9" type="uint"/>
-    <field name="LOD Query" size="1" start="8" type="bool"/>
+    <field name="Pad" size="7" start="25" type="uint"/>
+    <field name="LOD Query" size="1" start="24" type="bool"/>
     <field name="Op" size="4" start="20" type="TMU Op"/>
     <field name="Offset R" size="4" start="16" type="int"/>
     <field name="Offset T" size="4" start="12" type="int"/>

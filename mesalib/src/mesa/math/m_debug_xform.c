@@ -29,7 +29,6 @@
 #include "main/glheader.h"
 #include "main/context.h"
 #include "main/macros.h"
-#include "util/imports.h"
 
 #include "m_matrix.h"
 #include "m_xform.h"
@@ -183,7 +182,7 @@ static int test_transform_function( transform_func func, int psize,
       return 0;
    }
 
-   mat->m = _mesa_align_malloc( 16 * sizeof(GLfloat), 16 );
+   mat->m = align_malloc( 16 * sizeof(GLfloat), 16 );
    mat->type = mtypes[mtype];
 
    m = mat->m;
@@ -273,7 +272,7 @@ static int test_transform_function( transform_func func, int psize,
       }
    }
 
-   _mesa_align_free( mat->m );
+   align_free( mat->m );
    return 1;
 }
 

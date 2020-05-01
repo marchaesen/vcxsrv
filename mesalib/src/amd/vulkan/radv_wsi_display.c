@@ -32,7 +32,7 @@
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 #include <amdgpu.h>
-#include <amdgpu_drm.h>
+#include "drm-uapi/amdgpu_drm.h"
 #include "winsys/amdgpu/radv_amdgpu_winsys_public.h"
 #include "vk_format.h"
 #include "sid.h"

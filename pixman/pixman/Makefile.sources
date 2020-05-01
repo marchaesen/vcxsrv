@@ -32,6 +32,7 @@ libpixman_sources =			\
 	$(NULL)
 
 libpixman_headers =			\
+	dither/blue-noise-64x64.h	\
 	pixman.h			\
 	pixman-accessor.h		\
 	pixman-combine32.h		\

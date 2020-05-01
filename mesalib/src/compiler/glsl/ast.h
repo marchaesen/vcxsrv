@@ -663,6 +663,12 @@ struct ast_type_qualifier {
          /** \{ */
          unsigned derivative_group:1;
          /** \} */
+
+         /**
+          * Flag set if GL_NV_viewport_array2 viewport_relative layout
+          * qualifier is used.
+          */
+         unsigned viewport_relative:1;
       }
       /** \brief Set of flags, accessed by name. */
       q;

@@ -97,6 +97,12 @@ enum bifrost_packed_src {
 
 #define BIFROST_FMA_EXT (0xe0000)
 #define BIFROST_FMA_OP_MOV BIFROST_FMA_EXT | (0x32d)
+#define BIFROST_FMA_OP_FREXPE_LOG BIFROST_FMA_EXT | 0x3c5
+#define BIFROST_FMA_OP_ADD_FREXPM ((BIFROST_FMA_EXT | 0x1e80) >> 3)
+#define BIFROST_FMA_SEL_16(swiz) (((BIFROST_FMA_EXT | 0x1e00) >> 3) | (swiz))
+
+#define BIFROST_FMA_ROUND_16(mode, swiz) (BIFROST_FMA_EXT | 0x1800 | (swiz) | ((mode) << 6))
+#define BIFROST_FMA_ROUND_32(mode) (BIFROST_FMA_EXT | 0x1805 | ((mode) << 6))
 
 struct bifrost_fma_inst {
         unsigned src0 : 3;
@@ -109,6 +115,36 @@ struct bifrost_fma_2src {
         unsigned op   : 17;
 } __attribute__((packed));
 
+#define BIFROST_FMA_OP_SEL8 (0x71)
+
+struct bifrost_fma_sel8 {
+        unsigned src0 : 3;
+        unsigned src1 : 3;
+        unsigned src2 : 3;
+        unsigned src3 : 3;
+        unsigned swizzle : 4;
+        unsigned op   : 7;
+} __attribute__((packed));
+
+#define BIFROST_FMA_OP_MSCALE (0x50 >> 3)
+
+struct bifrost_fma_mscale {
+        unsigned src0 : 3;
+        unsigned src1 : 3;
+        unsigned src2 : 3;
+        unsigned src3 : 3;
+
+        /* If mscale_mode is set - an MSCALE specific mode. If it is not set, a
+         * regular outmod */
+        unsigned mode : 2;
+        unsigned mscale_mode : 1;
+
+        unsigned src0_abs : 1;
+        unsigned src1_neg : 1;
+        unsigned src2_neg : 1;
+        unsigned op   : 5;
+} __attribute__((packed));
+
 #define BIFROST_ADD_OP_BLEND (0x1952c)
 #define BIFROST_ADD_OP_FRCP_FAST_F32 (0x0cc00)
 #define BIFROST_ADD_OP_FRCP_FAST_F16_X (0x0ce10)
@@ -116,6 +152,8 @@ struct bifrost_fma_2src {
 #define BIFROST_ADD_OP_FRSQ_FAST_F32 (0x0cc20)
 #define BIFROST_ADD_OP_FRSQ_FAST_F16_X (0x0ce50)
 #define BIFROST_ADD_OP_FRSQ_FAST_F16_Y (0x0ce70)
+#define BIFROST_ADD_OP_LOG2_HELP  (0x0cc68)
+#define BIFROST_ADD_OP_FEXP2_FAST (0x0cd58)
 
 struct bifrost_add_inst {
         unsigned src0 : 3;
@@ -126,6 +164,7 @@ struct bifrost_add_inst {
 #define BIFROST_ADD_OP_LD_UBO_2 (0x0c1e0 >> 3)
 #define BIFROST_ADD_OP_LD_UBO_3 (0x0caa0 >> 3)
 #define BIFROST_ADD_OP_LD_UBO_4 (0x0c220 >> 3)
+#define BIFROST_ADD_SEL_16(swiz) ((0xea60 >> 3) | (swiz))
 
 struct bifrost_add_2src {
         unsigned src0 : 3;
@@ -137,17 +176,35 @@ struct bifrost_add_2src {
 #define BIFROST_ADD_OP_FMIN32 (0x01)
 #define BIFROST_ADD_OP_FADD32 (0x02)
 
+#define BIFROST_ADD_OP_FADD16 (0x0A)
+
 struct bifrost_add_faddmin {
         unsigned src0 : 3;
         unsigned src1 : 3;
         unsigned src1_abs : 1;
         unsigned src0_neg : 1;
         unsigned src1_neg : 1;
-        unsigned select : 2;
-        unsigned outmod : 2;
+        unsigned select : 2; /* swizzle_0 for fp16 */
+        unsigned outmod : 2; /* swizzle_1 for fp16 */
         unsigned mode : 2;
         unsigned src0_abs : 1;
         unsigned op   : 4;
+} __attribute__((packed));
+
+#define BIFROST_ADD_OP_FMAX16 (0x10)
+#define BIFROST_ADD_OP_FMIN16 (0x12)
+
+struct bifrost_add_fmin16 {
+        unsigned src0 : 3;
+        unsigned src1 : 3;
+        /* abs2 inferred as with FMA */
+        unsigned abs1 : 1;
+        unsigned src0_neg : 1;
+        unsigned src1_neg : 1;
+        unsigned src0_swizzle : 2;
+        unsigned src1_swizzle : 2;
+        unsigned mode : 2;
+        unsigned op : 5;
 } __attribute__((packed));
 
 #define BIFROST_ADD_OP_ST_VAR (0x19300 >> 8)
@@ -309,11 +366,23 @@ struct bifrost_csel4 {
         unsigned op   : 8;
 } __attribute__((packed));
 
+#define BIFROST_FMA_OP_RSHIFT_NAND     (0x60000 >> 12)
+#define BIFROST_FMA_OP_RSHIFT_AND      (0x61000 >> 12)
+#define BIFROST_FMA_OP_LSHIFT_NAND     (0x62000 >> 12)
+#define BIFROST_FMA_OP_LSHIFT_AND      (0x63000 >> 12)
+#define BIFROST_FMA_OP_RSHIFT_XOR      (0x64000 >> 12)
+#define BIFROST_FMA_OP_LSHIFT_ADD_32   (0x65200 >> 6)
+#define BIFROST_FMA_OP_LSHIFT_SUB_32   (0x65600 >> 6)
+#define BIFROST_FMA_OP_LSHIFT_RSUB_32  (0x65a00 >> 6)
+#define BIFROST_FMA_OP_RSHIFT_ADD_32   (0x65e00 >> 6)
+#define BIFROST_FMA_OP_RSHIFT_SUB_32   (0x66200 >> 6)
+#define BIFROST_FMA_OP_RSHIFT_RSUB_32  (0x66600 >> 6)
+
 struct bifrost_shift_fma {
         unsigned src0 : 3;
         unsigned src1 : 3;
         unsigned src2 : 3;
-        unsigned half : 3; /* 000 for i32, 100 for i8, 111 for v2i16 */
+        unsigned half : 3;
         unsigned unk  : 1; /* always set? */
         unsigned invert_1 : 1; /* Inverts sources to combining op */
         /* For XOR, switches RSHIFT to LSHIFT since only one invert needed */
@@ -331,6 +400,108 @@ struct bifrost_shift_add {
         unsigned invert_2 : 1;
 
         unsigned op : 7;
+} __attribute__((packed));
+
+enum bifrost_fcmp_cond {
+        BIFROST_OEQ = 0,
+        BIFROST_OGT = 1,
+        BIFROST_OGE = 2,
+        BIFROST_UNE = 3,
+        BIFROST_OLT = 4,
+        BIFROST_OLE = 5,
+};
+
+#define BIFROST_FMA_OP_FCMP_GL (0x48000 >> 13)
+#define BIFROST_FMA_OP_FCMP_D3D (0x4c000 >> 13)
+
+struct bifrost_fma_fcmp {
+        unsigned src0 : 3;
+        unsigned src1 : 3;
+        unsigned src1_abs : 1;
+        unsigned unk1 : 1;
+        unsigned src1_neg : 1;
+        unsigned src_expand : 3;
+        unsigned src0_abs : 1;
+        enum bifrost_fcmp_cond cond : 3;
+        unsigned op   : 7;
+} __attribute__((packed));
+
+struct bifrost_add_fcmp {
+        unsigned src0 : 3;
+        unsigned src1 : 3;
+        enum bifrost_fcmp_cond cond : 3;
+        unsigned src_expand : 2;
+        unsigned src0_abs : 1;
+        unsigned src1_abs : 1;
+        unsigned src1_neg : 1;
+        unsigned op   : 6;
+} __attribute__((packed));
+
+#define BIFROST_FMA_OP_FCMP_GL_16 (0xc8000 >> 13)
+#define BIFROST_FMA_OP_FCMP_D3D_16 (0xcc000 >> 13)
+
+struct bifrost_fma_fcmp16 {
+        unsigned src0 : 3;
+        unsigned src1 : 3;
+
+        /* abs2 inferred */
+        unsigned abs1 : 1;
+        unsigned unk : 2;
+
+        unsigned src0_swizzle : 2;
+        unsigned src1_swizzle : 2;
+
+        enum bifrost_fcmp_cond cond : 3;
+        unsigned op   : 7;
+} __attribute__((packed));
+
+struct bifrost_add_fcmp16 {
+        unsigned src0 : 3;
+        unsigned src1 : 3;
+        enum bifrost_fcmp_cond cond : 3;
+
+        unsigned src0_swizzle : 2;
+        unsigned src1_swizzle : 2;
+
+        /* No abs mods */
+        unsigned src0_neg : 1;
+
+        unsigned op   : 6;
+} __attribute__((packed));
+
+enum bifrost_icmp_cond {
+        BIFROST_ICMP_IGT = 0,
+        BIFROST_ICMP_IGE = 1,
+        BIFROST_ICMP_UGT = 2,
+        BIFROST_ICMP_UGE = 3,
+        BIFROST_ICMP_EQ  = 4,
+        BIFROST_ICMP_NEQ  = 5,
+};
+
+struct bifrost_fma_icmp32 {
+        unsigned src0 : 3;
+        unsigned src1 : 3;
+        enum bifrost_icmp_cond cond : 3;
+        unsigned unk1 : 1; /* set */
+        unsigned d3d : 1;
+        unsigned op : 12;
+} __attribute__((packed));
+
+struct bifrost_fma_icmp16 {
+        unsigned src0 : 3;
+        unsigned src1 : 3;
+        unsigned unk : 5; /* 11010 */
+        enum bifrost_icmp_cond cond : 3;
+        unsigned op : 9;
+} __attribute__((packed));
+
+struct bifrost_add_icmp {
+        unsigned src0 : 3;
+        unsigned src1 : 3;
+        enum bifrost_icmp_cond cond : 3;
+        unsigned sz : 1; /* 1 for 32, 0 for 8 */
+        unsigned d3d : 1;
+        unsigned op : 9;
 } __attribute__((packed));
 
 /* Two sources for vectorization */
@@ -440,6 +611,18 @@ struct bifrost_dual_tex_ctrl {
         unsigned sampler_index1 : 2;
         unsigned tex_index1 : 2;
         unsigned unk1 : 22;
+} __attribute__((packed));
+
+#define BIFROST_ADD_OP_TEX_COMPACT_F32 (0x0b000 >> 10)
+#define BIFROST_ADD_OP_TEX_COMPACT_F16 (0x1b000 >> 10)
+
+struct bifrost_tex_compact {
+        unsigned src0 : 3;
+        unsigned src1 : 3;
+        unsigned tex_index : 3;
+        unsigned unknown : 1;
+        unsigned sampler_index : 3;
+        unsigned op   : 7;
 } __attribute__((packed));
 
 enum branch_bit_size {

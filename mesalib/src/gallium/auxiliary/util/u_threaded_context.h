@@ -361,6 +361,12 @@ struct threaded_context {
    unsigned num_direct_slots;
    unsigned num_syncs;
 
+   /* Estimation of how much vram/gtt bytes are mmap'd in
+    * the current tc_batch.
+    */
+   uint64_t bytes_mapped_estimate;
+   uint64_t bytes_mapped_limit;
+
    struct util_queue queue;
    struct util_queue_fence *fence;
 

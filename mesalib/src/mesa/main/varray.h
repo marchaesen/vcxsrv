@@ -109,7 +109,8 @@ _mesa_bind_vertex_buffer(struct gl_context *ctx,
                          struct gl_vertex_array_object *vao,
                          GLuint index,
                          struct gl_buffer_object *vbo,
-                         GLintptr offset, GLsizei stride);
+                         GLintptr offset, GLsizei stride,
+                         bool offset_is_int32, bool take_vbo_ownership);
 
 extern void GLAPIENTRY
 _mesa_VertexPointer_no_error(GLint size, GLenum type, GLsizei stride,
@@ -375,6 +376,12 @@ _mesa_BindVertexBuffers_no_error(GLuint first, GLsizei count,
 extern void GLAPIENTRY
 _mesa_BindVertexBuffers(GLuint first, GLsizei count, const GLuint *buffers,
                         const GLintptr *offsets, const GLsizei *strides);
+
+void
+_mesa_InternalBindVertexBuffers(struct gl_context *ctx,
+                                const struct glthread_attrib_binding *attribs,
+                                GLbitfield attrib_mask,
+                                GLboolean restore_pointers);
 
 void GLAPIENTRY
 _mesa_VertexArrayVertexBuffers_no_error(GLuint vaobj, GLuint first,

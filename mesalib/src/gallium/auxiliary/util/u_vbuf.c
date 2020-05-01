@@ -256,7 +256,8 @@ static const struct {
    { PIPE_FORMAT_R8G8B8A8_SSCALED,     PIPE_FORMAT_R32G32B32A32_FLOAT },
 };
 
-void u_vbuf_get_caps(struct pipe_screen *screen, struct u_vbuf_caps *caps)
+void u_vbuf_get_caps(struct pipe_screen *screen, struct u_vbuf_caps *caps,
+                     bool needs64b)
 {
    unsigned i;
 
@@ -272,6 +273,10 @@ void u_vbuf_get_caps(struct pipe_screen *screen, struct u_vbuf_caps *caps)
 
    for (i = 0; i < ARRAY_SIZE(vbuf_format_fallbacks); i++) {
       enum pipe_format format = vbuf_format_fallbacks[i].from;
+      unsigned comp_bits = util_format_get_component_bits(format, 0, 0);
+
+      if ((comp_bits > 32) && !needs64b)
+         continue;
 
       if (!screen->is_format_supported(screen, format, PIPE_BUFFER, 0, 0,
                                        PIPE_BIND_VERTEX_BUFFER)) {

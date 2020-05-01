@@ -1083,10 +1083,16 @@ ir_function_signature::constant_expression_value(void *mem_ctx,
 
    /*
     * Of the builtin functions, only the texture lookups and the noise
-    * ones must not be used in constant expressions.  They all include
-    * specific opcodes so they don't need to be special-cased at this
-    * point.
+    * ones must not be used in constant expressions.  Texture instructions
+    * include special ir_texture opcodes which can't be constant-folded (see
+    * ir_texture::constant_expression_value).  Noise functions, however, we
+    * have to special case here.
     */
+   if (strcmp(this->function_name(), "noise1") == 0 ||
+       strcmp(this->function_name(), "noise2") == 0 ||
+       strcmp(this->function_name(), "noise3") == 0 ||
+       strcmp(this->function_name(), "noise4") == 0)
+      return NULL;
 
    /* Initialize the table of dereferencable names with the function
     * parameters.  Verify their const-ness on the way.

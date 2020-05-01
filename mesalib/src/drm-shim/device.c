@@ -42,7 +42,7 @@
 #include "util/hash_table.h"
 #include "util/u_atomic.h"
 
-static mtx_t handle_lock = _MTX_INITIALIZER_NP;
+#define SHIM_MEM_SIZE (4ull * 1024 * 1024 * 1024)
 
 #ifndef HAVE_MEMFD_CREATE
 #include <sys/syscall.h>
@@ -80,6 +80,16 @@ drm_shim_device_init(void)
                                                 uint_key_hash,
                                                 uint_key_compare);
 
+   mtx_init(&shim_device.mem_lock, mtx_plain);
+
+   shim_device.mem_fd = memfd_create("shim mem", MFD_CLOEXEC);
+   assert(shim_device.mem_fd != -1);
+
+   int ret = ftruncate(shim_device.mem_fd, SHIM_MEM_SIZE);
+   assert(ret == 0);
+
+   util_vma_heap_init(&shim_device.mem_heap, 4096, SHIM_MEM_SIZE - 4096);
+
    drm_shim_driver_init();
 }
 
@@ -89,6 +99,7 @@ drm_shim_file_create(int fd)
    struct shim_fd *shim_fd = calloc(1, sizeof(*shim_fd));
 
    shim_fd->fd = fd;
+   mtx_init(&shim_fd->handle_lock, mtx_plain);
    shim_fd->handles = _mesa_hash_table_create(NULL,
                                               uint_key_hash,
                                               uint_key_compare);
@@ -174,18 +185,28 @@ drm_shim_ioctl_gem_close(int fd, unsigned long request, void *arg)
    if (!c->handle)
       return 0;
 
-   mtx_lock(&handle_lock);
+   mtx_lock(&shim_fd->handle_lock);
    struct hash_entry *entry =
       _mesa_hash_table_search(shim_fd->handles, (void *)(uintptr_t)c->handle);
    if (!entry) {
-      mtx_unlock(&handle_lock);
+      mtx_unlock(&shim_fd->handle_lock);
       return -EINVAL;
    }
 
    struct shim_bo *bo = entry->data;
    _mesa_hash_table_remove(shim_fd->handles, entry);
    drm_shim_bo_put(bo);
-   mtx_unlock(&handle_lock);
+   mtx_unlock(&shim_fd->handle_lock);
+   return 0;
+}
+
+static int
+drm_shim_ioctl_syncobj_create(int fd, unsigned long request, void *arg)
+{
+   struct drm_syncobj_create *create = arg;
+
+   create->handle = 1; /* 0 is invalid */
+
    return 0;
 }
 
@@ -199,10 +220,11 @@ ioctl_fn_t core_ioctls[] = {
    [_IOC_NR(DRM_IOCTL_VERSION)] = drm_shim_ioctl_version,
    [_IOC_NR(DRM_IOCTL_GET_CAP)] = drm_shim_ioctl_get_cap,
    [_IOC_NR(DRM_IOCTL_GEM_CLOSE)] = drm_shim_ioctl_gem_close,
-   [_IOC_NR(DRM_IOCTL_SYNCOBJ_CREATE)] = drm_shim_ioctl_stub,
+   [_IOC_NR(DRM_IOCTL_SYNCOBJ_CREATE)] = drm_shim_ioctl_syncobj_create,
    [_IOC_NR(DRM_IOCTL_SYNCOBJ_DESTROY)] = drm_shim_ioctl_stub,
    [_IOC_NR(DRM_IOCTL_SYNCOBJ_HANDLE_TO_FD)] = drm_shim_ioctl_stub,
    [_IOC_NR(DRM_IOCTL_SYNCOBJ_FD_TO_HANDLE)] = drm_shim_ioctl_stub,
+   [_IOC_NR(DRM_IOCTL_SYNCOBJ_WAIT)] = drm_shim_ioctl_stub,
 };
 
 /**
@@ -245,17 +267,13 @@ drm_shim_ioctl(int fd, unsigned long request, void *arg)
 void
 drm_shim_bo_init(struct shim_bo *bo, size_t size)
 {
-   bo->size = size;
-   bo->fd = memfd_create("shim bo", MFD_CLOEXEC);
-   if (bo->fd == -1) {
-      fprintf(stderr, "Failed to create BO: %s\n", strerror(errno));
-      abort();
-   }
 
-   if (ftruncate(bo->fd, size) == -1) {
-      fprintf(stderr, "Failed to size BO: %s\n", strerror(errno));
-      abort();
-   }
+   mtx_lock(&shim_device.mem_lock);
+   bo->mem_addr = util_vma_heap_alloc(&shim_device.mem_heap, size, 4096);
+   mtx_unlock(&shim_device.mem_lock);
+   assert(bo->mem_addr);
+
+   bo->size = size;
 }
 
 struct shim_bo *
@@ -264,11 +282,11 @@ drm_shim_bo_lookup(struct shim_fd *shim_fd, int handle)
    if (!handle)
       return NULL;
 
-   mtx_lock(&handle_lock);
+   mtx_lock(&shim_fd->handle_lock);
    struct hash_entry *entry =
       _mesa_hash_table_search(shim_fd->handles, (void *)(uintptr_t)handle);
    struct shim_bo *bo = entry ? entry->data : NULL;
-   mtx_unlock(&handle_lock);
+   mtx_unlock(&shim_fd->handle_lock);
 
    if (bo)
       p_atomic_inc(&bo->refcount);
@@ -290,7 +308,10 @@ drm_shim_bo_put(struct shim_bo *bo)
 
    if (shim_device.driver_bo_free)
       shim_device.driver_bo_free(bo);
-   close(bo->fd);
+
+   mtx_lock(&shim_device.mem_lock);
+   util_vma_heap_free(&shim_device.mem_heap, bo->mem_addr, bo->size);
+   mtx_unlock(&shim_device.mem_lock);
    free(bo);
 }
 
@@ -300,17 +321,17 @@ drm_shim_bo_get_handle(struct shim_fd *shim_fd, struct shim_bo *bo)
    /* We should probably have some real datastructure for finding the free
     * number.
     */
-   mtx_lock(&handle_lock);
+   mtx_lock(&shim_fd->handle_lock);
    for (int new_handle = 1; ; new_handle++) {
       void *key = (void *)(uintptr_t)new_handle;
       if (!_mesa_hash_table_search(shim_fd->handles, key)) {
          drm_shim_bo_get(bo);
          _mesa_hash_table_insert(shim_fd->handles, key, bo);
-         mtx_unlock(&handle_lock);
+         mtx_unlock(&shim_fd->handle_lock);
          return new_handle;
       }
    }
-   mtx_unlock(&handle_lock);
+   mtx_unlock(&shim_fd->handle_lock);
 
    return 0;
 }
@@ -339,5 +360,5 @@ drm_shim_mmap(struct shim_fd *shim_fd, size_t length, int prot, int flags,
 {
    struct shim_bo *bo = (void *)(uintptr_t)offset;
 
-   return mmap(NULL, length, prot, flags, bo->fd, 0);
+   return mmap(NULL, length, prot, flags, shim_device.mem_fd, bo->mem_addr);
 }

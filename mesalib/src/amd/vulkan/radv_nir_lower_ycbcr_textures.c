@@ -26,6 +26,7 @@
 #include "vk_format.h"
 #include "nir/nir.h"
 #include "nir/nir_builder.h"
+#include "nir/nir_vulkan.h"
 
 struct ycbcr_state {
 	nir_builder *builder;
@@ -34,127 +35,6 @@ struct ycbcr_state {
 	nir_deref_instr *tex_deref;
 	const struct radv_sampler_ycbcr_conversion *conversion;
 };
-
-static nir_ssa_def *
-y_range(nir_builder *b,
-        nir_ssa_def *y_channel,
-        int bpc,
-        VkSamplerYcbcrRange range)
-{
-	switch (range) {
-	case VK_SAMPLER_YCBCR_RANGE_ITU_FULL:
-		return y_channel;
-	case VK_SAMPLER_YCBCR_RANGE_ITU_NARROW:
-		return nir_fmul(b,
-		                nir_fadd(b,
-		                         nir_fmul(b, y_channel,
-		                                  nir_imm_float(b, pow(2, bpc) - 1)),
-		                         nir_imm_float(b, -16.0f * pow(2, bpc - 8))),
-		                nir_frcp(b, nir_imm_float(b, 219.0f * pow(2, bpc - 8))));
-	default:
-		unreachable("missing Ycbcr range");
-		return NULL;
-	}
-}
-
-static nir_ssa_def *
-chroma_range(nir_builder *b,
-             nir_ssa_def *chroma_channel,
-             int bpc,
-             VkSamplerYcbcrRange range)
-{
-	switch (range) {
-	case VK_SAMPLER_YCBCR_RANGE_ITU_FULL:
-		return nir_fadd(b, chroma_channel,
-		                nir_imm_float(b, -pow(2, bpc - 1) / (pow(2, bpc) - 1.0f)));
-	case VK_SAMPLER_YCBCR_RANGE_ITU_NARROW:
-		return nir_fmul(b,
-		                nir_fadd(b,
-		                         nir_fmul(b, chroma_channel,
-		                                  nir_imm_float(b, pow(2, bpc) - 1)),
-		                         nir_imm_float(b, -128.0f * pow(2, bpc - 8))),
-		                nir_frcp(b, nir_imm_float(b, 224.0f * pow(2, bpc - 8))));
-	default:
-		unreachable("missing Ycbcr range");
-		return NULL;
-	}
-}
-
-typedef struct nir_const_value_3_4 {
-	nir_const_value v[3][4];
-} nir_const_value_3_4;
-
-static const nir_const_value_3_4 *
-ycbcr_model_to_rgb_matrix(VkSamplerYcbcrModelConversion model)
-{
-	switch (model) {
-	case VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_601: {
-		static const nir_const_value_3_4 bt601 = { {
-			{ { .f32 =  1.402f             }, { .f32 = 1.0f }, { .f32 =  0.0f               }, { .f32 = 0.0f } },
-			{ { .f32 = -0.714136286201022f }, { .f32 = 1.0f }, { .f32 = -0.344136286201022f }, { .f32 = 0.0f } },
-			{ { .f32 =  0.0f               }, { .f32 = 1.0f }, { .f32 =  1.772f             }, { .f32 = 0.0f } },
-		} };
-
-		return &bt601;
-	}
-	case VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_709: {
-		static const nir_const_value_3_4 bt709 = { {
-			{ { .f32 =  1.5748031496063f   }, { .f32 = 1.0f }, { .f32 =  0.0f               }, { .f32 = 0.0f } },
-			{ { .f32 = -0.468125209181067f }, { .f32 = 1.0f }, { .f32 = -0.187327487470334f }, { .f32 = 0.0f } },
-			{ { .f32 =  0.0f               }, { .f32 = 1.0f }, { .f32 =  1.85563184264242f  }, { .f32 = 0.0f } },
-		} };
-
-		return &bt709;
-	}
-	case VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_2020: {
-		static const nir_const_value_3_4 bt2020 = { {
-			{ { .f32 =  1.4746f            }, { .f32 = 1.0f }, { .f32 =  0.0f               }, { .f32 = 0.0f } },
-			{ { .f32 = -0.571353126843658f }, { .f32 = 1.0f }, { .f32 = -0.164553126843658f }, { .f32 = 0.0f } },
-			{ { .f32 =  0.0f               }, { .f32 = 1.0f }, { .f32 =  1.8814f            }, { .f32 = 0.0f } },
-		} };
-
-		return &bt2020;
-	}
-	default:
-		unreachable("missing Ycbcr model");
-		return NULL;
-	}
-}
-
-static nir_ssa_def *
-convert_ycbcr(struct ycbcr_state *state,
-              nir_ssa_def *raw_channels,
-              uint8_t bits)
-{
-	nir_builder *b = state->builder;
-	const struct radv_sampler_ycbcr_conversion *conversion = state->conversion;
-
-	nir_ssa_def *expanded_channels =
-		nir_vec4(b,
-		         chroma_range(b, nir_channel(b, raw_channels, 0),
-		                      bits, conversion->ycbcr_range),
-		         y_range(b, nir_channel(b, raw_channels, 1),
-		                 bits, conversion->ycbcr_range),
-		         chroma_range(b, nir_channel(b, raw_channels, 2),
-		                      bits, conversion->ycbcr_range),
-		         nir_imm_float(b, 1.0f));
-
-	if (conversion->ycbcr_model == VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_IDENTITY)
-		return expanded_channels;
-
-	const nir_const_value_3_4 *conversion_matrix =
-		ycbcr_model_to_rgb_matrix(conversion->ycbcr_model);
-
-	nir_ssa_def *converted_channels[] = {
-		nir_fdot4(b, expanded_channels, nir_build_imm(b, 4, 32, conversion_matrix->v[0])),
-		nir_fdot4(b, expanded_channels, nir_build_imm(b, 4, 32, conversion_matrix->v[1])),
-		nir_fdot4(b, expanded_channels, nir_build_imm(b, 4, 32, conversion_matrix->v[2]))
-	};
-
-	return nir_vec4(b,
-	                converted_channels[0], converted_channels[1],
-	                converted_channels[2], nir_imm_float(b, 1.0f));
-}
 
 static nir_ssa_def *
 get_texture_size(struct ycbcr_state *state, nir_deref_instr *texture)
@@ -405,7 +285,14 @@ try_lower_tex_ycbcr(const struct radv_pipeline_layout *layout,
 	nir_ssa_def *result = build_swizzled_components(builder, format, ycbcr_sampler->components, plane_values);
 	if (state.conversion->ycbcr_model != VK_SAMPLER_YCBCR_MODEL_CONVERSION_RGB_IDENTITY) {
 		VkFormat first_format = vk_format_get_plane_format(format, 0);
-		result = convert_ycbcr(&state, result, vk_format_get_component_bits(first_format, VK_FORMAT_COLORSPACE_RGB, VK_SWIZZLE_X));
+		uint32_t bits = vk_format_get_component_bits(first_format, VK_FORMAT_COLORSPACE_RGB, VK_SWIZZLE_X);
+		/* TODO: swizzle and bpcs */
+		uint32_t bpcs[3] = {bits, bits, bits};
+		result = nir_convert_ycbcr_to_rgb(builder,
+		                                  state.conversion->ycbcr_model,
+		                                  state.conversion->ycbcr_range,
+		                                  result,
+		                                  bpcs);
 	}
 
 	nir_ssa_def_rewrite_uses(&tex->dest.ssa, nir_src_for_ssa(result));

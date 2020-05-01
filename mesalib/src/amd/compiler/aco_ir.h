@@ -90,17 +90,17 @@ enum class Format : std::uint16_t {
    PSEUDO_REDUCTION = 18,
 
    /* Vector ALU Formats */
+   VOP3P = 19,
    VOP1 = 1 << 8,
    VOP2 = 1 << 9,
    VOPC = 1 << 10,
    VOP3 = 1 << 11,
    VOP3A = 1 << 11,
    VOP3B = 1 << 11,
-   VOP3P = 1 << 12,
    /* Vector Parameter Interpolation Format */
-   VINTRP = 1 << 13,
-   DPP = 1 << 14,
-   SDWA = 1 << 15,
+   VINTRP = 1 << 12,
+   DPP = 1 << 13,
+   SDWA = 1 << 14,
 };
 
 enum barrier_interaction : uint8_t {
@@ -116,7 +116,7 @@ enum barrier_interaction : uint8_t {
    barrier_gs_sendmsg = 0x20,
    /* used by barriers. created by s_barrier */
    barrier_barrier = 0x40,
-   barrier_count = 6,
+   barrier_count = 7,
 };
 
 enum fp_round {
@@ -229,6 +229,15 @@ struct RegClass {
    constexpr bool is_linear() const { return rc <= RC::s16 || rc & (1 << 6); }
    constexpr RegClass as_linear() const { return RegClass((RC) (rc | (1 << 6))); }
    constexpr RegClass as_subdword() const { return RegClass((RC) (rc | 1 << 7)); }
+
+   static constexpr RegClass get(RegType type, unsigned bytes) {
+      if (type == RegType::sgpr) {
+         return RegClass(type, DIV_ROUND_UP(bytes, 4u));
+      } else {
+         return bytes % 4u ? RegClass(type, bytes).as_subdword() :
+                             RegClass(type, bytes / 4u);
+      }
+   }
 
 private:
    RC rc;
@@ -755,7 +764,7 @@ struct Instruction {
           || ((uint16_t) format & (uint16_t) Format::VOPC) == (uint16_t) Format::VOPC
           || ((uint16_t) format & (uint16_t) Format::VOP3A) == (uint16_t) Format::VOP3A
           || ((uint16_t) format & (uint16_t) Format::VOP3B) == (uint16_t) Format::VOP3B
-          || ((uint16_t) format & (uint16_t) Format::VOP3P) == (uint16_t) Format::VOP3P;
+          || format == Format::VOP3P;
    }
 
    constexpr bool isSALU() const noexcept
@@ -782,8 +791,7 @@ struct Instruction {
    constexpr bool isVOP3() const noexcept
    {
       return ((uint16_t) format & (uint16_t) Format::VOP3A) ||
-             ((uint16_t) format & (uint16_t) Format::VOP3B) ||
-             format == Format::VOP3P;
+             ((uint16_t) format & (uint16_t) Format::VOP3B);
    }
 
    constexpr bool isSDWA() const noexcept
@@ -876,6 +884,16 @@ struct VOP3A_instruction : public Instruction {
    uint32_t padding : 9;
 };
 static_assert(sizeof(VOP3A_instruction) == sizeof(Instruction) + 8);
+
+struct VOP3P_instruction : public Instruction {
+   bool neg_lo[3];
+   bool neg_hi[3];
+   uint8_t opsel_lo : 3;
+   uint8_t opsel_hi : 3;
+   bool clamp : 1;
+   uint32_t padding : 9;
+};
+static_assert(sizeof(VOP3P_instruction) == sizeof(Instruction) + 8);
 
 /**
  * Data Parallel Primitives Format:
@@ -1172,14 +1190,23 @@ constexpr bool Instruction::usesModifiers() const noexcept
 {
    if (isDPP() || isSDWA())
       return true;
-   if (!isVOP3())
-      return false;
-   const VOP3A_instruction *vop3 = static_cast<const VOP3A_instruction*>(this);
-   for (unsigned i = 0; i < operands.size(); i++) {
-      if (vop3->abs[i] || vop3->neg[i])
-         return true;
+
+   if (format == Format::VOP3P) {
+      const VOP3P_instruction *vop3p = static_cast<const VOP3P_instruction*>(this);
+      for (unsigned i = 0; i < operands.size(); i++) {
+         if (vop3p->neg_lo[i] || vop3p->neg_hi[i])
+            return true;
+      }
+      return vop3p->opsel_lo || vop3p->opsel_hi || vop3p->clamp;
+   } else if (isVOP3()) {
+      const VOP3A_instruction *vop3 = static_cast<const VOP3A_instruction*>(this);
+      for (unsigned i = 0; i < operands.size(); i++) {
+         if (vop3->abs[i] || vop3->neg[i])
+            return true;
+      }
+      return vop3->opsel || vop3->clamp || vop3->omod;
    }
-   return vop3->opsel || vop3->clamp || vop3->omod;
+   return false;
 }
 
 constexpr bool is_phi(Instruction* instr)
@@ -1192,7 +1219,7 @@ static inline bool is_phi(aco_ptr<Instruction>& instr)
    return is_phi(instr.get());
 }
 
-barrier_interaction get_barrier_interaction(Instruction* instr);
+barrier_interaction get_barrier_interaction(const Instruction* instr);
 
 bool is_dead(const std::vector<uint16_t>& uses, Instruction *instr);
 
@@ -1501,8 +1528,8 @@ void collect_presched_stats(Program *program);
 void collect_preasm_stats(Program *program);
 void collect_postasm_stats(Program *program, const std::vector<uint32_t>& code);
 
-void aco_print_instr(Instruction *instr, FILE *output);
-void aco_print_program(Program *program, FILE *output);
+void aco_print_instr(const Instruction *instr, FILE *output);
+void aco_print_program(const Program *program, FILE *output);
 
 /* utilities for dealing with register demand */
 RegisterDemand get_live_changes(aco_ptr<Instruction>& instr);

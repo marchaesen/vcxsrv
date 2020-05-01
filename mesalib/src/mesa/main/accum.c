@@ -29,7 +29,7 @@
 #include "format_unpack.h"
 #include "format_pack.h"
 #include "framebuffer.h"
-#include "util/imports.h"
+
 #include "macros.h"
 #include "state.h"
 #include "mtypes.h"
@@ -99,7 +99,7 @@ _mesa_clear_accum_buffer(struct gl_context *ctx)
 
       for (j = 0; j < height; j++) {
          GLshort *row = (GLshort *) accMap;
-         
+
          for (i = 0; i < width; i++) {
             row[i * 4 + 0] = clearR;
             row[i * 4 + 1] = clearG;
@@ -441,7 +441,7 @@ accum(struct gl_context *ctx, GLenum op, GLfloat value)
 }
 
 
-void 
+void
 _mesa_init_accum( struct gl_context *ctx )
 {
    /* Accumulate buffer group */

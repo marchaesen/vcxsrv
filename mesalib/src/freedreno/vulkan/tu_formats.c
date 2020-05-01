@@ -354,6 +354,7 @@ tu6_pipe2depth(VkFormat format)
    case VK_FORMAT_D24_UNORM_S8_UINT:
       return DEPTH6_24_8;
    case VK_FORMAT_D32_SFLOAT:
+   case VK_FORMAT_S8_UINT:
       return DEPTH6_32;
    default:
       return ~0;
@@ -381,8 +382,12 @@ tu_physical_device_get_format_properties(
       optimal |= VK_FORMAT_FEATURE_TRANSFER_SRC_BIT |
                  VK_FORMAT_FEATURE_TRANSFER_DST_BIT |
                  VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT |
-                 VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+                 VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT |
+                 VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT;
       buffer |= VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT;
+
+      if (physical_device->supported_extensions.EXT_filter_cubic)
+         optimal |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_CUBIC_BIT_EXT;
    }
 
    if (native_fmt.supported & FMT_COLOR) {
@@ -456,8 +461,8 @@ static VkResult
 tu_get_image_format_properties(
    struct tu_physical_device *physical_device,
    const VkPhysicalDeviceImageFormatInfo2 *info,
-   VkImageFormatProperties *pImageFormatProperties)
-
+   VkImageFormatProperties *pImageFormatProperties,
+   VkFormatFeatureFlags *p_feature_flags)
 {
    VkFormatProperties format_props;
    VkFormatFeatureFlags format_feature_flags;
@@ -579,6 +584,9 @@ tu_get_image_format_properties(
       .maxResourceSize = UINT32_MAX,
    };
 
+   if (p_feature_flags)
+      *p_feature_flags = format_feature_flags;
+
    return VK_SUCCESS;
 unsupported:
    *pImageFormatProperties = (VkImageFormatProperties) {
@@ -615,7 +623,7 @@ tu_GetPhysicalDeviceImageFormatProperties(
    };
 
    return tu_get_image_format_properties(physical_device, &info,
-                                         pImageFormatProperties);
+                                         pImageFormatProperties, NULL);
 }
 
 static VkResult
@@ -682,11 +690,14 @@ tu_GetPhysicalDeviceImageFormatProperties2(
 {
    TU_FROM_HANDLE(tu_physical_device, physical_device, physicalDevice);
    const VkPhysicalDeviceExternalImageFormatInfo *external_info = NULL;
+   const VkPhysicalDeviceImageViewImageFormatInfoEXT *image_view_info = NULL;
    VkExternalImageFormatProperties *external_props = NULL;
+   VkFilterCubicImageViewImageFormatPropertiesEXT *cubic_props = NULL;
+   VkFormatFeatureFlags format_feature_flags;
    VkResult result;
 
-   result = tu_get_image_format_properties(
-      physical_device, base_info, &base_props->imageFormatProperties);
+   result = tu_get_image_format_properties(physical_device,
+      base_info, &base_props->imageFormatProperties, &format_feature_flags);
    if (result != VK_SUCCESS)
       return result;
 
@@ -696,6 +707,9 @@ tu_GetPhysicalDeviceImageFormatProperties2(
       switch (s->sType) {
       case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_IMAGE_FORMAT_INFO:
          external_info = (const void *) s;
+         break;
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_IMAGE_FORMAT_INFO_EXT:
+         image_view_info = (const void *) s;
          break;
       default:
          break;
@@ -708,6 +722,9 @@ tu_GetPhysicalDeviceImageFormatProperties2(
       switch (s->sType) {
       case VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES:
          external_props = (void *) s;
+         break;
+      case VK_STRUCTURE_TYPE_FILTER_CUBIC_IMAGE_VIEW_IMAGE_FORMAT_PROPERTIES_EXT:
+         cubic_props = (void *) s;
          break;
       default:
          break;
@@ -726,6 +743,21 @@ tu_GetPhysicalDeviceImageFormatProperties2(
          &external_props->externalMemoryProperties);
       if (result != VK_SUCCESS)
          goto fail;
+   }
+
+   if (cubic_props) {
+      /* note: blob only allows cubic filtering for 2D and 2D array views
+       * its likely we can enable it for 1D and CUBE, needs testing however
+       */
+      if ((image_view_info->imageViewType == VK_IMAGE_VIEW_TYPE_2D ||
+           image_view_info->imageViewType == VK_IMAGE_VIEW_TYPE_2D_ARRAY) &&
+          (format_feature_flags & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_CUBIC_BIT_EXT)) {
+         cubic_props->filterCubic = true;
+         cubic_props->filterCubicMinmax = true;
+      } else {
+         cubic_props->filterCubic = false;
+         cubic_props->filterCubicMinmax = false;
+      }
    }
 
    return VK_SUCCESS;

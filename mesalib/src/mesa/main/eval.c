@@ -38,7 +38,6 @@
 
 
 #include "glheader.h"
-#include "util/imports.h"
 #include "context.h"
 #include "eval.h"
 #include "macros.h"
@@ -354,7 +353,8 @@ map1(GLenum target, GLfloat u1, GLfloat u2, GLint ustride,
       pnts = _mesa_copy_map_points1d(target, ustride, uorder, (GLdouble*) points);
 
 
-   FLUSH_VERTICES(ctx, _NEW_EVAL);
+   FLUSH_VERTICES(ctx, 0);
+   vbo_exec_update_eval_maps(ctx);
    map->Order = uorder;
    map->u1 = u1;
    map->u2 = u2;
@@ -449,7 +449,8 @@ map2( GLenum target, GLfloat u1, GLfloat u2, GLint ustride, GLint uorder,
                                   vstride, vorder, (GLdouble*) points);
 
 
-   FLUSH_VERTICES(ctx, _NEW_EVAL);
+   FLUSH_VERTICES(ctx, 0);
+   vbo_exec_update_eval_maps(ctx);
    map->Uorder = uorder;
    map->u1 = u1;
    map->u2 = u2;
@@ -480,7 +481,7 @@ _mesa_Map2d( GLenum target,
              GLdouble v1, GLdouble v2, GLint vstride, GLint vorder,
              const GLdouble *points )
 {
-   map2(target, (GLfloat) u1, (GLfloat) u2, ustride, uorder, 
+   map2(target, (GLfloat) u1, (GLfloat) u2, ustride, uorder,
 	(GLfloat) v1, (GLfloat) v2, vstride, vorder, points, GL_DOUBLE);
 }
 
@@ -704,7 +705,7 @@ _mesa_GetnMapivARB( GLenum target, GLenum query, GLsizei bufSize, GLint *v )
             if (bufSize < numBytes)
                goto overflow;
 	    for (i=0;i<n;i++) {
-	       v[i] = IROUND(data[i]);
+	       v[i] = lroundf(data[i]);
 	    }
 	 }
          break;
@@ -728,17 +729,17 @@ _mesa_GetnMapivARB( GLenum target, GLenum query, GLsizei bufSize, GLint *v )
             numBytes = 2 * sizeof *v;
             if (bufSize < numBytes)
                goto overflow;
-            v[0] = IROUND(map1d->u1);
-            v[1] = IROUND(map1d->u2);
+            v[0] = lroundf(map1d->u1);
+            v[1] = lroundf(map1d->u2);
          }
          else {
             numBytes = 4 * sizeof *v;
             if (bufSize < numBytes)
                goto overflow;
-            v[0] = IROUND(map2d->u1);
-            v[1] = IROUND(map2d->u2);
-            v[2] = IROUND(map2d->v1);
-            v[3] = IROUND(map2d->v2);
+            v[0] = lroundf(map2d->u1);
+            v[1] = lroundf(map2d->u2);
+            v[2] = lroundf(map2d->v1);
+            v[3] = lroundf(map2d->v2);
          }
          break;
       default:
@@ -769,7 +770,8 @@ _mesa_MapGrid1f( GLint un, GLfloat u1, GLfloat u2 )
       _mesa_error( ctx, GL_INVALID_VALUE, "glMapGrid1f" );
       return;
    }
-   FLUSH_VERTICES(ctx, _NEW_EVAL);
+   FLUSH_VERTICES(ctx, 0);
+   vbo_exec_update_eval_maps(ctx);
    ctx->Eval.MapGrid1un = un;
    ctx->Eval.MapGrid1u1 = u1;
    ctx->Eval.MapGrid1u2 = u2;
@@ -799,7 +801,8 @@ _mesa_MapGrid2f( GLint un, GLfloat u1, GLfloat u2,
       return;
    }
 
-   FLUSH_VERTICES(ctx, _NEW_EVAL);
+   FLUSH_VERTICES(ctx, 0);
+   vbo_exec_update_eval_maps(ctx);
    ctx->Eval.MapGrid2un = un;
    ctx->Eval.MapGrid2u1 = u1;
    ctx->Eval.MapGrid2u2 = u2;
@@ -815,7 +818,7 @@ void GLAPIENTRY
 _mesa_MapGrid2d( GLint un, GLdouble u1, GLdouble u2,
                  GLint vn, GLdouble v1, GLdouble v2 )
 {
-   _mesa_MapGrid2f( un, (GLfloat) u1, (GLfloat) u2, 
+   _mesa_MapGrid2f( un, (GLfloat) u1, (GLfloat) u2,
 		    vn, (GLfloat) v1, (GLfloat) v2 );
 }
 
@@ -856,7 +859,7 @@ init_1d_map( struct gl_1d_map *map, int n, const float *initial )
 
 
 /**
- * Initialize a 2-D evaluator map 
+ * Initialize a 2-D evaluator map
  */
 static void
 init_2d_map( struct gl_2d_map *map, int n, const float *initial )

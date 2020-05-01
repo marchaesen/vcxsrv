@@ -39,7 +39,6 @@
 #include "main/fbobject.h"
 #include "main/formats.h"
 #include "main/framebuffer.h"
-#include "util/imports.h"
 #include "main/renderbuffer.h"
 #include "main/version.h"
 #include "main/vtxfmt.h"
@@ -53,6 +52,7 @@
 #include "drivers/common/driverfuncs.h"
 #include "drivers/common/meta.h"
 #include "utils.h"
+#include "util/u_memory.h"
 
 #include "main/teximage.h"
 #include "main/texformat.h"

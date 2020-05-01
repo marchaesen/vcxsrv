@@ -1,10 +1,10 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
  * Copyright 2009 VMware, Inc.  All Rights Reserved.
  * Copyright © 2010-2011 Intel Corporation
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -12,11 +12,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -24,12 +24,12 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 #include "main/glheader.h"
 #include "main/context.h"
-#include "util/imports.h"
+
 #include "main/macros.h"
 #include "main/samplerobj.h"
 #include "main/shaderobj.h"
@@ -503,7 +503,7 @@ static GLboolean args_match( const struct state_key *key, GLuint unit )
 	    return GL_FALSE;
 	 }
 	 break;
-      default: 
+      default:
 	 return GL_FALSE;	/* impossible */
       }
    }
@@ -587,7 +587,7 @@ emit_combine(texenv_fragment_program *p,
    case TEXENV_MODE_ADD_PRODUCTS_SIGNED_NV:
       return add(add(mul(src[0], src[1]), mul(src[2], src[3])),
 		 new(p->mem_ctx) ir_constant(-0.5f));
-   default: 
+   default:
       assert(0);
       return src[0];
    }
@@ -606,7 +606,7 @@ emit_texenv(texenv_fragment_program *p, GLuint unit)
    if (!key->unit[unit].enabled) {
       return get_source(p, TEXENV_SRC_PREVIOUS, 0);
    }
-   
+
    switch (key->unit[unit].ModeRGB) {
    case TEXENV_MODE_DOT3_RGB_EXT:
       alpha_shift = key->unit[unit].ScaleShiftA;
@@ -621,7 +621,7 @@ emit_texenv(texenv_fragment_program *p, GLuint unit)
       alpha_shift = key->unit[unit].ScaleShiftA;
       break;
    }
-   
+
    /* If we'll do rgb/alpha shifting don't saturate in emit_combine().
     * We don't want to clamp twice.
     */
@@ -869,7 +869,7 @@ load_texenv_source(texenv_fragment_program *p,
    case TEXENV_SRC_TEXTURE7:
       load_texture(p, src - TEXENV_SRC_TEXTURE0);
       break;
-      
+
    default:
       /* not a texture src - do nothing */
       break;

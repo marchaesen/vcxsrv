@@ -623,6 +623,7 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 	<reg32 offset="2" name="2">
 		<bitfield name="EXT_SRC_ADDR_HI" low="0" high="31" shr="0"/>
 	</reg32>
+	<reg64 offset="1" name="EXT_SRC_ADDR" type="address"/>
 </domain>
 
 <bitset name="vgt_draw_initiator" inline="yes">
@@ -705,13 +706,14 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 		<reg32 offset="5" name="5">
 			<bitfield name="INDX_BASE_HI" low="0" high="31"/>
 		</reg32>
+		<reg64 offset="4" name="INDX_BASE" type="address"/>
 		<reg32 offset="6" name="6">
 			<bitfield name="INDX_SIZE" low="0" high="31"/>
 		</reg32>
 	</stripe>
 
 	<reg32 offset="4" name="4">
-		<bitfield name="INDX_BASE" low="0" high="31"/>
+		<bitfield name="INDX_BASE" low="0" high="31" type="address"/>
 	</reg32>
 
 	<reg32 offset="5" name="5">
@@ -721,13 +723,19 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 
 <domain name="CP_DRAW_INDIRECT" width="32" varset="chip" prefix="chip" variants="A4XX-">
 	<reg32 offset="0" name="0" type="vgt_draw_initiator_a4xx"/>
-	<reg32 offset="1" name="1">
-		<bitfield name="INDIRECT" low="0" high="31"/>
-	</reg32>
+	<strip variants="A4XX">
+		<reg32 offset="1" name="1">
+			<bitfield name="INDIRECT" low="0" high="31"/>
+		</reg32>
+	</strip>
 	<stripe variants="A5XX-">
+		<reg32 offset="1" name="1">
+			<bitfield name="INDIRECT_LO" low="0" high="31"/>
+		</reg32>
 		<reg32 offset="2" name="2">
 			<bitfield name="INDIRECT_HI" low="0" high="31"/>
 		</reg32>
+		<reg64 offset="1" name="INDIRECT" type="address"/>
 	</stripe>
 </domain>
 
@@ -752,6 +760,7 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 		<reg32 offset="2" name="2">
 			<bitfield name="INDX_BASE_HI" low="0" high="31"/>
 		</reg32>
+		<reg64 offset="1" name="INDX_BASE" type="address"/>
 		<reg32 offset="3" name="3">
 			<!-- max # of elements in index buffer -->
 			<bitfield name="MAX_INDICES" low="0" high="31" type="uint"/>
@@ -762,6 +771,7 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 		<reg32 offset="5" name="5">
 			<bitfield name="INDIRECT_HI" low="0" high="31"/>
 		</reg32>
+		<reg64 offset="4" name="INDIRECT" type="address"/>
 	</stripe>
 </domain>
 
@@ -832,12 +842,12 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 	<reg32 offset="4" name="4">
 		<bitfield name="BIN_SIZE_ADDRESS_HI" low="0" high="31"/>
 	</reg32>
-	<!-- what is this new address? -->
+	<!-- new on a6xx, where BIN_DATA_ADDR is the DRAW_STRM: -->
 	<reg32 offset="5" name="5">
-		<bitfield name="BIN_DATA_ADDR2_LO" low="0" high="31"/>
+		<bitfield name="BIN_PRIM_STRM_LO" low="0" high="31"/>
 	</reg32>
 	<reg32 offset="6" name="6">
-		<bitfield name="BIN_DATA_ADDR2_HI" low="0" high="31"/>
+		<bitfield name="BIN_PRIM_STRM_HI" low="0" high="31"/>
 	</reg32>
 </domain>
 

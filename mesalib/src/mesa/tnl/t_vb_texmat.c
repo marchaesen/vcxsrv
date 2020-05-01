@@ -28,7 +28,7 @@
 
 #include "main/glheader.h"
 #include "main/macros.h"
-#include "util/imports.h"
+
 #include "main/mtypes.h"
 
 #include "math/m_xform.h"
@@ -59,7 +59,7 @@ static GLboolean run_texmat_stage( struct gl_context *ctx,
    struct vertex_buffer *VB = &TNL_CONTEXT(ctx)->vb;
    GLuint i;
 
-   if (!ctx->Texture._TexMatEnabled || ctx->VertexProgram._Current) 
+   if (!ctx->Texture._TexMatEnabled || ctx->VertexProgram._Current)
       return GL_TRUE;
 
    /* ENABLE_TEXMAT implies that the texture matrix is not the

@@ -27,7 +27,7 @@
 #include "main/glheader.h"
 #include "main/light.h"
 #include "main/macros.h"
-#include "util/imports.h"
+
 #include "util/simple_list.h"
 #include "main/mtypes.h"
 
@@ -175,7 +175,7 @@ _tnl_validate_shine_tables( struct gl_context *ctx )
 {
    TNLcontext *tnl = TNL_CONTEXT(ctx);
    GLfloat shininess;
-   
+
    shininess = ctx->Light.Material.Attrib[MAT_ATTRIB_FRONT_SHININESS][0];
    if (!tnl->_ShineTable[0] || tnl->_ShineTable[0]->shininess != shininess)
       validate_shine_table( ctx, 0, shininess );
@@ -205,7 +205,7 @@ update_materials(struct gl_context *ctx, struct light_stage_data *store)
       /* increment src vertex color pointer */
       STRIDE_F(store->mat[i].ptr, store->mat[i].stride);
    }
-      
+
    /* recompute derived light/material values */
    _mesa_update_material( ctx, store->mat_bitmask );
    /* XXX we should only call this if we're tracking/changing the specular
@@ -224,7 +224,7 @@ prepare_materials(struct gl_context *ctx,
                   struct vertex_buffer *VB, struct light_stage_data *store)
 {
    GLuint i;
-   
+
    store->mat_count = 0;
    store->mat_bitmask = 0;
 
@@ -325,7 +325,7 @@ static void init_lighting_tables( void )
 }
 
 
-static GLboolean run_lighting( struct gl_context *ctx, 
+static GLboolean run_lighting( struct gl_context *ctx,
 			       struct tnl_pipeline_stage *stage )
 {
    struct light_stage_data *store = LIGHT_STAGE_DATA(stage);
@@ -354,7 +354,7 @@ static GLboolean run_lighting( struct gl_context *ctx,
 	  */
 	 _mesa_vector4f_clean_elem(&store->Input, VB->Count, 2);
       }
-	 
+
       if (input->size <= 1) {
 	 /* Clean y.
 	  */
@@ -363,7 +363,7 @@ static GLboolean run_lighting( struct gl_context *ctx,
 
       input = &store->Input;
    }
-   
+
    idx = 0;
 
    if (prepare_materials( ctx, VB, store ))
@@ -373,7 +373,7 @@ static GLboolean run_lighting( struct gl_context *ctx,
       idx |= LIGHT_TWOSIDE;
 
    /* The individual functions know about replaying side-effects
-    * vs. full re-execution. 
+    * vs. full re-execution.
     */
    store->light_func_tab[idx]( ctx, VB, stage, input );
 
@@ -399,7 +399,7 @@ static void validate_lighting( struct gl_context *ctx,
    }
    else {
       /* Power of two means only a single active light. */
-      if (_mesa_is_pow_two(ctx->Light._EnabledLights))
+      if (util_is_power_of_two_or_zero(ctx->Light._EnabledLights))
 	 tab = _tnl_light_fast_single_tab;
       else
 	 tab = _tnl_light_fast_tab;

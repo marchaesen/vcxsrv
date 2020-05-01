@@ -24,12 +24,13 @@
 #include "main/glheader.h"
 #include "main/context.h"
 #include "main/hash.h"
-#include "util/imports.h"
+
 #include "main/macros.h"
 #include "main/enums.h"
 #include "main/mtypes.h"
 #include "main/atifragshader.h"
 #include "program/program.h"
+#include "util/u_memory.h"
 
 #define MESA_DEBUG_ATI_FS 0
 
@@ -109,7 +110,7 @@ create_dst_mod_str(GLuint mod)
    return ret_str;
 }
 
-static char *atifs_ops[] = {"ColorFragmentOp1ATI", "ColorFragmentOp2ATI", "ColorFragmentOp3ATI", 
+static char *atifs_ops[] = {"ColorFragmentOp1ATI", "ColorFragmentOp2ATI", "ColorFragmentOp3ATI",
 			    "AlphaFragmentOp1ATI", "AlphaFragmentOp2ATI", "AlphaFragmentOp3ATI" };
 
 static void debug_op(GLint optype, GLuint arg_count, GLenum op, GLuint dst,
@@ -121,14 +122,14 @@ static void debug_op(GLint optype, GLuint arg_count, GLenum op, GLuint dst,
   char *op_name;
 
   op_name = atifs_ops[(arg_count-1)+(optype?3:0)];
-  
+
   fprintf(stderr, "%s(%s, %s", op_name, _mesa_enum_to_string(op),
 	      _mesa_enum_to_string(dst));
   if (optype == ATI_FRAGMENT_SHADER_COLOR_OP)
     fprintf(stderr, ", %d", dstMask);
-  
+
   fprintf(stderr, ", %s", create_dst_mod_str(dstMod));
-  
+
   fprintf(stderr, ", %s, %s, %d", _mesa_enum_to_string(arg1),
 	      _mesa_enum_to_string(arg1Rep), arg1Mod);
   if (arg_count>1)

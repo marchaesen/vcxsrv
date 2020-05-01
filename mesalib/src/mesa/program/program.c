@@ -181,18 +181,18 @@ _mesa_set_program_error(struct gl_context *ctx, GLint pos, const char *string)
  * Initialize a new gl_program object.
  */
 struct gl_program *
-_mesa_init_gl_program(struct gl_program *prog, GLenum target, GLuint id,
-                      bool is_arb_asm)
+_mesa_init_gl_program(struct gl_program *prog, gl_shader_stage stage,
+                      GLuint id, bool is_arb_asm)
 {
    if (!prog)
       return NULL;
 
    memset(prog, 0, sizeof(*prog));
    prog->Id = id;
-   prog->Target = target;
+   prog->Target = _mesa_shader_stage_to_program(stage);
    prog->RefCount = 1;
    prog->Format = GL_PROGRAM_FORMAT_ASCII_ARB;
-   prog->info.stage = _mesa_program_enum_to_shader_stage(target);
+   prog->info.stage = stage;
    prog->is_arb_asm = is_arb_asm;
 
    /* Uniforms that lack an initializer in the shader code have an initial
@@ -225,27 +225,16 @@ _mesa_init_gl_program(struct gl_program *prog, GLenum target, GLuint id,
  *
  * \param ctx  context
  * \param id   program id/number
- * \param target  program target/type
+ * \param stage  shader stage
  * \return  pointer to new program object
  */
 struct gl_program *
-_mesa_new_program(struct gl_context *ctx, GLenum target, GLuint id,
+_mesa_new_program(struct gl_context *ctx, gl_shader_stage stage, GLuint id,
                   bool is_arb_asm)
 {
-   switch (target) {
-   case GL_VERTEX_PROGRAM_ARB: /* == GL_VERTEX_PROGRAM_NV */
-   case GL_GEOMETRY_PROGRAM_NV:
-   case GL_TESS_CONTROL_PROGRAM_NV:
-   case GL_TESS_EVALUATION_PROGRAM_NV:
-   case GL_FRAGMENT_PROGRAM_ARB:
-   case GL_COMPUTE_PROGRAM_NV: {
-      struct gl_program *prog = rzalloc(NULL, struct gl_program);
-      return _mesa_init_gl_program(prog, target, id, is_arb_asm);
-   }
-   default:
-      _mesa_problem(ctx, "bad target in _mesa_new_program");
-      return NULL;
-   }
+   struct gl_program *prog = rzalloc(NULL, struct gl_program);
+
+   return _mesa_init_gl_program(prog, stage, id, is_arb_asm);
 }
 
 
@@ -539,7 +528,7 @@ _mesa_get_min_invocations_per_fragment(struct gl_context *ctx,
                                             SYSTEM_BIT_SAMPLE_POS)))
          return MAX2(_mesa_geometric_samples(ctx->DrawBuffer), 1);
       else if (ctx->Multisample.SampleShading)
-         return MAX2(ceil(ctx->Multisample.MinSampleShadingValue *
+         return MAX2(ceilf(ctx->Multisample.MinSampleShadingValue *
                           _mesa_geometric_samples(ctx->DrawBuffer)), 1);
       else
          return 1;

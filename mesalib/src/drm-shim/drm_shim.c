@@ -97,20 +97,34 @@ struct file_override {
 };
 static struct file_override file_overrides[10];
 static int file_overrides_count;
+extern bool drm_shim_driver_prefers_first_render_node;
 
-/* Come up with a filename for a render node that doesn't actually exist on
- * the system.
+#define nfasprintf(...)                         \
+   {                                            \
+      UNUSED int __ret = asprintf(__VA_ARGS__); \
+      assert(__ret >= 0);                       \
+   }
+#define nfvasprintf(...)                         \
+   {                                             \
+      UNUSED int __ret = vasprintf(__VA_ARGS__); \
+      assert(__ret >= 0);                        \
+   }
+
+/* Pick the minor and filename for our shimmed render node.  This can be
+ * either a new one that didn't exist on the system, or if the driver wants,
+ * it can replace the first render node.
  */
 static void
 get_dri_render_node_minor(void)
 {
    for (int i = 0; i < 10; i++) {
-      int minor = 128 + i;
-      asprintf(&render_node_dirent_name, "renderD%d", minor);
-      asprintf(&render_node_path, "/dev/dri/%s",
-               render_node_dirent_name);
+      UNUSED int minor = 128 + i;
+      nfasprintf(&render_node_dirent_name, "renderD%d", minor);
+      nfasprintf(&render_node_path, "/dev/dri/%s",
+                 render_node_dirent_name);
       struct stat st;
-      if (stat(render_node_path, &st) == -1) {
+      if (drm_shim_driver_prefers_first_render_node ||
+          stat(render_node_path, &st) == -1) {
 
          render_node_minor = minor;
          return;
@@ -140,7 +154,7 @@ drm_shim_override_file(const char *contents, const char *path_format, ...)
    char *path;
    va_list ap;
    va_start(ap, path_format);
-   vasprintf(&path, path_format, ap);
+   nfvasprintf(&path, path_format, ap);
    va_end(ap);
 
    struct file_override *override = &file_overrides[file_overrides_count++];
@@ -203,13 +217,13 @@ init_shim(void)
               render_node_path);
    }
 
-   asprintf(&device_path,
-            "/sys/dev/char/%d:%d/device",
-            DRM_MAJOR, render_node_minor);
+   nfasprintf(&device_path,
+              "/sys/dev/char/%d:%d/device",
+              DRM_MAJOR, render_node_minor);
 
-   asprintf(&subsystem_path,
-            "/sys/dev/char/%d:%d/device/subsystem",
-            DRM_MAJOR, render_node_minor);
+   nfasprintf(&subsystem_path,
+              "/sys/dev/char/%d:%d/device/subsystem",
+              DRM_MAJOR, render_node_minor);
 
    drm_shim_device_init();
 
@@ -273,8 +287,9 @@ PUBLIC int __xstat(int ver, const char *path, struct stat *st)
     * there.
     */
    char *sys_dev_drm_dir;
-   asprintf(&sys_dev_drm_dir, "/sys/dev/char/%d:%d/device/drm",
-            DRM_MAJOR, render_node_minor);
+   nfasprintf(&sys_dev_drm_dir,
+              "/sys/dev/char/%d:%d/device/drm",
+              DRM_MAJOR, render_node_minor);
    if (strcmp(path, sys_dev_drm_dir) == 0) {
       free(sys_dev_drm_dir);
       return 0;
@@ -306,8 +321,9 @@ PUBLIC int __xstat64(int ver, const char *path, struct stat64 *st)
     * there.
     */
    char *sys_dev_drm_dir;
-   asprintf(&sys_dev_drm_dir, "/sys/dev/char/%d:%d/device/drm",
-            DRM_MAJOR, render_node_minor);
+   nfasprintf(&sys_dev_drm_dir,
+              "/sys/dev/char/%d:%d/device/drm",
+              DRM_MAJOR, render_node_minor);
    if (strcmp(path, sys_dev_drm_dir) == 0) {
       free(sys_dev_drm_dir);
       return 0;

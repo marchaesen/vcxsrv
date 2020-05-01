@@ -27,7 +27,7 @@
 #endif
 
 #include "main/glheader.h"
-#include "util/imports.h"
+
 #include "program/prog_instruction.h"
 #include "program/prog_statevars.h"
 #include "program/symbol_table.h"
@@ -379,7 +379,7 @@ ARRAYSHADOW2D             { return_token_or_IDENTIFIER(require_ARB_fp && require
    const unsigned s = swiz_from_char(yytext[1]);
    yylval->swiz_mask.swizzle = MAKE_SWIZZLE4(s, s, s, s);
    yylval->swiz_mask.mask = mask_from_char(yytext[1]);
-   return MASK1; 
+   return MASK1;
 }
 
 "."[xyzw]{4}              {

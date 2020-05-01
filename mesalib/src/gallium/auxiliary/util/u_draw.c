@@ -136,7 +136,7 @@ util_draw_indirect(struct pipe_context *pipe,
    struct pipe_draw_info info;
    struct pipe_transfer *transfer;
    uint32_t *params;
-   const unsigned num_params = info_in->index_size ? 5 : 4;
+   unsigned num_params = info_in->index_size ? 5 : 4;
 
    assert(info_in->indirect);
    assert(!info_in->count_from_stream_output);
@@ -160,6 +160,8 @@ util_draw_indirect(struct pipe_context *pipe,
       pipe_buffer_unmap(pipe, dc_transfer);
    }
 
+   if (info_in->indirect->stride)
+      num_params = MIN2(info_in->indirect->stride / 4, num_params);
    params = (uint32_t *)
       pipe_buffer_map_range(pipe,
                             info_in->indirect->buffer,

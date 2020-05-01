@@ -275,3 +275,20 @@ panfrost_invert_swizzle(const unsigned char *in, unsigned char *out)
                 out[idx] = PIPE_SWIZZLE_X + c;
         }
 }
+
+enum mali_format
+panfrost_format_to_bifrost_blend(const struct util_format_description *desc)
+{
+        enum mali_format format = panfrost_find_format(desc);
+
+        switch (format) {
+        case MALI_RGBA4_UNORM:
+                return MALI_RGBA4;
+        case MALI_RGBA8_UNORM:
+                return MALI_RGBA8_2;
+        case MALI_RGB10_A2_UNORM:
+                return MALI_RGB10_A2_2;
+        default:
+                return format;
+        }
+}

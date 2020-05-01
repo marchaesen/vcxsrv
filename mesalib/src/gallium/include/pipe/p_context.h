@@ -512,12 +512,14 @@ struct pipe_context {
     * The entire buffers are cleared (no scissor, no colormask, etc).
     *
     * \param buffers  bitfield of PIPE_CLEAR_* values.
+    * \param scissor_state  the scissored region to clear
     * \param color  pointer to a union of fiu array for each of r, g, b, a.
     * \param depth  depth clear value in [0,1].
     * \param stencil  stencil clear value
     */
    void (*clear)(struct pipe_context *pipe,
                  unsigned buffers,
+                 const struct pipe_scissor_state *scissor_state,
                  const union pipe_color_union *color,
                  double depth,
                  unsigned stencil);

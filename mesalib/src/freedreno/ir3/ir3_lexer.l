@@ -79,6 +79,9 @@ static int parse_reg(const char *str)
 "@invocationid"                   return TOKEN(T_A_INVOCATIONID);
 "@wgid"                           return TOKEN(T_A_WGID);
 "@numwg"                          return TOKEN(T_A_NUMWG);
+"@in"                             return TOKEN(T_A_IN);
+"@out"                            return TOKEN(T_A_OUT);
+"@tex"                            return TOKEN(T_A_TEX);
 "(sy)"                            return TOKEN(T_SY);
 "(ss)"                            return TOKEN(T_SS);
 "(absneg)"                        return TOKEN(T_ABSNEG);

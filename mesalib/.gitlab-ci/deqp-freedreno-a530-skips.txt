@@ -14,3 +14,4 @@ dEQP-GLES3.functional.texture.filtering.3d.*
 dEQP-GLES3.functional.texture.vertex.3d.filtering.*
 dEQP-GLES3.functional.fbo.invalidate.sub.unbind_blit_msaa_stencil
 dEQP-GLES3.functional.fbo.invalidate.whole.unbind_blit_msaa_stencil
+dEQP-GLES31.functional.ubo.2_level_struct_array.single_buffer.packed_instance_array_fragment

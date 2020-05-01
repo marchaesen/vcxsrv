@@ -116,8 +116,6 @@ do_optimization(struct exec_list *ir, const char *optimization,
    } else if (sscanf(optimization, "lower_instructions ( %d ) ",
                      &int_0) == 1) {
       return lower_instructions(ir, int_0);
-   } else if (strcmp(optimization, "lower_noise") == 0) {
-      return lower_noise(ir);
    } else if (sscanf(optimization, "lower_variable_index_to_cond_assign "
                      "( %d , %d , %d , %d ) ", &int_0, &int_1, &int_2,
                      &int_3) == 4) {

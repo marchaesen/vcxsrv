@@ -30,7 +30,7 @@
 #include "glheader.h"
 #include "context.h"
 #include "enums.h"
-#include "util/imports.h"
+
 #include "macros.h"
 #include "teximage.h"
 #include "texobj.h"
@@ -744,7 +744,7 @@ _mesa_TextureStorage1DEXT(GLuint texture, GLenum target, GLsizei levels,
                           GLsizei width)
 {
    GET_CURRENT_CONTEXT(ctx);
-   /* 'texture' must always be initialized, even if the call to 
+   /* 'texture' must always be initialized, even if the call to
     * glTextureStorage1DEXT will generate an error.
     */
    if (!_mesa_lookup_or_create_texture(ctx, target, texture, false, true,
@@ -761,7 +761,7 @@ _mesa_TextureStorage2DEXT(GLuint texture, GLenum target, GLsizei levels,
                           GLsizei width, GLsizei height)
 {
    GET_CURRENT_CONTEXT(ctx);
-   /* 'texture' must always be initialized, even if the call to 
+   /* 'texture' must always be initialized, even if the call to
     * glTextureStorage2DEXT will generate an error.
     */
    if (!_mesa_lookup_or_create_texture(ctx, target, texture, false, true,
@@ -778,7 +778,7 @@ _mesa_TextureStorage3DEXT(GLuint texture, GLenum target, GLsizei levels,
                           GLsizei width, GLsizei height, GLsizei depth)
 {
    GET_CURRENT_CONTEXT(ctx);
-   /* 'texture' must always be initialized, even if the call to 
+   /* 'texture' must always be initialized, even if the call to
     * glTextureStorage3DEXT will generate an error.
     */
    if (!_mesa_lookup_or_create_texture(ctx, target, texture, false, true,

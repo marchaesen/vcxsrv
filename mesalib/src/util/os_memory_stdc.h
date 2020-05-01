@@ -45,27 +45,13 @@
 #define os_realloc( _old_ptr, _old_size, _new_size) \
    realloc(_old_ptr, _new_size + 0*(_old_size))
 
-
-#if defined(HAVE_POSIX_MEMALIGN)
-
-static inline void *
-os_malloc_aligned(size_t size, size_t alignment)
-{
-   void *ptr;
-   alignment = (alignment + sizeof(void*) - 1) & ~(sizeof(void*) - 1);
-   if(posix_memalign(&ptr, alignment, size) != 0)
-      return NULL;
-   return ptr;
-}
-
-#define os_free_aligned(_ptr) free(_ptr)
-
-#elif DETECT_OS_WINDOWS
+#if DETECT_OS_WINDOWS
 
 #include <malloc.h>
 
 #define os_malloc_aligned(_size, _align) _aligned_malloc(_size, _align)
 #define os_free_aligned(_ptr) _aligned_free(_ptr)
+#define os_realloc_aligned(_ptr, _oldsize, _newsize, _alignment) _aligned_realloc(_ptr, _newsize, _alignment)
 
 #else
 

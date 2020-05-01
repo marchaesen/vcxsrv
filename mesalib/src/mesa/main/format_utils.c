@@ -22,6 +22,8 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <stdlib.h>
+
 #include "errors.h"
 #include "format_utils.h"
 #include "glformats.h"
